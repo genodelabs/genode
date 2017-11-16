@@ -160,9 +160,10 @@ void Vbox_pointer::Main::_show_shape_pointer(Policy *p)
 		throw;
 	}
 
-	Genode::Attached_dataspace ds { _env.rm(), _pointer_ds };
-
-	p->draw_shape(ds.local_addr<Genode::Pixel_rgb565>());
+	if (p->shape_visible()) {
+		Genode::Attached_dataspace ds { _env.rm(), _pointer_ds };
+		p->draw_shape(ds.local_addr<Genode::Pixel_rgb565>());
+	}
 
 	_nitpicker.framebuffer()->refresh(0, 0, p->shape_size().w(), p->shape_size().h());
 
@@ -180,7 +181,7 @@ void Vbox_pointer::Main::_update_pointer()
 
 	if (_xray
 	 || !(policy = _policy_registry.lookup(_hovered_label, _hovered_domain))
-	 || !policy->shape_valid())
+	 || (policy->shape_visible() && !policy->shape_valid()))
 		_show_default_pointer();
 	else
 		try {

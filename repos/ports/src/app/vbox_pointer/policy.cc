@@ -54,6 +54,7 @@ class Vbox_pointer::Policy_entry : public Vbox_pointer::Policy,
 		Genode::Signal_handler<Policy_entry> _shape_signal_handler {
 			_env.ep(), *this, &Policy_entry::_import_shape };
 
+		bool             _shape_visible;
 		Nitpicker::Area  _shape_size;
 		Nitpicker::Point _shape_hot;
 
@@ -72,13 +73,16 @@ class Vbox_pointer::Policy_entry : public Vbox_pointer::Policy,
 			Vbox_pointer::Shape_report *shape_report =
 				_shape_ds.local_addr<Vbox_pointer::Shape_report>();
 
-			if (!shape_report->visible
+			_shape_visible = shape_report->visible;
+
+			if (!_shape_visible
 			 || shape_report->width == 0 || shape_report->height == 0
 			 || shape_report->width > Vbox_pointer::MAX_WIDTH
 			 || shape_report->height > Vbox_pointer::MAX_HEIGHT) {
 				_shape_size = Nitpicker::Area();
 				_shape_hot  = Nitpicker::Point();
 				_updater.update_pointer(*this);
+				return;
 			}
 
 			_shape_size = Nitpicker::Area(shape_report->width, shape_report->height);
@@ -154,7 +158,8 @@ class Vbox_pointer::Policy_entry : public Vbox_pointer::Policy,
 		Nitpicker::Area shape_size() const override { return _shape_size; }
 		Nitpicker::Point shape_hot() const override { return _shape_hot; }
 
-		bool shape_valid() const override { return _shape_size.valid(); }
+		bool shape_visible() const override { return _shape_visible; }
+		bool shape_valid()   const override { return _shape_size.valid(); }
 
 		void draw_shape(Genode::Pixel_rgb565 *pixel) override
 		{

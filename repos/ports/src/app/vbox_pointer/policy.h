@@ -42,6 +42,7 @@ struct Vbox_pointer::Policy
 {
 	virtual Nitpicker::Area shape_size() const = 0;
 	virtual Nitpicker::Point shape_hot() const = 0;
+	virtual bool shape_visible() const         = 0;
 	virtual bool shape_valid() const           = 0;
 
 	virtual void draw_shape(Genode::Pixel_rgb565 *pixel) = 0;
