@@ -78,7 +78,7 @@ Duration Timer::Connection::_update_interpolated_time(Duration &interpolated_tim
 	 * jump back but to freeze at the higher value until the new
 	 * interpolation has caught up.
 	 */
-	if (_interpolated_time < interpolated_time) {
+	if (_interpolated_time.less_than(interpolated_time)) {
 		_interpolated_time = interpolated_time; }
 
 	return _interpolated_time;

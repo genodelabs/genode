@@ -61,7 +61,7 @@ Duration Timer::Time_source::curr_time()
 	if (timeout_age_us > _last_timeout_age_us) {
 
 		/* increment time by the difference since the last update */
-		_curr_time += Microseconds(timeout_age_us - _last_timeout_age_us);
+		_curr_time.add(Microseconds(timeout_age_us - _last_timeout_age_us));
 		_last_timeout_age_us = timeout_age_us;
 	}
 	return _curr_time;

@@ -77,8 +77,8 @@ class Timer::Time_source : public Threaded_time_source
 
 			/* update in irq context or if update rate is below 4000 irq/s */
 			if (_irq || diff.value > 250) {
-				_curr_time += diff;
-				_tsc_last   = curr_tsc;
+				_curr_time.add(diff);
+				_tsc_last = curr_tsc;
 			}
 
 			return _curr_time;

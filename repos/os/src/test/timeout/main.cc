@@ -121,48 +121,48 @@ struct Duration_test : Test
 			Duration max_minus_1 (Microseconds(~0UL - 1));
 
 			/* all must be greater than the minimum */
-			if (min_plus_1   < min) { error(__func__, ":", __LINE__); error_cnt++; }
-			if (hour_minus_1 < min) { error(__func__, ":", __LINE__); error_cnt++; }
-			if (hour         < min) { error(__func__, ":", __LINE__); error_cnt++; }
-			if (hour_plus_1  < min) { error(__func__, ":", __LINE__); error_cnt++; }
-			if (max          < min) { error(__func__, ":", __LINE__); error_cnt++; }
-			if (max_minus_1  < min) { error(__func__, ":", __LINE__); error_cnt++; }
+			if (min_plus_1  .less_than(min)) { error(__func__, ":", __LINE__); error_cnt++; }
+			if (hour_minus_1.less_than(min)) { error(__func__, ":", __LINE__); error_cnt++; }
+			if (hour        .less_than(min)) { error(__func__, ":", __LINE__); error_cnt++; }
+			if (hour_plus_1 .less_than(min)) { error(__func__, ":", __LINE__); error_cnt++; }
+			if (max         .less_than(min)) { error(__func__, ":", __LINE__); error_cnt++; }
+			if (max_minus_1 .less_than(min)) { error(__func__, ":", __LINE__); error_cnt++; }
 
 			/* all must be less than the maximum */
-			if (max < min         ) { error(__func__, ":", __LINE__); error_cnt++; }
-			if (max < min_plus_1  ) { error(__func__, ":", __LINE__); error_cnt++; }
-			if (max < hour_minus_1) { error(__func__, ":", __LINE__); error_cnt++; }
-			if (max < hour        ) { error(__func__, ":", __LINE__); error_cnt++; }
-			if (max < hour_plus_1 ) { error(__func__, ":", __LINE__); error_cnt++; }
-			if (max < max_minus_1 ) { error(__func__, ":", __LINE__); error_cnt++; }
+			if (max.less_than(min         )) { error(__func__, ":", __LINE__); error_cnt++; }
+			if (max.less_than(min_plus_1  )) { error(__func__, ":", __LINE__); error_cnt++; }
+			if (max.less_than(hour_minus_1)) { error(__func__, ":", __LINE__); error_cnt++; }
+			if (max.less_than(hour        )) { error(__func__, ":", __LINE__); error_cnt++; }
+			if (max.less_than(hour_plus_1 )) { error(__func__, ":", __LINE__); error_cnt++; }
+			if (max.less_than(max_minus_1 )) { error(__func__, ":", __LINE__); error_cnt++; }
 
 			/* consistency around one hour */
-			if (hour        < hour_minus_1) { error(__func__, ":", __LINE__); error_cnt++; }
-			if (hour_plus_1 < hour        ) { error(__func__, ":", __LINE__); error_cnt++; }
+			if (hour       .less_than(hour_minus_1)) { error(__func__, ":", __LINE__); error_cnt++; }
+			if (hour_plus_1.less_than(hour        )) { error(__func__, ":", __LINE__); error_cnt++; }
 		}
 		/* consistency when we double the values */
 		Duration two_hours = hour;
 		Duration two_max   = max;
-		two_hours += Microseconds((unsigned long)US_PER_HOUR);
-		two_max   += Microseconds(~0UL);
-		if (two_hours < hour) { error(__func__, ":", __LINE__); error_cnt++; }
-		if (two_max   < max)  { error(__func__, ":", __LINE__); error_cnt++; }
+		two_hours.add(Microseconds((unsigned long)US_PER_HOUR));
+		two_max  .add(Microseconds(~0UL));
+		if (two_hours.less_than(hour)) { error(__func__, ":", __LINE__); error_cnt++; }
+		if (two_max  .less_than(max )) { error(__func__, ":", __LINE__); error_cnt++; }
 
 		/* create durations near corner cases by increasing after construction */
 		Duration hour_minus_1(Microseconds((unsigned long)US_PER_HOUR - 2));
 		Duration hour_plus_1 (Microseconds((unsigned long)US_PER_HOUR));
 		Duration max_minus_1 (Microseconds(~0UL - 2));
 		Duration max_plus_1  (Microseconds(~0UL));
-		hour_minus_1 += Microseconds(1);
-		hour_plus_1  += Microseconds(1);
-		max_minus_1  += Microseconds(1);
-		max_plus_1   += Microseconds(1);
+		hour_minus_1.add(Microseconds(1));
+		hour_plus_1 .add(Microseconds(1));
+		max_minus_1 .add(Microseconds(1));
+		max_plus_1  .add(Microseconds(1));
 
 		/* consistency around corner cases */
-		if (hour        < hour_minus_1) { error(__func__, ":", __LINE__); error_cnt++; }
-		if (hour_plus_1 < hour        ) { error(__func__, ":", __LINE__); error_cnt++; }
-		if (max         < max_minus_1 ) { error(__func__, ":", __LINE__); error_cnt++; }
-		if (max_plus_1  < max         ) { error(__func__, ":", __LINE__); error_cnt++; }
+		if (hour       .less_than(hour_minus_1)) { error(__func__, ":", __LINE__); error_cnt++; }
+		if (hour_plus_1.less_than(hour        )) { error(__func__, ":", __LINE__); error_cnt++; }
+		if (max        .less_than(max_minus_1 )) { error(__func__, ":", __LINE__); error_cnt++; }
+		if (max_plus_1 .less_than(max         )) { error(__func__, ":", __LINE__); error_cnt++; }
 
 		log("tests near maximum duration value (may take a while)");
 
@@ -200,9 +200,9 @@ struct Duration_test : Test
 				while (1) {
 					for (; duration_id < NR; duration_id++) {
 
-						if      (nr_left  > 4) { duration[duration_id] += Milliseconds(~0UL / (step + 1)); }
-						else if (nr_left == 4) { duration[duration_id] += Milliseconds(1000UL); }
-						else if (nr_left  < 4) { duration[duration_id] += Microseconds(1UL); }
+						if      (nr_left  > 4) { duration[duration_id].add(Milliseconds(~0UL / (step + 1))); }
+						else if (nr_left == 4) { duration[duration_id].add(Milliseconds(1000UL)); }
+						else if (nr_left  < 4) { duration[duration_id].add(Microseconds(1UL)); }
 					}
 					duration_id = step;
 				}
@@ -217,18 +217,18 @@ struct Duration_test : Test
 		 * than the maximum possible duration value. So, test consistency at
 		 * this corner case.
 		 */
-		duration[NR - 2] += Microseconds(1);
-		if (duration[NR - 2] < duration[NR - 1])        { error(__func__, ":", __LINE__); error_cnt++; }
-		if (duration[NR - 1] < duration[NR - 2]) ; else { error(__func__, ":", __LINE__); error_cnt++; }
+		duration[NR - 2].add(Microseconds(1));
+		if (duration[NR - 2].less_than(duration[NR - 1]))        { error(__func__, ":", __LINE__); error_cnt++; }
+		if (duration[NR - 1].less_than(duration[NR - 2])) ; else { error(__func__, ":", __LINE__); error_cnt++; }
 
 		/* test if we really had the expected durations */
 		try {
-			duration[NR - 2] += Microseconds(1);
+			duration[NR - 2].add(Microseconds(1));
 			error(__func__, ":", __LINE__); error_cnt++;
 		}
 		catch (Duration::Overflow) { }
 		try {
-			duration[NR - 1] += Microseconds(2);
+			duration[NR - 1].add(Microseconds(2));
 			error(__func__, ":", __LINE__); error_cnt++;
 		}
 		catch (Duration::Overflow) { }

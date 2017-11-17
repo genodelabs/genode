@@ -79,9 +79,9 @@ void Timer::Connection::_update_real_time()
 	Timestamp           ts_diff = ts - _ts;
 
 	/* overwrite timestamp, time, and real time member */
-	_us         = us;
-	_ts         = ts;
-	_real_time += Microseconds(us_diff);
+	_us = us;
+	_ts = ts;
+	_real_time.add(Microseconds(us_diff));
 
 
 	/*
@@ -198,12 +198,12 @@ Duration Timer::Connection::curr_time()
 		unsigned long const us_diff = _ts_to_us_ratio(ts_diff, us_to_ts_factor,
 		                                              us_to_ts_factor_shift);
 
-		interpolated_time += Microseconds(us_diff);
+		interpolated_time.add(Microseconds(us_diff));
 
 	} else {
 
 		/* use remote timer instead of timestamps */
-		interpolated_time += Microseconds(elapsed_us() - _us);
+		interpolated_time.add(Microseconds(elapsed_us() - _us));
 
 		lock_guard.destruct();
 	}

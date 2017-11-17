@@ -40,7 +40,7 @@ void Duration::_add_us_less_than_an_hour(unsigned long us)
 }
 
 
-void Duration::operator += (Microseconds us)
+void Duration::add(Microseconds us)
 {
 	/* filter out hours if any */
 	if (us.value >= (unsigned long)US_PER_HOUR) {
@@ -53,7 +53,7 @@ void Duration::operator += (Microseconds us)
 }
 
 
-void Duration::operator += (Milliseconds ms)
+void Duration::add(Milliseconds ms)
 {
 	/* filter out hours if any */
 	if (ms.value >= MS_PER_HOUR) {
@@ -66,7 +66,7 @@ void Duration::operator += (Milliseconds ms)
 }
 
 
-bool Duration::operator < (Duration &other) const
+bool Duration::less_than(Duration &other) const
 {
 	if (_hours != other._hours) {
 		return _hours < other._hours; }

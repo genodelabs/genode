@@ -71,13 +71,13 @@ struct Genode::Duration
 
 	public:
 
-		void operator += (Microseconds us);
-		void operator += (Milliseconds ms);
+		void add(Microseconds us);
+		void add(Milliseconds ms);
 
-		bool operator < (Duration &other) const;
+		bool less_than(Duration &other) const;
 
-		explicit Duration(Milliseconds ms) { *this += ms; }
-		explicit Duration(Microseconds us) { *this += us; }
+		explicit Duration(Milliseconds ms) { add(ms); }
+		explicit Duration(Microseconds us) { add(us); }
 
 		Microseconds trunc_to_plain_us() const;
 };
