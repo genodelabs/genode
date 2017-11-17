@@ -28,10 +28,40 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
+
+/* Genode includes */
 #include <base/log.h>
 #include <input_session/connection.h>
 #include <input/event.h>
 #include <input/keycodes.h>
+
+/* local includes */
+#include <SDL_genode_internal.h>
+
+
+Genode::Lock event_lock;
+Video video_events;
+
+
+static Genode::Env *_global_env = nullptr;
+
+
+Genode::Env *global_env()
+{
+	if (!_global_env) {
+		Genode::error("sdl_init_genode() not called, aborting");
+		throw Genode::Exception();
+	}
+
+	return _global_env;
+}
+
+
+void sdl_init_genode(Genode::Env &env)
+{
+	_global_env = &env;
+}
+
 
 extern "C" {
 
@@ -40,7 +70,8 @@ extern "C" {
 #include "SDL_sysevents.h"
 #include "SDL_genode_fb_events.h"
 
-	static Input::Connection *input = 0;
+
+	static Genode::Constructible<Input::Connection> input;
 	static const int KEYNUM_MAX = 512;
 	static SDLKey keymap[KEYNUM_MAX];
 	static int buttonmap[KEYNUM_MAX];
@@ -58,8 +89,17 @@ extern "C" {
 
 	void Genode_Fb_PumpEvents(SDL_VideoDevice *t)
 	{
+		Genode::Lock_guard<Genode::Lock> guard(event_lock);
+
+		if (video_events.resize_pending) {
+			video_events.resize_pending = false;
+
+			SDL_PrivateResize(video_events.width, video_events.height);
+		}
+
 		if (!input->pending())
 			return;
+
 		input->for_each_event([&] (Input::Event const &curr) {
 			SDL_keysym ksym;
 			switch(curr.type())
@@ -104,13 +144,14 @@ extern "C" {
 
 	void Genode_Fb_InitOSKeymap(SDL_VideoDevice *t)
 	{
-		using namespace Input;
-		input = new(Genode::env()->heap()) Connection();
-		if(!input->cap().valid())
-		{
+		try {
+			input.construct(*_global_env);
+		} catch (...) {
 			Genode::error("no input driver available!");
 			return;
 		}
+
+		using namespace Input;
 
 		/* Prepare button mappings */
 		for (int i=0; i<KEYNUM_MAX; i++)

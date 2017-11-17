@@ -1,3 +1,3 @@
-TARGET   = test-sdl
-LIBS     = sdl posix
-SRC_CC   = main.cc
+TARGET   := test-sdl
+LIBS     := libc sdl sdlmain
+SRC_CC   := main.cc

@@ -88,7 +88,7 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
-	<start name="dosbox">
+	<start name="dosbox" caps="200">
 		<resource name="RAM" quantum="128M"/>
 		<config>
 			<sdl_audio_volume value="100"/>
@@ -121,7 +121,7 @@ if {![file exists bin/dosbox.tar]} {
 append boot_modules {
 	core init timer } [audio_drv_binary] {
 	ld.lib.so
-	libc.lib.so posix.lib.so
+	libc.lib.so
 	libm.lib.so lwip.lib.so libpng.lib.so
 	stdcxx.lib.so sdl.lib.so sdl_net.lib.so pthread.lib.so zlib.lib.so
 	dosbox dosbox.tar

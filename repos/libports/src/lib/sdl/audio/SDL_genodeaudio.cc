@@ -14,12 +14,20 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+/* Genode includes */
 #include <base/allocator_avl.h>
 #include <base/attached_rom_dataspace.h>
 #include <base/log.h>
 #include <base/thread.h>
 #include <audio_out_session/connection.h>
 #include <util/reconstructible.h>
+
+/* local includes */
+#include <SDL_genode_internal.h>
+
+
+extern Genode::Env  *global_env();
+extern Genode::Lock  event_lock;
 
 
 enum {
@@ -34,7 +42,6 @@ using Genode::Hex;
 using Genode::Constructible;
 
 static const char *channel_names[] = { "front left", "front right" };
-static float volume = 1.0;
 static Signal_context config_signal_context;
 
 extern "C" {
@@ -54,46 +61,53 @@ extern "C" {
 /* The tag name used by Genode audio */
 #define GENODEAUD_DRIVER_NAME "genode"
 
+struct Volume_config
+{
+	Genode::Env        &_env;
+
+	Genode::Attached_rom_dataspace _config_rom { _env, "config" };
+
+	float volume { 1.0f };
+
+	void _handle_config_update()
+	{
+		_config_rom.update();
+
+		if (!_config_rom.valid()) { return; }
+
+		Genode::Lock_guard<Genode::Lock> guard(event_lock);
+
+		Genode::Xml_node config = _config_rom.xml();
+
+		try {
+			unsigned int config_volume;
+			config.sub_node("sdl_audio_volume").attribute("value")
+				.value(&config_volume);
+			volume = (float)config_volume / 100;
+		} catch (...) { }
+
+		Genode::log("Change SDL audio volume to ", volume * 100);
+	}
+
+	Genode::Signal_handler<Volume_config> _config_handler {
+		_env.ep(), *this, &Volume_config::_handle_config_update };
+
+	Volume_config(Genode::Env &env) : _env(env)
+	{
+		_config_rom.sigh(_config_handler);
+		_handle_config_update();
+	}
+};
+
+
 
 struct SDL_PrivateAudioData {
 	Uint8             *mixbuf;
 	Uint32             mixlen;
+	Constructible<Volume_config> volume_config;
 	Constructible<Audio_out::Connection> audio[AUDIO_CHANNELS];
 	Audio_out::Packet     *packet[AUDIO_CHANNELS];
 };
-
-
-/*
- * The first 'Signal_receiver' object in a process creates a signal receiver
- * thread. Currently this must not happen before the main program has started
- * or else the thread's stack area would get overmapped on Genode/Linux when
- * the main program calls 'main_thread_bootstrap()' from '_main()'.
- */
-static Signal_receiver *signal_receiver()
-{
-	static Signal_receiver _signal_receiver;
-	return &_signal_receiver;
-}
-
-
-static void read_config(Genode::Signal_context_capability sigh =
-                        Genode::Signal_context_capability())
-{
-	/* read volume from config file */
-	try {
-		unsigned int config_volume;
-
-		Genode::Attached_rom_dataspace config("config");
-		if (sigh.valid()) config.sigh(sigh);
-		else              config.update();
-		config.xml().sub_node("sdl_audio_volume")
-			.attribute("value").value(&config_volume);
-
-		volume = (float)config_volume / 100;
-	}
-	catch (Genode::Xml_node::Nonexistent_sub_node) { }
-	catch (Genode::Xml_node::Nonexistent_attribute) { }
-}
 
 
 /* Audio driver functions */
@@ -153,7 +167,7 @@ static SDL_AudioDevice *GENODEAUD_CreateDevice(int devindex)
 	/* connect to 'Audio_out' service */
 	for (int channel = 0; channel < AUDIO_CHANNELS; channel++) {
 		try {
-			_this->hidden->audio[channel].construct(
+			_this->hidden->audio[channel].construct(*global_env(),
 				channel_names[channel], false, channel == 0 ? true : false);
 			_this->hidden->audio[channel]->start();
 		}
@@ -167,7 +181,7 @@ static SDL_AudioDevice *GENODEAUD_CreateDevice(int devindex)
 		}
 	}
 
-	read_config(signal_receiver()->manage(&config_signal_context));
+	_this->hidden->volume_config.construct(*global_env());
 
 	return _this;
 }
@@ -200,6 +214,8 @@ static void GENODEAUD_WaitAudio(_THIS)
 
 static void GENODEAUD_PlayAudio(_THIS)
 {
+	Genode::Lock_guard<Genode::Lock> guard(event_lock);
+
 	Audio_out::Connection *c[AUDIO_CHANNELS];
 	Audio_out::Packet     *p[AUDIO_CHANNELS];
 	for (int channel = 0; channel < AUDIO_CHANNELS; channel++) {
@@ -214,6 +230,8 @@ static void GENODEAUD_PlayAudio(_THIS)
 		init = true;
 	}
 
+	float const volume = _this->hidden->volume_config->volume;
+
 	/*
 	 * Get new packet for left channel and use it to synchronize
 	 * the right channel
@@ -221,11 +239,6 @@ static void GENODEAUD_PlayAudio(_THIS)
 	p[0] = c[0]->stream()->next(p[0]);
 	unsigned ppos = c[0]->stream()->packet_position(p[0]);
 	p[1] = c[1]->stream()->get(ppos);
-
-	if (signal_receiver()->pending()) {
-		signal_receiver()->wait_for_signal();
-		read_config();
-	}
 
 	for (int sample = 0; sample < Audio_out::PERIOD; sample++)
 		for (int channel = 0; channel < AUDIO_CHANNELS; channel++)

@@ -85,7 +85,7 @@ set boot_modules {
 	core init
 	timer
 	test-sdl
-	ld.lib.so libc.lib.so libm.lib.so sdl.lib.so pthread.lib.so posix.lib.so
+	ld.lib.so libc.lib.so libm.lib.so sdl.lib.so pthread.lib.so
 }
 
 # platform-specific modules

@@ -34,6 +34,16 @@
 #include <base/env.h>
 #include <framebuffer_session/connection.h>
 
+/* local includes */
+#include <SDL_genode_internal.h>
+
+
+extern Genode::Env        *global_env();
+
+extern Genode::Lock event_lock;
+extern Video        video_events;
+
+
 extern "C" {
 
 #include <dlfcn.h>
@@ -47,10 +57,52 @@ extern "C" {
 #include "SDL_genode_fb_events.h"
 #include "SDL_genode_fb_video.h"
 
-	static Framebuffer::Connection *framebuffer = 0;
+	static SDL_Rect df_mode;
+
+	struct Sdl_framebuffer
+	{
+		Genode::Env        &_env;
+
+		Framebuffer::Mode _mode;
+		Framebuffer::Connection _fb { _env, _mode };
+
+		void _handle_mode_change()
+		{
+			Genode::Lock_guard<Genode::Lock> guard(event_lock);
+
+			Framebuffer::Mode mode = _fb.mode();
+			df_mode.w = mode.width();
+			df_mode.h = mode.height();
+
+			video_events.resize_pending = true;
+			video_events.width  = mode.width();
+			video_events.height = mode.height();
+		}
+
+		Genode::Signal_handler<Sdl_framebuffer> _mode_handler {
+			_env.ep(), *this, &Sdl_framebuffer::_handle_mode_change };
+
+		Sdl_framebuffer(Genode::Env &env) : _env(env) {
+			_fb.mode_sigh(_mode_handler); }
+
+		bool valid() const { return _fb.cap().valid(); }
+
+
+		/************************************
+		 ** Framebuffer::Session Interface **
+		 ************************************/
+
+		Genode::Dataspace_capability dataspace() { return _fb.dataspace(); }
+
+		Framebuffer::Mode mode() const { return _fb.mode(); }
+
+		void refresh(int x, int y, int w, int h) {
+			_fb.refresh(x, y, w, h); }
+	};
+
+	static Genode::Constructible<Sdl_framebuffer> framebuffer;
 	static Framebuffer::Mode scr_mode;
 	static SDL_Rect *modes[2];
-	static SDL_Rect df_mode;
 
 #if defined(SDL_VIDEO_OPENGL)
 
@@ -216,11 +268,11 @@ extern "C" {
 
 	static int Genode_Fb_Available(void)
 	{
-		if (framebuffer == nullptr) {
-			framebuffer = new (Genode::env()->heap()) Framebuffer::Connection();
+		if (!framebuffer.constructed()) {
+			framebuffer.construct(*global_env());
 		}
 
-		if (!framebuffer->cap().valid()) {
+		if (!framebuffer->valid()) {
 			Genode::error("could not obtain framebuffer session");
 			return 0;
 		}
@@ -231,12 +283,9 @@ extern "C" {
 
 	static void Genode_Fb_DeleteDevice(SDL_VideoDevice *device)
 	{
-		Genode::log("free framebuffer session object");
-		if(framebuffer != nullptr) {
-			Genode::destroy(Genode::env()->heap(), framebuffer);
+		if (framebuffer.constructed()) {
+			framebuffer.destruct();
 		}
-
-		framebuffer = nullptr;
 	}
 
 
@@ -310,9 +359,8 @@ extern "C" {
 	 */
 	int Genode_Fb_VideoInit(SDL_VideoDevice *t, SDL_PixelFormat *vformat)
 	{
-		if (framebuffer == 0)
-		{
-			Genode::error("framebuffer isn't initialized");
+		if (!framebuffer.constructed()) {
+			Genode::error("framebuffer not initialized");
 			return -1;
 		}
 
@@ -345,14 +393,27 @@ extern "C" {
 		df_mode.h = scr_mode.height();
 		modes[1] = 0;
 
-		/* Map the buffer */
-		Genode::Dataspace_capability fb_ds_cap = framebuffer->dataspace();
-		if (!fb_ds_cap.valid()) {
-			Genode::error("could not request dataspace for frame buffer");
-			return -1;
-		}
-		t->hidden->buffer = Genode::env()->rm_session()->attach(fb_ds_cap);
+		t->hidden->buffer = 0;
 		return 0;
+	}
+
+
+	/**
+	 *Note:  If we are terminated, this could be called in the middle of
+	 * another SDL video routine -- notably UpdateRects.
+	 */
+	void Genode_Fb_VideoQuit(SDL_VideoDevice *t)
+	{
+		Genode::log("Quit video device ...");
+
+		if (t->screen->pixels) {
+			t->screen->pixels = nullptr;
+		}
+
+		if (t->hidden->buffer) {
+			global_env()->rm().detach(t->hidden->buffer);
+			t->hidden->buffer = nullptr;
+		}
 	}
 
 
@@ -383,13 +444,32 @@ extern "C" {
 	                                    int width, int height,
 	                                    int bpp, Uint32 flags)
 	{
-		Genode::log("Set video mode to: "
-		            "width=", width, " " "height=", height, " " "bpp=", bpp);
+		/* for now we do not support this */
+		if (t->hidden->buffer && flags & SDL_OPENGL) {
+			Genode::error("resizing a OpenGL window not possible");
+			return nullptr;
+		}
+
+		/* Map the buffer */
+		Genode::Dataspace_capability fb_ds_cap = framebuffer->dataspace();
+		if (!fb_ds_cap.valid()) {
+			Genode::error("could not request dataspace for frame buffer");
+			return nullptr;
+		}
+
+		if (t->hidden->buffer) {
+			global_env()->rm().detach(t->hidden->buffer);
+		}
+
+		t->hidden->buffer = global_env()->rm().attach(fb_ds_cap);
 
 		if (!t->hidden->buffer) {
 			Genode::error("no buffer for requested mode");
 			return nullptr;
 		}
+
+		Genode::log("Set video mode to: ", width, "x", height, "@", bpp);
+
 		SDL_memset(t->hidden->buffer, 0, width * height * (bpp / 8));
 
 		if (!SDL_ReallocFormat(current, bpp, 0, 0, 0, 0) ) {
@@ -481,21 +561,6 @@ extern "C" {
 	}
 
 
-	/**
-	 *Note:  If we are terminated, this could be called in the middle of
-	 * another SDL video routine -- notably UpdateRects.
-	 */
-	void Genode_Fb_VideoQuit(SDL_VideoDevice *t)
-	{
-		Genode::log("Quit video device ...");
-		if (t->screen->pixels != 0)
-		{
-			SDL_free(t->screen->pixels);
-			t->screen->pixels = 0;
-		}
-	}
-
-
 	int Genode_Fb_GL_MakeCurrent(SDL_VideoDevice *t)
 	{
 		Genode::warning(__func__, ": not yet implemented");
@@ -523,5 +588,4 @@ extern "C" {
 	{
 		return !__mesa ? nullptr : dlsym(__mesa, proc);
 	}
-
 } //extern "C"
