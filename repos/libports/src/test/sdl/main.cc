@@ -37,38 +37,80 @@
 #include <base/printf.h>
 #include <timer_session/connection.h>
 
+
+static void draw(SDL_Surface * const screen, int w, int h)
+{
+	if (screen == nullptr) { return; }
+
+	/* paint something into pixel buffer */
+	short* const pixels = (short* const) screen->pixels;
+	for (int i = 0; i < h; i++) {
+		for (int j = 0; j < w; j++) {
+			pixels[i*w+j] = (i/32)*32*64 + (j/32)*32 + i*j/1024;
+		}
+	}
+	SDL_UpdateRect(screen, 0, 0, 0, 0);
+}
+
+
+static SDL_Surface *set_video_mode(int w, int h)
+{
+	SDL_Surface *screen = SDL_SetVideoMode(w, h, 16, SDL_SWSURFACE);
+	if (screen == nullptr) {
+		printf("Error: could not set video mode: %s\n", SDL_GetError());
+	}
+
+	return screen;
+}
+
+
+static SDL_Surface *resize_screen(SDL_Surface * const screen, int w, int h)
+{
+	if (screen == nullptr) { return nullptr; }
+
+	int oldw = screen->w;
+	int oldh = screen->h;
+
+	SDL_Surface *nscreen = set_video_mode(w, h);
+	if (nscreen == nullptr) {
+		printf("Error: could not resize %dx%d -> %dx%d: %s\n",
+		       oldw, oldh, w, h, SDL_GetError());
+		return nullptr;
+	}
+
+	return nscreen;
+}
+
+
 int main( int argc, char* args[] )
 {
+
 	/* start SDL */
 	if (SDL_Init(SDL_INIT_VIDEO) == -1) {
 		printf("Error: could not initialize SDL: %s\n", SDL_GetError());
 		return 1;
 	}
 
-	/* set up the screen */
-	SDL_Surface *screen = SDL_SetVideoMode(0, 0, 16, SDL_SWSURFACE);
-	if(screen == nullptr) { return 1; }
-
-	int const scr_width = screen->w;
-	int const scr_height = screen->h;
-
-	/* paint something into pixel buffer */
-	short* const pixels = (short* const) screen->pixels;
-	for (int i = 0; i < scr_height; i++) {
-		for (int j = 0; j < scr_width; j++) {
-			pixels[i*scr_width+j] = (i/32)*32*64 + (j/32)*32 + i*j/1024;
-		}
-	}
-	SDL_UpdateRect(screen, 0, 0, 0, 0);
+	/* set screen to max WxH */
+	SDL_Surface *screen = set_video_mode(0, 0);
+	if (screen == nullptr) { return 1; }
 
 	bool done = false;
 	while (!done) {
+		draw(screen, screen->w, screen->h);
+		SDL_Delay(10);
+
 		SDL_Event event;
 		while (SDL_PollEvent(&event)) {
 			switch(event.type) {
 			case SDL_KEYDOWN:
 				printf( "%s\n", SDL_GetKeyName(event.key.keysym.sym));
 				done = true;
+				break;
+			case SDL_VIDEORESIZE:
+				screen = resize_screen(screen, event.resize.w, event.resize.h);
+				if (screen == nullptr) { done = true; }
+
 				break;
 			}
 		}
