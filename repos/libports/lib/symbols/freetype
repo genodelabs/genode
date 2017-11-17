@@ -1,0 +1,334 @@
+FTC_CMapCache_Lookup T
+FTC_CMapCache_New T
+FTC_ImageCache_Lookup T
+FTC_ImageCache_LookupScaler T
+FTC_ImageCache_New T
+FTC_Image_Cache_Lookup T
+FTC_Image_Cache_New T
+FTC_Manager_Done T
+FTC_Manager_LookupFace T
+FTC_Manager_LookupSize T
+FTC_Manager_Lookup_Face T
+FTC_Manager_Lookup_Size T
+FTC_Manager_New T
+FTC_Manager_RemoveFaceID T
+FTC_Manager_Reset T
+FTC_Node_Unref T
+FTC_SBitCache_Lookup T
+FTC_SBitCache_LookupScaler T
+FTC_SBitCache_New T
+FTC_SBit_Cache_Lookup T
+FTC_SBit_Cache_New T
+FT_Activate_Size T
+FT_Add_Default_Modules T
+FT_Add_Module T
+FT_Alloc T
+FT_Angle_Diff T
+FT_Atan2 T
+FT_Attach_File T
+FT_Attach_Stream T
+FT_Bitmap_Convert T
+FT_Bitmap_Copy T
+FT_Bitmap_Done T
+FT_Bitmap_Embolden T
+FT_Bitmap_New T
+FT_CMap_Done T
+FT_CMap_New T
+FT_CeilFix T
+FT_ClassicKern_Free T
+FT_ClassicKern_Validate T
+FT_Cos T
+FT_DivFix T
+FT_Done_Face T
+FT_Done_FreeType T
+FT_Done_Glyph T
+FT_Done_GlyphSlot T
+FT_Done_Library T
+FT_Done_Memory T
+FT_Done_Size T
+FT_Face_CheckTrueTypePatents T
+FT_Face_GetCharVariantIndex T
+FT_Face_GetCharVariantIsDefault T
+FT_Face_GetCharsOfVariant T
+FT_Face_GetVariantSelectors T
+FT_Face_GetVariantsOfChar T
+FT_Face_SetUnpatentedHinting T
+FT_FloorFix T
+FT_Free T
+FT_Get_Advance T
+FT_Get_Advances T
+FT_Get_BDF_Charset_ID T
+FT_Get_BDF_Property T
+FT_Get_CID_From_Glyph_Index T
+FT_Get_CID_Is_Internally_CID_Keyed T
+FT_Get_CID_Registry_Ordering_Supplement T
+FT_Get_CMap_Format T
+FT_Get_CMap_Language_ID T
+FT_Get_Char_Index T
+FT_Get_Charmap_Index T
+FT_Get_FSType_Flags T
+FT_Get_First_Char T
+FT_Get_Gasp T
+FT_Get_Glyph T
+FT_Get_Glyph_Name T
+FT_Get_Kerning T
+FT_Get_MM_Var T
+FT_Get_Module T
+FT_Get_Module_Interface T
+FT_Get_Multi_Master T
+FT_Get_Name_Index T
+FT_Get_Next_Char T
+FT_Get_PFR_Advance T
+FT_Get_PFR_Kerning T
+FT_Get_PFR_Metrics T
+FT_Get_PS_Font_Info T
+FT_Get_PS_Font_Private T
+FT_Get_Postscript_Name T
+FT_Get_Renderer T
+FT_Get_Sfnt_Name T
+FT_Get_Sfnt_Name_Count T
+FT_Get_Sfnt_Table T
+FT_Get_SubGlyph_Info T
+FT_Get_Track_Kerning T
+FT_Get_TrueType_Engine_Type T
+FT_Get_WinFNT_Header T
+FT_Get_X11_Font_Format T
+FT_GlyphLoader_Add T
+FT_GlyphLoader_CheckPoints T
+FT_GlyphLoader_CheckSubGlyphs T
+FT_GlyphLoader_CopyPoints T
+FT_GlyphLoader_CreateExtra T
+FT_GlyphLoader_Done T
+FT_GlyphLoader_New T
+FT_GlyphLoader_Prepare T
+FT_GlyphLoader_Reset T
+FT_GlyphLoader_Rewind T
+FT_GlyphSlot_Embolden T
+FT_GlyphSlot_Oblique T
+FT_GlyphSlot_Own_Bitmap T
+FT_Glyph_Copy T
+FT_Glyph_Get_CBox T
+FT_Glyph_Stroke T
+FT_Glyph_StrokeBorder T
+FT_Glyph_To_Bitmap T
+FT_Glyph_Transform T
+FT_Has_PS_Glyph_Names T
+FT_Init_FreeType T
+FT_Library_SetLcdFilter T
+FT_Library_Version T
+FT_List_Add T
+FT_List_Finalize T
+FT_List_Find T
+FT_List_Insert T
+FT_List_Iterate T
+FT_List_Remove T
+FT_List_Up T
+FT_Load_Char T
+FT_Load_Glyph T
+FT_Load_Sfnt_Table T
+FT_Lookup_Renderer T
+FT_Match_Size T
+FT_Matrix_Invert T
+FT_Matrix_Multiply T
+FT_Matrix_Multiply_Scaled T
+FT_MulDiv T
+FT_MulDiv_No_Round T
+FT_MulFix T
+FT_New_Face T
+FT_New_GlyphSlot T
+FT_New_Library T
+FT_New_Memory T
+FT_New_Memory_Face T
+FT_New_Size T
+FT_OpenType_Free T
+FT_OpenType_Validate T
+FT_Open_Face T
+FT_Outline_Check T
+FT_Outline_Copy T
+FT_Outline_Decompose T
+FT_Outline_Done T
+FT_Outline_Done_Internal T
+FT_Outline_Embolden T
+FT_Outline_GetInsideBorder T
+FT_Outline_GetOutsideBorder T
+FT_Outline_Get_BBox T
+FT_Outline_Get_Bitmap T
+FT_Outline_Get_CBox T
+FT_Outline_Get_Orientation T
+FT_Outline_New T
+FT_Outline_New_Internal T
+FT_Outline_Render T
+FT_Outline_Reverse T
+FT_Outline_Transform T
+FT_Outline_Translate T
+FT_QAlloc T
+FT_QRealloc T
+FT_Raccess_Get_DataOffsets T
+FT_Raccess_Get_HeaderInfo T
+FT_Raccess_Guess T
+FT_Realloc T
+FT_Remove_Module T
+FT_Render_Glyph T
+FT_Render_Glyph_Internal T
+FT_Request_Metrics T
+FT_Request_Size T
+FT_RoundFix T
+FT_Select_Charmap T
+FT_Select_Metrics T
+FT_Select_Size T
+FT_Set_Char_Size T
+FT_Set_Charmap T
+FT_Set_Debug_Hook T
+FT_Set_MM_Blend_Coordinates T
+FT_Set_MM_Design_Coordinates T
+FT_Set_Pixel_Sizes T
+FT_Set_Renderer T
+FT_Set_Transform T
+FT_Set_Var_Blend_Coordinates T
+FT_Set_Var_Design_Coordinates T
+FT_Sfnt_Table_Info T
+FT_Sin T
+FT_Sqrt32 T
+FT_SqrtFixed T
+FT_Stream_Close T
+FT_Stream_EnterFrame T
+FT_Stream_ExitFrame T
+FT_Stream_ExtractFrame T
+FT_Stream_Free T
+FT_Stream_GetChar T
+FT_Stream_GetLong T
+FT_Stream_GetLongLE T
+FT_Stream_GetOffset T
+FT_Stream_GetShort T
+FT_Stream_GetShortLE T
+FT_Stream_New T
+FT_Stream_Open T
+FT_Stream_OpenGzip T
+FT_Stream_OpenLZW T
+FT_Stream_OpenMemory T
+FT_Stream_Pos T
+FT_Stream_Read T
+FT_Stream_ReadAt T
+FT_Stream_ReadChar T
+FT_Stream_ReadFields T
+FT_Stream_ReadLong T
+FT_Stream_ReadLongLE T
+FT_Stream_ReadOffset T
+FT_Stream_ReadShort T
+FT_Stream_ReadShortLE T
+FT_Stream_ReleaseFrame T
+FT_Stream_Seek T
+FT_Stream_Skip T
+FT_Stream_TryRead T
+FT_Stroker_BeginSubPath T
+FT_Stroker_ConicTo T
+FT_Stroker_CubicTo T
+FT_Stroker_Done T
+FT_Stroker_EndSubPath T
+FT_Stroker_Export T
+FT_Stroker_ExportBorder T
+FT_Stroker_GetBorderCounts T
+FT_Stroker_GetCounts T
+FT_Stroker_LineTo T
+FT_Stroker_New T
+FT_Stroker_ParseOutline T
+FT_Stroker_Rewind T
+FT_Stroker_Set T
+FT_Tan T
+FT_Trace_Get_Count T
+FT_Trace_Get_Name T
+FT_TrueTypeGX_Free T
+FT_TrueTypeGX_Validate T
+FT_Vector_From_Polar T
+FT_Vector_Length T
+FT_Vector_Polarize T
+FT_Vector_Rotate T
+FT_Vector_Transform T
+FT_Vector_Transform_Scaled T
+FT_Vector_Unit T
+TT_New_Context T
+TT_RunIns T
+afm_parser_funcs D 24
+autofit_module_class D 72
+bdf_cmap_class D 80
+bdf_driver_class D 208
+cff_cmap_encoding_class_rec D 80
+cff_cmap_unicode_class_rec D 80
+cff_driver_class D 208
+ft_bitmap_glyph_class D 64
+ft_corner_is_flat T
+ft_corner_orientation T
+ft_debug_init T
+ft_glyphslot_alloc_bitmap T
+ft_glyphslot_free_bitmap T
+ft_glyphslot_set_bitmap T
+ft_grays_raster D 48
+ft_highpow2 T
+ft_lzwstate_done T
+ft_lzwstate_init T
+ft_lzwstate_io T
+ft_lzwstate_reset T
+ft_mem_alloc T
+ft_mem_dup T
+ft_mem_free T
+ft_mem_qalloc T
+ft_mem_qrealloc T
+ft_mem_realloc T
+ft_mem_strcpyn T
+ft_mem_strdup T
+ft_module_get_service T
+ft_outline_glyph_class D 64
+ft_raster1_renderer_class D 120
+ft_raster5_renderer_class D 120
+ft_service_list_lookup T
+ft_smooth_lcd_renderer_class D 120
+ft_smooth_lcdv_renderer_class D 120
+ft_smooth_renderer_class D 120
+ft_standard_raster D 48
+ft_stub_set_char_sizes T
+ft_stub_set_pixel_sizes T
+ft_synthesize_vertical_metrics T
+ft_validator_error T
+ft_validator_init T
+ft_validator_run T
+ftc_basic_image_cache_class D 72
+ftc_basic_image_family_class D 48
+ftc_basic_sbit_cache_class D 72
+ftc_basic_sbit_family_class D 56
+ftc_cmap_cache_class D 64
+ftc_face_list_class D 40
+ftc_node_destroy T
+ftc_size_list_class D 40
+pcf_cmap_class D 80
+pcf_driver_class D 208
+pfr_cmap_class_rec D 80
+pfr_driver_class D 208
+pfr_metrics_service_rec D 24
+ps_hints_apply T
+ps_parser_funcs D 104
+ps_table_funcs D 32
+psaux_module_class D 72
+pshinter_module_class D 72
+psnames_module_class D 72
+sfnt_module_class D 72
+t1_builder_funcs D 64
+t1_cmap_classes D 32
+t1_cmap_custom_class_rec D 80
+t1_cmap_expert_class_rec D 80
+t1_cmap_standard_class_rec D 80
+t1_cmap_unicode_class_rec D 80
+t1_decoder_funcs D 24
+t1_driver_class D 208
+t1cid_driver_class D 208
+t42_driver_class D 208
+tt_cmap0_class_rec D 104
+tt_cmap10_class_rec D 104
+tt_cmap12_class_rec D 104
+tt_cmap14_class_rec D 104
+tt_cmap2_class_rec D 104
+tt_cmap4_class_rec D 104
+tt_cmap6_class_rec D 104
+tt_cmap8_class_rec D 104
+tt_default_graphics_state T
+tt_driver_class D 208
+winfnt_driver_class D 208

@@ -1,7 +1,7 @@
 set build_components {
 	core init
 	drivers/timer
-	app/mupdf
+	app/pdf_view
 	drivers/framebuffer drivers/input
 }
 
@@ -58,7 +58,7 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
-	<start name="mupdf">
+	<start name="pdf_view" caps="256">
 		<resource name="RAM" quantum="1G"/>
 		<config>
 			<vfs>
@@ -88,10 +88,10 @@ if {![file exist bin/test.pdf]} {
 
 set boot_modules {
 	core init ld.lib.so timer
-	mupdf
 	libc.lib.so libm.lib.so
 	openjpeg.lib.so freetype.lib.so libpng.lib.so zlib.lib.so jbig2dec.lib.so
 	mupdf.lib.so jpeg.lib.so
+	pdf_view
 	test.pdf
 }
 

@@ -1,0 +1,118 @@
+jbig2_alloc T
+jbig2_arith_Qe T
+jbig2_arith_decode T
+jbig2_arith_iaid_ctx_free T
+jbig2_arith_iaid_ctx_new T
+jbig2_arith_iaid_decode T
+jbig2_arith_int_ctx_free T
+jbig2_arith_int_ctx_new T
+jbig2_arith_int_decode T
+jbig2_arith_new T
+jbig2_build_huffman_table T
+jbig2_comment_ascii T
+jbig2_comment_unicode T
+jbig2_complete_page T
+jbig2_ctx_free T
+jbig2_ctx_new T
+jbig2_data_in T
+jbig2_decode_generic_mmr T
+jbig2_decode_generic_region T
+jbig2_decode_halftone_region T
+jbig2_decode_refinement_region T
+jbig2_decode_text_region T
+jbig2_end_of_page T
+jbig2_end_of_stripe T
+jbig2_error T
+jbig2_find_segment T
+jbig2_free T
+jbig2_free_segment T
+jbig2_generic_stats_size T
+jbig2_get_int16 T
+jbig2_get_int32 T
+jbig2_get_region_segment_info T
+jbig2_global_ctx_free T
+jbig2_halftone_region T
+jbig2_hd_new T
+jbig2_hd_release T
+jbig2_huffman_advance T
+jbig2_huffman_free T
+jbig2_huffman_get T
+jbig2_huffman_get_bits T
+jbig2_huffman_lines_A T
+jbig2_huffman_lines_B T
+jbig2_huffman_lines_C T
+jbig2_huffman_lines_D T
+jbig2_huffman_lines_E T
+jbig2_huffman_lines_F T
+jbig2_huffman_lines_G T
+jbig2_huffman_lines_H T
+jbig2_huffman_lines_I T
+jbig2_huffman_lines_J T
+jbig2_huffman_lines_K T
+jbig2_huffman_lines_L T
+jbig2_huffman_lines_M T
+jbig2_huffman_lines_N T
+jbig2_huffman_lines_O T
+jbig2_huffman_new T
+jbig2_huffman_offset T
+jbig2_huffman_params_A D 16
+jbig2_huffman_params_B D 16
+jbig2_huffman_params_C D 16
+jbig2_huffman_params_D D 16
+jbig2_huffman_params_E D 16
+jbig2_huffman_params_F D 16
+jbig2_huffman_params_G D 16
+jbig2_huffman_params_H D 16
+jbig2_huffman_params_I D 16
+jbig2_huffman_params_J D 16
+jbig2_huffman_params_K D 16
+jbig2_huffman_params_L D 16
+jbig2_huffman_params_M D 16
+jbig2_huffman_params_N D 16
+jbig2_huffman_params_O D 16
+jbig2_huffman_skip T
+jbig2_image_clear T
+jbig2_image_clone T
+jbig2_image_compose T
+jbig2_image_compose_unopt T
+jbig2_image_free T
+jbig2_image_get_pixel T
+jbig2_image_new T
+jbig2_image_read_pbm T
+jbig2_image_read_pbm_file T
+jbig2_image_release T
+jbig2_image_resize T
+jbig2_image_set_pixel T
+jbig2_image_write_pbm T
+jbig2_image_write_pbm_file T
+jbig2_image_write_png T
+jbig2_image_write_png_file T
+jbig2_immediate_generic_region T
+jbig2_make_global_ctx T
+jbig2_metadata_add T
+jbig2_metadata_free T
+jbig2_metadata_new T
+jbig2_mmr_black_decode T
+jbig2_mmr_white_decode T
+jbig2_page_add_result T
+jbig2_page_info T
+jbig2_page_out T
+jbig2_parse_extension_segment T
+jbig2_parse_segment T
+jbig2_parse_segment_header T
+jbig2_pattern_dictionary T
+jbig2_realloc T
+jbig2_refinement_region T
+jbig2_region_find_referred T
+jbig2_release_huffman_table T
+jbig2_release_page T
+jbig2_sd_cat T
+jbig2_sd_count_referred T
+jbig2_sd_glyph T
+jbig2_sd_list_referred T
+jbig2_sd_new T
+jbig2_sd_release T
+jbig2_symbol_dictionary T
+jbig2_text_region T
+jbig2_word_stream_buf_free T
+jbig2_word_stream_buf_new T
