@@ -119,24 +119,32 @@ configured to not wait for the acpi report:
 Synchronize ACPI startup and platform driver
 --------------------------------------------
 
-If the config attribute 'system' is set to 'yes', the platform driver monitors
-a ROM in XML format named 'system'.
+If the config attribute 'acpi_ready' is set to 'yes', the platform driver
+monitors a ROM in XML format named 'acpi_ready'.
 
 !<start name="platform_drv">
-!  <config acpi="yes" system="yes">
+!  <config acpi="yes" acpi_ready="yes">
 
-Additionally, the platform driver will announce the service as 'Acpi' first.
+The platform driver will announce its service not as 'Platform', but instead
+as 'Acpi' first.
+
 An ACPI application like acpica can connect to the platform driver and may
 reconfigure hardware devices according to the ACPI table findings. If the
 system state changes to "acpi_ready in the XML ROM 'acpi_ready':
 
 !<system state="acpi_ready"/>
 
-the platform driver will announce the platform session, so that drivers may
-start to operate with the platform driver.
+the platform driver will announce the platform session as 'Platform', so
+that drivers may start to operate with the platform driver.
 
 Hardware reset
 --------------
+If the config attribute 'system' is set to 'yes', the platform driver monitors
+a ROM in XML format named 'system'.
+
+!<start name="platform_drv">
+!  <config acpi="yes" system="yes">
+
 If the attribute 'state' in the system XML ROM turns to 'reset'
 
 !<system state="reset"/>

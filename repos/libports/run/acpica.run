@@ -40,7 +40,7 @@ proc platform_drv_add_routing {} {
 # override default config to react on 'system' ROM changes for reset
 proc platform_drv_config_config {} {
 	return {
-		<config acpi="yes" system="yes">}
+		<config acpi="yes" system="yes" acpi_ready="yes">}
 }
 
 append_platform_drv_build_components

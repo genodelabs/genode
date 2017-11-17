@@ -47,7 +47,7 @@ struct Platform::Main
 
 	Genode::Capability<Genode::Typed_root<Platform::Session_component> > root_cap;
 
-	bool _system_rom = false;
+	bool _acpi_ready = false;
 
 	void acpi_update()
 	{
@@ -62,7 +62,7 @@ struct Platform::Main
 
 		root_cap = _env.ep().manage(*root);
 
-		if (_system_rom) {
+		if (_acpi_ready) {
 			Genode::Parent::Service_name announce_for_acpi("Acpi");
 			_env.parent().announce(announce_for_acpi, root_cap);
 		} else
@@ -71,17 +71,16 @@ struct Platform::Main
 
 	void system_update()
 	{
-		if (!_system_rom || !system_state.is_constructed() ||
-		    !acpi_ready.is_constructed())
-			return;
+		if (system_state.is_constructed())
+			system_state->update();
 
-		system_state->update();
-		acpi_ready->update();
+		if (acpi_ready.is_constructed())
+			acpi_ready->update();
 
 		if (!root.is_constructed())
 			return;
 
-		if (system_state->is_valid()) {
+		if (system_state.is_constructed() && system_state->is_valid()) {
 			Genode::Xml_node system(system_state->local_addr<char>(),
 			                        system_state->size());
 
@@ -91,7 +90,8 @@ struct Platform::Main
 			if (state == "reset")
 				root->system_reset();
 		}
-		if (acpi_ready->is_valid()) {
+
+		if (acpi_ready.is_constructed() && acpi_ready->is_valid()) {
 			Genode::Xml_node system(acpi_ready->local_addr<char>(),
 			                        acpi_ready->size());
 
@@ -112,21 +112,22 @@ struct Platform::Main
 		_system_report(_env.ep(), *this, &Main::system_update)
 	{
 		const Genode::Xml_node config = _config.xml();
+		bool const system_rom = config.attribute_value("system", false);
+		bool const wait_for_acpi = config.attribute_value("acpi", true);
+		_acpi_ready = config.attribute_value("acpi_ready", false);
 
-		_system_rom = config.attribute_value("system", false);
-
-		typedef Genode::String<8> Value;
-		Value const wait_for_acpi = config.attribute_value("acpi", Value("yes"));
-
-		if (_system_rom) {
+		if (system_rom) {
 			/* wait for system state changes, e.g. reset and acpi_ready */
 			system_state.construct(env, "system");
 			system_state->sigh(_system_report);
+		}
+
+		if (_acpi_ready) {
 			acpi_ready.construct(env, "acpi_ready");
 			acpi_ready->sigh(_system_report);
 		}
 
-		if (wait_for_acpi == "yes") {
+		if (wait_for_acpi) {
 			/* for ACPI support, wait for the first valid acpi report */
 			acpi_rom.construct(env, "acpi");
 			acpi_rom->sigh(_acpi_report);
