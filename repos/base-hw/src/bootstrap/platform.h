@@ -46,6 +46,7 @@ class Bootstrap::Platform
 			Memory_region_array late_ram_regions;
 			Mmio_space const    core_mmio;
 			Hw::Acpi_rsdp       acpi_rsdp;
+			Hw::Framebuffer     framebuffer;
 
 			Board();
 		};

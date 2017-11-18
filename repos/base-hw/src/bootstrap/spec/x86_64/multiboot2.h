@@ -30,8 +30,10 @@ class Genode::Multiboot2_info : Mmio
 
 			struct Type : Register <0x00, 32>
 			{
-				enum { END = 0, MEMORY = 6, ACPI_RSDP_V1 = 14,
-				       ACPI_RSDP_V2 = 15 };
+				enum {
+					END = 0, MEMORY = 6, FRAMEBUFFER = 8,
+					ACPI_RSDP_V1 = 14, ACPI_RSDP_V2 = 15
+				};
 			};
 			struct Size : Register <0x04, 32> { };
 
@@ -54,8 +56,8 @@ class Genode::Multiboot2_info : Mmio
 
 		Multiboot2_info(addr_t mbi) : Mmio(mbi) { }
 
-        template <typename FUNC_MEM, typename FUNC_ACPI>
-		void for_each_tag(FUNC_MEM mem_fn, FUNC_ACPI acpi_fn)
+        template <typename FUNC_MEM, typename FUNC_ACPI, typename FUNC_FB>
+		void for_each_tag(FUNC_MEM mem_fn, FUNC_ACPI acpi_fn, FUNC_FB fb_fn)
 		{
 			addr_t const size = read<Multiboot2_info::Size>();
 
@@ -93,6 +95,15 @@ class Genode::Multiboot2_info : Mmio
 					}
 					if (sizeof(*rsdp) <= tag.read<Tag::Size>() - sizeof_tag)
 						acpi_fn(*rsdp);
+				}
+
+				if (tag.read<Tag::Type>() == Tag::Type::FRAMEBUFFER) {
+					size_t const sizeof_tag = 1UL << Tag::LOG2_SIZE;
+					addr_t const fb_addr  = tag_addr + sizeof_tag;
+
+					Hw::Framebuffer const * fb = reinterpret_cast<Hw::Framebuffer *>(fb_addr);
+					if (sizeof(*fb) <= tag.read<Tag::Size>() - sizeof_tag)
+						fb_fn(*fb);
 				}
 
 				tag_addr += align_addr(tag.read<Tag::Size>(), Tag::LOG2_SIZE);

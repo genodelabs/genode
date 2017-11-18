@@ -80,6 +80,9 @@ Bootstrap::Platform::Board::Board()
 			/* prefer higher acpi revisions */
 			if (!acpi_rsdp.valid() || acpi_rsdp.revision < rsdp.revision)
 				acpi_rsdp = rsdp;
+		},
+		[&] (Hw::Framebuffer const &fb) {
+			framebuffer = fb;
 		});
 
 		return;

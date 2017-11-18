@@ -16,6 +16,7 @@
 
 #include <hw/acpi_rsdp.h>
 #include <hw/memory_map.h>
+#include <hw/framebuffer.h>
 
 namespace Hw { struct Boot_info; }
 
@@ -30,16 +31,18 @@ struct Hw::Boot_info
 	Mmio_space    const mmio_space;
 	Memory_region_array ram_regions;
 	Acpi_rsdp     const acpi_rsdp;
+	Framebuffer   const framebuffer;
 
 	Boot_info(addr_t       const table,
 	          addr_t       const table_alloc,
 	          Mapping_pool const elf_mappings,
 	          Mapping      const boot_modules,
 	          Mmio_space   const mmio_space,
-	          Acpi_rsdp    const &acpi_rsdp)
+	          Acpi_rsdp    const &acpi_rsdp,
+	          Framebuffer  const &fb)
 	: table(table), table_allocator(table_alloc),
 	  elf_mappings(elf_mappings), boot_modules(boot_modules),
-	  mmio_space(mmio_space), acpi_rsdp(acpi_rsdp) {}
+	  mmio_space(mmio_space), acpi_rsdp(acpi_rsdp), framebuffer(fb) {}
 };
 
 #endif /* _SRC__LIB__HW__BOOT_INFO_H_ */

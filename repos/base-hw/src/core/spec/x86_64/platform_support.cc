@@ -69,6 +69,17 @@ void Platform::_init_additional()
 					xml.attribute("xsdt", String<32>(Hex(xsdt)));
 			}
 		});
+		xml.node("boot", [&] () {
+			xml.node("framebuffer", [&] () {
+				Hw::Framebuffer const &boot_fb = _boot_info().framebuffer;
+				xml.attribute("phys",   String<32>(Hex(boot_fb.addr)));
+				xml.attribute("width",  boot_fb.width);
+				xml.attribute("height", boot_fb.height);
+				xml.attribute("bpp",    boot_fb.bpp);
+				xml.attribute("type",   boot_fb.type);
+				xml.attribute("pitch",  boot_fb.pitch);
+			});
+		});
 	});
 
 	if (!unmap_local(virt_addr, pages)) {
