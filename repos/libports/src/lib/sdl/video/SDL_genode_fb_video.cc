@@ -450,6 +450,16 @@ extern "C" {
 			return nullptr;
 		}
 
+		/*
+		 * XXX there is something wrong with how this is used now.
+		 *     SDL_Flip() is going to call FlipHWSurface which was never
+		 *     implemented and leads to a nullptr function call.
+		 */
+		if (flags & SDL_DOUBLEBUF) {
+			Genode::warning("disable requested double-buffering");
+			flags &= ~SDL_DOUBLEBUF;
+		}
+
 		/* Map the buffer */
 		Genode::Dataspace_capability fb_ds_cap = framebuffer->dataspace();
 		if (!fb_ds_cap.valid()) {
