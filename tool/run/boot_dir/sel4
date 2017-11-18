@@ -74,6 +74,8 @@ proc run_boot_dir {binaries} {
 		#
 		set fh [open "[run_dir]/boot/grub/grub.cfg" "WRONLY CREAT TRUNC"]
 		puts $fh "set timeout=0"
+		# tell grub2 to prefer 32bit framebuffer resolution
+		puts $fh "set gfxpayload=\"0x0x32\""
 		puts $fh "menuentry 'Genode on seL4' {"
 		puts $fh " insmod multiboot2"
 		puts $fh " multiboot2 /boot/bender phys_max=256M $serial_bender_opt"

@@ -1,0 +1,146 @@
+--- src/kernel/sel4/include/arch/x86/arch/kernel/boot.h
++++ src/kernel/sel4/include/arch/x86/arch/kernel/boot.h
+@@ -42,7 +42,8 @@ bool_t init_sys_state(
+     acpi_rmrr_list_t *rmrr_list,
+     acpi_rsdp_t      *acpi_rsdp,
+     seL4_X86_BootInfo_VBE *vbe,
+-    seL4_X86_BootInfo_mmap_t *mb_mmap
++    seL4_X86_BootInfo_mmap_t *mb_mmap,
++    seL4_X86_BootInfo_fb_t *fb_info
+ );
+ 
+ bool_t init_cpu(
+--- src/kernel/sel4/include/arch/x86/arch/kernel/multiboot2.h
++++ src/kernel/sel4/include/arch/x86/arch/kernel/multiboot2.h
+@@ -38,11 +38,21 @@
+     char     string [1];
+ } PACKED multiboot2_module_t;
+ 
++typedef struct multiboot2_fb {
++    uint64_t addr;
++    uint32_t pitch;
++    uint32_t width;
++    uint32_t height;
++    uint8_t  bpp;
++    uint8_t  type;
++} PACKED multiboot2_fb_t;
++
+ enum multiboot2_tags {
+     MULTIBOOT2_TAG_END     = 0,
+     MULTIBOOT2_TAG_CMDLINE = 1,
+     MULTIBOOT2_TAG_MODULE  = 3,
+     MULTIBOOT2_TAG_MEMORY  = 6,
++    MULTIBOOT2_TAG_FB      = 8,
+     MULTIBOOT2_TAG_ACPI_1  = 14,
+     MULTIBOOT2_TAG_ACPI_2  = 15,
+ };
+--- src/kernel/sel4/libsel4/arch_include/x86/sel4/arch/bootinfo_types.h
++++ src/kernel/sel4/libsel4/arch_include/x86/sel4/arch/bootinfo_types.h
+@@ -135,4 +135,6 @@ typedef struct seL4_X86_BootInfo_mmap {
+     seL4_X86_mb_mmap_t mmap[SEL4_MULTIBOOT_MAX_MMAP_ENTRIES];
+ } SEL4_PACKED seL4_X86_BootInfo_mmap_t;
+ 
++typedef struct multiboot2_fb seL4_X86_BootInfo_fb_t;
++
+ #endif // __LIBSEL4_ARCH_BOOTINFO_TYPES_H
+--- src/kernel/sel4/libsel4/include/sel4/bootinfo_types.h
++++ src/kernel/sel4/libsel4/include/sel4/bootinfo_types.h
+@@ -88,5 +88,6 @@ typedef struct {
+ #define SEL4_BOOTINFO_HEADER_X86_VBE 1
+ #define SEL4_BOOTINFO_HEADER_X86_MBMMAP 2
+ #define SEL4_BOOTINFO_HEADER_X86_ACPI_RSDP 3
++#define SEL4_BOOTINFO_HEADER_X86_FRAMEBUFFER 4
+ 
+ #endif // __LIBSEL4_BOOTINFO_TYPES_H
+--- src/kernel/sel4/src/arch/x86/kernel/boot.c
++++ src/kernel/sel4/src/arch/x86/kernel/boot.c
+@@ -253,7 +253,8 @@ init_sys_state(
+     acpi_rmrr_list_t *rmrr_list,
+     acpi_rsdp_t      *acpi_rsdp,
+     seL4_X86_BootInfo_VBE *vbe,
+-    seL4_X86_BootInfo_mmap_t *mb_mmap
++    seL4_X86_BootInfo_mmap_t *mb_mmap,
++    seL4_X86_BootInfo_fb_t *fb_info
+ )
+ {
+     cap_t         root_cnode_cap;
+@@ -287,6 +288,12 @@ init_sys_state(
+     if (vbe->vbeMode != -1) {
+         extra_bi_size += sizeof(seL4_X86_BootInfo_VBE);
+     }
++    if (acpi_rsdp) {
++        extra_bi_size += sizeof(seL4_BootInfoHeader) + sizeof(*acpi_rsdp);
++    }
++    if (fb_info && fb_info->addr) {
++        extra_bi_size += sizeof(seL4_BootInfoHeader) + sizeof(*fb_info);
++    }
+ 
+     word_t mb_mmap_size = sizeof(seL4_X86_BootInfo_mmap_t);
+     extra_bi_size += mb_mmap_size;
+@@ -353,6 +360,17 @@ init_sys_state(
+         extra_bi_offset += sizeof(*acpi_rsdp);
+     }
+ 
++    /* populate framebuffer information block */
++    if (fb_info && fb_info->addr) {
++        seL4_BootInfoHeader header;
++        header.id = SEL4_BOOTINFO_HEADER_X86_FRAMEBUFFER;
++        header.len = sizeof(header) + sizeof(*fb_info);
++        *(seL4_BootInfoHeader*)(extra_bi_region.start + extra_bi_offset) = header;
++        extra_bi_offset += sizeof(header);
++        memcpy((void*)(extra_bi_region.start + extra_bi_offset), fb_info, sizeof(*fb_info));
++        extra_bi_offset += sizeof(*fb_info);
++    }
++
+     /* populate multiboot mmap block */
+     mb_mmap->header.id = SEL4_BOOTINFO_HEADER_X86_MBMMAP;
+     mb_mmap->header.len = mb_mmap_size;
+--- src/kernel/sel4/src/arch/x86/kernel/boot_sys.c
++++ src/kernel/sel4/src/arch/x86/kernel/boot_sys.c
+@@ -71,6 +71,7 @@ typedef struct boot_state {
+     mem_p_regs_t mem_p_regs;  /* physical memory regions */
+     seL4_X86_BootInfo_VBE vbe_info; /* Potential VBE information from multiboot */
+     seL4_X86_BootInfo_mmap_t mb_mmap_info; /* memory map information from multiboot */
++    seL4_X86_BootInfo_fb_t fb_info; /* framebuffer information as set by bootloader */
+ } boot_state_t;
+ 
+ BOOT_BSS
+@@ -229,7 +230,8 @@ try_boot_sys_node(cpu_id_t cpu_id)
+                 &boot_state.rmrr_list,
+                 &boot_state.acpi_rsdp,
+                 &boot_state.vbe_info,
+-                &boot_state.mb_mmap_info
++                &boot_state.mb_mmap_info,
++                &boot_state.fb_info
+             )) {
+         return false;
+     }
+@@ -644,6 +646,7 @@ try_boot_sys_mbi2(
+     boot_state.mem_p_regs.count = 0;
+     init_allocated_p_regions();
+     boot_state.mb_mmap_info.mmap_length = 0;
++    boot_state.vbe_info.vbeMode = -1;
+ 
+     while (tag < tag_e && tag->type != MULTIBOOT2_TAG_END) {
+         word_t const behind_tag = (word_t)tag + sizeof(*tag);
+@@ -701,6 +706,11 @@ try_boot_sys_mbi2(
+                     return false;
+                 }
+             }
++        } else if (tag->type == MULTIBOOT2_TAG_FB) {
++            multiboot2_fb_t const * fb = (multiboot2_fb_t const *)behind_tag;
++            printf("Got framebuffer info in multiboot2. Current video mode is at physical address=%llx pitch=%u resolution=%ux%u@%u type=%u\n",
++                fb->addr, fb->pitch, fb->width, fb->height, fb->bpp, fb->type);
++            boot_state.fb_info = *fb;
+         }
+ 
+         tag = (multiboot2_tag_t const *)((word_t)tag + ROUND_UP(tag->size, 3));
+@@ -713,8 +723,6 @@ try_boot_sys_mbi2(
+         return false;
+     }
+ 
+-    boot_state.vbe_info.vbeMode = -1;
+-
+     return true;
+ }
+ 

@@ -376,24 +376,53 @@ void Platform::_init_rom_modules()
 	Genode::Xml_generator xml(reinterpret_cast<char *>(virt_addr),
 	                          rom_size, rom_name, [&] ()
 	{
-		xml.node("acpi", [&] () {
+		if (!bi.extraLen)
+			return;
 
-			if (!bi.extraLen)
-				return;
+		addr_t const boot_info_page = reinterpret_cast<addr_t>(&bi);
+		addr_t const boot_info_extra = boot_info_page + 4096;
 
-			addr_t const boot_info_page = reinterpret_cast<addr_t>(&bi);
-			addr_t const boot_info_extra = boot_info_page + 4096;
+		seL4_BootInfoHeader const * element   = reinterpret_cast<seL4_BootInfoHeader *>(boot_info_extra);
+		seL4_BootInfoHeader const * const last = reinterpret_cast<seL4_BootInfoHeader const * const>(boot_info_extra + bi.extraLen);
 
-			seL4_BootInfoHeader const * element   = reinterpret_cast<seL4_BootInfoHeader *>(boot_info_extra);
-			seL4_BootInfoHeader const * const last = reinterpret_cast<seL4_BootInfoHeader const * const>(boot_info_extra + bi.extraLen);
+		for (seL4_BootInfoHeader const *next = nullptr;
+		     (next = reinterpret_cast<seL4_BootInfoHeader const *>(reinterpret_cast<addr_t>(element) + element->len)) &&
+		     next <= last && element->id != SEL4_BOOTINFO_HEADER_PADDING;
+			 element = next)
+		{
+			if (element->id == SEL4_BOOTINFO_HEADER_X86_FRAMEBUFFER) {
+				struct mbi2_framebuffer {
+					uint64_t addr;
+					uint32_t pitch;
+					uint32_t width;
+					uint32_t height;
+					uint8_t  bpp;
+					uint8_t  type;
+				} __attribute__((packed));
 
-			for (seL4_BootInfoHeader const *next = nullptr;
-			     (next = reinterpret_cast<seL4_BootInfoHeader const *>(reinterpret_cast<addr_t>(element) + element->len)) &&
-			     next <= last && element->id != SEL4_BOOTINFO_HEADER_PADDING;
-				 element = next)
-			{
-				if (element->id != SEL4_BOOTINFO_HEADER_X86_ACPI_RSDP)
+				if (sizeof(mbi2_framebuffer) + sizeof(*element) != element->len) {
+					error("unexpected framebuffer information format");
 					continue;
+				}
+
+				mbi2_framebuffer const * boot_fb = reinterpret_cast<mbi2_framebuffer const *>(reinterpret_cast<addr_t>(element) + sizeof(*element));
+
+				xml.node("boot", [&] () {
+					xml.node("framebuffer", [&] () {
+						xml.attribute("phys",   String<32>(Hex(boot_fb->addr)));
+						xml.attribute("width",  boot_fb->width);
+						xml.attribute("height", boot_fb->height);
+						xml.attribute("bpp",    boot_fb->bpp);
+						xml.attribute("type",   boot_fb->type);
+						xml.attribute("pitch",  boot_fb->pitch);
+					});
+				});
+			}
+
+			if (element->id != SEL4_BOOTINFO_HEADER_X86_ACPI_RSDP)
+				continue;
+
+			xml.node("acpi", [&] () {
 
 				struct Acpi_rsdp
 				{
@@ -422,8 +451,8 @@ void Platform::_init_rom_modules()
 					if (rsdp->xsdt)
 						xml.attribute("xsdt", String<32>(Hex(rsdp->xsdt)));
 				}
-			}
-		});
+			});
+		}
 	});
 
 	if (!unmap_local(virt_addr, pages, this)) {
