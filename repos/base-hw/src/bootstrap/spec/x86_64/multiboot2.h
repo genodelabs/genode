@@ -30,7 +30,8 @@ class Genode::Multiboot2_info : Mmio
 
 			struct Type : Register <0x00, 32>
 			{
-				enum { END = 0, MEMORY = 6, ACPI_RSDP = 15 };
+				enum { END = 0, MEMORY = 6, ACPI_RSDP_V1 = 14,
+				       ACPI_RSDP_V2 = 15 };
 			};
 			struct Size : Register <0x04, 32> { };
 
@@ -76,13 +77,21 @@ class Genode::Multiboot2_info : Mmio
 					}
 				}
 
-				if (tag.read<Tag::Type>() == Tag::Type::ACPI_RSDP) {
+				if (tag.read<Tag::Type>() == Tag::Type::ACPI_RSDP_V1 ||
+				    tag.read<Tag::Type>() == Tag::Type::ACPI_RSDP_V2) {
 					size_t const sizeof_tag = 1UL << Tag::LOG2_SIZE;
 					addr_t const rsdp_addr  = tag_addr + sizeof_tag;
 
 					Hw::Acpi_rsdp * rsdp = reinterpret_cast<Hw::Acpi_rsdp *>(rsdp_addr);
-					if (rsdp->valid() &&
-					    sizeof(*rsdp) >= tag.read<Tag::Size>() - sizeof_tag)
+
+					if (tag.read<Tag::Size>() - sizeof_tag == 20) {
+						/* ACPI RSDP v1 is 20 byte solely */
+						Hw::Acpi_rsdp rsdp_v1;
+						memset (&rsdp_v1, 0, sizeof(rsdp_v1));
+						memcpy (&rsdp_v1, rsdp, 20);
+						acpi_fn(rsdp_v1);
+					}
+					if (sizeof(*rsdp) <= tag.read<Tag::Size>() - sizeof_tag)
 						acpi_fn(*rsdp);
 				}
 

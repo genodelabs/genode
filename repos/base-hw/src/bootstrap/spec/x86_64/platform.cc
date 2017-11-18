@@ -76,7 +76,11 @@ Bootstrap::Platform::Board::Board()
 
 			lambda(base, size);
 		},
-		[&] (Hw::Acpi_rsdp const &rsdp) { acpi_rsdp = rsdp; });
+		[&] (Hw::Acpi_rsdp const &rsdp) {
+			/* prefer higher acpi revisions */
+			if (!acpi_rsdp.valid() || acpi_rsdp.revision < rsdp.revision)
+				acpi_rsdp = rsdp;
+		});
 
 		return;
 	}
