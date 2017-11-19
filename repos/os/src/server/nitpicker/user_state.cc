@@ -173,10 +173,12 @@ void User_state::_handle_input_event(Input::Event ev)
 				_hovered->submit_input_event(focus_ev);
 			}
 
-			if (_hovered->has_transient_focusable_domain())
+			if (_hovered->has_transient_focusable_domain()) {
 				global_receiver = _hovered;
-			else
+			} else {
 				_focus_view_owner_via_click(*_hovered);
+				_last_clicked = _hovered;
+			}
 		}
 
 		/*
@@ -269,6 +271,7 @@ User_state::handle_input_events(Input::Event const * const ev_buf,
 	View_owner       * const old_hovered        = _hovered;
 	View_owner const * const old_focused        = _focused;
 	View_owner const * const old_input_receiver = _input_receiver;
+	View_owner const * const old_last_clicked   = _last_clicked;
 
 	bool user_active = false;
 
@@ -336,7 +339,8 @@ User_state::handle_input_events(Input::Event const * const ev_buf,
 		                            (_input_receiver != old_input_receiver),
 		.key_state_affected       = key_state_affected,
 		.user_active              = user_active,
-		.key_pressed              = _key_pressed()
+		.key_pressed              = _key_pressed(),
+		.last_clicked_changed     = (_last_clicked != old_last_clicked)
 	};
 }
 
@@ -372,12 +376,20 @@ void User_state::report_focused_view_owner(Xml_generator &xml, bool active) cons
 }
 
 
+void User_state::report_last_clicked_view_owner(Xml_generator &xml) const
+{
+	if (_last_clicked)
+		_last_clicked->report(xml);
+}
+
+
 void User_state::forget(View_owner const &owner)
 {
 	_focus.forget(owner);
 
 	if (&owner == _focused)      _focused      = nullptr;
 	if (&owner == _next_focused) _next_focused = nullptr;
+	if (&owner == _last_clicked) _last_clicked = nullptr;
 
 	if (_hovered == &owner) {
 		View_component * const pointed_view = _view_stack.find_view(_pointer_pos);

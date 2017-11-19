@@ -266,6 +266,7 @@ struct Nitpicker::Main
 	Reporter _hover_reporter    = { _env, "hover" };
 	Reporter _focus_reporter    = { _env, "focus" };
 	Reporter _keystate_reporter = { _env, "keystate" };
+	Reporter _clicked_reporter  = { _env, "clicked" };
 
 	Attached_rom_dataspace _config { _env, "config" };
 
@@ -368,6 +369,15 @@ void Nitpicker::Main::_handle_input()
 			_user_state.report_keystate(xml); });
 	}
 
+	/*
+	 * Report whenever a non-focused view owner received a click. This report
+	 * can be consumed by a focus-managing component.
+	 */
+	if (_clicked_reporter.enabled() && result.last_clicked_changed) {
+		Reporter::Xml_generator xml(_clicked_reporter, [&] () {
+			_user_state.report_last_clicked_view_owner(xml); });
+	}
+
 	if (result.focus_changed)
 		_view_stack.update_all_views();
 
@@ -443,6 +453,7 @@ void Nitpicker::Main::_handle_config()
 	configure_reporter(config, _hover_reporter);
 	configure_reporter(config, _focus_reporter);
 	configure_reporter(config, _keystate_reporter);
+	configure_reporter(config, _clicked_reporter);
 
 	/* update domain registry and session policies */
 	for (Session_component *s = _session_list.first(); s; s = s->next())

@@ -72,9 +72,14 @@ class Nitpicker::User_state : public Focus_controller
 		View_owner *_hovered = nullptr;
 
 		/*
-		 * Session that receives the current stream of input events
+		 * View owner that receives the current stream of input events
 		 */
 		View_owner *_input_receiver = nullptr;
+
+		/**
+		 * View owner that was last clicked-on by the user
+		 */
+		View_owner *_last_clicked = nullptr;
 
 		/**
 		 * Array for tracking the state of each key
@@ -182,6 +187,7 @@ class Nitpicker::User_state : public Focus_controller
 			bool const key_state_affected;
 			bool const user_active;
 			bool const key_pressed;
+			bool const last_clicked_changed;
 		};
 
 		Handle_input_result handle_input_events(Input::Event const *ev_buf,
@@ -196,6 +202,7 @@ class Nitpicker::User_state : public Focus_controller
 		void report_pointer_position(Xml_generator &) const;
 		void report_hovered_view_owner(Xml_generator &) const;
 		void report_focused_view_owner(Xml_generator &, bool user_active) const;
+		void report_last_clicked_view_owner(Xml_generator &) const;
 
 		Point pointer_pos() { return _pointer_pos; }
 };

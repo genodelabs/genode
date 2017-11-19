@@ -214,3 +214,6 @@ The 'focus' attribute enables the reporting of the currently focused session.
 The 'pointer' attribute enables the reporting of the current absolute pointer
 position.
 The 'keystate' attribute enables the reporting of the currently pressed keys.
+The 'clicked' attribute enables the reporting of the last clicked-on unfocused
+client. This report is useful for a focus-managing component to implement a
+focus-on-click policy.
