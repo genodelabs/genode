@@ -46,6 +46,14 @@ class Nitpicker::User_state : public Focus_controller
 		 */
 		bool _global_key_sequence = false;
 
+		/*
+		 * True if the input focus should change directly whenever the user
+		 * clicks on an unfocused client. This is the traditional behaviour
+		 * of nitpicker. This builtin policy is now superseded by the use of an
+		 * external focus-management component (e.g., nit_focus).
+		 */
+		bool _focus_via_click = true;
+
 		/**
 		 * Input-focus information propagated to the view stack
 		 */
@@ -133,8 +141,15 @@ class Nitpicker::User_state : public Focus_controller
 			if (_key_pressed() && !_global_key_sequence)
 				return;
 
-			if (_focused != _next_focused)
+			if (_focused != _next_focused) {
 				_focused  = _next_focused;
+
+				/* propagate changed focus to view stack */
+				if (_focused)
+					_focus.assign(*_focused);
+				else
+					_focus.reset();
+			}
 		}
 
 	public:
@@ -205,6 +220,32 @@ class Nitpicker::User_state : public Focus_controller
 		void report_last_clicked_view_owner(Xml_generator &) const;
 
 		Point pointer_pos() { return _pointer_pos; }
+
+		/**
+		 * Enable/disable direct focus changes by clicking on a client
+		 */
+		void focus_via_click(bool enabled) { _focus_via_click = enabled; }
+
+		/**
+		 * Set input focus to specified view owner
+		 *
+		 * This method is used when nitpicker's focus is managed by an
+		 * external focus-policy component like 'nit_focus'.
+		 *
+		 * The focus change is not applied immediately but deferred to the
+		 * next call of 'handle_input_events' (which happens periodically).
+		 */
+		void focus(View_owner &owner)
+		{
+			/*
+			 * The focus change is not applied immediately but deferred to the
+			 * next call of '_apply_pending_focus_change' via the periodic
+			 * call of 'handle_input_events'.
+			 */
+			_next_focused = &owner;
+		}
+
+		void reset_focus() { _next_focused = nullptr; }
 };
 
 #endif /* _USER_STATE_H_ */

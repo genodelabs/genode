@@ -122,6 +122,20 @@ If not specified, the focus attribute defaults to 'none'.
 Note that the input focus may also be manipulated via nitpicker's session
 interface, which allows a client to yield the focus to other clients.
 
+By default, nitpicker has a builtin click-to-focus policy where focus changes
+are initiated exclusively by the user by clicking on a view of an unfocused
+client. However, the builtin policy is not always desired. For example, in
+console-like scenarios, the focus should always correspond to the visible
+console regardless of any mouse clicks. Nitpicker supports such scenarios by
+the use of an external focus-policy component (e.g., nit_focus). By setting
+the '<config>' attribute 'focus' to "rom", the focus is obtained from an
+external ROM module named "focus". The focus ROM is expected to have a 'label'
+attribute with the value set to the label of the to-be focused client. When
+using an external focus policy, domains configured as "click" are internally
+handled like "transient" focusable domains. It is up to the external focus
+policy component to make a new focus permanent by providing an updated "focus"
+ROM.
+
 
 Hovering policy
 ---------------

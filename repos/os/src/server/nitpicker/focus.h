@@ -65,6 +65,8 @@ class Nitpicker::Focus : Noncopyable
 		 */
 		void assign(View_owner const &focused) { _focused = &focused; }
 
+		void reset() { _focused = nullptr; }
+
 		void forget(View_owner const &owner)
 		{
 			if (_focused == &owner)

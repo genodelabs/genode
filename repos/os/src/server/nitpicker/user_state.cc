@@ -176,7 +176,21 @@ void User_state::_handle_input_event(Input::Event ev)
 			if (_hovered->has_transient_focusable_domain()) {
 				global_receiver = _hovered;
 			} else {
-				_focus_view_owner_via_click(*_hovered);
+				/*
+				 * Distinguish the use of the builtin focus switching and the
+				 * alternative use of an external focus policy. In the latter
+				 * case, focusable domains are handled like transiently
+				 * focusable domains. The permanent focus change is triggered
+				 * by an external focus-policy component by posting and updated
+				 * focus ROM, which is then propagated into the user state via
+				 * the 'User_state::focus' and 'User_state::reset_focus'
+				 * methods.
+				 */
+				if (_focus_via_click)
+					_focus_view_owner_via_click(*_hovered);
+				else
+					global_receiver = _hovered;
+
 				_last_clicked = _hovered;
 			}
 		}
@@ -434,9 +448,6 @@ bool User_state::_focus_change_permitted(View_owner const &caller) const
 
 void User_state::_focus_view_owner_via_click(View_owner &owner)
 {
-	_focus.assign(owner);
-
-	_focused      = &owner;
 	_next_focused = &owner;
 	_focused      = &owner;
 

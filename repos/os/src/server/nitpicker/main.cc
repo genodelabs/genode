@@ -32,6 +32,9 @@
 #include "domain_registry.h"
 
 namespace Nitpicker {
+
+	struct Focus_updater { virtual void update_focus() = 0; };
+
 	template <typename> class Root;
 	struct Main;
 }
@@ -83,6 +86,7 @@ class Nitpicker::Root : public Root_component<Session_component>,
 		View_component               &_builtin_background;
 		Framebuffer::Session         &_framebuffer;
 		Reporter                     &_focus_reporter;
+		Focus_updater                &_focus_updater;
 
 	protected:
 
@@ -113,6 +117,7 @@ class Nitpicker::Root : public Root_component<Session_component>,
 			session->apply_session_policy(_config.xml(), _domain_registry);
 			_session_list.insert(session);
 			_global_keys.apply_config(_config.xml(), _session_list);
+			_focus_updater.update_focus();
 
 			return session;
 		}
@@ -144,7 +149,8 @@ class Nitpicker::Root : public Root_component<Session_component>,
 		     Global_keys &global_keys, View_stack &view_stack,
 		     User_state &user_state, View_component &pointer_origin,
 		     View_component &builtin_background, Allocator &md_alloc,
-		     Framebuffer::Session &framebuffer, Reporter &focus_reporter)
+		     Framebuffer::Session &framebuffer, Reporter &focus_reporter,
+		     Focus_updater &focus_updater)
 		:
 			Root_component<Session_component>(&env.ep().rpc_ep(), &md_alloc),
 			_env(env), _config(config), _session_list(session_list),
@@ -153,7 +159,7 @@ class Nitpicker::Root : public Root_component<Session_component>,
 			_pointer_origin(pointer_origin),
 			_builtin_background(builtin_background),
 			_framebuffer(framebuffer),
-			_focus_reporter(focus_reporter)
+			_focus_reporter(focus_reporter), _focus_updater(focus_updater)
 		{ }
 
 
@@ -185,7 +191,7 @@ class Nitpicker::Root : public Root_component<Session_component>,
 };
 
 
-struct Nitpicker::Main
+struct Nitpicker::Main : Focus_updater
 {
 	Env &_env;
 
@@ -268,12 +274,21 @@ struct Nitpicker::Main
 	Reporter _keystate_reporter = { _env, "keystate" };
 	Reporter _clicked_reporter  = { _env, "clicked" };
 
-	Attached_rom_dataspace _config { _env, "config" };
+	Attached_rom_dataspace _config_rom { _env, "config" };
 
-	Root<PT> _root = { _env, _config, _session_list, *_domain_registry,
+	Constructible<Attached_rom_dataspace> _focus_rom;
+
+	Root<PT> _root = { _env, _config_rom, _session_list, *_domain_registry,
 	                   _global_keys, _view_stack, _user_state, _pointer_origin,
 	                   _builtin_background, _sliced_heap, _framebuffer,
-	                   _focus_reporter };
+	                   _focus_reporter, *this };
+
+	/**
+	 * Focus_updater interface
+	 *
+	 * Called whenever a new session appears.
+	 */
+	void update_focus() override { _handle_focus(); }
 
 	/*
 	 * Configuration-update handler, executed in the context of the RPC
@@ -284,7 +299,14 @@ struct Nitpicker::Main
 	 */
 	void _handle_config();
 
-	Signal_handler<Main> _config_handler = { _env.ep(), *this, &Main::_handle_config};
+	Signal_handler<Main> _config_handler = { _env.ep(), *this, &Main::_handle_config };
+
+	/**
+	 * Signal handler for externally triggered focus changes
+	 */
+	void _handle_focus();
+
+	Signal_handler<Main> _focus_handler = { _env.ep(), *this, &Main::_handle_focus };
 
 	/**
 	 * Signal handler invoked on the reception of user input
@@ -333,7 +355,7 @@ struct Nitpicker::Main
 		_view_stack.stack(_pointer_origin);
 		_view_stack.stack(_builtin_background);
 
-		_config.sigh(_config_handler);
+		_config_rom.sigh(_config_handler);
 		_handle_config();
 
 		_framebuffer.sync_sigh(_input_handler);
@@ -433,11 +455,34 @@ static void configure_reporter(Genode::Xml_node config, Genode::Reporter &report
 }
 
 
+void Nitpicker::Main::_handle_focus()
+{
+	if (!_focus_rom.constructed())
+		return;
+
+	_focus_rom->update();
+
+	typedef Session::Label Label;
+	Label const label = _focus_rom->xml().attribute_value("label", Label());
+
+	/* determine session that matches the label found in the focus ROM */
+	View_owner *next_focus = nullptr;
+	for (Session_component *s = _session_list.first(); s; s = s->next())
+		if (s->label() == label)
+			next_focus = s;
+
+	if (next_focus)
+		_user_state.focus(*next_focus);
+	else
+		_user_state.reset_focus();
+}
+
+
 void Nitpicker::Main::_handle_config()
 {
-	_config.update();
+	_config_rom.update();
 
-	Xml_node const config = _config.xml();
+	Xml_node const config = _config_rom.xml();
 
 	/* update global keys policy */
 	_global_keys.apply_config(config, _session_list);
@@ -472,6 +517,22 @@ void Nitpicker::Main::_handle_config()
 	 * new constrains.
 	 */
 	_view_stack.sort_views_by_layer();
+
+	/*
+	 * Respond to a configuration change of the input-focus mechanism
+	 */
+	bool const focus_rom = (config.attribute_value("focus", String<16>()) == "rom");
+	if (_focus_rom.constructed() && !focus_rom)
+		_focus_rom.destruct();
+
+	if (!_focus_rom.constructed() && focus_rom) {
+		_focus_rom.construct(_env, "focus");
+		_focus_rom->sigh(_focus_handler);
+		_handle_focus();
+	}
+
+	/* disable builtin focus handling when using an external focus policy */
+	_user_state.focus_via_click(!_focus_rom.constructed());
 
 	/* redraw */
 	_view_stack.update_all_views();
