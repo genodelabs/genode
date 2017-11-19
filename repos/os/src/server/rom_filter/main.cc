@@ -283,10 +283,31 @@ void Rom_filter::Main::_evaluate_node(Xml_node node, Xml_generator &xml)
 		} else
 
 		if (node.has_type("attribute")) {
+
 			typedef Genode::String<128> String;
-			xml.attribute(
-				node.attribute_value("name", String()).string(),
-				node.attribute_value("value", String()).string());
+
+			/* assign input value to attribute value */
+			if (node.has_attribute("input")) {
+
+				Input_name const input_name =
+					node.attribute_value("input", Input_name());
+				try {
+					Input_value const input_value =
+						_input_rom_registry.query_value(_config.xml(), input_name);
+
+					xml.attribute(node.attribute_value("name", String()).string(),
+					              input_value);
+				}
+				catch (Input_rom_registry::Nonexistent_input_value) {
+					Genode::warning("could not obtain input value for input ", input_name);
+				}
+			}
+
+			/* assign fixed attribute value */
+			else {
+				xml.attribute(node.attribute_value("name",  String()).string(),
+				              node.attribute_value("value", String()).string());
+			}
 		} else
 
 		if (node.has_type("inline")) {
