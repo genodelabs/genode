@@ -11,6 +11,7 @@ set build_components {
 	core init
 	drivers/timer
 	server/nitpicker app/pointer app/status_bar app/global_keys_handler
+	app/nit_focus
 	server/liquid_framebuffer app/launchpad app/scout
 	test/nitpicker server/nitlog
 	drivers/framebuffer drivers/input
@@ -106,10 +107,12 @@ append config {
 	<start name="report_rom">
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
-		<config>
+		<config verbose="no">
 			<policy label="status_bar -> focus"          report="nitpicker -> focus"/>
 			<policy label="nitpicker_config -> xray"     report="global_keys_handler -> xray"/>
 			<policy label="global_keys_handler -> hover" report="nitpicker -> hover"/>
+			<policy label="nit_focus -> clicked"         report="nitpicker -> clicked"/>
+			<policy label="nitpicker -> focus"           report="nit_focus -> focus"/>
 		</config>
 	</start>
 
@@ -122,8 +125,10 @@ append config {
 				<attribute name="enabled" /> </input>
 
 			<output node="config">
+				<attribute name="focus" value="rom"/>
 				<inline>
-					<report focus="yes" xray="yes" hover="yes" keystate="yes"/>
+					<report focus="yes" xray="yes" hover="yes" keystate="yes"
+					        clicked="yes"/>
 					<domain name="pointer" layer="1" origin="pointer"
 					        content="client" label="no"/>
 					<domain name="panel" layer="2"
@@ -199,6 +204,8 @@ append config {
 		<route>
 			<service name="ROM" label="nitpicker.config">
 				<child name="nitpicker_config"/> </service>
+			<service name="ROM" label="focus">
+				<child name="report_rom"/> </service>
 			<service name="Report">
 				<child name="report_rom"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
@@ -207,6 +214,17 @@ append config {
 
 	<start name="pointer">
 		<resource name="RAM" quantum="1M"/>
+		<config/>
+	</start>
+
+	<start name="nit_focus">
+		<resource name="RAM" quantum="1M"/>
+		<config> <default-policy focus="yes"/> </config>
+		<route>
+			<service name="ROM" label="clicked"> <child name="report_rom"/> </service>
+			<service name="Report"> <child name="report_rom"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
 	</start>
 
 	<start name="status_bar">
@@ -257,6 +275,7 @@ set boot_modules {
 	core ld.lib.so init
 	timer
 	nitpicker pointer status_bar report_rom rom_filter global_keys_handler
+	nit_focus
 	liquid_fb launchpad scout testnit nitlog
 	launchpad.config
 }
