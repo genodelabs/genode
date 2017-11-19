@@ -1,0 +1,8 @@
+The nit_focus component implements the input-focus policy for the nitpicker
+GUI server. It consumes nitpicker's 'clicked' report and, in turn, produces a
+'focus' report to be consumed by nitpicker.
+
+Focus changes are subjected to a configurable policy, which is selected via
+Genode's regular policy-selection mechanism based on the label of the clicked
+nitpicker client. The client is focused only if the policy has the attribute
+'focus' set to "yes".
