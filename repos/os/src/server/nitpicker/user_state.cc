@@ -287,7 +287,7 @@ User_state::handle_input_events(Input::Event const * const ev_buf,
 	View_owner const * const old_input_receiver = _input_receiver;
 	View_owner const * const old_last_clicked   = _last_clicked;
 
-	bool user_active = false;
+	bool button_activity = false;
 
 	if (num_ev > 0) {
 		/*
@@ -320,7 +320,7 @@ User_state::handle_input_events(Input::Event const * const ev_buf,
 			 * we regard the user as active. This check captures the presence
 			 * of press-release combinations within one batch of input events.
 			 */
-			user_active |= _key_pressed();
+			button_activity |= _key_pressed();
 
 			/* pass event to user state */
 			_handle_input_event(curr);
@@ -337,7 +337,7 @@ User_state::handle_input_events(Input::Event const * const ev_buf,
 	/*
 	 * If at least one key is kept pressed, we regard the user as active.
 	 */
-	user_active |= _key_pressed();
+	button_activity |= _key_pressed();
 
 	bool key_state_affected = false;
 	for (unsigned i = 0; i < num_ev; i++)
@@ -347,14 +347,14 @@ User_state::handle_input_events(Input::Event const * const ev_buf,
 	_apply_pending_focus_change();
 
 	return {
-		.pointer_position_changed = _pointer_pos != old_pointer_pos,
-		.hover_changed            = _hovered != old_hovered,
-		.focus_changed            = (_focused != old_focused) ||
-		                            (_input_receiver != old_input_receiver),
-		.key_state_affected       = key_state_affected,
-		.user_active              = user_active,
-		.key_pressed              = _key_pressed(),
-		.last_clicked_changed     = (_last_clicked != old_last_clicked)
+		.hover_changed        = _hovered != old_hovered,
+		.focus_changed        = (_focused != old_focused) ||
+		                        (_input_receiver != old_input_receiver),
+		.key_state_affected   = key_state_affected,
+		.button_activity      = button_activity,
+		.motion_activity      = (_pointer_pos != old_pointer_pos),
+		.key_pressed          = _key_pressed(),
+		.last_clicked_changed = (_last_clicked != old_last_clicked)
 	};
 }
 
@@ -373,10 +373,12 @@ void User_state::report_pointer_position(Xml_generator &xml) const
 }
 
 
-void User_state::report_hovered_view_owner(Xml_generator &xml) const
+void User_state::report_hovered_view_owner(Xml_generator &xml, bool active) const
 {
 	if (_hovered)
 		_hovered->report(xml);
+
+	if (active) xml.attribute("active", "yes");
 }
 
 

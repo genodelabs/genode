@@ -323,7 +323,8 @@ struct Nitpicker::Main : Focus_updater
 	/**
 	 * Period counter when the user was active the last time
 	 */
-	unsigned _last_active_period = 0;
+	unsigned _last_button_activity_period = 0,
+	         _last_motion_activity_period = 0;
 
 	/**
 	 * Number of periods after the last user activity when we regard the user
@@ -332,12 +333,17 @@ struct Nitpicker::Main : Focus_updater
 	unsigned _activity_threshold = 50;
 
 	/**
-	 * True if the user was recently active
+	 * True if the user has recently interacted with buttons or keys
 	 *
 	 * This state is reported as part of focus reports to allow the clipboard
 	 * to dynamically adjust its information-flow policy to the user activity.
 	 */
-	bool _user_active = false;
+	bool _button_activity = false;
+
+	/**
+	 * True if the user recently moved the pointer
+	 */
+	bool _motion_activity = false;
 
 	/**
 	 * Perform redraw and flush pixels to the framebuffer
@@ -370,16 +376,22 @@ void Nitpicker::Main::_handle_input()
 {
 	_period_cnt++;
 
-	bool const old_user_active = _user_active;
+	bool const old_button_activity = _button_activity;
+	bool const old_motion_activity = _motion_activity;
 
 	/* handle batch of pending events */
 	User_state::Handle_input_result const result =
 		_user_state.handle_input_events(_ev_ds.local_addr<Input::Event>(),
 		                                _input.flush());
 
-	if (result.user_active) {
-		_last_active_period = _period_cnt;
-		_user_active        = true;
+	if (result.button_activity) {
+		_last_button_activity_period = _period_cnt;
+		_button_activity             = true;
+	}
+
+	if (result.motion_activity) {
+		_last_motion_activity_period = _period_cnt;
+		_motion_activity             = true;
 	}
 
 	/*
@@ -404,29 +416,33 @@ void Nitpicker::Main::_handle_input()
 		_view_stack.update_all_views();
 
 	/* flag user as inactive after activity threshold is reached */
-	if (_period_cnt == _last_active_period + _activity_threshold)
-		_user_active = false;
+	if (_period_cnt == _last_button_activity_period + _activity_threshold)
+		_button_activity = false;
+
+	if (_period_cnt == _last_motion_activity_period + _activity_threshold)
+		_motion_activity = false;
 
 	/* report mouse-position updates */
-	if (_pointer_reporter.enabled() && result.pointer_position_changed) {
+	if (_pointer_reporter.enabled() && result.motion_activity) {
 		Reporter::Xml_generator xml(_pointer_reporter, [&] () {
 			_user_state.report_pointer_position(xml); });
 	}
 
 	/* report hover changes */
-	if (_hover_reporter.enabled() && !result.key_pressed && result.hover_changed) {
+	if (_hover_reporter.enabled() && !result.key_pressed
+	 && (result.hover_changed || (old_motion_activity != _motion_activity))) {
 		Reporter::Xml_generator xml(_hover_reporter, [&] () {
-			_user_state.report_hovered_view_owner(xml); });
+			_user_state.report_hovered_view_owner(xml, _motion_activity); });
 	}
 
 	/* report focus changes */
-	if (result.focus_changed || (old_user_active != _user_active)) {
+	if (result.focus_changed || (old_button_activity != _button_activity)) {
 		Reporter::Xml_generator xml(_focus_reporter, [&] () {
-			_user_state.report_focused_view_owner(xml, _user_active); });
+			_user_state.report_focused_view_owner(xml, _button_activity); });
 	}
 
 	/* update pointer position */
-	if (result.pointer_position_changed)
+	if (result.motion_activity)
 		_view_stack.geometry(_pointer_origin, Rect(_user_state.pointer_pos(), Area()));
 
 	/* perform redraw and flush pixels to the framebuffer */
@@ -539,7 +555,7 @@ void Nitpicker::Main::_handle_config()
 
 	/* update focus report since the domain colors might have changed */
 	Reporter::Xml_generator xml(_focus_reporter, [&] () {
-		_user_state.report_focused_view_owner(xml, _user_active); });
+		_user_state.report_focused_view_owner(xml, _button_activity); });
 }
 
 

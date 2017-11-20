@@ -196,11 +196,11 @@ class Nitpicker::User_state : public Focus_controller
 
 		struct Handle_input_result
 		{
-			bool const pointer_position_changed;
 			bool const hover_changed;
 			bool const focus_changed;
 			bool const key_state_affected;
-			bool const user_active;
+			bool const button_activity;
+			bool const motion_activity;
 			bool const key_pressed;
 			bool const last_clicked_changed;
 		};
@@ -215,8 +215,8 @@ class Nitpicker::User_state : public Focus_controller
 
 		void report_keystate(Xml_generator &) const;
 		void report_pointer_position(Xml_generator &) const;
-		void report_hovered_view_owner(Xml_generator &) const;
-		void report_focused_view_owner(Xml_generator &, bool user_active) const;
+		void report_hovered_view_owner(Xml_generator &, bool motion_active) const;
+		void report_focused_view_owner(Xml_generator &, bool button_active) const;
 		void report_last_clicked_view_owner(Xml_generator &) const;
 
 		Point pointer_pos() { return _pointer_pos; }
