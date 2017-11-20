@@ -550,13 +550,11 @@ void Platform::_setup_basics()
 
 	/* remove KIP area from region and IO_MEM allocator */
 	remove_region(Region((addr_t)kip, (addr_t)kip + kip_size), _region_alloc);
-	remove_region(Region((addr_t)kip, (addr_t)kip + kip_size), _io_mem_alloc);
 
 	/* remove utcb area */
 	addr_t utcb_ptr = (addr_t)Platform_pd::_core_utcb_ptr;
 
 	remove_region(Region(utcb_ptr, utcb_ptr + L4_UtcbAreaSize (kip)), _region_alloc);
-	remove_region(Region(utcb_ptr, utcb_ptr + L4_UtcbAreaSize (kip)), _io_mem_alloc);
 
 	/* remove core program image memory from region allocator */
 	addr_t img_start = (addr_t) &_prog_img_beg;
