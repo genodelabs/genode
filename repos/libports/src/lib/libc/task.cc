@@ -97,7 +97,7 @@ class Libc::Env_implementation : public Libc::Env
 		:
 			_env(env), _file_system_factory(alloc),
 			_vfs(_env, alloc, _vfs_config(), io_response_handler,
-			     _file_system_factory)
+			     _file_system_factory, Vfs::Dir_file_system::Root())
 		{ }
 
 

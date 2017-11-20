@@ -533,7 +533,8 @@ void Component::construct(Genode::Env &env)
 
 	Vfs::Dir_file_system vfs_root(env, heap, config_xml.sub_node("vfs"),
 	                              io_response_handler,
-	                              global_file_system_factory);
+	                              global_file_system_factory,
+	                              Vfs::Dir_file_system::Root());
 
 	Vfs::Vfs_handle *vfs_root_handle;
 	vfs_root.opendir("/", false, &vfs_root_handle, heap);

@@ -202,7 +202,8 @@ class Fs_report::Root : public Genode::Root_component<Session_component>
 		Vfs::Dir_file_system _vfs {
 			_env, _heap, vfs_config(),
 			_io_response_handler,
-			_global_file_system_factory };
+			_global_file_system_factory,
+			Vfs::Dir_file_system::Root() };
 
 		Genode::Signal_handler<Root> _config_dispatcher {
 			_env.ep(), *this, &Root::_config_update };

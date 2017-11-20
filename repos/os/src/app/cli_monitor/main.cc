@@ -157,7 +157,7 @@ struct Cli_monitor::Main
 
 	/* initialize virtual file system */
 	Vfs::Dir_file_system _root_dir { _env, _heap, _vfs_config(), io_response_handler,
-	                                 _global_file_system_factory };
+	                                 _global_file_system_factory, Vfs::Dir_file_system::Root() };
 
 	Subsystem_config_registry _subsystem_config_registry { _root_dir, _heap, _env.ep() };
 
