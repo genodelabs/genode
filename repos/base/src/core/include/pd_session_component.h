@@ -116,6 +116,7 @@ class Genode::Pd_session_component : public Session_object<Pd_session>
 		 * Constructor
 		 */
 		Pd_session_component(Rpc_entrypoint   &ep,
+		                     Rpc_entrypoint   &signal_ep,
 		                     Resources         resources,
 		                     Label      const &label,
 		                     Diag              diag,
@@ -132,7 +133,7 @@ class Genode::Pd_session_component : public Session_object<Pd_session>
 			_constrained_md_ram_alloc(*this, *this, *this),
 			_constrained_core_ram_alloc(*this, *this, core_mem),
 			_sliced_heap(_constrained_md_ram_alloc, local_rm),
-			_signal_broker(_sliced_heap, ep, ep),
+			_signal_broker(_sliced_heap, signal_ep, signal_ep),
 			_ram_ds_factory(ep, phys_alloc, phys_range, local_rm,
 			                _constrained_core_ram_alloc),
 			_rpc_cap_factory(_sliced_heap),

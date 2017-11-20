@@ -30,6 +30,7 @@ class Genode::Pd_root : public Genode::Root_component<Genode::Pd_session_compone
 	private:
 
 		Rpc_entrypoint   &_ep;
+		Rpc_entrypoint   &_signal_ep;
 		Pager_entrypoint &_pager_ep;
 		Range_allocator  &_phys_alloc;
 		Region_map       &_local_rm;
@@ -62,6 +63,7 @@ class Genode::Pd_root : public Genode::Root_component<Genode::Pd_session_compone
 		{
 			return new (md_alloc())
 				Pd_session_component(_ep,
+				                     _signal_ep,
 				                     session_resources_from_args(args),
 				                     session_label_from_args(args),
 				                     session_diag_from_args(args),
@@ -84,6 +86,7 @@ class Genode::Pd_root : public Genode::Root_component<Genode::Pd_session_compone
 		 * Constructor
 		 */
 		Pd_root(Rpc_entrypoint   &ep,
+		        Rpc_entrypoint   &signal_ep,
 		        Pager_entrypoint &pager_ep,
 		        Range_allocator  &phys_alloc,
 		        Region_map       &local_rm,
@@ -91,8 +94,8 @@ class Genode::Pd_root : public Genode::Root_component<Genode::Pd_session_compone
 		        Range_allocator  &core_mem)
 		:
 			Root_component<Pd_session_component>(&ep, &md_alloc),
-			_ep(ep), _pager_ep(pager_ep), _phys_alloc(phys_alloc),
-			_local_rm(local_rm), _core_mem(core_mem)
+			_ep(ep), _signal_ep(signal_ep), _pager_ep(pager_ep),
+			_phys_alloc(phys_alloc), _local_rm(local_rm), _core_mem(core_mem)
 		{ }
 };
 

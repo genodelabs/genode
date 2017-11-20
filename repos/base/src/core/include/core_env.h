@@ -60,6 +60,7 @@ class Genode::Core_env : public Env_deprecated
 			_entrypoint(nullptr, ENTRYPOINT_STACK_SIZE, "entrypoint"),
 			_region_map(_entrypoint),
 			_pd_session(_entrypoint,
+			            _entrypoint,
 			            Session::Resources {
 			                Ram_quota { platform()->ram_alloc()->avail() },
 			                Cap_quota { platform()->max_caps() } },
