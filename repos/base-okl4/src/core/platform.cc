@@ -164,7 +164,7 @@ Platform::Platform() :
 	                                           stack_area_virtual_size());
 
 	_vm_start = 0x1000;
-	_vm_size  = 0xb0000000 - 0x1000;
+	_vm_size  = 0xc0000000 - _vm_start;
 
 	log(_rom_fs);
 
