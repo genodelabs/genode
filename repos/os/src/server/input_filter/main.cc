@@ -243,7 +243,8 @@ struct Input_filter::Main : Input_connection::Avail_handler,
 
 		/* create regular filter */
 		if (node.type() == Remap_source::name())
-			return *new (_heap) Remap_source(owner, node, sink, *this);
+			return *new (_heap) Remap_source(owner, node, sink, *this,
+			                                 _include_accessor);
 
 		if (node.type() == Merge_source::name())
 			return *new (_heap) Merge_source(owner, node, sink, *this);

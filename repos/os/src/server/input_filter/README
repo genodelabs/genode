@@ -27,6 +27,10 @@ one of the following filters:
   the key name as 'name' attribute, may feature an optional 'to' attribute
   with the name of the key that should be reported instead of 'name'.
 
+  A '<remap>' node may contain '<include>' nodes, which include further
+  content into the '<remap>' node. The included ROM must have a '<remap>'
+  top-level node.
+
 :<merge>:
 
   Merges the results of any number of filters that appear as child nodes.

@@ -18,6 +18,7 @@
 #include <input/keycodes.h>
 
 /* local includes */
+#include <include_accessor.h>
 #include <source.h>
 #include <key_code_by_name.h>
 
@@ -27,6 +28,8 @@ namespace Input_filter { class Remap_source; }
 class Input_filter::Remap_source : public Source, Source::Sink
 {
 	private:
+
+		Include_accessor &_include_accessor;
 
 		struct Key
 		{
@@ -66,23 +69,39 @@ class Input_filter::Remap_source : public Source, Source::Sink
 			_destination.submit_event(Event(event.type(), key.code, 0, 0, 0, 0));
 		}
 
-	public:
-
-		static char const *name() { return "remap"; }
-
-		Remap_source(Owner &owner, Xml_node config, Source::Sink &destination,
-		             Source::Factory &factory)
-		:
-			Source(owner),
-			_owner(factory),
-			_source(factory.create_source(_owner, input_sub_node(config), *this)),
-			_destination(destination)
+		void _apply_config(Xml_node const config, unsigned const max_recursion = 4)
 		{
-			for (unsigned i = 0; i < Input::KEY_MAX; i++)
-				_keys[i].code = Input::Keycode(i);
+			config.for_each_sub_node([&] (Xml_node node) {
+				_apply_sub_node(node, max_recursion); });
+		}
 
-			config.for_each_sub_node("key", [&] (Xml_node node) {
+		void _apply_sub_node(Xml_node const node, unsigned const max_recursion)
+		{
+			if (max_recursion == 0) {
+				warning("too deeply nested includes");
+				throw Invalid_config();
+			}
 
+			/*
+			 * Handle includes
+			 */
+			if (node.type() == "include") {
+				try {
+					Include_accessor::Name const rom =
+						node.attribute_value("rom", Include_accessor::Name());
+
+					_include_accessor.apply_include(rom, name(), [&] (Xml_node inc) {
+						_apply_config(inc, max_recursion - 1); });
+					return;
+				}
+				catch (Include_accessor::Include_unavailable) {
+					throw Invalid_config(); }
+			}
+
+			/*
+			 * Handle key nodes
+			 */
+			if (node.type() == "key") {
 				Key_name const key_name = node.attribute_value("name", Key_name());
 
 				try {
@@ -96,7 +115,27 @@ class Input_filter::Remap_source : public Source, Source::Sink
 				}
 				catch (Unknown_key) {
 					warning("invalid key name ", key_name); }
-			});
+				return;
+			}
+		}
+
+	public:
+
+		static char const *name() { return "remap"; }
+
+		Remap_source(Owner &owner, Xml_node config, Source::Sink &destination,
+		             Source::Factory &factory, Include_accessor &include_accessor)
+		:
+			Source(owner),
+			_include_accessor(include_accessor),
+			_owner(factory),
+			_source(factory.create_source(_owner, input_sub_node(config), *this)),
+			_destination(destination)
+		{
+			for (unsigned i = 0; i < Input::KEY_MAX; i++)
+				_keys[i].code = Input::Keycode(i);
+
+			_apply_config(config);
 		}
 
 		void generate() override { _source.generate(); }
