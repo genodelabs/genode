@@ -15,6 +15,11 @@
  */
 
 /* core-local includes */
+#include <core_env.h>
 #include <signal_transmitter.h>
 
+using namespace Genode;
+
 void Genode::init_core_signal_transmitter(Rpc_entrypoint &) { }
+
+Rpc_entrypoint &Core_env::signal_ep() { return _entrypoint; }

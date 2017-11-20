@@ -17,6 +17,7 @@
 #include <signal_source_component.h>
 #include <signal_source/capability.h>
 #include <signal_context_slab.h>
+#include <signal_delivery_proxy.h>
 
 namespace Genode { class Signal_broker; }
 
@@ -30,6 +31,7 @@ class Genode::Signal_broker
 		Signal_source_component  _source;
 		Signal_source_capability _source_cap;
 		Signal_context_slab      _contexts_slab { _md_alloc };
+		Signal_delivery_proxy_component _delivery_proxy { _source_ep };
 
 	public:
 
@@ -93,16 +95,9 @@ class Genode::Signal_broker
 				destroy(&_contexts_slab, context);
 		}
 
-		void submit(Signal_context_capability cap, unsigned cnt)
+		void submit(Signal_context_capability const cap, unsigned const cnt)
 		{
-			_source_ep.apply(cap, [&] (Signal_context_component *context) {
-				if (!context) {
-					warning("invalid signal-context capability");
-					return;
-				}
-
-				context->source()->submit(context, cnt);
-			});
+			_delivery_proxy.submit(cap, cnt);
 		}
 };
 

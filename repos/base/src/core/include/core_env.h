@@ -83,6 +83,7 @@ class Genode::Core_env : public Env_deprecated
 		Ram_allocator  &ram_allocator() { return  _synced_ram_allocator; }
 		Region_map     &local_rm()      { return  _region_map; }
 
+		Rpc_entrypoint &signal_ep();
 
 		/******************************
 		 ** Env_deprecated interface **
