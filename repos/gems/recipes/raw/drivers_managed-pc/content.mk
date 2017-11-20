@@ -1,6 +1,7 @@
-content: drivers.config fb_drv.config input_filter.config en_us.chargen
+content: drivers.config fb_drv.config input_filter.config en_us.chargen \
+         numlock_remap.config
 
-drivers.config:
+drivers.config numlock_remap.config:
 	cp $(REP_DIR)/recipes/raw/drivers_managed-pc/$@ $@
 
 fb_drv.config input_filter.config:
