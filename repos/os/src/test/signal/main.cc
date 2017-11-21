@@ -59,7 +59,7 @@ class Sender : Thread
 		       unsigned                   interval_ms,
 		       bool                       verbose)
 		:
-			Thread(env, "sender", 4096 * sizeof(addr_t)), _timer(env),
+			Thread(env, "sender", 16*1024), _timer(env),
 			_transmitter(context), _interval_ms(interval_ms), _verbose(verbose)
 		{
 			Thread::start();
@@ -116,7 +116,7 @@ class Handler : Thread
 		        bool             verbose,
 		        unsigned         id)
 		:
-			Thread(env, "handler", 4096 * sizeof(addr_t)), _timer(env),
+			Thread(env, "handler", 16*1024), _timer(env),
 			_dispatch_ms(dispatch_ms), _id(id), _verbose(verbose),
 			_receiver(receiver)
 		{
@@ -321,7 +321,7 @@ struct Synchronized_destruction_test : Signal_test, Thread
 	}
 
 	Synchronized_destruction_test(Env &env, int id)
-	: Signal_test(id, brief), Thread(env, "destroyer", 1024 * sizeof(addr_t)), env(env)
+	: Signal_test(id, brief), Thread(env, "destroyer", 8*1024), env(env)
 	{
 		transmitter.submit();
 		{
@@ -428,7 +428,7 @@ struct Nested_test : Signal_test
 
 		Sender_thread(Env &env, Nested_test &test)
 		:
-			Thread(env, "sender_thread", 1024 * sizeof(long)),
+			Thread(env, "sender_thread", 8*1024),
 			test(test), timer(env)
 		{ }
 
@@ -527,7 +527,7 @@ struct Nested_stress_test : Signal_test
 		bool               destruct { false };
 
 		Sender(Env &env, char const *name, Signal_context_capability cap)
-		: Thread(env, name, 1024 * sizeof(long)), transmitter(cap) { }
+		: Thread(env, name, 8*1024), transmitter(cap) { }
 
 		void entry()
 		{
