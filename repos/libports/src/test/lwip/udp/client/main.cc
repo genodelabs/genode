@@ -39,7 +39,7 @@ void Libc::Component::construct(Libc::Env &env)
 {
 	/* wait a while for the server to come up */
 	Timer::Connection timer(env);
-	timer.msleep(3000);
+	timer.msleep(6000);
 
 	/* create socket */
 	int s = socket(AF_INET, SOCK_DGRAM, 0 );

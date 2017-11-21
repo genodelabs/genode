@@ -83,7 +83,7 @@ append config {
 	<start name="nic_router" caps="200" priority="-1">
 		<resource name="RAM" quantum="10M"/>
 		<provides><service name="Nic"/></provides>
-		<config rtt_sec="6" verbose="no">
+		<config rtt_sec="12" verbose="no">
 
 			<policy label_prefix="udp_client_1"  domain="udp_client_1"  />
 			<policy label_prefix="http_client_3" domain="http_client_3" />
@@ -157,4 +157,4 @@ install_config $config
 
 build_boot_image $boot_modules
 
-run_genode_until {.*Test done.*\n.*Test done.*\n.*Test done.*\n.*Test done.*\n.*Test done.*\n.*Test done.*\n} 120
+run_genode_until {.*Test done.*\n.*Test done.*\n.*Test done.*\n.*Test done.*\n.*Test done.*\n.*Test done.*\n} 240
