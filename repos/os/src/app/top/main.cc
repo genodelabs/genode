@@ -61,7 +61,7 @@ struct Trace_subject_registry
 			return nullptr;
 		}
 
-		enum { MAX_SUBJECTS = 512 };
+		enum { MAX_SUBJECTS = 1024 };
 		Genode::Trace::Subject_id _subjects[MAX_SUBJECTS];
 
 		enum { MAX_CPUS_X = 16, MAX_CPUS_Y = 1, MAX_ELEMENTS_PER_CPU = 6};
@@ -77,6 +77,11 @@ struct Trace_subject_registry
 		void update(Genode::Trace::Connection &trace, Genode::Allocator &alloc)
 		{
 			unsigned const num_subjects = trace.subjects(_subjects, MAX_SUBJECTS);
+
+			if (num_subjects == MAX_SUBJECTS)
+				Genode::error("Not enough memory for all threads - "
+				              "calculated utilization is not sane nor "
+				              "complete !", num_subjects);
 
 			/* add and update existing entries */
 			for (unsigned i = 0; i < num_subjects; i++) {
