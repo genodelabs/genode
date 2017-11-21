@@ -193,12 +193,8 @@ _check_hash: $(DEPOT_ARCHIVE_DIR).hash checked_recipe_hash_value_exists
 #
 # The command is invoked from within the archive directory within the depot.
 #
-# The 'echo' right before 'cat' is needed to handle the special case where
-# 'find' is executed in an empty directory (yielding an empty result), which
-# would otherwise prompt 'cat' to block for standard input.
-#
 HASH_CMD := cd $(DEPOT_ARCHIVE_DIR); \
-            echo | cat `find . -type f | sort` |  $(HASHSUM) | sed "s/ .*//" \
+            find . -type f | sort | xargs -d '\n' cat | $(HASHSUM) | sed "s/ .*//"
 
 #
 # Generate the hash from the archive content
