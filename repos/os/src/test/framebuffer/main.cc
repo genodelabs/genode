@@ -21,6 +21,8 @@
 #include <util/reconstructible.h>
 
 
+using Genode::uint16_t;
+
 class Test_environment
 {
 	private:
@@ -55,6 +57,8 @@ class Test_environment
 		void _sync_handle() {
 			if (_sync_cnt++ % FRAME_CNT == 0) _draw(); }
 
+		void _draw_frame(uint16_t volatile *, uint16_t, unsigned, unsigned);
+
 		Genode::size_t _fb_bpp()  { return _mode.bytes_per_pixel(); }
 		Genode::size_t _fb_size() { return _fb_ds->size(); }
 		Genode::addr_t _fb_base() {
@@ -73,6 +77,19 @@ class Test_environment
 			_mode_handle();
 		}
 };
+
+
+void Test_environment::_draw_frame(uint16_t volatile *p, uint16_t c,
+                                   unsigned const w, unsigned const h)
+{
+	/* top and bottom */
+	for (unsigned i = 0; i < w; ++i)
+		p[i] = p[(h - 1)*w + i] = c;
+
+	/* left and right */
+	for (unsigned i = 0; i < h; ++i)
+		p[i*w] = p[i*w + w - 1] = c;
+}
 
 
 void Test_environment::_draw()
@@ -94,6 +111,9 @@ void Test_environment::_draw()
 				}
 				*(uint16_t volatile *)(_fb_base() + o) = stripe ? BLACK : WHITE;
 			}
+
+			_draw_frame((uint16_t volatile *)_fb_base(), RED,
+			            _mode.width(), _mode.height());
 			_state = ALL_BLUE;
 			break;
 		}
@@ -102,6 +122,9 @@ void Test_environment::_draw()
 			Genode::log("blue");
 			for (addr_t o = 0; o < _fb_size(); o += _fb_bpp())
 				*(uint16_t volatile *)(_fb_base() + o) = BLUE;
+
+			_draw_frame((uint16_t volatile *)_fb_base(), RED,
+			            _mode.width(), _mode.height());
 			_state = ALL_GREEN;
 			break;
 		}
@@ -110,6 +133,9 @@ void Test_environment::_draw()
 			Genode::log("green");
 			for (addr_t o = 0; o < _fb_size(); o += _fb_bpp())
 				*(uint16_t volatile *)(_fb_base() + o) = GREEN;
+
+			_draw_frame((uint16_t volatile *)_fb_base(), RED,
+			            _mode.width(), _mode.height());
 			_state = ALL_RED;
 			break;
 		}
@@ -118,6 +144,9 @@ void Test_environment::_draw()
 			Genode::log("red");
 			for (addr_t o = 0; o < _fb_size(); o += _fb_bpp())
 				*(uint16_t volatile *)(_fb_base() + o) = RED;
+
+			_draw_frame((uint16_t volatile *)_fb_base(), WHITE,
+			            _mode.width(), _mode.height());
 			_state = COLORED;
 			break;
 		}
@@ -127,6 +156,9 @@ void Test_environment::_draw()
 			unsigned i = 0;
 			for (addr_t o = 0; o < _fb_size(); o += _fb_bpp(), i++)
 				*(uint16_t volatile *)(_fb_base() + o) = i;
+
+			_draw_frame((uint16_t volatile *)_fb_base(), WHITE,
+			            _mode.width(), _mode.height());
 			_state = STRIPES;
 		}
 	};
