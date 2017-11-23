@@ -1437,7 +1437,7 @@ bool mod_delayed_work(struct workqueue_struct *wq, struct delayed_work *dwork,
 	if (delay == 0) {
 		execute_delayed_work((unsigned long)dwork);
 	} else {
-		mod_timer(&dwork->timer, delay);
+		mod_timer(&dwork->timer, jiffies + delay);
 	}
 	return true;
 }
