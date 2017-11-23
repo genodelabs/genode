@@ -48,8 +48,9 @@ extern "C" {
 	struct pthread_attr
 	{
 		pthread_t pthread;
+		size_t stack_size;
 
-		pthread_attr() : pthread(0) { }
+		pthread_attr() : pthread(0), stack_size(0) { }
 	};
 
 

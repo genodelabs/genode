@@ -214,6 +214,21 @@ extern "C" {
 	}
 
 
+	int pthread_attr_setstacksize(pthread_attr_t *attr, size_t stacksize)
+	{
+		if (!attr || !*attr)
+			return EINVAL;
+
+		if (stacksize > (Thread::stack_virtual_size() - 4 * 4096) ||
+		    stacksize < 4096)
+			return EINVAL;
+
+		(*attr)->stack_size = Genode::align_addr(stacksize, 12);
+
+		return 0;
+	}
+
+
 	int pthread_attr_getstack(const pthread_attr_t *attr,
 	                          void **stackaddr,
 	                          ::size_t *stacksize)
