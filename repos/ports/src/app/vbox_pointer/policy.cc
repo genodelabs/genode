@@ -95,19 +95,10 @@ class Vbox_pointer::Policy_entry : public Vbox_pointer::Policy,
 
 			for (unsigned int y = 0; y < _shape_size.h(); y++) {
 
-				/* convert the shape data from BGRA encoding to RGBA encoding */
-				unsigned char *shape     = shape_report->shape;
-				unsigned char *bgra_line = &shape[y * _shape_size.w() * 4];
-				unsigned char rgba_line[_shape_size.w() * 4];
-				for (unsigned int i = 0; i < _shape_size.w() * 4; i += 4) {
-					rgba_line[i + 0] = bgra_line[i + 2];
-					rgba_line[i + 1] = bgra_line[i + 1];
-					rgba_line[i + 2] = bgra_line[i + 0];
-					rgba_line[i + 3] = bgra_line[i + 3];
-				}
-
 				/* import the RGBA-encoded line into the texture */
-				texture.rgba(rgba_line, _shape_size.w(), y);
+				unsigned char *shape = shape_report->shape;
+				unsigned char *line  = &shape[y * _shape_size.w() * 4];
+				texture.rgba(line, _shape_size.w(), y);
 			}
 
 			_updater.update_pointer(*this);

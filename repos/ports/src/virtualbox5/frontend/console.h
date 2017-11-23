@@ -210,9 +210,23 @@ class GenodeConsole : public Console {
 				return;
 			}
 
-			Genode::memcpy(_shape_report->shape,
-			               shape,
-			               shape_size);
+			/* convert the shape data from BGRA encoding to RGBA encoding */
+
+			unsigned char const *bgra_shape = shape; 
+			unsigned char       *rgba_shape = _shape_report->shape;
+
+			for (unsigned int y = 0; y < _shape_report->height; y++) {
+
+				unsigned char const *bgra_line = &bgra_shape[y * _shape_report->width * 4];
+				unsigned char *rgba_line       = &rgba_shape[y * _shape_report->width * 4];
+
+				for (unsigned int i = 0; i < _shape_report->width * 4; i += 4) {
+					rgba_line[i + 0] = bgra_line[i + 2];
+					rgba_line[i + 1] = bgra_line[i + 1];
+					rgba_line[i + 2] = bgra_line[i + 0];
+					rgba_line[i + 3] = bgra_line[i + 3];
+				}
+			}
 
 			if (fVisible && !fAlpha) {
 
