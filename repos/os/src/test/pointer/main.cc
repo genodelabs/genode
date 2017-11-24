@@ -15,7 +15,7 @@
 #include <base/attached_rom_dataspace.h>
 #include <util/string.h>
 #include <os/reporter.h>
-#include <vbox_pointer/shape_report.h>
+#include <pointer/shape_report.h>
 
 struct Shape
 {
@@ -141,11 +141,11 @@ struct Main
 {
 	Genode::Env &_env;
 
-	Vbox_pointer::Shape_report _shape_report {
+	Pointer::Shape_report _shape_report {
 		true, 0, 0, Shape::WIDTH, Shape::HEIGHT, { 0 } };
 
 	Genode::Reporter _reporter {
-		_env, "shape", "shape", sizeof(Vbox_pointer::Shape_report) };
+		_env, "shape", "shape", sizeof(Pointer::Shape_report) };
 
 	Genode::Signal_handler<Main> _config_handler {
 		_env.ep(), *this, &Main::_handle_config };
@@ -173,7 +173,7 @@ struct Main
 			}
 		}
 
-		_reporter.report(&_shape_report, sizeof(Vbox_pointer::Shape_report));
+		_reporter.report(&_shape_report, sizeof(Pointer::Shape_report));
 	}
 
 	Main(Genode::Env &env) : _env(env)

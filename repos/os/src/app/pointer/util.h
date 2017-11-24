@@ -11,15 +11,15 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _VBOX_POINTER_UTIL_H_
-#define _VBOX_POINTER_UTIL_H_
+#ifndef _POINTER_UTIL_H_
+#define _POINTER_UTIL_H_
 
 /* Genode includes */
 #include <util/xml_node.h>
 #include <util/string.h>
 
 
-namespace Vbox_pointer {
+namespace Pointer {
 	typedef Genode::String<64> String;
 
 	inline String read_string_attribute(Genode::Xml_node const &node,
@@ -28,9 +28,9 @@ namespace Vbox_pointer {
 }
 
 
-Vbox_pointer::String Vbox_pointer::read_string_attribute(Genode::Xml_node const &node,
-                                                         char             const *attr,
-                                                         String           const &default_value)
+Pointer::String Pointer::read_string_attribute(Genode::Xml_node const &node,
+                                               char             const *attr,
+                                               String           const &default_value)
 {
 	try {
 		char buf[String::capacity()];
@@ -39,4 +39,4 @@ Vbox_pointer::String Vbox_pointer::read_string_attribute(Genode::Xml_node const 
 	} catch (...) { return default_value; }
 }
 
-#endif /* _VBOX_POINTER_UTIL_H_ */
+#endif /* _POINTER_UTIL_H_ */

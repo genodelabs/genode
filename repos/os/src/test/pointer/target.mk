@@ -1,3 +1,3 @@
-TARGET = test-vbox_pointer
+TARGET = test-pointer
 SRC_CC = main.cc
 LIBS   = base

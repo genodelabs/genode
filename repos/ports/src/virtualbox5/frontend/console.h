@@ -27,7 +27,7 @@
 #include <scan_code_set_1.h>
 
 /* repos/ports includes */
-#include <vbox_pointer/shape_report.h>
+#include <pointer/shape_report.h>
 
 #include "../vmm.h"
 
@@ -117,7 +117,7 @@ class GenodeConsole : public Console {
 		Report::Connection                     _shape_report_connection;
 		Genode::Attached_dataspace             _shape_report_ds;
 		Genode::Constructible<Genode::Attached_rom_dataspace> _caps_lock;
-		Vbox_pointer::Shape_report            *_shape_report;
+		Pointer::Shape_report                 *_shape_report;
 		Genode::Reporter                      *_clipboard_reporter;
 		Genode::Attached_rom_dataspace        *_clipboard_rom;
 		IKeyboard                             *_vbox_keyboard;
@@ -145,9 +145,9 @@ class GenodeConsole : public Console {
 			_ax(0), _ay(0),
 			_last_received_motion_event_was_absolute(false),
 			_shape_report_connection(genode_env(), "shape",
-			                         sizeof(Vbox_pointer::Shape_report)),
+			                         sizeof(Pointer::Shape_report)),
 			_shape_report_ds(genode_env().rm(), _shape_report_connection.dataspace()),
-			_shape_report(_shape_report_ds.local_addr<Vbox_pointer::Shape_report>()),
+			_shape_report(_shape_report_ds.local_addr<Pointer::Shape_report>()),
 			_clipboard_reporter(nullptr),
 			_clipboard_rom(nullptr),
 			_vbox_keyboard(0),
@@ -204,7 +204,7 @@ class GenodeConsole : public Console {
 
 			size_t shape_size = cbShape - (shape - and_mask);
 
-			if (shape_size > Vbox_pointer::MAX_SHAPE_SIZE) {
+			if (shape_size > Pointer::MAX_SHAPE_SIZE) {
 				Genode::error(__func__, ": shape data buffer is too small for ",
 				              shape_size, " bytes");
 				return;
@@ -249,7 +249,7 @@ class GenodeConsole : public Console {
 				}
 			}
 
-			_shape_report_connection.submit(sizeof(Vbox_pointer::Shape_report));
+			_shape_report_connection.submit(sizeof(Pointer::Shape_report));
 		}
 
 		void update_video_mode();

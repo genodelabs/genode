@@ -13,8 +13,8 @@ set build_components {
 	server/report_rom
 	server/dynamic_rom
 	server/nitpicker
-	app/vbox_pointer
-	test/vbox_pointer
+	app/pointer
+	test/pointer
 	test/nitpicker
 }
 
@@ -57,7 +57,6 @@ set config {
 			<service name="Input"/>
 		</provides>
 		<config buffered="yes" width="1280" height="720" depth="16"/>
-		<!--<config buffered="yes" width="1440" height="900" depth="16"/>-->
 		<route>
 			<service name="ROM">   <parent/>             </service>
 			<service name="CPU">   <parent/>             </service>
@@ -111,7 +110,7 @@ set config {
 	</start>
 
 	<start name="shape-arrow">
-		<binary name="test-vbox_pointer"/>
+		<binary name="test-pointer"/>
 		<resource name="RAM" quantum="2M"/>
 		<config shape="arrow"/>
 		<route>
@@ -125,7 +124,7 @@ set config {
 		</route>
 	</start>
 	<start name="shape-blade">
-		<binary name="test-vbox_pointer"/>
+		<binary name="test-pointer"/>
 		<resource name="RAM" quantum="2M"/>
 		<config shape="blade"/>
 		<route>
@@ -139,7 +138,7 @@ set config {
 		</route>
 	</start>
 	<start name="shape-bladex">
-		<binary name="test-vbox_pointer"/>
+		<binary name="test-pointer"/>
 		<resource name="RAM" quantum="2M"/>
 		<config shape="bladex"/>
 		<route>
@@ -177,7 +176,7 @@ set config {
 		</route>
 	</start>
 	<start name="shape-smiley">
-		<binary name="test-vbox_pointer"/>
+		<binary name="test-pointer"/>
 		<resource name="RAM" quantum="2M"/>
 		<configfile name="smiley.config"/>
 		<route>
@@ -194,7 +193,6 @@ set config {
 	</start>
 
 	<start name="pointer">
-		<binary name="vbox_pointer"/>
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> </provides>
 		<config shapes="yes" verbose="no"/>
@@ -283,8 +281,8 @@ set boot_modules {
 	fb_sdl
 	report_rom dynamic_rom
 	nitpicker
-	vbox_pointer
-	test-vbox_pointer
+	pointer
+	test-pointer
 	testnit
 }
 

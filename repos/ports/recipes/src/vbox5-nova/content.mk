@@ -15,7 +15,6 @@ MIRROR_FROM_REP_DIR := src/virtualbox5 \
                        src/virtualbox/rt.cc \
                        src/virtualbox/thread.cc \
                        include/vmm \
-                       include/vbox_pointer/shape_report.h \
                        $(addprefix lib/mk/,$(LIB_MK_FILES))
 
 content: $(MIRROR_FROM_REP_DIR)
@@ -73,7 +72,8 @@ $(MIRROR_FROM_QEMU_USB_PORT_DIR):
 	mkdir -p $(dir $@)
 	cp -r $(QEMU_USB_PORT_DIR)/$@ $(dir $@)
 
-MIRROR_FROM_OS := src/drivers/input/spec/ps2/scan_code_set_1.h
+MIRROR_FROM_OS := src/drivers/input/spec/ps2/scan_code_set_1.h \
+                  include/pointer/shape_report.h \
 
 content: $(MIRROR_FROM_OS)
 

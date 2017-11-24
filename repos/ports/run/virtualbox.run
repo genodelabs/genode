@@ -43,7 +43,7 @@ lappend_if [expr $use_bridge] build_components server/nic_bridge
 lappend_if [expr $use_gui]    build_components server/report_rom
 lappend_if [expr $use_gui]    build_components server/nitpicker
 lappend_if [expr $use_gui]    build_components server/nit_fb
-lappend_if [expr $use_gui]    build_components app/vbox_pointer
+lappend_if [expr $use_gui]    build_components app/pointer
 
 append_platform_drv_build_components
 
@@ -157,8 +157,8 @@ append_if [expr $use_gui] config {
 		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config>
-			<policy label="vbox_pointer -> hover"               report="nitpicker -> hover"/>
-			<policy label="vbox_pointer -> xray"                report="nitpicker -> xray"/>
+			<policy label="pointer -> hover" report="nitpicker -> hover"/>
+			<policy label="pointer -> xray"  report="nitpicker -> xray"/>
 		</config>
 	</start>
 
@@ -183,12 +183,12 @@ append_if [expr $use_gui] config {
 			<domain name="pointer"  layer="1" content="client" label="no" origin="pointer" />
 			<domain name=""         layer="2" content="client" focus="click" hover="always" />
 
-			<policy label_prefix="vbox_pointer"     domain="pointer"/>
+			<policy label_prefix="pointer" domain="pointer"/>
 			<default-policy domain=""/>
 		</config>
 	</start>
 
-	<start name="vbox_pointer" priority="-1">
+	<start name="pointer" priority="-1">
 		<resource name="RAM" quantum="2M"/>
 		<config shapes="yes"/>
 		<route>
@@ -244,7 +244,7 @@ append_if [expr $use_gui] config {
 		</config>
 		<route>
 			<service name="Nic"> <child name="nic_bridge"/> </service>
-			<service name="Report" label="shape"> <child name="vbox_pointer" label="nit_fb2 -> "/> </service>
+			<service name="Report" label="shape"> <child name="pointer" label="nit_fb2 -> "/> </service>
 			<service name="Report"> <child name="report_rom"/> </service>
 			<service name="Framebuffer"> <child name="nit_fb2" /> </service>
 			<service name="Input"> <child name="nit_fb2" /> </service>
@@ -277,7 +277,7 @@ append_if [expr $use_bridge] config {
 			<service name="Nic"> <child name="nic_bridge"/> </service>}
 
 append_if [expr $use_gui] config {
-			<service name="Report" label="shape"> <child name="vbox_pointer" label="nit_fb1 -> "/> </service>
+			<service name="Report" label="shape"> <child name="pointer" label="nit_fb1 -> "/> </service>
 			<service name="Report"> <child name="report_rom"/> </service>
 			<service name="Framebuffer"> <child name="nit_fb1" /> </service>
 			<service name="Input"> <child name="nit_fb1" /> </service>}
@@ -307,7 +307,7 @@ lappend_if [have_spec         x86] boot_modules rtc_drv
 lappend_if [expr         $use_gui] boot_modules report_rom
 lappend_if [expr         $use_gui] boot_modules nitpicker
 lappend_if [expr         $use_gui] boot_modules nit_fb
-lappend_if [expr         $use_gui] boot_modules vbox_pointer
+lappend_if [expr         $use_gui] boot_modules pointer
 
 append boot_modules {
 	ld.lib.so libc.lib.so libm.lib.so pthread.lib.so libc_pipe.lib.so

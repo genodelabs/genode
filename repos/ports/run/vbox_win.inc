@@ -28,7 +28,7 @@ set build_components {
 	drivers/nic
 	drivers/audio
 	server/nitpicker
-	app/vbox_pointer
+	app/pointer
 	server/nit_fb
 	server/report_rom
 	server/dynamic_rom
@@ -39,7 +39,7 @@ set boot_modules {
 	nic_drv
 	audio_drv
 	nitpicker
-	vbox_pointer
+	pointer
 	nit_fb
 	report_rom
 	dynamic_rom
@@ -111,8 +111,8 @@ append config_of_app {
 		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config>
-			<policy label="vbox_pointer -> hover"               report="nitpicker -> hover"/>
-			<policy label="vbox_pointer -> xray"                report="nitpicker -> xray"/>}
+			<policy label="pointer -> hover"                    report="nitpicker -> hover"/>
+			<policy label="pointer -> xray"                     report="nitpicker -> xray"/>}
 append config_of_app {
 			<policy label="usb_report_filter -> devices"        report="usb_drv -> devices"/>
 			<policy label="usb_report_filter -> usb_drv_config" report="usb_drv -> config"/>
@@ -140,13 +140,13 @@ append config_of_app {
 			<domain name="cpu_load" layer="2" content="client" label="no" />
 			<domain name=""         layer="3" content="client" focus="click" hover="always" />
 
-			<policy label_prefix="vbox_pointer"     domain="pointer"/>
+			<policy label_prefix="pointer"          domain="pointer"/>
 			<policy label_prefix="cpu_load_display" domain="cpu_load"/>
 			<default-policy domain=""/>
 		</config>
 	</start>
 
-	<start name="vbox_pointer" priority="-1">
+	<start name="pointer" priority="-1">
 		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Report"/> </provides>
 		<config shapes="yes"/>
@@ -297,7 +297,7 @@ for { set i 1} { $i <= $use_vms } { incr i} {
 			<service name=\"Framebuffer\"> <child name=\"nit_fb${i}\" /> </service>
 			<service name=\"Input\"> <child name=\"nit_fb${i}\" /> </service>
 			<service name=\"Report\" label=\"shape\">
-				<child name=\"vbox_pointer\" label=\"nit_fb${i} -> \"/>
+				<child name=\"pointer\" label=\"nit_fb${i} -> \"/>
 			</service>"
 	append config_of_app {
 			<service name="Report"><child name="report_rom" /></service>

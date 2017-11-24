@@ -11,10 +11,10 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _INCLUDE__VBOX_POINTER__SHAPE_REPORT_H_
-#define _INCLUDE__VBOX_POINTER__SHAPE_REPORT_H_
+#ifndef _INCLUDE__POINTER__SHAPE_REPORT_H_
+#define _INCLUDE__POINTER__SHAPE_REPORT_H_
 
-namespace Vbox_pointer {
+namespace Pointer {
 
 	enum {
 		MAX_WIDTH = 100,
@@ -25,7 +25,7 @@ namespace Vbox_pointer {
 	struct Shape_report;
 }
 
-struct Vbox_pointer::Shape_report
+struct Pointer::Shape_report
 {
 	bool          visible;
 	unsigned int  x_hot;
@@ -35,4 +35,4 @@ struct Vbox_pointer::Shape_report
 	unsigned char shape[MAX_SHAPE_SIZE];
 };
 
-#endif /* _INCLUDE__VBOX_POINTER__SHAPE_REPORT_H_ */
+#endif /* _INCLUDE__POINTER__SHAPE_REPORT_H_ */

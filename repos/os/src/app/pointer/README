@@ -1,0 +1,39 @@
+Pointer for Nitpicker with optional hover-sensitive shape support
+
+Per default the standard "big mouse" pointer is rendered on screen.
+
+Additionally, 'pointer' supports to render "pointer shapes" when hovering
+Nitpicker sessions for which a shape was reported. This feature must be
+enabled with the '<config shapes="yes"/>' option. When enabled, the
+'pointer' component announces a 'Report' service for custom pointer shapes
+and requests ROM sessions for Nitpicker's 'hover' and 'xray' reports. The
+mapping between hovered Nitpicker sessions and applications can be achieved
+with report session label rewriting:
+
+! <start name="shape-arrow">
+! 	<binary name="test-pointer"/>
+! 	<resource name="RAM" quantum="2M"/>
+! 	<config shape="arrow"/>
+! 	<route>
+! 		<service name="PD">     <parent/> </service>
+! 		<service name="ROM">    <parent/> </service>
+! 		<service name="CPU">    <parent/> </service>
+! 		<service name="LOG">    <parent/> </service>
+! 		<service name="Report" label="shape">
+! 			<child name="pointer" label="test-label-arrow -> testnit"/>
+! 		</service>
+! 	</route>
+! </start>
+
+In the example above, which is from 'pointer.run', the 'shape-arrow' component
+reports an arrow shape with the label "shape". By rewriting the label of the
+report, the shape will be drawn for the 'test-label-arrow' component, which
+is reported by Nitpicker with the label 'test-label-arror -> testnit' when
+hovered.
+
+When configured with '<config shapes="yes" verbose="yes"/>', the 'pointer'
+component prints the labels of hovered Nitpicker sessions and received shape
+reports to the 'LOG' service.
+
+The most common use cases for pointer shapes are VirtualBox, which reports
+the guest-pointer shapes if Guest Additions are installed, and Qt applications.
