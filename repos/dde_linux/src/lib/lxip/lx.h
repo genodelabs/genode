@@ -47,6 +47,7 @@ extern "C" void lxip_configure_static(char const *addr,
                                       char const *gateway,
                                       char const *nameserver);
 extern "C" void lxip_configure_dhcp();
+extern "C" void lxip_configure_mtu(unsigned mtu);
 
 extern "C" bool lxip_do_dhcp();
 

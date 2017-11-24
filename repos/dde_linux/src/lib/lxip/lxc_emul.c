@@ -528,6 +528,22 @@ static void lxip_configure(char const *address_config)
 static bool dhcp_configured = false;
 static bool dhcp_pending    = false;
 
+void lxip_configure_mtu(unsigned mtu)
+{
+	/* zero mtu means reset to default */
+	unsigned new_mtu = mtu ? mtu : ETH_DATA_LEN;
+
+	struct net        *net;
+	struct net_device *dev;
+
+	for_each_net(net) {
+		for_each_netdev(net, dev) {
+			dev_set_mtu(dev, new_mtu);
+		}
+	}
+}
+
+
 void lxip_configure_static(char const *addr, char const *netmask,
                            char const *gateway, char const *nameserver)
 {

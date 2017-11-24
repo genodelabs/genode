@@ -54,7 +54,7 @@ append config {
 			<sleep milliseconds="2500"/> <inline description="dynamic">
 			<config>
 				<vfs>
-					<lxip dhcp="yes"/>
+					<lxip mtu="1000" dhcp="yes"/>
 				</vfs>
 			</config>
 			</inline>

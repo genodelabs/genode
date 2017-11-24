@@ -31,7 +31,7 @@ static int driver_net_open(struct net_device *dev)
 }
 
 
-int driver_net_xmit(struct sk_buff *skb, struct net_device *dev)
+static int driver_net_xmit(struct sk_buff *skb, struct net_device *dev)
 {
 	struct net_device_stats *stats = (struct net_device_stats*) netdev_priv(dev);
 	int len                        = skb->len;
@@ -56,10 +56,18 @@ int driver_net_xmit(struct sk_buff *skb, struct net_device *dev)
 }
 
 
+static int driver_change_mtu(struct net_device *dev, int new_mtu)
+{
+	/* possible point to reflect successful MTU setting */
+	return eth_change_mtu(dev, new_mtu);
+}
+
+
 static const struct net_device_ops driver_net_ops =
 {
 	.ndo_open       = driver_net_open,
 	.ndo_start_xmit = driver_net_xmit,
+	.ndo_change_mtu = driver_change_mtu,
 };
 
 

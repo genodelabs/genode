@@ -1393,15 +1393,19 @@ class Vfs::Lxip_file_system : public Vfs::File_system,
 		{
 			typedef String<16> Addr;
 
-			try {
+			unsigned const mtu = config.attribute_value("mtu", 0U);
+			if (mtu) {
+				log("Setting MTU to ", mtu);
+				lxip_configure_mtu(mtu);
+			} else {
+				lxip_configure_mtu(0);
+			}
 
-				if (config.attribute_value("dhcp", false)) {
-					log("Using DHCP for interface configuration.");
-					lxip_configure_dhcp();
-					return;
-				}
-
-			} catch (...) { }
+			if (config.attribute_value("dhcp", false)) {
+				log("Using DHCP for interface configuration.");
+				lxip_configure_dhcp();
+				return;
+			}
 
 			try {
 
@@ -1426,7 +1430,7 @@ class Vfs::Lxip_file_system : public Vfs::File_system,
 
 				lxip_configure_static(ip_addr.string(), netmask.string(),
 				                      gateway.string(), nameserver.string());
-			} catch (...) {	}
+			} catch (...) { }
 		 }
 
 
