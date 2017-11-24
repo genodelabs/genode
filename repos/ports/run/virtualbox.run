@@ -190,6 +190,7 @@ append_if [expr $use_gui] config {
 
 	<start name="vbox_pointer" priority="-1">
 		<resource name="RAM" quantum="2M"/>
+		<config shapes="yes"/>
 		<route>
 			<service name="Nitpicker"> <child name="nitpicker"/>  </service>
 			<service name="ROM" label="hover"> <child name="report_rom"/> </service>

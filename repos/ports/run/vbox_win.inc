@@ -149,6 +149,7 @@ append config_of_app {
 	<start name="vbox_pointer" priority="-1">
 		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Report"/> </provides>
+		<config shapes="yes"/>
 		<route>
 			<service name="Nitpicker"> <child name="nitpicker"/>  </service>}
 

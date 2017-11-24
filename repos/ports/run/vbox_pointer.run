@@ -197,6 +197,7 @@ set config {
 		<binary name="vbox_pointer"/>
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> </provides>
+		<config shapes="yes" verbose="no"/>
 		<route>
 			<service name="PD">        <parent/>                            </service>
 			<service name="LOG">       <parent/>                            </service>

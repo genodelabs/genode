@@ -63,34 +63,44 @@ class Vbox_pointer::Main : public Rom::Reader
 
 		Genode::Env &_env;
 
-		Genode::Attached_rom_dataspace _hover_ds { _env, "hover"  };
-		Genode::Attached_rom_dataspace _xray_ds  { _env, "xray"   };
-		Genode::Attached_rom_dataspace _config   { _env, "config" };
+		Genode::Attached_rom_dataspace _config { _env, "config" };
+
+		bool _verbose = _config.xml().attribute_value("verbose", false);
+
+		Nitpicker::Connection _nitpicker { _env };
+
+		Nitpicker::Session::View_handle _view = _nitpicker.create_view();
+
+		bool _default_pointer_visible = false;
+
+		Nitpicker::Area              _current_pointer_size;
+		Genode::Dataspace_capability _pointer_ds;
+
+		void _resize_nitpicker_buffer_if_needed(Nitpicker::Area pointer_size);
+		void _show_default_pointer();
+		void _update_pointer();
+
+		/* custom shape support */
+
+		bool _shapes_enabled = _config.xml().attribute_value("shapes", false);
+
+		bool _xray = false;
+
+		Genode::Constructible<Genode::Attached_rom_dataspace> _hover_ds;
+		Genode::Constructible<Genode::Attached_rom_dataspace> _xray_ds;
 
 		Genode::Signal_handler<Main> _hover_signal_handler {
 			_env.ep(), *this, &Main::_handle_hover };
 		Genode::Signal_handler<Main> _xray_signal_handler {
 			_env.ep(), *this, &Main::_handle_xray };
 
-		Nitpicker::Connection _nitpicker { _env };
-
-		Nitpicker::Session::View_handle _view = _nitpicker.create_view();
-
 		Genode::Sliced_heap _sliced_heap { _env.ram(), _env.rm() };
 
 		Rom::Registry _rom_registry { _sliced_heap, _env.ram(), _env.rm(), *this };
 
-		bool _verbose = _config.xml().attribute_value("verbose", false);
-
 		Report::Root _report_root { _env, _sliced_heap, _rom_registry, _verbose };
 
 		String _hovered_label;
-
-		bool _xray                    = false;
-		bool _default_pointer_visible = false;
-
-		Nitpicker::Area              _current_pointer_size;
-		Genode::Dataspace_capability _pointer_ds;
 
 		Genode::Attached_ram_dataspace _texture_pixel_ds { _env.ram(), _env.rm(),
 		                                                   Vbox_pointer::MAX_WIDTH  *
@@ -101,10 +111,7 @@ class Vbox_pointer::Main : public Rom::Reader
 		                                                   Vbox_pointer::MAX_WIDTH  *
 		                                                   Vbox_pointer::MAX_HEIGHT };
 
-		void _resize_nitpicker_buffer_if_needed(Nitpicker::Area pointer_size);
-		void _show_default_pointer();
 		void _show_shape_pointer(Shape_report &shape_report);
-		void _update_pointer();
 		void _handle_hover();
 		void _handle_xray();
 
@@ -234,7 +241,7 @@ void Vbox_pointer::Main::_show_shape_pointer(Shape_report &shape_report)
 
 void Vbox_pointer::Main::_update_pointer()
 {
-	if (_xray) {
+	if (!_shapes_enabled || _xray) {
 		_show_default_pointer();
 		return;
 	}
@@ -277,13 +284,13 @@ void Vbox_pointer::Main::_handle_hover()
 {
 	using Vbox_pointer::read_string_attribute;
 
-	_hover_ds.update();
-	if (!_hover_ds.valid())
+	_hover_ds->update();
+	if (!_hover_ds->valid())
 		return;
 
 	/* read new hover information from nitpicker's hover report */
 	try {
-		Genode::Xml_node node(_hover_ds.local_addr<char>());
+		Genode::Xml_node node(_hover_ds->local_addr<char>());
 
 		String hovered_label  = read_string_attribute(node, "label",  String());
 
@@ -304,12 +311,12 @@ void Vbox_pointer::Main::_handle_hover()
 
 void Vbox_pointer::Main::_handle_xray()
 {
-	_xray_ds.update();
-	if (!_xray_ds.valid())
+	_xray_ds->update();
+	if (!_xray_ds->valid())
 		return;
 
 	try {
-		Genode::Xml_node node(_xray_ds.local_addr<char>());
+		Genode::Xml_node node(_xray_ds->local_addr<char>());
 
 		bool xray = node.attribute_value("enabled", false);
 
@@ -336,20 +343,35 @@ Vbox_pointer::Main::Main(Genode::Env &env) : _env(env)
 
 	_nitpicker.buffer(mode, true /* use alpha */);
 
-	/* register signal handlers */
-	_hover_ds.sigh(_hover_signal_handler);
-	_xray_ds.sigh(_xray_signal_handler);
+	if (_shapes_enabled) {
+		try {
+			_hover_ds.construct(_env, "hover");
+			_hover_ds->sigh(_hover_signal_handler);
+			_handle_hover();
+		} catch (Genode::Rom_connection::Rom_connection_failed) {
+			Genode::warning("Could not open ROM session for \"hover\".",
+		                	" This ROM is used for custom pointer shape support.");
+		}
+
+		try {
+			_xray_ds.construct(_env, "xray");
+			_xray_ds->sigh(_xray_signal_handler);
+			_handle_xray();
+		} catch (Genode::Rom_connection::Rom_connection_failed) {
+			Genode::warning("Could not open ROM session for \"xray\".",
+		                	" This ROM is used for custom pointer shape support.");
+		}
+	}
 
 	_nitpicker.enqueue<Nitpicker::Session::Command::To_front>(_view);
 	_nitpicker.execute();
 
-	/* import initial state */
-	_handle_hover();
-	_handle_xray();
 	_update_pointer();
 
-	/* announce 'Report' service */
-	env.parent().announce(env.ep().manage(_report_root));
+	if (_shapes_enabled) {
+		/* announce 'Report' service */
+		env.parent().announce(env.ep().manage(_report_root));
+	}
 }
 
 
