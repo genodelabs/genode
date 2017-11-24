@@ -16,6 +16,11 @@ if { [have_spec muen] } {
 	exit 0
 }
 
+if {[get_cmd_switch --autopilot] && [have_spec x86_32] && ![have_spec acpi]} {
+	puts stderr "\nNetperf WIFI running with non-ACPI kernel on native x86_32 test machine is not supported because of wrong interrupt number in pci config space (should be 11 instead 10).\n"
+	exit
+}
+
 # network configuration
 set use_nic_bridge      0
 set use_wifi_driver     1
