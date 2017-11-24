@@ -24,10 +24,9 @@ using namespace Genode;
 
 Timer::Time_source::Time_source(Env &env)
 :
+	Attached_mmio(env, Wand_quad::EPIT_2_MMIO_BASE, Wand_quad::EPIT_2_MMIO_SIZE),
 	Signalled_time_source(env),
-	_io_mem(env, Wand_quad::EPIT_2_MMIO_BASE, Wand_quad::EPIT_2_MMIO_SIZE),
-	_timer_irq(env, Wand_quad::EPIT_2_IRQ),
-	_epit(reinterpret_cast<addr_t>(_io_mem.local_addr<addr_t>()))
+	_timer_irq(env, Wand_quad::EPIT_2_IRQ)
 {
 	_timer_irq.sigh(_signal_handler);
 }

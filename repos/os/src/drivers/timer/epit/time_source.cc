@@ -19,47 +19,61 @@
 
 using namespace Genode;
 
-Microseconds Timer::Time_source::max_timeout() const {
-	return Microseconds(_epit.tics_to_us(~0U)); }
 
-void Timer::Time_source::schedule_timeout(Microseconds     duration,
-                                          Timeout_handler &handler)
+void Timer::Time_source::schedule_timeout(Genode::Microseconds  duration,
+                                          Timeout_handler      &handler)
 {
-	/*
-	 * Program max timeout in case of duration 0 to avoid lost of accuracy
-	 * due to wraps when value is chosen too small. Send instead a signal
-	 * manually at end of this method.
-	 */
-	unsigned const tics = _epit.us_to_tics(duration.value ? duration.value
-	                                                      : max_timeout().value);
+	/* on duration 0 trigger directly at function end and set max timeout */
+	unsigned long const us = duration.value ? duration.value
+	                                        : max_timeout().value;
+	unsigned long const ticks = (1ULL * us * TICKS_PER_MS) / 1000;
 
 	_handler = &handler;
-
 	_timer_irq.ack_irq();
 
-	_epit.start_one_shot(tics);
+	/* wait until ongoing reset operations are finished */
+	while (read<Cr::Swr>()) ;
+
+	/* disable timer */
+	write<Cr::En>(0);
+
+	/* clear interrupt */
+	write<Sr::Ocif>(1);
+
+	/* configure timer for a one-shot */
+	write<Cr>(Cr::prepare_one_shot());
+	write<Lr>(ticks);
+	write<Cmpr>(0);
+
+	/* start timer */
+	write<Cr::En>(1);
 
 	/* trigger for a timeout 0 immediately the signal */
-	if (!duration.value)
+	if (!duration.value) {
 		Signal_transmitter(_signal_handler).submit();
+	}
 }
 
 
 Duration Timer::Time_source::curr_time()
 {
-	/* read EPIT status */
-	bool           wrapped   = false;
-	unsigned const max_value = _epit.current_max_value();
-	unsigned const tic_value = _epit.value(wrapped);
-	unsigned       passed_tics = 0;
+	/* read timer status */
+	unsigned long      diff_ticks = 0;
+	Lr::access_t const max_value  = read<Lr>();
+	Cnt::access_t      cnt        = read<Cnt>();
+	bool         const wrapped    = read<Sr::Ocif>();
 
-	if (_irq && wrapped)
-		passed_tics += max_value;
+	/* determine how many ticks have passed */
+	if (_irq && wrapped) {
+		cnt         = read<Cnt>();
+		diff_ticks += max_value;
+	}
+	diff_ticks += max_value - cnt;
+	unsigned long const diff_us = timer_ticks_to_us(diff_ticks, TICKS_PER_MS);
 
-	passed_tics += max_value - tic_value;
-
-	if (_irq || _epit.tics_to_us(passed_tics) > 1000)
-		_curr_time_us += _epit.tics_to_us(passed_tics);
-
-	return Duration(Microseconds(_curr_time_us));
+	/* update time only on IRQs and if rate is under 1000 per second */
+	if (_irq || diff_us > 1000) {
+		_curr_time.add(Genode::Microseconds(diff_us));
+	}
+	return _curr_time;
 }

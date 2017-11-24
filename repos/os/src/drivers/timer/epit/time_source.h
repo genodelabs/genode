@@ -17,31 +17,51 @@
 #define _TIME_SOURCE_H_
 
 /* Genode includes */
-#include <base/attached_io_mem_dataspace.h>
 #include <irq_session/connection.h>
-#include <os/duration.h>
+#include <os/attached_mmio.h>
+#include <drivers/timer/util.h>
 
 /* local includes */
 #include <signalled_time_source.h>
 
-#include "epit.h"
-
-namespace Timer {
-
-	using Microseconds = Genode::Microseconds;
-	using Duration     = Genode::Duration;
-	class Time_source;
-}
+namespace Timer { class Time_source; }
 
 
-class Timer::Time_source : public Genode::Signalled_time_source
+class Timer::Time_source : public Genode::Attached_mmio,
+                           public Genode::Signalled_time_source
 {
 	private:
 
-		Genode::Attached_io_mem_dataspace _io_mem;
-		Genode::Irq_connection            _timer_irq;
-		Genode::Epit_base                 _epit;
-		unsigned long long mutable        _curr_time_us { 0 };
+		enum { TICKS_PER_MS = 66000 };
+
+		struct Cr : Register<0x0, 32>
+		{
+			struct En      : Bitfield<0, 1>  { };
+			struct En_mod  : Bitfield<1, 1>  { enum { RELOAD = 1 }; };
+			struct Oci_en  : Bitfield<2, 1>  { };
+			struct Rld     : Bitfield<3, 1>  { enum { RELOAD_FROM_LR = 1 }; };
+			struct Swr     : Bitfield<16, 1> { };
+			struct Clk_src : Bitfield<24, 2> { enum { HIGH_FREQ_REF_CLK = 2 }; };
+
+			static access_t prepare_one_shot()
+			{
+				access_t cr = 0;
+				En_mod::set(cr, En_mod::RELOAD);
+				Oci_en::set(cr, 1);
+				Rld::set(cr, Rld::RELOAD_FROM_LR);
+				Clk_src::set(cr, Clk_src::HIGH_FREQ_REF_CLK);
+				return cr;
+			}
+		};
+
+		struct Sr   : Register<0x4,  32> { struct Ocif : Bitfield<0, 1> { }; };
+		struct Lr   : Register<0x8,  32> { };
+		struct Cmpr : Register<0xc,  32> { };
+		struct Cnt  : Register<0x10, 32> { };
+
+		Genode::Irq_connection     _timer_irq;
+		Genode::Duration           _curr_time   { Genode::Microseconds(0) };
+		Genode::Microseconds const _max_timeout { Genode::timer_ticks_to_us(~0U, TICKS_PER_MS) };
 
 	public:
 
@@ -52,9 +72,9 @@ class Timer::Time_source : public Genode::Signalled_time_source
 		 ** Genode::Time_source **
 		 *************************/
 
-		Duration curr_time() override;
-		void schedule_timeout(Microseconds duration, Timeout_handler &handler) override;
-		Microseconds max_timeout() const override;
+		Genode::Duration curr_time() override;
+		void schedule_timeout(Genode::Microseconds duration, Timeout_handler &handler) override;
+		Genode::Microseconds max_timeout() const override { return _max_timeout; };
 };
 
 #endif /* _TIME_SOURCE_H_ */
