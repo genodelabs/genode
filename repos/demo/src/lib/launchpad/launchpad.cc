@@ -39,7 +39,7 @@ Launchpad::Launchpad(Env &env, unsigned long initial_quota)
 		"RM", "PD", "CPU", "IO_MEM", "IO_PORT", "IRQ", "ROM", "LOG",
 
 		/* services expected to got started by init */
-		"Nitpicker", "Init", "Timer", "Block", "Nic", "Rtc", "Gpu",
+		"Nitpicker", "Init", "Timer", "Block", "Nic", "Rtc", "Gpu", "Report",
 
 		0 /* null-termination */
 	};
