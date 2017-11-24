@@ -304,6 +304,12 @@ struct Mixed_timeouts : Test
 		/* 20 */ { &timeouts[3], Duration(Milliseconds(6500UL)) }
 	};
 
+	struct {
+		unsigned long   event_time_us { 0 };
+		unsigned long   time_us { 0 };
+		Timeout const * timeout { nullptr };
+	} results [NR_OF_EVENTS];
+
 	Duration      init_time    { Microseconds(0) };
 	unsigned      event_id     { 0 };
 	unsigned long max_error_us { config.xml().attribute_value("precise_timeouts", true) ?
@@ -333,29 +339,40 @@ struct Mixed_timeouts : Test
 		if (!event_id) {
 			init_time = time; }
 
-		Timeout_event const &event   = events[event_id++];
-		unsigned long        time_us = time.trunc_to_plain_us().value -
-		                               init_time.trunc_to_plain_us().value;
-
-		unsigned long event_time_us = event.time.trunc_to_plain_us().value;
-		unsigned long error_us      = max(time_us, event_time_us) -
-		                              min(time_us, event_time_us);
-
-		log(time_us / 1000UL, " ms: ", timeout.name, " timeout triggered,"
-		    " error ", error_us, " us (max ", max_error_us, " us)");
+		Timeout_event const &event      = events[event_id];
+		results[event_id].event_time_us = event.time.trunc_to_plain_us().value;
+		results[event_id].time_us       = time.trunc_to_plain_us().value -
+		                                  init_time.trunc_to_plain_us().value;
+		results[event_id].timeout       = &timeout;
 
 		if (event.timeout && event.timeout != &timeout) {
-
 			error("expected timeout ", event.timeout->name);
 			error_cnt++;
-
-		} else if (error_us > max_error_us) {
-
-			error("absolute timeout error greater than ", (unsigned long)max_error_us, " us");
-			error_cnt++;
 		}
-		if (event_id == NR_OF_EVENTS) {
-			done.submit(); }
+
+		event_id++;
+
+		if (event_id != NR_OF_EVENTS) {
+			return; }
+
+		for (unsigned i = 0; i < NR_OF_EVENTS; i++) {
+			unsigned long const event_time_us = results[i].event_time_us;
+			unsigned long const time_us       = results[i].time_us;
+			unsigned long const error_us      = max(time_us, event_time_us) -
+			                                    min(time_us, event_time_us);
+			Timeout const *timeout            = results[i].timeout;
+
+			log(time_us / 1000UL, " ms: ", timeout->name, " timeout triggered,"
+			    " error ", error_us, " us (max ", max_error_us, " us)");
+
+			if (error_us > max_error_us) {
+				error("absolute timeout error greater than ", max_error_us,
+				      " us");
+				error_cnt++;
+			}
+		}
+
+		done.submit();
 	}
 
 	Mixed_timeouts(Env                       &env,
