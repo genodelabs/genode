@@ -142,10 +142,10 @@ proc check_counter { name opt cnt total_cnt } {
 	set    is    0
 
 	#
-	# Zynq is currently tested merely in Qemu and most likely because of
-	# that, the results are less precise.
+	# As we test on QEMU possibly paralell to other activities on the same CPU
+	# we have to consider inconsistencies in timing.
 	#
-	if {[have_spec zynq]} { set tol 0.03 }
+	if {[have_include "power_on/qemu"]} { set tol 0.03 }
 
 	#
 	# FIXME: There is no reasonable explanation by now why the test results
@@ -238,7 +238,7 @@ set total_cnt [expr $fast_a_cnt + $midl_a_cnt + $slow_a_cnt + $fast_b_cnt + $mid
 #     A  5.0 % claim + 5.0 % fill = 10 %
 #   Total
 #     A  3/4 * 3 + 1/4 * 10 = 4.75 %
-#     A  3/4 * 7 + 1/4 *  0 = 5.25 %
+#     B  3/4 * 7 + 1/4 *  0 = 5.25 %
 #
 check_counter "Slow counter A"   0.0475 $slow_a_cnt $total_cnt
 check_counter "Slow counter B"   0.0525 $slow_b_cnt $total_cnt
@@ -252,7 +252,7 @@ check_counter "Slow counter B"   0.0525 $slow_b_cnt $total_cnt
 #     A  20 % claim + 5.0 % fill = 25.0 %
 #   Total
 #     A  3/4 *  4.5 + 1/4 * 25 =  9.625 %
-#     A  3/4 * 20.5 + 1/4 *  0 = 15.375 %
+#     B  3/4 * 20.5 + 1/4 *  0 = 15.375 %
 #
 check_counter "Middle counter A" 0.09625 $midl_a_cnt $total_cnt
 check_counter "Middle counter B" 0.15375 $midl_b_cnt $total_cnt
@@ -266,7 +266,7 @@ check_counter "Middle counter B" 0.15375 $midl_b_cnt $total_cnt
 #     A  60 % claim + 5.0 % fill = 65.0 %
 #   Total
 #     A  3/4 *  8.5 + 1/4 * 65 = 22.625 %
-#     A  3/4 * 56.5 + 1/4 *  0 = 42.375 %
+#     B  3/4 * 56.5 + 1/4 *  0 = 42.375 %
 #
 check_counter "Fast counter A" 0.22625 $fast_a_cnt $total_cnt
 check_counter "Fast counter B" 0.42375 $fast_b_cnt $total_cnt
