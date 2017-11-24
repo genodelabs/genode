@@ -99,6 +99,9 @@ append config {
 		</config>
 		<route>
 			<service name="Nitpicker"> <child name="wm"/> </service>
+			<service name="Report" label="shape">
+				<child name="pointer" label="wm -> arora -> shape"/>
+			</service>
 			<service name="Report"> <child name="clipboard"/> </service>
 			<service name="ROM" label="clipboard"> <child name="clipboard"/> </service>
 			<service name="ROM" label="egl_drv.lib.so"> <parent label="egl_swrast.lib.so" /> </service>

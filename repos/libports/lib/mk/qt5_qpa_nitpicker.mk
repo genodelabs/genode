@@ -11,6 +11,7 @@ SRC_CC = qgenericunixeventdispatcher.cpp \
 
 SRC_CC += main.cpp \
           qgenodeclipboard.cpp \
+          qnitpickercursor.cpp \
           qnitpickerglcontext.cpp \
           qnitpickerintegration.cpp \
           qnitpickerplatformwindow.cpp \

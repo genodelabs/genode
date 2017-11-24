@@ -15,12 +15,15 @@
 #ifndef _QNITPICKERSCREEN_H_
 #define _QNITPICKERSCREEN_H_
 
+/* Genode includes */
+#include <nitpicker_session/connection.h>
+
+/* Qt includes */
 #include <qpa/qplatformscreen.h>
 
 #include <QDebug>
 
-/* Genode includes */
-#include <nitpicker_session/connection.h>
+#include "qnitpickercursor.h"
 
 QT_BEGIN_NAMESPACE
 
@@ -28,11 +31,12 @@ class QNitpickerScreen : public QPlatformScreen
 {
 	private:
 
-		QRect _geometry;
+		Genode::Env &_env;
+		QRect        _geometry;
 
 	public:
 
-		QNitpickerScreen(Genode::Env &env)
+		QNitpickerScreen(Genode::Env &env) : _env(env)
 		{
 			Nitpicker::Connection _nitpicker(env);
 
@@ -49,6 +53,12 @@ class QNitpickerScreen : public QPlatformScreen
 		int depth() const { return 16; }
 		QImage::Format format() const { return QImage::Format_RGB16; }
 		QDpi logicalDpi() const { return QDpi(80, 80); };
+
+		QPlatformCursor *cursor() const
+		{
+			static QNitpickerCursor instance(_env);
+			return &instance;
+		}
 };
 
 QT_END_NAMESPACE

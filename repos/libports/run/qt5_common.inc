@@ -68,7 +68,7 @@ proc qt5_start_nodes { feature_arg } {
 				<any-service> <parent /> <any-child /> </any-service>
 			</route>
 			<config>
-				<report focus="yes"/>
+				<report focus="yes" hover="yes" xray="yes"/>
 
 				<domain name="pointer" layer="1" label="no" content="client" origin="pointer" />
 				<domain name="default" layer="2" label="no" content="client" focus="click" hover="always" />
@@ -80,8 +80,12 @@ proc qt5_start_nodes { feature_arg } {
 
 		<start name="pointer">
 			<resource name="RAM" quantum="1M"/>
+			<provides> <service name="Report"/> </provides>
+			<config shapes="yes"/>
 			<route>
 				<service name="Nitpicker"> <child name="nitpicker"/> </service>
+				<service name="ROM" label="hover"> <child name="report_rom"/> </service>
+				<service name="ROM" label="xray"> <child name="report_rom"/> </service>
 				<any-service> <parent/> <any-child/> </any-service>
 			</route>
 		</start>
@@ -102,6 +106,8 @@ proc qt5_start_nodes { feature_arg } {
 				<policy label="wm -> focus"                   report="layouter -> focus"/>
 				<policy label="clipboard -> focus"            report="nitpicker -> focus"/>
 				<policy label="layouter -> decorator_margins" report="decorator -> decorator_margins"/>
+				<policy label="pointer -> hover"              report="nitpicker -> hover"/>
+				<policy label="pointer -> xray"               report="nitpicker -> xray"/>
 			</config>
 		</start>
 

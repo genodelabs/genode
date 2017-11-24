@@ -85,13 +85,15 @@ append config {
 			<policy label="layouter -> decorator_margins" report="decorator -> decorator_margins"/>
 			<policy label="mixer_gui_qt -> channel_list"  report="mixer -> channel_list"/>
 			<policy label="mixer -> channel_list"         report="mixer_gui_qt -> channel_list"/>
+			<policy label="pointer -> hover"              report="nitpicker -> hover"/>
+			<policy label="pointer -> xray"               report="nitpicker -> xray"/>
 		</config>
 	</start>
 	<start name="nitpicker">
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Nitpicker"/></provides>
 		<config>
-			<report focus="yes" xray="yes" />
+			<report focus="yes" hover="yes" xray="yes" />
 			<domain name="pointer" layer="1" content="client" label="no" origin="pointer" />
 			<domain name="default" layer="2" content="client" label="no" hover="always" focus="click"/>
 
@@ -107,8 +109,12 @@ append config {
 	</start>
 	<start name="pointer">
 		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Report"/> </provides>
+		<config shapes="yes"/>
 		<route>
 			<service name="Nitpicker"> <child name="nitpicker"/> </service>
+			<service name="ROM" label="hover"> <child name="report_rom"/> </service>
+			<service name="ROM" label="xray"> <child name="report_rom"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
@@ -203,6 +209,9 @@ append config {
 		</config>
 		<route>
 			<service name="Nitpicker"> <child name="wm"/> </service>
+			<service name="Report" label="shape">
+				<child name="pointer" label="wm -> mixer_gui_qt -> shape"/>
+			</service>
 			<service name="ROM" label="channel_list"> <child name="dynamic_rom" /> </service>
 			<service name="ROM" label="egl_drv.lib.so"> <parent label="egl_swrast.lib.so" /> </service>
 			<any-service> <parent/> <any-child/> </any-service>
