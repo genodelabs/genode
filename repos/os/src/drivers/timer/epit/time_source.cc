@@ -25,10 +25,6 @@ Microseconds Timer::Time_source::max_timeout() const {
 void Timer::Time_source::schedule_timeout(Microseconds     duration,
                                           Timeout_handler &handler)
 {
-	/* make swift current time steady */
-	Duration const time = curr_time();
-	_curr_time_us = time.trunc_to_plain_us().value;
-
 	/*
 	 * Program max timeout in case of duration 0 to avoid lost of accuracy
 	 * due to wraps when value is chosen too small. Send instead a signal
@@ -57,10 +53,13 @@ Duration Timer::Time_source::curr_time()
 	unsigned const tic_value = _epit.value(wrapped);
 	unsigned       passed_tics = 0;
 
-	if (wrapped)
+	if (_irq && wrapped)
 		passed_tics += max_value;
 
 	passed_tics += max_value - tic_value;
 
-	return Duration(Microseconds(_curr_time_us + _epit.tics_to_us(passed_tics)));
+	if (_irq || _epit.tics_to_us(passed_tics) > 1000)
+		_curr_time_us += _epit.tics_to_us(passed_tics);
+
+	return Duration(Microseconds(_curr_time_us));
 }
