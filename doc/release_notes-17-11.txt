@@ -1,0 +1,703 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 17.11
+              ===============================================
+
+                               Genode Labs
+
+
+
+In contrast to most releases, which are focused on one or two major themes,
+the development during the release cycle of version 17.11 was almost entirely
+driven by the practical use of Genode as a day-to-day OS by the entire staff
+of Genode Labs. The basis of this endeavor is an evolving general-purpose
+system scenario - dubbed "sculpt" - that is planned as an official feature
+for the next release 18.02. The name "sculpt" hints at the approach to start
+with a minimalistic generic live system that can be interactively shaped
+into a desktop scenario by the user without any reboot. This is made possible
+by combining Genode's unique dynamic reconfiguration concept with the
+recently introduced package management, our custom GUI stack, and the many
+ready-to-use device-driver components that we developed over the past years.
+
+By stressing Genode in such a dynamic and interactive fashion, we identified
+and smoothened many rough edges and usability shortcomings, ranging from the
+use of client-provided pointer shapes, the proper handling of keyboard
+modifiers, mouse acceleration, over the configuration of the user-level
+networking facilities, to improvements of the file-system support. Since the
+sculpt scenario is based on Genode's custom package-management concept
+introduced in
+[https://genode.org/documentation/release-notes/17.05#Package_management - version 17.05],
+it motivated the packaging of all components required by this system scenario.
+Altogether, there are now over 150 ready-to-use depot archives available.
+
+At the platform level, the release unifies the boot concept across all
+supported x86 microkernels and offers the option to boot 64-bit kernels via
+UEFI. For both UEFI and legacy boot, Genode consistently uses GRUB2 now.
+
+Feature-wise, the most prominent topics are the native support of game-console
+emulators based on libretro, the ability to resize libSDL-based applications
+like avplay, and the further cultivation of Nim as implementation language
+for native Genode components.
+
+
+Base framework and OS-level infrastructure
+##########################################
+
+Virtual file system and C runtime
+=================================
+
+The VFS and C runtime received improvements in several respects. First, we
+reintegrated the resolver library back into the libc library as it is an
+essential feature for network applications. The former split was an ancient
+artifact we implemented when integrating the lxip network stack as an optional
+alternative to lwip. Speaking of ancient features, we also remove the rcmd
+code from libc. This feature for remote-shell access is not used in modern
+environments. The VFS server was adjusted to handle incomplete calls to
+'stat()' correctly.
+
+
+NIC-router improvements
+=======================
+
+Genode's user-level network-routing component was originally introduced in
+[https://genode.org/documentation/release-notes/16.08#Virtual_networking_and_support_for_TOR - version 16.08]
+and refined in
+[https://genode.org/documentation/release-notes/16.11#Further_improved_virtual_networking - version 16.11].
+In the current release, the NIC router has received two minor improvements
+regarding MAC addresses and ARP handling. In addition, it now has the ability
+to act as DHCP server or client for each configured domain.
+
+Let's first have a look at the minor changes. The MAC addresses that the NIC
+router allocates on behalf of its NIC clients are now of the proper type:
+"local" and "individual" and this way, conform to the ARP protocol. The NIC
+router now also considers ARP requests for foreign IP addresses coming from a
+domain. If there is no gateway configured for the domain, the NIC router
+itself jumps in as gateway and answers those requests with its IP address.
+Thus, if you have an individual gateway in a subnet behind the NIC router,
+make sure to have the gateway attribute in the according '<domain>' tag set.
+
+The new DHCP server functionality is activated for a domain by the new
+'<dhcp-server>' sub-tag of the '<domain>' tag:
+
+! <domain name="vbox" interface="10.0.1.1/24">
+!     <dhcp-server ip_first="10.0.1.80"
+!                  ip_last="10.0.1.100"
+!                  ip_lease_time_sec="3600"
+!                  dns_server="10.0.0.2"/>
+!     ...
+! </domain>
+
+The attributes 'ip_first' and 'ip_last' define the available IPv4 address
+range whereas the lifetime of an IPv4 address assignment is defined by the
+'ip_lease_time_sec' attribute in seconds. The 'dns_server' attribute is
+optional and declares the IPv4 address the NIC router shall state in the
+DNS-server option of DHCP. The DNS server may be located within a foreign
+subnet.
+
+When used as a DHCP server, the NIC router provides the following DHCP options
+to its clients: message type, server IP (set to the NIC routers IP), subnet
+mask, IP lease time, router IP (set to the NIC routers IP), DNS server (if
+configured), and broadcast address.
+
+If you want the NIC router to act as DHCP client at a domain, simply omit the
+interface attribute in the '<domain>' tag. In this case, the router tries to
+dynamically receive and maintain an IP configuration for the affected domain.
+Make sure that your DHCP server provides the following DHCP option fields to
+the NIC router: message type, server IP, subnet mask, IP lease time, and
+router IP.
+
+Also note that the NIC router drops all packets not related to its DHCP client
+functionality at a domain that (currently) has no IP configuration. As soon as
+the domain achieves to get a valid IP configuration, the router switches to
+the normal behavior.
+
+
+New driver-manager subsystem
+============================
+
+In traditional Genode system scenarios, the selection and configuration of the
+used device drivers are defined at system-integration time. This approach
+works fine whenever the hardware platform targeted by a given scenario and the
+use case of the scenario is well known in advance. But it does not scale up to
+general-purpose computing where one system image must be usable on diverse
+machines, and the concrete use cases are up to the end user.
+
+The new _driver-manager_ subsystem composes existing Genode components within
+a dynamic subsystem. It spawns and configures device drivers that are
+fundamental for an interactive system on demand. When integrated as a
+building block in a Genode system, it provides the following feature set:
+
+* It contains the ACPI-discovery component and the platform driver.
+
+* It hosts and automatically configures the USB driver such that USB storage
+  and vendor-specific devices become available to user-specific driver
+  components residing outside the drivers subsystem (e.g., a VirtualBox
+  instance that drives an individual USB stick). The list of present USB
+  devices and the current USB-driver configuration are provided as a
+  'usb_devices' and 'usb_drv.config' report respectively. Furthermore, the USB
+  driver is configured to drive human input devices (HID) and provides the
+  event stream as an input service.
+
+* It spawns the AHCI driver and produces a list of present devices as a
+  'block_devices' report.
+
+* It hosts a PS/2 driver as well as an input-filter that incorporates the
+  input-event streams originating from the PS/2 and USB HID drivers. The
+  default configuration generates character events based on a configurable
+  keyboard layout and key repeat, and includes scroll-wheel emulation and
+  pointer acceleration for a PS/2 mouse (or, more importantly, the trackpoint
+  of Lenovo laptops).
+
+* It responds to changes of the 'capslock' and 'numlock' states, which are
+  managed outside of the driver subsystem. Both states are consumed by the USB
+  and PS/2 drivers to drive the keyboard-indicator LEDs. The 'numlock' state
+  is furthermore used to toggle key re-mappings performed by the input filter.
+  The 'capslock' state is incorporated into the modifier state as processed by
+  the input-filter's character generator.
+
+The new subsystem comes in the form of a depot package, which depends on all
+required components. Internally, it employs a dynamic init instance as a tool
+to start and manage driver components on demand. The actual management
+component is a simple program of about 500 lines of code that merely consumes
+reports and produces configurations. It is so simple that it does not even
+perform any dynamic memory allocation.
+
+The new subsystem is present in the _gems_ repository and illustrated by the
+_gems/run/driver_manager.run_ script. It is also used as one cornerstone of
+the forthcoming general-purpose "sculpt" scenario mentioned in the
+introduction.
+
+
+Configuration changes of acpica and platform driver
+===================================================
+
+Up to now, the acpica application was started up-front in most scenarios to
+get exclusive access to all PCI devices during initialization. Afterwards
+the platform driver took over the device access and announced the platform
+service. With the upcoming "sculpt" scenario, the desire arose to start the
+acpica application at a later stage, when the platform driver is already
+running. We adjusted the acpica and platform driver configuration slightly to
+cover this use case also.
+
+
+New ROM-filter abilities
+========================
+
+The ROM-filter component is able to transform XML data from multiple ROM
+modules into a new ROM module. It is prominently used to generate component
+configurations depending on global system state. The current release makes
+this tool more flexible by allowing verbatim copies of input content into
+the output XML node as well as the use of input content as attribute values.
+
+
+New user-input processing capabilities
+======================================
+
+In [https://genode.org/documentation/release-notes/17.02#Input-event_filter - version 17.02],
+we introduced a modular input-processing component called _input-filter_.
+The current release adds the following features to this component:
+
+:incorporating modifier state from external ROMs:
+
+  By adding a '<rom name="...">' node into '<modN>' node of a chargen-filter,
+  it is now possible to incorporate the content of the given ROM module into
+  the modifier state. If the ROM module contains a top-level node with the
+  attribute 'enabled' set to "yes", the modifier is enabled. This is useful
+  for handling a system-global capslock state.
+
+:scroll-wheel emulation:
+
+  The new '<button-scroll>' filter turns relative motion events into wheel
+  events while a special button (i.e., the middle mouse button) is pressed.
+  The button and rate of generated wheel events can be configured per axis via
+  the sub nodes '<vertical>' and '<horizontal>'. The button of each axis can
+  be specified via the 'button' attribute. By default, "BTN_MIDDLE" is used.
+  The rate of generated wheel events can be defined by the 'speed_percent'
+  attribute. A value of "100" uses relative motion vectors directly as wheel
+  motion vectors. In practice, this results in overly fast wheel motion. By
+  lowering the value, the rate can be reduced to practical levels. By
+  specifying a negative value, the direction of the generated wheel motion can
+  be inverted.
+
+  The consumed relative motion events are filtered out from the event stream
+  such that pointer movements are inhibited while the wheel emulation is
+  active. All other events are passed along unmodified.
+
+:pointer acceleration:
+
+  The new '<accelerate>' filter applies acceleration to relative motion
+  values. The 'max' attribute defines the maximum value added to the incoming
+  motion values. The 'sensitivity_percent' attribute scales incoming motion
+  values before applying the (potentially non-linear) acceleration function.
+  The 'curve' attribute defines the degree of non-linearity of the
+  acceleration. The value "0" corresponds to a linear function whereas the
+  maximum value "255" applies a curved function. The default value is "127".
+
+
+Keyboard-LED support for PS/2 and USB HID
+=========================================
+
+Both the PS/2 and the USB drivers have gained the new '<config>' attributes
+'capslock_led="no"', 'numlock_led="no"', and 'scrlock_led="no"' (with their
+default values shown). The attributes can have the values "no" (LED is turned
+off), "yes" (LED is turned on), or "rom". In the latter case, the driver reads
+the LED state from a dedicated ROM module called "capslock", "numlock", or
+"scrlock" respectively. The ROM module is expected to have a top-level XML
+node with the attribute 'enabled' set to "yes" or "no". The drivers reflect
+this state information by driving the corresponding keyboard-mode indicator
+LEDs.
+
+
+Revised Nitpicker GUI server
+============================
+
+Driven by use cases like the "sculpt" scenario mentioned in the introduction,
+the Nitpicker GUI server and its helper components received an overhaul.
+
+Besides modernizing the implementation according to our today's best
+practices, we succeeded in removing the focus handling as the last remaining
+builtin policy from the GUI server to an external component, thereby making
+the GUI server much more flexible. This line of work is complemented with
+an improved way of supporting client-provided pointer shapes, and a new
+general component for handling global keys.
+
+
+Supplementing user-activity information to the hover report
+-----------------------------------------------------------
+
+Nitpicker's existing "hover" report features the information of the currently
+hovered client (e.g., the client's label and domain). In the new version, the
+report also features the information whether or not the user has actively
+moved the pointer during the last half second. This is analogous to how the
+"focus" report features user-activity information about recent key
+press/release activity. When combined, the "hover" and "focus" reports provide
+a way to detect the absence of user activity, e.g., to implement a lock screen
+or screen saver. If both reports have no 'active' attribute, such a component
+can schedule a timer. Whenever either of both reports shows an 'active'
+attribute, the timer is reset. The lock screen becomes active once the timeout
+triggers.
+
+
+Key-state reporting
+-------------------
+
+For debugging purposes or for implementing global key combinations, Nitpicker
+now offers "keystate" reports. The report is updated each time, the user
+presses or releases a key. It lists all currently pressed keys along with the
+key count as observed by Nitpicker.
+
+
+Report last clicked-on client
+-----------------------------
+
+The new 'clicked' report features the information about the client, on which
+the user actively clicked most recently. It is useful to implement a
+click-to-focus policy outside of Nitpicker.
+
+
+Externalizing Nitpicker's focus policy
+--------------------------------------
+
+Traditionally, Nitpicker had a builtin policy about the input focus, which
+ensured that only the user can change the focus. The input focus is changed
+whenever the user clicks on an unfocused view. If permitted by the policy of
+the domain, the clicked-on client receives the focus. The policy configuration
+allows one to define domains that never receive any focus, domains that
+receive the focus only temporarily while the button is kept pressed (the
+so-called "transient focus"), or domains that can receive the regular input
+focus.
+
+However, there are situations where this builtin policy stands in the way. For
+example, in a scenario based on virtual consoles, the user wants to be able to
+switch virtual consoles via keyboard shortcuts and expects the input focus to
+match the currently visible console regardless of any mouse clicks. Another
+example is the change of the input focus via key combinations like alt-tab.
+
+As an alternative to the builtin policy, the new version of Nitpicker is able
+to respond to an externally provided "focus" state in the form of a ROM
+session. This state is driven by a dedicated component, like the new
+_nit_focus_ component that implements the traditional click-to-focus policy.
+By supplying the focus as a ROM session to Nitpicker, it becomes easy to
+globally overwrite the focus if needed. One particular example is a lock
+screen that should capture the focus when becoming active, and yield the focus
+to the original owner when becoming inactive.
+
+The new explicit focus handling can be activated by setting the '<config>'
+attribute 'focus' to the value "rom". Further down the road, we plan to make
+this option the default, with the ultimate goal to remove the original builtin
+policy.
+
+
+Generalized global-key handling
+-------------------------------
+
+The new _global_keys_handler_ component replaces the former _xray-trigger_
+component. It transforms a stream of Nitpicker input events to state reports.
+The states and the ways of how the user input affects these states is
+configurable. Examples for such states are the system-global capslock and
+numlock states, or the Nitpicker X-ray mode activated by a global
+secure-attention key. The configuration looks as follows:
+
+! <config>
+!   <bool name="xray" initial="no"/>
+!
+!   <press   name="KEY_F1" bool="xray" change="on"/>
+!   <release name="KEY_F1" bool="xray" change="off"/>
+!   <press   name="KEY_F2" bool="xray" change="toggle"/>
+!
+!   <report name="xray" delay_ms="125">
+!     <hovered domain="panel"/>
+!     <bool name="xray"/>
+!   </report>
+! </config>
+
+A '<bool>' node declares a boolean state variable with the given name and its
+initial value (default is "no"). There may be any number of such variables.
+
+The '<press>' and '<release>' nodes define how key events affect the state
+variables. Each of those nodes refers to a specific state variable via the
+'bool' attribute, and the operation as the 'change' attribute. Possible
+'change' attribute values are "on", "off", and "toggle".
+
+The '<report>' node defines a state-dependent report with the name as
+specified in the 'name' attribute. The report-generation rate can be
+artificially limited by the 'delay_ms' attribute. If specified, the report is
+not issued immediately on a state change but after the specified amount of
+milliseconds. The '<report>' node contains a number of conditions. Whenever
+one of those conditions is true, a report of the following form is generated:
+
+! <xray enabled="yes"/>
+
+Otherwise, the report's 'enabled' attribute has the value "no". Possible
+conditions are '<bool>' and '<hovered>'. The '<bool>' condition is true if the
+named boolean state variable has the value true. The '<hovered>' condition is
+true if the currently hovered Nitpicker client belongs to the domain as
+specified in the 'domain' attribute. The latter information is obtained from a
+ROM module named "hover", which corresponds to Nitpicker's hover reports.
+
+To use the global-keys-handler in practice, one needs to configure the
+Nitpicker GUI server such that the press/release events of the global keys of
+interest are routed to the global-keys-handler. This can be achieved by
+Nitpicker's '<global-key>' configuration nodes. For example:
+
+! <global-key name="KEY_F1" label="global_keys_handler -> input" />
+! <global-key name="KEY_F2" label="global_keys_handler -> input" />
+
+
+More flexible geometry definitions of nit_fb instances
+------------------------------------------------------
+
+The _nit_fb_ component translates the Nitpicker session interface into the
+low-level input and framebuffer session interfaces such that raw framebuffer
+clients can be hosted as Nitpicker applications. The position and size of such
+an application is configurable.
+
+The new 'origin' attribute denotes the coordinate origin of the values
+specified in the 'xpos' and 'ypos' attributes. Supported origins are
+"top_left", "top_right", "bottom_left", and "bottom_right". This attribute
+allows one to align a Nitpicker view at any of the four screen corners.
+
+The 'width' and 'height' attribute values can now be negative. If so, they are
+relative to the physical screen size. E.g., when using a screen size of
+640x480, the effective width for a 'width' attribute value of "-100" would be
+640 - 100 = 540.
+
+
+Simplified handling of client-provided pointer shapes
+-----------------------------------------------------
+
+The _pointer_ component that accompanies Nitpicker by default shows a static
+pointer shape only. In advanced scenarios, for example when multiple instances
+of VirtualBox are present on one screen, it is desired to show the shape
+provided by the currently hovered guest OS. This was accomplished by a
+special _vbox_pointer_ component with access to both the client-provided
+shape and Nitpicker's hover report. Whereas this component sufficed for
+relatively static scenarios, the pointer's policy configuration became rather
+difficult in dynamic scenarios where the labels of the displayed VMs or
+applications are unknown at system-integration time.
+
+The new version simplifies the shape handling by letting the pointer component
+play the role of a "Report" service that consumes "shape" reports. This way,
+the pointer implicitly knowns the label of the shape-providing client. It
+matches the labels of its report clients against the currently hovered client
+as obtained from Nitpicker's hover report. If there is a match, the pointer
+displays the matching client-provided shape. Since the new component is
+generically applicable, e.g., not only for VirtualBox-provided shapes but also
+for Qt5-provided shapes (Section [Displaying of Qt5's custom pointer shapes]),
+it has become Nitpicker's default pointer component.
+
+
+USB-driver support for RNDIS
+============================
+
+In this release, support for Microsoft's proprietary RNDIS protocol was
+enabled in our Linux-based USB network driver. Thereby it is possible to use
+the network sharing ("tethering") features provided by many Android devices.
+The driver was tested using devices from different vendors.
+
+Since the RNDIS driver is based on the 'cdc_ether' driver (the open protocol
+alternative phone vendors should be using), it had to be enabled as well.
+Due to lack of any devices supporting CDC, while enabled, the driver could not
+be tested and must be considered experimental for now.
+
+The porting and enabling of the driver was done by Alexander Senier from
+[https://componolit.com - Componolit]. Thanks for this welcome contribution!
+
+
+Refined Rump-kernel-based file-system support
+=============================================
+
+We extended the 'rump_fs' file-system server with the ability to mount and
+unmount the underlying file system on demand. The server will mount the file
+system on the first established session request and in return will unmount the
+file system when the last session is closed. In case all clients are shut down
+before the server is stopped, this prevents leaving the file system marked as
+dirty. Even if the file system itself is in a clean state, the dirty bit might
+otherwise trigger a false negative result when performing a file-system check.
+
+In release [https://genode.org/documentation/release-notes/14.02 - 14.02], we
+added a e2fsprogs Noux port. Since the use of the VFS library within libc,
+Noux is not strictly needed anymore for running tools like the e2fsprogs
+utilities. On the contrary, it increases the complexity of a file-system
+management mechanism needlessly. With this release, we introduce a port of the
+'e2fsck' tool from e2fsprogs to Genode that does not depend on Noux. It can be
+used by a management component to check an ext2 file-system prior to starting
+'rump_fs' and in case of errors to attempt to fix them automatically.
+
+Additionally, we significantly stripped down Genode's version of the Rump
+kernel. By integrating Rump directly into Genode's build system, compiling and
+checking out required Rump sources only, we were able to reduce the compile
+time of 'rump_fs' and the source archive size (from about 700 MiB to about 10
+MiB).
+
+Runtime environments and programming languages
+##############################################
+
+Genode components based on the Nim language
+===========================================
+
+Support for the [https://nim-lang.org/ - Nim] programming language was
+introduced in the [https://genode.org/documentation/release-notes/17.05 - 17.05]
+release and during this release period, our understanding of Nim, its idiom,
+and its interaction with the Genode framework progressed to a point where
+native components can be reasonably implemented using the language.
+
+The 'hotkey_edit' component in the world repository toggles XML sections in
+and out of a file managed by 'xml_editor' when triggered by key input events.
+The component is written in Nim, acts as a  "Nitpicker", "Input", "Report",
+and "ROM" client, and follows the Genode paradigm of a state-machine driven by
+asynchronous signalling. The application specific source is also less than one
+hundred lines of code.
+
+To enable client usage of Genode services the respective 'Client' or
+'Connection' C++ classes are wrapped as Nim objects by taking advantage of the
+Genode 'Constructible' class to be able to manually invoke constructors during
+object initialization. Wrapping service classes and their methods is currently
+done by hand, but changes to service interfaces are so gradual that it is more
+effective than automated code generation. Signal handling is achieved using
+anonymous procedures and happens when the thread of execution winds back to
+the initial entrypoint. This approach is just the same as for components that
+are linked to the 'libc' library, and contrasted with components linked to the
+'posix' library. The Nim language has no conventions for a special "main"
+procedure like C or Go, so signals handlers are dispatched by default after
+all top-level statements have been executed.
+
+The language has experimentally proven to be flexible enough to implement RPC
+servers, but more experience is required to determine if a garbage-collected
+language can manage to abide by transient RAM resource quotas, as any
+multi-session server must do to reliably serve an indefinite number of
+clients. The standard language runtime also depends on the 'libc' library,
+which is relatively expensive and complicated for typical native components.
+This dependency also prevents the implementation of VFS plugins in Nim, which
+must be available as the C runtime is initialized. Removing the dependency is
+certainly possible, but it remains an open question of whether it is practical
+to maintain such radical changes.
+
+To experiment with the Nim language, a recent release or development version
+of the compiler is required. To this end, the Genode toolchain uses a custom
+compiler by default. A script is provided to build the recommended version at
+_tool/tool_chain_nim_.
+
+
+GDB-based debugging of server components
+========================================
+
+We adapted the 'gdb_monitor' component to the asynchronous session-creation
+procedure introduced in Genode release
+[https://genode.org/documentation/release-notes/16.11#New_session-creation_procedure - 16.11].
+The current release makes it possible to debug components that implement
+Genode services.
+
+
+Applications and libraries
+##########################
+
+Displaying of Qt5's custom pointer shapes
+=========================================
+
+Qt applications often make use of custom mouse-pointer shapes, for example
+when a text input field is hovered. We enabled this feature for our Qt5 port
+by letting Qt report its custom pointer shapes to the newly enhanced pointer
+component described in Section
+[Simplified handling of client-provided pointer shapes]. The use of the new
+feature is illustrated in the _qt5_calculatorform.run_ script. Note the
+rewriting of the 'shape' session label.
+
+
+Qt5-based virtual keyboard
+==========================
+
+Genode supports user input with keyboard and mouse attached via PS/2 and USB
+as well as USB touch panels. The current release brings an option for Qt5
+applications to support textual-information input in situations where a
+hardware keyboard is missing. The Qt5 input stack was extended for platform
+input contexts and the accompanied example _run/qt5_virtualkeyboard.run_
+showcases the feature.
+
+[image virtual_keyboard]
+
+Thanks to Johannes Kliemann for his contribution!
+
+
+Resizable libSDL-based applications like avplay
+===============================================
+
+There are quite a few ports of SDL-based software available on Genode that
+work well when executed in isolation, e.g., a game running in full screen
+directly in the frame buffer. However, when running in a common desktop
+scenario, the fixed size of the frame buffer used in Genode's SDL video back
+end is a noticeable limitation. So, in addition to removing the usage of
+deprecated APIs in the SDL back ends, we lifted this limitation as well.
+
+Removing the usage of the deprecated APIs, which rely on a global environment,
+led to the addition of the Genode-specific initialization function
+'sdl_init_genode' that has to be called prior to 'SDL_Init'. For that purpose,
+we introduce a stub library 'sdlmain'. In accordance to the posix library, it
+handles command-line argument parsing, proper SDL initializing, and the call
+to SDL's 'main' function. For interacting with the Genode API, we might have
+to execute signal handlers, e.g., whenever a framebuffer mode change signal is
+received. This is complicated from within a thread that is running libc code,
+which is true for most if not all SDL-based components. Therefor and because
+those components come with their own event loop, that polls SDL for events, we
+start the 'main' function in its own thread. The main entrypoint of the
+component does all the signal handling and the dispatcher flag signals in a
+way that SDL can transform them into SDL_Events and inject them into the event
+loop.
+
+This changes enable the seamless resizing of a running avplay instance.
+
+
+Front end for the Libretro API
+==============================
+
+A component that has been in the world repository for almost a year has been
+refactored and is ready for mention. The 'retro_frontend' is a native front
+end to games implemented as "Libretro cores".
+[https://libretro.com - Libretro] is an API that exposes generic
+audio/video/input callbacks from a dynamic library to a front end. The front
+end handles video output, audio output, input, and the application's life
+cycle. This novel arrangement is intended to minimize the effort of porting
+games to different platforms and to increase future backwards compatibility.
+On Genode, these cores are executed frame-by-frame as compelled by the front
+end rather than by a main loop within the game. Game assets are loaded as
+configured in a general manner at the front end and multiple input devices can
+be managed and mapped into cores. This in effect moves the platform
+abstraction layer tighter around the game engine and relinquished more control
+and configuration to a native layer provided by the user. Documentation on
+using the front end can be found in the world repository along with examples
+for emulating a few game consoles.
+
+
+Platforms
+#########
+
+UEFI boot, consistent use of GRUB2 on x86
+=========================================
+
+With the previous release, we already added support for GRUB2 when booting in
+UEFI mode. However, for non-UEFI boots, we still relied on GRUB-0.97 and
+ISOLINUX from the Syslinux Project as boot loaders.
+
+With the experiences gained from GRUB2, we decided to modernize our bootloader
+chain for x86. With this release, we solely use GRUB2 during all x86 boots.
+
+For ISO creation, we now leverage the images - shipped by GRUB2 -
+'embedded.img' and 'eltorito.img', together with the 'xorriso' tool. Due to
+this change, we were able to remove the ISOLINUX binaries and eltorito files
+of ancient GRUB1.
+
+The final GRUB2 binaries are now integrated as external Genode port, which
+can be installed by invoking:
+
+! tool/ports/prepare_port grub2
+
+The 'grub2' port contains the GRUB2 binaries. Additionally, the port contains
+the instructions and the references to the git source code of GRUB2 used to
+generate the bootloader binaries. With the information provided within the
+port, one can easily reproduce the GRUB2 builds if desired.
+
+
+Enabling MMU-based threat mitigations by default
+================================================
+
+With this release, we enabled support to leverage non-executable memory on
+Genode. On hardware and kernels supporting this feature, it is now enabled by
+default.
+
+On ARM this feature is available to all supported kernels, namely our own
+hw kernel, seL4, and Fiasco.OC.
+
+On x86 the 64bit kernels hw, NOVA, and Fiasco.OC support this feature.
+
+SeL4 currently misses support on x86. The remaining x86 32bit kernels (i.e.,
+OKL4, Pistachio and Fiasco) don't offer non-executable memory support, since
+they do not configure the page-tables in the PAE (physical address extension)
+format, which is required by non-executable memory.
+
+
+Updated seL4 to kernel branch 7.0
+=================================
+
+In the previous releases, we extended our seL4 support and thereby collected a
+patch series for the seL4 kernel, e.g. UEFI boot support. We submitted the
+patches to the seL4 developers who integrated most of our changes into the
+seL4 7.0 kernel release.
+
+Additionally to the update, we extended the UEFI framebuffer support for the
+seL4 kernel so that our simple boot framebuffer driver may now utilize the
+graphics device if setup by GRUB2 during UEFI boot. The patches to the kernel
+got submitted to the seL4 maintainers for review and for inclusion.
+
+
+Execution on bare hardware (base-hw)
+====================================
+
+During the previous releases, several preparation steps were made to enable
+the execution of Genode's core as privileged code inside the protection domain
+of each component. With this release, we pushed the genesis of the base-hw
+core component and its kernel library to finally achieve that goal. Now, the
+virtual address space of each component is split into a privileged and an
+unprivileged part. The privileged part is shared between all components and
+does not vary when switching between different protection domains.
+Nonetheless, it is accessible by the privileged threads of core and the kernel
+library's context only. The advantages of this approach are less context
+switch overhead and less complex assembler code with respect to the
+platform-specific exception and system call entry path.
+
+
+Improved offline validation of Genode configurations
+====================================================
+
+Genode's configuration is based on XML and gets validated by xmllint during
+each run tool invocation. Up to now, we used xmllint to check for a valid XML
+syntax.
+
+With this release, we added an additional semantic check for Genode's 'init'
+component. The check determines whether the XML nodes and attributes are known
+and understood by 'init'. This check is performed on each run tool invocation
+at integration time. The XML schema file is located in
+
+! tool/run/genode.xsd
+
+and gets applied by xmllint.
