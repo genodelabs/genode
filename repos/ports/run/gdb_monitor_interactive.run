@@ -54,7 +54,7 @@ set config {
 		</config>
 	</start>
 	<start name="gdb_monitor" caps="200">
-		<resource name="RAM" quantum="7M"/>
+		<resource name="RAM" quantum="8M"/>
 		<config>
 			<target name="test-gdb_monitor">
 				<config>
@@ -62,7 +62,7 @@ set config {
 					<libc stdout="/dev/log" stderr="/dev/log"/>
 				</config>
 			</target>
-			<preserve name="RAM" quantum="3M"/>
+			<preserve name="RAM" quantum="4M"/>
 			<vfs> <dir name="dev"> <log/> </dir> </vfs>
 			<libc stdout="/dev/log" stderr="/dev/log"/>
 		</config>
