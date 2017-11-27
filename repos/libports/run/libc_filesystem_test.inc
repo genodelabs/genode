@@ -81,7 +81,7 @@ append config {
 		<config>
 			<iterations value="1"/>}
 append_if [have_include "power_on/qemu"] config {
-			<write-read size="1M" buffer_size="8K"/>}
+			<write-read rounds="2" size="1M" buffer_size="8K"/>}
 append config {
 			<libc stdout="/dev/log" stderr="/dev/log"/>
 			<vfs>
@@ -173,7 +173,7 @@ append qemu_args "  -nographic "
 append_if $use_ahci        qemu_args " -drive id=disk,file=$disk_image,format=raw,if=none -device ahci,id=ahci -device ide-drive,drive=disk,bus=ahci.0 -boot d"
 append_if $use_sd_card_drv qemu_args " -drive file=$disk_image,format=raw,if=sd,cache=writeback "
 
-run_genode_until ".*child \"test-libc_$filesystem\" exited with exit value 0.*" 90
+run_genode_until ".*child \"test-libc_$filesystem\" exited with exit value 0.*" 120
 
 exec rm -f $disk_image
 
