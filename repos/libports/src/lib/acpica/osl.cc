@@ -266,7 +266,10 @@ UINT64 AcpiOsGetTimer (void)
 	FAIL(0)
 
 void AcpiOsStall (UINT32)
-	FAIL()
+{
+//	FAIL()
+	Genode::error(__func__, " ");
+}
 
 ACPI_STATUS AcpiOsReadMemory (ACPI_PHYSICAL_ADDRESS, UINT64 *, UINT32)
 	FAIL(AE_BAD_PARAMETER)
