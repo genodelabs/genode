@@ -1,0 +1,11 @@
+base
+os
+timer_session
+so
+libc
+vfs
+libav
+sdl
+audio_out_session
+framebuffer_session
+input_session
