@@ -10,6 +10,14 @@ CC_WARN =
 INC_DIR += $(SDL_PORT_DIR)/include
 INC_DIR += $(SDL_PORT_DIR)/include/SDL
 
+#
+# In case we use the depot add the location
+# to the global include path.
+#
+ifeq ($(CONTRIB),)
+REP_INC_DIR += include/SDL
+endif
+
 # backends
 SRC_CC   = video/SDL_genode_fb_video.cc \
            video/SDL_genode_fb_events.cc \

@@ -1,0 +1,3 @@
+SDL itself does not depend on base, os and timer_session APIs. The libc,
+however, does (via its pthread dependency) and therefor we have to include
+it here.
