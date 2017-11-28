@@ -378,6 +378,8 @@ struct Vfs_server::Directory : Node
 		_handle->context = this;
 	}
 
+	~Directory() { _handle->ds().close(_handle); }
+
 	Node_space::Id file(Node_space        &space,
 	                    Vfs::File_system  &vfs,
 	                    Genode::Allocator &alloc,
