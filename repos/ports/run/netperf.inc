@@ -214,7 +214,7 @@ append_if $use_wifi_driver config {
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
-	<start name="wifi_drv" caps="220">
+	<start name="wifi_drv" caps="250">
 		<resource name="RAM" quantum="32M"/>
 		<provides> <service name="Nic"/> </provides>
 		<config>
@@ -240,7 +240,7 @@ append_if $use_wifi_driver config {
 append_platform_drv_config
 
 append config {
-	<start name="netserver_genode" caps="200">
+	<start name="netserver_genode" caps="220">
 }
 append config "<binary name=\"$netperf_app\"/>"
 append config {
