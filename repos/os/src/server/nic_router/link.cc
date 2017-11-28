@@ -117,14 +117,15 @@ Link::Link(Interface                           &cln_interface,
            Link_side_id                  const &srv_id,
            Timer::Connection                   &timer,
            Configuration                       &config,
-           L3_protocol                   const  protocol)
+           L3_protocol                   const  protocol,
+           Microseconds                  const  close_timeout)
 :
 	_config(config),
 	_client(cln_interface, cln_id, *this),
 	_server_port_alloc(srv_port_alloc),
 	_server(srv_interface, srv_id, *this),
 	_close_timeout(timer, *this, &Link::_handle_close_timeout),
-	_close_timeout_us(_config.rtt()),
+	_close_timeout_us(close_timeout),
 	_protocol(protocol)
 {
 	_close_timeout.schedule(_close_timeout_us);
@@ -172,14 +173,14 @@ Tcp_link::Tcp_link(Interface                           &cln_interface,
                    L3_protocol                   const  protocol)
 :
 	Link(cln_interface, cln_id, srv_port_alloc, srv_interface, srv_id, timer,
-	     config, protocol)
+	     config, protocol, config.tcp_idle_timeout())
 { }
 
 
 void Tcp_link::_fin_acked()
 {
 	if (_server_fin_acked && _client_fin_acked) {
-		_close_timeout.schedule(_close_timeout_us);
+		_close_timeout.schedule(Microseconds(config().tcp_max_segm_lifetime().value << 1));
 		_closed = true;
 	}
 }
@@ -233,5 +234,5 @@ Udp_link::Udp_link(Interface                           &cln_interface,
                    L3_protocol                   const  protocol)
 :
 	Link(cln_interface, cln_id, srv_port_alloc, srv_interface, srv_id, timer,
-	     config, protocol)
+	     config, protocol, config.udp_idle_timeout())
 { }

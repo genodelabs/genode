@@ -83,7 +83,13 @@ append config {
 	<start name="nic_router" caps="200" priority="-1">
 		<resource name="RAM" quantum="10M"/>
 		<provides><service name="Nic"/></provides>
-		<config rtt_sec="12" verbose="no">
+		<config verbose="no"
+		        dhcp_discover_timeout_sec="3"
+		        dhcp_request_timeout_sec="3"
+		        dhcp_offer_timeout_sec="3"
+		        udp_idle_timeout_sec="30"
+		        tcp_idle_timeout_sec="30"
+		        tcp_max_segm_lifetime_sec="15">
 
 			<policy label_prefix="udp_client_1"  domain="udp_client_1"  />
 			<policy label_prefix="http_client_3" domain="http_client_3" />

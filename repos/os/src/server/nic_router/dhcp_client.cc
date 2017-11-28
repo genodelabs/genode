@@ -41,7 +41,7 @@ Dhcp_client::Dhcp_client(Genode::Allocator &alloc,
 
 void Dhcp_client::discover()
 {
-	_set_state(State::SELECT, _config().rtt());
+	_set_state(State::SELECT, _config().dhcp_discover_timeout());
 	_send(Message_type::DISCOVER, Ipv4_address(), Ipv4_address());
 }
 
@@ -132,7 +132,7 @@ void Dhcp_client::_handle_dhcp_reply(Dhcp_packet &dhcp)
 		if (msg_type != Message_type::OFFER) {
 			throw Packet_ignored("DHCP client expects an offer");
 		}
-		_set_state(State::REQUEST, _config().rtt());
+		_set_state(State::REQUEST, _config().dhcp_request_timeout());
 		_send(Message_type::REQUEST, dhcp.yiaddr(),
 		      dhcp.option<Dhcp_packet::Server_ipv4>().value());
 		break;

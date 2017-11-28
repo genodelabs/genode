@@ -31,13 +31,23 @@ class Net::Configuration
 
 		Genode::Allocator          &_alloc;
 		bool                 const  _verbose;
-		Genode::Microseconds const  _rtt;
+		Genode::Microseconds const  _dhcp_discover_timeout;
+		Genode::Microseconds const  _dhcp_request_timeout;
+		Genode::Microseconds const  _dhcp_offer_timeout;
+		Genode::Microseconds const  _udp_idle_timeout;
+		Genode::Microseconds const  _tcp_idle_timeout;
+		Genode::Microseconds const  _tcp_max_segm_lifetime;
 		Domain_tree                 _domains;
 		Genode::Xml_node     const  _node;
 
 	public:
 
-		enum { DEFAULT_RTT_SEC = 6 };
+		enum { DEFAULT_DHCP_DISCOVER_TIMEOUT_SEC =  10 };
+		enum { DEFAULT_DHCP_REQUEST_TIMEOUT_SEC  =  10 };
+		enum { DEFAULT_DHCP_OFFER_TIMEOUT_SEC    =  10 };
+		enum { DEFAULT_UDP_IDLE_TIMEOUT_SEC      =  30 };
+		enum { DEFAULT_TCP_IDLE_TIMEOUT_SEC      = 600 };
+		enum { DEFAULT_TCP_MAX_SEGM_LIFETIME_SEC =  30 };
 
 		Configuration(Genode::Xml_node const node, Genode::Allocator &alloc);
 
@@ -46,10 +56,15 @@ class Net::Configuration
 		 ** Accessors **
 		 ***************/
 
-		bool                  verbose() const { return _verbose; }
-		Genode::Microseconds  rtt()     const { return _rtt; }
-		Domain_tree          &domains()       { return _domains; }
-		Genode::Xml_node      node()    const { return _node; }
+		bool                  verbose()               const { return _verbose; }
+		Genode::Microseconds  dhcp_discover_timeout() const { return _dhcp_discover_timeout; }
+		Genode::Microseconds  dhcp_request_timeout()  const { return _dhcp_request_timeout; }
+		Genode::Microseconds  dhcp_offer_timeout()    const { return _dhcp_offer_timeout; }
+		Genode::Microseconds  udp_idle_timeout()      const { return _udp_idle_timeout; }
+		Genode::Microseconds  tcp_idle_timeout()      const { return _tcp_idle_timeout; }
+		Genode::Microseconds  tcp_max_segm_lifetime() const { return _tcp_max_segm_lifetime; }
+		Domain_tree          &domains()                     { return _domains; }
+		Genode::Xml_node      node()                  const { return _node; }
 };
 
 #endif /* _CONFIGURATION_H_ */

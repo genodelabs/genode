@@ -430,7 +430,7 @@ void Interface::_handle_dhcp_request(Ethernet_frame &eth,
 					throw Bad_dhcp_request();
 
 				} else {
-					allocation.lifetime(_config().rtt());
+					allocation.lifetime(_config().dhcp_offer_timeout());
 					_send_dhcp_reply(dhcp_srv, eth.src(),
 					                 allocation.ip(),
 					                 Dhcp_packet::Message_type::OFFER,
@@ -501,7 +501,7 @@ void Interface::_handle_dhcp_request(Ethernet_frame &eth,
 					Dhcp_allocation &allocation = *new (_alloc)
 						Dhcp_allocation(*this, dhcp_srv.alloc_ip(),
 						                dhcp.client_mac(), _timer,
-						                _config().rtt());
+						                _config().dhcp_offer_timeout());
 
 					_dhcp_allocations.insert(&allocation);
 					if (_config().verbose()) {

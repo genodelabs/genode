@@ -211,31 +211,36 @@ the case if the transfer includes NAT no matter of what kind or for which
 side.
 
 It is desirable to discard a link state as soon as it is not needed anymore.
-The more precise the algorithm for that, the more efficient can NIC sessions
-use their resources (ports, RAM), and the less is the risk for DoS attacks.
-In order to meet this requirement, the router needs to know the round-trip
-time of the exchange behind a link state. This value is given through the
-attribute 'rtt_sec' in the router's configuration:
+The more precise this is done, the more efficient can NIC sessions use their
+resources (ports, RAM), and the less is the risk for DoS attacks. Therefore,
+the NIC router keeps track of the idle time of a link. Idle time means the
+time passed since the last packet was routed using that link regardless of
+the direction or content of that packet. The amount of idle time at which
+the NIC router shall discard a link state can be configured in the <config>
+tag of the router for each link type separately:
 
-! <config rtt_sec="3"> ... </config>
+! <config udp_idle_timeout_sec="30"
+!         tcp_idle_timeout_sec="50">
 
-This would set the round-trip time to three seconds. The value is used for all
-link states so you should choose it with care. If it is too low, replies that
-normally need no routing rule may get lost. If it is too high, link states are
-held longer than necessary.
+This would set the maximum UDP idle time to 30 and the maximum TCP idle time
+to 50 seconds. You should choose these values with care. If they are too low,
+replies that normally need no routing rule may get lost. If it is too high,
+link states are held longer than necessary.
 
-In general, each link state is discarded after a duration of the round-trip
-time without a matching packet. For UDP link states, this is the only rule and
-better known as hole punching. It allows peers to keep alive a UDP
-pseudo-connection through the router by frequently sending empty packets.  The
-need for such a pseudo-connection arises from the router's demand to support
-NAT for UDP transfers and the consequence of keeping the corresponding mapping
-information.
+For UDP link states, this timeout is the only condition that leads to a
+discard. This is better known as hole punching. It allows peers to keep alive
+a UDP pseudo-connection through the router by frequently sending empty packets.
+The need for such a pseudo-connection arises from the router's demand to
+support NAT for UDP transfers and the consequence of keeping the corresponding
+mapping information.
 
 The lifetime management of TCP link states, in contrast, is more complex. In
-addition to the common timeout, they may be discarded even if they still
-receive packets. This is the case when the router observed the four-way
-termination handshake of TCP and the round-trip time has passed.
+addition to the common timeout, they may be discarded also after the router
+observed the four-way termination handshake of TCP plus a duration of two
+times the maximum segment lifetime. The maximum segment lifetime can be be set
+in the <config> tag too:
+
+! <config tcp_max_segm_lifetime_sec="20">
 
 
 Configuring NAT
@@ -297,9 +302,13 @@ assignment in seconds. The IPv4 address range must be in the subnet
 defined by the interface attribute of the domain tag and must not cover
 the IPv4 address in this attribute. The dns_server attribute gives the
 IPv4 address of the DNS server that might also be in another subnet.
-The lifetime of an offered assignment is the configured round-trip time of
-the router while ip_lease_time_sec is applied only when the offer is
-acknowledged by the client in time.
+The lifetime of an assignment that was yet only offered to the client
+can be configured for all domains in the <config> tag of the router:
+
+! <config dhcp_offer_timeout_sec="6">
+
+The timeout ip_lease_time_sec is applied only when the offer is acknowledged
+by the client in time.
 
 
 Configuring DHCP client functionality
@@ -318,6 +327,13 @@ IP configuration present at a domain, the domain does only act as DHCP client
 and all other router functionality is disabled for the domain. A domain cannot
 act as DHCP client and DHCP server at once. So, a 'domain' tag must either
 have an 'interface' attribute or must not contain a 'dhcp-server' tag.
+
+The timeouts when waiting for the reply of DHCP discover messages and for DHCP
+request messages can be configured for all domains in the <config> tag of the
+router:
+
+! <config dhcp_discover_timeout_sec="10"
+!         dhcp_request_timeout_sec="6">
 
 
 Examples

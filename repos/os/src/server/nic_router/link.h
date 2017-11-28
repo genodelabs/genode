@@ -147,7 +147,8 @@ class Net::Link : public Link_list::Element
 		     Link_side_id                  const &srv_id,
 		     Timer::Connection                   &timer,
 		     Configuration                       &config,
-		     L3_protocol                   const  protocol);
+		     L3_protocol                   const  protocol,
+		     Genode::Microseconds          const  close_timeout);
 
 		void dissolve();
 
@@ -163,8 +164,9 @@ class Net::Link : public Link_list::Element
 		 ** Accessors **
 		 ***************/
 
-		Link_side &client() { return _client; }
-		Link_side &server() { return _server; }
+		Link_side     &client() { return _client; }
+		Link_side     &server() { return _server; }
+		Configuration &config() { return _config; }
 };
 
 
