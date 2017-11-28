@@ -175,6 +175,7 @@ class Fs_rom::Rom_session_component :
 				catch (Invalid_handle)    { Genode::error(_file_path, ": Invalid_handle"); }
 				catch (Invalid_name)      { Genode::error(_file_path, ": invalid_name"); }
 				catch (Lookup_failed)     { Genode::error(_file_path, ": lookup_failed"); }
+				catch (Permission_denied) { Genode::error(_file_path, ": Permission_denied"); }
 				catch (...)               { Genode::error(_file_path, ": unhandled error"); };
 
 				throw Open_file_failed();
