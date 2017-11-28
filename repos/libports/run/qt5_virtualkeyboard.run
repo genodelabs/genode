@@ -10,6 +10,7 @@ append build_components {
 	app/qt5/examples/virtualkeyboard
 	lib/qt5/qtdeclarative/src/imports/qtquick2
 	lib/qt5/qtvirtualkeyboard/src/imports/qtvirtualkeyboard
+	lib/mesa/swrast
 }
 
 build $build_components
