@@ -159,8 +159,6 @@ append_if [expr $use_gui] config {
 		<config>
 			<policy label="vbox_pointer -> hover"               report="nitpicker -> hover"/>
 			<policy label="vbox_pointer -> xray"                report="nitpicker -> xray"/>
-			<policy label="vbox_pointer -> shape1"              report="vbox1 -> shape"/>
-			<policy label="vbox_pointer -> shape2"              report="vbox2 -> shape"/>
 		</config>
 	</start>
 
@@ -192,14 +190,8 @@ append_if [expr $use_gui] config {
 
 	<start name="vbox_pointer" priority="-1">
 		<resource name="RAM" quantum="2M"/>
-		<config>
-			<policy label="nit_fb1" rom="shape1"/>
-			<policy label="nit_fb2" rom="shape2"/>
-		</config>
 		<route>
 			<service name="Nitpicker"> <child name="nitpicker"/>  </service>
-			<service name="ROM" label="shape1"> <child name="report_rom"/> </service>
-			<service name="ROM" label="shape2"> <child name="report_rom"/> </service>
 			<service name="ROM" label="hover"> <child name="report_rom"/> </service>
 			<service name="ROM" label="xray"> <child name="report_rom"/> </service>
 			<any-service> <parent/> </any-service>
@@ -251,6 +243,7 @@ append_if [expr $use_gui] config {
 		</config>
 		<route>
 			<service name="Nic"> <child name="nic_bridge"/> </service>
+			<service name="Report" label="shape"> <child name="vbox_pointer" label="nit_fb2 -> "/> </service>
 			<service name="Report"> <child name="report_rom"/> </service>
 			<service name="Framebuffer"> <child name="nit_fb2" /> </service>
 			<service name="Input"> <child name="nit_fb2" /> </service>
@@ -283,6 +276,7 @@ append_if [expr $use_bridge] config {
 			<service name="Nic"> <child name="nic_bridge"/> </service>}
 
 append_if [expr $use_gui] config {
+			<service name="Report" label="shape"> <child name="vbox_pointer" label="nit_fb1 -> "/> </service>
 			<service name="Report"> <child name="report_rom"/> </service>
 			<service name="Framebuffer"> <child name="nit_fb1" /> </service>
 			<service name="Input"> <child name="nit_fb1" /> </service>}

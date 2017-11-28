@@ -17,12 +17,19 @@
 #include <base/component.h>
 #include <base/heap.h>
 #include <base/attached_rom_dataspace.h>
+#include <os/pixel_alpha8.h>
 #include <os/pixel_rgb565.h>
+#include <os/pixel_rgb888.h>
+#include <os/surface.h>
+#include <os/texture_rgb888.h>
 #include <nitpicker_session/connection.h>
+#include <report_rom/report_service.h>
+#include <vbox_pointer/dither_painter.h>
+#include <vbox_pointer/shape_report.h>
 
 /* local includes */
 #include "util.h"
-#include "policy.h"
+#include "rom_registry.h"
 #include "big_mouse.h"
 
 namespace Vbox_pointer { class Main; }
@@ -48,15 +55,13 @@ void convert_default_pointer_data_to_pixels(PT *pixel, Nitpicker::Area size)
 }
 
 
-class Vbox_pointer::Main : public Vbox_pointer::Pointer_updater
+class Vbox_pointer::Main : public Rom::Reader
 {
 	private:
 
-		Genode::Env &_env;
+		typedef Vbox_pointer::String String;
 
-		typedef Vbox_pointer::String          String;
-		typedef Vbox_pointer::Policy          Policy;
-		typedef Vbox_pointer::Policy_registry Policy_registry;
+		Genode::Env &_env;
 
 		Genode::Attached_rom_dataspace _hover_ds { _env, "hover"  };
 		Genode::Attached_rom_dataspace _xray_ds  { _env, "xray"   };
@@ -71,12 +76,15 @@ class Vbox_pointer::Main : public Vbox_pointer::Pointer_updater
 
 		Nitpicker::Session::View_handle _view = _nitpicker.create_view();
 
-		Genode::Heap _heap { _env.ram(), _env.rm() };
+		Genode::Sliced_heap _sliced_heap { _env.ram(), _env.rm() };
 
-		Policy_registry _policy_registry { *this, _env, _heap };
+		Rom::Registry _rom_registry { _sliced_heap, _env.ram(), _env.rm(), *this };
+
+		bool _verbose = _config.xml().attribute_value("verbose", false);
+
+		Report::Root _report_root { _env, _sliced_heap, _rom_registry, _verbose };
 
 		String _hovered_label;
-		String _hovered_domain;
 
 		bool _xray                    = false;
 		bool _default_pointer_visible = false;
@@ -84,22 +92,38 @@ class Vbox_pointer::Main : public Vbox_pointer::Pointer_updater
 		Nitpicker::Area              _current_pointer_size;
 		Genode::Dataspace_capability _pointer_ds;
 
+		Genode::Attached_ram_dataspace _texture_pixel_ds { _env.ram(), _env.rm(),
+		                                                   Vbox_pointer::MAX_WIDTH  *
+		                                                   Vbox_pointer::MAX_HEIGHT *
+		                                                   sizeof(Genode::Pixel_rgb888) };
+
+		Genode::Attached_ram_dataspace _texture_alpha_ds { _env.ram(), _env.rm(),
+		                                                   Vbox_pointer::MAX_WIDTH  *
+		                                                   Vbox_pointer::MAX_HEIGHT };
+
 		void _resize_nitpicker_buffer_if_needed(Nitpicker::Area pointer_size);
 		void _show_default_pointer();
-		void _show_shape_pointer(Policy *p);
+		void _show_shape_pointer(Shape_report &shape_report);
 		void _update_pointer();
 		void _handle_hover();
 		void _handle_xray();
 
 	public:
 
+		/**
+		 * Reader interface
+		 */
+		void notify_module_changed() override
+		{
+			_update_pointer();
+		}
+
+		void notify_module_invalidated() override
+		{
+			_update_pointer();
+		}
+
 		Main(Genode::Env &);
-
-		/*******************************
-		 ** Pointer_updater interface **
-		 *******************************/
-
-		void update_pointer(Policy &policy) override;
 };
 
 
@@ -150,24 +174,57 @@ void Vbox_pointer::Main::_show_default_pointer()
 }
 
 
-void Vbox_pointer::Main::_show_shape_pointer(Policy *p)
+void Vbox_pointer::Main::_show_shape_pointer(Shape_report &shape_report)
 {
+	Nitpicker::Area shape_size { shape_report.width, shape_report.height };
+	Nitpicker::Point shape_hot { (int)-shape_report.x_hot, (int)-shape_report.y_hot };
+
 	try {
-		_resize_nitpicker_buffer_if_needed(p->shape_size());
+		_resize_nitpicker_buffer_if_needed(shape_size);
 	} catch (...) {
 		error(__func__, ": could not resize the pointer buffer "
-		      "for ", p->shape_size(), " pixels");
+		      "for ", shape_size, " pixels");
 		throw;
 	}
 
-	if (p->shape_visible()) {
-		Genode::Attached_dataspace ds { _env.rm(), _pointer_ds };
-		p->draw_shape(ds.local_addr<Genode::Pixel_rgb565>());
+	if (shape_report.visible) {
+
+		using namespace Genode;
+
+		/* import shape into texture */
+
+		Texture<Pixel_rgb888>
+			texture(_texture_pixel_ds.local_addr<Pixel_rgb888>(),
+			        _texture_alpha_ds.local_addr<unsigned char>(),
+			        shape_size);
+
+		for (unsigned int y = 0; y < shape_size.h(); y++) {
+
+			/* import the RGBA-encoded line into the texture */
+			unsigned char *shape = shape_report.shape;
+			unsigned char *line  = &shape[y * shape_size.w() * 4];
+			texture.rgba(line, shape_size.w(), y);
+		}
+
+		/* draw texture */
+
+		Attached_dataspace ds { _env.rm(), _pointer_ds };
+
+		Pixel_rgb565 *pixel = ds.local_addr<Pixel_rgb565>();
+
+		Pixel_alpha8 *alpha =
+			reinterpret_cast<Pixel_alpha8 *>(pixel + shape_size.count());
+
+		Surface<Pixel_rgb565> pixel_surface(pixel, shape_size);
+		Surface<Pixel_alpha8> alpha_surface(alpha, shape_size);
+
+		Dither_painter::paint(pixel_surface, texture);
+		Dither_painter::paint(alpha_surface, texture);
 	}
 
-	_nitpicker.framebuffer()->refresh(0, 0, p->shape_size().w(), p->shape_size().h());
+	_nitpicker.framebuffer()->refresh(0, 0, shape_size.w(), shape_size.h());
 
-	Nitpicker::Rect geometry(p->shape_hot(), p->shape_size());
+	Nitpicker::Rect geometry(shape_hot, shape_size);
 	_nitpicker.enqueue<Nitpicker::Session::Command::Geometry>(_view, geometry);
 	_nitpicker.execute();
 
@@ -177,16 +234,42 @@ void Vbox_pointer::Main::_show_shape_pointer(Policy *p)
 
 void Vbox_pointer::Main::_update_pointer()
 {
-	Policy *policy = nullptr;
-
-	if (_xray
-	 || !(policy = _policy_registry.lookup(_hovered_label, _hovered_domain))
-	 || (policy->shape_visible() && !policy->shape_valid()))
+	if (_xray) {
 		_show_default_pointer();
-	else
+		return;
+	}
+
+	try {
+
+		Rom::Readable_module &shape_module =
+			_rom_registry.lookup(*this, _hovered_label);
+
 		try {
-			_show_shape_pointer(policy);
-		} catch (...) { _show_default_pointer(); }
+			Shape_report shape_report;
+
+			shape_module.read_content(*this, (char*)&shape_report, sizeof(shape_report));
+
+			if (shape_report.visible) {
+
+				if ((shape_report.width == 0) ||
+				    (shape_report.height == 0) ||
+				    (shape_report.width > MAX_WIDTH) ||
+				    (shape_report.height > MAX_HEIGHT))
+				    throw Genode::Exception();
+
+				_show_shape_pointer(shape_report);
+			}
+
+		} catch (...) {
+			_rom_registry.release(*this, shape_module);
+			throw;
+		}
+
+		_rom_registry.release(*this, shape_module);
+
+	} catch (...) {
+		_show_default_pointer();
+	}
 }
 
 
@@ -203,12 +286,13 @@ void Vbox_pointer::Main::_handle_hover()
 		Genode::Xml_node node(_hover_ds.local_addr<char>());
 
 		String hovered_label  = read_string_attribute(node, "label",  String());
-		String hovered_domain = read_string_attribute(node, "domain", String());
 
-		/* update pointer if hovered domain or label changed */
-		if (hovered_label != _hovered_label || hovered_domain != _hovered_domain) {
+		if (_verbose)
+			Genode::log("hovered_label: ", hovered_label);
+
+		/* update pointer if hovered label changed */
+		if (hovered_label != _hovered_label) {
 			_hovered_label  = hovered_label;
-			_hovered_domain = hovered_domain;
 			_update_pointer();
 		}
 	}
@@ -240,15 +324,6 @@ void Vbox_pointer::Main::_handle_xray()
 	}
 }
 
-
-void Vbox_pointer::Main::update_pointer(Policy &policy)
-{
-	/* update pointer if shape-changing policy is hovered */
-	if (&policy == _policy_registry.lookup(_hovered_label, _hovered_domain))
-		_update_pointer();
-}
-
-
 Vbox_pointer::Main::Main(Genode::Env &env) : _env(env)
 {
 	/*
@@ -261,8 +336,6 @@ Vbox_pointer::Main::Main(Genode::Env &env) : _env(env)
 
 	_nitpicker.buffer(mode, true /* use alpha */);
 
-	_policy_registry.update(_config.xml());
-
 	/* register signal handlers */
 	_hover_ds.sigh(_hover_signal_handler);
 	_xray_ds.sigh(_xray_signal_handler);
@@ -274,6 +347,9 @@ Vbox_pointer::Main::Main(Genode::Env &env) : _env(env)
 	_handle_hover();
 	_handle_xray();
 	_update_pointer();
+
+	/* announce 'Report' service */
+	env.parent().announce(env.ep().manage(_report_root));
 }
 
 
