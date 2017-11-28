@@ -343,7 +343,7 @@ run_genode_until {\[init -\> vbox.*].*Guest Additions capability report:.*seamle
 if {$use_rumpfs} {
 	set wait_timeout 170
 	for { set i 1 } { $i <= $use_vms } { incr i } {
-		if { [string match "ubuntu*" $flavor] || [string match "win81*" $flavor] } {
+		if { [string match "ubuntu*" $flavor] || [string match "win10*" $flavor] } {
 			run_genode_until {\[init -\> vbox.*].*Guest Additions capability report:.*seamless: yes, hostWindowMapping: no, graphics: no} $wait_timeout [output_spawn_id]
 		} else {
 			run_genode_until {\[init -\> vbox.*].*Guest Additions capability report:.*seamless: yes, hostWindowMapping: no, graphics: yes} $wait_timeout [output_spawn_id]
