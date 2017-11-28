@@ -68,11 +68,18 @@ struct Rom::Registry : Registry_for_reader, Registry_for_writer, Genode::Noncopy
 
 			/* module does not exist yet, create one */
 
+			Genode::Session_label session_label(name);
+
+			if (session_label.last_element() != "shape")
+				Genode::warning("received unexpected report with label '",
+				                session_label, "'");
+
 			/* XXX proper accounting for the used memory is missing */
 			/* XXX if we run out of memory, the server will abort */
 
 			Module * const module = new (&_md_alloc)
-				Module(_ram, _rm, name, _read_write_policy, _read_write_policy);
+				Module(_ram, _rm, session_label.prefix(), _read_write_policy,
+				       _read_write_policy);
 
 			_modules.insert(module);
 			return *module;

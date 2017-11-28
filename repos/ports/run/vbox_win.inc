@@ -297,7 +297,7 @@ for { set i 1} { $i <= $use_vms } { incr i} {
 			<service name=\"Framebuffer\"> <child name=\"nit_fb${i}\" /> </service>
 			<service name=\"Input\"> <child name=\"nit_fb${i}\" /> </service>
 			<service name=\"Report\" label=\"shape\">
-				<child name=\"pointer\" label=\"nit_fb${i} -> \"/>
+				<child name=\"pointer\" label=\"nit_fb${i} -> shape\"/>
 			</service>"
 	append config_of_app {
 			<service name="Report"><child name="report_rom" /></service>

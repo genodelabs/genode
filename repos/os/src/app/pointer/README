@@ -20,16 +20,20 @@ with report session label rewriting:
 ! 		<service name="CPU">    <parent/> </service>
 ! 		<service name="LOG">    <parent/> </service>
 ! 		<service name="Report" label="shape">
-! 			<child name="pointer" label="test-label-arrow -> testnit"/>
+! 			<child name="pointer" label="test-label-arrow -> shape"/>
 ! 		</service>
 ! 	</route>
 ! </start>
 
 In the example above, which is from 'pointer.run', the 'shape-arrow' component
 reports an arrow shape with the label "shape". By rewriting the label of the
-report, the shape will be drawn for the 'test-label-arrow' component, which
-is reported by Nitpicker with the label 'test-label-arror -> testnit' when
-hovered.
+report, the shape will be drawn for the 'test-label-arrow' component when
+its Nitpicker view is hovered.
+
+Technically, the 'pointer' component compares the hovered label, which is
+'test-label-arrow -> testnit' in this case, with the shape report label after
+stripping the last element of each label, so the remaining label prefix
+'test-label-arrow' is the actual match criteria.
 
 When configured with '<config shapes="yes" verbose="yes"/>', the 'pointer'
 component prints the labels of hovered Nitpicker sessions and received shape

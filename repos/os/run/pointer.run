@@ -119,7 +119,7 @@ set config {
 			<service name="CPU">    <parent/> </service>
 			<service name="LOG">    <parent/> </service>
 			<service name="Report" label="shape">
-				<child name="pointer" label="test-label-arrow -> testnit"/>
+				<child name="pointer" label="test-label-arrow -> shape"/>
 			</service>
 		</route>
 	</start>
@@ -133,7 +133,7 @@ set config {
 			<service name="CPU">    <parent/> </service>
 			<service name="LOG">    <parent/> </service>
 			<service name="Report" label="shape">
-				<child name="pointer" label="test-label-blade -> testnit"/>
+				<child name="pointer" label="test-label-blade -> shape"/>
 			</service>
 		</route>
 	</start>
@@ -147,7 +147,7 @@ set config {
 			<service name="CPU">    <parent/> </service>
 			<service name="LOG">    <parent/> </service>
 			<service name="Report" label="shape">
-				<child name="pointer" label="test-label-bladex -> testnit"/>
+				<child name="pointer" label="test-label-bladex -> shape"/>
 			</service>
 		</route>
 	</start>
@@ -183,7 +183,7 @@ set config {
 			<service name="ROM" label="smiley.config">
 				<child name="shape-smiley-config"/> </service>
 			<service name="Report" label="shape">
-				<child name="pointer" label="test-label-smiley -> testnit"/>
+				<child name="pointer" label="test-label-smiley -> shape"/>
 			</service>
 			<service name="ROM"> <parent/> </service>
 			<service name="CPU"> <parent/> </service>

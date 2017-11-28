@@ -100,7 +100,7 @@ class Pointer::Main : public Rom::Reader
 
 		Report::Root _report_root { _env, _sliced_heap, _rom_registry, _verbose };
 
-		String _hovered_label;
+		Genode::Session_label _hovered_label;
 
 		Genode::Attached_ram_dataspace _texture_pixel_ds { _env.ram(), _env.rm(),
 		                                                   Pointer::MAX_WIDTH  *
@@ -293,7 +293,11 @@ void Pointer::Main::_handle_hover()
 	try {
 		Genode::Xml_node node(_hover_ds->local_addr<char>());
 
-		String hovered_label  = read_string_attribute(node, "label",  String());
+		Genode::Session_label hovered_label { read_string_attribute(node,
+		                                                            "label",
+		                                                            String()) };
+
+		hovered_label = hovered_label.prefix();
 
 		if (_verbose)
 			Genode::log("hovered_label: ", hovered_label);
