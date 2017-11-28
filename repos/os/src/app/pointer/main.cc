@@ -183,18 +183,21 @@ void Pointer::Main::_show_default_pointer()
 
 void Pointer::Main::_show_shape_pointer(Shape_report &shape_report)
 {
-	Nitpicker::Area shape_size { shape_report.width, shape_report.height };
-	Nitpicker::Point shape_hot { (int)-shape_report.x_hot, (int)-shape_report.y_hot };
-
-	try {
-		_resize_nitpicker_buffer_if_needed(shape_size);
-	} catch (...) {
-		error(__func__, ": could not resize the pointer buffer "
-		      "for ", shape_size, " pixels");
-		throw;
-	}
+	Nitpicker::Area  shape_size;
+	Nitpicker::Point shape_hot;
 
 	if (shape_report.visible) {
+
+		shape_size = Nitpicker::Area(shape_report.width, shape_report.height);
+		shape_hot = Nitpicker::Point((int)-shape_report.x_hot, (int)-shape_report.y_hot);
+
+		try {
+			_resize_nitpicker_buffer_if_needed(shape_size);
+		} catch (...) {
+			error(__func__, ": could not resize the pointer buffer "
+			      "for ", shape_size, " pixels");
+			throw;
+		}
 
 		using namespace Genode;
 
@@ -256,16 +259,14 @@ void Pointer::Main::_update_pointer()
 
 			shape_module.read_content(*this, (char*)&shape_report, sizeof(shape_report));
 
-			if (shape_report.visible) {
+			if (shape_report.visible &&
+			    ((shape_report.width == 0) ||
+			     (shape_report.height == 0) ||
+			     (shape_report.width > MAX_WIDTH) ||
+			     (shape_report.height > MAX_HEIGHT)))
+			    throw Genode::Exception();
 
-				if ((shape_report.width == 0) ||
-				    (shape_report.height == 0) ||
-				    (shape_report.width > MAX_WIDTH) ||
-				    (shape_report.height > MAX_HEIGHT))
-				    throw Genode::Exception();
-
-				_show_shape_pointer(shape_report);
-			}
+			_show_shape_pointer(shape_report);
 
 		} catch (...) {
 			_rom_registry.release(*this, shape_module);
