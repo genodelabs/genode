@@ -26,12 +26,16 @@ void Object_identity::invalidate()
 {
 	for (Object_identity_reference * oir = first(); oir; oir = first())
 		oir->invalidate();
-	_object.remove(this);
+
+	if (_object) {
+		_object->remove(this);
+		_object = nullptr;
+	}
 }
 
 
 Object_identity::Object_identity(Object & object)
-: _object(object) { _object.insert(this); }
+: _object(&object) { _object->insert(this); }
 
 
 Object_identity::~Object_identity() { invalidate(); }

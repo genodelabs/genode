@@ -83,7 +83,7 @@ class Kernel::Object_identity
 {
 	private:
 
-		Object & _object;
+		Object * _object = nullptr;
 
 	public:
 
@@ -91,7 +91,7 @@ class Kernel::Object_identity
 		~Object_identity();
 
 		template <typename KOBJECT>
-		KOBJECT * object() { return dynamic_cast<KOBJECT*>(&_object); }
+		KOBJECT * object() { return dynamic_cast<KOBJECT*>(_object); }
 
 		void invalidate();
 };
