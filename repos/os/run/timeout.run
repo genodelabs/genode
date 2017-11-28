@@ -34,6 +34,15 @@ proc precise_time { } {
 	if {[expr [have_spec arm] && ![have_spec hw]]} { return false }
 
 	#
+	# On x86 64 bit with SeL4, the test needs around 80MB that must be
+	# completely composed of 4KB-pages due to current limitations of the SeL4
+	# port. Thus, Core must flush the page table caches pretty often during
+	# the test which is an expensive high-prior operation and makes it
+	# impossible to provide a highly precise time.
+	#
+	if {[have_spec x86_64] && [have_spec sel4]} { return false }
+
+	#
 	# Older x86 machines do not have an invariant timestamp
 	#
 	if {[have_spec x86] && ![have_spec hw]} { return dynamic }
