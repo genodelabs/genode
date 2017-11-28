@@ -527,11 +527,11 @@ class Vfs::Rump_file_system : public File_system
 
 		void close(Vfs_handle *vfs_handle) override
 		{
-			Rump_vfs_file_handle *rump_handle =
-				static_cast<Rump_vfs_file_handle *>(vfs_handle);
-
-			if (rump_handle)
-				destroy(vfs_handle->alloc(), rump_handle);
+			if (dynamic_cast<Rump_vfs_file_handle *>(vfs_handle)
+			 || dynamic_cast<Rump_vfs_dir_handle *>(vfs_handle)) {
+				destroy(vfs_handle->alloc(), vfs_handle);
+				return;
+			}
 		}
 
 		Stat_result stat(char const *path, Stat &stat)
