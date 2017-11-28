@@ -29,4 +29,5 @@ Timer::Time_source::Time_source(Env &env)
 	_timer_irq(env, Wand_quad::EPIT_2_IRQ)
 {
 	_timer_irq.sigh(_signal_handler);
+	while (read<Cr::Swr>()) ;
 }

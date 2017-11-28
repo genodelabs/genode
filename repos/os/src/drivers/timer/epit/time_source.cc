@@ -23,57 +23,33 @@ using namespace Genode;
 void Timer::Time_source::schedule_timeout(Genode::Microseconds  duration,
                                           Timeout_handler      &handler)
 {
-	/* on duration 0 trigger directly at function end and set max timeout */
-	unsigned long const us = duration.value ? duration.value
-	                                        : max_timeout().value;
-	unsigned long const ticks = (1ULL * us * TICKS_PER_MS) / 1000;
-
+	unsigned long const ticks = (1ULL * duration.value * TICKS_PER_MS) / 1000;
 	_handler = &handler;
 	_timer_irq.ack_irq();
-
-	/* wait until ongoing reset operations are finished */
-	while (read<Cr::Swr>()) ;
+	_cleared_ticks = 0;
 
 	/* disable timer */
 	write<Cr::En>(0);
 
-	/* clear interrupt */
+	/* clear interrupt and install timeout */
 	write<Sr::Ocif>(1);
-
-	/* configure timer for a one-shot */
 	write<Cr>(Cr::prepare_one_shot());
-	write<Lr>(ticks);
-	write<Cmpr>(0);
+	write<Cmpr>(Cnt::MAX - ticks);
 
 	/* start timer */
 	write<Cr::En>(1);
-
-	/* trigger for a timeout 0 immediately the signal */
-	if (!duration.value) {
-		Signal_transmitter(_signal_handler).submit();
-	}
 }
 
 
 Duration Timer::Time_source::curr_time()
 {
-	/* read timer status */
-	unsigned long      diff_ticks = 0;
-	Lr::access_t const max_value  = read<Lr>();
-	Cnt::access_t      cnt        = read<Cnt>();
-	bool         const wrapped    = read<Sr::Ocif>();
-
-	/* determine how many ticks have passed */
-	if (_irq && wrapped) {
-		cnt         = read<Cnt>();
-		diff_ticks += max_value;
-	}
-	diff_ticks += max_value - cnt;
-	unsigned long const diff_us = timer_ticks_to_us(diff_ticks, TICKS_PER_MS);
+	unsigned long const uncleared_ticks = Cnt::MAX - read<Cnt>() - _cleared_ticks;
+	unsigned long const uncleared_us    = timer_ticks_to_us(uncleared_ticks, TICKS_PER_MS);
 
 	/* update time only on IRQs and if rate is under 1000 per second */
-	if (_irq || diff_us > 1000) {
-		_curr_time.add(Genode::Microseconds(diff_us));
+	if (_irq || uncleared_us > 1000) {
+		_curr_time.add(Genode::Microseconds(uncleared_us));
+		_cleared_ticks += uncleared_ticks;
 	}
 	return _curr_time;
 }

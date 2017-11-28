@@ -39,7 +39,6 @@ class Timer::Time_source : public Genode::Attached_mmio,
 			struct En      : Bitfield<0, 1>  { };
 			struct En_mod  : Bitfield<1, 1>  { enum { RELOAD = 1 }; };
 			struct Oci_en  : Bitfield<2, 1>  { };
-			struct Rld     : Bitfield<3, 1>  { enum { RELOAD_FROM_LR = 1 }; };
 			struct Swr     : Bitfield<16, 1> { };
 			struct Clk_src : Bitfield<24, 2> { enum { HIGH_FREQ_REF_CLK = 2 }; };
 
@@ -48,20 +47,19 @@ class Timer::Time_source : public Genode::Attached_mmio,
 				access_t cr = 0;
 				En_mod::set(cr, En_mod::RELOAD);
 				Oci_en::set(cr, 1);
-				Rld::set(cr, Rld::RELOAD_FROM_LR);
 				Clk_src::set(cr, Clk_src::HIGH_FREQ_REF_CLK);
 				return cr;
 			}
 		};
 
 		struct Sr   : Register<0x4,  32> { struct Ocif : Bitfield<0, 1> { }; };
-		struct Lr   : Register<0x8,  32> { };
 		struct Cmpr : Register<0xc,  32> { };
-		struct Cnt  : Register<0x10, 32> { };
+		struct Cnt  : Register<0x10, 32> { enum { MAX = ~(access_t)0 }; };
 
 		Genode::Irq_connection     _timer_irq;
-		Genode::Duration           _curr_time   { Genode::Microseconds(0) };
-		Genode::Microseconds const _max_timeout { Genode::timer_ticks_to_us(~0U, TICKS_PER_MS) };
+		Genode::Duration           _curr_time     { Genode::Microseconds(0) };
+		Genode::Microseconds const _max_timeout   { Genode::timer_ticks_to_us(Cnt::MAX / 2, TICKS_PER_MS) };
+		unsigned long              _cleared_ticks { 0 };
 
 	public:
 
