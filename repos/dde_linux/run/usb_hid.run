@@ -207,6 +207,9 @@ regexp {(\[init -\> test-input\] Input event #1\t.*)} $output all output
 
 run_genode_until {\[init -\> test-input\] Input event #12.*\n} 40 [output_spawn_id]
 
+# pay only attention to the output of init and its children
+grep_output {^\[init }
+
 unify_output { number [0-9]+} ""
 unify_output {(?n)on usb-dummy.*$} ""
 unify_output {(?n)using .*$} ""
