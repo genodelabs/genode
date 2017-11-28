@@ -35,8 +35,6 @@ class Net::Configuration
 		Domain_tree                 _domains;
 		Genode::Xml_node     const  _node;
 
-		Genode::Microseconds _init_rtt(Genode::Xml_node const node);
-
 	public:
 
 		enum { DEFAULT_RTT_SEC = 6 };
