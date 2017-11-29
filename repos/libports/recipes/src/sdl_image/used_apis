@@ -1,0 +1,12 @@
+base
+os
+so
+libc
+zlib
+jpeg
+libpng
+sdl
+audio_out_session
+framebuffer_session
+input_session
+timer_session
