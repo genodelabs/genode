@@ -230,9 +230,13 @@ void Signal_receiver::dissolve(Signal_context *context)
 	if (context->_receiver != this)
 		throw Context_not_associated();
 
-	Lock::Guard contexts_lock_guard(_contexts_lock);
+	{
+		Lock::Guard contexts_lock_guard(_contexts_lock);
 
-	_unsynchronized_dissolve(context);
+		Lock::Guard context_lock_guard(context->_lock);
+
+		_unsynchronized_dissolve(context);
+	}
 
 	Lock::Guard context_destroy_lock_guard(context->_destroy_lock);
 }
