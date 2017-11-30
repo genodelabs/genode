@@ -36,16 +36,17 @@ Signal::Signal(Signal const &other)
 
 Signal & Signal::operator=(Signal const &other)
 {
-	if ((_data.context == other._data.context) &&
-	    (_data.num     == other._data.num))
-		return *this;
+	bool const same_context = (_data.context == other._data.context);
 
-	_dec_ref_and_unlock();
+	/* don't change ref cnt if it's the same context */
+	if (!same_context)
+		_dec_ref_and_unlock();
 
 	_data.context = other._data.context;
 	_data.num     = other._data.num;
 
-	_inc_ref();
+	if (!same_context)
+		_inc_ref();
 
 	return *this;
 }
