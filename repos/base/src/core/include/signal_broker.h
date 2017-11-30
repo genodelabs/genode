@@ -91,8 +91,15 @@ class Genode::Signal_broker
 				_context_ep.dissolve(context);
 			});
 
-			if (context)
-				destroy(&_contexts_slab, context);
+			if (!context)
+				return;
+
+			/* release solely in context of context_ep thread */
+			if (context->enqueued() && context->source() &&
+				!_context_ep.is_myself())
+					_delivery_proxy.release(context);
+
+			destroy(&_contexts_slab, context);
 		}
 
 		void submit(Signal_context_capability const cap, unsigned const cnt)

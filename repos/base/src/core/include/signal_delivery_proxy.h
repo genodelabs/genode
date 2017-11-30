@@ -19,7 +19,8 @@ namespace Genode {
 	struct Signal_delivery_proxy
 	{
 		GENODE_RPC(Rpc_deliver, void, _deliver_from_ep, Signal_context_capability, unsigned);
-		GENODE_RPC_INTERFACE(Rpc_deliver);
+		GENODE_RPC(Rpc_release, void, _release_from_ep, Genode::addr_t);
+		GENODE_RPC_INTERFACE(Rpc_deliver, Rpc_release);
 	};
 
 	struct Signal_delivery_proxy_component
@@ -64,6 +65,13 @@ namespace Genode {
 			});
 		}
 
+		void _release_from_ep(addr_t const context_addr)
+		{
+			Signal_context_component * context = reinterpret_cast<Signal_context_component *>(context_addr);
+			if (context && context->source())
+				context->source()->release(context);
+		}
+
 		/**
 		 * Deliver signal via the proxy mechanism
 		 *
@@ -74,6 +82,17 @@ namespace Genode {
 		 */
 		void submit(Signal_context_capability cap, unsigned cnt) {
 			_proxy_cap.call<Rpc_deliver>(cap, cnt); }
+
+		/**
+		 * Deliver signal via the proxy mechanism
+		 *
+		 * Since this method perform an RPC call to the 'ep' specified at the
+		 * constructor, is must never be called from this ep.
+		 *
+		 * Called from threads other than 'ep'.
+		 */
+		void release(Signal_context_component * context) {
+			_proxy_cap.call<Rpc_release>(reinterpret_cast<addr_t>(context)); }
 	};
 }
 
