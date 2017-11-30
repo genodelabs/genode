@@ -4,6 +4,41 @@
                                ===========
 
 
+Genode OS Framework release 17.11 | 2017-11-30
+##############################################
+
+| Most of the many improvements of version 17.11 are geared towards the
+| practical use of Genode as day-to-day OS. They include a reworked GUI
+| stack, new user-input features, and the packaging of many components.
+| The new version also revises the boot concept on x86, updates the seL4
+| kernel, and enhances Genode's user-level networking facilities.
+
+Whereas each Genode release is usually focused on one or two flagship
+features, version 17.11 accumulated countless improvements made during the
+practical use of Genode on a day-to-day basis. The topics range from
+convenience features like scroll-wheel emulation for Lenovo trackpoints, over
+the proper handling of keyboard modes (numlock and capslock), to a reworked
+GUI stack that takes new usage patterns into account. Since the forthcoming
+general-purpose scenario is entirely based on Genode's recently introduced
+custom package-management concept, it prompted us to package all ingredients
+of the scenario.
+
+On the platform level, the new version streamlines the boot concept on x86
+among all supported kernels. All x86 microkernels consistently use GRUB2 now.
+Modern kernels like seL4, NOVA, or our custom kernel are able to boot via UEFI
+and legacy boot. Speaking of our custom kernel, the current release wraps up a
+long-term internal redesign that simplifies the kernel while improving its
+performance.
+
+Feature-wise, the new release further cultivates the use of the Nim
+programming language for native Genode components, includes a port of
+libretro-based emulators for game consoles, and enables the resizing of
+libSDL-based applications like avplay.
+
+The complete picture is presented in the official
+[https:/documentation/release-notes/17.11 - release documentation of version 17.11...]
+
+
 Genode OS Framework release 17.08 | 2017-08-30
 ##############################################
 
