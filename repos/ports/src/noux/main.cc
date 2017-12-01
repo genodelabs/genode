@@ -144,8 +144,7 @@ connect_stdio(Genode::Env                                 &env,
 
 	return *new (alloc)
 		Vfs_io_channel(path.string(), root.leaf_path(path.string()), &root,
-		               vfs_handle, vfs_handle_context,
-		               vfs_io_waiter_registry, env.ep());
+		               vfs_handle, vfs_io_waiter_registry, env.ep());
 }
 
 

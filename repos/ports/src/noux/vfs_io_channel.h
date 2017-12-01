@@ -62,8 +62,6 @@ struct Noux::Vfs_io_channel : Io_channel
 
 	Vfs::Vfs_handle *_fh;
 
-	Vfs_handle_context &_context;
-
 	Vfs_io_waiter_registry &_vfs_io_waiter_registry;
 
 	Absolute_path _path;
@@ -71,16 +69,13 @@ struct Noux::Vfs_io_channel : Io_channel
 
 	Vfs_io_channel(char const *path, char const *leaf_path,
 	               Vfs::Dir_file_system *root_dir, Vfs::Vfs_handle *vfs_handle,
-	               Vfs_handle_context &vfs_handle_context,
 	               Vfs_io_waiter_registry &vfs_io_waiter_registry,
 	               Entrypoint &ep)
 	:
 		_read_avail_handler(ep, *this, &Vfs_io_channel::_handle_read_avail),
-		_fh(vfs_handle), _context(vfs_handle_context),
-		_vfs_io_waiter_registry(vfs_io_waiter_registry),
+		_fh(vfs_handle), _vfs_io_waiter_registry(vfs_io_waiter_registry),
 		_path(path), _leaf_path(leaf_path)
 	{
-		_fh->context = &_context;
 		_fh->fs().register_read_ready_sigh(_fh, _read_avail_handler);
 	}
 
@@ -92,8 +87,8 @@ struct Noux::Vfs_io_channel : Io_channel
 		while (!_fh->fs().queue_sync(_fh))
 			vfs_io_waiter.wait_for_io();
 
-		while (_fh->fs().complete_sync(_fh) == Vfs::File_io_service::SYNC_QUEUED)
-			_context.vfs_io_waiter.wait_for_io();
+		while (_fh->fs().complete_sync(_fh) == Vfs::File_io_service::SYNC_QUEUED) 
+			vfs_io_waiter.wait_for_io();
 
 		_fh->ds().close(_fh);
 	}
@@ -146,7 +141,7 @@ struct Noux::Vfs_io_channel : Io_channel
 			if (sysio.error.read != Vfs::File_io_service::READ_QUEUED)
 				break;
 
-			_context.vfs_io_waiter.wait_for_io();
+			vfs_io_waiter.wait_for_io();
 		}
 
 		if (sysio.error.read != Vfs::File_io_service::READ_OK)
@@ -173,7 +168,7 @@ struct Noux::Vfs_io_channel : Io_channel
 			vfs_io_waiter.wait_for_io();
 
 		while (_fh->fs().complete_sync(_fh) == Vfs::File_io_service::SYNC_QUEUED)
-			_context.vfs_io_waiter.wait_for_io();
+			vfs_io_waiter.wait_for_io();
 
 		Vfs::Directory_service::Stat stat;
 		sysio.error.stat =  _fh->ds().stat(_leaf_path.base(), stat);
@@ -262,7 +257,7 @@ struct Noux::Vfs_io_channel : Io_channel
 			if (read_result != Vfs::File_io_service::READ_QUEUED)
 				break;
 
-			_context.vfs_io_waiter.wait_for_io();
+			vfs_io_waiter.wait_for_io();
 		}
 
 		if ((read_result != Vfs::File_io_service::READ_OK) ||
