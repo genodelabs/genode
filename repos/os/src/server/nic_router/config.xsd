@@ -1,0 +1,152 @@
+<?xml version="1.0"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+	<xs:simpleType name="Boolean">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="true" />
+			<xs:enumeration value="yes" />
+			<xs:enumeration value="1" />
+			<xs:enumeration value="false" />
+			<xs:enumeration value="no" />
+			<xs:enumeration value="0" />
+		</xs:restriction>
+	</xs:simpleType><!-- Boolean -->
+
+	<xs:simpleType name="Seconds">
+		<xs:restriction base="xs:integer">
+			<xs:minInclusive value="1"/>
+			<xs:maxInclusive value="3600"/>
+		</xs:restriction>
+	</xs:simpleType><!-- Seconds -->
+
+	<xs:simpleType name="Port">
+		<xs:restriction base="xs:integer">
+			<xs:minInclusive value="0"/>
+			<xs:maxInclusive value="65535"/>
+		</xs:restriction>
+	</xs:simpleType><!-- Port -->
+
+	<xs:simpleType name="Nr_of_ports">
+		<xs:restriction base="xs:integer">
+			<xs:minInclusive value="1"/>
+			<xs:maxInclusive value="65536"/>
+		</xs:restriction>
+	</xs:simpleType><!-- Nr_of_ports -->
+
+	<xs:simpleType name="Domain_name">
+		<xs:restriction base="xs:string">
+			<xs:minLength value="1"/>
+			<xs:maxLength value="160"/>
+		</xs:restriction>
+	</xs:simpleType><!-- Domain_name -->
+
+	<xs:simpleType name="Session_label">
+		<xs:restriction base="xs:string">
+			<xs:minLength value="1"/>
+			<xs:maxLength value="160"/>
+		</xs:restriction>
+	</xs:simpleType><!-- Session_label -->
+
+	<xs:simpleType name="Ipv4_address">
+		<xs:restriction base="xs:string">
+			<xs:pattern value="[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}"/>
+		</xs:restriction>
+	</xs:simpleType><!-- Ipv4_address -->
+
+	<xs:simpleType name="Ipv4_address_prefix">
+		<xs:restriction base="xs:string">
+			<xs:pattern value="[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}/[0-9]{1,2}"/>
+		</xs:restriction>
+	</xs:simpleType><!-- Ipv4_address_prefix -->
+
+	<xs:complexType name="L3_rule">
+		<xs:choice minOccurs="0" maxOccurs="unbounded">
+
+			<xs:element name="permit">
+				<xs:complexType>
+					<xs:attribute name="port"   type="Port" />
+					<xs:attribute name="domain" type="Domain_name" />
+				</xs:complexType>
+			</xs:element><!-- permit -->
+
+			<xs:element name="permit-any">
+				<xs:complexType>
+					<xs:attribute name="domain" type="Domain_name" />
+				</xs:complexType>
+			</xs:element><!-- permit-any -->
+
+		</xs:choice>
+		<xs:attribute name="dst"    type="Ipv4_address_prefix" />
+	</xs:complexType><!-- L3_rule -->
+
+	<xs:complexType name="L3_forward_rule">
+		<xs:attribute name="port"   type="Port" />
+		<xs:attribute name="domain" type="Domain_name" />
+		<xs:attribute name="to"     type="Ipv4_address" />
+	</xs:complexType><!-- L3_forward_rule -->
+
+	<xs:element name="config">
+		<xs:complexType>
+			<xs:choice minOccurs="0" maxOccurs="unbounded">
+
+				<xs:element name="policy">
+					<xs:complexType>
+						<xs:attribute name="label_prefix" type="Session_label" />
+						<xs:attribute name="label_suffix" type="Session_label" />
+						<xs:attribute name="label"        type="Session_label" />
+						<xs:attribute name="domain"       type="Domain_name" />
+					</xs:complexType>
+				</xs:element><!-- policy -->
+
+				<xs:element name="domain">
+					<xs:complexType>
+						<xs:choice minOccurs="0" maxOccurs="unbounded">
+
+							<xs:element name="ip">
+								<xs:complexType>
+									<xs:attribute name="dst"    type="Ipv4_address_prefix" />
+									<xs:attribute name="domain" type="Domain_name" />
+								</xs:complexType>
+							</xs:element><!-- ip -->
+
+							<xs:element name="nat">
+								<xs:complexType>
+									<xs:attribute name="tcp-ports" type="Nr_of_ports" />
+									<xs:attribute name="udp-ports" type="Nr_of_ports" />
+									<xs:attribute name="domain"    type="Domain_name" />
+								</xs:complexType>
+							</xs:element><!-- nat -->
+
+							<xs:element name="dhcp-server">
+								<xs:complexType>
+									<xs:attribute name="ip_first"          type="Ipv4_address" />
+									<xs:attribute name="ip_last"           type="Ipv4_address" />
+									<xs:attribute name="ip_lease_time_sec" type="Seconds" />
+									<xs:attribute name="dns_server"        type="Ipv4_address" />
+								</xs:complexType>
+							</xs:element><!-- dhcp-server -->
+
+							<xs:element name="tcp"         type="L3_rule" />
+							<xs:element name="udp"         type="L3_rule" />
+							<xs:element name="tcp-forward" type="L3_forward_rule" />
+							<xs:element name="udp-forward" type="L3_forward_rule" />
+
+						</xs:choice>
+						<xs:attribute name="name"      type="Domain_name" />
+						<xs:attribute name="interface" type="Ipv4_address_prefix" />
+						<xs:attribute name="gateway"   type="Ipv4_address" />
+					</xs:complexType>
+				</xs:element><!-- domain -->
+
+			</xs:choice>
+			<xs:attribute name="verbose"                   type="Boolean" />
+			<xs:attribute name="dhcp_discover_timeout_sec" type="Seconds" />
+			<xs:attribute name="dhcp_request_timeout_sec"  type="Seconds" />
+			<xs:attribute name="dhcp_offer_timeout_sec"    type="Seconds" />
+			<xs:attribute name="udp_idle_timeout_sec"      type="Seconds" />
+			<xs:attribute name="tcp_idle_timeout_sec"      type="Seconds" />
+			<xs:attribute name="tcp_max_segm_lifetime_sec" type="Seconds" />
+		</xs:complexType>
+	</xs:element><!-- config -->
+
+</xs:schema>

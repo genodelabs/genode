@@ -11,3 +11,5 @@ SRC_CC += transport_rule.cc leaf_rule.cc permit_rule.cc
 SRC_CC += dhcp_client.cc dhcp_server.cc
 
 INC_DIR += $(PRG_DIR)
+
+CONFIG_XSD = config.xsd
