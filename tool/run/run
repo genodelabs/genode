@@ -106,20 +106,103 @@ proc check_xml_syntax {xml_file} {
 
 
 ##
-# Validate file to match Genode's XML schema using xmllint
+# Validate configuration file to match an XML schema using xmllint
 #
-proc check_xml_with_schema {xml_file} {
+# \param bin              binary name of the component behind the config
+# \param xml_file         configuration file
+# \param xsd_file         configuration schema file
+# \param avail_xsd_files  list of xsd files that might be used for
+#                         configurations of children of the component
+# \param nesting_level    level of recursive calls of this procedure
+#
+proc check_config {bin xml_file xsd_file label avail_xsd_files nesting_level} {
 
-	if {![have_installed xmllint]} {
-		puts "Warning: Cannot validate config syntax (please install xmllint)"
-		return;
+	# check prerequisites if this is not a recursive call
+	if {$nesting_level == 0} {
+		if {![have_installed xmllint]} {
+			puts ""
+			puts "Warning: cannot validate config syntax\
+			      (please install xmllint)"
+			puts ""
+			exit 1
+		}
 	}
 
-	if {[catch {exec xmllint --noout -schema [genode_dir]/tool/run/genode.xsd $xml_file} result]} {
+	# check the given component configuration itself
+	puts "  CHECK $label"
+	if {[catch {exec xmllint --noout -schema $xsd_file $xml_file} result]} {
+
 		if {$result != "$xml_file validates"} {
+
 			puts stderr "$result"
-			puts stderr "Error: Invalid XML syntax in $xml_file"
+			puts stderr "Error: Invalid XML syntax"
 			exit 1
+		}
+	}
+
+	#
+	# If this is no instance of Genodes Init component, we can skip checking
+	# for potential child configurations.
+	#
+	if {$bin != "init"} {
+		return
+	}
+
+	#
+	# The names of the available XSD files tell us for which binaries we
+	# can do a check. So iterate through the XSD files and try to find
+	# corresponding child instances.
+	#
+	foreach child_xsd_file $avail_xsd_files {
+
+		set child_bin [file tail [file rootname $child_xsd_file]]
+		for {set child_instance 1} {1} {incr child_instance} {
+
+			#
+			# Try to find a child instance that uses this binary. We start
+			# with selecting the first matching start node, than the
+			# second, and so on. As soon as xmlscarlet returns an empty
+			# string, we know that there is no further matching start node.
+			#
+			set xpath_start_cond "child::binary\[@name=\'$child_bin\'\] or \
+			                      not(child::binary) and @name=\'$child_bin\'"
+
+			set xpath "string(/config/start\[$xpath_start_cond\]\[$child_instance\]/@name)"
+			set select_xpath "xmllint --xpath \"$xpath\" $xml_file"
+			if {[catch {exec {*}$select_xpath} child_name]} {
+
+				#
+				# No further child instance that uses this binary.
+				# Proceed with next binary.
+				#
+				break
+			}
+
+			#
+			# If the child has a config, check it with a recursive
+			# call to this procedure.
+			#
+			set xpath "/config/start\[$xpath_start_cond\]\[$child_instance\]/config"
+			set select_xpath "xmllint --xpath \"$xpath\" $xml_file"
+			if {[catch {exec {*}$select_xpath} child_xml]} {
+
+				# the child has no config
+				break
+			}
+
+			# write child config to temporary file
+			set child_xml_file ".config_$nesting_level.xml.tmp"
+			set child_xml_fd [open $child_xml_file w]
+			puts $child_xml_fd $child_xml
+			close $child_xml_fd
+
+			# call this procedure again on the child config file
+			set child_label "$label -> $child_name"
+			check_config $child_bin $child_xml_file $child_xsd_file \
+			             $child_label $avail_xsd_files [expr $nesting_level+1]
+
+			# clean up
+			exec rm -f $child_xml_file
 		}
 	}
 }
@@ -132,8 +215,6 @@ proc install_config { args } {
 	set fh [open "[run_dir]/genode/config" "WRONLY CREAT TRUNC"]
 	puts $fh [join $args {}]
 	close $fh
-
-	check_xml_with_schema [run_dir]/genode/config
 }
 
 
@@ -144,6 +225,18 @@ proc install_config { args } {
 #                  '<build-dir>/bin/' directory
 #
 proc build_boot_image {binaries} {
+
+	# lookup available XSD files
+	set xsd_files ""
+	foreach binary $binaries {
+		if {[file exists "bin/$binary.xsd"]} {
+			lappend xsd_files "bin/$binary.xsd"
+		}
+	}
+	# apply the found XSD files
+	puts "checking configuration syntax"
+	check_config init [run_dir]/genode/config bin/init.xsd init $xsd_files 0
+
 	check_for_missing_depot_archives
 	run_boot_dir $binaries
 }

@@ -174,6 +174,15 @@ LD_LIBGCC ?= $(shell $(CC) $(CC_MARCH) -print-libgcc-file-name)
 LD_CMD += $(LD_LIBGCC)
 
 #
+# If available, link XML schema file for checking configurations
+#
+ifneq ($(CONFIG_XSD),)
+all: $(INSTALL_DIR)/$(TARGET).xsd
+$(INSTALL_DIR)/$(TARGET).xsd: $(PRG_DIR)/$(CONFIG_XSD)
+	$(VERBOSE)ln -sf $< $@
+endif
+
+#
 # Skip final linking if no objects are involved, i.e. no 'SRC' files are
 # specified in the 'target.mk' file. This applies for pseudo 'target.mk'
 # files that invoke a 3rd-party build system by providing local rule for
