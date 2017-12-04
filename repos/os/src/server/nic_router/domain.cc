@@ -118,6 +118,9 @@ Domain::Domain(Configuration &config, Xml_node const node, Allocator &alloc)
 		error("Domain cannot act as DHCP client and server at once");
 		throw Invalid();
 	}
+	if (_config.verbose_domain_state()) {
+		log("\033[32m(", *this, ")\033[0m NIC sessions: 0");
+	}
 	_ip_config_changed();
 }
 
@@ -125,12 +128,16 @@ Domain::Domain(Configuration &config, Xml_node const node, Allocator &alloc)
 void Domain::_ip_config_changed()
 {
 	if (!ip_config().valid) {
+
+		if (_config.verbose_domain_state()) {
+			log("\033[32m(", *this, ")\033[0m IP config: none");
+		}
 		return;
 	}
-	if (_config.verbose()) {
-		log("New IP config at domain \"", *this, "\":"
+	if (_config.verbose_domain_state()) {
+		log("\033[32m(", *this, ")\033[0m IP config:"
 		    " interface ", ip_config().interface,
-		      " gateway ", ip_config().gateway);
+		     ", gateway ", ip_config().gateway);
 	}
 	/* try to find configuration for DHCP server role */
 	try {

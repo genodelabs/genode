@@ -31,6 +31,7 @@ class Net::Configuration
 
 		Genode::Allocator          &_alloc;
 		bool                 const  _verbose;
+		bool                 const  _verbose_domain_state;
 		Genode::Microseconds const  _dhcp_discover_timeout;
 		Genode::Microseconds const  _dhcp_request_timeout;
 		Genode::Microseconds const  _dhcp_offer_timeout;
@@ -57,6 +58,7 @@ class Net::Configuration
 		 ***************/
 
 		bool                  verbose()               const { return _verbose; }
+		bool                  verbose_domain_state()  const { return _verbose_domain_state; }
 		Genode::Microseconds  dhcp_discover_timeout() const { return _dhcp_discover_timeout; }
 		Genode::Microseconds  dhcp_request_timeout()  const { return _dhcp_request_timeout; }
 		Genode::Microseconds  dhcp_offer_timeout()    const { return _dhcp_offer_timeout; }

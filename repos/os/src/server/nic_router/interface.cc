@@ -907,11 +907,8 @@ Interface::Interface(Entrypoint        &ep,
 	_router_mac(router_mac), _mac(mac), _timer(timer), _alloc(alloc),
 	_domain(domain)
 {
-	if (_config().verbose()) {
-		log("Interface connected ", *this);
-		log("  MAC ", _mac);
-		log("  Router identity: MAC ", _router_mac, " IP ",
-		    _router_ip(), "/", _ip_config().interface.prefix);
+	if (_config().verbose_domain_state()) {
+		log("\033[32m(", _domain, ")\033[0m NIC sessions: 1");
 	}
 	_domain.interface().set(*this);
 }
@@ -946,8 +943,9 @@ void Interface::_cancel_arp_waiting(Arp_waiter &waiter)
 Interface::~Interface()
 {
 	_domain.interface().unset();
-	if (_config().verbose()) {
-		log("Interface disconnected ", *this); }
+	if (_config().verbose_domain_state()) {
+		log("\033[32m(", _domain, ")\033[0m NIC sessions: 0");
+	}
 
 	/* destroy ARP waiters */
 	while (_own_arp_waiters.first()) {
