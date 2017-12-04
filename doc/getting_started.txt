@@ -44,18 +44,23 @@ build directory yet. For a quick start, let us create one for the Linux base
 platform:
 
 ! cd <genode-dir>
-! ./tool/create_builddir linux_x86 BUILD_DIR=build.lx
+! ./tool/create_builddir x86_64
 
-The new build directory is called 'build.lx' and configured for the 'linux_x86'
-platform. To give Genode a try, build and execute a simple demo scenario via:
+This creates a new build directory for building x86_64 binaries in './build'.
+The build system creates unified binaries that work on the given
+architecture independent from the underlying base platform, in this case Linux.
 
-! cd build.lx
-! make run/demo
+To give Genode a try, build and execute a simple demo scenario via:
+
+! cd build/x86_64
+! make KERNEL=linux run/demo
 
 By invoking 'make' with the 'run/demo' argument, all components needed by the
-demo scenario are built and the demo is executed. If you are interested in
-looking behind the scenes of the demo scenario, please refer to
-'doc/build_system.txt' and the run script at 'os/run/demo.run'.
+demo scenario are built and the demo is executed. This includes all components
+which are implicitly needed by the base platform. The base platform that the
+components will be executed upon on is selected via the 'KERNEL' variable. If
+you are interested in looking behind the scenes of the demo scenario, please
+refer to 'doc/build_system.txt' and the run script at 'os/run/demo.run'.
 
 
 Using platforms other than Linux
@@ -91,9 +96,10 @@ downloaded and prepared by invoking:
 ! ./tool/ports/prepare_port grub2
 
 Now that the base platform is prepared, the 'create_builddir' tool can be used
-to create a build directory for your platform of choice by giving the platform
-as argument. To see the list of available platforms, execute 'create_builddir'
-with no arguments.
+to create a build directory for your architecture of choice by giving the
+architecture as argument. To see the list of available architecture, execute
+'create_builddir' with no arguments. Note, that not all kernels support all
+architectures.
 
 For example, to give the demo scenario a spin on the OKL4 kernel, the following
 steps are required:
@@ -102,13 +108,15 @@ steps are required:
   ! cd <genode-dir>
   ! ./tool/ports/prepare_port okl4
 # Create a build directory
-  ! ./tool/create_builddir okl4_x86 BUILD_DIR=build.okl4
-# Uncomment the following line in 'build.okl4/etc/build.conf'
+  ! ./tool/create_builddir x86_32
+# Uncomment the following line in 'x86_32/etc/build.conf'
   ! REPOSITORIES += $(GENODE_DIR)/repos/libports
 # Build and execute the demo using Qemu
-  ! make -C build.okl4 run/demo
+  ! make -C build/x86_32 KERNEL=okl4 run/demo
 
-The procedure works analogously for the other base platforms.
+The procedure works analogously for the other base platforms. You can, however,
+reuse the already created build directory and skip its creation step if the
+architecture matches.
 
 
 How to proceed with exploring Genode
