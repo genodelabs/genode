@@ -272,6 +272,9 @@ void Interface::_adapt_eth(Ethernet_frame          &eth,
                            Packet_descriptor const &pkt,
                            Interface               &interface)
 {
+	if (!interface.domain().ip_config().valid) {
+		throw Packet_ignored("target domain has yet no IP config");
+	}
 	Ipv4_address const &hop_ip = interface._domain.next_hop(ip);
 	try { eth.dst(interface._arp_cache.find_by_ip(hop_ip).mac()); }
 	catch (Arp_cache::No_match) {
