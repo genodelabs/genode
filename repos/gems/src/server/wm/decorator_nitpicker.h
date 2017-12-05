@@ -215,6 +215,11 @@ struct Wm::Decorator_nitpicker_session : Genode::Rpc_object<Nitpicker::Session>,
 		_nitpicker_session.input()->sigh(_input_handler);
 	}
 
+	~Decorator_nitpicker_session()
+	{
+		_env.ep().dissolve(_dummy_input_component);
+	}
+
 	void _handle_input()
 	{
 		while (_nitpicker_session.input()->pending())
