@@ -1,0 +1,87 @@
+#
+# \brief  Test of 'fetchurl
+# \author Emery Hemingway
+# \date   2016-06-05
+#
+
+set build_components {
+	core init
+	app/fetchurl
+	drivers/nic
+	drivers/timer
+}
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
+
+build $build_components
+
+create_boot_directory
+
+append config {
+<config verbose="yes">
+	<parent-provides>
+		<service name="CPU"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="IRQ"/>
+		<service name="LOG"/>
+		<service name="PD"/>
+		<service name="RAM"/>
+		<service name="RM"/>
+		<service name="ROM"/>
+	</parent-provides>
+	<default caps="100"/>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>}
+
+append_platform_drv_config
+
+append config {
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>
+	<start name="nic_drv">
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="Nic"/> </provides>
+	</start>
+	<start name="fetchurl" caps="500">
+		<resource name="RAM" quantum="8M"/>
+		<config>
+			<vfs> <dir name="dev"> <log/> <null/> </dir> </vfs>
+			<libc stdout="/dev/log" stderr="/dev/log"/>
+			<fetch url="http://genode.org/about/LICENSE" path="/dev/log"/>
+		</config>
+	</start>
+</config>
+}
+
+install_config $config
+
+# generic modules
+set boot_modules {
+	core init ld.lib.so
+	curl.lib.so
+	fetchurl
+	libc.lib.so
+	libc.lib.so
+	libcrypto.lib.so
+	libm.lib.so
+	libssh.lib.so
+	libssl.lib.so
+	lwip.lib.so
+	nic_drv
+	timer
+	zlib.lib.so
+}
+
+# platform-specific modules
+append_platform_drv_boot_modules
+
+build_boot_image $boot_modules
+
+append qemu_args " -nographic -net nic,model=e1000 -net user"
+
+run_genode_until {child "fetchurl" exited with exit value 0} 120
