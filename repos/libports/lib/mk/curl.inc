@@ -25,7 +25,7 @@ CC_OPT += -DHAVE_CONFIG_H
 
 LIBS += libc zlib libcrypto libssh libssl
 
-include $(REP_DIR)/lib/import/import-curl.mk
+include $(call select_from_repositories,lib/import/import-curl.mk)
 
 SHARED_LIB = yes
 
