@@ -391,18 +391,6 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 		}
 
 		/**
-		 * Clip quota limits
-		 */
-		void clip_ram(size_t clipped) {
-			auto avail = _ram_guard.avail().value;
-			if (avail > clipped)
-				_ram_guard.withdraw(Genode::Ram_quota{avail - clipped}); }
-		void clip_caps(size_t clipped) {
-			auto avail = _cap_guard.avail().value;
-			if (avail > clipped)
-				_cap_guard.withdraw(Genode::Cap_quota{avail - clipped}); }
-
-		/**
 		 * Increase quotas
 		 */
 		void upgrade(Genode::Ram_quota ram) {
@@ -781,20 +769,14 @@ class Vfs_server::Root :
 
 			if ((ram_used > ram_quota) || (cap_used > cap_quota)) {
 				if (ram_used > ram_quota)
-					Genode::error("ram donation is ", ram_quota,
-					              " but used RAM is ", ram_used, "B"
-					              ", denying '", label, "'");
+					Genode::warning("ram donation is ", ram_quota,
+					                " but used RAM is ", ram_used, "B"
+					                ", '", label, "'");
 				if (cap_used > cap_quota)
-					Genode::error("cap donation is ", cap_quota,
-					              " but used caps is ", cap_used,
-					              ", denying '", label, "'");
-				destroy(*session);
-				throw Service_denied();
+					Genode::warning("cap donation is ", cap_quota,
+					                " but used caps is ", cap_used,
+					                ", '", label, "'");
 			}
-
-			/* account allocations not caught by session guards */
-			session->clip_ram(ram_quota - ram_used);
-			session->clip_caps(cap_quota - cap_used);
 
 			Genode::log("session opened for '", label, "' at '", session_root, "'");
 			return session;
