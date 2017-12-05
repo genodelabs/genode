@@ -175,6 +175,7 @@ Signal Signal_receiver::pending_signal()
 		throw Context_ring::Break_for_each();
 	});
 	if (result.context) {
+		Lock::Guard lock_guard(result.context->_lock);
 		if (result.num == 0)
 			warning("returning signal with num == 0");
 
