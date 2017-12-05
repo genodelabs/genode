@@ -20,8 +20,8 @@
 
 using namespace Genode;
 using namespace Net;
-using Message_type   = Dhcp_packet::Message_type;
-using Packet_ignored = Interface::Packet_ignored;
+using Message_type       = Dhcp_packet::Message_type;
+using Drop_packet_inform = Interface::Drop_packet_inform;
 
 
 Configuration &Dhcp_client::_config() { return _domain().config(); };
@@ -91,32 +91,32 @@ void Dhcp_client::handle_ip(Ethernet_frame &eth, size_t eth_size)
 	if (eth.dst() != _interface.router_mac() &&
 	    eth.dst() != Mac_address(0xff))
 	{
-		throw Packet_ignored("DHCP client expects Ethernet targeting the router");
+		throw Drop_packet_inform("DHCP client expects Ethernet targeting the router");
 	}
 	Ipv4_packet &ip = *new (eth.data<void>())
 		Ipv4_packet(eth_size - sizeof(Ethernet_frame));
 
 	if (ip.protocol() != Ipv4_packet::Protocol::UDP) {
-		throw Packet_ignored("DHCP client expects UDP packet");
+		throw Drop_packet_inform("DHCP client expects UDP packet");
 	}
 	Udp_packet &udp = *new (ip.data<void>())
 		Udp_packet(eth_size - sizeof(Ipv4_packet));
 
 	if (!Dhcp_packet::is_dhcp(&udp)) {
-		throw Packet_ignored("DHCP client expects DHCP packet");
+		throw Drop_packet_inform("DHCP client expects DHCP packet");
 	}
 	Dhcp_packet &dhcp = *new (udp.data<void>())
 		Dhcp_packet(eth_size - sizeof(Ipv4_packet) - sizeof(Udp_packet));
 
 	if (dhcp.op() != Dhcp_packet::REPLY) {
-		throw Packet_ignored("DHCP client expects DHCP reply");
+		throw Drop_packet_inform("DHCP client expects DHCP reply");
 	}
 	if (dhcp.client_mac() != _interface.router_mac()) {
-		throw Packet_ignored("DHCP client expects DHCP targeting the router");
+		throw Drop_packet_inform("DHCP client expects DHCP targeting the router");
 	}
 	try { _handle_dhcp_reply(dhcp); }
 	catch (Dhcp_packet::Option_not_found) {
-		throw Packet_ignored("DHCP client misses DHCP option");
+		throw Drop_packet_inform("DHCP client misses DHCP option");
 	}
 }
 
@@ -130,7 +130,7 @@ void Dhcp_client::_handle_dhcp_reply(Dhcp_packet &dhcp)
 	case State::SELECT:
 
 		if (msg_type != Message_type::OFFER) {
-			throw Packet_ignored("DHCP client expects an offer");
+			throw Drop_packet_inform("DHCP client expects an offer");
 		}
 		_set_state(State::REQUEST, _config().dhcp_request_timeout());
 		_send(Message_type::REQUEST, dhcp.yiaddr(),
@@ -140,7 +140,7 @@ void Dhcp_client::_handle_dhcp_reply(Dhcp_packet &dhcp)
 	case State::REQUEST:
 
 		if (msg_type != Message_type::ACK) {
-			throw Packet_ignored("DHCP client expects an acknowledgement");
+			throw Drop_packet_inform("DHCP client expects an acknowledgement");
 		}
 		_lease_time_sec = dhcp.option<Dhcp_packet::Ip_lease_time>().value();
 		_set_state(State::BOUND, _rerequest_timeout(1));
@@ -153,13 +153,13 @@ void Dhcp_client::_handle_dhcp_reply(Dhcp_packet &dhcp)
 	case State::REBIND:
 
 		if (msg_type != Message_type::ACK) {
-			throw Packet_ignored("DHCP client expects an acknowledgement");
+			throw Drop_packet_inform("DHCP client expects an acknowledgement");
 		}
 		_set_state(State::BOUND, _rerequest_timeout(1));
 		_lease_time_sec = dhcp.option<Dhcp_packet::Ip_lease_time>().value();
 		break;
 
-	default: throw Packet_ignored("DHCP client doesn't expect a packet");
+	default: throw Drop_packet_inform("DHCP client doesn't expect a packet");
 	}
 }
 

@@ -180,15 +180,23 @@ class Net::Interface
 		struct Bad_transport_protocol       : Genode::Exception { };
 		struct Bad_network_protocol         : Genode::Exception { };
 		struct Packet_postponed             : Genode::Exception { };
-		struct Bad_dhcp_request             : Genode::Exception { };
 		struct Alloc_dhcp_msg_buffer_failed : Genode::Exception { };
 		struct Dhcp_msg_buffer_too_small    : Genode::Exception { };
 
-		struct Packet_ignored : Genode::Exception
+		struct Drop_packet_inform : Genode::Exception
 		{
-			char const *reason;
+			Genode::String<128> msg;
 
-			Packet_ignored(char const *reason) : reason(reason) { }
+			template <typename... ARGS>
+			Drop_packet_inform(ARGS... args) : msg({args...}) { }
+		};
+
+		struct Drop_packet_warn : Genode::Exception
+		{
+			Genode::String<128> msg;
+
+			template <typename... ARGS>
+			Drop_packet_warn(ARGS... args) : msg({args...}) { }
 		};
 
 		Interface(Genode::Entrypoint &ep,

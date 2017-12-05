@@ -67,7 +67,6 @@ class Net::Dhcp_packet
 	public:
 
 		struct No_dhcp_packet   : Genode::Exception { };
-		struct Option_not_found : Genode::Exception { };
 
 	private:
 
@@ -178,6 +177,12 @@ class Net::Dhcp_packet
 
 		} __attribute__((packed));
 
+		struct Option_not_found : Genode::Exception
+		{
+			Option::Code const code;
+
+			Option_not_found(Option::Code code) : code(code) { }
+		};
 
 		/**
 		 * DHCP option that contains a payload of type T
@@ -373,7 +378,7 @@ class Net::Dhcp_packet
 				if (opt.code() == Option::Code::INVALID ||
 				    opt.code() == Option::Code::END)
 				{
-					throw Option_not_found();
+					throw Option_not_found(T::CODE);
 				}
 				if (opt.code() == T::CODE) {
 					return *reinterpret_cast<T *>(ptr);

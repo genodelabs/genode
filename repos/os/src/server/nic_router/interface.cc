@@ -273,7 +273,7 @@ void Interface::_adapt_eth(Ethernet_frame          &eth,
                            Interface               &interface)
 {
 	if (!interface.domain().ip_config().valid) {
-		throw Packet_ignored("target domain has yet no IP config");
+		throw Drop_packet_inform("target domain has yet no IP config");
 	}
 	Ipv4_address const &hop_ip = interface._domain.next_hop(ip);
 	try { eth.dst(interface._arp_cache.find_by_ip(hop_ip).mac()); }
@@ -430,7 +430,7 @@ void Interface::_handle_dhcp_request(Ethernet_frame &eth,
 			case Dhcp_packet::Message_type::DISCOVER:
 
 				if (allocation.bound()) {
-					throw Bad_dhcp_request();
+					throw Drop_packet_warn("DHCP DISCOVER from client expected to be in DHCP BOUND state");
 
 				} else {
 					allocation.lifetime(_config().dhcp_offer_timeout());
@@ -490,10 +490,10 @@ void Interface::_handle_dhcp_request(Ethernet_frame &eth,
 				_destroy_dhcp_allocation(allocation);
 				return;
 
-			case Dhcp_packet::Message_type::NAK:
-			case Dhcp_packet::Message_type::OFFER:
-			case Dhcp_packet::Message_type::ACK:
-			default: throw Bad_dhcp_request();
+			case Dhcp_packet::Message_type::NAK:   throw Drop_packet_warn("DHCP NAK from client");
+			case Dhcp_packet::Message_type::OFFER: throw Drop_packet_warn("DHCP OFFER from client");
+			case Dhcp_packet::Message_type::ACK:   throw Drop_packet_warn("DHCP ACK from client");
+			default:                               throw Drop_packet_warn("DHCP request with broken message type");
 			}
 		}
 		catch (Dhcp_allocation_tree::No_match) {
@@ -517,18 +517,20 @@ void Interface::_handle_dhcp_request(Ethernet_frame &eth,
 					                 dhcp.xid());
 					return;
 				}
-			case Dhcp_packet::Message_type::REQUEST:
-			case Dhcp_packet::Message_type::DECLINE:
-			case Dhcp_packet::Message_type::RELEASE:
-			case Dhcp_packet::Message_type::NAK:
-			case Dhcp_packet::Message_type::OFFER:
-			case Dhcp_packet::Message_type::ACK:
-			default: throw Bad_dhcp_request();
+			case Dhcp_packet::Message_type::REQUEST: throw Drop_packet_warn("DHCP REQUEST from client without offered/acked IP");
+			case Dhcp_packet::Message_type::DECLINE: throw Drop_packet_warn("DHCP DECLINE from client without offered/acked IP");
+			case Dhcp_packet::Message_type::RELEASE: throw Drop_packet_warn("DHCP RELEASE from client without offered/acked IP");
+			case Dhcp_packet::Message_type::NAK:     throw Drop_packet_warn("DHCP NAK from client");
+			case Dhcp_packet::Message_type::OFFER:   throw Drop_packet_warn("DHCP OFFER from client");
+			case Dhcp_packet::Message_type::ACK:     throw Drop_packet_warn("DHCP ACK from client");
+			default:                                 throw Drop_packet_warn("DHCP request with broken message type");
 			}
 		}
 	}
-	catch (Dhcp_packet::Option_not_found) {
-		throw Bad_dhcp_request();
+	catch (Dhcp_packet::Option_not_found exception) {
+
+		throw Drop_packet_warn("DHCP request misses required option ",
+		                          (unsigned long)exception.code);
 	}
 }
 
@@ -844,10 +846,13 @@ void Interface::_handle_eth(void              *const  eth_base,
 			log("unknown network layer protocol");
 		}
 	}
-	catch (Packet_ignored exception) {
+	catch (Drop_packet_inform exception) {
 		if (_config().verbose()) {
-			log("Packet ignored: ", exception.reason);
+			log("(", _domain, ") Drop packet: ", exception.msg);
 		}
+	}
+	catch (Drop_packet_warn exception) {
+		warning("(", _domain, ") Drop packet: ", exception.msg);
 	}
 	catch (Ipv4_packet::No_ip_packet) {
 		error("invalid IP packet"); }
@@ -860,9 +865,6 @@ void Interface::_handle_eth(void              *const  eth_base,
 
 	catch (Pointer<Interface>::Invalid) {
 		error("no interface connected to domain"); }
-
-	catch (Bad_dhcp_request) {
-		error("bad DHCP request"); }
 
 	catch (Alloc_dhcp_msg_buffer_failed) {
 		error("failed to allocate buffer for DHCP reply"); }
