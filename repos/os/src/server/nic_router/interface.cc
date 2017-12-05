@@ -409,6 +409,28 @@ void Interface::_release_dhcp_allocation(Dhcp_allocation &allocation)
 }
 
 
+void Interface::_new_dhcp_allocation(Ethernet_frame &eth,
+                                     Dhcp_packet    &dhcp,
+                                     Dhcp_server    &dhcp_srv)
+{
+	Dhcp_allocation &allocation = *new (_alloc)
+		Dhcp_allocation(*this, dhcp_srv.alloc_ip(),
+		                dhcp.client_mac(), _timer,
+		                _config().dhcp_offer_timeout());
+
+	_dhcp_allocations.insert(&allocation);
+	if (_config().verbose()) {
+		log("Offer IP allocation: ", allocation,
+		                     " at ", *this);
+	}
+	_send_dhcp_reply(dhcp_srv, eth.src(),
+	                 allocation.ip(),
+	                 Dhcp_packet::Message_type::OFFER,
+	                 dhcp.xid());
+	return;
+}
+
+
 void Interface::_handle_dhcp_request(Ethernet_frame &eth,
                                      Genode::size_t  eth_size,
                                      Dhcp_packet    &dhcp)
@@ -430,7 +452,11 @@ void Interface::_handle_dhcp_request(Ethernet_frame &eth,
 			case Dhcp_packet::Message_type::DISCOVER:
 
 				if (allocation.bound()) {
-					throw Drop_packet_warn("DHCP DISCOVER from client expected to be in DHCP BOUND state");
+
+					_release_dhcp_allocation(allocation);
+					_destroy_dhcp_allocation(allocation);
+					_new_dhcp_allocation(eth, dhcp, dhcp_srv);
+					return;
 
 				} else {
 					allocation.lifetime(_config().dhcp_offer_timeout());
@@ -500,23 +526,10 @@ void Interface::_handle_dhcp_request(Ethernet_frame &eth,
 
 			switch (msg_type) {
 			case Dhcp_packet::Message_type::DISCOVER:
-				{
-					Dhcp_allocation &allocation = *new (_alloc)
-						Dhcp_allocation(*this, dhcp_srv.alloc_ip(),
-						                dhcp.client_mac(), _timer,
-						                _config().dhcp_offer_timeout());
 
-					_dhcp_allocations.insert(&allocation);
-					if (_config().verbose()) {
-						log("Offer IP allocation: ", allocation,
-						                     " at ", *this);
-					}
-					_send_dhcp_reply(dhcp_srv, eth.src(),
-					                 allocation.ip(),
-					                 Dhcp_packet::Message_type::OFFER,
-					                 dhcp.xid());
-					return;
-				}
+				_new_dhcp_allocation(eth, dhcp, dhcp_srv);
+				return;
+
 			case Dhcp_packet::Message_type::REQUEST: throw Drop_packet_warn("DHCP REQUEST from client without offered/acked IP");
 			case Dhcp_packet::Message_type::DECLINE: throw Drop_packet_warn("DHCP DECLINE from client without offered/acked IP");
 			case Dhcp_packet::Message_type::RELEASE: throw Drop_packet_warn("DHCP RELEASE from client without offered/acked IP");
