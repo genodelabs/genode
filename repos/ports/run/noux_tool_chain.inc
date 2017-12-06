@@ -25,15 +25,6 @@ set build_components {
 	test/libports/ncurses
 }
 
-#
-# Disable syntax check for config file
-#
-# The syntax check fails because the content of the '.bash_profile' is
-# specified using an '<inline>' node but it is no valid XML. I.e., xmllint
-# complains about the sequence '&&'.
-#
-proc check_xml_with_schema {xml_file} { }
-
 source ${genode_dir}/repos/base/run/platform_drv.inc
 append_platform_drv_build_components
 
@@ -76,6 +67,20 @@ set laststatus=2
 set noswapfile
 set viminfo=}
 close $vimrc_fd
+
+# write default .bash_profile file
+set bash_profile_fd [open bin/bash_profile w]
+puts $bash_profile_fd "
+cp /bin/make /usr/bin/
+cp /bin/echo /usr/bin/
+cp /bin/mkdir /usr/bin/
+echo 'creating build directory...'
+/genode/tool/create_builddir $platform BUILD_DIR=/home/build
+cd /home/build
+echo 'CROSS_DEV_PREFIX=$tool_prefix\' > etc/tools.conf
+$platform_cmds
+echo 'now you can type, for example, \"make core\"'"
+close $bash_profile_fd
 
 exec tar cvf bin/genode.tar -C $genode_dir tool repos/base repos/$platform_base_dir repos/os repos/demo
 
@@ -147,21 +152,7 @@ append config {
 			<content>
 				<dir name="home">
 					<dir name="user">
-						<inline name=".bash_profile">
-							cp /bin/make /usr/bin/
-							cp /bin/echo /usr/bin/
-							cp /bin/mkdir /usr/bin/
-							echo "creating build directory..."
-}
-append config "						/genode/tool/create_builddir $platform BUILD_DIR=/home/build"
-append config {
-							cd /home/build
-}
-append config "						echo \"CROSS_DEV_PREFIX=$tool_prefix\" > etc/tools.conf"
-append config "                                         $platform_cmds"
-append config {
-							echo "now you can type, for example, \"make core\""
-						</inline>
+						<rom name="bash_profile" as=".bash_profile"/>
 					</dir>
 				</dir>
 				<dir name="tmp" />
@@ -248,7 +239,7 @@ install_config $config
 set boot_modules {
 	core init timer ld.lib.so noux terminal ram_fs
 	libc.lib.so libm.lib.so libc_noux.lib.so ncurses.lib.so stdcxx.lib.so
-	pcre.lib.so posix.lib.so vimrc
+	pcre.lib.so posix.lib.so vimrc bash_profile
 }
 
 append boot_modules { gmp.lib.so mpfr.lib.so mpc.lib.so }
