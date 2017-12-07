@@ -164,14 +164,17 @@ int Platform_thread::start(void *ip, void *sp, unsigned int cpu_no)
 	prepopulate_ipc_buffer(_info.ipc_buffer_phys, _ep_sel, _lock_sel);
 
 	/* bind thread to PD and CSpace */
-	seL4_CapData_t const guard_cap_data =
-		seL4_CapData_Guard_new(0, CONFIG_WORD_SIZE - _pd->cspace_size_log2());
+	seL4_CNode_CapData const guard_cap_data =
+		seL4_CNode_CapData_new(0, CONFIG_WORD_SIZE - _pd->cspace_size_log2());
 
-	seL4_CapData_t const no_cap_data = { { 0 } };
+	seL4_CNode_CapData const no_cap_data = { { 0 } };
 
-	int const ret = seL4_TCB_SetSpace(_info.tcb_sel.value(), _fault_handler_sel.value(),
-	                                  _pd->cspace_cnode_1st().sel().value(), guard_cap_data,
-	                                  _pd->page_directory_sel().value(), no_cap_data);
+	int const ret = seL4_TCB_SetSpace(_info.tcb_sel.value(),
+	                                  _fault_handler_sel.value(),
+	                                  _pd->cspace_cnode_1st().sel().value(),
+	                                  guard_cap_data.words[0],
+	                                  _pd->page_directory_sel().value(),
+	                                  no_cap_data.words[0]);
 	ASSERT(ret == 0);
 
 	start_sel4_thread(_info.tcb_sel, (addr_t)ip, (addr_t)(sp), _location.xpos());

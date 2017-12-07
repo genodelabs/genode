@@ -78,7 +78,7 @@ class Genode::Cnode_base
 			seL4_Word        const src_index  = from_idx.value();
 			uint8_t          const src_depth  = from.size_log2();
 			seL4_CapRights_t const rights     = seL4_AllRights;
-			seL4_CapData_t   const badge      = seL4_CapData_Badge_new(to_idx.value());
+			seL4_Word        const badge      = to_idx.value();
 
 			int const ret = seL4_CNode_Mint(service, dest_index, dest_depth,
 			                                src_root, src_index, src_depth,

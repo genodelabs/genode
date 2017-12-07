@@ -52,12 +52,12 @@ void Thread::_init_platform_thread(size_t, Type type)
 
 	Platform &platform = *platform_specific();
 
-	seL4_CapData_t guard = seL4_CapData_Guard_new(0, CONFIG_WORD_SIZE - 32);
-	seL4_CapData_t no_cap_data = { { 0 } };
+	seL4_CNode_CapData guard = seL4_CNode_CapData_new(0, CONFIG_WORD_SIZE - 32);
+	seL4_CNode_CapData no_cap_data = { { 0 } };
 	int const ret = seL4_TCB_SetSpace(native_thread().tcb_sel, 0,
 	                                  platform.top_cnode().sel().value(),
-	                                  guard,
-	                                  seL4_CapInitThreadPD, no_cap_data);
+	                                  guard.words[0],
+	                                  seL4_CapInitThreadPD, no_cap_data.words[0]);
 	ASSERT(ret == seL4_NoError);
 
 	/* mint notification object with badge - used by Genode::Lock */

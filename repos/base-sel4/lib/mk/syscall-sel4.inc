@@ -33,7 +33,7 @@ ARCH_INCLUDES += objecttype.h types.h constants.h functions.h deprecated.h \
                  syscalls.h invocation.h simple_types.h
 
 INCLUDES := objecttype.h types.h bootinfo.h bootinfo_types.h errors.h \
-            constants.h messages.h sel4.h macros.h simple_types.h types_gen.h \
+            constants.h messages.h sel4.h macros.h simple_types.h \
             syscall.h invocation.h shared_types_gen.h debug_assert.h \
             shared_types.h sel4.h deprecated.h autoconf.h syscalls.h faults.h \
             benchmark_utilisation_types.h
@@ -44,6 +44,7 @@ INCLUDE_SYMLINKS += $(addprefix include/sel4/,          $(INCLUDES))
 INCLUDE_SYMLINKS += $(addprefix include/sel4/arch/,     $(ARCH_INCLUDES))
 INCLUDE_SYMLINKS += $(addprefix include/sel4/sel4_arch/,$(SEL4_ARCH_INCLUDES))
 INCLUDE_SYMLINKS += $(addprefix include/sel4/plat/api/, $(PLAT_API_INCLUDES))
+INCLUDE_SYMLINKS += include/sel4/mode/types.h
 INCLUDE_SYMLINKS += include/interfaces/sel4_client.h
 
 all: $(INCLUDE_SYMLINKS)
@@ -71,6 +72,10 @@ include/sel4/plat/api/%.h: $(LIBSEL4_DIR)/sel4_plat_include/$(PLAT)/sel4/plat/ap
 	$(VERBOSE)mkdir -p $(dir $@)
 	$(VERBOSE)ln -sf $< $@
 
+include/sel4/mode/types.h: $(LIBSEL4_DIR)/mode_include/$(SEL4_WORDBITS)/sel4/mode/types.h
+	$(VERBOSE)mkdir -p $(dir $@)
+	$(VERBOSE)ln -sf $< $@
+
 #
 # Generated headers
 #
@@ -83,12 +88,6 @@ include/sel4/sel4_arch/types.pbf: $(LIBSEL4_DIR)/sel4_arch_include/$(SEL4_ARCH)/
 	$(MSG_CONVERT)$(notdir $@)
 	$(VERBOSE)mkdir -p $(dir $@)
 	$(VERBOSE)$(CPP) -Iinclude/sel4 -I$(LIBSEL4_DIR)/arch_include/$(ARCH) -P $< >$@
-
-include/sel4/types_gen.h: include/sel4/types_$(SEL4_WORDBITS).pbf
-	$(MSG_CONVERT)$(notdir $@)
-	$(VERBOSE)mkdir -p $(dir $@)
-	$(VERBOSE)python -B $(LIBSEL4_DIR)/tools/bitfield_gen.py \
-	                 --environment libsel4 "$<" $@
 
 include/sel4/shared_types_gen.h: include/sel4/shared_types_$(SEL4_WORDBITS).pbf
 	$(MSG_CONVERT)$(notdir $@)

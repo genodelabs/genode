@@ -157,7 +157,7 @@ static void decode_seL4_message(seL4_MessageInfo_t const &msg_info,
 			 */
 			arg_badges[i] = Rpc_obj_key::INVALID;
 		else
-			arg_badges[i] = seL4_CapData_Badge_get_Badge(seL4_GetBadge(i));
+			arg_badges[i] = seL4_GetBadge(i);
 	}
 
 	/**

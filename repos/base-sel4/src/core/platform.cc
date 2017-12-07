@@ -251,14 +251,15 @@ void Platform::_switch_to_core_cspace()
 
 	/* activate core's CSpace */
 	{
-		seL4_CapData_t null_data = { { 0 } };
-		seL4_CapData_t const guard = seL4_CapData_Guard_new(0, CONFIG_WORD_SIZE - 32);
+		seL4_CNode_CapData const null_data = { { 0 } };
+		seL4_CNode_CapData const guard = seL4_CNode_CapData_new(0, CONFIG_WORD_SIZE - 32);
 
 		int const ret = seL4_TCB_SetSpace(seL4_CapInitThreadTCB,
 		                                  seL4_CapNull, /* fault_ep */
 		                                  Core_cspace::top_cnode_sel(),
-		                                  guard,
-		                                  seL4_CapInitThreadPD, null_data);
+		                                  guard.words[0],
+		                                  seL4_CapInitThreadPD,
+		                                  null_data.words[0]);
 
 		if (ret != seL4_NoError)
 			error(__FUNCTION__, ": seL4_TCB_SetSpace returned ", ret);
