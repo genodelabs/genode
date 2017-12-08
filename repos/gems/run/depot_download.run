@@ -1,0 +1,129 @@
+create_boot_directory
+
+import_from_depot genodelabs/src/[base_src] \
+                  genodelabs/src/report_rom \
+                  genodelabs/src/fs_rom \
+                  genodelabs/src/vfs \
+                  genodelabs/src/fetchurl \
+                  genodelabs/src/libc \
+                  genodelabs/src/libssh \
+                  genodelabs/src/libssl \
+                  genodelabs/src/libcrypto \
+                  genodelabs/src/zlib \
+                  genodelabs/src/curl \
+                  genodelabs/src/init \
+                  genodelabs/src/chroot \
+                  genodelabs/src/acpi_drv \
+                  genodelabs/src/ipxe_nic_drv \
+                  genodelabs/src/platform_drv \
+                  genodelabs/src/extract \
+                  genodelabs/src/libarchive \
+                  genodelabs/src/liblzma \
+                  genodelabs/src/verify
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+
+set config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+
+	<default caps="100"/>}
+
+append_platform_drv_config
+
+proc depot_user { } { return nfeske }
+
+proc depot_user_download { } {
+	return [exec cat [genode_dir]/depot/[depot_user]/download] }
+
+proc depot_user_pubkey { } {
+	return [exec cat [genode_dir]/depot/[depot_user]/pubkey] }
+
+append config {
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>
+
+	<start name="vfs">
+		<resource name="RAM" quantum="20M"/>
+		<provides> <service name="File_system"/> </provides>
+		<config>
+			<vfs>
+				<dir name="depot">
+					<dir name="} [depot_user] {">
+						<ram/>
+						<inline name="download">} [depot_user_download] {</inline>
+						<inline name="pubkey">}   [depot_user_pubkey]   {</inline>
+					</dir>
+				</dir>
+				<dir name="public"> <ram/> </dir>
+			</vfs>
+			<policy label="depot_download -> depot_rw"  root="/depot" writeable="yes"/>
+			<policy label="depot_download -> depot"     root="/depot"/>
+			<policy label="depot_download -> public_rw" root="/public" writeable="yes"/>
+			<policy label="depot_download -> public"    root="/public"/>
+		</config>
+	</start>
+
+	<start name="report_rom">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config verbose="yes">
+		</config>
+	</start>
+
+	<start name="nic_drv">
+		<resource name="RAM" quantum="6M"/>
+		<provides> <service name="Nic"/> </provides>
+	</start>
+
+	<start name="depot_download" caps="2000">
+		<binary name="init"/>
+		<resource name="RAM" quantum="32M"/>
+		<route>
+			<service name="ROM" label="config">
+				<parent label="depot_download.config"/> </service>
+			<service name="File_system"> <child name="vfs"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+</config>}
+
+
+set fd [open [run_dir]/genode/installation w]
+puts $fd "
+<installation arch=\"x86_64\">
+	<archive path=\"[depot_user]/pkg/wm/2017-12-13\"/>
+</installation>"
+close $fd
+
+
+install_config $config
+
+file copy -force [genode_dir]/repos/gems/recipes/raw/depot_download/depot_download.config \
+                 [run_dir]/genode/depot_download.config
+
+build { app/depot_download_manager app/depot_query }
+
+append boot_modules { depot_download_manager depot_query }
+
+build_boot_image $boot_modules
+
+append qemu_args " -nographic -net nic,model=e1000 -net user "
+
+run_genode_until forever
+
