@@ -36,8 +36,13 @@ PKG    ?= $(TARGET)
 # 'make install' rule is created. By setting the 'INSTALL_TREE' variable
 # to a non-empty value, a symlink to the actual file tree is created.
 #
+# By default, the generated tar archive contains the entire content of the
+# package's install directory. The 'INSTALL_TAR_CONTENT' variable may be
+# overriden to manually specify only the parts of the content.
+#
 INSTALL_TREE        ?=
 INSTALL_TAR_ARCHIVE ?= yes
+INSTALL_TAR_CONTENT ?= .
 
 LIBS += posix
 
@@ -202,7 +207,7 @@ installed_tree.tag: installed.tag
 # via the VFS tar file system
 #
 installed_tar.tag: installed.tag
-	$(VERBOSE)tar cf $(TARGET).tar -h -C $(PWD)/install .
+	$(VERBOSE)tar cf $(TARGET).tar -h -C $(PWD)/install $(INSTALL_TAR_CONTENT)
 	$(VERBOSE)rm -f $(INSTALL_DIR)/$(TARGET)
 	$(VERBOSE)ln -sf $(PWD)/$(TARGET).tar $(INSTALL_DIR)/$(TARGET).tar
 
