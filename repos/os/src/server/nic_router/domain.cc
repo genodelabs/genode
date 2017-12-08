@@ -119,7 +119,7 @@ Domain::Domain(Configuration &config, Xml_node const node, Allocator &alloc)
 		throw Invalid();
 	}
 	if (_config.verbose_domain_state()) {
-		log("\033[32m(", *this, ")\033[0m NIC sessions: 0");
+		log("[", *this, "] NIC sessions: 0");
 	}
 	_ip_config_changed();
 }
@@ -130,12 +130,12 @@ void Domain::_ip_config_changed()
 	if (!ip_config().valid) {
 
 		if (_config.verbose_domain_state()) {
-			log("\033[32m(", *this, ")\033[0m IP config: none");
+			log("[", *this, "] IP config: none");
 		}
 		return;
 	}
 	if (_config.verbose_domain_state()) {
-		log("\033[32m(", *this, ")\033[0m IP config:"
+		log("[", *this, "] IP config:"
 		    " interface ", ip_config().interface,
 		     ", gateway ", ip_config().gateway);
 	}

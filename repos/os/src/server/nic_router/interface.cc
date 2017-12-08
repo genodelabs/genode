@@ -835,7 +835,7 @@ void Interface::_handle_eth(void              *const  eth_base,
 	try {
 		Ethernet_frame * const eth = new (eth_base) Ethernet_frame(eth_size);
 		if (_config().verbose()) {
-			log("\033[33m(router <- ", _domain, ")\033[0m ", *eth); }
+			log("(router <- ", _domain, ") ", *eth); }
 
 		if (_domain.ip_config().valid) {
 
@@ -893,7 +893,7 @@ void Interface::_handle_eth(void              *const  eth_base,
 void Interface::send(Ethernet_frame &eth, Genode::size_t const size)
 {
 	if (_config().verbose()) {
-		log("\033[33m(", _domain, " <- router)\033[0m ", eth); }
+		log("(", _domain, " <- router) ", eth); }
 	try {
 		/* copy and submit packet */
 		Packet_descriptor const pkt = _source().alloc_packet(size);
@@ -923,7 +923,7 @@ Interface::Interface(Entrypoint        &ep,
 	_domain(domain)
 {
 	if (_config().verbose_domain_state()) {
-		log("\033[32m(", _domain, ")\033[0m NIC sessions: 1");
+		log("[", _domain, "] NIC sessions: 1");
 	}
 	_domain.interface().set(*this);
 }
@@ -959,7 +959,7 @@ Interface::~Interface()
 {
 	_domain.interface().unset();
 	if (_config().verbose_domain_state()) {
-		log("\033[32m(", _domain, ")\033[0m NIC sessions: 0");
+		log("[", _domain, "] NIC sessions: 0");
 	}
 
 	/* destroy ARP waiters */
