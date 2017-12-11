@@ -90,7 +90,7 @@ foreach line [split $symbols "\n"] {
 		# linker copies the data from the shared library's symbol into the
 		# binary's BSS.
 		#
-		if {($type == "D") || ($type == "B")} {
+		if {($type == "D") || ($type == "B") || ($type == "R")} {
 			puts "$name $type $size_dec"
 		} else {
 			puts "$name $type"
