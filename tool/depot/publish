@@ -65,18 +65,18 @@ MISSING_PUBKEY_FILES := $(sort \
                               $(if $(call pubkey_path,$A),,\
                                  $(DEPOT_DIR)/$(call pubkey_filename,$A))))
 
-TARGETS := $(addsuffix .tgz.sig,$(addprefix $(PUBLIC_DIR)/,$(ARCHIVES)))
+TARGETS := $(addsuffix .tar.xz.sig,$(addprefix $(PUBLIC_DIR)/,$(ARCHIVES)))
 
-$(PUBLIC_DIR)/%.tgz.sig : $(PUBLIC_DIR)/%.tgz
+$(PUBLIC_DIR)/%.tar.xz.sig : $(PUBLIC_DIR)/%.tar.xz
 	$(VERBOSE)rm -f $@;
 	$(VERBOSE)gpg --detach-sign --no-tty --use-agent --local-user $(call pubkey_id,$*) $<
 
-.PRECIOUS: $(TARGETS:.tgz.sig=.tgz)
+.PRECIOUS: $(TARGETS:.tar.xz.sig=.tar.xz)
 
-$(PUBLIC_DIR)/%.tgz: $(DEPOT_DIR)/%
+$(PUBLIC_DIR)/%.tar.xz: $(DEPOT_DIR)/%
 	@$(ECHO) "$(DARK_COL)publish$(DEFAULT_COL) $@"
 	$(VERBOSE)test -e $(dir $@) || mkdir -p $(dir $@)
-	$(VERBOSE)tar czf $@ -C $(dir $<) $(notdir $<)
+	$(VERBOSE)tar cJf $@ -C $(dir $<) $(notdir $<)
 
 ifneq ($(MISSING_PUBKEY_FILES),)
 $(MAKECMDGOALS) $(TARGETS): missing_pubkey_files

@@ -39,22 +39,22 @@ ARCHIVES := $(MAKECMDGOALS)
 
 include $(GENODE_DIR)/tool/depot/mk/gpg.inc
 
-$(DEPOT_DIR)/% : $(PUBLIC_DIR)/%.tgz $(PUBLIC_DIR)/%.tgz.sig
+$(DEPOT_DIR)/% : $(PUBLIC_DIR)/%.tar.xz $(PUBLIC_DIR)/%.tar.xz.sig
 	$(VERBOSE)pubkey_file=$(DEPOT_DIR)/$(call archive_user,$*)/pubkey; \
 	          gpg --yes -o $$pubkey_file.dearmored --dearmor $$pubkey_file; \
 	          ( gpg --no-tty --no-default-keyring \
 	                --keyring $$pubkey_file.dearmored \
-	                --verify $(PUBLIC_DIR)/$*.tgz.sig 2> /dev/null; retval=$$?; \
+	                --verify $(PUBLIC_DIR)/$*.tar.xz.sig 2> /dev/null; retval=$$?; \
 	            rm -f $$pubkey_file.dearmored; \
 	            exit $$retval \
 	          ) || ( echo -e "Error: could not verify '$*', signature does not match\n" \
 	                          "      public key '$$pubkey_file'"; \
 	                 false )
 	$(VERBOSE)mkdir -p $(dir $@)
-	$(VERBOSE)tar xfz $(PUBLIC_DIR)/$*.tgz -C $(dir $@)
+	$(VERBOSE)tar xfJ $(PUBLIC_DIR)/$*.tar.xz -C $(dir $@)
 
-DOWNLOADED_FILES := $(addprefix $(PUBLIC_DIR)/,$(MAKECMDGOALS:=.tgz)) \
-                    $(addprefix $(PUBLIC_DIR)/,$(MAKECMDGOALS:=.tgz.sig))
+DOWNLOADED_FILES := $(addprefix $(PUBLIC_DIR)/,$(MAKECMDGOALS:=.tar.xz)) \
+                    $(addprefix $(PUBLIC_DIR)/,$(MAKECMDGOALS:=.tar.xz.sig))
 
 .PRECIOUS: $(DOWNLOADED_FILES)
 
