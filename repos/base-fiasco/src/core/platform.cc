@@ -25,6 +25,7 @@
 #include <base/internal/globals.h>
 
 /* core includes */
+#include <core_log.h>
 #include <platform.h>
 #include <platform_thread.h>
 #include <platform_pd.h>
@@ -457,6 +458,29 @@ Platform::Platform() :
 
 	/* we never call _core_thread.start(), so set name directly */
 	Fiasco::fiasco_register_thread_name(core_thread->native_thread_id(), core_thread->name());
+
+	/* core log as ROM module */
+	{
+		void * phys_ptr       = nullptr;
+		unsigned const pages  = 1;
+		size_t const log_size = pages << get_page_size_log2();
+
+		ram_alloc()->alloc_aligned(log_size, &phys_ptr, get_page_size_log2());
+		addr_t const phys_addr = reinterpret_cast<addr_t>(phys_ptr);
+
+		void * const core_local_ptr = phys_ptr;
+		addr_t const core_local_addr = phys_addr;
+
+		/* let one page free after the log buffer */
+		region_alloc()->remove_range(core_local_addr, log_size + get_page_size());
+
+		memset(core_local_ptr, 0, log_size);
+
+		_rom_fs.insert(new (core_mem_alloc()) Rom_module(phys_addr, log_size,
+		                                                 "core_log"));
+
+		init_core_log(Core_log_range { core_local_addr, log_size } );
+	}
 }
 
 

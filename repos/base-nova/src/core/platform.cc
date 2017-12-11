@@ -23,6 +23,7 @@
 
 /* core includes */
 #include <boot_modules.h>
+#include <core_log.h>
 #include <platform.h>
 #include <nova_util.h>
 #include <util.h>
@@ -71,14 +72,15 @@ extern unsigned _prog_img_beg, _prog_img_end;
  * This function uses the virtual-memory region allocator to find a region
  * fitting the desired mapping. Other allocators are left alone.
  */
-addr_t Platform::_map_pages(addr_t phys_page, addr_t const pages)
+addr_t Platform::_map_pages(addr_t const phys_addr, addr_t const pages,
+                            bool guard_page)
 {
-	addr_t const phys_addr = phys_page << get_page_size_log2();
-	addr_t const size      = pages << get_page_size_log2();
+	addr_t const size = pages << get_page_size_log2();
 
 	/* try to reserve contiguous virtual area */
 	void *core_local_ptr = 0;
-	if (!region_alloc()->alloc(size, &core_local_ptr))
+	if (region_alloc()->alloc_aligned(size + (guard_page ? get_page_size() : 0),
+	                                  &core_local_ptr, get_page_size_log2()).error())
 		return 0;
 
 	addr_t const core_local_addr = reinterpret_cast<addr_t>(core_local_ptr);
@@ -637,10 +639,9 @@ Platform::Platform() :
 
 		unsigned const pages = 1;
 		void * phys_ptr = 0;
-		ram_alloc()->alloc(get_page_size(), &phys_ptr);
+		ram_alloc()->alloc_aligned(get_page_size(), &phys_ptr, get_page_size_log2());
 		addr_t const phys_addr = reinterpret_cast<addr_t>(phys_ptr);
-		addr_t const core_local_addr = _map_pages(phys_addr >> get_page_size_log2(),
-		                                          pages);
+		addr_t const core_local_addr = _map_pages(phys_addr, pages);
 
 		Genode::Xml_generator xml(reinterpret_cast<char *>(core_local_addr),
 		                          pages << get_page_size_log2(),
@@ -681,11 +682,11 @@ Platform::Platform() :
 
 	/* export hypervisor info page as ROM module */
 	{
-		void * phys_ptr = 0;
-		ram_alloc()->alloc(get_page_size(), &phys_ptr);
-		addr_t phys_addr = reinterpret_cast<addr_t>(phys_ptr);
+		void * phys_ptr = nullptr;
+		ram_alloc()->alloc_aligned(get_page_size(), &phys_ptr, get_page_size_log2());
 
-		addr_t core_local_addr = _map_pages(phys_addr >> get_page_size_log2(), 1);
+		addr_t const phys_addr = reinterpret_cast<addr_t>(phys_ptr);
+		addr_t const core_local_addr = _map_pages(phys_addr, 1);
 
 		memcpy(reinterpret_cast<void *>(core_local_addr), hip, get_page_size());
 
@@ -695,6 +696,24 @@ Platform::Platform() :
 		_rom_fs.insert(new (core_mem_alloc())
 		               Rom_module(phys_addr, get_page_size(),
 		                          "hypervisor_info_page"));
+	}
+
+	/* core log as ROM module */
+	{
+		void * phys_ptr = nullptr;
+		unsigned const pages  = 1;
+		size_t const log_size = pages << get_page_size_log2();
+
+		ram_alloc()->alloc_aligned(log_size, &phys_ptr, get_page_size_log2());
+		addr_t const phys_addr = reinterpret_cast<addr_t>(phys_ptr);
+
+		addr_t const core_local_addr = _map_pages(phys_addr, pages, true);
+		memset(reinterpret_cast<void *>(core_local_addr), 0, log_size);
+
+		_rom_fs.insert(new (core_mem_alloc()) Rom_module(phys_addr, log_size,
+		                                                 "core_log"));
+
+		init_core_log( Core_log_range { core_local_addr, log_size } );
 	}
 
 	/* I/O port allocator (only meaningful for x86) */
@@ -717,10 +736,10 @@ Platform::Platform() :
 	for (unsigned i = 0; i < 32; i++)
 	{
 		void * phys_ptr = 0;
-		ram_alloc()->alloc(4096, &phys_ptr);
+		ram_alloc()->alloc_aligned(get_page_size(), &phys_ptr, get_page_size_log2());
 
 		addr_t phys_addr = reinterpret_cast<addr_t>(phys_ptr);
-		addr_t core_local_addr = _map_pages(phys_addr >> get_page_size_log2(), 1);
+		addr_t core_local_addr = _map_pages(phys_addr, 1);
 		
 		Cap_range * range = reinterpret_cast<Cap_range *>(core_local_addr);
 		*range = Cap_range(index);

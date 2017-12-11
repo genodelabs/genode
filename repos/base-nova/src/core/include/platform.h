@@ -50,7 +50,8 @@ namespace Genode {
 			/* map of virtual cpu ids in Genode to kernel cpu ids */
 			uint8_t map_cpu_ids[MAX_SUPPORTED_CPUS];
 
-			addr_t _map_pages(addr_t phys_page, addr_t pages);
+			addr_t _map_pages(addr_t phys_page, addr_t pages,
+			                  bool guard_page = false);
 
 			size_t _max_caps = 0;
 

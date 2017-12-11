@@ -20,6 +20,7 @@
 
 /* core includes */
 #include <boot_modules.h>
+#include <core_log.h>
 #include <platform.h>
 #include <map_local.h>
 #include <cnode.h>
@@ -360,7 +361,7 @@ void Platform::_init_rom_modules()
 	addr_t   const phys_addr = Untyped_memory::alloc_page(*ram_alloc());
 	Untyped_memory::convert_to_page_frames(phys_addr, pages);
 
-	if (!region_alloc()->alloc(rom_size, &virt_ptr)) {
+	if (region_alloc()->alloc_aligned(rom_size, &virt_ptr, get_page_size_log2()).error()) {
 		error("could not setup platform_info ROM - region allocation error");
 		Untyped_memory::free_page(*ram_alloc(), phys_addr);
 		return;
@@ -526,7 +527,7 @@ Platform::Platform()
 	/* add some minor virtual region for dynamic usage by core */
 	addr_t const virt_size = 32 * 1024 * 1024;
 	void * virt_ptr = nullptr;
-	if (_unused_virt_alloc.alloc(virt_size, &virt_ptr)) {
+	if (_unused_virt_alloc.alloc_aligned(virt_size, &virt_ptr, get_page_size_log2()).ok()) {
 
 		addr_t const virt_addr = (addr_t)virt_ptr;
 
@@ -584,6 +585,28 @@ Platform::Platform()
 
 	/* I/O port allocator (only meaningful for x86) */
 	_io_port_alloc.add_range(0, 0x10000);
+
+	/* core log as ROM module */
+	{
+		void * core_local_ptr = nullptr;
+		unsigned const pages  = 1;
+		size_t const log_size = pages << get_page_size_log2();
+
+		addr_t   const phys_addr = Untyped_memory::alloc_page(*ram_alloc());
+		Untyped_memory::convert_to_page_frames(phys_addr, pages);
+
+		/* let one page free after the log buffer */
+		region_alloc()->alloc_aligned(log_size + get_page_size(), &core_local_ptr, get_page_size_log2());
+		addr_t const core_local_addr = reinterpret_cast<addr_t>(core_local_ptr);
+
+		map_local(phys_addr, core_local_addr, pages, this);
+		memset(core_local_ptr, 0, log_size);
+
+		_rom_fs.insert(new (core_mem_alloc()) Rom_module(phys_addr, log_size,
+		                                                 "core_log"));
+
+		init_core_log(Core_log_range { core_local_addr, log_size } );
+	}
 
 	/*
 	 * Log statistics about allocator initialization
