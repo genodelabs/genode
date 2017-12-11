@@ -42,24 +42,34 @@ last_path_element = $(call sanitized,$(lastword $(subst /, ,$1)))
 archive_user     = $(call path_element,1,$1)
 archive_type     = $(call path_element,2,$1)
 archive_recipe   = $(call path_element,3,$1)
+archive_version  = $(call path_element,4,$1)
 archive_has_type = $(filter $(call archive_type,$1),$2)
 archive_has_user = $(filter $(call archive_user,$1),$2)
-archive_version  = $(call recipe_version,$(addprefix $(call archive_type,$1)/,$(call archive_recipe,$1)))
 
-# binary archives have the form <user>/bin/<spec>/<name>{-<version>}
+archive_curr_version = $(call recipe_version,$(addprefix $(call archive_type,$1)/,$(call archive_recipe,$1)))
+
+# binary archives have the form <user>/bin/<spec>/<name>/<version>
 bin_archive_spec    = $(call path_element,3,$1)
-bin_archive_recipe  = $(call last_path_element,$1)
-bin_archive_version = $(call recipe_version,src/$(call bin_archive_recipe,$1))
+bin_archive_recipe  = $(call path_element,4,$1)
+bin_archive_version = $(call path_element,5,$1)
 
 grep_archive_type = $(foreach A,$2,$(if $(call archive_has_type,$A,$1),$A,))
 grep_archive_user = $(foreach A,$2,$(if $(call archive_has_user,$A,$1),$A,))
 
+
+#
+# The following functions can be called for archive paths with or without
+# the version part. In the latter case, 'bin_archive_version' is empty.
+# The 'addprefix' is needed to omit the trailing '/' in the result if a
+# path without version is specified.
+#
+
 # return pkg-archive path of given binary-pkg archive path
-pkg_of_binpkg = $(call archive_user,$1)/pkg/$(call bin_archive_recipe,$1)
+pkg_of_binpkg = $(call archive_user,$1)/pkg/$(call bin_archive_recipe,$1)$(addprefix /,$(call bin_archive_version,$1))
 
 # return source-archive path for given binary-archive path
-src_of_bin = $(call archive_user,$1)/src/$(call bin_archive_recipe,$1)
+src_of_bin = $(call archive_user,$1)/src/$(call bin_archive_recipe,$1)$(addprefix /,$(call bin_archive_version,$1))
 
 # return binary-package archive path for architecture $1 and package archive $2
-binpkg_for_pkg = $(call archive_user,$2)/bin/$1/$(call archive_recipe,$2)
+binpkg_for_pkg = $(call archive_user,$2)/bin/$1/$(call archive_recipe,$2)$(addprefix /,$(call archive_version,$2))
 

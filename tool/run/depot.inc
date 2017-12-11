@@ -22,28 +22,40 @@ proc depot_spec { } {
 # depot. The list is populated by calls of 'import_from_depot' and evaluated
 # at the boot-image-creation stage via 'check_for_missing_depot_archives'.
 #
+# Each list element is a list of <user>, <type>, <spec>, <name>, and <version>.
+#
 set _missing_depot_archives {}
 
 
 #
-# Pattern to parse an archive path into <user>, <type>, <name>
+# Pattern to parse an version-less archive path into <user>, <type>, <name>
 #
-proc _depot_archive_path_pattern { } { return {^([\w\d]+)/([\w]+)/([\w\d\-_]+)$} }
+proc _depot_archive_path_pattern { } {
+	return {^([\w\d]+)/([\w]+)/([\w\d\-_]+)$} }
+
+
+#
+# Pattern to parse an versioned archive path into <user>, <type>, <name>, <version>
+#
+proc _depot_archive_versioned_path_pattern { } {
+	return {^([\w\d]+)/([\w]+)/([\w\d\-_]+)/([\w\d\-_]+)$} }
+
 
 #
 # Pattern to parse an binary archive path into <user>, <spec>, <name>.
 #
-proc _depot_bin_archive_path_pattern { } { return {^([\w\d]+)/bin/([\w\d]+)/([\w\d\-_]+)$} }
+proc _depot_bin_archive_path_pattern { } {
+	return {^([\w\d]+)/bin/([\w\d]+)/([\w\d\-_]+)$} }
 
 
 ##
 # Determine content of a pkg archive and its dependencies
 #
-proc _collect_pkg_archive_from_depot { user name } {
+proc _collect_pkg_archive_from_depot { user name version } {
 
 	global _missing_depot_archives
 
-	set archive_dir "$user/pkg/$name"
+	set archive_dir "$user/pkg/$name/$version"
 	set archives_file "[depot_dir]/$archive_dir/archives"
 
 	if {![file exists $archives_file]} {
@@ -57,7 +69,7 @@ proc _collect_pkg_archive_from_depot { user name } {
 
 	set content "$archive_dir"
 	foreach archive $archives {
-		if {[regexp [_depot_archive_path_pattern] $archive dummy user type name]} {
+		if {[regexp [_depot_archive_versioned_path_pattern] $archive dummy user type name version]} {
 			if {($type == "pkg") || ($type == "src") || ($type == "raw")} {
 				set content [concat $content [_collect_from_depot $archive]]
 			}
@@ -79,23 +91,24 @@ proc _copy_directory_content_to_run_dir { dir } {
 }
 
 
-proc _collect_raw_archive_from_depot { user name } { return "$user/raw/$name" }
+proc _collect_raw_archive_from_depot { user name version } {
+	return "$user/raw/$name/$version" }
 
 
 ##
 # Determine binary content for a given source archive
 #
-proc _collect_src_archive_from_depot { user name } {
+proc _collect_src_archive_from_depot { user name version } {
 
 	global _missing_depot_archives;
 
-	set src_archive_dir "$user/src/$name"
-	set bin_archive_dir "$user/bin/[depot_spec]/$name"
+	set src_archive_dir "$user/src/$name/$version"
+	set bin_archive_dir "$user/bin/[depot_spec]/$name/$version"
 
 	if {[file exists [depot_dir]/$bin_archive_dir]} {
 		return [list $src_archive_dir $bin_archive_dir]
 	} else {
-		lappend _missing_depot_archives $bin_archive_dir
+		lappend _missing_depot_archives [list $user bin [depot_spec] $name $version]
 	}
 
 	return {}
@@ -103,35 +116,30 @@ proc _collect_src_archive_from_depot { user name } {
 
 
 ##
-# Determine the version-suffixed name of an archive
+# Determine the current version for the given archive
 #
-# This function return an empty string if the archive is missing from the
+# This function tries to determine the version information from the Genode
+# source tree. It returns an empty string if the archive is missing from the
 # depot.
 #
-proc _versioned_depot_archive_name { user type name } {
+proc _current_depot_archive_version { type name } {
 
-	# if correctly versioned archive is specified, use it
-	if {[file exists [depot_dir]/$user/$type/$name]} { return $name }
-
-	#
-	# The given archive name may lack the version identifier if it refers
-	# to an archive generated locally from the Genode repository. In this case,
-	# we try to determine the version information from the Genode source tree.
-	#
 	set hash_rel_path "recipes/$type/$name/hash"
 	set repo [repository_contains $hash_rel_path]
+	set version ""
 
 	if {$repo != ""} {
 		set fh [open "$repo/$hash_rel_path" "RDONLY"]
 		set version [lindex [gets $fh] 0]
 		close $fh
-
-		append name "-" $version
-		if {[file exists [depot_dir]/$user/$type/$name]} {
-			return $name }
 	}
+	return $version
+}
 
-	return ""
+
+proc _depot_contains_archive { user type name version } {
+
+	return [file exists [depot_dir]/$user/$type/$name/$version]
 }
 
 
@@ -143,37 +151,49 @@ proc _collect_from_depot { archives } {
 
 	foreach archive $archives {
 
-		if {[regexp [_depot_archive_path_pattern] $archive dummy user type name]} {
+		set version ""
 
-			set versioned_name [_versioned_depot_archive_name $user $type $name]
-			if {$versioned_name == ""} {
-				lappend _missing_depot_archives $archive
+		#
+		# Try to parse versioned archive path. If no version is specified, use
+		# the current version as present in the source tree.
+		#
+		if {![regexp [_depot_archive_versioned_path_pattern] $archive dummy user type name version]} {
+
+			if {[regexp [_depot_archive_path_pattern] $archive dummy user type name]} {
+				set version [_current_depot_archive_version $type $name]
 
 			} else {
-
-				set content {}
-
-				switch $type {
-
-					"pkg" { set content [_collect_pkg_archive_from_depot $user $versioned_name] }
-					"src" { set content [_collect_src_archive_from_depot $user $versioned_name] }
-					"raw" { set content [_collect_raw_archive_from_depot $user $versioned_name] }
-
-					default {
-						puts stderr "Error: unknown depot-archive type '$type'"
-						exit 1
-					}
-				}
-
-				set all_content [concat $all_content $content]
+				puts stderr "Error: malformed depot-archive path '$archive',"
+				puts stderr "       expected '<user>/<type>/<name>'"
+				exit 1
 			}
-		} else {
-			puts stderr "Error: malformed depot-archive path '$archive',"
-			puts stderr "       expected '<user>/<type>/<name>'"
+		}
+
+		if {$version == ""} {
+			puts stderr "Error: unable to guess version of '$type/$name' archive"
 			exit 1
 		}
-	}
 
+		if {![_depot_contains_archive $user $type $name $version]} {
+			lappend _missing_depot_archives [list $user $type "" $name $version]
+			continue
+		}
+
+		set content {}
+
+		switch $type {
+
+			"pkg" { set content [_collect_pkg_archive_from_depot $user $name $version] }
+			"src" { set content [_collect_src_archive_from_depot $user $name $version] }
+			"raw" { set content [_collect_raw_archive_from_depot $user $name $version] }
+
+			default {
+				puts stderr "Error: unknown depot-archive type '$type'"
+				exit 1
+			}
+		}
+		set all_content [concat $all_content $content]
+	}
 	return $all_content
 }
 
@@ -187,7 +207,7 @@ proc import_from_depot { args } {
 	foreach subdir [_collect_from_depot $args] {
 
 		# prevent src, api, and pkg archives from inflating the boot image
-		if {[regexp [_depot_archive_path_pattern] $subdir dummy user type]} {
+		if {[regexp [_depot_archive_versioned_path_pattern] $subdir dummy user type]} {
 			if {$type == "src"} continue;
 			if {$type == "api"} continue;
 			if {$type == "pkg"} continue;
@@ -206,7 +226,7 @@ proc create_tar_from_depot_binaries { archive_path args } {
 	# filter out api and src archives from requested depot content
 	set content {}
 	foreach subdir [_collect_from_depot $args] {
-		if {[regexp [_depot_archive_path_pattern] $subdir dummy user type]} {
+		if {[regexp [_depot_archive_versioned_path_pattern] $subdir dummy user type]} {
 			if {$type == "src"} continue;
 			if {$type == "api"} continue;
 		}
@@ -219,31 +239,17 @@ proc create_tar_from_depot_binaries { archive_path args } {
 }
 
 
-proc _locally_available_recipe { user type name } {
+proc _locally_available_recipe { user type name version } {
 
-	if {[repository_contains "recipes/$type/$name/hash"] != ""} {
-		return $name }
+	if {$type == "bin"} { set type "src" }
 
-	#
-	# If the supplied 'name' is a versioned name (as obtained from a pkg
-	# 'archives' filed already stored in the depot, we try to find a recipe
-	# in the source tree that matches the specified name and version. If
-	# we find the matching recipe, we can build the archive locally using
-	# the version-less recipe name.
-	#
-	set version_suffix_pattern {\-[^\-/]*$}
-	set versioned_name $name
+	if {[repository_contains "recipes/$type/$name/hash"] == ""} {
+		return 0 }
 
-	while {[regexp -- $version_suffix_pattern $name dummy]} {
+	if {$version != [_current_depot_archive_version $type $name]} {
+		return 0 }
 
-		# strip last part of version suffix
-		regsub -- $version_suffix_pattern $name "" name
-
-		if {[repository_contains "recipes/$type/$name/hash"] != ""} {
-			if {[_versioned_depot_archive_name $user $type $name] == $versioned_name} {
-				return $name } }
-	}
-	return ""
+	return 1
 }
 
 
@@ -280,45 +286,45 @@ proc check_for_missing_depot_archives { } {
 	set foreign_archives {}
 
 	foreach archive $_missing_depot_archives {
-		puts stderr "       $archive"
-		if {[regexp [_depot_archive_path_pattern] $archive dummy user type name]} {
 
-			#
-			# If a pkg archive is missing, suggest to obtain the binary-pkg
-			# archive (matching the build directory) immediately, which implies
-			# the pkg archive. Otherwise, the user would first obtain the pkg
-			# archive and its source dependencies, and then get an error for
-			# the missing binary archives on the next attempt to execute the
-			# run script.
-			#
-			if {$type == "pkg"} { set archive "$user/pkg/[depot_spec]/$name" }
-			if {$type == "src"} { set archive "$user/bin/[depot_spec]/$name" }
+		set user    [lindex $archive 0]
+		set type    [lindex $archive 1]
+		set spec    [lindex $archive 2]
+		set name    [lindex $archive 3]
+		set version [lindex $archive 4]
 
-			if {[_locally_available_recipe $user $type $name] != ""} {
-				lappend local_user_archives $archive
-			} else {
-				lappend foreign_archives $archive
-			}
-		} elseif {[regexp [_depot_bin_archive_path_pattern] $archive dummy user spec name]} {
+		#
+		# If a pkg archive is missing, suggest to obtain the binary-pkg
+		# archive (matching the build directory) immediately, which implies
+		# the pkg archive. Otherwise, the user would first obtain the pkg
+		# archive and its source dependencies, and then get an error for
+		# the missing binary archives on the next attempt to execute the
+		# run script.
+		#
+		if {$type == "pkg"} { set spec "[depot_spec]" }
+		if {$type == "src"} {
+			set type "bin"
+			set spec "[depot_spec]"
+		}
 
-			# source code is present in the current source tree
-			set recipe [_locally_available_recipe $user src $name]
-			if {$recipe != ""} {
-				lappend local_user_archives $user/bin/$spec/$recipe
+		set path "$user/$type/$name"
+		if {$type == "bin"} {
+			set path "$user/bin/$spec/$name" }
 
-			# source code is present in the depot
-			} elseif {[file isdirectory [depot_dir]/$user/src/$name]} {
-				lappend local_user_archives $user/bin/$spec/$name
+		puts stderr "       $path/$version"
 
-			} else {
-				lappend foreign_archives $archive
-			}
+		if {[_locally_available_recipe $user $type $name $version]} {
+			lappend local_user_archives $path
+		} else {
+			lappend foreign_archives $path/$version
 		}
 	}
 
-	append create_args " CROSS_DEV_PREFIX=[cross_dev_prefix]"
+	if {[llength $local_user_archives] || [llength $foreign_archives]} {
+		puts stderr "" }
 
 	if {[llength $local_user_archives]} {
+		append create_args " CROSS_DEV_PREFIX=[cross_dev_prefix]"
 		puts stderr "You may create the following archives locally:\n"
 		puts stderr "  [genode_dir]/tool/depot/create $local_user_archives$create_args\n"
 	}

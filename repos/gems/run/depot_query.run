@@ -12,7 +12,7 @@ create_tar_from_depot_binaries [run_dir]/genode/depot.tar \
                                genodelabs/pkg/test-fs_report
 
 proc query_pkg {} {
-	return [_versioned_depot_archive_name genodelabs pkg test-fs_report] }
+	return test-fs_report/[_current_depot_archive_version pkg test-fs_report] }
 
 install_config {
 <config>

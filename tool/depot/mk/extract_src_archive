@@ -67,7 +67,7 @@ $(DEPOT_ARCHIVE_DIR)/used_apis: $(RECIPE_DIR)/used_apis
 	  fi; \
 	  hash_file_content=$$(< $$hash_file); \
 	  version=$${hash_file_content%% *}; \
-	  echo "$$api-$$version" >> $@; \
+	  echo "$$api/$$version" >> $@; \
 	done; $$result
 
 #
@@ -89,5 +89,5 @@ $(DEPOT_ARCHIVE_DIR)/api: $(RECIPE_DIR)/api
 	  fi; \
 	  hash_file_content=$$(< $$hash_file); \
 	  version=$${hash_file_content%% *}; \
-	  echo "$$api-$$version" >> $@;
+	  echo "$$api/$$version" >> $@;
 

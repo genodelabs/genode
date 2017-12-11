@@ -36,16 +36,23 @@ endif
 
 
 #
-# Sub-categorize source-pkg archives (<user>/pkg/<name>) from binary-pkg
-# archives (<user>/pkg/<spec>/<name>) so that 'ARCHIVES(pkg)' contains source
-# pkgs only, and 'ARCHIVES(binpkg)' contains binary pkgs.
+# Sub-categorize source-pkg archives (<user>/pkg/<name>[/<version>]) from
+# binary-pkg archives (<user>/pkg/<spec>/<name>,[<version>]) so that
+# 'ARCHIVES(pkg)' contains source pkgs only, and 'ARCHIVES(binpkg)' contains
+# binary pkgs.
 #
-# If the path contains 4 elements, it refers to a binary pkg where the third
-# element is the build spec. Otherwise, the path refers to a source pkg.
+# If the path contains 'BIN_PKG_PATH_ELEMS' elements, it refers to a binary pkg
+# where the third element is the build spec. Otherwise, the path refers to a
+# source pkg. By default, the distinction assumes versioned archive paths.
+# For the 'extract' tool where the version elements are omitted because they
+# refer to the current version as present in the repository, the value is
+# customized to '4'.
 #
 
-_src_pkg = $(if $(word 4,$(subst /, ,$1)),,$1)
-_bin_pkg = $(if $(word 4,$(subst /, ,$1)),$1,)
+BIN_PKG_PATH_ELEMS ?= 5
+
+_src_pkg = $(if $(word $(BIN_PKG_PATH_ELEMS),$(subst /, ,$1)),,$1)
+_bin_pkg = $(if $(word $(BIN_PKG_PATH_ELEMS),$(subst /, ,$1)),$1,)
 
 ARCHIVES(binpkg) := $(strip $(foreach PKG,${ARCHIVES(pkg)},$(call _bin_pkg,$(PKG))))
 ARCHIVES(pkg)    := $(strip $(foreach PKG,${ARCHIVES(pkg)},$(call _src_pkg,$(PKG))))

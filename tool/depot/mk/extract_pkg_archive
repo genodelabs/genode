@@ -45,7 +45,7 @@ include $(GENODE_DIR)/tool/depot/mk/extract.inc
 #
 _version = $(call recipe_version,$(call archive_type,$1)/$(call archive_recipe,$1))
 
-_versioned_entry = _/$(call archive_type,$1)/$(call archive_recipe,$1)-$(call _version,$1)
+_versioned_entry = _/$(call archive_type,$1)/$(call archive_recipe,$1)/$(call _version,$1)
 
 VERSIONED_ARCHIVES := $(foreach A,$(call file_content,$(RECIPE_DIR)/archives),\
                          $(if $(call archive_has_user,$A,_),$(call _versioned_entry,$A),$A))

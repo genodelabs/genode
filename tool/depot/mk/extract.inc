@@ -85,7 +85,7 @@ ORIG_RECIPE_HASH_VALUE := $(RECIPE_HASH_VALUE)
 # archive hash.
 #
 
-DEPOT_ARCHIVE_DIR := $(DEPOT_SUB_DIR)/$(ARCHIVE).incomplete
+DEPOT_ARCHIVE_DIR := $(DEPOT_SUB_DIR)/$(ARCHIVE)/incomplete
 
 reset_stale_temporary_archive_dir:
 ifneq ($(wildcard $(DEPOT_ARCHIVE_DIR)),)
@@ -110,16 +110,16 @@ $(ARCHIVE): _rename_to_final_archive
 # discard the just-built archive.
 #
 _rename_to_final_archive: _check_hash
-	@$(VERBOSE)final_name=$(ARCHIVE)-$(RECIPE_VERSION); \
-	           rm -rf $(DEPOT_SUB_DIR)/$$final_name; \
-	           mv $(DEPOT_ARCHIVE_DIR) $(DEPOT_SUB_DIR)/$$final_name; \
-	           hash=$$(< $(DEPOT_ARCHIVE_DIR).hash); hint=""; \
-	           test $$hash = $(ORIG_RECIPE_HASH_VALUE) ||\
-	             hint=" $(BRIGHT_COL)(new version)$(DEFAULT_COL)"; \
-	           rm -f $(DEPOT_ARCHIVE_DIR).hash; \
-	           $(ECHO) "$(DARK_COL)created$(DEFAULT_COL)" \
-	                   "$(USER)/$(notdir $(DEPOT_SUB_DIR))/$$final_name$$hint"; \
-	           true;
+	$(VERBOSE)final_name=$(ARCHIVE)/$(RECIPE_VERSION); \
+	          rm -rf $(DEPOT_SUB_DIR)/$$final_name; \
+	          mv $(DEPOT_ARCHIVE_DIR) $(DEPOT_SUB_DIR)/$$final_name; \
+	          hash=$$(< $(DEPOT_ARCHIVE_DIR).hash); hint=""; \
+	          test $$hash = $(ORIG_RECIPE_HASH_VALUE) ||\
+	            hint=" $(BRIGHT_COL)(new version)$(DEFAULT_COL)"; \
+	          rm -f $(DEPOT_ARCHIVE_DIR).hash; \
+	          $(ECHO) "$(DARK_COL)created$(DEFAULT_COL)" \
+	                  "$(USER)/$(notdir $(DEPOT_SUB_DIR))/$$final_name$$hint"; \
+	          true;
 
 #
 # Generate suggested version name for 'HASH_OUT_OF_DATE_MESSAGE'

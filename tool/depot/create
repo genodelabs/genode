@@ -44,8 +44,8 @@ extract:
 
 $(MAKECMDGOALS): extract
 
-_versioned_src_of_bin = $1-$(call recipe_version,src/$(call bin_archive_recipe,$1))
-_versioned_pkg        = $1-$(call recipe_version,pkg/$(call bin_archive_recipe,$1))
+_versioned_src_of_bin = $1/$(call recipe_version,src/$(call bin_archive_recipe,$1))
+_versioned_pkg        = $1/$(call recipe_version,pkg/$(call bin_archive_recipe,$1))
 
 versioned_archive = $(if $(call archive_has_type,$1,bin),$(call _versioned_src_of_bin,$1),\
                        $(if $(call archive_has_type,$1,pkg),$(call _versioned_pkg,$1)))

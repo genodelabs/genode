@@ -30,6 +30,7 @@ struct Depot_query::Archive
 	typedef String<100> Path;
 	typedef String<64>  User;
 	typedef String<80>  Name;
+	typedef String<40>  Version;
 
 	enum Type { PKG, RAW, SRC };
 
@@ -89,7 +90,8 @@ struct Depot_query::Archive
 		throw Unknown_archive_type();
 	}
 
-	static Name name(Path const &path) { return _path_element<Name>(path, 2); }
+	static Name    name   (Path const &path) { return _path_element<Name>(path, 2); }
+	static Version version(Path const &path) { return _path_element<Name>(path, 3); }
 };
 
 
@@ -210,9 +212,10 @@ Depot_query::Main::_find_rom_in_pkg(Directory::Path const &pkg_path,
 		case Archive::SRC:
 			{
 				Archive::Path const
-					rom_path(Archive::user(archive_path), "/bin/",
-					         _architecture, "/",
-					         Archive::name(archive_path), "/", rom_label);
+					rom_path(Archive::user(archive_path),    "/bin/",
+					         _architecture,                  "/",
+					         Archive::name(archive_path),    "/",
+					         Archive::version(archive_path), "/", rom_label);
 
 				if (depot_dir.file_exists(rom_path))
 					result = rom_path;

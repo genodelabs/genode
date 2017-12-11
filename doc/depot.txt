@@ -88,10 +88,10 @@ different kinds of content, each in a tailored and simple form. To avoid the
 clash of the notions of the common meaning of a "package", we speak of
 "archives" as the basic unit of delivery. The following subsections introduce
 the different categories.
-Archives are named with their version as suffix, appended via a dash. The
+Archives are named with their version as suffix, appended via a slash. The
 suffix is maintained by the author of the archive. The recommended naming
 scheme is the use of the release date as version suffix, e.g.,
-'report_rom-2017-05-14'.
+'report_rom/2017-05-14'.
 
 
 Raw-data archives
@@ -141,9 +141,9 @@ called 'used_apis', which contains a list of API-archive names with each
 name on a separate line. For example, the 'used_apis' file of the 'report_rom'
 source archive looks as follows:
 
-! base-2017-05-14
-! os-2017-05-13
-! report_session-2017-05-13
+! base/2017-05-14
+! os/2017-05-13
+! report_session/2017-05-13
 
 The 'used_apis' file declares the APIs needed to incorporate into the build
 process when building the source archive. Hence, they represent _build-time_
@@ -151,9 +151,9 @@ _dependencies_ on the specific API versions.
 
 A source archive may be equipped with a top-level file called 'api' containing
 the name of exactly one API archive. If present, it declares that the source
-archive _implements_ the specified API. For example, the 'libc-2017-05-14'
+archive _implements_ the specified API. For example, the 'libc/2017-05-14'
 source archive contains the actual source code of the libc and libm as well as
-an 'api' file with the content 'libc-2017-04-13'. The latter refers to the API
+an 'api' file with the content 'libc/2017-04-13'. The latter refers to the API
 implemented by this version of the libc source package (note the differing
 versions of the API and source archives)
 
@@ -182,13 +182,13 @@ Package archive
 A package archive contains an 'archives' file with a list of archive names
 that belong together at runtime. Each listed archive appears on a separate line.
 For example, the 'archives' file of the package archive for the window
-manager 'wm-2017-05-31' looks as follows:
+manager 'wm/2017-05-31' looks as follows:
 
-! genodelabs/raw/wm-2017-05-31
-! genodelabs/src/wm-2017-05-31
-! genodelabs/src/report_rom-2017-05-31
-! genodelabs/src/decorator-2017-05-31
-! genodelabs/src/floating_window_layouter-2017-05-31
+! genodelabs/raw/wm/2017-05-31
+! genodelabs/src/wm/2017-05-31
+! genodelabs/src/report_rom/2017-05-31
+! genodelabs/src/decorator/2017-05-31
+! genodelabs/src/floating_window_layouter/2017-05-31
 
 In contrast to the list of 'used_apis' of a source archive, the content of
 the 'archives' file denotes the origin of the respective archives
@@ -216,11 +216,11 @@ is structured as follows:
 
 ! <user>/pubkey
 ! <user>/download
-! <user>/src/<name>-<version>/
-! <user>/api/<name>-<version>/
-! <user>/raw/<name>-<version>/
-! <user>/pkg/<name>-<version>/
-! <user>/bin/<arch>/<src-name>-<src-version>/
+! <user>/src/<name>/<version>/
+! <user>/api/<name>/<version>/
+! <user>/raw/<name>/<version>/
+! <user>/pkg/<name>/<version>/
+! <user>/bin/<arch>/<src-name>/<src-version>/
 
 The <user> stands for the origin of the contained archives. For example, the
 official archives provided by Genode Labs reside in a _genodelabs/_
@@ -231,7 +231,7 @@ from the user. The file 'download' specifies the download location as an URL.
 Subsuming archives in a subdirectory that correspond to their the origin
 (user) serves two purposes. First, it provides a user-local name space for
 versioning archives. E.g., there might be two versions of a
-'nitpicker-2017-04-15' source archive, one by "genodelabs" and one by
+'nitpicker/2017-04-15' source archive, one by "genodelabs" and one by
 "nfeske". However, since each version resides under its origin's subdirectory,
 version-naming conflicts between different origins cannot happen. Second, by
 allowing multiple archive origins in the depot side-by-side, package archives
@@ -282,7 +282,7 @@ corresponding user subdirectory must contain two files:
 If both the public key and the download locations are defined, the download
 tool can be used as follows:
 
-! ./tool/depot/download genodelabs/src/zlib-2017-05-31
+! ./tool/depot/download genodelabs/src/zlib/2017-05-31
 
 The tool automatically downloads the specified archives and their
 dependencies. For example, as the zlib depends on the libc API, the libc API
@@ -294,7 +294,7 @@ all binary archives for the 32-bit x86 architecture. Downloaded binary
 archives are always accompanied with their corresponding source and used API
 archives.
 
-! ./tool/depot/download genodelabs/pkg/x86_32/wm-2017-05-31
+! ./tool/depot/download genodelabs/pkg/x86_32/wm/2017-05-31
 
 Archive content is not downloaded directly to the depot. Instead, the
 individual archives and signature files are downloaded to a quarantine area in
@@ -321,14 +321,14 @@ CPU architecture. For example, the following command builds the 'zlib'
 library for the 64-bit x86 architecture. It executes four concurrent jobs
 during the build process.
 
-! ./tool/depot/build genodelabs/bin/x86_64/zlib-2017-05-31 -j4
+! ./tool/depot/build genodelabs/bin/x86_64/zlib/2017-05-31 -j4
 
 Note that the command expects a specific version of the source archive as
 argument. The depot may contain several versions. So the user has to decide,
 which one to build.
 
 After the tool is finished, the freshly built binary archive can be found in
-the depot within the _genodelabs/bin/<arch>/<src>-<version>/_ subdirectory.
+the depot within the _genodelabs/bin/<arch>/<src>/<version>/_ subdirectory.
 Only the final result of the built process is preserved. In the example above,
 that would be the _zlib.lib.so_ library.
 
@@ -358,28 +358,28 @@ be present in the key ring of your GNU privacy guard.
 To publish archives, one needs to specify the specific version to publish.
 For example:
 
-! ./tool/depot/publish <you>/pkg/wm-2017-05-31
+! ./tool/depot/publish <you>/pkg/wm/2017-05-31
 
 The command checks that the specified archive and all dependencies are present
 in the depot. It then proceeds with the archiving and signing operations. For
 the latter, the pass phrase for your private key will be requested. The
 publish tool prints the information about the processed archives, e.g.:
 
-! publish /.../genode/public/<you>/pkg/wm-2017-05-30.tgz
-! publish /.../genode/public/<you>/src/decorator-2017-05-30.tgz
-! publish /.../genode/public/<you>/src/floating_window_layouter-2017-05-30.tgz
-! publish /.../genode/public/<you>/src/report_rom-2017-05-30.tgz
-! publish /.../genode/public/<you>/src/wm-2017-05-30.tgz
-! publish /.../genode/public/<you>/raw/wm-2017-05-30.tgz
-! publish /.../genode/public/<you>/api/base-2017-05-30.tgz
-! publish /.../genode/public/<you>/api/framebuffer_session-2017-05-30.tgz
-! publish /.../genode/public/<you>/api/gems-2017-05-30.tgz
-! publish /.../genode/public/<you>/api/input_session-2017-05-30.tgz
-! publish /.../genode/public/<you>/api/nitpicker_gfx-2017-04-24.tgz
-! publish /.../genode/public/<you>/api/nitpicker_session-2017-05-30.tgz
-! publish /.../genode/public/<you>/api/os-2017-05-30.tgz
-! publish /.../genode/public/<you>/api/report_session-2017-05-30.tgz
-! publish /.../genode/public/<you>/api/scout_gfx-2017-04-24.tgz
+! publish /.../public/<you>/pkg/wm/2017-05-30.tar.xz
+! publish /.../public/<you>/src/decorator/2017-05-30.tar.xz
+! publish /.../public/<you>/src/floating_window_layouter/2017-05-30.tar.xz
+! publish /.../public/<you>/src/report_rom/2017-05-30.tar.xz
+! publish /.../public/<you>/src/wm/2017-05-30.tar.xz
+! publish /.../public/<you>/raw/wm/2017-05-30.tar.xz
+! publish /.../public/<you>/api/base/2017-05-30.tar.xz
+! publish /.../public/<you>/api/framebuffer_session/2017-05-30.tar.xz
+! publish /.../public/<you>/api/gems/2017-05-30.tar.xz
+! publish /.../public/<you>/api/input_session/2017-05-30.tar.xz
+! publish /.../public/<you>/api/nitpicker_gfx/2017-04-24.tar.xz
+! publish /.../public/<you>/api/nitpicker_session/2017-05-30.tar.xz
+! publish /.../public/<you>/api/os/2017-05-30.tar.xz
+! publish /.../public/<you>/api/report_session/2017-05-30.tar.xz
+! publish /.../public/<you>/api/scout_gfx/2017-04-24.tar.xz
 
 According to the output, the tool populates a directory called _public/_
 at the root of the Genode source tree with the to-be-published archives.

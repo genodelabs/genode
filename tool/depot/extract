@@ -47,6 +47,9 @@ endef
 
 export GENODE_DIR := $(realpath $(dir $(MAKEFILE_LIST))/../..)
 
+# the extract tool expects archive paths given without the version element
+BIN_PKG_PATH_ELEMS := 4
+
 include $(GENODE_DIR)/tool/depot/mk/front_end.inc
 include $(GENODE_DIR)/tool/depot/mk/categorize_args.inc
 
@@ -86,9 +89,9 @@ include $(GENODE_DIR)/tool/depot/mk/dependencies.inc
 #
 # Obtain version information from recipes
 #
-# The 'archive_version' function takes the archive type and name as arguments
-# and returns the version identifier as present in the corresponding recipe.
-# The nested foreach loop populates 'ARCHIVE_VERSION' with the version
+# The 'archive_curr_version' function takes the archive type and name as
+# arguments and returns the version identifier as present in the corresponding
+# recipe. The nested foreach loop populates 'ARCHIVE_VERSION' with the version
 # identifier for each archive.
 #
 # If an archive is given with a complete (versioned) name, we don't need to
@@ -99,7 +102,7 @@ include $(GENODE_DIR)/tool/depot/mk/dependencies.inc
 
 $(foreach TYPE,api src raw pkg,\
    $(foreach PATH,${ARCHIVES(${TYPE})},\
-      $(eval ARCHIVE_VERSION(${PATH}) := $(call archive_version,$(PATH)))))
+      $(eval ARCHIVE_VERSION(${PATH}) := $(call archive_curr_version,$(PATH)))))
 
 archive_exists_in_depot = $(wildcard $(DEPOT_DIR)/$1)
 
@@ -121,7 +124,7 @@ endif
 
 # return versioned archive path, if 'ARCHIVE_VERSION' is undefined, assume
 # that the argument is already a versiond path
-versioned_archive = $(if $(ARCHIVE_VERSION($1)),$(addsuffix -${ARCHIVE_VERSION($1)},$1),$1)
+versioned_archive = $(if $(ARCHIVE_VERSION($1)),$(addsuffix /${ARCHIVE_VERSION($1)},$1),$1)
 
 EXTRACT_MK_FILE := $(DEPOT_DIR)/var/extract.mk
 

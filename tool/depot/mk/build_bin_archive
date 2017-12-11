@@ -76,7 +76,7 @@ checked_src_archive:
 	@true
 
 ifeq ($(SRC_DIR),)
-VERSIONED_ARCHIVE := $(ARCHIVE)-$(SRC_VERSION)
+VERSIONED_ARCHIVE := $(ARCHIVE)/$(SRC_VERSION)
 SRC_DIR := $(DEPOT_SRC_DIR)/$(VERSIONED_ARCHIVE)
 checked_src_archive: checked_src_hash_file
 endif
