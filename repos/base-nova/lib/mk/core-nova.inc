@@ -4,6 +4,7 @@ GEN_CORE_DIR = $(BASE_DIR)/src/core
 
 SRC_CC      += stack_area.cc \
                core_mem_alloc.cc \
+               core_log.cc \
                core_log_out.cc \
                core_region_map.cc \
                core_rpc_cap_alloc.cc \
@@ -52,6 +53,7 @@ include $(GEN_CORE_DIR)/version.inc
 vpath main.cc                      $(GEN_CORE_DIR)
 vpath pd_session_component.cc      $(GEN_CORE_DIR)
 vpath rom_session_component.cc     $(GEN_CORE_DIR)
+vpath core_log.cc                  $(GEN_CORE_DIR)
 vpath cpu_session_component.cc     $(GEN_CORE_DIR)
 vpath cpu_session_support.cc       $(GEN_CORE_DIR)
 vpath cpu_thread_component.cc      $(GEN_CORE_DIR)
@@ -72,5 +74,4 @@ vpath dump_alloc.cc                $(GEN_CORE_DIR)
 vpath platform_rom_modules.cc      $(GEN_CORE_DIR)
 vpath platform_services.cc         $(GEN_CORE_DIR)/spec/x86
 vpath stack_area.cc                $(GEN_CORE_DIR)
-vpath core_printf.cc               $(BASE_DIR)/src/lib/base
 vpath %.cc                         $(REP_DIR)/src/core

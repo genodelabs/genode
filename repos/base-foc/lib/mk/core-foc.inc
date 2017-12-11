@@ -4,6 +4,7 @@ LIBS        += base-foc-common syscall-foc cxx
 
 SRC_CC      += stack_area.cc \
                stack_area_addr.cc \
+               core_log.cc \
                core_log_out.cc \
                core_region_map.cc \
                core_rpc_cap_alloc.cc \
@@ -47,6 +48,7 @@ INC_DIR     += $(REP_DIR)/src/core/include \
 include $(GEN_CORE_DIR)/version.inc
 
 vpath stack_area.cc               $(GEN_CORE_DIR)
+vpath core_log.cc                 $(GEN_CORE_DIR)
 vpath cpu_session_component.cc    $(GEN_CORE_DIR)
 vpath cpu_session_support.cc      $(GEN_CORE_DIR)
 vpath cpu_thread_component.cc     $(GEN_CORE_DIR)

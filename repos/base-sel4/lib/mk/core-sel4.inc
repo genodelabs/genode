@@ -28,7 +28,7 @@ SRC_CC      += \
                core_region_map.cc \
                core_mem_alloc.cc \
                core_rpc_cap_alloc.cc \
-               core_log_out.cc default_log.cc \
+               core_log.cc core_log_out.cc default_log.cc \
                dump_alloc.cc \
                stack_area.cc \
                capability_space.cc \
@@ -44,6 +44,7 @@ include $(GEN_CORE_DIR)/version.inc
 vpath main.cc                      $(GEN_CORE_DIR)
 vpath pd_session_component.cc      $(GEN_CORE_DIR)
 vpath rom_session_component.cc     $(GEN_CORE_DIR)
+vpath core_log.cc                  $(GEN_CORE_DIR)
 vpath cpu_session_component.cc     $(GEN_CORE_DIR)
 vpath cpu_session_support.cc       $(GEN_CORE_DIR)
 vpath cpu_thread_component.cc      $(GEN_CORE_DIR)

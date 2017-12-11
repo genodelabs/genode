@@ -19,7 +19,13 @@
 
 namespace Genode {
 	struct Core_log;
-	Core_log &core_log();
+
+	struct Core_log_range {
+		addr_t start;
+		addr_t size;
+	};
+
+	void init_core_log(Core_log_range const &);
 }
 
 
@@ -27,8 +33,7 @@ struct Genode::Core_log
 {
 	void out(char const c);
 
-	void output(char const * str) {
-		for (unsigned i = 0; i < Genode::strlen(str); i++) out(str[i]); }
+	void output(char const * str);
 };
 
 #endif /* _CORE_LOG_H_ */

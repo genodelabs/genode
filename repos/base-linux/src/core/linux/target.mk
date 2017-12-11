@@ -29,6 +29,7 @@ SRC_CC        = main.cc \
                 trace_session_component.cc \
                 thread_linux.cc \
                 stack_area.cc \
+                core_log.cc \
                 core_log_out.cc \
                 default_log.cc \
                 env_reinit.cc \
@@ -48,6 +49,7 @@ include $(GEN_CORE_DIR)/version.inc
 
 vpath main.cc                     $(GEN_CORE_DIR)
 vpath pd_session_component.cc     $(GEN_CORE_DIR)
+vpath core_log.cc                 $(GEN_CORE_DIR)
 vpath cpu_session_component.cc    $(GEN_CORE_DIR)
 vpath cpu_session_support.cc      $(GEN_CORE_DIR)
 vpath cpu_thread_component.cc     $(GEN_CORE_DIR)
