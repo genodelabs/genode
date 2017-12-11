@@ -50,8 +50,6 @@ Microseconds Dhcp_server::_init_ip_lease_time(Xml_node const node)
 		node.attribute_value("ip_lease_time_sec", 0UL);
 
 	if (!ip_lease_time_sec) {
-		warning("fall back to default ip_lease_time_sec=\"",
-		        (unsigned long)DEFAULT_IP_LEASE_TIME_SEC, "\"");
 		ip_lease_time_sec = DEFAULT_IP_LEASE_TIME_SEC;
 	}
 	return Microseconds((unsigned long)ip_lease_time_sec * 1000 * 1000);

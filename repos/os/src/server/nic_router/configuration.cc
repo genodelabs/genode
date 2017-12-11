@@ -33,8 +33,6 @@ Microseconds read_sec_attr(Xml_node      const  node,
 {
 	unsigned long sec = node.attribute_value(name, 0UL);
 	if (!sec) {
-		warning("fall back to default value \"", default_sec,
-		        "\" for attribute \"", name, "\"");
 		sec = default_sec;
 	}
 	return Microseconds(sec * 1000 * 1000);
