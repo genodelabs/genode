@@ -884,8 +884,7 @@ int Libc::Vfs_plugin::fcntl(Libc::File_descriptor *fd, int cmd, long arg)
 int Libc::Vfs_plugin::fsync(Libc::File_descriptor *fd)
 {
 	Vfs::Vfs_handle *handle = vfs_handle(fd);
-	_vfs_sync(handle);
-	return 0;
+	return _vfs_sync(handle);
 }
 
 
