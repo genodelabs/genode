@@ -428,19 +428,33 @@ class Vfs::Tar_file_system : public File_system
 
 	/**
 	 * Walk hardlinks until we reach a file
-	 *
-	 * XXX: check for hardlink loops
 	 */
 	Node const *dereference(char const *path)
 	{
 		Node const *node = _root_node.lookup(path);
-		if (!node) return 0;
+		Node const *slow_node = node;
+		int i = 0;
+		while (node) {
+			Record const *record = node->record;
+			if (!record || record->type() != Record::TYPE_HARDLINK)
+				break; /* got it */
 
-		Record const *record = node->record;
-		if (!record || record->type() != Record::TYPE_HARDLINK)
-			return node;
-
-		return dereference(record->linked_name());
+			/*
+			 * The `node` pointer is followed every iteration and
+			 * `slow_node` every-other iteration. If there is a
+			 * loop then eventually we catch it as the faster
+			 * laps the slower.
+			 */
+			node = _root_node.lookup(record->linked_name());
+			if (i++ & 1) {
+				slow_node = _root_node.lookup(slow_node->record->linked_name());
+				if (node == slow_node) {
+					Genode::error(_rom_name, " contains a hard-link loop at '", path, "'");
+					node = nullptr;
+				}
+			}
+		}
+		return node;
 	}
 
 	public:
