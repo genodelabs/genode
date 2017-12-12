@@ -127,7 +127,7 @@ proc run_boot_dir {binaries} {
 	puts $fh {<!DOCTYPE image SYSTEM "weaver-1.1.dtd">}
 	puts $fh {<image>}
 	regsub okl4_kernel $weaver_xml_template "[run_dir]/genode/okl4" weaver_xml_template
-	regsub core $weaver_xml_template "[run_dir].image" weaver_xml_template
+	regsub \"core\" $weaver_xml_template "\"[run_dir].image\"" weaver_xml_template
 	puts $fh $weaver_xml_template
 	puts $fh {</image>}
 	close $fh
