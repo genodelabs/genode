@@ -28,7 +28,7 @@ SRC_CC      += \
                core_region_map.cc \
                core_mem_alloc.cc \
                core_rpc_cap_alloc.cc \
-               core_log.cc default_log.cc \
+               core_log_out.cc default_log.cc \
                dump_alloc.cc \
                stack_area.cc \
                capability_space.cc \

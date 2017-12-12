@@ -2,7 +2,7 @@ GEN_CORE_DIR := $(dir $(call select_from_repositories,src/core/main.cc))
 GEN_SRC_DIR  := $(realpath $(GEN_CORE_DIR)/..)
 
 SRC_CC      += stack_area.cc \
-               core_log.cc \
+               core_log_out.cc \
                core_region_map.cc \
                core_rpc_cap_alloc.cc \
                cpu_session_component.cc \

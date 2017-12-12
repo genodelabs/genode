@@ -4,7 +4,7 @@ GEN_CORE_DIR = $(BASE_DIR)/src/core
 
 SRC_CC      += stack_area.cc \
                core_mem_alloc.cc \
-               core_log.cc \
+               core_log_out.cc \
                core_region_map.cc \
                core_rpc_cap_alloc.cc \
                cpu_session_component.cc \

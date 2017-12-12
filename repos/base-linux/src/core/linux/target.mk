@@ -29,7 +29,7 @@ SRC_CC        = main.cc \
                 trace_session_component.cc \
                 thread_linux.cc \
                 stack_area.cc \
-                core_log.cc \
+                core_log_out.cc \
                 default_log.cc \
                 env_reinit.cc \
                 thread.cc thread_myself.cc
