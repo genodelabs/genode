@@ -22,7 +22,7 @@
 #include <base/session_label.h>
 #include <util/arg_string.h>
 #include <base/heap.h>
-#include <base/log.h>
+
 
 /*****************
  ** ROM service **
@@ -464,8 +464,6 @@ class Fs_rom::Rom_root : public Root_component<Fs_rom::Rom_session_component>
 		{
 			Session_label const label = label_from_args(args);
 			Session_label const module_name = label.last_element();
-
-			log("request for ", label);
 
 			/* create new session for the requested file */
 			Rom_session_component *session = new (md_alloc())
