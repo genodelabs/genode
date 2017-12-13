@@ -121,13 +121,13 @@ Link::Link(Interface                           &cln_interface,
            Timer::Connection                   &timer,
            Configuration                       &config,
            L3_protocol                   const  protocol,
-           Microseconds                  const  close_timeout)
+           Microseconds                  const  dissolve_timeout)
 :
 	_config(config),
 	_client_interface(cln_interface),
 	_server_port_alloc(srv_port_alloc),
-	_close_timeout(timer, *this, &Link::_handle_close_timeout),
-	_close_timeout_us(close_timeout),
+	_dissolve_timeout(timer, *this, &Link::_handle_dissolve_timeout),
+	_dissolve_timeout_us(dissolve_timeout),
 	_protocol(protocol),
 	_client(cln_interface.domain(), cln_id, *this),
 	_server(srv_domain, srv_id, *this)
@@ -135,15 +135,15 @@ Link::Link(Interface                           &cln_interface,
 	_client_interface.links(_protocol).insert(this);
 	_client.domain().links(_protocol).insert(&_client);
 	_server.domain().links(_protocol).insert(&_server);
-	_close_timeout.schedule(_close_timeout_us);
+	_dissolve_timeout.schedule(_dissolve_timeout_us);
 }
 
 
-void Link::_handle_close_timeout(Duration)
+void Link::_handle_dissolve_timeout(Duration)
 {
 	dissolve();
 	_client_interface.links(_protocol).remove(this);
-	_client_interface.closed_links(_protocol).insert(this);
+	_client_interface.dissolved_links(_protocol).insert(this);
 }
 
 
@@ -188,7 +188,7 @@ Tcp_link::Tcp_link(Interface                           &cln_interface,
 void Tcp_link::_fin_acked()
 {
 	if (_server_fin_acked && _client_fin_acked) {
-		_close_timeout.schedule(Microseconds(config().tcp_max_segm_lifetime().value << 1));
+		_dissolve_timeout.schedule(Microseconds(config().tcp_max_segm_lifetime().value << 1));
 		_closed = true;
 	}
 }

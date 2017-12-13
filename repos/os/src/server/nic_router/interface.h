@@ -66,8 +66,8 @@ class Net::Interface : public Genode::List<Interface>::Element
 		Arp_waiter_list       _own_arp_waiters;
 		Link_list             _tcp_links;
 		Link_list             _udp_links;
-		Link_list             _closed_tcp_links;
-		Link_list             _closed_udp_links;
+		Link_list             _dissolved_tcp_links;
+		Link_list             _dissolved_udp_links;
 		Dhcp_allocation_tree  _dhcp_allocations;
 		Dhcp_allocation_list  _released_dhcp_allocations;
 		Dhcp_client           _dhcp_client { _alloc, _timer, *this };
@@ -217,7 +217,7 @@ class Net::Interface : public Genode::List<Interface>::Element
 
 		void send(Ethernet_frame &eth, Genode::size_t const eth_size);
 
-		Link_list &closed_links(L3_protocol const protocol);
+		Link_list &dissolved_links(L3_protocol const protocol);
 
 		Link_list &links(L3_protocol const protocol);
 

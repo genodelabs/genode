@@ -31,11 +31,11 @@ using namespace Genode;
  ***************/
 
 template <typename LINK_TYPE>
-static void _destroy_closed_links(Link_list   &closed_links,
-                                  Deallocator &dealloc)
+static void _destroy_dissolved_links(Link_list   &dissolved_links,
+                                     Deallocator &dealloc)
 {
-	while (Link *link = closed_links.first()) {
-		closed_links.remove(link);
+	while (Link *link = dissolved_links.first()) {
+		dissolved_links.remove(link);
 		destroy(dealloc, static_cast<LINK_TYPE *>(link));
 	}
 }
@@ -43,10 +43,10 @@ static void _destroy_closed_links(Link_list   &closed_links,
 
 template <typename LINK_TYPE>
 static void _destroy_links(Link_list   &links,
-                           Link_list   &closed_links,
+                           Link_list   &dissolved_links,
                            Deallocator &dealloc)
 {
-	_destroy_closed_links<LINK_TYPE>(closed_links, dealloc);
+	_destroy_dissolved_links<LINK_TYPE>(dissolved_links, dealloc);
 	while (Link *link = links.first()) {
 		link->dissolve();
 		links.remove(link);
@@ -225,11 +225,11 @@ Link_list &Interface::links(L3_protocol const protocol)
 }
 
 
-Link_list &Interface::closed_links(L3_protocol const protocol)
+Link_list &Interface::dissolved_links(L3_protocol const protocol)
 {
 	switch (protocol) {
-	case L3_protocol::TCP: return _closed_tcp_links;
-	case L3_protocol::UDP: return _closed_udp_links;
+	case L3_protocol::TCP: return _dissolved_tcp_links;
+	case L3_protocol::UDP: return _dissolved_udp_links;
 	default: throw Bad_transport_protocol(); }
 }
 
@@ -863,8 +863,8 @@ void Interface::_handle_eth(void              *const  eth_base,
                             Packet_descriptor  const &pkt)
 {
 	/* do garbage collection over transport-layer links and DHCP allocations */
-	_destroy_closed_links<Udp_link>(_closed_udp_links, _alloc);
-	_destroy_closed_links<Tcp_link>(_closed_tcp_links, _alloc);
+	_destroy_dissolved_links<Udp_link>(_dissolved_udp_links, _alloc);
+	_destroy_dissolved_links<Tcp_link>(_dissolved_tcp_links, _alloc);
 	_destroy_released_dhcp_allocations();
 
 	/* inspect and handle ethernet frame */
@@ -997,8 +997,8 @@ Interface::~Interface()
 		cancel_arp_waiting(*_own_arp_waiters.first()->object());
 	}
 	/* destroy links */
-	_destroy_links<Tcp_link>(_tcp_links, _closed_tcp_links, _alloc);
-	_destroy_links<Udp_link>(_udp_links, _closed_udp_links, _alloc);
+	_destroy_links<Tcp_link>(_tcp_links, _dissolved_tcp_links, _alloc);
+	_destroy_links<Udp_link>(_udp_links, _dissolved_udp_links, _alloc);
 
 	/* destroy DHCP allocations */
 	_destroy_released_dhcp_allocations();
