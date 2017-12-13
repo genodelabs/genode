@@ -182,8 +182,8 @@ void Init::Main::_update_parent_services_from_config()
 			service.abandon();
 	});
 
-	if (_verbose->enabled())
-		log("parent provides");
+	/* used to prepend the list of new parent services with title */
+	bool first_log = true;
 
 	/* register new services */
 	node.for_each_sub_node("service", [&] (Xml_node service) {
@@ -197,8 +197,12 @@ void Init::Main::_update_parent_services_from_config()
 
 		if (!registered) {
 			new (_heap) Init::Parent_service(_parent_services, _env, name);
-			if (_verbose->enabled())
+			if (_verbose->enabled()) {
+				if (first_log)
+					log("parent provides");
 				log("  service \"", name, "\"");
+				first_log = false;
+			}
 		}
 	});
 }

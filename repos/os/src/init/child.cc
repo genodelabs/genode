@@ -606,7 +606,8 @@ Genode::Affinity Init::Child::filter_session_affinity(Affinity const &session_af
 
 void Init::Child::announce_service(Service::Name const &service_name)
 {
-	log("child \"", name(), "\" announces service \"", service_name, "\"");
+	if (_verbose.enabled())
+		log("child \"", name(), "\" announces service \"", service_name, "\"");
 
 	bool found = false;
 	_child_services.for_each([&] (Routed_service &service) {
