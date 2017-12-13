@@ -9,7 +9,6 @@ proc enable_test_4 { } { return 1 }
 proc enable_test_5 { } { return 1 }
 proc enable_test_6 { } { return 1 }
 proc enable_test_7 { } { return 0 }
-proc nr_of_clients { } { return 7 }
 
 source ${genode_dir}/repos/libports/run/nic_router.inc
 
@@ -265,7 +264,7 @@ install_config $config
 
 build_boot_image $boot_modules
 
-for {set i 0} {$i < [nr_of_clients]} {incr i 1} {
+for {set i 0} {$i < $nr_of_clients} {incr i 1} {
 	append done_string {.*Test done.*\n}
 }
 

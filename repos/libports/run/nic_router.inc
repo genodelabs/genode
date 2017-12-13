@@ -72,6 +72,8 @@ proc server_bin { prot } {
 	if {$prot == "http"} { return "test-lwip_httpsrv_static" } }
 
 proc client_config { name prot ip_addr gateway netmask nic srv_port srv_ip } {
+	global nr_of_clients
+	incr nr_of_clients
 	append result {
 		<start name="} $name {" caps="200" priority="-1">
 			<binary  name="} [client_bin $prot] {" />
