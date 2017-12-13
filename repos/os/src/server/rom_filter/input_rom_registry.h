@@ -184,9 +184,6 @@ class Rom_filter::Input_rom_registry
 						Node_type_name expected = _top_level_node_type(input_node);
 						if (content_node.has_type(expected.string()))
 							return _query_value(input_node.sub_node(), content_node);
-						else
-							Genode::warning("top-level node <", expected, "> "
-							                "missing in input ROM ", name());
 
 					} catch (...) { }
 

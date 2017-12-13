@@ -176,12 +176,16 @@ struct Rom_filter::Main : Input_rom_registry::Input_rom_changed_fn,
 
 	Genode::Attached_rom_dataspace _config { _env, "config" };
 
+	bool _verbose = false;
+
 	Genode::Signal_handler<Main> _config_handler =
 		{ _env.ep(), *this, &Main::_handle_config };
 
 	void _handle_config()
 	{
 		_config.update();
+
+		_verbose = _config.xml().attribute_value("verbose", false);
 
 		/*
 		 * Create buffer for generated XML data
@@ -269,7 +273,8 @@ void Rom_filter::Main::_evaluate_node(Xml_node node, Xml_generator &xml)
 						condition_satisfied = true;
 				}
 				catch (Input_rom_registry::Nonexistent_input_value) {
-					Genode::warning("could not obtain input value for input ", input_name);
+					if (_verbose)
+						Genode::warning("could not obtain input value for input ", input_name);
 				}
 			}
 
@@ -299,7 +304,8 @@ void Rom_filter::Main::_evaluate_node(Xml_node node, Xml_generator &xml)
 					              input_value);
 				}
 				catch (Input_rom_registry::Nonexistent_input_value) {
-					Genode::warning("could not obtain input value for input ", input_name);
+					if (_verbose)
+						Genode::warning("could not obtain input value for input ", input_name);
 				}
 			}
 
@@ -383,7 +389,6 @@ void Rom_filter::Main::_evaluate()
 				_xml_output_len = xml.used();
 			},
 			[&] () {
-				Genode::log("UPGRADING XML DATASPACE");
 				_xml_ds.construct(_env.ram(), _env.rm(), _xml_ds->size() + UPGRADE);
 			},
 			NUM_ATTEMPTS);
