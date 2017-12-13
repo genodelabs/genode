@@ -46,13 +46,32 @@ include $(GENODE_DIR)/tool/depot/mk/dependencies.inc
 
 
 #
-# Print gathered information
+# Validate and print gathered information
 #
 
-NEEDED_ARCHIVES  := $(foreach TYPE,pkg src raw api bin,${ARCHIVES(${TYPE})})
+# select function for determining the archive version depending on archive type
+_archive_version(bin) = bin_archive_version
+_archive_version(src) = archive_version
+_archive_version(api) = archive_version
+_archive_version(raw) = archive_version
+_archive_version(pkg) = archive_version
+
+_version_defined = ${call ${_archive_version(${call archive_type,$1})},$1}
+
+NEEDED_ARCHIVES := $(foreach TYPE,pkg src raw api bin,${ARCHIVES(${TYPE})})
+
+# check for completeness of archive-path arguments
+NO_VERSION_ARCHIVES := $(sort $(foreach A,$(NEEDED_ARCHIVES),\
+                                 $(if $(call _version_defined,$A),,$A)))
+
+# check for existence of archive paths in depot
 MISSING_ARCHIVES := $(sort $(foreach A,$(NEEDED_ARCHIVES),\
                               $(if $(wildcard $(addprefix $(DEPOT_DIR)/,$A)),,$A)))
 checked_completeness:
+ifneq ($(NO_VERSION_ARCHIVES),)
+	@echo "Error: version not specified:"; \
+	 for i in $(NO_VERSION_ARCHIVES); do echo "       $$i"; done; false
+endif
 ifneq ($(MISSING_ARCHIVES),)
 	@echo "Error: incomplete or missing archives:"; \
 	 for i in $(MISSING_ARCHIVES); do echo "       $$i"; done; false
