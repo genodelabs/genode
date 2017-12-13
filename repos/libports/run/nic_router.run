@@ -17,6 +17,11 @@ build $targets
 
 create_boot_directory
 
+
+#
+# Test 1 utilities
+#
+
 proc test_1_config { } {
 	if {[enable_test_1]} { return "
 		[client_config       udp_client_1 udp 10.0.98.55 10.0.98.33 255.255.255.0 nic_router 1337 10.0.98.33]
@@ -24,11 +29,39 @@ proc test_1_config { } {
 		[server_config lan_1_udp_server_1 udp 10.0.99.55 10.0.99.33 255.255.255.0 nic_router 1337 ]" }
 }
 
+proc test_1_router_config { } {
+	if {[enable_test_1]} { return {
+		<policy label_prefix="udp_client_1" domain="udp_client_1" />
+		<policy label_prefix="lan_1"        domain="lan_1" />
+
+		<domain name="udp_client_1" interface="10.0.98.33/24">
+			<udp-forward port="1337" domain="lan_1" to="10.0.99.55" />
+		</domain>
+
+		<domain name="lan_1" interface="10.0.99.33/24" />} }
+}
+
+
+#
+# Test 2 utilities
+#
+
 proc test_2_config { } {
 	if {[enable_test_2]} { return "
 		[client_config udp_client_2 udp 10.0.2.212  10.0.2.1    255.255.255.0 nic_bridge 1 10.0.2.55]
 		[server_config udp_server_2 udp 18.17.16.15 18.17.16.14 255.255.0.0   nic_router 1 ]" }
 }
+
+proc test_2_router_config { } {
+	if {[enable_test_2]} { return {
+		<policy label_prefix="udp_server_2" domain="udp_server_2" />
+		<domain name="udp_server_2" interface="18.17.16.14/24" />} }
+}
+
+
+#
+# Test 3 utilities
+#
 
 proc test_3_config { } {
 	if {[enable_test_3]} { return "
@@ -36,11 +69,36 @@ proc test_3_config { } {
 		[server_config udp_server_3 udp 10.0.2.213   10.0.2.55    255.255.255.0 nic_bridge 65535 ]" }
 }
 
+proc test_3_router_config { } {
+	if {[enable_test_3]} { return {
+		<policy label_prefix="udp_client_3" domain="udp_client_3" />
+
+		<domain name="udp_client_3" interface="217.13.192.1/24">
+			<ip dst="10.0.2.0/24" domain="uplink" />
+		</domain>} }
+}
+
+
+#
+# Test 4 utilities
+#
+
 proc test_4_config { } {
 	if {[enable_test_4]} { return "
 		[client_config http_client_1 http 10.0.2.201   10.0.2.1    255.255.255.0 nic_bridge 80 10.0.2.55]
 		[server_config http_server_1 http 192.168.1.18 192.168.1.1 255.255.255.0 nic_router 80 ]" }
 }
+
+proc test_4_router_config { } {
+	if {[enable_test_4]} { return {
+		<policy label_prefix="http_server_1" domain="http_server_1" />
+		<domain name="http_server_1" interface="192.168.1.1/24" />} }
+}
+
+
+#
+# Test 5 utilities
+#
 
 proc test_5_config { } {
 	if {[enable_test_5]} { return "
@@ -48,11 +106,38 @@ proc test_5_config { } {
 		[server_config http_server_2 http 192.168.2.72 192.168.2.1 255.255.255.0 nic_router 8080 ]" }
 }
 
+proc test_5_router_config { } {
+	if {[enable_test_5]} { return {
+		<policy label_prefix="http_server_2" domain="http_server_2" />
+		<domain name="http_server_2" interface="192.168.2.1/24" />} }
+}
+
+
+#
+# Test 6 utilities
+#
+
 proc test_6_config { } {
 	if {[enable_test_6]} { return "
 		[client_config http_client_3 http 100.200.0.128 100.200.0.1 255.255.0.0   nic_router 2345 10.0.2.203]
 		[server_config http_server_3 http 10.0.2.203    10.0.2.1    255.255.255.0 nic_bridge 2345 ]" }
 }
+
+proc test_6_router_config { } {
+	if {[enable_test_6]} { return {
+		<policy label_prefix="http_client_3" domain="http_client_3" />
+
+		<domain name="http_client_3" interface="100.200.0.1/24">
+			<tcp dst="10.0.0.0/16">
+				<permit port="2345" domain="uplink" />
+			</tcp>
+		</domain>} }
+}
+
+
+#
+# Test 7 utilities
+#
 
 proc test_7_config { } {
 	if {[enable_test_7]} { return "
@@ -62,6 +147,28 @@ proc test_7_config { } {
 		[server_config lan_3_server_1 http 10.0.2.204    10.0.2.1    255.255.255.0 nic_router 2345 ]
 		[server_config lan_3_server_2 http 10.0.2.240    10.0.2.1    255.255.255.0 nic_router 3456 ]" }
 }
+
+proc test_7_router_config { } {
+	if {[enable_test_7]} { return {
+		<policy label_prefix="lan_2" domain="lan_2" />
+		<policy label_prefix="lan_3" domain="lan_3" />
+
+		<domain name="lan_2" interface="100.200.0.1/24">
+			<tcp dst="10.0.0.0/16">
+				<permit port="2345" domain="lan_3" />
+				<permit port="3456" domain="lan_3" />
+			</tcp>
+		</domain>
+
+		<domain name="lan_3" interface="10.0.2.1/24">
+			<nat domain="lan_2" tcp-ports="18" />
+		</domain>} }
+}
+
+
+#
+# Init config
+#
 
 append config {
 <config prio_levels="2">
@@ -104,14 +211,6 @@ append config {
 		        tcp_idle_timeout_sec="30"
 		        tcp_max_segm_lifetime_sec="15">
 
-			<policy label_prefix="udp_client_1"  domain="udp_client_1"  />
-			<policy label_prefix="http_client_3" domain="http_client_3" />
-			<policy label_prefix="udp_client_3"  domain="udp_client_3"  />
-			<policy label_prefix="http_server_1" domain="http_server_1" />
-			<policy label_prefix="http_server_2" domain="http_server_2" />
-			<policy label_prefix="lan_1"         domain="lan_1"  />
-			<policy label_prefix="udp_server_2"  domain="udp_server_2"  />
-
 			<domain name="uplink" interface="10.0.2.55/24" gateway="10.0.2.1">
 				<tcp-forward port="80"   domain="http_server_1" to="192.168.1.18" />
 				<tcp-forward port="8080" domain="http_server_2" to="192.168.2.72" />
@@ -120,38 +219,13 @@ append config {
 				<ip dst="217.13.192.0/24" domain="udp_client_3" />
 			</domain>
 
-			<domain name="udp_client_1" interface="10.0.98.33/24">
-				<udp-forward port="1337" domain="lan_1" to="10.0.99.55" />
-			</domain>
-
-			<domain name="http_client_3" interface="100.200.0.1/24">
-				<tcp dst="10.0.0.0/16">
-					<permit port="2345" domain="uplink" />
-				</tcp>
-			</domain>
-
-			<domain name="udp_client_3" interface="217.13.192.1/24">
-				<ip dst="10.0.2.0/24" domain="uplink" />
-			</domain>
-
-			<domain name="http_server_1" interface="192.168.1.1/24" />
-			<domain name="http_server_2" interface="192.168.2.1/24" />
-			<domain name="lan_1"         interface="10.0.99.33/24"  />
-			<domain name="udp_server_2"  interface="18.17.16.14/24" />
-
-			<policy label_prefix="lan_2" domain="lan_2" />
-			<policy label_prefix="lan_3" domain="lan_3" />
-
-			<domain name="lan_2" interface="100.200.0.1/24">
-				<tcp dst="10.0.0.0/16">
-					<permit port="2345" domain="lan_3" />
-					<permit port="3456" domain="lan_3" />
-				</tcp>
-			</domain>
-
-			<domain name="lan_3" interface="10.0.2.1/24">
-				<nat domain="lan_2" tcp-ports="18" />
-			</domain>
+			} [test_1_router_config] {
+			} [test_2_router_config] {
+			} [test_3_router_config] {
+			} [test_4_router_config] {
+			} [test_5_router_config] {
+			} [test_6_router_config] {
+			} [test_7_router_config] {
 
 		</config>
 		<route>
