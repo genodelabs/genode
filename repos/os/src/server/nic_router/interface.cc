@@ -198,37 +198,13 @@ Interface::_new_link(L3_protocol                   const  protocol,
 {
 	switch (protocol) {
 	case L3_protocol::TCP:
-		{
-			Tcp_link &link = *new (_alloc)
-				Tcp_link(*this, local, remote_port_alloc, remote_domain,
-				         remote, _timer, _config(), protocol);
-
-			_tcp_links.insert(&link);
-			_domain.tcp_links().insert(&link.client());
-			remote_domain.tcp_links().insert(&link.server());
-			if (_config().verbose()) {
-				log("New TCP client link: ", link.client(), " at ", _domain);
-				log("New TCP server link: ", link.server(),
-				    " at ", remote_domain);
-			}
-			return;
-		}
+		new (_alloc) Tcp_link(*this, local, remote_port_alloc, remote_domain,
+		                      remote, _timer, _config(), protocol);
+		break;
 	case L3_protocol::UDP:
-		{
-			Udp_link &link = *new (_alloc)
-				Udp_link(*this, local, remote_port_alloc, remote_domain,
-				         remote, _timer, _config(), protocol);
-
-			_udp_links.insert(&link);
-			_domain.udp_links().insert(&link.client());
-			remote_domain.udp_links().insert(&link.server());
-			if (_config().verbose()) {
-				log("New UDP client link: ", link.client(), " at ", _domain);
-				log("New UDP server link: ", link.server(),
-				    " at ", remote_domain);
-			}
-			return;
-		}
+		new (_alloc) Udp_link(*this, local, remote_port_alloc, remote_domain,
+		                      remote, _timer, _config(), protocol);
+		break;
 	default: throw Bad_transport_protocol(); }
 }
 

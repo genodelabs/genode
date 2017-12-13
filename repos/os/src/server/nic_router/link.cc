@@ -54,7 +54,12 @@ Link_side::Link_side(Domain             &domain,
                      Link               &link)
 :
 	_domain(domain), _id(id), _link(link)
-{ }
+{
+	if (link.config().verbose()) {
+		log("[", domain, "] New ", l3_protocol_name(link.protocol()),
+		    " link ", is_client() ? "client" : "server", ": ", *this);
+	}
+}
 
 
 Link_side const &Link_side::find_by_id(Link_side_id const &id) const
@@ -119,14 +124,17 @@ Link::Link(Interface                           &cln_interface,
            Microseconds                  const  close_timeout)
 :
 	_config(config),
-	_client(cln_interface.domain(), cln_id, *this),
 	_client_interface(cln_interface),
 	_server_port_alloc(srv_port_alloc),
-	_server(srv_domain, srv_id, *this),
 	_close_timeout(timer, *this, &Link::_handle_close_timeout),
 	_close_timeout_us(close_timeout),
-	_protocol(protocol)
+	_protocol(protocol),
+	_client(cln_interface.domain(), cln_id, *this),
+	_server(srv_domain, srv_id, *this)
 {
+	_client_interface.links(_protocol).insert(this);
+	_client.domain().links(_protocol).insert(&_client);
+	_server.domain().links(_protocol).insert(&_server);
 	_close_timeout.schedule(_close_timeout_us);
 }
 

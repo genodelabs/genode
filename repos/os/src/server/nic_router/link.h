@@ -126,13 +126,13 @@ class Net::Link : public Link_list::Element
 	protected:
 
 		Configuration                       &_config;
-		Link_side                            _client;
 		Interface                           &_client_interface;
 		Pointer<Port_allocator_guard> const  _server_port_alloc;
-		Link_side                            _server;
 		Timer::One_shot_timeout<Link>        _close_timeout;
 		Genode::Microseconds          const  _close_timeout_us;
 		L3_protocol                   const  _protocol;
+		Link_side                            _client;
+		Link_side                            _server;
 
 		void _handle_close_timeout(Genode::Duration);
 
@@ -166,9 +166,10 @@ class Net::Link : public Link_list::Element
 		 ** Accessors **
 		 ***************/
 
-		Link_side     &client() { return _client; }
-		Link_side     &server() { return _server; }
-		Configuration &config() { return _config; }
+		Link_side     &client()         { return _client; }
+		Link_side     &server()         { return _server; }
+		Configuration &config()         { return _config; }
+		L3_protocol    protocol() const { return _protocol; }
 };
 
 
