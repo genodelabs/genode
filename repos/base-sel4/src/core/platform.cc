@@ -608,17 +608,6 @@ Platform::Platform()
 		init_core_log(Core_log_range { core_local_addr, log_size } );
 	}
 
-	/*
-	 * Log statistics about allocator initialization
-	 */
-	if (verbose_boot_info) {
-		log(":phys_alloc:       ", *_core_mem_alloc.phys_alloc());
-		log(":unused_phys_alloc:",  _unused_phys_alloc);
-		log(":unused_virt_alloc:",  _unused_virt_alloc);
-		log(":virt_alloc:       ", *_core_mem_alloc.virt_alloc());
-		log(":io_mem_alloc:     ",  _io_mem_alloc);
-	}
-
 	_init_rom_modules();
 
 	platform_in_construction = nullptr;

@@ -47,9 +47,8 @@ namespace Pistachio {
 using namespace Genode;
 
 
-static const bool verbose              = true;
-static const bool verbose_core_pf      = true;
-static const bool verbose_region_alloc = false;
+static const bool verbose         = true;
+static const bool verbose_core_pf = true;
 
 
 /***********************************
@@ -287,9 +286,6 @@ static inline void add_region(Region r, Range_allocator &alloc)
 		panic("add_region called with bogus parameters.");
 	}
 
-	if (verbose_region_alloc)
-		log(&alloc, "    add: ", r);
-
 	/* adjust region */
 	addr_t start = trunc_page(r.start);
 	addr_t end   = round_page(r.end);
@@ -305,9 +301,6 @@ static inline void remove_region(Region r, Range_allocator &alloc)
 {
 	if (r.start >= r.end)
 		panic("remove_region called with bogus parameters.");
-
-	if (verbose_region_alloc)
-		log(&alloc, " remove: ", r);
 
 	/* adjust region */
 	addr_t start = trunc_page(r.start);
@@ -605,21 +598,7 @@ Platform::Platform() :
 	_setup_irq_alloc();
 	_init_rom_modules();
 
-	/*
-	 * When dumping 'ram_alloc', there are several small blocks in addition
-	 * to the available free memory visible. These small blocks are used to
-	 * hold the meta data for the ROM modules as initialized by
-	 * '_init_rom_modules'.
-	 */
-	if (verbose) {
-		log(":ram_alloc: ",     _ram_alloc);
-		log(":region_alloc: ",  _region_alloc);
-		log(":io_mem: ",        _io_mem_alloc);
-		log(":io_port: ",       _io_port_alloc);
-		log(":irq: ",           _irq_alloc);
-		log(":rom_fs: ",        _rom_fs);
-		log(":core ranges: ",   _core_address_ranges);
-	}
+	log(_rom_fs);
 
 	/*
 	 * We setup the thread object for thread0 in core task using a

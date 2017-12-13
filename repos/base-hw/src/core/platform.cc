@@ -158,13 +158,7 @@ Platform::Platform()
 		init_core_log(Core_log_range { core_local_addr, log_size } );
 	}
 
-	/* print ressource summary */
-	log(":virt_alloc: ",   *_core_mem_alloc.virt_alloc());
-	log(":phys_alloc: ",   *_core_mem_alloc.phys_alloc());
-	log(":io_mem_alloc: ",  _io_mem_alloc);
-	log(":io_port_alloc: ", _io_port_alloc);
-	log(":irq_alloc: ",     _irq_alloc);
-	log(":rom_fs: ",        _rom_fs);
+	log(_rom_fs);
 }
 
 

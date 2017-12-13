@@ -432,13 +432,7 @@ Platform::Platform() :
 	_setup_irq_alloc();
 	_init_rom_modules();
 
-	log(":ram_alloc: ",    _ram_alloc);
-	log(":region_alloc: ", _region_alloc);
-	log(":io_mem: ",       _io_mem_alloc);
-	log(":io_port: ",      _io_port_alloc);
-	log(":irq: ",          _irq_alloc);
-	log(":rom_fs: ",       _rom_fs);
-	log(":core ranges: ",  _core_address_ranges());
+	log(_rom_fs);
 
 	Core_cap_index* pdi =
 		reinterpret_cast<Core_cap_index*>(cap_map()->insert(_cap_id_alloc.alloc(), Fiasco::L4_BASE_TASK_CAP));

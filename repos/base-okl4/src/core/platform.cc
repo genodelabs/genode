@@ -171,12 +171,7 @@ Platform::Platform() :
 	_vm_start = 0x1000;
 	_vm_size  = 0xb0000000 - 0x1000;
 
-	log(":phys_alloc: ", *_core_mem_alloc.phys_alloc());
-	log(":virt_alloc: ", *_core_mem_alloc.virt_alloc());
-	log(":io_mem: ",      _io_mem_alloc);
-	log(":io_port: ",     _io_port_alloc);
-	log(":irq: ",         _irq_alloc);
-	log(":rom_fs: ",      _rom_fs);
+	log(_rom_fs);
 
 	/* setup task object for core task */
 	_core_pd = new(core_mem_alloc()) Platform_pd(true);
