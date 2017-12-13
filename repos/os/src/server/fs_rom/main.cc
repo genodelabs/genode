@@ -36,7 +36,7 @@ namespace Fs_rom {
 	class Rom_session_component;
 	class Rom_root;
 
-	typedef Genode::List<Rom_session_component> Sessions;
+	typedef List<Rom_session_component> Sessions;
 
 	typedef File_system::Session_client::Tx::Source Tx_source;
 }
@@ -45,12 +45,12 @@ namespace Fs_rom {
 /**
  * A 'Rom_session_component' exports a single file of the file system
  */
-class Fs_rom::Rom_session_component :
-	public Genode::Rpc_object<Genode::Rom_session>, public Sessions::Element
+class Fs_rom::Rom_session_component : public Rpc_object<Rom_session>,
+                                      public Sessions::Element
 {
 	private:
 
-		Genode::Env          &_env;
+		Env &_env;
 
 		File_system::Session &_fs;
 
@@ -65,7 +65,7 @@ class Fs_rom::Rom_session_component :
 		/**
 		 * Handle of associated file
 		 */
-		Genode::Constructible<File_system::File_handle> _file_handle;
+		Constructible<File_system::File_handle> _file_handle;
 
 		/**
 		 * Size of current version of the file
@@ -83,17 +83,17 @@ class Fs_rom::Rom_session_component :
 		 * The compund directory is watched only if the requested file could
 		 * not be looked up.
 		 */
-		Genode::Constructible<File_system::Dir_handle> _compound_dir_handle;
+		Constructible<File_system::Dir_handle> _compound_dir_handle;
 
 		/**
 		 * Dataspace exposed as ROM module to the client
 		 */
-		Genode::Attached_ram_dataspace _file_ds;
+		Attached_ram_dataspace _file_ds;
 
 		/**
 		 * Signal destination for ROM file changes
 		 */
-		Genode::Signal_context_capability _sigh;
+		Signal_context_capability _sigh;
 
 		/*
 		 * Exception
@@ -121,7 +121,7 @@ class Fs_rom::Rom_session_component :
 		{
 			using namespace File_system;
 
-			Genode::Path<PATH_MAX_LEN> dir_path(path.base());
+			Path dir_path(path.base());
 
 			while (!path.equals("/")) {
 
@@ -129,12 +129,12 @@ class Fs_rom::Rom_session_component :
 
 				try { return fs.dir(dir_path.base(), false); }
 
-				catch (Invalid_handle)    { Genode::error(_file_path, ": invalid_handle"); }
-				catch (Invalid_name)      { Genode::error(_file_path, ": invalid_name"); }
-				catch (Lookup_failed)     { Genode::error(_file_path, ": lookup_failed"); }
-				catch (Permission_denied) { Genode::error(_file_path, ": permission_denied"); }
-				catch (Name_too_long)     { Genode::error(_file_path, ": name_too_long"); }
-				catch (No_space)          { Genode::error(_file_path, ": no_space"); }
+				catch (Invalid_handle)    { error(_file_path, ": invalid_handle"); }
+				catch (Invalid_name)      { error(_file_path, ": invalid_name"); }
+				catch (Lookup_failed)     { error(_file_path, ": lookup_failed"); }
+				catch (Permission_denied) { error(_file_path, ": permission_denied"); }
+				catch (Name_too_long)     { error(_file_path, ": name_too_long"); }
+				catch (No_space)          { error(_file_path, ": no_space"); }
 
 				/*
 				 * If the directory could not be opened, walk up the hierarchy
@@ -167,16 +167,16 @@ class Fs_rom::Rom_session_component :
 					Handle_guard guard(fs, dir);
 
 					/* open file */
-					Genode::Path<PATH_MAX_LEN> file_name(path.base());
+					Path file_name(path.base());
 					file_name.keep_only_last_element();
 					return fs.file(dir, file_name.base() + 1,
 					               File_system::READ_ONLY, false);
 				}
-				catch (Invalid_handle)    { Genode::error(_file_path, ": Invalid_handle"); }
-				catch (Invalid_name)      { Genode::error(_file_path, ": invalid_name"); }
-				catch (Lookup_failed)     { Genode::error(_file_path, ": lookup_failed"); }
-				catch (Permission_denied) { Genode::error(_file_path, ": Permission_denied"); }
-				catch (...)               { Genode::error(_file_path, ": unhandled error"); };
+				catch (Invalid_handle)    { error(_file_path, ": Invalid_handle"); }
+				catch (Invalid_name)      { error(_file_path, ": invalid_name"); }
+				catch (Lookup_failed)     { error(_file_path, ": lookup_failed"); }
+				catch (Permission_denied) { error(_file_path, ": Permission_denied"); }
+				catch (...)               { error(_file_path, ": unhandled error"); };
 
 				throw Open_file_failed();
 				
@@ -202,10 +202,9 @@ class Fs_rom::Rom_session_component :
 				_fs.tx()->submit_packet(File_system::Packet_descriptor(
 					*_compound_dir_handle,
 					File_system::Packet_descriptor::CONTENT_CHANGED));
-
-			} catch (Open_compound_dir_failed) {
-				Genode::warning("could not track compound dir, giving up");
 			}
+			catch (Open_compound_dir_failed) {
+				warning("could not track compound dir, giving up"); }
 		}
 
 		/**
@@ -269,7 +268,7 @@ class Fs_rom::Rom_session_component :
 					_file_ds.realloc(&_env.ram(), file_size);
 					_file_size = file_size;
 				} catch (...) {
-					Genode::error("couldn't allocate memory for file, empty result");;
+					error("couldn't allocate memory for file, empty result");
 					return;
 				}
 			} else {
@@ -311,7 +310,7 @@ class Fs_rom::Rom_session_component :
 		void _notify_client_about_new_version()
 		{
 			if (_sigh.valid() && _curr_version.value != _handed_out_version.value)
-				Genode::Signal_transmitter(_sigh).submit();
+				Signal_transmitter(_sigh).submit();
 		}
 
 	public:
@@ -326,7 +325,7 @@ class Fs_rom::Rom_session_component :
 		 *                  the requested file could not be found at session-
 		 *                  creation time)
 		 */
-		Rom_session_component(Genode::Env &env,
+		Rom_session_component(Env &env,
 		                      File_system::Session &fs, const char *file_path)
 		:
 			_env(env), _fs(fs),
@@ -356,15 +355,15 @@ class Fs_rom::Rom_session_component :
 		/**
 		 * Return dataspace with up-to-date content of file
 		 */
-		Genode::Rom_dataspace_capability dataspace()
+		Rom_dataspace_capability dataspace()
 		{
 			_update_dataspace();
-			Genode::Dataspace_capability ds = _file_ds.cap();
+			Dataspace_capability ds = _file_ds.cap();
 			_handed_out_version = _curr_version;
-			return Genode::static_cap_cast<Genode::Rom_dataspace>(ds);
+			return static_cap_cast<Rom_dataspace>(ds);
 		}
 
-		void sigh(Genode::Signal_context_capability sigh)
+		void sigh(Signal_context_capability sigh)
 		{
 			_sigh = sigh;
 			_notify_client_about_new_version();
@@ -411,14 +410,14 @@ class Fs_rom::Rom_session_component :
 
 			default:
 
-				Genode::error("discarding strange packet acknowledgement");
+				error("discarding strange packet acknowledgement");
 				return true;
 			}
 			return false;
 		}
 };
 
-struct Fs_rom::Packet_handler : Genode::Io_signal_handler<Packet_handler>
+struct Fs_rom::Packet_handler : Io_signal_handler<Packet_handler>
 {
 	Tx_source &source;
 
@@ -439,22 +438,22 @@ struct Fs_rom::Packet_handler : Genode::Io_signal_handler<Packet_handler>
 		}
 	}
 
-	Packet_handler(Genode::Entrypoint &ep, Tx_source &source)
+	Packet_handler(Entrypoint &ep, Tx_source &source)
 	:
-		Genode::Io_signal_handler<Packet_handler>(
+		Io_signal_handler<Packet_handler>(
 			ep, *this, &Packet_handler::handle_packets),
 		source(source)
 	{ }
 };
 
 
-class Fs_rom::Rom_root : public Genode::Root_component<Fs_rom::Rom_session_component>
+class Fs_rom::Rom_root : public Root_component<Fs_rom::Rom_session_component>
 {
 	private:
 
-		Genode::Env          &_env;
-		Genode::Heap          _heap { _env.ram(), _env.rm() };
-		Genode::Allocator_avl _fs_tx_block_alloc { &_heap };
+		Env          &_env;
+		Heap          _heap { _env.ram(), _env.rm() };
+		Allocator_avl _fs_tx_block_alloc { &_heap };
 
 		/* open file-system session */
 		File_system::Connection _fs { _env, _fs_tx_block_alloc };
@@ -463,10 +462,10 @@ class Fs_rom::Rom_root : public Genode::Root_component<Fs_rom::Rom_session_compo
 
 		Rom_session_component *_create_session(const char *args) override
 		{
-			Genode::Session_label const label = label_from_args(args);
-			Genode::Session_label const module_name = label.last_element();
+			Session_label const label = label_from_args(args);
+			Session_label const module_name = label.last_element();
 
-			Genode::log("request for ", label);
+			log("request for ", label);
 
 			/* create new session for the requested file */
 			Rom_session_component *session = new (md_alloc())
@@ -490,10 +489,10 @@ class Fs_rom::Rom_root : public Genode::Root_component<Fs_rom::Rom_session_compo
 		 * \param  env         Component environment
 		 * \param  md_alloc    meta-data allocator used for ROM sessions
 		 */
-		Rom_root(Genode::Env       &env,
-		         Genode::Allocator &md_alloc)
+		Rom_root(Env       &env,
+		         Allocator &md_alloc)
 		:
-			Genode::Root_component<Rom_session_component>(env.ep(), md_alloc),
+			Root_component<Rom_session_component>(env.ep(), md_alloc),
 			_env(env)
 		{
 			/* Process CONTENT_CHANGED acknowledgement packets at the entrypoint  */
