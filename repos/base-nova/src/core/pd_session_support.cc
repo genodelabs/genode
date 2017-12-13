@@ -45,8 +45,10 @@ void Pd_session_component::map(addr_t virt, addr_t size)
 	                   addr_t                region_offset) -> addr_t
 	{
 		Dataspace_component * dsc = region ? region->dataspace() : nullptr;
-		if (!dsc)
-			return ~0UL;
+		if (!dsc) {
+			struct No_dataspace{};
+			throw No_dataspace();
+		}
 
 		Mapping mapping = Region_map_component::create_map_item(region_map,
 		                                                        region,
@@ -87,9 +89,13 @@ void Pd_session_component::map(addr_t virt, addr_t size)
 		return mapped;
 	};
 
-	while (size) {
-		addr_t mapped = _address_space.apply_to_dataspace(virt, lambda);
-		virt         += mapped;
-		size          = size < mapped ? size : size - mapped;
+	try {
+		while (size) {
+			addr_t mapped = _address_space.apply_to_dataspace(virt, lambda);
+			virt         += mapped;
+			size          = size < mapped ? size : size - mapped;
+		}
+	} catch (...) {
+		error(__func__, " failed ", Hex(virt), "+", Hex(size));
 	}
 }
