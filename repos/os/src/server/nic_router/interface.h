@@ -16,11 +16,11 @@
 
 /* local includes */
 #include <link.h>
-#include <arp_cache.h>
 #include <arp_waiter.h>
 #include <l3_protocol.h>
 #include <dhcp_client.h>
 #include <dhcp_server.h>
+#include <list.h>
 
 /* Genode includes */
 #include <nic_session/nic_session.h>
@@ -43,7 +43,7 @@ namespace Net {
 }
 
 
-class Net::Interface
+class Net::Interface : public Genode::List<Interface>::Element
 {
 	protected:
 
@@ -63,11 +63,9 @@ class Net::Interface
 		Timer::Connection    &_timer;
 		Genode::Allocator    &_alloc;
 		Domain               &_domain;
-		Arp_cache             _arp_cache;
 		Arp_waiter_list       _own_arp_waiters;
-		Arp_waiter_list       _foreign_arp_waiters;
-		Link_side_tree        _tcp_links;
-		Link_side_tree        _udp_links;
+		Link_list             _tcp_links;
+		Link_list             _udp_links;
 		Link_list             _closed_tcp_links;
 		Link_list             _closed_udp_links;
 		Dhcp_allocation_tree  _dhcp_allocations;
@@ -77,7 +75,7 @@ class Net::Interface
 		void _new_link(L3_protocol                   const  protocol,
 		               Link_side_id                  const &local_id,
 		               Pointer<Port_allocator_guard> const  remote_port_alloc,
-		               Interface                           &remote_interface,
+		               Domain                              &remote_domain,
 		               Link_side_id                  const &remote_id);
 
 		void _destroy_released_dhcp_allocations();
@@ -126,7 +124,7 @@ class Net::Interface
 		                Genode::size_t    const  eth_size,
 		                Ipv4_address      const &ip,
 		                Packet_descriptor const &pkt,
-		                Interface               &interface);
+		                Domain                  &domain);
 
 		void _nat_link_and_pass(Ethernet_frame         &eth,
 		                        Genode::size_t   const  eth_size,
@@ -135,7 +133,7 @@ class Net::Interface
 		                        void            *const  prot_base,
 		                        Genode::size_t   const  prot_size,
 		                        Link_side_id     const &local_id,
-		                        Interface              &interface);
+		                        Domain                 &domain);
 
 		void _broadcast_arp_request(Ipv4_address const &ip);
 
@@ -154,10 +152,6 @@ class Net::Interface
 
 		void _continue_handle_eth(Packet_descriptor const &pkt);
 
-		Link_list &_closed_links(L3_protocol const protocol);
-
-		Link_side_tree &_links(L3_protocol const protocol);
-
 		Configuration &_config() const;
 
 		Ipv4_config const &_ip_config() const;
@@ -169,8 +163,6 @@ class Net::Interface
 		                 Packet_descriptor  const &pkt);
 
 		void _ack_packet(Packet_descriptor const &pkt);
-
-		void _cancel_arp_waiting(Arp_waiter &waiter);
 
 		virtual Packet_stream_sink &_sink() = 0;
 
@@ -220,23 +212,25 @@ class Net::Interface
 
 		~Interface();
 
-		void link_closed(Link &link, L3_protocol const prot);
 
 		void dhcp_allocation_expired(Dhcp_allocation &allocation);
 
-		void dissolve_link(Link_side &link_side, L3_protocol const prot);
-
 		void send(Ethernet_frame &eth, Genode::size_t const eth_size);
+
+		Link_list &closed_links(L3_protocol const protocol);
+
+		Link_list &links(L3_protocol const protocol);
+
+		void cancel_arp_waiting(Arp_waiter &waiter);
 
 
 		/***************
 		 ** Accessors **
 		 ***************/
 
-		Domain          &domain()              { return _domain; }
-		Mac_address      router_mac()    const { return _router_mac; }
-		Arp_waiter_list &own_arp_waiters()     { return _own_arp_waiters; }
-		Arp_waiter_list &foreign_arp_waiters() { return _foreign_arp_waiters; }
+		Domain          &domain()           { return _domain; }
+		Mac_address      router_mac() const { return _router_mac; }
+		Arp_waiter_list &own_arp_waiters()  { return _own_arp_waiters; }
 };
 
 #endif /* _INTERFACE_H_ */

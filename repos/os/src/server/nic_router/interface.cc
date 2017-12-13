@@ -42,15 +42,15 @@ static void _destroy_closed_links(Link_list   &closed_links,
 
 
 template <typename LINK_TYPE>
-static void _destroy_links(Link_side_tree &links,
-                           Link_list      &closed_links,
-                           Deallocator    &dealloc)
+static void _destroy_links(Link_list   &links,
+                           Link_list   &closed_links,
+                           Deallocator &dealloc)
 {
 	_destroy_closed_links<LINK_TYPE>(closed_links, dealloc);
-	while (Link_side *link_side = links.first()) {
-		Link &link = link_side->link();
-		link.dissolve();
-		destroy(dealloc, static_cast<LINK_TYPE *>(&link));
+	while (Link *link = links.first()) {
+		link->dissolve();
+		links.remove(link);
+		destroy(dealloc, static_cast<LINK_TYPE *>(link));
 	}
 }
 
@@ -193,54 +193,43 @@ void
 Interface::_new_link(L3_protocol                   const  protocol,
                      Link_side_id                  const &local,
                      Pointer<Port_allocator_guard> const  remote_port_alloc,
-                     Interface                           &remote_interface,
+                     Domain                              &remote_domain,
                      Link_side_id                  const &remote)
 {
 	switch (protocol) {
 	case L3_protocol::TCP:
 		{
 			Tcp_link &link = *new (_alloc)
-				Tcp_link(*this, local, remote_port_alloc, remote_interface,
+				Tcp_link(*this, local, remote_port_alloc, remote_domain,
 				         remote, _timer, _config(), protocol);
-			_tcp_links.insert(&link.client());
-			remote_interface._tcp_links.insert(&link.server());
+
+			_tcp_links.insert(&link);
+			_domain.tcp_links().insert(&link.client());
+			remote_domain.tcp_links().insert(&link.server());
 			if (_config().verbose()) {
 				log("New TCP client link: ", link.client(), " at ", _domain);
 				log("New TCP server link: ", link.server(),
-				    " at ", remote_interface._domain);
+				    " at ", remote_domain);
 			}
 			return;
 		}
 	case L3_protocol::UDP:
 		{
 			Udp_link &link = *new (_alloc)
-				Udp_link(*this, local, remote_port_alloc, remote_interface,
+				Udp_link(*this, local, remote_port_alloc, remote_domain,
 				         remote, _timer, _config(), protocol);
-			_udp_links.insert(&link.client());
-			remote_interface._udp_links.insert(&link.server());
+
+			_udp_links.insert(&link);
+			_domain.udp_links().insert(&link.client());
+			remote_domain.udp_links().insert(&link.server());
 			if (_config().verbose()) {
 				log("New UDP client link: ", link.client(), " at ", _domain);
 				log("New UDP server link: ", link.server(),
-				    " at ", remote_interface._domain);
+				    " at ", remote_domain);
 			}
 			return;
 		}
 	default: throw Bad_transport_protocol(); }
-}
-
-
-Link_side_tree &Interface::_links(L3_protocol const protocol)
-{
-	switch (protocol) {
-	case L3_protocol::TCP: return _tcp_links;
-	case L3_protocol::UDP: return _udp_links;
-	default: throw Bad_transport_protocol(); }
-}
-
-
-void Interface::link_closed(Link &link, L3_protocol const prot)
-{
-	_closed_links(prot).insert(&link);
 }
 
 
@@ -251,13 +240,16 @@ void Interface::dhcp_allocation_expired(Dhcp_allocation &allocation)
 }
 
 
-void Interface::dissolve_link(Link_side &link_side, L3_protocol const prot)
+Link_list &Interface::links(L3_protocol const protocol)
 {
-	_links(prot).remove(&link_side);
+	switch (protocol) {
+	case L3_protocol::TCP: return _tcp_links;
+	case L3_protocol::UDP: return _udp_links;
+	default: throw Bad_transport_protocol(); }
 }
 
 
-Link_list &Interface::_closed_links(L3_protocol const protocol)
+Link_list &Interface::closed_links(L3_protocol const protocol)
 {
 	switch (protocol) {
 	case L3_protocol::TCP: return _closed_tcp_links;
@@ -270,16 +262,18 @@ void Interface::_adapt_eth(Ethernet_frame          &eth,
                            size_t            const  eth_size,
                            Ipv4_address      const &ip,
                            Packet_descriptor const &pkt,
-                           Interface               &interface)
+                           Domain                  &domain)
 {
-	if (!interface.domain().ip_config().valid) {
+	if (!domain.ip_config().valid) {
 		throw Drop_packet_inform("target domain has yet no IP config");
 	}
-	Ipv4_address const &hop_ip = interface._domain.next_hop(ip);
-	try { eth.dst(interface._arp_cache.find_by_ip(hop_ip).mac()); }
+	Ipv4_address const &hop_ip = domain.next_hop(ip);
+	try { eth.dst(domain.arp_cache().find_by_ip(hop_ip).mac()); }
 	catch (Arp_cache::No_match) {
-		interface._broadcast_arp_request(hop_ip);
-		new (_alloc) Arp_waiter(*this, interface, hop_ip, pkt);
+		domain.interfaces().for_each([&] (Interface &interface) {
+			interface._broadcast_arp_request(hop_ip);
+		});
+		new (_alloc) Arp_waiter(*this, domain, hop_ip, pkt);
 		throw Packet_postponed();
 	}
 	eth.src(_router_mac);
@@ -293,23 +287,25 @@ void Interface::_nat_link_and_pass(Ethernet_frame        &eth,
                                    void           *const  prot_base,
                                    size_t          const  prot_size,
                                    Link_side_id    const &local,
-                                   Interface             &interface)
+                                   Domain                &domain)
 {
 	Pointer<Port_allocator_guard> remote_port_alloc;
 	try {
-		Nat_rule &nat = interface._domain.nat_rules().find_by_domain(_domain);
+		Nat_rule &nat = domain.nat_rules().find_by_domain(_domain);
 		if(_config().verbose()) {
 			log("Using NAT rule: ", nat); }
 
 		_src_port(prot, prot_base, nat.port_alloc(prot).alloc());
-		ip.src(interface._router_ip());
+		ip.src(domain.ip_config().interface.address);
 		remote_port_alloc.set(nat.port_alloc(prot));
 	}
 	catch (Nat_rule_tree::No_match) { }
 	Link_side_id const remote = { ip.dst(), _dst_port(prot, prot_base),
 	                              ip.src(), _src_port(prot, prot_base) };
-	_new_link(prot, local, remote_port_alloc, interface, remote);
-	interface._pass_prot(eth, eth_size, ip, prot, prot_base, prot_size);
+	_new_link(prot, local, remote_port_alloc, domain, remote);
+	domain.interfaces().for_each([&] (Interface &interface) {
+		interface._pass_prot(eth, eth_size, ip, prot, prot_base, prot_size);
+	});
 }
 
 
@@ -550,7 +546,12 @@ void Interface::_handle_dhcp_request(Ethernet_frame &eth,
 
 void Interface::_domain_broadcast(Ethernet_frame &eth, size_t eth_size)
 {
-	throw Drop_packet_warn("domain broadcasts not yet supported");
+	eth.src(_router_mac);
+	_domain.interfaces().for_each([&] (Interface &interface) {
+		if (&interface != this) {
+			interface.send(eth, eth_size);
+		}
+	});
 }
 
 
@@ -609,21 +610,23 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 
 		/* try to route via existing UDP/TCP links */
 		try {
-			Link_side const &local_side = _links(prot).find_by_id(local);
+			Link_side const &local_side = _domain.links(prot).find_by_id(local);
 			Link &link = local_side.link();
 			bool const client = local_side.is_client();
 			Link_side &remote_side = client ? link.server() : link.client();
-			Interface &interface = remote_side.interface();
+			Domain &domain = remote_side.domain();
 			if (_config().verbose()) {
 				log("Using ", l3_protocol_name(prot), " link: ", link); }
 
-			_adapt_eth(eth, eth_size, remote_side.src_ip(), pkt, interface);
+			_adapt_eth(eth, eth_size, remote_side.src_ip(), pkt, domain);
 			ip.src(remote_side.dst_ip());
 			ip.dst(remote_side.src_ip());
 			_src_port(prot, prot_base, remote_side.dst_port());
 			_dst_port(prot, prot_base, remote_side.src_port());
 
-			interface._pass_prot(eth, eth_size, ip, prot, prot_base, prot_size);
+			domain.interfaces().for_each([&] (Interface &interface) {
+				interface._pass_prot(eth, eth_size, ip, prot, prot_base, prot_size);
+			});
 			_link_packet(prot, prot_base, link, client);
 			return;
 		}
@@ -635,14 +638,14 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 				Forward_rule const &rule =
 					_forward_rules(prot).find_by_port(local.dst_port);
 
-				Interface &interface = rule.domain().interface().deref();
 				if(_config().verbose()) {
 					log("Using forward rule: ", l3_protocol_name(prot), " ", rule); }
 
-				_adapt_eth(eth, eth_size, rule.to(), pkt, interface);
+				Domain &domain = rule.domain();
+				_adapt_eth(eth, eth_size, rule.to(), pkt, domain);
 				ip.dst(rule.to());
-				_nat_link_and_pass(eth, eth_size, ip, prot, prot_base, prot_size,
-				                   local, interface);
+				_nat_link_and_pass(eth, eth_size, ip, prot, prot_base,
+				                   prot_size, local, domain);
 				return;
 			}
 			catch (Forward_rule_tree::No_match) { }
@@ -655,14 +658,14 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 			Permit_rule const &permit_rule =
 				transport_rule.permit_rule(local.dst_port);
 
-			Interface &interface = permit_rule.domain().interface().deref();
 			if(_config().verbose()) {
 				log("Using ", l3_protocol_name(prot), " rule: ", transport_rule,
 				    " ", permit_rule); }
 
-			_adapt_eth(eth, eth_size, local.dst_ip, pkt, interface);
+			Domain &domain = permit_rule.domain();
+			_adapt_eth(eth, eth_size, local.dst_ip, pkt, domain);
 			_nat_link_and_pass(eth, eth_size, ip, prot, prot_base, prot_size,
-			                   local, interface);
+			                   local, domain);
 			return;
 		}
 		catch (Transport_rule_list::No_match) { }
@@ -675,12 +678,15 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 		Ip_rule const &rule =
 			_domain.ip_rules().longest_prefix_match(ip.dst());
 
-		Interface &interface = rule.domain().interface().deref();
 		if(_config().verbose()) {
 			log("Using IP rule: ", rule); }
 
-		_adapt_eth(eth, eth_size, ip.dst(), pkt, interface);
-		interface._pass_ip(eth, eth_size, ip);
+		Domain &domain = rule.domain();
+		_adapt_eth(eth, eth_size, ip.dst(), pkt, domain);
+		domain.interfaces().for_each([&] (Interface &interface) {
+			interface._pass_ip(eth, eth_size, ip);
+		});
+
 		return;
 	}
 	catch (Ip_rule_list::No_match) { }
@@ -717,7 +723,7 @@ void Interface::_handle_arp_reply(Ethernet_frame &eth,
 {
 	try {
 		/* check wether a matching ARP cache entry already exists */
-		_arp_cache.find_by_ip(arp.src_ip());
+		_domain.arp_cache().find_by_ip(arp.src_ip());
 		if (_config().verbose()) {
 			log("ARP entry already exists"); }
 	}
@@ -725,10 +731,10 @@ void Interface::_handle_arp_reply(Ethernet_frame &eth,
 
 		/* by now, no matching ARP cache entry exists, so create one */
 		Ipv4_address const ip = arp.src_ip();
-		_arp_cache.new_entry(ip, arp.src_mac());
+		_domain.arp_cache().new_entry(ip, arp.src_mac());
 
 		/* continue handling of packets that waited for the entry */
-		for (Arp_waiter_list_element *waiter_le = _foreign_arp_waiters.first();
+		for (Arp_waiter_list_element *waiter_le = _domain.foreign_arp_waiters().first();
 		     waiter_le; )
 		{
 			Arp_waiter &waiter = *waiter_le->object();
@@ -930,7 +936,7 @@ void Interface::_handle_eth(void              *const  eth_base,
 	catch (Domain::No_next_hop) {
 		error("can not find next hop"); }
 
-	catch (Pointer<Interface>::Invalid) {
+	catch (List<Interface>::Empty) {
 		error("no interface connected to domain"); }
 
 	catch (Alloc_dhcp_msg_buffer_failed) {
@@ -976,10 +982,7 @@ Interface::Interface(Entrypoint        &ep,
 	_router_mac(router_mac), _mac(mac), _timer(timer), _alloc(alloc),
 	_domain(domain)
 {
-	if (_config().verbose_domain_state()) {
-		log("[", _domain, "] NIC sessions: 1");
-	}
-	_domain.interface().set(*this);
+	_domain.manage_interface(*this);
 }
 
 
@@ -1001,7 +1004,7 @@ void Interface::_ack_packet(Packet_descriptor const &pkt)
 }
 
 
-void Interface::_cancel_arp_waiting(Arp_waiter &waiter)
+void Interface::cancel_arp_waiting(Arp_waiter &waiter)
 {
 	warning("waiting for ARP cancelled");
 	_ack_packet(waiter.packet());
@@ -1011,19 +1014,12 @@ void Interface::_cancel_arp_waiting(Arp_waiter &waiter)
 
 Interface::~Interface()
 {
-	_domain.interface().unset();
-	if (_config().verbose_domain_state()) {
-		log("[", _domain, "] NIC sessions: 0");
-	}
+	_domain.dissolve_interface(*this);
 
-	/* destroy ARP waiters */
+	/* destroy our own ARP waiters */
 	while (_own_arp_waiters.first()) {
-		_cancel_arp_waiting(*_foreign_arp_waiters.first()->object()); }
-
-	while (_foreign_arp_waiters.first()) {
-		Arp_waiter &waiter = *_foreign_arp_waiters.first()->object();
-		waiter.src()._cancel_arp_waiting(waiter); }
-
+		cancel_arp_waiting(*_own_arp_waiters.first()->object());
+	}
 	/* destroy links */
 	_destroy_links<Tcp_link>(_tcp_links, _closed_tcp_links, _alloc);
 	_destroy_links<Udp_link>(_udp_links, _closed_udp_links, _alloc);

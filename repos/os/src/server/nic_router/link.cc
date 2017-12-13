@@ -16,9 +16,7 @@
 
 /* local includes */
 #include <link.h>
-#include <interface.h>
 #include <configuration.h>
-#include <l3_protocol.h>
 
 using namespace Net;
 using namespace Genode;
@@ -51,11 +49,11 @@ bool Link_side_id::operator > (Link_side_id const &id) const
  ** Link_side **
  ***************/
 
-Link_side::Link_side(Interface          &interface,
+Link_side::Link_side(Domain             &domain,
                      Link_side_id const &id,
                      Link               &link)
 :
-	_interface(interface), _id(id), _link(link)
+	_domain(domain), _id(id), _link(link)
 { }
 
 
@@ -113,7 +111,7 @@ void Link::print(Output &output) const
 Link::Link(Interface                           &cln_interface,
            Link_side_id                  const &cln_id,
            Pointer<Port_allocator_guard> const  srv_port_alloc,
-           Interface                           &srv_interface,
+           Domain                              &srv_domain,
            Link_side_id                  const &srv_id,
            Timer::Connection                   &timer,
            Configuration                       &config,
@@ -121,9 +119,10 @@ Link::Link(Interface                           &cln_interface,
            Microseconds                  const  close_timeout)
 :
 	_config(config),
-	_client(cln_interface, cln_id, *this),
+	_client(cln_interface.domain(), cln_id, *this),
+	_client_interface(cln_interface),
 	_server_port_alloc(srv_port_alloc),
-	_server(srv_interface, srv_id, *this),
+	_server(srv_domain, srv_id, *this),
 	_close_timeout(timer, *this, &Link::_handle_close_timeout),
 	_close_timeout_us(close_timeout),
 	_protocol(protocol)
@@ -135,14 +134,15 @@ Link::Link(Interface                           &cln_interface,
 void Link::_handle_close_timeout(Duration)
 {
 	dissolve();
-	_client._interface.link_closed(*this, _protocol);
+	_client_interface.links(_protocol).remove(this);
+	_client_interface.closed_links(_protocol).insert(this);
 }
 
 
 void Link::dissolve()
 {
-	_client._interface.dissolve_link(_client, _protocol);
-	_server._interface.dissolve_link(_server, _protocol);
+	_client.domain().links(_protocol).remove(&_client);
+	_server.domain().links(_protocol).remove(&_server);
 	if (_config.verbose()) {
 		log("Dissolve ", l3_protocol_name(_protocol), " link: ", *this); }
 
@@ -151,8 +151,8 @@ void Link::dissolve()
 		if (_config.verbose()) {
 			log("Free ", l3_protocol_name(_protocol),
 			    " port ", _server.dst_port(),
-			    " at ", _server.interface().domain(),
-			    " that was used by ", _client.interface().domain());
+			    " at ", _server.domain(),
+			    " that was used by ", _client.domain());
 		}
 	}
 	catch (Pointer<Port_allocator_guard>::Invalid) { }
@@ -166,13 +166,13 @@ void Link::dissolve()
 Tcp_link::Tcp_link(Interface                           &cln_interface,
                    Link_side_id                  const &cln_id,
                    Pointer<Port_allocator_guard> const  srv_port_alloc,
-                   Interface                           &srv_interface,
+                   Domain                              &srv_domain,
                    Link_side_id                  const &srv_id,
                    Timer::Connection                   &timer,
                    Configuration                       &config,
                    L3_protocol                   const  protocol)
 :
-	Link(cln_interface, cln_id, srv_port_alloc, srv_interface, srv_id, timer,
+	Link(cln_interface, cln_id, srv_port_alloc, srv_domain, srv_id, timer,
 	     config, protocol, config.tcp_idle_timeout())
 { }
 
@@ -227,12 +227,12 @@ void Tcp_link::client_packet(Tcp_packet &tcp)
 Udp_link::Udp_link(Interface                           &cln_interface,
                    Link_side_id                  const &cln_id,
                    Pointer<Port_allocator_guard> const  srv_port_alloc,
-                   Interface                           &srv_interface,
+                   Domain                              &srv_domain,
                    Link_side_id                  const &srv_id,
                    Timer::Connection                   &timer,
                    Configuration                       &config,
                    L3_protocol                   const  protocol)
 :
-	Link(cln_interface, cln_id, srv_port_alloc, srv_interface, srv_id, timer,
+	Link(cln_interface, cln_id, srv_port_alloc, srv_domain, srv_id, timer,
 	     config, protocol, config.udp_idle_timeout())
 { }

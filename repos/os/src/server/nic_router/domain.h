@@ -19,10 +19,12 @@
 #include <transport_rule.h>
 #include <nat_rule.h>
 #include <ip_rule.h>
+#include <arp_cache.h>
 #include <port_allocator.h>
 #include <pointer.h>
 #include <ipv4_config.h>
 #include <dhcp_server.h>
+#include <interface.h>
 
 /* Genode includes */
 #include <util/avl_string.h>
@@ -88,9 +90,14 @@ class Net::Domain : public Domain_base
 		Port_allocator                        _tcp_port_alloc;
 		Port_allocator                        _udp_port_alloc;
 		Nat_rule_tree                         _nat_rules;
-		Pointer<Interface>                    _interface;
+		List<Interface>                       _interfaces;
+		unsigned long                         _interface_cnt { 0 };
 		Pointer<Dhcp_server>                  _dhcp_server;
 		Genode::Reconstructible<Ipv4_config>  _ip_config;
+		Arp_cache                             _arp_cache;
+		Arp_waiter_list                       _foreign_arp_waiters;
+		Link_side_tree                        _tcp_links;
+		Link_side_tree                        _udp_links;
 
 		void _read_forward_rules(Genode::Cstring  const &protocol,
 		                         Domain_tree            &domains,
@@ -127,6 +134,12 @@ class Net::Domain : public Domain_base
 
 		void discard_ip_config();
 
+		Link_side_tree &links(L3_protocol const protocol);
+
+		void manage_interface(Interface &interface);
+
+		void dissolve_interface(Interface &interface);
+
 
 		/*********
 		 ** log **
@@ -147,10 +160,14 @@ class Net::Domain : public Domain_base
 		Transport_rule_list &tcp_rules()           { return _tcp_rules; }
 		Transport_rule_list &udp_rules()           { return _udp_rules; }
 		Nat_rule_tree       &nat_rules()           { return _nat_rules; }
-		Pointer<Interface>  &interface()           { return _interface; }
+		List<Interface>     &interfaces()          { return _interfaces; }
 		Configuration       &config()        const { return _config; }
 		Domain_avl_member   &avl_member()          { return _avl_member; }
 		Dhcp_server         &dhcp_server()         { return _dhcp_server.deref(); }
+		Arp_cache           &arp_cache()           { return _arp_cache; }
+		Arp_waiter_list     &foreign_arp_waiters() { return _foreign_arp_waiters; }
+		Link_side_tree      &tcp_links()           { return _tcp_links; }
+		Link_side_tree      &udp_links()           { return _udp_links; }
 };
 
 

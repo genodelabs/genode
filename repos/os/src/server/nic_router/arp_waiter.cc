@@ -14,13 +14,14 @@
 /* local includes */
 #include <arp_waiter.h>
 #include <interface.h>
+#include <domain.h>
 
 using namespace Net;
 using namespace Genode;
 
 
 Arp_waiter::Arp_waiter(Interface               &src,
-                       Interface               &dst,
+                       Domain                  &dst,
                        Ipv4_address      const &ip,
                        Packet_descriptor const &packet)
 :

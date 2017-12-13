@@ -23,6 +23,7 @@ namespace Net {
 
 	using Packet_descriptor = ::Nic::Packet_descriptor;
 	class Interface;
+	class Domain;
 	class Arp_waiter;
 	using Arp_waiter_list_element = Genode::List_element<Arp_waiter>;
 	using Arp_waiter_list         = Genode::List<Arp_waiter_list_element >;
@@ -36,14 +37,14 @@ class Net::Arp_waiter
 		Arp_waiter_list_element  _src_le;
 		Interface               &_src;
 		Arp_waiter_list_element  _dst_le;
-		Interface               &_dst;
+		Domain                  &_dst;
 		Ipv4_address      const  _ip;
 		Packet_descriptor const  _packet;
 
 	public:
 
 		Arp_waiter(Interface               &src,
-		           Interface               &dst,
+		           Domain                  &dst,
 		           Ipv4_address      const &ip,
 		           Packet_descriptor const &packet);
 

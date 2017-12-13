@@ -30,6 +30,7 @@ namespace Net {
 	class  Configuration;
 	class  Port_allocator_guard;
 	class  Tcp_packet;
+	class  Domain;
 	class  Interface;
 	class  Link_side_id;
 	class  Link_side;
@@ -70,13 +71,13 @@ class Net::Link_side : public Genode::Avl_node<Link_side>
 
 	private:
 
-		Interface          &_interface;
+		Domain             &_domain;
 		Link_side_id const  _id;
 		Link               &_link;
 
 	public:
 
-		Link_side(Interface          &interface,
+		Link_side(Domain             &domain,
 		          Link_side_id const &id,
 		          Link               &link);
 
@@ -103,7 +104,7 @@ class Net::Link_side : public Genode::Avl_node<Link_side>
 		 ** Accessors **
 		 ***************/
 
-		Interface          &interface() const { return _interface; }
+		Domain             &domain()    const { return _domain; }
 		Link               &link()      const { return _link; }
 		Ipv4_address const &src_ip()    const { return _id.src_ip; }
 		Ipv4_address const &dst_ip()    const { return _id.dst_ip; }
@@ -126,6 +127,7 @@ class Net::Link : public Link_list::Element
 
 		Configuration                       &_config;
 		Link_side                            _client;
+		Interface                           &_client_interface;
 		Pointer<Port_allocator_guard> const  _server_port_alloc;
 		Link_side                            _server;
 		Timer::One_shot_timeout<Link>        _close_timeout;
@@ -143,7 +145,7 @@ class Net::Link : public Link_list::Element
 		Link(Interface                           &cln_interface,
 		     Link_side_id                  const &cln_id,
 		     Pointer<Port_allocator_guard> const  srv_port_alloc,
-		     Interface                           &srv_interface,
+		     Domain                              &srv_domain,
 		     Link_side_id                  const &srv_id,
 		     Timer::Connection                   &timer,
 		     Configuration                       &config,
@@ -174,11 +176,11 @@ class Net::Tcp_link : public Link
 {
 	private:
 
-		bool _client_fin       = false;
-		bool _server_fin       = false;
-		bool _client_fin_acked = false;
-		bool _server_fin_acked = false;
-		bool _closed           = false;
+		bool _client_fin       { false };
+		bool _server_fin       { false };
+		bool _client_fin_acked { false };
+		bool _server_fin_acked { false };
+		bool _closed           { false };
 
 		void _fin_acked();
 
@@ -187,7 +189,7 @@ class Net::Tcp_link : public Link
 		Tcp_link(Interface                           &cln_interface,
 		         Link_side_id                  const &cln_id,
 		         Pointer<Port_allocator_guard> const  srv_port_alloc,
-		         Interface                           &srv_interface,
+		         Domain                              &srv_domain,
 		         Link_side_id                  const &srv_id,
 		         Timer::Connection                   &timer,
 		         Configuration                       &config,
@@ -204,7 +206,7 @@ struct Net::Udp_link : Link
 	Udp_link(Interface                           &cln_interface,
 	         Link_side_id                  const &cln_id,
 	         Pointer<Port_allocator_guard> const  srv_port_alloc,
-	         Interface                           &srv_interface,
+	         Domain                              &srv_domain,
 	         Link_side_id                  const &srv_id,
 	         Timer::Connection                   &timer,
 	         Configuration                       &config,
