@@ -34,7 +34,7 @@ define HELP_MESSAGE
 
   The following arguments tweak the operation of the tool:
 
-    FORCE=1            Replace existing archives with freshly created
+    REBUILD=1          Replace existing archives with freshly created
                        ones.
 
     VERBOSE=           Show individual operations.
@@ -134,7 +134,7 @@ execute_generated_build_mk_file: $(BUILD_MK_FILE)
 	$(VERBOSE)$(MAKE) $(if $(VERBOSE),--quiet) -f $(BUILD_MK_FILE) \
 	                  -C $(DEPOT_DIR) VERBOSE=$(VERBOSE)
 
-ifneq ($(FORCE),)
+ifneq ($(REBUILD),)
 execute_generated_build_mk_file: wipe_existing_archives
 endif
 

@@ -339,7 +339,7 @@ found besides the binary archive's location named with a '.build' suffix.
 
 By default, the build tool won't attempt to rebuild a binary archive that is
 already present in the depot. However, it is possible to force a rebuild via
-the 'FORCE=1' argument.
+the 'REBUILD=1' argument.
 
 
 Publishing archives
@@ -474,6 +474,15 @@ updates hash files of the involved recipes by taking the current date as
 version name. This is a valuable assistance in situations where a commonly
 used API changes. In this case, the versions of the API and all dependent
 archives must be increased, which would be a labour-intensive task otherwise.
+If the depot already contains an archive of the current version, the create
+tools won't re-create the depot archive by default. Local modifications of
+the source code in the repository do not automatically result in a new archive.
+To ensure that the depot archive is current, one can specify 'FORCE=1' to
+the create tool. With this argument, existing depot archives are replaced by
+freshly extracted ones and version updates are detected. When specified for
+creating binary archives, 'FORCE=1' normally implies 'REBUILD=1'. To prevent
+the superfluous rebuild of binary archives whose source versions remain
+unchanged, 'FORCE=1' can be combined with the argument 'REBUILD='.
 
 
 Accessing depot content from run scripts
