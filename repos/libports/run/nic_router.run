@@ -12,6 +12,8 @@ proc enable_test_7 { } { return 0 }
 
 source ${genode_dir}/repos/libports/run/nic_router.inc
 
+lappend targets server/report_rom
+
 build $targets
 
 create_boot_directory
@@ -210,6 +212,8 @@ append config {
 		        tcp_idle_timeout_sec="30"
 		        tcp_max_segm_lifetime_sec="15">
 
+			<report bytes="yes" config="yes" interval_sec="60" />
+
 			<domain name="uplink" interface="10.0.2.55/24" gateway="10.0.2.1">
 				<tcp-forward port="80"   domain="http_server_1" to="192.168.1.18" />
 				<tcp-forward port="8080" domain="http_server_2" to="192.168.2.72" />
@@ -229,6 +233,7 @@ append config {
 		</config>
 		<route>
 			<service name="Nic"> <child name="nic_bridge"/> </service>
+			<service name="Report"> <child name="report_rom"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
@@ -245,9 +250,15 @@ append config {
 			<policy label_prefix="udp_server_3"  ip_addr="10.0.2.213" />
 		</config>
 		<route>
-		<service name="Nic"> <child name="} [nic_drv] {"/> </service>
+			<service name="Nic"> <child name="} [nic_drv] {"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
+	</start>
+
+	<start name="report_rom">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config verbose="yes"/>
 	</start>
 
 	} [test_1_config] {
@@ -261,6 +272,8 @@ append config {
 </config> }
 
 install_config $config
+
+lappend boot_modules report_rom
 
 build_boot_image $boot_modules
 

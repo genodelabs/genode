@@ -862,6 +862,8 @@ void Interface::_handle_eth(void              *const  eth_base,
                             size_t             const  eth_size,
                             Packet_descriptor  const &pkt)
 {
+	_domain.raise_rx_bytes(eth_size);
+
 	/* do garbage collection over transport-layer links and DHCP allocations */
 	_destroy_dissolved_links<Udp_link>(_dissolved_udp_links, _alloc);
 	_destroy_dissolved_links<Tcp_link>(_dissolved_tcp_links, _alloc);
@@ -936,6 +938,7 @@ void Interface::send(Ethernet_frame &eth, Genode::size_t const size)
 		char *content = _source().packet_content(pkt);
 		Genode::memcpy((void *)content, (void *)&eth, size);
 		_source().submit_packet(pkt);
+		_domain.raise_tx_bytes(size);
 	}
 	catch (Packet_stream_source::Packet_alloc_failed) {
 		if (_config().verbose()) {

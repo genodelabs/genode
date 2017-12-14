@@ -30,7 +30,11 @@
 #include <util/avl_string.h>
 #include <util/reconstructible.h>
 
-namespace Genode { class Allocator; }
+namespace Genode {
+
+	class Xml_generator;
+	class Allocator;
+}
 
 namespace Net {
 
@@ -98,6 +102,8 @@ class Net::Domain : public Domain_base
 		Arp_waiter_list                       _foreign_arp_waiters;
 		Link_side_tree                        _tcp_links;
 		Link_side_tree                        _udp_links;
+		Genode::size_t                        _tx_bytes { 0 };
+		Genode::size_t                        _rx_bytes { 0 };
 
 		void _read_forward_rules(Genode::Cstring  const &protocol,
 		                         Domain_tree            &domains,
@@ -139,6 +145,12 @@ class Net::Domain : public Domain_base
 		void manage_interface(Interface &interface);
 
 		void dissolve_interface(Interface &interface);
+
+		void raise_rx_bytes(Genode::size_t bytes) { _rx_bytes += bytes; }
+
+		void raise_tx_bytes(Genode::size_t bytes) { _tx_bytes += bytes; }
+
+		void report(Genode::Xml_generator &xml);
 
 
 		/*********

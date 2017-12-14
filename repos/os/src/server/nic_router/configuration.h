@@ -16,6 +16,7 @@
 
 /* local includes */
 #include <domain.h>
+#include <report.h>
 
 /* Genode includes */
 #include <os/duration.h>
@@ -38,11 +39,13 @@ class Net::Configuration
 		Genode::Microseconds const  _udp_idle_timeout;
 		Genode::Microseconds const  _tcp_idle_timeout;
 		Genode::Microseconds const  _tcp_max_segm_lifetime;
+		Pointer<Report>             _report;
 		Domain_tree                 _domains;
 		Genode::Xml_node     const  _node;
 
 	public:
 
+		enum { DEFAULT_REPORT_INTERVAL_SEC       =   5 };
 		enum { DEFAULT_DHCP_DISCOVER_TIMEOUT_SEC =  10 };
 		enum { DEFAULT_DHCP_REQUEST_TIMEOUT_SEC  =  10 };
 		enum { DEFAULT_DHCP_OFFER_TIMEOUT_SEC    =  10 };
@@ -50,7 +53,10 @@ class Net::Configuration
 		enum { DEFAULT_TCP_IDLE_TIMEOUT_SEC      = 600 };
 		enum { DEFAULT_TCP_MAX_SEGM_LIFETIME_SEC =  30 };
 
-		Configuration(Genode::Xml_node const node, Genode::Allocator &alloc);
+		Configuration(Genode::Env            &env,
+		              Genode::Xml_node const  node,
+		              Genode::Allocator      &alloc,
+		              Timer::Connection      &timer);
 
 
 		/***************
@@ -66,6 +72,7 @@ class Net::Configuration
 		Genode::Microseconds  tcp_idle_timeout()      const { return _tcp_idle_timeout; }
 		Genode::Microseconds  tcp_max_segm_lifetime() const { return _tcp_max_segm_lifetime; }
 		Domain_tree          &domains()                     { return _domains; }
+		Report               &report()                      { return _report.deref(); }
 		Genode::Xml_node      node()                  const { return _node; }
 };
 

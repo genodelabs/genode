@@ -2,3 +2,4 @@ base
 os
 nic_session
 timer_session
+report_session

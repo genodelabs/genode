@@ -89,6 +89,14 @@
 		<xs:complexType>
 			<xs:choice minOccurs="0" maxOccurs="unbounded">
 
+				<xs:element name="report">
+					<xs:complexType>
+						<xs:attribute name="config"       type="Boolean" />
+						<xs:attribute name="bytes"        type="Boolean" />
+						<xs:attribute name="interval_sec" type="Seconds" />
+					</xs:complexType>
+				</xs:element><!-- report -->
+
 				<xs:element name="policy">
 					<xs:complexType>
 						<xs:attribute name="label_prefix" type="Session_label" />

@@ -13,9 +13,9 @@
 
 /* local includes */
 #include <configuration.h>
+#include <xml_node.h>
 
 /* Genode includes */
-#include <util/xml_node.h>
 #include <base/allocator.h>
 #include <base/log.h>
 
@@ -23,28 +23,14 @@ using namespace Net;
 using namespace Genode;
 
 
-/***************
- ** Utilities **
- ***************/
-
-Microseconds read_sec_attr(Xml_node      const  node,
-                           char          const *name,
-                           unsigned long const  default_sec)
-{
-	unsigned long sec = node.attribute_value(name, 0UL);
-	if (!sec) {
-		sec = default_sec;
-	}
-	return Microseconds(sec * 1000 * 1000);
-}
-
-
 /*******************
  ** Configuration **
  *******************/
 
-Configuration::Configuration(Xml_node const  node,
-                             Allocator      &alloc)
+Configuration::Configuration(Env               &env,
+                             Xml_node const     node,
+                             Allocator         &alloc,
+                             Timer::Connection &timer)
 :
 	_alloc(alloc), _verbose(node.attribute_value("verbose", false)),
 	_verbose_domain_state(node.attribute_value("verbose_domain_state", false)),
@@ -56,6 +42,7 @@ Configuration::Configuration(Xml_node const  node,
 	_tcp_max_segm_lifetime(read_sec_attr(node, "tcp_max_segm_lifetime_sec", DEFAULT_TCP_MAX_SEGM_LIFETIME_SEC)),
 	_node(node)
 {
+
 	/* read domains */
 	node.for_each_sub_node("domain", [&] (Xml_node const node) {
 		try { _domains.insert(*new (_alloc) Domain(*this, node, _alloc)); }
@@ -68,4 +55,9 @@ Configuration::Configuration(Xml_node const  node,
 
 		domain.create_rules(_domains);
 	});
+	/* if configured, create a report generator */
+	try {
+		_report.set(*new (_alloc) Report(env, node.sub_node("report"), timer,
+		                                 _domains));
+	} catch (Genode::Xml_node::Nonexistent_sub_node) { }
 }

@@ -336,6 +336,27 @@ router:
 !         dhcp_request_timeout_sec="6">
 
 
+Configuring reporting functionality
+###################################
+
+The NIC router can be configured to periodically send reports.
+
+Configuration example (shows default values of attributes):
+
+<config>
+    <report interval_sec="5" bytes="yes" config="yes">
+</config>
+
+If the 'report' tag is not available, no reports are send.
+The attributes of the 'report' tag:
+
+'bytes'        : Boolean : Whether to report sent bytes and received bytes per
+                           domain
+'config'       : Boolean : Whether to report ipv4 interface and gateway per
+                           domain
+'interval_sec' : 1..3600 : Interval of sending reports in seconds
+
+
 Examples
 ########
 

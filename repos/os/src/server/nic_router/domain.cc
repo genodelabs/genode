@@ -17,6 +17,7 @@
 #include <interface.h>
 
 /* Genode includes */
+#include <util/xml_generator.h>
 #include <util/xml_node.h>
 #include <base/allocator.h>
 #include <base/log.h>
@@ -231,6 +232,26 @@ void Domain::dissolve_interface(Interface &interface)
 	if (_config.verbose_domain_state()) {
 		log("[", *this, "] NIC sessions: ", _interface_cnt);
 	}
+}
+
+void Domain::report(Xml_generator &xml)
+{
+	bool const bytes  = _config.report().bytes();
+	bool const config = _config.report().config();
+	if (!bytes && !config) {
+		return;
+	}
+	xml.node("domain", [&] () {
+		xml.attribute("name", _name);
+		if (bytes) {
+			xml.attribute("rx_bytes", _tx_bytes);
+			xml.attribute("tx_bytes", _rx_bytes);
+		}
+		if (config) {
+			xml.attribute("ipv4", String<19>(ip_config().interface));
+			xml.attribute("gw",   String<16>(ip_config().gateway));
+		}
+	});
 }
 
 
