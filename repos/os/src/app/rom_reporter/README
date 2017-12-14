@@ -1,0 +1,10 @@
+The ROM-reporter component requests a ROM session and reports the content of
+the ROM dataspace to a report session with the same label as the ROM session.
+
+The requested ROM modules must be specified via '<rom>' nodes within the
+component's '<config>' node. For example:
+
+! <config>
+!   <rom label="pci_devices/>
+! </config>
+
