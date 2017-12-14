@@ -214,6 +214,8 @@ class Genode::Region_map_component : public Genode::Weak_object<Genode::Region_m
 {
 	private:
 
+		Session::Diag const _diag;
+
 		Rpc_entrypoint *_ds_ep;
 		Rpc_entrypoint *_thread_ep;
 		Rpc_entrypoint *_session_ep;
@@ -337,7 +339,8 @@ class Genode::Region_map_component : public Genode::Weak_object<Genode::Region_m
 		                     Allocator        &md_alloc,
 		                     Pager_entrypoint &pager_ep,
 		                     addr_t            vm_start,
-		                     size_t            vm_size);
+		                     size_t            vm_size,
+		                     Session::Diag     diag);
 
 		~Region_map_component();
 

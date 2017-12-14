@@ -76,7 +76,8 @@ class Genode::Rm_session_component : public Rpc_object<Rm_session>
 			try {
 				Region_map_component *rm =
 					new (_md_alloc)
-						Region_map_component(_ep, _md_alloc, _pager_ep, 0, size);
+						Region_map_component(_ep, _md_alloc, _pager_ep, 0, size,
+						                     Diag{false});
 
 				_region_maps.insert(rm);
 

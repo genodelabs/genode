@@ -44,7 +44,7 @@ class Genode::Region_map_component : public Rpc_object<Region_map>,
 	public:
 
 		Region_map_component(Rpc_entrypoint &, Allocator &, Pager_entrypoint &,
-		                     addr_t, size_t) { }
+		                     addr_t, size_t, Session::Diag) { }
 
 		void upgrade_ram_quota(size_t ram_quota) { }
 

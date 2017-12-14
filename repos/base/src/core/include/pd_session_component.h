@@ -139,9 +139,9 @@ class Genode::Pd_session_component : public Session_object<Pd_session>
 			_rpc_cap_factory(_sliced_heap),
 			_native_pd(*this, args),
 			_address_space(ep, _sliced_heap, pager_ep,
-			               virt_range.start, virt_range.size),
-			_stack_area (ep, _sliced_heap, pager_ep, 0, stack_area_virtual_size()),
-			_linker_area(ep, _sliced_heap, pager_ep, 0, LINKER_AREA_SIZE)
+			               virt_range.start, virt_range.size, diag),
+			_stack_area (ep, _sliced_heap, pager_ep, 0, stack_area_virtual_size(), diag),
+			_linker_area(ep, _sliced_heap, pager_ep, 0, LINKER_AREA_SIZE, diag)
 		{
 			if (platform()->core_needs_platform_pd() || label != "core") {
 				_pd.construct(&_sliced_heap, _label.string());

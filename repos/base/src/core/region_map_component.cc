@@ -429,9 +429,8 @@ Region_map_component::attach(Dataspace_capability ds_cap, size_t size,
 		try {
 			_map.metadata(attach_at, Rm_region((addr_t)attach_at, size, true,
 			                                   dsc, offset, this, executable));
-
-		} catch (Allocator_avl_tpl<Rm_region>::Assign_metadata_failed) {
-
+		}
+		catch (Allocator_avl_tpl<Rm_region>::Assign_metadata_failed) {
 			error("failed to store attachment info");
 			throw Invalid_dataspace();
 		}
@@ -495,16 +494,17 @@ void Region_map_component::detach(Local_addr local_addr)
 	Rm_region *region_ptr = _map.metadata(local_addr);
 
 	if (!region_ptr) {
-		warning("detach: no attachment at ", (void *)local_addr);
+		if (_diag.enabled)
+			warning("detach: no attachment at ", (void *)local_addr);
 		return;
 	}
 
-	if (region_ptr->base() != static_cast<addr_t>(local_addr))
+	if ((region_ptr->base() != static_cast<addr_t>(local_addr)) && _diag.enabled)
 		warning("detach: ", static_cast<void *>(local_addr), " is not "
 		        "the beginning of the region ", Hex(region_ptr->base()));
 
 	Dataspace_component *dsc = region_ptr->dataspace();
-	if (!dsc)
+	if (!dsc && _diag.enabled)
 		warning("detach: region of ", this, " may be inconsistent!");
 
 	/* inform dataspace about detachment */
@@ -546,9 +546,13 @@ void Region_map_component::detach(Local_addr local_addr)
 	 */
 
 	if (_address_space) {
+
 		if (!platform()->supports_direct_unmap() && dsc->managed() &&
 		    dsc->core_local_addr() == 0) {
-			warning("unmapping of managed dataspaces not yet supported");
+
+			if (_diag.enabled)
+				warning("unmapping of managed dataspaces not yet supported");
+
 		} else {
 			Address_space::Core_local_addr core_local
 				= { dsc->core_local_addr() + region.offset() };
@@ -636,9 +640,10 @@ Region_map_component::Region_map_component(Rpc_entrypoint   &ep,
                                            Allocator        &md_alloc,
                                            Pager_entrypoint &pager_ep,
                                            addr_t            vm_start,
-                                           size_t            vm_size)
+                                           size_t            vm_size,
+                                           Session::Diag     diag)
 :
-	_ds_ep(&ep), _thread_ep(&ep), _session_ep(&ep),
+	_diag(diag), _ds_ep(&ep), _thread_ep(&ep), _session_ep(&ep),
 	_md_alloc(md_alloc),
 	_map(&_md_alloc), _pager_ep(&pager_ep),
 	_ds(align_addr(vm_size, get_page_size_log2())),
