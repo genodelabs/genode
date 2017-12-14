@@ -51,8 +51,9 @@ install_config {
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
 			<service name="ROM" label="capslock"> <child name="dynamic_rom"/> </service>
 			<service name="ROM" label="numlock">  <child name="dynamic_rom"/> </service>
-			<service name="Timer"> <child name="timer"/> </service>
-			<service name="Report" label="block_devices"> <child name="report_rom"/> </service>
+			<service name="ROM" label="system">   <child name="dynamic_rom"/> </service>
+			<service name="Timer">  <child name="timer"/> </service>
+			<service name="Report"> <child name="report_rom"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
 		<provides>
@@ -77,6 +78,14 @@ install_config {
 				<sleep milliseconds="1000" />
 				<inline> <numlock enabled="yes"/> </inline>
 				<sleep milliseconds="1000" />
+			</rom>
+			<rom name="system">
+				<inline> <system state=""/> </inline>
+				<sleep milliseconds="10000" />
+			</rom>
+			<rom name="numlock_remap">
+				<inline> <system state=""/> </inline>
+				<sleep milliseconds="10000" />
 			</rom>
 		</config>
 	</start>

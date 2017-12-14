@@ -251,7 +251,6 @@ struct Driver_manager::Main : Block_devices_generator
 	Env &_env;
 
 	Attached_rom_dataspace _platform    { _env, "platform_info" };
-	Attached_rom_dataspace _init_state  { _env, "init_state"  };
 	Attached_rom_dataspace _usb_devices { _env, "usb_devices" };
 	Attached_rom_dataspace _pci_devices { _env, "pci_devices" };
 	Attached_rom_dataspace _ahci_ports  { _env, "ahci_ports"  };
