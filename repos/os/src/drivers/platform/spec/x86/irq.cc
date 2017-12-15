@@ -193,10 +193,6 @@ Platform::Irq_session_component::Irq_session_component(unsigned irq,
 :
 	_gsi(irq)
 {
-	/* invalid irq number for pci_devices */
-	if (_gsi >= INVALID_IRQ)
-		return;
-
 	if (pci_config_space != ~0UL) {
 		/* msi way */
 		unsigned msi = irq_alloc.alloc_msi();
@@ -218,6 +214,10 @@ Platform::Irq_session_component::Irq_session_component(unsigned irq,
 			irq_alloc.free_msi(msi);
 		}
 	}
+
+	/* invalid irq number for pci_devices */
+	if (_gsi >= INVALID_IRQ)
+		return;
 
 	Genode::Irq_session::Trigger  trigger;
 	Genode::Irq_session::Polarity polarity;
