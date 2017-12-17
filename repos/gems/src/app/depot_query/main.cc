@@ -110,6 +110,7 @@ struct Depot_query::Main
 
 	Reporter _directory_reporter { _env, "directory" };
 	Reporter _blueprint_reporter { _env, "blueprint" };
+	Reporter _user_reporter      { _env, "user"      };
 
 	typedef String<64> Rom_label;
 	typedef String<16> Architecture;
@@ -122,6 +123,7 @@ struct Depot_query::Main
 
 	void _scan_depot_user_pkg(Archive::User const &user, Directory &dir, Xml_generator &xml);
 	void _query_pkg(Directory::Path const &path, Xml_generator &xml);
+	void _query_user(Archive::User const &user, Xml_generator &xml);
 
 	void _handle_config()
 	{
@@ -131,6 +133,7 @@ struct Depot_query::Main
 
 		_directory_reporter.enabled(config.has_sub_node("scan"));
 		_blueprint_reporter.enabled(config.has_sub_node("query"));
+		_user_reporter     .enabled(config.has_sub_node("user"));
 
 		_root.apply_config(config.sub_node("vfs"));
 
@@ -140,7 +143,6 @@ struct Depot_query::Main
 		_architecture = config.attribute_value("arch", Architecture());
 
 		if (_directory_reporter.enabled()) {
-
 			Reporter::Xml_generator xml(_directory_reporter, [&] () {
 				config.for_each_sub_node("scan", [&] (Xml_node node) {
 					Archive::User const user = node.attribute_value("user", Archive::User());
@@ -152,10 +154,16 @@ struct Depot_query::Main
 		}
 
 		if (_blueprint_reporter.enabled()) {
-
 			Reporter::Xml_generator xml(_blueprint_reporter, [&] () {
 				config.for_each_sub_node("query", [&] (Xml_node node) {
 					_query_pkg(node.attribute_value("pkg", Directory::Path()), xml); });
+			});
+		}
+
+		if (_user_reporter.enabled()) {
+			Reporter::Xml_generator xml(_user_reporter, [&] () {
+				config.for_each_sub_node("user", [&] (Xml_node node) {
+					_query_user(node.attribute_value("name", Archive::User()), xml); });
 			});
 		}
 	}
@@ -294,6 +302,29 @@ void Depot_query::Main::_query_pkg(Directory::Path const &pkg_path, Xml_generato
 			String<160> comment("\n\n<!-- content of '", pkg_path, "/runtime' -->\n");
 			xml.append(comment.string());
 			xml.append(node.addr(), node.size());
+			xml.append("\n");
+		});
+	});
+}
+
+
+void Depot_query::Main::_query_user(Archive::User const &user, Xml_generator &xml)
+{
+	Directory user_dir(_root, Directory::Path("depot/", user));
+
+	xml.attribute("name", user);
+
+	File_content download(_heap, user_dir, "download", File_content::Limit{4*1024});
+	typedef String<256> Url;
+	download.for_each_line<Url>([&] (Url const &url) {
+	 log("user url: ", url);
+		xml.node("url", [&] () { xml.append_sanitized(url.string()); }); });
+
+	File_content pubkey(_heap, user_dir, "pubkey", File_content::Limit{8*1024});
+	xml.node("pubkey", [&] () {
+		typedef String<80> Line;
+		pubkey.for_each_line<Line>([&] (Line const &line) {
+			xml.append_sanitized(line.string());
 			xml.append("\n");
 		});
 	});
