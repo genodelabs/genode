@@ -226,18 +226,30 @@ proc install_config { args } {
 #
 proc build_boot_image {binaries} {
 
-	# lookup available XSD files
+	check_for_missing_depot_archives
+
+	# lookup XSD files in the run-script-specific folder
 	set xsd_files ""
+	if {[catch {exec find [run_dir]/genode -name *.xsd} find_stdout] == 0} {
+		set xsd_files [split "$find_stdout" "\n"]
+	}
+	# lookup XSD files in the binaries folder
 	foreach binary $binaries {
 		if {[file exists "bin/$binary.xsd"]} {
 			lappend xsd_files "bin/$binary.xsd"
 		}
 	}
-	# apply the found XSD files
+	# determine which XSD file to use for the init config
+	foreach xsd_file $xsd_files {
+		set filename [file tail $xsd_file]
+		if {$filename == "init.xsd"} {
+			set init_xsd_file $xsd_file
+		}
+	}
+	# check configurations of init and its children
 	puts "checking configuration syntax"
-	check_config init [run_dir]/genode/config bin/init.xsd init $xsd_files 0
+	check_config init [run_dir]/genode/config $init_xsd_file init $xsd_files 0
 
-	check_for_missing_depot_archives
 	run_boot_dir $binaries
 }
 
