@@ -362,10 +362,10 @@ class Genode::File_content
 			char const *curr_line     = src;
 			size_t      curr_line_len = 0;
 
-			for (size_t n = 0; n < _size; n++) {
+			for (size_t n = 0; ; n++) {
 
 				char const c = *src++;
-				bool const end_of_data = (c == 0 || n + 1 == _size);
+				bool const end_of_data = (c == 0 || n == _size);
 				bool const end_of_line = (c == '\n');
 
 				if (!end_of_data && !end_of_line) {
@@ -373,10 +373,11 @@ class Genode::File_content
 					continue;
 				}
 
-				fn(STRING(Cstring(curr_line, curr_line_len)));
+				if (!end_of_data || curr_line_len > 0)
+					fn(STRING(Cstring(curr_line, curr_line_len)));
 
 				if (end_of_data)
-					return;
+					break;
 
 				curr_line     = src;
 				curr_line_len = 0;
