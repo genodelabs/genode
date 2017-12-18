@@ -675,11 +675,9 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 
 void Interface::_broadcast_arp_request(Ipv4_address const &ip)
 {
-	using Ethernet_arp = Ethernet_frame_sized<sizeof(Arp_packet)>;
-	Ethernet_arp eth_arp(Mac_address(0xff), _router_mac, Ethernet_frame::Type::ARP);
-	void *const eth_data = eth_arp.data<void>();
-	size_t const arp_size = sizeof(eth_arp) - sizeof(Ethernet_frame);
-	Arp_packet &arp = *new (eth_data) Arp_packet(arp_size);
+	Ethernet_frame_sized<sizeof(Arp_packet)>
+		eth(Mac_address(0xff), _router_mac, Ethernet_frame::Type::ARP);
+	Arp_packet &arp = *eth.data<Arp_packet>();
 	arp.hardware_address_type(Arp_packet::ETHERNET);
 	arp.protocol_address_type(Arp_packet::IPV4);
 	arp.hardware_address_size(sizeof(Mac_address));
@@ -689,7 +687,7 @@ void Interface::_broadcast_arp_request(Ipv4_address const &ip)
 	arp.src_ip(_router_ip());
 	arp.dst_mac(Mac_address(0xff));
 	arp.dst_ip(ip);
-	send(eth_arp, sizeof(eth_arp));
+	send(eth, sizeof(eth));
 }
 
 
