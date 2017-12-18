@@ -17,11 +17,11 @@
 #include <base/attached_rom_dataspace.h>
 #include <os/reporter.h>
 #include <gems/vfs.h>
+#include <depot/archive.h>
 
 namespace Depot_query {
-	using namespace Genode;
+	using namespace Depot;
 	struct Recursion_limit;
-	struct Archive;
 	struct Dependencies;
 	struct Main;
 }
@@ -59,76 +59,6 @@ class Depot_query::Recursion_limit : Noncopyable
 		 */
 		Recursion_limit(Recursion_limit const &other)
 		: _value(_checked_decr(other._value)) { }
-};
-
-
-struct Depot_query::Archive
-{
-	typedef String<100> Path;
-	typedef String<64>  User;
-	typedef String<80>  Name;
-	typedef String<40>  Version;
-
-	enum Type { PKG, RAW, SRC };
-
-	struct Unknown_archive_type : Exception { };
-
-	/**
-	 * Return Nth path element
-	 *
-	 * The first path element corresponds to n == 0.
-	 */
-	template <typename STRING>
-	static STRING _path_element(Path const &path, unsigned n)
-	{
-		char const *s = path.string();
-
-		/* skip 'n' path elements */
-		for (; n > 0; n--) {
-
-			/* search '/' */
-			while (*s && *s != '/')
-				s++;
-
-			if (*s == 0)
-				return STRING();
-
-			/* skip '/' */
-			s++;
-		}
-
-		/* find '/' marking the end of the path element */
-		unsigned i = 0;
-		while (s[i] != 0 && s[i] != '/')
-			i++;
-
-		return STRING(Cstring(s, i));
-	}
-
-	/**
-	 * Return archive user of depot-local path
-	 */
-	static User user(Path const &path) { return _path_element<User>(path, 0); }
-
-	/**
-	 * Return archive type of depot-local path
-	 *
-	 * \throw Unknown_archive_type
-	 */
-	static Type type(Path const &path)
-	{
-		typedef String<8> Name;
-		Name const name = _path_element<Name>(path, 1);
-
-		if (name == "src") return SRC;
-		if (name == "pkg") return PKG;
-		if (name == "raw") return RAW;
-
-		throw Unknown_archive_type();
-	}
-
-	static Name    name   (Path const &path) { return _path_element<Name>(path, 2); }
-	static Version version(Path const &path) { return _path_element<Name>(path, 3); }
 };
 
 
