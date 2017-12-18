@@ -889,8 +889,12 @@ void Interface::_handle_eth(void              *const  eth_base,
 			default: throw Bad_network_protocol(); }
 		}
 	}
-	catch (Ethernet_frame::No_ethernet_frame) {
-		error("invalid ethernet frame"); }
+	catch (Ethernet_frame::No_ethernet_frame) { warning("malformed Ethernet frame"); }
+	catch (Ipv4_packet::No_ip_packet)         { warning("malformed IPv4 packet"     ); }
+	catch (Tcp_packet::No_tcp_packet)         { warning("malformed TCP packet"    ); }
+	catch (Udp_packet::No_udp_packet)         { warning("malformed UDP packet"    ); }
+	catch (Dhcp_packet::No_dhcp_packet)       { warning("malformed DHCP packet"   ); }
+	catch (Arp_packet::No_arp_packet)         { warning("malformed ARP packet"    ); }
 
 	catch (Bad_network_protocol) {
 		if (_config().verbose()) {
@@ -905,9 +909,6 @@ void Interface::_handle_eth(void              *const  eth_base,
 	catch (Drop_packet_warn exception) {
 		warning("(", _domain, ") Drop packet: ", exception.msg);
 	}
-	catch (Ipv4_packet::No_ip_packet) {
-		error("invalid IP packet"); }
-
 	catch (Port_allocator_guard::Out_of_indices) {
 		error("no available NAT ports"); }
 
