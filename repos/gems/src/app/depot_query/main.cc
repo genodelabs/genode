@@ -20,9 +20,46 @@
 
 namespace Depot_query {
 	using namespace Genode;
+	struct Recursion_limit;
 	struct Archive;
+	struct Dependencies;
 	struct Main;
 }
+
+
+class Depot_query::Recursion_limit : Noncopyable
+{
+	public:
+
+		class Reached : Exception { };
+
+	private:
+
+		unsigned const _value;
+
+		static unsigned _checked_decr(unsigned value)
+		{
+			if (value == 0)
+				throw Reached();
+
+			return value - 1;
+		}
+
+	public:
+
+		/**
+		 * Constructor
+		 */
+		explicit Recursion_limit(unsigned value) : _value(value) { }
+
+		/**
+		 * Copy constructor
+		 *
+		 * \throw Recursion_limit::Reached
+		 */
+		Recursion_limit(Recursion_limit const &other)
+		: _value(_checked_decr(other._value)) { }
+};
 
 
 struct Depot_query::Archive
@@ -95,6 +132,88 @@ struct Depot_query::Archive
 };
 
 
+/**
+ * Collection of dependencies
+ *
+ * This data structure keeps track of a list of archive paths along with the
+ * information of whether or not the archive is present in the depot. It also
+ * ensures that all entries are unique.
+ */
+class Depot_query::Dependencies
+{
+	private:
+
+		struct Collection : Noncopyable
+		{
+			Allocator &_alloc;
+
+			typedef Registered_no_delete<Archive::Path> Entry;
+
+			Registry<Entry> _entries;
+
+			Collection(Allocator &alloc) : _alloc(alloc) { }
+
+			~Collection()
+			{
+				_entries.for_each([&] (Entry &e) { destroy(_alloc, &e); });
+			}
+
+			bool known(Archive::Path const &path) const
+			{
+				bool result = false;
+				_entries.for_each([&] (Entry const &entry) {
+					if (path == entry)
+						result = true; });
+
+				return result;
+			}
+
+			void insert(Archive::Path const &path)
+			{
+				if (!known(path))
+					new (_alloc) Entry(_entries, path);
+			}
+
+			template <typename FN>
+			void for_each(FN const &fn) const { _entries.for_each(fn); };
+		};
+
+		Directory const &_depot;
+
+		Collection _present;
+		Collection _missing;
+
+	public:
+
+		Dependencies(Allocator &alloc, Directory const &depot)
+		:
+			_depot(depot), _present(alloc), _missing(alloc)
+		{ }
+
+		bool known(Archive::Path const &path) const
+		{
+			return _present.known(path) || _missing.known(path);
+		}
+
+		void record(Archive::Path const &path)
+		{
+			if (_depot.directory_exists(path))
+				_present.insert(path);
+			else
+				_missing.insert(path);
+		}
+
+		void xml(Xml_generator &xml) const
+		{
+			_present.for_each([&] (Archive::Path const &path) {
+				xml.node("present", [&] () { xml.attribute("path", path); }); });
+
+			_missing.for_each([&] (Archive::Path const &path) {
+				xml.node("missing", [&] () { xml.attribute("path", path); }); });
+		}
+};
+
+
 struct Depot_query::Main
 {
 	Env &_env;
@@ -105,25 +224,38 @@ struct Depot_query::Main
 
 	Root_directory _root { _env, _heap, _config.xml().sub_node("vfs") };
 
+	Directory _depot_dir { _root, "depot" };
+
 	Signal_handler<Main> _config_handler {
 		_env.ep(), *this, &Main::_handle_config };
 
-	Reporter _directory_reporter { _env, "directory" };
-	Reporter _blueprint_reporter { _env, "blueprint" };
-	Reporter _user_reporter      { _env, "user"      };
+	Reporter _directory_reporter    { _env, "directory"    };
+	Reporter _blueprint_reporter    { _env, "blueprint"    };
+	Reporter _dependencies_reporter { _env, "dependencies" };
+	Reporter _user_reporter         { _env, "user"         };
 
 	typedef String<64> Rom_label;
 	typedef String<16> Architecture;
 
 	Architecture _architecture;
 
+	/**
+	 * Look up ROM module 'rom_label' in the archives referenced by 'pkg_path'
+	 *
+	 * \throw Directory::Nonexistent_directory
+	 * \throw Directory::Nonexistent_file
+	 * \throw File::Truncated_during_read
+	 * \throw Recursion_limit::Reached
+	 */
 	Archive::Path _find_rom_in_pkg(Directory::Path const &pkg_path,
 	                               Rom_label       const &rom_label,
-	                               unsigned        const  nesting_level);
+	                               Recursion_limit        recursion_limit);
 
-	void _scan_depot_user_pkg(Archive::User const &user, Directory &dir, Xml_generator &xml);
-	void _query_blueprint(Directory::Path const &path, Xml_generator &xml);
-	void _query_user(Archive::User const &user, Xml_generator &xml);
+	void _scan_depot_user_pkg(Archive::User const &, Directory const &, Xml_generator &);
+	void _query_blueprint(Directory::Path const &, Xml_generator &);
+	void _collect_source_dependencies(Archive::Path const &, Dependencies &, Recursion_limit);
+	void _collect_binary_dependencies(Archive::Path const &, Dependencies &, Recursion_limit);
+	void _query_user(Archive::User const &, Xml_generator &);
 
 	void _handle_config()
 	{
@@ -131,9 +263,10 @@ struct Depot_query::Main
 
 		Xml_node config = _config.xml();
 
-		_directory_reporter.enabled(config.has_sub_node("scan"));
-		_blueprint_reporter.enabled(config.has_sub_node("blueprint"));
-		_user_reporter     .enabled(config.has_sub_node("user"));
+		_directory_reporter   .enabled(config.has_sub_node("scan"));
+		_blueprint_reporter   .enabled(config.has_sub_node("blueprint"));
+		_dependencies_reporter.enabled(config.has_sub_node("dependencies"));
+		_user_reporter        .enabled(config.has_sub_node("user"));
 
 		_root.apply_config(config.sub_node("vfs"));
 
@@ -156,7 +289,31 @@ struct Depot_query::Main
 		if (_blueprint_reporter.enabled()) {
 			Reporter::Xml_generator xml(_blueprint_reporter, [&] () {
 				config.for_each_sub_node("blueprint", [&] (Xml_node node) {
-					_query_blueprint(node.attribute_value("pkg", Directory::Path()), xml); });
+					Archive::Path pkg = node.attribute_value("pkg", Archive::Path());
+					try { _query_blueprint(pkg, xml); }
+					catch (...) {
+						warning("could not obtain blueprint for '", pkg, "'");
+					}
+				});
+			});
+		}
+
+		if (_dependencies_reporter.enabled()) {
+			Reporter::Xml_generator xml(_dependencies_reporter, [&] () {
+
+				Dependencies dependencies(_heap, _depot_dir);
+
+				config.for_each_sub_node("dependencies", [&] (Xml_node node) {
+
+					Archive::Path const path = node.attribute_value("path", Archive::Path());
+
+					if (node.attribute_value("source", false))
+						_collect_source_dependencies(path, dependencies, Recursion_limit{8});
+
+					if (node.attribute_value("binary", false))
+						_collect_binary_dependencies(path, dependencies, Recursion_limit{8});
+				});
+				dependencies.xml(xml);
 			});
 		}
 
@@ -173,9 +330,9 @@ struct Depot_query::Main
 
 
 void Depot_query::Main::_scan_depot_user_pkg(Archive::User const &user,
-                                             Directory &dir, Xml_generator &xml)
+                                             Directory const &dir, Xml_generator &xml)
 {
-	dir.for_each_entry([&] (Directory::Entry &entry) {
+	dir.for_each_entry([&] (Directory::Entry const &entry) {
 
 		if (!dir.file_exists(Directory::Path(entry.name(), "/runtime")))
 			return;
@@ -190,18 +347,12 @@ void Depot_query::Main::_scan_depot_user_pkg(Archive::User const &user,
 Depot_query::Archive::Path
 Depot_query::Main::_find_rom_in_pkg(Directory::Path const &pkg_path,
                                     Rom_label       const &rom_label,
-                                    unsigned        const  nesting_level)
+                                    Recursion_limit        recursion_limit)
 {
-	if (nesting_level == 0) {
-		error("too deeply nested pkg archives");
-		return Archive::Path();
-	}
-
 	/*
 	 * \throw Directory::Nonexistent_directory
 	 */
-	Directory depot_dir(_root, Directory::Path("depot"));
-	Directory pkg_dir(depot_dir, pkg_path);
+	Directory pkg_dir(_depot_dir, pkg_path);
 
 	/*
 	 * \throw Directory::Nonexistent_file
@@ -212,6 +363,9 @@ Depot_query::Main::_find_rom_in_pkg(Directory::Path const &pkg_path,
 	Archive::Path result;
 
 	archives.for_each_line<Archive::Path>([&] (Archive::Path const &archive_path) {
+
+		if (result.valid())
+			return;
 
 		/*
 		 * \throw Archive::Unknown_archive_type
@@ -225,7 +379,7 @@ Depot_query::Main::_find_rom_in_pkg(Directory::Path const &pkg_path,
 					         Archive::name(archive_path),    "/",
 					         Archive::version(archive_path), "/", rom_label);
 
-				if (depot_dir.file_exists(rom_path))
+				if (_depot_dir.file_exists(rom_path))
 					result = rom_path;
 			}
 			break;
@@ -235,8 +389,7 @@ Depot_query::Main::_find_rom_in_pkg(Directory::Path const &pkg_path,
 			break;
 
 		case Archive::PKG:
-			// XXX call recursively, adjust 'nesting_level'
-			log(" ", archive_path, " (pkg archive)");
+			result = _find_rom_in_pkg(pkg_path, rom_label, recursion_limit);
 			break;
 		}
 	});
@@ -282,9 +435,8 @@ void Depot_query::Main::_query_blueprint(Directory::Path const &pkg_path, Xml_ge
 					return;
 				}
 
-				unsigned const max_nesting_levels = 8;
 				Archive::Path const rom_path =
-					_find_rom_in_pkg(pkg_path, label, max_nesting_levels);
+					_find_rom_in_pkg(pkg_path, label, Recursion_limit{8});
 
 				if (rom_path.valid()) {
 					xml.node("rom", [&] () {
@@ -308,6 +460,89 @@ void Depot_query::Main::_query_blueprint(Directory::Path const &pkg_path, Xml_ge
 }
 
 
+void Depot_query::Main::_collect_source_dependencies(Archive::Path const &path,
+                                                     Dependencies &dependencies,
+                                                     Recursion_limit recursion_limit)
+{
+	try { Archive::type(path); }
+	catch (Archive::Unknown_archive_type) {
+		warning("archive '", path, "' has unexpected type");
+		return;
+	}
+
+	dependencies.record(path);
+
+	switch (Archive::type(path)) {
+
+	case Archive::PKG:
+		try {
+			File_content archives(_heap, Directory(_depot_dir, path),
+			                      "archives", File_content::Limit{16*1024});
+
+			archives.for_each_line<Archive::Path>([&] (Archive::Path const &path) {
+				_collect_source_dependencies(path, dependencies, recursion_limit); });
+		}
+		catch (File_content::Nonexistent_file) { }
+		break;
+
+	case Archive::SRC:
+		try {
+			File_content used_apis(_heap, Directory(_depot_dir, path),
+			                       "used_apis", File_content::Limit{16*1024});
+
+			typedef String<160> Api;
+			used_apis.for_each_line<Archive::Path>([&] (Api const &api) {
+				dependencies.record(Archive::Path(Archive::user(path), "/api/", api));
+			});
+		}
+		catch (File_content::Nonexistent_file) { }
+		break;
+
+	case Archive::RAW:
+		break;
+	};
+}
+
+
+void Depot_query::Main::_collect_binary_dependencies(Archive::Path const &path,
+                                                     Dependencies &dependencies,
+                                                     Recursion_limit recursion_limit)
+{
+	try { Archive::type(path); }
+	catch (Archive::Unknown_archive_type) {
+		warning("archive '", path, "' has unexpected type");
+		return;
+	}
+
+	switch (Archive::type(path)) {
+
+	case Archive::PKG:
+		try {
+			dependencies.record(path);
+
+			File_content archives(_heap, Directory(_depot_dir, path),
+			                      "archives", File_content::Limit{16*1024});
+
+			archives.for_each_line<Archive::Path>([&] (Archive::Path const &archive_path) {
+				_collect_binary_dependencies(archive_path, dependencies, recursion_limit); });
+
+		} catch (File_content::Nonexistent_file) { }
+		break;
+
+	case Archive::SRC:
+		dependencies.record(Archive::Path(Archive::user(path), "/bin/",
+		                                  _architecture,       "/",
+		                                  Archive::name(path), "/",
+		                                  Archive::version(path)));
+		break;
+
+	case Archive::RAW:
+		dependencies.record(path);
+		break;
+	};
+}
+
+
 void Depot_query::Main::_query_user(Archive::User const &user, Xml_generator &xml)
 {
 	Directory user_dir(_root, Directory::Path("depot/", user));
@@ -317,7 +552,6 @@ void Depot_query::Main::_query_user(Archive::User const &user, Xml_generator &xm
 	File_content download(_heap, user_dir, "download", File_content::Limit{4*1024});
 	typedef String<256> Url;
 	download.for_each_line<Url>([&] (Url const &url) {
-	 log("user url: ", url);
 		xml.node("url", [&] () { xml.append_sanitized(url.string()); }); });
 
 	File_content pubkey(_heap, user_dir, "pubkey", File_content::Limit{8*1024});
