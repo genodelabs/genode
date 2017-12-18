@@ -179,9 +179,21 @@ struct Genode::Directory : Noncopyable
 			}
 		}
 
+		template <typename FN>
+		void for_each_entry(FN const &fn) const
+		{
+			auto const_fn = [&] (Entry const &e) { fn(e); };
+			const_cast<Directory &>(*this).for_each_entry(const_fn);
+		}
+
 		bool file_exists(Path const &rel_path) const
 		{
 			return _stat(rel_path).mode & Vfs::Directory_service::STAT_MODE_FILE;
+		}
+
+		bool directory_exists(Path const &rel_path) const
+		{
+			return _stat(rel_path).mode & Vfs::Directory_service::STAT_MODE_DIRECTORY;
 		}
 
 		/**
@@ -249,6 +261,27 @@ class Genode::Readonly_file : public File
 			}
 		}
 
+		/**
+		 * Strip off constness of 'Directory const &'
+		 *
+		 * Since the 'Readonly_file' API provides an abstraction over the
+		 * low-level VFS operations, the intuitive meaning of 'const' is
+		 * different between the 'Readonly_file' API and the VFS.
+		 *
+		 * At the VFS level, opening a file changes the internal state of the
+		 * VFS. Hence the operation is non-const. However, the user of the
+		 * 'Readonly_file' API expects the constness of a directory to
+		 * correspond to whether the directory can be modified or not. In the
+		 * case of instantiating a 'Readonly_file', one would expect that a
+		 * 'Directory const &' would suffice. The fact that - under the hood -
+		 * the 'Readonly_file' has to perform the nonconst 'open' operation at
+		 * the VFS is of not of interest.
+		 */
+		static Directory &_mutable(Directory const &dir)
+		{
+			return const_cast<Directory &>(dir);
+		}
+
 	public:
 
 		/**
@@ -256,10 +289,11 @@ class Genode::Readonly_file : public File
 		 *
 		 * \throw File::Open_failed
 		 */
-		Readonly_file(Directory &dir, Path const &rel_path)
-		: _ep(dir._ep)
+		Readonly_file(Directory const &dir, Path const &rel_path)
+		: _ep(_mutable(dir)._ep)
 		{
-			_open(dir._fs, dir._alloc, Path(dir._path, "/", rel_path));
+			_open(_mutable(dir)._fs, _mutable(dir)._alloc,
+			      Path(dir._path, "/", rel_path));
 		}
 
 		~Readonly_file() { _handle->ds().close(_handle); }
@@ -325,7 +359,7 @@ class Genode::File_content
 		 * \throw Truncated_during_read  number of readable bytes differs
 		 *                               from file status information
 		 */
-		File_content(Allocator &alloc, Directory &dir, Path const &rel_path,
+		File_content(Allocator &alloc, Directory const &dir, Path const &rel_path,
 		             Limit limit)
 		:
 			_alloc(alloc),
