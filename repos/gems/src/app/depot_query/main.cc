@@ -122,7 +122,7 @@ struct Depot_query::Main
 	                               unsigned        const  nesting_level);
 
 	void _scan_depot_user_pkg(Archive::User const &user, Directory &dir, Xml_generator &xml);
-	void _query_pkg(Directory::Path const &path, Xml_generator &xml);
+	void _query_blueprint(Directory::Path const &path, Xml_generator &xml);
 	void _query_user(Archive::User const &user, Xml_generator &xml);
 
 	void _handle_config()
@@ -132,7 +132,7 @@ struct Depot_query::Main
 		Xml_node config = _config.xml();
 
 		_directory_reporter.enabled(config.has_sub_node("scan"));
-		_blueprint_reporter.enabled(config.has_sub_node("query"));
+		_blueprint_reporter.enabled(config.has_sub_node("blueprint"));
 		_user_reporter     .enabled(config.has_sub_node("user"));
 
 		_root.apply_config(config.sub_node("vfs"));
@@ -155,8 +155,8 @@ struct Depot_query::Main
 
 		if (_blueprint_reporter.enabled()) {
 			Reporter::Xml_generator xml(_blueprint_reporter, [&] () {
-				config.for_each_sub_node("query", [&] (Xml_node node) {
-					_query_pkg(node.attribute_value("pkg", Directory::Path()), xml); });
+				config.for_each_sub_node("blueprint", [&] (Xml_node node) {
+					_query_blueprint(node.attribute_value("pkg", Directory::Path()), xml); });
 			});
 		}
 
@@ -244,7 +244,7 @@ Depot_query::Main::_find_rom_in_pkg(Directory::Path const &pkg_path,
 }
 
 
-void Depot_query::Main::_query_pkg(Directory::Path const &pkg_path, Xml_generator &xml)
+void Depot_query::Main::_query_blueprint(Directory::Path const &pkg_path, Xml_generator &xml)
 {
 	Directory pkg_dir(_root, Directory::Path("depot/", pkg_path));
 

@@ -71,7 +71,7 @@ install_config {
 				<rom label="init"/>
 			</env>
 			<scan user="genodelabs"/>
-			<query pkg="genodelabs/pkg/} [query_pkg] {"/>
+			<blueprint pkg="genodelabs/pkg/} [query_pkg] {"/>
 		</config>
 	</start>
 
