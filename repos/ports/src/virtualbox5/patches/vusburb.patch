@@ -1,0 +1,13 @@
+diff --git a/src/app/virtualbox/src/VBox/Devices/USB/VUSBUrb.cpp b/src/app/virtualbox/src/VBox/Devices/USB/VUSBUrb.cpp
+index 86ed754..250f0ad 100644
+--- a/src/app/virtualbox/src/VBox/Devices/USB/VUSBUrb.cpp
++++ b/src/app/virtualbox/src/VBox/Devices/USB/VUSBUrb.cpp
+@@ -1271,7 +1271,7 @@ void vusbUrbDoReapAsync(PRTLISTANCHOR pUrbLst, RTMSINTERVAL cMillies)
+                    && ((pRipe = pDev->pUsbIns->pReg->pfnUrbReap(pDev->pUsbIns, cMillies)) != NULL))
+             {
+                 vusbUrbAssert(pRipe);
+-                if (pRipe == pVUsbUrbNext->pUrb)
++                if (pVUsbUrbNext && pRipe == pVUsbUrbNext->pUrb)
+                     pVUsbUrbNext = RTListGetNext(pUrbLst, pVUsbUrb, VUSBURBVUSBINT, NdLst);
+                 vusbUrbRipe(pRipe);
+             }
