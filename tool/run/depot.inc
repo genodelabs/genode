@@ -204,7 +204,7 @@ proc _collect_from_depot { archives } {
 #
 proc import_from_depot { args } {
 
-	foreach subdir [_collect_from_depot $args] {
+	foreach subdir [_collect_from_depot {*}$args] {
 
 		# prevent src, api, and pkg archives from inflating the boot image
 		if {[regexp [_depot_archive_versioned_path_pattern] $subdir dummy user type]} {
