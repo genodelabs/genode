@@ -122,6 +122,7 @@ class Lx::Pci_dev : public pci_dev, public Lx_kit::List<Pci_dev>::Element
 
 			/* setup resources */
 			bool io = false;
+			bool mem = false;
 			for (int i = 0; i < Device::NUM_RESOURCES; i++) {
 				Device::Resource res = _client.resource(i);
 				if (res.type() == Device::Resource::INVALID)
@@ -141,11 +142,14 @@ class Lx::Pci_dev : public pci_dev, public Lx_kit::List<Pci_dev>::Element
 					_io_port.session(res.base(), res.size(), _client.io_port(virt_bar));
 					io = true;
 				}
+				if (res.type() == Device::Resource::MEMORY)
+					mem = true;
 			}
 
-			/* enable bus master and io bits */
+			/* enable bus master, memory and io bits */
 			uint16_t cmd = _client.config_read(CMD, Device::ACCESS_16BIT);
 			cmd |= io ? 0x1 : 0;
+			cmd |= mem ? 0x2 : 0;
 
 			/* enable bus master */
 			cmd |= 0x4;

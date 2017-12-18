@@ -253,7 +253,7 @@ class Lx_kit::Malloc : public Lx::Malloc
 
 			if (msb > SLAB_STOP_LOG2) {
 				Genode::error("slab too large ",
-				              1UL << msb, "reqested ", size, " cached ", (int)_cached);
+				              1UL << msb, " requested ", size, " cached ", (int)_cached);
 				return 0;
 			}
 
