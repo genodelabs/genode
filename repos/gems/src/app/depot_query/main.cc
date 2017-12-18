@@ -255,7 +255,11 @@ struct Depot_query::Main
 		}
 	}
 
-	Main(Env &env) : _env(env) { _handle_config(); }
+	Main(Env &env) : _env(env)
+	{
+		_config.sigh(_config_handler);
+		_handle_config();
+	}
 };
 
 
