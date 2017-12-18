@@ -63,6 +63,24 @@ void Platform::Pci_buses::scan_bus(Config_access &config_access,
 				bridges()->insert(new (heap) Bridge(bus, dev, fun, sec_bus,
 				                                    sub_bus));
 
+				enum {
+					PCI_CMD_REG    = 0x4,
+					PCI_CMD_MASK   = 0x7 /* IOPORT, MEM, DMA */
+				};
+
+				unsigned short cmd = config.read(&config_access, PCI_CMD_REG,
+			                                     Platform::Device::ACCESS_16BIT);
+
+				if ((cmd & PCI_CMD_MASK) != PCI_CMD_MASK) {
+					config.write(&config_access, PCI_CMD_REG,
+					             cmd | PCI_CMD_MASK,
+					             Platform::Device::ACCESS_16BIT);
+				}
+
+				Genode::log(config, " - bridge ", sec_bus, ":0.0",
+				            ((cmd & PCI_CMD_MASK) != PCI_CMD_MASK) ? " enabled"
+				                                                   : "");
+
 				scan_bus(config_access, heap, sec_bus);
 			}
 		}
