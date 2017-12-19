@@ -6,7 +6,7 @@ include $(REP_DIR)/lib/import/import-stdcxx.mk
 STDCXX_DIR := $(STDCXX_PORT_DIR)/src/lib/stdcxx
 
 # enable 'compatibility-atomic-c++0x.cc' to find 'gstdint.h'
-INC_DIR += $(REP_DIR)/include/stdcxx/bits
+REP_INC_DIR += include/stdcxx/bits
 
 # add libstdc++ sources
 SRC_CC += $(filter-out $(FILTER_OUT),$(notdir $(wildcard $(STDCXX_DIR)/src/c++11/*.cc)))

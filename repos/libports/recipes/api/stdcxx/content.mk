@@ -1,6 +1,5 @@
 MIRROR_FROM_REP_DIR := lib/import/import-stdcxx.mk \
-                       lib/mk/stdcxx-c++98.mk \
-                       lib/mk/stdcxx.mk
+                       lib/symbols/stdcxx
 
 content: $(MIRROR_FROM_REP_DIR)
 
@@ -15,14 +14,6 @@ include/stdcxx:
 	mkdir -p $@
 	cp -r $(PORT_DIR)/include/stdcxx/* $@/
 	cp -r $(REP_DIR)/include/stdcxx/bits/* $@/bits/
-
-MIRROR_FROM_PORT_DIR := src/lib/stdcxx
-
-content: $(MIRROR_FROM_PORT_DIR)
-
-$(MIRROR_FROM_PORT_DIR):
-	mkdir -p $(dir $@)
-	cp -r $(PORT_DIR)/$@ $(dir $@)
 
 content: LICENSE
 
