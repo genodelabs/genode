@@ -66,9 +66,7 @@ set boot_modules {
 	curl.lib.so
 	fetchurl
 	libc.lib.so
-	libc.lib.so
 	libcrypto.lib.so
-	libm.lib.so
 	libssh.lib.so
 	libssl.lib.so
 	lwip.lib.so
