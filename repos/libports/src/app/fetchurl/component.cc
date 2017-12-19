@@ -79,7 +79,7 @@ void Libc::Component::construct(Libc::Env &env)
 	Genode::Path<256>   path;
 	CURLcode res = CURLE_OK;
 
-	curl_global_init(CURL_GLOBAL_DEFAULT);
+	Libc::with_libc([&]() { curl_global_init(CURL_GLOBAL_DEFAULT); });
 
 	Genode::Xml_node config_node = config.xml();
 
