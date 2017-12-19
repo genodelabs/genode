@@ -922,9 +922,6 @@ void Interface::_handle_eth(void              *const  eth_base,
 	catch (Domain::No_next_hop) {
 		error("can not find next hop"); }
 
-	catch (List<Interface>::Empty) {
-		error("no interface connected to domain"); }
-
 	catch (Alloc_dhcp_msg_buffer_failed) {
 		error("failed to allocate buffer for DHCP reply"); }
 

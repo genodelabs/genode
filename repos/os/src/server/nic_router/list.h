@@ -24,18 +24,11 @@ namespace Net {
 template <typename LT>
 struct Net::List : Genode::List<LT>
 {
-	using Base = Genode::List<LT>;
-
-	struct Empty : Genode::Exception { };
-
 	template <typename FUNC>
 	void for_each(FUNC && functor)
 	{
-		if (!Base::first()) {
-			throw Empty();
-		}
-		for (LT * elem = Base::first(); elem;
-		     elem = elem->Base::Element::next())
+		for (LT * elem = Genode::List<LT>::first(); elem;
+		     elem = elem->Genode::List<LT>::Element::next())
 		{
 			functor(*elem);
 		}
