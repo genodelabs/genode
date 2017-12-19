@@ -137,21 +137,6 @@ system state changes to "acpi_ready in the XML ROM 'acpi_ready':
 the platform driver will announce the platform session as 'Platform', so
 that drivers may start to operate with the platform driver.
 
-Hardware reset
---------------
-If the config attribute 'system' is set to 'yes', the platform driver monitors
-a ROM in XML format named 'system'.
-
-!<start name="platform_drv">
-!  <config acpi="yes" system="yes">
-
-If the attribute 'state' in the system XML ROM turns to 'reset'
-
-!<system state="reset"/>
-
-the platform driver will try to reset the machine, if the required I/O ports
-are owned by it.
-
 Supported PCI class aliases
 ---------------------------
 
