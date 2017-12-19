@@ -72,9 +72,6 @@ struct Platform::Main
 
 	void system_update()
 	{
-		if (system_state.is_constructed())
-			system_state->update();
-
 		if (acpi_ready.is_constructed())
 			acpi_ready->update();
 
@@ -102,15 +99,8 @@ struct Platform::Main
 		_system_report(_env.ep(), *this, &Main::system_update)
 	{
 		const Genode::Xml_node config = _config.xml();
-		bool const system_rom = config.attribute_value("system", false);
 
 		_acpi_ready = config.attribute_value("acpi_ready", false);
-
-		if (system_rom) {
-			/* wait for system state changes, e.g. reset and acpi_ready */
-			system_state.construct(env, "system");
-			system_state->sigh(_system_report);
-		}
 
 		if (_acpi_ready) {
 			acpi_ready.construct(env, "acpi_ready");
