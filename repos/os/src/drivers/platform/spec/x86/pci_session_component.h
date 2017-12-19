@@ -753,7 +753,7 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 			/* lookup device component for previous device */
 			_env.ep().rpc_ep().apply(device_cap, lambda);
 
-			if (device->config().valid())
+			if (device && device->config().valid())
 				destroy(_md_alloc, device);
 		}
 
