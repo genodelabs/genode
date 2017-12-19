@@ -27,10 +27,12 @@ fault_detection
 netperf_lwip
 netperf_lwip_usb30
 netperf_lwip_bridge
+netperf_lwip_router
 netperf_lwip_wifi
 netperf_lxip
 netperf_lxip_usb30
 netperf_lxip_bridge
+netperf_lxip_router
 netperf_lxip_wifi
 noux_tool_chain_auto
 affinity
