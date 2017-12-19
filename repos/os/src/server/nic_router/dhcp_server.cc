@@ -32,7 +32,7 @@ Dhcp_server::Dhcp_server(Xml_node            const  node,
 	_ip_first(node.attribute_value("ip_first", Ipv4_address())),
 	_ip_last(node.attribute_value("ip_last", Ipv4_address())),
 	_ip_first_raw(_ip_first.to_uint32_little_endian()),
-	_ip_count(_ip_last.to_uint32_little_endian() - _ip_first_raw),
+	_ip_count(_ip_last.to_uint32_little_endian() - _ip_first_raw + 1),
 	_ip_alloc(alloc, _ip_count)
 {
 	if (!interface.prefix_matches(_ip_first) ||
