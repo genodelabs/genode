@@ -25,6 +25,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
+#include <sys/stat.h>
 
 struct Stats
 {
@@ -95,6 +96,37 @@ void Libc::Component::construct(Libc::Env &env)
 
 		char const *out_path = path.base();
 
+		/* create compound directories leading to the path */
+		for (size_t sub_path_len = 0; ; sub_path_len++) {
+
+			bool const end_of_path = (out_path[sub_path_len] == 0);
+			bool const end_of_elem = (out_path[sub_path_len] == '/');
+
+			if (end_of_path)
+				break;
+
+			if (!end_of_elem)
+				continue;
+
+			Genode::String<256> sub_path(Genode::Cstring(out_path, sub_path_len));
+
+			/* skip '/' */
+			sub_path_len++;
+
+			/* if sub path is a directory, we are fine */
+			struct stat sb;
+			sb.st_mode = 0;
+			stat(sub_path.string(), &sb);
+			if (S_ISDIR(sb.st_mode))
+				continue;
+
+			/* create directory for sub path */
+			if (mkdir(sub_path.string(), 0777) < 0) {
+				Genode::error("failed to create directory ", sub_path);
+				break;
+			}
+		}
+
 		int fd = open(out_path, O_CREAT | O_RDWR);
 		if (fd == -1) {
 			switch (errno) {
@@ -106,9 +138,11 @@ void Libc::Component::construct(Libc::Env &env)
 				Genode::error(out_path, " is a directory"); break;
 			case ENOSPC:
 				Genode::error("cannot create ", out_path, ", out of space"); break;
+			default:
+				Genode::error("creation of ", out_path, " failed (errno=", errno, ")");
 			}
 			env.parent().exit(errno);
-			return;
+			throw Genode::Exception();
 		}
 
 		CURL *curl = curl_easy_init();
