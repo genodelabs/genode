@@ -7,6 +7,7 @@
 
 # network configuration
 set use_nic_bridge      0
+set use_nic_router      0
 set use_wifi_driver     0
 set use_usb_11          "no"
 set use_usb_20          "yes"

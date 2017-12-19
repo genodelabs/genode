@@ -23,6 +23,7 @@ if {[get_cmd_switch --autopilot] && [have_spec x86_32] && ![have_spec acpi]} {
 
 # network configuration
 set use_nic_bridge      0
+set use_nic_router      0
 set use_wifi_driver     1
 set use_usb_11          "no"
 set use_usb_20          "no"

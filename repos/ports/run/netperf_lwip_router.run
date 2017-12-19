@@ -1,12 +1,12 @@
 #
-# \brief  Test using netperf with a network bridge and with a  native driver or
+# \brief  Test using netperf with a NIC router and with a  native driver or
 #         if not available for the platform using usb 3.0 by default
-# \author Alexander Boettcher
-# \date   2013-07-08
+# \author Martin Stein
+# \date   2017-12-19
 #
 
 if {[have_include "power_on/qemu"]} {
-	puts "\nNetperf running on Qemu with a bridge is not supported.\n"
+	puts "\nNetperf running on Qemu with a router is not supported.\n"
 	exit
 }
 
@@ -16,8 +16,8 @@ if {[have_spec omap4]} {
 }
 
 # network configuration
-set use_nic_bridge      1
-set use_nic_router      0
+set use_nic_bridge      0
+set use_nic_router      1
 set use_wifi_driver     0
 set use_usb_11          "no"
 set use_usb_20          "no"
