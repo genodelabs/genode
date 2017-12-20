@@ -50,8 +50,12 @@ append config {
 	<start name="fetchurl" caps="500">
 		<resource name="RAM" quantum="8M"/>
 		<config>
-			<vfs> <dir name="dev"> <log/> <null/> </dir> </vfs>
-			<libc stdout="/dev/log" stderr="/dev/log"/>
+			<vfs>
+				<dir name="dev">
+					<log/> <null/> <inline name="rtc">2000-01-01 00:00</inline>
+				</dir>
+			</vfs>
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
 			<fetch url="http://genode.org/about/LICENSE" path="/dev/log"/>
 		</config>
 	</start>
