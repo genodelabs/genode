@@ -168,97 +168,91 @@ void Dhcp_client::_send(Message_type msg_type,
                         Ipv4_address client_ip,
                         Ipv4_address server_ip)
 {
-	/* allocate buffer for the request */
-	enum { BUF_SIZE = 1024 };
-	using Size_guard = Size_guard_tpl<BUF_SIZE, Interface::Dhcp_msg_buffer_too_small>;
-	void *buf;
-	try { _alloc.alloc(BUF_SIZE, &buf); }
-	catch (...) { throw Interface::Alloc_dhcp_msg_buffer_failed(); }
+	enum { PKT_SIZE = 1024 };
+	using Size_guard = Size_guard_tpl<PKT_SIZE, Interface::Dhcp_msg_buffer_too_small>;
 	Mac_address client_mac = _interface.router_mac();
+	_interface.send(PKT_SIZE, [&] (void *pkt_base) {
 
-	/* create ETH header of the request */
-	Size_guard size;
-	size.add(sizeof(Ethernet_frame));
-	Ethernet_frame &eth = *reinterpret_cast<Ethernet_frame *>(buf);
-	eth.dst(Mac_address(0xff));
-	eth.src(client_mac);
-	eth.type(Ethernet_frame::Type::IPV4);
+		/* create ETH header of the request */
+		Size_guard size;
+		size.add(sizeof(Ethernet_frame));
+		Ethernet_frame &eth = *reinterpret_cast<Ethernet_frame *>(pkt_base);
+		eth.dst(Mac_address(0xff));
+		eth.src(client_mac);
+		eth.type(Ethernet_frame::Type::IPV4);
 
-	/* create IP header of the request */
-	enum { IPV4_TIME_TO_LIVE = 64 };
-	size_t const ip_off = size.curr();
-	size.add(sizeof(Ipv4_packet));
-	Ipv4_packet &ip = *eth.data<Ipv4_packet>();
-	ip.header_length(sizeof(Ipv4_packet) / 4);
-	ip.version(4);
-	ip.diff_service(0);
-	ip.identification(0);
-	ip.flags(0);
-	ip.fragment_offset(0);
-	ip.time_to_live(IPV4_TIME_TO_LIVE);
-	ip.protocol(Ipv4_packet::Protocol::UDP);
-	ip.src(client_ip);
-	ip.dst(Ipv4_address(0xff));
+		/* create IP header of the request */
+		enum { IPV4_TIME_TO_LIVE = 64 };
+		size_t const ip_off = size.curr();
+		size.add(sizeof(Ipv4_packet));
+		Ipv4_packet &ip = *eth.data<Ipv4_packet>();
+		ip.header_length(sizeof(Ipv4_packet) / 4);
+		ip.version(4);
+		ip.diff_service(0);
+		ip.identification(0);
+		ip.flags(0);
+		ip.fragment_offset(0);
+		ip.time_to_live(IPV4_TIME_TO_LIVE);
+		ip.protocol(Ipv4_packet::Protocol::UDP);
+		ip.src(client_ip);
+		ip.dst(Ipv4_address(0xff));
 
-	/* create UDP header of the request */
-	size_t const udp_off = size.curr();
-	size.add(sizeof(Udp_packet));
-	Udp_packet &udp = *ip.data<Udp_packet>();
-	udp.src_port(Port(Dhcp_packet::BOOTPC));
-	udp.dst_port(Port(Dhcp_packet::BOOTPS));
+		/* create UDP header of the request */
+		size_t const udp_off = size.curr();
+		size.add(sizeof(Udp_packet));
+		Udp_packet &udp = *ip.data<Udp_packet>();
+		udp.src_port(Port(Dhcp_packet::BOOTPC));
+		udp.dst_port(Port(Dhcp_packet::BOOTPS));
 
-	/* create mandatory DHCP fields of the request  */
-	size_t const dhcp_off = size.curr();
-	size.add(sizeof(Dhcp_packet));
-	Dhcp_packet &dhcp = *udp.data<Dhcp_packet>();
-	dhcp.op(Dhcp_packet::REQUEST);
-	dhcp.htype(Dhcp_packet::Htype::ETH);
-	dhcp.hlen(sizeof(Mac_address));
-	dhcp.hops(0);
-	dhcp.xid(0x12345678);
-	dhcp.secs(0);
-	dhcp.flags(0);
-	dhcp.ciaddr(client_ip);
-	dhcp.yiaddr(Ipv4_address());
-	dhcp.siaddr(Ipv4_address());
-	dhcp.giaddr(Ipv4_address());
-	dhcp.client_mac(client_mac);
-	dhcp.zero_fill_sname();
-	dhcp.zero_fill_file();
-	dhcp.default_magic_cookie();
+		/* create mandatory DHCP fields of the request  */
+		size_t const dhcp_off = size.curr();
+		size.add(sizeof(Dhcp_packet));
+		Dhcp_packet &dhcp = *udp.data<Dhcp_packet>();
+		dhcp.op(Dhcp_packet::REQUEST);
+		dhcp.htype(Dhcp_packet::Htype::ETH);
+		dhcp.hlen(sizeof(Mac_address));
+		dhcp.hops(0);
+		dhcp.xid(0x12345678);
+		dhcp.secs(0);
+		dhcp.flags(0);
+		dhcp.ciaddr(client_ip);
+		dhcp.yiaddr(Ipv4_address());
+		dhcp.siaddr(Ipv4_address());
+		dhcp.giaddr(Ipv4_address());
+		dhcp.client_mac(client_mac);
+		dhcp.zero_fill_sname();
+		dhcp.zero_fill_file();
+		dhcp.default_magic_cookie();
 
-	/* append DHCP option fields to the request */
-	Dhcp_packet::Options_aggregator<Size_guard>
-		dhcp_opts(dhcp, size);
-	dhcp_opts.append_option<Dhcp_packet::Message_type_option>(msg_type);
+		/* append DHCP option fields to the request */
+		Dhcp_packet::Options_aggregator<Size_guard>
+			dhcp_opts(dhcp, size);
+		dhcp_opts.append_option<Dhcp_packet::Message_type_option>(msg_type);
 
-	switch (msg_type) {
-	case Message_type::DISCOVER:
-		dhcp_opts.append_option<Dhcp_packet::Client_id>(client_mac);
-		dhcp_opts.append_option<Dhcp_packet::Max_msg_size>(BUF_SIZE - dhcp_off);
-		break;
+		switch (msg_type) {
+		case Message_type::DISCOVER:
+			dhcp_opts.append_option<Dhcp_packet::Client_id>(client_mac);
+			dhcp_opts.append_option<Dhcp_packet::Max_msg_size>(PKT_SIZE - dhcp_off);
+			break;
 
-	case Message_type::REQUEST:
-		dhcp_opts.append_option<Dhcp_packet::Client_id>(client_mac);
-		dhcp_opts.append_option<Dhcp_packet::Max_msg_size>(BUF_SIZE - dhcp_off);
-		if (_state == State::REQUEST) {
-			dhcp_opts.append_option<Dhcp_packet::Requested_addr>(client_ip);
-			dhcp_opts.append_option<Dhcp_packet::Server_ipv4>(server_ip);
+		case Message_type::REQUEST:
+			dhcp_opts.append_option<Dhcp_packet::Client_id>(client_mac);
+			dhcp_opts.append_option<Dhcp_packet::Max_msg_size>(PKT_SIZE - dhcp_off);
+			if (_state == State::REQUEST) {
+				dhcp_opts.append_option<Dhcp_packet::Requested_addr>(client_ip);
+				dhcp_opts.append_option<Dhcp_packet::Server_ipv4>(server_ip);
+			}
+			break;
+
+		default:
+			throw Interface::Bad_send_dhcp_args();
 		}
-		break;
+		dhcp_opts.append_option<Dhcp_packet::Options_end>();
 
-	default:
-		throw Interface::Bad_send_dhcp_args();
-	}
-	dhcp_opts.append_option<Dhcp_packet::Options_end>();
-
-	/* fill in header values that need the packet to be complete already */
-	udp.length(size.curr() - udp_off);
-	udp.update_checksum(ip.src(), ip.dst());
-	ip.total_length(size.curr() - ip_off);
-	ip.checksum(Ipv4_packet::calculate_checksum(ip));
-
-	/* send request to sender of request and free request buffer */
-	_interface.send(eth, size.curr());
-	_alloc.free(buf, BUF_SIZE);
+		/* fill in header values that need the packet to be complete already */
+		udp.length(size.curr() - udp_off);
+		udp.update_checksum(ip.src(), ip.dst());
+		ip.total_length(size.curr() - ip_off);
+		ip.checksum(Ipv4_packet::calculate_checksum(ip));
+	});
 }
