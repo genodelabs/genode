@@ -927,21 +927,32 @@ void Interface::_handle_eth(void              *const  eth_base,
 }
 
 
-void Interface::send(Ethernet_frame &eth, Genode::size_t const size)
+void Interface::send(Ethernet_frame &eth, size_t eth_size)
 {
+	send(eth_size, [&] (void *pkt_base) {
+		Genode::memcpy(pkt_base, (void *)&eth, eth_size);
+	});
+}
+
+
+void Interface::_send_alloc_pkt(Packet_descriptor &pkt,
+                                void            * &pkt_base,
+                                size_t             pkt_size)
+{
+	pkt      = _source().alloc_packet(pkt_size);
+	pkt_base = _source().packet_content(pkt);
+}
+
+
+void Interface::_send_submit_pkt(Packet_descriptor &pkt,
+                                 void            * &pkt_base,
+                                 size_t             pkt_size)
+{
+	_source().submit_packet(pkt);
+	_domain.raise_tx_bytes(pkt_size);
 	if (_config().verbose()) {
-		log("(", _domain, " <- router) ", eth); }
-	try {
-		/* copy and submit packet */
-		Packet_descriptor const pkt = _source().alloc_packet(size);
-		char *content = _source().packet_content(pkt);
-		Genode::memcpy((void *)content, (void *)&eth, size);
-		_source().submit_packet(pkt);
-		_domain.raise_tx_bytes(size);
-	}
-	catch (Packet_stream_source::Packet_alloc_failed) {
-		if (_config().verbose()) {
-			log("Failed to allocate packet"); }
+		log("(", _domain, " <- router) ",
+		    *reinterpret_cast<Ethernet_frame *>(pkt_base));
 	}
 }
 

@@ -168,6 +168,14 @@ class Net::Interface : public Genode::List<Interface>::Element
 
 		virtual Packet_stream_source &_source() = 0;
 
+		void _send_alloc_pkt(Genode::Packet_descriptor   &pkt,
+		                     void                      * &pkt_base,
+		                     Genode::size_t               pkt_size);
+
+		void _send_submit_pkt(Genode::Packet_descriptor   &pkt,
+		                      void                      * &pkt_base,
+		                      Genode::size_t               pkt_size);
+
 
 		/***********************************
 		 ** Packet-stream signal handlers **
@@ -212,10 +220,25 @@ class Net::Interface : public Genode::List<Interface>::Element
 
 		~Interface();
 
-
 		void dhcp_allocation_expired(Dhcp_allocation &allocation);
 
-		void send(Ethernet_frame &eth, Genode::size_t const eth_size);
+		template <typename FUNC>
+		void send(Genode::size_t pkt_size, FUNC && write_to_pkt)
+		{
+			try {
+				Packet_descriptor  pkt;
+				void              *pkt_base;
+
+				_send_alloc_pkt(pkt, pkt_base, pkt_size);
+				write_to_pkt(pkt_base);
+				_send_submit_pkt(pkt, pkt_base, pkt_size);
+			}
+			catch (Packet_stream_source::Packet_alloc_failed) {
+				Genode::warning("failed to allocate packet");
+			}
+		}
+
+		void send(Ethernet_frame &eth, Genode::size_t eth_size);
 
 		Link_list &dissolved_links(L3_protocol const protocol);
 
