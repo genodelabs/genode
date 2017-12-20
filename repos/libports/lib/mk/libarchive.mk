@@ -1,5 +1,5 @@
 LIBARCHIVE_DIR = $(call select_from_ports,libarchive)/src/lib/libarchive
-LIBS          += libc zlib
+LIBS          += libc zlib liblzma
 INC_DIR       += $(REP_DIR)/src/lib/libarchive $(LIBARCHIVE_DIR)
 
 ALL_SRC_C := $(notdir $(wildcard $(LIBARCHIVE_DIR)/libarchive/*.c))
