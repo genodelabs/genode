@@ -11,7 +11,7 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#include <base/printf.h>
+#include <base/log.h>
 #include <util/string.h>
 
 #include <sys/stat.h>
@@ -32,13 +32,13 @@ time_t Libc::read_rtc()
 	time_t rtc = 0;
 
 	if (!Genode::strcmp(Libc::config_rtc(), "")) {
-		PWRN("%s: rtc not configured, returning %lld", __func__, (long long)rtc);
+		Genode::warning("rtc not configured, returning ", rtc);
 		return rtc;
 	}
 
 	int fd = open(Libc::config_rtc(), O_RDONLY);
 	if (fd == -1) {
-		PWRN("%s: %s not readable, returning %lld", __func__, Libc::config_rtc(), (long long)rtc);
+		Genode::warning(Genode::Cstring(Libc::config_rtc()), " not readable, returning ", rtc);
 		return rtc;
 	}
 

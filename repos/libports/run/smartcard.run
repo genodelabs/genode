@@ -87,7 +87,7 @@ append config {
 		<resource name="RAM" quantum="4M"/>
 		<config>
 			<vfs>
-				<dir name="dev"> <log/> </dir>
+				<dir name="dev"> <log/> <inline name="rtc">2018-01-01 00:01</inline> </dir>
 				<dir name="ifd-ccid.bundle">
 					<dir name="Contents">
 						<rom name="Info.plist"/>
@@ -97,7 +97,7 @@ append config {
 					<config vendor_id="0x04e6" product_id="0x5116"/>
 				</inline>
 			</vfs>
-			<libc stdout="/dev/log" stderr="/dev/log"/>
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
 		</config>
 	</start>
 </config>}
