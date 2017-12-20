@@ -1,0 +1,45 @@
+create_boot_directory
+
+import_from_depot genodelabs/src/[base_src] \
+                  genodelabs/src/init
+
+install_config {
+<config>
+	<parent-provides>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="PD"/>
+		<service name="RAM"/>
+		<service name="ROM"/>
+	</parent-provides>
+
+	<default-route> <any-service> <parent/> </any-service> </default-route>
+
+	<start name="extract" caps="200">
+		<resource name="RAM" quantum="12M"/>
+		<config verbose="yes">
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/null"/>
+			<vfs>
+				<dir name="archived"> <rom name="test.tar.xz"/> </dir>
+				<dir name="extracted"> <ram/> </dir>
+				<dir name="dev"> <log/> <null/> </dir>
+			</vfs>
+			<extract archive="/archived/test.tar.xz" to="/extracted"/>
+		</config>
+	</start>
+</config>
+}
+
+exec tar cJf [run_dir]/genode/test.tar.xz -C [genode_dir] tool/depot
+
+build { app/extract }
+
+build_boot_image {
+	extract
+	libc.lib.so libm.lib.so posix.lib.so
+	libarchive.lib.so liblzma.lib.so zlib.lib.so
+}
+
+append qemu_args " -nographic "
+
+run_genode_until {child "extract" exited with exit value 0} 30
