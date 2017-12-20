@@ -2,6 +2,22 @@
  * \brief  State tracking for UDP/TCP connections
  * \author Martin Stein
  * \date   2016-08-19
+ *
+ * A link is in the UDP case the state tracking of a pseudo UDP connection
+ * (UDP hole punching) and in the TCP case the state tracking of a TCP
+ * connection. Beside the layer-3 connection state, a link also contains
+ * information about the routing and the NAT translation that correspond to
+ * the connection. Link objects have three different functions:
+ *
+ * 1) Link objects allow the router to manage the lifetime of resources
+ *    related to a layer-3 connection.
+ *
+ * 2) Link objects allow the router to route the back-channel packets of a
+ *    connection without additional routing rules.
+ *
+ * 3) Link objects reduce the routing overhead for successive packets of a
+ *    connection as they gather the required information in one place and as
+ *    preprocessed as possible.
  */
 
 /*
