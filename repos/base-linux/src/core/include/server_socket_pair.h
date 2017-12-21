@@ -33,8 +33,9 @@
 struct Uds_addr : sockaddr_un
 {
 	Uds_addr(long thread_id)
+	:
+		sockaddr_un({.sun_family = AF_UNIX, .sun_path = { }})
 	{
-		sun_family = AF_UNIX;
 		Genode::snprintf(sun_path, sizeof(sun_path), "%s/ep-%ld",
 		                 resource_path(), thread_id);
 	}

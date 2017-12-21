@@ -91,7 +91,7 @@ class Omap4_driver : public Gpio::Driver
 					_irq_enabled[pin] = enable;
 				}
 
-				void ack_irq(int pin) { Genode::warning(__func__, " not implemented"); }
+				void ack_irq(int) { Genode::warning(__func__, " not implemented"); }
 
 				void sigh(int pin, Genode::Signal_context_capability cap) {
 					_sig_cap[pin] = cap; }

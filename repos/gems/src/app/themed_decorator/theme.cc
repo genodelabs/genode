@@ -184,8 +184,8 @@ Decorator::Rect Decorator::Theme::element_geometry(Element_type type) const
 }
 
 
-void Decorator::Theme::draw_background(Decorator::Pixel_surface pixel_surface,
-                                       Decorator::Alpha_surface alpha_surface,
+void Decorator::Theme::draw_background(Decorator::Pixel_surface &pixel_surface,
+                                       Decorator::Alpha_surface &alpha_surface,
                                        unsigned alpha) const
 {
 	/*
@@ -257,8 +257,8 @@ void Decorator::Theme::draw_background(Decorator::Pixel_surface pixel_surface,
 }
 
 
-void Decorator::Theme::draw_title(Decorator::Pixel_surface pixel_surface,
-                                  Decorator::Alpha_surface alpha_surface,
+void Decorator::Theme::draw_title(Decorator::Pixel_surface &pixel_surface,
+                                  Decorator::Alpha_surface &alpha_surface,
                                   char const *title) const
 {
 	/* skip title drawing if the metadata lacks a title declaration */
@@ -277,8 +277,8 @@ void Decorator::Theme::draw_title(Decorator::Pixel_surface pixel_surface,
 }
 
 
-void Decorator::Theme::draw_element(Decorator::Pixel_surface pixel_surface,
-                                    Decorator::Alpha_surface alpha_surface,
+void Decorator::Theme::draw_element(Decorator::Pixel_surface &pixel_surface,
+                                    Decorator::Alpha_surface &alpha_surface,
                                     Element_type element_type,
                                     unsigned alpha) const
 {

@@ -176,7 +176,7 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Framebuffer::Se
 			_timer.trigger_periodic(10*1000);
 		}
 
-		void refresh(int x, int y, int w, int h) override { }
+		void refresh(int, int, int, int) override { }
 };
 
 
@@ -206,6 +206,14 @@ struct Framebuffer::Main
 		/* announce service */
 		_env.parent().announce(_ep.manage(_fb_root));
 	}
+
+	private:
+
+		/*
+		 * Noncopyable
+		 */
+		Main(Main const &);
+		Main &operator = (Main const &);
 };
 
 

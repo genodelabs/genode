@@ -1,4 +1,4 @@
-/**
+/*
  * \brief  AHCI-port driver for ATA devices
  * \author Sebastian Sumpf
  * \date   2015-04-29
@@ -116,7 +116,7 @@ struct String
 /**
  * Commands to distinguish between ncq and non-ncq operation
  */
-struct Io_command
+struct Io_command : Interface
 {
 	virtual void command(Port           &por,
 	                     Command_table  &table,
@@ -154,7 +154,7 @@ struct Ncq_command : Io_command
 
 struct Dma_ext_command : Io_command
 {
-	void command(Port           &port,
+	void command(Port           &,
 	             Command_table  &table,
 	             bool            read,
 	             Block::sector_t block_number,
@@ -182,12 +182,12 @@ struct Ata_driver : Port_driver
 	typedef ::String<Identity::Serial_number> Serial_string;
 	typedef ::String<Identity::Model_number>  Model_string;
 
-	Genode::Constructible<Identity>      info;
-	Genode::Constructible<Serial_string> serial;
-	Genode::Constructible<Model_string>  model;
+	Genode::Constructible<Identity>      info   { };
+	Genode::Constructible<Serial_string> serial { };
+	Genode::Constructible<Model_string>  model  { };
 
-	Io_command                               *io_cmd = nullptr;
-	Block::Packet_descriptor                  pending[32];
+	Io_command               *io_cmd = nullptr;
+	Block::Packet_descriptor  pending[32];
 
 	Signal_context_capability device_identified;
 
@@ -411,6 +411,14 @@ struct Ata_driver : Port_driver
 	{
 		return info->read<Identity::Sector_count>();
 	}
+
+	private:
+
+		/*
+		 * Noncopyable
+		 */
+		Ata_driver(Ata_driver const &);
+		Ata_driver &operator = (Ata_driver const &);
 };
 
 

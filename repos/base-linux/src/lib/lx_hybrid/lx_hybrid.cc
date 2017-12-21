@@ -35,7 +35,7 @@ enum { verbose_atexit = false };
 /**
  * Dummy for symbol that is normally provided by '_main.cc'
  */
-int genode___cxa_atexit(void (*func)(void*), void *arg, void *dso)
+int genode___cxa_atexit(void (*)(void*), void *, void *)
 {
 	if (verbose_atexit)
 		Genode::raw("genode___cxa_atexit called, not implemented\n");
@@ -146,7 +146,9 @@ int main()
 
 /* host libc includes */
 #define size_t __SIZE_TYPE__ /* see comment in 'linux_syscalls.h' */
+#pragma GCC diagnostic ignored "-Weffc++"
 #include <pthread.h>
+#pragma GCC diagnostic pop
 #include <stdio.h>
 #include <errno.h>
 #undef size_t
@@ -161,7 +163,7 @@ static pthread_key_t tls_key()
 {
 	struct Tls_key
 	{
-		pthread_key_t key;
+		pthread_key_t key { };
 
 		Tls_key()
 		{
@@ -188,28 +190,30 @@ namespace Genode {
 		 * 'Stack'. But the POSIX threads of hybrid programs have no 'Stack'
 		 * object. So we have to keep the meta data here.
 		 */
-		Native_thread native_thread;
+		Native_thread native_thread { };
 
 		/**
 		 * Filled out by 'thread_start' function in the stack of the new
 		 * thread
 		 */
-		Thread * const thread_base;
+		Thread &thread_base;
 
 		/**
 		 * POSIX thread handle
 		 */
-		pthread_t pt;
+		pthread_t pt { };
 
 		/**
 		 * Constructor
 		 *
 		 * \param thread  associated 'Thread' object
 		 */
-		Meta_data(Thread *thread) : thread_base(thread)
+		Meta_data(Thread *thread) : thread_base(*thread)
 		{
 			native_thread.meta_data = this;
 		}
+
+		virtual ~Meta_data() { }
 
 		/**
 		 * Used to block the constructor until the new thread has initialized
@@ -247,17 +251,17 @@ namespace Genode {
 			 * Used to block the constructor until the new thread has initialized
 			 * 'id'
 			 */
-			Barrier _construct_lock;
+			Barrier _construct_lock { };
 
 			/**
 			 * Used to block the new thread until 'start' is called
 			 */
-			Barrier _start_lock;
+			Barrier _start_lock { };
 
 			/**
 			 * Used to block the 'join()' function until the 'entry()' is done
 			 */
-			Barrier _join_lock;
+			Barrier _join_lock { };
 
 		public:
 
@@ -362,7 +366,7 @@ static void adopt_thread(Native_thread::Meta_data *meta_data)
 	/*
 	 * Initialize thread meta data
 	 */
-	Native_thread &native_thread = meta_data->thread_base->native_thread();
+	Native_thread &native_thread = meta_data->thread_base.native_thread();
 	native_thread.tid = lx_gettid();
 	native_thread.pid = lx_getpid();
 }
@@ -402,11 +406,11 @@ namespace {
 			return true;
 		}
 
-		void free(void *addr, size_t size) override { ::free(addr); }
+		void free(void *addr, size_t) override { ::free(addr); }
 
 		bool need_size_for_free() const override { return false; }
 
-		size_t overhead(size_t size) const override { return 0; }
+		size_t overhead(size_t) const override { return 0; }
 	};
 }
 
@@ -423,7 +427,7 @@ Thread *Thread::myself()
 	void * const tls = pthread_getspecific(tls_key());
 
 	if (tls != 0)
-		return ((Native_thread::Meta_data *)tls)->thread_base;
+		return &((Native_thread::Meta_data *)tls)->thread_base;
 
 	bool const called_by_main_thread = (lx_getpid() == lx_gettid());
 	if (called_by_main_thread)
@@ -457,7 +461,7 @@ Thread *Thread::myself()
 	 * Initialize 'Thread::_native_thread' to point to the default-
 	 * constructed 'Native_thread' (part of 'Meta_data').
 	 */
-	meta_data->thread_base->_native_thread = &meta_data->native_thread;
+	meta_data->thread_base._native_thread = &meta_data->native_thread;
 	adopt_thread(meta_data);
 
 	return thread;
@@ -482,9 +486,9 @@ void Thread::join()
 Native_thread &Thread::native_thread() { return *_native_thread; }
 
 
-Thread::Thread(size_t weight, const char *name, size_t stack_size,
-               Type type, Cpu_session * cpu_sess, Affinity::Location)
-: _cpu_session(cpu_sess)
+Thread::Thread(size_t weight, const char *name, size_t /* stack size */,
+               Type, Cpu_session * cpu_sess, Affinity::Location)
+: _cpu_session(cpu_sess), _affinity(), _join_lock()
 {
 	Native_thread::Meta_data *meta_data =
 		new (global_alloc()) Thread_meta_data_created(this);
@@ -513,7 +517,7 @@ Thread::Thread(size_t weight, const char *name, size_t stack_size,
 : Thread(weight, name, stack_size, type, &_env_ptr->cpu()) { }
 
 
-Thread::Thread(Env &env, Name const &name, size_t stack_size, Location location,
+Thread::Thread(Env &, Name const &name, size_t stack_size, Location location,
                Weight weight, Cpu_session &cpu)
 : Thread(weight.value, name.string(), stack_size, NORMAL,
          &cpu, location)

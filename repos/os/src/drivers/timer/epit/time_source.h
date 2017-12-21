@@ -27,7 +27,7 @@
 namespace Timer { class Time_source; }
 
 
-class Timer::Time_source : public Genode::Attached_mmio,
+class Timer::Time_source : private Genode::Attached_mmio,
                            public Genode::Signalled_time_source
 {
 	private:

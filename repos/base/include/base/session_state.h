@@ -31,8 +31,7 @@ namespace Genode {
 }
 
 
-class Genode::Session_state : public Parent::Client, public Parent::Server,
-                              Noncopyable
+class Genode::Session_state : public Parent::Client, public Parent::Server
 {
 	public:
 
@@ -41,12 +40,12 @@ class Genode::Session_state : public Parent::Client, public Parent::Server,
 		typedef String<32>  Name;
 		typedef String<256> Args;
 
-		struct Ready_callback
+		struct Ready_callback : Interface
 		{
 			virtual void session_ready(Session_state &) = 0;
 		};
 
-		struct Closed_callback
+		struct Closed_callback : Interface
 		{
 			virtual void session_closed(Session_state &) = 0;
 		};
@@ -69,14 +68,20 @@ class Genode::Session_state : public Parent::Client, public Parent::Server,
 		Args                 _args;
 		Affinity             _affinity;
 
+		/*
+		 * Noncopyable
+		 */
+		Session_state(Session_state const &);
+		Session_state &operator = (Session_state const &);
+
 	public:
 
-		Constructible<Id_space<Parent::Server>::Element> id_at_server;
+		Constructible<Id_space<Parent::Server>::Element> id_at_server { };
 
 		/* ID for session requests towards the parent */
-		Constructible<Id_space<Parent::Client>::Element> id_at_parent;
+		Constructible<Id_space<Parent::Client>::Element> id_at_parent { };
 
-		Parent::Client parent_client;
+		Parent::Client parent_client { };
 
 		enum Phase { CREATE_REQUESTED,
 		             SERVICE_DENIED,
@@ -106,7 +111,7 @@ class Genode::Session_state : public Parent::Client, public Parent::Server,
 		 */
 		Session *local_ptr = nullptr;
 
-		Session_capability cap;
+		Session_capability cap { };
 
 		Ram_quota ram_upgrade { 0 };
 		Cap_quota cap_upgrade { 0 };

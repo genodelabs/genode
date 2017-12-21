@@ -51,6 +51,12 @@ class Genode::Trace::Control_area
 			return (index + 1)*sizeof(Trace::Control) < SIZE;
 		}
 
+		/*
+		 * Noncopyable
+		 */
+		Control_area(Control_area const &);
+		Control_area &operator = (Control_area const &);
+
 	public:
 
 		Control_area()

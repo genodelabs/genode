@@ -29,21 +29,27 @@ namespace Genode {
 		private:
 
 			/*
+			 * Noncopyable
+			 */
+			Io_mem_session_component(Io_mem_session_component const &);
+			Io_mem_session_component &operator = (Io_mem_session_component const &);
+
+			/*
 			 * Helper class used to pass the dataspace attributes as
 			 * parameters from the _prepare_io_mem function to the
 			 * constructor of Dataspace_component.
 			 */
 			struct Dataspace_attr
 			{
-				size_t          size;
-				addr_t          core_local_addr;
-				addr_t          phys_addr;
-				Cache_attribute cacheable;
+				size_t          size            { 0 };
+				addr_t          core_local_addr { 0 };
+				addr_t          phys_addr       { 0 };
+				Cache_attribute cacheable       { UNCACHED };
 
 				/**
 				 * Base address of request used for freeing mem-ranges
 				 */
-				addr_t req_base;
+				addr_t req_base { 0 };
 
 				/**
 				 * Default constructor
@@ -51,7 +57,7 @@ namespace Genode {
 				 * This constructor enables Dataspace_attr objects to be
 				 * returned from the '_prepare_io_mem' function.
 				 */
-				Dataspace_attr() : size(0) { }
+				Dataspace_attr() { }
 
 				/**
 				 * Constructor
@@ -87,8 +93,8 @@ namespace Genode {
 			Range_allocator            *_io_mem_alloc;
 			Io_dataspace_component      _ds;
 			Rpc_entrypoint             *_ds_ep;
-			Io_mem_dataspace_capability _ds_cap;
-			Cache_attribute             _cacheable;
+			Io_mem_dataspace_capability _ds_cap    { };
+			Cache_attribute             _cacheable { UNCACHED };
 
 			Dataspace_attr _prepare_io_mem(const char *args, Range_allocator *ram_alloc);
 

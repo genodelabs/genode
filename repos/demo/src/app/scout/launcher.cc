@@ -40,7 +40,7 @@ class Config_registry
 	private:
 
 		struct Entry;
-		List<Entry> _configs;
+		List<Entry> _configs { };
 
 	public:
 

@@ -53,17 +53,17 @@ class Nitpicker::Session_component : public Rpc_object<Session>
 		 * Physical view
 		 */
 		View_handle _view_handle;
-		Rect        _view_geometry;
-		Point       _view_offset;
+		Rect        _view_geometry { };
+		Point       _view_offset   { };
 
 		/*
 		 * Geometry of virtual view presented to the loaded subsystem
 		 */
-		Rect  _virt_view_geometry;
-		Point _virt_view_offset;
+		Rect  _virt_view_geometry { };
+		Point _virt_view_offset   { };
 		bool  _virt_view_geometry_defined = false;
 
-		Input::Motion_delta _motion_delta;
+		Input::Motion_delta _motion_delta { };
 
 		Input::Session_component _proxy_input;
 
@@ -156,7 +156,7 @@ class Nitpicker::Session_component : public Rpc_object<Session>
 		                  Area                       max_size,
 		                  Nitpicker::View_capability parent_view,
 		                  Signal_context_capability  view_ready_sigh,
-		                  char const                *args)
+		                  char const                * /* args */)
 		:
 			_view_ready_sigh(view_ready_sigh),
 			_ep(ep),
@@ -203,7 +203,7 @@ class Nitpicker::Session_component : public Rpc_object<Session>
 			return View_handle(1);
 		}
 
-		void destroy_view(View_handle view) override { }
+		void destroy_view(View_handle) override { }
 
 		View_handle view_handle(View_capability, View_handle) override
 		{

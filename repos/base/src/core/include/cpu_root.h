@@ -31,6 +31,12 @@ namespace Genode {
 			Allocator              *_md_alloc;
 			Trace::Source_registry &_trace_sources;
 
+			/*
+			 * Noncopyable
+			 */
+			Cpu_root(Cpu_root const &);
+			Cpu_root &operator = (Cpu_root const &);
+
 		protected:
 
 			Cpu_session_component *_create_session(char const *args,

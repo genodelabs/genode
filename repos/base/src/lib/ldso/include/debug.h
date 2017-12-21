@@ -92,9 +92,9 @@ struct Linker::Debug
  */
 struct Linker::Link_map
 {
-	Elf::Addr   addr;    /* base address of library */
-	char const *path;    /* path */
-	void const *dynamic; /* DYNAMIC section */
+	Elf::Addr   addr    { };             /* base address of library */
+	char const *path    { nullptr };     /* path */
+	void const *dynamic { nullptr };     /* DYNAMIC section */
 
 	Link_map   *next = nullptr;
 	Link_map   *prev = nullptr;

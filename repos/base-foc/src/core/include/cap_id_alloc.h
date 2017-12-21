@@ -34,7 +34,8 @@ namespace Genode {
 			};
 
 			Synced_range_allocator<Allocator_avl> _id_alloc;
-			Lock                                  _lock;
+
+			Lock _lock { };
 
 		public:
 

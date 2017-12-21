@@ -36,18 +36,19 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Framebuffer::Se
 
 		Genode::Env &_env;
 
-		struct fb_desc {
+		struct Fb_desc
+		{
 			Genode::uint64_t addr;
 			Genode::uint32_t width;
 			Genode::uint32_t height;
 			Genode::uint32_t pitch;
 			Genode::uint32_t bpp;
-		} _core_fb;
+		} _core_fb { };
 
-		Mode _fb_mode;
+		Mode _fb_mode { };
 
-		Genode::Constructible<Genode::Attached_io_mem_dataspace> _fb_mem;
-		Genode::Constructible<Genode::Attached_ram_dataspace> _fb_ram;
+		Genode::Constructible<Genode::Attached_io_mem_dataspace> _fb_mem { };
+		Genode::Constructible<Genode::Attached_ram_dataspace>    _fb_ram { };
 
 		Timer::Connection timer { _env };
 

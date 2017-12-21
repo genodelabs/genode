@@ -26,10 +26,9 @@ using namespace Genode;
  ************/
 
 Signal::Signal(Signal const &other)
+:
+	_data(other._data.context, other._data.num)
 {
-	_data.context = other._data.context;
-	_data.num     = other._data.num;
-
 	_inc_ref();
 }
 

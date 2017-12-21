@@ -25,7 +25,7 @@ class Genode::Synced_ram_allocator : public Ram_allocator
 {
 	private:
 
-		Lock mutable _lock;
+		Lock mutable _lock { };
 
 		Ram_allocator &_alloc;
 

@@ -26,10 +26,16 @@ namespace Genode {
 	{
 		private:
 
-			Native_capability _parent;
+			Native_capability _parent { };
 			int               _thread_cnt;
 			addr_t const      _pd_sel;
 			const char *      _label;
+
+			/*
+			 * Noncopyable
+			 */
+			Platform_pd(Platform_pd const &);
+			Platform_pd &operator = (Platform_pd const &);
 
 		public:
 

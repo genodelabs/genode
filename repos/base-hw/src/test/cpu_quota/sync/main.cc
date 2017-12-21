@@ -49,7 +49,7 @@ struct Sync_root : public Root_component<Session_component>
 		submitted = 0;
 	}
 
-	Session_component *_create_session(char const *args) override
+	Session_component *_create_session(char const *) override
 	{
 		try { return new (md_alloc()) Session_component(*this); }
 		catch (...) { throw Service_denied(); }

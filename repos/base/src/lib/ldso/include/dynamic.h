@@ -64,6 +64,12 @@ class Linker::Dynamic
 
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Dynamic(Dynamic const &);
+		Dynamic &operator = (Dynamic const &);
+
 		struct Needed : Fifo<Needed>::Element
 		{
 			off_t offset;
@@ -107,7 +113,7 @@ class Linker::Dynamic
 		Elf::Rel            *_rel           = nullptr;
 		unsigned long        _rel_size      = 0;
 
-		Fifo<Needed>         _needed;
+		Fifo<Needed>         _needed { };
 
 		/**
 		 * \throw Dynamic_section_missing

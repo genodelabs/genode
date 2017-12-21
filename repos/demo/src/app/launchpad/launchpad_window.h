@@ -42,6 +42,12 @@ class Launchpad_window : public Scout::Scrollbar_listener,
 {
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Launchpad_window(Launchpad_window const &);
+		Launchpad_window &operator = (Launchpad_window const &);
+
 		/**
 		 * Constants
 		 */
@@ -54,20 +60,20 @@ class Launchpad_window : public Scout::Scrollbar_listener,
 		/**
 		 * Widgets
 		 */
-		Scout::Titlebar<PT>              _titlebar;
-		Scout::Sky_texture<PT, 512, 512> _texture;
-		Scout::Fade_icon<PT, 32, 32>     _sizer;
-		Scout::Scrollbar<PT>             _scrollbar;
-		Genode::List<Child_entry<PT> >   _child_entry_list;
-		Scout::Docview                   _docview;
-		Scout::Spacer                    _spacer;
-		Scout::Document                  _document;
+		Scout::Titlebar<PT>              _titlebar         { };
+		Scout::Sky_texture<PT, 512, 512> _texture          { };
+		Scout::Fade_icon<PT, 32, 32>     _sizer            { };
+		Scout::Scrollbar<PT>             _scrollbar        { };
+		Genode::List<Child_entry<PT> >   _child_entry_list { };
+		Scout::Docview                   _docview          { };
+		Scout::Spacer                    _spacer           { };
+		Scout::Document                  _document         { };
 
-		Section<PT>                      _info_section;
-		Section<PT>                      _launch_section;
-		Section<PT>                      _kiddy_section;
+		Section<PT>                      _info_section     { };
+		Section<PT>                      _launch_section   { };
+		Section<PT>                      _kiddy_section    { };
 
-		Status_entry<PT>                 _status_entry;
+		Status_entry<PT>                 _status_entry     { };
 
 	public:
 
@@ -159,7 +165,7 @@ class Launchpad_window : public Scout::Scrollbar_listener,
 		{
 			/* lookup child entry by its name */
 			Child_entry<PT> *ce = _child_entry_list.first();
-			for ( ; ce; ce = ce->Genode::List<Child_entry<PT> >::Element::next())
+			for ( ; ce; ce = ce->next())
 				if (name == ce->name())
 					break;
 

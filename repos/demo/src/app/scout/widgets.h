@@ -28,6 +28,12 @@ class Scout::Docview : public Parent_element
 {
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Docview(Docview const &);
+		Docview &operator = (Docview const &);
+
 		Element *_bg;
 		Element *_cont;
 		int      _voffset;
@@ -117,10 +123,10 @@ class Scout::Icon : public Generic_icon
 {
 	private:
 
-		PT            _pixel  [H][W];   /* icon pixels in PT pixel format */
-		unsigned char _alpha  [H][W];   /* alpha channel of icon pixels   */
-		unsigned char _shadow [H][W];   /* shadow calculation buffer      */
-		int           _icon_alpha;      /* alpha value of whole icon      */
+		PT            _pixel  [H][W];     /* icon pixels in PT pixel format */
+		unsigned char _alpha  [H][W];     /* alpha channel of icon pixels   */
+		unsigned char _shadow [H][W];     /* shadow calculation buffer      */
+		int           _icon_alpha = 255;  /* alpha value of whole icon      */
 
 	public:
 

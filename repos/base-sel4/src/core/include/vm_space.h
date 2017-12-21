@@ -103,7 +103,7 @@ class Genode::Vm_space
 				 * objects (where we cannot pass any arguments to the
 				 * constructors of the individual objects).
 				 */
-				Constructible<Cnode> _cnode;
+				Constructible<Cnode> _cnode { };
 
 			public:
 
@@ -130,7 +130,7 @@ class Genode::Vm_space
 		/**
 		 * Allocator for the selectors within '_vm_cnodes'
 		 */
-		Bit_allocator<1UL << NUM_VM_SEL_LOG2> _sel_alloc;
+		Bit_allocator<1UL << NUM_VM_SEL_LOG2> _sel_alloc { };
 
 		/**
 		 * Return leaf CNode that contains an index allocated from '_sel_alloc'
@@ -148,7 +148,7 @@ class Genode::Vm_space
 			return Cnode_index(idx & (LEAF_CNODE_SIZE - 1));
 		}
 
-		Lock _lock;
+		Lock _lock { };
 
 		/**
 		 * Return selector for a capability slot within '_vm_cnodes'

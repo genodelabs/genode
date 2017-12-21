@@ -156,9 +156,16 @@ class Genode::Packet_descriptor_queue
 {
 	private:
 
-		unsigned          _head;
-		unsigned          _tail;
-		PACKET_DESCRIPTOR _queue[QUEUE_SIZE];
+		/*
+		 * The anonymous struct is needed to skip the initialization of the
+		 * members, which are shared by both sides of the packet stream.
+		 */
+		struct
+		{
+			unsigned          _head;
+			unsigned          _tail;
+			PACKET_DESCRIPTOR _queue[QUEUE_SIZE];
+		};
 
 	public:
 
@@ -259,15 +266,21 @@ class Genode::Packet_descriptor_transmitter
 	private:
 
 		/* facility to receive ready-to-transmit signals */
-		Genode::Signal_receiver           _tx_ready;
-		Genode::Signal_context            _tx_ready_context;
+		Genode::Signal_receiver           _tx_ready         { };
+		Genode::Signal_context            _tx_ready_context { };
 		Genode::Signal_context_capability _tx_ready_cap;
 
 		/* facility to send ready-to-receive signals */
-		Genode::Signal_transmitter         _rx_ready;
+		Genode::Signal_transmitter         _rx_ready { };
 
-		Genode::Lock _tx_queue_lock;
+		Genode::Lock _tx_queue_lock { };
 		TX_QUEUE    *_tx_queue;
+
+		/*
+		 * Noncopyable
+		 */
+		Packet_descriptor_transmitter(Packet_descriptor_transmitter const &);
+		Packet_descriptor_transmitter &operator = (Packet_descriptor_transmitter const &);
 
 	public:
 
@@ -348,15 +361,21 @@ class Genode::Packet_descriptor_receiver
 	private:
 
 		/* facility to receive ready-to-receive signals */
-		Genode::Signal_receiver           _rx_ready;
-		Genode::Signal_context            _rx_ready_context;
+		Genode::Signal_receiver           _rx_ready         { };
+		Genode::Signal_context            _rx_ready_context { };
 		Genode::Signal_context_capability _rx_ready_cap;
 
 		/* facility to send ready-to-transmit signals */
-		Genode::Signal_transmitter        _tx_ready;
+		Genode::Signal_transmitter        _tx_ready { };
 
-		Genode::Lock mutable  _rx_queue_lock;
+		Genode::Lock mutable  _rx_queue_lock { };
 		RX_QUEUE             *_rx_queue;
+
+		/*
+		 * Noncopyable
+		 */
+		Packet_descriptor_receiver(Packet_descriptor_receiver const &);
+		Packet_descriptor_receiver &operator = (Packet_descriptor_receiver const &);
 
 	public:
 
@@ -431,6 +450,14 @@ class Genode::Packet_stream_base
 		 */
 		class Transport_dataspace_too_small { };
 
+	private:
+
+		/*
+		 * Noncopyable
+		 */
+		Packet_stream_base(Packet_stream_base const &);
+		Packet_stream_base &operator = (Packet_stream_base const &);
+
 	protected:
 
 		Genode::Region_map          &_rm;
@@ -440,7 +467,7 @@ class Genode::Packet_stream_base
 		Genode::off_t  _submit_queue_offset;
 		Genode::off_t  _ack_queue_offset;
 		Genode::off_t  _bulk_buffer_offset;
-		Genode::size_t _bulk_buffer_size;
+		Genode::size_t _bulk_buffer_size { 0 };
 
 		/**
 		 * Constructor

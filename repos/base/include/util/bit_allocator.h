@@ -34,8 +34,8 @@ class Genode::Bit_allocator
 
 		using Array = Bit_array<BITS_ALIGNED>;
 
-		addr_t _next;
-		Array  _array;
+		addr_t _next = 0;
+		Array  _array { };
 
 		/**
 		 * Reserve consecutive number of bits
@@ -53,9 +53,8 @@ class Genode::Bit_allocator
 
 		class Out_of_indices : Exception {};
 
-		Bit_allocator() : _next(0) {
-			_reserve(BITS, BITS_ALIGNED - BITS); }
-		Bit_allocator(const Bit_allocator & o) : _next(0), _array(o._array) { }
+		Bit_allocator() { _reserve(BITS, BITS_ALIGNED - BITS); }
+		Bit_allocator(const Bit_allocator & o) : _array(o._array) { }
 
 		addr_t alloc(size_t const num_log2 = 0)
 		{

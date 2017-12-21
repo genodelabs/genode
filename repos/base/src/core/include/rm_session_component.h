@@ -33,8 +33,8 @@ class Genode::Rm_session_component : public Rpc_object<Rm_session>
 		Allocator_guard   _md_alloc;
 		Pager_entrypoint &_pager_ep;
 
-		Lock                       _region_maps_lock;
-		List<Region_map_component> _region_maps;
+		Lock                       _region_maps_lock { };
+		List<Region_map_component> _region_maps      { };
 
 	public:
 

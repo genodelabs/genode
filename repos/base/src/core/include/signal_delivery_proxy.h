@@ -16,7 +16,7 @@
 
 namespace Genode {
 
-	struct Signal_delivery_proxy
+	struct Signal_delivery_proxy : Interface
 	{
 		GENODE_RPC(Rpc_deliver, void, _deliver_from_ep, Signal_context_capability, unsigned);
 		GENODE_RPC(Rpc_release, void, _release_from_ep, Genode::addr_t);
@@ -37,10 +37,8 @@ namespace Genode {
 		 * \param ep  entrypoint to be used as a proxy for delivering signals
 		 *            as IPC-reply messages.
 		 */
-		Signal_delivery_proxy_component(Rpc_entrypoint &ep) : _ep(ep)
-		{
-			_proxy_cap = _ep.manage(this);
-		}
+		Signal_delivery_proxy_component(Rpc_entrypoint &ep)
+		: _ep(ep), _proxy_cap(_ep.manage(this)) { }
 
 		~Signal_delivery_proxy_component()
 		{

@@ -190,7 +190,7 @@ class Nic_client
 			_handle_link_state(1);
 		}
 
-		Genode::Signal_context_capability &dispatcher()  { return _destruct_dispatcher; }
+		Genode::Signal_context_capability dispatcher()   { return _destruct_dispatcher; }
 		Genode::Signal_receiver           &sig_rec()     { return _sig_rec; }
 		Nic::Mac_address                   mac_address() { return _nic.mac_address(); }
 

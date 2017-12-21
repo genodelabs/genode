@@ -35,6 +35,7 @@ namespace Rom_filter {
 	using Genode::Signal_context_capability;
 	using Genode::Signal_handler;
 	using Genode::Xml_node;
+	using Genode::Interface;
 }
 
 
@@ -45,7 +46,7 @@ class Rom_filter::Input_rom_registry
 		/**
 		 * Callback type
 		 */
-		struct Input_rom_changed_fn
+		struct Input_rom_changed_fn : Interface
 		{
 			virtual void input_rom_changed() = 0;
 		};
@@ -204,7 +205,7 @@ class Rom_filter::Input_rom_registry
 
 		Genode::Env &_env;
 
-		Genode::List<Entry> _input_roms;
+		Genode::List<Entry> _input_roms { };
 
 		Input_rom_changed_fn &_input_rom_changed_fn;
 

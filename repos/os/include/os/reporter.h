@@ -47,7 +47,7 @@ class Genode::Reporter : Noncopyable
 			: report(false, name, buffer_size) { }
 		};
 
-		Constructible<Connection> _conn;
+		Constructible<Connection> _conn { };
 
 		/**
 		 * Return size of report buffer
@@ -61,7 +61,7 @@ class Genode::Reporter : Noncopyable
 
 	public:
 
-		Reporter(Env &env, char const *xml_name, char const *label = nullptr,
+		Reporter(Env &, char const *xml_name, char const *label = nullptr,
 		         size_t buffer_size = 4096)
 		:
 			_xml_name(xml_name), _label(label ? label : xml_name),

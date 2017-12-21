@@ -33,7 +33,7 @@
 
 namespace Nitpicker {
 
-	struct Focus_updater { virtual void update_focus() = 0; };
+	struct Focus_updater : Interface { virtual void update_focus() = 0; };
 
 	template <typename> class Root;
 	struct Main;
@@ -79,7 +79,7 @@ class Nitpicker::Root : public Root_component<Session_component>,
 		Session_list                 &_session_list;
 		Domain_registry const        &_domain_registry;
 		Global_keys                  &_global_keys;
-		Framebuffer::Mode             _scr_mode;
+		Framebuffer::Mode             _scr_mode { };
 		View_stack                   &_view_stack;
 		User_state                   &_user_state;
 		View_component               &_pointer_origin;
@@ -237,9 +237,9 @@ struct Nitpicker::Main : Focus_updater
 	/*
 	 * User-input policy
 	 */
-	Global_keys _global_keys;
+	Global_keys _global_keys { };
 
-	Session_list _session_list;
+	Session_list _session_list { };
 
 	/*
 	 * Construct empty domain registry. The initial version will be replaced
@@ -250,11 +250,11 @@ struct Nitpicker::Main : Focus_updater
 	Reconstructible<Domain_registry> _domain_registry {
 		_domain_registry_heap, Xml_node("<config/>") };
 
-	Focus      _focus;
+	Focus      _focus { };
 	View_stack _view_stack { _fb_screen->screen.size(), _focus };
 	User_state _user_state { _focus, _global_keys, _view_stack };
 
-	View_owner _global_view_owner;
+	View_owner _global_view_owner { };
 
 	/*
 	 * Create view stack with default elements
@@ -276,7 +276,7 @@ struct Nitpicker::Main : Focus_updater
 
 	Attached_rom_dataspace _config_rom { _env, "config" };
 
-	Constructible<Attached_rom_dataspace> _focus_rom;
+	Constructible<Attached_rom_dataspace> _focus_rom { };
 
 	Root<PT> _root = { _env, _config_rom, _session_list, *_domain_registry,
 	                   _global_keys, _view_stack, _user_state, _pointer_origin,

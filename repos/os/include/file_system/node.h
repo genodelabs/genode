@@ -26,7 +26,7 @@ namespace File_system {
 	{
 		private:
 
-			Genode::List<Listener> _listeners;
+			Genode::List<Listener> _listeners { };
 
 			typedef Listener::Version Version;
 

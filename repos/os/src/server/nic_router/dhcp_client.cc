@@ -21,7 +21,7 @@
 using namespace Genode;
 using namespace Net;
 using Message_type       = Dhcp_packet::Message_type;
-using Drop_packet_inform = Interface::Drop_packet_inform;
+using Drop_packet_inform = Net::Interface::Drop_packet_inform;
 
 
 Configuration &Dhcp_client::_config() { return _domain().config(); };
@@ -93,20 +93,23 @@ void Dhcp_client::handle_ip(Ethernet_frame &eth, size_t eth_size)
 	{
 		throw Drop_packet_inform("DHCP client expects Ethernet targeting the router");
 	}
-	Ipv4_packet &ip = *new (eth.data<void>())
-		Ipv4_packet(eth_size - sizeof(Ethernet_frame));
+	Ipv4_packet &ip = *eth.data<Ipv4_packet>();
+	Ipv4_packet::validate_size(eth_size - sizeof(Ethernet_frame));
 
 	if (ip.protocol() != Ipv4_packet::Protocol::UDP) {
 		throw Drop_packet_inform("DHCP client expects UDP packet");
 	}
-	Udp_packet &udp = *new (ip.data<void>())
-		Udp_packet(eth_size - sizeof(Ipv4_packet));
+	Udp_packet &udp = *ip.data<Udp_packet>();
+	Udp_packet::validate_size(eth_size - sizeof(Ethernet_frame)
+		                               - sizeof(Ipv4_packet));
 
 	if (!Dhcp_packet::is_dhcp(&udp)) {
 		throw Drop_packet_inform("DHCP client expects DHCP packet");
 	}
-	Dhcp_packet &dhcp = *new (udp.data<void>())
-		Dhcp_packet(eth_size - sizeof(Ipv4_packet) - sizeof(Udp_packet));
+	Dhcp_packet &dhcp = *udp.data<Dhcp_packet>();
+	Dhcp_packet::validate_size(eth_size - sizeof(Ethernet_frame)
+	                                    - sizeof(Ipv4_packet)
+	                                    - sizeof(Udp_packet));
 
 	if (dhcp.op() != Dhcp_packet::REPLY) {
 		throw Drop_packet_inform("DHCP client expects DHCP reply");

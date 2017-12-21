@@ -36,7 +36,7 @@ namespace Platform {
  */
 struct Platform::Property_message
 {
-	uint32_t buf_size;
+	uint32_t buf_size = 0;
 
 	enum Code { REQUEST          = 0,
 	            RESPONSE_SUCCESS = 0x80000000 };

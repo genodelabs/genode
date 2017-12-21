@@ -38,6 +38,21 @@ class Genode::Receive_window
 
 		~Receive_window();
 
+		/*
+		 * Needed for 'Ipc_pager::set_reply_dst'
+		 */
+		Receive_window &operator = (Receive_window const &other)
+		{
+			_rcv_idx_base = other._rcv_idx_base;
+			return *this;
+		}
+
+		/**
+		 * Copy constructor
+		 */
+		Receive_window(Receive_window const &other)
+		: _rcv_idx_base(other._rcv_idx_base) { }
+
 		void init();
 
 		/**

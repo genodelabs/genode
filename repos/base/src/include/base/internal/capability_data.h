@@ -28,8 +28,8 @@ class Genode::Capability_data
 {
 	private:
 
-		uint8_t     _ref_cnt = 0;  /* reference counter */
-		Rpc_obj_key _rpc_obj_key;  /* key into RPC object pool */
+		uint8_t     _ref_cnt = 0;      /* reference counter */
+		Rpc_obj_key _rpc_obj_key { };  /* key into RPC object pool */
 
 	public:
 

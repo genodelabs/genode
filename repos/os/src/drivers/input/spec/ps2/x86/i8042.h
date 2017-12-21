@@ -85,8 +85,8 @@ class I8042
 	 */
 	enum { MAX_ATTEMPTS = 4096 };
 
-	class _Channel : public Serial_interface,
-	                 public Genode::Ring_buffer<unsigned char, 1024>
+	class _Channel : public  Serial_interface,
+	                 private Genode::Ring_buffer<unsigned char, 1024>
 	{
 		private:
 
@@ -94,6 +94,8 @@ class I8042
 			bool    _aux;
 
 		public:
+
+			using Genode::Ring_buffer<unsigned char, 1024>::add;
 
 			/**
 			 * Constructor
@@ -238,7 +240,7 @@ class I8042
 		 * transactions (read/write sequences) must be protected
 		 * with a lock.
 		 */
-		Genode::Lock _lock;
+		Genode::Lock _lock { };
 
 	public:
 

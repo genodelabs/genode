@@ -22,7 +22,7 @@ class Genode::Irq_object : public Thread_deprecated<4096> {
 
 	private:
 
-		Signal_context_capability _sig_cap;
+		Signal_context_capability _sig_cap { };
 		Lock                      _sync_ack;
 		Lock                      _sync_bootup;
 		unsigned                  _irq;

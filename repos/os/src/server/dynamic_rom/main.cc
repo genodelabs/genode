@@ -53,9 +53,9 @@ class Dynamic_rom::Session_component : public Rpc_object<Genode::Rom_session>
 		unsigned                  _curr_idx = 0;
 		bool                      _has_content = false;
 		unsigned                  _last_content_idx = ~0;
-		Signal_context_capability _sigh;
+		Signal_context_capability _sigh { };
 
-		Constructible<Genode::Attached_ram_dataspace> _ram_ds;
+		Constructible<Genode::Attached_ram_dataspace> _ram_ds { };
 
 		void _notify_client()
 		{

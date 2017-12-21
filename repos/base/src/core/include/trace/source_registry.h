@@ -61,7 +61,7 @@ class Genode::Trace::Source
 		/**
 		 * Interface for querying trace-source information
 		 */
-		struct Info_accessor
+		struct Info_accessor : Interface
 		{
 			virtual Info trace_source_info() const = 0;
 		};
@@ -71,11 +71,17 @@ class Genode::Trace::Source
 		unsigned      const  _unique_id;
 		Info_accessor const &_info;
 		Control             &_control;
-		Dataspace_capability _policy;
-		Dataspace_capability _buffer;
+		Dataspace_capability _policy { };
+		Dataspace_capability _buffer { };
 		Source_owner  const *_owner = nullptr;
 
 		static unsigned _alloc_unique_id();
+
+		/*
+		 * Noncopyable
+		 */
+		Source(Source const &);
+		Source &operator = (Source const &);
 
 	public:
 
@@ -146,8 +152,8 @@ class Genode::Trace::Source_registry
 {
 	private:
 
-		Lock         _lock;
-		List<Source> _entries;
+		Lock         _lock    { };
+		List<Source> _entries { };
 
 	public:
 

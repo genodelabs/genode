@@ -35,7 +35,7 @@ class Genode::Signal_broker
 
 		Allocator                            &_md_alloc;
 		Rpc_entrypoint                       &_source_ep;
-		Object_pool<Signal_context_component> _obj_pool;
+		Object_pool<Signal_context_component> _obj_pool { };
 		Rpc_entrypoint                       &_context_ep;
 		Signal_source_component               _source;
 		Signal_source_capability              _source_cap;
@@ -127,7 +127,7 @@ class Genode::Signal_broker
 			cap_map()->remove(context_cap.local_name(), 0);
 		}
 
-		void submit(Signal_context_capability cap, unsigned cnt)
+		void submit(Signal_context_capability, unsigned)
 		{
 			/*
 			 * On NOVA, signals are submitted directly to the kernel, not

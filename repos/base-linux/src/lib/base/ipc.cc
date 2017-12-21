@@ -182,9 +182,9 @@ namespace {
 
 			typedef Genode::size_t size_t;
 
-			msghdr      _msg;
-			sockaddr_un _addr;
-			iovec       _iovec;
+			msghdr      _msg   { };
+			sockaddr_un _addr  { };
+			iovec       _iovec { };
 			char        _cmsg_buf[CMSG_SPACE(MAX_SDS_PER_MSG*sizeof(int))];
 
 			unsigned _num_sds;
@@ -286,7 +286,7 @@ static void extract_sds_from_message(unsigned start_index,
                                      Genode::Msgbuf_base &buf)
 {
 	unsigned sd_cnt = 0;
-	for (unsigned i = 0; i < min(header.num_caps, Msgbuf_base::MAX_CAPS_PER_MSG); i++) {
+	for (unsigned i = 0; i < min(header.num_caps, (size_t)Msgbuf_base::MAX_CAPS_PER_MSG); i++) {
 
 		unsigned long const badge = header.badges[i];
 

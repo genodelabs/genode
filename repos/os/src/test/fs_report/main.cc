@@ -30,8 +30,8 @@ struct Test::Main
 
 	Timer::Connection _timer { _env };
 
-	Constructible<Reporter> _devices_reporter;
-	Constructible<Reporter> _focus_reporter;
+	Constructible<Reporter> _devices_reporter { };
+	Constructible<Reporter> _focus_reporter   { };
 
 	typedef String<80> Version;
 
@@ -41,8 +41,8 @@ struct Test::Main
 			xml.attribute("version", version); });
 	}
 
-	Constructible<Attached_rom_dataspace> _devices_rom;
-	Constructible<Attached_rom_dataspace> _focus_rom;
+	Constructible<Attached_rom_dataspace> _devices_rom { };
+	Constructible<Attached_rom_dataspace> _focus_rom   { };
 
 	Signal_handler<Main> _devices_rom_update_handler {
 		_env.ep(), *this, &Main::_handle_devices_rom_update };
@@ -50,7 +50,7 @@ struct Test::Main
 	Signal_handler<Main> _focus_rom_update_handler {
 		_env.ep(), *this, &Main::_handle_focus_rom_update };
 
-	Constructible<Timer::One_shot_timeout<Main> > _one_shot_timeout;
+	Constructible<Timer::One_shot_timeout<Main> > _one_shot_timeout { };
 
 	void _handle_init()
 	{

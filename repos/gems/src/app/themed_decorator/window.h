@@ -283,22 +283,21 @@ class Decorator::Window : public Window_base, public Animator::Item
 		{
 			buffer.reset_surface();
 
-			_theme.draw_background(buffer.pixel_surface(),
-			                       buffer.alpha_surface(),
-			                       (int)_alpha);
+			buffer.apply_to_surface([&] (Pixel_surface &pixel,
+			                             Alpha_surface &alpha) {
 
-			_theme.draw_title(buffer.pixel_surface(), buffer.alpha_surface(),
-			                  _title.string());
-			
-			_for_each_element([&] (Element const &element) {
-				_theme.draw_element(buffer.pixel_surface(), buffer.alpha_surface(),
-				                    element.type, element.alpha); });
+				_theme.draw_background(pixel, alpha, (int)_alpha);
 
-			Color const tint_color = _color();
-			if (tint_color != Color(0, 0, 0))
-				Tint_painter::paint(buffer.pixel_surface(),
-				                    Rect(Point(0, 0), buffer.pixel_surface().size()),
-				                    tint_color);
+				_theme.draw_title(pixel, alpha, _title.string());
+				
+				_for_each_element([&] (Element const &element) {
+					_theme.draw_element(pixel, alpha, element.type, element.alpha); });
+
+				Color const tint_color = _color();
+				if (tint_color != Color(0, 0, 0))
+					Tint_painter::paint(pixel, Rect(Point(0, 0), pixel.size()),
+					                    tint_color);
+			});
 
 			buffer.flush_surface();
 

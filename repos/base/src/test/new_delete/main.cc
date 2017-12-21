@@ -23,15 +23,15 @@ using Genode::destroy;
 #define L() log("  ", __func__)
 
 
-struct A     { int a; A() { L(); } virtual ~A() { L(); } };
-struct B     { int b; B() { L(); } virtual ~B() { L(); } };
-struct C : A { int c; C() { L(); } virtual ~C() { L(); } };
-struct D : B { int d; D() { L(); } virtual ~D() { L(); } };
+struct A     { int a = 0; A() { L(); } virtual ~A() { L(); } };
+struct B     { int b = 0; B() { L(); } virtual ~B() { L(); } };
+struct C : A { int c = 0; C() { L(); } virtual ~C() { L(); } };
+struct D : B { int d = 0; D() { L(); } virtual ~D() { L(); } };
 
 
 struct E : C, D
 {
-	int e;
+	int e = 0;
 
 	E(bool thro) { L(); if (thro) { log("throw exception"); throw 1; } }
 

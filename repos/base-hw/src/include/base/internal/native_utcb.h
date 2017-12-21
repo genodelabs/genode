@@ -59,29 +59,43 @@ class Genode::Native_utcb
 	private:
 
 		/*
-		 * Note, the member variables are put into a header structure to ensure
-		 * the header is padded by the compiler to the next machine-word
-		 * boundary and '_data' is aligned. This also makes the dimensioning of
-		 * '_data' easy (page size - size of header).
+		 * Note that the members must not be touched at construction time. For
+		 * this reason, they are backed by the uninitialized '_raw' array and
+		 * indirectly accessed via a 'Header *' pointer.
+		 *
+		 * The array part beyond the 'Header' is used to carry IPC message
+		 * payload.
 		 */
-		struct {
+		struct Header
+		{
 			size_t          cap_cnt;            /* capability counter */
 			size_t          data_size;          /* bytes to transfer  */
 			long            exception_code;     /* result code of RPC */
 			Kernel::capid_t destination;        /* invoked object     */
 			Kernel::capid_t caps[MAX_CAP_ARGS]; /* capability buffer  */
-		}       _header; /* is padded to machine word boundary by the compiler */
-		uint8_t _data[get_page_size() - sizeof(_header)];
+		};
+
+		uint8_t _raw[get_page_size()];
+
+		Header       &_header()       { return *reinterpret_cast<Header *>      (this); }
+		Header const &_header() const { return *reinterpret_cast<Header const *>(this); }
+
+		uint8_t       *_data()       { return &_raw[sizeof(Header)]; }
+		uint8_t const *_data() const { return &_raw[sizeof(Header)]; }
+
+		static constexpr size_t _max_data_size = get_page_size() - sizeof(Header);
 
 	public:
 
+		Native_utcb() { }
+
 		Native_utcb& operator= (const Native_utcb &other)
 		{
-			_header.cap_cnt        = 0;
-			_header.data_size      = min(sizeof(_data), other._header.data_size);
-			_header.exception_code = other._header.exception_code;
-			_header.destination    = other._header.destination;
-			memcpy(_data, other._data, _header.data_size);
+			_header().cap_cnt        = 0;
+			_header().data_size      = min(_max_data_size, other._header().data_size);
+			_header().exception_code = other._header().exception_code;
+			_header().destination    = other._header().destination;
+			memcpy(_data(), other._data(), _header().data_size);
 
 			return *this;
 		}
@@ -89,49 +103,49 @@ class Genode::Native_utcb
 		/**
 		 * Set the destination capability id (server object identity)
 		 */
-		void destination(Kernel::capid_t id) { _header.destination = id; }
+		void destination(Kernel::capid_t id) { _header().destination = id; }
 
 		/**
 		 * Return identity of invoked server object
 		 */
-		Kernel::capid_t destination() const { return _header.destination; }
+		Kernel::capid_t destination() const { return _header().destination; }
 
-		void exception_code(long code) { _header.exception_code = code; }
+		void exception_code(long code) { _header().exception_code = code; }
 
-		long exception_code() const { return _header.exception_code; }
+		long exception_code() const { return _header().exception_code; }
 
 		/**
 		 * Return the count of capabilities in the UTCB
 		 */
-		size_t cap_cnt() const { return _header.cap_cnt; }
+		size_t cap_cnt() const { return _header().cap_cnt; }
 
 		/**
 		 * Set the count of capabilities in the UTCB
 		 */
-		void cap_cnt(size_t cnt) { _header.cap_cnt = cnt;  }
+		void cap_cnt(size_t cnt) { _header().cap_cnt = cnt;  }
 
 		/**
 		 * Return the start address of the payload data
 		 */
-		void const *data() const { return &_data[0]; }
-		void       *data()       { return &_data[0]; }
+		void const *data() const { return &_data()[0]; }
+		void       *data()       { return &_data()[0]; }
 
 		/**
 		 * Return maximum number of bytes for message payload
 		 */
-		size_t capacity() const { return sizeof(_data); }
+		size_t capacity() const { return _max_data_size; }
 
 		/**
 		 * Return size of message data in bytes
 		 */
-		size_t data_size() const { return _header.data_size; }
+		size_t data_size() const { return _header().data_size; }
 
 		/**
 		 * Define size of message data to be transferred, in bytes
 		 */
 		void data_size(size_t data_size)
 		{
-			_header.data_size = min(data_size, sizeof(_data));
+			_header().data_size = min(data_size, _max_data_size);
 		}
 
 		/**
@@ -139,7 +153,7 @@ class Genode::Native_utcb
 		 */
 		Kernel::capid_t cap_get(unsigned i) const
 		{
-			return (i < MAX_CAP_ARGS) ? _header.caps[i] : Kernel::cap_id_invalid();
+			return (i < MAX_CAP_ARGS) ? _header().caps[i] : Kernel::cap_id_invalid();
 		}
 
 		/**
@@ -148,14 +162,15 @@ class Genode::Native_utcb
 		void cap_set(unsigned i, Kernel::capid_t cap)
 		{
 			if (i < MAX_CAP_ARGS)
-				_header.caps[i] = cap;
+				_header().caps[i] = cap;
 		}
 
 		/**
 		 * Set the capability id 'cap_id' at the next index
 		 */
 		void cap_add(Kernel::capid_t cap_id) {
-			if (_header.cap_cnt < MAX_CAP_ARGS) _header.caps[_header.cap_cnt++] = cap_id; }
+			if (_header().cap_cnt < MAX_CAP_ARGS)
+				_header().caps[_header().cap_cnt++] = cap_id; }
 };
 
 static_assert(sizeof(Genode::Native_utcb) == Genode::get_page_size(),

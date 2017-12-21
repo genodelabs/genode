@@ -105,7 +105,7 @@ class Net::Dhcp_packet
 		};
 
 
-		Dhcp_packet(Genode::size_t size) {
+		static void validate_size(Genode::size_t size) {
 			/* dhcp packet needs to fit in */
 			if (size < sizeof(Dhcp_packet))
 				throw No_dhcp_packet();
@@ -162,8 +162,6 @@ class Net::Dhcp_packet
 
 				Option(Code code, Genode::uint8_t len)
 				: _code((Genode::uint8_t)code), _len(len) { }
-
-				Option() { }
 
 				Code             code() const { return (Code)_code; }
 				Genode::uint8_t len()   const { return _len; }
@@ -374,7 +372,7 @@ class Net::Dhcp_packet
 		{
 			void *ptr = &_opts;
 			while (true) {
-				Option &opt = *Genode::construct_at<Option>(ptr);
+				Option &opt = *reinterpret_cast<Option *>(ptr);
 				if (opt.code() == Option::Code::INVALID ||
 				    opt.code() == Option::Code::END)
 				{
@@ -446,7 +444,7 @@ class Net::Dhcp_packet
 		/**
 		 * Placement new.
 		 */
-		void * operator new(__SIZE_TYPE__ size, void* addr) { return addr; }
+		void * operator new(__SIZE_TYPE__, void* addr) { return addr; }
 
 
 		/*********

@@ -56,6 +56,12 @@ class Iso::File : public File_base
 {
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		File(File const &);
+		File &operator = (File const &);
+
 		Genode::Allocator        &_alloc;
 
 		File_info                *_info;
@@ -83,7 +89,13 @@ class Iso::Rom_component : public Genode::Rpc_object<Rom_session>
 {
 	private:
 
-		File *_file;
+		/*
+		 * Noncopyable
+		 */
+		Rom_component(Rom_component const &);
+		Rom_component &operator = (Rom_component const &);
+
+		File *_file = nullptr;
 
 		File *_lookup(File_cache &cache, char const *path)
 		{
@@ -130,7 +142,7 @@ class Iso::Root : public Iso::Root_component
 		 * Entries in the cache are never freed, even if the ROM session
 		 * gets destroyed.
 		 */
-		File_cache _cache;
+		File_cache _cache { };
 
 		char _path[PATH_LENGTH];
 

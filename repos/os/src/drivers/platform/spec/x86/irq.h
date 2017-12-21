@@ -28,16 +28,18 @@ namespace Platform {
 }
 
 
-class Platform::Irq_session_component : public Genode::Rpc_object<Genode::Irq_session>,
-                                        public Genode::List<Irq_session_component>::Element
+class Platform::Irq_session_component : public  Genode::Rpc_object<Genode::Irq_session>,
+                                        private Genode::List<Irq_session_component>::Element
 {
 	private:
 
-		unsigned                  _gsi;
-		Platform::Irq_sigh        _irq_sigh;
-		Genode::Irq_session::Info _msi_info;
+		friend class Genode::List<Irq_session_component>;
 
-		Genode::Constructible<Genode::Irq_connection> _irq_conn;
+		unsigned                  _gsi;
+		Platform::Irq_sigh        _irq_sigh { };
+		Genode::Irq_session::Info _msi_info { };
+
+		Genode::Constructible<Genode::Irq_connection> _irq_conn { };
 
 	public:
 
@@ -64,8 +66,11 @@ class Platform::Irq_session_component : public Genode::Rpc_object<Genode::Irq_se
 
 		void ack_irq() override;
 		void sigh(Genode::Signal_context_capability) override;
-		Info info() override { 
-			return { .type = Genode::Irq_session::Info::Type::INVALID }; }
+
+		Info info() override
+		{
+			return { .type = Info::Type::INVALID, .address = 0, .value = 0 };
+		}
 };
 
 

@@ -399,14 +399,13 @@ namespace Sd_card {
 			 * Returns the version of the card
 			 */
 			Csd3::Version::Type version() const { return _version; }
-
 	};
 
 
 	/**
 	 * SD card host controller
 	 */
-	class Host_controller
+	class Host_controller : Genode::Interface
 	{
 		public:
 

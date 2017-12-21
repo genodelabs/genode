@@ -174,8 +174,8 @@ namespace Genode {
 	{
 		private:
 
-			Avl_tree<Cap_index> _tree;
-			Spin_lock           _lock;
+			Avl_tree<Cap_index> _tree { };
+			Spin_lock           _lock { };
 
 		public:
 

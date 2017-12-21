@@ -26,6 +26,12 @@ class Genode::Account
 {
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Account(Account const &);
+		Account &operator = (Account const &);
+
 		Quota_guard<UNIT> &_quota_guard;
 
 		Session::Label const &_label;
@@ -50,7 +56,7 @@ class Genode::Account
 			return UNIT { _quota_guard.limit().value - _initial_limit.value };
 		}
 
-		Lock mutable _lock;
+		Lock mutable _lock { };
 
 		/*
 		 * Reference account
@@ -61,12 +67,12 @@ class Genode::Account
 		 * Registry of accounts that have this account as their reference
 		 * account.
 		 */
-		Registry<Account> _ref_account_members;
+		Registry<Account> _ref_account_members { };
 
 		/*
 		 * Role as reference-account user
 		 */
-		Constructible<typename Registry<Account>::Element> _ref_account_member;
+		Constructible<typename Registry<Account>::Element> _ref_account_member { };
 
 		/**
 		 * Assign 'this' as reference account of 'account'

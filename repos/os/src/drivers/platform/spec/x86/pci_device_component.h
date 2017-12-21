@@ -29,29 +29,42 @@
 
 namespace Platform { class Device_component; class Session_component; }
 
-class Platform::Device_component : public Genode::Rpc_object<Platform::Device>,
-                                   public Genode::List<Device_component>::Element
+class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
+                                   private Genode::List<Device_component>::Element
 {
 	private:
 
+		friend class Genode::List<Device_component>;
+
+		/*
+		 * Noncopyable
+		 */
+		Device_component(Device_component const &);
+		Device_component &operator = (Device_component const &);
+
 		Genode::Env                 &_env;
-		Device_config                _device_config;
+		Device_config                _device_config { };
 		Genode::addr_t               _config_space;
-		Config_access                _config_access = { _env };
+		Config_access                _config_access { _env };
 		Platform::Session_component &_session;
 		unsigned short               _irq_line;
 		Irq_session_component       *_irq_session = nullptr;
 
-		Genode::Constructible<Genode::Io_mem_connection> _io_mem_config_extended;
+		Genode::Constructible<Genode::Io_mem_connection> _io_mem_config_extended { };
 
 		Genode::Allocator           &_global_heap;
 
-		class Io_mem : public Genode::Io_mem_connection,
-		               public Genode::List<Io_mem>::Element
+		class Io_mem : public  Genode::Io_mem_connection,
+		               private Genode::List<Io_mem>::Element
 		{
+			private:
+
+				friend class Genode::List<Io_mem>;
+
 			public:
+
 				Io_mem (Genode::Env &env, Genode::addr_t base,
-			            Genode::size_t size, bool wc)
+				        Genode::size_t size, bool wc)
 				: Genode::Io_mem_connection(env, base, size, wc) { }
 		};
 

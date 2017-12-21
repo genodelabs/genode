@@ -25,7 +25,7 @@ namespace Genode { namespace Trace {
 } }
 
 
-class Genode::Trace::Policy_owner { };
+class Genode::Trace::Policy_owner : Interface { };
 
 
 class Genode::Trace::Policy : public Genode::List<Genode::Trace::Policy>::Element
@@ -75,8 +75,8 @@ class Genode::Trace::Policy_registry
 
 	private:
 
-		Lock         _lock;
-		List<Policy> _policies;
+		Lock         _lock     { };
+		List<Policy> _policies { };
 
 		Policy *_unsynchronized_lookup(Policy_owner const &owner, Policy_id id)
 		{

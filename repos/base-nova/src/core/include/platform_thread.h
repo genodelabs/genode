@@ -63,6 +63,12 @@ namespace Genode {
 			inline bool sc_created()  const { return _features & SC_CREATED; }
 			inline bool remote_pd()   const { return _features & REMOTE_PD; }
 
+			/*
+			 * Noncopyable
+			 */
+			Platform_thread(Platform_thread const &);
+			Platform_thread &operator = (Platform_thread const &);
+
 		public:
 
 			/* mark as vcpu in remote pd if it is a vcpu */
@@ -193,7 +199,7 @@ namespace Genode {
 			/**
 			 * Set CPU quota of the thread to 'quota'
 			 */
-			void quota(size_t const quota) { /* not supported*/ }
+			void quota(size_t const) { /* not supported*/ }
 
 			/**
 			 * Return execution time consumed by the thread

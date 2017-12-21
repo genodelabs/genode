@@ -99,7 +99,7 @@ static inline bool Test::xml_matches(Xml_node expected, Xml_node node)
 }
 
 
-struct Test::Log_message_handler
+struct Test::Log_message_handler : Interface
 {
 	typedef String<Log_session::MAX_STRING_LEN> Message;
 
@@ -206,7 +206,7 @@ struct Test::Main : Log_message_handler
 		});
 	}
 
-	Log_message_handler::Message _expected_log_message;
+	Log_message_handler::Message _expected_log_message { };
 
 	unsigned const _num_steps = _config.xml().num_sub_nodes();
 	unsigned       _curr_step = 0;

@@ -46,6 +46,7 @@ namespace Genode {
 	class Rm_client;
 	class Rm_region;
 	class Rm_faulter;
+	class Rm_session_component;
 }
 
 
@@ -112,14 +113,22 @@ class Genode::Rm_region : public List<Rm_region>::Element
  * be able to handle faults by arbitrary clients (not only its own
  * clients), it maintains the list head of faulters.
  */
-class Genode::Rm_faulter : public Fifo<Rm_faulter>::Element
+class Genode::Rm_faulter : Fifo<Rm_faulter>::Element, Interface
 {
 	private:
 
-		Pager_object                   *_pager_object;
-		Lock                            _lock;
-		Weak_ptr<Region_map_component>  _faulting_region_map;
-		Region_map::State               _fault_state;
+		Pager_object                   *_pager_object = nullptr;
+		Lock                            _lock { };
+		Weak_ptr<Region_map_component>  _faulting_region_map { };
+		Region_map::State               _fault_state { };
+
+		/*
+		 * Noncopyable
+		 */
+		Rm_faulter(Rm_faulter const &);
+		Rm_faulter &operator = (Rm_faulter const &);
+
+		friend class Fifo<Rm_faulter>;
 
 	public:
 
@@ -130,8 +139,9 @@ class Genode::Rm_faulter : public Fifo<Rm_faulter>::Element
 		 *
 		 * Currently, there is only one pager in core.
 		 */
-		Rm_faulter(Pager_object *pager_object) :
-			_pager_object(pager_object) { }
+		Rm_faulter(Pager_object *pager_object) : _pager_object(pager_object) { }
+
+		using Fifo<Rm_faulter>::Element::next;
 
 		/**
 		 * Assign fault state
@@ -172,11 +182,19 @@ class Genode::Rm_faulter : public Fifo<Rm_faulter>::Element
  * class represents the thread's role as member of this address space.
  */
 class Genode::Rm_client : public Pager_object, public Rm_faulter,
-                          public List<Rm_client>::Element
+                          private List<Rm_client>::Element
 {
 	private:
 
-		Region_map_component   *_region_map;
+		friend class List<Rm_client>;
+
+		Region_map_component *_region_map = nullptr;
+
+		/*
+		 * Noncopyable
+		 */
+		Rm_client(Rm_client const &);
+		Rm_client &operator = (Rm_client const &);
 
 	public:
 
@@ -208,11 +226,13 @@ class Genode::Rm_client : public Pager_object, public Rm_faulter,
 };
 
 
-class Genode::Region_map_component : public Genode::Weak_object<Genode::Region_map_component>,
-                                     public Rpc_object<Region_map>,
-                                     public List<Region_map_component>::Element
+class Genode::Region_map_component : private Weak_object<Region_map_component>,
+                                     public  Rpc_object<Region_map>,
+                                     private List<Region_map_component>::Element
 {
 	private:
+
+		friend class List<Region_map_component>;
 
 		Session::Diag const _diag;
 
@@ -222,10 +242,17 @@ class Genode::Region_map_component : public Genode::Weak_object<Genode::Region_m
 
 		Allocator &_md_alloc;
 
-		Signal_transmitter _fault_notifier;  /* notification mechanism for
-		                                        region-manager faults */
+		Signal_transmitter _fault_notifier { };  /* notification mechanism for
+		                                            region-manager faults */
 
 		Address_space  *_address_space { nullptr };
+
+		/*
+		 * Noncopyable
+		 */
+		Region_map_component(Region_map_component const &);
+		Region_map_component &operator = (Region_map_component const &);
+
 
 		/*********************
 		 ** Paging facility **
@@ -249,7 +276,7 @@ class Genode::Region_map_component : public Genode::Weak_object<Genode::Region_m
 		{
 			private:
 
-				Native_capability _rm_cap;
+				Native_capability _rm_cap { };
 
 			public:
 
@@ -281,11 +308,11 @@ class Genode::Region_map_component : public Genode::Weak_object<Genode::Region_m
 
 		Allocator_avl_tpl<Rm_region>  _map;          /* region map for attach,
 		                                                detach, pagefaults */
-		Fifo<Rm_faulter>              _faulters;     /* list of threads that faulted at
+		Fifo<Rm_faulter>              _faulters { }; /* list of threads that faulted at
 		                                                the region map and wait
 		                                                for fault resolution */
-		List<Rm_client>               _clients;      /* list of RM clients using this region map */
-		Lock                          _lock;         /* lock for map and list */
+		List<Rm_client>               _clients  { }; /* list of RM clients using this region map */
+		Lock                          _lock     { }; /* lock for map and list */
 		Pager_entrypoint             *_pager_ep;
 		Rm_dataspace_component        _ds;           /* dataspace representation of region map */
 		Dataspace_capability          _ds_cap;
@@ -343,6 +370,14 @@ class Genode::Region_map_component : public Genode::Weak_object<Genode::Region_m
 		                     Session::Diag     diag);
 
 		~Region_map_component();
+
+		using Weak_object<Region_map_component>::weak_ptr;
+		friend class Locked_ptr<Region_map_component>;
+
+		bool equals(Weak_ptr<Region_map_component> const &other)
+		{
+			return (this == static_cast<Region_map_component *>(other.obj()));
+		}
 
 		void address_space(Address_space *space) { _address_space = space; }
 		Address_space *address_space() { return _address_space; }

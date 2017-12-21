@@ -33,6 +33,12 @@ class Scout::Nitpicker_graphics_backend : public Graphics_backend
 {
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Nitpicker_graphics_backend(Nitpicker_graphics_backend const &);
+		Nitpicker_graphics_backend &operator = (Nitpicker_graphics_backend const &);
+
 		Genode::Region_map &_local_rm;
 
 		Nitpicker::Connection &_nitpicker;
@@ -154,8 +160,9 @@ class Scout::Nitpicker_graphics_backend : public Graphics_backend
 
 		void bring_to_front()
 		{
-			typedef Nitpicker::Session::Command Command;
-			_nitpicker.enqueue<Command::To_front>(_view);
+			typedef Nitpicker::Session::Command     Command;
+			typedef Nitpicker::Session::View_handle View_handle;
+			_nitpicker.enqueue<Command::To_front>(_view, View_handle());
 			_nitpicker.execute();
 		}
 

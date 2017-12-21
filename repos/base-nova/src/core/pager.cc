@@ -435,10 +435,10 @@ uint8_t Pager_object::client_recall(bool get_state_and_block)
 
 uint8_t Pager_object::_unsynchronized_client_recall(bool get_state_and_block)
 {
-	enum { STATE_REQUESTED = 1 };
+	enum { STATE_REQUESTED = 1UL, STATE_INVALID = ~0UL };
 
 	uint8_t res = ec_ctrl(EC_RECALL, _state.sel_client_ec,
-	                      get_state_and_block ? STATE_REQUESTED : ~0UL);
+	                      get_state_and_block ? STATE_REQUESTED : STATE_INVALID);
 
 	if (res != NOVA_OK)
 		return res;
@@ -781,16 +781,10 @@ void Pager_object::_oom_handler(addr_t pager_dst, addr_t pager_src,
 
 
 	/* check assertions - cases that should not happen on Genode@Nova */
-	enum { NO_OOM_PT = ~0UL, EC_OF_PT_OOM_OUTSIDE_OF_CORE };
+	enum { NO_OOM_PT = 0UL };
 
 	/* all relevant (user) threads should have a OOM PT */
 	bool assert = pager_dst == NO_OOM_PT;
-
-	/*
-	 * PT OOM solely created by core and they have to point to the pager
-	 * thread inside core.
-	 */
-	assert |= pager_dst == EC_OF_PT_OOM_OUTSIDE_OF_CORE;
 
 	/*
 	 * This pager thread does solely reply to IPC calls - it should never
@@ -934,8 +928,7 @@ void Pager_activation_base::entry() { }
  ** Pager entrypoint **
  **********************/
 
-
-Pager_entrypoint::Pager_entrypoint(Rpc_cap_factory &cap_factory)
+Pager_entrypoint::Pager_entrypoint(Rpc_cap_factory &)
 {
 	/* sanity check for pager threads */
 	if (kernel_hip()->cpu_max() > PAGER_CPUS) {

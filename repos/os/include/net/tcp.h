@@ -72,8 +72,7 @@ class Net::Tcp_packet
 
 		class No_tcp_packet : Exception {};
 
-
-		Tcp_packet(size_t size) {
+		static void validate_size(Genode::size_t size) {
 			if (size < sizeof(Tcp_packet)) { throw No_tcp_packet(); } }
 
 
@@ -153,7 +152,7 @@ class Net::Tcp_packet
 		/**
 		 * Placement new
 		 */
-		void * operator new(__SIZE_TYPE__ size, void * addr) { return addr; }
+		void * operator new(__SIZE_TYPE__, void * addr) { return addr; }
 
 
 		/*********

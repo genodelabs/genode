@@ -31,7 +31,7 @@ Genode::Log &Genode::Log::log()
 		struct Write_fn : Core_log
 		{
 			void operator () (char const *s) { output(s); }
-		} function;
+		} function { };
 
 		Buffered_output<512, Write_fn> buffer { function };
 		Log                            log    { buffer   };

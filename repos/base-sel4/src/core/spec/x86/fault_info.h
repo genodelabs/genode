@@ -29,7 +29,7 @@ struct Fault_info
 		ERR_P = 1 << 0,
 	};
 
-	Fault_info(seL4_MessageInfo_t msg_info)
+	Fault_info(seL4_MessageInfo_t)
 	:
 		ip(seL4_GetMR(0)),
 		pf(seL4_GetMR(1)),

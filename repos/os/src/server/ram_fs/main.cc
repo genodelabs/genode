@@ -50,7 +50,7 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 		Genode::Ram_session              &_ram;
 		Genode::Allocator                &_alloc;
 		Directory                        &_root;
-		Id_space<File_system::Node>       _open_node_registry;
+		Id_space<File_system::Node>       _open_node_registry { };
 		bool                              _writable;
 
 		Signal_handler<Session_component> _process_packet_handler;

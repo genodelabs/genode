@@ -25,7 +25,7 @@ struct Genode::Signal_source_rpc_object : Rpc_object<SeL4_signal_source,
 {
 	protected:
 
-		Native_capability _notify;
+		Native_capability _notify { };
 
 	public:
 

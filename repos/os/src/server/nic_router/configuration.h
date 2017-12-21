@@ -39,8 +39,8 @@ class Net::Configuration
 		Genode::Microseconds const  _udp_idle_timeout;
 		Genode::Microseconds const  _tcp_idle_timeout;
 		Genode::Microseconds const  _tcp_max_segm_lifetime;
-		Pointer<Report>             _report;
-		Domain_tree                 _domains;
+		Pointer<Report>             _report  { };
+		Domain_tree                 _domains { };
 		Genode::Xml_node     const  _node;
 
 	public:

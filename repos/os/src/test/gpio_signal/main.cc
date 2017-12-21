@@ -26,8 +26,8 @@ struct Main
 {
 	Env                    &env;
 	Attached_rom_dataspace  config       { env, "config" };
-	Signal_receiver         sig_rec;
-	Signal_context          sig_ctx;
+	Signal_receiver         sig_rec      { };
+	Signal_context          sig_ctx      { };
 	Timer::Connection       timer        { env };
 	unsigned                gpio_pin     { config.xml().attribute_value("gpio_pin", (unsigned)16) };
 	unsigned                gpio_pin_in  { config.xml().attribute_value("gpio_pin_in", (unsigned)17) };

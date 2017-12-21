@@ -33,7 +33,7 @@ class Timer::Threaded_time_source : public Genode::Time_source,
 {
 	private:
 
-		struct Irq_dispatcher
+		struct Irq_dispatcher : Genode::Interface
 		{
 			GENODE_RPC(Rpc_do_dispatch, void, do_dispatch);
 			GENODE_RPC_INTERFACE(Rpc_do_dispatch);
@@ -42,6 +42,16 @@ class Timer::Threaded_time_source : public Genode::Time_source,
 		struct Irq_dispatcher_component : Genode::Rpc_object<Irq_dispatcher,
 		                                                     Irq_dispatcher_component>
 		{
+			private:
+
+				/*
+				 * Noncopyable
+				 */
+				Irq_dispatcher_component(Irq_dispatcher_component const &);
+				Irq_dispatcher_component &operator = (Irq_dispatcher_component const &);
+
+			public:
+
 				Timeout_handler *handler = nullptr;
 				Threaded_time_source &ts;
 

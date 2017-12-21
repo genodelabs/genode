@@ -15,6 +15,7 @@
 #define _UTILS_H_
 
 /* Genode includes */
+#include <util/interface.h>
 #include <ram_session/ram_session.h>
 
 namespace Utils {
@@ -26,7 +27,7 @@ namespace Utils {
 	/*
 	 * Backend allocator interface
 	 */
-	struct Backend_alloc
+	struct Backend_alloc : Genode::Interface
 	{
 		virtual Ram alloc(Genode::Allocator_guard &, Genode::size_t) = 0;
 		virtual void free(Genode::Allocator_guard &, Ram) = 0;
@@ -48,12 +49,12 @@ class Utils::Address_map
 
 		struct Element
 		{
-			Ram       ds_cap;
-			void     *va;
-			void     *pa;
-			uint32_t  index;
+			Ram      ds_cap { };
+			void    *va     { nullptr };
+			void    *pa     { nullptr };
+			uint32_t index  { 0 };
 
-			Element() : ds_cap(Ram()), va(nullptr), pa(nullptr), index(0) { }
+			Element() { }
 
 			Element(uint32_t index, Ram ds_cap, void *va)
 			:
@@ -62,6 +63,21 @@ class Utils::Address_map
 				pa((void *)Genode::Dataspace_client(ds_cap).phys_addr()),
 				index(index)
 			{ }
+
+			Element(Element const &other)
+			:
+				ds_cap(other.ds_cap), va(other.va), pa(other.pa),
+				index(other.index)
+			{ }
+
+			Element &operator = (Element const &other)
+			{
+				ds_cap = other.ds_cap;
+				va     = other.va;
+				pa     = other.pa;
+				index  = other.index;
+				return *this;
+			}
 
 			bool valid() { return va && pa; }
 		};

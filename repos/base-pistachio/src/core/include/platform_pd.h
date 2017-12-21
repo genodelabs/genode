@@ -29,6 +29,12 @@ namespace Genode {
 	{
 		private:
 
+			/*
+			 * Noncopyable
+			 */
+			Platform_pd(Platform_pd const &);
+			Platform_pd &operator = (Platform_pd const &);
+
 			friend class Platform_thread;
 
 			/*
@@ -46,10 +52,10 @@ namespace Genode {
 				PD_INVALID   = -1,
 			};
 
-			unsigned _pd_id;    /* plain pd number */
-			unsigned _version;  /* version number */
+			unsigned _pd_id   = 0;
+			unsigned _version = 0;
 
-			Pistachio::L4_ThreadId_t _l4_task_id;  /* L4 task ID */
+			Pistachio::L4_ThreadId_t _l4_task_id { };  /* L4 task ID */
 
 			/**
 			 * Manually construct L4 thread ID from its components
@@ -127,8 +133,8 @@ namespace Genode {
 				return static_pds;
 			}
 
-			Pistachio::L4_Word_t _kip_ptr;
-			Pistachio::L4_Word_t _utcb_ptr;
+			Pistachio::L4_Word_t _kip_ptr  = 0;
+			Pistachio::L4_Word_t _utcb_ptr = 0;
 
 			/**
 			 * Protection-domain creation
@@ -195,7 +201,7 @@ namespace Genode {
 			/**
 			 * Register quota donation at allocator guard
 			 */
-			void upgrade_ram_quota(size_t ram_quota) { }
+			void upgrade_ram_quota(size_t) { }
 
 			static Pistachio::L4_Word_t _core_utcb_ptr;
 			static void touch_utcb_space();
@@ -219,7 +225,7 @@ namespace Genode {
 			/**
 			 * Assign parent interface to protection domain
 			 */
-			void assign_parent(Native_capability parent) { }
+			void assign_parent(Native_capability) { }
 
 			int pd_id() const { return _pd_id; }
 

@@ -29,17 +29,22 @@ namespace Genode {
 	class Vm_session_component;
 }
 
-class Genode::Vm_session_component
-: public Genode::Rpc_object<Genode::Vm_session>,
-  public Kernel_object<Kernel::Vm>
+class Genode::Vm_session_component : public  Genode::Rpc_object<Genode::Vm_session>,
+                                     private Kernel_object<Kernel::Vm>
 {
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Vm_session_component(Vm_session_component const &);
+		Vm_session_component &operator = (Vm_session_component const &);
+
 		Rpc_entrypoint      *_ds_ep;
-		Range_allocator     *_ram_alloc;
+		Range_allocator     *_ram_alloc = nullptr;
 		Dataspace_component  _ds;
 		Dataspace_capability _ds_cap;
-		addr_t               _ds_addr;
+		addr_t               _ds_addr = 0;
 
 		static size_t _ds_size() {
 			return align_addr(sizeof(Cpu_state_modes),
@@ -63,13 +68,13 @@ class Genode::Vm_session_component
 		void run(void);
 		void pause(void);
 
-		void attach(Dataspace_capability ds_cap, addr_t vm_addr) {
+		void attach(Dataspace_capability, addr_t /* vm_addr */) {
 			warning("Not implemented for TrustZone case"); }
 
-		void attach_pic(addr_t vm_addr) {
+		void attach_pic(addr_t /* vm_addr */) {
 			warning("Not implemented for TrustZone case"); }
 
-		void detach(addr_t vm_addr, size_t size) {
+		void detach(addr_t /* vm_addr */, size_t /* size */) {
 			warning("Not implemented for TrustZone case"); }
 };
 

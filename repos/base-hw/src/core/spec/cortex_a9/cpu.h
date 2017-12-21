@@ -26,7 +26,7 @@ class Genode::Cpu : public Arm_v7_cpu
 {
 	protected:
 
-		Fpu _fpu;
+		Fpu _fpu { };
 
 	public:
 

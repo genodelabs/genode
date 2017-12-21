@@ -49,7 +49,7 @@ namespace {
 		/**
 		 * Lock for serializing 'session' and 'close'
 		 */
-		Genode::Lock _lock;
+		Genode::Lock _lock { };
 
 		/**
 		 * Utility to used block for single signal
@@ -57,8 +57,8 @@ namespace {
 		struct Blockade
 		{
 			Parent                 &_parent;
-			Genode::Signal_receiver _sig_rec;
-			Genode::Signal_context  _sig_ctx;
+			Genode::Signal_receiver _sig_rec { };
+			Genode::Signal_context  _sig_ctx { };
 
 			Blockade(Parent &parent) : _parent(parent)
 			{
@@ -68,7 +68,7 @@ namespace {
 			void block() { _sig_rec.wait_for_signal(); }
 		};
 
-		Constructible<Blockade> _session_blockade;
+		Constructible<Blockade> _session_blockade { };
 
 		Env(Genode::Entrypoint &ep) : _ep(ep) { env_ptr = this; }
 

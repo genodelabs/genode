@@ -21,15 +21,22 @@
 namespace Genode { template <typename, typename> struct Session_object; }
 
 template <typename RPC_INTERFACE, typename SERVER = RPC_INTERFACE>
-class Genode::Session_object : public Ram_quota_guard,
-                               public Cap_quota_guard,
-                               public Rpc_object<RPC_INTERFACE, SERVER>
+class Genode::Session_object : private Ram_quota_guard,
+                               private Cap_quota_guard,
+                               public  Rpc_object<RPC_INTERFACE, SERVER>
 {
 	public:
 
 		typedef Session::Label     Label;
 		typedef Session::Diag      Diag;
 		typedef Session::Resources Resources;
+
+		using Ram_quota_guard::withdraw;
+		using Cap_quota_guard::withdraw;
+		using Ram_quota_guard::replenish;
+		using Cap_quota_guard::replenish;
+		using Ram_quota_guard::upgrade;
+		using Cap_quota_guard::upgrade;
 
 	private:
 
@@ -40,6 +47,9 @@ class Genode::Session_object : public Ram_quota_guard,
 	protected:
 
 		Label const _label;
+
+		Ram_quota_guard &_ram_quota_guard() { return *this; }
+		Cap_quota_guard &_cap_quota_guard() { return *this; }
 
 	public:
 

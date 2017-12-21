@@ -33,6 +33,12 @@ class Genode::Allocator_guard : public Allocator
 		size_t     _amount;     /* total amount */
 		size_t     _consumed;   /* already consumed bytes */
 
+		/*
+		 * Noncopyable
+		 */
+		Allocator_guard(Allocator_guard const &);
+		Allocator_guard &operator = (Allocator_guard const &);
+
 	public:
 
 		Allocator_guard(Allocator *allocator, size_t amount)

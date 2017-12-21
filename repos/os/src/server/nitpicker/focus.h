@@ -79,7 +79,7 @@ class Nitpicker::Focus : Noncopyable
  * Interface used by a nitpicker client to assign the focus to a session of
  * one of its child components (according to the session labels)
  */
-struct Nitpicker::Focus_controller
+struct Nitpicker::Focus_controller : Interface
 {
 	virtual void focus_view_owner(View_owner const &caller,
 	                              View_owner &next_focused) = 0;

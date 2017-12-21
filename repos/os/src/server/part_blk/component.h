@@ -31,11 +31,19 @@ namespace Block {
 };
 
 
-class Block::Session_component : public Block::Session_rpc_object,
-                                 public List<Block::Session_component>::Element,
-                                 public Block_dispatcher
+class Block::Session_component : public  Block::Session_rpc_object,
+                                 private List<Block::Session_component>::Element,
+                                 public  Block_dispatcher
 {
 	private:
+
+		friend class List<Block::Session_component>;
+
+		/*
+		 * Noncopyable
+		 */
+		Session_component(Session_component const &);
+		Session_component &operator = (Session_component const &);
 
 		Ram_dataspace_capability          _rq_ds;
 		addr_t                            _rq_phys;
@@ -44,7 +52,7 @@ class Block::Session_component : public Block::Session_rpc_object,
 		Signal_handler<Session_component> _sink_submit;
 		bool                              _req_queue_full;
 		bool                              _ack_queue_full;
-		Packet_descriptor                 _p_to_handle;
+		Packet_descriptor                 _p_to_handle { };
 		unsigned                          _p_in_fly;
 		Block::Driver                    &_driver;
 		bool                              _writeable;

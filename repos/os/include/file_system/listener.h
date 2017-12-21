@@ -32,7 +32,7 @@ namespace File_system {
 
 		private:
 
-			Genode::Lock      _lock;
+			Genode::Lock      _lock { };
 			Sink             &_sink;
 			Node_handle const _handle;
 

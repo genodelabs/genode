@@ -39,7 +39,7 @@ class Genode::Static_allocator : public Allocator
 {
 	private:
 
-		Bit_allocator<MAX> _used;
+		Bit_allocator<MAX> _used { };
 
 		struct Elem_space { uint8_t space[4096]; };
 
@@ -82,12 +82,18 @@ class Genode::Platform : public Platform_generic
 {
 	private:
 
-		Core_mem_allocator _core_mem_alloc; /* core-accessible memory */
-		Phys_allocator     _io_mem_alloc;   /* MMIO allocator         */
-		Phys_allocator     _io_port_alloc;  /* I/O port allocator     */
-		Phys_allocator     _irq_alloc;      /* IRQ allocator          */
+		/*
+		 * Noncopyable
+		 */
+		Platform(Platform const &);
+		Platform &operator = (Platform const &);
 
-		Initial_untyped_pool _initial_untyped_pool;
+		Core_mem_allocator _core_mem_alloc { }; /* core-accessible memory */
+		Phys_allocator     _io_mem_alloc;       /* MMIO allocator         */
+		Phys_allocator     _io_port_alloc;      /* I/O port allocator     */
+		Phys_allocator     _irq_alloc;          /* IRQ allocator          */
+
+		Initial_untyped_pool _initial_untyped_pool { };
 
 		/*
 		 * Allocator for tracking unused physical addresses, which is used
@@ -104,13 +110,13 @@ class Genode::Platform : public Platform_generic
 		void       _init_unused_phys_alloc();
 		bool const _init_unused_phys_alloc_done;
 
-		Rom_fs _rom_fs;  /* ROM file system */
+		Rom_fs _rom_fs { };  /* ROM file system */
 
 		/*
 		 * Virtual address range usable by non-core processes
 		 */
-		addr_t _vm_base;
-		size_t _vm_size;
+		addr_t _vm_base = 0;
+		size_t _vm_size = 0;
 
 		/*
 		 * Until this point, no interaction with the seL4 kernel was needed.
@@ -162,7 +168,7 @@ class Genode::Platform : public Platform_generic
 
 		struct Core_sel_alloc : Cap_sel_alloc, private Core_sel_bit_alloc
 		{
-			Lock _lock;
+			Lock _lock { };
 
 			Core_sel_alloc() { _reserve(0, Core_cspace::core_static_sel_end()); }
 
@@ -183,7 +189,7 @@ class Genode::Platform : public Platform_generic
 				Core_sel_bit_alloc::free(sel.value());
 			}
 
-		} _core_sel_alloc;
+		} _core_sel_alloc { };
 
 		/**
 		 * Replace initial CSpace with custom CSpace layout
@@ -191,7 +197,7 @@ class Genode::Platform : public Platform_generic
 		void       _switch_to_core_cspace();
 		bool const _switch_to_core_cspace_done;
 
-		Static_allocator<sizeof(void *) * 6> _core_page_table_registry_alloc;
+		Static_allocator<sizeof(void *) * 6> _core_page_table_registry_alloc { };
 		Page_table_registry _core_page_table_registry;
 
 		/**

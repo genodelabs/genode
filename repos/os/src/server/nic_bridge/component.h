@@ -93,7 +93,7 @@ struct Net::Stream_dataspaces
  * would be more convinient, because the allocator needs to be initialized
  * before base-class Session_rpc_object.
  */
-class Net::Session_component : public  Net::Stream_allocator,
+class Net::Session_component : private Net::Stream_allocator,
                                private Net::Stream_dataspaces,
                                public  ::Nic::Session_rpc_object,
                                public  Net::Packet_handler
@@ -103,7 +103,7 @@ class Net::Session_component : public  Net::Stream_allocator,
 		Mac_address_node                  _mac_node;
 		Ipv4_address_node                 _ipv4_node;
 		Net::Nic                         &_nic;
-		Genode::Signal_context_capability _link_state_sigh;
+		Genode::Signal_context_capability _link_state_sigh { };
 
 		void _unset_ipv4_node();
 
@@ -182,7 +182,7 @@ class Net::Root : public Genode::Root_component<Net::Session_component>
 {
 	private:
 
-		Mac_allocator     _mac_alloc;
+		Mac_allocator     _mac_alloc { };
 		Genode::Env      &_env;
 		Net::Nic         &_nic;
 		Genode::Xml_node  _config;

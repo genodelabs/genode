@@ -8,8 +8,6 @@
  *              The header will eventually be removed.
  */
 
-#warning os/signal_rpc_dispatcher.h is deprecated
-
 /*
  * Copyright (C) 2013-2017 Genode Labs GmbH
  *

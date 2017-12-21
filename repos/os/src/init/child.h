@@ -46,11 +46,9 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 		 */
 		struct Id { unsigned value; };
 
-		struct Default_route_accessor { virtual Xml_node default_route() = 0; };
-
-		struct Default_caps_accessor { virtual Cap_quota default_caps() = 0; };
-
-		struct Ram_limit_accessor { virtual Ram_quota ram_limit() = 0; };
+		struct Default_route_accessor : Interface { virtual Xml_node default_route() = 0; };
+		struct Default_caps_accessor  : Interface { virtual Cap_quota default_caps() = 0; };
+		struct Ram_limit_accessor     : Interface { virtual Ram_quota ram_limit()    = 0; };
 
 	private:
 
@@ -159,7 +157,7 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 
 		Resources _resources_from_start_node(Xml_node start_node, Prio_levels prio_levels,
 		                                     Affinity::Space const &affinity_space,
-		                                     Cap_quota default_cap_quota, Cap_quota cap_limit)
+		                                     Cap_quota default_cap_quota, Cap_quota)
 		{
 			size_t          cpu_quota_pc   = 0;
 			bool            constrain_phys = false;
@@ -282,7 +280,7 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 			Service &service() { return _service; }
 		};
 
-		Constructible<Inline_config_rom_service> _config_rom_service;
+		Constructible<Inline_config_rom_service> _config_rom_service { };
 
 		Session_requester _session_requester;
 
@@ -313,7 +311,7 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 			{ }
 		};
 
-		Constructible<Requested_resources> _requested_resources;
+		Constructible<Requested_resources> _requested_resources { };
 
 		Genode::Child _child { _env.rm(), _env.ep().rpc_ep(), *this };
 

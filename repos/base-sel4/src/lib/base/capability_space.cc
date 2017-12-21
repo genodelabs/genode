@@ -62,7 +62,7 @@ namespace {
 	{
 		private:
 
-			Lock _lock;
+			Lock _lock { };
 
 		public:
 

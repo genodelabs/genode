@@ -72,16 +72,26 @@ Ram_dataspace_factory::alloc(size_t ds_size, Cache_attribute cached)
 	 * Helper to release the allocated physical memory whenever we leave the
 	 * scope via an exception.
 	 */
-	struct Phys_alloc_guard
+	class Phys_alloc_guard
 	{
-		Range_allocator &phys_alloc;
-		void * const ds_addr;
-		bool ack = false;
+		private:
 
-		Phys_alloc_guard(Range_allocator &phys_alloc, void *ds_addr)
-		: phys_alloc(phys_alloc), ds_addr(ds_addr) { }
+			/*
+			 * Noncopyable
+			 */
+			Phys_alloc_guard(Phys_alloc_guard const &);
+			Phys_alloc_guard &operator = (Phys_alloc_guard const &);
 
-		~Phys_alloc_guard() { if (!ack) phys_alloc.free(ds_addr); }
+		public:
+
+			Range_allocator &phys_alloc;
+			void * const ds_addr;
+			bool ack = false;
+
+			Phys_alloc_guard(Range_allocator &phys_alloc, void *ds_addr)
+			: phys_alloc(phys_alloc), ds_addr(ds_addr) { }
+
+			~Phys_alloc_guard() { if (!ack) phys_alloc.free(ds_addr); }
 
 	} phys_alloc_guard(_phys_alloc, ds_addr);
 

@@ -46,6 +46,7 @@ namespace Vfs {
 	using Genode::Xml_node;
 	using Genode::Signal_context_capability;
 	using Genode::static_cap_cast;
+	using Genode::Interface;
 
 	typedef Genode::Path<MAX_PATH_LEN> Absolute_path;
 }

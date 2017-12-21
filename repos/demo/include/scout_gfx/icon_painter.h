@@ -101,8 +101,8 @@ class Icon_painter
 		 */
 		template <typename SPT, typename TPT>
 		static void _draw_vslice(TPT const *src, unsigned char const *src_a,
-		                         int src_pitch, int alpha, SPT *dst,
-		                         int dst_pitch, int w, int h)
+		                         int /* src_pitch */, int alpha, SPT *dst,
+		                         int    dst_pitch,    int w, int h)
 		{
 			for (int i = 0; i < w; i++) {
 
@@ -123,8 +123,8 @@ class Icon_painter
 		 */
 		template <typename SPT, typename TPT>
 		static void _draw_center(TPT const *src, unsigned char const *src_a,
-		                         int src_pitch, int alpha, SPT *dst,
-		                         int dst_pitch, int w, int h)
+		                         int /* src_pitch */, int alpha, SPT *dst,
+		                         int    dst_pitch,    int w, int h)
 		{
 			TPT  s = *src;
 			int sa = *src_a;

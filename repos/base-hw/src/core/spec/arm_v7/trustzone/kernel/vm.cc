@@ -21,7 +21,7 @@ using namespace Kernel;
 
 Kernel::Vm::Vm(void                   * const state,
                Kernel::Signal_context * const context,
-               void                   * const table)
+               void                   * const /* table */)
 :  Cpu_job(Cpu_priority::MIN, 0),
   _state((Genode::Vm_state * const)state),
   _context(context), _table(0) {

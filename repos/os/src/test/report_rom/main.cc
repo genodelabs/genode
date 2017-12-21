@@ -36,7 +36,7 @@ struct Test::Main
 
 	Timer::Connection _timer { _env };
 
-	Constructible<Reporter> _brightness_reporter;
+	Constructible<Reporter> _brightness_reporter { };
 
 	void _report_brightness(int value)
 	{
@@ -44,7 +44,7 @@ struct Test::Main
 			xml.attribute("value", value); });
 	}
 
-	Constructible<Attached_rom_dataspace> _brightness_rom;
+	Constructible<Attached_rom_dataspace> _brightness_rom { };
 
 	enum State { WAIT_FOR_FIRST_UPDATE,
 	             WAIT_FOR_TIMEOUT,

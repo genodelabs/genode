@@ -38,7 +38,7 @@ class Net::Port_allocator
 
 	private:
 
-		Genode::Bit_allocator<COUNT> _alloc;
+		Genode::Bit_allocator<COUNT> _alloc { };
 
 	public:
 

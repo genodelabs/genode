@@ -55,7 +55,7 @@ struct Test::Session : Genode::Session
 
 struct Test::Client : Genode::Rpc_client<Session>
 {
-	Client(Capability<Session> cap) : Rpc_client<Session>(cap) { }
+	Client(Genode::Capability<Session> cap) : Rpc_client<Session>(cap) { }
 
 	bool cap_void(Genode::Native_capability cap, Genode::addr_t &local_name) {
 		return call<Rpc_cap_void>(cap, local_name); }

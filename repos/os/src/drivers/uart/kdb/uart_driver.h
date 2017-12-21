@@ -99,7 +99,7 @@ class Uart::Driver
 			return result;
 		}
 
-		void baud_rate(int bits_per_second) { }
+		void baud_rate(int) { }
 };
 
 
@@ -123,7 +123,7 @@ struct Uart::Driver_factory
 	Uart::Driver &create(unsigned index, unsigned baudrate,
 	                     Uart::Char_avail_functor &callback);
 
-	void destroy(Uart::Driver *driver) { /* TODO */ }
+	void destroy(Uart::Driver *) { /* TODO */ }
 
 };
 

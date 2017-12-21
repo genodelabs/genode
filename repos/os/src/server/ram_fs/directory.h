@@ -29,8 +29,8 @@ class Ram_fs::Directory : public Node
 {
 	private:
 
-		List<Node> _entries;
-		size_t     _num_entries;
+		List<Node> _entries { };
+		size_t     _num_entries = 0;
 
 		Node *_entry_unsynchronized(size_t index)
 		{
@@ -41,7 +41,7 @@ class Ram_fs::Directory : public Node
 
 	public:
 
-		Directory(char const *name) : _num_entries(0) { Node::name(name); }
+		Directory(char const *name) { Node::name(name); }
 
 		bool has_sub_node_unsynchronized(char const *name) const override
 		{
@@ -214,7 +214,7 @@ class Ram_fs::Directory : public Node
 			return sizeof(Directory_entry);
 		}
 
-		size_t write(char const *src, size_t len, seek_off_t seek_offset) override
+		size_t write(char const *, size_t, seek_off_t) override
 		{
 			/* writing to directory nodes is not supported */
 			return 0;

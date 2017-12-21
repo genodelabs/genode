@@ -149,7 +149,7 @@ static void _core_pager_loop()
 		else
 			wait_for_page_fault(t, pf_addr, pf_ip, flags);
 
-#warning "TODO Ignore fault messages from non-core tasks"
+		/* XXX Ignore fault messages from non-core tasks */
 
 		/*
 		 * Check for local echo mapping request. To request a local

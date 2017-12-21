@@ -39,7 +39,7 @@ class Genode::Signal_source_component : public Rpc_object<Nova_signal_source,
 {
 	private:
 
-		Native_capability _blocking_semaphore;
+		Native_capability _blocking_semaphore { };
 
 	public:
 

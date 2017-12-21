@@ -44,6 +44,12 @@ namespace Genode {
 
 			Range_allocator *_io_port_alloc;  /* I/O port allocator */
 
+			/*
+			 * Noncopyable
+			 */
+			Io_port_root(Io_port_root const &);
+			Io_port_root &operator = (Io_port_root const &);
+
 		protected:
 
 			Io_port_session_component *_create_session(const char *args) {

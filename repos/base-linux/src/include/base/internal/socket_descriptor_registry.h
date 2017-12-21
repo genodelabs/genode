@@ -66,7 +66,7 @@ class Genode::Socket_descriptor_registry
 
 		Entry _entries[MAX_FDS];
 
-		Genode::Lock mutable _lock;
+		Genode::Lock mutable _lock { };
 
 		Entry &_find_free_entry()
 		{

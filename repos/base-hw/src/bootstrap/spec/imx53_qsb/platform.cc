@@ -16,7 +16,7 @@
 
 using namespace Board;
 
-bool Board::secure_irq(unsigned i) { return true; }
+bool Board::secure_irq(unsigned) { return true; }
 
 
 Bootstrap::Platform::Board::Board()

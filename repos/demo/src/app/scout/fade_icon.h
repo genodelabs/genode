@@ -30,8 +30,8 @@ class Scout::Fade_icon : public Fader, public Icon<PT, W, H>
 {
 	private:
 
-		int _default_alpha;
-		int _focus_alpha;
+		int _default_alpha = 100;
+		int _focus_alpha   = 255;
 
 	public:
 
@@ -40,8 +40,7 @@ class Scout::Fade_icon : public Fader, public Icon<PT, W, H>
 		 */
 		Fade_icon()
 		{
-			_curr_value = _dst_value = _default_alpha = 100;
-			_focus_alpha = 255;
+			_curr_value = _dst_value = 100;
 			step(12);
 		}
 

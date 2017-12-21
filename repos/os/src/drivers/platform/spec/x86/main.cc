@@ -36,16 +36,16 @@ struct Platform::Main
 
 	Genode::Attached_rom_dataspace _config { _env, "config" };
 
-	Genode::Constructible<Genode::Attached_rom_dataspace> acpi_rom;
-	Genode::Constructible<Platform::Root> root;
+	Genode::Constructible<Genode::Attached_rom_dataspace> acpi_rom { };
+	Genode::Constructible<Platform::Root> root { };
 
-	Genode::Constructible<Genode::Attached_rom_dataspace> system_state;
-	Genode::Constructible<Genode::Attached_rom_dataspace> acpi_ready;
+	Genode::Constructible<Genode::Attached_rom_dataspace> system_state { };
+	Genode::Constructible<Genode::Attached_rom_dataspace> acpi_ready { };
 
 	Genode::Signal_handler<Platform::Main> _acpi_report;
 	Genode::Signal_handler<Platform::Main> _system_report;
 
-	Genode::Capability<Genode::Typed_root<Platform::Session_component> > root_cap;
+	Genode::Capability<Genode::Typed_root<Platform::Session_component> > root_cap { };
 
 	bool _acpi_ready = false;
 

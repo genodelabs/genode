@@ -60,23 +60,29 @@ class Hw::Address_space : public Genode::Address_space
 {
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Address_space(Address_space const &);
+		Address_space &operator = (Address_space const &);
+
 		friend class Genode::Platform;
 		friend class Genode::Mapped_mem_allocator;
 
 		using Table = Hw::Page_table;
 		using Array = Table::Allocator::Array<DEFAULT_TRANSLATION_TABLE_MAX>;
-		Genode::Lock       _lock;     /* table lock      */
-		Table            & _tt;       /* table virt addr */
-		Genode::addr_t     _tt_phys;  /* table phys addr */
+
+		Genode::Lock       _lock { };           /* table lock      */
+		Table            & _tt;                 /* table virt addr */
+		Genode::addr_t     _tt_phys;            /* table phys addr */
 		Array            * _tt_array = nullptr;
-		Table::Allocator & _tt_alloc; /* table allocator */
+		Table::Allocator & _tt_alloc;            /* table allocator */
 		Kernel::Pd       & _kernel_pd;
 
 		static inline Genode::Core_mem_allocator * _cma();
 		static inline void * _table_alloc();
 
 	protected:
-
 
 		/**
 		 * Core-specific constructor
@@ -153,13 +159,19 @@ class Genode::Cap_space
 };
 
 
-class Genode::Platform_pd : public Hw::Address_space,
-                            public Genode::Cap_space,
-                            public Kernel_object<Kernel::Pd>
+class Genode::Platform_pd : public  Hw::Address_space,
+                            private Cap_space,
+                            private Kernel_object<Kernel::Pd>
 {
 	private:
 
-		Native_capability  _parent;
+		/*
+		 * Noncopyable
+		 */
+		Platform_pd(Platform_pd const &);
+		Platform_pd &operator = (Platform_pd const &);
+
+		Native_capability  _parent { };
 		bool               _thread_associated = false;
 		char const * const _label;
 
@@ -188,6 +200,9 @@ class Genode::Platform_pd : public Hw::Address_space,
 		 */
 		~Platform_pd();
 
+		using Cap_space::capability_slab;
+		using Cap_space::upgrade_slab;
+
 		/**
 		 * Bind thread 't' to protection domain
 		 */
@@ -197,7 +212,6 @@ class Genode::Platform_pd : public Hw::Address_space,
 		 * Unbind thread 't' from protection domain
 		 */
 		void unbind_thread(Platform_thread *t);
-
 
 		/**
 		 * Assign parent interface to protection domain
@@ -209,8 +223,8 @@ class Genode::Platform_pd : public Hw::Address_space,
 		 ** Accessors **
 		 ***************/
 
-		char const * const  label()  { return _label;  }
-		Native_capability   parent() { return _parent; }
+		char const *      label()  { return _label;  }
+		Native_capability parent() { return _parent; }
 };
 
 

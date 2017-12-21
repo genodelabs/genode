@@ -14,9 +14,7 @@
 #ifndef _INCLUDE__BASE__INTERNAL__RAW_WRITE_STRING_H_
 #define _INCLUDE__BASE__INTERNAL__RAW_WRITE_STRING_H_
 
-namespace Okl4 { extern "C" {
-#include <l4/kdebug.h>
-} }
+#include <base/internal/okl4.h>
 
 namespace Genode {
 

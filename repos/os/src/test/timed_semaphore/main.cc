@@ -28,7 +28,7 @@ struct Test : Thread
 	unsigned          id;
 	Timer::Connection wakeup_timer;
 	unsigned const    wakeup_period;
-	Timed_semaphore   sem;
+	Timed_semaphore   sem            { };
 	bool              stop_wakeup    { false };
 	Lock              wakeup_stopped { Lock::LOCKED };
 	bool              got_timeouts   { false };
@@ -63,7 +63,7 @@ struct Test : Thread
 
 struct Main
 {
-	Constructible<Test> test;
+	Constructible<Test> test { };
 
 	Main(Env &env)
 	{

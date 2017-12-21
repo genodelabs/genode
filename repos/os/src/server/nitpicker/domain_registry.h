@@ -226,7 +226,7 @@ class Nitpicker::Domain_registry
 
 	private:
 
-		List<Entry> _entries;
+		List<Entry> _entries { };
 		Allocator  &_alloc;
 
 	public:

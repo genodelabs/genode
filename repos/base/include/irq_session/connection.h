@@ -26,7 +26,7 @@ struct Genode::Irq_connection : Connection<Irq_session>, Irq_session_client
 	 *
 	 * \noapi
 	 */
-	Capability<Irq_session> _session(Parent               &parent,
+	Capability<Irq_session> _session(Parent               &,
 	                                 unsigned              irq,
 	                                 Irq_session::Trigger  trigger,
 	                                 Irq_session::Polarity polarity,

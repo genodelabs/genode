@@ -44,7 +44,7 @@ class Genode::Kernel_object
 
 	protected:
 
-		Untyped_capability _cap;
+		Untyped_capability _cap { };
 
 	public:
 

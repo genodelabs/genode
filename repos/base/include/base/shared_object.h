@@ -35,6 +35,12 @@ class Genode::Shared_object
 
 		Allocator &_md_alloc;
 
+		/*
+		 * Noncopyable
+		 */
+		Shared_object(Shared_object const &);
+		Shared_object &operator = (Shared_object const &);
+
 	public:
 
 		class Invalid_rom_module : public Genode::Exception { };
@@ -102,10 +108,10 @@ class Genode::Shared_object
 
 struct Genode::Address_info
 {
-	char const    *path; /* path of shared object */
-	Genode::addr_t base; /* base of shared object */
-	char const    *name; /* name of symbol        */
-	Genode::addr_t addr; /* address of symbol     */
+	char const    *path { nullptr }; /* path of shared object */
+	Genode::addr_t base { 0 };       /* base of shared object */
+	char const    *name { nullptr }; /* name of symbol        */
+	Genode::addr_t addr { 0 };       /* address of symbol     */
 
 	class Invalid_address : public Genode::Exception { };
 

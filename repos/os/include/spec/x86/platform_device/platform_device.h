@@ -43,8 +43,8 @@ struct Platform::Device : Platform::Abstract_device
 	{
 		private:
 
-			unsigned _bar;   /* content of base-address register */
-			unsigned _size;  /* resource size                    */
+			unsigned _bar  = 0;  /* content of base-address register */
+			unsigned _size = 0;  /* resource size                    */
 
 		public:
 

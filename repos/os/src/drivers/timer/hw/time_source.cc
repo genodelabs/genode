@@ -51,7 +51,8 @@ void Timer::Time_source::schedule_timeout(Microseconds     duration,
 
 	_handler = &handler;
 	_last_timeout_age_us = 0;
-	Kernel::timeout(duration_us, (addr_t)_signal_handler.data());
+	Signal_context_capability cap = _signal_handler;
+	Kernel::timeout(duration_us, (addr_t)cap.data());
 }
 
 

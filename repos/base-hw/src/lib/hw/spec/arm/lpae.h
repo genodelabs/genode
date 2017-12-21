@@ -265,7 +265,7 @@ class Hw::Long_translation_table
 			struct Mem_attr : Block_descriptor_base::template Bitfield<2,4>{};
 			struct Hap      : Block_descriptor_base::template Bitfield<6,2>{};
 
-			static typename Descriptor::access_t create(Page_flags const &f,
+			static typename Descriptor::access_t create(Page_flags const &,
 			                                            addr_t const pa)
 			{
 				return Base::Shareability::bits(
@@ -360,9 +360,9 @@ class Hw::Level_3_translation_table :
 		{
 				Remove_func() { }
 
-				void operator () (addr_t const          vo,
-				                  addr_t const          pa,
-				                  size_t const          size,
+				void operator () (addr_t /* vo */,
+				                  addr_t /* pa */,
+				                  size_t /* size */,
 				                  Descriptor::access_t &desc) {
 					desc = 0; }
 		};
@@ -375,7 +375,7 @@ class Hw::Level_3_translation_table :
 		                        addr_t pa,
 		                        size_t size,
 		                        Page_flags const & flags,
-		                        Allocator & alloc) {
+		                        Allocator &) {
 			_range_op(vo, pa, size, Insert_func(flags)); }
 
 		void remove_translation(addr_t vo, size_t size, Allocator&) {
@@ -461,7 +461,7 @@ class Hw::Level_x_translation_table :
 			Remove_func(Allocator & alloc) : alloc(alloc) { }
 
 			void operator () (addr_t const                   vo,
-			                  addr_t const                   pa,
+			                  addr_t const                /* pa */,
 			                  size_t const                   size,
 			                  typename Descriptor::access_t &desc)
 			{
@@ -540,6 +540,6 @@ struct Hw::Page_table : Level_1_stage_1_translation_table
 	 * On ARM we do not need to copy top-level kernel entries
 	 * because the virtual-memory kernel part is hold in a separate table
 	 */
-	explicit Page_table(Page_table &o) : Level_1_stage_1_translation_table() { }
+	explicit Page_table(Page_table &) : Level_1_stage_1_translation_table() { }
 };
 #endif /* _SRC__LIB__HW__SPEC__ARM__LPAE_H_ */

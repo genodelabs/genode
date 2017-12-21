@@ -28,7 +28,7 @@ struct Audio_in::Connection : Genode::Connection<Session>, Audio_in::Session_cli
 	 *
 	 * \noapi
 	 */
-	Capability<Audio_in::Session> _session(Genode::Parent &parent, char const *channel)
+	Genode::Capability<Audio_in::Session> _session(Genode::Parent &parent, char const *channel)
 	{
 		return session(parent, "ram_quota=%ld, cap_quota=%ld, channel=\"%s\"",
 		               10*1024 + sizeof(Stream), CAP_QUOTA, channel);

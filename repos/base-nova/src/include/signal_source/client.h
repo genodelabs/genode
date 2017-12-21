@@ -42,7 +42,7 @@ namespace Genode {
 			/**
 			 * Capability referring to a NOVA semaphore
 			 */
-			Native_capability _sem;
+			Native_capability _sem { };
 
 		public:
 

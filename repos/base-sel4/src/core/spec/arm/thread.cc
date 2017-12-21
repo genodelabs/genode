@@ -41,7 +41,7 @@ void Genode::start_sel4_thread(Cap_sel tcb_sel, addr_t ip, addr_t sp,
 	seL4_TCB_Resume(tcb_sel.value());
 }
 
-void Genode::affinity_sel4_thread(Cap_sel const &tcb_sel, unsigned cpu)
+void Genode::affinity_sel4_thread(Cap_sel const &, unsigned cpu)
 {
 	if (cpu != 0)
 		error("could not set affinity of thread");

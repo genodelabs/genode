@@ -39,12 +39,18 @@ class Input::Session_component : public Rpc_object<Session>
 {
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Session_component(Session_component const &);
+		Session_component &operator = (Session_component const &);
+
 		Session_client     _real_input;
 		Motion_delta      &_motion_delta;
 		Attached_dataspace _ev_ds;
 		Event      * const _ev_buf;
 
-		Genode::Signal_context_capability _sigh;
+		Genode::Signal_context_capability _sigh { };
 
 	public:
 

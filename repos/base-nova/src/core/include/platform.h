@@ -29,14 +29,14 @@ namespace Genode {
 
 		private:
 
-			Core_mem_allocator _core_mem_alloc; /* core-accessible memory  */
-			Phys_allocator     _io_mem_alloc;   /* MMIO allocator          */
-			Phys_allocator     _io_port_alloc;  /* I/O port allocator      */
-			Phys_allocator     _irq_alloc;      /* IRQ allocator           */
-			Rom_fs             _rom_fs;         /* ROM file system         */
-			unsigned           _gsi_base_sel;   /* cap selector of 1st IRQ */
-			unsigned           _core_pd_sel;    /* cap selector of root PD */
-			addr_t             _core_phys_start { 0ULL };
+			Core_mem_allocator _core_mem_alloc  { };    /* core-accessible memory  */
+			Phys_allocator     _io_mem_alloc;           /* MMIO allocator          */
+			Phys_allocator     _io_port_alloc;          /* I/O port allocator      */
+			Phys_allocator     _irq_alloc;              /* IRQ allocator           */
+			Rom_fs             _rom_fs          { };    /* ROM file system         */
+			unsigned           _gsi_base_sel    { 0 };  /* cap selector of 1st IRQ */
+			unsigned           _core_pd_sel     { 0 };  /* cap selector of root PD */
+			addr_t             _core_phys_start { 0 };
 
 			/**
 			 * Virtual address range usable by non-core processes

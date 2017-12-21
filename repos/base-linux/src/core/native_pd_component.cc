@@ -179,10 +179,9 @@ void Native_pd_component::_start(Dataspace_component &ds)
 }
 
 
-Native_pd_component::Native_pd_component(Pd_session_component &pd_session,
-                                         const char *args)
+Native_pd_component::Native_pd_component(Pd_session_component &pd, const char *)
 :
-	_pd_session(pd_session)
+	_pd_session(pd)
 {
 	_pd_session._ep.manage(this);
 }

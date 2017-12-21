@@ -29,12 +29,24 @@ class Vfs::Inline_file_system : public Single_file_system
 		char const * const _base;
 		file_size    const _size;
 
+		/*
+		 * Noncopyable
+		 */
+		Inline_file_system(Inline_file_system const &);
+		Inline_file_system &operator = (Inline_file_system const &);
+
 		class Inline_vfs_handle : public Single_vfs_handle
 		{
 			private:
 
 				char const * const _base;
 				file_size    const _size;
+
+				/*
+				 * Noncopyable
+				 */
+				Inline_vfs_handle(Inline_vfs_handle const &);
+				Inline_vfs_handle &operator = (Inline_vfs_handle const &);
 
 			public:
 
@@ -77,7 +89,7 @@ class Vfs::Inline_file_system : public Single_file_system
 					return READ_OK;
 				}
 
-				Write_result write(char const *src, file_size count,
+				Write_result write(char const *, file_size,
 				                   file_size &out_count) override
 				{
 					out_count = 0;

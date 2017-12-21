@@ -32,9 +32,13 @@ namespace Genode {
 }
 
 
-struct Genode::Signal_context_component : Kernel_object<Kernel::Signal_context>,
-                                          Signal_context_pool::Entry
+struct Genode::Signal_context_component : private Kernel_object<Kernel::Signal_context>,
+                                          public Signal_context_pool::Entry
 {
+	friend class Object_pool<Signal_context_component>;
+
+	using Signal_context_pool::Entry::cap;
+
 	inline Signal_context_component(Signal_source_component &s,
 	                                addr_t const imprint);
 
@@ -42,9 +46,14 @@ struct Genode::Signal_context_component : Kernel_object<Kernel::Signal_context>,
 };
 
 
-struct Genode::Signal_source_component : Kernel_object<Kernel::Signal_receiver>,
-                                         Signal_source_pool::Entry
+struct Genode::Signal_source_component : private Kernel_object<Kernel::Signal_receiver>,
+                                         public Signal_source_pool::Entry
 {
+	friend class Object_pool<Signal_source_component>;
+	friend class Signal_context_component;
+
+	using Signal_source_pool::Entry::cap;
+
 	Signal_source_component()
 	:
 		Kernel_object<Kernel::Signal_receiver>(true),

@@ -22,7 +22,7 @@ class Irq_handler
 	private:
 
 		Genode::Irq_connection                  _irq;
-		Genode::Signal_receiver                 _sig_rec;
+		Genode::Signal_receiver                 _sig_rec { };
 		Genode::Signal_dispatcher<Irq_handler>  _dispatcher;
 
 		void _handle(unsigned) { }

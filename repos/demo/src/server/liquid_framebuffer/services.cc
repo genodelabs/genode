@@ -37,8 +37,14 @@ class Window_content : public Scout::Element
 		{
 			private:
 
+				/*
+				 * Noncopyable
+				 */
+				Content_event_handler(Content_event_handler const &);
+				Content_event_handler &operator = (Content_event_handler const &);
+
 				Input::Session_component &_input_session;
-				Scout::Point              _old_mouse_position;
+				Scout::Point              _old_mouse_position { };
 				Element                  *_element;
 
 			public:
@@ -46,7 +52,8 @@ class Window_content : public Scout::Element
 				Content_event_handler(Input::Session_component &input_session,
 				                      Scout::Element *element)
 				:
-					_input_session(input_session),_element(element) { }
+					_input_session(input_session), _element(element)
+				{ }
 
 				void handle_event(Scout::Event const &ev) override
 				{
@@ -118,6 +125,14 @@ class Window_content : public Scout::Element
 				alloc.free(alpha, w*h);
 			}
 
+			private:
+
+				/*
+				 * Noncopyable
+				 */
+				Fb_texture(Fb_texture const &);
+				Fb_texture &operator = (Fb_texture const &);
+
 		};
 
 		Genode::Ram_session   &_ram;
@@ -145,7 +160,7 @@ class Window_content : public Scout::Element
 		 */
 		Scout::Area _designated_size;
 
-		Genode::Signal_context_capability _mode_sigh;
+		Genode::Signal_context_capability _mode_sigh { };
 
 	public:
 

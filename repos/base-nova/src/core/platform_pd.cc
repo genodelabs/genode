@@ -34,7 +34,7 @@ bool Platform_pd::bind_thread(Platform_thread *thread)
 }
 
 
-void Platform_pd::unbind_thread(Platform_thread *thread)
+void Platform_pd::unbind_thread(Platform_thread *)
 {
 	warning(__func__, "not implemented");
 }
@@ -47,8 +47,7 @@ void Platform_pd::assign_parent(Native_capability parent)
 }
 
 
-Platform_pd::Platform_pd(Allocator * md_alloc, char const *label,
-                         signed pd_id, bool create)
+Platform_pd::Platform_pd(Allocator *, char const *label, signed, bool)
 : _thread_cnt(0), _pd_sel(cap_map()->insert()), _label(label)
 {
 	if (_pd_sel == Native_thread::INVALID_INDEX) {

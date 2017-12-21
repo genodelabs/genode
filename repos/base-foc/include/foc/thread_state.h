@@ -36,7 +36,7 @@ struct Genode::Foc_thread_state : Thread_state
 	unsigned              exceptions;   /* counts exceptions raised by the thread */
 	bool                  paused;       /* indicates whether thread is stopped */
 	bool                  in_exception; /* true if thread is in exception */
-	Lock                  lock;
+	Lock                  lock { };
 
 	/**
 	 * Constructor

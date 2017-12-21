@@ -30,6 +30,12 @@ class Genode::Child_policy_dynamic_rom_file : public Rpc_object<Rom_session>,
 {
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Child_policy_dynamic_rom_file(Child_policy_dynamic_rom_file const &);
+		Child_policy_dynamic_rom_file &operator = (Child_policy_dynamic_rom_file const &);
+
 		Ram_session *_ram;
 		Region_map  &_rm;
 
@@ -40,7 +46,7 @@ class Genode::Child_policy_dynamic_rom_file : public Rpc_object<Rom_session>,
 		 * dynamic config. Hence, the '_lock' is used to synchronize the
 		 * 'load' and 'dataspace' methods.
 		 */
-		Lock _lock;
+		Lock _lock { };
 
 		/*
 		 * We keep two dataspaces around. The foreground ('_fg') dataspace
@@ -56,7 +62,7 @@ class Genode::Child_policy_dynamic_rom_file : public Rpc_object<Rom_session>,
 
 		bool _bg_has_pending_data;
 
-		Signal_context_capability _sigh_cap;
+		Signal_context_capability _sigh_cap { };
 
 		Rpc_entrypoint        &_ep;
 		Rom_session_capability _rom_session_cap;

@@ -50,11 +50,11 @@ struct Linker::File
 {
 	typedef void (*Entry)(void);
 
-	Phdr       phdr;
-	Entry      entry;
-	Elf::Addr  reloc_base = 0;
-	Elf::Addr  start      = 0;
-	Elf::Size  size       = 0;
+	Phdr       phdr       { };
+	Entry      entry      { };
+	Elf::Addr  reloc_base { 0 };
+	Elf::Addr  start      { 0 };
+	Elf::Size  size       { 0 };
 
 	virtual ~File() { }
 
@@ -76,8 +76,8 @@ struct Linker::File
 struct Linker::Elf_file : File
 {
 	Env                          &env;
-	Constructible<Rom_connection> rom_connection;
-	Rom_dataspace_capability      rom_cap;
+	Constructible<Rom_connection> rom_connection { };
+	Rom_dataspace_capability      rom_cap        { };
 	Ram_dataspace_capability      ram_cap[Phdr::MAX_PHDR];
 	bool                    const loaded;
 

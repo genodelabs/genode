@@ -57,8 +57,8 @@ class Genode::Parent
 		typedef Rpc_in_buffer<160> Session_args;
 		typedef Rpc_in_buffer<160> Upgrade_args;
 
-		struct Client { typedef Id_space<Client>::Id Id; };
-		struct Server { typedef Id_space<Server>::Id Id; };
+		struct Client : Interface { typedef Id_space<Client>::Id Id; };
+		struct Server : Interface { typedef Id_space<Server>::Id Id; };
 
 		/**
 		 * Predefined session IDs corresponding to the environment sessions

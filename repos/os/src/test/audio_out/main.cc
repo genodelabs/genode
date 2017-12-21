@@ -35,6 +35,12 @@ class Track : public Thread
 {
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Track(Track const &);
+		Track &operator = (Track const &);
+
 		enum {
 			CHN_CNT      = 2,                      /* number of channels */
 			FRAME_SIZE   = sizeof(float),

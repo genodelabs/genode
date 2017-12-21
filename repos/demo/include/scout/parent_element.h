@@ -23,10 +23,18 @@ namespace Scout {
 
 class Scout::Parent_element : public Element
 {
+	private:
+
+		/*
+		 * Noncopyable
+		 */
+		Parent_element(Parent_element const &);
+		Parent_element &operator = (Parent_element const &);
+
 	protected:
 
-		Element *_first;
-		Element *_last;
+		Element *_first = nullptr;
+		Element *_last  = nullptr;
 
 		/**
 		 * Format child element by a given width an horizontal offset

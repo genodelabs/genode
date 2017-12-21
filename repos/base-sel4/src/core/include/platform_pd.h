@@ -45,7 +45,7 @@ class Genode::Platform_pd : public Address_space
 
 		Constructible<Cnode> _cspace_cnode_2nd[1UL << CSPACE_SIZE_LOG2_1ST];
 
-		Native_capability _parent;
+		Native_capability _parent { };
 
 		/*
 		 * Allocator for core-managed selectors within the PD's CSpace
@@ -57,8 +57,8 @@ class Genode::Platform_pd : public Address_space
 			Sel_alloc() { _reserve(0, INITIAL_SEL_END); }
 		};
 
-		Sel_alloc _sel_alloc;
-		Lock _sel_alloc_lock;
+		Sel_alloc _sel_alloc { };
+		Lock _sel_alloc_lock { };
 
 		Cap_sel alloc_sel();
 		void free_sel(Cap_sel sel);

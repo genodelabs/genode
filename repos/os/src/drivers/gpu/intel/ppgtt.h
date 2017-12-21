@@ -140,7 +140,7 @@ namespace Genode
 
 		static bool present(access_t const v) { return P::get(v); }
 
-		static access_t create(Page_flags const &flags)
+		static access_t create(Page_flags const &)
 		{
 			return P::bits(1) | Rw::bits(1);
 		}
@@ -173,15 +173,15 @@ namespace Genode
 
 			struct Page
 			{
-				Genode::Ram_dataspace_capability ds;
-				addr_t  addr;
-				Page   *next;
+				Genode::Ram_dataspace_capability ds { };
+				addr_t  addr = 0;
+				Page   *next = nullptr;
 			};
 
-			Page page;
-			Page pt;
-			Page pd;
-			Page pdp;
+			Page page { };
+			Page pt   { };
+			Page pd   { };
+			Page pdp  { };
 
 			Scratch(Genode::Allocator_guard &guard,
 			        Utils::Backend_alloc    &backend)
@@ -304,8 +304,8 @@ class Genode::Level_4_translation_table
 				            Scratch::Page               *scratch)
 				: alloc(alloc), scratch(scratch) { }
 
-				void operator () (addr_t const vo, addr_t const pa,
-				                  size_t const size,
+				void operator () (addr_t /* vo */, addr_t /* pa */,
+				                  size_t /* size */,
 				                  Descriptor::access_t &desc)
 				{
 					desc = scratch->addr;
@@ -538,7 +538,7 @@ class Genode::Page_directory
 							Scratch::Page               *scratch)
 				: alloc(alloc), scratch(scratch) { }
 
-				void operator () (addr_t const vo, addr_t const pa,
+				void operator () (addr_t const vo, addr_t /* pa */,
 				                  size_t const size,
 				                  typename Base_descriptor::access_t &desc)
 				{
@@ -732,7 +732,7 @@ class Genode::Pml4_table
 				            Scratch::Page               *scratch)
 				: alloc(alloc), scratch(scratch) { }
 
-				void operator () (addr_t const vo, addr_t const pa,
+				void operator () (addr_t const vo, addr_t /* pa */,
 				                  size_t const size,
 				                  Descriptor::access_t &desc)
 				{

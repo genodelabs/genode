@@ -48,22 +48,22 @@ class Genode::Expanding_parent_client : public Parent_client
 		/**
 		 * Lock used to serialize resource requests
 		 */
-		Lock _lock;
+		Lock _lock { };
 
 		/**
 		 * Signal context for the fallback signal handler
 		 */
-		Signal_context _fallback_sig_ctx;
+		Signal_context _fallback_sig_ctx { };
 
 		/**
 		 * Signal context capability for the fallback signal handler
 		 */
-		Signal_context_capability _fallback_sig_cap;
+		Signal_context_capability _fallback_sig_cap { };
 
 		/**
 		 * Signal receiver for the fallback signal handler
 		 */
-		Constructible<Signal_receiver> _fallback_sig_rcv;
+		Constructible<Signal_receiver> _fallback_sig_rcv { };
 
 		/**
 		 * Block for resource response arriving at the fallback signal handler
@@ -73,8 +73,7 @@ class Genode::Expanding_parent_client : public Parent_client
 
 	public:
 
-		Expanding_parent_client(Parent_capability cap)
-		: Parent_client(cap) { }
+		Expanding_parent_client(Parent_capability cap) : Parent_client(cap) { }
 
 
 		/**

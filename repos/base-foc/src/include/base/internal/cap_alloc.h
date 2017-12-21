@@ -41,8 +41,14 @@ namespace Genode {
 	{
 		private:
 
-			Spin_lock _lock; /* used very early in initialization,
-			                    where normal lock isn't feasible */
+			/*
+			 * Noncopyable
+			 */
+			Cap_index_allocator_tpl(Cap_index_allocator_tpl const &);
+			Cap_index_allocator_tpl &operator = (Cap_index_allocator_tpl const &);
+
+			Spin_lock _lock { }; /* used very early in initialization,
+			                        where normal lock isn't feasible */
 
 			enum {
 				/* everything below START_IDX is managed by core */

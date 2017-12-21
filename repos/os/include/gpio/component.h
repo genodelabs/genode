@@ -47,7 +47,7 @@ class Gpio::Session_component : public Genode::Rpc_object<Gpio::Session>
 			void sigh(Genode::Signal_context_capability sigh) override {
 				_driver.register_signal(_pin, sigh); }
 			Info info() override {
-				return { .type = Genode::Irq_session::Info::Type::INVALID }; }
+				return { .type = Info::Type::INVALID, .address = 0, .value = 0 }; }
 		};
 
 		Genode::Rpc_entrypoint &_ep;

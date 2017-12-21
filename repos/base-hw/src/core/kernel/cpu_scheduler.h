@@ -88,8 +88,8 @@ class Kernel::Cpu_share : public Cpu_claim, public Cpu_fill
 		signed const _prio;
 		unsigned     _quota;
 		unsigned     _claim;
-		unsigned     _fill;
-		bool         _ready;
+		unsigned     _fill  = 0;
+		bool         _ready = false;
 
 	public:
 
@@ -100,7 +100,7 @@ class Kernel::Cpu_share : public Cpu_claim, public Cpu_fill
 		 * \param q  claimed quota
 		 */
 		Cpu_share(signed const p, unsigned const q)
-		: _prio(p), _quota(q), _claim(q), _ready(0) { }
+		: _prio(p), _quota(q), _claim(q) { }
 
 		/*
 		 * Accessors
@@ -123,11 +123,11 @@ class Kernel::Cpu_scheduler
 
 		Claim_list     _rcl[Prio::MAX + 1]; /* ready claims */
 		Claim_list     _ucl[Prio::MAX + 1]; /* unready claims */
-		Fill_list      _fills;              /* ready fills */
+		Fill_list      _fills { };          /* ready fills */
 		Share * const  _idle;
-		Share *        _head;
-		unsigned       _head_quota;
-		bool           _head_claims;
+		Share *        _head = nullptr;
+		unsigned       _head_quota  = 0;
+		bool           _head_claims = false;
 		bool           _head_yields;
 		unsigned const _quota;
 		unsigned       _residual;

@@ -39,11 +39,11 @@ class Genode::Platform : public Genode::Platform_generic
 {
 	private:
 
-		Core_mem_allocator _core_mem_alloc; /* core-accessible memory */
-		Phys_allocator     _io_mem_alloc;   /* MMIO allocator         */
-		Phys_allocator     _io_port_alloc;  /* I/O port allocator     */
-		Phys_allocator     _irq_alloc;      /* IRQ allocator          */
-		Rom_fs             _rom_fs;         /* ROM file system        */
+		Core_mem_allocator _core_mem_alloc { }; /* core-accessible memory */
+		Phys_allocator     _io_mem_alloc;       /* MMIO allocator         */
+		Phys_allocator     _io_port_alloc;      /* I/O port allocator     */
+		Phys_allocator     _irq_alloc;          /* IRQ allocator          */
+		Rom_fs             _rom_fs         { }; /* ROM file system        */
 
 		static Hw::Boot_info const &           _boot_info();
 		static Hw::Memory_region_array const & _core_virt_regions();

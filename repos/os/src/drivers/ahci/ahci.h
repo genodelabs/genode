@@ -28,7 +28,7 @@ namespace Platform {
 };
 
 
-struct Ahci_root
+struct Ahci_root : Genode::Interface
 {
 	virtual Genode::Entrypoint &entrypoint() = 0;
 	virtual void announce()                  = 0;
@@ -51,7 +51,7 @@ namespace Ahci_driver {
 }
 
 
-struct Platform::Hba
+struct Platform::Hba : Genode::Interface
 {
 	/**
 	 * Return base address and size of HBA device registers
@@ -414,8 +414,11 @@ struct Port_base : Genode::Mmio
 /**
  * AHCI port
  */
-struct Port : Port_base
+struct Port : private Port_base
 {
+	using Port_base::write;
+	using Port_base::read;
+
 	struct Not_ready : Genode::Exception { };
 
 	Genode::Region_map &rm;
@@ -423,9 +426,9 @@ struct Port : Port_base
 	Platform::Hba      &platform_hba;
 	unsigned            cmd_slots = hba.command_slots();
 
-	Genode::Ram_dataspace_capability device_ds;
-	Genode::Ram_dataspace_capability cmd_ds;
-	Genode::Ram_dataspace_capability device_info_ds;
+	Genode::Ram_dataspace_capability device_ds      { };
+	Genode::Ram_dataspace_capability cmd_ds         { };
+	Genode::Ram_dataspace_capability device_info_ds { };
 
 	Genode::addr_t cmd_list    = 0;
 	Genode::addr_t fis_base    = 0;

@@ -127,10 +127,10 @@ class Gpio::Odroid_x2_driver : public Driver
 
 		}
 
-		void debounce_enable(unsigned gpio, bool enable) {
+		void debounce_enable(unsigned /* gpio */, bool /* enable */) {
 			Genode::warning("debounce_enable not supported!"); }
 
-		void debounce_time(unsigned gpio, unsigned long us) {
+		void debounce_time(unsigned /* gpio */, unsigned long /* us */) {
 			Genode::warning("debounce_time not supported!"); }
 
 		void falling_detect(unsigned gpio_pin)
@@ -185,7 +185,7 @@ class Gpio::Odroid_x2_driver : public Driver
 			_irq_enabled[gpio_pin] = enable;
 		}
 
-		void ack_irq(unsigned gpio_pin)
+		void ack_irq(unsigned /* gpio_pin */)
 		{
 			_irq.ack_irq();
 		}

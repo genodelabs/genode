@@ -129,7 +129,7 @@ struct Uart::Driver_factory
 	/**
 	 * Destroy driver
 	 */
-	void destroy(Driver &driver) { /* TODO */ }
+	void destroy(Driver &) { /* TODO */ }
 };
 
 #endif /* _UART_DRIVER_BASE_H_ */

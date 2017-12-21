@@ -79,7 +79,8 @@ void Packet_handler::handle_ethernet(void* src, Genode::size_t size)
 {
 	try {
 		/* parse ethernet frame header */
-		Ethernet_frame *eth = new (src) Ethernet_frame(size);
+		Ethernet_frame *eth = reinterpret_cast<Ethernet_frame *>(src);
+		Ethernet_frame::validate_size(size);
 		switch (eth->type()) {
 		case Ethernet_frame::Type::ARP:
 			if (!handle_arp(eth, size)) return;

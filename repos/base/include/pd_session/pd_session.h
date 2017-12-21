@@ -291,7 +291,7 @@ struct Genode::Pd_session : Session, Ram_allocator
 	/**
 	 * Common base class of kernel-specific PD interfaces
 	 */
-	struct Native_pd { };
+	struct Native_pd : Interface { };
 
 	/**
 	 * Return capability to kernel-specific PD operations

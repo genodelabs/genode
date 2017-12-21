@@ -80,8 +80,9 @@ class Genode::Ipc_pager
 {
 	protected:
 
-		Kernel::Thread_fault _fault;
-		Mapping              _mapping;
+		Kernel::Thread_fault _fault { };
+
+		Mapping _mapping { };
 
 	public:
 
@@ -112,10 +113,11 @@ class Genode::Ipc_pager
 };
 
 
-class Genode::Pager_object : public Object_pool<Pager_object>::Entry,
-                             public Genode::Kernel_object<Kernel::Signal_context>
+class Genode::Pager_object : private Object_pool<Pager_object>::Entry,
+                             private Genode::Kernel_object<Kernel::Signal_context>
 {
 	friend class Pager_entrypoint;
+	friend class Object_pool<Pager_object>;
 
 	private:
 
@@ -186,13 +188,15 @@ class Genode::Pager_object : public Object_pool<Pager_object>::Entry,
 
 		Cpu_session_capability cpu_session_cap() const { return _cpu_session_cap; }
 		Thread_capability      thread_cap()      const { return _thread_cap; }
+
+		using Object_pool<Pager_object>::Entry::cap;
 };
 
 
-class Genode::Pager_entrypoint : public Object_pool<Pager_object>,
-                                 public Thread_deprecated<PAGER_EP_STACK_SIZE>,
-                                 public Kernel_object<Kernel::Signal_receiver>,
-                                 public Ipc_pager
+class Genode::Pager_entrypoint : public  Object_pool<Pager_object>,
+                                 public  Thread_deprecated<PAGER_EP_STACK_SIZE>,
+                                 private Kernel_object<Kernel::Signal_receiver>,
+                                 private Ipc_pager
 {
 	public:
 

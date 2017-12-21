@@ -23,7 +23,12 @@
 #include <size_guard.h>
 
 using namespace Net;
-using namespace Genode;
+using Genode::Deallocator;
+using Genode::size_t;
+using Genode::uint32_t;
+using Genode::log;
+using Genode::error;
+using Genode::warning;
 
 
 /***************
@@ -138,8 +143,12 @@ static void *_prot_base(L3_protocol const  prot,
                         Ipv4_packet       &ip)
 {
 	switch (prot) {
-	case L3_protocol::TCP: return new (ip.data<void>()) Tcp_packet(prot_size);
-	case L3_protocol::UDP: return new (ip.data<void>()) Udp_packet(prot_size);
+	case L3_protocol::TCP:
+		Tcp_packet::validate_size(prot_size);
+		return ip.data<Tcp_packet>();
+	case L3_protocol::UDP:
+		Udp_packet::validate_size(prot_size);
+		return ip.data<Udp_packet>();
 	default: throw Interface::Bad_transport_protocol(); }
 }
 
@@ -235,7 +244,7 @@ Link_list &Interface::dissolved_links(L3_protocol const protocol)
 
 
 void Interface::_adapt_eth(Ethernet_frame          &eth,
-                           size_t            const  eth_size,
+                           size_t                  ,
                            Ipv4_address      const &ip,
                            Packet_descriptor const &pkt,
                            Domain                  &domain)
@@ -292,7 +301,7 @@ void Interface::_send_dhcp_reply(Dhcp_server               const &dhcp_srv,
                                  uint32_t                         xid)
 {
 	enum { PKT_SIZE = 512 };
-	using Size_guard = Size_guard_tpl<PKT_SIZE, Dhcp_msg_buffer_too_small>;
+	using Size_guard = Genode::Size_guard_tpl<PKT_SIZE, Dhcp_msg_buffer_too_small>;
 	send(PKT_SIZE, [&] (void *pkt_base) {
 
 		/* create ETH header of the reply */
@@ -397,8 +406,7 @@ void Interface::_new_dhcp_allocation(Ethernet_frame &eth,
 }
 
 
-void Interface::_handle_dhcp_request(Ethernet_frame &eth,
-                                     Genode::size_t  eth_size,
+void Interface::_handle_dhcp_request(Ethernet_frame &eth, size_t ,
                                      Dhcp_packet    &dhcp)
 {
 	try {
@@ -530,8 +538,8 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
                            Packet_descriptor const &pkt)
 {
 	/* read packet information */
-	Ipv4_packet &ip = *new (eth.data<void>())
-		Ipv4_packet(eth_size - sizeof(Ethernet_frame));
+	Ipv4_packet &ip = *eth.data<Ipv4_packet>();
+	Ipv4_packet::validate_size(eth_size - sizeof(Ethernet_frame));
 
 	/* try handling subnet-local IP packets */
 	if (_ip_config().interface.prefix_matches(ip.dst()) &&
@@ -553,15 +561,17 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 
 		/* try handling DHCP requests before trying any routing */
 		if (prot == L3_protocol::UDP) {
-			Udp_packet &udp = *new (ip.data<void>())
-				Udp_packet(eth_size - sizeof(Ipv4_packet));
+			Udp_packet &udp = *ip.data<Udp_packet>();
+			Udp_packet::validate_size(eth_size - sizeof(Ethernet_frame)
+			                                   - sizeof(Ipv4_packet));
 
 			if (Dhcp_packet::is_dhcp(&udp)) {
 
 				/* get DHCP packet */
-				Dhcp_packet &dhcp = *new (udp.data<void>())
-					Dhcp_packet(eth_size - sizeof(Ipv4_packet)
-					                     - sizeof(Udp_packet));
+				Dhcp_packet &dhcp = *udp.data<Dhcp_packet>();
+				Dhcp_packet::validate_size(eth_size - sizeof(Ethernet_frame)
+				                                    - sizeof(Ipv4_packet)
+				                                    - sizeof(Udp_packet));
 
 				if (dhcp.op() == Dhcp_packet::REQUEST) {
 					try {
@@ -808,7 +818,8 @@ void Interface::_handle_arp(Ethernet_frame &eth, size_t const eth_size)
 {
 	/* ignore ARP regarding protocols other than IPv4 via ethernet */
 	size_t const arp_size = eth_size - sizeof(Ethernet_frame);
-	Arp_packet &arp = *new (eth.data<void>()) Arp_packet(arp_size);
+	Arp_packet &arp = *eth.data<Arp_packet>();
+	Arp_packet::validate_size(arp_size);
 	if (!arp.ethernet_ipv4()) {
 		error("ARP for unknown protocol"); }
 
@@ -878,7 +889,8 @@ void Interface::_handle_eth(void              *const  eth_base,
 
 	/* inspect and handle ethernet frame */
 	try {
-		Ethernet_frame * const eth = new (eth_base) Ethernet_frame(eth_size);
+		Ethernet_frame *const eth = reinterpret_cast<Ethernet_frame *>(eth_base);
+		Ethernet_frame::validate_size(eth_size);
 		if (_config().verbose()) {
 			log("(router <- ", _domain, ") ", *eth); }
 
@@ -963,12 +975,12 @@ void Interface::_send_submit_pkt(Packet_descriptor &pkt,
 }
 
 
-Interface::Interface(Entrypoint        &ep,
-                     Timer::Connection &timer,
-                     Mac_address const  router_mac,
-                     Genode::Allocator &alloc,
-                     Mac_address const  mac,
-                     Domain            &domain)
+Interface::Interface(Genode::Entrypoint &ep,
+                     Timer::Connection  &timer,
+                     Mac_address const   router_mac,
+                     Genode::Allocator  &alloc,
+                     Mac_address const   mac,
+                     Domain             &domain)
 :
 	_sink_ack(ep, *this, &Interface::_ack_avail),
 	_sink_submit(ep, *this, &Interface::_ready_to_submit),

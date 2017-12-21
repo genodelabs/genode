@@ -20,7 +20,7 @@
 namespace Genode { struct Dataspace; }
 
 
-struct Genode::Dataspace
+struct Genode::Dataspace : Interface
 {
 	virtual ~Dataspace() { }
 

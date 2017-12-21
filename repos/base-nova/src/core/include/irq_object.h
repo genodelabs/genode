@@ -19,16 +19,16 @@ class Genode::Irq_object
 {
 	private:
 
-		Signal_context_capability _sigh_cap;
+		Signal_context_capability _sigh_cap { };
 
-		Genode::addr_t            _kernel_caps;
-		Genode::addr_t            _msi_addr;
-		Genode::addr_t            _msi_data;
-		Genode::addr_t            _device_phys; /* PCI config extended address */
+		addr_t _kernel_caps;
+		addr_t _msi_addr;
+		addr_t _msi_data;
+		addr_t _device_phys = 0; /* PCI config extended address */
 
 		enum { KERNEL_CAP_COUNT_LOG2 = 0 };
 
-		Genode::addr_t const irq_sel() { return _kernel_caps; }
+		Genode::addr_t irq_sel() const { return _kernel_caps; }
 
 	public:
 

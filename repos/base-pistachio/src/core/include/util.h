@@ -36,8 +36,8 @@ namespace Pistachio {
 
 namespace Genode {
 
-	inline void log_event(const char *s) { }
-	inline void log_event(const char *s, unsigned v1, unsigned v2, unsigned v3) { }
+	inline void log_event(const char *) { }
+	inline void log_event(const char *, unsigned, unsigned, unsigned) { }
 
 	inline void panic(const char *s)
 	{
@@ -83,7 +83,7 @@ namespace Genode {
 			touch_read_write(bptr);
 	}
 
-	constexpr addr_t get_page_mask()      { return ~(get_page_size() - 1); }
+	constexpr addr_t get_page_mask() { return ~(get_page_size() - 1); }
 
 	inline size_t get_super_page_size_log2()
 	{
@@ -107,7 +107,7 @@ namespace Genode {
 		return trunc_page(addr + get_page_size() - 1);
 	}
 
-	inline addr_t map_src_addr(addr_t core_local_addr, addr_t phys_addr) {
+	inline addr_t map_src_addr(addr_t core_local_addr, addr_t) {
 		return core_local_addr; }
 
 	inline size_t constrain_map_size_log2(size_t size_log2) {

@@ -43,7 +43,7 @@ class Genode::Rpc_cap_factory
 		{
 			using Identity = Kernel::Core_object_identity<Kernel::Thread>;
 
-			Native_capability cap;
+			Native_capability cap { };
 
 			uint8_t data[sizeof(Identity)]
 			__attribute__((aligned(sizeof(addr_t))));
@@ -53,8 +53,8 @@ class Genode::Rpc_cap_factory
 
 		uint8_t       _initial_slab_block[get_page_size()];
 		Slab          _slab;
-		List<Kobject> _list;
-		Lock          _lock;
+		List<Kobject> _list { };
+		Lock          _lock { };
 
 	public:
 

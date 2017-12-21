@@ -189,6 +189,12 @@ class File_system::Chunk_index : public Chunk_base
 
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Chunk_index(Chunk_index const &);
+		Chunk_index &operator = (Chunk_index const &);
+
 		Allocator &_alloc;
 
 		Entry * _entries[NUM_ENTRIES];

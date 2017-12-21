@@ -36,11 +36,11 @@ class Log_console : public Console
 			{ }
 		};
 
-		Log _log;
+		Log _log { };
 
-		char     _buf[_BUF_SIZE];
-		unsigned _num_chars;
-		Lock     _lock;
+		char     _buf[_BUF_SIZE] { };
+		unsigned _num_chars = 0;
+		Lock     _lock { };
 
 		void _flush()
 		{
@@ -71,10 +71,7 @@ class Log_console : public Console
 		/**
 		 * Constructor
 		 */
-		Log_console()
-		:
-			_num_chars(0)
-		{ }
+		Log_console() { }
 
 		/**
 		 * Console interface

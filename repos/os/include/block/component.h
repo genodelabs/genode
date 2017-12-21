@@ -72,9 +72,9 @@ class Block::Session_component : public Block::Session_component_base,
 		addr_t                            _rq_phys;
 		Signal_handler<Session_component> _sink_ack;
 		Signal_handler<Session_component> _sink_submit;
-		bool                              _req_queue_full;
-		bool                              _ack_queue_full;
-		Packet_descriptor                 _p_to_handle;
+		bool                              _req_queue_full = false;
+		bool                              _ack_queue_full = false;
+		Packet_descriptor                 _p_to_handle { };
 		unsigned                          _p_in_fly;
 		bool                              _writeable;
 

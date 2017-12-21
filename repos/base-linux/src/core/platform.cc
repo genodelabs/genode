@@ -75,14 +75,14 @@ static Pipe_semaphore _wait_for_exit_sem;  /* wakeup of '_wait_for_exit' */
 static bool           _do_exit = false;    /* exit condition */
 
 
-static void sigint_handler(int signum)
+static void sigint_handler(int)
 {
 	_do_exit = true;
 	_wait_for_exit_sem.up();
 }
 
 
-static void sigchld_handler(int signnum)
+static void sigchld_handler(int)
 {
 	_wait_for_exit_sem.up();
 }

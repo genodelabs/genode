@@ -51,7 +51,7 @@ class Genode::Static_root : public Genode::Rpc_object<Genode::Typed_root<SESSION
 		 ** Root interface **
 		 ********************/
 
-		Capability<Session> session(Root::Session_args const &args, Affinity const &) override
+		Capability<Session> session(Root::Session_args const &, Affinity const &) override
 		{
 			return _session;
 		}

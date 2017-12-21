@@ -29,8 +29,8 @@ class Audio_out::Session_rpc_object : public Genode::Rpc_object<Audio_out::Sessi
 	protected:
 
 		Genode::Attached_ram_dataspace _ds; /* contains Audio_out stream */
-		Genode::Signal_transmitter     _progress;
-		Genode::Signal_transmitter     _alloc;
+		Genode::Signal_transmitter     _progress { };
+		Genode::Signal_transmitter     _alloc    { };
 
 		Genode::Signal_context_capability _data_cap;
 

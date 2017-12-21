@@ -28,8 +28,8 @@ struct Test::Main
 	Loader::Connection _loader { _env, Ram_quota{8*1024*1024}, Cap_quota{100} };
 	Timer::Connection  _timer  { _env };
 
-	Loader::Area  _size;
-	Loader::Point _pos;
+	Loader::Area  _size { };
+	Loader::Point _pos  { };
 
 	void _handle_view_ready()
 	{

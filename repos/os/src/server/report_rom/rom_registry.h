@@ -30,7 +30,7 @@ struct Rom::Registry : Registry_for_reader, Registry_for_writer, Genode::Noncopy
 		Genode::Region_map             &_rm;
 		Genode::Attached_rom_dataspace &_config_rom;
 
-		Module_list _modules;
+		Module_list _modules { };
 
 		struct Read_write_policy : Module::Read_policy, Module::Write_policy
 		{
@@ -58,7 +58,7 @@ struct Rom::Registry : Registry_for_reader, Registry_for_writer, Genode::Noncopy
 				return true;
 			}
 
-		} _read_write_policy;
+		} _read_write_policy { };
 
 		Module &_lookup(Module::Name const name)
 		{

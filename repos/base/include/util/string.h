@@ -579,42 +579,52 @@ class Genode::String
 		/**
 		 * Number of chars contained in '_buf' including the terminating null
 		 */
-		size_t _len;
+		size_t _len { 0 };
 
 		/**
 		 * Output facility that targets a character buffer
 		 */
-		struct Local_output : Output
+		class Local_output : public Output
 		{
-			char * const _buf;
+			private:
 
-			size_t _num_chars = 0;
+				/*
+				 * Noncopyable
+				 */
+				Local_output(Local_output const &);
+				Local_output &operator = (Local_output const &);
 
-			/**
-			 * Return true if '_buf' can fit at least one additional 'char'.
-			 */
-			bool _capacity_left() const { return CAPACITY - _num_chars - 1; }
+			public:
 
-			void _append(char c) { _buf[_num_chars++] = c; }
+				char * const _buf;
 
-			Local_output(char *buf) : _buf(buf) { }
+				size_t _num_chars = 0;
 
-			size_t num_chars() const { return _num_chars; }
+				/**
+				 * Return true if '_buf' can fit at least one additional 'char'.
+				 */
+				bool _capacity_left() const { return CAPACITY - _num_chars - 1; }
 
-			void out_char(char c) override { if (_capacity_left()) _append(c); }
+				void _append(char c) { _buf[_num_chars++] = c; }
 
-			void out_string(char const *str, size_t n) override
-			{
-				while (n-- > 0 && _capacity_left() && *str)
-					_append(*str++);
-			}
+				Local_output(char *buf) : _buf(buf) { }
+
+				size_t num_chars() const { return _num_chars; }
+
+				void out_char(char c) override { if (_capacity_left()) _append(c); }
+
+				void out_string(char const *str, size_t n) override
+				{
+					while (n-- > 0 && _capacity_left() && *str)
+						_append(*str++);
+				}
 		};
 
 	public:
 
 		constexpr static size_t size() { return CAPACITY; }
 
-		String() : _len(0) { }
+		String() { }
 
 		/**
 		 * Constructor

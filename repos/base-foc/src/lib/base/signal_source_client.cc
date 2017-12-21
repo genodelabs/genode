@@ -34,12 +34,12 @@ using namespace Genode;
 
 Signal_source_client::Signal_source_client(Capability<Signal_source> cap)
 :
-	Rpc_client<Foc_signal_source>(static_cap_cast<Foc_signal_source>(cap))
-{
-	using namespace Fiasco;
+	Rpc_client<Foc_signal_source>(static_cap_cast<Foc_signal_source>(cap)),
 
 	/* request mapping of semaphore capability selector */
-	_sem = call<Rpc_request_semaphore>();
+	_sem(call<Rpc_request_semaphore>())
+{
+	using namespace Fiasco;
 
 	Foc_native_cpu_client cpu_client(env_deprecated()->cpu_session()->native_cpu());
 	Native_capability thread_cap = cpu_client.native_cap(Thread::myself()->cap());

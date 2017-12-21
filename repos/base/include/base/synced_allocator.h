@@ -36,7 +36,7 @@ class Genode::Synced_allocator : public Allocator
 {
 	private:
 
-		Lock                          _lock;
+		Lock                          _lock { };
 		ALLOC                         _alloc;
 		Synced_interface<ALLOC, Lock> _synced_object;
 

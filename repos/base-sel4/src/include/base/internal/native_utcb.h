@@ -26,12 +26,15 @@ struct Genode::Native_utcb
 	 */
 	enum { IPC_BUFFER_SIZE = 4096 };
 
-	union {
+	addr_t _raw[IPC_BUFFER_SIZE/sizeof(addr_t)];
 
-		addr_t raw[IPC_BUFFER_SIZE/sizeof(addr_t)];
+	Native_utcb() { };
 
-		struct { addr_t ep_sel; addr_t lock_sel; }; 
-	};
+	addr_t ep_sel()   const { return _raw[0]; }
+	addr_t lock_sel() const { return _raw[1]; }
+
+	void ep_sel  (addr_t sel) { _raw[0] = sel; }
+	void lock_sel(addr_t sel) { _raw[1] = sel; }
 };
 
 #endif /* _INCLUDE__BASE__INTERNAL__NATIVE_UTCB_H_ */

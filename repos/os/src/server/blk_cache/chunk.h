@@ -34,6 +34,14 @@ namespace Cache {
 	 */
 	class Chunk_base : Genode::Noncopyable
 	{
+		private:
+
+			/*
+			 * Noncopyable
+			 */
+			Chunk_base(Chunk_base const &);
+			Chunk_base &operator = (Chunk_base const &);
+
 		public:
 
 			struct Range_exception : Genode::Exception
@@ -78,6 +86,8 @@ namespace Cache {
 			: _base_offset(0), _num_entries(0), _parent(0), _zero(true) { }
 
 		public:
+
+			virtual ~Chunk_base() { }
 
 			/**
 			 * Return absolute base offset of chunk in bytes
@@ -224,6 +234,12 @@ namespace Cache {
 			static constexpr size_t SIZE       = ENTRY_SIZE*NUM_ENTRIES;
 
 		private:
+
+			/*
+			 * Noncopyable
+			 */
+			Chunk_index(Chunk_index const &);
+			Chunk_index &operator = (Chunk_index const &);
 
 			Genode::Allocator &_alloc;
 

@@ -44,8 +44,8 @@ class Loader::Session_component : public Rpc_object<Session>
 			Entrypoint                 &_ep;
 			Allocator                  &_md_alloc;
 			Rom_module_registry        &_rom_modules;
-			Lock                        _lock;
-			List<Rom_session_component> _rom_sessions;
+			Lock                        _lock { };
+			List<Rom_session_component> _rom_sessions { };
 
 			void _close(Rom_session_component &rom)
 			{
@@ -68,7 +68,7 @@ class Loader::Session_component : public Rpc_object<Session>
 					_close(*_rom_sessions.first());
 			}
 
-			Rom_session_component &create(Args const &args, Affinity affinity) override
+			Rom_session_component &create(Args const &args, Affinity) override
 			{
 				/* try to find ROM module at local ROM service */
 				try {
@@ -108,7 +108,7 @@ class Loader::Session_component : public Rpc_object<Session>
 		 */
 		struct Intercepted_parent_service : Genode::Parent_service
 		{
-			Signal_context_capability fault_sigh;
+			Signal_context_capability fault_sigh { };
 
 			Intercepted_parent_service(Env &env, Service::Name const &name)
 			: Parent_service(env, name) { }
@@ -163,12 +163,12 @@ class Loader::Session_component : public Rpc_object<Session>
 			Region_map    &_rm;
 			Ram_allocator &_ram;
 
-			Area                       _max_size;
-			Nitpicker::View_capability _parent_view;
+			Area                       _max_size    { };
+			Nitpicker::View_capability _parent_view { };
 
-			Signal_context_capability view_ready_sigh;
+			Signal_context_capability view_ready_sigh { };
 
-			Constructible<Nitpicker::Session_component> session;
+			Constructible<Nitpicker::Session_component> session { };
 
 			Local_nitpicker_factory(Entrypoint &ep, Env &env,
 			                        Region_map &rm, Ram_allocator &ram)
@@ -210,7 +210,7 @@ class Loader::Session_component : public Rpc_object<Session>
 		Heap                        _md_alloc { _local_ram, _env.rm() };
 		size_t                      _subsystem_cap_quota_limit = 0;
 		size_t                      _subsystem_ram_quota_limit = 0;
-		Parent_services             _parent_services;
+		Parent_services             _parent_services { };
 		Rom_module_registry         _rom_modules { _env, _config, _local_ram, _md_alloc };
 		Local_rom_factory           _rom_factory { _env.ep(), _md_alloc, _rom_modules };
 		Local_rom_service           _rom_service { _rom_factory };
@@ -218,8 +218,8 @@ class Loader::Session_component : public Rpc_object<Session>
 		Local_pd_service            _pd_service  { _env };
 		Local_nitpicker_factory     _nitpicker_factory { _env.ep(), _env, _env.rm(), _local_ram };
 		Local_nitpicker_service     _nitpicker_service { _nitpicker_factory };
-		Signal_context_capability   _fault_sigh;
-		Constructible<Child>        _child;
+		Signal_context_capability   _fault_sigh { };
+		Constructible<Child>        _child { };
 
 		/**
 		 * Return virtual nitpicker session component

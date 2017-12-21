@@ -68,11 +68,19 @@ class Vfs::Terminal_file_system : public Single_file_system
 				_io_handler.handle_io_response(_context);
 				_context = nullptr;
 			}
+
+			private:
+
+				/*
+				 * Noncopyable
+				 */
+				Post_signal_hook(Post_signal_hook const &);
+				Post_signal_hook &operator = (Post_signal_hook const &);
 		};
 
 		Post_signal_hook _post_signal_hook { _env.ep(), _io_handler };
 
-		Handle_registry _handle_registry;
+		Handle_registry _handle_registry { };
 
 		Genode::Io_signal_handler<Terminal_file_system> _read_avail_handler {
 			_env.ep(), *this, &Terminal_file_system::_handle_read_avail };
@@ -84,7 +92,7 @@ class Vfs::Terminal_file_system : public Single_file_system
 			});
 		}
 
-		Read_result _read(Vfs_handle *vfs_handle, char *dst, file_size count,
+		Read_result _read(Vfs_handle *, char *dst, file_size count,
 		                  file_size &out_count)
 		{
 			if (_terminal.avail()) {
@@ -113,7 +121,7 @@ class Vfs::Terminal_file_system : public Single_file_system
 		static const char *name()   { return "terminal"; }
 		char const *type() override { return "terminal"; }
 
-		Open_result open(char const  *path, unsigned mode,
+		Open_result open(char const  *path, unsigned,
 		                 Vfs_handle **out_handle,
 		                 Allocator   &alloc) override
 		{
@@ -148,12 +156,12 @@ class Vfs::Terminal_file_system : public Single_file_system
 			return _terminal.avail();
 		}
 
-		Ftruncate_result ftruncate(Vfs_handle *vfs_handle, file_size) override
+		Ftruncate_result ftruncate(Vfs_handle *, file_size) override
 		{
 			return FTRUNCATE_OK;
 		}
 
-		bool check_unblock(Vfs_handle *vfs_handle, bool rd, bool wr, bool ex) override
+		bool check_unblock(Vfs_handle *, bool rd, bool wr, bool) override
 		{
 			if (rd && (_terminal.avail() > 0))
 				return true;
@@ -164,7 +172,7 @@ class Vfs::Terminal_file_system : public Single_file_system
 			return false;
 		}
 
-		void register_read_ready_sigh(Vfs_handle *vfs_handle,
+		void register_read_ready_sigh(Vfs_handle *,
 		                              Signal_context_capability sigh) override
 		{
 			_terminal.read_avail_sigh(sigh);

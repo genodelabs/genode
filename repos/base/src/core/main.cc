@@ -95,7 +95,7 @@ Thread_capability Genode::main_thread_cap() { return Thread_capability(); }
 /**
  * Dummy implementation for core that has no parent to ask for resources
  */
-void Genode::init_parent_resource_requests(Genode::Env & env) {};
+void Genode::init_parent_resource_requests(Genode::Env &) {};
 
 
 /****************
@@ -146,7 +146,7 @@ class Core_child : public Child_policy
 		Name name() const { return "init"; }
 
 		Service &resolve_session_request(Service::Name const &name,
-		                                 Session_state::Args const &args) override
+		                                 Session_state::Args const &) override
 		{
 			Service *service = nullptr;
 			_services.for_each([&] (Service &s) {

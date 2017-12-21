@@ -65,11 +65,11 @@ class Decorator::Theme
 
 		Margins decor_margins() const;
 
-		void draw_background(Pixel_surface, Alpha_surface, unsigned alpha) const;
+		void draw_background(Pixel_surface &, Alpha_surface &, unsigned alpha) const;
 
-		void draw_title(Pixel_surface, Alpha_surface, char const *title) const;
+		void draw_title(Pixel_surface &, Alpha_surface &, char const *title) const;
 
-		void draw_element(Pixel_surface, Alpha_surface, Element_type,
+		void draw_element(Pixel_surface &, Alpha_surface &, Element_type,
 		                  unsigned alpha) const;
 
 		/**

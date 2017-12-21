@@ -31,28 +31,41 @@ using namespace Genode;
  *********************************/
 
 template <int CHILDREN>
-struct Helper : Thread
+class Helper : Thread
 {
-	void *child[CHILDREN];
+	private:
 
-	enum { STACK_SIZE = 0x2000 };
+		/*
+		 * Noncopyable
+		 */
+		Helper(Helper const &);
+		Helper &operator = (Helper const &);
 
-	Env &_env;
+	public:
 
-	Helper(Env &env) : Thread(env, "helper", STACK_SIZE), _env(env) { }
+		using Thread::start;
+		using Thread::join;
 
-	void *stack() const { return _stack; }
+		void *child[CHILDREN];
 
-	void entry()
-	{
-		Constructible<Helper> helper[CHILDREN];
+		enum { STACK_SIZE = 0x2000 };
 
-		for (unsigned i = 0; i < CHILDREN; ++i)
-			helper[i].construct(_env);
+		Env &_env;
 
-		for (unsigned i = 0; i < CHILDREN; ++i)
-			child[i] = helper[i]->stack();
-	}
+		Helper(Env &env) : Thread(env, "helper", STACK_SIZE), _env(env) { }
+
+		void *stack() const { return _stack; }
+
+		void entry()
+		{
+			Constructible<Helper> helper[CHILDREN];
+
+			for (unsigned i = 0; i < CHILDREN; ++i)
+				helper[i].construct(_env);
+
+			for (unsigned i = 0; i < CHILDREN; ++i)
+				child[i] = helper[i]->stack();
+		}
 };
 
 

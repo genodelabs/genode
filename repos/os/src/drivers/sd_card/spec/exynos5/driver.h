@@ -34,6 +34,12 @@ class Sd_card::Driver : public  Driver_base,
 {
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Driver(Driver const &);
+		Driver &operator = (Driver const &);
+
 		enum {
 			HOST_FREQ              = 52000000,
 			CLK_FREQ               = 400000000,
@@ -167,13 +173,13 @@ class Sd_card::Driver : public  Driver_base,
 
 		struct Block_transfer
 		{
-			Block::Packet_descriptor packet;
+			Block::Packet_descriptor packet { };
 			bool                     pending = false;
 		};
 
 		Env                    &_env;
 		Timer_delayer           _delayer          { _env };
-		Block_transfer          _block_transfer;
+		Block_transfer          _block_transfer   { };
 		Clock_regulator         _clock_regulator  { _env };
 		Signal_handler<Driver>  _irq_handler      { _env.ep(), *this, &Driver::_handle_irq };
 		Irq_connection          _irq              { _env,  Exynos5::SDMMC0_IRQ };

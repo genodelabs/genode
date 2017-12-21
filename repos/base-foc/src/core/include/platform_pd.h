@@ -44,6 +44,12 @@ namespace Genode {
 	{
 		private:
 
+			/*
+			 * Noncopyable
+			 */
+			Platform_pd(Platform_pd const &);
+			Platform_pd &operator = (Platform_pd const &);
+
 			enum {
 				THREAD_MAX      = (1 << 7),
 				UTCB_AREA_SIZE  = (THREAD_MAX * Fiasco::L4_UTCB_OFFSET),
@@ -56,8 +62,8 @@ namespace Genode {
 			}
 
 			Cap_mapping       _task;
-			Cap_mapping       _parent;
-			Cap_mapping       _debug;
+			Cap_mapping       _parent { };
+			Cap_mapping       _debug  { };
 			Platform_thread  *_threads[THREAD_MAX];
 
 		public:

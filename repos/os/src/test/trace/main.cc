@@ -49,7 +49,13 @@ class Trace_buffer_monitor
 {
 	private:
 
-		enum { MAX_ENTRY_BUF = 256 };
+		/*
+		 * Noncopyable
+		 */
+		Trace_buffer_monitor(Trace_buffer_monitor const &);
+		Trace_buffer_monitor &operator = (Trace_buffer_monitor const &);
+
+		static constexpr size_t MAX_ENTRY_BUF = 256;
 
 		char                  _buf[MAX_ENTRY_BUF];
 		Region_map           &_rm;
@@ -183,14 +189,15 @@ struct Test_tracing
 	Timer::Connection        timer        { env };
 	Test_thread::Name        thread_name  { "test-thread" };
 	Test_thread              thread       { env, thread_name };
-	Trace::Policy_id         policy_id;
+	Trace::Policy_id         policy_id    { };
 
-	Constructible<Trace_buffer_monitor> test_monitor;
+	Constructible<Trace_buffer_monitor> test_monitor { };
 
 	typedef Genode::String<64> String;
-	String                    policy_label;
-	String                    policy_module;
-	Rom_dataspace_capability  policy_module_rom_ds;
+	String policy_label  { };
+	String policy_module { };
+
+	Rom_dataspace_capability  policy_module_rom_ds { };
 
 	char const *state_name(Trace::Subject_info::State state)
 	{
@@ -316,8 +323,8 @@ struct Test_tracing
 
 struct Main
 {
-	Constructible<Test_out_of_metadata> test_1;
-	Constructible<Test_tracing>         test_2;
+	Constructible<Test_out_of_metadata> test_1 { };
+	Constructible<Test_tracing>         test_2 { };
 
 	Main(Env &env)
 	{

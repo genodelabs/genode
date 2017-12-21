@@ -71,7 +71,7 @@ Mapped_mem_allocator::alloc_aligned(size_t size, void **out_addr, int align, add
 }
 
 
-void Mapped_mem_allocator::free(void *addr, size_t size)
+void Mapped_mem_allocator::free(void *addr, size_t)
 {
 	using Block = Mapped_avl_allocator::Block;
 	Block *b = static_cast<Block *>(_virt_alloc->_find_by_address((addr_t)addr));
@@ -89,7 +89,7 @@ void Mapped_mem_allocator::free(void *addr, size_t size)
 }
 
 
-void Mapped_mem_allocator::free(void *addr)
+void Mapped_mem_allocator::free(void *)
 {
 	warning(__func__, "not implemented!");
 }

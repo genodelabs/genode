@@ -167,8 +167,7 @@ class Hw::Level_4_translation_table
 
 		struct Remove_func
 		{
-			void operator () (addr_t const vo, addr_t const pa,
-			                  size_t const size,
+			void operator () (addr_t /* vo */, addr_t /* pa */, size_t /* size */,
 			                  Descriptor::access_t &desc)
 			{ desc = 0; }
 		};
@@ -397,7 +396,7 @@ class Hw::Page_directory
 
 			Remove_func(Allocator & alloc) : alloc(alloc) { }
 
-			void operator () (addr_t const vo, addr_t const pa,
+			void operator () (addr_t const vo, addr_t /* pa */,
 			                  size_t const size,
 			                  typename Base_descriptor::access_t &desc)
 			{
@@ -562,7 +561,7 @@ class Hw::Pml4_table
 
 			Remove_func(Allocator & alloc) : alloc(alloc) { }
 
-			void operator () (addr_t const vo, addr_t const pa,
+			void operator () (addr_t const vo, addr_t /* pa */,
 			                  size_t const size,
 			                  Descriptor::access_t &desc)
 			{

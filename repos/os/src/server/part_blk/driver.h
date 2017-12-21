@@ -28,11 +28,9 @@ namespace Block {
 };
 
 
-class Block::Block_dispatcher
+struct Block::Block_dispatcher : Genode::Interface
 {
-	public:
-
-		virtual void dispatch(Packet_descriptor&, Packet_descriptor&) = 0;
+	virtual void dispatch(Packet_descriptor&, Packet_descriptor&) = 0;
 };
 
 
@@ -80,14 +78,14 @@ class Block::Driver
 		enum { BLK_SZ = Session::TX_QUEUE_SIZE*sizeof(Request) };
 
 		Genode::Tslab<Request, BLK_SZ> _r_slab;
-		Genode::List<Request>          _r_list;
+		Genode::List<Request>          _r_list { };
 		Genode::Allocator_avl          _block_alloc;
 		Block::Connection              _session;
-		Block::sector_t                _blk_cnt;
-		Genode::size_t                 _blk_size;
+		Block::sector_t                _blk_cnt  = 0;
+		Genode::size_t                 _blk_size = 0;
 		Genode::Signal_handler<Driver> _source_ack;
 		Genode::Signal_handler<Driver> _source_submit;
-		Block::Session::Operations     _ops;
+		Block::Session::Operations     _ops { };
 
 		void _ready_to_submit();
 

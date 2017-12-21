@@ -87,7 +87,8 @@ bool Platform_pd::bind_thread(Platform_thread *thread)
 	 *     to attach the UTCB as a dataspace to the stack area to make the RM
 	 *     session aware to the mapping. This code is missing.
 	 */
-	addr_t const utcb = (thread->_utcb) ? thread->_utcb : thread->INITIAL_IPC_BUFFER_VIRT;
+	addr_t const utcb = (thread->_utcb) ? thread->_utcb
+	                                    : (addr_t)thread->INITIAL_IPC_BUFFER_VIRT;
 
 	enum { WRITABLE = true, ONE_PAGE = 1, FLUSHABLE = true, NON_EXECUTABLE = false };
 	_vm_space.alloc_page_tables(utcb, get_page_size());
@@ -199,8 +200,7 @@ void Platform_pd::flush(addr_t virt_addr, size_t size, Core_local_addr)
 }
 
 
-Platform_pd::Platform_pd(Allocator * md_alloc, char const *label,
-                         signed pd_id, bool create)
+Platform_pd::Platform_pd(Allocator * md_alloc, char const *label, signed, bool)
 :
 	_id(pd_id_alloc().alloc()),
 	_page_table_registry(*md_alloc),

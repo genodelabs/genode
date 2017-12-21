@@ -149,62 +149,65 @@ class Ipu : Genode::Mmio
 
 				enum { OFFSET  = 0x1000000 };
 
-				unsigned xv       : 10;  /* XV Virtual Coordinate */
-				unsigned yv       : 9;   /* YV Virtual Coordinate */
-				unsigned xb       : 13;  /* XB inner Block Coordinate */
-				unsigned yb       : 12;  /* YB inner Block Coordinate */
-				unsigned nsb_b    : 1;   /* New Sub Block */
-				unsigned cf       : 1;   /* Current Field */
-				unsigned sx       : 12;  /* Scroll X counter */
-				unsigned sy       : 11;  /* Scroll Y counter */
-				unsigned ns       : 10;  /* Number of Scroll */
-				unsigned sdx      : 7;   /* Scroll Delta X */
-				unsigned sm       : 10;  /* Scroll Max */
-				unsigned scc      : 1;   /* Scrolling Configuration */
-				unsigned sce      : 1;   /* Scrolling Enable */
-				unsigned sdy      : 7;   /* Scroll Delta Y */
-				unsigned sdrx     : 1;   /* Scroll Horizontal Direction */
-				unsigned sdry     : 1;   /* Scroll Vertical Direction */
-				unsigned bpp      : 3;   /* Bits per Pixel */
-				unsigned dec_sel  : 2;   /* Decode Address Select */
-				unsigned dim      : 1;   /* Access Dimension */
-				unsigned so       : 1;   /* Scan Order */
-				unsigned bndm     : 3;   /* Band Mode */
-				unsigned bm       : 2;   /* Block Mode */
-				unsigned rot      : 1;   /* Rotation */
-				unsigned hf       : 1;   /* Horizontal Flip */
-				unsigned vf       : 1;   /* Vertical Flip */
-				unsigned the      : 1;   /* Threshold Enable */
-				unsigned cap      : 1;   /* Conditional Access Polarity */
-				unsigned cae      : 1;   /* Conditional Access Enable */
-				unsigned fw       : 13;  /* Frame Width */
-				unsigned fh       : 12;  /* Frame Height */
-				unsigned res0     : 10;  /* reserved */
-				Genode::uint32_t res1[3];
+				struct
+				{
+					unsigned xv       : 10;  /* XV Virtual Coordinate */
+					unsigned yv       : 9;   /* YV Virtual Coordinate */
+					unsigned xb       : 13;  /* XB inner Block Coordinate */
+					unsigned yb       : 12;  /* YB inner Block Coordinate */
+					unsigned nsb_b    : 1;   /* New Sub Block */
+					unsigned cf       : 1;   /* Current Field */
+					unsigned sx       : 12;  /* Scroll X counter */
+					unsigned sy       : 11;  /* Scroll Y counter */
+					unsigned ns       : 10;  /* Number of Scroll */
+					unsigned sdx      : 7;   /* Scroll Delta X */
+					unsigned sm       : 10;  /* Scroll Max */
+					unsigned scc      : 1;   /* Scrolling Configuration */
+					unsigned sce      : 1;   /* Scrolling Enable */
+					unsigned sdy      : 7;   /* Scroll Delta Y */
+					unsigned sdrx     : 1;   /* Scroll Horizontal Direction */
+					unsigned sdry     : 1;   /* Scroll Vertical Direction */
+					unsigned bpp      : 3;   /* Bits per Pixel */
+					unsigned dec_sel  : 2;   /* Decode Address Select */
+					unsigned dim      : 1;   /* Access Dimension */
+					unsigned so       : 1;   /* Scan Order */
+					unsigned bndm     : 3;   /* Band Mode */
+					unsigned bm       : 2;   /* Block Mode */
+					unsigned rot      : 1;   /* Rotation */
+					unsigned hf       : 1;   /* Horizontal Flip */
+					unsigned vf       : 1;   /* Vertical Flip */
+					unsigned the      : 1;   /* Threshold Enable */
+					unsigned cap      : 1;   /* Conditional Access Polarity */
+					unsigned cae      : 1;   /* Conditional Access Enable */
+					unsigned fw       : 13;  /* Frame Width */
+					unsigned fh       : 12;  /* Frame Height */
+					unsigned res0     : 10;  /* reserved */
+					Genode::uint32_t res1[3];
 
-				unsigned eba0     : 29;  /* Ext Mem Buffer 0 Address */
-				unsigned eba1     : 29;  /* Ext Mem Buffer 1 Address */
-				unsigned ilo      : 20;  /* Interlace Offset */
-				unsigned npb      : 7;   /* Number of Pixels in Whole Burst Access */
-				unsigned pfs      : 4;   /* Pixel Format Select */
-				unsigned alu      : 1;   /* Alpha Used */
-				unsigned albm     : 3;   /* Alpha Channel Mapping */
-				unsigned id       : 2;   /* AXI ID */
-				unsigned th       : 7;   /* Threshold */
-				unsigned sly      : 14;  /* Stride Line */
-				unsigned wid0     : 3;   /* Width0 */
-				unsigned wid1     : 3;   /* Width1 */
-				unsigned wid2     : 3;   /* Width2 */
-				unsigned wid3     : 3;   /* Width3 */
-				unsigned off0     : 5;   /* Offset0 */
-				unsigned off1     : 5;   /* Offset1 */
-				unsigned off2     : 5;   /* Offset2 */
-				unsigned off3     : 5;   /* Offset3 */
-				unsigned sxys     : 1;   /* Select SX SY Set */
-				unsigned cre      : 1;   /* Conditional Read Enable */
-				unsigned dec_sel2 : 1;   /* Decode Address Select bit[2] */
-				unsigned res2     : 9;   /* reserved */
-				Genode::uint32_t res3[3];
+					unsigned eba0     : 29;  /* Ext Mem Buffer 0 Address */
+					unsigned eba1     : 29;  /* Ext Mem Buffer 1 Address */
+					unsigned ilo      : 20;  /* Interlace Offset */
+					unsigned npb      : 7;   /* Number of Pixels in Whole Burst Access */
+					unsigned pfs      : 4;   /* Pixel Format Select */
+					unsigned alu      : 1;   /* Alpha Used */
+					unsigned albm     : 3;   /* Alpha Channel Mapping */
+					unsigned id       : 2;   /* AXI ID */
+					unsigned th       : 7;   /* Threshold */
+					unsigned sly      : 14;  /* Stride Line */
+					unsigned wid0     : 3;   /* Width0 */
+					unsigned wid1     : 3;   /* Width1 */
+					unsigned wid2     : 3;   /* Width2 */
+					unsigned wid3     : 3;   /* Width3 */
+					unsigned off0     : 5;   /* Offset0 */
+					unsigned off1     : 5;   /* Offset1 */
+					unsigned off2     : 5;   /* Offset2 */
+					unsigned off3     : 5;   /* Offset3 */
+					unsigned sxys     : 1;   /* Select SX SY Set */
+					unsigned cre      : 1;   /* Conditional Read Enable */
+					unsigned dec_sel2 : 1;   /* Decode Address Select bit[2] */
+					unsigned res2     : 9;   /* reserved */
+					Genode::uint32_t res3[3];
+				};
 
 				Cp_mem() { Genode::memset(this, 0, sizeof(Cp_mem)); }
 		} __attribute__((packed));

@@ -73,21 +73,12 @@ class Net::Ethernet_frame
 			ARP  = 0x0806,
 		};
 
-
-		/*****************
-		 ** Constructor **
-		 *****************/
-
-		Ethernet_frame(Genode::size_t size) {
+		static void validate_size(Genode::size_t size)
+		{
 			/* at least, frame header needs to fit in */
 			if (size < sizeof(Ethernet_frame))
 				throw No_ethernet_frame();
 		}
-
-		/**
-		 * Constructor for composing a new Ethernet frame
-		 */
-		Ethernet_frame() { }
 
 
 		/***************
@@ -112,7 +103,7 @@ class Net::Ethernet_frame
 		/**
 		 * Placement new operator.
 		 */
-		void * operator new(__SIZE_TYPE__ size, void* addr) { return addr; }
+		void * operator new(__SIZE_TYPE__, void* addr) { return addr; }
 
 
 		/*********

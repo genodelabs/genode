@@ -34,6 +34,12 @@ class Vfs::Tar_file_system : public File_system
 	char                          *_tar_base = _tar_ds.local_addr<char>();
 	file_size               const  _tar_size = _tar_ds.size();
 
+	/*
+	 * Noncopyable
+	 */
+	Tar_file_system(Tar_file_system const &);
+	Tar_file_system &operator = (Tar_file_system const &);
+
 	class Record
 	{
 		private:
@@ -90,6 +96,14 @@ class Vfs::Tar_file_system : public File_system
 
 	class Tar_vfs_handle : public Vfs_handle
 	{
+		private:
+
+			/*
+			 * Noncopyable
+			 */
+			Tar_vfs_handle(Tar_vfs_handle const &);
+			Tar_vfs_handle &operator = (Tar_vfs_handle const &);
+
 		protected:
 
 			Node const *_node;
@@ -400,7 +414,7 @@ class Vfs::Tar_file_system : public File_system
 
 	struct Num_dirent_cache
 	{
-		Lock             lock;
+		Lock             lock { };
 		Node            &root_node;
 		bool             valid;              /* true after first lookup */
 		char             key[256];           /* key used for lookup */
@@ -603,7 +617,7 @@ class Vfs::Tar_file_system : public File_system
 			return OPEN_OK;
 		}
 
-		Opendir_result opendir(char const *path, bool create,
+		Opendir_result opendir(char const *path, bool /* create */,
 		                       Vfs_handle **out_handle,
 		                       Genode::Allocator& alloc) override
 		{
@@ -618,9 +632,9 @@ class Vfs::Tar_file_system : public File_system
 			return OPENDIR_OK;
 		}
 
-		Openlink_result openlink(char const *path, bool create,
-	                             Vfs_handle **out_handle, Allocator &alloc)
-	    {
+		Openlink_result openlink(char const *path, bool /* create */,
+		                         Vfs_handle **out_handle, Allocator &alloc)
+		{
 			Node const *node = dereference(path);
 			if (!node || !node->record ||
 			    node->record->type() != Record::TYPE_SYMLINK)
@@ -629,7 +643,7 @@ class Vfs::Tar_file_system : public File_system
 			*out_handle = new (alloc) Tar_vfs_symlink_handle(*this, alloc, 0, node);
 
 			return OPENLINK_OK;
-	    }
+		}
 
 		void close(Vfs_handle *vfs_handle) override
 		{
@@ -672,7 +686,7 @@ class Vfs::Tar_file_system : public File_system
 			return handle->read(dst, count, out_count);
 		}
 
-		Ftruncate_result ftruncate(Vfs_handle *handle, file_size) override
+		Ftruncate_result ftruncate(Vfs_handle *, file_size) override
 		{
 			return FTRUNCATE_ERR_NO_PERM;
 		}

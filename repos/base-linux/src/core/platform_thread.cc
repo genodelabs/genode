@@ -76,7 +76,6 @@ Platform_thread::Registry *Platform_thread::_registry()
 
 Platform_thread::Platform_thread(size_t, const char *name, unsigned,
                                  Affinity::Location, addr_t)
-: _tid(-1), _pid(-1)
 {
 	strncpy(_name, name, min(sizeof(_name), strlen(name) + 1));
 

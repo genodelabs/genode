@@ -44,7 +44,7 @@ struct Member_with_reference
 struct Compound
 {
 	Reconstructible<Member_with_reference> member;
-	Constructible<Member_with_reference>   lazy_member;
+	Constructible<Member_with_reference>   lazy_member { };
 
 	Compound(Object &object) : member(object) {
 		log("construct Compound"); }
@@ -83,7 +83,7 @@ struct Main
 	void call_const_method(Compound const &compound) {
 		compound.member->reference.const_method(); }
 
-	Main(Env &env)
+	Main(Env &)
 	{
 		log("--- Reconstructible utility test ---");
 		{

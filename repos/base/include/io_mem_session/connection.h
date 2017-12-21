@@ -27,7 +27,7 @@ struct Genode::Io_mem_connection : Connection<Io_mem_session>, Io_mem_session_cl
 	 *
 	 * \noapi
 	 */
-	Capability<Io_mem_session> _session(Parent &parent, addr_t base, size_t size,
+	Capability<Io_mem_session> _session(Parent &, addr_t base, size_t size,
 	                                    bool write_combined)
 	{
 		return session("cap_quota=%u, ram_quota=6K, base=0x%p, size=0x%lx, wc=%s",

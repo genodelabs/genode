@@ -54,9 +54,9 @@ class Net::Nic : public Net::Packet_handler
 		Packet_stream_source< ::Nic::Session::Policy> * source() {
 			return _nic.tx(); }
 
-		bool handle_arp(Ethernet_frame *eth,      Genode::size_t size);
-		bool handle_ip(Ethernet_frame *eth,       Genode::size_t size);
-		void finalize_packet(Ethernet_frame *eth, Genode::size_t size) {}
+		bool handle_arp(Ethernet_frame *eth,   Genode::size_t size);
+		bool handle_ip(Ethernet_frame *eth,    Genode::size_t size);
+		void finalize_packet(Ethernet_frame *, Genode::size_t) {}
 };
 
 #endif /* _SRC__SERVER__NIC_BRIDGE__NIC_H_ */

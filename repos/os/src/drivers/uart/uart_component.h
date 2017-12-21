@@ -55,7 +55,7 @@ class Uart::Session_component : public Rpc_object<Uart::Session,
 		/**
 		 * Functor informing the client about new data to read
 		 */
-		Char_avail_functor    _char_avail;
+		Char_avail_functor    _char_avail { };
 		Uart::Driver_factory &_driver_factory;
 		Uart::Driver         &_driver;
 

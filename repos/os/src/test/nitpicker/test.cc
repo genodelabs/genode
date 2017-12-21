@@ -29,7 +29,7 @@ class Test_view : public List<Test_view>::Element
 		typedef Nitpicker::Session::Command     Command;
 
 		Nitpicker::Session_client &_nitpicker;
-		View_handle                _handle;
+		View_handle                _handle { };
 		int                        _x, _y, _w, _h;
 		const char                *_title;
 		Test_view                 *_parent_view;
@@ -58,7 +58,7 @@ class Test_view : public List<Test_view>::Element
 
 			Nitpicker::Rect rect(Nitpicker::Point(_x, _y), Nitpicker::Area(_w, _h));
 			_nitpicker.enqueue<Command::Geometry>(_handle, rect);
-			_nitpicker.enqueue<Command::To_front>(_handle);
+			_nitpicker.enqueue<Command::To_front>(_handle, View_handle());
 			_nitpicker.enqueue<Command::Title>(_handle, _title);
 			_nitpicker.execute();
 		}
@@ -70,7 +70,7 @@ class Test_view : public List<Test_view>::Element
 
 		void top()
 		{
-			_nitpicker.enqueue<Command::To_front>(_handle);
+			_nitpicker.enqueue<Command::To_front>(_handle, View_handle());
 			_nitpicker.execute();
 		}
 

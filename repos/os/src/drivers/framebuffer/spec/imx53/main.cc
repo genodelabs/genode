@@ -29,6 +29,12 @@ class Framebuffer::Session_component :
 {
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Session_component(Session_component const &);
+		Session_component &operator = (Session_component const &);
+
 		Genode::Env &_env;
 
 		bool     _buffered;

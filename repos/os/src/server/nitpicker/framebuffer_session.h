@@ -32,14 +32,20 @@ class Framebuffer::Session_component : public Rpc_object<Session>
 {
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Session_component(Session_component const &);
+		Session_component &operator = (Session_component const &);
+
 		Buffer                       *_buffer = 0;
 		View_stack                   &_view_stack;
 		Nitpicker::Session_component &_session;
 		Framebuffer::Session         &_framebuffer;
 		Buffer_provider              &_buffer_provider;
-		Signal_context_capability     _mode_sigh;
-		Signal_context_capability     _sync_sigh;
-		Framebuffer::Mode             _mode;
+		Signal_context_capability     _mode_sigh { };
+		Signal_context_capability     _sync_sigh { };
+		Framebuffer::Mode             _mode { };
 		bool                          _alpha = false;
 
 	public:

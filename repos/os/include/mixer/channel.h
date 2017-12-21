@@ -32,12 +32,12 @@ struct Mixer::Channel
 	typedef enum { TYPE_INVALID, INPUT, OUTPUT } Type;
 	typedef enum { MIN = 0, MAX = 100 } Volume_level;
 
-	Type   type;
-	Number number;
-	Label  label;
-	int    volume;
-	bool   active;
-	bool   muted;
+	Type   type   { TYPE_INVALID };
+	Number number { INVALID };
+	Label  label  { };
+	int    volume { MIN };
+	bool   active { false };
+	bool   muted  { false };
 
 	Channel(Genode::Xml_node const &node)
 	{

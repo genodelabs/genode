@@ -174,13 +174,38 @@ namespace Genode {
  * simple wrapper in the line of 'return call<Rpc_function>(arguments...)'.
  */
 template <typename RPC_INTERFACE>
-struct Genode::Rpc_client : Capability<RPC_INTERFACE>, RPC_INTERFACE
+class Genode::Rpc_client : public RPC_INTERFACE
 {
-	typedef RPC_INTERFACE Rpc_interface;
+	private:
 
-	Rpc_client(Capability<RPC_INTERFACE> const &cap)
-	: Capability<RPC_INTERFACE>(cap) { }
+		Capability<RPC_INTERFACE> _cap;
+
+	public:
+
+		typedef RPC_INTERFACE Rpc_interface;
+
+		Rpc_client(Capability<RPC_INTERFACE> const &cap) : _cap(cap) { }
+
+		template <typename IF, typename... ARGS>
+		typename IF::Ret_type call(ARGS &&...args)
+		{
+			return _cap.call<IF>(args...);
+		}
+
+		template <typename IF, typename... ARGS>
+		typename IF::Ret_type call(ARGS &&...args) const
+		{
+			return _cap.call<IF>(args...);
+		}
+
+		/**
+		 * Return RPC capablity for client object
+		 *
+		 * \deprecated  use 'rpc_cap' accessor instead
+		 */
+		operator Capability<RPC_INTERFACE>() const { return _cap; }
+
+		Capability<RPC_INTERFACE> rpc_cap() const { return _cap; }
 };
-
 
 #endif /* _INCLUDE__BASE__RPC_CLIENT_H_ */

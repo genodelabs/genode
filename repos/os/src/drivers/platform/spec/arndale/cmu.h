@@ -23,8 +23,8 @@
 using namespace Regulator;
 using Genode::warning;
 
-class Cmu : public Regulator::Driver,
-            public Genode::Attached_mmio
+class Cmu : public  Regulator::Driver,
+            private Genode::Attached_mmio
 {
 	private:
 

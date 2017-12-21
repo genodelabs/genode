@@ -222,7 +222,7 @@ class Liquid_fb::Main : public Scout::Event_handler
 			          config_resize_handle, config_decoration };
 
 		/* create background animator if configured */
-		Constructible<Background_animator> _fb_win_bg_anim;
+		Constructible<Background_animator> _fb_win_bg_anim { };
 		void _init_background_animator()
 		{
 			if (config_animate) {

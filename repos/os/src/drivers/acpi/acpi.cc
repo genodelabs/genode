@@ -502,21 +502,27 @@ class Pci_routing : public List<Pci_routing>::Element
 /**
  * A table element (method, device, scope or name)
  */
-class Element : public List<Element>::Element
+class Element : private List<Element>::Element
 {
 	private:
 
-		uint8_t            _type;     /* the type of this element */
-		uint32_t           _size;     /* size in bytes */
-		uint32_t           _size_len; /* length of size in bytes */
-		char               _name[64]; /* name of element */
-		uint32_t           _name_len; /* length of name in bytes */
-		uint32_t           _bdf;      /* bus device function */
-		uint8_t const     *_data;     /* pointer to the data section */
-		uint32_t           _para_len; /* parameters to be skipped */
-		bool               _valid;    /* true if this is a valid element */
-		bool               _routed;   /* has the PCI information been read */
-		List<Pci_routing>  _pci;      /* list of PCI routing elements for this element */
+		friend class List<Element>;
+
+		Element &operator = (Element const &);
+
+		uint8_t        _type     = 0;       /* the type of this element */
+		uint32_t       _size     = 0;       /* size in bytes */
+		uint32_t       _size_len = 0;       /* length of size in bytes */
+		char           _name[64];           /* name of element */
+		uint32_t       _name_len = 0;       /* length of name in bytes */
+		uint32_t       _bdf      = 0;       /* bus device function */
+		uint8_t const *_data     = nullptr; /* pointer to the data section */
+		uint32_t       _para_len = 0;       /* parameters to be skipped */
+		bool           _valid    = false;   /* true if this is a valid element */
+		bool           _routed   = false;   /* has the PCI information been read */
+
+		/* list of PCI routing elements for this element */
+		List<Pci_routing> _pci { };
 
 		/* packages we are looking for */
 		enum { DEVICE = 0x5b, SUB_DEVICE = 0x82, DEVICE_NAME = 0x8, SCOPE = 0x10, METHOD = 0x14, PACKAGE_OP = 0x12 };
@@ -957,6 +963,8 @@ class Element : public List<Element>::Element
 
 	public:
 
+		using List<Element>::Element::next;
+
 		virtual ~Element() { }
 
 		/**
@@ -1128,7 +1136,7 @@ class Acpi_table
 		/* BIOS range to scan for RSDP */
 		enum { BIOS_BASE = 0xe0000, BIOS_SIZE = 0x20000 };
 
-		Genode::Constructible<Genode::Attached_io_mem_dataspace> _mmio;
+		Genode::Constructible<Genode::Attached_io_mem_dataspace> _mmio { };
 
 		/**
 		 * Search for RSDP pointer signature in area

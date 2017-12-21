@@ -36,7 +36,7 @@ namespace Vfs_server {
 
 	typedef Genode::Id_space<Node> Node_space;
 
-	struct Node_io_handler
+	struct Node_io_handler : Interface
 	{
 		virtual void handle_node_io(Node &node) = 0;
 	};
@@ -83,8 +83,9 @@ namespace Vfs_server {
 }
 
 
-class Vfs_server::Node : public File_system::Node_base, public Node_space::Element,
-                         public Vfs::Vfs_handle::Context
+class Vfs_server::Node : public  File_system::Node_base,
+                         private Node_space::Element,
+                         private Vfs::Vfs_handle::Context
 {
 	public:
 
@@ -92,11 +93,20 @@ class Vfs_server::Node : public File_system::Node_base, public Node_space::Eleme
 
 	private:
 
-		Path const       _path;
-		Mode const       _mode;
+		/*
+		 * Noncopyable
+		 */
+		Node(Node const &);
+		Node &operator = (Node const &);
+
+		Path const _path;
+		Mode const _mode;
+
 		bool _notify_read_ready = false;
 
 	protected:
+
+		Vfs::Vfs_handle::Context &context() { return *this; }
 
 		Node_io_handler &_node_io_handler;
 		Vfs::Vfs_handle *_handle { nullptr };
@@ -183,14 +193,21 @@ class Vfs_server::Node : public File_system::Node_base, public Node_space::Eleme
 
 		virtual ~Node() { }
 
+		using Node_space::Element::id;
+
+		static Node &node_by_context(Vfs::Vfs_handle::Context &context)
+		{
+			return static_cast<Node &>(context);
+		}
+
 		char const *path() { return _path.base(); }
 		Mode mode() const { return _mode; }
 
-		virtual size_t read(char *dst, size_t len, seek_off_t seek_offset)
+		virtual size_t read(char * /* dst */, size_t /* len */, seek_off_t)
 		{ return 0; }
 
-		virtual size_t write(char const *src, size_t len,
-		                     seek_off_t seek_offset) { return 0; }
+		virtual size_t write(char const * /* src */, size_t /* len */,
+		                     seek_off_t) { return 0; }
 
 		bool read_ready() { return _handle->fs().read_ready(_handle); }
 
@@ -252,7 +269,7 @@ struct Vfs_server::Symlink : Node
 	: Node(space, link_path, mode, node_io_handler)
 	{
 		assert_openlink(vfs.openlink(link_path, create, &_handle, alloc));
-		_handle->context = this;
+		_handle->context = &context();
 	}
 
 
@@ -270,7 +287,7 @@ struct Vfs_server::Symlink : Node
 		return _read(dst, len, 0);
 	}
 
-	size_t write(char const *src, size_t len, seek_off_t seek_offset)
+	size_t write(char const *src, size_t len, seek_off_t)
 	{
 		/*
 		 * if the symlink target is too long return a short result
@@ -303,7 +320,13 @@ class Vfs_server::File : public Node
 {
 	private:
 
-		char const *_leaf_path; /* offset pointer to Node::_path */
+		/*
+		 * Noncopyable
+		 */
+		File(File const &);
+		File &operator = (File const &);
+
+		char const *_leaf_path = nullptr; /* offset pointer to Node::_path */
 
 	public:
 
@@ -322,20 +345,20 @@ class Vfs_server::File : public Node
 
 			assert_open(vfs.open(file_path, vfs_mode, &_handle, alloc));
 			_leaf_path       = vfs.leaf_path(path());
-			_handle->context = this;
+			_handle->context = &context();
 		}
 
 		~File() { _handle->ds().close(_handle); }
 
 		size_t read(char *dst, size_t len, seek_off_t seek_offset) override
 		{
-			if (seek_offset == SEEK_TAIL) {
+			if (seek_offset == (seek_off_t)SEEK_TAIL) {
 				typedef Directory_service::Stat_result Result;
 				Vfs::Directory_service::Stat st;
 
 				/* if stat fails, try and see if the VFS will seek to the end */
 				seek_offset = (_handle->ds().stat(_leaf_path, st) == Result::STAT_OK) ?
-					((len < st.size) ? (st.size - len) : 0) : SEEK_TAIL;
+					((len < st.size) ? (st.size - len) : 0) : (seek_off_t)SEEK_TAIL;
 			}
 
 			return _read(dst, len, seek_offset);
@@ -344,13 +367,13 @@ class Vfs_server::File : public Node
 		size_t write(char const *src, size_t len,
 		             seek_off_t seek_offset) override
 		{
-			if (seek_offset == SEEK_TAIL) {
+			if (seek_offset == (seek_off_t)SEEK_TAIL) {
 				typedef Directory_service::Stat_result Result;
 				Vfs::Directory_service::Stat st;
 
 				/* if stat fails, try and see if the VFS will seek to the end */
 				seek_offset = (_handle->ds().stat(_leaf_path, st) == Result::STAT_OK) ?
-					st.size : SEEK_TAIL;
+					st.size : (seek_off_t)SEEK_TAIL;
 			}
 
 			return _write(src, len, seek_offset);
@@ -375,7 +398,7 @@ struct Vfs_server::Directory : Node
 	: Node(space, dir_path, READ_ONLY, node_io_handler)
 	{
 		assert_opendir(vfs.opendir(dir_path, create, &_handle, alloc));
-		_handle->context = this;
+		_handle->context = &context();
 	}
 
 	~Directory() { _handle->ds().close(_handle); }
@@ -464,11 +487,7 @@ struct Vfs_server::Directory : Node
 		return len - remains;
 	}
 
-	size_t write(char const *src, size_t len,
-	             seek_off_t seek_offset) override
-	{
-		return 0;
-	}
+	size_t write(char const *, size_t, seek_off_t) override { return 0; }
 };
 
 #endif /* _VFS__NODE_H_ */

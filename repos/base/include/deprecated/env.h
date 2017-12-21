@@ -61,7 +61,7 @@ namespace Genode {
  * class allows the component to interact with its environment. It is
  * initialized at the startup of the component.
  */
-struct Genode::Env_deprecated
+struct Genode::Env_deprecated : Interface
 {
 	/**
 	 * Communication channel to our parent

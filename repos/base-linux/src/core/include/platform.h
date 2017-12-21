@@ -41,7 +41,7 @@ namespace Genode {
 			 */
 			struct Pseudo_ram_allocator : Range_allocator
 			{
-				bool alloc(size_t size, void **out_addr)
+				bool alloc(size_t, void **out_addr)
 				{
 					*out_addr = 0;
 					return true;
@@ -69,7 +69,7 @@ namespace Genode {
 				bool   need_size_for_free() const override   { return true; }
 			};
 
-			Pseudo_ram_allocator _ram_alloc;
+			Pseudo_ram_allocator _ram_alloc { };
 
 		public:
 

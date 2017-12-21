@@ -182,9 +182,9 @@ struct Status_bar::Main
 	Nitpicker::Connection _nitpicker { _env, "status_bar" };
 
 	/* status-bar attributes */
-	Domain_name _domain_name;
-	Label       _label;
-	Color       _color;
+	Domain_name _domain_name { };
+	Label       _label       { };
+	Color       _color       { };
 
 	Reconstructible<Buffer> _buffer { _env.rm(), _nitpicker };
 
@@ -202,7 +202,8 @@ struct Status_bar::Main
 		_nitpicker.mode_sigh(_mode_handler);
 
 		/* schedule initial view-stacking command, needed only once */
-		_nitpicker.enqueue<Nitpicker::Session::Command::To_front>(_view);
+		typedef Nitpicker::Session::View_handle View_handle;
+		_nitpicker.enqueue<Nitpicker::Session::Command::To_front>(_view, View_handle());
 
 		/* import initial state */
 		_handle_mode();

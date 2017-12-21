@@ -24,7 +24,7 @@
 namespace Genode { struct Region_map; }
 
 
-struct Genode::Region_map
+struct Genode::Region_map : Interface
 {
 	/**
 	 * State of region map

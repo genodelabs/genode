@@ -18,11 +18,8 @@
 #include <base/ipc.h>
 #include <base/stdint.h>
 
-namespace Okl4 { extern "C" {
-#include <l4/types.h>
-#include <l4/map.h>
-#include <l4/space.h>
-} }
+/* base-internal includes */
+#include <base/internal/okl4.h>
 
 namespace Genode {
 
@@ -30,9 +27,9 @@ namespace Genode {
 	{
 		private:
 
-			addr_t              _phys_addr;
-			Okl4::L4_Fpage_t    _fpage;
-			Okl4::L4_PhysDesc_t _phys_desc;
+			addr_t              _phys_addr { 0 };
+			Okl4::L4_Fpage_t    _fpage     { };
+			Okl4::L4_PhysDesc_t _phys_desc { };
 
 		public:
 
@@ -76,12 +73,12 @@ namespace Genode {
 	{
 		private:
 
-			Okl4::L4_MsgTag_t   _faulter_tag;   /* fault flags                    */
-			Okl4::L4_ThreadId_t _last;          /* faulted thread                 */
-			Okl4::L4_Word_t     _last_space;    /* space of faulted thread        */
-			Okl4::L4_Word_t     _fault_addr;    /* page-fault address             */
-			Okl4::L4_Word_t     _fault_ip;      /* instruction pointer of faulter */
-			Mapping             _reply_mapping; /* page-fault answer              */
+			Okl4::L4_MsgTag_t   _faulter_tag { 0 }; /* fault flags                    */
+			Okl4::L4_ThreadId_t _last        { 0 }; /* faulted thread                 */
+			Okl4::L4_Word_t     _last_space  { 0 }; /* space of faulted thread        */
+			Okl4::L4_Word_t     _fault_addr  { 0 }; /* page-fault address             */
+			Okl4::L4_Word_t     _fault_ip    { 0 }; /* instruction pointer of faulter */
+			Mapping             _reply_mapping { }; /* page-fault answer              */
 
 		protected:
 

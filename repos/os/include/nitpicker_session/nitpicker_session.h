@@ -136,9 +136,8 @@ struct Nitpicker::Session : Genode::Session
 		Command() : opcode(OP_NOP) { }
 
 		template <typename ARGS>
-		Command(ARGS args)
+		Command(ARGS args) : opcode(ARGS::opcode())
 		{
-			opcode = ARGS::opcode();
 			reinterpret_cast<ARGS &>(nop) = args;
 		}
 	};
@@ -324,7 +323,7 @@ struct Nitpicker::Session : Genode::Session
 	 * operation is limited to the caller session or any child session of the
 	 * caller.
 	 */
-	virtual void session_control(Label label, Session_control operation) { }
+	virtual void session_control(Label, Session_control) { }
 
 	/**
 	 * Return number of bytes needed for virtual framebuffer of specified size

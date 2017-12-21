@@ -69,7 +69,7 @@ struct Input_merger::Main
 
 	Heap heap { env.ram(), env.rm() };
 
-	Input_sources input_source_list;
+	Input_sources input_source_list { };
 
 	/*
 	 * Input session provided to our client

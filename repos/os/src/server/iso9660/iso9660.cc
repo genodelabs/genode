@@ -46,7 +46,7 @@ class Iso::Sector {
 	private:
 
 		Block::Session::Tx::Source &_source;
-		Block::Packet_descriptor    _p;
+		Block::Packet_descriptor    _p { };
 
 	public:
 

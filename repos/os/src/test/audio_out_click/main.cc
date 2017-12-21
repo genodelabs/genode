@@ -36,10 +36,16 @@ class Click
 {
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Click(Click const &);
+		Click &operator = (Click const &);
+
 		enum {
-			CHANNELS     = 2,                      /* number of channels */
+			CHANNELS     = 2,                       /* number of channels */
 			FRAME_SIZE   = sizeof(float),
-			PERIOD_CSIZE = FRAME_SIZE * PERIOD,    /* size of channel packet (bytes) */
+			PERIOD_CSIZE = FRAME_SIZE * PERIOD,     /* size of channel packet (bytes) */
 			PERIOD_FSIZE = CHANNELS * PERIOD_CSIZE, /* size of period in file (bytes) */
 		};
 
@@ -118,30 +124,29 @@ class Click
 
 struct Main
 {
-	Env &                env;
-	Signal_handler<Main> handler { env.ep(), *this, &Main::handle };
-	Input::Connection    input   { env };
-	Input::Event *       ev_buf =
-		static_cast<Input::Event*>(env.rm().attach(input.dataspace()));
-	Filename const       name { "click.raw" };
-	Click                click { env, name };
+	Env &                _env;
+	Signal_handler<Main> _handler { _env.ep(), *this, &Main::_handle };
+	Input::Connection    _input   { _env };
+	Attached_dataspace   _ev_ds   { _env.rm(), _input.dataspace() };
+	Filename const       _name    { "click.raw" };
+	Click                _click   { _env, _name };
 
-	void handle()
+	void _handle()
 	{
-		for (int i = 0, num_ev = input.flush(); i < num_ev; ++i) {
-			Input::Event &ev = ev_buf[i];
+		for (int i = 0, num_ev = _input.flush(); i < num_ev; ++i) {
+			Input::Event const ev = _ev_ds.local_addr<Input::Event const>()[i];
 			if (ev.type() == Input::Event::PRESS) {
-				click.play();
+				_click.play();
 				break;
 			}
 		}
 	}
 
-	Main(Env & env) : env(env)
+	Main(Env & env) : _env(env)
 	{
 		log("--- Audio_out click test ---");
 
-		input.sigh(handler);
+		_input.sigh(_handler);
 	}
 };
 

@@ -97,7 +97,7 @@ struct Genode::Receive_window
 
 	public:
 
-		enum { INVALID_INDEX = ~0UL };
+		static constexpr unsigned long INVALID_INDEX = ~0UL;
 
 		Receive_window()
 		:

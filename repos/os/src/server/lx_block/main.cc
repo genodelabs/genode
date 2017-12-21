@@ -42,7 +42,7 @@ class Lx_block_driver : public Block::Driver
 
 		Block::sector_t            _block_count {   0 };
 		Genode::size_t             _block_size  { 512 };
-		Block::Session::Operations _block_ops;
+		Block::Session::Operations _block_ops   { };
 
 		int _fd { -1 };
 
@@ -164,7 +164,7 @@ struct Main
 
 	struct Factory : Block::Driver_factory
 	{
-		Genode::Constructible<Lx_block_driver> _driver;
+		Genode::Constructible<Lx_block_driver> _driver { };
 
 		Factory(Genode::Env &env, Genode::Xml_node config)
 		{

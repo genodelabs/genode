@@ -19,7 +19,7 @@
 
 Rtc::Timestamp Rtc::get_time(Env &)
 {
-	Timestamp ts { 0 };
+	Timestamp ts { };
 
 	time_t t       = time(NULL);
 	struct tm *utc = gmtime(&t);

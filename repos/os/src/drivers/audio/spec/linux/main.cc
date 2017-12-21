@@ -119,7 +119,7 @@ class Audio_out::Out
 			bool full_right = right()->full();
 
 			left()->pos(left()->packet_position(l));
-			right()->pos(right()->packet_position(l));
+			right()->pos(right()->packet_position(r));
 
 			left()->increment_position();
 			right()->increment_position();
@@ -147,7 +147,7 @@ class Audio_out::Out
 
 			if (p_left->valid() && p_right->valid()) {
 
-				for (int i = 0; i < 2 * PERIOD; i += 2) {
+				for (unsigned i = 0; i < 2 * PERIOD; i += 2) {
 					data[i] = p_left->content()[i / 2] * 32767;
 					data[i + 1] = p_right->content()[i / 2] * 32767;
 				}

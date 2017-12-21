@@ -29,7 +29,7 @@ struct Trace_subject_registry
 		{
 			Genode::Trace::Subject_id const id;
 
-			Genode::Trace::Subject_info info;
+			Genode::Trace::Subject_info info { };
 
 			/**
 			 * Execution time during the last period
@@ -50,7 +50,7 @@ struct Trace_subject_registry
 			}
 		};
 
-		Genode::List<Entry> _entries;
+		Genode::List<Entry> _entries { };
 
 		Entry *_lookup(Genode::Trace::Subject_id const id)
 		{
@@ -238,7 +238,7 @@ struct App::Main
 
 	Heap _heap { _env.ram(), _env.rm() };
 
-	Trace_subject_registry _trace_subject_registry;
+	Trace_subject_registry _trace_subject_registry { };
 
 	void _handle_config();
 

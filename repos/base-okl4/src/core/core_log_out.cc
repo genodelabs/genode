@@ -14,8 +14,7 @@
 /* core includes */
 #include <core_log.h>
 
-namespace Okl4 { extern "C" {
-#include <l4/kdebug.h>
-}; }
+/* base-internal includes */
+#include <base/internal/okl4.h>
 
 void Genode::Core_log::out(char const c) { Okl4::L4_KDB_PrintChar(c); }

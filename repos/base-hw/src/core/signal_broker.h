@@ -42,9 +42,9 @@ class Genode::Signal_broker
 
 		Allocator                     &_md_alloc;
 		Slab<Signal_source_component>  _sources_slab { &_md_alloc };
-		Signal_source_pool             _sources;
+		Signal_source_pool             _sources { };
 		Slab<Signal_context_component> _contexts_slab { &_md_alloc };
-		Signal_context_pool            _contexts;
+		Signal_context_pool            _contexts { };
 
 	public:
 
@@ -138,7 +138,7 @@ class Genode::Signal_broker
 				destroy(&_contexts_slab, context);
 		}
 
-		void submit(Signal_context_capability cap, unsigned cnt)
+		void submit(Signal_context_capability, unsigned)
 		{
 			/*
 			 * This function is never called as base-hw delivers signals

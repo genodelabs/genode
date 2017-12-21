@@ -21,9 +21,9 @@ namespace Net { class Ipv4_config; }
 
 struct Net::Ipv4_config
 {
-	Ipv4_address_prefix const interface;
+	Ipv4_address_prefix const interface       { };
 	bool                const interface_valid { interface.valid() };
-	Ipv4_address        const gateway;
+	Ipv4_address        const gateway         { };
 	bool                const gateway_valid   { gateway.valid() };
 	bool                const valid           { interface_valid &&
 	                                            (!gateway_valid ||

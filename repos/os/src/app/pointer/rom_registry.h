@@ -30,7 +30,7 @@ struct Rom::Registry : Registry_for_reader, Registry_for_writer, Genode::Noncopy
 		Genode::Region_map             &_rm;
 		Reader                         &_reader;
 
-		Module_list _modules;
+		Module_list _modules { };
 
 		struct Read_write_policy : Module::Read_policy, Module::Write_policy
 		{
@@ -55,7 +55,7 @@ struct Rom::Registry : Registry_for_reader, Registry_for_writer, Genode::Noncopy
 				return true;
 			}
 
-		} _read_write_policy;
+		} _read_write_policy { };
 
 		Module &_lookup(Module::Name const name, bool create_if_not_found)
 		{
@@ -130,12 +130,12 @@ struct Rom::Registry : Registry_for_reader, Registry_for_writer, Genode::Noncopy
 			_try_to_destroy(module);
 		}
 
-		Readable_module &lookup(Reader &reader, Module::Name const &rom_label) override
+		Readable_module &lookup(Reader &, Module::Name const &rom_label) override
 		{
 			return _lookup(rom_label, false);
 		}
 
-		void release(Reader &reader, Readable_module &module) override
+		void release(Reader &, Readable_module &module) override
 		{
 			_try_to_destroy(static_cast<Module&>(module));
 		}

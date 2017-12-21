@@ -106,6 +106,12 @@ class Genode::Mapped_mem_allocator : public Genode::Core_mem_translator
 		Mapped_avl_allocator *_phys_alloc;
 		Mapped_avl_allocator *_virt_alloc;
 
+		/*
+		 * Noncopyable
+		 */
+		Mapped_mem_allocator(Mapped_mem_allocator const &);
+		Mapped_mem_allocator &operator = (Mapped_mem_allocator const &);
+
 	public:
 
 		/**
@@ -157,14 +163,13 @@ class Genode::Mapped_mem_allocator : public Genode::Core_mem_translator
 		 ** Range allocator interface **
 		 *******************************/
 
-		int add_range(addr_t base, size_t size) override { return -1; }
-		int remove_range(addr_t base, size_t size) override { return -1; }
-		Alloc_return alloc_aligned(size_t size, void **out_addr,
-		                           int align, addr_t from = 0,
+		int add_range(addr_t, size_t) override { return -1; }
+		int remove_range(addr_t, size_t) override { return -1; }
+		Alloc_return alloc_aligned(size_t, void **, int, addr_t from = 0,
 		                           addr_t to = ~0UL) override;
-		Alloc_return alloc_addr(size_t size, addr_t addr) override {
+		Alloc_return alloc_addr(size_t, addr_t) override {
 			return Alloc_return::RANGE_CONFLICT; }
-		void         free(void *addr) override;
+		void         free(void *) override;
 		size_t       avail() const override { return _phys_alloc->avail(); }
 		bool         valid_addr(addr_t addr) const override {
 			return _virt_alloc->valid_addr(addr); }
@@ -202,7 +207,7 @@ class Genode::Core_mem_allocator : public Genode::Core_mem_translator
 		 * Lock used for synchronization of all operations on the
 		 * embedded allocators.
 		 */
-		Lock _lock;
+		Lock _lock { };
 
 		/**
 		 * Synchronized allocator of physical memory ranges
@@ -273,9 +278,9 @@ class Genode::Core_mem_allocator : public Genode::Core_mem_translator
 		 ** Range allocator interface **
 		 *******************************/
 
-		int          add_range(addr_t base, size_t size) override { return -1; }
-		int          remove_range(addr_t base, size_t size) override { return -1; }
-		Alloc_return alloc_addr(size_t size, addr_t addr) override {
+		int add_range(addr_t, size_t) override { return -1; }
+		int remove_range(addr_t, size_t) override { return -1; }
+		Alloc_return alloc_addr(size_t, addr_t) override {
 			return Alloc_return::RANGE_CONFLICT; }
 
 		Alloc_return alloc_aligned(size_t size, void **out_addr, int align,

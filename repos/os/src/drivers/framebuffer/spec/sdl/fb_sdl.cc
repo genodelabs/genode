@@ -41,6 +41,12 @@ class Framebuffer::Session_component : public Rpc_object<Session>
 {
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Session_component(Session_component const &);
+		Session_component &operator = (Session_component const &);
+
 		SDL_Surface *_screen { nullptr };
 
 		Mode                  _mode;

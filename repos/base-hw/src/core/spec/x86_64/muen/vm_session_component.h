@@ -31,14 +31,15 @@ namespace Genode {
 
 class Genode::Vm_session_component
 : public Genode::Rpc_object<Genode::Vm_session>,
-  public Kernel_object<Kernel::Vm>
+  private Kernel_object<Kernel::Vm>
 {
 	private:
+
 		Vm_state _state;
 
 	public:
 
-		Vm_session_component(Rpc_entrypoint*, size_t) { }
+		Vm_session_component(Rpc_entrypoint*, size_t) : _state() { }
 		~Vm_session_component() { }
 
 
@@ -67,9 +68,9 @@ class Genode::Vm_session_component
 				Kernel::pause_vm(kernel_object());
 		}
 
-		void attach(Dataspace_capability ds_cap, addr_t vm_addr) {}
-		void attach_pic(addr_t vm_addr) {}
-		void detach(addr_t vm_addr, size_t size) {}
+		void attach(Dataspace_capability, addr_t) {}
+		void attach_pic(addr_t) {}
+		void detach(addr_t, size_t) {}
 };
 
 #endif /* _CORE__SPEC__X86_64__MUEN__VM_SESSION_COMPONENT_H_ */

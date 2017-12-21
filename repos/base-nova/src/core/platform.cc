@@ -158,9 +158,9 @@ static void page_fault_handler()
 	/* dump stack trace */
 	struct Core_img
 	{
-		addr_t  _beg;
-		addr_t  _end;
-		addr_t *_ip;
+		addr_t  _beg = 0;
+		addr_t  _end = 0;
+		addr_t *_ip  = nullptr;
 
 		Core_img(addr_t sp)
 		{
@@ -753,8 +753,9 @@ Platform::Platform() :
 		if (!hip->is_cpu_enabled(kernel_cpu_id))
 			continue;
 
-		struct Idle_trace_source : Trace::Source::Info_accessor, Trace::Control,
-		                           Trace::Source
+		struct Idle_trace_source : public  Trace::Source::Info_accessor,
+		                           private Trace::Control,
+		                           private Trace::Source
 		{
 			Affinity::Location const affinity;
 			unsigned           const sc_sel;
@@ -775,8 +776,11 @@ Platform::Platform() :
 
 			Idle_trace_source(Affinity::Location affinity, unsigned sc_sel)
 			:
+				Trace::Control(),
 				Trace::Source(*this, *this), affinity(affinity), sc_sel(sc_sel)
 			{ }
+
+			Trace::Source &source() { return *this; }
 		};
 
 		Idle_trace_source *source = new (core_mem_alloc())
@@ -784,7 +788,7 @@ Platform::Platform() :
 			                                     _cpus.width(), 1),
 			                  sc_idle_base + kernel_cpu_id);
 
-		Trace::sources().insert(source);
+		Trace::sources().insert(&source->source());
 	}
 }
 
@@ -819,8 +823,7 @@ bool Mapped_mem_allocator::_map_local(addr_t virt_addr, addr_t phys_addr,
 }
 
 
-bool Mapped_mem_allocator::_unmap_local(addr_t virt_addr, addr_t phys_addr,
-                                        unsigned size)
+bool Mapped_mem_allocator::_unmap_local(addr_t virt_addr, addr_t, unsigned size)
 {
 	unmap_local((Utcb *)Thread::myself()->utcb(),
 	            virt_addr, size / get_page_size());

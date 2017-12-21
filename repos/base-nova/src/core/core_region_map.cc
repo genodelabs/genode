@@ -48,9 +48,9 @@ static inline void * alloc_region(Dataspace_component *ds, const size_t size)
 }
 
 Region_map::Local_addr
-Core_region_map::attach(Dataspace_capability ds_cap, size_t size,
+Core_region_map::attach(Dataspace_capability ds_cap, size_t,
                         off_t offset, bool use_local_addr,
-                        Region_map::Local_addr local_addr,
+                        Region_map::Local_addr,
                         bool executable)
 {
 	auto lambda = [&] (Dataspace_component *ds) -> Local_addr {

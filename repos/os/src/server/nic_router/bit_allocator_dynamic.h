@@ -142,6 +142,12 @@ class Genode::Bit_allocator_dynamic
 {
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Bit_allocator_dynamic(Bit_allocator_dynamic const &);
+		Bit_allocator_dynamic &operator = (Bit_allocator_dynamic const &);
+
 		addr_t             _next { 0 };
 		Allocator         &_alloc;
 		unsigned    const  _bits_aligned;

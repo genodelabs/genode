@@ -19,9 +19,7 @@
 using namespace Genode;
 
 
-void Io_mem_session_component::_unmap_local(addr_t base, size_t size)
-{ }
+void Io_mem_session_component::_unmap_local(addr_t, size_t) { }
 
 
-addr_t Io_mem_session_component::_map_local(addr_t base, size_t size)
-{ return 0; }
+addr_t Io_mem_session_component::_map_local(addr_t, size_t) { return 0; }

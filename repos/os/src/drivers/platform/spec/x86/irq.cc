@@ -43,8 +43,8 @@ class Platform::Irq_allocator
 		 */
 		enum { LEGACY = 40, MSI = 64, LEGACY_ARRAY = 64 };
 
-		Genode::Bit_array<LEGACY_ARRAY> _legacy;
-		Genode::Bit_allocator<MSI>      _msi;
+		Genode::Bit_array<LEGACY_ARRAY> _legacy { };
+		Genode::Bit_allocator<MSI>      _msi    { };
 
 	public:
 
@@ -287,7 +287,7 @@ void Platform::Irq_session_component::sigh(Genode::Signal_context_capability sig
 
 
 unsigned short Platform::Irq_routing::rewrite(unsigned char bus, unsigned char dev,
-                                         unsigned char func, unsigned char pin)
+                                         unsigned char /* func */, unsigned char pin)
 {
 	for (Irq_routing *i = list()->first(); i; i = i->next())
 		if ((dev == i->_device) && (pin - 1 == i->_device_pin) &&

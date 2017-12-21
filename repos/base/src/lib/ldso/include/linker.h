@@ -116,18 +116,25 @@ namespace Linker {
 /**
  * Shared object or binary
  */
-class Linker::Object : public Fifo<Object>::Element,
-                       public List<Object>::Element
+class Linker::Object : private Fifo<Object>::Element,
+                       private List<Object>::Element
 {
+	private:
+
+		friend class Fifo<Object>;
+		friend class List<Object>;
+
 	public:
 
 		typedef String<128> Name;
 
 	protected:
 
-		Name        _name;
-		File const *_file = nullptr;
-		Elf::Addr   _reloc_base = 0;
+		Object *_next_object() const { return List<Object>::Element::next(); }
+
+		Name        _name       { };
+		File const *_file       { nullptr };
+		Elf::Addr   _reloc_base { 0 };
 
 	public:
 
@@ -149,7 +156,7 @@ class Linker::Object : public Fifo<Object>::Element,
 		Elf::Addr        reloc_base() const { return _reloc_base; }
 		char      const *name()       const { return _name.string(); }
 		File      const *file()       const { return _file; }
-		Elf::Size const  size()       const { return _file ? _file->size : 0; }
+		Elf::Size        size()       const { return _file ? _file->size : 0; }
 
 		virtual bool is_linker() const = 0;
 		virtual bool is_binary() const = 0;
@@ -198,6 +205,12 @@ class Linker::Dependency : public Fifo<Dependency>::Element, Noncopyable
 {
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Dependency(Dependency const &);
+		Dependency &operator = (Dependency const &);
+
 		Object      &_obj;
 		Root_object *_root     = nullptr;
 		Allocator   *_md_alloc = nullptr;
@@ -242,7 +255,7 @@ class Linker::Root_object
 {
 	private:
 
-		Fifo<Dependency> _deps;
+		Fifo<Dependency> _deps { };
 
 		Allocator &_md_alloc;
 

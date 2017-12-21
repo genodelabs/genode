@@ -24,7 +24,7 @@ class Genode::Session_requester
 {
 	private:
 
-		Id_space<Parent::Server> _id_space;
+		Id_space<Parent::Server> _id_space { };
 
 		struct Content_producer : Dynamic_rom_session::Content_producer
 		{

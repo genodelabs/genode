@@ -67,14 +67,14 @@ class Net::Session_component_base
 };
 
 
-class Net::Session_component : public Session_component_base,
-                               public ::Nic::Session_rpc_object,
-                               public Interface
+class Net::Session_component : private Session_component_base,
+                               public  ::Nic::Session_rpc_object,
+                               public  Interface
 {
 	private:
 
 		Uplink                                    _uplink;
-		Genode::Signal_context_capability         _link_state_sigh;
+		Genode::Signal_context_capability         _link_state_sigh { };
 		Genode::Signal_handler<Session_component> _link_state_handler;
 
 		void _handle_link_state();

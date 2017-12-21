@@ -22,12 +22,7 @@
 
 /* base-internal includes */
 #include <base/internal/page_size.h>
-
-/* OKL4 includes */
-namespace Okl4 { extern "C" {
-#include <l4/types.h>
-#include <l4/kdebug.h>
-} }
+#include <base/internal/okl4.h>
 
 /*
  * The binding for 'L4_KDB_Enter' on ARM takes a 'char *' as argument, which
@@ -44,8 +39,8 @@ namespace Okl4 { extern "C" {
 
 namespace Genode {
 
-	inline void log_event(const char *s) { }
-	inline void log_event(const char *s, unsigned v1, unsigned v2, unsigned v3) { }
+	inline void log_event(const char *) { }
+	inline void log_event(const char *, unsigned, unsigned, unsigned) { }
 
 	inline void panic(const char *s)
 	{
@@ -113,7 +108,7 @@ namespace Genode {
 		return trunc_page(page + get_page_size() - 1);
 	}
 
-	inline addr_t map_src_addr(addr_t core_local, addr_t phys) { return phys; }
+	inline addr_t map_src_addr(addr_t, addr_t phys) { return phys; }
 
 	inline size_t constrain_map_size_log2(size_t size_log2) { return size_log2; }
 }

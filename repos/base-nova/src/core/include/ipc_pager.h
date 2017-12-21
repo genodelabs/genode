@@ -43,7 +43,7 @@ class Genode::Mapping
 		 * Constructor
 		 */
 		Mapping(addr_t dst_addr, addr_t source_addr,
-		        Cache_attribute c, bool io_mem,
+		        Cache_attribute c, bool /* io_mem */,
 		        unsigned size_log2,
 		        bool writeable, bool executable)
 		:

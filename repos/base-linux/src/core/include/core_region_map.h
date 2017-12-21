@@ -22,7 +22,7 @@ namespace Genode { class Core_region_map; }
 
 struct Genode::Core_region_map : Region_map_mmap
 {
-	Core_region_map(Rpc_entrypoint &ep) : Region_map_mmap(false) { }
+	Core_region_map(Rpc_entrypoint &) : Region_map_mmap(false) { }
 };
 
 #endif /* _CORE__INCLUDE__CORE_REGION_MAP_H_ */

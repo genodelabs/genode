@@ -23,6 +23,7 @@ namespace Rom {
 	using Genode::size_t;
 	using Genode::Constructible;
 	using Genode::Attached_ram_dataspace;
+	using Genode::Interface;
 
 	class Module;
 	class Readable_module;
@@ -37,20 +38,26 @@ namespace Rom {
 }
 
 
-struct Rom::Writer : Writer_list::Element
+struct Rom::Writer : private Writer_list::Element, Interface
 {
+	friend class Genode::List<Writer>;
+	using Writer_list::Element::next;
+
 	virtual Genode::Session_label label() const = 0;
 };
 
 
-struct Rom::Reader : Reader_list::Element
+struct Rom::Reader : private Reader_list::Element, Interface
 {
+	friend class Genode::List<Reader>;
+	using Reader_list::Element::next;
+
 	virtual void notify_module_changed()     = 0;
 	virtual void notify_module_invalidated() = 0;
 };
 
 
-struct Rom::Readable_module
+struct Rom::Readable_module : Interface
 {
 	/**
 	 * Exception type
@@ -86,13 +93,25 @@ struct Rom::Readable_module
  *
  * The Rom::Module gets destroyed when no client refers to it anymore.
  */
-struct Rom::Module : Module_list::Element, Readable_module
+struct Rom::Module : private Module_list::Element, Readable_module
 {
+	private:
+
+		friend class Genode::List<Module>;
+
+		/*
+		 * Noncopyable
+		 */
+		Module(Module const &);
+		Module &operator = (Module const &);
+
 	public:
+
+		using Module_list::Element::next;
 
 		typedef Genode::String<200> Name;
 
-		struct Read_policy
+		struct Read_policy : Interface
 		{
 			/**
 			 * Return true if the reader is allowed to read the module content
@@ -101,7 +120,7 @@ struct Rom::Module : Module_list::Element, Readable_module
 			                            Writer const &, Reader const &) const = 0;
 		};
 
-		struct Write_policy
+		struct Write_policy : Interface
 		{
 			/**
 			 * Return true of the writer is permitted to write content
@@ -123,8 +142,8 @@ struct Rom::Module : Module_list::Element, Readable_module
 		Read_policy  const &_read_policy;
 		Write_policy const &_write_policy;
 
-		Reader_list mutable _readers;
-		Writer_list mutable _writers;
+		Reader_list mutable _readers { };
+		Writer_list mutable _writers { };
 
 		/**
 		 * Origin of the content currently stored in the module
@@ -138,7 +157,7 @@ struct Rom::Module : Module_list::Element, Readable_module
 		 * allow for the immediate release of the underlying backing store when
 		 * the module gets destructed.
 		 */
-		Constructible<Attached_ram_dataspace> _ds;
+		Constructible<Attached_ram_dataspace> _ds { };
 
 		/**
 		 * Content size, which may less than the capacilty of '_ds'.

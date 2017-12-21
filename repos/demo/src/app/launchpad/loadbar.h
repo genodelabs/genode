@@ -22,26 +22,31 @@
 #include <base/snprintf.h>
 
 
-#define LOADBAR_RGBA _binary_loadbar_rgba_start
-#define REDBAR_RGBA _binary_redbar_rgba_start
-#define WHITEBAR_RGBA    _binary_whitebar_rgba_start
+#define LOADBAR_RGBA  _binary_loadbar_rgba_start
+#define REDBAR_RGBA   _binary_redbar_rgba_start
+#define WHITEBAR_RGBA _binary_whitebar_rgba_start
+
 extern unsigned char LOADBAR_RGBA[];
 extern unsigned char REDBAR_RGBA[];
 extern unsigned char WHITEBAR_RGBA[];
 
-class Loadbar_listener
+struct Loadbar_listener
 {
-	public:
+	virtual ~Loadbar_listener() { }
 
-		virtual ~Loadbar_listener() { }
-
-		virtual void loadbar_changed(int mx) = 0;
+	virtual void loadbar_changed(int mx) = 0;
 };
 
 
 class Loadbar_event_handler : public Scout::Event_handler
 {
 	private:
+
+		/*
+		 * Noncopyable
+		 */
+		Loadbar_event_handler(Loadbar_event_handler const &);
+		Loadbar_event_handler &operator = (Loadbar_event_handler const &);
 
 		Loadbar_listener *_listener;
 
@@ -73,6 +78,12 @@ class Loadbar : public Scout::Parent_element
 {
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Loadbar(Loadbar const &);
+		Loadbar &operator = (Loadbar const &);
+
 		enum {
 			_LW = 16,
 			_LH = 16,
@@ -80,8 +91,8 @@ class Loadbar : public Scout::Parent_element
 
 		bool _active;
 
-		Scout::Fade_icon<PT, _LW, _LH> _cover;
-		Scout::Fade_icon<PT, _LW, _LH> _bar;
+		Scout::Fade_icon<PT, _LW, _LH> _cover { };
+		Scout::Fade_icon<PT, _LW, _LH> _bar   { };
 
 		Loadbar_event_handler _ev_handler;
 

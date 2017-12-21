@@ -29,6 +29,8 @@ namespace Scout { struct Graphics_backend; }
  */
 struct Scout::Graphics_backend
 {
+	virtual ~Graphics_backend() { }
+
 	virtual Canvas_base &front() = 0;
 
 	virtual Canvas_base &back() = 0;

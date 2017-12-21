@@ -146,19 +146,19 @@ static void test_weak_pointer_tracking(Genode::Heap & heap)
 template <typename O>
 struct Destruct_thread : Genode::Thread
 {
-	O *obj;
+	O &obj;
 	Genode::Heap & heap;
 
 	void entry()
 	{
 		using namespace Genode;
 		log("thread: going to destroy object");
-		destroy(heap, obj);
+		destroy(heap, &obj);
 		log("thread: destruction completed, job done");
 	}
 
 	Destruct_thread(O *obj, Genode::Env & env, Genode::Heap & heap)
-	: Thread(env, "object_destructor", 16*1024), obj(obj), heap(heap) { }
+	: Thread(env, "object_destructor", 16*1024), obj(*obj), heap(heap) { }
 };
 
 

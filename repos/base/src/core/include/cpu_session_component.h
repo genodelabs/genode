@@ -35,8 +35,8 @@
 namespace Genode { class Cpu_session_component; }
 
 
-class Genode::Cpu_session_component : public Rpc_object<Cpu_session>,
-                                      public List<Cpu_session_component>::Element
+class Genode::Cpu_session_component : public  Rpc_object<Cpu_session>,
+                                      private List<Cpu_session_component>::Element
 {
 	private:
 
@@ -44,32 +44,33 @@ class Genode::Cpu_session_component : public Rpc_object<Cpu_session>,
 		Rpc_entrypoint * const     _session_ep;
 		Rpc_entrypoint            *_thread_ep;
 		Pager_entrypoint          *_pager_ep;
-		Allocator_guard            _md_alloc;          /* guarded meta-data allocator */
-		Cpu_thread_allocator       _thread_alloc;      /* meta-data allocator */
-		Lock                       _thread_alloc_lock; /* protect allocator access */
-		List<Cpu_thread_component> _thread_list;
-		Lock                       _thread_list_lock;  /* protect thread list */
-		unsigned                   _priority;          /* priority of threads
-		                                                  created with this
-		                                                  session */
-		Affinity::Location         _location;          /* CPU affinity of this 
-		                                                  session */
+		Allocator_guard            _md_alloc;               /* guarded meta-data allocator */
+		Cpu_thread_allocator       _thread_alloc;           /* meta-data allocator */
+		Lock                       _thread_alloc_lock { };  /* protect allocator access */
+		List<Cpu_thread_component> _thread_list       { };
+		Lock                       _thread_list_lock  { };  /* protect thread list */
+		unsigned                   _priority;               /* priority of threads
+		                                                       created with this
+		                                                       session */
+		Affinity::Location         _location;               /* CPU affinity of this 
+		                                                       session */
 		Trace::Source_registry    &_trace_sources;
-		Trace::Control_area        _trace_control_area;
+		Trace::Control_area        _trace_control_area { };
 
 		/*
 		 * Members for quota accounting
 		 */
 
-		size_t                      _weight;
-		size_t                      _quota;
-		Cpu_session_component *     _ref;
-		List<Cpu_session_component> _ref_members;
-		Lock                        _ref_members_lock;
+		size_t                      _weight           { 0 };
+		size_t                      _quota            { 0 };
+		Cpu_session_component *     _ref              { nullptr };
+		List<Cpu_session_component> _ref_members      { };
+		Lock                        _ref_members_lock { };
 
 		Native_cpu_component        _native_cpu;
 
 		friend class Native_cpu_component;
+		friend class List<Cpu_session_component>;
 
 		/*
 		 * Utilities for quota accounting
@@ -111,7 +112,7 @@ class Genode::Cpu_session_component : public Rpc_object<Cpu_session>,
 		 * Exception handler to be invoked unless overridden by a
 		 * thread-specific handler via 'Cpu_thread::exception_sigh'
 		 */
-		Signal_context_capability _exception_sigh;
+		Signal_context_capability _exception_sigh { };
 
 		/**
 		 * Raw thread-killing functionality
@@ -127,6 +128,12 @@ class Genode::Cpu_session_component : public Rpc_object<Cpu_session>,
 		 * Convert session-local affinity location to physical location
 		 */
 		Affinity::Location _thread_affinity(Affinity::Location) const;
+
+		/*
+		 * Noncopyable
+		 */
+		Cpu_session_component(Cpu_session_component const &);
+		Cpu_session_component &operator = (Cpu_session_component const &);
 
 	public:
 

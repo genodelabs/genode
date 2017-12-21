@@ -50,6 +50,14 @@ struct Test
 		log("throughput: ", kib / (end_ms - start_ms), " MiB/sec"); }
 
 	~Test() { log("\nTEST ", id, " finished\n"); }
+
+	private:
+
+		/*
+		 * Noncopyable
+		 */
+		Test(Test const &);
+		Test &operator = (Test const &);
 };
 
 struct Bytewise_ram_test : Test
@@ -122,10 +130,10 @@ struct Unaligned_blit_test : Test
 
 struct Main
 {
-	Constructible<Bytewise_ram_test>   test_1;
-	Constructible<Bytewise_fb_test>    test_2;
-	Constructible<Blit_test>           test_3;
-	Constructible<Unaligned_blit_test> test_4;
+	Constructible<Bytewise_ram_test>   test_1 { };
+	Constructible<Bytewise_fb_test>    test_2 { };
+	Constructible<Blit_test>           test_3 { };
+	Constructible<Unaligned_blit_test> test_4 { };
 
 	Main(Env &env)
 	{

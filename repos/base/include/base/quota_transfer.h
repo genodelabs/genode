@@ -46,7 +46,7 @@ class Genode::Quota_transfer
 
 		class Quota_exceeded : Exception { };
 
-		struct Account : Noncopyable
+		struct Account : Noncopyable, Interface
 		{
 			/**
 			 * Return capability used for transfers to the account
@@ -68,7 +68,7 @@ class Genode::Quota_transfer
 			 * \throw Invalid_session
 			 * \throw Undefined_ref_account
 			 */
-			virtual void transfer(Capability<SESSION> to, UNIT amount) { }
+			virtual void transfer(Capability<SESSION>, UNIT) { }
 
 			/**
 			 * Try to transfer quota, ignoring possible exceptions

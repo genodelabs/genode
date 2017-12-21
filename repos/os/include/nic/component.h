@@ -52,7 +52,7 @@ class Nic::Session_component : Communication_buffers, public Session_rpc_object
 	protected:
 
 		Genode::Entrypoint               &_ep;
-		Genode::Signal_context_capability _link_state_sigh;
+		Genode::Signal_context_capability _link_state_sigh { };
 
 
 		/**

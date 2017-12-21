@@ -27,10 +27,10 @@ class Genode::Region
 {
 	private:
 
-		addr_t               _start;
-		off_t                _offset;
-		Dataspace_capability _ds;
-		size_t               _size;
+		addr_t               _start  { 0 };
+		off_t                _offset { 0 };
+		Dataspace_capability _ds     {   };
+		size_t               _size   { 0 };
 
 		/**
 		 * Return offset of first byte after the region
@@ -39,7 +39,7 @@ class Genode::Region
 
 	public:
 
-		Region() : _start(0), _offset(0), _size(0) { }
+		Region() { }
 
 		Region(addr_t start, off_t offset, Dataspace_capability ds, size_t size)
 		: _start(start), _offset(offset), _ds(ds), _size(size) { }

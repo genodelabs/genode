@@ -29,6 +29,12 @@ namespace Genode {
 			Range_allocator *_ram_alloc;     /* RAM allocator */
 			Rpc_entrypoint  *_ds_ep;         /* entry point for managing io_mem dataspaces */
 
+			/*
+			 * Noncopyable
+			 */
+			Io_mem_root(Io_mem_root const &);
+			Io_mem_root &operator = (Io_mem_root const &);
+
 		protected:
 
 			Io_mem_session_component *_create_session(const char *args)

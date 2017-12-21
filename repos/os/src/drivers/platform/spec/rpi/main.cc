@@ -88,7 +88,7 @@ class Platform::Root : public Genode::Root_component<Platform::Session_component
 
 	protected:
 
-		Session_component *_create_session(const char *args) {
+		Session_component *_create_session(const char *) {
 			return new (md_alloc()) Session_component(_mbox); }
 
 	public:

@@ -25,13 +25,13 @@ namespace Vfs {
 }
 
 
-struct Vfs::Io_response_handler
+struct Vfs::Io_response_handler : Interface
 {
 	virtual void handle_io_response(Vfs::Vfs_handle::Context *context) = 0;
 };
 
 
-struct Vfs::File_io_service
+struct Vfs::File_io_service : Interface
 {
 	enum General_error { ERR_FD_INVALID, NUM_GENERAL_ERRORS };
 
@@ -69,14 +69,14 @@ struct Vfs::File_io_service
 	 *
 	 * \return false if queue is full
 	 */
-	virtual bool queue_read(Vfs_handle *vfs_handle, file_size count)
+	virtual bool queue_read(Vfs_handle *, file_size)
 	{
 		return true;
 	}
 
-	virtual Read_result complete_read(Vfs_handle *vfs_handle,
-	                                  char *dst, file_size count,
-	                                  file_size &out_count) = 0;
+	virtual Read_result complete_read(Vfs_handle *, char * /* dst */,
+	                                  file_size   /* in count */,
+	                                  file_size & /* out count */) = 0;
 
 	/**
 	 * Return true if the handle has readable data
@@ -138,8 +138,7 @@ struct Vfs::File_io_service
 		};
 	};
 
-	virtual Ioctl_result ioctl(Vfs_handle *vfs_handle, Ioctl_opcode, Ioctl_arg,
-	                           Ioctl_out &out)
+	virtual Ioctl_result ioctl(Vfs_handle *, Ioctl_opcode, Ioctl_arg, Ioctl_out &)
 	{
 		/*
 		 * This method is only needed in file systems which actually implement a
@@ -156,12 +155,10 @@ struct Vfs::File_io_service
 	 * \param wr  if true, check for readiness for writing
 	 * \param ex  if true, check for exceptions
 	 */
-	virtual bool check_unblock(Vfs_handle *vfs_handle,
-	                           bool rd, bool wr, bool ex)
+	virtual bool check_unblock(Vfs_handle *, bool /* rd */, bool /* wr */, bool /* ex */)
 	{ return true; }
 
-	virtual void register_read_ready_sigh(Vfs_handle *vfs_handle,
-	                                      Signal_context_capability sigh)
+	virtual void register_read_ready_sigh(Vfs_handle *, Signal_context_capability)
 	{ }
 
 	/**********
@@ -175,15 +172,9 @@ struct Vfs::File_io_service
 	 *
 	 * \return false if queue is full
 	 */
-	virtual bool queue_sync(Vfs_handle *vfs_handle)
-	{
-		return true;
-	}
+	virtual bool queue_sync(Vfs_handle *) { return true; }
 
-	virtual Sync_result complete_sync(Vfs_handle *vfs_handle)
-	{
-		return SYNC_OK;
-	}
+	virtual Sync_result complete_sync(Vfs_handle *) { return SYNC_OK; }
 };
 
 #endif /* _INCLUDE__VFS__FILE_IO_SERVICE_H_ */

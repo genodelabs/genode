@@ -18,8 +18,9 @@
 #include <cpu.h>
 
 template <typename E, unsigned B, unsigned S>
-void Sv39::Level_x_translation_table<E, B, S>::_translation_added(addr_t addr,
-                                                                  size_t size) {
-	Genode::Cpu::sfence(); }
+void Sv39::Level_x_translation_table<E, B, S>::_translation_added(addr_t, size_t)
+{
+	Genode::Cpu::sfence();
+}
 
 #endif /* _CORE__SPEC__RISCV__TRANSLATION_TABLE_H_ */

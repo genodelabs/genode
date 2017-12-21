@@ -303,8 +303,7 @@ void Platform_pd::flush(addr_t, size_t size, Core_local_addr core_local_base)
 }
 
 
-Platform_pd::Platform_pd(bool core) :
-	_l4_task_id(L4_MyGlobalId())
+Platform_pd::Platform_pd(bool) : _l4_task_id(L4_MyGlobalId())
 {
 	/*
 	 * Start with version 2 to avoid being mistaken as local or
@@ -327,20 +326,20 @@ Platform_pd::Platform_pd(bool core) :
 }
 
 
-Platform_pd::Platform_pd(Allocator * md_alloc, char const *,
-                         signed pd_id, bool create)
+Platform_pd::Platform_pd(Allocator *, char const *, signed pd_id, bool create)
 {
 	if (!create)
 		panic("create must be true.");
 
 	_init_threads();
 
-	_pd_id = _alloc_pd(pd_id);
-
-	if (_pd_id < 0) {
+	int const id = _alloc_pd(pd_id);
+	if (id < 0) {
 		error("pd alloc failed");
 		return;
 	}
+
+	_pd_id = id;
 
 	_create_pd(create);
 }

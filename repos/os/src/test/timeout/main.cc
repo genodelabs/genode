@@ -412,6 +412,14 @@ struct Fast_polling : Test
 		unsigned long volatile *value { ram.local_addr<unsigned long>() };
 
 		Result_buffer(Env &env) : env(env) { }
+
+		private:
+
+			/*
+			 * Noncopyable
+			 */
+			Result_buffer(Result_buffer const &);
+			Result_buffer &operator = (Result_buffer const &);
 	};
 
 	Entrypoint                   main_ep;
@@ -768,9 +776,9 @@ struct Main
 {
 	Env                           &env;
 	unsigned                       error_cnt   { 0 };
-	Constructible<Duration_test>   test_1;
-	Constructible<Fast_polling>    test_2;
-	Constructible<Mixed_timeouts>  test_3;
+	Constructible<Duration_test>   test_1      { };
+	Constructible<Fast_polling>    test_2      { };
+	Constructible<Mixed_timeouts>  test_3      { };
 	Signal_handler<Main>           test_1_done { env.ep(), *this, &Main::handle_test_1_done };
 	Signal_handler<Main>           test_2_done { env.ep(), *this, &Main::handle_test_2_done };
 	Signal_handler<Main>           test_3_done { env.ep(), *this, &Main::handle_test_3_done };

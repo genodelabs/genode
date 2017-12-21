@@ -20,7 +20,7 @@ using namespace Genode;
 
 Sliced_heap::Sliced_heap(Ram_allocator &ram_alloc, Region_map &region_map)
 :
-	_ram_alloc(ram_alloc), _region_map(region_map), _consumed(0)
+	_ram_alloc(ram_alloc), _region_map(region_map)
 { }
 
 
@@ -80,7 +80,7 @@ bool Sliced_heap::alloc(size_t size, void **out_addr)
 }
 
 
-void Sliced_heap::free(void *addr, size_t size)
+void Sliced_heap::free(void *addr, size_t)
 {
 	Ram_dataspace_capability ds_cap;
 	void *local_addr = nullptr;

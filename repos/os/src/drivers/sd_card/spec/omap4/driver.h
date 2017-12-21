@@ -154,7 +154,7 @@ class Sd_card::Driver : public  Driver_base,
 
 		struct Block_transfer
 		{
-			Block::Packet_descriptor packet;
+			Block::Packet_descriptor packet { };
 			bool                     pending = false;
 		};
 
@@ -166,7 +166,7 @@ class Sd_card::Driver : public  Driver_base,
 		};
 
 		Env                    &_env;
-		Block_transfer          _block_transfer;
+		Block_transfer          _block_transfer { };
 		Timer_delayer           _delayer     { _env };
 		Signal_handler<Driver>  _irq_handler { _env.ep(), *this, &Driver::_handle_irq };
 		Irq_connection          _irq         { _env, Panda::HSMMC_IRQ };

@@ -49,8 +49,8 @@ struct Main
 	};
 
 	Env                    &env;
-	Packet_descriptor       pkt;
-	unsigned long           time_before_ms;
+	Packet_descriptor       pkt          { };
+	unsigned long           time_before_ms { };
 	Timer::Connection       timer        { env };
 	Operation               operation    { READ };
 	Signal_handler<Main>    ack_handler  { env.ep(), *this, &Main::update_state };
@@ -155,6 +155,14 @@ struct Main
 		time_before_ms = timer.elapsed_ms();
 		update_state();
 	}
+
+	private:
+
+		/*
+		 * Noncopyable
+		 */
+		Main(Main const &);
+		Main &operator = (Main const &);
 };
 
 

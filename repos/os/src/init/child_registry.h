@@ -27,7 +27,7 @@ class Init::Child_registry : public Name_registry, Child_list
 {
 	private:
 
-		List<Alias> _aliases;
+		List<Alias> _aliases { };
 
 		bool _unique(const char *name) const
 		{

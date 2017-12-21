@@ -132,7 +132,7 @@ class Genode::Quota_guard
 {
 	private:
 
-		Quota_guard_untyped _guard;
+		Quota_guard_untyped _guard { };
 
 	public:
 

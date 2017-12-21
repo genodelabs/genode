@@ -31,15 +31,18 @@
 namespace Genode { class Cpu_thread_component; }
 
 
-class Genode::Cpu_thread_component : public Rpc_object<Cpu_thread>,
-                                     public List<Cpu_thread_component>::Element,
-                                     public Trace::Source::Info_accessor
+class Genode::Cpu_thread_component : public  Rpc_object<Cpu_thread>,
+                                     private List<Cpu_thread_component>::Element,
+                                     public  Trace::Source::Info_accessor
 {
 	public:
 
-		typedef Trace::Thread_name   Thread_name;
+		typedef Trace::Thread_name Thread_name;
 
 	private:
+
+		friend class List<Cpu_thread_component>;
+		friend class Cpu_session_component;
 
 		Rpc_entrypoint           &_ep;
 		Pager_entrypoint         &_pager_ep;
@@ -60,12 +63,12 @@ class Genode::Cpu_thread_component : public Rpc_object<Cpu_thread>,
 		/**
 		 * Exception handler as defined by 'Cpu_session::exception_sigh'
 		 */
-		Signal_context_capability _session_sigh;
+		Signal_context_capability _session_sigh { };
 
 		/**
 		 * Exception handler as defined by 'Cpu_thread::exception_sigh'
 		 */
-		Signal_context_capability _thread_sigh;
+		Signal_context_capability _thread_sigh { };
 
 		struct Trace_control_slot
 		{

@@ -28,8 +28,8 @@ class Vfs::Log_file_system : public Single_file_system
 		typedef Genode::String<64> Label;
 		Label _label;
 
-		Genode::Constructible<Genode::Log_connection>     _log_connection;
-		Genode::Constructible<Genode::Log_session_client> _log_client;
+		Genode::Constructible<Genode::Log_connection>     _log_connection { };
+		Genode::Constructible<Genode::Log_session_client> _log_client     { };
 
 		Genode::Log_session & _log_session(Genode::Env &env)
 		{
@@ -61,8 +61,7 @@ class Vfs::Log_file_system : public Single_file_system
 				: Single_vfs_handle(ds, fs, alloc, 0),
 				  _log(log) { }
 
-				Read_result read(char *dst, file_size count,
-				                 file_size &out_count) override
+				Read_result read(char *, file_size, file_size &out_count) override
 				{
 					out_count = 0;
 					return READ_OK;

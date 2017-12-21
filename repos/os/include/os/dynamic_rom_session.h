@@ -27,7 +27,7 @@ class Genode::Dynamic_rom_session : public Rpc_object<Rom_session>
 {
 	public:
 
-		struct Content_producer
+		struct Content_producer : Interface
 		{
 			class Buffer_capacity_exceeded : Exception { };
 
@@ -45,12 +45,12 @@ class Genode::Dynamic_rom_session : public Rpc_object<Rom_session>
 		 * Synchronize calls of 'trigger_update' (called locally) with the
 		 * 'Rom_session' methods (invoked via RPC).
 		 */
-		Lock _lock;
+		Lock _lock { };
 
 		Rpc_entrypoint            &_ep;
 		Ram_session               &_ram;
 		Region_map                &_rm;
-		Signal_context_capability  _sigh;
+		Signal_context_capability  _sigh { };
 		Content_producer          &_content_producer;
 
 		/*
@@ -64,7 +64,7 @@ class Genode::Dynamic_rom_session : public Rpc_object<Rom_session>
 
 		size_t _ds_size = 4096;
 
-		Constructible<Attached_ram_dataspace> _ds;
+		Constructible<Attached_ram_dataspace> _ds { };
 
 		void _notify_client()
 		{

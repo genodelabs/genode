@@ -152,6 +152,12 @@ class Timer::Connection : public  Genode::Connection<Session>,
 		using Entrypoint      = Genode::Entrypoint;
 
 		/*
+		 * Noncopyable
+		 */
+		Connection(Connection const &);
+		Connection &operator = (Connection const &);
+
+		/*
 		 * The mode determines which interface of the timer connection is
 		 * enabled. Initially, a timer connection is in LEGACY mode. When in
 		 * MODERN mode, a call to the LEGACY interface causes an exception.
@@ -165,15 +171,15 @@ class Timer::Connection : public  Genode::Connection<Session>,
 		 */
 		enum Mode { LEGACY, MODERN };
 
-		Mode                    _mode { LEGACY };
-		Genode::Lock            _lock;
-		Genode::Signal_receiver _sig_rec;
-		Genode::Signal_context  _default_sigh_ctx;
+		Mode                    _mode             { LEGACY };
+		Genode::Lock            _lock             { };
+		Genode::Signal_receiver _sig_rec          { };
+		Genode::Signal_context  _default_sigh_ctx { };
 
 		Genode::Signal_context_capability
 			_default_sigh_cap = _sig_rec.manage(&_default_sigh_ctx);
 
-		Genode::Signal_context_capability _custom_sigh_cap;
+		Genode::Signal_context_capability _custom_sigh_cap { };
 
 		void _enable_modern_mode();
 

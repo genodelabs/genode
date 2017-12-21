@@ -73,7 +73,7 @@ class Test::Child
 		Env                  &_env;
 		Heap                  _heap { _env.ram(), _env.rm() };
 		bool            const _expand;
-		List<Ram_chunk>       _ram_chunks;
+		List<Ram_chunk>       _ram_chunks { };
 		Timer::Connection     _timer { _env };
 		Signal_handler<Child> _periodic_timeout_handler;
 		Signal_handler<Child> _yield_handler;
@@ -193,7 +193,7 @@ class Test::Parent
 
 		Timer::Connection _timer { _env };
 
-		Lock _yield_blockade;
+		Lock _yield_blockade { };
 
 		void _print_status()
 		{

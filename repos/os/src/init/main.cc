@@ -30,9 +30,9 @@ struct Init::Main : State_reporter::Producer, Child::Default_route_accessor,
 {
 	Env &_env;
 
-	Registry<Init::Parent_service> _parent_services;
-	Registry<Routed_service>       _child_services;
-	Child_registry                 _children;
+	Registry<Init::Parent_service> _parent_services { };
+	Registry<Routed_service>       _child_services  { };
+	Child_registry                 _children        { };
 
 	Heap _heap { _env.ram(), _env.rm() };
 
@@ -42,7 +42,7 @@ struct Init::Main : State_reporter::Producer, Child::Default_route_accessor,
 
 	Reconstructible<Verbose> _verbose { _config_xml };
 
-	Constructible<Buffered_xml> _default_route;
+	Constructible<Buffered_xml> _default_route { };
 
 	Cap_quota _default_caps { 0 };
 

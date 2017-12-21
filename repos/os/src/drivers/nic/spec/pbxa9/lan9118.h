@@ -26,6 +26,12 @@ class Lan9118 : public Nic::Session_component
 {
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Lan9118(Lan9118 const &);
+		Lan9118 &operator = (Lan9118 const &);
+
 		/**
 		 * MMIO register offsets
 		 */
@@ -71,7 +77,7 @@ class Lan9118 : public Nic::Session_component
 		Genode::Attached_io_mem_dataspace _mmio;
 		volatile Genode::uint32_t        *_reg_base;
 		Timer::Connection                 _timer;
-		Nic::Mac_address                  _mac_addr;
+		Nic::Mac_address                  _mac_addr { };
 		Genode::Irq_connection            _irq;
 		Genode::Signal_handler<Lan9118>   _irq_handler;
 

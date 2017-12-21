@@ -43,7 +43,7 @@ native_thread_id(Genode::Thread * const t)
 /**
  * Yield execution time-slice of current thread to thread t
  */
-static inline void thread_switch_to(Genode::Thread * const t)
+static inline void thread_switch_to(Genode::Thread *)
 {
 	Kernel::yield_thread();
 }

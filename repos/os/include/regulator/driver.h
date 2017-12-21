@@ -26,7 +26,7 @@ namespace Regulator {
 /**
  * Interface to be implemented by the device-specific driver code
  */
-struct Regulator::Driver
+struct Regulator::Driver : Genode::Interface
 {
 	virtual void level(Regulator_id id, unsigned long level) = 0;
 	virtual unsigned long level(Regulator_id id)             = 0;
@@ -38,7 +38,7 @@ struct Regulator::Driver
 /**
  * Interface for constructing the driver object
  */
-struct Regulator::Driver_factory
+struct Regulator::Driver_factory : Genode::Interface
 {
 	/**
 	 * Construct new driver

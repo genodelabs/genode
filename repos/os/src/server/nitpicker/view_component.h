@@ -56,18 +56,18 @@ namespace Nitpicker {
 	 * We use view capabilities as mere tokens to pass views between sessions.
 	 * There is no RPC interface associated with a view.
 	 */
-	struct View { GENODE_RPC_INTERFACE(); };
+	struct View : Interface { GENODE_RPC_INTERFACE(); };
 
 	class View_component;
 }
 
 
-class Nitpicker::View_component : public Same_buffer_list_elem,
-                                  public Session_view_list_elem,
-                                  public View_stack_elem,
-                                  public View_parent_elem,
-                                  public Weak_object<View_component>,
-                                  public Rpc_object<View>
+class Nitpicker::View_component : private Same_buffer_list_elem,
+                                  private Session_view_list_elem,
+                                  private View_stack_elem,
+                                  private View_parent_elem,
+                                  private Weak_object<View_component>,
+                                  public  Rpc_object<View>
 {
 	public:
 
@@ -76,20 +76,33 @@ class Nitpicker::View_component : public Same_buffer_list_elem,
 		enum Transparent { NOT_TRANSPARENT = 0, TRANSPARENT = 1 };
 		enum Background  { NOT_BACKGROUND  = 0, BACKGROUND  = 1 };
 
+		using Weak_object<View_component>::weak_ptr;
+		using Weak_object<View_component>::weak_ptr_const;
+
 	private:
+
+		friend class View_stack;
+		friend class Session_component;
+		friend class Locked_ptr<View_component>;
+
+		/*
+		 * Noncopyable
+		 */
+		View_component(View_component const &);
+		View_component &operator = (View_component const &);
 
 		Transparent const _transparent;   /* background is partly visible */
 		Background        _background;    /* view is a background view    */
 
-		View_component *_parent;         /* parent view                          */
-		Rect            _geometry;       /* position and size relative to parent */
-		Rect            _label_rect;     /* position and size of label           */
-		Point           _buffer_off;     /* offset to the visible buffer area    */
+		View_component *_parent;          /* parent view                          */
+		Rect            _geometry   { };  /* position and size relative to parent */
+		Rect            _label_rect { };  /* position and size of label           */
+		Point           _buffer_off { };  /* offset to the visible buffer area    */
 		View_owner     &_owner;
-		Title           _title;
-		Dirty_rect      _dirty_rect;
+		Title           _title      { };
+		Dirty_rect      _dirty_rect { };
 
-		List<View_parent_elem> _children;
+		List<View_parent_elem> _children { };
 
 		/**
 		 * Assign new parent

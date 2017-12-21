@@ -91,7 +91,7 @@ struct Clipboard::Main : Rom::Module::Read_policy, Rom::Module::Write_policy
 	Genode::Signal_handler<Main> _focus_handler =
 		{ _env.ep(), *this, &Main::_handle_focus };
 
-	Domain _focused_domain;
+	Domain _focused_domain { };
 
 	/**
 	 * Handle the change of the current nitpicker focus
@@ -167,7 +167,7 @@ struct Clipboard::Main : Rom::Module::Read_policy, Rom::Module::Write_policy
 	/**
 	 * Rom::Module::Read_policy interface
 	 */
-	bool read_permitted(Rom::Module const &module,
+	bool read_permitted(Rom::Module const &,
 	                    Rom::Writer const &writer,
 	                    Rom::Reader const &reader) const override
 	{

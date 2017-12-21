@@ -30,7 +30,7 @@ namespace Nitpicker {
 /**
  * Pixel-type-independent interface of nitpicker's graphics backend
  */
-struct Nitpicker::Canvas_base
+struct Nitpicker::Canvas_base : Interface
 {
 	virtual Area size() const = 0;
 

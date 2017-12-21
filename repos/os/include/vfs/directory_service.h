@@ -24,7 +24,7 @@ namespace Vfs {
 }
 
 
-struct Vfs::Directory_service
+struct Vfs::Directory_service : Interface
 {
 	virtual Dataspace_capability dataspace(char const *path) = 0;
 	virtual void release(char const *path, Dataspace_capability) = 0;
@@ -77,8 +77,8 @@ struct Vfs::Directory_service
 		OPENDIR_OK
 	};
 
-	virtual Opendir_result opendir(char const *path, bool create,
-	                               Vfs_handle **handle, Allocator &alloc)
+	virtual Opendir_result opendir(char const * /* path */, bool /* create */,
+	                               Vfs_handle **, Allocator &)
 	{
 		return OPENDIR_ERR_LOOKUP_FAILED;
 	}
@@ -95,8 +95,8 @@ struct Vfs::Directory_service
 		OPENLINK_OK
 	};
 
-	virtual Openlink_result openlink(char const *path, bool create,
-	                                 Vfs_handle **handle, Allocator &alloc)
+	virtual Openlink_result openlink(char const * /* path */, bool /* create */,
+	                                 Vfs_handle **, Allocator &)
 	{
 		return OPENLINK_ERR_PERMISSION_DENIED;
 	}

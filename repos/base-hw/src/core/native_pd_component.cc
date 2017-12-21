@@ -22,11 +22,8 @@ void Native_pd_component::upgrade_cap_slab() {
 }
 
 
-Native_pd_component::Native_pd_component(Pd_session_component &pd_session,
-                                         char const *args)
-: _pd_session(pd_session) {
-	_pd_session._ep.manage(this); }
+Native_pd_component::Native_pd_component(Pd_session_component &pd, char const *)
+: _pd_session(pd) { _pd_session._ep.manage(this); }
 
 
-Native_pd_component::~Native_pd_component() {
-	_pd_session._ep.dissolve(this); }
+Native_pd_component::~Native_pd_component() { _pd_session._ep.dissolve(this); }

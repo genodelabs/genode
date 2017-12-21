@@ -261,9 +261,9 @@ class Sv39::Level_x_translation_table
 
 			Remove_func(Allocator & alloc) : alloc(alloc) { }
 
-			void operator () (addr_t const                   vo,
-			                  addr_t const                   pa,
-			                  size_t const                   size,
+			void operator () (addr_t const    vo,
+			                  addr_t const /* pa */,
+			                  size_t const    size,
 			                  typename Descriptor::access_t &desc)
 			{
 				using Td = Table_descriptor;
@@ -374,9 +374,9 @@ namespace Sv39 {
 	{
 		Remove_func(Allocator &) { }
 
-		void operator () (addr_t const          vo,
-		                  addr_t const          pa,
-		                  size_t const          size,
+		void operator () (addr_t /* vo */,
+		                  addr_t /* pa */,
+		                  size_t /* size */,
 		                  Descriptor::access_t &desc) {
 			desc = 0; }
 	};

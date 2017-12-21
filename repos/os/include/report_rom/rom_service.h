@@ -51,7 +51,7 @@ class Rom::Session_component : public Genode::Rpc_object<Genode::Rom_session>,
 				throw Genode::Service_denied(); }
 		}
 
-		Constructible<Genode::Attached_ram_dataspace> _ds;
+		Constructible<Genode::Attached_ram_dataspace> _ds { };
 
 		size_t _content_size = 0;
 
@@ -61,7 +61,7 @@ class Rom::Session_component : public Genode::Rpc_object<Genode::Rom_session>,
 		 */
 		bool _valid = false;
 
-		Genode::Signal_context_capability _sigh;
+		Genode::Signal_context_capability _sigh { };
 
 		void _notify_client()
 		{

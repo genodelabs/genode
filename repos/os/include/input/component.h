@@ -31,7 +31,7 @@ class Input::Session_component : public Genode::Rpc_object<Input::Session>
 
 		Genode::Attached_ram_dataspace _ds;
 
-		Event_queue _event_queue;
+		Event_queue _event_queue { };
 
 	public:
 
@@ -42,8 +42,9 @@ class Input::Session_component : public Genode::Rpc_object<Input::Session>
 		 * \param ram  Ram session at which to allocate session buffer
 		 */
 		Session_component(Genode::Env &env, Genode::Ram_session &ram)
-		: _ds(ram, env.rm(),
-		      Event_queue::QUEUE_SIZE*sizeof(Input::Event)) { }
+		:
+			_ds(ram, env.rm(), Event_queue::QUEUE_SIZE*sizeof(Input::Event))
+		{ }
 
 		/**
 		 * Constructor

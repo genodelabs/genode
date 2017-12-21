@@ -109,7 +109,7 @@ class Genode::Local_service : public Service
 {
 	public:
 
-		struct Factory
+		struct Factory : Interface
 		{
 			typedef Session_state::Args Args;
 
@@ -346,7 +346,7 @@ class Genode::Async_service : public Service
 {
 	public:
 
-		struct Wakeup { virtual void wakeup_async_service() = 0; };
+		struct Wakeup : Interface { virtual void wakeup_async_service() = 0; };
 
 	private:
 
@@ -421,7 +421,7 @@ class Genode::Child_service : public Async_service
 		              Id_space<Parent::Server> &server_id_space,
 		              Session_state::Factory   &factory,
 		              Wakeup                   &wakeup,
-		              Pd_session_capability     ram,
+		              Pd_session_capability,
 		              Pd_session_capability     pd)
 		:
 			Async_service(name, server_id_space, factory, wakeup), _pd(pd)

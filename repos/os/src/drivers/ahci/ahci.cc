@@ -203,6 +203,14 @@ struct Ahci
 		}
 		return -1;
 	}
+
+	private:
+
+		/*
+		 * Noncopyable
+		 */
+		Ahci(Ahci const &);
+		Ahci &operator = (Ahci const &);
 };
 
 

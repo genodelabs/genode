@@ -30,13 +30,13 @@ class Genode::Mapping
 
 	private:
 
-		addr_t          _from_phys_addr;
-		addr_t          _to_virt_addr;
-		Cache_attribute _attr;
-		size_t          _num_pages;
-		addr_t          _fault_type = { 0 };
-		bool            _writeable  = { false };
-		bool            _executable = { false };
+		addr_t          _from_phys_addr { 0 };
+		addr_t          _to_virt_addr   { 0 };
+		Cache_attribute _attr           { CACHED };
+		size_t          _num_pages      { 0 };
+		addr_t          _fault_type     { 0 };
+		bool            _writeable      { false };
+		bool            _executable     { false };
 
 		enum { PAGE_SIZE_LOG2 = 12 };
 
@@ -46,7 +46,7 @@ class Genode::Mapping
 		 * Constructor
 		 */
 		Mapping(addr_t dst_addr, addr_t src_addr,
-		        Cache_attribute const cacheability, bool io_mem,
+		        Cache_attribute const cacheability, bool,
 		        unsigned l2size, bool rw, bool executable)
 		:
 			_from_phys_addr(src_addr),
@@ -59,7 +59,7 @@ class Genode::Mapping
 		/**
 		 * Construct invalid mapping
 		 */
-		Mapping() : _num_pages(0) { }
+		Mapping() { }
 
 		/**
 		 * Prepare map operation
@@ -86,15 +86,15 @@ class Genode::Ipc_pager : public Native_capability
 {
 	private:
 
-		addr_t           _badge;     /* faulted badge of thread        */
-		addr_t           _reply_sel; /* selector to save reply cap     */
-		addr_t           _pf_addr;   /* page-fault address             */
-		addr_t           _pf_ip;     /* instruction pointer of faulter */
-		addr_t           _fault_type; /* type of fault */
-		bool             _pf_write;  /* true on write fault            */
-		bool             _pf_exec;   /* true on exec  fault            */
+		addr_t _badge      = 0;    /* faulted badge of thread        */
+		addr_t _reply_sel  = 0;    /* selector to save reply cap     */
+		addr_t _pf_addr    = 0;    /* page-fault address             */
+		addr_t _pf_ip      = 0;    /* instruction pointer of faulter */
+		addr_t _fault_type = 0;    /* type of fault */
+		bool   _pf_write = false;  /* true on write fault            */
+		bool   _pf_exec  = false;  /* true on exec  fault            */
 
-		Mapping _reply_mapping;
+		Mapping _reply_mapping { };
 
 	public:
 

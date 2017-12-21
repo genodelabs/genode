@@ -31,9 +31,9 @@ static const bool verbose_page_faults = false;
 
 struct Genode::Region_map_component::Fault_area
 {
-	addr_t _fault_addr;
-	addr_t _base;
-	size_t _size_log2;
+	addr_t _fault_addr = 0;
+	addr_t _base       = 0;
+	size_t _size_log2  = 0;
 
 	addr_t _upper_bound() const {
 		return (_size_log2 == ~0UL) ? ~0UL : (_base + (1UL << _size_log2) - 1); }
@@ -41,13 +41,13 @@ struct Genode::Region_map_component::Fault_area
 	/**
 	 * Default constructor, constructs invalid fault area
 	 */
-	Fault_area() : _size_log2(0) { }
+	Fault_area() { }
 
 	/**
 	 * Constructor, fault area spans the maximum address-space size
 	 */
 	Fault_area(addr_t fault_addr) :
-		_fault_addr(fault_addr), _base(0), _size_log2(~0UL) { }
+		_fault_addr(fault_addr), _size_log2(~0UL) { }
 
 	/**
 	 * Constrain fault area to specified region
@@ -282,7 +282,7 @@ void Rm_faulter::dissolve_from_faulting_region_map(Region_map_component * caller
 	Lock::Guard lock_guard(_lock);
 
 	enum { DO_LOCK = true };
-	if (caller == static_cast<Region_map_component *>(_faulting_region_map.obj())) {
+	if (caller->equals(_faulting_region_map)) {
 		caller->discard_faulter(this, !DO_LOCK);
 	} else {
 		Locked_ptr<Region_map_component> locked_ptr(_faulting_region_map);
@@ -309,7 +309,7 @@ void Rm_faulter::continue_after_resolved_fault()
  ** Region-map component **
  **************************/
 
-Mapping Region_map_component::create_map_item(Region_map_component *region_map,
+Mapping Region_map_component::create_map_item(Region_map_component *,
                                               Rm_region            *region,
                                               addr_t                ds_offset,
                                               addr_t                region_offset,

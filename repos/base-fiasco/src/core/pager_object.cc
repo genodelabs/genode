@@ -33,10 +33,10 @@ void Pager_object::wake_up()
 
 	/* kernel-defined message header */
 	struct {
-		l4_fpage_t   rcv_fpage; /* unused */
+		l4_fpage_t   rcv_fpage { }; /* unused */
 		l4_msgdope_t size_dope = L4_IPC_DOPE(0, 0);
 		l4_msgdope_t send_dope = L4_IPC_DOPE(0, 0);
-	} rcv_header;
+	} rcv_header { };
 
 	l4_msgdope_t ipc_result;
 	l4_umword_t dummy = 0;

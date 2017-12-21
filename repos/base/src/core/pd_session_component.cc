@@ -36,7 +36,8 @@ Pd_session_component::alloc(size_t ds_size, Cache_attribute cached)
 	 * we leave the method scope via an exception. The withdrawal is
 	 * acknowledge just before successfully leaving the method.
 	 */
-	Ram_quota_guard::Reservation dataspace_ram_costs(*this, Ram_quota{ds_size});
+	Ram_quota_guard::Reservation
+		dataspace_ram_costs(_ram_quota_guard(), Ram_quota{ds_size});
 
 	/*
 	 * In the worst case, we need to allocate a new slab block for the
@@ -46,13 +47,14 @@ Pd_session_component::alloc(size_t ds_size, Cache_attribute cached)
 	 */
 	{
 		Ram_quota const overhead { Ram_dataspace_factory::SLAB_BLOCK_SIZE };
-		Ram_quota_guard::Reservation sbs_ram_costs(*this, overhead);
+		Ram_quota_guard::Reservation sbs_ram_costs(_ram_quota_guard(), overhead);
 	}
 
 	/*
 	 * Each dataspace is an RPC object and thereby consumes a capability.
 	 */
-	Cap_quota_guard::Reservation dataspace_cap_costs(*this, Cap_quota{1});
+	Cap_quota_guard::Reservation
+		dataspace_cap_costs(_cap_quota_guard(), Cap_quota{1});
 
 	/*
 	 * Allocate physical dataspace
@@ -116,8 +118,8 @@ void Pd_session_component::ref_account(Capability<Pd_session> pd_cap)
 			throw Invalid_session();
 		}
 
-		_cap_account.construct(*this, _label, *pd->_cap_account);
-		_ram_account.construct(*this, _label, *pd->_ram_account);
+		_cap_account.construct(_cap_quota_guard(), _label, *pd->_cap_account);
+		_ram_account.construct(_ram_quota_guard(), _label, *pd->_ram_account);
 	});
 }
 

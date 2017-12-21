@@ -33,8 +33,7 @@ namespace Board {
 }
 
 template <typename E, unsigned B, unsigned S>
-void Sv39::Level_x_translation_table<E, B, S>::_translation_added(addr_t addr,
-                                                                  size_t size)
+void Sv39::Level_x_translation_table<E, B, S>::_translation_added(addr_t, size_t)
 { }
 
 #endif /* _SRC__BOOTSTRAP__SPEC__RISCV__BOARD_H_ */

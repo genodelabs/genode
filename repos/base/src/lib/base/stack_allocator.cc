@@ -45,7 +45,7 @@ addr_t Stack_allocator::idx_to_base(size_t idx)
 
 
 Stack *
-Stack_allocator::alloc(Thread *thread_base, bool main_thread)
+Stack_allocator::alloc(Thread *, bool main_thread)
 {
 	if (main_thread)
 		/* the main-thread stack is the first one */

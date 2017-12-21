@@ -25,11 +25,19 @@ namespace Scout {
 
 class Scout::Element
 {
+	private:
+
+		/*
+		 * Noncopyable
+		 */
+		Element(Element const &);
+		Element &operator = (Element const &);
+
 	protected:
 
-		Point _position;              /* relative position managed by parent */
-		Area  _size;                  /* size managed by parent              */
-		Area  _min_size;              /* min size managed by element         */
+		Point _position { };          /* relative position managed by parent */
+		Area  _size     { };          /* size managed by parent              */
+		Area  _min_size { };          /* min size managed by element         */
 		Parent_element *_parent;      /* parent in element hierarchy         */
 		Event_handler  *_evh;         /* event handler object                */
 		struct {
@@ -39,7 +47,7 @@ class Scout::Element
 			int chapter     : 1;      /* display element as single page      */
 			int findable    : 1;      /* regard element in find function     */
 			int bottom      : 1;      /* place element to the bottom         */
-		} _flags;
+		} _flags { };
 
 	public:
 
@@ -125,12 +133,12 @@ class Scout::Element
 		/**
 		 * Format element and all child elements to specified width
 		 */
-		virtual void format_fixed_width(int w) { }
+		virtual void format_fixed_width(int) { }
 
 		/**
 		 * Format element and all child elements to specified width and height
 		 */
-		virtual void format_fixed_size(Area size) { }
+		virtual void format_fixed_size(Area) { }
 
 		/**
 		 * Draw function

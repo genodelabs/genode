@@ -34,6 +34,12 @@ class Vfs::Dir_file_system : public File_system
 
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Dir_file_system(Dir_file_system const &);
+		Dir_file_system &operator = (Dir_file_system const &);
+
 		/**
 		 * This instance is the root of VFS
 		 *
@@ -58,7 +64,7 @@ class Vfs::Dir_file_system : public File_system
 
 			Absolute_path             path;
 			Vfs_handle               *queued_read_handle { nullptr };
-			Subdir_handle_registry    subdir_handle_registry;
+			Subdir_handle_registry    subdir_handle_registry { };
 
 			Dir_vfs_handle(Directory_service &ds,
 			               File_io_service   &fs,
@@ -76,6 +82,14 @@ class Vfs::Dir_file_system : public File_system
 				};
 				subdir_handle_registry.for_each(f);
 			}
+
+			private:
+
+				/*
+				 * Noncopyable
+				 */
+				Dir_vfs_handle(Dir_vfs_handle const &);
+				Dir_vfs_handle &operator = (Dir_vfs_handle const &);
 		};
 
 		/* pointer to first child file system */
@@ -765,13 +779,12 @@ class Vfs::Dir_file_system : public File_system
 		 ** File I/O service interface **
 		 ********************************/
 
-		Write_result write(Vfs_handle *handle, char const *, file_size,
-		                   file_size &) override
+		Write_result write(Vfs_handle *, char const *, file_size, file_size &) override
 		{
 			return WRITE_ERR_INVALID;
 		}
 
-		bool queue_read(Vfs_handle *vfs_handle, file_size count) override
+		bool queue_read(Vfs_handle *vfs_handle, file_size) override
 		{
 			Dir_vfs_handle *dir_vfs_handle =
 				static_cast<Dir_vfs_handle*>(vfs_handle);

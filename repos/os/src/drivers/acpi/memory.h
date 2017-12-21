@@ -48,7 +48,7 @@ class Acpi::Memory
 		Genode::addr_t      const _acpi_base;
 		Genode::Allocator        &_heap;
 		Genode::Allocator_avl     _range;
-		Genode::List<Io_mem>      _io_mem_list;
+		Genode::List<Io_mem>      _io_mem_list { };
 
 	public:
 

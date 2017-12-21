@@ -27,7 +27,7 @@ class Launch_entry : public Scout::Parent_element, public Loadbar_listener
 		Kbyte_loadbar<PT>      _loadbar;
 		Scout::Launcher_config _config;
 		Scout::Launcher        _launcher;
-		int                    _lh;        /* launch entry height */
+		int                    _lh = 0;        /* launch entry height */
 
 		enum { _PTW = 100 };  /* program text width */
 		enum { _PADX = 10 };  /* program text width */

@@ -101,10 +101,11 @@ struct Backdrop::Main
 		/**
 		 * Return back buffer as painting surface
 		 */
-		template <typename PT>
-		Surface<PT> surface()
+		template <typename PT, typename FN>
+		void apply_to_surface(FN const &fn)
 		{
-			return Surface<PT>(surface_ds.local_addr<PT>(), size());
+			Surface<PT> surface(surface_ds.local_addr<PT>(), size());
+			fn(surface);
 		}
 
 		void flush_surface()
@@ -295,8 +296,9 @@ void Backdrop::Main::apply_image(Xml_node operation)
 	convert_pixel_format(scaled_texture, texture, alpha, heap);
 
 	/* paint texture onto surface */
-	Surface<PT> surface = buffer->surface<PT>();
-	paint_texture(surface, texture, pos, tiled);
+	buffer->apply_to_surface<PT>([&] (Surface<PT> &surface) {
+		paint_texture(surface, texture, pos, tiled);
+	});
 }
 
 
@@ -309,12 +311,12 @@ void Backdrop::Main::apply_fill(Xml_node operation)
 	/* create texture with down-sampled scaled image */
 	typedef Pixel_rgb565 PT;
 
-	Surface<PT> surface = buffer->surface<PT>();
-
 	Color const color = Decorator::attribute(operation, "color", Color(0, 0, 0));
 
-	Box_painter::paint(surface, Surface_base::Rect(Surface_base::Point(0, 0),
-	                                               buffer->size()), color);
+	buffer->apply_to_surface<PT>([&] (Surface<PT> &surface) {
+		Box_painter::paint(surface, Surface_base::Rect(Surface_base::Point(0, 0),
+		                                               buffer->size()), color);
+	});
 }
 
 

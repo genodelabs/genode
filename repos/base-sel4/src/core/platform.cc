@@ -541,8 +541,10 @@ Platform::Platform()
 	/* add idle thread trace subjects */
 	for (unsigned cpu_id = 0; cpu_id < affinity_space().width(); cpu_id ++) {
 
-		struct Idle_trace_source : Trace::Source::Info_accessor, Trace::Control,
-		                           Trace::Source, Genode::Thread_info
+		struct Idle_trace_source : public  Trace::Source::Info_accessor,
+		                           private Trace::Control,
+		                           private Trace::Source,
+		                           private Thread_info
 		{
 			Affinity::Location const affinity;
 
@@ -568,10 +570,13 @@ Platform::Platform()
 			Idle_trace_source(Platform &platform, Range_allocator &phys_alloc,
 			                  Affinity::Location affinity)
 			:
+				Trace::Control(),
 				Trace::Source(*this, *this), affinity(affinity)
 			{
 				Thread_info::init_tcb(platform, phys_alloc, 0, affinity.xpos());
 			}
+
+			Trace::Source &source() { return *this; }
 		};
 
 		Idle_trace_source *source = new (core_mem_alloc())
@@ -580,7 +585,7 @@ Platform::Platform()
 			                                     affinity_space().width(),
 			                                     affinity_space().height()));
 
-		Trace::sources().insert(source);
+		Trace::sources().insert(&source->source());
 	}
 
 	/* I/O port allocator (only meaningful for x86) */

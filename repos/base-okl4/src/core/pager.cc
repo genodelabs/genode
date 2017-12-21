@@ -23,13 +23,7 @@
 #include <base/internal/native_thread.h>
 #include <base/internal/native_utcb.h>
 #include <base/internal/capability_space_tpl.h>
-
-namespace Okl4 { extern "C" {
-#include <l4/message.h>
-#include <l4/ipc.h>
-#include <l4/schedule.h>
-#include <l4/kdebug.h>
-} }
+#include <base/internal/okl4.h>
 
 static const bool verbose_page_fault = false;
 static const bool verbose_exception  = false;
@@ -71,9 +65,8 @@ static inline Okl4::L4_ThreadId_t thread_get_my_global_id()
  ** Mapping **
  *************/
 
-Mapping::Mapping(addr_t dst_addr, addr_t src_addr,
-                 Cache_attribute cacheability, bool io_mem,
-                 unsigned l2size, bool rw, bool executable)
+Mapping::Mapping(addr_t dst_addr, addr_t src_addr, Cache_attribute, bool,
+                 unsigned l2size, bool rw, bool)
 :
 	_fpage(L4_FpageLog2(dst_addr, l2size)),
 	/*

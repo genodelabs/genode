@@ -105,7 +105,7 @@ class Genode::Handle_registry
 
 		unsigned _cnt = 0;
 
-		Avl_tree<Element> _elements;
+		Avl_tree<Element> _elements { };
 
 		Element &_lookup(HANDLE handle) const
 		{

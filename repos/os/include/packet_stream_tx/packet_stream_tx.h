@@ -21,7 +21,7 @@ namespace Packet_stream_tx { template <typename> struct Channel; }
 
 
 template <typename PACKET_STREAM_POLICY>
-struct Packet_stream_tx::Channel
+struct Packet_stream_tx::Channel : Genode::Interface
 {
 	typedef Genode::Packet_stream_source<PACKET_STREAM_POLICY> Source;
 	typedef Genode::Packet_stream_sink<PACKET_STREAM_POLICY>   Sink;

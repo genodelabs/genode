@@ -56,13 +56,13 @@ struct Usb::Block_driver : Usb::Completion,
 	 */
 	struct Block_request
 	{
-		Block::Packet_descriptor  packet;
-		Block::sector_t           lba;
-		char                     *buffer;
-		size_t                    size;
-		bool                      read;
-		bool                      pending = false;
-	} req;
+		Block::Packet_descriptor  packet  { };
+		Block::sector_t           lba     { 0 };
+		char                     *buffer  { nullptr };
+		size_t                    size    { 0 };
+		bool                      read    { false };
+		bool                      pending { false };
+	} req { };
 
 	bool initialized     = false;
 	bool device_plugged  = false;
@@ -131,9 +131,9 @@ struct Usb::Block_driver : Usb::Completion,
 	/*
 	 * Block session
 	 */
-	Block::Session::Operations _block_ops;
-	Block::sector_t            _block_count;
-	size_t                     _block_size;
+	Block::Session::Operations _block_ops   { };
+	Block::sector_t            _block_count { 0 };
+	size_t                     _block_size  { 0 };
 
 	bool _writeable = false;
 
@@ -167,8 +167,8 @@ struct Usb::Block_driver : Usb::Completion,
 		Usb::Device &device;
 		uint8_t      interface;
 
-		Block::sector_t block_count;
-		size_t          block_size;
+		Block::sector_t block_count = 0;
+		size_t          block_size  = 0;
 
 		char vendor[Scsi::Inquiry_response::Vid::ITEMS+1];
 		char product[Scsi::Inquiry_response::Pid::ITEMS+1];
@@ -178,7 +178,7 @@ struct Usb::Block_driver : Usb::Completion,
 
 		void complete(Packet_descriptor &p)
 		{
-			Interface iface = device.interface(interface);
+			Usb::Interface iface = device.interface(interface);
 
 			if (p.type != Packet_descriptor::BULK) {
 				Genode::error("Can only handle BULK packets");
@@ -362,7 +362,7 @@ struct Usb::Block_driver : Usb::Completion,
 	{
 		device.update_config();
 
-		Interface &iface = device.interface(active_interface);
+		Usb::Interface &iface = device.interface(active_interface);
 		try { iface.claim(); }
 		catch (Usb::Session::Interface_already_claimed) {
 			Genode::error("Device already claimed");
@@ -579,7 +579,7 @@ struct Usb::Block_driver : Usb::Completion,
 	 */
 	void complete(Packet_descriptor &p)
 	{
-		Interface iface = device.interface(active_interface);
+		Usb::Interface iface = device.interface(active_interface);
 
 		if (p.type != Packet_descriptor::BULK) {
 			Genode::error("No BULK packet");
@@ -722,7 +722,7 @@ struct Usb::Block_driver : Usb::Completion,
 
 	~Block_driver()
 	{
-		Interface &iface = device.interface(active_interface);
+		Usb::Interface &iface = device.interface(active_interface);
 		iface.release();
 	}
 
@@ -825,6 +825,14 @@ struct Usb::Main
 			Genode::destroy(alloc, driver);
 			driver = nullptr;
 		}
+
+		private:
+
+			/*
+			 * Noncopyable
+			 */
+			Factory(Factory const &);
+			Factory &operator = (Factory const &);
 	};
 
 	Factory     factory { env, heap, announce_dispatcher };

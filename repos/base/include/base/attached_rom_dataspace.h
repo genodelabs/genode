@@ -35,7 +35,7 @@ class Genode::Attached_rom_dataspace
 		 * always be valid once constructed, a 'Attached_rom_dataspace' has
 		 * to handle the validity of the dataspace.
 		 */
-		Constructible<Attached_dataspace> _ds;
+		Constructible<Attached_dataspace> _ds { };
 
 		/**
 		 * Try to attach the ROM module, ignore invalid dataspaces

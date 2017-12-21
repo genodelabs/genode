@@ -14,6 +14,7 @@
 #ifndef _INCLUDE__BASE__REGISTRY_H_
 #define _INCLUDE__BASE__REGISTRY_H_
 
+#include <util/interface.h>
 #include <util/list.h>
 #include <base/lock.h>
 
@@ -30,9 +31,10 @@ class Genode::Registry_base
 {
 	private:
 
-		struct Notify {
+		struct Notify
+		{
 			enum Keep { KEEP, DISCARD } keep;
-			void * thread;
+			void * const thread;
 
 			Notify(Keep k, void *t) : keep(k), thread(t) { }
 		};
@@ -50,12 +52,18 @@ class Genode::Registry_base
 				/**
 				 * Protect '_reinsert_ptr'
 				 */
-				Lock _lock;
+				Lock _lock { };
 
 				/*
 				 * Assigned by 'Registry::_for_each'
 				 */
 				Notify *_notify_ptr = nullptr;
+
+				/*
+				 * Noncopyable
+				 */
+				Element(Element const &);
+				Element &operator = (Element const &);
 
 			protected:
 
@@ -70,8 +78,8 @@ class Genode::Registry_base
 
 	protected:
 
-		Lock mutable  _lock; /* protect '_elements' */
-		List<Element> _elements;
+		Lock mutable  _lock     { }; /* protect '_elements' */
+		List<Element> _elements { };
 
 	private:
 
@@ -87,7 +95,7 @@ class Genode::Registry_base
 
 	protected:
 
-		struct Untyped_functor { virtual void call(void *obj_ptr) = 0; };
+		struct Untyped_functor : Interface { virtual void call(void *obj_ptr) = 0; };
 
 		void _for_each(Untyped_functor &);
 };

@@ -117,6 +117,12 @@ class Iconbar_event_handler : public Scout::Event_handler
 {
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Iconbar_event_handler(Iconbar_event_handler const &);
+		Iconbar_event_handler &operator = (Iconbar_event_handler const &);
+
 		Fader   *_fader;
 		Browser *_browser;
 		int      _icon_id;
@@ -127,11 +133,9 @@ class Iconbar_event_handler : public Scout::Event_handler
 		 * Constructor
 		 */
 		Iconbar_event_handler(Fader *fader, int icon_id, Browser *browser)
-		{
-			_fader   = fader;
-			_browser = browser;
-			_icon_id = icon_id;
-		}
+		:
+			_fader(fader), _browser(browser), _icon_id(icon_id)
+		{ }
 
 		/**
 		 * Event handler interface
@@ -193,8 +197,14 @@ class Browser_sizer_event_handler : public Scout::Sizer_event_handler
 {
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Browser_sizer_event_handler(Browser_sizer_event_handler const &);
+		Browser_sizer_event_handler &operator = (Browser_sizer_event_handler const &);
+
 		Browser_window<PT> *_browser_win;
-		Anchor              *_ca;         /* original visible element     */
+		Anchor             *_ca = nullptr;    /* original visible element */
 
 		/**
 		 * Event handler interface
@@ -216,11 +226,10 @@ class Browser_sizer_event_handler : public Scout::Sizer_event_handler
 		/**
 		 * Constructor
 		 */
-		Browser_sizer_event_handler(Browser_window<PT> *browser_win):
-			Sizer_event_handler(browser_win)
-		{
-			_browser_win = browser_win;
-		}
+		Browser_sizer_event_handler(Browser_window<PT> *browser_win)
+		:
+			Sizer_event_handler(browser_win), _browser_win(browser_win)
+		{ }
 };
 
 

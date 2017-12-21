@@ -20,9 +20,8 @@
 /* core includes */
 #include <address_space.h>
 
-namespace Okl4 { extern "C" {
-#include <l4/types.h>
-} }
+/* base-internal includes */
+#include <base/internal/okl4.h>
 
 namespace Genode {
 
@@ -42,13 +41,20 @@ namespace Genode {
 
 			friend class Platform_thread;
 
+			/*
+			 * Noncopyable
+			 */
+			Platform_pd(Platform_pd const &);
+			Platform_pd &operator = (Platform_pd const &);
+
 			enum { PD_INVALID  = -1,
 			       PD_FIRST    = 0,
 			       PD_MAX      = (1 << Thread_id_bits::PD) - 1,
 			       THREAD_MAX  = (1 << Thread_id_bits::THREAD) - 1 };
 
-			unsigned         _pd_id;        /* plain pd number */
-			Platform_thread *_space_pager;  /* pager of the new pd */
+			unsigned _pd_id = PD_INVALID;
+
+			Platform_thread *_space_pager = nullptr;
 
 			/**
 			 * Manually construct L4 thread ID from its components
@@ -185,7 +191,7 @@ namespace Genode {
 			/**
 			 * Assign parent interface to protection domain
 			 */
-			void assign_parent(Native_capability parent) { }
+			void assign_parent(Native_capability) { }
 
 			Platform_thread* space_pager() const { return _space_pager; }
 

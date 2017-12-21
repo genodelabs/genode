@@ -30,14 +30,14 @@ namespace Genode {
 	inline addr_t round_page(addr_t addr)    { return trunc_page(addr + get_page_size() - 1); }
 
 
-	inline addr_t map_src_addr(addr_t core_local, addr_t phys) { return phys; }
+	inline addr_t map_src_addr(addr_t /* core_local */, addr_t phys) { return phys; }
 
 
 	inline size_t constrain_map_size_log2(size_t size_log2)
 	{
 		/* Nova::Mem_crd order has 5 bits available and is in 4K page units */
 		enum { MAX_MAP_LOG2 = (1U << 5) - 1 + 12 };
-		return size_log2 > MAX_MAP_LOG2 ? MAX_MAP_LOG2 : size_log2;
+		return size_log2 > MAX_MAP_LOG2 ? (size_t)MAX_MAP_LOG2 : size_log2;
 	}
 
 }

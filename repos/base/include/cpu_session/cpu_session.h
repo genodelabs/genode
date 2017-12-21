@@ -219,7 +219,7 @@ struct Genode::Cpu_session : Session
 	/**
 	 * Common base class of kernel-specific CPU interfaces
 	 */
-	struct Native_cpu { };
+	struct Native_cpu : Interface { };
 
 	/**
 	 * Return capability to kernel-specific CPU operations

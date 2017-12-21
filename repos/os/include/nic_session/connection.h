@@ -28,10 +28,10 @@ struct Nic::Connection : Genode::Connection<Session>, Session_client
 	 *
 	 * \noapi
 	 */
-	Capability<Nic::Session> _session(Genode::Parent &parent,
-	                                  char const *label,
-	                                  Genode::size_t tx_buf_size,
-	                                  Genode::size_t rx_buf_size)
+	Genode::Capability<Nic::Session> _session(Genode::Parent &parent,
+	                                          char const *label,
+	                                          Genode::size_t tx_buf_size,
+	                                          Genode::size_t rx_buf_size)
 	{
 		return session(parent,
 		               "ram_quota=%ld, cap_quota=%ld, tx_buf_size=%ld, rx_buf_size=%ld, label=\"%s\"",

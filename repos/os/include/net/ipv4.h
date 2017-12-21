@@ -154,12 +154,7 @@ class Net::Ipv4_packet
 		 */
 		class No_ip_packet : Genode::Exception {};
 
-
-		/*****************
-		 ** Constructor **
-		 *****************/
-
-		Ipv4_packet(Genode::size_t size) {
+		static void validate_size(Genode::size_t size) {
 			/* ip header needs to fit in */
 			if (size < sizeof(Ipv4_packet))
 				throw No_ip_packet();
@@ -208,7 +203,7 @@ class Net::Ipv4_packet
 		/**
 		 * Placement new.
 		 */
-		void * operator new(__SIZE_TYPE__ size, void* addr) { return addr; }
+		void * operator new(__SIZE_TYPE__, void* addr) { return addr; }
 
 
 		/*********

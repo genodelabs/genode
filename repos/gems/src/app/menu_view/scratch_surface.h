@@ -73,14 +73,12 @@ class Menu_view::Scratch_surface
 			Genode::memset(_base, 0, _num_bytes);
 		}
 
-		Surface<PT> pixel_surface() const
+		template <typename FN>
+		void apply(FN const &fn)
 		{
-			return Surface<PT>((PT *)_pixel_base(), _size);
-		}
-
-		Surface<Pixel_alpha8> alpha_surface() const
-		{
-			return Surface<Pixel_alpha8>((Pixel_alpha8 *)_alpha_base(), _size);
+			Surface<PT>           pixel((PT *)_pixel_base(), _size);
+			Surface<Pixel_alpha8> alpha((Pixel_alpha8 *)_alpha_base(), _size);
+			fn(pixel, alpha);
 		}
 
 		Texture<PT> texture() const

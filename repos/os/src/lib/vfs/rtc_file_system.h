@@ -76,8 +76,7 @@ class Vfs::Rtc_file_system : public Single_file_system
 
 				}
 
-				Write_result write(char const *src, file_size count,
-				                   file_size &out_count) override
+				Write_result write(char const *, file_size, file_size &) override
 				{
 					return WRITE_ERR_IO;
 				}

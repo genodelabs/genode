@@ -43,7 +43,7 @@ class Png_stream
 		/**
 		 * Constructor
 		 */
-		Png_stream(char *addr) { _addr = addr; }
+		Png_stream(char *addr) : _addr(addr) { }
 
 		/**
 		 * Read from png stream
@@ -64,16 +64,6 @@ static void user_read_data(png_structp png_ptr, png_bytep data, png_size_t len)
 	Png_stream *stream = (Png_stream *)png_get_io_ptr(png_ptr);
 
 	stream->read((char *)data, len);
-}
-
-
-/**
- * Dummy to make libl4png happy
- */
-extern "C" int l4libpng_fread(void *buf, int size, int nmemb, void *stream)
-{
-	printf("l4libpng_fread called - function not implemented\n");
-	return 0;
 }
 
 

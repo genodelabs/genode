@@ -460,7 +460,7 @@ class Hw::Page_table
 		 * On ARM we do not need to copy top-level kernel entries
 		 * because the virtual-memory kernel part is hold in a separate table
 		 */
-		explicit Page_table(Page_table &o) : Page_table() { }
+		explicit Page_table(Page_table &) : Page_table() { }
 
 		/**
 		 * Maximum virtual offset that can be translated by this table

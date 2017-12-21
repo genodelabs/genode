@@ -53,9 +53,14 @@ class Genode::Synced_interface
 
 				friend class Synced_interface;
 
+				Guard &operator = (Guard const &);
+
 			public:
 
 				~Guard() { _lock.unlock(); }
+
+				Guard(Guard const &other)
+				: _lock(other._lock), _interface(other._interface) { }
 
 				IF *operator -> () { return _interface; }
 		};

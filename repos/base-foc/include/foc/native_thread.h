@@ -34,7 +34,7 @@ struct Genode::Native_thread
 	Fiasco::l4_cap_idx_t kcap = 0;
 
 	/* receive window for capability selectors received at the server side */
-	Receive_window rcv_window;
+	Receive_window rcv_window { };
 
 	Native_thread() { }
 	explicit Native_thread(Fiasco::l4_cap_idx_t kcap) : kcap(kcap) { }

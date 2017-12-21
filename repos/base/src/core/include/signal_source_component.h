@@ -35,22 +35,29 @@ namespace Genode {
 
 
 class Genode::Signal_context_component : public Rpc_object<Signal_context>,
-                                         public Signal_queue::Element
+                                         private Signal_queue::Element
 {
 	private:
 
+		friend class Fifo<Signal_context_component>;
+
 		long                     _imprint;
-		int                      _cnt;
+		int                      _cnt = 0;
 		Signal_source_component *_source;
+
+		/*
+		 * Noncopyable
+		 */
+		Signal_context_component(Signal_context_component const &);
+		Signal_context_component &operator = (Signal_context_component const &);
 
 	public:
 
 		/**
 		 * Constructor
 		 */
-		Signal_context_component(long imprint,
-		                         Signal_source_component *source)
-		: _imprint(imprint), _cnt(0), _source(source) { }
+		Signal_context_component(long imprint, Signal_source_component *source)
+		: _imprint(imprint), _source(source) { }
 
 		/**
 		 * Destructor
@@ -67,9 +74,11 @@ class Genode::Signal_context_component : public Rpc_object<Signal_context>,
 		 */
 		void reset_signal_cnt() { _cnt = 0; }
 
-		long                          imprint()  { return _imprint; }
-		int                           cnt()      { return _cnt; }
-		Signal_source_component      *source()   { return _source; }
+		long                     imprint()  { return _imprint; }
+		int                      cnt()      { return _cnt; }
+		Signal_source_component *source()   { return _source; }
+
+		using Signal_queue::Element::enqueued;
 };
 
 
@@ -77,9 +86,15 @@ class Genode::Signal_source_component : public Signal_source_rpc_object
 {
 	private:
 
-		Signal_queue          _signal_queue;
-		Rpc_entrypoint       *_entrypoint;
-		Native_capability     _reply_cap;
+		Signal_queue       _signal_queue { };
+		Rpc_entrypoint    *_entrypoint;
+		Native_capability  _reply_cap { };
+
+		/*
+		 * Noncopyable
+		 */
+		Signal_source_component(Signal_source_component const &);
+		Signal_source_component &operator = (Signal_source_component const &);
 
 	public:
 

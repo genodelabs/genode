@@ -30,18 +30,24 @@ namespace Fiasco {
 namespace Genode {
 
 	class Platform_pd;
-	class Platform_thread
+	class Platform_thread : Interface
 	{
 		private:
+
+			/*
+			 * Noncopyable
+			 */
+			Platform_thread(Platform_thread const &);
+			Platform_thread &operator = (Platform_thread const &);
 
 			int                   _thread_id;      /* plain thread number */
 			Fiasco::l4_threadid_t _l4_thread_id;   /* L4 thread ID */
 			char                  _name[32];       /* thread name that will be
 			                                          registered at the kernel
 			                                          debugger */
-			Platform_pd          *_platform_pd;    /* protection domain thread
+			Platform_pd *_platform_pd = nullptr;   /* protection domain thread
 			                                          is bound to */
-			Pager_object         *_pager;
+			Pager_object *_pager;
 
 		public:
 
@@ -152,7 +158,7 @@ namespace Genode {
 			/**
 			 * Set CPU quota of the thread to 'quota'
 			 */
-			void quota(size_t const quota) { /* not supported*/ }
+			void quota(size_t) { /* not supported*/ }
 
 			/**
 			 * Return execution time consumed by the thread

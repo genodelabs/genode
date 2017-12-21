@@ -17,7 +17,9 @@
 #include <base/log.h>
 
 /* libc includes */
+#pragma GCC diagnostic ignored "-Weffc++"
 #include <pthread.h>
+#pragma GCC diagnostic pop
 #include <stdlib.h>
 
 

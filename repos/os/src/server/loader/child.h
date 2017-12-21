@@ -69,7 +69,7 @@ class Loader::Child : public Child_policy
 		      Service                   &local_cpu_service,
 		      Service                   &local_pd_service,
 		      Service                   &local_nitpicker_service,
-		      Signal_context_capability fault_sigh)
+		      Signal_context_capability /* fault_sigh */)
 		:
 			_env(env),
 			_alloc(alloc),
@@ -107,7 +107,7 @@ class Loader::Child : public Child_policy
 		}
 
 		Service &resolve_session_request(Service::Name const &name,
-		                                 Session_state::Args const &args) override
+		                                 Session_state::Args const &) override
 		{
 			if (name == "Nitpicker") return _local_nitpicker_service;
 			if (name == "ROM")       return _local_rom_service;

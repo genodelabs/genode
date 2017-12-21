@@ -52,7 +52,7 @@ struct Cli_monitor::Status_command : Command
 			constexpr static size_t num_columns() { return STATUS + 1; }
 
 			char const *name  = 0;
-			Child::Ram_status ram_status;
+			Child::Ram_status ram_status { };
 
 			static char const *label(Column column)
 			{

@@ -111,28 +111,23 @@ struct Nitpicker_buffer
 	/**
 	 * Return size of virtual framebuffer
 	 */
-	Area size() const
-	{
-		return Area(mode.width(), mode.height());
-	}
+	Area size() const { return Area(mode.width(), mode.height()); }
 
-	/**
-	 * Return back buffer as RGB888 painting surface
-	 */
-	Pixel_surface pixel_surface()
+	template <typename FN>
+	void apply_to_surface(FN const &fn)
 	{
-		return Pixel_surface(pixel_surface_ds.local_addr<Pixel_rgb888>(), size());
-	}
-
-	Alpha_surface alpha_surface()
-	{
-		return Alpha_surface(alpha_surface_ds.local_addr<Pixel_alpha8>(), size());
+		Pixel_surface pixel(pixel_surface_ds.local_addr<Pixel_rgb888>(), size());
+		Alpha_surface alpha(alpha_surface_ds.local_addr<Pixel_alpha8>(), size());
+		fn(pixel, alpha);
 	}
 
 	void reset_surface()
 	{
-		Genode::size_t const num_pixels = pixel_surface().size().count();
-		Genode::memset(alpha_surface().addr(), 0, num_pixels);
+		Pixel_surface pixel(pixel_surface_ds.local_addr<Pixel_rgb888>(), size());
+		Alpha_surface alpha(alpha_surface_ds.local_addr<Pixel_alpha8>(), size());
+
+		Genode::size_t const num_pixels = size().count();
+		Genode::memset(alpha.addr(), 0, num_pixels);
 
 		/*
 		 * Initialize color buffer with 50% gray
@@ -140,12 +135,11 @@ struct Nitpicker_buffer
 		 * We do not use black to limit the bleeding of black into antialiased
 		 * drawing operations applied onto an initially transparent background.
 		 */
-		Pixel_surface pixels = pixel_surface();
-		Pixel_rgb888 *dst    = pixels.addr();
+		Pixel_rgb888 *dst = pixel.addr();
 
 		Pixel_rgb888 const gray(127, 127, 127, 255);
 
-		for (unsigned n = pixels.size().count(); n; n--)
+		for (unsigned n = num_pixels; n; n--)
 			*dst++ = gray;
 	}
 

@@ -22,15 +22,7 @@
 
 /* base-internal includes */
 #include <base/internal/native_utcb.h>
-
-/* OKL4 includes */
-namespace Okl4 { extern "C" {
-#include <l4/thread.h>
-#include <l4/schedule.h>
-#include <l4/interrupt.h>
-#include <l4/security.h>
-#include <l4/ipc.h>
-} }
+#include <base/internal/okl4.h>
 
 using namespace Okl4;
 using namespace Genode;
@@ -177,5 +169,5 @@ void Irq_session_component::sigh(Genode::Signal_context_capability cap)
 Genode::Irq_session::Info Irq_session_component::info()
 {
 	/* no MSI support */
-	return { .type = Genode::Irq_session::Info::Type::INVALID };
+	return { .type = Info::Type::INVALID, .address = 0, .value = 0 };
 }

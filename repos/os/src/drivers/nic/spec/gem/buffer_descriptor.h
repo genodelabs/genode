@@ -58,12 +58,19 @@ class Buffer_descriptor : protected Attached_ram_dataspace, protected Mmio
 		}
 
 
-		char* const _current_buffer()
+		char * _current_buffer()
 		{
-			char* const buffer = &_buffer[MAX_PACKAGE_SIZE * _descriptor_index];
+			char * const buffer = &_buffer[MAX_PACKAGE_SIZE * _descriptor_index];
 			return buffer;
 		}
 
+	private:
+
+		/*
+		 * Noncopyable
+		 */
+		Buffer_descriptor(Buffer_descriptor const &);
+		Buffer_descriptor &operator = (Buffer_descriptor const &);
 
 	public:
 		/*

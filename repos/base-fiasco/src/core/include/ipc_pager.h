@@ -47,8 +47,8 @@ namespace Genode {
 			 * Constructor
 			 */
 			Mapping(addr_t dst_addr, addr_t src_addr,
-			        Cache_attribute cacheability, bool io_mem,
-			        unsigned l2size, bool rw, bool executable)
+			        Cache_attribute cacheability, bool,
+			        unsigned l2size, bool rw, bool)
 			:
 				_dst_addr(dst_addr),
 				_fpage(Fiasco::l4_fpage(src_addr, l2size, rw, false))
@@ -93,10 +93,10 @@ namespace Genode {
 	{
 		private:
 
-			Fiasco::l4_threadid_t _last;           /* origin of last fault message   */
-			addr_t                _pf_addr;        /* page-fault address             */
-			addr_t                _pf_ip;          /* instruction pointer of faulter */
-			Mapping               _reply_mapping;  /* page-fault answer              */
+			Fiasco::l4_threadid_t _last          { };    /* origin of last fault message   */
+			addr_t                _pf_addr       { 0 };  /* page-fault address             */
+			addr_t                _pf_ip         { 0 };  /* instruction pointer of faulter */
+			Mapping               _reply_mapping { };    /* page-fault answer              */
 
 		public:
 

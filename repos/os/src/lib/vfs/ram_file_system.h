@@ -52,9 +52,13 @@ namespace Vfs_ram {
 namespace Vfs { class Ram_file_system; }
 
 
-class Vfs_ram::Node : public Genode::Avl_node<Node>, public Genode::Lock
+class Vfs_ram::Node : private Genode::Avl_node<Node>, private Genode::Lock
 {
 	private:
+
+		friend class Genode::Avl_node<Node>;
+		friend class Genode::Avl_tree<Node>;
+		friend class Directory;
 
 		char _name[MAX_NAME_LEN];
 		int  _open_handles = 0;
@@ -69,6 +73,9 @@ class Vfs_ram::Node : public Genode::Avl_node<Node>, public Genode::Lock
 		}
 
 	public:
+
+		using Lock::lock;
+		using Lock::unlock;
 
 		unsigned inode;
 
@@ -96,28 +103,29 @@ class Vfs_ram::Node : public Genode::Avl_node<Node>, public Genode::Lock
 			return true;
 		}
 
-		virtual size_t read(char *dst, size_t len, file_size seek_offset)
+		virtual size_t read(char * /* dst */, size_t /* len */, file_size /* seek_offset */)
 		{
 			Genode::error("Vfs_ram::Node::read() called");
 			return 0;
 		}
 
-		virtual Vfs::File_io_service::Read_result complete_read(char *dst,
-		                                                        file_size count,
-		                                                        file_size seek_offset,
-		                                                        file_size &out_count)
+		virtual Vfs::File_io_service::Read_result complete_read(char *      /* dst */,
+		                                                        file_size   /* count */,
+		                                                        file_size   /* seek_offset */,
+		                                                        file_size & /* out_count */)
 		{
 			Genode::error("Vfs_ram::Node::complete_read() called");
 			return Vfs::File_io_service::READ_ERR_INVALID;
 		}
 
-		virtual size_t write(char const *src, size_t len, file_size seek_offset)
+		virtual size_t write(char const * /* src */, size_t /* len */,
+		                     file_size /* seek_offset */)
 		{
 			Genode::error("Vfs_ram::Node::write() called");
 			return 0;
 		}
 
-		virtual void truncate(file_size size)
+		virtual void truncate(file_size)
 		{
 			Genode::error("Vfs_ram::Node::truncate() called");
 		}
@@ -163,11 +171,11 @@ class Vfs_ram::Node : public Genode::Avl_node<Node>, public Genode::Lock
 
 		struct Guard
 		{
-			Node *node;
+			Node &node;
 
-			Guard(Node *guard_node) : node(guard_node) { node->lock(); }
+			Guard(Node *guard_node) : node(*guard_node) { node.lock(); }
 
-			~Guard() { node->unlock(); }
+			~Guard() { node.unlock(); }
 		};
 };
 
@@ -300,7 +308,7 @@ class Vfs_ram::Symlink : public Vfs_ram::Node
 
 		Vfs::File_io_service::Read_result complete_read(char *dst,
 		                                                file_size count,
-		                                                file_size seek_offset,
+		                                                file_size /* seek_offset */,
 			                                            file_size &out_count) override
 		{
 			out_count = get(dst, count);
@@ -323,7 +331,7 @@ class Vfs_ram::Directory : public Vfs_ram::Node
 {
 	private:
 
-		Avl_tree<Node>  _entries;
+		Avl_tree<Node>  _entries { };
 		file_size       _count = 0;
 
 	public:
@@ -800,7 +808,7 @@ class Vfs::Ram_file_system : public Vfs::File_system
 			return ds_cap;
 		}
 
-		void release(char const *path, Dataspace_capability ds_cap) override {
+		void release(char const *, Dataspace_capability ds_cap) override {
 			_env.ram().free(
 				static_cap_cast<Genode::Ram_dataspace>(ds_cap)); }
 

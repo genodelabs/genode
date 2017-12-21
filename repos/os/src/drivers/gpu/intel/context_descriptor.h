@@ -65,7 +65,7 @@ class Igd::Context_descriptor : Genode::Register<64>
 
 	private:
 
-		uint64_t _value;
+		uint64_t _value = 0;
 
 	public:
 

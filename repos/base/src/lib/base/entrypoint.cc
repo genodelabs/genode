@@ -264,7 +264,7 @@ void Genode::Entrypoint::dissolve(Signal_dispatcher_base &dispatcher)
 
 namespace {
 
-	struct Constructor
+	struct Constructor : Interface
 	{
 		GENODE_RPC(Rpc_construct, void, construct);
 		GENODE_RPC_INTERFACE(Rpc_construct);

@@ -25,21 +25,13 @@
 
 /* base-internal includes */
 #include <base/internal/capability_space_tpl.h>
-
-/* OKL4 includes */
-namespace Okl4 { extern "C" {
-#include <l4/utcb.h>
-#include <l4/thread.h>
-#include <l4/config.h>
-#include <l4/schedule.h>
-#include <l4/kdebug.h>
-} }
+#include <base/internal/okl4.h>
 
 using namespace Genode;
 using namespace Okl4;
 
 
-int Platform_thread::start(void *ip, void *sp, unsigned int cpu_no)
+int Platform_thread::start(void *ip, void *sp, unsigned)
 {
 	if (!_platform_pd) {
 		warning("thread ", _thread_id, " is not bound to a PD");

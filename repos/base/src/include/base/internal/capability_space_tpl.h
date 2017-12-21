@@ -111,9 +111,9 @@ class Genode::Capability_space_tpl
 		};
 
 		Tree_managed_data           _caps_data[NUM_CAPS];
-		Bit_allocator<NUM_CAPS>     _alloc;
-		Avl_tree<Tree_managed_data> _tree;
-		Lock                mutable _lock;
+		Bit_allocator<NUM_CAPS>     _alloc { };
+		Avl_tree<Tree_managed_data> _tree  { };
+		Lock                mutable _lock  { };
 
 		/**
 		 * Calculate index into _caps_data for capability data object

@@ -43,7 +43,7 @@ class Genode::Cpu : public Hw::X86_64_cpu
 {
 	protected:
 
-		Fpu _fpu;
+		Fpu _fpu { };
 
 	public:
 
@@ -61,7 +61,7 @@ class Genode::Cpu : public Hw::X86_64_cpu
 			uint64_t reserved2;
 
 			static void init();
-		}  __attribute__((packed)) tss;
+		}  __attribute__((packed)) tss { };
 
 
 		/**
@@ -86,7 +86,7 @@ class Genode::Cpu : public Hw::X86_64_cpu
 			uint64_t tss_desc[2];
 
 			void init(addr_t tss_addr);
-		} __attribute__((packed)) gdt;
+		} __attribute__((packed)) gdt { };
 
 
 		/**
@@ -137,6 +137,5 @@ class Genode::Cpu : public Hw::X86_64_cpu
 
 		static void mmu_fault(Context & regs, Kernel::Thread_fault & fault);
 };
-
 
 #endif /* _CORE__SPEC__X86_64__CPU_H_ */

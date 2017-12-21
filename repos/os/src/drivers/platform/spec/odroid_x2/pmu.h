@@ -26,8 +26,8 @@ using Genode::warning;
 using namespace Regulator;
 
 
-class Pmu : public Regulator::Driver,
-            public Genode::Attached_mmio
+class Pmu : public  Regulator::Driver,
+            private Genode::Attached_mmio
 {
 	private:
 
@@ -127,7 +127,7 @@ class Pmu : public Regulator::Driver,
 		 ** Regulator driver interface **
 		 ********************************/
 
-		void level(Regulator_id id, unsigned long level)
+		void level(Regulator_id id, unsigned long /* level */)
 		{
 			switch (id) {
 			default:

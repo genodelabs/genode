@@ -46,8 +46,12 @@ using Library_name = Vfs::Global_file_system_factory::Library_name;
 
 
 struct Vfs::Global_file_system_factory::Entry_base : Vfs::File_system_factory,
-                                                     Genode::List<Entry_base>::Element
+                                                     private Genode::List<Entry_base>::Element
 {
+	friend class Genode::List<Entry_base>;
+
+	using Genode::List<Entry_base>::Element::next;
+
 	Fs_type_name name;
 
 	Entry_base(Fs_type_name const &name) : name(name) { }

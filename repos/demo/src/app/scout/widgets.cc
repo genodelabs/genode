@@ -82,7 +82,6 @@ Icon<PT, W, H>::Icon()
 	memset(_pixel,  0, sizeof(_pixel));
 	memset(_alpha,  0, sizeof(_alpha));
 	memset(_shadow, 0, sizeof(_shadow));
-	_icon_alpha = 255;
 }
 
 

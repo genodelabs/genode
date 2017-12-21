@@ -32,9 +32,9 @@ namespace Net {
 		using Ipv4_address_tree = Genode::Avl_tree<Ipv4_address_node>;
 		using Mac_address_list  = Genode::List<Mac_address_node>;
 
-		Mac_address_tree  mac_tree;
-		Mac_address_list  mac_list;
-		Ipv4_address_tree ip_tree;
+		Mac_address_tree  mac_tree { };
+		Mac_address_list  mac_list { };
+		Ipv4_address_tree ip_tree  { };
 	};
 }
 

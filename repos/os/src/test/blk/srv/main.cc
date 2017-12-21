@@ -22,6 +22,12 @@ class Driver : public Block::Driver
 {
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Driver(Driver const &);
+		Driver &operator = (Driver const &);
+
 		enum { MAX_REQUESTS = 5 };
 
 		typedef Genode::Ring_buffer<Block::Packet_descriptor, MAX_REQUESTS,
@@ -29,7 +35,7 @@ class Driver : public Block::Driver
 
 		Genode::size_t                    _number;
 		Genode::size_t                    _size;
-		Req_buffer                        _packets;
+		Req_buffer                        _packets { };
 		Genode::Ram_dataspace_capability  _blk_ds;
 		unsigned char                    *_blk_buf;
 
@@ -100,28 +106,39 @@ struct Main
 	Genode::Env &env;
 	Genode::Heap heap { env.ram(), env.rm() };
 
-	struct Factory : Block::Driver_factory
+	class Factory : public Block::Driver_factory
 	{
-		::Driver *driver;
+		private:
 
-		Factory(Genode::Env &env, Genode::Heap &heap)
-		{
-			Genode::size_t blk_nr = 1024;
-			Genode::size_t blk_sz = 512;
+			/*
+			 * Noncopyable
+			 */
+			Factory(Factory const &);
+			Factory &operator = (Factory const &);
 
-			try {
-				Genode::Attached_rom_dataspace config { env, "config" };
-				config.xml().attribute("sectors").value(&blk_nr);
-				config.xml().attribute("block_size").value(&blk_sz);
+		public:
+
+			::Driver *driver = nullptr;
+
+			Factory(Genode::Env &env, Genode::Heap &heap)
+			{
+				Genode::size_t blk_nr = 1024;
+				Genode::size_t blk_sz = 512;
+
+				try {
+					Genode::Attached_rom_dataspace config { env, "config" };
+					config.xml().attribute("sectors").value(&blk_nr);
+					config.xml().attribute("block_size").value(&blk_sz);
+				}
+				catch (...) { }
+
+				driver = new (&heap) Driver(env, blk_nr, blk_sz);
 			}
-			catch (...) { }
 
-			driver = new (&heap) Driver(env, blk_nr, blk_sz);
-		}
+			Block::Driver *create() override { return driver; }
 
-		Block::Driver *create() { return driver; }
+			void destroy(Block::Driver *) override { }
 
-		void destroy(Block::Driver *driver) { }
 	} factory { env, heap };
 
 	Block::Root                    root { env.ep(), heap, env.rm(), factory, true };

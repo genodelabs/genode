@@ -57,7 +57,7 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 {
 	private:
 
-		Node_space _node_space;
+		Node_space _node_space { };
 
 		Genode::Ram_quota_guard           _ram_guard;
 		Genode::Cap_quota_guard           _cap_guard;
@@ -80,7 +80,7 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 		 * XXX Currently, we have only one packet in backlog, which must finish
 		 *     processing before new packets can be processed.
 		 */
-		Packet_descriptor _backlog_packet;
+		Packet_descriptor _backlog_packet { };
 
 		/****************************
 		 ** Handle to node mapping **
@@ -355,7 +355,6 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 		 */
 
 		Session_component(Genode::Env         &env,
-		                  char          const *label,
 		                  Genode::Ram_quota    ram_quota,
 		                  Genode::Cap_quota    cap_quota,
 		                  size_t               tx_buf_size,
@@ -619,8 +618,8 @@ struct Vfs_server::Io_response_handler : Vfs::Io_response_handler
 
 		_in_progress = true;
 
-		if (Vfs_server::Node *node = static_cast<Vfs_server::Node *>(context))
-			node->handle_io_response();
+		if (context)
+			Node::node_by_context(*context).handle_io_response();
 		else
 			_handle_general_io = true;
 
@@ -636,8 +635,7 @@ struct Vfs_server::Io_response_handler : Vfs::Io_response_handler
 };
 
 
-class Vfs_server::Root :
-	public Genode::Root_component<Session_component>
+class Vfs_server::Root : public Genode::Root_component<Session_component>
 {
 	private:
 
@@ -658,7 +656,7 @@ class Vfs_server::Root :
 			}
 		}
 
-		Session_registry _session_registry;
+		Session_registry _session_registry { };
 
 		Io_response_handler _io_response_handler { _session_registry };
 
@@ -758,7 +756,7 @@ class Vfs_server::Root :
 			}
 
 			Session_component *session = new (md_alloc())
-				Registered_session(_session_registry, _env, label.string(),
+				Registered_session(_session_registry, _env,
 				                   Genode::Ram_quota{ram_quota},
 				                   Genode::Cap_quota{cap_quota},
 				                   tx_buf_size, _vfs,

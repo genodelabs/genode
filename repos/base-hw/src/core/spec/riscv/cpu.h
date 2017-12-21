@@ -49,7 +49,7 @@ class Genode::Cpu : public Hw::Riscv_cpu
 
 		struct Mmu_context
 		{
-			Sptbr::access_t sptbr;
+			Sptbr::access_t sptbr = 0;
 
 			Mmu_context(addr_t page_table_base);
 			~Mmu_context();
@@ -75,7 +75,7 @@ class Genode::Cpu : public Hw::Riscv_cpu
 			asm volatile ("sfence.vm\n");
 		}
 
-		static void invalidate_tlb_by_pid(unsigned const pid) { sfence(); }
+		static void invalidate_tlb_by_pid(unsigned const /* pid */) { sfence(); }
 
 		void switch_to(Mmu_context & context);
 		static void mmu_fault(Context & c, Kernel::Thread_fault & f);

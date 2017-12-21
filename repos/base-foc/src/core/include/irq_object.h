@@ -27,6 +27,12 @@ class Genode::Irq_object
 {
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Irq_object(Irq_object const &);
+		Irq_object &operator = (Irq_object const &);
+
 		Cap_index             *_cap;
 		Irq_session::Trigger   _trigger;  /* interrupt trigger */
 		Irq_session::Polarity  _polarity; /* interrupt polarity */
@@ -35,7 +41,7 @@ class Genode::Irq_object
 		Genode::addr_t         _msi_addr;
 		Genode::addr_t         _msi_data;
 
-		Signal_context_capability _sig_cap;
+		Signal_context_capability _sig_cap { };
 
 		Fiasco::l4_cap_idx_t _capability() const { return _cap->kcap(); }
 

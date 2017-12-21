@@ -90,7 +90,7 @@ class Vfs::Rom_file_system : public Single_file_system
 					return READ_OK;
 				}
 
-				Write_result write(char const *src, file_size count,
+				Write_result write(char const *, file_size,
 				                   file_size &out_count) override
 				{
 					out_count = 0;
@@ -132,7 +132,7 @@ class Vfs::Rom_file_system : public Single_file_system
 			return OPEN_OK;
 		}
 
-		Dataspace_capability dataspace(char const *path) override
+		Dataspace_capability dataspace(char const *) override
 		{
 			return _rom.cap();
 		}

@@ -22,7 +22,7 @@ using namespace Genode;
 struct Atapi_driver : Port_driver
 {
 	unsigned                 sense_tries = 0;
-	Block::Packet_descriptor pending;
+	Block::Packet_descriptor pending { };
 
 	Atapi_driver(Genode::Ram_session &ram,
 	             Ahci_root           &root,

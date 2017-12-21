@@ -74,7 +74,7 @@ void Cpu_job::_yield()
 }
 
 
-void Cpu_job::_interrupt(unsigned const cpu_id)
+void Cpu_job::_interrupt(unsigned const /* cpu_id */)
 {
 	/* determine handling for specific interrupt */
 	unsigned irq_id;
@@ -149,8 +149,8 @@ time_t Cpu::timeout_max_us() const { return _timer.timeout_max_us(); }
 
 void Cpu::schedule(Job * const job)
 {
-	if (_id == executing_id()) { _scheduler.ready(job); }
-	else if (_scheduler.ready_check(job)) { trigger_ip_interrupt(); }
+	if (_id == executing_id()) { _scheduler.ready(&job->share()); }
+	else if (_scheduler.ready_check(&job->share())) { trigger_ip_interrupt(); }
 }
 
 

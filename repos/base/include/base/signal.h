@@ -134,7 +134,7 @@ class Genode::Signal_transmitter
 {
 	private:
 
-		Signal_context_capability _context;  /* destination */
+		Signal_context_capability _context { };  /* destination */
 
 	public:
 
@@ -180,7 +180,7 @@ class Genode::Signal_transmitter
  * 'wait_and_dispatch_one_io_signal', which defers signals corresponding to
  * application-level contexts and dispatches only I/O-level signals.
  */
-class Genode::Signal_context
+class Genode::Signal_context : Interface, Noncopyable
 {
 	public:
 
@@ -197,12 +197,12 @@ class Genode::Signal_context
 		/**
 		 * List element in process-global registry
 		 */
-		List_element<Signal_context> _registry_le;
+		List_element<Signal_context> _registry_le { this };
 
 		/**
 		 * List element in deferred application signal list
 		 */
-		List_element<Signal_context> _deferred_le;
+		List_element<Signal_context> _deferred_le { this };
 
 		/**
 		 * Receiver to which the context is associated with
@@ -210,14 +210,14 @@ class Genode::Signal_context
 		 * This member is initialized by the receiver when associating
 		 * the context with the receiver via the 'cap' method.
 		 */
-		Signal_receiver *_receiver;
+		Signal_receiver *_receiver { nullptr };
 
-		Lock         _lock;          /* protect '_curr_signal'         */
-		Signal::Data _curr_signal;   /* most-currently received signal */
-		bool         _pending;       /* current signal is valid        */
-		unsigned int _ref_cnt;       /* number of references to this context */
-		Lock         _destroy_lock;  /* prevent destruction while the
-		                                context is in use */
+		Lock         _lock          { };   /* protect '_curr_signal' */
+		Signal::Data _curr_signal   { };   /* most-currently received signal */
+		bool         _pending { false };   /* current signal is valid */
+		unsigned int _ref_cnt     { 0 };   /* number of references to context */
+		Lock         _destroy_lock  { };   /* prevent destruction while the
+		                                      context is in use */
 
 		/**
 		 * Capability assigned to this context after being assocated with
@@ -225,11 +225,17 @@ class Genode::Signal_context
 		 * capability in the 'Signal_context' for the mere reason to
 		 * properly destruct the context (see '_unsynchronized_dissolve').
 		 */
-		Signal_context_capability _cap;
+		Signal_context_capability _cap { };
 
 		friend class Signal;
 		friend class Signal_receiver;
 		friend class Signal_context_registry;
+
+		/*
+		 * Noncopyable
+		 */
+		Signal_context &operator = (Signal_context const &);
+		Signal_context(Signal_context const &);
 
 	protected:
 
@@ -237,12 +243,7 @@ class Genode::Signal_context
 
 	public:
 
-		/**
-		 * Constructor
-		 */
-		Signal_context()
-		: _registry_le(this), _deferred_le(this), _receiver(0), _pending(0),
-		  _ref_cnt(0) { }
+		Signal_context() { }
 
 		/**
 		 * Destructor
@@ -326,19 +327,19 @@ class Genode::Signal_receiver : Noncopyable
 		 * Semaphore used to indicate that signal(s) are ready to be picked
 		 * up. This is needed for platforms other than 'base-hw' only.
 		 */
-		Semaphore _signal_available;
+		Semaphore _signal_available { };
 
 		/**
 		 * Provides the kernel-object name via the 'dst' method. This is
 		 * needed for 'base-hw' only.
 		 */
-		Capability<Signal_source> _cap;
+		Capability<Signal_source> _cap { };
 
 		/**
 		 * List of associated contexts
 		 */
-		Lock         _contexts_lock;
-		Context_ring _contexts;
+		Lock         _contexts_lock { };
+		Context_ring _contexts      { };
 
 		/**
 		 * Helper to dissolve given context
@@ -470,11 +471,11 @@ struct Genode::Signal_dispatcher_base : Signal_context
  * \param T  type of signal-handling class
  */
 template <typename T>
-class Genode::Signal_dispatcher : public Signal_dispatcher_base,
-                                  public Signal_context_capability
+class Genode::Signal_dispatcher : public  Signal_dispatcher_base
 {
 	private:
 
+		Signal_context_capability _cap;
 		T &obj;
 		void (T::*member) (unsigned);
 		Signal_receiver &sig_rec;
@@ -492,7 +493,7 @@ class Genode::Signal_dispatcher : public Signal_dispatcher_base,
 		Signal_dispatcher(Signal_receiver &sig_rec,
 		                  T &obj, void (T::*member)(unsigned))
 		:
-			Signal_context_capability(sig_rec.manage(this)),
+			_cap(sig_rec.manage(this)),
 			obj(obj), member(member),
 			sig_rec(sig_rec)
 		{ }
@@ -500,6 +501,8 @@ class Genode::Signal_dispatcher : public Signal_dispatcher_base,
 		~Signal_dispatcher() { sig_rec.dissolve(this); }
 
 		void dispatch(unsigned num) override { (obj.*member)(num); }
+
+		operator Capability<Signal_context>() const { return _cap; }
 };
 
 
@@ -528,30 +531,43 @@ struct Genode::Io_signal_dispatcher : Signal_dispatcher<T>
  * \param EP type of entrypoint handling signal RPC
  */
 template <typename T, typename EP = Genode::Entrypoint>
-struct Genode::Signal_handler : Genode::Signal_dispatcher_base,
-                                Genode::Signal_context_capability
+class Genode::Signal_handler : public Signal_dispatcher_base
 {
-	EP &ep;
-	T  &obj;
-	void (T::*member) ();
+	private:
 
-	/**
-	 * Constructor
-	 *
-	 * \param ep          entrypoint managing this signal RPC
-	 * \param obj,member  object and method to call when
-	 *                    the signal occurs
-	 */
-	Signal_handler(EP &ep, T &obj, void (T::*member)())
-	: Signal_context_capability(ep.manage(*this)),
-	  ep(ep), obj(obj), member(member) { }
+		Signal_context_capability _cap;
+		EP &_ep;
+		T  &_obj;
+		void (T::*_member) ();
 
-	~Signal_handler() { ep.dissolve(*this); }
+		/*
+		 * Noncopyable
+		 */
+		Signal_handler(Signal_handler const &);
+		Signal_handler &operator = (Signal_handler const &);
 
-	/**
-	 * Interface of Signal_dispatcher_base
-	 */
-	void dispatch(unsigned num) override { (obj.*member)(); }
+	public:
+
+		/**
+		 * Constructor
+		 *
+		 * \param ep          entrypoint managing this signal RPC
+		 * \param obj,member  object and method to call when
+		 *                    the signal occurs
+		 */
+		Signal_handler(EP &ep, T &obj, void (T::*member)())
+		:
+			_cap(ep.manage(*this)), _ep(ep), _obj(obj), _member(member)
+		{ }
+
+		~Signal_handler() { _ep.dissolve(*this); }
+
+		/**
+		 * Interface of Signal_dispatcher_base
+		 */
+		void dispatch(unsigned) override { (_obj.*_member)(); }
+
+		operator Capability<Signal_context>() const { return _cap; }
 };
 
 

@@ -59,7 +59,7 @@ namespace Input {
 
 			Dataspace_capability _ev_ds_cap;
 
-			Session_component *_create_session(const char *args) {
+			Session_component *_create_session(const char *) {
 				return new (md_alloc()) Session_component(_ev_ds_cap); }
 
 		public:

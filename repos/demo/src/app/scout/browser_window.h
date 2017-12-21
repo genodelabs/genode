@@ -73,8 +73,8 @@ class Scout::Browser_window : public Scrollbar_listener,
 		/**
 		 * Widgets
 		 */
-		Titlebar<PT>               _titlebar;
-		Sky_texture<PT, 512, 512>  _texture { _config.background_detail };
+		Titlebar<PT>               _titlebar  { };
+		Sky_texture<PT, 512, 512>  _texture   { _config.background_detail };
 		PT                         _icon_fg        [_NUM_ICONS][_IH][_IW];
 		unsigned char              _icon_fg_alpha  [_NUM_ICONS][_IH][_IW];
 		Refracted_icon<PT, short>  _icon           [_NUM_ICONS];
@@ -82,13 +82,13 @@ class Scout::Browser_window : public Scrollbar_listener,
 		PT                         _panel_fg       [_PANEL_H][_PANEL_W];
 		unsigned char              _panel_fg_alpha [_PANEL_H][_PANEL_W];
 		short                      _panel_distmap  [_PANEL_H*2][_PANEL_W*2];
-		Refracted_icon<PT, short>  _panel;
+		Refracted_icon<PT, short>  _panel     { };
 		PT                         _panel_backbuf  [_PANEL_H*2][_PANEL_W*2];
-		Horizontal_shadow<PT, 160> _shadow;
-		Scrollbar<PT>              _scrollbar;
+		Horizontal_shadow<PT, 160> _shadow    { };
+		Scrollbar<PT>              _scrollbar { };
 		Fade_icon<PT, _IW, _IH>    _glow_icon[_NUM_ICONS];
-		Docview                    _docview;
-		Fade_icon<PT, 32, 32>      _sizer;
+		Docview                    _docview   { };
+		Fade_icon<PT, 32, 32>      _sizer     { };
 
 	protected:
 

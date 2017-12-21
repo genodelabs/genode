@@ -49,10 +49,10 @@ class Scout::Event
 			WHEEL     = 6,   /* mouse wheel         */
 		};
 
-		ev_type type;
-		Point   mouse_position;
-		Point   wheel_movement;
-		int     code;       /* key code */
+		ev_type type           { UNDEFINED };
+		Point   mouse_position { };
+		Point   wheel_movement { };
+		int     code           { 0 };       /* key code */
 
 		/**
 		 * Assign new event information to event structure

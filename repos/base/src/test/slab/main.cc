@@ -59,6 +59,14 @@ struct Array_of_slab_elements
 
 		alloc.free(elem, _elem_array_size());
 	}
+
+	private:
+
+		/*
+		 * Noncopyable
+		 */
+		Array_of_slab_elements(Array_of_slab_elements const &);
+		Array_of_slab_elements &operator = (Array_of_slab_elements const &);
 };
 
 

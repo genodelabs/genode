@@ -15,28 +15,23 @@
 #define _INCLUDE__SIGNAL_SOURCE__CLIENT_H_
 
 #include <base/rpc_client.h>
+#include <base/internal/capability_space_sel4.h>
+#include <base/log.h>
 #include <signal_source/sel4_signal_source.h>
 
-#include <base/internal/capability_space_sel4.h>
+namespace Genode { class Signal_source_client; }
 
-#include <base/log.h>
-namespace Genode {
-	class Signal_source_client;
-}
 
 class Genode::Signal_source_client : public Rpc_client<SeL4_signal_source>
 {
 	private:
 
-		Native_capability _notify;
+		Native_capability _notify { };
 
 		/**
 		 * Request notification object from signal-source server
 		 */
-		void _init_notify()
-		{
-			_notify = call<Rpc_request_notify_obj>();
-		}
+		void _init_notify() { _notify = call<Rpc_request_notify_obj>(); }
 
 	public:
 

@@ -57,12 +57,20 @@ struct Adma2::Desc : Register<64>
  */
 class Adma2::Table
 {
-	static size_t constexpr _max_desc = 1024;
-	static size_t constexpr _ds_size  = _max_desc * sizeof(Desc::access_t);
+	private:
 
-	Attached_ram_dataspace _ds;
-	Desc::access_t * const _base_virt;
-	addr_t const           _base_phys;
+		static size_t constexpr _max_desc = 1024;
+		static size_t constexpr _ds_size  = _max_desc * sizeof(Desc::access_t);
+
+		Attached_ram_dataspace _ds;
+		Desc::access_t * const _base_virt;
+		addr_t const           _base_phys;
+
+		/*
+		 * Noncopyable
+		 */
+		Table(Table const &);
+		Table &operator = (Table const &);
 
 	public:
 

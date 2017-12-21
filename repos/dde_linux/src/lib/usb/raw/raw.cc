@@ -544,7 +544,7 @@ class Usb::Worker : public Genode::Weak_object<Usb::Worker>
 };
 
 
-struct Interface : List<Interface>::Element
+struct Interface : List<::Interface>::Element
 {
 	usb_interface *iface;
 
@@ -555,7 +555,7 @@ struct Interface : List<Interface>::Element
 /**
  * Asynchronous USB-interface release
  */
-class Usb::Cleaner : List<Interface>
+class Usb::Cleaner : List<::Interface>
 {
 	private:
 
@@ -566,7 +566,7 @@ class Usb::Cleaner : List<Interface>
 			while (true) {
 				cleaner->_task.block_and_schedule();
 
-				while (Interface *interface = cleaner->first()) {
+				while (::Interface *interface = cleaner->first()) {
 					usb_driver_release_interface(&raw_intf_driver, interface->iface);
 					cleaner->remove(interface);
 					destroy(Lx::Malloc::mem(), interface);
@@ -581,7 +581,7 @@ class Usb::Cleaner : List<Interface>
 
 		void schedule_release(usb_interface *iface)
 		{
-			Interface *interface = new(Lx::Malloc::mem()) Interface(iface);
+			::Interface *interface = new(Lx::Malloc::mem()) ::Interface(iface);
 			insert(interface);
 			_task.unblock();
 			Lx::scheduler().schedule();

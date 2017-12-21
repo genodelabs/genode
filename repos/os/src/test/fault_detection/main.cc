@@ -25,8 +25,6 @@ using namespace Genode;
 template <typename TEST>
 class Iterative_test
 {
-	public:
-
 	private:
 
 		Env                      &_env;
@@ -37,7 +35,7 @@ class Iterative_test
 		Signal_handler<Iterative_test> _fault_handler {
 			_env.ep(), *this, &Iterative_test::_handle_fault };
 
-		TEST _test;;
+		TEST _test { };
 
 		void _handle_fault()
 		{
@@ -122,7 +120,7 @@ class Test_child : public Genode::Child_policy
 		}
 
 		Service &resolve_session_request(Service::Name const &service,
-		                                 Session_state::Args const &args) override
+		                                 Session_state::Args const &) override
 		{
 			if (service == Cpu_session::service_name()) return _cpu_service;
 			if (service ==  Pd_session::service_name()) return  _pd_service;
@@ -227,9 +225,9 @@ struct Main
 {
 	Env &_env;
 
-	Constructible<Iterative_test<Faulting_child_test> >              _test_1;
-	Constructible<Iterative_test<Faulting_loader_child_test> >       _test_2;
-	Constructible<Iterative_test<Faulting_loader_grand_child_test> > _test_3;
+	Constructible<Iterative_test<Faulting_child_test> >              _test_1 { };
+	Constructible<Iterative_test<Faulting_loader_child_test> >       _test_2 { };
+	Constructible<Iterative_test<Faulting_loader_grand_child_test> > _test_3 { };
 
 	Signal_handler<Main> _test_1_finished_handler {
 		_env.ep(), *this, &Main::_handle_test_1_finished };

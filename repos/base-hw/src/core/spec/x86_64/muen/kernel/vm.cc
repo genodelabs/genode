@@ -66,4 +66,4 @@ void Kernel::Vm::proceed(Cpu & cpu)
 }
 
 
-void Kernel::Vm::inject_irq(unsigned irq) { }
+void Kernel::Vm::inject_irq(unsigned) { }

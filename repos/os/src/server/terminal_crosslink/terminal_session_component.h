@@ -41,9 +41,9 @@ namespace Terminal_crosslink {
 
 			typedef Genode::Ring_buffer<unsigned char, BUFFER_SIZE+1> Local_buffer;
 
-			Local_buffer                _buffer;
+			Local_buffer                _buffer { };
 			size_t                      _cross_num_bytes_avail;
-			Signal_context_capability   _read_avail_sigh;
+			Signal_context_capability   _read_avail_sigh { };
 
 		public:
 

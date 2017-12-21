@@ -41,6 +41,14 @@ class Genode::Heap : public Allocator
 
 		class Dataspace : public List<Dataspace>::Element
 		{
+			private:
+
+				/*
+				 * Noncopyable
+				 */
+				Dataspace(Dataspace const &);
+				Dataspace &operator = (Dataspace const &);
+
 			public:
 
 				Ram_dataspace_capability cap;
@@ -55,28 +63,38 @@ class Genode::Heap : public Allocator
 		 * This structure exists only to make sure that the dataspaces are
 		 * destroyed after the AVL allocator.
 		 */
-		struct Dataspace_pool : public List<Dataspace>
+		class Dataspace_pool : public List<Dataspace>
 		{
-			Ram_allocator *ram_alloc; /* backing store */
-			Region_map    *region_map;
+			private:
 
-			Dataspace_pool(Ram_allocator *ram, Region_map *rm)
-			: ram_alloc(ram), region_map(rm) { }
+				/*
+				 * Noncopyable
+				 */
+				Dataspace_pool(Dataspace_pool const &);
+				Dataspace_pool &operator = (Dataspace_pool const &);
 
-			~Dataspace_pool();
+			public:
 
-			void remove_and_free(Dataspace &);
+				Ram_allocator *ram_alloc; /* backing store */
+				Region_map    *region_map;
 
-			void reassign_resources(Ram_allocator *ram, Region_map *rm) {
-				ram_alloc = ram, region_map = rm; }
+				Dataspace_pool(Ram_allocator *ram, Region_map *rm)
+				: ram_alloc(ram), region_map(rm) { }
+
+				~Dataspace_pool();
+
+				void remove_and_free(Dataspace &);
+
+				void reassign_resources(Ram_allocator *ram, Region_map *rm) {
+					ram_alloc = ram, region_map = rm; }
 		};
 
-		Lock                           _lock;
+		Lock                           _lock { };
 		Reconstructible<Allocator_avl> _alloc;        /* local allocator    */
 		Dataspace_pool                 _ds_pool;      /* list of dataspaces */
-		size_t                         _quota_limit;
-		size_t                         _quota_used;
-		size_t                         _chunk_size;
+		size_t                         _quota_limit { 0 };
+		size_t                         _quota_used  { 0 };
+		size_t                         _chunk_size  { 0 };
 
 		/**
 		 * Allocate a new dataspace of the specified size
@@ -165,11 +183,11 @@ class Genode::Sliced_heap : public Allocator
 			{ }
 		};
 
-		Ram_allocator  &_ram_alloc;    /* RAM allocator for backing store */
-		Region_map     &_region_map;   /* region map of the address space */
-		size_t          _consumed;     /* number of allocated bytes       */
-		List<Block>     _blocks;       /* list of allocated blocks        */
-		Lock            _lock;         /* serialize allocations           */
+		Ram_allocator  &_ram_alloc;     /* RAM allocator for backing store */
+		Region_map     &_region_map;    /* region map of the address space */
+		size_t          _consumed = 0;  /* number of allocated bytes       */
+		List<Block>     _blocks { };    /* list of allocated blocks        */
+		Lock            _lock   { };    /* serialize allocations           */
 
 	public:
 

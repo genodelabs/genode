@@ -84,7 +84,7 @@ class Linux_session_component : public Nic::Session_component
 
 		Genode::Attached_rom_dataspace _config_rom;
 
-		Nic::Mac_address _mac_addr;
+		Nic::Mac_address _mac_addr { };
 		int              _tap_fd;
 		Rx_signal_thread _rx_thread;
 

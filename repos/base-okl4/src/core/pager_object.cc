@@ -16,12 +16,7 @@
 
 /* base-internal includes */
 #include <base/internal/capability_space_tpl.h>
-
-/* OKL4 includes */
-namespace Okl4 { extern "C" {
-#include <l4/message.h>
-#include <l4/ipc.h>
-} }
+#include <base/internal/okl4.h>
 
 using namespace Genode;
 

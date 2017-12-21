@@ -36,7 +36,7 @@ class Rom_session_component : public Rpc_object<Rom_session>
 		Attached_ram_dataspace     _fg              { _env.ram(), _env.rm(), 0 };
 		Attached_ram_dataspace     _bg              { _env.ram(), _env.rm(), 0 };
 		bool                       _bg_pending_data { false };
-		Signal_context_capability  _sigh;
+		Signal_context_capability  _sigh            { };
 
 	public:
 

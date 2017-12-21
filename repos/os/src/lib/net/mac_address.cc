@@ -21,7 +21,7 @@ using namespace Genode;
 
 struct Scanner_policy_number
 {
-	static bool identifier_char(char c, unsigned  i ) {
+	static bool identifier_char(char c, unsigned) {
 		return is_digit(c, true) && c !=':'; }
 };
 

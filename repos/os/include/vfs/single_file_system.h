@@ -58,6 +58,12 @@ class Vfs::Single_file_system : public File_system
 				Node_type   _node_type;
 				char const *_filename;
 
+				/*
+				 * Noncopyable
+				 */
+				Single_vfs_dir_handle(Single_vfs_dir_handle const &);
+				Single_vfs_dir_handle &operator = (Single_vfs_dir_handle const &);
+
 			public:
 
 				Single_vfs_dir_handle(Directory_service &ds,
@@ -100,8 +106,7 @@ class Vfs::Single_file_system : public File_system
 					return READ_OK;
 				}
 
-				Write_result write(char const *src, file_size count,
-				                   file_size &out_count) override
+				Write_result write(char const *, file_size, file_size &) override
 				{
 					return WRITE_ERR_INVALID;
 				}
@@ -137,12 +142,12 @@ class Vfs::Single_file_system : public File_system
 		 ** Directory-service interface **
 		 *********************************/
 
-		Dataspace_capability dataspace(char const *path) override
+		Dataspace_capability dataspace(char const *) override
 		{
 			return Dataspace_capability();
 		}
 
-		void release(char const *path, Dataspace_capability ds_cap) override { }
+		void release(char const *, Dataspace_capability) override { }
 
 		Stat_result stat(char const *path, Stat &out) override
 		{
@@ -262,7 +267,7 @@ class Vfs::Single_file_system : public File_system
 			return false;
 		}
 
-		Ftruncate_result ftruncate(Vfs_handle *vfs_handle, file_size) override
+		Ftruncate_result ftruncate(Vfs_handle *, file_size) override
 		{
 			return FTRUNCATE_ERR_NO_PERM;
 		}

@@ -60,8 +60,7 @@ class Rom_blk : public Block::Driver
 		          Block::Packet_descriptor &packet)
 		{
 			/* sanity check block number */
-			if ((block_number + block_count > _file_sz / _blk_sz)
-				|| block_number < 0) {
+			if (block_number + block_count > _file_sz / _blk_sz) {
 				warning("requested blocks ", block_number, "-",
 				        block_number + block_count, " out of range!");
 				return;

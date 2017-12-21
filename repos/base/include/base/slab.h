@@ -83,6 +83,12 @@ class Genode::Slab : public Allocator
 		 */
 		void _free(void *addr);
 
+		/*
+		 * Noncopyable
+		 */
+		Slab(Slab const &);
+		Slab &operator = (Slab const &);
+
 	public:
 
 		/**

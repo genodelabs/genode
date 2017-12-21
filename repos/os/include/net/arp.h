@@ -150,12 +150,7 @@ class Net::Arp_packet
 		 */
 		class No_arp_packet : Genode::Exception {};
 
-
-		/*****************
-		 ** Constructor **
-		 *****************/
-
-		Arp_packet(Genode::size_t size) {
+		static void validate_size(Genode::size_t size) {
 			/* arp packet needs to fit in */
 			if (size < sizeof(Arp_packet))
 				throw No_arp_packet();
@@ -210,7 +205,7 @@ class Net::Arp_packet
 		/**
 		 * Placement new
 		 */
-		void * operator new(__SIZE_TYPE__ size, void* addr) { return addr; }
+		void * operator new(__SIZE_TYPE__, void* addr) { return addr; }
 
 
 		/*********

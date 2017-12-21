@@ -35,7 +35,7 @@ struct Genode::Local_connection_base : Noncopyable
 
 	protected:
 
-		Constructible<Session_state> _session_state;
+		Constructible<Session_state> _session_state { };
 
 	private:
 
@@ -114,7 +114,7 @@ class Genode::Local_connection : Local_connection_base
 
 		typedef typename CONNECTION::Session_type SESSION;
 
-		Constructible <typename SESSION::Client> _client;
+		Constructible <typename SESSION::Client> _client { };
 
 	public:
 

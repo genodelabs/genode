@@ -65,7 +65,7 @@ static uint8_t map_thread_portals(Pager_object &pager,
  ** Platform thread **
  *********************/
 
-void Platform_thread::affinity(Affinity::Location location)
+void Platform_thread::affinity(Affinity::Location)
 {
 	error("dynamic affinity change not supported on NOVA");
 }
@@ -337,7 +337,7 @@ void Platform_thread::thread_type(Nova_native_cpu::Thread_type thread_type,
 
 
 Platform_thread::Platform_thread(size_t, const char *name, unsigned prio,
-                                 Affinity::Location affinity, int thread_id)
+                                 Affinity::Location affinity, int)
 :
 	_pd(0), _pager(0), _id_base(cap_map()->insert(2)),
 	_sel_exc_base(Native_thread::INVALID_INDEX), _location(affinity),

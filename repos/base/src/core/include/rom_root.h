@@ -27,6 +27,12 @@ namespace Genode {
 			Rom_fs         *_rom_fs;  /* rom file system */
 			Rpc_entrypoint *_ds_ep;   /* entry point for managing rom dataspaces */
 
+			/*
+			 * Noncopyable
+			 */
+			Rom_root(Rom_root const &);
+			Rom_root &operator = (Rom_root const &);
+
 		protected:
 
 			Rom_session_component *_create_session(const char *args) {

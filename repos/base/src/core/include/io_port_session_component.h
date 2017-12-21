@@ -31,8 +31,8 @@ namespace Genode {
 		private:
 
 			Range_allocator *_io_port_alloc;
-			unsigned short   _base;
-			unsigned short   _size;
+			unsigned short   _base = 0;
+			unsigned short   _size = 0;
 
 			/**
 			 * Check if access exceeds range
@@ -40,6 +40,11 @@ namespace Genode {
 			bool _in_bounds(unsigned short address, unsigned width) {
 				return (address >= _base) && (address + width <= _base + _size); }
 
+			/*
+			 * Noncopyable
+			 */
+			Io_port_session_component(Io_port_session_component const &);
+			Io_port_session_component &operator = (Io_port_session_component const &);
 
 		public:
 

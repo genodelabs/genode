@@ -24,6 +24,14 @@ namespace Genode { class Signalled_time_source; }
 
 class Genode::Signalled_time_source : public Time_source
 {
+	private:
+
+		/*
+		 * Noncopyable
+		 */
+		Signalled_time_source(Signalled_time_source const &);
+		Signalled_time_source &operator = (Signalled_time_source const &);
+
 	protected:
 
 		using Signal_handler = Genode::Signal_handler<Signalled_time_source>;

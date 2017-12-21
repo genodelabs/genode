@@ -34,12 +34,12 @@ struct X86_hba : Platform::Hba
 
 	Genode::Env &env;
 
-	Platform::Connection                   pci { env };
-	Platform::Device_capability            pci_device_cap;
-	Constructible<Platform::Device_client> pci_device;
-	Constructible<Irq_session_client>      irq;
-	addr_t                                 res_base;
-	size_t                                 res_size;
+	Platform::Connection                   pci            { env };
+	Platform::Device_capability            pci_device_cap { };
+	Constructible<Platform::Device_client> pci_device     { };
+	Constructible<Irq_session_client>      irq            { };
+	addr_t                                 res_base       { 0 };
+	size_t                                 res_size       { 0 };
 
 	X86_hba(Genode::Env &env) : env(env)
 	{

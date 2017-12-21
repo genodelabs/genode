@@ -33,7 +33,7 @@
 using namespace Genode;
 
 
-Rom_session_component::Rom_session_component(Rom_fs         *rom_fs,
+Rom_session_component::Rom_session_component(Rom_fs         *,
                                              Rpc_entrypoint *ds_ep,
                                              const char     *args)
 : _ds(args), _ds_ep(ds_ep)

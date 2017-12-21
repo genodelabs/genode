@@ -14,10 +14,8 @@
 #ifndef _INCLUDE__BASE__INTERNAL__RPC_DESTINATION_H_
 #define _INCLUDE__BASE__INTERNAL__RPC_DESTINATION_H_
 
-/* OKL4 includes */
-namespace Okl4 {
-#include <l4/types.h>
-}
+/* base-internal includes */
+#include <base/internal/okl4.h>
 
 namespace Genode {
 

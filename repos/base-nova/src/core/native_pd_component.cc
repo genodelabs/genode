@@ -38,10 +38,9 @@ void Native_pd_component::imprint_rpc_cap(Native_capability cap, unsigned long b
 }
 
 
-Native_pd_component::Native_pd_component(Pd_session_component &pd_session,
-                                         char const *args)
+Native_pd_component::Native_pd_component(Pd_session_component &pd, char const *)
 :
-	_pd_session(pd_session)
+	_pd_session(pd)
 {
 	_pd_session._ep.manage(this);
 }

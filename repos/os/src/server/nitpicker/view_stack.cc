@@ -306,7 +306,7 @@ View_component *View_stack::find_view(Point p)
 }
 
 
-void View_stack::remove_view(View_component const &view, bool redraw)
+void View_stack::remove_view(View_component const &view, bool /* redraw */)
 {
 	view.for_each_const_child([&] (View_component const &child) { remove_view(child); });
 

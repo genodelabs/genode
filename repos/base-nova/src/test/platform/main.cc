@@ -421,7 +421,7 @@ class Pager : private Genode::Thread {
 
 	private:
 
-		Native_capability _call_to_map;
+		Native_capability _call_to_map { };
 		Ram_dataspace_capability _ds;
 		static addr_t _ds_mem;
 
@@ -487,7 +487,7 @@ class Cause_mapping : public Genode::Thread {
 
 	private:
 
-		Native_capability  _call_to_map;
+		Native_capability  _call_to_map { };
 		Rm_connection      _rm;
 		Region_map_client  _sub_rm;
 		addr_t             _mem_nd;

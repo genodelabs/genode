@@ -51,6 +51,6 @@ long Test::cap_void_manual(Genode::Native_capability dst,
 	utcb->crd_rcv = orig_crd;
 
 	local_reply = utcb->msg()[1];
-	return (res == Nova::NOVA_OK && utcb->msg_words() == 3 && utcb->msg()[2])
-	       ? utcb->msg()[0] : Genode::Rpc_exception_code::INVALID_OBJECT;
+	return (res == (Genode::uint8_t)Nova::NOVA_OK && utcb->msg_words() == 3 && utcb->msg()[2])
+	       ? utcb->msg()[0] : (long)Genode::Rpc_exception_code::INVALID_OBJECT;
 }

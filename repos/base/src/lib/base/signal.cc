@@ -37,7 +37,7 @@ class Signal_handler_thread : Thread, Lock
 		 * thread because on some platforms (e.g., Fiasco.OC), the calling
 		 * thread context is used for implementing the signal-source protocol.
 		 */
-		Constructible<Signal_source_client> _signal_source;
+		Constructible<Signal_source_client> _signal_source { };
 
 		void entry()
 		{
@@ -68,7 +68,7 @@ class Signal_handler_thread : Thread, Lock
 
 		~Signal_handler_thread()
 		{
-			env_deprecated()->pd_session()->free_signal_source(*_signal_source);
+			env_deprecated()->pd_session()->free_signal_source(_signal_source->rpc_cap());
 		}
 };
 
@@ -135,8 +135,8 @@ namespace Genode {
 			 * scalability problem, we might introduce a more sophisticated
 			 * associative data structure.
 			 */
-			Lock mutable                        _lock;
-			List<List_element<Signal_context> > _list;
+			Lock mutable                        _lock { };
+			List<List_element<Signal_context> > _list { };
 
 		public:
 

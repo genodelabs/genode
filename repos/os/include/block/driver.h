@@ -31,7 +31,7 @@ namespace Block {
 };
 
 
-struct Block::Driver_session_base
+struct Block::Driver_session_base : Genode::Interface
 {
 	/**
 	 * Acknowledges a packet processed by the driver to the client
@@ -79,9 +79,15 @@ class Block::Driver_session : public Driver_session_base,
 /**
  * Interface to be implemented by the device-specific driver code
  */
-class Block::Driver
+class Block::Driver : Genode::Interface
 {
 	private:
+
+		/*
+		 * Noncopyable
+		 */
+		Driver(Driver const &);
+		Driver &operator = (Driver const &);
 
 		Genode::Ram_session &_ram_session;
 
@@ -133,10 +139,10 @@ class Block::Driver
 		 *
 		 * Note: should be overridden by DMA non-capable devices
 		 */
-		virtual void read(sector_t           block_number,
-		                  Genode::size_t     block_count,
-		                  char *             buffer,
-		                  Packet_descriptor &packet) {
+		virtual void read(sector_t            /* block_number */,
+		                  Genode::size_t      /* block_count */,
+		                  char *              /* buffer */,
+		                  Packet_descriptor & /* packet */) {
 			throw Io_error(); }
 
 		/**
@@ -151,10 +157,10 @@ class Block::Driver
 		 *
 		 * Note: should be overridden by DMA non-capable, non-ROM devices
 		 */
-		virtual void write(sector_t           block_number,
-		                   Genode::size_t     block_count,
-		                   const char *       buffer,
-		                   Packet_descriptor &packet) {
+		virtual void write(sector_t            /* block_number */,
+		                   Genode::size_t      /* block_count */,
+		                   const char *        /* buffer */,
+		                   Packet_descriptor & /* packet */) {
 			throw Io_error(); }
 
 		/**
@@ -169,10 +175,10 @@ class Block::Driver
 		 *
 		 * Note: should be overridden by DMA capable devices
 		 */
-		virtual void read_dma(sector_t           block_number,
-		                      Genode::size_t     block_count,
-		                      Genode::addr_t     phys,
-		                      Packet_descriptor &packet) {
+		virtual void read_dma(sector_t            /* block_number */,
+		                      Genode::size_t      /* block_count */,
+		                      Genode::addr_t      /* phys */,
+		                      Packet_descriptor & /* packet */) {
 			throw Io_error(); }
 
 		/**
@@ -187,10 +193,10 @@ class Block::Driver
 		 *
 		 * Note: should be overridden by DMA capable, non-ROM devices
 		 */
-		virtual void write_dma(sector_t           block_number,
-		                       Genode::size_t     block_count,
-		                       Genode::addr_t     phys,
-		                       Packet_descriptor &packet) {
+		virtual void write_dma(sector_t            /* block_number */,
+		                       Genode::size_t      /* block_count */,
+		                       Genode::addr_t      /* phys */,
+		                       Packet_descriptor & /* packet */) {
 			throw Io_error(); }
 
 		/**
@@ -256,7 +262,7 @@ class Block::Driver
 /**
  * Interface for constructing the driver object
  */
-struct Block::Driver_factory
+struct Block::Driver_factory : Genode::Interface
 {
 	/**
 	 * Construct new driver

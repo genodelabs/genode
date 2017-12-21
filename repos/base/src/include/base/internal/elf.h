@@ -30,7 +30,7 @@ class Genode::Elf_binary
 		/**
 		 * Default constructor creates invalid object
 		 */
-		Elf_binary() : _valid(false) { }
+		Elf_binary() { }
 
 		/**
 		 * Constructor
@@ -75,24 +75,24 @@ class Genode::Elf_binary
 	private:
 
 		/* validity indicator indicates if the loaded ELF is valid and supported */
-		bool _valid;
+		bool _valid { false };
 
 		/* dynamically linked */
-		bool _dynamic;
+		bool _dynamic { false };
 
 		/* dynamic linker name matches 'genode' */
-		bool _interp;
+		bool _interp { false };
 
 		/* ELF start pointer in memory */
-		addr_t _start;
+		addr_t _start { 0 };
 
 		/* ELF entry point */
-		addr_t _entry;
+		addr_t _entry { 0 };
 
 		/* program segments */
-		addr_t   _ph_table;
-		size_t   _phentsize;
-		unsigned _phnum;
+		addr_t   _ph_table  { 0 };
+		size_t   _phentsize { 0 };
+		unsigned _phnum     { 0 };
 
 
 		/************
@@ -123,7 +123,7 @@ class Genode::Elf_segment
 		/**
 		 * Standard constructor creates invalid object
 		 */
-		Elf_segment() : _valid(false) { }
+		Elf_segment() { }
 
 		Elf_segment(const Elf_binary *elf, void *start, size_t file_offset,
 		            size_t file_size, size_t mem_size, Elf_binary::Flags flags)
@@ -133,12 +133,12 @@ class Genode::Elf_segment
 			_valid = elf ? true : false;
 		}
 
-		const Elf_binary *        elf() { return _elf; }
-		void *                  start() { return (void *)_start; }
-		size_t            file_offset() { return _file_offset; }
-		size_t              file_size() { return _file_size; }
-		size_t               mem_size() { return _mem_size; }
-		Elf_binary::Flags       flags() { return _flags; }
+		Elf_binary const *  elf() { return _elf; }
+		void            * start() { return (void *)_start; }
+		size_t      file_offset() { return _file_offset; }
+		size_t        file_size() { return _file_size; }
+		size_t         mem_size() { return _mem_size; }
+		Elf_binary::Flags flags() { return _flags; }
 
 		/**
 		 * Check validity
@@ -147,13 +147,13 @@ class Genode::Elf_segment
 
 	private:
 
-		const Elf_binary *_elf;
-		bool              _valid;       /* validity indicator */
-		unsigned char    *_start;
-		size_t            _file_offset;
-		size_t            _file_size;
-		size_t            _mem_size;
-		Elf_binary::Flags _flags;
+		Elf_binary const *_elf         { nullptr };
+		bool              _valid       { false };
+		unsigned char    *_start       { nullptr };
+		size_t            _file_offset { 0 };
+		size_t            _file_size   { 0 };
+		size_t            _mem_size    { 0 };
+		Elf_binary::Flags _flags       { };
 };
 
 #endif /* _INCLUDE__BASE__ELF_H_ */

@@ -277,12 +277,12 @@ void Menu_view::Main::_handle_frame_timer()
 		_root_widget.size(size);
 		_root_widget.position(Point(0, 0));
 
-		Surface<Pixel_rgb888> pixel_surface = _buffer->pixel_surface();
-		Surface<Pixel_alpha8> alpha_surface = _buffer->alpha_surface();
-
 		// XXX restrict redraw to dirty regions
 		//     don't perform a full dialog update
-		_root_widget.draw(pixel_surface, alpha_surface, Point(0, 0));
+		_buffer->apply_to_surface([&] (Surface<Pixel_rgb888> &pixel,
+		                               Surface<Pixel_alpha8> &alpha) {
+			_root_widget.draw(pixel, alpha, Point(0, 0));
+		});
 
 		_buffer->flush_surface();
 		_nitpicker.framebuffer()->refresh(0, 0, _buffer->size().w(), _buffer->size().h());

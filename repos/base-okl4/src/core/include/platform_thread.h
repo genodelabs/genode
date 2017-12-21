@@ -28,6 +28,12 @@ namespace Genode {
 	{
 		private:
 
+			/*
+			 * Noncopyable
+			 */
+			Platform_thread(Platform_thread const &);
+			Platform_thread &operator = (Platform_thread const &);
+
 			int                 _thread_id;      /* plain thread number */
 			Okl4::L4_ThreadId_t _l4_thread_id;   /* L4 thread ID */
 			char                _name[32];       /* thread name that will be

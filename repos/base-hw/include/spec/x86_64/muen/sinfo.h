@@ -92,7 +92,7 @@ class Genode::Sinfo
 		 *
 		 * The function returns NULL if the subject name cannot be retrieved.
 		 */
-		const char * const get_subject_name(void);
+		const char * get_subject_name(void);
 
 		/*
 		 * Return information for a channel given by name.
@@ -180,8 +180,8 @@ class Genode::Sinfo
 
 	private:
 
-		subject_info_type * sinfo;
-		scheduling_info_type * sched_info;
+		subject_info_type * sinfo = nullptr;
+		scheduling_info_type * sched_info = nullptr;
 		char subject_name[MAX_NAME_LENGTH + 1];
 		bool subject_name_set = false;
 

@@ -60,7 +60,7 @@ class Test::Input_from_filter
 {
 	public:
 
-		struct Event_handler
+		struct Event_handler : Interface
 		{
 			virtual void handle_event_from_filter(Input::Event const &) = 0;
 		};
@@ -270,7 +270,7 @@ struct Test::Main : Input_from_filter::Event_handler
 	{
 		unsigned const depth = node.attribute_value("depth", 0UL);
 
-		Reporter::Xml_generator xml(_input_filter_config_reporter, [&] () {
+		Reporter::Xml_generator xml(reporter, [&] () {
 			xml.node("input",  [&] () { xml.attribute("label", "usb"); });
 			xml.node("output", [&] () { _gen_chargen_rec(xml, depth); });
 		});

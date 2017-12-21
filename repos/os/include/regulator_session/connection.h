@@ -28,9 +28,9 @@ struct Regulator::Connection : Genode::Connection<Session>, Session_client
 	 *
 	 * \noapi
 	 */
-	Capability<Regulator::Session> _session(Genode::Parent &parent,
-	                                        char const *label,
-	                                        Regulator_id regulator)
+	Genode::Capability<Regulator::Session> _session(Genode::Parent &,
+	                                                char const *label,
+	                                                Regulator_id regulator)
 	{
 		return session("ram_quota=8K, cap_quota=%ld, regulator=\"%s\", label=\"%s\"",
 		               CAP_QUOTA, regulator_name_by_id(regulator), label);

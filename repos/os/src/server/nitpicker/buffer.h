@@ -67,7 +67,7 @@ namespace Nitpicker { struct Buffer_provider; }
  * Used by 'Framebuffer::Session_component',
  * implemented by 'Nitpicker::Session_component'
  */
-struct Nitpicker::Buffer_provider
+struct Nitpicker::Buffer_provider : Interface
 {
 	virtual Buffer *realloc_buffer(Framebuffer::Mode mode, bool use_alpha) = 0;
 };

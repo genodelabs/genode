@@ -42,10 +42,8 @@ class Stack_area_region_map : public Genode::Region_map
 		/**
 		 * Attach backing store to stack area
 		 */
-		Local_addr attach(Genode::Dataspace_capability ds_cap,
-		                  Genode::size_t size, Genode::off_t offset,
-		                  bool use_local_addr, Local_addr local_addr,
-		                  bool executable)
+		Local_addr attach(Genode::Dataspace_capability, Genode::size_t size,
+		                  Genode::off_t, bool, Local_addr local_addr, bool)
 		{
 			using namespace Genode;
 
@@ -80,7 +78,7 @@ class Stack_area_region_map : public Genode::Region_map
 
 struct Stack_area_ram_allocator : Genode::Ram_allocator
 {
-	Genode::Ram_dataspace_capability alloc(Genode::size_t size,
+	Genode::Ram_dataspace_capability alloc(Genode::size_t,
 	                                       Genode::Cache_attribute) override {
 		return Genode::Ram_dataspace_capability(); }
 

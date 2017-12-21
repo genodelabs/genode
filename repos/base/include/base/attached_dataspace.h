@@ -44,6 +44,12 @@ class Genode::Attached_dataspace : Noncopyable
 			throw Region_map::Invalid_dataspace();
 		}
 
+		/*
+		 * Noncopyable
+		 */
+		Attached_dataspace(Attached_dataspace const &);
+		Attached_dataspace &operator = (Attached_dataspace const &);
+
 	public:
 
 		/**

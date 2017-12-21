@@ -43,7 +43,7 @@ class Genode::Mapping
 	private:
 
 		addr_t             _dst_addr;
-		Fiasco::l4_fpage_t _fpage;
+		Fiasco::l4_fpage_t _fpage { };
 		Cache_attribute    _cacheability;
 		bool               _iomem;
 
@@ -96,14 +96,14 @@ class Genode::Ipc_pager : public Native_capability
 
 	private:
 
-		Native_thread         _last;           /* origin of last fault     */
-		addr_t                _pf_addr;        /* page-fault address       */
-		addr_t                _pf_ip;          /* ip of faulter            */
-		Mapping               _reply_mapping;  /* page-fault answer        */
-		unsigned long         _badge;          /* badge of faulting thread */
-		Fiasco::l4_msgtag_t   _tag;            /* receive message tag      */
-		Fiasco::l4_exc_regs_t _regs;           /* exception registers      */
-		Msg_type              _type;
+		Native_thread         _last    { };        /* origin of last fault     */
+		addr_t                _pf_addr { 0 };      /* page-fault address       */
+		addr_t                _pf_ip   { 0 };      /* ip of faulter            */
+		Mapping               _reply_mapping { };  /* page-fault answer        */
+		unsigned long         _badge;              /* badge of faulting thread */
+		Fiasco::l4_msgtag_t   _tag  { };           /* receive message tag      */
+		Fiasco::l4_exc_regs_t _regs { };           /* exception registers      */
+		Msg_type              _type { PAGEFAULT };
 
 		void _parse_msg_type(void);
 		void _parse_exception(void);

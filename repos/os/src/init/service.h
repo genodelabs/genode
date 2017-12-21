@@ -26,7 +26,7 @@ namespace Init {
 }
 
 
-class Init::Abandonable
+class Init::Abandonable : Interface
 {
 	private:
 
@@ -65,13 +65,13 @@ class Init::Routed_service : public Async_service, public Abandonable
 
 		typedef Child_policy::Name Child_name;
 
-		struct Ram_accessor
+		struct Ram_accessor : Interface
 		{
 			virtual Ram_session           &ram()           = 0;
 			virtual Ram_session_capability ram_cap() const = 0;
 		};
 
-		struct Pd_accessor
+		struct Pd_accessor : Interface
 		{
 			virtual Pd_session           &pd()           = 0;
 			virtual Pd_session_capability pd_cap() const = 0;

@@ -8,12 +8,11 @@ extern "C" {
 
 using namespace Genode;
 
-static void user_read_data(png_structp png_ptr, png_bytep data, png_size_t len)
+static void user_read_data(png_structp, png_bytep, png_size_t)
 {
-//	read((char *)data, len);
 }
 
-int main(int argc, char **argv)
+int main(int, char **)
 {
 	png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, 0, 0, 0);
 	if (!png_ptr) return 1;

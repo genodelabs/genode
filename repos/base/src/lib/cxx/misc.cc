@@ -216,7 +216,7 @@ extern "C" int strcmp(const char *s1, const char *s2)
 /*
  * Needed by ARM EABI (gcc-4.4 Codesourcery release1039)
  */
-extern "C" int sprintf(char *str, const char *format, ...)
+extern "C" int sprintf(char *, const char *, ...)
 {
 	Genode::warning("sprintf - not implemented");
 	return 0;

@@ -62,7 +62,7 @@ struct Text_painter
 			/**
 			 * Calculate height of string when printed with the font
 			 */
-			int str_h(const char *str, size_t len = ~0UL) const { return img_h; }
+			int str_h(const char *, size_t = ~0UL) const { return img_h; }
 	};
 
 

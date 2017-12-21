@@ -20,11 +20,8 @@
 /* Genode includes */
 #include <base/thread.h>
 
-/* OKL4 includes */
-namespace Okl4 { extern "C" {
-#include <l4/schedule.h>
-#include <l4/ipc.h>
-} }
+/* base-internal includes */
+#include <base/internal/okl4.h>
 
 
 /**

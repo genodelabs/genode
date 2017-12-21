@@ -20,12 +20,8 @@
 /* core includes */
 #include <util.h>
 
-/* OKL4 includes */
-namespace Okl4 { extern "C" {
-#include <l4/space.h>
-#include <l4/map.h>
-#include <l4/ipc.h>
-} }
+/* base-internal includes */
+#include <base/internal/okl4.h>
 
 namespace Genode {
 

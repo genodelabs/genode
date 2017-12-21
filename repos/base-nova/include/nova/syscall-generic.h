@@ -229,7 +229,7 @@ namespace Nova {
 	{
 		protected:
 
-			mword_t _value;
+			mword_t _value { 0 };
 
 			/**
 			 * Assign bitfield to descriptor
@@ -250,6 +250,7 @@ namespace Nova {
 		public:
 
 			mword_t value() const { return _value; }
+
 	} __attribute__((packed));
 
 

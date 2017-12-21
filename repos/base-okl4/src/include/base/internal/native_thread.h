@@ -17,10 +17,8 @@
 /* Genode includes */
 #include <base/stdint.h>
 
-/* OKL4 includes */
-namespace Okl4 { extern "C" {
-#include <l4/types.h>
-} }
+/* base-internal includes */
+#include <base/internal/okl4.h>
 
 namespace Genode {
 

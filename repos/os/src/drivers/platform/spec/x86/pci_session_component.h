@@ -53,6 +53,7 @@ namespace Platform {
 class Platform::Ram_dataspace : public Genode::List<Ram_dataspace>::Element {
 
 	private:
+
 		Ram_capability const _cap;
 
 	public:
@@ -87,11 +88,13 @@ class Platform::Rmrr : public Genode::List<Platform::Rmrr>::Element
 
 	private:
 
-		Genode::uint64_t               const _start, _end;
-		Genode::Io_mem_dataspace_capability  _cap;
-		Genode::List<Bdf>                    _bdf_list;
+		Genode::uint64_t const _start, _end;
 
-		Genode::Constructible<Genode::Io_mem_connection> _io_mem;
+		Genode::Io_mem_dataspace_capability _cap { };
+
+		Genode::List<Bdf> _bdf_list { };
+
+		Genode::Constructible<Genode::Io_mem_connection> _io_mem { };
 
 	public:
 
@@ -134,7 +137,7 @@ class Platform::Pci_buses
 {
 	private:
 
-		Genode::Bit_array<Device_config::MAX_BUSES> _valid;
+		Genode::Bit_array<Device_config::MAX_BUSES> _valid { };
 
 		void scan_bus(Config_access &config_access, Genode::Allocator &heap,
 		              unsigned char bus = 0);
@@ -211,7 +214,7 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 		Genode::Heap                       _md_alloc;
 		Genode::Session_label       const  _label;
 		Genode::Session_policy      const  _policy { _label, _config.xml() };
-		Genode::List<Device_component>     _device_list;
+		Genode::List<Device_component>     _device_list { };
 		Platform::Pci_buses               &_pci_bus;
 		Genode::Heap                      &_global_heap;
 		bool                               _no_device_pd = false;
@@ -219,7 +222,7 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 		/**
 		 * Registry of RAM dataspaces allocated by the session
 		 */
-		Genode::List<Platform::Ram_dataspace> _ram_caps;
+		Genode::List<Platform::Ram_dataspace> _ram_caps { };
 
 		void _insert(Ram_capability cap) {
 			_ram_caps.insert(new (_md_alloc) Platform::Ram_dataspace(cap)); }
@@ -838,7 +841,7 @@ class Platform::Root : public Genode::Root_component<Session_component>
 					enum { UNDEFINED = 0, BYTE = 1, WORD = 2, DWORD = 3, QWORD = 4};
 				};
 			};
-		} fadt;
+		} fadt { };
 
 		Genode::Env                    &_env;
 		Genode::Attached_rom_dataspace &_config;

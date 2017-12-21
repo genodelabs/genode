@@ -52,7 +52,7 @@ struct Rom_to_file::Main
 
 	File_system::Connection _fs { _env, _alloc, "", "/", true, TX_BUF_SIZE };
 
-	Constructible<Attached_rom_dataspace> _rom_ds;
+	Constructible<Attached_rom_dataspace> _rom_ds { };
 
 	typedef Genode::String<100> Rom_name;
 
@@ -61,7 +61,7 @@ struct Rom_to_file::Main
 	 *
 	 * Solely used to detect configuration changes.
 	 */
-	Rom_name _rom_name;
+	Rom_name _rom_name { };
 
 	/**
 	 * Signal handler that is invoked when the configuration or the ROM module

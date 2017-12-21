@@ -46,7 +46,7 @@ struct Genode::Native_thread
 	 */
 	Meta_data *meta_data = nullptr;
 
-	Socket_pair socket_pair;
+	Socket_pair socket_pair { };
 
 	Native_thread() { }
 };

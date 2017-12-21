@@ -107,10 +107,14 @@ namespace Audio_out
  * it is also used by the mixer we defined it here.
  */
 struct Audio_out::Session_elem : Audio_out::Session_rpc_object,
-                                 Genode::List<Audio_out::Session_elem>::Element
+                                 private Genode::List<Audio_out::Session_elem>::Element
 {
+	friend class Genode::List<Audio_out::Session_elem>;
+
+	using Genode::List<Session_elem>::Element::next;
+
 	Label           label;
-	Channel::Number number;
+	Channel::Number number { Channel::INVALID };
 	float           volume { 0.f };
 	bool            muted  { true };
 
@@ -129,6 +133,12 @@ struct Audio_out::Session_elem : Audio_out::Session_rpc_object,
 class Audio_out::Mixer
 {
 	private:
+
+		/*
+		 * Noncopyable
+		 */
+		Mixer(Mixer const &);
+		Mixer &operator = (Mixer const &);
 
 		Genode::Env &env;
 
@@ -253,7 +263,7 @@ class Audio_out::Mixer
 		bool _check_active()
 		{
 			bool active = false;
-			_for_each_channel([&] (Channel::Number ch, Session_channel *sc) {
+			_for_each_channel([&] (Channel::Number, Session_channel *sc) {
 				sc->for_each_session([&] (Session_elem const &session) {
 					active |= session.active();
 				});

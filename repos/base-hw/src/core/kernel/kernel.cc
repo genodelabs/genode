@@ -28,7 +28,7 @@ extern "C" void kernel()
 void Kernel::Cpu::Ipi::occurred() { }
 
 
-void Kernel::Cpu::Ipi::trigger(unsigned const cpu_id) { }
+void Kernel::Cpu::Ipi::trigger(unsigned) { }
 
 
 Kernel::Cpu::Ipi::Ipi(Kernel::Irq::Pool &p) : Kernel::Irq(Kernel::Pic::IPI, p) { }

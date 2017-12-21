@@ -30,21 +30,19 @@ static_assert(sizeof(subject_info_type) <= Sinfo::SIZE,
 	 "Size of subject info type larger than Sinfo::SIZE.");
 
 /* Log channel information */
-static bool log_channel(
-		const struct Genode::Sinfo::Channel_info * const channel,
-		void *data)
+static bool log_channel(Genode::Sinfo::Channel_info const * const channel, void *)
 {
 	if (channel->has_event || channel->has_vector) {
 		Genode::log("muen-sinfo: [",
 		            channel->writable ? "writer" : "reader", " with ",
 		            channel->has_event ? "event " : "vector", " ",
 		            channel->has_event ? channel->event_number : channel->vector,
-		            "] ", channel->name);
+		            "] ", Genode::Cstring(channel->name));
 	} else {
 		Genode::log("muen-sinfo: [",
 		            channel->writable ? "writer" : "reader", " with no ",
 		            channel->writable ? "event " : "vector", " ",
-		            "] ", channel->name);
+		            "] ", Genode::Cstring(channel->name));
 	}
 
 	return true;
@@ -65,7 +63,7 @@ static bool hash_available(const uint8_t * const first)
 
 
 /* Convert given hash to hex string */
-static const char * const hash_to_hex(char *buffer, const unsigned char *first)
+static char *hash_to_hex(char *buffer, const unsigned char *first)
 {
 	int i;
 	for (i = 0; i < Sinfo::HASH_LENGTH; i++)
@@ -75,8 +73,7 @@ static const char * const hash_to_hex(char *buffer, const unsigned char *first)
 
 
 /* Log memory region information */
-static bool log_memregion(const struct Genode::Sinfo::Memregion_info * const region,
-                          void *data)
+static bool log_memregion(Genode::Sinfo::Memregion_info const * const region, void *)
 {
 	char hash_str[65];
 
@@ -85,13 +82,13 @@ static bool log_memregion(const struct Genode::Sinfo::Memregion_info * const reg
 	            " size ", Genode::Hex(region->size), " ",
 	            region->writable ? "rw" : "ro",
 	            region->executable ? "x" : "-",
-	            "] ", region->name);
+	            "] ", Genode::Cstring(region->name));
 
 	if (region->content == Sinfo::CONTENT_FILL)
 		Genode::log("muen-sinfo:  [pattern ", region->pattern, "]");
 	if (hash_available(region->hash))
 		Genode::log("muen-sinfo:  [hash 0x",
-		            hash_to_hex(hash_str, region->hash), "]");
+		            Genode::Cstring(hash_to_hex(hash_str, region->hash)), "]");
 
 	return true;
 }
@@ -112,9 +109,10 @@ static bool is_channel(const struct resource_type * const resource)
 
 
 Sinfo::Sinfo(const addr_t base_addr)
+:
+	sinfo((subject_info_type *)base_addr)
 {
 	const uint64_t sinfo_page_size = roundup(sizeof(subject_info_type), 0x1000);
-	sinfo      = ((subject_info_type *)base_addr);
 	sched_info = ((scheduling_info_type *)(base_addr + sinfo_page_size));
 
 	if (!check_magic()) {
@@ -130,7 +128,7 @@ bool Sinfo::check_magic(void)
 }
 
 
-const char * const Sinfo::get_subject_name(void)
+const char * Sinfo::get_subject_name(void)
 {
 	if (!check_magic())
 		return nullptr;
@@ -281,7 +279,7 @@ void Sinfo::log_status()
 				Sinfo::get_subject_name(), "'");
 	Genode::log("muen-sinfo: Subject information exports ",
 	            sinfo->memregion_count, " memory region(s)");
-	for_each_memregion(log_memregion, 0);
+	for_each_memregion(log_memregion, nullptr);
 	Genode::log("muen-sinfo: Subject information exports ",
 	            sinfo->channel_info_count, " channel(s)");
 	for_each_channel(log_channel, 0);

@@ -48,12 +48,17 @@ struct Genode::Machine_type
 };
 
 
-class Genode::Vm_base : Noncopyable
+class Genode::Vm_base : Noncopyable, Interface
 {
 	public:
 
 		using Kernel_name  = String<32>;
 		using Command_line = String<64>;
+
+	private:
+
+		Vm_base(Vm_base const &);
+		Vm_base &operator = (Vm_base const &);
 
 	protected:
 

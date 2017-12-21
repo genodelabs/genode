@@ -27,9 +27,9 @@ using Genode::size_t;
 using Kernel::Double_list_typed;
 using Kernel::Double_list_item;
 
-void * operator new(__SIZE_TYPE__ s, void * p) { return p; }
+void * operator new(__SIZE_TYPE__, void * p) { return p; }
 
-struct Item_load { char volatile x, y, z; };
+struct Item_load { char volatile x = 0, y = 0, z = 0; };
 
 struct Item : Item_load, Double_list_item
 {
@@ -44,7 +44,7 @@ struct Data
 {
 	static constexpr unsigned nr_of_items = 9;
 
-	Double_list_typed<Item> list;
+	Double_list_typed<Item> list { };
 	char items[nr_of_items][sizeof(Item)];
 
 	Data()

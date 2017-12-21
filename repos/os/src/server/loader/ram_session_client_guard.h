@@ -29,7 +29,7 @@ namespace Genode {
 			Pd_session_client _pd;
 			size_t      const _amount;        /* total amount */
 			size_t            _consumed;      /* already consumed bytes */
-			Lock      mutable _consumed_lock;
+			Lock      mutable _consumed_lock { };
 
 		public:
 

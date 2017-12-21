@@ -22,15 +22,13 @@
 #include <map_local.h>
 #include <ram_dataspace_factory.h>
 
-/* OKL4 includes */
-namespace Okl4 { extern "C" {
-#include <l4/ipc.h>  /* needed for 'L4_ErrorCode' */
-} }
+/* base-internal includes */
+#include <base/internal/okl4.h>
 
 using namespace Genode;
 
-void Ram_dataspace_factory::_export_ram_ds(Dataspace_component *ds) { }
-void Ram_dataspace_factory::_revoke_ram_ds(Dataspace_component *ds) { }
+void Ram_dataspace_factory::_export_ram_ds(Dataspace_component *) { }
+void Ram_dataspace_factory::_revoke_ram_ds(Dataspace_component *) { }
 
 void Ram_dataspace_factory::_clear_ds (Dataspace_component *ds)
 {

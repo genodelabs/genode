@@ -56,7 +56,10 @@ struct Host_context {
 
 struct Kernel::Vm_irq : Kernel::Irq
 {
-		Vm_irq(unsigned const irq) : Kernel::Irq(irq, *cpu_pool()->executing_cpu()) {}
+	Vm_irq(unsigned const irq)
+	:
+		Kernel::Irq(irq, cpu_pool()->executing_cpu()->irq_pool())
+	{ }
 
 	/**
 	 * A VM interrupt gets injected into the VM scheduled on the current CPU

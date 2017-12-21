@@ -42,11 +42,11 @@ class Bootstrap::Platform
 
 		struct Board
 		{
-			Memory_region_array early_ram_regions;
-			Memory_region_array late_ram_regions;
+			Memory_region_array early_ram_regions { };
+			Memory_region_array late_ram_regions  { };
 			Mmio_space const    core_mmio;
-			Hw::Acpi_rsdp       acpi_rsdp;
-			Hw::Framebuffer     framebuffer;
+			Hw::Acpi_rsdp       acpi_rsdp         { };
+			Hw::Framebuffer     framebuffer       { };
 
 			Board();
 		};
@@ -97,7 +97,7 @@ class Bootstrap::Platform
 			void * const             array_base;
 			Table                  & table;
 			Table_array            & array;
-			Boot_info::Mapping_pool  mappings;
+			Boot_info::Mapping_pool  mappings { };
 
 			Pd(Ram_allocator & alloc);
 
@@ -121,10 +121,10 @@ class Bootstrap::Platform
 			}
 		};
 
-		Board                     board;
-		Bootstrap::Cpu            cpu;
-		Bootstrap::Pic            pic;
-		Ram_allocator             ram_alloc;
+		Board                     board     { };
+		Bootstrap::Cpu            cpu       { };
+		Bootstrap::Pic            pic       { };
+		Ram_allocator             ram_alloc { };
 		Memory_region const       bootstrap_region;
 		Genode::Constructible<Pd> core_pd;
 		addr_t                    core_elf_addr;

@@ -41,9 +41,9 @@ class Igd::Ggtt
 
 		struct Mapping
 		{
-			Genode::Dataspace_capability cap;
+			Genode::Dataspace_capability cap { };
 			Offset                       offset;
-			Igd::addr_t                  vaddr;
+			Igd::addr_t                  vaddr = 0;
 
 			enum { INVALID_OFFSET = ~0u - 1, };
 
@@ -68,8 +68,8 @@ class Igd::Ggtt
 
 		struct Space_allocator
 		{
-			Genode::Bit_array<1024*1024> _array;
-			size_t                       _used;
+			Genode::Bit_array<1024*1024> _array { };
+			size_t                       _used  { 0 };
 
 			bool allocated(addr_t const index) const
 			{
@@ -100,7 +100,8 @@ class Igd::Ggtt
 			}
 
 			size_t used() const { return _used; }
-		} _space;
+
+		} _space { };
 
 		Igd::Mmio &_mmio;
 
@@ -221,7 +222,7 @@ class Igd::Ggtt
 		 *
 		 * \throw Could_not_find_free
 		 */
-		Offset find_free(size_t num, bool aperture = false) const
+		Offset find_free(size_t /* num */, bool aperture = false) const
 		{
 			size_t const start_index = aperture ?                 0 : _aperture_entries;
 			size_t const end_index   = aperture ? _aperture_entries : _num_entries;

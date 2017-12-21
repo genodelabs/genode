@@ -32,6 +32,12 @@ class Nitpicker::User_state : public Focus_controller
 	private:
 
 		/*
+		 * Noncopyable
+		 */
+		User_state(User_state const &);
+		User_state &operator = (User_state const &);
+
+		/*
 		 * Number of currently pressed keys. This counter is used to determine
 		 * if the user is dragging an item.
 		 */
@@ -72,7 +78,7 @@ class Nitpicker::User_state : public Focus_controller
 		/*
 		 * Current pointer position
 		 */
-		Point _pointer_pos;
+		Point _pointer_pos { };
 
 		/*
 		 * Currently pointed-at view owner
@@ -117,7 +123,7 @@ class Nitpicker::User_state : public Focus_controller
 							xml.attribute("key", Input::key_name((Input::Keycode)i)); });
 			}
 
-		} _key_array;
+		} _key_array { };
 
 		bool _focus_change_permitted(View_owner const &caller) const;
 

@@ -202,7 +202,7 @@ class Genode::Avl_tree : Avl_node<NT>
 				static_cast<NT *>(node)->recompute();
 			}
 
-		} _policy;
+		} _policy { };
 
 	public:
 

@@ -162,7 +162,7 @@ template <typename MT>
 struct Genode::Constructible : Reconstructible<MT>
 {
 	template <typename... ARGS>
-	Constructible(ARGS &&... args)
+	Constructible(ARGS &&...)
 	:
 		Reconstructible<MT>((typename Reconstructible<MT>::Lazy *)nullptr)
 	{ }

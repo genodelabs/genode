@@ -90,7 +90,7 @@ class Cli_monitor::Child_base : public Genode::Child_policy
 		/**
 		 * Arguments of current resource request from the child
 		 */
-		Genode::Parent::Resource_args _resource_args;
+		Genode::Parent::Resource_args _resource_args { };
 
 		Genode::Signal_context_capability _yield_response_sigh_cap;
 

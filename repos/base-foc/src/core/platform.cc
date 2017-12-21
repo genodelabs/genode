@@ -334,7 +334,7 @@ void Platform::_setup_irq_alloc()
 {
 	using namespace Fiasco;
 
-	l4_icu_info_t info { .features = 0 };
+	l4_icu_info_t info { .features = 0, .nr_irqs = 0, .nr_msis = 0 };
 	l4_msgtag_t res = l4_icu_info(Fiasco::L4_BASE_ICU_CAP, &info);
 	if (l4_error(res))
 		panic("could not determine number of IRQs");

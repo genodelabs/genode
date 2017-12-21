@@ -20,13 +20,14 @@ namespace Genode { template <typename> struct Core_service; }
 
 
 template <typename SESSION>
-struct Genode::Core_service : Local_service<SESSION>, Registry<Service>::Element
+struct Genode::Core_service : Local_service<SESSION>
 {
+	Registry<Service>::Element _element;
+
 	Core_service(Registry<Service>                        &registry,
 	             typename Local_service<SESSION>::Factory &factory)
 	:
-		Local_service<SESSION>(factory),
-		Registry<Service>::Element(registry, *this)
+		Local_service<SESSION>(factory), _element(registry, *this)
 	{ }
 };
 

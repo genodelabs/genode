@@ -170,12 +170,12 @@ struct Fast_sender_test : Signal_test
 	struct Unequal_sent_and_received_signals : Exception { };
 
 	Env               &env;
-	Timer::Connection  timer   { env };
-	Signal_context     context;
-	Signal_receiver    receiver;
-	Handler            handler { env, receiver, HANDLER_INTERVAL_MS, false, 1 };
-	Sender             sender  { env, receiver.manage(&context),
-	                             SENDER_INTERVAL_MS, false };
+	Timer::Connection  timer    { env };
+	Signal_context     context  { };
+	Signal_receiver    receiver { };
+	Handler            handler  { env, receiver, HANDLER_INTERVAL_MS, false, 1 };
+	Sender             sender   { env, receiver.manage(&context),
+	                              SENDER_INTERVAL_MS, false };
 
 	Fast_sender_test(Env &env, int id) : Signal_test(id, brief), env(env)
 	{
@@ -203,11 +203,11 @@ struct Stress_test : Signal_test
 	struct Unequal_sent_and_received_signals : Exception { };
 
 	Env               &env;
-	Timer::Connection  timer   { env };
-	Signal_context     context;
-	Signal_receiver    receiver;
-	Handler            handler { env, receiver, 0, false, 1 };
-	Sender             sender  { env, receiver.manage(&context), 0, false };
+	Timer::Connection  timer    { env };
+	Signal_context     context  { };
+	Signal_receiver    receiver { };
+	Handler            handler  { env, receiver, 0, false, 1 };
+	Sender             sender   { env, receiver.manage(&context), 0, false };
 
 	Stress_test(Env &env, int id) : Signal_test(id, brief), env(env)
 	{
@@ -239,12 +239,12 @@ struct Lazy_receivers_test : Signal_test
 {
 	static constexpr char const *brief = "lazy and out-of-order signal reception";
 
-	Signal_context     context_1,  context_2;
-	Signal_receiver    receiver_1, receiver_2;
+	Signal_context     context_1  { }, context_2  { };
+	Signal_receiver    receiver_1 { }, receiver_2 { };
 	Signal_transmitter transmitter_1 { receiver_1.manage(&context_1) };
 	Signal_transmitter transmitter_2 { receiver_2.manage(&context_2) };
 
-	Lazy_receivers_test(Env &env, int id) : Signal_test(id, brief)
+	Lazy_receivers_test(Env &, int id) : Signal_test(id, brief)
 	{
 		log("submit and receive signals with multiple receivers in order");
 		transmitter_1.submit();
@@ -276,8 +276,8 @@ struct Context_management_test : Signal_test
 
 	Env                       &env;
 	Timer::Connection          timer       { env };
-	Signal_context             context;
-	Signal_receiver            receiver;
+	Signal_context             context     { };
+	Signal_receiver            receiver    { };
 	Signal_context_capability  context_cap { receiver.manage(&context) };
 	Sender                     sender      { env, context_cap, 500, true };
 
@@ -305,7 +305,7 @@ struct Context_management_test : Signal_test
 	}
 };
 
-struct Synchronized_destruction_test : Signal_test, Thread
+struct Synchronized_destruction_test : private Signal_test, Thread
 {
 	static constexpr char const *brief =
 		"does 'dissolve' block as long as the signal context is referenced?";
@@ -313,12 +313,12 @@ struct Synchronized_destruction_test : Signal_test, Thread
 	struct Failed : Exception { };
 
 	Env                &env;
-	Timer::Connection   timer        { env };
-	Heap                heap         { env.ram(), env.rm() };
-	Signal_context     &context      { *new (heap) Signal_context };
-	Signal_receiver     receiver;
-	Signal_transmitter  transmitter  { receiver.manage(&context) };
-	bool                destroyed    { false };
+	Timer::Connection   timer       { env };
+	Heap                heap        { env.ram(), env.rm() };
+	Signal_context     &context     { *new (heap) Signal_context };
+	Signal_receiver     receiver    { };
+	Signal_transmitter  transmitter { receiver.manage(&context) };
+	bool                destroyed   { false };
 
 	void entry()
 	{
@@ -356,7 +356,7 @@ struct Many_contexts_test : Signal_test
 
 	Env                                   &env;
 	Heap                                   heap { env.ram(), env.rm() };
-	Registry<Registered<Signal_context> >  contexts;
+	Registry<Registered<Signal_context> >  contexts { };
 
 	Many_contexts_test(Env &env, int id) : Signal_test(id, brief), env(env)
 	{
@@ -400,7 +400,7 @@ struct Nested_test : Signal_test
 {
 	static constexpr char const *brief = "wait and dispatch signals at entrypoint";
 
-	struct Test_interface
+	struct Test_interface : Interface
 	{
 		GENODE_RPC(Rpc_test_io_dispatch,  void, test_io_dispatch);
 		GENODE_RPC(Rpc_test_app_dispatch, void, test_app_dispatch);
@@ -546,11 +546,14 @@ struct Nested_stress_test : Signal_test
 
 	struct Receiver
 	{
-		Entrypoint  ep;
-		char const *name;
-		unsigned    count { 0 };
-		unsigned    level { 0 };
-		bool volatile destruct { false };
+		Entrypoint ep;
+
+		String<64> const name;
+
+		unsigned count { 0 };
+		unsigned level { 0 };
+
+		bool volatile destruct              { false };
 		bool volatile ready_for_destruction { false };
 
 		Io_signal_handler<Receiver> handler { ep, *this, &Receiver::handle };
@@ -665,14 +668,14 @@ struct Main
 	Env                  &env;
 	Signal_handler<Main>  test_8_done { env.ep(), *this, &Main::handle_test_8_done };
 
-	Constructible<Fast_sender_test>              test_1;
-	Constructible<Stress_test>                   test_2;
-	Constructible<Lazy_receivers_test>           test_3;
-	Constructible<Context_management_test>       test_4;
-	Constructible<Synchronized_destruction_test> test_5;
-	Constructible<Many_contexts_test>            test_6;
-	Constructible<Nested_test>                   test_7;
-	Constructible<Nested_stress_test>            test_8;
+	Constructible<Fast_sender_test>              test_1 { };
+	Constructible<Stress_test>                   test_2 { };
+	Constructible<Lazy_receivers_test>           test_3 { };
+	Constructible<Context_management_test>       test_4 { };
+	Constructible<Synchronized_destruction_test> test_5 { };
+	Constructible<Many_contexts_test>            test_6 { };
+	Constructible<Nested_test>                   test_7 { };
+	Constructible<Nested_stress_test>            test_8 { };
 
 	void handle_test_8_done()
 	{

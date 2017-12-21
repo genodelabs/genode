@@ -60,7 +60,7 @@ Child::Process::Loaded_executable::Loaded_executable(Dataspace_capability,
 
 Child::Process::Process(Dataspace_capability  elf_ds,
                         Dataspace_capability  ldso_ds,
-                        Pd_session_capability pd_cap,
+                        Pd_session_capability,
                         Pd_session           &pd,
                         Ram_session          &ram,
                         Initial_thread_base  &,

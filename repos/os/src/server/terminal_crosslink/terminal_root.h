@@ -40,7 +40,7 @@ namespace Terminal_crosslink {
 
 		public:
 
-			Session_capability session(Root::Session_args const &args,
+			Session_capability session(Root::Session_args const &,
 			                           Genode::Affinity   const &)
 			{
 				if (!(_session_state & FIRST_SESSION_OPEN)) {

@@ -28,7 +28,7 @@ class Input_filter::Input_connection
 {
 	public:
 
-		struct Avail_handler { virtual void handle_input_avail() = 0; };
+		struct Avail_handler : Interface { virtual void handle_input_avail() = 0; };
 
 	private:
 
@@ -52,7 +52,7 @@ class Input_filter::Input_connection
 		static char const *name() { return "input"; }
 
 		Input_connection(Env &env, Session_label const &label,
-		                 Avail_handler &avail_handler, Allocator &alloc)
+		                 Avail_handler &avail_handler, Allocator &)
 		:
 			_label(label),
 			_connection(env, label.string()),

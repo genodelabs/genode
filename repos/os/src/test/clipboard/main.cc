@@ -74,7 +74,7 @@ class Test::Nitpicker
  *
  * This function drives the state machine of the test program.
  */
-struct Test::Handle_step_fn
+struct Test::Handle_step_fn : Genode::Interface
 {
 	virtual void handle_step() = 0;
 };
@@ -83,6 +83,12 @@ struct Test::Handle_step_fn
 class Test::Subsystem
 {
 	private:
+
+		/*
+		 * Noncopyable
+		 */
+		Subsystem(Subsystem const &);
+		Subsystem &operator = (Subsystem const &);
 
 		Env &_env;
 

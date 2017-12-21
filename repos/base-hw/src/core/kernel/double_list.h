@@ -38,8 +38,8 @@ class Kernel::Double_list_item
 
 	private:
 
-		Double_list_item * _next;
-		Double_list_item * _prev;
+		Double_list_item * _next = nullptr;
+		Double_list_item * _prev = nullptr;
 };
 
 class Kernel::Double_list

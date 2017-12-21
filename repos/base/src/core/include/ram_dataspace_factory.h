@@ -86,7 +86,7 @@ class Genode::Ram_dataspace_factory : public Ram_allocator,
 		Ram_dataspace_factory(Rpc_entrypoint  &ep,
 		                      Range_allocator &phys_alloc,
 		                      Phys_range       phys_range,
-		                      Region_map      &local_rm,
+		                      Region_map      &,
 		                      Allocator       &allocator)
 		:
 			_ep(ep), _phys_alloc(phys_alloc), _phys_range(phys_range),

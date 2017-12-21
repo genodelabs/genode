@@ -118,14 +118,13 @@ struct Menu_view::Button_widget : Widget, Animator::Item
 		 */
 		scratch.reset(texture_size);
 
-		Surface<Pixel_rgb888> scratch_pixel_surface = scratch.pixel_surface();
-		Surface<Pixel_alpha8> scratch_alpha_surface = scratch.alpha_surface();
+		scratch.apply([&] (Surface<Pixel_rgb888> &pixel, Surface<Pixel_alpha8> &alpha) {
+			Icon_painter::paint(pixel, texture_rect, *default_texture, 255);
+			Icon_painter::paint(alpha, texture_rect, *default_texture, 255);
 
-		Icon_painter::paint(scratch_pixel_surface, texture_rect, *default_texture, 255);
-		Icon_painter::paint(scratch_alpha_surface, texture_rect, *default_texture, 255);
-
-		Icon_painter::paint(scratch_pixel_surface, texture_rect, *hovered_texture, blend >> 8);
-		Icon_painter::paint(scratch_alpha_surface, texture_rect, *hovered_texture, blend >> 8);
+			Icon_painter::paint(pixel, texture_rect, *hovered_texture, blend >> 8);
+			Icon_painter::paint(alpha, texture_rect, *hovered_texture, blend >> 8);
+		});
 
 		/*
 		 * Apply blended texture to target surface

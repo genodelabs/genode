@@ -38,7 +38,37 @@ namespace Kernel
 	Cpu_pool * cpu_pool();
 }
 
-class Kernel::Cpu : public Genode::Cpu, public Irq::Pool, private Timeout
+
+/*
+ * The 'Cpu' class violates the "Effective C++" practices because it publicly
+ * inherits the 'Genode::Cpu' base class, which does not have a virtual
+ * destructor. Since 'Cpu' implements the 'Timeout' interface, however, it has
+ * a vtable.
+ *
+ * Adding a virtual destructor in the base class would be unnatural as the base
+ * class hierarchy does not represent an abstract interface.
+ *
+ * Inheriting the 'Genode::Cpu' class privately is not an option because the
+ * user of 'Cpu' class expects architecture-specific register definitions to be
+ * provided by 'Cpu'. Hence, all those architecture- specific definitions would
+ * end up as 'using' clauses in the generic class.
+ *
+ * XXX Remove the disabled warning, e.g., by one of the following approaches:
+ *
+ * * Prevent 'Cpu' to have virtual methods by making 'Timeout' a member instead
+ *   of a base class.
+ *
+ * * Change the class hierarchy behind 'Genode::Cpu' such that
+ *   architecture-specific bits do no longer need to implicitly become part
+ *   of the public interface of 'Cpu'. For example, register-definition types
+ *   could all be embedded in an 'Arch_regs' type, which the 'Cpu' class could
+ *   publicly provide via a 'typedef Genode::Cpu::Arch_regs Arch_regs'.
+ *   Then, the 'Genode::Cpu' could be inherited privately.
+ */
+#pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
+
+
+class Kernel::Cpu : public Genode::Cpu, private Irq::Pool, private Timeout
 {
 	private:
 
@@ -156,7 +186,16 @@ class Kernel::Cpu : public Genode::Cpu, public Irq::Pool, private Timeout
 		time_t us_to_ticks(time_t const us) const { return _timer.us_to_ticks(us); };
 
 		unsigned timer_interrupt_id() const { return _timer.interrupt_id(); }
+
+		Irq::Pool &irq_pool() { return *this; }
 };
+
+
+/*
+ * See the comment above the 'Cpu' class definition.
+ */
+#pragma GCC diagnostic pop
+
 
 class Kernel::Cpu_pool
 {

@@ -49,17 +49,24 @@ class Genode::Allocator_avl_base : public Range_allocator
 		static bool _sum_in_range(addr_t addr, addr_t offset) {
 			return (~0UL - addr > offset); }
 
+		/*
+		 * Noncopyable
+		 */
+		Allocator_avl_base(Allocator_avl_base const &);
+		Allocator_avl_base &operator = (Allocator_avl_base const &);
+
 	protected:
 
 		class Block : public Avl_node<Block>
 		{
 			private:
 
-				addr_t _addr;       /* base address    */
-				size_t _size;       /* size of block   */
-				bool   _used;       /* block is in use */
-				short  _id;         /* for debugging   */
-				size_t _max_avail;  /* biggest free block size of subtree */
+				addr_t _addr      { 0 };     /* base address    */
+				size_t _size      { 0 };     /* size of block   */
+				bool   _used      { false }; /* block is in use */
+				short  _id        { 0 };     /* for debugging   */
+				size_t _max_avail { 0 };     /* biggest free block size of
+				                                sub tree */
 
 				/**
 				 * Request max_avail value of subtree
@@ -84,6 +91,12 @@ class Genode::Allocator_avl_base : public Range_allocator
 					return (a >= addr()) && _sum_in_range(a, n) &&
 					       (a - addr() + n <= avail()) && (a + n - 1 <= to);
 				}
+
+				/*
+				 * Noncopyable
+				 */
+				Block(Block const &);
+				Block &operator = (Block const &);
 
 			public:
 
@@ -112,9 +125,7 @@ class Genode::Allocator_avl_base : public Range_allocator
 
 				inline void used(bool used) { _used = used; }
 
-
 				enum { FREE = false, USED = true };
-
 
 				/**
 				 * Constructor
@@ -122,7 +133,7 @@ class Genode::Allocator_avl_base : public Range_allocator
 				 * This constructor is called from meta-data allocator during
 				 * initialization of new meta-data blocks.
 				 */
-				Block() : _addr(0), _size(0), _used(0), _max_avail(0) { }
+				Block();
 
 				/**
 				 * Constructor
@@ -155,9 +166,9 @@ class Genode::Allocator_avl_base : public Range_allocator
 
 	private:
 
-		Avl_tree<Block>  _addr_tree;      /* blocks sorted by base address */
-		Allocator       *_md_alloc;       /* meta-data allocator           */
-		size_t           _md_entry_size;  /* size of block meta-data entry */
+		Avl_tree<Block> _addr_tree        { };  /* blocks sorted by base address */
+		Allocator      *_md_alloc { nullptr };  /* meta-data allocator           */
+		size_t          _md_entry_size  { 0 };  /* size of block meta-data entry */
 
 		/**
 		 * Alloc meta-data block

@@ -40,7 +40,7 @@ enum {
 	SHUTDOWN     = EXEC_TEST  - 1
 };
 
-static char const * const state_name(Region_map::State &state)
+static char const *state_name(Region_map::State &state)
 {
 	return state.type == Region_map::State::READ_FAULT  ? "READ_FAULT"  :
 	       state.type == Region_map::State::WRITE_FAULT ? "WRITE_FAULT" :
@@ -217,7 +217,7 @@ class Test_child_policy : public Child_policy
 		}
 
 		Service &resolve_session_request(Service::Name const &service_name,
-		                                 Session_state::Args const &args) override
+		                                 Session_state::Args const &) override
 		{
 			Service *service = nullptr;
 			_parent_services.for_each([&] (Service &s) {
@@ -322,7 +322,7 @@ struct Main_parent
 		_address_space.attach_at(_binary.dataspace(), child_virt_addr);
 	}
 
-	void _test_exec_fault(addr_t const child_virt_addr, Region_map::State &state)
+	void _test_exec_fault(Region_map::State &state)
 	{
 		if (_child_value() == WRITE_TEST) {
 			_child_value() = EXEC_TEST;
@@ -371,7 +371,7 @@ struct Main_parent
 			_handle_fault_stack();
 
 		if (_fault_cnt > FAULT_CNT_WRITE)
-			_test_exec_fault(child_virt_addr, state);
+			_test_exec_fault(state);
 
 		_fault_cnt++;
 	}

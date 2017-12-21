@@ -34,7 +34,7 @@ class Scout::Sky_texture : public Element
 
 		bool const _detailed;
 
-		Sky_texture_painter::Static_sky_texture<PT, TW, TH> _sky_texture;
+		Sky_texture_painter::Static_sky_texture<PT, TW, TH> _sky_texture { };
 
 	public:
 

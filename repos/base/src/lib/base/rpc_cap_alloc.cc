@@ -21,7 +21,7 @@ using namespace Genode;
 
 
 Native_capability Rpc_entrypoint::_alloc_rpc_cap(Pd_session &pd,
-                                                 Native_capability ep, addr_t)
+                                                 Native_capability, addr_t)
 {
 	for (;;) {
 

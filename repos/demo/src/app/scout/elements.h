@@ -67,12 +67,7 @@ class Scout::Style
 		Color  color;
 		int    attr;
 
-		Style(Font *f, Color c, int a)
-		{
-			font  = f;
-			color = c;
-			attr  = a;
-		}
+		Style(Font *f, Color c, int a) : font(f), color(c), attr(a) { }
 };
 
 
@@ -84,6 +79,14 @@ class Scout::Style
  */
 class Scout::Token : public Element
 {
+	private:
+
+		/*
+		 * Noncopyable
+		 */
+		Token(Token const &);
+		Token &operator = (Token const &);
+
 	protected:
 
 		const char  *_str;       /* start  of string   */
@@ -121,7 +124,7 @@ class Scout::Link
 		/**
 		 * Constructor
 		 */
-		explicit Link(Anchor *dst) { _dst = dst; }
+		explicit Link(Anchor *dst) : _dst(dst) { }
 
 		/**
 		 * Accessor function
@@ -133,12 +136,16 @@ class Scout::Link
 /**
  * Textual link
  */
-class Scout::Link_token : public Token, public Link, public Event_handler,
-                          public Fader
+class Scout::Link_token : public Token, private Link, public Event_handler,
+                          private Fader
 {
 	private:
 
 		enum { _MAX_ALPHA = 50 };
+
+	protected:
+
+		using Link::_dst;
 
 	public:
 
@@ -152,6 +159,9 @@ class Scout::Link_token : public Token, public Link, public Event_handler,
 			_curr_value        = 0;
 			event_handler(this);
 		}
+
+		using Fader::step;
+		using Fader::curr;
 		
 		/**
 		 * Element interface
@@ -227,10 +237,16 @@ class Scout::Launcher : public Anchor
 
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Launcher(Launcher const &);
+		Launcher &operator = (Launcher const &);
+
 		Name                _prg_name;
-		int                 _active;
-		int                 _exec_once;
-		Launchpad          *_launchpad;
+		int                 _active    = 0;
+		int                 _exec_once = 0;
+		Launchpad          *_launchpad = nullptr;
 		unsigned long const _caps;
 		unsigned long       _quota;
 		Launcher_config    *_config;
@@ -314,8 +330,8 @@ class Scout::Block : public Parent_element
 
 	private:
 
-		int       _second_indent;   /* indentation of second line */
-		Alignment _align;           /* text alignment             */
+		Alignment _align;             /* text alignment             */
+		int       _second_indent;     /* indentation of second line */
 
 		/**
 		 * Append text to block
@@ -329,16 +345,10 @@ class Scout::Block : public Parent_element
 		 * Constructors
 		 */
 		explicit Block(int second_indent = 0)
-		{
-			_align         = LEFT;
-			_second_indent = second_indent;
-		}
+		: _align(LEFT), _second_indent(second_indent) { }
 
 		explicit Block(Alignment align)
-		{
-			_align         = align;
-			_second_indent = 0;
-		}
+		: _align(align), _second_indent(0) { }
 
 		/**
 		 * Define alignment of text
@@ -407,8 +417,14 @@ class Scout::Png_image : public Element
 {
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Png_image(Png_image const &);
+		Png_image &operator = (Png_image const &);
+
 		void         *_png_data;
-		Texture_base *_texture;
+		Texture_base *_texture = nullptr;
 
 	public:
 
@@ -417,11 +433,7 @@ class Scout::Png_image : public Element
 		/**
 		 * Constructor
 		 */
-		explicit Png_image(void *png_data)
-		{
-			_png_data = png_data;
-			_texture  = 0;
-		}
+		explicit Png_image(void *png_data) : _png_data(png_data) { }
 
 		/**
 		 * Accessor functions
@@ -442,18 +454,23 @@ class Scout::Png_image : public Element
  */
 class Scout::Document : public Parent_element
 {
+	private:
+
+		/*
+		 * Noncopyable
+		 */
+		Document(Document const &);
+		Document &operator = (Document const &);
+
 	public:
 
-		Chapter    *toc;     /* table of contents */
-		const char *title;   /* document title    */
+		Chapter    *toc   = nullptr;     /* table of contents */
+		const char *title = "";          /* document title    */
 
 		/**
 		 * Constructor
 		 */
-		Document()
-		{
-			toc = 0; title = ""; _flags.chapter = 1;
-		}
+		Document() { _flags.chapter = 1; }
 
 		/**
 		 * Element interface
@@ -499,7 +516,7 @@ class Scout::Verbatim : public Parent_element
 		/**
 		 * Constructor
 		 */
-		explicit Verbatim(Color bg) { bgcol = bg; }
+		explicit Verbatim(Color bg) : bgcol(bg) { }
 
 		/**
 		 * Append verbatim text line
@@ -522,21 +539,25 @@ class Scout::Verbatim : public Parent_element
  */
 class Scout::Item : public Parent_element
 {
+	private:
+
+		/*
+		 * Noncopyable
+		 */
+		Item(Item const &);
+		Item &operator = (Item const &);
+
 	public:
 
-		int         _tag_ident;
-		const char *_tag;
 		Style      *_style;
+		const char *_tag;
+		int         _tag_ident;
 
 		/**
 		 * Constructor
 		 */
 		Item(Style *style, const char *str, int ident)
-		{
-			_style     = style;
-			_tag       = str;
-			_tag_ident = ident;
-		}
+		: _style(style), _tag(str), _tag_ident(ident) { }
 
 		/**
 		 * Element interface
@@ -563,11 +584,17 @@ class Scout::Navbar : public Parent_element, public Fader
 {
 	private:
 
-		Block *_next_title;
-		Block *_prev_title;
+		/*
+		 * Noncopyable
+		 */
+		Navbar(Navbar const &);
+		Navbar &operator = (Navbar const &);
 
-		Anchor *_next_anchor;
-		Anchor *_prev_anchor;
+		Block *_next_title = nullptr;
+		Block *_prev_title = nullptr;
+
+		Anchor *_next_anchor = nullptr;
+		Anchor *_prev_anchor = nullptr;
 
 	public:
 

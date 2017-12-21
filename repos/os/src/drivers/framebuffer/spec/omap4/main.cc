@@ -35,10 +35,16 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Framebuffer::Se
 {
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Session_component(Session_component const &);
+		Session_component &operator = (Session_component const &);
+
 		size_t         _width;
 		size_t         _height;
 		bool           _buffered;
-		Mode           _mode;
+		Mode           _mode { };
 		Driver::Format _format;
 		size_t         _size;
 
@@ -50,7 +56,7 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Framebuffer::Se
 		Genode::Dataspace_capability _fb_ds;
 		void                        *_fb_addr;
 
-		Signal_context_capability _sync_sigh;
+		Signal_context_capability _sync_sigh { };
 
 		Timer::Connection _timer;
 

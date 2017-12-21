@@ -48,7 +48,7 @@ struct Nitpicker::Background : private Texture_base, View_component
 	 ******************************/
 
 	int  frame_size(Focus const &) const override { return 0; }
-	void frame(Canvas_base &canvas, Focus const &) const override { }
+	void frame(Canvas_base &, Focus const &) const override { }
 
 	void draw(Canvas_base &canvas, Focus const &) const override
 	{

@@ -36,15 +36,21 @@ class Linkicon_event_handler : public Event_handler
 {
 	private:
 
-		Anchor *_dst;
-		Navbar *_navbar;
+		/*
+		 * Noncopyable
+		 */
+		Linkicon_event_handler(Linkicon_event_handler const &);
+		Linkicon_event_handler &operator = (Linkicon_event_handler const &);
+
+		Anchor *_dst    = nullptr;
+		Navbar *_navbar = nullptr;
 
 	public:
 
 		/**
 		 * Constructor
 		 */
-		Linkicon_event_handler() { _dst = 0; _navbar = 0; }
+		Linkicon_event_handler() { }
 
 		/**
 		 * Assign link destination
@@ -82,9 +88,6 @@ static Linkicon_event_handler prev_ev_handler;
 
 Navbar::Navbar()
 {
-	_next_title  = _prev_title  = 0;
-	_next_anchor = _prev_anchor = 0;
-
 	_flags.bottom = 1;
 
 	next_ev_handler.destination(0, 0);

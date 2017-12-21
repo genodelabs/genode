@@ -116,7 +116,7 @@ class Genode::Stack
 		/**
 		 * Kernel-specific thread meta data
 		 */
-		Native_thread _native_thread;
+		Native_thread _native_thread { };
 
 		/*
 		 * <- end of regular memory area
@@ -128,7 +128,7 @@ class Genode::Stack
 		/**
 		 * Kernel-specific user-level thread control block
 		 */
-		Native_utcb _utcb;
+		Native_utcb _utcb { };
 
 	public:
 

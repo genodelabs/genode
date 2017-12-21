@@ -28,7 +28,15 @@ namespace Genode
 	 */
 	class Cpu_thread_allocator : public Allocator
 	{
-		Allocator * const _alloc;
+		private:
+
+			/*
+			 * Noncopyable
+			 */
+			Cpu_thread_allocator(Cpu_thread_allocator const &);
+			Cpu_thread_allocator &operator = (Cpu_thread_allocator const &);
+
+			Allocator * const _alloc;
 
 		public:
 
@@ -56,7 +64,7 @@ namespace Genode
 				return 0;
 			}
 
-			size_t overhead(size_t size) const override
+			size_t overhead(size_t) const override
 			{
 				warning(__func__, "unexpectedly called");
 				while (1) ;

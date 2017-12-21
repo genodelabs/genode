@@ -33,7 +33,7 @@ class File_system::Open_node : public File_system::Node
 		Genode::Id_space<File_system::Node>::Element _element;
 
 		Genode::Weak_ptr<NODE>                       _node;
-		Genode::Constructible<File_system::Listener> _listener;
+		Genode::Constructible<File_system::Listener> _listener { };
 
 		Listener::Version const _version_when_opened { _node_version(_node) };
 

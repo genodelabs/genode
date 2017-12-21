@@ -16,11 +16,12 @@
 #define _DRIVERS__FRAMEBUFFER__SPEC__SDL__INPUT_H_
 
 /* Genode include */
+#include <util/interface.h>
 #include <input/event.h>
 
 namespace Input { struct Handler; }
 
-struct Input::Handler
+struct Input::Handler : Genode::Interface
 {
 	virtual void event(Input::Event) = 0;
 };

@@ -27,9 +27,15 @@
 namespace Genode {
 
 	class Platform_pd;
-	class Platform_thread
+	class Platform_thread : Interface
 	{
 		private:
+
+			/*
+			 * Noncopyable
+			 */
+			Platform_thread(Platform_thread const &);
+			Platform_thread &operator = (Platform_thread const &);
 
 			enum State { DEAD, RUNNING };
 
@@ -38,8 +44,8 @@ namespace Genode {
 			State              _state;
 			bool               _core_thread;
 			Cap_mapping        _thread;
-			Cap_mapping        _gate;
-			Cap_mapping        _pager;
+			Cap_mapping        _gate  { };
+			Cap_mapping        _pager { };
 			Cap_mapping        _irq;
 			addr_t             _utcb;
 			char               _name[32];       /* thread name that will be
@@ -50,7 +56,7 @@ namespace Genode {
 			Pager_object      *_pager_obj;
 			unsigned           _prio;
 
-			Affinity::Location _location;
+			Affinity::Location _location { };
 
 			void _create_thread(void);
 			void _finalize_construction(const char *name);
@@ -168,7 +174,7 @@ namespace Genode {
 			/**
 			 * Set CPU quota of the thread to 'quota'
 			 */
-			void quota(size_t const quota) { /* not supported*/ }
+			void quota(size_t const) { /* not supported*/ }
 
 			/**
 			 * Return execution time consumed by the thread

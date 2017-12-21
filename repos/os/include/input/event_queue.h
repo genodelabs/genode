@@ -39,11 +39,11 @@ class Input::Event_queue
 
 	private:
 
-		Ring_buffer _queue;
+		Ring_buffer _queue { };
 
 		bool _enabled = false;
 
-		Genode::Signal_context_capability _sigh;
+		Genode::Signal_context_capability _sigh { };
 
 	public:
 

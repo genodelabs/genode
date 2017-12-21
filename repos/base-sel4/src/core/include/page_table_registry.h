@@ -66,8 +66,8 @@ class Genode::Page_table_registry
 					_vaddr(_base(vaddr, log2base)), _sel(sel)
 				{ }
 
-				Cap_sel const sel() const { return _sel; }
-				addr_t  const vaddr() const { return _vaddr; }
+				Cap_sel   sel() const { return _sel; }
+				addr_t  vaddr() const { return _vaddr; }
 
 				static Frame * lookup(Avl_tree<Frame> &tree,
 				                      addr_t const vaddr,
@@ -116,9 +116,9 @@ class Genode::Page_table_registry
 					_vaddr(_base(vaddr, log2base)), _paddr(paddr), _sel(sel)
 				{ }
 
-				Cap_sel const sel()   const { return _sel; }
-				addr_t  const vaddr() const { return _vaddr; }
-				addr_t  const paddr() const { return _paddr; }
+				Cap_sel sel()   const { return _sel; }
+				addr_t  vaddr() const { return _vaddr; }
+				addr_t  paddr() const { return _paddr; }
 
 				static Table * lookup(Avl_tree<Table> &tree,
 				                     addr_t const vaddr,
@@ -147,10 +147,10 @@ class Genode::Page_table_registry
 		Tslab<Table, SLAB_BLOCK_SIZE> _alloc_high;
 		uint8_t _initial_sb_high[SLAB_BLOCK_SIZE];
 
-		Avl_tree<Frame> _frames;
-		Avl_tree<Table> _level1;
-		Avl_tree<Table> _level2;
-		Avl_tree<Table> _level3;
+		Avl_tree<Frame> _frames { };
+		Avl_tree<Table> _level1 { };
+		Avl_tree<Table> _level2 { };
+		Avl_tree<Table> _level3 { };
 
 		void _insert(addr_t const vaddr, Cap_sel const sel, Level const level,
 		             addr_t const paddr, unsigned const level_log2_size)

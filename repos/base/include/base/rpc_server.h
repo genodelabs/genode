@@ -80,7 +80,7 @@ class Genode::Rpc_dispatcher : public RPC_INTERFACE
 			return args;
 		}
 
-		Meta::Empty _read_args(Ipc_unmarshaller &msg,
+		Meta::Empty _read_args(Ipc_unmarshaller &,
 		                       Meta::Overload_selector<Meta::Empty>)
 		{
 			return Meta::Empty();
@@ -212,7 +212,7 @@ class Genode::Rpc_dispatcher : public RPC_INTERFACE
 		/**
 		 * Handle corner case of having an RPC interface with no RPC functions
 		 */
-		Rpc_exception_code _do_dispatch(Rpc_opcode opcode,
+		Rpc_exception_code _do_dispatch(Rpc_opcode,
 		                                Ipc_unmarshaller &, Msgbuf_base &,
 		                                Meta::Overload_selector<Meta::Type_list<> >)
 		{
@@ -307,11 +307,11 @@ class Genode::Rpc_entrypoint : Thread, public Object_pool<Rpc_object_base>
 		 * Prototype capability to derive capabilities for RPC objects
 		 * from.
 		 */
-		Untyped_capability _cap;
+		Untyped_capability _cap { };
 
 		enum { SND_BUF_SIZE = 1024, RCV_BUF_SIZE = 1024 };
-		Msgbuf<SND_BUF_SIZE> _snd_buf;
-		Msgbuf<RCV_BUF_SIZE> _rcv_buf;
+		Msgbuf<SND_BUF_SIZE> _snd_buf { };
+		Msgbuf<RCV_BUF_SIZE> _rcv_buf { };
 
 		/**
 		 * Hook to let low-level thread init code access private members
@@ -320,7 +320,7 @@ class Genode::Rpc_entrypoint : Thread, public Object_pool<Rpc_object_base>
 		 */
 		static void _activation_entry();
 
-		struct Exit
+		struct Exit : Genode::Interface
 		{
 			GENODE_RPC(Rpc_exit, void, _exit);
 			GENODE_RPC_INTERFACE(Rpc_exit);
@@ -337,13 +337,13 @@ class Genode::Rpc_entrypoint : Thread, public Object_pool<Rpc_object_base>
 
 	protected:
 
-		Native_capability _caller;
-		Lock              _cap_valid;      /* thread startup synchronization        */
-		Lock              _delay_start;    /* delay start of request dispatching    */
-		Lock              _delay_exit;     /* delay destructor until server settled */
-		Pd_session       &_pd_session;     /* for creating capabilities             */
-		Exit_handler      _exit_handler;
-		Capability<Exit>  _exit_cap;
+		Native_capability _caller       { };
+		Lock              _cap_valid    { };  /* thread startup synchronization        */
+		Lock              _delay_start  { };  /* delay start of request dispatching    */
+		Lock              _delay_exit   { };  /* delay destructor until server settled */
+		Pd_session       &_pd_session;        /* for creating capabilities             */
+		Exit_handler      _exit_handler { };
+		Capability<Exit>  _exit_cap     { };
 
 		/**
 		 * Access to kernel-specific part of the PD session interface
@@ -351,7 +351,7 @@ class Genode::Rpc_entrypoint : Thread, public Object_pool<Rpc_object_base>
 		 * Some kernels like NOVA need a special interface for creating RPC
 		 * object capabilities.
 		 */
-		Capability<Pd_session::Native_pd> _native_pd_cap;
+		Capability<Pd_session::Native_pd> _native_pd_cap { };
 
 		/**
 		 * Back end used to associate RPC object with the entry point

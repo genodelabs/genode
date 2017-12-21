@@ -120,7 +120,7 @@ struct Dummy::Log_connections
 
 	typedef Registered<Log_connection> Connection;
 
-	Registry<Connection> _connections;
+	Registry<Connection> _connections { };
 
 	Log_connections(Env &env, Xml_node node) : _env(env)
 	{
@@ -158,7 +158,7 @@ struct Dummy::Ram_consumer
 {
 	size_t _amount = 0;
 
-	Ram_dataspace_capability _ds_cap;
+	Ram_dataspace_capability _ds_cap { };
 
 	Ram_session &_ram;
 
@@ -216,7 +216,7 @@ struct Dummy::Main
 {
 	Env &_env;
 
-	Constructible<Timer::Connection> _timer;
+	Constructible<Timer::Connection> _timer { };
 
 	Attached_rom_dataspace _config { _env, "config" };
 
@@ -224,13 +224,13 @@ struct Dummy::Main
 
 	typedef String<50> Version;
 
-	Version _config_version;
+	Version _config_version { };
 
 	Signal_handler<Main> _config_handler { _env.ep(), *this, &Main::_handle_config };
 
 	Ram_consumer _ram_consumer { _env.ram() };
 
-	Constructible<Resource_yield_handler> _resource_yield_handler;
+	Constructible<Resource_yield_handler> _resource_yield_handler { };
 
 	void _handle_config()
 	{
@@ -276,9 +276,9 @@ struct Dummy::Main
 		});
 	}
 
-	Constructible<Log_connections> _log_connections;
+	Constructible<Log_connections> _log_connections { };
 
-	Constructible<Log_service> _log_service;
+	Constructible<Log_service> _log_service { };
 
 	Main(Env &env) : _env(env)
 	{

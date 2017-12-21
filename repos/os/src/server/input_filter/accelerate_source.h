@@ -47,7 +47,7 @@ class Input_filter::Accelerate_source : public Source, Source::Sink
 				/* clamp parameter to valid range */
 				curve = min(255, max(0, curve));
 
-				auto fill_segment = [&] (long x1, long y1, long x2, long y2)
+				auto fill_segment = [&] (long x1, long y1, long x2, long /* y2 */)
 				{
 					for (long i = x1 >> 8; i <= (x2 >> 8); i++) values[i] = y1 >> 8;
 				};

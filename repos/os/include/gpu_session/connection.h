@@ -27,8 +27,8 @@ struct Gpu::Connection : Genode::Connection<Session>, Session_client
 	 *
 	 * \noapi
 	 */
-	Capability<Gpu::Session> _session(Genode::Parent &parent,
-	                                    char const *label, Genode::size_t quota)
+	Genode::Capability<Gpu::Session> _session(Genode::Parent &parent,
+	                                          char const *label, Genode::size_t quota)
 	{
 		return session(parent, "ram_quota=%ld, label=\"%s\"", quota, label);
 	}

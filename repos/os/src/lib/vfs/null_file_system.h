@@ -36,20 +36,19 @@ struct Vfs::Null_file_system : Single_file_system
 	struct Null_vfs_handle : Single_vfs_handle
 	{
 		Null_vfs_handle(Directory_service &ds,
-				        File_io_service   &fs,
-				        Genode::Allocator &alloc)
+		                File_io_service   &fs,
+		                Genode::Allocator &alloc)
 		: Single_vfs_handle(ds, fs, alloc, 0) { }
 
-		Read_result read(char *dst, file_size count,
-			             file_size &out_count) override
+		Read_result read(char *, file_size, file_size &out_count) override
 		{
 			out_count = 0;
 
 			return READ_OK;
 		}
 
-		Write_result write(char const *src, file_size count,
-			               file_size &out_count) override
+		Write_result write(char const *, file_size count,
+		                   file_size &out_count) override
 		{
 			out_count = count;
 
@@ -78,7 +77,7 @@ struct Vfs::Null_file_system : Single_file_system
 	 ** File I/O service interface **
 	 ********************************/
 
-	Ftruncate_result ftruncate(Vfs_handle *vfs_handle, file_size) override
+	Ftruncate_result ftruncate(Vfs_handle *, file_size) override
 	{
 		return FTRUNCATE_OK;
 	}

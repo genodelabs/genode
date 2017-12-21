@@ -44,10 +44,12 @@ class Genode::Log
 
 	private:
 
-		Lock    _lock;
-		void    _acquire(Type);
-		void    _release();
+		Lock _lock { };
+
 		Output &_output;
+
+		void _acquire(Type);
+		void _release();
 
 	public:
 

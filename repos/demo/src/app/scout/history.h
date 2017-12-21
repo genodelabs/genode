@@ -25,7 +25,7 @@ class Scout::History
 
 		static const int _size = 128;    /* history size */
 
-		int     _idx;                  /* current position in history       */
+		int     _idx = 0;              /* current position in history       */
 		Anchor *_history[_size];       /* ring buffer of history references */
 
 		/**
@@ -52,7 +52,6 @@ class Scout::History
 		 */
 		History()
 		{
-			_idx = 0;
 			memset(_history, 0, sizeof(_history));
 		}
 

@@ -107,7 +107,7 @@ struct Igd::Device
 	 */
 
 	template <typename T>
-	static Platform::Device::Access_size _access_size(T t)
+	static Platform::Device::Access_size _access_size(T)
 	{
 		switch (sizeof(T)) {
 			case 1:  return Platform::Device::ACCESS_8BIT;
@@ -208,7 +208,7 @@ struct Igd::Device
 	size_t                                           _res_size[PCI_NUM_RES];
 	Genode::Io_mem_dataspace_capability              _res_ds[PCI_NUM_RES];
 
-	Genode::Constructible<Genode::Irq_session_client> _irq;
+	Genode::Constructible<Genode::Irq_session_client> _irq { };
 
 	void _poke_pci_resource(unsigned const id)
 	{
@@ -246,7 +246,7 @@ struct Igd::Device
 		_config_write(PCI_CMD_REG, cmd);
 	}
 
-	Device_info _info;
+	Device_info _info { };
 
 	void _pci_info(char const *descr)
 	{
@@ -298,13 +298,13 @@ struct Igd::Device
 	 ** GGTT **
 	 **********/
 
-	Genode::Constructible<Igd::Ggtt> _ggtt;
+	Genode::Constructible<Igd::Ggtt> _ggtt { };
 
 	/**********
 	 ** MMIO **
 	 **********/
 
-	Genode::Constructible<Igd::Mmio> _mmio;
+	Genode::Constructible<Igd::Mmio> _mmio { };
 
 	/************
 	 ** MEMORY **
@@ -346,7 +346,7 @@ struct Igd::Device
 		virtual ~Ggtt_mmio_mapping() { }
 	};
 
-	Genode::Registry<Genode::Registered<Ggtt_mmio_mapping>> _ggtt_mmio_mapping_registry;
+	Genode::Registry<Genode::Registered<Ggtt_mmio_mapping>> _ggtt_mmio_mapping_registry { };
 
 	Ggtt_mmio_mapping const &_map_dataspace_ggtt(Genode::Allocator &alloc,
 	                                             Genode::Dataspace_capability cap,
@@ -485,8 +485,8 @@ struct Igd::Device
 		Ppgtt           *ppgtt;
 		Ppgtt_scratch   *ppgtt_scratch;
 
-		Genode::Constructible<CONTEXT>  context;
-		Genode::Constructible<Execlist> execlist;
+		Genode::Constructible<CONTEXT>  context  { };
+		Genode::Constructible<Execlist> execlist { };
 
 		Engine(uint32_t             id,
 		       Ram                  ctx_ds,
@@ -537,6 +537,14 @@ struct Igd::Device
 		uint64_t seqno() const {
 			Utils::clflush((uint32_t*)(ctx_vaddr + 0xc0));
 			return *(uint32_t*)(ctx_vaddr + 0xc0); }
+
+		private:
+
+			/*
+			 * Noncopyable
+			 */
+			Engine(Engine const &);
+			Engine &operator = (Engine const &);
 	};
 
 	void _fill_page(Genode::Ram_dataspace_capability ds, addr_t v)
@@ -637,7 +645,7 @@ struct Igd::Device
 
 		uint32_t active_fences { 0 };
 
-		Genode::Signal_context_capability _completion_sigh;
+		Genode::Signal_context_capability _completion_sigh { };
 
 		uint64_t _current_seqno { 0 };
 
@@ -840,7 +848,7 @@ struct Igd::Device
 	 ** SCHEDULING **
 	 ****************/
 
-	Genode::Fifo<Vgpu>  _vgpu_list;
+	Genode::Fifo<Vgpu>  _vgpu_list { };
 	Vgpu               *_active_vgpu { nullptr };
 
 	bool _vgpu_already_scheduled(Vgpu &vgpu) const
@@ -913,7 +921,7 @@ struct Igd::Device
 		_mmio->write_post<Mmio::GT_0_INTERRUPT_IIR>(v);
 	}
 
-	Vgpu *_last_scheduled;
+	Vgpu *_last_scheduled = nullptr;
 
 	void _notify_complete(Vgpu *gpu)
 	{
@@ -1313,6 +1321,14 @@ struct Igd::Device
 	{
 		_clear_fence(id);
 	}
+
+	private:
+
+		/*
+		 * Noncopyable
+		 */
+		Device(Device const &);
+		Device &operator = (Device const &);
 };
 
 
@@ -1343,7 +1359,7 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			enum { INVALID_FENCE = 0xff, };
 			Genode::uint32_t fenced;
 
-			Igd::Ggtt::Mapping map;
+			Igd::Ggtt::Mapping map { };
 
 			Buffer(Genode::Dataspace_capability cap)
 			: cap(cap), ppgtt_va(0), fenced(INVALID_FENCE) { }
@@ -1351,7 +1367,7 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			virtual ~Buffer() { }
 		};
 
-		Genode::Registry<Genode::Registered<Buffer>> _buffer_registry;
+		Genode::Registry<Genode::Registered<Buffer>> _buffer_registry { };
 
 		Genode::uint64_t seqno { 0 };
 
@@ -1432,8 +1448,7 @@ class Gpu::Session_component : public Genode::Session_object<Gpu::Session>
 			return Info(_device.id(), _device.features(), aperture_size, _vgpu.id());
 		}
 
-		void exec_buffer(Genode::Dataspace_capability cap,
-		                 Genode::size_t size) override
+		void exec_buffer(Genode::Dataspace_capability cap, Genode::size_t) override
 		{
 			Igd::addr_t ppgtt_va = 0;
 
@@ -1663,6 +1678,12 @@ class Gpu::Root : public Gpu::Root_component
 {
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Root(Root const &);
+		Root &operator = (Root const &);
+
 		Genode::Env &_env;
 		Igd::Device *_device;
 
@@ -1741,7 +1762,7 @@ struct Main
 	 *********/
 
 	Platform::Connection         _pci;
-	Platform::Device_capability  _pci_cap;
+	Platform::Device_capability  _pci_cap { };
 
 	Platform::Device_capability _find_gpu_device()
 	{
@@ -1837,7 +1858,7 @@ struct Main
 	Genode::Attached_rom_dataspace _config_rom { _env, "config" };
 
 	Genode::Heap                       _device_md_alloc;
-	Genode::Constructible<Igd::Device> _device;
+	Genode::Constructible<Igd::Device> _device { };
 
 	Main(Genode::Env &env)
 	:

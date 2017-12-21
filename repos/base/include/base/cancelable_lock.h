@@ -61,11 +61,12 @@ class Genode::Cancelable_lock
 		 * atomically. Hence, we use the additional spinlock here.
 		 */
 
-		volatile int _spinlock_state;
-		volatile int _state;
+		volatile int _spinlock_state = 0;
+		volatile int _state          = 0;
 
-		Applicant* volatile _last_applicant;
-		Applicant  _owner;
+		Applicant * volatile _last_applicant = nullptr;
+
+		Applicant _owner;
 
 	public:
 

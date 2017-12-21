@@ -14,13 +14,14 @@
 #ifndef _INCLUDE__PLATFORM_DEVICE__DEVICE_H_
 #define _INCLUDE__PLATFORM_DEVICE__DEVICE_H_
 
+#include <util/interface.h>
 #include <base/cache.h>
 #include <irq_session/capability.h>
 #include <io_mem_session/capability.h>
 
 namespace Platform { class Abstract_device; }
 
-struct Platform::Abstract_device
+struct Platform::Abstract_device : Genode::Interface
 {
 	/**
 	 * Get IRQ session capability

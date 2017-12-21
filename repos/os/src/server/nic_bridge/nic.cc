@@ -24,8 +24,8 @@ using namespace Net;
 
 
 bool Net::Nic::handle_arp(Ethernet_frame *eth, Genode::size_t size) {
-	Arp_packet *arp = new (eth->data<void>())
-		Arp_packet(size - sizeof(Ethernet_frame));
+	Arp_packet *arp = eth->data<Arp_packet>();
+	Arp_packet::validate_size(size - sizeof(Ethernet_frame));
 
 	/* ignore broken packets */
 	if (!arp->ethernet_ipv4())
@@ -66,19 +66,22 @@ bool Net::Nic::handle_arp(Ethernet_frame *eth, Genode::size_t size) {
 
 
 bool Net::Nic::handle_ip(Ethernet_frame *eth, Genode::size_t size) {
-	Ipv4_packet *ip = new (eth->data<void>())
-		Ipv4_packet(size - sizeof(Ethernet_frame));
+	Ipv4_packet *ip = eth->data<Ipv4_packet>();
+	Ipv4_packet::validate_size(size - sizeof(Ethernet_frame));
 
 	/* is it an UDP packet ? */
 	if (ip->protocol() == Ipv4_packet::Protocol::UDP)
 	{
-		Udp_packet *udp = new (ip->data<void>())
-			Udp_packet(size - sizeof(Ipv4_packet));
+		Udp_packet *udp = ip->data<Udp_packet>();
+		Udp_packet::validate_size(size - sizeof(Ethernet_frame)
+		                               - sizeof(Ipv4_packet));
 
 		/* is it a DHCP packet ? */
 		if (Dhcp_packet::is_dhcp(udp)) {
-			Dhcp_packet *dhcp = new (udp->data<void>())
-				Dhcp_packet(size - sizeof(Ipv4_packet) - sizeof(Udp_packet));
+			Dhcp_packet *dhcp = udp->data<Dhcp_packet>();
+			Dhcp_packet::validate_size(size - sizeof(Ethernet_frame)
+			                                - sizeof(Ipv4_packet)
+			                                - sizeof(Udp_packet));
 
 			/* check for DHCP ACKs containing new client ips */
 			if (dhcp->op() == Dhcp_packet::REPLY) {

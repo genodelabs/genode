@@ -58,6 +58,12 @@ class Genode::Ipc_unmarshaller : Noncopyable
 		char         *_rcv_buf      = (char *)_rcv_msg.data();
 		size_t const  _rcv_buf_size = _rcv_msg.capacity();
 
+		/*
+		 * Noncopyable
+		 */
+		Ipc_unmarshaller(Ipc_unmarshaller const &);
+		Ipc_unmarshaller &operator = (Ipc_unmarshaller const &);
+
 	public:
 
 		/**

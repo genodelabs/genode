@@ -36,6 +36,10 @@ class Genode::Native_utcb
 		 * dataspace but provided by the kernel.
 		 */
 		addr_t _utcb[UTCB_SIZE/sizeof(addr_t)];
+
+	public:
+
+		Native_utcb() { }
 };
 
 #endif /* _INCLUDE__BASE__INTERNAL__NATIVE_UTCB_H_ */

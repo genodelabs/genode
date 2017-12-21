@@ -107,7 +107,7 @@ class Genode::Pic : Mmio
 		struct Irq_disable_gpu_2  : Register<0x20, 32> { };
 		struct Irq_disable_basic  : Register<0x24, 32> { };
 
-		Usb_dwc_otg _usb;
+		Usb_dwc_otg _usb { };
 
 		/**
 		 * Return true if specified interrupt is pending

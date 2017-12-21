@@ -29,7 +29,7 @@ class Cpu_counter
 {
 	private:
 
-		Hw::Spin_lock _lock;
+		Hw::Spin_lock _lock { };
 		volatile int _value = 0;
 
 	public:

@@ -32,9 +32,12 @@ namespace Net {
 }
 
 
-struct Net::Permit_rule : Leaf_rule
+struct Net::Permit_rule : private Leaf_rule, public Genode::Interface
 {
 	Permit_rule(Domain_tree &domains, Genode::Xml_node const node);
+
+	using Leaf_rule::domain;
+	using Leaf_rule::Invalid;
 
 
 	/*********
@@ -58,10 +61,14 @@ struct Net::Permit_any_rule : Permit_rule
 };
 
 
-class Net::Permit_single_rule : public Permit_rule,
-                                public Genode::Avl_node<Permit_single_rule>
+class Net::Permit_single_rule : public  Permit_rule,
+                                private Genode::Avl_node<Permit_single_rule>
 {
 	private:
+
+		friend class Genode::Avl_node<Permit_single_rule>;
+		friend class Genode::Avl_tree<Permit_single_rule>;
+		friend class Net::Permit_single_rule_tree;
 
 		Port const _port;
 
@@ -95,9 +102,16 @@ class Net::Permit_single_rule : public Permit_rule,
 };
 
 
-struct Net::Permit_single_rule_tree : Genode::Avl_tree<Permit_single_rule>
+struct Net::Permit_single_rule_tree : private Genode::Avl_tree<Permit_single_rule>
 {
 	struct No_match : Genode::Exception { };
+
+	void insert(Permit_single_rule *rule)
+	{
+		Genode::Avl_tree<Permit_single_rule>::insert(rule);
+	}
+
+	using Genode::Avl_tree<Permit_single_rule>::first;
 
 	Permit_single_rule const &find_by_port(Port const port) const;
 };

@@ -69,12 +69,18 @@ class Fs_report::Session_component : public Genode::Rpc_object<Report::Session>
 {
 	private:
 
-		Path _leaf_path;
+		/*
+		 * Noncopyable
+		 */
+		Session_component(Session_component const &);
+		Session_component &operator = (Session_component const &);
+
+		Path _leaf_path { };
 
 		Attached_ram_dataspace  _ds;
 		Genode::Entrypoint     &_ep;
 
-		Vfs_handle *_handle;
+		Vfs_handle *_handle = nullptr;
 		file_size   _file_size = 0;
 		bool        _success = true;
 

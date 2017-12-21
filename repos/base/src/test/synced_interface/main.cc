@@ -37,11 +37,11 @@ struct Pseudo_lock
 
 struct Main
 {
-	Pseudo_lock                          lock;
-	Adder                                adder;
+	Pseudo_lock                          lock  { };
+	Adder                                adder { };
 	Synced_interface<Adder, Pseudo_lock> synced_adder { lock, &adder };
 
-	Main(Env &env)
+	Main(Env &)
 	{
 		log("--- Synced interface test ---");
 		int const res = synced_adder()->add(13, 14);

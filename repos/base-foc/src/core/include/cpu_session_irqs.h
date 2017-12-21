@@ -29,6 +29,12 @@ class Genode::Cpu_session_irqs : public Avl_node<Cpu_session_irqs>
 {
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Cpu_session_irqs(Cpu_session_irqs const &);
+		Cpu_session_irqs &operator = (Cpu_session_irqs const &);
+
 		enum { IRQ_MAX = 20 };
 
 		Cpu_session_component* _owner;

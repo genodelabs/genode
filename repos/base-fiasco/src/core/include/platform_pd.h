@@ -32,6 +32,12 @@ namespace Genode {
 	{
 		private:
 
+			/*
+			 * Noncopyable
+			 */
+			Platform_pd(Platform_pd const &);
+			Platform_pd &operator = (Platform_pd const &);
+
 			enum {
 				VERSION_BITS   = 10,
 				PD_FIRST       = 0x10,
@@ -41,10 +47,10 @@ namespace Genode {
 				THREAD_MAX     = (1 << 7),
 			};
 
-			unsigned _pd_id;    /* plain pd number */
-			unsigned _version;  /* version number */
+			unsigned _pd_id   = 0;
+			unsigned _version = 0;
 
-			Fiasco::l4_taskid_t _l4_task_id;  /* L4 task ID */
+			Fiasco::l4_taskid_t _l4_task_id { };  /* L4 task ID */
 
 
 			/**********************************************
@@ -154,7 +160,7 @@ namespace Genode {
 			/**
 			 * Register quota donation at allocator guard
 			 */
-			void upgrade_ram_quota(size_t ram_quota) { }
+			void upgrade_ram_quota(size_t) { }
 
 			/**
 			 * Initialize L4 task facility
@@ -178,7 +184,7 @@ namespace Genode {
 			/**
 			 * Assign parent interface to protection domain
 			 */
-			void assign_parent(Native_capability parent) { }
+			void assign_parent(Native_capability) { }
 
 			int pd_id() const { return _pd_id; }
 

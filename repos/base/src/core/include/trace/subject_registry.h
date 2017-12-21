@@ -54,9 +54,9 @@ class Genode::Trace::Subject
 		{
 			private:
 
-				Ram_session             *_ram;
-				size_t                   _size;
-				Ram_dataspace_capability _ds;
+				Ram_session             *_ram   { nullptr };
+				size_t                   _size  { 0 };
+				Ram_dataspace_capability _ds    { };
 
 				void _reset()
 				{
@@ -64,6 +64,12 @@ class Genode::Trace::Subject
 					_size = 0;
 					_ds   = Ram_dataspace_capability();
 				}
+
+				/*
+				 * Noncopyable
+				 */
+				Ram_dataspace(Ram_dataspace const &);
+				Ram_dataspace &operator = (Ram_dataspace const &);
 
 			public:
 
@@ -135,9 +141,9 @@ class Genode::Trace::Subject
 		Weak_ptr<Source>    _source;
 		Session_label const _label;
 		Thread_name   const _name;
-		Ram_dataspace       _buffer;
-		Ram_dataspace       _policy;
-		Policy_id           _policy_id;
+		Ram_dataspace       _buffer { };
+		Ram_dataspace       _policy { };
+		Policy_id           _policy_id { };
 
 		Subject_info::State _state()
 		{
@@ -284,9 +290,9 @@ class Genode::Trace::Subject_registry
 		Allocator       &_md_alloc;
 		Ram_session     &_ram;
 		Source_registry &_sources;
-		unsigned         _id_cnt;
-		Lock             _lock;
-		Subjects         _entries;
+		unsigned         _id_cnt  { 0 };
+		Lock             _lock    { };
+		Subjects         _entries { };
 
 		/**
 		 * Functor for testing the existance of subjects for a given source
@@ -306,7 +312,7 @@ class Genode::Trace::Subject_registry
 						return true;
 				return false;
 			}
-		} _tester;
+		} _tester { _entries };
 
 		/**
 		 * Functor for inserting new subjects into the registry
@@ -327,7 +333,7 @@ class Genode::Trace::Subject_registry
 
 				registry._entries.insert(subject);
 			}
-		} _inserter;
+		} _inserter { *this };
 
 		/**
 		 * Destroy subject, and release policy and trace buffers
@@ -372,8 +378,7 @@ class Genode::Trace::Subject_registry
 		Subject_registry(Allocator &md_alloc, Ram_session &ram,
 		                 Source_registry &sources)
 		:
-			_md_alloc(md_alloc), _ram(ram), _sources(sources), _id_cnt(0),
-			_tester(_entries), _inserter(*this)
+			_md_alloc(md_alloc), _ram(ram), _sources(sources)
 		{ }
 
 		/**
@@ -390,7 +395,7 @@ class Genode::Trace::Subject_registry
 		/**
 		 * \throw  Out_of_ram
 		 */
-		void import_new_sources(Source_registry &sources)
+		void import_new_sources(Source_registry &)
 		{
 			Lock guard(_lock);
 

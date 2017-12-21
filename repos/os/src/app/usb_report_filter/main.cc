@@ -70,11 +70,11 @@ class Usb_filter::Device_registry
 			: bus(b), dev(d), vendor(v), product(p) { }
 		};
 
-		Genode::List<Entry> _list;
+		Genode::List<Entry> _list { };
 
 		enum { MAX_LABEL_LEN = 512 };
 		typedef Genode::String<MAX_LABEL_LEN> Label;
-		Label _client_label;
+		Label _client_label { };
 
 		template <typename FUNC>
 		void _for_each_entry(FUNC const &func) const
@@ -124,7 +124,7 @@ class Usb_filter::Device_registry
 		}
 
 		static void _gen_policy_entry(Xml_generator &xml, Xml_node &node,
-		                        Entry const &entry, char const *label)
+		                        Entry const &, char const *label)
 		{
 			xml.node("policy", [&] {
 				char buf[MAX_LABEL_LEN + 16];
@@ -270,7 +270,7 @@ class Usb_filter::Device_registry
 		}
 
 		static void _gen_device_entry(Xml_generator &xml, Xml_node &node,
-		                              Entry const &entry)
+		                              Entry const &)
 		{
 			xml.node("device", [&] {
 				char buf[16];

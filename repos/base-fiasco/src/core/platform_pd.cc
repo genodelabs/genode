@@ -246,8 +246,7 @@ void Platform_pd::flush(addr_t, size_t size, Core_local_addr core_local_base)
 		               L4_FP_FLUSH_PAGE);
 }
 
-Platform_pd::Platform_pd(Allocator * md_alloc, char const *,
-                         signed pd_id, bool create)
+Platform_pd::Platform_pd(Allocator *, char const *, signed pd_id, bool create)
 {
 	/* check correct init */
 	if (!_init)

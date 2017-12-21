@@ -25,7 +25,7 @@
 static inline void thread_yield() { seL4_Yield(); }
 
 
-static inline void thread_switch_to(Genode::Thread *thread)
+static inline void thread_switch_to(Genode::Thread *)
 {
 	Genode::warning(__FUNCTION__, " not implemented");
 }

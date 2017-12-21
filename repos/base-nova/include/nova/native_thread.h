@@ -26,15 +26,15 @@ namespace Genode { struct Native_thread; }
 
 struct Genode::Native_thread
 {
-	enum { INVALID_INDEX = ~0UL };
+	static constexpr unsigned long INVALID_INDEX = ~0UL;
 
-	addr_t ec_sel;     /* selector for execution context */
-	addr_t exc_pt_sel; /* base of event portal window */
-	bool   vcpu;       /* true if thread is a virtual CPU */
-	addr_t initial_ip; /* initial IP of local thread */
+	addr_t ec_sel     { 0 };      /* selector for execution context */
+	addr_t exc_pt_sel { 0 };      /* base of event portal window */
+	bool   vcpu       { false };  /* true if thread is a virtual CPU */
+	addr_t initial_ip { 0 };      /* initial IP of local thread */
 
 	/* receive window for capability selectors received at the server side */
-	Receive_window server_rcv_window;
+	Receive_window server_rcv_window { };
 
 	/*
 	 * Designated selector to populate with the result of an IPC call
@@ -52,7 +52,7 @@ struct Genode::Native_thread
 
 	void reset_client_rcv_sel() { client_rcv_sel = INVALID_INDEX; }
 
-	Native_capability pager_cap;
+	Native_capability pager_cap { };
 
 	Native_thread() : ec_sel(INVALID_INDEX),
 	                  exc_pt_sel(INVALID_INDEX),

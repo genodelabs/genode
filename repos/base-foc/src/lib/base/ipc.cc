@@ -61,7 +61,7 @@ static inline bool ipc_error(l4_msgtag_t tag, bool print)
 }
 
 
-enum { INVALID_BADGE = ~0UL };
+static constexpr unsigned long INVALID_BADGE = ~0UL;
 
 
 /**
@@ -86,7 +86,7 @@ static unsigned long extract_msg_from_utcb(l4_msgtag_t     tag,
 {
 	unsigned num_msg_words = l4_msgtag_words(tag);
 
-	l4_mword_t const *msg_words = (l4_mword_t const *)l4_utcb_mr();
+	l4_umword_t const *msg_words = (l4_umword_t const *)l4_utcb_mr();
 
 	/* each message has at least the protocol word and the capability count */
 	if (num_msg_words < 2)
@@ -96,7 +96,7 @@ static unsigned long extract_msg_from_utcb(l4_msgtag_t     tag,
 	unsigned long const protocol_word = *msg_words++;
 
 	/* read number of capability arguments from second message word */
-	unsigned long const num_caps = min(*msg_words, Msgbuf_base::MAX_CAPS_PER_MSG);
+	size_t const num_caps = min(*msg_words, Msgbuf_base::MAX_CAPS_PER_MSG);
 	msg_words++;
 
 	num_msg_words -= 2;
@@ -259,7 +259,7 @@ static l4_msgtag_t copy_msgbuf_to_utcb(Msgbuf_base &snd_msg,
 
 Rpc_exception_code Genode::ipc_call(Native_capability dst,
                                     Msgbuf_base &snd_msg, Msgbuf_base &rcv_msg,
-                                    size_t rcv_caps)
+                                    size_t)
 {
 	Receive_window rcv_window;
 	rcv_window.init();
@@ -269,7 +269,7 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 	l4_msgtag_t const call_tag = copy_msgbuf_to_utcb(snd_msg, dst.local_name());
 
 	addr_t rcv_cap_sel = rcv_window.rcv_cap_sel_base();
-	for (int i = 0; i < Msgbuf_base::MAX_CAPS_PER_MSG; i++) {
+	for (size_t i = 0; i < Msgbuf_base::MAX_CAPS_PER_MSG; i++) {
 		l4_utcb_br()->br[i] = rcv_cap_sel | L4_RCV_ITEM_SINGLE_CAP;
 		rcv_cap_sel += L4_CAP_SIZE;
 	}
@@ -300,7 +300,7 @@ static bool badge_matches_label(unsigned long badge, unsigned long label)
 }
 
 
-void Genode::ipc_reply(Native_capability caller, Rpc_exception_code exc,
+void Genode::ipc_reply(Native_capability, Rpc_exception_code exc,
                        Msgbuf_base &snd_msg)
 {
 	l4_msgtag_t tag = copy_msgbuf_to_utcb(snd_msg, exc.value);
@@ -311,7 +311,7 @@ void Genode::ipc_reply(Native_capability caller, Rpc_exception_code exc,
 }
 
 
-Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &last_caller,
+Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &,
                                            Rpc_exception_code      exc,
                                            Msgbuf_base            &reply_msg,
                                            Msgbuf_base            &request_msg)
@@ -324,7 +324,7 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &last_caller,
 
 		/* prepare receive window in UTCB */
 		addr_t rcv_cap_sel = rcv_window.rcv_cap_sel_base();
-		for (int i = 0; i < Msgbuf_base::MAX_CAPS_PER_MSG; i++) {
+		for (size_t i = 0; i < Msgbuf_base::MAX_CAPS_PER_MSG; i++) {
 			l4_utcb_br()->br[i] = rcv_cap_sel | L4_RCV_ITEM_SINGLE_CAP;
 			rcv_cap_sel += L4_CAP_SIZE;
 		}

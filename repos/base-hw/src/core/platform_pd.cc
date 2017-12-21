@@ -149,7 +149,7 @@ Platform_pd::Platform_pd(Page_table & tt,
   _label("core") { }
 
 
-Platform_pd::Platform_pd(Allocator * md_alloc, char const *label)
+Platform_pd::Platform_pd(Allocator *, char const *label)
 : Hw::Address_space(*kernel_object()),
   Kernel_object<Kernel::Pd>(true, (Page_table*)translation_table_phys(), this),
   _label(label)

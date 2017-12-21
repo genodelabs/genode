@@ -29,7 +29,7 @@ typedef unsigned _Unwind_Ptr __attribute__((__mode__(__pointer__)));
  * Implemented in ldso
  * */
 extern "C" _Unwind_Ptr __attribute__((weak)) dl_unwind_find_exidx(_Unwind_Ptr pc, int *pcount);
-extern "C" _Unwind_Ptr dl_unwind_find_exidx(_Unwind_Ptr pc, int *pcount)
+extern "C" _Unwind_Ptr dl_unwind_find_exidx(_Unwind_Ptr /* pc */, int * /* pcount */)
 {
 	Genode::error("dl_unwind_find_exidx called");
 	return 0;

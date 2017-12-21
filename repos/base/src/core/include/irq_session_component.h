@@ -25,14 +25,22 @@
 
 namespace Genode { class Irq_session_component; }
 
-class Genode::Irq_session_component : public Rpc_object<Irq_session>,
-                                      public List<Irq_session_component>::Element
+class Genode::Irq_session_component : public  Rpc_object<Irq_session>,
+                                      private List<Irq_session_component>::Element
 {
 	private:
+
+		friend class List<Irq_session_component>;
 
 		unsigned         _irq_number;
 		Range_allocator *_irq_alloc;
 		Irq_object       _irq_object;
+
+		/*
+		 * Noncopyable
+		 */
+		Irq_session_component(Irq_session_component const &);
+		Irq_session_component &operator = (Irq_session_component const &);
 
 	public:
 

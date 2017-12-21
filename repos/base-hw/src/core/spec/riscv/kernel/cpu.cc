@@ -15,5 +15,5 @@
 #include <kernel/cpu.h>
 #include <hw/memory_map.h>
 
-void Kernel::Cpu::init(Kernel::Pic &pic) {
+void Kernel::Cpu::init(Kernel::Pic &) {
 	Stvec::write(Hw::Mm::supervisor_exception_vector().base); }

@@ -20,49 +20,55 @@ namespace Fiasco {
 #include <l4/sys/utcb.h>
 #include <l4/sys/task.h>
 
-	enum Cap_selectors {
+	/*********************************************
+	 ** Capability selectors controlled by core **
+	 *********************************************/
 
-		/*********************************************
-		 ** Capability selectors controlled by core **
-		 *********************************************/
+	/* use the same task cap selector like L4Re for compatibility in L4Linux */
+	static constexpr l4_cap_idx_t TASK_CAP = L4_BASE_TASK_CAP;
 
-		TASK_CAP         = L4_BASE_TASK_CAP, /* use the same task cap selector
-		                                        like L4Re for compatibility in
-		                                        L4Linux */
-		DEBUG_CAP        = L4_BASE_DEBUGGER_CAP,
+	static constexpr l4_cap_idx_t DEBUG_CAP = L4_BASE_DEBUGGER_CAP;
 
-		/*
-		 * To not clash with other L4Re cap selector constants (e.g.: L4Linux)
-		 * leave the following selectors (2-8) empty
-		 */
+	/*
+	 * To not clash with other L4Re cap selector constants (e.g.: L4Linux)
+	 * leave the following selectors (2-8) empty
+	 */
 
-		PARENT_CAP       = 0xbUL   << L4_CAP_SHIFT, /* cap to parent session */
+	/* cap to parent session */
+	static constexpr l4_cap_idx_t PARENT_CAP = 0xbUL << L4_CAP_SHIFT;
 
-		/*
-		 * Each thread has a designated slot in the core controlled cap
-		 * selector area, where its ipc gate capability (for server threads),
-		 * its irq capability (for locks), and the capability to its pager
-		 * gate are stored
-		 */
-		THREAD_AREA_BASE = 0xcUL   << L4_CAP_SHIFT, /* offset to thread area */
-		THREAD_AREA_SLOT = 0x3UL   << L4_CAP_SHIFT, /* size of one thread slot */
-		THREAD_GATE_CAP  = 0,                       /* offset to the ipc gate
-		                                               cap selector in the slot */
-		THREAD_PAGER_CAP = 0x1UL   << L4_CAP_SHIFT, /* offset to the pager
-		                                               cap selector in the slot */
-		THREAD_IRQ_CAP   = 0x2UL   << L4_CAP_SHIFT, /* offset to the irq cap
-		                                               selector in the slot */
-		MAIN_THREAD_CAP  = THREAD_AREA_BASE + THREAD_GATE_CAP, /* shortcut to the
-		                                                          main thread's
-		                                                          gate cap */
+	/*
+	 * Each thread has a designated slot in the core controlled cap
+	 * selector area, where its ipc gate capability (for server threads),
+	 * its irq capability (for locks), and the capability to its pager
+	 * gate are stored
+	 */
+
+	/* offset to thread area */
+	static constexpr l4_cap_idx_t THREAD_AREA_BASE = 0xcUL << L4_CAP_SHIFT;
+
+	/* size of one thread slot */
+	static constexpr l4_cap_idx_t THREAD_AREA_SLOT = 0x3UL << L4_CAP_SHIFT;
+
+	/* offset to the ipc gate cap selector in the slot */
+	static constexpr l4_cap_idx_t THREAD_GATE_CAP  = 0;
+
+	/* offset to the pager cap selector in the slot */
+	static constexpr l4_cap_idx_t THREAD_PAGER_CAP = 0x1UL << L4_CAP_SHIFT;
+
+	/* offset to the irq cap selector in the slot */
+	static constexpr l4_cap_idx_t THREAD_IRQ_CAP = 0x2UL << L4_CAP_SHIFT;
+
+	/* shortcut to the main thread's gate cap */
+	static constexpr l4_cap_idx_t MAIN_THREAD_CAP = THREAD_AREA_BASE
+	                                              + THREAD_GATE_CAP;
 
 
-		/*********************************************************
-		 ** Capability seclectors controlled by the task itself **
-		 *********************************************************/
+	/*********************************************************
+	 ** Capability seclectors controlled by the task itself **
+	 *********************************************************/
 
-		USER_BASE_CAP    = 0x200UL << L4_CAP_SHIFT,
-	};
+	static constexpr l4_cap_idx_t USER_BASE_CAP = 0x200UL << L4_CAP_SHIFT;
 
 	struct Capability
 	{

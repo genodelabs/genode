@@ -89,7 +89,7 @@ class Platform::Session_component : public Genode::Rpc_object<Platform::Session>
 			};
 		}
 
-		void clock_rate(Device dev, unsigned long rate)
+		void clock_rate(Device dev, unsigned long /* rate */)
 		{
 			switch (dev) {
 			default:
@@ -121,7 +121,7 @@ class Platform::Root : public Genode::Root_component<Platform::Session_component
 
 	protected:
 
-		Session_component *_create_session(const char *args) {
+		Session_component *_create_session(const char *) {
 			return new (md_alloc()) Session_component(_iim, _iomux, _ccm, _src); }
 
 	public:

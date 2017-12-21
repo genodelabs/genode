@@ -42,7 +42,7 @@ namespace Nitpicker {
 }
 
 
-struct Nitpicker::Visibility_controller
+struct Nitpicker::Visibility_controller : Interface
 {
 	typedef Session::Label Suffix;
 
@@ -52,12 +52,20 @@ struct Nitpicker::Visibility_controller
 };
 
 
-class Nitpicker::Session_component : public Rpc_object<Session>,
-                                     public View_owner,
-                                     public Buffer_provider,
-                                     public Session_list::Element
+class Nitpicker::Session_component : public  Rpc_object<Session>,
+                                     public  View_owner,
+                                     public  Buffer_provider,
+                                     private Session_list::Element
 {
 	private:
+
+		friend class List<Session_component>;
+
+		/*
+		 * Noncopyable
+		 */
+		Session_component(Session_component const &);
+		Session_component &operator = (Session_component const &);
 
 		Env &_env;
 
@@ -93,13 +101,13 @@ class Nitpicker::Session_component : public Rpc_object<Session>,
 
 		Focus_controller &_focus_controller;
 
-		Signal_context_capability _mode_sigh;
+		Signal_context_capability _mode_sigh { };
 
 		View_component &_pointer_origin;
 
 		View_component &_builtin_background;
 
-		List<Session_view_list_elem> _view_list;
+		List<Session_view_list_elem> _view_list { };
 
 		Tslab<View_component, 4000> _view_alloc { &_session_alloc };
 
@@ -195,6 +203,8 @@ class Nitpicker::Session_component : public Rpc_object<Session>,
 
 			_release_buffer();
 		}
+
+		using Session_list::Element::next;
 
 
 		/**************************

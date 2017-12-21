@@ -71,7 +71,7 @@ static class Msi_allocator : public Genode::Bit_array<MAX_MSIS>
 		Msi_allocator() {
 			using namespace Fiasco;
 
-			l4_icu_info_t info { .features = 0 };
+			l4_icu_info_t info { .features = 0, .nr_irqs = 0, .nr_msis = 0 };
 			l4_msgtag_t res = l4_icu_info(Fiasco::L4_BASE_ICU_CAP, &info);
 
 			if (l4_error(res) || !(info.features & L4_ICU_FLAG_MSI))
@@ -182,7 +182,7 @@ Genode::Irq_object::~Irq_object()
 Irq_session_component::Irq_session_component(Range_allocator *irq_alloc,
                                              const char      *args)
 : _irq_number(Arg_string::find_arg(args, "irq_number").long_value(-1)),
-  _irq_alloc(irq_alloc)
+  _irq_alloc(irq_alloc), _irq_object()
 {
 	long msi = Arg_string::find_arg(args, "device_config_phys").long_value(0);
 	if (msi) {
@@ -230,7 +230,7 @@ void Irq_session_component::sigh(Genode::Signal_context_capability cap)
 Genode::Irq_session::Info Irq_session_component::info()
 {
 	if (!_irq_object.msi_address())
-		return { .type = Genode::Irq_session::Info::Type::INVALID };
+		return { .type = Info::Type::INVALID, .address = 0, .value = 0 };
 
 	return {
 		.type    = Genode::Irq_session::Info::Type::MSI,

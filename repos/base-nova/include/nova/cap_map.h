@@ -32,9 +32,9 @@ namespace Genode {
 
 		private:
 
-			Lock   _lock;
-			addr_t _base;
-			addr_t _last;
+			Lock   _lock { };
+			addr_t _base = 0;
+			addr_t _last = 0;
 
 			enum {
 				HEADER = sizeof(_base) + sizeof(_lock) + sizeof(_last),
@@ -49,8 +49,8 @@ namespace Genode {
 
 		public:
 
-			Cap_range(addr_t base) : _base(base), _last(0) {
-
+			Cap_range(addr_t base) : _base(base)
+			{
 				static_assert(sizeof(*this) == CAP_RANGE_SIZE,
 				              "Cap_range misconfigured");
 
@@ -58,8 +58,8 @@ namespace Genode {
 					_cap_array[i] = 0;
 			}
 
-			addr_t const base() const { return _base; }
-			unsigned const elements() { return sizeof(_cap_array) / sizeof(_cap_array[0]); }
+			addr_t   base()     const { return _base; }
+			unsigned elements() const { return sizeof(_cap_array) / sizeof(_cap_array[0]); }
 
 			Cap_range *find_by_id(addr_t);
 
@@ -109,7 +109,7 @@ namespace Genode {
 	{
 		private:
 
-			Avl_tree<Cap_range> _tree;
+			Avl_tree<Cap_range> _tree { };
 
 		public:
 

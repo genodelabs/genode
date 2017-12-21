@@ -28,7 +28,7 @@ namespace Scout {
 }
 
 
-struct Scout::Texture_allocator
+struct Scout::Texture_allocator : Genode::Interface
 {
 	virtual Texture_base *alloc_texture(Area size, bool alpha) = 0;
 

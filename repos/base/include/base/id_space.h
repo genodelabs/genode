@@ -85,7 +85,7 @@ class Genode::Id_space : public Noncopyable
 					_obj(obj), _id_space(id_space)
 				{
 					Lock::Guard guard(_id_space._lock);
-					_id = id_space._unused_id(*this);
+					_id = id_space._unused_id();
 					_id_space._elements.insert(this);
 				}
 
@@ -99,7 +99,7 @@ class Genode::Id_space : public Noncopyable
 					_obj(obj), _id_space(id_space), _id(id)
 				{
 					Lock::Guard guard(_id_space._lock);
-					_id_space._check_conflict(*this, id);
+					_id_space._check_conflict(id);
 					_id_space._elements.insert(this);
 				}
 
@@ -121,8 +121,8 @@ class Genode::Id_space : public Noncopyable
 
 	private:
  
-		Lock mutable      _lock;       /* protect '_elements' and '_cnt' */
-		Avl_tree<Element> _elements;
+		Lock mutable      _lock     { };   /* protect '_elements' and '_cnt' */
+		Avl_tree<Element> _elements { };
 		unsigned long     _cnt = 0;
 
 		/**
@@ -131,7 +131,7 @@ class Genode::Id_space : public Noncopyable
 		 * \return ID assigned to the element within the ID space
 		 * \throw  Out_of_ids
 		 */
-		Id _unused_id(Element &e)
+		Id _unused_id()
 		{
 			unsigned long _attempts = 0;
 			for (; _attempts < ~0UL; _attempts++, _cnt++) {
@@ -152,7 +152,7 @@ class Genode::Id_space : public Noncopyable
 		 *
 		 * \throw  Conflicting_id
 		 */
-		void _check_conflict(Element &e, Id id)
+		void _check_conflict(Id id)
 		{
 			if (_elements.first() && _elements.first()->_lookup(id))
 				throw Conflicting_id();

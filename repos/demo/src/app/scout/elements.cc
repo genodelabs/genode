@@ -222,13 +222,14 @@ void Parent_element::flush_cache(Canvas_base &canvas)
  ***********/
 
 Token::Token(Style *style, const char *str, int len)
+:
+	_str(str),
+	_len(len),
+	_style(style),
+	_col(_style ? _style->color : Color(0, 0, 0)),
+	_outline(Color(0, 0, 0, 0))
 {
-	_str               = str;
-	_len               = len;
-	_style             = style;
 	_flags.takes_focus = 0;
-	_col               = _style ? _style->color : Color(0, 0, 0);
-	_outline           = Color(0, 0, 0, 0);
 
 	if (!_style) return;
 	_min_size = Area(_style->font->str_w(str, len) + _style->font->str_w(" ", 1),

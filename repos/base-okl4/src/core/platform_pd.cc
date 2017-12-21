@@ -20,11 +20,8 @@
 #include <platform_thread.h>
 #include <platform.h>
 
-/* OKL4 includes */
-namespace Okl4 { extern "C" {
-#include <l4/config.h>
-#include <l4/ipc.h>
-} }
+/* base-internal includes */
+#include <base/internal/okl4.h>
 
 using namespace Genode;
 
@@ -296,8 +293,7 @@ void Platform_pd::flush(addr_t addr, size_t size, Core_local_addr)
 }
 
 
-Platform_pd::Platform_pd(bool core)
-: _space_pager(0)
+Platform_pd::Platform_pd(bool) : _space_pager(0)
 {
 	/* init remainder */
 	Pd_alloc free(false, true);
@@ -311,8 +307,7 @@ Platform_pd::Platform_pd(bool core)
 }
 
 
-Platform_pd::Platform_pd(Allocator *, char const *label)
-: _space_pager(0)
+Platform_pd::Platform_pd(Allocator *, char const *)
 {
 	_init_threads();
 

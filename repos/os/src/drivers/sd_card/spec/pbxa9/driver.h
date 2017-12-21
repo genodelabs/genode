@@ -34,6 +34,12 @@ class Sd_card::Driver : public  Block::Driver, private Attached_mmio
 {
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Driver(Driver const &);
+		Driver &operator = (Driver const &);
+
 		enum Register {
 			Power      = 0x000,  /* power control */
 			Argument   = 0x008,  /* argument for command */

@@ -26,7 +26,7 @@ using namespace Genode;
 
 struct Main
 {
-	enum { REQ_PARALLEL = 10 };
+	static constexpr Block::sector_t REQ_PARALLEL = 10;
 
 	using  File_name           = String<64>;
 	using  Packet_descriptor   = Block::Packet_descriptor;

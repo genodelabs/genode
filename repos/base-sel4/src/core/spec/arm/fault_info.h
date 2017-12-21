@@ -24,7 +24,7 @@ struct Fault_info
 		DFSR_WRITE_FAULT = 1UL << 11
 	};
 
-	Fault_info(seL4_MessageInfo_t msg_info)
+	Fault_info(seL4_MessageInfo_t)
 	:
 		ip(seL4_GetMR(0)),
 		pf(seL4_GetMR(1)),

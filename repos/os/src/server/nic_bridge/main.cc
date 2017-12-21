@@ -31,7 +31,7 @@ struct Main
 	Genode::Entrypoint             &ep     { env.ep() };
 	Genode::Heap                    heap   { env.ram(), env.rm() };
 	Genode::Attached_rom_dataspace  config { env, "config" };
-	Net::Vlan                       vlan;
+	Net::Vlan                       vlan   { };
 	Net::Nic                        nic    { env, heap, vlan };
 	Net::Root                       root   { env, nic, heap, config.xml() };
 

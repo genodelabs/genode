@@ -27,9 +27,9 @@ enum { UARTS_NUM = 4 }; /* needed by base class definitions */
 /* local includes */
 #include <uart_driver_base.h>
 
-class Uart::Driver : public Genode::Attached_io_mem_dataspace,
-                     public Genode::Tl16c750_uart,
-                     public Uart::Driver_base
+class Uart::Driver : private Genode::Attached_io_mem_dataspace,
+                     private Genode::Tl16c750_uart,
+                     public  Uart::Driver_base
 {
 	private:
 

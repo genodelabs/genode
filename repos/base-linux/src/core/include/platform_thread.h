@@ -45,8 +45,8 @@ namespace Genode {
 
 			struct Registry
 			{
-				Lock                  _lock;
-				List<Platform_thread> _list;
+				Lock                  _lock { };
+				List<Platform_thread> _list { };
 
 				void insert(Platform_thread *thread);
 				void remove(Platform_thread *thread);
@@ -62,27 +62,27 @@ namespace Genode {
 			 */
 			static Registry *_registry();
 
-			unsigned long _tid;
-			unsigned long _pid;
-			char          _name[32];
+			unsigned long _tid = -1;
+			unsigned long _pid = -1;
+			char          _name[32] { };
 
 			/**
 			 * Unix-domain socket pair bound to the thread
 			 */
-			Socket_pair _socket_pair;
+			Socket_pair _socket_pair { };
 
 			/*
 			 * Dummy pager object that is solely used for storing the
 			 * 'Signal_context_capability' for the thread's exception handler.
 			 */
-			Pager_object _pager;
+			Pager_object _pager { };
 
 		public:
 
 			/**
 			 * Constructor
 			 */
-			Platform_thread(size_t, const char *name, unsigned priority, 
+			Platform_thread(size_t, const char *name, unsigned priority,
 			                Affinity::Location, addr_t);
 
 			~Platform_thread();
@@ -112,7 +112,7 @@ namespace Genode {
 			 */
 			Pager_object *pager() { return &_pager; }
 			void          pager(Pager_object *) { }
-			int           start(void *ip, void *sp) { return 0; }
+			int           start(void *, void *) { return 0; }
 
 			Thread_state state()
 			{
@@ -170,7 +170,7 @@ namespace Genode {
 			/**
 			 * Set CPU quota of the thread to 'quota'
 			 */
-			void quota(size_t const quota) { /* not supported*/ }
+			void quota(size_t const) { /* not supported*/ }
 
 			/**
 			 * Return execution time consumed by the thread

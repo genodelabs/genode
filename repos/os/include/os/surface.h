@@ -16,6 +16,7 @@
 
 #include <util/geometry.h>
 #include <util/color.h>
+#include <util/interface.h>
 
 namespace Genode {
 
@@ -31,6 +32,14 @@ namespace Genode {
  */
 class Genode::Surface_base
 {
+	private:
+
+		/*
+		 * Noncopyable
+		 */
+		Surface_base(Surface_base const &);
+		Surface_base &operator = (Surface_base const &);
+
 	public:
 
 		typedef Genode::Point<> Point;
@@ -40,7 +49,7 @@ class Genode::Surface_base
 
 		enum Pixel_format { UNKNOWN, RGB565, RGB888, ALPHA8 };
 
-		struct Flusher
+		struct Flusher : Interface
 		{
 			virtual void flush_pixels(Rect rect) = 0;
 		};
@@ -105,6 +114,14 @@ class Genode::Surface_base
 template <typename PT>
 class Genode::Surface : public Surface_base
 {
+	private:
+
+		/*
+		 * Noncopyable
+		 */
+		Surface(Surface const &);
+		Surface &operator = (Surface const &);
+
 	protected:
 
 		PT *_addr;   /* base address of pixel buffer   */

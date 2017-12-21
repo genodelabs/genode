@@ -38,7 +38,7 @@ Permit_rule::Permit_rule(Domain_tree &domains, Xml_node const node)
 
 void Permit_any_rule::print(Output &output) const
 {
-	Genode::print(output, "requests to ", _domain);
+	Genode::print(output, "requests to ", domain());
 }
 
 
@@ -60,7 +60,7 @@ bool Permit_single_rule::higher(Permit_single_rule *rule)
 
 void Permit_single_rule::print(Output &output) const
 {
-	Genode::print(output, "port ", _port, " requests to ", _domain);
+	Genode::print(output, "port ", _port, " requests to ", domain());
 }
 
 

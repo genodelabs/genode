@@ -33,6 +33,7 @@ namespace Cli_monitor {
 	using Genode::strcmp;
 	using Genode::size_t;
 	using Genode::off_t;
+	using Genode::Interface;
 
 	struct Completable;
 	struct Argument;
@@ -107,20 +108,29 @@ struct Cli_monitor::Parameter : List<Parameter>::Element, Completable
 /**
  * Representation of a command that can have arguments and parameters
  */
-struct Cli_monitor::Command : List<Command>::Element, Completable
+struct Cli_monitor::Command : private List<Command>::Element,
+                              private Completable
 {
-	List<Parameter> _parameters;
+	List<Parameter> _parameters { };
+
+	friend class List<Command>;
+
+	using List<Command>::Element::next;
+	using Completable::name;
+	using Completable::short_help;
 
 	/**
 	 * Functor that takes a command 'Argument' object as argument
 	 */
-	struct Argument_fn
+	struct Argument_fn : Interface
 	{
 		virtual void operator () (Argument const &) const = 0;
 	};
 
 	Command(char const *name, char const *short_help)
 	: Completable(name, short_help) { }
+
+	virtual ~Command() { }
 
 	void add_parameter(Parameter &par) { _parameters.insert(&par); }
 
@@ -133,7 +143,7 @@ struct Cli_monitor::Command : List<Command>::Element, Completable
 	/**
 	 * Command-specific support for 'for_each_argument'
 	 */
-	virtual void _for_each_argument(Argument_fn const &fn) const { };
+	virtual void _for_each_argument(Argument_fn const &) const { };
 
 	/**
 	 * Execute functor 'fn' for each command argument
@@ -305,10 +315,10 @@ class Cli_monitor::Line_editor
 		size_t      const  _prompt_len;
 		char      * const  _buf;
 		size_t      const  _buf_size;
-		unsigned           _cursor_pos;
+		unsigned           _cursor_pos = 0;
 		Terminal::Session &_terminal;
 		Command_registry  &_commands;
-		bool               _complete;
+		bool               _complete = false;
 
 		/**
 		 * State tracker for escape sequences within user input
@@ -317,11 +327,11 @@ class Cli_monitor::Line_editor
 		 */
 		struct Seq_tracker
 		{
-			enum State { INIT, GOT_ESC, GOT_FIRST } _state;
-			char _normal, _first, _second;
-			bool _sequence_complete;
+			enum State { INIT, GOT_ESC, GOT_FIRST } _state = INIT;
+			char _normal = 0, _first = 0, _second = 0;
+			bool _sequence_complete { false };
 
-			Seq_tracker() : _state(INIT), _sequence_complete(false) { }
+			Seq_tracker() { }
 
 			void input(char c)
 			{
@@ -365,7 +375,7 @@ class Cli_monitor::Line_editor
 			bool key_delete() const { return _fn_complete(91, 51); }
 		};
 
-		Seq_tracker _seq_tracker;
+		Seq_tracker _seq_tracker { };
 
 		void _write(char c) { _terminal.write(&c, sizeof(c)); }
 

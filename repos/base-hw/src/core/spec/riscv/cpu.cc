@@ -69,7 +69,7 @@ void Genode::Cpu::switch_to(Mmu_context & context)
 }
 
 
-void Genode::Cpu::mmu_fault(Context & c, Kernel::Thread_fault & f)
+void Genode::Cpu::mmu_fault(Context &, Kernel::Thread_fault & f)
 {
 	f.addr = Genode::Cpu::Sbadaddr::read();
 	f.type = Kernel::Thread_fault::PAGE_MISSING;

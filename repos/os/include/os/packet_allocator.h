@@ -31,12 +31,18 @@ class Genode::Packet_allocator : public Genode::Range_allocator
 {
 	private:
 
-		Allocator      *_md_alloc;   /* meta-data allocator                 */
-		size_t          _block_size; /* granularity of packet allocations   */
-		void           *_bits;       /* memory chunk containing the bits    */
-		Bit_array_base *_array;      /* bit array managing available blocks */
-		addr_t          _base;       /* allocation base                     */
-		addr_t          _next;       /* next free bit index                 */
+		/*
+		 * Noncopyable
+		 */
+		Packet_allocator(Packet_allocator const &);
+		Packet_allocator &operator = (Packet_allocator const &);
+
+		Allocator      *_md_alloc;         /* meta-data allocator                 */
+		size_t          _block_size;       /* granularity of packet allocations   */
+		void           *_bits  = nullptr;  /* memory chunk containing the bits    */
+		Bit_array_base *_array = nullptr;  /* bit array managing available blocks */
+		addr_t          _base = 0;         /* allocation base                     */
+		addr_t          _next = 0;         /* next free bit index                 */
 
 		/*
 		 * Returns the count of blocks fitting the given size
@@ -59,8 +65,7 @@ class Genode::Packet_allocator : public Genode::Range_allocator
 		 * \param block_size     Granularity of packets in stream
 		 */
 		Packet_allocator(Allocator *md_alloc, size_t block_size)
-		: _md_alloc(md_alloc), _block_size(block_size), _bits(0),
-		  _array(nullptr), _base(0) {}
+		: _md_alloc(md_alloc), _block_size(block_size) { }
 
 
 		/*******************************
@@ -139,7 +144,7 @@ class Genode::Packet_allocator : public Genode::Range_allocator
 		 *************/
 
 		bool need_size_for_free() const override { return false; }
-		void free(void *addr) override { }
+		void free(void *) override { }
 		size_t overhead(size_t) const override {  return 0;}
 		size_t avail() const override { return 0; }
 		bool valid_addr(addr_t) const override { return 0; }

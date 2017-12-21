@@ -14,6 +14,7 @@
 #ifndef _INCLUDE__BASE__ALLOCATOR_H_
 #define _INCLUDE__BASE__ALLOCATOR_H_
 
+#include <util/interface.h>
 #include <base/stdint.h>
 #include <base/exception.h>
 #include <base/quota_guard.h>
@@ -31,7 +32,7 @@ namespace Genode {
 /**
  * Deallocator interface
  */
-struct Genode::Deallocator
+struct Genode::Deallocator : Interface
 {
 	/**
 	 * Free block a previously allocated block

@@ -121,9 +121,15 @@ class Usb::Alternate_interface : public Interface_descriptor,
 		enum { MAX_ENDPOINTS = 16 };
 		Endpoint *_endpoints[MAX_ENDPOINTS];
 
+		/*
+		 * Noncopyable
+		 */
+		Alternate_interface(Alternate_interface const &);
+		Alternate_interface &operator = (Alternate_interface const &);
+
 	public:
 
-		String interface_string;
+		String interface_string { };
 
 		Alternate_interface(Interface_descriptor &interface_desc,
 		          Meta_data &md)
@@ -366,12 +372,18 @@ class Usb::Config : public Config_descriptor,
 
 		enum { MAX_INTERFACES = 32 };
 
+		/*
+		 * Noncopyable
+		 */
+		Config(Config const &);
+		Config &operator = (Config const &);
+
 		Interface *_interfaces[MAX_INTERFACES];
 		unsigned   _total_interfaces = 0;
 
 	public:
 
-		String config_string;
+		String config_string { };
 
 		Config(Config_descriptor &config_desc, Meta_data &md)
 		: Config_descriptor(config_desc), Meta_data(md)
@@ -433,6 +445,12 @@ class Usb::Device : public Meta_data
 {
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Device(Device const &);
+		Device &operator = (Device const &);
+
 		Packet_handler _handler;
 
 		void _clear()
@@ -457,12 +475,13 @@ class Usb::Device : public Meta_data
 			SPEED_SUPER,                        /* usb 3.0 */
 		};
 
-		Device_descriptor device_descr;
-		Config           *config = nullptr;
+		Device_descriptor device_descr { };
 
-		String manufactorer_string;
-		String product_string;
-		String serial_number_string;
+		Config *config = nullptr;
+
+		String manufactorer_string  { };
+		String product_string       { };
+		String serial_number_string { };
 
 		Device(Genode::Allocator * const md_alloc, Connection &connection,
 		       Genode::Entrypoint &ep)

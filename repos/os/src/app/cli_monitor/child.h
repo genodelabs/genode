@@ -23,8 +23,12 @@
 namespace Cli_monitor { struct Child; }
 
 
-struct Cli_monitor::Child : Child_base, List<Child>::Element
+struct Cli_monitor::Child : Child_base, private List<Child>::Element
 {
+	friend class List<Child>;
+
+	using List<Child>::Element::next;
+
 	Argument argument;
 
 	Child(Ram                              &ram,

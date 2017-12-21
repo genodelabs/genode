@@ -160,16 +160,7 @@ void Trace::Logger::init(Thread_capability thread, Cpu_session *cpu_session,
 }
 
 
-Trace::Logger::Logger()
-:
-	cpu(nullptr),
-	control(nullptr),
-	enabled(false),
-	policy_version(0),
-	policy_module(0),
-	max_event_size(0),
-	pending_init(false)
-{ }
+Trace::Logger::Logger() { }
 
 
 /************

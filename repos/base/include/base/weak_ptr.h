@@ -42,8 +42,9 @@ class Genode::Weak_ptr_base : public Genode::List<Weak_ptr_base>::Element
 		friend class Weak_object_base;
 		friend class Locked_ptr_base;
 
-		Lock mutable      _lock;
-		Weak_object_base *_obj;
+		Lock mutable _lock { };
+
+		Weak_object_base *_obj { nullptr };
 
 		/*
 		 * This lock is used to synchronize destruction of a weak pointer
@@ -54,6 +55,8 @@ class Genode::Weak_ptr_base : public Genode::List<Weak_ptr_base>::Element
 		inline void _adopt(Weak_object_base *obj);
 		inline void _disassociate();
 
+		Weak_ptr_base(Weak_ptr_base const &);
+
 	protected:
 
 		explicit inline Weak_ptr_base(Weak_object_base *obj);
@@ -63,14 +66,14 @@ class Genode::Weak_ptr_base : public Genode::List<Weak_ptr_base>::Element
 		/**
 		 * Default constructor, produces invalid pointer
 		 */
-		inline Weak_ptr_base();
+		Weak_ptr_base() { }
 
 		inline ~Weak_ptr_base();
 
 		/**
 		 * Assignment operator
 		 */
-		inline void operator = (Weak_ptr_base const &other);
+		inline Weak_ptr_base &operator = (Weak_ptr_base const &other);
 
 		/**
 		 * Test for equality
@@ -106,8 +109,8 @@ class Genode::Weak_object_base
 		/**
 		 * List of weak pointers currently pointing to the object
 		 */
-		Lock                _list_lock;
-		List<Weak_ptr_base> _list;
+		Lock                _list_lock { };
+		List<Weak_ptr_base> _list      { };
 
 		/**
 		 * Buffers dequeued weak pointer that get invalidated currently
@@ -117,7 +120,7 @@ class Genode::Weak_object_base
 		/**
 		 * Lock to synchronize access to object
 		 */
-		Lock _lock;
+		Lock _lock { };
 
 	protected:
 
@@ -221,9 +224,17 @@ class Genode::Weak_object_base
 
 class Genode::Locked_ptr_base
 {
+	private:
+
+		/*
+		 * Noncopyable
+		 */
+		Locked_ptr_base(Locked_ptr_base const &);
+		Locked_ptr_base &operator = (Locked_ptr_base const &);
+
 	protected:
 
-		Weak_object_base *curr;
+		Weak_object_base *curr = nullptr;
 
 		/**
 		 * Constructor
@@ -268,9 +279,10 @@ struct Genode::Weak_ptr : Genode::Weak_ptr_base
 	/**
 	 * Assignment operator
 	 */
-	inline void operator = (Weak_ptr<T> const &other)
+	inline Weak_ptr &operator = (Weak_ptr<T> const &other)
 	{
 		*static_cast<Weak_ptr_base *>(this) = other;
+		return *this;
 	}
 };
 
@@ -387,20 +399,19 @@ Genode::Weak_ptr_base::Weak_ptr_base(Genode::Weak_object_base *obj)
 }
 
 
-Genode::Weak_ptr_base::Weak_ptr_base() : _obj(nullptr) { }
-
-
-void Genode::Weak_ptr_base::operator = (Weak_ptr_base const &other)
+Genode::Weak_ptr_base &
+Genode::Weak_ptr_base::operator = (Weak_ptr_base const &other)
 {
 	/* self assignment */
 	if (&other == this)
-		return;
+		return *this;
 
 	_disassociate();
 	{
 		Lock::Guard guard(other._lock);
 		_adopt(other._obj);
 	}
+	return *this;
 }
 
 

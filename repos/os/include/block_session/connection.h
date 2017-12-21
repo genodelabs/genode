@@ -27,8 +27,9 @@ struct Block::Connection : Genode::Connection<Session>, Session_client
 	 *
 	 * \noapi
 	 */
-	Capability<Block::Session> _session(Genode::Parent &parent,
-	                                    char const *label, Genode::size_t tx_buf_size)
+	Genode::Capability<Block::Session> _session(Genode::Parent &parent,
+	                                            char const *label,
+	                                            Genode::size_t tx_buf_size)
 	{
 		return session(parent, "ram_quota=%ld, cap_quota=%ld, tx_buf_size=%ld, label=\"%s\"",
 		               14*1024 + tx_buf_size, CAP_QUOTA, tx_buf_size, label);

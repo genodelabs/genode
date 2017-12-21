@@ -203,6 +203,12 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 			return *s;
 		}
 
+		/*
+		 * Noncopyable
+		 */
+		Root_component(Root_component const &);
+		Root_component &operator = (Root_component const &);
+
 	protected:
 
 		/**
@@ -233,7 +239,7 @@ class Genode::Root_component : public Rpc_object<Typed_root<SESSION_TYPE> >,
 			return _create_session(args);
 		}
 
-		virtual SESSION_TYPE *_create_session(const char *args)
+		virtual SESSION_TYPE *_create_session(const char *)
 		{
 			throw Service_denied();
 		}

@@ -43,12 +43,12 @@ namespace Timer
 /**
  * Interface of a time source that can handle one timeout at a time
  */
-struct Genode::Time_source
+struct Genode::Time_source : Interface
 {
 	/**
 	 * Interface of a timeout callback
 	 */
-	struct Timeout_handler
+	struct Timeout_handler : Interface
 	{
 		virtual void handle_timeout(Duration curr_time) = 0;
 	};
@@ -79,7 +79,7 @@ struct Genode::Time_source
 	 * accurate but expensive timer only on a periodic basis while using a
 	 * cheaper interpolation in general.
 	 */
-	virtual void scheduler(Timeout_scheduler &scheduler) { };
+	virtual void scheduler(Timeout_scheduler &) { };
 };
 
 
@@ -90,7 +90,7 @@ struct Genode::Time_source
  * implementation only. Users of the timeout framework must schedule and
  * discard timeouts via methods of the timeout.
  */
-class Genode::Timeout_scheduler
+class Genode::Timeout_scheduler : Interface
 {
 	private:
 
@@ -145,28 +145,38 @@ class Genode::Timeout : private Noncopyable
 		/**
 		 * Interface of a timeout handler
 		 */
-		struct Handler
+		struct Handler : Interface
 		{
 			virtual void handle_timeout(Duration curr_time) = 0;
 		};
 
 	private:
 
-		struct Alarm : Genode::Alarm
+		class Alarm : public Genode::Alarm
 		{
-			Timeout_scheduler &timeout_scheduler;
-			Handler           *handler = nullptr;
-			bool               periodic;
+			private:
 
-			Alarm(Timeout_scheduler &timeout_scheduler)
-			: timeout_scheduler(timeout_scheduler) { }
+				/*
+				 * Noncopyable
+				 */
+				Alarm(Alarm const &);
+				Alarm &operator = (Alarm const &);
+
+			public:
+
+				Timeout_scheduler &timeout_scheduler;
+				Handler           *handler  = nullptr;
+				bool               periodic = false;
+
+				Alarm(Timeout_scheduler &timeout_scheduler)
+				: timeout_scheduler(timeout_scheduler) { }
 
 
-			/*******************
-			 ** Genode::Alarm **
-			 *******************/
+				/*******************
+				 ** Genode::Alarm **
+				 *******************/
 
-			bool on_alarm(unsigned) override;
+				bool on_alarm(unsigned) override;
 
 		} _alarm;
 

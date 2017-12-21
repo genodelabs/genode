@@ -50,6 +50,12 @@ class Kernel::Signal_handler
 
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Signal_handler(Signal_handler const &);
+		Signal_handler &operator = (Signal_handler const &);
+
 		typedef Genode::Fifo_element<Signal_handler> Fifo_element;
 
 		Fifo_element      _handlers_fe;
@@ -95,6 +101,12 @@ class Kernel::Signal_context_killer
 
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Signal_context_killer(Signal_context_killer const &);
+		Signal_context_killer &operator = (Signal_context_killer const &);
+
 		Signal_context * _context;
 
 		/**
@@ -137,6 +149,12 @@ class Kernel::Signal_context : public Kernel::Object
 	friend class Signal_context_killer;
 
 	private:
+
+		/*
+		 * Noncopyable
+		 */
+		Signal_context(Signal_context const &);
+		Signal_context &operator = (Signal_context const &);
 
 		typedef Genode::Fifo_element<Signal_context> Fifo_element;
 
@@ -243,9 +261,9 @@ class Kernel::Signal_receiver : public Kernel::Object
 
 		template <typename T> class Fifo : public Genode::Fifo<T> { };
 
-		Fifo<Signal_handler::Fifo_element> _handlers;
-		Fifo<Signal_context::Fifo_element> _deliver;
-		Fifo<Signal_context::Fifo_element> _contexts;
+		Fifo<Signal_handler::Fifo_element> _handlers { };
+		Fifo<Signal_context::Fifo_element> _deliver  { };
+		Fifo<Signal_context::Fifo_element> _contexts { };
 
 		/**
 		 * Recognize that context 'c' has submits to deliver

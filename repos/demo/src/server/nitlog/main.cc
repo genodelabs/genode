@@ -62,7 +62,7 @@ namespace Nitlog {
 /**
  * Pixel-type-independent interface to graphics backend
  */
-struct Canvas_base
+struct Canvas_base : Genode::Interface
 {
 	virtual void draw_string(Point, Font const &, Color, char const *) = 0;
 
@@ -108,10 +108,10 @@ class Log_entry
 		char  _label[64];
 		char  _text[LOG_W];
 		char  _attr[LOG_W];
-		Color _color;
-		int   _label_len;
-		int   _text_len;
-		int   _id;
+		Color _color { };
+		int   _label_len = 0;
+		int   _text_len  = 0;
+		int   _id        = 0;
 
 	public:
 
@@ -186,22 +186,20 @@ class Log_window
 	private:
 
 		Canvas_base &_canvas;
-		Log_entry    _entries[LOG_H]; /* log entries                           */
-		int          _dst_entry;      /* destination entry for next write      */
-		int          _view_pos;       /* current view port on the entry array  */
-		bool         _scroll;         /* scroll mode (when text hits bottom)   */
-		char         _attr[LOG_W];    /* character attribute buffer            */
-		bool         _dirty;          /* schedules the log window for a redraw */
-		Genode::Lock _dirty_lock;
+		Log_entry    _entries[LOG_H];    /* log entries                           */
+		int          _dst_entry = 0;     /* destination entry for next write      */
+		int          _view_pos  = 0;     /* current view port on the entry array  */
+		bool         _scroll    = false; /* scroll mode (when text hits bottom)   */
+		char         _attr[LOG_W];       /* character attribute buffer            */
+		bool         _dirty     = true;  /* schedules the log window for a redraw */
+		Genode::Lock _dirty_lock { };
 
 	public:
 
 		/**
 		 * Constructor
 		 */
-		Log_window(Canvas_base &canvas)
-		: _canvas(canvas), _dst_entry(0), _view_pos(0), _dirty(true)
-		{ }
+		Log_window(Canvas_base &canvas) : _canvas(canvas) { }
 
 		/**
 		 * Write log entry
@@ -357,7 +355,8 @@ class Log_view
 		Nitpicker::Area                 _size;
 		Nitpicker::Session::View_handle _handle;
 
-		typedef Nitpicker::Session::Command Command;
+		typedef Nitpicker::Session::Command     Command;
+		typedef Nitpicker::Session::View_handle View_handle;
 
 	public:
 
@@ -374,7 +373,7 @@ class Log_view
 
 		void top()
 		{
-			_nitpicker.enqueue<Command::To_front>(_handle);
+			_nitpicker.enqueue<Command::To_front>(_handle, View_handle());
 			_nitpicker.execute();
 		}
 
@@ -443,7 +442,8 @@ struct Nitlog::Main
 
 	Attached_dataspace _ev_ds { _env.rm(), _nitpicker.input()->dataspace() };
 
-	Nitpicker::Point _old_mouse_pos;
+	Nitpicker::Point _old_mouse_pos { };
+
 	unsigned _key_cnt = 0;
 
 	Signal_handler<Main> _input_handler {

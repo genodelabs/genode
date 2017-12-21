@@ -44,8 +44,9 @@ extern "C" void free(void *ptr);
  *
  * See also: man dl_iterate_phdr
  */
-extern "C" int dl_iterate_phdr(int (*callback) (void *info, unsigned long size, void *data), void *data) __attribute__((weak));
-extern "C" int dl_iterate_phdr(int (*callback) (void *info, unsigned long size, void *data), void *data) {
+extern "C" int dl_iterate_phdr(int (*callback) (void *info, unsigned long size,
+                                                void *data), void *data) __attribute__((weak));
+extern "C" int dl_iterate_phdr(int (*) (void *, unsigned long, void *), void *) {
 	return -1; }
 
 

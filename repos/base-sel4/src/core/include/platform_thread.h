@@ -35,6 +35,12 @@ class Genode::Platform_thread : public List<Platform_thread>::Element
 {
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Platform_thread(Platform_thread const &);
+		Platform_thread &operator = (Platform_thread const &);
+
 		Pager_object *_pager = nullptr;
 
 		String<128> _name;
@@ -47,7 +53,7 @@ class Genode::Platform_thread : public List<Platform_thread>::Element
 		 */
 		addr_t const _utcb;
 
-		Thread_info _info;
+		Thread_info _info { };
 
 		Cap_sel const _pager_obj_sel;
 
@@ -141,7 +147,7 @@ class Genode::Platform_thread : public List<Platform_thread>::Element
 		/**
 		 * Set pager capability
 		 */
-		Pager_object *pager(Pager_object *pager) const { return _pager; }
+		Pager_object *pager(Pager_object *) const { return _pager; }
 		void pager(Pager_object *pager) { _pager = pager; }
 		Pager_object *pager() { return _pager; }
 

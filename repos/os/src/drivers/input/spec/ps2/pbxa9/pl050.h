@@ -55,12 +55,18 @@ class Pl050
 	};
 
 
-	class _Channel : public Serial_interface,
-	                 public Genode::Ring_buffer<unsigned char, 256>
+	class _Channel : public  Serial_interface,
+	                 private Genode::Ring_buffer<unsigned char, 256>
 	{
 		private:
 
-			Genode::Lock                      _lock;
+			/*
+			 * Noncopyable
+			 */
+			_Channel(_Channel const &);
+			_Channel &operator = (_Channel const &);
+
+			Genode::Lock                      _lock { };
 			Genode::Attached_io_mem_dataspace _io_mem;
 			volatile Genode::uint32_t        *_reg_base;
 

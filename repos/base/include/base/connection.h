@@ -25,13 +25,13 @@ namespace Genode {
 }
 
 
-class Genode::Connection_base : public Noncopyable
+class Genode::Connection_base : Noncopyable, Interface
 {
 	protected:
 
 		Env &_env;
 
-		Parent::Client _parent_client;
+		Parent::Client _parent_client { };
 
 		Id_space<Parent::Client>::Element const _id_space_element;
 
@@ -91,7 +91,7 @@ class Genode::Connection : public Connection_base
 		char _session_args[FORMAT_STRING_SIZE];
 		char _affinity_arg[sizeof(Affinity)];
 
-		void _session(Parent &parent,
+		void _session(Parent &,
 		              Affinity const &affinity,
 		              const char *format_args, va_list list)
 		{

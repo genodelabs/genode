@@ -26,7 +26,7 @@
 using namespace Genode;
 
 
-void Ram_dataspace_factory::_revoke_ram_ds(Dataspace_component *ds) { }
+void Ram_dataspace_factory::_revoke_ram_ds(Dataspace_component *) { }
 
 
 static inline void * alloc_region(Dataspace_component *ds, const size_t size)

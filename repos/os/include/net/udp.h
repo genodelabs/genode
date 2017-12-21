@@ -56,12 +56,7 @@ class Net::Udp_packet
 		 */
 		class No_udp_packet : Genode::Exception {};
 
-
-		/*****************
-		 ** Constructor **
-		 *****************/
-
-		Udp_packet(Genode::size_t size) {
+		static void validate_size(Genode::size_t size) {
 			/* Udp header needs to fit in */
 			if (size < sizeof(Udp_packet))
 				throw No_udp_packet();

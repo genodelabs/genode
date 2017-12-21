@@ -39,7 +39,7 @@ namespace Test {
 
 	struct Client : Genode::Rpc_client<Session>
 	{
-		Client(Capability<Session> cap) : Rpc_client<Session>(cap) { }
+		Client(Genode::Capability<Session> cap) : Rpc_client<Session>(cap) { }
 
 		void test_untyped(unsigned value) { call<Rpc_test_untyped>(value); }
 		void test_cap(Genode::Native_capability cap) { call<Rpc_test_cap>(cap); }

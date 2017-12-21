@@ -25,7 +25,7 @@ using Genode::addr_t;
 using Kernel::Cpu_share;
 using Kernel::Cpu_scheduler;
 
-void * operator new(__SIZE_TYPE__ s, void * p) { return p; }
+void * operator new(__SIZE_TYPE__, void * p) { return p; }
 
 struct Data
 {

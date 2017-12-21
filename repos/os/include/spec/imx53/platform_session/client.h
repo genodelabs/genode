@@ -23,7 +23,7 @@ namespace Platform { struct Client; }
 
 struct Platform::Client : Genode::Rpc_client<Session>
 {
-	explicit Client(Capability<Session> session)
+	explicit Client(Genode::Capability<Session> session)
 	: Genode::Rpc_client<Session>(session) { }
 
 	void enable(Device dev) override { call<Rpc_enable>(dev); }

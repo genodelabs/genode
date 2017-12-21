@@ -109,7 +109,7 @@ void Platform_thread::unbind()
 }
 
 
-void Platform_thread::state(Thread_state s)
+void Platform_thread::state(Thread_state)
 {
 	warning(__func__, " not implemented");
 	throw Cpu_thread::State_access_failed();

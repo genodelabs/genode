@@ -73,7 +73,7 @@ struct Scout::Main : Scout::Event_handler
 	Point const _initial_position { 256, 80 };
 	Area  const _initial_size { 530, 400 };
 
-	Config const _config;
+	Config const _config { };
 
 	Nitpicker_graphics_backend
 		_graphics_backend { _env.rm(), _nitpicker, _heap, _max_size,
@@ -99,7 +99,7 @@ struct Scout::Main : Scout::Event_handler
 	                                        _max_size, _config };
 
 	/* initialize mouse cursor */
-	Icon<Pixel_rgb565, 32, 32> _mcursor;
+	Icon<Pixel_rgb565, 32, 32> _mcursor { };
 
 	void _init_mouse_cursor()
 	{
@@ -119,7 +119,7 @@ struct Scout::Main : Scout::Event_handler
 
 	bool const _browser_ypos_initialized = (_browser.ypos(0), true);
 
-	Scout::Point _mouse_position;
+	Scout::Point _mouse_position { };
 
 	unsigned long _old_time = _platform.timer_ticks();
 

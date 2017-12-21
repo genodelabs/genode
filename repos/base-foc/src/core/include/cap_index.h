@@ -34,6 +34,12 @@ class Genode::Core_cap_index : public Native_capability::Data
 		Platform_thread const *_pt;
 		Native_thread          _gate;
 
+		/*
+		 * Noncopyable
+		 */
+		Core_cap_index(Core_cap_index const &);
+		Core_cap_index &operator = (Core_cap_index const &);
+
 	public:
 
 		Core_cap_index(Pd_session_component *session = 0,

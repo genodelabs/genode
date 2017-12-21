@@ -47,8 +47,7 @@ class Vfs::Symlink_file_system : public Single_file_system
 		 ** Directory-service interface **
 		 *********************************/
 
-		Open_result open(char const *, unsigned, Vfs_handle **out_handle,
-		                 Allocator&) override {
+		Open_result open(char const *, unsigned, Vfs_handle **, Allocator&) override {
 			return OPEN_ERR_UNACCESSIBLE; }
 
 		Openlink_result openlink(char const *path, bool create,
@@ -77,8 +76,8 @@ class Vfs::Symlink_file_system : public Single_file_system
 		 ** File I/O service interface **
 		 ********************************/
 
-		Write_result write(Vfs_handle *handle, char const *, file_size,
-		                   file_size &) override {
+		Write_result write(Vfs_handle *, char const *,
+		                   file_size, file_size &) override {
 			return WRITE_ERR_INVALID; }
 
 		Read_result complete_read(Vfs_handle *, char *buf, file_size buf_len,

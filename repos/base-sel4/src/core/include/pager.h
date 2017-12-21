@@ -54,7 +54,7 @@ class Genode::Pager_object : public Object_pool<Pager_object>::Entry
 		/**
 		 * Local name for this pager object
 		 */
-		unsigned long _badge;
+		unsigned long _badge = 0;
 
 		Cpu_session_capability _cpu_session_cap;
 		Thread_capability      _thread_cap;
@@ -64,17 +64,17 @@ class Genode::Pager_object : public Object_pool<Pager_object>::Entry
 		 * User-level signal handler registered for this pager object via
 		 * 'Cpu_session::exception_handler()'.
 		 */
-		Signal_context_capability _exception_sigh;
+		Signal_context_capability _exception_sigh { };
 
-		Session_label             _pd_label;
-		Cpu_session::Name         _name;
+		Session_label     _pd_label;
+		Cpu_session::Name _name;
 
 	public:
 
 		/**
 		 * Contains information about exception state of corresponding thread.
 		 */
-		Thread_state state;
+		Thread_state state { };
 
 		/**
 		 * Constructor
@@ -160,7 +160,7 @@ class Genode::Pager_entrypoint : public Object_pool<Pager_object>,
 {
 	private:
 
-		Ipc_pager       _pager;
+		Ipc_pager       _pager { };
 		Rpc_cap_factory _cap_factory;
 
 		Untyped_capability _pager_object_cap(unsigned long badge);

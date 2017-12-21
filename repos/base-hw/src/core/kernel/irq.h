@@ -47,8 +47,11 @@ namespace Genode
 }
 
 
-class Kernel::Irq : public Genode::Avl_node<Irq>
+class Kernel::Irq : Genode::Avl_node<Irq>
 {
+	friend class Genode::Avl_tree<Irq>;
+	friend class Genode::Avl_node<Irq>;
+
 	public:
 
 		struct Pool : Genode::Avl_tree<Irq>

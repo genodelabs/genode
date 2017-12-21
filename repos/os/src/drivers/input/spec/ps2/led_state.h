@@ -29,7 +29,7 @@ struct Ps2::Led_state
 
 	Name const _name;
 
-	Genode::Constructible<Genode::Attached_rom_dataspace> _rom;
+	Genode::Constructible<Genode::Attached_rom_dataspace> _rom { };
 
 	bool _enabled = false;
 

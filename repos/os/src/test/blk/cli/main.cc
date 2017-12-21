@@ -1,4 +1,4 @@
-/**
+/*
  * \brief  Block session tests - client side.
  * \author Stefan Kalkowski
  * \date   2013-12-10
@@ -22,11 +22,11 @@ static Block::Session::Operations blk_ops;  /* supported operations       */
 /**
  * Virtual base class of all test scenarios, provides basic signal handling
  */
-class Test
+class Test : Genode::Interface
 {
 	public:
 
-		struct Exception : Genode::Exception
+		struct Exception : private Genode::Exception, Genode::Interface
 		{
 			virtual void print_error() = 0;
 		};
@@ -65,14 +65,16 @@ class Test
 
 	protected:
 
-		Genode::Entrypoint          &_ep;
-		Genode::Allocator_avl        _alloc;
-		Block::Connection            _session;
+		Genode::Entrypoint    &_ep;
+		Genode::Allocator_avl  _alloc;
+		Block::Connection      _session;
+
 		Genode::Io_signal_handler<Test> _disp_ack;
 		Genode::Io_signal_handler<Test> _disp_submit;
 		Genode::Io_signal_handler<Test> _disp_timeout;
-		Timer::Connection            _timer;
-		bool                         _handle;
+
+		Timer::Connection _timer;
+		bool              _handle = false;
 
 		Genode::size_t _shared_buffer_size(Genode::size_t bulk)
 		{
@@ -193,8 +195,8 @@ struct Write_test : Test
 	typedef Genode::Ring_buffer<Block::Packet_descriptor, BATCH+1,
 	                            Genode::Ring_buffer_unsynchronized> Req_buffer;
 
-	Req_buffer read_packets;
-	Req_buffer write_packets;
+	Req_buffer read_packets  { };
+	Req_buffer write_packets { };
 
 	Write_test(Genode::Env &env, Genode::Heap &heap, unsigned timeo_ms)
 	: Test(env, heap, BULK_BLK_NR*blk_sz, timeo_ms)

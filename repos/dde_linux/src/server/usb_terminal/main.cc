@@ -87,7 +87,7 @@ struct Usb::Pl2303_driver : Completion
 		Genode::log("Manufacturer     : ", Cstring(_device.manufactorer_string.to_char(buffer, BUF)));
 		Genode::log("Product          : ", Cstring(_device.product_string.to_char(buffer, BUF)));
 
-		Interface &iface = _device.interface(0);
+		Usb::Interface &iface = _device.interface(0);
 		iface.claim();
 
 		/* undocumented magic, taken from Linux and GRUB */
@@ -175,7 +175,7 @@ struct Usb::Pl2303_driver : Completion
 
 	void bulk_packet(Packet_descriptor &p)
 	{
-		Interface iface = _device.interface(0);
+		Usb::Interface iface = _device.interface(0);
 
 		/* error or write packet */
 		if (!p.succeded || !p.read_transfer()) {
@@ -214,9 +214,9 @@ struct Usb::Pl2303_driver : Completion
 	{
 		num_bytes = min(num_bytes, MAX_PACKET_SIZE);
 
-		Interface         &iface = _device.interface(0);
-		Endpoint          &ep    = iface.endpoint(OUT);
-		Packet_descriptor  p     = iface.alloc(num_bytes);
+		Usb::Interface   &iface = _device.interface(0);
+		Endpoint         &ep    = iface.endpoint(OUT);
+		Packet_descriptor p     = iface.alloc(num_bytes);
 
 		memcpy(iface.content(p), dst, num_bytes);
 		iface.bulk_transfer(p, ep, false, this);

@@ -38,7 +38,7 @@ struct Block::Partition
 };
 
 
-struct Block::Partition_table
+struct Block::Partition_table : Genode::Interface
 {
 		class Sector
 		{

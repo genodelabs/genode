@@ -37,6 +37,12 @@ class Lx_fs::Directory : public Node
 {
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Directory(Directory const &);
+		Directory &operator = (Directory const &);
+
 		typedef Genode::Path<MAX_PATH_LEN> Path;
 
 		DIR       *_fd;
@@ -192,7 +198,7 @@ class Lx_fs::Directory : public Node
 			return sizeof(Directory_entry);
 		}
 
-		size_t write(char const *src, size_t len, seek_off_t seek_offset) override
+		size_t write(char const *, size_t, seek_off_t) override
 		{
 			/* writing to directory nodes is not supported */
 			return 0;

@@ -70,7 +70,7 @@ namespace Platform {
 				         (function <<  8) |
 				         (addr      & ~3) ); }
 
-			Genode::Bit_array<256> _used;
+			Genode::Bit_array<256> _used { };
 
 			void _use_register(unsigned char addr, unsigned short width)
 			{

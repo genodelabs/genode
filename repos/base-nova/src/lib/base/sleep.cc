@@ -28,7 +28,8 @@ void Genode::sleep_forever()
 	using namespace Nova;
 
 	Thread *myself = Thread::myself();
-	addr_t sem = myself ? myself->native_thread().exc_pt_sel + SM_SEL_EC : SM_SEL_EC;
+	addr_t sem = myself ? (addr_t)SM_SEL_EC + myself->native_thread().exc_pt_sel
+	                    : (addr_t)SM_SEL_EC;
 
 	while (1) {
 		if (Nova::sm_ctrl(sem, SEMAPHORE_DOWNZERO))

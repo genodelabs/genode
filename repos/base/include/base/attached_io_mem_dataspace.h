@@ -31,6 +31,12 @@ class Genode::Attached_io_mem_dataspace
 {
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Attached_io_mem_dataspace(Attached_io_mem_dataspace const &);
+		Attached_io_mem_dataspace &operator = (Attached_io_mem_dataspace const &);
+
 		Region_map                  &_env_rm;
 		Io_mem_connection            _mmio;
 		Io_mem_dataspace_capability  _ds;

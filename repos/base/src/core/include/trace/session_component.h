@@ -44,28 +44,38 @@ class Genode::Trace::Session_component
 		Source_registry             &_sources;
 		Policy_registry             &_policies;
 		Subject_registry             _subjects;
-		unsigned                     _policy_cnt;
+		unsigned                     _policy_cnt { 0 };
 
-		struct Argument_buffer
+		class Argument_buffer
 		{
-			Ram_session             &ram;
-			Ram_dataspace_capability ds;
-			char                    *base;
-			size_t                   size;
+			private:
 
-			Argument_buffer(Ram_session &ram, size_t size)
-			:
-				ram(ram),
-				ds(ram.alloc(size)),
-				base(env_deprecated()->rm_session()->attach(ds)),
-				size(ram.dataspace_size(ds))
-			{ }
+				/*
+				 * Noncopyable
+				 */
+				Argument_buffer(Argument_buffer const &);
+				Argument_buffer &operator = (Argument_buffer const &);
 
-			~Argument_buffer()
-			{
-				env_deprecated()->rm_session()->detach(base);
-				ram.free(ds);
-			}
+			public:
+
+				Ram_session             &ram;
+				Ram_dataspace_capability ds;
+				char                    *base;
+				size_t                   size;
+
+				Argument_buffer(Ram_session &ram, size_t size)
+				:
+					ram(ram),
+					ds(ram.alloc(size)),
+					base(env_deprecated()->rm_session()->attach(ds)),
+					size(ram.dataspace_size(ds))
+				{ }
+
+				~Argument_buffer()
+				{
+					env_deprecated()->rm_session()->detach(base);
+					ram.free(ds);
+				}
 		} _argument_buffer;
 
 	public:

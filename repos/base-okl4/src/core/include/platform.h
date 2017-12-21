@@ -38,31 +38,37 @@ namespace Genode {
 	{
 		private:
 
+			/*
+			 * Noncopyable
+			 */
+			Platform(Platform const &);
+			Platform &operator = (Platform const &);
+
 			using Rom_slab       = Tslab<Rom_module, get_page_size()>;
 			using Thread_slab    = Tslab<Platform_thread, get_page_size()>;
 
-			Platform_pd       *_core_pd;        /* core protection domain    */
-			Platform_thread   *_core_pager;     /* pager for core threads    */
-			Core_mem_allocator _core_mem_alloc; /* core-accessible memory    */
-			Phys_allocator     _io_mem_alloc;   /* MMIO allocator            */
-			Phys_allocator     _io_port_alloc;  /* I/O port allocator        */
-			Phys_allocator     _irq_alloc;      /* IRQ allocator             */
-			Rom_slab           _rom_slab;       /* Slab for rom modules      */
-			Rom_fs             _rom_fs;         /* ROM file system           */
-			Thread_slab        _thread_slab;    /* Slab for platform threads */
+			Platform_pd       *_core_pd    = nullptr; /* core protection domain    */
+			Platform_thread   *_core_pager = nullptr; /* pager for core threads    */
+			Core_mem_allocator _core_mem_alloc { };   /* core-accessible memory    */
+			Phys_allocator     _io_mem_alloc;         /* MMIO allocator            */
+			Phys_allocator     _io_port_alloc;        /* I/O port allocator        */
+			Phys_allocator     _irq_alloc;            /* IRQ allocator             */
+			Rom_slab           _rom_slab;             /* slab for rom modules      */
+			Rom_fs             _rom_fs { };           /* ROM file system           */
+			Thread_slab        _thread_slab;          /* slab for platform threads */
 
 			/*
 			 * Virtual-memory range for non-core address spaces.
 			 * The virtual memory layout of core is maintained in
 			 * '_core_mem_alloc.virt_alloc()'.
 			 */
-			addr_t             _vm_start;
-			size_t             _vm_size;
+			addr_t _vm_start = 0;
+			size_t _vm_size  = 0;
 
 			/*
 			 * Start of address range used for the UTCBs
 			 */
-			addr_t             _utcb_base;
+			addr_t _utcb_base = 0;
 
 			void _init_rom_modules();
 

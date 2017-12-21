@@ -39,7 +39,7 @@ class Genode::Synced_range_allocator : public Range_allocator
 
 		friend class Mapped_mem_allocator;
 
-		Lock                          _default_lock;
+		Lock                          _default_lock { };
 		Lock                         &_lock;
 		ALLOC                         _alloc;
 		Synced_interface<ALLOC, Lock> _synced_object;

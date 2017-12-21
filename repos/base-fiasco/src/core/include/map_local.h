@@ -78,7 +78,7 @@ namespace Genode {
 	 * \param virt       core-local address
 	 * \param num_pages  number of pages to unmap
 	 */
-	inline void unmap_local(addr_t virt, size_t num_pages)
+	inline void unmap_local(addr_t, size_t)
 	{
 		error("unmap_local() called - not implemented yet");
 	}

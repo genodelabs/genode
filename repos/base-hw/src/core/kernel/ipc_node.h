@@ -39,7 +39,7 @@ namespace Kernel
 	using Ipc_node_queue = Kernel::Fifo<Ipc_node>;
 }
 
-class Kernel::Ipc_node : public Ipc_node_queue::Element
+class Kernel::Ipc_node : private Ipc_node_queue::Element
 {
 	protected:
 
@@ -55,6 +55,8 @@ class Kernel::Ipc_node : public Ipc_node_queue::Element
 	private:
 
 		friend class Core_thread;
+		friend class Kernel::Fifo<Ipc_node>;
+		friend class Genode::Fifo<Ipc_node>;
 
 		State                 _state    = INACTIVE;
 		capid_t               _capid    = cap_id_invalid();
@@ -63,7 +65,7 @@ class Kernel::Ipc_node : public Ipc_node_queue::Element
 		bool                  _help     = false;
 		size_t                _rcv_caps = 0; /* max capability num to receive */
 		Genode::Native_utcb * _utcb     = nullptr;
-		Ipc_node_queue        _request_queue;
+		Ipc_node_queue        _request_queue { };
 
 		/* pre-allocation array for obkject identity references */
 		void * _obj_id_ref_ptr[Genode::Msgbuf_base::MAX_CAPS_PER_MSG];
@@ -137,7 +139,7 @@ class Kernel::Ipc_node : public Ipc_node_queue::Element
 
 	protected:
 
-		Pd * _pd; /* pointer to PD this IPC node is part of */
+		Pd * _pd = nullptr; /* pointer to PD this IPC node is part of */
 
 
 		/***************
@@ -149,7 +151,7 @@ class Kernel::Ipc_node : public Ipc_node_queue::Element
 
 	public:
 
-		~Ipc_node();
+		virtual ~Ipc_node();
 
 		/**
 		 * Send a request and wait for the according reply
@@ -200,8 +202,8 @@ class Kernel::Ipc_node : public Ipc_node_queue::Element
 		 ** Accessors **
 		 ***************/
 
-		Pd * const pd() const { return _pd; }
-		Genode::Native_utcb * utcb() { return _utcb; }
+		Pd                  *pd() const { return _pd; }
+		Genode::Native_utcb *utcb()     { return _utcb; }
 };
 
 #endif /* _CORE__KERNEL__IPC_NODE_H_ */

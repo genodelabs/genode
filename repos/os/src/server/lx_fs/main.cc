@@ -45,7 +45,7 @@ class Lx_fs::Session_component : public Session_rpc_object
 		Genode::Env                 &_env;
 		Allocator                   &_md_alloc;
 		Directory                   &_root;
-		Id_space<File_system::Node>  _open_node_registry;
+		Id_space<File_system::Node>  _open_node_registry { };
 		bool                         _writable;
 
 		Signal_handler<Session_component> _process_packet_dispatcher;
@@ -235,7 +235,7 @@ class Lx_fs::Session_component : public Session_rpc_object
 			}
 		}
 
-		Symlink_handle symlink(Dir_handle dir_handle, Name const &name, bool create)
+		Symlink_handle symlink(Dir_handle, Name const &, bool /* create */)
 		{
 			Genode::error(__func__, " not implemented");
 			throw Permission_denied();

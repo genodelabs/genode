@@ -50,7 +50,7 @@ class Linker::Reloc_non_plt : public Reloc_non_plt_generic
 			*addr = (addend ? *addr : 0) + reloc_base + sym->st_value;
 		}
 
-		void _relative(Elf::Rel const *rel, Elf::Addr *addr)
+		void _relative(Elf::Rel const *, Elf::Addr *addr)
 		{
 			if (_dep.obj().reloc_base())
 				*addr += _dep.obj().reloc_base();

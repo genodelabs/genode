@@ -35,7 +35,7 @@ class Genode::Region_map_mmap : public Region_map, public Dataspace
 {
 	private:
 
-		Region_registry _rmap;
+		Region_registry _rmap { };
 		bool      const _sub_rm;  /* false if region map is root */
 		size_t    const _size;
 
@@ -120,7 +120,7 @@ class Genode::Region_map_mmap : public Region_map, public Dataspace
 
 		void detach(Local_addr local_addr);
 
-		void fault_handler(Signal_context_capability handler) { }
+		void fault_handler(Signal_context_capability) { }
 
 		State state() { return State(); }
 

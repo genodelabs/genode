@@ -55,6 +55,8 @@ struct Sky_texture_painter
 	{
 		protected:
 
+			virtual ~Sky_texture_base() { }
+
 			static void _brew_texture(short tmp[], short tmp2[], short dst[], int w, int h,
 			                          int lf_start, int lf_end, int lf_incr, int lf_mul,
 			                          int hf_val, int hf_mul);
@@ -85,6 +87,8 @@ struct Sky_texture_painter
 		public:
 
 			Sky_texture(Area size) : _size(size) { }
+
+			virtual ~Sky_texture() { }
 
 			virtual PT    const *fallback()      const = 0;
 			virtual short const *buf(unsigned i) const = 0;

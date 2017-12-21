@@ -22,6 +22,12 @@ class Section : public Scout::Parent_element
 {
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Section(Section const &);
+		Section &operator = (Section const &);
+
 		enum { _SH  = 8 };   /* shadow height */
 		enum { _STH = 20 };  /* shadow height */
 
@@ -29,19 +35,18 @@ class Section : public Scout::Parent_element
 		Scout::Horizontal_shadow<PT, 160> _shadow;
 
 		char  const *_txt;
-		int          _txt_w, _txt_h;
-		int          _txt_len;
 		Scout::Font *_font;
+		int          _txt_w   = _font->str_w(_txt, Scout::strlen(_txt));
+		int          _txt_h   = _font->str_h(_txt, Scout::strlen(_txt));
+		int          _txt_len = Scout::strlen(_txt);
 		int          _r_add;
 
 	public:
 
 		Section(const char *txt, Scout::Font *font)
-		: _bg(_STH), _shadow(_SH), _txt(txt), _font(font), _r_add(100)
+		:
+			_bg(_STH), _shadow(_SH), _txt(txt), _font(font), _r_add(100)
 		{
-			_txt_w   = font->str_w(_txt, Scout::strlen(_txt));
-			_txt_h   = font->str_h(_txt, Scout::strlen(_txt));
-			_txt_len = Scout::strlen(_txt);
 			append(&_bg);
 			append(&_shadow);
 		}

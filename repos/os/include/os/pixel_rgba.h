@@ -52,7 +52,7 @@ class Genode::Pixel_rgba
 		static const int b_mask = B_MASK, b_shift = B_SHIFT;
 		static const int a_mask = A_MASK, a_shift = A_SHIFT;
 
-		ST pixel;
+		ST pixel = 0;
 
 		/**
 		 * Constructors

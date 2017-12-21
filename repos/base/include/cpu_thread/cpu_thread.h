@@ -24,7 +24,7 @@
 namespace Genode { struct Cpu_thread; }
 
 
-struct Genode::Cpu_thread
+struct Genode::Cpu_thread : Interface
 {
 	class State_access_failed : public Exception { };
 

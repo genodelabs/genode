@@ -37,7 +37,7 @@ class Igd::Ppgtt_allocator : public Genode::Translation_table_allocator
 		Utils::Backend_alloc    &_backend;
 
 		enum { ELEMENTS = 256, };
-		Utils::Address_map<ELEMENTS> _map;
+		Utils::Address_map<ELEMENTS> _map { };
 
 	public:
 
@@ -59,7 +59,7 @@ class Igd::Ppgtt_allocator : public Genode::Translation_table_allocator
 			return _map.add(ds, *out_addr);
 		}
 
-		void free(void *addr, size_t size)
+		void free(void *addr, size_t)
 		{
 			if (addr == nullptr) { return; }
 
@@ -73,8 +73,8 @@ class Igd::Ppgtt_allocator : public Genode::Translation_table_allocator
 			_backend.free(_guard, cap);
 		}
 
-		bool   need_size_for_free()  const override { return false; }
-		size_t overhead(size_t size) const override { return 0; }
+		bool   need_size_for_free() const override { return false; }
+		size_t overhead(size_t)     const override { return 0; }
 
 		/*******************************************
 		 ** Translation_table_allocator interface **

@@ -14,10 +14,8 @@
 /* core includes */
 #include <platform_thread.h>
 
-/* OKL4 includes */
-namespace Okl4 { extern "C" {
-#include <l4/thread.h>
-} }
+/* base-internal includes */
+#include <base/internal/okl4.h>
 
 using namespace Genode;
 using namespace Okl4;

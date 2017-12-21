@@ -54,7 +54,7 @@ class Genode::Ioapic : public Mmio
 		enum { REMAP_BASE = Board::VECTOR_REMAP_BASE };
 
 		/* Number of Redirection Table entries */
-		unsigned _irte_count;
+		unsigned _irte_count = 0;
 
 		enum {
 			/* Register selectors */
@@ -180,7 +180,7 @@ class Genode::Pic : public Mmio
 		 */
 		Pic();
 
-		Ioapic ioapic;
+		Ioapic ioapic { };
 
 		bool take_request(unsigned &irq);
 

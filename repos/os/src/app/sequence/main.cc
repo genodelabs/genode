@@ -66,7 +66,7 @@ struct Sequence::Child : Genode::Child_policy
 			{ }
 	};
 
-	Registry<Parent_service> _parent_services;
+	Registry<Parent_service> _parent_services { };
 
 	Genode::Child _child { _env.rm(), _env.ep().rpc_ep(), *this };
 
@@ -201,7 +201,7 @@ struct Sequence::Main
 {
 	Genode::Env &env;
 
-	Constructible<Sequence::Child> child;
+	Constructible<Sequence::Child> child { };
 
 	Attached_rom_dataspace config_rom { env, "config" };
 

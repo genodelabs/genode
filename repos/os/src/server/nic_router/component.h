@@ -68,9 +68,9 @@ class Net::Session_component_base
 };
 
 
-class Net::Session_component : public Session_component_base,
-                               public ::Nic::Session_rpc_object,
-                               public Interface
+class Net::Session_component : private Session_component_base,
+                               public  ::Nic::Session_rpc_object,
+                               public  Interface
 {
 	private:
 
@@ -111,7 +111,7 @@ class Net::Root : public Genode::Root_component<Session_component>
 	private:
 
 		Timer::Connection   &_timer;
-		Mac_allocator        _mac_alloc;
+		Mac_allocator        _mac_alloc { };
 		Genode::Entrypoint  &_ep;
 		Mac_address const    _router_mac;
 		Configuration       &_config;

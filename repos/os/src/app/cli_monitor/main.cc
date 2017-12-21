@@ -48,9 +48,9 @@ struct Cli_monitor::Main
 
 	Terminal::Connection _terminal { _env };
 
-	Command_registry _commands;
+	Command_registry _commands { };
 
-	Child_registry _children;
+	Child_registry _children { };
 
 	Command *_lookup_command(char const *buf)
 	{
@@ -151,7 +151,7 @@ struct Cli_monitor::Main
 	struct Io_response_handler : Vfs::Io_response_handler
 	{
 		void handle_io_response(Vfs::Vfs_handle::Context *) override { }
-	} io_response_handler;
+	} io_response_handler { };
 
 	Vfs::Global_file_system_factory _global_file_system_factory { _heap };
 

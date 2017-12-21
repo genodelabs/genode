@@ -29,5 +29,5 @@ Bootstrap::Platform::Board::Board()
                             PL310_MMIO_SIZE }) { }
 
 
-bool Bootstrap::Cpu::errata(Bootstrap::Cpu::Errata err) {
+bool Bootstrap::Cpu::errata(Bootstrap::Cpu::Errata) {
 	return false; }

@@ -196,7 +196,7 @@ void Child::Initial_thread::start(addr_t ip)
 
 Child::Process::Process(Dataspace_capability  elf_ds,
                         Dataspace_capability  ldso_ds,
-                        Pd_session_capability pd_cap,
+                        Pd_session_capability,
                         Pd_session           &pd,
                         Ram_session          &ram,
                         Initial_thread_base  &initial_thread,

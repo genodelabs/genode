@@ -69,7 +69,7 @@ class Input_filter::Chargen_source : public Source, Source::Sink
 			Id id() const { return _id; }
 		};
 
-		Registry<Modifier> _modifiers;
+		Registry<Modifier> _modifiers { };
 
 		struct Modifier_rom
 		{
@@ -102,7 +102,7 @@ class Input_filter::Chargen_source : public Source, Source::Sink
 			bool enabled() const { return _enabled; }
 		};
 
-		Registry<Modifier_rom> _modifier_roms;
+		Registry<Modifier_rom> _modifier_roms { };
 
 		/*
 		 * Key rules for generating characters
@@ -117,7 +117,7 @@ class Input_filter::Chargen_source : public Source, Source::Sink
 		{
 			struct State { bool enabled = false; } states[NUM_MODIFIERS];
 
-		} _mod_map;
+		} _mod_map { };
 
 		/**
 		 * State tracked per physical key
@@ -208,7 +208,7 @@ class Input_filter::Chargen_source : public Source, Source::Sink
 				Input::Event::Utf8 character() const { return _character; }
 			};
 
-			Registry<Rule> rules;
+			Registry<Rule> rules { };
 
 			/**
 			 * Call functor 'fn' with the 'Input::Event::Utf8' character
@@ -379,7 +379,7 @@ class Input_filter::Chargen_source : public Source, Source::Sink
 
 			Input::Event::Utf8 _curr_character { 0 };
 
-			enum State { IDLE, REPEAT } _state;
+			enum State { IDLE, REPEAT } _state { IDLE };
 
 			void _handle_timeout(Duration)
 			{
@@ -415,7 +415,7 @@ class Input_filter::Chargen_source : public Source, Source::Sink
 			}
 		};
 
-		Constructible<Char_repeater> _char_repeater;
+		Constructible<Char_repeater> _char_repeater { };
 
 		/**
 		 * Sink interface (called from our child node)

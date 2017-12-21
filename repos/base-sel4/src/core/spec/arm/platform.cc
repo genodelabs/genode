@@ -65,7 +65,7 @@ void Genode::Platform::_init_core_page_table_registry()
 	addr_t const max_pd_mem = MAX_PROCESS_COUNT * (1UL << Page_directory_kobj::SIZE_LOG2);
 
 	_initial_untyped_pool.turn_into_untyped_object(Core_cspace::TOP_CNODE_UNTYPED_16K,
-		[&] (addr_t const phys, addr_t const size, bool const device) {
+		[&] (addr_t const phys, addr_t const size, bool) {
 			phys_alloc_16k().add_range(phys, size);
 			_unused_phys_alloc.remove_range(phys, size);
 		},

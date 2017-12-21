@@ -26,10 +26,10 @@ namespace Genode {
 	{
 		private:
 
-			Rom_module const        *_rom_module;
-			Dataspace_component      _ds;
-			Rpc_entrypoint          *_ds_ep;
-			Rom_dataspace_capability _ds_cap;
+			Rom_module const        *_rom_module { nullptr };
+			Dataspace_component      _ds         { };
+			Rpc_entrypoint          *_ds_ep      { nullptr };
+			Rom_dataspace_capability _ds_cap     { };
 
 			Rom_module const * _find_rom(Rom_fs *rom_fs, const char *args)
 			{
@@ -39,6 +39,12 @@ namespace Genode {
 				/* find ROM module for trailing label element */
 				return rom_fs->find(label.last_element().string());
 			}
+
+			/*
+			 * Noncopyable
+			 */
+			Rom_session_component(Rom_session_component const &);
+			Rom_session_component &operator = (Rom_session_component const &);
 
 		public:
 

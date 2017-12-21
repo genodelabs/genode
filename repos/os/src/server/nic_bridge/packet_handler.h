@@ -39,7 +39,7 @@ class Net::Packet_handler
 {
 	private:
 
-		Packet_descriptor _packet;
+		Packet_descriptor _packet { };
 		Net::Vlan        &_vlan;
 
 		/**
@@ -84,6 +84,8 @@ class Net::Packet_handler
 	public:
 
 		Packet_handler(Genode::Entrypoint&, Vlan&);
+
+		virtual ~Packet_handler() { }
 
 		virtual Packet_stream_sink< ::Nic::Session::Policy>   * sink()   = 0;
 		virtual Packet_stream_source< ::Nic::Session::Policy> * source() = 0;

@@ -35,7 +35,7 @@ class Genode::Rpc_cap_factory
 			Entry(Native_capability cap) : Object_pool<Entry>::Entry(cap) {}
 		};
 
-		Object_pool<Entry> _pool;
+		Object_pool<Entry> _pool { };
 
 		/*
 		 * Dimension '_entry_slab' such that slab blocks (including the

@@ -48,7 +48,7 @@
 				(server, args, &SERVER::func_name); } \
 		\
 		static const char* name() { return #func_name; } \
-	};
+	}
 
 /**
  * Shortcut for 'GENODE_RPC_THROW' for an RPC that throws no exceptions

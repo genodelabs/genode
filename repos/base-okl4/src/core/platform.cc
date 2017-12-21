@@ -22,6 +22,7 @@
 #include <base/internal/stack_area.h>
 #include <base/internal/native_utcb.h>
 #include <base/internal/globals.h>
+#include <base/internal/okl4.h>
 
 /* core includes */
 #include <boot_modules.h>
@@ -30,12 +31,6 @@
 #include <platform_thread.h>
 #include <platform_pd.h>
 #include <map_local.h>
-
-/* OKL4 includes */
-namespace Okl4 {
-#include <l4/ipc.h>
-#include <l4/schedule.h>
-}
 
 using namespace Genode;
 
@@ -49,7 +44,7 @@ bool Mapped_mem_allocator::_map_local(addr_t virt_addr, addr_t phys_addr,
 	return map_local(phys_addr, virt_addr, size / get_page_size()); }
 
 
-bool Mapped_mem_allocator::_unmap_local(addr_t virt_addr, addr_t phys_addr,
+bool Mapped_mem_allocator::_unmap_local(addr_t virt_addr, addr_t,
                                         unsigned size) {
 	return unmap_local(virt_addr, size / get_page_size()); }
 
@@ -69,7 +64,7 @@ int Platform::bi_init_mem(Okl4::uintptr_t virt_base, Okl4::uintptr_t virt_end,
 }
 
 
-int Platform::bi_add_virt_mem(Okl4::bi_name_t pool, Okl4::uintptr_t base,
+int Platform::bi_add_virt_mem(Okl4::bi_name_t, Okl4::uintptr_t base,
                               Okl4::uintptr_t end, const Okl4::bi_user_data_t *data)
 {
 	/* prevent first page from being added to core memory */

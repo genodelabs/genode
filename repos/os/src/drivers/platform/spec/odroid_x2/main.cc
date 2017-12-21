@@ -30,7 +30,7 @@ struct Driver_factory : Regulator::Driver_factory
 
 	Driver_factory(Genode::Env &env) : _cmu(env), _pmu(env) { }
 
-	Regulator::Driver &create(Regulator::Regulator_id id)
+	Regulator::Driver &create(Regulator::Regulator_id id) override
 	{
 		switch (id) {
 		case Regulator::CLK_CPU:
@@ -47,7 +47,7 @@ struct Driver_factory : Regulator::Driver_factory
 		}
 	}
 
-	void destroy(Regulator::Driver &driver) { }
+	void destroy(Regulator::Driver &) override { }
 };
 
 

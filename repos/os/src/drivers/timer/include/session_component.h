@@ -31,15 +31,17 @@ namespace Timer {
 }
 
 
-class Timer::Session_component : public Genode::Rpc_object<Session>,
-                                 public Genode::List<Session_component>::Element,
+class Timer::Session_component : public  Genode::Rpc_object<Session>,
+                                 private Genode::List<Session_component>::Element,
                                  private Genode::Timeout::Handler
 {
 	private:
 
+		friend class Genode::List<Session_component>;
+
 		Genode::Timeout                    _timeout;
 		Genode::Timeout_scheduler         &_timeout_scheduler;
-		Genode::Signal_context_capability  _sigh;
+		Genode::Signal_context_capability  _sigh { };
 
 		unsigned long const _init_time_us =
 			_timeout_scheduler.curr_time().trunc_to_plain_us().value;

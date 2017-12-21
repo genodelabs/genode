@@ -99,8 +99,7 @@ void Platform::setup_irq_mode(unsigned irq_number, unsigned trigger,
 	Kernel::pic()->ioapic.setup_irq_mode(irq_number, trigger, polarity); }
 
 
-bool Platform::get_msi_params(const addr_t mmconf, addr_t &address,
-                              addr_t &data, unsigned &irq_number) {
+bool Platform::get_msi_params(addr_t, addr_t &, addr_t &, unsigned &) {
 	return false; }
 
 

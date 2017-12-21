@@ -30,7 +30,7 @@ class Genode::Msgbuf_base : Noncopyable
 {
 	public:
 
-		enum { MAX_CAPS_PER_MSG = 4 };
+		static constexpr Genode::size_t MAX_CAPS_PER_MSG = 4;
 
 	private:
 
@@ -73,6 +73,12 @@ class Genode::Msgbuf_base : Noncopyable
 			for (unsigned i = 0; i < num_words; i++)
 				word(i) = 0;
 		}
+
+		/*
+		 * Noncopyable
+		 */
+		Msgbuf_base(Msgbuf_base const &);
+		Msgbuf_base &operator = (Msgbuf_base const &);
 
 	protected:
 
@@ -230,7 +236,7 @@ struct Genode::Msgbuf : Msgbuf_base
 	 * This space is used on some platforms to prepend the message with a
 	 * protocol header.
 	 */
-	Headroom headroom;
+	Headroom headroom { };
 
 	/**
 	 * Buffer for data payload

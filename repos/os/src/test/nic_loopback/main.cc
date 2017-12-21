@@ -37,7 +37,7 @@ namespace Genode {
 }
 
 
-struct Test::Base
+struct Test::Base : Interface
 {
 	public:
 
@@ -336,8 +336,8 @@ struct Test::Main
 {
 	Env &_env;
 
-	Constructible<Roundtrip> _roundtrip;
-	Constructible<Batch>     _batch;
+	Constructible<Roundtrip> _roundtrip { };
+	Constructible<Batch>     _batch     { };
 
 	Signal_handler<Main> _test_completed_handler {
 		_env.ep(), *this, &Main::_handle_test_completed };

@@ -27,7 +27,7 @@ class Init::State_reporter : public Report_update_trigger
 {
 	public:
 
-		struct Producer
+		struct Producer : Interface
 		{
 			virtual void produce_state_report(Xml_generator &xml,
 			                                  Report_detail const &) const = 0;
@@ -39,11 +39,11 @@ class Init::State_reporter : public Report_update_trigger
 
 		Producer &_producer;
 
-		Constructible<Reporter> _reporter;
+		Constructible<Reporter> _reporter { };
 
 		size_t _buffer_size = 0;
 
-		Reconstructible<Report_detail> _report_detail;
+		Reconstructible<Report_detail> _report_detail { };
 
 		unsigned _report_delay_ms = 0;
 
@@ -52,10 +52,10 @@ class Init::State_reporter : public Report_update_trigger
 
 		/* version string from config, to be reflected in the report */
 		typedef String<64> Version;
-		Version _version;
+		Version _version { };
 
-		Constructible<Timer::Connection> _timer;
-		Constructible<Timer::Connection> _timer_periodic;
+		Constructible<Timer::Connection> _timer          { };
+		Constructible<Timer::Connection> _timer_periodic { };
 
 		Signal_handler<State_reporter> _timer_handler {
 			_env.ep(), *this, &State_reporter::_handle_timer };

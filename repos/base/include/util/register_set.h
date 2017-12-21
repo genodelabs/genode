@@ -17,6 +17,7 @@
 /* Genode includes */
 #include <util/register.h>
 #include <util/noncopyable.h>
+#include <util/interface.h>
 #include <base/exception.h>
 
 namespace Genode {
@@ -673,7 +674,7 @@ class Genode::Register_set : Noncopyable
 		/**
 		 * Interface for delaying the execution of a calling thread
 		 */
-		struct Delayer
+		struct Delayer : Interface
 		{
 			/**
 			 * Delay execution of the caller for 'us' microseconds

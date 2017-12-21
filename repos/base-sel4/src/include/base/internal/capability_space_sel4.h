@@ -168,8 +168,8 @@ class Genode::Capability_space_sel4
 		};
 
 		Tree_managed_data           _caps_data[NUM_CAPS];
-		Avl_tree<Tree_managed_data> _tree;
-		Lock                mutable _lock;
+		Avl_tree<Tree_managed_data> _tree { };
+		Lock                mutable _lock { };
 
 		/**
 		 * Calculate index into _caps_data for capability data object

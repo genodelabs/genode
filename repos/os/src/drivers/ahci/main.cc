@@ -41,7 +41,7 @@ struct Block::Factory : Driver_factory
 		return Ahci_driver::claim_port(device_num);
 	}
 
-	void destroy(Block::Driver *driver)
+	void destroy(Block::Driver *)
 	{
 		Ahci_driver::free_port(device_num);
 	}
@@ -168,7 +168,7 @@ struct Block::Main
 
 	Genode::Attached_rom_dataspace config { env, "config" };
 
-	Genode::Constructible<Genode::Reporter> reporter;
+	Genode::Constructible<Genode::Reporter> reporter { };
 
 	Block::Root_multiple_clients root;
 

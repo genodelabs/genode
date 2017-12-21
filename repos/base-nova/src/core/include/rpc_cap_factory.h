@@ -39,8 +39,8 @@ class Genode::Rpc_cap_factory
 		uint8_t _initial_sb[SBS];
 
 		Tslab<Cap_object, SBS> _slab;
-		List<Cap_object>       _list;
-		Lock                   _lock;
+		List<Cap_object>       _list { };
+		Lock                   _lock { };
 
 	public:
 

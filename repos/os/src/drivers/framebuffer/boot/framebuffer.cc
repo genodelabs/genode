@@ -58,7 +58,7 @@ Session_component::Session_component(Genode::Env &env,
 
 Mode Session_component::mode() const { return _fb_mode; }
 
-void Session_component::mode_sigh(Genode::Signal_context_capability _scc) { }
+void Session_component::mode_sigh(Genode::Signal_context_capability) { }
 
 void Session_component::sync_sigh(Genode::Signal_context_capability scc)
 {

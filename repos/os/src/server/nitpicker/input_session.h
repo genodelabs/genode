@@ -52,7 +52,7 @@ class Input::Session_component : public Rpc_object<Session>
 		Event      _ev_buf[MAX_EVENTS];
 		unsigned   _num_ev = 0;
 
-		Signal_context_capability _sigh;
+		Signal_context_capability _sigh { };
 
 	public:
 

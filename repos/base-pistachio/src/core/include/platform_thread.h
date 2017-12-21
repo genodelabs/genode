@@ -41,25 +41,29 @@ inline unsigned long convert_native_thread_id_to_badge(Pistachio::L4_ThreadId_t 
 namespace Genode {
 
 	class Platform_pd;
-	class Platform_thread
+	class Platform_thread : Interface
 	{
 		private:
 
-			int                      _thread_id;      /* plain thread number */
-			Pistachio::L4_ThreadId_t _l4_thread_id;   /* L4 thread ID */
-			char                     _name[32];       /* thread name that will be
-			                                             registered at the kernel
-			                                             debugger */
-			Platform_pd             *_platform_pd;    /* protection domain thread
-			                                             is bound to */
-			unsigned                 _priority;       /* thread priority */
-			Pager_object            *_pager;
+			typedef Pistachio::L4_ThreadId_t L4_ThreadId_t;
 
-			Affinity::Location       _location;
+			/*
+			 * Noncopyable
+			 */
+			Platform_thread(Platform_thread const &);
+			Platform_thread &operator = (Platform_thread const &);
+
+			int                _thread_id;
+			L4_ThreadId_t      _l4_thread_id;
+			char               _name[32];  /* thread name at kernel debugger */
+			Platform_pd       *_platform_pd = nullptr;
+			unsigned           _priority;
+			Pager_object      *_pager;
+			Affinity::Location _location { };
 
 		public:
 
-			enum { THREAD_INVALID = -1 };       /* invalid thread number */
+			enum { THREAD_INVALID = -1 };
 			enum { DEFAULT_PRIORITY = 128 };
 
 			/**
@@ -162,7 +166,7 @@ namespace Genode {
 			/**
 			 * Set CPU quota of the thread to 'quota'
 			 */
-			void quota(size_t const quota) { /* not supported*/ }
+			void quota(size_t const) { /* not supported*/ }
 
 			/**
 			 * Return execution time consumed by the thread

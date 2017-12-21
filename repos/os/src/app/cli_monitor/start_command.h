@@ -40,7 +40,7 @@ class Cli_monitor::Start_command : public Command
 		Genode::Ram_session_capability _ref_ram_cap;
 		Genode::Region_map            &_local_rm;
 		Subsystem_config_registry     &_subsystem_configs;
-		List<Argument>                 _arguments;
+		List<Argument>                 _arguments { };
 		Signal_context_capability      _yield_response_sigh_cap;
 		Signal_context_capability      _exit_sig_cap;
 

@@ -39,6 +39,12 @@ class Scout::Platform
 {
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Platform(Platform const &);
+		Platform &operator = (Platform const &);
+
 		Genode::Env   &_env;
 		Event_handler *_event_handler = nullptr;
 

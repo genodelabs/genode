@@ -18,8 +18,8 @@
 using namespace Genode;
 
 
-Io_mem_session_component::Io_mem_session_component(Range_allocator *io_mem_alloc,
-                                                   Range_allocator *ram_alloc,
-                                                   Rpc_entrypoint  *ds_ep,
+Io_mem_session_component::Io_mem_session_component(Range_allocator *,
+                                                   Range_allocator *,
+                                                   Rpc_entrypoint  *,
                                                    const char      *args) {
 	warning("no io_mem support on Linux (args=\"", args, "\")"); }

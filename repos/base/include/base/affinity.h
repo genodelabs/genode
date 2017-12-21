@@ -137,8 +137,8 @@ class Genode::Affinity
 
 	private:
 
-		Space    _space;
-		Location _location;
+		Space    _space    { };
+		Location _location { };
 
 	public:
 

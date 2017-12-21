@@ -29,7 +29,8 @@ class Cli_monitor::Ram
 		Genode::Pd_session           &_pd;
 		Genode::Pd_session_capability _pd_cap;
 
-		Genode::Lock mutable _lock;
+		Genode::Lock mutable _lock { };
+
 		Genode::Signal_context_capability _yield_sigh;
 		Genode::Signal_context_capability _resource_avail_sigh;
 

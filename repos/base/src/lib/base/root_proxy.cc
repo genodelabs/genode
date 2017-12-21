@@ -51,8 +51,8 @@ namespace {
 
 			enum { MAX = 32 };
 
-			Lock mutable _lock;
-			Service      _services[MAX];
+			Lock mutable _lock { };
+			Service      _services[MAX] { };
 			unsigned     _cnt = 0;
 
 		public:
@@ -114,7 +114,7 @@ namespace {
 
 			Env &_env;
 
-			Id_space<Parent::Server> _id_space;
+			Id_space<Parent::Server> _id_space { };
 
 			Entrypoint _ep { _env, 2*1024*sizeof(long), "root" };
 
@@ -130,7 +130,7 @@ namespace {
 			void _handle_session_request(Xml_node);
 			void _handle_session_requests();
 
-			Service_registry _services;
+			Service_registry _services { };
 
 		public:
 

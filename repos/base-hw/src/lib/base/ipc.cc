@@ -119,7 +119,7 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
  ** IPC server **
  ****************/
 
-void Genode::ipc_reply(Native_capability caller, Rpc_exception_code exc,
+void Genode::ipc_reply(Native_capability, Rpc_exception_code exc,
                        Msgbuf_base &snd_msg)
 {
 	Native_utcb &utcb = *Thread::myself()->utcb();

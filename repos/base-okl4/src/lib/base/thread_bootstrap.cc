@@ -20,12 +20,7 @@
 #include <base/internal/native_thread.h>
 #include <base/internal/native_utcb.h>
 #include <base/internal/globals.h>
-
-/* OKL4 includes */
-namespace Okl4 { extern "C" {
-#include <l4/utcb.h>
-#include <l4/thread.h>
-} }
+#include <base/internal/okl4.h>
 
 Okl4::L4_ThreadId_t main_thread_tid;
 

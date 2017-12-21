@@ -29,7 +29,7 @@ class Genode::Rpc_cap_factory
 
 	public:
 
-		Rpc_cap_factory(Allocator &md_alloc) { }
+		Rpc_cap_factory(Allocator &) { }
 
 		Native_capability alloc(Native_capability ep);
 

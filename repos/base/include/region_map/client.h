@@ -35,7 +35,7 @@ class Genode::Region_map_client : public Rpc_client<Region_map>
 		 *
 		 * On all other base platforms, this member variable remains unused.
 		 */
-		Dataspace_capability _rm_ds_cap;
+		Dataspace_capability _rm_ds_cap { };
 
 	public:
 

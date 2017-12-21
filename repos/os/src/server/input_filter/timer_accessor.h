@@ -19,6 +19,6 @@
 
 namespace Input_filter { struct Timer_accessor; }
 
-struct Input_filter::Timer_accessor { virtual Timer::Connection &timer() = 0; };
+struct Input_filter::Timer_accessor : Interface { virtual Timer::Connection &timer() = 0; };
 
 #endif /* _INPUT_FILTER__TIMER_ACCESSOR_H_ */

@@ -29,13 +29,13 @@ class Nic::Measurement
 
 		Timer::Connection &_timer;
 
-		Net::Mac_address _mac;
+		Net::Mac_address _mac { };
 
 		struct stat
 		{
 			Genode::uint64_t size;
 			unsigned long count;
-		} _stat, _drop;
+		} _stat { 0, 0 }, _drop { 0, 0 };
 
 		Genode::addr_t _timestamp;
 
@@ -51,9 +51,7 @@ class Nic::Measurement
 		Measurement(Timer::Connection &timer)
 		:
 			_timer(timer), _timestamp(0)
-		{
-			_stat.size = _stat.count = _drop.size = _drop.count = 0;
-		}
+		{ }
 
 		void set_mac(void * mac)
 		{

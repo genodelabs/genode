@@ -86,24 +86,24 @@ class Net::Domain : public Domain_base
 		Configuration                        &_config;
 		Genode::Xml_node                      _node;
 		Genode::Allocator                    &_alloc;
-		Ip_rule_list                          _ip_rules;
-		Forward_rule_tree                     _tcp_forward_rules;
-		Forward_rule_tree                     _udp_forward_rules;
-		Transport_rule_list                   _tcp_rules;
-		Transport_rule_list                   _udp_rules;
-		Port_allocator                        _tcp_port_alloc;
-		Port_allocator                        _udp_port_alloc;
-		Nat_rule_tree                         _nat_rules;
-		List<Interface>                       _interfaces;
-		unsigned long                         _interface_cnt { 0 };
-		Pointer<Dhcp_server>                  _dhcp_server;
+		Ip_rule_list                          _ip_rules            { };
+		Forward_rule_tree                     _tcp_forward_rules   { };
+		Forward_rule_tree                     _udp_forward_rules   { };
+		Transport_rule_list                   _tcp_rules           { };
+		Transport_rule_list                   _udp_rules           { };
+		Port_allocator                        _tcp_port_alloc      { };
+		Port_allocator                        _udp_port_alloc      { };
+		Nat_rule_tree                         _nat_rules           { };
+		List<Interface>                       _interfaces          { };
+		unsigned long                         _interface_cnt       { 0 };
+		Pointer<Dhcp_server>                  _dhcp_server         { };
 		Genode::Reconstructible<Ipv4_config>  _ip_config;
-		Arp_cache                             _arp_cache;
-		Arp_waiter_list                       _foreign_arp_waiters;
-		Link_side_tree                        _tcp_links;
-		Link_side_tree                        _udp_links;
-		Genode::size_t                        _tx_bytes { 0 };
-		Genode::size_t                        _rx_bytes { 0 };
+		Arp_cache                             _arp_cache           { };
+		Arp_waiter_list                       _foreign_arp_waiters { };
+		Link_side_tree                        _tcp_links           { };
+		Link_side_tree                        _udp_links           { };
+		Genode::size_t                        _tx_bytes            { 0 };
+		Genode::size_t                        _rx_bytes            { 0 };
 
 		void _read_forward_rules(Genode::Cstring  const &protocol,
 		                         Domain_tree            &domains,

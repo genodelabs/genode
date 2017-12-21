@@ -15,11 +15,12 @@
 #define _INCLUDE__BASE__OUTPUT_H_
 
 #include <base/stdint.h>
+#include <util/interface.h>
 
 namespace Genode { struct Output; }
 
 
-struct Genode::Output
+struct Genode::Output : Interface
 {
 	/**
 	 * Output single character

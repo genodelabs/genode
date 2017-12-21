@@ -76,8 +76,8 @@ class Genode::Pd_root : public Genode::Root_component<Genode::Pd_session_compone
 
 		void _upgrade_session(Pd_session_component *pd, const char *args)
 		{
-			pd->Ram_quota_guard::upgrade(ram_quota_from_args(args));
-			pd->Cap_quota_guard::upgrade(cap_quota_from_args(args));
+			pd->upgrade(ram_quota_from_args(args));
+			pd->upgrade(cap_quota_from_args(args));
 		}
 
 	public:

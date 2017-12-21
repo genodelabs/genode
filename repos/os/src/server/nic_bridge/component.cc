@@ -22,8 +22,8 @@ using namespace Net;
 
 bool Session_component::handle_arp(Ethernet_frame *eth, Genode::size_t size)
 {
-	Arp_packet *arp =
-		new (eth->data<void>()) Arp_packet(size - sizeof(Ethernet_frame));
+	Arp_packet *arp = eth->data<Arp_packet>();
+	Arp_packet::validate_size(size - sizeof(Ethernet_frame));
 	if (arp->ethernet_ipv4() &&
 		arp->opcode() == Arp_packet::REQUEST) {
 
@@ -51,16 +51,19 @@ bool Session_component::handle_arp(Ethernet_frame *eth, Genode::size_t size)
 
 bool Session_component::handle_ip(Ethernet_frame *eth, Genode::size_t size)
 {
-	Ipv4_packet *ip =
-		new (eth->data<void>()) Ipv4_packet(size - sizeof(Ethernet_frame));
+	Ipv4_packet *ip = eth->data<Ipv4_packet>();
+	Ipv4_packet::validate_size(size - sizeof(Ethernet_frame));
 
 	if (ip->protocol() == Ipv4_packet::Protocol::UDP)
 	{
-		Udp_packet *udp = new (ip->data<void>())
-			Udp_packet(size - sizeof(Ipv4_packet));
+		Udp_packet *udp = ip->data<Udp_packet>();
+		Udp_packet::validate_size(size - sizeof(Ethernet_frame)
+		                               - sizeof(Ipv4_packet));
 		if (Dhcp_packet::is_dhcp(udp)) {
-			Dhcp_packet *dhcp = new (udp->data<void>())
-				Dhcp_packet(size - sizeof(Ipv4_packet) - sizeof(Udp_packet));
+			Dhcp_packet *dhcp = udp->data<Dhcp_packet>();
+			Dhcp_packet::validate_size(size - sizeof(Ethernet_frame)
+			                                - sizeof(Ipv4_packet)
+			                                - sizeof(Udp_packet));
 			if (dhcp->op() == Dhcp_packet::REQUEST) {
 				dhcp->broadcast(true);
 				udp->update_checksum(ip->src(), ip->dst());

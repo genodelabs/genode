@@ -30,7 +30,7 @@ class Terminal::Session_client : public Genode::Rpc_client<Session>
 {
 	private:
 
-		Genode::Lock _lock;
+		Genode::Lock _lock { };
 
 		/**
 		 * Shared-memory buffer used for carrying the payload

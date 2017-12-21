@@ -24,14 +24,14 @@ namespace Platform {
 	{
 		private:
 
-			int _bus, _device, _function;     /* location at PCI bus */
+			int _bus = 0, _device = 0, _function = 0;     /* location at PCI bus */
 
 			/*
 			 * Information provided by the PCI config space
 			 */
-			unsigned _vendor_id, _device_id;
-			unsigned _class_code;
-			unsigned _header_type;
+			unsigned _vendor_id = 0, _device_id = 0;
+			unsigned _class_code = 0;
+			unsigned _header_type = 0;
 
 			/*
 			 * Header type definitions
@@ -213,15 +213,19 @@ namespace Platform {
 				return pci_config->reg_in_use(address, size); }
 	};
 
-	class Config_space : public Genode::List<Config_space>::Element
+	class Config_space : private Genode::List<Config_space>::Element
 	{
 		private:
+
+			friend class Genode::List<Config_space>;
 
 			Genode::uint32_t _bdf_start;
 			Genode::uint32_t _func_count;
 			Genode::addr_t   _base;
 
 		public:
+
+			using Genode::List<Config_space>::Element::next;
 
 			Config_space(Genode::uint32_t bdf_start,
 			             Genode::uint32_t func_count, Genode::addr_t base)

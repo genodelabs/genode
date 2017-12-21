@@ -44,9 +44,9 @@ class Genode::Stack_allocator
 				/* the first index is used by main thread */
 				_reserve(0, 1);
 			}
-		} _alloc;
+		} _alloc { };
 
-		Lock _threads_lock;
+		Lock _threads_lock { };
 
 	public:
 

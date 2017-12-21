@@ -34,14 +34,15 @@ namespace Kernel
 	class Cpu_domain_update;
 }
 
-class Kernel::Cpu_domain_update : public Double_list_item
+class Kernel::Cpu_domain_update : private Double_list_item
 {
 	friend class Cpu_domain_update_list;
+	friend class Kernel::Double_list_typed<Cpu_domain_update>;
 
 	private:
 
 		bool     _pending[NR_OF_CPUS];
-		unsigned _domain_id;
+		unsigned _domain_id = 0;
 
 		/**
 		 * Domain-update back-end
@@ -57,6 +58,8 @@ class Kernel::Cpu_domain_update : public Double_list_item
 
 		Cpu_domain_update();
 
+		virtual ~Cpu_domain_update() { };
+
 		/**
 		 * Do an update of domain 'id' on all CPUs and return if this blocks
 		 */
@@ -68,8 +71,18 @@ class Kernel::Cpu_domain_update : public Double_list_item
 		virtual void _cpu_domain_update_unblocks() = 0;
 };
 
-class Kernel::Cpu_job : public Cpu_share
+class Kernel::Cpu_job : private Cpu_share
 {
+	private:
+
+		friend class Cpu; /* static_cast from 'Cpu_share' to 'Cpu_job' */
+
+		/*
+		 * Noncopyable
+		 */
+		Cpu_job(Cpu_job const &);
+		Cpu_job &operator = (Cpu_job const &);
+
 	protected:
 
 		Cpu * _cpu;
@@ -124,7 +137,7 @@ class Kernel::Cpu_job : public Cpu_share
 		/**
 		 * Destructor
 		 */
-		~Cpu_job();
+		virtual ~Cpu_job();
 
 		/**
 		 * Link job to CPU 'cpu'
@@ -154,6 +167,8 @@ class Kernel::Cpu_job : public Cpu_share
 		 ***************/
 
 		void cpu(Cpu * const cpu) { _cpu = cpu; }
+
+		Cpu_share &share() { return *this; }
 };
 
 #endif /* _CORE__KERNEL__CPU_CONTEXT_H_ */

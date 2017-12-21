@@ -43,15 +43,21 @@ namespace Genode {
 	 */
 	class Platform_thread : public Kernel_object<Kernel::Thread>
 	{
+		/*
+		 * Noncopyable
+		 */
+		Platform_thread(Platform_thread const &);
+		Platform_thread &operator = (Platform_thread const &);
+
 		enum { LABEL_MAX_LEN = 32 };
 
-		Platform_pd *                 _pd;
-		Weak_ptr<Address_space>       _address_space;
-		Pager_object *                _pager;
-		Native_utcb *                 _utcb_core_addr; /* UTCB addr in core */
-		Native_utcb *                 _utcb_pd_addr;   /* UTCB addr in pd   */
-		Ram_dataspace_capability      _utcb;           /* UTCB dataspace    */
-		char                          _label[LABEL_MAX_LEN];
+		Platform_pd *            _pd;
+		Weak_ptr<Address_space>  _address_space  { };
+		Pager_object *           _pager;
+		Native_utcb *            _utcb_core_addr { }; /* UTCB addr in core */
+		Native_utcb *            _utcb_pd_addr;       /* UTCB addr in pd   */
+		Ram_dataspace_capability _utcb           { }; /* UTCB dataspace    */
+		char                     _label[LABEL_MAX_LEN];
 
 		/*
 		 * Wether this thread is the main thread of a program.
@@ -63,7 +69,7 @@ namespace Genode {
 		 */
 		bool _main_thread;
 
-		Affinity::Location _location;
+		Affinity::Location _location { };
 
 		/**
 		 * Common construction part

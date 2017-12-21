@@ -89,7 +89,7 @@ Ipv4_address Ipv4_address::from_uint32_little_endian(uint32_t ip_raw)
 
 struct Scanner_policy_number
 {
-	static bool identifier_char(char c, unsigned  i ) {
+	static bool identifier_char(char c, unsigned) {
 		return Genode::is_digit(c) && c !='.'; }
 };
 

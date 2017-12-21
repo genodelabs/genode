@@ -27,8 +27,8 @@ namespace Audio_out {
 
 struct Audio_out::Signal
 {
-	Genode::Signal_receiver           recv;
-	Genode::Signal_context            context;
+	Genode::Signal_receiver           recv    { };
+	Genode::Signal_context            context { };
 	Genode::Signal_context_capability cap;
 
 	Signal() : cap(recv.manage(&context)) { }
@@ -44,8 +44,8 @@ class Audio_out::Session_client : public Genode::Rpc_client<Session>
 
 		Genode::Attached_dataspace _shared_ds;
 
-		Signal _progress;
-		Signal _alloc;
+		Signal _progress { };
+		Signal _alloc    { };
 
 		Genode::Signal_transmitter _data_avail;
 

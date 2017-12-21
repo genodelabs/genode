@@ -21,14 +21,21 @@
 
 #include <kernel/irq.h>
 
-namespace Genode {
-	class Irq_session_component;
-}
+namespace Genode { class Irq_session_component; }
 
-class Genode::Irq_session_component : public Rpc_object<Irq_session>,
-	public List<Irq_session_component>::Element
+
+class Genode::Irq_session_component : public  Rpc_object<Irq_session>,
+                                      private List<Irq_session_component>::Element
 {
 	private:
+
+		friend class List<Irq_session_component>;
+
+		/*
+		 * Noncopyable
+		 */
+		Irq_session_component(Irq_session_component const &);
+		Irq_session_component &operator = (Irq_session_component const &);
 
 		unsigned         _irq_number;
 		Range_allocator *_irq_alloc;
@@ -36,7 +43,7 @@ class Genode::Irq_session_component : public Rpc_object<Irq_session>,
 		bool             _is_msi;
 		addr_t           _address, _value;
 
-		Signal_context_capability _sig_cap;
+		Signal_context_capability _sig_cap { };
 
 		unsigned _find_irq_number(const char * const args);
 
@@ -65,9 +72,9 @@ class Genode::Irq_session_component : public Rpc_object<Irq_session>,
 
 		Info info() override
 		{
-			if (!_is_msi) {
-				return { .type = Info::Type::INVALID };
-			}
+			if (!_is_msi)
+				return { .type = Info::Type::INVALID, .address = 0, .value = 0 };
+
 			return { .type    = Info::Type::MSI,
 			         .address = _address,
 			         .value   = _value };

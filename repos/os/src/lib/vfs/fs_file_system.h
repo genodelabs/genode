@@ -37,7 +37,7 @@ class Vfs::Fs_file_system : public File_system
 		 * XXX Once, we change the VFS file-system interface to use
 		 *     asynchronous read/write operations, we can possibly remove it.
 		 */
-		Lock _lock;
+		Lock _lock { };
 
 		Genode::Env           &_env;
 		Genode::Allocator_avl  _fs_packet_alloc;
@@ -53,7 +53,7 @@ class Vfs::Fs_file_system : public File_system
 
 		typedef Genode::Id_space<::File_system::Node> Handle_space;
 
-		Handle_space _handle_space;
+		Handle_space _handle_space { };
 
 		struct Handle_state
 		{
@@ -64,13 +64,23 @@ class Vfs::Fs_file_system : public File_system
 			Queued_state queued_read_state = Queued_state::IDLE;
 			Queued_state queued_sync_state = Queued_state::IDLE;
 
-			::File_system::Packet_descriptor queued_read_packet;
-			::File_system::Packet_descriptor queued_sync_packet;
+			::File_system::Packet_descriptor queued_read_packet { };
+			::File_system::Packet_descriptor queued_sync_packet { };
 		};
 
-		struct Fs_vfs_handle : Vfs_handle, ::File_system::Node,
-		                       Handle_space::Element, Handle_state
+		struct Fs_vfs_handle : Vfs_handle,
+		                       private ::File_system::Node,
+		                       private Handle_space::Element,
+		                       private Handle_state
 		{
+			using Handle_state::queued_read_state;
+			using Handle_state::queued_read_packet;
+			using Handle_state::queued_sync_packet;
+			using Handle_state::queued_sync_state;
+			using Handle_state::read_ready_state;
+
+			friend class Genode::Id_space<::File_system::Node>;
+
 			::File_system::Connection &_fs;
 			Io_response_handler       &_io_handler;
 
@@ -154,14 +164,15 @@ class Vfs::Fs_file_system : public File_system
 			::File_system::File_handle file_handle() const
 			{ return ::File_system::File_handle { id().value }; }
 
-			virtual bool queue_read(file_size count)
+			virtual bool queue_read(file_size /* count */)
 			{
 				Genode::error("Fs_vfs_handle::queue_read() called");
 				return true;
 			}
 
-			virtual Read_result complete_read(char *dst, file_size count,
-			                                  file_size &out_count)
+			virtual Read_result complete_read(char *,
+			                                  file_size /* in count */,
+			                                  file_size & /* out count */)
 			{
 				Genode::error("Fs_vfs_handle::complete_read() called");
 				return READ_ERR_INVALID;
@@ -348,8 +359,8 @@ class Vfs::Fs_file_system : public File_system
 		{
 			Genode::Entrypoint        &_ep;
 			Io_response_handler       &_io_handler;
-			List<Vfs_handle::Context>  _context_list;
-			Lock                       _list_lock;
+			List<Vfs_handle::Context>  _context_list { };
+			Lock                       _list_lock    { };
 			bool                       _null_context_armed { false };
 
 			Post_signal_hook(Genode::Entrypoint &ep,
@@ -578,13 +589,13 @@ class Vfs::Fs_file_system : public File_system
 		 ** Directory-service interface **
 		 *********************************/
 
-		Dataspace_capability dataspace(char const *path) override
+		Dataspace_capability dataspace(char const *) override
 		{
 			/* cannot be implemented without blocking */
 			return Dataspace_capability();
 		}
 
-		void release(char const *path, Dataspace_capability ds_cap) override { }
+		void release(char const *, Dataspace_capability) override { }
 
 		Stat_result stat(char const *path, Stat &out) override
 		{

@@ -23,23 +23,24 @@ namespace Genode {
 }
 
 class Genode::Irq_session_component : public Rpc_object<Irq_session>,
-                                      public List<Irq_session_component>::Element
+                                      private List<Irq_session_component>::Element
 {
+	private:
+
+		friend class List<Irq_session_component>;
+
 	public:
 
 		/**
 		 * Constructor
-		 *
-		 * \param irq_alloc    platform-dependent IRQ allocator
-		 * \param args         session construction arguments
 		 */
-		Irq_session_component(Range_allocator *irq_alloc,
-		                      const char      *args) { }
+		Irq_session_component(Range_allocator *, const char *) { }
 
 		/**
 		 * Destructor
 		 */
 		~Irq_session_component() { }
+
 
 		/***************************
 		 ** Irq session interface **
@@ -47,8 +48,9 @@ class Genode::Irq_session_component : public Rpc_object<Irq_session>,
 
 		void ack_irq() override { }
 		void sigh(Signal_context_capability) override { }
-		Info info() override { 
-			return { .type = Genode::Irq_session::Info::Type::INVALID }; }
+		Info info() override {
+			return { .type = Genode::Irq_session::Info::Type::INVALID,
+			         .address = 0, .value = 0 }; }
 };
 
 #endif /* _CORE__INCLUDE__IRQ_SESSION_COMPONENT_H_ */

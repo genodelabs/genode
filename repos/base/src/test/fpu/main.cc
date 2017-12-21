@@ -68,7 +68,7 @@ struct Main
 {
 	enum { FPU_USERS = 10 };
 
-	Semaphore            sem;
+	Semaphore            sem { };
 	Env &                env;
 	Heap                 heap    { env.ram(), env.rm() };
 	Signal_handler<Main> handler { env.ep(), *this, &Main::handle };

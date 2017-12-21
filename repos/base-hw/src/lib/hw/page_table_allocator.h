@@ -48,6 +48,8 @@ class Hw::Page_table_allocator
 		Page_table_allocator(addr_t virt_addr, addr_t phys_addr)
 		: _virt_addr(virt_addr), _phys_addr(phys_addr) { }
 
+		virtual ~Page_table_allocator() { }
+
 		template <typename TABLE> addr_t phys_addr(TABLE & table) {
 			static_assert((sizeof(TABLE) == TABLE_SIZE), "unexpected size");
 			return _offset(table) + _phys_addr; }
@@ -106,7 +108,7 @@ class Hw::Page_table_allocator<TABLE_SIZE>::Array<COUNT>::Allocator
 		using Bit_allocator = Genode::Bit_allocator<COUNT>;
 		using Array = Page_table_allocator<TABLE_SIZE>::Array<COUNT>;
 
-		Bit_allocator _free_tables;
+		Bit_allocator _free_tables { };
 
 		unsigned _alloc()
 		{

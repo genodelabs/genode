@@ -32,10 +32,14 @@
 class Launchpad;
 
 
-class Launchpad_child : public Genode::Child_policy,
-                        public Genode::List<Launchpad_child>::Element,
-                        public Genode::Async_service::Wakeup
+class Launchpad_child : public  Genode::Child_policy,
+                        private Genode::List<Launchpad_child>::Element,
+                        public  Genode::Async_service::Wakeup
 {
+	private:
+
+		friend class Genode::List<Launchpad_child>;
+
 	public:
 
 		typedef Genode::Child_policy::Name Name;
@@ -62,7 +66,7 @@ class Launchpad_child : public Genode::Child_policy,
 		Parent_services &_parent_services;
 		Child_services  &_child_services;
 
-		Genode::Dataspace_capability _config_ds;
+		Genode::Dataspace_capability _config_ds { };
 
 		Genode::Session_requester _session_requester;
 
@@ -122,6 +126,8 @@ class Launchpad_child : public Genode::Child_policy,
 					if (service.has_id_space(_session_requester.id_space()))
 						Genode::destroy(_alloc, &service); });
 		}
+
+		using Genode::List<Launchpad_child>::Element::next;
 
 
 		/****************************
@@ -216,11 +222,11 @@ class Launchpad
 
 		unsigned long _initial_quota;
 
-		Launchpad_child::Parent_services _parent_services;
-		Launchpad_child::Child_services  _child_services;
+		Launchpad_child::Parent_services _parent_services { };
+		Launchpad_child::Child_services  _child_services  { };
 
-		Genode::Lock                  _children_lock;
-		Genode::List<Launchpad_child> _children;
+		Genode::Lock                  _children_lock { };
+		Genode::List<Launchpad_child> _children      { };
 
 		bool _child_name_exists(Launchpad_child::Name const &);
 
@@ -230,7 +236,7 @@ class Launchpad
 
 	protected:
 
-		int _ypos;
+		int _ypos = 0;
 
 	public:
 
@@ -253,14 +259,14 @@ class Launchpad
 		 ** Configuring the GUI **
 		 *************************/
 
-		virtual void quota(unsigned long quota) { }
+		virtual void quota(unsigned long) { }
 
-		virtual void add_launcher(Launchpad_child::Name const &binary_name,
-		                          Cap_quota caps, unsigned long default_quota,
-		                          Genode::Dataspace_capability config_ds) { }
+		virtual void add_launcher(Launchpad_child::Name const & /* binary_name */,
+		                          Cap_quota, unsigned long /* default_quota */,
+		                          Genode::Dataspace_capability /* config_ds */) { }
 
 		virtual void add_child(Launchpad_child::Name const &,
-		                       unsigned long quota,
+		                       unsigned long /* quota */,
 		                       Launchpad_child &,
 		                       Genode::Allocator &) { }
 

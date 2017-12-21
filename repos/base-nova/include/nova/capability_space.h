@@ -22,7 +22,7 @@
 
 namespace Genode { namespace Capability_space {
 
-	enum { INVALID_INDEX = ~0UL };
+	static constexpr unsigned long INVALID_INDEX = ~0UL;
 
 	typedef Nova::Crd Ipc_cap_data;
 

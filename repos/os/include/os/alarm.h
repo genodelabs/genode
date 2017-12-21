@@ -41,11 +41,11 @@ class Genode::Alarm
 			bool is_pending_at(unsigned long time, bool time_period) const;
 		};
 
-		Lock             _dispatch_lock;  /* taken during handle method   */
-		Raw              _raw;
-		int              _active;         /* set to one when active       */
-		Alarm           *_next;           /* next alarm in alarm list     */
-		Alarm_scheduler *_scheduler;      /* currently assigned scheduler */
+		Lock             _dispatch_lock { };          /* taken during handle method   */
+		Raw              _raw           { };
+		int              _active        { 0 };        /* set to one when active       */
+		Alarm           *_next          { nullptr };  /* next alarm in alarm list     */
+		Alarm_scheduler *_scheduler     { nullptr };  /* currently assigned scheduler */
 
 		void _assign(Time             period,
 		             Time             deadline,
@@ -60,6 +60,12 @@ class Genode::Alarm
 
 		void _reset() {
 			_assign(0, 0, false, 0), _active = 0, _next = 0; }
+
+		/*
+		 * Noncopyable
+		 */
+		Alarm(Alarm const &);
+		Alarm &operator = (Alarm const &);
 
 	protected:
 
@@ -84,11 +90,11 @@ class Genode::Alarm_scheduler
 {
 	private:
 
-		Lock         _lock;                   /* protect alarm list                     */
+		Lock         _lock       { };         /* protect alarm list                     */
 		Alarm       *_head       { nullptr }; /* head of alarm list                     */
 		Alarm::Time  _now        { 0UL };     /* recent time (updated by handle method) */
 		bool         _now_period { false };
-		Alarm::Raw   _min_handle_period;
+		Alarm::Raw   _min_handle_period { };
 
 		/**
 		 * Enqueue alarm into alarm queue
@@ -114,6 +120,12 @@ class Genode::Alarm_scheduler
 		 * Assign timeout values to alarm object and add it to the schedule
 		 */
 		void _setup_alarm(Alarm &alarm, Alarm::Time period, Alarm::Time deadline);
+
+		/*
+		 * Noncopyable
+		 */
+		Alarm_scheduler(Alarm_scheduler const &);
+		Alarm_scheduler &operator = (Alarm_scheduler const &);
 
 	public:
 

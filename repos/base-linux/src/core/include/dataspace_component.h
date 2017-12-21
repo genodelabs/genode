@@ -32,17 +32,17 @@ namespace Genode {
 	/**
 	 * Deriving classes can own a dataspace to implement conditional behavior
 	 */
-	class Dataspace_owner { };
+	class Dataspace_owner : Interface { };
 
 	class Dataspace_component : public Rpc_object<Linux_dataspace>
 	{
 		private:
 
-			Filename       _fname;              /* filename for mmap          */
-			size_t         _size;               /* size of dataspace in bytes */
-			addr_t         _addr;               /* meaningless on linux       */
-			int            _fd;                 /* file descriptor            */
-			bool           _writable;           /* false if read-only         */
+			Filename _fname    { };        /* filename for mmap          */
+			size_t   _size     { 0 };      /* size of dataspace in bytes */
+			addr_t   _addr     { 0 };      /* meaningless on linux       */
+			int      _fd       { -1 };     /* file descriptor            */
+			bool     _writable { false };  /* false if read-only         */
 
 			/* Holds the dataspace owner if a distinction between owner and
 			 * others is necessary on the dataspace, otherwise it is 0 */
@@ -50,6 +50,12 @@ namespace Genode {
 
 			static Filename _file_name(const char *args);
 			size_t _file_size();
+
+			/*
+			 * Noncopyable
+			 */
+			Dataspace_component(Dataspace_component const &);
+			Dataspace_component &operator = (Dataspace_component const &);
 
 		public:
 
@@ -72,9 +78,8 @@ namespace Genode {
 			 * This constructor is only provided for compatibility
 			 * reasons and should not be used.
 			 */
-			Dataspace_component(size_t size, addr_t core_local_addr,
-			                    addr_t phys_addr, Cache_attribute,
-			                    bool writable, Dataspace_owner * _owner)
+			Dataspace_component(size_t size, addr_t, addr_t phys_addr,
+			                    Cache_attribute, bool, Dataspace_owner *_owner)
 			:
 				_size(size), _addr(phys_addr), _fd(-1), _owner(_owner)
 			{

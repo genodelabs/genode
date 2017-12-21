@@ -73,8 +73,9 @@ class Pointer::Main : public Rom::Reader
 
 		bool _default_pointer_visible = false;
 
-		Nitpicker::Area              _current_pointer_size;
-		Genode::Dataspace_capability _pointer_ds;
+		Nitpicker::Area _current_pointer_size { };
+
+		Genode::Dataspace_capability _pointer_ds { };
 
 		void _resize_nitpicker_buffer_if_needed(Nitpicker::Area pointer_size);
 		void _show_default_pointer();
@@ -86,8 +87,8 @@ class Pointer::Main : public Rom::Reader
 
 		bool _xray = false;
 
-		Genode::Constructible<Genode::Attached_rom_dataspace> _hover_ds;
-		Genode::Constructible<Genode::Attached_rom_dataspace> _xray_ds;
+		Genode::Constructible<Genode::Attached_rom_dataspace> _hover_ds { };
+		Genode::Constructible<Genode::Attached_rom_dataspace> _xray_ds  { };
 
 		Genode::Signal_handler<Main> _hover_signal_handler {
 			_env.ep(), *this, &Main::_handle_hover };
@@ -100,7 +101,7 @@ class Pointer::Main : public Rom::Reader
 
 		Report::Root _report_root { _env, _sliced_heap, _rom_registry, _verbose };
 
-		Genode::Session_label _hovered_label;
+		Genode::Session_label _hovered_label { };
 
 		Genode::Attached_ram_dataspace _texture_pixel_ds { _env.ram(), _env.rm(),
 		                                                   Pointer::MAX_WIDTH  *
@@ -368,7 +369,8 @@ Pointer::Main::Main(Genode::Env &env) : _env(env)
 		}
 	}
 
-	_nitpicker.enqueue<Nitpicker::Session::Command::To_front>(_view);
+	typedef Nitpicker::Session::View_handle View_handle;
+	_nitpicker.enqueue<Nitpicker::Session::Command::To_front>(_view, View_handle());
 	_nitpicker.execute();
 
 	_update_pointer();

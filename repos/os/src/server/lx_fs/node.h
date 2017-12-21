@@ -56,7 +56,7 @@ class Lx_fs::Node : public File_system::Node_base
 		/*
 		 * File functionality
 		 */
-		virtual void truncate(file_size_t size)
+		virtual void truncate(file_size_t)
 		{
 			Genode::error(__PRETTY_FUNCTION__, " called on a non-file node");
 		}
@@ -64,7 +64,7 @@ class Lx_fs::Node : public File_system::Node_base
 		/*
 		 * Directory functionality
 		 */
-		virtual File *file(char const *name, Mode mode, bool create)
+		virtual File *file(char const * /* name */, Mode, bool /* create */)
 		{
 			Genode::error(__PRETTY_FUNCTION__, " called on a non-directory node");
 			return nullptr;

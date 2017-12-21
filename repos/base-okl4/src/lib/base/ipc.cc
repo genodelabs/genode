@@ -20,13 +20,7 @@
 #include <base/internal/ipc_server.h>
 #include <base/internal/native_utcb.h>
 #include <base/internal/capability_space_tpl.h>
-
-/* OKL4 includes */
-namespace Okl4 { extern "C" {
-#include <l4/config.h>
-#include <l4/types.h>
-#include <l4/ipc.h>
-} }
+#include <base/internal/okl4.h>
 
 using namespace Genode;
 using namespace Okl4;

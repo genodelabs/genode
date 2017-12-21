@@ -35,25 +35,23 @@ namespace Genode {
 			Attached_ram_dataspace _fg;
 			Attached_ram_dataspace _bg;
 
-			Constructible<Attached_rom_dataspace> _parent_rom;
+			Constructible<Attached_rom_dataspace> _parent_rom { };
 
-			bool _bg_has_pending_data;
+			bool _bg_has_pending_data = false;
 
-			Signal_context_capability _sigh;
+			Signal_context_capability _sigh { };
 
-			Lock _lock;
+			Lock _lock { Lock::LOCKED };
 
 		public:
 
 			enum Origin { PARENT_PROVIDED, SESSION_LOCAL };
 
-			Rom_module(Env &env, Xml_node config, Name const &name,
+			Rom_module(Env &env, Xml_node /* config */, Name const &name,
 			           Ram_allocator &ram_allocator, Origin origin)
 			:
 				_name(name), _ram(ram_allocator),
-				_fg(_ram, env.rm(), 0), _bg(_ram, env.rm(), 0),
-				_bg_has_pending_data(false),
-				_lock(Lock::LOCKED)
+				_fg(_ram, env.rm(), 0), _bg(_ram, env.rm(), 0)
 			{
 				if (origin == SESSION_LOCAL)
 					return;
@@ -157,10 +155,10 @@ namespace Genode {
 
 			Env             &_env;
 			Xml_node   const _config;
-			Lock             _lock;
+			Lock             _lock { };
 			Ram_allocator   &_ram_allocator;
 			Allocator       &_md_alloc;
-			List<Rom_module> _list;
+			List<Rom_module> _list { };
 
 		public:
 
@@ -269,10 +267,12 @@ namespace Genode {
 	};
 
 
-	class Rom_session_component : public Rpc_object<Rom_session>,
-	                              public List<Rom_session_component>::Element
+	class Rom_session_component : public  Rpc_object<Rom_session>,
+	                              private List<Rom_session_component>::Element
 	{
 		private:
+
+			friend class List<Rom_session_component>;
 
 			Entrypoint &_ep;
 			Rom_module &_rom_module;

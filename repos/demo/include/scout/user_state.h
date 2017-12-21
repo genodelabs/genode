@@ -23,14 +23,20 @@ class Scout::User_state : public Parent_element
 {
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		User_state(User_state const &);
+		User_state &operator = (User_state const &);
+
 		Element *_mfocus;    /* element that owns the current mouse focus */
 		Element *_active;    /* currently activated element               */
 		Window  *_window;
 		Element *_root;      /* root of element tree                      */
 		int      _key_cnt;   /* number of currently pressed keys          */
 
-		Point    _mouse_position;
-		Point    _view_position;
+		Point    _mouse_position { };
+		Point    _view_position  { };
 
 		/**
 		 * Assign new mouse focus element

@@ -44,7 +44,7 @@ struct Genode::Ring_buffer_unsynchronized
 
 	struct Lock_guard
 	{
-		Lock_guard(Lock &lock) { }
+		Lock_guard(Lock &) { }
 	};
 };
 
@@ -74,12 +74,13 @@ class Genode::Ring_buffer
 {
 	private:
 
-		int                        _head;
-		int                        _tail;
-		typename SYNC_POLICY::Sem  _sem;        /* element counter */
-		typename SYNC_POLICY::Lock _head_lock;  /* synchronize add */
+		int _head = 0;
+		int _tail = 0;
 
-		ET                         _queue[QUEUE_SIZE];
+		typename SYNC_POLICY::Sem  _sem       { };  /* element counter */
+		typename SYNC_POLICY::Lock _head_lock { };  /* synchronize add */
+
+		ET _queue[QUEUE_SIZE] { };
 
 	public:
 
@@ -88,8 +89,7 @@ class Genode::Ring_buffer
 		/**
 		 * Constructor
 		 */
-		Ring_buffer(): _head(0), _tail(0) {
-			Genode::memset(_queue, 0, sizeof(_queue)); }
+		Ring_buffer() { }
 
 		/**
 		 * Place element into ring buffer

@@ -40,11 +40,11 @@ struct File_system::Connection_base : Genode::Connection<Session>, Session_clien
 	 *
 	 * \noapi
 	 */
-	Capability<File_system::Session> _session(Genode::Parent &parent,
-	                                          char     const *label,
-	                                          char     const *root,
-	                                          bool            writeable,
-	                                          size_t          tx_buf_size)
+	Genode::Capability<File_system::Session> _session(Genode::Parent &parent,
+	                                                  char     const *label,
+	                                                  char     const *root,
+	                                                  bool            writeable,
+	                                                  size_t          tx_buf_size)
 	{
 		return session(parent,
 		               "ram_quota=%ld, "

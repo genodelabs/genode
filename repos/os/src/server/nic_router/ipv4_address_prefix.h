@@ -22,7 +22,7 @@ namespace Net { class Ipv4_address_prefix; }
 
 struct Net::Ipv4_address_prefix
 {
-	Ipv4_address    address;
+	Ipv4_address    address { };
 	Genode::uint8_t prefix;
 
 	Ipv4_address_prefix(Ipv4_address address,

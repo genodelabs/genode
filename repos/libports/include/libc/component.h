@@ -77,8 +77,8 @@ namespace Libc { namespace Component {
 
 namespace Libc {
 
-	class Application_code {
-
+	class Application_code : Genode::Interface
+	{
 		protected:
 
 			/*
@@ -125,7 +125,7 @@ namespace Libc {
 		struct Application_code_func : Application_code
 		{
 			FUNC const &func;
-			Return_type retval;
+			Return_type retval { };
 			void execute() override { _execute(retval, func); }
 			Application_code_func(FUNC const &func) : func(func) { }
 		} application_code_func { func };

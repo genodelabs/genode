@@ -32,16 +32,17 @@ namespace Kernel
 /**
  * A timeout causes a kernel pass and the call of a timeout specific handle
  */
-class Kernel::Timeout : public Genode::List<Timeout>::Element
+class Kernel::Timeout : Genode::List<Timeout>::Element
 {
 	friend class Timer;
+	friend class Genode::List<Timeout>;
 
 	private:
 
-		bool   _listed = false;
-		time_t _start;
-		time_t _end;
-		bool   _end_period;
+		bool   _listed     = false;
+		time_t _start      = 0;
+		time_t _end        = 0;
+		bool   _end_period = false;
 
 	public:
 

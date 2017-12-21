@@ -207,19 +207,19 @@ class Sd_card::Driver : public  Driver_base,
 
 		struct Block_transfer
 		{
-			Block::Packet_descriptor packet;
+			Block::Packet_descriptor packet { };
 			bool                     pending = false;
-			bool                     read;
+			bool                     read    = false;
 		};
 
 		Env                    &_env;
-		Block_transfer          _block_transfer;
-		Timer_delayer           _delayer     { _env };
-		Signal_handler<Driver>  _irq_handler { _env.ep(), *this,
-		                                       &Driver::_handle_irq };
+		Block_transfer          _block_transfer { };
+		Timer_delayer           _delayer        { _env };
+		Signal_handler<Driver>  _irq_handler    { _env.ep(), *this,
+		                                          &Driver::_handle_irq };
 		Irq_connection          _irq;
-		Card_info               _card_info   { _init() };
-		Adma2::Table            _adma2_table { _env.ram(), _env.rm() };
+		Card_info               _card_info      { _init() };
+		Adma2::Table            _adma2_table    { _env.ram(), _env.rm() };
 
 		static bool _supported_host_version(Hostver::access_t hostver);
 		static void _watermark_level(Wml::access_t &wml);

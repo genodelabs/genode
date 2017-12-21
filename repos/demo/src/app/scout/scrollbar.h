@@ -46,17 +46,23 @@ class Scout::Scrollbar : public Parent_element
 
 	private:
 
-		Fade_icon<PT, 32, 32> _uparrow;
-		Fade_icon<PT, 32, 32> _dnarrow;
-		Fade_icon<PT, 32, 32> _slider;
-		int                   _real_size;   /* size of content            */
-		int                   _view_size;   /* size of viewport           */
-		int                   _view_pos;    /* viewport position          */
-		Scrollbar_listener   *_listener;    /* listener for scroll events */
-		int                   _visibility;
+		/*
+		 * Noncopyable
+		 */
+		Scrollbar(Scrollbar const &);
+		Scrollbar &operator = (Scrollbar const &);
+
+		Fade_icon<PT, 32, 32> _uparrow { };
+		Fade_icon<PT, 32, 32> _dnarrow { };
+		Fade_icon<PT, 32, 32> _slider  { };
+		int                   _real_size  = 100;     /* size of content            */
+		int                   _view_size  = 100;     /* size of viewport           */
+		int                   _view_pos   = 0;       /* viewport position          */
+		Scrollbar_listener   *_listener   = nullptr; /* listener for scroll events */
+		int                   _visibility = 0;
 
 		/**
-		 * Utilities
+		 * Utilitie s
 		 */
 		inline int _visible() { return _real_size > _view_size; }
 

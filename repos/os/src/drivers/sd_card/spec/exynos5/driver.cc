@@ -431,7 +431,7 @@ size_t Driver::Idmac_desc::set(size_t block_count,
                                addr_t phys_addr,
                                Flags  flag)
 {
-	enum  { MAX_BLOCKS = 8 };
+	constexpr size_t MAX_BLOCKS = 8;
 	flags = OWN | flag |
 	        (block_count <= MAX_BLOCKS ? LD : (CH | DIC));
 	bytes = ((block_count < MAX_BLOCKS) ? block_count : MAX_BLOCKS) *

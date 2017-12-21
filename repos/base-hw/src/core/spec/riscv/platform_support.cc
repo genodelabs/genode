@@ -27,8 +27,8 @@ void Platform::_init_additional() { }
 
 void Platform::setup_irq_mode(unsigned, unsigned, unsigned) { }
 
-long Platform::irq(long const user_irq) { return 0; }
+long Platform::irq(long const /* user_irq */) { return 0; }
 
-bool Platform::get_msi_params(const addr_t mmconf, addr_t &address,
-                              addr_t &data, unsigned &irq_number) {
+bool Platform::get_msi_params(addr_t /* mmconf */, addr_t & /* address */,
+                              addr_t & /* data */, unsigned & /* irq_number */) {
 	return false; }

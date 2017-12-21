@@ -14,20 +14,19 @@
 #ifndef _SERIAL_INTERFACE_H_
 #define _SERIAL_INTERFACE_H_
 
-class Serial_interface
+/* Genode includes */
+#include <util/interface.h>
+
+struct Serial_interface : Genode::Interface
 {
-	public:
+	virtual unsigned char read() = 0;
+	virtual void write(unsigned char) = 0;
+	virtual bool data_read_ready() = 0;
 
-		virtual unsigned char read() = 0;
-		virtual void write(unsigned char) = 0;
-		virtual bool data_read_ready() = 0;
-
-		/**
-		 * (Re-)enable device interrupt
-		 */
-		virtual void enable_irq() { }
-
-		virtual ~Serial_interface() { }
+	/**
+	 * (Re-)enable device interrupt
+	 */
+	virtual void enable_irq() { }
 };
 
 #endif /* _SERIAL_INTERFACE_H_ */

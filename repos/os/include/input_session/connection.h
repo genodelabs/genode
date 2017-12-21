@@ -26,7 +26,7 @@ struct Input::Connection : Genode::Connection<Session>, Session_client
 	 *
 	 * \noapi
 	 */
-	Capability<Input::Session> _session(Genode::Parent &parent, char const *label) {
+	Genode::Capability<Input::Session> _session(Genode::Parent &parent, char const *label) {
 		return session(parent, "ram_quota=18K, cap_quota=%u, label=\"%s\"",
 		               CAP_QUOTA, label); }
 

@@ -36,7 +36,7 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Framebuffer::Se
 
 		size_t                          const _width;
 		size_t                          const _height;
-		Constructible<Attached_ram_dataspace> _bb_mem;
+		Constructible<Attached_ram_dataspace> _bb_mem { };
 		Attached_io_mem_dataspace             _fb_mem;
 		Timer::Connection                     _timer;
 
@@ -125,8 +125,8 @@ struct Framebuffer::Main
 
 	Platform::Framebuffer_info _fb_info {1024, 768, 16 };
 
-	Constructible<Framebuffer::Session_component>    _fb_session;
-	Constructible<Static_root<Framebuffer::Session>> _fb_root;
+	Constructible<Framebuffer::Session_component>    _fb_session { };
+	Constructible<Static_root<Framebuffer::Session>> _fb_root    { };
 
 	Main(Genode::Env &env) : _env(env), _ep(_env.ep())
 	{

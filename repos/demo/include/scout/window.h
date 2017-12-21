@@ -32,7 +32,7 @@ class Scout::Window : public Parent_element
 	private:
 
 		Graphics_backend &_gfx_backend;
-		Rect              _dirty;
+		Rect              _dirty { };
 		Area              _max_size;
 		int               _request_cnt;  /* nb of requests since last process */
 		bool const        _scout_quirk;  /* enable redraw quirk for scout     */
@@ -89,7 +89,7 @@ class Scout::Window : public Parent_element
 		/**
 		 * Define vertical scroll offset
 		 */
-		virtual void ypos(int ypos) { }
+		virtual void ypos(int) { }
 		virtual int  ypos() { return 0; }
 
 		/**
@@ -192,9 +192,9 @@ class Scout::Drag_event_handler : public Event_handler
 {
 	protected:
 
-		int   _key_cnt;     /* number of curr. pressed keys */
-		Point _current_mouse_position;
-		Point _old_mouse_position;
+		int   _key_cnt = 0;     /* number of curr. pressed keys */
+		Point _current_mouse_position { };
+		Point _old_mouse_position     { };
 
 		virtual void start_drag() = 0;
 		virtual void do_drag() = 0;
@@ -204,7 +204,7 @@ class Scout::Drag_event_handler : public Event_handler
 		/**
 		 * Constructor
 		 */
-		Drag_event_handler() { _key_cnt = 0; }
+		Drag_event_handler() { }
 
 		/**
 		 * Event handler interface
@@ -237,10 +237,18 @@ class Scout::Drag_event_handler : public Event_handler
 
 class Scout::Sizer_event_handler : public Drag_event_handler
 {
+	private:
+
+		/*
+		 * Noncopyable
+		 */
+		Sizer_event_handler(Sizer_event_handler const &);
+		Sizer_event_handler &operator = (Sizer_event_handler const &);
+
 	protected:
 
 		Window *_window;
-		int     _obw, _obh;   /* original window size */
+		int     _obw = 0, _obh = 0;   /* original window size */
 
 		/**
 		 * Event handler interface
@@ -265,19 +273,24 @@ class Scout::Sizer_event_handler : public Drag_event_handler
 		/**
 		 * Constructor
 		 */
-		Sizer_event_handler(Window *window)
-		{
-			_window = window;
-		}
+		Sizer_event_handler(Window *window) : _window(window) { }
 };
 
 
 class Scout::Mover_event_handler : public Drag_event_handler
 {
+	private:
+
+		/*
+		 * Noncopyable
+		 */
+		Mover_event_handler(Mover_event_handler const &);
+		Mover_event_handler &operator = (Mover_event_handler const &);
+
 	protected:
 
 		Window *_window;
-		int     _obx, _oby;    /* original launchpad position */
+		int     _obx = 0, _oby = 0;    /* original launchpad position */
 
 		void start_drag()
 		{
@@ -299,10 +312,7 @@ class Scout::Mover_event_handler : public Drag_event_handler
 		/**
 		 * Constructor
 		 */
-		Mover_event_handler(Window *window)
-		{
-			_window = window;
-		}
+		Mover_event_handler(Window *window) : _window(window) { }
 };
 
 #endif /* _INCLUDE__SCOUT__WINDOW_H_ */

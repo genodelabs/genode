@@ -27,7 +27,7 @@ struct Rom_logger::Main
 
 	Genode::Attached_rom_dataspace _config_rom { _env, "config" };
 
-	Genode::Constructible<Genode::Attached_rom_dataspace> _rom_ds;
+	Genode::Constructible<Genode::Attached_rom_dataspace> _rom_ds { };
 
 	typedef Genode::String<100> Rom_name;
 
@@ -36,7 +36,7 @@ struct Rom_logger::Main
 	 *
 	 * Solely used to detect configuration changes.
 	 */
-	Rom_name _rom_name;
+	Rom_name _rom_name { };
 
 	/**
 	 * Signal handler that is invoked when the configuration or the ROM module

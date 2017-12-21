@@ -37,6 +37,12 @@ class Genode::Irq_root : public Root_component<Irq_session_component>
 
 		Range_allocator *_irq_alloc;    /* platform irq allocator */
 
+		/*
+		 * Noncopyable
+		 */
+		Irq_root(Irq_root const &);
+		Irq_root &operator = (Irq_root const &);
+
 	protected:
 
 		Irq_session_component *_create_session(const char *args) {

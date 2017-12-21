@@ -20,7 +20,7 @@
 namespace Gpio { struct Driver; }
 
 
-struct Gpio::Driver
+struct Gpio::Driver : Genode::Interface
 {
 	/**
 	 * Set direction of GPIO pin, whether it's an input or output one

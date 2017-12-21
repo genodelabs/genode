@@ -64,7 +64,7 @@ namespace Genode {
 			 * User-level signal handler registered for this pager object via
 			 * 'Cpu_session::exception_handler()'.
 			 */
-			Signal_context_capability _exception_sigh;
+			Signal_context_capability _exception_sigh { };
 
 			/**
 			 * selectors for
@@ -74,11 +74,11 @@ namespace Genode {
 			 */
 			addr_t _selectors;
 
-			addr_t _initial_esp;
-			addr_t _initial_eip;
+			addr_t _initial_esp = 0;
+			addr_t _initial_eip = 0;
 			addr_t _client_exc_pt_sel;
 
-			Lock   _state_lock;
+			Lock   _state_lock { };
 
 			struct
 			{
@@ -115,7 +115,7 @@ namespace Genode {
 				inline void submit_signal() { _status |= SUBMIT_SIGNAL; }
 				inline void reset_submit() { _status &= ~SUBMIT_SIGNAL; }
 
-			} _state;
+			} _state { };
 
 			Cpu_session_capability   _cpu_session_cap;
 			Thread_capability        _thread_cap;
@@ -377,6 +377,12 @@ namespace Genode {
 			 * Lock used for blocking until '_cap' is initialized
 			 */
 			Lock _cap_valid;
+
+			/*
+			 * Noncopyable
+			 */
+			Pager_activation_base(Pager_activation_base const &);
+			Pager_activation_base &operator = (Pager_activation_base const &);
 
 		public:
 

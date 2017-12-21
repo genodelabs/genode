@@ -34,12 +34,12 @@ class Genode::Attached_ram_dataspace
 {
 	private:
 
-		size_t                    _size;
-		Ram_allocator            *_ram;
-		Region_map               *_rm;
-		Ram_dataspace_capability  _ds;
+		size_t                    _size = 0;
+		Ram_allocator            *_ram  = nullptr;
+		Region_map               *_rm   = nullptr;
+		Ram_dataspace_capability  _ds { };
 		void                     *_local_addr = nullptr;
-		Cache_attribute const     _cached;
+		Cache_attribute const     _cached = CACHED;
 
 		template <typename T>
 		static void _swap(T &v1, T &v2) { T tmp = v1; v1 = v2; v2 = tmp; }
@@ -82,6 +82,12 @@ class Genode::Attached_ram_dataspace
 					touch_read_write(base + i);
 			}
 		}
+
+		/*
+		 * Noncopyable
+		 */
+		Attached_ram_dataspace(Attached_ram_dataspace const &);
+		Attached_ram_dataspace &operator = (Attached_ram_dataspace const &);
 
 	public:
 

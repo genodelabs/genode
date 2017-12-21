@@ -24,15 +24,17 @@ class Genode::Irq_args
 {
 	private:
 
-		Irq_session::Trigger  _irq_trigger;
-		Irq_session::Polarity _irq_polarity;
-		long _irq_number;
+		Irq_session::Trigger  _irq_trigger  { Irq_session::TRIGGER_UNCHANGED };
+		Irq_session::Polarity _irq_polarity { Irq_session::POLARITY_UNCHANGED };
+
+		long const _irq_number;
 
 	public:
 
 		Irq_args(const char * args)
+		:
+			_irq_number(Arg_string::find_arg(args, "irq_number").long_value(-1))
 		{
-			_irq_number  = Arg_string::find_arg(args, "irq_number").long_value(-1);
 			long irq_trg = Arg_string::find_arg(args, "irq_trigger").long_value(-1);
 			long irq_pol = Arg_string::find_arg(args, "irq_polarity").long_value(-1);
 

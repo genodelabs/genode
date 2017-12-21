@@ -20,7 +20,6 @@
 #include <base/signal.h>
 #include <base/thread.h>
 
-
 namespace Genode {
 	class Startup;
 	class Entrypoint;
@@ -28,18 +27,18 @@ namespace Genode {
 }
 
 
-class Genode::Entrypoint : Genode::Noncopyable
+class Genode::Entrypoint : Noncopyable
 {
 	public:
 
 		/**
 		 * Functor for post signal-handler hook
 		 */
-		struct Post_signal_hook { virtual void function() = 0; };
+		struct Post_signal_hook : Interface { virtual void function() = 0; };
 
 	private:
 
-		struct Signal_proxy
+		struct Signal_proxy : Interface
 		{
 			GENODE_RPC(Rpc_signal, void, signal);
 			GENODE_RPC_INTERFACE(Rpc_signal);
@@ -76,13 +75,13 @@ class Genode::Entrypoint : Genode::Noncopyable
 
 		bool const _signalling_initialized;
 
-		Reconstructible<Signal_receiver> _sig_rec;
+		Reconstructible<Signal_receiver> _sig_rec { };
 
-		Lock                               _deferred_signals_mutex;
-		List<List_element<Signal_context>> _deferred_signals;
+		Lock                               _deferred_signals_mutex { };
+		List<List_element<Signal_context>> _deferred_signals { };
 
 		void _handle_deferred_signals() { }
-		Constructible<Signal_handler<Entrypoint>> _deferred_signal_handler;
+		Constructible<Signal_handler<Entrypoint>> _deferred_signal_handler { };
 
 		bool _suspended                = false;
 		void (*_suspended_callback) () = nullptr;
@@ -92,9 +91,9 @@ class Genode::Entrypoint : Genode::Noncopyable
 			NONE = 0, ENTRYPOINT = 1, SIGNAL_PROXY = 2
 		};
 
-		int               _signal_recipient { NONE };
-		Genode::Lock      _signal_pending_lock;
-		Genode::Lock      _signal_pending_ack_lock;
+		int               _signal_recipient   { NONE };
+		Genode::Lock      _signal_pending_lock     { };
+		Genode::Lock      _signal_pending_ack_lock { };
 		Post_signal_hook *_post_signal_hook = nullptr;
 
 		void _execute_post_signal_hook()
@@ -112,7 +111,7 @@ class Genode::Entrypoint : Genode::Noncopyable
 		 * resume mechanism.
 		 */
 		void _handle_suspend() { _suspended = true; }
-		Constructible<Genode::Signal_handler<Entrypoint>> _suspend_dispatcher;
+		Constructible<Genode::Signal_handler<Entrypoint>> _suspend_dispatcher { };
 
 		void _dispatch_signal(Signal &sig);
 		void _defer_signal(Signal &sig);
@@ -120,15 +119,20 @@ class Genode::Entrypoint : Genode::Noncopyable
 		void _process_incoming_signals();
 		bool _wait_and_dispatch_one_io_signal(bool dont_block);
 
-		Constructible<Signal_proxy_thread> _signal_proxy_thread;
+		Constructible<Signal_proxy_thread> _signal_proxy_thread { };
 
 		friend class Startup;
-
 
 		/**
 		 * Called by the startup code only
 		 */
 		Entrypoint(Env &env);
+
+		/*
+		 * Noncopyable
+		 */
+		Entrypoint(Entrypoint const &);
+		Entrypoint &operator = (Entrypoint const &);
 
 	public:
 

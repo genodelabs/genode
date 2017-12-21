@@ -36,6 +36,12 @@ class Tar_rom::Rom_session_component : public Rpc_object<Rom_session>
 {
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Rom_session_component(Rom_session_component const &);
+		Rom_session_component &operator = (Rom_session_component const &);
+
 		Ram_session &_ram;
 
 		char const * const _tar_addr;
@@ -177,6 +183,12 @@ class Tar_rom::Rom_session_component : public Rpc_object<Rom_session>
 class Tar_rom::Rom_root : public Root_component<Rom_session_component>
 {
 	private:
+
+		/*
+		 * Noncopyable
+		 */
+		Rom_root(Rom_root const &);
+		Rom_root &operator = (Rom_root const &);
 
 		Env &_env;
 

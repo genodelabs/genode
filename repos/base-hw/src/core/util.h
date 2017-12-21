@@ -29,7 +29,7 @@ namespace Genode
 	/**
 	 * Select source used for map operations
 	 */
-	constexpr addr_t map_src_addr(addr_t core_local, addr_t phys) { return phys; }
+	constexpr addr_t map_src_addr(addr_t, addr_t phys) { return phys; }
 
 	/**
 	 * Return highest supported flexpage size for the given mapping size

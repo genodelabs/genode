@@ -40,8 +40,8 @@ namespace Genode {
 /**
  * Alarm thread, which counts jiffies and triggers timeout events.
  */
-class Genode::Timeout_thread : public Thread_deprecated<2048*sizeof(long)>,
-                               public Alarm_scheduler
+class Genode::Timeout_thread : public  Thread_deprecated<2048*sizeof(long)>,
+                               private Alarm_scheduler
 {
 	private:
 
@@ -49,13 +49,16 @@ class Genode::Timeout_thread : public Thread_deprecated<2048*sizeof(long)>,
 
 		static Genode::Env *_env;
 
-		Timer::Connection   _timer { *_env };    /* timer session   */
-		Signal_context      _context;
-		Signal_receiver     _receiver;
+		Timer::Connection   _timer    { *_env };
+		Signal_context      _context  { };
+		Signal_receiver     _receiver { };
 
 		void entry(void);
 
 	public:
+
+		using Alarm_scheduler::schedule_absolute;
+		using Alarm_scheduler::discard;
 
 		Timeout_thread() : Thread_deprecated("alarm-timer")
 		{
@@ -94,7 +97,7 @@ class Genode::Timed_semaphore : public Semaphore
 		 * \param  element the waiting-queue element associated with a timeout.
          * \return true if a thread was aborted/woken up
 		 */
-		bool _abort(Element *element)
+		bool _abort(Element &element)
 		{
 			Lock::Guard lock_guard(Semaphore::_meta_lock);
 
@@ -113,7 +116,7 @@ class Genode::Timed_semaphore : public Semaphore
 					/*
 					 * Wakeup the thread.
 					 */
-					if (element == e) {
+					if (&element == e) {
 						e->wake_up();
 						return true;
 					}
@@ -141,22 +144,22 @@ class Genode::Timed_semaphore : public Semaphore
 
 
 		/**
-		 * Represents a timeout associated with the blocking-
+		 * Represents a timeout associated with the blocking
 		 * operation on a semaphore.
 		 */
 		class Timeout : public Alarm
 		{
 			private:
 
-				Timed_semaphore *_sem;       /* Semaphore we block on */
-				Element         *_element;   /* Queue element timeout belongs to */
-				bool             _triggered; /* Timeout expired */
-				Time             _start;
+				Timed_semaphore &_sem;       /* semaphore we block on */
+				Element         &_element;   /* queue element timeout belongs to */
+				bool             _triggered; /* timeout expired */
+				Time             _start { };
 
 			public:
 
 				Timeout(Time duration, Timed_semaphore *s, Element *e)
-				: _sem(s), _element(e), _triggered(false)
+				: _sem(*s), _element(*e), _triggered(false)
 				{
 					Timeout_thread *tt = Timeout_thread::alarm_timer();
 					_start = tt->time();
@@ -171,12 +174,10 @@ class Genode::Timed_semaphore : public Semaphore
 
 				bool on_alarm(unsigned) override
 				{
-					/* Abort blocking operation */
-					_triggered = _sem->_abort(_element);
+					_triggered = _sem._abort(_element);
 					return false;
 				}
 		};
-
 
 	public:
 

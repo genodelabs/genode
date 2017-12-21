@@ -22,7 +22,7 @@ namespace Rom {
 }
 
 
-struct Rom::Registry_for_reader
+struct Rom::Registry_for_reader : Interface
 {
 	/**
 	 * Exception type
@@ -41,7 +41,7 @@ struct Rom::Registry_for_reader
 };
 
 
-struct Rom::Registry_for_writer
+struct Rom::Registry_for_writer : Interface
 {
 	virtual Module &lookup(Writer &writer, Module::Name const &name) = 0;
 

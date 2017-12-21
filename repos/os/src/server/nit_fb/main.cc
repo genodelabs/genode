@@ -80,7 +80,7 @@ static Input::Event translate_event(Input::Event  const ev,
 }
 
 
-struct View_updater
+struct View_updater : Genode::Interface
 {
 	virtual void update_view() = 0;
 };
@@ -99,9 +99,9 @@ struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
 
 	Framebuffer::Session &_nit_fb = *_nitpicker.framebuffer();
 
-	Genode::Signal_context_capability _mode_sigh;
+	Genode::Signal_context_capability _mode_sigh { };
 
-	Genode::Signal_context_capability _sync_sigh;
+	Genode::Signal_context_capability _sync_sigh { };
 
 	View_updater &_view_updater;
 
@@ -219,11 +219,13 @@ struct Nit_fb::Main : View_updater
 
 	Nitpicker::Connection nitpicker { env };
 
-	Point position;
+	Point position { 0, 0 };
 
 	unsigned refresh_rate = 0;
 
-	Nitpicker::Session::View_handle view = nitpicker.create_view();
+	typedef Nitpicker::Session::View_handle View_handle;
+
+	View_handle view = nitpicker.create_view();
 
 	Genode::Attached_dataspace input_ds { env.rm(), nitpicker.input()->dataspace() };
 
@@ -255,7 +257,7 @@ struct Nit_fb::Main : View_updater
 		typedef Nitpicker::Session::Command Command;
 		nitpicker.enqueue<Command::Geometry>(view, Rect(position,
 		                                                fb_session.size()));
-		nitpicker.enqueue<Command::To_front>(view);
+		nitpicker.enqueue<Command::To_front>(view, View_handle());
 		nitpicker.execute();
 	}
 

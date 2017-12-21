@@ -19,7 +19,7 @@ using namespace Sd_card;
 using namespace Genode;
 
 
-void Driver::_stop_transmission_finish_xfertyp(Xfertyp::access_t &xfertyp)
+void Driver::_stop_transmission_finish_xfertyp(Xfertyp::access_t &)
 {
 	Mixctrl::access_t mixctrl = Mmio::read<Mixctrl>();
 	Mixctrl::Dmaen::set(mixctrl, 1);
@@ -34,7 +34,7 @@ void Driver::_stop_transmission_finish_xfertyp(Xfertyp::access_t &xfertyp)
 }
 
 
-int Driver::_wait_for_cmd_complete_mb_finish(bool const reading)
+int Driver::_wait_for_cmd_complete_mb_finish(bool)
 {
 	/* we can't use the "Auto Command 12" feature as it does not work */
 	return _stop_transmission() ? -1 : 0;

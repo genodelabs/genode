@@ -27,7 +27,7 @@ class Timer::Time_source : public Threaded_time_source
 
 		Genode::Env         &_env;
 
-		Genode::Lock mutable _lock;
+		Genode::Lock mutable _lock { };
 		unsigned long        _curr_time_us = 0;
 		unsigned long        _next_timeout_us = max_timeout().value;
 

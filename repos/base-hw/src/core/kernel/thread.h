@@ -51,6 +51,14 @@ class Kernel::Thread
 	public Ipc_node, public Signal_context_killer, public Signal_handler,
 	private Timeout
 {
+	private:
+
+		/*
+		 * Noncopyable
+		 */
+		Thread(Thread const &);
+		Thread &operator = (Thread const &);
+
 	protected:
 
 		enum { START_VERBOSE = 0 };
@@ -67,7 +75,7 @@ class Kernel::Thread
 		};
 
 		Signal_context *   _pager = nullptr;
-		Thread_fault       _fault;
+		Thread_fault       _fault { };
 		State              _state;
 		Signal_receiver *  _signal_receiver;
 		char const * const _label;

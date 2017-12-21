@@ -61,7 +61,7 @@ struct Allocator_tracer : Allocator
 		: id_space_elem(*this, space, id), size(size) { }
 	};
 
-	Id_space<Alloc>  allocs;
+	Id_space<Alloc>  allocs { };
 	size_t           sum { 0 };
 	Allocator       &wrapped;
 

@@ -150,18 +150,16 @@ class Vm {
 			private:
 
 				enum { BUF_SIZE = 128 };
-
-				char                   _buf[BUF_SIZE];
-				Genode::String_console _sc;
+				char _buf[BUF_SIZE];
 
 			public:
 
 				Exception(const char *fmt, ...)
-				: _sc(_buf, BUF_SIZE)
 				{
 					va_list args;
 					va_start(args, fmt);
-					_sc.vprintf(fmt, args);
+					Genode::String_console sc(_buf, BUF_SIZE);
+					sc.vprintf(fmt, args);
 					va_end(args);
 				}
 

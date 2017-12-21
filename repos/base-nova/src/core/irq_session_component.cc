@@ -201,7 +201,7 @@ static Nova::Hip * kernel_hip()
 Irq_session_component::Irq_session_component(Range_allocator *irq_alloc,
                                              const char      *args)
 :
-	_irq_number(~0U), _irq_alloc(irq_alloc)
+	_irq_number(~0U), _irq_alloc(irq_alloc), _irq_object()
 {
 	long irq_number = Arg_string::find_arg(args, "irq_number").long_value(-1);
 	long device_phys = Arg_string::find_arg(args, "device_config_phys").long_value(0);
@@ -252,10 +252,10 @@ void Irq_session_component::sigh(Genode::Signal_context_capability cap)
 Genode::Irq_session::Info Irq_session_component::info()
 {
 	if (!_irq_object.msi_address() || !_irq_object.msi_value())
-		return { .type = Genode::Irq_session::Info::Type::INVALID };
+		return { .type = Info::Type::INVALID, .address = 0, .value = 0 };
 
 	return {
-		.type    = Genode::Irq_session::Info::Type::MSI,
+		.type    = Info::Type::MSI,
 		.address = _irq_object.msi_address(),
 		.value   = _irq_object.msi_value()
 	};

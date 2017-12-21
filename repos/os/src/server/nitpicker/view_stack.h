@@ -27,9 +27,9 @@ class Nitpicker::View_stack
 
 		Area                   _size;
 		Focus                 &_focus;
-		List<View_stack_elem>  _views;
+		List<View_stack_elem>  _views { };
 		View_component        *_default_background = nullptr;
-		Dirty_rect mutable     _dirty_rect;
+		Dirty_rect mutable     _dirty_rect { };
 
 		/**
 		 * Return outline geometry of a view

@@ -69,12 +69,12 @@ class Input_filter::Source
 
 		struct Owner;
 
-		struct Sink
+		struct Sink : Interface
 		{
 			virtual void submit_event(Input::Event const &) = 0;
 		};
 
-		struct Factory
+		struct Factory : Interface
 		{
 			/*
 			 * \throw Invalid_config

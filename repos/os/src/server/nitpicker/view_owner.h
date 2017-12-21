@@ -32,7 +32,7 @@
 namespace Nitpicker { class View_owner; }
 
 
-struct Nitpicker::View_owner
+struct Nitpicker::View_owner : Interface
 {
 	/**
 	 * Return the owner's session label
@@ -85,14 +85,14 @@ struct Nitpicker::View_owner
 	/**
 	 * Return input-mask value at given position
 	 */
-	virtual unsigned char input_mask_at(Point p) const { return 0; }
+	virtual unsigned char input_mask_at(Point) const { return 0; }
 
-	virtual void submit_input_event(Input::Event ev) { }
+	virtual void submit_input_event(Input::Event) { }
 
 	/**
 	 * Produce report with the owner's information
 	 */
-	virtual void report(Xml_generator &xml) const { }
+	virtual void report(Xml_generator &) const { }
 };
 
 #endif /* _VIEW_OWNER_H_ */

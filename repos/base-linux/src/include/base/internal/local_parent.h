@@ -46,7 +46,7 @@ class Genode::Local_parent : public Expanding_parent_client
 	private:
 
 		Allocator &_alloc;
-		Id_space<Client> _local_sessions_id_space;
+		Id_space<Client> _local_sessions_id_space { };
 
 	public:
 

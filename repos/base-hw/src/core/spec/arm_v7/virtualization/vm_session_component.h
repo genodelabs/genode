@@ -31,20 +31,25 @@ namespace Genode {
 	class Vm_session_component;
 }
 
-class Genode::Vm_session_component
-: public Genode::Rpc_object<Genode::Vm_session>,
-  public Kernel_object<Kernel::Vm>
+class Genode::Vm_session_component : public Genode::Rpc_object<Genode::Vm_session>,
+                                     private Kernel_object<Kernel::Vm>
 {
 	private:
+
+		/*
+		 * Noncopyable
+		 */
+		Vm_session_component(Vm_session_component const &);
+		Vm_session_component &operator = (Vm_session_component const &);
 
 		using Table = Hw::Level_1_stage_2_translation_table;
 		using Array = Table::Allocator::Array<Kernel::DEFAULT_TRANSLATION_TABLE_MAX>;
 
 		Rpc_entrypoint        *_ds_ep;
-		Range_allocator       *_ram_alloc;
+		Range_allocator       *_ram_alloc = nullptr;
 		Dataspace_component    _ds;
 		Dataspace_capability   _ds_cap;
-		addr_t                 _ds_addr;
+		addr_t                 _ds_addr = 0;
 		Table                 &_table;
 		Array                 &_table_array;
 

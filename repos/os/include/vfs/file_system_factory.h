@@ -23,7 +23,7 @@ namespace Vfs {
 }
 
 
-struct Vfs::File_system_factory
+struct Vfs::File_system_factory : Interface
 {
 	/**
 	 * Create and return a new file-system
@@ -56,7 +56,7 @@ class Vfs::Global_file_system_factory : public Vfs::File_system_factory
 
 	private:
 
-		Genode::List<Entry_base> _list;
+		Genode::List<Entry_base> _list { };
 
 		/**
 		 * Add builtin File_system type

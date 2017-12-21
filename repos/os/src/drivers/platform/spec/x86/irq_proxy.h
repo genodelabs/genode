@@ -26,10 +26,10 @@ class Platform::Irq_sigh : public Genode::Signal_context_capability,
 {
 	public:
 
-		inline Irq_sigh * operator= (const Genode::Signal_context_capability &cap)
+		Irq_sigh & operator= (const Genode::Signal_context_capability &cap)
 		{
 			Genode::Signal_context_capability::operator=(cap);
-			return this;
+			return *this;
 		}
 
 		Irq_sigh() { }
@@ -44,30 +44,36 @@ class Platform::Irq_sigh : public Genode::Signal_context_capability,
  *
  * XXX resources are not accounted as the interrupt is shared
  */
-class Platform::Irq_proxy : public Genode::List<Platform::Irq_proxy>::Element
+class Platform::Irq_proxy : private Genode::List<Platform::Irq_proxy>::Element
 {
+	private:
+
+		friend class Genode::List<Platform::Irq_proxy>;
+
 	protected:
 
-		unsigned          _irq_number;
+		unsigned     _irq_number;
+		Genode::Lock _mutex;             /* protects this object */
+		int          _num_sharers;       /* number of clients sharing this IRQ */
 
-		Genode::Lock      _mutex;             /* protects this object */
-		int               _num_sharers;       /* number of clients sharing this IRQ */
-		Genode::List<Irq_sigh> _sigh_list;
-		int               _num_acknowledgers; /* number of currently blocked clients */
-		bool              _woken_up;          /* client decided to wake me up -
-		                                         this prevents multiple wakeups
-		                                         to happen during initialization */
+		Genode::List<Irq_sigh> _sigh_list { };
 
-
+		int          _num_acknowledgers; /* number of currently blocked clients */
+		bool         _woken_up;          /* client decided to wake me up -
+		                                    this prevents multiple wakeups
+		                                    to happen during initialization */
 	public:
+
+		using Genode::List<Platform::Irq_proxy>::Element::next;
 
 		Irq_proxy(unsigned irq_number)
 		:
 			_irq_number(irq_number),
 			_mutex(Genode::Lock::UNLOCKED), _num_sharers(0),
 			_num_acknowledgers(0), _woken_up(false)
-
 		{ }
+
+		virtual ~Irq_proxy() { }
 
 		/**
 		 * Acknowledgements of clients

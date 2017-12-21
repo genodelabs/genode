@@ -32,6 +32,12 @@ class Genode::Block_driver
 {
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Block_driver(Block_driver const &);
+		Block_driver &operator = (Block_driver const &);
+
 		using Packet_descriptor = Block::Packet_descriptor;
 
 		struct Device_function_failed : Exception { };
@@ -71,7 +77,7 @@ class Genode::Block_driver
 
 			private:
 
-				Request_cache               _cache;
+				Request_cache               _cache { };
 				Vm_base                    &_vm;
 				Name     const              _name;
 				unsigned const              _irq;

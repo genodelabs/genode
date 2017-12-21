@@ -45,14 +45,20 @@ class Kernel::Pd : public Kernel::Object
 
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Pd(Pd const &);
+		Pd &operator = (Pd const &);
+
 		Hw::Page_table         * const _table;
 		Genode::Platform_pd    * const _platform_pd;
-		Capid_allocator                _capid_alloc;
-		Object_identity_reference_tree _cap_tree;
+		Capid_allocator                _capid_alloc { };
+		Object_identity_reference_tree _cap_tree    { };
 
 	public:
 
-		Genode::Cpu::Mmu_context        mmu_regs;
+		Genode::Cpu::Mmu_context mmu_regs;
 
 		/**
 		 * Constructor

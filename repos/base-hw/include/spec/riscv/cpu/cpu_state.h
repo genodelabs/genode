@@ -38,9 +38,39 @@ struct Genode::Cpu_state
 		IRQ_FLAG               = 1UL << 63,
 	};
 
-	addr_t ip, cpu_exception, ra, sp, gp, tp, t0, t1, t2, s0, s1, a0, a1, a2,
-	       a3, a4, a5, a6, a7, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, t3,
-	       t4, t5, t6;
+	addr_t ip            = 0;
+	addr_t cpu_exception = 0;
+	addr_t ra            = 0;
+	addr_t sp            = 0;
+	addr_t gp            = 0;
+	addr_t tp            = 0;
+	addr_t t0            = 0;
+	addr_t t1            = 0;
+	addr_t t2            = 0;
+	addr_t s0            = 0;
+	addr_t s1            = 0;
+	addr_t a0            = 0;
+	addr_t a1            = 0;
+	addr_t a2            = 0;
+	addr_t a3            = 0;
+	addr_t a4            = 0;
+	addr_t a5            = 0;
+	addr_t a6            = 0;
+	addr_t a7            = 0;
+	addr_t s2            = 0;
+	addr_t s3            = 0;
+	addr_t s4            = 0;
+	addr_t s5            = 0;
+	addr_t s6            = 0;
+	addr_t s7            = 0;
+	addr_t s8            = 0;
+	addr_t s9            = 0;
+	addr_t s10           = 0;
+	addr_t s11           = 0;
+	addr_t t3            = 0;
+	addr_t t4            = 0;
+	addr_t t5            = 0;
+	addr_t t6            = 0;
 
 	bool      is_irq() { return cpu_exception & IRQ_FLAG; }
 	unsigned  irq()    { return cpu_exception ^ IRQ_FLAG; }

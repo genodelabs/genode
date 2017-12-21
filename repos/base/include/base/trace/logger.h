@@ -32,18 +32,23 @@ struct Genode::Trace::Logger
 {
 	private:
 
-		Thread_capability  thread_cap;
-		Cpu_session       *cpu;
-		Control           *control;
-		bool               enabled;
-		unsigned           policy_version;
-		Policy_module     *policy_module;
-		Buffer            *buffer;
-		size_t             max_event_size;
-
-		bool               pending_init;
+		Thread_capability  thread_cap     { };
+		Cpu_session       *cpu            { nullptr };
+		Control           *control        { nullptr };
+		bool               enabled        { false };
+		unsigned           policy_version { 0 };
+		Policy_module     *policy_module  { 0 };
+		Buffer            *buffer         { nullptr };
+		size_t             max_event_size { 0 };
+		bool               pending_init   { false };
 
 		bool _evaluate_control();
+
+		/*
+		 * Noncopyable
+		 */
+		Logger(Logger const &);
+		Logger &operator = (Logger const &);
 
 	public:
 

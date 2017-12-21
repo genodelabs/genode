@@ -29,7 +29,7 @@ struct Hw::Boot_info
 	Mapping_pool  const elf_mappings;
 	Mapping       const boot_modules;
 	Mmio_space    const mmio_space;
-	Memory_region_array ram_regions;
+	Memory_region_array ram_regions { };
 	Acpi_rsdp     const acpi_rsdp;
 	Framebuffer   const framebuffer;
 

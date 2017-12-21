@@ -26,11 +26,11 @@ namespace Genode {
 
 struct Genode::Flexpage
 {
-	addr_t addr;
-	addr_t hotspot;
-	size_t log2_order;
+	addr_t addr       = ~0UL;
+	addr_t hotspot    = 0;
+	size_t log2_order = 0;
 
-	Flexpage() : addr(~0UL), hotspot(0), log2_order(0) { }
+	Flexpage() { }
 
 	Flexpage(addr_t a, addr_t h, size_t o)
 	: addr(a), hotspot(h), log2_order(o) { }
@@ -43,9 +43,9 @@ class Genode::Flexpage_iterator
 {
 	private:
 
-		addr_t _src_start, _src_size;
-		addr_t _dst_start, _dst_size;
-		addr_t _hotspot, _offset;
+		addr_t _src_start = 0, _src_size = 0;
+		addr_t _dst_start = 0, _dst_size = 0;
+		addr_t _hotspot   = 0, _offset   = 0;
 
 		/**
 		 * Find least significant set bit in value

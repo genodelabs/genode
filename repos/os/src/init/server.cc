@@ -321,8 +321,7 @@ void Init::Server::_handle_upgrade_session_request(Xml_node request,
 }
 
 
-void Init::Server::_handle_close_session_request(Xml_node request,
-                                                 Parent::Client::Id id)
+void Init::Server::_handle_close_session_request(Xml_node, Parent::Client::Id id)
 {
 	_client_id_space.apply<Session_state>(id, [&] (Session_state &session) {
 		close_session(session); });

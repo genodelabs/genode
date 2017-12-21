@@ -34,24 +34,30 @@ class Vfs::Block_file_system : public Single_file_system
 		/*
 		 * Serialize access to packet stream of the block session
 		 */
-		Lock _lock;
+		Lock _lock { };
 
 		char                       *_block_buffer;
 		unsigned                    _block_buffer_count;
 
 		Genode::Allocator_avl       _tx_block_alloc { &_alloc };
 		Block::Connection           _block;
-		Genode::size_t              _block_size;
-		Block::sector_t             _block_count;
-		Block::Session::Operations  _block_ops;
+		Genode::size_t              _block_size  = 0;
+		Block::sector_t             _block_count = 0;
+		Block::Session::Operations  _block_ops { };
 		Block::Session::Tx::Source *_tx_source;
 
 		bool                        _readable;
 		bool                        _writeable;
 
-		Genode::Signal_receiver           _signal_receiver;
-		Genode::Signal_context            _signal_context;
+		Genode::Signal_receiver           _signal_receiver { };
+		Genode::Signal_context            _signal_context  { };
 		Genode::Signal_context_capability _source_submit_cap;
+
+		/*
+		 * Noncopyable
+		 */
+		Block_file_system(Block_file_system const &);
+		Block_file_system &operator = (Block_file_system const &);
 
 		class Block_vfs_handle : public Single_vfs_handle
 		{
@@ -73,6 +79,12 @@ class Vfs::Block_file_system : public Single_file_system
 				Genode::Signal_receiver           &_signal_receiver;
 				Genode::Signal_context            &_signal_context;
 				Genode::Signal_context_capability &_source_submit_cap;
+
+				/*
+				 * Noncopyable
+				 */
+				Block_vfs_handle(Block_vfs_handle const &);
+				Block_vfs_handle &operator = (Block_vfs_handle const &);
 
 				file_size _block_io(file_size nr, void *buf, file_size sz,
 				                    bool write, bool bulk = false)
@@ -196,14 +208,14 @@ class Vfs::Block_file_system : public Single_file_system
 
 						/*
 						 * We take a shortcut and read the blocks all at once if the
-						 * offset is aligned on a block boundary and we the count is a
+						 * offset is aligned on a block boundary and the count is a
 						 * multiple of the block size, e.g. 4K reads will be read at
 						 * once.
 						 *
 						 * XXX this is quite hackish because we have to omit partial
 						 * blocks at the end.
 						 */
-						if (displ == 0 && (count % _block_size) >= 0 && !(count < _block_size)) {
+						if (displ == 0 && !(count < _block_size)) {
 							file_size bytes_left = count - (count % _block_size);
 
 							nbytes = _block_io(blk_nr, dst + read, bytes_left, false, true);
@@ -271,7 +283,7 @@ class Vfs::Block_file_system : public Single_file_system
 						 * XXX this is quite hackish because we have to omit partial
 						 * blocks at the end.
 						 */
-						if (displ == 0 && (count % _block_size) >= 0 && !(count < _block_size)) {
+						if (displ == 0 && !(count < _block_size)) {
 							file_size bytes_left = count - (count % _block_size);
 
 							nbytes = _block_io(blk_nr, (void*)(buf + written),
@@ -402,12 +414,12 @@ class Vfs::Block_file_system : public Single_file_system
 		 ** File I/O service interface **
 		 ********************************/
 
-		Ftruncate_result ftruncate(Vfs_handle *vfs_handle, file_size) override
+		Ftruncate_result ftruncate(Vfs_handle *, file_size) override
 		{
 			return FTRUNCATE_OK;
 		}
 
-		Ioctl_result ioctl(Vfs_handle *vfs_handle, Ioctl_opcode opcode, Ioctl_arg,
+		Ioctl_result ioctl(Vfs_handle *, Ioctl_opcode opcode, Ioctl_arg,
 		                   Ioctl_out &out) override
 		{
 			switch (opcode) {

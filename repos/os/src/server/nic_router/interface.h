@@ -43,9 +43,12 @@ namespace Net {
 }
 
 
-class Net::Interface : public Genode::List<Interface>::Element
+class Net::Interface : private Genode::List<Interface>::Element
 {
 	protected:
+
+		friend class Genode::List<Interface>;
+		friend class Net::List<Interface>;
 
 		using Signal_handler = Genode::Signal_handler<Interface>;
 
@@ -63,13 +66,13 @@ class Net::Interface : public Genode::List<Interface>::Element
 		Timer::Connection    &_timer;
 		Genode::Allocator    &_alloc;
 		Domain               &_domain;
-		Arp_waiter_list       _own_arp_waiters;
-		Link_list             _tcp_links;
-		Link_list             _udp_links;
-		Link_list             _dissolved_tcp_links;
-		Link_list             _dissolved_udp_links;
-		Dhcp_allocation_tree  _dhcp_allocations;
-		Dhcp_allocation_list  _released_dhcp_allocations;
+		Arp_waiter_list       _own_arp_waiters           { };
+		Link_list             _tcp_links                 { };
+		Link_list             _udp_links                 { };
+		Link_list             _dissolved_tcp_links       { };
+		Link_list             _dissolved_udp_links       { };
+		Dhcp_allocation_tree  _dhcp_allocations          { };
+		Dhcp_allocation_list  _released_dhcp_allocations { };
 		Dhcp_client           _dhcp_client { _alloc, _timer, *this };
 
 		void _new_link(L3_protocol                   const  protocol,
@@ -218,7 +221,7 @@ class Net::Interface : public Genode::List<Interface>::Element
 		          Mac_address const   mac,
 		          Domain             &domain);
 
-		~Interface();
+		virtual ~Interface();
 
 		void dhcp_allocation_expired(Dhcp_allocation &allocation);
 

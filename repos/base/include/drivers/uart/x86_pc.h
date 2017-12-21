@@ -56,7 +56,7 @@ class Genode::X86_uart
 
 	public:
 
-		X86_uart(addr_t const port, unsigned const clock,
+		X86_uart(addr_t const port, unsigned /* clock */,
 		         unsigned const baud_rate)
 		: _port(port)
 		{

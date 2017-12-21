@@ -27,9 +27,9 @@ class Scout::Fader : public Tick
 {
 	protected:
 
-		int _curr_value;   /* current value       */
-		int _dst_value;    /* desired final value */
-		int _step;
+		int _curr_value = 0;   /* current value       */
+		int _dst_value  = 0;   /* desired final value */
+		int _step       = 0;
 
 	public:
 

@@ -59,7 +59,7 @@ struct Global_keys_handler::Main
 	/**
 	 * Hover model as reported by nitpicker
 	 */
-	Constructible<Attached_rom_dataspace> _hover_ds;
+	Constructible<Attached_rom_dataspace> _hover_ds { };
 
 	struct Bool_state
 	{
@@ -97,7 +97,7 @@ struct Global_keys_handler::Main
 		bool has_name(Name const &name) const { return name == _name; }
 	};
 
-	Registry<Bool_state> _bool_states;
+	Registry<Bool_state> _bool_states { };
 
 	struct Report
 	{
@@ -155,8 +155,8 @@ struct Global_keys_handler::Main
 			bool satisfied(Domain const &hovered) const { return hovered == _domain; }
 		};
 
-		Registry<Bool_condition>  _bool_conditions;
-		Registry<Hover_condition> _hover_conditions;
+		Registry<Bool_condition>  _bool_conditions  { };
+		Registry<Hover_condition> _hover_conditions { };
 
 		Reporter _reporter;
 
@@ -173,7 +173,7 @@ struct Global_keys_handler::Main
 		/*
 		 * Handler used for generating delayed reports
 		 */
-		Constructible<Timer::Connection> _timer;
+		Constructible<Timer::Connection> _timer { };
 
 		unsigned long const _delay_ms;
 
@@ -246,7 +246,7 @@ struct Global_keys_handler::Main
 		}
 	};
 
-	Registry<Report> _reports;
+	Registry<Report> _reports { };
 
 	bool _reports_depend_on_hover_info() const
 	{

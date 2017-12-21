@@ -23,6 +23,7 @@
 #define KILL_ICON_RGBA   _binary_kill_icon_rgba_start
 #define OPENED_ICON_RGBA _binary_opened_icon_rgba_start
 #define CLOSED_ICON_RGBA _binary_closed_icon_rgba_start
+
 extern unsigned char KILL_ICON_RGBA[];
 extern unsigned char OPENED_ICON_RGBA[];
 extern unsigned char CLOSED_ICON_RGBA[];
@@ -59,10 +60,12 @@ class Kill_event_handler : public Scout::Event_handler
 
 
 template <typename PT>
-class Child_entry : public Scout::Parent_element,
-                    public Genode::List<Child_entry<PT> >::Element
+class Child_entry : public  Scout::Parent_element,
+                    private Genode::List<Child_entry<PT> >::Element
 {
 	private:
+
+		friend class Genode::List<Child_entry<PT> >;
 
 		enum { _IW       = 16 };      /* icon width               */
 		enum { _IH       = 16 };      /* icon height              */
@@ -75,8 +78,8 @@ class Child_entry : public Scout::Parent_element,
 
 		Launchpad_child::Name const _name;
 
-		Scout::Fade_icon<PT, _IW, _IH> _kill_icon;
-		Scout::Fade_icon<PT, _IW, _IH> _fold_icon;
+		Scout::Fade_icon<PT, _IW, _IH> _kill_icon { };
+		Scout::Fade_icon<PT, _IW, _IH> _fold_icon { };
 
 		Kill_event_handler _kill_event_handler;
 
@@ -114,6 +117,7 @@ class Child_entry : public Scout::Parent_element,
 			_min_size = Scout::Area(_PTW + 100, _min_size.h());
 		}
 
+        using Genode::List<Child_entry<PT> >::Element::next;
 
 		/**
 		 * Accessors

@@ -97,10 +97,11 @@ class Genode::Rpc_in_buffer : public Rpc_in_buffer_base
 		 */
 		Rpc_in_buffer() { }
 
-		void operator = (Rpc_in_buffer<MAX_SIZE> const &from)
+		Rpc_in_buffer &operator = (Rpc_in_buffer<MAX_SIZE> const &from)
 		{
 			_base = from.base();
 			_size = from.size();
+			return *this;
 		}
 
 		/**

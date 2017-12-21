@@ -24,8 +24,8 @@ using namespace Genode;
 
 struct Single_signal
 {
-		Signal_receiver           receiver;
-		Signal_context            context;
+		Signal_receiver           receiver { };
+		Signal_context            context  { };
 		Signal_context_capability cap;
 		Signal_transmitter        transmitter;
 
@@ -39,7 +39,7 @@ struct Single_signal
 
 struct Synchronizer
 {
-	Single_signal  signal;
+	Single_signal  signal { };
 	Sync::Session &session;
 
 	Synchronizer(Sync::Session &session) : session(session) { }
@@ -65,8 +65,8 @@ class Counter : public Thread
 		Name               const    &_name;
 		unsigned long long volatile  _value { 0 };
 		Stage              volatile  _stage { PAUSE };
-		Single_signal                _start_measurement;
-		Single_signal                _start_destruction;
+		Single_signal                _start_measurement { };
+		Single_signal                _start_destruction { };
 		Synchronizer                 _synchronizer;
 
 		void entry()
@@ -113,7 +113,7 @@ struct Main
 	       CONCLUSION_NR_OF_THREADS    = 3, };
 
 	Env                 &env;
-	Single_signal        timer_signal;
+	Single_signal        timer_signal { };
 	Timer::Connection    timer        { env };
 	Sync::Connection     sync         { env };
 	Synchronizer         synchronizer { sync };

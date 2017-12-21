@@ -39,7 +39,7 @@ struct Chroot::Main
 	 */
 	struct Session : Parent::Server
 	{
-		Parent::Client parent_client;
+		Parent::Client parent_client { };
 
 		Id_space<Parent::Client>::Element client_id;
 		Id_space<Parent::Server>::Element server_id;
@@ -54,7 +54,7 @@ struct Chroot::Main
 
 	Genode::Env &env;
 
-	Id_space<Parent::Server> server_id_space;
+	Id_space<Parent::Server> server_id_space { };
 
 	Heap heap { env.ram(), env.rm() };
 

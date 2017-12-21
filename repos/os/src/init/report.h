@@ -66,7 +66,7 @@ class Init::Report_detail : Genode::Noncopyable
 };
 
 
-struct Init::Report_update_trigger
+struct Init::Report_update_trigger : Interface
 {
 	virtual void trigger_report_update() = 0;
 };

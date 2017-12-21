@@ -29,23 +29,33 @@ struct Genode::Trace::Session_client : Genode::Rpc_client<Genode::Trace::Session
 		 * Shared-memory buffer used for carrying the payload of the
 		 * 'subjects()' RPC function.
 		 */
-		struct Argument_buffer
+		class Argument_buffer
 		{
-			Region_map &rm;
-			char       *base;
-			size_t      size;
+			private:
 
-			Argument_buffer(Region_map &rm, Dataspace_capability ds)
-			:
-				rm(rm),
-				base(rm.attach(ds)),
-				size(ds.call<Dataspace::Rpc_size>())
-			{ }
+				/*
+				 * Noncopyable
+				 */
+				Argument_buffer(Argument_buffer const &);
+				Argument_buffer &operator = (Argument_buffer const &);
 
-			~Argument_buffer()
-			{
-				rm.detach(base);
-			}
+			public:
+
+				Region_map &rm;
+				char       *base;
+				size_t      size;
+
+				Argument_buffer(Region_map &rm, Dataspace_capability ds)
+				:
+					rm(rm),
+					base(rm.attach(ds)),
+					size(ds.call<Dataspace::Rpc_size>())
+				{ }
+
+				~Argument_buffer()
+				{
+					rm.detach(base);
+				}
 		};
 
 		Argument_buffer _argument_buffer;

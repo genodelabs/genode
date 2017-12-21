@@ -41,7 +41,13 @@ class Genode::String_console : public Console
 
 		char   *_dst;
 		size_t  _dst_len;
-		size_t  _w_offset;
+		size_t  _w_offset { 0 };
+
+		/*
+		 * Noncopyable
+		 */
+		String_console &operator = (String_console const &);
+		String_console(String_console const &);
 
 	public:
 
@@ -52,7 +58,7 @@ class Genode::String_console : public Console
 		 * \param dst_len  size of 'dst'
 		 */
 		String_console(char *dst, size_t dst_len)
-		: _dst(dst), _dst_len(dst_len), _w_offset(0)
+		: _dst(dst), _dst_len(dst_len)
 		{ _dst[0] = 0; }
 
 		/**

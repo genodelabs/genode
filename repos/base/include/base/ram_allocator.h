@@ -31,7 +31,7 @@ namespace Genode {
 }
 
 
-struct Genode::Ram_allocator
+struct Genode::Ram_allocator : Interface
 {
 	/**
 	 * Allocate RAM dataspace

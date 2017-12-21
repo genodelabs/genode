@@ -26,7 +26,7 @@ class Genode::Semaphore
 	protected:
 
 		int  _cnt;
-		Lock _meta_lock;
+		Lock _meta_lock { };
 
 		struct Element : Fifo<Element>::Element
 		{
@@ -36,7 +36,7 @@ class Genode::Semaphore
 			void wake_up() { lock.unlock(); }
 		};
 
-		Fifo<Element> _queue;
+		Fifo<Element> _queue { };
 
 	public:
 

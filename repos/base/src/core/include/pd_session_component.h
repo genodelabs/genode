@@ -50,20 +50,20 @@ class Genode::Pd_session_component : public Session_object<Pd_session>
 		Constrained_ram_allocator  _constrained_md_ram_alloc;
 		Constrained_core_ram       _constrained_core_ram_alloc;
 		Sliced_heap                _sliced_heap;
-		Capability<Parent>         _parent;
+		Capability<Parent>         _parent { };
 		Signal_broker              _signal_broker;
 		Ram_dataspace_factory      _ram_ds_factory;
 		Rpc_cap_factory            _rpc_cap_factory;
 		Native_pd_component        _native_pd;
 
-		Constructible<Platform_pd> _pd;
+		Constructible<Platform_pd> _pd { };
 
 		Region_map_component _address_space;
 		Region_map_component _stack_area;
 		Region_map_component _linker_area;
 
-		Constructible<Account<Cap_quota> > _cap_account;
-		Constructible<Account<Ram_quota> > _ram_account;
+		Constructible<Account<Cap_quota> > _cap_account { };
+		Constructible<Account<Ram_quota> > _ram_account { };
 
 		friend class Native_pd_component;
 
@@ -90,7 +90,7 @@ class Genode::Pd_session_component : public Session_object<Pd_session>
 		 */
 		void _consume_cap(Cap_type type)
 		{
-			try { Cap_quota_guard::withdraw(Cap_quota{1}); }
+			try { withdraw(Cap_quota{1}); }
 			catch (Out_of_caps) {
 				diag("out of caps while consuming ", _name(type), " cap "
 				     "(", _cap_account, ")");
@@ -99,7 +99,7 @@ class Genode::Pd_session_component : public Session_object<Pd_session>
 			diag("consumed ", _name(type), " cap (", _cap_account, ")");
 		}
 
-		void _released_cap_silent() { Cap_quota_guard::replenish(Cap_quota{1}); }
+		void _released_cap_silent() { replenish(Cap_quota{1}); }
 
 		void _released_cap(Cap_type type)
 		{
@@ -130,8 +130,8 @@ class Genode::Pd_session_component : public Session_object<Pd_session>
 		:
 			Session_object(ep, resources, label, diag),
 			_ep(ep),
-			_constrained_md_ram_alloc(*this, *this, *this),
-			_constrained_core_ram_alloc(*this, *this, core_mem),
+			_constrained_md_ram_alloc(*this, _ram_quota_guard(), _cap_quota_guard()),
+			_constrained_core_ram_alloc(_ram_quota_guard(), _cap_quota_guard(), core_mem),
 			_sliced_heap(_constrained_md_ram_alloc, local_rm),
 			_signal_broker(_sliced_heap, signal_ep, signal_ep),
 			_ram_ds_factory(ep, phys_alloc, phys_range, local_rm,
@@ -157,8 +157,8 @@ class Genode::Pd_session_component : public Session_object<Pd_session>
 		 */
 		void init_cap_and_ram_accounts()
 		{
-			_cap_account.construct(*this, _label);
-			_ram_account.construct(*this, _label);
+			_cap_account.construct(_cap_quota_guard(), _label);
+			_ram_account.construct(_ram_quota_guard(), _label);
 		}
 
 		/**
@@ -215,7 +215,7 @@ class Genode::Pd_session_component : public Session_object<Pd_session>
 		Signal_context_capability
 		alloc_context(Signal_source_capability sig_rec_cap, unsigned long imprint) override
 		{
-			Cap_quota_guard::Reservation cap_costs(*this, Cap_quota{1});
+			Cap_quota_guard::Reservation cap_costs(_cap_quota_guard(), Cap_quota{1});
 			try {
 				/* may throw 'Out_of_ram' or 'Invalid_signal_source' */
 				Signal_context_capability cap =

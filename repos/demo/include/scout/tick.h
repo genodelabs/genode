@@ -25,13 +25,19 @@ class Scout::Tick
 
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Tick(Tick const &);
+		Tick &operator = (Tick const &);
+
 		/**
 		 * Tick object attributes
 		 */
-		time  _deadline;   /* next deadline          */
-		time  _period;     /* duration between ticks */
-		Tick *_next;       /* next tick in tick list */
-		int   _active;     /* set to one when active */
+		time  _deadline = 0;          /* next deadline          */
+		time  _period   = 0;          /* duration between ticks */
+		Tick *_next     = nullptr;    /* next tick in tick list */
+		int   _active   = 0;          /* set to one when active */
 
 		/**
 		 * Enqueue tick into tick queue

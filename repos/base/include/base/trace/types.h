@@ -108,16 +108,16 @@ class Genode::Trace::Subject_info
 
 	private:
 
-		Session_label      _session_label;
-		Thread_name        _thread_name;
-		State              _state;
-		Policy_id          _policy_id;
-		Execution_time     _execution_time;
-		Affinity::Location _affinity;
+		Session_label      _session_label  { };
+		Thread_name        _thread_name    { };
+		State              _state          { INVALID };
+		Policy_id          _policy_id      { 0 };
+		Execution_time     _execution_time { 0 };
+		Affinity::Location _affinity       { };
 
 	public:
 
-		Subject_info() : _state(INVALID) { }
+		Subject_info() { }
 
 		Subject_info(Session_label const &session_label,
 		             Thread_name   const &thread_name,

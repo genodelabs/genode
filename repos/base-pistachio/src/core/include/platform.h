@@ -35,20 +35,25 @@ namespace Genode {
 		private:
 
 			/*
+			 * Noncopyable
+			 */
+			Platform(Platform const &);
+			Platform &operator = (Platform const &);
+
+			/*
 			 * Shortcut for the type of allocator instances for physical resources
 			 */
 			typedef Synced_range_allocator<Allocator_avl> Phys_allocator;
 
-			Phys_allocator   _ram_alloc;      /* RAM allocator */
-			Phys_allocator   _io_mem_alloc;   /* MMIO allocator */
-			Phys_allocator   _io_port_alloc;  /* I/O port allocator */
-			Phys_allocator   _irq_alloc;      /* IRQ allocator */
-			Phys_allocator   _region_alloc;   /* virtual memory allocator for core */
-			Rom_fs           _rom_fs;         /* ROM file system */
-			Rom_module       _kip_rom;        /* ROM module for Fiasco KIP */
-
-			addr_t           _vm_start;       /* begin of virtual memory */
-			size_t           _vm_size;        /* size of virtual memory */
+			Phys_allocator _ram_alloc;      /* RAM allocator */
+			Phys_allocator _io_mem_alloc;   /* MMIO allocator */
+			Phys_allocator _io_port_alloc;  /* I/O port allocator */
+			Phys_allocator _irq_alloc;      /* IRQ allocator */
+			Phys_allocator _region_alloc;   /* virtual memory allocator for core */
+			Rom_fs         _rom_fs { };     /* ROM file system */
+			Rom_module     _kip_rom;        /* ROM module for Fiasco KIP */
+			addr_t         _vm_start = 0;   /* begin of virtual memory */
+			size_t         _vm_size  = 0;   /* size of virtual memory */
 
 			/*
 			 * We do not export any boot module loaded before FIRST_ROM.
@@ -102,7 +107,7 @@ namespace Genode {
 				 */
 				Sigma0();
 
-				int pager(Ipc_pager &ps) { /* never called */ return -1; }
+				int pager(Ipc_pager &) { /* never called */ return -1; }
 			};
 
 			/**
@@ -120,7 +125,7 @@ namespace Genode {
 				 */
 				Core_pager(Platform_pd *core_pd);
 
-				int pager(Ipc_pager &ps) { /* never called */ return -1; }
+				int pager(Ipc_pager &) { /* never called */ return -1; }
 			};
 
 			/**

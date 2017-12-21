@@ -385,7 +385,8 @@ Init::Child::Route Init::Child::resolve_session_request(Service::Name const &ser
 
 		if (_config_rom_service.constructed() &&
 		   !_config_rom_service->abandoned())
-			return Route { _config_rom_service->service(), label };
+			return Route { _config_rom_service->service(), label,
+			               Session::Diag{false} };
 
 		/*
 		 * \deprecated  the support for the <configfile> tag will
@@ -431,7 +432,8 @@ Init::Child::Route Init::Child::resolve_session_request(Service::Name const &ser
 	/* check for "session_requests" ROM request */
 	if (service_name == Rom_session::service_name()
 	 && label.last_element() == Session_requester::rom_name())
-		return Route { _session_requester.service() };
+		return Route { _session_requester.service(),
+		               Session::Label(), Session::Diag{false} };
 
 	try {
 		Xml_node route_node = _default_route_accessor.default_route();

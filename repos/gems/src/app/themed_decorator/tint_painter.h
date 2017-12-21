@@ -29,9 +29,9 @@ struct Tint_painter
 	 * \param color  tinting color
 	 */
 	template <typename PT>
-	static inline void paint(Genode::Surface<PT> surface,
-	                         Rect                rect,
-	                         Genode::Color       color)
+	static inline void paint(Genode::Surface<PT> &surface,
+	                         Rect                 rect,
+	                         Genode::Color        color)
 	{
 		Rect clipped = Rect::intersect(surface.clip(), rect);
 

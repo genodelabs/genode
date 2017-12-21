@@ -41,9 +41,9 @@ class Test_environment
 
 		Genode::Env &_env;
 
-		Framebuffer::Mode                        _mode;
+		Framebuffer::Mode                        _mode { };
 		Framebuffer::Connection                  _fb { _env, _mode };
-		Ds                                       _fb_ds;
+		Ds                                       _fb_ds { };
 		Genode::Signal_handler<Test_environment> _mode_sigh;
 		Genode::Signal_handler<Test_environment> _sync_sigh;
 		unsigned long                            _sync_cnt = 0;

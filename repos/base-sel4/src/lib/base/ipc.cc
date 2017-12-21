@@ -139,7 +139,8 @@ static void decode_seL4_message(seL4_MessageInfo_t const &msg_info,
 	 * You must not use any Genode primitives which may corrupt the IPCBuffer
 	 * during this step, e.g. Lock or RPC for output !!!
 	 */
-	size_t const num_caps = min(seL4_GetMR(MR_IDX_NUM_CAPS), Msgbuf_base::MAX_CAPS_PER_MSG);
+	size_t const num_caps = min(seL4_GetMR(MR_IDX_NUM_CAPS),
+	                            (addr_t)Msgbuf_base::MAX_CAPS_PER_MSG);
 	uint32_t const caps_extra = seL4_MessageInfo_get_extraCaps(msg_info);
 	uint32_t const caps_unwrapped = seL4_MessageInfo_get_capsUnwrapped(msg_info);
 	uint32_t const num_msg_words = seL4_MessageInfo_get_length(msg_info);
@@ -338,7 +339,7 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
  ** IPC server **
  ****************/
 
-void Genode::ipc_reply(Native_capability caller, Rpc_exception_code exc,
+void Genode::ipc_reply(Native_capability, Rpc_exception_code exc,
                        Msgbuf_base &snd_msg)
 {
 	/* allocate and define receive selector */
@@ -358,7 +359,7 @@ void Genode::ipc_reply(Native_capability caller, Rpc_exception_code exc,
 }
 
 
-Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &last_caller,
+Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &,
                                            Rpc_exception_code      exc,
                                            Msgbuf_base            &reply_msg,
                                            Msgbuf_base            &request_msg)

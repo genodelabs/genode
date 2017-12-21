@@ -55,7 +55,7 @@ bool Launchpad::_child_name_exists(Launchpad_child::Name const &name)
 {
 	Launchpad_child *c = _children.first();
 
-	for ( ; c; c = c->List<Launchpad_child>::Element::next())
+	for ( ; c; c = c->next())
 		if (c->name() == name)
 			return true;
 

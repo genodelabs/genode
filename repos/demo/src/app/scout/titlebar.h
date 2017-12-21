@@ -29,9 +29,15 @@ class Scout::Titlebar : public Parent_element
 {
 	private:
 
-		Icon<PT, 32, 32> _fg;
-		const char *_txt;
-		int _txt_w, _txt_h, _txt_len;
+		/*
+		 * Noncopyable
+		 */
+		Titlebar(Titlebar const &);
+		Titlebar &operator = (Titlebar const &);
+
+		Icon<PT, 32, 32> _fg { };
+		const char *_txt = nullptr;
+		int _txt_w = 0, _txt_h = 0, _txt_len = 0;
 
 	public:
 

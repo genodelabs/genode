@@ -46,8 +46,8 @@ class Test_terminal_crosslink::Partner : public Thread
 
 		char _read_buffer[READ_BUFFER_SIZE];
 
-		Signal_receiver _sig_rec;
-		Signal_context  _sig_ctx;
+		Signal_receiver _sig_rec { };
+		Signal_context  _sig_ctx { };
 
 		void _write_all(void const *buf, Genode::size_t num_bytes)
 		{

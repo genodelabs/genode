@@ -23,7 +23,7 @@ namespace Genode
 			virtual void phy_write(const uint8_t phyaddr, const uint8_t regnum, const uint16_t data) = 0;
 			virtual void phy_read(const uint8_t phyaddr, const uint8_t regnum, uint16_t &data) = 0;
 
-
+			virtual ~Phyio() { }
 	};
 }
 

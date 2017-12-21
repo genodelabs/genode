@@ -45,10 +45,12 @@ namespace Fs_rom {
 /**
  * A 'Rom_session_component' exports a single file of the file system
  */
-class Fs_rom::Rom_session_component : public Rpc_object<Rom_session>,
-                                      public Sessions::Element
+class Fs_rom::Rom_session_component : public  Rpc_object<Rom_session>,
+                                      private Sessions::Element
 {
 	private:
+
+		friend class List<Rom_session_component>;
 
 		Env &_env;
 
@@ -65,7 +67,7 @@ class Fs_rom::Rom_session_component : public Rpc_object<Rom_session>,
 		/**
 		 * Handle of associated file
 		 */
-		Constructible<File_system::File_handle> _file_handle;
+		Constructible<File_system::File_handle> _file_handle { };
 
 		/**
 		 * Size of current version of the file
@@ -83,7 +85,7 @@ class Fs_rom::Rom_session_component : public Rpc_object<Rom_session>,
 		 * The compund directory is watched only if the requested file could
 		 * not be looked up.
 		 */
-		Constructible<File_system::Dir_handle> _compound_dir_handle;
+		Constructible<File_system::Dir_handle> _compound_dir_handle { };
 
 		/**
 		 * Dataspace exposed as ROM module to the client
@@ -93,7 +95,7 @@ class Fs_rom::Rom_session_component : public Rpc_object<Rom_session>,
 		/**
 		 * Signal destination for ROM file changes
 		 */
-		Signal_context_capability _sigh;
+		Signal_context_capability _sigh { };
 
 		/*
 		 * Exception
@@ -352,6 +354,8 @@ class Fs_rom::Rom_session_component : public Rpc_object<Rom_session>,
 				_fs.close(*_compound_dir_handle);
 		}
 
+		using Sessions::Element::next;
+
 		/**
 		 * Return dataspace with up-to-date content of file
 		 */
@@ -422,7 +426,7 @@ struct Fs_rom::Packet_handler : Io_signal_handler<Packet_handler>
 	Tx_source &source;
 
 	/* list of open sessions */
-	Sessions sessions;
+	Sessions sessions { };
 
 	void handle_packets()
 	{

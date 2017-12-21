@@ -28,7 +28,7 @@
 namespace Genode { struct Env; }
 
 
-struct Genode::Env
+struct Genode::Env : Interface
 {
 	virtual Parent &parent() = 0;
 

@@ -44,12 +44,12 @@ class Init::Server : Session_state::Ready_callback,
 		/*
 		 * ID space of requests originating from the parent
 		 */
-		Id_space<Parent::Server> _server_id_space;
+		Id_space<Parent::Server> _server_id_space { };
 
 		/*
 		 * ID space of requests issued to the children of init
 		 */
-		Id_space<Parent::Client> _client_id_space;
+		Id_space<Parent::Client> _client_id_space { };
 
 		/**
 		 * Exception type
@@ -61,7 +61,7 @@ class Init::Server : Session_state::Ready_callback,
 		 */
 		struct Service;
 
-		Registry<Service> _services;
+		Registry<Service> _services { };
 
 		/**
 		 * Services provided by our children
@@ -70,8 +70,8 @@ class Init::Server : Session_state::Ready_callback,
 
 		Report_update_trigger &_report_update_trigger;
 
-		Constructible<Attached_rom_dataspace>  _session_requests;
-		Constructible<Signal_handler<Server> > _session_request_handler;
+		Constructible<Attached_rom_dataspace>  _session_requests        { };
+		Constructible<Signal_handler<Server> > _session_request_handler { };
 
 		/**
 		 * \throw Service_denied

@@ -40,8 +40,8 @@ using namespace Pistachio;
  *************/
 
 Mapping::Mapping(addr_t dst_addr, addr_t src_addr,
-                 Cache_attribute, bool io_mem, unsigned l2size,
-                 bool rw, bool executable)
+                 Cache_attribute, bool, unsigned l2size,
+                 bool rw, bool)
 {
 	bool const grant = false;
 

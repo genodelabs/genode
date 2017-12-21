@@ -71,8 +71,11 @@ namespace Kernel
 }
 
 
-struct Kernel::Object : public Kernel::Object_identity_list
+struct Kernel::Object : private Object_identity_list
 {
+	using Object_identity_list::remove;
+	using Object_identity_list::insert;
+
 	virtual ~Object();
 };
 
@@ -82,6 +85,12 @@ class Kernel::Object_identity
   public Kernel::Object_identity_reference_list
 {
 	private:
+
+		/*
+		 * Noncopyable
+		 */
+		Object_identity(Object_identity const &);
+		Object_identity &operator = (Object_identity const &);
 
 		Object * _object = nullptr;
 
@@ -102,6 +111,12 @@ class Kernel::Object_identity_reference
   public Genode::List<Kernel::Object_identity_reference>::Element
 {
 	private:
+
+		/*
+		 * Noncopyable
+		 */
+		Object_identity_reference(Object_identity_reference const &);
+		Object_identity_reference &operator = (Object_identity_reference const &);
 
 		capid_t          _capid;
 		Object_identity *_identity;
@@ -181,13 +196,16 @@ class Kernel::Core_object_identity : public Object_identity,
 
 
 template <typename T>
-class Kernel::Core_object : public T, public Kernel::Core_object_identity<T>
+class Kernel::Core_object : public T, Kernel::Core_object_identity<T>
 {
 	public:
 
 		template <typename... ARGS>
 		Core_object(ARGS &&... args)
 		: T(args...), Core_object_identity<T>(*static_cast<T*>(this)) { }
+
+		using Kernel::Core_object_identity<T>::core_capid;
+		using Kernel::Core_object_identity<T>::capid;
 };
 
 #endif /* _CORE__KERNEL__OBJECT_H_ */

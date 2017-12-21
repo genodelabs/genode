@@ -39,7 +39,7 @@ struct Input_filter::Main : Input_connection::Avail_handler,
 
 	Heap _heap { _env.ram(), _env.rm() };
 
-	Registry<Registered<Input_connection> > _input_connections;
+	Registry<Registered<Input_connection> > _input_connections { };
 
 	typedef String<Session_label::capacity()> Label;
 
@@ -61,7 +61,7 @@ struct Input_filter::Main : Input_connection::Avail_handler,
 
 		Env &_env;
 
-		Constructible<Lazy> lazy;
+		Constructible<Lazy> lazy { };
 
 		Timer_accessor(Env &env) : _env(env) { }
 
@@ -101,8 +101,7 @@ struct Input_filter::Main : Input_connection::Avail_handler,
 
 			Signal_handler<Rom> _rom_update_handler;
 
-			Rom(Registry<Rom> &registry, Env &env,
-			    Name const &name, Type const &type,
+			Rom(Registry<Rom> &registry, Env &env, Name const &name,
 			    Signal_context_capability reconfig_sigh)
 			:
 				_reg_elem(registry, *this), _name(name),
@@ -135,7 +134,7 @@ struct Input_filter::Main : Input_connection::Avail_handler,
 		Env                      &_env;
 		Allocator                &_alloc;
 		Signal_context_capability _sigh;
-		Registry<Rom>             _registry;
+		Registry<Rom>             _registry { };
 
 		/**
 		 * Return true if registry contains an include with the given name
@@ -170,7 +169,7 @@ struct Input_filter::Main : Input_connection::Avail_handler,
 			/* populate registry on demand */
 			if (!_exists(name)) {
 				try {
-					Rom &rom = *new (_alloc) Rom(_registry, _env, name, type, _sigh);
+					Rom &rom = *new (_alloc) Rom(_registry, _env, name, _sigh);
 
 					/* \throw Include_unavailable on mismatching top-level node type */
 					rom.xml(type);
@@ -308,7 +307,7 @@ struct Input_filter::Main : Input_connection::Avail_handler,
 		void generate() { _top_level.generate(); }
 	};
 
-	Constructible<Output> _output;
+	Constructible<Output> _output { };
 
 	/*
 	 * Input session provided to our client

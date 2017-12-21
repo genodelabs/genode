@@ -81,7 +81,7 @@ void Ipc_pager::reply_and_wait_for_fault()
 }
 
 
-Ipc_pager::Ipc_pager() : _badge(0), _reply_sel(0) { }
+Ipc_pager::Ipc_pager() { }
 
 
 /******************
@@ -90,7 +90,7 @@ Ipc_pager::Ipc_pager() : _badge(0), _reply_sel(0) { }
 
 Pager_object::Pager_object(Cpu_session_capability cpu_session,
                            Thread_capability thread,
-                           unsigned long badge, Affinity::Location location,
+                           unsigned long badge, Affinity::Location,
                            Session_label const &pd_label,
                            Cpu_session::Name const &name)
 :

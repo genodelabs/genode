@@ -38,9 +38,9 @@ struct Usb::Packet_descriptor : Genode::Packet_descriptor
 	/* use the polling interval stated in the endpoint descriptor */
 	enum { DEFAULT_POLLING_INTERVAL = -1 };
 
-	Type        type;
-	bool        succeded   = false;
-	Completion *completion = nullptr;
+	Type        type       { STRING };
+	bool        succeded   { false };
+	Completion *completion { nullptr };
 
 	union
 	{
@@ -107,7 +107,7 @@ struct Usb::Packet_descriptor : Genode::Packet_descriptor
 /**
  * Completion for asynchronous communication
  */
-struct Usb::Completion
+struct Usb::Completion : Genode::Interface
 {
 	virtual void complete(Usb::Packet_descriptor &p) = 0;
 };

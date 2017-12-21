@@ -25,8 +25,8 @@
 using namespace Regulator;
 
 
-class Cmu : public Regulator::Driver,
-            public Genode::Attached_mmio
+class Cmu : public  Regulator::Driver,
+            private Genode::Attached_mmio
 {
 	private:
 
@@ -327,8 +327,11 @@ class Cmu : public Regulator::Driver,
 			 * Set default CPU frequency
 			 */
 			_cpu_clk_freq(_cpu_freq);
-
 		}
+
+		virtual ~Cmu() { }
+
+
 		/********************************
 		 ** Regulator driver interface **
 		 ********************************/

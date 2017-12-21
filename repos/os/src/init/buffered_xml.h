@@ -38,6 +38,12 @@ class Init::Buffered_xml
 			return ptr;
 		}
 
+		/*
+		 * Noncopyable
+		 */
+		Buffered_xml(Buffered_xml const &);
+		Buffered_xml &operator = (Buffered_xml const &);
+
 	public:
 
 		/**

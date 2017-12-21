@@ -29,14 +29,21 @@ namespace Ram_fs {
 }
 
 
-class Ram_fs::Node : public File_system::Node_base, public Weak_object<Node>,
-                     public List<Node>::Element
+class Ram_fs::Node : public  File_system::Node_base,
+                     private Weak_object<Node>,
+                     private List<Node>::Element
 {
 	public:
 
 		typedef char Name[128];
 
+		using List<Node>::Element::next;
+		using Weak_object<Node>::weak_ptr;
+
 	private:
+
+		friend class List<Node>;
+		friend class Locked_ptr<Node>;
 
 		int                 _ref_count;
 		Name                _name;
@@ -75,7 +82,7 @@ class Ram_fs::Node : public File_system::Node_base, public Weak_object<Node>,
 
 		/* File functionality */
 
-		virtual void truncate(File_system::file_size_t size)
+		virtual void truncate(File_system::file_size_t)
 		{
 			Genode::error(__PRETTY_FUNCTION__, " called on a non-file node");
 		}
@@ -83,36 +90,36 @@ class Ram_fs::Node : public File_system::Node_base, public Weak_object<Node>,
 
 		/* Directory functionality  */
 
-		virtual bool has_sub_node_unsynchronized(char const *name) const
+		virtual bool has_sub_node_unsynchronized(char const *) const
 		{
 			Genode::error(__PRETTY_FUNCTION__, " called on a non-directory node");
 			return false;
 		}
 
-		virtual void adopt_unsynchronized(Node *node)
+		virtual void adopt_unsynchronized(Node *)
 		{
 			Genode::error(__PRETTY_FUNCTION__, " called on a non-directory node");
 		}
 
-		virtual File *lookup_file(char const *path)
-		{
-			Genode::error(__PRETTY_FUNCTION__, " called on a non-directory node");
-			return nullptr;
-		}
-
-		virtual Symlink *lookup_symlink(char const *path)
+		virtual File *lookup_file(char const *)
 		{
 			Genode::error(__PRETTY_FUNCTION__, " called on a non-directory node");
 			return nullptr;
 		}
 
-		virtual Node *lookup(char const *path, bool return_parent = false)
+		virtual Symlink *lookup_symlink(char const *)
 		{
 			Genode::error(__PRETTY_FUNCTION__, " called on a non-directory node");
 			return nullptr;
 		}
 
-		virtual void discard(Node *node)
+		virtual Node *lookup(char const *, bool = false)
+		{
+			Genode::error(__PRETTY_FUNCTION__, " called on a non-directory node");
+			return nullptr;
+		}
+
+		virtual void discard(Node *)
 		{
 			Genode::error(__PRETTY_FUNCTION__, " called on a non-directory node");
 		}

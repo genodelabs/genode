@@ -44,7 +44,7 @@ static inline bool thread_check_stopped_and_restart(Genode::Thread *thread_base)
 }
 
 
-static inline void thread_switch_to(Genode::Thread *thread_base) { }
+static inline void thread_switch_to(Genode::Thread *) { }
 
 
 static inline void thread_stop_myself()

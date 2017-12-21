@@ -145,7 +145,7 @@ struct Stress_test
 	Timer::Connection            timer   { env };
 	unsigned                     count   { 0 };
 	Signal_handler<Stress_test>  handler { env.ep(), *this, &Stress_test::handle };
-	Registry<Registered<Slave> > slaves;
+	Registry<Registered<Slave> > slaves  { };
 
 	void handle()
 	{
@@ -192,9 +192,9 @@ struct Stress_test
 struct Main
 {
 	Env                       &env;
-	Constructible<Lazy_test>   test_1;
+	Constructible<Lazy_test>   test_1      { };
 	Signal_handler<Main>       test_1_done { env.ep(), *this, &Main::handle_test_1_done };
-	Constructible<Stress_test> test_2;
+	Constructible<Stress_test> test_2      { };
 	Signal_handler<Main>       test_2_done { env.ep(), *this, &Main::handle_test_2_done };
 
 	void handle_test_1_done()

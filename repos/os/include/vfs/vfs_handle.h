@@ -32,6 +32,12 @@ class Vfs::Vfs_handle
 		int                _status_flags;
 		file_size          _seek = 0;
 
+		/*
+		 * Noncopyable
+		 */
+		Vfs_handle(Vfs_handle const &);
+		Vfs_handle &operator = (Vfs_handle const &);
+
 	public:
 
 		/**
@@ -41,17 +47,27 @@ class Vfs::Vfs_handle
 
 		Context *context = nullptr;
 
-		struct Guard
+		class Guard
 		{
-			Vfs_handle *handle;
+			private:
 
-			Guard(Vfs_handle *handle) : handle(handle) { }
+				/*
+				 * Noncopyable
+				 */
+				Guard(Guard const &);
+				Guard &operator = (Guard const &);
 
-			~Guard()
-			{
-				if (handle)
-					handle->_ds.close(handle);
-			}
+				Vfs_handle * const _handle;
+
+			public:
+
+				Guard(Vfs_handle *handle) : _handle(handle) { }
+
+				~Guard()
+				{
+					if (_handle)
+						_handle->_ds.close(_handle);
+				}
 		};
 
 		enum { STATUS_RDONLY = 0, STATUS_WRONLY = 1, STATUS_RDWR = 2 };

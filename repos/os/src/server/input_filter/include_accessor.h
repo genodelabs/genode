@@ -23,7 +23,7 @@
 namespace Input_filter { struct Include_accessor; }
 
 
-class Input_filter::Include_accessor
+class Input_filter::Include_accessor : Interface
 {
 	public:
 
@@ -34,7 +34,7 @@ class Input_filter::Include_accessor
 
 	protected:
 
-		struct Functor { virtual void apply(Xml_node node) const = 0; };
+		struct Functor : Interface { virtual void apply(Xml_node node) const = 0; };
 
 		/*
 		 * \throw Include_unavailable

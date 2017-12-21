@@ -31,6 +31,12 @@ class Ram_blk : public Block::Driver
 {
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Ram_blk(Ram_blk const &);
+		Ram_blk &operator = (Ram_blk const &);
+
 		Env       &_env;
 		Allocator *_alloc { nullptr };
 

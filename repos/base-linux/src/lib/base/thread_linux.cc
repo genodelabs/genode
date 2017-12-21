@@ -83,7 +83,7 @@ void Thread::_thread_start()
 }
 
 
-void Thread::_init_platform_thread(size_t weight, Type type)
+void Thread::_init_platform_thread(size_t /* weight */, Type type)
 {
 	/* if no cpu session is given, use it from the environment */
 	if (!_cpu_session)

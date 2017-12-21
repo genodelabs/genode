@@ -23,7 +23,7 @@
 namespace Genode { struct Cap_sel_alloc; }
 
 
-struct Genode::Cap_sel_alloc
+struct Genode::Cap_sel_alloc : Interface
 {
 	struct Alloc_failed : Exception { };
 

@@ -60,6 +60,12 @@ class Imx53_driver : public Gpio::Driver
 				{
 					private:
 
+						/*
+						 * Noncopyable
+						 */
+						Irq_handler(Irq_handler const &);
+						Irq_handler &operator = (Irq_handler const &);
+
 						Genode::Irq_connection                  _irq;
 						Genode::Signal_handler<Irq_handler>     _dispatcher;
 						Gpio_bank                              *_bank;
@@ -69,7 +75,6 @@ class Imx53_driver : public Gpio::Driver
 							_bank->handle_irq();
 							_irq.ack_irq();
 						}
-
 
 					public:
 
@@ -204,12 +209,12 @@ class Imx53_driver : public Gpio::Driver
 			return gpio_reg->read<Gpio_reg::Pad_stat>(_gpio_index(gpio));
 		}
 
-		void debounce_enable(unsigned gpio, bool enable)
+		void debounce_enable(unsigned /* gpio */, bool /* enable */)
 		{
 			Genode::warning("debounce enable not supported");
 		}
 
-		void debounce_time(unsigned gpio, unsigned long us)
+		void debounce_time(unsigned /* gpio */, unsigned long /* us */)
 		{
 			Genode::warning("debounce time not supported");
 		}

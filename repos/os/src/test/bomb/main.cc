@@ -150,7 +150,7 @@ struct Bomb
 {
 	Genode::Env &env;
 
-	Constructible<Timer::Connection> timer;
+	Constructible<Timer::Connection> timer { };
 
 	Genode::Signal_handler<Bomb> signal_timeout  { env.ep(), *this, &Bomb::destruct_children };
 	Genode::Signal_handler<Bomb> signal_resource { env.ep(), *this, &Bomb::resource_request };
@@ -166,10 +166,10 @@ struct Bomb
 
 	Heap heap { env.ram(), env.rm() };
 
-	Children child_registry;
+	Children child_registry { };
 
 	Static_parent_services<Ram_session, Pd_session, Cpu_session,
-	                       Rom_session, Log_session> parent_services;
+	                       Rom_session, Log_session> parent_services { };
 
 	void construct_children()
 	{
