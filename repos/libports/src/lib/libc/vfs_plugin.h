@@ -70,7 +70,10 @@ class Libc::Vfs_plugin : public Libc::Plugin
 				if (fd->fd_path) { Genode::warning("may leak former FD path memory"); }
 				fd->fd_path = strdup(path.string());
 
-			} catch (Xml_node::Nonexistent_attribute) { }
+			} catch (Xml_node::Nonexistent_attribute) {
+				/*  fill the stdio number with a EBADF */
+				Libc::file_descriptor_allocator()->alloc(nullptr, nullptr, libc_fd);
+			}
 		}
 
 		void _vfs_sync(Vfs::Vfs_handle *vfs_handle)

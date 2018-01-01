@@ -211,7 +211,7 @@ void Libc::Component::construct(Libc::Env &env)
 	lib_1_local_3()->lib_1_local_3();
 	printf("lib_1_pod_1 %x\n", --pod_1);
 
-	int fd = 0;
+	int fd = STDERR_FILENO + 1;
 	char buf[2];
 	printf("Libc::read:\n");
 	Libc::read(fd, buf, 2);
