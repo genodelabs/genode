@@ -108,6 +108,12 @@ CC_OLEVEL ?= -O2
 CC_WARN   ?= -Wall
 
 #
+# Additional warnings for C++
+#
+CC_CXX_WARN_STRICT ?= -Wextra -Weffc++ -Werror
+CC_CXX_WARN        ?= $(CC_WARN) $(CC_CXX_WARN_STRICT)
+
+#
 # Aggregate compiler options that are common for C and C++
 #
 CC_OPT += $(CC_OPT_NOSTDINC) -g $(CC_MARCH) $(CC_OLEVEL) $(CC_OPT_DEP) $(CC_WARN)
@@ -133,7 +139,7 @@ CC_OPT     += $(CC_OPT_PIC)
 #
 # Predefine C and C++ specific compiler options with their common values
 #
-CC_CXX_OPT += $(CC_OPT)
+CC_CXX_OPT += $(CC_OPT) $(CC_CXX_WARN)
 CC_C_OPT   += $(CC_OPT)
 CC_ADA_OPT += $(CC_OPT)
 
@@ -153,7 +159,7 @@ CC_RUSTC_OPT += $(foreach lib,$(LIBS),-L$(LIB_CACHE_DIR)/$(lib))
 #
 CC_CXX_OPT_STD ?= -std=gnu++11
 CC_CXX_OPT += $(lastword $(CC_CXX_OPT_STD) $(CC_CXX_OPT_STD_$(subst .,_,$*)))
- 
+
 #
 # Linker options
 #
