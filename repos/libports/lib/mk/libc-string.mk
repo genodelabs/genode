@@ -16,3 +16,5 @@ SRC_C = $(filter-out $(FILTER_OUT),$(notdir $(wildcard $(LIBC_STRING_DIR)/*.c)))
 include $(REP_DIR)/lib/mk/libc-common.inc
 
 vpath %.c $(LIBC_STRING_DIR)
+
+CC_CXX_WARN_STRICT =

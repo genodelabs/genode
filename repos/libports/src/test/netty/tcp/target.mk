@@ -5,3 +5,5 @@ LIBS   = libc
 INC_DIR += $(PRG_DIR)/..
 
 vpath netty.cc $(PRG_DIR)/..
+
+CC_CXX_WARN_STRICT =

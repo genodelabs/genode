@@ -127,3 +127,5 @@ QT_VPATH += qtwebkit/Source/WebCore
 include $(REP_DIR)/lib/mk/qt5.inc
 
 LIBS += qt5_angle qt5_wtf qt5_jscore qt5_sql qt5_network qt5_gui qt5_core icu jpeg libpng zlib libc libm
+
+CC_CXX_WARN_STRICT =

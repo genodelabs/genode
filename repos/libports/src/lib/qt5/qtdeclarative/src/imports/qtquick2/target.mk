@@ -2,3 +2,5 @@
 
 TARGET = dummy-qt5_qtquick2plugin
 LIBS = qt5_qtquick2plugin
+
+CC_CXX_WARN_STRICT =

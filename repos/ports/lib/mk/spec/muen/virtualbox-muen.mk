@@ -21,3 +21,5 @@ INC_DIR += $(REP_DIR)/src/virtualbox/spec/muen
 
 vpath pgm.cc $(REP_DIR)/src/virtualbox/
 vpath sup.cc $(REP_DIR)/src/virtualbox/spec/muen/
+
+CC_CXX_WARN_STRICT =

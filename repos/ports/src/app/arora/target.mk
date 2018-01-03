@@ -86,3 +86,5 @@ vpath % $(ARORA_PORT_DIR)/src/app/arora/src/useragent
 vpath % $(ARORA_PORT_DIR)/src/app/arora/src/utils
 
 -include $(QT_TMPL_DIR)/target_final.inc
+
+CC_CXX_WARN_STRICT =

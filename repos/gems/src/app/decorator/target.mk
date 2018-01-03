@@ -8,3 +8,5 @@ INC_DIR += $(PRG_DIR)
 
 vpath %.tff  $(TFF_DIR)
 vpath %.rgba $(PRG_DIR)
+
+CC_CXX_WARN_STRICT =

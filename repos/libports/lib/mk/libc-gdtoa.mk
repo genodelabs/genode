@@ -11,3 +11,5 @@ include $(REP_DIR)/lib/mk/libc-common.inc
 
 vpath %.c $(GDTOA_DIR)
 vpath %.c $(LIBC_GDTOA_DIR)
+
+CC_CXX_WARN_STRICT =

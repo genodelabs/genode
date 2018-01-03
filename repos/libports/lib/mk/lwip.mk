@@ -47,3 +47,5 @@ vpath %.c  $(LWIP_DIR)/src/api
 vpath %.c  $(LWIP_DIR)/src/netif
 
 SHARED_LIB = yes
+
+CC_CXX_WARN_STRICT =

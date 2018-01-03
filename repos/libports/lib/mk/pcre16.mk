@@ -36,3 +36,5 @@ LIBS += libc
 SHARED_LIB = yes
 
 vpath %.c $(PCRE_PORT_DIR)/src/lib/pcre
+
+CC_CXX_WARN_STRICT =

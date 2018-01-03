@@ -9,3 +9,5 @@ LIBAVFORMAT_DIR = $(call select_from_ports,libav)/src/lib/libav/libavformat
 LIBS  += avcodec avutil zlib
 
 vpath % $(LIBAVFORMAT_DIR)
+
+CC_CXX_WARN_STRICT =

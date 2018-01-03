@@ -35,3 +35,5 @@ QT_VPATH += qtdeclarative/src/qml/debugger
 include $(REP_DIR)/lib/mk/qt5.inc
 
 LIBS += qt5_network qt5_core libc
+
+CC_CXX_WARN_STRICT =

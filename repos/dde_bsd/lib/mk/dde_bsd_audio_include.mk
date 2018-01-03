@@ -23,3 +23,5 @@ $(GEN_INCLUDES):
 	$(VERBOSE)ln -sf $(BSD_EMUL_H) $@
 
 endif
+
+CC_CXX_WARN_STRICT =

@@ -7,3 +7,5 @@ CC_OPT  += -DCONFIG_USB_EHCI_HCD_OMAP -DCONFIG_USB_EHCI_TT_NEWSCHED -DVERBOSE_DE
 SRC_CC  += platform.cc
 
 vpath platform.cc $(LIB_DIR)/spec/panda
+
+CC_CXX_WARN_STRICT =

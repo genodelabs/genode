@@ -19,3 +19,5 @@ CC_CXX_OPT += -DQT_NO_SCRIPTTOOLS
 include $(QT5_REP_DIR)/src/app/qt5/tmpl/target_final.inc
 
 LIBS += qt5_component
+
+CC_CXX_WARN_STRICT =

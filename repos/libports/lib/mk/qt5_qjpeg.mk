@@ -15,3 +15,5 @@ LIBS += qt5_gui qt5_core jpeg
 
 vpath % $(REP_DIR)/src/lib/qt5/qtbase/src/plugins/imageformats/jpeg
 vpath % $(QT5_CONTRIB_DIR)/qtbase/src/plugins/imageformats/jpeg
+
+CC_CXX_WARN_STRICT =

@@ -7,3 +7,5 @@ SRC_CC = native_cpu.cc
 SHARED_LIB = yes
 
 vpath %.cc $(REP_DIR)/src/lib/cpu_sampler_platform-nova
+
+CC_CXX_WARN_STRICT =

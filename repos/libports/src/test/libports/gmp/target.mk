@@ -6,3 +6,5 @@ SRC_CC = main.cc
 REQUIRES = 32bit
 
 vpath main.cc $(PRG_DIR)/..
+
+CC_CXX_WARN_STRICT =

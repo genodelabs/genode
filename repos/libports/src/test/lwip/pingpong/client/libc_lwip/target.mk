@@ -4,3 +4,5 @@ SRC_CC   = main.cc pingpong.cc
 
 vpath main.cc     $(PRG_DIR)/..
 vpath pingpong.cc $(PRG_DIR)/../..
+
+CC_CXX_WARN_STRICT =

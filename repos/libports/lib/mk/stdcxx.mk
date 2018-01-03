@@ -25,3 +25,5 @@ vpath %.cc $(STDCXX_DIR)/src/c++11
 vpath %.cc $(STDCXX_DIR)/libsupc++
 
 SHARED_LIB = yes
+
+CC_CXX_WARN_STRICT =

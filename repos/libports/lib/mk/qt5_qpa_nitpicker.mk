@@ -41,3 +41,5 @@ vpath % $(QT5_CONTRIB_DIR)/qtbase/src/platformsupport/fontdatabases/basic
 vpath % $(QT5_CONTRIB_DIR)/qtbase/src/platformsupport/eglconvenience
 vpath % $(QT5_CONTRIB_DIR)/qtbase/src/gui/text
 vpath % $(REP_DIR)/src/lib/qt5/qtbase/src/plugins/platforms/nitpicker
+
+CC_CXX_WARN_STRICT =

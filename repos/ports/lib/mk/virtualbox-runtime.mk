@@ -166,3 +166,5 @@ Runtime/common/err/errmsgxpcom.o: errmsgvboxcomdata.h
 
 errmsgvboxcomdata.h:
 	touch $@
+
+CC_CXX_WARN_STRICT =

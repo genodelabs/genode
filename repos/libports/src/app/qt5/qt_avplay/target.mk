@@ -27,3 +27,5 @@ $(BUILD_BASE_DIR)/bin/qt5_fs/$(TARGET)/player_stop.png: $(BUILD_BASE_DIR)/bin/qt
 
 $(BUILD_BASE_DIR)/bin/qt5_fs/$(TARGET)/volume.png: $(BUILD_BASE_DIR)/bin/qt5_fs/$(TARGET)
 	$(VERBOSE)ln -sf $(QT5_CONTRIB_DIR)/qtwebkit/Source/WebCore/platform/efl/DefaultTheme/widget/mediacontrol/mutebutton/unmutebutton.png $@
+
+CC_CXX_WARN_STRICT =

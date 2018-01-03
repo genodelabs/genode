@@ -31,3 +31,5 @@ $(INFO_PLIST): $(LIBCCID_DIR)/src/Info.plist.src $(LIBCCID_DIR)/readers/supporte
 vpath %.c $(LIBCCID_DIR)/src
 
 SHARED_LIB = yes
+
+CC_CXX_WARN_STRICT =

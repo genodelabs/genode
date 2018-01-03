@@ -37,3 +37,5 @@ XVBoxBiosLogoBin.o: Devices/Graphics/BIOS/ose_logo.bmp
 		$(AS) $(AS_OPT) -f -o $@ -
 
 vpath %.bmp $(VBOX_DIR)
+
+CC_CXX_WARN_STRICT =

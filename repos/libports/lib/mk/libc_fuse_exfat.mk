@@ -11,3 +11,5 @@ vpath %.c $(EXFAT_DIR)/fuse
 vpath %.cc $(REP_DIR)/src/lib/exfat
 
 SHARED_LIB = yes
+
+CC_CXX_WARN_STRICT =

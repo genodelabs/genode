@@ -14,3 +14,5 @@ INC_DIR += $(REP_DIR)/src/virtualbox/accloff
 
 vpath pgm.cc $(REP_DIR)/src/virtualbox/
 vpath sup.cc $(REP_DIR)/src/virtualbox/accloff/
+
+CC_CXX_WARN_STRICT =

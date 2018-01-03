@@ -30,3 +30,5 @@ INC_DIR += $(PRG_DIR)/..
 vpath %.c             $(FUSE_EXT2_DIR)
 vpath fuse_fs_main.cc $(PRG_DIR)/..
 vpath init.cc         $(PRG_DIR)/../../../lib/fuse-ext2
+
+CC_CXX_WARN_STRICT =

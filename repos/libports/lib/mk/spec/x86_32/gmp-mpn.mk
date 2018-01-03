@@ -65,3 +65,5 @@ vpath %.c   $(REP_DIR)/src/lib/gmp/mpn/spec/32bit
 vpath %.c   $(GMP_MPN_DIR)/generic
 vpath %.asm $(GMP_MPN_DIR)/x86/pentium
 vpath %.asm $(GMP_MPN_DIR)/x86
+
+CC_CXX_WARN_STRICT =

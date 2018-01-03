@@ -20,3 +20,5 @@ INC_DIR += $(REP_DIR)/src/include
 
 vpath %.cc $(PRG_DIR)
 vpath %.cc $(REP_DIR)/src/lx_kit
+
+CC_CXX_WARN_STRICT =

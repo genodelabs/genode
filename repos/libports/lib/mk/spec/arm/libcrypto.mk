@@ -4,3 +4,5 @@ INC_DIR += $(REP_DIR)/src/lib/openssl/spec/arm
 CC_OPTS += -DL_ENDIAN
 
 include $(REP_DIR)/lib/mk/libcrypto.inc
+
+CC_CXX_WARN_STRICT =

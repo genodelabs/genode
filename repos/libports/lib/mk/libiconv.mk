@@ -17,3 +17,5 @@ SHARED_LIB = yes
 
 vpath %.c $(LIBICONV_PORT_DIR)/src/lib/libiconv/lib
 vpath %.c $(LIBICONV_PORT_DIR)/src/lib/libiconv/libcharset/lib
+
+CC_CXX_WARN_STRICT =

@@ -38,3 +38,5 @@ clean-qtquick_install_dir:
 	rm -rf $(QTQUICK_INSTALL_DIR)
 
 clean: clean-qtquick_install_dir
+
+CC_CXX_WARN_STRICT =

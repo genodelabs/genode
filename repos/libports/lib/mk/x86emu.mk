@@ -9,3 +9,5 @@ CC_OPT     += -fomit-frame-pointer -Wno-maybe-uninitialized
 SRC_C = decode.c fpu.c ops.c ops2.c prim_ops.c sys.c
 
 vpath %.c $(X86EMU_DIR)
+
+CC_CXX_WARN_STRICT =

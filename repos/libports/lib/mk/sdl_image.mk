@@ -11,3 +11,5 @@ CC_OPT += $(addprefix -DLOAD_,$(SUPPORTED_FORMATS))
 vpath %.c $(SDL_IMAGE_PORT_DIR)/src/lib/sdl_image
 
 SHARED_LIB = yes
+
+CC_CXX_WARN_STRICT =

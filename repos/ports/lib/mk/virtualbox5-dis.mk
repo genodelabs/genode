@@ -17,3 +17,5 @@ SRC_CC += Disassembler/DisasmFormatBytes.cpp
 INC_DIR += $(VBOX_DIR)/VMM/include
 
 CC_OPT += -DVBOX_IN_VMM
+
+CC_CXX_WARN_STRICT =

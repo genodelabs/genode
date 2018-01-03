@@ -2,3 +2,5 @@
 
 TARGET = dummy-qt5_qtvirtualkeyboardstylesplugin
 LIBS = qt5_qtvirtualkeyboardstylesplugin
+
+CC_CXX_WARN_STRICT =

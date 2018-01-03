@@ -14,3 +14,5 @@ CC_OPT += -Wno-unused-function
 vpath %.c             $(EXFAT_DIR)/fuse
 vpath fuse_fs_main.cc $(PRG_DIR)/..
 vpath init.cc         $(PRG_DIR)/../../../lib/exfat
+
+CC_CXX_WARN_STRICT =

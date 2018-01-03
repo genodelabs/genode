@@ -117,3 +117,5 @@ vpath %.c $(RUMP_PORT_DIR)/src/sys/fs/msdosfs
 #
 RUMP_LIB_BASE =  $(RUMP_FS_BASE)
 include $(REP_DIR)/lib/mk/rump_prefix.inc
+
+CC_CXX_WARN_STRICT =

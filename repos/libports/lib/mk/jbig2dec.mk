@@ -15,3 +15,5 @@ CC_WARN = -Wno-deprecated-declarations
 SHARED_LIB = yes
 
 vpath %.c $(JBIG2DEC_DIR)
+
+CC_CXX_WARN_STRICT =

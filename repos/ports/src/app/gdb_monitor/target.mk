@@ -58,3 +58,5 @@ INC_DIR += $(INIT_PARENT_DIR)
 SRC_CC += init/server.cc
 
 vpath init/%.cc $(INIT_PARENT_DIR)
+
+CC_CXX_WARN_STRICT =

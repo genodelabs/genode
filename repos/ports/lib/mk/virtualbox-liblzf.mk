@@ -6,3 +6,5 @@ CC_OPT    += -DULTRA_FAST=1 -DHLOG=12 -DSTRICT_ALIGN=0 -DPIC
 SRC_C      = lzf_c.c lzf_d.c
 
 vpath % $(LIBLZF_DIR)
+
+CC_CXX_WARN_STRICT =

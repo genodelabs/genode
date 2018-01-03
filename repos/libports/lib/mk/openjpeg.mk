@@ -42,3 +42,5 @@ clean_malloc_h clean_opj_config_h:
 
 
 SHARED_LIB = yes
+
+CC_CXX_WARN_STRICT =

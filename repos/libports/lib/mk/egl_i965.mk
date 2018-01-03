@@ -13,3 +13,5 @@ INC_DIR += $(MESA_PORT_DIR)/src/egl/main \
 
 vpath %.c $(LIB_DIR)/i965
 vpath %.cc $(LIB_DIR)/i965
+
+CC_CXX_WARN_STRICT =

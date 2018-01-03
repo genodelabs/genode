@@ -21,3 +21,5 @@ SRC_CC += Runtime/r3/xml.cpp
 SRC_CC += Runtime/common/string/ministring.cpp
 
 vpath %.c $(LIBXML_DIR)
+
+CC_CXX_WARN_STRICT =

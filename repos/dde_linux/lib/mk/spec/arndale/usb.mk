@@ -17,3 +17,5 @@ SRC_C   += $(addprefix usb/dwc3/, dwc3-exynos.c host.c core.c)
 SRC_C   += usb/host/xhci-plat.c
 
 vpath platform.cc $(LIB_DIR)/spec/arndale
+
+CC_CXX_WARN_STRICT =

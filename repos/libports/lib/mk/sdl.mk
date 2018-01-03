@@ -88,3 +88,5 @@ LIBS = libc pthread mesa_api
 vpath % $(REP_DIR)/src/lib/sdl
 
 vpath % $(SDL_DIR)/src
+
+CC_CXX_WARN_STRICT =

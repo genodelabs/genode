@@ -25,3 +25,5 @@ CC_OPT += -DPLATFORM_CONFIG_H=\"genode_config.h\"
 CC_WARN += -Wno-unused-variable -Wno-int-conversion
 
 SHARED_LIB = yes
+
+CC_CXX_WARN_STRICT =

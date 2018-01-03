@@ -49,3 +49,5 @@ vpath psaux.c    $(FREETYPE_DIR)/src/psaux
 vpath psmodule.c $(FREETYPE_DIR)/src/psnames
 
 SHARED_LIB = yes
+
+CC_CXX_WARN_STRICT =

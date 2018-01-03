@@ -7,3 +7,5 @@ CC_OPT_localtime = -DTZ_MAX_TIMES=1
 include $(REP_DIR)/lib/mk/libc-common.inc
 
 vpath %.c $(LIBC_STDTIME_DIR)
+
+CC_CXX_WARN_STRICT =

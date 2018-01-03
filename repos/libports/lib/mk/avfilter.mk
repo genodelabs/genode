@@ -7,3 +7,5 @@ LIBAVFILTER_DIR = $(call select_from_ports,libav)/src/lib/libav/libavfilter
 -include $(LIBAVFILTER_DIR)/Makefile
 
 vpath % $(LIBAVFILTER_DIR)
+
+CC_CXX_WARN_STRICT =

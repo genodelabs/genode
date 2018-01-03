@@ -38,3 +38,5 @@ $(addprefix $(BUILD_BASE_DIR)/bin/qt5_fs/$(TARGET)/shared/pics/, $(SAMEGAME_RESO
 	$(VERBOSE)ln -sf $(QT5_CONTRIB_DIR)/qtdeclarative/examples/quick/tutorials/samegame/shared/pics/$(notdir $@) $@
 
 LIBS += qt5_component
+
+CC_CXX_WARN_STRICT =

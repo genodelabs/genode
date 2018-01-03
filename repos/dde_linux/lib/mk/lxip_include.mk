@@ -33,3 +33,5 @@ $(GEN_INCLUDES):
 endif
 
 # vi: set ft=make :
+
+CC_CXX_WARN_STRICT =

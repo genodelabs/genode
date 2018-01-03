@@ -6,3 +6,5 @@ LIBS      := base libc mupdf
 INC_DIR   += $(MUPDF_DIR)/apps
 
 vpath pdfapp.c $(MUPDF_DIR)/apps
+
+CC_CXX_WARN_STRICT =

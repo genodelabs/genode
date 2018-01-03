@@ -21,3 +21,5 @@ vpath %.c $(LIBUSB_DIR)/libusb
 vpath %.cc $(REP_DIR)/src/lib/libusb
 
 SHARED_LIB = yes
+
+CC_CXX_WARN_STRICT =

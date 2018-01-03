@@ -9,3 +9,5 @@ SRC_C := $(notdir $(wildcard $(MPC_DIR)/src/*.c))
 vpath %.c $(MPC_DIR)/src
 
 SHARED_LIB = 1
+
+CC_CXX_WARN_STRICT =

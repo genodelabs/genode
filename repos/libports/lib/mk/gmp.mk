@@ -23,3 +23,5 @@ vpath %.c $(GMP_DIR)/printf
 vpath %.c $(GMP_DIR)/scanf
 
 SHARED_LIB = yes
+
+CC_CXX_WARN_STRICT =

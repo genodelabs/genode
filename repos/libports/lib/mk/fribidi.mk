@@ -14,3 +14,5 @@ CC_WARN  =
 vpath %.c $(FRIBIDI_DIR)/lib
 
 SHARED_LIB = yes
+
+CC_CXX_WARN_STRICT =

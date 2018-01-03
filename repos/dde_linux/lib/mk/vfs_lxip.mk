@@ -19,3 +19,5 @@ CC_OPT += -DCONFIG_INET -DCONFIG_BASE_SMALL=0 -DCONFIG_DEBUG_LOCK_ALLOC \
 
 CC_C_OPT  += -include $(LXIP_DIR)/include/lx_emul.h
 CC_CXX_OPT = -fpermissive
+
+CC_CXX_WARN_STRICT =

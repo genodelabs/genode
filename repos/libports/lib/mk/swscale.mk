@@ -9,3 +9,5 @@ LIBSWSCALE_DIR = $(call select_from_ports,libav)/src/lib/libav/libswscale
 -include $(LIBSWSCALE_DIR)/Makefile
 
 vpath % $(LIBSWSCALE_DIR)
+
+CC_CXX_WARN_STRICT =

@@ -22,3 +22,5 @@ $(GEN_INCLUDES):
 	$(VERBOSE)ln -s $(QEMU_EMUL_H) $@
 
 endif
+
+CC_CXX_WARN_STRICT =

@@ -17,3 +17,5 @@ LD_OPT += --version-script=$(LIB_DIR)/symbol.map
 
 vpath %.c  $(QEMU_USB_DIR)
 vpath %.cc $(LIB_DIR)
+
+CC_CXX_WARN_STRICT =

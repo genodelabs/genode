@@ -23,3 +23,5 @@ LIBS += qt5_webcore qt5_jscore qt5_network qt5_printsupport qt5_gui qt5_core icu
 
 vpath %.qrc $(QT5_CONTRIB_DIR)/src/3rdparty/webkit/Source/WebCore
 vpath %.qrc $(QT5_CONTRIB_DIR)/src/3rdparty/webkit/Source/WebCore/inspector/front-end
+
+CC_CXX_WARN_STRICT =

@@ -10,3 +10,5 @@ SRC_C = blocksort.c huffman.c crctable.c randtable.c \
 vpath %.c $(LIBBZ2_DIR)
 
 # Bzip2 upstream recommends using a static library.
+
+CC_CXX_WARN_STRICT =

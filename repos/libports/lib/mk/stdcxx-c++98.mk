@@ -41,3 +41,5 @@ vpath %.cc $(STDCXX_DIR)/config/cpu/generic
 vpath %.cc $(STDCXX_DIR)/config/locale/generic
 vpath %.cc $(STDCXX_DIR)/config/os/generic
 vpath %.cc $(STDCXX_DIR)/config/io
+
+CC_CXX_WARN_STRICT =

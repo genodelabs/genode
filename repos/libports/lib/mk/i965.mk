@@ -226,3 +226,5 @@ CC_OPT_drivers/dri/i965/brw_fs_combine_constants = -D__BSD_VISIBLE
 vpath %.c   $(REP_DIR)/src/lib/mesa/i965
 vpath %.c   $(MESA_SRC_DIR)
 vpath %.cpp $(MESA_SRC_DIR)
+
+CC_CXX_WARN_STRICT =

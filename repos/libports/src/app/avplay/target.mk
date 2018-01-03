@@ -19,3 +19,5 @@ INC_DIR += $(REP_DIR)/src/lib/libav
 CC_C_OPT += -DLIBAV_VERSION=\"0.8\"
 
 vpath %.c $(LIBAV_PORT_DIR)/src/lib/libav
+
+CC_CXX_WARN_STRICT =

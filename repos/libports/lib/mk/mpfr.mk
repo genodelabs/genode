@@ -11,3 +11,5 @@ SRC_C      := $(filter-out $(FILTER_OUT),$(MPFR_SRC_C))
 vpath %.c $(MPFR_PORT_DIR)/src/lib/mpfr
 
 SHARED_LIB = 1
+
+CC_CXX_WARN_STRICT =

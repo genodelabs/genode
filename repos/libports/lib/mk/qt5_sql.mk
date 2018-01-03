@@ -18,3 +18,5 @@ INC_DIR += $(QT5_CONTRIB_DIR)/qtbase/include/QtSql/$(QT_VERSION)/QtSql \
            $(QT5_CONTRIB_DIR)/qtbase/include/QtCore/$(QT_VERSION)/QtCore
 
 LIBS += qt5_core
+
+CC_CXX_WARN_STRICT =

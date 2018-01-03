@@ -9,3 +9,5 @@ CC_WARN  =
 vpath %.c $(ZLIB_DIR)
 
 SHARED_LIB = yes
+
+CC_CXX_WARN_STRICT =

@@ -15,3 +15,5 @@ COMPILER_MOC_SOURCE_MAKE_ALL_FILES_FILTER_OUT = \
 include $(REP_DIR)/lib/mk/qt5.inc
 
 LIBS += qt5_core icu
+
+CC_CXX_WARN_STRICT =

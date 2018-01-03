@@ -49,3 +49,5 @@ vpath %.c $(PCSC_LITE_DIR)/src
 vpath %.cc $(REP_DIR)/src/lib/pcsc-lite
 
 SHARED_LIB = yes
+
+CC_CXX_WARN_STRICT =

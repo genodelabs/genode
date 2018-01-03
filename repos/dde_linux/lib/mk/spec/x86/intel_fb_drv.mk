@@ -35,3 +35,5 @@ vpath %.c $(LX_CONTRIB_DIR)/drivers/video
 vpath %.c $(LX_CONTRIB_DIR)/drivers/video/fbdev/core
 vpath %.c $(LX_CONTRIB_DIR)/lib
 
+
+CC_CXX_WARN_STRICT =

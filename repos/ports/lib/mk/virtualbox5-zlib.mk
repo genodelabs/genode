@@ -5,3 +5,5 @@ INC_DIR += $(ZLIB_DIR)
 SRC_C    = $(notdir $(wildcard $(ZLIB_DIR)/*.c))
 
 vpath % $(ZLIB_DIR)
+
+CC_CXX_WARN_STRICT =

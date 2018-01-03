@@ -7,3 +7,5 @@ include $(REP_DIR)/src/virtualbox/target.inc
 
 vpath frontend/% $(REP_DIR)/src/virtualbox/
 vpath %.cc       $(REP_DIR)/src/virtualbox/
+
+CC_CXX_WARN_STRICT =

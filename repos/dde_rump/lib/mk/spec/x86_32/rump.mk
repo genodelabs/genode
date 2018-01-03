@@ -16,3 +16,5 @@ vpath %.S $(RUMP_PORT_DIR)/src/common/lib/libc/arch/i386/atomic
 vpath %.S $(RUMP_PORT_DIR)/src/common/lib/libc/gen
 vpath %.c $(RUMP_PORT_DIR)/src/sys/arch/i386/i386
 vpath %.c $(RUMP_PORT_DIR)/src/sys/rump/librump/rumpkern/arch/x86
+
+CC_CXX_WARN_STRICT =

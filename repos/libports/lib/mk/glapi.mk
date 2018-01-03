@@ -14,3 +14,5 @@ CC_OPT += -DMAPI_ABI_HEADER=\"shared-glapi/glapi_mapi_tmp.h\" -DMAPI_MODE_GLAPI
 
 vpath %.c $(MESA_PORT_DIR)/src
 
+
+CC_CXX_WARN_STRICT =

@@ -111,3 +111,5 @@ vboxssdt-cpuhotplug.hex: vbox-cpuhotplug.dsl
 
 vpath %.dsl $(VBOX_DIR)/Devices/PC
 vpath devxhci.cc $(REP_DIR)/src/virtualbox5
+
+CC_CXX_WARN_STRICT =

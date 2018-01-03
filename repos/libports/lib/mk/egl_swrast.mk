@@ -11,3 +11,5 @@ INC_DIR += $(MESA_PORT_DIR)/src/egl/main \
            $(MESA_PORT_DIR)/src/egl/drivers/dri2
 
 vpath %.c $(LIB_DIR)/swrast
+
+CC_CXX_WARN_STRICT =

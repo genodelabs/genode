@@ -226,3 +226,5 @@ $(CRC_HEADER):
 	$(MSG_CONVERT)$(notdir $@)
 	$(VERBOSE)mkdir -p $(dir $@)
 	$(VERBOSE)$(EXT2FS_GEN_CRC) > $@
+
+CC_CXX_WARN_STRICT =

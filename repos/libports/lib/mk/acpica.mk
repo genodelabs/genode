@@ -23,3 +23,5 @@ CC_C_OPT += -DACPI_LIBRARY
 
 vpath %.c $(ACPICA_COMP)
 vpath %.cc $(REP_DIR)/src/lib/acpica
+
+CC_CXX_WARN_STRICT =

@@ -25,3 +25,5 @@ LIBS += libc
 
 vpath %.c $(EXT2FS_DIR)
 vpath %.c $(ET_DIR)
+
+CC_CXX_WARN_STRICT =

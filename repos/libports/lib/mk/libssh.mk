@@ -68,3 +68,5 @@ SHARED_LIB = yes
 
 vpath %.c $(LIBSSH_PORT_DIR)/src/lib/libssh/src
 vpath %.c $(LIBSSH_PORT_DIR)/src/lib/libssh/src/external
+
+CC_CXX_WARN_STRICT =

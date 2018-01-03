@@ -46,3 +46,5 @@ nsparser.c: nsparser.y
 		--defines=nsparser.h --output=$@
 
 vpath nsparser.y $(LIBC_NET_DIR)
+
+CC_CXX_WARN_STRICT =

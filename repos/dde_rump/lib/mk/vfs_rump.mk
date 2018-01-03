@@ -4,3 +4,5 @@ INC_DIR += $(REP_DIR)/src/lib/vfs/rump
 vpath %.cc $(REP_DIR)/src/lib/vfs/rump
 
 SHARED_LIB = yes
+
+CC_CXX_WARN_STRICT =

@@ -6,3 +6,5 @@ LIBS  += libc
 vpath % $(REP_DIR)/src/lib/pthread
 
 SHARED_LIB = yes
+
+CC_CXX_WARN_STRICT =

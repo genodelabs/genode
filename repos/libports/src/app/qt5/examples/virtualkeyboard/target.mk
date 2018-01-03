@@ -19,3 +19,5 @@ CC_CXX_OPT += -D'MAIN_QML="basic-b2qt.qml"'
 include $(QT5_REP_DIR)/src/app/qt5/tmpl/target_final.inc
 
 LIBS += qt5_component qt5_qtvirtualkeyboardplugin qt5_windowplugin
+
+CC_CXX_WARN_STRICT =

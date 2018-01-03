@@ -103,3 +103,5 @@ INC_DIR += $(REP_DIR)/src/app/openvpn/
 vpath compat-%.c $(OPENVPN_DIR)/src/compat
 vpath %.c        $(OPENVPN_DIR)/src/openvpn
 vpath %.cc       $(REP_DIR)/src/app/openvpn
+
+CC_CXX_WARN_STRICT =

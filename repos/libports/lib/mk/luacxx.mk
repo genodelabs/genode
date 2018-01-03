@@ -9,3 +9,5 @@ SRC_C = $(LUA_CORE_C) $(LUA_LIB_C)
 # force compilation with C++ compiler
 CUSTOM_CC = $(CXX)
 CC_WARN  += -Wno-sign-compare
+
+CC_CXX_WARN_STRICT =

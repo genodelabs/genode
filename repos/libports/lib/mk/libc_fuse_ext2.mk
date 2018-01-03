@@ -21,3 +21,5 @@ vpath %.c $(FUSE_EXT2_DIR)
 vpath %.cc $(REP_DIR)/src/lib/fuse-ext2
 
 SHARED_LIB = yes
+
+CC_CXX_WARN_STRICT =

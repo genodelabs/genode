@@ -5,3 +5,5 @@ INC_DIR += $(IPXE_CONTRIB_DIR)/arch/x86_64/include \
 
 # take remaining parts from i386
 INC_DIR += $(IPXE_CONTRIB_DIR)/arch/i386/include
+
+CC_CXX_WARN_STRICT =

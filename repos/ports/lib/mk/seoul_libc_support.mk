@@ -5,3 +5,5 @@ SRC_C += $(addprefix string/,strchr.c strncpy.c strspn.c strcspn.c strstr.c strl
 SRC_C += sys/__error.c gen/errno.c locale/none.c locale/table.c
 
 vpath %.c $(LIBC_DIR)/lib/libc
+
+CC_CXX_WARN_STRICT =

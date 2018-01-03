@@ -16,3 +16,5 @@ SRC_C += $(filter-out $(FILTER_OUT_C),$(notdir $(wildcard $(LIBC_GEN_AMD64_DIR)/
 
 vpath %.c $(LIBC_GEN_AMD64_DIR)
 vpath %.S $(LIBC_GEN_AMD64_DIR)
+
+CC_CXX_WARN_STRICT =

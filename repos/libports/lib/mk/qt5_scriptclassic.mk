@@ -12,3 +12,5 @@ include $(REP_DIR)/lib/mk/qt5.inc
 LIBS += qt5_core libc
 
 vpath % $(QT5_PORT_DIR)/src/lib/qt5/qtscriptclassic-1.0_1-opensource/src
+
+CC_CXX_WARN_STRICT =

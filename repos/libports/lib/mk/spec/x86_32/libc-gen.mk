@@ -21,3 +21,5 @@ SRC_C += makecontext.c
 
 vpath %.c $(LIBC_GEN_I386_DIR)
 vpath %.S $(LIBC_GEN_I386_DIR)
+
+CC_CXX_WARN_STRICT =

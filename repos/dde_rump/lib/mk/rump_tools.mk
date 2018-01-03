@@ -96,3 +96,5 @@ vpath %.c $(RUMP_PORT_DIR)/src/lib/libc/gen
 vpath %.c $(RUMP_PORT_DIR)/src/usr.bin/config
 vpath %.c $(RUMP_PORT_DIR)/src/usr.bin/cksum
 vpath %.c $(RUMP_TOOL)
+
+CC_CXX_WARN_STRICT =

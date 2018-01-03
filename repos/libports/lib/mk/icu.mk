@@ -97,3 +97,5 @@ vpath % $(ICU_DIR)/source/i18n
 vpath % $(ICU_DIR)/source/data/in
 
 SHARED_LIB = yes
+
+CC_CXX_WARN_STRICT =

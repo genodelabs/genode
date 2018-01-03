@@ -72,3 +72,5 @@ CC_OPT += -DVBOX_SVN_REV=~0
 INC_DIR += $(VBOX_DIR)/VMM/include
 
 CC_WARN += -Wno-unused-but-set-variable
+
+CC_CXX_WARN_STRICT =

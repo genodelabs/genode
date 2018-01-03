@@ -28,3 +28,5 @@ INC_DIR += $(QT5_CONTRIB_DIR)/qtbase/include/QtNetwork/$(QT_VERSION) \
            $(QT5_CONTRIB_DIR)/qtbase/include/QtCore/$(QT_VERSION)/QtCore
 
 LIBS += qt5_core zlib libc libssl
+
+CC_CXX_WARN_STRICT =

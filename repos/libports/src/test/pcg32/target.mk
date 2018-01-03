@@ -15,3 +15,5 @@ $(TARGET): test-pcg32.out
 
 test-pcg32.out: $(PCG_SRC_DIR)/test-high/expected/check-pcg32-global.out
 	$(VERBOSE)cp $< $(PWD)/bin/$@
+
+CC_CXX_WARN_STRICT =

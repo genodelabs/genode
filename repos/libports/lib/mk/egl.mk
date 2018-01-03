@@ -31,3 +31,5 @@ INC_DIR += $(MESA_PORT_DIR)/src/egl/main \
 vpath %.c  $(MESA_PORT_DIR)/src/egl
 vpath %.c  $(LIB_DIR)/egl
 vpath %.cc $(LIB_DIR)/egl
+
+CC_CXX_WARN_STRICT =

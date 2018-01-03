@@ -12,3 +12,5 @@ SRC_CC  += platform.cc
 INC_DIR += $(LIB_INC_DIR)/spec/odroid_x2
 
 vpath platform.cc $(LIB_DIR)/spec/odroid_x2
+
+CC_CXX_WARN_STRICT =

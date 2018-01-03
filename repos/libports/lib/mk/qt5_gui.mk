@@ -41,3 +41,5 @@ endif
 $(BUILD_BASE_DIR)/bin/qt5_fs/qt/lib/fonts:
 	$(VERBOSE)mkdir -p $@
 	$(VERBOSE)ln -sf $(QT5_CONTRIB_DIR)/qtquickcontrols/examples/quickcontrols/extras/dashboard/fonts/DejaVuSans.ttf $@/
+
+CC_CXX_WARN_STRICT =

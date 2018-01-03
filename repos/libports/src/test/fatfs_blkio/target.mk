@@ -11,3 +11,5 @@ FATFS_PORT_DIR = $(call select_from_ports,fatfs)
 INC_DIR += $(FATFS_PORT_DIR)/include/fatfs
 
 vpath %.c $(FATFS_PORT_DIR)/src/lib/fatfs/documents/res
+
+CC_CXX_WARN_STRICT =

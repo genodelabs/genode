@@ -47,3 +47,5 @@ generated/font_droid.h:
 	$(call do_font_dump,$(addprefix $(MUPDF_DIR)/fonts/droid/,DroidSans.ttf DroidSansMono.ttf))
 generated/font_cjk.h:
 	$(call do_font_dump,$(MUPDF_DIR)/fonts/droid/DroidSansFallback.ttf)
+
+CC_CXX_WARN_STRICT =

@@ -62,3 +62,5 @@ hamdist.o popcount.o: popham.c
 vpath %.c   $(REP_DIR)/src/lib/gmp/mpn/spec/32bit
 vpath %.c   $(GMP_MPN_DIR)/generic
 vpath %.asm $(GMP_MPN_DIR)/arm
+
+CC_CXX_WARN_STRICT =

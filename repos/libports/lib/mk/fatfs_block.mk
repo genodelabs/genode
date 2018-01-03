@@ -15,3 +15,5 @@ CC_OPT += -Wno-unused-variable
 
 vpath % $(FATFS_LOCAL_SRC_DIR)
 vpath % $(FATFS_PORT_SRC_DIR)
+
+CC_CXX_WARN_STRICT =

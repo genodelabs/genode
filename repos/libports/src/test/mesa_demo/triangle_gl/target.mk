@@ -13,3 +13,5 @@ INC_DIR += $(REP_DIR)/src/lib/mesa/include \
 vpath %.c  $(EGLUT_DIR)
 vpath %.cc $(EGLUT_DIR)
 
+
+CC_CXX_WARN_STRICT =

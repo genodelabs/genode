@@ -18,3 +18,5 @@ CC_OPT_effect_position = -Wno-misleading-indentation
 vpath %.c $(SDL_MIXER_PORT_DIR)/src/lib/sdl_mixer
 
 SHARED_LIB = yes
+
+CC_CXX_WARN_STRICT =

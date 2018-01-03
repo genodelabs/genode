@@ -21,3 +21,5 @@ include $(REP_DIR)/lib/mk/libm.mk
 SRC_C  += msun/arm/fenv.c
 
 vpath msun/arm/fenv.c $(LIBC_DIR)/lib
+
+CC_CXX_WARN_STRICT =

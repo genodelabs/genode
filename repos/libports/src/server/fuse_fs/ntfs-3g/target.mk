@@ -19,3 +19,5 @@ INC_DIR += $(REP_DIR)/src/lib/ntfs-3g \
 vpath %.c             $(NTFS_3G_DIR)/src
 vpath fuse_fs_main.cc $(PRG_DIR)/..
 vpath %.cc            $(REP_DIR)/src/lib/ntfs-3g
+
+CC_CXX_WARN_STRICT =

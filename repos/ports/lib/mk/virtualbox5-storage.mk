@@ -15,3 +15,5 @@ SRC_CC += Storage/VDIfVfs.cpp
 SRC_CC += Storage/VHD.cpp
 SRC_CC += Storage/VHDX.cpp
 SRC_CC += Storage/VMDK.cpp
+
+CC_CXX_WARN_STRICT =

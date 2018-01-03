@@ -13,3 +13,5 @@ $(MUPDF_FONTDUMP) $(MUPDF_CMAPDUMP): $(MUPDF_DIR)
 	$(MSG_BUILD)$(notdir $@)
 	$(VERBOSE)mkdir -p $(dir $@)
 	$(VERBOSE)gcc $(addprefix -I$(MUPDF_DIR)/,fitz pdf) $(MUPDF_DIR)/scripts/$(notdir $@).c -o $@
+
+CC_CXX_WARN_STRICT =

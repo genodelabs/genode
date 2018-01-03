@@ -24,3 +24,5 @@ CC_C_OPT += -Dioctl=genode_ioctl
 
 vpath %.c  $(DRM_SRC_DIR)
 vpath %.cc $(LIB_DIR)
+
+CC_CXX_WARN_STRICT =

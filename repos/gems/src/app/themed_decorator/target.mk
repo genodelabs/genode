@@ -8,3 +8,5 @@ INC_DIR += $(PRG_DIR)
 $(TARGET): plain_decorator_theme.tar
 plain_decorator_theme.tar:
 	$(VERBOSE)cd $(PRG_DIR); tar cf $(PWD)/bin/$@ theme
+
+CC_CXX_WARN_STRICT =

@@ -13,3 +13,5 @@ INC_DIR += $(REP_DIR)/include/exfat \
 LIBS += libc
 
 vpath %.c $(EXFAT_DIR)/libexfat
+
+CC_CXX_WARN_STRICT =

@@ -10,3 +10,5 @@ INC_DIR += $(SDL_NET_PORT_DIR)/src/lib/sdl_net
 LIBS += libc sdl
 
 SHARED_LIB = yes
+
+CC_CXX_WARN_STRICT =

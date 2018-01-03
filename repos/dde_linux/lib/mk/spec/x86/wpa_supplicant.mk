@@ -106,3 +106,5 @@ CC_OPT  += -DCONFIG_ELOOP_POLL
 vpath %.c  $(WS_CONTRIB_DIR)
 vpath %.c  $(WS_DIR)
 vpath %.cc $(WS_DIR)
+
+CC_CXX_WARN_STRICT =

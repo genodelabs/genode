@@ -25,3 +25,5 @@ CC_OPT_jcmainct += -Wno-main
 vpath %.c $(JPEG_DIR)
 
 SHARED_LIB = yes
+
+CC_CXX_WARN_STRICT =

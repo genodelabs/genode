@@ -9,3 +9,5 @@ LIBS = syscall-foc
 SHARED_LIB = yes
 
 vpath %.cc $(REP_DIR)/src/lib/cpu_sampler_platform-foc
+
+CC_CXX_WARN_STRICT =

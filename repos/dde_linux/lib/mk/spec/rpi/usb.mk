@@ -47,3 +47,5 @@ vpath %.c         $(LX_CONTRIB_DIR)/drivers/net/usb
 CC_CXX_OPT += -std=gnu++11
 
 LIBS += rpi_usb
+
+CC_CXX_WARN_STRICT =

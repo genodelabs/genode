@@ -22,3 +22,5 @@ INC_DIR += $(REP_DIR)/src/virtualbox/spec/nova
 
 vpath pgm.cc $(REP_DIR)/src/virtualbox/
 vpath sup.cc $(REP_DIR)/src/virtualbox/spec/nova/
+
+CC_CXX_WARN_STRICT =

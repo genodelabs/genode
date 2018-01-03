@@ -8,3 +8,5 @@ SHARED_LIB = yes
 vpath %.cc $(REP_DIR)/src/lib/gdbserver_platform-nova
 
 include $(REP_DIR)/lib/mk/spec/x86_64/gdbserver_platform-x86_64.inc
+
+CC_CXX_WARN_STRICT =

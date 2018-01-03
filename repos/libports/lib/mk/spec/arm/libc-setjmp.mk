@@ -17,3 +17,5 @@ CC_OPT += -D__SOFTFP__
 include $(REP_DIR)/lib/mk/libc-common.inc
 
 vpath %.S $(LIBC_GEN_ARM_DIR)
+
+CC_CXX_WARN_STRICT =

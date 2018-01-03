@@ -20,3 +20,5 @@ CC_OPT_makecontext = -I$(call select_from_ports,libc)/include/libc/sys \
                      $(addprefix -I,$(call select_from_repositories,/include/libc/sys))
 
 vpath % $(LIBC_GEN_ARM_DIR)
+
+CC_CXX_WARN_STRICT =

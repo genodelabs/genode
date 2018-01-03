@@ -53,3 +53,5 @@ vpath %.c $(LX_CONTRIB_DIR)
 vpath %.c $(LIB_DIR)
 vpath %.cc $(LIB_DIR)
 vpath %.cc $(REP_DIR)/src/lx_kit
+
+CC_CXX_WARN_STRICT =

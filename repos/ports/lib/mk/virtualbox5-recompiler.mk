@@ -27,3 +27,5 @@ CC_WARN += -Wno-unused-but-set-variable]
 
 vpath %.cpp $(VIRTUALBOX_DIR)/src
 vpath %.c   $(VIRTUALBOX_DIR)/src
+
+CC_CXX_WARN_STRICT =

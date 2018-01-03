@@ -18,3 +18,5 @@ $(E2FSCK_GEN_CRC): $(E2FSPROGS_DIR)
 	$(MSG_BUILD)$(notdir $@)
 	$(VERBOSE)mkdir -p $(dir $@)
 	$(VERBOSE)gcc $(E2FSPROGS_DIR)/e2fsck/$(notdir $@).c -o $@
+
+CC_CXX_WARN_STRICT =

@@ -31,3 +31,5 @@ CC_OPT += -D_LINUX_SOCKET_H
 
 vpath %.c $(WS_CONTRIB_DIR)
 vpath %.cc $(LIB_DIR)
+
+CC_CXX_WARN_STRICT =

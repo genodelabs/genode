@@ -7,3 +7,5 @@ INC_DIR += $(PRG_DIR)/../
 vpath main.cc      $(PRG_DIR)/..
 vpath syscall.cc   $(PRG_DIR)/..
 vpath dummy_net.cc $(PRG_DIR)
+
+CC_CXX_WARN_STRICT =

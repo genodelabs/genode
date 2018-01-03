@@ -14,3 +14,5 @@ QT_INCPATH += qtdeclarative/src/quick/items
 include $(REP_DIR)/lib/mk/qt5.inc
 
 LIBS += qt5_qml qt5_gui
+
+CC_CXX_WARN_STRICT =

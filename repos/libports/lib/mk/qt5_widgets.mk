@@ -16,3 +16,5 @@ INC_DIR += $(QT5_CONTRIB_DIR)/qtbase/include/QtWidgets/$(QT_VERSION)/QtWidgets \
            $(QT5_CONTRIB_DIR)/qtbase/include/QtCore/$(QT_VERSION)/QtCore
 
 LIBS += qt5_gui
+
+CC_CXX_WARN_STRICT =

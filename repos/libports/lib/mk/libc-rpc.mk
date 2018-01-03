@@ -10,3 +10,5 @@ INC_DIR += $(LIBC_REP_DIR)/include/libc/sys
 INC_DIR += $(LIBC_PORT_DIR)/include/libc/sys
 
 vpath %.c $(LIBC_RPC_DIR)
+
+CC_CXX_WARN_STRICT =

@@ -29,3 +29,5 @@ $(RCC_DIR)/rcc: $(QMAKE_DIR)/bin/qmake $(MOC_DIR)/moc
 
 $(UIC_DIR)/uic: $(QMAKE_DIR)/bin/qmake $(RCC_DIR)/rcc
 	$(VERBOSE)QT5_CONTRIB_DIR=$(QT5_CONTRIB_DIR) $(MAKE) -C $(QT5_TOOL_DIR) -f $(REP_DIR)/lib/mk/qt5_host_tools.inc uic/uic
+
+CC_CXX_WARN_STRICT =

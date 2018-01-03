@@ -39,3 +39,5 @@ QT_VPATH += qtwebkit/Source/ThirdParty/ANGLE/generated
 include $(REP_DIR)/lib/mk/qt5.inc
 
 LIBS += qt5_opengl
+
+CC_CXX_WARN_STRICT =

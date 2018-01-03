@@ -16,3 +16,5 @@ ifeq ($(filter-out $(SPECS),64bit),)
 endif
 
 vpath %.c $(PCG_SRC_DIR)
+
+CC_CXX_WARN_STRICT =

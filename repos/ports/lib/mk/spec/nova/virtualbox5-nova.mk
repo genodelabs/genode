@@ -17,3 +17,5 @@ INC_DIR += $(REP_DIR)/src/virtualbox5/frontend
 
 vpath sup.cc $(REP_DIR)/src/virtualbox5/spec/nova/
 vpath pgm.cc $(REP_DIR)/src/virtualbox5/spec/nova/
+
+CC_CXX_WARN_STRICT =
