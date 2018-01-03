@@ -1,20 +1,6 @@
 LICENSE   := BSD
-VERSION   := cvs
-DOWNLOADS := rump.cvs
-
-$(call check_tool, cvs)
-
-URL(rump)  := :pserver:anoncvs@anoncvs.netbsd.org:2401/cvsroot
-REV(rump)  := "20141216 2100UTC"
-DIR(rump)  := src/lib/dde_rump
-HASH_INPUT += $(REP_DIR)/rump.list
-
-PATCHES   := $(shell find $(REP_DIR)/patches/*.patch)
-PATCH_OPT := -N -d ${DIR(rump)} -p1
-
-%.cvs:
-	@echo "CVS checkout rump ..."
-	$(VERBOSE)cat $(REP_DIR)/rump.list | xargs cvs -d $(URL($*)) -Q -z3 export \
-	-D $(REV($*)) -d $(DIR($*))
-
-# vi: set ft=make :
+VERSION   := git
+DOWNLOADS := rump.git
+URL(rump) := https://github.com/ssumpf/rump.git
+DIR(rump) := src/lib/dde_rump
+REV(rump) := 206ffa06cedd0779af0043997fd182b00ff4688c
