@@ -96,8 +96,12 @@ $(MMC_IMG): $(UBOOT_IMGS)
 	$(VERBOSE)$(FINISH_IMAGE)
 	$(ECHO)
 	$(ECHO) "Successfully created MMC image."
-	$(ECHO) "You can install the image on an empty MMC for example via:"
-	$(ECHO) "sudo dd if=$(MMC_IMG) of=/dev/<YOUR_MMC> bs=1K seek=1 conv=fsync"
+	$(ECHO) "You can install the image on an empty MMC via"
+	$(ECHO)
+	$(ECHO) "! sudo dd if=$(MMC_IMG) of=/dev/<YOUR_MMC> bs=1K seek=1 conv=fsync"
+	$(ECHO)
+	$(ECHO) "This way, it'll end at $(MMC_IMG_SIZE) + 1 byte. To be safe, let"
+	$(ECHO) "your individual data (e.g. file system) start at $(MMC_IMG_SIZE) + 1M byte"
 	$(ECHO)
 
 $(UBOOT_IMGS): $(UBOOT_BUILD_CONF) $(UBOOT_DIR)
