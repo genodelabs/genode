@@ -75,7 +75,7 @@ class Vcpu_handler_svm : public Vcpu_handler
 			                  | SVM_CTRL2_INTERCEPT_MONITOR
 			                  | SVM_CTRL2_INTERCEPT_MWAIT;
 
-			void *exit_status = _start_routine(_arg);
+			void *exit_status = _start_routine(_start_routine_arg);
 			pthread_exit(exit_status);
 
 			Nova::reply(nullptr);

@@ -313,6 +313,6 @@ bool create_emt_vcpu(pthread_t * pthread, size_t stack,
 
 	vcpu_handler_list().insert(vcpu_handler);
 
-	*pthread = vcpu_handler;
+	*pthread = &vcpu_handler->pthread_obj();
 	return true;
 }

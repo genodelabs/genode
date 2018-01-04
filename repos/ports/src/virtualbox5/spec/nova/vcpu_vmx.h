@@ -92,7 +92,7 @@ class Vcpu_handler_vmx : public Vcpu_handler
 			                    VMX_VMCS_CTRL_PROC_EXEC2_RDTSCP |
 			                    VMX_VMCS_CTRL_PROC_EXEC2_EPT;
 
-			void *exit_status = _start_routine(_arg);
+			void *exit_status = _start_routine(_start_routine_arg);
 			pthread_exit(exit_status);
 
 			Nova::reply(nullptr);

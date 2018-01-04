@@ -16,6 +16,9 @@
 #ifndef _INCLUDE__SRC_LIB_PTHREAD_THREAD_H_
 #define _INCLUDE__SRC_LIB_PTHREAD_THREAD_H_
 
+/* Genode includes */
+#include <util/reconstructible.h>
+
 #include <pthread.h>
 
 /*
@@ -53,60 +56,142 @@ extern "C" {
 		pthread_attr() : pthread(0), stack_size(0) { }
 	};
 
-
 	/*
 	 * This class is named 'struct pthread' because the 'pthread_t' type is
 	 * defined as 'struct pthread*' in '_pthreadtypes.h'
 	 */
-	struct pthread : Genode::Thread
+	struct pthread;
+
+	void pthread_cleanup();
+}
+
+
+struct Genode::Thread::Tls::Base
+{
+	/**
+	 * Register thread-local-storage object at Genode thread
+	 */
+	static void tls(Genode::Thread &thread, Tls::Base &tls)
 	{
+		thread._tls = Tls { &tls };
+	}
+
+	struct Undefined : Exception { };
+
+	/**
+	 * Obtain thread-local-storage object for the calling thread
+	 *
+	 * \throw Undefined
+	 */
+	static Tls::Base &tls()
+	{
+		Thread &myself = *Thread::myself();
+
+		if (!myself._tls.ptr)
+			throw Undefined();
+
+		return *myself._tls.ptr;
+	}
+};
+
+
+struct pthread : Genode::Noncopyable, Genode::Thread::Tls::Base
+{
+	typedef void *(*start_routine_t) (void *);
+
+	private:
+
+		struct Thread_object : Genode::Thread
+		{
+			start_routine_t _start_routine;
+			void           *_arg;
+
+			enum { WEIGHT = Genode::Cpu_session::Weight::DEFAULT_WEIGHT };
+
+			Thread_object(char const *name, size_t stack_size,
+			              Genode::Cpu_session *cpu,
+			              Genode::Affinity::Location location,
+			              start_routine_t start_routine, void *arg)
+			:
+				Genode::Thread(WEIGHT, name, stack_size, Type::NORMAL, cpu, location),
+				_start_routine(start_routine), _arg(arg)
+			{ }
+
+			void entry() override
+			{
+				void *exit_status = _start_routine(_arg);
+				pthread_exit(exit_status);
+			}
+		};
+
+		Genode::Constructible<Thread_object> _thread_object;
+
+		/*
+		 * Helper to construct '_thread_object' in class initializer
+		 */
+		template <typename... ARGS>
+		Genode::Thread &_construct_thread_object(ARGS &&... args)
+		{
+			_thread_object.construct(args...);
+			return *_thread_object;
+		}
+
+		/*
+		 * Refers to '_thread_object' or an external 'Genode::Thread' object
+		 */
+		Genode::Thread &_thread;
+
 		pthread_attr_t _attr;
-		void *(*_start_routine) (void *);
-		void *_arg;
 
-		enum { WEIGHT = Genode::Cpu_session::Weight::DEFAULT_WEIGHT };
-
-		pthread(pthread_attr_t attr, void *(*start_routine) (void *),
-		        void *arg, size_t stack_size, char const * name,
-		        Genode::Cpu_session * cpu, Genode::Affinity::Location location)
-		: Thread(WEIGHT, name, stack_size, Type::NORMAL, cpu, location),
-		  _attr(attr),
-		  _start_routine(start_routine),
-		  _arg(arg)
+		void _associate_thread_with_pthread()
 		{
 			if (_attr)
 				_attr->pthread = this;
 
+			Genode::Thread::Tls::Base::tls(_thread, *this);
+
 			pthread_registry().insert(this);
+		}
+
+	public:
+
+		/**
+		 * Constructor for threads created via 'pthread_create'
+		 */
+		pthread(pthread_attr_t attr, start_routine_t start_routine,
+		        void *arg, size_t stack_size, char const * name,
+		        Genode::Cpu_session * cpu, Genode::Affinity::Location location)
+		:
+			_thread(_construct_thread_object(name, stack_size, cpu, location,
+			                                 start_routine, arg)),
+			_attr(attr)
+		{
+			_associate_thread_with_pthread();
 		}
 
 		/**
 		 * Constructor to create pthread object out of existing thread,
-		 * e.g. main Genode thread
+		 * i.e., the main thread
 		 */
-		pthread(Thread &myself, pthread_attr_t attr)
-		: Thread(myself),
-		  _attr(attr), _start_routine(nullptr), _arg(nullptr)
+		pthread(Genode::Thread &existing_thread, pthread_attr_t attr)
+		:
+			_thread(existing_thread),
+			_attr(attr)
 		{
-			if (_attr)
-				_attr->pthread = this;
-
-			pthread_registry().insert(this);
+			_associate_thread_with_pthread();
 		}
 
-		virtual ~pthread()
+		~pthread()
 		{
 			pthread_registry().remove(this);
 		}
 
-		void entry()
-		{
-			void *exit_status = _start_routine(_arg);
-			pthread_exit(exit_status);
-		}
-	};
+		void start() { _thread.start(); }
 
-	void pthread_cleanup();
-}
+		void *stack_top()  const { return _thread.stack_top();  }
+		void *stack_base() const { return _thread.stack_base(); }
+
+		pthread_attr_t attr() { return _attr; }
+};
 
 #endif /* _INCLUDE__SRC_LIB_PTHREAD_THREAD_H_ */

@@ -179,37 +179,35 @@ extern "C" {
 
 	pthread_t pthread_self(void)
 	{
-		Thread *myself = Thread::myself();
+		try {
+			pthread_t pthread_myself =
+				static_cast<pthread_t>(&Thread::Tls::Base::tls());
 
-		pthread_t pthread_myself = static_cast<pthread_t>(myself);
-
-		if (pthread_registry().contains(pthread_myself))
-			return pthread_myself;
+			if (pthread_registry().contains(pthread_myself))
+				return pthread_myself;
+		}
+		catch (Thread::Tls::Base::Undefined) { }
 
 		/*
 		 * We pass here if the main thread or an alien thread calls
 		 * pthread_self(). So check for aliens (or other bugs) and opt-out
 		 * early.
 		 */
-
 		if (!_pthread_main_np()) {
 			error("pthread_self() called from alien thread named ",
-			      "'", myself->name().string(), "'");
-
+			      "'", Thread::myself()->name().string(), "'");
 			return nullptr;
 		}
 
 		/*
-		 * We create a pthread object containing a copy of main thread's
-		 * Thread object. Therefore, we ensure the pthread object does not
-		 * get deleted by allocating it in heap via new(). Otherwise, the
-		 * static destruction of the pthread object would also destruct the
-		 * 'Thread' of the main thread.
+		 * We create a pthread object associated to the main thread's Thread
+		 * object. We ensure the pthread object does never get deleted by
+		 * allocating it in heap via new(). Otherwise, the static destruction
+		 * of the pthread object would also destruct the 'Thread' of the main
+		 * thread.
 		 */
-
-		static struct pthread_attr main_thread_attr;
-		static struct pthread *main = new pthread(*myself, &main_thread_attr);
-
+		static pthread_attr main_thread_attr;
+		static pthread *main = new pthread(*Thread::myself(), &main_thread_attr);
 		return main;
 	}
 
@@ -253,7 +251,7 @@ extern "C" {
 		if (!attr)
 			return EINVAL;
 
-		*attr = pthread->_attr;
+		*attr = pthread->attr();
 		return 0;
 	}
 

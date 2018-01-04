@@ -71,7 +71,7 @@ class Vcpu_handler_svm : public Vcpu_handler
 			next_utcb.ctrl[0] = SVM_CTRL1_INTERCEPT_CPUID;
 			next_utcb.ctrl[1] = 0;
 
-			void *exit_status = _start_routine(_arg);
+			void *exit_status = _start_routine(_start_routine_arg);
 			pthread_exit(exit_status);
 
 			Nova::reply(nullptr);

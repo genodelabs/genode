@@ -84,22 +84,6 @@ class Vmm::Vcpu_dispatcher : public T
 
 		}
 
-		template <typename X>
-		Vcpu_dispatcher(Genode::Env &env, Genode::size_t stack_size,
-		                Cpu_session * cpu_session,
-		                Genode::Affinity::Location location,
-		                X attr, void *(*start_routine) (void *), void *arg,
-		                const char * name = "vCPU dispatcher")
-		: T(attr, start_routine, arg, stack_size, name, nullptr, location),
-		  _env(env)
-		{
-			using namespace Genode;
-
-			/* request creation of a 'local' EC */
-			T::native_thread().ec_sel = Native_thread::INVALID_INDEX - 1;
-			T::start();
-		}
-
 		/**
 		 * Register virtualization event handler
 		 */

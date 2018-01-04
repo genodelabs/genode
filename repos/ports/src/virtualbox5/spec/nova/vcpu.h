@@ -73,13 +73,20 @@ static inline Genode::uint32_t sel_ar_conv_from_nova(Genode::uint16_t v)
 }
 
 
-class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
+class Vcpu_handler : public Vmm::Vcpu_dispatcher<Genode::Thread>,
                      public Genode::List<Vcpu_handler>::Element
 {
+	protected:
+
+		pthread::start_routine_t const _start_routine;
+		void                   * const _start_routine_arg;
+
 	private:
 
 		X86FXSTATE _guest_fpu_state __attribute__((aligned(0x10)));
 		X86FXSTATE _emt_fpu_state __attribute__((aligned(0x10)));
+
+		pthread _pthread;
 
 		Vmm::Vcpu_other_pd _vcpu;
 
@@ -92,7 +99,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 
 		void fpu_save(char * data) {
 			Assert(!(reinterpret_cast<Genode::addr_t>(data) & 0xF));
- 			asm volatile ("fxsave %0" : "=m" (*data));
+			asm volatile ("fxsave %0" : "=m" (*data));
 		}
 
 		void fpu_load(char * data) {
@@ -782,19 +789,23 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>,
 
 
 		Vcpu_handler(Genode::Env &env, size_t stack_size, const pthread_attr_t *attr,
-		             void *(*start_routine) (void *), void *arg,
+		             pthread::start_routine_t start_routine, void *arg,
 		             Genode::Cpu_session * cpu_session,
 		             Genode::Affinity::Location location,
 		             unsigned int cpu_id, const char * name,
 		             Genode::Pd_session_capability pd_vcpu)
 		:
-			Vmm::Vcpu_dispatcher<pthread>(env, stack_size, cpu_session, location,
-			                              attr ? *attr : 0, start_routine, arg,
-			                              name),
+			Vmm::Vcpu_dispatcher<Genode::Thread>(env, stack_size, cpu_session,
+			                                     location, name),
+			_pthread(*this, attr ? *attr : 0),
+			_start_routine(start_routine),
+			_start_routine_arg(arg),
 			_vcpu(cpu_session, location, pd_vcpu),
 			_ec_sel(Genode::cap_map()->insert()),
 			_cpu_id(cpu_id)
 		{ }
+
+		pthread &pthread_obj() { return _pthread; }
 
 		unsigned int cpu_id() { return _cpu_id; }
 
