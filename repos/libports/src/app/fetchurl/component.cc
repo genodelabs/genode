@@ -195,3 +195,7 @@ void Libc::Component::construct(Libc::Env &env)
 	env.parent().exit(res ^ CURLE_OK);
 }
 
+/* dummies to prevent warnings printed by unimplemented libc functions */
+extern "C" int   issetugid() { return 1; }
+extern "C" pid_t getpid()    { return 1; }
+

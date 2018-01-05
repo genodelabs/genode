@@ -78,6 +78,7 @@ set boot_modules {
 	nic_drv
 	timer
 	zlib.lib.so
+	pthread.lib.so
 }
 
 # platform-specific modules
