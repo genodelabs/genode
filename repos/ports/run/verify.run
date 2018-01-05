@@ -1,0 +1,66 @@
+create_boot_directory
+
+import_from_depot genodelabs/src/[base_src] \
+                  genodelabs/src/init \
+                  genodelabs/src/report_rom \
+                  genodelabs/src/libc
+
+install_config {
+<config>
+	<parent-provides>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="PD"/>
+		<service name="RAM"/>
+		<service name="ROM"/>
+	</parent-provides>
+
+	<default-route> <any-service> <parent/> <any-child/> </any-service> </default-route>
+
+	<start name="report_rom" caps="100">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config verbose="yes"/>
+	</start>
+
+	<start name="verify" caps="200">
+		<resource name="RAM" quantum="12M"/>
+		<config verbose="yes">
+			<libc stdout="/dev/log" stderr="/dev/null" rtc="/dev/null"/>
+			<vfs>
+				<rom name="pubkey"/>
+				<tar name="test.tar"/>
+				<dir name="dev"> <log/> <null/> </dir>
+			</vfs>
+			<verify path="expect_valid.txt"   pubkey="/nonexistent_pubkey"/>
+			<verify path="expect_valid.txt"   pubkey="/dev/null"/>
+			<verify path="expect_valid.txt"   pubkey="/pubkey"/>
+			<verify path="expect_invalid.txt" pubkey="/pubkey"/>
+		</config>
+	</start>
+</config>
+}
+
+build { app/verify }
+
+exec tar cf [run_dir]/genode/test.tar -C [genode_dir]/repos/ports/src/app/verify/test .
+
+file copy [genode_dir]/depot/nfeske/pubkey [run_dir]/genode/pubkey
+
+build_boot_image { verify libc.lib.so pthread.lib.so }
+
+append qemu_args " -nographic "
+
+run_genode_until {</result>.*\n} 30
+
+grep_output {\[init \-\> report_rom\]}
+
+compare_output_to {
+[init -> report_rom] report 'verify -> result'
+[init -> report_rom]   <result>
+[init -> report_rom]   	<bad path="expect_valid.txt" reason="public key unavailable"/>
+[init -> report_rom]   	<bad path="expect_valid.txt" reason="malformed public key"/>
+[init -> report_rom]   	<good path="expect_valid.txt"/>
+[init -> report_rom]   	<bad path="expect_invalid.txt" reason="bad signature"/>
+[init -> report_rom]   </result>
+}

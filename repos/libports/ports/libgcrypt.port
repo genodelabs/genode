@@ -1,0 +1,83 @@
+LICENSE   := LGPLv2.1+
+VERSION   := 1.8.2
+DOWNLOADS := libgcrypt.archive libgpg-error.archive
+
+COMMON_URL := https://www.gnupg.org/ftp/gcrypt
+
+URL(libgcrypt) := $(COMMON_URL)/libgcrypt/libgcrypt-$(VERSION).tar.bz2
+SHA(libgcrypt) := ab8aae5d7a68f8e0988f90e11e7f6a4805af5c8d
+DIR(libgcrypt) := src/lib/libgcrypt
+
+LIBGPG_ERROR_VERSION := 1.27
+
+URL(libgpg-error) := $(COMMON_URL)/libgpg-error/libgpg-error-$(LIBGPG_ERROR_VERSION).tar.bz2
+SHA(libgpg-error) := a428758999ff573e62d06892e3d2c0b0f335787c
+DIR(libgpg-error) := src/lib/libgpg-error
+
+HASH_INPUT += $(REP_DIR)/src/lib/libgpg-error/config.h
+
+$(call check_tool,mawk)
+
+gen_files := include/libgcrypt/gcrypt.h \
+             include/libgcrypt/gpg-error.h \
+             src/lib/libgpg-error/src/code-from-errno.h \
+             src/lib/libgpg-error/src/code-to-errno.h
+
+default: $(gen_files)
+
+$(gen_files): $(DOWNLOADS)
+
+# obtain 'VERSION_NUMBER' definition from configure script
+version_number = $(shell sed -n "/VERSION_NUMBER=/s/.*=//p" $1/configure)
+
+subst_gcrypt = \
+	"@INSERT_SYS_SELECT_H@/include <sys\/select.h>" \
+	"@FALLBACK_SOCKLEN_T@/" \
+	"@VERSION@/\"$(VERSION)\"" \
+	"@VERSION_NUMBER@/$(call version_number,src/lib/libgcrypt)"
+
+apply_substitutions = $(VERBOSE)for i in $(1); do sed -i "s/$$i/g" $(2); done
+
+include/libgcrypt/gcrypt.h:
+	@$(MSG_GENERATE)$@
+	$(VERBOSE)mkdir -p $(dir $@)
+	$(VERBOSE)cp src/lib/libgcrypt/src/gcrypt.h.in $@
+	$(call apply_substitutions,$(subst_gcrypt),$@)
+
+include/libgcrypt/gpg-error.h: mkheader
+	@$(MSG_GENERATE)$@
+	$(VERBOSE)mkdir -p $(dir $@)
+	$(VERBOSE)cp src/lib/libgpg-error/src/syscfg/lock-obj-pub.x86_64-pc-kfreebsd-gnu.h \
+	             lock-obj-pub.native.h
+	$(VERBOSE)./mkheader unknown-host-os host-triplet-unknown \
+	                     src/lib/libgpg-error/src/gpg-error.h.in \
+	                     $(REP_DIR)/src/lib/libgpg-error/config.h \
+	                     $(LIBGPG_ERROR_VERSION) $(call version_number,src/lib/libgpg-error) >$@
+	$(VERBOSE)rm lock-obj-pub.native.h mkheader
+
+src/lib/libgpg-error/src/code-from-errno.h: mkerrcodes
+	@$(MSG_GENERATE)$@
+	$(VERBOSE)mkdir -p $(dir $@)
+	$(VERBOSE)./mkerrcodes | nawk -f src/lib/libgpg-error/src/mkerrcodes2.awk > $@
+	$(VERBOSE)rm mkerrcodes
+
+src/lib/libgpg-error/src/code-to-errno.h:
+	@$(MSG_GENERATE)$@
+	$(VERBOSE)nawk -f src/lib/libgpg-error/src/mkerrnos.awk src/lib/libgpg-error/src/errnos.in > $@
+
+mkheader: $(DOWNLOADS)
+	$(VERBOSE)$(CC) -g -Isrc/lib/libgpg-error/src \
+	                src/lib/libgpg-error/src/mkheader.c -o $@
+
+mkerrcodes: $(DOWNLOADS) src/lib/libgpg-error/src/mkerrcodes.h
+	$(VERBOSE)$(CC) -g -Isrc/lib/libgpg-error/src \
+	                src/lib/libgpg-error/src/mkerrcodes.c -o $@
+
+src/lib/libgpg-error/src/mkerrcodes.h:
+	@$(MSG_GENERATE)$@
+	$(VERBOSE)nawk -f src/lib/libgpg-error/src/mkerrcodes1.awk \
+	                  src/lib/libgpg-error/src/errnos.in |\
+	          $(CPP) -P - |\
+	          grep GPG_ERR_ |\
+	          nawk -f src/lib/libgpg-error/src/mkerrcodes.awk > $@
+

@@ -1,0 +1,19 @@
+The 'verify' component verifies detached OpenPGP signatures. Its configuration
+accepts any number of '<verify>' nodes of the following form:
+
+! <verify path="/path/to/data" pubkey="/pubkey"/>
+
+The detached signature file is expected to be named after the data file with
+the additional suffix '.sig'. The 'path' and 'pubkey' attributes refer to
+paths within the component's local VFS.
+
+The results of the signature checks are provided in the form of a report
+with the label "result". For each '<verify>' node of the configuration, this
+report contains a node of type '<good>' or '<bad>'. In either case, the node
+contains the corresponding 'path' as attribute. Furthermore, '<bad>' nodes
+feature diagnostic information as a 'reason' attribute.
+
+For an example scenario, refer to the _ports/run/verify.run_ script.
+
+Disclaimer: The component does not perform time-related plausibility checks
+such as scrutinizing the creation date of the public key.

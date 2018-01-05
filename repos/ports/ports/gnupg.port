@@ -1,0 +1,7 @@
+LICENSE   := GPLv3
+VERSION   := 2.2.4
+DOWNLOADS := gnupg.archive
+
+URL(gnupg) := https://www.gnupg.org/ftp/gcrypt/gnupg/gnupg-$(VERSION).tar.bz2
+SHA(gnupg) := 732266e8888c6f41c084d043c7a0058332ff3580
+DIR(gnupg) := src/app/gnupg
