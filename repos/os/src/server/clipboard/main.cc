@@ -208,6 +208,7 @@ struct Clipboard::Main : Rom::Module::Read_policy, Rom::Module::Write_policy
 	{
 		_focus_ds.sigh(_focus_handler);
 
+		_handle_focus();
 		env.parent().announce(env.ep().manage(report_root));
 		env.parent().announce(env.ep().manage(rom_root));
 	}
