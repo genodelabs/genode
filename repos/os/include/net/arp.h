@@ -145,18 +145,6 @@ class Net::Arp_packet
 		};
 
 
-		/**
-		 * Exception used to indicate protocol violation.
-		 */
-		class No_arp_packet : Genode::Exception {};
-
-		static void validate_size(Genode::size_t size) {
-			/* arp packet needs to fit in */
-			if (size < sizeof(Arp_packet))
-				throw No_arp_packet();
-		}
-
-
 		/***************
 		 ** Accessors **
 		 ***************/

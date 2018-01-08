@@ -93,23 +93,20 @@ void Dhcp_client::handle_ip(Ethernet_frame &eth, size_t eth_size)
 	{
 		throw Drop_packet_inform("DHCP client expects Ethernet targeting the router");
 	}
-	Ipv4_packet &ip = *eth.data<Ipv4_packet>();
-	Ipv4_packet::validate_size(eth_size - sizeof(Ethernet_frame));
+	Ipv4_packet &ip = *eth.data<Ipv4_packet>(eth_size - sizeof(Ethernet_frame));
 
 	if (ip.protocol() != Ipv4_packet::Protocol::UDP) {
 		throw Drop_packet_inform("DHCP client expects UDP packet");
 	}
-	Udp_packet &udp = *ip.data<Udp_packet>();
-	Udp_packet::validate_size(eth_size - sizeof(Ethernet_frame)
-		                               - sizeof(Ipv4_packet));
+	Udp_packet &udp = *ip.data<Udp_packet>(eth_size - sizeof(Ethernet_frame)
+	                                                - sizeof(Ipv4_packet));
 
 	if (!Dhcp_packet::is_dhcp(&udp)) {
 		throw Drop_packet_inform("DHCP client expects DHCP packet");
 	}
-	Dhcp_packet &dhcp = *udp.data<Dhcp_packet>();
-	Dhcp_packet::validate_size(eth_size - sizeof(Ethernet_frame)
-	                                    - sizeof(Ipv4_packet)
-	                                    - sizeof(Udp_packet));
+	Dhcp_packet &dhcp = *udp.data<Dhcp_packet>(eth_size - sizeof(Ethernet_frame)
+	                                                    - sizeof(Ipv4_packet)
+	                                                    - sizeof(Udp_packet));
 
 	if (dhcp.op() != Dhcp_packet::REPLY) {
 		throw Drop_packet_inform("DHCP client expects DHCP reply");
@@ -187,8 +184,8 @@ void Dhcp_client::_send(Message_type msg_type,
 		/* create IP header of the request */
 		enum { IPV4_TIME_TO_LIVE = 64 };
 		size_t const ip_off = size.curr();
+		Ipv4_packet &ip = *eth.data<Ipv4_packet>(size.left());
 		size.add(sizeof(Ipv4_packet));
-		Ipv4_packet &ip = *eth.data<Ipv4_packet>();
 		ip.header_length(sizeof(Ipv4_packet) / 4);
 		ip.version(4);
 		ip.diff_service(0);
@@ -202,15 +199,15 @@ void Dhcp_client::_send(Message_type msg_type,
 
 		/* create UDP header of the request */
 		size_t const udp_off = size.curr();
+		Udp_packet &udp = *ip.data<Udp_packet>(size.left());
 		size.add(sizeof(Udp_packet));
-		Udp_packet &udp = *ip.data<Udp_packet>();
 		udp.src_port(Port(Dhcp_packet::BOOTPC));
 		udp.dst_port(Port(Dhcp_packet::BOOTPS));
 
 		/* create mandatory DHCP fields of the request  */
 		size_t const dhcp_off = size.curr();
+		Dhcp_packet &dhcp = *udp.data<Dhcp_packet>(size.left());
 		size.add(sizeof(Dhcp_packet));
-		Dhcp_packet &dhcp = *udp.data<Dhcp_packet>();
 		dhcp.op(Dhcp_packet::REQUEST);
 		dhcp.htype(Dhcp_packet::Htype::ETH);
 		dhcp.hlen(sizeof(Mac_address));

@@ -80,7 +80,6 @@ void Packet_handler::handle_ethernet(void* src, Genode::size_t size)
 	try {
 		/* parse ethernet frame header */
 		Ethernet_frame *eth = reinterpret_cast<Ethernet_frame *>(src);
-		Ethernet_frame::validate_size(size);
 		switch (eth->type()) {
 		case Ethernet_frame::Type::ARP:
 			if (!handle_arp(eth, size)) return;
@@ -94,15 +93,11 @@ void Packet_handler::handle_ethernet(void* src, Genode::size_t size)
 
 		broadcast_to_clients(eth, size);
 		finalize_packet(eth, size);
-	} catch(Arp_packet::No_arp_packet) {
-		Genode::warning("Invalid ARP packet!");
-	} catch(Ethernet_frame::No_ethernet_frame) {
-		Genode::warning("Invalid ethernet frame");
-	} catch(Dhcp_packet::No_dhcp_packet) {
+	} catch(Ethernet_frame::Bad_data_type) {
+		Genode::warning("Invalid Ethernet frame!");
+	} catch(Ipv4_packet::Bad_data_type) {
 		Genode::warning("Invalid IPv4 packet!");
-	} catch(Ipv4_packet::No_ip_packet) {
-		Genode::warning("Invalid IPv4 packet!");
-	} catch(Udp_packet::No_udp_packet) {
+	} catch(Udp_packet::Bad_data_type) {
 		Genode::warning("Invalid UDP packet!");
 	}
 }

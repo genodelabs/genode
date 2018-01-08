@@ -51,15 +51,22 @@ class Net::Udp_packet
 
 	public:
 
-		/**
-		 * Exception used to indicate protocol violation.
-		 */
-		class No_udp_packet : Genode::Exception {};
+		struct Bad_data_type : Genode::Exception { };
 
-		static void validate_size(Genode::size_t size) {
-			/* Udp header needs to fit in */
-			if (size < sizeof(Udp_packet))
-				throw No_udp_packet();
+		template <typename T> T const *data(Genode::size_t data_size) const
+		{
+			if (data_size < sizeof(T)) {
+				throw Bad_data_type();
+			}
+			return (T const *)(_data);
+		}
+
+		template <typename T> T *data(Genode::size_t data_size)
+		{
+			if (data_size < sizeof(T)) {
+				throw Bad_data_type();
+			}
+			return (T *)(_data);
 		}
 
 
@@ -67,12 +74,10 @@ class Net::Udp_packet
 		 ** Accessors **
 		 ***************/
 
-		Port                            src_port() const { return Port(host_to_big_endian(_src_port)); }
-		Port                            dst_port() const { return Port(host_to_big_endian(_dst_port)); }
-		Genode::uint16_t                length()   const { return host_to_big_endian(_length);   }
-		Genode::uint16_t                checksum() const { return host_to_big_endian(_checksum); }
-		template <typename T> T const * data()     const { return (T const *)(_data); }
-		template <typename T> T *       data()           { return (T *)(_data); }
+		Port             src_port() const { return Port(host_to_big_endian(_src_port)); }
+		Port             dst_port() const { return Port(host_to_big_endian(_dst_port)); }
+		Genode::uint16_t length()   const { return host_to_big_endian(_length);   }
+		Genode::uint16_t checksum() const { return host_to_big_endian(_checksum); }
 
 		void length(Genode::uint16_t v) { _length = host_to_big_endian(v); }
 		void src_port(Port p)           { _src_port = host_to_big_endian(p.value); }

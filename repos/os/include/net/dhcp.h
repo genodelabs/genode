@@ -64,10 +64,6 @@ namespace Net { class Dhcp_packet; }
  */
 class Net::Dhcp_packet
 {
-	public:
-
-		struct No_dhcp_packet   : Genode::Exception { };
-
 	private:
 
 		Genode::uint8_t   _op;
@@ -103,13 +99,6 @@ class Net::Dhcp_packet
 			BOOTPS = 67,
 			BOOTPC = 68
 		};
-
-
-		static void validate_size(Genode::size_t size) {
-			/* dhcp packet needs to fit in */
-			if (size < sizeof(Dhcp_packet))
-				throw No_dhcp_packet();
-		}
 
 		void default_magic_cookie() {
 			_magic_cookie = host_to_big_endian(0x63825363);

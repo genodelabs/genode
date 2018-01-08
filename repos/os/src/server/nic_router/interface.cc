@@ -143,12 +143,8 @@ static void *_prot_base(L3_protocol const  prot,
                         Ipv4_packet       &ip)
 {
 	switch (prot) {
-	case L3_protocol::TCP:
-		Tcp_packet::validate_size(prot_size);
-		return ip.data<Tcp_packet>();
-	case L3_protocol::UDP:
-		Udp_packet::validate_size(prot_size);
-		return ip.data<Udp_packet>();
+	case L3_protocol::TCP: return ip.data<Tcp_packet>(prot_size);
+	case L3_protocol::UDP: return ip.data<Udp_packet>(prot_size);
 	default: throw Interface::Bad_transport_protocol(); }
 }
 
@@ -315,8 +311,8 @@ void Interface::_send_dhcp_reply(Dhcp_server               const &dhcp_srv,
 		/* create IP header of the reply */
 		enum { IPV4_TIME_TO_LIVE = 64 };
 		size_t const ip_off = size.curr();
+		Ipv4_packet &ip = *eth.data<Ipv4_packet>(size.left());
 		size.add(sizeof(Ipv4_packet));
-		Ipv4_packet &ip = *eth.data<Ipv4_packet>();
 		ip.header_length(sizeof(Ipv4_packet) / 4);
 		ip.version(4);
 		ip.diff_service(0);
@@ -330,14 +326,14 @@ void Interface::_send_dhcp_reply(Dhcp_server               const &dhcp_srv,
 
 		/* create UDP header of the reply */
 		size_t const udp_off = size.curr();
+		Udp_packet &udp = *ip.data<Udp_packet>(size.left());
 		size.add(sizeof(Udp_packet));
-		Udp_packet &udp = *ip.data<Udp_packet>();
 		udp.src_port(Port(Dhcp_packet::BOOTPS));
 		udp.dst_port(Port(Dhcp_packet::BOOTPC));
 
 		/* create mandatory DHCP fields of the reply  */
+		Dhcp_packet &dhcp = *udp.data<Dhcp_packet>(size.left());
 		size.add(sizeof(Dhcp_packet));
-		Dhcp_packet &dhcp = *udp.data<Dhcp_packet>();
 		dhcp.op(Dhcp_packet::REPLY);
 		dhcp.htype(Dhcp_packet::Htype::ETH);
 		dhcp.hlen(sizeof(Mac_address));
@@ -538,8 +534,7 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
                            Packet_descriptor const &pkt)
 {
 	/* read packet information */
-	Ipv4_packet &ip = *eth.data<Ipv4_packet>();
-	Ipv4_packet::validate_size(eth_size - sizeof(Ethernet_frame));
+	Ipv4_packet &ip = *eth.data<Ipv4_packet>(eth_size - sizeof(Ethernet_frame));
 
 	/* try handling subnet-local IP packets */
 	if (_ip_config().interface.prefix_matches(ip.dst()) &&
@@ -561,17 +556,13 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 
 		/* try handling DHCP requests before trying any routing */
 		if (prot == L3_protocol::UDP) {
-			Udp_packet &udp = *ip.data<Udp_packet>();
-			Udp_packet::validate_size(eth_size - sizeof(Ethernet_frame)
-			                                   - sizeof(Ipv4_packet));
+			Udp_packet &udp = *ip.data<Udp_packet>(eth_size - sizeof(Ipv4_packet));
 
 			if (Dhcp_packet::is_dhcp(&udp)) {
 
 				/* get DHCP packet */
-				Dhcp_packet &dhcp = *udp.data<Dhcp_packet>();
-				Dhcp_packet::validate_size(eth_size - sizeof(Ethernet_frame)
-				                                    - sizeof(Ipv4_packet)
-				                                    - sizeof(Udp_packet));
+				Dhcp_packet &dhcp = *udp.data<Dhcp_packet>(eth_size - sizeof(Ipv4_packet)
+				                                                    - sizeof(Udp_packet));
 
 				if (dhcp.op() == Dhcp_packet::REQUEST) {
 					try {
@@ -696,7 +687,7 @@ void Interface::_broadcast_arp_request(Ipv4_address const &ip)
 		eth.type(Ethernet_frame::Type::ARP);
 
 		/* write ARP header */
-		Arp_packet &arp = *eth.data<Arp_packet>();
+		Arp_packet &arp = *eth.data<Arp_packet>(PKT_SIZE - sizeof(Ethernet_frame));
 		arp.hardware_address_type(Arp_packet::ETHERNET);
 		arp.protocol_address_type(Arp_packet::IPV4);
 		arp.hardware_address_size(sizeof(Mac_address));
@@ -817,9 +808,7 @@ void Interface::_handle_arp_request(Ethernet_frame &eth,
 void Interface::_handle_arp(Ethernet_frame &eth, size_t const eth_size)
 {
 	/* ignore ARP regarding protocols other than IPv4 via ethernet */
-	size_t const arp_size = eth_size - sizeof(Ethernet_frame);
-	Arp_packet &arp = *eth.data<Arp_packet>();
-	Arp_packet::validate_size(arp_size);
+	Arp_packet &arp = *eth.data<Arp_packet>(eth_size - sizeof(Ethernet_frame));
 	if (!arp.ethernet_ipv4()) {
 		error("ARP for unknown protocol"); }
 
@@ -890,7 +879,6 @@ void Interface::_handle_eth(void              *const  eth_base,
 	/* inspect and handle ethernet frame */
 	try {
 		Ethernet_frame *const eth = reinterpret_cast<Ethernet_frame *>(eth_base);
-		Ethernet_frame::validate_size(eth_size);
 		if (_config().verbose()) {
 			log("(router <- ", _domain, ") ", *eth); }
 
@@ -908,12 +896,9 @@ void Interface::_handle_eth(void              *const  eth_base,
 			default: throw Bad_network_protocol(); }
 		}
 	}
-	catch (Ethernet_frame::No_ethernet_frame) { warning("malformed Ethernet frame"); }
-	catch (Ipv4_packet::No_ip_packet)         { warning("malformed IPv4 packet"     ); }
-	catch (Tcp_packet::No_tcp_packet)         { warning("malformed TCP packet"    ); }
-	catch (Udp_packet::No_udp_packet)         { warning("malformed UDP packet"    ); }
-	catch (Dhcp_packet::No_dhcp_packet)       { warning("malformed DHCP packet"   ); }
-	catch (Arp_packet::No_arp_packet)         { warning("malformed ARP packet"    ); }
+	catch (Ethernet_frame::Bad_data_type) { warning("malformed Ethernet frame"); }
+	catch (Ipv4_packet::Bad_data_type)    { warning("malformed IPv4 packet"   ); }
+	catch (Udp_packet::Bad_data_type)     { warning("malformed UDP packet"    ); }
 
 	catch (Bad_network_protocol) {
 		if (_config().verbose()) {

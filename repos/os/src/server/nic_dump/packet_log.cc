@@ -157,12 +157,12 @@ void Packet_log<Ethernet_frame>::print(Output &output) const
 	switch (_pkt.type()) {
 	case Ethernet_frame::Type::ARP:
 
-		print(output, " ", packet_log(*_pkt.data<Arp_packet const>(), _cfg));
+		print(output, " ", packet_log(*_pkt.data<Arp_packet const>(~0UL), _cfg));
 		break;
 
 	case Ethernet_frame::Type::IPV4:
 
-		print(output, " ", packet_log(*_pkt.data<Ipv4_packet const>(), _cfg));
+		print(output, " ", packet_log(*_pkt.data<Ipv4_packet const>(~0UL), _cfg));
 		break;
 
 	default: ;
@@ -212,12 +212,12 @@ void Packet_log<Ipv4_packet>::print(Output &output) const
 	switch (_pkt.protocol()) {
 	case Ipv4_packet::Protocol::TCP:
 
-		print(output, " ", packet_log(*_pkt.data<Tcp_packet const>(), _cfg));
+		print(output, " ", packet_log(*_pkt.data<Tcp_packet const>(~0UL), _cfg));
 		break;
 
 	case Ipv4_packet::Protocol::UDP:
 
-		print(output, " ", packet_log(*_pkt.data<Udp_packet const>(), _cfg));
+		print(output, " ", packet_log(*_pkt.data<Udp_packet const>(~0UL), _cfg));
 		break;
 
 	default: ; }
@@ -292,6 +292,6 @@ void Packet_log<Udp_packet>::print(Output &output) const
 	}
 	/* print encapsulated packet */
 	if (Dhcp_packet::is_dhcp(&_pkt)) {
-		print(output, " ", packet_log(*_pkt.data<Dhcp_packet const>(), _cfg));
+		print(output, " ", packet_log(*_pkt.data<Dhcp_packet const>(~0UL), _cfg));
 	}
 }

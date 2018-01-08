@@ -70,12 +70,6 @@ class Net::Tcp_packet
 
 	public:
 
-		class No_tcp_packet : Exception {};
-
-		static void validate_size(Genode::size_t size) {
-			if (size < sizeof(Tcp_packet)) { throw No_tcp_packet(); } }
-
-
 		/***************
 		 ** Accessors **
 		 ***************/

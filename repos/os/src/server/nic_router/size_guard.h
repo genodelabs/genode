@@ -40,6 +40,7 @@ class Genode::Size_guard_tpl
 		}
 
 		size_t curr() const { return _curr; }
+		size_t left() const { return MAX - _curr; }
 };
 
 #endif /* _SIZE_GUARD_H_ */

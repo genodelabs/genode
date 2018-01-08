@@ -22,7 +22,6 @@ void Net::Udp_packet::print(Genode::Output &output) const
 	Genode::print(output, "\033[32mUDP\033[0m ", src_port(),
 	              " > ", dst_port(), " ");
 	if (Dhcp_packet::is_dhcp(this)) {
-		Genode::print(output,
-		              *reinterpret_cast<Dhcp_packet const *>(data<void>()));
+		Genode::print(output, *reinterpret_cast<Dhcp_packet const *>(_data));
 	}
 }

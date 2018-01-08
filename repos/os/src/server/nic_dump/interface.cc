@@ -28,7 +28,6 @@ void Net::Interface::_handle_eth(void              *const  eth_base,
 {
 	try {
 		Ethernet_frame &eth = *reinterpret_cast<Ethernet_frame *>(eth_base);
-		Ethernet_frame::validate_size(eth_size);
 		Interface &remote = _remote.deref();
 		Packet_log_config log_cfg;
 
@@ -47,9 +46,6 @@ void Net::Interface::_handle_eth(void              *const  eth_base,
 		}
 		remote._send(eth, eth_size);
 	}
-	catch (Ethernet_frame::No_ethernet_frame) {
-		error("invalid ethernet frame"); }
-
 	catch (Pointer<Interface>::Invalid) {
 		error("no remote interface set"); }
 }

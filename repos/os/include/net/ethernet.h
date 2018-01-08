@@ -61,8 +61,6 @@ class Net::Ethernet_frame
 
 	public:
 
-		class No_ethernet_frame : Genode::Exception {};
-
 		enum { MIN_SIZE = 64 };
 
 		/**
@@ -73,11 +71,22 @@ class Net::Ethernet_frame
 			ARP  = 0x0806,
 		};
 
-		static void validate_size(Genode::size_t size)
+		struct Bad_data_type : Genode::Exception { };
+
+		template <typename T> T const *data(Genode::size_t data_size) const
 		{
-			/* at least, frame header needs to fit in */
-			if (size < sizeof(Ethernet_frame))
-				throw No_ethernet_frame();
+			if (data_size < sizeof(T)) {
+				throw Bad_data_type();
+			}
+			return (T const *)(_data);
+		}
+
+		template <typename T> T *data(Genode::size_t data_size)
+		{
+			if (data_size < sizeof(T)) {
+				throw Bad_data_type();
+			}
+			return (T *)(_data);
 		}
 
 
@@ -85,11 +94,9 @@ class Net::Ethernet_frame
 		 ** Accessors **
 		 ***************/
 
-		Mac_address                    dst()  const { return Mac_address((void *)_dst); }
-		Mac_address                    src()  const { return Mac_address((void *)_src); }
-		Type                           type() const { return (Type)host_to_big_endian(_type); }
-		template <typename T> T const *data() const { return (T const *)(_data); }
-		template <typename T> T       *data()       { return (T *)(_data); }
+		Mac_address dst()  const { return Mac_address((void *)_dst); }
+		Mac_address src()  const { return Mac_address((void *)_src); }
+		Type        type() const { return (Type)host_to_big_endian(_type); }
 
 		void dst(Mac_address v) { v.copy(&_dst); }
 		void src(Mac_address v) { v.copy(&_src); }
