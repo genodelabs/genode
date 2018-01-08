@@ -283,10 +283,8 @@ struct Nit_fb::Main : View_updater
 		return Point(0, 0);
 	}
 
-	void handle_config_update()
+	void _update_size()
 	{
-		config_rom.update();
-
 		Xml_node const config = config_rom.xml();
 
 		Framebuffer::Mode const nit_mode = nitpicker.mode();
@@ -316,6 +314,13 @@ struct Nit_fb::Main : View_updater
 		Genode::log("using xywh=(", position.x(), ",", position.y(),
 		                         ",", fb_session.size().w(),
 		                         ",", fb_session.size().h(), ")");
+	}
+
+	void handle_config_update()
+	{
+		config_rom.update();
+
+		_update_size();
 
 		update_view();
 	}
@@ -325,9 +330,7 @@ struct Nit_fb::Main : View_updater
 
 	void handle_mode_update()
 	{
-		Framebuffer::Mode const nit_mode = nitpicker.mode();
-
-		fb_session.size(Area(nit_mode.width(), nit_mode.height()));
+		_update_size();
 	}
 
 	Signal_handler<Main> mode_update_handler =
