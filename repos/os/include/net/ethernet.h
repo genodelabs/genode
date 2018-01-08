@@ -103,16 +103,6 @@ class Net::Ethernet_frame
 		void type(Type type)    { _type = host_to_big_endian((Genode::uint16_t)type); }
 
 
-		/***************
-		 ** Operators **
-		 ***************/
-
-		/**
-		 * Placement new operator.
-		 */
-		void * operator new(__SIZE_TYPE__, void* addr) { return addr; }
-
-
 		/*********
 		 ** log **
 		 *********/

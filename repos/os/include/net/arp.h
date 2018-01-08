@@ -186,16 +186,6 @@ class Net::Arp_packet
 		}
 
 
-		/***************
-		 ** Operators **
-		 ***************/
-
-		/**
-		 * Placement new
-		 */
-		void * operator new(__SIZE_TYPE__, void* addr) { return addr; }
-
-
 		/*********
 		 ** Log **
 		 *********/

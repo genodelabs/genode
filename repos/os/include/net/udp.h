@@ -84,16 +84,6 @@ class Net::Udp_packet
 		void dst_port(Port p)           { _dst_port = host_to_big_endian(p.value); }
 
 
-		/***************
-		 ** Operators **
-		 ***************/
-
-		/**
-		 * Placement new.
-		 */
-		void * operator new(__SIZE_TYPE__, void* addr) { return addr; }
-
-
 		/***************************
 		 ** Convenience functions **
 		 ***************************/

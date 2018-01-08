@@ -200,16 +200,6 @@ class Net::Ipv4_packet
 		void dst(Ipv4_address v)                 { v.copy(&_dst); }
 
 
-		/***************
-		 ** Operators **
-		 ***************/
-
-		/**
-		 * Placement new.
-		 */
-		void * operator new(__SIZE_TYPE__, void* addr) { return addr; }
-
-
 		/*********
 		 ** log **
 		 *********/

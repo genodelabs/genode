@@ -143,11 +143,6 @@ class Net::Tcp_packet
 			_checksum = host_to_big_endian((uint16_t)~sum);
 		}
 
-		/**
-		 * Placement new
-		 */
-		void * operator new(__SIZE_TYPE__, void * addr) { return addr; }
-
 
 		/*********
 		 ** log **

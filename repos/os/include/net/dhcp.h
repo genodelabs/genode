@@ -426,16 +426,6 @@ class Net::Dhcp_packet
 		}
 
 
-		/***************
-		 ** Operators **
-		 ***************/
-
-		/**
-		 * Placement new.
-		 */
-		void * operator new(__SIZE_TYPE__, void* addr) { return addr; }
-
-
 		/*********
 		 ** log **
 		 *********/
