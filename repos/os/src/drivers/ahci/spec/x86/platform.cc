@@ -63,9 +63,9 @@ struct X86_hba : Platform::Hba
 		res_base = resource.base();
 		res_size = resource.size();
 
-		/* enable bus master */
 		uint16_t cmd = pci_device->config_read(PCI_CMD, Platform::Device::ACCESS_16BIT);
-		cmd |= 0x4;
+		cmd |= 0x2; /* respond to memory space accesses */
+		cmd |= 0x4; /* enable bus master */
 		_config_write(PCI_CMD, cmd, Platform::Device::ACCESS_16BIT);
 
 		irq.construct(pci_device->irq(0));
