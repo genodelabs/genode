@@ -113,39 +113,12 @@ class Net::Ipv4_packet
 		Genode::uint8_t  _dst[ADDR_LEN];
 		unsigned         _data[0];
 
-		/**
-		 * Bitmasks for differentiated services field.
-		 */
-		enum Differentiated_services {
-			PRECEDENCE  = 0x7,
-			DELAY       = 0x8,
-			THROUGHPUT  = 0x10,
-			RELIABILITY = 0x20,
-			COST        = 0x40
-		};
-
 	public:
 
 		enum class Protocol : Genode::uint8_t
 		{
 			TCP = 6,
 			UDP = 17,
-		};
-
-		enum Precedence {
-			NETWORK_CONTROL      = 7,
-			INTERNETWORK_CONTROL = 6,
-			CRITIC_ECP           = 5,
-			FLASH_OVERRIDE       = 4,
-			FLASH                = 3,
-			IMMEDIATE            = 2,
-			PRIORITY             = 1,
-			ROUTINE              = 0
-		};
-
-		enum Flags {
-			NO_FRAGMENT    = 0x2,
-			MORE_FRAGMENTS = 0x4
 		};
 
 		struct Bad_data_type : Genode::Exception { };

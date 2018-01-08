@@ -134,18 +134,10 @@ class Net::Dhcp_packet
 					BROADCAST_ADDR = 28,
 					REQ_IP_ADDR    = 50,
 					IP_LEASE_TIME  = 51,
-					OPT_OVERLOAD   = 52,
 					MSG_TYPE       = 53,
 					SERVER         = 54,
-					REQ_PARAMETER  = 55,
-					MESSAGE        = 56,
 					MAX_MSG_SZ     = 57,
-					RENEWAL        = 58,
-					REBINDING      = 59,
-					VENDOR         = 60,
 					CLI_ID         = 61,
-					TFTP_SRV_NAME  = 66,
-					BOOT_FILE      = 67,
 					END            = 255,
 				};
 

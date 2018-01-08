@@ -69,79 +69,17 @@ class Net::Arp_packet
 
 	public:
 
-		/********************
-		 ** ARP parameters **
-		 ********************/
-
-		enum Protocol_address_type { IPV4 = 0x0800 };
+		enum Protocol_address_type {
+			IPV4 = 0x0800,
+		};
 
 		enum Hardware_type {
-			ETHERNET                = 0x0001,
-			EXP_ETHERNET            = 0x0002,
-			AX_25                   = 0x0003,
-			TOKEN_RING              = 0x0004,
-			CHAOS                   = 0x0005,
-			IEEE802_NET             = 0x0006,
-			ARCNET                  = 0x0007,
-			HYPERCHANNEL            = 0x0008,
-			LANSTAR                 = 0x0009,
-			AUTONET                 = 0x000A,
-			LOCALTALK               = 0x000B,
-			LOCALNET                = 0x000C,
-			ULTRA_LINK              = 0x000D,
-			SMDS                    = 0x000E,
-			FRAME_RELAY             = 0x000F,
-			ATM_1                   = 0x0010,
-			HDLC                    = 0x0011,
-			FIBRE_CHANNEL           = 0x0012,
-			ATM_2                   = 0x0013,
-			SERIAL_LINE             = 0x0014,
-			ATM_3                   = 0x0015,
-			MIL_STD_188_220         = 0x0016,
-			METRICOM                = 0x0017,
-			IEEE1394                = 0x0018,
-			MAPOS                   = 0x0019,
-			TWINAXIAL               = 0x001A,
-			EUI_64                  = 0x001B,
-			HIPARP                  = 0x001C,
-			IP_AND_ARP_OVER_ISO7816 = 0x001D,
-			ARPSEC                  = 0x001E,
-			IPSEC_TUNNEL            = 0x001F,
-			INFINIBAND              = 0x0020,
-			TIA_102                 = 0x0021,
-			WIEGAND_INTERFACE       = 0x0022,
-			Pure_IP                 = 0x0023,
-			HW_EXP1                 = 0x0024,
-			HFI                     = 0x0025,
-			HW_EXP2                 = 0x0100,
+			ETHERNET = 0x0001,
 		};
 
 		enum Opcode {
-			REQUEST                 = 0x0001,
-			REPLY                   = 0x0002,
-			REQUEST_REVERSE         = 0x0003,
-			REPLY_REVERSE           = 0x0004,
-			DRARP_REQUEST           = 0x0005,
-			DRARP_REPLY             = 0x0006,
-			DRARP_ERROR             = 0x0007,
-			INARP_REQUEST           = 0x0008,
-			INARP_REPLY             = 0x0009,
-			ARP_NAK                 = 0x000A,
-			MARS_REQUEST            = 0x000B,
-			MARS_MULTI              = 0x000C,
-			MARS_MSERV              = 0x000D,
-			MARS_JOIN               = 0x000E,
-			MARS_LEAVE              = 0x000F,
-			MARS_NAK                = 0x0010,
-			MARS_UNSERV             = 0x0011,
-			MARS_SJOIN              = 0x0012,
-			MARS_SLEAVE             = 0x0013,
-			MARS_GROUPLIST_REQUEST  = 0x0014,
-			MARS_GROUPLIST_REPLY    = 0x0015,
-			MARS_REDIRECT_MAP       = 0x0016,
-			MAPOS_UNARP             = 0x0017,
-			OP_EXP1                 = 0x0018,
-			OP_EXP2                 = 0x0019
+			REQUEST = 0x0001,
+			REPLY   = 0x0002,
 		};
 
 
