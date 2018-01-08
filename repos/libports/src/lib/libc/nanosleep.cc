@@ -21,6 +21,8 @@ int _nanosleep(const struct timespec *req, struct timespec *rem)
 {
 	unsigned long sleep_ms = req->tv_sec*1000 + req->tv_nsec/1000000;
 
+	if (!sleep_ms) return 0;
+
 	struct Check : Libc::Suspend_functor { bool suspend() override { return true; } } check;
 	do { sleep_ms = Libc::suspend(check, sleep_ms); } while (sleep_ms);
 
