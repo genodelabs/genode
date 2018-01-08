@@ -72,7 +72,13 @@
 #define TCPIP_MBOX_SIZE           128
 
 #define TCP_MSS                  1460
-#define TCP_WND                     (96 * TCP_MSS)
+
+/*
+ * The TCP window scaling is implemented for servers only, while the client
+ * implementation just uses the lower 16 bits of the TCP_WND configuration
+ * value. We, therefore, maximize the TCP_WND value to ~64K.
+ */
+#define TCP_WND                     ((96 * TCP_MSS) & 0xffff)
 
 /*
  * The window scale option (http://tools.ietf.org/html/rfc1323) patch of lwIP
@@ -85,7 +91,7 @@
 
 #define TCP_SND_QUEUELEN            ((32 * (TCP_SND_BUF) + (TCP_MSS - 1))/(TCP_MSS))
 
-#define RECV_BUFSIZE_DEFAULT        128 * 1024
+#define RECV_BUFSIZE_DEFAULT        (512*1024)
 
 #define PBUF_POOL_SIZE             96
 
