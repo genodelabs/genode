@@ -119,8 +119,10 @@ struct Trace_subject_registry
 
 				e->update(trace.subject_info(id));
 
-				/* purge dead threads */
-				if (e->info.state() == Genode::Trace::Subject_info::DEAD) {
+				/* remove dead threads which did not run in the last period */
+				if (e->info.state() == Genode::Trace::Subject_info::DEAD &&
+				    !e->recent_execution_time) {
+
 					trace.free(e->id);
 					_entries.remove(e);
 					Genode::destroy(alloc, e);
