@@ -4,7 +4,15 @@
 # \date   2017-03-29
 #
 
-proc depot_dir { } { return [genode_dir]/depot }
+#
+# Return depot directory path
+#
+# \param --depot-dir   set depot directory to given path, otherwise
+#                      default value [genode_dir]/depot is used
+#
+proc depot_dir { } {
+	return [get_cmd_arg_first --depot-dir "[genode_dir]/depot"]
+}
 
 
 ##
