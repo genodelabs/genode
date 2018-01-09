@@ -13,7 +13,7 @@ REPOSITORIES ?= $(shell find $(GENODE_DIR)/repos -follow -mindepth 1 -maxdepth 1
 # list of all repositories that contain depot recipes
 REP_RECIPES_DIRS := $(wildcard $(addsuffix /recipes,$(REPOSITORIES)))
 
-DEPOT_DIR := $(GENODE_DIR)/depot
+DEPOT_DIR ?= $(GENODE_DIR)/depot
 
 usage:
 	@$(ECHO) "$(subst $(NEWLINE),\n,$(HELP_MESSAGE))";

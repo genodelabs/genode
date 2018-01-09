@@ -38,7 +38,7 @@ include $(GENODE_DIR)/tool/depot/mk/front_end.inc
 #
 
 ifneq ($(MAKECMDGOALS),)
-DEPENDENCIES_CMD    := $(GENODE_DIR)/tool/depot/dependencies $(MAKECMDGOALS)
+DEPENDENCIES_CMD    := $(GENODE_DIR)/tool/depot/dependencies DEPOT_DIR="$(DEPOT_DIR)" $(MAKECMDGOALS)
 DEPENDENCIES_RESULT := $(shell $(DEPENDENCIES_CMD) 2> /dev/null || true)
 endif
 
