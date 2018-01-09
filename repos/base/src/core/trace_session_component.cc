@@ -134,7 +134,7 @@ Dataspace_capability Session_component::buffer(Subject_id subject_id)
 
 void Session_component::free(Subject_id subject_id)
 {
-	size_t released_ram = _subjects.lookup_by_id(subject_id)->release();
+	size_t const released_ram = _subjects.release(subject_id);
 	_md_alloc.upgrade(released_ram);
 }
 
