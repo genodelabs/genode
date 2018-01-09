@@ -18,6 +18,7 @@
 #include <base/attached_rom_dataspace.h>
 #include <base/heap.h>
 #include <os/reporter.h>
+#include <util/retry.h>
 
 
 struct Trace_subject_registry
@@ -79,11 +80,19 @@ struct Trace_subject_registry
 			_entries = sorted;
 		}
 
+		unsigned update_subjects(Genode::Trace::Connection &trace)
+		{
+			return Genode::retry<Genode::Out_of_ram>(
+				[&] () { return trace.subjects(_subjects, MAX_SUBJECTS); },
+				[&] () { trace.upgrade_ram(4096); }
+			);
+		}
+
 	public:
 
 		void update(Genode::Trace::Connection &trace, Genode::Allocator &alloc)
 		{
-			unsigned const num_subjects = trace.subjects(_subjects, MAX_SUBJECTS);
+			unsigned const num_subjects = update_subjects(trace);
 
 			/* add and update existing entries */
 			for (unsigned i = 0; i < num_subjects; i++) {
@@ -150,7 +159,7 @@ struct App::Main
 {
 	Env &_env;
 
-	Trace::Connection _trace { _env, 512*1024, 32*1024, 0 };
+	Trace::Connection _trace { _env, 10*4096, 32*1024, 0 };
 
 	Reporter _reporter { _env, "trace_subjects", "trace_subjects", 64*1024 };
 
