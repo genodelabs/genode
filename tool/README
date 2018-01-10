@@ -66,3 +66,17 @@ of Genode.
 
   Autopilot is a tool for the automatic execution of run scripts among multiple
   base platforms.
+
+:'abi_symbols':
+
+  The utility assists with the initial creation of a ABI-symbols file, taking
+  a shared object as a starting point. For more information, refer to the
+  header of the 'abi_symbols' script.
+
+:'check_abi':
+
+  The 'check_abi' helper is used by the build system to detect violations of
+  an ABI by a shared library. Most importantly, it reports incompatibilities of
+  symbol sizes, which require an adaptation of the ABI. For more information,
+  refer to the header of the 'check_abi' script.
+

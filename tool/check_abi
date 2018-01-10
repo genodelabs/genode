@@ -1,0 +1,144 @@
+#!/usr/bin/tclsh
+
+#
+# \brief  Detect inconsistencies between a shared library and its ABI
+# \author Norman Feske
+# \date   2018-01-10
+#
+# The tool takes a shared library and an ABI-symbols file as arguments.
+# It checks for violations of the ABI by the shared library. Additionally,
+# it examines the ABI-symbols file for unexpected content such as duplicated
+# symbols or trailing whitespace.
+#
+
+# normalize sort order across platforms
+set env(LC_COLLATE) C
+
+set lib_path [lindex $argv 0]
+set abi_path [lindex $argv 1]
+
+# obtain symbol information for the shared library via 'nm'
+set lib_content [split [exec nm --format posix --dynamic $lib_path | sort] "\n"]
+set abi_content [split [exec cat $abi_path] "\n"]
+
+set abi_name [lindex [file split $abi_path] end]
+set num_errors 0
+
+proc report_error { message } {
+	global num_errors
+	puts stderr "Error: $message"
+	incr num_errors
+}
+
+
+#
+# Extract symbol list w/o comments and empty lines, check for trailing spaces
+#
+
+proc line_contains_symbol { line } {
+	if {$line == ""}         { return 0 }
+	if {[regexp {^#} $line]} { return 0 }
+	return 1
+}
+
+set abi_symbols ""
+set num_lines 0
+foreach line $abi_content {
+	if {[line_contains_symbol $line]} {
+		lappend abi_symbols $line }
+
+	if {[regexp {\s+$} $line]} {
+		report_error "trailing whitespace at $abi_path line $num_lines" }
+
+	incr num_lines
+}
+
+
+#
+# Check for absence of Genode-internal linking artifacts from ABI
+#
+
+#
+# The following symbols may appear in shared objects but should not by part
+# of any ABI.
+#
+set symbol_blacklist {
+	__bss_start
+	__eh_frame_start__
+	__exidx_end
+	__exidx_start
+	__l4sys_invoke_indirect
+	_ctors_end
+	_ctors_start
+	_edata
+	_end
+	_init
+	_parent_cap
+	_parent_cap_local_name
+	_parent_cap_thread_id
+}
+
+foreach line $abi_symbols {
+	set name [lindex $line 0]
+	foreach blacklisted_symbol $symbol_blacklist {
+		if {$name == $blacklisted_symbol} {
+			report_error "$abi_name ABI contains Genode-internal symbol '$name'"
+		}
+	}
+}
+
+
+#
+# Check for duplicates in the ABI
+#
+
+proc abi_symbol_name { line } { return [lindex $line 0] }
+
+foreach line $abi_symbols { set  count([abi_symbol_name $line]) 0 }
+foreach line $abi_symbols { incr count([abi_symbol_name $line]) }
+
+set duplicates {}
+
+foreach line $abi_symbols {
+	if {$count([abi_symbol_name $line]) > 1} {
+		lappend duplicates [abi_symbol_name $line] } }
+
+# sort the list to report each duplicate only once
+foreach name [lsort -unique $duplicates] {
+	report_error "$abi_name ABI contains duplicate symbol '$name'" }
+
+
+#
+# Validate that library symbol sizes do not exceed their ABI symbol sizes
+#
+
+proc abi_symbol_has_size { line } { return [expr [llength $line] == 3] }
+
+# determine decimal symbol size of library symbols
+foreach lib_line $lib_content {
+	if {[regexp {^([\w.]+) (\w) \w+ ?(\w*)$} $lib_line dummy name type size_hex]} {
+		set lib_symbol_size($name) [expr 0x0$size_hex]
+	}
+}
+
+foreach abi_line $abi_symbols {
+
+	if {![abi_symbol_has_size $abi_line]} {
+		continue }
+
+	set name [lindex $abi_line 0]
+
+	if {![info exists lib_symbol_size($name)]} {
+		continue }
+
+	set abi_symbol_size [lindex $abi_line end]
+
+	if {$lib_symbol_size($name) > $abi_symbol_size} {
+		set    message "size of '$name' symbol violates $abi_name ABI "
+		append message "($abi_symbol_size bytes in ABI, $lib_symbol_size($name) bytes in library)"
+		report_error $message
+	}
+}
+
+
+if {$num_errors > 0} { exit -1 }
