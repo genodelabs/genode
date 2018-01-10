@@ -18,6 +18,7 @@ include:
 	cp -r $(PORT_DIR)/include/* $@/
 	cp -r $(REP_DIR)/include/libc $@/
 	cp -r $(REP_DIR)/include/libc-genode $@/
+	cp    $(REP_DIR)/src/lib/libc/task.h $@/libc/
 
 content: LICENSE
 
