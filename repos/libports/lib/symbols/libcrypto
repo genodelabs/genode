@@ -3160,17 +3160,7 @@ _CONF_get_section_values T
 _CONF_get_string T
 _CONF_new_data T
 _CONF_new_section T
-__bss_start R 0
-__eh_frame_start__ R 0
-__exidx_end D 0
-__exidx_start D 0
-__l4sys_invoke_indirect D 0
-_ctors_end D 0
-_ctors_start D 0
 _des_crypt T
-_edata R 0
-_end B 0
-_init T
 _ossl_096_des_random_seed T
 _ossl_old_crypt T
 _ossl_old_des_cbc_cksum T
@@ -3209,9 +3199,6 @@ _ossl_old_des_set_odd_parity T
 _ossl_old_des_string_to_2keys T
 _ossl_old_des_string_to_key T
 _ossl_old_des_xcbc_encrypt T
-_parent_cap D 0
-_parent_cap_local_name D 0
-_parent_cap_thread_id D 0
 _shadow_DES_check_key B 4
 _shadow_DES_rw_mode D 4
 a2d_ASN1_OBJECT T

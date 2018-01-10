@@ -4,16 +4,6 @@ _Z4nouxv T
 _Z5sysiov T
 _ZN4Libc10vfs_configEv T
 _ZN4Libc6configEv T
-__exidx_end D 0
-__exidx_start D 0
-__l4sys_invoke_indirect D 0
-_ctors_end D 0
-_ctors_start D 0
-_end B 0
-_init T
-_parent_cap D 0
-_parent_cap_local_name D 0
-_parent_cap_thread_id D 0
 _sigaction T
 _sigprocmask T
 _wait4 T

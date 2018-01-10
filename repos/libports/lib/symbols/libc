@@ -3,7 +3,6 @@ ___tolower T
 ___toupper T
 __assert T
 __dn_expand T
-__dn_expand T
 __error T
 __flt_rounds T
 __fpclassifyd T
@@ -204,20 +203,12 @@ ftok T
 ftruncate T
 ftrylockfile W
 fts_children T
-fts_children T
-fts_close T
 fts_close T
 fts_get_clientptr T
-fts_get_clientptr T
-fts_get_stream T
 fts_get_stream T
 fts_open T
-fts_open T
-fts_read T
 fts_read T
 fts_set T
-fts_set T
-fts_set_clientptr T
 fts_set_clientptr T
 ftw T
 funlockfile W
@@ -612,7 +603,6 @@ sched_yield W
 seed48 T
 seekdir T
 select W
-semctl T
 semctl T
 semget W
 semop W
@@ -1018,4 +1008,4 @@ _ZN4Libc6PluginD0Ev T
 _ZN4Libc6PluginD1Ev T
 _ZN4Libc6PluginD2Ev T
 _ZN4Libc9mem_allocEv T
-_ZTIN4Libc6PluginE D 18
+_ZTIN4Libc6PluginE D 40

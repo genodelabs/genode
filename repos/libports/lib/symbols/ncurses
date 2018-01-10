@@ -171,9 +171,6 @@ _nc_warning T
 _nc_wgetch T
 _nc_wrap_entry T
 _nc_write_entry T
-_parent_cap D 0
-_parent_cap_local_name D 0
-_parent_cap_thread_id D 0
 acs_map B 1024
 assume_default_colors T
 baudrate T
