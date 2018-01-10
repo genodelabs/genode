@@ -13,6 +13,9 @@ INC_DIR     += $(DIR)/include
 INC_DIR     += $(BASE_DIR)/src/include
 LD_OPT      += -Bsymbolic-functions --version-script=symbol.map
 
+# enable use of 'check_abi'
+SYMBOLS := $(BASE_DIR)/lib/symbols/ld
+
 #
 # Generate symbol map from the ABI
 #
