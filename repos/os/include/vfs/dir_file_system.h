@@ -55,6 +55,8 @@ class Vfs::Dir_file_system : public File_system
 
 			struct Subdir_handle_element : Subdir_handle_registry::Element
 			{
+				bool synced { false };
+
 				Vfs_handle &vfs_handle;
 				Subdir_handle_element(Subdir_handle_registry &registry,
 				                      Vfs_handle &vfs_handle)
@@ -865,6 +867,7 @@ class Vfs::Dir_file_system : public File_system
 			auto f = [&result, dir_vfs_handle] (Dir_vfs_handle::Subdir_handle_element &e) {
 				/* forward the handle context */
 				e.vfs_handle.context = dir_vfs_handle->context;
+				e.synced = false;
 
 				if (!e.vfs_handle.fs().queue_sync(&e.vfs_handle)) {
 					result = false;
@@ -884,9 +887,14 @@ class Vfs::Dir_file_system : public File_system
 				static_cast<Dir_vfs_handle*>(vfs_handle);
 
 			auto f = [&result, dir_vfs_handle] (Dir_vfs_handle::Subdir_handle_element &e) {
+				if (e.synced)
+					return;
+
 				Sync_result r = e.vfs_handle.fs().complete_sync(&e.vfs_handle);
 				if (r != SYNC_OK)
 					result = r;
+				else
+					e.synced = true;
 			};
 
 			dir_vfs_handle->subdir_handle_registry.for_each(f);
