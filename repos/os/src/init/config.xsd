@@ -138,6 +138,7 @@
    </xs:choice>
    <xs:attribute name="prio_levels" type="xs:int" />
    <xs:attribute name="verbose" type="xs:string" />
+   <xs:attribute name="ld_verbose" type="xs:string" />
   </xs:complexType>
  </xs:element> <!-- "config" -->
 </xs:schema>
