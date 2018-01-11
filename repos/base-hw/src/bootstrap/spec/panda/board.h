@@ -44,6 +44,8 @@ struct Bootstrap::Actlr
 {
 	static void enable_smp() {
 		Hw::call_panda_firmware(Hw::CPU_ACTLR_SMP_BIT_RAISE, 0); }
+
+	static void disable_smp() { /* not implemented */ }
 };
 
 

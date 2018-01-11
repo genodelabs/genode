@@ -28,7 +28,7 @@ void Bootstrap::Cpu::enable_mmu_and_caches(Genode::addr_t table)
 
 	Ttbr::access_t ttbr = Ttbr::Ba::masked(table);
 	Ttbr::Rgn::set(ttbr, Ttbr::CACHEABLE);
-	if (Mpidr::read()) { /* check for SMP system */
+	if (Mpidr::Me::get(Mpidr::read())) { /* check for SMP system */
 		Ttbr::Irgn::set(ttbr, Ttbr::CACHEABLE);
 		Ttbr::S::set(ttbr, 1);
 	} else

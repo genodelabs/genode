@@ -32,7 +32,8 @@ struct Hw::Arm_cpu
 
 	/* Multiprocessor Affinity Register */
 	ARM_CP15_REGISTER_32BIT(Mpidr, c0, c0, 0, 5,
-		struct Aff_0 : Bitfield<0, 8> { }; /* affinity value 0 */
+		struct Aff_0 : Bitfield<0, 8> { };  /* affinity value 0 */
+		struct Me    : Bitfield<31, 1> { }; /* multiprocessing extension */
 	);
 
 	/* System Control Register */
@@ -90,7 +91,7 @@ struct Hw::Arm_cpu
 	 */
 	struct Ttbr : Genode::Register<32>
 	{
-		enum Memory_region { NON_CACHEABLE = 0, CACHEABLE = 1 };
+		enum Memory_region { CACHEABLE = 1 };
 
 		struct C   : Bitfield<0,1> { };    /* inner cacheable */
 		struct S   : Bitfield<1,1> { };    /* shareable */
