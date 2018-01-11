@@ -90,7 +90,7 @@ struct Hw::Arm_cpu
 	 */
 	struct Ttbr : Genode::Register<32>
 	{
-		enum Memory_region { NON_CACHEABLE = 0, CACHEABLE = 1 };
+		enum Memory_region { NON_CACHEABLE = 0, CACHEABLE = 1, BACK_ALLOCATE = 1, THROUGH = 2, BACK_NOALLOCATE = 3 };
 
 		struct C   : Bitfield<0,1> { };    /* inner cacheable */
 		struct S   : Bitfield<1,1> { };    /* shareable */
@@ -105,7 +105,7 @@ struct Hw::Arm_cpu
 
 		struct Irgn_1 : Bitfield<0,1> { };
 		struct Irgn_0 : Bitfield<6,1> { };
-		struct Irgn : Genode::Bitset_2<Irgn_0, Irgn_1> { }; /* inner cache mode */
+		struct Irgn : Genode::Bitset_2<Irgn_1, Irgn_0> { }; /* inner cache mode */
 	};
 
 	struct Ttbr_64bit : Genode::Register<64>

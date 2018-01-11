@@ -109,6 +109,7 @@ unsigned Bootstrap::Platform::enable_mmu()
 
 	Cpu::Sctlr::init();
 	Cpu::Cpsr::init();
+	Actlr::disable_smp();
 
 	/* locally initialize interrupt controller */
 	pic.init_cpu_local();

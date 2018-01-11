@@ -46,7 +46,7 @@ extern "C" void kernel_init()
 	if (Cpu::executing_id()) while (!initialized) ;
 	else {
 		Genode::log("");
-		Genode::log("kernel initialized");
+		Genode::log("kernel initialized with ", NR_OF_CPUS, " CPUs");
 	}
 
 	/* initialize cpu pool */

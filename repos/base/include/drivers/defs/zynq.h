@@ -47,6 +47,9 @@ namespace Zynq {
 		CORTEX_A9_PRIVATE_MEM_BASE  = 0xf8f00000,
 		CORTEX_A9_PRIVATE_MEM_SIZE  = 0x00002000,
 
+		/* entrypoint address of secondary cpu */
+		CORE1_ENTRY = 0xfffffff0,
+
 		/* CPU cache */
 		PL310_MMIO_BASE      = MMIO_1_BASE + 0xF02000,
 		PL310_MMIO_SIZE      = 0x1000,

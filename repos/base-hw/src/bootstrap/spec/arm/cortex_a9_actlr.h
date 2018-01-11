@@ -28,6 +28,13 @@ struct Bootstrap::Actlr : Bootstrap::Cpu::Actlr
 		Smp::set(v, 1);
 		write(v);
 	}
+
+	static void disable_smp()
+	{
+		auto v = read();
+		Smp::set(v, 0);
+		write(v);
+	}
 };
 
 #endif /* _SRC__BOOTSTRAP__SPEC__ARM__CORTEX_A9_ACTLR_H_ */
