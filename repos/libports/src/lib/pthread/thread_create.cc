@@ -33,9 +33,9 @@ extern "C"
 		size_t const stack_size = (attr && *attr && (*attr)->stack_size)
 		                        ? (*attr)->stack_size : STACK_SIZE;
 
-		pthread_t thread_obj = new pthread(attr ? *attr : 0, start_routine,
-		                           arg, stack_size, "pthread", nullptr,
-		                           Genode::Affinity::Location());
+		pthread_t thread_obj = new pthread(start_routine, arg, stack_size,
+		                                   "pthread", nullptr,
+		                                   Genode::Affinity::Location());
 
 		if (!thread_obj)
 			return EAGAIN;
