@@ -22,6 +22,8 @@
 #include <stdlib.h> /* malloc, free */
 #include "thread.h"
 
+#include <libc/task.h> /* libc suspend/resume */
+
 using namespace Genode;
 
 /*
@@ -59,6 +61,22 @@ static __attribute__((constructor)) Thread * main_thread()
 	return thread;
 }
 
+
+/*
+ * pthread
+ */
+void pthread::Thread_object::entry()
+{
+	void *exit_status = _start_routine(_arg);
+	_exiting = true;
+	Libc::resume_all();
+	pthread_exit(exit_status);
+}
+
+
+/*
+ * Registry
+ */
 
 void Pthread_registry::insert(pthread_t thread)
 {
@@ -226,8 +244,7 @@ extern "C" {
 		 * of the pthread object would also destruct the 'Thread' of the main
 		 * thread.
 		 */
-		static pthread_attr main_thread_attr;
-		static pthread *main = new pthread(*Thread::myself(), &main_thread_attr);
+		static pthread *main = new pthread(*Thread::myself());
 		return main;
 	}
 
@@ -276,7 +293,7 @@ extern "C" {
 		if (!attr)
 			return EINVAL;
 
-		*attr = pthread->attr();
+		(*attr)->pthread = pthread;
 		return 0;
 	}
 
