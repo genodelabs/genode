@@ -23,7 +23,7 @@ Bootstrap::Platform::Board::Board()
   late_ram_regions(Memory_region { RAM_0_BASE, 0x1000 }),
   core_mmio(Memory_region { CORTEX_A9_PRIVATE_MEM_BASE,
                             CORTEX_A9_PRIVATE_MEM_SIZE },
-            Memory_region { UART_0_MMIO_BASE,
+            Memory_region { UART_BASE,
                             UART_SIZE },
             Memory_region { PL310_MMIO_BASE,
                             PL310_MMIO_SIZE }) { }
@@ -31,3 +31,19 @@ Bootstrap::Platform::Board::Board()
 
 bool Bootstrap::Cpu::errata(Bootstrap::Cpu::Errata err) {
 	return false; }
+
+void Bootstrap::Cpu::wake_up_all_cpus(void* ip) {
+	struct Wakeup_generator : Genode::Mmio
+	{
+		struct Core1_boot_addr : Register<0x0, 32> { };
+
+		Wakeup_generator(void * const ip) : Mmio(CORE1_ENTRY)
+		{
+			write<Core1_boot_addr>((addr_t)ip);
+		}
+	};
+
+	Wakeup_generator wgen(ip);
+	asm volatile("dsb\n"
+	             "sev\n");
+}
