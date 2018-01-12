@@ -153,6 +153,7 @@ SRC_CC += Runtime/r3/posix/RTTimeNow-posix.cpp
 SRC_CC += Runtime/r3/posix/semeventmulti-posix.cpp
 SRC_CC += Runtime/r3/posix/semevent-posix.cpp
 SRC_CC += Runtime/r3/posix/semmutex-posix.cpp
+SRC_CC += Runtime/r3/posix/symlink-posix.cpp
 SRC_CC += Runtime/r3/posix/thread2-posix.cpp
 SRC_CC += Runtime/r3/posix/thread-posix.cpp
 SRC_CC += Runtime/r3/posix/time-posix.cpp

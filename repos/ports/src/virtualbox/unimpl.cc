@@ -189,10 +189,6 @@ DUMMY(RTTcpWrite)
 DUMMY(RTTcpWriteNB)
 DUMMY(RTTimeLocalExplode)
 
-DUMMY(RTSymlinkCreate)
-DUMMY(RTSymlinkRead)
-DUMMY(RTSymlinkDelete)
-
 DUMMY(RTNetIPv6PseudoChecksumEx)
 
 DUMMY(pthread_mutex_timedlock)
