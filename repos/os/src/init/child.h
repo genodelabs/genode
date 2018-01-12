@@ -547,6 +547,9 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 			 */
 			_exited     = true;
 			_exit_value = exit_value;
+
+			_child.close_all_sessions();
+
 			_report_update_trigger.trigger_report_update();
 
 			/*

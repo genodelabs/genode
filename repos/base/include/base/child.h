@@ -682,6 +682,8 @@ class Genode::Child : protected Rpc_object<Parent>,
 			         1 /* parent cap */ };
 		}
 
+		void close_all_sessions();
+
 		template <typename FN>
 		void for_each_session(FN const &fn) const
 		{
