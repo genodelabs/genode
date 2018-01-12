@@ -403,6 +403,8 @@ void User_state::forget(View_owner const &owner)
 {
 	_focus.forget(owner);
 
+	bool const need_to_update_all_views = (&owner == _focused);
+
 	if (&owner == _focused)      _focused      = nullptr;
 	if (&owner == _next_focused) _next_focused = nullptr;
 	if (&owner == _last_clicked) _last_clicked = nullptr;
@@ -414,6 +416,9 @@ void User_state::forget(View_owner const &owner)
 
 	if (_input_receiver == &owner)
 		_input_receiver = nullptr;
+
+	if (need_to_update_all_views)
+		_view_stack.update_all_views();
 }
 
 
