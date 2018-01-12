@@ -350,7 +350,7 @@ sleep 3
 foreach netperf_test $netperf_tests {
 	puts "\n---------------------------- $netperf_test -----------------------"
 
-	spawn netperf-$version -H $ip_addr -P 1 -v 2 -t $netperf_test -c -C -- $packet_size $force_ports
+	spawn netperf-$version -4 -H $ip_addr -P 1 -v 2 -t $netperf_test -c -C -- $packet_size $force_ports
 	set netperf_id $spawn_id
 
 	set spawn_id_list [list $netperf_id $serial_id]
