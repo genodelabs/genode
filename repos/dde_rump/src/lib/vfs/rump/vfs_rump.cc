@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2014-2017 Genode Labs GmbH
+ * Copyright (C) 2014-2018 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -102,6 +102,7 @@ class Vfs::Rump_file_system : public File_system
 					case EINTR:  return FTRUNCATE_ERR_INTERRUPT;
 					case ENOSPC: return FTRUNCATE_ERR_NO_SPACE;
 					default:
+						Genode::error(__func__, ": unhandled rump error ", errno);
 						return FTRUNCATE_ERR_NO_PERM;
 					}
 					return FTRUNCATE_OK;
@@ -117,6 +118,7 @@ class Vfs::Rump_file_system : public File_system
 					case EIO:         return READ_ERR_IO;
 					case EINTR:       return READ_ERR_INTERRUPT;
 					default:
+						Genode::error(__func__, ": unhandled rump error ", errno);
 						return READ_ERR_IO;
 					}
 					out_count = n;
@@ -136,6 +138,7 @@ class Vfs::Rump_file_system : public File_system
 					case EIO:         return WRITE_ERR_IO;
 					case EINTR:       return WRITE_ERR_INTERRUPT;
 					default:
+						Genode::error(__func__, ": unhandled rump error ", errno);
 						return WRITE_ERR_IO;
 					}
 					out_count = n;
@@ -458,11 +461,22 @@ class Vfs::Rump_file_system : public File_system
 			case EEXIST:       return OPEN_ERR_EXISTS;
 			case ENOSPC:       return OPEN_ERR_NO_SPACE;
 			default:
+				Genode::error(__func__, ": unhandled rump error ", errno);
 				return OPEN_ERR_NO_PERM;
 			}
 
-			*handle = new (alloc) Rump_vfs_file_handle(*this, alloc, mode, fd);
-			return OPEN_OK;
+			try {
+				Rump_vfs_file_handle *h = new (alloc)
+					Rump_vfs_file_handle(*this, alloc, mode, fd);
+				*handle = h;
+				return OPEN_OK;
+			} catch (Genode::Out_of_ram) {
+				rump_sys_close(fd);
+				return OPEN_ERR_OUT_OF_RAM;
+			} catch (Genode::Out_of_caps) {
+				rump_sys_close(fd);
+				return OPEN_ERR_OUT_OF_CAPS;
+			}
 		}
 
 		Opendir_result opendir(char const *path, bool create,
@@ -479,6 +493,7 @@ class Vfs::Rump_file_system : public File_system
 				case EEXIST:       return OPENDIR_ERR_NODE_ALREADY_EXISTS;
 				case ENOSPC:       return OPENDIR_ERR_NO_SPACE;
 				default:
+					Genode::error(__func__, ": unhandled rump error ", errno);
 					return OPENDIR_ERR_PERMISSION_DENIED;
 				}
 			}
@@ -491,12 +506,22 @@ class Vfs::Rump_file_system : public File_system
 			case EEXIST:       return OPENDIR_ERR_NODE_ALREADY_EXISTS;
 			case ENOSPC:       return OPENDIR_ERR_NO_SPACE;
 			default:
+				Genode::error(__func__, ": unhandled rump error ", errno);
 				return OPENDIR_ERR_PERMISSION_DENIED;
 			}
 
-			*handle = new (alloc) Rump_vfs_dir_handle(*this, alloc, 0777, fd, path);
-			return OPENDIR_OK;
-
+			try {
+				Rump_vfs_dir_handle *h = new (alloc)
+					Rump_vfs_dir_handle(*this, alloc, 0777, fd, path);
+				*handle = h;
+				return OPENDIR_OK;
+			} catch (Genode::Out_of_ram) {
+				rump_sys_close(fd);
+				return OPENDIR_ERR_OUT_OF_RAM;
+			} catch (Genode::Out_of_caps) {
+				rump_sys_close(fd);
+				return OPENDIR_ERR_OUT_OF_CAPS;
+			}
 		}
 
 		Openlink_result openlink(char const *path, bool create,
@@ -510,6 +535,7 @@ class Vfs::Rump_file_system : public File_system
 				case EACCES:       return OPENLINK_ERR_PERMISSION_DENIED;
 				case ENAMETOOLONG: return OPENLINK_ERR_NAME_TOO_LONG;
 				default:
+					Genode::error(__func__, ": unhandled rump error ", errno);
 					return OPENLINK_ERR_PERMISSION_DENIED;
 				}
 			}
@@ -518,11 +544,16 @@ class Vfs::Rump_file_system : public File_system
 			if (rump_sys_readlink(path, &dummy, sizeof(dummy)) == -1) switch(errno) {
 				case ENOENT: return OPENLINK_ERR_LOOKUP_FAILED;
 				default:
+					Genode::error(__func__, ": unhandled rump error ", errno);
 					return OPENLINK_ERR_PERMISSION_DENIED;
 			}
 
-			*handle = new (alloc) Rump_vfs_symlink_handle(*this, alloc, 0777, path);
-			return OPENLINK_OK;
+			try {
+				*handle = new (alloc) Rump_vfs_symlink_handle(*this, alloc, 0777, path);
+				return OPENLINK_OK;
+			}
+			catch (Genode::Out_of_ram) { return OPENLINK_ERR_OUT_OF_RAM; }
+			catch (Genode::Out_of_caps) { return OPENLINK_ERR_OUT_OF_CAPS; }
 	    }
 
 		void close(Vfs_handle *vfs_handle) override
@@ -563,6 +594,9 @@ class Vfs::Rump_file_system : public File_system
 			switch (errno) {
 			case ENOENT:    return UNLINK_ERR_NO_ENTRY;
 			case ENOTEMPTY: return UNLINK_ERR_NOT_EMPTY;
+			default:
+				Genode::error(__func__, ": unhandled rump error ", errno);
+				return UNLINK_ERR_NO_PERM;
 			}
 			return UNLINK_ERR_NO_PERM;
 		}
