@@ -202,10 +202,14 @@ class Vfs::Single_file_system : public File_system
 			if (create)
 				return OPENDIR_ERR_PERMISSION_DENIED;
 
-			*out_handle =
-				new (alloc) Single_vfs_dir_handle(*this, *this, alloc,
-				                                  _node_type, _filename);
-			return OPENDIR_OK;
+			try {
+				*out_handle = new (alloc)
+					Single_vfs_dir_handle(*this, *this, alloc,
+					                      _node_type, _filename);
+				return OPENDIR_OK;
+			}
+			catch (Genode::Out_of_ram)  { return OPENDIR_ERR_OUT_OF_RAM; }
+			catch (Genode::Out_of_caps) { return OPENDIR_ERR_OUT_OF_CAPS; }
 		}
 
 		void close(Vfs_handle *handle) override

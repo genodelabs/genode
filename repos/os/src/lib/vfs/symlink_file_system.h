@@ -59,8 +59,12 @@ class Vfs::Symlink_file_system : public Single_file_system
 			if (create)
 				return OPENLINK_ERR_NODE_ALREADY_EXISTS;
 
-			*out_handle = new (alloc) Vfs_handle(*this, *this, alloc, 0);
-			return OPENLINK_OK;
+			try {
+				*out_handle = new (alloc) Vfs_handle(*this, *this, alloc, 0);
+				return OPENLINK_OK;
+			}
+			catch (Genode::Out_of_ram)  { return OPENLINK_ERR_OUT_OF_RAM; }
+			catch (Genode::Out_of_caps) { return OPENLINK_ERR_OUT_OF_CAPS; }
 		}
 
 		void close(Vfs_handle *vfs_handle) override

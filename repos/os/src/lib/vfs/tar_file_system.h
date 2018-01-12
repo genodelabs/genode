@@ -651,9 +651,13 @@ class Vfs::Tar_file_system : public File_system
 			if (!node || !node->record || node->record->type() != Record::TYPE_FILE)
 				return OPEN_ERR_UNACCESSIBLE;
 
-			*out_handle = new (alloc) Tar_vfs_file_handle(*this, alloc, 0, node);
-
-			return OPEN_OK;
+			try {
+				*out_handle = new (alloc)
+					Tar_vfs_file_handle(*this, alloc, 0, node);
+				return OPEN_OK;
+			}
+			catch (Genode::Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
+			catch (Genode::Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
 		}
 
 		Opendir_result opendir(char const *path, bool /* create */,
@@ -666,9 +670,13 @@ class Vfs::Tar_file_system : public File_system
 			    (node->record && (node->record->type() != Record::TYPE_DIR)))
 				return OPENDIR_ERR_LOOKUP_FAILED;
 
-			*out_handle = new (alloc) Tar_vfs_dir_handle(*this, alloc, 0, node);
-
-			return OPENDIR_OK;
+			try {
+				*out_handle = new (alloc)
+					Tar_vfs_dir_handle(*this, alloc, 0, node);
+				return OPENDIR_OK;
+			}
+			catch (Genode::Out_of_ram)  { return OPENDIR_ERR_OUT_OF_RAM; }
+			catch (Genode::Out_of_caps) { return OPENDIR_ERR_OUT_OF_CAPS; }
 		}
 
 		Openlink_result openlink(char const *path, bool /* create */,
@@ -679,9 +687,13 @@ class Vfs::Tar_file_system : public File_system
 			    node->record->type() != Record::TYPE_SYMLINK)
 				return OPENLINK_ERR_LOOKUP_FAILED;
 
-			*out_handle = new (alloc) Tar_vfs_symlink_handle(*this, alloc, 0, node);
-
-			return OPENLINK_OK;
+			try {
+				*out_handle = new (alloc)
+					Tar_vfs_symlink_handle(*this, alloc, 0, node);
+				return OPENLINK_OK;
+			}
+			catch (Genode::Out_of_ram)  { return OPENLINK_ERR_OUT_OF_RAM; }
+			catch (Genode::Out_of_caps) { return OPENLINK_ERR_OUT_OF_CAPS; }
 		}
 
 		void close(Vfs_handle *vfs_handle) override

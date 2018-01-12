@@ -128,8 +128,13 @@ class Vfs::Rom_file_system : public Single_file_system
 
 			_rom.update();
 
-			*out_handle = new (alloc) Rom_vfs_handle(*this, *this, alloc, _rom);
-			return OPEN_OK;
+			try {
+				*out_handle = new (alloc)
+					Rom_vfs_handle(*this, *this, alloc, _rom);
+				return OPEN_OK;
+			}
+			catch (Genode::Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
+			catch (Genode::Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
 		}
 
 		Dataspace_capability dataspace(char const *) override

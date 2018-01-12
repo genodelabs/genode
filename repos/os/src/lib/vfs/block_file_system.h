@@ -384,22 +384,26 @@ class Vfs::Block_file_system : public Single_file_system
 			if (!_single_file(path))
 				return OPEN_ERR_UNACCESSIBLE;
 
-			*out_handle = new (alloc) Block_vfs_handle(*this, *this, alloc,
-			                                           _label, _lock,
-			                                           _block_buffer,
-			                                           _block_buffer_count,
-			                                           _tx_block_alloc,
-			                                           _block,
-			                                           _block_size,
-			                                           _block_count,
-			                                           _block_ops,
-			                                           _tx_source,
-			                                           _readable,
-			                                           _writeable,
-			                                           _signal_receiver,
-			                                           _signal_context,
-			                                           _source_submit_cap);
-			return OPEN_OK;
+			try {
+				*out_handle = new (alloc) Block_vfs_handle(*this, *this, alloc,
+				                                           _label, _lock,
+				                                           _block_buffer,
+				                                           _block_buffer_count,
+				                                           _tx_block_alloc,
+				                                           _block,
+				                                           _block_size,
+				                                           _block_count,
+				                                           _block_ops,
+				                                           _tx_source,
+				                                           _readable,
+				                                           _writeable,
+				                                           _signal_receiver,
+				                                           _signal_context,
+				                                           _source_submit_cap);
+				return OPEN_OK;
+			}
+			catch (Genode::Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
+			catch (Genode::Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
 		}
 
 		Stat_result stat(char const *path, Stat &out) override

@@ -551,8 +551,9 @@ class Vfs::Ram_file_system : public Vfs::File_system
 
 			File *file;
 			char const *name = basename(path);
+			bool const create = mode & OPEN_MODE_CREATE;
 
-			if (mode & OPEN_MODE_CREATE) {
+			if (create) {
 				Directory *parent = lookup_parent(path);
 				if (!parent) return OPEN_ERR_UNACCESSIBLE;
 				Node::Guard guard(parent);
@@ -573,8 +574,22 @@ class Vfs::Ram_file_system : public Vfs::File_system
 				if (!file) return OPEN_ERR_UNACCESSIBLE;
 			}
 
-			*handle = new (alloc) Ram_vfs_handle(*this, alloc, mode, *file);
-			return OPEN_OK;
+			try {
+				*handle = new (alloc) Ram_vfs_handle(*this, alloc, mode, *file);
+				return OPEN_OK;
+			} catch (Genode::Out_of_ram) {
+				if (create) {
+					lookup_parent(path)->release(file);
+					remove(file);
+				}
+				return OPEN_ERR_OUT_OF_RAM;
+			} catch (Genode::Out_of_caps) {
+				if (create) {
+					lookup_parent(path)->release(file);
+					remove(file);
+				}
+				return OPEN_ERR_OUT_OF_CAPS;
+			}
 		}
 
 		Opendir_result opendir(char const  *path, bool create,
@@ -599,9 +614,8 @@ class Vfs::Ram_file_system : public Vfs::File_system
 				if (parent->child(name))
 					return OPENDIR_ERR_NODE_ALREADY_EXISTS;
 
-				try {
-					dir = new (_alloc) Directory(name);
-				} catch (Out_of_memory) { return OPENDIR_ERR_NO_SPACE; }
+				try { dir = new (_alloc) Directory(name); }
+				catch (Out_of_memory) { return OPENDIR_ERR_NO_SPACE; }
 
 				parent->adopt(dir);
 
@@ -614,11 +628,24 @@ class Vfs::Ram_file_system : public Vfs::File_system
 				if (!dir) return OPENDIR_ERR_LOOKUP_FAILED;
 			}
 
-			*handle = new (alloc) Ram_vfs_handle(*this, alloc,
-			                                     Ram_vfs_handle::STATUS_RDONLY,
-			                                     *dir);
-
-			return OPENDIR_OK;
+			try {
+				*handle = new (alloc) Ram_vfs_handle(*this, alloc,
+				                                     Ram_vfs_handle::STATUS_RDONLY,
+				                                     *dir);
+				return OPENDIR_OK;
+			} catch (Genode::Out_of_ram) {
+				if (create) {
+					parent->release(dir);
+					remove(dir);
+				}
+				return OPENDIR_ERR_OUT_OF_RAM;
+			} catch (Genode::Out_of_caps) {
+				if (create) {
+					parent->release(dir);
+					remove(dir);
+				}
+				return OPENDIR_ERR_OUT_OF_CAPS;
+			}
 		}
 
 		Openlink_result openlink(char const *path, bool create,
@@ -660,11 +687,24 @@ class Vfs::Ram_file_system : public Vfs::File_system
 				if (!link) return OPENLINK_ERR_LOOKUP_FAILED;
 			}
 
-			*handle = new (alloc) Ram_vfs_handle(*this, alloc,
-			                                     Ram_vfs_handle::STATUS_RDWR,
-			                                     *link);
-
-			return OPENLINK_OK;
+			try {
+				*handle = new (alloc) Ram_vfs_handle(*this, alloc,
+				                                     Ram_vfs_handle::STATUS_RDWR,
+				                                     *link);
+				return OPENLINK_OK;
+			} catch (Genode::Out_of_ram) {
+				if (create) {
+					parent->release(link);
+					remove(link);
+				}
+				return OPENLINK_ERR_OUT_OF_RAM;
+			} catch (Genode::Out_of_caps) {
+				if (create) {
+					parent->release(link);
+					remove(link);
+				}
+				return OPENLINK_ERR_OUT_OF_CAPS;
+			}
 		}
 
 		void close(Vfs_handle *vfs_handle) override

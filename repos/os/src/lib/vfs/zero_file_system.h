@@ -71,8 +71,12 @@ struct Vfs::Zero_file_system : Single_file_system
 		if (!_single_file(path))
 			return OPEN_ERR_UNACCESSIBLE;
 
-		*out_handle = new (alloc) Zero_vfs_handle(*this, *this, alloc);
-		return OPEN_OK;
+		try {
+			*out_handle = new (alloc) Zero_vfs_handle(*this, *this, alloc);
+			return OPEN_OK;
+		}
+		catch (Genode::Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
+		catch (Genode::Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
 	}
 
 };

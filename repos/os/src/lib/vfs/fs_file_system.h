@@ -775,9 +775,9 @@ class Vfs::Fs_file_system : public File_system
 			catch (::File_system::Invalid_name)        { return OPEN_ERR_NAME_TOO_LONG; }
 			catch (::File_system::Name_too_long)       { return OPEN_ERR_NAME_TOO_LONG; }
 			catch (::File_system::No_space)            { return OPEN_ERR_NO_SPACE;      }
-			catch (::File_system::Out_of_ram)          { return OPEN_ERR_OUT_OF_RAM;    }
-			catch (::File_system::Out_of_caps)         { return OPEN_ERR_OUT_OF_CAPS;   }
 			catch (::File_system::Unavailable)         { return OPEN_ERR_UNACCESSIBLE;  }
+			catch (Genode::Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
+			catch (Genode::Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
 
 			return OPEN_OK;
 		}
@@ -800,9 +800,9 @@ class Vfs::Fs_file_system : public File_system
 			catch (::File_system::Name_too_long)       { return OPENDIR_ERR_NAME_TOO_LONG;       }
 			catch (::File_system::Node_already_exists) { return OPENDIR_ERR_NODE_ALREADY_EXISTS; }
 			catch (::File_system::No_space)            { return OPENDIR_ERR_NO_SPACE;            }
-			catch (::File_system::Out_of_ram)          { return OPENDIR_ERR_OUT_OF_RAM;          }
-			catch (::File_system::Out_of_caps)         { return OPENDIR_ERR_OUT_OF_CAPS;         }
 			catch (::File_system::Permission_denied)   { return OPENDIR_ERR_PERMISSION_DENIED;   }
+			catch (Genode::Out_of_ram)  { return OPENDIR_ERR_OUT_OF_RAM; }
+			catch (Genode::Out_of_caps) { return OPENDIR_ERR_OUT_OF_CAPS; }
 
 			return OPENDIR_OK;
 		}
@@ -844,10 +844,10 @@ class Vfs::Fs_file_system : public File_system
 			catch (::File_system::Lookup_failed)       { return OPENLINK_ERR_LOOKUP_FAILED; }
 			catch (::File_system::Node_already_exists) { return OPENLINK_ERR_NODE_ALREADY_EXISTS; }
 			catch (::File_system::No_space)            { return OPENLINK_ERR_NO_SPACE; }
-			catch (::File_system::Out_of_ram)          { return OPENLINK_ERR_OUT_OF_RAM; }
-			catch (::File_system::Out_of_caps)         { return OPENLINK_ERR_OUT_OF_CAPS; }
 			catch (::File_system::Permission_denied)   { return OPENLINK_ERR_PERMISSION_DENIED; }
 			catch (::File_system::Unavailable)         { return OPENLINK_ERR_LOOKUP_FAILED; }
+			catch (Genode::Out_of_ram)  { return OPENLINK_ERR_OUT_OF_RAM; }
+			catch (Genode::Out_of_caps) { return OPENLINK_ERR_OUT_OF_CAPS; }
 		}
 
 		void close(Vfs_handle *vfs_handle) override
