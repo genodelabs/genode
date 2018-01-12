@@ -44,6 +44,7 @@ append config {
 		<provides> <service name="Timer"/> </provides>
 	</start>
 	<start name="nic_drv">
+		<binary name="} [nic_drv_binary] {"/>
 		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="Nic"/> </provides>
 	</start>
@@ -81,6 +82,7 @@ set boot_modules {
 
 # platform-specific modules
 append_platform_drv_boot_modules
+lappend boot_modules [nic_drv_binary]
 
 build_boot_image $boot_modules
 
