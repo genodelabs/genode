@@ -1,6 +1,7 @@
 /*
  * \brief  Test for XML parser
  * \author Norman Feske
+ * \author Martin Stein
  * \date   2007-08-21
  */
 
@@ -11,7 +12,9 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+/* Genode includes */
 #include <util/xml_node.h>
+#include <base/attached_ram_dataspace.h>
 #include <base/component.h>
 #include <base/log.h>
 
@@ -314,6 +317,60 @@ static void log_xml_info(const char *xml_string)
 }
 
 
+template <size_t max_content_sz>
+static void test_decoded_content(Env        &env,
+                                 unsigned    step,
+                                 const char *xml_string,
+                                 size_t      content_off,
+                                 size_t      content_sz)
+{
+	log("step ", step);
+
+
+	/*
+	 * Test Xml_node::decoded_content
+	 */
+
+	size_t const buf_sz = content_sz + 1;
+	Attached_ram_dataspace buf1_ds(env.ram(), env.rm(), buf_sz);
+	Attached_ram_dataspace buf2_ds(env.ram(), env.rm(), buf_sz);
+	char * const buf1 = buf1_ds.local_addr<char>();
+	char * const buf2 = buf2_ds.local_addr<char>();
+
+	Xml_node xml(xml_string);
+	size_t sz = xml.decoded_content(buf1, max_content_sz);
+
+	if (sz > content_sz)
+		error("content decoding states to have accessed memory it was not allowed to");
+
+	memcpy(buf2, &xml_string[content_off], min(content_sz, max_content_sz));
+
+	if (memcmp(buf1, buf2, buf_sz)) {
+		error("resulting string of Xml_node::decoded_content is erroneous");
+		log("----- should be -----");
+		log(Cstring(buf2));
+		log("----- is -----");
+		log(Cstring(buf1));
+	}
+
+	/*
+	 * Test Xml_node::decoded_content<String<N> >
+	 */
+
+	enum { MAX_OUT_STRING_SZ = 256 };
+	using Out_string = String<min(max_content_sz + 1, (size_t)MAX_OUT_STRING_SZ)>;
+	Out_string str = xml.decoded_content<Out_string>();
+
+	if (memcmp(str.string(), buf2, min(str.size(), buf_sz))) {
+		error("resulting string of Xml_node::decoded_content<String<N> > is erroneous");
+		log("----- should be -----");
+		log(Cstring(buf2));
+		log("----- is -----");
+		log(str);
+	}
+}
+
+
 void Component::construct(Genode::Env &env)
 {
 	log("--- XML-token test ---");
@@ -350,6 +407,14 @@ void Component::construct(Genode::Env &env)
 
 	log("-- Test parsing XML with comments --");
 	log_xml_info(xml_test_comments);
+
+	log("-- Test exporting decoded content from XML node --");
+	test_decoded_content<~0UL>(env, 1, xml_test_comments, 8, 119);
+	test_decoded_content<119 >(env, 2, xml_test_comments, 8, 119);
+	test_decoded_content<11  >(env, 3, xml_test_comments, 8, 119);
+	test_decoded_content<1   >(env, 4, xml_test_comments, 8, 119);
+	test_decoded_content<0   >(env, 5, xml_test_comments, 8, 119);
+	log("");
 
 	log("--- End of XML-parser test ---");
 	env.parent().exit(0);

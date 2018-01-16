@@ -124,5 +124,12 @@ compare_output_to {
 [init -> test-xml_node]   XML node: name = "visible-tag", leaf content = ""
 [init -> test-xml_node]   XML node: name = "visible-tag", leaf content = ""
 [init -> test-xml_node]
+[init -> test-xml_node] -- Test exporting decoded content from XML node --
+[init -> test-xml_node] step 1
+[init -> test-xml_node] step 2
+[init -> test-xml_node] step 3
+[init -> test-xml_node] step 4
+[init -> test-xml_node] step 5
+[init -> test-xml_node]
 [init -> test-xml_node] --- End of XML-parser test ---
 }
