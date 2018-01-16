@@ -4,6 +4,41 @@
                                ===========
 
 
+Genode at FOSDEM 2018 | 2017-01-16
+##################################
+
+| Genode will participate in the microkernel developer room at FOSDEM with
+| three presentations, covering our recent work on GPUs, user-level networking,
+| and the dynamic sculpting of a Genode-based system.
+
+The microkernel developer room at FOSDEM is the melting pot of the open-source
+microkernel world where projects and users meet to present their work and
+experience with microkernel-based operating systems. Like every year, we will
+take the chance to present the recent developments of Genode to the audience.
+If you are curious about the technology, or interested in meeting the people
+behind the projects, please do not hesitate to join us at FOSDEM, which will
+be held on 3rd - 4th of February in Brussels:
+
+FOSDEM 2018: [https://fosdem.org/2018/]
+
+This year, the following Genode-related topics will be presented:
+
+Saturday 11:05 *GPU resource multiplexing in component based systems*
+_Microkernel devroom (AW1.126)_
+[https://fosdem.org/2018/schedule/event/microkernel_genode_gpu_multiplexing/ - abstract...]
+
+Saturday 12:25 *Live sculpting a Genode-based operating system*
+_Microkernel devroom (AW1.126)_
+[https://fosdem.org/2018/schedule/event/microkernel_genode_live_sculpting/ - abstract...]
+
+Saturday 17:30 *User-level networking on Genode*
+_Microkernel devroom (AW1.126)_
+[https://fosdem.org/2018/schedule/event/microkernel_genode_user_level_networking/ - abstract...]
+
+The complete schedule of the developer room is available at
+[https://fosdem.org/2018/schedule/track/microkernels/].
+
+
 Genode OS Framework release 17.11 | 2017-11-30
 ##############################################
 
