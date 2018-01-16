@@ -1,5 +1,5 @@
 set use_usb_driver [expr [have_spec omap4] || [have_spec arndale] || [have_spec rpi]]
-set use_nic_driver [expr [have_spec linux] || [expr !$use_usb_driver && ![have_spec imx53] && ![have_spec odroid_xu] && ![have_spec linux] && ![have_spec wand_quad]]]
+set use_nic_driver [expr [have_spec linux] || [expr !$use_usb_driver && ![have_spec imx53] && ![have_spec odroid_xu] && ![have_spec linux]]]
 
 #
 # Build
@@ -80,9 +80,9 @@ append_if $use_usb_driver config {
 append_platform_drv_config
 
 append_if $use_nic_driver config {
-	<start name="nic_drv">
+	<start name="nic_drv" caps="120">
 		<binary name="} [nic_drv_binary] {"/>
-		<resource name="RAM" quantum="8M"/>
+		<resource name="RAM" quantum="20M"/>
 		<provides><service name="Nic"/></provides>
 	</start>}
 
