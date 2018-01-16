@@ -36,7 +36,7 @@ proc need_usb_hid { } {
 proc nic_drv_binary { } {
 	if {[have_spec linux]} { return linux_nic_drv }
 	if {[have_spec omap4] || [have_spec arndale] || [have_spec rpi]} { return usb_drv }
-	if {!([have_spec imx53] || [have_spec riscv] || [have_spec odroid_xu] || [have_spec wand_quad])} { return nic_drv }
+	if {!([have_spec imx53] || [have_spec riscv] || [have_spec odroid_xu])} { return nic_drv }
 	return no_nic_drv_available
 }
 
