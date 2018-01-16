@@ -683,7 +683,7 @@ class Genode::Xml_node
 			char const *src        = content_base();
 			size_t      src_len    = content_size();
 
-			for (; dst_len && src_len; result_len++) {
+			for (; dst_len && src_len; dst_len--, result_len++) {
 
 				Decoded_character const decoded_character(src, src_len);
 
