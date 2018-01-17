@@ -14,132 +14,132 @@ The road map is not fixed. If there is commercial interest of pushing the
 Genode technology to a certain direction, we are willing to revisit our plans.
 
 
-Review of 2016
+Review of 2017
 ##############
 
-We originally started the year 2016 with the ambition to expand the Genode
-community by improving the project's appeal towards system builders and
-privacy cautious users. Hence, we started the year with the resolution to
-increase our engagement with the wider community, i.e., in the form of
-publishing tutorial-like articles. Over the course of the year, however, we
-increasingly shifted our focus to architectural and deeply technical topics
-instead.
+The technical topics of 2017 ranged from hardware-accelerated graphics, over
+UEFI, greatly improved seL4 support, user-level networking, file-system
+infrastructure, to an consolidated framework API. However, one topic stood out
+the most, which is the practical use of Genode as day-to-day OS.
 
-We ultimately prioritized the concerns of the existing Genode users over
-extending our user base. The existing users - ourself included - are primarily
-interested in API stability and maturity. So we made it our priority to free
-Genode from legacies and known architectural limitations. Over the year, we
-introduced and cultivated the new framework API that is designed for safety,
-achieved cross-kernel binary compatibility, and revised the framework's most
-fundamental protocols. Now that the time of sweeping architectural changes
-lies behind us, we feel much more confident to approach new users.
+Whereas the so-called "Turmvilla" system scenario enabled a few enthusiasts to
+work on a Genode-based system since mid of 2015, the scenario was quite rigid
+and required significant manual labour for any customization. Although it was
+not really inviting for potential users, it illustrated well that all the
+basic building blocks - in particular the driver stacks - were in place. But
+it would have been be quite a stretch to call Turmvilla a general-purpose OS
+at that point. The year 2017 introduced two pivotal features that allowed us to
+break free from the limitations of Turmvilla-like scenarios, namely the new
+[https://genode.org/documentation/release-notes/17.05#Package_management - package-management concept]
+and the ability to
+[https://genode.org/documentation/release-notes/17.02#Dynamically_reconfigurable_init_component - compose and modify subsystems dynamically].
 
-Apart from the architectural foundations, among the many other construction
-sites of 2016 were the support for the RISC-V architecture, hosting Genode on
-top of the Muen separation kernel and the seL4 microkernel, huge device driver
-improvements (wifi, graphics, USB, ACPI), VirtualBox 5, virtual networking,
-TOR, Rust and many others. Even though we largely deviated from our original
-ambition, we are proud of the outcome of the past year.
-
-
-Big picture for 2017
-####################
-
-Our principle direction as declared at he beginning of 2016 remains unchanged
-for 2017: Making Genode accessible to the world outside the inner circle
-of us enthusiasts. But rather than making this direction the top priority for
-now, let us first push the bounds of what the current users and
-developers can do with Genode. Hence, for the overall theme of 2017, we
-picked: *stability and scalability*. Once Genode reaches the point where it is
-routinely used and stressed for various purposes by the "inner circle", a
-growing user base will follow naturally and organically.
-
-During our seasonal road-map discussion on our mailing list, we identified the
-following topics to address in 2017:
-
-:Application binary interfaces and package management:
-
-  By mid 2016, we attained binary compatibility across the various OS
-  kernels supported by Genode, which cleared the way to introduce the notion
-  of a Genode application binary interface (ABI). This, in turn, is a
-  prerequisite for a scalable handling of binary packages. In 2017, we
-  will leverage these foundations in two ways: Allowing the easy creation
-  of Genode systems out of packages, and realizing a system-update mechanism
-  that allows us to automatically use (and thereby test) the latest versions
-  of Genode components on our machines.
-
-:Dynamically reconfigurable subsystems:
-
-  Until now, Genode subsystems were either static (using the init component to
-  define them) or relied on a scenario-specific dynamic runtime environment
-  (like CLI monitor). By enhancing init to dynamically apply configuration
-  changes, the need for special-purpose runtime environments will
-  disappear. Scenarios like multi-stage booting, boot-medium detection, or
-  a dynamic desktop environment will become dramatically easier to realize.
-
-:Pruning the boot chain:
-
-  Today, Genode on x86 machines still relies on the legacy BIOS boot
-  mechanism. We will explore alternatives such as UEFI boot and
-  coreboot.
-
-:Asynchronous I/O:
-
-  With Genode 16.11, we successfully removed the last blocking inter-component
-  interfaces from the base framework. Still, other parts of the user-level
-  infrastructure, in particular the libc still relies on blocking operations. Even
-  though we have to offer blocking I/O to user applications for POSIX
-  compatibility, the mechanisms used behind the scenes will be changed to leverage
-  Genode's asynchronous I/O primitives.
-
-:VirtualBox 5:
-
-  Currently, we maintain a fully-featured version of VirtualBox 4 (including
-  USB pass-through, audio, shared folders, clipboard, dynamic desktop resizing)
-  and a pretty basic version of VirtualBox 5 (without those integration
-  features). In 2017, we will replace VirtualBox 4 by a fully featured
-  version of VirtualBox 5.
-
-:Updated tool chain and Qt5:
-
-  With version 17.05, we want to experiment with the idea of providing a
-  long-term supportable version of the framework in addition to the quarterly
-  releases. Consequently, at the time of its release, this version should use
-  a modern tool chain that will remain current for the foreseeable future of
-  Genode's regular development. The same holds true for Qt5.
-
-:Hardware-accelerated graphics on Intel:
-
-  Graphics is an important element for many use cases for Genode on x86-based
-  platforms. Even though we experimented with hardware-accelerated 3D
-  graphics
-  [http://genode.org/documentation/release-notes/10.08#Gallium3D_and_Intel_s_Graphics_Execution_Manager - many years ago],
-  the current GUI stack is still based on software-based rendering.
-  We want to overcome this limitation this year.
-
-:Native work flows:
-
-  In the regularly used "Turmvilla" scenarios, most work flows require the
-  use of Linux in a virtual machine. Over the course of the year, we want
-  to move the most important work flows (namely software development and
-  the work with emails) to Genode natively. As a precondition,
-  we need to improve the usability of our GUI infrastructure by adding
-  support for tiled and tabbed windows, and virtual desktops.
-
-:Storage:
-
-  There are several storage-related topics that need our attention to
-  realize the goals stated above to our satisfaction. This includes the
-  performance and stability of the used file-system stack, and the provision
-  of file-based backup and cryptographic functionality.
-
-:Genode-based cloud appliances:
-
-  We want to widen the application scope of Genode by enabling users to
-  easily deploy Genode scenarios on Xen-based cloud platforms.
+Inspired by these new features, a new system scenario called "Sculpt" emerged
+in Autumn 2017. The combination of Genode's recursive architecture with the
+dynamic reconfigurability of the init component allows the user to
+interactively shape the running Genode system including any subsystem or even
+configurations of individual components. The system structure is always at the
+user's fingertips and can by modified instantly using a text editor. At the
+same time, the new package management greatly helps to keep the complexity at
+a manageable level. Whereas Turmvilla users rarely updated their installation
+out of hesitance to break their work environment, Sculpt is routinely updated
+on a weekly basis. The switch of the entire Genode-Labs team to Genode full
+time by the end of year was certainly our biggest milestone so far.
 
 
-Milestones for 2017
+2018 - The year of Sculpt
+#########################
+
+The "Turmvilla" era lies behind us. So let the "Sculpt" era begin!
+
+Having used Sculpt over the past few months, we feel confident to make the
+system scenario available to a larger audience. In 2018, we will take four
+steps:
+
+# Sculpt for Early Adopters (EA)
+
+  The current version of Sculpt accompanied with plain-text documentation
+  that explains the concept and use. It is intended for people who are
+  already familiar with Genode, in particular users that experimented with
+  Turmvilla-like scenarios in the past. Sculpt EA expects basic Vim skills
+  from the user.
+
+# Sculpt for The Curious (TC)
+
+  A polished version of Sculpt that is more welcoming to the user and
+  accompanied with example subsystems that loosely resemble a traditional
+  notion of an operating system (like basic menus and window borders).
+  There will be a ready-to-use ISO image for Sculpt TC. So users won't need
+  to be familiar with Genode's source code and build system. As with Sculpt
+  EA, Sculpt TC will still rely on the user's ability to use Vim.
+
+# Sculpt by Visual Composition (VC)
+
+  Whereas the earlier versions rely on text editing for sculpting the system,
+  Sculpt VC will feature an interactive graphical user interface, which will
+  hopefully make the system tangible for users who live outside the terminal.
+
+# Sculpt as a Community Experience (CE)
+
+  Sculpt CE will allow anyone to play the role of a component provider.
+  Each user should be able to pick individual components or entire component
+  compositions provided by others while maintaining complete control over the
+  system.
+
+In addition to working on Sculpt as the overall theme of the year, we will
+focus on the following topics:
+
+:Gentle transition from NOVA to our custom kernel and seL4:
+
+  NOVA used to be our kernel of choice on x86 platforms. However, since the
+  kernel is no longer actively developed, we had to take over the
+  responsibility to maintain it. Whereas we feel confident in developing the
+  kernel in an evolutionary way, the kernel has long-standing architectural
+  limitations (i.e. kernel-memory management) that would require invasive
+  changes. Instead of ramping up our engagement with NOVA, we'd like to focus
+  on our custom kernel (base-hw) and the seL4 kernel. In 2018, we set out to
+  enable Sculpt on base-hw. This involves the support for SMP, VT-x, and VT-d
+  on x86.
+
+:Freescale i.MX:
+
+  Based on the feedback from our community, Freescale i.MX support is of
+  great interest, specifically i.MX6. Hence, we plan to improve the driver
+  support for this SoC.
+
+:seL4:
+
+  We will try to apply all improvements of Genode on seL4 whenever feasible.
+  It also goes without saying that we will track seL4's upstream development.
+
+:Software quality and resilience:
+
+  The modernized framework API introduced last year is an important stepping
+  stone. But there is much more we can (and should) do, I.e., learning from
+  the high-integrity computing community (e.g., implementing critical
+  components in SPARK), leveling-up the scope and intensity of our automated
+  tests, facilitating static code analysis, and employing software-hardening
+  techniques. Of course, this scope goes far beyond the time frame of one
+  year. The immediate prioritization of these topics will largely depend on
+  the focus of commercial users funding the work.
+
+:System monitoring, tracing, profiling:
+
+  The interactive use of Sculpt along with the prospects enabled by Genode's
+  GPU support motivate us to optimize Genode towards low-latency multimedia
+  applications. We will ultimately need to gain a deep understanding on
+  inter-component interactions, in particular along time-critical data paths.
+  Therefore, we plan to improve the tooling and cultivate the use of our
+  existing but underused tracing support.
+
+:Java:
+
+  By the end of 2018, we want to enable Genode to leverage the ecosystem
+  around Java, which is - according to the TIOBE index - the most popular
+  programming language.
+
+
+Milestones for 2018
 ###################
 
 In the following, we present a rough schedule of the planned work. As usual,
@@ -147,39 +147,40 @@ it is not set in stone. If you are interested in a particular line of work,
 please get in touch.
 
 
-February - Release 17.02
+February - Release 18.02
 ========================
 
-* Application binary interfaces (ABI)
-* Dynamic init
-* VFS: asynchronous I/O
+* Sculpt for Early Adopters (EA)
+* Dynamic on-target package installation and deployment
+* i.MX6 networking
 
 
-May - Release 17.05
+May - Release 18.05
 ===================
 
-* Removal of deprecated APIs
-* Updated tool chain
-* Updated Qt5
-* Easy creation of Genode systems out of packages
-* Feature-complete VirtualBox 5
+* Sculpt for The Curious (TC)
 * Update of the Genode Foundations book
+* Consistent use of the depot tools for automated tests
+* Qt5-based applications based on packages
+* SMP support for the base-hw kernel on x86
 
 
-August - Release 17.08
+August - Release 18.08
 ======================
 
-* Hardware-accelerated graphics on Intel-based platforms
-* Support for the seL4 kernel on x86_64 and ARM
-* Use of Genode for cloud-computing appliances (deployment, virtio)
-* GUI: tiled and tabbed window management, virtual desktops
+* Sculpt by Visual Composition (VC)
+* Ability to (cleanly) restart device drivers
+* Updated PC hardware support
+* i.MX6 USB
+* Multi-component user mail agent
+* IOMMU support for the base-hw kernel on x86
 
 
-November - Release 17.11
+November - Release 18.11
 ========================
 
-* Revised boot concept (UEFI, trimming the boot chain)
-* Storage: backup, improved file-system support
-* Native work flows for email and development work
-* Test automation for interactive system scenarios
+* Sculpt as a Community Experience (CE)
+* Automated tests hosted on top of Sculpt
+* Sculpt-like scenario for network appliances
+* Virtualization support for the base-hw kernel on x86
 

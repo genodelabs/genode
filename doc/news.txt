@@ -4,6 +4,21 @@
                                ===========
 
 
+Road Map for 2018 | 2018-01-17
+##############################
+
+| 2018 will be the year of Sculpt.
+
+In autumn last year, a new Genode system scenario called "Sculpt" emerged.
+By the end of 2017, all members of the Genode-Labs team switched to this
+operating system on their laptops. The planning of 2018 revolves around the
+ambition to expand the user base of Sculpt in several steps. Additionally,
+the year will be focused on software quality, device-driver support for
+popular ARM boards, Genode's custom kernel, and seL4.
+
+The new road map is available at the [https:/about/road-map - road-map page].
+
+
 Genode at FOSDEM 2018 | 2017-01-16
 ##################################
 
