@@ -44,6 +44,21 @@ int Vcpu_handler::map_memory(RTGCPHYS GCPhys, size_t cbWrite,
 
 	_ept_fault_addr_type = PGM_PAGE_GET_TYPE(pPage);
 
+	/*
+	 * If page is not allocated (== zero page) and no MMIO or active page, allocate and map it
+	 * immediately. Important do not do this if A20 gate is disabled, A20 gate
+	 * is handled by IEM/REM in this case.
+	 */
+	if (PGM_PAGE_IS_ZERO(pPage)
+	    && !PGM_PAGE_IS_ALLOCATED(pPage)
+	    && !PGM_PAGE_HAS_ACTIVE_ALL_HANDLERS(pPage)
+	    && !PGM_PAGE_IS_SPECIAL_ALIAS_MMIO(pPage)
+	    && PGM_A20_IS_ENABLED(pVCpu)) {
+		pgmLock(pVM);
+		pgmPhysPageMakeWritable(pVM, pPage, GCPhys);
+		pgmUnlock(pVM);
+	}
+
 	if (PGM_PAGE_HAS_ACTIVE_ALL_HANDLERS(pPage) ||
 	    PGM_PAGE_IS_SPECIAL_ALIAS_MMIO(pPage) ||
 	    PGM_PAGE_IS_ZERO(pPage)) {
