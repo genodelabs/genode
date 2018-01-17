@@ -26,6 +26,7 @@
 /* core includes */
 #include <platform.h>
 #include <nova_util.h>
+#include <trace/source_registry.h>
 
 using namespace Genode;
 
@@ -119,6 +120,35 @@ void Thread::start()
 		error("could not create page fault portal");
 		throw Cpu_session::Thread_creation_failed();
 	}
+
+	struct Core_trace_source : public  Trace::Source::Info_accessor,
+	                           private Trace::Control,
+	                           private Trace::Source
+	{
+		Thread &thread;
+
+		/**
+		 * Trace::Source::Info_accessor interface
+		 */
+		Info trace_source_info() const override
+		{
+			uint64_t sc_time = 0;
+
+			return { Session_label("core"), thread.name(),
+			         Trace::Execution_time(sc_time), thread._affinity };
+		}
+
+		Core_trace_source(Trace::Source_registry &registry, Thread &t)
+		:
+			Trace::Control(),
+			Trace::Source(*this, *this), thread(t)
+		{
+			registry.insert(this);
+		}
+	};
+
+	new (*platform()->core_mem_alloc())
+		Core_trace_source(Trace::sources(), *this);
 }
 
 

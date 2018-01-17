@@ -217,7 +217,7 @@ static void startup_handler()
 }
 
 
-static void init_core_page_fault_handler(addr_t const core_pd_sel)
+static addr_t init_core_page_fault_handler(addr_t const core_pd_sel)
 {
 	/* create echo EC */
 	enum {
@@ -244,6 +244,8 @@ static void init_core_page_fault_handler(addr_t const core_pd_sel)
 	          Mtd(Mtd::EIP | Mtd::ESP),
 	          (addr_t)startup_handler);
 	revoke(Obj_crd(PT_SEL_STARTUP, 0, Obj_crd::RIGHT_PT_CTRL));
+
+	return ec_sel;
 }
 
 
@@ -386,7 +388,7 @@ Platform::Platform() :
 #endif
 
 	/* set up page fault handler for core - for debugging */
-	init_core_page_fault_handler(core_pd_sel());
+	addr_t const ec_echo_sel = init_core_page_fault_handler(core_pd_sel());
 
 	if (verbose_boot_info) {
 		if (hip->has_feature_vmx())
@@ -766,31 +768,80 @@ Platform::Platform() :
 			 */
 			Info trace_source_info() const override
 			{
-				Genode::String<8> name("idle", affinity.xpos());
+				uint64_t sc_time = 0;
 
-				uint64_t execution_time = 0;
-				Nova::sc_ctrl(sc_sel, execution_time);
+				uint8_t res = Nova::sc_ctrl(sc_sel, sc_time);
+				if (res != Nova::NOVA_OK)
+					warning("sc_ctrl on idle SC cap, res=", res);
 
-				return { Session_label("kernel"), Trace::Thread_name(name),
-				         Trace::Execution_time(execution_time), affinity };
+				return { Session_label("kernel"), Trace::Thread_name("idle"),
+				         Trace::Execution_time(sc_time), affinity };
 			}
 
-			Idle_trace_source(Affinity::Location affinity, unsigned sc_sel)
+			Idle_trace_source(Trace::Source_registry &registry,
+			                  Affinity::Location affinity, unsigned sc_sel)
 			:
 				Trace::Control(),
 				Trace::Source(*this, *this), affinity(affinity), sc_sel(sc_sel)
-			{ }
-
-			Trace::Source &source() { return *this; }
+			{
+				registry.insert(this);
+			}
 		};
 
-		Idle_trace_source *source = new (core_mem_alloc())
-			Idle_trace_source(Affinity::Location(genode_cpu_id, 0,
+		new (core_mem_alloc())
+			Idle_trace_source(Trace::sources(),
+			                  Affinity::Location(genode_cpu_id, 0,
 			                                     _cpus.width(), 1),
 			                  sc_idle_base + kernel_cpu_id);
-
-		Trace::sources().insert(&source->source());
 	}
+
+	/* add echo thread and EC root thread to trace sources */
+	struct Core_trace_source : public  Trace::Source::Info_accessor,
+	                           private Trace::Control,
+	                           private Trace::Source
+	{
+		Affinity::Location const location;
+		addr_t const ec_sc_sel;
+		Genode::String<8>  const name;
+
+		/**
+		 * Trace::Source::Info_accessor interface
+		 */
+		Info trace_source_info() const override
+		{
+			uint64_t sc_time = 0;
+
+			if (name == "root") {
+				uint8_t res = Nova::sc_ctrl(ec_sc_sel + 1, sc_time);
+				if (res != Nova::NOVA_OK)
+					warning("sc_ctrl for ", name, " thread failed res=", res);
+			}
+
+			return { Session_label("core"), name,
+			         Trace::Execution_time(sc_time), location };
+		}
+
+		Core_trace_source(Trace::Source_registry &registry,
+		                  Affinity::Location loc, addr_t sel,
+		                  char const *name)
+		:
+			Trace::Control(),
+			Trace::Source(*this, *this), location(loc), ec_sc_sel(sel),
+			name(name)
+		{
+			registry.insert(this);
+		}
+	};
+
+	new (core_mem_alloc())
+		Core_trace_source(Trace::sources(),
+		                  Affinity::Location(0, 0, _cpus.width(), 1),
+		                  ec_echo_sel, "echo");
+
+	new (core_mem_alloc())
+		Core_trace_source(Trace::sources(),
+		                  Affinity::Location(0, 0, _cpus.width(), 1),
+		                  hip->sel_exc + 1, "root");
 }
 
 
