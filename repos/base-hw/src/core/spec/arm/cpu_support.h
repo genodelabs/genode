@@ -42,8 +42,6 @@ struct Genode::Arm_cpu : public Hw::Arm_cpu
 	 */
 	struct Ttbr0 : Hw::Arm_cpu::Ttbr0
 	{
-		enum Memory_region { NON_CACHEABLE = 0, CACHEABLE = 1, BACK_ALLOCATE = 1, THROUGH = 2, BACK_NOALLOCATE = 3 };
-
 		/**
 		 * Return initialized value
 		 *
@@ -52,9 +50,9 @@ struct Genode::Arm_cpu : public Hw::Arm_cpu
 		static access_t init(addr_t const table)
 		{
 			access_t v = Ttbr::Ba::masked((addr_t)table);
-			Ttbr::Rgn::set(v, BACK_NOALLOCATE);
+			Ttbr::Rgn::set(v, Ttbr::BACK_ALLOCATE);
 			Ttbr::S::set(v, Board::SMP ? 1 : 0);
-			if (Board::SMP) Ttbr::Irgn::set(v, BACK_NOALLOCATE);
+			if (Board::SMP) Ttbr::Irgn::set(v, Ttbr::BACK_ALLOCATE);
 			else Ttbr::C::set(v, 1);
 			return v;
 		}

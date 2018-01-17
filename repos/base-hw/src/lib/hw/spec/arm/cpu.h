@@ -32,7 +32,8 @@ struct Hw::Arm_cpu
 
 	/* Multiprocessor Affinity Register */
 	ARM_CP15_REGISTER_32BIT(Mpidr, c0, c0, 0, 5,
-		struct Aff_0 : Bitfield<0, 8> { }; /* affinity value 0 */
+		struct Aff_0 : Bitfield<0, 8> { };  /* affinity value 0 */
+		struct Me    : Bitfield<31, 1> { }; /* multiprocessing extension */
 	);
 
 	/* System Control Register */
@@ -105,7 +106,7 @@ struct Hw::Arm_cpu
 
 		struct Irgn_1 : Bitfield<0,1> { };
 		struct Irgn_0 : Bitfield<6,1> { };
-		struct Irgn : Genode::Bitset_2<Irgn_1, Irgn_0> { }; /* inner cache mode */
+		struct Irgn : Genode::Bitset_2<Irgn_0, Irgn_1> { }; /* inner cache mode */
 	};
 
 	struct Ttbr_64bit : Genode::Register<64>

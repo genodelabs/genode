@@ -27,10 +27,17 @@ void Bootstrap::Cpu::enable_mmu_and_caches(Genode::addr_t table)
 	Ttbcr::write(1);
 
 	Ttbr::access_t ttbr = Ttbr::Ba::masked(table);
-	Ttbr::Rgn::set(ttbr, Ttbr::BACK_NOALLOCATE);
-	Ttbr::Irgn::set(ttbr, Ttbr::BACK_NOALLOCATE);
-	Ttbr::S::set(ttbr, 1);
-	Ttbr::C::set(ttbr, 1);
+
+	if (Mpidr::Me::get(Mpidr::read())) {
+		/* for coherence, memory must be marked as write-back (cf. Cortex-A9 MPcore) */
+		Ttbr::Rgn::set(ttbr, Ttbr::BACK_ALLOCATE);
+		Ttbr::Irgn::set(ttbr, Ttbr::BACK_ALLOCATE);
+		Ttbr::S::set(ttbr, 1);
+	}
+	else {
+		Ttbr::C::set(ttbr, 1);
+	}
+
 	Ttbr0::write(ttbr);
 	Ttbr1::write(ttbr);
 
