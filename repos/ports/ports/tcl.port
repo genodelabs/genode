@@ -1,0 +1,8 @@
+LICENSE   := BSD
+VERSION   := 8.6.8
+DOWNLOADS := tcl.archive
+
+URL(tcl) := https://prdownloads.sourceforge.net/tcl/tcl$(VERSION)-src.tar.gz
+SHA(tcl) := 0d014d97ca38534d4be1dfc6c563a7a3a6aa737f
+DIR(tcl) := src/noux-pkg/tcl
+
