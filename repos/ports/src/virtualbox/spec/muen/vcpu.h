@@ -50,9 +50,9 @@ struct Subject_state
 	Genode::uint32_t Exit_reason;
 	Genode::uint32_t Intr_state;
 	Genode::uint32_t Sysenter_cs;
+	Genode::uint32_t Instruction_len;
 	Genode::uint64_t Exit_qualification;
 	Genode::uint64_t Guest_phys_addr;
-	Genode::uint64_t Instruction_len;
 	Genode::uint64_t Rip;
 	Genode::uint64_t Rsp;
 	Genode::uint64_t Cr0;
