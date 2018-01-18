@@ -44,7 +44,7 @@ RUN_OPT += --image-muen-system xml/genode-base_hw.xml
 #
 # Available components are located in the Muen project directory 'components/'.
 #
-RUN_OPT += --image-muen-components 'libdebuglog libmutime libxhcidbg dbgserver sm time'
+RUN_OPT += --image-muen-components 'libdebuglog libmudm libmutime libxhcidbg dbgserver sm time'
 
 #
 # External Muen build
