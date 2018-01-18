@@ -128,6 +128,12 @@ LDLIBS_SO = $(addprefix $(PWD)/,$(sort $(SHARED_LIBS)))
 LDLIBS   += $(LDLIBS_A) $(LDLIBS_SO) $(LDLIBS_A)
 
 #
+# By default, assume that there exists a 'configure' script in the top-level
+# of the package.
+#
+CONFIGURE_SCRIPT ?= $(PKG_DIR)/configure
+
+#
 # Re-configure the Makefile if the Genode build environment changes
 #
 Makefile reconfigure: $(MAKEFILE_LIST)
@@ -137,7 +143,7 @@ Makefile reconfigure: $(MAKEFILE_LIST)
 #
 Makefile reconfigure: env.sh $(SHARED_LIBS)
 	@$(MSG_CONFIG)$(TARGET)
-	$(VERBOSE)source env.sh && $(PKG_DIR)/configure $(ENV) $(CONFIGURE_ARGS) $(CONFIGURE_OUTPUT_FILTER)
+	$(VERBOSE)source env.sh && $(CONFIGURE_SCRIPT) $(ENV) $(CONFIGURE_ARGS) $(CONFIGURE_OUTPUT_FILTER)
 
 env.sh:
 	$(VERBOSE)rm -f $@
@@ -167,19 +173,27 @@ env.sh:
 #
 built.tag: env.sh Makefile
 	@$(MSG_BUILD)$(TARGET)
-	$(VERBOSE)source env.sh && $(MAKE) $(MAKE_ENV) $(MAKE_VERBOSE) MAN= $(BUILD_OUTPUT_FILTER)
+	$(VERBOSE)source env.sh &&\
+	          $(MAKE) $(MAKE_ENV) $(MAKE_VERBOSE) $(MAKE_TARGET) MAN= \
+	          $(BUILD_OUTPUT_FILTER)
 	@touch $@
 
 INSTALL_TARGET ?= install-strip
 
 #
 # Install result of the build in an 'install/' directory local to the target's
-# build directory
+# build directory. The default install step 'make install-strip' can be
+# customized by setting 'INSTALL_TARGET' to be empty. This is useful to
+# explicitly filter the installed content in the 'target.mk' file.
 #
 installed.tag: built.tag
+
+ifneq ($(INSTALL_TARGET),)
+installed.tag:
 	@$(MSG_INST)$(TARGET)
 	$(VERBOSE)source env.sh && $(MAKE) $(MAKE_ENV) $(MAKE_VERBOSE) $(INSTALL_TARGET) DESTDIR=$(PWD)/install MAN= >> stdout.log 2>> stderr.log
 	@touch $@
+endif
 
 $(TARGET): installed.tag
 	@touch $@
