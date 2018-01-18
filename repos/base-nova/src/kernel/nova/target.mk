@@ -16,7 +16,6 @@ CC_WARN          = -Wall -Wextra -Waggregate-return -Wcast-align -Wcast-qual \
                    -Wold-style-cast -Woverloaded-virtual -Wsign-promo \
                    -Wlogical-op -Wstrict-null-sentinel \
                    -Wstrict-overflow=5 -Wvolatile-register-var
-CC_CXX_WARN_STRICT =
 CC_OPT          += -pipe \
                    -fdata-sections -fomit-frame-pointer -freg-struct-return \
                    -freorder-blocks -funit-at-a-time -fno-exceptions -fno-rtti \
