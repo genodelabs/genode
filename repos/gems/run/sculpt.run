@@ -5,6 +5,10 @@ if {![have_spec x86] || [have_spec linux]} {
 
 proc depot_user {} { return [get_cmd_arg --depot-user genodelabs] }
 
+if {[have_spec nova]} {
+	proc kernel_output { } { return "novga serial logmem" }
+}
+
 create_boot_directory
 
 import_from_depot [depot_user]/src/[base_src] \
@@ -188,6 +192,18 @@ install_config {
 			<service name="ROM" label="log"> <parent label="core_log"/> </service>
 			<service name="Timer"> <child name="timer"/> </service>
 			<service name="LOG" label="log"> <child name="log" label="core"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="log_kernel">
+		<binary name="log_core"/>
+		<resource name="RAM" quantum="1M"/>
+		<config period_ms="2000"/>
+		<route>
+			<service name="ROM" label="log"> <parent label="kernel_log"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<service name="LOG" label="log"> <child name="log" label="kernel"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
 	</start>
