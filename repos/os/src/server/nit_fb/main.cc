@@ -229,12 +229,32 @@ struct Nit_fb::Main : View_updater
 
 	Genode::Attached_dataspace input_ds { env.rm(), nitpicker.input()->dataspace() };
 
+	struct Initial_size
+	{
+		unsigned const width  { 0 };
+		unsigned const height { 0 };
+
+		bool set { false };
+
+		Initial_size(Genode::Xml_node config)
+		:
+			width(config.attribute_value("initial_width", 0u)),
+			height(config.attribute_value("initial_height", 0u))
+		{ }
+
+		bool valid() const { return width != 0 && height != 0; }
+	} _initial_size { config_rom.xml() };
+
 	Framebuffer::Mode _initial_mode()
 	{
-		return Framebuffer::Mode(
-			config_rom.xml().attribute_value("width",  (unsigned)nitpicker.mode().width()),
-			config_rom.xml().attribute_value("height", (unsigned)nitpicker.mode().height()),
-			nitpicker.mode().format());
+		unsigned const width  = _initial_size.valid()
+		                      ? _initial_size.width
+		                      : (unsigned)nitpicker.mode().width();
+		unsigned const height = _initial_size.valid()
+		                      ? _initial_size.height
+		                      : (unsigned)nitpicker.mode().height();
+
+		return Framebuffer::Mode(width, height, nitpicker.mode().format());
 	}
 
 	/*
@@ -293,15 +313,35 @@ struct Nit_fb::Main : View_updater
 		         + Point(config.attribute_value("xpos", 0L),
 		                 config.attribute_value("ypos", 0L));
 
+		bool const attr = config.has_attribute("width") ||
+		                  config.has_attribute("height");
+		if (_initial_size.valid() && attr) {
+			Genode::warning("setting both inital and normal attributes not "
+			                " supported, ignore initial size");
+			/* force initial to disable check below */
+			_initial_size.set = true;
+		}
+
+		unsigned const nit_width  = nit_mode.width();
+		unsigned const nit_height = nit_mode.height();
+
 		long width  = config.attribute_value("width",  (long)nit_mode.width()),
 		     height = config.attribute_value("height", (long)nit_mode.height());
 
-		/*
-		 * If configured width / height values are negative, the effective
-		 * width / height is deduced from the screen size.
-		 */
-		if (width  < 0) width  = nit_mode.width()  + width;
-		if (height < 0) height = nit_mode.height() + height;
+		if (!_initial_size.set && _initial_size.valid()) {
+			width  = _initial_size.width;
+			height = _initial_size.height;
+
+			_initial_size.set = true;
+		} else {
+
+			/*
+			 * If configured width / height values are negative, the effective
+			 * width / height is deduced from the screen size.
+			 */
+			if (width  < 0) width  = nit_width  + width;
+			if (height < 0) height = nit_height + height;
+		}
 
 		fb_session.size(Area(width, height));
 
@@ -310,10 +350,6 @@ struct Nit_fb::Main : View_updater
 		 * initial mode the active mode.
 		 */
 		fb_session.mode();
-
-		Genode::log("using xywh=(", position.x(), ",", position.y(),
-		                         ",", fb_session.size().w(),
-		                         ",", fb_session.size().h(), ")");
 	}
 
 	void handle_config_update()

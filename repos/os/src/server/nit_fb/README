@@ -17,3 +17,8 @@ relative to the physical screen size. E.g., when using a screen size of
 640x480, the effective width for a 'width' attribute value of "-100" would
 be 640 - 100 = 540.
 
+In case 'nit_fb' is used in a dynamic fashion, e.g., in combination with a
+window manager, the 'initial_width' and 'initial_height' attributes must be
+used to set the initial dimensions of the frame buffer rather than 'width'
+and 'height'. Mixing those attributes is not supported, 'width' or 'height'
+will have priority.
