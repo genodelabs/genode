@@ -69,12 +69,17 @@ namespace Init {
 		if (!service_matches)
 			return false;
 
+		typedef String<Session_label::capacity()> Label;
+
+		char const *unscoped_attr   = "unscoped_label";
+		char const *label_last_attr = "label_last";
+
 		bool const route_depends_on_child_provided_label =
 			service_node.has_attribute("label") ||
 			service_node.has_attribute("label_prefix") ||
-			service_node.has_attribute("label_suffix");
+			service_node.has_attribute("label_suffix") ||
+			service_node.has_attribute(label_last_attr);
 
-		char const *unscoped_attr = "unscoped_label";
 		if (service_node.has_attribute(unscoped_attr)) {
 
 			/*
@@ -84,9 +89,11 @@ namespace Init {
 			if (route_depends_on_child_provided_label)
 				warning("service node contains both scoped and unscoped label attributes");
 
-			typedef String<Session_label::capacity()> Label;
 			return label == service_node.attribute_value(unscoped_attr, Label());
 		}
+
+		if (service_node.has_attribute(label_last_attr))
+			return service_node.attribute_value(label_last_attr, Label()) == label.last_element();
 
 		if (!route_depends_on_child_provided_label)
 			return true;
