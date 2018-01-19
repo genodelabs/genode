@@ -1,8 +1,6 @@
-<runtime ram="32M" caps="1000">
+<runtime ram="32M" caps="1000" binary="init">
 
 	<timer/>
-
-	<binary name="init"/>
 
 	<rom label="ld.lib.so"/>
 	<rom label="ram_fs"/>

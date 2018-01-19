@@ -344,13 +344,17 @@ void Depot_query::Main::_query_blueprint(Directory::Path const &pkg_path, Xml_ge
 			xml.attribute("name", Archive::name(pkg_path));
 			xml.attribute("path", pkg_path);
 
+			Rom_label const config = node.attribute_value("config", Rom_label());
+			if (config.valid())
+				xml.attribute("config", config);
+
 			Xml_node env_xml = _config.xml().has_sub_node("env")
 			                 ? _config.xml().sub_node("env") : "<env/>";
 
 			node.for_each_sub_node([&] (Xml_node node) {
 
 				/* skip non-rom nodes */
-				if (!node.has_type("rom") && !node.has_type("binary"))
+				if (!node.has_type("rom"))
 					return;
 
 				Rom_label const label = node.attribute_value("label", Rom_label());

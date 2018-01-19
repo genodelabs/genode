@@ -36,6 +36,7 @@ struct Depot_deploy::Main
 
 	typedef String<128> Name;
 	typedef String<80>  Binary;
+	typedef String<80>  Config;
 
 	/**
 	 * Generate start node of init configuration
@@ -73,8 +74,8 @@ struct Depot_deploy::Main
 
 				Xml_node const runtime = pkg.sub_node("runtime");
 
-				if (!runtime.has_sub_node("binary")) {
-					warning("<runtime> node for '", name, "' lacks <binary> node");
+				if (!runtime.has_attribute("binary")) {
+					warning("<runtime> node for '", name, "' lacks 'binary' attribute");
 					return;
 				}
 
@@ -105,7 +106,8 @@ void Depot_deploy::Main::_gen_start_node(Xml_generator &xml, Xml_node pkg, Xml_n
 	Xml_node        const runtime = pkg.sub_node("runtime");
 	size_t          const caps    = runtime.attribute_value("caps", 0UL);
 	Number_of_bytes const ram     = runtime.attribute_value("ram", Number_of_bytes());
-	Binary          const binary  = runtime.sub_node("binary").attribute_value("name", Binary());
+	Binary          const binary  = runtime.attribute_value("binary", Binary());
+	Config          const config  = runtime.attribute_value("config", Config());
 
 	xml.attribute("name", name);
 	xml.attribute("caps", caps);
@@ -123,11 +125,23 @@ void Depot_deploy::Main::_gen_start_node(Xml_generator &xml, Xml_node pkg, Xml_n
 	if (runtime.has_sub_node("config")) {
 		Xml_node config = runtime.sub_node("config");
 		xml.node("config", [&] () {
-			xml.append(config.content_base(), config.content_size());
-		});
+			xml.append(config.content_base(), config.content_size()); });
 	};
 
 	xml.node("route", [&] () {
+
+		/*
+		 * Redirect config ROM request to label given in the 'config'
+		 * attribute.
+		 */
+		if (config.valid()) {
+			xml.node("service", [&] () {
+				xml.attribute("name",  "ROM");
+				xml.attribute("label", "config");
+				xml.node("parent", [&] () {
+					xml.attribute("label", config); });
+			});
+		}
 
 		/*
 		 * Add ROM routing rule with the label rewritten to
@@ -147,8 +161,7 @@ void Depot_deploy::Main::_gen_start_node(Xml_generator &xml, Xml_node pkg, Xml_n
 				xml.attribute("name", "ROM");
 				xml.attribute("label", label);
 				xml.node("parent", [&] () {
-					xml.attribute("label", path);
-				});
+					xml.attribute("label", path); });
 			});
 		});
 
