@@ -29,7 +29,7 @@ struct Depot_deploy::Main
 	Attached_rom_dataspace _config    { _env, "config" };
 	Attached_rom_dataspace _blueprint { _env, "blueprint" };
 
-	Reporter _init_config_reporter { _env, "config", "init.config" };
+	Reporter _init_config_reporter { _env, "config", "init.config", 16*1024 };
 
 	Signal_handler<Main> _config_handler {
 		_env.ep(), *this, &Main::_handle_config };
@@ -144,6 +144,11 @@ void Depot_deploy::Main::_gen_start_node(Xml_generator &xml, Xml_node pkg, Xml_n
 		}
 
 		/*
+		 * Add common routes as defined in our config.
+		 */
+		xml.append(common.content_base(), common.content_size());
+
+		/*
 		 * Add ROM routing rule with the label rewritten to
 		 * the path within the depot.
 		 */
@@ -159,16 +164,11 @@ void Depot_deploy::Main::_gen_start_node(Xml_generator &xml, Xml_node pkg, Xml_n
 
 			xml.node("service", [&] () {
 				xml.attribute("name", "ROM");
-				xml.attribute("label", label);
+				xml.attribute("label_last", label);
 				xml.node("parent", [&] () {
 					xml.attribute("label", path); });
 			});
 		});
-
-		/*
-		 * Add common routes as defined in our config.
-		 */
-		xml.append(common.content_base(), common.content_size());
 	});
 }
 
