@@ -298,9 +298,6 @@ Depot_query::Main::_find_rom_in_pkg(Directory::Path const &pkg_path,
 
 	archives.for_each_line<Archive::Path>([&] (Archive::Path const &archive_path) {
 
-		if (result.valid())
-			return;
-
 		/*
 		 * \throw Archive::Unknown_archive_type
 		 */
@@ -319,11 +316,22 @@ Depot_query::Main::_find_rom_in_pkg(Directory::Path const &pkg_path,
 			break;
 
 		case Archive::RAW:
-			log(" ", archive_path, " (raw-data archive)");
+			{
+				Archive::Path const
+					rom_path(Archive::user(archive_path),    "/raw/",
+					         Archive::name(archive_path),    "/",
+					         Archive::version(archive_path), "/", rom_label);
+
+				if (_depot_dir.file_exists(rom_path))
+					result = rom_path;
+			}
 			break;
 
 		case Archive::PKG:
-			result = _find_rom_in_pkg(pkg_path, rom_label, recursion_limit);
+			Archive::Path const result_from_pkg =
+				_find_rom_in_pkg(archive_path, rom_label, recursion_limit);
+			if (result_from_pkg.valid())
+				result = result_from_pkg;
 			break;
 		}
 	});
