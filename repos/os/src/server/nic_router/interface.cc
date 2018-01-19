@@ -1022,6 +1022,8 @@ Interface::~Interface()
 		_dhcp_allocations.remove(allocation);
 		_destroy_dhcp_allocation(*allocation);
 	}
+	/* dissolve ARP cache entries with the MAC address of this interface */
+	_domain.arp_cache().destroy_entries_with_mac(_mac);
 }
 
 

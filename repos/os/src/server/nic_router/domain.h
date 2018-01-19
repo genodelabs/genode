@@ -98,7 +98,7 @@ class Net::Domain : public Domain_base
 		unsigned long                         _interface_cnt       { 0 };
 		Pointer<Dhcp_server>                  _dhcp_server         { };
 		Genode::Reconstructible<Ipv4_config>  _ip_config;
-		Arp_cache                             _arp_cache           { };
+		Arp_cache                             _arp_cache           { *this };
 		Arp_waiter_list                       _foreign_arp_waiters { };
 		Link_side_tree                        _tcp_links           { };
 		Link_side_tree                        _udp_links           { };

@@ -22,6 +22,7 @@
 
 namespace Net {
 
+	class Domain;
 	class Arp_cache;
 	class Arp_cache_entry;
 	using Arp_cache_entry_slot = Genode::Constructible<Arp_cache_entry>;
@@ -56,6 +57,14 @@ class Net::Arp_cache_entry : public Genode::Avl_node<Arp_cache_entry>
 		 ***************/
 
 		Mac_address const &mac() const { return _mac; }
+		Ipv4_address const &ip() const { return _ip; }
+
+
+		/*********
+		 ** log **
+		 *********/
+
+		void print(Genode::Output &output) const;
 };
 
 
@@ -68,15 +77,20 @@ class Net::Arp_cache : public Genode::Avl_tree<Arp_cache_entry>
 			NR_OF_ENTRIES = ENTRIES_SIZE / sizeof(Arp_cache_entry),
 		};
 
-		Arp_cache_entry_slot _entries[NR_OF_ENTRIES];
-		bool                 _init = true;
-		unsigned             _curr = 0;
+		Domain const         &_domain;
+		Arp_cache_entry_slot  _entries[NR_OF_ENTRIES];
+		bool                  _init = true;
+		unsigned              _curr = 0;
 
 	public:
 
 		struct No_match : Genode::Exception { };
 
+		Arp_cache(Domain const &domain) : _domain(domain) { }
+
 		void new_entry(Ipv4_address const &ip, Mac_address const &mac);
+
+		void destroy_entries_with_mac(Mac_address const &mac);
 
 		Arp_cache_entry const &find_by_ip(Ipv4_address const &ip) const;
 };

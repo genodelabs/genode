@@ -13,6 +13,8 @@
 
 /* local includes */
 #include <arp_cache.h>
+#include <domain.h>
+#include <configuration.h>
 
 using namespace Net;
 using namespace Genode;
@@ -48,6 +50,11 @@ Arp_cache_entry::find_by_ip(Ipv4_address const &ip) const
 	return entry->find_by_ip(ip);
 }
 
+void Arp_cache_entry::print(Output &output) const
+{
+	Genode::print(output, _ip, " > ", _mac);
+}
+
 
 /***************
  ** Arp_cache **
@@ -55,9 +62,15 @@ Arp_cache_entry::find_by_ip(Ipv4_address const &ip) const
 
 void Arp_cache::new_entry(Ipv4_address const &ip, Mac_address const &mac)
 {
-	if (_entries[_curr].constructed()) { remove(&(*_entries[_curr])); }
+	if (_entries[_curr].constructed()) {
+		remove(&(*_entries[_curr]));
+	}
 	_entries[_curr].construct(ip, mac);
-	insert(&(*_entries[_curr]));
+	Arp_cache_entry &entry = *_entries[_curr];
+	insert(&entry);
+	if (_domain.config().verbose()) {
+		log("[", _domain, "] new ARP entry ", entry);
+	}
 	if (_curr < NR_OF_ENTRIES - 1) {
 		_curr++;
 	} else {
@@ -72,4 +85,23 @@ Arp_cache_entry const &Arp_cache::find_by_ip(Ipv4_address const &ip) const
 		throw No_match(); }
 
 	return first()->find_by_ip(ip);
+}
+
+
+void Arp_cache::destroy_entries_with_mac(Mac_address const &mac)
+{
+	for (unsigned curr = 0; curr < NR_OF_ENTRIES; curr++) {
+		try {
+			Arp_cache_entry &entry = *_entries[curr];
+			if (entry.mac() != mac) {
+				continue;
+			}
+			if (_domain.config().verbose()) {
+				log("[", _domain, "] destroy ARP entry ", entry);
+			}
+			remove(&entry);
+			_entries[curr].destruct();
+
+		} catch (Arp_cache_entry_slot::Deref_unconstructed_object) { }
+	}
 }
