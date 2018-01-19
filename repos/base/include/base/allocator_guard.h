@@ -15,7 +15,6 @@
 #define _INCLUDE__BASE__ALLOCATOR_GUARD_H_
 
 #include <base/allocator.h>
-#include <base/log.h>
 #include <base/stdint.h>
 
 namespace Genode { class Allocator_guard; }
@@ -76,12 +75,9 @@ class Genode::Allocator_guard : public Allocator
 		 */
 		bool alloc(size_t size, void **out_addr) override
 		{
-			if ((_amount - _consumed) < (size + _allocator->overhead(size))) {
-				warning("Quota exceeded! amount=", _amount,
-				        ", size=", (size + _allocator->overhead(size)),
-				        ", consumed=", _consumed);
+			if ((_amount - _consumed) < (size + _allocator->overhead(size)))
 				return false;
-			}
+
 			bool const b = _allocator->alloc(size, out_addr);
 			if (b)
 				_consumed += size + _allocator->overhead(size);
