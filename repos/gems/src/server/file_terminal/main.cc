@@ -292,8 +292,6 @@ struct Main
 	{
 		using namespace Genode;
 
-		Genode::log("--- file terminal started ---");
-
 		/* announce service at our parent */
 		_env.parent().announce(env.ep().manage(_root));
 	}
