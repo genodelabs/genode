@@ -216,10 +216,6 @@ void App::Main::_handle_config()
 	_report_affinity = _config_report_attribute_enabled("affinity");
 	_report_activity = _config_report_attribute_enabled("activity");
 
-	log("period_ms=",       _period_ms,       ", "
-	    "report_activity=", _report_activity, ", "
-	    "report_affinity=", _report_affinity);
-
 	_timer.trigger_periodic(1000*_period_ms);
 }
 

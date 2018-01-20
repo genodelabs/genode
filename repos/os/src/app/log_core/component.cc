@@ -111,8 +111,6 @@ struct Monitor
 			period_ms = config.xml().attribute_value("period_ms", 1000UL);
 		} catch (...) { }
 
-		Genode::log("update every ", period_ms," ms");
-
 		timer.trigger_periodic(1000UL * period_ms);
 	}
 

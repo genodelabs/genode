@@ -312,8 +312,6 @@ void App::Main::_handle_config()
 
 	_period_ms = _config.xml().attribute_value("period_ms", _default_period_ms());
 
-	log("period_ms=", _period_ms);
-
 	_timer.trigger_periodic(1000*_period_ms);
 }
 
