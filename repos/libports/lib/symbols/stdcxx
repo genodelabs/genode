@@ -624,6 +624,9 @@ _ZTISt16invalid_argument V
 _ZTVSt16invalid_argument V
 _ZTISt8ios_base V
 _ZTISt7codecvtIcc11__mbstate_tE V
+_ZTISt13runtime_error V
+_ZTISt11regex_error V
+_ZTVSt11regex_error V
 
 # manually added template-related symbols
 
