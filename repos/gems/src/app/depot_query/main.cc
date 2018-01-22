@@ -152,6 +152,8 @@ struct Depot_query::Main
 
 	Attached_rom_dataspace _config { _env, "config" };
 
+	Constructible<Attached_rom_dataspace> _query_rom { };
+
 	Root_directory _root { _env, _heap, _config.xml().sub_node("vfs") };
 
 	Directory _depot_dir { _root, "depot" };
@@ -191,23 +193,44 @@ struct Depot_query::Main
 	{
 		_config.update();
 
-		Xml_node config = _config.xml();
+		Xml_node const config = _config.xml();
 
-		_directory_reporter   .enabled(config.has_sub_node("scan"));
-		_blueprint_reporter   .enabled(config.has_sub_node("blueprint"));
-		_dependencies_reporter.enabled(config.has_sub_node("dependencies"));
-		_user_reporter        .enabled(config.has_sub_node("user"));
+		/*
+		 * Depending of the 'query' config attribute, we obtain the query
+		 * information from a separate ROM session (attribute value "rom")
+		 * or from the depot_querty '<config>'.
+		 */
+		bool const query_from_rom =
+			(config.attribute_value("query", String<5>()) == "rom");
+
+		if (query_from_rom && !_query_rom.constructed()) {
+			_query_rom.construct(_env, "query");
+			_query_rom->sigh(_config_handler);
+		}
+
+		if (!query_from_rom && _query_rom.constructed())
+			_query_rom.destruct();
+
+		if (query_from_rom)
+			_query_rom->update();
+
+		Xml_node const query = (query_from_rom ? _query_rom->xml() : config);
+
+		_directory_reporter   .enabled(query.has_sub_node("scan"));
+		_blueprint_reporter   .enabled(query.has_sub_node("blueprint"));
+		_dependencies_reporter.enabled(query.has_sub_node("dependencies"));
+		_user_reporter        .enabled(query.has_sub_node("user"));
 
 		_root.apply_config(config.sub_node("vfs"));
 
-		if (!config.has_attribute("arch"))
-			warning("config lacks 'arch' attribute");
+		if (!query.has_attribute("arch"))
+			warning("query lacks 'arch' attribute");
 
-		_architecture = config.attribute_value("arch", Architecture());
+		_architecture = query.attribute_value("arch", Architecture());
 
 		if (_directory_reporter.enabled()) {
 			Reporter::Xml_generator xml(_directory_reporter, [&] () {
-				config.for_each_sub_node("scan", [&] (Xml_node node) {
+				query.for_each_sub_node("scan", [&] (Xml_node node) {
 					Archive::User const user = node.attribute_value("user", Archive::User());
 					Directory::Path path("depot/", user, "/pkg");
 					Directory pkg_dir(_root, path);
@@ -218,7 +241,7 @@ struct Depot_query::Main
 
 		if (_blueprint_reporter.enabled()) {
 			Reporter::Xml_generator xml(_blueprint_reporter, [&] () {
-				config.for_each_sub_node("blueprint", [&] (Xml_node node) {
+				query.for_each_sub_node("blueprint", [&] (Xml_node node) {
 					Archive::Path pkg = node.attribute_value("pkg", Archive::Path());
 					try { _query_blueprint(pkg, xml); }
 					catch (...) {
@@ -230,10 +253,8 @@ struct Depot_query::Main
 
 		if (_dependencies_reporter.enabled()) {
 			Reporter::Xml_generator xml(_dependencies_reporter, [&] () {
-
 				Dependencies dependencies(_heap, _depot_dir);
-
-				config.for_each_sub_node("dependencies", [&] (Xml_node node) {
+				query.for_each_sub_node("dependencies", [&] (Xml_node node) {
 
 					Archive::Path const path = node.attribute_value("path", Archive::Path());
 
@@ -249,7 +270,7 @@ struct Depot_query::Main
 
 		if (_user_reporter.enabled()) {
 			Reporter::Xml_generator xml(_user_reporter, [&] () {
-				config.for_each_sub_node("user", [&] (Xml_node node) {
+				query.for_each_sub_node("user", [&] (Xml_node node) {
 					_query_user(node.attribute_value("name", Archive::User()), xml); });
 			});
 		}
