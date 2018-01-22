@@ -85,7 +85,7 @@ if {[have_spec x86]} {
 #
 # Build Noux packages only once
 #
-set noux_pkgs "bash coreutils vim grep sed findutils make which $binutils $gcc"
+set noux_pkgs "bash coreutils vim grep sed findutils make which $binutils $gcc tclsh"
 
 foreach pkg $noux_pkgs {
 	lappend_if [expr ![file exists bin/$pkg]] build_components noux-pkg/$pkg }
@@ -109,6 +109,7 @@ puts $bash_profile_fd {
 cp /bin/make /usr/bin/
 cp /bin/echo /usr/bin/
 cp /bin/mkdir /usr/bin/
+cp /bin/tclsh /usr/bin/
 echo 'creating build directory...'
 mkdir -p "/home/build"
 cp -r /genode/depot /home/build
@@ -233,7 +234,12 @@ append config {
 					<tar name="genode.tar" />
 				</dir>
 
-				<dir name="bin"> <symlink name="sh" target="bash"/> </dir>
+				<dir name="bin">
+} append config "
+					<symlink name=\"nm\" target=\"${tool_prefix}nm\"/>
+" append config {
+					<symlink name="sh" target="bash"/>
+				</dir>
 
 				<dir name="share"> <dir name="vim"> <rom name="vimrc"/> </dir> </dir>
 
