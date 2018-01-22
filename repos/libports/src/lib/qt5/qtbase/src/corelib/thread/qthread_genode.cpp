@@ -403,6 +403,7 @@ void *QThreadPrivate::start(void *arg)
 
 #ifdef Q_OS_GENODE
     QThread::setTerminationEnabled(true);
+    emit thr->started(QThread::QPrivateSignal());
 #else
 #if (defined(Q_OS_LINUX) || defined(Q_OS_MAC) || defined(Q_OS_QNX))
     {
