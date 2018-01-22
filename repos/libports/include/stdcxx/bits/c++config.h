@@ -1361,7 +1361,7 @@ namespace std
 
 /* Define if C99 functions or macros in <stdlib.h> should be imported in
    <cstdlib> in namespace std for C++11. */
-/* #undef _GLIBCXX11_USE_C99_STDLIB */
+#define _GLIBCXX11_USE_C99_STDLIB 1
 
 /* Define if C99 functions or macros in <wchar.h> should be imported in
    <cwchar> in namespace std for C++11. */

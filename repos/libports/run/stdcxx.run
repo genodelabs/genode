@@ -34,3 +34,16 @@ build_boot_image {
 append qemu_args " -nographic  "
 
 run_genode_until ".*test-stdcxx finished.*\n" 20
+
+grep_output {^\[init }
+
+compare_output_to {
+[init -> test-stdcxx] ° °° °°° test-stdcxx started °°° °° °
+[init -> test-stdcxx] 2015.000000 - 5.000000 - 4
+[init -> test-stdcxx] 2015 - 5 - 4
+[init -> test-stdcxx] 123
+[init -> test-stdcxx] 456
+[init -> test-stdcxx] 7.8
+[init -> test-stdcxx] caught std::invalid_argument
+[init -> test-stdcxx] ° °° °°° test-stdcxx finished °°° °° °
+}
