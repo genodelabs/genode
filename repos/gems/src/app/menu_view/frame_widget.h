@@ -47,17 +47,18 @@ struct Menu_view::Frame_widget : Widget
 		/*
 		 * layout
 		 */
-		if (Widget *child = _children.first())
-			child->geometry(Rect(Point(margin.left + padding.left,
-			                           margin.top  + padding.top),
-			                     child->min_size()));
+		_children.for_each([&] (Widget &child) {
+			child.geometry(Rect(Point(margin.left + padding.left,
+			                          margin.top  + padding.top),
+			                    child.min_size())); });
 	}
 
 	Area min_size() const override
 	{
-		/* determine minimum child size */
-		Widget const * const child = _children.first();
-		Area const child_min_size = child ? child->min_size() : Area(0, 0);
+		/* determine minimum child size (there is only one child) */
+		Area child_min_size(0, 0);
+		_children.for_each([&] (Widget const &child) {
+			child_min_size = child.min_size(); });
 
 		/* don't get smaller than the background texture */
 		Area const texture_size = texture ? texture->size() : Area(0, 0);
@@ -81,9 +82,9 @@ struct Menu_view::Frame_widget : Widget
 
 	void _layout() override
 	{
-		if (Widget *child = _children.first())
-			child->size(Area(geometry().w() - _space().w(),
-			                 geometry().h() - _space().h()));
+		_children.for_each([&] (Widget &child) {
+			child.size(Area(geometry().w() - _space().w(),
+			                geometry().h() - _space().h())); });
 	}
 };
 

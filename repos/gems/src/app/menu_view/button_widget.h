@@ -85,17 +85,19 @@ struct Menu_view::Button_widget : Widget, Animator::Item
 
 		bool const dy = selected ? 1 : 0;
 
-		if (Widget *child = _children.first())
-			child->geometry(Rect(Point(margin.left + padding.left,
-			                           margin.top  + padding.top + dy),
-			                     child->min_size()));
+		_children.for_each([&] (Widget &child) {
+			child.geometry(Rect(Point(margin.left + padding.left,
+			                          margin.top  + padding.top + dy),
+			                    child.min_size()));
+		});
 	}
 
 	Area min_size() const override
 	{
 		/* determine minimum child size */
-		Widget const * const child = _children.first();
-		Area const child_min_size = child ? child->min_size() : Area(300, 10);
+		Area child_min_size(300, 10);
+		_children.for_each([&] (Widget const &child) {
+			child_min_size = child.min_size(); });
 
 		/* don't get smaller than the background texture */
 		Area const texture_size = default_texture->size();
@@ -140,9 +142,9 @@ struct Menu_view::Button_widget : Widget, Animator::Item
 
 	void _layout() override
 	{
-		for (Widget *w = _children.first(); w; w = w->next())
-			w->size(Area(geometry().w() - _space().w(),
-			             geometry().h() - _space().h()));
+		_children.for_each([&] (Widget &w) {
+			w.size(Area(geometry().w() - _space().w(),
+			            geometry().h() - _space().h())); });
 	}
 
 

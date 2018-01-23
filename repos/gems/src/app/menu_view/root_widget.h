@@ -29,10 +29,12 @@ struct Menu_view::Root_widget : Widget
 
 	Area animated_size() const
 	{
-		if (Widget const * const child = _children.first())
-			return child->animated_geometry().area();
+		Area result(1, 1);
 
-		return Area(1, 1);
+		_children.for_each([&] (Widget const &child) {
+			result = child.animated_geometry().area(); });
+
+		return result;
 	}
 
 	void update(Xml_node node) override
@@ -51,16 +53,18 @@ struct Menu_view::Root_widget : Widget
 
 		_update_children(node);
 
-		if (Widget *child = _children.first())
-			child->geometry(Rect(Point(0, 0), child->min_size()));
+		_children.for_each([&] (Widget &child) {
+			child.geometry(Rect(Point(0, 0), child.min_size())); });
 	}
 
 	Area min_size() const override
 	{
-		if (Widget const * const child = _children.first())
-			return child->min_size();
+		Area result(1, 1);
 
-		return Area(1, 1);
+		_children.for_each([&] (Widget const &child) {
+			result = child.min_size(); });
+
+		return result;
 	}
 
 	void draw(Surface<Pixel_rgb888> &pixel_surface,
@@ -72,10 +76,10 @@ struct Menu_view::Root_widget : Widget
 
 	void _layout() override
 	{
-		if (Widget *child = _children.first())  {
-			child->size(geometry().area());
-			child->position(Point(0, 0));
-		}
+		_children.for_each([&] (Widget &child) {
+			child.size(geometry().area());
+			child.position(Point(0, 0));
+		});
 	}
 };
 

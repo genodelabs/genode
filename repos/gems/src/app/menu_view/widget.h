@@ -16,10 +16,10 @@
 
 /* Genode includes */
 #include <util/xml_generator.h>
+#include <util/list_model.h>
 
 /* local includes */
 #include <widget_factory.h>
-#include <list_model_from_xml.h>
 #include <animated_geometry.h>
 
 namespace Menu_view {
@@ -45,7 +45,7 @@ struct Menu_view::Margin
 };
 
 
-class Menu_view::Widget : public List<Widget>::Element
+class Menu_view::Widget : public List_model<Widget>::Element
 {
 	public:
 
@@ -99,9 +99,9 @@ class Menu_view::Widget : public List<Widget>::Element
 
 		Widget_factory &_factory;
 
-		List<Widget> _children;
+		List_model<Widget> _children;
 
-		struct Model_update_policy : List_model_update_policy<Widget>
+		struct Model_update_policy : List_model<Widget>::Update_policy
 		{
 			Widget_factory &_factory;
 
@@ -129,15 +129,15 @@ class Menu_view::Widget : public List<Widget>::Element
 
 		inline void _update_children(Xml_node node)
 		{
-			update_list_model_from_xml(_model_update_policy, _children, node);
+			_children.update_from_xml(_model_update_policy, node);
 		}
 
 		void _draw_children(Surface<Pixel_rgb888> &pixel_surface,
 		                    Surface<Pixel_alpha8> &alpha_surface,
 		                    Point at) const
 		{
-			for (Widget const *w = _children.first(); w; w = w->next())
-				w->draw(pixel_surface, alpha_surface, at + w->_animated_geometry.p1());
+			_children.for_each([&] (Widget const &w) {
+				w.draw(pixel_surface, alpha_surface, at + w._animated_geometry.p1()); });
 		}
 
 		virtual void _layout() { }
@@ -192,10 +192,7 @@ class Menu_view::Widget : public List<Widget>::Element
 
 		virtual ~Widget()
 		{
-			while (Widget *w = _children.first()) {
-				_children.remove(w);
-				_model_update_policy.destroy_element(*w);
-			}
+			_children.destroy_all_elements(_model_update_policy);
 		}
 
 		bool has_name(Name const &name) const { return name == _name; }
@@ -230,11 +227,12 @@ class Menu_view::Widget : public List<Widget>::Element
 			if (!_inner_geometry().contains(at))
 				return Unique_id();
 
-			for (Widget const *w = _children.first(); w; w = w->next()) {
-				Unique_id res = w->hovered(at - w->geometry().p1());
-				if (res.valid())
-					return res;
-			}
+			Unique_id result { };
+			_children.for_each([&] (Widget const &w) {
+				Unique_id const id = w.hovered(at - w.geometry().p1());
+				if (id.valid())
+					result = id;
+			});
 
 			return _unique_id;
 		}
@@ -256,9 +254,8 @@ class Menu_view::Widget : public List<Widget>::Element
 					xml.attribute("width",  geometry().w());
 					xml.attribute("height", geometry().h());
 
-					for (Widget const *w = _children.first(); w; w = w->next()) {
-						w->gen_hover_model(xml, at - w->geometry().p1());
-					}
+					_children.for_each([&] (Widget const &w) {
+						w.gen_hover_model(xml, at - w.geometry().p1()); });
 				});
 			}
 		}

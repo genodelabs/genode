@@ -44,31 +44,31 @@ struct Menu_view::Box_layout_widget : Widget
 
 		/* determine largest size among our children */
 		unsigned largest_size = 0;
-		for (Widget *w = _children.first(); w; w = w->next())
+		_children.for_each([&] (Widget const &w) {
 			largest_size =
-				max(largest_size, _direction == VERTICAL ? w->min_size().w()
-				                                         : w->min_size().h());
+				max(largest_size, _direction == VERTICAL ? w.min_size().w()
+				                                         : w.min_size().h()); });
 
 		/* position children on one row/column */
 		Point position(0, 0);
-		for (Widget *w = _children.first(); w; w = w->next()) {
+		_children.for_each([&] (Widget &w) {
 
-			Area const child_min_size = w->min_size();
+			Area const child_min_size = w.min_size();
 
 			if (_direction == VERTICAL) {
-				w->geometry(Rect(position, Area(largest_size, child_min_size.h())));
-				unsigned const next_top_margin = w->next() ? w->next()->margin.top : 0;
-				unsigned const dy = child_min_size.h() - min(w->margin.bottom, next_top_margin);
+				w.geometry(Rect(position, Area(largest_size, child_min_size.h())));
+				unsigned const next_top_margin = w.next() ? w.next()->margin.top : 0;
+				unsigned const dy = child_min_size.h() - min(w.margin.bottom, next_top_margin);
 				position = position + Point(0, dy);
 			} else {
-				w->geometry(Rect(position, Area(child_min_size.w(), largest_size)));
-				unsigned const next_left_margin = w->next() ? w->next()->margin.left : 0;
-				unsigned const dx = child_min_size.w() - min(w->margin.right, next_left_margin);
+				w.geometry(Rect(position, Area(child_min_size.w(), largest_size)));
+				unsigned const next_left_margin = w.next() ? w.next()->margin.left : 0;
+				unsigned const dx = child_min_size.w() - min(w.margin.right, next_left_margin);
 				position = position + Point(dx, 0);
 			}
 
-			_min_size = Area(w->geometry().x2() + 1, w->geometry().y2() + 1);
-		}
+			_min_size = Area(w.geometry().x2() + 1, w.geometry().y2() + 1);
+		});
 	}
 
 	Area min_size() const override
@@ -85,12 +85,12 @@ struct Menu_view::Box_layout_widget : Widget
 
 	void _layout() override
 	{
-		for (Widget *w = _children.first(); w; w = w->next()) {
+		_children.for_each([&] (Widget &w) {
 			if (_direction == VERTICAL)
-				w->size(Area(geometry().w(), w->min_size().h()));
+				w.size(Area(geometry().w(), w.min_size().h()));
 			else
-				w->size(Area(w->min_size().w(), geometry().h()));
-		}
+				w.size(Area(w.min_size().w(), geometry().h()));
+		});
 	}
 };
 

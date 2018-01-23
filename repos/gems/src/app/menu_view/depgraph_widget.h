@@ -377,7 +377,7 @@ struct Menu_view::Depgraph_widget : Widget
 	 * Customized model-update policy that augments the list of child widgets
 	 * with their graph-node topology
 	 */
-	struct Model_update_policy : List_model_update_policy<Widget>
+	struct Model_update_policy : List_model<Widget>::Update_policy
 	{
 		Widget::Model_update_policy &_generic_model_update_policy;
 		Allocator                   &_alloc;
@@ -440,10 +440,7 @@ struct Menu_view::Depgraph_widget : Widget
 
 	~Depgraph_widget()
 	{
-		while (Widget *w = _children.first()) {
-			_children.remove(w);
-			_model_update_policy.destroy_element(*w);
-		}
+		_children.destroy_all_elements(_model_update_policy);
 	}
 
 	void update(Xml_node node) override
@@ -459,7 +456,7 @@ struct Menu_view::Depgraph_widget : Widget
 			if (dir_name == "west")  _depth_direction = { Depth_direction::WEST  };
 		}
 
-		update_list_model_from_xml(_model_update_policy, _children, node);
+		_children.update_from_xml(_model_update_policy, node);
 
 		/*
 		 * Import dependencies
@@ -511,9 +508,9 @@ struct Menu_view::Depgraph_widget : Widget
 		 *
 		 * The computation depends on the order of '_children'.
 		 */
-		for (Widget *w = _children.first(); w; w = w->next()) {
+		_children.for_each([&] (Widget &w) {
 			_nodes.for_each([&] (Registered_node &node) {
-				if (!node.belongs_to(*w))
+				if (!node.belongs_to(w))
 					return;
 
 				apply_to_primary_dependency(node, [&] (Node &parent) {
@@ -525,16 +522,15 @@ struct Menu_view::Depgraph_widget : Widget
 						node.breadth_size(_depth_direction);
 				});
 			});
-		}
+		});
 
 		/*
 		 * Apply layout to the children, determine _min_size
 		 */
 		Rect bounding_box(Point(0, 0), Area(0, 0));
-		for (Widget *w = _children.first(); w; w = w->next()) {
-
+		_children.for_each([&] (Widget &w) {
 			_nodes.for_each([&] (Registered_node &node) {
-				if (!node.belongs_to(*w))
+				if (!node.belongs_to(w))
 					return;
 
 				int const depth_pos    = node.depth_pos(_depth_direction),
@@ -548,11 +544,11 @@ struct Menu_view::Depgraph_widget : Widget
 				                     : Rect(Point(breadth_pos, depth_pos),
 				                            Area(breadth_size, depth_size));
 
-				w->geometry(Rect(node_rect.center(w->min_size()), w->min_size()));
+				w.geometry(Rect(node_rect.center(w.min_size()), w.min_size()));
 
-				bounding_box = Rect::compound(bounding_box, w->geometry());
+				bounding_box = Rect::compound(bounding_box, w.geometry());
 			});
-		}
+		});
 
 		/*
 		 * Mirror coordinates if graph grows towards north or west
@@ -560,18 +556,18 @@ struct Menu_view::Depgraph_widget : Widget
 		if (_depth_direction.value == Depth_direction::NORTH
 		 || _depth_direction.value == Depth_direction::WEST) {
 
-			for (Widget *w = _children.first(); w; w = w->next()) {
+			_children.for_each([&] (Widget &w) {
 
-				int x = w->geometry().x1(), y = w->geometry().y1();
+				int x = w.geometry().x1(), y = w.geometry().y1();
 
 				if (_depth_direction.value == Depth_direction::NORTH)
-					y = (int)bounding_box.h() - y - w->geometry().h();
+					y = (int)bounding_box.h() - y - w.geometry().h();
 
 				if (_depth_direction.value == Depth_direction::WEST)
-					x = (int)bounding_box.w() - x - w->geometry().w();
+					x = (int)bounding_box.w() - x - w.geometry().w();
 
-				w->geometry(Rect(Point(x, y), w->geometry().area()));
-			}
+				w.geometry(Rect(Point(x, y), w.geometry().area()));
+			});
 		}
 		_min_size = bounding_box.area();
 	}
@@ -657,8 +653,8 @@ struct Menu_view::Depgraph_widget : Widget
 
 	void _layout() override
 	{
-		for (Widget *w = _children.first(); w; w = w->next())
-			w->size(w->geometry().area());
+		_children.for_each([&] (Widget &w) {
+			w.size(w.geometry().area()); });
 	}
 };
 
