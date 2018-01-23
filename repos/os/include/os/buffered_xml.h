@@ -11,16 +11,16 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _SRC__INIT__BUFFERED_XML_H_
-#define _SRC__INIT__BUFFERED_XML_H_
+#ifndef _OS__BUFFERED_XML_H_
+#define _OS__BUFFERED_XML_H_
 
 /* Genode includes */
 #include <util/xml_node.h>
 
-namespace Init { class Buffered_xml; }
+namespace Genode { class Buffered_xml; }
 
 
-class Init::Buffered_xml
+class Genode::Buffered_xml
 {
 	private:
 
@@ -61,4 +61,4 @@ class Init::Buffered_xml
 		Xml_node xml() const { return _xml; }
 };
 
-#endif /* _SRC__INIT__BUFFERED_XML_H_ */
+#endif /* _OS__BUFFERED_XML_H_ */

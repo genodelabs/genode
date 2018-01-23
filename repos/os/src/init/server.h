@@ -16,11 +16,11 @@
 
 /* Genode includes */
 #include <base/attached_rom_dataspace.h>
+#include <os/buffered_xml.h>
 
 /* local includes */
 #include "types.h"
 #include "service.h"
-#include "buffered_xml.h"
 #include "state_reporter.h"
 
 namespace Init { class Server; }

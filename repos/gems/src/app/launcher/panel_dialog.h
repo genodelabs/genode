@@ -16,6 +16,7 @@
 
 /* Genode includes */
 #include <timer_session/connection.h>
+#include <os/buffered_xml.h>
 
 /* local includes */
 #include <fading_dialog.h>
@@ -49,37 +50,6 @@ class Launcher::Panel_dialog : Input_event_handler, Dialog_generator,
 		};
 
 		Genode::Allocator &_alloc;
-
-		struct Buffered_xml
-		{
-			Allocator         &_alloc;
-			char const * const _ptr;   /* pointer to dynamically allocated buffer */
-			Xml_node     const _xml;   /* referring to buffer of '_ptr' */
-
-			/**
-			 * \throw Allocator::Out_of_memory
-			 */
-			static char const *_init_ptr(Allocator &alloc, Xml_node node)
-			{
-				char *ptr = (char *)alloc.alloc(node.size());
-				Genode::memcpy(ptr, node.addr(), node.size());
-				return ptr;
-			}
-
-			/**
-			 * Constructor
-			 *
-			 * \throw Allocator::Out_of_memory
-			 */
-			Buffered_xml(Allocator &alloc, Xml_node node)
-			:
-				_alloc(alloc), _ptr(_init_ptr(alloc, node)), _xml(_ptr, node.size())
-			{ }
-
-			~Buffered_xml() { _alloc.free(const_cast<char *>(_ptr), _xml.size()); }
-
-			Xml_node xml() const { return _xml; }
-		};
 
 		Constructible<Buffered_xml> _config;
 

@@ -19,12 +19,12 @@
 #include <base/child.h>
 #include <os/session_requester.h>
 #include <os/session_policy.h>
+#include <os/buffered_xml.h>
 
 /* local includes */
 #include <types.h>
 #include <verbose.h>
 #include <report.h>
-#include <buffered_xml.h>
 #include <name_registry.h>
 #include <service.h>
 #include <utils.h>

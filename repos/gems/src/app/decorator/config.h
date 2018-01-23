@@ -17,6 +17,7 @@
 /* Genode includes */
 #include <util/reconstructible.h>
 #include <os/session_policy.h>
+#include <os/buffered_xml.h>
 #include <util/color.h>
 
 /* decorator includes */
@@ -81,40 +82,9 @@ class Decorator::Config
 
 	private:
 
-		struct Buffered_xml
-		{
-			Allocator         &_alloc;
-			char const * const _ptr;   /* pointer to dynamically allocated buffer */
-			Xml_node     const _xml;   /* referring to buffer of '_ptr' */
-
-			/**
-			 * \throw Allocator::Out_of_memory
-			 */
-			static char const *_init_ptr(Allocator &alloc, Xml_node node)
-			{
-				char *ptr = (char *)alloc.alloc(node.size());
-				Genode::memcpy(ptr, node.addr(), node.size());
-				return ptr;
-			}
-
-			/**
-			 * Constructor
-			 *
-			 * \throw Allocator::Out_of_memory
-			 */
-			Buffered_xml(Allocator &alloc, Xml_node node)
-			:
-				_alloc(alloc), _ptr(_init_ptr(alloc, node)), _xml(_ptr, node.size())
-			{ }
-
-			~Buffered_xml() { _alloc.free(const_cast<char *>(_ptr), _xml.size()); }
-
-			Xml_node xml() const { return _xml; }
-		};
-
 		Genode::Allocator &_alloc;
 
-		Reconstructible<Buffered_xml> _buffered_config;
+		Reconstructible<Genode::Buffered_xml> _buffered_config;
 
 		/**
 		 * Maximum number of configured window controls
