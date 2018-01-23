@@ -15,7 +15,6 @@
 #define _INCLUDE__BASE__TRACE__BUFFER_H_
 
 #include <base/stdint.h>
-#include <base/thread.h>
 #include <cpu_session/cpu_session.h>
 
 namespace Genode { namespace Trace { class Buffer; } }
