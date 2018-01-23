@@ -12,14 +12,81 @@
  */
 
 /* Genode includes */
+#include <util/retry.h>
 #include <base/component.h>
 #include <base/attached_rom_dataspace.h>
+#include <base/heap.h>
 #include <os/reporter.h>
 
+/* local includes */
+#include "child.h"
+
 namespace Depot_deploy {
-	using namespace Genode;
+	struct Children;
 	struct Main;
 }
+
+
+class Depot_deploy::Children
+{
+	private:
+
+		Allocator &_alloc;
+
+		List_model<Child> _children { };
+
+		struct Model_update_policy : List_model<Child>::Update_policy
+		{
+			Allocator &_alloc;
+
+			Model_update_policy(Allocator &alloc) : _alloc(alloc) { }
+
+			void destroy_element(Child &c) { destroy(_alloc, &c); }
+
+			Child &create_element(Xml_node node)
+			{
+				return *new (_alloc) Child(_alloc, node);
+			}
+
+			void update_element(Child &c, Xml_node node) { c.apply_config(node); }
+
+			static bool element_matches_xml_node(Child const &child, Xml_node node)
+			{
+				return node.attribute_value("name", Child::Name()) == child.name();
+			}
+
+			static bool node_is_element(Xml_node node) { return node.has_type("start"); }
+
+		} _model_update_policy { _alloc };
+
+	public:
+
+		Children(Allocator &alloc) : _alloc(alloc) { }
+
+		void apply_config(Xml_node config)
+		{
+			_children.update_from_xml(_model_update_policy, config);
+		}
+
+		void apply_blueprint(Xml_node blueprint)
+		{
+			blueprint.for_each_sub_node("pkg", [&] (Xml_node pkg) {
+				_children.for_each([&] (Child &child) {
+					child.apply_blueprint(pkg); }); });
+		}
+
+		void gen_start_nodes(Xml_generator &xml, Xml_node common)
+		{
+			_children.for_each([&] (Child const &child) {
+				child.gen_start_node(xml, common); });
+		}
+
+		void gen_queries(Xml_generator &xml)
+		{
+			_children.for_each([&] (Child const &child) {
+				child.gen_query(xml); });
+		}
+};
 
 
 struct Depot_deploy::Main
@@ -29,148 +96,61 @@ struct Depot_deploy::Main
 	Attached_rom_dataspace _config    { _env, "config" };
 	Attached_rom_dataspace _blueprint { _env, "blueprint" };
 
-	Reporter _init_config_reporter { _env, "config", "init.config", 16*1024 };
+	Expanding_reporter _query_reporter       { _env, "query" , "query"};
+	Expanding_reporter _init_config_reporter { _env, "config", "init.config"};
+
+	size_t _query_buffer_size       = 4096;
+	size_t _init_config_buffer_size = 4096;
+
+	Heap _heap { _env.ram(), _env.rm() };
+
+	Children _children { _heap };
 
 	Signal_handler<Main> _config_handler {
 		_env.ep(), *this, &Main::_handle_config };
 
 	typedef String<128> Name;
-	typedef String<80>  Binary;
-	typedef String<80>  Config;
-
-	/**
-	 * Generate start node of init configuration
-	 *
-	 * \param pkg     pkg node of the subsystem blueprint
-	 * \param common  session routes to be added in addition to the ones
-	 *                found in the pkg blueprint
-	 */
-	static void _gen_start_node(Xml_generator &, Xml_node pkg, Xml_node common);
 
 	void _handle_config()
 	{
 		_config.update();
 		_blueprint.update();
 
-		Xml_node const config    = _config.xml();
-		Xml_node const blueprint = _blueprint.xml();
+		Xml_node const config = _config.xml();
 
-		Reporter::Xml_generator xml(_init_config_reporter, [&] () {
+		_children.apply_config(config);
+		_children.apply_blueprint(_blueprint.xml());
 
+		/* determine CPU architecture of deployment */
+		typedef String<16> Arch;
+		Arch const arch = config.attribute_value("arch", Arch());
+		if (!arch.valid())
+			warning("config lacks 'arch' attribute");
+
+		/* generate init config containing all configured start nodes */
+		_init_config_reporter.generate([&] (Xml_generator &xml) {
 			Xml_node static_config = config.sub_node("static");
 			xml.append(static_config.content_base(), static_config.content_size());
-
-			blueprint.for_each_sub_node("pkg", [&] (Xml_node pkg) {
-
-				/*
-				 * Check preconditions for generating a '<start>' node.
-				 */
-				Name const name = pkg.attribute_value("name", Name());
-
-				if (!pkg.has_sub_node("runtime")) {
-					warning("<pkg> node for '", name, "' lacks <runtime> node");
-					return;
-				}
-
-				Xml_node const runtime = pkg.sub_node("runtime");
-
-				if (!runtime.has_attribute("binary")) {
-					warning("<runtime> node for '", name, "' lacks 'binary' attribute");
-					return;
-				}
-
-				xml.node("start", [&] () {
-					_gen_start_node(xml, pkg, config.sub_node("common_routes"));
-				});
-			});
+			_children.gen_start_nodes(xml, config.sub_node("common_routes"));
 		});
+
+		/* update query for blueprints of all unconfigured start nodes */
+		if (arch.valid()) {
+			_query_reporter.generate([&] (Xml_generator &xml) {
+				xml.attribute("arch", arch);
+				_children.gen_queries(xml);
+			});
+		}
 	}
 
 	Main(Env &env) : _env(env)
 	{
-		_init_config_reporter.enabled(true);
-
 		_config   .sigh(_config_handler);
 		_blueprint.sigh(_config_handler);
 
 		_handle_config();
 	}
 };
-
-
-void Depot_deploy::Main::_gen_start_node(Xml_generator &xml, Xml_node pkg, Xml_node common)
-{
-	typedef String<80> Name;
-
-	Name            const name    = pkg.attribute_value("name", Name());
-	Xml_node        const runtime = pkg.sub_node("runtime");
-	size_t          const caps    = runtime.attribute_value("caps", 0UL);
-	Number_of_bytes const ram     = runtime.attribute_value("ram", Number_of_bytes());
-	Binary          const binary  = runtime.attribute_value("binary", Binary());
-	Config          const config  = runtime.attribute_value("config", Config());
-
-	xml.attribute("name", name);
-	xml.attribute("caps", caps);
-
-	xml.node("binary", [&] () { xml.attribute("name", binary); });
-
-	xml.node("resource", [&] () {
-		xml.attribute("name", "RAM");
-		xml.attribute("quantum", String<32>(ram));
-	});
-
-	/*
-	 * Insert inline '<config>' node if provided by the blueprint.
-	 */
-	if (runtime.has_sub_node("config")) {
-		Xml_node config = runtime.sub_node("config");
-		xml.node("config", [&] () {
-			xml.append(config.content_base(), config.content_size()); });
-	};
-
-	xml.node("route", [&] () {
-
-		/*
-		 * Redirect config ROM request to label given in the 'config'
-		 * attribute.
-		 */
-		if (config.valid()) {
-			xml.node("service", [&] () {
-				xml.attribute("name",  "ROM");
-				xml.attribute("label", "config");
-				xml.node("parent", [&] () {
-					xml.attribute("label", config); });
-			});
-		}
-
-		/*
-		 * Add common routes as defined in our config.
-		 */
-		xml.append(common.content_base(), common.content_size());
-
-		/*
-		 * Add ROM routing rule with the label rewritten to
-		 * the path within the depot.
-		 */
-		pkg.for_each_sub_node("rom", [&] (Xml_node rom) {
-
-			if (!rom.has_attribute("path"))
-				return;
-
-			typedef String<160> Path;
-			typedef Name        Label;
-			Path  const path  = rom.attribute_value("path",  Path());
-			Label const label = rom.attribute_value("label", Label());
-
-			xml.node("service", [&] () {
-				xml.attribute("name", "ROM");
-				xml.attribute("label_last", label);
-				xml.node("parent", [&] () {
-					xml.attribute("label", path); });
-			});
-		});
-	});
-}
 
 
 void Component::construct(Genode::Env &env) { static Depot_deploy::Main main(env); }

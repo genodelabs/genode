@@ -43,7 +43,8 @@ install_config {
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config verbose="yes">
 			<policy label="depot_deploy -> blueprint" report="depot_query -> blueprint"/>
-			<policy label="subinit -> config"         report="depot_deploy -> init.config"/>
+			<policy label="depot_query -> query"      report="depot_deploy -> query"/>
+			<policy label="dynamic -> config"         report="depot_deploy -> init.config"/>
 		</config>
 	</start>
 
@@ -64,20 +65,18 @@ install_config {
 
 	<start name="depot_query">
 		<resource name="RAM" quantum="1M"/>
-		<config arch="} [depot_spec] {">
+		<config query="rom">
 			<vfs> <dir name="depot"> <fs label="depot"/> </dir> </vfs>
-			<env>
-				<rom label="ld.lib.so"/>
-				<rom label="init"/>
-			</env>
-			<scan user="genodelabs"/>
-			<blueprint pkg="genodelabs/pkg/} [query_pkg] {"/>
 		</config>
+		<route>
+			<service name="ROM" label="query"> <child name="report_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
 	</start>
 
 	<start name="depot_deploy">
 		<resource name="RAM" quantum="1M"/>
-		<config>
+		<config arch="} [depot_spec] {">
 			<static>
 				<parent-provides>
 					<service name="ROM"/>
@@ -95,6 +94,7 @@ install_config {
 				<service name="LOG">   <parent/> </service>
 				<service name="Timer"> <parent/> </service>
 			</common_routes>
+			<start name="test" pkg="genodelabs/pkg/} [query_pkg] {"/>
 		</config>
 		<route>
 			<service name="ROM" label="blueprint"> <child name="report_rom"/> </service>
@@ -102,7 +102,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="subinit" caps="8000">
+	<start name="dynamic" caps="8000">
 		<resource name="RAM" quantum="64M"/>
 		<binary name="init"/>
 		<route>

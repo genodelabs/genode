@@ -161,10 +161,25 @@ struct Depot_query::Main
 	Signal_handler<Main> _config_handler {
 		_env.ep(), *this, &Main::_handle_config };
 
-	Reporter _directory_reporter    { _env, "directory"    };
-	Reporter _blueprint_reporter    { _env, "blueprint"    };
-	Reporter _dependencies_reporter { _env, "dependencies" };
-	Reporter _user_reporter         { _env, "user"         };
+	Signal_handler<Main> _query_handler {
+		_env.ep(), *this, &Main::_handle_config };
+
+	typedef Constructible<Expanding_reporter> Constructible_reporter;
+
+	Constructible_reporter _directory_reporter    { _env, "directory"    };
+	Constructible_reporter _blueprint_reporter    { _env, "blueprint"    };
+	Constructible_reporter _dependencies_reporter { _env, "dependencies" };
+	Constructible_reporter _user_reporter         { _env, "user"         };
+
+	template <typename T, typename... ARGS>
+	static void _construct_if(bool condition, Constructible<T> &obj, ARGS &&... args)
+	{
+		if (condition && !obj.constructed())
+			obj.construct(args...);
+
+		if (!condition && obj.constructed())
+			obj.destruct();
+	}
 
 	typedef String<64> Rom_label;
 	typedef String<16> Architecture;
@@ -205,7 +220,7 @@ struct Depot_query::Main
 
 		if (query_from_rom && !_query_rom.constructed()) {
 			_query_rom.construct(_env, "query");
-			_query_rom->sigh(_config_handler);
+			_query_rom->sigh(_query_handler);
 		}
 
 		if (!query_from_rom && _query_rom.constructed())
@@ -216,20 +231,31 @@ struct Depot_query::Main
 
 		Xml_node const query = (query_from_rom ? _query_rom->xml() : config);
 
-		_directory_reporter   .enabled(query.has_sub_node("scan"));
-		_blueprint_reporter   .enabled(query.has_sub_node("blueprint"));
-		_dependencies_reporter.enabled(query.has_sub_node("dependencies"));
-		_user_reporter        .enabled(query.has_sub_node("user"));
+		_construct_if(query.has_sub_node("scan"),
+		              _directory_reporter, _env, "directory", "directory");
+
+		_construct_if(query.has_sub_node("blueprint"),
+		              _blueprint_reporter, _env, "blueprint", "blueprint");
+
+		_construct_if(query.has_sub_node("dependencies"),
+		              _dependencies_reporter, _env, "dependencies", "dependencies");
+
+		_construct_if(query.has_sub_node("user"),
+		              _user_reporter, _env, "user", "user");
 
 		_root.apply_config(config.sub_node("vfs"));
+
+		/* ignore incomplete queries that may occur at the startup */
+		if (query.has_type("empty"))
+			return;
 
 		if (!query.has_attribute("arch"))
 			warning("query lacks 'arch' attribute");
 
 		_architecture = query.attribute_value("arch", Architecture());
 
-		if (_directory_reporter.enabled()) {
-			Reporter::Xml_generator xml(_directory_reporter, [&] () {
+		if (_directory_reporter.constructed()) {
+			_directory_reporter->generate([&] (Xml_generator &xml) {
 				query.for_each_sub_node("scan", [&] (Xml_node node) {
 					Archive::User const user = node.attribute_value("user", Archive::User());
 					Directory::Path path("depot/", user, "/pkg");
@@ -239,11 +265,13 @@ struct Depot_query::Main
 			});
 		}
 
-		if (_blueprint_reporter.enabled()) {
-			Reporter::Xml_generator xml(_blueprint_reporter, [&] () {
+		if (_blueprint_reporter.constructed()) {
+			_blueprint_reporter->generate([&] (Xml_generator &xml) {
 				query.for_each_sub_node("blueprint", [&] (Xml_node node) {
 					Archive::Path pkg = node.attribute_value("pkg", Archive::Path());
 					try { _query_blueprint(pkg, xml); }
+					catch (Xml_generator::Buffer_exceeded) {
+						throw; /* handled by 'generate' */ }
 					catch (...) {
 						warning("could not obtain blueprint for '", pkg, "'");
 					}
@@ -251,8 +279,8 @@ struct Depot_query::Main
 			});
 		}
 
-		if (_dependencies_reporter.enabled()) {
-			Reporter::Xml_generator xml(_dependencies_reporter, [&] () {
+		if (_dependencies_reporter.constructed()) {
+			_dependencies_reporter->generate([&] (Xml_generator &xml) {
 				Dependencies dependencies(_heap, _depot_dir);
 				query.for_each_sub_node("dependencies", [&] (Xml_node node) {
 
@@ -268,8 +296,8 @@ struct Depot_query::Main
 			});
 		}
 
-		if (_user_reporter.enabled()) {
-			Reporter::Xml_generator xml(_user_reporter, [&] () {
+		if (_user_reporter.constructed()) {
+			_user_reporter->generate([&] (Xml_generator &xml) {
 				query.for_each_sub_node("user", [&] (Xml_node node) {
 					_query_user(node.attribute_value("name", Archive::User()), xml); });
 			});
