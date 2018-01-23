@@ -19,7 +19,7 @@ popular ARM boards, Genode's custom kernel, and seL4.
 The new road map is available at the [https:/about/road-map - road-map page].
 
 
-Genode at FOSDEM 2018 | 2017-01-16
+Genode at FOSDEM 2018 | 2018-01-16
 ##################################
 
 | Genode will participate in the microkernel developer room at FOSDEM with
