@@ -116,7 +116,7 @@ struct Dummy::Log_connections
 {
 	Env &_env;
 
-	Heap _heap { _env.ram(), _env.rm() };
+	Sliced_heap _heap { _env.ram(), _env.rm() };
 
 	typedef Registered<Log_connection> Connection;
 
