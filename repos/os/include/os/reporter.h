@@ -14,16 +14,19 @@
 #ifndef _INCLUDE__OS__REPORTER_H_
 #define _INCLUDE__OS__REPORTER_H_
 
+#include <util/retry.h>
 #include <util/reconstructible.h>
 #include <base/attached_dataspace.h>
 #include <report_session/connection.h>
 #include <util/xml_generator.h>
 
+namespace Genode {
+	class Reporter;
+	class Expanding_reporter;
+}
 
-namespace Genode { class Reporter; }
 
-
-class Genode::Reporter : Noncopyable
+class Genode::Reporter
 {
 	public:
 
@@ -150,6 +153,65 @@ class Genode::Reporter : Noncopyable
 					reporter._conn->report.submit(used());
 			}
 		};
+};
+
+
+/**
+ * Reporter that increases the report buffer capacity on demand
+ *
+ * This convenience wrapper of the 'Reporter' alleviates the need to handle
+ * 'Xml_generator::Buffer_exceeded' exceptions manually. In most cases, the
+ * only reasonable way to handle such an exception is upgrading the report
+ * buffer as done by this class. Furthermore, in contrast to the regular
+ * 'Reporter', which needs to be 'enabled', the 'Expanding_reporter' is
+ * implicitly enabled at construction time.
+ */
+class Genode::Expanding_reporter
+{
+	public:
+
+		typedef Session_label Label;
+		typedef String<64>    Node_type;
+
+	private:
+
+		Env &_env;
+
+		Node_type const _type;
+		Label     const _label;
+
+		Constructible<Reporter> _reporter { };
+
+		size_t _buffer_size = 4096;
+
+		void _construct()
+		{
+			_reporter.construct(_env, _type.string(), _label.string(), _buffer_size);
+			_reporter->enabled(true);
+		}
+
+	public:
+
+		Expanding_reporter(Env &env, Node_type const &type, Label const &label)
+		: _env(env), _type(type), _label(label) { _construct(); }
+
+		template <typename FN>
+		void generate(FN const &fn)
+		{
+			retry<Xml_generator::Buffer_exceeded>(
+
+				/* attempt to generate a report, may throw */
+				[&] () {
+					Reporter::Xml_generator
+						xml(*_reporter, [&] () { fn(xml); }); },
+
+				/* respond to exception by successively increasing the buffer */
+				[&] () {
+					_buffer_size += 4096;
+					_construct();
+				}
+			);
+		}
 };
 
 #endif /* _INCLUDE__OS__REPORTER_H_ */
