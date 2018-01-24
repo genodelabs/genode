@@ -662,8 +662,7 @@ Main::Main(Env &env) : env(env)
 	static char local[128][sizeof(Cap_range)];
 
 	for (unsigned i = 0; i < sizeof(local) / sizeof (local[0]); i++) {
-		Cap_range * range = reinterpret_cast<Cap_range *>(local[i]);
-		*range = Cap_range(index);
+		Cap_range * range = construct_at<Cap_range>(local[i], index);
 
 		cap_map()->insert(range);
 

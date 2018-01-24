@@ -28,7 +28,7 @@ class Genode::Avl_string_base : public Avl_node<Avl_string_base>
 {
 	private:
 
-		const char *_str;
+		struct { const char *_str; };
 
 	protected:
 

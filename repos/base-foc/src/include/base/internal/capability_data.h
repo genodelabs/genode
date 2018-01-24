@@ -26,7 +26,7 @@
  * (platform-specific) capability space of the component. Therefore it
  * shouldn't be copied around, but only referenced by e.g. Native_capability.
  */
-class Genode::Native_capability::Data : public Avl_node<Data>, Noncopyable
+class Genode::Native_capability::Data : public Avl_node<Data>
 {
 	private:
 

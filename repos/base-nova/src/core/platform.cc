@@ -20,6 +20,7 @@
 #include <util/string.h>
 #include <util/xml_generator.h>
 #include <trace/source_registry.h>
+#include <util/construct_at.h>
 
 /* core includes */
 #include <boot_modules.h>
@@ -737,7 +738,7 @@ Platform::Platform() :
 		addr_t core_local_addr = _map_pages(phys_addr, 1);
 		
 		Cap_range * range = reinterpret_cast<Cap_range *>(core_local_addr);
-		*range = Cap_range(index);
+		construct_at<Cap_range>(range, index);
 
 		cap_map()->insert(range);
 

@@ -83,8 +83,7 @@ class Net::Dhcp_server : private Genode::Noncopyable
 };
 
 
-struct Net::Dhcp_allocation_tree : public  Genode::Avl_tree<Dhcp_allocation>,
-                                   private Genode::Noncopyable
+struct Net::Dhcp_allocation_tree : public  Genode::Avl_tree<Dhcp_allocation>
 {
 	struct No_match : Genode::Exception { };
 
@@ -93,8 +92,7 @@ struct Net::Dhcp_allocation_tree : public  Genode::Avl_tree<Dhcp_allocation>,
 
 
 class Net::Dhcp_allocation : public  Genode::Avl_node<Dhcp_allocation>,
-                             public  Dhcp_allocation_list::Element,
-                             private Genode::Noncopyable
+                             public  Dhcp_allocation_list::Element
 {
 	protected:
 

@@ -39,7 +39,7 @@ class Genode::Id_space : public Noncopyable
 		class Out_of_ids     : Exception { };
 		class Conflicting_id : Exception { };
 
-		class Element : public Avl_node<Element>, Noncopyable
+		class Element : public Avl_node<Element>
 		{
 			private:
 

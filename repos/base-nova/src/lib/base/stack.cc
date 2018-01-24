@@ -91,7 +91,7 @@ void prepare_init_main_thread()
 		for (unsigned i = 0; i < CAP_RANGES; i++) {
 
 			Cap_range * range = reinterpret_cast<Cap_range *>(local[i]);
-			*range = Cap_range(index);
+			construct_at<Cap_range>(range, index);
 
 			cap_map()->insert(range);
 

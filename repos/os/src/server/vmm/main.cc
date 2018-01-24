@@ -429,45 +429,71 @@ class Vmm
 		{
 			private:
 
-				Register _regs[27] {
-					{  0, 0, 0, 0, "MIDR",   false, &State::midr,   0x412fc0f1 },
-					{  0, 0, 0, 5, "MPIDR",  false, &State::mpidr,  0x40000000 },
-					{  0, 0, 0, 1, "CTR",    false, &State::ctr,    0x8444c004 },
-					{  0, 1, 0, 0, "CCSIDR", false, &State::ccsidr, 0x701fe00a },
-					{  0, 1, 0, 1, "CLIDR",  false, &State::clidr,  0x0a200023 },
-					{  0, 0, 1, 0, "PFR0",   false, &State::pfr0,   0x00001031 },
-					{  0, 0, 1, 4, "MMFR0",  false, &State::mmfr0,  0x10201105 },
-					{  0, 0, 2, 0, "ISAR0",  false, &State::isar0,  0x02101110 },
-					{  0, 0, 2, 3, "ISAR3",  false, &State::isar3,  0x11112131 },
-					{  0, 0, 2, 4, "ISAR4",  false, &State::isar4,  0x10011142 },
-					{  0, 2, 0, 0, "CSSELR", true,  &State::csselr, 0x00000000 },
-					{  1, 0, 0, 0, "SCTRL",  true,  &State::sctrl,  0 /* 0xc5007a 0x00c5187a*/ },
-					{  1, 0, 0, 1, "ACTRL",  true,  &State::actrl,  0x00000040 },
-					{  1, 0, 0, 2, "CPACR",  true,  &State::cpacr,  0x00000000 },
-					{  2, 0, 0, 0, "TTBR0",  true,  &State::ttbr0,  0x00000000 },
-					{  2, 0, 0, 1, "TTBR1",  true,  &State::ttbr1,  0x00000000 },
-					{  2, 0, 0, 2, "TTBCR",  true,  &State::ttbcr,  0x00000000 },
-					{  3, 0, 0, 0, "DACR",   true,  &State::dacr,   0x55555555 },
-					{  5, 0, 0, 0, "DFSR",   true,  &State::dfsr,   0x00000000 },
-					{  5, 0, 0, 1, "IFSR",   true,  &State::ifsr,   0x00000000 },
-					{  5, 0, 1, 0, "ADFSR",  true,  &State::adfsr,  0x00000000 },
-					{  5, 0, 1, 1, "AIFSR",  true,  &State::aifsr,  0x00000000 },
-					{  6, 0, 0, 0, "DFAR",   true,  &State::dfar,   0x00000000 },
-					{  6, 0, 0, 2, "IFAR",   true,  &State::ifar,   0x00000000 },
-					{ 10, 0, 2, 0, "PRRR",   true,  &State::prrr,   0x00098aa4 },
-					{ 10, 0, 2, 1, "NMRR",   true,  &State::nmrr,   0x44e048e0 },
-					{ 13, 0, 0, 1, "CONTEXTIDR", true,  &State::cidr,  0x00000000 }
-				};
+				Register _regs_0  {  0, 0, 0, 0, "MIDR",       false, &State::midr,   0x412fc0f1 };
+				Register _regs_1  {  0, 0, 0, 5, "MPIDR",      false, &State::mpidr,  0x40000000 };
+				Register _regs_2  {  0, 0, 0, 1, "CTR",        false, &State::ctr,    0x8444c004 };
+				Register _regs_3  {  0, 1, 0, 0, "CCSIDR",     false, &State::ccsidr, 0x701fe00a };
+				Register _regs_4  {  0, 1, 0, 1, "CLIDR",      false, &State::clidr,  0x0a200023 };
+				Register _regs_5  {  0, 0, 1, 0, "PFR0",       false, &State::pfr0,   0x00001031 };
+				Register _regs_6  {  0, 0, 1, 4, "MMFR0",      false, &State::mmfr0,  0x10201105 };
+				Register _regs_7  {  0, 0, 2, 0, "ISAR0",      false, &State::isar0,  0x02101110 };
+				Register _regs_8  {  0, 0, 2, 3, "ISAR3",      false, &State::isar3,  0x11112131 };
+				Register _regs_9  {  0, 0, 2, 4, "ISAR4",      false, &State::isar4,  0x10011142 };
+				Register _regs_10 {  0, 2, 0, 0, "CSSELR",     true,  &State::csselr, 0x00000000 };
+				Register _regs_11 {  1, 0, 0, 0, "SCTRL",      true,  &State::sctrl,  0 /* 0xc5007a 0x00c5187a*/ };
+				Register _regs_12 {  1, 0, 0, 1, "ACTRL",      true,  &State::actrl,  0x00000040 };
+				Register _regs_13 {  1, 0, 0, 2, "CPACR",      true,  &State::cpacr,  0x00000000 };
+				Register _regs_14 {  2, 0, 0, 0, "TTBR0",      true,  &State::ttbr0,  0x00000000 };
+				Register _regs_15 {  2, 0, 0, 1, "TTBR1",      true,  &State::ttbr1,  0x00000000 };
+				Register _regs_16 {  2, 0, 0, 2, "TTBCR",      true,  &State::ttbcr,  0x00000000 };
+				Register _regs_17 {  3, 0, 0, 0, "DACR",       true,  &State::dacr,   0x55555555 };
+				Register _regs_18 {  5, 0, 0, 0, "DFSR",       true,  &State::dfsr,   0x00000000 };
+				Register _regs_19 {  5, 0, 0, 1, "IFSR",       true,  &State::ifsr,   0x00000000 };
+				Register _regs_20 {  5, 0, 1, 0, "ADFSR",      true,  &State::adfsr,  0x00000000 };
+				Register _regs_21 {  5, 0, 1, 1, "AIFSR",      true,  &State::aifsr,  0x00000000 };
+				Register _regs_22 {  6, 0, 0, 0, "DFAR",       true,  &State::dfar,   0x00000000 };
+				Register _regs_23 {  6, 0, 0, 2, "IFAR",       true,  &State::ifar,   0x00000000 };
+				Register _regs_24 { 10, 0, 2, 0, "PRRR",       true,  &State::prrr,   0x00098aa4 };
+				Register _regs_25 { 10, 0, 2, 1, "NMRR",       true,  &State::nmrr,   0x44e048e0 };
+				Register _regs_26 { 13, 0, 0, 1, "CONTEXTIDR", true,  &State::cidr,   0x00000000 };
+
+				void _init_reg(Register &reg, State &state)
+				{
+					_reg_tree.insert(&reg);
+					reg.write(state, reg.init_value());
+				}
 
 			public:
 
 				Cp15(State & state)
 				{
-					for (unsigned i = 0; i < (sizeof(_regs) / sizeof(Register));
-						 i++) {
-						_reg_tree.insert(&_regs[i]);
-						_regs[i].write(state, _regs[i].init_value());
-					}
+					_init_reg(_regs_0, state);
+					_init_reg(_regs_1, state);
+					_init_reg(_regs_2, state);
+					_init_reg(_regs_3, state);
+					_init_reg(_regs_4, state);
+					_init_reg(_regs_5, state);
+					_init_reg(_regs_6, state);
+					_init_reg(_regs_7, state);
+					_init_reg(_regs_8, state);
+					_init_reg(_regs_9, state);
+					_init_reg(_regs_10, state);
+					_init_reg(_regs_11, state);
+					_init_reg(_regs_12, state);
+					_init_reg(_regs_13, state);
+					_init_reg(_regs_14, state);
+					_init_reg(_regs_15, state);
+					_init_reg(_regs_16, state);
+					_init_reg(_regs_17, state);
+					_init_reg(_regs_18, state);
+					_init_reg(_regs_19, state);
+					_init_reg(_regs_20, state);
+					_init_reg(_regs_21, state);
+					_init_reg(_regs_22, state);
+					_init_reg(_regs_23, state);
+					_init_reg(_regs_24, state);
+					_init_reg(_regs_25, state);
+					_init_reg(_regs_26, state);
 				}
 		};
 

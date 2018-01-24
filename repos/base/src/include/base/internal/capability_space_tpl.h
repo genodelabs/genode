@@ -25,6 +25,7 @@
 #include <util/bit_allocator.h>
 #include <base/lock.h>
 #include <base/log.h>
+#include <util/construct_at.h>
 
 /* base-internal includes */
 #include <base/internal/capability_space.h>
@@ -149,7 +150,7 @@ class Genode::Capability_space_tpl
 
 			addr_t const index = _alloc.alloc();
 
-			_caps_data[index] = Tree_managed_data(args...);
+			construct_at<Tree_managed_data>(&_caps_data[index], args...);
 
 			if (_caps_data[index].rpc_obj_key().valid())
 				_tree.insert(&_caps_data[index]);

@@ -416,7 +416,7 @@ Platform::Platform() :
 	_ram_alloc(nullptr), _io_mem_alloc(core_mem_alloc()),
 	_io_port_alloc(core_mem_alloc()), _irq_alloc(core_mem_alloc()),
 	_region_alloc(core_mem_alloc()), _cap_id_alloc(core_mem_alloc()),
-	_kip_rom(Rom_module((addr_t)sigma0_map_kip(), L4_PAGESIZE, "l4v2_kip")),
+	_kip_rom((addr_t)sigma0_map_kip(), L4_PAGESIZE, "l4v2_kip"),
 	_sigma0(cap_map()->insert(_cap_id_alloc.alloc(), Fiasco::L4_BASE_PAGER_CAP))
 {
 	/*
