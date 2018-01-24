@@ -1,0 +1,172 @@
+#
+# Build
+#
+
+set build_components {
+	core
+	init
+	drivers/timer
+	server/dynamic_rom
+	app/cpu_burner
+	test/trace_logger
+	app/trace_logger
+	lib/trace/policy/null
+	lib/trace/policy/rpc_name
+}
+
+proc gpio_drv { } { if {[have_spec rpi] && [have_spec hw]}  { return hw_gpio_drv }
+                    if {[have_spec rpi] && [have_spec foc]} { return foc_gpio_drv }
+                    return gpio_drv }
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+
+lappend_if [have_spec gpio] build_components drivers/gpio
+
+append_platform_drv_build_components
+
+build $build_components
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+append config {
+<config prio_levels="2" ld_verbose="yes">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="TRACE"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<default caps="100"/>}
+
+append_platform_drv_config
+
+append_if [have_spec gpio] config "
+	<start name=\"[gpio_drv]\">
+		<resource name=\"RAM\" quantum=\"4M\"/>
+		<provides><service name=\"Gpio\"/></provides>
+		<config/>
+	</start>"
+
+append config {
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+
+	<start name="trace_logger" >
+		<resource name="RAM" quantum="100M"/>
+		<config verbose="yes"
+		        session_ram="10M"
+		        session_parent_levels="1"
+		        session_arg_buffer="64K"
+		        period_sec="3"
+		        activity="yes"
+		        affinity="yes"
+		        default_policy="null"
+		        default_buffer="1K">
+
+			<policy label_prefix="init -> cpu_burner"
+			        thread="ep"/>
+
+			<policy label="init -> test-trace_logger"
+			        thread="ep"
+			        buffer="1M"
+			        policy="rpc_name"/>
+		</config>
+	</start>
+
+	<start name="dynamic_rom">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="ROM"/></provides>
+		<config verbose="yes">
+			<rom name="cpu_burner1.config">
+				<inline description="initial state">
+					<config percent="5"/>
+				</inline>
+				<sleep milliseconds="5000" />
+				<inline description="50%">
+					<config percent="50" />
+				</inline>
+				<sleep milliseconds="5000" />
+			</rom>
+			<rom name="cpu_burner2.config">
+				<inline description="initial state">
+					<config percent="5"/>
+				</inline>
+				<sleep milliseconds="4800" />
+				<inline description="100%">
+					<config percent="70" />
+				</inline>
+				<sleep milliseconds="2700" />
+			</rom>
+		</config>
+	</start>
+
+	<start name="test-trace_logger" >
+		<resource name="RAM" quantum="1M"/>
+	</start>
+
+	<start name="cpu_burner.1">
+		<binary name="cpu_burner"/>
+		<resource name="RAM" quantum="1M"/>
+		<configfile name="cpu_burner1.config"/>
+		<route>
+			<service name="ROM" label="cpu_burner1.config"> <child name="dynamic_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="cpu_burner.2">
+		<binary name="cpu_burner"/>
+		<resource name="RAM" quantum="1M"/>
+		<configfile name="cpu_burner2.config"/>
+		<route>
+			<service name="ROM" label="cpu_burner2.config"> <child name="dynamic_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+</config>}
+
+install_config $config
+
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core
+	ld.lib.so
+	init
+	timer
+	dynamic_rom
+	cpu_burner
+	trace_logger
+	test-trace_logger
+	null
+	rpc_name
+}
+
+# platform-specific modules
+append_platform_drv_boot_modules
+
+lappend_if [have_spec gpio] boot_modules [gpio_drv]
+
+build_boot_image $boot_modules
+
+append qemu_args " -smp 4,cores=4 "
+
+run_genode_until forever

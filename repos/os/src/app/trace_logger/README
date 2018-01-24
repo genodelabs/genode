@@ -1,0 +1,100 @@
+
+                         ==========================
+                         Convenient tracing fronted
+                         ==========================
+
+
+Brief
+#####
+
+The 'trace_logger' component can be used to easily gather, process and export
+different types of tracing data. Which subjects to select is configurable via
+session label policies and thread names. Which data to collect from the
+selected subjects can be configured for each subject individually, for groups
+of subjects, or for all subjects. The gathered data can be exported as log
+output.
+
+
+Configuration
+#############
+
+This is an example configuration of the 'trace_logger' component which shows
+the default value for each attribute except the policy.thread and
+policy.label:
+
+! <config verbose="no"
+!         session_ram="10M"
+!         session_arg_buffer="4K"
+!         session_parent_levels="0"
+!         period_sec="5"
+!         activity="no"
+!         affinity="no"
+!         default_policy="null"
+!         default_buffer="4K">
+!
+!    <policy label="init -> timer" />
+!    <policy label_suffix=" -> ram_fs" />
+!    <policy label_prefix="init -> encryption -> "
+!            thread="worker"
+!            buffer="4K"
+!            policy="null" />
+! </config>
+
+
+This is a short description of the tags and attributes:
+
+:config.verbose:
+  Optional. Toggles wether the trace_logger shall log debugging information.
+
+:config.session_ram:
+  Optional. Amount of RAM donated to the trace session.
+
+:config.session_arg_buffer:
+  Optional. Size of the trace sessions argument buffer.
+
+:config.session_parent_levels:
+  Optional. Number of parent levels to trace.
+
+:config.period_sec:
+  Optional. Length of processing/export interval in seconds.
+
+:config.activity:
+  Optional. Wether to export thread-activity information.
+
+:config.affinity:
+  Optional. Wether to export thread-affinity information.
+
+:config.default_policy:
+  Optional. Name of tracing policy for subjects without individual config.
+
+:config.default_policy:
+  Optional. Size of tracing buffer for subjects without individual config.
+
+:config.policy:
+  Subject selector. For matching subjects, tracing is enabled and the defined
+  individual configuration is applied.
+
+:config.policy.label:
+:config.policy.label_prefix:
+:config.policy.label_suffix:
+  Mutually exclusive. Filters subjects according to their session label.
+
+:config.policy.thread:
+  Optional. Filters subjects according to their exact thread name.
+
+:config.policy.buffer:
+  Optional. Size of tracing buffer used for matching subjects.
+
+:config.policy.policy:
+  Optional. Name of tracing policy used for matching subjects.
+
+
+Sessions
+########
+
+This is an overview of the sessions required and provided by the
+'trace_logger' component apart from the environment sessions:
+
+* Requires ROM sessions to all configured tracing policies.
+* Requires one TRACE session that provides the desired subjects.
+* Requires one Timer session.
