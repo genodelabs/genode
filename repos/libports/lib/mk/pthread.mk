@@ -1,4 +1,4 @@
-SRC_CC = semaphore.cc \
+SRC_CC = semaphore.cc rwlock.cc \
          thread.cc thread_create.cc 
 
 LIBS  += libc
