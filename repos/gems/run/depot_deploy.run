@@ -1,0 +1,220 @@
+create_boot_directory
+
+import_from_depot genodelabs/src/[base_src] \
+                  genodelabs/pkg/[drivers_interactive_pkg] \
+                  genodelabs/src/report_rom \
+                  genodelabs/src/fs_rom \
+                  genodelabs/src/ram_fs \
+                  genodelabs/src/vfs \
+                  genodelabs/src/nitpicker \
+                  genodelabs/src/init
+
+create_tar_from_depot_binaries [run_dir]/genode/depot.tar \
+                               genodelabs/pkg/sculpt-installation \
+                               genodelabs/pkg/themed_wm \
+                               genodelabs/pkg/sticks_blue_backdrop
+
+proc depot_user {} { return genodelabs }
+
+proc current_pkg { pkg } { return $pkg/[_current_depot_archive_version pkg $pkg] }
+
+install_config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<default caps="100"/>
+
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>
+
+	<start name="drivers" caps="1000">
+		<resource name="RAM" quantum="32M" constrain_phys="yes"/>
+		<binary name="init"/>
+		<route>
+			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+		<provides>
+			<service name="Input"/> <service name="Framebuffer"/>
+		</provides>
+	</start>
+
+	<start name="nitpicker">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Nitpicker"/></provides>
+		<config>
+			<background color="#123456"/>
+			<domain name="pointer" layer="1" content="client" label="no" origin="pointer" />
+			<domain name="default" layer="3" content="client" label="no" hover="always" />
+
+			<policy label_prefix="pointer" domain="pointer"/>
+			<default-policy domain="default"/>
+		</config>
+	</start>
+
+	<start name="pointer">
+		<resource name="RAM" quantum="1M"/>
+		<route>
+			<service name="Nitpicker"> <child name="nitpicker" /> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="report_rom">
+		<binary name="report_rom"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config verbose="yes">
+			<policy label="depot_deploy -> blueprint" report="depot_query -> blueprint"/>
+			<policy label="depot_query -> query"      report="depot_deploy -> query"/>
+			<policy label="dynamic -> config"         report="depot_deploy -> init.config"/>
+		</config>
+	</start>
+
+	<start name="vfs">
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="File_system"/> </provides>
+		<config>
+			<vfs> <tar name="depot.tar"/> </vfs>
+			<policy label="depot_query -> depot" root="/" />
+			<policy label="fs_rom -> "           root="/" />
+		</config>
+	</start>
+
+	<start name="fs_rom">
+		<resource name="RAM" quantum="50M"/>
+		<provides> <service name="ROM"/> </provides>
+		<route>
+			<service name="File_system"> <child name="vfs"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="depot_query">
+		<resource name="RAM" quantum="1M"/>
+		<config query="rom">
+			<vfs> <dir name="depot"> <fs label="depot"/> </dir> </vfs>
+		</config>
+		<route>
+			<service name="ROM" label="query"> <child name="report_rom"/> </service>
+			<service name="File_system"> <child name="vfs"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="ram_fs">
+		<resource name="RAM" quantum="8M"/>
+		<provides> <service name="File_system"/> </provides>
+		<config>
+			<default-policy root="/" writeable="yes"/>
+		</config>
+	</start>
+
+	<start name="depot_deploy">
+		<resource name="RAM" quantum="1M"/>
+		<config arch="} [depot_spec] {">
+			<static>
+				<parent-provides>
+					<service name="ROM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
+					<service name="LOG"/>
+					<service name="Timer"/>
+					<service name="Nitpicker"/>
+					<service name="File_system"/>
+				</parent-provides>
+			</static>
+			<common_routes>
+				<service name="ROM" label_last="ld.lib.so"> <parent/> </service>
+				<service name="ROM" label_last="init">      <parent/> </service>
+				<service name="CPU">   <parent/> </service>
+				<service name="PD">    <parent/> </service>
+				<service name="LOG">   <parent/> </service>
+				<service name="Timer"> <parent/> </service>
+			</common_routes>
+
+			<start name="wm" pkg="} [depot_user]/pkg/[current_pkg themed_wm] {">
+				<route>
+					<service name="Nitpicker"> <parent/> </service>
+				</route>
+			</start>
+
+			<start name="backdrop" pkg="} [depot_user]/pkg/[current_pkg sticks_blue_backdrop] {">
+				<route>
+					<service name="Nitpicker"> <parent label="backdrop"/> </service>
+				</route>
+			</start>
+
+<!--
+			<start name="slides" pkg="} [depot_user]/pkg/[current_pkg pdf_view] {">
+				<route>
+					<service name="Nitpicker"> <child name="wm"/> </service>
+				</route>
+			</start>
+			-->
+
+<!--
+			<start name="nano3d" pkg="} [depot_user]/pkg/[current_pkg nano3d] {">
+				<route>
+					<service name="Nitpicker"> <child name="wm"/> </service>
+				</route>
+				<config shape="cube"/>
+			</start>
+			-->
+
+			<start name="noux" pkg="} [depot_user]/pkg/[current_pkg noux-system] {">
+				<route>
+					<service name="Nitpicker"> <child name="wm"/> </service>
+					<service name="File_system"> <parent/> </service>
+				</route>
+			</start>
+
+			<!-- vbox, nic_router, acpica -->
+
+		</config>
+		<route>
+			<service name="ROM" label="blueprint"> <child name="report_rom"/> </service>
+			<service name="Report" label="query"> <child name="report_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="dynamic" caps="8000">
+		<resource name="RAM" quantum="160M"/>
+		<binary name="init"/>
+		<route>
+			<service name="ROM" label_last="ld.lib.so"> <parent/> </service>
+			<service name="ROM" label_last="init">      <parent/> </service>
+			<service name="ROM" label="config"> <child name="report_rom"/> </service>
+			<service name="ROM">   <child name="fs_rom"/> </service>
+			<service name="Timer"> <child name="timer"/>  </service>
+			<service name="Nitpicker" label_last="backdrop">
+				<child name="nitpicker" label="backdrop"/> </service>
+			<service name="File_system"> <child name="ram_fs"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+</config>}
+
+build { app/depot_query app/depot_deploy }
+
+build_boot_image { depot_query depot_deploy }
+
+run_genode_until forever
+
