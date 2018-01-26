@@ -43,10 +43,19 @@ File::File(char const *name, Genode::Allocator &alloc)
 {
 	Libc::with_libc([&] () {
 		int const fd = open(name, O_RDONLY);
-		if (read(fd, _data, _file_size) < 0) {
-			Genode::error("reading from file \"", name, "\" failed (error ", errno, ")");
-			throw Reading_failed();
-		}
+
+		Genode::size_t  remain = _file_size;
+		char           *data   = (char *)_data;
+		do {
+			int ret;
+			if ((ret = read(fd, data, remain)) < 0) {
+				Genode::error("reading from file \"", name, "\" failed (error ", errno, ")");
+				throw Reading_failed();
+			}
+			remain -= ret;
+			data   += ret;
+		} while (remain > 0);
+
 		close(fd);
 	});
 }
