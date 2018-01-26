@@ -1,0 +1,29 @@
+<runtime ram="72M" caps="1000" binary="init" config="init.config">
+
+	<requires>
+		<nitpicker/>
+		<timer/>
+		<file_system label="config" writeable="yes"/>
+		<file_system label="report" writeable="no"/>
+		<file_system label="target" writeable="yes"/>
+		<rom label="vimrc"/>
+	</requires>
+
+	<content>
+		<rom label="init.config"/>
+		<rom label="ld.lib.so"/>
+		<rom label="libc.lib.so"/>
+		<rom label="libm.lib.so"/>
+		<rom label="init"/>
+		<rom label="nit_fb"/>
+		<rom label="terminal"/>
+		<rom label="noux"/>
+		<rom label="libc_noux.lib.so"/>
+		<rom label="posix.lib.so"/>
+		<rom label="ncurses.lib.so"/>
+		<rom label="bash-minimal.tar"/>
+		<rom label="coreutils-minimal.tar"/>
+		<rom label="vim-minimal.tar"/>
+	</content>
+
+</runtime>

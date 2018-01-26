@@ -1,0 +1,26 @@
+<runtime ram="8300M" caps="1500" binary="init" config="init.config">
+
+	<requires>
+		<file_system label="vm"/>
+		<file_system label="shared"/>
+		<nic/>
+	</requires>
+
+	<content>
+		<rom label="init.config"/>
+		<rom label="ld.lib.so"/>
+		<rom label="init"/>
+		<rom label="nit_fb"/>
+		<rom label="timer"/>
+		<rom label="virtualbox5-nova"/>
+		<rom label="libc.lib.so"/>
+		<rom label="libc_pipe.lib.so"/>
+		<rom label="libc_terminal.lib.so"/>
+		<rom label="libm.lib.so"/>
+		<rom label="pthread.lib.so"/>
+		<rom label="libiconv.lib.so"/>
+		<rom label="qemu-usb.lib.so"/>
+		<rom label="stdcxx.lib.so"/>
+	</content>
+
+</runtime>

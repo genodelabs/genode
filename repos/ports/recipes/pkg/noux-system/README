@@ -1,0 +1,3 @@
+Noux runtime that allows the user to interact with a 'report' file system
+(mounted at /report), a 'config' file system (mounted at /config), and a
+'target' file system (mounted at /rw).

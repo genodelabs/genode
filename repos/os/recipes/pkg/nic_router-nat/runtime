@@ -1,0 +1,26 @@
+<runtime ram="10M" caps="300" binary="nic_router">
+
+	<requires> <nic/> </requires>
+	<provides> <nic/> </provides>
+
+	<config verbose_domain_state="yes">
+		<default-policy domain="default" />
+		<domain name="uplink">
+			<nat domain="default" tcp-ports="1000" udp-ports="1000"/>
+		</domain>
+		<domain name="default" interface="10.0.1.1/24">
+			<dhcp-server ip_first="10.0.1.2"
+			             ip_last="10.0.1.200"
+			             ip_lease_time_sec="360"
+			             dns_server="213.73.91.35"/>
+			<tcp dst="0.0.0.0/0"><permit-any domain="uplink"/></tcp>
+			<udp dst="0.0.0.0/0"><permit-any domain="uplink"/></udp>
+		</domain>
+	</config>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="nic_router"/>
+	</content>
+
+</runtime>

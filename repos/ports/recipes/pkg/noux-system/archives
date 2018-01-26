@@ -1,0 +1,11 @@
+_/raw/noux-system
+_/src/noux
+_/src/bash-minimal
+_/src/vim-minimal
+_/src/coreutils-minimal
+_/src/libc
+_/src/posix
+_/src/ncurses
+_/src/nit_fb
+_/src/terminal
+_/src/init

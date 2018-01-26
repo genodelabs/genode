@@ -1,0 +1,12 @@
+<runtime ram="16M" caps="300" binary="nic_drv">
+
+	<provides> <nic/> </provides>
+
+	<config/>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="nic_drv"/>
+	</content>
+
+</runtime>

@@ -1,0 +1,38 @@
+<runtime ram="54M" caps="300" binary="wifi_drv">
+
+	<requires> <rom label="wlan_configuration"/> </requires>
+	<provides> <nic/> </provides>
+
+	<config ld_verbose="yes" verbose="yes" use_11n="no" connected_scan_interval="0">
+		<vfs>
+			<dir name="dev"> <log/> <rtc/> <null/>
+				<jitterentropy name="random"/>
+				<jitterentropy name="urandom"/>
+			</dir>
+			<dir name="config"> <ram/> </dir>
+		</vfs>
+		<libc stdout="/dev/null" stderr="/dev/log" rtc="/dev/rtc"/>
+	</config>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="wifi_drv"/>
+		<rom label="libcrypto.lib.so"/>
+		<rom label="libc.lib.so"/>
+		<rom label="libm.lib.so"/>
+		<rom label="vfs_jitterentropy.lib.so"/>
+		<rom label="libssl.lib.so"/>
+		<rom label="wifi.lib.so"/>
+		<rom label="wpa_driver_nl80211.lib.so"/>
+		<rom label="wpa_supplicant.lib.so"/>
+		<rom label="iwlwifi-1000-5.ucode.lib.so"/>
+		<rom label="iwlwifi-3160-16.ucode"/>
+		<rom label="iwlwifi-6000-4.ucode"/>
+		<rom label="iwlwifi-6000g2a-6.ucode"/>
+		<rom label="iwlwifi-6000g2b-6.ucode"/>
+		<rom label="iwlwifi-7260-16.ucode"/>
+		<rom label="iwlwifi-7265-16.ucode"/>
+		<rom label="iwlwifi-7265D-16.ucode"/>
+		<rom label="iwlwifi-8000C-16.ucode"/>
+	</content>
+</runtime>
