@@ -1,6 +1,6 @@
 --- a/src/app/virtualbox/src/VBox/Devices/Audio/HDAStreamPeriod.cpp
 +++ b/src/app/virtualbox/src/VBox/Devices/Audio/HDAStreamPeriod.cpp
-@@ -167,7 +167,9 @@
+@@ -176,7 +176,9 @@
   */
  void hdaStreamPeriodEnd(PHDASTREAMPERIOD pPeriod)
  {
@@ -12,7 +12,7 @@
          return;
 --- a/src/app/virtualbox/src/VBox/Devices/Audio/DrvAudio.cpp
 +++ b/src/app/virtualbox/src/VBox/Devices/Audio/DrvAudio.cpp
-@@ -1584,8 +1584,10 @@
+@@ -1638,8 +1638,10 @@
  #endif
          uint32_t cbAvail             = AUDIOMIXBUF_S2B(&pHstStrmOut->MixBuf, AudioMixBufUsed(&pHstStrmOut->MixBuf));
  
@@ -25,24 +25,68 @@
              continue;
 --- a/src/app/virtualbox/src/VBox/Devices/Audio/DevHDA.cpp
 +++ b/src/app/virtualbox/src/VBox/Devices/Audio/DevHDA.cpp
-@@ -1273,9 +1273,9 @@
-                           pszSource, tsAssertedElapsedNs / 1000,
-                           avgAssertedUs,
-                           (pThis->Dbg.IRQ.tsDeassertedNs - pThis->Dbg.IRQ.tsAssertedNs) / 1000));
--#endif
-             Log3Func(("Asserted (%s): %RU64us between alternation (WALCLK=%RU64)\n",
-                       pszSource, tsLastElapsedNs / 1000, pThis->u64WalClk));
-+#endif
- 
-             PDMDevHlpPCISetIrq(pThis->CTX_SUFF(pDevIns), 0, 1 /* Assert */);
-             pThis->u8IRQL = 1;
-@@ -4021,7 +4021,9 @@
-     uint32_t csPerPeriod = (int)((strmProps.cChannels * cTicksElapsed * 48000 /* Hz */ + cTicksPerSec) / cTicksPerSec / 2);
-     uint32_t cbPerPeriod = csPerPeriod << strmProps.cShift;
- 
+@@ -1392,7 +1392,9 @@
+     if (   HDA_REG_FLAG_VALUE(pThis, INTCTL, GIE)
+         && ((HDA_REG(pThis, INTSTS) & ~HDA_INTSTS_FLAG_GIS) & HDA_REG(pThis, INTCTL)))
+     {
 +#ifdef DEBUG
-     Log3Func(("[SD%RU8] %RU64ms (%zu samples, %zu bytes) elapsed\n", pStream->u8SD, cMsElapsed, csPerPeriod, cbPerPeriod));
+         Log3Func(("Asserted (%s)\n", pszSource));
 +#endif
  
-     return cbPerPeriod;
+         PDMDevHlpPCISetIrq(pThis->CTX_SUFF(pDevIns), 0, 1 /* Assert */);
+         pThis->u8IRQL = 1;
+@@ -1404,7 +1406,9 @@
+     }
+     else
+     {
++#ifdef DEBUG
+         Log3Func(("Deasserted (%s)\n", pszSource));
++#endif
+ 
+         PDMDevHlpPCISetIrq(pThis->CTX_SUFF(pDevIns), 0, 0 /* Deassert */);
+         pThis->u8IRQL = 0;
+@@ -1867,7 +1871,7 @@
+                  pStream->u8SD, pThis->u16TimerHz, cTicksPerHz, pStream->State.cTicksPerByte,
+                  pStream->State.cbTransferChunk, pStream->State.cTransferTicks, pStream->State.cbTransferSize));
+ 
+-#ifdef LOG_ENABLED
++#ifdef DEBUG
+         hdaBDLEDumpAll(pThis, pStream->u64BDLBase, pStream->u16LVI + 1);
+ #endif
+         /*
+@@ -3388,7 +3392,7 @@
  }
+ # endif /* HDA_USE_DMA_ACCESS_HANDLER */
+ 
+-# ifdef LOG_ENABLED
++# ifdef DEBUG
+ static void hdaBDLEDumpAll(PHDASTATE pThis, uint64_t u64BDLBase, uint16_t cBDLE)
+ {
+     LogFlowFunc(("BDLEs @ 0x%x (%RU16):\n", u64BDLBase, cBDLE));
+@@ -5074,7 +5078,7 @@
+               pStrm->u8SD,
+               HDA_STREAM_REG(pThis, LPIB, pStrm->u8SD), HDA_STREAM_REG(pThis, CBL, pStrm->u8SD), HDA_STREAM_REG(pThis, LVI, pStrm->u8SD)));
+ 
+-#ifdef LOG_ENABLED
++#ifdef DEBUG
+     hdaBDLEDumpAll(pThis, pStrm->u64BDLBase, pStrm->u16LVI + 1);
+ #endif
+ 
+@@ -5485,7 +5489,7 @@
+                     Log2Func(("[SD%RU8] LPIB=%RU32, CBL=%RU32, LVI=%RU32\n",
+                               uStreamID,
+                               HDA_STREAM_REG(pThis, LPIB, uStreamID), HDA_STREAM_REG(pThis, CBL, uStreamID), HDA_STREAM_REG(pThis, LVI, uStreamID)));
+-#ifdef LOG_ENABLED
++#ifdef DEBUG
+                     hdaBDLEDumpAll(pThis, pStrm->u64BDLBase, pStrm->u16LVI + 1);
+ #endif
+                 }
+@@ -5695,7 +5699,7 @@
+         Log2Func(("[SD%RU8] LPIB=%RU32, CBL=%RU32, LVI=%RU32\n",
+                   uStreamID,
+                   HDA_STREAM_REG(pThis, LPIB, uStreamID), HDA_STREAM_REG(pThis, CBL, uStreamID), HDA_STREAM_REG(pThis, LVI, uStreamID)));
+-#ifdef LOG_ENABLED
++#ifdef DEBUG
+         hdaBDLEDumpAll(pThis, pStrm->u64BDLBase, pStrm->u16LVI + 1);
+ #endif
+         /** @todo (Re-)initialize active periods? */
