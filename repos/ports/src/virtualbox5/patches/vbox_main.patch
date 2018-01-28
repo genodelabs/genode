@@ -1068,3 +1068,13 @@ index a717aff..3d52b9f 100644
      /* ACPI controller */
      {"acpi",          0,  7,  0, 0},
  
+--- a/src/app/virtualbox/src/VBox/Main/src-server/NATEngineImpl.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-server/NATEngineImpl.cpp
+@@ -21,6 +21,7 @@
+ #include "MachineImpl.h"
+ #include "GuestOSTypeImpl.h"
+ 
++#include <iprt/net.h>
+ #include <iprt/string.h>
+ #include <iprt/cpp/utils.h>
+ 
