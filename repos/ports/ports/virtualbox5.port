@@ -1,17 +1,17 @@
 LICENSE         := GPLv2
-VERSION         := 5.1.22
+VERSION         := 5.1.24
 DOWNLOADS       := virtualbox.archive virtualbox_sdk.archive
 
 VIRTUALBOX_TBZ2    := VirtualBox-$(VERSION).tar.bz2
-VIRTUALBOX_SDK_ZIP := VirtualBoxSDK-$(VERSION)-115126.zip
+VIRTUALBOX_SDK_ZIP := VirtualBoxSDK-$(VERSION)-117012.zip
 
 URL(virtualbox) := http://download.virtualbox.org/virtualbox/$(VERSION)/$(VIRTUALBOX_TBZ2)
 DIR(virtualbox) := src/app/virtualbox
-SHA(virtualbox) := 57e6f73f62af7d5ddb670972ba0417b6fcb43950
+SHA(virtualbox) := ed7d807ac89455517ec2c32cf83e931b16b2b4b8
 
 URL(virtualbox_sdk) := http://download.virtualbox.org/virtualbox/$(VERSION)/$(VIRTUALBOX_SDK_ZIP)
 DIR(virtualbox_sdk) := src/app/virtualbox_sdk
-SHA(virtualbox_sdk) := 21b45da69214b32cf7f7115ef53e0c1d77ae2434
+SHA(virtualbox_sdk) := 1cb99cb6f24dd17e7ff2ea2f1e079f41e5d99293
 
 PATCHES_DIR       := src/virtualbox5/patches
 PATCHES_DIR_VBOX4 := src/virtualbox/patches

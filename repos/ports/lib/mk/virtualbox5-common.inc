@@ -62,7 +62,7 @@ VBOX_CC_OPT += -DVBOX_WITH_GUEST_PROPS
 
 VIRTUALBOX_VERSION_MAJOR := $(shell cat $(VIRTUALBOX_DIR)/Config.kmk 2>/dev/null | grep "VBOX_VERSION_MAJOR = " | grep -v "'VBOX_VERSION_MAJOR" | sed "s/^.*= //")
 VIRTUALBOX_VERSION_MINOR := $(shell cat $(VIRTUALBOX_DIR)/Config.kmk 2>/dev/null | grep "VBOX_VERSION_MINOR = " | grep -v "'VBOX_VERSION_MINOR" | sed "s/^.*= //")
-VIRTUALBOX_VERSION_BUILD := $(shell cat $(VIRTUALBOX_DIR)/Config.kmk 2>/dev/null | grep "VBOX_VERSION_BUILD = " | grep -v "'VBOX_VERSION_BUILD" | sed "s/^.*= //")
+VIRTUALBOX_VERSION_BUILD := $(shell cat $(VIRTUALBOX_DIR)/Config.kmk 2>/dev/null | grep "VBOX_VERSION_BUILD = " | grep -v "'VBOX_VERSION_BUILD" | sed "s/^.*= *//")
 
 ifeq ($(VBOX_MACH),x86_32)
 VIRTUALBOX_PACKAGE_STRING = GenodeOS_32BIT_GENERIC

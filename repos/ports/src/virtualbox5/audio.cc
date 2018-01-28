@@ -146,7 +146,7 @@ static uint32_t write_samples(GenodeVoiceOut *out,
 	Audio_out::Connection * const c = &*out->audio[0];
 
 	/* samples in byte available for sending out */
-	uint32_t samples = RT_MIN(AudioMixBufAvail(mixer_buf),
+	uint32_t samples = RT_MIN(AudioMixBufLive(mixer_buf),
 	                          OUT_SAMPLES - out->sample_pos);
 	uint32_t written_samples = 0;
 
@@ -211,7 +211,7 @@ static uint32_t write_samples(GenodeVoiceOut *out,
 		}
 
 		/* check for additional samples */
-		samples = RT_MIN(AudioMixBufAvail(mixer_buf),
+		samples = RT_MIN(AudioMixBufLive(mixer_buf),
 		                 OUT_SAMPLES - out->sample_pos);
 	}
 

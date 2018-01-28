@@ -1,0 +1,48 @@
+--- a/src/app/virtualbox/src/VBox/Devices/Audio/HDAStreamPeriod.cpp
++++ b/src/app/virtualbox/src/VBox/Devices/Audio/HDAStreamPeriod.cpp
+@@ -167,7 +167,9 @@
+  */
+ void hdaStreamPeriodEnd(PHDASTREAMPERIOD pPeriod)
+ {
++#ifdef DEBUG
+     Log3Func(("[SD%RU8] Took %zuus\n", pPeriod->u8SD, (RTTimeNanoTS() - pPeriod->Dbg.tsStartNs) / 1000));
++#endif
+ 
+     if (!(pPeriod->fStatus & HDASTREAMPERIOD_FLAG_ACTIVE))
+         return;
+--- a/src/app/virtualbox/src/VBox/Devices/Audio/DrvAudio.cpp
++++ b/src/app/virtualbox/src/VBox/Devices/Audio/DrvAudio.cpp
+@@ -1584,8 +1584,10 @@
+ #endif
+         uint32_t cbAvail             = AUDIOMIXBUF_S2B(&pHstStrmOut->MixBuf, AudioMixBufUsed(&pHstStrmOut->MixBuf));
+ 
++#ifdef DEBUG
+         Log2Func(("[%s] %RU64ms (%zu bytes) elapsed, %zu bytes available\n",
+                   pHstStrmOut->MixBuf.pszName, tsLastPlayedDeltaMs, cbElapsed, cbAvail));
++#endif
+ 
+         if (!cbAvail) /* Nothing to play back? Skip. */
+             continue;
+--- a/src/app/virtualbox/src/VBox/Devices/Audio/DevHDA.cpp
++++ b/src/app/virtualbox/src/VBox/Devices/Audio/DevHDA.cpp
+@@ -1273,9 +1273,9 @@
+                           pszSource, tsAssertedElapsedNs / 1000,
+                           avgAssertedUs,
+                           (pThis->Dbg.IRQ.tsDeassertedNs - pThis->Dbg.IRQ.tsAssertedNs) / 1000));
+-#endif
+             Log3Func(("Asserted (%s): %RU64us between alternation (WALCLK=%RU64)\n",
+                       pszSource, tsLastElapsedNs / 1000, pThis->u64WalClk));
++#endif
+ 
+             PDMDevHlpPCISetIrq(pThis->CTX_SUFF(pDevIns), 0, 1 /* Assert */);
+             pThis->u8IRQL = 1;
+@@ -4021,7 +4021,9 @@
+     uint32_t csPerPeriod = (int)((strmProps.cChannels * cTicksElapsed * 48000 /* Hz */ + cTicksPerSec) / cTicksPerSec / 2);
+     uint32_t cbPerPeriod = csPerPeriod << strmProps.cShift;
+ 
++#ifdef DEBUG
+     Log3Func(("[SD%RU8] %RU64ms (%zu samples, %zu bytes) elapsed\n", pStream->u8SD, cMsElapsed, csPerPeriod, cbPerPeriod));
++#endif
+ 
+     return cbPerPeriod;
+ }

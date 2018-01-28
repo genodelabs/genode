@@ -212,6 +212,11 @@ SUPR3DECL(int) SUPR3PageFreeEx(void *pvPages, size_t cPages)
 }
 
 
+int SUPR3QueryMicrocodeRev(uint32_t *puMicrocodeRev)
+{
+	return E_FAIL;
+}
+
 uint32_t SUPSemEventMultiGetResolution(PSUPDRVSESSION)
 {
 	return 100000*10; /* called by 'vmR3HaltGlobal1Init' */
