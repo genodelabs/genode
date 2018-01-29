@@ -1,5 +1,11 @@
-build { core init drivers/timer noux/minimal
-        lib/libc_noux noux-pkg/coreutils }
+build {
+	core init
+	app/sequence
+	drivers/timer
+	lib/libc_noux
+	noux/minimal
+	noux-pkg/coreutils
+}
 
 create_boot_directory
 
@@ -18,47 +24,58 @@ install_config {
 		<default-route>
 			<any-service> <any-child/> <parent/> </any-service>
 		</default-route>
+		<default caps="256"/>
 		<start name="timer">
 			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Timer"/></provides>
 		</start>
-		<start name="spoof">
-			<binary name="noux"/>
+		<start name="sequence">
 			<resource name="RAM" quantum="16M"/>
-			<config verbose="yes" stdin="/null" stdout="/log" stderr="/log">
-				<fstab>
-					<null/> <log/>
-					<dir name=".sysctl">
-						<dir name="kern">
-							<inline name="ostype">Muck OS XIII</inline>
-							<inline name="hostname">localhost</inline>
-						</dir>
-						<dir name="hw">
-							<inline name="machine">norisc</inline>
-						</dir>
-					</dir>
-					<tar name="coreutils.tar" />
-				</fstab>
-				<start name="/bin/uname"> <arg value="-a"/> </start>
-			</config>
-		</start>
-		<start name="noux">
-			<resource name="RAM" quantum="16M"/>
-			<config verbose="yes" stdin="/null" stdout="/log" stderr="/log">
-				<fstab> <null/> <log/> <tar name="coreutils.tar" /> </fstab>
-				<start name="/bin/uname"> <arg value="-a"/> </start>
+			<config>
+				<start name="spoof">
+					<binary name="noux"/>
+					<config verbose="yes" stdin="/null" stdout="/log" stderr="/log">
+						<fstab>
+							<null/> <log/>
+							<dir name=".sysctl">
+								<dir name="kern">
+									<inline name="ostype">Muck OS XIII</inline>
+									<inline name="hostname">localhost</inline>
+								</dir>
+								<dir name="hw">
+									<inline name="machine">norisc</inline>
+								</dir>
+							</dir>
+							<tar name="coreutils.tar" />
+						</fstab>
+						<start name="/bin/uname"> <arg value="-a"/> </start>
+					</config>
+				</start>
+				<start name="noux">
+					<resource name="RAM" quantum="16M"/>
+					<config verbose="yes" stdin="/null" stdout="/log" stderr="/log">
+						<fstab> <null/> <log/> <tar name="coreutils.tar" /> </fstab>
+						<start name="/bin/uname"> <arg value="-a"/> </start>
+					</config>
+				</start>
 			</config>
 		</start>
 	</config>
 }
 
 build_boot_image {
-	core init timer ld.lib.so noux libc.lib.so libm.lib.so posix.lib.so
-	libc_noux.lib.so coreutils.tar
+	core init ld.lib.so
+	coreutils.tar
+	libc_noux.lib.so
+	libm.lib.so
+	noux libc.lib.so
+	posix.lib.so
+	sequence
+	timer
 }
 
 append qemu_args " -nographic -serial mon:stdio "
 
 # coreutils.tar is really huge when built for x86_64
 
-run_genode_until {child "noux" exited with exit value 0.*\n} 30
+run_genode_until {child "sequence" exited with exit value 0.*\n} 30

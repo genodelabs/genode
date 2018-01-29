@@ -90,6 +90,8 @@ extern "C" int __sysctl(int *name, u_int namelen, void *oldp, size_t *oldlenp,
 	if (namelen != 2) return Libc::Errno(ENOENT);
 	if (index_a >= CTL_MAXID) return Libc::Errno(EINVAL);
 
+	Genode::memset(buf, 0x00, *oldlenp);
+
 	switch(index_a) {
 	case CTL_KERN:
 		if (index_b >= KERN_MAXID) return Libc::Errno(EINVAL);
