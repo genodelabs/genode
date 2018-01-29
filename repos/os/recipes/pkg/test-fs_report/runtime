@@ -1,12 +1,14 @@
 <runtime ram="32M" caps="1000" binary="init">
 
-	<timer/>
+	<requires> <timer/> </requires>
 
-	<rom label="ld.lib.so"/>
-	<rom label="ram_fs"/>
-	<rom label="fs_report"/>
-	<rom label="fs_rom"/>
-	<rom label="test-fs_report"/>
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="ram_fs"/>
+		<rom label="fs_report"/>
+		<rom label="fs_rom"/>
+		<rom label="test-fs_report"/>
+	</content>
 
 	<config>
 		<parent-provides>

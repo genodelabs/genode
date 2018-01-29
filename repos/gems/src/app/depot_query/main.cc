@@ -380,42 +380,44 @@ void Depot_query::Main::_query_blueprint(Directory::Path const &pkg_path, Xml_ge
 			Xml_node env_xml = _config.xml().has_sub_node("env")
 			                 ? _config.xml().sub_node("env") : "<env/>";
 
-			node.for_each_sub_node([&] (Xml_node node) {
+			node.for_each_sub_node("content", [&] (Xml_node content) {
+				content.for_each_sub_node([&] (Xml_node node) {
 
-				/* skip non-rom nodes */
-				if (!node.has_type("rom"))
-					return;
+					/* skip non-rom nodes */
+					if (!node.has_type("rom"))
+						return;
 
-				Rom_label const label = node.attribute_value("label", Rom_label());
+					Rom_label const label = node.attribute_value("label", Rom_label());
 
-				/* skip ROM that is provided by the environment */
-				bool provided_by_env = false;
-				env_xml.for_each_sub_node("rom", [&] (Xml_node node) {
-					if (node.attribute_value("label", Rom_label()) == label)
-						provided_by_env = true; });
+					/* skip ROM that is provided by the environment */
+					bool provided_by_env = false;
+					env_xml.for_each_sub_node("rom", [&] (Xml_node node) {
+						if (node.attribute_value("label", Rom_label()) == label)
+							provided_by_env = true; });
 
-				if (provided_by_env) {
-					xml.node("rom", [&] () {
-						xml.attribute("label", label);
-						xml.attribute("env", "yes");
-					});
-					return;
-				}
+					if (provided_by_env) {
+						xml.node("rom", [&] () {
+							xml.attribute("label", label);
+							xml.attribute("env", "yes");
+						});
+						return;
+					}
 
-				Archive::Path const rom_path =
-					_find_rom_in_pkg(pkg_path, label, Recursion_limit{8});
+					Archive::Path const rom_path =
+						_find_rom_in_pkg(pkg_path, label, Recursion_limit{8});
 
-				if (rom_path.valid()) {
-					xml.node("rom", [&] () {
-						xml.attribute("label", label);
-						xml.attribute("path", rom_path);
-					});
+					if (rom_path.valid()) {
+						xml.node("rom", [&] () {
+							xml.attribute("label", label);
+							xml.attribute("path", rom_path);
+						});
 
-				} else {
+					} else {
 
-					xml.node("missing_rom", [&] () {
-						xml.attribute("label", label); });
-				}
+						xml.node("missing_rom", [&] () {
+							xml.attribute("label", label); });
+					}
+				});
 			});
 
 			String<160> comment("\n\n<!-- content of '", pkg_path, "/runtime' -->\n");
