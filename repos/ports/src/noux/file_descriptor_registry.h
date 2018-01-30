@@ -30,6 +30,7 @@ class Noux::File_descriptor_registry
 
 		struct {
 			bool                       allocated;
+			bool                       close_on_execve;
 			Shared_pointer<Io_channel> io_channel;
 		} _fds[MAX_FILE_DESCRIPTORS];
 
@@ -51,14 +52,16 @@ class Noux::File_descriptor_registry
 
 		void _assign_fd(int fd, Shared_pointer<Io_channel> &io_channel)
 		{
-			_fds[fd].io_channel = io_channel;
-			_fds[fd].allocated  = true;
+			_fds[fd].io_channel      = io_channel;
+			_fds[fd].allocated       = true;
+			_fds[fd].close_on_execve = false;
 		}
 
 		void _reset_fd(int fd)
 		{
-			_fds[fd].io_channel = Shared_pointer<Io_channel>();
-			_fds[fd].allocated  = false;
+			_fds[fd].io_channel      = Shared_pointer<Io_channel>();
+			_fds[fd].allocated       = false;
+			_fds[fd].close_on_execve = false;
 		}
 
 	public:
@@ -108,6 +111,24 @@ class Noux::File_descriptor_registry
 				return Shared_pointer<Io_channel>();
 
 			return _fds[fd].io_channel;
+		}
+
+		void close_fd_on_execve(int fd, bool close_on_execve)
+		{
+			if (!_valid_fd(fd))
+				error("file descriptor ", fd, " is out of range");
+			else
+				_fds[fd].close_on_execve = close_on_execve;
+		}
+
+		bool close_fd_on_execve(int fd)
+		{
+			if (!_valid_fd(fd)) {
+				error("file descriptor ", fd, " is out of range");
+				return false;
+			}
+
+			return _fds[fd].close_on_execve;
 		}
 
 		virtual void flush()

@@ -1595,14 +1595,8 @@ namespace {
 			}
 
 		case F_GETFD:
-			/*
-			 * Normally, we would return the file-descriptor flags.
-			 *
-			 * XXX: FD_CLOEXEC not yet supported
-			 */
-			if (verbose)
-				warning("fcntl(F_GETFD) not implemented, returning 0");
-			return 0;
+			sysio()->fcntl_in.cmd = Noux::Sysio::FCNTL_CMD_GET_FD_FLAGS;
+			break;
 
 		case F_SETFD:
 			sysio()->fcntl_in.cmd      = Noux::Sysio::FCNTL_CMD_SET_FD_FLAGS;

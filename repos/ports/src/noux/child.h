@@ -243,11 +243,15 @@ class Noux::Child : public Rpc_object<Session>,
 		/**
 		 * Let specified child inherit our file descriptors
 		 */
-		void _assign_io_channels_to(Child *child)
+		void _assign_io_channels_to(Child *child, bool skip_when_close_on_execve_set)
 		{
 			for (int fd = 0; fd < MAX_FILE_DESCRIPTORS; fd++)
-				if (fd_in_use(fd))
+				if (fd_in_use(fd)) {
+					if (skip_when_close_on_execve_set && close_fd_on_execve(fd))
+						continue;
 					child->add_io_channel(io_channel_by_fd(fd), fd);
+					child->close_fd_on_execve(fd, close_fd_on_execve(fd));
+				}
 		}
 
 		/**
@@ -536,7 +540,7 @@ class Noux::Child : public Rpc_object<Session>,
 			                                 false,
 			                                 _destruct_queue);
 
-			_assign_io_channels_to(child);
+			_assign_io_channels_to(child, true);
 
 			/* move the signal queue */
 			while (!_pending_signals.empty())

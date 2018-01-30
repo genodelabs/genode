@@ -171,8 +171,15 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 			if (_sysio.fcntl_in.cmd == Sysio::FCNTL_CMD_SET_FD_FLAGS) {
 
 				/* we assume that there is only the close-on-execve flag */
-				_lookup_channel(_sysio.fcntl_in.fd)->close_on_execve =
-					!!_sysio.fcntl_in.long_arg;
+				close_fd_on_execve(_sysio.fcntl_in.fd, !!_sysio.fcntl_in.long_arg);
+				result = true;
+				break;
+			}
+
+			if (_sysio.fcntl_in.cmd == Sysio::FCNTL_CMD_GET_FD_FLAGS) {
+
+				/* we assume that there is only the close-on-execve flag */
+				_sysio.fcntl_out.result = close_fd_on_execve(_sysio.fcntl_in.fd);
 				result = true;
 				break;
 			}
@@ -556,7 +563,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 
 				Family_member::insert(child);
 
-				_assign_io_channels_to(child);
+				_assign_io_channels_to(child, false);
 
 				/* copy our address space into the new child */
 				try {

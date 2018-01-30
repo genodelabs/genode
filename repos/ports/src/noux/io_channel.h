@@ -68,10 +68,6 @@ class Noux::Io_channel : public Reference_counter
 
 	public:
 
-		bool close_on_execve;
-
-		Io_channel() : close_on_execve(false) { }
-
 		virtual ~Io_channel() { }
 
 		virtual Io_channel_backend *backend() { return nullptr; }
