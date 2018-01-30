@@ -72,14 +72,14 @@ class Noux::Io_channel : public Reference_counter
 
 		virtual Io_channel_backend *backend() { return nullptr; }
 
-		virtual bool     write(Sysio &sysio, size_t &offset) { return false; }
-		virtual bool      read(Sysio &sysio)                 { return false; }
-		virtual bool     fstat(Sysio &sysio)                 { return false; }
-		virtual bool ftruncate(Sysio &sysio)                 { return false; }
-		virtual bool     fcntl(Sysio &sysio)                 { return false; }
-		virtual bool    dirent(Sysio &sysio)                 { return false; }
-		virtual bool     ioctl(Sysio &sysio)                 { return false; }
-		virtual bool     lseek(Sysio &sysio)                 { return false; }
+		virtual bool     write(Sysio &sysio) { return false; }
+		virtual bool      read(Sysio &sysio) { return false; }
+		virtual bool     fstat(Sysio &sysio) { return false; }
+		virtual bool ftruncate(Sysio &sysio) { return false; }
+		virtual bool     fcntl(Sysio &sysio) { return false; }
+		virtual bool    dirent(Sysio &sysio) { return false; }
+		virtual bool     ioctl(Sysio &sysio) { return false; }
+		virtual bool     lseek(Sysio &sysio) { return false; }
 
 		/**
 		 * Return true if an unblocking condition of the channel is satisfied

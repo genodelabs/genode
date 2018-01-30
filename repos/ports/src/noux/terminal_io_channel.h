@@ -66,7 +66,7 @@ struct Noux::Terminal_io_channel : Io_channel
 		}
 	}
 
-	bool write(Sysio &sysio, size_t &offset) override
+	bool write(Sysio &sysio) override
 	{
 		size_t const count = min(sysio.write_in.count,
 		                         sizeof(sysio.write_in.chunk));
@@ -74,7 +74,6 @@ struct Noux::Terminal_io_channel : Io_channel
 		_terminal.write(sysio.write_in.chunk, count);
 
 		sysio.write_out.count = count;
-		offset = count;
 
 		return true;
 	}

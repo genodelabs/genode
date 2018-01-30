@@ -50,31 +50,17 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 
 		case SYSCALL_WRITE:
 			{
-				size_t const count_in = _sysio.write_in.count;
+				Shared_pointer<Io_channel> io = _lookup_channel(_sysio.write_in.fd);
 
-				for (size_t offset = 0; offset != count_in; ) {
+				if (!io->nonblocking())
+					_block_for_io_channel(io, false, true, false);
 
-					Shared_pointer<Io_channel> io = _lookup_channel(_sysio.write_in.fd);
+				if (io->check_unblock(false, true, false)) {
+					/* 'io->write' is expected to update '_sysio.write_out.count' */
+					result = io->write(_sysio);
+				} else
+					_sysio.error.write = Vfs::File_io_service::WRITE_ERR_INTERRUPT;
 
-					if (!io->nonblocking())
-						_block_for_io_channel(io, false, true, false);
-
-					if (io->check_unblock(false, true, false)) {
-						/*
-						 * 'io->write' is expected to update
-						 * '_sysio.write_out.count' and 'offset'
-						 */
-						result = io->write(_sysio, offset);
-						if (result == false)
-							break;
-					} else {
-						if (result == false) {
-							/* nothing was written yet */
-							_sysio.error.write = Vfs::File_io_service::WRITE_ERR_INTERRUPT;
-						}
-						break;
-					}
-				}
 				break;
 			}
 

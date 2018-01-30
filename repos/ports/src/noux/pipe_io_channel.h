@@ -242,21 +242,10 @@ class Noux::Pipe_sink_io_channel : public Io_channel
 			return wr && _pipe->any_space_avail_for_writing();
 		}
 
-		bool write(Sysio &sysio, size_t &offset) override
+		bool write(Sysio &sysio) override
 		{
-			/*
-			 * If the write operation is larger than the space available in
-			 * the pipe buffer, the write function is successively called
-			 * for different portions of original write request. The
-			 * current read pointer of the request is tracked via the
-			 * 'count' in/out argument. If completed, 'count' equals
-			 * 'write_in.count'.
-			 */
-
-			/* dimension the pipe write operation to the not yet written data */
-			size_t curr_count = _pipe->write(sysio.write_in.chunk + offset,
-			                                 sysio.write_in.count - offset);
-			offset += curr_count;
+			sysio.write_out.count = _pipe->write(sysio.write_in.chunk,
+			                                     sysio.write_in.count);
 			return true;
 		}
 

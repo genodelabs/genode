@@ -1263,8 +1263,8 @@ namespace {
 				}
 			}
 
-			count -= curr_count;
-			src   += curr_count;
+			count -= sysio()->write_out.count;
+			src   += sysio()->write_out.count;
 		}
 		return orig_count;
 	}

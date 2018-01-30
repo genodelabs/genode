@@ -93,7 +93,7 @@ struct Noux::Vfs_io_channel : Io_channel
 		_fh->ds().close(_fh);
 	}
 
-	bool write(Sysio &sysio, size_t &offset) override
+	bool write(Sysio &sysio) override
 	{
 		Vfs::file_size count = sysio.write_in.count;
 		Vfs::file_size out_count = 0;
@@ -117,7 +117,6 @@ struct Noux::Vfs_io_channel : Io_channel
 		_fh->advance_seek(out_count);
 
 		sysio.write_out.count = out_count;
-		offset = out_count;
 
 		return true;
 	}
