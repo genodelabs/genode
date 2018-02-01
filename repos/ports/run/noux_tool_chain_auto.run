@@ -120,12 +120,13 @@ close $bash_profile_fd
 
 
 
-exec mkdir -p $genode_dir/depot/test
+exec mkdir -p [depot_dir]/test
 exec $genode_dir/tool/depot/create test/src/zlib
 exec tar cvf bin/genode.tar -C $genode_dir tool repos/base \
-             depot/test repos/libports/recipes/src/zlib \
+             repos/libports/recipes/src/zlib \
              repos/libports/recipes/api
-exec rm -rf $genode_dir/depot/test
+exec tar rvf bin/genode.tar -C [depot_dir]/.. depot/test
+exec rm -rf [depot_dir]/test
 
 create_boot_directory
 
