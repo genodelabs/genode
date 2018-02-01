@@ -10,6 +10,8 @@ DIRS := include/mupdf
 DIR_CONTENT(include/mupdf) := $(addprefix src/lib/mupdf/,\
                                           pdf/mupdf.h xps/muxps.h fitz/fitz.h)
 
+PATCHES := $(sort $(wildcard $(REP_DIR)/src/lib/mupdf/*.patch))
+
 default: fix_include
 
 fix_include: $(DOWNLOADS)

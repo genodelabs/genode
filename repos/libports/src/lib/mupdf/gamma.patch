@@ -1,0 +1,9 @@
++++ src/lib/mupdf/apps/pdfapp.c
+@@ -397,6 +397,7 @@
+ 		fz_clear_pixmap_with_color(app->image, 255);
+ 		idev = fz_new_draw_device(app->cache, app->image);
+ 		fz_execute_display_list(app->page_list, idev, ctm, bbox);
++		fz_gamma_pixmap(app->image, 1.5);
+ 		fz_free_device(idev);
+ 	}
+ 
