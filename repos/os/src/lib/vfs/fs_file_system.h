@@ -506,6 +506,12 @@ class Vfs::Fs_file_system : public File_system
 			return count;
 		}
 
+		void _ready_to_submit()
+		{
+			/* notify anyone who might have failed on write() ready_to_submit */
+			_post_signal_hook.arm(nullptr);
+		}
+
 		void _handle_ack()
 		{
 			::File_system::Session::Tx::Source &source = *_fs.tx();
@@ -535,7 +541,7 @@ class Vfs::Fs_file_system : public File_system
 						case Packet_descriptor::WRITE:
 							/*
 							 * Notify anyone who might have failed on
-							 * 'alloc_packet()' or 'submit_packet()'
+							 * 'alloc_packet()'
 							 */
 							_post_signal_hook.arm(nullptr);
 
@@ -565,6 +571,9 @@ class Vfs::Fs_file_system : public File_system
 		Genode::Io_signal_handler<Fs_file_system> _ack_handler {
 			_env.ep(), *this, &Fs_file_system::_handle_ack };
 
+		Genode::Io_signal_handler<Fs_file_system> _ready_handler {
+			_env.ep(), *this, &Fs_file_system::_ready_to_submit };
+
 	public:
 
 		Fs_file_system(Genode::Env         &env,
@@ -583,6 +592,7 @@ class Vfs::Fs_file_system : public File_system
 			    ::File_system::DEFAULT_TX_BUF_SIZE)
 		{
 			_fs.sigh_ack_avail(_ack_handler);
+			_fs.sigh_ready_to_submit(_ready_handler);
 		}
 
 		/*********************************
