@@ -778,6 +778,11 @@ struct Libc::Kernel
 		bool main_suspended() { return _state == KERNEL; }
 
 		/**
+		 * Public alias for _main_context()
+		 */
+		bool main_context() const { return _main_context(); }
+
+		/**
 		 * Execute application code while already executing in run()
 		 */
 		void nested_execution(Libc::Application_code &app_code)
@@ -869,14 +874,20 @@ void Libc::schedule_select(Libc::Select_handler_base *h)
 
 void Libc::execute_in_application_context(Libc::Application_code &app_code)
 {
-	/*
-	 * XXX We don't support a second entrypoint - pthreads should work as they
-	 *     don't use this code.
-	 */
-
 	if (!kernel) {
 		error("libc kernel not initialized, needed for with_libc()");
 		exit(1);
+	}
+
+	/*
+	 * The libc execution model builds on the main entrypoint, which handles
+	 * all relevant signals (e.g., timing and VFS). Additional component
+	 * entrypoints or pthreads should never call with_libc() but we catch this
+	 * here and just execute the application code directly.
+	 */
+	if (!kernel->main_context()) {
+		app_code.execute();
+		return;
 	}
 
 	static bool nested = false;
