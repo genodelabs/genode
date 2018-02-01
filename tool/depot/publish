@@ -42,8 +42,11 @@ DEPENDENCIES_CMD    := $(GENODE_DIR)/tool/depot/dependencies DEPOT_DIR="$(DEPOT_
 DEPENDENCIES_RESULT := $(shell $(DEPENDENCIES_CMD) 2> /dev/null || true)
 endif
 
+DEPENDENCIES_MISSING := $(sort $(foreach A, $(DEPENDENCIES_RESULT),\
+                                  $(if $(wildcard $(PUBLIC_DIR)/$A.tar.xz.sig),,$A)))
+
 ifeq ($(filter Error:,$(DEPENDENCIES_RESULT)),)
-ARCHIVES := $(DEPENDENCIES_RESULT)
+ARCHIVES := $(DEPENDENCIES_MISSING)
 else
 ARCHIVES :=
 $(MAKECMDGOALS): dependencies_error
