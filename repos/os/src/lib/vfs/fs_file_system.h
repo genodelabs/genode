@@ -361,7 +361,7 @@ class Vfs::Fs_file_system : public File_system
 			Io_response_handler       &_io_handler;
 			List<Vfs_handle::Context>  _context_list { };
 			Lock                       _list_lock    { };
-			bool                       _null_context_armed { false };
+			bool                       _notify_all   { false };
 
 			Post_signal_hook(Genode::Entrypoint &ep,
 			                 Io_response_handler &io_handler)
@@ -370,16 +370,9 @@ class Vfs::Fs_file_system : public File_system
 			void arm(Vfs_handle::Context *context)
 			{
 				if (!context) {
-
-					if (!_null_context_armed) {
-						_null_context_armed = true;
-						_ep.schedule_post_signal_hook(this);
-					}
-
-					return;
-				}
-
-				{
+					Lock::Guard list_guard(_list_lock);
+					_notify_all = true;
+				} else {
 					Lock::Guard list_guard(_list_lock);
 
 					for (Vfs_handle::Context *list_context = _context_list.first();
@@ -402,24 +395,26 @@ class Vfs::Fs_file_system : public File_system
 			{
 				Vfs_handle::Context *context = nullptr;
 
-				for (;;) {
+				do {
+					bool notify_all = false;
 
 					{
 						Lock::Guard list_guard(_list_lock);
 
 						context = _context_list.first();
 						_context_list.remove(context);
+
+						if (!context && _notify_all) {
+							notify_all  = true;
+							_notify_all = false;
+						}
 					}
 
-					if (!context) {
-						if (!_null_context_armed)
-							break;
-						else
-							_null_context_armed = false;
-					}
+					if (context || notify_all)
+						_io_handler.handle_io_response(context);
 
-					_io_handler.handle_io_response(context);
-				}
+					/* done if no contexts and all notified */
+				} while (context);
 			}
 		};
 
