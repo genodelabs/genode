@@ -377,6 +377,12 @@ sent by the router (ETH, IPv4, ARP, UDP, TCP, DHCP).
 Log most important changes in the state of a domain (number of nic sessions
 connected, current IPv4 config).
 
+! <config>
+!     <domain verbose_packets="yes" ... >
+! <config/>
+
+Log most important protocol header fields of each packet that is received or
+sent at a specific domain (ETH, IPv4, ARP, UDP, TCP, DHCP).
 
 Examples
 ########

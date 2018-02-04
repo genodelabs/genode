@@ -224,7 +224,11 @@ append config {
 
 			<report bytes="yes" config="yes" interval_sec="60" />
 
-			<domain name="uplink" interface="10.0.2.55/24" gateway="10.0.2.1">
+			<domain name="uplink"
+			        interface="10.0.2.55/24"
+			        gateway="10.0.2.1"
+			        verbose_packets="no">
+
 				<tcp-forward port="80"   domain="http_server_1" to="192.168.1.18" />
 				<tcp-forward port="8080" domain="http_server_2" to="192.168.2.72" />
 				<udp-forward port="1"    domain="udp_server_2"  to="18.17.16.15"  />

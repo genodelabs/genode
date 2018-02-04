@@ -140,9 +140,10 @@
 							<xs:element name="udp-forward" type="L3_forward_rule" />
 
 						</xs:choice>
-						<xs:attribute name="name"      type="Domain_name" />
-						<xs:attribute name="interface" type="Ipv4_address_prefix" />
-						<xs:attribute name="gateway"   type="Ipv4_address" />
+						<xs:attribute name="name"            type="Domain_name" />
+						<xs:attribute name="interface"       type="Ipv4_address_prefix" />
+						<xs:attribute name="gateway"         type="Ipv4_address" />
+						<xs:attribute name="verbose_packets" type="Boolean" />
 					</xs:complexType>
 				</xs:element><!-- domain -->
 

@@ -110,7 +110,9 @@ Domain::Domain(Configuration &config, Xml_node const node, Allocator &alloc)
 	Domain_base(node), _avl_member(_name, *this), _config(config),
 	_node(node), _alloc(alloc),
 	_ip_config(_node.attribute_value("interface", Ipv4_address_prefix()),
-	           _node.attribute_value("gateway",   Ipv4_address()))
+	           _node.attribute_value("gateway",   Ipv4_address())),
+	_verbose_packets(_node.attribute_value("verbose_packets", false) ||
+	                 _config.verbose_packets())
 {
 	if (_name == Domain_name()) {
 		error("Missing name attribute in domain node");
