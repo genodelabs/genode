@@ -357,6 +357,27 @@ The attributes of the 'report' tag:
 'interval_sec' : 1..3600 : Interval of sending reports in seconds
 
 
+Verbosity
+#########
+
+This is how you can configure the routers verbosity on its environment LOG
+session:
+
+! <config verbose="yes">
+
+Log router decisions and optional hints.
+
+! <config verbose_packets="yes">
+
+Log most important protocol header fields of each packet that is received or
+sent by the router (ETH, IPv4, ARP, UDP, TCP, DHCP).
+
+! <config verbose_domain_state="yes">
+
+Log most important changes in the state of a domain (number of nic sessions
+connected, current IPv4 config).
+
+
 Examples
 ########
 

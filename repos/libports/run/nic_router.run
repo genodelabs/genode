@@ -213,6 +213,7 @@ append config {
 		<resource name="RAM" quantum="10M"/>
 		<provides><service name="Nic"/></provides>
 		<config verbose="no"
+		        verbose_packets="no"
 		        verbose_domain_state="yes"
 		        dhcp_discover_timeout_sec="3"
 		        dhcp_request_timeout_sec="3"

@@ -32,8 +32,10 @@ Configuration::Configuration(Env               &env,
                              Allocator         &alloc,
                              Timer::Connection &timer)
 :
-	_alloc(alloc), _verbose(node.attribute_value("verbose", false)),
-	_verbose_domain_state(node.attribute_value("verbose_domain_state", false)),
+	_alloc(alloc),
+	_verbose              (node.attribute_value("verbose",              false)),
+	_verbose_packets      (node.attribute_value("verbose_packets",      false)),
+	_verbose_domain_state (node.attribute_value("verbose_domain_state", false)),
 	_dhcp_discover_timeout(read_sec_attr(node, "dhcp_discover_timeout_sec", DEFAULT_DHCP_DISCOVER_TIMEOUT_SEC)),
 	_dhcp_request_timeout (read_sec_attr(node, "dhcp_request_timeout_sec",  DEFAULT_DHCP_REQUEST_TIMEOUT_SEC )),
 	_dhcp_offer_timeout   (read_sec_attr(node, "dhcp_offer_timeout_sec",    DEFAULT_DHCP_OFFER_TIMEOUT_SEC   )),
