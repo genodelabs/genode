@@ -880,7 +880,7 @@ void Interface::_handle_eth(void              *const  eth_base,
 	try {
 		Ethernet_frame *const eth = reinterpret_cast<Ethernet_frame *>(eth_base);
 		if (_domain.verbose_packets()) {
-			log("(router <- ", _domain, ") ", *eth); }
+			log("[", _domain, "] rcv ", *eth); }
 
 		if (_domain.ip_config().valid) {
 
@@ -954,7 +954,7 @@ void Interface::_send_submit_pkt(Packet_descriptor &pkt,
 	_source().submit_packet(pkt);
 	_domain.raise_tx_bytes(pkt_size);
 	if (_domain.verbose_packets()) {
-		log("(", _domain, " <- router) ",
+		log("[", _domain, "] snd ",
 		    *reinterpret_cast<Ethernet_frame *>(pkt_base));
 	}
 }
