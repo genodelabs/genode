@@ -189,8 +189,10 @@ struct Framebuffer::Root
 {
 	Session_component session; /* single session */
 
-	Session_component *_create_session(const char *args) override {
+	Session_component *_create_session(const char *) override {
 		return &session; }
+
+	void _destroy_session(Session_component *) override { }
 
 	Root(Genode::Env &env, Genode::Allocator &alloc,
 	     Genode::Attached_rom_dataspace &config)
