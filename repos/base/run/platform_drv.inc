@@ -37,6 +37,7 @@ proc nic_drv_binary { } {
 	if {[have_spec linux]} { return linux_nic_drv }
 	if {[have_spec omap4] || [have_spec arndale] || [have_spec rpi]} { return usb_drv }
 	if {!([have_spec imx53] || [have_spec riscv] || [have_spec odroid_xu] || [have_spec wand_quad])} { return nic_drv }
+	return no_nic_drv_available
 }
 
 
@@ -46,6 +47,7 @@ proc nic_drv_binary { } {
 proc audio_drv_binary { } {
 	if {[have_spec linux]} { return linux_audio_drv }
 	if {[have_spec x86]}   { return audio_drv }
+	return no_audio_drv_available
 }
 
 
