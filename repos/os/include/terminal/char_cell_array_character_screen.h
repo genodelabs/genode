@@ -276,12 +276,31 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 
 		void ech(int v)
 		{
-			Cursor_guard guard(*this);
+			/* clear number of characters */
 
-			for (int i = 0; i < v; i++, _cursor_pos.x++)
-				_char_cell_array.set_cell(_cursor_pos.x, _cursor_pos.y,
+			int x = _cursor_pos.x;
+			int y = _cursor_pos.y;
+
+			while (v-- > 0) {
+
+				_char_cell_array.set_cell(x, y,
 				                          Char_cell(' ', Font_face::REGULAR,
 				                          _color_index, _inverse, _highlight));
+
+				if (x == (_boundary.width - 1)) {
+					/* end of line reached */
+					if (y < (_boundary.height - 1)) {
+						/* continue at beginning of next line */
+					    x = 0;
+						y++;
+					} else {
+						/* end of screen reached */
+						return;
+					}
+				} else {
+					x++;
+				}
+			}
 		}
 
 		void ed()
@@ -311,8 +330,11 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 		{
 			Cursor_guard guard(*this);
 
-			_cursor_pos.x = x;
-			_cursor_pos.x = Genode::min(_boundary.width - 1, _cursor_pos.x);
+			/* top-left cursor position is reported as (1, 1) */
+			x--;
+
+			using namespace Genode;
+			_cursor_pos.x = max(0, min(x, _boundary.width  - 1));
 		}
 
 		void hts()    { Genode::warning(__func__, " not implemented"); }
@@ -348,7 +370,6 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 
 		void setab(int value)
 		{
-			//_inverse = (value != 0);
 			_color_index &= ~0x38; /* clear 111000 */
 			_color_index |= (((value == 9) ? DEFAULT_COLOR_INDEX_BG : value) << 3);
 		}
@@ -361,12 +382,22 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 
 		void sgr(int value)
 		{
-			_highlight = (value & 0x1) != 0;
-			_inverse   = (value & 0x2) != 0;
-
-			/* sgr 0 is the command to reset all attributes, including color */
-			if (value == 0)
+			switch (value) {
+			case 0:
+				/* sgr 0 is the command to reset all attributes, including color */
+				_highlight = false;
+				_inverse = false;
 				_color_index = DEFAULT_COLOR_INDEX | (DEFAULT_COLOR_INDEX_BG << 3);
+				break;
+			case 1:
+				_highlight = true;
+				break;
+			case 7:
+				_inverse = true;
+				break;
+			default:
+				break;
+			}
 		}
 
 		void sgr0()
@@ -387,8 +418,11 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 		{
 			Cursor_guard guard(*this);
 
-			_cursor_pos.y = y;
-			_cursor_pos.y = Genode::min(_boundary.height - 1, _cursor_pos.y);
+			/* top-left cursor position is reported as (1, 1) */
+			y--;
+
+			using namespace Genode;
+			_cursor_pos.y = max(0, min(y, _boundary.height - 1));
 		}
 };
 

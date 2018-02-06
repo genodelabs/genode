@@ -175,6 +175,22 @@ class Terminal::Decoder
 			_number = 0;
 		}
 
+		bool _sgr(int const p)
+		{
+			if (p < 30)
+				return (_screen.sgr(p), true);
+
+			/* p starting with digit '3' -> set foreground color */
+			if (starts_with_digit(3, p))
+				return (_screen.setaf(remove_first_digit(p)), true);
+
+			/* p starting with digit '4' -> set background color */
+			if (starts_with_digit(4, p))
+				return (_screen.setab(remove_first_digit(p)), true);
+
+			return false;
+		}
+
 		/**
 		 * Try to handle single-element escape sequence
 		 *
@@ -244,18 +260,7 @@ class Terminal::Decoder
 			char const command = _escape_stack[2].value;
 
 			switch (command) {
-			case 'm':
-				if (p1 < 30)
-					return (_screen.sgr(p1), true);
-
-				/* p1 starting with digit '3' -> set foreground color */
-				if (starts_with_digit(3, p1))
-					return (_screen.setaf(remove_first_digit(p1)), true);
-
-				/* p1 starting with digit '4' -> set background color */
-				if (starts_with_digit(4, p1))
-					return (_screen.setab(remove_first_digit(p1)), true);
-
+			case 'm': return _sgr(p1);
 			case 'D': return (_screen.cub(p1), true);
 			case 'd': return (_screen.vpa(p1), true);
 			case 'g': return (p1 == 3) && (_screen.tbc(), true);
@@ -292,12 +297,22 @@ class Terminal::Decoder
 
 			switch (command) {
 			case 'l':
-				if (p1 ==  7) return (_screen.rmam(),  true);
-				if (p1 == 25) return (_screen.civis(), true);
+				if (p1 ==    7) return (_screen.rmam(),  true);
+				if (p1 ==   25) return (_screen.civis(), true);
+				if (p1 == 2004) {
+					/* disable bracketed paste */
+					Genode::warning("Sequence '[?2004l' is not implemented");
+					return true;
+				}
 				return false;
 			case 'h':
-				if (p1 ==  7) return (_screen.smam(),  true);
-				if (p1 == 25) return (_screen.cnorm(), true);
+				if (p1 ==    7) return (_screen.smam(),  true);
+				if (p1 ==   25) return (_screen.cnorm(), true);
+				if (p1 == 2004) {
+					/* enable bracketed paste */
+					Genode::warning("Sequence '[?2004h' is not implemented");
+					return true;
+				}
 				return false;
 			case 'c':
 				if (p1 == 0) return true; /* appended to cnorm */
@@ -328,39 +343,17 @@ class Terminal::Decoder
 			switch (command) {
 			case 'r': return (_screen.csr(p[0], p[1]), true);
 			case 'H': return (_screen.cup(p[0], p[1]), true);
-			case 'm': {
-				bool result = false;
+			case 'm':
 
-				for (int i = 0; i < 2; i++) {
+				for (int i = 0; i < 2; i++)
+					if (!_sgr(p[i]))
+						Genode::warning("Number ", p[i],
+						                " in sequence '[",
+						                p[0], ";",
+						                p[1], "m' is not implemented");
 
-					if (p[i] == 0) {
-						/* turn off all attributes */
-						_screen.sgr0();
-						result = true;
+				return true;
 
-					} else if (p[i] == 1) {
-						 /*
-						  * attribute
-						  *   1 bold (turn into highlight)
-						  */
-						_screen.sgr(p[i]);
-						result = true;
-
-					} else if ((p[i] >= 30) && (p[i] <= 37)) {
-						/*
-						 * color
-						 *   30...37 text colors
-						 *   40...47 background colors
-						 */
-						_screen.setaf(p[i] - 30);
-						return true;
-
-					} else if ((p[i] == 39) && (p[!i] == 49))
-						return (_screen.op(),   true);
-
-				}
-				return result;
-			}
 			case 'R': return (_screen.u6(p[0], p[1]), true);
 			default: return false;
 			}
@@ -381,20 +374,24 @@ class Terminal::Decoder
 			 || (_escape_stack[5].type  != Escape_stack::Entry::NUMBER))
 				return false;
 
-			int const p1      = _escape_stack[1].value;
-			int const p2      = _escape_stack[2].value;
-			int const p3      = _escape_stack[3].value;
+			int const p[3]    = { _escape_stack[1].value,
+			                      _escape_stack[3].value,
+			                      _escape_stack[5].value };
 			int const command = _escape_stack[6].value;
 
 			switch (command) {
 			case 'm':
 
-				/*
-				 * Currently returning true w/o actually handling the
-				 * sequence
-				 */
-				Genode::warning("Sequence '[", p1, ";", p2, ";", p3, "m' is not implemented");
+				for (int i = 0; i < 3; i++)
+					if (!_sgr(p[i]))
+						Genode::warning("Number ", p[i],
+						                " in sequence '[",
+						                p[0], ";",
+						                p[1], ";",
+						                p[2], "m' is not implemented");
+
 				return true;
+
 			default: return false;
 			}
 
