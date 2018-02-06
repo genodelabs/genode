@@ -12,6 +12,7 @@
  */
 
 /* Genode includes */
+#include <base/attached_rom_dataspace.h>
 #include <trace_session/connection.h>
 #include <timer_session/connection.h>
 #include <base/component.h>
