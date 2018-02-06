@@ -89,10 +89,13 @@ extern "C" void wpa_report_disconnect_event(struct wpa_supplicant *wpa_s)
 			char bssid_buf[MAC_STR_LEN];
 			mac2str(bssid_buf, wpa_ssid->bssid);
 
+			unsigned auth_failures = wpa_ssid->auth_failures;
+
 			xml.node("accesspoint", [&]() {
 				xml.attribute("ssid", ssid.string());
 				xml.attribute("bssid", bssid_buf);
 				xml.attribute("state", "disconnected");
+				xml.attribute("auth_failures", auth_failures);
 			});
 
 		});
