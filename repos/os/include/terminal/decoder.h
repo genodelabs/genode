@@ -140,7 +140,7 @@ class Terminal::Decoder
 					return (index <= _index) ? _entries[index] : Invalid_entry();
 				}
 
-		} _escape_stack;
+		} _escape_stack { };
 
 		enum State {
 			STATE_IDLE,

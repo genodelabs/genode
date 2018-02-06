@@ -30,11 +30,17 @@ class Cell_array
 {
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Cell_array(Cell_array const &);
+		Cell_array &operator = (Cell_array const &);
+
 		unsigned           _num_cols;
 		unsigned           _num_lines;
-		Genode::Allocator *_alloc;
-		CELL             **_array;
-		bool              *_line_dirty;
+		Genode::Allocator &_alloc;
+		CELL             **_array      = nullptr;
+		bool              *_line_dirty = nullptr;
 
 		typedef CELL *Char_cell_line;
 
@@ -73,7 +79,7 @@ class Cell_array
 	public:
 
 		Cell_array(unsigned num_cols, unsigned num_lines,
-		           Genode::Allocator *alloc)
+		           Genode::Allocator &alloc)
 		:
 			_num_cols(num_cols),
 			_num_lines(num_lines),

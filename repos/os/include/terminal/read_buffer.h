@@ -30,54 +30,14 @@ class Terminal::Read_buffer : public Genode::Ring_buffer<unsigned char, READ_BUF
 {
 	private:
 
-		Genode::Signal_context_capability _sigh_cap;
+		Genode::Signal_context_capability _sigh_cap { };
 
 	public:
 
 		/**
 		 * Register signal handler for read-avail signals
 		 */
-		void sigh(Genode::Signal_context_capability cap)
-		{
-			_sigh_cap = cap;
-		}
-
-		/**
-		 * Add element into read buffer and emit signal
-		 */
-		void add(unsigned char c)
-		{
-			Genode::Ring_buffer<unsigned char, READ_BUFFER_SIZE>::add(c);
-
-			if (_sigh_cap.valid())
-				Genode::Signal_transmitter(_sigh_cap).submit();
-		}
-
-		void add(char const *str)
-		{
-			while (*str)
-				add(*str++);
-		}
-};
-
-
-enum { READ_BUFFER_SIZE = 4096 };
-
-class Read_buffer : public Genode::Ring_buffer<unsigned char, READ_BUFFER_SIZE>
-{
-	private:
-
-		Genode::Signal_context_capability _sigh_cap;
-
-	public:
-
-		/**
-		 * Register signal handler for read-avail signals
-		 */
-		void sigh(Genode::Signal_context_capability cap)
-		{
-			_sigh_cap = cap;
-		}
+		void sigh(Genode::Signal_context_capability cap) { _sigh_cap = cap; }
 
 		/**
 		 * Add element into read buffer and emit signal

@@ -24,10 +24,10 @@ struct Char_cell
 	unsigned char ascii;
 	unsigned char color;
 
-	enum { ATTR_COLIDX_MASK = 0x07,
-	       ATTR_CURSOR      = 0x10,
-	       ATTR_INVERSE     = 0x20,
-	       ATTR_HIGHLIGHT   = 0x40 };
+	enum { ATTR_COLIDX_MASK = 0x07U,
+	       ATTR_CURSOR      = 0x10U,
+	       ATTR_INVERSE     = 0x20U,
+	       ATTR_HIGHLIGHT   = 0x40U };
 
 	enum { COLOR_MASK = 0x3f }; /* 111111 */
 
@@ -47,8 +47,8 @@ struct Char_cell
 		return Font_face((Font_face::Type)(attr & Font_face::attr_mask()));
 	}
 
-	int  colidx_fg() const { return color        & ATTR_COLIDX_MASK; }
-	int  colidx_bg() const { return (color >> 3) & ATTR_COLIDX_MASK; }
+	unsigned colidx_fg() const { return color        & ATTR_COLIDX_MASK; }
+	unsigned colidx_bg() const { return (color >> 3) & ATTR_COLIDX_MASK; }
 	bool inverse()   const { return attr         & ATTR_INVERSE;     }
 	bool highlight() const { return attr         & ATTR_HIGHLIGHT;   }
 
@@ -69,7 +69,8 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 
 		Cell_array<Char_cell> &_char_cell_array;
 		Terminal::Boundary     _boundary;
-		Terminal::Position     _cursor_pos;
+		Terminal::Position     _cursor_pos { };
+
 		/**
 		 * Color index contains the fg color in the first 3 bits
 		 * and the bg color in the second 3 bits (0bbbbfff).

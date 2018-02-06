@@ -14,6 +14,9 @@
 #ifndef _TERMINAL__TYPES_H_
 #define _TERMINAL__TYPES_H_
 
+/* Genode includes */
+#include <util/interface.h>
+
 namespace Terminal {
 
 	struct Character;
@@ -84,7 +87,7 @@ struct Terminal::Position
 };
 
 
-struct Terminal::Character_array
+struct Terminal::Character_array : Genode::Interface
 {
 	/**
 	 * Assign character to specified position

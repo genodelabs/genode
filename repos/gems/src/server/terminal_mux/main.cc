@@ -220,7 +220,7 @@ class Terminal::Session_component : public Genode::Rpc_object<Session, Session_c
 			_label(label),
 			_session_manager(session_manager),
 			_io_buffer(_env.ram(), _env.rm(), io_buffer_size),
-			_char_cell_array(ncurses.columns(), ncurses.lines() - 1, &heap),
+			_char_cell_array(ncurses.columns(), ncurses.lines() - 1, heap),
 			_char_cell_array_character_screen(_char_cell_array),
 			_decoder(_char_cell_array_character_screen)
 		{
