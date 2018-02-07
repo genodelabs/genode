@@ -22,9 +22,35 @@
 #include <interface.h>
 #include <ipv4_address_prefix.h>
 
-namespace Net { class Uplink; }
+namespace Net {
 
-class Net::Uplink : public Nic::Packet_allocator,
+	using Domain_name = Genode::String<160>;
+	class Uplink_base;
+	class Uplink;
+}
+
+
+class Net::Uplink_base
+{
+	protected:
+
+		struct Interface_policy : Net::Interface_policy
+		{
+			/***************************
+			 ** Net::Interface_policy **
+			 ***************************/
+
+			Domain_name determine_domain_name() const override { return Genode::Cstring("uplink"); };
+		};
+
+		Interface_policy _intf_policy { };
+
+		virtual ~Uplink_base() { }
+};
+
+
+class Net::Uplink : public Uplink_base,
+                    public Nic::Packet_allocator,
                     public Nic::Connection,
                     public Interface
 {

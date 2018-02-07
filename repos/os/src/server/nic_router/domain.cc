@@ -217,7 +217,7 @@ Ipv4_address const &Domain::next_hop(Ipv4_address const &ip) const
 }
 
 
-void Domain::manage_interface(Interface &interface)
+void Domain::attach_interface(Interface &interface)
 {
 	_interfaces.insert(&interface);
 	_interface_cnt++;
@@ -227,7 +227,7 @@ void Domain::manage_interface(Interface &interface)
 }
 
 
-void Domain::dissolve_interface(Interface &interface)
+void Domain::detach_interface(Interface &interface)
 {
 	_interfaces.remove(&interface);
 	_interface_cnt--;

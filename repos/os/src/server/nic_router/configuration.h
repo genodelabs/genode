@@ -42,6 +42,7 @@ class Net::Configuration
 		Genode::Microseconds const  _tcp_max_segm_lifetime;
 		Pointer<Report>             _report  { };
 		Domain_tree                 _domains { };
+		List<Interface>             _detached_interfaces    { };
 		Genode::Xml_node     const  _node;
 
 	public:
@@ -74,6 +75,7 @@ class Net::Configuration
 		Genode::Microseconds  tcp_idle_timeout()      const { return _tcp_idle_timeout; }
 		Genode::Microseconds  tcp_max_segm_lifetime() const { return _tcp_max_segm_lifetime; }
 		Domain_tree          &domains()                     { return _domains; }
+		List<Interface>      &detached_interfaces()         { return _detached_interfaces; }
 		Report               &report()                      { return _report.deref(); }
 		Genode::Xml_node      node()                  const { return _node; }
 };

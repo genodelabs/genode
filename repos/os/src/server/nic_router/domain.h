@@ -143,9 +143,9 @@ class Net::Domain : public Domain_base
 
 		Link_side_tree &links(L3_protocol const protocol);
 
-		void manage_interface(Interface &interface);
+		void attach_interface(Interface &interface);
 
-		void dissolve_interface(Interface &interface);
+		void detach_interface(Interface &interface);
 
 		void raise_rx_bytes(Genode::size_t bytes) { _rx_bytes += bytes; }
 
