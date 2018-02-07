@@ -68,9 +68,9 @@ namespace Terminal_crosslink {
 			 ** Terminal session interface **
 			 ********************************/
 
-			Size size();
+			Size size() override;
 
-			bool avail();
+			bool avail() override;
 
 			Genode::size_t _read(Genode::size_t dst_len);
 
@@ -78,12 +78,14 @@ namespace Terminal_crosslink {
 
 			Genode::Dataspace_capability _dataspace();
 
-			void connected_sigh(Genode::Signal_context_capability sigh);
+			void connected_sigh(Genode::Signal_context_capability sigh) override;
 
-			void read_avail_sigh(Genode::Signal_context_capability sigh);
+			void read_avail_sigh(Genode::Signal_context_capability sigh) override;
 
-			Genode::size_t read(void *, Genode::size_t);
-			Genode::size_t write(void const *, Genode::size_t);
+			void size_changed_sigh(Genode::Signal_context_capability) override { }
+
+			Genode::size_t read(void *, Genode::size_t) override;
+			Genode::size_t write(void const *, Genode::size_t) override;
 	};
 
 }

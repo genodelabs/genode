@@ -31,10 +31,12 @@ class Terminal::Session_component : public Rpc_object<Session, Session_component
 {
 	private:
 
-		Read_buffer            &_read_buffer;
-		Character_consumer     &_character_consumer;
-		Size             const &_terminal_size;
-		Attached_ram_dataspace  _io_buffer;
+		Read_buffer              &_read_buffer;
+		Character_consumer       &_character_consumer;
+		Size                      _terminal_size { };
+		Size                      _reported_terminal_size { };
+		Attached_ram_dataspace    _io_buffer;
+		Signal_context_capability _size_changed_sigh { };
 
 		Terminal::Position _last_cursor_pos { };
 
@@ -46,21 +48,36 @@ class Terminal::Session_component : public Rpc_object<Session, Session_component
 		Session_component(Env                &env,
 		                  Read_buffer        &read_buffer,
 		                  Character_consumer &character_consumer,
-		                  Size         const &terminal_size,
 		                  size_t              io_buffer_size)
 		:
 			_read_buffer(read_buffer),
 			_character_consumer(character_consumer),
-			_terminal_size(terminal_size),
 			_io_buffer(env.ram(), env.rm(), io_buffer_size)
 		{ }
+
+		void notify_resized(Size new_size)
+		{
+			_terminal_size = new_size;
+
+			bool const client_is_out_of_date =
+				(_reported_terminal_size.columns() != new_size.columns()) ||
+				(_reported_terminal_size.lines()   != new_size.lines());
+
+			if (client_is_out_of_date && _size_changed_sigh.valid())
+				Signal_transmitter(_size_changed_sigh).submit();
+		}
 
 
 		/********************************
 		 ** Terminal session interface **
 		 ********************************/
 
-		Size size() override { return _terminal_size; }
+		Size size() override
+		{
+			_reported_terminal_size = _terminal_size;
+
+			return _terminal_size;
+		}
 
 		bool avail() override { return !_read_buffer.empty(); }
 
@@ -104,6 +121,13 @@ class Terminal::Session_component : public Rpc_object<Session, Session_component
 			_read_buffer.sigh(cap);
 		}
 
+		void size_changed_sigh(Signal_context_capability cap) override
+		{
+			_size_changed_sigh = cap;
+
+			notify_resized(_terminal_size);
+		}
+
 		size_t read(void *, size_t) override { return 0; }
 		size_t write(void const *, size_t) override { return 0; }
 };
@@ -116,23 +140,30 @@ class Terminal::Root_component : public Genode::Root_component<Session_component
 		Env                &_env;
 		Read_buffer        &_read_buffer;
 		Character_consumer &_character_consumer;
-		Session::Size      &_terminal_size;
+		Session::Size       _terminal_size { };
+
+		Registry<Registered<Session_component> > _sessions { };
 
 	protected:
 
-		Session_component *_create_session(const char *)
+		Session_component *_create_session(const char *) override
 		{
 			/*
 			 * XXX read I/O buffer size from args
 			 */
 			size_t io_buffer_size = 4096;
 
-			return new (md_alloc())
-				Session_component(_env,
-				                  _read_buffer,
-				                  _character_consumer,
-				                  _terminal_size,
-				                  io_buffer_size);
+			Session_component &session = *new (md_alloc())
+				Registered<Session_component>(_sessions,
+				                              _env,
+				                              _read_buffer,
+				                              _character_consumer,
+				                              io_buffer_size);
+
+			/* propagate current terminal size to client */
+			session.notify_resized(_terminal_size);
+
+			return &session;
 		}
 
 	public:
@@ -143,15 +174,21 @@ class Terminal::Root_component : public Genode::Root_component<Session_component
 		Root_component(Env                &env,
 		               Allocator          &md_alloc,
 		               Read_buffer        &read_buffer,
-		               Character_consumer &character_consumer,
-		               Session::Size      &terminal_size)
+		               Character_consumer &character_consumer)
 		:
 			Genode::Root_component<Session_component>(env.ep(), md_alloc),
 			_env(env),
 			_read_buffer(read_buffer),
-			_character_consumer(character_consumer),
-			_terminal_size(terminal_size)
+			_character_consumer(character_consumer)
 		{ }
+
+		void notify_resized(Session::Size size)
+		{
+			_terminal_size = size;
+
+			_sessions.for_each([&] (Session_component &session) {
+				session.notify_resized(size); });
+		}
 };
 
 #endif /* _SESSION_H_ */

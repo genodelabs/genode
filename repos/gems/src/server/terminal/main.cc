@@ -124,7 +124,7 @@ struct Terminal::Main : Character_consumer
 	Read_buffer _read_buffer { };
 
 	/* create root interface for service */
-	Root_component _root { _env, _heap, _read_buffer, *this, _terminal_size };
+	Root_component _root { _env, _heap, _read_buffer, *this };
 
 	/*
 	 * builtin keyboard-layout handling
@@ -152,6 +152,7 @@ struct Terminal::Main : Character_consumer
 	Main(Env &env) : _env(env)
 	{
 		_handle_config();
+		_config.sigh(_config_handler);
 
 		_input.sigh(_input_handler);
 
@@ -198,13 +199,12 @@ void Terminal::Main::_handle_config()
 	/*
 	 * Adapt terminal to framebuffer mode changes
 	 */
-	if (_framebuffer.mode_changed() || !_text_screen_surface.constructed()) {
-		_framebuffer.switch_to_new_mode();
-		_text_screen_surface.construct(_heap, *_font_family,
-		                               _color_palette, _framebuffer);
-		_terminal_size = _text_screen_surface->size();
-		_schedule_flush();
-	}
+	_framebuffer.switch_to_new_mode();
+	_text_screen_surface.construct(_heap, *_font_family,
+	                               _color_palette, _framebuffer);
+	_terminal_size = _text_screen_surface->size();
+	_root.notify_resized(_terminal_size);
+	_schedule_flush();
 
 	/*
 	 * Read keyboard layout from config file

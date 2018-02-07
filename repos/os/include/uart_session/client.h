@@ -78,6 +78,11 @@ class Uart::Session_client : public Genode::Rpc_client<Session>
 			_terminal.read_avail_sigh(cap);
 		}
 
+		void size_changed_sigh(Genode::Signal_context_capability cap)
+		{
+			_terminal.size_changed_sigh(cap);
+		}
+
 		Genode::size_t io_buffer_size() const
 		{
 			return _terminal.io_buffer_size();

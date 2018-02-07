@@ -152,9 +152,9 @@ class Uart::Session_component : public Rpc_object<Uart::Session,
 		 ** Terminal session interface **
 		 ********************************/
 
-		Size size() { return _size; }
+		Size size() override { return _size; }
 
-		bool avail() { return _driver.char_avail(); }
+		bool avail() override { return _driver.char_avail(); }
 
 		Genode::size_t _read(Genode::size_t dst_len)
 		{
@@ -183,7 +183,7 @@ class Uart::Session_component : public Rpc_object<Uart::Session,
 		Genode::Dataspace_capability _dataspace() {
 			return _io_buffer.cap(); }
 
-		void connected_sigh(Genode::Signal_context_capability sigh)
+		void connected_sigh(Genode::Signal_context_capability sigh) override
 		{
 			/*
 			 * Immediately reflect connection-established signal to the
@@ -193,15 +193,17 @@ class Uart::Session_component : public Rpc_object<Uart::Session,
 			Genode::Signal_transmitter(sigh).submit();
 		}
 
-		void read_avail_sigh(Genode::Signal_context_capability sigh)
+		void read_avail_sigh(Genode::Signal_context_capability sigh) override
 		{
 			_char_avail.sigh = sigh;
 
 			if (_driver.char_avail()) _char_avail();
 		}
 
-		Genode::size_t read(void *, Genode::size_t) { return 0; }
-		Genode::size_t write(void const *, Genode::size_t) { return 0; }
+		void size_changed_sigh(Genode::Signal_context_capability) override { }
+
+		Genode::size_t read(void *, Genode::size_t) override { return 0; }
+		Genode::size_t write(void const *, Genode::size_t) override { return 0; }
 };
 
 

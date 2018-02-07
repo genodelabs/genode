@@ -104,9 +104,9 @@ class Open_file
 				Genode::Signal_transmitter(_read_avail_sigh).submit();
 		}
 
-		 /**
-		  * Return true if the file was successfully openend
-		  */
+		/**
+		 * Return true if the file was successfully openend
+		 */
 		bool file_opened() const { return _fd != -1; }
 
 		/**
@@ -167,9 +167,9 @@ namespace Terminal {
 			 ** Terminal session interface **
 			 ********************************/
 
-			Size size() { return Size(0, 0); }
+			Size size() override { return Size(0, 0); }
 
-			bool avail()
+			bool avail() override
 			{
 				return !read_buffer_empty();
 			}
@@ -209,18 +209,20 @@ namespace Terminal {
 				return _io_buffer.cap();
 			}
 
-			void read_avail_sigh(Genode::Signal_context_capability sigh)
+			void read_avail_sigh(Genode::Signal_context_capability sigh) override
 			{
 				Open_file::read_avail_sigh(sigh);
 			}
 
-			void connected_sigh(Genode::Signal_context_capability sigh)
+			void connected_sigh(Genode::Signal_context_capability sigh) override
 			{
 				Open_file::connected_sigh(sigh);
 			}
 
-			Genode::size_t read(void *buf, Genode::size_t) { return 0; }
-			Genode::size_t write(void const *buf, Genode::size_t) { return 0; }
+			void size_changed_sigh(Genode::Signal_context_capability) override { }
+
+			Genode::size_t read(void *buf, Genode::size_t) override { return 0; }
+			Genode::size_t write(void const *buf, Genode::size_t) override { return 0; }
 	};
 
 

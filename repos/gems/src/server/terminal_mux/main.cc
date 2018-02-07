@@ -330,6 +330,9 @@ class Terminal::Session_component : public Genode::Rpc_object<Session, Session_c
 			_read_buffer.sigh(cap);
 		}
 
+		void size_changed_sigh(Genode::Signal_context_capability cap) override
+		{ }
+
 		Genode::size_t read(void *buf, Genode::size_t) override  { return 0; }
 		Genode::size_t write(void const *buf, Genode::size_t) override { return 0; }
 };

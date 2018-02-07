@@ -437,9 +437,9 @@ class Terminal::Session_component : public Genode::Rpc_object<Session, Session_c
 		 ** Terminal session interface **
 		 ********************************/
 
-		Size size() { return Size(0, 0); }
+		Size size() override { return Size(0, 0); }
 
-		bool avail()
+		bool avail() override
 		{
 			bool ret = false;
 			Libc::with_libc([&] () { ret = !read_buffer_empty(); });
@@ -490,18 +490,20 @@ class Terminal::Session_component : public Genode::Rpc_object<Session, Session_c
 			return _io_buffer.cap();
 		}
 
-		void read_avail_sigh(Genode::Signal_context_capability sigh)
+		void read_avail_sigh(Genode::Signal_context_capability sigh) override
 		{
 			Open_socket::read_avail_sigh(sigh);
 		}
 
-		void connected_sigh(Genode::Signal_context_capability sigh)
+		void connected_sigh(Genode::Signal_context_capability sigh) override
 		{
 			Open_socket::connected_sigh(sigh);
 		}
 
-		Genode::size_t read(void *buf, Genode::size_t) { return 0; }
-		Genode::size_t write(void const *buf, Genode::size_t) { return 0; }
+		void size_changed_sigh(Genode::Signal_context_capability) override { }
+
+		Genode::size_t read(void *buf, Genode::size_t) override { return 0; }
+		Genode::size_t write(void const *buf, Genode::size_t) override { return 0; }
 };
 
 

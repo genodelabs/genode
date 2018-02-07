@@ -107,6 +107,11 @@ class Terminal::Session_client : public Genode::Rpc_client<Session>
 			call<Rpc_read_avail_sigh>(cap);
 		}
 
+		void size_changed_sigh(Genode::Signal_context_capability cap)
+		{
+			call<Rpc_size_changed_sigh>(cap);
+		}
+
 		Genode::size_t io_buffer_size() const { return _io_buffer.size(); }
 };
 

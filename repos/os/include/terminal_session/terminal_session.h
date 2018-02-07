@@ -93,6 +93,11 @@ struct Terminal::Session : Genode::Session
 	 */
 	virtual void read_avail_sigh(Genode::Signal_context_capability cap) = 0;
 
+	/**
+	 * Register signal handler to be notified on terminal-size changes
+	 */
+	virtual void size_changed_sigh(Genode::Signal_context_capability cap) = 0;
+
 
 	/*******************
 	 ** RPC interface **
@@ -104,11 +109,12 @@ struct Terminal::Session : Genode::Session
 	GENODE_RPC(Rpc_write, Genode::size_t, _write, Genode::size_t);
 	GENODE_RPC(Rpc_connected_sigh, void, connected_sigh, Genode::Signal_context_capability);
 	GENODE_RPC(Rpc_read_avail_sigh, void, read_avail_sigh, Genode::Signal_context_capability);
+	GENODE_RPC(Rpc_size_changed_sigh, void, size_changed_sigh, Genode::Signal_context_capability);
 	GENODE_RPC(Rpc_dataspace, Genode::Dataspace_capability, _dataspace);
 
 	GENODE_RPC_INTERFACE(Rpc_size, Rpc_avail, Rpc_read, Rpc_write,
 	                     Rpc_connected_sigh, Rpc_read_avail_sigh,
-	                     Rpc_dataspace);
+	                     Rpc_size_changed_sigh, Rpc_dataspace);
 };
 
 #endif /* _INCLUDE__TERMINAL_SESSION__TERMINAL_SESSION_H_ */

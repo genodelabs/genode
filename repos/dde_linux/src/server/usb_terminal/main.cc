@@ -252,18 +252,20 @@ class Terminal::Session_component : public Rpc_object<Session, Session_component
 			_driver(driver)
 		{ }
 
-		void read_avail_sigh(Signal_context_capability sigh)
+		void read_avail_sigh(Signal_context_capability sigh) override
 		{
 			_driver.read_avail_sigh(sigh);
 		}
 
-		void connected_sigh(Signal_context_capability sigh)
+		void connected_sigh(Signal_context_capability sigh) override
 		{
 			_driver.connected_sigh(sigh);
 		}
 
-		Size size()  { return Size(0, 0); }
-		bool avail() { return _driver.avail(); }
+		void size_changed_sigh(Signal_context_capability) override { }
+
+		Size size()  override { return Size(0, 0); }
+		bool avail() override { return _driver.avail(); }
 
 		size_t _read(size_t dst_len)
 		{
@@ -289,8 +291,8 @@ class Terminal::Session_component : public Rpc_object<Session, Session_component
 
 		Dataspace_capability _dataspace() { return _io_buffer.cap(); }
 
-		size_t read(void *buf, size_t) { return 0; }
-		size_t write(void const *buf, size_t) { return 0; }
+		size_t read(void *buf, size_t) override { return 0; }
+		size_t write(void const *buf, size_t) override { return 0; }
 };
 
 
