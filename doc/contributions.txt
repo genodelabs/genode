@@ -131,12 +131,12 @@ Genode Contributors Agreement
 Before we will be able to incorporate your changes into Genode's mainline
 development, we require your permission to use your code.
 
-Genode is publicly licensed under the terms of the GNU GPL with Genode Labs
+Genode is publicly licensed under the terms of the GNU AGPLv3 with Genode Labs
 maintaining the right to also distribute derivates under different licenses or
-update the public License (i.e., eventually switching from GPLv2 to GPLv3).
+update the public License.
 Contributions from outside Genode Labs can only be incorporated into Genode's
 mainline development if each individual contributor explicitly grants the
-permission to let Genode Labs redistribute his contributions under non-GPL
+permission to let Genode Labs redistribute his contributions under non-AGPLv3
 licenses. This permission is granted by signing the Genode Contributors
 Agreement:
 
@@ -145,7 +145,7 @@ Agreement:
 
 By signing the GCA, you don't lose any rights for your contribution. However,
 you enable Genode Labs to license Genode (including your contributions) under
-licenses other than the GPL. The GCA needs to be signed only once. The signed
+licenses other than the AGPLv3. The GCA needs to be signed only once. The signed
 GCA covers your future contributions. Of course, you may cancel this agreement
 at your will. Please make sure that you are in the legal position to sign
 the GCA (i.e., by making sure that your contribution to Genode is in line with
