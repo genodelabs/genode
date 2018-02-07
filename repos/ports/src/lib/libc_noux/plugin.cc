@@ -210,6 +210,7 @@ static bool noux_syscall(Noux::Session::Syscall opcode)
 			if (signal_action[signal].sa_handler == SIG_DFL) {
 				switch (signal) {
 					case SIGCHLD:
+					case SIGWINCH:
 						/* ignore */
 						break;
 					default:

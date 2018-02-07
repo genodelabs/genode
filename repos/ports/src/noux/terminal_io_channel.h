@@ -33,6 +33,8 @@ struct Noux::Terminal_io_channel : Io_channel
 
 	Signal_handler<Terminal_io_channel> _read_avail_handler;
 
+	Signal_handler<Terminal_io_channel> _resize_handler;
+
 	bool eof = false;
 
 	enum Type { STDIN, STDOUT, STDERR } type;
@@ -44,6 +46,7 @@ struct Noux::Terminal_io_channel : Io_channel
 	:
 		_terminal(terminal),
 		_read_avail_handler(ep, *this, &Terminal_io_channel::_handle_read_avail),
+		_resize_handler    (ep, *this, &Terminal_io_channel::_handle_resize),
 		type(type)
 	{
 		/*
@@ -59,6 +62,7 @@ struct Noux::Terminal_io_channel : Io_channel
 		 */
 		if (type == STDIN) {
 			terminal.read_avail_sigh(_read_avail_handler);
+			terminal.size_changed_sigh(_resize_handler);
 		}
 	}
 
@@ -211,13 +215,18 @@ struct Noux::Terminal_io_channel : Io_channel
 			enum { INTERRUPT = 3 };
 
 			if (c == INTERRUPT) {
-				Io_channel::invoke_all_interrupt_handlers();
+				Io_channel::invoke_all_interrupt_handlers(Sysio::SIG_INT);
 			} else {
 				read_buffer.add(c);
 			}
 		}
 
 		Io_channel::invoke_all_notifiers();
+	}
+
+	void _handle_resize()
+	{
+		Io_channel::invoke_all_interrupt_handlers(Sysio::SIG_WINCH);
 	}
 };
 

@@ -39,8 +39,9 @@ struct Noux::Sysio
 {
     /* signal numbers must match with libc signal numbers */
 	enum Signal {
-		SIG_INT = 2,
-		SIG_CHLD = 20,
+		SIG_INT   = 2,
+		SIG_CHLD  = 20,
+		SIG_WINCH = 28
 	};
 
 	enum { SIGNAL_QUEUE_SIZE = 32 };

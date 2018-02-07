@@ -14,11 +14,13 @@
 #ifndef _NOUX__INTERRUPT_HANDLER__H_
 #define _NOUX__INTERRUPT_HANDLER__H_
 
+#include <noux_session/sysio.h>
+
 namespace Noux {
 
 	struct Interrupt_handler
 	{
-		virtual void handle_interrupt() = 0;
+		virtual void handle_interrupt(Sysio::Signal) = 0;
 	};
 };
 

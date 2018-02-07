@@ -568,13 +568,14 @@ class Noux::Child : public Rpc_object<Session>,
 			return child;
 		}
 
+
 		/*********************************
 		 ** Interrupt_handler interface **
 		 *********************************/
 
-		void handle_interrupt()
+		void handle_interrupt(Sysio::Signal signal)
 		{
-			submit_signal(Sysio::SIG_INT);
+			submit_signal(signal);
 		}
 };
 

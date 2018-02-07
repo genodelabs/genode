@@ -177,14 +177,14 @@ class Noux::Io_channel : public Reference_counter
 		/**
 		 * Tell all registered handlers about an interrupt event
 		 */
-		void invoke_all_interrupt_handlers()
+		void invoke_all_interrupt_handlers(Sysio::Signal signal)
 		{
 			Lock::Guard signal_lock_guard(signal_lock());
 			Lock::Guard guard(_interrupt_handlers_lock);
 
 			for (Io_channel_listener *l = _interrupt_handlers.first();
 			     l; l = l->next())
-				l->object()->handle_interrupt();
+				l->object()->handle_interrupt(signal);
 		}
 
 		/**
