@@ -44,13 +44,16 @@ append config {
 
 	<default caps="100"/>
 
-	} [gpio_drv_config] {
-	} [nic_drv_config] {
 	} [platform_drv_config] {
 
 	<start name="timer" priority="0">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
+	</start>
+
+	<start name="nic_loopback" priority="-1">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Nic"/></provides>
 	</start>
 
 	<start name="nic_dump" priority="-1">
@@ -122,7 +125,7 @@ append config {
 			<policy label_prefix="udp_server_3"  ip_addr="10.0.2.213" />
 		</config>
 		<route>
-		<service name="Nic"> <child name="} [nic_drv] {"/> </service>
+		<service name="Nic"> <child name="nic_loopback"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
