@@ -15,7 +15,7 @@ URL(${QT5_WEBKIT}) := http://download.qt.io/community_releases/5.8/$(VERSION)-fi
 SHA(${QT5_WEBKIT}) := 79d898f0e447039fb9f12b2f798a0aedf071ea82
 DIR(${QT5_WEBKIT}) := src/lib/qt5/${QT5}/qtwebkit
 
-URL(${QTSCRIPTCLASSIC}) := ftp://ftp.informatik.hu-berlin.de/pub/Mirrors/ftp.troll.no/QT/qt/solutions/lgpl/${QTSCRIPTCLASSIC}.tar.gz
+URL(${QTSCRIPTCLASSIC}) := http://ftp.icm.edu.pl/packages/qt.old/solutions/lgpl/${QTSCRIPTCLASSIC}.tar.gz
 SHA(${QTSCRIPTCLASSIC}) := 74e9dc82dd194d8ae0fb0f8f1df74081948b943a
 DIR(${QTSCRIPTCLASSIC}) := src/lib/qt5/${QTSCRIPTCLASSIC}
 
