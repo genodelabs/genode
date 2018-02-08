@@ -20,7 +20,6 @@
 #include <vfs/file_system.h>
 #include <vfs/vfs_handle.h>
 #include <os/path.h>
-#include <timer_session/connection.h>
 
 /* Genode block backend */
 #include <fatfs/block.h>

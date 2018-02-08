@@ -1,13 +1,30 @@
 LICENSE   := BSD
-VERSION   := 0.13
+VERSION   := 0.13a
 DOWNLOADS := fatfs.archive
 
-URL(fatfs) := http://www.elm-chan.org/fsw/ff/arc/ff13.zip
-SHA(fatfs) := 8ce22f86e339b0fc59c8c69941fbaf86e5cf9364
+URL(fatfs) := http://www.elm-chan.org/fsw/ff/arc/ff13a.zip
+SHA(fatfs) := 0c74176ccf0c20b66e55b700c9ba826b43815b8b
 DIR(fatfs) := src/lib/fatfs
 
-PATCHES := src/lib/fatfs/ffconf.patch src/lib/fatfs/integer.patch
+PATCHES := src/lib/fatfs/integer.patch
 
 DIRS := include/fatfs
 DIR_CONTENT(include/fatfs) := \
-	$(addprefix src/lib/fatfs/source/, ff.h ffconf.h diskio.h integer.h)
+	$(addprefix src/lib/fatfs/source/, ff.h diskio.h integer.h ffconf.h)
+
+default: edit_conf
+
+edit_conf: src/lib/fatfs/source/ffconf.h
+	@$(MSG_GENERATE)$(notdir $<)
+	$(VERBOSE)sed \
+		-e 's/define FF_USE_LABEL.*/define FF_USE_LABEL 1/' \
+		-e 's/define FF_CODE_PAGE.*/define FF_CODE_PAGE 0/' \
+		-e 's/define FF_USE_LFN.*/define FF_USE_LFN 2/' \
+		-e 's/define FF_FS_RPATH.*/define FF_FS_RPATH 1/' \
+		-e 's/define FF_VOLUMES.*/define FF_VOLUMES 10/' \
+		-e 's/define FF_MAX_SS.*/define FF_MAX_SS 4096/' \
+		-e 's/define FF_FS_EXFAT.*/define FF_FS_EXFAT 1/' \
+		-e 's/define FF_FS_NORTC.*/define FF_FS_NORTC 1/' \
+		-i $<
+
+src/lib/fatfs/source/ffconf.h: $(DOWNLOADS)
