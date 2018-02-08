@@ -231,30 +231,40 @@ struct Nit_fb::Main : View_updater
 
 	struct Initial_size
 	{
-		unsigned const width  { 0 };
-		unsigned const height { 0 };
+		long const _width  { 0 };
+		long const _height { 0 };
 
 		bool set { false };
 
 		Initial_size(Genode::Xml_node config)
 		:
-			width(config.attribute_value("initial_width", 0u)),
-			height(config.attribute_value("initial_height", 0u))
+			_width (config.attribute_value("initial_width",  0L)),
+			_height(config.attribute_value("initial_height", 0L))
 		{ }
 
-		bool valid() const { return width != 0 && height != 0; }
+		unsigned width(Framebuffer::Mode const &mode) const
+		{
+			if (_width > 0) return _width;
+			if (_width < 0) return mode.width() + _width;
+			return mode.width();
+		}
+
+		unsigned height(Framebuffer::Mode const &mode) const
+		{
+			if (_height > 0) return _height;
+			if (_height < 0) return mode.height() + _height;
+			return mode.height();
+		}
+
+		bool valid() const { return _width != 0 && _height != 0; }
+
 	} _initial_size { config_rom.xml() };
 
 	Framebuffer::Mode _initial_mode()
 	{
-		unsigned const width  = _initial_size.valid()
-		                      ? _initial_size.width
-		                      : (unsigned)nitpicker.mode().width();
-		unsigned const height = _initial_size.valid()
-		                      ? _initial_size.height
-		                      : (unsigned)nitpicker.mode().height();
-
-		return Framebuffer::Mode(width, height, nitpicker.mode().format());
+		return Framebuffer::Mode(_initial_size.width (nitpicker.mode()),
+		                         _initial_size.height(nitpicker.mode()),
+		                         nitpicker.mode().format());
 	}
 
 	/*
@@ -329,8 +339,8 @@ struct Nit_fb::Main : View_updater
 		     height = config.attribute_value("height", (long)nit_mode.height());
 
 		if (!_initial_size.set && _initial_size.valid()) {
-			width  = _initial_size.width;
-			height = _initial_size.height;
+			width  = _initial_size.width (nit_mode);
+			height = _initial_size.height(nit_mode);
 
 			_initial_size.set = true;
 		} else {
