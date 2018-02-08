@@ -3,7 +3,7 @@ VERSION     := 2
 DOWNLOADS   := dwc_otg.git usb.archive intel_fb.archive lxip.archive \
                wifi.archive libnl.archive wpa_supplicant.archive \
                fw_3160.archive fw_6000.archive fw_6205a.archive fw_6205b.archive \
-               fw_7260.archive fw_7265.archive fw_8260.archive
+               fw_7260.archive fw_7265.archive fw_8260.archive fw_1000.archive
 
 #
 # Tools
@@ -158,6 +158,14 @@ URL(fw_8260) := https://wireless.wiki.kernel.org/_media/en/users/drivers/iwlwifi
 SHA(fw_8260) := ec5ee829aeebab93e1228848a7675e4469ab3ce2
 DIR(fw_8260) := firmware
 
+#
+# Firmware images for iwlwifi Wireless-N 1000
+#
+URL(fw_1000) := https://wireless.wiki.kernel.org/_media/en/users/drivers/iwlwifi-1000-ucode-39.31.5.1.tgz
+SHA(fw_1000) := 6b2d9e0fe18ffa98c8335f989833ef12a2f4604b
+DIR(fw_1000) := firmware
+
+https://wireless.wiki.kernel.org/_media/en/users/drivers/iwlwifi-1000-ucode-39.31.5.1.tgz
 
 #
 # Patches
