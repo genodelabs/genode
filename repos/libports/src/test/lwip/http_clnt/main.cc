@@ -66,7 +66,8 @@ void Libc::Component::construct(Libc::Env &env)
 		exit(1);
 	}
 
-	for(int j = 0; j != 5; ++j) {
+	for (unsigned trial_cnt = 0, success_cnt = 0; trial_cnt < 10; trial_cnt++)
+	{
 		_timer.msleep(2000);
 
 		log("Create new socket ...");
@@ -118,6 +119,11 @@ void Libc::Component::construct(Libc::Env &env)
 			if(buflen > 0) {
 				buf[buflen] = 0;
 				log("Received \"", String<64>(buf), " ...\"");
+				;
+				if (++success_cnt >= 5) {
+					log("Test done");
+					return;
+				}
 			} else
 				break;
 		}
@@ -125,6 +131,5 @@ void Libc::Component::construct(Libc::Env &env)
 		/* Close socket */
 		lwip_close(s);
 	}
-
-	log("Test done");
+	log("Test failed");
 }
