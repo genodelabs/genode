@@ -27,6 +27,7 @@ namespace Nit_fb {
 	using Genode::Static_root;
 	using Genode::Signal_handler;
 	using Genode::Xml_node;
+	using Genode::size_t;
 
 	typedef Genode::Surface_base::Point Point;
 	typedef Genode::Surface_base::Area  Area;
@@ -95,6 +96,8 @@ namespace Framebuffer { struct Session_component; }
 
 struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
 {
+	Genode::Pd_session const &_pd;
+
 	Nitpicker::Connection &_nitpicker;
 
 	Framebuffer::Session &_nit_fb = *_nitpicker.framebuffer();
@@ -113,6 +116,14 @@ struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
 	 */
 	Framebuffer::Mode _next_mode;
 
+	typedef Genode::size_t size_t;
+
+	/*
+	 * Number of bytes used for backing the current virtual framebuffer at
+	 * nitpicker.
+	 */
+	size_t _buffer_num_bytes = 0;
+
 	/*
 	 * Mode that was returned to the client at the last call of
 	 * 'Framebuffer:mode'. The virtual framebuffer must correspond to this
@@ -123,15 +134,27 @@ struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
 
 	bool _dataspace_is_new = true;
 
+	bool _ram_suffices_for_mode(Framebuffer::Mode mode) const
+	{
+		/* calculation in bytes */
+		size_t const used      = _buffer_num_bytes,
+		             needed    = Nitpicker::Session::ram_quota(mode, false),
+		             usable    = _pd.avail_ram().value,
+		             preserved = 64*1024;
+
+		return used + usable > needed + preserved;
+	}
+
 
 	/**
 	 * Constructor
 	 */
-	Session_component(Nitpicker::Connection &nitpicker,
+	Session_component(Genode::Pd_session const &pd,
+	                  Nitpicker::Connection &nitpicker,
 	                  View_updater &view_updater,
 	                  Framebuffer::Mode initial_mode)
 	:
-		_nitpicker(nitpicker), _view_updater(view_updater),
+		_pd(pd), _nitpicker(nitpicker), _view_updater(view_updater),
 		_next_mode(initial_mode)
 	{ }
 
@@ -141,7 +164,14 @@ struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
 		if (Nitpicker::Area(_next_mode.width(), _next_mode.height()) == size)
 			return;
 
-		_next_mode = Framebuffer::Mode(size.w(), size.h(), _next_mode.format());
+		Framebuffer::Mode const mode(size.w(), size.h(), _next_mode.format());
+
+		if (!_ram_suffices_for_mode(mode)) {
+			Genode::warning("insufficient RAM for mode ", mode);
+			return;
+		}
+
+		_next_mode = mode;
 
 		if (_mode_sigh.valid())
 			Genode::Signal_transmitter(_mode_sigh).submit();
@@ -160,6 +190,10 @@ struct Framebuffer::Session_component : Genode::Rpc_object<Framebuffer::Session>
 	Genode::Dataspace_capability dataspace() override
 	{
 		_nitpicker.buffer(_active_mode, false);
+
+		_buffer_num_bytes =
+			Genode::max(_buffer_num_bytes,
+			            Nitpicker::Session::ram_quota(_active_mode, false));
 
 		/*
 		 * We defer the update of the view until the client calls refresh the
@@ -271,7 +305,7 @@ struct Nit_fb::Main : View_updater
 	 * Input and framebuffer sessions provided to our client
 	 */
 	Input::Session_component       input_session { env, env.ram() };
-	Framebuffer::Session_component fb_session { nitpicker, *this, _initial_mode() };
+	Framebuffer::Session_component fb_session { env.pd(), nitpicker, *this, _initial_mode() };
 
 	/*
 	 * Attach root interfaces to the entry point
