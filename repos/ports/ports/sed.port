@@ -1,9 +1,9 @@
 LICENSE   := GPLv3
-VERSION   := 4.2.2
+VERSION   := 4.4
 DOWNLOADS := sed.archive
 
-URL(sed) := http://ftp.gnu.org/pub/gnu/sed/sed-$(VERSION).tar.gz
-SHA(sed) := 2f24b4624d1a3080626b11610053996ec30ba0f1
+URL(sed) := https://ftp.gnu.org/pub/gnu/sed/sed-$(VERSION).tar.xz
+SHA(sed) := a196cd036efd52a8e349cfe88ab4baa555fb29d5
 SIG(sed) := ${URL(sed)}
 KEY(sed) := GNU
 DIR(sed) := src/noux-pkg/sed
