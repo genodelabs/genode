@@ -1,5 +1,7 @@
 create_boot_directory
 
+build { noux-pkg/less noux-pkg/sed noux-pkg/grep noux-pkg/tar noux-pkg/diffutils noux-pkg/findutils noux-pkg/which }
+
 import_from_depot genodelabs/src/[base_src] \
                   genodelabs/pkg/[drivers_interactive_pkg] \
                   genodelabs/src/init \
@@ -106,6 +108,13 @@ Hello world !!
 				<tar name="coreutils.tar" />
 				<tar name="vim.tar" />
 				<tar name="bash.tar" />
+				<tar name="less.tar" />
+				<tar name="sed.tar" />
+				<tar name="grep.tar" />
+				<tar name="tar.tar" />
+				<tar name="findutils.tar" />
+				<tar name="diffutils.tar" />
+				<tar name="which.tar" />
 
 				<!-- Example of how to impose policy onto a file system
 				     session. The label attached to the 'fs' node is used
@@ -131,6 +140,6 @@ Hello world !!
 	</start>
 </config>}
 
-build_boot_image { }
+build_boot_image { sed.tar less.tar grep.tar findutils.tar diffutils.tar tar.tar which.tar pcre.lib.so }
 
 run_genode_until forever
