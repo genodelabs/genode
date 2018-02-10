@@ -1,9 +1,9 @@
 LICENSE   := GPLv3
-VERSION   := 2.20
+VERSION   := 2.21
 DOWNLOADS := which.archive
 
-URL(which) := http://ftp.gnu.org/gnu/which/which-$(VERSION).tar.gz
-SHA(which) := 3bcd6d87aa5231917ba7123319eedcae90cfa0fd
+URL(which) := https://ftp.gnu.org/gnu/which/which-$(VERSION).tar.gz
+SHA(which) := 6b6bec3d2b3d4661c164feb81b9b1d22d1359ded
 SIG(which) := ${URL(which)}.sig
 KEY(which) := GNU
 DIR(which) := src/noux-pkg/which
