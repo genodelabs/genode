@@ -19,7 +19,9 @@
 #ifndef _INCLUDE__UTIL__LIST_MODEL_H_
 #define _INCLUDE__UTIL__LIST_MODEL_H_
 
+/* Genode includes */
 #include <util/xml_node.h>
+#include <util/list.h>
 
 namespace Genode { template <typename> class List_model; }
 
