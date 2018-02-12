@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2012-2017 Genode Labs GmbH
+ * Copyright (C) 2012-2018 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -52,10 +52,19 @@ namespace File_system {
 		};
 	};
 
+	struct Watch : Node
+	{
+		struct Id : Node::Id
+		{
+			explicit Id(unsigned long value) : Node::Id { value } { };
+		};
+	};
+
 	typedef Node::Id      Node_handle;
 	typedef File::Id      File_handle;
 	typedef Directory::Id Dir_handle;
 	typedef Symlink::Id   Symlink_handle;
+	typedef Watch::Id     Watch_handle;
 
 	using Genode::size_t;
 
@@ -338,6 +347,23 @@ struct File_system::Session : public Genode::Session
 	virtual Node_handle node(Path const &path) = 0;
 
 	/**
+	 * Watch a node for for changes.
+	 *
+	 * When changes are made to the node at this path a CONTENT_CHANGED
+	 * packet will be sent from the server to the client.
+	 *
+	 * \throw Lookup_failed      path lookup failed because one element
+	 *                           of 'path' does not exist
+	 * \throw Out_of_ram         server cannot allocate metadata
+	 * \throw Out_of_caps
+	 * \throw Unavailable        file-system is static or does not support
+	 *                           notifications
+	 *
+	 * The returned node handle is used to identify notification packets.
+	 */
+	virtual Watch_handle watch(Path const &path) = 0;
+
+	/**
 	 * Close file
 	 *
 	 * \throw Invalid_handle   node handle is invalid
@@ -421,6 +447,9 @@ struct File_system::Session : public Genode::Session
 	GENODE_RPC_THROW(Rpc_node, Node_handle, node,
 	                 GENODE_TYPE_LIST(Lookup_failed, Out_of_ram, Out_of_caps),
 	                 Path const &);
+	GENODE_RPC_THROW(Rpc_watch, Watch_handle, watch,
+	                 GENODE_TYPE_LIST(Lookup_failed, Out_of_ram, Out_of_caps, Unavailable),
+	                 Path const &);
 	GENODE_RPC_THROW(Rpc_close, void, close,
 	                 GENODE_TYPE_LIST(Invalid_handle),
 	                 Node_handle);
@@ -444,7 +473,9 @@ struct File_system::Session : public Genode::Session
 	                                  Lookup_failed, Permission_denied, Unavailable),
 	                 Dir_handle, Name const &, Dir_handle, Name const &);
 
-	GENODE_RPC_INTERFACE(Rpc_tx_cap, Rpc_file, Rpc_symlink, Rpc_dir, Rpc_node,
+	GENODE_RPC_INTERFACE(Rpc_tx_cap,
+	                     Rpc_file, Rpc_symlink, Rpc_dir,
+	                     Rpc_node, Rpc_watch,
 	                     Rpc_close, Rpc_status, Rpc_control, Rpc_unlink,
 	                     Rpc_truncate, Rpc_move);
 };

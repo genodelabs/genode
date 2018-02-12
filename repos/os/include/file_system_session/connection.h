@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2012-2017 Genode Labs GmbH
+ * Copyright (C) 2012-2018 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -151,6 +151,12 @@ struct File_system::Connection : File_system::Connection_base
 	{
 		return _retry([&] () {
 			return Session_client::node(path); });
+	}
+
+	Watch_handle watch(Path const &path) override
+	{
+		return _retry([&] () {
+			return Session_client::watch(path); });
 	}
 };
 

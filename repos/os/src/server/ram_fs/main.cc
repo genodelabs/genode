@@ -97,11 +97,7 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 				break;
 
 			case Packet_descriptor::CONTENT_CHANGED: {
-				open_node.register_notify(*tx_sink());
-				Locked_ptr<Node> node { open_node.node() };
-				if (!node.valid())
-					return; 
-				node->notify_listeners();
+				Genode::error("CONTENT_CHANGED packets from clients have no effect");
 				return;
 			}
 
@@ -363,6 +359,24 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 				new (_alloc) Open_node(node->weak_ptr(), _open_node_registry);
 
 			return open_node->id();
+		}
+
+		Watch_handle watch(Path const &path) override
+		{
+			_assert_valid_path(path.string());
+
+			Node *node = _root.lookup(path.string() + 1);
+
+			Open_node *watcher = new (_alloc)
+				Open_node(node->weak_ptr(), _open_node_registry);
+
+			/*
+			 * like other open nodes, just the only
+			 * kind registered for notifications
+			 */
+			watcher->register_notify(*tx_sink());
+
+			return Watch_handle { watcher->id().value };
 		}
 
 		void close(Node_handle handle)

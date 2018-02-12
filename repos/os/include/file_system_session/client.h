@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2012-2017 Genode Labs GmbH
+ * Copyright (C) 2012-2018 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -79,6 +79,11 @@ class File_system::Session_client : public Genode::Rpc_client<Session>
 		Node_handle node(Path const &path) override
 		{
 			return call<Rpc_node>(path);
+		}
+
+		Watch_handle watch(Path const &path) override
+		{
+			return call<Rpc_watch>(path);
 		}
 
 		void close(Node_handle node) override
