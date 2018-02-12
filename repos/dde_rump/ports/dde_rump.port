@@ -4,3 +4,5 @@ DOWNLOADS := rump.git
 URL(rump) := https://github.com/ssumpf/rump.git
 DIR(rump) := src/lib/dde_rump
 REV(rump) := 206ffa06cedd0779af0043997fd182b00ff4688c
+
+PATCHES := patches/vm_vfs.patch

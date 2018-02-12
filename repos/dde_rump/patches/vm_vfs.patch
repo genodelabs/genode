@@ -1,0 +1,68 @@
+--- src/lib/dde_rump/src/sys/rump/librump/rumpvfs/vm_vfs.c
++++ src/lib/dde_rump/src/sys/rump/librump/rumpvfs/vm_vfs.c
+@@ -49,6 +49,7 @@
+ 	struct vm_page **pgs;
+ 	vaddr_t va;
+ 	int pageout = 0;
++	bool const write = BUF_ISWRITE(bp);
+ 
+ 	KASSERT(npages > 0);
+ 	pgs = kmem_alloc(npages * sizeof(*pgs), KM_SLEEP);
+@@ -64,8 +65,47 @@
+ 			KASSERT(uobj == pgs[i]->uobject);
+ 		}
+ 
++		if (bp->b_error) {
++			if (!write) {
++				pgs[i]->flags |= PG_RELEASED;
++				continue;
++			} else if (bp->b_error == ENOMEM) {
++				if (pgs[i]->flags & PG_PAGEOUT) {
++					pageout++;
++					pgs[i]->flags &= ~PG_PAGEOUT;
++				}
++				pgs[i]->flags &= ~PG_CLEAN;
++
++				mutex_enter(&uvm_pageqlock);
++				uvm_pageactivate(pgs[i]);
++				mutex_exit(&uvm_pageqlock);
++			}
++		}
++
++		/*
++		 * if the page is PG_FAKE, this must have been a read to
++		 * initialize the page.  clear PG_FAKE and activate the page.
++		 * we must also clear the pmap "modified" flag since it may
++		 * still be set from the page's previous identity.
++		 */
++
++		if ((pgs[i]->flags & PG_FAKE)) {
++			KASSERT(!write);
++			pgs[i]->flags &= ~PG_FAKE;
++			KASSERT((pgs[i]->flags & PG_CLEAN) != 0);
++
++#if defined(READAHEAD_STATS)
++			pgs[i]->pqflags |= PQ_READAHEAD;
++			uvm_ra_total.ev_count++;
++#endif /* defined(READAHEAD_STATS) */
++
++			mutex_enter(&uvm_pageqlock);
++			uvm_pageenqueue(pgs[i]);
++			pmap_clear_modify(pgs[i]);
++			mutex_exit(&uvm_pageqlock);
++		}
++
+ 		if (pgs[i]->flags & PG_PAGEOUT) {
+-			KASSERT((pgs[i]->flags & PG_FAKE) == 0);
+ 			pageout++;
+ 			pgs[i]->flags &= ~PG_PAGEOUT;
+ 			pgs[i]->flags |= PG_RELEASED;
+@@ -81,7 +121,7 @@
+ 	uvm_pagermapout((vaddr_t)bp->b_data, npages);
+ 	uvm_pageout_done(pageout);
+ 
+-	if (BUF_ISWRITE(bp) && (bp->b_cflags & BC_AGE) != 0) {
++	if (write && (bp->b_cflags & BC_AGE) != 0) {
+ 		mutex_enter(bp->b_objlock);
+ 		vwakeup(bp);
+ 		mutex_exit(bp->b_objlock);
