@@ -88,8 +88,18 @@ class Genode::Packet_allocator : public Genode::Range_allocator
 		{
 			if (_base != base) return -1;
 
-			if (_array) destroy(_md_alloc, _array);
-			if (_bits)  _md_alloc->free(_bits, _block_cnt(size)/8);
+			_base = _next = 0;
+
+			if (_array) {
+				destroy(_md_alloc, _array);
+				_array = nullptr;
+			}
+
+			if (_bits)  {
+				_md_alloc->free(_bits, _block_cnt(size)/8);
+				_bits = nullptr;
+			}
+
 			return 0;
 		}
 
