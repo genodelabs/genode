@@ -67,6 +67,8 @@ struct Noux::Vfs_io_channel : Io_channel
 	Absolute_path _path;
 	Absolute_path _leaf_path;
 
+	bool const _dir = _fh->ds().directory(_leaf_path.base());
+
 	Vfs_io_channel(char const *path, char const *leaf_path,
 	               Vfs::Dir_file_system *root_dir, Vfs::Vfs_handle *vfs_handle,
 	               Vfs_io_waiter_registry &vfs_io_waiter_registry,
@@ -95,6 +97,11 @@ struct Noux::Vfs_io_channel : Io_channel
 
 	bool write(Sysio &sysio) override
 	{
+		if (_dir) {
+			sysio.error.write = Vfs::File_io_service::WRITE_ERR_INVALID;
+			return false;
+		}
+
 		Vfs::file_size count = sysio.write_in.count;
 		Vfs::file_size out_count = 0;
 
@@ -123,6 +130,11 @@ struct Noux::Vfs_io_channel : Io_channel
 
 	bool read(Sysio &sysio) override
 	{
+		if (_dir) {
+			sysio.error.read = Vfs::File_io_service::READ_ERR_INVALID;
+			return false;
+		}
+
 		size_t count = min(sysio.read_in.count, sizeof(sysio.read_out.chunk));
 
 		Vfs::file_size out_count = 0;
