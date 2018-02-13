@@ -541,7 +541,7 @@ class Vfs::Dir_file_system : public File_system
 			 */
 			if (directory(path)) {
 				try {
-					*out_handle = new (alloc) Vfs_handle(*this, *this, alloc, 0);
+					*out_handle = new (alloc) Dir_vfs_handle(*this, *this, alloc, path);
 					return OPEN_OK;
 				}
 				catch (Genode::Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
