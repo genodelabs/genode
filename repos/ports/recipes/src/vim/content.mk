@@ -7,8 +7,8 @@ PORT_DIR := $(call port_dir,$(REP_DIR)/ports/vim)
 
 src/noux-pkg/vim:
 	mkdir -p $@
-	cp -r $(PORT_DIR)/src/noux-pkg/vim/* $@
-	cp -r $(addprefix $(REP_DIR)/,$(VIM_SRC)) $@
+	cp -a $(PORT_DIR)/src/noux-pkg/vim/* $@
+	cp -a $(addprefix $(REP_DIR)/,$(VIM_SRC)) $@
 
 LICENSE:
 	cp $(PORT_DIR)/src/noux-pkg/vim/runtime/doc/uganda.txt $@

@@ -7,8 +7,8 @@ PORT_DIR := $(call port_dir,$(REP_DIR)/ports/coreutils)
 
 src/noux-pkg/coreutils:
 	mkdir -p $@
-	cp -r $(PORT_DIR)/src/noux-pkg/coreutils/* $@
-	cp -r $(addprefix $(REP_DIR)/,$(COREUTILS_SRC)) $@
+	cp -a $(PORT_DIR)/src/noux-pkg/coreutils/* $@
+	cp -a $(addprefix $(REP_DIR)/,$(COREUTILS_SRC)) $@
 
 LICENSE:
 	cp $(PORT_DIR)/src/noux-pkg/coreutils/COPYING $@
