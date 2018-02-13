@@ -521,6 +521,9 @@ class Vfs::Fs_file_system : public File_system
 				try {
 					_handle_space.apply<Fs_vfs_handle>(id, [&] (Fs_vfs_handle &handle)
 					{
+						if (!packet.succeeded())
+							Genode::error("packet operation=", (int)packet.operation(), " failed");
+
 						switch (packet.operation()) {
 						case Packet_descriptor::READ_READY:
 							handle.read_ready_state = Handle_state::Read_ready_state::READY;
