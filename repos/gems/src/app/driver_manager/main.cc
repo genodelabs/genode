@@ -216,7 +216,7 @@ struct Driver_manager::Ahci_driver : Device_driver
 				xml.node("report", [&] () { xml.attribute("ports", "yes"); });
 				for (unsigned i = 0; i < 6; i++) {
 					xml.node("policy", [&] () {
-						xml.attribute("label_suffix", String<64>(" ahci-", i));
+						xml.attribute("label_suffix", String<64>("ahci-", i));
 						xml.attribute("device", i);
 						xml.attribute("writeable", "yes");
 					});
@@ -232,13 +232,25 @@ struct Driver_manager::Ahci_driver : Device_driver
 		});
 	}
 
-	void generate_block_service_forwarding_policy(Xml_generator &xml) const
+	typedef String<32> Default_label;
+
+	void gen_service_forwarding_policy(Xml_generator &xml,
+	                                   Default_label const &default_label) const
 	{
 		for (unsigned i = 0; i < 6; i++) {
 			xml.node("policy", [&] () {
-				xml.attribute("label_suffix", String<64>(" ahci-", i));
+				xml.attribute("label_suffix", String<64>("ahci-", i));
+				xml.node("child", [&] () {
+					xml.attribute("name", "ahci_drv"); });
+			});
+		}
+
+		if (default_label.valid()) {
+			xml.node("policy", [&] () {
+				xml.attribute("label_suffix", " default");
 				xml.node("child", [&] () {
 					xml.attribute("name", "ahci_drv");
+					xml.attribute("label", default_label);
 				});
 			});
 		}
@@ -296,6 +308,8 @@ struct Driver_manager::Main : Block_devices_generator
 	void _generate_init_config    (Reporter &) const;
 	void _generate_usb_drv_config (Reporter &, Xml_node) const;
 	void _generate_block_devices  (Reporter &) const;
+
+	Ahci_driver::Default_label _default_block_device() const;
 
 	/**
 	 * Block_devices_generator interface
@@ -390,6 +404,9 @@ void Driver_manager::Main::_handle_ahci_ports_update()
 {
 	_ahci_ports.update();
 	_generate_block_devices(_block_devices);
+
+	/* update service forwarding rules */
+	_generate_init_config(_init_config);
 }
 
 
@@ -438,18 +455,45 @@ void Driver_manager::Main::_generate_init_config(Reporter &init_config) const
 			_ahci_driver->generate_start_node(xml);
 
 		/* block-service forwarding rules */
-		xml.node("service", [&] () {
-			xml.attribute("name", Block::Session::service_name());
-			if (_ahci_driver.constructed())
-				_ahci_driver->generate_block_service_forwarding_policy(xml);
-		});
+		if (_ahci_driver.constructed() && _ahci_ports.xml().has_sub_node("port")) {
+			xml.node("service", [&] () {
+				xml.attribute("name", Block::Session::service_name());
+					_ahci_driver->gen_service_forwarding_policy(xml, _default_block_device());
+			});
+		}
 	});
+}
+
+
+Driver_manager::Ahci_driver::Default_label
+Driver_manager::Main::_default_block_device() const
+{
+	unsigned num_devices = 0;
+
+	Ahci_driver::Default_label result;
+
+	_ahci_ports.xml().for_each_sub_node([&] (Xml_node ahci_port) {
+
+		/* count devices */
+		num_devices++;
+
+		unsigned long const num = ahci_port.attribute_value("num", 0UL);
+		result = Ahci_driver::Default_label("ahci-", num);
+	});
+
+	/* if there is more than one device, we don't return a default device */
+	return (num_devices == 1) ? result : Ahci_driver::Default_label();
 }
 
 
 void Driver_manager::Main::_generate_block_devices(Reporter &block_devices) const
 {
 	Reporter::Xml_generator xml(block_devices, [&] () {
+
+		/* mention default block device in 'default' attribute */
+		Ahci_driver::Default_label const default_label = _default_block_device();
+		if (default_label.valid())
+			xml.attribute("default", default_label);
 
 		_ahci_ports.xml().for_each_sub_node([&] (Xml_node ahci_port) {
 
