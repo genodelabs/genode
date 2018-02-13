@@ -70,17 +70,34 @@ class Rump_fs::Session_component : public Session_rpc_object
 
 			/* resulting length */
 			size_t res_length = 0;
+			bool succeeded = false;
 
 			switch (packet.operation()) {
 
 			case Packet_descriptor::READ:
-				if (content && (packet.length() <= packet.size()))
-					res_length = open_node.node().read((char *)content, length, packet.position());
+				if (content && (packet.length() <= packet.size())) {
+					res_length = open_node.node().read((char *)content, length,
+					                                   packet.position());
+
+					/* read data or EOF is a success */
+					succeeded = res_length || (packet.position() >= open_node.node().status().size);
+				}
 				break;
 
 			case Packet_descriptor::WRITE:
-				if (content && (packet.length() <= packet.size()))
-					res_length = open_node.node().write((char const *)content, length, packet.position());
+				if (content && (packet.length() <= packet.size())) {
+					res_length = open_node.node().write((char const *)content,
+					                                    length,
+					                                    packet.position());
+					/* File system session can't handle partial writes */
+					if (res_length != length) {
+						Genode::error("partial write detected ",
+						              res_length, " vs ", length);
+						/* don't acknowledge */
+						return;
+					}
+					succeeded = true;
+				}
 				break;
 
 			case Packet_descriptor::CONTENT_CHANGED:
@@ -92,15 +109,17 @@ class Rump_fs::Session_component : public Session_rpc_object
 
 			case Packet_descriptor::READ_READY:
 				/* not supported */
+				succeeded = true;
 				break;
 
 			case Packet_descriptor::SYNC:
 				rump_sys_sync();
+				succeeded = true;
 				break;
 			}
 
 			packet.length(res_length);
-			packet.succeeded(res_length > 0);
+			packet.succeeded(succeeded);
 			tx_sink()->acknowledge_packet(packet);
 		}
 

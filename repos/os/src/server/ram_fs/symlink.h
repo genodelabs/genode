@@ -40,6 +40,8 @@ class Ram_fs::Symlink : public Node
 
 		size_t write(char const *src, size_t len, seek_off_t seek_offset) override
 		{
+			size_t const consumed_len = len;
+
 			/* Ideal symlink operations are atomic. */
 			if (seek_offset) return 0;
 
@@ -59,7 +61,8 @@ class Ram_fs::Symlink : public Node
 
 			Genode::memcpy(_link_to, src, len);
 			_len = len;
-			return len;
+
+			return consumed_len;
 		}
 
 		Status status() override

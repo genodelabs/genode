@@ -94,7 +94,7 @@ append_if $use_ahci_drv config {
 		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Block"/> </provides>
 		<config>
-			<policy label_prefix="fs" device="0" />
+			<policy label_prefix="fs" device="0" writeable="yes" />
 		</config>
 	</start>
 }
@@ -161,7 +161,7 @@ append qemu_args "  -nographic "
 append_if $use_ahci_drv    qemu_args " -drive id=disk,file=$disk_image,format=raw,if=none -device ahci,id=ahci -device ide-drive,drive=disk,bus=ahci.0 -boot d"
 append_if $use_sd_card_drv qemu_args " -drive file=$disk_image,format=raw,if=sd,cache=writeback "
 
-run_genode_until {.*child "test-libc_vfs" exited with exit value 0.*} 60
+run_genode_until {.*child "test-libc_vfs" exited with exit value 0.*} 120
 
 exec rm -f $disk_image
 

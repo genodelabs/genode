@@ -72,6 +72,7 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 
 			/* resulting length */
 			size_t res_length = 0;
+			bool succeeded = false;
 
 			switch (packet.operation()) {
 
@@ -82,6 +83,9 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 						break; 
 					res_length = node->read((char *)content, length,
 					                        packet.position());
+
+					/* read data or EOF is a success */
+					succeeded = res_length || (packet.position() >= node->status().size);
 				}
 				break;
 
@@ -92,17 +96,26 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 						break; 
 					res_length = node->write((char const *)content, length,
 					                         packet.position());
+
+					/* File system session can't handle partial writes */
+					if (res_length != length) {
+						Genode::error("partial write detected ",
+						              res_length, " vs ", length);
+						/* don't acknowledge */
+						return;
+					}
+					succeeded = true;
 				}
 				open_node.mark_as_written();
 				break;
 
-			case Packet_descriptor::CONTENT_CHANGED: {
+			case Packet_descriptor::CONTENT_CHANGED:
 				Genode::error("CONTENT_CHANGED packets from clients have no effect");
 				return;
-			}
 
 			case Packet_descriptor::READ_READY:
 				/* not supported */
+				succeeded = true;
 				break;
 
 			case Packet_descriptor::SYNC: {
@@ -110,12 +123,13 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 				if (!node.valid())
 					break; 
 				node->notify_listeners();
+				succeeded = true;
 				break;
 			}
 			}
 
 			packet.length(res_length);
-			packet.succeeded(res_length > 0);
+			packet.succeeded(succeeded);
 			tx_sink()->acknowledge_packet(packet);
 		}
 

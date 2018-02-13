@@ -287,7 +287,7 @@ struct Vfs_server::Symlink : Node
 		return _read(dst, len, 0);
 	}
 
-	size_t write(char const *src, size_t len, seek_off_t)
+	size_t write(char const *src, size_t const len, seek_off_t)
 	{
 		/*
 		 * if the symlink target is too long return a short result
@@ -311,7 +311,7 @@ struct Vfs_server::Symlink : Node
 
 		mark_as_updated();
 		notify_listeners();
-		return out_count;
+		return len;
 	}
 };
 

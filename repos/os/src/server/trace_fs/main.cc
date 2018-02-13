@@ -654,6 +654,7 @@ class Trace_fs::Session_component : public Session_rpc_object
 
 			/* resulting length */
 			size_t res_length = 0;
+			bool succeeded = false;
 
 			switch (packet.operation()) {
 
@@ -663,6 +664,7 @@ class Trace_fs::Session_component : public Session_rpc_object
 					if (!node.valid())
 						break; 
 					res_length = node->read((char *)content, length, packet.position());
+					succeeded = res_length > 0;
 				}
 				break;
 
@@ -672,6 +674,15 @@ class Trace_fs::Session_component : public Session_rpc_object
 					if (!node.valid())
 						break; 
 					res_length = node->write((char const *)content, length, packet.position());
+
+					/* File system session can't handle partial writes */
+					if (res_length != length) {
+						Genode::error("partial write detected ",
+						              res_length, " vs ", length);
+						/* don't acknowledge */
+						return;
+					}
+					succeeded = true;
 				}
 				break;
 
@@ -689,16 +700,18 @@ class Trace_fs::Session_component : public Session_rpc_object
 			}
 			
 			case Packet_descriptor::READ_READY:
+				succeeded = true;
 				/* not supported */
 				break;
 
 			case Packet_descriptor::SYNC:
+				succeeded = true;
 				/* not supported */
 				break;
 			}
 
 			packet.length(res_length);
-			packet.succeeded(res_length > 0);
+			packet.succeeded(succeeded);
 			tx_sink()->acknowledge_packet(packet);
 		}
 

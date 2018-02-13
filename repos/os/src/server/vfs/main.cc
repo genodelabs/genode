@@ -148,6 +148,7 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 
 			/* resulting length */
 			size_t res_length = 0;
+			bool succeeded = false;
 
 			switch (packet.operation()) {
 
@@ -160,8 +161,12 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 							throw Not_ready();
 						}
 
-						if (node.mode() & READ_ONLY)
+						if (node.mode() & READ_ONLY) {
 							res_length = node.read((char *)content, length, seek);
+							/* no way to distinguish EOF from unsuccessful
+							   reads, both have res_length == 0 */
+							succeeded = true;
+						}
 					});
 				}
 				catch (Not_ready) { throw; }
@@ -174,8 +179,18 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 
 				try {
 					_apply(packet.handle(), [&] (Node &node) {
-						if (node.mode() & WRITE_ONLY)
+						if (node.mode() & WRITE_ONLY) {
 							res_length = node.write((char const *)content, length, seek);
+
+							/* File system session can't handle partial writes */
+							if (res_length != length) {
+								Genode::error("partial write detected ",
+								              res_length, " vs ", length);
+								/* don't acknowledge */
+								throw Dont_ack();
+							}
+							succeeded = true;
+						}
 					});
 				} catch (Operation_incomplete) {
 					throw Not_ready();
@@ -191,6 +206,7 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 							throw Dont_ack();
 						}
 					});
+					succeeded = true;
 				}
 				catch (Dont_ack) { throw; }
 				catch (...) { }
@@ -208,6 +224,7 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 				try {
 					_apply(packet.handle(), [&] (Node &node) {
 						node.sync();
+						succeeded = true;
 					});
 				} catch (Operation_incomplete) {
 					throw Not_ready();
@@ -216,7 +233,7 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 			}
 
 			packet.length(res_length);
-			packet.succeeded(!!res_length);
+			packet.succeeded(succeeded);
 		}
 
 		bool _try_process_packet_op(Packet_descriptor &packet)

@@ -82,40 +82,63 @@ class Fatfs_fs::Session_component : public Session_rpc_object
 			size_t     const length  = packet.length();
 			seek_off_t const offset  = packet.position();
 
-			if (!content || (packet.length() > packet.size())) {
-				packet.succeeded(false);
-				return;
-			}
-
 			/* resulting length */
 			size_t res_length = 0;
+			bool succeeded = false;
 
 			switch (packet.operation()) {
 
-				case Packet_descriptor::READ:
-					res_length = open_node.node().read((char *)content, length, offset);
-					break;
+			case Packet_descriptor::READ:
+				if (content && (packet.length() <= packet.size())) {
+					res_length = open_node.node().read((char *)content, length,
+					                                   offset);
 
-				case Packet_descriptor::WRITE:
-					res_length = open_node.node().write((char const *)content, length, offset);
-					break;
+					/* read data or EOF is a success */
+					succeeded = res_length > 0;
+					if (!succeeded) {
+						File * file = dynamic_cast<File *>(&open_node.node());
+						if (file)
+							succeeded = f_eof((file->fatfs_fil()));
+					}
+				}
+				break;
 
-				case Packet_descriptor::CONTENT_CHANGED:
-					open_node.register_notify(*tx_sink());
-					open_node.node().notify_listeners();
-					return;
+			case Packet_descriptor::WRITE:
+				if (content && (packet.length() <= packet.size())) {
+					res_length = open_node.node().write((char const *)content,
+					                                    length, offset);
 
-				case Packet_descriptor::READ_READY:
-					/* not supported */
-					break;
+					/* File system session can't handle partial writes */
+					if (res_length != length) {
+						Genode::error("partial write detected ",
+						              res_length, " vs ", length);
+						/* don't acknowledge */
+						return;
+					}
+					succeeded = true;
+				}
+				break;
 
-				case Packet_descriptor::SYNC:
-					/* not supported */
-					break;
+			case Packet_descriptor::CONTENT_CHANGED:
+				open_node.register_notify(*tx_sink());
+				open_node.node().notify_listeners();
+				return;
+
+			case Packet_descriptor::READ_READY:
+				succeeded = true;
+				/* not supported */
+				break;
+
+			case Packet_descriptor::SYNC:
+				succeeded = true;
+				/* not supported */
+				break;
 			}
 
 			packet.length(res_length);
-			packet.succeeded(res_length > 0);
+			packet.succeeded(succeeded);
+
+			tx_sink()->acknowledge_packet(packet);
 		}
 
 		void _process_packet()
@@ -134,12 +157,6 @@ class Fatfs_fs::Session_component : public Session_rpc_object
 			} catch (Id_space<File_system::Node>::Unknown_id const &) {
 				Genode::error("Invalid_handle");
 			}
-
-			/*
-			 * The 'acknowledge_packet' function cannot block because we
-			 * checked for 'ready_to_ack' in '_process_packets'.
-			 */
-			tx_sink()->acknowledge_packet(packet);
 		}
 
 		/**

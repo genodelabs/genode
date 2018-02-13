@@ -251,7 +251,12 @@ class Rump_fs::Directory : public Node
 				void *current, *end;
 				for (current = buf, end = &buf[bytes];
 				     current < end;
-				     current = _DIRENT_NEXT((dirent *)current), count++) { }
+				     current = _DIRENT_NEXT((dirent *)current))
+				{
+					struct ::dirent *d = (dirent*)current;
+					if (strcmp(".", d->d_name) && strcmp("..", d->d_name))
+						count++;
+				}
 			} while(bytes);
 
 			return count;

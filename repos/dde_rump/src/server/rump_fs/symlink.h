@@ -47,7 +47,7 @@ class Rump_fs::Symlink : public Node
 			Node::name(basename(path));
 		}
 
-		size_t write(char const *src, size_t len, seek_off_t seek_offset) override
+		size_t write(char const *src, size_t const len, seek_off_t seek_offset) override
 		{
 			/* Ideal symlink operations are atomic. */
 			if (!_create || seek_offset)
@@ -57,7 +57,7 @@ class Rump_fs::Symlink : public Node
 			Genode::String<MAX_PATH_LEN> target(Genode::Cstring(src, len));
 
 			int ret = rump_sys_symlink(target.string(), _path.base());
-			return ret == -1 ? 0 : ret;
+			return ret == -1 ? 0 : len;
 		}
 
 		size_t read(char *dst, size_t len, seek_off_t seek_offset) override
