@@ -172,9 +172,11 @@ Libc::File_descriptor *Libc::Vfs_plugin::open(char const *path, int flags,
 	if (_root_dir.directory(path)) {
 
 		if (((flags & O_ACCMODE) != O_RDONLY)) {
-			errno = EINVAL;
+			errno = EISDIR;
 			return nullptr;
 		}
+
+		flags |= O_DIRECTORY;
 
 		Vfs::Vfs_handle *handle = 0;
 
@@ -206,6 +208,11 @@ Libc::File_descriptor *Libc::Vfs_plugin::open(char const *path, int flags,
 		fd->flags = flags & O_ACCMODE;
 
 		return fd;
+	}
+
+	if (flags & O_DIRECTORY) {
+		errno = ENOTDIR;
+		return nullptr;
 	}
 
 	typedef Vfs::Directory_service::Open_result Result;
@@ -451,6 +458,9 @@ ssize_t Libc::Vfs_plugin::read(Libc::File_descriptor *fd, void *buf,
 	typedef Vfs::File_io_service::Read_result Result;
 
 	Vfs::Vfs_handle *handle = vfs_handle(fd);
+
+	if (fd->flags & O_DIRECTORY)
+		return Errno(EISDIR);
 
 	if (fd->flags & O_NONBLOCK && !Libc::read_ready(fd))
 		return Errno(EAGAIN);
