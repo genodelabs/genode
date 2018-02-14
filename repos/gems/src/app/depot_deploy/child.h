@@ -131,8 +131,11 @@ class Depot_deploy::Child : public List_model<Child>::Element
 
 			Xml_node const runtime = pkg.sub_node("runtime");
 
-			_ram_quota = Ram_quota { runtime.attribute_value("ram", Number_of_bytes()) };
-			_cap_quota = Cap_quota { runtime.attribute_value("caps", 0UL) };
+			Number_of_bytes const ram { runtime.attribute_value("ram", Number_of_bytes()) };
+			_ram_quota = Ram_quota { _start_xml->xml().attribute_value("ram",  ram) };
+
+			unsigned long const caps = runtime.attribute_value("caps", 0UL);
+			_cap_quota = Cap_quota { _start_xml->xml().attribute_value("caps", caps) };
 
 			_binary_name = runtime.attribute_value("binary", Binary_name());
 			_config_name = runtime.attribute_value("config", Config_name());
@@ -174,6 +177,11 @@ void Depot_deploy::Child::gen_start_node(Xml_generator &xml, Xml_node common) co
 
 		xml.attribute("name", _name);
 		xml.attribute("caps", _cap_quota.value);
+
+		typedef String<64> Version;
+		Version const version = _start_xml->xml().attribute_value("version", Version());
+		if (version.valid())
+			xml.attribute("version", version);
 
 		xml.node("binary", [&] () { xml.attribute("name", _binary_name); });
 
