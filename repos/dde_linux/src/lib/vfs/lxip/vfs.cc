@@ -314,6 +314,8 @@ class Vfs::Lxip_file : public Vfs::File
 
 		char _content_buffer[Lxip::MAX_DATA_LEN];
 
+		bool _sock_valid() { return _sock.sk != nullptr; }
+
 	public:
 
 		Lxip_file(Lxip::Socket_dir &p, Linux::socket &s, char const *name)
@@ -363,6 +365,8 @@ class Vfs::Lxip_data_file : public Vfs::Lxip_file
 		{
 			using namespace Linux;
 
+			if (!_sock_valid()) return -1;
+
 			iovec iov { const_cast<char *>(src), len };
 
 			msghdr msg = create_msghdr(&_parent.remote_addr(),
@@ -375,6 +379,8 @@ class Vfs::Lxip_data_file : public Vfs::Lxip_file
 		                   file_size /* ignored */) override
 		{
 			using namespace Linux;
+
+			if (!_sock_valid()) return -1;
 
 			iovec iov { dst, len };
 
@@ -411,6 +417,8 @@ class Vfs::Lxip_bind_file : public Vfs::Lxip_file
 		                    file_size /* ignored */) override
 		{
 			using namespace Linux;
+
+			if (!_sock_valid()) return -1;
 
 			if (len > (sizeof(_content_buffer) - 2))
 				return -1;
@@ -475,6 +483,8 @@ class Vfs::Lxip_listen_file : public Vfs::Lxip_file
 		Lxip::ssize_t write(char const *src, Genode::size_t len,
 		                    file_size /* ignored */) override
 		{
+			if (!_sock_valid()) return -1;
+
 			if (len > (sizeof(_content_buffer) - 2))
 				return -1;
 
@@ -531,6 +541,8 @@ class Vfs::Lxip_connect_file : public Vfs::Lxip_file
 		                    file_size /* ignored */) override
 		{
 			using namespace Linux;
+
+			if (!_sock_valid()) return -1;
 
 			if (len > (sizeof(_content_buffer) - 2))
 				return -1;
@@ -604,6 +616,8 @@ class Vfs::Lxip_local_file : public Vfs::Lxip_file
 		{
 			using namespace Linux;
 
+			if (!_sock_valid()) return -1;
+
 			if (len < sizeof(_content_buffer))
 				return -1;
 
@@ -665,6 +679,8 @@ class Vfs::Lxip_remote_file : public Vfs::Lxip_file
 		                   file_size /* ignored */) override
 		{
 			using namespace Linux;
+
+			if (!_sock_valid()) return -1;
 
 			sockaddr_storage addr_storage;
 			sockaddr_in *addr = (sockaddr_in *)&addr_storage;
@@ -758,6 +774,8 @@ class Vfs::Lxip_accept_file : public Vfs::Lxip_file
 		                   file_size /* ignored */) override
 		{
 			using namespace Linux;
+
+			if (!_sock_valid()) return -1;
 
 			if (!poll(false, nullptr)) {
 				throw Would_block();
