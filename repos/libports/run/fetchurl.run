@@ -5,10 +5,11 @@
 #
 
 set build_components {
-	core init
 	app/fetchurl
+	core init
 	drivers/nic
 	drivers/timer
+	lib/vfs/lxip
 }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
@@ -19,7 +20,7 @@ build $build_components
 create_boot_directory
 
 append config {
-<config verbose="yes">
+<config>
 	<parent-provides>
 		<service name="CPU"/>
 		<service name="IO_MEM"/>
@@ -49,14 +50,18 @@ append config {
 		<provides> <service name="Nic"/> </provides>
 	</start>
 	<start name="fetchurl" caps="500">
-		<resource name="RAM" quantum="8M"/>
+		<resource name="RAM" quantum="32M"/>
 		<config>
 			<vfs>
+				<dir name="etc">
+					<inline name="resolv.conf">nameserver 213.73.91.35</inline>
+				</dir>
 				<dir name="dev">
 					<log/> <null/> <inline name="rtc">2000-01-01 00:00</inline>
 				</dir>
+				<dir name="socket"> <lxip dhcp="yes"/> </dir>
 			</vfs>
-			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" socket="/socket"/>
 			<fetch url="http://genode.org/about/LICENSE" path="/dev/log"/>
 		</config>
 	</start>
@@ -74,11 +79,12 @@ set boot_modules {
 	libcrypto.lib.so
 	libssh.lib.so
 	libssl.lib.so
-	lwip.lib.so
+	lxip.lib.so
 	nic_drv
-	timer
-	zlib.lib.so
 	pthread.lib.so
+	timer
+	vfs_lxip.lib.so
+	zlib.lib.so
 }
 
 # platform-specific modules
