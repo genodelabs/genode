@@ -273,8 +273,8 @@ struct Depot_query::Main
 					catch (Xml_generator::Buffer_exceeded) {
 						throw; /* handled by 'generate' */ }
 					catch (...) {
-						warning("could not obtain blueprint for '", pkg, "'");
-					}
+						xml.node("missing", [&] () {
+							xml.attribute("path", pkg); }); }
 				});
 			});
 		}

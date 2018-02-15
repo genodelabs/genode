@@ -73,6 +73,10 @@ class Depot_deploy::Children
 			blueprint.for_each_sub_node("pkg", [&] (Xml_node pkg) {
 				_children.for_each([&] (Child &child) {
 					child.apply_blueprint(pkg); }); });
+
+			blueprint.for_each_sub_node("missing", [&] (Xml_node missing) {
+				_children.for_each([&] (Child &child) {
+					child.mark_as_incomplete(missing); }); });
 		}
 
 		void gen_start_nodes(Xml_generator &xml, Xml_node common)

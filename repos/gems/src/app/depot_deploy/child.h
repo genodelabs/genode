@@ -61,6 +61,11 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		Binary_name _binary_name { };
 		Config_name _config_name { };
 
+		/*
+		 * Set if the depot query for the child's blueprint failed.
+		 */
+		bool _pkg_incomplete = false;
+
 		bool _configured() const
 		{
 			return _pkg_xml.constructed()
@@ -122,6 +127,9 @@ class Depot_deploy::Child : public List_model<Child>::Element
 
 			/* import new start node */
 			_start_xml.construct(_alloc, start_node);
+
+			/* reset error state, attempt to obtain the blueprint again */
+			_pkg_incomplete = false;
 		}
 
 		void apply_blueprint(Xml_node pkg)
@@ -144,9 +152,24 @@ class Depot_deploy::Child : public List_model<Child>::Element
 			_pkg_xml.construct(_alloc, pkg);
 		}
 
+		void mark_as_incomplete(Xml_node missing)
+		{
+			/* print error message only once */
+			if(_pkg_incomplete)
+				return;
+
+			Archive::Path const path = missing.attribute_value("path", Archive::Path());
+			if (path != _blueprint_pkg_path)
+				return;
+
+			error(path, " incomplete or missing");
+
+			_pkg_incomplete = true;
+		}
+
 		void gen_query(Xml_generator &xml) const
 		{
-			if (_configured())
+			if (_configured() || _pkg_incomplete)
 				return;
 
 			xml.node("blueprint", [&] () {
