@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2016 Genode Labs GmbH
+ * Copyright (C) 2016-2018 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -27,16 +27,6 @@
 #include <errno.h>
 #include <sys/stat.h>
 
-struct Stats
-{
-	Timer::Connection &timer;
-	unsigned long     next = 0;
-	unsigned long     remain = 0;
-	char       const *url;
-
-	Stats(Timer::Connection &t, char const *u)
-	: timer(t), url(u) { }
-};
 
 static size_t write_callback(char   *ptr,
                              size_t  size,
@@ -48,47 +38,20 @@ static size_t write_callback(char   *ptr,
 }
 
 
-int progress_callback(void   *clientp,
-                      double dltotal,
-                      double dlnow,
-                      double ultotal,
-                      double ulnow)
+static int fetchurl(Genode::Xml_node config_node)
 {
-	Stats *stats = (Stats*)clientp;
-
-	unsigned long now = stats->timer.elapsed_ms();
-	unsigned long remain = dltotal-dlnow;
-
-	if ((now > stats->next) && (remain != stats->remain)) {
-		stats->next = now + 1000;
-		stats->remain = remain;
-		Genode::log(stats->url, ": ", remain, " bytes remain");
-	}
-	return CURLE_OK;
-}
-
-void Libc::Component::construct(Libc::Env &env)
-{
-	Genode::Attached_rom_dataspace config(env, "config");
-
-	Timer::Connection timer(env);
-
-	/* wait for DHCP */
-	timer.msleep(4000);
-
 	Genode::String<256> url;
 	Genode::Path<256>   path;
 	CURLcode res = CURLE_OK;
 
 	Libc::with_libc([&]() { curl_global_init(CURL_GLOBAL_DEFAULT); });
 
-	Genode::Xml_node config_node = config.xml();
-
 	bool verbose = config_node.attribute_value("verbose", false);
 
 	config_node.for_each_sub_node("fetch", [&] (Genode::Xml_node node) {
 
 		if (res != CURLE_OK) return;
+
 		try {
 			node.attribute("url").value(&url);
 			node.attribute("path").value(path.base(), path.capacity());
@@ -141,8 +104,8 @@ void Libc::Component::construct(Libc::Env &env)
 			default:
 				Genode::error("creation of ", out_path, " failed (errno=", errno, ")");
 			}
-			env.parent().exit(errno);
-			throw Genode::Exception();
+			res = CURLE_FAILED_INIT;
+			return;
 		}
 
 		CURL *curl = curl_easy_init();
@@ -151,8 +114,6 @@ void Libc::Component::construct(Libc::Env &env)
 			res = CURLE_FAILED_INIT;
 			return;
 		}
-
-		Stats stats(timer, url.string());
 
 		curl_easy_setopt(curl, CURLOPT_URL, url.string());
 		curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, true);
@@ -163,9 +124,7 @@ void Libc::Component::construct(Libc::Env &env)
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &fd);
 
-		curl_easy_setopt(curl, CURLOPT_PROGRESSFUNCTION, progress_callback);
-		curl_easy_setopt(curl, CURLOPT_PROGRESSDATA, &stats);
-		curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
+		curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 1L);
 
 		curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
 		curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
@@ -192,7 +151,14 @@ void Libc::Component::construct(Libc::Env &env)
 
 	Genode::warning("SSL certificates not verified");
 
-	env.parent().exit(res ^ CURLE_OK);
+	return res ^ CURLE_OK;
+}
+
+void Libc::Component::construct(Libc::Env &env)
+{
+	env.config([&env] (Genode::Xml_node config) {
+		env.parent().exit( fetchurl(config) );
+	});
 }
 
 /* dummies to prevent warnings printed by unimplemented libc functions */
