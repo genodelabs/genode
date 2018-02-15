@@ -1,0 +1,23 @@
+LICENSE   = MIT
+DOWNLOADS = libyaml.archive
+VERSION  = 0.1.7
+
+URL(libyaml) := http://pyyaml.org/download/libyaml/yaml-$(VERSION).tar.gz
+SHA(libyaml) := 3590cbf092ef4c71bc0a9b404c00a626b1e04dee
+DIR(libyaml) := src/lib/yaml
+
+DIRS := include/yaml
+DIR_CONTENT(include/yaml) = src/lib/yaml/include/*.h
+
+default: src/lib/yaml/src/config.h
+
+src/lib/yaml/src/config.h: src/lib/yaml/config.h.in
+	@$(MSG_GENERATE)$(notdir $@)
+	$(VERBOSE)sed \
+		-e 's/undef YAML_VERSION_MAJOR/define YAML_VERSION_MAJOR 0/' \
+		-e 's/undef YAML_VERSION_MINOR/define YAML_VERSION_MINOR 1/' \
+		-e 's/undef YAML_VERSION_PATCH/define YAML_VERSION_PATCH 7/' \
+		-e 's/undef YAML_VERSION_STRING/define YAML_VERSION_STRING "$(VERSION)"/' \
+		$< > $@
+
+src/lib/yaml/config.h.in: $(DOWNLOADS)
