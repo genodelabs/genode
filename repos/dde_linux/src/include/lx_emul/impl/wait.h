@@ -17,11 +17,7 @@
 
 void prepare_to_wait(wait_queue_head_t *q, wait_queue_t *w, int state)
 {
-	if (!q) {
-		Genode::warning("prepare_to_wait: wait_queue_head_t is 0, ignore, "
-		                "called from: ", __builtin_return_address(0));
-		return;
-	}
+	if (!q) { return; }
 
 	Wait_list *list = static_cast<Wait_list *>(q->list);
 	Lx::Task *task = Lx::scheduler().current();
@@ -38,11 +34,7 @@ void prepare_to_wait_exclusive(wait_queue_head_t *q, wait_queue_t *w, int state)
 
 void finish_wait(wait_queue_head_t *q, wait_queue_t *w)
 {
-	if (!q) {
-		Genode::warning("finish_wait: wait_queue_head_t is 0, ignore, ",
-		                "called from: ", __builtin_return_address(0));
-		return;
-	}
+	if (!q) { return; }
 
 	Wait_list *list = static_cast<Wait_list *>(q->list);
 	Lx::Task *task = Lx::scheduler().current();

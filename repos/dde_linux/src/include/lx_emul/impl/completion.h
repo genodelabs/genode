@@ -46,11 +46,7 @@ int waitqueue_active(wait_queue_head_t *wq)
 void __wake_up(wait_queue_head_t *wq, bool all)
 {
 	Wait_list *list = static_cast<Wait_list *>(wq->list);
-	if (!list) {
-		Genode::warning("wait_queue_head_t is empty, wq: ", wq, " "
-		                "called from: ", __builtin_return_address(0));
-		return;
-	}
+	if (!list) { return; }
 
 	Wait_le *le = list->first();
 	do {
@@ -71,7 +67,6 @@ void ___wait_event(wait_queue_head_t *wq)
 {
 	Wait_list *list = static_cast<Wait_list *>(wq->list);
 	if (!list) {
-		Genode::warning("__wait_event():dd empty list in wq: ", wq);
 		init_waitqueue_head(wq);
 		list = static_cast<Wait_list *>(wq->list);
 	}
