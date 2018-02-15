@@ -42,6 +42,15 @@ ret_type name args \
 	return ret_val; \
 }
 
+
+#define DUMMY_SILENT(ret_type, ret_val, name, args) __attribute__((weak)) \
+ret_type name args \
+{ \
+	errno = ENOSYS;						\
+	return ret_val; \
+}
+
+
 DUMMY(int   , -1, chmod, (const char *, mode_t))
 DUMMY(int   , -1, chown, (const char *, uid_t, gid_t))
 DUMMY(int   , -1, chroot, (const char *))
@@ -53,7 +62,7 @@ DUMMY(int   ,  0, fchmod, (int, mode_t))
 DUMMY(int   , -1, fchown, (int, uid_t, gid_t))
 DUMMY(int   , -1, flock, (int, int))
 DUMMY(pid_t , -1, fork, (void))
-DUMMY(long  , -1, _fpathconf, (int, int))
+DUMMY_SILENT(long  , -1, _fpathconf, (int, int))
 DUMMY(long  , -1, fpathconf, (int, int))
 DUMMY(int   , -1, freebsd7___semctl, (void))
 DUMMY(int   , -1, fstatat, (int, const char *, struct stat *, int))
@@ -66,7 +75,7 @@ DUMMY(int   , -1, getgroups, (int, gid_t *))
 DUMMY(struct hostent *, 0, gethostbyname, (const char *))
 DUMMY(char *,  0, _getlogin, (void))
 DUMMY(int   , -1, getnameinfo, (const sockaddr *, socklen_t, char *, size_t, char *, size_t, int))
-DUMMY(pid_t , -1, getpid, (void))
+DUMMY_SILENT(pid_t , -1, getpid, (void))
 DUMMY(struct servent *, 0, getservbyname, (const char *, const char *))
 DUMMY(int   , -1, getsid, (pid_t))
 DUMMY(pid_t , -1, getppid, (void))
@@ -109,7 +118,7 @@ DUMMY(int   , -1, setregid, (gid_t, gid_t))
 DUMMY(int   , -1, setreuid, (uid_t, uid_t))
 DUMMY(int   , -1, setrlimit, (int, const rlimit *))
 DUMMY(pid_t , -1, setsid, (void))
-DUMMY(int   , -1, _sigaction, (int, const struct sigaction *, struct sigaction *))
+DUMMY_SILENT(int   , -1, _sigaction, (int, const struct sigaction *, struct sigaction *))
 DUMMY(int   , -1, sigaction, (int, const struct sigaction *, struct sigaction *))
 DUMMY(int   , -1, sigblock, (int))
 DUMMY(int   , -1, sigpause, (int))
@@ -120,7 +129,7 @@ DUMMY(int   , -1, stat, (const char *, struct stat *))
 DUMMY(int   , -1, statfs, (const char *, struct statfs *))
 DUMMY(void  ,   , sync, (void))
 DUMMY(int   , -1, truncate, (const char *, off_t))
-DUMMY(mode_t,  0, umask, (mode_t))
+DUMMY_SILENT(mode_t,  0, umask, (mode_t))
 DUMMY(int   ,  0, utimes, (const char *, const timeval *))
 DUMMY(pid_t , -1, vfork, (void))
 DUMMY(pid_t , -1, _wait4, (pid_t, int *, int, struct rusage *))

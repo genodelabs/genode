@@ -32,7 +32,6 @@ extern "C" int __attribute__((weak)) getrlimit(int resource, struct rlimit *rlim
 		return 0;
 	}
 
-	Genode::warning("getrlimit called, return 0");
 	return 0;
 }
 

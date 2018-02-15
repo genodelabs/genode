@@ -16,6 +16,5 @@
 
 extern "C" int issetugid(void)
 {
-	Genode::warning("issetugid called, not yet implemented, returning 1");
 	return 1;
 }
