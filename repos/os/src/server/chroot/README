@@ -31,3 +31,7 @@ file system session from "X" would be rooted to the directory
 !   </route>
 !   ...
 ! </start>
+
+In addition, the 'chroot' component will intercept the 'writeable' session
+argument and only if its own policy allows it (i.e. the 'writeable' attribute
+is to 'yes') the child is permitted to create a writeable connection.

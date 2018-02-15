@@ -170,6 +170,24 @@ struct Chroot::Main
 		/* sacrifice the label to make space for the root argument */
 		Arg_string::remove_arg(new_args, "label");
 
+		/* enforce writeable policy decision */
+		{
+			enum { WRITEABLE_ARG_MAX_LEN = 4, };
+			char tmp[WRITEABLE_ARG_MAX_LEN];
+			Arg_string::find_arg(new_args, "writeable").string(tmp, sizeof(tmp), "no");
+
+			/* session argument */
+			bool const writeable_arg =
+				Arg_string::find_arg(new_args, "writeable").bool_value(false);
+
+			/* label-based session policy */
+			bool const writeable_policy =
+				policy.attribute_value("writeable", false);
+
+			bool const writeable = writeable_arg && writeable_policy;
+			Arg_string::set_arg(new_args, ARGS_MAX_LEN, "writeable", writeable);
+		}
+
 		Arg_string::set_arg_string(new_args, ARGS_MAX_LEN, "root", new_root);
 
 		Affinity affinity;
