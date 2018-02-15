@@ -376,7 +376,6 @@ extern "C" int getrlimit(int resource, struct rlimit *rlim)
 			return 0;
 	}
 	errno = ENOSYS;
-	warning(__func__, " not implemented (resource=", resource, ")");
 	return -1;
 }
 
@@ -1417,6 +1416,13 @@ namespace {
 
 				break;
 			}
+
+		case TIOCSETA:
+			{
+				/* not implemented but used by e.g. vim */
+				break;
+			}
+
 
 		default:
 
