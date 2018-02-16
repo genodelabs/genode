@@ -23,7 +23,10 @@ void Depot_download_manager::gen_chroot_start_content(Xml_generator &xml,
 
 	xml.node("config", [&] () {
 		xml.node("default-policy", [&] () {
-			xml.attribute("path", Path("/", user)); }); });
+			xml.attribute("path", Path("/", user));
+			xml.attribute("writeable", "yes");
+		});
+	});
 
 	xml.node("provides", [&] () {
 		xml.node("service", [&] () {

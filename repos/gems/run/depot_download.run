@@ -72,10 +72,8 @@ append config {
 				</dir>
 				<dir name="public"> <ram/> </dir>
 			</vfs>
-			<policy label="depot_download -> depot_rw"  root="/depot" writeable="yes"/>
-			<policy label="depot_download -> depot"     root="/depot"/>
-			<policy label="depot_download -> public_rw" root="/public" writeable="yes"/>
-			<policy label="depot_download -> public"    root="/public"/>
+			<policy label="depot_download -> depot"  root="/depot"  writeable="yes"/>
+			<policy label="depot_download -> public" root="/public" writeable="yes"/>
 		</config>
 	</start>
 
