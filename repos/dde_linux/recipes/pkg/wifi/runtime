@@ -25,7 +25,7 @@
 		<rom label="wifi.lib.so"/>
 		<rom label="wpa_driver_nl80211.lib.so"/>
 		<rom label="wpa_supplicant.lib.so"/>
-		<rom label="iwlwifi-1000-5.ucode.lib.so"/>
+		<rom label="iwlwifi-1000-5.ucode"/>
 		<rom label="iwlwifi-3160-16.ucode"/>
 		<rom label="iwlwifi-6000-4.ucode"/>
 		<rom label="iwlwifi-6000g2a-6.ucode"/>
