@@ -314,6 +314,17 @@ class Vfs::Lxip_file : public Vfs::File
 
 		char _content_buffer[Lxip::MAX_DATA_LEN];
 
+		bool _write_content_line(char const *buf, Genode::size_t len)
+		{
+			if (len > sizeof(_content_buffer) - 2)
+				return false;
+
+			Genode::memcpy(_content_buffer, buf, len);
+			_content_buffer[len+0] = '\n';
+			_content_buffer[len+1] = '\0';
+			return true;
+		}
+
 		bool _sock_valid() { return _sock.sk != nullptr; }
 
 	public:
@@ -420,15 +431,10 @@ class Vfs::Lxip_bind_file : public Vfs::Lxip_file
 
 			if (!_sock_valid()) return -1;
 
-			if (len > (sizeof(_content_buffer) - 2))
-				return -1;
-
 			/* already bound to port */
 			if (_port >= 0) return -1;
 
-			Genode::memcpy(_content_buffer, src, len);
-			_content_buffer[len+1] = '\n';
-			_content_buffer[len+2] = '\0';
+			if (!_write_content_line(src, len)) return -1;
 
 			/* check if port is already used by other socket */
 			long port = get_port(_content_buffer);
@@ -485,8 +491,7 @@ class Vfs::Lxip_listen_file : public Vfs::Lxip_file
 		{
 			if (!_sock_valid()) return -1;
 
-			if (len > (sizeof(_content_buffer) - 2))
-				return -1;
+			if (!_write_content_line(src, len)) return -1;
 
 			Lxip::ssize_t res;
 
@@ -494,11 +499,10 @@ class Vfs::Lxip_listen_file : public Vfs::Lxip_file
 			Genode::ascii_to_unsigned(src, backlog, 10);
 
 			res = _sock.ops->listen(&_sock, backlog);
-			if (res != 0) return -1;
-
-			Genode::memcpy(_content_buffer, src, len);
-			_content_buffer[len+1] = '\n';
-			_content_buffer[len+2] = '\0';
+			if (res != 0) {
+				_write_content_line("", 0);
+				return -1;
+			}
 
 			_parent.listen(true);
 
@@ -544,12 +548,7 @@ class Vfs::Lxip_connect_file : public Vfs::Lxip_file
 
 			if (!_sock_valid()) return -1;
 
-			if (len > (sizeof(_content_buffer) - 2))
-				return -1;
-
-			Genode::memcpy(_content_buffer, src, len);
-			_content_buffer[len+1] = '\n';
-			_content_buffer[len+2] = '\0';
+			if (!_write_content_line(src, len)) return -1;
 
 			long const port = get_port(_content_buffer);
 			if (port == -1) return -1;
@@ -723,12 +722,7 @@ class Vfs::Lxip_remote_file : public Vfs::Lxip_file
 		{
 			using namespace Linux;
 
-			if (len > (sizeof(_content_buffer) - 2))
-				return -1;
-
-			Genode::memcpy(_content_buffer, src, len);
-			_content_buffer[len+1] = '\n';
-			_content_buffer[len+2] = '\0';
+			if (!_write_content_line(src, len)) return -1;
 
 			long const port = get_port(_content_buffer);
 			if (port == -1) return -1;
