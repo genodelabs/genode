@@ -1,0 +1,19 @@
+LICENSE   = BSD3
+DOWNLOADS = getdns.archive
+VERSION  = 1.4.0
+
+URL(getdns) := https://getdnsapi.net/releases/getdns-1-4-0/getdns-1.4.0.tar.gz
+SHA(getdns) := 5955268b3ce3d0551ba8a20a97380a8ad3bcf302
+DIR(getdns) := src/lib/getdns
+
+DIRS := include/getdns
+DIR_CONTENT(include/getdns) = src/lib/getdns/src/getdns/getdns_extra.h
+
+default: include/getdns/getdns.h
+
+include/getdns/getdns.h: src/lib/getdns/src/getdns/getdns.h.in
+	@$(MSG_GENERATE)$(notdir $@)
+	$(VERBOSE)mkdir -p $(dir $@)
+	$(VERBOSE)cp $< $@
+
+src/lib/getdns/src/getdns/getdns.h.in: $(DOWNLOADS)

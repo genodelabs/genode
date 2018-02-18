@@ -1,0 +1,202 @@
+if {[have_spec linux]} {
+	puts "The [run_name] scenario requires QEMU networking."
+	exit 1
+}
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+
+set build_components {
+	app/drill
+	app/sequence
+	app/stubby
+	core init
+	drivers/nic
+	drivers/rtc
+	drivers/timer
+	lib/vfs/jitterentropy
+	lib/vfs/lxip
+	server/nic_router
+	server/vfs
+	test/libc_getaddrinfo
+}
+
+append_platform_drv_build_components
+
+build $build_components
+
+create_boot_directory
+
+append config {
+<config>
+	<parent-provides>
+		<service name="CPU"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="IRQ"/>
+		<service name="LOG"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="ROM"/>
+	</parent-provides>
+	<default-route>
+		<service name="Nic"> <child name="nic_router"/> </service>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<default caps="128"/>}
+
+append_platform_drv_config
+
+append config {
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>
+	<start name="rtc_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Rtc"/> </provides>
+	</start>
+	<start name="nic_drv">
+		<binary name="} [nic_drv_binary] {"/>
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="Nic"/> </provides>
+	</start>
+	<start name="nic_router" caps="200">
+		<resource name="RAM" quantum="10M"/>
+		<provides><service name="Nic"/></provides>
+		<config verbose="no">
+			<policy label_prefix="vfs" domain="default" />
+			<policy label_prefix="stubby" domain="dns"/>
+			<domain name="uplink">
+				<nat domain="dns" tcp-ports="64" udp-ports="64"/>
+			</domain>
+			<domain name="dns" interface="10.0.53.1/24">
+				<ip dst="10.0.1.0/24" domain="default"/>
+				<tcp dst="10.0.4.0/24"><permit-any domain="default"/></tcp>
+				<udp dst="10.0.4.0/24"><permit-any domain="default"/></udp>
+				<tcp dst="0.0.0.0/0"><permit-any domain="uplink"/></tcp>
+				<udp dst="0.0.0.0/0"><permit-any domain="uplink"/></udp>
+			</domain>
+			<domain name="default" interface="10.0.1.1/24">
+				<dhcp-server ip_first="10.0.1.2"
+				             ip_last="10.0.1.200"
+				             ip_lease_time_sec="360"
+				             dns_server="10.0.53.2"/>
+				<ip dst="10.0.53.0/24" domain="dns"/>
+				<udp dst="10.0.53.0/24"><permit-any domain="dns"/></udp>
+				<tcp dst="0.0.0.0/0"><permit-any domain="uplink"/></tcp>
+				<udp dst="0.0.0.0/0"><permit-any domain="uplink"/></udp>
+			</domain>
+		</config>
+		<route>
+			<service name="Nic"> <child name="nic_drv"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="stubby" caps="512">
+		<resource name="RAM" quantum="32M"/>
+		<config>
+			<vfs>
+				<ram/>
+				<dir name="etc">
+					<inline name="resolv.conf">nameserver 10.0.2.3</inline> </dir>
+				<dir name="dev">
+					<log/> <null/> <rtc/>
+					<jitterentropy name="random"/>
+				</dir>
+				<dir name="socket">
+					<lxip ip_addr="10.0.53.2" netmask="255.255.255.0" gateway="10.0.53.1"/>
+				</dir>
+<inline name="stubby.yaml">
+listen_addresses:
+  - 10.0.53.2
+</inline>
+			</vfs>
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" socket="/socket"/>
+			<env key="HOME" value="/"/>
+			<arg value="stubby"/>
+			<arg value="-C"/>
+			<arg value="/stubby.yaml"/>
+		</config>
+	</start>
+	<start name="vfs">
+		<resource name="RAM" quantum="32M"/>
+		<provides> <service name="File_system"/> </provides>
+		<config>
+			<vfs>
+				<dir name="etc">
+					<inline name="resolv.conf">nameserver 10.0.53.2</inline>
+				</dir>
+				<dir name="socket"> <lxip dhcp="yes"/> </dir>
+			</vfs>
+			<default-policy writeable="yes" root="/"/>
+		</config>
+	</start>
+	<start name="application" caps="256">
+		<binary name="sequence"/>
+		<resource name="RAM" quantum="8M"/>
+		<config>
+			<start name="getaddrinfo">
+				<binary name="test-libc_getaddrinfo"/>
+				<config>
+					<vfs>
+						<fs/>
+						<dir name="dev"> <log/> </dir>
+					</vfs>
+					<libc stdout="/dev/log" socket="/socket"/>
+					<arg value="test-libc_getenv"/>
+					<arg value="genode.org"/>
+					<arg value="hypervisor.org"/>
+					<arg value="example.com"/>
+				</config>
+			</start>
+			<start name="ldns">
+				<binary name="drill"/>
+				<config>
+					<vfs>
+						<fs/>
+						<dir name="dev"> <log/> </dir>
+					</vfs>
+					<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" socket="/socket"/>
+					<arg value="drill"/>
+					<arg value="genode.org"/>
+					<arg value="@10.0.53.2"/>
+				</config>
+			</start>
+		</config>
+	</start>
+</config>
+}
+
+install_config $config
+
+set boot_modules {
+	core init ld.lib.so 
+	drill
+	libc.lib.so libm.lib.so posix.lib.so
+	libcrypto.lib.so
+	libgetdns.lib.so
+	libssl.lib.so
+	lxip.lib.so vfs_lxip.lib.so
+	nic_router
+	rtc_drv
+	sequence
+	stubby
+	timer
+	test-libc_getaddrinfo
+	vfs
+	vfs_jitterentropy.lib.so
+}
+
+# platform-specific modules
+append_platform_drv_boot_modules
+lappend boot_modules [nic_drv_binary]
+
+build_boot_image $boot_modules
+
+append qemu_args " -nographic -net nic,model=e1000 -net user -net dump,file=[run_dir]/dump.pcap"
+
+run_genode_until "child \"application\" exited with exit value 0.*\n" 120
+
+if {[have_include "power_on/qemu"]} {
+	puts "\ntraffic dump at [run_dir]/dump.pcap"
+}
