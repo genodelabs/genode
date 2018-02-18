@@ -1,0 +1,89 @@
+source ${genode_dir}/repos/base/run/platform_drv.inc
+
+if {[have_spec linux]} {
+	puts "The [run_name] scenario requires QEMU networking."
+	exit 1
+}
+
+set build_components {
+	core init
+	drivers/timer
+	lib/vfs/lxip
+	test/libc_getaddrinfo
+}
+
+append_platform_drv_build_components
+
+build $build_components
+
+create_boot_directory
+
+append config {
+<config>
+	<parent-provides>
+		<service name="CPU"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="IRQ"/>
+		<service name="LOG"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="ROM"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<default caps="128"/>}
+
+append_platform_drv_config
+
+append config {
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>
+	<start name="nic_drv">
+		<binary name="} [nic_drv_binary] {"/>
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="Nic"/> </provides>
+	</start>
+
+	<start name="test-libc_getaddrinfo" caps="256">
+		<resource name="RAM" quantum="32M"/>
+		<config>
+			<vfs>
+				<dir name="etc">
+					<inline name="resolv.conf">nameserver 10.0.2.3</inline>
+				</dir>
+				<dir name="dev"> <log/> </dir>
+				<dir name="socket"> <lxip dhcp="yes"/> </dir>
+			</vfs>
+			<libc stdout="/dev/log" socket="/socket"/>
+			<arg value="test-libc_getenv"/>
+			<arg value="genode.org"/>
+			<arg value="hypervisor.org"/>
+			<arg value="example.com"/>
+		</config>
+	</start>
+</config>
+}
+
+install_config $config
+
+set boot_modules {
+	core init ld.lib.so 
+	libc.lib.so libm.lib.so posix.lib.so
+	lxip.lib.so vfs_lxip.lib.so
+	test-libc_getaddrinfo
+	timer
+}
+
+# platform-specific modules
+append_platform_drv_boot_modules
+lappend boot_modules [nic_drv_binary]
+
+build_boot_image $boot_modules
+
+append qemu_args " -nographic -net nic,model=e1000 -net user -net dump,file=[run_dir]/dump.pcap"
+
+run_genode_until "child .* exited with exit value 0.*\n" 20
