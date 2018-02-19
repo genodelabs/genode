@@ -4,6 +4,7 @@ import_from_depot genodelabs/src/[base_src] \
                   genodelabs/src/report_rom \
                   genodelabs/src/fs_rom \
                   genodelabs/src/vfs \
+                  genodelabs/src/vfs_lxip \
                   genodelabs/src/fetchurl \
                   genodelabs/src/libc \
                   genodelabs/src/libssh \
@@ -91,7 +92,7 @@ append config {
 
 	<start name="depot_download" caps="2000">
 		<binary name="init"/>
-		<resource name="RAM" quantum="32M"/>
+		<resource name="RAM" quantum="64M"/>
 		<route>
 			<service name="ROM" label="config">
 				<parent label="depot_download.config"/> </service>

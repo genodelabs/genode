@@ -27,6 +27,7 @@ void Depot_download_manager::gen_fetchurl_start_content(Xml_generator &xml,
 			xml.attribute("stdout", "/dev/log");
 			xml.attribute("stderr", "/dev/log");
 			xml.attribute("rtc",    "/dev/rtc");
+			xml.attribute("socket", "/socket");
 		});
 		xml.node("vfs", [&] () {
 			xml.node("dir", [&] () {
@@ -44,6 +45,8 @@ void Depot_download_manager::gen_fetchurl_start_content(Xml_generator &xml,
 					xml.append(date.string());
 				});
 			});
+			xml.node("fs", [&] () {
+				xml.attribute("label", "tcpip"); });
 		});
 
 		import.for_each_download([&] (Archive::Path const &path) {
@@ -74,11 +77,16 @@ void Depot_download_manager::gen_fetchurl_start_content(Xml_generator &xml,
 			xml.node("parent", [&] () {
 				xml.attribute("label", "public_rw"); });
 		});
+		xml.node("service", [&] () {
+			xml.attribute("name", File_system::Session::service_name());
+			xml.attribute("label", "tcpip");
+			xml.node("parent", [&] () {
+				xml.attribute("label", "tcpip"); });
+		});
 		gen_parent_unscoped_rom_route(xml, "fetchurl");
 		gen_parent_unscoped_rom_route(xml, "ld.lib.so");
 		gen_parent_rom_route(xml, "libc.lib.so");
 		gen_parent_rom_route(xml, "libm.lib.so");
-		gen_parent_rom_route(xml, "lwip.lib.so");
 		gen_parent_rom_route(xml, "curl.lib.so");
 		gen_parent_rom_route(xml, "libssh.lib.so");
 		gen_parent_rom_route(xml, "libssl.lib.so");
