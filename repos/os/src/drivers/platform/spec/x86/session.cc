@@ -68,11 +68,11 @@ void Platform::Pci_buses::scan_bus(Config_access &config_access,
 					PCI_CMD_MASK   = 0x7 /* IOPORT, MEM, DMA */
 				};
 
-				unsigned short cmd = config.read(&config_access, PCI_CMD_REG,
+				unsigned short cmd = config.read(config_access, PCI_CMD_REG,
 			                                     Platform::Device::ACCESS_16BIT);
 
 				if ((cmd & PCI_CMD_MASK) != PCI_CMD_MASK) {
-					config.write(&config_access, PCI_CMD_REG,
+					config.write(config_access, PCI_CMD_REG,
 					             cmd | PCI_CMD_MASK,
 					             Platform::Device::ACCESS_16BIT);
 				}

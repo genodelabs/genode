@@ -851,13 +851,13 @@ class Platform::Root : public Genode::Root_component<Session_component>
 		Genode::Env                    &_env;
 		Genode::Attached_rom_dataspace &_config;
 
-		Genode::Constructible<Genode::Attached_io_mem_dataspace> _pci_confspace;
+		Genode::Constructible<Genode::Attached_io_mem_dataspace> _pci_confspace { };
 
 		Genode::Reporter _pci_reporter { _env, "pci" };
 
 		Genode::Heap _heap { _env.ram(), _env.rm() };
 
-		Genode::Constructible<Platform::Pci_buses> _buses;
+		Genode::Constructible<Platform::Pci_buses> _buses { };
 
 		void _parse_report_rom(Genode::Env &env, const char * acpi_rom,
 		                       bool acpi_platform)
@@ -903,7 +903,7 @@ class Platform::Root : public Genode::Root_component<Session_component>
 					error("ECAM/MMCONF range is way to small - apply hack!");
 				}
 
-				_pci_confspace.construct(_env, base, memory_size);
+				_pci_confspace.construct(env, base, memory_size);
 			});
 
 			if (!_pci_confspace.constructed())
