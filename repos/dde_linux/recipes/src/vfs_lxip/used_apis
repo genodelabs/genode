@@ -1,0 +1,7 @@
+base
+os
+so
+libc
+vfs
+timer_session
+nic_session

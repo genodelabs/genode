@@ -7,7 +7,9 @@ LX_EMUL_H        := $(REP_DIR)/src/lib/lxip/include/lx_emul.h
 # Determine the header files included by the contrib code. For each
 # of these header files we create a symlink to 'lx_emul.h'.
 #
-GEN_INCLUDES := $(shell grep -rIh "^\#include" $(LXIP_CONTRIB_DIR) |\
+SCAN_DIRS := $(addprefix $(LXIP_CONTRIB_DIR)/include/, asm-generic linux net uapi) \
+             $(addprefix $(LXIP_CONTRIB_DIR)/, drivers lib net)
+GEN_INCLUDES := $(shell grep -rIh "^\#include .*\/" $(SCAN_DIRS) |\
                         sed "s/^\#include [^<\"]*[<\"]\([^>\"]*\)[>\"].*/\1/" |\
                         sort | uniq)
 #
