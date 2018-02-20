@@ -260,7 +260,7 @@ append_if $use_wifi_driver config {
 	<start name="wifi_drv" caps="250">
 		<resource name="RAM" quantum="32M"/>
 		<provides> <service name="Nic"/> </provides>
-		<config>
+		<config use_11n="no">
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
 			<vfs>
 				<dir name="dev">
