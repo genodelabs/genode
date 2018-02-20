@@ -117,6 +117,7 @@ linux-x.x.x/net/ethernet/eth.c
 linux-x.x.x/net/ipv4/af_inet.c
 linux-x.x.x/net/ipv4/arp.c
 linux-x.x.x/net/ipv4/devinet.c
+linux-x.x.x/net/ipv4/datagram.c
 linux-x.x.x/net/ipv4/fib_frontend.c
 linux-x.x.x/net/ipv4/fib_lookup.h
 linux-x.x.x/net/ipv4/fib_semantics.c
