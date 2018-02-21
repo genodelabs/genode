@@ -186,6 +186,7 @@ PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/lxip*.pat
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/intel*.patch)))
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/usb*.patch)))
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/intel*.patch)))
+PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/fec_*.patch)))
 
 #IP stack
 LXIP_OPT = -p1 -d$(SRC_DIR_LXIP)
