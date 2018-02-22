@@ -1,5 +1,5 @@
 /*
- * \brief  Gpio driver for the i.MX53
+ * \brief  Gpio driver for Freescale
  * \author Ivan Loskutov <ivan.loskutov@ksyslabs.org>
  * \author Nikolay Golikov <nik@ksyslabs.org>
  * \author Stefan Kalkowski <stefan.kalkowski@genode-labs.com>
@@ -14,21 +14,21 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _DRIVERS__GPIO__SPEC__IMX53__DRIVER_H_
-#define _DRIVERS__GPIO__SPEC__IMX53__DRIVER_H_
+#ifndef _DRIVERS__GPIO__SPEC__IMX__DRIVER_H_
+#define _DRIVERS__GPIO__SPEC__IMX__DRIVER_H_
 
 /* Genode includes */
-#include <drivers/defs/imx53.h>
 #include <gpio/driver.h>
 #include <irq_session/connection.h>
 #include <timer_session/connection.h>
 #include <os/server.h>
 
 /* local includes */
-#include "gpio.h"
+#include <board.h>
+#include <gpio.h>
 
 
-class Imx53_driver : public Gpio::Driver
+class Imx_driver : public Gpio::Driver
 {
 	private:
 
@@ -152,22 +152,22 @@ class Imx53_driver : public Gpio::Driver
 
 		int _gpio_index(int gpio)       { return gpio & 0x1f; }
 
-		Imx53_driver(Genode::Env &env)
+		Imx_driver(Genode::Env &env)
 		:
-			_gpio_bank_0(env, Imx53::GPIO1_MMIO_BASE, Imx53::GPIO1_MMIO_SIZE,
-			             Imx53::GPIO1_IRQL, Imx53::GPIO1_IRQH),
-			_gpio_bank_1(env, Imx53::GPIO2_MMIO_BASE, Imx53::GPIO2_MMIO_SIZE,
-			             Imx53::GPIO2_IRQL, Imx53::GPIO2_IRQH),
-			_gpio_bank_2(env, Imx53::GPIO3_MMIO_BASE, Imx53::GPIO3_MMIO_SIZE,
-			             Imx53::GPIO3_IRQL, Imx53::GPIO3_IRQH),
-			_gpio_bank_3(env, Imx53::GPIO4_MMIO_BASE, Imx53::GPIO4_MMIO_SIZE,
-			             Imx53::GPIO4_IRQL, Imx53::GPIO4_IRQH),
-			_gpio_bank_4(env, Imx53::GPIO5_MMIO_BASE, Imx53::GPIO5_MMIO_SIZE,
-			             Imx53::GPIO5_IRQL, Imx53::GPIO5_IRQH),
-			_gpio_bank_5(env, Imx53::GPIO6_MMIO_BASE, Imx53::GPIO6_MMIO_SIZE,
-			             Imx53::GPIO6_IRQL, Imx53::GPIO6_IRQH),
-			_gpio_bank_6(env, Imx53::GPIO7_MMIO_BASE, Imx53::GPIO7_MMIO_SIZE,
-			             Imx53::GPIO7_IRQL, Imx53::GPIO7_IRQH)
+			_gpio_bank_0(env, Board::GPIO1_MMIO_BASE, Board::GPIO1_MMIO_SIZE,
+			             Board::GPIO1_IRQL, Board::GPIO1_IRQH),
+			_gpio_bank_1(env, Board::GPIO2_MMIO_BASE, Board::GPIO2_MMIO_SIZE,
+			             Board::GPIO2_IRQL, Board::GPIO2_IRQH),
+			_gpio_bank_2(env, Board::GPIO3_MMIO_BASE, Board::GPIO3_MMIO_SIZE,
+			             Board::GPIO3_IRQL, Board::GPIO3_IRQH),
+			_gpio_bank_3(env, Board::GPIO4_MMIO_BASE, Board::GPIO4_MMIO_SIZE,
+			             Board::GPIO4_IRQL, Board::GPIO4_IRQH),
+			_gpio_bank_4(env, Board::GPIO5_MMIO_BASE, Board::GPIO5_MMIO_SIZE,
+			             Board::GPIO5_IRQL, Board::GPIO5_IRQH),
+			_gpio_bank_5(env, Board::GPIO6_MMIO_BASE, Board::GPIO6_MMIO_SIZE,
+			             Board::GPIO6_IRQL, Board::GPIO6_IRQH),
+			_gpio_bank_6(env, Board::GPIO7_MMIO_BASE, Board::GPIO7_MMIO_SIZE,
+			             Board::GPIO7_IRQL, Board::GPIO7_IRQH)
 		{
 			for (unsigned i = 0; i < MAX_BANKS; ++i) {
 				Gpio_reg *regs = _gpio_bank(i << PIN_SHIFT)->regs();
@@ -182,7 +182,7 @@ class Imx53_driver : public Gpio::Driver
 
 	public:
 
-		static Imx53_driver &factory(Genode::Env &env);
+		static Imx_driver &factory(Genode::Env &env);
 
 		/******************************
 		 **  Gpio::Driver interface  **

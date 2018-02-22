@@ -1,4 +1,4 @@
-SPECS += cortex_a9
+SPECS += cortex_a9 gpio
 
 REP_INC_DIR += include/spec/imx6
 

@@ -1,5 +1,5 @@
 /*
- * \brief  Gpio driver for the i.MX53
+ * \brief  Gpio driver for Freescale
  * \author Nikolay Golikov <nik@ksyslabs.org>
  * \author Stefan Kalkowski <stefan.kalkowski@genode-labs.com>
  * \date   2012-12-06
@@ -13,8 +13,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _DRIVERS__GPIO__SPEC__IMX53__GPIO_H_
-#define _DRIVERS__GPIO__SPEC__IMX53__GPIO_H_
+#ifndef _DRIVERS__GPIO__SPEC__IMX__GPIO_H_
+#define _DRIVERS__GPIO__SPEC__IMX__GPIO_H_
 
 /* Genode includes */
 #include <base/attached_io_mem_dataspace.h>
@@ -46,4 +46,4 @@ struct Gpio_reg : Genode::Attached_io_mem_dataspace, Genode::Mmio
 	struct Edge_sel : Register_array<0x1c, 32, 32, 1> {};
 };
 
-#endif /* _DRIVERS__GPIO__SPEC__IMX53__GPIO_H_ */
+#endif /* _DRIVERS__GPIO__SPEC__IMX__GPIO_H_ */

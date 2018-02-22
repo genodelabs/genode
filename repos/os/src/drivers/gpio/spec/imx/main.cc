@@ -1,5 +1,5 @@
 /*
- * \brief  Gpio driver for the i.MX53
+ * \brief  Gpio driver for Freescale
  * \author Ivan Loskutov <ivan.loskutov@ksyslabs.org>
  * \author Nikolay Golikov <nik@ksyslabs.org>
  * \author Stefan Kalkowski <stefan.kalkowski@genode-labs.com>
@@ -26,9 +26,9 @@
 #include <driver.h>
 
 
-Imx53_driver &Imx53_driver::factory(Genode::Env &env)
+Imx_driver &Imx_driver::factory(Genode::Env &env)
 {
-	static Imx53_driver driver(env);
+	static Imx_driver driver(env);
 	return driver;
 }
 
@@ -37,7 +37,7 @@ struct Main
 {
 	Genode::Env          &env;
 	Genode::Sliced_heap   sliced_heap;
-	Imx53_driver         &driver;
+	Imx_driver           &driver;
 	Gpio::Root            root;
 
 	Genode::Attached_rom_dataspace config_rom { env, "config" };
@@ -46,12 +46,12 @@ struct Main
 	:
 		env(env),
 		sliced_heap(env.ram(), env.rm()),
-		driver(Imx53_driver::factory(env)),
+		driver(Imx_driver::factory(env)),
 		root(&env.ep().rpc_ep(), &sliced_heap, driver)
 	{
 		using namespace Genode;
 
-		log("--- i.MX53 gpio driver ---");
+		log("--- Freescale gpio driver ---");
 
 		Gpio::process_config(config_rom.xml(), driver);
 
