@@ -5,3 +5,5 @@ DOWNLOADS := gnupg.archive
 URL(gnupg) := https://www.gnupg.org/ftp/gcrypt/gnupg/gnupg-$(VERSION).tar.bz2
 SHA(gnupg) := 732266e8888c6f41c084d043c7a0058332ff3580
 DIR(gnupg) := src/app/gnupg
+
+PATCHES := src/app/verify/patches/verify.patch

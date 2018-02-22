@@ -121,18 +121,19 @@ enum Gnupg_verify_result gnupg_verify_detached_signature(char const *pubkey_path
 	 */
 	int const orig_errors_seen = g10_errors_seen;
 
+
 	/*
 	 * Call into GnuPG to verify the data with a detached signature. The
 	 * 'verify_signatures' function indirectly calls 'get_pubkey' and
 	 * 'get_pubkeyblock', which hand out our '_pubkey_packet'.
 	 */
 	char *file_names[2] = { strdup(sig_path), strdup(data_path) };
-	verify_signatures(ctrl, 2, file_names);
+	int const err = verify_signatures(ctrl, 2, file_names);
 	for (unsigned i = 0; i < 2; i++)
 		free(file_names[i]);
 
-	return (orig_errors_seen == g10_errors_seen) ? GNUPG_VERIFY_OK
-	                                             : GNUPG_VERIFY_SIGNATURE_INVALID;
+	return !err && (orig_errors_seen == g10_errors_seen) ? GNUPG_VERIFY_OK
+	                                                     : GNUPG_VERIFY_SIGNATURE_INVALID;
 }
 
 

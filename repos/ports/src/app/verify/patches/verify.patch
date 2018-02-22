@@ -1,0 +1,11 @@
+--- src/app/gnupg/g10/verify.c.orig
++++ src/app/gnupg/g10/verify.c
+@@ -116,7 +116,7 @@
+ 	log_error(_("the signature could not be verified.\n"
+ 		   "Please remember that the signature file (.sig or .asc)\n"
+ 		   "should be the first file given on the command line.\n") );
+-	rc = 0;
++	rc = 1;
+     }
+ 
+  leave:
