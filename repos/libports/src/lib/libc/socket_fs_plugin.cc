@@ -527,8 +527,13 @@ extern "C" int socket_fs_bind(int libc_fd, sockaddr const *addr, socklen_t addrl
 		return Errno(EAFNOSUPPORT);
 	}
 
-	Sockaddr_string addr_string(host_string(*(sockaddr_in *)addr),
-	                            port_string(*(sockaddr_in *)addr));
+	Sockaddr_string addr_string;
+
+	try {
+		addr_string = Sockaddr_string(host_string(*(sockaddr_in *)addr),
+		                              port_string(*(sockaddr_in *)addr));
+	}
+	catch (Address_conversion_failed) { return Errno(EINVAL); }
 
 	try {
 		int const len = strlen(addr_string.base());
@@ -562,8 +567,12 @@ extern "C" int socket_fs_connect(int libc_fd, sockaddr const *addr, socklen_t ad
 	/* TODO ECONNREFUSED */
 	/* TODO maybe EALREADY, EINPROGRESS, ETIMEDOUT */
 
-	Sockaddr_string addr_string(host_string(*(sockaddr_in const *)addr),
-	                            port_string(*(sockaddr_in const *)addr));
+	Sockaddr_string addr_string;
+	try {
+		addr_string = Sockaddr_string(host_string(*(sockaddr_in const *)addr),
+		                              port_string(*(sockaddr_in const *)addr));
+	}
+	catch (Address_conversion_failed) { return Errno(EINVAL); }
 
 	int const len = strlen(addr_string.base());
 	int const n   = write(context->connect_fd(), addr_string.base(), len);
@@ -658,12 +667,15 @@ static ssize_t do_sendto(Libc::File_descriptor *fd,
 
 	try {
 		if (dest_addr) {
-			Sockaddr_string addr_string(host_string(*(sockaddr_in const *)dest_addr),
-			                            port_string(*(sockaddr_in const *)dest_addr));
+			try {
+				Sockaddr_string addr_string(host_string(*(sockaddr_in const *)dest_addr),
+				                            port_string(*(sockaddr_in const *)dest_addr));
 
-			int const len = strlen(addr_string.base());
-			int const n   = write(context->remote_fd(), addr_string.base(), len);
-			if (n != len) return Errno(EIO);
+				int const len = strlen(addr_string.base());
+				int const n   = write(context->remote_fd(), addr_string.base(), len);
+				if (n != len) return Errno(EIO);
+			}
+			catch (Address_conversion_failed) { return Errno(EINVAL); }
 		}
 
 		lseek(context->data_fd(), 0, 0);
