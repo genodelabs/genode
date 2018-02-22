@@ -7,8 +7,8 @@ proc depot_user {} { return [get_cmd_arg --depot-user genodelabs] }
 
 create_boot_directory
 
-import_from_depot genodelabs/src/[base_src] \
-                  genodelabs/pkg/sculpt
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/pkg/sculpt
 
 proc config_system_content {} { return {\
 <!-- set 'state' value to "reset" to reboot the machine -->
