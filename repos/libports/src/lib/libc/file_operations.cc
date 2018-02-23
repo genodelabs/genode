@@ -619,6 +619,16 @@ extern "C" int rename(const char *oldpath, const char *newpath)
 
 extern "C" int rmdir(const char *path)
 {
+	struct stat stat_buf;
+
+	if (stat(path, &stat_buf) == -1)
+		return -1;
+	
+	if (!S_ISDIR(stat_buf.st_mode)) {
+		errno = ENOTDIR;
+		return -1;
+	}
+
 	try {
 		Absolute_path resolved_path;
 		resolve_symlinks_except_last_element(path, resolved_path);
