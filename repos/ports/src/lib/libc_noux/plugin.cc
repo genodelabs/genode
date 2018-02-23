@@ -1101,6 +1101,7 @@ namespace {
 			switch (sysio()->error.execve) {
 			case Noux::Sysio::EXECVE_NONEXISTENT: errno = ENOENT; break;
 			case Noux::Sysio::EXECVE_NOMEM:       errno = ENOMEM; break;
+			case Noux::Sysio::EXECVE_NOEXEC:      errno = ENOEXEC; break;
 			}
 			return -1;
 		}
