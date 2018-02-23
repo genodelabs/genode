@@ -296,6 +296,18 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 					break;
 				}
 
+				{
+					Attached_dataspace attached_binary_ds(_env.rm(), binary_ds->ds);
+					char const *binary_addr = attached_binary_ds.local_addr<char const>();
+					if ((binary_addr[0] != 0x7f) ||
+					    (binary_addr[1] != 'E') ||
+					    (binary_addr[2] != 'L') ||
+					    (binary_addr[3] != 'F')) {
+						_sysio.error.execve = Sysio::EXECVE_NOEXEC;
+						break;
+					}
+				}
+
 				binary_ds.destruct();
 
 				try {
