@@ -298,7 +298,12 @@ struct Depot_query::Main
 
 		if (_user_reporter.constructed()) {
 			_user_reporter->generate([&] (Xml_generator &xml) {
+
+				/* query one user only */
+				bool first = true;
 				query.for_each_sub_node("user", [&] (Xml_node node) {
+					if (!first) return;
+					first = false;
 					_query_user(node.attribute_value("name", Archive::User()), xml); });
 			});
 		}
@@ -542,23 +547,27 @@ void Depot_query::Main::_collect_binary_dependencies(Archive::Path const &path,
 
 void Depot_query::Main::_query_user(Archive::User const &user, Xml_generator &xml)
 {
-	Directory user_dir(_root, Directory::Path("depot/", user));
-
 	xml.attribute("name", user);
 
-	File_content download(_heap, user_dir, "download", File_content::Limit{4*1024});
-	typedef String<256> Url;
-	download.for_each_line<Url>([&] (Url const &url) {
-		xml.node("url", [&] () { xml.append_sanitized(url.string()); }); });
+	try {
+		Directory user_dir(_root, Directory::Path("depot/", user));
 
-	File_content pubkey(_heap, user_dir, "pubkey", File_content::Limit{8*1024});
-	xml.node("pubkey", [&] () {
-		typedef String<80> Line;
-		pubkey.for_each_line<Line>([&] (Line const &line) {
-			xml.append_sanitized(line.string());
-			xml.append("\n");
+		File_content download(_heap, user_dir, "download", File_content::Limit{4*1024});
+		typedef String<256> Url;
+		download.for_each_line<Url>([&] (Url const &url) {
+			xml.node("url", [&] () { xml.append_sanitized(url.string()); }); });
+
+		File_content pubkey(_heap, user_dir, "pubkey", File_content::Limit{8*1024});
+		xml.node("pubkey", [&] () {
+			typedef String<80> Line;
+			pubkey.for_each_line<Line>([&] (Line const &line) {
+				xml.append_sanitized(line.string());
+				xml.append("\n");
+			});
 		});
-	});
+	}
+	catch (Directory::Nonexistent_file) {
+		warning("incomplete or missing depot-user info for '", user, "'"); }
 }
 
 
