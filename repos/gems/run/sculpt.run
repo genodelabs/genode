@@ -458,6 +458,8 @@ foreach file [glob "[genode_dir]/repos/gems/run/sculpt/*.config"] {
 # files. This is just a hack to accelerate the work flow.
 #
 
+file copy -force [genode_dir]/repos/gems/recipes/pkg/sculpt/README [run_dir]/genode/
+
 file copy -force [genode_dir]/repos/gems/run/sculpt/vimrc [run_dir]/genode/
 
 file copy -force [genode_dir]/repos/gems/run/sculpt/machine.vbox [run_dir]/genode/
