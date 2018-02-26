@@ -433,6 +433,7 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 				                         Node_handle { node.id().value },
 				                         Packet_descriptor::READ_READY,
 				                         0, 0);
+				packet.succeeded(true);
 				tx_sink()->acknowledge_packet(packet);
 				node.notify_read_ready(false);
 			}
