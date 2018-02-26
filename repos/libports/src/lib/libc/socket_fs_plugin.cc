@@ -684,11 +684,11 @@ extern "C" int socket_fs_getsockopt(int libc_fd, int level, int optname,
 	case SOL_SOCKET:
 		switch (optname) {
 		case SO_REUSEADDR:
-			Genode::log("getsockopt: SO_REUSEADDR not yet implemented - return true");
+			/* not yet implemented - but return true */
 			*(int *)optval = 1;
 			return 0;
 		case SO_ERROR:
-			Genode::log("getsockopt: SO_ERROR not yet implemented - return true");
+			/* not yet implemented - but return true */
 			*(int *)optval = 0;
 			return 0;
 		case SO_TYPE:
@@ -720,7 +720,7 @@ extern "C" int socket_fs_setsockopt(int libc_fd, int level, int optname,
 	case SOL_SOCKET:
 		switch (optname) {
 		case SO_REUSEADDR:
-			Genode::log("setsockopt: SO_REUSEADDR not yet implemented - always true");
+			/* not yet implemented - always return true */
 			return 0;
 		default: return Errno(ENOPROTOOPT);
 		}
