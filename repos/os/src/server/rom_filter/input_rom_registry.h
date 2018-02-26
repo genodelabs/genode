@@ -157,6 +157,8 @@ class Rom_filter::Input_rom_registry
 					_input_rom_changed_fn(input_rom_changed_fn)
 				{
 					_rom_ds.sigh(_rom_changed_handler);
+					try { _top_level = _rom_ds.xml(); }
+					catch (...) {}
 				}
 
 				Input_rom_name name() const { return _name; }
