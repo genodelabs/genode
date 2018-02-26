@@ -645,24 +645,9 @@ close $fd
 
 
 #
-# Create and run boot image
+# Create boot image
 #
 
 append boot_modules { }
 
 build_boot_image $boot_modules
-
-# enable Qemu networking, usable via the nic_drv
-append qemu_args " -m 768 -net nic,model=e1000 -net user "
-
-# attach small SATA disk to Qemu to experiment with file-system access
-set disk_image "bin/sculpt-ahci.raw"
-if {![file exists bin/sculpt-ahci.raw]} {
-	puts stderr "creating toy disk image $disk_image for use in Qemu"
-	catch { exec dd if=/dev/zero of=$disk_image bs=1M count=512 }
-}
-append qemu_args " -device ahci,id=ahci "
-append qemu_args " -drive id=hdd,file=$disk_image,format=raw,if=none -device ide-hd,drive=hdd,bus=ahci.0 "
-
-run_genode_until forever
-
