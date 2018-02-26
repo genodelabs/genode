@@ -12,7 +12,7 @@ define HELP_MESSAGE
 
   usage:
 
-    $(firstword $(MAKEFILE_LIST)) <archive-path> {PUBLIC=<public>}
+    $(firstword $(MAKEFILE_LIST)) <archive-path> {PUBLIC_DIR=<public>}
 
   The <archive-path> denotes the archives (and implicitly their
   dependencies) to publish from the depot to the public directory.
@@ -21,7 +21,7 @@ define HELP_MESSAGE
   This tool does not touch any Genode source repository. It solely
   reads from the depot and writes to the public directory.
 
-  The optional 'PUBLIC' argument defines the location of the public
+  The optional 'PUBLIC_DIR' argument defines the location of the public
   directory. If not specified, '<genode-dir>/public/' is used.
 
 endef
