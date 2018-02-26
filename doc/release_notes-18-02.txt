@@ -1,0 +1,898 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 18.02
+              ===============================================
+
+                               Genode Labs
+
+
+
+After being developed for over a decade, Genode remained a mystery for many
+people who looked at the project from a distance as it does not seem to fit
+any established category of software. In 2018 - declared as the Year of Sculpt
+on our [https://genode.org/about/road-map - roadmap] - this will hopefully
+change. Genode 18.02 features the first revision of Sculpt, which is a
+Genode-based operating system for general-purpose computing. After being used
+as day-to-day OS by the entire team of Genode Labs for several months, we feel
+that the time is right to share the system with a broader audience (Section
+[Sculpt for Early Adopters]).
+
+One fundamental feature of Sculpt is the ability to install and deploy
+software from within the running operating system, which is universally
+expected from any modern general-purpose OS. Section
+[On-target package installation and deployment] presents Genode's unique
+take on the topic of software installation and deployment.
+
+Besides Sculpt, the current release has no shortage of other improvements.
+Genode's growing arsenal of 3rd-party software received profound updates and
+additions, including VirtualBox, Muen, seL4, several GNU packages, and
+libraries. Also the user-level networking stack - including the Linux-based
+LxIP stack and our custom NIC-router component - received a lot of attention.
+Thanks to the added network driver for i.MX-based hardware, this networking
+infrastructure becomes usable on embedded platforms based on this SoC.
+Furthermore, the current release continues the cultivation of the Nim
+programming language for Genode components.
+
+
+Sculpt for Early Adopters
+#########################
+
+The current release features the first revision of Sculpt, which is a
+Genode-based operating system for general-purpose computing. This initial
+version is called Sculpt for Early Adopters (EA). Its target audience are
+enthusiasts who are already familiar with Genode and are eager to use a
+Genode-based operating system on their machines. As outlined on the
+[https://genode.org/about/road-map - roadmap], later versions will become
+increasingly approachable.
+
+[image sculpt_overview]
+
+Please refer to the official
+[https://genode.org/documentation/articles/sculpt-ea - Sculpt documentation]
+to step right into the adventure.
+
+
+On-target package installation and deployment
+#############################################
+
+In May last year, we introduced the package-management concept for Genode to
+pursue two goals. First, to overcome the naturally limited scalability of
+composing Genode systems solely from source. This limit became evident in
+complex system scenarios that incorporate a huge amount of 3rd party software.
+Thanks to the introduced _depot_ concept and its integration in Genode's
+workflow - in particular the run tool - the work of system integration became
+much more structured (by caring about packages instead of individual build
+targets), robust (by avoiding conditions in run scripts), and quick (by the
+accelerated test cycle when using pre-built packages).
+
+The second goal is the ability to update and extend a running Genode system on
+the fly. We are happy to have reached this goal with the current release. As
+exemplified by the Sculpt scenario, packages cannot only be used as building
+blocks for system images but also as subsystems dynamically installed and
+deployed on target. Even though installation and deployment are closely
+related topics, both involve distinct challenges, which allow Genode to shine.
+
+
+Installation / update
+=====================
+
+In traditional operating systems, the installation and update of system
+software is the job of privileged programs. For example, a package manager in
+a GNU/Linux system is typically executed with root privileges. This is
+troublesome because the functionality of such a program is extremely complex.
+In particular it is exposed to the network and has to parse content
+originating from potentially untrusted parties. Therefore, potential software
+vulnerabilities should be expected. However, in modern OSes, these programs
+are just assumed to behave correctly. If this overly optimistic assumption
+doesn't hold, the entire system is at risk.
+
+Genode helps us to mitigate this problem by modelling each installation step
+as a distinct component composition where each component has a well-defined
+and extremely narrow role. The installation is an iterative sequence that
+is orchestrated by the so-called download-manager component
+(Figure [depot_download]).
+
+[image depot_download]
+
+Initially, the download manager receives a list of content to be installed
+into the local depot, which is stored on the file system. The depot may
+already be populated with (portions of) this content. In the first step, the
+download manager must determine the parts that are missing. To do that, it
+does not access the file system directly but instead hands over this task to a
+disposable helper component called _depot-query_ that is spawned within a
+dynamic init instance. This indirection has two benefits. First, the download
+manager is not bothered with the complexity of accessing the file system. It
+does not even have any notion of files. Second, the download manager is
+effectively shielded from the file system. Should the file system misbehave,
+the liveliness of the download manager remains unaffected.
+
+[image depot_download_query_deps]
+
+The depot-query component reports its findings to a report session. The report
+eventually reaches the download manager as an updated ROM module. Given the
+list of missing content, the download manager has to determine the information
+of where to obtain the content from and the public key of the content creator.
+This information is contained within the depot. So the download manager issues
+another request to the depot-query component in order to obtain it.
+
+[image depot_download_query_url]
+
+Once the depot-query component has responded, the download manager knows what
+content to get, where to get it, and how to verify it. To download the
+content, it changes the dynamic init instance as follows.
+
+[image depot_download_fetch]
+
+The depot-query component is now gone. Actually, the entire depot has moved
+out of sight. Instead, a fresh _fetchurl_ component is spawned. This component
+is connected to the network as well as the writeable download directory
+_public/_. Internally, fetchurl employs a complex software stack, which
+includes the C runtime, curl, libssl, and libssh. Hence, we expect this
+component to be vulnerable. Since it is facing the network, we assume that
+vulnerabilities are exploitable. In the worst case where the component is
+completely in the hands of an attacker, it may write wrong content into the
+_public/_ location. But compared to executing curl or wget as root on a
+traditional Unix system, the reach of an attack is quite limited. For example,
+the mere existence of the download manager remains completely out of view of
+fetchurl. However, the content of _public/_ must not be trusted. To reinforce
+trust in the downloaded content, the content is accompanied with cryptographic
+signatures created by the content creator. Before we touch the content, we
+first check its authenticity. To perform this verification step, the download
+manager reshapes the dynamic init instance as follows.
+
+[image depot_download_verify]
+
+Note that fetchurl exists no more and network connectivity is cut, effectively
+disposing any form of malware that might have infected fetchurl. Next a new
+_verify_ component enters the picture. It is configured with a list of content
+to check, the signatures of the content, and the public key of the content's
+presumed creator. Since it accesses the _public/_ location exclusively, it is
+not prone to any potential time-of-check to time-of-use problems during the
+verification. Under the hood, the _verify_ component employs a hugely complex
+implementation based on GnuPG. It would be naive to fully trust this code.
+However, when embedded in our scenario, the reach of a bug is limited because
+the verify component has no access to any mutable system state. It could
+merely give the wrong answer (which is of course bad but there is no way we
+can magically solve this).
+
+Knowing that the downloaded content is indeed the same content as intended
+by the creator, it is time for extraction. For this step, the download
+manager - again - reshapes the dynamic init instance:
+
+[image depot_download_extract]
+
+This time, both the _public/_ location as well as the trusted _depot/_ are
+visible and a new _extract_ component is spawned. As the depot may host
+content from multiple sources, which potentially distrust each other, the
+content of each content provider resides in a dedicated subdirectory within
+the depot. Instead of handing over access to the entire depot to the extract
+tool, we mediate the file-system access via a _chroot_ component that limits
+the view to the depot-provider's respective subdirectory. In the worst case
+where a misbehaving content provider delivers a forged (but correctly signed)
+archive to exploit a vulnerability of the extract component, the reach of the
+attack remains limited to the content provider's space within the depot.
+
+After the extraction step has completed, the depot is populated with the new
+content, which may - in turn - include new dependency information. At this
+point, the download manager starts a new iteration. This iterative process
+terminates as soon as the depot-query component signals that no content of
+the software installation is missing.
+
+The bottom line here is that we are able to use complex and useful software
+like curl, libarchive, liblzma, and GnuPG while largely distrusting it. In
+contrast to this software that sums up to hundreds of thousand lines of code,
+the download manager comprises less than 1000 lines of code. The software
+installation procedure described above is implemented by the 'depot_download'
+subsystem hosted in the gems repository and illustrated by an equally named
+run script. It also forms the basis of the install/update mechanism of the
+Sculpt scenario.
+
+
+Deployment
+==========
+
+Once software has entered the system in the form of depot content, the
+remaining question is how to turn this content into running subsystems. The
+answer is given by the following illustration.
+
+[image sculpt_deploy_runtime]
+
+Like for the installation process described above, the scenario employs a
+dynamic init instance that is accompanied by an orchestrating component. The
+latter is called _depot-deploy_. The depot-deploy component queries
+information from the depot using the same depot-query component that was used
+during the installation. Based on the returned _blueprint_ information for the
+to-be-deployed subsystems, it generates the configuration for the dynamic init
+instance. The subsystems hosted within this init instance access the depot
+content via mere ROM sessions as provided by the FS-ROM component. This makes
+the use of the depot transparent to the hosted subsystems.
+
+The depot-deploy component is located in the gems repository and accompanied
+by a same-named run script. More importantly, it is featured in the deploy
+runtime of the Sculpt system.
+
+
+Base framework and OS-level infrastructure
+##########################################
+
+Increased default warning level
+===============================
+
+For building Genode components written in C++, the compiler flags -Wextra,
+-Weffc++, and -Werror are now enabled in addition to -Wall by default.
+
+If this strict warning level is inapplicable for a given component or
+library, it is possible to explicitly disable the strictness in the
+respective build-description file by adding the following line:
+
+! CC_CXX_WARN_STRICT =
+
+We adjusted almost all the code of the base, base-<kernel>, os, and demo
+repositories to comply with this new warning level. For most components
+hosted in the higher-level repositories (libports, ports, dde_*, gems),
+the strictness is disabled as of now and will be enabled component-wise
+wherever feasible.
+
+While adjusting our code base, we identified the following patterns worth
+mentioning:
+
+* A class with virtual functions can no longer publicly inherit base
+  classes without a vtable. The inherited object may either be moved
+  to a member variable, or inherited privately. The latter would be
+  used for classes that inherit 'List::Element' or 'Avl_node'. In order
+  to enable the 'List' and 'Avl_tree' to access the meta data, the
+  'List' must become a friend.
+
+* Instead of adding a virtual destructor to abstract base classes,
+  we inherit the new 'Interface' class, which contains a virtual
+  destructor. This way, single-line abstract base classes can stay
+  as compact as they are. The 'Interface' utility resides in
+  _base/include/util/interface.h_.
+
+* With the new warning level, all member variables must be explicitly
+  initialized. Basic types may be initialized with '='. All other types
+  are initialized with braces '{ ... }' or as class initializers. If
+  basic types and non-basic types appear in a row, it is nice to only
+  use the brace syntax (also for basic types) and align the braces.
+
+* If a class contains pointers as members, it must now also provide a
+  copy constructor and assignment operator. In most cases, one
+  would make them private, effectively disallowing the objects to be
+  copied. Unfortunately, this warning cannot be fixed by inheriting
+  our existing 'Noncopyable' class (the compiler fails to detect that
+  the inheriting class cannot be copied and still gives the error).
+  For now, we have to manually add declarations for both the copy
+  constructor and the assignment operator as private class members.
+  Those declarations should be prepended with a comment like this:
+
+  ! /*
+  !  * Noncopyable
+  !  */
+  ! Thread(Thread const &);
+  ! Thread &operator = (Thread const &);
+
+  In the future, we plan to revisit these occurrences and try to replace
+  the pointers with references. In the presence of at least one
+  reference member, the compiler would no longer implicitly generate
+  a copy constructor. So we could remove the manual declaration.
+
+The following caveats are expected, even if you disable the strictness
+in your component:
+
+* If your component has a class called 'Interface', it may collide with
+  the new 'Genode::Interface' class. You may have to disambiguate the
+  names.
+
+* The 'Genode::Rpc_client' is no longer a 'Genode::Capability'. Hence,
+  classes inherited from 'Genode::Rpc_client' cannot refer to a
+  'Capability' but must refer to 'Genode::Capability'.
+
+* The 'Surface' class is no longer copyable, which led to API
+  changes of users of this class. E.g., the 'Nitpicker_buffer'
+  utility does no longer offer accessors for the contained surfaces
+  but a new 'apply_to_surface' method that takes a lambda function as
+  argument.
+
+
+Init
+====
+
+Init selects session routes based on the requested service and the client's
+label. The latter can be matched as 'label' (exact match), 'label_prefix', or
+'label_suffix' (either end of the label matches). With the new version, these
+options are complemented with an additional 'label_last' attribute that covers
+the prominent case where the last part of the label identifies a requested
+resource at the server. A typical example is the routing of a ROM session
+based on the name of the requested ROM module.
+
+
+Reflecting the core log to the application level
+================================================
+
+Core records now log messages in a ring buffer and exports this
+memory as ROM named 'core_log'. User applications may monitor this ring buffer
+and present or transfer the content as appropriate. The example component in
+_repos/os/src/app/log_core_ transforms the content into normal log
+messages, which may be routed to graphical terminals or stored on
+file systems, e.g. by using the fs_log server.
+
+
+NIC-router improvements
+=======================
+
+During the past three months, the NIC router has received several improvements
+that were mainly inspired by our daily experience with the component as part
+of our Sculpt based working environments.
+
+The most notable new feature is the support for multiple NIC sessions at one
+domain. If multiple NIC-session clients connect to one domain, the NIC router
+acts as a simple hub between them. I.e., for every packet that is routed to
+the domain, each connected session receives a copy of the packet. The same
+applies for domain-local packets, meaning packets that target an IP address
+inside the IP subnet of the domain they came from. This domain-local
+forwarding applies before considering any other routing rules. So, in other
+words, it is not possible to route such traffic to another domain.
+
+Furthermore, the logging features of the NIC router were improved. First, the
+router is now capable of periodically sending a report via Genode's report
+session. This can be activated by adding the new '<report>' node to the router
+configuration:
+
+! <config>
+!   <report interval_sec="5" bytes="yes" config="yes">
+!   ...
+! </config>
+
+So far, the report provides per-domain information about the amount of sent
+and received data ('bytes' attribute) and the current IPv4 configuration like
+IP address, subnet mask, and gateway address ('config' attribute).
+
+Second, there is a new verbosity option in the '<config>' node:
+
+! <config verbose_domain_state="yes">
+
+When this option is set, the NIC router will output a short message to the log
+for each general state change of a domain. Currently, this includes the
+IP-configuration state (IP address, subnet mask, gateway address) and the
+number of connected NIC sessions. This is a useful addition because the
+purpose of the regular verbose option is to give a very deep insight into
+almost every activity of the router, which is vital for debugging
+sophisticated problems but normally floods the log. Therefore, the regular
+verbose option is not viable for complex setups like a Sculpt desktop
+environment. In such a context, the new domain-state verbosity is pretty
+discreet but already gives a good hint on why, for instance, packets get
+dropped despite the routing rules being correct.
+
+Last but not least, the timeout configuration of the NIC router has been
+reworked and now allows for a much more precise adaption to the network
+environment. The former 'rtt_sec' attribute of the '<config>' node has been
+replaced by the following new attributes (default values shown):
+
+! <config dhcp_discover_timeout_sec="10"
+!         dhcp_request_timeout_sec="10"
+!         dhcp_offer_timeout_sec="10"
+!         udp_idle_timeout_sec="30"
+!         tcp_idle_timeout_sec="600"
+!         tcp_max_segm_lifetime_sec="30">
+
+Details about the new attributes can be found in the
+_os/src/server/nic_router/README_ file. The default values should be
+appropriate for the common use case so that specifying them is normally not
+necessary.
+
+
+New watch mechanism for file-system session
+===========================================
+
+The file-system session already provided a way for watching files or
+directories for changes. However, the original mechanism was arguably hard to
+use. In addition to opening the to-be-watched file-system node, the client had
+to submit a so-called content-changed request into the session's request
+queue. In turn, the server delivered the change notification by acknowledging
+this request.
+
+The new mechanism is much less bureaucratic. A file or directory can be
+watched by opening a watch handle rather than submitting a 'CONTENT_CHANGED'
+packet to the server. Whenever a change happens at a node with an open watch
+handle, a CONTENT_CHANGED packet will be sent from the server to the client.
+This serializes the registration with other handle operations and separates
+I/O handle state from notification handle state.
+
+
+C runtime
+=========
+
+We changed libc's handling of 'clock_gettime' to be explicitly configurable
+rather than relying on built-in heuristics. With the new version, the libc
+opens a timer session as a time source only if the 'rtc' attribute of the
+'<libc>' configuration node is defined. If not configured, 'clock_gettime'
+returns 0.
+
+This change may require the adjustment of components that implicitly rely on
+the libc as time source. To enable such a component to use relative time
+(based on a timer session) but no wall-clock time, one can manually provide a
+pseudo real-time clock value as follows:
+
+! <vfs>
+!   <dir name="dev">
+!     <log/> <null/> <inline name="rtc">2000-01-01 00:00</inline>
+!   </dir>
+! </vfs>
+! <libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
+
+
+GUI stack and terminal improvements
+===================================
+
+Nit-FB improvements
+-------------------
+
+The nit_fb component provides a framebuffer and input service while using the
+nitpicker GUI server as back end. The new version adds the 'initial_width' and
+'initial_height' attributes, which accommodate the use case where nit_fb is
+used in a dynamic fashion like as a client of a window system. Here, the
+initial dimensions define the initial window size but - in contrast to the
+existing 'width' and 'height' attributes - the actual size can change
+afterwards.
+
+Terminal resizing
+-----------------
+
+The terminal-session interface gained the ability to propagate resize events
+from the server to the client. The new version of the graphical terminal uses
+this mechanism to support window resizing as well as dynamically changing the
+font size. At the client side, noux has become able to reflect terminal-size
+changes to noux applications. Applications based on ncurses (e.g., vim) are
+able to gracefully respond to such changes now.
+
+
+Using chroot to enforce read-only file-system access
+====================================================
+
+By placing a chroot component in-between a file-system client and server, the
+client's view on the file system can be limited to a specific directory. With
+the current release, chroot can additionally be used to restrict a writeable
+file-system session to become read-only. This is accomplished by the new
+'writeable' attribute of chroot's policy nodes. By default, it is set to "no".
+
+
+API changes
+===========
+
+Noncopyable AVL node/tree
+-------------------------
+
+Copying an AVL node generally violates the integrity of the corresponding
+tree. To rule out subtle bugs where AVL nodes are accidentally copied, AVL
+nodes are no longer copyable.
+
+New 'Buffered_xml' utility
+--------------------------
+
+The 'Buffered_xml' utility located at _os/buffered_xml.h_ simplifies the
+implementation of dynamically reconfigurable components that need to keep a
+verbatim copy of certain parts of their configuration during configuration
+updates.
+
+New 'List_model' utility
+------------------------
+
+More and more components respond to dynamic configuration updates. For most
+components, such updates are quite simple: replace an old internal state by a
+new one. But in cases like init, menu_view, or window decorator, a
+differential update is in order. Until now, each of these components employed
+custom code for this task. As this code is not trivial, a common solution is
+preferable. This solution comes in the form of the new 'List_model' utility
+located at _base/include/util/list_model.h_. It introduces a light-weight
+formalism to feed a component-internal data model from an externally-provided
+XML structure.
+
+Dynamically expandable reporter utility
+---------------------------------------
+
+In many cases, components that generate reports don't explicitly handle the
+situation where the default buffer size of 4096 bytes is exceeded by the
+report. This problem is easy to miss because reports are often small at
+testing time but become larger when deployed in complex scenarios. In most
+cases, the best way to handle an 'Xml_generator::Buffer_exceeded' exception is
+upgrading the report session. The new 'Expanding_reporter' that accompanies
+the original 'Reporter' in _os/reporter.h_ eases the handling of this common
+case.
+
+
+Languages and runtime environments
+##################################
+
+Nim programming language
+========================
+
+A new Nim library for constructing Genode servers is now available in the
+World repository. This module provides utilities for the asynchronous
+session-creation procedure introduced in the
+[https://genode.org/documentation/release-notes/16.11#New_session-creation_procedure - 16.11]
+release. Some introductory code snippets are provided here for the
+adventurous.
+
+An example of server creation using the 'genodeservers' module:
+
+! import romclient, genodeservers
+!
+! var
+!   sessionsRom = newRomClient "session_requests"
+!     # synchronously open a ROM client to the parent
+!   romContent = sessionsRom.stream.readAll()
+!     # copy the ROM content to a heap string
+!   requestsParser = initSessionRequestsParser(romContent)
+!     # a state machine for parsing 'session_requests' XML
+!
+! for id, service, label in requestsParser.create:
+!   # the `create` iterator provider for the parser
+!   # hides the details of parsing the XML data
+!   discard txBufSize = requestsParser.argInt "tx_buf_size"
+!     # extract typed session arguments from the current parser state
+!   discard label.lastLabelElement()
+!     # label handling utilities are provided
+!   if service == "MyService":
+!     myCreateSessionProc(id, label)
+!
+
+This module streamlines the handling of session metadata, but the developer
+must still provide hand-crafted wrappers over the C++ methods for managing
+RPC objects and passing session capabilities to the parent. Most notoriously
+a global pointer symbol, `genodeEnv`, is used to expose the component
+environment object. In the future, this will be replaced by a typed object
+passed from runtime to an application entry procedure.
+
+! type MySessionCapability {.
+!   importcpp: "My_session::Session_capability",
+!   header: "my_session/capability.h".}
+!   # import a capability type
+!
+! type MyNativeSessionBase {.
+!   importcpp: "My_session::Session_rpc_object",
+!   header: "my_session/rpc_object.h".}
+!   # import C++ session RPC object
+!
+! type MyNativeSession = Constructible[MyNativeSessionBase]
+!   # apply the C++ Constructible template to defer calling
+!   # the object constructor
+!
+! proc construct(cppObj: MyNativeSession) {.
+!   importcpp: "#.construct(*genodeEnv)".}
+!   # call the C++ constructor, passing the global Genode::Env
+!
+! proc manage(cppObj: MyNativeSession): MySessionCapability {.
+!   importcpp: "genodeEnv->ep().manage(*#)".}
+!   # call a method from the gobal Env, dereferencing
+!   # thru the Constructible template
+!
+! type MyNimSessionObj = ref object
+!   cppImpl: MyNativeSession
+!   cap: MySessionCapability
+!   id: SessionId
+!   # C++ RPC objects are best kept in native
+!   # reference-counted Nim objects
+!
+! proc manage(obj: MyNimSessionObj) =
+!   obj.cppImpl.construct() # call our wrapped constructor
+!   GC_ref(obj)
+!     # manually increase the reference count on our session
+!     # object to prevent the component entrypoint from
+!     # referencing an RPC object that has been lost and
+!     # freed from the heap
+!   obj.cap = obj.cppImpl.manage() # store our capability
+!
+! proc myCreateSessionProc(id: SessionId): MyNimSessionObj =
+!   result = new MyNimSessionObj
+!     # create our object on the heap
+!   result.manage()
+!     # construct and manage our RPC object
+!   result.id = id
+!     # store the session id from our parent
+
+Procedures for calling Nim code from an RPC object, dissolving
+and destructing RPC objects, and managing the session lifetime
+are exercises left to the reader.
+
+
+Updated VirtualBox
+==================
+
+Our VirtualBox port got updated from version 5.1.22 to version 5.1.32 in order
+to leverage the security updates and improved audio support. Additionally the
+boot time of Linux guests got improved by adjusting our custom virtualization
+back end.
+
+
+Libraries and applications
+##########################
+
+New trace-logging component
+===========================
+
+The new trace-logger component can be used to easily gather, process, and
+export different types of tracing data. Furthermore, it marks the next step
+towards a user framework that makes access to Genode's manifold tracing
+abilities
+([https://genode.org/documentation/release-notes/13.08#Light-weight_event_tracing - 13.08],
+[https://genode.org/documentation/release-notes/13.11#Improved_event_tracing - 13.11],
+[https://genode.org/documentation/release-notes/15.08#Enhanced_tracing_facilities - 15.08])
+intuitive and convenient.
+
+The component can filter the available tracing subjects according to session
+label policies and thread names. The processing of the tracing data can then
+be configured for each selected subject individually, for groups of subjects,
+or for all subjects together. The resulting data is exported as log output.
+
+This is an example configuration of the trace logger, which shows the default
+value for each attribute (except policy.thread and policy.label):
+
+! <config verbose="no"
+!         session_ram="10M"
+!         session_arg_buffer="4K"
+!         session_parent_levels="0"
+!         period_sec="5"
+!         activity="no"
+!         affinity="no"
+!         default_policy="null"
+!         default_buffer="4K">
+!
+!    <policy label="init -> timer" />
+!    <policy label_suffix=" -> ram_fs" />
+!    <policy label_prefix="init -> encryption -> "
+!            thread="worker"
+!            policy="null"
+!            buffer="4K" />
+! </config>
+
+The most important features so far when it comes to processing the traced
+data are:
+
+* Trace CPU activity and affinity ('activity' and 'affinity' attribute),
+* Install individual policies for the creation of further tracing data
+  ('policy' attributes) for instance, 'rpc_name' for a log of issued RPC calls),
+* Dimensioning the subject-local trace buffers and the frequency of Trace Logger
+  data examination ('buffer' and 'period' attributes), and
+* Configure the session to the Tracing server ('session' attributes).
+
+A comprehensive documentation of the trace-logger component can be found in
+_os/src/app/trace_logger/README_. An example of how to use the component is
+given through the run script _os/run/trace_logger.run_.
+
+
+New component for extracting archives
+=====================================
+
+The new 'extract' component located at _libports/src/app/extract_ extracts
+the content of an arbitrary number of tar.xz archives according to its
+configuration. It is used by the depot-download subsystem described in
+Section [On-target package installation and deployment]. The component
+is accompanied by the run script _libports/run/extract.run_ that illustrates
+its use.
+
+
+New signature-checking tool based on GnuPG
+==========================================
+
+The on-target installation of software packages requires a way to verify
+cryptographic signatures of downloaded content within a Genode system.
+The new 'verify' component located at _ports/src/app/verify_ facilitates the
+code of GnuPG to verify detached OpenPGP signatures against public keys.
+Since GnuPG depends on libgcrypt and libgpg-error, ports of those libraries
+were added to the libports repository. The component comes with the run
+script _ports/run/verify.run_ that demonstrates its usage.
+
+
+Fetchurl component for downloading files
+========================================
+
+Fetchurl is a component for downloading files from the network, based
+on the curl library. It used to reside in the genode-world repository.
+Since it has become a mandatory part of Genode's on-target software
+installation mechanism, we have moved it to the _libports_ repository now.
+Besides this relocation, fetchurl received a welcome modernization. In
+particular, the new version uses the modern socket-fs infrastructure of
+the libc instead of relying on the deprecated libc_lwip plugin as a hard-wired
+dependency.
+
+
+New interactive FLIF image viewer
+=================================
+
+A simple image viewing application for the FLIF lossless image format was
+written from scratch using the FLIF reference decoder library. The viewer can
+be used to interactively view a directory of images and supports animation of
+GIF-like FLIF files.
+
+
+Ported 3rd-party software
+=========================
+
+With the current release, the following 3rd-party software becomes available
+on Genode:
+
+:[https://www.libarchive.org/ - libarchive]: is a library for uncompressing
+  and extracting various archive formats. It nicely wraps format-specific
+  libraries like zlib behind a unified and easy-to-use API. The port can
+  be found in the _libports_ repository.
+
+:[https://lz4.github.io/lz4/ - lz4] and [https://tukaani.org/xz/ - liblzma]:
+  implement modern compression algorithms as supported by libarchive.
+  Thanks to Ben Larson for contributing the port of these libraries.
+
+:[https://www.tcl.tk/ - Tcl]: is used as scripting language for various
+  Genode tools. With the new 'check_abi' tool described in Section
+  [Automated ABI consistency checks], the Tcl shell 'tclsh' has become
+  a dependency of the build system. Therefore, we made 'tclsh' available as
+  noux package. Note, however, that this port comprises solely the
+  functionality needed for simple scripting.
+
+:[http://flif.info/ - FLIF]: is a library for the Free Lossless Image
+  Format. Thanks to Emery Hemingway for making it available in the
+  genode-world repository.
+
+:[https://github.com/json-c/json-c/wiki - JSON-C]:
+  is a library for processing JSON-formatted data. Thanks to
+  Johannes Kliemann for contributing the port to the genode-world
+  repository.
+
+:[https://www.nlnetlabs.nl/projects/ldns/ - Drill (ldns)]:
+  provides a utility for DNS testing. Thanks to Emery Hemingway for adding it
+  to the genode-world repository as a side activity of improving Genode's
+  network stack.
+
+
+Updated packages for the Noux runtime environment
+=================================================
+
+The current release updates the following noux packages: less (version 487),
+grep (version 3.1), coreutils (version 8.29), tar (version 1.30), findutils
+(version 4.6), which (version 2.21), sed (version 4.4), and bash (version
+4.4.18). Thanks to Hinnerk van Bruinehsen for this welcome contribution.
+
+
+Device drivers
+##############
+
+Ethernet-driver for i.MX-based Wandboard
+========================================
+
+The current release contains a port of the Linux kernel driver for the
+Ethernet card family originally produced by Freescale. We followed our
+established approach to tailor an independent device-driver environment (DDE)
+for the specific driver. To profit from synergies with the existing drivers of
+the _dde_linux_ repository, we took the Linux kernel 4.4.3 as reference.
+
+For now the current version is limited to support the Wandboard Quad as this
+is the i.MX-based board that is nightly tested by our infrastructure. The
+support of other boards using the same IP core is planned for future releases.
+
+The driver can be found in _dde_linux/src/drivers/nic/fec_. To test the driver,
+no further configuration is needed and you can have a look at one of the
+automatic network tests, like _lwip.run_, as a reference.
+
+
+Platforms
+#########
+
+Execution on bare hardware (base-hw)
+====================================
+
+Thanks to Johannes Schlatow from the TU Braunschweig, the support of the
+Zynq-7000 boards by our base-hw kernel got extended. It is now possible to use
+all CPU cores instead of only the primary one.
+
+
+Updated Muen separation kernel
+==============================
+
+The Muen SK port has been updated to the latest development version 0.9. The
+most notable features and improvements are the Crash Audit facility and support
+for MirageOS/Solo5 subjects which may be executed alongside Genode/base-hw.
+
+Thanks to this feature, the Muen project has reached a milestone by
+self-hosting the [https://muen.sk] website on a Muen system. Currently, the
+network driver is provided by a Linux subject but with some work it should be
+possible to replace it with a Genode/base-hw nic_drv in the future.
+
+Further details regarding Muen v0.9 can be found in the project's release
+notes [https://groups.google.com/forum/#!topic/muen-dev/FPL9sc4yaBE].
+
+
+Updated seL4 kernel
+===================
+
+Our remaining patches regarding UEFI framebuffer support got integrated into
+the upstream codebase of the seL4 kernel. Hence, we updated our seL4 port to
+the upstream version containing our patches.
+
+
+Build system and tools
+######################
+
+Package management
+==================
+
+The package-management tools introduced last year have become a vital part
+of Genode's workflow.
+
+:Package management documentation:
+  [https://genode.org/documentation/developer-resources/package_management]
+
+Prompted by the development of the on-target installation and deployment
+mechanism featured in the current release, the tools received the following
+refinements:
+
+:Use of tar.xz as archive format: This change significantly reduces the size of
+  published depot content compared to the previously used tar.gz format.
+
+:Subdirectories for archive versions:
+  In the original version of the depot layout, archives were named as
+  '<archive-name>-<version>'. Hence, the depot - in particular the download
+  location - had directories that grew in two dimensions. First, when new
+  archives were added. Second, when new versions of existing archives were
+  added (usually corresponding to Genode's release cycle). In the mid-term,
+  this would have resulted in a huge number of directory entries, e.g., in the
+  _src/_ subdirectory. To avoid this problem, the new version uses the scheme
+  '<archive-name>/<version>' instead. This way, at the _src/_ level, each
+  archive has one subdirectory (the number of subdirectories corresponds to
+  the number of archives). Inside the subdirectory, there is one entry per
+  version.
+
+:Controlled rebuild of binary archives:
+  When calling the depot/create tool for a binary archive with 'FORCE=1', the
+  underlying source archives are re-extracted and the binary archive is
+  rebuilt. This is usually done after local changes in the source tree to
+  apply version updates to depot archives as needed. However, the implicit
+  rebuild is superfluous whenever the source-version remains the same. This is
+  particular inconvenient when re-creating pkg archives that refer to a large
+  number of src archives. Here, all binaries referenced by the pkg archive are
+  rebuilt each time. The new 'REBUILD' argument allows the user to skip
+  superfluous rebuilds in such situations. Normally, 'FORCE=1' implies
+  'REBUILD=1'. However, by explicitly specifying 'REBUILD=', existing binary
+  archives whose versions remain unchanged are kept instead of being rebuilt.
+
+
+Offline validation of XML configurations
+========================================
+
+The _tool/run_ tool now automatically checks configurations against
+target-specific XML schemes. Each component may define a configuration
+scheme-file in its _target.mk_ file as follows:
+
+! CONFIG_XSD = my_config.xsd
+
+When the run tool checks the configuration of an instance of Genode's init
+component, it additionally iterates through all start nodes of this
+configuration. For each start node, it checks whether the according component
+provides a configuration-scheme file and, if so, applies it to the
+configuration inside the start node. This is done recursively. I.e., also the
+child configurations of a sub-init of a sub-init ... of the top-level init
+are covered this way.
+
+Whenever the run tool detects an error in one of the checked configurations,
+it stops and points out the location of the error. By now, there exist
+configuration schemes for the init, the NIC router, and the trace logger
+components. Our intention is that every component that interprets its
+configuration will eventually be accompanied by such a scheme - not only to
+validate actual configuration input but also to serve as documentation for
+users of the component.
+
+
+Automated ABI consistency checks
+================================
+
+In [https://genode.org/documentation/release-notes/17.02#Genode_Application_Binary_Interface - version 17.02],
+we introduced a kernel-agnostic ABI, which ultimately paved the ground for
+Genode's package management. For the time being, the ABI is not set in stone.
+It is expected to evolve for some time until it hopefully approaches ABI
+stability in the mid term. Whenever Genode's API changes, the ABI may be
+affected. For example, symbol sizes may grow. Until now, side effects on the
+ABI had to be curated manually. In practice, however, such side effects are
+too easy to miss. Therefore, the current release adds a mandatory ABI checking
+step to the build process. A new _tool/check_abi_ tool is invoked whenever a
+shared object is built. It reports flaws in the ABI definition (such as
+duplicated symbols) as well as inconsistencies between a shared object and its
+ABI.
+
