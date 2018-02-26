@@ -118,9 +118,6 @@ class Genode::Quota_guard_untyped
 		{
 			bool const underflow = (amount > _used);
 
-			if (underflow)
-				error("attempt to replenish more quota than withdrawn");
-
 			/* clamp lower bound of used value to zero */
 			_used = underflow ? 0 : _used - amount;
 		}
