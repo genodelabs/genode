@@ -6,6 +6,7 @@
 #
 
 source [genode_dir]/tool/run/load.inc
+source [genode_dir]/tool/run/load/pxe.inc
 
 
 ##
