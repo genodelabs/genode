@@ -927,10 +927,13 @@ int Socket_fs::Plugin::close(Libc::File_descriptor *fd)
 	Socket_fs::Context *context = dynamic_cast<Socket_fs::Context *>(fd->context);
 	if (!context) return Errno(EBADF);
 
-	::unlink(context->path.base());
+	Absolute_path path = context->path;
 
 	Genode::destroy(&global_allocator, context);
 	Libc::file_descriptor_allocator()->free(fd);
+
+	/* finally release the socket path after all handles are closed */
+	::unlink(path.base());
 
 	return 0;
 }
