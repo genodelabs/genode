@@ -182,13 +182,13 @@ Package archive
 A package archive contains an 'archives' file with a list of archive names
 that belong together at runtime. Each listed archive appears on a separate line.
 For example, the 'archives' file of the package archive for the window
-manager 'wm/2017-05-31' looks as follows:
+manager 'wm/2018-02-26' looks as follows:
 
-! genodelabs/raw/wm/2017-05-31
-! genodelabs/src/wm/2017-05-31
-! genodelabs/src/report_rom/2017-05-31
-! genodelabs/src/decorator/2017-05-31
-! genodelabs/src/floating_window_layouter/2017-05-31
+! genodelabs/raw/wm/2018-02-14
+! genodelabs/src/wm/2018-02-26
+! genodelabs/src/report_rom/2018-02-26
+! genodelabs/src/decorator/2018-02-26
+! genodelabs/src/floating_window_layouter/2018-02-26
 
 In contrast to the list of 'used_apis' of a source archive, the content of
 the 'archives' file denotes the origin of the respective archives
@@ -282,7 +282,7 @@ corresponding user subdirectory must contain two files:
 If both the public key and the download locations are defined, the download
 tool can be used as follows:
 
-! ./tool/depot/download genodelabs/src/zlib/2017-05-31
+! ./tool/depot/download genodelabs/src/zlib/2018-01-10
 
 The tool automatically downloads the specified archives and their
 dependencies. For example, as the zlib depends on the libc API, the libc API
@@ -294,7 +294,7 @@ all binary archives for the 32-bit x86 architecture. Downloaded binary
 archives are always accompanied with their corresponding source and used API
 archives.
 
-! ./tool/depot/download genodelabs/pkg/x86_32/wm/2017-05-31
+! ./tool/depot/download genodelabs/pkg/x86_64/wm/2018-02-26
 
 Archive content is not downloaded directly to the depot. Instead, the
 individual archives and signature files are downloaded to a quarantine area in
@@ -321,7 +321,7 @@ CPU architecture. For example, the following command builds the 'zlib'
 library for the 64-bit x86 architecture. It executes four concurrent jobs
 during the build process.
 
-! ./tool/depot/build genodelabs/bin/x86_64/zlib/2017-05-31 -j4
+! ./tool/depot/build genodelabs/bin/x86_64/zlib/2018-01-10 -j4
 
 Note that the command expects a specific version of the source archive as
 argument. The depot may contain several versions. So the user has to decide,
@@ -358,28 +358,33 @@ be present in the key ring of your GNU privacy guard.
 To publish archives, one needs to specify the specific version to publish.
 For example:
 
-! ./tool/depot/publish <you>/pkg/wm/2017-05-31
+! ./tool/depot/publish <you>/pkg/x86_64/wm/2018-02-26
 
 The command checks that the specified archive and all dependencies are present
 in the depot. It then proceeds with the archiving and signing operations. For
 the latter, the pass phrase for your private key will be requested. The
 publish tool prints the information about the processed archives, e.g.:
 
-! publish /.../public/<you>/pkg/wm/2017-05-30.tar.xz
-! publish /.../public/<you>/src/decorator/2017-05-30.tar.xz
-! publish /.../public/<you>/src/floating_window_layouter/2017-05-30.tar.xz
-! publish /.../public/<you>/src/report_rom/2017-05-30.tar.xz
-! publish /.../public/<you>/src/wm/2017-05-30.tar.xz
-! publish /.../public/<you>/raw/wm/2017-05-30.tar.xz
-! publish /.../public/<you>/api/base/2017-05-30.tar.xz
-! publish /.../public/<you>/api/framebuffer_session/2017-05-30.tar.xz
-! publish /.../public/<you>/api/gems/2017-05-30.tar.xz
-! publish /.../public/<you>/api/input_session/2017-05-30.tar.xz
-! publish /.../public/<you>/api/nitpicker_gfx/2017-04-24.tar.xz
-! publish /.../public/<you>/api/nitpicker_session/2017-05-30.tar.xz
-! publish /.../public/<you>/api/os/2017-05-30.tar.xz
-! publish /.../public/<you>/api/report_session/2017-05-30.tar.xz
-! publish /.../public/<you>/api/scout_gfx/2017-04-24.tar.xz
+! publish /.../public/<you>/api/base/2018-02-26.tar.xz
+! publish /.../public/<you>/api/framebuffer_session/2017-05-31.tar.xz
+! publish /.../public/<you>/api/gems/2018-01-28.tar.xz
+! publish /.../public/<you>/api/input_session/2018-01-05.tar.xz
+! publish /.../public/<you>/api/nitpicker_gfx/2018-01-05.tar.xz
+! publish /.../public/<you>/api/nitpicker_session/2018-01-05.tar.xz
+! publish /.../public/<you>/api/os/2018-02-13.tar.xz
+! publish /.../public/<you>/api/report_session/2018-01-05.tar.xz
+! publish /.../public/<you>/api/scout_gfx/2018-01-05.tar.xz
+! publish /.../public/<you>/bin/x86_64/decorator/2018-02-26.tar.xz
+! publish /.../public/<you>/bin/x86_64/floating_window_layouter/2018-02-26.tar.xz
+! publish /.../public/<you>/bin/x86_64/report_rom/2018-02-26.tar.xz
+! publish /.../public/<you>/bin/x86_64/wm/2018-02-26.tar.xz
+! publish /.../public/<you>/pkg/wm/2018-02-26.tar.xz
+! publish /.../public/<you>/raw/wm/2018-02-14.tar.xz
+! publish /.../public/<you>/src/decorator/2018-02-26.tar.xz
+! publish /.../public/<you>/src/floating_window_layouter/2018-02-26.tar.xz
+! publish /.../public/<you>/src/report_rom/2018-02-26.tar.xz
+! publish /.../public/<you>/src/wm/2018-02-26.tar.xz
+
 
 According to the output, the tool populates a directory called _public/_
 at the root of the Genode source tree with the to-be-published archives.
