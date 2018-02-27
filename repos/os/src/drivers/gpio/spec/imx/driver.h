@@ -49,8 +49,10 @@ class Imx_driver : public Gpio::Driver
 
 					for(unsigned i = 0; i < MAX_PINS; i++) {
 						if ((status & (1 << i)) && _irq_enabled[i] &&
-								_sig_cap[i].valid())
+								_sig_cap[i].valid()) {
 							Genode::Signal_transmitter(_sig_cap[i]).submit();
+							_reg.write<Gpio_reg::Int_mask>(0, i);
+						}
 					}
 				}
 
@@ -113,6 +115,7 @@ class Imx_driver : public Gpio::Driver
 				void ack_irq(int pin)
 				{
 					_reg.write<Gpio_reg::Int_stat>(1, pin);
+					if (_irq_enabled[pin]) _reg.write<Gpio_reg::Int_mask>(1, pin);
 				}
 
 				void sigh(int pin, Genode::Signal_context_capability cap) {
