@@ -44,6 +44,11 @@ void Depot_download_manager::gen_fetchurl_start_content(Xml_generator &xml,
 					String<64> date("2000-01-01 00:00");
 					xml.append(date.string());
 				});
+				xml.node("inline",  [&] () {
+					xml.attribute("name", "random");
+					String<64> entropy("01234567890123456789");
+					xml.append(entropy.string());
+				});
 			});
 			xml.node("fs", [&] () {
 				xml.attribute("label", "tcpip"); });
