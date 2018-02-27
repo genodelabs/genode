@@ -1,8 +1,6 @@
-diff --git a/crypto/rand/rand_unix.c b/crypto/rand/rand_unix.c
-index e3a6557..27b26e4 100644
 --- a/crypto/rand/rand_unix.c
 +++ b/crypto/rand/rand_unix.c
-@@ -233,6 +233,24 @@ int RAND_poll(void)
+@@ -233,6 +233,26 @@
  
  	return 1;
  }
@@ -10,10 +8,12 @@ index e3a6557..27b26e4 100644
 +int RAND_poll(void)
 +{
 +	unsigned char buf[ENTROPY_NEEDED];
++	char const *rand_file = "/dev/random";
 +
-+	int fd = open("/dev/random", O_RDONLY);
++	int fd = open(rand_file, O_RDONLY);
 +	if (fd == -1) {
-+		perror("open");
++		fprintf(stderr, "libcrypto: open(%s) failed with '%s'\n",
++		        rand_file, strerror(errno));
 +		return 0;
 +	}
 +
