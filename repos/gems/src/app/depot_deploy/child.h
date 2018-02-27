@@ -125,6 +125,8 @@ class Depot_deploy::Child : public List_model<Child>::Element
 			if (pkg != _config_pkg_path())
 				_pkg_xml.destruct();
 
+			_blueprint_pkg_path = pkg;
+
 			/* import new start node */
 			_start_xml.construct(_alloc, start_node);
 
