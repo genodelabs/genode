@@ -4,6 +4,35 @@
                                ===========
 
 
+Genode OS Framework release 18.02 | 2018-02-28
+##############################################
+
+| Genode version 18.02 kicks off the Year of Sculpt by featuring the
+| first revision of the Sculpt operating system for general-purpose
+| computing. Further highlights of the new release range from
+| network-stack improvements, over a new tracing utility, to the
+| experimental use of the Nim programming language.
+
+Since we announced the Year of Sculpt on our
+[https://genode.org/about/road-map - roadmap], our team anticipated the
+release of version 18.02 with excitement. The current release officially
+presents the first revision of the Sculpt operating system, which is targeted
+at the use of Genode as day-to-day OS. In fact, the system has been in
+use internally at Genode Labs for several months. We feel confident in
+sharing it with a broader community now.
+
+Driven by the demands of Sculpt, the most prominent topics of this release
+are Genode's new mechanisms for installing, updating, and deploying software
+from within a running Genode system. Further highlights are the experimental
+use of the Nim programming language for the implementation of Genode servers,
+a new tracing utility that makes Genode's existing tracing infrastructure much
+easier to use, improvements across the entire user-level networking stack, and
+updates of many 3rd-party software packages.
+
+These and many more topics are covered in detail by the
+[https:/documentation/release-notes/18.02 - release documentation of version 18.02...]
+
+
 Road Map for 2018 | 2018-01-17
 ##############################
 
