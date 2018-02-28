@@ -104,6 +104,7 @@ SRC_CC += Runtime/common/string/RTStrNCmp.cpp
 SRC_CC += Runtime/common/string/RTStrNLen.cpp
 SRC_CC += Runtime/common/string/RTStrNLenEx.cpp
 SRC_CC += Runtime/common/string/RTStrPrintHexBytes.cpp
+SRC_CC += Runtime/common/string/RTStrStartsWith.cpp
 SRC_CC += Runtime/common/string/simplepattern.cpp
 SRC_CC += Runtime/common/string/straprintf.cpp
 SRC_CC += Runtime/common/string/strformat.cpp

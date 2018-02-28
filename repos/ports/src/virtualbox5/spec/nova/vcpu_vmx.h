@@ -90,7 +90,8 @@ class Vcpu_handler_vmx : public Vcpu_handler
 			                    VMX_VMCS_CTRL_PROC_EXEC2_VPID |
 /*			                    VMX_VMCS_CTRL_PROC_EXEC2_X2APIC | */
 			                    VMX_VMCS_CTRL_PROC_EXEC2_RDTSCP |
-			                    VMX_VMCS_CTRL_PROC_EXEC2_EPT;
+			                    VMX_VMCS_CTRL_PROC_EXEC2_EPT |
+			                    VMX_VMCS_CTRL_PROC_EXEC2_INVPCID;
 
 			void *exit_status = _start_routine(_start_routine_arg);
 			pthread_exit(exit_status);
