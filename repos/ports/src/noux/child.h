@@ -300,7 +300,6 @@ class Noux::Child : public Rpc_object<Session>,
 
 	public:
 
-		struct Binary_does_not_exist : Exception { };
 		struct Insufficient_memory : Exception { };
 
 		/**
@@ -311,10 +310,6 @@ class Noux::Child : public Rpc_object<Session>,
 		 *                or children created via execve, or
 		 *                true if the child is a fork from another child
 		 *
-		 * \throw Binary_does_not_exist  if child is not a fork and the
-		 *                               specified name could not be
-		 *                               looked up at the virtual file
-		 *                               system
 		 * \throw Insufficent_memory if the child could not be started by
 		 *                           the parent
 		 */

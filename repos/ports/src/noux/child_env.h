@@ -49,37 +49,78 @@ class Noux::Child_env
 		}
 
 		/**
+		 * Verify that the file exists and return its size
+		 */
+		Vfs::file_size _file_size(Vfs::Dir_file_system &root_dir,
+		                          char const *binary_name)
+		{
+			Vfs::Directory_service::Stat stat_out;
+			Vfs::Directory_service::Stat_result stat_result;
+			
+			stat_result = root_dir.stat(binary_name, stat_out);
+
+			switch (stat_result) {
+			case Vfs::Directory_service::STAT_OK:
+				break;
+			case Vfs::Directory_service::STAT_ERR_NO_ENTRY:
+				throw Binary_does_not_exist();
+			case Vfs::Directory_service::STAT_ERR_NO_PERM:
+				throw Binary_is_not_accessible();
+			}
+
+			return stat_out.size;
+		}
+
+		/**
+		 * Verify that the file is a valid ELF executable
+		 */
+		void _verify_elf(char const *file)
+		{
+			if ((file[0] != 0x7f) ||
+			    (file[1] != 'E') ||
+			    (file[2] != 'L') ||
+			    (file[3] != 'F'))
+			    throw Binary_is_not_executable();
+		}
+
+		/**
 		 * Handle the case that the given binary needs an interpreter
 		 */
-		void _process_binary_name_and_args(Region_map &local_rm,
-		                                   const char *binary_name,
-		                                   Dataspace_capability binary_ds,
-		                                   const char *args)
+		void _process_binary_name_and_args(char const *binary_name,
+		                                   char const *args,
+		                                   Vfs::Dir_file_system &root_dir,
+		                                   Vfs_io_waiter_registry &vfs_io_waiter_registry,
+		                                   Ram_session &ram,
+		                                   Region_map &rm,
+		                                   Allocator &alloc)
 		{
-			bool interpretable = true;
+			Vfs::file_size binary_size = _file_size(root_dir, binary_name);
 
-			const size_t binary_size = Dataspace_client(binary_ds).size();
+			if (binary_size == 0)
+				throw Binary_is_not_executable();
 
-			if (binary_size < 4)
-				interpretable = false;
+			/*
+			 * We may have to check the dataspace twice because the binary
+			 * could be a script that uses an interpreter which might not
+			 * exist.
+			 */
+			Reconstructible<Vfs_dataspace> binary_ds {
+				root_dir, vfs_io_waiter_registry,
+				binary_name, ram, rm, alloc
+			};
 
-			const char *binary_addr = 0;
-			if (interpretable)
-				try {
-					binary_addr = local_rm.attach(binary_ds);
-				} catch(...)  {
-					warning("could not attach dataspace");
-					interpretable = false;
-				}
+			if (!binary_ds->ds.valid())
+				throw Binary_is_not_executable();
 
-			if (interpretable &&
-			    ((binary_addr[0] != '#') || (binary_addr[1] != '!')))
-				interpretable = false;
+			Reconstructible<Attached_dataspace> attached_binary_ds(rm, binary_ds->ds);
 
-			if (!interpretable) {
-				local_rm.detach(binary_addr);
+			char const *binary_addr = attached_binary_ds->local_addr<char const>();
+
+			/* look for '#!' */
+			if ((binary_addr[0] != '#') || (binary_addr[1] != '!')) {
 				_binary_name = binary_name;
 				Genode::memcpy(_args, args, ARGS_SIZE);
+				_verify_elf(binary_addr);
 				return;
 			}
 
@@ -102,7 +143,7 @@ class Noux::Child_env
 
 			/* no interpreter name found */
 			if (interpreter_line_cursor == eol)
-				throw Child::Binary_does_not_exist();
+				throw Binary_does_not_exist();
 
 			int interpreter_name_start = interpreter_line_cursor;
 
@@ -142,16 +183,43 @@ class Noux::Child_env
 			Genode::memcpy(&_args[args_buf_cursor],
 			               args, ARGS_SIZE);
 
-			local_rm.detach(binary_addr);
+			/* check if interpreter exists and is executable */
+
+			binary_size = _file_size(root_dir, _binary_name);
+
+			if (binary_size == 0)
+				throw Binary_is_not_executable();
+
+			binary_ds.construct(root_dir, vfs_io_waiter_registry,
+			                    _binary_name, ram,
+			                    rm, alloc);
+
+			if (!binary_ds->ds.valid())
+				throw Binary_is_not_executable();
+
+			attached_binary_ds.construct(rm, binary_ds->ds);
+
+			_verify_elf(attached_binary_ds->local_addr<char const>());
 		}
 
 	public:
 
-		Child_env(Region_map &local_rm, const char *binary_name,
-		          Dataspace_capability binary_ds, const char *args, Sysio::Env env)
+		struct Binary_does_not_exist    : Exception { };
+		struct Binary_is_not_accessible : Exception { };
+		struct Binary_is_not_executable : Exception { };
+
+		Child_env(char const *binary_name,
+		          char const *args, Sysio::Env env,
+		          Vfs::Dir_file_system &root_dir,
+		          Vfs_io_waiter_registry &vfs_io_waiter_registry,
+		          Ram_session &ram,
+		          Region_map &rm,
+		          Allocator &alloc)
 		{
 			_process_env(env);
-			_process_binary_name_and_args(local_rm, binary_name, binary_ds, args);
+			_process_binary_name_and_args(binary_name, args, root_dir,
+			                              vfs_io_waiter_registry,
+			                              ram, rm, alloc);
 		}
 
 		char const *binary_name() const { return _binary_name; }

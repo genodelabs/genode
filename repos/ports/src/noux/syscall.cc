@@ -266,69 +266,38 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 			break;
 
 		case SYSCALL_EXECVE:
-			{
+
+			typedef Child_env<sizeof(_sysio.execve_in.args)> Execve_child_env;
+
+			try {
+
+				Execve_child_env child_env(_sysio.execve_in.filename,
+					                       _sysio.execve_in.args,
+					                       _sysio.execve_in.env,
+					                       _root_dir, _vfs_io_waiter_registry,
+					                       _env.ram(), _env.rm(), _heap);
+
+				_parent_execve.execve_child(*this,
+					                        child_env.binary_name(),
+					                        child_env.args(),
+					                        child_env.env());
+
 				/*
-				 * We have to check the dataspace twice because the binary
-				 * could be a script that uses an interpreter which maybe
-				 * does not exist.
+				 * 'return' instead of 'break' to skip possible signal delivery,
+				 * which might cause the old child process to exit itself
 				 */
-				Genode::Reconstructible<Vfs_dataspace> binary_ds {
-					_root_dir, _vfs_io_waiter_registry,
-					_sysio.execve_in.filename, _env.ram(), _env.rm(), _heap
-				};
-
-				if (!binary_ds->ds.valid()) {
-					_sysio.error.execve = Sysio::EXECVE_NONEXISTENT;
-					break;
-				}
-
-				Child_env<sizeof(_sysio.execve_in.args)>
-					child_env(_env.rm(),
-					          _sysio.execve_in.filename, binary_ds->ds,
-					          _sysio.execve_in.args, _sysio.execve_in.env);
-
-				binary_ds.construct(_root_dir, _vfs_io_waiter_registry,
-				                    child_env.binary_name(), _env.ram(),
-				                    _env.rm(), _heap);
-
-				if (!binary_ds->ds.valid()) {
-					_sysio.error.execve = Sysio::EXECVE_NONEXISTENT;
-					break;
-				}
-
-				{
-					Attached_dataspace attached_binary_ds(_env.rm(), binary_ds->ds);
-					char const *binary_addr = attached_binary_ds.local_addr<char const>();
-					if ((binary_addr[0] != 0x7f) ||
-					    (binary_addr[1] != 'E') ||
-					    (binary_addr[2] != 'L') ||
-					    (binary_addr[3] != 'F')) {
-						_sysio.error.execve = Sysio::EXECVE_NOEXEC;
-						break;
-					}
-				}
-
-				binary_ds.destruct();
-
-				try {
-					_parent_execve.execve_child(*this,
-					                            child_env.binary_name(),
-					                            child_env.args(),
-					                            child_env.env());
-
-					/*
-					 * 'return' instead of 'break' to skip possible signal delivery,
-					 * which might cause the old child process to exit itself
-					 */
-					return true;
-				}
-				catch (Child::Binary_does_not_exist) {
-					_sysio.error.execve = Sysio::EXECVE_NONEXISTENT; }
-				catch (Child::Insufficient_memory) {
-					_sysio.error.execve = Sysio::EXECVE_NOMEM; }
-
-				break;
+				return true;
 			}
+			catch (Execve_child_env::Binary_does_not_exist) {
+				_sysio.error.execve = Sysio::EXECVE_ERR_NO_ENTRY; }
+			catch (Execve_child_env::Binary_is_not_accessible) {
+				_sysio.error.execve = Sysio::EXECVE_ERR_ACCESS; }
+			catch (Execve_child_env::Binary_is_not_executable) {
+				_sysio.error.execve = Sysio::EXECVE_ERR_NO_EXEC; }
+			catch (Child::Insufficient_memory) {
+				_sysio.error.execve = Sysio::EXECVE_ERR_NO_MEMORY; }
+
+			break;
 
 		case SYSCALL_SELECT:
 			{

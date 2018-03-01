@@ -63,7 +63,11 @@ struct Noux::Vfs_dataspace
 			got_ds_from_vfs = false;
 
 			Vfs::Directory_service::Stat stat_out;
+
 			if (root_dir.stat(name.string(), stat_out) != Vfs::Directory_service::STAT_OK)
+				return;
+
+			if (stat_out.size == 0)
 				return;
 
 			Vfs::Vfs_handle *file;
