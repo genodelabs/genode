@@ -69,6 +69,18 @@ struct Noux::Vfs_io_channel : Io_channel
 
 	bool const _dir = _fh->ds().directory(_leaf_path.base());
 
+	void _sync()
+	{
+		Registered_no_delete<Vfs_io_waiter>
+			vfs_io_waiter(_vfs_io_waiter_registry);
+
+		while (!_fh->fs().queue_sync(_fh))
+			vfs_io_waiter.wait_for_io();
+
+		while (_fh->fs().complete_sync(_fh) == Vfs::File_io_service::SYNC_QUEUED)
+			vfs_io_waiter.wait_for_io();
+	}
+
 	Vfs_io_channel(char const *path, char const *leaf_path,
 	               Vfs::Dir_file_system *root_dir, Vfs::Vfs_handle *vfs_handle,
 	               Vfs_io_waiter_registry &vfs_io_waiter_registry,
@@ -83,14 +95,7 @@ struct Noux::Vfs_io_channel : Io_channel
 
 	~Vfs_io_channel()
 	{
-		Registered_no_delete<Vfs_io_waiter>
-			vfs_io_waiter(_vfs_io_waiter_registry);
-
-		while (!_fh->fs().queue_sync(_fh))
-			vfs_io_waiter.wait_for_io();
-
-		while (_fh->fs().complete_sync(_fh) == Vfs::File_io_service::SYNC_QUEUED) 
-			vfs_io_waiter.wait_for_io();
+		_sync();
 
 		_fh->ds().close(_fh);
 	}
@@ -167,19 +172,12 @@ struct Noux::Vfs_io_channel : Io_channel
 
 	bool fstat(Sysio &sysio) override
 	{
+		_sync();
+
 		/*
 		 * 'sysio.stat_in' is not used in '_fh->ds().stat()',
 		 * so no 'sysio' member translation is needed here
 		 */
-
-		Registered_no_delete<Vfs_io_waiter>
-			vfs_io_waiter(_vfs_io_waiter_registry);
-
-		while (!_fh->fs().queue_sync(_fh))
-			vfs_io_waiter.wait_for_io();
-
-		while (_fh->fs().complete_sync(_fh) == Vfs::File_io_service::SYNC_QUEUED)
-			vfs_io_waiter.wait_for_io();
 
 		Vfs::Directory_service::Stat stat;
 		sysio.error.stat =  _fh->ds().stat(_leaf_path.base(), stat);
@@ -190,6 +188,8 @@ struct Noux::Vfs_io_channel : Io_channel
 
 	bool ftruncate(Sysio &sysio) override
 	{
+		_sync();
+
 		sysio.error.ftruncate = _fh->fs().ftruncate(_fh, sysio.ftruncate_in.length);
 
 		return (sysio.error.ftruncate == Vfs::File_io_service::FTRUNCATE_OK);
