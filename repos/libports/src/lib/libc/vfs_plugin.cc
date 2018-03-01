@@ -830,6 +830,7 @@ int Libc::Vfs_plugin::ioctl(Libc::File_descriptor *fd, int request, char *argp)
 int Libc::Vfs_plugin::ftruncate(Libc::File_descriptor *fd, ::off_t length)
 {
 	Vfs::Vfs_handle *handle = vfs_handle(fd);
+	_vfs_sync(handle);
 
 	typedef Vfs::File_io_service::Ftruncate_result Result;
 
