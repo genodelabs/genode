@@ -29,6 +29,7 @@ set use_usb           0
 
 set use_framebuffer   0
 set use_fancy_stuff   0
+set use_top           0
 
 set memory_vmm_vm     "950M"
 
