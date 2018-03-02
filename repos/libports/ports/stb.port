@@ -1,0 +1,10 @@
+LICENSE   := MIT
+DOWNLOADS := stb.git
+VERSION   := 2.19
+
+URL(stb) := https://github.com/nothings/stb.git
+REV(stb) := e6afb9cbae4064da8c3e69af3ff5c4629579c1d2
+DIR(stb) := src/lib/stb
+
+DIRS := include
+DIR_CONTENT(include) := src/lib/stb/stb_*.h
