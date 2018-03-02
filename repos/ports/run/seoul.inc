@@ -45,6 +45,7 @@ lappend_if $use_fancy_stuff     build_components server/nitlog
 lappend_if $use_fancy_stuff     build_components server/report_rom
 lappend_if $use_genode_iso      build_components server/iso9660
 lappend_if $use_genode_iso      build_components server/rom_blk
+lappend_if $use_top             build_components app/top
 
 append_platform_drv_build_components
 
@@ -152,7 +153,12 @@ append config {
 		<service name="PD"/>
 		<service name="RM"/>
 		<service name="CPU"/>
-		<service name="LOG"/>
+		<service name="LOG"/>}
+
+append_if $use_top config {
+		<service name="TRACE"/>}
+
+append config {
 	</parent-provides>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
@@ -326,6 +332,12 @@ append_if $use_fancy_stuff config {
 		</route>
 	</start>}
 
+append_if $use_top config {
+	<start name="top">
+		<resource name="RAM" quantum="2M"/>
+		<config period_ms="10000"/>
+	</start>}
+
 append config {
 </config>}
 
@@ -424,6 +436,8 @@ lappend_if $use_genode_iso    boot_modules iso9660
 lappend_if $use_genode_iso    boot_modules genode.iso
 
 lappend_if $use_block_ram     boot_modules seoul-disc.raw
+
+lappend_if $use_top           boot_modules top
 
 #
 # Add OS binaries of guest
