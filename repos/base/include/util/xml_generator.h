@@ -357,6 +357,12 @@ class Genode::Xml_generator
 			attribute(name, static_cast<unsigned long long>(value));
 		}
 
+		void attribute(char const *name, double value)
+		{
+			String<64> buf(value);
+			_curr_node->insert_attribute(name, buf.string());
+		}
+
 		/**
 		 * Append content to XML node
 		 *
