@@ -4,6 +4,24 @@
                                ===========
 
 
+Sculpt for Early Adopters | 2018-03-02
+######################################
+
+| A detailed step-by-step guide for installing and using the Genode-based
+| Sculpt OS is available now.
+
+Sculpt for Early Adopters (EA) is the first revision of our Genode-based
+general-purpose OS. This version is targeted at enthusiasts who are already
+familiar with Genode. The documentation covers everything needed to get
+it running on a real machine. This includes disk preparation, input handling,
+wireless networking, storage, software installation and deployment, and
+virtualization.
+
+*Printable version (pdf)* [https:/documentation/sculpt-ea.pdf]
+
+*Online version* [https:/documentation/articles/sculpt-ea]
+
+
 Genode OS Framework release 18.02 | 2018-02-28
 ##############################################
 
