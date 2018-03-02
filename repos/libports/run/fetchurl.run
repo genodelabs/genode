@@ -34,6 +34,7 @@ append config {
 	</parent-provides>
 	<default caps="100"/>
 	<default-route>
+		<service name="Report"> <child name="report_rom"/> </service>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>}
 
@@ -49,9 +50,16 @@ append config {
 		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="Nic"/> </provides>
 	</start>
+	<start name="report_rom">
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="Report"/> </provides>
+		<config verbose="yes"/>
+	</start>
+
 	<start name="fetchurl" caps="500">
 		<resource name="RAM" quantum="32M"/>
 		<config>
+			<report progress="yes"/>
 			<vfs>
 				<dir name="etc">
 					<inline name="resolv.conf">nameserver 213.73.91.35</inline>

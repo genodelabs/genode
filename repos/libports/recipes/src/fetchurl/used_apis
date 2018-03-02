@@ -6,3 +6,4 @@ vfs
 curl
 timer_session
 nic_session
+report_session

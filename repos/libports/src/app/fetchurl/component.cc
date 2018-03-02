@@ -14,8 +14,9 @@
 /* Genode includes */
 #include <timer_session/connection.h>
 #include <os/path.h>
-#include <base/attached_rom_dataspace.h>
+#include <os/reporter.h>
 #include <libc/component.h>
+#include <base/heap.h>
 #include <base/log.h>
 
 /* cURL includes */
@@ -27,37 +28,148 @@
 #include <errno.h>
 #include <sys/stat.h>
 
+namespace Fetchurl {
+	class Fetch;
+	struct Main;
+
+	typedef Genode::String<256> Url;
+	typedef Genode::Path<256>   Path;
+}
 
 static size_t write_callback(char   *ptr,
                              size_t  size,
                              size_t  nmemb,
-                             void   *userdata)
+                             void   *userdata);
+
+static int progress_callback(void *userdata,
+                             double dltotal, double dlnow,
+                             double ultotal, double ulnow);
+
+
+class Fetchurl::Fetch : Genode::List<Fetch>::Element
 {
-	int *fd = (int*)userdata;
-	return write(*fd, ptr, size*nmemb);
-}
+	friend class Genode::List<Fetch>;
+
+	public:
+
+		Main &main;
+
+		using Genode::List<Fetch>::Element::next;
+
+		Url  const url;
+		Path const path;
+		Url  const proxy;
+
+		double dltotal = 0;
+		double dlnow = 0;
+
+		int fd = -1;
+
+		Fetch(Main &main, Url const &url, Path const &path, Url const &proxy)
+		: main(main), url(url), path(path), proxy(proxy) { }
+};
 
 
-static int fetchurl(Genode::Xml_node config_node)
+struct Fetchurl::Main
 {
-	Genode::String<256> url;
-	Genode::Path<256>   path;
-	CURLcode res = CURLE_OK;
+	Main(Main const &);
+	Main &operator = (Main const &);
 
-	Libc::with_libc([&]() { curl_global_init(CURL_GLOBAL_DEFAULT); });
+	Libc::Env &_env;
 
-	bool verbose = config_node.attribute_value("verbose", false);
+	Genode::Heap _heap { _env.pd(), _env.rm() };
 
-	config_node.for_each_sub_node("fetch", [&] (Genode::Xml_node node) {
+	Timer::Connection _timer { _env, "reporter" };
 
-		if (res != CURLE_OK) return;
+	Genode::Reporter _reporter { _env, "progress" };
+
+	Genode::List<Fetch> _fetches { };
+
+	Timer::One_shot_timeout<Main> _report_timeout {
+		_timer, *this, &Main::_report };
+
+	Genode::Duration _report_delay { Genode::Milliseconds { 0 } };
+
+	void _schedule_report()
+	{
+		using namespace Genode;
+
+		if ((_report_delay.trunc_to_plain_ms().value > 0) &&
+		    (!_report_timeout.scheduled()))
+		{
+			_report_timeout.schedule(_report_delay.trunc_to_plain_us());
+		}
+	}
+
+	void _report()
+	{
+		using namespace Genode;
+		Reporter::Xml_generator xml_gen(_reporter, [&] {
+			for (Fetch *f = _fetches.first(); f; f = f->next()) {
+				xml_gen.node("fetch", [&] {
+					xml_gen.attribute("url", f->url);
+					xml_gen.attribute("total", f->dltotal);
+					xml_gen.attribute("now", f->dlnow);
+				});
+			}
+		});
+	}
+
+	void _report(Genode::Duration) { _report(); }
+
+	void parse_config(Genode::Xml_node const &config_node)
+	{
+		using namespace Genode;
 
 		try {
-			node.attribute("url").value(&url);
-			node.attribute("path").value(path.base(), path.capacity());
-		} catch (...) { Genode::error("error reading 'fetch' node"); return; }
+			enum { DEFAULT_DELAY_MS = 100UL };
 
-		char const *out_path = path.base();
+			Xml_node const report_node = config_node.sub_node("report");
+			if (report_node.attribute_value("progress", false)) {
+				Milliseconds delay_ms { 0 };
+				delay_ms.value = report_node.attribute_value(
+					"delay_ms", (unsigned)DEFAULT_DELAY_MS);
+				if (delay_ms.value < 1)
+					delay_ms.value = DEFAULT_DELAY_MS;
+
+				_report_delay = Duration(delay_ms);
+				_schedule_report();
+				_reporter.enabled(true);
+			}
+		}
+		catch (...) { }
+
+		auto const parse_fn = [&] (Genode::Xml_node node) {
+			Url url;
+			Path path;
+			Url proxy;
+
+			try {
+				node.attribute("url").value(&url);
+				node.attribute("path").value(path.base(), path.capacity());
+			}
+			catch (...) { Genode::error("error reading 'fetch' XML node"); return; }
+
+			try { config_node.attribute("proxy").value(&proxy); }
+			catch (...) { }
+
+			auto *f = new (_heap) Fetch(*this, url, path, proxy);
+			_fetches.insert(f);
+		};
+
+		config_node.for_each_sub_node("fetch", parse_fn);
+	}
+
+	Main(Libc::Env &e) : _env(e)
+	{
+		_env.config([&] (Genode::Xml_node const &config) {
+			parse_config(config);
+		});
+	}
+
+	CURLcode _process_fetch(CURL *_curl, Fetch &_fetch)
+	{
+		char const *out_path = _fetch.path.base();
 
 		/* create compound directories leading to the path */
 		for (size_t sub_path_len = 0; ; sub_path_len++) {
@@ -86,7 +198,7 @@ static int fetchurl(Genode::Xml_node config_node)
 			/* create directory for sub path */
 			if (mkdir(sub_path.string(), 0777) < 0) {
 				Genode::error("failed to create directory ", sub_path);
-				break;
+				return CURLE_FAILED_INIT;
 			}
 		}
 
@@ -104,62 +216,107 @@ static int fetchurl(Genode::Xml_node config_node)
 			default:
 				Genode::error("creation of ", out_path, " failed (errno=", errno, ")");
 			}
-			res = CURLE_FAILED_INIT;
-			return;
+			return CURLE_FAILED_INIT;
 		}
+		_fetch.fd = fd;
+
+		curl_easy_setopt(_curl, CURLOPT_URL, _fetch.url.string());
+		curl_easy_setopt(_curl, CURLOPT_FOLLOWLOCATION, true);
+
+		curl_easy_setopt(_curl, CURLOPT_NOSIGNAL, true);
+		curl_easy_setopt(_curl, CURLOPT_FAILONERROR, 1L);
+
+		curl_easy_setopt(_curl, CURLOPT_WRITEFUNCTION, write_callback);
+		curl_easy_setopt(_curl, CURLOPT_WRITEDATA, &_fetch);
+
+		curl_easy_setopt(_curl, CURLOPT_NOPROGRESS, 0L);
+		curl_easy_setopt(_curl, CURLOPT_PROGRESSFUNCTION, progress_callback);
+		curl_easy_setopt(_curl, CURLOPT_PROGRESSDATA, &_fetch);
+
+		curl_easy_setopt(_curl, CURLOPT_SSL_VERIFYPEER, 0L);
+		curl_easy_setopt(_curl, CURLOPT_SSL_VERIFYHOST, 0L);
+
+		/* check for optional proxy configuration */
+		if (_fetch.proxy != "") {
+			curl_easy_setopt(_curl, CURLOPT_PROXY, _fetch.proxy.string());
+		}
+
+		CURLcode res = curl_easy_perform(_curl);
+		close(_fetch.fd);
+		_fetch.fd = -1;
+
+		if (res != CURLE_OK)
+			Genode::error(curl_easy_strerror(res), ", failed to fetch ", _fetch.url);
+		return res;
+	}
+
+	int run()
+	{
+		CURLcode res = CURLE_OK;
 
 		CURL *curl = curl_easy_init();
 		if (!curl) {
 			Genode::error("failed to initialize libcurl");
-			res = CURLE_FAILED_INIT;
-			return;
+			return -1;
 		}
 
-		curl_easy_setopt(curl, CURLOPT_URL, url.string());
-		curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, true);
+		if (_reporter.enabled())
+			_report();
 
-		curl_easy_setopt(curl, CURLOPT_VERBOSE, verbose);
-		curl_easy_setopt(curl, CURLOPT_NOSIGNAL, true);
-		curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
+		for (Fetch *f = _fetches.first(); f; f = f->next()) {
+			if (res != CURLE_OK) break;
+			res = _process_fetch(curl, *f);
+		}
 
-		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
-		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &fd);
+		if (_reporter.enabled())
+			_report();
 
-		curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 1L);
+		curl_easy_cleanup(curl);
 
-		curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
-		curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+		return res ^ CURLE_OK;
+	}
+};
 
-		/* check for optional proxy configuration */
-		try {
-			Genode::String<256> proxy;
-			node.attribute("proxy").value(&proxy);
-			curl_easy_setopt(curl, CURLOPT_PROXY, proxy.string());
-		} catch (...) { }
 
-		Libc::with_libc([&]() {
-			res = curl_easy_perform(curl);
-			close(fd);
-
-			if (res != CURLE_OK)
-				Genode::error(curl_easy_strerror(res));
-
-			curl_easy_cleanup(curl);
-		});
-	});
-
-	curl_global_cleanup();
-
-	Genode::warning("SSL certificates not verified");
-
-	return res ^ CURLE_OK;
+static size_t write_callback(char   *ptr,
+                             size_t  size,
+                             size_t  nmemb,
+                             void   *userdata)
+{
+	Fetchurl::Fetch &fetch = *((Fetchurl::Fetch *)userdata);
+	return write(fetch.fd, ptr, size*nmemb);
 }
+
+
+static int progress_callback(void *userdata,
+                             double dltotal, double dlnow,
+                             double ultotal, double ulnow)
+{
+	(void)ultotal;
+	(void)ulnow;
+
+	Fetchurl::Fetch &fetch = *((Fetchurl::Fetch *)userdata);
+	fetch.dltotal = dltotal;
+	fetch.dlnow = dlnow;
+	fetch.main._schedule_report();
+	return CURLE_OK;
+}
+
 
 void Libc::Component::construct(Libc::Env &env)
 {
-	env.config([&env] (Genode::Xml_node config) {
-		env.parent().exit( fetchurl(config) );
+	int res = -1;
+
+	Libc::with_libc([&]() {
+		curl_global_init(CURL_GLOBAL_DEFAULT);
+
+		static Fetchurl::Main inst(env);
+		res = inst.run();
+
+		curl_global_cleanup();
 	});
+
+	env.parent().exit(res);
 }
 
 /* dummies to prevent warnings printed by unimplemented libc functions */
