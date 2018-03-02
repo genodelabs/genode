@@ -235,9 +235,7 @@ struct Noux::Main
 	} _io_response_handler;
 
 	Vfs::Dir_file_system _root_dir { _env, _heap, _config.xml().sub_node("fstab"),
-	                                 _io_response_handler,
-	                                 _global_file_system_factory,
-	                                 Vfs::Dir_file_system::Root() };
+	                                 _io_response_handler, _global_file_system_factory };
 
 	Vfs_handle_context _vfs_handle_context;
 

@@ -713,7 +713,8 @@ class Rump_factory : public Vfs::File_system_factory
 		Vfs::File_system *create(Genode::Env       &env,
 		                         Genode::Allocator &alloc,
 		                         Genode::Xml_node   config,
-		                         Vfs::Io_response_handler &) override
+		                         Vfs::Io_response_handler &,
+		                         Vfs::File_system &) override
 		{
 			return new (alloc) Vfs::Rump_file_system(env, config);
 		}
@@ -727,10 +728,11 @@ extern "C" Vfs::File_system_factory *vfs_file_system_factory(void)
 		Vfs::File_system *create(Genode::Env &env,
 		                         Genode::Allocator &alloc,
 		                         Genode::Xml_node node,
-		                         Vfs::Io_response_handler &io_handler) override
+		                         Vfs::Io_response_handler &io_handler,
+		                         Vfs::File_system &root_dir) override
 		{
 			static Rump_factory factory(env, alloc);
-			return factory.create(env, alloc, node, io_handler);
+			return factory.create(env, alloc, node, io_handler, root_dir);
 		}
 	};
 

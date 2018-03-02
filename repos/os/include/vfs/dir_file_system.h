@@ -30,8 +30,6 @@ class Vfs::Dir_file_system : public File_system
 
 		enum { MAX_NAME_LEN = 128 };
 
-		struct Root { };
-
 	private:
 
 		/*
@@ -45,7 +43,9 @@ class Vfs::Dir_file_system : public File_system
 		 *
 		 * Additionally, the root has an empty _name.
 		 */
-		bool _vfs_root;
+		bool _vfs_root = false;
+
+		Dir_file_system &_root_dir;
 
 		struct Dir_vfs_handle : Vfs_handle
 		{
@@ -95,7 +95,7 @@ class Vfs::Dir_file_system : public File_system
 		};
 
 		/* pointer to first child file system */
-		File_system *_first_file_system;
+		File_system *_first_file_system = nullptr;
 
 		/* add new file system to the list of children */
 		void _append_file_system(File_system *fs)
@@ -326,10 +326,10 @@ class Vfs::Dir_file_system : public File_system
 		                Genode::Allocator   &alloc,
 		                Genode::Xml_node     node,
 		                Io_response_handler &io_handler,
-		                File_system_factory &fs_factory)
+		                File_system_factory &fs_factory,
+		                Dir_file_system     &root_dir)
 		:
-			_vfs_root(false),
-			_first_file_system(0)
+			_root_dir(root_dir)
 		{
 			using namespace Genode;
 
@@ -346,11 +346,14 @@ class Vfs::Dir_file_system : public File_system
 				/* traverse into <dir> nodes */
 				if (sub_node.has_type("dir")) {
 					_append_file_system(new (alloc)
-						Dir_file_system(env, alloc, sub_node, io_handler, fs_factory));
+						Dir_file_system(env, alloc, sub_node, io_handler,
+						                fs_factory, _root_dir));
 					continue;
 				}
 
-				File_system *fs = fs_factory.create(env, alloc, sub_node, io_handler);
+				File_system * const fs =
+					fs_factory.create(env, alloc, sub_node, io_handler, _root_dir);
+
 				if (fs) {
 					_append_file_system(fs);
 					continue;
@@ -369,15 +372,19 @@ class Vfs::Dir_file_system : public File_system
 			}
 		}
 
+		/**
+		 * Constructor used for creating the root directory
+		 */
 		Dir_file_system(Genode::Env         &env,
 		                Genode::Allocator   &alloc,
 		                Genode::Xml_node     node,
 		                Io_response_handler &io_handler,
-		                File_system_factory &fs_factory,
-		                Dir_file_system::Root)
+		                File_system_factory &fs_factory)
 		:
-			Dir_file_system(env, alloc, node, io_handler, fs_factory)
-			{ _vfs_root = true; }
+			Dir_file_system(env, alloc, node, io_handler, fs_factory, *this)
+		{
+			_vfs_root = true;
+		}
 
 		/*********************************
 		 ** Directory-service interface **

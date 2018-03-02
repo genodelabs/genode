@@ -105,7 +105,8 @@ class Vfs::Rom_file_system : public Single_file_system
 		Rom_file_system(Genode::Env &env,
 		                Genode::Allocator&,
 		                Genode::Xml_node config,
-		                Io_response_handler &)
+		                Io_response_handler &,
+		                File_system &)
 		:
 			Single_file_system(NODE_TYPE_FILE, name(), config),
 			_label(config),

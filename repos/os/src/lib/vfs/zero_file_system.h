@@ -22,10 +22,9 @@ namespace Vfs { class Zero_file_system; }
 
 struct Vfs::Zero_file_system : Single_file_system
 {
-	Zero_file_system(Genode::Env&,
-	                 Genode::Allocator&,
+	Zero_file_system(Genode::Env &, Genode::Allocator &,
 	                 Genode::Xml_node config,
-	                 Io_response_handler &)
+	                 Io_response_handler &, File_system &)
 	:
 		Single_file_system(NODE_TYPE_CHAR_DEVICE, name(), config)
 	{ }

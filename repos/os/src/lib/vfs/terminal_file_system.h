@@ -106,9 +106,10 @@ class Vfs::Terminal_file_system : public Single_file_system
 	public:
 
 		Terminal_file_system(Genode::Env &env,
-		                     Genode::Allocator&,
+		                     Genode::Allocator &,
 		                     Genode::Xml_node config,
-		                     Io_response_handler &io_handler)
+		                     Io_response_handler &io_handler,
+		                     File_system &)
 		:
 			Single_file_system(NODE_TYPE_CHAR_DEVICE, name(), config),
 			_label(config.attribute_value("label", Label())),

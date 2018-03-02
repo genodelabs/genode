@@ -682,7 +682,7 @@ class Vfs_server::Root : public Genode::Root_component<Session_component>
 
 		Vfs::Dir_file_system _vfs {
 			_env, _vfs_heap, vfs_config(), _io_response_handler,
-			_global_file_system_factory, Vfs::Dir_file_system::Root() };
+			_global_file_system_factory };
 
 		Genode::Signal_handler<Root> _config_handler {
 			_env.ep(), *this, &Root::_config_update };

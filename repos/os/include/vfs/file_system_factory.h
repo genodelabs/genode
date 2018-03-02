@@ -28,15 +28,17 @@ struct Vfs::File_system_factory : Interface
 	/**
 	 * Create and return a new file-system
 	 *
-	 * \param env     Env for service connections
-	 * \param alloc   internal file-system allocator
-	 * \param config  file-system configuration
+	 * \param env         Env for service connections
+	 * \param alloc       internal file-system allocator
+	 * \param config      file-system configuration
 	 * \param io_handler  callback handler
+	 * \param root_dir    VFS root directory
 	 */
-	virtual File_system *create(Genode::Env &env,
-	                            Genode::Allocator &alloc,
-	                            Xml_node config,
-	                            Io_response_handler &io_handler) = 0;
+	virtual File_system *create(Genode::Env         &env,
+	                            Genode::Allocator   &alloc,
+	                            Xml_node             config,
+	                            Io_response_handler &io_handler,
+	                            File_system         &root_dir) = 0;
 };
 
 
@@ -64,10 +66,11 @@ class Vfs::Global_file_system_factory : public Vfs::File_system_factory
 		template <typename FILE_SYSTEM>
 		void _add_builtin_fs();
 
-		Vfs::File_system *_try_create(Genode::Env       &env,
-		                              Genode::Allocator &alloc,
-		                              Genode::Xml_node   node,
-		                              Io_response_handler &io_handler);
+		Vfs::File_system *_try_create(Genode::Env         &env,
+		                              Genode::Allocator   &alloc,
+		                              Genode::Xml_node     node,
+		                              Io_response_handler &io_handler,
+		                              Vfs::File_system    &root_dir);
 
 		/**
 		 * Return name of factory provided by the shared library
@@ -112,17 +115,11 @@ class Vfs::Global_file_system_factory : public Vfs::File_system_factory
 		Global_file_system_factory(Genode::Allocator &md_alloc);
 
 		/**
-		 * Create and return a new file-system
-		 *
-		 * \param env         Env for service connections
-		 * \param alloc       internal file-system allocator
-		 * \param config      file-system configuration
-		 * \param io_handler  callback handler
+		 * File_system_factory interface
 		 */
-		Vfs::File_system *create(Genode::Env       &env,
-		                         Genode::Allocator &alloc,
-		                         Genode::Xml_node   node,
-		                         Io_response_handler &io_handler) override;
+		File_system *create(Genode::Env &, Genode::Allocator &,
+		                    Genode::Xml_node, Io_response_handler &,
+		                    File_system &) override;
 
 		/**
 		 * Register an additional factory for new file-system type

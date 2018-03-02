@@ -637,23 +637,25 @@ struct Fatfs_factory : Vfs::File_system_factory
 		Inner(Genode::Env &env, Genode::Allocator &alloc) {
 			Fatfs::block_init(env, alloc); }
 
-		Vfs::File_system *create(Genode::Env       &env,
-		                         Genode::Allocator &alloc,
-		                         Genode::Xml_node   node,
-		                         Vfs::Io_response_handler &) override
+		Vfs::File_system *create(Genode::Env              &env,
+		                         Genode::Allocator        &alloc,
+		                         Genode::Xml_node          node,
+		                         Vfs::Io_response_handler &,
+		                         Vfs::File_system         &) override
 		{ 
 			return new (alloc)
 				Fatfs::File_system(env, alloc, node);
 		}
 	};
 
-	Vfs::File_system *create(Genode::Env       &env,
-	                         Genode::Allocator &alloc,
-	                         Genode::Xml_node   node,
-	                         Vfs::Io_response_handler &io_handler) override
+	Vfs::File_system *create(Genode::Env              &env,
+	                         Genode::Allocator        &alloc,
+	                         Genode::Xml_node          node,
+	                         Vfs::Io_response_handler &io_handler,
+	                         Vfs::File_system         &root_dir) override
 	{
 		static Inner factory(env, alloc);
-		return factory.create(env, alloc, node, io_handler);
+		return factory.create(env, alloc, node, io_handler, root_dir);
 	}
 };
 

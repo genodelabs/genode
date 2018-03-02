@@ -577,7 +577,8 @@ class Vfs::Fs_file_system : public File_system
 		Fs_file_system(Genode::Env         &env,
 		               Genode::Allocator   &alloc,
 		               Genode::Xml_node     config,
-		               Io_response_handler &io_handler)
+		               Io_response_handler &io_handler,
+		               File_system         &)
 		:
 			_env(env),
 			_fs_packet_alloc(&alloc),

@@ -1718,7 +1718,8 @@ struct Lxip_factory : Vfs::File_system_factory
 	Vfs::File_system *create(Genode::Env       &env,
 	                         Genode::Allocator &alloc,
 	                         Genode::Xml_node  config,
-	                         Vfs::Io_response_handler &io_handler) override
+	                         Vfs::Io_response_handler &io_handler,
+	                         Vfs::File_system &) override
 	{
 		static Init inst(env, alloc);
 		return new (alloc) Vfs::Lxip_file_system(env, alloc, config, io_handler);

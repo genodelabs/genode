@@ -224,7 +224,7 @@ struct Genode::Root_directory : public  Vfs::Io_response_handler,
 	Root_directory(Env &env, Allocator &alloc, Xml_node config)
 	:
 		Vfs::Global_file_system_factory(alloc),
-		Vfs::Dir_file_system(env, alloc, config, *this, *this, Dir_file_system::Root()),
+		Vfs::Dir_file_system(env, alloc, config, *this, *this),
 		Directory(*this, env.ep(), alloc)
 	{ }
 
