@@ -193,7 +193,7 @@ append_if $use_block_sata config {
 
 append_if $use_block_ram config {
 	<start name="ram_blk" priority="-1">
-		<resource name="RAM" quantum="132M" />
+		<resource name="RAM" quantum="162M" />
 		<provides><service name="Block"/></provides>
 		<config file="seoul-disc.raw" block_size="512"/>
 	</start>}
