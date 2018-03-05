@@ -97,6 +97,7 @@ proc platform_drv_policy {} {
 			<policy label_prefix="wifi_drv"> <pci class="WIFI"/> </policy>
 			<policy label_prefix="usb_drv">  <pci class="USB"/> </policy>
 			<policy label_prefix="ahci_drv"> <pci class="AHCI"/> </policy>
+			<policy label_prefix="nvme_drv"> <pci class="NVME"/> </policy>
 			<policy label_prefix="audio_drv"> <pci class="AUDIO"/> <pci class="HDAUDIO"/> </policy>
 			<policy label_prefix="intel_fb_drv" irq_mode="nomsi">
 				<pci class="VGA"/>
