@@ -348,6 +348,7 @@ class Nit_fader::Nitpicker_session_component
 		View_handle create_view(View_handle parent) override
 		{
 			_view_handle = _nitpicker.create_view(parent);
+			_update_view_visibility();
 			return _view_handle;
 		}
 
