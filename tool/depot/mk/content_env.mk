@@ -60,3 +60,7 @@ mirror_from_rep_dir = mkdir -p $(dir $@); cp -r $(REP_DIR)/$@ $(dir $@)
 #
 include $(CONTENT_MK)
 
+#
+# Prevent parallel execution of content rules to prevent unexpected surprises
+#
+.NOTPARALLEL:
