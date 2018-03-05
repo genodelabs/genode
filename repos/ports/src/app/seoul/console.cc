@@ -27,6 +27,7 @@
 #include <nitpicker_gfx/text_painter.h>
 
 #include <nul/motherboard.h>
+#include <host/screen.h>
 
 /* local includes */
 #include "console.h"
@@ -39,8 +40,9 @@ static struct {
 	Genode::uint64_t checksum2 = 0;
 	unsigned         unchanged = 0;
 	bool             cmp_even  = 1;
-	bool             active    = true;
+	bool             active    = false;
 	bool             revoked   = false;
+	bool             vga_update= false; /* update indirectly by vbios */
 } fb_state;
 
 
@@ -195,12 +197,24 @@ bool Seoul::Console::receive(MessageConsole &msg)
 	return true;
 }
 
+void Screen::vga_updated()
+{
+	fb_state.vga_update = true;
+}
 
 bool Seoul::Console::receive(MessageMemRegion &msg)
 {
-	if (msg.page >= 0xb8 && msg.page <= 0xbf) {
+	/* we had a fault in the text framebuffer */
+	bool reactivate = (msg.page >= 0xb8 && msg.page <= 0xbf);
 
-		/* we had a fault in the text framebuffer */
+	/* vga memory got changed indirectly by vbios */
+	if (fb_state.vga_update) {
+		fb_state.vga_update = false;
+		if (!fb_state.active)
+			reactivate = true;
+	}
+
+	if (reactivate) {
 		if (!fb_state.active) fb_state.active = true;
 		Logging::printf("Reactivating text buffer loop.\n");
 

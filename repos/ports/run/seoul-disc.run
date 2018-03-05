@@ -15,7 +15,7 @@ set use_model_ide     0
 set use_block_ram     1
 set use_block_sata    0
 
-set use_nic_session   0
+set use_nic_session   1
 set use_nic_bridge    0
 
 set use_usb           0
