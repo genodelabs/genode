@@ -348,6 +348,8 @@ class Table_wrapper
 			return sum;
 		}
 
+		bool valid() { return !checksum((uint8_t *)_table, _table->size); }
+
 		/**
 		 * Is this the FACP table
 		 */
@@ -446,11 +448,6 @@ class Table_wrapper
 				Genode::log("table mapped '", Genode::Cstring(_name), "' at ", _table, " "
 				            "(from ", Genode::Hex(_base), ") "
 				            "size ",  Genode::Hex(_table->size));
-
-			if (checksum((uint8_t *)_table, _table->size)) {
-			Genode::error("checksum mismatch for ", Genode::Cstring(_name));
-				throw -1;
-			}
 		}
 };
 
@@ -1191,6 +1188,13 @@ class Acpi_table
 				uint32_t dsdt = 0;
 				{
 					Table_wrapper table(_memory, entries[i]);
+
+					if (!table.valid()) {
+						Genode::error("ignoring table '", table.name(),
+						              "' - checksum error");
+						continue;
+					}
+
 					if (table.is_facp()) {
 						Fadt fadt(reinterpret_cast<Genode::addr_t>(table->signature));
 						dsdt = fadt.read<Fadt::Dsdt>();
@@ -1221,14 +1225,21 @@ class Acpi_table
 					}
 				}
 
-				if (dsdt) {
-					Table_wrapper table(_memory, dsdt);
-					if (table.is_searched()) {
-						if (verbose)
-							Genode::log("Found dsdt ", table.name());
+				if (!dsdt)
+					continue;
 
-						Element::parse(alloc, table.table());
-					}
+				Table_wrapper table(_memory, dsdt);
+
+				if (!table.valid()) {
+					Genode::error("ignoring table '", table.name(),
+					              "' - checksum error");
+					continue;
+				}
+				if (table.is_searched()) {
+					if (verbose)
+						Genode::log("Found dsdt ", table.name());
+
+					Element::parse(alloc, table.table());
 				}
 			}
 
@@ -1296,11 +1307,15 @@ class Acpi_table
 			if (acpi_revision != 0 && xsdt && sizeof(addr_t) != sizeof(uint32_t)) {
 				/* running 64bit and xsdt is valid */
 				Table_wrapper table(_memory, xsdt);
+				if (!table.valid()) throw -1;
+
 				uint64_t * entries = reinterpret_cast<uint64_t *>(table.table() + 1);
 				_parse_tables(alloc, entries, table.entry_count(entries));
 			} else {
 				/* running (32bit) or (64bit and xsdt isn't valid) */
 				Table_wrapper table(_memory, rsdt);
+				if (!table.valid()) throw -1;
+
 				uint32_t * entries = reinterpret_cast<uint32_t *>(table.table() + 1);
 				_parse_tables(alloc, entries, table.entry_count(entries));
 			}
