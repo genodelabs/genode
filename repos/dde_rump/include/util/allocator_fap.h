@@ -21,8 +21,8 @@
 #include <rump/env.h>
 
 namespace Allocator {
-	template <unsigned VM_SIZE, typename POLICY> class Backend_alloc;
-	template <unsigned VM_SIZE, typename POLICY> class Fap;
+	template <unsigned long VM_SIZE, typename POLICY> class Backend_alloc;
+	template <unsigned long VM_SIZE, typename POLICY> class Fap;
 }
 
 
@@ -48,7 +48,7 @@ namespace Allocator {
 	/**
 	 * Back-end allocator for Genode's slab allocator
 	 */
-	template <unsigned VM_SIZE, typename POLICY = Default_allocator_policy>
+	template <unsigned long VM_SIZE, typename POLICY = Default_allocator_policy>
 	class Backend_alloc : public Genode::Allocator,
 	                      public Genode::Rm_connection,
 	                      public Genode::Region_map_client
@@ -56,7 +56,7 @@ namespace Allocator {
 		private:
 
 			enum {
-				BLOCK_SIZE = 1024  * 1024,         /* 1 MB */
+				BLOCK_SIZE = 2 * 1024  * 1024,     /* 2 MB */
 				ELEMENTS   = VM_SIZE / BLOCK_SIZE, /* MAX number of dataspaces in VM */
 			};
 
@@ -193,7 +193,7 @@ namespace Allocator {
 	/**
 	 * Interface
 	 */
-	template <unsigned VM_SIZE, typename POLICY = Default_allocator_policy>
+	template <unsigned long VM_SIZE, typename POLICY = Default_allocator_policy>
 	class Fap
 	{
 		private:

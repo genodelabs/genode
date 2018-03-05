@@ -22,7 +22,10 @@
 #include <util/random.h>
 #include <util/string.h>
 
-enum { SUPPORTED_RUMP_VERSION = 17 };
+enum {
+	SUPPORTED_RUMP_VERSION = 17,
+	MAX_VIRTUAL_MEMORY = (sizeof(void *) == 4 ? 256UL : 4096UL) * 1024 * 1024
+};
 
 static bool verbose = false;
 
@@ -170,6 +173,7 @@ int rumpuser_getparam(const char *name, void *buf, size_t buflen)
 		}
 
 		rump_ram -= RESERVE_MEM;
+		rump_ram  = Genode::min((unsigned long)MAX_VIRTUAL_MEMORY, rump_ram);
 
 		/* convert to string */
 		Genode::snprintf((char *)buf, buflen, "%zu", rump_ram);
@@ -233,7 +237,7 @@ struct Allocator_policy
 };
 
 
-typedef Allocator::Fap<128 * 1024 * 1024, Allocator_policy> Rump_alloc;
+typedef Allocator::Fap<MAX_VIRTUAL_MEMORY, Allocator_policy> Rump_alloc;
 
 static Genode::Lock & alloc_lock()
 {
