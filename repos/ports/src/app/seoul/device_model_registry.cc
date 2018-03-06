@@ -81,6 +81,7 @@ MODEL_INFO(pmtimer, "io_port")
 
 MODEL_INFO(pcihostbridge, "bus_num", "bus_count", "io_base", "mem_base")
 MODEL_INFO(intel82576vf, "promisc", "mem_mmio", "mem_msix", "txpoll_us", "rx_map")
+MODEL_INFO(rtl8029, "bdf", "irq", "port")
 
 MODEL_INFO(ide, "port0", "port1", "irq", "bdf", "disk")
 MODEL_INFO(ahci, "mem", "irq", "bdf")
