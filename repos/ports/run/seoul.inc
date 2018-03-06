@@ -120,6 +120,7 @@ if {!$use_multiboot} {
 
 if {$use_nic_session} {
 	puts $vm_cfg_fd {
+		<!-- <rtl8029 irq="9" port="0x300"/> -->
 		<intel82576vf/>
 	}
 }
