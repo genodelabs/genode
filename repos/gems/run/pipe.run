@@ -1,0 +1,40 @@
+create_boot_directory
+
+install_config {
+<config>
+	<parent-provides>
+		<service name="CPU"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="IRQ"/>
+		<service name="LOG"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="ROM"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<start name="pipe" caps="128">
+		<resource name="RAM" quantum="2M"/>
+		<config>
+			<vfs>
+				<rom name="config"/>
+				<dir name="dev"> <log/> </dir>
+			</vfs>
+			<libc stdin="/config" stdout="/dev/log"/>
+		</config>
+	</start>
+</config>
+}
+
+build "core init app/pipe"
+
+build_boot_image {
+	core init pipe
+	ld.lib.so libc.lib.so libm.lib.so posix.lib.so
+}
+
+append qemu_args " -nographic  "
+
+run_genode_until "child .* exited with exit value 0.*\n" 10
