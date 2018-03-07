@@ -16,21 +16,31 @@
 
 /* Genode includes */
 #include <util/list.h>
+#include <base/allocator.h>
 
-namespace Net {
-	template <typename> class List;
-}
+namespace Net { template <typename> class List; }
+
 
 template <typename LT>
 struct Net::List : Genode::List<LT>
 {
+	using Base = Genode::List<LT>;
+
 	template <typename FUNC>
 	void for_each(FUNC && functor)
 	{
-		for (LT * elem = Genode::List<LT>::first(); elem;
-		     elem = elem->Genode::List<LT>::Element::next())
+		for (LT * elem = Base::first(); elem;
+		     elem = elem->Base::Element::next())
 		{
 			functor(*elem);
+		}
+	}
+
+	void destroy_each(Genode::Deallocator &dealloc)
+	{
+		while (LT *elem = Base::first()) {
+			Base::remove(elem);
+			destroy(dealloc, elem);
 		}
 	}
 };
