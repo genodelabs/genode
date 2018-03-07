@@ -266,6 +266,7 @@ Domain &Domain_tree::domain(Avl_string_base const &node)
 	return static_cast<Domain_avl_member const *>(&node)->domain();
 }
 
+
 Domain &Domain_tree::find_by_name(Domain_name name)
 {
 	if (name == Domain_name() || !first()) {
@@ -276,4 +277,14 @@ Domain &Domain_tree::find_by_name(Domain_name name)
 		throw No_match(); }
 
 	return domain(*node);
+}
+
+
+void Domain_tree::destroy_each(Deallocator &dealloc)
+{
+	while (Avl_string_base *first_ = first()) {
+		Domain &domain_ = domain(*first_);
+		remove(first_);
+		destroy(dealloc, &domain_);
+	}
 }
