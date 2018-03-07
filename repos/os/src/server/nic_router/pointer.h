@@ -33,6 +33,8 @@ class Net::Pointer
 
 		Pointer() : _ptr(nullptr) { }
 
+		Pointer(T &ref) : _ptr(&ref) { }
+
 		T &deref() const
 		{
 			if (_ptr == nullptr) {
