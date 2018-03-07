@@ -227,14 +227,14 @@ class Menu_view::Widget : public List_model<Widget>::Element
 			if (!_inner_geometry().contains(at))
 				return Unique_id();
 
-			Unique_id result { };
+			Unique_id result = _unique_id;
 			_children.for_each([&] (Widget const &w) {
 				Unique_id const id = w.hovered(at - w.geometry().p1());
 				if (id.valid())
 					result = id;
 			});
 
-			return _unique_id;
+			return result;
 		}
 
 		void print(Output &out) const
