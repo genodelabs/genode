@@ -168,7 +168,8 @@ void View_stack::_place_labels(Rect rect)
 }
 
 
-void View_stack::draw_rec(Canvas_base &canvas, View_component const *view, Rect rect) const
+void View_stack::draw_rec(Canvas_base &canvas, Font const &font,
+                          View_component const *view, Rect rect) const
 {
 	Rect clipped;
 
@@ -185,8 +186,8 @@ void View_stack::draw_rec(Canvas_base &canvas, View_component const *view, Rect 
 	View_component const *next = _next_view(*view);
 
 	/* draw areas at the top/left of the current view */
-	if (next &&  top.valid()) draw_rec(canvas, next, top);
-	if (next && left.valid()) draw_rec(canvas, next, left);
+	if (next &&  top.valid()) draw_rec(canvas, font, next, top);
+	if (next && left.valid()) draw_rec(canvas, font, next, left);
 
 	/* draw current view */
 	view->dirty_rect().flush([&] (Rect const &dirty_rect) {
@@ -195,15 +196,15 @@ void View_stack::draw_rec(Canvas_base &canvas, View_component const *view, Rect 
 
 		/* draw background if view is transparent */
 		if (view->uses_alpha())
-			draw_rec(canvas, _next_view(*view), clipped);
+			draw_rec(canvas, font, _next_view(*view), clipped);
 
 		view->frame(canvas, _focus);
-		view->draw(canvas, _focus);
+		view->draw(canvas, font, _focus);
 	});
 
 	/* draw areas at the bottom/right of the current view */
-	if (next &&  right.valid()) draw_rec(canvas, next, right);
-	if (next && bottom.valid()) draw_rec(canvas, next, bottom);
+	if (next &&  right.valid()) draw_rec(canvas, font, next, right);
+	if (next && bottom.valid()) draw_rec(canvas, font, next, bottom);
 }
 
 
@@ -285,9 +286,9 @@ void View_stack::stack(View_component &view, View_component const *neighbor, boo
 }
 
 
-void View_stack::title(View_component &view, const char *title)
+void View_stack::title(View_component &view, Font const &font, const char *title)
 {
-	view.title(title);
+	view.title(font, title);
 	_place_labels(view.abs_geometry());
 
 	_mark_view_as_dirty(view, _outline(view));

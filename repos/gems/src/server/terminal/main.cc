@@ -21,6 +21,7 @@
 #include <base/attached_rom_dataspace.h>
 #include <base/attached_ram_dataspace.h>
 #include <input/event.h>
+#include <nitpicker_gfx/tff_font.h>
 
 /* terminal includes */
 #include <terminal/decoder.h>
@@ -52,7 +53,10 @@ struct Terminal::Main : Character_consumer
 	 */
 	static char const *_font_data(Xml_node config);
 
-	Reconstructible<Font>        _font        { _font_data(_config.xml()) };
+	Tff_font::Static_glyph_buffer<4096> _glyph_buffer { };
+
+	Reconstructible<Tff_font> _font { _font_data(_config.xml()), _glyph_buffer };
+
 	Reconstructible<Font_family> _font_family { *_font };
 
 	unsigned char *_keymap = Terminal::usenglish_keymap;
@@ -193,7 +197,7 @@ void Terminal::Main::_handle_config()
 
 	Xml_node const config = _config.xml();
 
-	_font.construct(_font_data(config));
+	_font.construct(_font_data(config), _glyph_buffer);
 	_font_family.construct(*_font);
 
 	/*

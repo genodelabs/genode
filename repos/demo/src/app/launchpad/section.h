@@ -36,8 +36,8 @@ class Section : public Scout::Parent_element
 
 		char  const *_txt;
 		Scout::Font *_font;
-		int          _txt_w   = _font->str_w(_txt, Scout::strlen(_txt));
-		int          _txt_h   = _font->str_h(_txt, Scout::strlen(_txt));
+		int          _txt_w   = _font->string_width(_txt, Scout::strlen(_txt)).decimal();
+		int          _txt_h   = _font->bounding_box().h();
 		int          _txt_len = Scout::strlen(_txt);
 		int          _r_add;
 

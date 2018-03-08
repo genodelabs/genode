@@ -35,7 +35,7 @@ struct Nitpicker::Pointer_origin : View_component
 
 	int  frame_size(Focus const &) const override { return 0; }
 	void frame(Canvas_base &, Focus const &) const override { }
-	void draw(Canvas_base &, Focus const &) const override { }
+	void draw(Canvas_base &, Font const &, Focus const &) const override { }
 };
 
 #endif /* _POINTER_ORIGIN_H_ */

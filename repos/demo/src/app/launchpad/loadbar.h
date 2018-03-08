@@ -168,8 +168,8 @@ class Loadbar : public Scout::Parent_element
 		{
 			if (!_font) return;
 			_txt     = txt;
-			_txt_w   = _font->str_w(_txt, Scout::strlen(_txt));
-			_txt_h   = _font->str_h(_txt, Scout::strlen(_txt));
+			_txt_w   = _font->string_width(_txt, Scout::strlen(_txt)).decimal();
+			_txt_h   = _font->bounding_box().h();
 			_txt_len = Scout::strlen(_txt);
 		}
 

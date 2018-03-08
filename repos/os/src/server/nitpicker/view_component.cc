@@ -76,12 +76,12 @@ namespace Nitpicker {
 using namespace Nitpicker;
 
 
-void View_component::title(Title const &title)
+void View_component::title(Font const &font, Title const &title)
 {
 	_title = title;
 
 	/* calculate label size, the position is defined by the view stack */
-	_label_rect = Rect(Point(0, 0), label_size(_owner.label().string(),
+	_label_rect = Rect(Point(0, 0), label_size(font, _owner.label().string(),
 	                                           _title.string()));
 }
 
@@ -97,7 +97,7 @@ void View_component::frame(Canvas_base &canvas, Focus const &focus) const
 }
 
 
-void View_component::draw(Canvas_base &canvas, Focus const &focus) const
+void View_component::draw(Canvas_base &canvas, Font const &font, Focus const &focus) const
 {
 	Texture_painter::Mode const op = texture_painter_mode(focus, _owner);
 
@@ -138,7 +138,7 @@ void View_component::draw(Canvas_base &canvas, Focus const &focus) const
 
 	/* draw label */
 	Color const frame_color = owner_color;
-	draw_label(canvas, _label_rect.p1(), _owner.label().string(), white(),
+	draw_label(canvas, font, _label_rect.p1(), _owner.label().string(), white(),
 	           _title.string(), frame_color);
 }
 

@@ -122,8 +122,8 @@ void Decorator::Window::draw(Decorator::Canvas_base &canvas,
 
 	char const * const text = _title.string();
 
-	Area const label_area(default_font().str_w(text),
-	                      default_font().str_h(text));
+	Area const label_area(default_font().string_width(text).decimal(),
+	                      default_font().bounding_box().h());
 
 	/*
 	 * Position the text in the center of the window.

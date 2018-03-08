@@ -26,8 +26,8 @@
 /*
  * Nitpicker's graphics backend
  */
-#include <nitpicker_gfx/text_painter.h>
 #include <nitpicker_gfx/box_painter.h>
+#include <nitpicker_gfx/tff_font.h>
 
 
 enum { LOG_W = 80 };  /* number of visible characters per line */
@@ -41,10 +41,9 @@ typedef Genode::Color               Color;
 
 
 /*
- * Font initialization
+ * Builtin font
  */
-extern char _binary_mono_tff_start;
-Font default_font(&_binary_mono_tff_start);
+extern char _binary_mono_tff_start[];
 
 
 namespace Nitlog {
@@ -89,7 +88,8 @@ class Canvas : public Canvas_base
 		void draw_string(Point p, Font const &font, Color color,
 		                 char const *sstr)
 		{
-			Text_painter::paint(_surface, p, font, color, sstr);
+			Text_painter::paint(_surface, Text_painter::Position(p.x(), p.y()),
+			                    font, color, sstr);
 		}
 
 		void draw_box(Rect rect, Color color)
@@ -145,7 +145,7 @@ class Log_entry
 		 * marks a transition of output from one session to another. This
 		 * information is used to separate sessions visually.
 		 */
-		void draw(Canvas_base &canvas, int y, int new_section = false)
+		void draw(Canvas_base &canvas, Font const &font, int y, int new_section = false)
 		{
 			Color label_fgcol = Color(Genode::min(255, _color.r + 200),
 			                          Genode::min(255, _color.g + 200),
@@ -155,12 +155,12 @@ class Log_entry
 			Color text_bgcol  = Color(_color.r / 2, _color.g / 2, _color.b / 2);
 
 			/* calculate label dimensions */
-			int label_w = default_font.str_w(_label);
-			int label_h = default_font.str_h(_label);
+			int label_w = font.string_width(_label).decimal();
+			int label_h = font.bounding_box().h();
 
 			if (new_section) {
 				canvas.draw_box(Rect(Point(1, y), Area(label_w + 2, label_h - 1)), label_bgcol);
-				canvas.draw_string(Point(1, y - 1), default_font, label_fgcol, _label);
+				canvas.draw_string(Point(1, y - 1), font, label_fgcol, _label);
 				canvas.draw_box(Rect(Point(1, y + label_h - 1), Area(label_w + 2, 1)), Color(0, 0, 0));
 				canvas.draw_box(Rect(Point(label_w + 2, y), Area(1, label_h - 1)), _color);
 				canvas.draw_box(Rect(Point(label_w + 3, y), Area(1, label_h - 1)), Color(0, 0, 0));
@@ -170,7 +170,7 @@ class Log_entry
 				canvas.draw_box(Rect(Point(1, y), Area(1000, label_h)), text_bgcol);
 
 			/* draw log text */
-			canvas.draw_string(Point(label_w + 6, y), default_font, text_fgcol, _text);
+			canvas.draw_string(Point(label_w + 6, y), font, text_fgcol, _text);
 		}
 
 		/**
@@ -186,6 +186,7 @@ class Log_window
 	private:
 
 		Canvas_base &_canvas;
+		Font  const &_font;
 		Log_entry    _entries[LOG_H];    /* log entries                           */
 		int          _dst_entry = 0;     /* destination entry for next write      */
 		int          _view_pos  = 0;     /* current view port on the entry array  */
@@ -199,7 +200,8 @@ class Log_window
 		/**
 		 * Constructor
 		 */
-		Log_window(Canvas_base &canvas) : _canvas(canvas) { }
+		Log_window(Canvas_base &canvas, Font const &font)
+		: _canvas(canvas), _font(font) { }
 
 		/**
 		 * Write log entry
@@ -241,12 +243,12 @@ class Log_window
 				_dirty = false;
 			}
 
-			int line_h = default_font.str_h(" ");
+			int line_h = _font.bounding_box().h();
 			int curr_session_id = -1;
 
 			for (int i = 0, y = 0; i < LOG_H; i++, y += line_h) {
 				Log_entry *le = &_entries[(i + _view_pos) % LOG_H];
-				le->draw(_canvas, y, curr_session_id != le->id());
+				le->draw(_canvas, _font, y, curr_session_id != le->id());
 				curr_session_id = le->id();
 			}
 
@@ -394,9 +396,13 @@ struct Nitlog::Main
 {
 	Env &_env;
 
+	Tff_font::Static_glyph_buffer<4096> _glyph_buffer { };
+
+	Tff_font _font { _binary_mono_tff_start, _glyph_buffer };
+
 	/* calculate size of log view in pixels */
-	unsigned const _win_w = default_font.str_w(" ") * LOG_W + 2;
-	unsigned const _win_h = default_font.str_h(" ") * LOG_H + 2;
+	unsigned const _win_w = _font.bounding_box().w() * LOG_W + 2;
+	unsigned const _win_h = _font.bounding_box().h() * LOG_H + 2;
 
 	/* init sessions to the required external services */
 	Nitpicker::Connection _nitpicker { _env };
@@ -418,7 +424,7 @@ struct Nitlog::Main
 	Canvas<Pixel_rgb565> _canvas { _fb_ds.local_addr<Pixel_rgb565>(),
 	                               ::Area(_win_w, _win_h) };
 
-	Log_window _log_window { _canvas };
+	Log_window _log_window { _canvas, _font };
 
 	void _init_canvas()
 	{

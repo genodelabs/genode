@@ -232,8 +232,10 @@ Token::Token(Style *style, const char *str, int len)
 	_flags.takes_focus = 0;
 
 	if (!_style) return;
-	_min_size = Area(_style->font->str_w(str, len) + _style->font->str_w(" ", 1),
-	                 _style->font->str_h(str, len));
+
+	_min_size = Area(_style->font->string_width(str, len).decimal() +
+	                 _style->font->string_width(" ").decimal(),
+	                 _style->font->bounding_box().h());
 }
 
 

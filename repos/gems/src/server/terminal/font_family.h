@@ -40,8 +40,8 @@ class Terminal::Font_family
 		 */
 		Font const &font(Font_face) const { return _regular; }
 
-		unsigned cell_width()  const { return _regular.str_w("m"); }
-		unsigned cell_height() const { return _regular.str_h("m"); }
+		unsigned cell_width()  const { return _regular.bounding_box().w(); }
+		unsigned cell_height() const { return _regular.bounding_box().h(); }
 };
 
 #endif /* _FONT_FAMILY_H_ */

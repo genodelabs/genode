@@ -115,17 +115,17 @@ class Nitpicker::View_stack
 		 *
 		 * \param view  current view in view stack
 		 */
-		void draw_rec(Canvas_base &, View_component const *view, Rect) const;
+		void draw_rec(Canvas_base &, Font const &, View_component const *, Rect) const;
 
 		/**
 		 * Draw dirty areas
 		 */
-		Dirty_rect draw(Canvas_base &canvas) const
+		Dirty_rect draw(Canvas_base &canvas, Font const &font) const
 		{
 			Dirty_rect result = _dirty_rect;
 
 			_dirty_rect.flush([&] (Rect const &rect) {
-				draw_rec(canvas, _first_view(), rect); });
+				draw_rec(canvas, font, _first_view(), rect); });
 
 			return result;
 		}
@@ -227,7 +227,7 @@ class Nitpicker::View_stack
 		/**
 		 * Set view title
 		 */
-		void title(View_component &view, char const *title);
+		void title(View_component &view, Font const &font, char const *title);
 
 		/**
 		 * Find view at specified position

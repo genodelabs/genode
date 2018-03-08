@@ -24,7 +24,7 @@
 #include <util/register.h>
 
 /* nitpicker graphics backend */
-#include <nitpicker_gfx/text_painter.h>
+#include <nitpicker_gfx/tff_font.h>
 
 #include <nul/motherboard.h>
 #include <host/screen.h>
@@ -32,8 +32,10 @@
 /* local includes */
 #include "console.h"
 
-extern char _binary_mono_tff_start;
-Text_painter::Font default_font(&_binary_mono_tff_start);
+extern char _binary_mono_tff_start[];
+
+static Tff_font::Static_glyph_buffer<4096> glyph_buffer { };
+static Tff_font default_font(_binary_mono_tff_start, glyph_buffer);
 
 static struct {
 	Genode::uint64_t checksum1 = 0;
@@ -241,7 +243,7 @@ unsigned Seoul::Console::_handle_fb()
 
 		for (int j=0; j<25; j++) {
 			for (int i=0; i<80; i++) {
-				Genode::Surface_base::Point where(i*8, j*15);
+				Text_painter::Position const where(i*8, j*15);
 				char character = *((char *) (_guest_fb +(_regs->offset << 1) +j*80*2+i*2));
 				char colorvalue = *((char *) (_guest_fb+(_regs->offset << 1)+j*80*2+i*2+1));
 				char buffer[2]; buffer[0] = character; buffer[1] = 0;

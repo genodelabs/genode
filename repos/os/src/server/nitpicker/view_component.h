@@ -96,10 +96,10 @@ class Nitpicker::View_component : private Same_buffer_list_elem,
 
 		View_component *_parent;          /* parent view                          */
 		Rect            _geometry   { };  /* position and size relative to parent */
-		Rect            _label_rect { };  /* position and size of label           */
+		Rect            _label_rect { };  /* position and size of label */
 		Point           _buffer_off { };  /* offset to the visible buffer area    */
 		View_owner     &_owner;
-		Title           _title      { };
+		Title           _title      { "" };
 		Dirty_rect      _dirty_rect { };
 
 		List<View_parent_elem> _children { };
@@ -130,11 +130,8 @@ class Nitpicker::View_component : private Same_buffer_list_elem,
 		View_component(View_owner &owner, Transparent transparent,
 		               Background bg, View_component *parent)
 		:
-			_transparent(transparent), _background(bg), _parent(parent),
-			_owner(owner)
-		{
-			title(""); /* initialize '_label_rect' */
-		}
+			_transparent(transparent), _background(bg), _parent(parent), _owner(owner)
+		{ }
 
 		virtual ~View_component()
 		{
@@ -217,12 +214,12 @@ class Nitpicker::View_component : private Same_buffer_list_elem,
 		/**
 		 * Draw view on canvas
 		 */
-		virtual void draw(Canvas_base &canvas, Focus const &) const;
+		virtual void draw(Canvas_base &, Font const &, Focus const &) const;
 
 		/**
 		 * Set view title
 		 */
-		void title(Title const &title);
+		void title(Font const &, Title const &);
 
 		/**
 		 * Return successor in view stack

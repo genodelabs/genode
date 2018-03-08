@@ -99,6 +99,8 @@ class Nitpicker::Session_component : public  Rpc_object<Session>,
 
 		View_stack &_view_stack;
 
+		Font const &_font;
+
 		Focus_controller &_focus_controller;
 
 		Signal_context_capability _mode_sigh { };
@@ -166,6 +168,7 @@ class Nitpicker::Session_component : public  Rpc_object<Session>,
 		Session_component(Env                   &env,
 		                  Session_label   const &label,
 		                  View_stack            &view_stack,
+		                  Font            const &font,
 		                  Focus_controller      &focus_controller,
 		                  View_component        &pointer_origin,
 		                  View_component        &builtin_background,
@@ -181,7 +184,7 @@ class Nitpicker::Session_component : public  Rpc_object<Session>,
 			_session_alloc(&session_alloc, ram_quota),
 			_framebuffer(framebuffer),
 			_framebuffer_session_component(view_stack, *this, framebuffer, *this),
-			_view_stack(view_stack), _focus_controller(focus_controller),
+			_view_stack(view_stack), _font(font), _focus_controller(focus_controller),
 			_pointer_origin(pointer_origin),
 			_builtin_background(builtin_background),
 			_framebuffer_session_cap(_env.ep().manage(_framebuffer_session_component)),

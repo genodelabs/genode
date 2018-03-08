@@ -261,7 +261,7 @@ puts $launchpad_config_fd {<config>
 	<launcher name="launchpad" ram_quota="6M"   caps="1000">
 		<configfile name="launchpad.config" />
 	</launcher>
-	<launcher name="nitlog"    ram_quota="1M" caps="50"/>
+	<launcher name="nitlog"    ram_quota="1M" caps="70"/>
 	<launcher name="liquid_fb" ram_quota="7M" caps="70">
 		<config resize_handle="on" />
 	</launcher>

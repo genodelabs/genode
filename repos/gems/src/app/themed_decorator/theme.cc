@@ -13,7 +13,7 @@
 
 /* Genode includes */
 #include <os/texture_rgb888.h>
-#include <nitpicker_gfx/text_painter.h>
+#include <nitpicker_gfx/tff_font.h>
 #include <util/xml_node.h>
 #include <decorator/xml_utils.h>
 
@@ -90,7 +90,8 @@ texture_by_element_type(Genode::Ram_session &ram, Genode::Region_map &rm,
 static Text_painter::Font const &title_font(Genode::Allocator &alloc)
 {
 	static File tff_file("theme/font.tff", alloc);
-	static Text_painter::Font font(tff_file.data<char>());
+	static Tff_font::Allocated_glyph_buffer glyph_buffer(tff_file.data<char>(), alloc);
+	static Tff_font font(tff_file.data<char>(), glyph_buffer);
 
 	return font;
 }
@@ -267,13 +268,14 @@ void Decorator::Theme::draw_title(Decorator::Pixel_surface &pixel_surface,
 
 	Text_painter::Font const &font = title_font(_alloc);
 
-	Area  const label_area(font.str_w(title), font.str_h(title));
+	Area  const label_area(font.string_width(title).decimal(),
+	                       font.bounding_box().h());
 	Rect  const surface_rect(Point(0, 0), pixel_surface.size());
 	Rect  const title_rect = absolute(title_geometry(), surface_rect);
-	Point const centered_text_pos = title_rect.center(label_area) - Point(0, 1);
+	Point const pos = title_rect.center(label_area) - Point(0, 1);
 
-	Text_painter::paint(pixel_surface, centered_text_pos, font,
-	                    Genode::Color(0, 0, 0), title);
+	Text_painter::paint(pixel_surface, Text_painter::Position(pos.x(), pos.y()),
+	                    font, Genode::Color(0, 0, 0), title);
 }
 
 

@@ -14,6 +14,9 @@
 #ifndef _STYLE_DATABASE_H_
 #define _STYLE_DATABASE_H_
 
+/* Genode includes */
+#include <nitpicker_gfx/tff_font.h>
+
 /* gems includes */
 #include <gems/file.h>
 #include <gems/png_image.h>
@@ -55,8 +58,12 @@ class Menu_view::Style_database
 		struct Font_entry : List<Font_entry>::Element
 		{
 			String<PATH_MAX_LEN> path;
-			File                 tff_file;
-			Text_painter::Font   font;
+
+			File tff_file;
+
+			Tff_font::Allocated_glyph_buffer glyph_buffer;
+
+			Tff_font font;
 
 			/**
 			 * Constructor
@@ -67,7 +74,8 @@ class Menu_view::Style_database
 			:
 				path(path),
 				tff_file(path, alloc),
-				font(tff_file.data<char>())
+				glyph_buffer(tff_file.data<char>(), alloc),
+				font(tff_file.data<char>(), glyph_buffer)
 			{ }
 		};
 

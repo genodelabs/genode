@@ -167,7 +167,7 @@ void Session_component::_execute_command(Command const &command)
 			Locked_ptr<View_component> view(_view_handle_registry.lookup(cmd.view));
 
 			if (view.valid())
-				_view_stack.title(*view, cmd.title.string());
+				_view_stack.title(*view, _font, cmd.title.string());
 
 			return;
 		}
@@ -259,6 +259,7 @@ Session_component::View_handle Session_component::create_view(View_handle parent
 		catch (Allocator::Out_of_memory) { throw Out_of_ram(); }
 	}
 
+	view->title(_font, "");
 	view->apply_origin_policy(_pointer_origin);
 
 	_view_list.insert(view);

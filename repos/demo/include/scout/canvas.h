@@ -102,7 +102,7 @@ class Scout::Canvas : public Canvas_base
 		{
 			char buf[len + 1];
 			Genode::strncpy(buf, str, len + 1);
-			Text_painter::paint(_surface, Point(x, y), *font, color, buf);
+			Text_painter::paint(_surface, Text_painter::Position(x, y), *font, color, buf);
 		}
 
 		void draw_box(int x, int y, int w, int h, Color c)

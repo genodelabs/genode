@@ -22,10 +22,10 @@
 
 /* nitpicker graphic back end */
 #include <nitpicker_gfx/text_painter.h>
+#include <nitpicker_gfx/box_painter.h>
 
 /* local includes */
 #include "font_family.h"
-#include "draw_glyph.h"
 #include "color_palette.h"
 #include "framebuffer.h"
 
@@ -69,13 +69,22 @@ class Terminal::Text_screen_surface
 		{
 			Font const &regular_font = _font_family.font(Font_face::REGULAR);
 
-			unsigned const glyph_height = regular_font.img_h,
-			               glyph_step_x = regular_font.wtab['m'];
+			Area const cell_size = regular_font.bounding_box();
+
+			unsigned const glyph_height = regular_font.bounding_box().h(),
+			               glyph_step_x = regular_font.bounding_box().w();
 
 			unsigned const fb_width  = _framebuffer.w(),
 			               fb_height = _framebuffer.h();
 
+			int const clip_top  = 0, clip_bottom = fb_height,
+			          clip_left = 0, clip_right  = fb_width;
+
 			PT *fb_base = _framebuffer.pixel<PT>();
+
+			Surface<PT> surface(fb_base, Area(_framebuffer.w(), _framebuffer.h()));
+
+			unsigned const fg_alpha = 255;
 
 			unsigned y = 0;
 			for (unsigned line = 0; line < _cell_array.num_lines(); line++) {
@@ -92,41 +101,39 @@ class Terminal::Text_screen_surface
 						if (ascii == 0)
 							ascii = ' ';
 
-						unsigned char const *glyph_base  = font.img + font.otab[ascii];
+						Text_painter::Codepoint const c { ascii };
 
-						unsigned glyph_width = regular_font.wtab[ascii];
+						font.apply_glyph(c, [&] (Glyph_painter::Glyph const &glyph) {
 
-						if (x + glyph_width > fb_width)
-							break;
+							Color_palette::Highlighted const highlighted { cell.highlight() };
+							Color_palette::Inverse     const inverse     { cell.inverse() };
 
-						Color_palette::Highlighted const highlighted { cell.highlight() };
-						Color_palette::Inverse     const inverse     { cell.inverse() };
+							Color fg_color =
+								_palette.foreground(Color_palette::Index{cell.colidx_fg()},
+								                    highlighted, inverse);
 
-						Color fg_color =
-							_palette.foreground(Color_palette::Index{cell.colidx_fg()},
-							                    highlighted, inverse);
+							Color bg_color =
+								_palette.background(Color_palette::Index{cell.colidx_bg()},
+								                    highlighted, inverse);
 
-						Color bg_color =
-							_palette.background(Color_palette::Index{cell.colidx_bg()},
-							                    highlighted, inverse);
+							if (cell.has_cursor()) {
+								fg_color = Color( 63,  63,  63);
+								bg_color = Color(255, 255, 255);
+							}
 
-						if (cell.has_cursor()) {
-							fg_color = Color( 63,  63,  63);
-							bg_color = Color(255, 255, 255);
-						}
+							PT const pixel(fg_color.r, fg_color.g, fg_color.b);
 
-						draw_glyph<PT>(fg_color, bg_color,
-						               glyph_base, glyph_width,
-						               (unsigned)font.img_w, (unsigned)font.img_h,
-						               glyph_step_x, fb_base + x, fb_width);
+							Box_painter::paint(surface, Rect(Point(x, y), cell_size), bg_color);
 
-						x += glyph_step_x;
+							Glyph_painter::paint(Glyph_painter::Position((int)x, (int)y),
+							                     glyph, fb_base, fb_width,
+							                     clip_top, clip_bottom, clip_left, clip_right,
+							                     pixel, fg_alpha);
+							x += glyph_step_x;
+						});
 					}
 				}
-				y       += glyph_height;
-				fb_base += fb_width*glyph_height;
-
-				if (y + glyph_height > fb_height) break;
+				y += glyph_height;
 			}
 
 			int first_dirty_line =  10000,
