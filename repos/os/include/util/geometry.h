@@ -40,8 +40,8 @@ class Genode::Point
 		Point(CT x, CT y): _x(x), _y(y) { }
 		Point(): _x(0), _y(0) { }
 
-		int x() const { return _x; }
-		int y() const { return _y; }
+		CT x() const { return _x; }
+		CT y() const { return _y; }
 
 		/**
 		 * Operator for adding points
