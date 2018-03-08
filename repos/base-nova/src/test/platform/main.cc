@@ -269,8 +269,9 @@ void test_revoke(Genode::Env &env)
 void test_pat(Genode::Env &env)
 {
 	/* read out the tsc frequenzy once */
-	Genode::Attached_rom_dataspace _ds(env, "hypervisor_info_page");
-	Nova::Hip * const hip = _ds.local_addr<Nova::Hip>();
+	Attached_rom_dataspace const platform_info (env, "platform_info");
+	Xml_node const hardware = platform_info.xml().sub_node("hardware");
+	uint64_t const tsc_freq = hardware.sub_node("tsc").attribute_value("freq_khz", 1ULL);
 
 	enum { DS_ORDER = 12, PAGE_4K = 12 };
 
@@ -348,12 +349,12 @@ void test_pat(Genode::Env &env)
 
 	Trace::Timestamp diff_run = map_run > remap_run ? map_run - remap_run : remap_run - map_run;
 
-	if (check_pat && diff_run * 100 / hip->tsc_freq) {
+	if (check_pat && diff_run * 100 / tsc_freq) {
 		failed ++;
 
 		error("map=", Hex(map_run), " remap=", Hex(remap_run), " --> "
-		      "diff=", Hex(diff_run), " freq_tsc=", hip->tsc_freq, " ",
-		     diff_run * 1000 / hip->tsc_freq, " us");
+		      "diff=", Hex(diff_run), " freq_tsc=", tsc_freq, " ",
+		     diff_run * 1000 / tsc_freq, " us");
 	}
 
 	Nova::revoke(Nova::Mem_crd(remap_addr >> PAGE_4K, DS_ORDER, all));

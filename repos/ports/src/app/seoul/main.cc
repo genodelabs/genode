@@ -728,8 +728,6 @@ class Vcpu_dispatcher : public Vcpu_handler,
 		                VCpu                   *unsynchronized_vcpu,
 		                Guest_memory           &guest_memory,
 		                Synced_motherboard     &motherboard,
-		                bool                    has_svm,
-		                bool                    has_vmx,
 		                Vmm::Vcpu_thread       *vcpu_thread,
 		                Genode::Cpu_session    *cpu_session,
 		                Genode::Affinity::Location &location)
@@ -747,6 +745,13 @@ class Vcpu_dispatcher : public Vcpu_handler,
 			Mtd const mtd_all(Mtd::ALL);
 			Mtd const mtd_cpuid(Mtd::EIP | Mtd::ACDB | Mtd::IRQ);
 			Mtd const mtd_irq(Mtd::IRQ);
+
+			/* detect virtualization extension */
+			Attached_rom_dataspace const info(env, "platform_info");
+			Genode::Xml_node const features = info.xml().sub_node("hardware").sub_node("features");
+
+			bool const has_svm = features.attribute_value("svm", false);
+			bool const has_vmx = features.attribute_value("vmx", false);
 
 			/*
 			 * Register vCPU event handlers
@@ -874,9 +879,7 @@ class Machine : public StaticReceiver<Machine>
 
 		Genode::Env           &_env;
 		Genode::Heap          &_heap;
-		Attached_rom_dataspace _hip_rom = { _env, "hypervisor_info_page" };
 		Genode::Cpu_connection _cpu_session = { _env, "Seoul vCPUs", Genode::Cpu_session::PRIORITY_LIMIT / 16 };
-		Hip * const            _hip;
 		Clock                  _clock;
 		Genode::Lock           _motherboard_lock;
 		Motherboard            _unsynchronized_motherboard;
@@ -981,16 +984,10 @@ class Machine : public StaticReceiver<Machine>
 					}
 
 					Vcpu_dispatcher *vcpu_dispatcher =
-						new Vcpu_dispatcher(_motherboard_lock,
-						                    _env,
-						                    msg.vcpu,
-						                    _guest_memory,
-						                    _motherboard,
-						                    _hip->has_feature_svm(),
-						                    _hip->has_feature_vmx(),
-						                    vcpu_thread,
-						                    &_cpu_session,
-						                    location);
+						new Vcpu_dispatcher(_motherboard_lock, _env,
+						                    msg.vcpu, _guest_memory,
+						                    _motherboard, vcpu_thread,
+						                    &_cpu_session, location);
 
 					msg.value = vcpu_dispatcher->sel_sm_ec();
 					return true;
@@ -1240,10 +1237,9 @@ class Machine : public StaticReceiver<Machine>
 		        Guest_memory &guest_memory, bool colocate)
 		:
 			_env(env), _heap(heap),
-			_hip(_hip_rom.local_addr<Hip>()),
-			_clock(_hip->tsc_freq*1000),
+			_clock(Attached_rom_dataspace(env, "platform_info").xml().sub_node("hardware").sub_node("tsc").attribute_value("freq_khz", 0ULL) * 1000ULL),
 			_motherboard_lock(Genode::Lock::LOCKED),
-			_unsynchronized_motherboard(&_clock, _hip),
+			_unsynchronized_motherboard(&_clock, nullptr),
 			_motherboard(_motherboard_lock, &_unsynchronized_motherboard),
 			_timeouts(_timeouts_lock, &_unsynchronized_timeouts),
 			_guest_memory(guest_memory),

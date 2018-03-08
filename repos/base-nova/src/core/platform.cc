@@ -673,6 +673,16 @@ Platform::Platform() :
 					xml.attribute("pitch",  boot_fb->aux);
 				});
 			});
+			xml.node("hardware", [&] () {
+				xml.node("features", [&] () {
+					xml.attribute("svm", hip->has_feature_svm());
+					xml.attribute("vmx", hip->has_feature_vmx());
+				});
+				xml.node("tsc", [&] () {
+					xml.attribute("invariant", cpuid_invariant_tsc());
+					xml.attribute("freq_khz" , hip->tsc_freq);
+				});
+			});
 		});
 
 		unmap_local(__main_thread_utcb, core_local_addr, pages);
@@ -681,24 +691,6 @@ Platform::Platform() :
 		_rom_fs.insert(new (core_mem_alloc())
 		               Rom_module(phys_addr, pages * get_page_size(),
 		               "platform_info"));
-	}
-
-	/* export hypervisor info page as ROM module */
-	{
-		void * phys_ptr = nullptr;
-		ram_alloc()->alloc_aligned(get_page_size(), &phys_ptr, get_page_size_log2());
-
-		addr_t const phys_addr = reinterpret_cast<addr_t>(phys_ptr);
-		addr_t const core_local_addr = _map_pages(phys_addr, 1);
-
-		memcpy(reinterpret_cast<void *>(core_local_addr), hip, get_page_size());
-
-		unmap_local(__main_thread_utcb, core_local_addr, 1);
-		region_alloc()->free(reinterpret_cast<void *>(core_local_addr), get_page_size());
-
-		_rom_fs.insert(new (core_mem_alloc())
-		               Rom_module(phys_addr, get_page_size(),
-		                          "hypervisor_info_page"));
 	}
 
 	/* core log as ROM module */

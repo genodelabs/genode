@@ -259,7 +259,7 @@ append_if $use_framebuffer config {
 append_if $use_genode_iso config {
 			<service name="ROM" label="vm_seoul.cfg">
 				<parent/> </service>
-			<service name="ROM" label="hypervisor_info_page">
+			<service name="ROM" label="platform_info">
 				<parent/> </service>
 			<service name="ROM"><child name="iso9660"/></service>}
 append config {

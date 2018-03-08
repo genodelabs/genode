@@ -65,21 +65,22 @@ static Vcpu_handler *lookup_vcpu_handler(unsigned int cpu_id)
 
 /* Genode specific function */
 
-Nova::Hip &hip_rom()
+Genode::Xml_node platform_rom()
 {
-	static Genode::Attached_rom_dataspace hip_rom(genode_env(),
-	                                              "hypervisor_info_page");
-	return *hip_rom.local_addr<Nova::Hip>();
+	static Genode::Attached_rom_dataspace const platform(genode_env(),
+	                                                     "platform_info");
+	return platform.xml().sub_node("hardware");
 }
 
 void SUPR3QueryHWACCLonGenodeSupport(VM * pVM)
 {
 	try {
-		pVM->hm.s.svm.fSupported = hip_rom().has_feature_svm();
-		pVM->hm.s.vmx.fSupported = hip_rom().has_feature_vmx();
+		Genode::Xml_node const features = platform_rom().sub_node("features");
+		pVM->hm.s.svm.fSupported = features.attribute_value("svm", false);
+		pVM->hm.s.vmx.fSupported = features.attribute_value("vmx", false);
 
-		if (hip_rom().has_feature_svm() || hip_rom().has_feature_vmx()) {
-			Genode::log("Using ", hip_rom().has_feature_svm() ? "SVM" : "VMX",
+		if (pVM->hm.s.svm.fSupported || pVM->hm.s.vmx.fSupported) {
+			Genode::log("Using ", pVM->hm.s.svm.fSupported ? "SVM" : "VMX",
 			            " virtualization extension.");
 			return;
 		}
@@ -195,7 +196,8 @@ uint64_t genode_cpu_hz()
 
 	if (!cpu_freq) {
 		try {
-			cpu_freq = hip_rom().tsc_freq * 1000;
+			platform_rom().sub_node("tsc").attribute("freq_khz").value(&cpu_freq);
+			cpu_freq *= 1000ULL;
 		} catch (...) {
 			Genode::error("could not read out CPU frequency");
 			Genode::Lock lock;
@@ -290,20 +292,24 @@ bool create_emt_vcpu(pthread_t * pthread, size_t stack,
                      Genode::Affinity::Location location,
                      unsigned int cpu_id, const char * name)
 {
-	if (!hip_rom().has_feature_vmx() && !hip_rom().has_feature_svm())
+	Genode::Xml_node const features = platform_rom().sub_node("features");
+	bool const svm = features.attribute_value("svm", false);
+	bool const vmx = features.attribute_value("vmx", false);
+
+	if (!svm && !vmx)
 		return false;
 
 	static Genode::Pd_connection pd_vcpus(genode_env(), "VM");
 
 	Vcpu_handler *vcpu_handler = 0;
 
-	if (hip_rom().has_feature_vmx())
+	if (vmx)
 		vcpu_handler = new (0x10) Vcpu_handler_vmx(genode_env(),
 		                                           stack, attr, start_routine,
 		                                           arg, cpu_session, location,
 		                                           cpu_id, name, pd_vcpus);
 
-	if (hip_rom().has_feature_svm())
+	if (svm)
 		vcpu_handler = new (0x10) Vcpu_handler_svm(genode_env(),
 		                                           stack, attr, start_routine,
 		                                           arg, cpu_session, location,
