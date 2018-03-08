@@ -454,6 +454,19 @@ Platform::Platform() :
 	core_thread->pager(&_sigma0);
 	_core_pd->bind_thread(core_thread);
 
+	{
+		/* export x86 platform specific infos */
+		void * phys_ptr = nullptr;
+		if (ram_alloc()->alloc_aligned(get_page_size(), &phys_ptr,
+		                               get_page_size_log2()).ok()) {
+			addr_t const phys_addr = reinterpret_cast<addr_t>(phys_ptr);
+			/* empty for now */
+			_rom_fs.insert(new (core_mem_alloc()) Rom_module(phys_addr,
+			                                                 get_page_size(),
+			                                                 "platform_info"));
+		}
+	}
+
 	/* core log as ROM module */
 	{
 		void * core_local_ptr = nullptr;
