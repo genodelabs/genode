@@ -1,0 +1,75 @@
+create_boot_directory
+
+import_from_depot genodelabs/src/[base_src] \
+                  genodelabs/pkg/[drivers_interactive_pkg] \
+                  genodelabs/src/init \
+                  genodelabs/src/libc \
+                  genodelabs/src/vfs \
+                  genodelabs/raw/ttf-bitstream-vera-minimal
+
+install_config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+
+	<default caps="100"/>
+
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+
+	<start name="drivers" caps="1000">
+		<resource name="RAM" quantum="32M" constrain_phys="yes"/>
+		<binary name="init"/>
+		<route>
+			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+		<provides>
+			<service name="Input"/> <service name="Framebuffer"/>
+		</provides>
+	</start>
+
+	<start name="font_vfs">
+		<binary name="vfs"/>
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="File_system"/> </provides>
+		<config>
+			<vfs>
+				<rom name="VeraMono.ttf"/>
+				<dir name="fonts">
+					<ttf name="regular" path="/VeraMono.ttf" size_px="48" cache="128K"/>
+				</dir>
+			</vfs>
+			<default-policy root="/fonts" />
+		</config>
+	</start>
+
+	<start name="test-text_painter">
+		<resource name="RAM" quantum="2M"/>
+		<config>
+			<vfs> <dir name="fonts"> <fs/> </dir> </vfs>
+		</config>
+	</start>
+
+</config>}
+
+build { server/vfs test/text_painter lib/vfs/ttf }
+
+build_boot_image { vfs test-text_painter vfs_ttf.lib.so }
+
+run_genode_until forever
