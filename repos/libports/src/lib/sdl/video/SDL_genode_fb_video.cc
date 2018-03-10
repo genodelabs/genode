@@ -132,6 +132,9 @@ extern "C" {
 	typedef EGLBoolean  (*eglSwapBuffers_func)         (EGLDisplay, EGLSurface);
 	typedef EGLBoolean  (*eglWaitClient_func)          (void);
 	typedef char const* (*eglQueryString_func)         (EGLDisplay, EGLint);
+	typedef __eglMustCastToProperFunctionPointerType
+	                    (*eglGetProcAddress_func)      (const char *procname);
+
 
 	static eglBindAPI_func             __eglBindAPI;
 	static eglChooseConfig_func        __eglChooseConfig;
@@ -143,8 +146,7 @@ extern "C" {
 	static eglSwapBuffers_func         __eglSwapBuffers;
 	static eglWaitClient_func          __eglWaitClient;
 	static eglQueryString_func         __eglQueryString;
-
-	static void *__mesa;
+	static eglGetProcAddress_func      __eglGetProcAddress;
 
 	static bool init_egl()
 	{
@@ -168,7 +170,7 @@ extern "C" {
 		LOAD_GL_FUNC(egl, eglQueryString)
 		LOAD_GL_FUNC(egl, eglSwapBuffers)
 		LOAD_GL_FUNC(egl, eglWaitClient)
-		LOAD_GL_FUNC(egl, eglWaitClient)
+		LOAD_GL_FUNC(egl, eglGetProcAddress)
 
 #undef LOAD_GL_FUNC
 
@@ -177,12 +179,6 @@ extern "C" {
 
 	static bool init_opengl(SDL_VideoDevice *t)
 	{
-		__mesa = dlopen("mesa.lib.so", 0);
-		if (!__mesa) {
-			Genode::error("could not open mesa library");
-			return false;
-		}
-
 		if (!init_egl()) { return false; }
 
 		int maj, min;
@@ -594,8 +590,7 @@ extern "C" {
 	}
 
 
-	void* Genode_Fb_GL_GetProcAddress(SDL_VideoDevice *t, const char *proc)
-	{
-		return !__mesa ? nullptr : dlsym(__mesa, proc);
-	}
+	void* Genode_Fb_GL_GetProcAddress(SDL_VideoDevice *t, const char *proc) {
+
+		return (void*)__eglGetProcAddress(proc); }
 } //extern "C"
