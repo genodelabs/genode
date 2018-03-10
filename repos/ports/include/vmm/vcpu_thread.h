@@ -41,6 +41,8 @@ class Vmm::Vcpu_thread
 
 		virtual Genode::addr_t exc_base()            = 0;
 		virtual void           start(Genode::addr_t) = 0;
+
+		virtual ~Vcpu_thread() { };
 };
 
 class Vmm::Vcpu_other_pd : public Vmm::Vcpu_thread
@@ -52,6 +54,12 @@ class Vmm::Vcpu_other_pd : public Vmm::Vcpu_thread
 		Genode::Cpu_session        *_cpu_session;
 
 		Genode::addr_t _exc_pt_sel;
+
+		/*
+		 * Noncopyable
+		 */
+		Vcpu_other_pd(Vcpu_other_pd const &);
+		Vcpu_other_pd &operator = (Vcpu_other_pd const &);
 
 	public:
 
