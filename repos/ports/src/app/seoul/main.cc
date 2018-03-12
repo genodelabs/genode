@@ -186,6 +186,12 @@ class Guest_memory
 		char *_local_addr;
 		char *_fb_addr;
 
+		/*
+		 * Noncopyable
+		 */
+		Guest_memory(Guest_memory const &);
+		Guest_memory &operator = (Guest_memory const &);
+
 	public:
 
 		/**
@@ -718,6 +724,12 @@ class Vcpu_dispatcher : public Vcpu_handler,
 				Genode::error("could not register handler ", Genode::Hex(exc_base + EV));
 		}
 
+		/*
+		 * Noncopyable
+		 */
+		Vcpu_dispatcher(Vcpu_dispatcher const &);
+		Vcpu_dispatcher &operator = (Vcpu_dispatcher const &);
+
 	public:
 
 		enum { STACK_SIZE = 1024*sizeof(Genode::addr_t) };
@@ -829,12 +841,6 @@ class Vcpu_dispatcher : public Vcpu_handler,
 			unsynchronized_vcpu->executor.add(this, receive_static<CpuMessage>);
 		}
 
-		/**
-		 * Destructor
-		 */
-		~Vcpu_dispatcher() { }
-
-
 		/***********************************
 		 ** Handlers for 'StaticReceiver' **
 		 ***********************************/
@@ -884,8 +890,8 @@ class Machine : public StaticReceiver<Machine>
 		Genode::Lock           _motherboard_lock;
 		Motherboard            _unsynchronized_motherboard;
 		Synced_motherboard     _motherboard;
-		Genode::Lock           _timeouts_lock;
-		TimeoutList<32, void>  _unsynchronized_timeouts;
+		Genode::Lock           _timeouts_lock { };
+		TimeoutList<32, void>  _unsynchronized_timeouts { };
 		Synced_timeout_list    _timeouts;
 		Guest_memory          &_guest_memory;
 		Boot_module_provider  &_boot_modules;
@@ -897,6 +903,12 @@ class Machine : public StaticReceiver<Machine>
 		Genode::Pd_connection *_pd_vcpus     = nullptr;
 		Seoul::Network        *_nic          = nullptr;
 		Rtc::Session          *_rtc          = nullptr;
+
+		/*
+		 * Noncopyable
+		 */
+		Machine(Machine const &);
+		Machine &operator = (Machine const &);
 
 	public:
 

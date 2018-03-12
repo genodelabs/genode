@@ -25,7 +25,7 @@ INC_DIR += $(SEOUL_GENODE_DIR)/include
 INC_DIR += $(REP_DIR)/src/app/seoul/include
 include $(call select_from_repositories,lib/mk/libc-common.inc)
 
-CC_WARN += -Wno-parentheses -Wall
+CC_WARN += -Wno-parentheses -Wall -Wno-unused
 CC_CXX_OPT += -march=core2
 CC_CXX_OPT += -mssse3
 CC_OPT_PIC :=

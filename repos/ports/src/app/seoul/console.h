@@ -41,6 +41,8 @@
 
 namespace Seoul {
 	class Console;
+	using Genode::Constructible;
+	using Genode::Pixel_rgb565;
 }
 
 class Seoul::Console : public StaticReceiver<Seoul::Console>
@@ -50,21 +52,21 @@ class Seoul::Console : public StaticReceiver<Seoul::Console>
 		Genode::Env                 &_env;
 		Motherboard                 &_unsynchronized_motherboard;
 		Synced_motherboard          &_motherboard;
-		Genode::Constructible<Framebuffer::Connection> _framebuffer;
-		Genode::Constructible<Genode::Surface<Genode::Pixel_rgb565> > _surface;
-		Input::Connection            _input = { _env };
-		Keyboard                     _vkeyb = { _motherboard };
-		short                       *_pixels   = nullptr;
-		char                        *_guest_fb = nullptr;
-		unsigned long                _fb_size  = 0;
+		Constructible<Framebuffer::Connection>        _framebuffer { };
+		Constructible<Genode::Surface<Pixel_rgb565> > _surface { };
+		Input::Connection            _input    { _env };
+		Keyboard                     _vkeyb    { _motherboard };
+		short                       *_pixels   { nullptr };
+		char                        *_guest_fb { nullptr };
+		unsigned long                _fb_size  { 0 };
 		Genode::Dataspace_capability _fb_ds;
 		Genode::size_t               _vm_fb_size;
-		VgaRegs                     *_regs     = nullptr;
-		Framebuffer::Mode            _fb_mode;
-		bool                         _left     = false;
-		bool                         _middle   = false;
-		bool                         _right    = false;
-		unsigned                     _timer;
+		VgaRegs                     *_regs     { nullptr };
+		Framebuffer::Mode            _fb_mode  { };
+		bool                         _left     { false };
+		bool                         _middle   { false };
+		bool                         _right    { false };
+		unsigned                     _timer    { 0 };
 
 		unsigned _input_to_ps2mouse(Input::Event const &);
 
@@ -73,6 +75,12 @@ class Seoul::Console : public StaticReceiver<Seoul::Console>
 
 		void _handle_input();
 		unsigned _handle_fb();
+
+		/*
+		 * Noncopyable
+		 */
+		Console(Console const &);
+		Console &operator = (Console const &);
 
 	public:
 
