@@ -71,6 +71,12 @@ class Seoul::Disk : public StaticReceiver<Seoul::Disk>
 				Genode::addr_t _key;
 				MessageDisk *  _msg;
 
+				/*
+				 * Noncopyable
+				 */
+				Avl_entry(Avl_entry const &);
+				Avl_entry &operator = (Avl_entry const &);
+
 			public:
 
 				Avl_entry(void * key, MessageDisk * msg)
@@ -96,7 +102,7 @@ class Seoul::Disk : public StaticReceiver<Seoul::Disk>
 			Genode::size_t              blk_size;
 			Block::sector_t             blk_cnt;
 			Disk_signal                *signal;
-		} _diskcon[MAX_DISKS];
+		} _diskcon[MAX_DISKS] { };
 
 		Synced_motherboard &_motherboard;
 		char        * const _backing_store_base;
@@ -114,8 +120,14 @@ class Seoul::Disk : public StaticReceiver<Seoul::Disk>
 
 		Avl_entry_slab_sync _tslab_avl;
 
-		Genode::Avl_tree<Avl_entry> _lookup_msg;
-		Genode::Lock           _lookup_msg_lock;
+		Genode::Avl_tree<Avl_entry> _lookup_msg { };
+		Genode::Lock           _lookup_msg_lock { };
+
+		/*
+		 * Noncopyable
+		 */
+		Disk(Disk const &);
+		Disk &operator = (Disk const &);
 
 	public:
 

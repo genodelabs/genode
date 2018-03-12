@@ -54,6 +54,12 @@ class Seoul::Network
 
 		void _handle_packets();
 
+		/*
+		 * Noncopyable
+		 */
+		Network(Network const &);
+		Network &operator = (Network const &);
+
 	public:
 
 		Network(Genode::Env &, Genode::Heap &, Synced_motherboard &);
