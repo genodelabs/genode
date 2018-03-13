@@ -17,7 +17,11 @@
 /* Genode includes */
 #include <base/exception.h>
 
-namespace Net { template <typename> class Pointer; }
+namespace Net {
+
+	template <typename> class Pointer;
+	template <typename> class Const_pointer;
+}
 
 template <typename T>
 class Net::Pointer
@@ -52,6 +56,39 @@ class Net::Pointer
 		}
 
 		void unset() { _ptr = nullptr; }
+};
+
+template <typename T>
+class Net::Const_pointer
+{
+	private:
+
+		T const *_ptr;
+		bool     _valid;
+
+	public:
+
+		struct Valid   : Genode::Exception { };
+		struct Invalid : Genode::Exception { };
+
+		Const_pointer() : _ptr(nullptr), _valid(false) { }
+
+		Const_pointer(T const &ref) : _ptr(&ref), _valid(true) { }
+
+		T const &deref() const
+		{
+			if (!_valid) { throw Invalid(); }
+			return *_ptr;
+		}
+
+		void set(T const &ptr)
+		{
+			if (_valid) { throw Valid(); }
+			_ptr = &ptr;
+			_valid = true;
+		}
+
+		void unset() { _valid = false; }
 };
 
 #endif /* _POINTER_H_ */
