@@ -28,12 +28,14 @@ install_config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 
+	<default caps="100"/>
+
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="drivers">
+	<start name="drivers" caps="1000">
 		<resource name="RAM" quantum="32M" constrain_phys="yes"/>
 		<binary name="init"/>
 		<route>
@@ -46,7 +48,7 @@ install_config {
 		</provides>
 	</start>
 
-	<start name="nitpicker">
+	<start name="nitpicker" caps="200">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Nitpicker"/></provides>
 		<config>
@@ -93,9 +95,9 @@ install_config {
 	</start>
 </config>}
 
-build { test/decorator_stress }
+build { app/decorator test/decorator_stress }
 
-build_boot_image { test-decorator_stress }
+build_boot_image { decorator test-decorator_stress }
 
 
 run_genode_until forever
