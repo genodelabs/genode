@@ -54,6 +54,15 @@
          hdaBDLEDumpAll(pThis, pStream->u64BDLBase, pStream->u16LVI + 1);
  #endif
          /*
+@@ -2658,7 +2662,7 @@
+     PHDASTREAM pStream = hdaStreamFromID(pThis, HDA_SD_NUM_FROM_REG(pThis, STS, iReg));
+     if (!pStream)
+     {
+-        AssertMsgFailed(("[SD%RU8] Warning: Writing SDSTS on non-attached stream (0x%x)\n",
++        Log3Func(("[SD%RU8] Warning: Writing SDSTS on non-attached stream (0x%x)\n",
+                          HDA_SD_NUM_FROM_REG(pThis, STS, iReg), u32Value));
+ 
+         DEVHDA_UNLOCK_BOTH(pThis);
 @@ -3388,7 +3392,7 @@
  }
  # endif /* HDA_USE_DMA_ACCESS_HANDLER */
