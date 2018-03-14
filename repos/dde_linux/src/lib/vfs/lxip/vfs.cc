@@ -112,34 +112,6 @@ namespace Lxip {
 }
 
 
-struct Lxip::Protocol_dir
-{
-	enum Type { TYPE_STREAM, TYPE_DGRAM };
-
-	virtual char const *top_dir() = 0;
-	virtual Type type() = 0;
-	virtual unsigned adopt_socket(socket &, bool) = 0;
-	virtual bool     lookup_port(long) = 0;
-};
-
-
-struct Lxip::Socket_dir
-{
-	virtual Protocol_dir &parent() = 0;
-	virtual char const *top_dir() = 0;
-	virtual unsigned accept(socket&) = 0;
-	virtual void     bind(bool) = 0; /* bind to port */
-	virtual long     bind() = 0; /* return bound port */
-	virtual bool     lookup_port(long) = 0;
-	virtual void     connect(bool) = 0;
-	virtual void     listen(bool) = 0;
-	virtual sockaddr_storage &remote_addr() = 0;
-	virtual void     close() = 0;
-	virtual bool     closed() const = 0;
-	virtual void trigger_io_response(Vfs::Vfs_handle::Context *) = 0;
-};
-
-
 namespace Vfs {
 
 	using namespace Genode;
@@ -156,14 +128,14 @@ namespace Vfs {
 	class Lxip_listen_file;
 	class Lxip_local_file;
 	class Lxip_remote_file;
-	class Lxip_socket_dir;
 
-	class Lxip_new_socket_file;
+	class Lxip_socket_dir;
+	struct Lxip_socket_handle;
 
 	class Lxip_link_state_file;
 	class Lxip_address_file;
 
-	class Lxip_vfs_handle;
+	struct Lxip_vfs_handle;
 	class Lxip_vfs_file_handle;
 	class Lxip_vfs_dir_handle;
 	class Lxip_file_system;
@@ -184,27 +156,9 @@ struct Vfs::Node
 
 	virtual ~Node() { }
 
-	virtual char const *name() { return _name; }
+	char const *name() { return _name; }
 
 	virtual void close() { }
-
-	/**
-	 * Pass len data to handle read callback
-	 */
-	virtual Lxip::ssize_t read(char *, Genode::size_t, file_size)
-	{
-		Genode::error("lxip: read from write-only handle");
-		return -1;
-	}
-
-	/**
-	 * Pass len data to handle write callback
-	 */
-	virtual Lxip::ssize_t write(char const *, Genode::size_t, file_size)
-	{
-		Genode::error("lxip: write to read-only handle");
-		return -1;
-	}
 };
 
 
@@ -225,6 +179,22 @@ struct Vfs::File : Vfs::Node
 	 * Check for data to read or write
 	 */
 	virtual bool poll(bool trigger_io_response, Vfs::Vfs_handle::Context *context) = 0;
+
+	virtual Lxip::ssize_t write(Lxip_vfs_file_handle &,
+	                             char const *src, Genode::size_t len,
+	                             file_size)
+	{
+		Genode::error(name(), " not writeable");
+		return -1;
+	}
+
+	virtual Lxip::ssize_t  read(Lxip_vfs_file_handle &,
+	                            char *dst, Genode::size_t len,
+	                            file_size)
+	{
+		Genode::error(name(), " not readable");
+		return -1;
+	}
 };
 
 
@@ -236,36 +206,126 @@ struct Vfs::Directory : Vfs::Node
 
 	virtual Vfs::Node *child(char const *)                        = 0;
 	virtual file_size num_dirent()                                = 0;
+
+	typedef Vfs::Directory_service::Open_result Open_result;
+	virtual Open_result open(Vfs::File_system &fs,
+	                         Vfs::Io_response_handler &io_handler,
+	                         Genode::Allocator &alloc,
+	                         char const*, unsigned, Vfs::Vfs_handle**) = 0;
+
+	virtual Lxip::ssize_t read(char *dst, Genode::size_t len,
+	                           file_size seek_offset) = 0;
+};
+
+
+struct Lxip::Protocol_dir : Vfs::Directory
+{
+	enum Type { TYPE_STREAM, TYPE_DGRAM };
+
+	virtual char const *top_dir() = 0;
+	virtual Type type() = 0;
+	virtual unsigned adopt_socket(Lxip::Socket_dir &) = 0;
+	virtual bool     lookup_port(long) = 0;
+	virtual void release(unsigned id) = 0;
+
+	Protocol_dir(char const *name) : Vfs::Directory(name) { }
+};
+
+
+struct Lxip::Socket_dir : Vfs::Directory
+{
+	typedef Vfs::Directory_service::Open_result Open_result;
+
+	virtual Protocol_dir &parent() = 0;
+	virtual char const *top_dir() = 0;
+	virtual void     bind(bool) = 0; /* bind to port */
+	virtual long     bind() = 0; /* return bound port */
+	virtual bool     lookup_port(long) = 0;
+	virtual void     connect(bool) = 0;
+	virtual void     listen(bool) = 0;
+	virtual sockaddr_storage &remote_addr() = 0;
+	virtual void     close() = 0;
+	virtual bool     closed() const = 0;
+	virtual void trigger_io_response(Vfs::Vfs_handle::Context *) = 0;
+
+	Socket_dir(char const *name) : Vfs::Directory(name) { }
 };
 
 
 struct Vfs::Lxip_vfs_handle : Vfs::Vfs_handle
 {
-	Node &node;
+	typedef File_io_service:: Read_result Read_result;
+	typedef File_io_service::Write_result Write_result;
 
-	Lxip_vfs_handle(Vfs::File_system &fs, Allocator &alloc, int status_flags,
-	                Vfs::Node &node)
-	: Vfs::Vfs_handle(fs, fs, alloc, status_flags),	node(node) { }
+	Lxip_vfs_handle(Vfs::File_system &fs, Allocator &alloc, int status_flags)
+	: Vfs::Vfs_handle(fs, fs, alloc, status_flags) { }
+
+	virtual bool read_ready() = 0;
+
+	virtual Read_result   read(char *dst,
+	                           file_size count, file_size &out_count) = 0;
+	virtual Write_result write(char const *src,
+	                           file_size count, file_size &out_count) = 0;
+
 };
 
 
 struct Vfs::Lxip_vfs_file_handle final : Vfs::Lxip_vfs_handle
 {
-	Vfs::File &file;
+	Lxip_vfs_file_handle(Lxip_vfs_file_handle const &);
+	Lxip_vfs_file_handle &operator = (Lxip_vfs_file_handle const &);
+
+	Vfs::File *file;
 
 	List_element<Lxip_vfs_file_handle> file_le    { this };
 	List_element<Lxip_vfs_file_handle> polling_le { this };
 
+	char content_buffer[Lxip::MAX_DATA_LEN];
+
 	Lxip_vfs_file_handle(Vfs::File_system &fs, Allocator &alloc, int status_flags,
-	                     Vfs::File &file)
-	: Lxip_vfs_handle(fs, alloc, status_flags, file), file(file)
+	                     Vfs::File *file)
+	: Lxip_vfs_handle(fs, alloc, status_flags), file(file)
 	{
-		file.handles.insert(&file_le);
+		if (file)
+			file->handles.insert(&file_le);
 	}
 
 	~Lxip_vfs_file_handle()
 	{
-		file.handles.remove(&file_le);
+		if (file)
+			file->handles.remove(&file_le);
+	}
+
+	bool read_ready() override {
+		return (file) ? file->poll(false, nullptr) : false; }
+
+	Read_result read(char *dst, file_size count, file_size &out_count) override
+	{
+		if (!file) return Read_result::READ_ERR_INVALID;
+		Lxip::ssize_t res = file->read(*this, dst, count, seek());
+		if (res < 0) return Read_result::READ_ERR_IO;
+		out_count = res;
+		return Read_result::READ_OK;
+	}
+
+	Write_result write(char const *src, file_size count, file_size &out_count) override
+	{
+		if (!file) return Write_result::WRITE_ERR_INVALID;
+		Lxip::ssize_t res = file->write(*this, src, count, seek());
+		if (res < 0) return Write_result::WRITE_ERR_IO;
+		out_count = res;
+		return Write_result::WRITE_OK;
+	}
+
+	bool write_content_line(char const *buf, Genode::size_t len)
+	{
+		if (len > sizeof(content_buffer) - 2)
+			return false;
+
+		Genode::memcpy(content_buffer, buf, len);
+		content_buffer[len+0] = '\n';
+		content_buffer[len+1] = '\0';
+		return true;
 	}
 };
 
@@ -276,8 +336,21 @@ struct Vfs::Lxip_vfs_dir_handle final : Vfs::Lxip_vfs_handle
 
 	Lxip_vfs_dir_handle(Vfs::File_system &fs, Allocator &alloc, int status_flags,
 	                    Vfs::Directory &dir)
-	: Vfs::Lxip_vfs_handle(fs, alloc, status_flags, dir),
+	: Vfs::Lxip_vfs_handle(fs, alloc, status_flags),
 	  dir(dir) { }
+
+	bool read_ready() override { return true; }
+
+	Read_result read(char *dst, file_size count, file_size &out_count) override
+	{
+		Lxip::ssize_t res = dir.read(dst, count, seek());
+		if (res < 0) return Read_result::READ_ERR_IO;
+		out_count = res;
+		return Read_result::READ_OK;
+	}
+
+	Write_result write(char const*, file_size, file_size &) override {
+		return Write_result::WRITE_ERR_INVALID; }
 };
 
 
@@ -296,7 +369,8 @@ static void poll_all()
 	     le; le = le->next())
 	{
 		Vfs::Lxip_vfs_file_handle *handle = le->object();
-		handle->file.poll(true, handle->context);
+		if (handle->file)
+			handle->file->poll(true, handle->context);
 	}
 }
 
@@ -312,19 +386,6 @@ class Vfs::Lxip_file : public Vfs::File
 		Lxip::Socket_dir &_parent;
 		Linux::socket    &_sock;
 
-		char _content_buffer[Lxip::MAX_DATA_LEN];
-
-		bool _write_content_line(char const *buf, Genode::size_t len)
-		{
-			if (len > sizeof(_content_buffer) - 2)
-				return false;
-
-			Genode::memcpy(_content_buffer, buf, len);
-			_content_buffer[len+0] = '\n';
-			_content_buffer[len+1] = '\0';
-			return true;
-		}
-
 		bool _sock_valid() { return _sock.sk != nullptr; }
 
 	public:
@@ -334,12 +395,18 @@ class Vfs::Lxip_file : public Vfs::File
 
 		virtual ~Lxip_file() { }
 
+		/**
+		 * Dissolve relationship between handle and file, file and polling list.
+		 */
 		void dissolve_handles()
 		{
-			for (Genode::List_element<Vfs::Lxip_vfs_file_handle> *le = handles.first();
-			     le; le = le->next())
-			{
-				_polling_handles.remove(&le->object()->polling_le);
+			Genode::List_element<Vfs::Lxip_vfs_file_handle> *le = handles.first();
+			while (le) {
+				Vfs::Lxip_vfs_file_handle *h = le->object();
+				_polling_handles.remove(&h->polling_le);
+				handles.remove(&h->file_le);
+				h->file = nullptr;
+				le = handles.first();
 			}
 		}
 };
@@ -371,7 +438,8 @@ class Vfs::Lxip_data_file : public Vfs::Lxip_file
 			return false;
 		}
 
-		Lxip::ssize_t write(char const *src, Genode::size_t len,
+		Lxip::ssize_t write(Lxip_vfs_file_handle &,
+		                    char const *src, Genode::size_t len,
 		                    file_size /* ignored */) override
 		{
 			using namespace Linux;
@@ -386,7 +454,8 @@ class Vfs::Lxip_data_file : public Vfs::Lxip_file
 			return _sock.ops->sendmsg(&_sock, &msg, len);
 		}
 
-		Lxip::ssize_t read(char *dst, Genode::size_t len,
+		Lxip::ssize_t read(Lxip_vfs_file_handle &,
+		                   char *dst, Genode::size_t len,
 		                   file_size /* ignored */) override
 		{
 			using namespace Linux;
@@ -424,7 +493,8 @@ class Vfs::Lxip_bind_file : public Vfs::Lxip_file
 
 		bool poll(bool, Vfs::Vfs_handle::Context *) { return true; }
 
-		Lxip::ssize_t write(char const *src, Genode::size_t len,
+		Lxip::ssize_t write(Lxip_vfs_file_handle &handle,
+		                    char const *src, Genode::size_t len,
 		                    file_size /* ignored */) override
 		{
 			using namespace Linux;
@@ -434,10 +504,10 @@ class Vfs::Lxip_bind_file : public Vfs::Lxip_file
 			/* already bound to port */
 			if (_port >= 0) return -1;
 
-			if (!_write_content_line(src, len)) return -1;
+			if (!handle.write_content_line(src, len)) return -1;
 
 			/* check if port is already used by other socket */
-			long port = get_port(_content_buffer);
+			long port = get_port(handle.content_buffer);
 			if (port == -1)                return -1;
 			if (_parent.lookup_port(port)) return -1;
 
@@ -446,7 +516,7 @@ class Vfs::Lxip_bind_file : public Vfs::Lxip_file
 
 			sockaddr_in *addr     = (sockaddr_in *)&addr_storage;
 			addr->sin_port        = htons(port);
-			addr->sin_addr.s_addr = get_addr(_content_buffer);
+			addr->sin_addr.s_addr = get_addr(handle.content_buffer);
 			addr->sin_family      = AF_INET;
 
 			int res = _sock.ops->bind(&_sock, (sockaddr*)addr, sizeof(addr_storage));
@@ -459,14 +529,15 @@ class Vfs::Lxip_bind_file : public Vfs::Lxip_file
 			return len;
 		}
 
-		Lxip::ssize_t read(char *dst, Genode::size_t len,
+		Lxip::ssize_t read(Lxip_vfs_file_handle &handle,
+		                   char *dst, Genode::size_t len,
 		                   file_size /* ignored */) override
 		{
-			if (len < sizeof(_content_buffer))
+			if (len < sizeof(handle.content_buffer))
 				return -1;
 
-			Genode::size_t const n = Genode::strlen(_content_buffer);
-			Genode::memcpy(dst, _content_buffer, n);
+			Genode::size_t const n = Genode::strlen(handle.content_buffer);
+			Genode::memcpy(dst, handle.content_buffer, n);
 
 			return n;
 		}
@@ -475,6 +546,10 @@ class Vfs::Lxip_bind_file : public Vfs::Lxip_file
 
 class Vfs::Lxip_listen_file : public Vfs::Lxip_file
 {
+	private:
+
+		unsigned long _backlog = ~0UL;
+
 	public:
 
 		Lxip_listen_file(Lxip::Socket_dir &p, Linux::socket &s)
@@ -486,21 +561,27 @@ class Vfs::Lxip_listen_file : public Vfs::Lxip_file
 
 		bool poll(bool, Vfs::Vfs_handle::Context *) { return true; }
 
-		Lxip::ssize_t write(char const *src, Genode::size_t len,
+		Lxip::ssize_t write(Lxip_vfs_file_handle &handle,
+		                    char const *src, Genode::size_t len,
 		                    file_size /* ignored */) override
 		{
 			if (!_sock_valid()) return -1;
 
-			if (!_write_content_line(src, len)) return -1;
+			/* write-once */
+			if (_backlog != ~0UL) return -1;
+
+			if (!handle.write_content_line(src, len)) return -1;
 
 			Lxip::ssize_t res;
 
-			unsigned long backlog = 5; /* default */
-			Genode::ascii_to_unsigned(src, backlog, 10);
+			Genode::ascii_to_unsigned(
+				handle.content_buffer, _backlog, sizeof(handle.content_buffer));
 
-			res = _sock.ops->listen(&_sock, backlog);
+			if (_backlog == ~0UL) return -1;
+
+			res = _sock.ops->listen(&_sock, _backlog);
 			if (res != 0) {
-				_write_content_line("", 0);
+				handle.write_content_line("", 0);
 				return -1;
 			}
 
@@ -509,16 +590,11 @@ class Vfs::Lxip_listen_file : public Vfs::Lxip_file
 			return len;
 		}
 
-		Lxip::ssize_t read(char *dst, Genode::size_t len,
+		Lxip::ssize_t read(Lxip_vfs_file_handle &handle,
+		                   char *dst, Genode::size_t len,
 		                   file_size /* ignored */) override
 		{
-			if (len < sizeof(_content_buffer))
-				return -1;
-
-			Genode::size_t const n = Genode::strlen(_content_buffer);
-			Genode::memcpy(dst, _content_buffer, n);
-
-			return n;
+			return Genode::snprintf(dst, len, "%lu\n", _backlog);
 		}
 };
 
@@ -541,23 +617,24 @@ class Vfs::Lxip_connect_file : public Vfs::Lxip_file
 
 		bool poll(bool, Vfs::Vfs_handle::Context *) { return true; }
 
-		Lxip::ssize_t write(char const *src, Genode::size_t len,
+		Lxip::ssize_t write(Lxip_vfs_file_handle &handle,
+		                    char const *src, Genode::size_t len,
 		                    file_size /* ignored */) override
 		{
 			using namespace Linux;
 
 			if (!_sock_valid()) return -1;
 
-			if (!_write_content_line(src, len)) return -1;
+			if (!handle.write_content_line(src, len)) return -1;
 
-			long const port = get_port(_content_buffer);
+			long const port = get_port(handle.content_buffer);
 			if (port == -1) return -1;
 
 			sockaddr_storage addr_storage;
 
 			sockaddr_in *addr     = (sockaddr_in *)&addr_storage;
 			addr->sin_port        = htons(port);
-			addr->sin_addr.s_addr = get_addr(_content_buffer);
+			addr->sin_addr.s_addr = get_addr(handle.content_buffer);
 			addr->sin_family      = AF_INET;
 
 			int res = _sock.ops->connect(&_sock, (sockaddr *)addr, sizeof(addr_storage), 0);
@@ -587,7 +664,7 @@ class Vfs::Lxip_connect_file : public Vfs::Lxip_file
 
 			sockaddr_in *remote_addr     = (sockaddr_in *)&_parent.remote_addr();
 			remote_addr->sin_port        = htons(port);
-			remote_addr->sin_addr.s_addr = get_addr(_content_buffer);
+			remote_addr->sin_addr.s_addr = get_addr(handle.content_buffer);
 			remote_addr->sin_family      = AF_INET;
 
 			_parent.connect(true);
@@ -610,14 +687,15 @@ class Vfs::Lxip_local_file : public Vfs::Lxip_file
 
 		bool poll(bool, Vfs::Vfs_handle::Context *) { return true; }
 
-		Lxip::ssize_t read(char *dst, Genode::size_t len,
+		Lxip::ssize_t read(Lxip_vfs_file_handle &handle,
+		                   char *dst, Genode::size_t len,
 		                   file_size /* ignored */) override
 		{
 			using namespace Linux;
 
 			if (!_sock_valid()) return -1;
 
-			if (len < sizeof(_content_buffer))
+			if (len < sizeof(handle.content_buffer))
 				return -1;
 
 			sockaddr_storage addr_storage;
@@ -674,7 +752,8 @@ class Vfs::Lxip_remote_file : public Vfs::Lxip_file
 			return false;
 		}
 
-		Lxip::ssize_t read(char *dst, Genode::size_t len,
+		Lxip::ssize_t read(Lxip_vfs_file_handle &handle,
+		                   char *dst, Genode::size_t len,
 		                   file_size /* ignored */) override
 		{
 			using namespace Linux;
@@ -690,10 +769,10 @@ class Vfs::Lxip_remote_file : public Vfs::Lxip_file
 					/* peek the sender address of the next packet */
 
 					/* buffer not used */
-					iovec iov { _content_buffer, sizeof(_content_buffer) };
+					iovec iov { handle.content_buffer, sizeof(handle.content_buffer) };
 
 					msghdr msg = create_msghdr(addr, sizeof(addr_storage),
-					                           sizeof(_content_buffer), &iov);
+					                           sizeof(handle.content_buffer), &iov);
 
 					int const res = _sock.ops->recvmsg(&_sock, &msg, 0, MSG_DONTWAIT|MSG_PEEK);
 					if (res == -EAGAIN) throw Would_block();
@@ -717,19 +796,20 @@ class Vfs::Lxip_remote_file : public Vfs::Lxip_file
 			                        a[0], a[1], a[2], a[3], (p[0]<<8)|(p[1]<<0));
 		}
 
-		Lxip::ssize_t write(char const *src, Genode::size_t len,
+		Lxip::ssize_t write(Lxip_vfs_file_handle &handle,
+		                    char const *src, Genode::size_t len,
 		                    file_size /* ignored */) override
 		{
 			using namespace Linux;
 
-			if (!_write_content_line(src, len)) return -1;
+			if (!handle.write_content_line(src, len)) return -1;
 
-			long const port = get_port(_content_buffer);
+			long const port = get_port(handle.content_buffer);
 			if (port == -1) return -1;
 
 			sockaddr_in *remote_addr     = (sockaddr_in *)&_parent.remote_addr();
 			remote_addr->sin_port        = htons(port);
-			remote_addr->sin_addr.s_addr = get_addr(_content_buffer);
+			remote_addr->sin_addr.s_addr = get_addr(handle.content_buffer);
 			remote_addr->sin_family      = AF_INET;
 
 			return len;
@@ -764,54 +844,35 @@ class Vfs::Lxip_accept_file : public Vfs::Lxip_file
 			return false;
 		}
 
-		Lxip::ssize_t read(char *dst, Genode::size_t len,
+		Lxip::ssize_t read(Lxip_vfs_file_handle &handle,
+		                   char *dst, Genode::size_t len,
 		                   file_size /* ignored */) override
 		{
 			using namespace Linux;
 
 			if (!_sock_valid()) return -1;
 
-			if (!poll(false, nullptr)) {
-				throw Would_block();
+			file f;
+			f.f_flags = 0;
+
+			if (_sock.ops->poll(&f, &_sock, nullptr) & (POLLIN)) {
+				Genode::strncpy(dst, "1\n", len);
+				return Genode::strlen(dst);
 			}
-
-			socket *new_sock = sock_alloc();
-
-			if (int res = _sock.ops->accept(&_sock, new_sock, O_NONBLOCK)) {
-				kfree(new_sock);
-				if (res == -EAGAIN) {
-					throw Would_block();
-				} else {
-					return -1;
-				}
-			}
-			set_sock_wait(new_sock, 0);
-
-			new_sock->type = _sock.type;
-			new_sock->ops  = _sock.ops;
-
-			try {
-				unsigned const id = _parent.accept(*new_sock);
-				return Genode::snprintf(dst, len, "%s/%u\n", _parent.top_dir(), id);
-			} catch (...) {
-				Genode::error("lxip: could not adopt new client socket");
-			}
-
-			kfree(new_sock);
-			return -1;
+			return 0;
 		}
 };
 
 
-class Vfs::Lxip_socket_dir final : public Vfs::Directory,
-                                   public Lxip::Socket_dir
+class Vfs::Lxip_socket_dir final : public Lxip::Socket_dir
 {
 	public:
 
 		enum {
 			ACCEPT_NODE, BIND_NODE, CONNECT_NODE,
 			DATA_NODE, LOCAL_NODE, LISTEN_NODE, REMOTE_NODE,
-			MAX_NODES
+			ACCEPT_SOCKET_NODE,
+			MAX_FILES
 		};
 
 	private:
@@ -821,14 +882,14 @@ class Vfs::Lxip_socket_dir final : public Vfs::Directory,
 		Vfs::Io_response_handler &_io_response_handler;
 		Linux::socket            &_sock;
 
-		Vfs::Node *_nodes[MAX_NODES];
+		Vfs::File *_files[MAX_FILES];
 
 		Linux::sockaddr_storage _remote_addr;
 
 		unsigned _num_nodes()
 		{
 			unsigned num = 0;
-			for (Vfs::Node *n : _nodes) num += (n != nullptr);
+			for (Vfs::File *n : _files) num += (n != nullptr);
 			return num;
 		}
 
@@ -840,29 +901,42 @@ class Vfs::Lxip_socket_dir final : public Vfs::Directory,
 		Lxip_local_file   _local_file   { *this, _sock };
 		Lxip_remote_file  _remote_file  { *this, _sock };
 
+		struct Accept_socket_file : Vfs::File
+		{
+			Accept_socket_file() : Vfs::File("accept_socket") { }
+
+			bool poll(bool, Vfs::Vfs_handle::Context *) override { return true; }
+		} _accept_socket_file { };
+
 		char _name[Lxip::MAX_SOCKET_NAME_LEN];
+
+		Vfs::Directory_service::Open_result
+		_accept_new_socket(Vfs::File_system &fs,
+		                   Genode::Allocator &alloc,
+		                   Vfs::Vfs_handle **out_handle);
 
 	public:
 
-		Lxip_socket_dir(Genode::Allocator &alloc, unsigned id,
+		unsigned const id;
+
+		Lxip_socket_dir(Genode::Allocator &alloc,
 		                Lxip::Protocol_dir &parent,
 		                Vfs::Io_response_handler &io_response_handler,
-		                Linux::socket &sock,
-		                bool from_accept)
+		                Linux::socket &sock)
 		:
-			Directory(_name),
+			Lxip::Socket_dir(_name),
 			_alloc(alloc), _parent(parent), _io_response_handler(io_response_handler),
-			_sock(sock)
+			_sock(sock), id(parent.adopt_socket(*this))
 		{
 			Genode::snprintf(_name, sizeof(_name), "%u", id);
 
-			for (Vfs::Node * &node : _nodes) node = nullptr;
+			for (Vfs::File * &file : _files) file = nullptr;
 
-			_nodes[BIND_NODE]    = &_bind_file;
-			_nodes[CONNECT_NODE] = &_connect_file;
-			_nodes[DATA_NODE]    = &_data_file;
-			_nodes[LOCAL_NODE]   = &_local_file;
-			_nodes[REMOTE_NODE]  = &_remote_file;
+			_files[BIND_NODE]    = &_bind_file;
+			_files[CONNECT_NODE] = &_connect_file;
+			_files[DATA_NODE]    = &_data_file;
+			_files[LOCAL_NODE]   = &_local_file;
+			_files[REMOTE_NODE]  = &_remote_file;
 		}
 
 		~Lxip_socket_dir()
@@ -882,6 +956,8 @@ class Vfs::Lxip_socket_dir final : public Vfs::Directory,
 
 			kfree(sock->wq);
 			kfree(sock);
+
+			_parent.release(id);
 		}
 
 		/**************************
@@ -894,14 +970,33 @@ class Vfs::Lxip_socket_dir final : public Vfs::Directory,
 
 		char const *top_dir() override { return _parent.top_dir(); }
 
-		unsigned accept(Linux::socket &sock) override
+		Open_result
+		open(Vfs::File_system &fs,
+		     Vfs::Io_response_handler &,
+		     Genode::Allocator &alloc,
+		     char const *path, unsigned mode, Vfs::Vfs_handle**out_handle) override
 		{
-			return _parent.adopt_socket(sock, true);
+			++path;
+
+			if (strcmp(path, "accept_socket") == 0)
+				return _accept_new_socket(fs, alloc, out_handle);
+
+			for (Vfs::File *f : _files) {
+				if (f && Genode::strcmp(f->name(), path) == 0) {
+					Vfs::Lxip_vfs_file_handle *handle = new (alloc)
+						Vfs::Lxip_vfs_file_handle(fs, alloc, mode, f);
+					*out_handle = handle;
+					return Open_result::OPEN_OK;
+				}
+			}
+
+			Genode::error(path, " is UNACCESSIBLE");
+			return Vfs::Directory_service::OPEN_ERR_UNACCESSIBLE;
 		}
 
 		void bind(bool v) override
 		{
-			_nodes[LISTEN_NODE] = v ? &_listen_file : nullptr;
+			_files[LISTEN_NODE] = v ? &_listen_file : nullptr;
 		}
 
 		long bind() override { return _bind_file.port(); }
@@ -910,12 +1005,13 @@ class Vfs::Lxip_socket_dir final : public Vfs::Directory,
 
 		void connect(bool v) override
 		{
-			_nodes[REMOTE_NODE] = v ? &_remote_file : nullptr;
+			_files[REMOTE_NODE] = v ? &_remote_file : nullptr;
 		}
 
 		void listen(bool v) override
 		{
-			_nodes[ACCEPT_NODE] = v ? &_accept_file : nullptr;
+			_files[ACCEPT_NODE] = v ? &_accept_file : nullptr;
+			_files[ACCEPT_SOCKET_NODE] = v ? &_accept_socket_file : nullptr;
 		}
 
 		bool _closed = false;
@@ -934,7 +1030,7 @@ class Vfs::Lxip_socket_dir final : public Vfs::Directory,
 
 		Vfs::Node *child(char const *name) override
 		{
-			for (Vfs::Node *n : _nodes)
+			for (Vfs::File *n : _files)
 				if (n && Genode::strcmp(n->name(), name) == 0)
 					return n;
 
@@ -960,7 +1056,7 @@ class Vfs::Lxip_socket_dir final : public Vfs::Directory,
 			out->name[0] = '\0';
 
 			Vfs::Node *node = nullptr;
-			for (Vfs::Node *n : _nodes) {
+			for (Vfs::File *n : _files) {
 				if (n) {
 					if (index == 0) {
 						node = n;
@@ -980,61 +1076,87 @@ class Vfs::Lxip_socket_dir final : public Vfs::Directory,
 };
 
 
-class Vfs::Lxip_new_socket_file : public Vfs::File
+struct Vfs::Lxip_socket_handle final : Vfs::Lxip_vfs_handle
 {
-	private:
+		Lxip_socket_dir socket_dir;
 
-		Lxip::Protocol_dir &_parent;
+		Lxip_socket_handle(Vfs::File_system &fs,
+		                   Vfs::Io_response_handler &io_handler,
+		                   Genode::Allocator &alloc,
+		                   Lxip::Protocol_dir &parent,
+		                   Linux::socket &sock)
+		:
+			Lxip_vfs_handle(fs, alloc, 0),
+			socket_dir(alloc, parent, io_handler, sock)
+		{ }
 
-	public:
+		bool read_ready() override { return true; }
 
-		Lxip_new_socket_file(Lxip::Protocol_dir &parent)
-		: Vfs::File("new_socket"), _parent(parent) { }
-
-		bool poll(bool, Vfs::Vfs_handle::Context *) override { return true; }
-
-		Lxip::ssize_t read(char *dst, Genode::size_t len,
-		                   file_size /* ignored */) override
+		Read_result read(char *dst, file_size count, file_size &out_count) override
 		{
-			using namespace Linux;
-
-			socket *sock = nullptr;
-
-			int type = (_parent.type() == Lxip::Protocol_dir::TYPE_STREAM)
-			         ? SOCK_STREAM : SOCK_DGRAM;
-
-			if (sock_create_kern(nullptr, AF_INET, type, 0, &sock)) {
-				kfree(sock);
-				return -1;
-			}
-			set_sock_wait(sock, 0);
-
-			/* XXX always allow UDP broadcast */
-			if (type == SOCK_DGRAM) {
-				int enable = 1;
-				sock_setsockopt(sock, SOL_SOCKET, SO_BROADCAST, (char *)&enable, sizeof(enable));
-			}
-
-			try {
-				unsigned const id = _parent.adopt_socket(*sock, false);
-				return Genode::snprintf(dst, len, "%s/%u\n", _parent.top_dir(), id);
-			} catch (...) {
-				Genode::error("lxip: could not adopt socket");
-			}
-
-			return -1;
+			out_count = Genode::snprintf(
+				dst, count, "%s/%s\n", socket_dir.parent().name(), socket_dir.name());
+			return Read_result::READ_OK;
 		}
+
+		Write_result write(char const *src, file_size count, file_size &out_count) override {
+			return Write_result::WRITE_ERR_INVALID; }
 };
 
 
-class Lxip::Protocol_dir_impl : public Protocol_dir,
-                                public Vfs::Directory
+Vfs::Directory_service::Open_result
+Vfs::Lxip_socket_dir::_accept_new_socket(Vfs::File_system &fs,
+                                         Genode::Allocator &alloc,
+                                         Vfs::Vfs_handle **out_handle)
+{
+	using namespace Linux;
+
+	Open_result res = Open_result::OPEN_ERR_UNACCESSIBLE;
+	if (!_files[ACCEPT_SOCKET_NODE]) return res;
+
+	socket *new_sock = sock_alloc();
+
+	if (_sock.ops->accept(&_sock, new_sock, O_NONBLOCK)) {
+		error("accept socket failed");
+		kfree(new_sock);
+		return res;
+	}
+
+	set_sock_wait(new_sock, 0);
+	new_sock->type = _sock.type;
+	new_sock->ops  = _sock.ops;
+
+	try {
+		Vfs::Lxip_socket_handle *handle = new (alloc)
+			Vfs::Lxip_socket_handle(fs, _io_response_handler, alloc,
+			                        _parent, *new_sock);
+		*out_handle = handle;
+		return Vfs::Directory_service::Open_result::OPEN_OK;
+	}
+
+	catch (Genode::Out_of_ram)  { res = Open_result::OPEN_ERR_OUT_OF_RAM;  }
+	catch (Genode::Out_of_caps) { res = Open_result::OPEN_ERR_OUT_OF_CAPS; }
+	catch (...) { Genode::error("unhandle error during accept"); }
+
+	kfree(new_sock);
+	return res;
+};
+
+
+class Lxip::Protocol_dir_impl : public Protocol_dir
 {
 	private:
 
 		Genode::Allocator        &_alloc;
 		Vfs::File_system         &_parent;
 		Vfs::Io_response_handler &_io_response_handler;
+
+		struct New_socket_file : Vfs::File
+		{
+			New_socket_file() : Vfs::File("new_socket") { }
+
+			bool poll(bool, Vfs::Vfs_handle::Context *) override { return true; }
+		} _new_socket_file { };
 
 		Type const _type;
 
@@ -1074,7 +1196,52 @@ class Lxip::Protocol_dir_impl : public Protocol_dir,
 			return (Genode::strcmp(path, "") == 0) || (Genode::strcmp(path, "/") == 0);
 		}
 
-		Vfs::Lxip_new_socket_file _new_socket_file { *this };
+		Vfs::Directory_service::Open_result
+		_open_new_socket(Vfs::File_system &fs,
+		                 Vfs::Io_response_handler &io_handler,
+		                 Genode::Allocator &alloc,
+		                 Vfs::Vfs_handle **out_handle)
+		{
+			using namespace Linux;
+
+			Vfs::Directory_service::Open_result res =
+				Vfs::Directory_service::Open_result::OPEN_ERR_UNACCESSIBLE;
+
+			socket *sock = nullptr;
+
+			int type = (_type == Lxip::Protocol_dir::TYPE_STREAM)
+			         ? SOCK_STREAM : SOCK_DGRAM;
+
+			if (sock_create_kern(nullptr, AF_INET, type, 0, &sock)) {
+				kfree(sock);
+				return res;
+			}
+
+			set_sock_wait(sock, 0);
+
+			/* XXX always allow UDP broadcast */
+			if (type == SOCK_DGRAM) {
+				int enable = 1;
+				sock_setsockopt(sock, SOL_SOCKET, SO_BROADCAST, (char *)&enable, sizeof(enable));
+			}
+
+			try {
+				Vfs::Lxip_socket_handle *handle = new (alloc)
+					Vfs::Lxip_socket_handle(fs, io_handler, alloc,
+					                        *this, *sock);
+				*out_handle = handle;
+				return Vfs::Directory_service::Open_result::OPEN_OK;
+			}
+
+			catch (Genode::Out_of_ram)  {
+				res = Open_result::OPEN_ERR_OUT_OF_RAM;  }
+			catch (Genode::Out_of_caps) {
+				res = Open_result::OPEN_ERR_OUT_OF_CAPS; }
+			catch (...) { Genode::error("unhandle error during accept"); }
+
+			kfree(sock);
+			return res;
+		}
 
 	public:
 
@@ -1084,7 +1251,7 @@ class Lxip::Protocol_dir_impl : public Protocol_dir,
 		                  char               const *name,
 		                  Lxip::Protocol_dir::Type  type)
 		:
-			Directory(name),
+			Protocol_dir(name),
 			_alloc(alloc), _parent(parent), _io_response_handler(io_response_handler),
 			_type(type)
 		{
@@ -1147,19 +1314,50 @@ class Lxip::Protocol_dir_impl : public Protocol_dir,
 
 		Type type() { return _type; }
 
-		unsigned adopt_socket(Linux::socket &sock, bool from_accept)
+		Open_result open(Vfs::File_system &fs,
+		                 Vfs::Io_response_handler &io_handler,
+		                 Genode::Allocator &alloc,
+		                 char const *path, unsigned mode,
+		                 Vfs::Vfs_handle **out_handle) override
+		{
+			if (strcmp(path, "/new_socket") == 0) {
+				if (mode != 0) return Open_result::OPEN_ERR_NO_PERM;
+				return _open_new_socket(fs, io_handler, alloc, out_handle);
+			}
+
+			path++;
+			char const *p = path;
+			while (*++p && *p != '/');
+
+			for (Genode::size_t i = 1; i < MAX_NODES; i++) {
+				if (!_nodes[i]) continue;
+				if (Genode::strcmp(_nodes[i]->name(), path, (p - path)) == 0) {
+					Vfs::Directory *dir = dynamic_cast<Directory *>(_nodes[i]);
+					if (dir) {
+						path += (p - path);
+						return dir->open(fs, io_handler, alloc, path, mode, out_handle);
+					}
+				}
+			}
+
+			return Open_result::OPEN_ERR_UNACCESSIBLE;
+		}
+
+		unsigned adopt_socket(Lxip::Socket_dir &dir)
 		{
 			Vfs::Node **node = _unused_node();
 			if (!node) throw -1;
 
 			unsigned const id = ((unsigned char*)node - (unsigned char*)_nodes)/sizeof(*_nodes);
 
-			Vfs::Lxip_socket_dir *dir = new (&_alloc)
-				Vfs::Lxip_socket_dir(_alloc, id, *this, _io_response_handler,
-				                     sock, from_accept);
-
-			*node = dir;
+			*node = &dir;
 			return id;
+		}
+
+		void release(unsigned id)
+		{
+			if (id < MAX_NODES)
+				_nodes[id] = nullptr;
 		}
 
 		bool lookup_port(long port)
@@ -1235,7 +1433,8 @@ class Vfs::Lxip_address_file : public Vfs::File
 
 		bool poll(bool, Vfs::Vfs_handle::Context *) { return true; }
 
-		Lxip::ssize_t read(char *dst, Genode::size_t len,
+		Lxip::ssize_t read(Lxip_vfs_file_handle &handle,
+		                   char *dst, Genode::size_t len,
 		                   file_size /* ignored */) override
 		{
 			enum {
@@ -1269,7 +1468,8 @@ class Vfs::Lxip_link_state_file : public Vfs::File
 
 		bool poll(bool, Vfs::Vfs_handle::Context *) { return true; }
 
-		Lxip::ssize_t read(char *dst, Genode::size_t len,
+		Lxip::ssize_t read(Lxip_vfs_file_handle &handle,
+		                   char *dst, Genode::size_t len,
 		                   file_size /* ignored */) override
 		{
 			enum {
@@ -1365,19 +1565,10 @@ class Vfs::Lxip_file_system : public Vfs::File_system,
 		                  Vfs::file_size count,
 		                  Vfs::file_size &out_count)
 		{
-			Vfs::Node &node =
-				static_cast<Vfs::Lxip_vfs_handle *>(vfs_handle)->node;
+			Vfs::Lxip_vfs_handle *handle =
+				static_cast<Vfs::Lxip_vfs_handle*>(vfs_handle);
 
-			if (!count)
-				Genode::error("zero read of ", node.name());
-
-			if (count) {
-				Lxip::ssize_t res = node.read(dst, count, vfs_handle->seek());
-				if (res < 0) return READ_ERR_IO;
-
-				out_count = res;
-			}
-			return READ_OK;
+			return handle->read(dst, count, out_count);
 		}
 
 	public:
@@ -1450,6 +1641,13 @@ class Vfs::Lxip_file_system : public Vfs::File_system,
 		 *************************/
 
 		file_size num_dirent() override { return 7; }
+
+		Vfs::Directory::Open_result
+		open(Vfs::File_system &fs,
+	         Vfs::Io_response_handler &io_handler,
+	         Genode::Allocator &alloc,
+	         char const*, unsigned, Vfs::Vfs_handle**) override {
+			return Vfs::Directory::Open_result::OPEN_ERR_UNACCESSIBLE; }
 
 		Lxip::ssize_t read(char *dst, Genode::size_t len,
 		                   file_size seek_offset) override
@@ -1554,28 +1752,37 @@ class Vfs::Lxip_file_system : public Vfs::File_system,
 			return node ? dynamic_cast<Vfs::Directory *>(node) : 0;
 		}
 
-		char const *leaf_path(char const *path) override
-		{
-			return path;
-		}
+		char const *leaf_path(char const *path) override {
+			return path; }
 
-		Open_result open(char const *path, unsigned mode,
-		                 Vfs_handle **out_handle,
-		                 Genode::Allocator &alloc) override
+		Vfs::Directory_service::Open_result
+		open(char const *path, unsigned mode,
+		     Vfs_handle **out_handle,
+		     Genode::Allocator &alloc) override
 		{
 			if (mode & OPEN_MODE_CREATE) return OPEN_ERR_NO_PERM;
 
-			Vfs::Node *node = _lookup(path);
-			if (!node) return OPEN_ERR_UNACCESSIBLE;
+			try {
+				if (Genode::strcmp(path, "/tcp", 4) == 0)
+					return _tcp_dir.open(*this, _io_response_handler, alloc,
+					                     &path[4], mode, out_handle);
+				if (Genode::strcmp(path, "/udp", 4) == 0)
+					return _udp_dir.open(*this, _io_response_handler, alloc,
+					                     &path[4], mode, out_handle);
 
-			Vfs::File *file = dynamic_cast<Vfs::File*>(node);
-			if (file) {
-				Lxip_vfs_file_handle *handle =
-					new (alloc) Vfs::Lxip_vfs_file_handle(*this, alloc, 0, *file);
-				*out_handle = handle;
+				Vfs::Node *node = _lookup(path);
+				if (!node) return OPEN_ERR_UNACCESSIBLE;
 
-				return OPEN_OK;
+				Vfs::File *file = dynamic_cast<Vfs::File*>(node);
+				if (file) {
+					Lxip_vfs_file_handle *handle =
+						new (alloc) Vfs::Lxip_vfs_file_handle(*this, alloc, 0, file);
+					*out_handle = handle;
+					return OPEN_OK;
+				}
 			}
+			catch (Genode::Out_of_ram ) { return OPEN_ERR_OUT_OF_RAM;  }
+			catch (Genode::Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
 
 			return OPEN_ERR_UNACCESSIBLE;
 		}
@@ -1603,9 +1810,6 @@ class Vfs::Lxip_file_system : public Vfs::File_system,
 		{
 			Lxip_vfs_handle *handle =
 				static_cast<Vfs::Lxip_vfs_handle*>(vfs_handle);
-
-			if (!handle)
-				return;
 
 			Lxip_vfs_file_handle *file_handle =
 				dynamic_cast<Vfs::Lxip_vfs_file_handle*>(handle);
@@ -1638,20 +1842,12 @@ class Vfs::Lxip_file_system : public Vfs::File_system,
 		                   file_size count,
 		                   file_size &out_count) override
 		{
-			Vfs::File &file =
-				static_cast<Vfs::Lxip_vfs_file_handle *>(vfs_handle)->file;
+			Vfs::Lxip_vfs_handle *handle =
+				static_cast<Vfs::Lxip_vfs_handle*>(vfs_handle);
 
-			if (!count)
-				Genode::error("zero write of ",file.name());
+			try { return handle->write(src, count, out_count); }
+			catch (File::Would_block) { return WRITE_ERR_WOULD_BLOCK; }
 
-			if (count) try {
-				Lxip::ssize_t res = file.write(src, count, vfs_handle->seek());
-				if (res < 0) return WRITE_ERR_IO;
-
-				out_count = res;
-
-			} catch (File::Would_block) { return WRITE_ERR_WOULD_BLOCK; }
-			return WRITE_OK;
 		}
 
 		Read_result complete_read(Vfs_handle *vfs_handle,
@@ -1671,22 +1867,22 @@ class Vfs::Lxip_file_system : public Vfs::File_system,
 		bool notify_read_ready(Vfs_handle *vfs_handle) override
 		{
 			Lxip_vfs_file_handle *handle =
-				static_cast<Vfs::Lxip_vfs_file_handle *>(vfs_handle);
+				dynamic_cast<Vfs::Lxip_vfs_file_handle *>(vfs_handle);
 
-			if (dynamic_cast<Lxip_file*>(&handle->file)) {
+			if (handle && dynamic_cast<Lxip_file*>(handle->file)) {
 				_polling_handles.remove(&handle->polling_le);
 				_polling_handles.insert(&handle->polling_le);
+				return true;
 			}
 
-			return true;
+			return false;
 		}
 
 		bool read_ready(Vfs_handle *vfs_handle) override
 		{
-			Lxip_vfs_file_handle *handle =
-				static_cast<Vfs::Lxip_vfs_file_handle *>(vfs_handle);
-
-			return handle->file.poll(false, nullptr);
+			Lxip_vfs_handle &handle =
+				*static_cast<Lxip_vfs_handle *>(vfs_handle);
+			return handle.read_ready();
 		}
 };
 

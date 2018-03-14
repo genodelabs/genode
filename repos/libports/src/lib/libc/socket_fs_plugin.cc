@@ -92,21 +92,36 @@ using namespace Socket_fs;
 
 struct Socket_fs::Context : Libc::Plugin_context
 {
+	private:
+
+		int const _handle_fd;
+
+		Absolute_path _read_socket_path()
+		{
+			Absolute_path path;
+			int const n = read(_handle_fd, path.base(),
+			                   Absolute_path::capacity()-1);
+			if (n == -1 || !n || n >= (int)Absolute_path::capacity() - 1)
+				throw New_socket_failed();
+			*(path.base()+n) = '\0';
+
+			return path;
+		}
+
 	public:
 
 		enum Proto { TCP, UDP };
 
 		struct Inaccessible { }; /* exception */
 
-		Absolute_path path;
+		Absolute_path const path {
+			_read_socket_path().base(), Libc::config_socket() };
 
 	private:
 
 		enum Fd : unsigned {
 			DATA, CONNECT, BIND, LISTEN, ACCEPT, LOCAL, REMOTE, MAX
 		};
-
-		Proto const _proto;
 
 		struct
 		{
@@ -121,6 +136,9 @@ struct Socket_fs::Context : Libc::Plugin_context
 		};
 
 		int  _fd_flags    = 0;
+
+		Proto const _proto;
+
 		bool _accept_only = false;
 
 		template <typename FUNC>
@@ -137,7 +155,7 @@ struct Socket_fs::Context : Libc::Plugin_context
 				Absolute_path file(_fd[type].name, path.base());
 				int const fd = open(file.base(), flags|_fd_flags);
 				if (fd == -1) {
-					Genode::error(__func__, ": ", _fd[type].name, " file not accessible");
+					Genode::error(__func__, ": ", _fd[type].name, " file not accessible at ", file);
 					throw Inaccessible();
 				}
 				_fd[type].num  = fd;
@@ -157,12 +175,13 @@ struct Socket_fs::Context : Libc::Plugin_context
 
 	public:
 
-		Context(Proto proto, Absolute_path const &path)
-		: path(path.base()), _proto(proto) { }
+		Context(Proto proto, int handle_fd)
+		: _handle_fd(handle_fd), _proto(proto) { }
 
 		~Context()
 		{
-			_fd_apply([] (int fd) { close(fd); });
+			_fd_apply([] (int fd) { ::close(fd); });
+			::close(_handle_fd);
 		}
 
 		Proto proto() const { return _proto; }
@@ -443,32 +462,45 @@ extern "C" int socket_fs_accept(int libc_fd, sockaddr *addr, socklen_t *addrlen)
 	Libc::File_descriptor *fd = Libc::file_descriptor_allocator()->find_by_libc_fd(libc_fd);
 	if (!fd) return Errno(EBADF);
 
-	Socket_fs::Context *context = dynamic_cast<Socket_fs::Context *>(fd->context);
-	if (!context) return Errno(ENOTSOCK);
+	Socket_fs::Context *listen_context = dynamic_cast<Socket_fs::Context *>(fd->context);
+	if (!listen_context) return Errno(ENOTSOCK);
 
 	/* TODO EOPNOTSUPP - no SOCK_STREAM */
 	/* TODO ECONNABORTED */
 
-	char accept_socket[MAX_CONTROL_PATH_LEN];
+	char accept_buf[8];
 	{
 		int n = 0;
 		/* XXX currently reading accept may return without new connection */
 		do {
-			n = read(context->accept_fd(), accept_socket, sizeof(accept_socket));
+			n = read(listen_context->accept_fd(), accept_buf, sizeof(accept_buf));
 		} while (n == 0);
 		if (n == -1 && errno == EAGAIN)
 			return Errno(EAGAIN);
-		if (n == -1 || n >= (int)sizeof(accept_socket) - 1)
+		if (n == -1)
 			return Errno(EINVAL);
-
-		accept_socket[n] = 0;
 	}
 
-	Absolute_path accept_path(accept_socket, Libc::config_socket());
-	Socket_fs::Context *accept_context = new (&global_allocator)
-	                                     Socket_fs::Context(context->proto(), accept_path);
-	Libc::File_descriptor *new_fd =
+	Absolute_path path = listen_context->path;
+	path.append("/accept_socket");
+
+	int handle_fd = ::open(path.base(), O_RDONLY);
+	if (handle_fd < 0) {
+		Genode::error("failed to open accept socket at ", path);
+		return Errno(EACCES);
+	}
+
+	Socket_fs::Context *accept_context;
+	try {
+		accept_context = new (&global_allocator)
+			Socket_fs::Context(listen_context->proto(), handle_fd);
+	} catch (New_socket_failed) { return Errno(EACCES); }
+
+	Libc::File_descriptor *accept_fd =
 		Libc::file_descriptor_allocator()->alloc(&plugin(), accept_context);
+
+	/* inherit the O_NONBLOCK flag if set */
+	accept_context->fd_flags(listen_context->fd_flags());
 
 	if (addr && addrlen) {
 		Socket_fs::Remote_functor func(*accept_context, false);
@@ -476,10 +508,7 @@ extern "C" int socket_fs_accept(int libc_fd, sockaddr *addr, socklen_t *addrlen)
 		if (ret == -1) return ret;
 	}
 
-	/* inherit the O_NONBLOCK flag if set */
-	accept_context->fd_flags(context->fd_flags());
-
-	return new_fd->libc_fd;
+	return accept_fd->libc_fd;
 }
 
 
@@ -746,26 +775,6 @@ extern "C" int socket_fs_shutdown(int libc_fd, int how)
 }
 
 
-static Genode::String<MAX_CONTROL_PATH_LEN> new_socket(Absolute_path const &path)
-{
-	Absolute_path new_socket("new_socket", path.base());
-
-	int const fd = open(new_socket.base(), O_RDONLY);
-	if (fd == -1) {
-		Genode::error(__func__, ": ", new_socket, " file not accessible - socket fs not mounted?");
-		throw New_socket_failed();
-	}
-	char buf[MAX_CONTROL_PATH_LEN];
-	int const n = read(fd, buf, sizeof(buf));
-	close(fd);
-	if (n == -1 || !n || n >= (int)sizeof(buf) - 1)
-		throw New_socket_failed();
-	buf[n] = 0;
-
-	return Genode::String<MAX_CONTROL_PATH_LEN>(buf);
-}
-
-
 extern "C" int socket_fs_socket(int domain, int type, int protocol)
 {
 	Absolute_path path(Libc::config_socket());
@@ -786,20 +795,23 @@ extern "C" int socket_fs_socket(int domain, int type, int protocol)
 	/* socket is ensured to be TCP or UDP */
 	typedef Socket_fs::Context::Proto Proto;
 	Proto proto = (type == SOCK_STREAM) ? Proto::TCP : Proto::UDP;
+	Socket_fs::Context *context = nullptr;
 	try {
-		Absolute_path proto_path(path);
 		switch (proto) {
-		case Proto::TCP: proto_path.append("/tcp"); break;
-		case Proto::UDP: proto_path.append("/udp"); break;
+		case Proto::TCP: path.append("/tcp"); break;
+		case Proto::UDP: path.append("/udp"); break;
 		}
 
-		auto socket_path = new_socket(proto_path);
-		path.append("/");
-		path.append(socket_path.string());
+		path.append("/new_socket");
+		int handle_fd = ::open(path.base(), O_RDONLY);
+		if (handle_fd < 0) {
+			Genode::error("failed to open new socket at ", path);
+			return Errno(EACCES);
+		}
+		context = new (&global_allocator)
+			Socket_fs::Context(proto, handle_fd);
 	} catch (New_socket_failed) { return Errno(EACCES); }
 
-	Socket_fs::Context *context =
-		new (&global_allocator) Socket_fs::Context(proto, path);
 	Libc::File_descriptor *fd =
 		Libc::file_descriptor_allocator()->alloc(&plugin(), context);
 
@@ -927,13 +939,13 @@ int Socket_fs::Plugin::close(Libc::File_descriptor *fd)
 	Socket_fs::Context *context = dynamic_cast<Socket_fs::Context *>(fd->context);
 	if (!context) return Errno(EBADF);
 
-	Absolute_path path = context->path;
-
 	Genode::destroy(&global_allocator, context);
 	Libc::file_descriptor_allocator()->free(fd);
 
-	/* finally release the socket path after all handles are closed */
-	::unlink(path.base());
+	/*
+	 * the socket is freed when the initial handle
+	 * on 'new_socket' is released at the VFS plugin
+	 */
 
 	return 0;
 }
