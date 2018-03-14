@@ -44,10 +44,11 @@
 #include <util/misc_math.h>
 
 /* os includes */
+#include <framebuffer_session/connection.h>
 #include <nic_session/connection.h>
 #include <nic/packet_allocator.h>
-#include <timer_session/connection.h>
 #include <rtc_session/connection.h>
+#include <timer_session/connection.h>
 
 /* VMM utilities includes */
 #include <vmm/guest_memory.h>
@@ -180,11 +181,11 @@ class Guest_memory
 		Genode::Ram_dataspace_capability  _ds;
 		Genode::Ram_dataspace_capability  _fb_ds;
 
-		Genode::size_t _backing_store_size;
-		Genode::size_t _fb_size;
+		Genode::size_t const _backing_store_size;
+		Genode::size_t const _fb_size;
 
-		char *_local_addr;
-		char *_fb_addr;
+		Genode::addr_t _local_addr;
+		Genode::addr_t _fb_addr;
 
 		/*
 		 * Noncopyable
@@ -228,19 +229,20 @@ class Guest_memory
 			remaining_size(backing_store_size-fb_size)
 		{
 			try {
+				/* reserve some contiguous memory region */
+				Genode::Rm_connection rm_conn(env);
+				Genode::Region_map_client rm(rm_conn.create(_backing_store_size));
+				Genode::addr_t const local_addr = env.rm().attach(rm.dataspace());
+				env.rm().detach(local_addr);
 				/*
 				 * RAM used as backing store for guest-physical memory
 				 */
-				enum {
-					MAX_SIZE = 0, OFFSET = 0, ANY_LOCAL_ADDRESS = false,
-					EXECUTABLE = true
-				};
+				env.rm().attach_executable(_ds, local_addr);
+				_local_addr = local_addr;
 
-				_local_addr = env.rm().attach(_ds, MAX_SIZE, OFFSET,
-				                              ANY_LOCAL_ADDRESS, nullptr,
-				                              EXECUTABLE);
-				_fb_addr = env.rm().attach_at(_fb_ds,
-				        ((Genode::addr_t) _local_addr)+backing_store_size-fb_size);
+				Genode::addr_t const fb_addr = local_addr + remaining_size;
+				env.rm().attach_at(_fb_ds, fb_addr);
+				_fb_addr = fb_addr;
 			}
 			catch (Genode::Region_map::Region_conflict) {
 				Genode::error("region conflict"); }
@@ -261,7 +263,7 @@ class Guest_memory
 		 */
 		char *backing_store_local_base()
 		{
-			return _local_addr;
+			return reinterpret_cast<char *>(_local_addr);
 		}
 
 		Genode::size_t backing_store_size()
@@ -274,7 +276,7 @@ class Guest_memory
 		 */
 		char *backing_store_fb_local_base()
 		{
-			return _fb_addr;
+			return reinterpret_cast<char *>(_fb_addr);
 		}
 
 		Genode::size_t fb_size() { return _fb_size; }
@@ -1246,7 +1248,8 @@ class Machine : public StaticReceiver<Machine>
 		 */
 		Machine(Genode::Env &env, Genode::Heap &heap,
 		        Boot_module_provider &boot_modules,
-		        Guest_memory &guest_memory, bool colocate)
+		        Guest_memory &guest_memory, bool colocate,
+		        size_t const fb_size)
 		:
 			_env(env), _heap(heap),
 			_clock(Attached_rom_dataspace(env, "platform_info").xml().sub_node("hardware").sub_node("tsc").attribute_value("freq_khz", 0ULL) * 1000ULL),
@@ -1269,6 +1272,13 @@ class Machine : public StaticReceiver<Machine>
 			_unsynchronized_motherboard.bus_hwpcicfg.add(this, receive_static<MessageHwPciConfig>);
 			_unsynchronized_motherboard.bus_acpi.add    (this, receive_static<MessageAcpi>);
 			_unsynchronized_motherboard.bus_legacy.add  (this, receive_static<MessageLegacy>);
+
+			/* tell vga model about available framebuffer memory */
+			Device_model_info *dmi = device_model_registry()->lookup("vga_fbsize");
+			if (dmi) {
+				unsigned long argv[2] = { fb_size >> 10, ~0UL };
+				dmi->create(_unsynchronized_motherboard, argv, "", 0);
+			}
 		}
 
 
@@ -1398,7 +1408,6 @@ extern void heap_init_env(Genode::Heap *);
 
 void Component::construct(Genode::Env &env)
 {
-	Genode::addr_t fb_size = 4*1024*1024;
 	Genode::addr_t vm_size;
 	unsigned       colocate = 1; /* by default co-locate VM and VMM in same PD */
 
@@ -1423,16 +1432,6 @@ void Component::construct(Genode::Env &env)
 		/* calculate max memory for the VM */
 		vm_size = vm_size & ~((1UL << Vmm::PAGE_SIZE_LOG2) - 1);
 
-		/* Find out framebuffer size (default: 4 MiB) */
-		try {
-			Genode::Xml_node node = config.xml().sub_node("machine").sub_node("vga");
-			Genode::Xml_node::Attribute arg = node.attribute("fb_size");
-
-			unsigned long val = 0;
-			arg.value(&val);
-			fb_size = val*1024;
-		} catch (...) { }
-
 		/* read out whether VM and VMM should be colocated or not */
 		try {
 			config.xml().attribute("colocate").value(&colocate);
@@ -1442,6 +1441,13 @@ void Component::construct(Genode::Env &env)
 	if (colocate)
 		/* re-adjust reservation to actual VM size */
 		static Vmm::Virtual_reservation reservation(env, vm_size);
+
+	/* setup framebuffer memory for guest */
+	static Framebuffer::Connection framebuffer(env, Framebuffer::Mode(0, 0, Framebuffer::Mode::INVALID));
+	Framebuffer::Mode const fb_mode = framebuffer.mode();
+	size_t const fb_size = Genode::align_addr(fb_mode.width() *
+	                                          fb_mode.height() *
+	                                          fb_mode.bytes_per_pixel(), 12);
 
 	/* setup guest memory */
 	static Guest_memory guest_memory(env, vm_size, fb_size);
@@ -1493,11 +1499,12 @@ void Component::construct(Genode::Env &env)
 		boot_modules(config.xml().sub_node("multiboot"));
 
 	/* create the PC machine based on the configuration given */
-	static Machine machine(env, heap, boot_modules, guest_memory, colocate);
+	static Machine machine(env, heap, boot_modules, guest_memory, colocate, fb_size);
 
 	/* create console thread */
 	static Seoul::Console vcon(env, machine.motherboard(),
-	                           machine.unsynchronized_motherboard(), fb_size,
+	                           machine.unsynchronized_motherboard(),
+	                           framebuffer,
 	                           guest_memory.fb_ds());
 
 	vcon.register_host_operations(machine.unsynchronized_motherboard());

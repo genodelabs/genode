@@ -133,10 +133,6 @@ bool Seoul::Console::receive(MessageConsole &msg)
 {
 	if (msg.type == MessageConsole::TYPE_ALLOC_VIEW) {
 		_guest_fb = msg.ptr;
-
-		if (msg.size < _fb_size)
-			_fb_size = msg.size;
-
 		_regs = msg.regs;
 
 		msg.view = 0;
@@ -256,7 +252,7 @@ unsigned Seoul::Console::_handle_fb()
 				                    ((fg & 0x2) >> 1)*127+lum, /* G+luminosity */
 				                     (fg & 0x1)*127+lum        /* B+luminosity */);
 
-				Text_painter::paint(*_surface, where, default_font, color, buffer);
+				Text_painter::paint(_surface, where, default_font, color, buffer);
 
 				/* Checksum for comparing */
 				if (fb_state.cmp_even) fb_state.checksum1 += character;
@@ -269,7 +265,7 @@ unsigned Seoul::Console::_handle_fb()
 		/* compare checksums to detect changed buffer */
 		if (fb_state.checksum1 != fb_state.checksum2) {
 			fb_state.unchanged = 0;
-			_framebuffer->refresh(0, 0, _fb_mode.width(), _fb_mode.height());
+			_framebuffer.refresh(0, 0, _fb_mode.width(), _fb_mode.height());
 			return 100;
 		}
 
@@ -278,7 +274,7 @@ unsigned Seoul::Console::_handle_fb()
 
 		/* if we copy the same data 10 times, unmap the text buffer from guest */
 		_env.rm().detach((void *)_guest_fb);
-		_env.rm().attach_at(_fb_ds, (Genode::addr_t)_guest_fb);
+		_env.rm().attach_at(_guest_fb_ds, (Genode::addr_t)_guest_fb);
 
 		fb_state.unchanged = 0;
 		fb_state.active = false;
@@ -291,21 +287,12 @@ unsigned Seoul::Console::_handle_fb()
 	if (!fb_state.revoked) {
 
 		_env.rm().detach((void *)_guest_fb);
-		_env.rm().attach_at(_framebuffer->dataspace(),
+		_env.rm().attach_at(_framebuffer.dataspace(),
 		                    (Genode::addr_t)_guest_fb);
-
-		/* if the VGA model expects a larger FB, pad to that size. */
-		if (_fb_size < _vm_fb_size) {
-			Genode::Ram_dataspace_capability _backup =
-			  _env.ram().alloc(_vm_fb_size-_fb_size);
-
-			_env.rm().attach_at(_backup,
-			                    (Genode::addr_t) (_guest_fb+_fb_size));
-		}
 
 		fb_state.revoked = true;
 	}
-	_framebuffer->refresh(0, 0, _fb_mode.width(), _fb_mode.height());
+	_framebuffer.refresh(0, 0, _fb_mode.width(), _fb_mode.height());
 	return 10;
 }
 
@@ -372,28 +359,20 @@ bool Seoul::Console::receive(MessageTimeout &msg) {
 
 Seoul::Console::Console(Genode::Env &env, Synced_motherboard &mb,
                         Motherboard &unsynchronized_motherboard,
-                        Genode::size_t vm_fb_size,
-                        Genode::Dataspace_capability fb_ds)
+                        Framebuffer::Connection &framebuffer,
+                        Genode::Dataspace_capability guest_fb_ds)
 :
 	_env(env),
 	_unsynchronized_motherboard(unsynchronized_motherboard),
-	_motherboard(mb), _fb_ds(fb_ds), _vm_fb_size(vm_fb_size)
+	_motherboard(mb),
+	_framebuffer(framebuffer),
+	_guest_fb_ds(guest_fb_ds),
+	_fb_mode(_framebuffer.mode()),
+	_fb_size(Genode::Dataspace_client(_framebuffer.dataspace()).size()),
+	_pixels(_env.rm().attach(_framebuffer.dataspace())),
+	_surface(reinterpret_cast<Genode::Pixel_rgb565 *>(_pixels),
+	         Genode::Surface_base::Area(_fb_mode.width(),
+	        _fb_mode.height()))
 {
 	_input.sigh(_signal_input);
-
-	try {
-		using Framebuffer::Mode;
-		_framebuffer.construct(_env, Mode(0, 0, Mode::INVALID));
-	} catch (...) {
-		Genode::error("Headless mode - no framebuffer session available");
-		return;
-	}
-
-	_fb_size = Genode::Dataspace_client(_framebuffer->dataspace()).size();
-	_fb_mode = _framebuffer->mode();
-	_pixels  = _env.rm().attach(_framebuffer->dataspace());
-
-	_surface.construct(reinterpret_cast<Genode::Pixel_rgb565 *>(_pixels),
-	                   Genode::Surface_base::Area(_fb_mode.width(),
-	                   _fb_mode.height()));
 }
