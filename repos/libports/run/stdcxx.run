@@ -45,5 +45,7 @@ compare_output_to {
 [init -> test-stdcxx] 456
 [init -> test-stdcxx] 7.8
 [init -> test-stdcxx] caught std::invalid_argument
+[init -> test-stdcxx] 1
+[init -> test-stdcxx] 2
 [init -> test-stdcxx] ° °° °°° test-stdcxx finished °°° °° °
 }
