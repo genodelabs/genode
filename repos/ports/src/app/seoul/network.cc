@@ -48,6 +48,9 @@ void Seoul::Network::_handle_packets()
 		_forward_pkt = 0;
 
 		/* acknowledge received packet */
+		if (!_nic.rx()->ready_to_ack())
+			Logging::printf("not ready for acks");
+
 		_nic.rx()->acknowledge_packet(rx_packet);
 	}
 }
@@ -58,6 +61,12 @@ bool Seoul::Network::transmit(void const * const packet, Genode::size_t len)
 	if (packet == _forward_pkt)
 		/* don't end in an endless forwarding loop */
 		return false;
+
+	/* check for acknowledgements */
+	while (_nic.tx()->ack_avail()) {
+		Nic::Packet_descriptor const ack = _nic.tx()->get_acked_packet();
+		_nic.tx()->release_packet(ack);
+	}
 
 	/* allocate transmit packet */
 	Nic::Packet_descriptor tx_packet;
@@ -70,20 +79,9 @@ bool Seoul::Network::transmit(void const * const packet, Genode::size_t len)
 
 	/* fill packet with content */
 	char * const tx_content = _nic.tx()->packet_content(tx_packet);
-	_forward_pkt = tx_content;
 	memcpy(tx_content, packet, len);
 
 	_nic.tx()->submit_packet(tx_packet);
-
-	/* wait for acknowledgement */
-	Nic::Packet_descriptor ack_tx_packet = _nic.tx()->get_acked_packet();
-
-	if (ack_tx_packet.size() != tx_packet.size() ||
-		ack_tx_packet.offset() != tx_packet.offset())
-		Logging::printf("error: unexpected acked packet\n");
-
-	/* release sent packet to free the space in the tx communication buffer */
-	_nic.tx()->release_packet(tx_packet);
 
 	return true;
 }
