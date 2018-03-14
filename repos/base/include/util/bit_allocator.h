@@ -52,6 +52,7 @@ class Genode::Bit_allocator
 	public:
 
 		class Out_of_indices : Exception {};
+		class Range_conflict : Exception {};
 
 		Bit_allocator() { _reserve(BITS, BITS_ALIGNED - BITS); }
 		Bit_allocator(const Bit_allocator & o) : _array(o._array) { }
@@ -80,6 +81,26 @@ class Genode::Bit_allocator
 			} while (max != 0);
 
 			throw Out_of_indices();
+		}
+
+		/**
+		 * Allocate specific block of bits
+		 *
+		 * \param first_bit  desired address of block
+		 * \param num_log2   2-based logarithm of size of block
+		 *
+		 * \throw Range_conflict
+		 * \throw Array::Invalid_index_access
+		 */
+		void alloc_addr(addr_t const bit_start, size_t const num_log2 = 0)
+		{
+			addr_t const step = 1UL << num_log2;
+			if (_array.get(bit_start, step))
+				throw Range_conflict();
+
+			_array.set(bit_start, step);
+			_next = bit_start + step;
+			return;
 		}
 
 		void free(addr_t const bit_start, size_t const num_log2 = 0)
