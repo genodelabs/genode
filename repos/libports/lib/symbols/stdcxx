@@ -152,6 +152,8 @@ _ZNKSt9type_info10__do_catchEPKS_PPvj T
 _ZNKSt9type_info11__do_upcastEPKN10__cxxabiv117__class_type_infoEPPv T
 _ZNKSt9type_info14__is_pointer_pEv T
 _ZNKSt9type_info15__is_function_pEv T
+_ZNSi6ignoreEl T
+_ZNSi6ignoreEli T
 _ZNSt10__num_base11_S_atoms_inE D 8
 _ZNSt10__num_base12_S_atoms_outE D 8
 _ZNSt10__num_base15_S_format_floatERKSt8ios_basePcc T

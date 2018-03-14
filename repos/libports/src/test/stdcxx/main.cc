@@ -84,6 +84,31 @@ static void test_lock_guard()
 }
 
 
+#include <iostream>
+#include <sstream>
+#include <limits>
+
+static void test_ignore()
+{
+	std::istringstream input("1\n"
+	                         "some non-numeric input\n"
+	                         "2\n");
+	for (;;) {
+		int n;
+		input >> n;
+
+		if (input.eof() || input.bad()) {
+			break;
+		} else if (input.fail()) {
+			input.clear(); /* unset failbit */
+			input.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); /* skip bad input */
+		} else {
+			std::cout << n << '\n';
+		}
+	}
+}
+
+
 int main(int argc, char **argv)
 {
 	std::cout << "° °° °°° test-stdcxx started °°° °° °"  << std::endl;
@@ -92,6 +117,7 @@ int main(int argc, char **argv)
 	test_cstdlib();
 	test_stdexcept();
 	test_lock_guard();
+	test_ignore();
 
 	std::cout << "° °° °°° test-stdcxx finished °°° °° °" << std::endl;
 }
