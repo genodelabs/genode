@@ -69,7 +69,7 @@ puts $vm_cfg_fd {<config colocate="1" >
 		<rtc io_base="0x70" irq="8"/>
 		<serial io_base="0x3f8" irq="0x4" host_serial="0x4711"/>
 		<hostsink host_dev="0x4712" buffer="80"/>
-		<vga io_base="0x03c0" fb_size="4096" readonly="1"/>}
+		<vga io_base="0x03c0"/>}
 
 if {!$use_multiboot} {
 	puts $vm_cfg_fd {
