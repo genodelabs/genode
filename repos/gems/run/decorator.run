@@ -27,12 +27,14 @@ install_config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 
+	<default caps="100"/>
+
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="drivers">
+	<start name="drivers" caps="1000">
 		<resource name="RAM" quantum="32M" constrain_phys="yes"/>
 		<binary name="init"/>
 		<route>
