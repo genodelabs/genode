@@ -316,8 +316,8 @@ proc check_for_missing_depot_archives { } {
 		}
 
 		set path "$user/$type/$name"
-		if {$type == "bin"} {
-			set path "$user/bin/$spec/$name" }
+		if {$type == "bin" || $type == "pkg"} {
+			set path "$user/$type/$spec/$name" }
 
 		puts stderr "       $path/$version"
 
