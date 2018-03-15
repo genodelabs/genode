@@ -179,6 +179,7 @@ class Genode::Bit_allocator_dynamic
 	public:
 
 		struct Out_of_indices : Exception { };
+		struct Range_conflict : Exception { };
 
 		addr_t alloc(size_t const num_log2 = 0)
 		{
@@ -204,6 +205,17 @@ class Genode::Bit_allocator_dynamic
 			} while (max != 0);
 
 			throw Out_of_indices();
+		}
+
+		void alloc_addr(addr_t const bit_start, size_t const num_log2 = 0)
+		{
+			addr_t const step = 1UL << num_log2;
+			if (_array.get(bit_start, step))
+				throw Range_conflict();
+
+			_array.set(bit_start, step);
+			_next = bit_start + step;
+			return;
 		}
 
 		void free(addr_t const bit_start, size_t const num_log2 = 0)
