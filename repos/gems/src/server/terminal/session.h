@@ -15,6 +15,7 @@
 #define _SESSION_H_
 
 /* Genode includes */
+#include <util/utf8.h>
 #include <root/component.h>
 #include <terminal_session/terminal_session.h>
 
@@ -86,7 +87,7 @@ class Terminal::Session_component : public Rpc_object<Session, Session_component
 			/* read data, block on first byte if needed */
 			unsigned       num_bytes = 0;
 			unsigned char *dst       = _io_buffer.local_addr<unsigned char>();
-			size_t dst_size          = min(_io_buffer.size(), dst_len);
+			size_t         dst_size  = min(_io_buffer.size(), dst_len);
 
 			while (!_read_buffer.empty() && num_bytes < dst_size)
 				dst[num_bytes++] = _read_buffer.get();
@@ -96,10 +97,26 @@ class Terminal::Session_component : public Rpc_object<Session, Session_component
 
 		size_t _write(size_t num_bytes)
 		{
-			unsigned char *src = _io_buffer.local_addr<unsigned char>();
+			char const *src = _io_buffer.local_addr<char const>();
 
-			for (unsigned i = 0; i < num_bytes; i++)
-				_character_consumer.consume_character(src[i]);
+			unsigned const max = min(num_bytes, _io_buffer.size());
+
+			unsigned i = 0;
+			for (Utf8_ptr utf8(src); utf8.complete() && i < max; ) {
+				_character_consumer.consume_character(utf8.codepoint().value);
+				i += utf8.length();
+				utf8 = Utf8_ptr(src + i);
+			}
+
+			/* consume trailing zero characters */
+			for (; src[i] == 0 && i < num_bytes; i++);
+
+			/* we don't support UTF-8 sequences split into multiple writes */
+			if (i != num_bytes) {
+				warning("truncated UTF-8 sequence");
+				for (unsigned j = i; j < num_bytes; j++)
+					warning("(unhandled value ", Hex(src[j]), ")");
+			}
 
 			return num_bytes;
 		}
