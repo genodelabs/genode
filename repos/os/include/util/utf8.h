@@ -176,6 +176,11 @@ class Genode::Utf8_ptr
 
 			return Codepoint { Codepoint::INVALID };
 		}
+
+		/**
+		 * Return length of UTF-8 sequence in bytes
+		 */
+		unsigned length() const { return _end() ? 0 : _tail_length(_utf8[0]) + 1; }
 };
 
 #endif /* _INCLUDE__OS__UTIL__UTF8_H_ */
