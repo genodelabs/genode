@@ -46,7 +46,7 @@ proc _depot_archive_path_pattern { } {
 # Pattern to parse an versioned archive path into <user>, <type>, <name>, <version>
 #
 proc _depot_archive_versioned_path_pattern { } {
-	return {^([\w\d]+)/([\w]+)/([\w\d\-_]+)/([\w\d\-_]+)$} }
+	return {^([\w\d]+)/([\w]+)/([\w\d\-_]+)/([\w\d\-\._]+)$} }
 
 
 #
