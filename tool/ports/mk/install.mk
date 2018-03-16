@@ -201,6 +201,7 @@ _file_name = $(call _prefer,$(NAME($1)),$(notdir $(URL($1))))
 %.file:
 	$(VERBOSE)test -n "$(URL($*))" ||\
 		($(ECHO) "Error: Undefined URL for $(call _file_name,$*)"; false);
+	$(VERBOSE)mkdir -p $(dir $(call _file_name,$*))
 	$(VERBOSE)name=$(call _file_name,$*);\
 		(test -f $$name || $(MSG_DOWNLOAD)$(URL($*))); \
 		(test -f $$name || wget --quiet --no-check-certificate $(URL($*)) -O $$name) || \
