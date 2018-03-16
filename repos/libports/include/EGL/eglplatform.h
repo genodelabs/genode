@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2010-2017 Genode Labs GmbH
+ * Copyright (C) 2010-2018 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -44,6 +44,18 @@ struct Genode_egl_window
 
 typedef struct Genode_egl_window *EGLNativeWindowType;
 
+/* EGL 1.2 types, renamed for consistency in EGL 1.3 */
+typedef EGLNativeDisplayType NativeDisplayType;
+typedef EGLNativePixmapType  NativePixmapType;
+typedef EGLNativeWindowType  NativeWindowType;
+
 typedef khronos_int32_t EGLint;
+
+/* C++ / C typecast macros for special EGL handle values */
+#if defined(__cplusplus)
+#define EGL_CAST(type, value) (static_cast<type>(value))
+#else
+#define EGL_CAST(type, value) ((type) (value))
+#endif
 
 #endif /* __eglplatform_h_ */
