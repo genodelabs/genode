@@ -47,13 +47,13 @@ class Genode::Utf8_ptr
 		uint8_t const * const _utf8;
 
 		/**
-		 * Return true if byte is a tail character of an UTF8 sequence
+		 * Return true if byte is a tail character of an UTF-8 sequence
 		 */
 		static bool _tail_char(uint8_t c) { return (c & 0xc0) == 0x80; }
 
 		/**
 		 * Return expected number of bytes following the 'c1' start of an
-		 * UTF8 sequence
+		 * UTF-8 sequence
 		 */
 		static unsigned _tail_length(uint8_t c1)
 		{
@@ -69,9 +69,9 @@ class Genode::Utf8_ptr
 		}
 
 		/**
-		 * Consume trailing bytes of UTF8 sequence of length 'n'
+		 * Consume trailing bytes of UTF-8 sequence of length 'n'
 		 *
-		 * \param c1  character bits of the initial UTF8 byte
+		 * \param c1  character bits of the initial UTF-8 byte
 		 */
 		static Codepoint _decode_tail(uint32_t c1, uint8_t const *utf8, unsigned n)
 		{
@@ -79,7 +79,7 @@ class Genode::Utf8_ptr
 
 			for (unsigned i = 0; i < n; i++, utf8++) {
 
-				/* detect premature end of string or end of UTF8 sequence */
+				/* detect premature end of string or end of UTF-8 sequence */
 				uint8_t const c = *utf8;
 				if (!c || !_tail_char(c))
 					return Codepoint { Codepoint::INVALID };
@@ -105,6 +105,21 @@ class Genode::Utf8_ptr
 
 		bool _end() const { return !_utf8 || !*_utf8; }
 
+		/**
+		 * Scan for the null termination of '_utf8'
+		 *
+		 * \param max  maximum number of bytes to scan
+		 * \return     number of present bytes, up to 'max'
+		 */
+		unsigned _bytes_present(unsigned max) const
+		{
+			for (unsigned i = 0; i < max; i++)
+				if (!_utf8[i])
+					return i;
+
+			return max;
+		}
+
 	public:
 
 		/**
@@ -123,7 +138,7 @@ class Genode::Utf8_ptr
 		}
 
 		/**
-		 * Return next UTF-8 character, or nullptr (end of string)
+		 * Return next UTF-8 character
 		 */
 		Utf8_ptr const next() const
 		{
@@ -140,7 +155,7 @@ class Genode::Utf8_ptr
 		}
 
 		/**
-		 * Return true if string contains an complete UTF8 sequence
+		 * Return true if string contains a complete UTF-8 sequence
 		 *
 		 * This method solely checks for a premature truncation of the string.
 		 * It does not check the validity of the UTF-8 sequence. The success of
@@ -152,13 +167,9 @@ class Genode::Utf8_ptr
 		{
 			if (_end()) return false;
 
-			unsigned const tail_length = _tail_length(_utf8[0]);
+			unsigned const expected_length = _tail_length(_utf8[0]) + 1;
 
-			for (unsigned i = 0; i < tail_length; i++)
-				if (!_utf8[1 + i])
-					return false;
-
-			return true;
+			return expected_length == _bytes_present(expected_length);
 		}
 
 		/**
@@ -180,7 +191,10 @@ class Genode::Utf8_ptr
 		/**
 		 * Return length of UTF-8 sequence in bytes
 		 */
-		unsigned length() const { return _end() ? 0 : _tail_length(_utf8[0]) + 1; }
+		unsigned length() const
+		{
+			return _end() ? 0 : _bytes_present(1 + _tail_length(_utf8[0]));
+		}
 };
 
 #endif /* _INCLUDE__OS__UTIL__UTF8_H_ */
