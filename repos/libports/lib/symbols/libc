@@ -195,6 +195,7 @@ fseeko T
 fsetpos T
 fstat T
 fstatat T
+fstatfs T
 fstatvfs T
 fsync T
 ftell T
