@@ -1,0 +1,14 @@
+<runtime ram="16M" caps="256" binary="audio_drv">
+
+	<requires> <timer/> </requires>
+
+	<provides> <audio_out/> </provides>
+
+	<config/>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="audio_drv"/>
+	</content>
+
+</runtime>
