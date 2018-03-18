@@ -1138,13 +1138,6 @@ class Machine : public StaticReceiver<Machine>
 			}
 		}
 
-		bool receive(MessageDisk &msg)
-		{
-			if (verbose_debug)
-				Logging::printf("MessageDisk\n");
-			return false;
-		}
-
 		bool receive(MessageTimer &msg)
 		{
 			switch (msg.type) {
@@ -1265,7 +1258,6 @@ class Machine : public StaticReceiver<Machine>
 
 			/* register host operations, called back by the VMM */
 			_unsynchronized_motherboard.bus_hostop.add  (this, receive_static<MessageHostOp>);
-			_unsynchronized_motherboard.bus_disk.add    (this, receive_static<MessageDisk>);
 			_unsynchronized_motherboard.bus_timer.add   (this, receive_static<MessageTimer>);
 			_unsynchronized_motherboard.bus_time.add    (this, receive_static<MessageTime>);
 			_unsynchronized_motherboard.bus_network.add (this, receive_static<MessageNetwork>);

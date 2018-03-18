@@ -31,6 +31,9 @@
 /* local includes */
 #include "synced_motherboard.h"
 
+/* Seoul includes */
+#include <host/dma.h>
+
 namespace Seoul {
 	class Disk;
 	class Disk_signal;
@@ -49,10 +52,15 @@ class Seoul::Disk_signal
 
 		Genode::Signal_handler<Disk_signal> const sigh;
 
-		Disk_signal(Genode::Entrypoint &ep, Disk &obj, unsigned disk_nr)
+		Disk_signal(Genode::Entrypoint &ep, Disk &obj,
+		            Block::Connection &block, unsigned disk_nr)
 		:
-		  _obj(obj), _id(disk_nr), sigh(ep, *this, &Disk_signal::_signal)
-		{ }
+		  _obj(obj), _id(disk_nr),
+		  sigh(ep, *this, &Disk_signal::_signal)
+		{
+			block.tx_channel()->sigh_ack_avail(sigh);
+			block.tx_channel()->sigh_ready_to_submit(sigh);
+		}
 };
 
 
@@ -68,8 +76,8 @@ class Seoul::Disk : public StaticReceiver<Seoul::Disk>
 
 			private:
 
-				Genode::addr_t _key;
-				MessageDisk *  _msg;
+				Genode::addr_t  const _key;
+				MessageDisk   * const _msg;
 
 				/*
 				 * Noncopyable
@@ -79,10 +87,10 @@ class Seoul::Disk : public StaticReceiver<Seoul::Disk>
 
 			public:
 
-				Avl_entry(void * key, MessageDisk * msg)
+				Avl_entry(void * key, MessageDisk * const msg)
 				 : _key(reinterpret_cast<Genode::addr_t>(key)), _msg(msg) { }
 
-				bool higher(Avl_entry *e) { return e->_key > _key; }
+				bool higher(Avl_entry *e) const { return e->_key > _key; }
 
 				Avl_entry *find(Genode::addr_t ptr)
 				{
@@ -96,7 +104,7 @@ class Seoul::Disk : public StaticReceiver<Seoul::Disk>
 
 		/* block session used by disk models of VMM */
 		enum { MAX_DISKS = 4 };
-		struct {
+		struct disk_session {
 			Block::Connection          *blk_con;
 			Block::Session::Operations  ops;
 			Genode::size_t              blk_size;
@@ -120,14 +128,58 @@ class Seoul::Disk : public StaticReceiver<Seoul::Disk>
 
 		Avl_entry_slab_sync _tslab_avl;
 
-		Genode::Avl_tree<Avl_entry> _lookup_msg { };
-		Genode::Lock           _lookup_msg_lock { };
+		Genode::Avl_tree<Avl_entry> _lookup_msg  { };
+		Genode::Avl_tree<Avl_entry> _restart_msg { };
+		/* _alloc_lock protects both lists + alloc_packet/release_packet !!! */
+		Genode::Lock                _alloc_lock  { };
 
 		/*
 		 * Noncopyable
 		 */
 		Disk(Disk const &);
 		Disk &operator = (Disk const &);
+
+		void check_restart();
+		bool restart(struct disk_session const &, MessageDisk * const);
+		bool execute(bool const write, struct disk_session const &,
+		             MessageDisk const &);
+
+		template <typename FN>
+		bool check_dma_descriptors(MessageDisk const * const msg,
+		                           FN const &fn)
+		{
+			/* check bounds for read and write operations */
+			for (unsigned i = 0; i < msg->dmacount; i++) {
+				char * const dma_addr = _backing_store_base +
+				                        msg->dma[i].byteoffset +
+				                        msg->physoffset;
+
+				/* check for bounds */
+				if (dma_addr >= _backing_store_base + _backing_store_size ||
+				    dma_addr < _backing_store_base)
+					return false;
+
+				if (!fn(dma_addr, i))
+					return false;
+			}
+			return true;
+		}
+
+		/* find the corresponding MessageDisk object */
+		Avl_entry * lookup_and_remove(Genode::Avl_tree<Avl_entry> &tree,
+		                              void * specific_obj = nullptr)
+		{
+			Genode::Lock::Guard lock_guard(_alloc_lock);
+
+			Avl_entry * obj = tree.first();
+			if (obj && specific_obj)
+				obj = obj->find(reinterpret_cast<Genode::addr_t>(specific_obj));
+
+			if (obj)
+				tree.remove(obj);
+
+			return obj;
+		}
 
 	public:
 
@@ -136,8 +188,6 @@ class Seoul::Disk : public StaticReceiver<Seoul::Disk>
 		 */
 		Disk(Genode::Env &, Synced_motherboard &, char * backing_store_base,
 		     Genode::size_t backing_store_size);
-
-		~Disk();
 
 		void handle_disk(unsigned);
 

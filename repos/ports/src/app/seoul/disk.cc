@@ -7,7 +7,7 @@
 
 /*
  * Copyright (C) 2012 Intel Corporation
- * Copyright (C) 2013-2017 Genode Labs GmbH
+ * Copyright (C) 2013-2018 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
  * version 2.
@@ -29,9 +29,6 @@
 
 /* local includes */
 #include "disk.h"
-
-/* Seoul includes */
-#include <host/dma.h>
 
 static Genode::Heap * disk_heap(Genode::Ram_session *ram = nullptr,
                                 Genode::Region_map *rm = nullptr)
@@ -85,23 +82,13 @@ void Seoul::Disk::handle_disk(unsigned disknr)
 	while (source->ack_avail())
 	{
 		Block::Packet_descriptor packet = source->get_acked_packet();
-		char * source_addr              = source->packet_content(packet);
+		char * const        source_addr = source->packet_content(packet);
 
 		/* find the corresponding MessageDisk object */
-		Avl_entry * obj = 0;
-		{
-			Genode::Lock::Guard lock_guard(_lookup_msg_lock);
-			obj = _lookup_msg.first();
-			if (obj)
-				obj = obj->find(reinterpret_cast<Genode::addr_t>(source_addr));
-
-			if (!obj) {
-				Genode::warning("unknown MessageDisk object - drop ack of block session");
-				continue;
-			}
-
-			/* remove helper object */
-			_lookup_msg.remove(obj);
+		Avl_entry * obj = lookup_and_remove(_lookup_msg, source_addr);
+		if (!obj) {
+			Genode::warning("unknown MessageDisk object - drop ack of block session ", (void *)source_addr);
+			continue;
 		}
 		/* got the MessageDisk object */
 		MessageDisk * msg = obj->msg();
@@ -126,32 +113,43 @@ void Seoul::Disk::handle_disk(unsigned disknr)
 				unsigned long long sector = msg->sector;
 				sector = (sector-packet.block_number()) * _diskcon[disknr].blk_size;
 
-				for (unsigned i = 0; i < msg->dmacount; i++) {
-					char * dma_addr = _backing_store_base +
-					                  msg->dma[i].byteoffset + msg->physoffset;
+				bool const ok = check_dma_descriptors(msg,
+					[&](char * const dma_addr, unsigned i)
+					{
+						size_t const bytecount = msg->dma[i].bytecount;
 
-					// check for bounds
-					if (dma_addr >= _backing_store_base + _backing_store_size
-					 || dma_addr < _backing_store_base) {
-						Genode::error("dma bounds violation");
-					} else
-						memcpy(dma_addr, source_addr + sector,
-						       msg->dma[i].bytecount);
+						if (bytecount          > packet.size() ||
+						    sector             > packet.size() ||
+						    sector + bytecount > packet.size() ||
+						    source_addr > source->packet_content(packet) + packet.size() - sector - bytecount ||
+						    _backing_store_base + _backing_store_size - bytecount < dma_addr)
+							return false;
 
-					sector += msg->dma[i].bytecount;
-				}
+						memcpy(dma_addr, source_addr + sector, bytecount);
+						sector += bytecount;
+						return true;
+					});
+
+				if (!ok)
+					Genode::warning("DMA bounds violation during read");
 
 				destroy(disk_heap(), msg->dma);
-				msg->dma = 0;
+				msg->dma = nullptr;
 			}
 
 			MessageDiskCommit mdc (disknr, msg->usertag, MessageDisk::DISK_OK);
 			_motherboard()->bus_diskcommit.send(mdc);
 		}
  
-		source->release_packet(packet);
+		{
+			Genode::Lock::Guard lock_guard(_alloc_lock);
+			source->release_packet(packet);
+		}
 		destroy(&_tslab_msg, msg);
 	}
+
+	/* restart disk operations suspended due to out of memory by alloc_packet */
+	check_restart();
 }
 
 
@@ -163,147 +161,264 @@ bool Seoul::Disk::receive(MessageDisk &msg)
 	if (msg.disknr >= MAX_DISKS)
 		Logging::panic("You configured more disks than supported.\n");
 
-	/*
-	 * If we receive a message for this disk the first time, create the
-	 * structure for it.
-	 */
-	Genode::String<16> label("VirtualDisk ", msg.disknr);
+	struct disk_session &disk = _diskcon[msg.disknr];
 
-	if (!_diskcon[msg.disknr].blk_size) {
+	if (!disk.blk_size) {
+		Genode::String<16> label("VirtualDisk ", msg.disknr);
+		/*
+		 * If we receive a message for this disk the first time, create the
+		 * structure for it.
+		 */
 		try {
 			Genode::Allocator_avl * block_alloc =
 				new (disk_heap()) Genode::Allocator_avl(disk_heap());
 
-			_diskcon[msg.disknr].blk_con =
+			disk.blk_con =
 				new (disk_heap()) Block::Connection(_env, block_alloc,
 				                                    4*512*1024,
 				                                    label.string());
-			_diskcon[msg.disknr].signal =
+			disk.signal =
 				new (disk_heap()) Seoul::Disk_signal(_env.ep(), *this,
-				                                     msg.disknr);
-
-			_diskcon[msg.disknr].blk_con->tx_channel()->sigh_ack_avail(
-				_diskcon[msg.disknr].signal->sigh);
+				                                     *disk.blk_con, msg.disknr);
 		} catch (...) {
 			/* there is none. */
 			return false;
 		}
 
-		_diskcon[msg.disknr].blk_con->info(&_diskcon[msg.disknr].blk_cnt,
-		                                   &_diskcon[msg.disknr].blk_size,
-		                                   &_diskcon[msg.disknr].ops);
-
-		Logging::printf("Got info: %llu blocks (%lu B), ops (R: %x, W:%x)\n ",
-		        _diskcon[msg.disknr].blk_cnt,
-		        _diskcon[msg.disknr].blk_size,
-		        _diskcon[msg.disknr].ops.supported(Block::Packet_descriptor::READ),
-		        _diskcon[msg.disknr].ops.supported(Block::Packet_descriptor::WRITE)
-		);
+		disk.blk_con->info(&disk.blk_cnt, &disk.blk_size, &disk.ops);
 	}
 
 	msg.error = MessageDisk::DISK_OK;
 
 	switch (msg.type) {
 	case MessageDisk::DISK_GET_PARAMS:
-		{
-			msg.params->flags = DiskParameter::FLAG_HARDDISK;
-			msg.params->sectors = _diskcon[msg.disknr].blk_cnt;
-			msg.params->sectorsize = _diskcon[msg.disknr].blk_size;
-			msg.params->maxrequestcount = _diskcon[msg.disknr].blk_cnt;
-			memcpy(msg.params->name, label.string(), label.length());
-		}
+	{
+		Genode::String<16> label("VirtualDisk ", msg.disknr);
+
+		msg.params->flags = DiskParameter::FLAG_HARDDISK;
+		msg.params->sectors = disk.blk_cnt;
+		msg.params->sectorsize = disk.blk_size;
+		msg.params->maxrequestcount = disk.blk_cnt;
+		memcpy(msg.params->name, label.string(), label.length());
+
 		return true;
-	case MessageDisk::DISK_READ:
+	}
 	case MessageDisk::DISK_WRITE:
-		{
-			bool write = (msg.type == MessageDisk::DISK_WRITE);
-
-			if (write && !_diskcon[msg.disknr].ops.supported(Block::Packet_descriptor::WRITE)) {
-				MessageDiskCommit ro(msg.disknr, msg.usertag,
-				                     MessageDisk::DISK_STATUS_DEVICE);
-				_motherboard()->bus_diskcommit.send(ro);
-				return true;
-			}
-
-			unsigned long long sector = msg.sector;
-			unsigned long total = DmaDescriptor::sum_length(msg.dmacount, msg.dma);
-			unsigned long blocks = total/_diskcon[msg.disknr].blk_size;
-			unsigned const blk_size = _diskcon[msg.disknr].blk_size;
-
-			if (blocks * blk_size < total) blocks++;
-
-			Block::Session::Tx::Source *source = _diskcon[msg.disknr].blk_con->tx();
-			Block::Packet_descriptor packet;
-
-			/* save original msg, required when we get acknowledgements */
-			MessageDisk * msg_cpy = 0;
-			try {
-				msg_cpy = new (&_tslab_msg) MessageDisk(msg);
-
-				packet = Block::Packet_descriptor(
-					source->alloc_packet(blocks * blk_size),
-					(write) ? Block::Packet_descriptor::WRITE
-					        : Block::Packet_descriptor::READ,
-					sector, blocks);
-			} catch (...) {
-				if (msg_cpy)
-					destroy(&_tslab_msg, msg_cpy);
-				Logging::printf("could not allocate disk block elements\n");
-				return false;
-			}
-
-			char * source_addr = source->packet_content(packet);
-			{
-				Genode::Lock::Guard lock_guard(_lookup_msg_lock);
-				_lookup_msg.insert(new (&_tslab_avl) Avl_entry(source_addr,
-				                                               msg_cpy));
-			}
-
-			/* copy DMA descriptors for read requests - they may change */
-			if (!write) {
-				msg_cpy->dma = new (disk_heap()) DmaDescriptor[msg_cpy->dmacount];
-				for (unsigned i = 0; i < msg_cpy->dmacount; i++)
-					memcpy(msg_cpy->dma + i, msg.dma + i, sizeof(DmaDescriptor));
-			}
-
-
-			/* for write operation */	
-			source_addr       += (sector - packet.block_number()) * blk_size;
-
-			/* check bounds for read and write operations */	
-			for (unsigned i = 0; i < msg_cpy->dmacount; i++) {
-				char * dma_addr = _backing_store_base + msg_cpy->dma[i].byteoffset
-				                  + msg_cpy->physoffset;
-
-				/* check for bounds */
-				if (dma_addr >= _backing_store_base + _backing_store_size
-				 || dma_addr < _backing_store_base) { 
-					/* drop allocated objects not needed in error case */
-					if (write)
-						destroy(disk_heap(), msg_cpy->dma);
-					destroy(&_tslab_msg, msg_cpy);
-					source->release_packet(packet);
-					return false;
-				}
-
-				if (write) {
-					memcpy(source_addr, dma_addr, msg.dma[i].bytecount);
-					source_addr += msg.dma[i].bytecount;
-				}
-			}
-
-			source->submit_packet(packet);
+		/* don't write on read only medium */
+		if (!disk.ops.supported(Block::Packet_descriptor::WRITE)) {
+			MessageDiskCommit ro(msg.disknr, msg.usertag,
+		                     MessageDisk::DISK_STATUS_DEVICE);
+			_motherboard()->bus_diskcommit.send(ro);
+			return true;
 		}
-		break;
+	case MessageDisk::DISK_READ:
+		/* read and write handling */
+		return execute(msg.type == MessageDisk::DISK_WRITE, disk, msg);
 	default:
 		Logging::printf("Got MessageDisk type %x\n", msg.type);
 		return false;
 	}
+}
+
+void Seoul::Disk::check_restart()
+{
+	bool restarted = true;
+
+	while (restarted) {
+		Avl_entry * obj = lookup_and_remove(_restart_msg);
+		if (!obj)
+			return;
+
+		MessageDisk       * const   msg = obj->msg();
+		struct disk_session const &disk = _diskcon[msg->disknr];
+
+		restarted = restart(disk, msg);
+
+		if (restarted) {
+			destroy(&_tslab_avl, obj);
+		} else {
+			Genode::Lock::Guard lock_guard(_alloc_lock);
+			_restart_msg.insert(obj);
+		}
+	}
+}
+
+bool Seoul::Disk::restart(struct disk_session const &disk,
+                          MessageDisk * const msg)
+{
+	Block::Session::Tx::Source * const source = disk.blk_con->tx();
+
+	unsigned long const  total = DmaDescriptor::sum_length(msg->dmacount, msg->dma);
+	unsigned const blk_size    = disk.blk_size;
+	unsigned long const blocks = total/blk_size + ((total%blk_size) ? 1 : 0);
+	bool          const write  = msg->type == MessageDisk::DISK_WRITE;
+
+	Block::Packet_descriptor packet;
+
+	try {
+		Genode::Lock::Guard lock_guard(_alloc_lock);
+
+		packet = Block::Packet_descriptor(
+			source->alloc_packet(blocks * blk_size),
+			(write) ? Block::Packet_descriptor::WRITE
+			        : Block::Packet_descriptor::READ,
+			msg->sector, blocks);
+
+		char * source_addr = source->packet_content(packet);
+		_lookup_msg.insert(new (&_tslab_avl) Avl_entry(source_addr, msg));
+
+	} catch (...) { return false; }
+
+	/* read */
+	if (!write) {
+		source->submit_packet(packet);
+		return true;
+	}
+
+	/* write */
+	char * source_addr = source->packet_content(packet);
+	source_addr += (msg->sector - packet.block_number()) * blk_size;
+
+	for (unsigned i = 0; i < msg->dmacount; i++) {
+		char * const dma_addr = _backing_store_base +
+		                        msg->dma[i].byteoffset +
+		                        msg->physoffset;
+
+		memcpy(source_addr, dma_addr, msg->dma[i].bytecount);
+		source_addr += msg->dma[i].bytecount;
+	}
+
+	/* free up DMA descriptors of write */
+	destroy(disk_heap(), msg->dma);
+	msg->dma = nullptr;
+
+	source->submit_packet(packet);
 	return true;
 }
 
 
-Seoul::Disk::~Disk()
+bool Seoul::Disk::execute(bool const write, struct disk_session const &disk,
+                          MessageDisk const &msg)
 {
-	/* XXX: Close all connections */
+	unsigned long long const sector  = msg.sector;
+	unsigned long const  total   = DmaDescriptor::sum_length(msg.dmacount, msg.dma);
+	unsigned long const blk_size = disk.blk_size;
+	unsigned long const blocks   = total/blk_size + ((total%blk_size) ? 1 : 0);
+
+	Block::Session::Tx::Source * const source = disk.blk_con->tx();
+	Block::Packet_descriptor packet;
+
+	/* msg copy required for acknowledgements */
+	MessageDisk * const msg_cpy = new (&_tslab_msg) MessageDisk(msg);
+	char * source_addr          = nullptr;
+
+	try {
+		Genode::Lock::Guard lock_guard(_alloc_lock);
+
+		packet = Block::Packet_descriptor(
+			source->alloc_packet(blocks * blk_size),
+			(write) ? Block::Packet_descriptor::WRITE
+			        : Block::Packet_descriptor::READ,
+			sector, blocks);
+
+		source_addr = source->packet_content(packet);
+
+		_lookup_msg.insert(new (&_tslab_avl) Avl_entry(source_addr, msg_cpy));
+	} catch (Block::Session::Tx::Source::Packet_alloc_failed) {
+		/* msg_cpy object will be used/freed below by copy_dma_descriptors */
+	} catch (...) {
+		if (msg_cpy)
+			destroy(&_tslab_msg, msg_cpy);
+
+		Logging::printf("could not allocate disk block elements - "
+		                "write=%u blocks=%lu\n", write, blocks);
+		return false;
+	}
+
+	/*
+	 * Copy DMA descriptors ever for read requests and for deferred write
+	 * requests. The descriptors can be changed by the guest at any time.
+	 */
+	bool const copy_dma_descriptors = !source_addr || !write;
+
+	/* invalid packet allocation or read request */
+	if (copy_dma_descriptors) {
+		msg_cpy->dma = new (disk_heap()) DmaDescriptor[msg_cpy->dmacount];
+		for (unsigned i = 0; i < msg_cpy->dmacount; i++)
+			memcpy(msg_cpy->dma + i, msg.dma + i, sizeof(DmaDescriptor));
+
+		/* validate DMA descriptors */
+		bool const ok = check_dma_descriptors(msg_cpy,
+			[&](char * const dma_addr, unsigned i)
+			{
+				if (!write)
+					/* evaluated during receive */
+					return true;
+
+				size_t const bytecount = msg_cpy->dma[i].bytecount;
+
+				if (bytecount > packet.size() ||
+				    source_addr > source->packet_content(packet) + packet.size() - bytecount ||
+				    _backing_store_base + _backing_store_size - bytecount < dma_addr)
+					return false;
+
+				return true;
+			});
+
+		if (ok) {
+			/* DMA descriptors look good - go ahead with disk request */
+
+			if (source_addr)
+				/* valid packet for read request */
+				source->submit_packet(packet);
+			else {
+				/* failed packet allocation, restart at later point in time */
+				Genode::Lock::Guard lock_guard(_alloc_lock);
+				_restart_msg.insert(new (&_tslab_avl) Avl_entry(source_addr,
+				                                                msg_cpy));
+			}
+			return true;
+		}
+
+		/* DMA descriptors look bad - free resources */
+		destroy(disk_heap(), msg_cpy->dma);
+		destroy(&_tslab_msg, msg_cpy);
+		if (source_addr) {
+			Genode::Lock::Guard lock_guard(_alloc_lock);
+			source->release_packet(packet);
+		}
+		return false;
+	}
+
+	/* valid packet allocation for write request */
+	source_addr += (sector - packet.block_number()) * blk_size;
+
+	bool const ok = check_dma_descriptors(msg_cpy,
+		[&](char * const dma_addr, unsigned i)
+	{
+		/* read bytecount from guest memory once and don't evaluate again */
+		size_t const bytecount = msg.dma[i].bytecount;
+
+		if (bytecount > packet.size() ||
+		    source_addr > source->packet_content(packet) + packet.size() - bytecount ||
+		    _backing_store_base + _backing_store_size - bytecount < dma_addr)
+			return false;
+
+		memcpy(source_addr, dma_addr, bytecount);
+		source_addr += bytecount;
+
+		return true;
+	});
+
+	if (ok) {
+		/* don't needed anymore + protect us to use it again */
+		msg_cpy->dma = nullptr;
+		source->submit_packet(packet);
+	} else {
+		destroy(&_tslab_msg, msg_cpy);
+
+		Genode::Lock::Guard lock_guard(_alloc_lock);
+		source->release_packet(packet);
+	}
+	return ok;
 }
