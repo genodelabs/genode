@@ -1,0 +1,29 @@
+create_boot_directory
+
+install_config {
+<config>
+	<parent-provides>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="ROM"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> </any-service>
+	</default-route>
+	<start name="test-magic_ring_buffer" caps="64">
+		<resource name="RAM" quantum="2M"/>
+	</start>
+</config>
+}
+
+build "core init test/magic_ring_buffer"
+
+build_boot_image {
+	core ld.lib.so init test-magic_ring_buffer
+}
+
+append qemu_args " -nographic  "
+
+run_genode_until "child .* exited with exit value 0.*\n" 10
