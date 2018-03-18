@@ -45,7 +45,7 @@ if {[catch {exec cp $genode_iso bin/genode.iso}]} {
 	exit 1
 }
 
-set files_vm [exec isoinfo -i $genode_iso -x "/BOOT/GRUB/MENU.LST;1"]
+set files_vm [exec isoinfo -i $genode_iso -x "/boot/grub/grub.cfg;1"]
 
 set vm [split $files_vm "\n"]
 set guest_os_binaries {}

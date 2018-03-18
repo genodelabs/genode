@@ -264,10 +264,10 @@ append_if [expr $use_nic_session && !$use_nic_bridge] config {
 append_if $use_framebuffer config {
 			<service name="Framebuffer"><child name="fb_drv"/></service>}
 append_if $use_genode_iso config {
-			<service name="ROM" label="vm_seoul.cfg">
-				<parent/> </service>
-			<service name="ROM" label="platform_info">
-				<parent/> </service>
+			<service name="ROM" label="vm_seoul.cfg"> <parent/> </service>
+			<service name="ROM" label="platform_info"> <parent/> </service>
+			<service name="ROM" unscoped_label="seoul"> <parent/> </service>
+			<service name="ROM" unscoped_label="ld.lib.so"> <parent/> </service>
 			<service name="ROM"><child name="iso9660"/></service>}
 append config {
 			<service name="Rtc"><child name="rtc_drv"/></service>
