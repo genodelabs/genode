@@ -1,0 +1,425 @@
+#
+# Build components
+#
+
+proc enable_test_1 { } { return 1 }
+proc enable_test_2 { } { return 1 }
+proc enable_test_3 { } { return 1 }
+proc enable_test_4 { } { return 1 }
+proc enable_test_5 { } { return 1 }
+proc enable_test_6 { } { return 1 }
+proc enable_test_7 { } { return 0 }
+
+source ${genode_dir}/repos/libports/run/nic_router.inc
+
+lappend targets server/report_rom
+lappend targets server/dynamic_rom
+
+build $targets
+
+create_boot_directory
+
+
+#
+# Test 1 utilities
+#
+
+proc test_1_config { } {
+	if {[enable_test_1]} { return "
+		[client_config       udp_client_1 udp 10.0.98.55 10.0.98.33 255.255.255.0 nic_router 1337 10.0.98.33]
+		[client_config lan_1_udp_client_1 udp 10.0.99.56 10.0.99.33 255.255.255.0 nic_router 1337 10.0.99.55]
+		[server_config lan_1_udp_server_1 udp 10.0.99.55 10.0.99.33 255.255.255.0 nic_router 1337 ]" }
+}
+
+proc test_1_router_config { } {
+	if {[enable_test_1]} { return {
+		<policy label_prefix="udp_client_1" domain="udp_client_1" />
+		<policy label_prefix="lan_1"        domain="lan_1" />
+
+		<domain name="udp_client_1" interface="10.0.98.33/24">
+			<udp-forward port="1337" domain="lan_1" to="10.0.99.55" />
+		</domain>
+
+		<domain name="lan_1" interface="10.0.99.33/24" />} }
+}
+
+
+#
+# Test 2 utilities
+#
+
+proc test_2_config { } {
+	if {[enable_test_2]} { return "
+		[client_config udp_client_2 udp 10.0.2.212  10.0.2.1    255.255.255.0 nic_bridge 1 10.0.2.55]
+		[server_config udp_server_2 udp 18.17.16.15 18.17.16.14 255.255.0.0   nic_router 1 ]" }
+}
+
+proc test_2_router_config { } {
+	if {[enable_test_2]} { return {
+		<policy label_prefix="udp_server_2" domain="udp_server_2" />
+		<domain name="udp_server_2" interface="18.17.16.14/24" />} }
+}
+
+
+#
+# Test 3 utilities
+#
+
+proc test_3_config { } {
+	if {[enable_test_3]} { return "
+		[client_config udp_client_3 udp 217.13.192.2 217.13.192.1 255.255.192.0 nic_router 65535 10.0.2.213]
+		[server_config udp_server_3 udp 10.0.2.213   10.0.2.55    255.255.255.0 nic_bridge 65535 ]" }
+}
+
+proc test_3_router_config { } {
+	if {[enable_test_3]} { return {
+		<policy label_prefix="udp_client_3" domain="udp_client_3" />
+
+		<domain name="udp_client_3" interface="217.13.192.1/24">
+			<ip dst="10.0.2.0/24" domain="uplink" />
+		</domain>} }
+}
+
+
+#
+# Test 4 utilities
+#
+
+proc test_4_config { } {
+	if {[enable_test_4]} { return "
+		[client_config http_client_1 http 10.0.2.201   10.0.2.1    255.255.255.0 nic_bridge 80 10.0.2.55]
+		[server_config http_server_1 http 192.168.1.18 192.168.1.1 255.255.255.0 nic_router 80 ]" }
+}
+
+proc test_4_router_config { } {
+	if {[enable_test_4]} { return {
+		<policy label_prefix="http_server_1" domain="http_server_1" />
+		<domain name="http_server_1" interface="192.168.1.1/24" />} }
+}
+
+
+#
+# Test 5 utilities
+#
+
+proc test_5_config { } {
+	if {[enable_test_5]} { return "
+		[client_config http_client_2 http 10.0.2.202   10.0.2.1    255.255.255.0 nic_bridge 8080 10.0.2.55]
+		[server_config http_server_2 http 192.168.2.72 192.168.2.1 255.255.255.0 nic_router 8080 ]" }
+}
+
+proc test_5_router_config { } {
+	if {[enable_test_5]} { return {
+		<policy label_prefix="http_server_2" domain="http_server_2" />
+		<domain name="http_server_2" interface="192.168.2.1/24" />} }
+}
+
+
+#
+# Test 6 utilities
+#
+
+proc test_6_config { } {
+	if {[enable_test_6]} { return "
+		[client_config http_client_3 http 100.200.0.128 100.200.0.1 255.255.0.0   nic_router 2345 10.0.2.203]
+		[server_config http_server_3 http 10.0.2.203    10.0.2.1    255.255.255.0 nic_bridge 2345 ]" }
+}
+
+proc test_6_router_config { } {
+	if {[enable_test_6]} { return {
+		<policy label_prefix="http_client_3" domain="http_client_3" />
+
+		<domain name="http_client_3" interface="100.200.0.1/24">
+			<tcp dst="10.0.0.0/16">
+				<permit port="2345" domain="uplink" />
+			</tcp>
+		</domain>} }
+}
+
+
+#
+# Test 7 utilities
+#
+
+proc test_7_config { } {
+	if {[enable_test_7]} { return "
+		[client_config lan_2_client_1 http dhcp       dhcp     dhcp   nic_router 2345 10.0.2.204]
+		[client_config lan_2_client_2 http dhcp       dhcp     dhcp   nic_router 3456 10.0.2.240]
+		[client_config lan_2_client_3 http dhcp       dhcp     dhcp   nic_router 3456 10.0.2.240]
+		[server_config lan_3_server_1 http 10.0.2.204 10.0.2.1 255.255.255.0 nic_router 2345 ]
+		[server_config lan_3_server_2 http 10.0.2.240 10.0.2.1 255.255.255.0 nic_router 3456 ]" }
+}
+
+
+proc test_7_router_config { } {
+	if {[enable_test_7]} { return {
+		<policy label_prefix="lan_2" domain="lan_2" />
+		<policy label_prefix="lan_3" domain="lan_3" />
+
+		<domain name="lan_2" interface="100.200.0.1/24">
+			<dhcp-server ip_first="100.200.0.32"
+			             ip_last="100.200.0.64"
+			             ip_lease_time_sec="3600"
+			             dns_server="8.8.8.8"/>
+
+			<tcp dst="10.0.0.0/16">
+				<permit port="2345" domain="lan_3" />
+				<permit port="3456" domain="lan_3" />
+			</tcp>
+		</domain>
+
+		<domain name="lan_3" interface="10.0.2.1/24">
+			<nat domain="lan_2" tcp-ports="18" />
+		</domain>} }
+}
+
+
+#
+# Init config
+#
+
+append config {
+<config prio_levels="2">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+
+	<default caps="100"/>
+
+	} [platform_drv_config] {
+
+	<start name="timer" priority="0">
+		<resource name="RAM" quantum="1M"/>
+		<resource name="CPU" quantum="5"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+
+	<start name="nic_loopback" priority="-1">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Nic"/> </provides>
+	</start>
+
+	<start name="dynamic_rom">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="ROM"/> </provides>
+		<config verbose="yes">
+			<rom name="nic_router.config">
+				<inline>
+
+
+<config verbose="no"
+        verbose_packets="no"
+        verbose_domain_state="no"
+        dhcp_discover_timeout_sec="3"
+        dhcp_request_timeout_sec="3"
+        dhcp_offer_timeout_sec="3"
+        udp_idle_timeout_sec="30"
+        tcp_idle_timeout_sec="30"
+        tcp_max_segm_lifetime_sec="15">
+
+	<report/>
+
+	<domain name="uplink"
+	        interface="10.0.2.55/24"
+	        gateway="10.0.2.1"
+	        verbose_packets="no">
+
+		<tcp-forward port="80"   domain="http_server_1" to="192.168.1.18" />
+		<tcp-forward port="8080" domain="http_server_2" to="192.168.2.72" />
+		<udp-forward port="1"    domain="udp_server_2"  to="18.17.16.15"  />
+		<nat domain="http_client_3" tcp-ports="6" />
+		<ip dst="217.13.192.0/24" domain="udp_client_3" />
+	</domain>
+
+	} [test_2_router_config] {
+	} [test_3_router_config] {
+	} [test_4_router_config] {
+	} [test_6_router_config] {
+	} [test_7_router_config] {
+
+</config>
+
+
+				</inline>
+				<sleep milliseconds="4000"/>
+				<inline>
+
+
+<config verbose="no"
+        verbose_packets="no"
+        verbose_domain_state="no"
+        dhcp_discover_timeout_sec="3"
+        dhcp_request_timeout_sec="3"
+        dhcp_offer_timeout_sec="3"
+        udp_idle_timeout_sec="30"
+        tcp_idle_timeout_sec="30"
+        tcp_max_segm_lifetime_sec="15">
+
+	<domain name="uplink"
+	        interface="10.0.2.55/24"
+	        gateway="10.0.2.1"
+	        verbose_packets="no">
+
+		<tcp-forward port="80"   domain="http_server_1" to="192.168.1.18" />
+		<tcp-forward port="8080" domain="http_server_2" to="192.168.2.72" />
+		<udp-forward port="1"    domain="udp_server_2"  to="18.17.16.15"  />
+		<nat domain="http_client_3" tcp-ports="6" />
+		<ip dst="217.13.192.0/24" domain="udp_client_3" />
+	</domain>
+
+	} [test_1_router_config] {
+	} [test_2_router_config] {
+	} [test_3_router_config] {
+	} [test_4_router_config] {
+	} [test_5_router_config] {
+	} [test_6_router_config] {
+	} [test_7_router_config] {
+
+</config>
+
+
+				</inline>
+				<sleep milliseconds="6000"/>
+				<inline>
+
+
+<config verbose="no"
+        verbose_packets="no"
+        verbose_domain_state="no"
+        dhcp_discover_timeout_sec="3"
+        dhcp_request_timeout_sec="3"
+        dhcp_offer_timeout_sec="3"
+        udp_idle_timeout_sec="30"
+        tcp_idle_timeout_sec="30"
+        tcp_max_segm_lifetime_sec="15">
+
+	<report interval_sec="2" bytes="yes" config="no" />
+
+	<domain name="uplink"
+	        interface="10.0.2.55/24"
+	        gateway="10.0.2.1"
+	        verbose_packets="no">
+
+		<tcp-forward port="80"   domain="http_server_1" to="192.168.1.18" />
+		<tcp-forward port="8080" domain="http_server_2" to="192.168.2.72" />
+		<udp-forward port="1"    domain="udp_server_2"  to="18.17.16.15"  />
+		<nat domain="http_client_3" tcp-ports="6" />
+		<ip dst="217.13.192.0/24" domain="udp_client_3" />
+	</domain>
+
+</config>
+
+
+				</inline>
+				<sleep milliseconds="500"/>
+				<inline>
+
+
+<config verbose="no"
+        verbose_packets="no"
+        verbose_domain_state="no"
+        dhcp_discover_timeout_sec="3"
+        dhcp_request_timeout_sec="3"
+        dhcp_offer_timeout_sec="3"
+        udp_idle_timeout_sec="30"
+        tcp_idle_timeout_sec="30"
+        tcp_max_segm_lifetime_sec="15">
+
+	<report interval_sec="2" bytes="yes" config="no" />
+
+	<domain name="uplink"
+	        interface="10.0.2.55/24"
+	        gateway="10.0.2.1"
+	        verbose_packets="no">
+
+		<tcp-forward port="80"   domain="http_server_1" to="192.168.1.18" />
+		<tcp-forward port="8080" domain="http_server_2" to="192.168.2.72" />
+		<udp-forward port="1"    domain="udp_server_2"  to="18.17.16.15"  />
+		<nat domain="http_client_3" tcp-ports="6" />
+		<ip dst="217.13.192.0/24" domain="udp_client_3" />
+	</domain>
+
+	} [test_1_router_config] {
+	} [test_2_router_config] {
+	} [test_3_router_config] {
+	} [test_4_router_config] {
+	} [test_5_router_config] {
+	} [test_6_router_config] {
+	} [test_7_router_config] {
+
+</config>
+
+
+				</inline>
+				<sleep milliseconds="3600000"/>
+			</rom>
+		</config>
+	</start>
+
+	<start name="nic_router" caps="200" priority="-1">
+		<resource name="RAM" quantum="10M"/>
+		<provides><service name="Nic"/></provides>
+		<route>
+			<service name="ROM" label="config"> <child name="dynamic_rom" label="nic_router.config"/> </service>
+			<service name="Nic"> <child name="nic_bridge"/> </service>
+			<service name="Report"> <child name="report_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="nic_bridge" caps="200" priority="-1">
+		<resource name="RAM" quantum="10M"/>
+		<provides><service name="Nic"/></provides>
+		<config>
+			<policy label_prefix="nic_router"    ip_addr="10.0.2.55"  />
+			<policy label_prefix="http_client_1" ip_addr="10.0.2.201" />
+			<policy label_prefix="http_client_2" ip_addr="10.0.2.202" />
+			<policy label_prefix="http_server_3" ip_addr="10.0.2.203" />
+			<policy label_prefix="udp_client_2"  ip_addr="10.0.2.212" />
+			<policy label_prefix="udp_server_3"  ip_addr="10.0.2.213" />
+		</config>
+		<route>
+			<service name="Nic"> <child name="nic_loopback"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="report_rom">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config verbose="yes"/>
+	</start>
+
+	} [test_1_config] {
+	} [test_2_config] {
+	} [test_3_config] {
+	} [test_4_config] {
+	} [test_5_config] {
+	} [test_6_config] {
+	} [test_7_config] {
+
+</config> }
+
+install_config $config
+
+lappend boot_modules report_rom
+lappend boot_modules dynamic_rom
+
+build_boot_image $boot_modules
+
+for {set i 0} {$i < $nr_of_clients} {incr i 1} {
+	append done_string {.*Test done.*\n}
+}
+
+run_genode_until $done_string 240
