@@ -27,29 +27,21 @@
 using namespace Genode;
 using Ipv4_addr_str = Genode::String<16>;
 
-struct Socket_failed  : Genode::Exception { };
-struct Send_failed    : Genode::Exception { };
-struct Receive_failed : Genode::Exception { };
-
-struct Read_server_port_attr_failed : Exception { };
-struct Read_server_ip_attr_failed   : Exception { };
-
-
 void Libc::Component::construct(Libc::Env &env)
 {
 	/* wait a while for the server to come up */
 	Timer::Connection timer(env);
-	timer.msleep(6000);
-
-	/* create socket */
-	int s = socket(AF_INET, SOCK_DGRAM, 0 );
-	if (s < 0) {
-		throw Socket_failed();
-	}
+	timer.msleep(4000);
 	/* try to send and receive a message multiple times */
-	for (int j = 0; j != 5; ++j) {
-		timer.msleep(1000);
+	for (unsigned trial_cnt = 0, success_cnt = 0; trial_cnt < 10; trial_cnt++)
+	{
+		timer.msleep(2000);
 
+		/* create socket */
+		int s = socket(AF_INET, SOCK_DGRAM, 0 );
+		if (s < 0) {
+			continue;
+		}
 		/* read server IP address and port */
 		Ipv4_addr_str serv_addr;
 		unsigned port = 0;
@@ -57,11 +49,10 @@ void Libc::Component::construct(Libc::Env &env)
 		Xml_node config_node = config.xml();
 		try { config_node.attribute("server_ip").value(&serv_addr); }
 		catch (...) {
-			throw Read_server_port_attr_failed();
 		}
 		try { config_node.attribute("server_port").value(&port); }
 		catch (...) {
-			throw Read_server_port_attr_failed();
+			continue;
 		}
 		/* create server socket address */
 		struct sockaddr_in addr;
@@ -75,13 +66,17 @@ void Libc::Component::construct(Libc::Env &env)
 		char buf[BUF_SZ];
 		::snprintf(buf, BUF_SZ, "UDP server at %s:%u", serv_addr.string(), port);
 		if (sendto(s, buf, BUF_SZ, 0, (struct sockaddr*)&addr, addr_sz) != BUF_SZ) {
-			throw Send_failed();
+			continue;
 		}
 		/* receive and print what has been received */
 		if (recvfrom(s, buf, BUF_SZ, 0, (struct sockaddr*)&addr, &addr_sz) != BUF_SZ) {
-			throw Receive_failed();
+			continue;
 		}
 		log("Received \"", String<64>(buf), " ...\"");
+		if (++success_cnt >= 5) {
+			log("Test done");
+			return;
+		}
 	}
-	log("Test done");
+	log("Test failed");
 }
