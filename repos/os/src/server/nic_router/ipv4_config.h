@@ -33,6 +33,12 @@ struct Net::Ipv4_config
 	            Ipv4_address        gateway);
 
 	Ipv4_config() { }
+
+	bool operator != (Ipv4_config const &other) const
+	{
+		return interface != other.interface ||
+		       gateway   != other.gateway;
+	}
 };
 
 #endif /* _IPV4_CONFIG_H_ */
