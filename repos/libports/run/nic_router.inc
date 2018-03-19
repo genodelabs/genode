@@ -26,8 +26,16 @@ proc client_config { name prot ip_addr gateway netmask nic srv_port srv_ip } {
 			</route>
 			<config server_ip="} $srv_ip {" server_port="} $srv_port {">
 				<vfs> <dir name="dev"> <log/> </dir> </vfs>
+	}
+	if {$ip_addr == "dhcp"} {
+		append result {
+				<libc stdout="/dev/log" stderr="/dev/log"/>}
+	} else {
+		append result {
 				<libc stdout="/dev/log" stderr="/dev/log" ip_addr="} $ip_addr {"
-				      gateway="} $gateway {" netmask="} $netmask {"/>
+				      gateway="} $gateway {" netmask="} $netmask {"/>}
+	}
+	append result {
 			</config>
 		</start>}
 	return $result

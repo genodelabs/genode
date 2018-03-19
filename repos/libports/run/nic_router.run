@@ -142,12 +142,13 @@ proc test_6_router_config { } {
 
 proc test_7_config { } {
 	if {[enable_test_7]} { return "
-		[client_config lan_2_client_1 http 100.200.0.128 100.200.0.1 255.255.0.0   nic_router 2345 10.0.2.204]
-		[client_config lan_2_client_2 http 100.200.0.64  100.200.0.1 255.255.0.0   nic_router 3456 10.0.2.240]
-		[client_config lan_2_client_3 http 100.200.0.32  100.200.0.1 255.255.0.0   nic_router 3456 10.0.2.240]
-		[server_config lan_3_server_1 http 10.0.2.204    10.0.2.1    255.255.255.0 nic_router 2345 ]
-		[server_config lan_3_server_2 http 10.0.2.240    10.0.2.1    255.255.255.0 nic_router 3456 ]" }
+		[client_config lan_2_client_1 http dhcp       dhcp     dhcp   nic_router 2345 10.0.2.204]
+		[client_config lan_2_client_2 http dhcp       dhcp     dhcp   nic_router 3456 10.0.2.240]
+		[client_config lan_2_client_3 http dhcp       dhcp     dhcp   nic_router 3456 10.0.2.240]
+		[server_config lan_3_server_1 http 10.0.2.204 10.0.2.1 255.255.255.0 nic_router 2345 ]
+		[server_config lan_3_server_2 http 10.0.2.240 10.0.2.1 255.255.255.0 nic_router 3456 ]" }
 }
+
 
 proc test_7_router_config { } {
 	if {[enable_test_7]} { return {
@@ -155,6 +156,11 @@ proc test_7_router_config { } {
 		<policy label_prefix="lan_3" domain="lan_3" />
 
 		<domain name="lan_2" interface="100.200.0.1/24">
+			<dhcp-server ip_first="100.200.0.32"
+			             ip_last="100.200.0.64"
+			             ip_lease_time_sec="3600"
+			             dns_server="8.8.8.8"/>
+
 			<tcp dst="10.0.0.0/16">
 				<permit port="2345" domain="lan_3" />
 				<permit port="3456" domain="lan_3" />
