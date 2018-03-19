@@ -32,6 +32,7 @@ namespace Net {
 	using Packet_stream_sink   = ::Nic::Packet_stream_sink< ::Nic::Session::Policy>;
 	using Packet_stream_source = ::Nic::Packet_stream_source< ::Nic::Session::Policy>;
 	using Domain_name          = Genode::String<160>;
+	class Leaf_rule;
 	class Ipv4_config;
 	class Forward_rule_tree;
 	class Transport_rule_list;
@@ -39,6 +40,7 @@ namespace Net {
 	class Arp_packet;
 	class Interface_policy;
 	class Interface;
+	using Interface_list = List<Interface>;
 	class Dhcp_server;
 	class Configuration;
 	class Domain;
@@ -49,16 +51,18 @@ struct Net::Interface_policy
 {
 	virtual Domain_name determine_domain_name() const = 0;
 
+	virtual void handle_config(Configuration const &config) = 0;
+
 	virtual ~Interface_policy() { }
 };
 
 
-class Net::Interface : private Genode::List<Interface>::Element
+class Net::Interface : private Interface_list::Element
 {
-	protected:
+	friend class List<Interface>;
+	friend class Genode::List<Interface>;
 
-		friend class Genode::List<Interface>;
-		friend class Net::List<Interface>;
+	protected:
 
 		using Signal_handler = Genode::Signal_handler<Interface>;
 
@@ -71,25 +75,31 @@ class Net::Interface : private Genode::List<Interface>::Element
 
 	private:
 
-		Configuration          &_config;
-		Interface_policy const &_policy;
-		Timer::Connection      &_timer;
-		Genode::Allocator      &_alloc;
-		Pointer<Domain>         _domain_ptr                { };
-		Arp_waiter_list         _own_arp_waiters           { };
-		Link_list               _tcp_links                 { };
-		Link_list               _udp_links                 { };
-		Link_list               _dissolved_tcp_links       { };
-		Link_list               _dissolved_udp_links       { };
-		Dhcp_allocation_tree    _dhcp_allocations          { };
-		Dhcp_allocation_list    _released_dhcp_allocations { };
-		Dhcp_client             _dhcp_client               { _alloc, _timer, *this };
+		struct Dismiss_link       : Genode::Exception { };
+		struct Dismiss_arp_waiter : Genode::Exception { };
 
-		void _new_link(L3_protocol                   const  protocol,
-		               Link_side_id                  const &local_id,
-		               Pointer<Port_allocator_guard> const  remote_port_alloc,
-		               Domain                              &remote_domain,
-		               Link_side_id                  const &remote_id);
+		Reference<Configuration>           _config;
+		Interface_policy                  &_policy;
+		Timer::Connection                 &_timer;
+		Genode::Allocator                 &_alloc;
+		Pointer<Domain>                    _domain                    { };
+		Arp_waiter_list                    _own_arp_waiters           { };
+		Link_list                          _tcp_links                 { };
+		Link_list                          _udp_links                 { };
+		Link_list                          _dissolved_tcp_links       { };
+		Link_list                          _dissolved_udp_links       { };
+		Dhcp_allocation_tree               _dhcp_allocations          { };
+		Dhcp_allocation_list               _released_dhcp_allocations { };
+		Dhcp_client                        _dhcp_client               { _alloc, _timer, *this };
+		Interface_list                    &_interfaces;
+		bool                               _apply_foreign_arp_pending { false };
+		Genode::Signal_context_capability  _link_state_sigh           { };
+
+		void _new_link(L3_protocol             const  protocol,
+		               Link_side_id            const &local_id,
+		               Pointer<Port_allocator_guard>  remote_port_alloc,
+		               Domain                        &remote_domain,
+		               Link_side_id            const &remote_id);
 
 		void _destroy_released_dhcp_allocations(Domain &local_domain);
 
@@ -200,6 +210,36 @@ class Net::Interface : private Genode::List<Interface>::Element
 		                      void                      * &pkt_base,
 		                      Genode::size_t               pkt_size);
 
+		void _update_dhcp_allocations(Domain &old_domain,
+                                      Domain &new_domain);
+
+		void _update_own_arp_waiters(Domain &domain);
+
+		void _update_links(L3_protocol  prot,
+		                   Domain      &cln_dom);
+
+		void _update_link_check_nat(Link        &link,
+		                            Domain      &new_srv_dom,
+		                            L3_protocol  prot,
+		                            Domain      &cln_dom);
+
+		void _dismiss_link_log(Link       &link,
+		                       char const *reason);
+
+		void _destroy_link(Link &link);
+
+		void _detach_from_domain_raw();
+
+		void _attach_to_domain_raw(Domain_name const &domain_name);
+
+		void _detach_from_domain();
+
+		void _attach_to_domain(Domain_name const &domain_name,
+		                       bool               apply_foreign_arp);
+
+		void _apply_foreign_arp();
+
+
 
 		/***********************************
 		 ** Packet-stream signal handlers **
@@ -241,7 +281,8 @@ class Net::Interface : private Genode::List<Interface>::Element
 		          Genode::Allocator      &alloc,
 		          Mac_address      const  mac,
 		          Configuration          &config,
-		          Interface_policy const &policy);
+		          Interface_list         &interfaces,
+		          Interface_policy       &policy);
 
 		virtual ~Interface();
 
@@ -271,16 +312,22 @@ class Net::Interface : private Genode::List<Interface>::Element
 
 		void cancel_arp_waiting(Arp_waiter &waiter);
 
-		void attach_to_domain(Domain &domain);
+		void handle_config(Configuration &new_config);
 
-		void detach_from_domain();
+		void handle_config_aftermath();
+
+		void detach_from_ip_config();
+
+		bool link_state();
+
+		void link_state_sigh(Genode::Signal_context_capability sigh);
 
 
 		/***************
 		 ** Accessors **
 		 ***************/
 
-		Domain          &domain()           { return _domain_ptr.deref(); }
+		Domain          &domain()           { return _domain.deref(); }
 		Mac_address      router_mac() const { return _router_mac; }
 		Arp_waiter_list &own_arp_waiters()  { return _own_arp_waiters; }
 };

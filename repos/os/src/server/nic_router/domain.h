@@ -94,7 +94,7 @@ class Net::Domain : public Domain_base
 		Port_allocator                        _tcp_port_alloc      { };
 		Port_allocator                        _udp_port_alloc      { };
 		Nat_rule_tree                         _nat_rules           { };
-		List<Interface>                       _interfaces          { };
+		Interface_list                        _interfaces          { };
 		unsigned long                         _interface_cnt       { 0 };
 		Pointer<Dhcp_server>                  _dhcp_server         { };
 		Genode::Reconstructible<Ipv4_config>  _ip_config;
@@ -119,6 +119,8 @@ class Net::Domain : public Domain_base
 		                           Transport_rule_list    &rules);
 
 		void _ip_config_changed();
+
+		void __FIXME__dissolve_foreign_arp_waiters();
 
 	public:
 
@@ -167,14 +169,14 @@ class Net::Domain : public Domain_base
 
 		bool                 verbose_packets() const { return _verbose_packets; }
 		Ipv4_config   const &ip_config()       const { return *_ip_config; }
-		Domain_name   const &name()                  { return _name; }
+		Domain_name   const &name()            const { return _name; }
 		Ip_rule_list        &ip_rules()              { return _ip_rules; }
 		Forward_rule_tree   &tcp_forward_rules()     { return _tcp_forward_rules; }
 		Forward_rule_tree   &udp_forward_rules()     { return _udp_forward_rules; }
 		Transport_rule_list &tcp_rules()             { return _tcp_rules; }
 		Transport_rule_list &udp_rules()             { return _udp_rules; }
 		Nat_rule_tree       &nat_rules()             { return _nat_rules; }
-		List<Interface>     &interfaces()            { return _interfaces; }
+		Interface_list      &interfaces()            { return _interfaces; }
 		Configuration       &config()          const { return _config; }
 		Domain_avl_member   &avl_member()            { return _avl_member; }
 		Dhcp_server         &dhcp_server()           { return _dhcp_server.deref(); }

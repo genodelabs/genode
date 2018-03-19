@@ -41,6 +41,7 @@ class Net::Uplink_base
 			 ***************************/
 
 			Domain_name determine_domain_name() const override { return Genode::Cstring("uplink"); };
+			void handle_config(Configuration const &) override { }
 		};
 
 		Interface_policy _intf_policy { };
@@ -76,6 +77,7 @@ class Net::Uplink : public Uplink_base,
 		Uplink(Genode::Env        &env,
 		       Timer::Connection  &timer,
 		       Genode::Allocator  &alloc,
+		       Interface_list     &interfaces,
 		       Configuration      &config);
 
 

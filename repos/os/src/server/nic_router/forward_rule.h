@@ -16,6 +16,7 @@
 
 /* local includes */
 #include <leaf_rule.h>
+#include <avl_tree.h>
 
 /* Genode includes */
 #include <util/avl_tree.h>
@@ -69,7 +70,7 @@ class Net::Forward_rule : public Leaf_rule,
 };
 
 
-struct Net::Forward_rule_tree : Genode::Avl_tree<Forward_rule>
+struct Net::Forward_rule_tree : Avl_tree<Forward_rule>
 {
 	struct No_match : Genode::Exception { };
 

@@ -17,6 +17,7 @@
 /* local includes */
 #include <ipv4_address_prefix.h>
 #include <rule.h>
+#include <list.h>
 
 /* Genode includes */
 #include <util/list.h>
@@ -67,16 +68,16 @@ struct Net::Direct_rule : Direct_rule_base,
 
 
 template <typename T>
-struct Net::Direct_rule_list : Genode::List<T>
+struct Net::Direct_rule_list : List<T>
 {
-	using List = Genode::List<T>;
+	using Base = List<T>;
 
 	struct No_match : Genode::Exception { };
 
 	T const &longest_prefix_match(Ipv4_address const &ip) const
 	{
 		/* first match is sufficient as the list is prefix-size-sorted */
-		for (T const *curr = List::first(); curr; curr = curr->next()) {
+		for (T const *curr = Base::first(); curr; curr = curr->next()) {
 			if (curr->dst().prefix_matches(ip)) {
 				return *curr; }
 		}
@@ -87,13 +88,13 @@ struct Net::Direct_rule_list : Genode::List<T>
 	{
 		/* ensure that the list stays prefix-size-sorted (descending) */
 		T *behind = nullptr;
-		for (T *curr = List::first(); curr; curr = curr->next()) {
+		for (T *curr = Base::first(); curr; curr = curr->next()) {
 			if (rule.dst().prefix >= curr->dst().prefix) {
 				break; }
 
 			behind = curr;
 		}
-		List::insert(&rule, behind);
+		Base::insert(&rule, behind);
 	}
 };
 

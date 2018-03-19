@@ -18,6 +18,7 @@
 #include <port_allocator.h>
 #include <leaf_rule.h>
 #include <l3_protocol.h>
+#include <avl_tree.h>
 
 /* Genode includes */
 #include <util/avl_string.h>
@@ -74,7 +75,7 @@ class Net::Nat_rule : public Leaf_rule,
 };
 
 
-struct Net::Nat_rule_tree : Genode::Avl_tree<Nat_rule>
+struct Net::Nat_rule_tree : Avl_tree<Nat_rule>
 {
 	struct No_match : Genode::Exception { };
 

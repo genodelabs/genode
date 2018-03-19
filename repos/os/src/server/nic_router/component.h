@@ -23,6 +23,7 @@
 
 /* local includes */
 #include <interface.h>
+#include <reference.h>
 
 namespace Net {
 
@@ -54,18 +55,23 @@ class Net::Session_component_base
 
 		struct Interface_policy : Net::Interface_policy
 		{
-			Genode::Session_label const  label;
-			Configuration         const &config;
+			private:
 
-			Interface_policy(Genode::Session_label const &label,
-			                 Configuration         const &config);
+				Genode::Session_label    const _label;
+				Const_reference<Configuration> _config;
+
+			public:
+
+				Interface_policy(Genode::Session_label const &label,
+				                 Configuration         const &config);
 
 
-			/***************************
-			 ** Net::Interface_policy **
-			 ***************************/
+				/***************************
+				 ** Net::Interface_policy **
+				 ***************************/
 
-			Domain_name determine_domain_name() const override;
+				Domain_name determine_domain_name() const override;
+				void handle_config(Configuration const &config) override { _config = config; }
 		};
 
 		Genode::Allocator_guard _guarded_alloc;
@@ -112,6 +118,7 @@ class Net::Session_component : private Session_component_base,
 		                  Genode::Entrypoint          &ep,
 		                  Mac_address           const &router_mac,
 		                  Genode::Session_label const &label,
+		                  Interface_list              &interfaces,
 		                  Configuration               &config);
 
 
@@ -120,8 +127,8 @@ class Net::Session_component : private Session_component_base,
 		 ******************/
 
 		Mac_address mac_address() { return _mac; }
-		bool link_state() { return true; }
-		void link_state_sigh(Genode::Signal_context_capability) { }
+		bool link_state() { return Interface::link_state(); }
+		void link_state_sigh(Genode::Signal_context_capability sigh) { Interface::link_state_sigh(sigh); }
 };
 
 
@@ -129,13 +136,14 @@ class Net::Root : public Genode::Root_component<Session_component>
 {
 	private:
 
-		Timer::Connection   &_timer;
-		Mac_allocator        _mac_alloc { };
-		Genode::Entrypoint  &_ep;
-		Mac_address const    _router_mac;
-		Configuration       &_config;
-		Genode::Ram_session &_buf_ram;
-		Genode::Region_map  &_region_map;
+		Timer::Connection        &_timer;
+		Mac_allocator             _mac_alloc { };
+		Genode::Entrypoint       &_ep;
+		Mac_address const         _router_mac;
+		Reference<Configuration>  _config;
+		Genode::Ram_session      &_buf_ram;
+		Genode::Region_map       &_region_map;
+		Interface_list           &_interfaces;
 
 
 		/********************
@@ -152,7 +160,10 @@ class Net::Root : public Genode::Root_component<Session_component>
 		     Mac_address const   &router_mac,
 		     Configuration       &config,
 		     Genode::Ram_session &buf_ram,
+		     Interface_list      &interfaces,
 		     Genode::Region_map  &region_map);
+
+		void handle_config(Configuration &config) { _config = Reference<Configuration>(config); }
 };
 
 #endif /* _COMPONENT_H_ */

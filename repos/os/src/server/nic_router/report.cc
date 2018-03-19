@@ -20,21 +20,20 @@ using namespace Net;
 using namespace Genode;
 
 
-Net::Report::Report(Env               &env,
-                    Xml_node const     node,
+Net::Report::Report(Xml_node const     node,
                     Timer::Connection &timer,
-                    Domain_tree       &domains)
+                    Domain_tree       &domains,
+                    Reporter          &reporter)
 :
 	_config(node.attribute_value("config", true)),
 	_bytes (node.attribute_value("bytes",  true)),
-	_reporter(env, "state"),
+	_reporter(reporter),
 	_domains(domains),
 	_timeout(timer, *this, &Report::_handle_report_timeout,
 	         read_sec_attr(node, "interval_sec", 5))
 {
 	_reporter.enabled(true);
 }
-
 
 
 void Net::Report::_handle_report_timeout(Duration)

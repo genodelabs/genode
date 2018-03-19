@@ -37,7 +37,7 @@ class Net::Report
 
 		bool const                       _config;
 		bool const                       _bytes;
-		Genode::Reporter                 _reporter;
+		Genode::Reporter                &_reporter;
 		Domain_tree                     &_domains;
 		Timer::Periodic_timeout<Report>  _timeout;
 
@@ -45,10 +45,10 @@ class Net::Report
 
 	public:
 
-		Report(Genode::Env            &env,
-		       Genode::Xml_node const  node,
+		Report(Genode::Xml_node const  node,
 		       Timer::Connection      &timer,
-		       Domain_tree            &domains);
+		       Domain_tree            &domains,
+		       Genode::Reporter       &reporter);
 
 
 		/***************

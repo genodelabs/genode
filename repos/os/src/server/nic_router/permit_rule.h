@@ -16,6 +16,7 @@
 
 /* local includes */
 #include <leaf_rule.h>
+#include <avl_tree.h>
 
 /* Genode includes */
 #include <util/avl_tree.h>
@@ -24,6 +25,8 @@
 namespace Genode { class Output; }
 
 namespace Net {
+
+	class Interface;
 
 	class Permit_rule;
 	class Permit_any_rule;
@@ -34,6 +37,8 @@ namespace Net {
 
 struct Net::Permit_rule : private Leaf_rule, public Genode::Interface
 {
+	friend class Interface;
+
 	Permit_rule(Domain_tree &domains, Genode::Xml_node const node);
 
 	using Leaf_rule::domain;
@@ -64,11 +69,12 @@ struct Net::Permit_any_rule : Permit_rule
 class Net::Permit_single_rule : public  Permit_rule,
                                 private Genode::Avl_node<Permit_single_rule>
 {
-	private:
+	friend class Genode::Avl_node<Permit_single_rule>;
+	friend class Genode::Avl_tree<Permit_single_rule>;
+	friend class Avl_tree<Permit_single_rule>;
+	friend class Net::Permit_single_rule_tree;
 
-		friend class Genode::Avl_node<Permit_single_rule>;
-		friend class Genode::Avl_tree<Permit_single_rule>;
-		friend class Net::Permit_single_rule_tree;
+	private:
 
 		Port const _port;
 
@@ -102,8 +108,10 @@ class Net::Permit_single_rule : public  Permit_rule,
 };
 
 
-struct Net::Permit_single_rule_tree : private Genode::Avl_tree<Permit_single_rule>
+struct Net::Permit_single_rule_tree : private Avl_tree<Permit_single_rule>
 {
+	friend class Transport_rule;
+
 	struct No_match : Genode::Exception { };
 
 	void insert(Permit_single_rule *rule)

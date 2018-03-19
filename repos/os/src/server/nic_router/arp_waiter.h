@@ -14,6 +14,10 @@
 #ifndef _ARP_WAITER_H_
 #define _ARP_WAITER_H_
 
+/* local includes */
+#include <list.h>
+#include <reference.h>
+
 /* Genode includes */
 #include <net/ipv4.h>
 #include <util/list.h>
@@ -24,9 +28,10 @@ namespace Net {
 	using Packet_descriptor = ::Nic::Packet_descriptor;
 	class Interface;
 	class Domain;
+	class Configuration;
 	class Arp_waiter;
 	using Arp_waiter_list_element = Genode::List_element<Arp_waiter>;
-	using Arp_waiter_list         = Genode::List<Arp_waiter_list_element >;
+	using Arp_waiter_list         = List<Arp_waiter_list_element>;
 }
 
 
@@ -37,7 +42,7 @@ class Net::Arp_waiter
 		Arp_waiter_list_element  _src_le;
 		Interface               &_src;
 		Arp_waiter_list_element  _dst_le;
-		Domain                  &_dst;
+		Reference<Domain>        _dst;
 		Ipv4_address      const  _ip;
 		Packet_descriptor const  _packet;
 
@@ -50,6 +55,15 @@ class Net::Arp_waiter
 
 		~Arp_waiter();
 
+		void handle_config(Domain &dst);
+
+
+		/*********
+		 ** Log **
+		 *********/
+
+		void print(Genode::Output &output) const;
+
 
 		/***************
 		 ** Accessors **
@@ -58,6 +72,7 @@ class Net::Arp_waiter
 		Interface               &src()    const { return _src; }
 		Ipv4_address      const &ip()     const { return _ip; }
 		Packet_descriptor const &packet() const { return _packet; }
+		Domain                  &dst()          { return _dst(); }
 };
 
 #endif /* _ARP_WAITER_H_ */

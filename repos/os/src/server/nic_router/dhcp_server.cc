@@ -80,6 +80,14 @@ Ipv4_address Dhcp_server::alloc_ip()
 }
 
 
+void Dhcp_server::alloc_ip(Ipv4_address const &ip)
+{
+	try { _ip_alloc.alloc_addr(ip.to_uint32_little_endian() - _ip_first_raw); }
+	catch (Bit_allocator_dynamic::Range_conflict)   { throw Alloc_ip_failed(); }
+	catch (Bit_array_dynamic::Invalid_index_access) { throw Alloc_ip_failed(); }
+}
+
+
 void Dhcp_server::free_ip(Ipv4_address const &ip)
 {
 	_ip_alloc.free(ip.to_uint32_little_endian() - _ip_first_raw);
@@ -147,8 +155,8 @@ void Dhcp_allocation::_handle_timeout(Duration)
 Dhcp_allocation &
 Dhcp_allocation_tree::find_by_mac(Mac_address const &mac) const
 {
-	if (!first()) {
+	if (!_tree.first()) {
 		throw No_match(); }
 
-	return first()->find_by_mac(mac);
+	return _tree.first()->find_by_mac(mac);
 }

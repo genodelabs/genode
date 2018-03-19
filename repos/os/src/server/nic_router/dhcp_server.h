@@ -17,6 +17,7 @@
 /* local includes */
 #include <ipv4_address_prefix.h>
 #include <bit_allocator_dynamic.h>
+#include <list.h>
 
 /* Genode includes */
 #include <net/mac_address.h>
@@ -30,7 +31,7 @@ namespace Net {
 	class Dhcp_allocation;
 	class Dhcp_allocation;
 	class Dhcp_allocation_tree;
-	using Dhcp_allocation_list = Genode::List<Dhcp_allocation>;
+	using Dhcp_allocation_list = List<Dhcp_allocation>;
 
 	/* forward declarations */
 	class Interface;
@@ -64,6 +65,8 @@ class Net::Dhcp_server : private Genode::Noncopyable
 
 		Ipv4_address alloc_ip();
 
+		void alloc_ip(Ipv4_address const &ip);
+
 		void free_ip(Ipv4_address const &ip);
 
 
@@ -80,14 +83,6 @@ class Net::Dhcp_server : private Genode::Noncopyable
 
 		Ipv4_address   const &dns_server()    const { return _dns_server; }
 		Genode::Microseconds  ip_lease_time() const { return _ip_lease_time; }
-};
-
-
-struct Net::Dhcp_allocation_tree : public  Genode::Avl_tree<Dhcp_allocation>
-{
-	struct No_match : Genode::Exception { };
-
-	Dhcp_allocation &find_by_mac(Mac_address const &mac) const;
 };
 
 
@@ -141,6 +136,47 @@ class Net::Dhcp_allocation : public  Genode::Avl_node<Dhcp_allocation>,
 		bool                bound() const { return _bound; }
 
 		void set_bound() { _bound = true; }
+};
+
+
+struct Net::Dhcp_allocation_tree
+{
+	private:
+
+		Genode::Avl_tree<Dhcp_allocation> _tree { };
+		Dhcp_allocation_list              _list { };
+
+	public:
+
+		struct No_match : Genode::Exception { };
+
+		Dhcp_allocation &find_by_mac(Mac_address const &mac) const;
+
+		void insert(Dhcp_allocation &dhcp_alloc)
+		{
+			_tree.insert(&dhcp_alloc);
+			_list.insert(&dhcp_alloc);
+		}
+
+		void remove(Dhcp_allocation &dhcp_alloc)
+		{
+			_tree.remove(&dhcp_alloc);
+			_list.remove(&dhcp_alloc);
+		}
+
+		Dhcp_allocation *first() { return _tree.first(); }
+
+		template <typename FUNC>
+		void for_each(FUNC && functor)
+		{
+			using List_item = Dhcp_allocation_list::Element;
+			for (Dhcp_allocation *item = _list.first(); item; )
+			{
+				Dhcp_allocation *const next_item = item->List_item::next();
+				functor(*item);
+				item = next_item;
+			}
+		}
 };
 
 #endif /* _DHCP_SERVER_H_ */
