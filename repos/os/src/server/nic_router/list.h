@@ -29,10 +29,11 @@ struct Net::List : Genode::List<LT>
 	template <typename FUNC>
 	void for_each(FUNC && functor)
 	{
-		for (LT * elem = Base::first(); elem;
-		     elem = elem->Base::Element::next())
+		for (LT *elem = Base::first(); elem; )
 		{
+			LT *const next = elem->Base::Element::next();
 			functor(*elem);
+			elem = next;
 		}
 	}
 
