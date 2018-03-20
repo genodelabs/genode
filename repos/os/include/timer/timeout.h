@@ -251,7 +251,7 @@ class Genode::Alarm_timeout_scheduler : private Noncopyable,
 
 		Alarm *_alarm_get_pending_alarm();
 
-		void _alarm_setup_alarm(Alarm &alarm, Alarm::Time period, Alarm::Time deadline);
+		void _alarm_setup_alarm(Alarm &alarm, Alarm::Time period, Alarm::Time first_duration);
 
 		void _enable();
 
@@ -275,7 +275,7 @@ class Genode::Alarm_timeout_scheduler : private Noncopyable,
 
 		void _alarm_discard(Alarm *alarm);
 
-		void _alarm_schedule_absolute(Alarm *alarm, Alarm::Time timeout);
+		void _alarm_schedule_absolute(Alarm *alarm, Alarm::Time duration);
 
 		void _alarm_schedule(Alarm *alarm, Alarm::Time period);
 
