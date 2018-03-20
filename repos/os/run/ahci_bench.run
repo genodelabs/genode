@@ -57,6 +57,7 @@ append config {
 		<resource name="RAM" quantum="10M" />
 		<provides><service name="Block" /></provides>
 		<config>
+			<report ports="yes"/>
 			<policy label_prefix="test-ahci" device="0" writeable="yes" />
 		</config>
 	</start>
