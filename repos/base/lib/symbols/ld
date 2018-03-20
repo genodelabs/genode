@@ -201,6 +201,9 @@ _ZN6Genode23Alarm_timeout_scheduler18_schedule_periodicERNS_7TimeoutENS_12Micros
 _ZN6Genode23Alarm_timeout_scheduler7_enableEv T
 _ZN6Genode23Alarm_timeout_schedulerC1ERNS_11Time_sourceENS_12MicrosecondsE T
 _ZN6Genode23Alarm_timeout_schedulerC2ERNS_11Time_sourceENS_12MicrosecondsE T
+_ZN6Genode23Alarm_timeout_schedulerD0Ev T
+_ZN6Genode23Alarm_timeout_schedulerD1Ev T
+_ZN6Genode23Alarm_timeout_schedulerD2Ev T
 _ZN6Genode25env_stack_area_region_mapE B 8
 _ZN6Genode28env_stack_area_ram_allocatorE B 8
 _ZN6Genode3Log3logEv T
@@ -317,6 +320,9 @@ _ZN6Genode7Console7vprintfEPKcPv T
 _ZN6Genode7Console7vprintfEPKcSt9__va_list T
 _ZN6Genode7Timeout17schedule_one_shotENS_12MicrosecondsERNS0_7HandlerE T
 _ZN6Genode7Timeout17schedule_periodicENS_12MicrosecondsERNS0_7HandlerE T
+_ZN6Genode7Timeout5AlarmD0Ev T
+_ZN6Genode7Timeout5AlarmD1Ev T
+_ZN6Genode7Timeout5AlarmD2Ev T
 _ZN6Genode7Timeout7discardEv T
 _ZN6Genode7cap_mapEv T
 _ZN6Genode7vprintfEPKcP13__va_list_tag T
@@ -396,7 +402,7 @@ _ZTIN6Genode5ChildE D 72
 _ZTIN6Genode6OutputE D 24
 _ZTIN6Genode6ThreadE D 16
 _ZTIN6Genode7ConsoleE D 16
-_ZTIN6Genode7Timeout5AlarmE D 24
+_ZTIN6Genode7Timeout5AlarmE D 16
 _ZTIPDd D 32
 _ZTIPDe D 32
 _ZTIPDf D 32
@@ -555,7 +561,7 @@ _ZTVN6Genode5ChildE D 408
 _ZTVN6Genode6OutputE D 48
 _ZTVN6Genode6ThreadE D 48
 _ZTVN6Genode7ConsoleE D 48
-_ZTVN6Genode7Timeout5AlarmE D 40
+_ZTVN6Genode7Timeout5AlarmE D 32
 _ZTVSt10bad_typeid D 40
 _ZTVSt13bad_exception D 40
 _ZTVSt16bad_array_length D 40
@@ -578,6 +584,8 @@ _ZThn296_N5Timer10Connection8_discardERN6Genode7TimeoutE T
 _ZThn296_N5Timer10Connection9curr_timeEv T
 _ZThn4_N6Genode23Alarm_timeout_scheduler14handle_timeoutENS_8DurationE T
 _ZThn8_N6Genode23Alarm_timeout_scheduler14handle_timeoutENS_8DurationE T
+_ZThn8_N6Genode23Alarm_timeout_schedulerD0Ev T
+_ZThn8_N6Genode23Alarm_timeout_schedulerD1Ev T
 _ZdlPv W
 _ZdlPvPN6Genode11DeallocatorE T
 _ZdlPvPN6Genode9AllocatorE W
