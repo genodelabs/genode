@@ -138,13 +138,19 @@ void Alarm_timeout_scheduler::_enable()
 void Alarm_timeout_scheduler::_schedule_one_shot(Timeout      &timeout,
                                                  Microseconds  duration)
 {
-	unsigned long const curr_time_us =
-		_time_source.curr_time().trunc_to_plain_us().value;
+	/* raise timeout duration by the age of the local time value */
+	unsigned long us = _time_source.curr_time().trunc_to_plain_us().value;
+	if (us >= _now) {
+		us = duration.value + (us - _now); }
+	else {
+		us = duration.value + (~0UL - _now) + us; }
+	if (us >= duration.value) {
+		duration.value = us; }
 
-	/* ensure that the schedulers time is up-to-date before adding a timeout */
-	_alarm_handle(curr_time_us);
+	/* insert timeout into scheduling queue */
 	_alarm_schedule_absolute(&timeout._alarm, duration.value);
 
+	/* if new timeout is the closest to now, update the time-source timeout */
 	if (_alarm_head_timeout(&timeout._alarm)) {
 		_time_source.schedule_timeout(Microseconds(0), *this); }
 }
@@ -153,8 +159,6 @@ void Alarm_timeout_scheduler::_schedule_one_shot(Timeout      &timeout,
 void Alarm_timeout_scheduler::_schedule_periodic(Timeout      &timeout,
                                                  Microseconds  duration)
 {
-	/* ensure that the schedulers time is up-to-date before adding a timeout */
-	_alarm_handle(_time_source.curr_time().trunc_to_plain_us().value);
 	_alarm_schedule(&timeout._alarm, duration.value);
 
 	if (_alarm_head_timeout(&timeout._alarm)) {
