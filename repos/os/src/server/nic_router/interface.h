@@ -327,7 +327,7 @@ class Net::Interface : private Interface_list::Element
 		 ** Accessors **
 		 ***************/
 
-		Domain          &domain()           { return _domain.deref(); }
+		Domain          &domain()           { return _domain(); }
 		Mac_address      router_mac() const { return _router_mac; }
 		Arp_waiter_list &own_arp_waiters()  { return _own_arp_waiters; }
 };

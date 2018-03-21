@@ -52,7 +52,7 @@ Transport_rule::Transport_rule(Domain_tree    &domains,
 {
 	/* skip specific permit rules if all ports are permitted anyway */
 	try {
-		Permit_any_rule &permit_any_rule = _permit_any_rule.deref();
+		Permit_any_rule &permit_any_rule = _permit_any_rule();
 		if (config.verbose()) {
 			log("  ", protocol, " rule: ", _dst, " ", permit_any_rule); }
 
@@ -80,14 +80,14 @@ Transport_rule::Transport_rule(Domain_tree    &domains,
 Transport_rule::~Transport_rule()
 {
 	_permit_single_rules.destroy_each(_alloc);
-	try { destroy(_alloc, &_permit_any_rule.deref()); }
+	try { destroy(_alloc, &_permit_any_rule()); }
 	catch (Pointer<Permit_any_rule>::Invalid) { }
 }
 
 
 Permit_rule const &Transport_rule::permit_rule(Port const port) const
 {
-	try { return _permit_any_rule.deref(); }
+	try { return _permit_any_rule(); }
 	catch (Pointer<Permit_any_rule>::Invalid) { }
 	return _permit_single_rules.find_by_port(port);
 }

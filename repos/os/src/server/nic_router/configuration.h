@@ -81,7 +81,7 @@ class Net::Configuration
 		Genode::Microseconds  tcp_idle_timeout()      const { return _tcp_idle_timeout; }
 		Genode::Microseconds  tcp_max_segm_lifetime() const { return _tcp_max_segm_lifetime; }
 		Domain_tree          &domains()                     { return _domains; }
-		Report               &report()                      { return _report.deref(); }
+		Report               &report()                      { return _report(); }
 		Genode::Xml_node      node()                  const { return _node; }
 };
 

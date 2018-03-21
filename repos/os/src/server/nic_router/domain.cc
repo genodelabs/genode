@@ -157,12 +157,12 @@ void Domain::_ip_config_changed()
 	}
 	/* try to find configuration for DHCP server role */
 	try {
-		_dhcp_server.set(*new (_alloc)
+		_dhcp_server = *new (_alloc)
 			Dhcp_server(_node.sub_node("dhcp-server"), _alloc,
-			            ip_config().interface));
+			            ip_config().interface);
 
 		if (_config.verbose()) {
-			log("DHCP server at domain \"", *this, "\": ", _dhcp_server.deref()); }
+			log("DHCP server at domain \"", *this, "\": ", _dhcp_server()); }
 	}
 	catch (Xml_node::Nonexistent_sub_node) { }
 	catch (Dhcp_server::Invalid) {
@@ -181,7 +181,7 @@ Domain::~Domain()
 	_tcp_forward_rules.destroy_each(_alloc);
 
 	/* destroy DHCP server and IP config */
-	try { destroy(_alloc, &_dhcp_server.deref()); }
+	try { destroy(_alloc, &_dhcp_server()); }
 	catch (Pointer<Dhcp_server>::Invalid) { }
 	_ip_config.destruct();
 }

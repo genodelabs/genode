@@ -23,72 +23,54 @@ namespace Net {
 	template <typename> class Const_pointer;
 }
 
+
 template <typename T>
 class Net::Pointer
 {
 	private:
 
-		T *_ptr;
+		T *_obj;
 
 	public:
 
-		struct Valid   : Genode::Exception { };
 		struct Invalid : Genode::Exception { };
 
-		Pointer() : _ptr(nullptr) { }
+		Pointer() : _obj(nullptr) { }
 
-		Pointer(T &ref) : _ptr(&ref) { }
+		Pointer(T &obj) : _obj(&obj) { }
 
-		T &deref() const
+		T &operator () () const
 		{
-			if (_ptr == nullptr) {
-				throw Invalid(); }
+			if (_obj == nullptr)
+				throw Invalid();
 
-			return *_ptr;
+			return *_obj;
 		}
-
-		void set(T &ptr)
-		{
-			if (_ptr != nullptr) {
-				throw Valid(); }
-
-			_ptr = &ptr;
-		}
-
-		void unset() { _ptr = nullptr; }
 };
+
 
 template <typename T>
 class Net::Const_pointer
 {
 	private:
 
-		T const *_ptr;
-		bool     _valid;
+		T const *_obj;
 
 	public:
 
-		struct Valid   : Genode::Exception { };
 		struct Invalid : Genode::Exception { };
 
-		Const_pointer() : _ptr(nullptr), _valid(false) { }
+		Const_pointer() : _obj(nullptr) { }
 
-		Const_pointer(T const &ref) : _ptr(&ref), _valid(true) { }
+		Const_pointer(T const &obj) : _obj(&obj) { }
 
-		T const &deref() const
+		T const &operator () () const
 		{
-			if (!_valid) { throw Invalid(); }
-			return *_ptr;
-		}
+			if (_obj == nullptr)
+				throw Invalid();
 
-		void set(T const &ptr)
-		{
-			if (_valid) { throw Valid(); }
-			_ptr = &ptr;
-			_valid = true;
+			return *_obj;
 		}
-
-		void unset() { _valid = false; }
 };
 
 #endif /* _POINTER_H_ */

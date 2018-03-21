@@ -179,7 +179,7 @@ class Net::Domain : public Domain_base
 		Interface_list      &interfaces()            { return _interfaces; }
 		Configuration       &config()          const { return _config; }
 		Domain_avl_member   &avl_member()            { return _avl_member; }
-		Dhcp_server         &dhcp_server()           { return _dhcp_server.deref(); }
+		Dhcp_server         &dhcp_server()           { return _dhcp_server(); }
 		Arp_cache           &arp_cache()             { return _arp_cache; }
 		Arp_waiter_list     &foreign_arp_waiters()   { return _foreign_arp_waiters; }
 		Link_side_tree      &tcp_links()             { return _tcp_links; }

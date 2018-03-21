@@ -226,7 +226,7 @@ void Interface::_attach_to_domain_raw(Domain_name const &domain_name)
 
 void Interface::_detach_from_domain_raw()
 {
-	Domain &domain = _domain.deref();
+	Domain &domain = _domain();
 	domain.detach_interface(*this);
 	_interfaces.insert(this);
 	_domain = Pointer<Domain>();
@@ -263,7 +263,7 @@ void Interface::_apply_foreign_arp()
 bool Interface::link_state()
 {
 	try {
-		_domain.deref();
+		_domain();
 		return true;
 	}
 	catch (Pointer<Domain>::Invalid) { }
@@ -290,7 +290,7 @@ void Interface::handle_config_aftermath()
 void Interface::detach_from_ip_config()
 {
 	/* destroy our own ARP waiters */
-	Domain &domain = _domain.deref();
+	Domain &domain = _domain();
 	while (_own_arp_waiters.first()) {
 		cancel_arp_waiting(*_own_arp_waiters.first()->object());
 	}
@@ -342,7 +342,7 @@ Interface::_new_link(L3_protocol             const  protocol,
 
 void Interface::dhcp_allocation_expired(Dhcp_allocation &allocation)
 {
-	_release_dhcp_allocation(allocation, _domain.deref());
+	_release_dhcp_allocation(allocation, _domain());
 	_released_dhcp_allocations.insert(&allocation);
 }
 
@@ -406,7 +406,7 @@ void Interface::_nat_link_and_pass(Ethernet_frame        &eth,
 
 		_src_port(prot, prot_base, nat.port_alloc(prot).alloc());
 		ip.src(remote_domain.ip_config().interface.address);
-		remote_port_alloc.set(nat.port_alloc(prot));
+		remote_port_alloc = nat.port_alloc(prot);
 	}
 	catch (Nat_rule_tree::No_match) { }
 	Link_side_id const remote_id = { ip.dst(), _dst_port(prot, prot_base),
@@ -1014,7 +1014,7 @@ void Interface::_handle_eth(void              *const  eth_base,
                             Packet_descriptor  const &pkt)
 {
 	try {
-		Domain &local_domain = _domain.deref();
+		Domain &local_domain = _domain();
 		try {
 			local_domain.raise_rx_bytes(eth_size);
 
@@ -1103,7 +1103,7 @@ void Interface::_send_submit_pkt(Packet_descriptor &pkt,
                                  void            * &pkt_base,
                                  size_t             pkt_size)
 {
-	Domain &local_domain = _domain.deref();
+	Domain &local_domain = _domain();
 	_source().submit_packet(pkt);
 	local_domain.raise_tx_bytes(pkt_size);
 	if (local_domain.verbose_packets()) {
@@ -1173,7 +1173,7 @@ void Interface::_update_link_check_nat(Link        &link,
 		Nat_rule &nat = new_srv_dom.nat_rules().find_by_domain(cln_dom);
 		Port_allocator_guard &remote_port_alloc = nat.port_alloc(prot);
 		remote_port_alloc.alloc(link.server().dst_port());
-		remote_port_alloc_ptr.set(remote_port_alloc);
+		remote_port_alloc_ptr = remote_port_alloc;
 		link.handle_config(cln_dom, new_srv_dom, remote_port_alloc_ptr, _config());
 		return;
 	}

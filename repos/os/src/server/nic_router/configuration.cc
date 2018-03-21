@@ -70,17 +70,17 @@ Configuration::Configuration(Env               &env,
 		Xml_node const report_node = node.sub_node("report");
 		try {
 			/* try to re-use existing reporter */
-			_reporter.set(legacy._reporter.deref());
-			legacy._reporter.unset();
+			_reporter = legacy._reporter();
+			legacy._reporter = Pointer<Reporter>();
 		}
 		catch (Pointer<Reporter>::Invalid) {
 
 			/* there is no reporter by now, create a new one */
-			_reporter.set(*new (_alloc) Reporter(env, "state"));
+			_reporter = *new (_alloc) Reporter(env, "state");
 		}
 		/* create report generator */
-		_report.set(*new (_alloc)
-			Report(report_node, timer, _domains, _reporter.deref()));
+		_report = *new (_alloc)
+			Report(report_node, timer, _domains, _reporter());
 	}
 	catch (Genode::Xml_node::Nonexistent_sub_node) { }
 }
@@ -89,11 +89,11 @@ Configuration::Configuration(Env               &env,
 Configuration::~Configuration()
 {
 	/* destroy reporter */
-	try { destroy(_alloc, &_reporter.deref()); }
+	try { destroy(_alloc, &_reporter()); }
 	catch (Pointer<Reporter>::Invalid) { }
 
 	/* destroy report generator */
-	try { destroy(_alloc, &_report.deref()); }
+	try { destroy(_alloc, &_report()); }
 	catch (Pointer<Report>::Invalid) { }
 
 	/* destroy domains */

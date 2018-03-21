@@ -155,7 +155,7 @@ void Link::dissolve()
 		log("Dissolve ", l3_protocol_name(_protocol), " link: ", *this); }
 
 	try {
-		_server_port_alloc.deref().free(_server.dst_port());
+		_server_port_alloc().free(_server.dst_port());
 		if (_config().verbose()) {
 			log("Free ", l3_protocol_name(_protocol),
 			    " port ", _server.dst_port(),
