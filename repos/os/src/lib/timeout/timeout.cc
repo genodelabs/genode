@@ -121,10 +121,10 @@ Alarm_timeout_scheduler::Alarm_timeout_scheduler(Time_source  &time_source,
 Alarm_timeout_scheduler::~Alarm_timeout_scheduler()
 {
 	Lock::Guard lock_guard(_lock);
-	while (_head) {
-		Alarm *next = _head->_next;
-		_head->_alarm_reset();
-		_head = next;
+	while (_active_head) {
+		Alarm *next = _active_head->_next;
+		_active_head->_alarm_reset();
+		_active_head = next;
 	}
 }
 
@@ -171,22 +171,22 @@ void Alarm_timeout_scheduler::_alarm_unsynchronized_enqueue(Alarm *alarm)
 
 	alarm->_active++;
 
-	/* if alarmlist is empty add first element */
-	if (!_head) {
+	/* if active alarm list is empty add first element */
+	if (!_active_head) {
 		alarm->_next = 0;
-		_head = alarm;
+		_active_head = alarm;
 		return;
 	}
 
 	/* if deadline is smaller than any other deadline, put it on the head */
-	if (alarm->_raw.is_pending_at(_head->_raw.deadline, _head->_raw.deadline_period)) {
-		alarm->_next = _head;
-		_head = alarm;
+	if (alarm->_raw.is_pending_at(_active_head->_raw.deadline, _active_head->_raw.deadline_period)) {
+		alarm->_next = _active_head;
+		_active_head = alarm;
 		return;
 	}
 
 	/* find list element with a higher deadline */
-	Alarm *curr = _head;
+	Alarm *curr = _active_head;
 	while (curr->_next &&
 	       curr->_next->_raw.is_pending_at(alarm->_raw.deadline, alarm->_raw.deadline_period))
 	{
@@ -207,17 +207,17 @@ void Alarm_timeout_scheduler::_alarm_unsynchronized_enqueue(Alarm *alarm)
 
 void Alarm_timeout_scheduler::_alarm_unsynchronized_dequeue(Alarm *alarm)
 {
-	if (!_head) return;
+	if (!_active_head) return;
 
-	if (_head == alarm) {
-		_head = alarm->_next;
+	if (_active_head == alarm) {
+		_active_head = alarm->_next;
 		alarm->_alarm_reset();
 		return;
 	}
 
 	/* find predecessor in alarm queue */
 	Alarm *curr;
-	for (curr = _head; curr && (curr->_next != alarm); curr = curr->_next);
+	for (curr = _active_head; curr && (curr->_next != alarm); curr = curr->_next);
 
 	/* alarm is not enqueued */
 	if (!curr) return;
@@ -232,12 +232,12 @@ Timeout::Alarm *Alarm_timeout_scheduler::_alarm_get_pending_alarm()
 {
 	Lock::Guard lock_guard(_lock);
 
-	if (!_head || !_head->_raw.is_pending_at(_now, _now_period)) {
+	if (!_active_head || !_active_head->_raw.is_pending_at(_now, _now_period)) {
 		return nullptr; }
 
 	/* remove alarm from head of the list */
-	Alarm *pending_alarm = _head;
-	_head = _head->_next;
+	Alarm *pending_alarm = _active_head;
+	_active_head = _active_head->_next;
 
 	/*
 	 * Acquire dispatch lock to defer destruction until the call of '_on_alarm'
@@ -272,8 +272,23 @@ void Alarm_timeout_scheduler::_alarm_handle(Alarm::Time curr_time)
 	_min_handle_period.deadline_period = _now > deadline ?
 	                                     !_now_period : _now_period;
 
-	Alarm *curr;
-	while ((curr = _alarm_get_pending_alarm())) {
+	/*
+	 * Dequeue all pending alarms before starting to re-schedule. Otherwise,
+	 * a long-lasting alarm that has a deadline in the next now_period might
+	 * get scheduled as head of this now_period falsely because the code
+	 * thinks that it belongs to the last now_period.
+	 */
+	while (Alarm *curr = _alarm_get_pending_alarm()) {
+
+		/* enqueue alarm into list of pending alarms */
+		curr->_next = _pending_head;
+		_pending_head = curr;
+	}
+	while (Alarm *curr = _pending_head) {
+
+		/* dequeue alarm from list of pending alarms */
+		_pending_head = _pending_head->_next;
+		curr->_next = nullptr;
 
 		unsigned long triggered = 1;
 
@@ -393,10 +408,10 @@ bool Alarm_timeout_scheduler::_alarm_next_deadline(Alarm::Time *deadline)
 {
 	Lock::Guard alarm_list_lock_guard(_lock);
 
-	if (!_head) return false;
+	if (!_active_head) return false;
 
 	if (deadline)
-		*deadline = _head->_raw.deadline;
+		*deadline = _active_head->_raw.deadline;
 
 	if (*deadline < _min_handle_period.deadline) {
 		*deadline = _min_handle_period.deadline;

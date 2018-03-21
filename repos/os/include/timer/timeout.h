@@ -240,7 +240,8 @@ class Genode::Alarm_timeout_scheduler : private Noncopyable,
 
 		Time_source     &_time_source;
 		Lock             _lock              { };
-		Alarm           *_head              { nullptr };
+		Alarm           *_active_head       { nullptr };
+		Alarm           *_pending_head      { nullptr };
 		Alarm::Time      _now               { 0UL };
 		bool             _now_period        { false };
 		Alarm::Raw       _min_handle_period { };
@@ -283,7 +284,7 @@ class Genode::Alarm_timeout_scheduler : private Noncopyable,
 
 		bool _alarm_next_deadline(Alarm::Time *deadline);
 
-		bool _alarm_head_timeout(const Alarm * alarm) { return _head == alarm; }
+		bool _alarm_head_timeout(const Alarm * alarm) { return _active_head == alarm; }
 
 		Alarm_timeout_scheduler(Alarm_timeout_scheduler const &);
 		Alarm_timeout_scheduler &operator = (Alarm_timeout_scheduler const &);
