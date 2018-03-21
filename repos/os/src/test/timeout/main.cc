@@ -797,7 +797,7 @@ struct Main
 	void handle_test_2_done()
 	{
 		test_2.destruct();
-		test_3.construct(env, error_cnt, test_3_done, 2);
+		test_3.construct(env, error_cnt, test_3_done, 3);
 	}
 
 	void handle_test_3_done()
