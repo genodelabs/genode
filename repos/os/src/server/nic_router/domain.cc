@@ -140,33 +140,20 @@ Link_side_tree &Domain::links(L3_protocol const protocol)
 
 void Domain::_ip_config_changed()
 {
+	/* detach all dependent interfaces from old IP config */
 	_interfaces.for_each([&] (Interface &interface) {
 		interface.detach_from_ip_config();
 	});
-	if (!ip_config().valid) {
-
-		if (_config.verbose_domain_state()) {
-			log("[", *this, "] IP config: none");
-		}
-		return;
-	}
+	/* log the change */
 	if (_config.verbose_domain_state()) {
-		log("[", *this, "] IP config:"
-		    " interface ", ip_config().interface,
-		     ", gateway ", ip_config().gateway);
+		if (!ip_config().valid) {
+			log("[", *this, "] IP config: none");
+		} else {
+			log("[", *this, "] IP config:"
+			    " interface ", ip_config().interface,
+			     ", gateway ", ip_config().gateway);
+		}
 	}
-	/* try to find configuration for DHCP server role */
-	try {
-		_dhcp_server = *new (_alloc)
-			Dhcp_server(_node.sub_node("dhcp-server"), _alloc,
-			            ip_config().interface);
-
-		if (_config.verbose()) {
-			log("DHCP server at domain \"", *this, "\": ", _dhcp_server()); }
-	}
-	catch (Xml_node::Nonexistent_sub_node) { }
-	catch (Dhcp_server::Invalid) {
-		error("Invalid DHCP server configuration at domain \"", *this, "\""); }
 }
 
 
@@ -197,8 +184,27 @@ void Domain::__FIXME__dissolve_foreign_arp_waiters()
 }
 
 
-void Domain::create_rules(Domain_tree &domains)
+void Domain::init(Domain_tree &domains)
 {
+	/* read DHCP server configuration */
+	try {
+		Xml_node const dhcp_server_node = _node.sub_node("dhcp-server");
+		if (!ip_config().valid) {
+			log("[", *this, "] cannot be DHCP server and client at the same time");
+			throw Invalid();
+		}
+		_dhcp_server = *new (_alloc)
+			Dhcp_server(dhcp_server_node, _alloc, ip_config().interface);
+
+		if (_config.verbose()) {
+			log("[", *this, "] DHCP server: ", _dhcp_server()); }
+	}
+	catch (Xml_node::Nonexistent_sub_node) { }
+	catch (Dhcp_server::Invalid) {
+
+		log("[", *this, "] invalid DHCP server configuration");
+		throw Invalid();
+	}
 	/* read forward rules */
 	_read_forward_rules(tcp_name(), domains, _node, "tcp-forward",
 	                    _tcp_forward_rules);

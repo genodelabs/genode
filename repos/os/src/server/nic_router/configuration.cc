@@ -58,12 +58,12 @@ Configuration::Configuration(Env               &env,
 		try { _domains.insert(*new (_alloc) Domain(*this, node, _alloc)); }
 		catch (Domain::Invalid) { warning("invalid domain"); }
 	});
-	/* as they must resolve domain names, create rules after domains */
+	/* do those parts of domain init that require the domain tree to be complete */
 	_domains.for_each([&] (Domain &domain) {
 		if (_verbose) {
 			log("Domain: ", domain); }
 
-		domain.create_rules(_domains);
+		domain.init(_domains);
 	});
 	try {
 		/* check whether we shall create a report generator */

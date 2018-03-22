@@ -133,7 +133,7 @@ class Net::Domain : public Domain_base
 
 		~Domain();
 
-		void create_rules(Domain_tree &domains);
+		void init(Domain_tree &domains);
 
 		Ipv4_address const &next_hop(Ipv4_address const &ip) const;
 
