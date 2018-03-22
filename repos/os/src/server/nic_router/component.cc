@@ -153,11 +153,14 @@ Session_component *Net::Root::_create_session(char const *args)
 			throw Insufficient_ram_quota();
 		}
 		Session_label const label(label_from_args(args));
-		return new (md_alloc())
+		Session_component &component = *new (md_alloc())
 			Session_component(*md_alloc(), _timer, ram_quota - session_size,
 			                  _buf_ram, tx_buf_size, rx_buf_size, _region_map,
 			                  _mac_alloc.alloc(), _ep, _router_mac, label,
 			                  _interfaces, _config());
+
+		component.init();
+		return &component;
 	}
 	catch (Mac_allocator::Alloc_failed) {
 		error("failed to allocate MAC address");

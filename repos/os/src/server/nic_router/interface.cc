@@ -1131,6 +1131,11 @@ Interface::Interface(Genode::Entrypoint     &ep,
 	_interfaces(interfaces)
 {
 	_interfaces.insert(this);
+}
+
+
+void Interface::init()
+{
 	try { _attach_to_domain(_policy.determine_domain_name(), true); }
 	catch (Domain_tree::No_match) { }
 }

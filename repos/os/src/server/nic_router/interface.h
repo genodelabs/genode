@@ -322,6 +322,8 @@ class Net::Interface : private Interface_list::Element
 
 		void link_state_sigh(Genode::Signal_context_capability sigh);
 
+		void init();
+
 
 		/***************
 		 ** Accessors **

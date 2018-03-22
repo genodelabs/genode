@@ -81,6 +81,7 @@ Configuration &Net::Main::_init_config()
 
 Net::Main::Main(Env &env) : _env(env)
 {
+	_uplink.init();
 	_config_rom.sigh(_config_handler);
 	env.parent().announce(env.ep().manage(_root));
 }
