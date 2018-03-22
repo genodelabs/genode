@@ -250,8 +250,9 @@ class Genode::Path_base
 			import(path, pwd);
 		}
 
-		char       *base()       { return _path; }
-		char const *base() const { return _path; }
+		char       *base()         { return _path; }
+		char const *base()   const { return _path; }
+		char const *string() const { return _path; }
 
 		size_t max_len() { return _path_max_len; }
 
