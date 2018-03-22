@@ -14,6 +14,7 @@
 /* local includes */
 #include <dhcp_server.h>
 #include <interface.h>
+#include <domain.h>
 
 using namespace Net;
 using namespace Genode;
@@ -25,10 +26,12 @@ using namespace Genode;
 
 Dhcp_server::Dhcp_server(Xml_node            const  node,
                          Allocator                 &alloc,
-                         Ipv4_address_prefix const &interface)
+                         Ipv4_address_prefix const &interface,
+                         Domain_tree               &domains)
 :
 	_dns_server(node.attribute_value("dns_server", Ipv4_address())),
-	_ip_lease_time(_init_ip_lease_time(node)),
+	_dns_server_from(_init_dns_server_from(node, domains)),
+	_ip_lease_time  (_init_ip_lease_time(node)),
 	_ip_first(node.attribute_value("ip_first", Ipv4_address())),
 	_ip_last(node.attribute_value("ip_last", Ipv4_address())),
 	_ip_first_raw(_ip_first.to_uint32_little_endian()),
@@ -59,8 +62,11 @@ Microseconds Dhcp_server::_init_ip_lease_time(Xml_node const node)
 void Dhcp_server::print(Output &output) const
 {
 	if (_dns_server.valid()) {
-		Genode::print(output, "DNS server ", _dns_server, " ");
+		Genode::print(output, "DNS server ", _dns_server, ", ");
 	}
+	try { Genode::print(output, "DNS server from ", _dns_server_from(), ", "); }
+	catch (Pointer<Domain>::Invalid) { }
+
 	Genode::print(output, "IP first ", _ip_first,
 	                        ", last ", _ip_last,
 	                       ", count ", _ip_count,
@@ -91,6 +97,42 @@ void Dhcp_server::alloc_ip(Ipv4_address const &ip)
 void Dhcp_server::free_ip(Ipv4_address const &ip)
 {
 	_ip_alloc.free(ip.to_uint32_little_endian() - _ip_first_raw);
+}
+
+
+Pointer<Domain> Dhcp_server::_init_dns_server_from(Genode::Xml_node const  node,
+                                                   Domain_tree            &domains)
+{
+	if (_dns_server.valid()) {
+		return Pointer<Domain>();
+	}
+	Domain_name dns_server_from =
+		node.attribute_value("dns_server_from", Domain_name());
+
+	if (dns_server_from == Domain_name()) {
+		return Pointer<Domain>();
+	}
+	try { return domains.find_by_name(dns_server_from); }
+	catch (Domain_tree::No_match) { throw Invalid(); }
+}
+
+
+Ipv4_address const &Dhcp_server::dns_server() const
+{
+	try { return _dns_server_from().ip_config().dns_server; }
+	catch (Pointer<Domain>::Invalid) { }
+	return _dns_server;
+}
+
+
+bool Dhcp_server::ready() const
+{
+	if (_dns_server.valid()) {
+		return true;
+	}
+	try { return _dns_server_from().ip_config().valid; }
+	catch (Pointer<Domain>::Invalid) { }
+	return true;
 }
 
 

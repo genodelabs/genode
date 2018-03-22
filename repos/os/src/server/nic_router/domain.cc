@@ -128,7 +128,6 @@ Domain::Domain(Configuration &config, Xml_node const node, Allocator &alloc)
 	if (_config.verbose_domain_state()) {
 		log("[", *this, "] NIC sessions: ", _interface_cnt);
 	}
-	_ip_config_changed();
 }
 
 
@@ -188,6 +187,16 @@ void Domain::__FIXME__dissolve_foreign_arp_waiters()
 }
 
 
+Dhcp_server &Domain::dhcp_server()
+{
+	Dhcp_server &dhcp_server = _dhcp_server();
+	if (!dhcp_server.ready()) {
+		throw Pointer<Dhcp_server>::Invalid();
+	}
+	return dhcp_server;
+}
+
+
 void Domain::init(Domain_tree &domains)
 {
 	/* read DHCP server configuration */
@@ -198,7 +207,8 @@ void Domain::init(Domain_tree &domains)
 			throw Invalid();
 		}
 		_dhcp_server = *new (_alloc)
-			Dhcp_server(dhcp_server_node, _alloc, ip_config().interface);
+			Dhcp_server(dhcp_server_node, _alloc, ip_config().interface,
+			            domains);
 
 		if (_config.verbose()) {
 			log("[", *this, "] DHCP server: ", _dhcp_server()); }

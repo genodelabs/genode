@@ -292,18 +292,26 @@ this:
     <dhcp-server ip_first="10.0.1.80"
                  ip_last="10.0.1.100"
                  ip_lease_time_sec="3600"
-                 dns_server="10.0.0.2"/>
+                 dns_server="10.0.0.2"
+                 dns_server_from="uplink" />
     ...
 </domain>
 
-The attributes ip_first and ip_last define the available IPv4 address
-range while ip_lease_time_sec defines the lifetime of an IPv4 address
-assignment in seconds. The IPv4 address range must be in the subnet
-defined by the interface attribute of the domain tag and must not cover
-the IPv4 address in this attribute. The dns_server attribute gives the
-IPv4 address of the DNS server that might also be in another subnet.
-The lifetime of an assignment that was yet only offered to the client
-can be configured for all domains in the <config> tag of the router:
+The attributes ip_first and ip_last define the available IPv4 address range
+while ip_lease_time_sec defines the lifetime of an IPv4 address assignment in
+seconds. The IPv4 address range must be in the subnet defined by the interface
+attribute of the domain tag and must not cover the IPv4 address in this
+attribute. The dns_server attribute gives the IPv4 address of the DNS server
+that might also be in another subnet. The dns_server_from attribute has effect
+only if the dns_server attribute is not set. If this is the case, the
+dns_server_from attribute states the domain from whose IP config to take the
+DNS server address. This is useful, for instance, if the stated domain
+receives the address of a local DNS server via DHCP. Whenever the IP config
+of the stated domain becomes invalid, the DHCP server switches to a mode where
+it drops all requests unanswered until the IP config becomes valid again.
+
+The lifetime of an assignment that was yet only offered to the client can be
+configured for all domains in the <config> tag of the router:
 
 ! <config dhcp_offer_timeout_sec="6">
 

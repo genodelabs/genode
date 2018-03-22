@@ -131,6 +131,7 @@
 									<xs:attribute name="ip_last"           type="Ipv4_address" />
 									<xs:attribute name="ip_lease_time_sec" type="Seconds" />
 									<xs:attribute name="dns_server"        type="Ipv4_address" />
+									<xs:attribute name="dns_server_from"   type="Domain_name" />
 								</xs:complexType>
 							</xs:element><!-- dhcp-server -->
 

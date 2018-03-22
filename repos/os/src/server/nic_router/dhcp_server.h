@@ -18,6 +18,7 @@
 #include <ipv4_address_prefix.h>
 #include <bit_allocator_dynamic.h>
 #include <list.h>
+#include <pointer.h>
 
 /* Genode includes */
 #include <net/mac_address.h>
@@ -35,6 +36,8 @@ namespace Net {
 
 	/* forward declarations */
 	class Interface;
+	class Domain;
+	class Domain_tree;
 }
 
 
@@ -43,6 +46,7 @@ class Net::Dhcp_server : private Genode::Noncopyable
 	private:
 
 		Ipv4_address         const    _dns_server;
+		Pointer<Domain>      const    _dns_server_from;
 		Genode::Microseconds const    _ip_lease_time;
 		Ipv4_address         const    _ip_first;
 		Ipv4_address         const    _ip_last;
@@ -51,6 +55,9 @@ class Net::Dhcp_server : private Genode::Noncopyable
 		Genode::Bit_allocator_dynamic _ip_alloc;
 
 		Genode::Microseconds _init_ip_lease_time(Genode::Xml_node const node);
+
+		Pointer<Domain> _init_dns_server_from(Genode::Xml_node const  node,
+		                                      Domain_tree            &domains);
 
 	public:
 
@@ -61,13 +68,16 @@ class Net::Dhcp_server : private Genode::Noncopyable
 
 		Dhcp_server(Genode::Xml_node    const  node,
 		            Genode::Allocator         &alloc,
-		            Ipv4_address_prefix const &interface);
+		            Ipv4_address_prefix const &interface,
+		            Domain_tree               &domains);
 
 		Ipv4_address alloc_ip();
 
 		void alloc_ip(Ipv4_address const &ip);
 
 		void free_ip(Ipv4_address const &ip);
+
+		bool ready() const;
 
 
 		/*********
@@ -81,7 +91,7 @@ class Net::Dhcp_server : private Genode::Noncopyable
 		 ** Accessors **
 		 ***************/
 
-		Ipv4_address   const &dns_server()    const { return _dns_server; }
+		Ipv4_address   const &dns_server()    const;
 		Genode::Microseconds  ip_lease_time() const { return _ip_lease_time; }
 };
 
