@@ -138,17 +138,21 @@ void Dhcp_client::_handle_dhcp_reply(Dhcp_packet &dhcp)
 		break;
 
 	case State::REQUEST:
-
-		if (msg_type != Message_type::ACK) {
-			throw Drop_packet_inform("DHCP client expects an acknowledgement");
+		{
+			if (msg_type != Message_type::ACK) {
+				throw Drop_packet_inform("DHCP client expects an acknowledgement");
+			}
+			_lease_time_sec = dhcp.option<Dhcp_packet::Ip_lease_time>().value();
+			_set_state(State::BOUND, _rerequest_timeout(1));
+			Ipv4_address dns_server;
+			try { dns_server = dhcp.option<Dhcp_packet::Dns_server_ipv4>().value(); }
+			catch (Dhcp_packet::Option_not_found) { }
+			_domain().ip_config(dhcp.yiaddr(),
+			                    dhcp.option<Dhcp_packet::Subnet_mask>().value(),
+			                    dhcp.option<Dhcp_packet::Router_ipv4>().value(),
+			                    dns_server);
+			break;
 		}
-		_lease_time_sec = dhcp.option<Dhcp_packet::Ip_lease_time>().value();
-		_set_state(State::BOUND, _rerequest_timeout(1));
-		_domain().ip_config(dhcp.yiaddr(),
-		                    dhcp.option<Dhcp_packet::Subnet_mask>().value(),
-		                    dhcp.option<Dhcp_packet::Router_ipv4>().value());
-		break;
-
 	case State::RENEW:
 	case State::REBIND:
 

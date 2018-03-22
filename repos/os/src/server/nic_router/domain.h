@@ -139,7 +139,8 @@ class Net::Domain : public Domain_base
 
 		void ip_config(Ipv4_address ip,
 		               Ipv4_address subnet_mask,
-		               Ipv4_address gateway);
+		               Ipv4_address gateway,
+		               Ipv4_address dns_server);
 
 		void discard_ip_config();
 

@@ -25,19 +25,22 @@ struct Net::Ipv4_config
 	bool                const interface_valid { interface.valid() };
 	Ipv4_address        const gateway         { };
 	bool                const gateway_valid   { gateway.valid() };
+	Ipv4_address        const dns_server      { };
 	bool                const valid           { interface_valid &&
 	                                            (!gateway_valid ||
 	                                             interface.prefix_matches(gateway)) };
 
 	Ipv4_config(Ipv4_address_prefix interface,
-	            Ipv4_address        gateway);
+	            Ipv4_address        gateway,
+	            Ipv4_address        dns_server);
 
 	Ipv4_config() { }
 
 	bool operator != (Ipv4_config const &other) const
 	{
-		return interface != other.interface ||
-		       gateway   != other.gateway;
+		return interface  != other.interface ||
+		       gateway    != other.gateway ||
+		       dns_server != other.dns_server;
 	}
 };
 

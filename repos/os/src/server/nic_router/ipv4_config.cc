@@ -21,9 +21,10 @@ using namespace Genode;
 using namespace Net;
 
 Ipv4_config::Ipv4_config(Ipv4_address_prefix interface,
-                         Ipv4_address        gateway)
+                         Ipv4_address        gateway,
+                         Ipv4_address        dns_server)
 :
-	interface(interface), gateway(gateway)
+	interface(interface), gateway(gateway), dns_server(dns_server)
 {
 	if (!valid && (interface_valid || gateway_valid)) {
 		error("Bad IP configuration");

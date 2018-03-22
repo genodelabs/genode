@@ -51,9 +51,11 @@ Domain_base::Domain_base(Xml_node const node)
 
 void Domain::ip_config(Ipv4_address ip,
                        Ipv4_address subnet_mask,
-                       Ipv4_address gateway)
+                       Ipv4_address gateway,
+                       Ipv4_address dns_server)
 {
-	_ip_config.construct(Ipv4_address_prefix(ip, subnet_mask), gateway);
+	_ip_config.construct(Ipv4_address_prefix(ip, subnet_mask), gateway,
+	                     dns_server);
 	_ip_config_changed();
 }
 
@@ -109,8 +111,9 @@ Domain::Domain(Configuration &config, Xml_node const node, Allocator &alloc)
 :
 	Domain_base(node), _avl_member(_name, *this), _config(config),
 	_node(node), _alloc(alloc),
-	_ip_config(_node.attribute_value("interface", Ipv4_address_prefix()),
-	           _node.attribute_value("gateway",   Ipv4_address())),
+	_ip_config(_node.attribute_value("interface",  Ipv4_address_prefix()),
+	           _node.attribute_value("gateway",    Ipv4_address()),
+	           Ipv4_address()),
 	_verbose_packets(_node.attribute_value("verbose_packets", false) ||
 	                 _config.verbose_packets())
 {
@@ -151,7 +154,8 @@ void Domain::_ip_config_changed()
 		} else {
 			log("[", *this, "] IP config:"
 			    " interface ", ip_config().interface,
-			     ", gateway ", ip_config().gateway);
+			     ", gateway ", ip_config().gateway,
+			  ", DNS server ", ip_config().dns_server);
 		}
 	}
 }
