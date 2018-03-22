@@ -126,9 +126,9 @@ class Net::Session_component : private Session_component_base,
 		 ** Nic::Session **
 		 ******************/
 
-		Mac_address mac_address() { return _mac; }
-		bool link_state() { return Interface::link_state(); }
-		void link_state_sigh(Genode::Signal_context_capability sigh) { Interface::link_state_sigh(sigh); }
+		Mac_address mac_address() override { return _mac; }
+		bool link_state() override { return Interface::link_state(); }
+		void link_state_sigh(Genode::Signal_context_capability sigh) override { Interface::link_state_sigh(sigh); }
 };
 
 
@@ -150,7 +150,7 @@ class Net::Root : public Genode::Root_component<Session_component>
 		 ** Root_component **
 		 ********************/
 
-		Session_component *_create_session(char const *args);
+		Session_component *_create_session(char const *args) override;
 
 	public:
 
