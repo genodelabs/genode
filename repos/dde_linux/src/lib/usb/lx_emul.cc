@@ -352,13 +352,10 @@ class Driver : public Genode::List<Driver>::Element
 		{
 			dev->driver = _drv;
 
-			if (dev->bus->probe) {
-				lx_log(DEBUG_DRIVER, "Probing device bus %p", dev->bus->probe);
+			if (dev->bus->probe)
 				return dev->bus->probe(dev);
-			} else if (_drv->probe) {
-				lx_log(DEBUG_DRIVER, "Probing driver: %s %p", _drv->name, _drv->probe);
+			else if (_drv->probe)
 				return _drv->probe(dev);
-			}
 
 			return 0;
 		}
@@ -394,16 +391,62 @@ int device_add(struct device *dev)
 
 void device_del(struct device *dev)
 {
-	lx_log(DEBUG_DRIVER, "Remove device %p", dev);
 	if (dev->driver && dev->driver->remove)
 		dev->driver->remove(dev);
+
+	if (dev->bus && dev->bus->remove)
+		dev->bus->remove(dev);
 }
 
 
 int device_register(struct device *dev)
 {
-	//XXX: initialize DMA pools (see device_initialize)
 	return device_add(dev);
+}
+
+
+void device_unregister(struct device *dev)
+{
+	device_del(dev);
+	put_device(dev);
+}
+
+
+int device_is_registered(struct device *dev)
+{
+	return 1;
+}
+
+
+void device_release_driver(struct device *dev)
+{
+	/* is usb_unbind_interface(dev); */
+	if (dev->driver->remove)
+		dev->driver->remove(dev);
+
+	dev->driver = nullptr;
+}
+
+
+void put_device(struct device *dev)
+{
+	if (dev->ref) {
+		dev->ref--;
+		return;
+	}
+
+	if (dev->release)
+		dev->release(dev);
+	else if (dev->type && dev->type->release)
+		dev->type->release(dev);
+}
+
+
+struct device *get_device(struct device *dev)
+{
+	dev->ref++;
+
+	return dev;
 }
 
 
@@ -420,6 +463,7 @@ int dev_set_drvdata(struct device *dev, void *data)
 
 
 const char *dev_name(const struct device *dev) { return dev->name; }
+
 
 /*******************************
  ** asm-generic/bitops/find.h **
@@ -964,10 +1008,8 @@ long __wait_completion(struct completion *work, unsigned long timeout)
 
 	while (!work->done) {
 
-		if (j && j <= jiffies) {
-			lx_log(1, "timeout jiffies %lu", jiffies);
+		if (j && j <= jiffies)
 			return 0;
-		}
 
 		Lx::Task *task = Lx::scheduler().current();
 		work->task = (void *)task;

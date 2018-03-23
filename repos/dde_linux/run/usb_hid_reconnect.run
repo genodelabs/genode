@@ -1,0 +1,189 @@
+#
+# USB HID test
+#
+# Test connect and disconnect
+
+if { [have_spec linux] || [have_spec muen] } {
+	puts "Run script does not support Linux and Muen."
+	exit 0
+}
+
+if { [get_cmd_switch --autopilot] && [have_include "power_on/qemu"] } {
+	puts "Run script does not support autopilot mode on Qemu"
+	exit 0
+}
+
+if { [get_cmd_switch --autopilot] && ![have_spec x86_64] } {
+	puts "Run script does not support autopilot mode on this platform"
+	exit 0
+}
+
+#
+# Build
+#
+
+set build_components {
+	core init
+	drivers/timer
+	drivers/usb
+	test/input
+	server/dynamic_rom
+}
+
+lappend_if [have_spec gpio] build_components drivers/gpio
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
+
+build $build_components
+
+proc gpio_drv { } { if {[have_spec rpi] && [have_spec hw]}  { return hw_gpio_drv }
+                    if {[have_spec rpi] && [have_spec foc]} { return foc_gpio_drv }
+                    return gpio_drv }
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+append config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<default caps="100"/>}
+
+append_if [have_spec gpio] config "
+	<start name=\"[gpio_drv]\">
+		<resource name=\"RAM\" quantum=\"4M\"/>
+		<provides><service name=\"Gpio\"/></provides>
+		<config/>
+	</start>"
+
+append_platform_drv_config
+
+append config {
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+
+	<start name="usb_drv" caps="120">
+		<resource name="RAM" quantum="10M"/>
+		<provides><service name="Input"/></provides>
+		<config uhci="no" ohci="no" ehci="no" xhci="yes"
+		        capslock_led="rom" numlock_led="rom" scrlock_led="rom"
+		        bios_handoff="no">
+			<hid/>
+		</config>
+		<route>
+			<service name="ROM" label="capslock"> <child name="dynamic_rom"/> </service>
+			<service name="ROM" label="numlock">  <child name="dynamic_rom"/> </service>
+			<service name="ROM" label="scrlock">  <child name="dynamic_rom"/> </service>
+			<service name="ROM">      <parent/>    </service>
+			<service name="CPU">      <parent/>    </service>
+			<service name="PD">       <parent/>    </service>
+			<service name="IO_PORT">  <parent/>    </service>
+			<service name="IO_MEM">   <parent/>    </service>
+			<service name="LOG">      <parent/>    </service>
+			<service name="RM">      <parent/>    </service>
+			<service name="Platform"> <any-child/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+		</route>
+	</start>
+
+	<start name="dynamic_rom">
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="ROM"/> </provides>
+		<config verbose="no">
+			<rom name="capslock">
+				<inline> <capslock enabled="no"/> </inline>
+				<sleep milliseconds="250" />
+				<inline> <capslock enabled="yes"/> </inline>
+				<sleep milliseconds="250" />
+			</rom>
+			<rom name="numlock">
+				<inline> <numlock enabled="no"/> </inline>
+				<sleep milliseconds="500" />
+				<inline> <numlock enabled="yes"/> </inline>
+				<sleep milliseconds="500" />
+			</rom>
+			<rom name="scrlock">
+				<inline> <scrlock enabled="no"/> </inline>
+				<sleep milliseconds="1000" />
+				<inline> <scrlock enabled="yes"/> </inline>
+				<sleep milliseconds="1000" />
+			</rom>
+		</config>
+		<route>
+			<service name="ROM">   <parent/>             </service>
+			<service name="CPU">   <parent/>             </service>
+			<service name="PD">    <parent/>             </service>
+			<service name="LOG">   <parent/>             </service>
+			<service name="Timer"> <child name="timer"/> </service>
+		</route>
+	</start>
+
+	<start name="test-input">
+		<resource name="RAM" quantum="1M"/>
+	</start>
+</config>}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core ld.lib.so init timer usb_drv test-input dynamic_rom
+}
+
+lappend_if [have_spec gpio] boot_modules [gpio_drv]
+
+append_platform_drv_boot_modules
+
+build_boot_image $boot_modules
+
+append qemu_args " -device nec-usb-xhci,id=xhci -device usb-kbd,bus=xhci.0 -nographic"
+
+# autopilot test
+#run_genode_until forever
+# wait for keyboard
+run_genode_until {.*USB HID.*Keyboard.*} 60
+
+set spawn_id $qemu_spawn_id
+
+# send Ctrl-a+c to enter Qemu's monitor mode
+send "\x01\x63"
+
+# wait for monitor to become ready
+run_genode_until {(qemu)} 20 $spawn_id
+
+for {set i 0} {$i < 50} {incr i} {
+
+	# connect keyboard
+	send "device_add usb-kbd,id=ukb1\n"
+
+	# wait for keyboard
+	run_genode_until {.*USB HID.*Keyboard.*\n} 20 $spawn_id
+
+	# disconnect keyboard
+	send "device_del ukb1\n"
+
+	# wait for disconnect
+	run_genode_until {.*USB disconnect.*\n} 20 $spawn_id
+
+}

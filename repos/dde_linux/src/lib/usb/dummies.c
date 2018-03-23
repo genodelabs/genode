@@ -345,15 +345,12 @@ struct device *device_create(struct class *cls, struct device *parent,
                              dev_t devt, void *drvdata,
                              const char *fmt, ...) { TRACE; return NULL; }
 void device_destroy(struct class *cls, dev_t devt) { TRACE; }
-void device_unregister(struct device *dev) { TRACE; }
 void device_lock(struct device *dev) { TRACE; }
 int  device_trylock(struct device *dev) { TRACE; return 0; }
 void device_unlock(struct device *dev) { TRACE; }
 void device_initialize(struct device *dev) { TRACE; }
 int  device_attach(struct device *dev) { TRACE; return 0; }
-int  device_is_registered(struct device *dev) { TRACE; return 0; }
 int  device_bind_driver(struct device *dev) { TRACE; return 0; }
-void device_release_driver(struct device *dev) { TRACE; }
 void device_enable_async_suspend(struct device *dev) { TRACE; }
 void device_set_wakeup_capable(struct device *dev, bool capable) { TRACE; }
 int  device_create_bin_file(struct device *dev,
@@ -366,10 +363,6 @@ void device_remove_file(struct device *dev,
                         const struct device_attribute *attr) { TRACE; }
 int device_for_each_child(struct device *dev, void *data,
                           int (*fn)(struct device *dev, void *data)) { TRACE; return 0; }
-
-
-void put_device(struct device *dev) { TRACE; }
-struct device *get_device(struct device *dev) { TRACE; return dev; }
 
 void driver_unregister(struct device_driver *drv) { TRACE; }
 int  driver_attach(struct device_driver *drv) { TRACE; return 0; }

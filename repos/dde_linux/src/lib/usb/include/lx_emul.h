@@ -1029,6 +1029,7 @@ struct device {
 	void                          *driver_data;
 	struct device_node            *of_node;
 	struct device_dma_parameters  *dma_parms;
+	unsigned                       ref;
 };
 
 struct device_attribute {

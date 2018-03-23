@@ -25,7 +25,6 @@
 
 /* Genode includes */
 #include <base/log.h>
-#include <base/debug.h>
 #include <base/registry.h>
 #include <util/reconstructible.h>
 
@@ -345,7 +344,7 @@ class Keyboard_led
 			usb_control_msg(_usb_device(), usb_sndctrlpipe(_usb_device(), 0),
 			                0x9, USB_TYPE_CLASS  | USB_RECIP_INTERFACE, 0x200,
 			                _interface()->cur_altsetting->desc.bInterfaceNumber,
-			                buf, 1, 0);
+			                buf, 1, 500);
 			kfree(buf);
 		}
 };
@@ -364,6 +363,10 @@ class Usb::Led
 		                 Lx::scheduler() };
 
 		completion _config_update;
+		completion _led_update;
+
+		enum Update_state { NONE, UPDATE, BLOCKED };
+		Update_state _update_state { NONE };
 
 		Led_state _capslock { Lx_kit::env().env(), "capslock" },
 		          _numlock  { Lx_kit::env().env(), "numlock"  },
@@ -390,9 +393,19 @@ class Usb::Led
 			Led *led = (Led *)l;
 
 			while (true) {
+				/* config update from EP */
 				wait_for_completion(&led->_config_update);
+
+				led->_update_state = UPDATE;
+
 				_registry.for_each([&] (Keyboard_led &keyboard) {
 					led->update(keyboard); });
+
+				/* wake up other task that waits for regestry access */
+				if (led->_update_state == BLOCKED)
+					complete(&led->_led_update);
+
+				led->_update_state = NONE;
 			}
 		}
 
@@ -401,6 +414,7 @@ class Usb::Led
 		Led()
 		{
 			init_completion(&_config_update);
+			init_completion(&_led_update);
 			Genode::Signal_transmitter(_config_handler).submit();
 		}
 
@@ -414,6 +428,18 @@ class Usb::Led
 
 			keyboard.update(leds);
 		}
+
+		/*
+		 * wait for completion of registry and led state updates
+		 */
+		void wait_for_registry()
+		{
+			/* task in _run function might receive multiple updates */
+			while ((_update_state == UPDATE)) {
+				_update_state = BLOCKED;
+				wait_for_completion(&_led_update);
+			}
+		}
 };
 
 
@@ -425,6 +451,13 @@ static int led_connect(struct input_handler *handler, struct input_dev *dev,
 {
 	Keyboard_led *keyboard = new (Lx_kit::env().heap()) Keyboard_led(_registry, dev);
 	_led->update(*keyboard);
+
+	input_handle *handle = (input_handle *)kzalloc(sizeof(input_handle), 0);
+	handle->dev     = input_get_device(dev);
+	handle->handler = handler;
+
+	input_register_handle(handle);
+
 	return 0;
 }
 
@@ -433,10 +466,16 @@ static void led_disconnect(struct input_handle *handle)
 {
 	input_dev *dev = handle->dev;
 
+	_led->wait_for_registry();
+
 	_registry.for_each([&] (Keyboard_led &keyboard) {
 		if (keyboard.match(dev))
 			destroy(Lx_kit::env().heap(), &keyboard);
 	});
+
+	input_unregister_handle(handle);
+	input_put_device(dev);
+	kfree(handle);
 }
 
 
