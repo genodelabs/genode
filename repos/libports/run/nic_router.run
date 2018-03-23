@@ -141,12 +141,48 @@ proc test_6_router_config { } {
 #
 
 proc test_7_config { } {
-	if {[enable_test_7]} { return "
-		[client_config lan_2_client_1 http dhcp       dhcp     dhcp   nic_router 2345 10.0.2.204]
-		[client_config lan_2_client_2 http dhcp       dhcp     dhcp   nic_router 3456 10.0.2.240]
-		[client_config lan_2_client_3 http dhcp       dhcp     dhcp   nic_router 3456 10.0.2.240]
-		[server_config lan_3_server_1 http 10.0.2.204 10.0.2.1 255.255.255.0 nic_router 2345 ]
-		[server_config lan_3_server_2 http 10.0.2.240 10.0.2.1 255.255.255.0 nic_router 3456 ]" }
+	if {[enable_test_7]} {
+
+		append config "
+			[client_config lan_2_client_1 http dhcp       dhcp     dhcp   lan_2_nic_router 2345 10.0.2.204]
+			[client_config lan_2_client_2 http dhcp       dhcp     dhcp   nic_router       3456 10.0.2.240]
+			[client_config lan_2_client_3 http dhcp       dhcp     dhcp   nic_router       3456 10.0.2.240]
+			[server_config lan_3_server_1 http 10.0.2.204 10.0.2.1 255.255.255.0 nic_router 2345 ]
+			[server_config lan_3_server_2 http 10.0.2.240 10.0.2.1 255.255.255.0 nic_router 3456 ]"
+
+		append config {
+			<start name="lan_2_nic_router" caps="200" priority="-1">
+				<binary name="nic_router"/>
+				<resource name="RAM" quantum="10M"/>
+				<provides><service name="Nic"/></provides>
+				<config>
+
+					<policy label_prefix="lan_2" domain="downlink" />
+
+					<domain name="uplink">
+						<nat domain="downlink" tcp-ports="6" />
+					</domain>
+
+					<domain name="downlink" interface="100.2.3.1/24">
+						<dhcp-server ip_first="100.2.3.2"
+						             ip_last="100.2.3.10"
+						             dns_server_from="uplink"/>
+
+						<tcp dst="10.0.0.0/16">
+							<permit port="2345" domain="uplink" />
+						</tcp>
+					</domain>
+
+				</config>
+				<route>
+					<service name="Nic"> <child name="nic_router"/> </service>
+					<service name="Report"> <child name="report_rom"/> </service>
+					<any-service> <parent/> <any-child/> </any-service>
+				</route>
+			</start>}
+
+		return $config
+	}
 }
 
 
