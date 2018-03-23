@@ -27,7 +27,7 @@ void *kmalloc(size_t size, gfp_t flags)
 	void *addr = nullptr;
 
 	addr = (flags & GFP_LX_DMA)
-		? Lx::Malloc::dma().alloc(size, 12)
+		? Lx::Malloc::dma().alloc(size)
 		: Lx::Malloc::mem().alloc(size);
 
 	if ((Genode::addr_t)addr & 0x3)
