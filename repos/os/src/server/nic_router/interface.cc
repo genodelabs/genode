@@ -433,7 +433,7 @@ void Interface::_send_dhcp_reply(Dhcp_server               const &dhcp_srv,
                                  Ipv4_address_prefix       const &local_intf)
 {
 	enum { PKT_SIZE = 512 };
-	using Size_guard = Genode::Size_guard_tpl<PKT_SIZE, Dhcp_msg_buffer_too_small>;
+	using Size_guard = Genode::Size_guard_tpl<PKT_SIZE, Send_buffer_too_small>;
 	send(PKT_SIZE, [&] (void *pkt_base) {
 
 		/* create ETH header of the reply */
@@ -445,7 +445,6 @@ void Interface::_send_dhcp_reply(Dhcp_server               const &dhcp_srv,
 		eth.type(Ethernet_frame::Type::IPV4);
 
 		/* create IP header of the reply */
-		enum { IPV4_TIME_TO_LIVE = 64 };
 		size_t const ip_off = size.curr();
 		Ipv4_packet &ip = *eth.data<Ipv4_packet>(size.left());
 		size.add(sizeof(Ipv4_packet));
@@ -676,6 +675,64 @@ void Interface::_domain_broadcast(Ethernet_frame &eth,
 }
 
 
+void Interface::_send_icmp_dst_unreachable(Ipv4_address_prefix const &local_intf,
+                                           Ethernet_frame      const &req_eth,
+                                           Ipv4_packet         const &req_ip,
+                                           Icmp_packet::Code   const  code)
+{
+	enum {
+		ICMP_MAX_DATA_SIZE = sizeof(Ipv4_packet) + 8,
+		PKT_SIZE           = sizeof(Ethernet_frame) + sizeof(Ipv4_packet) +
+		                     sizeof(Icmp_packet) + ICMP_MAX_DATA_SIZE,
+	};
+	using Size_guard = Genode::Size_guard_tpl<PKT_SIZE, Send_buffer_too_small>;
+	send(PKT_SIZE, [&] (void *pkt_base) {
+
+		/* create ETH header */
+		Size_guard size;
+		size.add(sizeof(Ethernet_frame));
+		Ethernet_frame &eth = *reinterpret_cast<Ethernet_frame *>(pkt_base);
+		eth.dst(req_eth.src());
+		eth.src(_router_mac);
+		eth.type(Ethernet_frame::Type::IPV4);
+
+		/* create IP header */
+		size_t const ip_off = size.curr();
+		Ipv4_packet &ip = *eth.data<Ipv4_packet>(size.left());
+		size.add(sizeof(Ipv4_packet));
+		ip.header_length(sizeof(Ipv4_packet) / 4);
+		ip.version(4);
+		ip.diff_service(0);
+		ip.ecn(0);
+		ip.identification(0);
+		ip.flags(0);
+		ip.fragment_offset(0);
+		ip.time_to_live(IPV4_TIME_TO_LIVE);
+		ip.protocol(Ipv4_packet::Protocol::ICMP);
+		ip.src(local_intf.address);
+		ip.dst(req_ip.src());
+
+		/* create ICMP header */
+		Icmp_packet &icmp = *ip.data<Icmp_packet>(size.left());
+		size.add(sizeof(Icmp_packet));
+		icmp.type(Icmp_packet::Type::DST_UNREACHABLE);
+		icmp.code(code);
+		icmp.rest_of_header(0);
+		size_t icmp_data_size = req_ip.total_length();
+		if (icmp_data_size > ICMP_MAX_DATA_SIZE) {
+			icmp_data_size = ICMP_MAX_DATA_SIZE;
+		}
+		size.add(icmp_data_size);
+		Genode::memcpy(&icmp.data<char>(~0), &req_ip, icmp_data_size);
+
+		/* fill in header values that require the packet to be complete */
+		icmp.update_checksum(icmp_data_size);
+		ip.total_length(size.curr() - ip_off);
+		ip.checksum(Ipv4_packet::calculate_checksum(ip));
+	});
+}
+
+
 void Interface::_handle_ip(Ethernet_frame          &eth,
                            Genode::size_t    const  eth_size,
                            Packet_descriptor const &pkt,
@@ -812,6 +869,8 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 	catch (Ip_rule_list::No_match) { }
 
 	/* give up and drop packet */
+	_send_icmp_dst_unreachable(local_intf, eth, ip,
+	                           Icmp_packet::Code::DST_NET_UNREACHABLE);
 	if (_config().verbose()) {
 		log("Unroutable packet"); }
 }
@@ -1076,8 +1135,8 @@ void Interface::_handle_eth(void              *const  eth_base,
 		catch (Alloc_dhcp_msg_buffer_failed) {
 			error("failed to allocate buffer for DHCP reply"); }
 
-		catch (Dhcp_msg_buffer_too_small) {
-			error("DHCP reply buffer too small"); }
+		catch (Send_buffer_too_small) {
+			error("Send buffer buffer too small"); }
 
 		catch (Dhcp_server::Alloc_ip_failed) {
 			error("failed to allocate IP for DHCP client"); }

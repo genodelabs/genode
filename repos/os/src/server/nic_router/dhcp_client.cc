@@ -173,7 +173,7 @@ void Dhcp_client::_send(Message_type msg_type,
                         Ipv4_address server_ip)
 {
 	enum { PKT_SIZE = 1024 };
-	using Size_guard = Size_guard_tpl<PKT_SIZE, Interface::Dhcp_msg_buffer_too_small>;
+	using Size_guard = Size_guard_tpl<PKT_SIZE, Interface::Send_buffer_too_small>;
 	Mac_address client_mac = _interface.router_mac();
 	_interface.send(PKT_SIZE, [&] (void *pkt_base) {
 

@@ -25,6 +25,7 @@
 /* Genode includes */
 #include <nic_session/nic_session.h>
 #include <net/dhcp.h>
+#include <net/icmp.h>
 
 namespace Net {
 
@@ -74,6 +75,8 @@ class Net::Interface : private Interface_list::Element
 		Mac_address  const  _mac;
 
 	private:
+
+		enum { IPV4_TIME_TO_LIVE = 64 };
 
 		struct Dismiss_link       : Genode::Exception { };
 		struct Dismiss_arp_waiter : Genode::Exception { };
@@ -239,6 +242,11 @@ class Net::Interface : private Interface_list::Element
 
 		void _apply_foreign_arp();
 
+		void _send_icmp_dst_unreachable(Ipv4_address_prefix const &local_intf,
+		                                Ethernet_frame      const &req_eth,
+		                                Ipv4_packet         const &req_ip,
+                                        Icmp_packet::Code   const  code);
+
 
 
 		/***********************************
@@ -257,7 +265,7 @@ class Net::Interface : private Interface_list::Element
 		struct Bad_network_protocol         : Genode::Exception { };
 		struct Packet_postponed             : Genode::Exception { };
 		struct Alloc_dhcp_msg_buffer_failed : Genode::Exception { };
-		struct Dhcp_msg_buffer_too_small    : Genode::Exception { };
+		struct Send_buffer_too_small        : Genode::Exception { };
 
 		struct Drop_packet_inform : Genode::Exception
 		{
