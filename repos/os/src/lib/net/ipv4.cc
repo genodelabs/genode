@@ -16,6 +16,7 @@
 
 #include <net/udp.h>
 #include <net/tcp.h>
+#include <net/icmp.h>
 #include <net/ipv4.h>
 
 using namespace Genode;
@@ -31,6 +32,9 @@ void Net::Ipv4_packet::print(Genode::Output &output) const
 		break;
 	case Protocol::UDP:
 		Genode::print(output, *reinterpret_cast<Udp_packet const *>(_data));
+		break;
+	case Protocol::ICMP:
+		Genode::print(output, *reinterpret_cast<Icmp_packet const *>(_data));
 		break;
 	default: ; }
 }

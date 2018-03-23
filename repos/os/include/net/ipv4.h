@@ -117,8 +117,9 @@ class Net::Ipv4_packet
 
 		enum class Protocol : Genode::uint8_t
 		{
-			TCP = 6,
-			UDP = 17,
+			ICMP = 1,
+			TCP  = 6,
+			UDP  = 17,
 		};
 
 		struct Bad_data_type : Genode::Exception { };
