@@ -78,7 +78,8 @@ class Net::Domain_base
 };
 
 
-class Net::Domain : public Domain_base
+class Net::Domain : public Domain_base,
+                    public List<Domain>::Element
 {
 	private:
 
@@ -86,25 +87,26 @@ class Net::Domain : public Domain_base
 		Configuration                        &_config;
 		Genode::Xml_node                      _node;
 		Genode::Allocator                    &_alloc;
-		Ip_rule_list                          _ip_rules            { };
-		Forward_rule_tree                     _tcp_forward_rules   { };
-		Forward_rule_tree                     _udp_forward_rules   { };
-		Transport_rule_list                   _tcp_rules           { };
-		Transport_rule_list                   _udp_rules           { };
-		Port_allocator                        _tcp_port_alloc      { };
-		Port_allocator                        _udp_port_alloc      { };
-		Nat_rule_tree                         _nat_rules           { };
-		Interface_list                        _interfaces          { };
-		unsigned long                         _interface_cnt       { 0 };
-		Pointer<Dhcp_server>                  _dhcp_server         { };
+		Ip_rule_list                          _ip_rules             { };
+		Forward_rule_tree                     _tcp_forward_rules    { };
+		Forward_rule_tree                     _udp_forward_rules    { };
+		Transport_rule_list                   _tcp_rules            { };
+		Transport_rule_list                   _udp_rules            { };
+		Port_allocator                        _tcp_port_alloc       { };
+		Port_allocator                        _udp_port_alloc       { };
+		Nat_rule_tree                         _nat_rules            { };
+		Interface_list                        _interfaces           { };
+		unsigned long                         _interface_cnt        { 0 };
+		Pointer<Dhcp_server>                  _dhcp_server          { };
 		Genode::Reconstructible<Ipv4_config>  _ip_config;
-		Arp_cache                             _arp_cache           { *this };
-		Arp_waiter_list                       _foreign_arp_waiters { };
-		Link_side_tree                        _tcp_links           { };
-		Link_side_tree                        _udp_links           { };
-		Genode::size_t                        _tx_bytes            { 0 };
-		Genode::size_t                        _rx_bytes            { 0 };
-		bool                            const _verbose_packets     { false };
+		List<Domain>                          _ip_config_dependents { };
+		Arp_cache                             _arp_cache            { *this };
+		Arp_waiter_list                       _foreign_arp_waiters  { };
+		Link_side_tree                        _tcp_links            { };
+		Link_side_tree                        _udp_links            { };
+		Genode::size_t                        _tx_bytes             { 0 };
+		Genode::size_t                        _rx_bytes             { 0 };
+		bool                            const _verbose_packets      { false };
 
 		void _read_forward_rules(Genode::Cstring  const &protocol,
 		                         Domain_tree            &domains,
@@ -170,6 +172,7 @@ class Net::Domain : public Domain_base
 
 		bool                 verbose_packets() const { return _verbose_packets; }
 		Ipv4_config   const &ip_config()       const { return *_ip_config; }
+		List<Domain>        &ip_config_dependents()  { return _ip_config_dependents; }
 		Domain_name   const &name()            const { return _name; }
 		Ip_rule_list        &ip_rules()              { return _ip_rules; }
 		Forward_rule_tree   &tcp_forward_rules()     { return _tcp_forward_rules; }

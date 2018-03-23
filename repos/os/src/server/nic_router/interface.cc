@@ -309,6 +309,13 @@ void Interface::detach_from_ip_config()
 }
 
 
+void Interface::detach_from_remote_ip_config()
+{
+	/* only the DNS server address of the local DHCP server can be remote */
+	Signal_transmitter(_link_state_sigh).submit();
+}
+
+
 void Interface::_detach_from_domain()
 {
 	try {

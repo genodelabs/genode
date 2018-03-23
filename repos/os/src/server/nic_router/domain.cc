@@ -146,6 +146,11 @@ void Domain::_ip_config_changed()
 	_interfaces.for_each([&] (Interface &interface) {
 		interface.detach_from_ip_config();
 	});
+	_ip_config_dependents.for_each([&] (Domain &domain) {
+		domain._interfaces.for_each([&] (Interface &interface) {
+			interface.detach_from_remote_ip_config();
+		});
+	});
 	/* log the change */
 	if (_config.verbose_domain_state()) {
 		if (!ip_config().valid) {
@@ -206,10 +211,14 @@ void Domain::init(Domain_tree &domains)
 			log("[", *this, "] cannot be DHCP server and client at the same time");
 			throw Invalid();
 		}
-		_dhcp_server = *new (_alloc)
+		Dhcp_server &dhcp_server = *new (_alloc)
 			Dhcp_server(dhcp_server_node, _alloc, ip_config().interface,
 			            domains);
 
+		try { dhcp_server.dns_server_from().ip_config_dependents().insert(this); }
+		catch (Pointer<Domain>::Invalid) { }
+
+		_dhcp_server = dhcp_server;
 		if (_config.verbose()) {
 			log("[", *this, "] DHCP server: ", _dhcp_server()); }
 	}

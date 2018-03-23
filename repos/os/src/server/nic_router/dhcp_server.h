@@ -92,6 +92,7 @@ class Net::Dhcp_server : private Genode::Noncopyable
 		 ***************/
 
 		Ipv4_address   const &dns_server()    const;
+		Domain               &dns_server_from()     { return _dns_server_from(); }
 		Genode::Microseconds  ip_lease_time() const { return _ip_lease_time; }
 };
 

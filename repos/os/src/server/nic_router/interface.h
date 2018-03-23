@@ -318,6 +318,8 @@ class Net::Interface : private Interface_list::Element
 
 		void detach_from_ip_config();
 
+		void detach_from_remote_ip_config();
+
 		bool link_state();
 
 		void link_state_sigh(Genode::Signal_context_capability sigh);
