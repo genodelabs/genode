@@ -71,7 +71,7 @@ append config {
 				<dir name="socket"> <lxip dhcp="yes"/> </dir>
 			</vfs>
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" socket="/socket"/>
-			<fetch url="http://genode.org/about/LICENSE" path="/dev/log"/>
+			<fetch url="http://genode.org/about/LICENSE" path="/dev/log" retry="3"/>
 		</config>
 	</start>
 </config>

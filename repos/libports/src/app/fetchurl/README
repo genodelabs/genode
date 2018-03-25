@@ -9,11 +9,16 @@ Configuration
 !   <dir name="dev"> <jitterentropy name="random"/> <log/> </dir>
 !  </vfs>
 ! </libc>
-! <fetch url="http://genode.org/about/LICENSE" path="LICENSE"/>
+! <fetch url="http://genode.org/about/LICENSE" path="LICENSE" retry="3"/>
 ! <report progress="yes"/>
 !</config>
 
-Optionally, you can use a proxy:
+The two primary options are 'url', the URL to fetch, and 'path', the
+file-system path where fetched data is written. Secondary options are
+'retry' and 'proxy'. Retry is the number of fetch attempts to make
+following failure, and proxy is used to reroute requests.
+
+An example TOR proxying configuration:
 
 ! <fetch url="http://genode.org/about/LICENSE" path="LICENSE"
 !        proxy="sock5://10.0.0.1:9050" />

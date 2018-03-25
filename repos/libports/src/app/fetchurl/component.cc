@@ -52,21 +52,26 @@ class Fetchurl::Fetch : Genode::List<Fetch>::Element
 
 	public:
 
-		Main &main;
-
 		using Genode::List<Fetch>::Element::next;
+
+		Main &main;
 
 		Url  const url;
 		Path const path;
 		Url  const proxy;
+		long       retry;
 
 		double dltotal = 0;
 		double dlnow = 0;
 
 		int fd = -1;
 
-		Fetch(Main &main, Url const &url, Path const &path, Url const &proxy)
-		: main(main), url(url), path(path), proxy(proxy) { }
+		Fetch(Main &main, Url const &url, Path const &path,
+		      Url const &proxy, long retry)
+		:
+			main(main), url(url), path(path),
+			proxy(proxy), retry(retry+1)
+		{ }
 };
 
 
@@ -143,6 +148,7 @@ struct Fetchurl::Main
 			Url url;
 			Path path;
 			Url proxy;
+			long retry;
 
 			try {
 				node.attribute("url").value(&url);
@@ -150,10 +156,10 @@ struct Fetchurl::Main
 			}
 			catch (...) { Genode::error("error reading 'fetch' XML node"); return; }
 
-			try { config_node.attribute("proxy").value(&proxy); }
-			catch (...) { }
+			proxy = node.attribute_value("proxy", Url());
+			retry = node.attribute_value("retry", 0L);
 
-			auto *f = new (_heap) Fetch(*this, url, path, proxy);
+			auto *f = new (_heap) Fetch(*this, url, path, proxy, retry);
 			_fetches.insert(f);
 		};
 
@@ -169,6 +175,8 @@ struct Fetchurl::Main
 
 	CURLcode _process_fetch(CURL *_curl, Fetch &_fetch)
 	{
+		Genode::log("fetch ", _fetch.url);
+
 		char const *out_path = _fetch.path.base();
 
 		/* create compound directories leading to the path */
@@ -252,7 +260,7 @@ struct Fetchurl::Main
 
 	int run()
 	{
-		CURLcode res = CURLE_OK;
+		CURLcode exit_res = CURLE_OK;
 
 		CURL *curl = curl_easy_init();
 		if (!curl) {
@@ -260,12 +268,24 @@ struct Fetchurl::Main
 			return -1;
 		}
 
-		if (_reporter.enabled())
-			_report();
+		while (true) {
+			if (_reporter.enabled())
+				_report();
 
-		for (Fetch *f = _fetches.first(); f; f = f->next()) {
-			if (res != CURLE_OK) break;
-			res = _process_fetch(curl, *f);
+			bool retry_some = false;
+			for (Fetch *f = _fetches.first(); f; f = f->next()) {
+				if (f->retry < 1) continue;
+				CURLcode res = _process_fetch(curl, *f);
+				if (res == CURLE_OK) {
+					f->retry = 0;
+				} else {
+					if (--f->retry > 0)
+						retry_some = true;
+					else
+						exit_res = res;
+				}
+			}
+			if (!retry_some) break;
 		}
 
 		if (_reporter.enabled())
@@ -273,7 +293,7 @@ struct Fetchurl::Main
 
 		curl_easy_cleanup(curl);
 
-		return res ^ CURLE_OK;
+		return exit_res ^ CURLE_OK;
 	}
 };
 
