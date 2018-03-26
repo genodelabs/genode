@@ -31,9 +31,14 @@ void Io_mem_session_component::_unmap_local(addr_t base, size_t)
 }
 
 
-static inline bool can_use_super_page(addr_t base, size_t size) {
-	return (base & (get_super_page_size() - 1)) == 0
-	    && (size >= get_super_page_size()); }
+static inline bool can_use_super_page(addr_t, size_t)
+{
+	/*
+	 * We disable super-page I/O mappings as unmap does not flush the local
+	 * mapping which breaks later re-mappings of different page size.
+	 */
+	return false;
+}
 
 
 addr_t Io_mem_session_component::_map_local(addr_t base, size_t size)
