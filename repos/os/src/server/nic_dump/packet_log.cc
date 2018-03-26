@@ -220,6 +220,11 @@ void Packet_log<Ipv4_packet>::print(Output &output) const
 		print(output, " ", packet_log(*_pkt.data<Udp_packet const>(~0UL), _cfg));
 		break;
 
+	case Ipv4_packet::Protocol::ICMP:
+
+		print(output, " ", packet_log(*_pkt.data<Icmp_packet const>(~0UL), _cfg));
+		break;
+
 	default: ; }
 }
 
@@ -293,5 +298,37 @@ void Packet_log<Udp_packet>::print(Output &output) const
 	/* print encapsulated packet */
 	if (Dhcp_packet::is_dhcp(&_pkt)) {
 		print(output, " ", packet_log(*_pkt.data<Dhcp_packet const>(~0UL), _cfg));
+	}
+}
+
+
+template <>
+void Packet_log<Icmp_packet>::print(Output &output) const
+{
+	using Genode::print;
+
+	/* print header attributes */
+	switch (_cfg.icmp) {
+	case Packet_log_style::COMPREHENSIVE:
+
+		print(output, "\033[32mICMP\033[0m");
+		print(output, " typ ", (unsigned)_pkt.type());
+		print(output, " cod ", (unsigned)_pkt.code());
+		print(output, " crc ", _pkt.checksum());
+		print(output, " roh ", _pkt.rest_of_header());
+		break;
+
+	case Packet_log_style::COMPACT:
+
+		print(output, "\033[32mICMP\033[0m ", (unsigned)_pkt.type(), " ",
+		              (unsigned)_pkt.code());
+		break;
+
+	case Packet_log_style::SHORT:
+
+		print(output, "\033[32mICMP\033[0m");
+		break;
+
+	default: ;
 	}
 }

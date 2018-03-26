@@ -22,6 +22,7 @@
 #include <net/dhcp.h>
 #include <net/ethernet.h>
 #include <net/tcp.h>
+#include <net/icmp.h>
 #include <net/ipv4.h>
 
 namespace Net {
@@ -45,18 +46,19 @@ struct Net::Packet_log_config
 {
 	using Style = Packet_log_style;
 
-	Style eth, arp, ipv4, dhcp, udp, tcp;
+	Style eth, arp, ipv4, dhcp, udp, icmp, tcp;
 
 	Packet_log_config(Style def = Style::COMPACT)
-	: eth(def), arp(def), ipv4(def), dhcp(def), udp(def), tcp(def) { }
+	: eth(def), arp(def), ipv4(def), dhcp(def), udp(def), icmp(def), tcp(def) { }
 
 	Packet_log_config(Style eth,
 	                  Style arp,
 	                  Style ipv4,
 	                  Style dhcp,
 	                  Style udp,
+	                  Style icmp,
 	                  Style tcp)
-	: eth(eth), arp(arp), ipv4(ipv4), dhcp(dhcp), udp(udp), tcp(tcp) { }
+	: eth(eth), arp(arp), ipv4(ipv4), dhcp(dhcp), udp(udp), icmp(icmp), tcp(tcp) { }
 };
 
 
@@ -114,6 +116,9 @@ namespace Net {
 
 	template <>
 	void Packet_log<Udp_packet>::print(Genode::Output &output) const;
+
+	template <>
+	void Packet_log<Icmp_packet>::print(Genode::Output &output) const;
 }
 
 #endif /* _PACKET_LOG_H_ */
