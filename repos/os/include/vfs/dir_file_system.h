@@ -45,7 +45,7 @@ class Vfs::Dir_file_system : public File_system
 		 */
 		bool _vfs_root = false;
 
-		Dir_file_system &_root_dir;
+		File_system &_root_dir;
 
 		struct Dir_vfs_handle : Vfs_handle
 		{
@@ -327,7 +327,7 @@ class Vfs::Dir_file_system : public File_system
 		                Genode::Xml_node     node,
 		                Io_response_handler &io_handler,
 		                File_system_factory &fs_factory,
-		                Dir_file_system     &root_dir)
+		                File_system         &root_dir)
 		:
 			_root_dir(root_dir)
 		{
