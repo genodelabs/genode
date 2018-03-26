@@ -23,6 +23,7 @@
 #define LWIP_RAW                    0  /* LwIP raw API */
 #define LWIP_UDP                    1  /* UDP support */
 #define LWIP_TCP                    1  /* TCP support */
+#define LWIP_ICMP                   1  /* ICMP support */
 #define LWIP_DNS                    1  /* DNS support */
 #define LWIP_DHCP                   1  /* DHCP support */
 #define LWIP_SOCKET                 1  /* LwIP socket API */
