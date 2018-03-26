@@ -91,15 +91,6 @@ struct Genode::Directory : Noncopyable, Interface
 		friend class Readonly_file;
 		friend class Root_directory;
 
-		/**
-		 * Constructor used by 'Root_directory'
-		 *
-		 * \throw Open_failed
-		 */
-		Directory(Vfs::File_system &fs, Entrypoint &ep, Allocator &alloc)
-		: _path(""), _fs(fs), _ep(ep), _alloc(alloc)
-		{ }
-
 		/*
 		 * Operations such as 'file_size' that are expected to be 'const' at
 		 * the API level, do internally require I/O with the outside world,
@@ -129,11 +120,20 @@ struct Genode::Directory : Noncopyable, Interface
 		struct Nonexistent_directory : Exception { };
 
 		/**
+		 * Constructor used by 'Root_directory'
+		 *
+		 * \throw Open_failed
+		 */
+		Directory(Vfs::File_system &fs, Entrypoint &ep, Allocator &alloc)
+		: _path(""), _fs(fs), _ep(ep), _alloc(alloc)
+		{ }
+
+		/**
 		 * Open sub directory
 		 *
 		 * \throw Nonexistent_directory
 		 */
-		Directory(Directory &other, Path const &rel_path)
+		Directory(Directory const &other, Path const &rel_path)
 		: _path(other._path, "/", rel_path), _fs(other._fs), _ep(other._ep),
 		  _alloc(other._alloc)
 		{
@@ -142,7 +142,7 @@ struct Genode::Directory : Noncopyable, Interface
 				throw Nonexistent_directory();
 		}
 
-		~Directory() { _handle->ds().close(_handle); }
+		~Directory() { if (_handle) _handle->ds().close(_handle); }
 
 		template <typename FN>
 		void for_each_entry(FN const &fn)
@@ -258,7 +258,8 @@ class Genode::Readonly_file : public File
 		Readonly_file(Readonly_file const &);
 		Readonly_file &operator = (Readonly_file const &);
 
-		Vfs::Vfs_handle    *_handle = nullptr;
+		Vfs::Vfs_handle mutable *_handle = nullptr;
+
 		Genode::Entrypoint &_ep;
 
 		void _open(Vfs::File_system &fs, Allocator &alloc, Path const path)
@@ -310,14 +311,18 @@ class Genode::Readonly_file : public File
 
 		~Readonly_file() { _handle->ds().close(_handle); }
 
+		struct At { Vfs::file_size value; };
+
 		/**
 		 * Read number of 'bytes' from file into local memory buffer 'dst'
 		 *
 		 * \throw Truncated_during_read
 		 */
-		size_t read(char *dst, size_t bytes)
+		size_t read(At at, char *dst, size_t bytes) const
 		{
 			Vfs::file_size out_count = 0;
+
+			_handle->seek(at.value);
 
 			while (!_handle->fs().queue_read(_handle, bytes))
 				_ep.wait_and_dispatch_one_io_signal();
@@ -342,6 +347,17 @@ class Genode::Readonly_file : public File
 				throw Truncated_during_read();
 
 			return out_count;
+		}
+
+		/**
+		 * Read number of 'bytes' from the start of the file into local memory
+		 * buffer 'dst'
+		 *
+		 * \throw Truncated_during_read
+		 */
+		size_t read(char *dst, size_t bytes) const
+		{
+			return read(At{0}, dst, bytes);
 		}
 };
 
@@ -435,6 +451,12 @@ class Genode::File_content
 				curr_line_len = 0;
 			}
 		}
+
+		/**
+		 * Call functor 'fn' with the data pointer and size in bytes
+		 */
+		template <typename FN>
+		void bytes(FN const &fn) const { fn((char const *)_buffer, _size); }
 };
 
 #endif /* _INCLUDE__GEMS__VFS_H_ */
