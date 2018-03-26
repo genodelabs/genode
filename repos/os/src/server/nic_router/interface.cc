@@ -1142,8 +1142,13 @@ void Interface::_handle_eth(void              *const  eth_base,
 			error("failed to allocate IP for DHCP client"); }
 	}
 	catch (Pointer<Domain>::Invalid) {
+
+		if (_config().verbose_packets()) {
+			Ethernet_frame *const eth = reinterpret_cast<Ethernet_frame *>(eth_base);
+			log("[?] rcv ", *eth);
+		}
 		if (_config().verbose()) {
-			log("(?) Drop packet: no domain");
+			log("[?] Drop packet: no domain");
 		}
 	}
 }
