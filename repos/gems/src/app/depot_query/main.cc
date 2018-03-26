@@ -58,7 +58,7 @@ class Depot_query::Recursion_limit : Noncopyable
 		 * \throw Recursion_limit::Reached
 		 */
 		Recursion_limit(Recursion_limit const &other)
-		: _value(_checked_decr(other._value)) { }
+		: Noncopyable(), _value(_checked_decr(other._value)) { }
 };
 
 
@@ -79,7 +79,7 @@ class Depot_query::Dependencies
 
 			typedef Registered_no_delete<Archive::Path> Entry;
 
-			Registry<Entry> _entries;
+			Registry<Entry> _entries { };
 
 			Collection(Allocator &alloc) : _alloc(alloc) { }
 
@@ -184,7 +184,7 @@ struct Depot_query::Main
 	typedef String<64> Rom_label;
 	typedef String<16> Architecture;
 
-	Architecture _architecture;
+	Architecture _architecture { };
 
 	/**
 	 * Look up ROM module 'rom_label' in the archives referenced by 'pkg_path'
