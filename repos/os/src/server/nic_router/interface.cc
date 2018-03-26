@@ -1109,47 +1109,31 @@ void Interface::_handle_eth(void              *const  eth_base,
 				default: throw Bad_network_protocol(); }
 			}
 		}
-		catch (Ethernet_frame::Bad_data_type) { warning("malformed Ethernet frame"); }
-		catch (Ipv4_packet::Bad_data_type)    { warning("malformed IPv4 packet"   ); }
-		catch (Udp_packet::Bad_data_type)     { warning("malformed UDP packet"    ); }
-
+		catch (Ethernet_frame::Bad_data_type)        { warning("[", local_domain, "] malformed Ethernet frame"); }
+		catch (Ipv4_packet::Bad_data_type)           { warning("[", local_domain, "] malformed IPv4 packet"   ); }
+		catch (Udp_packet::Bad_data_type)            { warning("[", local_domain, "] malformed UDP packet"    ); }
+		catch (Drop_packet_warn exception)           { warning("[", local_domain, "] drop packet: ", exception.msg); }
+		catch (Dhcp_server::Alloc_ip_failed)         { error  ("[", local_domain, "] failed to allocate IP for DHCP client"); }
+		catch (Send_buffer_too_small)                { error  ("[", local_domain, "] send buffer buffer too small"); }
+		catch (Port_allocator_guard::Out_of_indices) { error  ("[", local_domain, "] no available NAT ports"); }
+		catch (Domain::No_next_hop)                  { error  ("[", local_domain, "] cannot find next hop"); }
+		catch (Alloc_dhcp_msg_buffer_failed)         { error  ("[", local_domain, "] failed to allocate buffer for DHCP reply"); }
 		catch (Bad_network_protocol) {
 			if (_config().verbose()) {
-				log("unknown network layer protocol");
-			}
+				log("[", local_domain, "] unknown network layer protocol"); }
 		}
 		catch (Drop_packet_inform exception) {
 			if (_config().verbose()) {
-				log("(", local_domain, ") Drop packet: ", exception.msg);
-			}
+				log("[", local_domain, "] drop packet: ", exception.msg); }
 		}
-		catch (Drop_packet_warn exception) {
-			warning("(", local_domain, ") Drop packet: ", exception.msg);
-		}
-		catch (Port_allocator_guard::Out_of_indices) {
-			error("no available NAT ports"); }
-
-		catch (Domain::No_next_hop) {
-			error("can not find next hop"); }
-
-		catch (Alloc_dhcp_msg_buffer_failed) {
-			error("failed to allocate buffer for DHCP reply"); }
-
-		catch (Send_buffer_too_small) {
-			error("Send buffer buffer too small"); }
-
-		catch (Dhcp_server::Alloc_ip_failed) {
-			error("failed to allocate IP for DHCP client"); }
 	}
 	catch (Pointer<Domain>::Invalid) {
-
 		if (_config().verbose_packets()) {
 			Ethernet_frame *const eth = reinterpret_cast<Ethernet_frame *>(eth_base);
 			log("[?] rcv ", *eth);
 		}
 		if (_config().verbose()) {
-			log("[?] Drop packet: no domain");
-		}
+			log("[?] drop packet: no domain"); }
 	}
 }
 
