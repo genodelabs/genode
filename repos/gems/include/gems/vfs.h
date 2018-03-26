@@ -1,4 +1,4 @@
-/*
+ /*
  * \brief  Front-end API for accessing a component-local virtual file system
  * \author Norman Feske
  * \date   2017-07-04
@@ -29,7 +29,7 @@ namespace Genode {
 }
 
 
-struct Genode::Directory : Noncopyable
+struct Genode::Directory : Noncopyable, Interface
 {
 	public:
 
@@ -40,7 +40,7 @@ struct Genode::Directory : Noncopyable
 		{
 			private:
 
-				Vfs::Directory_service::Dirent _dirent;
+				Vfs::Directory_service::Dirent _dirent { };
 
 				friend class Directory;
 
@@ -71,6 +71,12 @@ struct Genode::Directory : Noncopyable
 		typedef String<256> Path;
 
 	private:
+
+		/*
+		 * Noncopyable
+		 */
+		Directory(Directory const &);
+		Directory &operator = (Directory const &);
 
 		Path const _path;
 
@@ -232,7 +238,7 @@ struct Genode::Root_directory : public  Vfs::Io_response_handler,
 };
 
 
-struct Genode::File : Noncopyable
+struct Genode::File : Noncopyable, Interface
 {
 	struct Open_failed : Exception { };
 
@@ -245,6 +251,12 @@ struct Genode::File : Noncopyable
 class Genode::Readonly_file : public File
 {
 	private:
+
+		/*
+		 * Noncopyable
+		 */
+		Readonly_file(Readonly_file const &);
+		Readonly_file &operator = (Readonly_file const &);
 
 		Vfs::Vfs_handle    *_handle = nullptr;
 		Genode::Entrypoint &_ep;
@@ -342,6 +354,12 @@ class Genode::File_content
 		size_t const _size;
 
 		char *_buffer = (char *)_alloc.alloc(_size);
+
+		/*
+		 * Noncopyable
+		 */
+		File_content(File_content const &);
+		File_content &operator = (File_content const &);
 
 	public:
 
