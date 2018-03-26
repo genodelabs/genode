@@ -403,12 +403,15 @@ void *kmem_cache_alloc_node(struct kmem_cache *cache, gfp_t, int)
 }
 
 
+void get_page(struct page *page)
+{
+	atomic_inc(&page->_count);
+}
 
-struct page *alloc_pages(gfp_t gfp_mask, unsigned int order)
+
+static struct page *allocate_pages(gfp_t gfp_mask, size_t const size)
 {
 	struct page *page = (struct page *)kzalloc(sizeof(struct page), 0);
-
-	size_t size = PAGE_SIZE << order;
 
 	page->addr = Lx::Malloc::dma().alloc(size, 12);
 
@@ -426,17 +429,18 @@ struct page *alloc_pages(gfp_t gfp_mask, unsigned int order)
 }
 
 
-void get_page(struct page *page)
+struct page *alloc_pages(gfp_t gfp_mask, unsigned int order)
 {
-	atomic_inc(&page->_count);
+	size_t const size = PAGE_SIZE << order;
+	return allocate_pages(gfp_mask, size);
 }
 
 
-void *__alloc_page_frag(struct page_frag_cache *nc, unsigned int fragsz, gfp_t gfp_mask)
+void *__alloc_page_frag(struct page_frag_cache *, unsigned int const fragsz,
+                        gfp_t const gfp_mask)
 {
-	struct page *page = alloc_pages(GFP_LX_DMA, fragsz / PAGE_SIZE);
-	if (!page) return nullptr;
-	return page->addr;
+	struct page *page = allocate_pages(gfp_mask, fragsz);
+	return page ? page->addr : page;
 }
 
 
