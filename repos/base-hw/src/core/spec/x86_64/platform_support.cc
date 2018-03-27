@@ -80,6 +80,12 @@ void Platform::_init_additional()
 				xml.attribute("pitch",  boot_fb.pitch);
 			});
 		});
+		xml.node("hardware", [&] () {
+			xml.node("features", [&] () {
+				xml.attribute("svm", false);
+				xml.attribute("vmx", false);
+			});
+		});
 	});
 
 	if (!unmap_local(virt_addr, pages)) {
