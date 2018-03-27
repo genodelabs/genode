@@ -378,6 +378,16 @@ void Platform::_init_rom_modules()
 	Genode::Xml_generator xml(reinterpret_cast<char *>(virt_addr),
 	                          rom_size, rom_name, [&] ()
 	{
+		xml.node("hardware", [&] () {
+			xml.node("features", [&] () {
+				xml.attribute("svm", false);
+				xml.attribute("vmx", false);
+			});
+			xml.node("tsc", [&] () {
+				xml.attribute("freq_khz" , bi.archInfo * 1000UL);
+			});
+		});
+
 		if (!bi.extraLen)
 			return;
 
