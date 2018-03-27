@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+	<xs:simpleType name="Boolean">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="true" />
+			<xs:enumeration value="yes" />
+			<xs:enumeration value="1" />
+			<xs:enumeration value="false" />
+			<xs:enumeration value="no" />
+			<xs:enumeration value="0" />
+		</xs:restriction>
+	</xs:simpleType><!-- Boolean -->
+
+	<xs:simpleType name="Seconds">
+		<xs:restriction base="xs:integer">
+			<xs:minInclusive value="1"/>
+			<xs:maxInclusive value="3600"/>
+		</xs:restriction>
+	</xs:simpleType><!-- Seconds -->
+
+	<xs:simpleType name="Ipv4_address">
+		<xs:restriction base="xs:string">
+			<xs:pattern value="[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}"/>
+		</xs:restriction>
+	</xs:simpleType><!-- Ipv4_address -->
+
+	<xs:element name="config">
+		<xs:complexType>
+			<xs:attribute name="verbose"    type="Boolean" />
+			<xs:attribute name="dst_ip"     type="Ipv4_address" />
+			<xs:attribute name="src_ip"     type="Ipv4_address" />
+			<xs:attribute name="period_sec" type="Seconds" />
+			<xs:attribute name="count"      type="xs:positiveInteger" />
+			<xs:attribute name="data_size"  type="xs:nonNegativeInteger" />
+		</xs:complexType>
+	</xs:element><!-- config -->
+
+</xs:schema>
