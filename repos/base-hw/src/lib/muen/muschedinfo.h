@@ -16,9 +16,9 @@
 
 #include <base/stdint.h>
 
-struct scheduling_info_type {
-	uint64_t tsc_schedule_start;
-	uint64_t tsc_schedule_end;
+struct Scheduling_info_type {
+	Genode::uint64_t tsc_schedule_start;
+	Genode::uint64_t tsc_schedule_end;
 } __attribute__((packed, aligned (8)));
 
 #endif /* _BASE__MUEN_MUSCHEDINFO_H_ */

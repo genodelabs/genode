@@ -19,8 +19,8 @@
 
 #include <base/stdint.h>
 
-struct subject_info_type;
-struct scheduling_info_type;
+struct Subject_info_type;
+struct Scheduling_info_type;
 
 namespace Genode
 {
@@ -35,13 +35,26 @@ class Genode::Sinfo
 	public:
 
 		enum Config {
-			PHYSICAL_BASE_ADDR = 0xe00000000,
-			SIZE               = 0x9000,
-			MAX_NAME_LENGTH    = 63,
-			HASH_LENGTH        = 32,
+			MUEN_SUBJECT_INFO_MAGIC	= 0x02006f666e69756dULL,
+			MAX_RESOURCE_COUNT		= 255,
+			MAX_NAME_LENGTH    		= 63,
+			PHYSICAL_BASE_ADDR		= 0xe00000000,
+			SIZE               		= 0x8000,
+			HASH_LENGTH        		= 32,
+			MEM_WRITABLE_FLAG		= (1 << 0),
+			MEM_EXECUTABLE_FLAG		= (1 << 1),
+			MEM_CHANNEL_FLAG		= (1 << 2),
+			DEV_MSI_FLAG			= (1 << 0),
 		};
 
 		Sinfo(const addr_t base_addr);
+
+		/* Resource name */
+		struct Name_type {
+			uint8_t length;
+			char data[MAX_NAME_LENGTH];
+			uint8_t null_term;
+		} __attribute__((packed));
 
 		enum Content {
 			CONTENT_UNINITIALIZED,
@@ -50,42 +63,67 @@ class Genode::Sinfo
 		};
 
 		/* Structure holding information about a memory region */
-		struct Memregion_info {
+		struct Memregion_type {
 			enum Content content;
-			char name[MAX_NAME_LENGTH + 1];
 			uint64_t address;
 			uint64_t size;
-			bool writable;
-			bool executable;
 			uint8_t hash[HASH_LENGTH];
+			uint8_t flags;
 			uint16_t pattern;
-		};
+			char padding[1];
+		} __attribute__((packed));
 
-		/* Structure holding information about a Muen channel */
-		struct Channel_info {
-			char name[MAX_NAME_LENGTH + 1];
-			uint64_t address;
-			uint64_t size;
-			uint8_t event_number;
-			uint8_t vector;
-			bool writable;
-			bool has_event;
-			bool has_vector;
-		};
-
-		/* Structure holding information about PCI devices */
-		struct Dev_info {
+		/*
+		 * Structure holding information about a PCI device,
+		 * explicitly padded to the size of the largest resource variant
+		 */
+		struct Device_type {
 			uint16_t sid;
 			uint16_t irte_start;
 			uint8_t irq_start;
 			uint8_t ir_count;
-			bool msi_capable;
+			uint8_t flags;
+			char padding[sizeof(struct Memregion_type) - 7];
+		} __attribute__((packed));
+
+		/* Currently known resource types */
+		enum Resource_kind {
+			RES_NONE,
+			RES_MEMORY,
+			RES_EVENT,
+			RES_VECTOR,
+			RES_DEVICE
 		};
+
+		/* Resource data depending on the kind of resource */
+		union Resource_data {
+			struct Memregion_type mem;
+			struct Device_type dev;
+			uint8_t number;
+		};
+
+		/* Exported resource with associated name */
+		struct Resource_type {
+			enum Resource_kind kind;
+			struct Name_type name;
+			char padding[3];
+			union Resource_data data;
+		} __attribute__((packed));
+
+		/* Muen subject information (sinfo) structure */
+		struct Subject_info_type {
+			uint64_t magic;
+			uint32_t tsc_khz;
+			struct Name_type name;
+			uint16_t resource_count;
+			char padding[1];
+			struct Resource_type resources[MAX_RESOURCE_COUNT];
+		} __attribute__((packed));
 
 		/*
 		 * Check Muen sinfo Magic.
 		 */
-		bool check_magic(void);
+		bool check_magic(void) const;
 
 		/*
 		 * Return subject name.
@@ -95,83 +133,55 @@ class Genode::Sinfo
 		const char * get_subject_name(void);
 
 		/*
-		 * Return information for a channel given by name.
+		 * Return resource with given name and kind.
 		 *
-		 * If no channel with given name exists, False is returned. The
-		 * event_number and vector parameters are only valid if indicated by
-		 * the has_[event|vector] struct members.
+		 * If no resource with given name exists, null is returned.
 		 */
-		bool get_channel_info(const char * const name,
-				struct Channel_info *channel);
-
-		/*
-		 * Return information for a memory region given by name.
-		 *
-		 * If no memory region with given name exists, False is returned.
-		 */
-		bool get_memregion_info(const char * const name,
-				struct Memregion_info *memregion);
+		const struct Resource_type *
+			get_resource(const char *const name, enum Resource_kind kind) const;
 
 		/*
 		 * Return information for PCI device with given SID.
 		 *
-		 * The function returns false if no device information for the
-		 * specified device exists.
+		 * The function returns null if no device information for the specified device
+		 * exists.
 		 */
-		bool get_dev_info(const uint16_t sid, struct Dev_info *dev);
+		const struct Device_type * get_device(const uint16_t sid) const;
 
 		/*
-		 * Channel callback.
+		 * Resource callback.
 		 *
-		 * Used in the muen_for_each_channel function. The optional void data pointer
-		 * can be used to pass additional data.
+		 * Used in the for_each_resource function. The optional void data
+		 * pointer can be used to pass additional data.
 		 */
-		typedef bool (*Channel_cb)(const struct Channel_info * const channel,
+		typedef bool (*resource_cb)(const struct Resource_type *const res,
 				void *data);
 
 		/*
-		 * Invoke given callback function for each available channel.
+		 * Invoke given callback function for each available resource.
 		 *
-		 * Channel information and the optional data argument are passed to each
+		 * Resource information and the optional data argument are passed to each
 		 * invocation of the callback. If a callback invocation returns false,
 		 * processing is aborted and false is returned to the caller.
 		 */
-		bool for_each_channel(Channel_cb func, void *data);
-
-		/*
-		 * Memory region callback.
-		 *
-		 * Used in the muen_for_each_memregion function. The optional void data pointer
-		 * can be used to pass additional data.
-		 */
-		typedef bool (*Memregion_cb)(const struct Memregion_info * const memregion,
-				void *data);
-
-		/*
-		 * Invoke given callback function for each available memory region.
-		 *
-		 * Memory region information and the optional data argument are passed to each
-		 * invocation of the callback. If a callback invocation returns false,
-		 * processing is aborted and false is returned to the caller.
-		 */
-		bool for_each_memregion(Memregion_cb func, void *data);
+		bool for_each_resource(resource_cb func, void *data) const;
 
 		/*
 		 * Return TSC tick rate in kHz.
 		 *
 		 * The function returns 0 if the TSC tick rate cannot be retrieved.
 		 */
-		uint64_t get_tsc_khz(void);
+		uint64_t get_tsc_khz(void) const;
 
 		/*
 		 * Return start time of current minor frame in TSC ticks.
 		 */
-		uint64_t get_sched_start(void);
+		uint64_t get_sched_start(void) const;
 
 		/*
 		 * Return end time of current minor frame in TSC ticks.
 		 */
-		uint64_t get_sched_end(void);
+		uint64_t get_sched_end(void) const;
 
 		/*
 		 * Log sinfo status.
@@ -180,25 +190,22 @@ class Genode::Sinfo
 
 	private:
 
-		subject_info_type * sinfo = nullptr;
-		scheduling_info_type * sched_info = nullptr;
+		Subject_info_type * sinfo = nullptr;
+		Scheduling_info_type * sched_info = nullptr;
 		char subject_name[MAX_NAME_LENGTH + 1];
 		bool subject_name_set = false;
 
 		/*
-		 * Fill memregion struct with memory region info from resource given by
-		 * index.
+		 * Iterate over all resources beginning at given start resource.  If the res
+		 * member of the iterator is nil, the function (re)starts the iteration at the first
+		 * resource.
 		 */
-		void fill_memregion_data(uint8_t idx, struct Memregion_info *region);
+		struct iterator {
+			const struct Resource_type *res;
+			unsigned int idx;
+		};
 
-		/*
-		 * Fill channel struct with channel information from resource given by
-		 * index.
-		 */
-		void fill_channel_data(uint8_t idx, struct Channel_info *channel);
-
-		/* Fill dev struct with data from PCI device info given by index. */
-		void fill_dev_data(uint8_t idx, struct Dev_info *dev);
+		bool iterate_resources(struct iterator *const iter) const;
 };
 
 #endif /* _INCLUDE__SPEC__X86_64__MUEN__SINFO_H_ */

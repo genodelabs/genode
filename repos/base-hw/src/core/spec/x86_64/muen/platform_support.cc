@@ -66,27 +66,27 @@ bool Platform::get_msi_params(const addr_t mmconf, addr_t &address,
                               addr_t &data, unsigned &irq_number)
 {
 	const unsigned sid = Mmconf_address::to_sid(mmconf);
+	const struct Sinfo::Device_type *dev = sinfo()->get_device(sid);
 
-	struct Sinfo::Dev_info dev_info;
-	if (!sinfo()->get_dev_info(sid, &dev_info)) {
+	if (!dev) {
 		error("error retrieving Muen info for device with SID ", Hex(sid));
 		return false;
 	}
-	if (!dev_info.ir_count) {
+	if (!dev->ir_count) {
 		error("device ", Hex(sid), " has no IRQ assigned");
 		return false;
 	}
-	if (!dev_info.msi_capable) {
+	if (!(dev->flags & Sinfo::DEV_MSI_FLAG)) {
 		error("device ", Hex(sid), " not configured for MSI");
 		return false;
 	}
 
 	data = 0;
-	address = Msi_address::to_msi_addr(dev_info.irte_start);
-	irq_number = dev_info.irq_start;
+	address = Msi_address::to_msi_addr(dev->irte_start);
+	irq_number = dev->irq_start;
 
 	log("enabling MSI for device with SID ", Hex(sid), ": "
-	    "IRTE ", dev_info.irte_start, ", IRQ ", irq_number);
+	    "IRTE ", dev->irte_start, ", IRQ ", irq_number);
 	return true;
 }
 

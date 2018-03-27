@@ -113,17 +113,17 @@ bool setup_subject_state()
 	if (cur_state)
 		return true;
 
-	struct Sinfo::Memregion_info region;
+	const struct Sinfo::Resource_type *region
+		= sinfo()->get_resource("monitor_state", Sinfo::RES_MEMORY);
 
-	if (!sinfo()->get_memregion_info("monitor_state", &region)) {
+	if (!region) {
 		error("unable to retrieve monitor state region");
 		return false;
 	}
 
 	try {
-		static Attached_io_mem_dataspace subject_ds(genode_env(),
-		                                            region.address,
-		                                            region.size);
+		static Attached_io_mem_dataspace subject_ds
+			(genode_env(), region->data.mem.address, region->data.mem.size);
 		cur_state = subject_ds.local_addr<struct Subject_state>();
 		return true;
 	} catch (...) {
@@ -143,17 +143,17 @@ bool setup_subject_interrupts()
 	if (guest_interrupts)
 		return true;
 
-	struct Sinfo::Memregion_info region;
+	const struct Sinfo::Resource_type *region
+		= sinfo()->get_resource("monitor_interrupts", Sinfo::RES_MEMORY);
 
-	if (!sinfo()->get_memregion_info("monitor_interrupts", &region)) {
+	if (!region) {
 		error("unable to retrieve monitor interrupts region");
 		return false;
 	}
 
 	try {
-		static Attached_io_mem_dataspace subject_intrs(genode_env(),
-		                                               region.address,
-		                                               region.size);
+		static Attached_io_mem_dataspace subject_intrs
+			(genode_env(), region->data.mem.address, region->data.mem.size);
 		static Guest_interrupts g((addr_t)subject_intrs.local_addr<addr_t>());
 		guest_interrupts = &g;
 		return true;

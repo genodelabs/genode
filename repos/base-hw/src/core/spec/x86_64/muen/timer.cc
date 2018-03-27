@@ -30,22 +30,26 @@ Timer_driver::Timer_driver(unsigned) : ticks_per_ms(sinfo()->get_tsc_khz())
 	/* first sinfo instance, output status */
 	sinfo()->log_status();
 
-	struct Sinfo::Memregion_info region;
-	if (!sinfo()->get_memregion_info("timed_event", &region)) {
+	const struct Sinfo::Resource_type *
+		region = sinfo()->get_resource("timed_event", Sinfo::RES_MEMORY);
+	if (!region) {
 		error("muen-timer: Unable to retrieve timed event region");
 		throw Invalid_region();
 	}
 
-	event_page = (Subject_timed_event *)Platform::mmio_to_virt(region.address);
+	event_page = (Subject_timed_event *)
+		Platform::mmio_to_virt(region->data.mem.address);
 	event_page->event_nr = Board::TIMER_EVENT_KERNEL;
-	log("muen-timer: Page @", Hex(region.address), ", "
+	log("muen-timer: Page @", Hex(region->data.mem.address), ", "
 	    "frequency ", ticks_per_ms, " kHz, "
 	    "event ", (unsigned)event_page->event_nr);
 
-	if (sinfo()->get_memregion_info("monitor_timed_event", &region)) {
-		log("muen-timer: Found guest timed event page @", Hex(region.address),
+	region = sinfo()->get_resource("monitor_timed_event", Sinfo::RES_MEMORY);
+	if (region) {
+		log("muen-timer: Found guest timed event page @", Hex(region->data.mem.address),
 		    " -> enabling preemption");
-		guest_event_page = (Subject_timed_event *)Platform::mmio_to_virt(region.address);
+		guest_event_page = (Subject_timed_event *)
+			Platform::mmio_to_virt(region->data.mem.address);
 		guest_event_page->event_nr = Board::TIMER_EVENT_PREEMPT;
 	}
 }

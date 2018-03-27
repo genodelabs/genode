@@ -17,7 +17,6 @@
 
 #include <muen/sinfo.h>
 
-#include "musinfo.h"
 #include "muschedinfo.h"
 
 #define roundup(x, y) (                           \
@@ -26,27 +25,10 @@
 	(((x) + (__y - 1)) / __y) * __y;                \
 })
 
-static_assert(sizeof(subject_info_type) <= Sinfo::SIZE,
+using namespace Genode;
+
+static_assert(sizeof(Sinfo::Subject_info_type) <= Sinfo::SIZE,
 	 "Size of subject info type larger than Sinfo::SIZE.");
-
-/* Log channel information */
-static bool log_channel(Genode::Sinfo::Channel_info const * const channel, void *)
-{
-	if (channel->has_event || channel->has_vector) {
-		Genode::log("muen-sinfo: [",
-		            channel->writable ? "writer" : "reader", " with ",
-		            channel->has_event ? "event " : "vector", " ",
-		            channel->has_event ? channel->event_number : channel->vector,
-		            "] ", Genode::Cstring(channel->name));
-	} else {
-		Genode::log("muen-sinfo: [",
-		            channel->writable ? "writer" : "reader", " with no ",
-		            channel->writable ? "event " : "vector", " ",
-		            "] ", Genode::Cstring(channel->name));
-	}
-
-	return true;
-}
 
 
 static const char * const content_names[] = {
@@ -62,6 +44,13 @@ static bool hash_available(const uint8_t * const first)
 }
 
 
+static bool names_equal(const struct Sinfo::Name_type *const n1,
+						const char *const n2)
+{
+	return n1->length == strlen(n2)	&& strcmp(n1->data, n2) == 0;
+}
+
+
 /* Convert given hash to hex string */
 static char *hash_to_hex(char *buffer, const unsigned char *first)
 {
@@ -72,48 +61,60 @@ static char *hash_to_hex(char *buffer, const unsigned char *first)
 }
 
 
-/* Log memory region information */
-static bool log_memregion(Genode::Sinfo::Memregion_info const * const region, void *)
+static bool log_resource(const struct Sinfo::Resource_type *const res, void *)
 {
 	char hash_str[65];
 
-	Genode::log("muen-sinfo: [", content_names[region->content],
-	            ", addr ", Genode::Hex(region->address),
-	            " size ", Genode::Hex(region->size), " ",
-	            region->writable ? "rw" : "ro",
-	            region->executable ? "x" : "-",
-	            "] ", Genode::Cstring(region->name));
+	switch (res->kind) {
+	case Sinfo::RES_MEMORY:
+		Genode::log("muen-sinfo: memory [",
+					content_names[res->data.mem.content],
+					", addr ", Genode::Hex(res->data.mem.address),
+					" size ", Genode::Hex(res->data.mem.size), " ",
+					res->data.mem.flags & Sinfo::MEM_WRITABLE_FLAG ? "rw" : "ro",
+					res->data.mem.flags & Sinfo::MEM_EXECUTABLE_FLAG ? "x" : "-",
+					res->data.mem.flags & Sinfo::MEM_CHANNEL_FLAG ? "c" : "-",
+					"] ", res->name.data);
 
-	if (region->content == Sinfo::CONTENT_FILL)
-		Genode::log("muen-sinfo:  [pattern ", region->pattern, "]");
-	if (hash_available(region->hash))
-		Genode::log("muen-sinfo:  [hash 0x",
-		            Genode::Cstring(hash_to_hex(hash_str, region->hash)), "]");
+		if (res->data.mem.content == Sinfo::CONTENT_FILL)
+			Genode::log("muen-sinfo:  [pattern ", res->data.mem.pattern, "]");
+
+		if (hash_available(res->data.mem.hash))
+			Genode::log("muen-sinfo:  [hash 0x",
+						Genode::Cstring(hash_to_hex(hash_str, res->data.mem.hash)),
+						"]");
+		break;
+	case Sinfo::RES_DEVICE:
+		Genode::log("muen-sinfo: device [sid ", Genode::Hex(res->data.dev.sid),
+					" IRTE/IRQ start ", res->data.dev.irte_start,
+					"/", res->data.dev.irq_start,
+					" IR count ", res->data.dev.ir_count,
+					" flags ", res->data.dev.flags, "] ", res->name.data);
+		break;
+	case Sinfo::RES_EVENT:
+		Genode::log("muen-sinfo: event [number ", res->data.number, "] ", res->name.data);
+		break;
+	case Sinfo::RES_VECTOR:
+		Genode::log("muen-sinfo: vector [number ", res->data.number, "] ", res->name.data);
+		break;
+	case Sinfo::RES_NONE:
+		break;
+	default:
+		Genode::log("muen-sinfo: UNKNOWN resource at address %p\n",
+			res);
+		break;
+	}
 
 	return true;
 }
 
 
-/* Returns true if the given resource is a memory region */
-static bool is_memregion(const struct resource_type * const resource)
-{
-	return resource->memregion_idx != NO_RESOURCE;
-}
-
-
-/* Returns true if the given resource is a channel */
-static bool is_channel(const struct resource_type * const resource)
-{
-	return is_memregion(resource) && resource->channel_info_idx != NO_RESOURCE;
-}
-
-
 Sinfo::Sinfo(const addr_t base_addr)
 :
-	sinfo((subject_info_type *)base_addr)
+	sinfo((Subject_info_type *)base_addr)
 {
-	const uint64_t sinfo_page_size = roundup(sizeof(subject_info_type), 0x1000);
-	sched_info = ((scheduling_info_type *)(base_addr + sinfo_page_size));
+	const uint64_t sinfo_page_size = roundup(sizeof(Subject_info_type), 0x1000);
+	sched_info = ((Scheduling_info_type *)(base_addr + sinfo_page_size));
 
 	if (!check_magic()) {
 		Genode::error("muen-sinfo: Subject information MAGIC mismatch");
@@ -122,7 +123,7 @@ Sinfo::Sinfo(const addr_t base_addr)
 }
 
 
-bool Sinfo::check_magic(void)
+bool Sinfo::check_magic(void) const
 {
 	return sinfo != 0 && sinfo->magic == MUEN_SUBJECT_INFO_MAGIC;
 }
@@ -144,100 +145,58 @@ const char * Sinfo::get_subject_name(void)
 }
 
 
-bool Sinfo::get_channel_info(const char * const name,
-                             struct Channel_info *channel)
+bool Sinfo::iterate_resources(struct iterator *const iter) const
 {
-	int i;
-
-	if (!check_magic())
-		return false;
-
-	for (i = 0; i < sinfo->resource_count; i++) {
-		if (is_channel(&sinfo->resources[i]) &&
-			strcmp(sinfo->resources[i].name.data, name) == 0) {
-			fill_channel_data(i, channel);
-			return true;
-		}
+	if (!iter->res) {
+		iter->res = &sinfo->resources[0];
+		iter->idx = 0;
+	} else {
+		iter->res++;
+		iter->idx++;
 	}
-	return false;
+	return iter->idx < sinfo->resource_count
+		&& iter->res->kind != RES_NONE;
 }
 
 
-bool Sinfo::get_memregion_info(const char * const name,
-                               struct Memregion_info *memregion)
+const struct Sinfo::Resource_type *
+Sinfo::get_resource(const char *const name, enum Resource_kind kind) const
 {
-	int i;
+	struct iterator i = { nullptr, 0 };
 
-	if (!check_magic())
-		return false;
+	while (iterate_resources(&i))
+		if (i.res->kind == kind && names_equal(&i.res->name, name))
+			return i.res;
 
-	for (i = 0; i < sinfo->resource_count; i++) {
-		if (is_memregion(&sinfo->resources[i]) &&
-			strcmp(sinfo->resources[i].name.data, name) == 0) {
-			fill_memregion_data(i, memregion);
-			return true;
-		}
-	}
-	return false;
+	return nullptr;
 }
 
 
-bool Sinfo::get_dev_info(const uint16_t sid, struct Dev_info *dev)
+const struct Sinfo::Device_type * Sinfo::get_device(const uint16_t sid) const
 {
-	int i;
+	struct iterator i = { nullptr, 0 };
 
-	if (!check_magic())
-		return false;
+	while (iterate_resources(&i))
+		if (i.res->kind == RES_DEVICE && i.res->data.dev.sid == sid)
+			return &i.res->data.dev;
 
-	for (i = 0; i < sinfo->dev_info_count; i++) {
-		if (sinfo->dev_info[i].sid == sid) {
-			fill_dev_data(i, dev);
-			return true;
-		}
-	}
-	return false;
+	return nullptr;
 }
 
 
-bool Sinfo::for_each_channel(Channel_cb func, void *data)
+bool Sinfo::for_each_resource(resource_cb func, void *data) const
 {
-	int i;
-	struct Channel_info current_channel;
+	struct iterator i = { nullptr, 0 };
 
-	if (!check_magic())
-		return false;
+	while (iterate_resources(&i))
+		if (!func(i.res, data))
+			return 0;
 
-	for (i = 0; i < sinfo->resource_count; i++) {
-		if (is_channel(&sinfo->resources[i])) {
-			fill_channel_data(i, &current_channel);
-			if (!func(&current_channel, data))
-				return false;
-		}
-	}
-	return true;
+	return 1;
 }
 
 
-bool Sinfo::for_each_memregion(Memregion_cb func, void *data)
-{
-	int i;
-	struct Memregion_info current_region;
-
-	if (!check_magic())
-		return false;
-
-	for (i = 0; i < sinfo->resource_count; i++) {
-		if (is_memregion(&sinfo->resources[i])) {
-			fill_memregion_data(i, &current_region);
-			if (!func(&current_region, data))
-				return false;
-		}
-	}
-	return true;
-}
-
-
-uint64_t Sinfo::get_tsc_khz(void)
+uint64_t Sinfo::get_tsc_khz(void) const
 {
 	if (!check_magic())
 		return 0;
@@ -246,7 +205,7 @@ uint64_t Sinfo::get_tsc_khz(void)
 }
 
 
-uint64_t Sinfo::get_sched_start(void)
+uint64_t Sinfo::get_sched_start(void) const
 {
 	if (!check_magic())
 		return 0;
@@ -255,7 +214,7 @@ uint64_t Sinfo::get_sched_start(void)
 }
 
 
-uint64_t Sinfo::get_sched_end(void)
+uint64_t Sinfo::get_sched_end(void) const
 {
 	if (!check_magic())
 		return 0;
@@ -275,66 +234,10 @@ void Sinfo::log_status()
 		return;
 	}
 
+	const uint16_t count = sinfo->resource_count;
+
 	Genode::log("muen-sinfo: Subject name is '",
 				Sinfo::get_subject_name(), "'");
-	Genode::log("muen-sinfo: Subject information exports ",
-	            sinfo->memregion_count, " memory region(s)");
-	for_each_memregion(log_memregion, nullptr);
-	Genode::log("muen-sinfo: Subject information exports ",
-	            sinfo->channel_info_count, " channel(s)");
-	for_each_channel(log_channel, 0);
-}
-
-
-void Sinfo::fill_memregion_data(uint8_t idx, struct Memregion_info *region)
-{
-	const struct resource_type resource = sinfo->resources[idx];
-	const struct memregion_type memregion =
-		sinfo->memregions[resource.memregion_idx - 1];
-
-	memset(&region->name, 0, MAX_NAME_LENGTH + 1);
-	memcpy(&region->name, resource.name.data, resource.name.length);
-
-	memcpy(&region->hash, memregion.hash, HASH_LENGTH);
-
-	region->content    = memregion.content;
-	region->address    = memregion.address;
-	region->size       = memregion.size;
-	region->pattern    = memregion.pattern;
-	region->writable   = memregion.flags & MEM_WRITABLE_FLAG;
-	region->executable = memregion.flags & MEM_EXECUTABLE_FLAG;
-}
-
-
-void Sinfo::fill_channel_data(uint8_t idx, struct Channel_info *channel)
-{
-	const struct resource_type resource = sinfo->resources[idx];
-	const struct memregion_type memregion =
-		sinfo->memregions[resource.memregion_idx - 1];
-	const struct channel_info_type channel_info =
-		sinfo->channels_info[resource.channel_info_idx - 1];
-
-	memset(&channel->name, 0, MAX_NAME_LENGTH + 1);
-	memcpy(&channel->name, resource.name.data, resource.name.length);
-
-	channel->address  = memregion.address;
-	channel->size     = memregion.size;
-	channel->writable = memregion.flags & MEM_WRITABLE_FLAG;
-
-	channel->has_event    = channel_info.flags & CHAN_EVENT_FLAG;
-	channel->event_number = channel_info.event;
-	channel->has_vector   = channel_info.flags & CHAN_VECTOR_FLAG;
-	channel->vector       = channel_info.vector;
-}
-
-
-void Sinfo::fill_dev_data(uint8_t idx, struct Dev_info *dev)
-{
-	const struct dev_info_type dev_info = sinfo->dev_info[idx];
-
-	dev->sid         = dev_info.sid;
-	dev->irte_start  = dev_info.irte_start;
-	dev->irq_start   = dev_info.irq_start;
-	dev->ir_count    = dev_info.ir_count;
-	dev->msi_capable = dev_info.flags & DEV_MSI_FLAG;
+	Genode::log("muen-sinfo: Subject exports ", count, " resources");
+	for_each_resource(log_resource, nullptr);
 }

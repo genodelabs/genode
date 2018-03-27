@@ -79,18 +79,23 @@ struct Mem_region : Genode::List<Mem_region>::Element,
 			Genode::Rom_connection sinfo_rom(env, "subject_info_page");
 			Genode::Sinfo sinfo ((addr_t)env.rm().attach (sinfo_rom.dataspace()));
 
-			struct Genode::Sinfo::Memregion_info region1, region4;
-			if (!sinfo.get_memregion_info("vm_ram_1", &region1)) {
+			const struct Genode::Sinfo::Resource_type *region1
+				= sinfo.get_resource("vm_ram_1", Genode::Sinfo::RES_MEMORY);
+			const struct Genode::Sinfo::Resource_type  *region4
+				= sinfo.get_resource("vm_ram_4", Genode::Sinfo::RES_MEMORY);
+
+			if (!region1) {
 				Genode::error("unable to retrieve vm_ram_1 region");
 				return 0;
 			}
-			if (!sinfo.get_memregion_info("vm_ram_4", &region4)) {
+			if (!region4) {
 				Genode::error("unable to retrieve vm_ram_4 region");
 				return 0;
 			}
 
-			cur_region.base = region1.address;
-			cur_region.size = region4.address + region4.size - region1.address;
+			cur_region.base = region1->data.mem.address;
+			cur_region.size = region4->data.mem.address + region4->data.mem.size
+				- region1->data.mem.address;
 			counter++;
 			_clear = false;
 

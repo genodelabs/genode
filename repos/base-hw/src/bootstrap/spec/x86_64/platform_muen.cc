@@ -32,13 +32,15 @@ Bootstrap::Platform::Board::Board()
             Memory_region { TIMER_BASE_ADDR, TIMER_SIZE },
             Memory_region { TIMER_PREEMPT_BASE_ADDR, TIMER_PREEMPT_SIZE })
 {
-	struct Sinfo::Memregion_info region;
-
 	Sinfo sinfo(Sinfo::PHYSICAL_BASE_ADDR);
-	if (!sinfo.get_memregion_info("ram", &region))
+	const struct Sinfo::Resource_type *
+		region = sinfo.get_resource("ram", Sinfo::RES_MEMORY);
+
+	if (!region)
 		Genode::error("Unable to retrieve base-hw ram region");
 	else
-		early_ram_regions.add(Memory_region { region.address, region.size });
+		early_ram_regions.add(Memory_region
+				{ region->data.mem.address, region->data.mem.size });
 }
 
 
