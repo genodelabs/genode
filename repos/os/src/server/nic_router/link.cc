@@ -175,7 +175,7 @@ void Link::handle_config(Domain                        &cln_domain,
 	Microseconds dissolve_timeout_us(0);
 	switch (_protocol) {
 	case L3_protocol::TCP: dissolve_timeout_us = config.tcp_idle_timeout(); break;
-	case L3_protocol::UDP: dissolve_timeout_us = config.tcp_idle_timeout(); break;
+	case L3_protocol::UDP: dissolve_timeout_us = config.udp_idle_timeout(); break;
 	default: throw Interface::Bad_transport_protocol();
 	}
 	_dissolve_timeout_us = dissolve_timeout_us;
