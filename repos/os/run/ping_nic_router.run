@@ -1,0 +1,208 @@
+#
+# Build
+#
+
+if {![have_include power_on/qemu]} {
+	puts "Run script is only supported on Qemu"
+	return 0
+}
+
+set build_components {
+	core
+	init
+	drivers/timer
+	drivers/nic
+	server/nic_router
+	app/ping
+}
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
+
+build $build_components
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+append config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<default caps="100"/>}
+
+append_platform_drv_config
+
+append config {
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+
+	<start name="nic_drv">
+		<binary name="} [nic_drv_binary] {"/>
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Nic"/></provides>
+	</start>
+
+	<start name="nic_router" caps="200">
+		<resource name="RAM" quantum="10M"/>
+		<provides><service name="Nic"/></provides>
+		<config verbose="no"
+		        verbose_packets="no"
+		        mac_first="2:2:2:2:2:0">
+
+			<policy label_prefix="ping_1" domain="ping_1"/>
+			<policy label_prefix="ping_2" domain="ping_2"/>
+
+			<domain name="uplink" interface="10.0.2.55/24">
+				<ip dst="10.0.4.0/24" domain="ping_2"/>
+				<nat domain="ping_1" icmp-ids="5"/>
+			</domain>
+
+			<domain name="ping_2" interface="10.0.4.1/24">
+				<ip dst="10.0.2.0/24" domain="uplink"/>
+			</domain>
+
+			<domain name="ping_1" interface="10.0.3.1/24">
+				<icmp dst="10.0.2.0/24" domain="uplink"/>
+			</domain>
+
+		</config>
+		<route>
+			<service name="Nic"> <child name="nic_drv"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="ping_2_nic_router" caps="200">
+		<binary name="nic_router"/>
+		<resource name="RAM" quantum="10M"/>
+		<provides><service name="Nic"/></provides>
+		<config verbose="no"
+		        verbose_packets="no"
+		        mac_first="12:12:12:12:12:0">
+
+			<policy label_prefix="ping_2" domain="ping_2"/>
+
+			<domain name="uplink" interface="10.0.4.2/24" gateway="10.0.4.1">
+				<nat domain="ping_2" icmp-ids="5"/>
+			</domain>
+
+			<domain name="ping_2" interface="10.0.5.1/24">
+				<icmp dst="10.0.1.0/24" domain="uplink"/>
+				<icmp dst="10.0.2.0/24" domain="uplink"/>
+			</domain>
+
+		</config>
+		<route>
+			<service name="Nic"> <child name="nic_router"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="ping_11">
+		<binary name="ping"/>
+		<resource name="RAM" quantum="8M"/>
+		<config src_ip="10.0.3.2"
+		        dst_ip="10.0.2.2"
+		        data_size="56"
+		        period_sec="1"
+		        verbose="no"/>
+		<route>
+			<service name="Nic"> <child name="nic_router"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="ping_12">
+		<binary name="ping"/>
+		<resource name="RAM" quantum="8M"/>
+		<config src_ip="10.0.3.3"
+		        dst_ip="10.0.2.2"
+		        data_size="56"
+		        period_sec="1"
+		        verbose="no"/>
+		<route>
+			<service name="Nic"> <child name="nic_router"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="ping_21">
+		<binary name="ping"/>
+		<resource name="RAM" quantum="8M"/>
+		<config src_ip="10.0.5.2"
+		        dst_ip="10.0.2.2"
+		        data_size="56"
+		        period_sec="1"
+		        verbose="no"/>
+		<route>
+			<service name="Nic"> <child name="ping_2_nic_router"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="ping_22">
+		<binary name="ping"/>
+		<resource name="RAM" quantum="8M"/>
+		<config src_ip="10.0.5.3"
+		        dst_ip="10.0.1.2"
+		        data_size="56"
+		        period_sec="1"
+		        verbose="no"/>
+		<route>
+			<service name="Nic"> <child name="ping_2_nic_router"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+</config>}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+# generic modules
+append boot_modules {
+	core init
+	timer
+	} [nic_drv_binary] {
+	ping
+	ld.lib.so
+	nic_router
+}
+
+# platform-specific modules
+lappend_if [have_spec linux] boot_modules fb_sdl
+
+append_platform_drv_boot_modules
+
+build_boot_image $boot_modules
+
+append_if [have_spec x86]     qemu_args " -net nic,model=e1000 "
+append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
+
+append qemu_args " -net user -nographic "
+
+set done_string ""
+for {set i 0} {$i < 3} {incr i 1} {
+	append done_string ".*child \"ping...\" exited with exit value 0.*\n"
+}
+append done_string ".*From 10.0.4.1 icmp_seq=.* Destination Unreachable.*\n"
+
+run_genode_until $done_string 25
