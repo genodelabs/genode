@@ -193,6 +193,7 @@ void Dhcp_client::_send(Message_type msg_type,
 		ip.header_length(sizeof(Ipv4_packet) / 4);
 		ip.version(4);
 		ip.diff_service(0);
+		ip.ecn(0);
 		ip.identification(0);
 		ip.flags(0);
 		ip.fragment_offset(0);
