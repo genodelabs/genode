@@ -134,8 +134,9 @@ Domain::Domain(Configuration &config, Xml_node const node, Allocator &alloc)
 Link_side_tree &Domain::links(L3_protocol const protocol)
 {
 	switch (protocol) {
-	case L3_protocol::TCP: return _tcp_links;
-	case L3_protocol::UDP: return _udp_links;
+	case L3_protocol::TCP:  return _tcp_links;
+	case L3_protocol::UDP:  return _udp_links;
+	case L3_protocol::ICMP: return _icmp_links;
 	default: throw Interface::Bad_transport_protocol(); }
 }
 
@@ -170,6 +171,7 @@ Domain::~Domain()
 	/* destroy rules */
 	_ip_rules.destroy_each(_alloc);
 	_nat_rules.destroy_each(_alloc);
+	_icmp_rules.destroy_each(_alloc);
 	_udp_rules.destroy_each(_alloc);
 	_tcp_rules.destroy_each(_alloc);
 	_udp_forward_rules.destroy_each(_alloc);
@@ -235,17 +237,23 @@ void Domain::init(Domain_tree &domains)
 	                    _udp_forward_rules);
 
 	/* read UDP and TCP rules */
-	_read_transport_rules(tcp_name(), domains, _node, "tcp", _tcp_rules);
-	_read_transport_rules(udp_name(), domains, _node, "udp", _udp_rules);
+	_read_transport_rules(tcp_name(),  domains, _node, "tcp",  _tcp_rules);
+	_read_transport_rules(udp_name(),  domains, _node, "udp",  _udp_rules);
 
 	/* read NAT rules */
 	_node.for_each_sub_node("nat", [&] (Xml_node const node) {
 		try {
 			_nat_rules.insert(
 				new (_alloc) Nat_rule(domains, _tcp_port_alloc,
-				                      _udp_port_alloc, node));
+				                      _udp_port_alloc, _icmp_port_alloc,
+				                      node));
 		}
 		catch (Rule::Invalid) { warning("invalid NAT rule"); }
+	});
+	/* read ICMP rules */
+	_node.for_each_sub_node("icmp", [&] (Xml_node const node) {
+		try { _icmp_rules.insert(*new (_alloc) Ip_rule(domains, node)); }
+		catch (Rule::Invalid) { warning("invalid ICMP rule"); }
 	});
 	/* read IP rules */
 	_node.for_each_sub_node("ip", [&] (Xml_node const node) {

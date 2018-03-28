@@ -59,6 +59,11 @@
 		</xs:restriction>
 	</xs:simpleType><!-- Ipv4_address_prefix -->
 
+	<xs:complexType name="L2_rule">
+		<xs:attribute name="dst"    type="Ipv4_address_prefix" />
+		<xs:attribute name="domain" type="Domain_name" />
+	</xs:complexType><!-- L2_rule -->
+
 	<xs:complexType name="L3_rule">
 		<xs:choice minOccurs="0" maxOccurs="unbounded">
 
@@ -110,15 +115,12 @@
 					<xs:complexType>
 						<xs:choice minOccurs="0" maxOccurs="unbounded">
 
-							<xs:element name="ip">
-								<xs:complexType>
-									<xs:attribute name="dst"    type="Ipv4_address_prefix" />
-									<xs:attribute name="domain" type="Domain_name" />
-								</xs:complexType>
-							</xs:element><!-- ip -->
+							<xs:element name="ip"   type="L2_rule" />
+							<xs:element name="icmp" type="L2_rule" />
 
 							<xs:element name="nat">
 								<xs:complexType>
+									<xs:attribute name="icmp-ids"  type="Nr_of_ports" />
 									<xs:attribute name="tcp-ports" type="Nr_of_ports" />
 									<xs:attribute name="udp-ports" type="Nr_of_ports" />
 									<xs:attribute name="domain"    type="Domain_name" />

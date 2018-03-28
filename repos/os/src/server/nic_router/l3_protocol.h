@@ -26,6 +26,7 @@ namespace Net {
 
 	Genode::Cstring const &tcp_name();
 	Genode::Cstring const &udp_name();
+	Genode::Cstring const &icmp_name();
 	Genode::Cstring const &l3_protocol_name(L3_protocol protocol);
 }
 

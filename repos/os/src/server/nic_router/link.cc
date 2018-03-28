@@ -174,8 +174,9 @@ void Link::handle_config(Domain                        &cln_domain,
 {
 	Microseconds dissolve_timeout_us(0);
 	switch (_protocol) {
-	case L3_protocol::TCP: dissolve_timeout_us = config.tcp_idle_timeout(); break;
-	case L3_protocol::UDP: dissolve_timeout_us = config.udp_idle_timeout(); break;
+	case L3_protocol::TCP:  dissolve_timeout_us = config.tcp_idle_timeout();  break;
+	case L3_protocol::UDP:  dissolve_timeout_us = config.udp_idle_timeout();  break;
+	case L3_protocol::ICMP: dissolve_timeout_us = config.icmp_idle_timeout(); break;
 	default: throw Interface::Bad_transport_protocol();
 	}
 	_dissolve_timeout_us = dissolve_timeout_us;
@@ -275,4 +276,22 @@ Udp_link::Udp_link(Interface                     &cln_interface,
 :
 	Link(cln_interface, cln_id, srv_port_alloc, srv_domain, srv_id, timer,
 	     config, protocol, config.udp_idle_timeout())
+{ }
+
+
+/***************
+ ** Icmp_link **
+ ***************/
+
+Icmp_link::Icmp_link(Interface                     &cln_interface,
+                     Link_side_id            const &cln_id,
+                     Pointer<Port_allocator_guard>  srv_port_alloc,
+                     Domain                        &srv_domain,
+                     Link_side_id            const &srv_id,
+                     Timer::Connection             &timer,
+                     Configuration                 &config,
+                     L3_protocol             const  protocol)
+:
+	Link(cln_interface, cln_id, srv_port_alloc, srv_domain, srv_id, timer,
+	     config, protocol, config.icmp_idle_timeout())
 { }

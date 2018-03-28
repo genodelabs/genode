@@ -1,13 +1,13 @@
 /*
- * \brief  State tracking for UDP/TCP connections
+ * \brief  State tracking for ICMP/UDP//TCP connections
  * \author Martin Stein
  * \date   2016-08-19
  *
- * A link is in the UDP case the state tracking of a pseudo UDP connection
- * (UDP hole punching) and in the TCP case the state tracking of a TCP
- * connection. Beside the layer-3 connection state, a link also contains
- * information about the routing and the NAT translation that correspond to
- * the connection. Link objects have three different functions:
+ * A link is in the UDP/ICMP case the state tracking of a pseudo UDP/ICMP
+ * connection (UDP/ICMP hole punching) and in the TCP case the state tracking
+ * of a TCP connection. Beside the layer-3 connection state, a link also
+ * contains information about the routing and the NAT translation that
+ * correspond to the connection. Link objects have three different functions:
  *
  * 1) Link objects allow the router to manage the lifetime of resources
  *    related to a layer-3 connection.
@@ -57,6 +57,7 @@ namespace Net {
 	struct Link_list : List<Link> { };
 	class  Tcp_link;
 	class  Udp_link;
+	class  Icmp_link;
 }
 
 
@@ -234,6 +235,21 @@ struct Net::Udp_link : Link
 	         Timer::Connection             &timer,
 	         Configuration                 &config,
 	         L3_protocol             const  protocol);
+
+	void packet() { _packet(); }
+};
+
+
+struct Net::Icmp_link : Link
+{
+	Icmp_link(Interface                     &cln_interface,
+	          Link_side_id            const &cln_id,
+	          Pointer<Port_allocator_guard>  srv_port_alloc,
+	          Domain                        &srv_domain,
+	          Link_side_id            const &srv_id,
+	          Timer::Connection             &timer,
+	          Configuration                 &config,
+	          L3_protocol             const  protocol);
 
 	void packet() { _packet(); }
 };

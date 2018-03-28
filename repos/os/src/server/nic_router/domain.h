@@ -92,8 +92,10 @@ class Net::Domain : public Domain_base,
 		Forward_rule_tree                     _udp_forward_rules    { };
 		Transport_rule_list                   _tcp_rules            { };
 		Transport_rule_list                   _udp_rules            { };
+		Ip_rule_list                          _icmp_rules           { };
 		Port_allocator                        _tcp_port_alloc       { };
 		Port_allocator                        _udp_port_alloc       { };
+		Port_allocator                        _icmp_port_alloc      { };
 		Nat_rule_tree                         _nat_rules            { };
 		Interface_list                        _interfaces           { };
 		unsigned long                         _interface_cnt        { 0 };
@@ -104,6 +106,7 @@ class Net::Domain : public Domain_base,
 		Arp_waiter_list                       _foreign_arp_waiters  { };
 		Link_side_tree                        _tcp_links            { };
 		Link_side_tree                        _udp_links            { };
+		Link_side_tree                        _icmp_links           { };
 		Genode::size_t                        _tx_bytes             { 0 };
 		Genode::size_t                        _rx_bytes             { 0 };
 		bool                            const _verbose_packets      { false };
@@ -179,6 +182,7 @@ class Net::Domain : public Domain_base,
 		Forward_rule_tree   &udp_forward_rules()     { return _udp_forward_rules; }
 		Transport_rule_list &tcp_rules()             { return _tcp_rules; }
 		Transport_rule_list &udp_rules()             { return _udp_rules; }
+		Ip_rule_list        &icmp_rules()            { return _icmp_rules; }
 		Nat_rule_tree       &nat_rules()             { return _nat_rules; }
 		Interface_list      &interfaces()            { return _interfaces; }
 		Configuration       &config()          const { return _config; }
@@ -188,6 +192,7 @@ class Net::Domain : public Domain_base,
 		Arp_waiter_list     &foreign_arp_waiters()   { return _foreign_arp_waiters; }
 		Link_side_tree      &tcp_links()             { return _tcp_links; }
 		Link_side_tree      &udp_links()             { return _udp_links; }
+		Link_side_tree      &icmp_links()            { return _icmp_links; }
 };
 
 

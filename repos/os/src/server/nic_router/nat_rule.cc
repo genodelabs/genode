@@ -35,11 +35,13 @@ bool Nat_rule::higher(Nat_rule *rule)
 Nat_rule::Nat_rule(Domain_tree    &domains,
                    Port_allocator &tcp_port_alloc,
                    Port_allocator &udp_port_alloc,
+                   Port_allocator &icmp_port_alloc,
                    Xml_node const  node)
 :
 	Leaf_rule(domains, node),
-	_tcp_port_alloc(tcp_port_alloc, node.attribute_value("tcp-ports", 0UL)),
-	_udp_port_alloc(udp_port_alloc, node.attribute_value("udp-ports", 0UL))
+	_tcp_port_alloc (tcp_port_alloc,  node.attribute_value("tcp-ports", 0UL)),
+	_udp_port_alloc (udp_port_alloc,  node.attribute_value("udp-ports", 0UL)),
+	_icmp_port_alloc(icmp_port_alloc, node.attribute_value("icmp-ids", 0UL))
 { }
 
 
@@ -70,15 +72,17 @@ Nat_rule &Nat_rule_tree::find_by_domain(Domain &domain)
 void Nat_rule::print(Output &output) const
 {
 	Genode::print(output, "domain ", _domain,
-	              " tcp-ports ", _tcp_port_alloc.max(),
-	              " udp-ports ", _udp_port_alloc.max());
+	                  " tcp-ports ", _tcp_port_alloc.max(),
+	                  " udp-ports ", _udp_port_alloc.max(),
+	                 " icmp-ports ", _icmp_port_alloc.max());
 }
 
 
 Port_allocator_guard &Nat_rule::port_alloc(L3_protocol const prot)
 {
 	switch (prot) {
-	case L3_protocol::TCP: return _tcp_port_alloc;
-	case L3_protocol::UDP: return _udp_port_alloc;
+	case L3_protocol::TCP:  return _tcp_port_alloc;
+	case L3_protocol::UDP:  return _udp_port_alloc;
+	case L3_protocol::ICMP: return _icmp_port_alloc;
 	default: throw Interface::Bad_transport_protocol(); }
 }

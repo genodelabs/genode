@@ -89,8 +89,10 @@ class Net::Interface : private Interface_list::Element
 		Arp_waiter_list                    _own_arp_waiters           { };
 		Link_list                          _tcp_links                 { };
 		Link_list                          _udp_links                 { };
+		Link_list                          _icmp_links                { };
 		Link_list                          _dissolved_tcp_links       { };
 		Link_list                          _dissolved_udp_links       { };
+		Link_list                          _dissolved_icmp_links      { };
 		Dhcp_allocation_tree               _dhcp_allocations          { };
 		Dhcp_allocation_list               _released_dhcp_allocations { };
 		Dhcp_client                        _dhcp_client               { _alloc, _timer, *this };
@@ -157,6 +159,24 @@ class Net::Interface : private Interface_list::Element
 		                Genode::size_t    const  eth_size,
 		                Packet_descriptor const &pkt,
 		                Domain                  &local_domain);
+
+		void _handle_icmp_query(Ethernet_frame          &eth,
+		                        Genode::size_t           eth_size,
+		                        Ipv4_packet             &ip,
+		                        Packet_descriptor const &pkt,
+		                        L3_protocol              prot,
+		                        void                    *prot_base,
+		                        Genode::size_t           prot_size,
+		                        Domain                  &local_domain);
+
+		void _handle_icmp(Ethernet_frame          &eth,
+		                  Genode::size_t           eth_size,
+		                  Ipv4_packet             &ip,
+		                  Packet_descriptor const &pkt,
+		                  L3_protocol              prot,
+		                  void                    *prot_base,
+		                  Genode::size_t           prot_size,
+		                  Domain                  &local_domain);
 
 		void _adapt_eth(Ethernet_frame          &eth,
 		                Ipv4_address      const &dst_ip,
