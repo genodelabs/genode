@@ -117,7 +117,7 @@ create_boot_directory
 set lx_ip_addr "10.0.2.55"
 
 set config {
-<config verbose="yes">
+<config verbose="yes" prio_levels="2">
 	<parent-provides>
 		<service name="ROM"/>
 		<service name="IRQ"/>
@@ -219,7 +219,7 @@ append_if $use_usb_driver config {
 	</start>}
 
 append_if $use_nic_driver config {
-	<start name="nic_drv" caps="120">
+	<start name="nic_drv" caps="130">
 		<binary name="} [nic_drv_binary] {"/>
 		<resource name="RAM" quantum="20M"/>
 		<provides><service name="Nic"/></provides>
@@ -284,7 +284,7 @@ append_if $use_wifi_driver config {
 append_platform_drv_config
 
 append config {
-	<start name="netserver_genode" caps="220">
+	<start name="netserver_genode" caps="220" priority="-1">
 }
 append config "<binary name=\"$netperf_app\"/>"
 append config {

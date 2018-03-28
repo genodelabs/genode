@@ -25,6 +25,8 @@
 
 void lx_backtrace(void);
 
+#define DEBUG_LINUX_PRINTK 1
+
 #define DEBUG 0
 #if DEBUG
 #define TRACE \
@@ -359,6 +361,7 @@ struct net_device
 	struct                       device dev;
 	u16                          gso_max_segs;
 	struct phy_device           *phydev;
+	char const                  *name;
 };
 
 static inline void *netdev_priv(const struct net_device *dev) {
