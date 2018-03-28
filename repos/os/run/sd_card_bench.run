@@ -3,8 +3,7 @@
 #
 
       if {[have_spec pl180]}   { set buffer_size_kib [expr 12 * 1024]
-} elseif {[have_spec imx6] &&
-          ![have_spec sel4]}   { set buffer_size_kib [expr      1024]
+} elseif {[have_spec imx6]}    { set buffer_size_kib [expr      1024]
 } elseif {[have_spec imx53] &&
           ![have_spec foc]}    { set buffer_size_kib [expr      1024]
 } elseif {[have_spec rpi]}     { set buffer_size_kib [expr  4 * 1024]
