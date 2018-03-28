@@ -67,7 +67,7 @@ void Ram_dataspace_factory::_clear_ds (Dataspace_component *ds)
 			*dst++ = 0;
 
 		/* unmap cleared page from core */
-		unmap_local(virt_addr, ONE_PAGE);
+		unmap_local(virt_addr, ONE_PAGE, nullptr, ds->cacheability() != CACHED);
 	}
 
 	/* free core's virtual address space */

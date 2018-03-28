@@ -47,6 +47,21 @@ long Genode::Vm_space::_unmap_page(Genode::Cap_sel const &idx)
 	return seL4_ARM_Page_Unmap(service);
 }
 
+long Genode::Vm_space::_invalidate_page(Genode::Cap_sel const &idx,
+                                        seL4_Word const start,
+                                        seL4_Word const end)
+{
+	seL4_ARM_Page const service = _idx_to_sel(idx.value());
+	long error = seL4_ARM_Page_CleanInvalidate_Data(service, 0, end - start);
+
+	if (error == seL4_NoError) {
+		seL4_ARM_PageDirectory const pd = _pd_sel.value();
+		error = seL4_ARM_PageDirectory_CleanInvalidate_Data(pd, start, end);
+	}
+
+	return error;
+}
+
 void Genode::Vm_space::unsynchronized_alloc_page_tables(addr_t const start,
                                                         addr_t const size)
 {

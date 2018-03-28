@@ -39,3 +39,9 @@ long Genode::Vm_space::_unmap_page(Genode::Cap_sel const &idx)
 	seL4_X86_Page const service = _idx_to_sel(idx.value());
 	return seL4_X86_Page_Unmap(service);
 }
+
+long Genode::Vm_space::_invalidate_page(Genode::Cap_sel const &,
+                                        seL4_Word const, seL4_Word const)
+{
+	return seL4_NoError;
+}

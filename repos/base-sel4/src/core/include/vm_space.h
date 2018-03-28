@@ -245,6 +245,8 @@ class Genode::Vm_space
 		               Cache_attribute const cacheability, bool const write,
 		               bool const writable);
 		long _unmap_page(Genode::Cap_sel const &idx);
+		long _invalidate_page(Genode::Cap_sel const &, seL4_Word const,
+		                      seL4_Word const);
 
 		class Alloc_page_table_failed : Exception { };
 
@@ -392,7 +394,8 @@ class Genode::Vm_space
 			}
 		}
 
-		bool unmap(addr_t virt, size_t num_pages)
+		bool unmap(addr_t const virt, size_t const num_pages,
+		           bool const invalidate = false)
 		{
 			bool unmap_success = true;
 
@@ -402,6 +405,14 @@ class Genode::Vm_space
 				off_t const offset = i << get_page_size_log2();
 
 				_page_table_registry.flush_page(virt + offset, [&] (Cap_sel const &idx, addr_t) {
+
+					if (invalidate) {
+						long result = _invalidate_page(idx, virt + offset,
+						                               virt + offset + 4096);
+						if (result != seL4_NoError)
+							error("invalidating ", Hex(virt + offset),
+							      " failed, idx=", idx, " result=", result);
+					}
 
 					long result = _unmap_page(idx);
 					if (result != seL4_NoError) {
