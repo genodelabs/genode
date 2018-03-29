@@ -62,7 +62,7 @@ static Libc::Plugin_context *vfs_context(Vfs::Vfs_handle *vfs_handle)
 static void vfs_stat_to_libc_stat_struct(Vfs::Directory_service::Stat const &src,
                                          struct stat *dst)
 {
-	enum { FS_BLOCK_SIZE = 1024 };
+	enum { FS_BLOCK_SIZE = 4096 };
 
 	Genode::memset(dst, 0, sizeof(*dst));
 

@@ -232,7 +232,7 @@ static bool noux_syscall(Noux::Session::Syscall opcode)
 }
 
 
-enum { FS_BLOCK_SIZE = 1024 };
+enum { FS_BLOCK_SIZE = 4096 };
 
 
 /***********************************************
