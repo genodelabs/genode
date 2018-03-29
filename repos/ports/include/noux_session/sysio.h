@@ -51,7 +51,7 @@ struct Noux::Sysio
 	enum { MAX_PATH_LEN = 512 };
 	typedef char Path[MAX_PATH_LEN];
 
-	enum { CHUNK_SIZE = 11*1024 };
+	enum { CHUNK_SIZE = 64*1024 };
 	typedef char Chunk[CHUNK_SIZE];
 
 	enum { ARGS_MAX_LEN = 5*1024 };
