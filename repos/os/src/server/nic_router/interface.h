@@ -169,6 +169,14 @@ class Net::Interface : private Interface_list::Element
 		                        Genode::size_t           prot_size,
 		                        Domain                  &local_domain);
 
+		void _handle_icmp_error(Ethernet_frame          &eth,
+		                        Genode::size_t           eth_size,
+		                        Ipv4_packet             &ip,
+		                        Packet_descriptor const &pkt,
+		                        Domain                  &local_domain,
+		                        Icmp_packet             &icmp,
+		                        Genode::size_t           icmp_sz);
+
 		void _handle_icmp(Ethernet_frame          &eth,
 		                  Genode::size_t           eth_size,
 		                  Ipv4_packet             &ip,

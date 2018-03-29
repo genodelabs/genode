@@ -815,6 +815,70 @@ void Interface::_handle_icmp_query(Ethernet_frame          &eth,
 }
 
 
+void Interface::_handle_icmp_error(Ethernet_frame          &eth,
+                                   size_t                   eth_size,
+                                   Ipv4_packet             &ip,
+                                   Packet_descriptor const &pkt,
+                                   Domain                  &local_domain,
+                                   Icmp_packet             &icmp,
+                                   size_t                   icmp_sz)
+{
+	/* drop packet if embedded IP checksum invalid */
+	size_t const embed_ip_sz = icmp_sz - sizeof(Icmp_packet);
+	Ipv4_packet &embed_ip    = icmp.data<Ipv4_packet>(embed_ip_sz);
+	if (Ipv4_packet::calculate_checksum(embed_ip) != embed_ip.checksum()) {
+		throw Drop_packet_inform("bad checksum in IP packet embedded in ICMP error");
+	}
+	/* get link identity of the embeddeded transport packet */
+	L3_protocol  const embed_prot      = embed_ip.protocol();
+	size_t       const embed_prot_size = embed_ip.total_length() - embed_ip.header_length() * 4;
+	void        *const embed_prot_base = _prot_base(embed_prot, embed_prot_size, embed_ip);
+	Link_side_id const local_id = { embed_ip.dst(), _dst_port(embed_prot, embed_prot_base),
+	                                embed_ip.src(), _src_port(embed_prot, embed_prot_base) };
+	try {
+		/* lookup a link state that matches the embedded transport packet */
+		Link_side const &local_side = local_domain.links(embed_prot).find_by_id(local_id);
+		Link &link = local_side.link();
+		bool const client = local_side.is_client();
+		Link_side &remote_side = client ? link.server() : link.client();
+		Domain &remote_domain = remote_side.domain();
+
+		/* print out that the link is used */
+		if (_config().verbose()) {
+			log("Using ", l3_protocol_name(embed_prot), " link: ", link); }
+
+		/* adapt source and destination of Ethernet frame and IP packet */
+		_adapt_eth(eth, remote_side.src_ip(), pkt, remote_domain);
+		if (remote_side.dst_ip() == remote_domain.ip_config().interface.address) {
+			ip.src(remote_side.dst_ip());
+		}
+		ip.dst(remote_side.src_ip());
+
+		/* adapt source and destination of embedded IP and transport packet */
+		embed_ip.src(remote_side.src_ip());
+		embed_ip.dst(remote_side.dst_ip());
+		_src_port(embed_prot, embed_prot_base, remote_side.src_port());
+		_dst_port(embed_prot, embed_prot_base, remote_side.dst_port());
+
+		/* update checksum of both IP headers and the ICMP header */
+		embed_ip.checksum(Ipv4_packet::calculate_checksum(embed_ip));
+		icmp.checksum(icmp.calc_checksum(icmp_sz - sizeof(Icmp_packet)));
+		ip.checksum(Ipv4_packet::calculate_checksum(ip));
+
+		/* send adapted packet to all interfaces of remote domain */
+		remote_domain.interfaces().for_each([&] (Interface &interface) {
+			interface.send(eth, eth_size);
+		});
+		/* refresh link only if the error is not about an ICMP query */
+		if (embed_prot != L3_protocol::ICMP) {
+			_link_packet(embed_prot, embed_prot_base, link, client); }
+	}
+	/* drop packet if there is no matching link */
+	catch (Link_side_tree::No_match) {
+		throw Drop_packet_inform("no link that matches packet embedded in ICMP error"); }
+}
+
+
 void Interface::_handle_icmp(Ethernet_frame          &eth,
                              size_t                   eth_size,
                              Ipv4_packet             &ip,
@@ -834,7 +898,8 @@ void Interface::_handle_icmp(Ethernet_frame          &eth,
 	/* select ICMP message type */
 	switch (icmp.type()) {
 	case Icmp_packet::Type::ECHO_REPLY:
-	case Icmp_packet::Type::ECHO_REQUEST: _handle_icmp_query(eth, eth_size, ip, pkt, prot, prot_base, prot_size, local_domain); break;
+	case Icmp_packet::Type::ECHO_REQUEST:    _handle_icmp_query(eth, eth_size, ip, pkt, prot, prot_base, prot_size, local_domain); break;
+	case Icmp_packet::Type::DST_UNREACHABLE: _handle_icmp_error(eth, eth_size, ip, pkt, local_domain, icmp, icmp_sz); break;
 	default: Drop_packet_inform("unknown ICMP message type"); }
 }
 
