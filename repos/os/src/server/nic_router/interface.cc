@@ -1272,12 +1272,12 @@ void Interface::_send_submit_pkt(Packet_descriptor &pkt,
                                  size_t             pkt_size)
 {
 	Domain &local_domain = _domain();
-	_source().submit_packet(pkt);
 	local_domain.raise_tx_bytes(pkt_size);
 	if (local_domain.verbose_packets()) {
 		log("[", local_domain, "] snd ",
 		    *reinterpret_cast<Ethernet_frame *>(pkt_base));
 	}
+	_source().submit_packet(pkt);
 }
 
 
