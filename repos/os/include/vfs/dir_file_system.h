@@ -94,6 +94,47 @@ class Vfs::Dir_file_system : public File_system
 				Dir_vfs_handle &operator = (Dir_vfs_handle const &);
 		};
 
+		struct Dir_watch_handle : Vfs_watch_handle
+		{
+			struct Watch_handle_element;
+
+			typedef Genode::Registry<Watch_handle_element> Watch_handle_registry;
+
+			struct Watch_handle_element : Watch_handle_registry::Element
+			{
+				Vfs_watch_handle &watch_handle;
+				Watch_handle_element(Watch_handle_registry &registry,
+				                     Vfs_watch_handle &handle)
+				: Watch_handle_registry::Element(registry, *this),
+				  watch_handle(handle) { }
+			};
+
+			Watch_handle_registry  handle_registry { };
+
+			Dir_watch_handle(File_system &fs, Genode::Allocator &alloc)
+			: Vfs_watch_handle(fs, alloc) { }
+
+			~Dir_watch_handle()
+			{
+				/* close all sub-handles */
+				auto f = [&] (Watch_handle_element &e) {
+					e.watch_handle.fs().close(&e.watch_handle);
+					destroy(alloc(), &e);
+				};
+				handle_registry.for_each(f);
+			}
+
+			/**
+			 * Propagate the handle context to each sub-handle
+			 */
+			void context(Context *ctx) override
+			{
+				handle_registry.for_each( [&] (Watch_handle_element &elem) {
+					elem.watch_handle.context(ctx); } );
+			}
+		};
+
+
 		/* pointer to first child file system */
 		File_system *_first_file_system = nullptr;
 
@@ -730,6 +771,41 @@ class Vfs::Dir_file_system : public File_system
 		void close(Vfs_handle *handle) override
 		{
 			if (handle && (&handle->ds() == this))
+				destroy(handle->alloc(), handle);
+		}
+
+		Watch_result watch(char const      *path,
+		                   Vfs_watch_handle **handle,
+		                   Allocator        &alloc) override
+		{
+			/* static by default, no allocations */
+			Watch_result r = WATCH_ERR_STATIC;
+			Dir_watch_handle *meta_handle = nullptr;
+
+			for (File_system *fs = _first_file_system; fs; fs = fs->next) {
+				Vfs_watch_handle *sub_handle;
+
+				if (fs->watch(path, &sub_handle, alloc) == WATCH_OK) {
+					if (meta_handle == nullptr) {
+						/* at least one non-static FS, allocate handle */
+						meta_handle = new (alloc) Dir_watch_handle(*this, alloc);
+						*handle = meta_handle;
+						r = WATCH_OK;
+					}
+
+					/* attach child FS handle to returned handle */
+					new (alloc)
+						Dir_watch_handle::Watch_handle_element(
+							meta_handle->handle_registry, *sub_handle);
+				}
+			}
+
+			return r;
+		}
+
+		void close(Vfs_watch_handle *handle) override
+		{
+			if (handle && (&handle->fs() == this))
 				destroy(handle->alloc(), handle);
 		}
 
