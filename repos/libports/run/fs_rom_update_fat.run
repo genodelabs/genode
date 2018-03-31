@@ -1,0 +1,139 @@
+#
+# Build
+#
+set build_components {
+	core init
+	app/rom_logger
+	app/rom_to_file
+	drivers/timer
+	lib/vfs/fatfs
+	server/dynamic_rom
+	server/fs_rom
+	server/ram_blk
+	server/vfs
+}
+
+build $build_components
+
+create_boot_directory
+
+set mkfs_cmd [check_installed mkfs.vfat]
+
+catch { exec $mkfs_cmd -C bin/fat.img -n "ROM_UPDATE" 64 }
+
+#
+# Generate config
+#
+append config {
+<config>
+	<parent-provides>
+		<service name="CPU"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="IRQ"/>
+		<service name="LOG"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="ROM"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<default caps="100"/>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+	<start name="ram_blk">
+		<resource name="RAM" quantum="8M" />
+		<provides><service name="Block"/></provides>
+		<config file="fat.img" block_size="512"/>
+	</start>
+	<start name="vfs">
+		<resource name="RAM" quantum="10M"/>
+		<provides><service name="File_system"/></provides>
+		<config>
+			<vfs> <fatfs/> </vfs>
+			<policy label_prefix="rom_to_file" root="/" writeable="yes"/>
+			<policy label_prefix="fs_rom" root="/" writeable="no"/>
+		</config>
+	</start>
+	<start name="dynamic_rom">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="ROM"/></provides>
+		<config verbose="yes">
+			<rom name="dynamic_rom">
+				<inline description="iteration 1">
+					<config iteration="1" />
+				</inline>
+				<sleep milliseconds="2000" />
+				<inline description="iteration 2">
+					<config iteration="2" />
+				</inline>
+				<sleep milliseconds="2000" />
+				<inline description="iteration 3">
+					<config iteration="3" />
+				</inline>
+				<sleep milliseconds="2000" />
+				<inline description="iteration 4">
+					<config iteration="4" />
+				</inline>
+				<sleep milliseconds="2000" />
+			</rom>
+		</config>
+	</start>
+	<start name="rom_to_file">
+		<resource name="RAM" quantum="2M"/>
+		<config rom="dynamic_rom"/>
+		<route>
+			<service name="ROM" label="dynamic_rom"> <child name="dynamic_rom"/> </service>
+			<service name="File_system" > <child name="vfs"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="fs_rom">
+		<resource name="RAM" quantum="2M"/>
+		<provides><service name="ROM"/></provides>
+		<route>
+			<service name="File_system" > <child name="vfs"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+	<start name="rom_logger">
+		<resource name="RAM" quantum="1M"/>
+		<config rom="dynamic_rom"/>
+		<route>
+			<service name="ROM" label="dynamic_rom"> <child name="fs_rom"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+</config>}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core ld.lib.so init
+	dynamic_rom
+	fat.img
+	fs_rom
+	ram_blk
+	rom_logger
+	rom_to_file
+	timer
+	vfs
+	vfs_fatfs.lib.so
+}
+
+build_boot_image $boot_modules
+
+append qemu_args "  -nographic"
+
+run_genode_until {.*<config iteration="4" />.*} 60
+
+file delete bin/fat.img

@@ -43,7 +43,12 @@ class Fatfs::File_system : public Vfs::File_system
 		typedef Genode::Path<FF_MAX_LFN> Path;
 
 		struct Fatfs_file_handle;
-		typedef Genode::List<Fatfs_file_handle> Fatfs_file_handles;
+		struct Fatfs_dir_handle;
+		struct Fatfs_file_watch_handle;
+		struct Fatfs_dir_watch_handle;
+		typedef Genode::List<Fatfs_file_handle>       Fatfs_file_handles;
+		typedef Genode::List<Fatfs_dir_watch_handle>  Fatfs_dir_watch_handles;
+		typedef Genode::List<Fatfs_file_watch_handle> Fatfs_watch_handles;
 
 		/**
 		 * The FatFS library does not support opening a file
@@ -53,9 +58,13 @@ class Fatfs::File_system : public Vfs::File_system
 
 		struct File : Genode::Avl_node<File>
 		{
-			Path               path;
-			Fatfs::FIL         fil;
-			Fatfs_file_handles handles;
+			Path                path;
+			Fatfs::FIL          fil;
+			Fatfs_file_handles  handles;
+			Fatfs_watch_handles watchers;
+
+			bool opened() const {
+				return (handles.first() || watchers.first()); }
 
 			/************************
 			 ** Avl node interface **
@@ -84,9 +93,30 @@ class Fatfs::File_system : public Vfs::File_system
 			                                  file_size &out_count) = 0;
 		};
 
+		struct Fatfs_file_watch_handle : Vfs_watch_handle,  Fatfs_watch_handles::Element
+		{
+			File *file;
+
+			Fatfs_file_watch_handle(Vfs::File_system &fs,
+			                        Allocator        &alloc,
+			                        File             &file)
+			: Vfs_watch_handle(fs, alloc), file(&file) { }
+		};
+
+		struct Fatfs_dir_watch_handle : Vfs_watch_handle, Fatfs_dir_watch_handles::Element
+		{
+			Path const path;
+
+			Fatfs_dir_watch_handle(Vfs::File_system &fs,
+			                       Allocator        &alloc,
+			                       Path       const &path)
+			: Vfs_watch_handle(fs, alloc), path(path) { }
+		};
+
 		struct Fatfs_file_handle : Fatfs_handle, Fatfs_file_handles::Element
 		{
 			File *file = nullptr;
+			bool modifying = false;
 
 			Fatfs_file_handle(File_system &fs, Allocator &alloc, int status_flags)
 			: Fatfs_handle(fs, fs, alloc, status_flags) { }
@@ -126,10 +156,12 @@ class Fatfs::File_system : public Vfs::File_system
 
 		struct Fatfs_dir_handle : Fatfs_handle
 		{
+			file_size cur_index = 0;
+			Path const path;
 			DIR dir;
 
-			Fatfs_dir_handle(File_system &fs, Allocator &alloc)
-			: Fatfs_handle(fs, fs, alloc, 0) { }
+			Fatfs_dir_handle(File_system &fs, Allocator &alloc, char const *path)
+			: Fatfs_handle(fs, fs, alloc, 0), path(path) { }
 
 			Read_result complete_read(char *buf,
 			                          file_size buf_size,
@@ -143,6 +175,11 @@ class Fatfs::File_system : public Vfs::File_system
 					return READ_ERR_INVALID;
 
 				file_size dir_index = seek() / sizeof(Dirent);
+				if (dir_index < cur_index) {
+					/* reset the seek position */
+					f_readdir(&dir, nullptr);
+					cur_index = 0;
+				}
 
 				Dirent *vfs_dir = (Dirent*)buf;
 
@@ -150,15 +187,18 @@ class Fatfs::File_system : public Vfs::File_system
 				FRESULT res;
 				vfs_dir->fileno = 1; /* inode 0 is a pending unlink */
 
-				do {
+				while (cur_index <= dir_index) {
 					res = f_readdir (&dir, &info);
 					if ((res != FR_OK) || (!info.fname[0])) {
+						f_readdir(&dir, nullptr);
+						cur_index = 0;
 						vfs_dir->type    = DIRENT_TYPE_END;
 						vfs_dir->name[0] = '\0';
 						out_count = sizeof(Dirent);
 						return READ_OK;
 					}
-				} while (dir_index-- > 0);
+					cur_index++;
+				}
 
 				vfs_dir->type = (info.fattrib & AM_DIR) ?
 					DIRENT_TYPE_DIRECTORY : DIRENT_TYPE_FILE;
@@ -170,10 +210,14 @@ class Fatfs::File_system : public Vfs::File_system
 			}
 		};
 
-		Genode::Env &_env;
-		Genode::Allocator &_alloc;
+		Genode::Env              &_env;
+		Genode::Allocator        &_alloc;
+		Vfs::Io_response_handler &_io_handler;
 
 		FATFS _fatfs;
+
+		/* List of all open directory handles */
+		Fatfs_dir_watch_handles _dir_watchers;
 
 		/* Tree of open FatFS file objects */
 		Genode::Avl_tree<File> _open_files;
@@ -188,6 +232,30 @@ class Fatfs::File_system : public Vfs::File_system
 		{
 			return _open_files.first() ?
 				_open_files.first()->lookup(path) : nullptr;
+		}
+
+		/**
+		 * Notify the application for each handle on a given file.
+		 */
+		void _notify(File &file)
+		{
+			for (Fatfs_file_watch_handle *h = file.watchers.first(); h; h = h->next())
+				_io_handler.handle_watch_response(h->context());
+		}
+
+		/**
+		 * Notify the application for each handle on the parent
+		 * directory of a given path.
+		 */
+		void _notify_parent_of(char const *path)
+		{
+			Path parent(path);
+			parent.strip_last_element();
+
+			for (Fatfs_dir_watch_handle *h = _dir_watchers.first(); h; h = h->next()) {
+				if (h->path == parent)
+					_io_handler.handle_watch_response(h->context());
+			}
 		}
 
 		/**
@@ -215,21 +283,31 @@ class Fatfs::File_system : public Vfs::File_system
 		void _close_all(File &file)
 		{
 			/* invalidate handles */
-			for (Fatfs_file_handle *handle = file.handles.first();
+			for (auto *handle = file.handles.first();
 			     handle; handle = file.handles.first())
 			{
 				handle->file = nullptr;
 				file.handles.remove(handle);
+			}
+
+			for (auto *handle = file.watchers.first();
+			     handle; handle = file.watchers.first())
+			{
+				handle->file = nullptr;
+				file.watchers.remove(handle);
+				if (auto *ctx = handle->context())
+					_io_handler.handle_watch_response(ctx);
 			}
 			_close(file);
 		}
 
 	public:
 
-		File_system(Genode::Env       &env,
-		            Genode::Allocator &alloc,
-		            Genode::Xml_node   config)
-		: _env(env), _alloc(alloc)
+		File_system(Genode::Env              &env,
+		            Genode::Allocator        &alloc,
+		            Genode::Xml_node          config,
+		            Vfs::Io_response_handler &io_handler)
+		: _env(env), _alloc(alloc), _io_handler(io_handler)
 		{
 			{
 				static unsigned codepage = 0;
@@ -302,10 +380,10 @@ class Fatfs::File_system : public Vfs::File_system
 			Fatfs_file_handle *handle;
 
 			File *file = _opened_file(path);
+
 			bool create = vfs_mode & OPEN_MODE_CREATE;
 
 			if (file && create) {
-				Genode::error("OPEN_ERR_EXISTS");
 				return OPEN_ERR_EXISTS;
 			}
 
@@ -340,6 +418,9 @@ class Fatfs::File_system : public Vfs::File_system
 				_next_file = nullptr;
 			}
 
+			if (create)
+				_notify_parent_of(path);
+
 			file->handles.insert(handle);
 			handle->file = file;
 			*vfs_handle = handle;
@@ -353,7 +434,7 @@ class Fatfs::File_system : public Vfs::File_system
 			Fatfs_dir_handle *handle;
 
 			/* attempt allocation before modifying blocks */
-			handle = new (alloc) Fatfs_dir_handle(*this, alloc);
+			handle = new (alloc) Fatfs_dir_handle(*this, alloc, path);
 
 			if (create) {
 				FRESULT res = f_mkdir((const TCHAR*)path);
@@ -385,28 +466,29 @@ class Fatfs::File_system : public Vfs::File_system
 		void close(Vfs_handle *vfs_handle) override
 		{
 			{
-				Fatfs_file_handle *handle;
-
-				handle = dynamic_cast<Fatfs_file_handle *>(vfs_handle);
+				auto *handle = dynamic_cast<Fatfs_file_handle *>(vfs_handle);
+				bool notify = false;
 
 				if (handle) {
 					File *file = handle->file;
 					if (file) {
 						file->handles.remove(handle);
-						if (!file->handles.first())
+						if (file->opened()) {
+							notify = handle->modifying;
+						} else {
 							_close(*file);
-						else
-							f_sync(&file->fil);
+						}
 					}
 					destroy(handle->alloc(), handle);
+
+					if (notify)
+						_notify(*file);
 					return;
 				}
 			}
 
 			{
-				Fatfs_dir_handle *handle;
-
-				handle = dynamic_cast<Fatfs_dir_handle *>(vfs_handle);
+				auto *handle = dynamic_cast<Fatfs_dir_handle *>(vfs_handle);
 
 				if (handle) {
 					f_closedir(&handle->dir);
@@ -414,6 +496,76 @@ class Fatfs::File_system : public Vfs::File_system
 				}
 			}
 		}
+
+		Watch_result watch(char const      *path,
+		                   Vfs_watch_handle **handle,
+		                   Allocator        &alloc) override
+		{
+			/*
+			 * checking for the presence of an open file is
+			 * cheaper than calling dircetory and reading blocks
+			 */
+			File *file = _opened_file(path);
+
+			if (!file && directory(path)) {
+				auto *watch_handle = new (alloc)
+					Fatfs_dir_watch_handle(*this, alloc, path);
+				_dir_watchers.insert(watch_handle);
+				*handle = watch_handle;
+				return WATCH_OK;
+			} else {
+				if (!file) {
+					if (!_next_file)
+						_next_file = new (_alloc) File();
+
+					file = _next_file;
+					FRESULT fres = f_open(
+						&file->fil, (TCHAR const *)path,
+						FA_READ | FA_WRITE | FA_OPEN_EXISTING);
+					if (fres != FR_OK) {
+						return WATCH_ERR_UNACCESSIBLE;
+					}
+
+					file->path.import(path);
+					_open_files.insert(file);
+					_next_file = nullptr;
+				}
+
+				auto *watch_handle = new (alloc)
+					Fatfs_file_watch_handle(*this, alloc, *file);
+				file->watchers.insert(watch_handle);
+				*handle = watch_handle;
+				return WATCH_OK;
+			}
+			return WATCH_ERR_UNACCESSIBLE;
+		}
+
+		void close(Vfs_watch_handle *vfs_handle) override
+		{
+			{
+				auto *handle =
+					dynamic_cast<Fatfs_file_watch_handle *>(vfs_handle);
+
+				if (handle) {
+					File *file = handle->file;
+					if (file)
+						file->watchers.remove(handle);
+					destroy(handle->alloc(), handle);
+					return;
+				}
+			}
+
+			{
+				auto *handle =
+					dynamic_cast<Fatfs_dir_watch_handle *>(vfs_handle);
+
+				if (handle) {
+					_dir_watchers.remove(handle);
+					destroy(handle->alloc(), handle);
+				}
+			}
+		}
+
 
 		Genode::Dataspace_capability dataspace(char const *path) override
 		{
@@ -441,6 +593,8 @@ class Fatfs::File_system : public Vfs::File_system
 
 		bool directory(char const *path) override
 		{
+			if (path[0] == '/' && path[1] == '\0') return true;
+
 			FILINFO fno;
 
 			return f_stat((const TCHAR*)path, &fno) == FR_OK ?
@@ -502,20 +656,26 @@ class Fatfs::File_system : public Vfs::File_system
 		Unlink_result unlink(char const *path) override
 		{
 			/* close the file if it is open */
-			if (File *file = _opened_file(path))
+			if (File *file = _opened_file(path)) {
+				_notify(*file);
 				_close_all(*file);
+			}
 
 			switch (f_unlink((const TCHAR*)path)) {
-			case FR_OK: return UNLINK_OK;
+			case FR_OK: break;
 			case FR_NO_FILE:
 			case FR_NO_PATH: return UNLINK_ERR_NO_ENTRY;
 			default:         return UNLINK_ERR_NO_PERM;
 			}
+
+			_notify_parent_of(path);
+			return UNLINK_OK;
 		}
 
 		Rename_result rename(char const *from, char const *to) override
 		{
 			if (File *to_file = _opened_file(to)) {
+				_notify(*to_file);
 				_close_all(*to_file);
 				f_unlink((TCHAR const *)to);
 			} else {
@@ -529,15 +689,22 @@ class Fatfs::File_system : public Vfs::File_system
 				}
 			}
 
-			if (File *from_file = _opened_file(from))
+			if (File *from_file = _opened_file(from)) {
+				_notify(*from_file);
 				_close_all(*from_file);
+			}
 
 			switch (f_rename((const TCHAR*)from, (const TCHAR*)to)) {
-			case FR_OK:      return RENAME_OK;
+			case FR_OK: break;
 			case FR_NO_FILE:
 			case FR_NO_PATH: return RENAME_ERR_NO_ENTRY;
 			default:         return RENAME_ERR_NO_PERM;
 			}
+
+			_notify_parent_of(from);
+			if (Genode::strcmp(from, to) != 0)
+				_notify_parent_of(to);
+			return RENAME_OK;
 		}
 
 
@@ -578,11 +745,13 @@ class Fatfs::File_system : public Vfs::File_system
 				UINT bw = 0;
 				fres = f_write(fil, buf, buf_size, &bw);
 				f_sync(fil);
+				handle->modifying = true;
 				out_count = bw;
 			}
 
 			switch (fres) {
-			case FR_OK:             return WRITE_OK;
+			case FR_OK:
+				return WRITE_OK;
 			case FR_INVALID_OBJECT: return WRITE_ERR_INVALID;
 			case FR_TIMEOUT:        return WRITE_ERR_WOULD_BLOCK;
 			default:                return WRITE_ERR_IO;
@@ -622,11 +791,32 @@ class Fatfs::File_system : public Vfs::File_system
 					handle->seek(len);
 			}
 
+			handle->modifying = true;
+
 			return res == FR_OK ?
 				FTRUNCATE_OK : FTRUNCATE_ERR_NO_PERM;
 		}
 
 		bool read_ready(Vfs_handle *) override { return true; }
+
+		/**
+		 * Notify other handles if this handle has modified its file.
+		 *
+		 * Files are flushed to blocks after every write.
+		 */
+		Sync_result complete_sync(Vfs_handle *vfs_handle) override
+		{
+			Fatfs_file_handle *handle =
+				static_cast<Fatfs_file_handle*>(vfs_handle);
+			if (handle && handle->file && handle->modifying) {
+				File &file = *handle->file;
+				handle->modifying = false;
+				file.handles.remove(handle);
+				_notify(file);
+				file.handles.insert(handle);
+			}
+			return SYNC_OK;
+		}
 };
 
 
@@ -640,11 +830,11 @@ struct Fatfs_factory : Vfs::File_system_factory
 		Vfs::File_system *create(Genode::Env              &env,
 		                         Genode::Allocator        &alloc,
 		                         Genode::Xml_node          node,
-		                         Vfs::Io_response_handler &,
+		                         Vfs::Io_response_handler &handler,
 		                         Vfs::File_system         &) override
 		{ 
 			return new (alloc)
-				Fatfs::File_system(env, alloc, node);
+				Fatfs::File_system(env, alloc, node, handler);
 		}
 	};
 
