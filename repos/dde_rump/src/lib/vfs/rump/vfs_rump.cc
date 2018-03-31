@@ -30,6 +30,8 @@ extern "C" {
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/resource.h>
+#include <sys/event.h>
+#include <sys/time.h>
 #include <rump/rump.h>
 #include <rump/rump_syscalls.h>
 }
@@ -47,7 +49,6 @@ static void _rump_sync()
 	rump_io_backend_sync();
 }
 
-
 static char const *fs_types[] = { RUMP_MOUNT_CD9660, RUMP_MOUNT_EXT2FS,
                                   RUMP_MOUNT_FFS, RUMP_MOUNT_MSDOS,
                                   RUMP_MOUNT_NTFS, RUMP_MOUNT_UDF, 0 };
@@ -61,6 +62,16 @@ class Vfs::Rump_file_system : public File_system
 		typedef Genode::Path<MAX_PATH_LEN> Path;
 
 		Genode::Env &_env;
+		Io_response_handler &_io_handler;
+
+		struct Rump_vfs_dir_handle;
+		struct Rump_watch_handle;
+		typedef Genode::List<Rump_watch_handle> Rump_watch_handles;
+		Rump_watch_handles _watchers { };
+
+		struct Rump_vfs_file_handle;
+		typedef Genode::List<Rump_vfs_file_handle> Rump_vfs_file_handles;
+		Rump_vfs_file_handles _file_handles;
 
 		struct Rump_vfs_handle : public Vfs_handle
 		{
@@ -82,19 +93,24 @@ class Vfs::Rump_file_system : public File_system
 			}
 		};
 
-		class Rump_vfs_file_handle : public Rump_vfs_handle
+		class Rump_vfs_file_handle :
+			public Rump_vfs_handle, public Rump_vfs_file_handles::Element
 		{
 			private:
 
 				int _fd;
+				bool _modifying = false;
 
 			public:
 
 				Rump_vfs_file_handle(File_system &fs, Allocator &alloc,
 				                     int status_flags, int fd)
-				: Rump_vfs_handle(fs, fs, alloc, status_flags), _fd(fd) { }
+				: Rump_vfs_handle(fs, fs, alloc, status_flags), _fd(fd)
+				{ }
 
 				~Rump_vfs_file_handle() { rump_sys_close(_fd); }
+
+				bool modifying() const { return _modifying; }
 
 				Ftruncate_result ftruncate(file_size len)
 				{
@@ -106,6 +122,7 @@ class Vfs::Rump_file_system : public File_system
 						Genode::error(__func__, ": unhandled rump error ", errno);
 						return FTRUNCATE_ERR_NO_PERM;
 					}
+					_modifying = true;
 					return FTRUNCATE_OK;
 				}
 
@@ -142,6 +159,7 @@ class Vfs::Rump_file_system : public File_system
 						Genode::error(__func__, ": unhandled rump error ", errno);
 						return WRITE_ERR_IO;
 					}
+					_modifying = true;
 					out_count = n;
 					return WRITE_OK;
 				}
@@ -150,9 +168,11 @@ class Vfs::Rump_file_system : public File_system
 		class Rump_vfs_dir_handle : public Rump_vfs_handle
 		{
 			private:
+				int _fd;
+			public:
+				Path const path;
 
-				int  _fd;
-				Path _path;
+			private:
 
 				Read_result _finish_read(char const *path,
 				                         struct ::dirent *dent, Dirent &vfs_dir)
@@ -191,8 +211,7 @@ class Vfs::Rump_file_system : public File_system
 				Rump_vfs_dir_handle(File_system &fs, Allocator &alloc,
 				                    int status_flags, int fd, char const *path)
 				: Rump_vfs_handle(fs, fs, alloc, status_flags),
-				  _fd(fd),
-				  _path(path) { }
+				  _fd(fd), path(path) { }
 
 				~Rump_vfs_dir_handle() { rump_sys_close(_fd); }
 
@@ -215,7 +234,7 @@ class Vfs::Rump_file_system : public File_system
 
 					int bytes;
 					unsigned fileno = 0;
-					char *buf      = _buffer();
+					char *buf  = _buffer();
 					struct ::dirent *dent = nullptr;
 					do {
 						bytes = rump_sys_getdents(_fd, buf, BUFFER_SIZE);
@@ -227,7 +246,7 @@ class Vfs::Rump_file_system : public File_system
 							dent = (::dirent *)current;
 							if (strcmp(".", dent->d_name) && strcmp("..", dent->d_name)) {
 								if (fileno++ == index) {
-									Path newpath(dent->d_name, _path.base());
+									Path newpath(dent->d_name, path.base());
 									return _finish_read(newpath.base(), dent, *vfs_dir);
 								}
 							}
@@ -243,7 +262,7 @@ class Vfs::Rump_file_system : public File_system
 		{
 			private:
 
-				Path _path;
+				Path const _path;
 
 			public:
 
@@ -287,6 +306,38 @@ class Vfs::Rump_file_system : public File_system
 				}
 		};
 
+		struct Rump_watch_handle : Vfs_watch_handle, Rump_watch_handles::Element
+		{
+			int fd, kq;
+
+			Rump_watch_handle(Vfs::File_system &fs,
+			                  Allocator        &alloc,
+			                  int              &fd)
+			: Vfs_watch_handle(fs, alloc), fd(fd)
+			{
+				struct kevent ev;
+				struct timespec nullts = { 0, 0 };
+				EV_SET(&ev, fd, EVFILT_VNODE,
+				       EV_ADD|EV_ENABLE|EV_CLEAR,
+				       NOTE_DELETE|NOTE_WRITE|NOTE_RENAME,
+				       0, 0);
+				kq = rump_sys_kqueue();
+				rump_sys_kevent(kq, &ev, 1, NULL, 0, &nullts);
+			}
+
+			~Rump_watch_handle() { rump_sys_close(fd); }
+
+			bool kqueue_check() const
+			{
+				struct kevent ev;
+				struct timespec nullts = { 0, 0 };
+
+				int n = rump_sys_kevent(
+					kq, NULL, 0, &ev, 1, &nullts);
+				return (n > 0);
+			}
+		};
+
 		/**
 		 * We define our own fs arg structure to fit all sizes, we assume that 'fspec'
 		 * is the only valid argument and all other fields are unused.
@@ -321,10 +372,22 @@ class Vfs::Rump_file_system : public File_system
 			return buf;
 		}
 
+		/**
+		 * Notify the application for each handle on a modified file.
+		 */
+		void _notify_files()
+		{
+			for (Rump_watch_handle *h = _watchers.first(); h; h = h->next()) {
+				if (h->kqueue_check())
+					_io_handler.handle_watch_response(h->context());
+			}
+		}
+
 	public:
 
-		Rump_file_system(Genode::Env &env, Xml_node const &config)
-		: _env(env)
+		Rump_file_system(Genode::Env &env, Xml_node const &config,
+		                 Io_response_handler &io_handler)
+		: _env(env), _io_handler(io_handler)
 		{
 			typedef Genode::String<16> Fs_type;
 
@@ -451,7 +514,8 @@ class Vfs::Rump_file_system : public File_system
 		                 Allocator  &alloc) override
 		{
 			/* OPEN_MODE_CREATE (or O_EXC) will not work */
-			if (mode & OPEN_MODE_CREATE)
+			bool create = mode & OPEN_MODE_CREATE;
+			if (create)
 				mode |= O_CREAT;
 
 			int fd = rump_sys_open(path, mode);
@@ -465,6 +529,9 @@ class Vfs::Rump_file_system : public File_system
 				Genode::error(__func__, ": unhandled rump error ", errno);
 				return OPEN_ERR_NO_PERM;
 			}
+
+			if (create)
+				_notify_files();
 
 			try {
 				Rump_vfs_file_handle *h = new (alloc)
@@ -497,6 +564,8 @@ class Vfs::Rump_file_system : public File_system
 					Genode::error(__func__, ": unhandled rump error ", errno);
 					return OPENDIR_ERR_PERMISSION_DENIED;
 				}
+
+				_notify_files();
 			}
 
 			int fd = rump_sys_open(path, O_RDONLY | O_DIRECTORY);
@@ -539,6 +608,8 @@ class Vfs::Rump_file_system : public File_system
 					Genode::error(__func__, ": unhandled rump error ", errno);
 					return OPENLINK_ERR_PERMISSION_DENIED;
 				}
+
+				_notify_files();
 			}
 
 			char dummy;
@@ -559,10 +630,25 @@ class Vfs::Rump_file_system : public File_system
 
 		void close(Vfs_handle *vfs_handle) override
 		{
-			if (dynamic_cast<Rump_vfs_file_handle *>(vfs_handle)
-			 || dynamic_cast<Rump_vfs_dir_handle *>(vfs_handle)) {
-				destroy(vfs_handle->alloc(), vfs_handle);
-				return;
+			if (Rump_vfs_file_handle *handle =
+				static_cast<Rump_vfs_file_handle *>(vfs_handle))
+			{
+				_file_handles.remove(handle);
+				if (handle->modifying())
+					_notify_files();
+				destroy(vfs_handle->alloc(), handle);
+			}
+			else
+			if (Rump_vfs_dir_handle *handle =
+				static_cast<Rump_vfs_dir_handle *>(vfs_handle))
+			{
+				destroy(vfs_handle->alloc(), handle);
+			}
+			else
+			if (Rump_vfs_symlink_handle *handle =
+				static_cast<Rump_vfs_symlink_handle *>(vfs_handle))
+			{
+				destroy(vfs_handle->alloc(), handle);
 			}
 		}
 
@@ -587,19 +673,20 @@ class Vfs::Rump_file_system : public File_system
 			if (rump_sys_lstat(path, &s) == -1)
 				return UNLINK_ERR_NO_ENTRY;
 
-			if (S_ISDIR(s.st_mode)) {
-				if (rump_sys_rmdir(path)  == 0) return UNLINK_OK;
-			} else {
-				if (rump_sys_unlink(path) == 0) return UNLINK_OK;
-			}
-			switch (errno) {
+			int const r = S_ISDIR(s.st_mode)
+				? rump_sys_rmdir(path)
+				: rump_sys_unlink(path);
+
+			if (r != 0) switch (errno) {
 			case ENOENT:    return UNLINK_ERR_NO_ENTRY;
 			case ENOTEMPTY: return UNLINK_ERR_NOT_EMPTY;
 			default:
 				Genode::error(__func__, ": unhandled rump error ", errno);
 				return UNLINK_ERR_NO_PERM;
 			}
-			return UNLINK_ERR_NO_PERM;
+
+			_notify_files();
+			return UNLINK_OK;
 		}
 
 		Rename_result rename(char const *from, char const *to) override
@@ -609,8 +696,33 @@ class Vfs::Rump_file_system : public File_system
 			case EXDEV:  return RENAME_ERR_CROSS_FS;
 			case EACCES: return RENAME_ERR_NO_PERM;
 			}
+
+			_notify_files();
 			return RENAME_OK;
 		}
+
+		Watch_result watch(char const      *path,
+		                   Vfs_watch_handle **handle,
+		                   Allocator        &alloc) override
+		{
+			int fd = rump_sys_open(path, O_RDONLY);
+			if (fd < 0)
+				return WATCH_ERR_UNACCESSIBLE;
+
+			auto *watch_handle = new (alloc)
+				Rump_watch_handle(*this, alloc, fd);
+			_watchers.insert(watch_handle);
+			*handle = watch_handle;
+			return WATCH_OK;
+		}
+
+		void close(Vfs_watch_handle *vfs_handle) override
+		{
+			auto *watch_handle =
+				static_cast<Rump_watch_handle *>(vfs_handle);
+			_watchers.remove(watch_handle);
+			destroy(watch_handle->alloc(), watch_handle);
+		};
 
 
 		/*******************************
@@ -656,9 +768,13 @@ class Vfs::Rump_file_system : public File_system
 			return FTRUNCATE_ERR_NO_PERM;
 		}
 
-		Sync_result complete_sync(Vfs_handle *) override
+		Sync_result complete_sync(Vfs_handle *vfs_handle) override
 		{
 			_rump_sync();
+			Rump_vfs_file_handle *handle =
+				static_cast<Rump_vfs_file_handle *>(vfs_handle);
+			if (handle && handle->modifying())
+				_notify_files();
 			return SYNC_OK;
 		}
 };
@@ -713,10 +829,10 @@ class Rump_factory : public Vfs::File_system_factory
 		Vfs::File_system *create(Genode::Env       &env,
 		                         Genode::Allocator &alloc,
 		                         Genode::Xml_node   config,
-		                         Vfs::Io_response_handler &,
+		                         Vfs::Io_response_handler &io_handler,
 		                         Vfs::File_system &) override
 		{
-			return new (alloc) Vfs::Rump_file_system(env, config);
+			return new (alloc) Vfs::Rump_file_system(env, config, io_handler);
 		}
 };
 

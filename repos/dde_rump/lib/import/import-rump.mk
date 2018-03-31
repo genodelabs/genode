@@ -11,6 +11,7 @@ INC_DIR += $(LIBGCC_INC_DIR) \
            $(RUMP_PORT_DIR)/src/sys \
            $(RUMP_PORT_DIR)/src/sys/rump/include  \
            $(RUMP_PORT_DIR)/src/sys/sys \
+           $(RUMP_PORT_DIR)/src/common/include \
            $(RUMP_BASE)/include
 
 CC_CXX_WARN_STRICT =
