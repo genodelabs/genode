@@ -329,6 +329,16 @@ class Genode::Path_base
 			return strcmp(_path, other) != 0;
 		}
 
+		bool operator == (Path_base const &other) const
+		{
+			return strcmp(_path, other._path) == 0;
+		}
+
+		bool operator != (Path_base const &other) const
+		{
+			return strcmp(_path, other._path) != 0;
+		}
+
 		char const *last_element()
 		{
 			return last_element(_path)+1;
