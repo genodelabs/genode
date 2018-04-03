@@ -1,0 +1,46 @@
+LICENSE   := MIT
+DOWNLOADS := ffi.archive
+VERSION   := 3.2.1
+
+URL(ffi) := https://github.com/libffi/libffi/archive/v$(VERSION).tar.gz
+SHA(ffi) := 4d8dabf78a9892f207f2968453d4eceb6c48ec26
+DIR(ffi) := src/lib/ffi
+
+$(call check_tool,sed)
+
+DIRS := include/ffi/x86_64 include/ffi/arm
+DIR_CONTENT(include/ffi/x86_64) := src/lib/ffi/src/x86/ffitarget.h
+DIR_CONTENT(include/ffi/arm) := src/lib/ffi/src/arm/ffitarget.h
+
+gen_inc   := ffi.h
+
+gen_files := $(addprefix include/ffi/x86_64/,$(gen_inc)) \
+             $(addprefix include/ffi/arm/,$(gen_inc))
+
+default: $(gen_files)
+
+$(gen_files): _dirs
+
+subst_x86_64 := \
+	"@TARGET@/X86_64" \
+	"@HAVE_LONG_DOUBLE@/1" \
+	"@HAVE_LONG_DOUBLE_VARIANT@/0" \
+	"@FFI_EXEC_TRAMPOLINE_TABLE@/0"
+
+subst_ARM := \
+	"@TARGET@/ARM" \
+	"@HAVE_LONG_DOUBLE@/0" \
+	"@HAVE_LONG_DOUBLE_VARIANT@/0" \
+	"@FFI_EXEC_TRAMPOLINE_TABLE@/0"
+
+apply_substitutions = $(VERBOSE)for i in $(2); do sed -i "s/$$i/g" $(1); done
+
+include/ffi/x86_64/ffi.h:
+	@$(MSG_GENERATE)$@
+	$(VERBOSE)cp src/lib/ffi/include/ffi.h.in $@
+	$(call apply_substitutions,$@,$(subst_x86_64))
+
+include/ffi/arm/ffi.h:
+	@$(MSG_GENERATE)$@
+	$(VERBOSE)cp src/lib/ffi/include/ffi.h.in $@
+	$(call apply_substitutions,$@,$(subst_ARM))
