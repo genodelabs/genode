@@ -1591,8 +1591,9 @@ void Interface::handle_config(Configuration &config)
 	}
 	catch (Pointer<Domain>::Invalid) {
 
-		/* the interface had no domain but now it gets one */
-		_attach_to_domain(new_domain_name, false);
+		/* the interface had no domain but now it may get one */
+		try { _attach_to_domain(new_domain_name, false); }
+		catch (Domain_tree::No_match) { }
 	}
 }
 
