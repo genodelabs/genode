@@ -78,9 +78,9 @@ void Domain::_read_forward_rules(Cstring  const    &protocol,
 			Forward_rule &rule = *new (_alloc) Forward_rule(domains, node);
 			rules.insert(&rule);
 			if (_config.verbose()) {
-				log("  Forward rule: ", protocol, " ", rule); }
+				log("[", *this, "] forward rule: ", protocol, " ", rule); }
 		}
-		catch (Rule::Invalid) { warning("invalid forward rule"); }
+		catch (Rule::Invalid) { log("[", *this, "] invalid forward rule"); }
 	});
 }
 
@@ -96,7 +96,7 @@ void Domain::_read_transport_rules(Cstring  const      &protocol,
 			rules.insert(*new (_alloc) Transport_rule(domains, node, _alloc,
 			                                          protocol, _config));
 		}
-		catch (Rule::Invalid) { warning("invalid transport rule"); }
+		catch (Rule::Invalid) { log("[", *this, "] invalid transport rule"); }
 	});
 }
 
@@ -118,11 +118,11 @@ Domain::Domain(Configuration &config, Xml_node const node, Allocator &alloc)
 	                 _config.verbose_packets())
 {
 	if (_name == Domain_name()) {
-		error("Missing name attribute in domain node");
+		log("[?] Missing name attribute in domain node");
 		throw Invalid();
 	}
 	if (!ip_config().valid && _node.has_sub_node("dhcp-server")) {
-		error("Domain cannot act as DHCP client and server at once");
+		log("[", *this, "] cannot act as DHCP client and server at once");
 		throw Invalid();
 	}
 	if (_config.verbose_domain_state()) {
@@ -248,7 +248,7 @@ void Domain::init(Domain_tree &domains)
 				                      _udp_port_alloc, _icmp_port_alloc,
 				                      node));
 		}
-		catch (Rule::Invalid) { warning("invalid NAT rule"); }
+		catch (Rule::Invalid) { log("[", *this, "] invalid NAT rule"); }
 	});
 	/* read ICMP rules */
 	_node.for_each_sub_node("icmp", [&] (Xml_node const node) {
@@ -258,7 +258,7 @@ void Domain::init(Domain_tree &domains)
 	/* read IP rules */
 	_node.for_each_sub_node("ip", [&] (Xml_node const node) {
 		try { _ip_rules.insert(*new (_alloc) Ip_rule(domains, node)); }
-		catch (Rule::Invalid) { warning("invalid IP rule"); }
+		catch (Rule::Invalid) { log("[", *this, "] invalid IP rule"); }
 	});
 }
 
