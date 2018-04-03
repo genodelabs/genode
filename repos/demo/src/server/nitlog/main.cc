@@ -504,8 +504,5 @@ struct Nitlog::Main
 
 void Component::construct(Genode::Env &env)
 {
-	/* XXX execute constructors of global statics */
-	env.exec_static_constructors();
-
 	static Nitlog::Main main(env);
 }
