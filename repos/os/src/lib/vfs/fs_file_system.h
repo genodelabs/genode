@@ -38,9 +38,8 @@ class Vfs::Fs_file_system : public File_system
 		 */
 		Lock _lock { };
 
-		Genode::Env           &_env;
-		Genode::Allocator_avl  _fs_packet_alloc;
-		Io_response_handler   &_event_handler;
+		Vfs::Env              &_env;
+		Genode::Allocator_avl  _fs_packet_alloc { &_env.alloc() };
 
 		typedef Genode::String<64> Label_string;
 		Label_string _label;
@@ -82,7 +81,7 @@ class Vfs::Fs_file_system : public File_system
 			friend class Genode::Id_space<::File_system::Node>;
 
 			::File_system::Connection &_fs;
-			Io_response_handler       &_event_handler;
+			Io_response_handler       &_io_handler;
 
 			bool _queue_read(file_size count, file_size const seek_offset)
 			{
@@ -145,7 +144,7 @@ class Vfs::Fs_file_system : public File_system
 				 * Notify anyone who might have failed on
 				 * 'alloc_packet()' or 'submit_packet()'
 				 */
-				_event_handler.handle_io_response(nullptr);
+				_io_handler.handle_io_response(nullptr);
 
 				return READ_OK;
 			}
@@ -158,7 +157,7 @@ class Vfs::Fs_file_system : public File_system
 			:
 				Vfs_handle(fs, fs, alloc, status_flags),
 				Handle_space::Element(*this, space, node_handle),
-				_fs(fs_connection), _event_handler(io_handler)
+				_fs(fs_connection), _io_handler(io_handler)
 			{ }
 
 			::File_system::File_handle file_handle() const
@@ -227,7 +226,7 @@ class Vfs::Fs_file_system : public File_system
 				 * Notify anyone who might have failed on
 				 * 'alloc_packet()' or 'submit_packet()'
 				 */
-				_event_handler.handle_io_response(nullptr);
+				_io_handler.handle_io_response(nullptr);
 
 				return SYNC_OK;
 			}
@@ -377,16 +376,20 @@ class Vfs::Fs_file_system : public File_system
 		struct Post_signal_hook : Genode::Entrypoint::Post_signal_hook
 		{
 			Genode::Entrypoint        &_ep;
-			Io_response_handler       &_event_handler;
+			Io_response_handler       &_io_handler;
+			Watch_response_handler    &_watch_handler;
 			List<Vfs_handle::Context>  _context_list { };
 			List<Vfs_watch_handle::Context>
 			                           _watch_context_list { };
 			Lock                       _list_lock    { };
 			bool                       _notify_all   { false };
 
-			Post_signal_hook(Genode::Entrypoint &ep,
-			                 Io_response_handler &io_handler)
-			: _ep(ep), _event_handler(io_handler) { }
+			Post_signal_hook(Vfs::Env &env)
+			:
+				_ep(env.env().ep()),
+				_io_handler(env.io_handler()),
+				_watch_handler(env.watch_handler())
+			{ }
 
 			void arm_io_event(Vfs_handle::Context *context)
 			{
@@ -453,7 +456,7 @@ class Vfs::Fs_file_system : public File_system
 					}
 
 					if (context || notify_all)
-						_event_handler.handle_io_response(context);
+						_io_handler.handle_io_response(context);
 
 					/* done if no contexts and all notified */
 				} while (context);
@@ -466,13 +469,13 @@ class Vfs::Fs_file_system : public File_system
 						context = _watch_context_list.first();
 						if (!context) break;
 						_watch_context_list.remove(context);
-						_event_handler.handle_watch_response(context);
+						_watch_handler.handle_watch_response(context);
 					}
 				}
 			}
 		};
 
-		Post_signal_hook _post_signal_hook { _env.ep(), _event_handler };
+		Post_signal_hook _post_signal_hook { _env };
 
 		file_size _read(Fs_vfs_handle &handle, void *buf,
 		                file_size const count, file_size const seek_offset)
@@ -498,7 +501,7 @@ class Vfs::Fs_file_system : public File_system
 			source.submit_packet(packet_in);
 
 			while (handle.queued_read_state != Handle_state::Queued_state::ACK) {
-				_env.ep().wait_and_dispatch_one_io_signal();
+				_env.env().ep().wait_and_dispatch_one_io_signal();
 			}
 
 			/* obtain result packet descriptor with updated status info */
@@ -627,25 +630,19 @@ class Vfs::Fs_file_system : public File_system
 		}
 
 		Genode::Io_signal_handler<Fs_file_system> _ack_handler {
-			_env.ep(), *this, &Fs_file_system::_handle_ack };
+			_env.env().ep(), *this, &Fs_file_system::_handle_ack };
 
 		Genode::Io_signal_handler<Fs_file_system> _ready_handler {
-			_env.ep(), *this, &Fs_file_system::_ready_to_submit };
+			_env.env().ep(), *this, &Fs_file_system::_ready_to_submit };
 
 	public:
 
-		Fs_file_system(Genode::Env         &env,
-		               Genode::Allocator   &alloc,
-		               Genode::Xml_node     config,
-		               Io_response_handler &event_handler,
-		               File_system         &)
+		Fs_file_system(Vfs::Env &env, Genode::Xml_node config)
 		:
 			_env(env),
-			_fs_packet_alloc(&alloc),
-			_event_handler(event_handler),
 			_label(config.attribute_value("label", Label_string())),
 			_root( config.attribute_value("root",  Root_string())),
-			_fs(env, _fs_packet_alloc,
+			_fs(_env.env(), _fs_packet_alloc,
 			    _label.string(), _root.string(),
 			    config.attribute_value("writeable", true),
 			    ::File_system::DEFAULT_TX_BUF_SIZE)
@@ -673,7 +670,7 @@ class Vfs::Fs_file_system : public File_system
 			try {
 				::File_system::Node_handle node = _fs.node(path);
 				Fs_handle_guard node_guard(*this, _fs, node, _handle_space,
-				                           _fs, _event_handler);
+				                           _fs, _env.io_handler());
 				status = _fs.status(node);
 			}
 			catch (::File_system::Lookup_failed) { return STAT_ERR_NO_ENTRY; }
@@ -709,7 +706,7 @@ class Vfs::Fs_file_system : public File_system
 			try {
 				::File_system::Dir_handle dir = _fs.dir(dir_path.base(), false);
 				Fs_handle_guard dir_guard(*this, _fs, dir, _handle_space, _fs,
-				                          _event_handler);
+				                          _env.io_handler());
 
 				_fs.unlink(dir, file_name.base() + 1);
 			}
@@ -745,12 +742,12 @@ class Vfs::Fs_file_system : public File_system
 					_fs.dir(from_dir_path.base(), false);
 
 				Fs_handle_guard from_dir_guard(*this, _fs, from_dir,
-				                               _handle_space, _fs, _event_handler);
+				                               _handle_space, _fs, _env.io_handler());
 
 				::File_system::Dir_handle to_dir = _fs.dir(to_dir_path.base(),
 				                                           false);
 				Fs_handle_guard to_dir_guard(*this, _fs, to_dir, _handle_space,
-				                             _fs, _event_handler);
+				                             _fs, _env.io_handler());
 
 				_fs.move(from_dir, from_file_name.base() + 1,
 				         to_dir,   to_file_name.base() + 1);
@@ -769,7 +766,7 @@ class Vfs::Fs_file_system : public File_system
 			::File_system::Node_handle node;
 			try { node = _fs.node(path); } catch (...) { return 0; }
 			Fs_handle_guard node_guard(*this, _fs, node, _handle_space, _fs,
-			                           _event_handler);
+			                           _env.io_handler());
 
 			::File_system::Status status = _fs.status(node);
 
@@ -781,7 +778,7 @@ class Vfs::Fs_file_system : public File_system
 			try {
 				::File_system::Node_handle node = _fs.node(path);
 				Fs_handle_guard node_guard(*this, _fs, node, _handle_space,
-				                           _fs, _event_handler);
+				                           _fs, _env.io_handler());
 
 				::File_system::Status status = _fs.status(node);
 
@@ -827,7 +824,7 @@ class Vfs::Fs_file_system : public File_system
 			try {
 				::File_system::Dir_handle dir = _fs.dir(dir_path.base(), false);
 				Fs_handle_guard dir_guard(*this, _fs, dir, _handle_space, _fs,
-				                          _event_handler);
+				                          _env.io_handler());
 
 				::File_system::File_handle file = _fs.file(dir,
 				                                           file_name.base() + 1,
@@ -835,7 +832,7 @@ class Vfs::Fs_file_system : public File_system
 
 				*out_handle = new (alloc)
 					Fs_vfs_file_handle(*this, alloc, vfs_mode, _handle_space,
-					                   file, _fs, _event_handler);
+					                   file, _fs, _env.io_handler());
 			}
 			catch (::File_system::Lookup_failed)       { return OPEN_ERR_UNACCESSIBLE;  }
 			catch (::File_system::Permission_denied)   { return OPEN_ERR_NO_PERM;       }
@@ -863,7 +860,7 @@ class Vfs::Fs_file_system : public File_system
 
 				*out_handle = new (alloc)
 					Fs_vfs_dir_handle(*this, alloc, ::File_system::READ_ONLY,
-					                  _handle_space, dir, _fs, _event_handler);
+					                  _handle_space, dir, _fs, _env.io_handler());
 			}
 			catch (::File_system::Lookup_failed)       { return OPENDIR_ERR_LOOKUP_FAILED;       }
 			catch (::File_system::Name_too_long)       { return OPENDIR_ERR_NAME_TOO_LONG;       }
@@ -895,7 +892,7 @@ class Vfs::Fs_file_system : public File_system
 				                                               false);
 
 				Fs_handle_guard from_dir_guard(*this, _fs, dir_handle,
-				                               _handle_space, _fs, _event_handler);
+				                               _handle_space, _fs, _env.io_handler());
 
 				::File_system::Symlink_handle symlink_handle =
 				    _fs.symlink(dir_handle, symlink_name.base() + 1, create);
@@ -904,7 +901,7 @@ class Vfs::Fs_file_system : public File_system
 					Fs_vfs_symlink_handle(*this, alloc,
 					                      ::File_system::READ_ONLY,
 					                      _handle_space, symlink_handle, _fs,
-					                      _event_handler);
+					                      _env.io_handler());
 
 				return OPENLINK_OK;
 			}

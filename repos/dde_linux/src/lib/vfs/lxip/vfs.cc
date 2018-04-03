@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2015-2017 Genode Labs GmbH
+ * Copyright (C) 2015-2018 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
  * version 2.
@@ -1382,12 +1382,11 @@ class Vfs::Lxip_file_system : public Vfs::File_system,
 
 	public:
 
-		Lxip_file_system(Genode::Env &env, Genode::Allocator &alloc,
-		                 Genode::Xml_node config,
-	                     Vfs::Io_response_handler &io_response_handler)
+		Lxip_file_system(Vfs::Env &env, Genode::Xml_node config)
 		:
 			Directory(""),
-			_ep(env.ep()), _alloc(alloc), _io_response_handler(io_response_handler)
+			_ep(env.env().ep()), _alloc(env.alloc()),
+			_io_response_handler(env.io_handler())
 		{
 			apply_config(config);
 		}
@@ -1715,14 +1714,10 @@ struct Lxip_factory : Vfs::File_system_factory
 		}
 	};
 
-	Vfs::File_system *create(Genode::Env       &env,
-	                         Genode::Allocator &alloc,
-	                         Genode::Xml_node  config,
-	                         Vfs::Io_response_handler &io_handler,
-	                         Vfs::File_system &) override
+	Vfs::File_system *create(Vfs::Env &env, Genode::Xml_node config) override
 	{
-		static Init inst(env, alloc);
-		return new (alloc) Vfs::Lxip_file_system(env, alloc, config, io_handler);
+		static Init inst(env.env(), env.alloc());
+		return new (env.alloc()) Vfs::Lxip_file_system(env, config);
 	}
 };
 

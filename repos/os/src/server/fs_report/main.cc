@@ -11,8 +11,7 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#include <vfs/dir_file_system.h>
-#include <vfs/file_system_factory.h>
+#include <vfs/simple_env.h>
 #include <os/path.h>
 #include <report_session/report_session.h>
 #include <root/component.h>
@@ -199,16 +198,7 @@ class Fs_report::Root : public Genode::Root_component<Session_component>
 			}
 		}
 
-		struct Io_dummy : Io_response_handler {
-			void handle_io_response(Vfs::Vfs_handle::Context*) override { }
-		} _io_response_handler { };
-
-		Vfs::Global_file_system_factory _global_file_system_factory { _heap };
-
-		Vfs::Dir_file_system _vfs {
-			_env, _heap, vfs_config(),
-			_io_response_handler,
-			_global_file_system_factory };
+		Vfs::Simple_env _vfs_env { _env, _heap, vfs_config() };
 
 		Genode::Signal_handler<Root> _config_dispatcher {
 			_env.ep(), *this, &Root::_config_update };
@@ -216,7 +206,7 @@ class Fs_report::Root : public Genode::Root_component<Session_component>
 		void _config_update()
 		{
 			_config_rom.update();
-			_vfs.apply_config(vfs_config());
+			_vfs_env.root_dir().apply_config(vfs_config());
 		}
 
 	protected:
@@ -246,7 +236,7 @@ class Fs_report::Root : public Genode::Root_component<Session_component>
 			}
 
 			return new (md_alloc())
-				Session_component(_env, _heap, _vfs, label, buffer_size);
+				Session_component(_env, _heap, _vfs_env.root_dir(), label, buffer_size);
 		}
 
 	public:
@@ -261,13 +251,13 @@ class Fs_report::Root : public Genode::Root_component<Session_component>
 
 struct Fs_report::Main
 {
-	Env &env;
+	Genode::Env &env;
 
 	Sliced_heap sliced_heap { env.ram(), env.rm() };
 
 	Root root { env, sliced_heap };
 
-	Main(Env &env) : env(env)
+	Main(Genode::Env &env) : env(env)
 	{
 		env.parent().announce(env.ep().manage(root));
 	}

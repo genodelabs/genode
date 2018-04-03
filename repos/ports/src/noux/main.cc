@@ -27,6 +27,7 @@
 #include <destruct_queue.h>
 #include <kill_broadcaster.h>
 #include <vfs/dir_file_system.h>
+#include <vfs/simple_env.h>
 
 namespace Noux {
 
@@ -96,7 +97,7 @@ static Noux::Io_channel &
 connect_stdio(Genode::Env                                 &env,
               Genode::Constructible<Terminal::Connection> &terminal,
               Genode::Xml_node                             config,
-              Vfs::Dir_file_system                        &root,
+              Vfs::File_system                            &root,
               Noux::Vfs_handle_context                    &vfs_handle_context,
               Noux::Vfs_io_waiter_registry                &vfs_io_waiter_registry,
               Noux::Terminal_io_channel::Type              type,
@@ -234,8 +235,33 @@ struct Noux::Main
 
 	} _io_response_handler;
 
-	Vfs::Dir_file_system _root_dir { _env, _heap, _config.xml().sub_node("fstab"),
-	                                 _io_response_handler, _global_file_system_factory };
+	struct Vfs_env : Vfs::Env, Vfs::Watch_response_handler
+	{
+		Main &_main;
+
+		Vfs::Global_file_system_factory _fs_factory { _main._heap };
+		Vfs::Dir_file_system            _root_dir;
+
+		Vfs_env(Main &main, Xml_node config)
+		: _main(main), _root_dir(*this, config, _fs_factory) { }
+
+		/**
+		 * Vfs::Watch_response_handler interface
+		 */
+		void handle_watch_response(Vfs::Vfs_watch_handle::Context*) override { }
+
+		/**
+		 * Vfs::Env interface
+		 */
+		Genode::Env                 &env()           override { return _main._env; }
+		Allocator                   &alloc()         override { return _main._heap; }
+		Vfs::File_system            &root_dir()      override { return _root_dir; }
+		Vfs::Io_response_handler    &io_handler()    override { return _main._io_response_handler; }
+		Vfs::Watch_response_handler &watch_handler() override { return *this; }
+
+	} _vfs_env { *this, _config.xml().sub_node("fstab") };
+
+	Vfs::File_system &_root_dir = _vfs_env.root_dir();
 
 	Vfs_handle_context _vfs_handle_context;
 

@@ -210,9 +210,7 @@ class Fatfs::File_system : public Vfs::File_system
 			}
 		};
 
-		Genode::Env              &_env;
-		Genode::Allocator        &_alloc;
-		Vfs::Io_response_handler &_io_handler;
+		Vfs::Env &_vfs_env;
 
 		FATFS _fatfs;
 
@@ -240,7 +238,7 @@ class Fatfs::File_system : public Vfs::File_system
 		void _notify(File &file)
 		{
 			for (Fatfs_file_watch_handle *h = file.watchers.first(); h; h = h->next())
-				_io_handler.handle_watch_response(h->context());
+				_vfs_env.watch_handler().handle_watch_response(h->context());
 		}
 
 		/**
@@ -254,7 +252,7 @@ class Fatfs::File_system : public Vfs::File_system
 
 			for (Fatfs_dir_watch_handle *h = _dir_watchers.first(); h; h = h->next()) {
 				if (h->path == parent)
-					_io_handler.handle_watch_response(h->context());
+					_vfs_env.watch_handler().handle_watch_response(h->context());
 			}
 		}
 
@@ -272,7 +270,7 @@ class Fatfs::File_system : public Vfs::File_system
 				file.path.import("");
 				_next_file = &file;
 			} else {
-				destroy(_alloc, &file);
+				destroy(_vfs_env.alloc(), &file);
 			}
 		}
 
@@ -296,18 +294,15 @@ class Fatfs::File_system : public Vfs::File_system
 				handle->file = nullptr;
 				file.watchers.remove(handle);
 				if (auto *ctx = handle->context())
-					_io_handler.handle_watch_response(ctx);
+					_vfs_env.watch_handler().handle_watch_response(ctx);
 			}
 			_close(file);
 		}
 
 	public:
 
-		File_system(Genode::Env              &env,
-		            Genode::Allocator        &alloc,
-		            Genode::Xml_node          config,
-		            Vfs::Io_response_handler &io_handler)
-		: _env(env), _alloc(alloc), _io_handler(io_handler)
+		File_system(Vfs::Env &env, Genode::Xml_node config)
+		: _vfs_env(env)
 		{
 			{
 				static unsigned codepage = 0;
@@ -394,7 +389,7 @@ class Fatfs::File_system : public Vfs::File_system
 
 			/* attempt allocation before modifying blocks */
 			if (!_next_file)
-				_next_file = new (_alloc) File();
+				_next_file = new (_vfs_env.alloc()) File();
 			handle = new (alloc) Fatfs_file_handle(*this, alloc, vfs_mode);
 
 			if (!file) {
@@ -516,7 +511,7 @@ class Fatfs::File_system : public Vfs::File_system
 			} else {
 				if (!file) {
 					if (!_next_file)
-						_next_file = new (_alloc) File();
+						_next_file = new (_vfs_env.alloc()) File();
 
 					file = _next_file;
 					FRESULT fres = f_open(
@@ -827,25 +822,17 @@ struct Fatfs_factory : Vfs::File_system_factory
 		Inner(Genode::Env &env, Genode::Allocator &alloc) {
 			Fatfs::block_init(env, alloc); }
 
-		Vfs::File_system *create(Genode::Env              &env,
-		                         Genode::Allocator        &alloc,
-		                         Genode::Xml_node          node,
-		                         Vfs::Io_response_handler &handler,
-		                         Vfs::File_system         &) override
+		Vfs::File_system *create(Vfs::Env &env, Genode::Xml_node node) override
 		{ 
-			return new (alloc)
-				Fatfs::File_system(env, alloc, node, handler);
+			return new (env.alloc())
+				Fatfs::File_system(env, node);
 		}
 	};
 
-	Vfs::File_system *create(Genode::Env              &env,
-	                         Genode::Allocator        &alloc,
-	                         Genode::Xml_node          node,
-	                         Vfs::Io_response_handler &io_handler,
-	                         Vfs::File_system         &root_dir) override
+	Vfs::File_system *create(Vfs::Env &vfs_env, Genode::Xml_node node) override
 	{
-		static Inner factory(env, alloc);
-		return factory.create(env, alloc, node, io_handler, root_dir);
+		static Inner factory(vfs_env.env(), vfs_env.alloc());
+		return factory.create(vfs_env, node);
 	}
 };
 

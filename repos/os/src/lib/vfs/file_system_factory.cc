@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014-2017 Genode Labs GmbH
+ * Copyright (C) 2014-2018 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -66,14 +66,8 @@ struct Vfs::Builtin_entry : Vfs::Global_file_system_factory::Entry_base
 {
 	Builtin_entry() : Entry_base(FILE_SYSTEM::name()) { }
 
-	Vfs::File_system *create(Genode::Env         &env,
-	                         Genode::Allocator   &alloc,
-	                         Genode::Xml_node     node,
-	                         Io_response_handler &io_handler,
-	                         File_system         &root_dir) override
-	{
-		return new (alloc) FILE_SYSTEM(env, alloc, node, io_handler, root_dir);
-	}
+	Vfs::File_system *create(Vfs::Env &env, Genode::Xml_node node) override {
+		return new (env.alloc()) FILE_SYSTEM(env, node); }
 };
 
 
@@ -86,13 +80,10 @@ struct Vfs::External_entry : Vfs::Global_file_system_factory::Entry_base
 	:
 		Entry_base(name), _fs_factory(fs_factory) { }
 
-	File_system *create(Genode::Env         &env,
-	                    Genode::Allocator   &alloc,
-	                    Genode::Xml_node     node,
-	                    Io_response_handler &io_handler,
-	                    File_system         &root_dir) override
+	File_system *create(Vfs::Env &env,
+	                    Genode::Xml_node config) override
 	{
-		return _fs_factory.create(env, alloc, node, io_handler, root_dir);
+		return _fs_factory.create(env, config);
 	}
 };
 
@@ -110,19 +101,13 @@ void Vfs::Global_file_system_factory::_add_builtin_fs()
 /**
  * Lookup and create File_system instance
  */
-Vfs::File_system *Vfs::Global_file_system_factory::_try_create(Genode::Env         &env,
-                                                               Genode::Allocator   &alloc,
-                                                               Genode::Xml_node     node,
-                                                               Io_response_handler &io_handler,
-                                                               File_system         &root_dir)
+Vfs::File_system*
+Vfs::Global_file_system_factory::_try_create(Vfs::Env &env,
+		                                     Genode::Xml_node config)
 {
-	for (Entry_base *e = _list.first(); e; e = e->next()) {
-		if (e->matches(node)) {
-			return e->create(env, alloc, node, io_handler, root_dir);
-		}
-	}
-
-	return 0;
+	for (Entry_base *e = _list.first(); e; e = e->next())
+		if (e->matches(config)) return e->create(env, config);
+	return nullptr;
 }
 
 
@@ -153,15 +138,14 @@ Library_name Vfs::Global_file_system_factory::_library_name(Node_name const &nod
 /**
  * \throw Factory_not_available
  */
-Vfs::File_system_factory &Vfs::Global_file_system_factory::_load_factory(Genode::Env        &env,
-                                                                         Genode::Allocator  &alloc,
+Vfs::File_system_factory &Vfs::Global_file_system_factory::_load_factory(Vfs::Env &env,
                                                                          Library_name const &lib_name)
 {
 	Genode::Shared_object *shared_object = nullptr;
 
 	try {
-		shared_object = new (alloc)
-			Genode::Shared_object(env, alloc, lib_name.string(),
+		shared_object = new (env.alloc())
+			Genode::Shared_object(env.env(), env.alloc(), lib_name.string(),
 			                      Genode::Shared_object::BIND_LAZY,
 			                      Genode::Shared_object::DONT_KEEP);
 
@@ -180,7 +164,7 @@ Vfs::File_system_factory &Vfs::Global_file_system_factory::_load_factory(Genode:
 		                Genode::Cstring(_factory_symbol()),
 		                "' in '", lib_name, "'");
 
-		Genode::destroy(alloc, shared_object);
+		Genode::destroy(env.alloc(), shared_object);
 		throw Factory_not_available();
 	}
 }
@@ -189,16 +173,15 @@ Vfs::File_system_factory &Vfs::Global_file_system_factory::_load_factory(Genode:
 /**
  * Try to load external File_system_factory provider
  */
-bool Vfs::Global_file_system_factory::_probe_external_factory(Genode::Env       &env,
-                                                              Genode::Allocator &alloc,
+bool Vfs::Global_file_system_factory::_probe_external_factory(Vfs::Env       &env,
                                                               Genode::Xml_node   node)
 {
 	Library_name const lib_name = _library_name(_node_name(node));
 
 	try {
-		_list.insert(new (alloc)
+		_list.insert(new (env.alloc())
 			External_entry(_node_name(node).string(),
-			               _load_factory(env, alloc, lib_name)));
+			               _load_factory(env, lib_name)));
 		return true;
 
 	} catch (Factory_not_available) { return false; }
@@ -208,29 +191,26 @@ bool Vfs::Global_file_system_factory::_probe_external_factory(Genode::Env       
 /**
  * Create and return a new file-system
  */
-Vfs::File_system *Vfs::Global_file_system_factory::create(Genode::Env         &env,
-                                                          Genode::Allocator   &alloc,
-                                                          Genode::Xml_node     node,
-                                                          Io_response_handler &io_handler,
-                                                          File_system         &root_dir)
+Vfs::File_system *Vfs::Global_file_system_factory::create(Vfs::Env         &env,
+                                                          Genode::Xml_node  node)
 {
 	try {
 		/* try if type is handled by the currently registered fs types */
-		if (Vfs::File_system *fs = _try_create(env, alloc, node, io_handler, root_dir))
+		if (Vfs::File_system *fs = _try_create(env, node))
 			return fs;
 		/* if the builtin fails, do not try loading an external */
-	} catch (...) { return 0; }
+	} catch (...) { return nullptr; }
 
 	try {
 		/* probe for file system implementation available as shared lib */
-		if (_probe_external_factory(env, alloc, node)) {
+		if (_probe_external_factory(env, node)) {
 			/* try again with the new file system type loaded */
-			if (Vfs::File_system *fs = _try_create(env, alloc, node, io_handler, root_dir))
+			if (Vfs::File_system *fs = _try_create(env, node))
 				return fs;
 		}
 	} catch (...) { }
 
-	return 0;
+	return nullptr;
 }
 
 

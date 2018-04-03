@@ -31,9 +31,7 @@ class Vfs::Symlink_file_system : public Single_file_system
 
 	public:
 
-		Symlink_file_system(Genode::Env &, Genode::Allocator &,
-		                    Genode::Xml_node config,
-		                    Io_response_handler &, File_system &)
+		Symlink_file_system(Vfs::Env&, Genode::Xml_node config)
 		:
 			Single_file_system(NODE_TYPE_SYMLINK, "symlink", config),
 			_target(config.attribute_value("target", Target()))

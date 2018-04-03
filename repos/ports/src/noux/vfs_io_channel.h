@@ -82,7 +82,7 @@ struct Noux::Vfs_io_channel : Io_channel
 	}
 
 	Vfs_io_channel(char const *path, char const *leaf_path,
-	               Vfs::Dir_file_system *root_dir, Vfs::Vfs_handle *vfs_handle,
+	               Vfs::File_system *root_dir, Vfs::Vfs_handle *vfs_handle,
 	               Vfs_io_waiter_registry &vfs_io_waiter_registry,
 	               Entrypoint &ep)
 	:

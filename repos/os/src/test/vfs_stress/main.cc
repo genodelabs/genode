@@ -33,8 +33,7 @@
  */
 
 /* Genode includes */
-#include <vfs/file_system_factory.h>
-#include <vfs/dir_file_system.h>
+#include <vfs/simple_env.h>
 #include <timer_session/connection.h>
 #include <base/heap.h>
 #include <base/attached_rom_dataspace.h>
@@ -521,19 +520,9 @@ void Component::construct(Genode::Env &env)
 	Attached_rom_dataspace config_rom(env, "config");
 	Xml_node const config_xml = config_rom.xml();
 
-	struct Io_response_handler : Vfs::Io_response_handler
-	{
-		void handle_io_response(Vfs::Vfs_handle::Context *) override
-		{
-			Genode::log(__func__, " called");
-		}
-	} io_response_handler;
+	Vfs::Simple_env vfs_env { env, heap, config_xml.sub_node("vfs") };
 
-	Vfs::Global_file_system_factory global_file_system_factory(heap);
-
-	Vfs::Dir_file_system vfs_root { env, heap, config_xml.sub_node("vfs"),
-	                                io_response_handler,
-	                                global_file_system_factory };
+	Vfs::File_system &vfs_root = vfs_env.root_dir();
 
 	Vfs::Vfs_handle *vfs_root_handle;
 	vfs_root.opendir("/", false, &vfs_root_handle, heap);

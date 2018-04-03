@@ -101,11 +101,7 @@ class Vfs::Inline_file_system : public Single_file_system
 
 	public:
 
-		Inline_file_system(Genode::Env &,
-		                   Genode::Allocator &,
-		                   Genode::Xml_node config,
-		                   Io_response_handler &,
-		                   File_system &)
+		Inline_file_system(Vfs::Env&, Genode::Xml_node config)
 		:
 			Single_file_system(NODE_TYPE_FILE, name(), config),
 			_base(config.content_base()),

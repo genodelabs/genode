@@ -91,15 +91,12 @@ class Vfs::Log_file_system : public Single_file_system
 
 	public:
 
-		Log_file_system(Genode::Env &env,
-		                Genode::Allocator&,
-		                Genode::Xml_node config,
-		                Io_response_handler &,
-		                File_system &)
+		Log_file_system(Vfs::Env &env,
+		                Genode::Xml_node config)
 		:
 			Single_file_system(NODE_TYPE_CHAR_DEVICE, name(), config),
 			_label(config.attribute_value("label", Label())),
-			_log(_log_session(env))
+			_log(_log_session(env.env()))
 		{ }
 
 		static const char *name()   { return "log"; }

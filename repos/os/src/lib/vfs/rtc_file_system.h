@@ -86,14 +86,10 @@ class Vfs::Rtc_file_system : public Single_file_system
 
 	public:
 
-		Rtc_file_system(Genode::Env &env,
-		                Genode::Allocator&,
-		                Genode::Xml_node config,
-		                Io_response_handler &,
-		                File_system &)
+		Rtc_file_system(Vfs::Env &env, Genode::Xml_node config)
 		:
 			Single_file_system(NODE_TYPE_CHAR_DEVICE, name(), config),
-			_rtc(env)
+			_rtc(env.env())
 		{ }
 
 		static char const *name()   { return "rtc"; }

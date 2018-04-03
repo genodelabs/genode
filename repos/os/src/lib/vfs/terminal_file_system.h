@@ -105,15 +105,11 @@ class Vfs::Terminal_file_system : public Single_file_system
 
 	public:
 
-		Terminal_file_system(Genode::Env &env,
-		                     Genode::Allocator &,
-		                     Genode::Xml_node config,
-		                     Io_response_handler &io_handler,
-		                     File_system &)
+		Terminal_file_system(Vfs::Env &env, Genode::Xml_node config)
 		:
 			Single_file_system(NODE_TYPE_CHAR_DEVICE, name(), config),
 			_label(config.attribute_value("label", Label())),
-			_env(env), _io_handler(io_handler)
+			_env(env.env()), _io_handler(env.io_handler())
 		{
 			/* register for read-avail notification */
 			_terminal.read_avail_sigh(_read_avail_handler);

@@ -102,15 +102,12 @@ class Vfs::Rom_file_system : public Single_file_system
 
 	public:
 
-		Rom_file_system(Genode::Env &env,
-		                Genode::Allocator&,
-		                Genode::Xml_node config,
-		                Io_response_handler &,
-		                File_system &)
+		Rom_file_system(Vfs::Env &env,
+		                Genode::Xml_node config)
 		:
 			Single_file_system(NODE_TYPE_FILE, name(), config),
 			_label(config),
-			_rom(env, _label.string)
+			_rom(env.env(), _label.string)
 		{ }
 
 		static char const *name()   { return "rom"; }

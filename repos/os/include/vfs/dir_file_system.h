@@ -38,14 +38,14 @@ class Vfs::Dir_file_system : public File_system
 		Dir_file_system(Dir_file_system const &);
 		Dir_file_system &operator = (Dir_file_system const &);
 
+		Vfs::Env &_env;
+
 		/**
 		 * This instance is the root of VFS
 		 *
 		 * Additionally, the root has an empty _name.
 		 */
-		bool _vfs_root = false;
-
-		File_system &_root_dir;
+		bool const _vfs_root { &_env.root_dir() == this };
 
 		struct Dir_vfs_handle : Vfs_handle
 		{
@@ -363,14 +363,11 @@ class Vfs::Dir_file_system : public File_system
 
 	public:
 
-		Dir_file_system(Genode::Env         &env,
-		                Genode::Allocator   &alloc,
+		Dir_file_system(Vfs::Env            &env,
 		                Genode::Xml_node     node,
-		                Io_response_handler &io_handler,
-		                File_system_factory &fs_factory,
-		                File_system         &root_dir)
+		                File_system_factory &fs_factory)
 		:
-			_root_dir(root_dir)
+			_env(env)
 		{
 			using namespace Genode;
 
@@ -386,14 +383,13 @@ class Vfs::Dir_file_system : public File_system
 
 				/* traverse into <dir> nodes */
 				if (sub_node.has_type("dir")) {
-					_append_file_system(new (alloc)
-						Dir_file_system(env, alloc, sub_node, io_handler,
-						                fs_factory, _root_dir));
+					_append_file_system(new (_env.alloc())
+						Dir_file_system(_env, sub_node, fs_factory));
 					continue;
 				}
 
 				File_system * const fs =
-					fs_factory.create(env, alloc, sub_node, io_handler, _root_dir);
+					fs_factory.create(_env, sub_node);
 
 				if (fs) {
 					_append_file_system(fs);
@@ -411,20 +407,6 @@ class Vfs::Dir_file_system : public File_system
 					}
 				} catch (Xml_node::Nonexistent_attribute) { }
 			}
-		}
-
-		/**
-		 * Constructor used for creating the root directory
-		 */
-		Dir_file_system(Genode::Env         &env,
-		                Genode::Allocator   &alloc,
-		                Genode::Xml_node     node,
-		                Io_response_handler &io_handler,
-		                File_system_factory &fs_factory)
-		:
-			Dir_file_system(env, alloc, node, io_handler, fs_factory, *this)
-		{
-			_vfs_root = true;
 		}
 
 		/*********************************

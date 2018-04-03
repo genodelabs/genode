@@ -39,14 +39,14 @@ class Noux::Local_rom_factory : public Local_rom_service::Factory
 		Allocator              &_alloc;
 		Env                    &_env;
 		Rpc_entrypoint         &_ep;
-		Vfs::Dir_file_system   &_root_dir;
+		Vfs::File_system       &_root_dir;
 		Vfs_io_waiter_registry &_vfs_io_waiter_registry;
 		Dataspace_registry     &_registry;
 
 	public:
 
 		Local_rom_factory(Allocator &alloc, Env &env, Rpc_entrypoint &ep,
-		                  Vfs::Dir_file_system &root_dir,
+		                  Vfs::File_system &root_dir,
 		                  Vfs_io_waiter_registry &vfs_io_waiter_registry,
 		                  Dataspace_registry &registry)
 		:

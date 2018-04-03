@@ -61,8 +61,7 @@ class Vfs::Rump_file_system : public File_system
 
 		typedef Genode::Path<MAX_PATH_LEN> Path;
 
-		Genode::Env &_env;
-		Io_response_handler &_io_handler;
+		Vfs::Env &_env;
 
 		struct Rump_vfs_dir_handle;
 		struct Rump_watch_handle;
@@ -379,15 +378,14 @@ class Vfs::Rump_file_system : public File_system
 		{
 			for (Rump_watch_handle *h = _watchers.first(); h; h = h->next()) {
 				if (h->kqueue_check())
-					_io_handler.handle_watch_response(h->context());
+					_env.watch_handler().handle_watch_response(h->context());
 			}
 		}
 
 	public:
 
-		Rump_file_system(Genode::Env &env, Xml_node const &config,
-		                 Io_response_handler &io_handler)
-		: _env(env), _io_handler(io_handler)
+		Rump_file_system(Vfs::Env &env, Xml_node const &config)
+		: _env(env)
 		{
 			typedef Genode::String<16> Fs_type;
 
@@ -427,6 +425,8 @@ class Vfs::Rump_file_system : public File_system
 
 		Genode::Dataspace_capability dataspace(char const *path) override
 		{
+			Genode::Env &env = _env.env();
+
 			int fd = rump_sys_open(path, O_RDONLY);
 			if (fd == -1) return Genode::Dataspace_capability();
 
@@ -437,9 +437,9 @@ class Vfs::Rump_file_system : public File_system
 			char *local_addr = nullptr;
 			Ram_dataspace_capability ds_cap;
 			try {
-				ds_cap = _env.ram().alloc(ds_size);
+				ds_cap = env.ram().alloc(ds_size);
 
-				local_addr = _env.rm().attach(ds_cap);
+				local_addr = env.rm().attach(ds_cap);
 
 				enum { CHUNK_SIZE = 16U << 10 };
 
@@ -450,11 +450,11 @@ class Vfs::Rump_file_system : public File_system
 					i += n;
 				}
 
-				_env.rm().detach(local_addr);
+				env.rm().detach(local_addr);
 			} catch(...) {
 				if (local_addr)
-					_env.rm().detach(local_addr);
-				_env.ram().free(ds_cap);
+					env.rm().detach(local_addr);
+				env.ram().free(ds_cap);
 			}
 			rump_sys_close(fd);
 			return ds_cap;
@@ -464,7 +464,7 @@ class Vfs::Rump_file_system : public File_system
 		             Genode::Dataspace_capability ds_cap) override
 		{
 			if (ds_cap.valid())
-				_env.ram().free(
+				_env.env().ram().free(
 					static_cap_cast<Genode::Ram_dataspace>(ds_cap));
 		}
 
@@ -826,13 +826,9 @@ class Rump_factory : public Vfs::File_system_factory
 
 		}
 
-		Vfs::File_system *create(Genode::Env       &env,
-		                         Genode::Allocator &alloc,
-		                         Genode::Xml_node   config,
-		                         Vfs::Io_response_handler &io_handler,
-		                         Vfs::File_system &) override
+		Vfs::File_system *create(Vfs::Env &env, Genode::Xml_node config) override
 		{
-			return new (alloc) Vfs::Rump_file_system(env, config, io_handler);
+			return new (env.alloc()) Vfs::Rump_file_system(env, config);
 		}
 };
 
@@ -841,14 +837,10 @@ extern "C" Vfs::File_system_factory *vfs_file_system_factory(void)
 {
 	struct Extern_factory : Vfs::File_system_factory
 	{
-		Vfs::File_system *create(Genode::Env &env,
-		                         Genode::Allocator &alloc,
-		                         Genode::Xml_node node,
-		                         Vfs::Io_response_handler &io_handler,
-		                         Vfs::File_system &root_dir) override
+		Vfs::File_system *create(Vfs::Env &env, Genode::Xml_node node) override
 		{
-			static Rump_factory factory(env, alloc);
-			return factory.create(env, alloc, node, io_handler, root_dir);
+			static Rump_factory factory(env.env(), env.alloc());
+			return factory.create(env, node);
 		}
 	};
 

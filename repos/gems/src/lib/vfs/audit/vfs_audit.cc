@@ -99,21 +99,13 @@ class Vfs_audit::File_system : public Vfs::File_system
 
 	public:
 
-		File_system(Genode::Env &env,
-		            Genode::Allocator &alloc,
-		            Genode::Xml_node config,
-		            Vfs::Io_response_handler &io_handler,
-		            Vfs::File_system &root_dir)
+		File_system(Vfs::Env &env, Genode::Xml_node config)
 		:
-			_audit_log(env, config.attribute_value("label", Genode::String<64>("audit")).string()),
-			_root_dir(root_dir),
+			_audit_log(env.env(), config.attribute_value("label", Genode::String<64>("audit")).string()),
+			_root_dir(env.root_dir()),
 		  	_audit_path(config.attribute_value(
 				"path", Genode::String<Absolute_path::capacity()>()).string())
-		{
-			(void)env;
-			(void)alloc;
-			(void)io_handler;
-		}
+		{ }
 
 		const char* type() override { return "audit"; }
 
@@ -295,14 +287,10 @@ extern "C" Vfs::File_system_factory *vfs_file_system_factory(void)
 {
 	struct Factory : Vfs::File_system_factory
 	{
-		Vfs::File_system *create(Genode::Env &env,
-		                         Genode::Allocator &alloc,
-		                         Genode::Xml_node config,
-		                         Vfs::Io_response_handler &io_handler,
-		                         Vfs::File_system &root_dir) override
+		Vfs::File_system *create(Vfs::Env &env, Genode::Xml_node config) override
 		{
-			return new (alloc)
-				Vfs_audit::File_system(env, alloc, config, io_handler, root_dir);
+			return new (env.alloc())
+				Vfs_audit::File_system(env, config);
 		}
 	};
 

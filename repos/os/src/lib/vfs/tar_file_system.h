@@ -512,13 +512,9 @@ class Vfs::Tar_file_system : public File_system
 
 	public:
 
-		Tar_file_system(Genode::Env       &env,
-		                Genode::Allocator &alloc,
-		                Genode::Xml_node   config,
-		                Io_response_handler &,
-		                File_system &)
+		Tar_file_system(Vfs::Env &env, Genode::Xml_node config)
 		:
-			_env(env), _alloc(alloc),
+			_env(env.env()), _alloc(env.alloc()),
 			_rom_name(config.attribute_value("name", Rom_name())),
 			_root_node("", 0),
 			_cached_num_dirent(_root_node)

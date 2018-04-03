@@ -34,8 +34,10 @@ namespace Vfs_server {
 	using namespace Vfs;
 
 	class Session_component;
+	class Io_response_handler;
+	class Watch_response_handler;
+	class Vfs_env;
 	class Root;
-	class Event_response_handler;
 
 	typedef Genode::Registered<Session_component> Registered_session;
 	typedef Genode::Registry<Registered_session>  Session_registry;
@@ -66,7 +68,7 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 
 		Genode::Signal_handler<Session_component> _process_packet_handler;
 
-		Vfs::Dir_file_system &_vfs;
+		Vfs::File_system &_vfs;
 
 		/*
 		 * The root node needs be allocated with the session struct
@@ -375,12 +377,12 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 		 * \param writable     whether the session can modify files
 		 */
 
-		Session_component(Genode::Env         &env,
-		                  char          const *label,
-		                  Genode::Ram_quota    ram_quota,
-		                  Genode::Cap_quota    cap_quota,
-		                  size_t               tx_buf_size,
-		                  Vfs::Dir_file_system &vfs,
+		Session_component(Genode::Env          &env,
+		                  char           const *label,
+		                  Genode::Ram_quota     ram_quota,
+		                  Genode::Cap_quota     cap_quota,
+		                  size_t                tx_buf_size,
+		                  Vfs::File_system     &vfs,
 		                  char           const *root_path,
 		                  bool                  writable)
 		:
@@ -675,16 +677,16 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 };
 
 /**
- * Global vfs event handler
+ * Global I/O event handler
  */
-struct Vfs_server::Event_response_handler : Vfs::Io_response_handler
+struct Vfs_server::Io_response_handler : Vfs::Io_response_handler
 {
 	Session_registry &_session_registry;
 
 	bool _in_progress  { false };
 	bool _handle_general_io { false };
 
-	Event_response_handler(Session_registry &session_registry)
+	Io_response_handler(Session_registry &session_registry)
 	: _session_registry(session_registry) { }
 
 	void handle_io_response(Vfs::Vfs_handle::Context *context) override
@@ -711,7 +713,13 @@ struct Vfs_server::Event_response_handler : Vfs::Io_response_handler
 
 		_in_progress = false;
 	}
+};
 
+/**
+ * Global VFS watch handler
+ */
+struct Vfs_server::Watch_response_handler : Vfs::Watch_response_handler
+{
 	void handle_watch_response(Vfs::Vfs_watch_handle::Context *context) override
 	{
 		if (context)
@@ -720,14 +728,47 @@ struct Vfs_server::Event_response_handler : Vfs::Io_response_handler
 };
 
 
-class Vfs_server::Root : public Genode::Root_component<Session_component>
+class Vfs_server::Vfs_env final : Vfs::Env
 {
 	private:
 
 		Genode::Env  &_env;
+		Genode::Heap  _heap { &_env.ram(), &_env.rm() };
 
-		/* heap for internal VFS allocation */
-		Genode::Heap  _vfs_heap { &_env.ram(), &_env.rm() };
+		Io_response_handler    _io_handler;
+		Watch_response_handler _watch_handler { };
+
+		Vfs::Global_file_system_factory _global_file_system_factory { _heap };
+
+		Vfs::Dir_file_system _root_dir;
+
+	public:
+
+		Vfs_env(Genode::Env &env, Genode::Xml_node config,
+		        Session_registry &sessions)
+		: _env(env), _io_handler(sessions),
+		  _root_dir(*this, config, _global_file_system_factory)
+		{ }
+
+		Genode::Env &env() override { return _env; }
+
+		Genode::Allocator &alloc() override { return _heap; }
+
+		Vfs::File_system &root_dir() override { return _root_dir; }
+
+		Io_response_handler &io_handler() override {
+			return _io_handler; }
+
+		Watch_response_handler &watch_handler() override {
+			return _watch_handler; }
+};
+
+
+class Vfs_server::Root : public Genode::Root_component<Session_component>
+{
+	private:
+
+		Genode::Env &_env;
 
 		Genode::Attached_rom_dataspace _config_rom { _env, "config" };
 
@@ -743,13 +784,7 @@ class Vfs_server::Root : public Genode::Root_component<Session_component>
 
 		Session_registry _session_registry { };
 
-		Event_response_handler _response_handler { _session_registry };
-
-		Vfs::Global_file_system_factory _global_file_system_factory { _vfs_heap };
-
-		Vfs::Dir_file_system _vfs {
-			_env, _vfs_heap, vfs_config(), _response_handler,
-			_global_file_system_factory };
+		Vfs_env _vfs_env { _env, vfs_config(), _session_registry };
 
 		Genode::Signal_handler<Root> _config_handler {
 			_env.ep(), *this, &Root::_config_update };
@@ -757,7 +792,7 @@ class Vfs_server::Root : public Genode::Root_component<Session_component>
 		void _config_update()
 		{
 			_config_rom.update();
-			_vfs.apply_config(vfs_config());
+			_vfs_env.root_dir().apply_config(vfs_config());
 		}
 
 	protected:
@@ -835,7 +870,8 @@ class Vfs_server::Root : public Genode::Root_component<Session_component>
 			}
 
 			/* check if the session root exists */
-			if (!((session_root == "/") || _vfs.directory(session_root.base()))) {
+			if (!((session_root == "/")
+			 || _vfs_env.root_dir().directory(session_root.base()))) {
 				error("session root '", session_root, "' not found for '", label, "'");
 				throw Service_denied();
 			}
@@ -844,7 +880,7 @@ class Vfs_server::Root : public Genode::Root_component<Session_component>
 				Registered_session(_session_registry, _env, label.string(),
 				                   Genode::Ram_quota{ram_quota},
 				                   Genode::Cap_quota{cap_quota},
-				                   tx_buf_size, _vfs,
+				                   tx_buf_size, _vfs_env.root_dir(),
 				                   session_root.base(), writeable);
 
 			auto ram_used = _env.pd().used_ram().value - initial_ram_usage;

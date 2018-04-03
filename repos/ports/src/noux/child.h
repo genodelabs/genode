@@ -124,7 +124,7 @@ class Noux::Child : public Rpc_object<Session>,
 
 		Env &_env;
 
-		Vfs::Dir_file_system &_root_dir;
+		Vfs::File_system &_root_dir;
 
 		Vfs_io_waiter_registry &_vfs_io_waiter_registry;
 		Vfs_handle_context      _vfs_handle_context;
@@ -323,7 +323,7 @@ class Noux::Child : public Rpc_object<Session>,
 		      Pid_allocator            &pid_allocator,
 		      int                       pid,
 		      Env                      &env,
-		      Vfs::Dir_file_system     &root_dir,
+		      Vfs::File_system         &root_dir,
 		      Vfs_io_waiter_registry   &vfs_io_waiter_registry,
 		      Args               const &args,
 		      Sysio::Env         const &sysio_env,

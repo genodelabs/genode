@@ -26,7 +26,7 @@ class Vfs::Block_file_system : public Single_file_system
 {
 	private:
 
-		Genode::Allocator &_alloc;
+		Vfs::Env &_env;
 
 		typedef Genode::String<64> Label;
 		Label _label;
@@ -39,8 +39,9 @@ class Vfs::Block_file_system : public Single_file_system
 		char                       *_block_buffer;
 		unsigned                    _block_buffer_count;
 
-		Genode::Allocator_avl       _tx_block_alloc { &_alloc };
-		Block::Connection           _block;
+		Genode::Allocator_avl       _tx_block_alloc { &_env.alloc() };
+		Block::Connection           _block {
+			_env.env(), &_tx_block_alloc, 128*1024, _label.string() };
 		Genode::size_t              _block_size  = 0;
 		Block::sector_t             _block_count = 0;
 		Block::Session::Operations  _block_ops { };
@@ -334,18 +335,13 @@ class Vfs::Block_file_system : public Single_file_system
 
 	public:
 
-		Block_file_system(Genode::Env &env,
-		                  Genode::Allocator &alloc,
-		                  Genode::Xml_node config,
-		                  Io_response_handler &,
-		                  File_system &)
+		Block_file_system(Vfs::Env &env, Genode::Xml_node config)
 		:
 			Single_file_system(NODE_TYPE_BLOCK_DEVICE, name(), config),
-			_alloc(alloc),
+			_env(env),
 			_label(config.attribute_value("label", Label())),
 			_block_buffer(0),
 			_block_buffer_count(1),
-			_block(env, &_tx_block_alloc, 128*1024, _label.string()),
 			_tx_source(_block.tx()),
 			_readable(false),
 			_writeable(false),
@@ -359,7 +355,7 @@ class Vfs::Block_file_system : public Single_file_system
 			_readable  = _block_ops.supported(Block::Packet_descriptor::READ);
 			_writeable = _block_ops.supported(Block::Packet_descriptor::WRITE);
 
-			_block_buffer = new (_alloc) char[_block_buffer_count * _block_size];
+			_block_buffer = new (_env.alloc()) char[_block_buffer_count * _block_size];
 
 			_block.tx_channel()->sigh_ready_to_submit(_source_submit_cap);
 		}
@@ -368,7 +364,7 @@ class Vfs::Block_file_system : public Single_file_system
 		{
 			_signal_receiver.dissolve(&_signal_context);
 
-			destroy(_alloc, _block_buffer);
+			destroy(_env.alloc(), _block_buffer);
 		}
 
 		static char const *name()   { return "block"; }

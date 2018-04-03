@@ -36,7 +36,7 @@ struct Noux::Vfs_dataspace
 {
 	typedef Child_policy::Name Name;
 
-	Vfs::Dir_file_system   &root_dir;
+	Vfs::File_system       &root_dir;
 	Vfs_io_waiter_registry &vfs_io_waiter_registry;
 
 	Name                 const name;
@@ -47,7 +47,7 @@ struct Noux::Vfs_dataspace
 	Dataspace_capability  ds;
 	bool                  got_ds_from_vfs { true };
 
-	Vfs_dataspace(Vfs::Dir_file_system &root_dir,
+	Vfs_dataspace(Vfs::File_system &root_dir,
 	              Vfs_io_waiter_registry &vfs_io_waiter_registry,
 	              Name const &name,
 			      Genode::Ram_session &ram, Genode::Region_map &rm,
@@ -174,7 +174,7 @@ class Noux::Rom_session_component : public Rpc_object<Rom_session>
 
 		Allocator              &_alloc;
 		Rpc_entrypoint         &_ep;
-		Vfs::Dir_file_system   &_root_dir;
+		Vfs::File_system       &_root_dir;
 		Vfs_io_waiter_registry &_vfs_io_waiter_registry;
 		Dataspace_registry     &_ds_registry;
 
@@ -203,7 +203,7 @@ class Noux::Rom_session_component : public Rpc_object<Rom_session>
 	public:
 
 		Rom_session_component(Allocator &alloc, Env &env, Rpc_entrypoint &ep,
-		                      Vfs::Dir_file_system &root_dir,
+		                      Vfs::File_system &root_dir,
 		                      Vfs_io_waiter_registry &vfs_io_waiter_registry,
 		                      Dataspace_registry &ds_registry, Name const &name)
 		:

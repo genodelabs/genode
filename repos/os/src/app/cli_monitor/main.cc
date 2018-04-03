@@ -13,8 +13,7 @@
 
 /* Genode includes */
 #include <base/attached_rom_dataspace.h>
-#include <vfs/file_system_factory.h>
-#include <vfs/dir_file_system.h>
+#include <vfs/simple_env.h>
 #include <base/component.h>
 
 /* public CLI-monitor includes */
@@ -148,18 +147,9 @@ struct Cli_monitor::Main
 
 	Heap _heap { _env.ram(), _env.rm() };
 
-	struct Io_response_handler : Vfs::Io_response_handler
-	{
-		void handle_io_response(Vfs::Vfs_handle::Context *) override { }
-	} io_response_handler { };
+	Vfs::Simple_env _vfs_env { _env, _heap, _vfs_config() };
 
-	Vfs::Global_file_system_factory _global_file_system_factory { _heap };
-
-	/* initialize virtual file system */
-	Vfs::Dir_file_system _root_dir { _env, _heap, _vfs_config(), io_response_handler,
-	                                 _global_file_system_factory };
-
-	Subsystem_config_registry _subsystem_config_registry { _root_dir, _heap, _env.ep() };
+	Subsystem_config_registry _subsystem_config_registry { _vfs_env.root_dir(), _heap, _env.ep() };
 
 	template <typename T>
 	struct Registered : T

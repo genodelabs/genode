@@ -40,6 +40,7 @@ extern char **environ;
 
 namespace Libc {
 	class Env_implementation;
+	class Vfs_env;
 	class Kernel;
 	class Pthreads;
 	class Timer;
@@ -50,6 +51,47 @@ namespace Libc {
 
 	using Genode::Microseconds;
 }
+
+
+class Libc::Vfs_env : public Vfs::Env
+{
+	private:
+
+		Genode::Env       &_env;
+		Genode::Allocator &_alloc;
+
+		Vfs::Io_response_handler &_io_handler;
+
+		struct Watch_response_stub : Vfs::Watch_response_handler {
+			void handle_watch_response(Vfs::Vfs_watch_handle::Context*) override { };
+		} _watch_stub { };
+
+		Vfs::Global_file_system_factory _global_file_system_factory { _alloc };
+
+		Vfs::Dir_file_system _root_dir;
+
+	public:
+
+		Vfs_env(Genode::Env &env,
+		        Genode::Allocator &alloc,
+		        Genode::Xml_node config,
+		        Vfs::Io_response_handler &io_handler)
+		: _env(env), _alloc(alloc), _io_handler(io_handler),
+		  _root_dir(*this, config, _global_file_system_factory)
+		{ }
+
+		Genode::Env &env() override { return _env; }
+
+		Genode::Allocator &alloc() override { return _alloc; }
+
+		Vfs::File_system &root_dir() override { return _root_dir; }
+
+		Vfs::Io_response_handler &io_handler() override {
+			return _io_handler; }
+
+		Vfs::Watch_response_handler &watch_handler() override {
+			return _watch_stub; }
+};
 
 
 class Libc::Env_implementation : public Libc::Env
@@ -85,7 +127,7 @@ class Libc::Env_implementation : public Libc::Env
 		}
 
 		Vfs::Global_file_system_factory _file_system_factory;
-		Vfs::Dir_file_system            _vfs;
+		Vfs_env _vfs_env;
 
 		Genode::Xml_node _config_xml() const override {
 			return _config.xml(); };
@@ -96,8 +138,7 @@ class Libc::Env_implementation : public Libc::Env
 		                   Vfs::Io_response_handler &io_response_handler)
 		:
 			_env(env), _file_system_factory(alloc),
-			_vfs(_env, alloc, _vfs_config(), io_response_handler,
-			     _file_system_factory)
+			_vfs_env(_env, alloc, _vfs_config(), io_response_handler)
 		{ }
 
 
@@ -106,7 +147,7 @@ class Libc::Env_implementation : public Libc::Env
 		 *************************/
 
 		Vfs::File_system &vfs() override {
-			return _vfs; }
+			return _vfs_env.root_dir(); }
 
 		Genode::Xml_node libc_config() override {
 			return _libc_config(); }

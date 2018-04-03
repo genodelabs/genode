@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014-2017 Genode Labs GmbH
+ * Copyright (C) 2014-2018 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -14,6 +14,7 @@
 #ifndef _INCLUDE__VFS__FILE_SYSTEM_FACTORY_H_
 #define _INCLUDE__VFS__FILE_SYSTEM_FACTORY_H_
 
+#include <vfs/env.h>
 #include <vfs/file_system.h>
 
 namespace Vfs {
@@ -28,17 +29,10 @@ struct Vfs::File_system_factory : Interface
 	/**
 	 * Create and return a new file-system
 	 *
-	 * \param env         Env for service connections
-	 * \param alloc       internal file-system allocator
+	 * \param env         Env of VFS root
 	 * \param config      file-system configuration
-	 * \param io_handler  callback handler
-	 * \param root_dir    VFS root directory
 	 */
-	virtual File_system *create(Genode::Env         &env,
-	                            Genode::Allocator   &alloc,
-	                            Xml_node             config,
-	                            Io_response_handler &io_handler,
-	                            File_system         &root_dir) = 0;
+	virtual File_system *create(Vfs::Env &env, Xml_node config) = 0;
 };
 
 
@@ -66,11 +60,8 @@ class Vfs::Global_file_system_factory : public Vfs::File_system_factory
 		template <typename FILE_SYSTEM>
 		void _add_builtin_fs();
 
-		Vfs::File_system *_try_create(Genode::Env         &env,
-		                              Genode::Allocator   &alloc,
-		                              Genode::Xml_node     node,
-		                              Io_response_handler &io_handler,
-		                              Vfs::File_system    &root_dir);
+		Vfs::File_system *_try_create(Vfs::Env &env,
+		                              Genode::Xml_node config);
 
 		/**
 		 * Return name of factory provided by the shared library
@@ -95,14 +86,13 @@ class Vfs::Global_file_system_factory : public Vfs::File_system_factory
 		/**
 		 * \throw Factory_not_available
 		 */
-		Vfs::File_system_factory &_load_factory(Genode::Env        &env,
-		                                        Genode::Allocator  &alloc,
+		Vfs::File_system_factory &_load_factory(Vfs::Env        &env,
 		                                        Library_name const &lib_name);
 
 		/**
 		 * Try to load external File_system_factory provider
 		 */
-		bool _probe_external_factory(Genode::Env &env, Genode::Allocator &alloc,
+		bool _probe_external_factory(Vfs::Env &env,
 		                             Genode::Xml_node node);
 
 	public:
@@ -112,14 +102,12 @@ class Vfs::Global_file_system_factory : public Vfs::File_system_factory
 		 *
 		 * \param alloc  internal factory allocator
 		 */
-		Global_file_system_factory(Genode::Allocator &md_alloc);
+		Global_file_system_factory(Genode::Allocator &alloc);
 
 		/**
 		 * File_system_factory interface
 		 */
-		File_system *create(Genode::Env &, Genode::Allocator &,
-		                    Genode::Xml_node, Io_response_handler &,
-		                    File_system &) override;
+		File_system *create(Vfs::Env&, Genode::Xml_node) override;
 
 		/**
 		 * Register an additional factory for new file-system type

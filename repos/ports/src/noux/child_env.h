@@ -51,7 +51,7 @@ class Noux::Child_env
 		/**
 		 * Verify that the file exists and return its size
 		 */
-		Vfs::file_size _file_size(Vfs::Dir_file_system &root_dir,
+		Vfs::file_size _file_size(Vfs::File_system &root_dir,
 		                          char const *binary_name)
 		{
 			Vfs::Directory_service::Stat stat_out;
@@ -88,7 +88,7 @@ class Noux::Child_env
 		 */
 		void _process_binary_name_and_args(char const *binary_name,
 		                                   char const *args,
-		                                   Vfs::Dir_file_system &root_dir,
+		                                   Vfs::File_system &root_dir,
 		                                   Vfs_io_waiter_registry &vfs_io_waiter_registry,
 		                                   Ram_session &ram,
 		                                   Region_map &rm,
@@ -210,7 +210,7 @@ class Noux::Child_env
 
 		Child_env(char const *binary_name,
 		          char const *args, Sysio::Env env,
-		          Vfs::Dir_file_system &root_dir,
+		          Vfs::File_system &root_dir,
 		          Vfs_io_waiter_registry &vfs_io_waiter_registry,
 		          Ram_session &ram,
 		          Region_map &rm,
