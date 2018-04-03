@@ -196,7 +196,7 @@ append config {
 				<dir name="share"> <dir name="vim"> <rom name="vimrc"/> </dir> </dir>
 			</fstab>
 			<start name="/bin/bash">
-				<env name="TERM" value="linux" />
+				<env name="TERM" value="screen" />
 				<env name="HOME" value="/home" />
 			</start>
 		</config>

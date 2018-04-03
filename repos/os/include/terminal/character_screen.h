@@ -38,6 +38,11 @@ struct Terminal::Character_screen : Genode::Interface
 	 */
 
 	/**
+	 * Back tab
+	 */
+	virtual void cbt() = 0;
+
+	/**
 	 * Make cursor invisible
 	 */
 	virtual void civis() = 0;
@@ -51,11 +56,6 @@ struct Terminal::Character_screen : Genode::Interface
 	 * Make cursor very visible
 	 */
 	virtual void cvvis() = 0;
-
-	/**
-	 * Reset string
-	 */
-	virtual void cpr() = 0;
 
 	/**
 	 * Change region to line #1 ... line #2
@@ -78,9 +78,19 @@ struct Terminal::Character_screen : Genode::Interface
 	virtual void cup(int, int) = 0;
 
 	/**
+	 * Down #1 lines
+	 */
+	virtual void cud(int) = 0;
+
+	/**
 	 * Move cursor up one line
 	 */
 	virtual void cuu1() = 0;
+
+	/**
+	 * Up #1 lines
+	 */
+	virtual void cuu(int) = 0;
 
 	/**
 	 * Delete #1 characters
@@ -91,11 +101,6 @@ struct Terminal::Character_screen : Genode::Interface
 	 * Delete #1 lines
 	 */
 	virtual void dl(int) = 0;
-
-	/**
-	 * Erase #1 characters
-	 */
-	virtual void ech(int) = 0;
 
 	/**
 	 * Clear to end of screen
@@ -113,14 +118,19 @@ struct Terminal::Character_screen : Genode::Interface
 	virtual void el1() = 0;
 
 	/**
+	 * Enable alternative character set
+	 */
+	virtual void enacs() = 0;
+
+	/**
+	 * Visible bell
+	 */
+	virtual void flash() = 0;
+
+	/**
 	 * Home cursor
 	 */
 	virtual void home() = 0;
-
-	/**
-	 * Horizontal position #1 absolute
-	 */
-	virtual void hpa(int) = 0;
 
 	/**
 	 * Set a tab in every row, current column
@@ -138,9 +148,14 @@ struct Terminal::Character_screen : Genode::Interface
 	virtual void il(int) = 0;
 
 	/**
-	 * Set all color pairs to the original ones
+	 * Initialization string
 	 */
-	virtual void oc() = 0;
+	virtual void is2() = 0;
+
+	/**
+	 * Newline
+	 */
+	virtual void nel() = 0;
 
 	/**
 	 * Set default pair to its original value
@@ -153,24 +168,24 @@ struct Terminal::Character_screen : Genode::Interface
 	virtual void rc() = 0;
 
 	/**
-	 * Scroll text down
-	 */
-	virtual void ri() = 0;
-
-	/**
 	 * Reset string
 	 */
-	virtual void ris() = 0;
+	virtual void rs2() = 0;
 
 	/**
-	 * Turn off automatic margins
+	 * Leave cup mode
 	 */
-	virtual void rmam() = 0;
+	virtual void rmcup() = 0;
 
 	/**
 	 * Exit insert mode
 	 */
 	virtual void rmir() = 0;
+
+	/**
+	 * Exit keyboard transmission mode
+	 */
+	virtual void rmkx() = 0;
 
 	/**
 	 * Set background color to #1, using ANSI escape
@@ -198,9 +213,9 @@ struct Terminal::Character_screen : Genode::Interface
 	virtual void sc() = 0;
 
 	/**
-	 * Turn on automatic margins
+	 * Enter cup mode
 	 */
-	virtual void smam() = 0;
+	virtual void smcup() = 0;
 
 	/**
 	 * Enter insert mode
@@ -208,22 +223,14 @@ struct Terminal::Character_screen : Genode::Interface
 	virtual void smir() = 0;
 
 	/**
+	 * Enter keyboard transmission mode
+	 */
+	virtual void smkx() = 0;
+
+	/**
 	 * Clear all tab stops
 	 */
 	virtual void tbc() = 0;
-
-	/**
-	 * User strings
-	 */
-	virtual void u6(int, int) = 0;
-	virtual void u7() = 0;
-	virtual void u8() = 0;
-	virtual void u9() = 0;
-
-	/**
-	 * Vertical position #1 absolute)
-	 */
-	virtual void vpa(int) = 0;
 };
 
 #endif /* _TERMINAL__CHARACTER_SCREEN_H_ */

@@ -80,7 +80,7 @@ append config {
 								<config>
 									<fstab> <tar name="vim.tar" /> </fstab>
 									<start name="/bin/vim">
-										<env name="TERM" value="linux" />
+										<env name="TERM" value="screen" />
 
 										<!-- Deactivate the loading of plugins. Otherwise, vim will
 										     attempt to use a sub shell for pattern matching -->

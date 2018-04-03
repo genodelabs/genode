@@ -146,7 +146,7 @@ src/lib/ncurses/codes.c:
 
 src/lib/ncurses/fallback.c: $(ncurses_src_dir)/tinfo/MKfallback.sh
 	@$(MSG_GENERATE)$@
-	$(VERBOSE)sh -e $< x src/lib/ncurses/misc/terminfo.src tic linux vt102 > $@ 2> /dev/null
+	$(VERBOSE)sh -e $< x src/lib/ncurses/misc/terminfo.src tic screen vt102 > $@ 2> /dev/null
 	$(VERBOSE)#sh -e $< /usr/share/terminfo $(ncurses_src_dir)/misc/terminfo.src /usr/bin/tic > $@
 
 src/lib/ncurses/unctrl.c:

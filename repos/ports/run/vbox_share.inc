@@ -152,7 +152,7 @@ set config_of_app {
 				<dir name="to">   <fs label="share_to"/> </dir>
 			</fstab>
 			<start name="/bin/bash">
-				<env name="TERM" value="linux"/>
+				<env name="TERM" value="screen"/>
 			</start>
 		</config>
 		<route>

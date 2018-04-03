@@ -98,7 +98,7 @@ append config {
 				<dir name="rw"> <fs/> </dir>
 			</fstab>
 			<start name="/bin/bash">
-				<env name="TERM" value="linux" />
+				<env name="TERM" value="screen" />
 				<env name="PS1" value="fs:$PWD> " />
 				<env name="HOME" value="/" />
 				<arg value="--login"/>

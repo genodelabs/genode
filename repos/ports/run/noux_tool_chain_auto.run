@@ -261,7 +261,7 @@ append config {
 				</dir>
 			</fstab>
 			<start name="/bin/bash">
-				<env name="TERM" value="linux" />
+				<env name="TERM" value="screen" />
 				<env name="HOME" value="/home" />
 				<env name="PATH" value="/bin" />
 				<arg value="--login" />

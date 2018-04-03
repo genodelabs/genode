@@ -183,7 +183,7 @@ append config {
 				<dir name="dev"> <terminal name="terminal" label="terminal_fs" /> </dir>
 			</fstab>
 			<start name="/bin/bash">
-				<env name="TERM" value="linux" />
+				<env name="TERM" value="screen" />
 			</start>
 		</config>
 	</start>
@@ -205,7 +205,7 @@ append config {
 				<dir name="dev"> <terminal name="terminal" label="terminal_fs" /> </dir>
 			</fstab>
 			<start name="/bin/bash">
-				<env name="TERM" value="linux" />
+				<env name="TERM" value="screen" />
 			</start>
 		</config>
 	</start>
