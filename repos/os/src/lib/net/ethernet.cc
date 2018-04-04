@@ -17,8 +17,6 @@
 #include <net/ipv4.h>
 #include <base/output.h>
 
-const Net::Mac_address Net::Ethernet_frame::BROADCAST(0xFF);
-
 
 void Net::Ethernet_frame::print(Genode::Output &output) const
 {

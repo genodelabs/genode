@@ -41,7 +41,7 @@ struct Main
 		try {
 			Nic::Mac_address mac;
 			config.xml().attribute("mac").value(&mac);
-			Genode::memcpy(&Net::Mac_allocator::mac_addr_base, &mac,
+			Genode::memcpy(&root.mac_addr_base(), &mac,
 			               sizeof(Net::Mac_allocator::mac_addr_base));
 		} catch(...) {}
 	}
@@ -65,10 +65,4 @@ struct Main
 };
 
 
-void Component::construct(Genode::Env &env)
-{
-	/* XXX execute constructors of global statics */
-	env.exec_static_constructors();
-
-	static Main nic_bridge(env);
-}
+void Component::construct(Genode::Env &env) { static Main nic_bridge(env); }

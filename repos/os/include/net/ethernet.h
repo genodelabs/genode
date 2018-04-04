@@ -49,8 +49,7 @@ class Net::Ethernet_frame
 			ADDR_LEN  = 6, /* MAC address length in bytes */
 		};
 
-
-		static const Mac_address BROADCAST;  /* broadcast address */
+		static Mac_address broadcast() { return Mac_address((Genode::uint8_t)0xff); }
 
 	private:
 

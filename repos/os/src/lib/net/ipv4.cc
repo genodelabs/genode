@@ -147,7 +147,3 @@ Genode::uint16_t Ipv4_packet::calculate_checksum(Ipv4_packet const &packet)
 	                           + host_to_big_endian(data[9]);
 	return ~((0xFFFF & sum) + (sum >> 16));
 }
-
-
-const Ipv4_address Ipv4_packet::CURRENT((Genode::uint8_t)0x00);
-const Ipv4_address Ipv4_packet::BROADCAST((Genode::uint8_t)0xFF);

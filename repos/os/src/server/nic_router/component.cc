@@ -125,7 +125,7 @@ Net::Root::Root(Entrypoint        &ep,
 	_ep(ep), _router_mac(router_mac), _config(config), _buf_ram(buf_ram),
 	_region_map(region_map), _interfaces(interfaces)
 {
-	Mac_allocator::mac_addr_base = config.mac_first();
+	_mac_alloc.mac_addr_base = config.mac_first();
 }
 
 

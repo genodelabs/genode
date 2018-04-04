@@ -62,7 +62,7 @@ void Packet_handler::_link_state()
 void Packet_handler::broadcast_to_clients(Ethernet_frame *eth, Genode::size_t size)
 {
 	/* check whether it's really a broadcast packet */
-	if (eth->dst() == Ethernet_frame::BROADCAST) {
+	if (eth->dst() == Ethernet_frame::broadcast()) {
 		/* iterate through the list of clients */
 		Mac_address_node *node =
 			_vlan.mac_list.first();

@@ -181,7 +181,7 @@ void Main::_handle_eth(void              *const eth_base,
 
 	/* drop packet if ETH does not target us */
 	if (eth.dst() != _src_mac &&
-	    eth.dst() != Ethernet_frame::BROADCAST)
+	    eth.dst() != Ethernet_frame::broadcast())
 	{
 		if (_verbose) {
 			log("bad ETH destination"); }
@@ -202,7 +202,7 @@ void Main::_handle_ip(Ethernet_frame &eth,
 	size_t const ip_size = eth_size - sizeof(Ethernet_frame);
 	Ipv4_packet &ip = *eth.data<Ipv4_packet>(ip_size);
 	if (ip.dst() != _src_ip &&
-	    ip.dst() != Ipv4_packet::BROADCAST)
+	    ip.dst() != Ipv4_packet::broadcast())
 	{
 		if (_verbose) {
 			log("bad IP destination"); }
@@ -533,10 +533,4 @@ void Main::_send_ping(Duration)
 }
 
 
-void Component::construct(Env &env)
-{
-	/* XXX execute constructors of global statics */
-	env.exec_static_constructors();
-
-	static Main main(env);
-}
+void Component::construct(Env &env) { static Main main(env); }

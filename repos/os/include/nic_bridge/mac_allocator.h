@@ -43,9 +43,14 @@ namespace Net {
 
 			class Alloc_failed : Genode::Exception {};
 
-
-			/* reference MAC address */
-			static Mac_address mac_addr_base;
+			/**
+			 * Reference MAC address
+			 *
+			 * We take the range 02:02:02:02:02:XX for our MAC address
+			 * allocator, it's likely, that we will have no clashes here.
+			 * (e.g. Linux uses 02:00... for its tap-devices.)
+			 */
+			Mac_address mac_addr_base { Mac_address(0x02) };
 
 			Mac_allocator() { Genode::memset(&_msbs, 0, sizeof(_msbs)); }
 

@@ -24,10 +24,10 @@ namespace Net {
 
 	using L3_protocol = Ipv4_packet::Protocol;
 
-	Genode::Cstring const &tcp_name();
-	Genode::Cstring const &udp_name();
-	Genode::Cstring const &icmp_name();
-	Genode::Cstring const &l3_protocol_name(L3_protocol protocol);
+	char const *tcp_name();
+	char const *udp_name();
+	char const *icmp_name();
+	char const *l3_protocol_name(L3_protocol protocol);
 }
 
 #endif /* _L3_PROTOCOL_H_ */

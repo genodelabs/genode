@@ -85,8 +85,8 @@ class Net::Ipv4_packet
 			ADDR_LEN = IPV4_ADDR_LEN, /* Ip address length in bytes */
 		};
 
-		static const Ipv4_address CURRENT;    /* current network   */
-		static const Ipv4_address BROADCAST;  /* broadcast address */
+		static Ipv4_address current()   { return Ipv4_address((Genode::uint8_t)0x00); }
+		static Ipv4_address broadcast() { return Ipv4_address((Genode::uint8_t)0xff); }
 
 		static Ipv4_address ip_from_string(const char *ip);
 

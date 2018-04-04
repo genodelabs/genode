@@ -104,9 +104,6 @@ void Net::Main::_handle_config()
 
 void Component::construct(Env &env)
 {
-	/* XXX execute constructors of global statics */
-	env.exec_static_constructors();
-
 	try { static Net::Main main(env); }
 
 	catch (Net::Domain_tree::No_match) {
