@@ -63,6 +63,7 @@ append config {
 		<provides><service name="Nic"/></provides>
 		<config verbose="no"
 		        verbose_packets="no"
+		        icmp_idle_timeout_sec="6"
 		        mac_first="2:2:2:2:2:0">
 
 			<policy label_prefix="ping_1" domain="ping_1"/>
@@ -94,6 +95,7 @@ append config {
 		<provides><service name="Nic"/></provides>
 		<config verbose="no"
 		        verbose_packets="no"
+		        icmp_idle_timeout_sec="10"
 		        mac_first="12:12:12:12:12:0">
 
 			<policy label_prefix="ping_2" domain="ping_2"/>
