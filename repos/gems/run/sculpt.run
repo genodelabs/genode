@@ -560,9 +560,21 @@ append depot_deploy_config {
 		</route>
 	</start>
 
-	<start name="noux" pkg="} [depot_user]/pkg/[current_pkg noux-system] {">
+	<start name="wm" pkg="} [depot_user]/pkg/[current_pkg themed_wm] {">
 		<route>
 			<service name="Nitpicker"> <parent/> </service>
+		</route>
+	</start>
+
+	<start name="backdrop" pkg="} [depot_user]/pkg/[current_pkg sticks_blue_backdrop] {">
+		<route>
+			<service name="Nitpicker"> <parent label="backdrop"/> </service>
+		</route>
+	</start>
+
+	<start name="noux" pkg="} [depot_user]/pkg/[current_pkg noux-system] {">
+		<route>
+			<service name="Nitpicker"> <child name="wm"/> </service>
 			<service name="File_system" label="config">
 				<parent label="config"/> </service>
 			<service name="File_system" label="report">
@@ -572,6 +584,14 @@ append depot_deploy_config {
 			<service name="ROM" label="vimrc"> <parent/> </service>
 		</route>
 	</start>
+
+<!--
+	<start name="nano3d" pkg="} [depot_user]/pkg/[current_pkg nano3d] {">
+		<route>
+			<service name="Nitpicker"> <child name="wm"/> </service>
+		</route>
+	</start>
+-->
 
 <!--
 	<start name="nic_drv" pkg="} [depot_user]/pkg/[current_pkg wifi] {">
@@ -633,8 +653,8 @@ append depot_deploy_config {
 			<service name="ROM"    label="capslock"> <parent label="capslock"/> </service>
 			<service name="ROM"    label="platform_info"> <parent/> </service>
 			<service name="ROM"    label="usb_devices"> <child name="usb_devices_rom"/> </service>
-			<service name="Report" label="shape"> <parent label="vm -> shape"/> </service>
-			<service name="Nitpicker"> <parent/> </service>
+			<service name="Report" label="shape"> <parent label="wm -> wm -> vm -> shape"/> </service>
+			<service name="Nitpicker"> <child name="wm"/> </service>
 			<service name="Nic">       <child name="nic_router"/> </service>
 			<service name="Report"> <parent/> </service>
 			<service name="RM">     <parent/> </service>
