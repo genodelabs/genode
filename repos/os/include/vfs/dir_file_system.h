@@ -623,6 +623,7 @@ class Vfs::Dir_file_system : public File_system
 		Opendir_result open_composite_dirs(char const *sub_path,
 		                                   Dir_vfs_handle &dir_vfs_handle)
 		{
+			Opendir_result res = OPENDIR_ERR_LOOKUP_FAILED;
 			try {
 				for (File_system *fs = _first_file_system; fs; fs = fs->next) {
 					Vfs_handle *sub_dir_handle = nullptr;
@@ -636,7 +637,6 @@ class Vfs::Dir_file_system : public File_system
 					case OPEN_ERR_OUT_OF_RAM:
 					case OPEN_ERR_OUT_OF_CAPS:
 						return r;
-					case OPENDIR_ERR_LOOKUP_FAILED:
 					default:
 						continue;
 					}
@@ -644,12 +644,14 @@ class Vfs::Dir_file_system : public File_system
 					new (dir_vfs_handle.alloc())
 						Dir_vfs_handle::Subdir_handle_element(
 							dir_vfs_handle.subdir_handle_registry, *sub_dir_handle);
+					/* return OK because at least one directory has been opened */
+					res = OPENDIR_OK;
 				}
 			}
-			catch (Genode::Out_of_ram)  { return OPENDIR_ERR_OUT_OF_RAM; }
-			catch (Genode::Out_of_caps) { return OPENDIR_ERR_OUT_OF_CAPS; }
+			catch (Genode::Out_of_ram)  { res = OPENDIR_ERR_OUT_OF_RAM; }
+			catch (Genode::Out_of_caps) { res = OPENDIR_ERR_OUT_OF_CAPS; }
 
-			return OPENDIR_OK;
+			return res;
 		}
 
 		Opendir_result opendir(char const *path, bool create,
