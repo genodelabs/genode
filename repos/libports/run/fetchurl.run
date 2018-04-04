@@ -62,7 +62,7 @@ append config {
 			<report progress="yes"/>
 			<vfs>
 				<dir name="etc">
-					<inline name="resolv.conf">nameserver 213.73.91.35</inline>
+					<inline name="resolv.conf">nameserver 1.1.1.1</inline>
 				</dir>
 				<dir name="dev">
 					<log/> <null/> <inline name="rtc">2000-01-01 00:00</inline>

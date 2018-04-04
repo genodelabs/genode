@@ -12,7 +12,7 @@
 			<dhcp-server ip_first="10.0.1.2"
 			             ip_last="10.0.1.200"
 			             ip_lease_time_sec="360"
-			             dns_server="213.73.91.35"/>
+			             dns_server="1.1.1.1"/>
 			<tcp dst="0.0.0.0/0"><permit-any domain="uplink"/></tcp>
 			<udp dst="0.0.0.0/0"><permit-any domain="uplink"/></udp>
 		</domain>
