@@ -89,3 +89,10 @@ This is an overview of the sessions required and provided by the
 * Requires ROM sessions to all configured tracing policies.
 * Requires one TRACE session that provides the desired subjects.
 * Requires one Timer session.
+
+
+Examples
+~~~~~~~~
+
+An Example of how to use the trace_logger component can be found in the test
+script 'os/run/trace_logger.run'.
