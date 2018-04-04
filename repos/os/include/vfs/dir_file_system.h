@@ -762,19 +762,21 @@ class Vfs::Dir_file_system : public File_system
 		                   Vfs_watch_handle **handle,
 		                   Allocator        &alloc) override
 		{
-			/* static by default, no allocations */
-			Watch_result r = WATCH_ERR_STATIC;
+			Watch_result res = WATCH_ERR_UNACCESSIBLE;
 			Dir_watch_handle *meta_handle = nullptr;
+
+			char const *sub_path = _sub_path(path);
+			if (!sub_path) return res;
 
 			for (File_system *fs = _first_file_system; fs; fs = fs->next) {
 				Vfs_watch_handle *sub_handle;
 
-				if (fs->watch(path, &sub_handle, alloc) == WATCH_OK) {
+				if (fs->watch(sub_path, &sub_handle, alloc) == WATCH_OK) {
 					if (meta_handle == nullptr) {
 						/* at least one non-static FS, allocate handle */
 						meta_handle = new (alloc) Dir_watch_handle(*this, alloc);
 						*handle = meta_handle;
-						r = WATCH_OK;
+						res = WATCH_OK;
 					}
 
 					/* attach child FS handle to returned handle */
@@ -784,7 +786,7 @@ class Vfs::Dir_file_system : public File_system
 				}
 			}
 
-			return r;
+			return res;
 		}
 
 		void close(Vfs_watch_handle *handle) override

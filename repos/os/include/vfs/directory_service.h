@@ -128,8 +128,7 @@ struct Vfs::Directory_service : Interface
 	                           Allocator&)
 	{
 		/* default implementation for static file-systems */
-		Genode::warning("'", path, "' is static and cannot be watched");
-		return WATCH_ERR_STATIC;
+		return (leaf_path(path)) ? WATCH_ERR_STATIC : WATCH_ERR_UNACCESSIBLE;
 	}
 
 	virtual void close(Vfs_watch_handle *)
