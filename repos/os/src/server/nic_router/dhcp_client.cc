@@ -42,15 +42,16 @@ Dhcp_client::Dhcp_client(Genode::Allocator &alloc,
 void Dhcp_client::discover()
 {
 	_set_state(State::SELECT, _config().dhcp_discover_timeout());
-	_send(Message_type::DISCOVER, Ipv4_address(), Ipv4_address());
+	_send(Message_type::DISCOVER, Ipv4_address(), Ipv4_address(),
+	      Ipv4_address());
 }
 
 
 void Dhcp_client::_rerequest(State next_state)
 {
 	_set_state(next_state, _rerequest_timeout(2));
-	_send(Message_type::REQUEST, _domain().ip_config().interface.address,
-	      Ipv4_address());
+	Ipv4_address const client_ip = _domain().ip_config().interface.address;
+	_send(Message_type::REQUEST, client_ip, Ipv4_address(), client_ip);
 }
 
 
@@ -133,8 +134,9 @@ void Dhcp_client::_handle_dhcp_reply(Dhcp_packet &dhcp)
 			throw Drop_packet_inform("DHCP client expects an offer");
 		}
 		_set_state(State::REQUEST, _config().dhcp_request_timeout());
-		_send(Message_type::REQUEST, dhcp.yiaddr(),
-		      dhcp.option<Dhcp_packet::Server_ipv4>().value());
+		_send(Message_type::REQUEST, Ipv4_address(),
+		      dhcp.option<Dhcp_packet::Server_ipv4>().value(),
+		      dhcp.yiaddr());
 		break;
 
 	case State::REQUEST:
@@ -170,7 +172,8 @@ void Dhcp_client::_handle_dhcp_reply(Dhcp_packet &dhcp)
 
 void Dhcp_client::_send(Message_type msg_type,
                         Ipv4_address client_ip,
-                        Ipv4_address server_ip)
+                        Ipv4_address server_ip,
+                        Ipv4_address requested_ip)
 {
 	enum { PKT_SIZE = 1024 };
 	using Size_guard = Size_guard_tpl<PKT_SIZE, Interface::Send_buffer_too_small>;
@@ -244,7 +247,7 @@ void Dhcp_client::_send(Message_type msg_type,
 			dhcp_opts.append_option<Dhcp_packet::Client_id>(client_mac);
 			dhcp_opts.append_option<Dhcp_packet::Max_msg_size>(PKT_SIZE - dhcp_off);
 			if (_state == State::REQUEST) {
-				dhcp_opts.append_option<Dhcp_packet::Requested_addr>(client_ip);
+				dhcp_opts.append_option<Dhcp_packet::Requested_addr>(requested_ip);
 				dhcp_opts.append_option<Dhcp_packet::Server_ipv4>(server_ip);
 			}
 			break;
