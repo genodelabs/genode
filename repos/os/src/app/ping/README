@@ -1,12 +1,3 @@
-
-             ===================================================
-             Perform and evaluate ICMP Echo with another IP host
-             ===================================================
-
-
-Brief
-#####
-
 The 'ping' component continuously sends ICMP Echo requests to a given IP host
 and waits for the corresponding ICMP Echo replies. For each successfull ICMP
 Echo handshake it prints a short statistic. By now, it can be used only with a
@@ -15,7 +6,7 @@ gets filled with the letters of the alphabet ('a' to 'z') repeatedly.
 
 
 Configuration
-#############
+~~~~~~~~~~~~~
 
 This is an example configuration of the component which shows the default
 value for each attribute except 'config.dst_ip' and 'config.src_ip':
@@ -26,7 +17,6 @@ value for each attribute except 'config.dst_ip' and 'config.src_ip':
 !         period_sec="5"
 !         verbose="no"
 !         count="5" />
-
 
 This is a short description of the tags and attributes:
 
@@ -50,7 +40,7 @@ This is a short description of the tags and attributes:
 
 
 Sessions
-########
+~~~~~~~~
 
 This is an overview of the sessions required and provided by the
 component apart from the environment sessions:
