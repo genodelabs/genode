@@ -1,12 +1,3 @@
-
-                         ==========================
-                         Convenient tracing fronted
-                         ==========================
-
-
-Brief
-#####
-
 The 'trace_logger' component can be used to easily gather, process and export
 different types of tracing data. Which subjects to select is configurable via
 session label policies and thread names. Which data to collect from the
@@ -16,7 +7,7 @@ output.
 
 
 Configuration
-#############
+~~~~~~~~~~~~~
 
 This is an example configuration of the 'trace_logger' component which shows
 the default value for each attribute except the policy.thread and
@@ -90,7 +81,7 @@ This is a short description of the tags and attributes:
 
 
 Sessions
-########
+~~~~~~~~
 
 This is an overview of the sessions required and provided by the
 'trace_logger' component apart from the environment sessions:
