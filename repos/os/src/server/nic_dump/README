@@ -1,12 +1,3 @@
-
-                      ==================================
-                      Component for tracking NIC traffic
-                      ==================================
-
-
-Brief
-#####
-
 The 'nic_dump' component is a bump-in-the-wire component for the NIC service
 that does deep packet inspection for each passing packet and dumps the
 gathered information to the log. This includes information about Ethernet,
@@ -14,7 +5,7 @@ ARP, IPv4, TCP, UDP, and DHCP.
 
 
 Basics
-######
+~~~~~~
 
 The component knows three configuration attributes:
 
