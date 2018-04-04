@@ -1,12 +1,3 @@
-
-                       =================================
-                       Component for routing NIC packets
-                       =================================
-
-
-Brief
-#####
-
 The 'nic_router' component can be used to achieve a controlled mediation
 between multiple NIC sessions on network or transport level. NIC sessions are
 assigned to domains. The rules configured by the user then mediate between
@@ -26,7 +17,7 @@ these domains. This is a brief overview of the features thereby provided:
 
 
 Basics
-######
+~~~~~~
 
 The 'nic_router' component provides multiple sessions of the 'NIC' service
 (downlinks) while requesting one 'NIC' session (the uplink) itself. Through
@@ -144,7 +135,7 @@ choice, however, is always deterministic. It follows this priority scheme:
 
 
 IP rules
-########
+~~~~~~~~
 
 These are examples for IP rules:
 
@@ -168,7 +159,7 @@ combination of IP rules and NAT only with great care.
 
 
 ICMP rules
-##########
+~~~~~~~~~~
 
 These are examples for ICMP rules:
 
@@ -197,7 +188,7 @@ The router also forwards ICMP errors. This is described in section
 
 
 TCP and UDP rules
-#################
+~~~~~~~~~~~~~~~~~
 
 TCP and UDP rules must always be accompanied by one or more port permission
 rules to get effective:
@@ -230,7 +221,7 @@ to change back the destination of the replies.
 
 
 Port-forwarding rules
-#####################
+~~~~~~~~~~~~~~~~~~~~~
 
 These are examples for port-forwarding rules:
 
@@ -261,7 +252,7 @@ and port are translated.
 
 
 Link states
-###########
+~~~~~~~~~~~
 
 Each time a packet gets routed by using a TCP, UDP, ICMP or port-forwarding
 rule, the router creates a link state. From then on, all packets that belong
@@ -315,7 +306,7 @@ that contains the ICMP.
 
 
 Configuring NAT
-###############
+~~~~~~~~~~~~~~~
 
 In contrast to routing rules that affect packets coming from their domain,
 NAT rules affect packets that go to their domain:
@@ -358,7 +349,7 @@ its ports or IDs.
 
 
 Configuring DHCP server functionality
-#####################################
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 One can configure the NIC router to act as DHCP server at interfaces of a
 domain by adding the <dhcp> tag to the configuration of the domain like
@@ -396,7 +387,7 @@ by the client in time.
 
 
 Configuring DHCP client functionality
-#####################################
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If the attribute 'interface' is not set in a 'domain' tag, the router tries to
 dynamically receive and maintain an IP configuration for that domain by using
@@ -421,7 +412,7 @@ router:
 
 
 Configuring reporting functionality
-###################################
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The NIC router can be configured to periodically send reports.
 
@@ -442,7 +433,7 @@ The attributes of the 'report' tag:
 
 
 Verbosity
-#########
+~~~~~~~~~
 
 This is how you can configure the routers verbosity on its environment LOG
 session:
@@ -470,7 +461,7 @@ sent at a specific domain (ETH, IPv4, ARP, UDP, TCP, DHCP, ICMP).
 
 
 Examples
-########
+~~~~~~~~
 
 This section will list and explain some interesting configuration snippets. A
 comprehensive example of how to use the router (except DHCP server
@@ -488,7 +479,7 @@ Your home network is connected to the internet through its standard gateway
 
 
 Connecting local networks
-=========================
+-------------------------
 
 Let's assume we simply want the virtual networks and the home network to be
 able to talk to each other. Furthermore, the virtual networks shall be able to
@@ -527,7 +518,7 @@ networks.
 
 
 Clients in a private network
-============================
+----------------------------
 
 Now we have some clients in Virtnet A that like to talk to the internet as
 well as to the home network. We want them to be hidden via NAT when they do so
@@ -563,7 +554,7 @@ uplink where, again, NAT is applied and the packets are sent to the gateway
 
 
 Servers in a private network
-============================
+----------------------------
 
 In this example, we assume that there are three servers in Virtnet A. An HTTP
 server at port 80 with IP 192.168.1.2, a GOPHER server at port 70 with IP
