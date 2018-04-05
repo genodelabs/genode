@@ -101,7 +101,7 @@ class Nitpicker::Session_component : public  Rpc_object<Session>,
 
 		Font const &_font;
 
-		Focus_controller &_focus_controller;
+		Focus_updater &_focus_updater;
 
 		Signal_context_capability _mode_sigh { };
 
@@ -135,6 +135,8 @@ class Nitpicker::Session_component : public  Rpc_object<Session>,
 
 		Visibility_controller &_visibility_controller;
 
+		Session_component *_forwarded_focus = nullptr;
+
 		/**
 		 * Calculate session-local coordinate to physical screen position
 		 *
@@ -157,8 +159,6 @@ class Nitpicker::Session_component : public  Rpc_object<Session>,
 		 */
 		bool _views_are_equal(View_handle, View_handle);
 
-		bool _focus_change_permitted() const;
-
 		void _execute_command(Command const &);
 
 		void _destroy_view(View_component &);
@@ -169,7 +169,7 @@ class Nitpicker::Session_component : public  Rpc_object<Session>,
 		                  Session_label   const &label,
 		                  View_stack            &view_stack,
 		                  Font            const &font,
-		                  Focus_controller      &focus_controller,
+		                  Focus_updater         &focus_updater,
 		                  View_component        &pointer_origin,
 		                  View_component        &builtin_background,
 		                  Framebuffer::Session  &framebuffer,
@@ -184,7 +184,7 @@ class Nitpicker::Session_component : public  Rpc_object<Session>,
 			_session_alloc(&session_alloc, ram_quota),
 			_framebuffer(framebuffer),
 			_framebuffer_session_component(view_stack, *this, framebuffer, *this),
-			_view_stack(view_stack), _font(font), _focus_controller(focus_controller),
+			_view_stack(view_stack), _font(font), _focus_updater(focus_updater),
 			_pointer_origin(pointer_origin),
 			_builtin_background(builtin_background),
 			_framebuffer_session_cap(_env.ep().manage(_framebuffer_session_component)),
@@ -295,6 +295,8 @@ class Nitpicker::Session_component : public  Rpc_object<Session>,
 				xml.attribute("domain", _domain->name());
 		}
 
+		View_owner &forwarded_focus() override;
+
 
 		/****************************************
 		 ** Interface used by the main program **
@@ -344,6 +346,12 @@ class Nitpicker::Session_component : public  Rpc_object<Session>,
 		void submit_sync()
 		{
 			_framebuffer_session_component.submit_sync();
+		}
+
+		void forget(Session_component &session)
+		{
+			if (_forwarded_focus == &session)
+				_forwarded_focus = nullptr;
 		}
 
 

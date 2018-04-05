@@ -297,21 +297,22 @@ struct Nitpicker::Session : Genode::Session
 	/**
 	 * Set focused session
 	 *
-	 * Normally, the focused session is defined by the user by clicking on a
-	 * view. The 'focus' method allows a client to set the focus without user
-	 * action. However, the change of the focus is performed only is the
-	 * currently focused session belongs to a child or the same process as the
-	 * called session. This relationship is checked by comparing the session
-	 * labels of the currently focused session and the caller. This way, a
-	 * common parent can manage the focus among its child processes. But a
-	 * session cannot steal the focus from an unrelated session.
+	 * Normally, the focused session is defined by the 'focus' ROM, which is
+	 * driven by an external policy component. However, in cases where one
+	 * application consists of multiple nitpicker sessions, it is desirable to
+	 * let the application manage the focus among its sessions by applying an
+	 * application-local policy. The 'focus' RPC function allows a client to
+	 * specify another client that should receive the focus whenever the
+	 * session becomes focused. As the designated receiver of the focus is
+	 * referred to by its session capability, a common parent can manage the
+	 * focus among its children. But unrelated sessions cannot interfere.
 	 */
 	virtual void focus(Genode::Capability<Session> focused) = 0;
 
 	typedef Genode::String<160> Label;
 
 	enum Session_control { SESSION_CONTROL_HIDE, SESSION_CONTROL_SHOW,
-		                   SESSION_CONTROL_TO_FRONT };
+	                       SESSION_CONTROL_TO_FRONT };
 
 	/**
 	 * Perform control operation on one or multiple sessions

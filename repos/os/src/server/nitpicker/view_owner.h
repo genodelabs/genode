@@ -93,6 +93,11 @@ struct Nitpicker::View_owner : Interface
 	 * Produce report with the owner's information
 	 */
 	virtual void report(Xml_generator &) const { }
+
+	/**
+	 * Recipient of the focus whenever this view owner becomes focused
+	 */
+	virtual View_owner &forwarded_focus() { return *this; }
 };
 
 #endif /* _VIEW_OWNER_H_ */

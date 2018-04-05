@@ -27,7 +27,7 @@
 namespace Nitpicker { class User_state; }
 
 
-class Nitpicker::User_state : public Focus_controller
+class Nitpicker::User_state
 {
 	private:
 
@@ -125,8 +125,6 @@ class Nitpicker::User_state : public Focus_controller
 
 		} _key_array { };
 
-		bool _focus_change_permitted(View_owner const &caller) const;
-
 		void _focus_view_owner_via_click(View_owner &);
 
 		void _handle_input_event(Input::Event);
@@ -170,30 +168,6 @@ class Nitpicker::User_state : public Focus_controller
 		:
 			_focus(focus), _global_keys(global_keys), _view_stack(view_stack)
 		{ }
-
-
-		/********************************
-		 ** Focus_controller interface **
-		 ********************************/
-
-		void focus_view_owner(View_owner const &caller,
-		                      View_owner &next_focused) override
-		{
-			/* check permission by comparing session labels */
-			if (!_focus_change_permitted(caller)) {
-				warning("unauthorized focus change requesed by ", caller.label());
-				return;
-			}
-
-			/*
-			 * To avoid changing the focus in the middle of a drag operation,
-			 * we cannot perform the focus change immediately. Instead, it
-			 * comes into effect via the 'apply_pending_focus_change()' method
-			 * called the next time when the user input is handled and no drag
-			 * operation is in flight.
-			 */
-			_next_focused = &next_focused;
-		}
 
 
 		/****************************************

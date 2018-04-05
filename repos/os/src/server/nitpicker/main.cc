@@ -33,9 +33,6 @@
 #include "domain_registry.h"
 
 namespace Nitpicker {
-
-	struct Focus_updater : Interface { virtual void update_focus() = 0; };
-
 	template <typename> class Root;
 	struct Main;
 }
@@ -106,7 +103,7 @@ class Nitpicker::Root : public Root_component<Session_component>,
 			bool const provides_default_bg = (label == "backdrop");
 
 			Session_component *session = new (md_alloc())
-				Session_component(_env, label, _view_stack, _font, _user_state,
+				Session_component(_env, label, _view_stack, _font, _focus_updater,
 				                  _pointer_origin, _builtin_background, _framebuffer,
 				                  provides_default_bg, *md_alloc(), unused_quota,
 				                  _focus_reporter, *this);
@@ -127,6 +124,10 @@ class Nitpicker::Root : public Root_component<Session_component>,
 
 		void _destroy_session(Session_component *session)
 		{
+			/* invalidate pointers held by other sessions to the destroyed session */
+			for (Session_component *s = _session_list.first(); s; s = s->next())
+				s->forget(*session);
+
 			_session_list.remove(session);
 			_global_keys.apply_config(_config.xml(), _session_list);
 
@@ -482,14 +483,16 @@ void Nitpicker::Main::_handle_focus()
 	typedef Session::Label Label;
 	Label const label = _focus_rom->xml().attribute_value("label", Label());
 
-	/* determine session that matches the label found in the focus ROM */
+	/*
+	 * Determine session that matches the label found in the focus ROM
+	 */
 	View_owner *next_focus = nullptr;
 	for (Session_component *s = _session_list.first(); s; s = s->next())
 		if (s->label() == label)
 			next_focus = s;
 
 	if (next_focus)
-		_user_state.focus(*next_focus);
+		_user_state.focus(next_focus->forwarded_focus());
 	else
 		_user_state.reset_focus();
 }

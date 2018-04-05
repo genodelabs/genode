@@ -174,7 +174,7 @@ void User_state::_handle_input_event(Input::Event ev)
 			}
 
 			if (_hovered->has_transient_focusable_domain()) {
-				global_receiver = _hovered;
+				global_receiver = &_hovered->forwarded_focus();
 			} else {
 				/*
 				 * Distinguish the use of the builtin focus switching and the
@@ -187,9 +187,9 @@ void User_state::_handle_input_event(Input::Event ev)
 				 * methods.
 				 */
 				if (_focus_via_click)
-					_focus_view_owner_via_click(*_hovered);
+					_focus_view_owner_via_click(_hovered->forwarded_focus());
 				else
-					global_receiver = _hovered;
+					global_receiver = &_hovered->forwarded_focus();
 
 				_last_clicked = _hovered;
 			}
@@ -419,37 +419,6 @@ void User_state::forget(View_owner const &owner)
 
 	if (need_to_update_all_views)
 		_view_stack.update_all_views();
-}
-
-
-bool User_state::_focus_change_permitted(View_owner const &caller) const
-{
-	/*
-	 * If no session is focused, we allow any client to assign it. This
-	 * is useful for programs such as an initial login window that
-	 * should receive input events without prior manual selection via
-	 * the mouse.
-	 *
-	 * In principle, a client could steal the focus during time between
-	 * a currently focused session gets closed and before the user
-	 * manually picks a new session. However, in practice, the focus
-	 * policy during application startup and exit is managed by a
-	 * window manager that sits between nitpicker and the application.
-	 */
-	if (!_focused)
-		return true;
-
-	/*
-	 * Check if the currently focused session label belongs to a
-	 * session subordinated to the caller, i.e., it originated from
-	 * a child of the caller or from the same process. This is the
-	 * case if the first part of the focused session label is
-	 * identical to the caller's label.
-	 */
-	char const * const focused_label = _focused->label().string();
-	char const * const caller_label  = caller.label().string();
-
-	return strcmp(focused_label, caller_label, strlen(caller_label)) == 0;
 }
 
 

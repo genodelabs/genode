@@ -19,7 +19,7 @@
 
 namespace Nitpicker {
 	struct Focus;
-	struct Focus_controller;
+	struct Focus_updater : Interface { virtual void update_focus() = 0; };
 }
 
 
@@ -72,17 +72,6 @@ class Nitpicker::Focus : Noncopyable
 			if (_focused == &owner)
 				_focused = nullptr;
 		}
-};
-
-
-/**
- * Interface used by a nitpicker client to assign the focus to a session of
- * one of its child components (according to the session labels)
- */
-struct Nitpicker::Focus_controller : Interface
-{
-	virtual void focus_view_owner(View_owner const &caller,
-	                              View_owner &next_focused) = 0;
 };
 
 #endif /* _FOCUS_H_ */

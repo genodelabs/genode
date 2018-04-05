@@ -48,6 +48,36 @@ bool Session_component::_views_are_equal(View_handle v1, View_handle v2)
 }
 
 
+View_owner &Session_component::forwarded_focus()
+{
+	Session_component *next_focus = this;
+
+	/* helper used for detecting cycles */
+	Session_component *next_focus_slow = next_focus;
+
+	for (bool odd = false; ; odd = !odd) {
+
+		/* we found the final focus once the forwarding stops */
+		if (!next_focus->_forwarded_focus)
+			break;
+
+		next_focus = next_focus->_forwarded_focus;
+
+		/* advance 'next_focus_slow' every odd iteration only */
+		if (odd)
+			next_focus_slow = next_focus_slow->_forwarded_focus;
+
+		/* a cycle is detected if 'next_focus' laps 'next_focus_slow' */
+		if (next_focus == next_focus_slow) {
+			error("cyclic focus forwarding by ", next_focus->label());
+			break;
+		}
+	}
+
+	return *next_focus;
+}
+
+
 void Session_component::_execute_command(Command const &command)
 {
 	switch (command.opcode) {
@@ -407,11 +437,13 @@ void Session_component::focus(Capability<Nitpicker::Session> session_cap)
 	if (this->cap() == session_cap)
 		return;
 
-	Session_component const &caller = *this;
+	_forwarded_focus = nullptr;
 
 	_env.ep().rpc_ep().apply(session_cap, [&] (Session_component *session) {
 		if (session)
-			_focus_controller.focus_view_owner(caller, *session); });
+			_forwarded_focus = session; });
+
+	_focus_updater.update_focus();
 }
 
 
