@@ -68,7 +68,7 @@ Net::Session_component::Session_component(Allocator         &alloc,
 	                   env.ep().rpc_ep()),
 	Interface(env.ep(), config.attribute_value("downlink", Interface_label()),
 	          timer, curr_time, config.attribute_value("time", false),
-	          _guarded_alloc),
+	          _guarded_alloc, config),
 	_uplink(env, config, timer, curr_time, alloc),
 	_link_state_handler(env.ep(), *this, &Session_component::_handle_link_state)
 {

@@ -17,6 +17,7 @@
 /* Genode includes */
 #include <net/ethernet.h>
 #include <packet_log.h>
+#include <util/xml_node.h>
 
 using namespace Net;
 using namespace Genode;
@@ -29,7 +30,6 @@ void Net::Interface::_handle_eth(void              *const  eth_base,
 	try {
 		Ethernet_frame &eth = *reinterpret_cast<Ethernet_frame *>(eth_base);
 		Interface &remote = _remote.deref();
-		Packet_log_config log_cfg;
 
 		if (_log_time) {
 			Genode::Duration const new_time    = _timer.curr_time();
@@ -37,12 +37,13 @@ void Net::Interface::_handle_eth(void              *const  eth_base,
 			unsigned long    const old_time_ms = _curr_time.trunc_to_plain_us().value / 1000;
 
 			log("\033[33m(", remote._label, " <- ", _label, ")\033[0m ",
-			    packet_log(eth, log_cfg), " \033[33mtime ", new_time_ms,
+			    packet_log(eth, _log_cfg), " \033[33mtime ", new_time_ms,
 			    " ms (Δ ", new_time_ms - old_time_ms, " ms)\033[0m");
 
 			_curr_time = new_time;
 		} else {
-			log("\033[33m(", remote._label, " <- ", _label, ")\033[0m ",  packet_log(eth, log_cfg));
+			log("\033[33m(", remote._label, " <- ", _label, ")\033[0m ", 
+			    packet_log(eth, _log_cfg));
 		}
 		remote._send(eth, eth_size);
 	}
@@ -95,12 +96,23 @@ Net::Interface::Interface(Entrypoint        &ep,
                           Timer::Connection &timer,
                           Duration          &curr_time,
                           bool               log_time,
-                          Allocator         &alloc)
+                          Allocator         &alloc,
+                          Xml_node           config)
 :
-	_sink_ack     (ep, *this, &Interface::_ack_avail),
-	_sink_submit  (ep, *this, &Interface::_ready_to_submit),
-	_source_ack   (ep, *this, &Interface::_ready_to_ack),
-	_source_submit(ep, *this, &Interface::_packet_avail),
-	_alloc(alloc), _label(label), _timer(timer), _curr_time(curr_time),
-	_log_time(log_time)
+	_sink_ack      { ep, *this, &Interface::_ack_avail },
+	_sink_submit   { ep, *this, &Interface::_ready_to_submit },
+	_source_ack    { ep, *this, &Interface::_ready_to_ack },
+	_source_submit { ep, *this, &Interface::_packet_avail },
+	_alloc         { alloc },
+	_label         { label },
+	_timer         { timer },
+	_curr_time     { curr_time },
+	_log_time      { log_time },
+	_log_cfg       { config.attribute_value("eth",  Packet_log_style::DEFAULT),
+	                 config.attribute_value("arp",  Packet_log_style::DEFAULT),
+	                 config.attribute_value("ipv4", Packet_log_style::DEFAULT),
+	                 config.attribute_value("dhcp", Packet_log_style::DEFAULT),
+	                 config.attribute_value("udp",  Packet_log_style::DEFAULT),
+	                 config.attribute_value("icmp", Packet_log_style::DEFAULT),
+	                 config.attribute_value("tcp",  Packet_log_style::DEFAULT) }
 { }

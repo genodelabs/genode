@@ -59,7 +59,16 @@ append config {
 	<start name="nic_dump" priority="-1">
 		<resource name="RAM" quantum="6M"/>
 		<provides><service name="Nic"/></provides>
-		<config uplink="bridge" downlink="router" time="yes"/>
+		<config uplink="bridge"
+		        downlink="router"
+		        time="yes"
+		        eth="name"
+		        arp="all"
+		        ipv4="default"
+		        dhcp="no"
+		        udp="no"
+		        icmp="all"
+		        tcp="default" />
 		<route>
 			<service name="Nic"> <child name="nic_bridge"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>

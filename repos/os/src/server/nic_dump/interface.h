@@ -16,11 +16,14 @@
 
 /* local includes */
 #include <pointer.h>
+#include <packet_log.h>
 
 /* Genode includes */
 #include <nic_session/nic_session.h>
 #include <util/string.h>
 #include <timer_session/connection.h>
+
+namespace Genode { class Xml_node; }
 
 namespace Net {
 
@@ -46,12 +49,13 @@ class Net::Interface
 
 	private:
 
-		Genode::Allocator  &_alloc;
-		Pointer<Interface>  _remote { };
-		Interface_label     _label;
-		Timer::Connection  &_timer;
-		Genode::Duration   &_curr_time;
-		bool                _log_time;
+		Genode::Allocator       &_alloc;
+		Pointer<Interface>       _remote { };
+		Interface_label          _label;
+		Timer::Connection       &_timer;
+		Genode::Duration        &_curr_time;
+		bool                     _log_time;
+		Packet_log_config const  _log_cfg;
 
 		void _send(Ethernet_frame &eth, Genode::size_t const eth_size);
 
@@ -80,7 +84,8 @@ class Net::Interface
 		          Timer::Connection  &timer,
 		          Genode::Duration   &curr_time,
 		          bool                log_time,
-		          Genode::Allocator  &alloc);
+		          Genode::Allocator  &alloc,
+		          Genode::Xml_node    config);
 
 		virtual ~Interface() { }
 

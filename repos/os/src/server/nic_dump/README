@@ -7,14 +7,31 @@ ARP, IPv4, TCP, UDP, and DHCP.
 Basics
 ~~~~~~
 
-The component knows three configuration attributes:
+this is an example configuration of the component showing all attributes with
+their default values (except config.uplink and config.downlink):
 
-! <config uplink="karl" downlink="olivia" time="yes"/>
+! <config uplink="uplink"
+!         downlink="downlink"
+!         time="no"
+!         eth="default"
+!         arp="default"
+!         ipv4="default"
+!         dhcp="default"
+!         udp="default"
+!         icmp="default"
+!         tcp="default" />
 
 The values of the 'uplink' and 'downlink' attributes are used as log labels
 for the two NIC peers. These labels are only relevant for the readability of
-the log. The third attribute 'time' defines wether to print timing
-information or not.
+the log. The third attribute 'time' defines wether to print timing information
+or not. Furthemore, as you can see, each supported protocol has an attribute
+with the name of the protocol in the config tag. Each of these attributes
+accepts one of four possible values:
+
+* no      - do not print out this protocol
+* name    - print only the protocol name
+* default - print a short summary of the most important header values
+* all     - print all available header values
 
 An example output snippet of the component might be:
 
