@@ -34,7 +34,9 @@ class Net::Icmp_packet
 			Genode::uint32_t _rest_of_header_u32[1];
 			Genode::uint16_t _rest_of_header_u16[2];
 			Genode::uint8_t  _rest_of_header_u8[4];
-		};
+
+		} __attribute__((packed));
+
 		Genode::uint8_t _data[0];
 
 	public:
@@ -90,6 +92,7 @@ class Net::Icmp_packet
 		 *********/
 
 		void print(Genode::Output &output) const;
-};
+
+} __attribute__((packed));
 
 #endif /* _NET__ICMP_H_ */
