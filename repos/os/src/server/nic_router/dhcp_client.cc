@@ -18,11 +18,36 @@
 #include <configuration.h>
 #include <size_guard.h>
 
+enum { PKT_SIZE = 1024 };
+
 using namespace Genode;
 using namespace Net;
 using Message_type       = Dhcp_packet::Message_type;
 using Drop_packet_inform = Net::Interface::Drop_packet_inform;
+using Size_guard         = Size_guard_tpl<PKT_SIZE, Net::Interface::Send_buffer_too_small>;
+using Dhcp_options       = Dhcp_packet::Options_aggregator<Size_guard>;
 
+
+/***************
+ ** Utilities **
+ ***************/
+
+void append_param_req_list(Dhcp_options &dhcp_opts)
+{
+	dhcp_opts.append_param_req_list([&] (Dhcp_options::Parameter_request_list_data &data) {
+		data.append_param_req<Dhcp_packet::Message_type_option>();
+		data.append_param_req<Dhcp_packet::Server_ipv4>();
+		data.append_param_req<Dhcp_packet::Ip_lease_time>();
+		data.append_param_req<Dhcp_packet::Dns_server_ipv4>();
+		data.append_param_req<Dhcp_packet::Subnet_mask>();
+		data.append_param_req<Dhcp_packet::Router_ipv4>();
+	});
+}
+
+
+/*****************
+ ** Dhcp_client **
+ *****************/
 
 Configuration &Dhcp_client::_config() { return _domain().config(); };
 
@@ -175,8 +200,6 @@ void Dhcp_client::_send(Message_type msg_type,
                         Ipv4_address server_ip,
                         Ipv4_address requested_ip)
 {
-	enum { PKT_SIZE = 1024 };
-	using Size_guard = Size_guard_tpl<PKT_SIZE, Interface::Send_buffer_too_small>;
 	Mac_address client_mac = _interface.router_mac();
 	_interface.send(PKT_SIZE, [&] (void *pkt_base) {
 
@@ -233,17 +256,17 @@ void Dhcp_client::_send(Message_type msg_type,
 		dhcp.default_magic_cookie();
 
 		/* append DHCP option fields to the request */
-		Dhcp_packet::Options_aggregator<Size_guard>
-			dhcp_opts(dhcp, size);
+		Dhcp_options dhcp_opts(dhcp, size);
 		dhcp_opts.append_option<Dhcp_packet::Message_type_option>(msg_type);
-
 		switch (msg_type) {
 		case Message_type::DISCOVER:
+			append_param_req_list(dhcp_opts);
 			dhcp_opts.append_option<Dhcp_packet::Client_id>(client_mac);
 			dhcp_opts.append_option<Dhcp_packet::Max_msg_size>(PKT_SIZE - dhcp_off);
 			break;
 
 		case Message_type::REQUEST:
+			append_param_req_list(dhcp_opts);
 			dhcp_opts.append_option<Dhcp_packet::Client_id>(client_mac);
 			dhcp_opts.append_option<Dhcp_packet::Max_msg_size>(PKT_SIZE - dhcp_off);
 			if (_state == State::REQUEST) {
