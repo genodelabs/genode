@@ -228,6 +228,12 @@ struct Nitpicker::Main : Focus_updater
 
 	Reconstructible<Framebuffer_screen> _fb_screen = { _env.rm(), _framebuffer };
 
+	Point _initial_pointer_pos()
+	{
+		Area const scr_size = _fb_screen->screen.size();
+		return Point(scr_size.w()/2, scr_size.h()/2);
+	}
+
 	void _handle_fb_mode();
 
 	Signal_handler<Main> _fb_mode_handler = { _env.ep(), *this, &Main::_handle_fb_mode };
@@ -250,7 +256,7 @@ struct Nitpicker::Main : Focus_updater
 
 	Focus      _focus { };
 	View_stack _view_stack { _fb_screen->screen.size(), _focus };
-	User_state _user_state { _focus, _global_keys, _view_stack };
+	User_state _user_state { _focus, _global_keys, _view_stack, _initial_pointer_pos() };
 
 	View_owner _global_view_owner { };
 
@@ -361,6 +367,7 @@ struct Nitpicker::Main : Focus_updater
 	{
 		_view_stack.default_background(_builtin_background);
 		_view_stack.stack(_pointer_origin);
+		_view_stack.geometry(_pointer_origin, Rect(_user_state.pointer_pos(), Area()));
 		_view_stack.stack(_builtin_background);
 
 		_config_rom.sigh(_config_handler);

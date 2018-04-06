@@ -78,7 +78,7 @@ class Nitpicker::User_state
 		/*
 		 * Current pointer position
 		 */
-		Point _pointer_pos { };
+		Point _pointer_pos;
 
 		/*
 		 * Currently pointed-at view owner
@@ -164,9 +164,11 @@ class Nitpicker::User_state
 		 * \param focus  exported focus information, to be consumed by the
 		 *               view stack to tailor its view drawing operations
 		 */
-		User_state(Focus &focus, Global_keys &global_keys, View_stack &view_stack)
+		User_state(Focus &focus, Global_keys &global_keys, View_stack &view_stack,
+		           Point initial_pointer_pos)
 		:
-			_focus(focus), _global_keys(global_keys), _view_stack(view_stack)
+			_focus(focus), _global_keys(global_keys), _view_stack(view_stack),
+			_pointer_pos(initial_pointer_pos)
 		{ }
 
 
