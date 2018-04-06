@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+	<xs:simpleType name="Interface_label">
+		<xs:restriction base="xs:string">
+			<xs:minLength value="1"/>
+			<xs:maxLength value="64"/>
+		</xs:restriction>
+	</xs:simpleType><!-- Interface_label -->
+
+	<xs:simpleType name="Boolean">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="true" />
+			<xs:enumeration value="yes" />
+			<xs:enumeration value="1" />
+			<xs:enumeration value="false" />
+			<xs:enumeration value="no" />
+			<xs:enumeration value="0" />
+		</xs:restriction>
+	</xs:simpleType><!-- Boolean -->
+
+	<xs:simpleType name="Log_style">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="no" />
+			<xs:enumeration value="name" />
+			<xs:enumeration value="default" />
+			<xs:enumeration value="all" />
+		</xs:restriction>
+	</xs:simpleType><!-- Log_style -->
+
+	<xs:element name="config">
+		<xs:complexType>
+			<xs:attribute name="uplink"   type="Interface_label" />
+			<xs:attribute name="downlink" type="Interface_label" />
+			<xs:attribute name="time"     type="Boolean" />
+			<xs:attribute name="default"  type="Log_style" />
+			<xs:attribute name="eth"      type="Log_style" />
+			<xs:attribute name="ipv4"     type="Log_style" />
+			<xs:attribute name="arp"      type="Log_style" />
+			<xs:attribute name="icmp"     type="Log_style" />
+			<xs:attribute name="udp"      type="Log_style" />
+			<xs:attribute name="tcp"      type="Log_style" />
+			<xs:attribute name="dhcp"     type="Log_style" />
+		</xs:complexType>
+	</xs:element><!-- config -->
+
+</xs:schema>
