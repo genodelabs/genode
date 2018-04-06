@@ -53,9 +53,9 @@ install_config {
 	<start name="nitpicker">
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Nitpicker"/></provides>
-		<config>
+		<config focus="rom">
 			<domain name="pointer" layer="1" content="client" label="no" origin="pointer" />
-			<domain name="default" layer="2" content="client" label="no" hover="always" focus="click" />
+			<domain name="default" layer="2" content="client" label="no" hover="always"/>
 
 			<policy label_prefix="pointer" domain="pointer"/>
 			<default-policy domain="default"/>
@@ -71,7 +71,7 @@ install_config {
 	</start>
 
 	<start name="wm" caps="1000">
-		<resource name="RAM" quantum="24M"/>
+		<resource name="RAM" quantum="32M"/>
 		<binary name="init"/>
 		<provides> <service name="Nitpicker"/> </provides>
 		<route>
@@ -81,19 +81,20 @@ install_config {
 		</route>
 	</start>
 
-	<start name="launchpad" priority="-1" caps="500">
+	<start name="launchpad" priority="-1" caps="1000">
 		<resource name="RAM" quantum="20M"/>
 		<config>
-			<launcher name="nit_fb" ram_quota="7M" caps="30">
+			<launcher name="nit_fb" ram_quota="7M" caps="100">
 				<config width="500" height="400" />
 			</launcher>
-			<launcher name="nitpicker" ram_quota="1M" caps="50">
+			<launcher name="nitpicker" ram_quota="1M" caps="100">
 				<config>
-					<domain name="default" layer="2" />
+					<domain name="default" layer="2" content="client"
+					        label="no" hover="always" focus="click"/>
 					<default-policy domain="default"/>
 				</config>
 			</launcher>
-			<launcher name="testnit" ram_quota="768K" caps="30"/>
+			<launcher name="testnit" ram_quota="1M" caps="100"/>
 		</config>
 		<route>
 			<any-service> <child name="wm"/> <parent/> <any-child/>
@@ -140,7 +141,15 @@ install_config {
 	</start>
 </config>}
 
-build_boot_image { }
+#
+# Pin the nitpicker focus to the window manager by providing a static focus ROM
+#
+set fd [open [run_dir]/genode/focus w]
+puts $fd "<focus label=\"wm -> wm -> \"/>"
+close $fd
 
+build { server/nitpicker server/wm test/nitpicker }
+
+build_boot_image { nitpicker wm testnit }
 
 run_genode_until forever
