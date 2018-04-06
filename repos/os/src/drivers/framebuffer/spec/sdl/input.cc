@@ -146,14 +146,20 @@ static Input::Event wait_for_sdl_event()
 
 	SDL_Event event;
 	static int mx, my;
-	static int ox, oy;
 
 	SDL_WaitEvent(&event);
 
 	/* query new mouse position */
-	ox = mx; oy = my;
-	if (event.type == SDL_MOUSEMOTION)
+	if (event.type == SDL_MOUSEMOTION) {
+		int ox = mx, oy = my;
 		SDL_GetMouseState(&mx, &my);
+
+		/* drop superficial events */
+		if (ox == mx && oy == my)
+			return Event();
+
+		return Event(Event::MOTION, 0, mx, my, mx - ox, my - oy);
+	}
 
 	/* determine keycode */
 	long keycode = 0;
@@ -176,11 +182,8 @@ static Input::Event wait_for_sdl_event()
 	}
 
 	/* determine event type */
-	Event::Type type;
+	Event::Type type = Event::INVALID;
 	switch (event.type) {
-	case SDL_MOUSEMOTION:
-		type = Event::MOTION;
-		break;
 
 	case SDL_KEYUP:
 	case SDL_MOUSEBUTTONUP:
@@ -208,7 +211,7 @@ static Input::Event wait_for_sdl_event()
 		return Event();
 	}
 
-	return Event(type, keycode, mx, my, mx - ox, my - oy);
+	return Event(type, keycode, 0, 0, 0, 0);
 }
 
 
