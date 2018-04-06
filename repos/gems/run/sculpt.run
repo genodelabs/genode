@@ -544,9 +544,18 @@ append depot_deploy_config {
 		<service name="Timer"> <parent/> </service>
 	</common_routes>
 
-	<start name="nit_focus" pkg="} [depot_user]/pkg/[current_pkg nit_focus] {">
+	<start name="focus_rom" pkg="} [depot_user]/pkg/[current_pkg rom_filter] {">
+		<config>
+			<output node="focus">
+				<attribute name="label" value="runtime -> dynamic -> wm -> wm -> "/>
+			</output>
+		</config>
+	</start>
+
+	<start name="focus_reporter" pkg="} [depot_user]/pkg/[current_pkg rom_reporter] {">
+		<config> <rom label="focus"/> </config>
 		<route>
-			<service name="ROM"  label="clicked"> <parent label="clicked"/> </service>
+			<service name="ROM" label="focus"> <child name="focus_rom"/> </service>
 			<service name="Report" label="focus"> <parent label="focus"/> </service>
 		</route>
 	</start>
