@@ -1,0 +1,12 @@
+<runtime ram="1M" caps="100" binary="rom_reporter">
+
+	<requires> <rom/> <report/> </requires>
+
+	<config/>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="rom_reporter"/>
+	</content>
+
+</runtime>
