@@ -13,6 +13,7 @@ their default values (except config.uplink and config.downlink):
 ! <config uplink="uplink"
 !         downlink="downlink"
 !         time="no"
+!         default="default"
 !         eth="default"
 !         arp="default"
 !         ipv4="default"
@@ -32,6 +33,9 @@ accepts one of four possible values:
 * name    - print only the protocol name
 * default - print a short summary of the most important header values
 * all     - print all available header values
+
+The 'default' attribute is useful to change the default value for protocol
+attributes that are not explicitely set.
 
 An example output snippet of the component might be:
 

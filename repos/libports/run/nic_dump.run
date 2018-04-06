@@ -62,6 +62,7 @@ append config {
 		<config uplink="bridge"
 		        downlink="router"
 		        time="yes"
+		        default="name"
 		        eth="name"
 		        arp="all"
 		        ipv4="default"

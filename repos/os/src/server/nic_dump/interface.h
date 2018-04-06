@@ -55,6 +55,7 @@ class Net::Interface
 		Timer::Connection       &_timer;
 		Genode::Duration        &_curr_time;
 		bool                     _log_time;
+		Packet_log_style  const  _default_log_style;
 		Packet_log_config const  _log_cfg;
 
 		void _send(Ethernet_frame &eth, Genode::size_t const eth_size);
