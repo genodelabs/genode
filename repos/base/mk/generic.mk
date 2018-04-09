@@ -7,7 +7,7 @@
 # Collect object files and avoid duplicates (by using 'sort')
 #
 SRC_O  += $(addprefix binary_,$(addsuffix .o,$(notdir $(SRC_BIN))))
-SRC     = $(sort $(SRC_C) $(SRC_CC) $(SRC_ADA) $(SRC_RS) $(SRC_S) $(SRC_O))
+SRC     = $(sort $(SRC_C) $(SRC_CC) $(SRC_ADA) $(SRC_RS) $(SRC_S) $(SRC_O) $(SRC_ADS))
 OBJECTS = $(addsuffix .o,$(basename $(SRC)))
 
 #
@@ -72,7 +72,11 @@ endif
 #
 %.o: %.adb
 	$(MSG_COMP)$@
-	$(VERBOSE)$(GNATMAKE) -q -c --GCC=$(CC) --RTS=$(PRG_DIR) $< -cargs $(CC_ADA_OPT) $(INCLUDES)
+	$(VERBOSE)$(GNATMAKE) -q -c --GCC=$(CC) --RTS=$(ADA_RTS) $< -cargs $(CC_ADA_OPT) $(INCLUDES)
+
+%.ali %.o: %.ads
+	$(MSG_COMP)$@
+	$(VERBOSE)$(CC) -c -gnatg -gnatp -gnatpg -gnatn2 -I- -I$(ADA_RTS_SOURCE) $<
 
 #
 # Compiling Rust sources
