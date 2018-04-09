@@ -34,12 +34,6 @@ int disable_irq(unsigned int irq)
 	return -1;
 }
 
-int disable_irq_nosync(unsigned int irq)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
 int disable_irq_wake(unsigned int irq)
 {
 	TRACE_AND_STOP;
@@ -57,12 +51,6 @@ void dst_release(struct dst_entry *dst)
 }
 
 int enable_irq_wake(unsigned int irq)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
-int enable_irq(unsigned int irq)
 {
 	TRACE_AND_STOP;
 	return -1;
@@ -170,48 +158,13 @@ struct timespec64 ns_to_timespec64(const s64 nsec)
 	return ret;
 }
 
-bool of_device_is_available(const struct device_node *device)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
-const void *of_get_mac_address(struct device_node *np)
-{
-	TRACE_AND_STOP;
-	return NULL;
-}
-
-int of_mdiobus_register(struct mii_bus *mdio, struct device_node *np)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
 struct device_node *of_node_get(struct device_node *node)
 {
 	TRACE_AND_STOP;
 	return NULL;
 }
 
-void of_node_put(struct device_node *node)
-{
-	TRACE_AND_STOP;
-}
-
-struct phy_device *of_phy_connect(struct net_device *dev, struct device_node *phy_np, void (*hndlr)(struct net_device *), u32 flags, int iface)
-{
-	TRACE_AND_STOP;
-	return NULL;
-}
-
 int of_phy_register_fixed_link(struct device_node *np)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
-int of_property_read_u32(const struct device_node *np, const char *propname, u32 *out_value)
 {
 	TRACE_AND_STOP;
 	return -1;
@@ -246,16 +199,6 @@ resource_size_t resource_size(const struct resource *res)
 	return -1;
 }
 
-void rtnl_lock(void)
-{
-	TRACE_AND_STOP;
-}
-
-void rtnl_unlock(void)
-{
-	TRACE_AND_STOP;
-}
-
 bool page_is_pfmemalloc(struct page *page)
 {
 	TRACE_AND_STOP;
@@ -284,12 +227,6 @@ unsigned int tcp_hdrlen(const struct sk_buff *skb)
 }
 
 u64 timecounter_cyc2time(struct timecounter *tc, cycle_t cycle_tstamp)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
-u64 timecounter_read(struct timecounter *tc)
 {
 	TRACE_AND_STOP;
 	return -1;
@@ -337,12 +274,6 @@ void put_device(struct device *dev)
 }
 
 int    strcmp(const char *s1, const char *s2)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
-int request_irq(unsigned int irq, irq_handler_t handler, unsigned long flags, const char *name, void *dev)
 {
 	TRACE_AND_STOP;
 	return -1;

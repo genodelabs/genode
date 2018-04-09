@@ -130,8 +130,7 @@ void Session_component::unblock_rx_task(napi_struct * n)
 
 Nic::Mac_address Session_component::mac_address()
 {
-	net_device * dev = fec_get_my_registered_net_device();
-	return dev ? Nic::Mac_address(dev->dev_addr) : Nic::Mac_address();
+	return _ndev ? Nic::Mac_address(_ndev->dev_addr) : Nic::Mac_address();
 }
 
 
@@ -170,11 +169,14 @@ void Session_component::link_state(bool link)
 }
 
 
-Session_component::Session_component(Genode::size_t const tx_buf_size,
-                                     Genode::size_t const rx_buf_size,
-                                     Genode::Allocator &  rx_block_md_alloc,
-                                     Genode::Env &        env)
+Session_component::Session_component(Genode::size_t const  tx_buf_size,
+                                     Genode::size_t const  rx_buf_size,
+                                     Genode::Allocator &   rx_block_md_alloc,
+                                     Genode::Env &         env,
+                                     Genode::Session_label label)
 : Nic::Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc, env),
-  _ndev(fec_get_my_registered_net_device()),
-  _has_link(!(_ndev->state & (1UL << __LINK_STATE_NOCARRIER))) {
-	_register_session_component(*this); }
+  _ndev(_register_session_component(*this, label)),
+  _has_link(_ndev ? !(_ndev->state & (1UL << __LINK_STATE_NOCARRIER)) : false)
+{
+	if (!_ndev) throw Genode::Service_denied();
+}

@@ -15,7 +15,6 @@
 #include <base/log.h>
 #include <base/component.h>
 #include <base/heap.h>
-#include <base/attached_rom_dataspace.h>
 
 #include <component.h>
 
@@ -31,6 +30,7 @@
 
 /* Linux module functions */
 extern "C" int module_fec_driver_init();
+extern "C" int module_phy_module_init();
 extern "C" int subsys_phy_init();
 extern "C" void skb_init();
 
@@ -40,14 +40,12 @@ struct workqueue_struct *system_wq;
 struct workqueue_struct *system_power_efficient_wq;
 unsigned long jiffies;
 
-
 struct Main
 {
-	Genode::Env                   &env;
-	Genode::Entrypoint            &ep     { env.ep() };
-	Genode::Attached_rom_dataspace config { env, "config" };
-	Genode::Heap                   heap   { env.ram(), env.rm() };
-	Nic::Root<Session_component>   root   { env, heap };
+	Genode::Env        &env;
+	Genode::Entrypoint &ep     { env.ep() };
+	Genode::Heap        heap   { env.ram(), env.rm() };
+	Root                root   { env, heap };
 
 	/* Linux task that handles the initialization */
 	Genode::Constructible<Lx::Task> linux;
@@ -61,7 +59,6 @@ struct Main
 		/* init singleton Lx::Scheduler */
 		Lx::scheduler(&env);
 
-		//Lx::pci_init(env, env.ram(), heap);
 		Lx::malloc_init(env, heap);
 
 		/* init singleton Lx::Timer */
@@ -95,9 +92,10 @@ static void run_linux(void * m)
 
 	skb_init();
 	subsys_phy_init();
+	module_phy_module_init();
 	module_fec_driver_init();
-	main.announce();
 
+	main.announce();
 	while (1) Lx::scheduler().current()->block_and_schedule();
 }
 

@@ -38,6 +38,7 @@ CC_OPT_skbuff   = -Wno-pointer-sign -Wno-int-conversion -Wno-uninitialized
 CC_OPT_mdio_bus = -Wno-implicit-int -Wno-unused-function -Wno-pointer-sign
 CC_OPT_eth      = -Wno-pointer-sign -Wno-unused-function
 CC_OPT_phy      = -Wno-unused-function -Wno-unused-but-set-variable
+CC_OPT_at803x   = -Wno-unused-variable
 
 vpath %.c  $(LX_CONTRIB_DIR)/drivers/net/ethernet/freescale
 vpath %.c  $(LX_CONTRIB_DIR)/drivers/net/phy

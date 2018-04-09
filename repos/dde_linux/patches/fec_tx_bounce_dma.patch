@@ -1,0 +1,13 @@
+diff --git a/drivers/net/ethernet/freescale/fec_main.c b/drivers/net/ethernet/freescale/fec_main.c
+index b2a3220..18629c6 100644
+--- a/drivers/net/ethernet/freescale/fec_main.c
++++ b/drivers/net/ethernet/freescale/fec_main.c
+@@ -2825,7 +2825,7 @@ fec_enet_alloc_txq_buffers(struct net_device *ndev, unsigned int queue)
+ 	txq = fep->tx_queue[queue];
+ 	bdp = txq->tx_bd_base;
+ 	for (i = 0; i < txq->tx_ring_size; i++) {
+-		txq->tx_bounce[i] = kmalloc(FEC_ENET_TX_FRSIZE, GFP_KERNEL);
++		txq->tx_bounce[i] = kmalloc(FEC_ENET_TX_FRSIZE, GFP_KERNEL | GFP_LX_DMA);
+ 		if (!txq->tx_bounce[i])
+ 			goto err_alloc;
+ 

@@ -4,6 +4,7 @@ linux-x.x.x/drivers/net/ethernet/freescale/fec_ptp.c
 linux-x.x.x/drivers/net/phy/mdio_bus.c
 linux-x.x.x/drivers/net/phy/phy_device.c
 linux-x.x.x/drivers/net/phy/phy.c
+linux-x.x.x/drivers/net/phy/at803x.c
 linux-x.x.x/net/core/skbuff.c
 linux-x.x.x/net/ethernet/eth.c
 linux-x.x.x/include/asm-generic/atomic64.h
@@ -15,6 +16,7 @@ linux-x.x.x/include/asm-generic/bitops/fls.h
 linux-x.x.x/include/asm-generic/bitops/fls64.h
 linux-x.x.x/include/linux/errqueue.h
 linux-x.x.x/include/linux/fec.h
+linux-x.x.x/include/linux/gpio/consumer.h
 linux-x.x.x/include/linux/if_ether.h
 linux-x.x.x/include/linux/list.h
 linux-x.x.x/include/linux/list_nulls.h

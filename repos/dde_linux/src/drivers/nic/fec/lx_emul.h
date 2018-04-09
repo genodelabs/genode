@@ -25,7 +25,7 @@
 
 void lx_backtrace(void);
 
-#define DEBUG_LINUX_PRINTK 1
+#define DEBUG_LINUX_PRINTK 0
 
 #define DEBUG 0
 #if DEBUG
@@ -87,7 +87,7 @@ size_t iov_iter_count(struct iov_iter *i);
 #define dev_notice(dev, format, arg...) lx_printf("dev_notice: " format , ## arg)
 #define dev_crit(  dev, format, arg...) lx_printf("dev_crit: "   format , ## arg)
 #if DEBUG
-#define dev_dbg(   dev, format, arg...) lx_printf("dev_dbg: "    format , ## arg)
+#define dev_dbg(   dev, format, arg...) printk("dev_dbg: "    format , ## arg)
 #else
 #define dev_dbg(   dev, format, arg...)
 #endif
@@ -240,6 +240,8 @@ struct attribute_group
 	struct attribute ** attrs;
 };
 
+struct platform_device;
+
 struct device {
 	char name[32];
 	struct device * parent;
@@ -251,6 +253,7 @@ struct device {
 	struct bus_type *bus;
 	struct class *class;
 	struct device_node *of_node;
+	struct platform_device * plat_dev;
 };
 
 struct platform_device {
@@ -340,8 +343,9 @@ enum netdev_state_t {
 
 struct net_device
 {
-	unsigned long               state;
-	netdev_features_t           features;
+	const char *                 name;
+	unsigned long                state;
+	netdev_features_t            features;
 	struct net_device_stats      stats;
 	netdev_features_t            hw_features;
 	const struct net_device_ops *netdev_ops;
@@ -358,10 +362,10 @@ struct net_device
 	unsigned char                broadcast[MAX_ADDR_LEN];
 	unsigned long                tx_queue_len;
 	int                          watchdog_timeo;
+	struct timer_list            watchdog_timer;
 	struct                       device dev;
 	u16                          gso_max_segs;
 	struct phy_device           *phydev;
-	char const                  *name;
 };
 
 static inline void *netdev_priv(const struct net_device *dev) {
@@ -479,6 +483,7 @@ struct page
 	void *addr;
 	dma_addr_t paddr;
 	unsigned long private;
+	unsigned long size;
 } __attribute((packed));
 
 static inline struct page *compound_head(struct page *page) { return page; }
@@ -585,8 +590,10 @@ void netif_tx_stop_queue(struct netdev_queue *dev_queue);
 void netif_tx_wake_queue(struct netdev_queue *dev_queue);
 bool netif_queue_stopped(const struct net_device *dev);
 
+#define CONFIG_ARM      1
 #define CONFIG_ARCH_MXC 1
 #define CONFIG_OF_MDIO  1
+#define CONFIG_PTP_1588_CLOCK 1
 
 void rtnl_lock(void);
 void rtnl_unlock(void);
@@ -1351,7 +1358,11 @@ void device_release_driver(struct device *dev);
 
 struct device *class_find_device(struct class *cls, struct device *start, const void *data, int (*match)(struct device *, const void *));
 
-#define for_each_available_child_of_node(parent, child) BUG(); while (0)
+struct device_node *of_get_next_available_child(const struct device_node *node, struct device_node *prev);
+
+#define for_each_available_child_of_node(parent, child) \
+	for (child = of_get_next_available_child(parent, NULL); child != NULL; \
+	     child = of_get_next_available_child(parent, child))
 
 u32 mmd_eee_cap_to_ethtool_sup_t(u16 eee_cap);
 u32 mmd_eee_adv_to_ethtool_adv_t(u16 eee_adv);
@@ -1457,8 +1468,11 @@ struct packet_offload *gro_find_complete_by_type(__be16 type);
 
 void dev_add_offload(struct packet_offload *po);
 
-struct net_device * fec_get_my_registered_net_device(void);
+void *devm_kzalloc(struct device *dev, size_t size, gfp_t gfp);
 
+struct pm_qos_request {};
+
+#define dma_wmb() __asm__ __volatile__ ("dmb oshst" : : : "memory")
 #include <lx_emul/extern_c_end.h>
 
 #endif /* _SRC__DRIVERS__NIC__FEC__LX_EMUL_H_ */
