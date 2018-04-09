@@ -38,7 +38,7 @@ extern "C" {
 	{
 		private:
 
-			Genode::Thread *_owner;
+			Genode::Thread *_owner = nullptr;
 			Genode::Lock _nbr_mutex {};
 			Genode::Lock _global_mutex {};
 			int _nbr = 0;
@@ -51,6 +51,7 @@ extern "C" {
 				++_nbr;
 				if (_nbr == 1) {
 					_global_mutex.lock();
+					_owner = nullptr;
 				}
 			}
 
@@ -62,12 +63,12 @@ extern "C" {
 
 			int unlock()
 			{
-				Genode::Lock_guard<Genode::Lock> guard(_nbr_mutex);
-
 				/* Read lock */
 				if (_owner == nullptr) {
+					Genode::Lock_guard<Genode::Lock> guard(_nbr_mutex);
 					_nbr--;
 					if (_nbr == 0) {
+						_owner = nullptr;
 						_global_mutex.unlock();
 					}
 					return 0;
@@ -80,6 +81,7 @@ extern "C" {
 				};
 
 				/* Write lock owned by us */
+				_owner = nullptr;
 				_global_mutex.unlock();
 				return 0;
 			}
