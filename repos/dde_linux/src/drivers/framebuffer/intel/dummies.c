@@ -1,10 +1,10 @@
 #include <lx_emul.h>
 #include <lx_emul_c.h>
 #include <drm/drmP.h>
-#include <drm/drm_crtc.h>
 #include <drm/drm_dp_mst_helper.h>
 #include <drm/drm_rect.h>
 #include <i915/i915_drv.h>
+
 
 bool access_ok(int access, void *addr, size_t size)
 {
@@ -47,48 +47,10 @@ int add_uevent_var(struct kobj_uevent_env *env, const char *format, ...)
 	return -1;
 }
 
-
-int bitmap_weight(const unsigned long *src, unsigned int nbits)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
 bool capable(int cap)
 {
 	TRACE_AND_STOP;
 	return false;
-}
-
-void cfb_fillrect(struct fb_info *info, const struct fb_fillrect *rect)
-{
-	TRACE_AND_STOP;
-}
-
-void cfb_copyarea(struct fb_info *info, const struct fb_copyarea *area)
-{
-	TRACE_AND_STOP;
-}
-
-void cfb_imageblit(struct fb_info *info, const struct fb_image *image)
-{
-	TRACE_AND_STOP;
-}
-
-void console_lock(void)
-{
-	TRACE_AND_STOP;
-}
-
-int console_trylock(void)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
-void console_unlock(void)
-{
-	TRACE_AND_STOP;
 }
 
 size_t copy_from_user(void *to, void const *from, size_t len)
@@ -108,11 +70,6 @@ void cpufreq_cpu_put(struct cpufreq_policy *policy)
 	TRACE_AND_STOP;
 }
 
-void destroy_timer_on_stack(struct timer_list *timer)
-{
-	TRACE_AND_STOP;
-}
-
 void destroy_workqueue(struct workqueue_struct *wq)
 {
 	TRACE_AND_STOP;
@@ -124,21 +81,10 @@ void *dev_get_drvdata(const struct device *dev)
 	return NULL;
 }
 
-int device_for_each_child(struct device *dev, void *data, int (*fn)(struct device *dev, void *data))
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
 int device_init_wakeup(struct device *dev, bool val)
 {
 	TRACE_AND_STOP;
 	return -1;
-}
-
-void device_unregister(struct device *dev)
-{
-	TRACE_AND_STOP;
 }
 
 const char *dev_name(const struct device *dev)
@@ -155,75 +101,13 @@ int dma_set_coherent_mask(struct device *dev, u64 mask)
 
 void dma_unmap_page(struct device *dev, dma_addr_t dma_address, size_t size, enum dma_data_direction direction)
 {
-	TRACE_AND_STOP;
+	printk("%s %llx+%x\n", __func__, dma_address, size);
+	TRACE; //_AND_STOP;
 }
 
 void down_read(struct rw_semaphore *sem)
 {
 	TRACE_AND_STOP;
-}
-
-void drm_clflush_virt_range(void *addr, unsigned long length)
-{
-	TRACE_AND_STOP;
-}
-
-int drm_dp_mst_hpd_irq(struct drm_dp_mst_topology_mgr *mgr, u8 *esi, bool *handled)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
-int drm_dp_mst_topology_mgr_resume(struct drm_dp_mst_topology_mgr *mgr)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
-int drm_dp_mst_topology_mgr_set_mst(struct drm_dp_mst_topology_mgr *mgr, bool mst_state)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
-void drm_dp_mst_topology_mgr_suspend(struct drm_dp_mst_topology_mgr *mgr)
-{
-	TRACE_AND_STOP;
-}
-
-void drm_free_large(void *ptr)
-{
-	TRACE_AND_STOP;
-}
-
-int drm_gem_create_mmap_offset(struct drm_gem_object *obj)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
-int drm_gem_dumb_destroy(struct drm_file *file, struct drm_device *dev, uint32_t handle)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
-int drm_gem_handle_create(struct drm_file *file_priv, struct drm_gem_object *obj, u32 *handlep)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
-int drm_gem_mmap(struct file *filp, struct vm_area_struct *vma)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
-struct drm_gem_object *drm_gem_object_lookup(struct drm_device *dev, struct drm_file *filp, u32 handle)
-{
-	TRACE_AND_STOP;
-	return NULL;
 }
 
 int drm_gem_prime_fd_to_handle(struct drm_device *dev, struct drm_file *file_priv, int prime_fd, uint32_t *handle)
@@ -238,26 +122,10 @@ int drm_gem_prime_handle_to_fd(struct drm_device *dev, struct drm_file *file_pri
 	return -1;
 }
 
-void drm_gem_vm_close(struct vm_area_struct *vma)
-{
-	TRACE_AND_STOP;
-}
-
-void drm_gem_vm_open(struct vm_area_struct *vma)
-{
-	TRACE_AND_STOP;
-}
-
 long drm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
 	TRACE_AND_STOP;
 	return -1;
-}
-
-void *drm_malloc_ab(size_t nmemb, size_t size)
-{
-	TRACE_AND_STOP;
-	return NULL;
 }
 
 int drm_noop(struct drm_device *dev, void *data, struct drm_file *file_priv)
@@ -294,11 +162,6 @@ void drm_prime_gem_destroy(struct drm_gem_object *obj, struct sg_table *sg)
 	TRACE_AND_STOP;
 }
 
-void drm_put_dev(struct drm_device *dev)
-{
-	TRACE_AND_STOP;
-}
-
 ssize_t drm_read(struct file *filp, char __user *buffer, size_t count, loff_t *offset)
 {
 	TRACE_AND_STOP;
@@ -309,40 +172,6 @@ int drm_release(struct inode *inode, struct file *filp)
 {
 	TRACE_AND_STOP;
 	return -1;
-}
-
-bool drm_vma_node_has_offset(struct drm_vma_offset_node *node)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
-__u64 drm_vma_node_offset_addr(struct drm_vma_offset_node *node)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
-void drm_vma_node_unmap(struct drm_vma_offset_node *node, struct address_space *file_mapping)
-{
-	TRACE_AND_STOP;
-}
-
-int fault_in_multipages_readable(const char __user *uaddr, int size)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
-int fault_in_multipages_writeable(char __user *uaddr, int size)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
-void fb_set_suspend(struct fb_info *info, int state)
-{
-	TRACE_AND_STOP;
 }
 
 struct vm_area_struct *find_vma(struct mm_struct *mm, unsigned long addr)
@@ -356,54 +185,12 @@ void flush_scheduled_work(void)
 	TRACE_AND_STOP;
 }
 
-void flush_workqueue(struct workqueue_struct *wq)
-{
-	TRACE_AND_STOP;
-}
-
 void __free_pages(struct page *page, unsigned int order)
 {
-	TRACE_AND_STOP;
-}
+	if (!page)
+		TRACE_AND_STOP;
 
-unsigned long __get_free_pages(gfp_t gfp_mask, unsigned int order)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
-unsigned long get_seconds(void)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
-void gpio_free(unsigned gpio)
-{
-	TRACE_AND_STOP;
-}
-
-int gpio_get_value(unsigned int gpio)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
-bool gpio_is_valid(int number)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
-int gpio_request_one(unsigned gpio, unsigned long flags, const char *label)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
-void gpio_set_value(unsigned int gpio, int value)
-{
-	TRACE_AND_STOP;
+	printk("%s %llx(%llx) order=%x\n", __func__, page->addr, page->paddr, order);
 }
 
 void ips_link_to_i915_driver(void)
@@ -411,33 +198,17 @@ void ips_link_to_i915_driver(void)
 	TRACE;
 }
 
-void i915_audio_component_cleanup(struct drm_i915_private *dev_priv)
-{
-	TRACE_AND_STOP;
-}
-
-void i915_capture_error_state(struct drm_device *dev, bool wedge, const char *error_msg)
-{
-	TRACE_AND_STOP;
-}
-
-int i915_cmd_parser_get_version(void)
+int i915_cmd_parser_get_version(struct drm_i915_private *dev_priv)
 {
 	TRACE_AND_STOP;
 	return -1;
 }
 
-void i915_destroy_error_state(struct drm_device *dev)
-{
-	TRACE_AND_STOP;
-}
-
-void i915_gem_batch_pool_fini(struct i915_gem_batch_pool *pool)
-{
-	TRACE_AND_STOP;
-}
-
-int __must_check i915_gem_evict_something(struct drm_device *dev, struct i915_address_space *vm, int min_size, unsigned alignment, unsigned cache_level, unsigned long start, unsigned long end, unsigned flags)
+int __must_check i915_gem_evict_something(struct i915_address_space *vm,
+                                          u64 min_size, u64 alignment,
+                                          unsigned cache_level,
+                                          u64 start, u64 end,
+                                          unsigned flags)
 {
 	TRACE_AND_STOP;
 	return -1;
@@ -455,18 +226,6 @@ int i915_gem_execbuffer2(struct drm_device *dev, void *data, struct drm_file *fi
 	return -1;
 }
 
-int i915_gem_get_tiling(struct drm_device *dev, void *data, struct drm_file *file)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
-int i915_gem_set_tiling(struct drm_device *dev, void *data, struct drm_file *file)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
 struct dma_buf *i915_gem_prime_export(struct drm_device *dev, struct drm_gem_object *gem_obj, int flags)
 {
 	TRACE_AND_STOP;
@@ -479,13 +238,9 @@ struct drm_gem_object *i915_gem_prime_import(struct drm_device *dev, struct dma_
 	return NULL;
 }
 
-int i915_gem_ringbuffer_submission(struct i915_execbuffer_params *params, struct drm_i915_gem_execbuffer2 *args, struct list_head *vmas)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
-unsigned long i915_gem_shrink(struct drm_i915_private *dev_priv, unsigned long target, unsigned flags)
+unsigned long i915_gem_shrink(struct drm_i915_private *dev_priv,
+                              unsigned long target, unsigned long *nr_scanned,
+                              unsigned flags)
 {
 	TRACE_AND_STOP;
 	return -1;
@@ -503,37 +258,21 @@ int i915_gem_userptr_ioctl(struct drm_device *dev, void *data, struct drm_file *
 	return -1;
 }
 
-void i915_get_extra_instdone(struct drm_device *dev, uint32_t *instdone)
-{
-	TRACE_AND_STOP;
-}
-
-int i915_restore_state(struct drm_device *dev)
+int i915_restore_state(struct drm_i915_private *dev_priv)
 {
 	TRACE_AND_STOP;
 	return -1;
 }
 
-int i915_save_state(struct drm_device *dev)
+int i915_save_state(struct drm_i915_private *dev_priv)
 {
 	TRACE_AND_STOP;
 	return -1;
 }
 
-void i915_teardown_sysfs(struct drm_device *dev_priv)
+void i915_teardown_sysfs(struct drm_i915_private *dev_priv)
 {
 	TRACE_AND_STOP;
-}
-
-void idr_destroy(struct idr *idp)
-{
-	TRACE_AND_STOP;
-}
-
-void *idr_get_next(struct idr *idp, int *nextid)
-{
-	TRACE_AND_STOP;
-	return NULL;
 }
 
 void intel_csr_load_program(struct drm_device *dev)
@@ -546,72 +285,28 @@ void intel_csr_ucode_fini(struct drm_device *dev)
 	TRACE_AND_STOP;
 }
 
-void intel_dp_mst_encoder_cleanup(struct intel_digital_port *intel_dig_port)
-{
-	TRACE_AND_STOP;
-}
-
-void intel_dsi_init(struct drm_device *dev)
-{
-	TRACE_AND_STOP;
-}
-
 void intel_dvo_init(struct drm_device *dev)
 {
 	TRACE_AND_STOP;
 }
 
-void intel_execlists_retire_requests(struct intel_engine_cs *ring)
+int intel_guc_enable_ct(struct intel_guc *guc)
+{
+	TRACE_AND_STOP;
+	return 0;
+}
+
+void intel_guc_disable_ct(struct intel_guc *guc)
 {
 	TRACE_AND_STOP;
 }
 
-int intel_execlists_submission(struct i915_execbuffer_params *params, struct drm_i915_gem_execbuffer2 *args, struct list_head *vmas)
+void i915_guc_log_register(struct drm_i915_private *dev_priv)
 {
-	TRACE_AND_STOP;
-	return -1;
+	TRACE;
 }
 
-int intel_guc_resume(struct drm_device *dev)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
-int intel_guc_suspend(struct drm_device *dev)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
-void intel_guc_ucode_fini(struct drm_device *dev)
-{
-	TRACE_AND_STOP;
-}
-
-int intel_logical_ring_alloc_request_extras(struct drm_i915_gem_request *request)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
-void intel_logical_ring_cleanup(struct intel_engine_cs *ring)
-{
-	TRACE_AND_STOP;
-}
-
-int intel_logical_ring_reserve_space(struct drm_i915_gem_request *request)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
-void intel_logical_ring_stop(struct intel_engine_cs *ring)
-{
-	TRACE_AND_STOP;
-}
-
-void intel_lr_context_unpin(struct drm_i915_gem_request *req)
+void i915_guc_log_unregister(struct drm_i915_private *dev_priv)
 {
 	TRACE_AND_STOP;
 }
@@ -621,72 +316,10 @@ void intel_tv_init(struct drm_device *dev)
 	TRACE_AND_STOP;
 }
 
-void io_mapping_free(struct io_mapping *mapping)
-{
-	TRACE_AND_STOP;
-}
-
-void *io_mapping_map_atomic_wc(struct io_mapping *mapping, unsigned long offset)
-{
-	TRACE_AND_STOP;
-	return NULL;
-}
-
-void __iomem * io_mapping_map_wc(struct io_mapping *mapping, unsigned long offset)
-{
-	TRACE_AND_STOP;
-	return NULL;
-}
-
-void io_mapping_unmap(void __iomem *vaddr)
-{
-	TRACE_AND_STOP;
-}
-
-void io_mapping_unmap_atomic(void *vaddr)
-{
-	TRACE_AND_STOP;
-}
-
-void io_schedule(void)
-{
-	TRACE_AND_STOP;
-}
-
-unsigned int jiffies_to_usecs(const unsigned long j)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
 int kobject_uevent_env(struct kobject *kobj, enum kobject_action action, char *envp[])
 {
 	TRACE_AND_STOP;
 	return -1;
-}
-
-int  kref_get_unless_zero(struct kref *kref)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
-u64 local_clock(void)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
-int logical_ring_flush_all_caches(struct drm_i915_gem_request *req)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
-void *memchr_inv(const void *s, int c, size_t n)
-{
-	TRACE_AND_STOP;
-	return NULL;
 }
 
 void memcpy_toio(volatile void __iomem *dst, const void *src, size_t count)
@@ -701,8 +334,8 @@ void ndelay(unsigned long ns)
 
 bool need_resched(void)
 {
-	TRACE_AND_STOP;
-	return -1;
+	TRACE;
+	return false;
 }
 
 loff_t noop_llseek(struct file *file, loff_t offset, int whence)
@@ -711,7 +344,13 @@ loff_t noop_llseek(struct file *file, loff_t offset, int whence)
 	return -1;
 }
 
-extern u64 nsecs_to_jiffies64(u64 n)
+u64 nsecs_to_jiffies64(u64 n)
+{
+	TRACE_AND_STOP;
+	return -1;
+}
+
+u64 nsecs_to_jiffies(u64 n)
 {
 	TRACE_AND_STOP;
 	return -1;
@@ -719,8 +358,8 @@ extern u64 nsecs_to_jiffies64(u64 n)
 
 int of_alias_get_id(struct device_node *np, const char *stem)
 {
-	TRACE_AND_STOP;
-	return -1;
+	TRACE;
+	return -ENOSYS;
 }
 
 int of_driver_match_device(struct device *dev, const struct device_driver *drv)
@@ -764,8 +403,8 @@ void pci_disable_msi(struct pci_dev *dev)
 
 int pci_enable_device(struct pci_dev *dev)
 {
-	TRACE_AND_STOP;
-	return -1;
+	TRACE;
+	return 0;
 }
 
 struct pci_dev *pci_get_device(unsigned int vendor, unsigned int device, struct pci_dev *from)
@@ -826,7 +465,7 @@ int PTR_ERR_OR_ZERO(__force const void *ptr)
 
 void put_pid(struct pid *pid)
 {
-	TRACE_AND_STOP;
+	TRACE;
 }
 
 int pwm_config(struct pwm_device *pwm, int duty_ns, int period_ns)
@@ -893,17 +532,11 @@ void seq_puts(struct seq_file *m, const char *s)
 
 int set_page_dirty(struct page *page)
 {
-	TRACE_AND_STOP;
+	TRACE;
 	return -1;
 }
 
 int set_pages_wb(struct page *page, int numpages)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
-int    sg_nents(struct scatterlist *sg)
 {
 	TRACE_AND_STOP;
 	return -1;
@@ -918,6 +551,12 @@ struct page *shmem_read_mapping_page( struct address_space *mapping, pgoff_t ind
 void shmem_truncate_range(struct inode *inode, loff_t start, loff_t end)
 {
 	TRACE_AND_STOP;
+}
+
+int signal_pending(struct task_struct *p)
+{
+	TRACE_AND_STOP;
+	return -1;
 }
 
 int signal_pending_state(long state, struct task_struct *p)
@@ -937,35 +576,13 @@ void sysfs_remove_link(struct kobject *kobj, const char *name)
 	TRACE_AND_STOP;
 }
 
-int unregister_oom_notifier(struct notifier_block *nb)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
 int unregister_reboot_notifier(struct notifier_block *nb)
 {
 	TRACE_AND_STOP;
 	return -1;
 }
 
-void unregister_shrinker(struct shrinker *s)
-{
-	TRACE_AND_STOP;
-}
-
 void up_read(struct rw_semaphore *sem)
-{
-	TRACE_AND_STOP;
-}
-
-int vga_switcheroo_process_delayed_switch(void)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
-void vga_switcheroo_unregister_client(struct pci_dev *dev)
 {
 	TRACE_AND_STOP;
 }
@@ -983,25 +600,7 @@ pgprot_t vm_get_page_prot(unsigned long vm_flags)
 	return prot;
 }
 
-int vm_insert_pfn(struct vm_area_struct *vma, unsigned long addr, unsigned long pfn)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
 unsigned long vm_mmap(struct file *f, unsigned long l1, unsigned long l2, unsigned long l3, unsigned long l4, unsigned long l5)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
-int vscnprintf(char *buf, size_t size, const char *fmt, va_list args)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
-int __wait_completion(struct completion *work, unsigned long to)
 {
 	TRACE_AND_STOP;
 	return -1;
@@ -1013,51 +612,14 @@ int wake_up_process(struct task_struct *tsk)
 	return -1;
 }
 
-void wbinvd_on_all_cpus()
-{
-	TRACE_AND_STOP;
-}
-
 void yield(void)
 {
-	TRACE_AND_STOP;
+	TRACE;
 }
+
 void bus_unregister(struct bus_type *bus)
 {
 	TRACE_AND_STOP;
-}
-int drm_pci_set_busid(struct drm_device *dev, struct drm_master *master)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
-enum csr_state intel_csr_load_status_get(struct drm_i915_private *dev_priv)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
-void assert_csr_loaded(struct drm_i915_private *dev_priv)
-{
-	TRACE_AND_STOP;
-}
-
-bool drm_bridge_mode_fixup(struct drm_bridge *bridge, const struct drm_display_mode *mode, struct drm_display_mode *adjusted_mode)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
-void i915_cmd_parser_fini_ring(struct intel_engine_cs *ring)
-{
-	TRACE_AND_STOP;
-}
-
-unsigned long find_next_zero_bit(const unsigned long *addr, unsigned long size, unsigned long offset)
-{
-	TRACE_AND_STOP;
-	return -1;
 }
 
 void kvfree(const void *addr)
@@ -1074,27 +636,6 @@ int pci_map_sg(struct pci_dev *hwdev, struct scatterlist *sg, int nents, int dir
 void pci_unmap_sg(struct pci_dev *hwdev, struct scatterlist *sg, int nents, int direction)
 {
 	TRACE_AND_STOP;
-}
-
-void *vmalloc(unsigned long size)
-{
-	TRACE_AND_STOP;
-	return NULL;
-}
-void intel_lr_context_free(struct intel_context *ctx)
-{
-	TRACE_AND_STOP;
-}
-
-void intel_lr_context_reset(struct drm_device *dev, struct intel_context *ctx)
-{
-	TRACE_AND_STOP;
-}
-
-int idr_for_each(struct idr *idp, int (*fn)(int id, void *p, void *data), void *data)
-{
-	TRACE_AND_STOP;
-	return -1;
 }
 
 void ww_mutex_lock_slow(struct ww_mutex *lock, struct ww_acquire_ctx *ctx)
@@ -1119,40 +660,1105 @@ void free_irq(unsigned int irq, void *dev_id)
 	TRACE_AND_STOP;
 }
 
-ktime_t ktime_get_real(void)
-{
-	ktime_t ret;
-	TRACE_AND_STOP;
-	return ret;
-}
-
-ktime_t ktime_mono_to_real(ktime_t mono)
-{
-	ktime_t ret;
-	TRACE_AND_STOP;
-	return ret;
-}
-
-void* bl_get_data(struct backlight_device *bl_dev)
-{
-	TRACE_AND_STOP;
-	return NULL;
-}
-
 void backlight_device_unregister(struct backlight_device *bd)
 {
 	TRACE_AND_STOP;
 }
+
 int  ww_mutex_lock_interruptible(struct ww_mutex *lock, struct ww_acquire_ctx *ctx)
 {
 	TRACE_AND_STOP;
 	return -1;
 }
 
-struct page *virt_to_page(void *addr)
+void might_sleep(void)
+{
+	TRACE;
+}
+
+void rcu_read_lock(void)
+{
+	TRACE;
+}
+
+void rcu_read_unlock(void)
+{
+	TRACE;
+}
+
+void might_lock(struct mutex *m)
+{
+	TRACE;
+}
+
+void unmap_mapping_range(struct address_space *a, loff_t const b,
+                         loff_t const c, int d)
+{
+	TRACE_AND_STOP;
+}
+
+void intel_audio_init(struct drm_i915_private *dev_priv)
+{
+	TRACE;
+}
+
+void intel_audio_deinit(struct drm_i915_private *dev_priv)
+{
+	TRACE_AND_STOP;
+}
+
+void write_lock(rwlock_t *l)
+{
+	TRACE;
+}
+
+void write_unlock(rwlock_t *l)
+{
+	TRACE;
+}
+
+void read_lock(rwlock_t *l)
+{
+	TRACE_AND_STOP;
+}
+
+void read_unlock(rwlock_t *l)
+{
+	TRACE_AND_STOP;
+}
+
+struct edid *drm_load_edid_firmware(struct drm_connector *connector)
+{
+	TRACE;
+	return NULL;
+}
+
+ktime_t ktime_get_raw(void)
+{
+	TRACE_AND_STOP;
+	return 0;
+}
+
+void write_seqlock(seqlock_t *l)
+{
+	TRACE;
+}
+
+void write_sequnlock(seqlock_t *l)
+{
+	TRACE;
+}
+
+void drm_dev_fini(struct drm_device *dev)
+{
+	TRACE_AND_STOP;
+}
+
+
+unsigned read_seqbegin(const seqlock_t *s)
+{
+	TRACE;
+	return 0;
+}
+
+unsigned read_seqretry(const seqlock_t *s, unsigned x)
+{
+	TRACE;
+	return 0;
+}
+
+void *kvmalloc(size_t s, gfp_t g)
+{
+	TRACE_AND_STOP;
+}
+
+void *kvmalloc_array(size_t a, size_t b, gfp_t g)
+{
+	TRACE_AND_STOP;
+}
+
+int i915_perf_open_ioctl(struct drm_device *dev, void *data,
+                         struct drm_file *file)
+{
+	TRACE_AND_STOP;
+	return 0;
+}
+
+int i915_perf_add_config_ioctl(struct drm_device *dev, void *data,
+                               struct drm_file *file)
+{
+	TRACE_AND_STOP;
+	return 0;
+}
+
+int i915_perf_remove_config_ioctl(struct drm_device *dev, void *data,
+                                  struct drm_file *file)
+{
+	TRACE_AND_STOP;
+	return 0;
+}
+
+void i915_perf_init(struct drm_i915_private *dev_priv)
+{
+	TRACE;
+}
+
+void i915_perf_fini(struct drm_i915_private *dev_priv)
+{
+	TRACE_AND_STOP;
+}
+
+void i915_perf_register(struct drm_i915_private *dev_priv)
+{
+	TRACE;
+}
+
+void i915_perf_unregister(struct drm_i915_private *dev_priv)
+{
+	TRACE_AND_STOP;
+}
+
+void cond_resched(void)
+{
+	TRACE;
+}
+
+struct page *kmap_to_page(void *p)
+{
+	TRACE_AND_STOP;
+	return 0;
+}
+
+void vunmap(const void *a)
+{
+	TRACE_AND_STOP;
+}
+
+void reservation_object_init(struct reservation_object *obj)
+{
+	TRACE;
+}
+
+void reservation_object_fini(struct reservation_object *obj)
+{
+	TRACE;
+}
+
+bool reservation_object_test_signaled_rcu(struct reservation_object *obj,
+                                          bool test_all)
+{
+	TRACE_AND_STOP;
+	return false;
+}
+
+int reservation_object_lock(struct reservation_object *obj,
+                            struct ww_acquire_ctx *ctx)
+{
+	TRACE;
+	return 0;
+}
+
+void reservation_object_unlock(struct reservation_object *obj)
+{
+	TRACE;
+}
+
+bool reservation_object_trylock(struct reservation_object *obj)
+{
+	TRACE_AND_STOP;
+	return false;
+}
+
+void reservation_object_add_excl_fence(struct reservation_object *obj,
+                                       struct dma_fence *fence)
+{
+	TRACE_AND_STOP;
+}
+
+struct dma_fence * reservation_object_get_excl_rcu(struct reservation_object *obj)
+{
+	TRACE;
+	return obj->fence_excl;
+}
+
+int reservation_object_get_fences_rcu(struct reservation_object *obj,
+                                      struct dma_fence **pfence_excl,
+                                      unsigned *pshared_count,
+                                      struct dma_fence ***pshared)
+{
+	TRACE;
+	*pshared_count = 0;
+	*pfence_excl = NULL;
+	*pshared = NULL;
+	return 0;
+}
+
+void set_current_state(int state)
+{
+	switch (state) {
+	case TASK_INTERRUPTIBLE:
+		printk("%s TASK_INTERRUPTIBLE\n", __func__);
+		break;
+	case TASK_RUNNING:
+		printk("%s TASK_RUNNING\n", __func__);
+		break;
+	default:
+		printk("%s unknown %d\n", __func__, state);
+	}
+}
+
+void __set_current_state(int state)
+{
+	set_current_state(state);
+}
+
+void tasklet_enable(struct tasklet_struct *t)
+{
+	TRACE_AND_STOP;
+}
+
+void tasklet_disable(struct tasklet_struct *t)
+{
+	TRACE_AND_STOP;
+}
+
+void tasklet_kill(struct tasklet_struct *t)
+{
+	TRACE_AND_STOP;
+}
+
+void intel_dsi_init(struct drm_i915_private *dev_priv)
+{
+	TRACE_AND_STOP;
+}
+
+int intel_dsi_dcs_init_backlight_funcs(struct intel_connector *intel_connector)
+{
+	TRACE_AND_STOP;
+	return 0;
+}
+
+void rwlock_init(rwlock_t *rw)
+{
+	TRACE;
+}
+
+unsigned long vma_pages(struct vm_area_struct *p)
+{
+	TRACE_AND_STOP;
+	return 0;
+}
+
+void pwm_apply_args(struct pwm_device *p)
+{
+	TRACE_AND_STOP;
+}
+
+void intel_guc_ct_init_early(struct intel_guc_ct *ct)
+{
+	TRACE;
+
+	enum { CTB_OWNER_HOST = 0 };
+
+	ct->host_channel.owner = CTB_OWNER_HOST;
+}
+
+void i915_gem_object_set_cache_coherency(struct drm_i915_gem_object *obj,
+                                         unsigned int cache_level)
+{
+	TRACE;
+}
+
+int i915_gem_evict_for_node(struct i915_address_space *vm,
+                            struct drm_mm_node *node, unsigned int flags)
+{
+	TRACE_AND_STOP;
+	return 0;
+}
+
+void i915_gem_shrinker_cleanup(struct drm_i915_private *dev_priv)
+{
+	TRACE_AND_STOP;
+}
+
+void i915_gem_cleanup_userptr(struct drm_i915_private *dev_priv)
+{
+	TRACE_AND_STOP;
+}
+
+void intel_lpe_audio_irq_handler(struct drm_i915_private *dev_priv)
+{
+	TRACE_AND_STOP;
+}
+
+bool drm_scdc_set_scrambling(struct i2c_adapter *adapter, bool enable)
+{
+	TRACE_AND_STOP;
+	return false;
+}
+
+bool drm_scdc_set_high_tmds_clock_ratio(struct i2c_adapter *adapter, bool set)
+{
+	TRACE_AND_STOP;
+	return false;
+}
+
+void intel_engine_init_cmd_parser(struct intel_engine_cs *engine)
+{
+	TRACE_AND_STOP;
+}
+
+
+bool intel_engines_are_idle(struct drm_i915_private *dev_priv)
+{
+	TRACE_AND_STOP;
+	return false;
+}
+
+void intel_engines_park(struct drm_i915_private *i915)
+{
+	TRACE_AND_STOP;
+}
+
+void intel_engine_init_global_seqno(struct intel_engine_cs *engine, u32 seqno)
+{
+	TRACE_AND_STOP;
+}
+
+bool intel_engine_has_kernel_context(const struct intel_engine_cs *engine)
+{
+	TRACE_AND_STOP;
+	return false;
+}
+
+void intel_engine_cleanup_common(struct intel_engine_cs *engine)
+{
+	TRACE_AND_STOP;
+}
+
+void intel_engines_unpark(struct drm_i915_private *i915)
+{
+	TRACE_AND_STOP;
+}
+
+void intel_engines_reset_default_submission(struct drm_i915_private *i915)
+{
+	TRACE_AND_STOP;
+}
+
+void intel_engine_dump(struct intel_engine_cs *engine, struct drm_printer *m,
+                       const char *header, ...)
+{
+	TRACE_AND_STOP;
+}
+
+bool intel_engine_is_idle(struct intel_engine_cs *engine)
+{
+	TRACE_AND_STOP;
+	return false;
+}
+
+unsigned int intel_engines_has_context_isolation(struct drm_i915_private *i915)
+{
+	TRACE_AND_STOP;
+	return 0;
+}
+
+int logical_render_ring_init(struct intel_engine_cs *engine)
+{
+	TRACE_AND_STOP;
+	return 0;
+}
+
+int logical_xcs_ring_init(struct intel_engine_cs *engine)
+{
+	TRACE_AND_STOP;
+	return 0;
+}
+
+void intel_logical_ring_cleanup(struct intel_engine_cs *engine)
+{
+	TRACE_AND_STOP;
+}
+
+void intel_lr_context_resume(struct drm_i915_private *dev_priv)
+{
+	TRACE_AND_STOP;
+}
+
+int intel_engines_init(struct drm_i915_private *dev_priv)
+{
+	TRACE;
+	return 0;
+}
+
+int init_workarounds_ring(struct intel_engine_cs *engine)
+{
+	TRACE_AND_STOP;
+	return 0;
+}
+
+int intel_ring_workarounds_emit(struct drm_i915_gem_request *req)
+{
+	TRACE_AND_STOP;
+	return 0;
+}
+
+int intel_engine_init_common(struct intel_engine_cs *engine)
+{
+	TRACE;
+	return 0;
+}
+
+int intel_engine_create_scratch(struct intel_engine_cs *engine, int size)
+{
+	TRACE_AND_STOP;
+	return 0;
+}
+
+int is_vmalloc_addr(const void *x)
+{
+	TRACE_AND_STOP;
+	return 0;
+}
+
+void drm_dev_printk(const struct device *dev, const char *level,
+                    unsigned int category, const char *function_name,
+                    const char *prefix, const char *format, ...)
+{
+	TRACE_AND_STOP;
+}
+
+void drm_dev_unregister(struct drm_device *dev)
+{
+	TRACE_AND_STOP;
+}
+
+void drm_dev_put(struct drm_device *dev)
+{
+	TRACE_AND_STOP;
+}
+
+void init_wait_entry(struct wait_queue_entry *wq_entry, int flags)
+{
+	TRACE;
+	wq_entry->flags = flags;
+	wq_entry->private = current;
+	wq_entry->func = autoremove_wake_function;
+	INIT_LIST_HEAD(&wq_entry->entry);
+}
+
+void spin_lock_nested(spinlock_t *lock, int subclass)
+{
+	TRACE;
+}
+
+struct pid *get_task_pid(struct task_struct *t, enum pid_type p)
 {
 	TRACE_AND_STOP;
 	return NULL;
+}
+
+int set_pages_array_wb(struct page **p, int x)
+{
+	TRACE_AND_STOP;
+	return 0;
+}
+
+void __pagevec_release(struct pagevec *pvec)
+{
+	TRACE;
+}
+
+struct file *shmem_file_setup_with_mnt(struct vfsmount *mnt, const char *name,
+                                       loff_t size, unsigned long flags)
+{
+	TRACE_AND_STOP;
+	return NULL;
+}
+
+int set_pages_array_wc(struct page **p, int c)
+{
+	TRACE_AND_STOP;
+	return 0;
+}
+
+bool static_cpu_has(long c)
+{
+	TRACE;
+
+	if (c == X86_FEATURE_CLFLUSH)
+		return true;
+
+	TRACE_AND_STOP;
+	return false;
+}
+
+void rcu_barrier(void)
+{
+	TRACE_AND_STOP;
+}
+
+int i915_gemfs_init(struct drm_i915_private *i915)
+{
+	TRACE;
+	return 0;
+}
+
+void i915_gemfs_fini(struct drm_i915_private *i915)
+{
+	TRACE_AND_STOP;
+}
+
+pid_t pid_nr(struct pid *p)
+{
+	TRACE_AND_STOP;
+	return 0;
+}
+
+unsigned int work_busy(struct work_struct *w)
+{
+	TRACE_AND_STOP;
+	return 0;
+}
+
+void enable_irq(unsigned int irq)
+{
+	TRACE_AND_STOP;
+}
+
+void disable_irq(unsigned int irq)
+{
+	TRACE_AND_STOP;
+}
+
+unsigned raw_read_seqcount(const seqcount_t *s)
+{
+	TRACE_AND_STOP;
+	return 0;
+}
+
+int remap_io_mapping(struct vm_area_struct *vma, unsigned long addr,
+                     unsigned long pfn, unsigned long size,
+                     struct io_mapping *iomap)
+{
+	TRACE_AND_STOP;
+	return 0;
+}
+
+void call_rcu(struct rcu_head *head, void (*func)(struct rcu_head *))
+{
+	TRACE;
+
+	func(head);
+}
+
+int read_seqcount_retry(const seqcount_t *s, unsigned x)
+{
+	TRACE_AND_STOP;
+	return 0;
+}
+
+void synchronize_rcu(void)
+{
+	TRACE_AND_STOP;
+}
+
+gfp_t mapping_gfp_mask(struct address_space * mapping)
+{
+	TRACE;
+	return __GFP_RECLAIM;
+}
+
+int down_write_killable(struct rw_semaphore *s)
+{
+	TRACE_AND_STOP;
+	return 0;
+}
+
+void atomic_andnot(int x, atomic_t *t)
+{
+	t->counter &= ~x;
+	TRACE;
+}
+
+unsigned int get_random_int(void)
+{
+	TRACE_AND_STOP;
+	return 0;
+}
+
+unsigned long get_random_long(void)
+{
+	TRACE_AND_STOP;
+	return 0;
+}
+
+bool boot_cpu_has(long x)
+{
+	TRACE_AND_STOP;
+	return false;
+}
+
+int pagecache_write_begin(struct file *f, struct address_space *a, loff_t o,
+                          unsigned w, unsigned x, struct page **y, void **z)
+{
+	TRACE_AND_STOP;
+	return 0;
+}
+
+int pagecache_write_end(struct file *f, struct address_space *a, loff_t o,
+                        unsigned w, unsigned x, struct page *y, void *z)
+{
+	TRACE_AND_STOP;
+	return 0;
+}
+
+int drm_fb_helper_remove_conflicting_framebuffers(struct apertures_struct *a,
+                                                  const char *b, bool c)
+{
+	TRACE;
+	return 0;
+}
+
+int drm_fb_helper_add_one_connector(struct drm_fb_helper *fb_helper,
+                                    struct drm_connector *connector)
+{
+	TRACE_AND_STOP;
+	return 0;
+}
+
+int drm_fb_helper_remove_one_connector(struct drm_fb_helper *fb_helper,
+                                       struct drm_connector *connector)
+{
+	TRACE_AND_STOP;
+	return 0;
+}
+
+void drain_workqueue(struct workqueue_struct *w)
+{
+	TRACE_AND_STOP;
+}
+
+unsigned __read_seqcount_begin(const seqcount_t *s)
+{
+	TRACE;
+	return 0;
+}
+
+int __read_seqcount_retry(const seqcount_t *s, unsigned x)
+{
+	TRACE;
+	return 1;
+}
+
+void intel_init_audio_hooks(struct drm_i915_private *dev_priv)
+{
+	TRACE;
+}
+
+void intel_hangcheck_init(struct drm_i915_private *dev_priv)
+{
+	TRACE;
+}
+
+void intel_csr_ucode_suspend(struct drm_i915_private *dev_priv)
+{
+	TRACE_AND_STOP;
+}
+
+void intel_csr_ucode_resume(struct drm_i915_private *dev_priv)
+{
+	TRACE_AND_STOP;
+}
+
+struct page * nth_page(struct page * page, int n)
+{
+	TRACE_AND_STOP;
+}
+
+unsigned int swiotlb_max_segment(void)
+{
+	TRACE;
+	return 0;
+}
+
+void seqlock_init (seqlock_t *s)
+{
+	TRACE;
+}
+
+struct irq_domain *irq_domain_create_linear(struct fwnode_handle *f,
+                                            unsigned int x,
+                                            const struct irq_domain_ops *y,
+                                            void *z)
+{
+	TRACE_AND_STOP;
+	return NULL;
+}
+
+struct cpufreq_policy *cpufreq_cpu_get(unsigned int cpu)
+{
+	TRACE;
+	return NULL;
+}
+
+void irq_dispose_mapping(unsigned int virq)
+{
+	TRACE_AND_STOP;
+}
+
+void irq_domain_remove(struct irq_domain *d)
+{
+	TRACE_AND_STOP;
+}
+
+void i915_memcpy_init_early(struct drm_i915_private *dev_priv)
+{
+	TRACE;
+}
+
+void add_taint(unsigned i, enum lockdep_ok o)
+{
+	TRACE_AND_STOP;
+}
+
+struct timespec64 ns_to_timespec64(const s64 nsec)
+{
+	struct timespec64 ret = { 0, 0 };
+
+	TRACE;
+
+	if (!nsec)
+		return ret;
+
+	s32 rest = 0;
+	ret.tv_sec = div_s64_rem(nsec, NSEC_PER_SEC, &rest);
+	if (rest < 0) {
+		ret.tv_sec--;
+		rest += NSEC_PER_SEC;
+	}
+	ret.tv_nsec = rest;
+
+	return ret;
+}
+
+pgprot_t pgprot_decrypted(pgprot_t prot)
+{
+	TRACE_AND_STOP;
+	return prot;
+}
+
+void dev_pm_set_driver_flags(struct device *dev, u32 x)
+{
+	TRACE;
+}
+
+void dma_buf_put(struct dma_buf *buf)
+{
+	TRACE_AND_STOP;
+}
+
+void wake_up_bit(void *p, int x)
+{
+	TRACE_AND_STOP;
+}
+
+unsigned cache_line_size()
+{
+	TRACE_AND_STOP;
+	return 0;
+}
+
+void of_node_put(struct device_node *d)
+{
+	TRACE_AND_STOP;
+}
+
+int ___ratelimit(struct ratelimit_state *rs, const char *func)
+{
+	TRACE_AND_STOP;
+	return 0;
+}
+
+bool _drm_lease_held(struct drm_file *f, int x)
+{
+	TRACE_AND_STOP;
+	return false;
+}
+
+void i915_syncmap_init(struct i915_syncmap **root)
+{
+	TRACE;
+}
+
+void i915_syncmap_free(struct i915_syncmap **root)
+{
+	TRACE;
+}
+
+char *kstrdup(const char *s, gfp_t gfp)
+{
+	if (!s)
+		return NULL;
+
+	size_t const len = strlen(s);
+	char * ptr = kmalloc(len + 1, gfp);
+	if (ptr)
+		memcpy(ptr, s, len + 1);
+	return ptr;
+}
+
+bool kthread_should_park(void)
+{
+	TRACE_AND_STOP;
+	return false;
+}
+
+bool kthread_should_stop(void)
+{
+	TRACE_AND_STOP;
+	return false;
+}
+
+int kthread_park(struct task_struct *t)
+{
+	TRACE_AND_STOP;
+	return 0;
+}
+
+void kthread_unpark(struct task_struct *t)
+{
+	TRACE_AND_STOP;
+}
+
+void kthread_parkme(void)
+{
+	TRACE_AND_STOP;
+}
+
+int kthread_stop(struct task_struct *k)
+{
+	TRACE_AND_STOP;
+	return 0;
+}
+
+void pagefault_disable(void)
+{
+	TRACE_AND_STOP;
+}
+
+void pagefault_enable(void)
+{
+	TRACE_AND_STOP;
+}
+
+bool irq_work_queue(struct irq_work *work)
+{
+	TRACE_AND_STOP;
+	return false;
+}
+
+void init_irq_work(struct irq_work *work, void (*func)(struct irq_work *))
+{
+	TRACE_AND_STOP;
+}
+
+long long atomic64_add_return(long long i, atomic64_t *p)
+{
+	TRACE;
+	p->counter += i;
+	return p->counter;
+}
+
+int wake_up_state(struct task_struct *tsk, unsigned int state)
+{
+	TRACE_AND_STOP;
+	return 0;
+}
+
+void __init_waitqueue_head(struct wait_queue_head *wq_head, const char *name, struct lock_class_key *key)
+{
+	TRACE_AND_STOP;
+}
+
+int set_pages_array_uc(struct page **pages, int addrinarray)
+{
+	TRACE_AND_STOP;
+	return 0;
+}
+
+bool PageSlab(struct page *page)
+{
+	TRACE_AND_STOP;
+	return false;
+}
+
+void clflushopt(volatile void *p)
+{
+	TRACE;
+}
+
+int intel_guc_submission_init(struct intel_guc *guc)
+{
+	TRACE_AND_STOP;
+	return 0;
+}
+
+int intel_guc_submission_enable(struct intel_guc *guc)
+{
+	TRACE_AND_STOP;
+	return 0;
+}
+
+void intel_guc_submission_disable(struct intel_guc *guc)
+{
+	TRACE_AND_STOP;
+}
+
+void intel_guc_submission_fini(struct intel_guc *guc)
+{
+	TRACE_AND_STOP;
+}
+
+void i915_gem_shrinker_register(struct drm_i915_private *i915)
+{
+	TRACE;
+}
+
+void i915_gem_shrinker_unregister(struct drm_i915_private *i915)
+{
+	TRACE_AND_STOP;
+}
+
+ktime_t ktime_add_ns(const ktime_t kt, u64 nsec)
+{
+	TRACE_AND_STOP;
+	return 0;
+}
+
+int i915_sw_fence_await_sw_fence(struct i915_sw_fence *fence,
+				 struct i915_sw_fence *after,
+				 wait_queue_entry_t *wq)
+{
+	TRACE_AND_STOP;
+	return -1;
+}
+
+int i915_sw_fence_await_sw_fence_gfp(struct i915_sw_fence *fence,
+				     struct i915_sw_fence *after,
+				     gfp_t gfp)
+{
+	TRACE_AND_STOP;
+	return -1;
+}
+
+void __i915_sw_fence_init(struct i915_sw_fence *fence,
+			  i915_sw_fence_notify_t fn,
+			  const char *name,
+			  struct lock_class_key *key)
+{
+	TRACE;
+}
+
+void i915_sw_fence_commit(struct i915_sw_fence *fence)
+{
+	TRACE;
+}
+
+int i915_sw_fence_await_dma_fence(struct i915_sw_fence *fence,
+				  struct dma_fence *dma,
+				  unsigned long timeout,
+				  gfp_t gfp)
+{
+	TRACE_AND_STOP;
+	return -1;
+}
+
+int i915_sw_fence_await_reservation(struct i915_sw_fence *fence,
+				    struct reservation_object *resv,
+				    const struct dma_fence_ops *exclude,
+				    bool write,
+				    unsigned long timeout,
+				    gfp_t gfp)
+{
+	TRACE;
+	return 0;
+}
+
+u32 *intel_ring_begin(struct drm_i915_gem_request *req,
+                      unsigned int n)
+{
+	TRACE_AND_STOP;
+	return 0;
+}
+
+void intel_legacy_submission_resume(struct drm_i915_private *dev_priv)
+{
+	TRACE_AND_STOP;
+}
+
+void intel_engine_cleanup(struct intel_engine_cs *engine)
+{
+	TRACE_AND_STOP;
+}
+
+int intel_ring_wait_for_space(struct intel_ring *ring, unsigned int bytes)
+{
+	TRACE_AND_STOP;
+	return 0;
+}
+
+void intel_ring_free(struct intel_ring *ring)
+{
+	TRACE_AND_STOP;
+}
+
+bool intel_breadcrumbs_busy(struct intel_engine_cs *engine)
+{
+	TRACE_AND_STOP;
+	return 0;
+}
+
+void intel_engine_enable_signaling(struct drm_i915_gem_request *request,
+                                   bool wakeup)
+{
+	TRACE_AND_STOP;
+}
+
+void intel_engine_remove_wait(struct intel_engine_cs *engine,
+                              struct intel_wait *wait)
+{
+	TRACE_AND_STOP;
+}
+
+bool intel_engine_add_wait(struct intel_engine_cs *engine,
+                           struct intel_wait *wait)
+{
+	TRACE_AND_STOP;
+}
+
+void __intel_engine_disarm_breadcrumbs(struct intel_engine_cs *engine)
+{
+	TRACE_AND_STOP;
+}
+
+struct page *virt_to_page(const void *addr)
+{
+	TRACE_AND_STOP;
+	return 0;
+}
+
+int set_memory_wb(unsigned long addr, int numpages)
+{
+	TRACE_AND_STOP;
+	return -1;
+}
+
+const char *acpi_dev_name(struct acpi_device *adev)
+{
+	TRACE_AND_STOP;
+	return 0;
 }
 
 void ClearPageReserved(struct page *page)
@@ -1160,9 +1766,8 @@ void ClearPageReserved(struct page *page)
 	TRACE_AND_STOP;
 }
 
-const char *acpi_dev_name(struct acpi_device *adev)
+int stop_machine(cpu_stop_fn_t a, void *b, const struct cpumask *c)
 {
 	TRACE_AND_STOP;
-	return NULL;
+	return -1;
 }
-

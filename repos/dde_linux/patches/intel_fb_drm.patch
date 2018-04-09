@@ -1,0 +1,244 @@
+--- a/drivers/gpu/drm/i915/i915_gem_object.h
+--- b/drivers/gpu/drm/i915/i915_gem_object.h
+@@ -26,6 +26,7 @@
+ #define __I915_GEM_OBJECT_H__
+ 
+ #include <linux/reservation.h>
++#include <linux/radix-tree.h>
+ 
+ #include <drm/drm_vma_manager.h>
+ #include <drm/drm_gem.h>
+--- a/drivers/gpu/drm/drm_connector.c
++++ b/drivers/gpu/drm/drm_connector.c
+@@ -544,7 +544,9 @@
+ {
+ 	iter->dev = dev;
+ 	iter->conn = NULL;
++#ifdef CONFIG_LOCKDEP
+ 	lock_acquire_shared_recursive(&connector_list_iter_dep_map, 0, 1, NULL, _RET_IP_);
++#endif
+ }
+ EXPORT_SYMBOL(drm_connector_list_iter_begin);
+ 
+@@ -625,7 +627,9 @@
+ 		__drm_connector_put_safe(iter->conn);
+ 		spin_unlock_irqrestore(&config->connector_list_lock, flags);
+ 	}
++#ifdef CONFIG_LOCKDEP
+ 	lock_release(&connector_list_iter_dep_map, 0, _RET_IP_);
++#endif
+ }
+ EXPORT_SYMBOL(drm_connector_list_iter_end);
+ 
+--- a/include/drm/drm_mm.h
++++ b/include/drm/drm_mm.h
+@@ -423,7 +423,7 @@
+ 				     struct drm_mm_node *node,
+ 				     u64 size)
+ {
+-	return drm_mm_insert_node_generic(mm, node, size, 0, 0, 0);
++	return drm_mm_insert_node_generic(mm, node, size, 0, 0, DRM_MM_INSERT_BEST);
+ }
+ 
+ void drm_mm_remove_node(struct drm_mm_node *node);
+--- a/include/drm/drm_print.h
++++ b/include/drm/drm_print.h
+@@ -122,10 +122,9 @@
+  */
+ static inline struct drm_printer drm_debug_printer(const char *prefix)
+ {
+-	struct drm_printer p = {
+-		.printfn = __drm_printfn_debug,
+-		.prefix = prefix
+-	};
++	struct drm_printer p;
++	p.printfn = __drm_printfn_debug;
++	p.prefix = prefix;
+ 	return p;
+ }
+ #endif /* DRM_PRINT_H_ */
+--- a/drivers/gpu/drm/i915/intel_guc.c
++++ b/drivers/gpu/drm/i915/intel_guc.c
+@@ -24,6 +24,7 @@
+ 
+ #include "intel_guc.h"
+ #include "i915_drv.h"
++#include "intel_drv.h"
+ 
+ static void gen8_guc_raise_irq(struct intel_guc *guc)
+ {
+--- a/drivers/gpu/drm/i915/intel_uc.c
++++ b/drivers/gpu/drm/i915/intel_uc.c
+@@ -26,6 +26,7 @@
+ #include "intel_guc_submission.h"
+ #include "intel_guc.h"
+ #include "i915_drv.h"
++#include "intel_drv.h"
+ 
+ /* Reset GuC providing us with fresh state for both GuC and HuC.
+  */
+--- a/drivers/gpu/drm/i915/intel_guc_fw.c
++++ b/drivers/gpu/drm/i915/intel_guc_fw.c
+@@ -29,6 +29,7 @@
+ 
+ #include "intel_guc_fw.h"
+ #include "i915_drv.h"
++#include "intel_drv.h"
+ 
+ #define SKL_FW_MAJOR 6
+ #define SKL_FW_MINOR 1
+--- a/drivers/gpu/drm/i915/i915_gem_fence_reg.c
++++ b/drivers/gpu/drm/i915/i915_gem_fence_reg.c
+@@ -24,6 +24,7 @@
+ #include <drm/drmP.h>
+ #include <drm/i915_drm.h>
+ #include "i915_drv.h"
++#include "intel_drv.h"
+ 
+ /**
+  * DOC: fence register handling
+--- a/drivers/gpu/drm/i915/intel_huc.c
++++ b/drivers/gpu/drm/i915/intel_huc.c
+@@ -26,6 +26,7 @@
+ 
+ #include "intel_huc.h"
+ #include "i915_drv.h"
++#include "intel_drv.h"
+ 
+ /**
+  * DOC: HuC Firmware
+--- a/drivers/gpu/drm/i915/i915_gem_request.c
++++ b/drivers/gpu/drm/i915/i915_gem_request.c
+@@ -29,6 +29,7 @@
+ #include <linux/sched/signal.h>
+ 
+ #include "i915_drv.h"
++#include "intel_drv.h"
+ 
+ static const char *i915_fence_get_driver_name(struct dma_fence *fence)
+ {
+--- a/drivers/gpu/drm/i915/i915_vma.c
++++ b/drivers/gpu/drm/i915/i915_vma.c
+@@ -27,6 +27,7 @@
+ #include "i915_drv.h"
+ #include "intel_ringbuffer.h"
+ #include "intel_frontbuffer.h"
++#include "intel_drv.h"
+ 
+ #include <drm/drm_gem.h>
+ 
+--- a/drivers/i2c/i2c-core-base.c
++++ b/drivers/i2c/i2c-core-base.c
+@@ -1276,9 +1276,11 @@
+ 		goto out_list;
+ 	}
+ 
++#if IS_ENABLED(CONFIG_I2C_SMBUS) && IS_ENABLED(CONFIG_OF)
+ 	res = of_i2c_setup_smbus_alert(adap);
+ 	if (res)
+ 		goto out_reg;
++#endif
+ 
+ 	dev_dbg(&adap->dev, "adapter [%s] registered\n", adap->name);
+ 
+@@ -1311,7 +1313,9 @@
+ 
+ 	return 0;
+ 
++#if IS_ENABLED(CONFIG_I2C_SMBUS) && IS_ENABLED(CONFIG_OF)
+ out_reg:
++#endif
+ 	init_completion(&adap->dev_released);
+ 	device_unregister(&adap->dev);
+ 	wait_for_completion(&adap->dev_released);
+--- a/include/drm/intel-gtt.h
++++ b/include/drm/intel-gtt.h
+@@ -4,6 +4,8 @@
+ #ifndef _DRM_INTEL_GTT_H
+ #define	_DRM_INTEL_GTT_H
+ 
++#include <linux/scatterlist.h>
++
+ void intel_gtt_get(u64 *gtt_total,
+ 		   u32 *stolen_size,
+ 		   phys_addr_t *mappable_base,
+--- a/drivers/gpu/drm/i915/i915_drv.c
++++ b/drivers/gpu/drm/i915/i915_drv.c
+@@ -1022,11 +1022,11 @@
+ 
+ 	intel_uc_init_mmio(dev_priv);
+ 
+-	ret = intel_engines_init_mmio(dev_priv);
++//	ret = intel_engines_init_mmio(dev_priv);
+ 	if (ret)
+ 		goto err_uncore;
+ 
+-	i915_gem_init_mmio(dev_priv);
++//	i915_gem_init_mmio(dev_priv);
+ 
+ 	return 0;
+ 
+--- a/drivers/gpu/drm/i915/i915_gem_context.c
++++ b/drivers/gpu/drm/i915/i915_gem_context.c
+@@ -487,9 +487,11 @@
+ 	}
+ 	dev_priv->preempt_context = ctx;
+ 
++/*
+ 	DRM_DEBUG_DRIVER("%s context support initialized\n",
+ 			 dev_priv->engine[RCS]->context_size ? "logical" :
+ 			 "fake");
++*/
+ 	return 0;
+ 
+ err_kernel_context:
+--- a/drivers/gpu/drm/drm_framebuffer.c
+--- b/drivers/gpu/drm/drm_framebuffer.c
+@@ -675,7 +675,8 @@
+ 	INIT_LIST_HEAD(&fb->filp_head);
+ 
+ 	fb->funcs = funcs;
+-	strcpy(fb->comm, current->comm);
++	if (current) /* used for debugging */
++		strcpy(fb->comm, current->comm);
+ 
+ 	ret = __drm_mode_object_add(dev, &fb->base, DRM_MODE_OBJECT_FB,
+ 				    false, drm_framebuffer_free);
+--- a/drivers/gpu/drm/i915/intel_display.c
+--- b/drivers/gpu/drm/i915/intel_display.c
+@@ -12199,7 +12199,7 @@
+ 	u64 put_domains[I915_MAX_PIPES] = {};
+ 	int i;
+ 
+-	intel_atomic_commit_fence_wait(intel_state);
++//	intel_atomic_commit_fence_wait(intel_state);
+ 
+ 	drm_atomic_helper_wait_for_dependencies(state);
+ 
+@@ -12479,13 +12479,14 @@
+ 		dev_priv->cdclk.actual = intel_state->cdclk.actual;
+ 	}
+ 
+-	drm_atomic_state_get(state);
+ 	INIT_WORK(&state->commit_work, intel_atomic_commit_work);
+ 
+ 	i915_sw_fence_commit(&intel_state->commit_ready);
+ 	if (nonblock && intel_state->modeset) {
++		drm_atomic_state_get(state);
+ 		queue_work(dev_priv->modeset_wq, &state->commit_work);
+ 	} else if (nonblock) {
++		drm_atomic_state_get(state);
+ 		queue_work(system_unbound_wq, &state->commit_work);
+ 	} else {
+ 		if (intel_state->modeset)
+--- a/drivers/gpu/drm/i915/i915_gem_gtt.c
++++ b/drivers/gpu/drm/i915/i915_gem_gtt.c
+@@ -154,7 +158,7 @@
+ 	 * We don't allow disabling PPGTT for gen9+ as it's a requirement for
+ 	 * execlists, the sole mechanism available to submit work.
+ 	 */
+-	if (enable_ppgtt == 0 && INTEL_GEN(dev_priv) < 9)
++	if (enable_ppgtt == 0) // && INTEL_GEN(dev_priv) < 9)
+ 		return 0;
+ 
+ 	if (enable_ppgtt == 1)

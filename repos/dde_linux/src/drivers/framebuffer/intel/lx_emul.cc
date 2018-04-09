@@ -27,7 +27,9 @@
 #include <lx_emul/extern_c_begin.h>
 #include <drm/drmP.h>
 #include <drm/drm_gem.h>
+#include "drm_crtc_internal.h"
 #include <lx_emul/extern_c_end.h>
+#include <drm/i915_drm.h>
 
 #include <lx_emul/impl/kernel.h>
 #include <lx_emul/impl/delay.h>
@@ -45,6 +47,16 @@
 
 static struct drm_device * lx_drm_device = nullptr;
 
+struct irq_chip dummy_irq_chip;
+
+enum { MAX_BRIGHTNESS = 100U }; /* we prefer percentage */
+
+struct Mutex_guard
+{
+	struct mutex &_mutex;
+	Mutex_guard(struct mutex &m) : _mutex(m) { mutex_lock(&_mutex); }
+	~Mutex_guard() { mutex_unlock(&_mutex); }
+};
 
 struct Drm_guard
 {
@@ -80,7 +92,8 @@ static inline void lx_for_each_connector(drm_device * dev, FUNCTOR f)
 
 
 drm_display_mode *
-Framebuffer::Driver::_preferred_mode(drm_connector *connector)
+Framebuffer::Driver::_preferred_mode(drm_connector *connector,
+                                     unsigned &brightness)
 {
 	using namespace Genode;
 	using Genode::size_t;
@@ -101,6 +114,9 @@ Framebuffer::Driver::_preferred_mode(drm_connector *connector)
 			bool enabled = xn.attribute_value("enabled", true);
 			if (!enabled)
 				return nullptr;
+
+			brightness = xn.attribute_value("brightness",
+			                                (unsigned)MAX_BRIGHTNESS + 1);
 
 			unsigned long width  = 0;
 			unsigned long height = 0;
@@ -136,7 +152,12 @@ Framebuffer::Driver::_preferred_mode(drm_connector *connector)
 
 void Framebuffer::Driver::finish_initialization()
 {
+	if (!lx_drm_device) {
+		Genode::error("no drm device");
+		return;
+	}
 	lx_c_set_driver(lx_drm_device, (void*)this);
+
 	generate_report();
 	_session.config_changed();
 }
@@ -174,7 +195,8 @@ void Framebuffer::Driver::update_mode()
 	_config = Configuration();
 
 	lx_for_each_connector(lx_drm_device, [&] (drm_connector *c) {
-		drm_display_mode * mode = _preferred_mode(c);
+		unsigned brightness;
+		drm_display_mode * mode = _preferred_mode(c, brightness);
 		if (!mode) return;
 		if (mode->hdisplay > _config._lx.width)  _config._lx.width  = mode->hdisplay;
 		if (mode->vdisplay > _config._lx.height) _config._lx.height = mode->vdisplay;
@@ -182,11 +204,24 @@ void Framebuffer::Driver::update_mode()
 
 	lx_c_allocate_framebuffer(lx_drm_device, &_config._lx);
 
+	if (!_config._lx.lx_fb) {
+		Genode::error("updating framebuffer failed");
+		return;
+	}
+
 	{
 		Drm_guard guard(lx_drm_device);
 		lx_for_each_connector(lx_drm_device, [&] (drm_connector *c) {
-		                       lx_c_set_mode(lx_drm_device, c, _config._lx.lx_fb,
-		                                      _preferred_mode(c)); });
+			unsigned brightness = MAX_BRIGHTNESS + 1;
+
+			/* set mode */
+			lx_c_set_mode(lx_drm_device, c, _config._lx.lx_fb,
+			              _preferred_mode(c, brightness));
+
+			/* set sane brightness, ignore unsane values and let as is */
+			if (brightness <= MAX_BRIGHTNESS)
+				lx_c_set_brightness(c, brightness, MAX_BRIGHTNESS);
+		});
 	}
 
 	/* force virtual framebuffer size if requested */
@@ -196,17 +231,27 @@ void Framebuffer::Driver::update_mode()
 		_config._lx.height = min(_config._lx.height, h);
 
 	if (old._lx.addr)  Lx::iounmap(old._lx.addr);
-	/* drm_crtc.h in drm_framebuffer_funcs definition: use drm_fb_remove */
-	if (old._lx.lx_fb) drm_framebuffer_remove(old._lx.lx_fb);
+	if (old._lx.lx_fb) {
+		if (drm_framebuffer_read_refcount(old._lx.lx_fb) > 1) {
+			/*
+			 * If one sees this message, we are going to leak a lot of
+			 * memory (e.g. framebuffer) and this will cause later on
+			 * resource requests by this driver ...
+			 */
+			Genode::warning("framebuffer refcount ",
+			                drm_framebuffer_read_refcount(old._lx.lx_fb));
+		}
+		drm_framebuffer_remove(old._lx.lx_fb);
+	}
 }
 
 
 void Framebuffer::Driver::generate_report()
 {
-	Drm_guard guard(lx_drm_device);
-
 	/* detect mode information per connector */
 	{
+		Mutex_guard mutex(lx_drm_device->mode_config.mutex);
+
 		struct drm_connector *c;
 		list_for_each_entry(c, &lx_drm_device->mode_config.connector_list,
 		                    head)
@@ -236,6 +281,7 @@ void Framebuffer::Driver::generate_report()
 	try {
 		Genode::Reporter::Xml_generator xml(_reporter, [&] ()
 		{
+			Drm_guard guard(lx_drm_device);
 			struct drm_connector *c;
 			list_for_each_entry(c, &lx_drm_device->mode_config.connector_list,
 			                    head) {
@@ -244,6 +290,11 @@ void Framebuffer::Driver::generate_report()
 					bool connected = c->status == connector_status_connected;
 					xml.attribute("name", c->name);
 					xml.attribute("connected", connected);
+
+					/* unsane values means no brightness support */
+					unsigned brightness = lx_c_get_brightness(c, MAX_BRIGHTNESS + 1);
+					if (brightness <= MAX_BRIGHTNESS)
+						xml.attribute("brightness", brightness);
 
 					if (!connected) return;
 
@@ -273,7 +324,10 @@ extern "C" {
 
 struct task_struct *current;
 
-struct boot_cpu_data boot_cpu_data;
+struct boot_cpu_data boot_cpu_data =
+{
+	.x86_clflush_size = (sizeof(void*) == 8) ? 64 : 32,
+};
 
 int oops_in_progress;
 
@@ -281,6 +335,13 @@ int oops_in_progress;
 /********************
  ** linux/string.h **
  ********************/
+
+char *strcpy(char *to, const char *from)
+{
+	char *save = to;
+	for (; (*to = *from); ++from, ++to);
+	return(save);
+}
 
 char *strncpy(char *dst, const char* src, size_t n)
 {
@@ -305,6 +366,21 @@ int memcmp(const void *cs, const void *ct, size_t count)
 	return res;
 }
 
+void *memchr_inv(const void *s, int cc, size_t n)
+{
+	if (!s)
+		return NULL;
+
+	uint8_t const c = cc;
+	uint8_t const * start = (uint8_t const *)s;
+
+	for (uint8_t const *i = start; i >= start && i < start + n; i++)
+		if (*i != c)
+			return (void *)i;
+
+	return NULL;
+}
+
 size_t strlen(const char *s)
 {
 	return Genode::strlen(s);
@@ -324,10 +400,28 @@ size_t strlcpy(char *dest, const char *src, size_t size)
 
 	if (size) {
 		size_t len = (ret >= size) ? size - 1 : ret;
-		memcpy(dest, src, len);
+		Genode::memcpy(dest, src, len);
 		dest[len] = '\0';
 	}
 	return ret;
+}
+
+size_t strlcat(char *dest, const char *src, size_t count)
+{
+	size_t dsize = strlen(dest);
+	size_t len = strlen(src);
+	size_t res = dsize + len;
+
+	/* This would be a bug */
+	BUG_ON(dsize >= count);
+
+	dest += dsize;
+	count -= dsize;
+	if (len >= count)
+		len = count-1;
+	memcpy(dest, src, len);
+	dest[len] = 0;
+	return res;
 }
 
 int sysfs_create_link(struct kobject *kobj, struct kobject *target, const char *name)
@@ -350,17 +444,6 @@ int dmi_check_system(const struct dmi_system_id *list)
 	return 0;
 }
 
-
-/*******************
- ** linux/timer.h **
- *******************/
-
-int mod_timer_pinned(struct timer_list *timer, unsigned long expires)
-{
-	return mod_timer(timer, expires);
-}
-
-
 /*******************
  ** Kernel memory **
  *******************/
@@ -370,81 +453,18 @@ dma_addr_t page_to_phys(struct page *page)
 	return page->paddr;
 }
 
-void *kmem_cache_zalloc(struct kmem_cache *k, gfp_t flags)
+void *kmem_cache_zalloc(struct kmem_cache *cache, gfp_t flags)
 {
-	return kmem_cache_alloc(k, flags | __GFP_ZERO);
+	void * const ret = kmem_cache_alloc(cache, flags);
+	if (ret)
+		memset(ret, 0, cache->size());
+	return ret;
 }
 
 void *krealloc(const void *p, size_t size, gfp_t flags)
 {
 	/* use const-less version from <impl/slab.h> */
 	return krealloc(const_cast<void*>(p), size, flags);
-}
-
-
-/*****************
- ** linux/idr.h **
- *****************/
-
-void idr_init(struct idr *idp)
-{
-	Genode::memset(idp, 0, sizeof(struct idr));
-}
-
-static Genode::Bit_allocator<1024> id_allocator;
-
-int idr_alloc(struct idr *idp, void *ptr, int start, int end, gfp_t gfp_mask)
-{
-	int max = end > 0 ? end - 1 : ((int)(~0U>>1));  /* inclusive upper limit */
-	int id;
-
-	/* sanity checks */
-	if (start < 0)   return -EINVAL;
-	if (max < start) return -ENOSPC;
-
-	/* allocate id */
-	id = id_allocator.alloc();
-	if (id == 0) id = id_allocator.alloc(); /* do not use id zero */
-	if (id > max) return -ENOSPC;
-
-	ASSERT(id >= start);
-	return id;
-}
-
-
-int ida_simple_get(struct ida *ida, unsigned int start, unsigned int end, gfp_t gfp_mask)
-{
-	int max = end > 0 ? end - 1 : ((int)(~0U>>1));
-	int id  = id_allocator.alloc();
-	if (id > max) return -ENOSPC;
-
-	ASSERT((unsigned int)id >= start);
-	return id;
-}
-
-
-void ida_remove(struct ida *ida, int id)
-{
-	id_allocator.free(id);
-}
-
-
-void idr_remove(struct idr *idp, int id)
-{
-	id_allocator.free(id);
-}
-
-
-void *idr_find(struct idr *idr, int id)
-{
-	TRACE;
-	return NULL;
-}
-
-void *idr_replace(struct idr *idp, void *ptr, int id)
-{
-	TRACE;
-	return NULL;
 }
 
 
@@ -469,6 +489,80 @@ struct resource iomem_resource;
 /*********
  ** PCI **
  *********/
+
+extern "C" void intel_graphics_quirks(int num, int slot, int func);
+
+u8 read_pci_config_byte(u8 const bus, u8 const slot, u8 const func, u8 const offset)
+{
+	u8 pci_value = 0xffu;
+
+	for (Lx::Pci_dev *pci_dev = Lx::pci_dev_registry()->first(); pci_dev;
+	     pci_dev = pci_dev->next())
+	{
+		unsigned char dev_bus = 0, dev_slot = 0, dev_fn = 0;
+		pci_dev->client().bus_address(&dev_bus, &dev_slot, &dev_fn);
+
+		if (dev_bus != bus || dev_slot != slot || dev_fn != func)
+			continue;
+
+		pci_read_config_byte(pci_dev, offset, &pci_value);
+		return pci_value;
+	}
+
+	using Genode::Hex;
+	error(__func__, " - unknown device called ",
+	      Hex(bus, Hex::OMIT_PREFIX, Hex::PAD), ":",
+	      Hex(slot, Hex::OMIT_PREFIX, Hex::PAD), ".", func);
+	return pci_value;
+}
+
+u16 read_pci_config_16(u8 const bus, u8 const slot, u8 const func, u8 const offset)
+{
+	u16 pci_value = 0xffffu;
+
+	for (Lx::Pci_dev *pci_dev = Lx::pci_dev_registry()->first(); pci_dev;
+	     pci_dev = pci_dev->next())
+	{
+		unsigned char dev_bus = 0, dev_slot = 0, dev_fn = 0;
+		pci_dev->client().bus_address(&dev_bus, &dev_slot, &dev_fn);
+
+		if (dev_bus != bus || dev_slot != slot || dev_fn != func)
+			continue;
+
+		pci_read_config_word(pci_dev, offset, &pci_value);
+		return pci_value;
+	}
+
+	using Genode::Hex;
+	error(__func__, " - unknown device called ",
+	      Hex(bus, Hex::OMIT_PREFIX, Hex::PAD), ":",
+	      Hex(slot, Hex::OMIT_PREFIX, Hex::PAD), ".", func);
+	return pci_value;
+}
+
+u32 read_pci_config(u8 const bus, u8 const slot, u8 const func, u8 const offset)
+{
+	u32 pci_value = ~0U;
+
+	for (Lx::Pci_dev *pci_dev = Lx::pci_dev_registry()->first(); pci_dev;
+	     pci_dev = pci_dev->next())
+	{
+		unsigned char dev_bus = 0, dev_slot = 0, dev_fn = 0;
+		pci_dev->client().bus_address(&dev_bus, &dev_slot, &dev_fn);
+
+		if (dev_bus != bus || dev_slot != slot || dev_fn != func)
+			continue;
+
+		pci_read_config_dword(pci_dev, offset, &pci_value);
+		return pci_value;
+	}
+
+	using Genode::Hex;
+	error(__func__, " - unknown device called ",
+	      Hex(bus, Hex::OMIT_PREFIX, Hex::PAD), ":",
+	      Hex(slot, Hex::OMIT_PREFIX, Hex::PAD), ".", func);
+	return pci_value;
+}
 
 struct pci_dev *pci_get_bus_and_slot(unsigned int bus, unsigned int devfn)
 {
@@ -497,13 +591,38 @@ struct pci_dev *pci_get_bus_and_slot(unsigned int bus, unsigned int devfn)
 
 	Lx::for_each_pci_device(lamda);
 
+
+	/* XXX better place to apply quirks ? */
+	if (!intel_graphics_stolen_res.start) {
+		for (Lx::Pci_dev *pci_dev = Lx::pci_dev_registry()->first(); pci_dev;
+		     pci_dev = pci_dev->next())
+		{
+			unsigned char dev_bus = 0, dev_slot = 0, dev_fn = 0;
+			pci_dev->client().bus_address(&dev_bus, &dev_slot, &dev_fn);
+
+			intel_graphics_quirks(dev_bus, dev_slot, dev_fn);
+		}
+	}
+
+	if (intel_graphics_stolen_res.start)
+		Genode::log("Intel graphics stolen memory ",
+		            Genode::Hex(intel_graphics_stolen_res.start), "-",
+		            Genode::Hex(intel_graphics_stolen_res.end));
+	else
+		Genode::error("Intel graphics stolen memory missing - trouble ahead!");
+
 	return pci_dev;
 }
 
 
 void pci_dev_put(struct pci_dev *pci_dev)
 {
-	Genode::destroy(Lx::Malloc::mem(), pci_dev);
+	Lx::Pci_dev *dev = static_cast<Lx::Pci_dev*>(pci_dev);
+	if (!dev)
+		return;
+
+	Lx::pci_dev_registry()->remove(dev);
+	Genode::destroy(Lx::Malloc::mem(), dev);
 }
 
 
@@ -517,8 +636,10 @@ struct pci_dev *pci_get_class(unsigned int class_code, struct pci_dev *from)
 	 * We look up the bridge but don't need to support the iteration over
 	 * multiple devices of the given class.
 	 */
-	if (from)
+	if (from) {
+		TRACE_AND_STOP;
 		return nullptr;
+	}
 
 	pci_dev *pci_dev = nullptr;
 
@@ -526,15 +647,14 @@ struct pci_dev *pci_get_class(unsigned int class_code, struct pci_dev *from)
 
 		Platform::Device_client client(cap);
 
-		if (client.class_code() == class_code) {
-			pci_dev = new (Lx::Malloc::mem()) Lx::Pci_dev(cap);
-			return true;
-		}
+		Lx::Pci_dev * const dev = new (Lx::Malloc::mem()) Lx::Pci_dev(cap);
+		Lx::pci_dev_registry()->insert(dev);
+		pci_dev = dev;
 
-		return false;
+		return true;
 	};
 
-	Lx::for_each_pci_device(lamda);
+	Lx::for_each_pci_device(lamda, class_code, class_code);
 
 	return pci_dev;
 }
@@ -613,47 +733,10 @@ int pci_dma_mapping_error(struct pci_dev *pdev, dma_addr_t dma_addr)
 }
 
 
-struct io_mapping
-{
-	private:
-
-		resource_size_t _base;
-		unsigned long   _size;
-
-	public:
-
-		/**
-		 * Constructor
-		 */
-		io_mapping(resource_size_t base, unsigned long size) :
-			_base(base), _size(size) { }
-
-		resource_size_t base() const { return _base; }
-};
-
-
-/**
- * I/O mapping used by i915_dma.c to map the GTT aperture
- */
-struct io_mapping *io_mapping_create_wc(resource_size_t base, unsigned long size)
-{
-	static int called;
-	TRACE;
-
-	if (called++ != 0) {
-		Genode::error("io_mapping_create_wc unexpectedly called twice");
-		return 0;
-	}
-
-	io_mapping *mapping = new (Lx::Malloc::mem()) io_mapping(base, size);
-	return mapping;
-}
-
-
 void iounmap(volatile void *addr)
 {
 	/* do not unmap here, but when client requests new dataspace */
-	TRACE;
+	TRACE_AND_STOP;
 }
 
 
@@ -722,6 +805,23 @@ int driver_register(struct device_driver *drv)
 }
 
 
+void device_unregister(struct device *dev)
+{
+	if (dev->type && dev->type->release)
+		dev->type->release(dev);
+}
+
+
+int device_for_each_child(struct device *dev, void *data, int (*fn)(struct device *dev, void *data))
+{
+	/*
+	 * Called when a connector is removed
+	 */
+	TRACE;
+	return 0;
+}
+
+
 int bus_for_each_dev(struct bus_type *bus, struct device *start, void *data,
                      int (*fn)(struct device *dev, void *data))
 {
@@ -762,25 +862,64 @@ int bus_for_each_drv(struct bus_type *bus, struct device_driver *start,
  ** linux/workqueue.h **
  ***********************/
 
-struct workqueue_struct *system_wq;
+struct workqueue_struct *system_wq = nullptr;
+struct workqueue_struct *system_long_wq = nullptr;
+struct workqueue_struct *system_unbound_wq = nullptr;
 
-struct workqueue_struct *create_singlethread_workqueue(char const *)
+struct workqueue_struct *alloc_workqueue(const char *fmt, unsigned int flags,
+                                         int max_active, ...)
 {
 	workqueue_struct *wq = (workqueue_struct *)kzalloc(sizeof(workqueue_struct), 0);
+	Lx::Work *work = Lx::Work::alloc_work_queue(&Lx::Malloc::mem(), fmt);
+	wq->task       = (void *)work;
+
 	return wq;
 }
 
-struct workqueue_struct *alloc_ordered_workqueue(char const *name , unsigned int flags, ...)
+struct workqueue_struct *alloc_ordered_workqueue(char const *fmt , unsigned int flags, ...)
 {
-	return create_singlethread_workqueue(name);
+	return alloc_workqueue(fmt, flags, 1);
 }
 
 bool flush_work(struct work_struct *work)
 {
+	TRACE_AND_STOP;
 	cancel_work_sync(work);
 	return 0;
 }
 
+bool mod_delayed_work(struct workqueue_struct *wq, struct delayed_work *dwork,
+                      unsigned long delay)
+{
+	TRACE;
+	return queue_delayed_work(wq, dwork, delay);
+}
+
+bool flush_delayed_work(struct delayed_work *dwork)
+{
+	TRACE_AND_STOP;
+	return false;
+}
+
+void schedule(void)
+{
+	TRACE_AND_STOP;
+}
+
+void flush_workqueue(struct workqueue_struct *wq)
+{
+	Lx::Task *current = Lx::scheduler().current();
+	if (!current) {
+		Genode::error("BUG: flush_workqueue executed without task");
+		Genode::sleep_forever();
+	}
+
+	Lx::Work *lx_work = (wq && wq->task) ? (Lx::Work*) wq->task
+	                                     : &Lx::Work::work_queue();
+
+	lx_work->flush(*current);
+	Lx::scheduler().current()->block_and_schedule();
+}
 
 
 /***************
@@ -792,10 +931,33 @@ bool in_atomic()
 	return false;
 }
 
+static bool irq_state_disabled = false;
+
+void local_bh_enable(void)
+{
+	TRACE;
+	irq_state_disabled = false;
+}
+
+void local_bh_disable(void)
+{
+	TRACE;
+	irq_state_disabled = true;
+}
+
+void preempt_enable(void)
+{
+	TRACE;
+}
+
+void preempt_disable(void)
+{
+	TRACE;
+}
 
 bool irqs_disabled()
 {
-	return false;
+	return irq_state_disabled;
 }
 
 
@@ -805,10 +967,43 @@ void usleep_range(unsigned long min, unsigned long max)
 }
 
 
+/*******************
+ ** linux/timer.h **
+ *******************/
+
+static unsigned long _round_jiffies(unsigned long j, bool force_up)
+{
+	unsigned remainder = j % HZ;
+
+	/*
+	 * from timer.c
+	 *
+	 * If the target jiffie is just after a whole second (which can happen
+	 * due to delays of the timer irq, long irq off times etc etc) then
+	 * we should round down to the whole second, not up. Use 1/4th second
+	 * as cutoff for this rounding as an extreme upper bound for this.
+	 * But never round down if @force_up is set.
+	 */
+
+	/* per default round down */
+	j = j - remainder;
+
+	/* round up if remainder more than 1/4 second (or if we're forced to) */
+	if (remainder >= HZ/4 || force_up)
+		j += HZ;
+
+	return j;
+}
+
 unsigned long round_jiffies_up_relative(unsigned long j)
 {
 	j += jiffies;
 	return j - (j%HZ) + HZ;
+}
+
+unsigned long round_jiffies_up(unsigned long j)
+{
+	return _round_jiffies(j, true);
 }
 
 
@@ -818,43 +1013,12 @@ unsigned long round_jiffies_up_relative(unsigned long j)
 
 unsigned int drm_debug = 0x0;
 
-
-extern "C" int drm_pci_init(struct drm_driver *driver, struct pci_driver *pdriver)
+int drm_dev_init(struct drm_device *dev, struct drm_driver *driver,
+                 struct device *parent)
 {
-	return pci_register_driver(pdriver);
-}
+	TRACE;
 
-
-void drm_ut_debug_printk(const char *function_name, const char *format, ...)
-{
-	using namespace Genode;
-
-	va_list list;
-	va_start(list, format);
-	lx_printf("[drm:%s] ", function_name);
-	lx_vprintf(format, list);
-	va_end(list);
-}
-
-
-void drm_err(const char *format, ...)
-{
-	using namespace Genode;
-
-	va_list list;
-	va_start(list, format);
-	lx_printf("[drm:ERROR] ");
-	lx_vprintf(format, list);
-	va_end(list);
-}
-
-
-struct drm_device *drm_dev_alloc(struct drm_driver *driver, struct device *parent)
-{
-	struct drm_device *dev = (drm_device *)kzalloc(sizeof(*dev), GFP_KERNEL);
-	if (!dev)
-		return nullptr;
-
+	kref_init(&dev->ref);
 	dev->dev = parent;
 	dev->driver = driver;
 
@@ -866,14 +1030,26 @@ struct drm_device *drm_dev_alloc(struct drm_driver *driver, struct device *paren
 
 	spin_lock_init(&dev->buf_lock);
 	spin_lock_init(&dev->event_lock);
-
+	mutex_init(&dev->struct_mutex);
+	mutex_init(&dev->filelist_mutex);
 	mutex_init(&dev->ctxlist_mutex);
 	mutex_init(&dev->master_mutex);
-	mutex_init(&dev->struct_mutex);
 
-	return dev;
+	return 0;
 }
 
+void drm_send_event_locked(struct drm_device *dev, struct drm_pending_event *e)
+{
+	if (e->completion) {
+		complete_all(e->completion);
+		e->completion_release(e->completion);
+		e->completion = NULL;
+	}
+
+	if (e->fence) {
+		TRACE_AND_STOP;
+	}
+}
 
 static void drm_get_minor(struct drm_device *dev, struct drm_minor **minor, int type)
 {
@@ -888,40 +1064,28 @@ static void drm_get_minor(struct drm_device *dev, struct drm_minor **minor, int 
 
 int drm_dev_register(struct drm_device *dev, unsigned long flags)
 {
-	drm_get_minor(dev, &dev->primary, DRM_MINOR_LEGACY);
+	drm_get_minor(dev, &dev->primary, DRM_MINOR_PRIMARY);
+
+	int ret = 0;
 
 	ASSERT(!lx_drm_device);
 	lx_drm_device = dev;
-	return dev->driver->load(dev, flags);
-}
 
+	dev->registered = true;
 
-/*
- * Called indirectly when 'pci_register_driver' has found a matching
- * device.
- */
-int drm_get_pci_dev(struct pci_dev *pdev, const struct pci_device_id *ent,
-                    struct drm_driver *driver)
-{
-	drm_device *dev = drm_dev_alloc(driver, &pdev->dev);
-	if (!dev)
-		return -ENOMEM;
+	if (dev->driver->load) {
+		ret = dev->driver->load(dev, flags);
+		if (ret)
+			return ret;
+	}
 
-	dev->pdev = pdev;
+	if (drm_core_check_feature(dev, DRIVER_MODESET))
+		drm_modeset_register_all(dev);
 
-	pci_set_drvdata(pdev, dev);
-
-	/*
-	 * Kick off the actual driver initialization code
-	 *
-	 * In the Linux DRM code, this happens indirectly via the call of
-	 * 'drm_dev_register'.
-	 */
-	drm_dev_register(dev, ent->driver_data);
-
-	DRM_INFO("Initialized %s %d.%d.%d %s for %s on minor %d\n",
-		 driver->name, driver->major, driver->minor, driver->patchlevel,
-		 driver->date, pci_name(pdev), dev->primary->index);
+	DRM_INFO("Initialized %s %d.%d.%d %s on minor %d\n",
+		 dev->driver->name, dev->driver->major, dev->driver->minor,
+		 dev->driver->patchlevel, dev->driver->date,
+		 dev->primary->index);
 
 	return 0;
 }
@@ -936,50 +1100,11 @@ int request_irq(unsigned int irq, irq_handler_t handler, unsigned long flags,
 	return 0;
 }
 
-void drm_gem_private_object_init(struct drm_device *dev,
-                                 struct drm_gem_object *obj, size_t size)
-{
-	obj->dev = dev;
-	kref_init(&obj->refcount);
-	obj->filp = NULL;
-	obj->size = size;
-}
-
-
-void drm_gem_object_free(struct kref *kref)
-{
-	struct drm_gem_object *obj =
-		container_of(kref, struct drm_gem_object, refcount);
-	struct drm_device *dev = obj->dev;
-
-	if (dev->driver->gem_free_object != NULL)
-		dev->driver->gem_free_object(obj);
-}
-
-
-void drm_gem_free_mmap_offset(struct drm_gem_object *obj)
-{
-	if (obj && obj->filp && obj->filp->f_inode && obj->filp->f_inode->i_mapping)
-		free_pages((unsigned long)obj->filp->f_inode->i_mapping->my_page->addr, 0);
-}
-
-
-void drm_gem_object_release(struct drm_gem_object *obj)
-{
-	if (!obj || !obj->filp || !obj->filp->f_inode
-	    || !obj->filp->f_inode->i_mapping) return;
-
-	kfree(obj->filp->f_inode->i_mapping);
-	kfree(obj->filp->f_inode);
-	kfree(obj->filp);
-}
-
-
 /***************************
  ** arch/x86/kernel/tsc.c **
  ***************************/
 
-unsigned int tsc_khz;
+unsigned int tsc_khz = 0;
 
 
 /**************************************
@@ -991,35 +1116,6 @@ void cpu_relax(void)
 	Lx::timer_update_jiffies();
 	asm volatile("rep; nop" ::: "memory");
 }
-
-
-/***********************
- ** linux/workqueue.h **
- ***********************/
-
-bool mod_delayed_work(struct workqueue_struct *, struct delayed_work *, unsigned long)
-{
-	TRACE;
-	return false;
-}
-
-bool flush_delayed_work(struct delayed_work *dwork)
-{
-	TRACE;
-	return false;
-}
-
-async_cookie_t async_schedule(async_func_t func, void *data)
-{
-	TRACE;
-	return 0;
-}
-
-void async_synchronize_full(void)
-{
-	TRACE;
-}
-
 
 /***********************
  ** drivers/pci/rom.c **
@@ -1038,124 +1134,6 @@ void __iomem __must_check *pci_map_rom(struct pci_dev *pdev, size_t *size)
 void pci_unmap_rom(struct pci_dev *pdev, void __iomem *rom) {}
 
 
-/***********************
- ** lib/scatterlist.c **
- ***********************/
-
-void sg_mark_end(struct scatterlist *sg)
-{
-	sg->page_link |= 0x02;
-	sg->page_link &= ~0x01;
-}
-
-
-int sg_alloc_table(struct sg_table *table, unsigned int nents, gfp_t gfp_mask)
-{
-	enum { MAX_ENTS = 4096 / sizeof(struct scatterlist) };
-
-	Genode::memset(table, 0, sizeof(*table));
-
-	struct scatterlist *sg = (scatterlist*)
-		Lx::Malloc::mem().alloc_large(nents * sizeof(struct scatterlist));
-	if (!sg) return -ENOMEM;
-
-	Genode::memset(sg, 0, sizeof(*sg) * nents);
-	table->nents = nents;
-	table->sgl = sg;
-	sg_mark_end(&sg[nents - 1]);
-	return 0;
-}
-
-
-void sg_free_table(struct sg_table *table)
-{
-	TRACE;
-	if (table && table->sgl) Lx::Malloc::mem().free_large(table->sgl);
-}
-
-
-static inline bool sg_is_last(scatterlist * sg) {
-	return (sg->page_link & 0x02); }
-
-struct scatterlist *sg_next(struct scatterlist * sg)
-{
-	if (sg_is_last(sg))
-		return NULL;
-
-	sg++;
-	if (unlikely(sg_is_chain(sg)))
-		sg = sg_chain_ptr(sg);
-
-	return sg;
-}
-
-void __sg_page_iter_start(struct sg_page_iter *piter, struct scatterlist *sglist,
-                          unsigned int nents, unsigned long pgoffset)
-{
-	piter->__pg_advance = 0;
-	piter->__nents = nents;
-	piter->sg = sglist;
-	piter->sg_pgoffset = pgoffset;
-}
-
-static int sg_page_count(struct scatterlist *sg) {
-	return Genode::align_addr(sg->offset + sg->length, 12) >> PAGE_SHIFT; }
-
-bool __sg_page_iter_next(struct sg_page_iter *piter)
-{
-	if (!piter->__nents || !piter->sg)
-		return false;
-
-	piter->sg_pgoffset += piter->__pg_advance;
-	piter->__pg_advance = 1;
-
-	while (piter->sg_pgoffset >= (unsigned long)sg_page_count(piter->sg)) {
-		piter->sg_pgoffset -= sg_page_count(piter->sg);
-		piter->sg = sg_next(piter->sg);
-		if (!--piter->__nents || !piter->sg)
-			return false;
-	}
-
-	return true;
-}
-
-
-dma_addr_t sg_page_iter_dma_address(struct sg_page_iter *piter)
-{
-	return sg_dma_address(piter->sg) + (piter->sg_pgoffset << PAGE_SHIFT);
-}
-
-
-struct page *sg_page_iter_page(struct sg_page_iter *piter)
-{
-	return (page*)(PAGE_SIZE * (page_to_pfn((sg_page(piter->sg))) + (piter->sg_pgoffset)));
-}
-
-
-void dma_unmap_sg_attrs(struct device *dev, struct scatterlist *sg, int nents, enum dma_data_direction dir, struct dma_attrs *attrs)
-{
-	TRACE;
-}
-
-
-void mark_page_accessed(struct page *p)
-{
-	//TRACE;
-}
-
-
-void put_page(struct page *page)
-{
-	//TRACE;
-}
-
-unsigned long invalidate_mapping_pages(struct address_space *mapping, pgoff_t start, pgoff_t end)
-{
-	TRACE;
-	return 0;
-}
-
-
 /******************
  ** linux/kref.h **
  ******************/
@@ -1163,11 +1141,21 @@ unsigned long invalidate_mapping_pages(struct address_space *mapping, pgoff_t st
 void kref_init(struct kref *kref) {
 	kref->refcount.counter = 1; }
 
-void kref_get(struct kref *kref) {
-	kref->refcount.counter++; }
+void kref_get(struct kref *kref)
+{
+	if (!kref->refcount.counter)
+		Genode::error(__func__, " kref already zero");
+
+	kref->refcount.counter++;
+}
 
 int kref_put(struct kref *kref, void (*release) (struct kref *kref))
 {
+	if (!kref->refcount.counter) {
+		Genode::error(__func__, " kref already zero");
+		return 1;
+	}
+
 	kref->refcount.counter--;
 	if (kref->refcount.counter == 0) {
 		release(kref);
@@ -1185,6 +1173,14 @@ int kref_put_mutex(struct kref *kref, void (*release)(struct kref *kref), struct
 	return 0;
 }
 
+int kref_get_unless_zero(struct kref *kref)
+{
+	if (!kref->refcount.counter)
+		return 0;
+
+	kref_get(kref);
+	return 1;
+}
 
 void *kmalloc_array(size_t n, size_t size, gfp_t flags)
 {
@@ -1192,6 +1188,22 @@ void *kmalloc_array(size_t n, size_t size, gfp_t flags)
 	return kmalloc(n * size, flags);
 }
 
+unsigned int kref_read(const struct kref *kref)
+{
+	TRACE;
+	return atomic_read(&kref->refcount);
+}
+
+bool refcount_dec_and_test(atomic_t *a)
+{
+	if ((unsigned)a->counter == UINT_MAX)
+		return false;
+
+	if (a->counter == 0)
+		printk("Underflow of atomic variable ...\n");
+
+	return atomic_dec_and_test(a);
+}
 
 /**************************************
  ** Stubs for non-ported driver code **
@@ -1204,6 +1216,7 @@ void pm_qos_add_request(struct pm_qos_request *req, int pm_qos_class, s32 value)
 
 void pm_qos_update_request(struct pm_qos_request *req, s32 new_value)
 {
+	TRACE;
 }
 
 int vga_client_register(struct pci_dev *pdev, void *cookie,
@@ -1249,26 +1262,43 @@ int drm_sysfs_connector_add(struct drm_connector *connector)
 	connector->kdev = (struct device*)
 		kmalloc(sizeof(struct device), GFP_KERNEL);
 	DRM_DEBUG("adding \"%s\" to sysfs\n", connector->name);
-	drm_sysfs_hotplug_event(NULL);
+	drm_sysfs_hotplug_event(connector->dev);
 	return 0;
 }
 
 void drm_sysfs_connector_remove(struct drm_connector *connector)
 {
-	TRACE;
 	kfree(connector->kdev);
+	connector->kdev = nullptr;
+	DRM_DEBUG("removing \"%s\" from sysfs\n", connector->name);
+	drm_sysfs_hotplug_event(connector->dev);
 }
 
 void assert_spin_locked(spinlock_t *lock)
 {
+	TRACE;
 }
 
 void spin_lock_irq(spinlock_t *lock)
 {
+	TRACE;
+	irq_state_disabled = true;
 }
 
 void spin_unlock_irq(spinlock_t *lock)
 {
+	TRACE;
+	irq_state_disabled = false;
+}
+
+void spin_lock_irqsave_nested(spinlock_t *lock, unsigned flags, int subclass)
+{
+	TRACE;
+}
+
+int autoremove_wake_function(struct wait_queue_entry *wq_entry, unsigned mode, int sync, void *key)
+{
+	TRACE_AND_STOP;
 }
 
 int fb_get_options(const char *name, char **option)
@@ -1276,35 +1306,9 @@ int fb_get_options(const char *name, char **option)
 	return 0;
 }
 
-void vga_switcheroo_client_fb_set(struct pci_dev *dev, struct fb_info *info)
-{
-	TRACE;
-}
-
-
-int register_sysrq_key(int key, struct sysrq_key_op *op)
-{
-	TRACE;
-	return 0;
-}
-
-
 void trace_intel_gpu_freq_change(int)
 {
 	TRACE;
-}
-
-struct cpufreq_policy *cpufreq_cpu_get(unsigned int cpu)
-{
-	TRACE;
-	return NULL;
-}
-
-
-int unregister_sysrq_key(int key, struct sysrq_key_op *op)
-{
-	TRACE;
-	return 0;
 }
 
 
@@ -1324,22 +1328,13 @@ void up_write(struct rw_semaphore *sem)
 	TRACE;
 }
 
+
 void intel_csr_ucode_init(struct drm_device *dev)
 {
 	TRACE;
 }
 
-void intel_guc_ucode_init(struct drm_device *dev)
-{
-	TRACE;
-}
-
 void i915_gem_shrinker_init(struct drm_i915_private *dev_priv)
-{
-	TRACE;
-}
-
-void intel_init_audio(struct drm_device *dev)
 {
 	TRACE;
 }
@@ -1356,42 +1351,9 @@ int i915_gem_init_userptr(struct drm_device *dev)
 	return 0;
 }
 
-void i915_gem_batch_pool_init(struct drm_device *dev, struct i915_gem_batch_pool *pool)
-{
-	TRACE;
-}
-
 void spin_lock(spinlock_t *lock)
 {
-}
-
-#define __GFP_BITS_SHIFT 26
-#define __GFP_BITS_MASK ((__force gfp_t)((1 << __GFP_BITS_SHIFT) - 1))
-
-int drm_gem_object_init(struct drm_device *dev, struct drm_gem_object *obj, size_t size)
-{
-	drm_gem_private_object_init(dev, obj, size);
-
-	struct file          * filp    = (struct file*) kmalloc(sizeof(struct file), GFP_KERNEL);
-	struct inode         * inode   = (struct inode*) kmalloc(sizeof(struct inode*), GFP_KERNEL);
-	struct address_space * mapping = (struct address_space*)
-		kmalloc(sizeof(struct address_space*), GFP_KERNEL);
-
-	inode->i_mapping = mapping;
-	filp->f_inode    = inode;
-	obj->filp        = filp;
-
-	unsigned long npages = (size + PAGE_SIZE - 1) >> PAGE_SHIFT;
-	size_t sz_log2 = Genode::log2(npages);
-	sz_log2 += (npages > (1UL << sz_log2)) ? 1 : 0;
-	struct page *pages = alloc_pages(0, sz_log2);
-	mapping->my_page = pages;
-
-	size = PAGE_SIZE * npages;
-	void * data = page_address(pages);
-	memset(data, 0, size);
-
-	return 0;
+	TRACE;
 }
 
 struct inode *file_inode(struct file *f)
@@ -1410,19 +1372,62 @@ gfp_t mapping_gfp_constraint(struct address_space *mapping, gfp_t gfp_mask)
 	return 0;
 }
 
+unsigned long __get_free_pages(gfp_t gfp_mask, unsigned int order)
+{
+	struct page * pages = alloc_pages(gfp_mask, order);
+	if (!pages)
+		return 0;
+
+	return (unsigned long)pages->addr;
+}
+
+struct file *shmem_file_setup(const char *name, loff_t const size,
+                              unsigned long flags)
+{
+	TRACE;
+
+	struct file * file = (struct file *)kzalloc(sizeof(*file), GFP_KERNEL);
+	file->f_mapping = (struct address_space *)kzalloc(sizeof(*file->f_mapping), GFP_KERNEL);
+
+	size_t const npages = (size + PAGE_SIZE - 1) >> PAGE_SHIFT;
+	size_t sz_log2 = Genode::log2(npages);
+	sz_log2 += ((npages > (1UL << sz_log2)) ? 1 : 0);
+
+	struct page *pages = alloc_pages(GFP_DMA, sz_log2);
+
+	file->f_mapping->my_page = pages;
+
+	return file;
+}
+
+void fput(struct file *file)
+{
+	if (!file)
+		return;
+
+	if (file->f_mapping) {
+		if (file->f_mapping->my_page) {
+			free_pages((unsigned long)file->f_mapping->my_page->addr, /* unknown order */ 0);
+			file->f_mapping->my_page = nullptr;
+		}
+		kfree(file->f_mapping);
+	}
+	kfree(file);
+}
+
 struct page *shmem_read_mapping_page_gfp(struct address_space *mapping,
                                          pgoff_t index, gfp_t gfp_mask)
 {
 	return mapping->my_page;
 }
 
-void sg_set_page(struct scatterlist *sg, struct page *page,
-                 unsigned int len, unsigned int offset)
+struct page * pfn_to_page(dma_addr_t pfn)
 {
-	unsigned long page_link = sg->page_link & 0x3;
-	sg->page_link = page_link | (unsigned long) page;
-	sg->offset = offset;
-	sg->length = len;
+	struct page * page = Lx::Addr_to_page_mapping::find_page_by_paddr(pfn * PAGE_SIZE);
+	if (!page)
+		TRACE_AND_STOP;
+
+	return page;
 }
 
 dma_addr_t page_to_pfn(struct page *page)
@@ -1430,14 +1435,35 @@ dma_addr_t page_to_pfn(struct page *page)
 	return page->paddr / PAGE_SIZE;
 }
 
-struct page *sg_page(struct scatterlist *sg)
+void *vmap(struct page **pages, unsigned int count, unsigned long b, pgprot_t g)
 {
-	return (struct page *)((sg)->page_link & ~0x3);
+	if (!count || !pages || !pages[0])
+		return 0;
+
+	bool same = (count == 1);
+
+	for (unsigned i = 1; i < count; i++) {
+		same = (pages[i]->paddr == pages[0]->paddr) &&
+		       (pages[i]->addr  == pages[0]->addr);
+
+		if (!same)
+			break;
+
+	}
+	if (!same)
+		TRACE_AND_STOP;
+
+	return pages[0]->addr;
 }
 
-void *sg_virt(struct scatterlist *sg)
+
+struct page* Lx::Addr_to_page_mapping::find_page_by_paddr(unsigned long paddr)
 {
-	return (void*)((size_t)page_address(sg_page(sg)) + sg->offset);
+	for (Addr_to_page_mapping *m = _list()->first(); m; m = m->next())
+		if (m->_page->paddr == paddr)
+			return m->_page;
+
+	return 0;
 }
 
 int dma_map_sg_attrs(struct device *dev, struct scatterlist *sg, int nents,
@@ -1454,6 +1480,12 @@ int dma_map_sg_attrs(struct device *dev, struct scatterlist *sg, int nents,
 	return nents;
 }
 
+void dma_unmap_sg_attrs(struct device *dev, struct scatterlist *sg, int nents,
+                        enum dma_data_direction dir, struct dma_attrs *attrs)
+{
+	TRACE;
+}
+
 dma_addr_t dma_map_page(struct device *dev, struct page *page,
                         unsigned long offset, size_t size,
                         enum dma_data_direction direction)
@@ -1461,8 +1493,13 @@ dma_addr_t dma_map_page(struct device *dev, struct page *page,
 	return page_to_phys(page) + offset;
 }
 
+void mark_page_accessed(struct page *p)
+{
+}
+
 int dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
 {
+	TRACE;
 	return 0;
 }
 
@@ -1472,32 +1509,25 @@ int on_each_cpu(void (*func) (void *info), void *info, int wait)
 	return 0;
 }
 
-void wbinvd()
-{
-	TRACE;
-}
-
-int i915_cmd_parser_init_ring(struct intel_engine_cs *ring)
-{
-	TRACE;
-	return 0;
-}
-
 u64 ktime_get_raw_ns(void)
 {
-	return ktime_get().tv64;
-}
-
-ktime_t ktime_add_ns(const ktime_t kt, u64 nsec)
-{
-	ktime_t ktime;
-	ktime.tv64 = kt.tv64 + nsec;
-	return ktime;
+	return ktime_get();
 }
 
 s64 ktime_us_delta(const ktime_t later, const ktime_t earlier)
 {
 	return ktime_to_us(ktime_sub(later, earlier));
+}
+
+s64 ktime_ms_delta(const ktime_t later, const ktime_t earlier)
+{
+	return ktime_to_ms(ktime_sub(later, earlier));
+}
+
+ktime_t ktime_get_boottime(void)
+{
+	TRACE;
+	return ktime_get();
 }
 
 void i915_setup_sysfs(struct drm_device *dev_priv)
@@ -1509,11 +1539,6 @@ int acpi_video_register(void)
 {
 	TRACE;
 	return 0;
-}
-
-void i915_audio_component_init(struct drm_i915_private *dev_priv)
-{
-	TRACE;
 }
 
 void ww_mutex_init(struct ww_mutex *lock, struct ww_class *ww_class)
@@ -1531,6 +1556,11 @@ int  ww_mutex_lock(struct ww_mutex *lock, struct ww_acquire_ctx *ctx)
 {
 	if (ctx && (lock->ctx == ctx))
 		return -EALREADY;
+
+	if (lock->locked) {
+		Genode::warning(__func__, " already locked");
+		return 1;
+	}
 
 	lock->ctx = ctx;
 	lock->locked = true;
@@ -1563,6 +1593,12 @@ void local_irq_enable()
 	TRACE;
 }
 
+bool preemptible()
+{
+	TRACE_AND_STOP;
+	return false;
+}
+
 void drm_sysfs_hotplug_event(struct drm_device *dev)
 {
 	Framebuffer::Driver * driver = (Framebuffer::Driver*)
@@ -1571,6 +1607,7 @@ void drm_sysfs_hotplug_event(struct drm_device *dev)
 	if (driver) {
 		DRM_DEBUG("generating hotplug event\n");
 		driver->generate_report();
+		driver->trigger_reconfiguration();
 	}
 }
 
@@ -1579,7 +1616,8 @@ void intel_audio_codec_enable(struct intel_encoder *encoder)
 	TRACE;
 }
 
-static void clflush(uint8_t * page)
+
+void clflush(volatile void *page)
 {
 	unsigned int i;
 	const int size = 64;
@@ -1589,24 +1627,9 @@ static void clflush(uint8_t * page)
 	// FIXME clflush with other opcode see X86_FEATURE_CLFLUSHOPT
 	for (i = 0; i < PAGE_SIZE; i += size)
 		asm volatile(".byte 0x3e; clflush %P0"
-		             : "+m" (*(volatile char __force *)(page+i)));
+		             : "+m" (*((volatile char __force *)(page)+i)));
 }
 
-void drm_clflush_sg(struct sg_table *st)
-{
-	unsigned int i;
-	struct scatterlist *s;
-
-	Genode::addr_t base = (Genode::addr_t) sg_virt(st->sgl);
-	Genode::size_t offs = 0;
-
-	asm volatile("mfence":::"memory");
-	for_each_sg(st->sgl, s, st->nents, i) {
-		clflush((uint8_t*)(base + offs));
-		offs += s->length;
-	}
-	asm volatile("mfence":::"memory");
-}
 
 void intel_audio_codec_disable(struct intel_encoder *encoder)
 {
@@ -1619,23 +1642,22 @@ struct backlight_device *backlight_device_register(const char *name,
 {
 	struct backlight_device *new_bd;
 	new_bd = (backlight_device*) kzalloc(sizeof(struct backlight_device), GFP_KERNEL);
+	if (!new_bd)
+		return nullptr;
+
+	new_bd->ops = ops;
+	if (props)
+		new_bd->props = *props;
+	/* apply our preferred user range scheme */
+	new_bd->props.max_brightness = MAX_BRIGHTNESS;
+	new_bd->props.brightness = MAX_BRIGHTNESS / 4 * 3;
+
 	return new_bd;
 }
 
 void synchronize_irq(unsigned int irq)
 {
 	TRACE;
-}
-
-void bitmap_zero(unsigned long *dst, unsigned int nbits)
-{
-	unsigned int len = BITS_TO_LONGS(nbits) * sizeof(unsigned long);
-	Genode::memset(dst, 0, len);
-}
-
-int bitmap_empty(const unsigned long *src, unsigned nbits)
-{
-	return find_first_bit(src, nbits) == nbits;
 }
 
 #define BITMAP_FIRST_WORD_MASK(start) (~0UL << ((start) & (BITS_PER_LONG - 1)))
@@ -1684,26 +1706,56 @@ void bitmap_set(unsigned long *map, unsigned int start, int len)
 	}
 }
 
-void bitmap_or(unsigned long *dst, const unsigned long *src1,
-               const unsigned long *src2, unsigned int nbits)
+void bitmap_clear(unsigned long *p, unsigned int start, unsigned int count)
 {
-	unsigned int k;
-	unsigned int nr = BITS_TO_LONGS(nbits);
+	unsigned const size_a = sizeof(*p) * 8;
 
-	for (k = 0; k < nr; k++)
-		dst[k] = src1[k] | src2[k];
+	if (start < size_a && start+count < size_a) {
+		for (unsigned i = start; i < start + count; i++)
+			*p = *p & ~(1UL << i);
+	} else
+		TRACE_AND_STOP;
 }
 
-int i915_gem_render_state_init(struct drm_i915_gem_request *req)
+unsigned long find_next_zero_bit(unsigned long const *addr, unsigned long size,
+                                 unsigned long offset)
 {
-	TRACE;
-	return 0;
+	unsigned long i, j;
+
+	for (i = offset; i < (size / BITS_PER_LONG); i++)
+		if (addr[i] != ~0UL)
+			break;
+
+	if (i == size)
+		return size;
+
+	for (j = 0; j < BITS_PER_LONG; j++)
+		if ((~addr[i]) & (1UL << j))
+			break;
+
+	return (i * BITS_PER_LONG) + j;
 }
 
-int intel_dp_mst_encoder_init(struct intel_digital_port *intel_dig_port, int conn_id)
+void tasklet_init(struct tasklet_struct *t, void (*f)(unsigned long),
+                  unsigned long data)
 {
 	TRACE;
-	return 0;
+
+	t->state = 0;
+	t->func = f;
+	t->data = data;
+}
+
+void tasklet_hi_schedule(struct tasklet_struct *tasklet)
+{
+	TRACE;
+	tasklet_schedule(tasklet);
+}
+
+void tasklet_schedule(struct tasklet_struct *tasklet)
+{
+	TRACE;
+	Lx::Work::work_queue().schedule_tasklet(tasklet);
 }
 
 signed long schedule_timeout_uninterruptible(signed long timeout)
@@ -1711,21 +1763,165 @@ signed long schedule_timeout_uninterruptible(signed long timeout)
 	return schedule_timeout(timeout);
 }
 
-int intel_logical_rings_init(struct drm_device *dev)
+long io_schedule_timeout(long timeout)
 {
-	TRACE;
-	return 0;
+	printk("%s timeout %ld %lx\n", __func__, timeout, timeout);
+	return schedule_timeout(timeout);
 }
 
-int intel_guc_ucode_load(struct drm_device *dev)
+int device_add_properties(struct device *, const struct property_entry *)
 {
-	TRACE;
-	return 0;
+	TRACE_AND_STOP;
 }
 
-void intel_lrc_irq_handler(struct intel_engine_cs *ring)
+void device_remove_properties(struct device *)
 {
-	TRACE;
+	TRACE_AND_STOP;
+}
+
+void irqd_set_trigger_type(struct irq_data *, u32)
+{
+	TRACE_AND_STOP;
+}
+
+void irq_set_chip_and_handler(unsigned int, struct irq_chip *,
+                              irq_flow_handler_t)
+{
+	TRACE_AND_STOP;
+}
+
+void handle_simple_irq(struct irq_desc *)
+{
+	TRACE_AND_STOP;
+}
+
+struct irq_data *irq_get_irq_data(unsigned int)
+{
+	TRACE_AND_STOP;
+}
+
+unsigned int irq_find_mapping(struct irq_domain *, irq_hw_number_t)
+{
+	TRACE_AND_STOP;
+}
+
+unsigned int irq_create_mapping(struct irq_domain *, irq_hw_number_t)
+{
+	TRACE_AND_STOP;
+}
+
+void drm_printk(const char *level, unsigned int category, const char *format,
+                ...)
+{
+	struct va_format vaf;
+	va_list args;
+
+	if (category && !(drm_debug & category))
+		return;
+
+	va_start(args, format);
+	vaf.fmt = format;
+	vaf.va = &args;
+
+	printk("%s" "[drm:%ps]%s %pV\n",
+	       level, __builtin_return_address(0),
+	       strcmp(level, KERN_ERR) == 0 ? " *ERROR*" : "", &vaf);
+	(void)vaf;
+
+	va_end(args);
+}
+
+void __drm_printfn_debug(struct drm_printer *p, struct va_format *vaf)
+{
+	pr_debug("%s %pV", p->prefix, vaf);
+}
+
+void drm_printf(struct drm_printer *p, const char *f, ...)
+{
+	va_list args;
+
+	va_start(args, f);
+	drm_vprintf(p, f, &args);
+	va_end(args);
+}
+
+int vsnprintf(char *str, size_t size, const char *format, va_list args)
+{
+	Genode::String_console sc(str, size);
+	sc.vprintf(format, args);
+
+	return sc.len();
+}
+
+char *kvasprintf(gfp_t gfp, const char *fmt, va_list ap)
+{
+	size_t const bad_guess = strlen(fmt) + 10;
+	char * const p = (char *)kmalloc(bad_guess, gfp);
+	if (!p)
+		return NULL;
+
+	vsnprintf(p, bad_guess, fmt, ap);
+
+	return p;
+}
+
+void __add_wait_queue_entry_tail(struct wait_queue_head *wq_head, struct wait_queue_entry *wq_entry)
+{
+	TRACE_AND_STOP;
+}
+
+static void _completion_timeout(struct timer_list *list)
+{
+	struct process_timer *timeout = from_timer(timeout, list, timer);
+	timeout->task.unblock();
+}
+
+
+long __wait_completion(struct completion *work, unsigned long timeout)
+{
+	Lx::timer_update_jiffies();
+	unsigned long j = timeout ? jiffies + timeout : 0;
+
+	Lx::Task & cur_task = *Lx::scheduler().current();
+	struct process_timer timer { cur_task };
+
+	if (timeout) {
+		timer_setup(&timer.timer, _completion_timeout, 0);
+		mod_timer(&timer.timer, j);
+	}
+
+	while (!work->done) {
+
+		if (j && j <= jiffies) {
+			lx_log(1, "timeout jiffies %lu", jiffies);
+			return 0;
+		}
+
+		Lx::Task *task = Lx::scheduler().current();
+		work->task = (void *)task;
+		task->block_and_schedule();
+	}
+
+	if (timeout)
+		del_timer(&timer.timer);
+
+	return (j  || j == jiffies) ? 1 : j - jiffies;
+}
+
+size_t strnlen(const char *s, size_t maxlen)
+{
+	size_t c;
+	for (c = 0; c <maxlen; c++)
+		if (!s[c])
+			return c;
+
+	return maxlen;
+}
+
+u64 local_clock(void)
+{
+	Lx::timer_update_jiffies();
+	return jiffies_to_nsecs(jiffies);
 }
 
 } /* extern "C" */

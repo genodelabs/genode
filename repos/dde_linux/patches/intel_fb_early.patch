@@ -1,0 +1,52 @@
+--- a/arch/x86/kernel/early-quirks.c
++++ b/arch/x86/kernel/early-quirks.c
+@@ -28,6 +28,11 @@
+ #include <asm/irq_remapping.h>
+ #include <asm/early_ioremap.h>
+ 
++#define __initconst
++#define __ro_after_init
++
++#if 0
++
+ #define dev_err(msg)  pr_err("pci 0000:%02x:%02x.%d: %s", bus, slot, func, msg)
+ 
+ static void __init fix_hypertransport_config(int num, int slot, int func)
+@@ -230,6 +235,8 @@
+ 		set_irq_remapping_broken();
+ }
+ 
++#endif /*#if 0*/
++
+ /*
+  * Systems with Intel graphics controllers set aside memory exclusively
+  * for gfx driver use.  This memory is not marked in the E820 as reserved
+@@ -558,11 +565,13 @@
+ 	       &intel_graphics_stolen_res);
+ 
+ 	/* Mark this space as reserved */
++#if 0
+ 	e820__range_add(base, size, E820_TYPE_RESERVED);
+ 	e820__update_table(e820_table);
++#endif
+ }
+ 
+-static void __init intel_graphics_quirks(int num, int slot, int func)
++void __init intel_graphics_quirks(int num, int slot, int func)
+ {
+ 	const struct intel_early_ops *early_ops;
+ 	u16 device;
+@@ -584,6 +593,8 @@
+ 	}
+ }
+ 
++#if 0
++
+ static void __init force_disable_hpet(int num, int slot, int func)
+ {
+ #ifdef CONFIG_HPET_TIMER
+@@ -774,3 +785,4 @@
+ 
+ 	early_pci_scan_bus(0);
+ }
++#endif /*#if 0*/

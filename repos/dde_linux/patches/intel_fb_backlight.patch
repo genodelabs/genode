@@ -4,7 +4,7 @@
  
  	panel->backlight.present = true;
  
-+	intel_panel_set_backlight(intel_connector, panel->backlight.max*75/100, panel->backlight.max);
++	intel_panel_set_backlight(connector->state, panel->backlight.max*75/100, panel->backlight.max);
  	DRM_DEBUG_KMS("Connector %s backlight initialized, %s, brightness %u/%u\n",
  		      connector->name,
  		      panel->backlight.enabled ? "enabled" : "disabled",

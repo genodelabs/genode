@@ -10,6 +10,7 @@ set build_components {
 	server/report_rom
 	server/ram_fs
 	server/fs_rom
+	app/top
 }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
@@ -24,7 +25,7 @@ create_boot_directory
 #
 
 append config {
-<config verbose="yes" prio_levels="2">
+<config verbose="yes" prio_levels="4">
 	<parent-provides>
 		<service name="ROM"/>
 		<service name="IRQ"/>
@@ -34,6 +35,7 @@ append config {
 		<service name="RM"/>
 		<service name="CPU"/>
 		<service name="LOG"/>
+		<service name="TRACE"/>
 	</parent-provides>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
@@ -48,63 +50,104 @@ append config {
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="report_rom" priority="-1">
+	<start name="report_rom" priority="0">
 		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Report" /> <service name="ROM" /> </provides>
-		<config verbose="yes">
-			<policy label="intel_fb_controller -> connectors" report="intel_fb_drv -> connectors"/>
-		</config>
+		<config verbose="yes"/>
 	</start>
 
-	<start name="config_fs" priority="-1">
-		<binary name="ram_fs"/>
-		<resource name="RAM" quantum="8M"/>
-		<provides> <service name="File_system"/> </provides>
-		<config>
-			<content>
-				<inline name="fb_drv.config">
-<config>
+	<start name="init_dynamic" caps="10000">
+		<binary name="init"/>
+		<resource name="RAM" quantum="1000M"/>
+		<route>
+			<service name="Report"> <child name="report_rom"/> </service>
+			<service name="Platform"> <child name="platform_drv" label="intel_fb_drv"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+		<config prio_levels="2">
+			<parent-provides>
+				<service name="ROM"/>
+				<service name="IO_MEM"/>
+				<service name="IO_PORT"/>
+				<service name="PD"/>
+				<service name="RM"/>
+				<service name="CPU"/>
+				<service name="LOG"/>
+				<service name="TRACE"/>
+				<service name="Platform"/>
+				<service name="Timer"/>
+			</parent-provides>
+			<default-route>
+				<any-service> <parent/> <any-child/> </any-service>
+			</default-route>
+			<default caps="100"/>
+			<report init_ram="yes" child_ram="yes" delay_ms="10000"/>
+
+			<start name="top">
+				<resource name="RAM" quantum="2M"/>
+				<config period_ms="40000"/>
+			</start>
+
+			<start name="report_rom" priority="-1">
+				<resource name="RAM" quantum="2M"/>
+				<provides> <service name="Report" /> <service name="ROM" /> </provides>
+				<config verbose="yes">
+					<policy label="intel_fb_controller -> connectors" report="intel_fb_drv -> connectors"/>
+				</config>
+			</start>
+
+			<start name="config_fs" priority="-1">
+				<binary name="ram_fs"/>
+				<resource name="RAM" quantum="8M"/>
+				<provides> <service name="File_system"/> </provides>
+				<config>
+					<content>
+						<inline name="fb_drv.config">
+<config ld_verbose="yes">
 	<report connectors="yes"/>
 </config>
-				</inline>
-			</content>
-			<policy label_prefix="config_rom" root="/"/>
-			<policy label_prefix="intel_fb_controller" root="/" writeable="yes"/>
+						</inline>
+					</content>
+					<policy label_prefix="config_rom" root="/"/>
+					<policy label_prefix="intel_fb_controller" root="/" writeable="yes"/>
+				</config>
+			</start>
+
+			<start name="config_rom" priority="-1">
+				<binary name="fs_rom"/>
+				<resource name="RAM" quantum="4M"/>
+				<provides><service name="ROM"/></provides>
+				<route>
+					<service name="File_system"> <child name="config_fs" /> </service>
+					<any-service> <parent/> <any-child/> </any-service>
+				</route>
+			</start>
+
+			<start name="intel_fb_drv" caps="1000">
+				<resource name="RAM" quantum="60M"/>
+				<provides><service name="Framebuffer"/></provides>
+				<configfile name="fb_drv.config"/>
+				<route>
+					<service name="ROM" label="fb_drv.config"> <child name="config_rom"/> </service>
+					<service name="Report"> <child name="report_rom"/> </service>
+					<any-service> <parent/> <any-child /> </any-service>
+				</route>
+			</start>
+
+			<start name="intel_fb_controller" priority="-1">
+				<resource name="RAM" quantum="1M"/>
+				<config artifical_update_ms="0"/> <!-- off -->
+				<route>
+					<service name="File_system">            <child name="config_fs"/> </service>
+					<service name="ROM" label="connectors"> <child name="report_rom"/> </service>
+					<any-service> <parent/> <any-child/> </any-service>
+				</route>
+			</start>
+
+			<start name="test-framebuffer" priority="-1">
+				<resource name="RAM" quantum="10M"/>
+			</start>
 		</config>
-	</start>
-
-	<start name="config_rom" priority="-1">
-		<binary name="fs_rom"/>
-		<resource name="RAM" quantum="4M"/>
-		<provides><service name="ROM"/></provides>
-		<route>
-			<service name="File_system"> <child name="config_fs" /> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-
-	<start name="intel_fb_drv" caps="200">
-		<resource name="RAM" quantum="20M"/>
-		<provides><service name="Framebuffer"/></provides>
-		<configfile name="fb_drv.config"/>
-		<route>
-			<service name="ROM" label="fb_drv.config"> <child name="config_rom"/> </service>
-			<service name="Report"> <child name="report_rom"/> </service>
-			<any-service> <parent/> <any-child /> </any-service>
-		</route>
-	</start>
-
-	<start name="intel_fb_controller" priority="-1">
-		<resource name="RAM" quantum="1M"/>
-		<route>
-			<service name="File_system">            <child name="config_fs"/> </service>
-			<service name="ROM" label="connectors"> <child name="report_rom"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-
-	<start name="test-framebuffer" priority="-1">
-		<resource name="RAM" quantum="10M"/>
 	</start>
 </config>}
 
@@ -118,6 +161,7 @@ install_config $config
 set boot_modules {
 	core ld.lib.so init timer intel_fb_drv intel_fb_controller
 	test-framebuffer report_rom ram_fs fs_rom
+	top
 }
 
 append_platform_drv_boot_modules

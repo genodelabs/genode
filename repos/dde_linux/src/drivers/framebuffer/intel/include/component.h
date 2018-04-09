@@ -53,7 +53,10 @@ class Framebuffer::Driver
 		Genode::Signal_handler<Driver> _poll_handler;
 		unsigned long                  _poll_ms = 0;
 
-		drm_display_mode * _preferred_mode(drm_connector *connector);
+		Genode::Signal_context_capability _config_sigh;
+
+		drm_display_mode * _preferred_mode(drm_connector *connector,
+		                                   unsigned &brightness);
 
 		void _poll();
 
@@ -74,6 +77,29 @@ class Framebuffer::Driver
 		void set_polling(unsigned long poll);
 		void update_mode();
 		void generate_report();
+
+		/**
+		 * Register signal handler used for config updates
+		 *
+		 * The signal handler is artificially triggered as a side effect
+		 * of connector changes.
+		 */
+		void config_sigh(Genode::Signal_context_capability sigh)
+		{
+			_config_sigh = sigh;
+		}
+
+		void trigger_reconfiguration()
+		{
+			/*
+			 * Trigger the reprocessing of the configuration following the
+			 * same ontrol flow as used for external config changes.
+			 */
+			if (_config_sigh.valid())
+				Genode::Signal_transmitter(_config_sigh).submit();
+			else
+				Genode::warning("config signal handler unexpectedly undefined");
+		}
 };
 
 
