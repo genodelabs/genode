@@ -104,10 +104,6 @@ class Net::Dhcp_packet
 			_magic_cookie = host_to_big_endian(0x63825363);
 		}
 
-		void zero_fill_sname() { Genode::memset(_sname, 0, sizeof(_sname)); }
-
-		void zero_fill_file()  { Genode::memset(_file,  0, sizeof(_file)); }
-
 
 		/*******************************
 		 ** Utilities for the options **

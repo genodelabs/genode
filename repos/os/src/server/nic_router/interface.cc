@@ -30,6 +30,7 @@ using Genode::uint32_t;
 using Genode::log;
 using Genode::error;
 using Genode::warning;
+using Genode::construct_at;
 using Genode::Signal_context_capability;
 using Genode::Signal_transmitter;
 
@@ -169,9 +170,9 @@ static void *_prot_base(L3_protocol const  prot,
                         Ipv4_packet       &ip)
 {
 	switch (prot) {
-	case L3_protocol::TCP:  return ip.data<Tcp_packet>(prot_size);
-	case L3_protocol::UDP:  return ip.data<Udp_packet>(prot_size);
-	case L3_protocol::ICMP: return ip.data<Icmp_packet>(prot_size);
+	case L3_protocol::TCP:  return &ip.data<Tcp_packet>(prot_size);
+	case L3_protocol::UDP:  return &ip.data<Udp_packet>(prot_size);
+	case L3_protocol::ICMP: return &ip.data<Icmp_packet>(prot_size);
 	default: throw Interface::Bad_transport_protocol(); }
 }
 
@@ -464,22 +465,16 @@ void Interface::_send_dhcp_reply(Dhcp_server               const &dhcp_srv,
 		/* create ETH header of the reply */
 		Size_guard size;
 		size.add(sizeof(Ethernet_frame));
-		Ethernet_frame &eth = *reinterpret_cast<Ethernet_frame *>(pkt_base);
+		Ethernet_frame &eth = *construct_at<Ethernet_frame>(pkt_base);
 		eth.dst(client_mac);
 		eth.src(_router_mac);
 		eth.type(Ethernet_frame::Type::IPV4);
 
 		/* create IP header of the reply */
 		size_t const ip_off = size.curr();
-		Ipv4_packet &ip = *eth.data<Ipv4_packet>(size.left());
-		size.add(sizeof(Ipv4_packet));
+		Ipv4_packet &ip = eth.construct_at_data<Ipv4_packet>(size);
 		ip.header_length(sizeof(Ipv4_packet) / 4);
 		ip.version(4);
-		ip.diff_service(0);
-		ip.ecn(0);
-		ip.identification(0);
-		ip.flags(0);
-		ip.fragment_offset(0);
 		ip.time_to_live(IPV4_TIME_TO_LIVE);
 		ip.protocol(Ipv4_packet::Protocol::UDP);
 		ip.src(local_intf.address);
@@ -487,28 +482,22 @@ void Interface::_send_dhcp_reply(Dhcp_server               const &dhcp_srv,
 
 		/* create UDP header of the reply */
 		size_t const udp_off = size.curr();
-		Udp_packet &udp = *ip.data<Udp_packet>(size.left());
-		size.add(sizeof(Udp_packet));
+		Udp_packet &udp = ip.construct_at_data<Udp_packet>(size);
 		udp.src_port(Port(Dhcp_packet::BOOTPS));
 		udp.dst_port(Port(Dhcp_packet::BOOTPC));
 
 		/* create mandatory DHCP fields of the reply  */
-		Dhcp_packet &dhcp = *udp.data<Dhcp_packet>(size.left());
-		size.add(sizeof(Dhcp_packet));
+		Dhcp_packet &dhcp = udp.construct_at_data<Dhcp_packet>(size);
 		dhcp.op(Dhcp_packet::REPLY);
 		dhcp.htype(Dhcp_packet::Htype::ETH);
 		dhcp.hlen(sizeof(Mac_address));
-		dhcp.hops(0);
 		dhcp.xid(xid);
-		dhcp.secs(0);
-		dhcp.flags(0);
-		dhcp.ciaddr(msg_type == Dhcp_packet::Message_type::INFORM ? client_ip : Ipv4_address());
-		dhcp.yiaddr(msg_type == Dhcp_packet::Message_type::INFORM ? Ipv4_address() : client_ip);
+		if (msg_type == Dhcp_packet::Message_type::INFORM) {
+			dhcp.ciaddr(client_ip); }
+		else {
+			dhcp.yiaddr(client_ip); }
 		dhcp.siaddr(local_intf.address);
-		dhcp.giaddr(Ipv4_address());
 		dhcp.client_mac(client_mac);
-		dhcp.zero_fill_sname();
-		dhcp.zero_fill_file();
 		dhcp.default_magic_cookie();
 
 		/* append DHCP option fields to the reply */
@@ -716,37 +705,30 @@ void Interface::_send_icmp_dst_unreachable(Ipv4_address_prefix const &local_intf
 		/* create ETH header */
 		Size_guard size;
 		size.add(sizeof(Ethernet_frame));
-		Ethernet_frame &eth = *reinterpret_cast<Ethernet_frame *>(pkt_base);
+		Ethernet_frame &eth = *construct_at<Ethernet_frame>(pkt_base);
 		eth.dst(req_eth.src());
 		eth.src(_router_mac);
 		eth.type(Ethernet_frame::Type::IPV4);
 
 		/* create IP header */
 		size_t const ip_off = size.curr();
-		Ipv4_packet &ip = *eth.data<Ipv4_packet>(size.left());
-		size.add(sizeof(Ipv4_packet));
+		Ipv4_packet &ip = eth.construct_at_data<Ipv4_packet>(size);
 		ip.header_length(sizeof(Ipv4_packet) / 4);
 		ip.version(4);
-		ip.diff_service(0);
-		ip.ecn(0);
-		ip.identification(0);
-		ip.flags(0);
-		ip.fragment_offset(0);
 		ip.time_to_live(IPV4_TIME_TO_LIVE);
 		ip.protocol(Ipv4_packet::Protocol::ICMP);
 		ip.src(local_intf.address);
 		ip.dst(req_ip.src());
 
 		/* create ICMP header */
-		Icmp_packet &icmp = *ip.data<Icmp_packet>(size.left());
-		size.add(sizeof(Icmp_packet));
+		Icmp_packet &icmp = ip.construct_at_data<Icmp_packet>(size);
 		icmp.type(Icmp_packet::Type::DST_UNREACHABLE);
 		icmp.code(code);
-		icmp.rest_of_header(0);
 		size_t icmp_data_size = req_ip.total_length();
 		if (icmp_data_size > ICMP_MAX_DATA_SIZE) {
 			icmp_data_size = ICMP_MAX_DATA_SIZE;
 		}
+		/* create ICMP data */
 		size.add(icmp_data_size);
 		Genode::memcpy(&icmp.data<char>(~0), &req_ip, icmp_data_size);
 
@@ -890,7 +872,7 @@ void Interface::_handle_icmp(Ethernet_frame          &eth,
 {
 	/* drop packet if ICMP checksum is invalid */
 	size_t const icmp_sz      = ip.total_length() - sizeof(Ipv4_packet);
-	Icmp_packet &icmp         = *ip.data<Icmp_packet>(icmp_sz);
+	Icmp_packet &icmp         = ip.data<Icmp_packet>(icmp_sz);
 	size_t const icmp_data_sz = icmp_sz - sizeof(Icmp_packet);
 	if (icmp.calc_checksum(icmp_data_sz) != icmp.checksum()) {
 		throw Drop_packet_inform("bad ICMP checksum");
@@ -910,7 +892,7 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
                            Domain                  &local_domain)
 {
 	/* read packet information */
-	Ipv4_packet &ip = *eth.data<Ipv4_packet>(eth_size - sizeof(Ethernet_frame));
+	Ipv4_packet &ip = eth.data<Ipv4_packet>(eth_size - sizeof(Ethernet_frame));
 	Ipv4_address_prefix const &local_intf = local_domain.ip_config().interface;
 
 	/* try handling subnet-local IP packets */
@@ -933,13 +915,13 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 
 		/* try handling DHCP requests before trying any routing */
 		if (prot == L3_protocol::UDP) {
-			Udp_packet &udp = *ip.data<Udp_packet>(eth_size - sizeof(Ipv4_packet));
+			Udp_packet &udp = ip.data<Udp_packet>(eth_size - sizeof(Ipv4_packet));
 
 			if (Dhcp_packet::is_dhcp(&udp)) {
 
 				/* get DHCP packet */
-				Dhcp_packet &dhcp = *udp.data<Dhcp_packet>(eth_size - sizeof(Ipv4_packet)
-				                                                    - sizeof(Udp_packet));
+				Dhcp_packet &dhcp = udp.data<Dhcp_packet>(eth_size - sizeof(Ipv4_packet)
+				                                                   - sizeof(Udp_packet));
 
 				if (dhcp.op() == Dhcp_packet::REQUEST) {
 					try {
@@ -1063,16 +1045,19 @@ void Interface::_broadcast_arp_request(Ipv4_address const &src_ip,
 		ETH_CRC_SZ = sizeof(Genode::uint32_t),
 		PKT_SIZE   = ETH_HDR_SZ + ETH_DAT_SZ + ETH_CRC_SZ,
 	};
+	using Size_guard = Genode::Size_guard_tpl<PKT_SIZE, Send_buffer_too_small>;
 	send(PKT_SIZE, [&] (void *pkt_base) {
 
 		/* write Ethernet header */
-		Ethernet_frame &eth = *reinterpret_cast<Ethernet_frame *>(pkt_base);
+		Size_guard size;
+		size.add(sizeof(Ethernet_frame));
+		Ethernet_frame &eth = *construct_at<Ethernet_frame>(pkt_base);
 		eth.dst(Mac_address(0xff));
 		eth.src(_router_mac);
 		eth.type(Ethernet_frame::Type::ARP);
 
 		/* write ARP header */
-		Arp_packet &arp = *eth.data<Arp_packet>(PKT_SIZE - sizeof(Ethernet_frame));
+		Arp_packet &arp = eth.construct_at_data<Arp_packet>(size);
 		arp.hardware_address_type(Arp_packet::ETHERNET);
 		arp.protocol_address_type(Arp_packet::IPV4);
 		arp.hardware_address_size(sizeof(Mac_address));
@@ -1194,7 +1179,7 @@ void Interface::_handle_arp(Ethernet_frame &eth,
                             Domain         &local_domain)
 {
 	/* ignore ARP regarding protocols other than IPv4 via ethernet */
-	Arp_packet &arp = *eth.data<Arp_packet>(eth_size - sizeof(Ethernet_frame));
+	Arp_packet &arp = eth.data<Arp_packet>(eth_size - sizeof(Ethernet_frame));
 	if (!arp.ethernet_ipv4()) {
 		error("ARP for unknown protocol"); }
 
@@ -1306,8 +1291,7 @@ void Interface::_handle_eth(void              *const  eth_base,
 	}
 	catch (Pointer<Domain>::Invalid) {
 		if (_config().verbose_packets()) {
-			Ethernet_frame *const eth = reinterpret_cast<Ethernet_frame *>(eth_base);
-			log("[?] rcv ", *eth);
+			log("[?] rcv ", *reinterpret_cast<Ethernet_frame *>(eth_base));
 		}
 		if (_config().verbose()) {
 			log("[?] drop packet: no domain"); }

@@ -22,9 +22,9 @@ using namespace Net;
 
 bool Session_component::handle_arp(Ethernet_frame *eth, Genode::size_t size)
 {
-	Arp_packet *arp = eth->data<Arp_packet>(size - sizeof(Ethernet_frame));
-	if (arp->ethernet_ipv4() &&
-		arp->opcode() == Arp_packet::REQUEST) {
+	Arp_packet &arp = eth->data<Arp_packet>(size - sizeof(Ethernet_frame));
+	if (arp.ethernet_ipv4() &&
+		arp.opcode() == Arp_packet::REQUEST) {
 
 		/*
 		 * 'Gratuitous ARP' broadcast messages are used to announce newly created
@@ -34,14 +34,14 @@ bool Session_component::handle_arp(Ethernet_frame *eth, Genode::size_t size)
 		 * The simplest solution to this problem is to just drop those messages,
 		 * since they are not really necessary.
 		 */
-		 if (arp->src_ip() == arp->dst_ip())
+		 if (arp.src_ip() == arp.dst_ip())
 			return false;
 
 		Ipv4_address_node *node = vlan().ip_tree.first();
 		if (node)
-			node = node->find_by_address(arp->dst_ip());
+			node = node->find_by_address(arp.dst_ip());
 		if (!node) {
-			arp->src_mac(_nic.mac());
+			arp.src_mac(_nic.mac());
 		}
 	}
 	return true;
@@ -50,19 +50,19 @@ bool Session_component::handle_arp(Ethernet_frame *eth, Genode::size_t size)
 
 bool Session_component::handle_ip(Ethernet_frame *eth, Genode::size_t size)
 {
-	Ipv4_packet *ip = eth->data<Ipv4_packet>(size - sizeof(Ethernet_frame));
+	Ipv4_packet &ip = eth->data<Ipv4_packet>(size - sizeof(Ethernet_frame));
 
-	if (ip->protocol() == Ipv4_packet::Protocol::UDP)
+	if (ip.protocol() == Ipv4_packet::Protocol::UDP)
 	{
-		Udp_packet *udp = ip->data<Udp_packet>(size - sizeof(Ethernet_frame)
-		                                            - sizeof(Ipv4_packet));
-		if (Dhcp_packet::is_dhcp(udp)) {
-			Dhcp_packet *dhcp = udp->data<Dhcp_packet>(size - sizeof(Ethernet_frame)
-			                                                - sizeof(Ipv4_packet)
-			                                                - sizeof(Udp_packet));
-			if (dhcp->op() == Dhcp_packet::REQUEST) {
-				dhcp->broadcast(true);
-				udp->update_checksum(ip->src(), ip->dst());
+		Udp_packet &udp = ip.data<Udp_packet>(size - sizeof(Ethernet_frame)
+		                                           - sizeof(Ipv4_packet));
+		if (Dhcp_packet::is_dhcp(&udp)) {
+			Dhcp_packet &dhcp = udp.data<Dhcp_packet>(size - sizeof(Ethernet_frame)
+			                                               - sizeof(Ipv4_packet)
+			                                               - sizeof(Udp_packet));
+			if (dhcp.op() == Dhcp_packet::REQUEST) {
+				dhcp.broadcast(true);
+				udp.update_checksum(ip.src(), ip.dst());
 			}
 		}
 	}

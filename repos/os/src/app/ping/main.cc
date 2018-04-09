@@ -200,7 +200,7 @@ void Main::_handle_ip(Ethernet_frame &eth,
 {
 	/* drop packet if IP does not target us */
 	size_t const ip_size = eth_size - sizeof(Ethernet_frame);
-	Ipv4_packet &ip = *eth.data<Ipv4_packet>(ip_size);
+	Ipv4_packet &ip = eth.data<Ipv4_packet>(ip_size);
 	if (ip.dst() != _src_ip &&
 	    ip.dst() != Ipv4_packet::broadcast())
 	{
@@ -306,7 +306,7 @@ void Main::_handle_icmp_dst_unreachbl(Ipv4_packet &ip,
 	}
 	/* drop packet if embedded ICMP identifier is invalid */
 	size_t const embed_icmp_sz = embed_ip.total_length() - sizeof(Ipv4_packet);
-	Icmp_packet &embed_icmp    = *embed_ip.data<Icmp_packet>(embed_icmp_sz);
+	Icmp_packet &embed_icmp    = embed_ip.data<Icmp_packet>(embed_icmp_sz);
 	if (embed_icmp.query_id() != ICMP_ID) {
 		if (_verbose) {
 			log("bad ICMP identifier in payload of ICMP error"); }
@@ -328,7 +328,7 @@ void Main::_handle_icmp(Ipv4_packet  &ip,
 {
 	/* drop packet if ICMP checksum is invalid */
 	size_t const icmp_sz      = ip_size - sizeof(Ipv4_packet);
-	Icmp_packet &icmp         = *ip.data<Icmp_packet>(icmp_sz);
+	Icmp_packet &icmp         = ip.data<Icmp_packet>(icmp_sz);
 	size_t const icmp_data_sz = icmp_sz - sizeof(Icmp_packet);
 	if (icmp.calc_checksum(icmp_data_sz) != icmp.checksum()) {
 		if (_verbose) {
@@ -351,7 +351,7 @@ void Main::_handle_arp(Ethernet_frame &eth,
                        size_t const    eth_size)
 {
 	/* check ARP protocol- and hardware address type */
-	Arp_packet &arp = *eth.data<Arp_packet>(eth_size - sizeof(Ethernet_frame));
+	Arp_packet &arp = eth.data<Arp_packet>(eth_size - sizeof(Ethernet_frame));
 	if (!arp.ethernet_ipv4()) {
 		error("ARP for unknown protocol"); }
 
@@ -409,24 +409,19 @@ void Main::_ready_to_ack()
 void Main::_send_arp_reply(Ethernet_frame &req_eth,
                            Arp_packet     &req_arp)
 {
-	enum {
-		ETH_HDR_SZ = sizeof(Ethernet_frame),
-		ETH_DAT_SZ = sizeof(Arp_packet) + ETH_HDR_SZ >= Ethernet_frame::MIN_SIZE ?
-		             sizeof(Arp_packet) :
-		             Ethernet_frame::MIN_SIZE - ETH_HDR_SZ,
-		ETH_CRC_SZ = sizeof(uint32_t),
-		PKT_SIZE   = ETH_HDR_SZ + ETH_DAT_SZ + ETH_CRC_SZ,
-	};
-	_send(PKT_SIZE, [&] (void *pkt_base) {
+	size_t const buf_sz = sizeof(Ethernet_frame) + sizeof(Arp_packet);
+	_send(buf_sz, [&] (void *pkt_base) {
 
 		/* write Ethernet header */
-		Ethernet_frame &eth = *reinterpret_cast<Ethernet_frame *>(pkt_base);
+		Size_guard<Send_buffer_too_small> size(buf_sz);
+		size.add(sizeof(Ethernet_frame));
+		Ethernet_frame &eth = *construct_at<Ethernet_frame>(pkt_base);
 		eth.dst(req_eth.src());
 		eth.src(_src_mac);
 		eth.type(Ethernet_frame::Type::ARP);
 
 		/* write ARP header */
-		Arp_packet &arp = *eth.data<Arp_packet>(PKT_SIZE - sizeof(Ethernet_frame));
+		Arp_packet &arp = eth.construct_at_data<Arp_packet>(size);
 		arp.hardware_address_type(Arp_packet::ETHERNET);
 		arp.protocol_address_type(Arp_packet::IPV4);
 		arp.hardware_address_size(sizeof(Mac_address));
@@ -442,24 +437,19 @@ void Main::_send_arp_reply(Ethernet_frame &req_eth,
 
 void Main::_broadcast_arp_request()
 {
-	enum {
-		ETH_HDR_SZ = sizeof(Ethernet_frame),
-		ETH_DAT_SZ = sizeof(Arp_packet) + ETH_HDR_SZ >= Ethernet_frame::MIN_SIZE ?
-		             sizeof(Arp_packet) :
-		             Ethernet_frame::MIN_SIZE - ETH_HDR_SZ,
-		ETH_CRC_SZ = sizeof(uint32_t),
-		PKT_SIZE   = ETH_HDR_SZ + ETH_DAT_SZ + ETH_CRC_SZ,
-	};
-	_send(PKT_SIZE, [&] (void *pkt_base) {
+	size_t const buf_sz = sizeof(Ethernet_frame) + sizeof(Arp_packet);
+	_send(buf_sz, [&] (void *pkt_base) {
 
 		/* write Ethernet header */
-		Ethernet_frame &eth = *reinterpret_cast<Ethernet_frame *>(pkt_base);
+		Size_guard<Send_buffer_too_small> size(buf_sz);
+		size.add(sizeof(Ethernet_frame));
+		Ethernet_frame &eth = *construct_at<Ethernet_frame>(pkt_base);
 		eth.dst(Mac_address(0xff));
 		eth.src(_src_mac);
 		eth.type(Ethernet_frame::Type::ARP);
 
 		/* write ARP header */
-		Arp_packet &arp = *eth.data<Arp_packet>(PKT_SIZE - sizeof(Ethernet_frame));
+		Arp_packet &arp = eth.construct_at_data<Arp_packet>(size);
 		arp.hardware_address_type(Arp_packet::ETHERNET);
 		arp.protocol_address_type(Arp_packet::IPV4);
 		arp.hardware_address_size(sizeof(Mac_address));
@@ -487,36 +477,30 @@ void Main::_send_ping(Duration)
 		/* create ETH header */
 		Size_guard<Send_buffer_too_small> size(buf_sz);
 		size.add(sizeof(Ethernet_frame));
-		Ethernet_frame &eth = *reinterpret_cast<Ethernet_frame *>(pkt_base);
+		Ethernet_frame &eth = *construct_at<Ethernet_frame>(pkt_base);
 		eth.dst(_dst_mac);
 		eth.src(_src_mac);
 		eth.type(Ethernet_frame::Type::IPV4);
 
 		/* create IP header */
 		size_t const ip_off = size.curr();
-		Ipv4_packet &ip = *eth.data<Ipv4_packet>(size.left());
-		size.add(sizeof(Ipv4_packet));
+		Ipv4_packet &ip = eth.construct_at_data<Ipv4_packet>(size);
 		ip.header_length(sizeof(Ipv4_packet) / 4);
 		ip.version(4);
-		ip.diff_service(0);
-		ip.ecn(0);
-		ip.identification(0);
-		ip.flags(0);
-		ip.fragment_offset(0);
 		ip.time_to_live(IPV4_TIME_TO_LIVE);
 		ip.protocol(Ipv4_packet::Protocol::ICMP);
 		ip.src(_src_ip);
 		ip.dst(_dst_ip);
 
 		/* create ICMP header */
-		Icmp_packet &icmp = *ip.data<Icmp_packet>(size.left());
-		size.add(sizeof(Icmp_packet) + _icmp_data_sz);
+		Icmp_packet &icmp = ip.construct_at_data<Icmp_packet>(size);
 		icmp.type(Icmp_packet::Type::ECHO_REQUEST);
 		icmp.code(Icmp_packet::Code::ECHO_REQUEST);
 		icmp.query_id(ICMP_ID);
 		icmp.query_seq(_icmp_seq);
 
-		/* fill ICMP data with characters from 'a' to 'w' */
+		/* fill ICMP data with characters from 'a' to 'z' */
+		size.add(_icmp_data_sz);
 		struct Data { char chr[0]; };
 		Data &data = icmp.data<Data>(_icmp_data_sz);
 		char chr = 'a';

@@ -17,7 +17,7 @@
 /* Genode includes */
 #include <base/exception.h>
 #include <util/string.h>
-
+#include <util/construct_at.h>
 #include <util/endian.h>
 #include <net/mac_address.h>
 
@@ -72,20 +72,27 @@ class Net::Ethernet_frame
 
 		struct Bad_data_type : Genode::Exception { };
 
-		template <typename T> T const *data(Genode::size_t data_size) const
+		template <typename T> T const &data(Genode::size_t data_size) const
 		{
 			if (data_size < sizeof(T)) {
 				throw Bad_data_type();
 			}
-			return (T const *)(_data);
+			return *(T const *)(_data);
 		}
 
-		template <typename T> T *data(Genode::size_t data_size)
+		template <typename T> T &data(Genode::size_t data_size)
 		{
 			if (data_size < sizeof(T)) {
 				throw Bad_data_type();
 			}
-			return (T *)(_data);
+			return *(T *)(_data);
+		}
+
+		template <typename T, typename SIZE_GUARD>
+		T &construct_at_data(SIZE_GUARD &size_guard)
+		{
+			size_guard.add(sizeof(T));
+			return *Genode::construct_at<T>(_data);
 		}
 
 
