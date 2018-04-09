@@ -20,7 +20,7 @@ install_config {
 	</config>
 }
 
-build_boot_image "core ld.lib.so init test-ada"
+build_boot_image "core ld.lib.so ada.lib.so init test-ada"
 
 append qemu_args "-nographic "
 
