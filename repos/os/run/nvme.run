@@ -1,0 +1,189 @@
+assert_spec x86
+
+# perform write tests when requested
+if {[info exists env(GENODE_TEST_WRITE)]} {
+set test_write 1
+} else {
+set test_write 0
+}
+
+set is_qemu         [have_include power_on/qemu]
+set is_old          [expr [have_spec fiasco] || [have_spec okl4] || [have_spec pistachio]]
+set is_32bit_x86_hw [expr !$is_qemu && [have_spec 32bit]]
+
+#
+# Only run tests on supported platforms
+#
+if {[expr [have_spec linux] || $is_32bit_x86_hw || [expr $is_qemu && $is_old]]} {
+	puts "This run script is not supported on this platform."
+	exit 0
+}
+
+#
+# Qemu and on certain platforms only use the small set of tests
+#
+set small_test [expr $is_qemu || [have_spec foc] || [have_spec sel4]]
+
+#
+# Check used commands
+#
+set dd [check_installed dd]
+
+#
+# Build
+#
+set build_components {
+	core init
+	drivers/nvme
+	drivers/timer
+	app/block_tester
+}
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
+
+build $build_components
+
+
+#
+# Create raw image
+#
+catch { exec $dd if=/dev/zero of=bin/nvme.raw bs=1M count=0 seek=32768 }
+
+create_boot_directory
+
+#
+# Generate config
+#
+append config {
+<config verbose="no">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="CAP"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL" />
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+
+	<default caps="100"/>
+
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>}
+
+append_platform_drv_config
+
+append config {
+	<start name="nvme_drv">
+		<resource name="RAM" quantum="16M"/>
+		<provides> <service name="Block"/> </provides>
+		<config>
+			<policy label_prefix="block_tester" writeable="no"/>
+		</config>
+	</start>
+
+	<start name="block_tester" caps="200">
+		<resource name="RAM" quantum="64M"/>
+		<config verbose="no" report="no" log="yes" stop_on_error="no">
+			<tests>}
+
+append_if $small_test config {
+				<sequential length="256M" size="64K" synchronous="yes"/>
+				<random     length="256M" size="64K" seed="0xdeadbeef"/>}
+
+append_if [expr !$small_test] config {
+				<sequential length="1G" size="4K"   synchronous="no"/>
+				<sequential length="1G" size="8K"   synchronous="no"/>
+				<sequential length="1G" size="64K"  synchronous="yes"/>
+				<sequential length="3G" size="1M"   synchronous="no"/>
+				<random     length="1G" size="16K"  seed="0xdeadbeef" synchronous="yes"/>
+				<random     length="3G" size="512K" seed="0xc0ffee"   synchronous="yes"/>
+				<ping_pong  length="1G" size="16K"/>}
+
+append_if $test_write config {
+				<sequential length="256M" size="64K"  synchronous="no" write="yes"/>
+				<replay bulk="yes">
+					<request type="read" lba="0" count="1"/>
+					<request type="read" lba="0" count="1"/>
+					<request type="read" lba="0" count="1"/>
+					<request type="read" lba="2048" count="1016"/>
+					<request type="read" lba="0" count="1"/>
+					<request type="read" lba="0" count="1"/>
+					<request type="read" lba="0" count="1"/>
+					<request type="read" lba="2048" count="1016"/>
+					<request type="read" lba="0" count="1"/>
+					<request type="read" lba="0" count="1"/>
+					<request type="read" lba="0" count="1"/>
+					<request type="read" lba="2048" count="1016"/>
+					<request type="read" lba="4096" count="1"/>
+					<request type="read" lba="51881" count="1"/>
+					<request type="read" lba="51890" count="1"/>
+					<request type="read" lba="114184" count="14"/>
+					<request type="read" lba="114198" count="1"/>
+					<request type="read" lba="114033" count="127"/>
+					<request type="read" lba="114160" count="24"/>
+					<request type="write" lba="0" count="1"/>
+					<request type="read" lba="12288" count="2048"/>
+					<request type="write" lba="4096" count="2048"/>
+					<request type="write" lba="0" count="1"/>
+					<request type="write" lba="2048" count="1"/>
+					<request type="write" lba="5696" count="1"/>
+					<request type="write" lba="5696" count="1"/>
+					<request type="write" lba="5696" count="1"/>
+					<request type="read" lba="4096" count="1"/>
+					<request type="read" lba="61440" count="16"/>
+					<request type="read" lba="158777" count="127"/>
+					<request type="write" lba="40960" count="2048"/>
+					<request type="write" lba="0" count="1"/>
+					<request type="write" lba="2073" count="1"/>
+					<request type="read" lba="190483" count="64"/>
+					<request type="read" lba="190411" count="53"/>
+					<request type="read" lba="190464" count="11"/>
+					<request type="read" lba="106074" count="64"/>
+					<request type="read" lba="105954" count="56"/>
+					<request type="read" lba="122802" count="24"/>
+					<request type="read" lba="123594" count="64"/>
+					<request type="read" lba="123722" count="64"/>
+				</replay>}
+append config {
+			</tests>
+		</config>
+		<route>
+			<service name="Block"><child name="nvme_drv"/></service>
+			<any-service> <parent/> <any-child /> </any-service>
+		</route>
+	</start>
+</config>}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+set boot_modules {
+	core init timer nvme_drv
+	ld.lib.so block_tester
+}
+
+append_platform_drv_boot_modules
+
+build_boot_image $boot_modules
+
+append qemu_args " -nographic -m 512 "
+append qemu_args " -drive id=nvme0,file=bin/nvme.raw,format=raw,if=none "
+append qemu_args " -device nvme,drive=nvme0,serial=fnord,id=nvme0n1 "
+
+run_genode_until {.*child "block_tester" exited with exit value 0.*\n} 300
+
+exec rm -f bin/nvme.raw

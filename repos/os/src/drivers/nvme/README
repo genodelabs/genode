@@ -1,0 +1,40 @@
+This directory contains the implementation of a NVMe driver component.
+
+
+Brief
+=====
+
+The driver supports PCIe NVMe devices matching at least revision 1.1 of
+the NVMe specification. For now it only supports one name space and uses
+one completion and one submission queue to handle all I/O requests; one
+request is limited to 1MiB of data. It lacks any name space management
+functionality.
+
+
+Configuration
+=============
+
+The following config illustrates how the driver is configured:
+
+!<start name="nvme_drv">
+!  <resource name="ram" quantum="8M"/>
+!  <provides><service name="Block"/></provides>
+!  <config>
+!    <policy label_prefix="client1" writeable="yes"/>
+!  </config>
+!</start>
+
+
+Report
+======
+
+The driver supports reporting of active name spaces, which can be enabled
+via the configuration 'report' sub-node:
+
+!<report namespace="yes"/>
+
+The report structure is depicted by the following example:
+
+!<controller model="QEMU NVMe Ctrl" serial="FNRD">
+! <namespace id="0" block_count="32768" block_size="512"/>
+!</controller>
