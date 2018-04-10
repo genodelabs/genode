@@ -90,6 +90,8 @@ void Lx::pci_init(Genode::Env &env, Genode::Ram_session &ram,
 	_global_pci.construct(env);
 	_global_ram      = &ram;
 	_global_md_alloc = &md_alloc;
+
+	Lx::pci_dev_registry(&env);
 }
 
 
@@ -99,9 +101,9 @@ Platform::Connection *Lx::pci()
 }
 
 
-Lx::Pci_dev_registry *Lx::pci_dev_registry()
+Lx::Pci_dev_registry *Lx::pci_dev_registry(Genode::Env *env)
 {
-	static Lx::Pci_dev_registry _pci_dev_registry;
+	static Lx::Pci_dev_registry _pci_dev_registry(*env);
 	return &_pci_dev_registry;
 }
 

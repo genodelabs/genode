@@ -46,6 +46,12 @@ void *kzalloc(size_t size, gfp_t flags)
 }
 
 
+void *kvzalloc(size_t size, gfp_t flags)
+{
+	return kmalloc(size, flags | __GFP_ZERO);
+}
+
+
 void *kzalloc_node(size_t size, gfp_t flags, int node)
 {
 	return kzalloc(size, 0);
@@ -166,6 +172,17 @@ struct kmem_cache *kmem_cache_create(const char *name, size_t size, size_t align
 	 *
 	 * XXX SLAB_LX_DMA is never used anywhere else, remove it?
 	 */
+	enum { SLAB_LX_DMA = 0x80000000ul, };
+	return new (Lx::Malloc::mem()) kmem_cache(size, flags & SLAB_LX_DMA, ctor);
+}
+
+
+struct kmem_cache *kmem_cache_create_usercopy(const char *name, size_t size,
+                                              size_t align, slab_flags_t flags,
+                                              size_t useroffset, size_t usersize,
+                                              void (*ctor)(void *))
+{
+	/* XXX copied from above */
 	enum { SLAB_LX_DMA = 0x80000000ul, };
 	return new (Lx::Malloc::mem()) kmem_cache(size, flags & SLAB_LX_DMA, ctor);
 }

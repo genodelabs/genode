@@ -20,8 +20,10 @@
  ***********************/
 
 enum {
-	WQ_MEM_RECLAIM,
-	WQ_CPU_INTENSIVE,
+	WQ_FREEZABLE     = 1 << 2,
+	WQ_MEM_RECLAIM   = 1 << 3,
+	WQ_HIGHPRI       = 1 << 4,
+	WQ_CPU_INTENSIVE = 1 << 5,
 };
 
 struct work_struct;
@@ -45,13 +47,14 @@ struct delayed_work {
 bool cancel_work_sync(struct work_struct *work);
 bool cancel_delayed_work_sync(struct delayed_work *work);
 bool cancel_delayed_work(struct delayed_work *dwork);
-int schedule_delayed_work(struct delayed_work *work, unsigned long delay);
-int schedule_work(struct work_struct *work);
+int  schedule_delayed_work(struct delayed_work *work, unsigned long delay);
+int  schedule_work(struct work_struct *work);
 void flush_scheduled_work(void);
 
 bool flush_work(struct work_struct *work);
 bool flush_work_sync(struct work_struct *work);
 
+void delayed_work_timer_fn(struct timer_list *t);
 
 #define PREPARE_WORK(_work, _func) \
         do { (_work)->func = (_func); } while (0)
@@ -71,7 +74,7 @@ bool flush_work_sync(struct work_struct *work);
 #define INIT_DELAYED_WORK(_work, _func) \
         do { \
                 INIT_WORK(&(_work)->work, (_func)); \
-                init_timer(&(_work)->timer); \
+                timer_setup(&(_work)->timer, delayed_work_timer_fn, 0); \
         } while (0)
 
 
@@ -87,6 +90,8 @@ void flush_workqueue(struct workqueue_struct *wq);
 bool queue_delayed_work(struct workqueue_struct *, struct delayed_work *, unsigned long);
 bool flush_delayed_work(struct delayed_work *dwork);
 bool queue_work(struct workqueue_struct *wq, struct work_struct *work);
+struct work_struct *current_work(void);
+void drain_workqueue(struct workqueue_struct *);
 
 #define DECLARE_DELAYED_WORK(n, f) \
 	struct delayed_work n = { .work = { .func = f }, .timer = { .function = 0 } }
@@ -100,6 +105,8 @@ static inline struct delayed_work *to_delayed_work(struct work_struct *work)
 }
 
 extern struct workqueue_struct *system_wq;
+extern struct workqueue_struct *system_unbound_wq;
+extern struct workqueue_struct *system_long_wq;
 
 enum {
 	WORK_STRUCT_STATIC      = 0,
@@ -138,28 +145,31 @@ enum {
  ** linux/wait.h **
  ******************/
 
-typedef struct wait_queue wait_queue_t;
-typedef int (*wait_queue_func_t)(wait_queue_t *wait, unsigned mode, int flags, void *key);
+typedef struct wait_queue_entry wait_queue_entry_t;
+typedef int (*wait_queue_func_t)(wait_queue_entry_t *, unsigned, int, void *);
 typedef struct wait_queue_head { void *list; } wait_queue_head_t;
-struct wait_queue
-{
-	wait_queue_func_t   func;
-	void *private;
+struct wait_queue_entry {
+	unsigned int		flags;
+	void			*private;
+	wait_queue_func_t	func;
+	struct list_head entry;
 };
 
+void init_wait_entry(struct wait_queue_entry *, int);
+
 #define DEFINE_WAIT(name) \
-	wait_queue_t name;
+	wait_queue_entry_t name;
 
 #define __WAIT_QUEUE_HEAD_INITIALIZER(name) { 0 }
 
 #define DECLARE_WAITQUEUE(name, tsk) \
-	wait_queue_t name
+	wait_queue_entry_t name
 
 #define DECLARE_WAIT_QUEUE_HEAD(name) \
 	wait_queue_head_t name = __WAIT_QUEUE_HEAD_INITIALIZER(name)
 
 #define DEFINE_WAIT_FUNC(name, function) \
-	wait_queue_t name
+	wait_queue_entry_t name
 
 /* simplified signature */
 void __wake_up(wait_queue_head_t *q, bool all);
@@ -176,14 +186,14 @@ int waitqueue_active(wait_queue_head_t *);
 void wake_up_interruptible_sync_poll(wait_queue_head_t *, int);
 void wake_up_interruptible_poll(wait_queue_head_t *, int);
 
-void prepare_to_wait(wait_queue_head_t *, wait_queue_t *, int);
-void prepare_to_wait_exclusive(wait_queue_head_t *, wait_queue_t *, int);
-void finish_wait(wait_queue_head_t *, wait_queue_t *);
+void prepare_to_wait(wait_queue_head_t *, wait_queue_entry_t *, int);
+void prepare_to_wait_exclusive(wait_queue_head_t *, wait_queue_entry_t *, int);
+void finish_wait(wait_queue_head_t *, wait_queue_entry_t *);
 
-int  autoremove_wake_function(wait_queue_t *, unsigned, int, void *);
-void add_wait_queue(wait_queue_head_t *, wait_queue_t *);
-void add_wait_queue_exclusive(wait_queue_head_t *, wait_queue_t *);
-void remove_wait_queue(wait_queue_head_t *, wait_queue_t *);
+int  autoremove_wake_function(wait_queue_entry_t *, unsigned, int, void *);
+void add_wait_queue(wait_queue_head_t *, wait_queue_entry_t *);
+void add_wait_queue_exclusive(wait_queue_head_t *, wait_queue_entry_t *);
+void remove_wait_queue(wait_queue_head_t *, wait_queue_entry_t *);
 
 /* our wait event implementation - it's okay as value */
 void ___wait_event(wait_queue_head_t*);

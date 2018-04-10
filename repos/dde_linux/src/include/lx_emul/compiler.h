@@ -60,10 +60,15 @@
 #define WRITE_ONCE(x, val) \
 ({                                                      \
         barrier(); \
-        __builtin_memcpy((void *)&(x), (const void *)&(val), sizeof(x)); \
+        union { typeof(x) v; char c[1]; } u = \
+              { .v = (typeof(x)) (val) }; \
+        __builtin_memcpy((void *)&(x), (const void *)u.c, sizeof(x)); \
         barrier(); \
 })
 
+/* XXX alpha, powerpc, blackfin needs proper implementation */
+#define smp_read_barrier_depends() do { } while (0)
+#define smp_store_mb(var, value)  do { WRITE_ONCE(var, value); barrier(); } while (0)
 
 /**************************
  ** linux/compiler-gcc.h **
@@ -73,5 +78,9 @@
 #define __packed __attribute__((packed))
 #endif
 
+#define __aligned(x)  __attribute__((aligned(x)))
+
 #define uninitialized_var(x) x = x
 
+#define unreachable() \
+	do { __builtin_unreachable(); } while (0)

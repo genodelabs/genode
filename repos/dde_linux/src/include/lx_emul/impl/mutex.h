@@ -34,7 +34,7 @@ void mutex_destroy(struct mutex *m)
 	Lx::Task::List *waiters = static_cast<Lx::Task::List *>(m->waiters);
 
 	/* FIXME potentially blocked tasks are not unblocked */
-	if (waiters->first()) {
+	if (waiters && waiters->first()) {
 		Genode::error(__func__, "destroying non-empty waiters list");
 	}
 

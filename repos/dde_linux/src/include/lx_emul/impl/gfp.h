@@ -18,13 +18,18 @@
 #include <lx_kit/env.h>
 
 
-struct page *alloc_pages(gfp_t gfp_mask, unsigned int order)
+struct page *alloc_pages(gfp_t const gfp_mask, unsigned int order)
 {
+	using Genode::Cache_attribute;
+
 	struct page *page = (struct page *)kzalloc(sizeof(struct page), 0);
 
 	size_t size = PAGE_SIZE << order;
 
-	Genode::Ram_dataspace_capability ds_cap = Lx::backend_alloc(size, Genode::UNCACHED);
+	gfp_t const dma_mask = (GFP_DMA | GFP_LX_DMA | GFP_DMA32);
+	Cache_attribute const cached = (gfp_mask & dma_mask) ? Genode::UNCACHED
+	                                                     : Genode::CACHED;
+	Genode::Ram_dataspace_capability ds_cap = Lx::backend_alloc(size, cached);
 	page->addr = Lx_kit::env().rm().attach(ds_cap);
 	page->paddr = Genode::Dataspace_client(ds_cap).phys_addr();
 
@@ -56,4 +61,10 @@ void free_pages(unsigned long addr, unsigned int order)
 void get_page(struct page *page)
 {
 	atomic_inc(&page->_count);
+}
+
+
+void put_page(struct page *page)
+{
+	TRACE;
 }

@@ -61,7 +61,7 @@ class Lx_kit::Timer : public Lx::Timer
 					{
 						timer_list *t = static_cast<timer_list *>(timer);
 						if (t->function)
-							t->function(t->data);
+							t->function(t);
 					}
 					break;
 

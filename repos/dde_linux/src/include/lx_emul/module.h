@@ -50,7 +50,7 @@
 
 
 struct module;
-#define module_init(fn) void module_##fn(void) { fn(); }
+#define module_init(fn) int module_##fn(void) { return fn(); }
 #define module_exit(fn) void module_exit_##fn(void) { fn(); }
 void module_put_and_exit(int);
 

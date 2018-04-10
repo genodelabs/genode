@@ -35,12 +35,14 @@ namespace Lx {
 	/**
 	 * Return singleton 'Platform::Connection'
 	 *
-	 * Implementation must be privided by the driver.
+	 * Implementation must be provided by the driver.
 	 */
 	Platform::Connection *pci();
 
 	template <typename FUNC>
-	static inline void for_each_pci_device(FUNC const &func);
+	static inline void for_each_pci_device(FUNC const &func,
+	                                       unsigned const device_class = 0,
+	                                       unsigned const class_mask = 0);
 }
 
 
@@ -220,7 +222,8 @@ class Lx::Pci_dev : public pci_dev, public Lx_kit::List<Pci_dev>::Element
  * released at the platform driver.
  */
 template <typename FUNC>
-void Lx::for_each_pci_device(FUNC const &func)
+void Lx::for_each_pci_device(FUNC const &func, unsigned const device_class,
+                             unsigned const class_mask)
 {
 	/*
 	 * Obtain first device, the operation may exceed the session quota.
@@ -228,7 +231,7 @@ void Lx::for_each_pci_device(FUNC const &func)
 	 */
 	Platform::Device_capability cap =
 		Lx::pci()->with_upgrade([&] () {
-			return Lx::pci()->first_device(); });
+			return Lx::pci()->first_device(device_class, class_mask); });
 
 	/*
 	 * Iterate over the devices of the platform session.
@@ -247,7 +250,7 @@ void Lx::for_each_pci_device(FUNC const &func)
 		 */
 		Platform::Device_capability next_cap =
 			Lx::pci()->with_upgrade([&] () {
-				return pci()->next_device(cap); });
+				return pci()->next_device(cap, device_class, class_mask); });
 
 		Lx::pci()->release_device(cap);
 		cap = next_cap;

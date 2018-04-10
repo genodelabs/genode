@@ -15,9 +15,6 @@
 #include <lx_kit/timer.h>
 
 
-void init_timer(struct timer_list *timer) { }
-
-
 int mod_timer(struct timer_list *timer, unsigned long expires)
 {
 	if (!Lx::timer().find(timer))
@@ -27,12 +24,12 @@ int mod_timer(struct timer_list *timer, unsigned long expires)
 }
 
 
-void setup_timer(struct timer_list *timer,void (*function)(unsigned long),
-                 unsigned long data)
+void timer_setup(struct timer_list *timer,
+                 void (*function)(struct timer_list *),
+                 unsigned int flags)
 {
 	timer->function = function;
-	timer->data     = data;
-	init_timer(timer);
+	timer->flags    = flags;
 }
 
 
@@ -59,7 +56,7 @@ void hrtimer_init(struct hrtimer *timer, clockid_t clock_id, enum hrtimer_mode m
 int hrtimer_start_range_ns(struct hrtimer *timer, ktime_t tim,
                            unsigned long delta_ns, const enum hrtimer_mode mode)
 {
-	unsigned long expires = tim.tv64 / (NSEC_PER_MSEC * HZ);
+	unsigned long expires = tim / (NSEC_PER_MSEC * HZ);
 
 	/*
 	 * Prevent truncation through rounding the values by adding 1 jiffy
@@ -71,6 +68,12 @@ int hrtimer_start_range_ns(struct hrtimer *timer, ktime_t tim,
 		Lx::timer().add(timer, Lx::Timer::HR);
 
 	return Lx::timer().schedule(timer, expires);
+}
+
+
+bool hrtimer_active(const struct hrtimer *timer)
+{
+	return Lx::timer().find(timer);
 }
 
 

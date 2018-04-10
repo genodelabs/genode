@@ -76,6 +76,8 @@ class Lx::Addr_to_page_mapping : public Lx_kit::List<Addr_to_page_mapping>::Elem
 
 			return 0;
 		}
+
+		static struct page* find_page_by_paddr(unsigned long paddr);
 };
 
 

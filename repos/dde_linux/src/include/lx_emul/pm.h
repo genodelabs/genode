@@ -26,7 +26,9 @@ typedef struct pm_message { int event; } pm_message_t;
 struct dev_pm_info
 {
 	pm_message_t power_state;
-	bool         is_prepared;
+	bool         is_prepared:1;
+	bool         is_suspended:1;
+	atomic_t     usage_count;
 };
 
 struct dev_pm_ops {

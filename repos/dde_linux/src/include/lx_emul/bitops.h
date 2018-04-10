@@ -30,6 +30,7 @@
 #define BIT(nr)           (1UL << (nr))
 #define BITS_TO_LONGS(nr) DIV_ROUND_UP(nr, BITS_PER_BYTE * sizeof(long))
 
+#define BIT_ULL(nr)   (1ULL << (nr))
 #define BIT_MASK(nr)  (1UL << ((nr) % BITS_PER_LONG))
 #define BIT_WORD(nr)  ((nr) / BITS_PER_LONG)
 
@@ -85,6 +86,11 @@ static inline unsigned long __ffs64(u64 word)
 	     (bit) < (size);                    \
 	     (bit) = find_next_bit((addr), (size), (bit) + 1))
 
+#define for_each_clear_bit(bit, addr, size) \
+	for ((bit) = find_first_zero_bit((addr), (size));       \
+	     (bit) < (size);                                    \
+	     (bit) = find_next_zero_bit((addr), (size), (bit) + 1))
+
 static inline int get_bitmask_order(unsigned int count) {
 	return __builtin_clz(count) ^ 0x1f; }
 
@@ -109,3 +115,7 @@ static inline __u16 ror16(__u16 word, unsigned int shift)
 	return (word >> shift) | (word << (16 - shift));
 }
 
+#define BITS_PER_LONG_LONG (sizeof(long long) * 8)
+#define GENMASK_ULL(h, l) \
+	(((~0ULL) - (1ULL << (l)) + 1) & \
+	 (~0ULL >> (BITS_PER_LONG_LONG - 1 - (h))))

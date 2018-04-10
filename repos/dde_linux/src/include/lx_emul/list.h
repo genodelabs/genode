@@ -31,10 +31,11 @@
 #define LIST_POISON1 nullptr
 #define LIST_POISON2 nullptr
 #else
-#define LIST_POISON1 ((void *)0x00100100)
-#define LIST_POISON2 ((void *)0x00200200)
+#define LIST_POISON1 ((void *)0x00000100)
+#define LIST_POISON2 ((void *)0x00000200)
 #endif  /* __cplusplus */
 
+#define	POISON_INUSE 0x5a
 
 /******************
  ** linux/list.h **

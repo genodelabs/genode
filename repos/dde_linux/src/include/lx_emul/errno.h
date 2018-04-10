@@ -35,6 +35,8 @@ enum {
 	EIO             = 5,
 	ENXIO           = 6,
 	E2BIG           = 7,
+	ENOEXEC         = 8,
+	EBADF           = 9,
 	EDEADLK         = 11,
 	ENOMEM          = 12,
 	EACCES          = 13,
@@ -103,6 +105,8 @@ enum {
 	EPROBE_DEFER    = 210,
 
 	EL3RST          = 211,
+	ENOKEY          = 212,
+	ECHRNG          = 213,
 
 	MAX_ERRNO       = 4095,
 };
@@ -112,10 +116,10 @@ enum {
   ** linux/err.h **
   *****************/
 
-#define IS_ERR_VALUE(x) unlikely((x) >= (unsigned long)-MAX_ERRNO)
+#define IS_ERR_VALUE(x) unlikely((x) >= (unsigned long)(0UL-MAX_ERRNO))
 
 static inline bool IS_ERR(void const *ptr) {
-	return (unsigned long)(ptr) > (unsigned long)(-1000); }
+	return (unsigned long)(ptr) >= (unsigned long)(0UL-MAX_ERRNO); }
 
 static inline void * ERR_PTR(long error) {
 	return (void *) error; }

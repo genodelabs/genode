@@ -50,9 +50,21 @@ enum {
  ** linux/ktime.h **
  *******************/
 
-union ktime { s64 tv64; };
+typedef s64	ktime_t;
 
-typedef union ktime ktime_t;
+static inline int ktime_compare(const ktime_t cmp1, const ktime_t cmp2)
+{
+	if (cmp1 < cmp2)
+		return -1;
+	if (cmp1 > cmp2)
+		return 1;
+	return 0;
+}
+
+static inline bool ktime_before(const ktime_t cmp1, const ktime_t cmp2)
+{
+	return ktime_compare(cmp1, cmp2) < 0;
+}
 
 ktime_t ktime_add_ns(const ktime_t kt, u64 nsec);
 
@@ -61,29 +73,35 @@ static inline ktime_t ktime_add_us(const ktime_t kt, const u64 usec)
 	return ktime_add_ns(kt, usec * 1000);
 }
 
+static inline ktime_t ktime_add_ms(const ktime_t kt, const u64 msec)
+{
+	return ktime_add_ns(kt, msec * NSEC_PER_MSEC);
+}
+
 static inline ktime_t ktime_get(void)
 {
-	return (ktime_t){ .tv64 = (s64)jiffies * HZ * NSEC_PER_MSEC /* ns */ };
+	return (ktime_t){ (s64)jiffies * HZ * NSEC_PER_MSEC /* ns */ };
 }
 
 static inline ktime_t ktime_set(const long sec, const unsigned long nsec)
 {
-	return (ktime_t){ .tv64 = (s64)sec * NSEC_PER_SEC + (s64)nsec /* ns */ };
+	return (ktime_t){ (s64)sec * NSEC_PER_SEC + (s64)nsec /* ns */ };
 }
 
 static inline ktime_t ktime_add(const ktime_t a, const ktime_t b)
 {
-	return (ktime_t){ .tv64 = a.tv64 + b.tv64 /* ns */ };
+	return (ktime_t){  a + b /* ns */ };
 }
 
 
+s64 ktime_ms_delta(const ktime_t, const ktime_t);
 s64 ktime_us_delta(const ktime_t later, const ktime_t earlier);
 
 static inline struct timeval ktime_to_timeval(const ktime_t kt)
 {
 	struct timeval tv;
-	tv.tv_sec = kt.tv64 / NSEC_PER_SEC;
-	tv.tv_usec = (kt.tv64 - (tv.tv_sec * NSEC_PER_SEC)) / NSEC_PER_USEC;
+	tv.tv_sec = kt / NSEC_PER_SEC;
+	tv.tv_usec = (kt - (tv.tv_sec * NSEC_PER_SEC)) / NSEC_PER_USEC;
 	return tv;
 }
 
@@ -91,3 +109,4 @@ ktime_t ktime_get_real(void);
 ktime_t ktime_sub(const ktime_t, const ktime_t);
 ktime_t ktime_get_monotonic_offset(void);
 
+ktime_t ktime_get_boottime(void);

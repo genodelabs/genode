@@ -76,7 +76,7 @@ class Lx::Format_command
 			if (!format[++consumed]) return;
 
 			/* check for %$x syntax */
-			prefix = (format[consumed] == '#');
+			prefix = (format[consumed] == '#') || (format[consumed] == '.');
 			if (prefix && !format[++consumed]) return;
 
 			/* heading zero indicates zero-padding */

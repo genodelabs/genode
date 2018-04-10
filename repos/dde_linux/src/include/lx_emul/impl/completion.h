@@ -24,13 +24,14 @@ void init_waitqueue_head(wait_queue_head_t *wq)
 	wq->list = new (&Lx_kit::env().heap()) Wait_list;
 }
 
-
-void remove_wait_queue(wait_queue_head_t *wq, wait_queue_t *wait)
+void add_wait_queue(wait_queue_head_t *q, wait_queue_entry_t *wait)
 {
-	Wait_list *list = static_cast<Wait_list*>(wq->list);
-	if (!list) { return; }
+	printk("%s called\n", __func__);
+}
 
-	destroy(&Lx_kit::env().heap(), list);
+void remove_wait_queue(wait_queue_head_t *wq, wait_queue_entry_t *wait)
+{
+	printk("%s called\n", __func__);
 }
 
 
@@ -87,12 +88,32 @@ void init_completion(struct completion *work)
 
 void complete(struct completion *work)
 {
-	work->done = 1;
+	if (work->done != UINT_MAX)
+		work->done++;
 
 	Lx::Task *task = static_cast<Lx::Task*>(work->task);
 	if (task) { task->unblock(); }
 }
 
+void complete_all(struct completion *work)
+{
+	work->done = UINT_MAX;
+
+	Lx::Task *task = static_cast<Lx::Task*>(work->task);
+	if (task) { task->unblock(); }
+}
+
+bool try_wait_for_completion(struct completion *work)
+{
+	int ret = 1;
+
+	if (!work->done)
+		ret = 0;
+	else if (work->done != UINT_MAX)
+		work->done--;
+
+	return ret;
+}
 
 unsigned long wait_for_completion_timeout(struct completion *work,
                                           unsigned long timeout)

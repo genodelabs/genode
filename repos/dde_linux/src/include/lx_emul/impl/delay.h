@@ -34,7 +34,11 @@ static inline void __delay_timer(unsigned long usecs)
 	_delay_timer->usleep(usecs);
 }
 
-void udelay(unsigned long usecs) { __delay_timer(usecs); }
+void udelay(unsigned long usecs)
+{
+	__delay_timer(usecs);
+	Lx::timer_update_jiffies();
+}
 
 
 void msleep(unsigned int msecs)

@@ -19,6 +19,7 @@
 
 namespace Lx {
 	class Work;
+	class Task;
 }
 
 
@@ -35,14 +36,21 @@ class Lx::Work
 		virtual void unblock() = 0;
 
 		/**
+		 * Execute all queued work items
+		 *
+		 * The calling task is woken up afterwards.
+		 */
+		virtual void flush(Task &) = 0;
+
+		/**
+		 * Wakeup calling task after work item was executed
+		 */
+		virtual void wakeup_for(void const * const, Task &) = 0;
+
+		/**
 		 * Schedule work
 		 */
 		virtual void schedule(struct ::work_struct *) = 0;
-
-		/**
-		 * Schedule delayed work
-		 */
-		virtual void schedule_delayed(struct ::delayed_work *, unsigned long delay) = 0;
 
 		/**
 		 * Schedule delayed work
@@ -53,6 +61,11 @@ class Lx::Work
 		 * Cancel work item
 		 */
 		virtual bool cancel_work(struct ::work_struct *, bool sync = false) = 0;
+		
+		/**
+		 * Check if work is currently queued
+		 */
+		virtual bool work_queued(void const * const) = 0;
 
 		/**
 		 * Return task name

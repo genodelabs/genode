@@ -30,5 +30,6 @@ void down_read(struct rw_semaphore *sem);
 void up_read(struct rw_semaphore *sem);
 void down_write(struct rw_semaphore *sem);
 void up_write(struct rw_semaphore *sem);
+int  down_write_killable(struct rw_semaphore *);
 
 #define __RWSEM_INITIALIZER(name) { 0 }

@@ -106,3 +106,5 @@ typedef u16            wchar_t;
  * XXX 'mode_t' is 'unsigned int' on x86_64
  */
 typedef unsigned short mode_t;
+
+typedef unsigned slab_flags_t;

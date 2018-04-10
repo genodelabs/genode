@@ -21,7 +21,9 @@
 struct completion;
 
 void complete(struct completion *);
+void complete_all(struct completion *);
 void init_completion(struct completion *c);
+bool try_wait_for_completion(struct completion *);
 
 void          wait_for_completion(struct completion *c);
 unsigned long wait_for_completion_timeout(struct completion *c,

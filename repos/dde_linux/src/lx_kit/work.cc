@@ -36,6 +36,8 @@ class Lx_kit::Work : public Lx::Work
 		 */
 		struct Context : public Lx_kit::List<Context>::Element
 		{
+			Lx::Task *waiting_task { nullptr };
+
 			void *work;
 			enum Type { NORMAL, DELAYED, TASKLET } type;
 
@@ -86,6 +88,9 @@ class Lx_kit::Work : public Lx::Work
 
 	public:
 
+		Lx::Task *_waiting_task = nullptr;
+
+
 		Work(Genode::Allocator &alloc, char const *name = "work_queue")
 		: _task(Work::run_work, reinterpret_cast<void*>(this), name,
 		        Lx::Task::PRIORITY_2, Lx::scheduler()),
@@ -99,6 +104,12 @@ class Lx_kit::Work : public Lx::Work
 			while (Context *c = _list.first()) {
 				_list.remove(c);
 				c->exec();
+
+				if (c->waiting_task) {
+					c->waiting_task->unblock();
+					c->waiting_task = nullptr;
+				}
+
 				destroy(&_work_alloc, c);
 			}
 		}
@@ -108,6 +119,12 @@ class Lx_kit::Work : public Lx::Work
 			Work *work_queue = reinterpret_cast<Work*>(wq);
 			while (1) {
 				work_queue->exec();
+
+				if (work_queue->_waiting_task) {
+					work_queue->_waiting_task->unblock();
+					work_queue->_waiting_task = nullptr;
+				}
+
 				Lx::scheduler().current()->block_and_schedule();
 			}
 		}
@@ -116,13 +133,39 @@ class Lx_kit::Work : public Lx::Work
 		 ** Lx::Work interface **
 		 ************************/
 
-		void unblock() { _task.unblock(); }
+		void unblock()
+		{
+			_task.unblock();
+		}
+
+		void flush(Lx::Task &task)
+		{
+			_task.unblock();
+
+			_waiting_task = &task;
+		}
+
+		void wakeup_for(void const * const work, Lx::Task &task)
+		{
+			Context *ctx = nullptr;
+
+			for (Context *c = _list.first(); c; c = c->next()) {
+				if (c->work == work) {
+					ctx = c;
+					break;
+				}
+			}
+
+			if (!ctx) {
+				Genode::error("BUG: no work queued for wakeup_for call");
+				Genode::sleep_forever();
+			}
+
+			ctx->waiting_task = &task;
+			_task.unblock();
+		}
 
 		void schedule(struct work_struct *work) {
-			_schedule(work); }
-
-		void schedule_delayed(struct delayed_work *work,
-		                      unsigned long /*delay*/) {
 			_schedule(work); }
 
 		void schedule_tasklet(struct tasklet_struct *tasklet) {
@@ -137,6 +180,17 @@ class Lx_kit::Work : public Lx::Work
 
 					_list.remove(c);
 					destroy(&_work_alloc, c);
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		bool work_queued(void const * const work)
+		{
+			for (Context *c = _list.first(); c; c = c->next()) {
+				if (c->work == work) {
 					return true;
 				}
 			}

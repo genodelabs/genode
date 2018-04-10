@@ -39,8 +39,14 @@
 
 #define BUG_ON(condition) do { if (condition) BUG(); } while(0)
 
+#define BUILD_BUG_ON_INVALID(e) ((void)(sizeof((__force long)(e))))
+#define BUILD_BUG_ON_ZERO(e) (sizeof(struct { int:(-!!(e)); }))
+
 #define BUILD_BUG_ON_MSG(cond,msg) ({ \
 		extern int __attribute__((error(msg))) build_bug(); \
 		if (cond) { build_bug(); } })
 
 #define BUILD_BUG() BUILD_BUG_ON_MSG(1,"BUILD_BUG failed")
+
+#define BUILD_BUG_ON_NOT_POWER_OF_2(n)          \
+	BUG_ON((n) == 0 || (((n) & ((n) - 1)) != 0))

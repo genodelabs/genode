@@ -19,9 +19,13 @@
  ** linux/kconfig.h **
  *********************/
 
-#define IS_ENABLED(x) x
-#define IS_BUILTIN(x) x
-
+#define __ARG_PLACEHOLDER_1 0,
+#define __take_second_arg(__ignored, val, ...) val
+#define ____is_defined(arg1_or_junk) __take_second_arg(arg1_or_junk 1, 0)
+#define ___is_defined(val) ____is_defined(__ARG_PLACEHOLDER_##val)
+#define __is_defined(x)    ___is_defined(x)
+#define IS_BUILTIN(option) __is_defined(option)
+#define IS_ENABLED(option) IS_BUILTIN(option)
 
 /********************
  ** linux/kernel.h **
@@ -185,3 +189,4 @@ void might_sleep();
 #define swap(a, b) \
 	do { typeof(a) __tmp = (a); (a) = (b); (b) = __tmp; } while (0)
 
+#define max3(x, y, z) max((typeof(x))max(x, y), z)

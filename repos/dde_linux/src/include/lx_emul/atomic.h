@@ -42,8 +42,8 @@
 
 #define ATOMIC_INIT(i) { (i) }
 
-typedef struct atomic { long counter; } atomic_t;
-typedef atomic_t atomic_long_t;
+typedef struct atomic { int  counter; } atomic_t;
+typedef struct        { long counter; } atomic_long_t;
 
 static inline int  atomic_read(const atomic_t *p)          { return p->counter; }
 static inline void atomic_set(atomic_t *p, int i)          { p->counter = i; }
@@ -60,10 +60,10 @@ static inline int  atomic_inc_return(atomic_t *p)   { return atomic_add_return(1
 static inline int  atomic_dec_and_test(atomic_t *p) { return atomic_sub_and_test(1, p); }
 static inline int  atomic_inc_not_zero(atomic_t *p) { return p->counter ? atomic_inc_return(p) : 0; }
 
-static inline void atomic_long_inc(atomic_long_t *p)                { atomic_add(1, p); }
-static inline void atomic_long_sub(int i, atomic_long_t *p)         { atomic_sub(i, p); }
-static inline long atomic_long_add_return(long i, atomic_long_t *p) { return atomic_add_return(i, p); }
-static inline long atomic_long_read(atomic_long_t *p)               { return atomic_read(p); }
+static inline void atomic_long_inc(atomic_long_t *p)                { p->counter += 1; }
+static inline void atomic_long_sub(long i, atomic_long_t *p)        { p->counter -= i; }
+static inline long atomic_long_add_return(long i, atomic_long_t *p) { p->counter += i; return p->counter; }
+static inline long atomic_long_read(atomic_long_t *p)               { return p->counter; }
 
 static inline int atomic_cmpxchg(atomic_t *v, int old, int n)
 {
@@ -99,6 +99,16 @@ static inline int atomic_add_unless(atomic_t *v, int a, int u)
 		v->counter += a;
 
 	return ret != u;
+}
+
+static inline int atomic_dec_if_positive(atomic_t *v)
+{
+	int c = atomic_read(v);
+
+	if (c >= 0)
+		atomic_dec(v);
+
+	return c - 1;
 }
 
 #define smp_mb__before_atomic_dec()
