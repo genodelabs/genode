@@ -22,8 +22,8 @@ using namespace Genode;
 void Component::construct(Genode::Env &env)
 {
 	Timer::Connection timer(env);
-	for (unsigned i = 0; i < 20; i++) {
-		timer.msleep(500);
+	for (unsigned i = 0; ; i++) {
+		timer.msleep(100);
 		Thread::trace(String<32>(i, " ", Trace::timestamp()).string());
 	}
 	env.parent().exit(0);

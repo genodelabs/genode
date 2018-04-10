@@ -82,7 +82,7 @@ append config {
 
 			<policy label="init -> test-trace_logger"
 			        thread="ep"
-			        buffer="1M"
+			        buffer="4K"
 			        policy="rpc_name"/>
 		</config>
 	</start>
@@ -167,6 +167,15 @@ lappend_if [have_spec gpio] boot_modules [gpio_drv]
 
 build_boot_image $boot_modules
 
-append qemu_args " -smp 4,cores=4 "
+append qemu_args " -nographic "
 
-run_genode_until forever
+if {[have_spec x86]} { append qemu_args " -smp 4,cores=4 " }
+
+set done_string ""
+for {set i 50} {$i <= 100} {incr i 1} {
+	append done_string ".*trace_logger\] $i .*\n"
+	append done_string ".*trace_logger\] trigger_once.*\n"
+	append done_string ".*trace_logger\] trigger_once.*\n"
+}
+
+run_genode_until $done_string 60
