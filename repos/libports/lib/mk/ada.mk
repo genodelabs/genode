@@ -1,9 +1,7 @@
 
-RTS_DIR = $(BUILD_BASE_DIR)/var/libcache/ada
-ADALIB = $(RTS_DIR)/adalib
-ADAINCLUDE = $(RTS_DIR)/adainclude
-
 include $(REP_DIR)/lib/import/import-ada.mk
+ADALIB = $(ADA_RTS)/adalib
+ADAINCLUDE = $(ADA_RTS)/adainclude
 
 PACKAGES = system
 
@@ -17,8 +15,8 @@ SHARED_LIB = yes
 all: ada_source_path ada_object_path
 
 ada_source_path: ada_object_path
-	$(VERBOSE)$(shell echo $(CONTRIB_DIR)/gcc-$(shell echo $(call _hash_of_port,gcc) | cut -d" " -f1)/src/noux-pkg/gcc/gcc/ada > $(RTS_DIR)/ada_source_path)
+	$(VERBOSE)$(shell echo $(CONTRIB_DIR)/gcc-$(shell echo $(call _hash_of_port,gcc) | cut -d" " -f1)/src/noux-pkg/gcc/gcc/ada > $(ADA_RTS)/ada_source_path)
 
 ada_object_path:
-	$(VERBOSE)$(shell mkdir -p $(RTS_DIR))
-	$(VERBOSE)$(shell echo $(RTS_DIR) > $(RTS_DIR)/ada_object_path)
+	$(VERBOSE)$(shell mkdir -p $(ADA_RTS))
+	$(VERBOSE)$(shell echo $(ADA_RTS) > $(ADA_RTS)/ada_object_path)

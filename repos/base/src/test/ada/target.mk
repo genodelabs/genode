@@ -1,4 +1,4 @@
 TARGET   = test-ada
-SRC_ADA  = main.adb
+SRC_ADB  = main.adb
 SRC_CC   = add.cc startup.cc
-LIBS     = base ada ada-lib
+LIBS     = base ada test-ada-lib
