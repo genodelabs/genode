@@ -1,5 +1,5 @@
 set use_usb_driver   [expr [have_spec omap4] || [have_spec arndale] || [have_spec rpi]]
-set use_nic_driver   [expr !$use_usb_driver && ![have_spec imx53] && ![have_spec linux] && ![have_spec odroid_xu]]
+set use_nic_driver   [expr !$use_usb_driver && ![have_spec linux] && ![have_spec odroid_xu]]
 
 if {[expr !$use_usb_driver && !$use_nic_driver || [expr [have_include "power_on/qemu"] && [have_spec zynq]]]} {
 	puts "\n Run script is not supported on this platform. \n"; exit 0 }
@@ -117,6 +117,7 @@ append_if $use_nic_driver config {
 	<start name="nic_drv" caps="130">
 		<resource name="RAM" quantum="20M"/>
 		<provides> <service name="Nic"/> </provides>
+		} [nic_drv_config] {
 	</start>}
 
 append_if [have_spec gpio] config "

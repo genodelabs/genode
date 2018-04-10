@@ -27,7 +27,7 @@ if {[have_spec odroid_xu]} {
 if {![info exists use_usb_driver]} {
 	set use_usb_driver      [expr [have_spec omap4] || [have_spec arndale] || [have_spec rpi]]
 }
-set use_nic_driver      [expr !$use_usb_driver && ![have_spec imx53] && !$use_wifi_driver]
+set use_nic_driver      [expr !$use_usb_driver && !$use_wifi_driver]
 
 if {[expr !$use_usb_driver && !$use_nic_driver && !$use_wifi_driver]} {
 	puts "Run script is not supported on this platform.";
@@ -223,6 +223,7 @@ append_if $use_nic_driver config {
 		<binary name="} [nic_drv_binary] {"/>
 		<resource name="RAM" quantum="20M"/>
 		<provides><service name="Nic"/></provides>
+		} [nic_drv_config] {
 	</start>}
 
 append_if $use_wifi_driver config {
