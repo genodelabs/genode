@@ -26,7 +26,8 @@ class Trace_buffer
 	private:
 
 		Genode::Trace::Buffer        &_buffer;
-		Genode::Trace::Buffer::Entry  _curr { _buffer.first() };
+		Genode::Trace::Buffer::Entry  _curr          { _buffer.first() };
+		unsigned                      _wrapped_count { 0 };
 
 	public:
 
@@ -40,15 +41,27 @@ class Trace_buffer
 		{
 			using namespace Genode;
 
+			bool wrapped = _buffer.wrapped() != _wrapped_count;
+			if (wrapped)
+				_wrapped_count = _buffer.wrapped();
+
 			/* initialize _curr if _buffer was empty until now */
 			if (_curr.last())
 				_curr = _buffer.first();
 
 			/* iterate over all entries that were not processed yet */
 			     Trace::Buffer::Entry e1 = _curr;
-			for (Trace::Buffer::Entry e2 = _curr; !e2.last();
+			for (Trace::Buffer::Entry e2 = _curr; wrapped || !e2.last();
 			                          e2 = _buffer.next(e2))
 			{
+				/* if buffer wrapped, we pass the last entry once and continue at first entry */
+				if (wrapped && e2.last()) {
+					wrapped = false;
+					e2 = _buffer.first();
+					if (e2.last())
+						break;
+				}
+
 				e1 = e2;
 				functor(e1);
 			}
