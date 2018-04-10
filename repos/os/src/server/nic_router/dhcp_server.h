@@ -67,6 +67,7 @@ class Net::Dhcp_server : private Genode::Noncopyable
 		struct Invalid         : Genode::Exception { };
 
 		Dhcp_server(Genode::Xml_node    const  node,
+		            Domain              const &domain,
 		            Genode::Allocator         &alloc,
 		            Ipv4_address_prefix const &interface,
 		            Domain_tree               &domains);

@@ -214,8 +214,8 @@ void Domain::init(Domain_tree &domains)
 			throw Invalid();
 		}
 		Dhcp_server &dhcp_server = *new (_alloc)
-			Dhcp_server(dhcp_server_node, _alloc, ip_config().interface,
-			            domains);
+			Dhcp_server(dhcp_server_node, *this, _alloc,
+			            ip_config().interface, domains);
 
 		try { dhcp_server.dns_server_from().ip_config_dependents().insert(this); }
 		catch (Pointer<Domain>::Invalid) { }
@@ -225,11 +225,7 @@ void Domain::init(Domain_tree &domains)
 			log("[", *this, "] DHCP server: ", _dhcp_server()); }
 	}
 	catch (Xml_node::Nonexistent_sub_node) { }
-	catch (Dhcp_server::Invalid) {
 
-		log("[", *this, "] invalid DHCP server configuration");
-		throw Invalid();
-	}
 	/* read forward rules */
 	_read_forward_rules(tcp_name(), domains, _node, "tcp-forward",
 	                    _tcp_forward_rules);

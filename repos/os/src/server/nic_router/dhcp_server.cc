@@ -25,6 +25,7 @@ using namespace Genode;
  *****************/
 
 Dhcp_server::Dhcp_server(Xml_node            const  node,
+                         Domain              const &domain,
                          Allocator                 &alloc,
                          Ipv4_address_prefix const &interface,
                          Domain_tree               &domains)
@@ -38,11 +39,17 @@ Dhcp_server::Dhcp_server(Xml_node            const  node,
 	_ip_count(_ip_last.to_uint32_little_endian() - _ip_first_raw + 1),
 	_ip_alloc(alloc, _ip_count)
 {
-	if (!interface.prefix_matches(_ip_first) ||
-	    !interface.prefix_matches(_ip_last) ||
-	    interface.address.is_in_range(_ip_first, _ip_last))
-	{
-		throw Invalid();
+	if (!interface.prefix_matches(_ip_first)) {
+		log("[", domain, "] first IP of DHCP server does not match domain subnet");
+		throw Domain::Invalid();
+	}
+	if (!interface.prefix_matches(_ip_last)) {
+		log("[", domain, "] last IP of DHCP server does not match domain subnet");
+		throw Domain::Invalid();
+	}
+	if (interface.address.is_in_range(_ip_first, _ip_last)) {
+		log("[", domain, "] IP range of DHCP server contains IP address of domain");
+		throw Domain::Invalid();
 	}
 }
 
