@@ -45,6 +45,9 @@ class Genode::Trace::Buffer
 		{
 			_head_offset = 0;
 			_wrapped++;
+
+			/* mark first entry with len 0 */
+			_head_entry()->len = 0;
 		}
 
 		/*
@@ -96,6 +99,10 @@ class Genode::Trace::Buffer
 			_head_offset += sizeof(_Entry) + len;
 			if (_head_offset == _size)
 				_buffer_wrapped();
+
+			/* mark entry next to new entry with len 0 */
+			else if (_head_offset + sizeof(_Entry) <= _size)
+				_head_entry()->len = 0;
 		}
 
 		unsigned wrapped() const { return _wrapped; }
@@ -119,7 +126,35 @@ class Genode::Trace::Buffer
 
 				size_t      length() const { return _entry->len; }
 				char const *data()   const { return _entry->data; }
-				bool        last()   const { return _entry == 0; }
+
+				/*
+				 * XXX The meaning of this method is irritating.
+				 *
+				 * If it returns 'true', it means either that the entry marks
+				 * the empty padding after the entry with the highest memory
+				 * address or that it actually marks the end of the buffer
+				 * according to commit order. This is an example state of the
+				 * buffer with the two types of "last" entry:
+				 *
+				 * +-------------+------------+---+---------+-------------+------------+---+-------+
+				 * | len3  data3 | len4 data4 | 0 | empty   | len1  data1 | len2 data2 | 0 | empty |
+				 * +-------------+------------+---+---------+-------------+------------+---+-------+
+				 *
+				 * If the entry with the highest memory address fits
+				 * perfectly, the first type of "last" entry is not needed:
+				 *
+				 * +------------+--------------------+---+-------+-------------+-------------------+
+				 * | len3 data3 | len4         data4 | 0 | empty | len1  data1 | len2        data2 |
+				 * +------------+--------------------+---+-------+-------------+-------------------+
+				 *
+				 * If the buffer didn't wrap so far, there is only one "last"
+				 * entry that has both meanings:
+				 *
+				 * +--------------------------+------------+-------------+---+---------------------+
+				 * | len1               data1 | len2 data2 | len3  data3 | 0 | empty               |
+				 * +--------------------------+------------+-------------+---+---------------------+
+				 */
+				bool last() const { return _entry == 0; }
 
 				/*
 				 * \deprecated use 'last' instead
