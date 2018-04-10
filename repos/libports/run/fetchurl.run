@@ -4,16 +4,25 @@
 # \date   2016-06-05
 #
 
+if {[have_spec odroid_xu] || [have_spec linux]} {
+	puts "Run script does not support this platform."
+	exit 0
+}
+
 set build_components {
 	app/fetchurl
 	core init
 	drivers/nic
 	drivers/timer
 	lib/vfs/lxip
+	server/report_rom
 }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
 append_platform_drv_build_components
+
+lappend_if [expr {[nic_drv_binary] == "nic_drv"}] build_components drivers/nic
+lappend_if [expr {[nic_drv_binary] == "usb_drv"}] build_components drivers/usb
 
 build $build_components
 
@@ -45,14 +54,15 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
-	<start name="nic_drv">
+	<start name="nic_drv" caps="120">
 		<binary name="} [nic_drv_binary] {"/>
-		<resource name="RAM" quantum="4M"/>
+		<resource name="RAM" quantum="16M"/>
 		<provides> <service name="Nic"/> </provides>
+		} [nic_drv_config] {
 	</start>
 	<start name="report_rom">
 		<resource name="RAM" quantum="4M"/>
-		<provides> <service name="Report"/> </provides>
+		<provides> <service name="ROM"/> <service name="Report"/> </provides>
 		<config verbose="yes"/>
 	</start>
 
@@ -89,11 +99,11 @@ set boot_modules {
 	libssh.lib.so
 	libssl.lib.so
 	lxip.lib.so
-	nic_drv
 	pthread.lib.so
 	timer
 	vfs_lxip.lib.so
 	zlib.lib.so
+	report_rom
 }
 
 # platform-specific modules
@@ -102,6 +112,8 @@ lappend boot_modules [nic_drv_binary]
 
 build_boot_image $boot_modules
 
-append qemu_args " -nographic -net nic,model=e1000 -net user"
+append_if [have_spec x86]     qemu_args " -net nic,model=e1000 "
+append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
+append                        qemu_args " -nographic -net user"
 
 run_genode_until {child "fetchurl" exited with exit value 0} 120

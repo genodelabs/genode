@@ -113,3 +113,9 @@ demo
 ping
 ping_nic_router
 nvme
+weak_ptr
+extract
+verify
+fetchurl
+depot_query
+depot_download
