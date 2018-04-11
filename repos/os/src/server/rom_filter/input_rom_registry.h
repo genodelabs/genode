@@ -429,18 +429,17 @@ class Rom_filter::Input_rom_registry
 		}
 
 		/**
-		 * Lookup content of input with specified name
+		 * Generate content of the specifed input
 		 *
-		 * \throw Nonexistent_input_value
+		 * \throw Nonexistent_input_node
 		 */
-		Xml_node xml(Input_name const &input_name) const
+		void gen_xml(Input_name const &input_name, Genode::Xml_generator &xml)
 		{
 			Entry const *e = _lookup_entry_by_name(input_name);
-
 			if (!e)
 				throw Nonexistent_input_node();
 
-			return e->node();
+			xml.append(e->node().addr(), e->node().size());
 		}
 };
 

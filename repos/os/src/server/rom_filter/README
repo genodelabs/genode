@@ -36,8 +36,8 @@ The '<output>' node can contain the following sub nodes:
   nodes as the '<output>' node.
 
 :'<input>':
-  Copies all sub nodes named by the 'sub_node' attribute of the input ROM
-  specified by the 'name' attribute to the output node.
+  Copies the content of the input specified by the 'name' attribute to the
+  output node.
 
 :'<attribute>':
   Adds an attribute with the specified 'name' and 'value'. If the node
