@@ -49,10 +49,13 @@ void Libc::Component::construct(Libc::Env &env)
 		Xml_node config_node = config.xml();
 		try { config_node.attribute("server_ip").value(&serv_addr); }
 		catch (...) {
+			error("cannot read attribute 'server_ip'");
+			break;
 		}
 		try { config_node.attribute("server_port").value(&port); }
 		catch (...) {
-			continue;
+			error("cannot read attribute 'server_port'");
+			break;
 		}
 		/* create server socket address */
 		struct sockaddr_in addr;
