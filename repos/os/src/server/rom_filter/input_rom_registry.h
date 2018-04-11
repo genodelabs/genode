@@ -89,6 +89,47 @@ class Rom_filter::Input_rom_registry
 					{ _env.ep(), *this, &Entry::_handle_rom_changed };
 
 				/**
+				 * Return sub node of 'content' according to the constraints
+				 * given by 'path'
+				 *
+				 * \throw Xml_node::Nonexistent_sub_node
+				 */
+				static Xml_node _matching_sub_node(Node_type_name type,
+				                                   Xml_node const &path,
+				                                   Xml_node const &content)
+				{
+					typedef Input_value Attribute_value;
+
+					Xml_node sub_node = content.sub_node(type.string());
+
+					Attribute_name const expected_attr =
+						path.attribute_value("attribute", Attribute_name());
+
+					Attribute_value const expected_value =
+						path.attribute_value("value", Attribute_value());
+
+					for (;; sub_node = sub_node.next(type.string())) {
+
+						/* attribute remains unspecified -> match */
+						if (!expected_attr.valid())
+							return sub_node;
+
+						/* value remains unspecified -> match */
+						if (!expected_value.valid())
+							return sub_node;
+
+						Attribute_value const present_value =
+							sub_node.attribute_value(expected_attr.string(),
+							                         Attribute_value());
+
+						if (present_value == expected_value)
+							return sub_node;
+					}
+
+					throw Xml_node::Nonexistent_sub_node();
+				}
+
+				/**
 				 * Query value from XML-structured ROM content
 				 *
 				 * \param path     XML node that defines the path to the value
@@ -122,8 +163,12 @@ class Rom_filter::Input_rom_registry
 							Node_type_name const sub_node_type =
 								path.attribute_value("type", Node_type_name(""));
 
-							content = content.sub_node(sub_node_type.string());
-							path    = path.sub_node();
+							try {
+								content = _matching_sub_node(sub_node_type, path, content);
+								path    = path.sub_node();
+							}
+							catch (Xml_node::Nonexistent_sub_node) {
+								throw Nonexistent_input_value(); }
 
 							continue;
 						}

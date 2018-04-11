@@ -53,7 +53,12 @@ append config {
 				</inline>
 				<sleep milliseconds="1000" />
 				<inline description="leave X-ray mode undefined">
-					<xray/> <!-- undefined -->
+					<xray> <!-- undefined -->
+						<details>
+							<message reason="error"/> <!-- not selected -->
+							<message reason="no access" text="system locked"/>
+						</details>
+					</xray>
 				</inline>
 				<sleep milliseconds="1000" />
 				<inline description="finished"/>
@@ -70,22 +75,23 @@ append config {
 				<attribute name="enabled" />
 			</input>
 
+			<input name="diagnostic_message" rom="xray" node="xray">
+				<node type="details">
+					<node type="message" attribute="reason" value="no access">
+						<attribute name="text" />
+					</node>
+				</node>
+			</input>
+
 			<output node="config">
+				<attribute name="message" input="diagnostic_message"/>
 				<if>
-					<has_value input="xray_enabled" value="no" />
+					<has_value input="xray_enabled" value="yes" />
 					<then>
-						<inline><!-- .. flat window decorations ... --></inline>
+						<inline><!-- xray enabled --></inline>
 					</then>
 					<else>
-						<if>
-							<has_value input="xray_enabled" value="yes" />
-							<then>
-								<inline><!-- ... colored window decorations ... --></inline>
-							</then>
-							<else>
-								<inline><!-- ... fallback ... --></inline>
-							</else>
-						</if>
+						<inline><!-- ... fallback ... --></inline>
 					</else>
 				</if>
 			</output>
@@ -130,10 +136,10 @@ compare_output_to {
 [init -> rom_logger] ROM 'generated':
 [init -> rom_logger]   <config><!-- ... fallback ... --></config>
 [init -> rom_logger] ROM 'generated':
-[init -> rom_logger]   <config><!-- .. flat window decorations ... --></config>
-[init -> rom_logger] ROM 'generated':
-[init -> rom_logger]   <config><!-- ... colored window decorations ... --></config>
-[init -> rom_logger] ROM 'generated':
 [init -> rom_logger]   <config><!-- ... fallback ... --></config>
+[init -> rom_logger] ROM 'generated':
+[init -> rom_logger]   <config><!-- xray enabled --></config>
+[init -> rom_logger] ROM 'generated':
+[init -> rom_logger]   <config message="system locked"><!-- ... fallback ... --></config>
 }
 

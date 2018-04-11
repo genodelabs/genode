@@ -10,12 +10,17 @@ Configuration
 
 The configuration consists of two parts. The first part is the declaration of
 input values that are taken into the account. The input values are obtained
-from ROM modules that contain XML-formatted data. Each input value is
-represented by an '<input>' node with a unique 'name' attribute. The 'rom'
-attribute specifies the ROM module to take the input from. If not specified,
-the 'name' is used as the ROM name. The type of the top-level XML node can be
-specified via the 'node' attribute. If not present, the top-level XML node is
-expected to correspond to the 'name' attribute.
+from ROM modules that contain XML-formatted data.
+
+Each input value is represented by an '<input>' node with a unique 'name'
+attribute. The 'rom' attribute specifies the ROM module to take the input
+from. If not specified, the 'name' is used as the ROM name. The type of the
+top-level XML node can be specified via the 'node' attribute. If not present,
+the top-level XML node is expected to correspond to the 'name' attribute.
+The '<input>' node may contain a hierarchy of '<node type="type">' nodes that
+denote a path within the XML input. If specified, the optional attributes
+'attribute' and 'value' constrain the selection of the input depending of the
+presence and the value of the specified attribute.
 
 The second part of the configuration defines the output via an '<output>' node.
 The type of the top-level XML node must be specified via the 'node' attribute.
