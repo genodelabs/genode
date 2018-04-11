@@ -25,7 +25,6 @@
 #include <nitpicker_gfx/box_painter.h>
 
 /* local includes */
-#include "font_family.h"
 #include "color_palette.h"
 #include "framebuffer.h"
 
@@ -35,19 +34,70 @@ namespace Terminal { template <typename> class Text_screen_surface; }
 template <typename PT>
 class Terminal::Text_screen_surface
 {
+	public:
+
+		class Invalid_framebuffer_size : Genode::Exception { };
+
+		typedef Text_painter::Font             Font;
+		typedef Glyph_painter::Fixpoint_number Fixpoint_number;
+
+		struct Geometry
+		{
+			Area            fb_size;
+			Fixpoint_number char_width;
+			unsigned        char_height;
+			unsigned        columns;
+			unsigned        lines;
+
+			class Invalid : Genode::Exception { };
+
+			Geometry(Font const &font, Framebuffer const &framebuffer)
+			:
+				fb_size(framebuffer.w(), framebuffer.h()),
+				char_width(font.string_width(Utf8_ptr("M"))),
+				char_height(font.height()),
+				columns((framebuffer.w() << 8)/char_width.value),
+				lines(framebuffer.h()/char_height)
+			{
+				if (columns*lines == 0)
+					throw Invalid();
+			}
+
+			Rect fb_rect()   const { return Rect(Point(0, 0), fb_size); }
+			Rect used_rect() const { return Rect(start(), used_pixels()); }
+			Area size()      const { return Area(columns, lines); }
+
+			/**
+			 * Return pixel area covered by the character grid
+			 */
+			Area used_pixels() const
+			{
+				return Area((columns*char_width.value)>>8, lines*char_height);
+			}
+
+			/**
+			 * Return excess area in pixels
+			 */
+			Area unused_pixels() const
+			{
+				return Area(fb_size.w() - used_pixels().w(),
+				            fb_size.h() - used_pixels().h());
+			}
+
+			/**
+			 * Return start position of character grid
+			 */
+			Point start() const { return Point(1, 1); }
+
+			bool valid() const { return columns*lines > 0; }
+		};
+
 	private:
 
-		Font_family   const &_font_family;
+		Font          const &_font;
 		Color_palette const &_palette;
 		Framebuffer         &_framebuffer;
-
-		/* take size of space character as character cell size */
-		unsigned const _char_width  { _font_family.cell_width()  };
-		unsigned const _char_height { _font_family.cell_height() };
-
-		/* number of characters fitting on the framebuffer */
-		unsigned const _columns { _framebuffer.w()/_char_width  };
-		unsigned const _lines   { _framebuffer.h()/_char_height };
+		Geometry             _geometry { _font, _framebuffer };
 
 		Cell_array<Char_cell>            _cell_array;
 		Char_cell_array_character_screen _character_screen { _cell_array };
@@ -56,46 +106,62 @@ class Terminal::Text_screen_surface
 
 	public:
 
-		Text_screen_surface(Allocator &alloc, Font_family const &font_family,
+		/**
+		 * Constructor
+		 *
+		 * \throw Geometry::Invalid
+		 */
+		Text_screen_surface(Allocator &alloc, Font const &font,
 		                    Color_palette &palette, Framebuffer &framebuffer)
 		:
-			_font_family(font_family),
+			_font(font),
 			_palette(palette),
 			_framebuffer(framebuffer),
-			_cell_array(_columns, _lines, alloc)
+			_cell_array(_geometry.columns, _geometry.lines, alloc)
 		{ }
+
+		/**
+		 * Update geometry
+		 *
+		 * Called whenever the framebuffer dimensions slightly change but
+		 * without any effect on the grid size. In contrast, if the grid
+		 * size changes, the entire 'Text_screen_surface' is reconstructed.
+		 */
+		void geometry(Geometry const &geometry)
+		{
+			_geometry = geometry;
+			_cell_array.mark_all_lines_as_dirty(); /* trigger refresh */
+		}
 
 		void redraw()
 		{
-			Font const &regular_font = _font_family.font(Font_face::REGULAR);
-
-			Area const cell_size = regular_font.bounding_box();
-
-			unsigned const glyph_height = regular_font.bounding_box().h(),
-			               glyph_step_x = regular_font.bounding_box().w();
-
-			unsigned const fb_width  = _framebuffer.w(),
-			               fb_height = _framebuffer.h();
-
-			int const clip_top  = 0, clip_bottom = fb_height,
-			          clip_left = 0, clip_right  = fb_width;
-
 			PT *fb_base = _framebuffer.pixel<PT>();
 
-			Surface<PT> surface(fb_base, Area(_framebuffer.w(), _framebuffer.h()));
+			Surface<PT> surface(fb_base, _geometry.fb_size);
 
 			unsigned const fg_alpha = 255;
 
-			unsigned y = 0;
+			/* clear border */
+			{
+				Rect r[4] { };
+				Rect const all(Point(0, 0), _geometry.fb_size);
+				_geometry.fb_rect().cut(_geometry.used_rect(), &r[0], &r[1], &r[2], &r[3]);
+				for (unsigned i = 0; i < 4; i++)
+					Box_painter::paint(surface, r[i], Color(0, 0, 0));
+			}
+
+			int const clip_top  = 0, clip_bottom = _geometry.fb_size.h(),
+			          clip_left = 0, clip_right  = _geometry.fb_size.w();
+
+			unsigned y = _geometry.start().y();
 			for (unsigned line = 0; line < _cell_array.num_lines(); line++) {
 
 				if (_cell_array.line_dirty(line)) {
 
-					unsigned x = 0;
+					Fixpoint_number x { (int)_geometry.start().x() };
 					for (unsigned column = 0; column < _cell_array.num_cols(); column++) {
 
 						Char_cell     cell  = _cell_array.get_cell(column, line);
-						Font const   &font  = _font_family.font(cell.font_face());
 						unsigned char ascii = cell.ascii;
 
 						if (ascii == 0)
@@ -103,7 +169,7 @@ class Terminal::Text_screen_surface
 
 						Text_painter::Codepoint const c { ascii };
 
-						font.apply_glyph(c, [&] (Glyph_painter::Glyph const &glyph) {
+						_font.apply_glyph(c, [&] (Glyph_painter::Glyph const &glyph) {
 
 							Color_palette::Highlighted const highlighted { cell.highlight() };
 							Color_palette::Inverse     const inverse     { cell.inverse() };
@@ -123,17 +189,27 @@ class Terminal::Text_screen_surface
 
 							PT const pixel(fg_color.r, fg_color.g, fg_color.b);
 
-							Box_painter::paint(surface, Rect(Point(x, y), cell_size), bg_color);
+							Fixpoint_number next_x = x;
+							next_x.value += _geometry.char_width.value;
 
-							Glyph_painter::paint(Glyph_painter::Position((int)x, (int)y),
-							                     glyph, fb_base, fb_width,
+							Box_painter::paint(surface,
+							                   Rect(Point(x.decimal(), y),
+							                        Point(next_x.decimal() - 1,
+							                              y + _geometry.char_height - 1)),
+							                   bg_color);
+
+							/* horizontally align glyph within cell */
+							x.value += (_geometry.char_width.value - (int)((glyph.width - 1)<<8)) >> 1;
+
+							Glyph_painter::paint(Glyph_painter::Position(x, (int)y),
+							                     glyph, fb_base, _geometry.fb_size.w(),
 							                     clip_top, clip_bottom, clip_left, clip_right,
 							                     pixel, fg_alpha);
-							x += glyph_step_x;
+							x = next_x;
 						});
 					}
 				}
-				y += glyph_height;
+				y += _geometry.char_height;
 			}
 
 			int first_dirty_line =  10000,
@@ -150,9 +226,10 @@ class Terminal::Text_screen_surface
 
 			int const num_dirty_lines = last_dirty_line - first_dirty_line + 1;
 			if (num_dirty_lines > 0)
-				_framebuffer.refresh(Rect(Point(0, first_dirty_line*_char_height),
-				                          Area(fb_width,
-				                               num_dirty_lines*_char_height)));
+				_framebuffer.refresh(Rect(Point(0, first_dirty_line*_geometry.char_height),
+				                          Area(_geometry.fb_size.w(),
+				                               num_dirty_lines*_geometry.char_height +
+				                               _geometry.unused_pixels().h())));
 		}
 
 		void apply_character(Character c)
@@ -161,7 +238,10 @@ class Terminal::Text_screen_surface
 			_decoder.insert(c.c);
 		}
 
-		Session::Size size() const { return Session::Size(_columns, _lines); }
+		/**
+		 * Return size in colums/rows
+		 */
+		Area size() const { return _geometry.size(); }
 };
 
 #endif /* _TEXT_SCREEN_SURFACE_H_ */

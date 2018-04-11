@@ -5,3 +5,8 @@ input_session
 nitpicker_gfx
 terminal_session
 timer_session
+vfs
+gems
+block_session
+file_system_session
+rtc_session

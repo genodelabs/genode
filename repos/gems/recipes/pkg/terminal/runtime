@@ -1,0 +1,16 @@
+<runtime ram="4M" caps="100" binary="terminal" config="terminal.config">
+
+	<requires> <input/> <framebuffer/> </requires>
+	<provides> <terminal/> </provides>
+
+	<content>
+		<rom label="terminal.config"/>
+		<rom label="ld.lib.so"/>
+		<rom label="libc.lib.so"/>
+		<rom label="libm.lib.so"/>
+		<rom label="vfs_ttf.lib.so"/>
+		<rom label="terminal"/>
+		<rom label="VeraMono.ttf"/>
+	</content>
+
+</runtime>

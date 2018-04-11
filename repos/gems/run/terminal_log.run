@@ -1,32 +1,14 @@
-#
-# \brief  Showcases terminal_log server
-# \author Stefan Kalkowski
-# \date   2012-05-21
-#
-
-set build_components {
-	core
-	init
-	drivers/framebuffer
-	drivers/input
-	drivers/timer
-	server/nitpicker
-	server/nit_fb
-	server/terminal
-	server/terminal_log
-	test/nitpicker
-	app/launchpad
-	app/pointer
-}
-
-source ${genode_dir}/repos/base/run/platform_drv.inc
-append_platform_drv_build_components
-
-build $build_components
-
 create_boot_directory
 
-append config {
+import_from_depot genodelabs/src/[base_src] \
+                  genodelabs/pkg/[drivers_interactive_pkg] \
+                  genodelabs/pkg/terminal \
+                  genodelabs/src/nitpicker \
+                  genodelabs/src/nit_fb \
+                  genodelabs/src/demo \
+                  genodelabs/src/init
+
+install_config {
 <config>
 	<parent-provides>
 		<service name="ROM"/>
@@ -45,42 +27,29 @@ append config {
 		<service name="Platform">  <child name="platform_drv"/> </service>
 		<any-service><parent/></any-service>
 	</default-route>
+
 	<default caps="100"/>
+
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
-}
 
-append_if [have_spec sdl] config {
-	<start name="fb_sdl">
-		<resource name="RAM" quantum="4M"/>
+	<start name="drivers" caps="1000">
+		<resource name="RAM" quantum="32M" constrain_phys="yes"/>
+		<binary name="init"/>
+		<route>
+			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
 		<provides>
-			<service name="Input"/>
-			<service name="Framebuffer"/>
+			<service name="Input"/> <service name="Framebuffer"/>
 		</provides>
 	</start>
-	<alias name="fb_drv"    child="fb_sdl"/>
-	<alias name="input_drv" child="fb_sdl"/>}
 
-append_platform_drv_config
-
-append_if [have_spec framebuffer] config {
-	<start name="fb_drv" caps="200">
-		<resource name="RAM" quantum="4M"/>
-		<provides><service name="Framebuffer"/></provides>
-	</start>}
-
-append_if [have_spec ps2] config {
-	<start name="ps2_drv">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Input"/></provides>
-	</start>
-	<alias name="input_drv" child="ps2_drv"/>}
-
-append config {
 	<start name="nitpicker">
-		<resource name="RAM" quantum="1M"/>
+		<resource name="RAM" quantum="2M"/>
 		<provides><service name="Nitpicker"/></provides>
 		<config>
 			<domain name="pointer" layer="1" content="client" label="no" origin="pointer" />
@@ -89,14 +58,16 @@ append config {
 			<default-policy domain="default"/>
 		</config>
 		<route>
-			<service name="Input">       <child name="input_drv"/> </service>
-			<service name="Framebuffer"> <child name="fb_drv"/>    </service>
+			<service name="Input">       <child name="drivers"/> </service>
+			<service name="Framebuffer"> <child name="drivers"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
+
 	<start name="pointer">
 		<resource name="RAM" quantum="1M"/>
 	</start>
+
 	<start name="terminal_fb">
 		<binary name="nit_fb"/>
 		<resource name="RAM" quantum="4M"/>
@@ -106,53 +77,37 @@ append config {
 		</provides>
 		<config xpos="0" ypos="0" width="640" height="480" refresh_rate="25"/>
 	</start>
+
 	<start name="terminal">
 		<resource name="RAM" quantum="3M"/>
 		<provides><service name="Terminal"/></provides>
 		<route>
+			<service name="ROM" label="config"> <parent label="terminal.config"/> </service>
 			<service name="Input">       <child name="terminal_fb"/> </service>
 			<service name="Framebuffer"> <child name="terminal_fb"/> </service>
 			<any-service> <parent/> <any-child/></any-service>
 		</route>
 	</start>
+
 	<start name="terminal_log">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="LOG"/></provides>
 	</start>
-	<start name="launchpad">
+
+	<start name="launchpad" caps="2000">
 		<resource name="RAM" quantum="32M"/>
 		<route>
 			<service name="LOG">       <child name="terminal_log"/> </service>
 			<any-service> <any-child/> <parent/></any-service>
 		</route>
 		<config>
-			<launcher name="testnit"   ram_quota="768K" />
+			<launcher name="testnit" ram_quota="1M" caps="100"/>
 		</config>
 	</start>
-</config>
-}
-install_config $config
+</config>}
 
-# generic modules
-set boot_modules {
-	core ld.lib.so init
-	timer
-	nitpicker
-	pointer
-	launchpad
-	testnit
-	nit_fb
-	terminal
-	terminal_log
-}
+build { server/terminal_log test/nitpicker }
 
-# platform-specific modules
-lappend_if [have_spec       linux] boot_modules fb_sdl
-lappend_if [have_spec framebuffer] boot_modules fb_drv
-lappend_if [have_spec         ps2] boot_modules ps2_drv
-
-append_platform_drv_boot_modules
-
-build_boot_image $boot_modules
+build_boot_image { terminal_log testnit }
 
 run_genode_until forever

@@ -107,6 +107,7 @@ install_config {
 			<content>
 				<rom name="fb_drv.config"/>
 				<rom name="nitpicker.config"/>
+				<rom name="fonts.config"/>
 				<rom name="input_filter.config"/>
 				<rom name="en_us.chargen"/>
 				<rom name="de.chargen"/>
@@ -383,7 +384,9 @@ install_config {
 			<service name="LOG"> <child name="log"/> </service>
 			<service name="ROM" label="config">
 				<child name="leitzentrale_config"/> </service>
-			<service name="ROM" label="control_noux -> vimrc">
+			<service name="ROM" label_last="vimrc">
+				<child name="config_rom"/> </service>
+			<service name="ROM" label_last="fonts.config">
 				<child name="config_rom"/> </service>
 			<service name="ROM" label="trace_subjects">
 				<child name="report_rom"/> </service>
@@ -559,6 +562,12 @@ append depot_deploy_config {
 		</route>
 	</start>
 
+	<start name="fonts_fs" pkg="} [depot_user]/pkg/[current_pkg fonts_fs] {">
+		<route>
+			<service name="ROM" label="config"> <parent label="fonts.config"/> </service>
+		</route>
+	</start>
+
 	<start name="wm" pkg="} [depot_user]/pkg/[current_pkg themed_wm] {">
 		<route>
 			<service name="Nitpicker"> <parent/> </service>
@@ -578,6 +587,8 @@ append depot_deploy_config {
 				<parent label="config"/> </service>
 			<service name="File_system" label="report">
 				<parent label="report"/> </service>
+			<service name="File_system" label="fonts">
+				<child name="fonts_fs"/> </service>
 			<service name="File_system" label="target">
 				<parent label="rw"/> </service>
 			<service name="ROM" label="vimrc"> <parent/> </service>

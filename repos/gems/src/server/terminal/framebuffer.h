@@ -72,8 +72,18 @@ class Terminal::Framebuffer
 
 		void switch_to_new_mode()
 		{
-			_ds.construct(_env.rm(), _fb.dataspace());
+			/*
+			 * The mode information must be obtained before updating the
+			 * dataspace to ensure that the mode is consistent with the
+			 * obtained version of the dataspace.
+			 *
+			 * Otherwise - if the server happens to change the mode just after
+			 * the dataspace update - the mode information may correspond to
+			 * the next pending mode at the server while we are operating on
+			 * the old (possibly too small) dataspace.
+			 */
 			_mode = _fb.mode();
+			_ds.construct(_env.rm(), _fb.dataspace());
 		}
 };
 

@@ -2,10 +2,10 @@ create_boot_directory
 
 import_from_depot genodelabs/src/[base_src] \
                   genodelabs/pkg/[drivers_interactive_pkg] \
+                  genodelabs/pkg/terminal \
                   genodelabs/src/init \
                   genodelabs/src/libc \
                   genodelabs/src/noux \
-                  genodelabs/src/terminal \
                   genodelabs/src/posix \
                   genodelabs/src/ncurses \
                   genodelabs/src/vim
@@ -50,7 +50,10 @@ install_config {
 	<start name="terminal">
 		<resource name="RAM" quantum="2M"/>
 		<provides><service name="Terminal"/></provides>
-		<config> <keyboard layout="none"/> </config>
+		<route>
+			<service name="ROM" label="config"> <parent label="terminal.config"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
 	</start>
 
 	<start name="noux" caps="1000">

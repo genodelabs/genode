@@ -1,21 +1,12 @@
-set build_components {
-	core init drivers/timer
-	server/input_filter server/terminal test/terminal_echo
-	drivers/framebuffer drivers/input
-}
-
-source ${genode_dir}/repos/base/run/platform_drv.inc
-append_platform_drv_build_components
-
-build $build_components
-
 create_boot_directory
 
-exec cp -f [genode_dir]/repos/os/src/server/input_filter/en_us.chargen bin/
-exec cp -f [genode_dir]/repos/os/src/server/input_filter/de.chargen bin/
+import_from_depot genodelabs/src/[base_src] \
+                  genodelabs/pkg/[drivers_interactive_pkg] \
+                  genodelabs/pkg/terminal \
+                  genodelabs/src/init
 
-append config {
-	<config verbose="yes">
+install_config {
+	<config>
 		<parent-provides>
 			<service name="ROM"/>
 			<service name="LOG"/>
@@ -26,82 +17,36 @@ append config {
 			<service name="IO_PORT"/>
 			<service name="IO_MEM"/>
 		</parent-provides>
+
 		<default-route>
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
+
 		<default caps="100"/>
-}
 
-append_if [have_spec sdl] config {
-	<start name="fb_sdl">
-		<resource name="RAM" quantum="4M"/>
-		<provides>
-			<service name="Input"/>
-			<service name="Framebuffer"/>
-		</provides>
-		<config width="640" height="480"/>
-	</start>
-	<alias name="input_drv" child="fb_sdl"/>}
-
-append_platform_drv_config
-
-append_if [have_spec framebuffer] config {
-	<start name="fb_drv" caps="200">
-		<resource name="RAM" quantum="4M"/>
-		<provides><service name="Framebuffer"/></provides>
-		<config width="640" height="480"/>
-	</start>}
-
-append_if [have_spec ps2] config {
-	<start name="ps2_drv">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Input"/></provides>
-	</start>
-	<alias name="input_drv" child="ps2_drv"/>}
-
-append config {
 		<start name="timer">
 			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Timer"/></provides>
 		</start>
-		<start name="input_filter">
-			<resource name="RAM" quantum="1M"/>
-			<provides> <service name="Input"/> </provides>
-			<config>
-				<input label="input"/>
-				<output>
-					<chargen>
-						<input name="input"/>
-						<mod1>
-							<key name="KEY_LEFTSHIFT"/> <key name="KEY_RIGHTSHIFT"/>
-						</mod1>
-						<mod2>
-							<key name="KEY_LEFTCTRL"/> <key name="KEY_RIGHTCTRL"/>
-						</mod2>
-						<mod3>
-							<key name="KEY_RIGHTALT"/> <!-- AltGr -->
-						</mod3>
-						<repeat delay_ms="500" rate_ms="250"/>
-						<!-- <include rom="de.chargen"/> -->
-						<include rom="en_us.chargen"/>
-					</chargen>
-				</output>
-			</config>
+
+		<start name="drivers" caps="1000">
+			<resource name="RAM" quantum="32M" constrain_phys="yes"/>
+			<binary name="init"/>
 			<route>
-				<service name="Input"> <child name="input_drv"/> </service>
-				<any-service> <parent/> <any-child/> </any-service>
+				<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
+				<service name="Timer"> <child name="timer"/> </service>
+				<any-service> <parent/> </any-service>
 			</route>
+			<provides>
+				<service name="Input"/> <service name="Framebuffer"/>
+			</provides>
 		</start>
+
 		<start name="terminal">
 			<resource name="RAM" quantum="2M"/>
 			<provides><service name="Terminal"/></provides>
-			<config>
-				<keyboard layout="none"/>
-				<!-- supported built-in font sizes are 8, 12, and 16 -->
-				<font size="12" />
-			</config>
 			<route>
-				<service name="Input"> <child name="input_filter"/> </service>
+				<service name="ROM" label="config"> <parent label="terminal.config"/> </service>
 				<any-service> <parent/> <any-child/> </any-service>
 			</route>
 		</start>
@@ -112,26 +57,9 @@ append config {
 	</config>
 }
 
-install_config $config
+build { server/terminal test/terminal_echo }
 
-#
-# Boot modules
-#
-
-# generic modules
-set boot_modules {
-	core ld.lib.so init timer input_filter terminal test-terminal_echo
-	en_us.chargen de.chargen
-}
-
-# platform-specific modules
-lappend_if [have_spec       linux] boot_modules fb_sdl
-lappend_if [have_spec framebuffer] boot_modules fb_drv
-lappend_if [have_spec         ps2] boot_modules ps2_drv
-
-append_platform_drv_boot_modules
-
-build_boot_image $boot_modules
+build_boot_image { terminal test-terminal_echo }
 
 run_genode_until forever
 

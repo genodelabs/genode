@@ -1,20 +1,23 @@
 create_boot_directory
 
-import_from_depot genodelabs/src/[base_src] \
-                  genodelabs/pkg/[drivers_interactive_pkg] \
-                  genodelabs/src/report_rom \
-                  genodelabs/src/fs_rom \
-                  genodelabs/src/ram_fs \
-                  genodelabs/src/vfs \
-                  genodelabs/src/nitpicker \
-                  genodelabs/src/init
+proc depot_user {} { return nfeske }
+
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/pkg/[drivers_interactive_pkg] \
+                  [depot_user]/src/report_rom \
+                  [depot_user]/src/fs_rom \
+                  [depot_user]/src/ram_fs \
+                  [depot_user]/src/vfs \
+                  [depot_user]/src/nitpicker \
+                  [depot_user]/src/init \
+                  [depot_user]/src/vfs_ttf \
+                  [depot_user]/src/libc \
+                  [depot_user]/raw/ttf-bitstream-vera-minimal
 
 create_tar_from_depot_binaries [run_dir]/genode/depot.tar \
-                               genodelabs/pkg/sculpt-installation \
-                               genodelabs/pkg/themed_wm \
-                               genodelabs/pkg/sticks_blue_backdrop
-
-proc depot_user {} { return genodelabs }
+                               [depot_user]/pkg/sculpt-installation \
+                               [depot_user]/pkg/themed_wm \
+                               [depot_user]/pkg/sticks_blue_backdrop
 
 proc current_pkg { pkg } { return $pkg/[_current_depot_archive_version pkg $pkg] }
 
@@ -57,7 +60,7 @@ install_config {
 	<start name="nitpicker">
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Nitpicker"/></provides>
-		<config>
+		<config focus="rom">
 			<background color="#123456"/>
 			<domain name="pointer" layer="1" content="client" label="no" origin="pointer" />
 			<domain name="default" layer="3" content="client" label="no" hover="always" />
@@ -177,9 +180,16 @@ install_config {
 			</start>
 			-->
 
+			<start name="fonts_fs" pkg="} [depot_user]/pkg/[current_pkg fonts_fs] {">
+				<route>
+					<service name="ROM" label="config"> <parent label="fonts.config"/> </service>
+				</route>
+			</start>
+
 			<start name="noux" pkg="} [depot_user]/pkg/[current_pkg noux-system] {">
 				<route>
 					<service name="Nitpicker"> <child name="wm"/> </service>
+					<service name="File_system" label="fonts"> <child name="fonts_fs"/> </service>
 					<service name="File_system"> <parent/> </service>
 				</route>
 			</start>
@@ -201,6 +211,7 @@ install_config {
 			<service name="ROM" label_last="ld.lib.so"> <parent/> </service>
 			<service name="ROM" label_last="init">      <parent/> </service>
 			<service name="ROM" label="config"> <child name="report_rom"/> </service>
+			<service name="ROM" label_last="fonts.config"> <parent/> </service>
 			<service name="ROM">   <child name="fs_rom"/> </service>
 			<service name="Timer"> <child name="timer"/>  </service>
 			<service name="Nitpicker" label_last="backdrop">
@@ -213,6 +224,15 @@ install_config {
 </config>}
 
 build { app/depot_query app/depot_deploy }
+
+file copy -force [genode_dir]/repos/gems/run/sculpt/fonts.config [run_dir]/genode/
+
+#
+# Pin the nitpicker focus to the window manager by providing a static focus ROM
+#
+set fd [open [run_dir]/genode/focus w]
+puts $fd "<focus label=\"dynamic -> wm -> wm -> \"/>"
+close $fd
 
 build_boot_image { depot_query depot_deploy }
 

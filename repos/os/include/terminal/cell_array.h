@@ -88,8 +88,7 @@ class Cell_array
 			_array = new (alloc) Char_cell_line[num_lines];
 
 			_line_dirty = new (alloc) bool[num_lines];
-			for (unsigned i = 0; i < num_lines; i++)
-				_line_dirty[i] = false;
+			mark_all_lines_as_dirty();
 
 			for (unsigned i = 0; i < num_lines; i++)
 				_array[i] = new (alloc) CELL[num_cols];
@@ -102,6 +101,12 @@ class Cell_array
 
 			Genode::destroy(_alloc, _line_dirty);
 			Genode::destroy(_alloc, _array);
+		}
+
+		void mark_all_lines_as_dirty()
+		{
+			for (unsigned i = 0; i < _num_lines; i++)
+				_line_dirty[i] = true;
 		}
 
 		void set_cell(int column, int line, CELL cell)

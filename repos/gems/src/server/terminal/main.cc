@@ -21,7 +21,9 @@
 #include <base/attached_rom_dataspace.h>
 #include <base/attached_ram_dataspace.h>
 #include <input/event.h>
-#include <nitpicker_gfx/tff_font.h>
+#include <gems/vfs.h>
+#include <gems/vfs_font.h>
+#include <gems/cached_font.h>
 
 /* terminal includes */
 #include <terminal/decoder.h>
@@ -46,16 +48,27 @@ struct Terminal::Main : Character_consumer
 
 	Attached_rom_dataspace _config { _env, "config" };
 
-	/**
-	 * Return font data according to config
-	 */
-	static char const *_font_data(Xml_node config);
+	Heap _heap { _env.ram(), _env.rm() };
 
-	Tff_font::Static_glyph_buffer<4096> _glyph_buffer { };
+	Root_directory _root_dir { _env, _heap, _config.xml().sub_node("vfs") };
 
-	Reconstructible<Tff_font> _font { _font_data(_config.xml()), _glyph_buffer };
+	Cached_font::Limit _font_cache_limit { 0 };
 
-	Reconstructible<Font_family> _font_family { *_font };
+	struct Font
+	{
+		Vfs_font    _vfs_font;
+		Cached_font _cached_font;
+
+		Font(Allocator &alloc, Directory &root_dir, Cached_font::Limit limit)
+		:
+			_vfs_font(alloc, root_dir, "fonts/monospace/regular"),
+			_cached_font(alloc, _vfs_font, limit)
+		{ }
+
+		Text_painter::Font const &font() const { return _cached_font; }
+	};
+
+	Constructible<Font> _font { };
 
 	Color_palette _color_palette { };
 
@@ -67,15 +80,13 @@ struct Terminal::Main : Character_consumer
 	Input::Connection _input { _env };
 	Timer::Connection _timer { _env };
 
-	Heap _heap { _env.ram(), _env.rm() };
-
 	Framebuffer _framebuffer { _env, _config_handler };
 
 	typedef Pixel_rgb565 PT;
 
 	Constructible<Text_screen_surface<PT>> _text_screen_surface { };
 
-	Session::Size _terminal_size { };
+	Area _terminal_size { };
 
 	/*
 	 * Time in milliseconds between a change of the terminal content and the
@@ -86,22 +97,21 @@ struct Terminal::Main : Character_consumer
 
 	bool _flush_scheduled = false;
 
-	void _handle_flush(Duration)
+	void _handle_flush()
 	{
 		_flush_scheduled = false;
 
-		// XXX distinguish between normal and alternate display
 		if (_text_screen_surface.constructed())
 			_text_screen_surface->redraw();
 	}
 
-	Timer::One_shot_timeout<Main> _flush_timeout {
-		_timer, *this, &Main::_handle_flush };
+	Signal_handler<Main> _flush_handler {
+		_env.ep(), *this, &Main::_handle_flush };
 
 	void _schedule_flush()
 	{
 		if (!_flush_scheduled) {
-			_flush_timeout.schedule(Microseconds{1000*_flush_delay});
+			_timer.trigger_once(1000*_flush_delay);
 			_flush_scheduled = true;
 		}
 	}
@@ -131,10 +141,11 @@ struct Terminal::Main : Character_consumer
 
 	Main(Env &env) : _env(env)
 	{
-		_handle_config();
+		_timer .sigh(_flush_handler);
 		_config.sigh(_config_handler);
+		_input .sigh(_input_handler);
 
-		_input.sigh(_input_handler);
+		_handle_config();
 
 		/* announce service at our parent */
 		_env.parent().announce(_env.ep().manage(_root));
@@ -142,48 +153,65 @@ struct Terminal::Main : Character_consumer
 };
 
 
-/* built-in fonts */
-extern char const _binary_notix_8_tff_start;
-extern char const _binary_terminus_12_tff_start;
-extern char const _binary_terminus_16_tff_start;
-
-
-char const *Terminal::Main::_font_data(Xml_node config)
-{
-	if (config.has_sub_node("font")) {
-		size_t const size = config.sub_node("font").attribute_value("size", 16U);
-
-		switch (size) {
-		case  8: return &_binary_notix_8_tff_start;     break;
-		case 12: return &_binary_terminus_12_tff_start; break;
-		case 16: return &_binary_terminus_16_tff_start; break;
-		default: break;
-		}
-	}
-	return &_binary_terminus_16_tff_start;
-}
-
-
 void Terminal::Main::_handle_config()
 {
 	_config.update();
 
-	_font_family.destruct();
-	_font.destruct();
-
 	Xml_node const config = _config.xml();
 
-	_font.construct(_font_data(config), _glyph_buffer);
-	_font_family.construct(*_font);
+	_font.destruct();
+
+	_root_dir.apply_config(config.sub_node("vfs"));
+
+	Cached_font::Limit const cache_limit {
+		config.attribute_value("cache", Number_of_bytes(256*1024)) };
+
+	_font.construct(_heap, _root_dir, cache_limit);
 
 	/*
-	 * Adapt terminal to framebuffer mode changes
+	 * Adapt terminal to font or framebuffer mode changes
 	 */
 	_framebuffer.switch_to_new_mode();
-	_text_screen_surface.construct(_heap, *_font_family,
-	                               _color_palette, _framebuffer);
-	_terminal_size = _text_screen_surface->size();
-	_root.notify_resized(_terminal_size);
+
+	/*
+	 * Distinguish the case where the framebuffer change affects the character
+	 * grid size from the case where merely the pixel position of the character
+	 * grid within the framebuffer changed.
+	 *
+	 * In the former case, the text-screen surface is reallocated and cleared.
+	 * Clients (like ncurses) are expected to respond to a terminal-size change
+	 * with a redraw. In the latter case, the client would skip the redraw. So
+	 * we need to preserve the content and just reposition the character grid.
+	 */
+
+	try {
+		Text_screen_surface<PT>::Geometry const new_geometry(_font->font(), _framebuffer);
+
+		bool const reconstruct = !_text_screen_surface.constructed() ||
+		                          _text_screen_surface->size() != new_geometry.size();
+		if (reconstruct) {
+			_text_screen_surface.construct(_heap, _font->font(),
+			                               _color_palette, _framebuffer);
+			_terminal_size = _text_screen_surface->size();
+
+		} else {
+			_text_screen_surface->geometry(new_geometry);
+		}
+	}
+	catch (Text_screen_surface<PT>::Geometry::Invalid)
+	{
+		warning("invalid framebuffer size");
+
+		/*
+		 * Make sure to never operate on an invalid-sized framebuffer
+		 *
+		 * If the exception is thrown by the construction of 'new_geometry',
+		 * there may still be a stale '_text_screen_surface'.
+		 */
+		_text_screen_surface.destruct();
+	}
+
+	_root.notify_resized(Session::Size(_terminal_size.w(), _terminal_size.h()));
 	_schedule_flush();
 }
 

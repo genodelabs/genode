@@ -1,0 +1,14 @@
+<runtime ram="4M" caps="150" binary="vfs" config="fonts.config">
+
+	<provides> <file_system/> </provides>
+
+	<content>
+		<rom label="vfs"/>
+		<rom label="ld.lib.so"/>
+		<rom label="libc.lib.so"/>
+		<rom label="libm.lib.so"/>
+		<rom label="vfs_ttf.lib.so"/>
+		<rom label="VeraMono.ttf"/>
+	</content>
+
+</runtime>

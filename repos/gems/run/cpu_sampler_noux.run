@@ -4,18 +4,23 @@ if { ![have_spec foc] && ![have_spec nova] &&
 	exit 0
 }
 
-set build_components {
-	core init drivers/timer noux/minimal lib/libc_noux
-	drivers/input
-	server/terminal server/ram_fs
-	server/log_terminal
-	test/libports/ncurses
-	server/fs_log
-	server/cpu_sampler
-	test/cpu_sampler
-}
+create_boot_directory
 
-lappend_if [have_spec framebuffer] build_components drivers/framebuffer
+import_from_depot genodelabs/src/[base_src] \
+                  genodelabs/pkg/[drivers_interactive_pkg] \
+                  genodelabs/pkg/terminal \
+                  genodelabs/src/init \
+                  genodelabs/src/noux \
+                  genodelabs/src/posix \
+                  genodelabs/src/ram_fs \
+                  genodelabs/src/log_terminal \
+                  genodelabs/src/ncurses \
+                  genodelabs/src/bash-minimal \
+                  genodelabs/src/vim-minimal \
+                  genodelabs/src/coreutils-minimal
+
+
+set build_components { server/fs_log server/cpu_sampler test/cpu_sampler }
 
 if {[have_spec foc] || [have_spec nova]} {
 	lappend build_components lib/cpu_sampler_platform-$::env(KERNEL)
@@ -23,18 +28,11 @@ if {[have_spec foc] || [have_spec nova]} {
 	lappend build_components lib/cpu_sampler_platform-generic
 }
 
-source ${genode_dir}/repos/base/run/platform_drv.inc
-
-lappend_if [need_usb_hid]   build_components drivers/usb
-lappend_if [have_spec gpio] build_components drivers/gpio
-
 #
 # Build Noux packages only once
 #
-foreach pkg {bash coreutils vim diffutils} {
+foreach pkg {diffutils} {
 	lappend_if [expr ![file exists bin/$pkg]] build_components noux-pkg/$pkg }
-
-append_platform_drv_build_components
 
 build $build_components
 
@@ -48,12 +46,6 @@ set laststatus=2
 set noswapfile
 set viminfo=}
 close $vimrc_fd
-
-create_boot_directory
-
-proc gpio_drv { } { if {[have_spec rpi] && [have_spec hw]}  { return hw_gpio_drv }
-                    if {[have_spec rpi] && [have_spec foc]} { return foc_gpio_drv }
-                    return gpio_drv }
 
 append config {
 	<config verbose="yes">
@@ -76,50 +68,35 @@ append config {
 			<provides><service name="Timer"/></provides>
 		</start>}
 
-append_platform_drv_config
-
-append_if [expr [have_spec framebuffer] && ![get_cmd_switch --autopilot]] config {
-	<start name="fb_drv">
-		<resource name="RAM" quantum="4M"/>
-		<provides><service name="Framebuffer"/></provides>
-	</start>}
-
-append_if [have_spec ps2] config {
-	<start name="ps2_drv">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Input"/></provides>
-	</start> }
-
-append_if [have_spec gpio] config "
-	<start name=\"[gpio_drv]\">
-		<resource name=\"RAM\" quantum=\"4M\"/>
-		<provides><service name=\"Gpio\"/></provides>
-		<config/>
-	</start>"
-
-append_if [need_usb_hid] config {
-	<start name="usb_drv" caps="120">
-		<resource name="RAM" quantum="12M"/>
-		<provides><service name="Input"/></provides>
-		<config uhci="yes" ehci="yes" xhci="yes"> <hid/> </config>
-	</start> }
-
 append_if [get_cmd_switch --autopilot] config {
 	<start name="terminal">
 		<binary name="log_terminal"/>
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Terminal"/></provides>
-	</start> }
+	</start>}
 
 append_if [expr ![get_cmd_switch --autopilot]] config {
+	<start name="drivers" caps="1000">
+		<resource name="RAM" quantum="32M" constrain_phys="yes"/>
+		<binary name="init"/>
+		<route>
+			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+		<provides>
+			<service name="Input"/> <service name="Framebuffer"/>
+		</provides>
+	</start>
+
 	<start name="terminal">
 		<resource name="RAM" quantum="2M"/>
 		<provides><service name="Terminal"/></provides>
-		<config>
-			<keyboard layout="de"/>
-			<font size="12" />
-		</config>
-	</start> }
+		<route>
+			<service name="ROM" label="config"> <parent label="terminal.config"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>}
 
 append config {
 	<start name="ram_fs">
@@ -183,10 +160,10 @@ append config {
 		<resource name="RAM" quantum="16M" />
 		<config>
 			<fstab>
-				<tar name="coreutils.tar" />
-				<tar name="vim.tar" />
+				<tar name="coreutils-minimal.tar" />
+				<tar name="vim-minimal.tar" />
 				<tar name="diffutils.tar" />
-				<tar name="bash.tar" />
+				<tar name="bash-minimal.tar" />
 
 				<dir name="dev"> <zero/> <null/> </dir>
 
@@ -205,11 +182,9 @@ append config {
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
-</config>
-}
+</config> }
 
 install_config $config
-
 
 #
 # Boot modules
@@ -224,27 +199,9 @@ proc binary_name_cpu_sampler_platform_lib_so { } {
 	}
 }
 
-# generic modules
-set boot_modules {
-	core ld.lib.so init timer noux terminal ram_fs log_terminal
-	libc.lib.so libm.lib.so libc_noux.lib.so ncurses.lib.so posix.lib.so
-	bash.tar coreutils.tar diffutils.tar vim.tar vimrc
+build_boot_image {
+	diffutils.tar vimrc
 	fs_log cpu_sampler cpu_sampler_platform.lib.so test-cpu_sampler
-}
-
-# platform-specific modules
-lappend_if [have_spec         ps2] boot_modules ps2_drv
-lappend_if [have_spec framebuffer] boot_modules fb_drv
-lappend_if [need_usb_hid]          boot_modules usb_drv
-lappend_if [have_spec gpio]        boot_modules [gpio_drv]
-
-append_platform_drv_boot_modules
-
-build_boot_image $boot_modules
-
-if {[have_spec x86_64]} {
-	# bash.tar is really huge when built for x86_64
-} else {
 }
 
 if { ![get_cmd_switch --autopilot] } { run_genode_until forever }

@@ -7,46 +7,22 @@ if {[have_spec linux]} {
 	exit 0
 }
 
-proc gpio_drv { } { if {[have_spec rpi] && [have_spec hw]}  { return hw_gpio_drv }
-                    if {[have_spec rpi] && [have_spec foc]} { return foc_gpio_drv }
-                    return gpio_drv }
-
-#
-# On OMAP4 where no PS/2 is available, we rely on USB HID
-#
-proc use_usb_input { } { return [expr ![have_spec ps2] && [have_spec usb]] }
-
-#
-# Uncomment the following line when working on the VIM source code. Otherwise,
-# the package may get recompiled, yet it does not get reinstalled into 'bin/'.
-#
-#exec rm -rf noux-pkg/bash bin/bash
-
-set build_components {
-	core init drivers/timer noux/minimal lib/libc_noux
-	drivers/framebuffer drivers/input
-	server/terminal server/ram_fs server/trace_fs
-	test/libports/ncurses
-
-	lib/trace/policy/rpc_name
-}
-
-lappend_if [use_usb_input]  build_components drivers/usb
-lappend_if [have_spec gpio] build_components drivers/gpio
-
-set noux_pkgs "bash coreutils grep vim"
-#
-# Build Noux packages only once
-#
-foreach pkg $noux_pkgs {
-	lappend_if [expr ![file exists bin/$pkg]] build_components noux-pkg/$pkg }
-
-source ${genode_dir}/repos/base/run/platform_drv.inc
-append_platform_drv_build_components
-
-build $build_components
-
 create_boot_directory
+
+import_from_depot genodelabs/src/[base_src] \
+                  genodelabs/pkg/[drivers_interactive_pkg] \
+                  genodelabs/pkg/terminal \
+                  genodelabs/src/init \
+                  genodelabs/src/libc \
+                  genodelabs/src/noux \
+                  genodelabs/src/posix \
+                  genodelabs/src/ncurses \
+                  genodelabs/src/vim \
+                  genodelabs/src/bash \
+                  genodelabs/src/grep \
+                  genodelabs/src/coreutils \
+                  genodelabs/src/ram_fs
+
 
 # write default vimrc file
 set vimrc_fd [open "bin/vimrc" w]
@@ -59,7 +35,7 @@ set noswapfile
 set viminfo=}
 close $vimrc_fd
 
-append config {
+install_config {
 <config verbose="yes">
 	<parent-provides>
 		<service name="ROM"/>
@@ -72,69 +48,49 @@ append config {
 		<service name="IO_MEM"/>
 		<service name="TRACE"/>
 	</parent-provides>
+
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
+
 	<default caps="100"/>
+
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
-	</start> }
+	</start>
 
-append_if [have_spec sdl] config {
-	<start name="fb_sdl">
-		<resource name="RAM" quantum="4M"/>
+	<start name="drivers" caps="1000">
+		<resource name="RAM" quantum="32M" constrain_phys="yes"/>
+		<binary name="init"/>
+		<route>
+			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
 		<provides>
-			<service name="Input"/>
-			<service name="Framebuffer"/>
+			<service name="Input"/> <service name="Framebuffer"/>
 		</provides>
-	</start>}
+	</start>
 
-append_platform_drv_config
-
-append_if [have_spec framebuffer] config {
-	<start name="fb_drv" caps="200">
-		<resource name="RAM" quantum="4M"/>
-		<provides><service name="Framebuffer"/></provides>
-		<config width="640" height="480" />
-	</start>}
-
-append_if [have_spec ps2] config {
-	<start name="ps2_drv">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Input"/></provides>
-	</start> }
-
-append_if [have_spec gpio] config "
-	<start name=\"[gpio_drv]\">
-		<resource name=\"RAM\" quantum=\"4M\"/>
-		<provides><service name=\"Gpio\"/></provides>
-		<config/>
-	</start>"
-
-append_if [use_usb_input] config {
-	<start name="usb_drv">
-		<resource name="RAM" quantum="12M"/>
-		<provides><service name="Input"/></provides>
-		<config uhci="yes" ehci="yes" xhci="yes"> <hid/> </config>
-	</start> }
-
-append config {
 	<start name="terminal">
 		<resource name="RAM" quantum="2M"/>
 		<provides><service name="Terminal"/></provides>
-		<config>
-			<keyboard layout="us"/>
-			<font size="12" />
-		</config>
+		<route>
+			<service name="ROM" label="config"> <parent label="terminal.config"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
 	</start>
-	<start name="trace_fs">
+
+	<start name="trace_fs" caps="200">
 		<resource name="RAM" quantum="128M"/>
 		<provides><service name="File_system"/></provides>
 		<config>
-			<policy label="noux -> trace"  root="/" interval="1000" subject_limit="512" trace_quota="64M" parent_levels="0" />
+			<policy label="noux -> trace"  root="/" interval="1000"
+			        subject_limit="512" trace_quota="64M" parent_levels="0" />
 		</config>
 	</start>
+
 	<start name="ram_fs">
 		<resource name="RAM" quantum="32M"/>
 		<provides><service name="File_system"/></provides>
@@ -156,28 +112,29 @@ append config {
 			<policy label="noux -> tmp"  root="/tmp"  writeable="yes" />
 		</config>
 	</start>
-	<start name="noux" caps="200">
+
+	<start name="noux" caps="2000">
 		<resource name="RAM" quantum="256M" />
 		<config>
-			<fstab> }
-foreach pkg $noux_pkgs {
-append config "								<tar name=\"$pkg.tar\" />" }
-append config {
+			<fstab>
+				<tar name="coreutils.tar" />
+				<tar name="vim.tar" />
+				<tar name="bash.tar" />
+				<tar name="grep.tar" />
+
 				<dir name="home">  <fs label="home" />  </dir>
 				<dir name="ram">   <fs label="root" />  </dir>
 				<dir name="tmp">   <fs label="tmp" />   </dir>
 				<dir name="trace"> <fs label="trace" /> </dir>
 
-				<dir name="dev">
-					<null /> <zero />
-				</dir>
+				<dir name="dev"> <null /> <zero /> </dir>
 
 				<dir name="share"> <dir name="vim"> <rom name="vimrc"/> </dir> </dir>
 			</fstab>
 			<start name="/bin/bash">
 				<env name="TERM" value="screen" />
 				<env name="HOME" value="/home" />
-				<arg value="--login" />
+				<!-- <arg value="-login" /> -->
 			</start>
 		</config>
 		<route>
@@ -194,37 +151,9 @@ append config {
 	</start>
 </config>}
 
-install_config $config
+build { server/trace_fs lib/trace/policy/rpc_name }
 
-
-#
-# Boot modules
-#
-
-# generic modules
-set boot_modules {
-	core init timer ld.lib.so noux terminal ram_fs
-	libc.lib.so libm.lib.so libc_noux.lib.so posix.lib.so
-	ncurses.lib.so pcre.lib.so zlib.lib.so readline.lib.so
-	trace_fs
-
-	rpc_name
-}
-
-foreach pkg $noux_pkgs {
-	append boot_modules " $pkg.tar " }
-
-# platform-specific modules
-lappend_if [have_spec       linux] boot_modules fb_sdl
-lappend_if [have_spec         ps2] boot_modules ps2_drv
-lappend_if [have_spec framebuffer] boot_modules fb_drv
-lappend_if [use_usb_input        ] boot_modules usb_drv
-lappend_if [have_spec        gpio] boot_modules [gpio_drv]
-
-append_platform_drv_boot_modules
-
-build_boot_image $boot_modules
-
+build_boot_image { vimrc trace_fs rpc_name }
 
 run_genode_until forever
 
