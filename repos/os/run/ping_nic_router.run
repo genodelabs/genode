@@ -4,7 +4,7 @@
 
 if {![have_include power_on/qemu]} {
 	puts "Run script is only supported on Qemu"
-	return 0
+	exit 0
 }
 
 set build_components {
