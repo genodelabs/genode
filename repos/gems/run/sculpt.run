@@ -110,6 +110,7 @@ install_config {
 				<rom name="input_filter.config"/>
 				<rom name="en_us.chargen"/>
 				<rom name="de.chargen"/>
+				<rom name="special.chargen"/>
 				<rom name="numlock_remap.config"/>
 				<rom name="vimrc"/>
 				<rom name="wlan.config"/>
@@ -467,11 +468,9 @@ file copy -force [genode_dir]/repos/gems/run/sculpt/machine.vbox [run_dir]/genod
 file copy -force [genode_dir]/repos/gems/recipes/raw/drivers_managed-pc/drivers.config \
                  [run_dir]/genode/drivers.config
 
-file copy -force [genode_dir]/repos/os/src/server/input_filter/en_us.chargen \
-                 [run_dir]/genode/en_us.chargen
-
-file copy -force [genode_dir]/repos/os/src/server/input_filter/de.chargen \
-                 [run_dir]/genode/de.chargen
+foreach file { en_us.chargen de.chargen special.chargen } {
+	file copy -force [genode_dir]/repos/os/src/server/input_filter/$file \
+	                 [run_dir]/genode/$file }
 
 file copy -force [genode_dir]/repos/gems/recipes/raw/drivers_managed-pc/input_filter.config \
                  [run_dir]/genode/input_filter.config

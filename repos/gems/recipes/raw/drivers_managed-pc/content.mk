@@ -1,5 +1,5 @@
 content: drivers.config fb_drv.config input_filter.config en_us.chargen \
-         numlock_remap.config
+         special.chargen numlock_remap.config
 
 drivers.config numlock_remap.config:
 	cp $(REP_DIR)/recipes/raw/drivers_managed-pc/$@ $@
@@ -7,5 +7,5 @@ drivers.config numlock_remap.config:
 fb_drv.config input_filter.config:
 	cp $(GENODE_DIR)/repos/os/recipes/raw/drivers_interactive-pc/$@ $@
 
-en_us.chargen:
+en_us.chargen special.chargen:
 	cp $(GENODE_DIR)/repos/os/src/server/input_filter/$@ $@

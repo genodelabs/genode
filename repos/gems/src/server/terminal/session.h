@@ -18,6 +18,7 @@
 #include <util/utf8.h>
 #include <root/component.h>
 #include <terminal_session/terminal_session.h>
+#include <terminal/read_buffer.h>
 
 /* local includes */
 #include "types.h"

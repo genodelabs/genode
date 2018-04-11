@@ -1,0 +1,27 @@
+<chargen>
+	<!-- mappings corresponding to function-key unicodes as defined by Apple -->
+	<map>
+		<key name="KEY_UP"       b0="239" b1="156" b2="128"/>
+		<key name="KEY_DOWN"     b0="239" b1="156" b2="129"/>
+		<key name="KEY_LEFT"     b0="239" b1="156" b2="130"/>
+		<key name="KEY_RIGHT"    b0="239" b1="156" b2="131"/>
+		<key name="KEY_F1"       b0="239" b1="156" b2="132"/>
+		<key name="KEY_F2"       b0="239" b1="156" b2="133"/>
+		<key name="KEY_F3"       b0="239" b1="156" b2="134"/>
+		<key name="KEY_F4"       b0="239" b1="156" b2="135"/>
+		<key name="KEY_F5"       b0="239" b1="156" b2="136"/>
+		<key name="KEY_F6"       b0="239" b1="156" b2="137"/>
+		<key name="KEY_F7"       b0="239" b1="156" b2="138"/>
+		<key name="KEY_F8"       b0="239" b1="156" b2="139"/>
+		<key name="KEY_F9"       b0="239" b1="156" b2="140"/>
+		<key name="KEY_F10"      b0="239" b1="156" b2="141"/>
+		<key name="KEY_F11"      b0="239" b1="156" b2="142"/>
+		<key name="KEY_F12"      b0="239" b1="156" b2="143"/>
+		<key name="KEY_HOME"     b0="239" b1="156" b2="169"/>
+		<key name="KEY_INSERT"   b0="239" b1="156" b2="167"/>
+		<key name="KEY_DELETE"   b0="239" b1="156" b2="168"/>
+		<key name="KEY_END"      b0="239" b1="156" b2="171"/>
+		<key name="KEY_PAGEUP"   b0="239" b1="156" b2="172"/>
+		<key name="KEY_PAGEDOWN" b0="239" b1="156" b2="173"/>
+	</map>
+</chargen>
