@@ -122,7 +122,7 @@ void Libc::Component::construct(Libc::Env &env)
 				;
 				if (++success_cnt >= 5) {
 					log("Test done");
-					return;
+					env.parent().exit(0);
 				}
 			} else
 				break;
@@ -132,4 +132,5 @@ void Libc::Component::construct(Libc::Env &env)
 		lwip_close(s);
 	}
 	log("Test failed");
+	env.parent().exit(-1);
 }

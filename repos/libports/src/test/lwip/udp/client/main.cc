@@ -78,8 +78,10 @@ void Libc::Component::construct(Libc::Env &env)
 		log("Received \"", String<64>(buf), " ...\"");
 		if (++success_cnt >= 5) {
 			log("Test done");
+			env.parent().exit(0);
 			return;
 		}
 	}
 	log("Test failed");
+	env.parent().exit(-1);
 }
