@@ -27,10 +27,11 @@ if {[have_spec pistachio] || [have_spec sel4]} {
 
 set use_usb_input [expr ![have_spec ps2] && ![have_spec sdl] && [have_spec usb]]
 
+create_boot_directory
+
 set build_components {
 	core init drivers/timer noux/minimal lib/libc_noux
-	drivers/framebuffer drivers/input
-	server/terminal server/ram_fs
+	server/log_terminal server/ram_fs
 	test/libports/ncurses
 }
 
@@ -128,67 +129,36 @@ exec tar cvf bin/genode.tar -C $genode_dir tool repos/base \
 exec tar rvf bin/genode.tar -C [depot_dir]/.. depot/test
 exec rm -rf [depot_dir]/test
 
-create_boot_directory
-
 append config {
-	<config verbose="yes">
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="LOG"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="PD"/>
-			<service name="IRQ"/>
-			<service name="IO_PORT"/>
-			<service name="IO_MEM"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
-		<default caps="100"/>
-		<start name="timer">
-			<resource name="RAM" quantum="1M"/>
-			<provides><service name="Timer"/></provides>
-		</start> }
+<config verbose="yes">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="LOG"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="PD"/>
+		<service name="IRQ"/>
+		<service name="IO_PORT"/>
+		<service name="IO_MEM"/>
+	</parent-provides>
 
-append_if [have_spec sdl] config {
-	<start name="fb_sdl">
-		<resource name="RAM" quantum="4M"/>
-		<provides>
-			<service name="Input"/>
-			<service name="Framebuffer"/>
-		</provides>
-	</start>}
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
 
-append_platform_drv_config
+	<default caps="100"/>
 
-append_if [have_spec framebuffer] config {
-	<start name="fb_drv" caps="200">
-		<resource name="RAM" quantum="8M"/>
-		<provides><service name="Framebuffer"/></provides>
-	</start>}
-
-append_if [have_spec ps2] config {
-	<start name="ps2_drv">
+	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Input"/></provides>
-	</start> }
+		<provides><service name="Timer"/></provides>
+	</start>
 
-append_if $use_usb_input config {
-	<start name="usb_drv" caps="120">
-		<resource name="RAM" quantum="12M"/>
-		<provides><service name="Input"/></provides>
-		<config uhci="yes" ehci="no" xhci="no"> <hid/> </config>
-	</start> }
-
-append config {
-	<start name="terminal">
+	<start name="log_terminal">
 		<resource name="RAM" quantum="2M"/>
 		<provides><service name="Terminal"/></provides>
-		<config>
-			<keyboard layout="de"/>
-		</config>
+		<config/>
 	</start>
+
 	<start name="ram_fs" caps="200">
 		<resource name="RAM" quantum="124M"/>
 		<provides><service name="File_system"/></provides>
@@ -280,7 +250,7 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core init timer ld.lib.so noux terminal ram_fs
+	core init timer ld.lib.so noux log_terminal ram_fs
 	libc.lib.so libm.lib.so libc_noux.lib.so ncurses.lib.so stdcxx.lib.so
 	pcre.lib.so posix.lib.so vimrc bash_profile
 }
@@ -292,18 +262,10 @@ foreach pkg $noux_pkgs {
 
 append boot_modules { genode.tar }
 
-# platform-specific modules
-lappend_if [have_spec       linux] boot_modules fb_sdl
-lappend_if [have_spec framebuffer] boot_modules fb_drv
-lappend_if [have_spec         ps2] boot_modules ps2_drv
-lappend_if $use_usb_input          boot_modules usb_drv
-
-append_platform_drv_boot_modules
-
 build_boot_image $boot_modules
 
 
-append qemu_args " -m 768 "
+append qemu_args " -nographic -m 768 "
 
 # wait until Noux started
 run_genode_until {\[init -\> noux\].*--- noux started ---} $noux_boot_timeout
