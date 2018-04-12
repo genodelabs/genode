@@ -29,7 +29,7 @@ struct Kernel::Timer_driver
 	struct Subject_timed_event
 	{
 		Genode::uint64_t tsc_trigger;
-		Genode::uint8_t  event_nr :5;
+		Genode::uint8_t  event_nr :6;
 	} __attribute__((packed));
 
 	struct Subject_timed_event * event_page = 0;
