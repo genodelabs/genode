@@ -119,5 +119,7 @@ install_config {
 
 build_boot_image { init depot_query depot_deploy }
 
+append qemu_args " -nographic "
+
 run_genode_until {.*child "test-fs_report" exited with exit value 0.*\n} 30
 
