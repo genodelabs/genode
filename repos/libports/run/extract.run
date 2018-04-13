@@ -36,7 +36,7 @@ build { app/extract }
 
 build_boot_image {
 	extract
-	libc.lib.so libm.lib.so posix.lib.so
+	libc.lib.so
 	libarchive.lib.so liblzma.lib.so zlib.lib.so
 }
 
