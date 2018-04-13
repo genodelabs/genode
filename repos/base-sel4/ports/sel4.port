@@ -3,8 +3,8 @@ VERSION   := git
 DOWNLOADS := sel4.git
 
 URL(sel4) := https://github.com/seL4/seL4.git
-# master branch, version 7.0 + already merged multiboot2 and uefi support
-REV(sel4) := a2d974f47f876bb71950ef3a7cb8f695fa4f7d80
+# master branch, version 9.0
+REV(sel4) := f58d22af8b6ce8bfccaa4bac393a31cad670e7c1
 DIR(sel4) := src/kernel/sel4
 
 $(call check_tool,python)

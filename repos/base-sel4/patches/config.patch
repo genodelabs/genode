@@ -31,12 +31,12 @@
  #endif
 --- src/kernel/sel4/include/plat/pc99/plat/64/plat_mode/machine/hardware.h
 +++ src/kernel/sel4/include/plat/pc99/plat/64/plat_mode/machine/hardware.h
-@@ -23,7 +23,7 @@
+@@ -19,7 +19,7 @@
   * because they need to defined like this in linker.lds
   */
- #define PADDR_BASE  0x00000000ul
--#define PADDR_LOAD  0x00100000ul
-+#define PADDR_LOAD  0x00200000ul
+ #define PADDR_BASE  UL_CONST(0x00000000)
+-#define PADDR_LOAD  UL_CONST(0x00100000)
++#define PADDR_LOAD  UL_CONST(0x00200000)
  /* our kernel window is 2^39 bits (2^9 * 1gb) and the virtual address
   * range is 48 bits. Therefore our base is 2^48 - 2^39
   */
