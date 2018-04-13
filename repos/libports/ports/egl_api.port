@@ -2,14 +2,16 @@ LICENSE   := Khronos
 VERSION   := 1.5
 DOWNLOADS := egl.h.file eglext.h.file khrplatform.h.file
 
- URL(egl.h) := https://www.khronos.org/registry/EGL/api/EGL/egl.h
+GITHUB_PATH = https://raw.githubusercontent.com/KhronosGroup/EGL-Registry/5804dc63f9ca70d5e9a6e31addec6936e2950ee4/api
+
+ URL(egl.h) := $(GITHUB_PATH)/EGL/egl.h
 NAME(egl.h) := include/EGL/egl.h
  SHA(egl.h) := 572914c13175b1317dc18ae5ef6b6714c2fcad76
 
- URL(eglext.h) := https://www.khronos.org/registry/EGL/api/EGL/eglext.h
+ URL(eglext.h) := $(GITHUB_PATH)/EGL/eglext.h
 NAME(eglext.h) := include/EGL/eglext.h
  SHA(eglext.h) := 1667d58f56fd2676e3d6ea9f62849f1fccb1649c
 
- URL(khrplatform.h) := https://www.khronos.org/registry/EGL/api/KHR/khrplatform.h
+ URL(khrplatform.h) := $(GITHUB_PATH)/KHR/khrplatform.h
 NAME(khrplatform.h) := include/KHR/khrplatform.h
  SHA(khrplatform.h) := 8e0d9a99eb3053b448f4166beee7e3bf77631332
