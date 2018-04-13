@@ -378,15 +378,6 @@ void Platform::_init_rom_modules()
 	Genode::Xml_generator xml(reinterpret_cast<char *>(virt_addr),
 	                          rom_size, rom_name, [&] ()
 	{
-		xml.node("hardware", [&] () {
-			xml.node("features", [&] () {
-				xml.attribute("svm", false);
-				xml.attribute("vmx", false);
-			});
-			xml.node("tsc", [&] () {
-				xml.attribute("freq_khz" , bi.archInfo * 1000UL);
-			});
-		});
 
 		if (!bi.extraLen)
 			return;
@@ -402,6 +393,28 @@ void Platform::_init_rom_modules()
 		     next <= last && element->id != SEL4_BOOTINFO_HEADER_PADDING;
 			 element = next)
 		{
+			if (element->id == SEL4_BOOTINFO_HEADER_X86_TSC_FREQ) {
+				struct tsc_freq {
+					uint32_t freq_mhz;
+				} __attribute__((packed));
+				if (sizeof(tsc_freq) + sizeof(*element) != element->len) {
+					error("unexpected tsc frequency format");
+					continue;
+				}
+
+				tsc_freq const * boot_freq = reinterpret_cast<tsc_freq const *>(reinterpret_cast<addr_t>(element) + sizeof(* element));
+
+				xml.node("hardware", [&] () {
+					xml.node("features", [&] () {
+						xml.attribute("svm", false);
+						xml.attribute("vmx", false);
+					});
+					xml.node("tsc", [&] () {
+						xml.attribute("freq_khz" , boot_freq->freq_mhz * 1000UL);
+					});
+				});
+			}
+
 			if (element->id == SEL4_BOOTINFO_HEADER_X86_FRAMEBUFFER) {
 				struct mbi2_framebuffer {
 					uint64_t addr;

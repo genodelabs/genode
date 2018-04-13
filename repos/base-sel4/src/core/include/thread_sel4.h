@@ -66,8 +66,8 @@ void Genode::Thread_info::init_tcb(Platform &platform,
 	create<Tcb_kobj>(service, platform.core_cnode().sel(), tcb_sel);
 
 	/* set scheduling priority */
-	seL4_TCB_SetMCPriority(tcb_sel.value(), prio);
-	seL4_TCB_SetPriority(tcb_sel.value(), prio);
+	seL4_TCB_SetMCPriority(tcb_sel.value(), Cnode_index(seL4_CapInitThreadTCB).value(), prio);
+	seL4_TCB_SetPriority(tcb_sel.value(), Cnode_index(seL4_CapInitThreadTCB).value(), prio);
 
 	/* place at cpu */
 	affinity_sel4_thread(tcb_sel, cpu);
