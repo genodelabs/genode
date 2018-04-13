@@ -6,15 +6,18 @@
 	<config verbose_domain_state="yes">
 		<default-policy domain="default" />
 		<domain name="uplink">
-			<nat domain="default" tcp-ports="1000" udp-ports="1000"/>
+			<nat domain="default"
+			     tcp-ports="1000"
+			     udp-ports="1000"
+			     icmp-ids="1000"/>
 		</domain>
 		<domain name="default" interface="10.0.1.1/24">
 			<dhcp-server ip_first="10.0.1.2"
 			             ip_last="10.0.1.200"
-			             ip_lease_time_sec="360"
-			             dns_server="1.1.1.1"/>
+			             dns_server_from="uplink"/>
 			<tcp dst="0.0.0.0/0"><permit-any domain="uplink"/></tcp>
 			<udp dst="0.0.0.0/0"><permit-any domain="uplink"/></udp>
+			<icmp dst="0.0.0.0/0" domain="uplink"/>
 		</domain>
 	</config>
 
