@@ -474,35 +474,33 @@ void Depot_query::Main::_collect_source_dependencies(Archive::Path const &path,
 
 	dependencies.record(path);
 
-	switch (Archive::type(path)) {
+	try { switch (Archive::type(path)) {
 
-	case Archive::PKG:
-		try {
-			File_content archives(_heap, Directory(_depot_dir, path),
-			                      "archives", File_content::Limit{16*1024});
+	case Archive::PKG: {
+		File_content archives(_heap, Directory(_depot_dir, path),
+		                      "archives", File_content::Limit{16*1024});
 
-			archives.for_each_line<Archive::Path>([&] (Archive::Path const &path) {
-				_collect_source_dependencies(path, dependencies, recursion_limit); });
-		}
-		catch (File_content::Nonexistent_file) { }
+		archives.for_each_line<Archive::Path>([&] (Archive::Path const &path) {
+			_collect_source_dependencies(path, dependencies, recursion_limit); });
 		break;
+	}
 
-	case Archive::SRC:
-		try {
-			File_content used_apis(_heap, Directory(_depot_dir, path),
-			                       "used_apis", File_content::Limit{16*1024});
+	case Archive::SRC: {
+		File_content used_apis(_heap, Directory(_depot_dir, path),
+		                       "used_apis", File_content::Limit{16*1024});
 
-			typedef String<160> Api;
-			used_apis.for_each_line<Archive::Path>([&] (Api const &api) {
-				dependencies.record(Archive::Path(Archive::user(path), "/api/", api));
-			});
-		}
-		catch (File_content::Nonexistent_file) { }
+		typedef String<160> Api;
+		used_apis.for_each_line<Archive::Path>([&] (Api const &api) {
+			dependencies.record(Archive::Path(Archive::user(path), "/api/", api));
+		});
 		break;
+	}
 
 	case Archive::RAW:
 		break;
-	};
+	}; }
+	catch (File_content::Nonexistent_file) { }
+	catch (Directory::Nonexistent_directory) { }
 }
 
 
@@ -528,7 +526,9 @@ void Depot_query::Main::_collect_binary_dependencies(Archive::Path const &path,
 			archives.for_each_line<Archive::Path>([&] (Archive::Path const &archive_path) {
 				_collect_binary_dependencies(archive_path, dependencies, recursion_limit); });
 
-		} catch (File_content::Nonexistent_file) { }
+		}
+		catch (File_content::Nonexistent_file) { }
+		catch (Directory::Nonexistent_directory) { }
 		break;
 
 	case Archive::SRC:
