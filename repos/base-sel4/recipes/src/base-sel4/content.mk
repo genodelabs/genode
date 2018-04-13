@@ -34,7 +34,7 @@ src/kernel/sel4: src/kernel
 
 
 content:
-	for spec in x86_32; do \
+	for spec in x86_32 x86_64 arm; do \
 	  mv lib/mk/spec/$$spec/ld-sel4.mk lib/mk/spec/$$spec/ld.mk; \
 	  done;
 	sed -i "s/ld-sel4/ld/"          src/lib/ld/sel4/target.mk
