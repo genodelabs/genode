@@ -103,5 +103,13 @@ proc run_boot_dir {binaries} {
 ##
 # Base source archive within depot
 #
-proc base_src { } { return base-pistachio }
+proc base_src { } {
 
+	if {[have_spec x86_32]} { return base-pistachio }
+
+	global specs
+
+	puts stderr "Test requires base-pistachio kernel archive, which is missing for this build configuration"
+	puts stderr "  SPECS=\"$specs\""
+	exit 0
+}

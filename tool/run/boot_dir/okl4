@@ -203,5 +203,13 @@ proc run_boot_dir {binaries} {
 ##
 # Base source archive within depot
 #
-proc base_src { } { return base-okl4 }
+proc base_src { } {
 
+	if {[have_spec x86_32]} { return base-okl4 }
+
+	global specs
+
+	puts stderr "Test requires base-okl4 kernel archive, which is missing for this build configuration"
+	puts stderr "  SPECS=\"$specs\""
+	exit 0
+}

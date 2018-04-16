@@ -213,5 +213,13 @@ proc run_boot_dir {binaries} {
 ##
 # Base source archive within depot
 #
-proc base_src { } { return base-foc }
+proc base_src { } {
 
+	if {[have_spec x86]} { return base-foc }
+
+	global specs
+
+	puts stderr "Test requires base-foc kernel archive, which is missing for this build configuration"
+	puts stderr "  SPECS=\"$specs\""
+	exit 0
+}

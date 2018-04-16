@@ -142,5 +142,13 @@ proc run_boot_dir {binaries} {
 ##
 # Base source archive within depot
 #
-proc base_src { } { return base-sel4 }
+proc base_src { } {
 
+	if {[have_spec x86]} { return base-sel4 }
+
+	global specs
+
+	puts stderr "Test requires base-sel4 kernel archive, which is missing for this build configuration"
+	puts stderr "  SPECS=\"$specs\""
+	exit 0
+}

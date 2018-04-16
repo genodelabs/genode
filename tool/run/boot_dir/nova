@@ -135,5 +135,13 @@ proc run_boot_dir {binaries} {
 ##
 # Base source archive within depot
 #
-proc base_src { } { return base-nova }
+proc base_src { } {
 
+	if {[have_spec x86]} { return base-nova }
+
+	global specs
+
+	puts stderr "Test requires base-nova kernel archive, which is missing for this build configuration"
+	puts stderr "  SPECS=\"$specs\""
+	exit 0
+}
