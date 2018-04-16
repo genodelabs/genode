@@ -5,9 +5,18 @@ ADAINCLUDE = $(ADA_RTS)/adainclude
 
 PACKAGES = system
 
+body_exists := $(filter $1.adb,$(shell if [ -e $(ADA_RTS_SOURCE)/$1.adb ]; then echo $1.adb; fi))
+
 ADA_RTS_SOURCE = $(call select_from_ports,gcc)/src/noux-pkg/gcc/gcc/ada
 SRC_ADS += $(foreach package, $(PACKAGES), $(package).ads)
+SRC_ADB += $(foreach package, $(PACKAGES), $(body_exists, $(package)))
 
+CUSTOM_ADA_MAKE    = $(CC)
+CUSTOM_ADA_FLAGS   = -c -gnatg -gnatp -gnatpg -gnatn2
+CUSTOM_ADA_OPT     = $(CC_ADA_OPT)
+CUSTOM_ADA_INCLUDE = -I- -I$(ADA_RTS_SOURCE)
+
+vpath %.adb $(ADA_RTS_SOURCE)
 vpath %.ads $(ADA_RTS_SOURCE)
 
 SHARED_LIB = yes
