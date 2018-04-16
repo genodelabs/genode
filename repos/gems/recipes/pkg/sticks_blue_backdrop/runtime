@@ -1,4 +1,4 @@
-<runtime ram="48M" caps="300" binary="backdrop" config="backdrop.config">
+<runtime ram="64M" caps="300" binary="backdrop" config="backdrop.config">
 
 	<requires> <nitpicker/> </requires>
 
