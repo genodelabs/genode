@@ -1,0 +1,5 @@
+project genode_rts is
+
+    for Source_Dirs use ("libsrc");
+
+end genode_rts;
