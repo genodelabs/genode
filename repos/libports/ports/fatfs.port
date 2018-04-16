@@ -1,12 +1,10 @@
 LICENSE   := BSD
-VERSION   := 0.13a
+VERSION   := 0.13b
 DOWNLOADS := fatfs.archive
 
-URL(fatfs) := http://www.elm-chan.org/fsw/ff/arc/ff13a.zip
-SHA(fatfs) := 0c74176ccf0c20b66e55b700c9ba826b43815b8b
+URL(fatfs) := http://www.elm-chan.org/fsw/ff/arc/ff13b.zip
+SHA(fatfs) := b54f5187c827310b860b758cc5c736f7d728d3fd
 DIR(fatfs) := src/lib/fatfs
-
-PATCHES := src/lib/fatfs/integer.patch
 
 DIRS := include/fatfs
 DIR_CONTENT(include/fatfs) := \
