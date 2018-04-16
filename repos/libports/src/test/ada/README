@@ -1,0 +1,13 @@
+This directory contains an example Ada program on Genode.
+
+An Ada program relies on the normal startup procedure of Genode
+components, which calls 'Component::construct()' in _startup.cc_. It
+enters the Ada code by calling the Ada main procedure '_ada_main()'
+from 'Component::construct()'. Additionally, the test exercises calls
+of C functions from Ada code to demonstrate the almost seamless
+integration of Ada and C code and illustrates the implementation of
+Ada libraries in Genode. Ada programs require the _ada_ library as it
+provides the needed runtime.
+
+Please note that the current version of this program does not use
+'gnatbind'. Therefore, package elaboration is not executed.

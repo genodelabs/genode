@@ -7,7 +7,7 @@
 # Collect object files and avoid duplicates (by using 'sort')
 #
 SRC_O  += $(addprefix binary_,$(addsuffix .o,$(notdir $(SRC_BIN))))
-SRC     = $(sort $(SRC_C) $(SRC_CC) $(SRC_ADA) $(SRC_RS) $(SRC_S) $(SRC_O))
+SRC     = $(sort $(SRC_C) $(SRC_CC) $(SRC_ADB) $(SRC_ADS) $(SRC_RS) $(SRC_S) $(SRC_O))
 OBJECTS = $(addsuffix .o,$(basename $(SRC)))
 
 #
@@ -70,9 +70,22 @@ endif
 # The mandatory runtime directories 'adainclude' and 'adalib' are expected in
 # the program directory.
 #
+
+#
+# We need to override these to build the ada runtime
+#
+CUSTOM_ADA_MAKE ?= $(GNATMAKE)
+CUSTOM_ADA_FLAGS ?= -q -c --GCC=$(CC) --RTS=$(ADA_RTS)
+CUSTOM_ADA_OPT ?= -cargs $(CC_ADA_OPT)
+CUSTOM_ADA_INCLUDE ?= $(INCLUDES)
+
 %.o: %.adb
 	$(MSG_COMP)$@
-	$(VERBOSE)$(GNATMAKE) -q -c --GCC=$(CC) --RTS=$(PRG_DIR) $< -cargs $(CC_ADA_OPT) $(INCLUDES)
+	$(VERBOSE)$(CUSTOM_ADA_MAKE) $(CUSTOM_ADA_FLAGS) $< $(CUSTOM_ADA_OPT) $(CUSTOM_ADA_INCLUDE)
+
+%.ali %.o: %.ads
+	$(MSG_COMP)$@
+	$(VERBOSE)$(CUSTOM_ADA_MAKE) $(CUSTOM_ADA_FLAGS) $< $(CUSTOM_ADA_OPT) $(CUSTOM_ADA_INCLUDE)
 
 #
 # Compiling Rust sources
