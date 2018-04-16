@@ -104,13 +104,18 @@ class Terminal::Session_component : public Rpc_object<Session, Session_component
 
 			unsigned i = 0;
 			for (Utf8_ptr utf8(src); utf8.complete() && i < max; ) {
+
 				_character_consumer.consume_character(utf8.codepoint().value);
+
 				i += utf8.length();
+				if (i >= max)
+					break;
+
 				utf8 = Utf8_ptr(src + i);
 			}
 
 			/* consume trailing zero characters */
-			for (; src[i] == 0 && i < num_bytes; i++);
+			for (; i < max && src[i] == 0; i++);
 
 			/* we don't support UTF-8 sequences split into multiple writes */
 			if (i != num_bytes) {
