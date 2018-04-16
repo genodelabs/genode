@@ -484,7 +484,21 @@ file copy -force [genode_dir]/repos/gems/recipes/raw/depot_download/depot_downlo
 file copy -force [genode_dir]/depot/[depot_user]/pubkey   [run_dir]/genode/[depot_user]_pubkey
 file copy -force [genode_dir]/depot/[depot_user]/download [run_dir]/genode/[depot_user]_download
 
+file copy -force [genode_dir]/VERSION [run_dir]/genode/
+
 exec gzip -dc [genode_dir]/repos/gems/run/sculpt/machine.vdi.gz > [run_dir]/genode/machine.vdi
+
+
+#
+# Define 'VERSION' ROM module
+#
+proc sculpt_version { } {
+	return "[string trim [exec cat [genode_dir]/VERSION]]" }
+
+# write file with newline (for producing nice output when using 'cat /VERSION')
+set fd [open [run_dir]/genode/VERSION w]
+puts $fd "[sculpt_version]"
+close $fd
 
 
 #
