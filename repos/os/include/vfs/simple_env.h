@@ -48,6 +48,11 @@ class Vfs::Simple_env : public Vfs::Env
 			_env(env), _alloc(alloc), _root_dir(*this, config, _fs_factory)
 		{ }
 
+		void apply_config(Genode::Xml_node const &config)
+		{
+			_root_dir.apply_config(config);
+		}
+
 		Genode::Env       &env()       override { return _env; }
 		Genode::Allocator &alloc()     override { return _alloc; }
 		Vfs::File_system  &root_dir()  override { return _root_dir; }
