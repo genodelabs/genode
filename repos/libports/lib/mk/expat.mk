@@ -1,4 +1,4 @@
-include $(REP_DIR)/lib/import/import-expat.mk
+include $(select_from_repositories,lib/import/import-expat.mk)
 
 EXPAT_DIR := $(call select_from_ports,expat)/src/lib/expat/contrib
 LIBS      += libc
