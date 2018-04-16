@@ -57,7 +57,9 @@ class Net::Icmp_packet
 			ECHO_REPLY          = 0,
 		};
 
-		Genode::uint16_t calc_checksum(Genode::size_t data_sz) const;
+		void update_checksum(Genode::size_t data_sz);
+
+		bool checksum_error(Genode::size_t data_sz) const;
 
 
 		/***************

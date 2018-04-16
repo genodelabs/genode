@@ -267,6 +267,6 @@ void Dhcp_client::_send(Message_type msg_type,
 		udp.length(size.curr() - udp_off);
 		udp.update_checksum(ip.src(), ip.dst());
 		ip.total_length(size.curr() - ip_off);
-		ip.checksum(Ipv4_packet::calculate_checksum(ip));
+		ip.update_checksum();
 	});
 }

@@ -12,6 +12,7 @@
  */
 
 /* Genode includes */
+#include <net/internet_checksum.h>
 #include <net/icmp.h>
 #include <base/output.h>
 
@@ -26,29 +27,14 @@ void Net::Icmp_packet::print(Output &output) const
 }
 
 
-uint16_t Icmp_packet::calc_checksum(size_t data_sz) const
+void Icmp_packet::update_checksum(size_t data_sz)
 {
-	/* do not sum-up checksum itself */
-	register long sum   = _type + _code;
-	addr_t        addr  = (addr_t)&_rest_of_header_u32;
-	size_t        count = sizeof(Icmp_packet) + data_sz - sizeof(_type) -
-	                      sizeof(_code) - sizeof(_checksum);
+	_checksum = 0;
+	_checksum = internet_checksum((uint16_t *)this, sizeof(Icmp_packet) + data_sz);
+}
 
-	/* sum-up rest of header and data */
-	while (count > 1) {
-		sum   += *(uint16_t *)addr;
-		addr  += sizeof(uint16_t);
-		count -= sizeof(uint16_t);
-	}
-	/* add left-over byte, if any */
-	if (count) {
-		sum += *(uint8_t *)addr;
-	}
-	/*  fold 32-bit sum to 16 bits */
-	while (sum >> 16) {
-		sum = (sum & 0xffff) + (sum >> 16);
-	}
-	/* write to header */
-	uint16_t sum16 = ~sum;
-	return host_to_big_endian(sum16);
+
+bool Icmp_packet::checksum_error(size_t data_sz) const
+{
+	return internet_checksum((uint16_t *)this, sizeof(Icmp_packet) + data_sz);
 }

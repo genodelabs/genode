@@ -12,8 +12,12 @@
  */
 
 /* Genode includes */
+#include <net/internet_checksum.h>
 #include <net/tcp.h>
 #include <base/output.h>
+
+using namespace Net;
+using namespace Genode;
 
 
 void Net::Tcp_packet::print(Genode::Output &output) const
@@ -31,4 +35,15 @@ void Net::Tcp_packet::print(Genode::Output &output) const
 	if (crw()) { Genode::print(output, "c"); }
 	if (ns())  { Genode::print(output, "n"); }
 	Genode::print(output, "' ");
+}
+
+
+void Net::Tcp_packet::update_checksum(Ipv4_address ip_src,
+                                      Ipv4_address ip_dst,
+                                      size_t       tcp_size)
+{
+	_checksum = 0;
+	_checksum = internet_checksum_pseudo_ip((uint16_t*)this, tcp_size,
+	                                        host_to_big_endian((uint16_t)tcp_size),
+	                                        Ipv4_packet::Protocol::TCP, ip_src, ip_dst);
 }

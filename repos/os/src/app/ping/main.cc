@@ -209,7 +209,7 @@ void Main::_handle_ip(Ethernet_frame &eth,
 		return;
 	}
 	/* drop packet if IP checksum is invalid */
-	if (Ipv4_packet::calculate_checksum(ip) != ip.checksum()) {
+	if (ip.checksum_error()) {
 		if (_verbose) {
 			log("bad IP checksum"); }
 		return;
@@ -293,7 +293,7 @@ void Main::_handle_icmp_dst_unreachbl(Ipv4_packet &ip,
 {
 	/* drop packet if embedded IP checksum is invalid */
 	Ipv4_packet &embed_ip = icmp.data<Ipv4_packet>(icmp_data_sz);
-	if (Ipv4_packet::calculate_checksum(embed_ip) != embed_ip.checksum()) {
+	if (embed_ip.checksum_error()) {
 		if (_verbose) {
 			log("bad IP checksum in payload of ICMP error"); }
 		return;
@@ -330,7 +330,7 @@ void Main::_handle_icmp(Ipv4_packet  &ip,
 	size_t const icmp_sz      = ip_size - sizeof(Ipv4_packet);
 	Icmp_packet &icmp         = ip.data<Icmp_packet>(icmp_sz);
 	size_t const icmp_data_sz = icmp_sz - sizeof(Icmp_packet);
-	if (icmp.calc_checksum(icmp_data_sz) != icmp.checksum()) {
+	if (icmp.checksum_error(icmp_data_sz)) {
 		if (_verbose) {
 			log("bad ICMP checksum"); }
 		return;
@@ -509,9 +509,9 @@ void Main::_send_ping(Duration)
 			chr = chr < 'z' ? chr + 1 : 'a';
 		}
 		/* fill in header values that require the packet to be complete */
-		icmp.checksum(icmp.calc_checksum(_icmp_data_sz));
+		icmp.update_checksum(_icmp_data_sz);
 		ip.total_length(size.curr() - ip_off);
-		ip.checksum(Ipv4_packet::calculate_checksum(ip));
+		ip.update_checksum();
 	});
 	_send_time = _timer.curr_time().trunc_to_plain_us();
 }

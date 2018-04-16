@@ -90,7 +90,9 @@ class Net::Ipv4_packet
 
 		static Ipv4_address ip_from_string(const char *ip);
 
-		static Genode::uint16_t calculate_checksum(Ipv4_packet const &packet);
+		void update_checksum();
+
+		bool checksum_error() const;
 
 	private:
 

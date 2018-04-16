@@ -113,8 +113,8 @@ static void _update_checksum(L3_protocol   const prot,
 	case L3_protocol::ICMP:
 		{
 			Icmp_packet &icmp = *(Icmp_packet *)prot_base;
-			icmp.checksum(icmp.calc_checksum(ip_size - sizeof(Ipv4_packet) -
-			                                           sizeof(Icmp_packet)));
+			icmp.update_checksum(ip_size - sizeof(Ipv4_packet) -
+			                               sizeof(Icmp_packet));
 			return;
 		}
 	default: throw Interface::Bad_transport_protocol(); }
@@ -208,7 +208,7 @@ void Interface::_pass_ip(Ethernet_frame &eth,
                          size_t   const  eth_size,
                          Ipv4_packet    &ip)
 {
-	ip.checksum(Ipv4_packet::calculate_checksum(ip));
+	ip.update_checksum();
 	send(eth, eth_size);
 }
 
@@ -516,7 +516,7 @@ void Interface::_send_dhcp_reply(Dhcp_server               const &dhcp_srv,
 		udp.length(size.curr() - udp_off);
 		udp.update_checksum(ip.src(), ip.dst());
 		ip.total_length(size.curr() - ip_off);
-		ip.checksum(Ipv4_packet::calculate_checksum(ip));
+		ip.update_checksum();
 	});
 }
 
@@ -733,9 +733,9 @@ void Interface::_send_icmp_dst_unreachable(Ipv4_address_prefix const &local_intf
 		Genode::memcpy(&icmp.data<char>(~0), &req_ip, icmp_data_size);
 
 		/* fill in header values that require the packet to be complete */
-		icmp.checksum(icmp.calc_checksum(icmp_data_size));
+		icmp.update_checksum(icmp_data_size);
 		ip.total_length(size.curr() - ip_off);
-		ip.checksum(Ipv4_packet::calculate_checksum(ip));
+		ip.update_checksum();
 	});
 }
 
@@ -808,7 +808,7 @@ void Interface::_handle_icmp_error(Ethernet_frame          &eth,
 	/* drop packet if embedded IP checksum invalid */
 	size_t const embed_ip_sz = icmp_sz - sizeof(Icmp_packet);
 	Ipv4_packet &embed_ip    = icmp.data<Ipv4_packet>(embed_ip_sz);
-	if (Ipv4_packet::calculate_checksum(embed_ip) != embed_ip.checksum()) {
+	if (embed_ip.checksum_error()) {
 		throw Drop_packet_inform("bad checksum in IP packet embedded in ICMP error");
 	}
 	/* get link identity of the embeddeded transport packet */
@@ -843,9 +843,9 @@ void Interface::_handle_icmp_error(Ethernet_frame          &eth,
 		_dst_port(embed_prot, embed_prot_base, remote_side.dst_port());
 
 		/* update checksum of both IP headers and the ICMP header */
-		embed_ip.checksum(Ipv4_packet::calculate_checksum(embed_ip));
-		icmp.checksum(icmp.calc_checksum(icmp_sz - sizeof(Icmp_packet)));
-		ip.checksum(Ipv4_packet::calculate_checksum(ip));
+		embed_ip.update_checksum();
+		icmp.update_checksum(icmp_sz - sizeof(Icmp_packet));
+		ip.update_checksum();
 
 		/* send adapted packet to all interfaces of remote domain */
 		remote_domain.interfaces().for_each([&] (Interface &interface) {
@@ -874,7 +874,7 @@ void Interface::_handle_icmp(Ethernet_frame          &eth,
 	size_t const icmp_sz      = ip.total_length() - sizeof(Ipv4_packet);
 	Icmp_packet &icmp         = ip.data<Icmp_packet>(icmp_sz);
 	size_t const icmp_data_sz = icmp_sz - sizeof(Icmp_packet);
-	if (icmp.calc_checksum(icmp_data_sz) != icmp.checksum()) {
+	if (icmp.checksum_error(icmp_data_sz)) {
 		throw Drop_packet_inform("bad ICMP checksum");
 	}
 	/* select ICMP message type */

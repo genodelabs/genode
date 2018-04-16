@@ -70,6 +70,11 @@ class Net::Tcp_packet
 
 	public:
 
+		void update_checksum(Ipv4_address ip_src,
+		                     Ipv4_address ip_dst,
+		                     size_t       tcp_size);
+
+
 		/***************
 		 ** Accessors **
 		 ***************/
@@ -95,53 +100,6 @@ class Net::Tcp_packet
 
 		void src_port(Port p) { _src_port = host_to_big_endian(p.value); }
 		void dst_port(Port p) { _dst_port = host_to_big_endian(p.value); }
-
-
-		/**
-		 * TCP checksum is calculated over the tcp datagram + an IPv4
-		 * pseudo header.
-		 *
-		 * IPv4 pseudo header:
-		 *
-		 *  --------------------------------------------------------------
-		 * | src-ipaddr | dst-ipaddr | zero-field | prot.-id | tcp-length |
-		 * |  4 bytes   |  4 bytes   |   1 byte   |  1 byte  |  2 bytes   |
-		 *  --------------------------------------------------------------
-		 */
-		void update_checksum(Ipv4_address ip_src,
-		                     Ipv4_address ip_dst,
-		                     size_t tcp_size)
-		{
-			/* have to reset the checksum field for calculation */
-			_checksum = 0;
-
-			/* sum up pseudo header */
-			uint32_t sum = 0;
-			for (size_t i = 0; i < Ipv4_packet::ADDR_LEN; i += sizeof(uint16_t)) {
-				uint16_t s = ip_src.addr[i] << 8 | ip_src.addr[i + 1];
-				uint16_t d = ip_dst.addr[i] << 8 | ip_dst.addr[i + 1];
-				sum += s + d;
-			}
-			uint8_t prot[] = { 0, (uint8_t)Ipv4_packet::Protocol::TCP };
-			sum += host_to_big_endian(*(uint16_t *)&prot) + tcp_size;
-
-			/* sum up TCP packet itself */
-			size_t max = (tcp_size & 1) ? (tcp_size - 1) : tcp_size;
-			uint16_t * tcp = (uint16_t *)this;
-			for (size_t i = 0; i < max; i = i + sizeof(*tcp)) {
-				sum += host_to_big_endian(*tcp++); }
-
-			/* if TCP size is odd, append a zero byte */
-			if (tcp_size & 1) {
-				uint8_t last[] = { *((uint8_t *)this + (tcp_size - 1)), 0 };
-				sum += host_to_big_endian(*(uint16_t *)&last);
-			}
-			/* keep the last 16 bits of the 32 bit sum and add the carries */
-			while (sum >> 16) { sum = (sum & 0xffff) + (sum >> 16); }
-
-			/* one's complement of sum */
-			_checksum = host_to_big_endian((uint16_t)~sum);
-		}
 
 
 		/*********

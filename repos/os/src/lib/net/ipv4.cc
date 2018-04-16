@@ -11,9 +11,10 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+/* Genode includes */
 #include <util/token.h>
 #include <util/string.h>
-
+#include <net/internet_checksum.h>
 #include <net/udp.h>
 #include <net/tcp.h>
 #include <net/icmp.h>
@@ -133,17 +134,15 @@ Ipv4_address Ipv4_packet::ip_from_string(const char *ip)
 	return ip_addr;
 }
 
-Genode::uint16_t Ipv4_packet::calculate_checksum(Ipv4_packet const &packet)
+
+void Ipv4_packet::update_checksum()
 {
-	Genode::uint16_t const *data = (Genode::uint16_t *)&packet;
-	Genode::uint32_t const sum = host_to_big_endian(data[0])
-	                           + host_to_big_endian(data[1])
-	                           + host_to_big_endian(data[2])
-	                           + host_to_big_endian(data[3])
-	                           + host_to_big_endian(data[4])
-	                           + host_to_big_endian(data[6])
-	                           + host_to_big_endian(data[7])
-	                           + host_to_big_endian(data[8])
-	                           + host_to_big_endian(data[9]);
-	return ~((0xFFFF & sum) + (sum >> 16));
+	_checksum = 0;
+	_checksum = internet_checksum((uint16_t *)this, sizeof(Ipv4_packet));
+}
+
+
+bool Ipv4_packet::checksum_error() const
+{
+	return internet_checksum((uint16_t *)this, sizeof(Ipv4_packet));
 }
