@@ -2,17 +2,30 @@
 # Build
 #
 
-if {![have_include power_on/qemu]} {
-	puts "Run script is only supported on Qemu"
-	exit 0
-}
+set on_hardware [expr ![have_include power_on/qemu]]
 
 set build_components {
 	core
 	init
 	drivers/timer
 	drivers/nic
+	server/nic_bridge
 	app/ping
+}
+
+proc gpio_drv { } { if {[have_spec rpi] && [have_spec hw]}  { return hw_gpio_drv }
+                    if {[have_spec rpi] && [have_spec foc]} { return foc_gpio_drv }
+                    return gpio_drv }
+
+
+lappend_if [have_spec gpio] build_components drivers/gpio
+
+proc dst_ip { } {
+	if {![have_include power_on/qemu]} {
+		return "10.0.0.2"
+	} else {
+		return "10.0.2.2"
+	}
 }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
@@ -45,24 +58,65 @@ append config {
 
 append_platform_drv_config
 
+append_if [have_spec gpio] config "
+	<start name=\"[gpio_drv]\">
+		<resource name=\"RAM\" quantum=\"4M\"/>
+		<provides><service name=\"Gpio\"/></provides>
+		<config/>
+	</start>"
+
 append config {
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
+
 	<start name="nic_drv">
 		<binary name="} [nic_drv_binary] {"/>
-		<resource name="RAM" quantum="4M"/>
+		<resource name="RAM" quantum="20M"/>
 		<provides><service name="Nic"/></provides>
+		} [nic_drv_config] {
 	</start>
-	<start name="ping">
+
+	<start name="nic_bridge" caps="200">
+		<resource name="RAM" quantum="10M"/>
+		<provides><service name="Nic"/></provides>
+		<config>
+			<policy label_prefix="ping_1"/>
+			<policy label_prefix="ping_2"/>
+		</config>
+		<route>
+		<service name="Nic"> <child name="nic_drv"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>}
+
+append_if $on_hardware config {
+	<start name="ping_2">
+		<binary name="ping"/>
 		<resource name="RAM" quantum="8M"/>
-		<config dst_ip="10.0.2.2"
+		<config period_sec="1"
+		        verbose="no"
+		        count="1"
+		        protocol="udp"
+		        dst_ip="} [dst_ip] {"
+		        dst_port="12345"/>
+		<route>
+			<service name="Nic"> <child name="nic_bridge"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>}
+
+append config {
+	<start name="ping_1">
+		<binary name="ping"/>
+		<resource name="RAM" quantum="8M"/>
+		<config dst_ip="} [dst_ip] {"
 		        period_sec="1"
 		        verbose="no"
 		        count="3"/>
 		<route>
-			<service name="Nic"> <child name="nic_drv"/> </service>
+			<service name="Nic"> <child name="nic_bridge"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
@@ -81,10 +135,12 @@ append boot_modules {
 	} [nic_drv_binary] {
 	ping
 	ld.lib.so
+	nic_bridge
 }
 
 # platform-specific modules
 lappend_if [have_spec linux] boot_modules fb_sdl
+lappend_if [have_spec gpio]  boot_modules [gpio_drv]
 
 append_platform_drv_boot_modules
 
@@ -95,4 +151,8 @@ append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
 
 append qemu_args " -net user -nographic "
 
-run_genode_until ".*\"ping\" exited with exit value 0.*\n" 25
+set done_string ".*\"ping_1\" exited with exit value 0.*\n"
+
+append_if $on_hardware done_string ".*ping_2\] From [dst_ip] Destination Unreachable.*\n"
+
+run_genode_until $done_string 30
