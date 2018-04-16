@@ -71,28 +71,47 @@ struct Vfs_ttf::Font_from_file
 
 struct Vfs_ttf::Local_factory : File_system_factory
 {
-	Font_from_file                       _font;
-	Cached_font::Limit                   _cache_limit;
-	Cached_font                          _cached_font;
-	Glyphs_file_system                   _glyphs_fs;
-	Readonly_value_file_system<unsigned> _baseline_fs;
-	Readonly_value_file_system<unsigned> _max_width_fs;
-	Readonly_value_file_system<unsigned> _max_height_fs;
+	Vfs::Env &_env;
 
-	Local_factory(Vfs::Env &vfs_env, Xml_node node)
+	struct Font
+	{
+		Font_from_file     font;
+		Cached_font::Limit cache_limit;
+		Cached_font        cached_font;
+
+		Font(Vfs::Env &env, Xml_node config)
+		:
+			font(env,
+			     config.attribute_value("path", Directory::Path()),
+			     config.attribute_value("size_px", 16.0)),
+			cache_limit({config.attribute_value("cache", Number_of_bytes())}),
+			cached_font(env.alloc(), font.font(), cache_limit)
+		{ }
+	};
+
+	Reconstructible<Font> _font;
+
+	Glyphs_file_system _glyphs_fs { _font->cached_font };
+
+	Readonly_value_file_system<unsigned> _baseline_fs   { "baseline",   0 };
+	Readonly_value_file_system<unsigned> _max_width_fs  { "max_width",  0 };
+	Readonly_value_file_system<unsigned> _max_height_fs { "max_height", 0 };
+
+	void _update_attributes()
+	{
+		_baseline_fs  .value(_font->font.font().baseline());
+		_max_width_fs .value(_font->font.font().bounding_box().w());
+		_max_height_fs.value(_font->font.font().bounding_box().h());
+	}
+
+	Local_factory(Vfs::Env &env, Xml_node config)
 	:
-		_font(vfs_env,
-		      node.attribute_value("path", Directory::Path()),
-		      node.attribute_value("size_px", 16.0)),
-		_cache_limit({node.attribute_value("cache", Number_of_bytes())}),
-		_cached_font(vfs_env.alloc(), _font.font(), _cache_limit),
-		_glyphs_fs    (_cached_font),
-		_baseline_fs  ("baseline",   _font.font().baseline()),
-		_max_width_fs ("max_width",  _font.font().bounding_box().w()),
-		_max_height_fs("max_height", _font.font().bounding_box().h())
-	{ }
+		_env(env), _font(env, config)
+	{
+		_update_attributes();
+	}
 
-	Vfs::File_system *create(Vfs::Env&, Genode::Xml_node node) override
+	Vfs::File_system *create(Vfs::Env&, Xml_node node) override
 	{
 		if (node.has_type(Glyphs_file_system::type_name()))
 			return &_glyphs_fs;
@@ -104,6 +123,12 @@ struct Vfs_ttf::Local_factory : File_system_factory
 			     : nullptr;
 
 		return nullptr;
+	}
+
+	void apply_config(Xml_node const &config)
+	{
+		_font.construct(_env, config);
+		_update_attributes();
 	}
 };
 
@@ -141,6 +166,11 @@ class Vfs_ttf::File_system : private Local_factory,
 		{ }
 
 		char const *type() override { return "ttf"; }
+
+		void apply_config(Xml_node const &node) override
+		{
+			Local_factory::apply_config(node);
+		}
 };
 
 
