@@ -1,0 +1,5 @@
+project genode_rts is
+
+    for Source_Dirs use (".");
+
+end genode_rts;
