@@ -1,4 +1,4 @@
-include $(REP_DIR)/lib/import/import-pcre.mk
+include $(call select_from_repositories,lib/import/import-pcre.mk)
 
 PCRE_PORT_DIR := $(call select_from_ports,pcre)
 

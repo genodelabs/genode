@@ -1,0 +1,50 @@
+_pcre16_OP_lengths R 156
+_pcre16_default_tables R 1088
+_pcre16_find_bracket T
+_pcre16_is_newline T
+_pcre16_ord2utf T
+_pcre16_strcmp_uc_c8 T
+_pcre16_strcmp_uc_uc T
+_pcre16_strlen_uc T
+_pcre16_strncmp_uc_c8 T
+_pcre16_strncmp_uc_uc T
+_pcre16_ucd_records R 8
+_pcre16_ucd_stage1 R 1
+_pcre16_ucd_stage2 R 2
+_pcre16_ucp_gentype R 120
+_pcre16_utt R 828
+_pcre16_utt_names R 965
+_pcre16_utt_size R 4
+_pcre16_valid_utf T
+_pcre16_was_newline T
+_pcre16_xclass T
+pcre16_assign_jit_stack T
+pcre16_callout B 8
+pcre16_compile T
+pcre16_compile2 T
+pcre16_config T
+pcre16_copy_named_substring T
+pcre16_copy_substring T
+pcre16_dfa_exec T
+pcre16_exec T
+pcre16_free D 8
+pcre16_free_study T
+pcre16_free_substring T
+pcre16_free_substring_list T
+pcre16_fullinfo T
+pcre16_get_named_substring T
+pcre16_get_stringnumber T
+pcre16_get_stringtable_entries T
+pcre16_get_substring T
+pcre16_get_substring_list T
+pcre16_jit_stack_alloc T
+pcre16_jit_stack_free T
+pcre16_maketables T
+pcre16_malloc D 8
+pcre16_pattern_to_host_byte_order T
+pcre16_refcount T
+pcre16_stack_free D 8
+pcre16_stack_malloc D 8
+pcre16_study T
+pcre16_utf16_to_host_byte_order T
+pcre16_version T
