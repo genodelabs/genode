@@ -28,6 +28,7 @@
 
 /* gems includes */
 #include <gems/nitpicker_buffer.h>
+#include <gems/vfs.h>
 
 namespace Menu_view { struct Main; }
 
@@ -69,9 +70,34 @@ struct Menu_view::Main
 	Signal_handler<Main> _dialog_update_handler = {
 		_env.ep(), *this, &Main::_handle_dialog_update};
 
+	Attached_rom_dataspace _config { _env, "config" };
+
 	Heap _heap { _env.ram(), _env.rm() };
 
-	Style_database _styles { _env.ram(), _env.rm(), _heap };
+	struct Vfs_env : Vfs::Env, Vfs::Io_response_handler, Vfs::Watch_response_handler
+	{
+		Genode::Env      &_env;
+		Allocator        &_alloc;
+		Vfs::File_system &_vfs;
+
+		Vfs_env(Genode::Env &env, Allocator &alloc, Vfs::File_system &vfs)
+		: _env(env), _alloc(alloc), _vfs(vfs) { }
+
+		void handle_io_response   (Vfs::Vfs_handle::Context      *) override { }
+		void handle_watch_response(Vfs::Vfs_watch_handle::Context*) override { }
+
+		Genode::Env            &env()           override { return _env;   }
+		Allocator              &alloc()         override { return _alloc; }
+		Vfs::File_system       &root_dir()      override { return _vfs;   }
+		Io_response_handler    &io_handler()    override { return *this;  }
+		Watch_response_handler &watch_handler() override { return *this;  }
+
+	} _vfs_env;
+
+	Directory _root_dir  { _vfs_env };
+	Directory _fonts_dir { _root_dir, "fonts" };
+
+	Style_database _styles { _env.ram(), _env.rm(), _heap, _fonts_dir };
 
 	Animator _animator;
 
@@ -84,8 +110,6 @@ struct Menu_view::Main
 	Attached_dataspace _input_ds { _env.rm(), _nitpicker.input()->dataspace() };
 
 	Widget::Unique_id _hovered;
-
-	Attached_rom_dataspace _config { _env, "config" };
 
 	void _handle_config();
 
@@ -138,7 +162,9 @@ struct Menu_view::Main
 	 */
 	unsigned _frame_cnt = 0;
 
-	Main(Env &env) : _env(env)
+	Main(Env &env, Vfs::File_system &libc_vfs)
+	:
+		_env(env), _vfs_env(_env, _heap, libc_vfs)
 	{
 		_dialog_rom.sigh(_dialog_update_handler);
 		_config.sigh(_config_handler);
@@ -332,5 +358,8 @@ Menu_view::Widget_factory::create(Xml_node node)
 extern "C" void _sigprocmask() { }
 
 
-void Libc::Component::construct(Libc::Env &env) { static Menu_view::Main main(env); }
+void Libc::Component::construct(Libc::Env &env)
+{
+	static Menu_view::Main main(env, env.vfs());
+}
 

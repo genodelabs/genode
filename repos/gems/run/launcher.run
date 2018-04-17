@@ -4,6 +4,7 @@ import_from_depot genodelabs/src/[base_src] \
                   genodelabs/pkg/[drivers_interactive_pkg] \
                   genodelabs/pkg/wm \
                   genodelabs/raw/genode_bg \
+                  genodelabs/pkg/fonts_fs \
                   genodelabs/pkg/backdrop \
                   genodelabs/src/demo \
                   genodelabs/src/init \
@@ -220,38 +221,48 @@ install_config {
 		</route>
 	</start>
 
-	<start name="launcher" caps="1000">
+	<start name="fonts_fs" caps="300">
+		<resource name="RAM" quantum="8M"/>
+		<binary name="vfs"/>
+		<route>
+			<service name="ROM" label="config"> <parent label="fonts_fs.config"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+		<provides> <service name="File_system"/> </provides>
+	</start>
+
+	<start name="launcher" caps="10000">
 		<resource name="RAM" quantum="60M" />
 		<config focus_prefix="wm -> launcher -> ">
 			<subsystem name="scout" title="Scout" caps="200">
 				<resource name="RAM" quantum="20M" />
 				<binary name="scout" />
 			</subsystem>
-			<subsystem name="testnit1" title="Nitpicker Test" caps="25">
+			<subsystem name="testnit1" title="Nitpicker Test" caps="100">
 				<resource name="RAM" quantum="2M" />
 				<binary name="testnit" />
 			</subsystem>
-			<subsystem name="testnit2" title="Nitpicker Test 2" caps="25">
+			<subsystem name="testnit2" title="Nitpicker Test 2" caps="100">
 				<resource name="RAM" quantum="2M" />
 				<binary name="testnit" />
 			</subsystem>
-			<subsystem name="testnit3" title="Nitpicker Test 3" caps="25">
+			<subsystem name="testnit3" title="Nitpicker Test 3" caps="100">
 				<resource name="RAM" quantum="2M" />
 				<binary name="testnit" />
 			</subsystem>
-			<subsystem name="scout2" title="Scoutx" caps="25">
+			<subsystem name="scout2" title="Scoutx" caps="200">
 				<resource name="RAM" quantum="20M" />
 				<binary name="scout" />
 			</subsystem>
-			<subsystem name="testnit4" title="Nitpicker Testx" caps="25">
+			<subsystem name="testnit4" title="Nitpicker Testx" caps="100">
 				<resource name="RAM" quantum="2M" />
 				<binary name="testnit" />
 			</subsystem>
-			<subsystem name="testnit5" title="Nitpicker Test5" caps="25">
+			<subsystem name="testnit5" title="Nitpicker Test5" caps="100">
 				<resource name="RAM" quantum="2M" />
 				<binary name="testnit" />
 			</subsystem>
-			<subsystem name="backdrop" title="Backdrop" caps="25">
+			<subsystem name="backdrop" title="Backdrop" caps="100">
 				<resource name="RAM" quantum="4M"/>
 				<binary name="backdrop" />
 				<config>
@@ -266,6 +277,7 @@ install_config {
 		</config>
 		<route>
 			<service name="ROM" label="focus"> <child name="report_rom" /> </service>
+			<service name="File_system" label="fonts"> <child name="fonts_fs"/> </service>
 			<any-service> <child name="wm"/> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
@@ -274,6 +286,5 @@ install_config {
 build { app/launcher test/nitpicker app/status_bar app/global_keys_handler }
 
 build_boot_image { testnit launcher global_keys_handler status_bar }
-
 
 run_genode_until forever

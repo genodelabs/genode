@@ -18,6 +18,7 @@
 #include <os/static_parent_services.h>
 #include <os/slave.h>
 #include <nitpicker_session/nitpicker_session.h>
+#include <file_system_session/file_system_session.h>
 
 /* gems includes */
 #include <os/single_session_service.h>
@@ -43,6 +44,7 @@ class Launcher::Menu_view_slave
 			                                       Genode::Ram_session,
 			                                       Genode::Rom_session,
 			                                       Genode::Log_session,
+			                                       File_system::Session,
 			                                       Timer::Session>,
 			public Genode::Slave::Policy
 		{
@@ -66,6 +68,7 @@ class Launcher::Menu_view_slave
 					         "  <libc stderr=\"/dev/log\"/>\n"
 					         "  <vfs>\n"
 					         "    <tar name=\"menu_view_styles.tar\" />\n"
+					         "    <dir name=\"fonts\"> <fs label=\"fonts\"/> </dir>\n"
 					         "  </vfs>\n"
 					         "</config>",
 					         pos.x(), pos.y());

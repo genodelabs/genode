@@ -14,12 +14,11 @@
 #ifndef _STYLE_DATABASE_H_
 #define _STYLE_DATABASE_H_
 
-/* Genode includes */
-#include <nitpicker_gfx/tff_font.h>
-
 /* gems includes */
 #include <gems/file.h>
 #include <gems/png_image.h>
+#include <gems/cached_font.h>
+#include <gems/vfs_font.h>
 
 /* local includes */
 #include "types.h"
@@ -33,10 +32,14 @@ class Menu_view::Style_database
 
 		enum { PATH_MAX_LEN = 200 };
 
+		typedef String<PATH_MAX_LEN> Path;
+
+		typedef ::File::Reading_failed Reading_failed;
+
 		struct Texture_entry : List<Texture_entry>::Element
 		{
-			String<PATH_MAX_LEN>   path;
-			File                   png_file;
+			Path             const path;
+			::File                 png_file;
 			Png_image              png_image;
 			Texture<Pixel_rgb888> &texture;
 
@@ -46,10 +49,10 @@ class Menu_view::Style_database
 			 * \throw Reading_failed
 			 */
 			Texture_entry(Ram_session &ram, Region_map &rm,
-			              Allocator &alloc, char const *path)
+			              Allocator &alloc, Path const &path)
 			:
 				path(path),
-				png_file(path, alloc),
+				png_file(path.string(), alloc),
 				png_image(ram, rm, alloc, png_file.data<void>()),
 				texture(*png_image.texture<Pixel_rgb888>())
 			{ }
@@ -57,31 +60,32 @@ class Menu_view::Style_database
 
 		struct Font_entry : List<Font_entry>::Element
 		{
-			String<PATH_MAX_LEN> path;
+			Path const path;
 
-			File tff_file;
+			Cached_font::Limit _font_cache_limit { 256*1024 };
+			Vfs_font           _vfs_font;
+			Cached_font        _cached_font;
 
-			Tff_font::Allocated_glyph_buffer glyph_buffer;
-
-			Tff_font font;
+			Text_painter::Font const &font() const { return _cached_font; }
 
 			/**
 			 * Constructor
 			 *
 			 * \throw Reading_failed
 			 */
-			Font_entry(char const *path, Allocator &alloc)
-			:
+			Font_entry(Directory const &fonts_dir, Path const &path, Allocator &alloc)
+			try :
 				path(path),
-				tff_file(path, alloc),
-				glyph_buffer(tff_file.data<char>(), alloc),
-				font(tff_file.data<char>(), glyph_buffer)
+				_vfs_font(alloc, fonts_dir, path),
+				_cached_font(alloc, _vfs_font, _font_cache_limit)
 			{ }
+			catch (...) { throw Reading_failed(); }
 		};
 
-		Ram_session &_ram;
-		Region_map  &_rm;
-		Allocator   &_alloc;
+		Ram_session     &_ram;
+		Region_map      &_rm;
+		Allocator       &_alloc;
+		Directory const &_fonts_dir;
 
 		/*
 		 * The list is mutable because it is populated as a side effect of
@@ -100,8 +104,6 @@ class Menu_view::Style_database
 			return 0;
 		}
 
-		typedef String<256> Path;
-
 		/*
 		 * Assemble path name 'styles/<widget>/<style>/<name>.<extension>'
 		 */
@@ -116,9 +118,10 @@ class Menu_view::Style_database
 
 	public:
 
-		Style_database(Ram_session &ram, Region_map &rm, Allocator &alloc)
+		Style_database(Ram_session &ram, Region_map &rm, Allocator &alloc,
+		               Directory const &fonts_dir)
 		:
-			_ram(ram), _rm(rm), _alloc(alloc)
+			_ram(ram), _rm(rm), _alloc(alloc), _fonts_dir(fonts_dir)
 		{ }
 
 		Texture<Pixel_rgb888> const *texture(Xml_node node, char const *png_name) const
@@ -138,8 +141,7 @@ class Menu_view::Style_database
 				_textures.insert(e);
 				return &e->texture;
 
-			} catch (File::Reading_failed) {
-
+			} catch (Reading_failed) {
 				warning("could not read texture data from file \"", path.string(), "\"");
 				return nullptr;
 			}
@@ -147,24 +149,23 @@ class Menu_view::Style_database
 			return nullptr;
 		}
 
-		Text_painter::Font const *font(Xml_node node, char const *tff_name) const
+		Text_painter::Font const *font(Xml_node node) const
 		{
-			Path const path = _construct_path(node, tff_name, "tff");
-
+			Path const path = node.attribute_value("font", Path("text/regular"));
 			if (Font_entry const *e = _lookup(_fonts, path.string()))
-				return &e->font;
+				return &e->font();
 
 			/*
 			 * Load and remember font
 			 */
 			try {
 				Font_entry *e = new (_alloc)
-					Font_entry(path.string(), _alloc);
+					Font_entry(_fonts_dir, path, _alloc);
 
 				_fonts.insert(e);
-				return &e->font;
+				return &e->font();
 
-			} catch (File::Reading_failed) {
+			} catch (Reading_failed) {
 
 				warning("could not read font from file \"", path.string(), "\"");
 				return nullptr;

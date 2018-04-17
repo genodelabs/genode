@@ -35,7 +35,7 @@ struct Menu_view::Label_widget : Widget
 
 	void update(Xml_node node)
 	{
-		font = _factory.styles.font(node, "font");
+		font = _factory.styles.font(node);
 		text = Decorator::string_attribute(node, "text", Text(""));
 	}
 
@@ -45,7 +45,7 @@ struct Menu_view::Label_widget : Widget
 			return Area(0, 0);
 
 		return Area(font->string_width(text.string()).decimal(),
-		            font->bounding_box().h());
+		            font->height());
 	}
 
 	void draw(Surface<Pixel_rgb888> &pixel_surface,
