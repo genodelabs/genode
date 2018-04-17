@@ -1,1 +1,1 @@
-INC_DIR += $(call select_from_ports,mesa)/include/mesa
+INC_DIR += $(call select_from_ports,mesa)/include

@@ -16,7 +16,7 @@ include:
 	mkdir -p $@
 	cp -r $(SDL_PORT_DIR)/include/SDL $@/
 	cp -r $(REP_DIR)/include/SDL $@/
-	cp -r $(MESA_PORT_DIR)/include/mesa/* $@/
+	cp -r $(MESA_PORT_DIR)/include/* $@/
 	cp -r $(REP_DIR)/include/EGL $@/
 
 src/lib/sdl:

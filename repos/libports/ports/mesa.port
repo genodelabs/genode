@@ -14,8 +14,8 @@ HASH_INPUT    += $(REP_DIR)/src/lib/mesa/files.list
 PATCHES := src/lib/mesa/patches/egl.patch
 PATCH_OPT := -p1
 
-DIRS := include/mesa
-DIR_CONTENT(include/mesa) = $(wildcard src/lib/mesa/include/*)
+DIRS := include
+DIR_CONTENT(include) = $(wildcard src/lib/mesa/include/*)
 
 #
 # Check for tools
