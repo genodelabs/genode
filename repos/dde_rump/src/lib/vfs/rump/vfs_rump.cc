@@ -344,7 +344,7 @@ class Vfs::Rump_file_system : public File_system
 		struct fs_args
 		{
 			char *fspec;
-			char  pad[150];
+			char  pad[164];
 
 			fs_args() { Genode::memset(pad, 0, sizeof(pad)); }
 		};
