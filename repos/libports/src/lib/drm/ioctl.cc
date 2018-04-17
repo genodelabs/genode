@@ -19,7 +19,6 @@
 #include <base/registry.h>
 // #include <drm/serialize.h>
 #include <gpu_session/connection.h>
-#include <os/backtrace.h>
 #include <util/retry.h>
 
 extern "C" {
@@ -130,7 +129,6 @@ static const char *command_name(long request)
 	case DRM_I915_GET_RESET_STATS:       return "DRM_I915_GET_RESET_STATS";
 	case DRM_I915_GEM_CONTEXT_CREATE:    return "DRM_I915_GEM_CONTEXT_CREATE";
 	default:
-		Genode::backtrace();
 		return "<unknown driver>";
 	}
 }

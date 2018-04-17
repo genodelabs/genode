@@ -1,10 +1,11 @@
+include $(call select_from_repositories,lib/import/import-drm.mk)
+
 SHARED_LIB   = yes
 LIBS         = libc
 DRM_SRC_DIR := $(call select_from_ports,drm)/src/lib/drm
 LIB_DIR      = $(REP_DIR)/src/lib/drm
 
-INC_DIR += $(DRM_SRC_DIR)/include/drm $(LIB_DIR)/include \
-           $(DRM_SRC_DIR)
+INC_DIR += $(LIB_DIR)/include
 
 SRC_C = intel/intel_bufmgr.c \
         intel/intel_bufmgr_gem.c \
