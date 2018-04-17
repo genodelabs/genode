@@ -36,6 +36,7 @@ class Ttf_font : public Text_painter::Font
 
 		float    const _scale;
 		unsigned const _baseline;
+		unsigned const _height;
 		Area     const _bounding_box;
 
 		struct Glyph_buffer;
@@ -67,7 +68,7 @@ class Ttf_font : public Text_painter::Font
 		Advance_info advance_info(Codepoint) const override;
 
 		unsigned baseline() const override { return _baseline; }
-
+		unsigned   height() const override { return _height; }
 		Area bounding_box() const override { return _bounding_box; }
 };
 

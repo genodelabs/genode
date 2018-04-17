@@ -76,6 +76,11 @@ struct Text_painter
 			virtual unsigned baseline() const = 0;
 
 			/**
+			 * Return height of text in pixels when rendered with the font
+			 */
+			virtual unsigned height() const = 0;
+
+			/**
 			 * Return the bounding box that fits each single glyph of the font
 			 */
 			virtual Area bounding_box() const = 0;

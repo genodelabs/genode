@@ -77,6 +77,7 @@ class Genode::Vfs_font : public Text_painter::Font
 		Directory const _font_dir;
 		unsigned  const _baseline;
 		Area      const _bounding_box;
+		unsigned  const _height;
 
 		struct Glyph_buffer
 		{
@@ -141,6 +142,7 @@ class Genode::Vfs_font : public Text_painter::Font
 			_baseline(_value_from_file(_font_dir, "baseline", 0U)),
 			_bounding_box(_value_from_file(_font_dir, "max_width",  0U),
 			              _value_from_file(_font_dir, "max_height", 0U)),
+			_height(_value_from_file(_font_dir, "height", 0U)),
 			_buffer(alloc, _bounding_box),
 			_glyphs_file(_font_dir, "glyphs")
 		{ }
@@ -162,7 +164,7 @@ class Genode::Vfs_font : public Text_painter::Font
 		}
 
 		unsigned baseline() const override { return _baseline; }
-
+		unsigned   height() const override { return _height; }
 		Area bounding_box() const override { return _bounding_box; }
 };
 

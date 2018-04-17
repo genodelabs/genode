@@ -94,12 +94,14 @@ struct Vfs_ttf::Local_factory : File_system_factory
 	Glyphs_file_system _glyphs_fs { _font->cached_font };
 
 	Readonly_value_file_system<unsigned> _baseline_fs   { "baseline",   0 };
+	Readonly_value_file_system<unsigned> _height_fs     { "height",     0 };
 	Readonly_value_file_system<unsigned> _max_width_fs  { "max_width",  0 };
 	Readonly_value_file_system<unsigned> _max_height_fs { "max_height", 0 };
 
 	void _update_attributes()
 	{
 		_baseline_fs  .value(_font->font.font().baseline());
+		_height_fs    .value(_font->font.font().height());
 		_max_width_fs .value(_font->font.font().bounding_box().w());
 		_max_height_fs.value(_font->font.font().bounding_box().h());
 	}
@@ -118,6 +120,7 @@ struct Vfs_ttf::Local_factory : File_system_factory
 
 		if (node.has_type(Readonly_value_file_system<unsigned>::type_name()))
 			return _baseline_fs.matches(node)   ? &_baseline_fs
+			     : _height_fs.matches(node)     ? &_height_fs
 			     : _max_width_fs.matches(node)  ? &_max_width_fs
 			     : _max_height_fs.matches(node) ? &_max_height_fs
 			     : nullptr;
@@ -149,6 +152,7 @@ class Vfs_ttf::File_system : private Local_factory,
 				xml.attribute("name", node.attribute_value("name", Name()));
 				xml.node("glyphs", [&] () { });
 				xml.node("readonly_value", [&] () { xml.attribute("name", "baseline");   });
+				xml.node("readonly_value", [&] () { xml.attribute("name", "height");     });
 				xml.node("readonly_value", [&] () { xml.attribute("name", "max_width");  });
 				xml.node("readonly_value", [&] () { xml.attribute("name", "max_height"); });
 			});

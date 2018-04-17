@@ -247,6 +247,7 @@ Ttf_font::Ttf_font(Allocator &alloc, void const *ttf, float px)
 	_stbtt_font_info(_create_stbtt_font_info(alloc, ttf)),
 	_scale(stbtt_ScaleForPixelHeight(&_stbtt_font_info, px)),
 	_baseline(obtain_baseline(_stbtt_font_info, _scale)),
+	_height(px + 0.5 /* round to integer */),
 	_bounding_box(obtain_bounding_box(_stbtt_font_info, _scale)),
 	_glyph_buffer(*new (alloc) Glyph_buffer(alloc, _bounding_box))
 { }

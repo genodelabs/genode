@@ -231,6 +231,11 @@ class Tff_font : public Text_painter::Font
 			return m.vpos + m.height;
 		}
 
+		unsigned height() const override
+		{
+			return _bounding_box.h();
+		}
+
 		Area bounding_box() const override { return _bounding_box; }
 };
 

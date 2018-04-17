@@ -263,7 +263,7 @@ class Genode::Cached_font : public Text_painter::Font
 		}
 
 		unsigned baseline() const override { return _font.baseline(); }
-
+		unsigned height()   const override { return _font.height(); }
 		Area bounding_box() const override { return _font.bounding_box(); }
 };
 
