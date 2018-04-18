@@ -199,8 +199,9 @@ void Main::_handle_ip(Ethernet_frame &eth,
                       size_t const    eth_size)
 {
 	/* drop packet if IP does not target us */
-	size_t const ip_size = eth_size - sizeof(Ethernet_frame);
-	Ipv4_packet &ip = eth.data<Ipv4_packet>(ip_size);
+	size_t const ip_max_size = eth_size - sizeof(Ethernet_frame);
+	Ipv4_packet &ip = eth.data<Ipv4_packet>(ip_max_size);
+	size_t const ip_size = ip.size(ip_max_size);
 	if (ip.dst() != _src_ip &&
 	    ip.dst() != Ipv4_packet::broadcast())
 	{

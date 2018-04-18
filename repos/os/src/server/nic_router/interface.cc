@@ -892,7 +892,9 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
                            Domain                  &local_domain)
 {
 	/* read packet information */
-	Ipv4_packet &ip = eth.data<Ipv4_packet>(eth_size - sizeof(Ethernet_frame));
+	size_t const ip_max_size = eth_size - sizeof(Ethernet_frame);
+	Ipv4_packet &ip = eth.data<Ipv4_packet>(ip_max_size);
+	size_t const ip_size = ip.size(ip_max_size);
 	Ipv4_address_prefix const &local_intf = local_domain.ip_config().interface;
 
 	/* try handling subnet-local IP packets */
@@ -910,18 +912,18 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 	/* try to route via transport layer rules */
 	try {
 		L3_protocol  const prot      = ip.protocol();
-		size_t       const prot_size = ip.total_length() - ip.header_length() * 4;
+		size_t       const prot_size = ip_size - sizeof(Ipv4_packet);
 		void        *const prot_base = _prot_base(prot, prot_size, ip);
 
 		/* try handling DHCP requests before trying any routing */
 		if (prot == L3_protocol::UDP) {
-			Udp_packet &udp = ip.data<Udp_packet>(eth_size - sizeof(Ipv4_packet));
+			Udp_packet &udp = ip.data<Udp_packet>(prot_size);
 
 			if (Dhcp_packet::is_dhcp(&udp)) {
 
 				/* get DHCP packet */
-				Dhcp_packet &dhcp = udp.data<Dhcp_packet>(eth_size - sizeof(Ipv4_packet)
-				                                                   - sizeof(Udp_packet));
+				size_t const dhcp_size = prot_size - sizeof(Udp_packet);
+				Dhcp_packet &dhcp = udp.data<Dhcp_packet>(dhcp_size);
 
 				if (dhcp.op() == Dhcp_packet::REQUEST) {
 					try {

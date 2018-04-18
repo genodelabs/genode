@@ -146,3 +146,10 @@ bool Ipv4_packet::checksum_error() const
 {
 	return internet_checksum((uint16_t *)this, sizeof(Ipv4_packet));
 }
+
+
+size_t Ipv4_packet::size(size_t max_size) const
+{
+	size_t const stated_size = total_length();
+	return stated_size < max_size ? stated_size : max_size;
+}

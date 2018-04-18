@@ -119,20 +119,21 @@ void Dhcp_client::handle_ip(Ethernet_frame &eth, size_t eth_size)
 	{
 		throw Drop_packet_inform("DHCP client expects Ethernet targeting the router");
 	}
-	Ipv4_packet &ip = eth.data<Ipv4_packet>(eth_size - sizeof(Ethernet_frame));
+	size_t const ip_max_size = eth_size - sizeof(Ethernet_frame);
+	Ipv4_packet &ip = eth.data<Ipv4_packet>(ip_max_size);
+	size_t const ip_size = ip.size(ip_max_size);
 
 	if (ip.protocol() != Ipv4_packet::Protocol::UDP) {
 		throw Drop_packet_inform("DHCP client expects UDP packet");
 	}
-	Udp_packet &udp = ip.data<Udp_packet>(eth_size - sizeof(Ethernet_frame)
-	                                               - sizeof(Ipv4_packet));
+	size_t const udp_size = ip_size - sizeof(Ipv4_packet);
+	Udp_packet &udp = ip.data<Udp_packet>(udp_size);
 
 	if (!Dhcp_packet::is_dhcp(&udp)) {
 		throw Drop_packet_inform("DHCP client expects DHCP packet");
 	}
-	Dhcp_packet &dhcp = udp.data<Dhcp_packet>(eth_size - sizeof(Ethernet_frame)
-	                                                   - sizeof(Ipv4_packet)
-	                                                   - sizeof(Udp_packet));
+	size_t const dhcp_size = udp_size - sizeof(Udp_packet);
+	Dhcp_packet &dhcp = udp.data<Dhcp_packet>(dhcp_size);
 
 	if (dhcp.op() != Dhcp_packet::REPLY) {
 		throw Drop_packet_inform("DHCP client expects DHCP reply");

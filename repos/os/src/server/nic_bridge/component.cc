@@ -19,6 +19,8 @@
 #include <component.h>
 
 using namespace Net;
+using namespace Genode;
+
 
 bool Session_component::handle_arp(Ethernet_frame *eth, Genode::size_t size)
 {
@@ -50,17 +52,19 @@ bool Session_component::handle_arp(Ethernet_frame *eth, Genode::size_t size)
 
 bool Session_component::handle_ip(Ethernet_frame *eth, Genode::size_t size)
 {
-	Ipv4_packet &ip = eth->data<Ipv4_packet>(size - sizeof(Ethernet_frame));
+	size_t const ip_max_size = size - sizeof(Ethernet_frame);
+	Ipv4_packet &ip = eth->data<Ipv4_packet>(ip_max_size);
+	size_t const ip_size = ip.size(ip_max_size);
+	if (ip.protocol() == Ipv4_packet::Protocol::UDP) {
 
-	if (ip.protocol() == Ipv4_packet::Protocol::UDP)
-	{
-		Udp_packet &udp = ip.data<Udp_packet>(size - sizeof(Ethernet_frame)
-		                                           - sizeof(Ipv4_packet));
+		size_t const udp_size = ip_size - sizeof(Ipv4_packet);
+		Udp_packet &udp = ip.data<Udp_packet>(udp_size);
 		if (Dhcp_packet::is_dhcp(&udp)) {
-			Dhcp_packet &dhcp = udp.data<Dhcp_packet>(size - sizeof(Ethernet_frame)
-			                                               - sizeof(Ipv4_packet)
-			                                               - sizeof(Udp_packet));
+
+			size_t const dhcp_size = udp_size - sizeof(Udp_packet);
+			Dhcp_packet &dhcp = udp.data<Dhcp_packet>(dhcp_size);
 			if (dhcp.op() == Dhcp_packet::REQUEST) {
+
 				dhcp.broadcast(true);
 				udp.update_checksum(ip.src(), ip.dst());
 			}

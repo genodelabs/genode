@@ -151,6 +151,8 @@ class Net::Ipv4_packet
 			return *Genode::construct_at<T>(_data);
 		}
 
+		Genode::size_t size(Genode::size_t max_size) const;
+
 
 		/***************
 		 ** Accessors **
