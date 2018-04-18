@@ -12,6 +12,20 @@
 		</xs:restriction>
 	</xs:simpleType><!-- Boolean -->
 
+	<xs:simpleType name="Port">
+		<xs:restriction base="xs:integer">
+			<xs:minInclusive value="0"/>
+			<xs:maxInclusive value="65535"/>
+		</xs:restriction>
+	</xs:simpleType><!-- Port -->
+
+	<xs:simpleType name="Protocol">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="icmp" />
+			<xs:enumeration value="udp" />
+		</xs:restriction>
+	</xs:simpleType><!-- Protocol -->
+
 	<xs:simpleType name="Seconds">
 		<xs:restriction base="xs:integer">
 			<xs:minInclusive value="1"/>
@@ -35,6 +49,8 @@
 		<xs:complexType>
 			<xs:attribute name="verbose"    type="Boolean" />
 			<xs:attribute name="dst_ip"     type="Ipv4_address" />
+			<xs:attribute name="dst_port"   type="Port" />
+			<xs:attribute name="protocol"   type="Protocol" />
 			<xs:attribute name="interface"  type="Ipv4_address_prefix" />
 			<xs:attribute name="gateway"    type="Ipv4_address" />
 			<xs:attribute name="period_sec" type="Seconds" />
