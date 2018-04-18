@@ -39,3 +39,11 @@ void Net::Udp_packet::update_checksum(Ipv4_address ip_src,
 	_checksum = internet_checksum_pseudo_ip((uint16_t*)this, length(), _length,
 	                                        Ipv4_packet::Protocol::UDP, ip_src, ip_dst);
 }
+
+
+bool Net::Udp_packet::checksum_error(Ipv4_address ip_src,
+                                     Ipv4_address ip_dst) const
+{
+	return internet_checksum_pseudo_ip((uint16_t*)this, length(), _length,
+	                                   Ipv4_packet::Protocol::UDP, ip_src, ip_dst);
+}

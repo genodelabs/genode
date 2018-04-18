@@ -79,6 +79,9 @@ class Net::Udp_packet
 		void update_checksum(Ipv4_address ip_src,
 		                     Ipv4_address ip_dst);
 
+		bool checksum_error(Ipv4_address ip_src,
+		                    Ipv4_address ip_dst) const;
+
 
 		/***************
 		 ** Accessors **
