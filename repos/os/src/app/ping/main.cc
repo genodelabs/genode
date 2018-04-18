@@ -15,6 +15,7 @@
 #include <nic.h>
 #include <ipv4_config.h>
 #include <dhcp_client.h>
+#include <protocol.h>
 
 /* Genode includes */
 #include <net/ipv4.h>
@@ -51,10 +52,11 @@ class Main : public Nic_handler,
 		using Periodic_timeout = Timer::Periodic_timeout<Main>;
 
 		enum { IPV4_TIME_TO_LIVE  = 64 };
-		enum { ICMP_ID            = 1166 };
+		enum { DEFAULT_DST_PORT   = 50000 };
 		enum { ICMP_DATA_SIZE     = 56 };
 		enum { DEFAULT_COUNT      = 5 };
 		enum { DEFAULT_PERIOD_SEC = 5 };
+		enum { SRC_PORT           = 50000 };
 
 		Env                            &_env;
 		Attached_rom_dataspace          _config_rom    { _env, "config" };
@@ -75,12 +77,17 @@ class Main : public Nic_handler,
 		Reconstructible<Ipv4_config>    _ip_config     { _config.attribute_value("interface", Ipv4_address_prefix()),
 		                                                 _config.attribute_value("gateway",   Ipv4_address()),
 		                                                 Ipv4_address() };
+		Protocol                 const  _protocol      { _config.attribute_value("protocol", Protocol::ICMP) };
+		Port                     const  _dst_port      { _config.attribute_value("dst_port", Port(DEFAULT_DST_PORT)) };
 
 		void _handle_ip(Ethernet_frame &eth,
 		                Size_guard     &size_guard);
 
 		void _handle_icmp(Ipv4_packet  &ip,
 		                  Size_guard   &size_guard);
+
+		void _handle_udp(Ipv4_packet &ip,
+		                 Size_guard  &size_guard);
 
 		void _handle_icmp_echo_reply(Ipv4_packet &ip,
 		                             Icmp_packet &icmp,
@@ -203,7 +210,8 @@ void Main::_handle_ip(Ethernet_frame &eth,
 	}
 	/* select IP sub-protocol */
 	switch (ip.protocol()) {
-	case Ipv4_packet::Protocol::ICMP: _handle_icmp(ip, size_guard);
+	case Ipv4_packet::Protocol::ICMP: _handle_icmp(ip, size_guard); break;
+	case Ipv4_packet::Protocol::UDP:  _handle_udp(ip, size_guard); break;
 	default: ; }
 }
 
@@ -212,6 +220,12 @@ void Main::_handle_icmp_echo_reply(Ipv4_packet &ip,
                                    Icmp_packet &icmp,
                                    Size_guard  &size_guard)
 {
+	/* drop packet if our request was no ICMP */
+	if (_protocol != Protocol::ICMP) {
+		if (_verbose) {
+			log("bad IP protocol"); }
+		return;
+	}
 	/* check IP source */
 	if (ip.src() != _dst_ip) {
 		if (_verbose) {
@@ -226,7 +240,7 @@ void Main::_handle_icmp_echo_reply(Ipv4_packet &ip,
 	}
 	/* check ICMP identifier */
 	uint16_t const icmp_id  = icmp.query_id();
-	if (icmp_id != ICMP_ID) {
+	if (icmp_id != _dst_port.value) {
 		if (_verbose) {
 			log("bad ICMP identifier"); }
 		return;
@@ -285,27 +299,58 @@ void Main::_handle_icmp_dst_unreachbl(Ipv4_packet &ip,
 			log("bad IP checksum in payload of ICMP error"); }
 		return;
 	}
-	/* drop packet if the ICMP error is not about ICMP */
-	if (embed_ip.protocol() != Ipv4_packet::Protocol::ICMP) {
-		if (_verbose) {
-			log("bad IP protocol in payload of ICMP error"); }
-		return;
+	/* select IP-encapsulated protocol */
+	switch (_protocol) {
+	case Protocol::ICMP:
+		{
+			/* drop packet if the ICMP error is not about ICMP */
+			if (embed_ip.protocol() != Ipv4_packet::Protocol::ICMP) {
+				if (_verbose) {
+					log("bad IP protocol in payload of ICMP error"); }
+				return;
+			}
+			/* drop packet if embedded ICMP identifier is invalid */
+			Icmp_packet &embed_icmp = embed_ip.data<Icmp_packet>(size_guard);
+			if (embed_icmp.query_id() != _dst_port.value) {
+				if (_verbose) {
+					log("bad ICMP identifier in payload of ICMP error"); }
+				return;
+			}
+			/* drop packet if embedded ICMP sequence number is invalid */
+			uint16_t const embed_icmp_seq = embed_icmp.query_seq();
+			if (embed_icmp_seq != _icmp_seq) {
+				if (_verbose) {
+					log("bad ICMP sequence number in payload of ICMP error"); }
+				return;
+			}
+			log("From ", ip.src(), " icmp_seq=", embed_icmp_seq, " Destination Unreachable");
+			break;
+		}
+	case Protocol::UDP:
+		{
+			/* drop packet if the ICMP error is not about UDP */
+			if (embed_ip.protocol() != Ipv4_packet::Protocol::UDP) {
+				if (_verbose) {
+					log("bad IP protocol in payload of ICMP error"); }
+				return;
+			}
+			/* drop packet if embedded UDP source port is invalid */
+			Udp_packet &embed_udp = embed_ip.data<Udp_packet>(size_guard);
+			if (embed_udp.src_port().value != SRC_PORT) {
+				if (_verbose) {
+					log("bad UDP source port in payload of ICMP error"); }
+				return;
+			}
+			/* drop packet if embedded UDP destination port is invalid */
+			if (embed_udp.dst_port().value != _dst_port.value) {
+				if (_verbose) {
+					log("bad UDP destination port in payload of ICMP error"); }
+				return;
+			}
+			log("From ", ip.src(), " Destination Unreachable");
+			break;
+		}
 	}
-	/* drop packet if embedded ICMP identifier is invalid */
-	Icmp_packet &embed_icmp = embed_ip.data<Icmp_packet>(size_guard);
-	if (embed_icmp.query_id() != ICMP_ID) {
-		if (_verbose) {
-			log("bad ICMP identifier in payload of ICMP error"); }
-		return;
-	}
-	/* drop packet if embedded ICMP sequence number is invalid */
-	uint16_t const embed_icmp_seq = embed_icmp.query_seq();
-	if (embed_icmp_seq != _icmp_seq) {
-		if (_verbose) {
-			log("bad ICMP sequence number in payload of ICMP error"); }
-		return;
-	}
-	log("From ", ip.src(), " icmp_seq=", embed_icmp_seq, " Destination Unreachable");
 }
 
 
@@ -328,6 +373,50 @@ void Main::_handle_icmp(Ipv4_packet &ip,
 			log("bad ICMP type"); }
 		return;
 	}
+}
+
+
+void Main::_handle_udp(Ipv4_packet &ip,
+                       Size_guard  &size_guard)
+{
+	/* drop packet if our request was no UDP */
+	if (_protocol != Protocol::UDP) {
+		if (_verbose) {
+			log("bad IP protocol"); }
+		return;
+	}
+	/* drop packet if UDP checksum is invalid */
+	Udp_packet &udp = ip.data<Udp_packet>(size_guard);
+	if (udp.checksum_error(ip.src(), ip.dst())) {
+		if (_verbose) {
+			log("bad UDP checksum"); }
+		return;
+	}
+	/* drop packet if UDP source port is invalid */
+	if (udp.src_port().value != _dst_port.value) {
+		if (_verbose) {
+			log("bad UDP source port"); }
+		return;
+	}
+	/* drop packet if UDP destination port is invalid */
+	if (udp.dst_port().value != SRC_PORT) {
+		if (_verbose) {
+			log("bad UDP destination port"); }
+		return;
+	}
+	/* calculate time since the request was sent */
+	unsigned long time_us = _timer.curr_time().trunc_to_plain_us().value - _send_time.value;
+	unsigned long const time_ms = time_us / 1000UL;
+	time_us = time_us - time_ms * 1000UL;
+
+	/* print success message */
+	log(udp.length(), " bytes from ", ip.src(), " ttl=", (unsigned long)IPV4_TIME_TO_LIVE,
+	    " time=", time_ms, ".", time_us ," ms");
+
+	/* check exit condition */
+	_count--;
+	if (!_count) {
+		_env.parent().exit(0); }
 }
 
 
@@ -450,27 +539,53 @@ void Main::_send_ping(Duration)
 		ip.header_length(sizeof(Ipv4_packet) / 4);
 		ip.version(4);
 		ip.time_to_live(IPV4_TIME_TO_LIVE);
-		ip.protocol(Ipv4_packet::Protocol::ICMP);
 		ip.src(ip_config().interface.address);
 		ip.dst(_dst_ip);
 
-		/* create ICMP header */
-		Icmp_packet &icmp = ip.construct_at_data<Icmp_packet>(size_guard);
-		icmp.type(Icmp_packet::Type::ECHO_REQUEST);
-		icmp.code(Icmp_packet::Code::ECHO_REQUEST);
-		icmp.query_id(ICMP_ID);
-		icmp.query_seq(_icmp_seq);
+		/* select IP-encapsulated protocol */
+		switch (_protocol) {
+		case Protocol::ICMP:
+			{
+				/* adapt IP header to ICMP */
+				ip.protocol(Ipv4_packet::Protocol::ICMP);
 
-		/* fill ICMP data with characters from 'a' to 'z' */
-		struct Data { char chr[ICMP_DATA_SIZE]; };
-		Data &data = icmp.data<Data>(size_guard);
-		char chr = 'a';
-		for (addr_t chr_id = 0; chr_id < ICMP_DATA_SIZE; chr_id++) {
-			data.chr[chr_id] = chr;
-			chr = chr < 'z' ? chr + 1 : 'a';
+				/* create ICMP header */
+				Icmp_packet &icmp = ip.construct_at_data<Icmp_packet>(size_guard);
+				icmp.type(Icmp_packet::Type::ECHO_REQUEST);
+				icmp.code(Icmp_packet::Code::ECHO_REQUEST);
+				icmp.query_id(_dst_port.value);
+				icmp.query_seq(_icmp_seq);
+
+				/* fill ICMP data with characters from 'a' to 'z' */
+				struct Data { char chr[ICMP_DATA_SIZE]; };
+				Data &data = icmp.data<Data>(size_guard);
+				char chr = 'a';
+				for (addr_t chr_id = 0; chr_id < ICMP_DATA_SIZE; chr_id++) {
+					data.chr[chr_id] = chr;
+					chr = chr < 'z' ? chr + 1 : 'a';
+				}
+				/* finish ICMP header */
+				icmp.update_checksum(ICMP_DATA_SIZE);
+				break;
+			}
+		case Protocol::UDP:
+			{
+				/* adapt IP header to UDP */
+				ip.protocol(Ipv4_packet::Protocol::UDP);
+
+				/* create UDP header */
+				size_t const udp_off = size_guard.head_size();
+				Udp_packet &udp = ip.construct_at_data<Udp_packet>(size_guard);
+				udp.src_port(Port(SRC_PORT));
+				udp.dst_port(_dst_port);
+
+				/* finish UDP header */
+				udp.length(size_guard.head_size() - udp_off);
+				udp.update_checksum(ip.src(), ip.dst());
+				break;
+			}
 		}
-		/* fill in header values that require the packet to be complete */
-		icmp.update_checksum(ICMP_DATA_SIZE);
+		/* finish IP header */
 		ip.total_length(size_guard.head_size() - ip_off);
 		ip.update_checksum();
 	});

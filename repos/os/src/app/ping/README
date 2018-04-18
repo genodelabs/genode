@@ -1,7 +1,7 @@
-The 'ping' component continuously sends ICMP Echo requests to a given IP host
-and waits for the corresponding ICMP Echo replies. For each successfull ICMP
-Echo handshake it prints a short statistic. The ICMP data field gets filled
-with the letters of the alphabet ('a' to 'z') repeatedly.
+The 'ping' component continuously sends ICMP Echo or UDP requests to a given
+IP host and waits for the corresponding ICMP Echo or UDP replies. For each
+successfull ICMP Echo or UDP handshake it prints a short statistic. The ICMP
+data field gets filled with the letters of the alphabet ('a' to 'z') repeatedly.
 
 
 Configuration
@@ -12,6 +12,8 @@ value for each attribute except 'config.dst_ip' and 'config.interface':
 
 ! <config interface="10.0.0.72/24"
 !         dst_ip="10.0.0.24"
+!         dst_port="50000"
+!         protocol="icmp"
 !         period_sec="5"
 !         verbose="no"
 !         count="5" />
@@ -36,6 +38,12 @@ This is a short description of the tags and attributes:
 
 :config.count:
   Optional. After how many successful pings the component exits successfully.
+
+:config.dst_port:
+  Optional. Destination port resp. ICMP query ID to use.
+
+:config.protocol:
+  Optional. Protocol to ping with. Can be one of 'icmp', 'udp'.
 
 
 Sessions
