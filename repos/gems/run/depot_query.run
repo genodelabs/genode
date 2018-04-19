@@ -64,7 +64,7 @@ install_config {
 	</start>
 
 	<start name="depot_query">
-		<resource name="RAM" quantum="1M"/>
+		<resource name="RAM" quantum="2M"/>
 		<config query="rom">
 			<vfs> <dir name="depot"> <fs label="depot"/> </dir> </vfs>
 		</config>
