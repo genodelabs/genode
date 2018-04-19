@@ -439,7 +439,7 @@ struct Fast_polling : Test
 	static constexpr char const *brief = "poll time pretty fast";
 
 	enum { NR_OF_ROUNDS          = 4 };
-	enum { MIN_ROUND_DURATION_MS = 2000 };
+	enum { MIN_ROUND_DURATION_MS = 2500 };
 	enum { MAX_NR_OF_POLLS       = 10000000 };
 	enum { MIN_NR_OF_POLLS       = 1000 };
 	enum { STACK_SIZE            = 4 * 1024 * sizeof(addr_t) };
