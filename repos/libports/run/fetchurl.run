@@ -18,6 +18,12 @@ set build_components {
 	server/report_rom
 }
 
+proc gpio_drv { } { if {[have_spec rpi] && [have_spec hw]}  { return hw_gpio_drv }
+                    if {[have_spec rpi] && [have_spec foc]} { return foc_gpio_drv }
+                    return gpio_drv }
+
+lappend_if [have_spec gpio] build_components drivers/gpio
+
 source ${genode_dir}/repos/base/run/platform_drv.inc
 append_platform_drv_build_components
 
@@ -48,6 +54,13 @@ append config {
 	</default-route>}
 
 append_platform_drv_config
+
+append_if [have_spec gpio] config "
+	<start name=\"[gpio_drv]\">
+		<resource name=\"RAM\" quantum=\"4M\"/>
+		<provides><service name=\"Gpio\"/></provides>
+		<config/>
+	</start>"
 
 append config {
 	<start name="timer">
@@ -109,6 +122,8 @@ set boot_modules {
 # platform-specific modules
 append_platform_drv_boot_modules
 lappend boot_modules [nic_drv_binary]
+
+lappend_if [have_spec gpio] boot_modules [gpio_drv]
 
 build_boot_image $boot_modules
 
