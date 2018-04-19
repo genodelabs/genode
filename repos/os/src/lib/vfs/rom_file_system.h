@@ -146,10 +146,17 @@ class Vfs::Rom_file_system : public Single_file_system
 
 		Stat_result stat(char const *path, Stat &out) override
 		{
-			Stat_result result = Single_file_system::stat(path, out);
+			Stat_result const result = Single_file_system::stat(path, out);
 
-			_rom.update();
-			out.size = _rom.valid() ? _rom.size() : 0;
+			/*
+			 * If the stat call refers to our node ('Single_file_system::stat'
+			 * found a file), obtain the size of the most current ROM module
+			 * version.
+			 */
+			if (out.mode == STAT_MODE_FILE) {
+				_rom.update();
+				out.size = _rom.valid() ? _rom.size() : 0;
+			}
 
 			return result;
 		}
