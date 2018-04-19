@@ -98,7 +98,7 @@ append config {
 
 	<start name="depot_download" caps="2000">
 		<binary name="init"/>
-		<resource name="RAM" quantum="64M"/>
+		<resource name="RAM" quantum="70M"/>
 		<route>
 			<service name="ROM" label="config">
 				<parent label="depot_download.config"/> </service>
