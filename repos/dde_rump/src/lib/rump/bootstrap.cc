@@ -256,7 +256,6 @@ void rumpuser_dl_bootstrap(rump_modinit_fn domodinit, rump_symload_fn symload,
 			_dl_init(curr_map, domodinit, compload);
 		}
 	}
-	log("BOOTSTRAP");
 }
 
 

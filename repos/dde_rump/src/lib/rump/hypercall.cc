@@ -115,7 +115,6 @@ void rumpuser_seterrno(int e) { errno = e; }
 
 int rumpuser_init(int version, const struct rumpuser_hyperup *hyp)
 {
-	Genode::log("RUMP ver: ", version);
 	if (version != SUPPORTED_RUMP_VERSION) {
 		Genode::error("unsupported rump-kernel version (", version, ") - "
 		              "supported is ", (int)SUPPORTED_RUMP_VERSION);
