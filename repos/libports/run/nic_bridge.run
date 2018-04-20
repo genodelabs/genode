@@ -101,7 +101,6 @@ append boot_modules {
 	nic_bridge
 	ld.lib.so
 	libc.lib.so
-	posix.lib.so
 	libm.lib.so
 	lwip.lib.so
 	test-http_clnt
