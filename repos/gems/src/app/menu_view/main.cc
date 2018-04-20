@@ -234,9 +234,9 @@ void Menu_view::Main::_handle_config()
 void Menu_view::Main::_handle_input()
 {
 	_nitpicker.input()->for_each_event([&] (Input::Event const &ev) {
-		if (ev.absolute_motion()) {
+		ev.handle_absolute_motion([&] (int x, int y) {
 
-			Point const at = Point(ev.ax(), ev.ay()) - _position;
+			Point const at = Point(x, y) - _position;
 			Widget::Unique_id const new_hovered = _root_widget.hovered(at);
 
 			if (_hovered != new_hovered) {
@@ -249,14 +249,12 @@ void Menu_view::Main::_handle_input()
 
 				_hovered = new_hovered;
 			}
-		}
+		});
 
 		/*
 		 * Reset hover model when losing the focus
 		 */
-		if ((ev.type() == Input::Event::FOCUS && ev.code() == 0)
-		 || (ev.type() == Input::Event::LEAVE)) {
-
+		if (ev.focus_leave() || ev.hover_leave()) {
 			_hovered = Widget::Unique_id();
 
 			if (_hover_reporter.enabled()) {

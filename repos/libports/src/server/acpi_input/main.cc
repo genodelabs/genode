@@ -298,12 +298,11 @@ struct Transform::Main {
 
 		if (key->type() == Keys::Type::PRESS_RELEASE ||
 		    key->type() == Keys::Type::PRESS)
-			_session.submit(Input::Event(Input::Event::PRESS, key->key_code(),
-			                             0, 0, 0, 0));
+			_session.submit(Input::Press{key->key_code()});
+
 		if (key->type() == Keys::Type::PRESS_RELEASE ||
 		    key->type() == Keys::Type::RELEASE)
-			_session.submit(Input::Event(Input::Event::RELEASE,
-			                             key->key_code(), 0, 0, 0, 0));
+			_session.submit(Input::Release{key->key_code()});
 	}
 
 	void check_acpi_fixed()

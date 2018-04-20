@@ -24,15 +24,15 @@
 void Control_bar::_rewind()
 {
 	/* mouse click at horizontal position 0 */
-	_input.submit(Input::Event(Input::Event::PRESS, Input::BTN_LEFT, 0, 0, 0, 0));
-	_input.submit(Input::Event(Input::Event::RELEASE, Input::BTN_LEFT, 0, 0, 0, 0));
+	_input.submit(Input::Press  {Input::BTN_LEFT});
+	_input.submit(Input::Release{Input::BTN_LEFT});
 }
 
 
 void Control_bar::_pause_resume()
 {
-	_input.submit(Input::Event(Input::Event::PRESS, Input::KEY_SPACE, 0, 0, 0, 0));
-	_input.submit(Input::Event(Input::Event::RELEASE, Input::KEY_SPACE, 0, 0, 0, 0));
+	_input.submit(Input::Press  {Input::KEY_SPACE});
+	_input.submit(Input::Release{Input::KEY_SPACE});
 
 	_playing = !_playing;
 	if (_playing)

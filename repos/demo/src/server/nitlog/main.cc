@@ -448,7 +448,9 @@ struct Nitlog::Main
 
 	Attached_dataspace _ev_ds { _env.rm(), _nitpicker.input()->dataspace() };
 
-	Nitpicker::Point _old_mouse_pos { };
+	Nitpicker::Point const _initial_mouse_pos { -1, -1 };
+
+	Nitpicker::Point _old_mouse_pos = _initial_mouse_pos;
 
 	unsigned _key_cnt = 0;
 
@@ -463,20 +465,24 @@ struct Nitlog::Main
 
 			Input::Event const &ev = ev_buf[i];
 
-			if (ev.type() == Input::Event::PRESS)   _key_cnt++;
-			if (ev.type() == Input::Event::RELEASE) _key_cnt--;
-
-			Nitpicker::Point mouse_pos(ev.ax(), ev.ay());
+			if (ev.press())   _key_cnt++;
+			if (ev.release()) _key_cnt--;
 
 			/* move view */
-			if (ev.type() == Input::Event::MOTION && _key_cnt > 0)
-				_view.move(_view.pos() + mouse_pos - _old_mouse_pos);
+			ev.handle_absolute_motion([&] (int x, int y) {
+
+				Nitpicker::Point const mouse_pos(x, y);
+
+				if (_key_cnt && _old_mouse_pos != _initial_mouse_pos)
+					_view.move(_view.pos() + mouse_pos - _old_mouse_pos);
+
+				_old_mouse_pos = mouse_pos;
+			});
 
 			/* find selected view and bring it to front */
-			if (ev.type() == Input::Event::PRESS && _key_cnt == 1)
+			if (ev.press() && _key_cnt == 1)
 				_view.top();
 
-			_old_mouse_pos = mouse_pos;
 		}
 	}
 

@@ -85,19 +85,10 @@ class Input::Session_component : public Rpc_object<Session>
 
 				Input::Event &ev = _ev_buf[i];
 
-				if ((ev.type() == Input::Event::MOTION)
-				 || (ev.type() == Input::Event::WHEEL)
-				 || (ev.code() == Input::BTN_LEFT)
-				 || (ev.code() == Input::BTN_RIGHT)
-				 || (ev.code() == Input::BTN_MIDDLE)) {
-
-					ev = Input::Event(ev.type(),
-					                  ev.code(),
-					                  ev.ax() + delta.x(),
-					                  ev.ay() + delta.y(),
-					                  ev.rx(),
-					                  ev.ry());
-				}
+				ev.handle_absolute_motion([&] (int x, int y) {
+					Point<> p = Point<>(x, y) + delta;
+					ev = Input::Absolute_motion{p.x(), p.y()};
+				});
 			}
 
 			return num_ev;

@@ -26,7 +26,7 @@
 /**
  * Convert SDL keycode to Genode keycode
  */
-static long convert_keycode(int sdl_keycode)
+static Input::Keycode convert_keycode(int sdl_keycode)
 {
 	using namespace Input;
 
@@ -135,7 +135,7 @@ static long convert_keycode(int sdl_keycode)
 	case SDLK_RMETA:        return KEY_RIGHTMETA;
 	case SDLK_LMETA:        return KEY_LEFTMETA;
 
-	default:                return 0;
+	default:                return KEY_UNKNOWN;
 	}
 };
 
@@ -158,11 +158,11 @@ static Input::Event wait_for_sdl_event()
 		if (ox == mx && oy == my)
 			return Event();
 
-		return Event(Event::MOTION, 0, mx, my, mx - ox, my - oy);
+		return Absolute_motion{mx, my};
 	}
 
-	/* determine keycode */
-	long keycode = 0;
+	/* determine key code */
+	Keycode keycode = KEY_UNKNOWN;
 	switch (event.type) {
 	case SDL_KEYUP:
 	case SDL_KEYDOWN:
@@ -177,12 +177,11 @@ static Input::Event wait_for_sdl_event()
 		case SDL_BUTTON_LEFT:   keycode = BTN_LEFT;   break;
 		case SDL_BUTTON_MIDDLE: keycode = BTN_MIDDLE; break;
 		case SDL_BUTTON_RIGHT:  keycode = BTN_RIGHT;  break;
-		default:                keycode = 0;
+		default: break;
 		}
 	}
 
 	/* determine event type */
-	Event::Type type = Event::INVALID;
 	switch (event.type) {
 
 	case SDL_KEYUP:
@@ -192,32 +191,27 @@ static Input::Event wait_for_sdl_event()
 			/* ignore */
 			return Event();
 
-		type = Event::RELEASE;
-		break;
+		return Release{keycode};
 
 	case SDL_KEYDOWN:
 	case SDL_MOUSEBUTTONDOWN:
-		if (event.button.button == SDL_BUTTON_WHEELUP) {
-			type = Event::WHEEL;
-			return Event(type, 0, 0, 0, 0, 1);
-		} else if (event.button.button == SDL_BUTTON_WHEELDOWN) {
-			type = Event::WHEEL;
-			return Event(type, 0, 0, 0, 0, -1);
-		}
-		type = Event::PRESS;
-		break;
+
+		if (event.button.button == SDL_BUTTON_WHEELUP)
+			return Wheel{0, 1};
+
+		else if (event.button.button == SDL_BUTTON_WHEELDOWN)
+			return Wheel{0, -1};
+
+		return Press{keycode};
 
 	default:
-		return Event();
+		break;
 	}
-
-	return Event(type, keycode, 0, 0, 0, 0);
+	return Event();
 }
 
 
-namespace Input {
-	struct Backend;
-}
+namespace Input { struct Backend; }
 
 struct Input::Backend : Genode::Thread
 {
@@ -237,9 +231,7 @@ struct Input::Backend : Genode::Thread
 			Input::Event e;
 
 			/* prevent flooding of client with invalid events */
-			do {
-				e = wait_for_sdl_event();
-			} while (e.type() == Input::Event::INVALID);
+			do { e = wait_for_sdl_event(); } while (!e.valid());
 
 			handler.event(e);
 		}

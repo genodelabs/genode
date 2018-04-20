@@ -467,8 +467,8 @@ class Ps2::Keyboard : public Input_driver
 			if (!_state_machine->ready())
 				return;
 
-			bool     press    = _state_machine->press();
-			unsigned key_code = _state_machine->key_code();
+			bool           press    = _state_machine->press();
+			Input::Keycode key_code = Input::Keycode(_state_machine->key_code());
 
 			/*
 			 * The old key state should not equal the state after the event.
@@ -484,7 +484,7 @@ class Ps2::Keyboard : public Input_driver
 
 			if (_verbose.keyboard)
 				Genode::log("post ", press ? "PRESS" : "RELEASE", ", "
-				            "key_code = ", key_code);
+				            "key_code = ", Input::key_name(key_code));
 
 			if (_ev_queue.avail_capacity() == 0) {
 				Genode::warning("event queue overflow - dropping events");
@@ -492,9 +492,10 @@ class Ps2::Keyboard : public Input_driver
 			}
 
 			/* post event to event queue */
-			_ev_queue.add(Input::Event(press ? Input::Event::PRESS
-			                                 : Input::Event::RELEASE,
-			                           key_code, 0, 0, 0, 0));
+			if (press)
+				_ev_queue.add(Input::Press{key_code});
+			else
+				_ev_queue.add(Input::Release{key_code});
 
 			/* start with new packet */
 			_state_machine->reset();

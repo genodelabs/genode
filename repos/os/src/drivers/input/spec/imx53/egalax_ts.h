@@ -81,14 +81,14 @@ class Input::Touchscreen {
 			y = 76800 / (3276700 / y);
 
 			/* motion event */
-			ev_queue.add(Input::Event(Input::Event::MOTION, 0, x, y, 0, 0));
+			ev_queue.add(Input::Absolute_motion{x, y});
 
 			/* button event */
-			if ((down  && (_state == RELEASED)) ||
-				(!down && (_state == PRESSED))) {
-				ev_queue.add(Input::Event(down ? Input::Event::PRESS
-				                          : Input::Event::RELEASE,
-				                          Input::BTN_LEFT, 0, 0, 0, 0));
+			if ((down && (_state == RELEASED)) || (!down && (_state == PRESSED))) {
+
+				if (down) ev_queue.add(Input::Press  {Input::BTN_LEFT});
+				else      ev_queue.add(Input::Release{Input::BTN_LEFT});
+
 				_state = down ? PRESSED : RELEASED;
 			}
 		}

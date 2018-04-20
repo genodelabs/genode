@@ -184,17 +184,14 @@ append config {
 				<press   code="KEY_A"/> <release code="KEY_A"/>
 				<release code="KEY_RIGHTSHIFT"/>
 			</usb>
-			<expect_press   code="KEY_A"/>
-			<expect_char    char="a"/>
+			<expect_press   code="KEY_A" char="a"/>
 			<expect_release code="KEY_A"/>
 			<expect_press   code="KEY_LEFTSHIFT"/>
-			<expect_press   code="KEY_A"/>
-			<expect_char    char="A"/>
+			<expect_press   code="KEY_A" char="A"/>
 			<expect_release code="KEY_A"/>
 			<expect_release code="KEY_LEFTSHIFT"/>
 			<expect_press   code="KEY_RIGHTSHIFT"/>
-			<expect_press   code="KEY_A"/>
-			<expect_char    char="A"/>
+			<expect_press   code="KEY_A" char="A"/>
 			<expect_release code="KEY_A"/>
 			<expect_release code="KEY_RIGHTSHIFT"/>}
 
@@ -219,13 +216,12 @@ append_if [test_char_repeat] config {
 			<!-- periodic characters should stop now -->
 			<sleep ms="1000"/> 
 			<usb> <press code="KEY_B"/> <release code="KEY_B"/> </usb>
-			<expect_press   code="KEY_A"/>
-			<expect_char    char="a"/> <!-- original press           (0 ms) -->
-			<expect_char    char="a"/> <!-- character after delay  (600 ms) -->
-			<expect_char    char="a"/> <!-- periodic character     (800 ms) -->
-			<expect_char    char="a"/> <!-- periodic character    (1000 ms) -->
-			<expect_char    char="a"/> <!-- periodic character    (1200 ms) -->
-			<expect_char    char="a"/> <!-- periodic character    (1400 ms) -->
+			<expect_press   code="KEY_A"       char="a"/> <!-- original press           (0 ms) -->
+			<expect_press   code="KEY_UNKNOWN" char="a"/> <!-- character after delay  (600 ms) -->
+			<expect_press   code="KEY_UNKNOWN" char="a"/> <!-- periodic character     (800 ms) -->
+			<expect_press   code="KEY_UNKNOWN" char="a"/> <!-- periodic character    (1000 ms) -->
+			<expect_press   code="KEY_UNKNOWN" char="a"/> <!-- periodic character    (1200 ms) -->
+			<expect_press   code="KEY_UNKNOWN" char="a"/> <!-- periodic character    (1400 ms) -->
 			<expect_release code="KEY_A"/>
 			<expect_press   code="KEY_B"/>
 			<expect_release code="KEY_B"/>}
@@ -257,15 +253,15 @@ append config {
 			<capslock enabled="no"/>
 			<sleep ms="250"/>
 			<usb> <press code="KEY_A"/> <release code="KEY_A"/> </usb>
-			<expect_press code="KEY_A"/> <expect_char char="a"/> <expect_release code="KEY_A"/>
+			<expect_press code="KEY_A" char="a"/> <expect_release code="KEY_A"/>
 			<capslock enabled="yes"/>
 			<sleep ms="250"/>
 			<usb> <press code="KEY_A"/> <release code="KEY_A"/> </usb>
-			<expect_press code="KEY_A"/> <expect_char char="A"/> <expect_release code="KEY_A"/>
+			<expect_press code="KEY_A" char="A"/> <expect_release code="KEY_A"/>
 			<capslock enabled="no"/>
 			<sleep ms="250"/>
 			<usb> <press code="KEY_A"/> <release code="KEY_A"/> </usb>
-			<expect_press code="KEY_A"/> <expect_char char="a"/> <expect_release code="KEY_A"/>
+			<expect_press code="KEY_A" char="a"/> <expect_release code="KEY_A"/>
 
 
 			<message string="button-scroll feature"/>
@@ -418,7 +414,7 @@ append config {
 			</filter_config>
 			<sleep ms="100"/>
 			<usb> <press code="KEY_A"/> <release code="KEY_A"/> </usb>
-			<expect_press code="KEY_A"/> <expect_char char="a"/> <expect_release code="KEY_A"/>
+			<expect_press code="KEY_A" char="a"/> <expect_release code="KEY_A"/>
 
 
 			<message string="update included chargen ROM"/>
@@ -428,7 +424,7 @@ append config {
 			</chargen_include>
 			<sleep ms="100"/>
 			<usb> <press code="KEY_A"/> <release code="KEY_A"/> </usb>
-			<expect_press code="KEY_A"/> <expect_char char="b"/> <expect_release code="KEY_A"/>
+			<expect_press code="KEY_A" char="b"/> <expect_release code="KEY_A"/>
 
 		</config>
 		<route>

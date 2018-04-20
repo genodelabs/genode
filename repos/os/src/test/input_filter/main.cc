@@ -31,28 +31,7 @@ namespace Test {
 	class Input_root;
 	class Main;
 	using namespace Genode;
-}
-
-
-namespace Genode {
-
-	static inline void print(Output &output, Input::Event const &ev)
-	{
-		switch (ev.type()) {
-		case Input::Event::INVALID:   print(output, "INVALID");   break;
-		case Input::Event::MOTION:    print(output, "MOTION");    break;
-		case Input::Event::PRESS:     print(output, "PRESS");     break;
-		case Input::Event::RELEASE:   print(output, "RELEASE");   break;
-		case Input::Event::WHEEL:     print(output, "WHEEL");     break;
-		case Input::Event::FOCUS:     print(output, "FOCUS");     break;
-		case Input::Event::LEAVE:     print(output, "LEAVE");     break;
-		case Input::Event::TOUCH:     print(output, "TOUCH");     break;
-		case Input::Event::CHARACTER: print(output, "CHARACTER"); break;
-		};
-
-		if (ev.type() == Input::Event::PRESS || ev.type() == Input::Event::RELEASE)
-			print(output, " (", Input::key_name(ev.keycode()), ")");
-	}
+	using Input::Event;
 }
 
 
@@ -62,7 +41,7 @@ class Test::Input_from_filter
 
 		struct Event_handler : Interface
 		{
-			virtual void handle_event_from_filter(Input::Event const &) = 0;
+			virtual void handle_event_from_filter(Event const &) = 0;
 		};
 
 	private:
@@ -82,7 +61,7 @@ class Test::Input_from_filter
 			_handle_input_in_progress = true;
 
 			if (_input_expected)
-				_connection.for_each_event([&] (Input::Event const &event) {
+				_connection.for_each_event([&] (Event const &event) {
 					_event_handler.handle_event_from_filter(event); });
 
 			_handle_input_in_progress = false;
@@ -211,24 +190,28 @@ class Test::Input_to_filter
 
 			step.for_each_sub_node([&] (Xml_node node) {
 
-				Input::Event::Type const type =
-					node.type() == "press"   ? Input::Event::PRESS   :
-					node.type() == "release" ? Input::Event::RELEASE :
-					node.type() == "motion"  ? Input::Event::MOTION  :
-					                           Input::Event::INVALID;
+				bool const press   = node.has_type("press"),
+				           release = node.has_type("release");
 
-				if (type == Input::Event::PRESS || type == Input::Event::RELEASE) {
+				if (press || release) {
+
 					Key_name const key_name = node.attribute_value("code", Key_name());
-					dst.submit(Input::Event(type, _code(key_name), 0, 0, 0, 0));
+
+					if (press)   dst.submit(Input::Press  {_code(key_name)});
+					if (release) dst.submit(Input::Release{_code(key_name)});
 				}
 
-				if (type == Input::Event::MOTION) {
-					dst.submit(Input::Event(type, 0,
-					                        node.attribute_value("ax", 0L),
-					                        node.attribute_value("ay", 0L),
-					                        node.attribute_value("rx", 0L),
-					                        node.attribute_value("ry", 0L)));
-				}
+				bool const motion = node.has_type("motion");
+				bool const rel = node.has_attribute("rx") || node.has_attribute("ry");
+				bool const abs = node.has_attribute("ax") || node.has_attribute("ay");
+
+				if (motion && abs)
+					dst.submit(Input::Absolute_motion{(int)node.attribute_value("ax", 0L),
+					                                  (int)node.attribute_value("ay", 0L)});
+
+				if (motion && rel)
+					dst.submit(Input::Relative_motion{(int)node.attribute_value("rx", 0L),
+					                                  (int)node.attribute_value("ry", 0L)});
 			});
 		}
 };
@@ -379,52 +362,53 @@ struct Test::Main : Input_from_filter::Event_handler
 	/**
 	 * Input_to_filter::Event_handler interface
 	 */
-	void handle_event_from_filter(Input::Event const &ev) override
+	void handle_event_from_filter(Event const &ev) override
 	{
 		typedef Genode::String<20> Value;
 
 		Xml_node const step = _curr_step_xml();
 
-		switch (ev.type()) {
-		case Input::Event::PRESS:
+		bool step_succeeded = false;
+
+		ev.handle_press([&] (Input::Keycode key, Codepoint codepoint) {
+
+			auto codepoint_of_step = [] (Xml_node step) {
+				return Utf8_ptr(step.attribute_value("char", Value()).string()).codepoint(); };
+
 			if (step.type() == "expect_press"
-			 && step.attribute_value("code", Value()) == Input::key_name(ev.keycode()))
-				break;
+			 && step.attribute_value("code", Value()) == Input::key_name(key)
+			 && (!step.has_attribute("char") ||
+			     codepoint_of_step(step).value == codepoint.value))
+				step_succeeded = true;
+		});
 
-		case Input::Event::RELEASE:
+		ev.handle_release([&] (Input::Keycode key) {
 			if (step.type() == "expect_release"
-			 && step.attribute_value("code", Value()) == Input::key_name(ev.keycode()))
-				break;
+			 && step.attribute_value("code", Value()) == Input::key_name(key))
+				step_succeeded = true; });
 
-		case Input::Event::WHEEL:
+		ev.handle_wheel([&] (int x, int y) {
 			if (step.type() == "expect_wheel"
-			 && step.attribute_value("rx", 0L) == ev.rx()
-			 && step.attribute_value("ry", 0L) == ev.ry())
-				break;
+			 && step.attribute_value("rx", 0L) == x
+			 && step.attribute_value("ry", 0L) == y)
+				step_succeeded = true; });
 
-		case Input::Event::MOTION:
+		ev.handle_relative_motion([&] (int x, int y) {
 			if (step.type() == "expect_motion"
-			 && (!step.has_attribute("rx") || step.attribute_value("rx", 0L) == ev.rx())
-			 && (!step.has_attribute("ry") || step.attribute_value("ry", 0L) == ev.ry())
-			 && (!step.has_attribute("ax") || step.attribute_value("ax", 0L) == ev.ax())
-			 && (!step.has_attribute("ay") || step.attribute_value("ay", 0L) == ev.ay()))
-				break;
+			 && (!step.has_attribute("rx") || step.attribute_value("rx", 0L) == x)
+			 && (!step.has_attribute("ry") || step.attribute_value("ry", 0L) == y))
+				step_succeeded = true; });
 
-		case Input::Event::CHARACTER:
-			if (step.type() == "expect_char"
-			 && step.attribute_value("char", Value()) == Value(Char(ev.utf8().b0)))
-			 	break;
+		ev.handle_absolute_motion([&] (int x, int y) {
+			if (step.type() == "expect_motion"
+			 && (!step.has_attribute("ax") || step.attribute_value("ax", 0L) == x)
+			 && (!step.has_attribute("ay") || step.attribute_value("ay", 0L) == y))
+				step_succeeded = true; });
 
-		case Input::Event::INVALID:
-		case Input::Event::FOCUS:
-		case Input::Event::LEAVE:
-		case Input::Event::TOUCH:
-			error("unexpected event: ", ev);
-			throw Exception();
-		};
-
-		_advance_step();
-		_execute_curr_step();
+		if (step_succeeded) {
+			_advance_step();
+			_execute_curr_step();
+		}
 	}
 
 	void _handle_timer()

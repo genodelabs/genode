@@ -41,22 +41,33 @@ static Genode::Constructible<Input::Root_component> _input_root;
  * Input event call-back function
  */
 static void input_callback(enum input_event_type type,
-                           unsigned code,
-                           int absolute_x, int absolute_y,
-                           int relative_x, int relative_y)
+                           unsigned code, int ax, int ay, int rx, int ry)
 {
-	Input::Event::Type t = Input::Event::INVALID;
-	switch (type) {
-		case EVENT_TYPE_PRESS:   t = Input::Event::PRESS; break;
-		case EVENT_TYPE_RELEASE: t = Input::Event::RELEASE; break;
-		case EVENT_TYPE_MOTION:  t = Input::Event::MOTION; break;
-		case EVENT_TYPE_WHEEL:   t = Input::Event::WHEEL; break;
-		case EVENT_TYPE_TOUCH:   t = Input::Event::TOUCH; break;
-	}
+	using namespace Input;
 
-	_input_session->submit(Input::Event(t, code,
-	                                    absolute_x, absolute_y,
-	                                    relative_x, relative_y));
+	auto submit = [&] (Event const &ev) { _input_session->submit(ev); };
+
+	switch (type) {
+	case EVENT_TYPE_PRESS:   submit(Press{Keycode(code)});    break;
+	case EVENT_TYPE_RELEASE: submit(Release{Keycode(code)});  break;
+	case EVENT_TYPE_MOTION:
+		if (rx == 0 && ry == 0)
+			submit(Absolute_motion{ax, ay});
+		else
+			submit(Relative_motion{rx, ry});
+		break;
+	case EVENT_TYPE_WHEEL:   submit(Wheel{rx, ry});           break;
+	case EVENT_TYPE_TOUCH:
+		{
+			Touch_id const id { (int)code };
+
+			if (rx == -1 && ry == -1)
+				submit(Touch_release{id});
+			else
+				submit(Touch{id, (float)ax, (float)ay});
+			break;
+		}
+	}
 }
 
 

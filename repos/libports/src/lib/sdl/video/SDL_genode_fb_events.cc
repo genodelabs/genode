@@ -77,13 +77,13 @@ extern "C" {
 	static int buttonmap[KEYNUM_MAX];
 
 
-	inline SDL_keysym *Genode_Fb_TranslateKey(int keycode, SDL_keysym *k)
+	inline SDL_keysym Genode_Fb_TranslateKey(Input::Keycode    keycode,
+	                                         Genode::Codepoint codepoint)
 	{
-		k->scancode = keycode;
-		k->sym = keymap[keycode];
-		k->mod = SDL_GetModState();
-		k->unicode = keymap[keycode];
-		return k;
+		return SDL_keysym { .scancode = (uint8_t)keycode,
+		                    .sym      = keymap[keycode],
+		                    .mod      = SDL_GetModState(),
+		                    .unicode  = (uint16_t)codepoint.value };
 	}
 
 
@@ -101,43 +101,39 @@ extern "C" {
 			return;
 
 		input->for_each_event([&] (Input::Event const &curr) {
-			SDL_keysym ksym;
-			switch(curr.type())
-			{
-			case Input::Event::MOTION:
-				if (curr.absolute_motion())
-					SDL_PrivateMouseMotion(0, 0, curr.ax(), curr.ay());
-				else
-					SDL_PrivateMouseMotion(0, 1, curr.rx(), curr.ry());
-				break;
-			case Input::Event::PRESS:
-				if(curr.code() >= Input::BTN_MISC &&
-				   curr.code() <= Input::BTN_GEAR_UP)
-					SDL_PrivateMouseButton(SDL_PRESSED,
-					                       buttonmap[curr.code()],
-					                       0, 0);
-				else
-					SDL_PrivateKeyboard(SDL_PRESSED,
-					                    Genode_Fb_TranslateKey(curr.code(),
-					                    &ksym));
-				break;
-			case Input::Event::RELEASE:
-				if(curr.code() >= Input::BTN_MISC &&
-				   curr.code() <= Input::BTN_GEAR_UP)
-					SDL_PrivateMouseButton(SDL_RELEASED,
-					                       buttonmap[curr.code()],
-					                       0, 0);
-				else
-					SDL_PrivateKeyboard(SDL_RELEASED,
-					                    Genode_Fb_TranslateKey(curr.code(),
-					                    &ksym));
-				break;
-			case Input::Event::WHEEL:
-				Genode::warning("mouse wheel, not implemented yet");
-				break;
-			default:
-				break;
-			}
+
+			curr.handle_absolute_motion([&] (int x, int y) {
+				SDL_PrivateMouseMotion(0, 0, x, y); });
+
+			curr.handle_relative_motion([&] (int x, int y) {
+				SDL_PrivateMouseMotion(0, 1, x, y); });
+
+			/* return true if keycode refers to a button */
+			auto mouse_button = [] (Input::Keycode key) {
+				return key >= Input::BTN_MISC && key <= Input::BTN_GEAR_UP; };
+
+			curr.handle_press([&] (Input::Keycode key, Genode::Codepoint codepoint) {
+
+				if (mouse_button(key))
+					SDL_PrivateMouseButton(SDL_PRESSED, buttonmap[key], 0, 0);
+
+				else {
+					SDL_keysym ksym = Genode_Fb_TranslateKey(key, codepoint);
+					SDL_PrivateKeyboard(SDL_PRESSED, &ksym);
+				}
+			});
+
+			curr.handle_release([&] (Input::Keycode key) {
+
+				if (mouse_button(key))
+					SDL_PrivateMouseButton(SDL_RELEASED, buttonmap[key], 0, 0);
+
+				else {
+					Genode::Codepoint const invalid { Genode::Codepoint::INVALID };
+					SDL_keysym ksym = Genode_Fb_TranslateKey(key, invalid);
+					SDL_PrivateKeyboard(SDL_RELEASED, &ksym);
+				}
+			});
 		});
 	}
 

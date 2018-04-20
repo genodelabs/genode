@@ -75,13 +75,22 @@ class Floating_window_layouter::User_state
 
 		Focus_history &_focus_history;
 
+		/*
+		 * Return true if key is potentially part of a key sequence
+		 */
+		static bool _key(Input::Keycode key) { return key != Input::BTN_LEFT; }
+
 		bool _key(Input::Event const &ev) const
 		{
-			if (ev.type() != Input::Event::PRESS
-			 && ev.type() != Input::Event::RELEASE)
-				return false;
+			bool relevant = false;
 
-			return ev.keycode() != Input::BTN_LEFT;
+			ev.handle_press([&] (Input::Keycode key, Codepoint) {
+				relevant |= _key(key); });
+
+			ev.handle_release([&] (Input::Keycode key) {
+				relevant |= _key(key); });
+
+			return relevant;
 		}
 
 		inline void _handle_event(Input::Event const &, Xml_node);
@@ -214,10 +223,10 @@ class Floating_window_layouter::User_state
 void Floating_window_layouter::User_state::_handle_event(Input::Event const &e,
                                                          Xml_node config)
 {
-	if (e.type() == Input::Event::MOTION
-	 || e.type() == Input::Event::FOCUS) {
+	e.handle_absolute_motion([&] (int x, int y) {
+		_pointer_curr = Point(x, y); });
 
-		_pointer_curr = Point(e.ax(), e.ay());
+	if (e.absolute_motion() || e.focus_enter()) {
 
 		if (_drag_state && _drag_init_done)
 			_operations.drag(_dragged_window_id, _dragged_element,
@@ -225,13 +234,11 @@ void Floating_window_layouter::User_state::_handle_event(Input::Event const &e,
 	}
 
 	/* track number of pressed buttons/keys */
-	if (e.type() == Input::Event::PRESS)   _key_cnt++;
-	if (e.type() == Input::Event::RELEASE) _key_cnt--;
+	if (e.press())   _key_cnt++;
+	if (e.release()) _key_cnt--;
 
 	/* handle pointer click */
-	if (e.type()    == Input::Event::PRESS
-	 && e.keycode() == Input::BTN_LEFT
-	 && _key_cnt    == 1) {
+	if (e.key_press(Input::BTN_LEFT) && _key_cnt == 1) {
 
 		/*
 		 * Initiate drag operation if possible
@@ -266,9 +273,7 @@ void Floating_window_layouter::User_state::_handle_event(Input::Event const &e,
 	}
 
 	/* detect end of drag operation */
-	if (e.type() == Input::Event::RELEASE
-	 && _key_cnt == 0
-	 && _dragged_window_id.valid()) {
+	if (e.release() && _key_cnt == 0 && _dragged_window_id.valid()) {
 
 		_drag_state = false;
 
@@ -288,7 +293,7 @@ void Floating_window_layouter::User_state::_handle_event(Input::Event const &e,
 	/* handle key sequences */
 	if (_key(e)) {
 
-		if (e.type() == Input::Event::PRESS && _key_cnt == 1)
+		if (e.press() && _key_cnt == 1)
 			_key_sequence_tracker.reset();
 
 		_key_sequence_tracker.apply(e, config, [&] (Action action) {
@@ -320,7 +325,7 @@ void Floating_window_layouter::User_state::_handle_event(Input::Event const &e,
 	}
 
 	/* update focus history after key/button action is completed */
-	if (e.type() == Input::Event::RELEASE && _key_cnt == 0)
+	if (e.release() && _key_cnt == 0)
 		_focus_history.focus(_focused_window_id);
 }
 

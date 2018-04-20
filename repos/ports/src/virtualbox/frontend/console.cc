@@ -203,18 +203,11 @@ void GenodeConsole::handle_input()
 		if (!_vbox_keyboard || !_vbox_mouse)
 			return;
 
-		bool const press   = ev.type() == Input::Event::PRESS;
-		bool const release = ev.type() == Input::Event::RELEASE;
-		bool const key     = press || release;
-		bool const motion  = ev.type() == Input::Event::MOTION;
-		bool const wheel   = ev.type() == Input::Event::WHEEL;
-		bool const touch   = ev.type() == Input::Event::TOUCH;
+		auto keyboard_submit = [&] (Input::Keycode key, bool release) {
 
-		if (key) {
-			Scan_code scan_code(ev.keycode());
+			Scan_code scan_code(key);
 
-			unsigned char const release_bit =
-				(ev.type() == Input::Event::RELEASE) ? 0x80 : 0;
+			unsigned char const release_bit = release ? 0x80 : 0;
 
 			if (scan_code.normal())
 				_vbox_keyboard->PutScancode(scan_code.code() | release_bit);
@@ -223,122 +216,116 @@ void GenodeConsole::handle_input()
 				_vbox_keyboard->PutScancode(0xe0);
 				_vbox_keyboard->PutScancode(scan_code.ext() | release_bit);
 			}
-		}
+		};
 
-		/*
-		 * Track press/release status of keys and buttons. Currently,
-		 * only the mouse-button states are actually used.
-		 */
-		if (press)
-			_key_status[ev.keycode()] = true;
+		/* obtain bit mask of currently pressed mouse buttons */
+		auto curr_mouse_button_bits = [&] () {
+			return (_key_status[Input::BTN_LEFT]   ? MouseButtonState_LeftButton   : 0)
+			     | (_key_status[Input::BTN_RIGHT]  ? MouseButtonState_RightButton  : 0)
+			     | (_key_status[Input::BTN_MIDDLE] ? MouseButtonState_MiddleButton : 0);
+		};
 
-		if (release)
-			_key_status[ev.keycode()] = false;
+		unsigned const old_mouse_button_bits = curr_mouse_button_bits();
 
-		bool const mouse_button_event =
-			key && _mouse_button(ev.keycode());
+		ev.handle_press([&] (Input::Keycode key, Genode::Codepoint) {
+			keyboard_submit(key, false);
+			_key_status[key] = true;
+		});
 
-		bool const mouse_event = mouse_button_event || motion;
+		ev.handle_release([&] (Input::Keycode key) {
+			keyboard_submit(key, true);
+			_key_status[key] = false;
+		});
 
-		if (mouse_event) {
-			unsigned const buttons = (_key_status[Input::BTN_LEFT]   ? MouseButtonState_LeftButton : 0)
-			                       | (_key_status[Input::BTN_RIGHT]  ? MouseButtonState_RightButton : 0)
-			                       | (_key_status[Input::BTN_MIDDLE] ? MouseButtonState_MiddleButton : 0);
-			if (ev.absolute_motion()) {
+		unsigned const mouse_button_bits = curr_mouse_button_bits();
 
-				_last_received_motion_event_was_absolute = true;
+		if (mouse_button_bits != old_mouse_button_bits) {
 
-				/* transform absolute to relative if guest is so odd */
-				if (!guest_abs && guest_rel) {
-					int const boundary = 20;
-					int rx = ev.ax() - _ax;
-					int ry = ev.ay() - _ay;
-					rx = Genode::min(boundary, Genode::max(-boundary, rx));
-					ry = Genode::min(boundary, Genode::max(-boundary, ry));
-					_vbox_mouse->PutMouseEvent(rx, ry, 0, 0, buttons);
-				} else
-					_vbox_mouse->PutMouseEventAbsolute(ev.ax(), ev.ay(), 0,
-					                                   0, buttons);
-
-				_ax = ev.ax();
-				_ay = ev.ay();
-
-			} else if (ev.relative_motion()) {
-
-				_last_received_motion_event_was_absolute = false;
-
-				/* prefer relative motion event */
+			if (_last_received_motion_event_was_absolute) {
+				/* prefer absolute button event */
+				if (guest_abs)
+					_vbox_mouse->PutMouseEventAbsolute(_ax, _ay, 0, 0, mouse_button_bits);
+				else if (guest_rel)
+					_vbox_mouse->PutMouseEvent(0, 0, 0, 0, mouse_button_bits);
+			} else {
+				/* prefer relative button event */
 				if (guest_rel)
-					_vbox_mouse->PutMouseEvent(ev.rx(), ev.ry(), 0, 0, buttons);
-				else if (guest_abs) {
-					_ax += ev.rx();
-					_ay += ev.ry();
-					_vbox_mouse->PutMouseEventAbsolute(_ax, _ay, 0, 0, buttons);
-				}
-			}
-			/* only the buttons changed */
-			else {
-
-				if (_last_received_motion_event_was_absolute) {
-					/* prefer absolute button event */
-					if (guest_abs)
-						_vbox_mouse->PutMouseEventAbsolute(_ax, _ay, 0, 0, buttons);
-					else if (guest_rel)
-						_vbox_mouse->PutMouseEvent(0, 0, 0, 0, buttons);
-				} else {
-					/* prefer relative button event */
-					if (guest_rel)
-						_vbox_mouse->PutMouseEvent(0, 0, 0, 0, buttons);
-					else if (guest_abs)
-						_vbox_mouse->PutMouseEventAbsolute(_ax, _ay, 0, 0, buttons);
-				}
-
+					_vbox_mouse->PutMouseEvent(0, 0, 0, 0, mouse_button_bits);
+				else if (guest_abs)
+					_vbox_mouse->PutMouseEventAbsolute(_ax, _ay, 0, 0, mouse_button_bits);
 			}
 		}
 
-		if (wheel) {
+		ev.handle_absolute_motion([&] (int x, int y) {
+
+			_last_received_motion_event_was_absolute = true;
+
+			/* transform absolute to relative if guest is so odd */
+			if (!guest_abs && guest_rel) {
+				int const boundary = 20;
+				int rx = x - _ax;
+				int ry = y - _ay;
+				rx = Genode::min(boundary, Genode::max(-boundary, rx));
+				ry = Genode::min(boundary, Genode::max(-boundary, ry));
+				_vbox_mouse->PutMouseEvent(rx, ry, 0, 0, mouse_button_bits);
+			} else
+				_vbox_mouse->PutMouseEventAbsolute(x, y, 0, 0, mouse_button_bits);
+
+			_ax = x;
+			_ay = y;
+		});
+
+		ev.handle_relative_motion([&] (int x, int y) {
+
+			_last_received_motion_event_was_absolute = false;
+
+			/* prefer relative motion event */
+			if (guest_rel)
+				_vbox_mouse->PutMouseEvent(x, y, 0, 0, mouse_button_bits);
+			else if (guest_abs) {
+				_ax += x;
+				_ay += y;
+				_vbox_mouse->PutMouseEventAbsolute(_ax, _ay, 0, 0, mouse_button_bits);
+			}
+		});
+
+		ev.handle_wheel([&] (int x, int y) {
+
 			if (_last_received_motion_event_was_absolute)
-				_vbox_mouse->PutMouseEventAbsolute(_ax, _ay, -ev.ry(), -ev.rx(), 0);
+				_vbox_mouse->PutMouseEventAbsolute(_ax, _ay, -y, -x, 0);
 			else
-				_vbox_mouse->PutMouseEvent(0, 0, -ev.ry(), -ev.rx(), 0);
-		}
+				_vbox_mouse->PutMouseEvent(0, 0, -y, -x, 0);
+		});
 
-		if (touch) {
+		ev.handle_touch([&] (Input::Touch_id id, int x, int y) {
+
 			/* if multitouch queue is full - send it */
 			if (mt_number >= sizeof(mt_events) / sizeof(mt_events[0])) {
 				_vbox_mouse->PutEventMultiTouch(mt_number, mt_number,
-						                        mt_events, RTTimeMilliTS());
+				                                mt_events, RTTimeMilliTS());
 				mt_number = 0;
 			}
-
-			int x    = ev.ax();
-			int y    = ev.ay();
-			int slot = ev.code();
 
 			/* Mouse::putEventMultiTouch drops values of 0 */
 			if (x <= 0) x = 1;
 			if (y <= 0) y = 1;
 
-			enum MultiTouch {
-				None = 0x0,
-				InContact = 0x01,
-				InRange = 0x02
-			};
+			enum { IN_CONTACT = 0x01, IN_RANGE = 0x02 };
 
-			int status = MultiTouch::InContact | MultiTouch::InRange;
-			if (ev.touch_release())
-				status = MultiTouch::None;
-
-			uint16_t const s = RT_MAKE_U16(slot, status);
+			uint16_t const s = RT_MAKE_U16(id.value, IN_CONTACT | IN_RANGE);
 			mt_events[mt_number++] = RT_MAKE_U64_FROM_U16(x, y, s, 0);
-		}
+		});
 
+		ev.handle_touch_release([&] (Input::Touch_id id) {
+			uint16_t const s = RT_MAKE_U16(id.value, 0);
+			mt_events[mt_number++] = RT_MAKE_U64_FROM_U16(0, 0, s, 0);
+		});
 	});
 
-	/* if there are elements - send it */
+	/* if there are elements in multi-touch queue - send it */
 	if (mt_number)
 		_vbox_mouse->PutEventMultiTouch(mt_number, mt_number, mt_events,
-				                        RTTimeMilliTS());
+		                                RTTimeMilliTS());
 }
 
 void GenodeConsole::handle_mode_change()

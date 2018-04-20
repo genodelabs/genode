@@ -29,6 +29,8 @@ class Input_filter::Chargen_source : public Source, Source::Sink
 {
 	private:
 
+		typedef Input::Event Event;
+
 		Allocator        &_alloc;
 		Timer_accessor   &_timer_accessor;
 		Include_accessor &_include_accessor;
@@ -179,11 +181,11 @@ class Input_filter::Chargen_source : public Source, Source::Sink
 
 				Conditions const _conditions;
 
-				Input::Event::Utf8 const _character;
+				Codepoint const _character;
 
-				Rule(Registry<Rule>    &registry,
-				     Conditions         conditions,
-				     Input::Event::Utf8 character)
+				Rule(Registry<Rule> &registry,
+				     Conditions      conditions,
+				     Codepoint       character)
 				:
 					_reg_elem(registry, *this),
 					_conditions(conditions),
@@ -205,19 +207,19 @@ class Input_filter::Chargen_source : public Source, Source::Sink
 					return 1 + _conditions.num_modifier_constraints();
 				}
 
-				Input::Event::Utf8 character() const { return _character; }
+				Codepoint character() const { return _character; }
 			};
 
 			Registry<Rule> rules { };
 
 			/**
-			 * Call functor 'fn' with the 'Input::Event::Utf8' character
-			 * defined for the best matching rule
+			 * Call functor 'fn' with the codepoint of the character defined
+			 * for the best matching rule
 			 */
 			template <typename FN>
 			void apply_best_matching_rule(Modifier_map const &mod_map, FN const &fn) const
 			{
-				Input::Event::Utf8 best_match { 0 };
+				Codepoint best_match { Codepoint::INVALID };
 
 				unsigned max_score = 0;
 
@@ -291,10 +293,13 @@ class Input_filter::Chargen_source : public Source, Source::Sink
 				 *
 				 * \throw Missing_character_definition
 				 */
-				static Input::Event::Utf8 _utf8_from_xml_node(Xml_node node)
+				static Codepoint _codepoint_from_xml_node(Xml_node node)
 				{
 					if (node.has_attribute("ascii"))
-						return Input::Event::Utf8(node.attribute_value("ascii", 0UL));
+						return Codepoint { node.attribute_value<uint32_t>("ascii", 0) };
+
+					if (node.has_attribute("code"))
+						return Codepoint { node.attribute_value<uint32_t>("code", 0) };
 
 					if (node.has_attribute("char")) {
 
@@ -304,7 +309,7 @@ class Input_filter::Chargen_source : public Source, Source::Sink
 						unsigned char const ascii = value.string()[0];
 
 						if (ascii < 128)
-							return Input::Event::Utf8(ascii);
+							return Codepoint { ascii };
 
 						warning("char attribute with non-ascii character "
 						        "'", value, "'");
@@ -312,12 +317,13 @@ class Input_filter::Chargen_source : public Source, Source::Sink
 					}
 
 					if (node.has_attribute("b0")) {
-						unsigned char const b0 = node.attribute_value("b0", 0UL),
-						                    b1 = node.attribute_value("b1", 0UL),
-						                    b2 = node.attribute_value("b2", 0UL),
-						                    b3 = node.attribute_value("b3", 0UL);
+						char const b0 = node.attribute_value("b0", 0L),
+						           b1 = node.attribute_value("b1", 0L),
+						           b2 = node.attribute_value("b2", 0L),
+						           b3 = node.attribute_value("b3", 0L);
 
-						return Input::Event::Utf8(b0, b1, b2, b3);
+						char const buf[5] { b0, b1, b2, b3, 0 };
+						return Utf8_ptr(buf).codepoint();
 					}
 
 					throw Missing_character_definition();
@@ -340,7 +346,7 @@ class Input_filter::Chargen_source : public Source, Source::Sink
 						Input::Keycode const code = key_code_by_name(name);
 
 						new (_alloc) Key::Rule(key(code).rules, cond,
-						                       _utf8_from_xml_node(key_node));
+						                       _codepoint_from_xml_node(key_node));
 					});
 				}
 
@@ -377,14 +383,16 @@ class Input_filter::Chargen_source : public Source, Source::Sink
 			Microseconds const _delay;
 			Microseconds const _rate;
 
-			Input::Event::Utf8 _curr_character { 0 };
+			Codepoint _curr_character { Codepoint::INVALID };
 
 			enum State { IDLE, REPEAT } _state { IDLE };
 
 			void _handle_timeout(Duration)
 			{
 				if (_state == REPEAT) {
-					_destination.submit_event(Input::Event(_curr_character));
+					_destination.submit_event(Input::Press_char{Input::KEY_UNKNOWN,
+					                                            _curr_character});
+					_destination.submit_event(Input::Release{Input::KEY_UNKNOWN});
 					_timeout.schedule(_rate);
 				}
 			}
@@ -400,7 +408,7 @@ class Input_filter::Chargen_source : public Source, Source::Sink
 				_rate (node.attribute_value("rate_ms",  0UL)*1000)
 			{ }
 
-			void schedule_repeat(Input::Event::Utf8 character)
+			void schedule_repeat(Codepoint character)
 			{
 				_curr_character = character;
 				_state          = REPEAT;
@@ -410,7 +418,7 @@ class Input_filter::Chargen_source : public Source, Source::Sink
 
 			void cancel()
 			{
-				_curr_character = Input::Event::Utf8(0);
+				_curr_character = Codepoint { Codepoint::INVALID };
 				_state          = IDLE;
 			}
 		};
@@ -420,43 +428,40 @@ class Input_filter::Chargen_source : public Source, Source::Sink
 		/**
 		 * Sink interface (called from our child node)
 		 */
-		void submit_event(Input::Event const &event) override
+		void submit_event(Event const &event) override
 		{
-			using Input::Event;
+			Event ev = event;
 
-			/* forward event as is */
-			_destination.submit_event(event);
+			ev.handle_press([&] (Input::Keycode keycode, Codepoint /* ignored */) {
 
-			/* don't do anything for non-press/release events */
-			if (event.type() != Event::PRESS && event.type() != Event::RELEASE)
-				return;
+				Key &key = _key_map.key(keycode);
+				key.state = Key::PRESSED;
 
-			Key &key = _key_map.key(event.keycode());
+				if (key.type == Key::MODIFIER) _update_modifier_state();
 
-			/* track key state */
-			if (event.type() == Event::PRESS)   key.state = Key::PRESSED;
-			if (event.type() == Event::RELEASE) key.state = Key::RELEASED;
+				/* supplement codepoint information to press event */
+				key.apply_best_matching_rule(_mod_map, [&] (Codepoint codepoint) {
 
-			if (key.type == Key::MODIFIER) {
-				_update_modifier_state();
-
-				/* never emit a character when pressing a modifier key */
-				return;
-			}
-
-			if (event.type() == Event::PRESS) {
-				key.apply_best_matching_rule(_mod_map, [&] (Event::Utf8 utf8) {
-
-					_destination.submit_event(Event(utf8));
+					ev = Event(Input::Press_char{keycode, codepoint});
 
 					if (_char_repeater.constructed())
-						_char_repeater->schedule_repeat(utf8);
+						_char_repeater->schedule_repeat(codepoint);
 				});
-			}
+			});
 
-			if (event.type() == Event::RELEASE)
+			ev.handle_release([&] (Input::Keycode keycode) {
+
+				Key &key = _key_map.key(keycode);
+				key.state = Key::RELEASED;
+
+				if (key.type == Key::MODIFIER) _update_modifier_state();
+
 				if (_char_repeater.constructed())
 					_char_repeater->cancel();
+			});
+
+			/* forward filtered event */
+			_destination.submit_event(ev);
 		}
 
 		Source &_source;

@@ -133,13 +133,9 @@ struct Main
 
 	void _handle()
 	{
-		for (int i = 0, num_ev = _input.flush(); i < num_ev; ++i) {
-			Input::Event const ev = _ev_ds.local_addr<Input::Event const>()[i];
-			if (ev.type() == Input::Event::PRESS) {
-				_click.play();
-				break;
-			}
-		}
+		_input.for_each_event([&] (Input::Event const &ev) {
+			if (ev.press())
+				_click.play(); });
 	}
 
 	Main(Env & env) : _env(env)

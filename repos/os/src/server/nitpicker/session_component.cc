@@ -238,14 +238,14 @@ void Session_component::submit_input_event(Input::Event e)
 	Point const origin_offset = _phys_pos(Point(0, 0), _view_stack.size());
 
 	/*
-	 * Transpose absolute coordinates by session-specific vertical
-	 * offset.
+	 * Transpose absolute coordinates by session-specific vertical offset.
 	 */
-	if (e.ax() || e.ay())
-		e = Event(e.type(), e.code(),
-		          max(0, e.ax() - origin_offset.x()),
-		          max(0, e.ay() - origin_offset.y()),
-		          e.rx(), e.ry());
+	e.handle_absolute_motion([&] (int x, int y) {
+		e = Absolute_motion{max(0, x - origin_offset.x()),
+		                    max(0, y - origin_offset.y())}; });
+	e.handle_touch([&] (Touch_id id, float x, float y) {
+		e = Touch{ id, max(0.0f, x - origin_offset.x()),
+		               max(0.0f, y - origin_offset.y())}; });
 
 	_input_session_component.submit(&e);
 }

@@ -203,30 +203,32 @@ void Component::construct(Genode::Env &env)
 	/*
 	 * Handle input events
 	 */
-	int omx = 0, omy = 0, key_cnt = 0;
-	Test_view *tv = 0;
+	int mx = 0, my = 0, key_cnt = 0;
+	Test_view *tv = nullptr;
 	while (1) {
 
 		while (!nitpicker.input()->pending()) timer.msleep(20);
 
 		nitpicker.input()->for_each_event([&] (Input::Event const &ev) {
-			if (ev.type() == Input::Event::PRESS)   key_cnt++;
-			if (ev.type() == Input::Event::RELEASE) key_cnt--;
 
-			/* move selected view */
-			if (ev.type() == Input::Event::MOTION && key_cnt > 0 && tv)
-				tv->move(tv->x() + ev.ax() - omx, tv->y() + ev.ay() - omy);
+			if (ev.press())   key_cnt++;
+			if (ev.release()) key_cnt--;
+
+			ev.handle_absolute_motion([&] (int x, int y) {
+
+				/* move selected view */
+				if (key_cnt > 0 && tv)
+					tv->move(tv->x() + x - mx, tv->y() + y - my);
+
+				mx = x; my = y;
+			});
 
 			/* find selected view and bring it to front */
-			if (ev.type() == Input::Event::PRESS && key_cnt == 1) {
-
-				tv = tvs.find(ev.ax(), ev.ay());
-
+			if (ev.press() && key_cnt == 1) {
+				tv = tvs.find(mx, my);
 				if (tv)
 					tvs.top(tv);
 			}
-
-			omx = ev.ax(); omy = ev.ay();
 		});
 	}
 

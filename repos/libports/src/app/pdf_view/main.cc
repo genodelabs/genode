@@ -377,12 +377,10 @@ struct Main
 	void _handle_input()
 	{
 		_input.for_each_event([&] (Input::Event const &ev) {
-
-			if (ev.type() == Input::Event::PRESS) {
-
-				int const ascii = keycode_to_ascii(ev.code());
+			ev.handle_press([&] (Input::Keycode key, Genode::Codepoint) {
+				int const ascii = keycode_to_ascii(key);
 				if (ascii) { _pdf_view.handle_key(ascii); }
-			}
+			});
 		});
 	}
 

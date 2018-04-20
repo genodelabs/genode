@@ -37,16 +37,16 @@ static inline bool _mouse_button(Keycode keycode) {
 static unsigned num_consecutive_events(Input::Event const *ev, unsigned max)
 {
 	if (max < 1) return 0;
-	if (ev->type() != Input::Event::MOTION) return 1;
 
-	bool const first_absolute = ev->absolute_motion();
+	bool const first_is_absolute_motion = ev->absolute_motion();
+	bool const first_is_relative_motion = ev->relative_motion();
 
-	/* iterate until we get a different event type, start at second */
 	unsigned cnt = 1;
 	for (ev++ ; cnt < max; cnt++, ev++) {
-		if (ev->type() != Input::Event::MOTION) break;
-		if (first_absolute != ev->absolute_motion()) break;
-	}
+		if (first_is_absolute_motion && ev->absolute_motion()) continue;
+		if (first_is_relative_motion && ev->relative_motion()) continue;
+		break;
+	};
 	return cnt;
 }
 
@@ -60,11 +60,26 @@ static unsigned num_consecutive_events(Input::Event const *ev, unsigned max)
  */
 static Input::Event merge_motion_events(Input::Event const *ev, unsigned n)
 {
-	Input::Event res;
-	for (unsigned i = 0; i < n; i++, ev++)
-		res = Input::Event(Input::Event::MOTION, 0, ev->ax(), ev->ay(),
-		                   res.rx() + ev->rx(), res.ry() + ev->ry());
-	return res;
+	if (n == 0) return Event();
+
+	if (ev->relative_motion()) {
+		int rx = 0, ry = 0;
+		for (unsigned i = 0; i < n; i++, ev++)
+			ev->handle_relative_motion([&] (int x, int y) { rx += x; ry += y; });
+
+		if (rx || ry)
+			return Relative_motion{rx, ry};
+	}
+
+	if (ev->absolute_motion()) {
+		int ax = 0, ay = 0;
+		for (unsigned i = 0; i < n; i++, ev++)
+			ev->handle_absolute_motion([&] (int x, int y) { ax = x; ay = y; });
+
+		return Absolute_motion{ax, ay};
+	}
+
+	return Event();
 }
 
 
@@ -74,62 +89,40 @@ static Input::Event merge_motion_events(Input::Event const *ev, unsigned n)
 
 void User_state::_handle_input_event(Input::Event ev)
 {
-	Input::Keycode     const keycode = ev.keycode();
-	Input::Event::Type const type    = ev.type();
+	/* transparently convert relative into absolute motion event */
+	ev.handle_relative_motion([&] (int x, int y) {
 
-	/*
-	 * Mangle incoming events
-	 */
-	int ax = _pointer_pos.x(), ay = _pointer_pos.y();
-	int rx = 0, ry = 0; /* skip info about relative motion by default */
+		int const ox = _pointer_pos.x(),
+		          oy = _pointer_pos.y();
 
-	/* transparently handle absolute and relative motion events */
-	if (type == Event::MOTION) {
-		if ((ev.rx() || ev.ry()) && ev.ax() == 0 && ev.ay() == 0) {
-			ax = max(0, min((int)_view_stack.size().w() - 1, ax + ev.rx()));
-			ay = max(0, min((int)_view_stack.size().h() - 1, ay + ev.ry()));
-		} else {
-			ax = ev.ax();
-			ay = ev.ay();
-		}
-	}
+		int const ax = max(0, min((int)_view_stack.size().w() - 1, ox + x)),
+		          ay = max(0, min((int)_view_stack.size().h() - 1, oy + y));
 
-	/* propagate relative motion for wheel events */
-	if (type == Event::WHEEL) {
-		rx = ev.rx();
-		ry = ev.ry();
-	}
+		ev = Absolute_motion{ax, ay};
+	});
 
-	if (type == Event::TOUCH) {
-		ax = ev.ax();
-		ay = ev.ay();
-		ev = Input::Event::create_touch_event(ax, ay, ev.code(),
-		                                      ev.touch_release());
-	} else if (type == Event::CHARACTER) {
-		ev = Input::Event(type, ev.code(), ax, ay, rx, ry);
-	} else
-		ev = Input::Event(type, keycode, ax, ay, rx, ry);
-
-	_pointer_pos = Point(ax, ay);
+	/* respond to motion events by updating the pointer position */
+	ev.handle_absolute_motion([&] (int x, int y) {
+		_pointer_pos = Point(x, y); });
 
 	bool const drag = _key_cnt > 0;
 
 	/* count keys */
-	if (type == Event::PRESS)           _key_cnt++;
-	if (type == Event::RELEASE && drag) _key_cnt--;
+	if (ev.press())           _key_cnt++;
+	if (ev.release() && drag) _key_cnt--;
 
 	/* track key states */
-	if (type == Event::PRESS) {
-		if (_key_array.pressed(keycode))
-			Genode::warning("suspicious double press of ", Input::key_name(keycode));
-		_key_array.pressed(keycode, true);
-	}
+	ev.handle_press([&] (Keycode key, Codepoint) {
+		if (_key_array.pressed(key))
+			Genode::warning("suspicious double press of ", Input::key_name(key));
+		_key_array.pressed(key, true);
+	});
 
-	if (type == Event::RELEASE) {
-		if (!_key_array.pressed(keycode))
-			Genode::warning("suspicious double release of ", Input::key_name(keycode));
-		_key_array.pressed(keycode, false);
-	}
+	ev.handle_release([&] (Keycode key) {
+		if (!_key_array.pressed(key))
+			Genode::warning("suspicious double release of ", Input::key_name(key));
+		_key_array.pressed(key, false);
+	});
 
 	View_component const * const pointed_view = _view_stack.find_view(_pointer_pos);
 
@@ -138,18 +131,18 @@ void User_state::_handle_input_event(Input::Event ev)
 	/*
 	 * Deliver a leave event if pointed-to session changed
 	 */
-	if (_hovered && (hovered != _hovered)) {
-
-		Input::Event leave_ev(Input::Event::LEAVE, 0, ax, ay, 0, 0);
-		_hovered->submit_input_event(leave_ev);
-	}
+	if (_hovered && (hovered != _hovered))
+		_hovered->submit_input_event(Hover_leave());
 
 	_hovered = hovered;
 
 	/*
 	 * Handle start of a key sequence
 	 */
-	if (type == Event::PRESS && (_key_cnt == 1)) {
+	ev.handle_press([&] (Keycode keycode, Codepoint) {
+
+		if (_key_cnt != 1)
+			return;
 
 		View_owner *global_receiver = nullptr;
 
@@ -163,14 +156,13 @@ void User_state::_handle_input_event(Input::Event ev)
 			/*
 			 * Notify both the old focused session and the new one.
 			 */
-			if (_focused) {
-				Input::Event unfocus_ev(Input::Event::FOCUS, 0, ax, ay, 0, 0);
-				_focused->submit_input_event(unfocus_ev);
-			}
+			if (_focused)
+				_focused->submit_input_event(Focus_leave());
 
 			if (_hovered) {
-				Input::Event focus_ev(Input::Event::FOCUS, 1, ax, ay, 0, 0);
-				_hovered->submit_input_event(focus_ev);
+				_hovered->submit_input_event(Absolute_motion{_pointer_pos.x(),
+				                                             _pointer_pos.y()});
+				_hovered->submit_input_event(Focus_enter());
 			}
 
 			if (_hovered->has_transient_focusable_domain()) {
@@ -219,12 +211,12 @@ void User_state::_handle_input_event(Input::Event ev)
 		 */
 		if (!global_receiver)
 			_input_receiver = _focused;
-	}
+	});
 
 	/*
 	 * Deliver event to session
 	 */
-	if (type == Event::MOTION || type == Event::WHEEL || type == Event::TOUCH) {
+	if (ev.absolute_motion() || ev.wheel() || ev.touch() || ev.touch_release()) {
 
 		if (_key_cnt == 0) {
 
@@ -248,30 +240,28 @@ void User_state::_handle_input_event(Input::Event ev)
 	 * Deliver press/release event to focused session or the receiver of global
 	 * key.
 	 */
-	if ((type == Event::PRESS) && _input_receiver) {
-		if (!_mouse_button(ev.keycode())
+	ev.handle_press([&] (Keycode key, Codepoint) {
+
+		if (!_input_receiver)
+			return;
+
+		if (!_mouse_button(key)
 		 || (_hovered
 		  && (_hovered->has_focusable_domain()
 		   || _hovered->has_same_domain(_focused))))
 			_input_receiver->submit_input_event(ev);
 		else
 			_input_receiver = nullptr;
-	}
+	});
 
-	if ((type == Event::RELEASE) && _input_receiver)
-		_input_receiver->submit_input_event(ev);
-
-	/*
-	 * Forward character events
-	 */
-	if (type == Event::CHARACTER && _input_receiver)
+	if (ev.release() && _input_receiver)
 		_input_receiver->submit_input_event(ev);
 
 	/*
 	 * Detect end of global key sequence
 	 */
-	if (ev.type() == Event::RELEASE && (_key_cnt == 0) && _global_key_sequence) {
-		_input_receiver = _focused;
+	if (ev.release() && (_key_cnt == 0) && _global_key_sequence) {
+		_input_receiver      = _focused;
 		_global_key_sequence = false;
 	}
 }
@@ -299,21 +289,13 @@ User_state::handle_input_events(Input::Event const * const ev_buf,
 			Input::Event const *e = &ev_buf[src_ev_cnt];
 			Input::Event curr = *e;
 
-			if (e->type() == Input::Event::MOTION) {
-				unsigned n = num_consecutive_events(e, num_ev - src_ev_cnt);
+			if (e->absolute_motion() || e->relative_motion()) {
+				unsigned const n = num_consecutive_events(e, num_ev - src_ev_cnt);
 				curr = merge_motion_events(e, n);
 
 				/* skip merged events */
 				src_ev_cnt += n - 1;
 			}
-
-			/*
-			 * If subsequential relative motion events are merged to
-			 * a zero-motion event, drop it. Otherwise, it would be
-			 * misinterpreted as absolute event pointing to (0, 0).
-			 */
-			if (e->relative_motion() && curr.rx() == 0 && curr.ry() == 0)
-				continue;
 
 			/*
 			 * If we detect a pressed key sometime during the event processing,
@@ -331,7 +313,7 @@ User_state::handle_input_events(Input::Event const * const ev_buf,
 		 * updates the pointed session, which might have changed by other
 		 * means, for example view movement.
 		 */
-		_handle_input_event(Input::Event());
+		_handle_input_event(Event());
 	}
 
 	/*
@@ -341,8 +323,7 @@ User_state::handle_input_events(Input::Event const * const ev_buf,
 
 	bool key_state_affected = false;
 	for (unsigned i = 0; i < num_ev; i++)
-		key_state_affected |= (ev_buf[i].type() == Input::Event::PRESS) ||
-		                      (ev_buf[i].type() == Input::Event::RELEASE);
+		key_state_affected |= (ev_buf[i].press() || ev_buf[i].release());
 
 	_apply_pending_focus_change();
 

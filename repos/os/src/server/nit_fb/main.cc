@@ -42,42 +42,31 @@ namespace Nit_fb {
 /**
  * Translate input event
  */
-static Input::Event translate_event(Input::Event  const ev,
+static Input::Event translate_event(Input::Event        ev,
                                     Nit_fb::Point const input_origin,
                                     Nit_fb::Area  const boundary)
 {
-	switch (ev.type()) {
+	using Nit_fb::Point;
 
-	case Input::Event::MOTION:
-	case Input::Event::PRESS:
-	case Input::Event::RELEASE:
-	case Input::Event::FOCUS:
-	case Input::Event::LEAVE:
-	case Input::Event::TOUCH:
-		{
-			Nit_fb::Point abs_pos = Nit_fb::Point(ev.ax(), ev.ay()) -
-			                                      input_origin;
+	/* function to clamp point to bounday */
+	auto clamp = [boundary] (Point p) {
+		return Point(Genode::min((int)boundary.w() - 1, Genode::max(0, p.x())),
+		             Genode::min((int)boundary.h() - 1, Genode::max(0, p.y()))); };
 
-			using Genode::min;
-			using Genode::max;
-			using Input::Event;
+	/* function to translate point to 'input_origin' */
+	auto translate = [input_origin] (Point p) { return p - input_origin; };
 
-			int const ax = min((int)boundary.w() - 1, max(0, abs_pos.x()));
-			int const ay = min((int)boundary.h() - 1, max(0, abs_pos.y()));
+	ev.handle_absolute_motion([&] (int x, int y) {
+		Point p = clamp(translate(Point(x, y)));
+		ev = Input::Absolute_motion{p.x(), p.y()};
+	});
 
-			if (ev.type() == Event::TOUCH)
-				return Event::create_touch_event(ax, ay, ev.code(),
-				                                 ev.is_touch_release());
+	ev.handle_touch([&] (Input::Touch_id id, float x, float y) {
+		Point p = clamp(translate(Point(x, y)));
+		ev = Input::Touch{id, (float)p.x(), (float)p.y()};
+	});
 
-			return Event(ev.type(), ev.code(), ax, ay, 0, 0);
-		}
-
-	case Input::Event::INVALID:
-	case Input::Event::WHEEL:
-	case Input::Event::CHARACTER:
-		return ev;
-	}
-	return Input::Event();
+	return ev;
 }
 
 
@@ -424,9 +413,7 @@ struct Nit_fb::Main : View_updater
 		bool update = false;
 
 		for (unsigned i = 0; i < num; i++) {
-			if (events[i].type() == Input::Event::FOCUS)
-				update = events[i].code();
-
+			update |= events[i].focus_enter();
 			input_session.submit(translate_event(events[i], position, fb_session.size()));
 		}
 

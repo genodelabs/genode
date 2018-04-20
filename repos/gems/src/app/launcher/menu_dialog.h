@@ -185,12 +185,12 @@ class Launcher::Menu_dialog : Input_event_handler, Dialog_generator,
 		 */
 		bool handle_input_event(Input::Event const &ev) override
 		{
-			if (ev.type() == Input::Event::LEAVE) {
+			if (ev.hover_leave()) {
 				_response_handler.handle_menu_leave();
 				return false;
 			}
 
-			if (ev.type() == Input::Event::MOTION) {
+			if (ev.absolute_motion()) {
 
 				_response_handler.handle_menu_motion();
 
@@ -205,15 +205,11 @@ class Launcher::Menu_dialog : Input_event_handler, Dialog_generator,
 				return true;
 			}
 
-			if (ev.type() == Input::Event::PRESS)   _key_cnt++;
-			if (ev.type() == Input::Event::RELEASE) _key_cnt--;
+			if (ev.press())   _key_cnt++;
+			if (ev.release()) _key_cnt--;
 
-			if (ev.type() == Input::Event::PRESS
-			 && ev.keycode() == Input::BTN_LEFT
-			 && _key_cnt == 1) {
-
-			 	_response_handler.handle_selection(_hovered());
-			}
+			if (ev.key_press(Input::BTN_LEFT) && _key_cnt == 1)
+				_response_handler.handle_selection(_hovered());
 
 			return false;
 		}

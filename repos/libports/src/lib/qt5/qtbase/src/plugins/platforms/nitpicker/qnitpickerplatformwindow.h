@@ -39,11 +39,6 @@ class QNitpickerPlatformWindow : public QObject, public QPlatformWindow
 
 	private:
 
-		enum {
-			KEY_REPEAT_DELAY_MS = 500, /* 500 ms delay before first repetition */
-			KEY_REPEAT_RATE_MS  =  50  /* 50 ms delay between repetitions */
-		};
-
 		Genode::Env                     &_env;
 		Nitpicker::Connection            _nitpicker_session;
 		Framebuffer::Session_client      _framebuffer_session;
@@ -55,15 +50,18 @@ class QNitpickerPlatformWindow : public QObject, public QPlatformWindow
 		Nitpicker::Session::View_handle  _view_handle;
 		Input::Session_client            _input_session;
 		Genode::Attached_dataspace       _ev_buf;
+		QPoint                           _mouse_position;
 		Qt::MouseButtons                 _mouse_button_state;
-		QFdContainer                     _evdevkeyboard_fd { -1 };
-		QEvdevKeyboardHandler            _keyboard_handler;
 		QByteArray                       _title;
 		bool                             _resize_handle;
 		bool                             _decoration;
 		EGLSurface                       _egl_surface;
-		QMember<QTimer>                  _key_repeat_timer;
-		int                              _last_keycode;
+
+		QPoint _local_position() const
+		{
+			return QPoint(_mouse_position.x() - geometry().x(),
+			              _mouse_position.y() - geometry().y());
+		}
 
 		Genode::Signal_dispatcher<QNitpickerPlatformWindow> _input_signal_dispatcher;
 		Genode::Signal_dispatcher<QNitpickerPlatformWindow> _mode_changed_signal_dispatcher;
@@ -72,8 +70,6 @@ class QNitpickerPlatformWindow : public QObject, public QPlatformWindow
 		QTouchDevice                                *_touch_device;
 		QTouchDevice * _init_touch_device();
 
-		void _process_mouse_event(Input::Event const &ev);
-		void _process_key_event(Input::Event const &ev);
 		void _process_touch_events(QList<Input::Event> const &events);
 
 		Nitpicker::Session::View_handle _create_view();
@@ -83,7 +79,6 @@ class QNitpickerPlatformWindow : public QObject, public QPlatformWindow
 
 		void _handle_input(unsigned int);
 		void _handle_mode_changed(unsigned int);
-		void _key_repeat();
 
 	Q_SIGNALS:
 

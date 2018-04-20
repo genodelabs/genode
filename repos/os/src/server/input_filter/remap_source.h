@@ -51,22 +51,25 @@ class Input_filter::Remap_source : public Source, Source::Sink
 		{
 			using Input::Event;
 
-			bool const key_event =
-				event.type() == Event::PRESS || event.type() == Event::RELEASE;
-
-			bool const code_valid =
-				event.keycode() >= 0 && event.keycode() < Input::KEY_MAX;
-
 			/* forward events that are unrelated to the remapper */
-			if (!key_event || !code_valid) {
+			if (!event.press() && !event.release()) {
 				_destination.submit_event(event);
 				return;
 			}
 
-			/* remap the key code */
-			Key &key = _keys[event.keycode()];
+			/*
+			 * remap the key code for press and release events
+			 *
+			 * The range of the 'key' is checked by the 'Event' handle methods,
+			 * so it is safe to use as array index.
+			 */
+			auto remap = [&] (Input::Keycode key) { return _keys[key].code; };
 
-			_destination.submit_event(Event(event.type(), key.code, 0, 0, 0, 0));
+			event.handle_press([&] (Input::Keycode key, Codepoint codepoint) {
+				_destination.submit_event(Input::Press_char{remap(key), codepoint}); });
+
+			event.handle_release([&] (Input::Keycode key) {
+				_destination.submit_event(Input::Release{remap(key)}); });
 		}
 
 		void _apply_config(Xml_node const config, unsigned const max_recursion = 4)

@@ -200,12 +200,12 @@ if { [have_include "power_on/qemu"] || ![get_cmd_switch --autopilot] } { run_gen
 
 # autopilot test
 
-run_genode_until {\[init -\> test-input\] Input event #1\t} 60
+run_genode_until {\[init -\> test-input\] Input event #0\t} 60
 
 # remove everything before the first interesting line
-regexp {(\[init -\> test-input\] Input event #1\t.*)} $output all output
+regexp {(\[init -\> test-input\] Input event #0\t.*)} $output all output
 
-run_genode_until {\[init -\> test-input\] Input event #12.*\n} 40 [output_spawn_id]
+run_genode_until {\[init -\> test-input\] Input event #11.*\n} 40 [output_spawn_id]
 
 # pay only attention to the output of init and its children
 grep_output {^\[init }
@@ -220,22 +220,22 @@ filter_out_color_escape_sequences
 trim_lines
 
 compare_output_to {
-[init -> test-input] Input event #1	type=PRESS  	code=45	rx=0	ry=0	ax=0	ay=0	key_cnt=1	KEY_X
-[init -> test-input] Input event #2	type=RELEASE	code=45	rx=0	ry=0	ax=0	ay=0	key_cnt=0	KEY_X
-[init -> test-input] Input event #3	type=PRESS  	code=272	rx=0	ry=0	ax=0	ay=0	key_cnt=1	BTN_LEFT
-[init -> test-input] Input event #4	type=MOTION 	code=0	rx=-1	ry=0	ax=0	ay=0	key_cnt=1	
-[init -> test-input] Input event #5	type=MOTION 	code=0	rx=0	ry=1	ax=0	ay=0	key_cnt=1	
-[init -> test-input] Input event #6	type=RELEASE	code=272	rx=0	ry=0	ax=0	ay=0	key_cnt=0	BTN_LEFT
+[init -> test-input] Input event #0	PRESS KEY_X 0
+[init -> test-input] Input event #1	RELEASE KEY_X
+[init -> test-input] Input event #2	PRESS BTN_LEFT 0
+[init -> test-input] Input event #3	REL_MOTION -1+0
+[init -> test-input] Input event #4	REL_MOTION +0+1
+[init -> test-input] Input event #5	RELEASE BTN_LEFT
 [init -> usb_drv] dev_info: USB disconnect, device
 [init -> usb_drv] dev_info: new full-speed USB device
 [init -> usb_drv] dev_info: D L
 [init -> usb_drv] dev_info: input: USB HID v1.11 Keyboard [D L]
 [init -> usb_drv] dev_info: D L
 [init -> usb_drv] dev_info: input: USB HID v1.11 Mouse [D L]
-[init -> test-input] Input event #7	type=PRESS  	code=45	rx=0	ry=0	ax=0	ay=0	key_cnt=1	KEY_X
-[init -> test-input] Input event #8	type=RELEASE	code=45	rx=0	ry=0	ax=0	ay=0	key_cnt=0	KEY_X
-[init -> test-input] Input event #9	type=PRESS  	code=272	rx=0	ry=0	ax=0	ay=0	key_cnt=1	BTN_LEFT
-[init -> test-input] Input event #10	type=MOTION 	code=0	rx=-1	ry=0	ax=0	ay=0	key_cnt=1	
-[init -> test-input] Input event #11	type=MOTION 	code=0	rx=0	ry=1	ax=0	ay=0	key_cnt=1	
-[init -> test-input] Input event #12	type=RELEASE	code=272	rx=0	ry=0	ax=0	ay=0	key_cnt=0	BTN_LEFT
+[init -> test-input] Input event #6	PRESS KEY_X 0
+[init -> test-input] Input event #7	RELEASE KEY_X
+[init -> test-input] Input event #8	PRESS BTN_LEFT 0
+[init -> test-input] Input event #9	REL_MOTION -1+0
+[init -> test-input] Input event #10	REL_MOTION +0+1
+[init -> test-input] Input event #11	RELEASE BTN_LEFT
 }

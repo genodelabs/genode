@@ -451,6 +451,8 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 		Area                         _requested_size;
 		bool                         _resize_requested = false;
 		bool                         _has_alpha = false;
+		Point                  const _initial_pointer_pos { -1, -1 };
+		Point                        _pointer_pos = _initial_pointer_pos;
 
 		/*
 		 * Command buffer
@@ -492,34 +494,14 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 		/**
 		 * Translate input event to the client's coordinate system
 		 */
-		Input::Event _translate_event(Input::Event const ev, Point const input_origin)
+		Input::Event _translate_event(Input::Event ev, Point const origin)
 		{
-			switch (ev.type()) {
+			ev.handle_absolute_motion([&] (int x, int y) {
+				Point p = Point(x, y) + origin;
+				ev = Input::Absolute_motion{p.x(), p.y()};
+			});
 
-			case Input::Event::MOTION:
-			case Input::Event::PRESS:
-			case Input::Event::RELEASE:
-			case Input::Event::FOCUS:
-			case Input::Event::LEAVE:
-				{
-					Point abs_pos = Point(ev.ax(), ev.ay()) + input_origin;
-					return Input::Event(ev.type(), ev.code(),
-					                    abs_pos.x(), abs_pos.y(), 0, 0);
-				}
-
-			case Input::Event::TOUCH:
-			case Input::Event::CHARACTER:
-			case Input::Event::WHEEL:
-				{
-					Point abs_pos = Point(ev.ax(), ev.ay()) + input_origin;
-					return Input::Event(ev.type(), ev.code(),
-					                    abs_pos.x(), abs_pos.y(), ev.rx(), ev.ry());
-				}
-
-			case Input::Event::INVALID:
-				return ev;
-			}
-			return Input::Event();
+			return ev;
 		}
 
 		bool _click_into_unfocused_view(Input::Event const ev)
@@ -530,7 +512,7 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 			 * Right now, we report more butten events to the layouter
 			 * than the layouter really needs.
 			 */
-			if (ev.type() == Input::Event::PRESS && ev.keycode() == Input::BTN_LEFT)
+			if (ev.key_press(Input::BTN_LEFT))
 				return true;
 
 			return false;
@@ -555,20 +537,24 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 
 					Input::Event const ev = events[i];
 
+					/* keep track of pointer position */
+					ev.handle_absolute_motion([&] (int x, int y) {
+						_pointer_pos = Point(x, y); });
+
 					/* propagate layout-affecting events to the layouter */
 					if (_click_into_unfocused_view(ev))
-						_click_handler.handle_click(Point(ev.ax(), ev.ay()));
+						_click_handler.handle_click(_pointer_pos);
 
 					/*
 					 * Reset pointer model for the decorator once the pointer
 					 * enters the application area of a window.
 					 */
-					if (ev.type() == Input::Event::MOTION && _first_motion) {
-						_click_handler.handle_enter(Point(ev.ax(), ev.ay()));
+					if (ev.absolute_motion() && _first_motion) {
+						_click_handler.handle_enter(_pointer_pos);
 						_first_motion = false;
 					}
 
-					if (ev.type() == Input::Event::LEAVE)
+					if (ev.hover_leave())
 						_first_motion = true;
 
 					/* submit event to the client */
@@ -1016,12 +1002,6 @@ class Wm::Nitpicker::Root : public Genode::Rpc_object<Genode::Typed_root<Session
 			Reporter                 &pointer_reporter;
 			Last_motion              &last_motion;
 
-			void _submit_button_event(Input::Event::Type type, Nitpicker::Point pos)
-			{
-				window_layouter_input.submit(Input::Event(type, Input::BTN_LEFT,
-				                                          pos.x(), pos.y(), 0, 0));
-			}
-
 			void handle_enter(Nitpicker::Point pos) override
 			{
 				last_motion = LAST_MOTION_NITPICKER;
@@ -1049,8 +1029,9 @@ class Wm::Nitpicker::Root : public Genode::Rpc_object<Genode::Typed_root<Session
 				 * Supply artificial mouse click to the decorator's input session
 				 * (which is routed to the layouter).
 				 */
-				_submit_button_event(Input::Event::PRESS,   pos);
-				_submit_button_event(Input::Event::RELEASE, pos);
+				window_layouter_input.submit(Input::Absolute_motion{pos.x(), pos.y()});
+				window_layouter_input.submit(Input::Press{Input::BTN_LEFT});
+				window_layouter_input.submit(Input::Release{Input::BTN_LEFT});
 			}
 
 			Click_handler(Input::Session_component &window_layouter_input,

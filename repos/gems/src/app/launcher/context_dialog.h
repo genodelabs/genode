@@ -169,7 +169,7 @@ class Launcher::Context_dialog : Input_event_handler, Dialog_generator,
 		 */
 		bool handle_input_event(Input::Event const &ev) override
 		{
-			if (ev.type() == Input::Event::MOTION) {
+			if (ev.absolute_motion()) {
 
 				/*
 				 * Re-enable the visibility of the menu if we detect motion
@@ -182,17 +182,15 @@ class Launcher::Context_dialog : Input_event_handler, Dialog_generator,
 				return true;
 			}
 
-			if (ev.type() == Input::Event::LEAVE) {
+			if (ev.hover_leave()) {
 				visible(false);
 				return true;
 			}
 
-			if (ev.type() == Input::Event::PRESS)   _key_cnt++;
-			if (ev.type() == Input::Event::RELEASE) _key_cnt--;
+			if (ev.press())   _key_cnt++;
+			if (ev.release()) _key_cnt--;
 
-			if (ev.type() == Input::Event::PRESS
-			 && ev.keycode() == Input::BTN_LEFT
-			 && _key_cnt == 1) {
+			if (ev.key_press(Input::BTN_LEFT) && _key_cnt == 1) {
 
 				Label const hovered = _hovered();
 
@@ -202,8 +200,7 @@ class Launcher::Context_dialog : Input_event_handler, Dialog_generator,
 				dialog_changed();
 			}
 
-			if (ev.type() == Input::Event::RELEASE
-			 && _click_in_progress && _key_cnt == 0) {
+			if (ev.release() && _click_in_progress && _key_cnt == 0) {
 
 				Label const hovered = _hovered();
 

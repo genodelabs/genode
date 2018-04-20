@@ -95,9 +95,11 @@ class Input::Buttons {
 			for (unsigned i = 0; i < (sizeof(buttons)/sizeof(int)); i++) {
 				if ((_state & buttons[i]) == (buf & buttons[i]))
 					continue;
-				Input::Event::Type event = (buf & buttons[i]) ?
-					Input::Event::PRESS : Input::Event::RELEASE;
-				ev_queue.add(Input::Event(event, codes[i], 0, 0, 0, 0));
+
+				Input::Keycode const key = Input::Keycode(codes[i]);
+
+				if (buf & buttons[i]) ev_queue.add(Input::Press  {key});
+				else                  ev_queue.add(Input::Release{key});
 			};
 			_state = buf;
 		}

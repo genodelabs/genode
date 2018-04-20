@@ -66,17 +66,22 @@ struct Ps2_mouse_packet : Genode::Register<32>
 
 static bool mouse_event(Input::Event const &ev)
 {
-	using Input::Event;
-	if (ev.type() == Event::PRESS || ev.type() == Event::RELEASE) {
-		if (ev.code() == Input::BTN_LEFT)   return true;
-		if (ev.code() == Input::BTN_MIDDLE) return true;
-		if (ev.code() == Input::BTN_RIGHT)  return true;
-	}
+	using namespace Input;
 
-	if (ev.type() == Event::MOTION)
-		return true;
+	bool result = false;
 
-	return false;
+	auto mouse_button = [] (Keycode key) {
+		return key == BTN_LEFT || key == BTN_MIDDLE || key == BTN_RIGHT; };
+
+	ev.handle_press([&] (Keycode key, Genode::Codepoint) {
+		result |= mouse_button(key); });
+
+	ev.handle_release([&] (Keycode key) {
+		result |= mouse_button(key); });
+
+	result |= ev.absolute_motion() || ev.relative_motion();
+
+	return result;
 }
 
 
@@ -88,26 +93,25 @@ static bool mouse_event(Input::Event const &ev)
 unsigned Seoul::Console::_input_to_ps2mouse(Input::Event const &ev)
 {
 	/* track state of mouse buttons */
-	using Input::Event;
-	if (ev.type() == Event::PRESS || ev.type() == Event::RELEASE) {
-		bool const pressed = ev.type() == Event::PRESS;
-		if (ev.code() == Input::BTN_LEFT)   _left   = pressed;
-		if (ev.code() == Input::BTN_MIDDLE) _middle = pressed;
-		if (ev.code() == Input::BTN_RIGHT)  _right  = pressed;
-	}
+	auto apply_button = [] (Input::Event const &ev, Input::Keycode key, bool &state) {
+		if (ev.key_press  (key)) state = true;
+		if (ev.key_release(key)) state = false;
+	};
 
-	int rx;
-	int ry;
+	apply_button(ev, Input::BTN_LEFT,   _left);
+	apply_button(ev, Input::BTN_MIDDLE, _middle);
+	apply_button(ev, Input::BTN_RIGHT,  _right);
 
-	if (ev.absolute_motion()) {
-		static Input::Event last_event;
-		rx = ev.ax() - last_event.ax();
-		ry = ev.ay() - last_event.ay();
-		last_event = ev;
-	} else {
-		rx = ev.rx();
-		ry = ev.ry();
-	}
+	int rx = 0;
+	int ry = 0;
+
+	ev.handle_absolute_motion([&] (int x, int y) {
+		static int ox = 0, oy = 0;
+		rx = x - ox; ry = y - oy;
+		ox = x; oy = y;
+	});
+
+	ev.handle_relative_motion([&] (int x, int y) { rx = x; ry = y; });
 
 	/* clamp relative motion vector to bounds */
 	int const boundary = 200;
@@ -316,16 +320,13 @@ void Seoul::Console::_handle_input()
 			_motherboard()->bus_input.send(msg);
 		}
 
-		if (ev.type() == Input::Event::PRESS)   {
-			if (ev.code() <= 0xee) {
-				_vkeyb.handle_keycode_press(ev.code());
-			}
-		}
-		if (ev.type() == Input::Event::RELEASE) {
-			if (ev.code() <= 0xee) { /* keyboard event */
-				_vkeyb.handle_keycode_release(ev.code());
-			}
-		}
+		ev.handle_press([&] (Input::Keycode key, Genode::Codepoint) {
+			if (key <= 0xee)
+				_vkeyb.handle_keycode_press(key); });
+
+		ev.handle_release([&] (Input::Keycode key) {
+			if (key <= 0xee)
+				_vkeyb.handle_keycode_release(key); });
 	});
 }
 

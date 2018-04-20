@@ -56,18 +56,6 @@ class Input_filter::Button_scroll_source : public Source, Source::Sink
 			 */
 			int _accumulated_motion = 0;
 
-			bool _magic_button_press_event(Input::Event const &event) const
-			{
-				return (event.type() == Input::Event::PRESS)
-				    && (event.keycode() == _button);
-			}
-
-			bool _magic_button_release_event(Input::Event const &event) const
-			{
-				return (event.type() == Input::Event::RELEASE)
-				    && (event.keycode() == _button);
-			}
-
 			Wheel(Xml_node config)
 			:
 				_button(key_code_by_name(_button_attribute(config).string())),
@@ -78,7 +66,7 @@ class Input_filter::Button_scroll_source : public Source, Source::Sink
 			{
 				switch (_state) {
 				case IDLE:
-					if (_magic_button_press_event(event)) {
+					if (event.key_press(_button)) {
 						_state = BUTTON_PRESSED;
 						_accumulated_motion = 0;
 					}
@@ -103,7 +91,7 @@ class Input_filter::Button_scroll_source : public Source, Source::Sink
 			 */
 			bool handle_deactivation(Input::Event const &event)
 			{
-				if (_magic_button_release_event(event)) {
+				if (event.key_release(_button)) {
 					bool const emit_press_release = (_state == BUTTON_PRESSED);
 					_state = IDLE;
 					_accumulated_motion = 0;
@@ -144,8 +132,7 @@ class Input_filter::Button_scroll_source : public Source, Source::Sink
 			bool suppressed(Input::Event const event)
 			{
 				return (_state == ACTIVE && event.relative_motion())
-				     || _magic_button_press_event(event)
-				     || _magic_button_release_event(event);
+				     || event.key_press(_button);
 			}
 		};
 
@@ -167,18 +154,17 @@ class Input_filter::Button_scroll_source : public Source, Source::Sink
 			_vertical_wheel  .handle_activation(event);
 			_horizontal_wheel.handle_activation(event);
 
-			if (event.relative_motion()) {
-				_vertical_wheel  .apply_relative_motion(event.ry());
-				_horizontal_wheel.apply_relative_motion(event.rx());
-			}
+			event.handle_relative_motion([&] (int x, int y) {
+				_vertical_wheel  .apply_relative_motion(y);
+				_horizontal_wheel.apply_relative_motion(x);
+			});
 
 			/* emit artificial wheel event */
 			int const wheel_x = _horizontal_wheel.pending_motion(),
 			          wheel_y = _vertical_wheel  .pending_motion();
 
 			if (wheel_x || wheel_y)
-				_destination.submit_event(Event(Event::WHEEL, 0, 0, 0,
-				                                wheel_x, wheel_y));
+				_destination.submit_event(Input::Wheel{wheel_x, wheel_y});
 
 			/*
 			 * Submit both press event and release event of magic button at
@@ -188,19 +174,18 @@ class Input_filter::Button_scroll_source : public Source, Source::Sink
 			 * both conditions regardless of the result of the first call of
 			 * 'handle_activation'.
 			 */
-			if (_vertical_wheel  .handle_deactivation(event)
-			  | _horizontal_wheel.handle_deactivation(event)) {
+			event.handle_release([&] (Input::Keycode key) {
+				if (_vertical_wheel  .handle_deactivation(event)
+				  | _horizontal_wheel.handle_deactivation(event)) {
 
-				_destination.submit_event(Event(Event::PRESS, event.code(), 0, 0, 0, 0));
-				_destination.submit_event(event);
-				return;
-			}
+					_destination.submit_event(Input::Press{key});
+				}
+			});
 
 			/* hide consumed relative motion and magic-button press events */
 			if (_vertical_wheel  .suppressed(event)) return;
 			if (_horizontal_wheel.suppressed(event)) return;
 
-			/* forward unrelated events */
 			_destination.submit_event(event);
 		}
 

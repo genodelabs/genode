@@ -111,9 +111,11 @@ class Ps2::Mouse : public Input_driver
 
 			_check_for_event_queue_overflow();
 
-			_ev_queue.add(Input::Event(new_state ? Input::Event::PRESS
-			                                     : Input::Event::RELEASE,
-			                           key_code, 0, 0, 0, 0));
+			if (new_state)
+				_ev_queue.add(Input::Press{Input::Keycode(key_code)});
+			else
+				_ev_queue.add(Input::Release{Input::Keycode(key_code)});
+
 			*old_state = new_state;
 		}
 
@@ -242,8 +244,7 @@ class Ps2::Mouse : public Input_driver
 
 				_check_for_event_queue_overflow();
 
-				_ev_queue.add(Input::Event(Input::Event::MOTION,
-				                           0, 0, 0, rel_x, rel_y));
+				_ev_queue.add(Input::Relative_motion{rel_x, rel_y});
 			}
 
 			/* generate wheel event */
@@ -264,8 +265,7 @@ class Ps2::Mouse : public Input_driver
 
 				_check_for_event_queue_overflow();
 
-				_ev_queue.add(Input::Event(Input::Event::WHEEL,
-				                           0, 0, 0, 0, rel_z));
+				_ev_queue.add(Input::Wheel{0, rel_z});
 			}
 
 			/* detect changes of mouse-button state and post corresponding events */

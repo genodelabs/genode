@@ -225,18 +225,18 @@ struct Wm::Decorator_nitpicker_session : Genode::Rpc_object<Nitpicker::Session>,
 		while (_nitpicker_session.input()->pending())
 			_nitpicker_session.input()->for_each_event([&] (Input::Event const &ev) {
 
-				if (ev.type() == Input::Event::MOTION) {
+				ev.handle_absolute_motion([&] (int x, int y) {
 
 					_last_motion = LAST_MOTION_DECORATOR;
 
 					Reporter::Xml_generator xml(_pointer_reporter, [&] ()
 					{
-						xml.attribute("xpos", ev.ax());
-						xml.attribute("ypos", ev.ay());
+						xml.attribute("xpos", x);
+						xml.attribute("ypos", y);
 					});
-				}
+				});
 
-				if (ev.type() == Input::Event::LEAVE) {
+				if (ev.hover_leave()) {
 
 					/*
 					 * Invalidate pointer as reported to the decorator if the

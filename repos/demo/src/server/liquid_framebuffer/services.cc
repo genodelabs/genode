@@ -61,23 +61,16 @@ class Window_content : public Scout::Element
 
 					Point mouse_position = ev.mouse_position - _element->abs_position();
 
-					int code = 0;
+					auto motion = [&] (Point p) { return Input::Absolute_motion{p.x(), p.y()}; };
 
-					if (ev.type == Event::PRESS || ev.type == Event::RELEASE)
-						code = ev.code;
+					if (ev.type == Event::MOTION)
+						_input_session.submit(motion(mouse_position));
 
-					Input::Event::Type type;
+					if (ev.type == Event::PRESS)
+						_input_session.submit(Input::Press{Input::Keycode(ev.code)});
 
-					type = (ev.type == Event::MOTION)  ? Input::Event::MOTION
-					     : (ev.type == Event::PRESS)   ? Input::Event::PRESS
-					     : (ev.type == Event::RELEASE) ? Input::Event::RELEASE
-					     : Input::Event::INVALID;
-
-					if (type != Input::Event::INVALID)
-						_input_session.submit(Input::Event(type, code, mouse_position.x(),
-						                                   mouse_position.y(),
-						                                   mouse_position.x() - _old_mouse_position.x(),
-						                                   mouse_position.y() - _old_mouse_position.y()));
+					if (ev.type == Event::RELEASE)
+						_input_session.submit(Input::Release{Input::Keycode(ev.code)});
 
 					_old_mouse_position = mouse_position;
 				}

@@ -53,130 +53,133 @@ void QNitpickerPlatformWindow::_process_touch_events(QList<Input::Event> const &
 	QList<QWindowSystemInterface::TouchPoint> touch_points;
 	for (QList<Input::Event>::const_iterator i = events.begin(); i != events.end(); ++i) {
 
-		/*
-		 * Coordinates must be normalized to positions of the platform window.
-		 * We lack information about the value ranges (min and max) of touch
-		 * coordinates to normalize ourselves.
-		 */
-		QPointF const pos((qreal)i->ax(), (qreal)i->ay() );
+		i->handle_touch([&] (Input::Touch_id id, int x, int y) {
 
-		QWindowSystemInterface::TouchPoint &otp = _touch_points[i->code()];
-		QWindowSystemInterface::TouchPoint tp;
+			if (id.value >= _touch_points.size()) {
+				Genode::warning("drop touch input, out of bounds");
+				return;
+			}
 
-		tp.id   = i->code();
-		tp.area = QRectF(QPointF(0, 0), QSize(1, 1));
+			QWindowSystemInterface::TouchPoint &otp = _touch_points[id.value];
+			QWindowSystemInterface::TouchPoint tp;
 
-		/* report 1x1 rectangular area centered at screen coordinates */
-		tp.area.moveCenter(QPointF(i->ax(), i->ay()));
+			tp.id   = id.value;
+			tp.area = QRectF(QPointF(0, 0), QSize(1, 1));
 
-		if (i->rx() == -1 && i->ry() == -1) {
-			tp.state    = Qt::TouchPointReleased;
-			tp.pressure = 0;
-		} else {
+			/* report 1x1 rectangular area centered at screen coordinates */
+			tp.area.moveCenter(QPointF(x, y));
+
 			tp.state    = otp.state == Qt::TouchPointReleased
 			            ? Qt::TouchPointPressed : Qt::TouchPointMoved;
 			tp.pressure = 1;
-		}
 
-		otp = tp;
-		touch_points.push_back(tp);
+			otp = tp;
+			touch_points.push_back(tp);
+		});
+
+		i->handle_touch_release([&] (Input::Touch_id id) {
+
+			if (id.value >= _touch_points.size()) {
+				Genode::warning("drop touch input, out of bounds");
+				return;
+			}
+
+			QWindowSystemInterface::TouchPoint &otp = _touch_points[id.value];
+			QWindowSystemInterface::TouchPoint tp;
+
+			tp.id       = id.value;
+			tp.area     = QRectF(QPointF(0, 0), QSize(1, 1));
+			tp.state    = Qt::TouchPointReleased;
+			tp.pressure = 0;
+
+			otp = tp;
+			touch_points.push_back(tp);
+		});
 	}
 
 	QWindowSystemInterface::handleTouchEvent(0, _touch_device, touch_points);
 }
 
-void QNitpickerPlatformWindow::_process_mouse_event(Input::Event const &ev)
+
+static Qt::Key translate_keycode(Input::Keycode key)
 {
-	QPoint global_position(ev.ax(), ev.ay());
-	QPoint local_position(global_position.x() - geometry().x(),
-			              global_position.y() - geometry().y());
-
-	switch (ev.type()) {
-
-		case Input::Event::PRESS:
-
-			/* make this window the focused window */
-			requestActivateWindow();
-
-			switch (ev.code()) {
-				case Input::BTN_LEFT:
-					_mouse_button_state |= Qt::LeftButton;
-					break;
-				case Input::BTN_RIGHT:
-					_mouse_button_state |= Qt::RightButton;
-					break;
-				case Input::BTN_MIDDLE:
-					_mouse_button_state |= Qt::MidButton;
-					break;
-				case Input::BTN_SIDE:
-					_mouse_button_state |= Qt::XButton1;
-					break;
-				case Input::BTN_EXTRA:
-					_mouse_button_state |= Qt::XButton2;
-					break;
-			}
-			break;
-
-		case Input::Event::RELEASE:
-
-			switch (ev.code()) {
-				case Input::BTN_LEFT:
-					_mouse_button_state &= ~Qt::LeftButton;
-					break;
-				case Input::BTN_RIGHT:
-					_mouse_button_state &= ~Qt::RightButton;
-					break;
-				case Input::BTN_MIDDLE:
-					_mouse_button_state &= ~Qt::MidButton;
-					break;
-				case Input::BTN_SIDE:
-					_mouse_button_state &= ~Qt::XButton1;
-					break;
-				case Input::BTN_EXTRA:
-					_mouse_button_state &= ~Qt::XButton2;
-					break;
-			}
-			break;
-
-		case Input::Event::WHEEL:
-
-			QWindowSystemInterface::handleWheelEvent(window(),
-					                                 local_position,
-					                                 local_position,
-					                                 ev.ry() * 120,
-					                                 Qt::Vertical);
-			return;
-
-		default:
-			break;
-	}
-
-	QWindowSystemInterface::handleMouseEvent(window(),
-			                                 local_position,
-			                                 global_position,
-			                                 _mouse_button_state);
-}
-
-
-void QNitpickerPlatformWindow::_process_key_event(Input::Event const &ev)
-{
-	const bool pressed = (ev.type() == Input::Event::PRESS);
-	const int keycode = ev.code();
-
-	if (pressed) {
-		_last_keycode = keycode;
-		_key_repeat_timer->start(KEY_REPEAT_DELAY_MS);
-	} else
-		_key_repeat_timer->stop();
-
-	_keyboard_handler.processKeycode(keycode, pressed, false);
-}
-
-
-void QNitpickerPlatformWindow::_key_repeat()
-{
-	_key_repeat_timer->start(KEY_REPEAT_RATE_MS);
-	_keyboard_handler.processKeycode(_last_keycode, true, true);
+	switch (key) {
+	case Input::KEY_ENTER:     return Qt::Key_Return;
+	case Input::KEY_ESC:       return Qt::Key_Escape;
+	case Input::KEY_TAB:       return Qt::Key_Tab;
+	case Input::KEY_BACKSPACE: return Qt::Key_Backspace;
+	case Input::KEY_INSERT:    return Qt::Key_Insert;
+	case Input::KEY_DELETE:    return Qt::Key_Delete;
+	case Input::KEY_PRINT:     return Qt::Key_Print;
+	case Input::KEY_CLEAR:     return Qt::Key_Clear;
+	case Input::KEY_HOME:      return Qt::Key_Home;
+	case Input::KEY_END:       return Qt::Key_End;
+	case Input::KEY_LEFT:      return Qt::Key_Left;
+	case Input::KEY_UP:        return Qt::Key_Up;
+	case Input::KEY_RIGHT:     return Qt::Key_Right;
+	case Input::KEY_DOWN:      return Qt::Key_Down;
+	case Input::KEY_PAGEUP:    return Qt::Key_PageUp;
+	case Input::KEY_PAGEDOWN:  return Qt::Key_PageDown;
+	case Input::KEY_LEFTSHIFT: return Qt::Key_Shift;
+	case Input::KEY_LEFTCTRL:  return Qt::Key_Control;
+	case Input::KEY_LEFTMETA:  return Qt::Key_Meta;
+	case Input::KEY_LEFTALT:   return Qt::Key_Alt;
+	case Input::KEY_RIGHTALT:  return Qt::Key_AltGr;
+	case Input::KEY_CAPSLOCK:  return Qt::Key_CapsLock;
+	case Input::KEY_F1:        return Qt::Key_F1;
+	case Input::KEY_F2:        return Qt::Key_F2;
+	case Input::KEY_F3:        return Qt::Key_F3;
+	case Input::KEY_F4:        return Qt::Key_F4;
+	case Input::KEY_F5:        return Qt::Key_F5;
+	case Input::KEY_F6:        return Qt::Key_F6;
+	case Input::KEY_F7:        return Qt::Key_F7;
+	case Input::KEY_F8:        return Qt::Key_F8;
+	case Input::KEY_F9:        return Qt::Key_F9;
+	case Input::KEY_F10:       return Qt::Key_F10;
+	case Input::KEY_F11:       return Qt::Key_F11;
+	case Input::KEY_F12:       return Qt::Key_F12;
+	case Input::KEY_SPACE:     return Qt::Key_Space;
+	case Input::KEY_0:         return Qt::Key_0;
+	case Input::KEY_1:         return Qt::Key_1;
+	case Input::KEY_2:         return Qt::Key_2;
+	case Input::KEY_3:         return Qt::Key_3;
+	case Input::KEY_4:         return Qt::Key_4;
+	case Input::KEY_5:         return Qt::Key_5;
+	case Input::KEY_6:         return Qt::Key_6;
+	case Input::KEY_7:         return Qt::Key_7;
+	case Input::KEY_8:         return Qt::Key_8;
+	case Input::KEY_9:         return Qt::Key_9;
+	case Input::KEY_A:         return Qt::Key_A;
+	case Input::KEY_B:         return Qt::Key_B;
+	case Input::KEY_C:         return Qt::Key_C;
+	case Input::KEY_D:         return Qt::Key_D;
+	case Input::KEY_E:         return Qt::Key_E;
+	case Input::KEY_F:         return Qt::Key_F;
+	case Input::KEY_G:         return Qt::Key_G;
+	case Input::KEY_H:         return Qt::Key_H;
+	case Input::KEY_I:         return Qt::Key_I;
+	case Input::KEY_J:         return Qt::Key_J;
+	case Input::KEY_K:         return Qt::Key_K;
+	case Input::KEY_L:         return Qt::Key_L;
+	case Input::KEY_M:         return Qt::Key_M;
+	case Input::KEY_N:         return Qt::Key_N;
+	case Input::KEY_O:         return Qt::Key_O;
+	case Input::KEY_P:         return Qt::Key_P;
+	case Input::KEY_Q:         return Qt::Key_Q;
+	case Input::KEY_R:         return Qt::Key_R;
+	case Input::KEY_S:         return Qt::Key_S;
+	case Input::KEY_T:         return Qt::Key_T;
+	case Input::KEY_U:         return Qt::Key_U;
+	case Input::KEY_V:         return Qt::Key_V;
+	case Input::KEY_W:         return Qt::Key_W;
+	case Input::KEY_X:         return Qt::Key_X;
+	case Input::KEY_Y:         return Qt::Key_Y;
+	case Input::KEY_Z:         return Qt::Key_Z;
+	case Input::KEY_BACK:      return Qt::Key_Back;
+	case Input::KEY_FORWARD:   return Qt::Key_Forward;
+	default: break;
+	};
+	return Qt::Key_unknown;
 }
 
 
@@ -186,55 +189,106 @@ void QNitpickerPlatformWindow::_handle_input(unsigned int)
 
 	_input_session.for_each_event([&] (Input::Event const &event) {
 
-		bool const is_key_event = event.type() == Input::Event::PRESS ||
-					              event.type() == Input::Event::RELEASE;
+		QPoint           const orig_mouse_position     = _mouse_position;
+		Qt::MouseButtons const orig_mouse_button_state = _mouse_button_state;
 
-		bool const is_mouse_button_event =
-			is_key_event && (event.code() == Input::BTN_LEFT ||
-			                 event.code() == Input::BTN_MIDDLE ||
-			                 event.code() == Input::BTN_RIGHT);
+		event.handle_absolute_motion([&] (int x, int y) {
+			_mouse_position = QPoint(x, y); });
 
-		if (event.type() == Input::Event::MOTION ||
-			event.type() == Input::Event::WHEEL ||
-			is_mouse_button_event) {
+		event.handle_press([&] (Input::Keycode key, Genode::Codepoint codepoint) {
 
-			_process_mouse_event(event);
-
-		} else if (event.type() == Input::Event::TOUCH) {
-
-			touch_events.push_back(event);
-
-		} else if (event.type() == Input::Event::CHARACTER) {
-
-			Input::Event::Utf8 const utf8 = event.utf8();
-
-			if ((utf8.b0 >= 1) && (utf8.b0 <= 26)) {
-
-				/* Ctrl-A .. Ctrl-Z */
-
-				QWindowSystemInterface::handleKeyEvent(0, QEvent::KeyPress,
-				                                       Qt::Key_A + (utf8.b0 - 1),
-				                                       Qt::ControlModifier);
-				QWindowSystemInterface::handleKeyEvent(0, QEvent::KeyRelease,
-				                                       Qt::Key_A + (utf8.b0 - 1),
-				                                       Qt::ControlModifier);
-			} else {
-
-				char const utf8_string[] = { (char)utf8.b0, (char)utf8.b1,
-				                             (char)utf8.b2, (char)utf8.b3,
-				                             '\0' };
-
-				QWindowSystemInterface::handleKeyEvent(0, QEvent::KeyPress, 0, 0,
-				                                       QString::fromUtf8(utf8_string));
-				QWindowSystemInterface::handleKeyEvent(0, QEvent::KeyRelease, 0, 0,
-				                                       QString::fromUtf8(utf8_string));
+			switch (key) {
+				case Input::BTN_LEFT:   _mouse_button_state |= Qt::LeftButton;  break;
+				case Input::BTN_RIGHT:  _mouse_button_state |= Qt::RightButton; break;
+				case Input::BTN_MIDDLE: _mouse_button_state |= Qt::MidButton;   break;
+				case Input::BTN_SIDE:   _mouse_button_state |= Qt::XButton1;    break;
+				case Input::BTN_EXTRA:  _mouse_button_state |= Qt::XButton2;    break;
+				default: break;
 			}
 
-		} else if (is_key_event && (event.code() < 128)) {
+			/* on mouse click, make this window the focused window */
+			if (_mouse_button_state != orig_mouse_button_state)
+				requestActivateWindow();
 
-			_process_key_event(event);
+			QWindowSystemInterface::handleKeyEvent(0, QEvent::KeyPress,
+			                                       translate_keycode(key), 0,
+			                                       QString() + QChar(codepoint.value));
+		});
 
+		/* handle repeat of special keys */
+		event.handle_repeat([&] (Genode::Codepoint codepoint) {
+
+			/* function-key unicodes */
+			enum {
+				CODEPOINT_UP        = 0xf700, CODEPOINT_DOWN     = 0xf701,
+				CODEPOINT_LEFT      = 0xf702, CODEPOINT_RIGHT    = 0xf703,
+				CODEPOINT_HOME      = 0xf729, CODEPOINT_INSERT   = 0xf727,
+				CODEPOINT_DELETE    = 0xf728, CODEPOINT_END      = 0xf72b,
+				CODEPOINT_PAGEUP    = 0xf72c, CODEPOINT_PAGEDOWN = 0xf72d,
+				CODEPOINT_BACKSPACE = 8,      CODEPOINT_LINEFEED = 10,
+			};
+
+			Qt::Key repeated_key = Qt::Key_unknown;
+			switch (codepoint.value) {
+			case CODEPOINT_UP:        repeated_key = Qt::Key_Up;        break;
+			case CODEPOINT_DOWN:      repeated_key = Qt::Key_Down;      break;
+			case CODEPOINT_LEFT:      repeated_key = Qt::Key_Left;      break;
+			case CODEPOINT_RIGHT:     repeated_key = Qt::Key_Right;     break;
+			case CODEPOINT_HOME:      repeated_key = Qt::Key_Home;      break;
+			case CODEPOINT_INSERT:    repeated_key = Qt::Key_Insert;    break;
+			case CODEPOINT_DELETE:    repeated_key = Qt::Key_Delete;    break;
+			case CODEPOINT_END:       repeated_key = Qt::Key_End;       break;
+			case CODEPOINT_PAGEUP:    repeated_key = Qt::Key_PageUp;    break;
+			case CODEPOINT_PAGEDOWN:  repeated_key = Qt::Key_PageDown;  break;
+			case CODEPOINT_BACKSPACE: repeated_key = Qt::Key_Backspace; break;
+			case CODEPOINT_LINEFEED:  repeated_key = Qt::Key_Return;    break;
+			default: return /* from lambda */;
+			};
+
+			/*
+			 * A key repeat is triggered while a key is already pressed. We
+			 * respond to it by simulating a tempoary release of the key.
+			 */
+			QWindowSystemInterface::handleKeyEvent(0, QEvent::KeyRelease,
+			                                       repeated_key, 0, QString());
+			QWindowSystemInterface::handleKeyEvent(0, QEvent::KeyPress,
+			                                       repeated_key, 0, QString());
+		});
+
+		event.handle_release([&] (Input::Keycode key) {
+
+			switch (key) {
+				case Input::BTN_LEFT:   _mouse_button_state &= ~Qt::LeftButton;  break;
+				case Input::BTN_RIGHT:  _mouse_button_state &= ~Qt::RightButton; break;
+				case Input::BTN_MIDDLE: _mouse_button_state &= ~Qt::MidButton;   break;
+				case Input::BTN_SIDE:   _mouse_button_state &= ~Qt::XButton1;    break;
+				case Input::BTN_EXTRA:  _mouse_button_state &= ~Qt::XButton2;    break;
+				default: break;
+			}
+
+			QWindowSystemInterface::handleKeyEvent(0, QEvent::KeyRelease,
+			                                       translate_keycode(key),
+			                                       0, QString());
+		});
+
+		event.handle_wheel([&] (int x, int y) {
+			QWindowSystemInterface::handleWheelEvent(window(),
+			                                         _local_position(),
+			                                         _local_position(),
+			                                         y * 120,
+			                                         Qt::Vertical); });
+
+		if (_mouse_button_state != orig_mouse_button_state
+		 || _mouse_position     != orig_mouse_position) {
+
+			QWindowSystemInterface::handleMouseEvent(window(),
+			                                         _local_position(),
+			                                         _mouse_position,
+			                                         _mouse_button_state);
 		}
+
+		if (event.touch() || event.touch_release())
+			touch_events.push_back(event);
 	});
 
 	/* process all gathered touch events */
@@ -338,12 +392,9 @@ QNitpickerPlatformWindow::QNitpickerPlatformWindow(Genode::Env &env, QWindow *wi
   _view_handle(_create_view()),
   _input_session(env.rm(), _nitpicker_session.input_session()),
   _ev_buf(env.rm(), _input_session.dataspace()),
-  _keyboard_handler("", _evdevkeyboard_fd, false, false, ""),
   _resize_handle(!window->flags().testFlag(Qt::Popup)),
   _decoration(!window->flags().testFlag(Qt::Popup)),
   _egl_surface(EGL_NO_SURFACE),
-  _key_repeat_timer(this),
-  _last_keycode(0),
   _input_signal_dispatcher(_signal_receiver, *this,
                            &QNitpickerPlatformWindow::_input),
   _mode_changed_signal_dispatcher(_signal_receiver, *this,
@@ -375,9 +426,6 @@ QNitpickerPlatformWindow::QNitpickerPlatformWindow(Genode::Env &env, QWindow *wi
 	connect(this, SIGNAL(_mode_changed(unsigned int)),
 	        this, SLOT(_handle_mode_changed(unsigned int)),
 	        Qt::QueuedConnection);
-
-	connect(_key_repeat_timer, SIGNAL(timeout()),
-	        this, SLOT(_key_repeat()));
 }
 
 QWindow *QNitpickerPlatformWindow::window() const

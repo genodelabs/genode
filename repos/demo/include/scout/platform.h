@@ -95,28 +95,25 @@ class Scout::Platform
 		{
 			if (_input.pending() == false) return;
 
-			for (int i = 0, num = _input.flush(); i < num; i++)
-			{
+			for (int i = 0, num = _input.flush(); i < num; i++) {
 				Event ev;
 				Input::Event e = _ev_buf[i];
 
 				_event_pending = i + 1 < num;
 
-				if (e.type() == Input::Event::RELEASE
-				 || e.type() == Input::Event::PRESS) {
-					_mx = e.ax();
-					_my = e.ay();
-					ev.assign(e.type() == Input::Event::PRESS ? Event::PRESS : Event::RELEASE,
-					          e.ax(), e.ay(), e.code());
-					_handle_event(ev);
-				}
+				e.handle_press([&] (Input::Keycode key, Genode::Codepoint) {
+					ev.assign(Event::PRESS, _mx, _my, key); });
 
-				if (e.type() == Input::Event::MOTION) {
-					_mx = e.ax();
-					_my = e.ay();
-					ev.assign(Event::MOTION, e.ax(), e.ay(), e.code());
+				e.handle_release([&] (Input::Keycode key) {
+					ev.assign(Event::RELEASE, _mx, _my, key); });
+
+				e.handle_absolute_motion([&] (int x, int y) {
+				 	_mx = x; _my = y;
+					ev.assign(Event::MOTION, _mx, _my, 0);
+				});
+
+				if (ev.type != Event::UNDEFINED)
 					_handle_event(ev);
-				}
 			}
 		}
 

@@ -206,24 +206,24 @@ class Floating_window_layouter::Key_sequence_tracker
 			 * to preserver the invariant that each key is present only
 			 * once.
 			 */
-			if (ev.type() == Input::Event::PRESS) {
-				_stack.flush(Stack::Entry(Stack::Entry::PRESS,   ev.keycode()));
-				_stack.flush(Stack::Entry(Stack::Entry::RELEASE, ev.keycode()));
-			}
+			ev.handle_press([&] (Input::Keycode key, Codepoint) {
+				_stack.flush(Stack::Entry(Stack::Entry::PRESS,   key));
+				_stack.flush(Stack::Entry(Stack::Entry::RELEASE, key));
+			});
 
 			Xml_node curr_node = _xml_by_path(config);
 
-			if (ev.type() == Input::Event::PRESS) {
+			ev.handle_press([&] (Input::Keycode key, Codepoint) {
 
-				Stack::Entry const entry(Stack::Entry::PRESS, ev.keycode());
+				Stack::Entry const entry(Stack::Entry::PRESS, key);
 
 				_execute_action(_matching_sub_node(curr_node, entry), func);
 				_stack.push(entry);
-			}
+			});
 
-			if (ev.type() == Input::Event::RELEASE) {
+			ev.handle_release([&] (Input::Keycode key) {
 
-				Stack::Entry const entry(Stack::Entry::RELEASE, ev.keycode());
+				Stack::Entry const entry(Stack::Entry::RELEASE, key);
 
 				Xml_node const next_node = _matching_sub_node(curr_node, entry);
 
@@ -239,10 +239,10 @@ class Floating_window_layouter::Key_sequence_tracker
 
 				} else {
 
-					Stack::Entry entry(Stack::Entry::PRESS, ev.keycode());
+					Stack::Entry entry(Stack::Entry::PRESS, key);
 					_stack.flush(entry);
 				}
-			}
+			});
 		}
 };
 

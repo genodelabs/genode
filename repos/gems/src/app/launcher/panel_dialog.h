@@ -345,7 +345,7 @@ class Launcher::Panel_dialog : Input_event_handler, Dialog_generator,
 		 */
 		bool handle_input_event(Input::Event const &ev) override
 		{
-			if (ev.type() == Input::Event::LEAVE) {
+			if (ev.hover_leave()) {
 
 				/*
 				 * Let menu dialog disappear when the panel is unhovered. One
@@ -362,15 +362,13 @@ class Launcher::Panel_dialog : Input_event_handler, Dialog_generator,
 				return true;
 			}
 
-			if (ev.type() == Input::Event::MOTION)
+			if (ev.absolute_motion())
 				return true;
 
-			if (ev.type() == Input::Event::PRESS)   _key_cnt++;
-			if (ev.type() == Input::Event::RELEASE) _key_cnt--;
+			if (ev.press())   _key_cnt++;
+			if (ev.release()) _key_cnt--;
 
-			if (ev.type() == Input::Event::PRESS
-			 && ev.keycode() == Input::BTN_LEFT
-			 && _key_cnt == 1) {
+			if (ev.key_press(Input::BTN_LEFT) && _key_cnt == 1) {
 
 			 	_context_dialog.visible(false);
 
@@ -412,9 +410,7 @@ class Launcher::Panel_dialog : Input_event_handler, Dialog_generator,
 			/*
 			 * Open context dialog on right click
 			 */
-			if (ev.type() == Input::Event::PRESS
-			 && ev.keycode() == Input::BTN_RIGHT
-			 && _key_cnt == 1) {
+			if (ev.key_press(Input::BTN_RIGHT) && _key_cnt == 1) {
 
 				Element *hovered = _hovered();
 
@@ -422,8 +418,7 @@ class Launcher::Panel_dialog : Input_event_handler, Dialog_generator,
 					_open_context_dialog(hovered->label);
 			}
 
-			if (ev.type() == Input::Event::RELEASE
-			 && _click_in_progress && _key_cnt == 0) {
+			if (ev.release() && _click_in_progress && _key_cnt == 0) {
 
 				Element *hovered = _hovered();
 

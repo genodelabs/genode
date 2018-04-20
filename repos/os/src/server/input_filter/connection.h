@@ -82,8 +82,8 @@ class Input_filter::Input_connection
 
 			auto update_key_cnt = [&] (Input::Event const &event)
 			{
-				if (event.type() == Input::Event::PRESS)   _key_cnt++;
-				if (event.type() == Input::Event::RELEASE) _key_cnt--;
+				if (event.press())   _key_cnt++;
+				if (event.release()) _key_cnt--;
 			};
 
 			for_each_event(update_key_cnt);

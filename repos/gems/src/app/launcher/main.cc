@@ -137,8 +137,8 @@ void Launcher::Main::_handle_config()
 void Launcher::Main::_handle_input()
 {
 	_nitpicker.input()->for_each_event([&] (Input::Event const &e) {
-		if (e.type() == Input::Event::PRESS)   _key_cnt++;
-		if (e.type() == Input::Event::RELEASE) _key_cnt--;
+		if (e.press())   _key_cnt++;
+		if (e.release()) _key_cnt--;
 
 		/*
 		 * The _key_cnt can become 2 only when the global key (as configured
@@ -146,11 +146,8 @@ void Launcher::Main::_handle_input()
 		 * Hence, the following condition triggers on key combinations with
 		 * the global modifier key, whatever the global modifier key is.
 		 */
-		if (e.type() == Input::Event::PRESS && _key_cnt == 2) {
-
-			if (e.keycode() == Input::KEY_TAB)
-				_panel_dialog.focus_next();
-		}
+		if (e.key_press(Input::KEY_TAB) && _key_cnt == 2)
+			_panel_dialog.focus_next();
 	});
 }
 

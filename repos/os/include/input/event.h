@@ -14,127 +14,198 @@
 #ifndef _INCLUDE__INPUT__EVENT_H_
 #define _INCLUDE__INPUT__EVENT_H_
 
+#include <base/output.h>
 #include <input/keycodes.h>
+#include <util/geometry.h>
+#include <util/utf8.h>
 
-namespace Input { class Event; }
+namespace Input {
+
+	typedef Genode::Codepoint Codepoint;
+
+	struct Touch_id { int value; };
+
+	/*
+	 * Event attributes
+	 */
+	struct Press           { Keycode key; };
+	struct Press_char      { Keycode key; Codepoint codepoint; };
+	struct Release         { Keycode key; };
+	struct Wheel           { int x, y; };
+	struct Focus_enter     { };
+	struct Focus_leave     { };
+	struct Hover_leave     { };
+	struct Absolute_motion { int x, y; };
+	struct Relative_motion { int x, y; };
+	struct Touch           { Touch_id id; float x, y; };
+	struct Touch_release   { Touch_id id; };
+
+	class Event;
+}
 
 
 class Input::Event
 {
-	public:
-
-		enum Type { INVALID, MOTION, PRESS, RELEASE, WHEEL, FOCUS, LEAVE, TOUCH,
-		            CHARACTER };
-
 	private:
+
+		enum Type { INVALID, PRESS, RELEASE, REL_MOTION, ABS_MOTION, WHEEL,
+		            FOCUS_ENTER, FOCUS_LEAVE, HOVER_LEAVE, TOUCH, TOUCH_RELEASE };
 
 		Type _type = INVALID;
 
-		/*
-		 * For PRESS and RELEASE events, '_code' contains the key code.
-		 * For FOCUS events, '_code' is set to 1 (focus) or 0 (unfocus).
-		 */
-		int _code = 0;
+		struct Attr
+		{
+			union {
+				Press_char      press;
+				Release         release;
+				Wheel           wheel;
+				Absolute_motion abs_motion;
+				Relative_motion rel_motion;
+				Touch           touch;
+				Touch_release   touch_release;
+			};
+		} _attr { };
 
-		/*
-		 * Absolute pointer position coordinates
-		 */
-		int _ax = 0, _ay = 0;
+		static bool _valid(Keycode key) { return key > KEY_RESERVED && key < KEY_MAX; }
 
-		/*
-		 * Relative pointer motion vector
+		/**
+		 * Return point representation of attribute 'a'
 		 */
-		int _rx = 0, _ry = 0;
+		template <typename R, typename T>
+		static Genode::Point<R> _xy(T const &a) { return Genode::Point<R>(a.x, a.y); }
 
 	public:
 
 		/**
-		 * UTF8-encoded symbolic character
-		 */
-		struct Utf8
-		{
-			typedef unsigned char byte;
-
-			byte b0, b1, b2, b3;
-
-			Utf8(byte b0, byte b1 = 0, byte b2 = 0, byte b3 = 0)
-			: b0(b0), b1(b1), b2(b2), b3(b3) { }
-		};
-
-		/**
 		 * Default constructor creates an invalid event
+		 *
+		 * This constructor can be used for creating an array of events.
 		 */
 		Event() { }
 
-		/**
-		 * Constructor creates a low-level event
-		 */
-		Event(Type type, int code, int ax, int ay, int rx, int ry):
-			_type(type), _code(code),
-			_ax(ax), _ay(ay), _rx(rx), _ry(ry) { }
-
-		/**
-		 * Constructor creates a symbolic character event
-		 */
-		Event(Utf8 const &utf8)
-		:
-			_type(CHARACTER),
-			_code(((unsigned)utf8.b3 << 24) | ((unsigned)utf8.b2 << 16) |
-			      ((unsigned)utf8.b1 <<  8) | ((unsigned)utf8.b0 <<  0))
-		{ }
-
-		/**
-		 * Return event type
-		 */
-		Type type() const
-		{
-			/* prevent obnoxious events from being processed by clients */
-			if ((_type == PRESS || _type == RELEASE)
-			 && (_code <= KEY_RESERVED || _code >= KEY_UNKNOWN))
-				return INVALID;
-
-			return _type;
-		}
-
-		/**
-		 * Accessors
-		 */
-		int  code() const { return _code; }
-		int  ax()   const { return _ax; }
-		int  ay()   const { return _ay; }
-		int  rx()   const { return _rx; }
-		int  ry()   const { return _ry; }
-
-		/**
-		 * Return symbolic character encoded as UTF8 byte sequence
-		 *
-		 * This method must only be called if type is CHARACTER.
-		 */
-		Utf8 utf8() const { return Utf8(_code, _code >> 8, _code >> 16, _code >> 24); }
-
-		/**
-		 * Return key code for press/release events
-		 */
-		Keycode keycode() const
-		{
-			return _type == PRESS || _type == RELEASE ? (Keycode)_code : KEY_UNKNOWN;
-		}
-
-		bool absolute_motion() const { return _type == MOTION && !_rx && !_ry; }
-		bool relative_motion() const { return _type == MOTION && (_rx || _ry); }
-		bool touch_release()   const { return _type == TOUCH && (_rx == -1) && (_ry == -1); }
-
 		/*
-		 * \deprecated use methods without the 'is_' prefix instead
+		 * Constructors for creating input events of various types
+		 *
+		 * These constructors can be used implicitly for the given attribute
+		 * types for assignments or for passing an event as return value.
 		 */
-		bool is_absolute_motion() const { return absolute_motion(); }
-		bool is_relative_motion() const { return relative_motion(); }
-		bool is_touch_release()   const { return touch_release(); }
+		Event(Press_char      arg) : _type(PRESS)         { _attr.press = arg; }
+		Event(Press           arg) : Event(Press_char{arg.key, Codepoint{INVALID}}) { }
+		Event(Release         arg) : _type(RELEASE)       { _attr.release = arg; }
+		Event(Relative_motion arg) : _type(REL_MOTION)    { _attr.rel_motion = arg; }
+		Event(Absolute_motion arg) : _type(ABS_MOTION)    { _attr.abs_motion = arg; }
+		Event(Wheel           arg) : _type(WHEEL)         { _attr.wheel = arg; }
+		Event(Focus_enter)         : _type(FOCUS_ENTER)   { }
+		Event(Focus_leave)         : _type(FOCUS_LEAVE)   { }
+		Event(Hover_leave)         : _type(HOVER_LEAVE)   { }
+		Event(Touch           arg) : _type(TOUCH)         { _attr.touch = arg; }
+		Event(Touch_release   arg) : _type(TOUCH_RELEASE) { _attr.touch_release = arg; }
 
-		static Event create_touch_event(int ax, int ay, int id, bool last = false)
+
+		/************************************
+		 ** Methods for handling the event **
+		 ************************************/
+
+		bool valid()           const { return _type != INVALID;       }
+		bool press()           const { return _type == PRESS;         }
+		bool release()         const { return _type == RELEASE;       }
+		bool absolute_motion() const { return _type == ABS_MOTION;    }
+		bool relative_motion() const { return _type == REL_MOTION;    }
+		bool wheel()           const { return _type == WHEEL;         }
+		bool focus_enter()     const { return _type == FOCUS_ENTER;   }
+		bool focus_leave()     const { return _type == FOCUS_LEAVE;   }
+		bool hover_leave()     const { return _type == HOVER_LEAVE;   }
+		bool touch()           const { return _type == TOUCH;         }
+		bool touch_release()   const { return _type == TOUCH_RELEASE; }
+
+		bool key_press(Keycode key) const
 		{
-			return Event(Type::TOUCH, id, ax, ay, last ? -1 : 0, last ? -1 : 0);
+			return press() && _attr.press.key == key;
 		}
+
+		bool key_release(Keycode key) const
+		{
+			return release() && _attr.release.key == key;
+		}
+
+		template <typename FN>
+		void handle_press(FN const &fn) const
+		{
+			if (press() && _valid(_attr.press.key))
+				fn(_attr.press.key, _attr.press.codepoint);
+		}
+
+		template <typename FN>
+		void handle_repeat(FN const &fn) const
+		{
+			if (key_press(KEY_UNKNOWN) && _attr.press.codepoint.value)
+				fn(_attr.press.codepoint);
+		}
+
+		template <typename FN>
+		void handle_release(FN const &fn) const
+		{
+			if (release() && _valid(_attr.release.key))
+				fn(_attr.release.key);
+		}
+
+		template <typename FN>
+		void handle_relative_motion(FN const &fn) const
+		{
+			if (relative_motion())
+				fn(_attr.rel_motion.x, _attr.rel_motion.y);
+		}
+
+		template <typename FN>
+		void handle_absolute_motion(FN const &fn) const
+		{
+			if (absolute_motion())
+				fn(_attr.abs_motion.x, _attr.abs_motion.y);
+		}
+
+		template <typename FN>
+		void handle_wheel(FN const &fn) const
+		{
+			if (wheel())
+				fn(_attr.wheel.x, _attr.wheel.y);
+		}
+
+		template <typename FN>
+		void handle_touch(FN const &fn) const
+		{
+			if (touch())
+				fn(_attr.touch.id, _attr.touch.x, _attr.touch.y);
+		}
+
+		template <typename FN>
+		void handle_touch_release(FN const &fn) const
+		{
+			if (touch_release())
+				fn(_attr.touch_release.id);
+		}
+
+		inline void print(Genode::Output &out) const;
 };
+
+
+void Input::Event::print(Genode::Output &out) const
+{
+	using Genode::print;
+	switch (_type) {
+	case INVALID:       print(out, "INVALID"); break;
+	case PRESS:         print(out, "PRESS ",   key_name(_attr.press.key),
+	                               " ", _attr.press.codepoint.value); break;
+	case RELEASE:       print(out, "RELEASE ", key_name(_attr.release.key)); break;
+	case REL_MOTION:    print(out, "REL_MOTION ", _xy<int>(_attr.rel_motion)); break;
+	case ABS_MOTION:    print(out, "ABS_MOTION ", _xy<int>(_attr.abs_motion)); break;
+	case WHEEL:         print(out, "WHEEL ",      _xy<int>(_attr.wheel)); break;
+	case FOCUS_ENTER:   print(out, "FOCUS_ENTER");  break;
+	case FOCUS_LEAVE:   print(out, "FOCUS_LEAVE");  break;
+	case HOVER_LEAVE:   print(out, "HOVER_LEAVE");  break;
+	case TOUCH_RELEASE: print(out, "TOUCH_RELEASE ", _attr.touch.id.value); break;
+	case TOUCH:         print(out, "TOUCH ", _attr.touch.id.value, " ",
+	                                         _xy<float>(_attr.touch)); break;
+	};
+}
 
 #endif /* _INCLUDE__INPUT__EVENT_H_ */

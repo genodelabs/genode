@@ -220,11 +220,30 @@ void Terminal::Main::_handle_input()
 {
 	_input.for_each_event([&] (Input::Event const &event) {
 
-		if (event.type() == Input::Event::CHARACTER) {
-			Input::Event::Utf8 const utf8 = event.utf8();
+		event.handle_press([&] (Input::Keycode, Codepoint codepoint) {
 
-			char const sequence[] { (char)utf8.b0, (char)utf8.b1,
-			                        (char)utf8.b2, (char)utf8.b3, 0 };
+			struct Utf8 { char b0, b1, b2, b3, b4; };
+
+			auto utf8_from_codepoint = [] (unsigned c) {
+
+				/* extract 'n' bits 'at' bit position of value 'c' */
+				auto bits = [c] (unsigned at, unsigned n) {
+					return (c >> at) & ((1 << n) - 1); };
+
+				return (c < 2<<7)  ? Utf8 { char(bits( 0, 7)), 0, 0, 0, 0 }
+				     : (c < 2<<11) ? Utf8 { char(bits( 6, 5) | 0xc0),
+				                            char(bits( 0, 6) | 0x80), 0, 0, 0 }
+				     : (c < 2<<16) ? Utf8 { char(bits(12, 4) | 0xe0),
+				                            char(bits( 6, 6) | 0x80),
+				                            char(bits( 0, 6) | 0x80), 0, 0 }
+				     : (c < 2<<21) ? Utf8 { char(bits(18, 3) | 0xf0),
+				                            char(bits(12, 6) | 0x80),
+				                            char(bits( 6, 6) | 0x80),
+				                            char(bits( 0, 6) | 0x80), 0 }
+				     : Utf8 { };
+			};
+
+			Utf8 const sequence = utf8_from_codepoint(codepoint.value);
 
 			/* function-key unicodes */
 			enum {
@@ -240,8 +259,6 @@ void Terminal::Main::_handle_input()
 				CODEPOINT_DELETE = 0xf728, CODEPOINT_END      = 0xf72b,
 				CODEPOINT_PAGEUP = 0xf72c, CODEPOINT_PAGEDOWN = 0xf72d,
 			};
-
-			Codepoint const codepoint = Utf8_ptr(sequence).codepoint();
 
 			char const *special_sequence = nullptr;
 			switch (codepoint.value) {
@@ -272,8 +289,8 @@ void Terminal::Main::_handle_input()
 			if (special_sequence)
 				_read_buffer.add(special_sequence);
 			else
-				_read_buffer.add(sequence);
-		}
+				_read_buffer.add(&sequence.b0);
+		});
 	});
 }
 
