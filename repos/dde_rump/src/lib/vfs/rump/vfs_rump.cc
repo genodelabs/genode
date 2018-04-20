@@ -324,7 +324,11 @@ class Vfs::Rump_file_system : public File_system
 				rump_sys_kevent(kq, &ev, 1, NULL, 0, &nullts);
 			}
 
-			~Rump_watch_handle() { rump_sys_close(fd); }
+			~Rump_watch_handle()
+			{
+				rump_sys_close(fd);
+				rump_sys_close(kq);
+			}
 
 			bool kqueue_check() const
 			{
