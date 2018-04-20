@@ -44,4 +44,11 @@ class Rump::Env
 		Genode::Attached_rom_dataspace &config_rom() { return _config; }
 };
 
+/**
+ * Set rump MEMLIMIT
+ *
+ * In case limit is zero, the available RAM quota will be used.
+ */
+void rump_set_memlimit(Genode::size_t limit);
+
 #endif /* _INCLUDE__RUMP__ENV_H_ */

@@ -47,7 +47,7 @@ install_config {
 	<start name="vfs_stress" caps="200">
 		<resource name="RAM" quantum="32M"/>
 		<config depth="8">
-			<vfs> <rump fs="ext2fs" writeable="yes"/> </vfs>
+			<vfs> <rump fs="ext2fs" ram="30M" writeable="yes"/> </vfs>
 		</config>
 	</start>
 </config>

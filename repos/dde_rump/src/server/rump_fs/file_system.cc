@@ -89,8 +89,12 @@ void File_system::init()
 
 	Genode::log("Using ", fs_type, " as file system");
 
+	size_t const avail = Rump::env().env().ram().avail_ram().value;
+	rump_set_memlimit(avail);
+
 	/* start rump kernel */
-	rump_init();
+	try         { rump_init(); }
+	catch (...) { throw Genode::Exception(); }
 
 	/* register block device */ 
 	rump_pub_etfs_register(GENODE_DEVICE, GENODE_BLOCK_SESSION, RUMP_ETFS_BLK);

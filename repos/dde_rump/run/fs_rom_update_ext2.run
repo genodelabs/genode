@@ -55,7 +55,7 @@ append config {
 		<resource name="RAM" quantum="10M"/>
 		<provides><service name="File_system"/></provides>
 		<config>
-			<vfs> <rump fs="ext2fs"/> </vfs>
+			<vfs> <rump fs="ext2fs" ram="8M"/> </vfs>
 			<policy label_prefix="rom_to_file" root="/" writeable="yes"/>
 			<policy label_prefix="fs_rom" root="/" writeable="no"/>
 		</config>

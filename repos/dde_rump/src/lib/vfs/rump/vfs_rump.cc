@@ -795,7 +795,8 @@ class Rump_factory : public Vfs::File_system_factory
 
 	public:
 
-		Rump_factory(Genode::Env &env, Genode::Allocator &alloc)
+		Rump_factory(Genode::Env &env, Genode::Allocator &alloc,
+		             Genode::Xml_node config)
 		: _timer(env, "rump-sync"),
 		  _sync_handler(env.ep(), *this, &Rump_factory::_sync)
 		{
@@ -803,8 +804,20 @@ class Rump_factory : public Vfs::File_system_factory
 
 			rump_io_backend_init();
 
+			/* limit RAM consumption */
+			try {
+				Genode::Number_of_bytes memlimit;
+				config.attribute("ram").value(&memlimit);
+
+				rump_set_memlimit(memlimit);
+			} catch (...) {
+				Genode::error("mandatory 'ram' attribute missing");
+				throw Genode::Exception();
+			}
+
 			/* start rump kernel */
-			rump_init();
+			try         { rump_init(); }
+			catch (...) { throw Genode::Exception(); }
 
 			/* register block device */
 			rump_pub_etfs_register(
@@ -843,7 +856,7 @@ extern "C" Vfs::File_system_factory *vfs_file_system_factory(void)
 	{
 		Vfs::File_system *create(Vfs::Env &env, Genode::Xml_node node) override
 		{
-			static Rump_factory factory(env.env(), env.alloc());
+			static Rump_factory factory(env.env(), env.alloc(), node);
 			return factory.create(env, node);
 		}
 	};
