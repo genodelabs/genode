@@ -160,6 +160,12 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 
 		Terminal::Position cursor_pos() const { return _cursor_pos; }
 
+		void cursor_pos(Terminal::Position pos)
+		{
+			_cursor_pos.x = Genode::min(_boundary.width  - 1, pos.x);
+			_cursor_pos.y = Genode::min(_boundary.height - 1, pos.y);
+		}
+
 		void output(Terminal::Character c)
 		{
 			if (c.ascii() > 0x10) {

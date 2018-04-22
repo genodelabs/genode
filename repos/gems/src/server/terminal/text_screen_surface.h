@@ -92,6 +92,34 @@ class Terminal::Text_screen_surface
 			bool valid() const { return columns*lines > 0; }
 		};
 
+		/**
+		 * Snapshot of text-screen content
+		 */
+		class Snapshot
+		{
+			private:
+
+				friend class Text_screen_surface;
+
+				Cell_array<Char_cell> _cell_array;
+
+			public:
+
+				static size_t bytes_needed(Text_screen_surface const &surface)
+				{
+					return Cell_array<Char_cell>::bytes_needed(surface.size().w(),
+					                                           surface.size().h());
+				}
+
+				Snapshot(Allocator &alloc, Text_screen_surface const &from)
+				:
+					_cell_array(from._cell_array.num_cols(),
+					            from._cell_array.num_lines(), alloc)
+				{
+					_cell_array.import_from(from._cell_array);
+				}
+		};
+
 	private:
 
 		Font          const &_font;
@@ -132,6 +160,10 @@ class Terminal::Text_screen_surface
 			_geometry = geometry;
 			_cell_array.mark_all_lines_as_dirty(); /* trigger refresh */
 		}
+
+		Position cursor_pos() const { return _character_screen.cursor_pos(); }
+
+		void cursor_pos(Position pos) { _character_screen.cursor_pos(pos); }
 
 		void redraw()
 		{
@@ -236,6 +268,11 @@ class Terminal::Text_screen_surface
 		{
 			/* submit character to sequence decoder */
 			_decoder.insert(c.c);
+		}
+
+		void import(Snapshot const &snapshot)
+		{
+			_cell_array.import_from(snapshot._cell_array);
 		}
 
 		/**

@@ -94,6 +94,13 @@ class Cell_array
 				_array[i] = new (alloc) CELL[num_cols];
 		}
 
+		static Genode::size_t bytes_needed(unsigned num_cols, unsigned num_lines)
+		{
+			return sizeof(Char_cell_line[num_lines])
+			     + sizeof(bool[num_lines])
+			     + sizeof(CELL[num_cols])*num_lines;
+		}
+
 		~Cell_array()
 		{
 			for (unsigned i = 0; i < _num_lines; i++)
@@ -115,9 +122,21 @@ class Cell_array
 			_line_dirty[line] = true;
 		}
 
-		CELL get_cell(int column, int line)
+		CELL get_cell(int column, int line) const
 		{
 			return _array[line][column];
+		}
+
+		void import_from(Cell_array const &other)
+		{
+			unsigned const num_cols  = Genode::min(_num_cols,  other._num_cols),
+			               num_lines = Genode::min(_num_lines, other._num_lines);
+
+			for (unsigned line = 0; line < num_lines; line++)
+				for (unsigned column = 0; column < num_cols; column++)
+					_array[line][column] = other.get_cell(column, line);
+
+			mark_all_lines_as_dirty();
 		}
 
 		bool line_dirty(int line) { return _line_dirty[line]; }
@@ -167,8 +186,8 @@ class Cell_array
 				_line_dirty[pos.y] = true;
 		}
 
-		unsigned num_cols()  { return _num_cols; }
-		unsigned num_lines() { return _num_lines; }
+		unsigned num_cols()  const { return _num_cols; }
+		unsigned num_lines() const { return _num_lines; }
 };
 
 #endif /* _TERMINAL__CELL_ARRAY_H_ */

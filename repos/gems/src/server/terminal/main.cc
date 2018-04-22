@@ -190,8 +190,39 @@ void Terminal::Main::_handle_config()
 		bool const reconstruct = !_text_screen_surface.constructed() ||
 		                          _text_screen_surface->size() != new_geometry.size();
 		if (reconstruct) {
+
+			typedef Text_screen_surface<PT>::Snapshot Snapshot;
+			Constructible<Snapshot> snapshot { };
+
+			size_t const snapshot_bytes  = _text_screen_surface.constructed()
+			                             ? Snapshot::bytes_needed(*_text_screen_surface)
+			                             : 0,
+			             preserved_bytes = 32*1024,
+			             needed_bytes    = snapshot_bytes + preserved_bytes,
+			             avail_bytes     = _env.pd().avail_ram().value;
+
+			bool const preserve_content = (needed_bytes < avail_bytes);
+
+			if (!preserve_content)
+				warning("not enough spare RAM to preserve content (",
+				        "need ", Genode::Number_of_bytes(needed_bytes), ", "
+				        "have ", Genode::Number_of_bytes(avail_bytes), ")");
+
+			if (preserve_content && _text_screen_surface.constructed())
+				snapshot.construct(_heap, *_text_screen_surface);
+
+			Position const orig_cursor_pos = _text_screen_surface.constructed()
+			                               ? _text_screen_surface->cursor_pos()
+			                               : Position();
+
 			_text_screen_surface.construct(_heap, _font->font(),
 			                               _color_palette, _framebuffer);
+
+			if (snapshot.constructed())
+				_text_screen_surface->import(*snapshot);
+
+			_text_screen_surface->cursor_pos(orig_cursor_pos);
+
 			_terminal_size = _text_screen_surface->size();
 
 		} else {
