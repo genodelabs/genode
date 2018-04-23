@@ -15,6 +15,7 @@
 #define _SRC__LIB__HW__SPEC__X86_64__X86_64_H_
 
 #include <base/stdint.h>
+#include <hw/spec/x86_64/cpu.h>
 
 namespace Hw { struct Cpu_memory_map; }
 
@@ -22,11 +23,16 @@ namespace Hw { struct Cpu_memory_map; }
 struct Hw::Cpu_memory_map
 {
 	enum {
-		MMIO_LAPIC_BASE  = 0xfee00000,
-		MMIO_LAPIC_SIZE  = 0x1000,
 		MMIO_IOAPIC_BASE = 0xfec00000,
 		MMIO_IOAPIC_SIZE = 0x1000,
 	};
+
+	static Genode::addr_t lapic_phys_base()
+	{
+		Hw::X86_64_cpu::IA32_apic_base::access_t msr_apic_base;
+		msr_apic_base = Hw::X86_64_cpu::IA32_apic_base::read();
+		return Hw::X86_64_cpu::IA32_apic_base::Base::masked(msr_apic_base);
+	}
 };
 
 #endif /* _SRC__LIB__HW__SPEC__X86_64__X86_64_H_ */

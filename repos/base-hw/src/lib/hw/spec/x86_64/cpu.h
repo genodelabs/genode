@@ -78,6 +78,12 @@ struct Hw::X86_64_cpu
 		struct Smep       : Bitfield<20, 1> { }; /* SMEP Enable */
 		struct Smap       : Bitfield<21, 1> { }; /* SMAP Enable */
 	);
+
+	X86_64_MSR_REGISTER(IA32_apic_base,  0x1b,
+		struct Bsp   : Bitfield<  8,  1> { }; /* Bootstrap processor */
+		struct Lapic : Bitfield< 11,  1> { }; /* Enable/disable local APIC */
+		struct Base  : Bitfield< 12, 24> { }; /* Base address of APIC registers */
+	);
 };
 
 #endif /* _SRC__LIB__HW__SPEC__X86_64__CPU_H_ */

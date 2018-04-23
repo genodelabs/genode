@@ -32,4 +32,20 @@
 		__VA_ARGS__; \
 	};
 
+#define X86_64_MSR_REGISTER(name, msr, ...) \
+	struct name : Genode::Register<64> \
+	{ \
+		static access_t read() \
+		{ \
+			access_t low; \
+			access_t high; \
+			asm volatile ("rdmsr" : "=a" (low), "=d" (high) : "c" (msr)); \
+			return (high << 32) | (low & ~0U); \
+		} \
+ \
+		static void write(access_t const) { } \
+ \
+		__VA_ARGS__; \
+	};
+
 #endif /* _SRC__LIB__HW__SPEC__X86_64__REGISTER_MACROS_H_ */

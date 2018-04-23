@@ -54,7 +54,7 @@ uint32_t Timer_driver::pit_calc_timer_freq(void)
 
 
 Timer_driver::Timer_driver(unsigned)
-: Mmio(Platform::mmio_to_virt(Hw::Cpu_memory_map::MMIO_LAPIC_BASE))
+: Mmio(Platform::mmio_to_virt(Hw::Cpu_memory_map::lapic_phys_base()))
 {
 	/* Enable LAPIC timer in one-shot mode */
 	write<Tmr_lvt::Vector>(Board::TIMER_VECTOR_KERNEL);

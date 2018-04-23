@@ -27,8 +27,7 @@ extern "C" Genode::addr_t __initial_bx;
 
 Bootstrap::Platform::Board::Board()
 : core_mmio(Memory_region { 0, 0x1000 },
-            Memory_region { Hw::Cpu_memory_map::MMIO_LAPIC_BASE,
-                            Hw::Cpu_memory_map::MMIO_LAPIC_SIZE  },
+            Memory_region { Hw::Cpu_memory_map::lapic_phys_base(), 0x1000 },
             Memory_region { Hw::Cpu_memory_map::MMIO_IOAPIC_BASE,
                             Hw::Cpu_memory_map::MMIO_IOAPIC_SIZE },
             Memory_region { __initial_bx & ~0xFFFUL,

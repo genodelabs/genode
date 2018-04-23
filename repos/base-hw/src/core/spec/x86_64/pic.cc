@@ -30,7 +30,7 @@ enum {
 	PIC_DATA_SLAVE  = 0xa1,
 };
 
-Pic::Pic() : Mmio(Platform::mmio_to_virt(Hw::Cpu_memory_map::MMIO_LAPIC_BASE))
+Pic::Pic() : Mmio(Platform::mmio_to_virt(Hw::Cpu_memory_map::lapic_phys_base()))
 {
 	/* Start initialization sequence in cascade mode */
 	outb(PIC_CMD_MASTER, 0x11);
