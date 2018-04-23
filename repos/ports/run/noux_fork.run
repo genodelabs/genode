@@ -20,6 +20,7 @@ install_config {
 		<default-route>
 			<any-service> <any-child/> <parent/> </any-service>
 		</default-route>
+		<default caps="120"/>
 		<start name="timer">
 			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Timer"/></provides>
@@ -28,7 +29,7 @@ install_config {
 			<resource name="RAM" quantum="2M"/>
 			<provides><service name="Terminal"/></provides>
 		</start>
-		<start name="noux">
+		<start name="noux" caps="300">
 			<resource name="RAM" quantum="1G"/>
 			<config verbose="yes" stdin="/null" stdout="/log" stderr="/log">
 				<fstab>
@@ -42,7 +43,7 @@ install_config {
 }
 
 build_boot_image {
-	core init timer log_terminal noux ld.lib.so libc.lib.so libm.lib.so
+	core init timer log_terminal noux ld.lib.so libc.lib.so vfs.lib.so libm.lib.so
 	libc_noux.lib.so posix.lib.so test-noux_fork
 }
 

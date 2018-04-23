@@ -56,7 +56,7 @@ install_config {
 
 build_boot_image {
 	core init timer
-	ld.lib.so libc.lib.so expat.lib.so posix.lib.so
+	ld.lib.so libc.lib.so vfs.lib.so vfs.lib.so vfs.lib.so expat.lib.so posix.lib.so
 	test-expat
 }
 

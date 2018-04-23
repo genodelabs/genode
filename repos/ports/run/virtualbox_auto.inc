@@ -346,7 +346,7 @@ install_config $config
 append boot_modules {
 	core init timer
 	part_blk ahci_drv fs_rom
-	ld.lib.so libc.lib.so libm.lib.so pthread.lib.so
+	ld.lib.so libc.lib.so vfs.lib.so libm.lib.so pthread.lib.so
 	libc_pipe.lib.so libc_terminal.lib.so
 	libiconv.lib.so stdcxx.lib.so
 	qemu-usb.lib.so

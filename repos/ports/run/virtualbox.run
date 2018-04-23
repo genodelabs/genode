@@ -310,7 +310,7 @@ lappend_if [expr         $use_gui] boot_modules nit_fb
 lappend_if [expr         $use_gui] boot_modules pointer
 
 append boot_modules {
-	ld.lib.so libc.lib.so libm.lib.so pthread.lib.so libc_pipe.lib.so
+	ld.lib.so libc.lib.so vfs.lib.so libm.lib.so pthread.lib.so libc_pipe.lib.so
 	libc_terminal.lib.so libiconv.lib.so stdcxx.lib.so
 	qemu-usb.lib.so
 }

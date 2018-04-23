@@ -127,7 +127,7 @@ append boot_modules {
 	testnit
 	arora
 	ld.lib.so
-	libc.lib.so libm.lib.so lwip.lib.so
+	libc.lib.so vfs.lib.so libm.lib.so lwip.lib.so
 	zlib.lib.so libpng.lib.so jpeg.lib.so libssl.lib.so libcrypto.lib.so
 	freetype.lib.so
 	libc_pipe.lib.so

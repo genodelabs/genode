@@ -1,8 +1,4 @@
 base
-block_session
-file_system_session
 os
 report_session
-rtc_session
-terminal_session
 vfs

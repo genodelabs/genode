@@ -117,7 +117,7 @@ install_config {
 
 </config>}
 
-build_boot_image { init depot_query depot_deploy }
+build_boot_image { init depot_query depot_deploy vfs.lib.so }
 
 append qemu_args " -nographic "
 

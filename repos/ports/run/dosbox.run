@@ -121,7 +121,7 @@ if {![file exists bin/dosbox.tar]} {
 append boot_modules {
 	core init timer } [audio_drv_binary] {
 	ld.lib.so
-	libc.lib.so
+	libc.lib.so vfs.lib.so
 	libm.lib.so lwip.lib.so libpng.lib.so
 	stdcxx.lib.so sdl.lib.so sdl_net.lib.so pthread.lib.so zlib.lib.so
 	dosbox dosbox.tar

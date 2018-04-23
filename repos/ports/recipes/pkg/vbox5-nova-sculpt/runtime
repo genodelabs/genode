@@ -21,6 +21,7 @@
 		<rom label="libiconv.lib.so"/>
 		<rom label="qemu-usb.lib.so"/>
 		<rom label="stdcxx.lib.so"/>
+		<rom label="vfs.lib.so"/>
 	</content>
 
 </runtime>

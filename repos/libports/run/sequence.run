@@ -104,7 +104,7 @@ install_config $config
 
 build_boot_image {
 	sequence
-	libc.lib.so libm.lib.so posix.lib.so
+	libc.lib.so vfs.lib.so libm.lib.so posix.lib.so
 	test-libc
 }
 

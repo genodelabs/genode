@@ -70,7 +70,7 @@ install_config $config
 # generic modules
 set boot_modules {
 	core init
-	ld.lib.so libc.lib.so libm.lib.so python.lib.so posix.lib.so
+	ld.lib.so libc.lib.so vfs.lib.so libm.lib.so python.lib.so posix.lib.so
 	test-python
 }
 

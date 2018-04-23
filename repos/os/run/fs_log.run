@@ -66,7 +66,7 @@ create_boot_directory
 
 install_config $config
 
-build_boot_image "core init ld.lib.so bomb timer vfs fs_log"
+build_boot_image "core init ld.lib.so bomb timer vfs fs_log vfs.lib.so"
 
 append qemu_args " -nographic"
 

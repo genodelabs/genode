@@ -8,6 +8,7 @@
 		<rom label="fs_report"/>
 		<rom label="fs_rom"/>
 		<rom label="test-fs_report"/>
+		<rom label="vfs.lib.so"/>
 	</content>
 
 	<config>

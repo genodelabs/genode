@@ -37,7 +37,7 @@ install_config {
 
 build_boot_image {
 	core init timer test-moon
-	ld.lib.so libc.lib.so libm.lib.so
+	ld.lib.so libc.lib.so vfs.lib.so libm.lib.so
 }
 
 append qemu_args " -nographic "

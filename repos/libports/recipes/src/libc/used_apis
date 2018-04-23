@@ -1,9 +1,5 @@
-so
 base
 os
-vfs
-block_session
-file_system_session
-rtc_session
-terminal_session
+so
 timer_session
+vfs

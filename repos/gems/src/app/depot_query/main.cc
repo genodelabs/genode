@@ -571,5 +571,8 @@ void Depot_query::Main::_query_user(Archive::User const &user, Xml_generator &xm
 }
 
 
-void Component::construct(Genode::Env &env) { static Depot_query::Main main(env); }
+void Component::construct(Genode::Env &env)
+{
+	static Depot_query::Main main(env);
+}
 

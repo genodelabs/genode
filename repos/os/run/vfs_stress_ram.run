@@ -35,7 +35,7 @@ install_config {
 </config>
 }
 
-build_boot_image "core init ld.lib.so timer vfs_stress"
+build_boot_image "core init ld.lib.so timer vfs_stress vfs.lib.so"
 
 append qemu_args "-nographic -smp cpus=6"
 

@@ -80,7 +80,7 @@ append boot_modules {
         expat.lib.so
 	mesa.lib.so
         ld.lib.so
-	libc.lib.so
+	libc.lib.so vfs.lib.so
 	libc_pipe.lib.so
 	libm.lib.so
 	libpng.lib.so

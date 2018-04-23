@@ -86,6 +86,7 @@ void Depot_download_manager::gen_extract_start_content(Xml_generator       &xml,
 		gen_parent_rom_route(xml, "libm.lib.so");
 		gen_parent_rom_route(xml, "posix.lib.so");
 		gen_parent_rom_route(xml, "libarchive.lib.so");
+		gen_parent_rom_route(xml, "vfs.lib.so");
 		gen_parent_rom_route(xml, "zlib.lib.so");
 		gen_parent_rom_route(xml, "liblzma.lib.so");
 		gen_parent_route<Cpu_session>(xml);

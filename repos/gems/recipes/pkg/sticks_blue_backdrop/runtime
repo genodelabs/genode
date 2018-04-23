@@ -5,6 +5,7 @@
 	<content>
 		<rom label="backdrop.config"/>
 		<rom label="ld.lib.so"/>
+		<rom label="vfs.lib.so"/>
 		<rom label="libc.lib.so"/>
 		<rom label="libm.lib.so"/>
 		<rom label="backdrop"/>

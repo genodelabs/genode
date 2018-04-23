@@ -9,3 +9,4 @@ _/src/ncurses
 _/src/nit_fb
 _/src/terminal
 _/src/init
+_/src/vfs

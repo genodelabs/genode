@@ -29,7 +29,7 @@ install_config $config
 set boot_modules {
 	core init test-ldso test-ldso_lib_1.lib.so
 	test-ldso_lib_2.lib.so test-ldso_lib_dl.lib.so
-	ld.lib.so libc.lib.so libm.lib.so
+	ld.lib.so libc.lib.so vfs.lib.so libm.lib.so
 }
 
 build_boot_image $boot_modules

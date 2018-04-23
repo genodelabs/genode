@@ -30,7 +30,7 @@ install_config {
 
 build_boot_image {
 	core init test-libc_pipe posix.lib.so
-	ld.lib.so libc.lib.so libm.lib.so libc_pipe.lib.so pthread.lib.so
+	ld.lib.so libc.lib.so vfs.lib.so libm.lib.so libc_pipe.lib.so pthread.lib.so
 }
 
 append qemu_args " -nographic  "

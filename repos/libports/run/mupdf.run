@@ -88,7 +88,7 @@ if {![file exist bin/test.pdf]} {
 
 set boot_modules {
 	core init ld.lib.so timer
-	libc.lib.so libm.lib.so
+	libc.lib.so vfs.lib.so libm.lib.so
 	openjpeg.lib.so freetype.lib.so libpng.lib.so zlib.lib.so jbig2dec.lib.so
 	mupdf.lib.so jpeg.lib.so
 	pdf_view

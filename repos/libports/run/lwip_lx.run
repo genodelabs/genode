@@ -58,7 +58,7 @@ install_config $config
 
 set boot_modules {
 	core init timer linux_nic_drv
-	ld.lib.so libc.lib.so libm.lib.so posix.lib.so lwip.lib.so test-lwip_httpsrv
+	ld.lib.so libc.lib.so vfs.lib.so libm.lib.so posix.lib.so lwip.lib.so test-lwip_httpsrv
 }
 
 build_boot_image $boot_modules

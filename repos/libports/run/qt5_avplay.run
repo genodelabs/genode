@@ -90,7 +90,7 @@ append boot_modules {
 	freetype.lib.so
 	glapi.lib.so
 	ld.lib.so
-	libc.lib.so
+	libc.lib.so vfs.lib.so
 	mesa.lib.so
 	posix.lib.so
 	libc_pipe.lib.so

@@ -242,7 +242,7 @@ exec tar chf bin/qt5_fs_mixer_gui_qt.tar -C bin/qt5_fs/mixer_gui_qt .
 
 set boot_modules {
 	core ld.lib.so init timer
-	libc.lib.so 
+	libc.lib.so vfs.lib.so
 
 	report_rom dynamic_rom ram_fs
 	fs_rom

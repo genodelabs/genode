@@ -1,4 +1,5 @@
 _/src/backdrop
 _/src/libc
+_/src/vfs
 _/src/zlib
 _/src/libpng

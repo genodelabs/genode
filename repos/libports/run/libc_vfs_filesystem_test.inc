@@ -160,7 +160,7 @@ install_config $config
 
 # generic modules
 append boot_modules {
-	libc.lib.so test-libc_vfs
+	libc.lib.so vfs.lib.so test-libc_vfs
 }
 
 lappend boot_modules {*}$test_boot_modules

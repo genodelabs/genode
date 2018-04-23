@@ -34,6 +34,7 @@ append config {
 		<default-route>
 			<any-service> <any-child/> <parent/> </any-service>
 		</default-route>
+		<default caps="100"/>
 		<start name="timer">
 			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Timer"/></provides>
@@ -46,7 +47,7 @@ append config {
 				<service name="Terminal"/>
 			</provides>
 			<config>
-				<policy label_prefix="terminal_mux" uart="1" detect_size="yes"/> }
+				<policy label_prefix="terminal_mux" uart="1" detect_size="yes"/>
 			</config>
 			<route> <any-service> <parent/> <any-child/> </any-service> </route>
 		</start>
@@ -139,7 +140,7 @@ install_config $config
 set boot_modules {
 	core init timer ld.lib.so noux terminal_mux terminal_log
 	test-signal cli_monitor test-resource_yield posix.lib.so
-	libc.lib.so libm.lib.so libc_noux.lib.so libc_terminal.lib.so ncurses.lib.so
+	libc.lib.so vfs.lib.so libm.lib.so libc_noux.lib.so libc_terminal.lib.so ncurses.lib.so
 	vim.tar uart_drv
 }
 

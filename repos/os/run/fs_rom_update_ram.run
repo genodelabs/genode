@@ -110,10 +110,11 @@ set boot_modules {
 	core ld.lib.so init
 	dynamic_rom
 	fs_rom
-	vfs
 	rom_logger
 	rom_to_file
 	timer
+	vfs
+	vfs.lib.so
 }
 
 build_boot_image $boot_modules

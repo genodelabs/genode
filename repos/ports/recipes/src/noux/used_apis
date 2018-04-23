@@ -4,9 +4,6 @@ vfs
 libc
 noux
 noux_session
-block_session
-file_system_session
-rtc_session
 terminal_session
 timer_session
 posix
