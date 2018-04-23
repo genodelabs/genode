@@ -45,7 +45,7 @@ class Vfs::Dir_file_system : public File_system
 		 *
 		 * Additionally, the root has an empty _name.
 		 */
-		bool const _vfs_root { &_env.root_dir() == this };
+		bool const _vfs_root;
 
 		struct Dir_vfs_handle : Vfs_handle
 		{
@@ -367,12 +367,12 @@ class Vfs::Dir_file_system : public File_system
 		                Genode::Xml_node     node,
 		                File_system_factory &fs_factory)
 		:
-			_env(env)
+			_env(env), _vfs_root(!node.has_type("dir"))
 		{
 			using namespace Genode;
 
 			/* remember directory name */
-			if (node.has_type("fstab") || node.has_type("vfs"))
+			if (_vfs_root)
 				_name[0] = 0;
 			else
 				node.attribute("name").value(_name, sizeof(_name));
