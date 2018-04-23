@@ -26,6 +26,8 @@
 #include <lx.h>
 #include <lx_emul.h>
 
+#include <lx_kit/env.h>
+
 #include <lx_emul/extern_c_begin.h>
 # include <linux/skbuff.h>
 # include <net/cfg80211.h>
@@ -38,6 +40,66 @@ enum {
 };
 
 
+struct Tx_data
+{
+	net_device     *ndev;
+	struct sk_buff *skb;
+	Lx::Task       *task;
+	int             err;
+};
+
+static Lx::Task *_tx_task;
+static Tx_data   _tx_data;
+
+
+static void _run_tx_task(void *args)
+{
+	Tx_data *data = static_cast<Tx_data*>(args);
+
+	while (1) {
+		Lx::scheduler().current()->block_and_schedule();
+
+		net_device    *ndev = data->ndev;
+		struct sk_buff *skb = data->skb;
+
+		data->err = ndev->netdev_ops->ndo_start_xmit(skb, ndev);
+		if (data->err) {
+			Genode::warning("xmit failed: ", data->err, " skb: ", skb);
+		}
+
+		data->skb = nullptr;
+
+		if (data->task) {
+			data->task->unblock();
+			data->task = nullptr;
+		}
+	}
+}
+
+
+bool tx_task_send(struct sk_buff *skb)
+{
+	if (_tx_data.skb) {
+		Genode::error("skb: ", skb, " already queued");
+		return false;
+	}
+
+	if (!_tx_task) {
+		Genode::error("no TX task available");
+		return false;
+	}
+
+	_tx_data.ndev = skb->dev;
+	_tx_data.skb  = skb;
+	_tx_data.task = Lx::scheduler().current();
+
+	_tx_task->unblock();
+	Lx::scheduler().current()->block_and_schedule();
+
+	return true;
+}
+
+
 /**
  * Nic::Session implementation
  */
@@ -47,29 +109,6 @@ class Wifi_session_component : public Nic::Session_component
 
 		net_device *_ndev;
 		bool        _has_link = !(_ndev->state & 1UL << __LINK_STATE_NOCARRIER);
-
-		struct Tx_data
-		{
-			net_device     *ndev;
-			struct sk_buff *skb;
-		} _tx_data;
-
-		static void _run_tx_task(void *args)
-		{
-			Tx_data *data = static_cast<Tx_data*>(args);
-
-			while (1) {
-				Lx::scheduler().current()->block_and_schedule();
-
-				net_device    *ndev = data->ndev;
-				struct sk_buff *skb = data->skb;
-
-				ndev->netdev_ops->ndo_start_xmit(skb, ndev);
-			}
-		}
-
-		Lx::Task _tx_task { _run_tx_task, &_tx_data, "tx_task",
-		                    Lx::Task::PRIORITY_1, Lx::scheduler() };
 
 	protected:
 
@@ -86,6 +125,15 @@ class Wifi_session_component : public Nic::Session_component
 				return false;
 			}
 
+			/* XXX enable as soon as the other stack plays along
+			if (!_has_link) {
+				Packet_descriptor packet = _tx.sink()->get_packet();
+				_tx.sink()->acknowledge_packet(packet);
+				Genode::warning("no link, drop packet");
+				return true;
+			}
+			*/
+
 			if (!_tx.sink()->ready_to_ack()) { return false; }
 			if (!_tx.sink()->packet_avail()) { return false; }
 
@@ -97,13 +145,15 @@ class Wifi_session_component : public Nic::Session_component
 
 			struct sk_buff *skb = lxc_alloc_skb(packet.size() + HEAD_ROOM, HEAD_ROOM);
 
+			skb->dev = _ndev;
+
 			unsigned char *data = lxc_skb_put(skb, packet.size());
 			Genode::memcpy(data, _tx.sink()->packet_content(packet), packet.size());
 
 			_tx_data.ndev = _ndev;
 			_tx_data.skb  = skb;
 
-			_tx_task.unblock();
+			_tx_task->unblock();
 			Lx::scheduler().schedule();
 
 			_tx.sink()->acknowledge_packet(packet);
@@ -179,7 +229,6 @@ class Wifi_session_component : public Nic::Session_component
 				Genode::warning("failed to process received packet");
 			}
 		}
-
 
 		/*****************************
 		 ** NIC-component interface **
@@ -264,17 +313,10 @@ class Root : public Genode::Root_component<Wifi_session_component,
 Root *Root::instance;
 
 
-static Genode::Env       *_env;
-static Genode::Allocator *_alloc;
-
-
 void Lx::nic_init(Genode::Env &env, Genode::Allocator &alloc)
 {
 	static Root root(env, alloc);
 	Root::instance = &root;
-
-	_env = &env;
-	_alloc = &alloc;
 }
 
 
@@ -287,6 +329,7 @@ void Lx::get_mac_address(unsigned char *addr)
 namespace Lx {
 	class Notifier;
 }
+
 
 class Lx::Notifier
 {
@@ -302,9 +345,19 @@ class Lx::Notifier
 		Lx_kit::List<Block> _list;
 		Genode::Tslab<Block, 32 * sizeof(Block)> _block_alloc;
 
+		void *_ptr;
+
 	public:
 
-		Notifier() : _block_alloc(_alloc) { }
+		Notifier(Genode::Allocator &alloc, void *ptr)
+		: _block_alloc(&alloc), _ptr(ptr) { }
+
+		virtual ~Notifier() { };
+
+		bool handles(void *ptr)
+		{
+			return _ptr == ptr;
+		}
 
 		void register_block(struct notifier_block *nb)
 		{
@@ -335,29 +388,46 @@ class Lx::Notifier
 };
 
 
+static Genode::Registry<Genode::Registered<Lx::Notifier>> _blocking_notifier_registry;
+
+
 /* XXX move blocking_notifier_call to proper location */
 /**********************
  ** linux/notifier.h **
  **********************/
 
-static Lx::Notifier &blocking_notifier()
+static Lx::Notifier &blocking_notifier(struct blocking_notifier_head *nh)
 {
-	static Lx::Notifier inst;
-	return inst;
+	Lx::Notifier *notifier = nullptr;
+	auto lookup = [&](Lx::Notifier &n) {
+		if (!n.handles(nh)) { return; }
+
+		notifier = &n;
+	};
+	_blocking_notifier_registry.for_each(lookup);
+
+	if (!notifier) {
+		Genode::Registered<Lx::Notifier> *n = new (&Lx_kit::env().heap())
+			Genode::Registered<Lx::Notifier>(_blocking_notifier_registry,
+			                                 Lx_kit::env().heap(), nh);
+		notifier = &*n;
+	}
+
+	return *notifier;
 }
 
 
 int blocking_notifier_chain_register(struct blocking_notifier_head *nh,
                                           struct notifier_block *nb)
 {
-	blocking_notifier().register_block(nb);
+	blocking_notifier(nh).register_block(nb);
 	return 0;
 }
 
 int blocking_notifier_chain_unregister(struct blocking_notifier_head *nh,
                                           struct notifier_block *nb)
 {
-	blocking_notifier().unregister_block(nb);
+	blocking_notifier(nh).unregister_block(nb);
 	return 0;
 }
 
@@ -365,7 +435,7 @@ int blocking_notifier_chain_unregister(struct blocking_notifier_head *nh,
 int blocking_notifier_call_chain(struct blocking_notifier_head *nh,
                                  unsigned long val, void *v)
 {
-	return blocking_notifier().call_all_blocks(val, v);
+	return blocking_notifier(nh).call_all_blocks(val, v);
 }
 
 
@@ -375,7 +445,7 @@ int blocking_notifier_call_chain(struct blocking_notifier_head *nh,
 
 static Lx::Notifier &net_notifier()
 {
-	static Lx::Notifier inst;
+	static Lx::Notifier inst(Lx_kit::env().heap(), NULL);
 	return inst;
 }
 
@@ -446,7 +516,7 @@ class Proto_hook_list
 
 static Proto_hook_list& proto_hook_list()
 {
-	static Proto_hook_list inst(*_alloc);
+	static Proto_hook_list inst(Lx_kit::env().heap());
 	return inst;
 }
 
@@ -512,15 +582,12 @@ extern "C" int dev_queue_xmit(struct sk_buff *skb)
 {
 	struct net_device *dev           = skb->dev;
 	struct net_device_ops const *ops = dev->netdev_ops;
-	int rv = NETDEV_TX_OK;
 
 	if (skb->next) {
 		Genode::warning("more skb's queued");
 	}
 
-	rv = ops->ndo_start_xmit(skb, dev);
-
-	return rv;
+	return tx_task_send(skb) ? NETDEV_TX_OK : -1;
 }
 
 
@@ -568,9 +635,14 @@ extern "C" int register_netdevice(struct net_device *ndev)
 
 	int err = ndev->netdev_ops->ndo_open(ndev);
 	if (err) {
-		Genode::error("ndo_open() failed: ", err);
+		Genode::error("Initializing device failed");
+		throw -1;
 		return err;
 	}
+
+	static Lx::Task tx_task { _run_tx_task, &_tx_data, "tx_task",
+	                          Lx::Task::PRIORITY_1, Lx::scheduler() };
+	_tx_task = &tx_task;
 
 	if (ndev->netdev_ops->ndo_set_rx_mode)
 		ndev->netdev_ops->ndo_set_rx_mode(ndev);
@@ -693,7 +765,7 @@ extern "C" struct net_device *alloc_netdev_mqs(int sizeof_priv, const char *name
 	/* ensure 32-byte alignment of whole construct */
 	alloc_size += NETDEV_ALIGN - 1;
 
-	p = (net_device *)kzalloc(alloc_size, GFP_KERNEL | __GFP_NOWARN | __GFP_REPEAT);
+	p = (net_device *)kzalloc(alloc_size, GFP_KERNEL);
 	if (!p)
 		return NULL;
 

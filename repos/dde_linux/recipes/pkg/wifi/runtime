@@ -27,13 +27,15 @@
 		<rom label="wpa_supplicant.lib.so"/>
 		<rom label="vfs.lib.so"/>
 		<rom label="iwlwifi-1000-5.ucode"/>
-		<rom label="iwlwifi-3160-16.ucode"/>
+		<rom label="iwlwifi-3160-17.ucode"/>
+		<rom label="iwlwifi-3168-29.ucode"/>
 		<rom label="iwlwifi-6000-4.ucode"/>
 		<rom label="iwlwifi-6000g2a-6.ucode"/>
 		<rom label="iwlwifi-6000g2b-6.ucode"/>
-		<rom label="iwlwifi-7260-16.ucode"/>
-		<rom label="iwlwifi-7265-16.ucode"/>
-		<rom label="iwlwifi-7265D-16.ucode"/>
-		<rom label="iwlwifi-8000C-16.ucode"/>
+		<rom label="iwlwifi-7260-17.ucode"/>
+		<rom label="iwlwifi-7265-17.ucode"/>
+		<rom label="iwlwifi-7265D-29.ucode"/>
+		<rom label="iwlwifi-8000C-36.ucode"/>
+		<rom label="iwlwifi-8265-36.ucode"/>
 	</content>
 </runtime>

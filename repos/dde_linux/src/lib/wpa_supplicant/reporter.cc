@@ -43,7 +43,7 @@ extern "C" void wpa_reporter_init(void *env)
 }
 
 
-enum { SSID_MAX_LEN = 32 + 1, MAC_STR_LEN = 6*2 + 5 + 1};
+enum { SSID_STRING_MAX_LEN = 32 + 1, MAC_STR_LEN = 6*2 + 5 + 1};
 
 
 static inline void mac2str(char *buf, u8 const *mac)
@@ -60,7 +60,7 @@ extern "C" void wpa_report_connect_event(struct wpa_supplicant *wpa_s)
 			struct wpa_ssid *wpa_ssid = wpa_s->current_ssid;
 
 			/* FIXME ssid may contain any characters, even NUL */
-			Genode::String<SSID_MAX_LEN>
+			Genode::String<SSID_STRING_MAX_LEN>
 				ssid(Genode::Cstring((char *)wpa_ssid->ssid, wpa_ssid->ssid_len));
 
 			char bssid_buf[MAC_STR_LEN];

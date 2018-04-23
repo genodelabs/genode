@@ -11,17 +11,18 @@ SHARED_LIB = yes
 # wifi_include *must* be the first library, otherwise the include
 # order is wrong
 #
-LIBS  += wifi_include lx_kit_setjmp libc
+LIBS  += wifi_include lx_kit_setjmp
 
 LD_OPT += --version-script=$(LIB_DIR)/symbol.map
 
-SRC_CC += dummies.cc init.cc lxcc_emul.cc nic.cc socket_call.cc
+SRC_CC += dummies.cc init.cc lxcc_emul.cc nic.cc socket_call.cc random.cc \
+          firmware.cc
 
 # lx_kit
 SRC_CC += mapped_io_mem_range.cc irq.cc pci.cc malloc.cc scheduler.cc \
           work.cc timer.cc printf.cc env.cc
 
-SRC_C += lxc_emul.c
+SRC_C += lxc_emul.c dummies_new.c
 
 CC_WARN  =
 CC_OPT  += -fno-builtin-toupper
@@ -35,6 +36,9 @@ CC_CXX_OPT += -Wall -fpermissive
 CC_OPT += -U__linux__ -D __KERNEL__ -DCONFIG_PCI
 #CC_OPT += -DCONFIG_INET
 CC_OPT += -DCONFIG_NET -DCONFIG_NET_NS -DCONFIG_WLAN #-D__MAC80211_DRIVER_TRACE
+
+# CONFIG options
+CC_OPT += -DCONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS=1
 
 # needed for firmware loading
 CC_OPT += -DCONFIG_FW_LOADER
@@ -53,14 +57,19 @@ CC_OPT += -DCONFIG_RFKILL
 # choose default pid algorithm
 CC_OPT += -DCONFIG_MAC80211_RC_PID -DCONFIG_MAC80211_RC_DEFAULT=\"pid\"
 
+CC_OPT += -DCONFIG_CFG80211
+
 #
 # Suffix of global 'module_init' function
 #
 MOD_SUFFIX =
 CC_OPT += -DMOD_SUFFIX=$(MOD_SUFFIX)
 
-SRC_C += lib/ctype.c
+SRC_C += lib/bsearch.c
+SRC_C += lib/bucket_locks.c
 SRC_C += lib/crc32.c
+SRC_C += lib/ctype.c
+SRC_C += lib/gcd.c
 
 # crypto
 SRC_C += $(addprefix crypto/, $(notdir $(wildcard $(WIFI_CONTRIB_DIR)/crypto/*.c)))
@@ -101,11 +110,15 @@ CC_OPT += -DCONFIG_LEDS_TRIGGERS
 CC_OPT += -D__CHECK_ENDIAN__
 
 # iwlwifi driver
-DRV_DIR_IWLWIFI := drivers/net/wireless/iwlwifi
+DRV_DIR_IWLWIFI := drivers/net/wireless/intel/iwlwifi
 SRC_C += $(addprefix $(DRV_DIR_IWLWIFI)/,      $(notdir $(wildcard $(WIFI_CONTRIB_DIR)/$(DRV_DIR_IWLWIFI)/*.c)))
+SRC_C += $(addprefix $(DRV_DIR_IWLWIFI)/cfg/,  $(notdir $(wildcard $(WIFI_CONTRIB_DIR)/$(DRV_DIR_IWLWIFI)/cfg/*.c)))
 SRC_C += $(addprefix $(DRV_DIR_IWLWIFI)/dvm/,  $(notdir $(wildcard $(WIFI_CONTRIB_DIR)/$(DRV_DIR_IWLWIFI)/dvm/*.c)))
+SRC_C += $(addprefix $(DRV_DIR_IWLWIFI)/fw/,   $(notdir $(wildcard $(WIFI_CONTRIB_DIR)/$(DRV_DIR_IWLWIFI)/fw/*.c)))
 SRC_C += $(addprefix $(DRV_DIR_IWLWIFI)/mvm/,  $(notdir $(wildcard $(WIFI_CONTRIB_DIR)/$(DRV_DIR_IWLWIFI)/mvm/*.c)))
 SRC_C += $(addprefix $(DRV_DIR_IWLWIFI)/pcie/, $(notdir $(wildcard $(WIFI_CONTRIB_DIR)/$(DRV_DIR_IWLWIFI)/pcie/*.c)))
+INC_DIR += $(WIFI_CONTRIB_DIR)/$(DRV_DIR_IWLWIFI)
+INC_DIR += $(WIFI_CONTRIB_DIR)/$(DRV_DIR_IWLWIFI)/fw
 CC_OPT += -DCONFIG_IWLMVM -DCONFIG_IWLDVM -DCONFIG_IWLWIFI_LEDS
 CC_OPT += -DCONFIG_IWLWIFI_DEBUG
 

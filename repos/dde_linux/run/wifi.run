@@ -86,15 +86,14 @@ append config {
 		<resource name="RAM" quantum="32M"/>
 		<provides> <service name="Nic"/> </provides>
 		<config ld_verbose="yes" verbose="yes" connected_scan_interval="30">
-			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc">
-				<vfs>
-					<dir name="dev"> <log/> <rtc/>
-						<jitterentropy name="random"/>
-						<jitterentropy name="urandom"/>
-					</dir>
-					<dir name="config"> <ram/> </dir>
-				</vfs>
-			</libc>
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
+			<vfs>
+				<dir name="dev"> <log/> <rtc/>
+					<jitterentropy name="random"/>
+					<jitterentropy name="urandom"/>
+				</dir>
+				<dir name="config"> <ram/> </dir>
+			</vfs>
 		</config>
 		<route>
 			<service name="Rtc"> <any-child/> </service>
@@ -123,10 +122,12 @@ set firmware_modules {
 	iwlwifi-6000-4.ucode
 	iwlwifi-6000g2a-6.ucode
 	iwlwifi-6000g2b-6.ucode
-	iwlwifi-7260-16.ucode
-	iwlwifi-7265-16.ucode
-	iwlwifi-7265D-16.ucode
-	iwlwifi-8000C-16.ucode
+	iwlwifi-7260-17.ucode
+	iwlwifi-7265-17.ucode
+	iwlwifi-7265D-29.ucode
+	iwlwifi-8000C-36.ucode
+	iwlwifi-8265-36.ucode
+	regulatory.db
 }
 
 #

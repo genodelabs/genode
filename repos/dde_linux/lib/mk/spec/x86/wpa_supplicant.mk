@@ -10,7 +10,7 @@ CC_OPT += -Wno-unused-function
 
 CC_CXX_OPT += -fpermissive
 
-SRC_C  += main.c
+SRC_C  += main.c ctrl_iface_genode.c
 SRC_CC += reporter.cc
 
 # wpa_supplicant
@@ -18,29 +18,34 @@ SRC_C_wpa_supplicant = blacklist.c      \
                        bss.c            \
                        config.c         \
                        config_file.c    \
+                       ctrl_iface.c     \
                        eap_register.c   \
                        events.c         \
                        notify.c         \
+                       op_classes.c     \
+                       rrm.c            \
                        scan.c           \
                        sme.c            \
+                       wmm_ac.c         \
                        wpa_supplicant.c \
                        wpas_glue.c
 SRC_C   += $(addprefix wpa_supplicant/, $(SRC_C_wpa_supplicant))
 INC_DIR += $(WS_CONTRIB_DIR)/wpa_supplicant
 CC_OPT  += -DCONFIG_BACKEND_FILE -DCONFIG_NO_CONFIG_WRITE \
-           -DCONFIG_SME
+           -DCONFIG_SME -DCONFIG_CTRL_IFACE
+
+CC_OPT  += -DTLS_DEFAULT_CIPHERS=\"DEFAULT:!EXP:!LOW\"
 
 INC_DIR += $(WS_CONTRIB_DIR)/src/
 
 # common
-SRC_C_common = ieee802_11_common.c wpa_common.c
+SRC_C_common = ieee802_11_common.c wpa_common.c hw_features_common.c \
+               ctrl_iface_common.c
 SRC_C += $(addprefix src/common/, $(SRC_C_common))
 INC_DIR += $(WS_CONTRIB_DIR)/src/common
 
 # crypto
-SRC_C_crypto = aes-unwrap.c     \
-               crypto_openssl.c \
-               md5.c            \
+SRC_C_crypto = crypto_openssl.c \
                ms_funcs.c       \
                random.c         \
                sha1-prf.c       \
@@ -82,8 +87,7 @@ INC_DIR += $(WS_CONTRIB_DIR)/src/eapol_supp
 CC_OPT  += -DIEEE8021X_EAPOL
 
 # rsn_supp
-SRC_C_rsn_supp = peerkey.c     \
-                 pmksa_cache.c \
+SRC_C_rsn_supp = pmksa_cache.c \
                  preauth.c     \
                  wpa.c         \
                  wpa_ie.c
@@ -93,6 +97,7 @@ CC_OPT  += -DCONFIG_PEERKEY
 
 # utils
 SRC_C_utils = base64.c    \
+              bitfield.c  \
               common.c    \
               eloop.c     \
               os_unix.c   \

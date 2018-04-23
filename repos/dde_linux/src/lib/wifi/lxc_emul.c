@@ -81,22 +81,6 @@ unsigned char *lxc_skb_put(struct sk_buff *skb, size_t len)
 
 
 /****************************
- ** asm-generic/getorder.h **
- ****************************/
-
-int get_order(unsigned long size)
-{
-	int order;
-
-	size--;
-	size >>= PAGE_SHIFT;
-
-	order = __builtin_ctzl(size);
-	return order;
-}
-
-
-/****************************
  ** asm-generic/atomic64.h **
  ****************************/
 
@@ -108,6 +92,57 @@ long long atomic64_add_return(long long i, atomic64_t *p)
 {
 	p->counter += i;
 	return p->counter;
+}
+
+
+/**********************
+ ** linux/refcount.h **
+ **********************/
+
+void refcount_add(unsigned int i, refcount_t *r) 
+{
+	atomic_add(i, &r->refs);
+}
+
+
+void refcount_dec(refcount_t *r)
+{
+	atomic_dec(&r->refs);
+}
+
+
+bool refcount_dec_and_test(refcount_t *r)
+{
+	return atomic_dec_and_test(&r->refs);
+}
+
+
+void refcount_inc(refcount_t *r) 
+{
+	atomic_inc(&r->refs);
+}
+
+
+bool refcount_inc_not_zero(refcount_t *r)
+{
+	return atomic_add_unless(&r->refs, 1, 0);
+}
+
+
+unsigned int refcount_read(const refcount_t *r)
+{
+	return atomic_read(&r->refs);
+}
+
+
+void refcount_set(refcount_t *r, unsigned int n)
+{
+	atomic_set(&r->refs, n);
+}
+
+bool refcount_sub_and_test(unsigned int i, refcount_t *r)
+{
+	return atomic_sub_and_test(i, &r->refs);
 }
 
 
@@ -214,6 +249,12 @@ pdev_out:
 
 void netdev_run_todo() {
 	__rtnl_unlock();
+}
+
+
+void netif_set_gso_max_size(struct net_device *dev, unsigned int size)
+{
+	dev->gso_max_size = size;
 }
 
 
@@ -394,3 +435,47 @@ static void sock_init(void)
 
 
 core_initcall(sock_init);
+
+
+/*****************
+ ** net/codel.h **
+ *****************/
+
+codel_time_t codel_get_time(void)
+{
+	u64 ns = ktime_get_ns();
+	return ns >> CODEL_SHIFT;
+}
+
+
+/**********************
+ ** net/codel_impl.h **
+ **********************/
+
+void codel_params_init(struct codel_params *params)
+{
+	params->interval = MS2TIME(100);
+	params->target = MS2TIME(5);
+	params->ce_threshold = CODEL_DISABLED_THRESHOLD;
+	params->ecn = false;
+}
+
+void codel_vars_init(struct codel_vars *vars)
+{
+	memset(vars, 0, sizeof(*vars));
+}
+
+void codel_stats_init(struct codel_stats *stats)
+{
+	 // stats->maxpacket = 0;
+}
+
+
+/*************************
+ ** linux/timekeeping.h **
+ *************************/
+
+u64 ktime_get_boot_ns(void)
+{
+	return (u64)ktime_get();
+}

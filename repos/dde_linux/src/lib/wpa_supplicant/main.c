@@ -63,6 +63,7 @@ int wpa_main(int debug_msg, int interval)
 	memset(&params, 0, sizeof(params));
 
 	params.wpa_debug_level = debug_msg ? MSG_DEBUG : MSG_INFO;
+	params.ctrl_interface = "GENODE";
 
 	global = wpa_supplicant_init(&params);
 	if (global == NULL)
@@ -73,7 +74,7 @@ int wpa_main(int debug_msg, int interval)
 	iface.ifname   = "wlan0";
 	iface.confname = conf_file;
 
-	if (wpa_supplicant_add_iface(global, &iface) == NULL)
+	if (wpa_supplicant_add_iface(global, &iface, NULL) == NULL)
 		exitcode = -1;
 
 	if (connected_scan_interval > 0)

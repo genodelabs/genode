@@ -13,4 +13,8 @@ all: $(addprefix $(BIN_DIR)/,$(IMAGES))
 $(BIN_DIR)/%.ucode: $(FW_DIR)/%.ucode
 	$(VERBOSE)cp $^ $@
 
+$(BIN_DIR)/%.db: $(FW_DIR)/%.db
+	$(VERBOSE)cp $^ $@
+
+
 CC_CXX_WARN_STRICT =

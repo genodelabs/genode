@@ -1,9 +1,8 @@
 LICENSE     := GPLv2
 VERSION     := 2
 DOWNLOADS   := dwc_otg.git usb.archive intel_fb.archive lxip.archive \
-               wifi.archive fec.archive libnl.archive wpa_supplicant.archive \
-               fw_3160.archive fw_6000.archive fw_6205a.archive fw_6205b.archive \
-               fw_7260.archive fw_7265.archive fw_8260.archive fw_1000.archive
+               wifi.archive fec.archive libnl.archive wpa_supplicant.git \
+               fw.archive
 
 #
 # The git checkout checks for the existence of SRC_DIR, which is created by the
@@ -52,9 +51,9 @@ HASH_INPUT        += $(REP_DIR)/intel_fb.list
 # mac80211 stack, iwlwifi sources
 #
 SRC_DIR_WIFI  := src/lib/wifi
-VERSION_WIFI  := 4.4.3
+VERSION_WIFI  := 4.16.3
 URL(wifi)     := https://www.kernel.org/pub/linux/kernel/v4.x/linux-$(VERSION_WIFI).tar.xz
-SHA(wifi)     := 0b379cb19bbd7e38fc5a9a000ea927db55cce519a7400ec7fa705c581a6491dd
+SHA(wifi)     := 0d6971a81da97e38b974c5eba31a74803bfe41aabc46d406c3acda56306c81a3
 DIR(wifi)     := $(SRC_DIR_WIFI)
 TAR_OPT(wifi) := --strip-components=1  --files-from - < <(sed 's/-x.x.x/-$(VERSION_WIFI)/g' $(REP_DIR)/wifi.list)
 HASH_INPUT    += $(REP_DIR)/wifi.list
@@ -92,73 +91,25 @@ DIR(libnl) := src/lib/libnl
 #
 # wpa_supplicant sources
 #
-URL(wpa_supplicant) := https://w1.fi/releases/wpa_supplicant-2.2.tar.gz
-SHA(wpa_supplicant) := e0d8b8fd68a659636eaba246bb2caacbf53d22d53b2b6b90eb4b4fef0993c8ed
+URL(wpa_supplicant) := git://w1.fi/srv/git/hostap.git
+REV(wpa_supplicant) := 25bd4e7beb582509596fe60cb3591e1299f3121b
 DIR(wpa_supplicant) := src/app/wpa_supplicant
 
-#
-# Firmware images for iwlwifi Intel Wireless 3160
-#
-URL(fw_3160) := https://wireless.wiki.kernel.org/_media/en/users/drivers/iwlwifi-3160-ucode-16.242414.0.tgz
-SHA(fw_3160) := ea2f272f40b7a76fde049449813a5d6e323769efd603acd303d1e9a4e0e57820
-DIR(fw_3160) := firmware
 
 #
-# Firmware images for iwlwifi Ultimate-N 6300 and Advanced-N 6200
+# Firmware images
 #
-URL(fw_6000) := https://wireless.wiki.kernel.org/_media/en/users/drivers/iwlwifi-6000-ucode-9.221.4.1.tgz
-SHA(fw_6000) := 7f04623231663dc4ee63df32fd890bfa9514dce1fab9dc7a25fda90350da836b
-DIR(fw_6000) := firmware
-
-#
-# Firmware images for iwlwifi Advanced-N 6205
-#
-URL(fw_6205a) := https://wireless.wiki.kernel.org/_media/en/users/drivers/iwlwifi-6000g2a-ucode-18.168.6.1.tgz
-SHA(fw_6205a) := a7f2615756addafbf3e6912cb0265f9650b2807d1ccdf54b620735772725bbe9
-DIR(fw_6205a) := firmware
-
-#
-# Firmware images for iwlwifi Advanced-N 6230 / 6235 and Wireless-N 130 / 1030
-#
-URL(fw_6205b) := https://wireless.wiki.kernel.org/_media/en/users/drivers/iwlwifi-6000g2b-ucode-18.168.6.1.tgz
-SHA(fw_6205b) := 1683c76b52c3505205447c338603ad08611fcc2da024f476e56e1298b4f10bea
-DIR(fw_6205b) := firmware
-
-#
-# Firmware images for iwlwifi Wireless 7260
-#
-URL(fw_7260) := https://wireless.wiki.kernel.org/_media/en/users/drivers/iwlwifi-7260-ucode-16.242414.0.tgz
-SHA(fw_7260) := 3bf102cd3ea8a720bef89dca120c94aa5ff34bcc756413fc5982a39613641d84
-DIR(fw_7260) := firmware
-
-#
-# Firmware images for iwlwifi Wireless 7265
-#
-URL(fw_7265) := https://wireless.wiki.kernel.org/_media/en/users/drivers/iwlwifi-7265-ucode-16.242414.0.tgz
-SHA(fw_7265) := 2d599b091fa81b66a3e2cb1e607e060a8e82d178d26f3077146ce5483d798d65
-DIR(fw_7265) := firmware
-
-#
-# Firmware images for iwlwifi Wireless 8260
-#
-URL(fw_8260) := https://wireless.wiki.kernel.org/_media/en/users/drivers/iwlwifi-8000-ucode-16.242414.0.tgz
-SHA(fw_8260) := 802d7406354016b98d1b485f0446b5a16c4ac795278315a55a7b901b223cb871
-DIR(fw_8260) := firmware
-
-#
-# Firmware images for iwlwifi Wireless-N 1000
-#
-URL(fw_1000) := https://wireless.wiki.kernel.org/_media/en/users/drivers/iwlwifi-1000-ucode-39.31.5.1.tgz
-SHA(fw_1000) := ed0f1fbc2571c8da9a0cd9410fa8883494a9e1ac469d5000bc2c9dceaf83c970
-DIR(fw_1000) := firmware
-
-https://wireless.wiki.kernel.org/_media/en/users/drivers/iwlwifi-1000-ucode-39.31.5.1.tgz
+FW_REV  := 8903435737fd897185eaf64229d870412b558a0e
+URL(fw) := https://github.com/cnuke/dde_linux_firmware/archive/$(FW_REV).tar.gz
+SHA(fw) := 3adea3ebaeb58e27b5002b883423fc8e9224d60c2045c43df5b3c0fdc1adf2f5
+DIR(fw) := firmware
 
 #
 # Patches
 #
-PATCHES := $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/w*.patch)))
+PATCHES := $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/wpa*.patch)))
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/libnl*.patch)))
+PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/wifi*.patch)))
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/lxip*.patch)))
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/intel*.patch)))
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/usb*.patch)))
@@ -177,7 +128,6 @@ PATCH_OPT(patches/lxip_skbuff_cast.patch)  := $(LXIP_OPT)
 # WIFI
 WIFI_OPT = -p1 -d$(SRC_DIR_WIFI)
 PATCH_OPT(patches/wifi.patch)        := $(WIFI_OPT)
-PATCH_OPT(patches/wifi_crypto.patch) := $(WIFI_OPT)
 PATCH_OPT(patches/wifi_mem.patch)    := $(WIFI_OPT)
 
 # libnl

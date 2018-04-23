@@ -393,17 +393,20 @@ int setsockopt(int sockfd, int level, int optname, const void *optval,
 	if (!s)
 		return -1;
 
-	/* FIXME optval values */
-	int const err = socket_call.setsockopt(s,
-	                                       sockopt_level(level),
-	                                       sockopt_name(level, optname),
-	                                       optval, optlen);
-	if (err < 0) {
-		errno = -err;
-		return 1;
-	}
+	try {
+		/* FIXME optval values */
+		int const err =
+			socket_call.setsockopt(s,
+		                           sockopt_level(level),
+		                           sockopt_name(level, optname),
+		                           optval, optlen);
+		if (err < 0) {
+			errno = -err;
+			return 1;
+		}
+	} catch (Invalid_arg) { return -1; }
 
-	return err;
+	return 0;
 }
 
 

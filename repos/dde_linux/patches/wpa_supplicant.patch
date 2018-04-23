@@ -1,56 +1,8 @@
---- a/wpa_supplicant/config.c
-+++ b/wpa_supplicant/config.c
-@@ -1187,6 +1187,7 @@ static int wpa_config_parse_password(const struct parse_data *data,
- }
- 
- 
-+#if 0
- static char * wpa_config_write_password(const struct parse_data *data,
- 					struct wpa_ssid *ssid)
- {
-@@ -1221,6 +1222,7 @@ static char * wpa_config_write_password(const struct parse_data *data,
- 	return buf;
- }
- #endif /* IEEE8021X_EAPOL */
-+#endif
- 
- 
- static int wpa_config_parse_wep_key(u8 *key, size_t *len, int line,
-@@ -2264,6 +2266,7 @@ int wpa_config_set_quoted(struct wpa_ssid *ssid, const char *var,
- }
- 
- 
-+#ifndef NO_CONFIG_WRITE
- /**
-  * wpa_config_get_all - Get all options from network configuration
-  * @ssid: Pointer to network configuration data
-@@ -2326,7 +2329,6 @@ err:
- }
- 
- 
--#ifndef NO_CONFIG_WRITE
- /**
-  * wpa_config_get - Get a variable in network configuration
-  * @ssid: Pointer to network configuration data
+diff --git a/src/drivers/driver_nl80211.c b/src/drivers/driver_nl80211.c
+index 5cff47fab..5cba03efe 100644
 --- a/src/drivers/driver_nl80211.c
 +++ b/src/drivers/driver_nl80211.c
-@@ -20,11 +20,12 @@
- #include <netlink/genl/family.h>
- #include <netlink/genl/ctrl.h>
- #include <linux/rtnetlink.h>
--#include <netpacket/packet.h>
--#include <linux/filter.h>
--#include <linux/errqueue.h>
-+//#include <netpacket/packet.h>
-+//#include <linux/filter.h>
-+//#include <linux/errqueue.h>
- #include "nl80211_copy.h"
- 
-+
- #include "common.h"
- #include "eloop.h"
- #include "utils/list.h"
-@@ -10924,7 +10925,7 @@ static void * nl80211_global_init(void)
+@@ -7645,7 +7645,7 @@ static void * nl80211_global_init(void *ctx)
  	if (wpa_driver_nl80211_init_nl_global(global) < 0)
  		goto err;
  
@@ -59,6 +11,8 @@
  	if (global->ioctl_sock < 0) {
  		wpa_printf(MSG_ERROR, "nl80211: socket(PF_INET,SOCK_DGRAM) failed: %s",
  			   strerror(errno));
+diff --git a/src/drivers/netlink.c b/src/drivers/netlink.c
+index 0e960f48c..38fb26c18 100644
 --- a/src/drivers/netlink.c
 +++ b/src/drivers/netlink.c
 @@ -13,6 +13,8 @@
@@ -70,9 +24,11 @@
  
  struct netlink_data {
  	struct netlink_config *cfg;
+diff --git a/src/utils/eloop.c b/src/utils/eloop.c
+index 436bc8c99..fd72eaef3 100644
 --- a/src/utils/eloop.c
 +++ b/src/utils/eloop.c
-@@ -23,7 +23,7 @@
+@@ -28,7 +28,7 @@
  #endif
  
  #ifdef CONFIG_ELOOP_POLL
@@ -81,82 +37,39 @@
  #endif /* CONFIG_ELOOP_POLL */
  
  #ifdef CONFIG_ELOOP_EPOLL
-@@ -801,7 +801,7 @@
+@@ -961,7 +961,7 @@ static void eloop_handle_alarm(int sig)
  #endif /* CONFIG_NATIVE_WINDOWS */
  
  
 -static void eloop_handle_signal(int sig)
 +void eloop_handle_signal(int sig)
  {
-        int i;
+ 	int i;
  
+diff --git a/wpa_supplicant/events.c b/wpa_supplicant/events.c
+index fb77f1dbd..9142f3f1b 100644
 --- a/wpa_supplicant/events.c
 +++ b/wpa_supplicant/events.c
-@@ -1245,6 +1245,9 @@
+@@ -1754,6 +1754,9 @@ static int wpa_supplicant_need_to_roam(struct wpa_supplicant *wpa_s,
  }
  
  
 +extern void wpa_report_scan_results(struct wpa_supplicant *);
 +
 +
- /* Return != 0 if no scan results could be fetched or if scan results should not
-  * be shared with other virtual interfaces. */
- static int _wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
-@@ -1281,6 +1284,8 @@
-                goto scan_work_done;
-        }
+ /*
+  * Return a negative value if no scan results could be fetched or if scan
+  * results should not be shared with other virtual interfaces.
+@@ -1799,6 +1802,8 @@ static int _wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
+ 		goto scan_work_done;
+ 	}
  
-+       wpa_report_scan_results(wpa_s);
++	wpa_report_scan_results(wpa_s);
 +
  #ifndef CONFIG_NO_RANDOM_POOL
-        num = scan_res->num;
-        if (num > 10)
---- a/src/drivers/driver.h
-+++ b/src/drivers/driver.h
-@@ -267,6 +267,20 @@
- 
- #define WPAS_MAX_SCAN_SSIDS 16
- 
-+struct wpa_driver_scan_ssid {
-+	/**
-+	 * ssid - specific SSID to scan for (ProbeReq)
-+	 * %NULL or zero-length SSID is used to indicate active scan
-+	 * with wildcard SSID.
-+	 */
-+	const u8 *ssid;
-+	/**
-+	 * ssid_len: Length of the SSID in octets
-+	 */
-+	size_t ssid_len;
-+};
-+
-+
- /**
-  * struct wpa_driver_scan_params - Scan parameters
-  * Data for struct wpa_driver_ops::scan2().
-@@ -275,18 +289,7 @@
- 	/**
- 	 * ssids - SSIDs to scan for
- 	 */
--	struct wpa_driver_scan_ssid {
--		/**
--		 * ssid - specific SSID to scan for (ProbeReq)
--		 * %NULL or zero-length SSID is used to indicate active scan
--		 * with wildcard SSID.
--		 */
--		const u8 *ssid;
--		/**
--		 * ssid_len: Length of the SSID in octets
--		 */
--		size_t ssid_len;
--	} ssids[WPAS_MAX_SCAN_SSIDS];
-+	struct wpa_driver_scan_ssid ssids[WPAS_MAX_SCAN_SSIDS];
- 
- 	/**
- 	 * num_ssids - Number of entries in ssids array
---- a/wpa_supplicant/events.c
-+++ b/wpa_supplicant/events.c
-@@ -2067,6 +2067,9 @@ static int disconnect_reason_recoverable(u16 reason_code)
+ 	num = scan_res->num;
+ 	if (num > 10)
+@@ -2813,6 +2818,9 @@ static int disconnect_reason_recoverable(u16 reason_code)
  }
  
  
@@ -166,7 +79,7 @@
  static void wpa_supplicant_event_disassoc(struct wpa_supplicant *wpa_s,
  					  u16 reason_code,
  					  int locally_generated)
-@@ -2088,6 +2091,7 @@ static void wpa_supplicant_event_disassoc(struct wpa_supplicant *wpa_s,
+@@ -2834,6 +2842,7 @@ static void wpa_supplicant_event_disassoc(struct wpa_supplicant *wpa_s,
  
  	if (!is_zero_ether_addr(bssid) ||
  	    wpa_s->wpa_state >= WPA_AUTHENTICATING) {
@@ -174,9 +87,11 @@
  		wpa_msg(wpa_s, MSG_INFO, WPA_EVENT_DISCONNECTED "bssid=" MACSTR
  			" reason=%d%s",
  			MAC2STR(bssid), reason_code,
+diff --git a/wpa_supplicant/wpa_supplicant.c b/wpa_supplicant/wpa_supplicant.c
+index 185a8d50f..4baedabb3 100644
 --- a/wpa_supplicant/wpa_supplicant.c
 +++ b/wpa_supplicant/wpa_supplicant.c
-@@ -656,6 +656,9 @@ void wpa_supplicant_reinit_autoscan(struct wpa_supplicant *wpa_s)
+@@ -822,6 +822,9 @@ void wpa_supplicant_reinit_autoscan(struct wpa_supplicant *wpa_s)
  }
  
  
@@ -186,11 +101,11 @@
  /**
   * wpa_supplicant_set_state - Set current connection state
   * @wpa_s: Pointer to wpa_supplicant data
-@@ -689,6 +692,7 @@ void wpa_supplicant_set_state(struct wpa_supplicant *wpa_s,
+@@ -879,6 +882,7 @@ void wpa_supplicant_set_state(struct wpa_supplicant *wpa_s,
  
  	if (state == WPA_COMPLETED && wpa_s->new_connection) {
  		struct wpa_ssid *ssid = wpa_s->current_ssid;
 +		wpa_report_connect_event(wpa_s);
- #if defined(CONFIG_CTRL_IFACE) || !defined(CONFIG_NO_STDOUT_DEBUG)
- 		wpa_msg(wpa_s, MSG_INFO, WPA_EVENT_CONNECTED "- Connection to "
- 			MACSTR " completed [id=%d id_str=%s]",
+ 		int fils_hlp_sent = 0;
+ 
+ #ifdef CONFIG_SME

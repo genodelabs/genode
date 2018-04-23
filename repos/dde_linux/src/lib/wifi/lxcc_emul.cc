@@ -15,16 +15,17 @@
 #include <base/allocator_avl.h>
 #include <base/env.h>
 #include <base/log.h>
+#include <base/registry.h>
 #include <base/snprintf.h>
 #include <base/sleep.h>
 #include <dataspace/client.h>
 #include <timer_session/connection.h>
 #include <region_map/client.h>
 #include <rom_session/connection.h>
+#include <util/bit_allocator.h>
 #include <util/string.h>
 
 /* local includes */
-#include <firmware_list.h>
 #include <lx.h>
 #include <lx_emul.h>
 
@@ -300,6 +301,24 @@ size_t copy_from_iter(void *addr, size_t bytes, struct iov_iter *i)
 }
 
 
+bool copy_from_iter_full(void *addr, size_t bytes, struct iov_iter *i)
+{
+	if (bytes > i->count)
+		return false;
+
+	if (bytes == 0)
+		return true;
+
+	size_t const copied = copy_from_iter(addr, bytes, i);
+	if (copied != bytes) {
+		Genode::error(__func__, ":", __LINE__, " could not copy all bytes");
+		return false;
+	}
+
+	return true;
+}
+
+
 size_t copy_to_iter(void *addr, size_t bytes, struct iov_iter *i)
 {
 	if (bytes > i->count)
@@ -375,6 +394,11 @@ extern "C" int memcpy_fromiovecend(unsigned char *kdata, const struct iovec *iov
 
 #include <lx_emul/impl/slab.h>
 
+void *kvmalloc(size_t size, gfp_t flags)
+{
+	return kmalloc(size, flags);
+}
+
 
 void *kmalloc_array(size_t n, size_t size, gfp_t flags)
 {
@@ -386,6 +410,12 @@ void *kmalloc_array(size_t n, size_t size, gfp_t flags)
 void kvfree(const void *p)
 {
 	kfree(p);
+}
+
+
+void *devm_kzalloc(struct device *dev, size_t size, gfp_t gfp)
+{
+	return kzalloc(size, gfp | GFP_LX_DMA);
 }
 
 
@@ -583,38 +613,13 @@ int strict_strtoul(const char *s, unsigned int base, unsigned long *res)
  ** linux/delay.h **
  *******************/
 
-static Timer::Connection &timer_for_msleep()
-{
-	static Timer::Connection inst(Lx_kit::env().env());
-	return inst;
-}
-
-
-void udelay(unsigned long usecs)
-{
-	timer_for_msleep().usleep(usecs);
-
-	Lx::scheduler().current()->schedule();
-}
+#include <lx_emul/impl/delay.h>
 
 
 void usleep_range(unsigned long min, unsigned long max)
 {
-	timer_for_msleep().usleep(min);
-
-	Lx::scheduler().current()->schedule();
+	udelay(min);
 }
-
-
-void msleep(unsigned int msecs)
-{
-	timer_for_msleep().msleep(msecs);
-
-	Lx::scheduler().current()->schedule();
-}
-
-
-void mdelay(unsigned long msecs) { msleep(msecs); }
 
 
 /*******************
@@ -669,7 +674,49 @@ unsigned long round_jiffies_relative(unsigned long j)
 
 ktime_t ktime_get_real(void)
 {
-	return (ktime_t) { .tv64 = (s64)(jiffies * (1000 / HZ) * NSEC_PER_MSEC) };
+	return (ktime_t) (s64)(jiffies * (1000 / HZ) * NSEC_PER_MSEC);
+}
+
+
+ktime_t ktime_sub(ktime_t const lhs, ktime_t const rhs)
+{
+	return lhs - rhs;
+}
+
+
+struct timespec ktime_to_timespec(ktime_t const nsec)
+{
+	struct timespec ts;
+	if (!nsec) { return (struct timespec) {0, 0}; }
+
+	/* XXX check nsec < NSEC_PER_SEC */
+	ts.tv_sec = nsec / NSEC_PER_SEC;
+	ts.tv_nsec = (nsec % NSEC_PER_SEC) * (1000*1000);
+
+	return ts;
+}
+
+
+bool ktime_to_timespec_cond(ktime_t const kt, struct timespec *ts)
+{
+	if (kt) {
+		*ts = ktime_to_timespec(kt);
+		return true;
+	}
+
+	return false;
+}
+
+
+struct timeval ns_to_timeval(ktime_t const nsec)
+{
+	struct timespec ts = ktime_to_timespec(nsec);
+	struct timeval tv;
+
+	tv.tv_sec = ts.tv_sec;
+	tv.tv_usec = ts.tv_nsec / 1000;
+
+	return tv;
 }
 
 
@@ -705,90 +752,25 @@ struct workqueue_struct *alloc_workqueue(const char *fmt, unsigned int flags,
 }
 
 
-/**********************
- ** linux/firmware.h **
- **********************/
-
-extern Firmware_list fw_list[];
-extern size_t        fw_list_len;
-
-
-int request_firmware_nowait(struct module *module, bool uevent,
-                            const char *name, struct device *device,
-                            gfp_t gfp, void *context,
-                            void (*cont)(const struct firmware *, void *))
-{
-	/* only try to load known firmware images */
-	Firmware_list *fwl = 0;
-	for (size_t i = 0; i < fw_list_len; i++) {
-		if (Genode::strcmp(name, fw_list[i].requested_name) == 0) {
-			fwl = &fw_list[i];
-			break;
-		}
-	}
-
-	if (!fwl) {
-		Genode::error("firmware '", name, "' is not in the firmware white list");
-		return -1;
-	}
-
-	char const *fw_name = fwl->available_name
-	                    ? fwl->available_name : fwl->requested_name;
-	Genode::Rom_connection rom(Lx_kit::env().env(), fw_name);
-	Genode::Dataspace_capability ds_cap = rom.dataspace();
-
-	if (!ds_cap.valid()) {
-		Genode::error("could not get firmware ROM dataspace");
-		return -1;
-	}
-
-	struct firmware *fw = (struct firmware *)kzalloc(sizeof(struct firmware), 0);
-	if (!fw) {
-		Genode::error("could not allocate memory for firmware metadata");
-		return -1;
-	}
-
-	/* use allocator because fw is too big for slab */
-	if (!Lx_kit::env().heap().alloc(fwl->size, (void**)&fw->data)) {
-		Genode::error("Could not allocate memory for firmware image");
-		kfree(fw);
-		return -1;
-	}
-
-	void const *image = Lx_kit::env().env().rm().attach(ds_cap);
-	Genode::memcpy((void*)fw->data, image, fwl->size);
-	Lx_kit::env().env().rm().detach(image);
-
-	fw->size = fwl->size;
-
-	cont(fw, context);
-
-	return 0;
-}
-
-void release_firmware(const struct firmware *fw)
-{
-	Lx_kit::env().heap().free(const_cast<u8 *>(fw->data), fw->size);
-	kfree(fw);
-}
-
-
 /*************************
  ** linux/dma-mapping.h **
  *************************/
 
+/* use a smaller limit then possible to cover potential overhead */
+enum { DMA_LARGE_ALLOC_SIZE = 60u << 10, };
+
 void *dma_alloc_coherent(struct device *dev, size_t size,
                          dma_addr_t *dma_handle, gfp_t flag)
 {
-	dma_addr_t dma_addr;
-	void *addr = Lx::Malloc::dma().alloc(size, 12, &dma_addr);
+	bool const large_alloc = size >= DMA_LARGE_ALLOC_SIZE;
+	dma_addr_t dma_addr = 0;
+	void *addr = large_alloc ? Lx::Malloc::dma().alloc_large(size)
+	                         : Lx::Malloc::dma().alloc(size, 12, &dma_addr);
 
-	if (!addr) {
-		return 0;
+	if (addr) {
+		*dma_handle = large_alloc ? Lx::Malloc::dma().phys_addr(addr)
+		                          : dma_addr;
 	}
-
-	*dma_handle = dma_addr;
-
 	return addr;
 }
 
@@ -808,6 +790,11 @@ void *dma_zalloc_coherent(struct device *dev, size_t size,
 void dma_free_coherent(struct device *dev, size_t size,
                        void *vaddr, dma_addr_t dma_handle)
 {
+	if (size >= DMA_LARGE_ALLOC_SIZE) {
+		Lx::Malloc::dma().free_large(vaddr);
+		return;
+	}
+
 	if (Lx::Malloc::dma().inside((Genode::addr_t)vaddr)) {
 		Lx::Malloc::dma().free(vaddr);
 	} else {
@@ -841,7 +828,8 @@ dma_addr_t dma_map_single(struct device *dev, void *cpu_addr, size_t size,
 
 	if (dma_addr == ~0UL) {
 		Genode::error(__func__, ": virtual address ", cpu_addr,
-		              " not registered for DMA");
+		              " not registered for DMA ", __builtin_return_address(0));
+		BUG();
 	}
 
 	return dma_addr;
@@ -980,6 +968,18 @@ void *__alloc_page_frag(struct page_frag_cache *nc,
 	if (!page) return nullptr;
 
 	return page->addr;
+}
+
+
+void *page_frag_alloc(struct page_frag_cache *nc, unsigned int fragsz, gfp_t gfp_mask)
+{
+	return __alloc_page_frag(nc, fragsz, gfp_mask);
+}
+
+
+void page_frag_free(void *addr)
+{
+	__free_page_frag(addr);
 }
 
 
@@ -1150,12 +1150,55 @@ void *__alloc_percpu(size_t size, size_t align)
 }
 
 
+/**********************
+ ** net/ns/generic.h **
+ **********************/
+
+void *net_generic(const struct net *net, unsigned int id)
+{
+	if (id >= MAX_NET_GENERIC_PTR) {
+		Genode::error(__func__, ":", " id ", id, " invalid");
+		return NULL;
+	}
+
+	struct net_generic *ng = net->gen;
+	void *ptr = ng->ptr[id];
+	if (!ptr) {
+		Genode::error(__func__, ":", " cannot get ptr");
+		BUG();
+	}
+
+	return ptr;
+}
+
+
 /*******************************
  **  net/core/net/namespace.h **
  *******************************/
 
 int register_pernet_subsys(struct pernet_operations *ops)
 {
+	if (!init_net.gen) {
+		init_net.gen = (struct net_generic*)kzalloc(
+			offsetof(struct net_generic, ptr[MAX_NET_GENERIC_PTR]), 0);
+		if (!init_net.gen) {
+			Genode::error("could not allocate net_generic memory");
+			return -1;
+		}
+	}
+
+	if (ops->id && ops->size) {
+		/* XXX AFAICS there is only netlink_tap_net_ops that requires it */
+		unsigned int id = *ops->id;
+		if (id >= MAX_NET_GENERIC_PTR) {
+			Genode::error(__func__, ":", " id ", id, " invalid");
+			return -1;
+		}
+
+		void *data = kzalloc(ops->size, 0);
+		init_net.gen->ptr[id] = data;
+	}
+
 	if (ops->init)
 		ops->init(&init_net);
 
@@ -1232,114 +1275,7 @@ int request_module(char const* format, ...)
  ** kernel/locking/mutex.c **
  ****************************/
 
-/*
- * XXX We have to create the waiters list lazy because the way
- *     DEFINE_MUTEX is currently implemented does not work w/o
- *     a global Env that was constructed before the static ctors
- *     are called
- */
-static inline void __check_or_initialize_mutex(struct mutex *m)
-{
-	if (!m->waiters) {
-		m->waiters = new (&Lx_kit::env().heap()) Lx::Task::List;
-	}
-}
-
-
-enum { MUTEX_UNLOCKED = 1, MUTEX_LOCKED = 0, MUTEX_WAITERS = -1 };
-
-
-void mutex_init(struct mutex *m)
-{
-	static unsigned id = 0;
-
-	m->state   = MUTEX_UNLOCKED;
-	m->holder  = nullptr;
-	m->waiters = nullptr;
-	m->id      = ++id;
-}
-
-
-void mutex_destroy(struct mutex *m)
-{
-	/* FIXME potentially blocked tasks are not unblocked */
-
-	Genode::destroy(&Lx_kit::env().heap(),
-	                static_cast<Lx::Task::List *>(m->waiters));
-
-	m->holder  = nullptr;
-	m->waiters = nullptr;
-	m->id      = 0;
-}
-
-
-void mutex_lock(struct mutex *m)
-{
-	__check_or_initialize_mutex(m);
-
-	while (1) {
-		if (m->state == MUTEX_UNLOCKED) {
-			m->state  = MUTEX_LOCKED;
-			m->holder = Lx::scheduler().current();
-
-			break;
-		}
-
-		Lx::Task *t = reinterpret_cast<Lx::Task *>(m->holder);
-
-		if (t == Lx::scheduler().current()) {
-			Genode::error("BUG: mutex does not support recursive locking");
-			Genode::sleep_forever();
-		}
-
-		/* notice that a task waits for the mutex to be released */
-		m->state = MUTEX_WAITERS;
-
-		/* block until the mutex is released (and retry then) */
-		Lx::scheduler().current()->mutex_block(static_cast<Lx::Task::List *>(m->waiters));
-		Lx::scheduler().current()->schedule();
-	}
-}
-
-
-void mutex_unlock(struct mutex *m)
-{
-	__check_or_initialize_mutex(m);
-
-	if (m->state == MUTEX_UNLOCKED) {
-		Genode::error("BUG: multiple mutex unlock detected");
-		Genode::sleep_forever();
-	}
-	if (m->holder != Lx::scheduler().current()) {
-		Genode::error("BUG: mutex unlock by task not holding the mutex");
-		Genode::sleep_forever();
-	}
-
-	Lx::Task::List *waiters = static_cast<Lx::Task::List *>(m->waiters);
-
-	if (m->state == MUTEX_WAITERS)
-		while (Lx::Task::List_element *le = waiters->first())
-			le->object()->mutex_unblock(waiters);
-
-	m->state  = MUTEX_UNLOCKED;
-	m->holder = nullptr;
-}
-
-
-int mutex_is_locked(struct mutex *m)
-{
-	return m->state != MUTEX_UNLOCKED;
-}
-
-
-int mutex_trylock(struct mutex *m)
-{
-	if (mutex_is_locked(m))
-		return false;
-
-	mutex_lock(m);
-	return true;
-}
+#include <lx_emul/impl/mutex.h>
 
 
 /******************
@@ -1383,6 +1319,30 @@ void pci_set_drvdata(struct pci_dev *pdev, void *data)
 }
 
 
+static struct pcim_iomap_devres {
+	void *table[6];
+} _devres_table;
+
+
+int pcim_iomap_regions_request_all(struct pci_dev *pdev, int mask, const char *name)
+{
+	/* XXX iwlwifi just want to map the first BAR */
+	void *addr = pci_ioremap_bar(pdev, 0);
+	if (!addr) { return -1; }
+
+	printk("%s:%d from: %p addr: %p\n", __func__, __LINE__, __builtin_return_address(0), addr);
+
+	_devres_table.table[0] = addr;
+	return 0;
+}
+
+
+void * const *pcim_iomap_table(struct pci_dev *pdev)
+{
+	return _devres_table.table;
+}
+
+
 /***********************
  ** linux/interrupt.h **
  ***********************/
@@ -1423,22 +1383,10 @@ void pci_dev_put(struct pci_dev *pci_dev)
 #include <lx_emul/impl/work.h>
 
 
-static void execute_delayed_work(unsigned long dwork)
-{
-	Lx::Work::work_queue().schedule_delayed((struct delayed_work *)dwork, 0);
-	Lx::Work::work_queue().unblock();
-}
-
-
 bool mod_delayed_work(struct workqueue_struct *wq, struct delayed_work *dwork,
                       unsigned long delay)
 {
-	/* treat delayed work without delay like any other work */
-	if (delay == 0) {
-		execute_delayed_work((unsigned long)dwork);
-	} else {
-		mod_timer(&dwork->timer, jiffies + delay);
-	}
+	queue_delayed_work(wq, dwork, delay);
 	return true;
 }
 
@@ -1520,3 +1468,138 @@ int wake_up_process(struct task_struct *tsk) { return 0; }
  *******************/
 
 #include <lx_emul/impl/sched.h>
+
+
+/*****************
+ ** linux/idr.h **
+ *****************/
+
+struct Idr
+{
+	enum { INVALID_ENTRY = ~0ul, };
+	enum { MAX_ENTRIES = 1024, };
+
+	Genode::Bit_array<MAX_ENTRIES>  _barray { };
+	addr_t                          _ptr[MAX_ENTRIES] { };
+	void                           *_idp { nullptr };
+
+	bool _check(addr_t index) { return index < MAX_ENTRIES ? true : false; }
+
+	Idr(struct idr *idp) : _idp(idp) { }
+
+	virtual ~Idr() { }
+
+	bool handles(void *ptr) { return _idp == ptr; }
+
+	bool set_id(addr_t index, void *ptr)
+	{
+		if (_barray.get(index, 1)) { return false; }
+
+		_barray.set(index, 1);
+		_ptr[index] = ptr;
+		return true;
+	}
+
+	addr_t alloc(addr_t start, void *ptr)
+	{
+		addr_t index = INVALID_ENTRY;
+		for (addr_t i = start; i < MAX_ENTRIES; i++) {
+			if (_barray.get(i, 1)) { continue; }
+			index = i;
+			break;
+		}
+
+		if (index == INVALID_ENTRY) { return INVALID_ENTRY; }
+
+		_barray.set(index, 1);
+		_ptr[index] = ptr;
+		return index;
+	}
+
+	void clear(addr_t index)
+	{
+		if (!_check(index)) { return; }
+
+		_barray.clear(index, 1);
+		_ptr[index] = 0;
+	}
+
+	addr_t next(addr_t index)
+	{
+		for (addr_t i = index; i < MAX_ENTRIES; i++) {
+			if (_barray.get(i, 1)) { return i; }
+		}
+		return INVALID_ENTRY;
+	}
+
+	void *get_ptr(addr_t index)
+	{
+		if (!_check(index)) { return NULL; }
+		return (void*)_ptr[index];
+	}
+};
+
+
+static Genode::Registry<Genode::Registered<Idr>> _idr_registry;
+
+
+static Idr &idp_to_idr(struct idr *idp)
+{
+	Idr *idr = nullptr;
+	auto lookup = [&](Idr &i) {
+		if (i.handles(idp)) { idr = &i; }
+	};
+	_idr_registry.for_each(lookup);
+
+	if (!idr) {
+		Genode::Registered<Idr> *i = new (&Lx_kit::env().heap())
+			Genode::Registered<Idr>(_idr_registry, idp);
+		idr = &*i;
+	}
+
+	return *idr;
+}
+
+
+int idr_alloc(struct idr *idp, void *ptr, int start, int end, gfp_t gfp_mask)
+{
+	Idr &idr = idp_to_idr(idp);
+
+	if ((end - start) > 1) {
+		addr_t const id = idr.alloc(start, ptr);
+		return id != Idr::INVALID_ENTRY ? id : -1;
+	} else {
+		if (idr.set_id(start, ptr)) { return start; }
+	}
+
+	return -1;
+}
+
+
+void *idr_find(struct idr *idp, int id)
+{
+	Idr &idr = idp_to_idr(idp);
+	return idr.get_ptr(id);
+}
+
+
+void *idr_get_next(struct idr *idp, int *nextid)
+{
+	Idr &idr = idp_to_idr(idp);
+	addr_t i = idr.next(*nextid);
+	if (i == Idr::INVALID_ENTRY) { return NULL; }
+
+	*nextid = i;
+	return idr.get_ptr(i);
+}
+
+
+/****************************
+ ** asm-generic/getorder.h **
+ ****************************/
+
+int get_order(unsigned long size)
+{
+	if (size < PAGE_SIZE) { return 0; }
+	return Genode::log2(size) - PAGE_SHIFT;
+}

@@ -1,88 +1,77 @@
-diff --git a/drivers/net/wireless/iwlwifi/dvm/rs.c b/drivers/net/wireless/iwlwifi/dvm/rs.c
-index 0977d93..3ccfd0e 100644
---- a/drivers/net/wireless/iwlwifi/dvm/rs.c
-+++ b/drivers/net/wireless/iwlwifi/dvm/rs.c
-@@ -2309,7 +2309,7 @@ static void rs_rate_scale_perform(struct iwl_priv *priv,
- 		rate_scale_index_msk = rate_mask;
- 
- 	if (!((1 << index) & rate_scale_index_msk)) {
--		IWL_ERR(priv, "Current Rate is not valid\n");
-+		// IWL_ERR(priv, "Current Rate is not valid\n");
- 		if (lq_sta->search_better_tbl) {
- 			/* revert to active table if search table is not valid*/
- 			tbl->lq_type = LQ_NONE;
-diff --git a/drivers/net/wireless/iwlwifi/iwl-debug.c b/drivers/net/wireless/iwlwifi/iwl-debug.c
-index 09feff4..f218fe6 100644
---- a/drivers/net/wireless/iwlwifi/iwl-debug.c
-+++ b/drivers/net/wireless/iwlwifi/iwl-debug.c
-@@ -78,7 +78,9 @@ void __iwl_ ##fn(struct device *dev, const char *fmt, ...)	\
- 								\
- 	va_start(args, fmt);					\
- 	vaf.va = &args;						\
--	dev_ ##fn(dev, "%pV", &vaf);				\
-+	char buf[256]; \
-+	vsnprintf(buf, sizeof(buf), vaf.fmt, *vaf.va); \
-+	dev_ ##fn(dev, "%s", buf);				\
- 	trace_iwlwifi_ ##fn(&vaf);				\
- 	va_end(args);						\
+diff --git a/crypto/algboss.c b/crypto/algboss.c
+index 5e6df2a..6ec2ce3 100644
+--- a/crypto/algboss.c
++++ b/crypto/algboss.c
+@@ -90,6 +90,8 @@ out:
+ 	crypto_alg_put(&param->larval->alg);
+ 	kfree(param);
+ 	module_put_and_exit(0);
++
++	return 0;
  }
-@@ -101,10 +103,12 @@ void __iwl_err(struct device *dev, bool rfkill_prefix, bool trace_only,
- 	va_start(args, fmt);
- 	vaf.va = &args;
- 	if (!trace_only) {
-+		char buf[256];
-+		vsnprintf(buf, sizeof(buf), vaf.fmt, *vaf.va);
- 		if (rfkill_prefix)
--			dev_err(dev, "(RFKILL) %pV", &vaf);
-+			dev_err(dev, "(RFKILL) %s",  buf);
- 		else
--			dev_err(dev, "%pV", &vaf);
-+			dev_err(dev, "%s", buf);
- 	}
- 	trace_iwlwifi_err(&vaf);
- 	va_end(args);
-@@ -125,9 +129,12 @@ void __iwl_dbg(struct device *dev,
- 	vaf.va = &args;
- #ifdef CONFIG_IWLWIFI_DEBUG
- 	if (iwl_have_debug_level(level) &&
--	    (!limit || net_ratelimit()))
--		dev_printk(KERN_DEBUG, dev, "%c %s %pV",
--			   in_interrupt() ? 'I' : 'U', function, &vaf);
-+	    (!limit || net_ratelimit())) {
-+		char buf[256];
-+		vsnprintf(buf, sizeof(buf), vaf.fmt, *vaf.va);
-+		dev_printk(KERN_DEBUG, dev, "%c %s %s",
-+			   in_interrupt() ? 'I' : 'U', function, buf);
-+	}
- #endif
- 	trace_iwlwifi_dbg(level, in_interrupt(), function, &vaf);
- 	va_end(args);
---- a/drivers/net/wireless/iwlwifi/iwl-trans.c
-+++ b/drivers/net/wireless/iwlwifi/iwl-trans.c
-@@ -96,7 +96,7 @@
- 				  sizeof(struct iwl_device_cmd)
- 				  + trans->dev_cmd_headroom,
- 				  sizeof(void *),
--				  SLAB_HWCACHE_ALIGN,
-+				  SLAB_HWCACHE_ALIGN | SLAB_LX_DMA,
- 				  NULL);
- 	if (!trans->dev_cmd_pool)
- 		goto free;
-diff --git a/drivers/net/wireless/iwlwifi/mvm/mac80211.c b/drivers/net/wireless/iwlwifi/mvm/mac80211.c
-index 9a856e5..e70f9b7 100644
---- a/drivers/net/wireless/iwlwifi/mvm/mac80211.c
-+++ b/drivers/net/wireless/iwlwifi/mvm/mac80211.c
-@@ -566,7 +566,9 @@
- 	else
- 		hw->wiphy->flags &= ~WIPHY_FLAG_PS_ON_BY_DEFAULT;
  
-+/* don't enable broken scheduled scanning
- 	hw->wiphy->flags |= WIPHY_FLAG_SUPPORTS_SCHED_SCAN;
-+*/
- 	hw->wiphy->max_sched_scan_ssids = PROBE_OPTION_MAX;
- 	hw->wiphy->max_match_sets = IWL_SCAN_MAX_PROFILES;
- 	/* we create the 802.11 header and zero length SSID IE. */
-@@ -4200,7 +4202,7 @@
+ static int cryptomgr_schedule_probe(struct crypto_larval *larval)
+@@ -227,6 +229,8 @@ skiptest:
+ 
+ 	kfree(param);
+ 	module_put_and_exit(0);
++
++	return 0;
+ }
+ 
+ static int cryptomgr_schedule_test(struct crypto_alg *alg)
+diff --git a/drivers/net/wireless/intel/iwlwifi/fw/dbg.c b/drivers/net/wireless/intel/iwlwifi/fw/dbg.c
+index 7bd704a..d329673 100644
+--- a/drivers/net/wireless/intel/iwlwifi/fw/dbg.c
++++ b/drivers/net/wireless/intel/iwlwifi/fw/dbg.c
+@@ -549,6 +549,8 @@ static struct scatterlist *alloc_sgtable(int size)
+ 
+ void iwl_fw_error_dump(struct iwl_fw_runtime *fwrt)
+ {
++	return;
++
+ 	struct iwl_fw_error_dump_file *dump_file;
+ 	struct iwl_fw_error_dump_data *dump_data;
+ 	struct iwl_fw_error_dump_info *dump_info;
+@@ -1106,6 +1108,8 @@ IWL_EXPORT_SYMBOL(iwl_fw_start_dbg_conf);
+ 
+ void iwl_fw_error_dump_wk(struct work_struct *work)
+ {
++	return;
++
+ 	struct iwl_fw_runtime *fwrt =
+ 		container_of(work, struct iwl_fw_runtime, dump.wk.work);
+ 
+diff --git a/drivers/net/wireless/intel/iwlwifi/iwl-drv.c b/drivers/net/wireless/intel/iwlwifi/iwl-drv.c
+index 9c4a7f6..3bf610f 100644
+--- a/drivers/net/wireless/intel/iwlwifi/iwl-drv.c
++++ b/drivers/net/wireless/intel/iwlwifi/iwl-drv.c
+@@ -1776,6 +1776,7 @@ MODULE_PARM_DESC(debug, "debug output mask");
+ module_param_named(swcrypto, iwlwifi_mod_params.swcrypto, int, S_IRUGO);
+ MODULE_PARM_DESC(swcrypto, "using crypto in software (default 0 [hardware])");
+ module_param_named(11n_disable, iwlwifi_mod_params.disable_11n, uint, S_IRUGO);
++unsigned int *module_param_11n_disable = &iwlwifi_mod_params.disable_11n;
+ MODULE_PARM_DESC(11n_disable,
+ 	"disable 11n functionality, bitmap: 1: full, 2: disable agg TX, 4: disable agg RX, 8 enable agg TX");
+ module_param_named(amsdu_size, iwlwifi_mod_params.amsdu_size,
+diff --git a/drivers/net/wireless/intel/iwlwifi/mvm/led.c b/drivers/net/wireless/intel/iwlwifi/mvm/led.c
+index b272695..143130d 100644
+--- a/drivers/net/wireless/intel/iwlwifi/mvm/led.c
++++ b/drivers/net/wireless/intel/iwlwifi/mvm/led.c
+@@ -142,7 +142,7 @@ int iwl_mvm_leds_init(struct iwl_mvm *mvm)
+ 	if (ret) {
+ 		kfree(mvm->led.name);
+ 		IWL_INFO(mvm, "Failed to enable led\n");
+-		return ret;
++		return 0;
+ 	}
+ 
+ 	mvm->init_status |= IWL_MVM_INIT_STATUS_LEDS_INIT_COMPLETE;
+diff --git a/drivers/net/wireless/intel/iwlwifi/mvm/mac80211.c b/drivers/net/wireless/intel/iwlwifi/mvm/mac80211.c
+index 7152fdc..5d133e5 100644
+--- a/drivers/net/wireless/intel/iwlwifi/mvm/mac80211.c
++++ b/drivers/net/wireless/intel/iwlwifi/mvm/mac80211.c
+@@ -4368,7 +4368,7 @@ const struct ieee80211_ops iwl_mvm_hw_ops = {
  	.add_interface = iwl_mvm_mac_add_interface,
  	.remove_interface = iwl_mvm_mac_remove_interface,
  	.config = iwl_mvm_mac_config,
@@ -91,159 +80,46 @@ index 9a856e5..e70f9b7 100644
  	.configure_filter = iwl_mvm_configure_filter,
  	.config_iface_filter = iwl_mvm_config_iface_filter,
  	.bss_info_changed = iwl_mvm_bss_info_changed,
-diff --git a/drivers/net/wireless/iwlwifi/mvm/mvm.h b/drivers/net/wireless/iwlwifi/mvm/mvm.h
-index 2b0ba1f..8de16d0 100644
---- a/drivers/net/wireless/iwlwifi/mvm/mvm.h
-+++ b/drivers/net/wireless/iwlwifi/mvm/mvm.h
-@@ -64,7 +64,7 @@
- #ifndef __IWL_MVM_H__
- #define __IWL_MVM_H__
+diff --git a/drivers/net/wireless/intel/iwlwifi/pcie/rx.c b/drivers/net/wireless/intel/iwlwifi/pcie/rx.c
+index f25ce3a..85007fc 100644
+--- a/drivers/net/wireless/intel/iwlwifi/pcie/rx.c
++++ b/drivers/net/wireless/intel/iwlwifi/pcie/rx.c
+@@ -1601,7 +1601,7 @@ irqreturn_t iwl_pcie_irq_handler(int irq, void *dev_id)
+ 		 * Re-enable interrupts here since we don't
+ 		 * have anything to service
+ 		 */
+-		if (test_bit(STATUS_INT_ENABLED, &trans->status))
++		// if (test_bit(STATUS_INT_ENABLED, &trans->status))
+ 			_iwl_enable_interrupts(trans);
+ 		spin_unlock(&trans_pcie->irq_lock);
+ 		lock_map_release(&trans->sync_cmd_lockdep_map);
+diff --git a/include/linux/skbuff.h b/include/linux/skbuff.h
+index 99df171..4632cdf 100644
+--- a/include/linux/skbuff.h
++++ b/include/linux/skbuff.h
+@@ -3781,7 +3781,7 @@ static inline void skb_remcsum_process(struct sk_buff *skb, void *ptr,
  
--#include <linux/list.h>
-+/* #include <linux/list.h> */
- #include <linux/spinlock.h>
- #include <linux/leds.h>
- #include <linux/in6.h>
-diff --git a/include/linux/ieee80211.h b/include/linux/ieee80211.h
-index e526a8c..f3134fe 100644
---- a/include/linux/ieee80211.h
-+++ b/include/linux/ieee80211.h
-@@ -2231,7 +2231,7 @@ static inline bool ieee80211_is_robust_mgmt_frame(struct ieee80211_hdr *hdr)
- static inline bool ieee80211_is_public_action(struct ieee80211_hdr *hdr,
- 					      size_t len)
- {
--	struct ieee80211_mgmt *mgmt = (void *)hdr;
-+	struct ieee80211_mgmt *mgmt = (struct ieee80211_mgmt *)hdr;
- 
- 	if (len < IEEE80211_MIN_ACTION_SIZE)
- 		return false;
-diff --git a/include/net/cfg80211.h b/include/net/cfg80211.h
-index b1f84b0..890da1b 100644
---- a/include/net/cfg80211.h
-+++ b/include/net/cfg80211.h
-@@ -191,6 +191,7 @@ struct ieee80211_channel {
-  * @IEEE80211_RATE_SUPPORTS_10MHZ: Rate can be used in 10 MHz mode
-  */
- enum ieee80211_rate_flags {
-+	IEEE80211_RATE_NULL = 0,
- 	IEEE80211_RATE_SHORT_PREAMBLE	= 1<<0,
- 	IEEE80211_RATE_MANDATORY_A	= 1<<1,
- 	IEEE80211_RATE_MANDATORY_B	= 1<<2,
-@@ -465,7 +466,7 @@ ieee80211_chandef_rate_flags(struct cfg80211_chan_def *chandef)
- 	default:
- 		break;
+ 	 if (unlikely(skb->ip_summed != CHECKSUM_COMPLETE)) {
+ 		__skb_checksum_complete(skb);
+-		skb_postpull_rcsum(skb, skb->data, ptr - (void *)skb->data);
++		skb_postpull_rcsum(skb, skb->data, (unsigned char*)ptr - skb->data);
  	}
--	return 0;
-+	return IEEE80211_RATE_NULL;
- }
  
- /**
-@@ -2990,7 +2991,7 @@ struct wiphy {
- 	const struct nl80211_vendor_cmd_info *vendor_events;
- 	int n_vendor_commands, n_vendor_events;
- 
--	char priv[0] __aligned(NETDEV_ALIGN);
-+	char priv[0] __attribute__ ((__aligned__(32)));//__aligned(NETDEV_ALIGN);
- };
- 
- static inline struct net *wiphy_net(struct wiphy *wiphy)
-diff --git a/include/net/netlink.h b/include/net/netlink.h
-index 2b47eaa..6bd2cb1 100644
---- a/include/net/netlink.h
-+++ b/include/net/netlink.h
-@@ -308,7 +308,7 @@ static inline int nlmsg_len(const struct nlmsghdr *nlh)
- static inline struct nlattr *nlmsg_attrdata(const struct nlmsghdr *nlh,
- 					    int hdrlen)
- {
--	unsigned char *data = nlmsg_data(nlh);
-+	unsigned char *data = (unsigned char *)nlmsg_data(nlh);
- 	return (struct nlattr *) (data + NLMSG_ALIGN(hdrlen));
- }
- 
-@@ -717,7 +717,7 @@ static inline struct nlattr *nla_next(const struct nlattr *nla, int *remaining)
- static inline struct nlattr *
- nla_find_nested(const struct nlattr *nla, int attrtype)
- {
--	return nla_find(nla_data(nla), nla_len(nla), attrtype);
-+	return nla_find((const struct nlattr *)nla_data(nla), nla_len(nla), attrtype);
- }
- 
- /**
-@@ -733,7 +733,7 @@ static inline int nla_parse_nested(struct nlattr *tb[], int maxtype,
- 				   const struct nlattr *nla,
- 				   const struct nla_policy *policy)
- {
--	return nla_parse(tb, maxtype, nla_data(nla), nla_len(nla), policy);
-+	return nla_parse(tb, maxtype, (const struct nlattr *)nla_data(nla), nla_len(nla), policy);
- }
- 
- /**
-@@ -1161,7 +1161,7 @@ static inline void nla_nest_cancel(struct sk_buff *skb, struct nlattr *start)
- static inline int nla_validate_nested(const struct nlattr *start, int maxtype,
- 				      const struct nla_policy *policy)
- {
--	return nla_validate(nla_data(start), nla_len(start), maxtype, policy);
-+	return nla_validate((const struct nlattr *)nla_data(start), nla_len(start), maxtype, policy);
- }
- 
- /**
-diff --git a/include/net/sock.h b/include/net/sock.h
-index b9586a1..d95959f 100644
---- a/include/net/sock.h
-+++ b/include/net/sock.h
-@@ -1854,7 +1854,7 @@ static inline int skb_add_data_nocache(struct sock *sk, struct sk_buff *skb,
- {
- 	int err, offset = skb->len;
- 
--	err = skb_do_copy_data_nocache(sk, skb, from, skb_put(skb, copy),
-+	err = skb_do_copy_data_nocache(sk, skb, from, (char *)skb_put(skb, copy),
- 				       copy, offset);
- 	if (err)
- 		__skb_trim(skb, offset);
-@@ -1869,7 +1869,7 @@ static inline int skb_copy_to_page_nocache(struct sock *sk, char __user *from,
- {
- 	int err;
- 
--	err = skb_do_copy_data_nocache(sk, skb, from, page_address(page) + off,
-+	err = skb_do_copy_data_nocache(sk, skb, from, (char *)(page_address(page) + off),
- 				       copy, skb->len);
- 	if (err)
- 		return err;
-diff --git a/net/core/sock.c b/net/core/sock.c
-index c0fc6bd..29f7035 100644
---- a/net/core/sock.c
-+++ b/net/core/sock.c
-@@ -142,6 +142,8 @@
- 
- #include <net/busy_poll.h>
- 
-+#include <net/timewait_sock.h>
-+
- static DEFINE_MUTEX(proto_list_mutex);
- static LIST_HEAD(proto_list);
- 
+ 	delta = remcsum_adjust(ptr, skb->csum, start, offset);
 diff --git a/net/packet/af_packet.c b/net/packet/af_packet.c
-index 48a6a93..598f469 100644
+index e0f3f4a..a309257 100644
 --- a/net/packet/af_packet.c
 +++ b/net/packet/af_packet.c
-@@ -93,6 +93,8 @@
- #include <net/inet_common.h>
- #endif
- 
-+#include <linux/if_ether.h>
-+
- #include "internal.h"
- 
- /*
-@@ -3508,6 +3510,7 @@ static int packet_notifier(struct notifier_block *this,
+@@ -3977,6 +3977,8 @@ static int packet_notifier(struct notifier_block *this,
  	struct net_device *dev = netdev_notifier_info_to_dev(ptr);
  	struct net *net = dev_net(dev);
  
++// XXX check if still needed
 +#if 0
  	rcu_read_lock();
  	sk_for_each_rcu(sk, &net->packet.sklist) {
  		struct packet_sock *po = pkt_sk(sk);
-@@ -3548,6 +3551,7 @@ static int packet_notifier(struct notifier_block *this,
+@@ -4017,6 +4019,7 @@ static int packet_notifier(struct notifier_block *this,
  		}
  	}
  	rcu_read_unlock();
@@ -251,7 +127,7 @@ index 48a6a93..598f469 100644
  	return NOTIFY_DONE;
  }
  
-@@ -4062,8 +4066,10 @@ static int __net_init packet_net_init(struct net *net)
+@@ -4544,8 +4547,10 @@ static int __net_init packet_net_init(struct net *net)
  	mutex_init(&net->packet.sklist_lock);
  	INIT_HLIST_HEAD(&net->packet.sklist);
  
@@ -262,84 +138,3 @@ index 48a6a93..598f469 100644
  
  	return 0;
  }
-diff --git a/net/wireless/core.h b/net/wireless/core.h
-index f1d193b..24220b3 100644
---- a/net/wireless/core.h
-+++ b/net/wireless/core.h
-@@ -82,7 +82,7 @@ struct cfg80211_registered_device {
- 
- 	/* must be last because of the way we do wiphy_priv(),
- 	 * and it should at least be aligned to NETDEV_ALIGN */
--	struct wiphy wiphy __aligned(NETDEV_ALIGN);
-+	struct wiphy wiphy __attribute__((__aligned__(32)));
- };
- 
- static inline
-diff --git a/net/wireless/sysfs.c b/net/wireless/sysfs.c
-index 9ee6bc1..02d740d 100644
---- a/net/wireless/sysfs.c
-+++ b/net/wireless/sysfs.c
-@@ -156,7 +156,7 @@ struct class ieee80211_class = {
- 	.resume = wiphy_resume,
- #endif
- 	.ns_type = &net_ns_type_operations,
--	.namespace = wiphy_namespace,
-+	._namespace = wiphy_namespace,
- };
- 
- int wiphy_sysfs_init(void)
---- a/include/linux/skbuff.h
-+++ b/include/linux/skbuff.h
-@@ -3281,7 +3281,7 @@
- 
- 	 if (unlikely(skb->ip_summed != CHECKSUM_COMPLETE)) {
- 		__skb_checksum_complete(skb);
--		skb_postpull_rcsum(skb, skb->data, ptr - (void *)skb->data);
-+		skb_postpull_rcsum(skb, skb->data, (unsigned char*)ptr - skb->data);
- 	}
- 
- 	delta = remcsum_adjust(ptr, skb->csum, start, offset);
---- a/drivers/net/wireless/iwlwifi/mvm/rx.c
-+++ b/drivers/net/wireless/iwlwifi/mvm/rx.c
-@@ -115,7 +115,11 @@
- 	 * to do so) we should revisit this and ieee80211_data_to_8023().
- 	 */
- 	hdrlen = (len <= skb_tailroom(skb)) ? len :
--					      sizeof(*hdr) + crypt_len + 8;
-+					      sizeof(*hdr);// + crypt_len + 8;
-+	/*
-+	 * XXX decreasing the hdrlen by removing the appendage makes the
-+	 *     driver work... why?
-+	 */
- 
- 	memcpy(skb_put(skb, hdrlen), hdr, hdrlen);
- 	fraglen = len - hdrlen;
---- a/crypto/scatterwalk.c
-+++ b/crypto/scatterwalk.c
-@@ -115,9 +115,13 @@
- 
- 	sg = scatterwalk_ffwd(tmp, sg, start);
- 
--	if (sg_page(sg) == virt_to_page(buf) &&
--	    sg->offset == offset_in_page(buf))
--		return;
-+	//
-+	// We have no working virt_to_page and offset_in_page
-+	// for this use case.
-+	//
-+	// if (sg_page(sg) == virt_to_page(buf) &&
-+	//     sg->offset == offset_in_page(buf))
-+	// 	return;
- 
- 	scatterwalk_start(&walk, sg);
- 	scatterwalk_copychunks(buf, &walk, nbytes, out);
---- a/drivers/net/wireless/iwlwifi/iwl-drv.c
-+++ b/drivers/net/wireless/iwlwifi/iwl-drv.c
-@@ -1635,6 +1635,7 @@
- module_param_named(swcrypto, iwlwifi_mod_params.sw_crypto, int, S_IRUGO);
- MODULE_PARM_DESC(swcrypto, "using crypto in software (default 0 [hardware])");
- module_param_named(11n_disable, iwlwifi_mod_params.disable_11n, uint, S_IRUGO);
-+unsigned int *module_param_11n_disable = &iwlwifi_mod_params.disable_11n;
- MODULE_PARM_DESC(11n_disable,
- 	"disable 11n functionality, bitmap: 1: full, 2: disable agg TX, 4: disable agg RX, 8 enable agg TX");
- module_param_named(amsdu_size_8K, iwlwifi_mod_params.amsdu_size_8K,

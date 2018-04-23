@@ -17,6 +17,9 @@
 		os_*;
 		wpa_*;
 		wpabuf_*;
+		sha1_vector*;
+		get_ie*;
+		fc2str*;
 
 	local:
 

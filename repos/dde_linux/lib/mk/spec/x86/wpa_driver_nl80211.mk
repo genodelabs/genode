@@ -18,6 +18,10 @@ INC_DIR += $(WS_CONTRIB_DIR)/src/l2_packet
 # nl80211 driver
 SRC_C_drivers = drivers.c        \
                 driver_nl80211.c \
+                driver_nl80211_capa.c \
+                driver_nl80211_event.c \
+                driver_nl80211_monitor.c \
+                driver_nl80211_scan.c \
                 netlink.c        \
                 rfkill.c
 SRC_C += $(addprefix src/drivers/, $(SRC_C_drivers))

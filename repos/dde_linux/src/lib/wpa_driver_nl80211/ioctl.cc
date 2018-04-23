@@ -100,4 +100,8 @@ int linux_br_del_if(int sock, const char *brname, const char *ifname) {
 
 int linux_br_get(char *brname, const char *ifname) { return -1; }
 
+
+int linux_master_get(char *master_ifname, const char *ifname) {
+	return -1; }
+
 } /* extern "C" */
