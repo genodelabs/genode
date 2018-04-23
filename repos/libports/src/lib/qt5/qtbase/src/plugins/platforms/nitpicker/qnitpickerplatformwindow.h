@@ -51,6 +51,7 @@ class QNitpickerPlatformWindow : public QObject, public QPlatformWindow
 		Input::Session_client            _input_session;
 		Genode::Attached_dataspace       _ev_buf;
 		QPoint                           _mouse_position;
+		Qt::KeyboardModifiers            _keyboard_modifiers;
 		Qt::MouseButtons                 _mouse_button_state;
 		QByteArray                       _title;
 		bool                             _resize_handle;

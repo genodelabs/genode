@@ -198,11 +198,17 @@ void QNitpickerPlatformWindow::_handle_input(unsigned int)
 		event.handle_press([&] (Input::Keycode key, Genode::Codepoint codepoint) {
 
 			switch (key) {
-				case Input::BTN_LEFT:   _mouse_button_state |= Qt::LeftButton;  break;
-				case Input::BTN_RIGHT:  _mouse_button_state |= Qt::RightButton; break;
-				case Input::BTN_MIDDLE: _mouse_button_state |= Qt::MidButton;   break;
-				case Input::BTN_SIDE:   _mouse_button_state |= Qt::XButton1;    break;
-				case Input::BTN_EXTRA:  _mouse_button_state |= Qt::XButton2;    break;
+				case Input::KEY_LEFTALT:
+				case Input::KEY_RIGHTALT:   _keyboard_modifiers |= Qt::AltModifier;     break;
+				case Input::KEY_LEFTCTRL:
+				case Input::KEY_RIGHTCTRL:  _keyboard_modifiers |= Qt::ControlModifier; break;
+				case Input::KEY_LEFTSHIFT:
+				case Input::KEY_RIGHTSHIFT: _keyboard_modifiers |= Qt::ShiftModifier;   break;
+				case Input::BTN_LEFT:       _mouse_button_state |= Qt::LeftButton;      break;
+				case Input::BTN_RIGHT:      _mouse_button_state |= Qt::RightButton;     break;
+				case Input::BTN_MIDDLE:     _mouse_button_state |= Qt::MidButton;       break;
+				case Input::BTN_SIDE:       _mouse_button_state |= Qt::XButton1;        break;
+				case Input::BTN_EXTRA:      _mouse_button_state |= Qt::XButton2;        break;
 				default: break;
 			}
 
@@ -211,7 +217,8 @@ void QNitpickerPlatformWindow::_handle_input(unsigned int)
 				requestActivateWindow();
 
 			QWindowSystemInterface::handleKeyEvent(0, QEvent::KeyPress,
-			                                       translate_keycode(key), 0,
+			                                       translate_keycode(key),
+			                                       _keyboard_modifiers,
 			                                       QString() + QChar(codepoint.value));
 		});
 
@@ -250,25 +257,36 @@ void QNitpickerPlatformWindow::_handle_input(unsigned int)
 			 * respond to it by simulating a tempoary release of the key.
 			 */
 			QWindowSystemInterface::handleKeyEvent(0, QEvent::KeyRelease,
-			                                       repeated_key, 0, QString());
+			                                       repeated_key,
+			                                       _keyboard_modifiers,
+			                                       QString());
 			QWindowSystemInterface::handleKeyEvent(0, QEvent::KeyPress,
-			                                       repeated_key, 0, QString());
+			                                       repeated_key,
+			                                       _keyboard_modifiers,
+			                                       QString());
 		});
 
 		event.handle_release([&] (Input::Keycode key) {
 
 			switch (key) {
-				case Input::BTN_LEFT:   _mouse_button_state &= ~Qt::LeftButton;  break;
-				case Input::BTN_RIGHT:  _mouse_button_state &= ~Qt::RightButton; break;
-				case Input::BTN_MIDDLE: _mouse_button_state &= ~Qt::MidButton;   break;
-				case Input::BTN_SIDE:   _mouse_button_state &= ~Qt::XButton1;    break;
-				case Input::BTN_EXTRA:  _mouse_button_state &= ~Qt::XButton2;    break;
+				case Input::KEY_LEFTALT:
+				case Input::KEY_RIGHTALT:   _keyboard_modifiers &= ~Qt::AltModifier;     break;
+				case Input::KEY_LEFTCTRL:
+				case Input::KEY_RIGHTCTRL:  _keyboard_modifiers &= ~Qt::ControlModifier; break;
+				case Input::KEY_LEFTSHIFT:
+				case Input::KEY_RIGHTSHIFT: _keyboard_modifiers &= ~Qt::ShiftModifier;   break;
+				case Input::BTN_LEFT:       _mouse_button_state &= ~Qt::LeftButton;      break;
+				case Input::BTN_RIGHT:      _mouse_button_state &= ~Qt::RightButton;     break;
+				case Input::BTN_MIDDLE:     _mouse_button_state &= ~Qt::MidButton;       break;
+				case Input::BTN_SIDE:       _mouse_button_state &= ~Qt::XButton1;        break;
+				case Input::BTN_EXTRA:      _mouse_button_state &= ~Qt::XButton2;        break;
 				default: break;
 			}
 
 			QWindowSystemInterface::handleKeyEvent(0, QEvent::KeyRelease,
 			                                       translate_keycode(key),
-			                                       0, QString());
+			                                       _keyboard_modifiers,
+			                                       QString());
 		});
 
 		event.handle_wheel([&] (int x, int y) {
