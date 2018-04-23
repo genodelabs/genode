@@ -3,3 +3,4 @@ _/src/ram_fs
 _/src/fs_rom
 _/src/fs_report
 _/src/test-fs_report
+_/src/vfs

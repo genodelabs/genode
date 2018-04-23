@@ -61,7 +61,7 @@ exec mkdir -p bin/libc_vfs
 #
 
 build_boot_image {
-	core init ld.lib.so libc.lib.so lx_fs test-libc_vfs
+	core init ld.lib.so libc.lib.so vfs.lib.so lx_fs test-libc_vfs
 	libc_vfs
 }
 

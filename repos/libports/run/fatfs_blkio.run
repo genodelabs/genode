@@ -124,7 +124,7 @@ catch { exec sh -c $cmd }
 
 # generic modules
 set boot_modules {
-	libc.lib.so
+	libc.lib.so vfs.lib.so
 	libm.lib.so
 	test-fatfs_blkio
 }

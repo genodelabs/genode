@@ -179,7 +179,7 @@ catch { exec dd if=/dev/zero of=bin/index.bin bs=512 count=400 }
 # generic modules
 set boot_modules {
 	core ld.lib.so init timer
-	libc.lib.so libm.lib.so posix.lib.so
+	libc.lib.so vfs.lib.so libm.lib.so posix.lib.so
 	lwip.lib.so zlib.lib.so
 	lighttpd nic_bridge http_blk index.bin test-rom_blk
 }

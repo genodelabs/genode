@@ -46,7 +46,7 @@ install_config $config
 
 set boot_modules {
 	core init timer
-	ld.lib.so libc.lib.so
+	ld.lib.so libc.lib.so vfs.lib.so
 	test-libc_with_libc
 }
 

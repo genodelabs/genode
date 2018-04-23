@@ -1,5 +1,6 @@
 _/raw/ttf-bitstream-vera-minimal
 _/raw/terminal
 _/src/terminal
+_/src/vfs
 _/src/vfs_ttf
 _/src/libc

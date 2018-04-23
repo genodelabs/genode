@@ -10,3 +10,4 @@ _/src/zlib
 _/src/nit_fb
 _/src/libiconv
 _/src/stdcxx
+_/src/vfs

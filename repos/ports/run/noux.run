@@ -39,7 +39,7 @@ install_config {
 }
 
 build_boot_image {
-	core init timer log_terminal ld.lib.so noux libc.lib.so libm.lib.so
+	core init timer log_terminal ld.lib.so noux libc.lib.so vfs.lib.so libm.lib.so
 	libc_noux.lib.so coreutils.tar posix.lib.so
 }
 

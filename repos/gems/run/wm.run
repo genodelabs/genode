@@ -13,7 +13,8 @@ import_from_depot genodelabs/src/[base_src] \
                   genodelabs/src/demo \
                   genodelabs/src/init \
                   genodelabs/src/nitpicker \
-                  genodelabs/src/nit_fb
+                  genodelabs/src/nit_fb \
+                  genodelabs/src/vfs
 
 install_config {
 <config prio_levels="2">

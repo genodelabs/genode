@@ -47,7 +47,7 @@ exec tar cf [run_dir]/genode/test.tar -C [genode_dir]/repos/ports/src/app/verify
 
 file copy [genode_dir]/depot/nfeske/pubkey [run_dir]/genode/pubkey
 
-build_boot_image { verify libc.lib.so pthread.lib.so }
+build_boot_image { verify libc.lib.so vfs.lib.so pthread.lib.so }
 
 append qemu_args " -nographic "
 

@@ -1,6 +1,6 @@
-content: include/vfs include/ram_fs/chunk.h lib/mk/vfs.mk src/lib/vfs LICENSE
+content: include/vfs lib/symbols/vfs LICENSE
 
-include/vfs include/ram_fs/chunk.h lib/mk/vfs.mk src/lib/vfs:
+include/vfs lib/symbols/vfs:
 	$(mirror_from_rep_dir)
 
 LICENSE:

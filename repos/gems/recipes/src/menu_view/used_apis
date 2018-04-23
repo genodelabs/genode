@@ -13,7 +13,3 @@ framebuffer_session
 input_session
 timer_session
 report_session
-block_session
-file_system_session
-rtc_session
-terminal_session

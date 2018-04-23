@@ -179,7 +179,7 @@ set boot_modules {
 	core init ld.lib.so timer nitpicker pointer liquid_fb
 	launchpad
 
-	libc.lib.so libm.lib.so pthread.lib.so
+	libc.lib.so vfs.lib.so libm.lib.so pthread.lib.so
 	egl.lib.so mesa.lib.so stdcxx.lib.so
 	expat.lib.so glapi.lib.so
 

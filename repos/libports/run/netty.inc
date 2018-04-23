@@ -105,7 +105,7 @@ append config {
 
 append boot_modules {
 	core init timer } [nic_drv_binary] { vfs
-	ld.lib.so libc.lib.so vfs_lxip.lib.so lxip.lib.so
+	ld.lib.so libc.lib.so vfs.lib.so vfs_lxip.lib.so lxip.lib.so
 }
 
 lappend_if [use_dynamic_rom] boot_modules dynamic_rom

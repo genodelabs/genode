@@ -48,7 +48,7 @@ install_config $config
 
 set boot_modules {
 	core init ld.lib.so
-	libc.lib.so
+	libc.lib.so vfs.lib.so
 	rtc_drv
 	test-nim
 	timer

@@ -29,7 +29,7 @@ install_config {
 
 build_boot_image {
 	core init test-pthread
-	ld.lib.so libc.lib.so libm.lib.so pthread.lib.so posix.lib.so
+	ld.lib.so libc.lib.so vfs.lib.so libm.lib.so pthread.lib.so posix.lib.so
 }
 
 append qemu_args " -nographic  "

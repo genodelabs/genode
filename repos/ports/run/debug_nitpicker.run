@@ -123,7 +123,7 @@ proc binary_name_gdbserver_platform_lib_so { } {
 # generic modules
 set boot_modules {
 	core init timer
-	ld.lib.so libc.lib.so libc_pipe.lib.so libc_terminal.lib.so
+	ld.lib.so libc.lib.so vfs.lib.so libc_pipe.lib.so libc_terminal.lib.so
 	uart_drv
 	gdb_monitor gdbserver_platform.lib.so
 	nitpicker pointer scout

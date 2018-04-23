@@ -16,6 +16,7 @@
 		<rom label="jbig2dec.lib.so"/>
 		<rom label="jpeg.lib.so"/>
 		<rom label="openjpeg.lib.so"/>
+		<rom label="vfs.lib.so"/>
 	</content>
 
 </runtime>

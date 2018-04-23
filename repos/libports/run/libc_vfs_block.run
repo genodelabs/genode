@@ -74,7 +74,7 @@ install_config $config
 
 build_boot_image {
 	core init
-	ld.lib.so libc.lib.so
+	ld.lib.so libc.lib.so vfs.lib.so
 	ram_blk test-libc_vfs_block
 }
 

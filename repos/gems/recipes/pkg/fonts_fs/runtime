@@ -9,6 +9,7 @@
 		<rom label="libm.lib.so"/>
 		<rom label="vfs_ttf.lib.so"/>
 		<rom label="VeraMono.ttf"/>
+		<rom label="vfs.lib.so"/>
 	</content>
 
 </runtime>

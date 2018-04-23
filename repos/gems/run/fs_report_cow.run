@@ -95,8 +95,9 @@ set boot_modules {
 	fs_report
 	fs_rom
 	test-fs_report
-	vfs_cow.lib.so
 	vfs
+	vfs_cow.lib.so
+	vfs.lib.so
 }
 
 build_boot_image $boot_modules

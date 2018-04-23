@@ -9,6 +9,7 @@
 		<rom label="libc.lib.so"/>
 		<rom label="libm.lib.so"/>
 		<rom label="libpng.lib.so"/>
+		<rom label="vfs.lib.so"/>
 		<rom label="zlib.lib.so"/>
 		<rom label="report_rom"/>
 		<rom label="themed_decorator"/>

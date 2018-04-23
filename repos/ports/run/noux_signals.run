@@ -50,7 +50,7 @@ append config {
 install_config $config
 
 set boot_modules {
-	core init timer ld.lib.so noux libc.lib.so posix.lib.so
+	core init timer ld.lib.so noux libc.lib.so vfs.lib.so posix.lib.so
 	uart_drv libc_noux.lib.so noux_signals.tar
 }
 

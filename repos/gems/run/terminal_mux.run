@@ -139,7 +139,7 @@ install_config $config
 set boot_modules {
 	core init timer ld.lib.so noux terminal_mux terminal_log
 	test-signal cli_monitor test-resource_yield posix.lib.so
-	libc.lib.so libm.lib.so libc_noux.lib.so libc_terminal.lib.so ncurses.lib.so
+	libc.lib.so vfs.lib.so libm.lib.so libc_noux.lib.so libc_terminal.lib.so ncurses.lib.so
 	vim.tar uart_drv
 }
 

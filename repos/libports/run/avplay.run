@@ -113,7 +113,7 @@ install_config $config
 
 append boot_modules {
 	core init timer } [audio_drv_binary] { avplay
-	ld.lib.so libc.lib.so libm.lib.so pthread.lib.so zlib.lib.so sdl.lib.so
+	ld.lib.so libc.lib.so vfs.lib.so vfs.lib.so vfs.lib.so libm.lib.so pthread.lib.so zlib.lib.so sdl.lib.so
 	avfilter.lib.so avutil.lib.so avcodec.lib.so avformat.lib.so swscale.lib.so
 	avresample.lib.so
 	mediafile

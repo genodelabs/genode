@@ -73,7 +73,7 @@ install_config $config
 # generic modules
 set boot_modules {
 	core init timer uart_drv ram_fs noux
-	ld.lib.so libc.lib.so libc_noux.lib.so posix.lib.so
+	ld.lib.so libc.lib.so vfs.lib.so libc_noux.lib.so posix.lib.so
 	libc_noux.tar
 }
 

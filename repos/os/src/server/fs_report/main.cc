@@ -263,4 +263,7 @@ struct Fs_report::Main
 	}
 };
 
-void Component::construct(Genode::Env &env) { static Fs_report::Main main(env); }
+void Component::construct(Genode::Env &env)
+{
+	static Fs_report::Main main(env);
+}

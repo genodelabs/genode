@@ -108,7 +108,7 @@ install_config $config
 # generic modules
 append boot_modules {
 	core init timer ld.lib.so } [nic_drv_binary] {
-	libc.lib.so libm.lib.so posix.lib.so
+	libc.lib.so vfs.lib.so libm.lib.so posix.lib.so
 	lwip.lib.so zlib.lib.so
 	lighttpd
 }

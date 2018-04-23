@@ -16,5 +16,6 @@
 
 void Component::construct(Genode::Env &env)
 {
+	env.exec_static_constructors();
 	noux_construct(env);
 }

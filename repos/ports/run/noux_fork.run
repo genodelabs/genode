@@ -42,7 +42,7 @@ install_config {
 }
 
 build_boot_image {
-	core init timer log_terminal noux ld.lib.so libc.lib.so libm.lib.so
+	core init timer log_terminal noux ld.lib.so libc.lib.so vfs.lib.so libm.lib.so
 	libc_noux.lib.so posix.lib.so test-noux_fork
 }
 

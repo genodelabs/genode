@@ -108,7 +108,7 @@ set boot_modules {
 	core init ld.lib.so
 	curl.lib.so
 	fetchurl
-	libc.lib.so
+	libc.lib.so vfs.lib.so
 	libcrypto.lib.so
 	libssh.lib.so
 	libssl.lib.so

@@ -68,7 +68,7 @@ build_boot_image {
 	coreutils.tar
 	libc_noux.lib.so
 	libm.lib.so
-	noux libc.lib.so
+	noux libc.lib.so vfs.lib.so
 	posix.lib.so
 	sequence
 	timer
