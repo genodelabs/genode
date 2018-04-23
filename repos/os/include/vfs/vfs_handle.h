@@ -68,7 +68,7 @@ class Vfs::Vfs_handle
 				~Guard()
 				{
 					if (_handle)
-						_handle->_ds.close(_handle);
+						_handle->close();
 				}
 		};
 
@@ -108,6 +108,13 @@ class Vfs::Vfs_handle
 		 * Advance seek offset by 'incr' bytes
 		 */
 		void advance_seek(file_size incr) { _seek += incr; }
+
+		/**
+		 * Close handle at backing file-system.
+		 *
+		 * This leaves the handle pointer in an invalid and unsafe state.
+		 */
+		inline void close() { ds().close(this); }
 };
 
 
@@ -122,7 +129,7 @@ class Vfs::Vfs_watch_handle
 
 	private:
 
-		File_system       &_fs;
+		Directory_service &_fs;
 		Genode::Allocator &_alloc;
 		Context           *_context = nullptr;
 
@@ -134,7 +141,7 @@ class Vfs::Vfs_watch_handle
 
 	public:
 
-		Vfs_watch_handle(File_system       &fs,
+		Vfs_watch_handle(Directory_service &fs,
 		                 Genode::Allocator &alloc)
 		:
 			_fs(fs), _alloc(alloc)
@@ -142,10 +149,17 @@ class Vfs::Vfs_watch_handle
 
 		virtual ~Vfs_watch_handle() { }
 
-		File_system &fs() { return _fs; }
+		Directory_service &fs() { return _fs; }
 		Allocator &alloc() { return _alloc; }
 		virtual void context(Context *context) { _context = context; }
 		Context *context() const { return _context; }
+
+		/**
+		 * Close handle at backing file-system.
+		 *
+		 * This leaves the handle pointer in an invalid and unsafe state.
+		 */
+		inline void close() { fs().close(this); }
 };
 
 #endif /* _INCLUDE__VFS__VFS_HANDLE_H_ */

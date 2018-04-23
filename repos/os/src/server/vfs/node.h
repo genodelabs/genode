@@ -335,7 +335,7 @@ class Vfs_server::Watch_node final : public  Vfs_server::Node,
 		~Watch_node()
 		{
 			_watch_handle.context((Vfs::Vfs_watch_handle::Context*)~0ULL);
-			_watch_handle.fs().close(&_watch_handle);
+			_watch_handle.close();
 		}
 
 		static Watch_node &node_by_context(Vfs::Vfs_watch_handle::Context &context)
@@ -368,6 +368,7 @@ struct Vfs_server::Symlink : Io_node
 		_handle->context = &context();
 	}
 
+	~Symlink() { _handle->close(); }
 
 	/********************
 	 ** Node interface **
@@ -444,7 +445,7 @@ class Vfs_server::File : public Io_node
 			_handle->context = &context();
 		}
 
-		~File() { _handle->ds().close(_handle); }
+		~File() { _handle->close(); }
 
 		size_t read(char *dst, size_t len, seek_off_t seek_offset) override
 		{
@@ -497,7 +498,7 @@ struct Vfs_server::Directory : Io_node
 		_handle->context = &context();
 	}
 
-	~Directory() { _handle->ds().close(_handle); }
+	~Directory() { _handle->close(); }
 
 	Node_space::Id file(Node_space        &space,
 	                    Vfs::File_system  &vfs,

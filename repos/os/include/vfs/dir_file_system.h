@@ -79,7 +79,7 @@ class Vfs::Dir_file_system : public File_system
 			{
 				/* close all sub-handles */
 				auto f = [&] (Subdir_handle_element &e) {
-					e.vfs_handle.ds().close(&e.vfs_handle);
+					e.vfs_handle.close();
 					destroy(alloc(), &e);
 				};
 				subdir_handle_registry.for_each(f);
@@ -118,7 +118,7 @@ class Vfs::Dir_file_system : public File_system
 			{
 				/* close all sub-handles */
 				auto f = [&] (Watch_handle_element &e) {
-					e.watch_handle.fs().close(&e.watch_handle);
+					e.watch_handle.close();
 					destroy(alloc(), &e);
 				};
 				handle_registry.for_each(f);
@@ -700,8 +700,9 @@ class Vfs::Dir_file_system : public File_system
 					Vfs_handle *tmp_handle;
 					Opendir_result opendir_result =
 						fs.opendir(path, true, &tmp_handle, alloc);
-					if (opendir_result == OPENDIR_OK)
-						fs.close(tmp_handle);
+					if (opendir_result == OPENDIR_OK) {
+						tmp_handle->close();
+					}
 					return opendir_result; /* return from lambda */
 				};
 

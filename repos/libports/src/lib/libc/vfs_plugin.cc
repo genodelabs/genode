@@ -299,7 +299,7 @@ int Libc::Vfs_plugin::close(Libc::File_descriptor *fd)
 {
 	Vfs::Vfs_handle *handle = vfs_handle(fd);
 	_vfs_sync(handle);
-	handle->ds().close(handle);
+	handle->close();
 	Libc::file_descriptor_allocator()->free(fd);
 	return 0;
 }
@@ -341,7 +341,7 @@ int Libc::Vfs_plugin::mkdir(const char *path, mode_t mode)
 
 	switch (_root_dir.opendir(path, true, &dir_handle, _alloc)) {
 	case Opendir_result::OPENDIR_OK:
-		dir_handle->ds().close(dir_handle);
+		dir_handle->close();
 		break;
 	case Opendir_result::OPENDIR_ERR_LOOKUP_FAILED:
 		return Errno(ENOENT);
@@ -955,7 +955,7 @@ int Libc::Vfs_plugin::symlink(const char *oldpath, const char *newpath)
 	} while (check.retry);
 
 	_vfs_sync(handle);
-	handle->ds().close(handle);
+	handle->close();
 
 	if (out_count != count)
 		return Errno(ENAMETOOLONG);
@@ -1064,7 +1064,7 @@ ssize_t Libc::Vfs_plugin::readlink(const char *path, char *buf, ::size_t buf_siz
 	case Result::READ_QUEUED: /* handled above, so never reached */ break;
 	};
 
-	symlink_handle->ds().close(symlink_handle);
+	symlink_handle->close();
 
 	return out_len;
 }

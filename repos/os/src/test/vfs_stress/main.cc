@@ -171,7 +171,7 @@ struct Mkdir_test : public Stress_test
 		path.append("/b");
 		Vfs::Vfs_handle *dir_handle;
 		assert_opendir(vfs.opendir(path.base(), true, &dir_handle, alloc));
-		vfs.close(dir_handle);
+		dir_handle->close();
 		++count;
 		mkdir_b(depth);
 	}
@@ -186,7 +186,7 @@ struct Mkdir_test : public Stress_test
 
 		path.append("/b");
 		assert_opendir(vfs.opendir(path.base(), true, &dir_handle, alloc));
-		vfs.close(dir_handle);
+		dir_handle->close();
 		++count;
 		mkdir_b(depth);
 
@@ -194,7 +194,7 @@ struct Mkdir_test : public Stress_test
 
 		path.append("/a");
 		assert_opendir(vfs.opendir(path.base(), true, &dir_handle, alloc));
-		vfs.close(dir_handle);
+		dir_handle->close();
 		++count;
 		mkdir_a(depth);
 	}
@@ -474,7 +474,7 @@ struct Unlink_test : public Stress_test
 			}
 		}
 
-		vfs.close(dir_handle);
+		dir_handle->close();
 	}
 
 	Unlink_test(Vfs::File_system &vfs, Genode::Allocator &alloc,
@@ -561,7 +561,7 @@ void Component::construct(Genode::Env &env)
 			snprintf(path, 3, "/%d", i);
 			Vfs::Vfs_handle *dir_handle;
 			vfs_root.opendir(path, true, &dir_handle, heap);
-			vfs_root.close(dir_handle);
+			dir_handle->close();
 			Mkdir_test test(vfs_root, heap, path);
 			count += test.wait();
 		}
