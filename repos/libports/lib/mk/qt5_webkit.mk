@@ -1,4 +1,4 @@
-include $(REP_DIR)/lib/import/import-qt5_webkit.mk
+include $(call select_from_repositories,lib/import/import-qt5_webkit.mk)
 
 SHARED_LIB = yes
 

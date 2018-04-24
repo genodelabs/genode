@@ -9,18 +9,22 @@ ifneq ($(INHIBIT_QT5),)
 REQUIRES += removal_of_INHIBIT_QT5_env_var
 endif
 
+QT_VERSION := 5.8.0
+
 # identify the qt5 repository by searching for a file that is unique for qt5
 QT5_REP_DIR := $(call select_from_repositories,lib/import/import-qt5.inc)
 QT5_REP_DIR := $(realpath $(dir $(QT5_REP_DIR))../..)
 
-include $(QT5_REP_DIR)/lib/mk/qt5_version.inc
-
 QT5_PORT_DIR := $(call select_from_ports,qt5)
-QT5_CONTRIB_DIR := $(QT5_PORT_DIR)/src/lib/qt5/$(QT5)
+QT5_CONTRIB_DIR := $(QT5_PORT_DIR)/src/lib/qt5/qt5
 
-QT5_INC_DIR := $(QT5_REP_DIR)/include/qt5 \
-               $(QT5_CONTRIB_DIR)/qtbase/include \
-               $(QT5_CONTRIB_DIR)/qtbase/mkspecs/genode-g++
+ifeq ($(CONTRIB_DIR),)
+QT5_INC_DIR += $(call select_from_repositories,src/lib/qt5/qt5/qtbase/mkspecs/genode-g++)
+else
+QT5_INC_DIR += $(QT5_PORT_DIR)/include \
+               $(QT5_CONTRIB_DIR)/qtbase/mkspecs/genode-g++ \
+               $(QT5_REP_DIR)/include/qt5
+endif
 
 INC_DIR += $(QT5_INC_DIR)
 
@@ -49,9 +53,13 @@ SRC_CC += $(SRC_CC_QT_GENERATED)
 #
 # Locations of moc, rcc, and uic binaries
 #
-MOC = $(BUILD_BASE_DIR)/tool/qt5/moc/moc
-RCC = $(BUILD_BASE_DIR)/tool/qt5/rcc/rcc
-UIC = $(BUILD_BASE_DIR)/tool/qt5/uic/uic
+QT5_HOST_TOOL_INSTALL_LOCATION ?= /usr/local/genode-qt5
+MOC                             = $(QT5_HOST_TOOL_INSTALL_LOCATION)/bin/moc
+RCC                             = $(QT5_HOST_TOOL_INSTALL_LOCATION)/bin/rcc
+UIC                             = $(QT5_HOST_TOOL_INSTALL_LOCATION)/bin/uic
+
+$(MOC) $(RCC) $(UIC):
+	$(error Error: could not find '$@'. The Qt5 host tools can be installed with the '<GENODE_DIR>/tool/tool_chain_qt5' script)
 
 # moc rules
 moc_%.cpp: %.h $(MOC)
@@ -84,12 +92,6 @@ INC_DIR += $(QT5_REP_DIR)/include/qt5/genode
 #
 LIBS += stdcxx
 include $(call select_from_repositories,lib/import/import-stdcxx.mk)
-
-# custom main() thread stack size support via main() wrapper
-ifeq ($(findstring -DQT_MAIN_STACK_SIZE, $(CC_CXX_OPT)), -DQT_MAIN_STACK_SIZE)
-SRC_CC += qt_main.cc
-vpath qt_main.cc $(QT5_REP_DIR)/src/lib/qt5
-endif
 
 # set QT_ARCH definition according to the SPECS variable
 ifneq ($(filter x86_32,$(SPECS)),)

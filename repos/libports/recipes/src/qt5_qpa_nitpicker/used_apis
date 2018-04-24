@@ -1,0 +1,14 @@
+base
+blit
+framebuffer_session
+freetype
+input_session
+libc
+mesa
+nitpicker_session
+os
+qoost
+qt5_core
+qt5_gui
+report_session
+stdcxx

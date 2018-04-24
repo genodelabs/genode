@@ -1,6 +1,6 @@
 TEMPLATE   = app
 TARGET     = qt_launchpad
-QT         = core gui
+QT         = core gui widgets
 HEADERS   += child_entry.h \
              kbyte_loadbar.h \
              launch_entry.h \

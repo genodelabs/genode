@@ -2,6 +2,23 @@ source ${genode_dir}/repos/libports/run/qt5_common.inc
 
 set feature(Nic) 1
 
+import_from_depot genodelabs/src/arora \
+                  genodelabs/src/icu \
+                  genodelabs/src/libcrypto \
+                  genodelabs/src/libssl \
+                  genodelabs/src/qt5_network \
+                  genodelabs/src/qt5_printsupport \
+                  genodelabs/src/qt5_qnitpickerviewwidget \
+                  genodelabs/src/qt5_opengl \
+                  genodelabs/src/qt5_qpluginwidget \
+                  genodelabs/src/qt5_scriptclassic \
+                  genodelabs/src/qt5_sql \
+                  genodelabs/src/qt5_ui_tools \
+                  genodelabs/src/qt5_webkit \
+                  genodelabs/src/qt5_widgets \
+                  genodelabs/src/vfs_jitterentropy \
+                  genodelabs/src/vfs_lxip
+
 #
 # Build
 #
@@ -9,21 +26,15 @@ set feature(Nic) 1
 append build_components [qt5_build_components feature]
 
 append build_components {
-	server/clipboard server/loader server/tar_rom server/nit_fb app/launchpad test/nitpicker
-	lib/mesa/swrast
-	lib/vfs/jitterentropy
-	app/arora
+	server/clipboard
+	server/loader
+	server/tar_rom
+	server/nit_fb
+	app/launchpad
+	test/nitpicker
 }
 
 build $build_components
-
-create_boot_directory
-
-#
-# Create Qt tar archive
-#
-
-create_qt5_fs_tar_archive "arora" "gui"
 
 #
 # Generate tar archives with plugin configurations
@@ -90,12 +101,17 @@ append config {
 		<config clipboard="yes">
 			<vfs>
 				<dir name="dev">
+					<dir name="socket"> <lxip dhcp="yes"/> </dir>
 					<log/>
 					<jitterentropy name="random"/>
+					<inline name="rtc">2018-01-01 00:01</inline> 
 				</dir>
-				<tar name="qt5_fs_arora.tar"/>
+				<dir name="etc">
+					<inline name="resolv.conf">nameserver 10.0.2.3</inline>
+				</dir>
+				<tar name="qt5_dejavusans.tar"/>
 			</vfs>
-			<libc stdout="/dev/log" stderr="/dev/log"/>
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" socket="/dev/socket"/>
 		</config>
 		<route>
 			<service name="Nitpicker"> <child name="wm"/> </service>
@@ -125,48 +141,7 @@ append boot_modules {
 	nit_fb
 	launchpad
 	testnit
-	arora
-	ld.lib.so
-	libc.lib.so vfs.lib.so libm.lib.so lwip.lib.so
-	zlib.lib.so libpng.lib.so jpeg.lib.so libssl.lib.so libcrypto.lib.so
-	freetype.lib.so
-	libc_pipe.lib.so
-	stdcxx.lib.so
-	vfs_jitterentropy.lib.so
 	nitpicker_plugin.tar
-}
-
-#
-# Qt5-specific boot modules
-#
-append boot_modules {
-	egl.lib.so
-	egl_swrast.lib.so
-	expat.lib.so
-	glapi.lib.so
-	icu.lib.so
-	mesa.lib.so
-	pcre16.lib.so
-	pthread.lib.so
-	qt5_angle.lib.so
-	qt5_core.lib.so
-	qt5_gui.lib.so
-	qt5_jscore.lib.so
-	qt5_network.lib.so
-	qt5_opengl.lib.so
-	qt5_qnitpickerviewwidget.lib.so
-	qt5_qpluginwidget.lib.so
-	qt5_ui_tools.lib.so
-	qt5_webcore.lib.so
-	qt5_webkit.lib.so
-	qt5_xml.lib.so	
-	qt5_printsupport.lib.so
-	qt5_scriptclassic.lib.so
-	qt5_sql.lib.so
-	qt5_webkitwidgets.lib.so
-	qt5_widgets.lib.so
-	qt5_wtf.lib.so
-	qt5_fs_arora.tar
 }
 
 build_boot_image $boot_modules
@@ -178,4 +153,3 @@ append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
 append qemu_args " -net user "
 
 run_genode_until forever
-

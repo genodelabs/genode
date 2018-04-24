@@ -1,0 +1,5 @@
+base
+libc
+qt5_core
+qt5_network
+stdcxx

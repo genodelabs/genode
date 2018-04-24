@@ -1,4 +1,4 @@
-include $(REP_DIR)/lib/import/import-qt5_quick.mk
+include $(call select_from_repositories,lib/import/import-qt5_quick.mk)
 
 SHARED_LIB = yes
 
@@ -13,6 +13,6 @@ QT_INCPATH += qtdeclarative/src/quick/items
 
 include $(REP_DIR)/lib/mk/qt5.inc
 
-LIBS += qt5_qml qt5_gui
+LIBS += qt5_core qt5_gui qt5_network qt5_qml
 
 CC_CXX_WARN_STRICT =

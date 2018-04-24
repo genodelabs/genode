@@ -1,0 +1,5 @@
+base
+libc
+qt5_component
+qt5_core
+stdcxx

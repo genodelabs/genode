@@ -103,7 +103,6 @@ proc drivers_build_components { feature_arg } {
 	lappend_if [use_input_filter feature] build_components server/input_filter
 	lappend_if [use_nic_drv feature]      build_components drivers/nic
 	lappend_if [use_ps2_drv feature]      build_components drivers/input/spec/ps2
-	lappend_if [use_timer feature]        build_components drivers/timer
 	lappend_if [use_usb_drv feature]      build_components drivers/usb
 
 	return $build_components
@@ -315,7 +314,6 @@ proc drivers_boot_modules { feature_arg } {
 	lappend_if [use_input_filter feature] boot_modules special.chargen
 	lappend_if [use_nic_drv feature]      boot_modules [nic_drv_binary]
 	lappend_if [use_ps2_drv feature]      boot_modules ps2_drv
-	lappend_if [use_timer feature]        boot_modules timer
 	lappend_if [use_usb_drv feature]      boot_modules usb_drv
 
 	return $boot_modules

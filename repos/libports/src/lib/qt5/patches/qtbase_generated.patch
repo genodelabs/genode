@@ -39,11 +39,13 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  qtbase/src/network/qtnetwork-config_p.h            |    5 +
  qtbase/src/printsupport/qtprintsupport-config.h    |    5 +
  qtbase/src/printsupport/qtprintsupport-config_p.h  |    1 
+ qtbase/src/sql/qtsql-config.h                      |    9 +++
+ qtbase/src/sql/qtsql-config_p.h                    |    1 
  qtbase/src/widgets/qtwidgets-config.h              |   68 ++++++++++++++++++++
  qtbase/src/widgets/qtwidgets-config_p.h            |    1 
  qtbase/src/xml/qtxml-config.h                      |    1 
  qtbase/src/xml/qtxml-config_p.h                    |    0 
- 39 files changed, 358 insertions(+)
+ 41 files changed, 368 insertions(+)
  create mode 100644 qtbase/include/QtCore/5.8.0/QtCore/private/qconfig_p.h
  create mode 100644 qtbase/include/QtCore/5.8.0/QtCore/private/qtcore-config_p.h
  create mode 100644 qtbase/include/QtCore/QtConfig
@@ -79,6 +81,8 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  create mode 100644 qtbase/src/network/qtnetwork-config_p.h
  create mode 100644 qtbase/src/printsupport/qtprintsupport-config.h
  create mode 100644 qtbase/src/printsupport/qtprintsupport-config_p.h
+ create mode 100644 qtbase/src/sql/qtsql-config.h
+ create mode 100644 qtbase/src/sql/qtsql-config_p.h
  create mode 100644 qtbase/src/widgets/qtwidgets-config.h
  create mode 100644 qtbase/src/widgets/qtwidgets-config_p.h
  create mode 100644 qtbase/src/xml/qtxml-config.h
@@ -266,7 +270,7 @@ index 0000000..602a176
 +#include "../../src/xml/qtxml-config.h"
 diff --git a/qtbase/src/corelib/global/qconfig.cpp b/qtbase/src/corelib/global/qconfig.cpp
 new file mode 100644
-index 0000000..5dc56fe
+index 0000000..7068d65
 --- /dev/null
 +++ b/qtbase/src/corelib/global/qconfig.cpp
 @@ -0,0 +1,51 @@
@@ -276,8 +280,8 @@ index 0000000..5dc56fe
 +/* Installation Info */
 +static const char qt_configure_prefix_path_str       [256 + 12] = "qt_prfxpath=/qt";
 +#ifdef QT_BUILD_QMAKE
-+static const char qt_configure_ext_prefix_path_str   [256 + 12] = "qt_epfxpath=/qt";
-+static const char qt_configure_host_prefix_path_str  [256 + 12] = "qt_hpfxpath=/qt";
++static const char qt_configure_ext_prefix_path_str   [256 + 12] = "qt_epfxpath=";
++static const char qt_configure_host_prefix_path_str  [256 + 12] = "qt_hpfxpath=";
 +#endif
 +
 +static const short qt_configure_str_offsets[] = {
@@ -305,7 +309,7 @@ index 0000000..5dc56fe
 +    "bin\0"
 +    "lib\0"
 +    ".\0"
-+    "genode-g++\0"
++    "linux-g++\0"
 +    "linux-g++\0"
 +#endif
 +;
@@ -582,6 +586,28 @@ index 0000000..ab4f4dd
 +++ b/qtbase/src/printsupport/qtprintsupport-config_p.h
 @@ -0,0 +1 @@
 +#define QT_FEATURE_cups -1
+diff --git a/qtbase/src/sql/qtsql-config.h b/qtbase/src/sql/qtsql-config.h
+new file mode 100644
+index 0000000..c4e6bef
+--- /dev/null
++++ b/qtbase/src/sql/qtsql-config.h
+@@ -0,0 +1,9 @@
++#define QT_FEATURE_sql_db2 -1
++#define QT_FEATURE_sql_ibase -1
++#define QT_FEATURE_sql_mysql -1
++#define QT_FEATURE_sql_oci -1
++#define QT_FEATURE_sql_odbc -1
++#define QT_FEATURE_sql_psql -1
++#define QT_FEATURE_sql_sqlite 1
++#define QT_FEATURE_sql_sqlite2 -1
++#define QT_FEATURE_sql_tds -1
+diff --git a/qtbase/src/sql/qtsql-config_p.h b/qtbase/src/sql/qtsql-config_p.h
+new file mode 100644
+index 0000000..9b40bf6
+--- /dev/null
++++ b/qtbase/src/sql/qtsql-config_p.h
+@@ -0,0 +1 @@
++#define QT_FEATURE_system_sqlite -1
 diff --git a/qtbase/src/widgets/qtwidgets-config.h b/qtbase/src/widgets/qtwidgets-config.h
 new file mode 100644
 index 0000000..dd8ef6e

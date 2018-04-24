@@ -2,194 +2,30 @@ host_tools.patch
 
 From: Christian Prochaska <christian.prochaska@genode-labs.com>
 
-Support out-of-tree build of Qt host tools.
-This patch should not be applied when running the Qt 'configure' script.
+Support shadow build of the host tools when the source tree already
+contains generated files.
 ---
- qtbase/mkspecs/features/qt.prf              |    2 
- qtbase/mkspecs/features/qt_build_config.prf |    2 
- qtbase/mkspecs/features/qt_module.prf       |    4 -
- qtbase/mkspecs/features/qt_tool.prf         |  112 ++++++++++++++-------------
- qtbase/qmake/Makefile.unix                  |    2 
- 5 files changed, 61 insertions(+), 61 deletions(-)
+ qtbase/configure |   10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
 
-diff --git a/qtbase/mkspecs/features/qt.prf b/qtbase/mkspecs/features/qt.prf
-index 98f794c..f4ec688 100644
---- a/qtbase/mkspecs/features/qt.prf
-+++ b/qtbase/mkspecs/features/qt.prf
-@@ -153,7 +153,7 @@ for(ever) {
-                 WINRT_MANIFEST.capabilities_device_default += $$MODULE_WINRT_CAPABILITIES_DEVICE
-         }
-     }
--    !isEmpty(BAD_QT):error("Unknown module(s) in QT$$var_sfx: $$replace(BAD_QT, _private$, -private)")
-+    !isEmpty(BAD_QT):debug("Unknown module(s) in QT$$var_sfx: $$replace(BAD_QT, _private$, -private)")
+diff --git a/qtbase/configure b/qtbase/configure
+index a901fa0..a3e7df7 100755
+--- a/qtbase/configure
++++ b/qtbase/configure
+@@ -1299,11 +1299,11 @@ if [ "$OPT_SHADOW" = "maybe" ]; then
+     fi
+ fi
+ if [ "$OPT_SHADOW" = "yes" ]; then
+-    if [ -f "$relpath/.qmake.cache" -o -f "$relpath/src/corelib/global/qconfig.h" -o -f "$relpath/src/corelib/global/qconfig.cpp" ]; then
+-        echo >&2 "You cannot make a shadow build from a source tree containing a previous build."
+-        echo >&2 "Cannot proceed."
+-        exit 1
+-    fi
++    #if [ -f "$relpath/.qmake.cache" -o -f "$relpath/src/corelib/global/qconfig.h" -o -f "$relpath/src/corelib/global/qconfig.cpp" ]; then
++        #echo >&2 "You cannot make a shadow build from a source tree containing a previous build."
++        #echo >&2 "Cannot proceed."
++        #exit 1
++    #fi
+     [ "$OPT_VERBOSE" = "yes" ] && echo "Performing shadow build..."
+ fi
  
-     !isEmpty(var_sfx): break()
-     var_sfx = _PRIVATE
-diff --git a/qtbase/mkspecs/features/qt_build_config.prf b/qtbase/mkspecs/features/qt_build_config.prf
-index 3762c14..a19d0ce 100644
---- a/qtbase/mkspecs/features/qt_build_config.prf
-+++ b/qtbase/mkspecs/features/qt_build_config.prf
-@@ -132,5 +132,5 @@ defineTest(qtConfig) {
-         contains(QT.$${module}.disabled_features, $$1): \
-             return(false)
-     }
--    error("Could not find feature $${1}.")
-+    debug(1, "Could not find feature $${1}.")
- }
-diff --git a/qtbase/mkspecs/features/qt_module.prf b/qtbase/mkspecs/features/qt_module.prf
-index 31d6285..eec9850 100644
---- a/qtbase/mkspecs/features/qt_module.prf
-+++ b/qtbase/mkspecs/features/qt_module.prf
-@@ -11,7 +11,7 @@
- 
- isEmpty(MODULE):MODULE = $$section($$list($$basename(_PRO_FILE_)), ., 0, 0)
- isEmpty(VERSION): VERSION = $$MODULE_VERSION
--isEmpty(VERSION): error("Module does not define version.")
-+isEmpty(VERSION): debug(1, "Module does not define version.")
- 
- exists($$OUT_PWD/qt$${MODULE}-config.pri) {
-     include($$OUT_PWD/qt$${MODULE}-config.pri)
-@@ -83,7 +83,7 @@ QMAKE_DOCS_TARGETDIR = qt$${MODULE}
- 
- load(qt_common)
- !no_module_headers: load(qt_module_headers)
--load(qt_module_pris)
-+#load(qt_module_pris)
- 
- INCLUDEPATH *= $$eval(QT.$${MODULE}.includes) $$eval(QT.$${MODULE}_private.includes)
- 
-diff --git a/qtbase/mkspecs/features/qt_tool.prf b/qtbase/mkspecs/features/qt_tool.prf
-index 4b73b4b..a4f4a12 100644
---- a/qtbase/mkspecs/features/qt_tool.prf
-+++ b/qtbase/mkspecs/features/qt_tool.prf
-@@ -18,61 +18,61 @@ DEFINES *= QT_USE_QSTRINGBUILDER
- # If we are doing a prefix build, create a "module" pri which enables
- # qtPrepareTool() to work with the non-installed build.
- # Non-bootstrapped tools always need this because of the environment setup.
--!build_pass:if(!host_build|!force_bootstrap|force_independent|!isEmpty(HOST_QT_TOOLS)) {
--    isEmpty(MODULE):MODULE = $$TARGET
--
--    load(qt_build_paths)
--
--    TOOL_PRI = $$MODULE_QMAKE_OUTDIR/mkspecs/modules/qt_tool_$${MODULE}.pri
--
--    vars = binary depends
--
--    isEmpty(HOST_QT_TOOLS) {
--        load(resolve_target)
--
--        !host_build|!force_bootstrap: MODULE_DEPENDS = $$replace(QT, -private$, _private)
--
--        !isEmpty(QT_TOOL_ENV) {
--            vars += envvars
--            module_var_names =
--            module_var_sets =
--            for(var, QT_TOOL_ENV) {
--                vars += env.$${var}.name env.$${var}.value
--                module_var_names += QT_TOOL.$${MODULE}.env.$${var}
--                module_var_sets += \
--                    "QT_TOOL.$${MODULE}.env.$${var}.name = $$val_escape($${var}.name)" \
--                    "QT_TOOL.$${MODULE}.env.$${var}.value = $$val_escape($${var}.value)"
--            }
--            module_envvars = \
--                "QT_TOOL.$${MODULE}.envvars = $$module_var_names" \
--                $$module_var_sets
--        } else {
--            module_envvars =
--        }
--
--        bin = $$system_path($$QMAKE_RESOLVED_TARGET)
--    } else {
--        bin = $${HOST_QT_TOOLS}/$${TARGET}
--        equals(QMAKE_HOST.os, Windows): bin = $${bin}.exe
--        bin = $$system_path($$bin)
--    }
--
--    TOOL_PRI_CONT = \
--        "QT_TOOL.$${MODULE}.binary = $$val_escape(bin)" \
--        "QT_TOOL.$${MODULE}.depends =$$join(MODULE_DEPENDS, " ", " ")" \
--        $$module_envvars
--    write_file($$TOOL_PRI, TOOL_PRI_CONT)|error()
--
--    # Then, inject the new tool into the current cache state
--    !contains(QMAKE_INTERNAL_INCLUDED_FILES, $$TOOL_PRI) { # before the actual include()!
--        added = $$TOOL_PRI
--        cache(QMAKE_INTERNAL_INCLUDED_FILES, add transient, added)
--        unset(added)
--    }
--    include($$TOOL_PRI)
--    for(var, vars): \
--        cache(QT_TOOL.$${MODULE}.$$var, transient)
--
--}
-+#!build_pass:if(!host_build|!force_bootstrap|force_independent|!isEmpty(HOST_QT_TOOLS)) {
-+#    isEmpty(MODULE):MODULE = $$TARGET
-+#
-+#    load(qt_build_paths)
-+#
-+#    TOOL_PRI = $$MODULE_QMAKE_OUTDIR/mkspecs/modules/qt_tool_$${MODULE}.pri
-+#
-+#    vars = binary depends
-+#
-+#    isEmpty(HOST_QT_TOOLS) {
-+#        load(resolve_target)
-+#
-+#        !host_build|!force_bootstrap: MODULE_DEPENDS = $$replace(QT, -private$, _private)
-+#
-+#        !isEmpty(QT_TOOL_ENV) {
-+#            vars += envvars
-+#            module_var_names =
-+#            module_var_sets =
-+#            for(var, QT_TOOL_ENV) {
-+#                vars += env.$${var}.name env.$${var}.value
-+#                module_var_names += QT_TOOL.$${MODULE}.env.$${var}
-+#                module_var_sets += \
-+#                    "QT_TOOL.$${MODULE}.env.$${var}.name = $$val_escape($${var}.name)" \
-+#                    "QT_TOOL.$${MODULE}.env.$${var}.value = $$val_escape($${var}.value)"
-+#            }
-+#            module_envvars = \
-+#                "QT_TOOL.$${MODULE}.envvars = $$module_var_names" \
-+#                $$module_var_sets
-+#        } else {
-+#            module_envvars =
-+#        }
-+#
-+#        bin = $$system_path($$QMAKE_RESOLVED_TARGET)
-+#    } else {
-+#        bin = $${HOST_QT_TOOLS}/$${TARGET}
-+#        equals(QMAKE_HOST.os, Windows): bin = $${bin}.exe
-+#        bin = $$system_path($$bin)
-+#    }
-+#
-+#    TOOL_PRI_CONT = \
-+#        "QT_TOOL.$${MODULE}.binary = $$val_escape(bin)" \
-+#        "QT_TOOL.$${MODULE}.depends =$$join(MODULE_DEPENDS, " ", " ")" \
-+#        $$module_envvars
-+#    write_file($$TOOL_PRI, TOOL_PRI_CONT)|error()
-+#
-+#    # Then, inject the new tool into the current cache state
-+#    !contains(QMAKE_INTERNAL_INCLUDED_FILES, $$TOOL_PRI) { # before the actual include()!
-+#        added = $$TOOL_PRI
-+#        cache(QMAKE_INTERNAL_INCLUDED_FILES, add transient, added)
-+#        unset(added)
-+#    }
-+#    include($$TOOL_PRI)
-+#    for(var, vars): \
-+#        cache(QT_TOOL.$${MODULE}.$$var, transient)
-+#
-+#}
- # The variable is re-used by qtPrepareTool(), and we really don't want that.
- unset(QT_TOOL_ENV)
-diff --git a/qtbase/qmake/Makefile.unix b/qtbase/qmake/Makefile.unix
-index 808a6d8..720c82b 100644
---- a/qtbase/qmake/Makefile.unix
-+++ b/qtbase/qmake/Makefile.unix
-@@ -225,7 +225,7 @@ qsettings.o: $(SOURCE_PATH)/src/corelib/io/qsettings.cpp
- qsystemerror.o: $(SOURCE_PATH)/src/corelib/kernel/qsystemerror.cpp
- 	$(CXX) -c -o $@ $(CXXFLAGS) $(SOURCE_PATH)/src/corelib/kernel/qsystemerror.cpp
- 
--qlibraryinfo.o: $(SOURCE_PATH)/src/corelib/global/qlibraryinfo.cpp $(BUILD_PATH)/src/corelib/global/qconfig.cpp
-+qlibraryinfo.o: $(SOURCE_PATH)/src/corelib/global/qlibraryinfo.cpp
- 	$(CXX) -c -o $@ $(CXXFLAGS) $(SOURCE_PATH)/src/corelib/global/qlibraryinfo.cpp
- 
- qnumeric.o: $(SOURCE_PATH)/src/corelib/global/qnumeric.cpp

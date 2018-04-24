@@ -1,0 +1,17 @@
+base
+icu
+libc
+libpng
+jpeg
+mesa
+os
+qt5_core
+qt5_gui
+qt5_network
+qt5_opengl
+qt5_printsupport
+qt5_sql
+qt5_widgets
+stdcxx
+timer_session
+zlib

@@ -13,7 +13,6 @@
 
 /* Qt includes */
 #include <QApplication>
-#include <qnitpickerintegrationplugin.h>
 
 /* qt_avplay includes */
 #include "main_window.h"

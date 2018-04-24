@@ -1,5 +1,14 @@
 source ${genode_dir}/repos/libports/run/qt5_common.inc
 
+import_from_depot genodelabs/raw/qt5_avplay \
+                  genodelabs/src/avplay \
+                  genodelabs/src/libav \
+                  genodelabs/src/qt5_avplay \
+                  genodelabs/src/qt5_qnitpickerviewwidget \
+                  genodelabs/src/qt5_widgets \
+                  genodelabs/src/qt5_xml \
+                  genodelabs/src/sdl
+
 set feature(Audio_out) 1
 
 #
@@ -7,12 +16,6 @@ set feature(Audio_out) 1
 #
 
 append build_components [qt5_build_components feature]
-
-append build_components {
-	lib/mesa/swrast
-	app/avplay
-	app/qt5/qt_avplay
-}
 
 build $build_components
 
@@ -25,14 +28,6 @@ if {![file exists bin/mediafile]} {
 	puts "downloading media file from $media_url"
 	catch { exec wget -O bin/mediafile $media_url }
 }
-
-create_boot_directory
-
-#
-# Create Qt tar archive
-#
-
-create_qt5_fs_tar_archive "qt_avplay" "gui"
 
 #
 # Generate config
@@ -56,10 +51,17 @@ append config {
 		<resource name="RAM" quantum="2G"/>
 		<config>
 			<vfs>
-				<dir name="dev"> <log/> </dir>
-				<tar name="qt5_fs_qt_avplay.tar"/>
+				<dir name="dev">
+					<log/>
+					<inline name="rtc">2018-01-01 00:01</inline>
+				</dir>
+				<tar name="qt5_dejavusans.tar"/>
+				<rom name="player_play.png"/>
+				<rom name="player_pause.png"/>
+				<rom name="player_stop.png"/>
+				<rom name="volume.png"/>
 			</vfs>
-			<libc stdout="/dev/log" stderr="/dev/log"/>
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
 			<mediafile name="mediafile"/>
 		</config>
 		<route>
@@ -83,40 +85,7 @@ install_config $config
 append boot_modules [qt5_boot_modules feature]
 
 append boot_modules {
-	qt_avplay
-	egl.lib.so
-	egl_swrast.lib.so
-	expat.lib.so
-	freetype.lib.so
-	glapi.lib.so
-	ld.lib.so
-	libc.lib.so vfs.lib.so
-	mesa.lib.so
-	posix.lib.so
-	libc_pipe.lib.so
-	libm.lib.so
-	libpng.lib.so
-	jpeg.lib.so
-	pcre16.lib.so
-	pthread.lib.so
-	qt5_core.lib.so
-	qt5_gui.lib.so
-	qt5_qnitpickerviewwidget.lib.so
-	qt5_widgets.lib.so
-	qt5_xml.lib.so
-	zlib.lib.so
-	avcodec.lib.so
-	avformat.lib.so
-	avutil.lib.so
-	avfilter.lib.so
-	avresample.lib.so
-	swscale.lib.so
-	sdl.lib.so
-	pthread.lib.so
-	avplay
 	mediafile
-	stdcxx.lib.so
-	qt5_fs_qt_avplay.tar
 }
 
 build_boot_image $boot_modules

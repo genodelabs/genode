@@ -21,8 +21,8 @@
 #include "qnitpickerplatformwindow.h"
 #include "qnitpickerscreen.h"
 #include "qnitpickerwindowsurface.h"
-#include "qgenericunixeventdispatcher_p.h"
-#include "qbasicfontdatabase_p.h"
+#include "QtEventDispatcherSupport/private/qgenericunixeventdispatcher_p.h"
+#include "QtFontDatabaseSupport/private/qbasicfontdatabase_p.h"
 
 QT_BEGIN_NAMESPACE
 

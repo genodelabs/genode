@@ -1,17 +1,14 @@
 ARORA = arora-0.11.0
 
-# identify the Qt repository by searching for a file that is unique for Qt5
-QT_REP_DIR := $(call select_from_repositories,lib/import/import-qt5.inc)
-ifneq ($(QT_REP_DIR),)
-QT_TMPL_DIR = $(QT_REP_DIR)/src/app/qt5/tmpl
+QT_TMPL_DIR = $(call select_from_repositories,src/app/qt5/tmpl)
+
+ifneq ($(QT_TMPL_DIR),)
 LIBS += qt5_printsupport qt5_qpluginwidget qt5_qnitpickerviewwidget
 else
 REQUIRES += qt5
 endif
 
-QT_REP_DIR := $(realpath $(dir $(QT_REP_DIR))../..)
-
--include $(QT_TMPL_DIR)/target_defaults.inc
+include $(QT_TMPL_DIR)/target_defaults.inc
 
 HEADERS_FILTER_OUT = \
   adblockschemeaccesshandler.h \
@@ -31,11 +28,9 @@ HEADERS_FILTER_OUT = \
   xbelreader.h \
   xbelwriter.h
 
-QT_MAIN_STACK_SIZE = 768*1024
-
 SRC_CC += arora_component.cc
 
-LIBS += libm libc_lwip libc_lwip_nic_dhcp
+LIBS += libm
 
 RESOURCES += demo_html.qrc
 
@@ -85,6 +80,6 @@ vpath % $(ARORA_PORT_DIR)/src/app/arora/src/qwebplugins/nitpicker
 vpath % $(ARORA_PORT_DIR)/src/app/arora/src/useragent
 vpath % $(ARORA_PORT_DIR)/src/app/arora/src/utils
 
--include $(QT_TMPL_DIR)/target_final.inc
+include $(QT_TMPL_DIR)/target_final.inc
 
 CC_CXX_WARN_STRICT =

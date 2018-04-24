@@ -1,6 +1,0 @@
-<!DOCTYPE RCC>
-<RCC version="1.0">
-<qresource prefix="/">
-<file>qt_quicktest.qml</file>
-</qresource>
-</RCC>

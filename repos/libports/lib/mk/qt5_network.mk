@@ -1,4 +1,4 @@
-include $(REP_DIR)/lib/import/import-qt5_network.mk
+include $(call select_from_repositories,lib/import/import-qt5_network.mk)
 
 SHARED_LIB = yes
 
@@ -22,10 +22,7 @@ COMPILER_MOC_SOURCE_MAKE_ALL_FILES_FILTER_OUT = \
 
 include $(REP_DIR)/lib/mk/qt5.inc
 
-INC_DIR += $(QT5_CONTRIB_DIR)/qtbase/include/QtNetwork/$(QT_VERSION) \
-           $(QT5_CONTRIB_DIR)/qtbase/include/QtNetwork/$(QT_VERSION)/QtNetwork \
-           $(QT5_CONTRIB_DIR)/qtbase/include/QtCore/$(QT_VERSION) \
-           $(QT5_CONTRIB_DIR)/qtbase/include/QtCore/$(QT_VERSION)/QtCore
+QT5_INC_DIR += $(QT5_CONTRIB_DIR)/qtbase/src/network/access
 
 LIBS += qt5_core zlib libc libssl
 

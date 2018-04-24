@@ -1,9 +1,6 @@
 INC_DIR += $(PRG_DIR)
 
-LIBS += libc
-
-# set the stack size of the main thread
-CC_CXX_OPT += -DQT_MAIN_STACK_SIZE=$(QT_MAIN_STACK_SIZE)
+LIBS += libc base
 
 # QtCore
 ifeq ($(findstring core, $(QT)), core)
@@ -14,7 +11,13 @@ endif
 # QtGui
 ifeq ($(findstring gui, $(QT)), gui)
 QT_DEFINES += -DQT_GUI_LIB
-LIBS += qt5_gui qt5_qpa_nitpicker qt5_widgets qt5_qjpeg
+LIBS += qt5_gui qt5_qpa_nitpicker qt5_qjpeg
+endif
+
+# QtWidgets
+ifeq ($(findstring widgets, $(QT)), widgets)
+QT_DEFINES += -DQT_WIDGETS_LIB
+LIBS += qt5_widgets
 endif
 
 # QtNetwork
