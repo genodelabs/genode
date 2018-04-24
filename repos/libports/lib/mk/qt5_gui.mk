@@ -1,4 +1,4 @@
-include $(REP_DIR)/lib/import/import-qt5_gui.mk
+include $(call select_from_repositories,lib/import/import-qt5_gui.mk)
 
 SHARED_LIB = yes
 
@@ -21,25 +21,6 @@ COMPILER_MOC_HEADER_MAKE_ALL_FILES_FILTER_OUT = \
 
 include $(REP_DIR)/lib/mk/qt5.inc
 
-INC_DIR += $(REP_DIR)/include/qt5/qtbase/QtGui/private \
-           $(QT5_CONTRIB_DIR)/qtbase/include/QtGui/$(QT_VERSION) \
-           $(QT5_CONTRIB_DIR)/qtbase/include/QtGui/$(QT_VERSION)/QtGui \
-           $(QT5_CONTRIB_DIR)/qtbase/include/QtGui/$(QT_VERSION)/QtGui/private \
-           $(QT5_CONTRIB_DIR)/qtbase/include/QtCore/$(QT_VERSION) \
-           $(QT5_CONTRIB_DIR)/qtbase/include/QtCore/$(QT_VERSION)/QtCore
-
 LIBS += qt5_core zlib libpng
-
-#
-# install fonts
-#
-
-ifneq ($(call select_from_ports,qt5),)
-all: $(BUILD_BASE_DIR)/bin/qt5_fs/qt/lib/fonts
-endif
-
-$(BUILD_BASE_DIR)/bin/qt5_fs/qt/lib/fonts:
-	$(VERBOSE)mkdir -p $@
-	$(VERBOSE)ln -sf $(QT5_CONTRIB_DIR)/qtquickcontrols/examples/quickcontrols/extras/dashboard/fonts/DejaVuSans.ttf $@/
 
 CC_CXX_WARN_STRICT =

@@ -1,165 +1,33 @@
+source ${genode_dir}/repos/libports/run/qt5_common.inc
+
+import_from_depot genodelabs/src/dynamic_rom \
+                  genodelabs/src/mixer_gui_qt \
+                  genodelabs/src/qt5_widgets
+
 #
 # Build
 #
 
-if {![have_spec linux]} {
-	puts "This run script requires linux!"
-	exit 1
-}
-
-set build_components {
-	core init
-	drivers/timer
-	server/ram_fs
-	drivers/framebuffer
-	server/dynamic_rom
-	server/report_rom
-	server/nitpicker
-	server/fs_rom
-	server/wm
-	lib/mesa/swrast
-	app/pointer
-	app/floating_window_layouter
-	app/decorator
-	app/mixer_gui_qt
-}
-
-source ${genode_dir}/repos/base/run/platform_drv.inc
-append_platform_drv_build_components
+append build_components [qt5_build_components feature]
 
 build $build_components
-
-create_boot_directory
 
 #
 # Generate config
 #
 
-set config {
-<config verbose="yes">
-	<parent-provides>
-		<service name="ROM"/>
-		<service name="IO_MEM"/>
-		<service name="IO_PORT"/>
-		<service name="IRQ"/>
-		<service name="PD"/>
-		<service name="RM"/>
-		<service name="CPU"/>
-		<service name="LOG"/>
+append config {
+<config>
+	<parent-provides>}
+append config [qt5_parent_provides feature]
+append config {
 	</parent-provides>
+	<default caps="100"/>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>
-	<default caps="100"/>
-	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
-		<provides> <service name="Timer"/> </provides>
-	</start>}
+	</default-route>}
 
-append_platform_drv_config
-
-append_if [have_spec sdl] config {
-	<start name="fb_sdl">
-		<resource name="RAM" quantum="4M"/>
-		<provides>
-			<service name="Input"/>
-			<service name="Framebuffer"/>
-		</provides>
-	</start>}
-
-append config {
-	<start name="report_rom">
-		<resource name="RAM" quantum="2M"/>
-		<provides>
-			<service name="ROM"/>
-			<service name="Report"/>
-		</provides>
-		<config>
-			<policy label="layouter -> window_list"       report="wm -> window_list"/>
-			<policy label="layouter -> focus_request"     report="wm -> focus_request"/>
-			<policy label="decorator -> window_layout"    report="layouter -> window_layout"/>
-			<policy label="wm -> resize_request"          report="layouter -> resize_request"/>
-			<policy label="decorator -> pointer"          report="wm -> pointer"/>
-			<policy label="layouter -> hover"             report="decorator -> hover"/>
-			<policy label="wm -> focus"                   report="layouter -> focus"/>
-			<policy label="layouter -> decorator_margins" report="decorator -> decorator_margins"/>
-			<policy label="mixer_gui_qt -> channel_list"  report="mixer -> channel_list"/>
-			<policy label="mixer -> channel_list"         report="mixer_gui_qt -> channel_list"/>
-			<policy label="pointer -> hover"              report="nitpicker -> hover"/>
-			<policy label="pointer -> xray"               report="nitpicker -> xray"/>
-		</config>
-	</start>
-	<start name="nitpicker">
-		<resource name="RAM" quantum="4M"/>
-		<provides><service name="Nitpicker"/></provides>
-		<config>
-			<report focus="yes" hover="yes" xray="yes" />
-			<domain name="pointer" layer="1" content="client" label="no" origin="pointer" />
-			<domain name="default" layer="2" content="client" label="no" hover="always" focus="click"/>
-
-			<policy label_prefix="pointer" domain="pointer"/>
-			<default-policy                domain="default"/>
-
-			<background color="#000000" />
-		</config>
-		<route>
-			<service name="Report"> <child name="report_rom"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-	<start name="pointer">
-		<resource name="RAM" quantum="1M"/>
-		<provides> <service name="Report"/> </provides>
-		<config shapes="yes"/>
-		<route>
-			<service name="Nitpicker"> <child name="nitpicker"/> </service>
-			<service name="ROM" label="hover"> <child name="report_rom"/> </service>
-			<service name="ROM" label="xray"> <child name="report_rom"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-	<start name="wm" caps="150">
-		<resource name="RAM" quantum="16M"/>
-		<provides><service name="Nitpicker"/></provides>
-		<config>
-			<policy label_prefix="decorator" role="decorator"/>
-			<policy label_prefix="layouter"  role="layouter"/>
-		</config>
-		<route>
-			<service name="Nitpicker"> <child name="nitpicker"/> </service>
-			<service name="ROM" label="focus">          <child name="report_rom"/> </service>
-			<service name="ROM" label="resize_request"> <child name="report_rom"/> </service>
-			<service name="Report">                     <child name="report_rom"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-	<start name="layouter">
-		<binary name="floating_window_layouter"/>
-		<resource name="RAM" quantum="4M"/>
-		<route>
-			<service name="ROM" label="window_list">       <child name="report_rom"/> </service>
-			<service name="ROM" label="focus_request">     <child name="report_rom"/> </service>
-			<service name="ROM" label="hover">             <child name="report_rom"/> </service>
-			<service name="ROM" label="decorator_margins"> <child name="report_rom"/> </service>
-			<service name="Report">                        <child name="report_rom"/> </service>
-			<any-service>
-				<child name="wm"/> <parent/> <any-child/>
-			</any-service>
-		</route>
-	</start>
-	<start name="decorator">
-		<binary name="decorator"/>
-		<resource name="RAM" quantum="8M"/>
-		<route>
-			<service name="ROM" label="window_layout"> <child name="report_rom"/> </service>
-			<service name="ROM" label="pointer">       <child name="report_rom"/> </service>
-			<service name="Report">                    <child name="report_rom"/> </service>
-			<any-service>
-				<child name="wm"/> <parent/> <any-child/>
-			</any-service>
-		</route>
-	</start>
-	}
+append config [qt5_start_nodes feature]
 
 append config {
 	<start name="dynamic_rom">
@@ -199,13 +67,15 @@ append config {
 
 	<start name="mixer_gui_qt" caps="200">
 		<resource name="RAM" quantum="32M"/>
-		<config ld_verbose="yes">
+		<config>
 			<vfs>
-				<dir name="dev"> <log/> </dir>
-				<tar name="qt5_fs_mixer_gui_qt.tar"/>
-				<!--<dir name="config"> <fs label="config"/> </dir>-->
+				<dir name="dev">
+					<log/>
+					<inline name="rtc">2018-01-01 00:01</inline>
+				</dir>
+				<tar name="qt5_dejavusans.tar"/>
 			</vfs>
-			<libc stdout="/dev/log" stderr="/dev/log"/>
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
 		</config>
 		<route>
 			<service name="Nitpicker"> <child name="wm"/> </service>
@@ -216,68 +86,16 @@ append config {
 			<service name="ROM" label="egl_drv.lib.so"> <parent label="egl_swrast.lib.so" /> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
-	</start>}
-
-append config {
-</config>
-}
+	</start>
+</config>}
 
 install_config $config
-
-#
-# Prepare resources needed by the application
-#
-
-# get fonts
-exec rm -rf bin/qt5_fs/mixer_gui_qt/qt
-exec mkdir -p bin/qt5_fs/mixer_gui_qt/qt/lib
-exec ln -sf [pwd]/bin/qt5_fs/qt/lib/fonts bin/qt5_fs/mixer_gui_qt/qt/lib/fonts
-
-# create tar archive containg Qt5 resources
-exec tar chf bin/qt5_fs_mixer_gui_qt.tar -C bin/qt5_fs/mixer_gui_qt .
 
 #
 # Boot modules
 #
 
-set boot_modules {
-	core ld.lib.so init timer
-	libc.lib.so vfs.lib.so
-
-	report_rom dynamic_rom ram_fs
-	fs_rom
-
-	qt5_component.lib.so
-	qt5_gui.lib.so
-	qt5_widgets.lib.so
-	qt5_xml.lib.so
-	qt5_core.lib.so
-	egl.lib.so
-	egl_swrast.lib.so
-	expat.lib.so
-	freetype.lib.so
-	glapi.lib.so
-	libc_pipe.lib.so
-	libm.lib.so
-	libpng.lib.so
-	jpeg.lib.so
-	mesa.lib.so
-	zlib.lib.so
-	stdcxx.lib.so
-	pthread.lib.so
-	pcre16.lib.so
-	mixer_gui_qt
-	qt5_fs_mixer_gui_qt.tar
-	nitpicker
-	wm
-	pointer
-	floating_window_layouter
-	decorator
-}
-
-append_platform_drv_boot_modules
-
-lappend_if [have_spec linux]            boot_modules fb_sdl
+append boot_modules [qt5_boot_modules feature]
 
 build_boot_image $boot_modules
 

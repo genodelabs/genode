@@ -28,8 +28,3 @@ endif
 ifndef TARGET
 TARGET = $(PROJECT_DIR_NAME)
 endif
-
-# default stack size of the main thread
-# - can be overridden anywhere in target.mk
-
-QT_MAIN_STACK_SIZE ?= 512*1024

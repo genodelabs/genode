@@ -1,0 +1,5 @@
+_ZN4Libc9Component9constructERNS_3EnvE T
+
+# manually added symbols
+
+_Z17initialize_qt_guiRN6Genode3EnvE W

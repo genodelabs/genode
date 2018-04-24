@@ -4,6 +4,31 @@ set feature(Input) 1
 set feature(Framebuffer) 1
 set feature(Timer) 1
 
+create_boot_directory
+
+import_from_depot genodelabs/src/[base_src] \
+                  genodelabs/src/decorator \
+                  genodelabs/src/expat \
+                  genodelabs/src/floating_window_layouter \
+                  genodelabs/src/freetype \
+                  genodelabs/src/init \
+                  genodelabs/src/jpeg \
+                  genodelabs/src/libc \
+                  genodelabs/src/libpng \
+                  genodelabs/src/mesa \
+                  genodelabs/src/nitpicker \
+                  genodelabs/src/pcre16 \
+                  genodelabs/src/qt5_core \
+                  genodelabs/src/qt5_gui \
+                  genodelabs/src/qt5_qjpeg \
+                  genodelabs/src/qt5_qpa_nitpicker \
+                  genodelabs/src/report_rom \
+                  genodelabs/src/stdcxx \
+                  genodelabs/src/vfs \
+                  genodelabs/src/wm \
+                  genodelabs/src/zlib \
+                  genodelabs/raw/qt5_dejavusans
+
 #
 # Build
 #
@@ -12,21 +37,11 @@ proc qt5_build_components { feature_arg } {
 
 	upvar $feature_arg feature
 
-	set build_components {
-		core
-		init
-	}
+	set build_components { }
 
 	append build_components [drivers_build_components feature]
 
-	append build_components {
-		server/nitpicker
-		server/report_rom
-		app/floating_window_layouter
-		app/decorator
-		app/pointer
-		server/wm
-	}
+	append build_components { }
 
 	return $build_components
 }
@@ -170,50 +185,11 @@ proc qt5_boot_modules { feature_arg } {
 
 	upvar $feature_arg feature
 
-	set boot_modules {
-		core
-		init
-	}
+	set boot_modules { }
 
 	append boot_modules [drivers_boot_modules feature]
 
-	append boot_modules {
-		nitpicker
-		report_rom
-		floating_window_layouter
-		decorator
-		wm
-		pointer
-	}
+	append boot_modules { }
 
 	return $boot_modules
-}
-
-
-#
-# tar archive
-#
-
-proc create_qt5_fs_tar_archive { app_name qt_modules } {
-
-	exec rm -rf bin/qt5_fs/${app_name}/qt
-
-	if { [lsearch ${qt_modules} "gui"] != -1 } {
-		# add fonts
-		exec mkdir -p bin/qt5_fs/${app_name}/qt/lib
-		exec ln -sf [pwd]/bin/qt5_fs/qt/lib/fonts bin/qt5_fs/${app_name}/qt/lib/fonts
-	}
-
-	if { [lsearch ${qt_modules} "quick"] != -1 } {
-		# add QtQuick plugins
-		exec mkdir -p bin/qt5_fs/${app_name}/qt
-		exec ln -sf [pwd]/bin/qt5_fs/qt/qml bin/qt5_fs/${app_name}/qt/qml
-	}
-
-        if { [lsearch ${qt_modules} "plugins"] != -1 } {
-                exec mkdir -p bin/qt5_fs/${app_name}/qt
-                exec ln -sf [pwd]/bin/qt5_fs/qt/plugins bin/qt5_fs/${app_name}/qt/plugins
-        }
-
-	exec tar chf bin/qt5_fs_${app_name}.tar -C bin/qt5_fs/${app_name} .
 }

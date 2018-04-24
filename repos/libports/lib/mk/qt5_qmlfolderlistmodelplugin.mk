@@ -1,4 +1,6 @@
-include $(REP_DIR)/lib/import/import-qt5_qmlfolderlistmodelplugin.mk
+IMPORT_QT5_INC=$(call select_from_repositories,lib/import/import-qt5.inc)
+
+include $(IMPORT_QT5_INC)
 
 SHARED_LIB = yes
 
@@ -8,35 +10,36 @@ QT_DEFINES += -UQT_STATICPLUGIN
 
 include $(REP_DIR)/lib/mk/qt5.inc
 
-LIBS += qt5_qml
+LIBS += qt5_core qt5_gui qt5_qml qt5_quick
 
-# install the QtQuick QML plugin
+# install the QML plugin
 
-QTQUICK_INSTALL_DIR := $(BUILD_BASE_DIR)/bin/qt5_fs/qt/qml/Qt/labs/folderlistmodel
-QTQUICK_QMLDIR      := $(QTQUICK_INSTALL_DIR)/qmldir
-QTQUICK_PLUGIN_NAME := qt5_qmlfolderlistmodelplugin.lib.so
-QTQUICK_PLUGIN      := $(QTQUICK_INSTALL_DIR)/$(QTQUICK_PLUGIN_NAME)
+QML_PLUGIN_NAME := qt5_qmlfolderlistmodelplugin
+QML_INSTALL_DIR := qt/qml/Qt/labs/folderlistmodel
 
-$(QTQUICK_INSTALL_DIR):
+QML_PLUGIN      := $(QML_INSTALL_DIR)/$(QML_PLUGIN_NAME).lib.so
+TAR_ARCHIVE     := $(BUILD_BASE_DIR)/bin/$(QML_PLUGIN_NAME).tar
+
+$(QML_INSTALL_DIR):
 	$(VERBOSE)mkdir -p $@
 
-$(QTQUICK_QMLDIR): $(QTQUICK_INSTALL_DIR)
-	$(VERBOSE)cp $(QT5_CONTRIB_DIR)/qtdeclarative/src/imports/folderlistmodel/qmldir $(QTQUICK_INSTALL_DIR)
+$(QML_PLUGIN): $(QML_INSTALL_DIR) $(QML_PLUGIN_NAME).lib.so.stripped
+	$(VERBOSE)cp $(QML_PLUGIN_NAME).lib.so.stripped $@
 
-$(QTQUICK_PLUGIN): $(QTQUICK_INSTALL_DIR)
-	$(VERBOSE)ln -sf $(BUILD_BASE_DIR)/bin/$(QTQUICK_PLUGIN_NAME) $(QTQUICK_INSTALL_DIR)/$(QTQUICK_PLUGIN_NAME)
+$(TAR_ARCHIVE): $(QML_PLUGIN)
+	$(VERBOSE)tar cf $@ qt
 
 ifneq ($(call select_from_ports,qt5),)
-all: $(QTQUICK_QMLDIR) $(QTQUICK_PLUGIN)
+$(QML_PLUGIN_NAME).lib.tag: $(TAR_ARCHIVE)
 endif
 
 #
 # unfortunately, these clean rules don't trigger
 #
 
-clean-qtquick_install_dir:
-	rm -rf $(QTQUICK_INSTALL_DIR)
+clean-tar_archive:
+	rm -rf $(TAR_ARCHIVE)
 
-clean: clean-qtquick_install_dir
+clean: clean-tar_archive
 
 CC_CXX_WARN_STRICT =

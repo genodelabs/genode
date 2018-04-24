@@ -1,5 +1,10 @@
 source ${genode_dir}/repos/libports/run/qt5_common.inc
 
+import_from_depot genodelabs/src/qt5_component \
+                  genodelabs/src/qt5_printsupport \
+                  genodelabs/src/qt5_textedit \
+                  genodelabs/src/qt5_widgets
+
 #
 # Build
 #
@@ -11,11 +16,6 @@ if {[have_spec odroid_xu]} {
 
 append build_components [qt5_build_components feature]
 
-append build_components {
-	lib/mesa/swrast
-	app/qt5/examples/textedit
-}
-
 set use_sd_card_driver [expr [have_spec omap4] || [have_spec arndale]]
 set use_ahci_driver    [expr [have_spec x86] && ![have_spec linux]]
 
@@ -26,13 +26,6 @@ lappend_if [have_spec   linux]       build_components server/ram_fs
 lappend_if [expr ![have_spec linux]] build_components server/fatfs_fs
 
 build $build_components
-
-create_boot_directory
-
-#
-# Create Qt tar archive
-
-create_qt5_fs_tar_archive "textedit" "gui"
 
 #
 # Generate config
@@ -91,11 +84,14 @@ append config {
 	<start name="textedit" caps="250">
 		<resource name="RAM" quantum="70M"/>
 		<config>
-			<libc stdout="/dev/log" stderr="/dev/log"/>
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
 			<vfs>
-				<dir name="dev"> <log/> </dir>
-				<tar name="qt5_fs_textedit.tar"/>
+				<dir name="dev">
+					<log/>
+					<inline name="rtc">2018-01-01 00:01</inline>
+				</dir>
 				<dir name="fs">	<fs/> </dir>
+				<tar name="qt5_dejavusans.tar"/>
 			</vfs>
 		</config>
 		<route>
@@ -111,11 +107,14 @@ append config {
 		<binary name="textedit" />
 		<resource name="RAM" quantum="70M"/>
 		<config>
-			<libc stdout="/dev/log" stderr="/dev/log"/>
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
 			<vfs>
-				<dir name="dev"> <log/> </dir>
-				<tar name="qt5_fs_textedit.tar"/>
+				<dir name="dev">
+					<log/>
+					<inline name="rtc">2018-01-01 00:01</inline>
+				</dir>
 				<dir name="fs">	<fs/> </dir>
+				<tar name="qt5_dejavusans.tar"/>
 			</vfs>
 		</config>
 		<route>
@@ -137,33 +136,6 @@ install_config $config
 #
 
 append boot_modules [qt5_boot_modules feature]
-
-append boot_modules {
-	textedit
-	egl.lib.so
-	egl_swrast.lib.so
-	expat.lib.so
-	freetype.lib.so
-	glapi.lib.so
-	ld.lib.so
-	libc.lib.so vfs.lib.so
-	libc_pipe.lib.so
-	libm.lib.so
-	libpng.lib.so
-	jpeg.lib.so
-	mesa.lib.so
-	pcre16.lib.so
-	pthread.lib.so
-	qt5_component.lib.so
-	qt5_core.lib.so
-	qt5_gui.lib.so
-	qt5_printsupport.lib.so
-	qt5_widgets.lib.so
-	qt5_xml.lib.so
-	zlib.lib.so
-	stdcxx.lib.so
-	qt5_fs_textedit.tar
-}
 
 # platform-specific modules
 lappend_if [have_spec linux]         boot_modules ram_fs

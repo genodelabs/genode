@@ -1,0 +1,58 @@
+header_generation.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+Avoid errors on header generation during port preparation.
+---
+ qtbase/mkspecs/features/qmake_use.prf              |    4 ++--
+ qtbase/mkspecs/features/qt.prf                     |    2 +-
+ .../Tools/qmake/mkspecs/features/default_pre.prf   |    8 ++++----
+ 3 files changed, 7 insertions(+), 7 deletions(-)
+
+diff --git a/qtbase/mkspecs/features/qmake_use.prf b/qtbase/mkspecs/features/qmake_use.prf
+index 9b6c67c..aa683d0 100644
+--- a/qtbase/mkspecs/features/qmake_use.prf
++++ b/qtbase/mkspecs/features/qmake_use.prf
+@@ -14,8 +14,8 @@ for(ever) {
+         defines = $$eval(QMAKE_DEFINES_$${nu})
+         includes = $$eval(QMAKE_INCDIR_$${nu})
+ 
+-        isEmpty(libs):isEmpty(defines):isEmpty(includes): \
+-            error("Library '$$name' is not defined.")
++        #isEmpty(libs):isEmpty(defines):isEmpty(includes): \
++        #    error("Library '$$name' is not defined.")
+ 
+         !contains(use, nolink) {
+             QMAKE_LIBDIR += $$libdir
+diff --git a/qtbase/mkspecs/features/qt.prf b/qtbase/mkspecs/features/qt.prf
+index 98f794c..f9beec7 100644
+--- a/qtbase/mkspecs/features/qt.prf
++++ b/qtbase/mkspecs/features/qt.prf
+@@ -153,7 +153,7 @@ for(ever) {
+                 WINRT_MANIFEST.capabilities_device_default += $$MODULE_WINRT_CAPABILITIES_DEVICE
+         }
+     }
+-    !isEmpty(BAD_QT):error("Unknown module(s) in QT$$var_sfx: $$replace(BAD_QT, _private$, -private)")
++    #!isEmpty(BAD_QT):error("Unknown module(s) in QT$$var_sfx: $$replace(BAD_QT, _private$, -private)")
+ 
+     !isEmpty(var_sfx): break()
+     var_sfx = _PRIVATE
+diff --git a/qtwebkit/Tools/qmake/mkspecs/features/default_pre.prf b/qtwebkit/Tools/qmake/mkspecs/features/default_pre.prf
+index 5c36e93..5a52092 100644
+--- a/qtwebkit/Tools/qmake/mkspecs/features/default_pre.prf
++++ b/qtwebkit/Tools/qmake/mkspecs/features/default_pre.prf
+@@ -67,10 +67,10 @@ else: PYTHON = python
+ CONFIG += production_build
+ 
+ # Run configure before making decisions that depend on the result
+-root_project_file {
+-    load(configure)
+-    runConfigure()
+-}
++#root_project_file {
++#    load(configure)
++#    runConfigure()
++#}
+ 
+ unix:config_gccdepends {
+     # We have a compiler that supports the -MD option (and neither

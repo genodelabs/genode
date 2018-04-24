@@ -1,0 +1,6 @@
+base
+libc
+mesa
+qt5_core
+qt5_gui
+stdcxx

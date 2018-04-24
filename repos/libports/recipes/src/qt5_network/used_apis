@@ -1,0 +1,6 @@
+base
+libc
+libssl
+qt5_core
+stdcxx
+zlib

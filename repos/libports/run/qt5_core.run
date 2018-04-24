@@ -1,0 +1,53 @@
+create_boot_directory
+
+import_from_depot genodelabs/src/[base_src] \
+                  genodelabs/src/init \
+                  genodelabs/src/libc \
+                  genodelabs/src/pcre16 \
+                  genodelabs/src/qt5_component \
+                  genodelabs/src/qt5_core \
+                  genodelabs/src/stdcxx \
+                  genodelabs/src/vfs \
+                  genodelabs/src/zlib \
+                  genodelabs/src/test-qt_core
+
+install_config {
+<config verbose="yes">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="LOG"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="PD"/>
+		<service name="IRQ"/>
+		<service name="IO_PORT"/>
+		<service name="IO_MEM"/>
+	</parent-provides>
+
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+
+	<default caps="100"/>
+
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+
+	<start name="test-qt_core">
+		<resource name="RAM" quantum="10M" />
+		<config>
+			<vfs>
+				<dir name="dev"> <log/> </dir>
+			</vfs>
+			<libc stdout="/dev/log" stderr="/dev/log"/>
+		</config>
+	</start>
+</config>}
+
+build_boot_image { }
+
+append qemu_args " -nographic "
+
+run_genode_until "Test done.*\n" 10

@@ -4,12 +4,13 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
 
 
 ---
- qtbase/configure                          |    1 
- qtbase/mkspecs/genode-g++/qmake.conf      |   10 +++
- qtbase/mkspecs/genode-g++/qplatformdefs.h |   87 +++++++++++++++++++++++++++++
- qtbase/src/corelib/global/global.pri      |   10 ++-
- qtbase/src/corelib/io/io.pri              |    2 -
- 5 files changed, 104 insertions(+), 6 deletions(-)
+ qtbase/configure                            |    1 
+ qtbase/mkspecs/features/qt_build_config.prf |    2 -
+ qtbase/mkspecs/genode-g++/qmake.conf        |   10 +++
+ qtbase/mkspecs/genode-g++/qplatformdefs.h   |   87 +++++++++++++++++++++++++++
+ qtbase/src/corelib/global/global.pri        |   10 ++-
+ qtbase/src/corelib/io/io.pri                |    2 -
+ 6 files changed, 105 insertions(+), 7 deletions(-)
  create mode 100644 qtbase/mkspecs/genode-g++/qmake.conf
  create mode 100644 qtbase/mkspecs/genode-g++/qplatformdefs.h
 
@@ -25,6 +26,17 @@ index bc18e61..a901fa0 100755
       SCO_SV:*)
          #PLATFORM=sco-g++
          PLATFORM=sco-cc
+diff --git a/qtbase/mkspecs/features/qt_build_config.prf b/qtbase/mkspecs/features/qt_build_config.prf
+index 3762c14..1596dd5 100644
+--- a/qtbase/mkspecs/features/qt_build_config.prf
++++ b/qtbase/mkspecs/features/qt_build_config.prf
+@@ -132,5 +132,5 @@ defineTest(qtConfig) {
+         contains(QT.$${module}.disabled_features, $$1): \
+             return(false)
+     }
+-    error("Could not find feature $${1}.")
++    #error("Could not find feature $${1}.")
+ }
 diff --git a/qtbase/mkspecs/genode-g++/qmake.conf b/qtbase/mkspecs/genode-g++/qmake.conf
 new file mode 100644
 index 0000000..734ae5c

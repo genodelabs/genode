@@ -1,5 +1,14 @@
 source ${genode_dir}/repos/libports/run/qt5_common.inc
 
+import_from_depot genodelabs/src/libcrypto \
+                  genodelabs/src/libssl \
+                  genodelabs/src/qt5_component \
+                  genodelabs/src/qt5_network \
+                  genodelabs/src/qt5_qnitpickerviewwidget \
+                  genodelabs/src/qt5_qpluginwidget \
+                  genodelabs/src/qt5_widgets \
+                  genodelabs/src/test-qpluginwidget
+
 #
 # Build
 #
@@ -7,22 +16,12 @@ source ${genode_dir}/repos/libports/run/qt5_common.inc
 append build_components [qt5_build_components feature]
 
 append build_components {
-	lib/mesa/swrast
 	server/loader
 	server/tar_rom
 	test/nitpicker
-	test/qt5/qpluginwidget
 }
 
 build $build_components
-
-create_boot_directory
-
-#
-# Create Qt tar archive
-#
-
-create_qt5_fs_tar_archive "test-qpluginwidget" "gui"
 
 #
 # Generate config
@@ -62,10 +61,13 @@ append config {
 		<resource name="RAM" quantum="30M"/>
 		<config>
 			<vfs>
-				<dir name="dev"> <log/> </dir>
-				<tar name="qt5_fs_test-qpluginwidget.tar"/>
+				<dir name="dev">
+					<log/>
+					<inline name="rtc">2018-01-01 00:01</inline>
+				</dir>
+				<tar name="qt5_dejavusans.tar"/>
 			</vfs>
-			<libc stdout="/dev/log" stderr="/dev/log"/>
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
 		</config>
 		<route>
 			<service name="Nitpicker"> <child name="wm"/> </service>
@@ -85,47 +87,14 @@ install_config $config
 # Boot modules
 #
 
-exec sh -c "ln -sf [pwd]/test/qt5/qpluginwidget/test-plugin.tar bin/"
-
 append boot_modules [qt5_boot_modules feature]
 
 append boot_modules {
 	loader
 	tar_rom
 	testnit
-	test-qpluginwidget
-	egl.lib.so
-	egl_swrast.lib.so
-	expat.lib.so
-	freetype.lib.so
-	glapi.lib.so
-	ld.lib.so
-	libc.lib.so vfs.lib.so
-	libc_pipe.lib.so
-	libcrypto.lib.so
-	libm.lib.so
-	libpng.lib.so
-	libssl.lib.so
-	jpeg.lib.so
-	mesa.lib.so
-	pcre16.lib.so
-	pthread.lib.so
-	qt5_component.lib.so
-	qt5_core.lib.so
-	qt5_gui.lib.so
-	qt5_qnitpickerviewwidget.lib.so
-	qt5_qpluginwidget.lib.so
-	qt5_widgets.lib.so
-	qt5_xml.lib.so
-	qt5_network.lib.so
-	zlib.lib.so
-	test-plugin.tar
-	stdcxx.lib.so
-	qt5_fs_test-qpluginwidget.tar
 }
 
 build_boot_image $boot_modules
 
-
 run_genode_until forever
-
