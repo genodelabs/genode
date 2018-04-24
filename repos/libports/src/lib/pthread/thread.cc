@@ -273,18 +273,37 @@ extern "C" {
 	                          void **stackaddr,
 	                          ::size_t *stacksize)
 	{
-		/* FIXME */
-		warning("pthread_attr_getstack() called, might not work correctly");
-
 		if (!attr || !*attr || !stackaddr || !stacksize)
 			return EINVAL;
 
 		pthread_t pthread = (*attr)->pthread;
 
-		*stackaddr = pthread->stack_top();
-		*stacksize = (addr_t)pthread->stack_top() - (addr_t)pthread->stack_base();
+		if (pthread != pthread_self()) {
+			error("pthread_attr_getstack() called, where pthread != phtread_self");
+			*stackaddr = nullptr;
+			*stacksize = 0;
+			return EINVAL;
+		}
+
+		Thread::Stack_info info = Thread::mystack();
+		*stackaddr = (void *)info.base;
+		*stacksize = info.top - info.base;
 
 		return 0;
+	}
+
+
+	int pthread_attr_getstackaddr(const pthread_attr_t *attr, void **stackaddr)
+	{
+		size_t stacksize;
+		return pthread_attr_getstack(attr, stackaddr, &stacksize);
+	}
+
+
+	int pthread_attr_getstacksize(const pthread_attr_t *attr, size_t *stacksize)
+	{
+		void *stackaddr;
+		return pthread_attr_getstack(attr, &stackaddr, stacksize);
 	}
 
 
