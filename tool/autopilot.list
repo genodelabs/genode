@@ -92,6 +92,7 @@ smartcard
 new_delete
 timeout
 nic_router
+nic_bridge
 init_smp
 sd_card_bench
 ram_fs_chunk

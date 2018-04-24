@@ -2,6 +2,11 @@
 # Build
 #
 
+if {![have_include power_on/qemu]} {
+	puts "Run script is only supported on Qemu"
+	exit 0
+}
+
 set build_components {
 	core init
 	drivers/timer drivers/nic
@@ -122,4 +127,4 @@ append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
 
 append qemu_args " -net user "
 
-run_genode_until forever
+run_genode_until ".*\"test-http_clnt\" exited with exit value 0.*\n" 30
