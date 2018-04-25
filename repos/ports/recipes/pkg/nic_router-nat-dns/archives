@@ -1,0 +1,9 @@
+_/src/nic_router
+_/src/stubby
+_/src/libc
+_/src/libssl
+_/src/libgetdns
+_/src/libcrypto
+_/src/posix
+_/src/vfs_lxip
+_/src/vfs_jitterentropy

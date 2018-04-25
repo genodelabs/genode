@@ -1,0 +1,202 @@
+source ${genode_dir}/repos/base/run/platform_drv.inc
+
+create_boot_directory
+proc depot_user {} { return [get_cmd_arg --depot-user genodelabs] }
+
+proc current_pkg { pkg } { return $pkg/[_current_depot_archive_version pkg $pkg] }
+
+import_from_depot genodelabs/src/[base_src] \
+                  genodelabs/src/report_rom \
+                  genodelabs/src/fs_rom \
+                  genodelabs/src/ram_fs \
+                  genodelabs/src/vfs \
+                  genodelabs/src/init \
+                  genodelabs/src/ipxe_nic_drv \
+                  genodelabs/src/acpi_drv \
+                  genodelabs/src/platform_drv \
+                  genodelabs/src/rtc_drv \
+                  genodelabs/src/posix \
+                  genodelabs/src/libc \
+                  genodelabs/src/vfs_lxip \
+
+create_tar_from_depot_binaries [run_dir]/genode/depot.tar \
+	[depot_user]/pkg/nic_router-nat-dns \
+
+append config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+
+	<default-route>
+		<service name="Nic"> <child name="dynamic"/> </service>
+		<service name="Report"> <child name="report_rom"/> </service>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<default caps="100"/>}
+
+append_platform_drv_config
+
+append config {
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>
+
+	<start name="rtc_drv">
+		<resource name="RAM" quantum="6M"/>
+		<provides> <service name="Rtc"/> </provides>
+	</start>
+
+	<start name="nic_drv">
+		<resource name="RAM" quantum="6M"/>
+		<provides> <service name="Nic"/> </provides>
+	</start>
+
+	<start name="report_rom">
+		<binary name="report_rom"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config verbose="no">
+			<policy label="depot_deploy -> blueprint" report="depot_query -> blueprint"/>
+			<policy label="depot_query -> query"      report="depot_deploy -> query"/>
+			<policy label="dynamic -> config"         report="depot_deploy -> init.config"/>
+		</config>
+	</start>
+
+	<start name="vfs">
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="File_system"/> </provides>
+		<config>
+			<vfs> <tar name="depot.tar"/> </vfs>
+			<policy label="depot_query -> depot" root="/" />
+			<policy label="fs_rom -> "           root="/" />
+		</config>
+	</start>
+
+	<start name="fs_rom">
+		<resource name="RAM" quantum="50M"/>
+		<provides> <service name="ROM"/> </provides>
+		<route>
+			<service name="File_system"> <child name="vfs"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="depot_query">
+		<resource name="RAM" quantum="1M"/>
+		<config query="rom">
+			<vfs> <dir name="depot"> <fs label="depot"/> </dir> </vfs>
+		</config>
+		<route>
+			<service name="ROM" label="query"> <child name="report_rom"/> </service>
+			<service name="File_system"> <child name="vfs"/> </service>
+			<service name="Report"> <child name="report_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="ram_fs">
+		<resource name="RAM" quantum="8M"/>
+		<provides> <service name="File_system"/> </provides>
+		<config>
+			<default-policy root="/" writeable="yes"/>
+		</config>
+	</start>
+
+	<start name="depot_deploy">
+		<resource name="RAM" quantum="1M"/>
+		<config arch="} [depot_spec] {">
+			<static>
+				<parent-provides>
+					<service name="ROM"/>
+					<service name="RM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
+					<service name="LOG"/>
+					<service name="File_system"/>
+					<service name="Nic"/>
+					<service name="Rtc"/>
+					<service name="Timer"/>
+				</parent-provides>
+				<service name="Nic">
+					<default-policy> <child name="nic_router"/> </default-policy> </service>
+			</static>
+			<common_routes>
+				<service name="ROM" label_last="ld.lib.so"> <parent/> </service>
+				<service name="ROM" label_last="init">      <parent/> </service>
+				<service name="CPU">   <parent/> </service>
+				<service name="PD">    <parent/> </service>
+				<service name="LOG">   <parent/> </service>
+				<service name="Timer"> <parent/> </service>
+				<service name="Rtc"> <parent/> </service>
+				<service name="Nic"> <parent/> </service>
+			</common_routes>
+
+			<start name="nic_router" pkg="} [depot_user]/pkg/[current_pkg nic_router-nat-dns] {">
+				<route>
+					<service name="RM"> <parent/> </service>
+					<service name="Rtc"> <parent/> </service>
+					<service name="Nic"> <parent/> </service>
+				</route>
+			</start>
+
+		</config>
+		<route>
+			<service name="ROM" label="blueprint"> <child name="report_rom"/> </service>
+			<service name="Report" label="query"> <child name="report_rom"/> </service>
+			<service name="Report"> <child name="report_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="dynamic" caps="8000">
+		<resource name="RAM" quantum="160M"/>
+		<binary name="init"/>
+		<provides> <service name="Nic"/> </provides>
+		<route>
+			<service name="ROM" label_last="ld.lib.so"> <parent/> </service>
+			<service name="ROM" label_last="init">      <parent/> </service>
+			<service name="ROM" label="config"> <child name="report_rom"/> </service>
+			<service name="ROM">   <child name="fs_rom"/> </service>
+			<service name="Timer"> <child name="timer"/>  </service>
+			<service name="File_system"> <child name="ram_fs"/> </service>
+			<service name="Nic"> <child name="nic_drv"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="test-libc_getaddrinfo" caps="256">
+		<resource name="RAM" quantum="32M"/>
+		<config>
+			<vfs>
+				<dir name="etc">
+					<inline name="resolv.conf">nameserver 10.0.1.2</inline>
+				</dir>
+				<dir name="dev"> <log/> </dir>
+				<dir name="socket"> <lxip dhcp="yes"/> </dir>
+			</vfs>
+			<libc stdout="/dev/log" socket="/socket"/>
+			<arg value="test-libc_getenv"/>
+			<arg value="genode.org"/>
+			<arg value="genode-labs.com"/>
+		</config>
+	</start>
+
+</config>}
+
+install_config $config
+
+append qemu_args -nographic
+
+build { app/depot_query app/depot_deploy test/libc_getaddrinfo }
+
+build_boot_image { depot_query depot_deploy test-libc_getaddrinfo }
+
+run_genode_until "child \"test-libc_getaddrinfo\" exited with exit value 0.*\n" 120

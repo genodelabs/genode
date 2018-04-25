@@ -1,0 +1,91 @@
+<runtime ram="48M" caps="600" binary="init">
+
+	<requires> <nic/> </requires>
+	<provides> <nic/> </provides>
+
+	<config>
+		<parent-provides>
+			<service name="CPU"/>
+			<service name="LOG"/>
+			<service name="PD"/>
+			<service name="RM"/>
+			<service name="ROM"/>
+			<service name="Nic"/>
+			<service name="Report"/>
+			<service name="Rtc"/>
+			<service name="Timer"/>
+		</parent-provides>
+		<service name="Nic">
+			<default-policy> <child name="router"/> </default-policy> </service>
+		<start name="router" caps="300">
+			<binary name="nic_router"/>
+			<resource name="RAM" quantum="10M"/>
+			<provides> <service name="Nic"/> </provides>
+			<config verbose_domain_state="yes">
+				<default-policy domain="default" />
+				<domain name="uplink">
+					<nat domain="default" tcp-ports="1000" udp-ports="1000"/>
+				</domain>
+				<domain name="default" interface="10.0.1.1/24">
+					<dhcp-server ip_first="10.0.1.4"
+					             ip_last="10.0.1.200"
+					             ip_lease_time_sec="360"
+					             dns_server="10.0.1.2"/>
+					<tcp dst="0.0.0.0/0"><permit-any domain="uplink"/></tcp>
+					<udp dst="0.0.0.0/0"><permit-any domain="uplink"/></udp>
+				</domain>
+			</config>
+			<route>
+				<any-service> <parent/> </any-service>
+			</route>
+		</start>
+		<start name="stubby" caps="300">
+			<resource name="RAM" quantum="32M"/>
+			<config>
+				<vfs>
+					<ram/>
+					<dir name="etc">
+						<inline name="resolv.conf">nameserver 9.9.9.9</inline> </dir>
+					<dir name="dev">
+						<log/> <null/> <rtc/>
+						<jitterentropy name="random"/>
+					</dir>
+					<dir name="socket">
+						<lxip ip_addr="10.0.1.2" netmask="255.255.255.0" gateway="10.0.1.1"/>
+					</dir>
+<inline name="stubby.yaml">
+listen_addresses:
+  - 10.0.1.2
+</inline>
+				</vfs>
+				<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" socket="/socket"/>
+				<env key="HOME" value="/"/>
+				<arg value="stubby"/>
+				<arg value="-C"/>
+				<arg value="/stubby.yaml"/>
+			</config>
+			<route>
+				<any-service> <any-child/> <parent/> </any-service>
+			</route>
+		</start>
+	</config>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="init"/>
+		<rom label="nic_router"/>
+		<rom label="libc.lib.so"/>
+		<rom label="libcrypto.lib.so"/>
+		<rom label="libgetdns.lib.so"/>
+		<rom label="libm.lib.so"/>
+		<rom label="libssl.lib.so"/>
+		<rom label="lxip.lib.so"/>
+		<rom label="posix.lib.so"/>
+		<rom label="rtc_drv"/>
+		<rom label="stubby"/>
+		<rom label="vfs_jitterentropy.lib.so"/>
+		<rom label="lxip.lib.so"/>
+		<rom label="vfs_lxip.lib.so"/>
+	</content>
+
+</runtime>
