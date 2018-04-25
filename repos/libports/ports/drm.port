@@ -3,9 +3,10 @@ VERSION   := 2.4.65
 DOWNLOADS := drm.archive
 
 URL(drm)     := https://dri.freedesktop.org/libdrm/libdrm-$(VERSION).tar.bz2
-SHA(drm)     := 74a6b2aa8c436e822e3ec5c52e463313c4e219d9
+SHA(drm)     := 71960ac8bde7d710992b1bc8879935e8300a870c36bd06f22412d0447e3d96c4
 DIR(drm)     := src/lib/drm
-TAR_OPT(drm) := --strip-components=1 --files-from $(REP_DIR)/src/lib/drm/files.list
-HASH_INPUT   += $(REP_DIR)/src/lib/mesa/files.list
+FILE_LIST    := $(REP_DIR)/src/lib/drm/files.list
+TAR_OPT(drm) := --strip-components=1 --files-from $(FILE_LIST)
+HASH_INPUT   += $(FILE_LIST)
 
 
