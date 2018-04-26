@@ -57,8 +57,7 @@ append config {
 	</start>
 	<start name="ping">
 		<resource name="RAM" quantum="8M"/>
-		<config src_ip="10.0.2.55"
-		        dst_ip="10.0.2.2"
+		<config dst_ip="10.0.2.2"
 		        period_sec="1"
 		        verbose="no"
 		        count="3"/>
@@ -96,4 +95,4 @@ append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
 
 append qemu_args " -net user -nographic "
 
-run_genode_until "\"ping\" exited with exit value 0.*\n" 25
+run_genode_until ".*\"ping\" exited with exit value 0.*\n" 25
