@@ -67,7 +67,8 @@ class Net::Dhcp_client
 		            Timer::Connection &timer,
 		            Interface         &interface);
 
-		void handle_ip(Ethernet_frame &eth, Genode::size_t eth_size);
+		void handle_ip(Ethernet_frame &eth,
+		               Size_guard     &size_guard);
 
 		void discover();
 };

@@ -16,7 +16,6 @@
 #include <interface.h>
 #include <domain.h>
 #include <configuration.h>
-#include <size_guard.h>
 
 enum { PKT_SIZE = 1024 };
 
@@ -24,7 +23,6 @@ using namespace Genode;
 using namespace Net;
 using Message_type       = Dhcp_packet::Message_type;
 using Drop_packet_inform = Net::Interface::Drop_packet_inform;
-using Size_guard         = Size_guard_tpl<PKT_SIZE, Net::Interface::Send_buffer_too_small>;
 using Dhcp_options       = Dhcp_packet::Options_aggregator<Size_guard>;
 
 
@@ -112,39 +110,31 @@ void Dhcp_client::_handle_timeout(Duration)
 }
 
 
-void Dhcp_client::handle_ip(Ethernet_frame &eth, size_t eth_size)
+void Dhcp_client::handle_ip(Ethernet_frame &eth,
+                            Size_guard     &size_guard)
 {
 	if (eth.dst() != _interface.router_mac() &&
 	    eth.dst() != Mac_address(0xff))
-	{
-		throw Drop_packet_inform("DHCP client expects Ethernet targeting the router");
-	}
-	size_t const ip_max_size = eth_size - sizeof(Ethernet_frame);
-	Ipv4_packet &ip = eth.data<Ipv4_packet>(ip_max_size);
-	size_t const ip_size = ip.size(ip_max_size);
+	{ throw Drop_packet_inform("DHCP client expects Ethernet targeting the router"); }
 
+	Ipv4_packet &ip = eth.data<Ipv4_packet>(size_guard);
 	if (ip.protocol() != Ipv4_packet::Protocol::UDP) {
-		throw Drop_packet_inform("DHCP client expects UDP packet");
-	}
-	size_t const udp_size = ip_size - sizeof(Ipv4_packet);
-	Udp_packet &udp = ip.data<Udp_packet>(udp_size);
+		throw Drop_packet_inform("DHCP client expects UDP packet"); }
 
+	Udp_packet &udp = ip.data<Udp_packet>(size_guard);
 	if (!Dhcp_packet::is_dhcp(&udp)) {
-		throw Drop_packet_inform("DHCP client expects DHCP packet");
-	}
-	size_t const dhcp_size = udp_size - sizeof(Udp_packet);
-	Dhcp_packet &dhcp = udp.data<Dhcp_packet>(dhcp_size);
+		throw Drop_packet_inform("DHCP client expects DHCP packet"); }
 
+	Dhcp_packet &dhcp = udp.data<Dhcp_packet>(size_guard);
 	if (dhcp.op() != Dhcp_packet::REPLY) {
-		throw Drop_packet_inform("DHCP client expects DHCP reply");
-	}
+		throw Drop_packet_inform("DHCP client expects DHCP reply"); }
+
 	if (dhcp.client_mac() != _interface.router_mac()) {
-		throw Drop_packet_inform("DHCP client expects DHCP targeting the router");
-	}
+		throw Drop_packet_inform("DHCP client expects DHCP targeting the router"); }
+
 	try { _handle_dhcp_reply(dhcp); }
 	catch (Dhcp_packet::Option_not_found) {
-		throw Drop_packet_inform("DHCP client misses DHCP option");
-	}
+		throw Drop_packet_inform("DHCP client misses DHCP option"); }
 }
 
 
@@ -202,20 +192,18 @@ void Dhcp_client::_send(Message_type msg_type,
                         Ipv4_address requested_ip)
 {
 	Mac_address client_mac = _interface.router_mac();
-	_interface.send(PKT_SIZE, [&] (void *pkt_base) {
+	_interface.send(PKT_SIZE, [&] (void *pkt_base, Size_guard &size_guard) {
 
 		/* create ETH header of the request */
-		Size_guard size;
-		size.add(sizeof(Ethernet_frame));
-		Ethernet_frame &eth = *construct_at<Ethernet_frame>(pkt_base);
+		Ethernet_frame &eth = Ethernet_frame::construct_at(pkt_base, size_guard);
 		eth.dst(Mac_address(0xff));
 		eth.src(client_mac);
 		eth.type(Ethernet_frame::Type::IPV4);
 
 		/* create IP header of the request */
 		enum { IPV4_TIME_TO_LIVE = 64 };
-		size_t const ip_off = size.curr();
-		Ipv4_packet &ip = eth.construct_at_data<Ipv4_packet>(size);
+		size_t const ip_off = size_guard.head_size();
+		Ipv4_packet &ip = eth.construct_at_data<Ipv4_packet>(size_guard);
 		ip.header_length(sizeof(Ipv4_packet) / 4);
 		ip.version(4);
 		ip.time_to_live(IPV4_TIME_TO_LIVE);
@@ -224,14 +212,14 @@ void Dhcp_client::_send(Message_type msg_type,
 		ip.dst(Ipv4_address(0xff));
 
 		/* create UDP header of the request */
-		size_t const udp_off = size.curr();
-		Udp_packet &udp = ip.construct_at_data<Udp_packet>(size);
+		size_t const udp_off = size_guard.head_size();
+		Udp_packet &udp = ip.construct_at_data<Udp_packet>(size_guard);
 		udp.src_port(Port(Dhcp_packet::BOOTPC));
 		udp.dst_port(Port(Dhcp_packet::BOOTPS));
 
 		/* create mandatory DHCP fields of the request  */
-		size_t const dhcp_off = size.curr();
-		Dhcp_packet &dhcp = udp.construct_at_data<Dhcp_packet>(size);
+		size_t const dhcp_off = size_guard.head_size();
+		Dhcp_packet &dhcp = udp.construct_at_data<Dhcp_packet>(size_guard);
 		dhcp.op(Dhcp_packet::REQUEST);
 		dhcp.htype(Dhcp_packet::Htype::ETH);
 		dhcp.hlen(sizeof(Mac_address));
@@ -240,7 +228,7 @@ void Dhcp_client::_send(Message_type msg_type,
 		dhcp.default_magic_cookie();
 
 		/* append DHCP option fields to the request */
-		Dhcp_options dhcp_opts(dhcp, size);
+		Dhcp_options dhcp_opts(dhcp, size_guard);
 		dhcp_opts.append_option<Dhcp_packet::Message_type_option>(msg_type);
 		switch (msg_type) {
 		case Message_type::DISCOVER:
@@ -265,9 +253,9 @@ void Dhcp_client::_send(Message_type msg_type,
 		dhcp_opts.append_option<Dhcp_packet::Options_end>();
 
 		/* fill in header values that need the packet to be complete already */
-		udp.length(size.curr() - udp_off);
+		udp.length(size_guard.head_size() - udp_off);
 		udp.update_checksum(ip.src(), ip.dst());
-		ip.total_length(size.curr() - ip_off);
+		ip.total_length(size_guard.head_size() - ip_off);
 		ip.update_checksum();
 	});
 }

@@ -22,9 +22,10 @@ using namespace Net;
 using namespace Genode;
 
 
-bool Session_component::handle_arp(Ethernet_frame *eth, Genode::size_t size)
+bool Session_component::handle_arp(Ethernet_frame &eth,
+                                   Size_guard     &size_guard)
 {
-	Arp_packet &arp = eth->data<Arp_packet>(size - sizeof(Ethernet_frame));
+	Arp_packet &arp = eth.data<Arp_packet>(size_guard);
 	if (arp.ethernet_ipv4() &&
 		arp.opcode() == Arp_packet::REQUEST) {
 
@@ -50,19 +51,16 @@ bool Session_component::handle_arp(Ethernet_frame *eth, Genode::size_t size)
 }
 
 
-bool Session_component::handle_ip(Ethernet_frame *eth, Genode::size_t size)
+bool Session_component::handle_ip(Ethernet_frame &eth,
+                                  Size_guard     &size_guard)
 {
-	size_t const ip_max_size = size - sizeof(Ethernet_frame);
-	Ipv4_packet &ip = eth->data<Ipv4_packet>(ip_max_size);
-	size_t const ip_size = ip.size(ip_max_size);
+	Ipv4_packet &ip = eth.data<Ipv4_packet>(size_guard);
 	if (ip.protocol() == Ipv4_packet::Protocol::UDP) {
 
-		size_t const udp_size = ip_size - sizeof(Ipv4_packet);
-		Udp_packet &udp = ip.data<Udp_packet>(udp_size);
+		Udp_packet &udp = ip.data<Udp_packet>(size_guard);
 		if (Dhcp_packet::is_dhcp(&udp)) {
 
-			size_t const dhcp_size = udp_size - sizeof(Udp_packet);
-			Dhcp_packet &dhcp = udp.data<Dhcp_packet>(dhcp_size);
+			Dhcp_packet &dhcp = udp.data<Dhcp_packet>(size_guard);
 			if (dhcp.op() == Dhcp_packet::REQUEST) {
 
 				dhcp.broadcast(true);
@@ -75,7 +73,7 @@ bool Session_component::handle_ip(Ethernet_frame *eth, Genode::size_t size)
 
 
 void Session_component::finalize_packet(Ethernet_frame *eth,
-                                                    Genode::size_t size)
+                                        Genode::size_t  size)
 {
 	Mac_address_node *node = vlan().mac_tree.first();
 	if (node)

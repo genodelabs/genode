@@ -41,8 +41,6 @@ class Net::Icmp_packet
 
 	public:
 
-		struct Bad_data_type : Genode::Exception { };
-
 		enum class Type
 		{
 			ECHO_REPLY      = 0,
@@ -73,12 +71,26 @@ class Net::Icmp_packet
 		Genode::uint16_t  query_seq()      const { return host_to_big_endian(_rest_of_header_u16[1]); }
 		Genode::uint32_t  rest_of_header() const { return host_to_big_endian(_rest_of_header_u32[0]); }
 
-		template <typename T> T &data(Genode::size_t data_size)
+		template <typename T>
+		T const &data(Size_guard &size_guard) const
 		{
-			if (data_size < sizeof(T)) {
-				throw Bad_data_type();
-			}
+			size_guard.consume_head(sizeof(T));
+			return *(T const *)(_data);
+		}
+
+		template <typename T>
+		T &data(Size_guard &size_guard)
+		{
+			size_guard.consume_head(sizeof(T));
 			return *(T *)(_data);
+		}
+
+		void copy_to_data(void     const *base,
+		                  Genode::size_t  size,
+		                  Size_guard     &size_guard)
+		{
+			size_guard.consume_head(size);
+			Genode::memcpy(_data, base, size);
 		}
 
 		void type(Type v)                       { _type = (Genode::uint8_t)v; }

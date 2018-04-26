@@ -79,26 +79,22 @@ void Packet_handler::handle_ethernet(void* src, Genode::size_t size)
 {
 	try {
 		/* parse ethernet frame header */
-		Ethernet_frame *eth = reinterpret_cast<Ethernet_frame *>(src);
-		switch (eth->type()) {
+		Size_guard size_guard(size);
+		Ethernet_frame &eth = Ethernet_frame::cast_from(src, size_guard);
+		switch (eth.type()) {
 		case Ethernet_frame::Type::ARP:
-			if (!handle_arp(eth, size)) return;
+			if (!handle_arp(eth, size_guard)) return;
 			break;
 		case Ethernet_frame::Type::IPV4:
-			if(!handle_ip(eth, size)) return;
+			if (!handle_ip(eth, size_guard)) return;
 			break;
 		default:
 			;
 		}
-
-		broadcast_to_clients(eth, size);
-		finalize_packet(eth, size);
-	} catch(Ethernet_frame::Bad_data_type) {
-		Genode::warning("Invalid Ethernet frame!");
-	} catch(Ipv4_packet::Bad_data_type) {
-		Genode::warning("Invalid IPv4 packet!");
-	} catch(Udp_packet::Bad_data_type) {
-		Genode::warning("Invalid UDP packet!");
+		broadcast_to_clients(&eth, size);
+		finalize_packet(&eth, size);
+	} catch(Size_guard::Exceeded) {
+		Genode::warning("Packet size guard exceeded!");
 	}
 }
 

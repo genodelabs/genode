@@ -333,7 +333,7 @@ class Net::Dhcp_packet
 						template <typename OPTION>
 						void append_param_req()
 						{
-							_size_guard.add(sizeof(_base[0]));
+							_size_guard.consume_head(sizeof(_base[0]));
 							_base[_size] = (Genode::uint8_t)OPTION::CODE;
 							_size++;
 						}
@@ -351,7 +351,7 @@ class Net::Dhcp_packet
 				template <typename OPTION, typename... ARGS>
 				void append_option(ARGS &&... args)
 				{
-					_size_guard.add(sizeof(OPTION));
+					_size_guard.consume_head(sizeof(OPTION));
 					Genode::construct_at<OPTION>((void *)_base,
 					                             static_cast<ARGS &&>(args)...);
 					_base += sizeof(OPTION);
@@ -360,7 +360,7 @@ class Net::Dhcp_packet
 				template <typename INIT_DATA>
 				void append_param_req_list(INIT_DATA && init_data)
 				{
-					_size_guard.add(sizeof(Parameter_request_list));
+					_size_guard.consume_head(sizeof(Parameter_request_list));
 					Parameter_request_list_data
 						data((Genode::uint8_t *)(_base + sizeof(Parameter_request_list)),
 						     _size_guard);

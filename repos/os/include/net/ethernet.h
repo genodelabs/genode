@@ -20,6 +20,7 @@
 #include <util/construct_at.h>
 #include <util/endian.h>
 #include <net/mac_address.h>
+#include <net/size_guard.h>
 
 namespace Net
 {
@@ -70,29 +71,50 @@ class Net::Ethernet_frame
 			ARP  = 0x0806,
 		};
 
-		struct Bad_data_type : Genode::Exception { };
-
-		template <typename T> T const &data(Genode::size_t data_size) const
+		template <typename T>
+		T const &data(Size_guard &size_guard) const
 		{
-			if (data_size < sizeof(T)) {
-				throw Bad_data_type();
-			}
-			return *(T const *)(_data);
+			size_guard.consume_head(sizeof(T));
+			T const &obj = *(T *)(_data);
+
+			/* Ethernet may have a tail whose size must be considered */
+			Genode::size_t const unconsumed = size_guard.unconsumed();
+			size_guard.consume_tail(unconsumed + sizeof(T) -
+			                        obj.size(unconsumed));
+			return obj;
 		}
 
-		template <typename T> T &data(Genode::size_t data_size)
+		template <typename T>
+		T &data(Size_guard &size_guard)
 		{
-			if (data_size < sizeof(T)) {
-				throw Bad_data_type();
-			}
-			return *(T *)(_data);
+			size_guard.consume_head(sizeof(T));
+			T &obj = *(T *)(_data);
+
+			/* Ethernet may have a tail whose size must be considered */
+			Genode::size_t const max_obj_sz = size_guard.unconsumed() + sizeof(T);
+			size_guard.consume_tail(max_obj_sz - obj.size(max_obj_sz));
+			return obj;
 		}
 
-		template <typename T, typename SIZE_GUARD>
-		T &construct_at_data(SIZE_GUARD &size_guard)
+		template <typename T>
+		T &construct_at_data(Size_guard &size_guard)
 		{
-			size_guard.add(sizeof(T));
+			size_guard.consume_head(sizeof(T));
 			return *Genode::construct_at<T>(_data);
+		}
+
+		static Ethernet_frame &construct_at(void       *base,
+		                                    Size_guard &size_guard)
+		{
+			size_guard.consume_head(sizeof(Ethernet_frame));
+			return *Genode::construct_at<Ethernet_frame>(base);
+		}
+
+		static Ethernet_frame &cast_from(void       *base,
+		                                 Size_guard &size_guard)
+		{
+			size_guard.consume_head(sizeof(Ethernet_frame));
+			return *(Ethernet_frame *)base;
 		}
 
 

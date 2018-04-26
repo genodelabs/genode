@@ -48,15 +48,19 @@ class Net::Nic : public Net::Packet_handler
 		 ** Packet_handler interface **
 		 ******************************/
 
-		Packet_stream_sink< ::Nic::Session::Policy> * sink() {
+		Packet_stream_sink< ::Nic::Session::Policy> * sink() override {
 			return _nic.rx(); }
 
-		Packet_stream_source< ::Nic::Session::Policy> * source() {
+		Packet_stream_source< ::Nic::Session::Policy> * source() override {
 			return _nic.tx(); }
 
-		bool handle_arp(Ethernet_frame *eth,   Genode::size_t size);
-		bool handle_ip(Ethernet_frame *eth,    Genode::size_t size);
-		void finalize_packet(Ethernet_frame *, Genode::size_t) {}
+		bool handle_arp(Ethernet_frame &eth,
+		                Size_guard     &size_guard) override;
+
+		bool handle_ip(Ethernet_frame &eth,
+		               Size_guard     &size_guard) override;
+
+		void finalize_packet(Ethernet_frame *, Genode::size_t) override { }
 };
 
 #endif /* _SRC__SERVER__NIC_BRIDGE__NIC_H_ */

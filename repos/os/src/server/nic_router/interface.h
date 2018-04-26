@@ -133,35 +133,34 @@ class Net::Interface : private Interface_list::Element
 		                                      L3_protocol const  prot) const;
 
 		void _handle_arp(Ethernet_frame       &eth,
-		                 Genode::size_t const  eth_size,
+		                 Size_guard           &size_guard,
 		                 Domain               &local_domain);
 
 		void _handle_arp_reply(Ethernet_frame       &eth,
-		                       Genode::size_t const  eth_size,
+		                       Size_guard           &size_guard,
 		                       Arp_packet           &arp,
 		                       Domain               &local_domain);
 
 		void _handle_arp_request(Ethernet_frame       &eth,
-		                         Genode::size_t const  eth_size,
+		                         Size_guard           &size_guard,
 		                         Arp_packet           &arp,
 		                         Domain               &local_domain);
 
 		void _send_arp_reply(Ethernet_frame       &eth,
-		                     Genode::size_t const  eth_size,
+		                     Size_guard           &size_guard,
 		                     Arp_packet           &arp);
 
 		void _handle_dhcp_request(Ethernet_frame &eth,
-		                          Genode::size_t  eth_size,
 		                          Dhcp_packet    &dhcp,
 		                          Domain         &local_domain);
 
 		void _handle_ip(Ethernet_frame          &eth,
-		                Genode::size_t    const  eth_size,
+		                Size_guard              &size_guard,
 		                Packet_descriptor const &pkt,
 		                Domain                  &local_domain);
 
 		void _handle_icmp_query(Ethernet_frame          &eth,
-		                        Genode::size_t           eth_size,
+		                        Size_guard              &size_guard,
 		                        Ipv4_packet             &ip,
 		                        Packet_descriptor const &pkt,
 		                        L3_protocol              prot,
@@ -170,7 +169,7 @@ class Net::Interface : private Interface_list::Element
 		                        Domain                  &local_domain);
 
 		void _handle_icmp_error(Ethernet_frame          &eth,
-		                        Genode::size_t           eth_size,
+		                        Size_guard              &size_guard,
 		                        Ipv4_packet             &ip,
 		                        Packet_descriptor const &pkt,
 		                        Domain                  &local_domain,
@@ -178,7 +177,7 @@ class Net::Interface : private Interface_list::Element
 		                        Genode::size_t           icmp_sz);
 
 		void _handle_icmp(Ethernet_frame          &eth,
-		                  Genode::size_t           eth_size,
+		                  Size_guard              &size_guard,
 		                  Ipv4_packet             &ip,
 		                  Packet_descriptor const &pkt,
 		                  L3_protocol              prot,
@@ -192,7 +191,7 @@ class Net::Interface : private Interface_list::Element
 		                Domain                  &remote_domain);
 
 		void _nat_link_and_pass(Ethernet_frame         &eth,
-		                        Genode::size_t   const  eth_size,
+		                        Size_guard             &size_guard,
 		                        Ipv4_packet            &ip,
 		                        L3_protocol      const  prot,
 		                        void            *const  prot_base,
@@ -205,18 +204,18 @@ class Net::Interface : private Interface_list::Element
 		                            Ipv4_address const &dst_ip);
 
 		void _domain_broadcast(Ethernet_frame &eth,
-		                       Genode::size_t  eth_size,
+		                       Size_guard     &size_guard,
 		                       Domain         &local_domain);
 
 		void _pass_prot(Ethernet_frame         &eth,
-		                Genode::size_t   const  eth_size,
+		                Size_guard             &size_guard,
 		                Ipv4_packet            &ip,
 		                L3_protocol      const  prot,
 		                void            *const  prot_base,
 		                Genode::size_t   const  prot_size);
 
 		void _pass_ip(Ethernet_frame       &eth,
-		              Genode::size_t const  eth_size,
+		              Size_guard           &size_guard,
 		              Ipv4_packet          &ip);
 
 		void _continue_handle_eth(Packet_descriptor const &pkt);
@@ -224,7 +223,7 @@ class Net::Interface : private Interface_list::Element
 		Ipv4_address const &_router_ip() const;
 
 		void _handle_eth(void              *const  eth_base,
-		                 Genode::size_t     const  eth_size,
+		                 Size_guard               &size_guard,
 		                 Packet_descriptor  const &pkt);
 
 		void _ack_packet(Packet_descriptor const &pkt);
@@ -293,7 +292,6 @@ class Net::Interface : private Interface_list::Element
 		struct Bad_network_protocol         : Genode::Exception { };
 		struct Packet_postponed             : Genode::Exception { };
 		struct Alloc_dhcp_msg_buffer_failed : Genode::Exception { };
-		struct Send_buffer_too_small        : Genode::Exception { };
 
 		struct Drop_packet_inform : Genode::Exception
 		{
@@ -332,7 +330,8 @@ class Net::Interface : private Interface_list::Element
 				void              *pkt_base;
 
 				_send_alloc_pkt(pkt, pkt_base, pkt_size);
-				write_to_pkt(pkt_base);
+				Size_guard size_guard(pkt_size);
+				write_to_pkt(pkt_base, size_guard);
 				_send_submit_pkt(pkt, pkt_base, pkt_size);
 			}
 			catch (Packet_stream_source::Packet_alloc_failed) {
@@ -340,7 +339,8 @@ class Net::Interface : private Interface_list::Element
 			}
 		}
 
-		void send(Ethernet_frame &eth, Genode::size_t eth_size);
+		void send(Ethernet_frame &eth,
+		          Size_guard     &size_guard);
 
 		Link_list &dissolved_links(L3_protocol const protocol);
 
