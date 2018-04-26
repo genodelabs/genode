@@ -286,7 +286,6 @@ void *operator new (__SIZE_TYPE__ size, int log2_align)
 
 
 bool create_emt_vcpu(pthread_t * pthread, size_t stack,
-                     const pthread_attr_t *attr,
                      void *(*start_routine)(void *), void *arg,
                      Genode::Cpu_session * cpu_session,
                      Genode::Affinity::Location location,
@@ -305,13 +304,13 @@ bool create_emt_vcpu(pthread_t * pthread, size_t stack,
 
 	if (vmx)
 		vcpu_handler = new (0x10) Vcpu_handler_vmx(genode_env(),
-		                                           stack, attr, start_routine,
+		                                           stack, start_routine,
 		                                           arg, cpu_session, location,
 		                                           cpu_id, name, pd_vcpus);
 
 	if (svm)
 		vcpu_handler = new (0x10) Vcpu_handler_svm(genode_env(),
-		                                           stack, attr, start_routine,
+		                                           stack, start_routine,
 		                                           arg, cpu_session, location,
 		                                           cpu_id, name, pd_vcpus);
 

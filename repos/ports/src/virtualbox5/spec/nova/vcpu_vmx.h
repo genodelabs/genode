@@ -169,14 +169,14 @@ class Vcpu_handler_vmx : public Vcpu_handler
 
 	public:
 
-		Vcpu_handler_vmx(Genode::Env &env, size_t stack_size, const pthread_attr_t *attr,
+		Vcpu_handler_vmx(Genode::Env &env, size_t stack_size,
 		                 void *(*start_routine) (void *), void *arg,
 		                 Genode::Cpu_session * cpu_session,
 		                 Genode::Affinity::Location location,
 		                 unsigned int cpu_id, const char * name,
 		                 Genode::Pd_session_capability pd_vcpu)
 		:
-			 Vcpu_handler(env, stack_size, attr, start_routine, arg, cpu_session, 
+			 Vcpu_handler(env, stack_size, start_routine, arg, cpu_session,
 			              location, cpu_id, name, pd_vcpu)
 		{
 			using namespace Nova;
