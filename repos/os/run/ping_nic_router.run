@@ -119,7 +119,8 @@ append config {
 	<start name="ping_11">
 		<binary name="ping"/>
 		<resource name="RAM" quantum="8M"/>
-		<config src_ip="10.0.3.2"
+		<config interface="10.0.3.2/24"
+		        gateway="10.0.3.1"
 		        dst_ip="10.0.2.2"
 		        period_sec="1"
 		        verbose="no"/>
@@ -132,7 +133,8 @@ append config {
 	<start name="ping_12">
 		<binary name="ping"/>
 		<resource name="RAM" quantum="8M"/>
-		<config src_ip="10.0.3.3"
+		<config interface="10.0.3.3/24"
+		        gateway="10.0.3.1"
 		        dst_ip="10.0.2.2"
 		        period_sec="1"
 		        verbose="no"/>
@@ -145,7 +147,8 @@ append config {
 	<start name="ping_21">
 		<binary name="ping"/>
 		<resource name="RAM" quantum="8M"/>
-		<config src_ip="10.0.5.2"
+		<config interface="10.0.5.2/24"
+		        gateway="10.0.5.1"
 		        dst_ip="10.0.2.2"
 		        period_sec="1"
 		        verbose="no"/>
@@ -158,7 +161,8 @@ append config {
 	<start name="ping_22">
 		<binary name="ping"/>
 		<resource name="RAM" quantum="8M"/>
-		<config src_ip="10.0.5.3"
+		<config interface="10.0.5.3/24"
+		        gateway="10.0.5.1"
 		        dst_ip="10.0.1.2"
 		        period_sec="1"
 		        verbose="no"/>
