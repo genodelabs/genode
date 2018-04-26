@@ -32,7 +32,6 @@
 			<xs:attribute name="src_ip"     type="Ipv4_address" />
 			<xs:attribute name="period_sec" type="Seconds" />
 			<xs:attribute name="count"      type="xs:positiveInteger" />
-			<xs:attribute name="data_size"  type="xs:nonNegativeInteger" />
 		</xs:complexType>
 	</xs:element><!-- config -->
 

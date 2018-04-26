@@ -121,7 +121,6 @@ append config {
 		<resource name="RAM" quantum="8M"/>
 		<config src_ip="10.0.3.2"
 		        dst_ip="10.0.2.2"
-		        data_size="56"
 		        period_sec="1"
 		        verbose="no"/>
 		<route>
@@ -135,7 +134,6 @@ append config {
 		<resource name="RAM" quantum="8M"/>
 		<config src_ip="10.0.3.3"
 		        dst_ip="10.0.2.2"
-		        data_size="56"
 		        period_sec="1"
 		        verbose="no"/>
 		<route>
@@ -149,7 +147,6 @@ append config {
 		<resource name="RAM" quantum="8M"/>
 		<config src_ip="10.0.5.2"
 		        dst_ip="10.0.2.2"
-		        data_size="56"
 		        period_sec="1"
 		        verbose="no"/>
 		<route>
@@ -163,7 +160,6 @@ append config {
 		<resource name="RAM" quantum="8M"/>
 		<config src_ip="10.0.5.3"
 		        dst_ip="10.0.1.2"
-		        data_size="56"
 		        period_sec="1"
 		        verbose="no"/>
 		<route>

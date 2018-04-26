@@ -124,8 +124,8 @@ class Net::Packet_handler
 		 * \param eth   ethernet frame containing the ARP packet.
 		 * \param size  ethernet frame's size.
 		 */
-		virtual bool handle_arp(Ethernet_frame *eth,
-		                        Genode::size_t size)   = 0;
+		virtual bool handle_arp(Ethernet_frame &eth,
+		                        Size_guard     &size_guard)   = 0;
 
 		/*
 		 * Handle an IP packet
@@ -133,8 +133,8 @@ class Net::Packet_handler
 		 * \param eth   ethernet frame containing the IP packet.
 		 * \param size  ethernet frame's size.
 		 */
-		virtual bool handle_ip(Ethernet_frame *eth,
-		                       Genode::size_t size)    = 0;
+		virtual bool handle_ip(Ethernet_frame &eth,
+		                       Size_guard     &size_guard)    = 0;
 
 		/*
 		 * Finalize handling of ethernet frame.

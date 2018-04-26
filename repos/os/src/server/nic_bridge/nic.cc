@@ -24,10 +24,11 @@ using namespace Net;
 using namespace Genode;
 
 
-bool Net::Nic::handle_arp(Ethernet_frame *eth, Genode::size_t size) {
-	Arp_packet &arp = eth->data<Arp_packet>(size - sizeof(Ethernet_frame));
-
+bool Net::Nic::handle_arp(Ethernet_frame &eth,
+                          Size_guard     &size_guard)
+{
 	/* ignore broken packets */
+	Arp_packet &arp = eth.data<Arp_packet>(size_guard);
 	if (!arp.ethernet_ipv4())
 		return true;
 
@@ -48,16 +49,16 @@ bool Net::Nic::handle_arp(Ethernet_frame *eth, Genode::size_t size) {
 			arp.src_mac(mac());
 			arp.src_ip(arp.dst_ip());
 			arp.dst_ip(old_src_ip);
-			eth->dst(arp.dst_mac());
+			eth.dst(arp.dst_mac());
 
 			/* set our MAC as sender */
-			eth->src(mac());
-			send(eth, size);
+			eth.src(mac());
+			send(&eth, size_guard.total_size());
 		} else {
 			/* overwrite destination MAC */
 			arp.dst_mac(node->component().mac_address().addr);
-			eth->dst(node->component().mac_address().addr);
-			node->component().send(eth, size);
+			eth.dst(node->component().mac_address().addr);
+			node->component().send(&eth, size_guard.total_size());
 		}
 		return false;
 	}
@@ -65,24 +66,19 @@ bool Net::Nic::handle_arp(Ethernet_frame *eth, Genode::size_t size) {
 }
 
 
-bool Net::Nic::handle_ip(Ethernet_frame *eth, Genode::size_t size) {
-
-	size_t const ip_max_size = size - sizeof(Ethernet_frame);
-	Ipv4_packet &ip = eth->data<Ipv4_packet>(ip_max_size);
-	size_t const ip_size = ip.size(ip_max_size);
-
+bool Net::Nic::handle_ip(Ethernet_frame &eth,
+                         Size_guard     &size_guard)
+{
 	/* is it an UDP packet ? */
+	Ipv4_packet &ip = eth.data<Ipv4_packet>(size_guard);
 	if (ip.protocol() == Ipv4_packet::Protocol::UDP)
 	{
-		size_t const udp_size = ip_size - sizeof(Ipv4_packet);
-		Udp_packet &udp = ip.data<Udp_packet>(udp_size);
-
 		/* is it a DHCP packet ? */
+		Udp_packet &udp = ip.data<Udp_packet>(size_guard);
 		if (Dhcp_packet::is_dhcp(&udp)) {
-			size_t const dhcp_size = udp_size - sizeof(Udp_packet);
-			Dhcp_packet &dhcp = udp.data<Dhcp_packet>(dhcp_size);
 
 			/* check for DHCP ACKs containing new client ips */
+			Dhcp_packet &dhcp = udp.data<Dhcp_packet>(size_guard);
 			if (dhcp.op() == Dhcp_packet::REPLY) {
 
 				try {
@@ -108,16 +104,16 @@ bool Net::Nic::handle_ip(Ethernet_frame *eth, Genode::size_t size) {
 	}
 
 	/* is it an unicast message to one of our clients ? */
-	if (eth->dst() == mac()) {
+	if (eth.dst() == mac()) {
 		Ipv4_address_node *node = vlan().ip_tree.first();
 		if (node) {
 			node = node->find_by_address(ip.dst());
 			if (node) {
 				/* overwrite destination MAC */
-				eth->dst(node->component().mac_address().addr);
+				eth.dst(node->component().mac_address().addr);
 
 				/* deliver the packet to the client */
-				node->component().send(eth, size);
+				node->component().send(&eth, size_guard.total_size());
 				return false;
 			}
 		}

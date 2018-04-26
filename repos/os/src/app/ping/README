@@ -1,8 +1,8 @@
 The 'ping' component continuously sends ICMP Echo requests to a given IP host
 and waits for the corresponding ICMP Echo replies. For each successfull ICMP
 Echo handshake it prints a short statistic. By now, it can be used only with a
-static IP configuration. The size of the ICMP data field can be configured. It
-gets filled with the letters of the alphabet ('a' to 'z') repeatedly.
+static IP configuration. The ICMP data field gets filled with the letters of
+the alphabet ('a' to 'z') repeatedly.
 
 
 Configuration
@@ -13,7 +13,6 @@ value for each attribute except 'config.dst_ip' and 'config.src_ip':
 
 ! <config src_ip="10.0.0.72"
 !         dst_ip="10.0.0.24"
-!         data_size="56"
 !         period_sec="5"
 !         verbose="no"
 !         count="5" />
@@ -25,9 +24,6 @@ This is a short description of the tags and attributes:
 
 :config.dst_ip:
   Mandatory. IP address of the target host.
-
-:config.data_size:
-  Optional. Size of the ICMP data field.
 
 :config.period_sec:
   Optional. Length of send interval in seconds.

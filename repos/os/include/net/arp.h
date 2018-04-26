@@ -123,6 +123,11 @@ class Net::Arp_packet
 			        && _protocol_address_size == Ipv4_packet::ADDR_LEN);
 		}
 
+		Genode::size_t size(Genode::size_t max_size) const
+		{
+			return sizeof(Arp_packet) < max_size ? sizeof(Arp_packet) : max_size;
+		}
+
 
 		/*********
 		 ** Log **

@@ -59,7 +59,6 @@ append config {
 		<resource name="RAM" quantum="8M"/>
 		<config src_ip="10.0.2.55"
 		        dst_ip="10.0.2.2"
-		        data_size="56"
 		        period_sec="1"
 		        verbose="no"
 		        count="3"/>

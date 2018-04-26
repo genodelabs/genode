@@ -51,28 +51,24 @@ class Net::Udp_packet
 
 	public:
 
-		struct Bad_data_type : Genode::Exception { };
-
-		template <typename T> T const &data(Genode::size_t data_size) const
+		template <typename T>
+		T const &data(Size_guard &size_guard) const
 		{
-			if (data_size < sizeof(T)) {
-				throw Bad_data_type();
-			}
+			size_guard.consume_head(sizeof(T));
 			return *(T const *)(_data);
 		}
 
-		template <typename T> T &data(Genode::size_t data_size)
+		template <typename T>
+		T &data(Size_guard &size_guard)
 		{
-			if (data_size < sizeof(T)) {
-				throw Bad_data_type();
-			}
+			size_guard.consume_head(sizeof(T));
 			return *(T *)(_data);
 		}
 
 		template <typename T, typename SIZE_GUARD>
 		T &construct_at_data(SIZE_GUARD &size_guard)
 		{
-			size_guard.add(sizeof(T));
+			size_guard.consume_head(sizeof(T));
 			return *Genode::construct_at<T>(_data);
 		}
 

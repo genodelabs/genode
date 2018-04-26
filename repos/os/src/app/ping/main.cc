@@ -11,9 +11,6 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* local includes */
-#include <size_guard.h>
-
 /* Genode includes */
 #include <net/ipv4.h>
 #include <net/ethernet.h>
@@ -55,13 +52,13 @@ class Main
 		using Signal_handler   = Genode::Signal_handler<Main>;
 		using Periodic_timeout = Timer::Periodic_timeout<Main>;
 
-		enum { IPV4_TIME_TO_LIVE    = 64 };
-		enum { ICMP_ID              = 1166 };
-		enum { DEFAULT_ICMP_DATA_SZ = 56 };
-		enum { DEFAULT_COUNT        = 5 };
-		enum { DEFAULT_PERIOD_SEC   = 5 };
-		enum { PKT_SIZE             = Nic::Packet_allocator::DEFAULT_PACKET_SIZE };
-		enum { BUF_SIZE             = Nic::Session::QUEUE_SIZE * PKT_SIZE };
+		enum { IPV4_TIME_TO_LIVE  = 64 };
+		enum { ICMP_ID            = 1166 };
+		enum { ICMP_DATA_SIZE     = 56 };
+		enum { DEFAULT_COUNT      = 5 };
+		enum { DEFAULT_PERIOD_SEC = 5 };
+		enum { PKT_SIZE           = Nic::Packet_allocator::DEFAULT_PACKET_SIZE };
+		enum { BUF_SIZE           = Nic::Session::QUEUE_SIZE * PKT_SIZE };
 
 		Env                    &_env;
 		Attached_rom_dataspace  _config_rom    { _env, "config" };
@@ -84,29 +81,27 @@ class Main
 		Mac_address             _dst_mac       { };
 		uint16_t                _ip_id         { 1 };
 		uint16_t                _icmp_seq      { 1 };
-		size_t           const  _icmp_data_sz  { _config.attribute_value("data_size", (size_t)DEFAULT_ICMP_DATA_SZ) };
 		unsigned long           _count         { _config.attribute_value("count", (unsigned long)DEFAULT_COUNT) };
 
-		void _handle_eth(void              *const  eth_base,
-		                 size_t             const  eth_size,
-		                 Packet_descriptor  const &pkt);
+		void _handle_eth(void *const  eth_base,
+		                 Size_guard  &size_guard);
 
 		void _handle_ip(Ethernet_frame &eth,
-		                size_t const    eth_size);
+		                Size_guard     &size_guard);
 
 		void _handle_icmp(Ipv4_packet  &ip,
-		                  size_t const  ip_size);
+		                  Size_guard   &size_guard);
 
 		void _handle_icmp_echo_reply(Ipv4_packet &ip,
 		                             Icmp_packet &icmp,
-		                             size_t       icmp_data_sz);
+		                             Size_guard  &size_guard);
 
 		void _handle_icmp_dst_unreachbl(Ipv4_packet &ip,
 		                                Icmp_packet &icmp,
-		                                size_t       icmp_data_sz);
+		                                Size_guard  &size_guard);
 
 		void _handle_arp(Ethernet_frame &eth,
-		                 size_t   const  eth_size);
+		                 Size_guard     &size_guard);
 
 		void _broadcast_arp_request();
 
@@ -120,10 +115,16 @@ class Main
 			try {
 				Packet_descriptor  pkt      = _source().alloc_packet(pkt_size);
 				void              *pkt_base = _source().packet_content(pkt);
-				write_to_pkt(pkt_base);
+				Size_guard size_guard(pkt_size);
+				write_to_pkt(pkt_base, size_guard);
 				_source().submit_packet(pkt);
 				if (_verbose) {
-					log("snd ", *reinterpret_cast<Ethernet_frame *>(pkt_base)); }
+					try {
+						Size_guard size_guard(pkt_size);
+						log("snd ", Ethernet_frame::cast_from(pkt_base, size_guard));
+					}
+					catch (Size_guard::Exceeded) { log("snd ?"); }
+				}
 			}
 			catch (Net::Packet_stream_source::Packet_alloc_failed) {
 				warning("failed to allocate packet"); }
@@ -146,8 +147,7 @@ class Main
 
 	public:
 
-		struct Invalid_arguments     : Exception { };
-		struct Send_buffer_too_small : Exception { };
+		struct Invalid_arguments : Exception { };
 
 		Main(Env &env);
 };
@@ -170,12 +170,11 @@ Main::Main(Env &env) : _env(env)
 }
 
 
-void Main::_handle_eth(void              *const eth_base,
-                       size_t             const eth_size,
-                       Packet_descriptor  const &)
+void Main::_handle_eth(void *const  eth_base,
+                       Size_guard  &size_guard)
 {
 	/* print receipt message */
-	Ethernet_frame &eth = *reinterpret_cast<Ethernet_frame *>(eth_base);
+	Ethernet_frame &eth = Ethernet_frame::cast_from(eth_base, size_guard);
 	if (_verbose) {
 		log("rcv ", eth); }
 
@@ -189,19 +188,17 @@ void Main::_handle_eth(void              *const eth_base,
 	}
 	/* select ETH sub-protocol */
 	switch (eth.type()) {
-	case Ethernet_frame::Type::ARP:  _handle_arp(eth, eth_size); break;
-	case Ethernet_frame::Type::IPV4: _handle_ip(eth, eth_size);  break;
+	case Ethernet_frame::Type::ARP:  _handle_arp(eth, size_guard); break;
+	case Ethernet_frame::Type::IPV4: _handle_ip(eth, size_guard);  break;
 	default: ; }
 }
 
 
 void Main::_handle_ip(Ethernet_frame &eth,
-                      size_t const    eth_size)
+                      Size_guard     &size_guard)
 {
 	/* drop packet if IP does not target us */
-	size_t const ip_max_size = eth_size - sizeof(Ethernet_frame);
-	Ipv4_packet &ip = eth.data<Ipv4_packet>(ip_max_size);
-	size_t const ip_size = ip.size(ip_max_size);
+	Ipv4_packet &ip = eth.data<Ipv4_packet>(size_guard);
 	if (ip.dst() != _src_ip &&
 	    ip.dst() != Ipv4_packet::broadcast())
 	{
@@ -217,14 +214,14 @@ void Main::_handle_ip(Ethernet_frame &eth,
 	}
 	/* select IP sub-protocol */
 	switch (ip.protocol()) {
-	case Ipv4_packet::Protocol::ICMP: _handle_icmp(ip, ip_size);
+	case Ipv4_packet::Protocol::ICMP: _handle_icmp(ip, size_guard);
 	default: ; }
 }
 
 
 void Main::_handle_icmp_echo_reply(Ipv4_packet &ip,
                                    Icmp_packet &icmp,
-                                   size_t       icmp_data_sz)
+                                   Size_guard  &size_guard)
 {
 	/* check IP source */
 	if (ip.src() != _dst_ip) {
@@ -253,16 +250,16 @@ void Main::_handle_icmp_echo_reply(Ipv4_packet &ip,
 		return;
 	}
 	/* check ICMP data size */
-	if (icmp_data_sz != _icmp_data_sz) {
+	if (size_guard.unconsumed() != ICMP_DATA_SIZE) {
 		if (_verbose) {
 			log("bad ICMP data size"); }
 		return;
 	}
 	/* check ICMP data */
 	struct Data { char chr[0]; };
-	Data &data = icmp.data<Data>(_icmp_data_sz);
+	Data &data = icmp.data<Data>(size_guard);
 	char chr = 'a';
-	for (addr_t chr_id = 0; chr_id < icmp_data_sz; chr_id++) {
+	for (addr_t chr_id = 0; chr_id < ICMP_DATA_SIZE; chr_id++) {
 		if (data.chr[chr_id] != chr) {
 			if (_verbose) {
 				log("bad ICMP data"); }
@@ -276,7 +273,7 @@ void Main::_handle_icmp_echo_reply(Ipv4_packet &ip,
 	time_us = time_us - time_ms * 1000UL;
 
 	/* print success message */
-	log(icmp_data_sz + sizeof(Icmp_packet), " bytes from ", ip.src(),
+	log(ICMP_DATA_SIZE + sizeof(Icmp_packet), " bytes from ", ip.src(),
 	    ": icmp_seq=", icmp_seq, " ttl=", (unsigned long)IPV4_TIME_TO_LIVE,
 	    " time=", time_ms, ".", time_us ," ms");
 
@@ -290,10 +287,10 @@ void Main::_handle_icmp_echo_reply(Ipv4_packet &ip,
 
 void Main::_handle_icmp_dst_unreachbl(Ipv4_packet &ip,
                                       Icmp_packet &icmp,
-                                      size_t       icmp_data_sz)
+                                      Size_guard  &size_guard)
 {
 	/* drop packet if embedded IP checksum is invalid */
-	Ipv4_packet &embed_ip = icmp.data<Ipv4_packet>(icmp_data_sz);
+	Ipv4_packet &embed_ip = icmp.data<Ipv4_packet>(size_guard);
 	if (embed_ip.checksum_error()) {
 		if (_verbose) {
 			log("bad IP checksum in payload of ICMP error"); }
@@ -306,8 +303,7 @@ void Main::_handle_icmp_dst_unreachbl(Ipv4_packet &ip,
 		return;
 	}
 	/* drop packet if embedded ICMP identifier is invalid */
-	size_t const embed_icmp_sz = embed_ip.total_length() - sizeof(Ipv4_packet);
-	Icmp_packet &embed_icmp    = embed_ip.data<Icmp_packet>(embed_icmp_sz);
+	Icmp_packet &embed_icmp = embed_ip.data<Icmp_packet>(size_guard);
 	if (embed_icmp.query_id() != ICMP_ID) {
 		if (_verbose) {
 			log("bad ICMP identifier in payload of ICMP error"); }
@@ -324,22 +320,20 @@ void Main::_handle_icmp_dst_unreachbl(Ipv4_packet &ip,
 }
 
 
-void Main::_handle_icmp(Ipv4_packet  &ip,
-                        size_t const  ip_size)
+void Main::_handle_icmp(Ipv4_packet &ip,
+                        Size_guard  &size_guard)
 {
 	/* drop packet if ICMP checksum is invalid */
-	size_t const icmp_sz      = ip_size - sizeof(Ipv4_packet);
-	Icmp_packet &icmp         = ip.data<Icmp_packet>(icmp_sz);
-	size_t const icmp_data_sz = icmp_sz - sizeof(Icmp_packet);
-	if (icmp.checksum_error(icmp_data_sz)) {
+	Icmp_packet &icmp = ip.data<Icmp_packet>(size_guard);
+	if (icmp.checksum_error(size_guard.unconsumed())) {
 		if (_verbose) {
 			log("bad ICMP checksum"); }
 		return;
 	}
 	/* select ICMP type */
 	switch (icmp.type()) {
-	case Icmp_packet::Type::ECHO_REPLY:      _handle_icmp_echo_reply(ip, icmp, icmp_data_sz); break;
-	case Icmp_packet::Type::DST_UNREACHABLE: _handle_icmp_dst_unreachbl(ip, icmp, icmp_data_sz); break;
+	case Icmp_packet::Type::ECHO_REPLY:      _handle_icmp_echo_reply(ip, icmp, size_guard); break;
+	case Icmp_packet::Type::DST_UNREACHABLE: _handle_icmp_dst_unreachbl(ip, icmp, size_guard); break;
 	default:
 		if (_verbose) {
 			log("bad ICMP type"); }
@@ -349,10 +343,10 @@ void Main::_handle_icmp(Ipv4_packet  &ip,
 
 
 void Main::_handle_arp(Ethernet_frame &eth,
-                       size_t const    eth_size)
+                       Size_guard     &size_guard)
 {
 	/* check ARP protocol- and hardware address type */
-	Arp_packet &arp = eth.data<Arp_packet>(eth_size - sizeof(Ethernet_frame));
+	Arp_packet &arp = eth.data<Arp_packet>(size_guard);
 	if (!arp.ethernet_ipv4()) {
 		error("ARP for unknown protocol"); }
 
@@ -386,10 +380,8 @@ void Main::_ready_to_submit()
 	while (_sink().packet_avail()) {
 
 		Packet_descriptor const pkt = _sink().get_packet();
-		if (!pkt.size()) {
-			continue; }
-
-		_handle_eth(_sink().packet_content(pkt), pkt.size(), pkt);
+		Size_guard size_guard(pkt.size());
+		_handle_eth(_sink().packet_content(pkt), size_guard);
 
 		if (!_sink().ready_to_ack()) {
 			error("ack state FULL");
@@ -410,19 +402,17 @@ void Main::_ready_to_ack()
 void Main::_send_arp_reply(Ethernet_frame &req_eth,
                            Arp_packet     &req_arp)
 {
-	size_t const buf_sz = sizeof(Ethernet_frame) + sizeof(Arp_packet);
-	_send(buf_sz, [&] (void *pkt_base) {
-
+	_send(sizeof(Ethernet_frame) + sizeof(Arp_packet),
+	      [&] (void *pkt_base, Size_guard &size_guard)
+	{
 		/* write Ethernet header */
-		Size_guard<Send_buffer_too_small> size(buf_sz);
-		size.add(sizeof(Ethernet_frame));
-		Ethernet_frame &eth = *construct_at<Ethernet_frame>(pkt_base);
+		Ethernet_frame &eth = Ethernet_frame::construct_at(pkt_base, size_guard);
 		eth.dst(req_eth.src());
 		eth.src(_src_mac);
 		eth.type(Ethernet_frame::Type::ARP);
 
 		/* write ARP header */
-		Arp_packet &arp = eth.construct_at_data<Arp_packet>(size);
+		Arp_packet &arp = eth.construct_at_data<Arp_packet>(size_guard);
 		arp.hardware_address_type(Arp_packet::ETHERNET);
 		arp.protocol_address_type(Arp_packet::IPV4);
 		arp.hardware_address_size(sizeof(Mac_address));
@@ -438,19 +428,17 @@ void Main::_send_arp_reply(Ethernet_frame &req_eth,
 
 void Main::_broadcast_arp_request()
 {
-	size_t const buf_sz = sizeof(Ethernet_frame) + sizeof(Arp_packet);
-	_send(buf_sz, [&] (void *pkt_base) {
-
+	_send(sizeof(Ethernet_frame) + sizeof(Arp_packet),
+	      [&] (void *pkt_base, Size_guard &size_guard)
+	{
 		/* write Ethernet header */
-		Size_guard<Send_buffer_too_small> size(buf_sz);
-		size.add(sizeof(Ethernet_frame));
-		Ethernet_frame &eth = *construct_at<Ethernet_frame>(pkt_base);
+		Ethernet_frame &eth = Ethernet_frame::construct_at(pkt_base, size_guard);
 		eth.dst(Mac_address(0xff));
 		eth.src(_src_mac);
 		eth.type(Ethernet_frame::Type::ARP);
 
 		/* write ARP header */
-		Arp_packet &arp = eth.construct_at_data<Arp_packet>(size);
+		Arp_packet &arp = eth.construct_at_data<Arp_packet>(size_guard);
 		arp.hardware_address_type(Arp_packet::ETHERNET);
 		arp.protocol_address_type(Arp_packet::IPV4);
 		arp.hardware_address_size(sizeof(Mac_address));
@@ -470,22 +458,19 @@ void Main::_send_ping(Duration)
 		_broadcast_arp_request();
 		return;
 	}
-	size_t const buf_sz = sizeof(Ethernet_frame) + sizeof(Ipv4_packet) +
-	                      sizeof(Icmp_packet) + _icmp_data_sz;
-
-	_send(buf_sz, [&] (void *pkt_base) {
-
+	_send(sizeof(Ethernet_frame) + sizeof(Ipv4_packet) +
+	      sizeof(Icmp_packet) + ICMP_DATA_SIZE,
+	      [&] (void *pkt_base, Size_guard &size_guard)
+	{
 		/* create ETH header */
-		Size_guard<Send_buffer_too_small> size(buf_sz);
-		size.add(sizeof(Ethernet_frame));
-		Ethernet_frame &eth = *construct_at<Ethernet_frame>(pkt_base);
+		Ethernet_frame &eth = Ethernet_frame::construct_at(pkt_base, size_guard);
 		eth.dst(_dst_mac);
 		eth.src(_src_mac);
 		eth.type(Ethernet_frame::Type::IPV4);
 
 		/* create IP header */
-		size_t const ip_off = size.curr();
-		Ipv4_packet &ip = eth.construct_at_data<Ipv4_packet>(size);
+		size_t const ip_off = size_guard.head_size();
+		Ipv4_packet &ip = eth.construct_at_data<Ipv4_packet>(size_guard);
 		ip.header_length(sizeof(Ipv4_packet) / 4);
 		ip.version(4);
 		ip.time_to_live(IPV4_TIME_TO_LIVE);
@@ -494,24 +479,23 @@ void Main::_send_ping(Duration)
 		ip.dst(_dst_ip);
 
 		/* create ICMP header */
-		Icmp_packet &icmp = ip.construct_at_data<Icmp_packet>(size);
+		Icmp_packet &icmp = ip.construct_at_data<Icmp_packet>(size_guard);
 		icmp.type(Icmp_packet::Type::ECHO_REQUEST);
 		icmp.code(Icmp_packet::Code::ECHO_REQUEST);
 		icmp.query_id(ICMP_ID);
 		icmp.query_seq(_icmp_seq);
 
 		/* fill ICMP data with characters from 'a' to 'z' */
-		size.add(_icmp_data_sz);
-		struct Data { char chr[0]; };
-		Data &data = icmp.data<Data>(_icmp_data_sz);
+		struct Data { char chr[ICMP_DATA_SIZE]; };
+		Data &data = icmp.data<Data>(size_guard);
 		char chr = 'a';
-		for (addr_t chr_id = 0; chr_id < _icmp_data_sz; chr_id++) {
+		for (addr_t chr_id = 0; chr_id < ICMP_DATA_SIZE; chr_id++) {
 			data.chr[chr_id] = chr;
 			chr = chr < 'z' ? chr + 1 : 'a';
 		}
 		/* fill in header values that require the packet to be complete */
-		icmp.update_checksum(_icmp_data_sz);
-		ip.total_length(size.curr() - ip_off);
+		icmp.update_checksum(ICMP_DATA_SIZE);
+		ip.total_length(size_guard.head_size() - ip_off);
 		ip.update_checksum();
 	});
 	_send_time = _timer.curr_time().trunc_to_plain_us();
