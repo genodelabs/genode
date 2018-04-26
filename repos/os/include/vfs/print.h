@@ -97,7 +97,7 @@ static inline void print(Genode::Output &output, Vfs::Directory_service::Stat_re
 static inline void print(Genode::Output &output, Vfs::Directory_service::Unlink_result const &r)
 {
 #define CASE_PRINT(x) \
-	case Vfs::File_io_service::Unlink_result::x: output.out_string(#x); break
+	case Vfs::Directory_service::Unlink_result::x: output.out_string(#x); break
 
 	switch (r) {
 		CASE_PRINT(UNLINK_OK);
@@ -113,7 +113,7 @@ static inline void print(Genode::Output &output, Vfs::Directory_service::Unlink_
 static inline void print(Genode::Output &output, Vfs::Directory_service::Rename_result const &r)
 {
 #define CASE_PRINT(x) \
-	case Vfs::File_io_service::Rename_result::x: output.out_string(#x); break
+	case Vfs::Directory_service::Rename_result::x: output.out_string(#x); break
 
 	switch (r) {
 		CASE_PRINT(RENAME_OK);
