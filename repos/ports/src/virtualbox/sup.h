@@ -33,7 +33,6 @@ HRESULT genode_check_memory_config(ComObjPtr<Machine> machine);
  * hardware acceleration support.
  */
 bool create_emt_vcpu(pthread_t * pthread, size_t stack,
-                     const pthread_attr_t *attr,
                      void *(*start_routine)(void *), void *arg,
                      Genode::Cpu_session * cpu_session,
                      Genode::Affinity::Location location,

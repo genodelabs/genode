@@ -89,7 +89,7 @@ static int create_thread(pthread_t *thread, const pthread_attr_t *attr,
 		Genode::Affinity::Space space = cpu_session->affinity_space();
 		Genode::Affinity::Location location(space.location_of_index(cpu_id));
 
-		if (create_emt_vcpu(thread, stack_size, attr, start_routine, arg,
+		if (create_emt_vcpu(thread, stack_size, start_routine, arg,
 		                    cpu_session, location, cpu_id, rtthread->szName))
 			return 0;
 		/*
@@ -99,10 +99,9 @@ static int create_thread(pthread_t *thread, const pthread_attr_t *attr,
 	}
 
 	pthread_t thread_obj = new (vmm_heap())
-	                           pthread(attr ? *attr : 0, start_routine,
-	                           arg, stack_size, rtthread->szName,
-	                           cpu_connection(rtthread->enmType),
-	                           Genode::Affinity::Location());
+		pthread(start_routine, arg, stack_size, rtthread->szName,
+		        cpu_connection(rtthread->enmType),
+		        Genode::Affinity::Location());
 
 	if (!thread_obj)
 		return EAGAIN;
