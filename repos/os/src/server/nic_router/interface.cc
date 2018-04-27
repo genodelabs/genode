@@ -198,6 +198,7 @@ void Interface::_pass_prot(Ethernet_frame       &eth,
                            void          *const  prot_base,
                            size_t         const  prot_size)
 {
+	eth.src(_router_mac);
 	_update_checksum(prot, prot_base, prot_size, ip.src(), ip.dst(), ip.total_length());
 	_pass_ip(eth, size_guard, ip);
 }
@@ -416,7 +417,6 @@ void Interface::_adapt_eth(Ethernet_frame          &eth,
 		new (_alloc) Arp_waiter(*this, remote_domain, hop_ip, pkt);
 		throw Packet_postponed();
 	}
-	eth.src(_router_mac);
 }
 
 
