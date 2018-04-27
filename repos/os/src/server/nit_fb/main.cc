@@ -377,12 +377,6 @@ struct Nit_fb::Main : View_updater
 		}
 
 		fb_session.size(Area(width, height));
-
-		/*
-		 * Simulate a client call Framebuffer::Session::mode to make the
-		 * initial mode the active mode.
-		 */
-		fb_session.mode();
 	}
 
 	void handle_config_update()
