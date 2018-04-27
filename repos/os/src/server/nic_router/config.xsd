@@ -40,13 +40,6 @@
 		</xs:restriction>
 	</xs:simpleType><!-- Domain_name -->
 
-	<xs:simpleType name="Mac_address">
-		<xs:restriction base="xs:string">
-			<xs:minLength value="11"/>
-			<xs:maxLength value="17"/>
-		</xs:restriction>
-	</xs:simpleType><!-- Mac_address -->
-
 	<xs:simpleType name="Session_label">
 		<xs:restriction base="xs:string">
 			<xs:minLength value="1"/>
@@ -158,7 +151,6 @@
 				</xs:element><!-- domain -->
 
 			</xs:choice>
-			<xs:attribute name="mac_first"                 type="Mac_address" />
 			<xs:attribute name="verbose"                   type="Boolean" />
 			<xs:attribute name="verbose_packets"           type="Boolean" />
 			<xs:attribute name="verbose_domain_state"      type="Boolean" />

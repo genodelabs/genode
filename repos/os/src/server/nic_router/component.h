@@ -136,6 +136,8 @@ class Net::Root : public Genode::Root_component<Session_component>
 {
 	private:
 
+		enum { MAC_ALLOC_BASE = 0x02 };
+
 		Timer::Connection        &_timer;
 		Mac_allocator             _mac_alloc;
 		Genode::Entrypoint       &_ep;
