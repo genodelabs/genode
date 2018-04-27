@@ -40,12 +40,14 @@ class Net::Main
 		Genode::Attached_rom_dataspace  _config_rom     { _env, "config" };
 		Reference<Configuration>        _config         { _init_config() };
 		Signal_handler<Main>            _config_handler { _env.ep(), *this, &Main::_handle_config };
-		Uplink                          _uplink         { _env, _timer, _heap, _interfaces, _config() };
+		Pointer<Uplink>                 _uplink         { };
 		Root                            _root           { _env.ep(), _timer, _heap, _config(), _env.ram(), _interfaces, _env.rm()};
 
 		void _handle_config();
 
 		Configuration &_init_config();
+
+		void _try_init_uplink(Configuration &config);
 
 		template <typename FUNC>
 		void _for_each_interface(FUNC && functor)
@@ -81,9 +83,21 @@ Configuration &Net::Main::_init_config()
 
 Net::Main::Main(Env &env) : _env(env)
 {
-	_uplink.init();
+	_try_init_uplink(_config());
 	_config_rom.sigh(_config_handler);
 	env.parent().announce(env.ep().manage(_root));
+}
+
+
+void Net::Main::_try_init_uplink(Configuration &config)
+{
+	try {
+		config.domains().find_by_name("uplink");
+		Uplink &uplink = *new (_heap) Uplink(_env, _timer, _heap, _interfaces, config);
+		_uplink = Pointer<Uplink>(uplink);
+		uplink.init();
+	}
+	catch (Domain_tree::No_match) { }
 }
 
 
@@ -92,6 +106,16 @@ void Net::Main::_handle_config()
 	_config_rom.update();
 	Configuration &config = *new (_heap)
 		Configuration(_env, _config_rom.xml(), _heap, _timer, _config());
+
+	try {
+		Uplink &uplink = _uplink();
+		try { config.domains().find_by_name("uplink"); }
+		catch (Domain_tree::No_match) {
+			destroy(_heap, &uplink);
+			_uplink = Pointer<Uplink>();
+		}
+	}
+	catch (Pointer<Uplink>::Invalid) { _try_init_uplink(config); }
 
 	_root.handle_config(config);
 	_for_each_interface([&] (Interface &intf) { intf.handle_config(config); });
