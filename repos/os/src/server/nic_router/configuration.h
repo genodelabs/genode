@@ -43,7 +43,6 @@ class Net::Configuration
 		Genode::Microseconds const  _udp_idle_timeout        { DEFAULT_UDP_IDLE_TIMEOUT_SEC      };
 		Genode::Microseconds const  _tcp_idle_timeout        { DEFAULT_TCP_IDLE_TIMEOUT_SEC      };
 		Genode::Microseconds const  _tcp_max_segm_lifetime   { DEFAULT_TCP_MAX_SEGM_LIFETIME_SEC };
-		Mac_address          const  _mac_first               { mac_from_string("02:02:02:02:02:00") };
 		Pointer<Report>             _report                  { };
 		Pointer<Genode::Reporter>   _reporter                { };
 		Domain_tree                 _domains                 { };
@@ -89,7 +88,6 @@ class Net::Configuration
 		Domain_tree          &domains()                     { return _domains; }
 		Report               &report()                      { return _report(); }
 		Genode::Xml_node      node()                  const { return _node; }
-		Mac_address    const &mac_first()             const { return _mac_first; }
 };
 
 #endif /* _CONFIGURATION_H_ */

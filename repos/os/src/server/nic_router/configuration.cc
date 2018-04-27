@@ -52,7 +52,6 @@ Configuration::Configuration(Env               &env,
 	_udp_idle_timeout     (read_sec_attr(node, "udp_idle_timeout_sec",      DEFAULT_UDP_IDLE_TIMEOUT_SEC     )),
 	_tcp_idle_timeout     (read_sec_attr(node, "tcp_idle_timeout_sec",      DEFAULT_TCP_IDLE_TIMEOUT_SEC     )),
 	_tcp_max_segm_lifetime(read_sec_attr(node, "tcp_max_segm_lifetime_sec", DEFAULT_TCP_MAX_SEGM_LIFETIME_SEC)),
-	_mac_first            (mac_from_string(node.attribute_value("mac_first", Mac_string("02:02:02:02:02:00")).string())),
 	_node(node)
 {
 	/* read domains */
