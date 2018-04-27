@@ -157,7 +157,6 @@ class Net::Root : public Genode::Root_component<Session_component>
 		Root(Genode::Entrypoint  &ep,
 		     Timer::Connection   &timer,
 		     Genode::Allocator   &alloc,
-		     Mac_address const   &router_mac,
 		     Configuration       &config,
 		     Genode::Ram_session &buf_ram,
 		     Interface_list      &interfaces,

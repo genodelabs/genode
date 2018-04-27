@@ -115,14 +115,13 @@ Net::Session_component::Session_component(Allocator           &alloc,
 Net::Root::Root(Entrypoint        &ep,
                 Timer::Connection &timer,
                 Allocator         &alloc,
-                Mac_address const &router_mac,
                 Configuration     &config,
                 Ram_session       &buf_ram,
                 Interface_list    &interfaces,
                 Region_map        &region_map)
 :
 	Root_component<Session_component>(&ep.rpc_ep(), &alloc), _timer(timer),
-	_mac_alloc(config.mac_first()), _ep(ep), _router_mac(router_mac),
+	_mac_alloc(config.mac_first()), _ep(ep), _router_mac(_mac_alloc.alloc()),
 	_config(config), _buf_ram(buf_ram), _region_map(region_map),
 	_interfaces(interfaces)
 { }
