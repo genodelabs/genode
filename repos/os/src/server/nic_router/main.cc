@@ -41,7 +41,7 @@ class Net::Main
 		Reference<Configuration>        _config         { _init_config() };
 		Signal_handler<Main>            _config_handler { _env.ep(), *this, &Main::_handle_config };
 		Uplink                          _uplink         { _env, _timer, _heap, _interfaces, _config() };
-		Root                            _root           { _env.ep(), _timer, _heap, _uplink.router_mac(), _config(), _env.ram(), _interfaces, _env.rm()};
+		Root                            _root           { _env.ep(), _timer, _heap, _config(), _env.ram(), _interfaces, _env.rm()};
 
 		void _handle_config();
 
