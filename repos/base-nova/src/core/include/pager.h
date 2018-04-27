@@ -85,20 +85,24 @@ namespace Genode {
 				struct Thread_state thread;
 				addr_t sel_client_ec;
 				enum {
-					BLOCKED       = 0x1U,
-					DEAD          = 0x2U,
-					SINGLESTEP    = 0x4U,
-					SIGNAL_SM     = 0x8U,
-					DISSOLVED     = 0x10U,
-					SUBMIT_SIGNAL = 0x20U,
+					BLOCKED          = 0x1U,
+					DEAD             = 0x2U,
+					SINGLESTEP       = 0x4U,
+					SIGNAL_SM        = 0x8U,
+					DISSOLVED        = 0x10U,
+					SUBMIT_SIGNAL    = 0x20U,
+					BLOCKED_PAUSE_SM = 0x40U,
 				};
 				uint8_t _status;
 				bool modified;
 
 				/* convenience function to access pause/recall state */
-				inline bool blocked() { return _status & BLOCKED;}
-				inline void block()   { _status |= BLOCKED; }
-				inline void unblock() { _status &= ~BLOCKED; }
+				inline bool blocked()          { return _status & BLOCKED;}
+				inline void block()            { _status |= BLOCKED; }
+				inline void unblock()          { _status &= ~BLOCKED; }
+				inline bool blocked_pause_sm() { return _status & BLOCKED_PAUSE_SM;}
+				inline void block_pause_sm()   { _status |= BLOCKED_PAUSE_SM; }
+				inline void unblock_pause_sm() { _status &= ~BLOCKED_PAUSE_SM; }
 
 				inline void mark_dead() { _status |= DEAD; }
 				inline bool is_dead() { return _status & DEAD; }

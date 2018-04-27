@@ -156,6 +156,7 @@ void Pager_object::_page_fault_handler(addr_t pager_obj)
 	obj->_state.thread.trapno = PT_SEL_PAGE_FAULT;
 
 	obj->_state.block();
+	obj->_state.block_pause_sm();
 
 	obj->_state_lock.unlock();
 
@@ -261,7 +262,12 @@ void Pager_object::_recall_handler(addr_t pager_obj)
 
 	/* block until cpu_session()->resume() respectively wake_up() call */
 
-	unsigned long sm = obj->_state.blocked() ? obj->sel_sm_block_pause() : 0;
+	unsigned long sm = 0;
+
+	if (obj->_state.blocked()) {
+		sm = obj->sel_sm_block_pause();
+		obj->_state.block_pause_sm();
+	}
 
 	obj->_state_lock.unlock();
 
@@ -405,9 +411,15 @@ void Pager_object::wake_up()
 
 	_state.unblock();
 
-	uint8_t res = sm_ctrl(sel_sm_block_pause(), SEMAPHORE_UP);
-	if (res != NOVA_OK)
-		warning("canceling blocked client failed (thread sm)");
+	if (_state.blocked_pause_sm()) {
+
+		uint8_t res = sm_ctrl(sel_sm_block_pause(), SEMAPHORE_UP);
+
+		if (res == NOVA_OK)
+			_state.unblock_pause_sm();
+		else
+			warning("canceling blocked client failed (thread sm)");
+	}
 }
 
 
