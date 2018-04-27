@@ -14,18 +14,21 @@
 #ifndef _COMPONENT_H_
 #define _COMPONENT_H_
 
-/* Genode */
+/* Genode includes */
 #include <base/log.h>
 #include <base/heap.h>
 #include <nic/packet_allocator.h>
 #include <nic_session/rpc_object.h>
 #include <nic_session/connection.h>
-#include <nic_bridge/mac_allocator.h>
 #include <os/ram_session_guard.h>
 #include <os/session_policy.h>
 #include <root/component.h>
 #include <util/arg_string.h>
 
+/* NIC router includes */
+#include <mac_allocator.h>
+
+/* local includes */
 #include <address_node.h>
 #include <nic.h>
 #include <packet_handler.h>
@@ -187,7 +190,7 @@ class Net::Root : public Genode::Root_component<Net::Session_component>
 {
 	private:
 
-		Mac_allocator     _mac_alloc { };
+		Mac_allocator     _mac_alloc;
 		Genode::Env      &_env;
 		Net::Nic         &_nic;
 		Genode::Xml_node  _config;
@@ -242,9 +245,8 @@ class Net::Root : public Genode::Root_component<Net::Session_component>
 		Root(Genode::Env &env, Net::Nic &nic, Genode::Allocator &md_alloc,
 		     Genode::Xml_node config)
 		: Genode::Root_component<Session_component>(env.ep(), md_alloc),
+		  _mac_alloc(Mac_address(config.attribute_value("mac", (Genode::uint8_t)0))),
 		  _env(env), _nic(nic), _config(config) { }
-
-		Mac_address &mac_addr_base() { return _mac_alloc.mac_addr_base; }
 };
 
 #endif /* _COMPONENT_H_ */

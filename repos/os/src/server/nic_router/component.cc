@@ -122,11 +122,10 @@ Net::Root::Root(Entrypoint        &ep,
                 Region_map        &region_map)
 :
 	Root_component<Session_component>(&ep.rpc_ep(), &alloc), _timer(timer),
-	_ep(ep), _router_mac(router_mac), _config(config), _buf_ram(buf_ram),
-	_region_map(region_map), _interfaces(interfaces)
-{
-	_mac_alloc.mac_addr_base = config.mac_first();
-}
+	_mac_alloc(config.mac_first()), _ep(ep), _router_mac(router_mac),
+	_config(config), _buf_ram(buf_ram), _region_map(region_map),
+	_interfaces(interfaces)
+{ }
 
 
 Session_component *Net::Root::_create_session(char const *args)
