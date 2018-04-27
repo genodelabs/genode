@@ -48,6 +48,10 @@ install_config {
 		<resource name="RAM" quantum="64M" constrain_phys="yes"/>
 		<binary name="init"/>
 		<route>
+			<service name="ROM" label_last="managed/input_filter">
+				<parent label="input_filter.config"/> </service>
+			<service name="ROM" label_last="numlock_remap">
+				<parent label="numlock_remap.config"/> </service>
 			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
 			<service name="ROM" label="capslock"> <child name="dynamic_rom"/> </service>
 			<service name="ROM" label="numlock">  <child name="dynamic_rom"/> </service>

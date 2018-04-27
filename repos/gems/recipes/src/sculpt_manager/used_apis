@@ -1,0 +1,14 @@
+base
+os
+report_session
+file_system_session
+nic_session
+timer_session
+block_session
+usb_session
+framebuffer_session
+platform_session
+nitpicker_session
+terminal_session
+rtc_session
+input_session

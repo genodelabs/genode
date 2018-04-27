@@ -12,7 +12,7 @@ if {![file exists bin/sculpt-ahci.raw]} {
 	catch { exec dd if=/dev/zero of=$disk_image bs=1M count=512 }
 }
 append qemu_args " -device ahci,id=ahci "
-append qemu_args " -drive id=hdd,file=$disk_image,format=raw,if=none -device ide-hd,drive=hdd,bus=ahci.0 "
+append qemu_args " -drive id=hdd,file=$disk_image,format=raw,if=none -device ide-hd,drive=hdd,bus=ahci.1 "
 
 # attach small NVMe disk to Qemu to experiment with file-system access
 if {$use_nvme} {

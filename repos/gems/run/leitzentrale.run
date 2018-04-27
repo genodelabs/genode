@@ -1,0 +1,334 @@
+create_boot_directory
+
+proc depot_user {} { return [get_cmd_arg --depot-user genodelabs] }
+
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/pkg/[drivers_interactive_pkg] \
+                  [depot_user]/pkg/fonts_fs \
+                  [depot_user]/src/dynamic_rom \
+                  [depot_user]/src/report_rom \
+                  [depot_user]/src/fs_rom \
+                  [depot_user]/src/fs_report \
+                  [depot_user]/src/ram_fs \
+                  [depot_user]/src/nitpicker \
+                  [depot_user]/src/init \
+                  [depot_user]/src/libc \
+                  [depot_user]/src/wm \
+                  [depot_user]/src/themed_decorator \
+                  [depot_user]/src/nit_fb \
+                  [depot_user]/src/nit_fader \
+                  [depot_user]/src/libpng \
+                  [depot_user]/src/zlib \
+                  [depot_user]/src/menu_view \
+                  [depot_user]/src/rom_filter \
+                  [depot_user]/src/noux \
+                  [depot_user]/src/terminal \
+                  [depot_user]/src/posix \
+                  [depot_user]/src/ram_blk \
+                  [depot_user]/src/part_blk \
+                  [depot_user]/src/rump \
+                  [depot_user]/src/ncurses \
+                  [depot_user]/src/usb_block_drv \
+                  [depot_user]/src/bash-minimal \
+                  [depot_user]/src/vim-minimal \
+                  [depot_user]/src/coreutils-minimal \
+                  [depot_user]/src/e2fsprogs-minimal \
+                  [depot_user]/src/gpt_write \
+                  [depot_user]/src/floating_window_layouter
+
+install_config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+
+	<resource name="RAM" preserve="2M"/>
+
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<default caps="100"/>
+
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>
+
+	<start name="drivers" caps="1000">
+		<resource name="RAM" quantum="32M" constrain_phys="yes"/>
+		<binary name="init"/>
+		<route>
+			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+		<provides>
+			<service name="Input"/> <service name="Framebuffer"/>
+		</provides>
+	</start>
+
+	<start name="report_rom">
+		<binary name="report_rom"/>
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config verbose="no">
+			<policy label="leitzentrale -> manager -> nitpicker_hover"
+			        report="nitpicker -> hover"/>
+			<policy label="leitzentrale -> manager -> displays"
+			        report="nitpicker -> displays"/>
+		</config>
+	</start>
+
+	<start name="nitpicker">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Nitpicker"/></provides>
+		<config focus="rom">
+			<report hover="yes" displays="yes"/>
+			<background color="#000000"/>
+			<domain name="pointer" layer="1" content="client" label="no" origin="pointer" />
+			<domain name="default" layer="3" content="client" label="no" hover="always" />
+
+			<policy label_prefix="pointer" domain="pointer"/>
+			<default-policy domain="default"/>
+		</config>
+		<route>
+			<service name="Report"> <child name="report_rom"/> </service>
+			<any-service> <parent/> <any-child/></any-service>
+		</route>
+	</start>
+
+	<start name="pointer">
+		<resource name="RAM" quantum="1M"/>
+		<route>
+			<service name="Nitpicker"> <child name="nitpicker" /> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="config_fs">
+		<binary name="ram_fs"/>
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="File_system"/> </provides>
+		<config>
+			<content>
+				<dir name="managed">
+					<rom name="fonts.config"         as="fonts"/>
+					<inline name="runtime"><config/></inline>
+					<inline name="depot_query"><query/></inline>
+				</dir>
+				<inline name="deploy"></inline>
+			</content>
+			<default-policy root="/" writeable="yes"/>
+		</config>
+	</start>
+
+	<start name="config_rom">
+		<resource name="RAM" quantum="1M"/>
+		<binary name="fs_rom"/>
+		<provides> <service name="ROM"/> </provides>
+		<config/>
+		<route>
+			<service name="File_system"> <child name="config_fs"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="report_fs">
+		<binary name="ram_fs"/>
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="File_system"/> </provides>
+		<config>
+			<default-policy root="/" writeable="yes"/>
+		</config>
+	</start>
+
+	<start name="fs_report">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Report"/> </provides>
+		<config> <vfs> <fs/> </vfs> </config>
+		<route>
+			<service name="File_system"> <child name="report_fs"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="report_fs_rom">
+		<resource name="RAM" quantum="1M"/>
+		<binary name="fs_rom"/>
+		<provides> <service name="ROM"/> </provides>
+		<config/>
+		<route>
+			<service name="File_system"> <child name="report_fs"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="leitzentrale_config">
+		<binary name="rom_filter"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="ROM"/></provides>
+		<route>
+			<service name="ROM" label="config">
+				<parent label="leitzentrale.config"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="usb_active_config_rom">
+		<binary name="dynamic_rom"/>
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="ROM"/> </provides>
+		<config>
+			<rom name="usb_active_config">
+				<inline description="USB storage present">
+					<config>
+						<raw> <policy label_suffix="usb-1-2" class="storage"/> </raw>
+					</config>
+				</inline>
+				<sleep milliseconds="5000" />
+				<inline description="USB storage absent">
+					<config/>
+				</inline>
+				<sleep milliseconds="500000" />
+			</rom>
+		</config>
+	</start>
+
+	<start name="ahci-1">
+		<binary name="lx_block"/>
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="Block"/> </provides>
+		<config file="ahci-1.img" block_size="512" writeable="yes"/>
+	</start>
+
+	<start name="ahci-2">
+		<binary name="ram_blk"/>
+		<resource name="RAM" quantum="10M"/>
+		<config nofile="ahci-1.img" size="8M" block_size="512"/>
+		<provides> <service name="Block"/> </provides>
+	</start>
+
+	<start name="leitzentrale" caps="4000">
+		<binary name="init"/>
+		<resource name="RAM" quantum="128M"/>
+		<provides> <service name="Nitpicker"/> </provides>
+		<route>
+			<service name="ROM" label="config">
+				<child name="leitzentrale_config"/> </service>
+			<service name="ROM" label_prefix="manager -> config -> ">
+				<child name="config_rom"/> </service>
+			<service name="Nitpicker"> <child name="nitpicker"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<service name="File_system" label="config">
+				<child name="config_fs" label="rw"/> </service>
+			<service name="File_system" label="report">
+				<child name="report_fs" label="rw"/> </service>
+			<service name="Report"> <child name="fs_report"/> </service>
+			<service name="ROM" label_last="drivers/block_devices">
+				<parent label="block_devices"/> </service>
+			<service name="ROM" label_last="drivers/usb_active_config">
+				<child name="usb_active_config_rom" label="usb_active_config"/> </service>
+			<service name="ROM" label_last="runtime/state">
+				<child name="report_fs_rom" label="runtime/state"/> </service>
+			<service name="ROM" label_last="deploy">
+				<child name="config_rom"/> </service>
+			<service name="ROM" label_last="managed/fonts">
+				<child name="config_rom" label="managed/fonts"/> </service>
+			<service name="ROM" label_prefix="manager -> report">
+				<child name="report_fs_rom"/> </service>
+			<service name="ROM" label="manager -> nitpicker_hover">
+				<child name="report_rom"/> </service>
+			<service name="ROM" label="manager -> displays">
+				<child name="report_rom"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="runtime" caps="50000">
+		<binary name="init"/>
+		<resource name="RAM" quantum="1G"/>
+		<route>
+			<service name="ROM" label="config">
+				<child name="config_rom" label="managed/runtime"/> </service>
+			<service name="ROM" label_prefix="config -> ">
+				<child name="config_rom"/> </service>
+			<service name="File_system" label="config">
+				<child name="config_fs" label="rw"/> </service>
+			<service name="File_system" label="report">
+				<child name="report_fs" label="ro"/> </service>
+			<service name="Block" label_last="ahci-1"> <child name="ahci-1"/> </service>
+			<service name="Block" label_last="ahci-2"> <child name="ahci-2"/> </service>
+			<service name="Block"> <child name="drivers"/> </service>
+			<service name="Usb"> <child name="drivers"/> </service>
+			<service name="Nitpicker" label_prefix="leitzentrale">
+				<child name="leitzentrale"/> </service>
+			<service name="Nitpicker"> <child name="nitpicker"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<service name="Report"> <child name="fs_report"/> </service>
+			<service name="Report"> <child name="fs_report"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+</config>}
+
+file copy -force [genode_dir]/repos/gems/recipes/raw/fonts_fs/fonts_fs.config [run_dir]/genode/fonts.config
+file copy -force [genode_dir]/repos/gems/run/sculpt/leitzentrale.config [run_dir]/genode/
+file copy -force [genode_dir]/repos/gems/run/sculpt/vimrc               [run_dir]/genode/
+file copy -force [genode_dir]/repos/gems/src/app/backdrop/genode_logo.png [run_dir]/genode/
+
+proc install_rom_module { name content } {
+	set fd [open [run_dir]/genode/$name w]
+	puts $fd $content
+	close $fd
+}
+
+# generate disk image with GPT partition table
+proc ahci_1_img { } { return "bin/ahci-1.img" }
+
+catch { exec dd if=/dev/zero of=[ahci_1_img] bs=1M count=10 }
+exec parted -a none -s [ahci_1_img] -- mklabel gpt \
+                                       mkpart BOOT   fat32  256s 1023s \
+                                       mkpart GRUB   fat32 1024s 1279s \
+                                       mkpart GENODE ext2  1280s 3700s
+
+install_rom_module focus        {<focus label="leitzentrale -> manager -> fader -> "/>}
+install_rom_module leitzentrale {<leitzentrale enabled="yes"/>}
+install_rom_module reset        {<reset enabled="no"/>}
+install_rom_module README       {nothing to read here}
+install_rom_module VERSION      {unknown version}
+
+install_rom_module block_devices {
+<block_devices>
+	<device label="ahci-1" block_count="123" block_size="1024" model="Model"/>
+	<device label="ahci-2" block_count="123" block_size="1024" model="Broken"/>
+</block_devices>}
+
+install_rom_module usb_active_config {
+<config>
+	<raw> <policy label_suffix="usb-1-2" class="storage"/> </raw>
+</config>}
+
+build { server/lx_block app/menu_view app/sculpt_manager }
+
+build_boot_image { lx_block menu_view sculpt_manager ahci-1.img }
+
+if {[have_spec linux]} {
+	set max_fds [exec bash -c "ulimit -n"]
+	if {$max_fds < 4096} {
+		puts stderr "\nMaximum number of file descriptors is too low for this run script."
+		puts stderr "You may use the following command to increase the limit:\n"
+		puts stderr "  ulimit -n 4096\n"
+		exit 1
+	}
+}
+
+run_genode_until forever
+

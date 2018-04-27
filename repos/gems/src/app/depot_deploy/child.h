@@ -217,6 +217,8 @@ class Depot_deploy::Child : public List_model<Child>::Element
 				xml.attribute("source", "no");
 			});
 		}
+
+		bool incomplete() const { return _pkg_incomplete; }
 };
 
 

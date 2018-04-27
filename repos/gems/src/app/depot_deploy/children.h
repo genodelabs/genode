@@ -102,6 +102,14 @@ class Depot_deploy::Children
 			_children.for_each([&] (Child const &child) {
 				child.gen_installation_entry(xml); });
 		}
+
+		bool any_incomplete() const {
+
+			bool result = false;
+			_children.for_each([&] (Child const &child) {
+				result |= child.incomplete(); });
+			return result;
+		}
 };
 
 #endif /* _CHILDREN_H_ */
