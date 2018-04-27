@@ -178,6 +178,8 @@ struct Wm::Decorator_nitpicker_session : Genode::Rpc_object<Nitpicker::Session>,
 
 	Decorator_content_callback &_content_callback;
 
+	unsigned _key_cnt = 0;
+
 	/* XXX don't allocate content-registry entries from heap */
 	Decorator_content_registry _content_registry { _heap };
 
@@ -225,15 +227,21 @@ struct Wm::Decorator_nitpicker_session : Genode::Rpc_object<Nitpicker::Session>,
 		while (_nitpicker_session.input()->pending())
 			_nitpicker_session.input()->for_each_event([&] (Input::Event const &ev) {
 
+				if (ev.press())   _key_cnt++;
+				if (ev.release()) _key_cnt--;
+
 				ev.handle_absolute_motion([&] (int x, int y) {
 
 					_last_motion = LAST_MOTION_DECORATOR;
 
-					Reporter::Xml_generator xml(_pointer_reporter, [&] ()
-					{
-						xml.attribute("xpos", x);
-						xml.attribute("ypos", y);
-					});
+					/* update pointer model, but only when hovering */
+					if (_key_cnt == 0) {
+						Reporter::Xml_generator xml(_pointer_reporter, [&] ()
+						{
+							xml.attribute("xpos", x);
+							xml.attribute("ypos", y);
+						});
+					}
 				});
 
 				if (ev.hover_leave()) {

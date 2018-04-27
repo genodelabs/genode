@@ -453,6 +453,7 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 		bool                         _has_alpha = false;
 		Point                  const _initial_pointer_pos { -1, -1 };
 		Point                        _pointer_pos = _initial_pointer_pos;
+		unsigned                     _key_cnt = 0;
 
 		/*
 		 * Command buffer
@@ -537,22 +538,36 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 
 					Input::Event const ev = events[i];
 
-					/* keep track of pointer position */
+					if (ev.press())   _key_cnt++;
+					if (ev.release()) _key_cnt--;
+
+					/* keep track of pointer position when hovering */
 					ev.handle_absolute_motion([&] (int x, int y) {
 						_pointer_pos = Point(x, y); });
 
 					/* propagate layout-affecting events to the layouter */
-					if (_click_into_unfocused_view(ev))
+					if (_click_into_unfocused_view(ev) && _key_cnt == 1)
 						_click_handler.handle_click(_pointer_pos);
 
 					/*
 					 * Reset pointer model for the decorator once the pointer
 					 * enters the application area of a window.
 					 */
-					if (ev.absolute_motion() && _first_motion) {
+					if (ev.absolute_motion() && _first_motion && _key_cnt == 0) {
 						_click_handler.handle_enter(_pointer_pos);
 						_first_motion = false;
 					}
+
+					/*
+					 * We may leave the dragged state on another window than
+					 * the clicked one. During the dragging, the decorator
+					 * remained unaware of pointer movements. Now, when leaving
+					 * the drag stage, we need to make the decorator aware of
+					 * the most recent pointer position to update the hover
+					 * model.
+					 */
+					if (ev.release() && _key_cnt == 0)
+						_click_handler.handle_enter(_pointer_pos);
 
 					if (ev.hover_leave())
 						_first_motion = true;
