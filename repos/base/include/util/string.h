@@ -343,6 +343,17 @@ namespace Genode {
 
 
 	/**
+	 * Read unsigned char value from string
+	 *
+	 * \return number of consumed characters
+	 */
+	inline size_t ascii_to(const char *s, unsigned char &result)
+	{
+		return ascii_to_unsigned(s, result, 0);
+	}
+
+
+	/**
 	 * Read unsigned short value from string
 	 *
 	 * \return number of consumed characters
