@@ -129,12 +129,18 @@ void User_state::_handle_input_event(Input::Event ev)
 	View_owner * const hovered = pointed_view ? &pointed_view->owner() : 0;
 
 	/*
-	 * Deliver a leave event if pointed-to session changed
+	 * Deliver a leave event if pointed-to session changed, notify newly
+	 * hovered session about the current pointer position.
 	 */
-	if (_hovered && (hovered != _hovered))
-		_hovered->submit_input_event(Hover_leave());
+	if (hovered != _hovered) {
+		if (_hovered)
+			_hovered->submit_input_event(Hover_leave());
 
-	_hovered = hovered;
+		if (hovered && _key_cnt == 0)
+			hovered->submit_input_event(Absolute_motion{_pointer_pos.x(),
+			                                            _pointer_pos.y()});
+		_hovered = hovered;
+	}
 
 	/*
 	 * Handle start of a key sequence
