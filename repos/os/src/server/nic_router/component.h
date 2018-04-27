@@ -19,9 +19,9 @@
 #include <root/component.h>
 #include <nic/packet_allocator.h>
 #include <nic_session/rpc_object.h>
-#include <nic_bridge/mac_allocator.h>
 
 /* local includes */
+#include <mac_allocator.h>
 #include <interface.h>
 #include <reference.h>
 
@@ -137,7 +137,7 @@ class Net::Root : public Genode::Root_component<Session_component>
 	private:
 
 		Timer::Connection        &_timer;
-		Mac_allocator             _mac_alloc { };
+		Mac_allocator             _mac_alloc;
 		Genode::Entrypoint       &_ep;
 		Mac_address const         _router_mac;
 		Reference<Configuration>  _config;
