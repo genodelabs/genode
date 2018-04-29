@@ -22,6 +22,7 @@ namespace Acpica {
 	Genode::Env       & env();
 	Genode::Allocator & heap();
 	Platform::Client  & platform();
+	bool                platform_drv();
 }
 
 #endif /* _ACPICA__ENV_H_ */

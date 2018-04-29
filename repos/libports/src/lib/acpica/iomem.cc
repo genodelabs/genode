@@ -18,6 +18,7 @@
 #include <util/misc_math.h>
 
 #include <io_mem_session/connection.h>
+#include <region_map/client.h>
 #include <rm_session/connection.h>
 
 #include "env.h"
@@ -124,6 +125,7 @@ class Acpica::Io_mem
 		Genode::Io_mem_connection *_io_mem = nullptr;
 		unsigned                   _ref    = 0;
 
+		static Genode::Rm_connection *rm_conn;
 		static Acpica::Io_mem _ios[32];
 
 	public:
@@ -142,6 +144,55 @@ class Acpica::Io_mem
 		Genode::addr_t to_virt(ACPI_PHYSICAL_ADDRESS p) {
 			_ref ++;
 			return reinterpret_cast<Genode::addr_t>(_virt + (p - _phys));
+		}
+
+		static void force_free_overlap(ACPI_PHYSICAL_ADDRESS const phys,
+		                               ACPI_SIZE const size)
+		{
+			Acpica::Io_mem::apply_u([&] (Acpica::Io_mem &io_mem) {
+				if (io_mem.unused() && !io_mem.stale())
+					return 0;
+
+				/* skip non overlapping ranges */
+				if ((phys + size <= io_mem._phys) ||
+				    (io_mem._phys + io_mem._size <= phys))
+					return 0;
+
+				while (io_mem._ref > 1) {
+					io_mem.ref_dec();
+				}
+
+				Genode::warning(" force freeing I/O memory",
+				                " unused=", io_mem.unused(),
+				                " stale=" , io_mem.stale(),
+				                " phys="  , Genode::Hex(io_mem._phys),
+				                " size="  , Genode::Hex(io_mem._size),
+				                " virt="  , io_mem._virt,
+				                " io_ptr=", io_mem._io_mem,
+				                " refcnt=", io_mem._ref);
+
+				/* allocate region on heap and don't free, otherwise in destructor the connection will be closed */
+				if (!rm_conn)
+					rm_conn = new (Acpica::heap()) Genode::Rm_connection(Acpica::env());
+
+				/* create managed dataspace to let virt region reserved */
+				Genode::Region_map_client managed_region(rm_conn->create(io_mem._size));
+				/* remember virt, since it get invalid during invalidate() */
+				Genode::addr_t const re_attach_virt = reinterpret_cast<Genode::addr_t>(io_mem._virt);
+
+				/* drop I/O mem and virt region get's freed */
+				io_mem.invalidate();
+
+				/* re-attach dummy managed dataspace to virt region */
+				Genode::addr_t const re_attached_virt = Acpica::env().rm().attach_at(managed_region.dataspace(), re_attach_virt);
+				if (re_attach_virt != re_attached_virt)
+					FAIL(0);
+
+				if (!io_mem.unused() || io_mem.stale())
+					FAIL(0);
+
+				return 0;
+			});
 		}
 
 		bool ref_dec() { return --_ref; }
@@ -310,6 +361,7 @@ class Acpica::Io_mem
 };
 
 Acpica::Io_mem Acpica::Io_mem::_ios[32];
+Genode::Rm_connection * Acpica::Io_mem::rm_conn { nullptr };
 
 static ACPI_TABLE_RSDP faked_rsdp;
 enum { FAKED_PHYS_RSDP_ADDR = 1 };
@@ -389,4 +441,9 @@ void AcpiOsUnmapMemory (void * ptr, ACPI_SIZE size)
 		return;
 
 	FAIL()
+}
+
+void AcpiGenodeFreeIOMem(ACPI_PHYSICAL_ADDRESS const phys, ACPI_SIZE const size)
+{
+	Acpica::Io_mem::force_free_overlap(phys, size);
 }
