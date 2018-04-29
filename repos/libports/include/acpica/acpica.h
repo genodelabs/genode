@@ -22,8 +22,10 @@ namespace Genode {
 namespace Acpica {
 
 	struct Wait_acpi_ready { bool enabled; };
+	struct Act_as_acpi_drv { bool enabled; };
 
-	void init(Genode::Env &, Genode::Allocator &, Wait_acpi_ready);
+	void init(Genode::Env &, Genode::Allocator &, Wait_acpi_ready,
+	          Act_as_acpi_drv);
 }
 
 #endif /* _INCLUDE__ACPICA__ACPICA_H_ */

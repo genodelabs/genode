@@ -1,6 +1,25 @@
+/*
+ * \brief  Some utils
+ * \author Alexander Boettcher
+ */
+
+/*
+ * Copyright (C) 2016-2018 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU Affero General Public License version 3.
+ */
+
+extern "C" {
+#include "acpi.h"
+}
+
+class Bridge;
+
 namespace Acpica {
 	template<typename> class Buffer;
 	template<typename> class Callback;
+	void generate_report(Genode::Env &, Bridge *);
 }
 
 template <typename T>

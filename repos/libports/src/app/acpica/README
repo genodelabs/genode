@@ -43,16 +43,24 @@ the machine immediately.
 
 The attempt to reset or to poweroff may fail. One reason, we have seen so far,
 is that the required resources are already owned by other components in the
-system. E.g. for 'reset' on some machines the platform driver posses the
-required I/O ports and the acpica application don't get access to. On such
-systems the platform driver can be configured to react on the 'state="reset"'
-system state change. The platform_drv can be configured to monitor
-the 'system' ROM by adding a config attribute named 'system' and set to 'yes'.
+system.
 
 Furthermore the ACPICA library triggers depended on the ACPI table content
 I/O operations on various PCI devices and partly re-configure it. Because of
 this a policy rule at the platform driver is required, that permits access
 to the required devices.
+
+Acpica as acpi_drv replacement
+------------------------------
+
+The application acpica may also be run as replacement of the original acpi_drv
+when the 'act_as_acpi_drv' attribute is set to yes:
+
+!  <config ... acpi_ready="yes" act_as_acpi_drv="yes"/>
+
+The acpica driver will parse in this mode the ACPI tables and will generate
+the same content in the ACPI report, which is transformed by a report_rom
+service into a ACPI ROM expected initially by the platform driver.
 
 Excerpt of important parts of the acpica configuration
 ------------------------------------------------------
@@ -60,7 +68,7 @@ Excerpt of important parts of the acpica configuration
 !<start name="acpica">
 !  <!-- <binary name="debug-acpica"/> -->
 !  ...
-!  <config reset="no" poweroff="no" report="yes" acpi_ready="yes"/>
+!  <config reset="no" poweroff="no" report="yes" acpi_ready="yes" act_as_acpi_drv="no"/>
 !  <route>
 !    <service name="ROM" label="system"> <child name="..."/> </service>
 !    <service name="Report"> <child name="..."/> </service>

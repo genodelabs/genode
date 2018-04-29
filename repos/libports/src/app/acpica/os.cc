@@ -117,7 +117,7 @@ struct Acpica::Main
 		void *context;
 	} irq_handler;
 
-	void init_acpica(Acpica::Wait_acpi_ready);
+	void init_acpica(Acpica::Wait_acpi_ready, Acpica::Act_as_acpi_drv);
 
 	Main(Genode::Env &env)
 	:
@@ -128,11 +128,13 @@ struct Acpica::Main
 		bool const enable_poweroff = config.xml().attribute_value("poweroff", false);
 		bool const enable_report   = config.xml().attribute_value("report", false);
 		bool const enable_ready    = config.xml().attribute_value("acpi_ready", false);
+		bool const act_as_acpi_drv = config.xml().attribute_value("act_as_acpi_drv", false);
 
 		if (enable_report)
 			report = new (heap) Acpica::Reportstate(env);
 
-		init_acpica(Wait_acpi_ready{enable_ready});
+		init_acpica(Wait_acpi_ready{enable_ready},
+		            Act_as_acpi_drv{act_as_acpi_drv});
 
 		if (enable_report)
 			report->enable();
@@ -187,10 +189,45 @@ struct Acpica::Main
 #include "lid.h"
 #include "sb.h"
 #include "ec.h"
+#include "bridge.h"
 
-void Acpica::Main::init_acpica(Wait_acpi_ready wait_acpi_ready)
+ACPI_STATUS init_pic_mode()
 {
-	Acpica::init(env, heap, wait_acpi_ready);
+	ACPI_OBJECT_LIST arguments;
+	ACPI_OBJECT      argument;
+
+	arguments.Count = 1;
+	arguments.Pointer = &argument;
+
+	enum { PIC = 0, APIC = 1, SAPIC = 2};
+
+	argument.Type = ACPI_TYPE_INTEGER;
+	argument.Integer.Value = APIC;
+
+	return AcpiEvaluateObject(ACPI_ROOT_OBJECT, ACPI_STRING("_PIC"),
+	                          &arguments, nullptr);
+}
+
+ACPI_STATUS Bridge::detect(ACPI_HANDLE bridge, UINT32, void * m,
+                           void **return_bridge)
+{
+	Acpica::Main * main = reinterpret_cast<Acpica::Main *>(m);
+	Bridge * dev_obj = new (main->heap) Bridge(main->report, bridge);
+
+	if (*return_bridge == (void *)PCI_ROOT_HID_STRING)
+		Genode::log("detected - bridge - PCI root bridge");
+	if (*return_bridge == (void *)PCI_EXPRESS_ROOT_HID_STRING)
+		Genode::log("detected - bridge - PCIE root bridge");
+
+	*return_bridge = dev_obj;
+
+	return AE_OK;
+}
+
+void Acpica::Main::init_acpica(Wait_acpi_ready wait_acpi_ready,
+                               Act_as_acpi_drv act_as_acpi_drv)
+{
+	Acpica::init(env, heap, wait_acpi_ready, act_as_acpi_drv);
 
 	/* enable debugging: */
 	/* AcpiDbgLevel |= ACPI_LV_IO | ACPI_LV_INTERRUPTS | ACPI_LV_INIT_NAMES; */
@@ -223,6 +260,39 @@ void Acpica::Main::init_acpica(Wait_acpi_ready wait_acpi_ready)
 	if (status != AE_OK) {
 		Genode::error("AcpiInitializeObjects (no devices) failed, status=", status);
 		return;
+	}
+
+	/* set APIC mode */
+	status = init_pic_mode();
+	if (status != AE_OK) {
+		Genode::error("Setting PIC mode failed, status=", status);
+		return;
+	}
+
+	if (act_as_acpi_drv.enabled) {
+		/* lookup PCI root bridge */
+		void * pci_bridge = (void *)PCI_ROOT_HID_STRING;
+		status = AcpiGetDevices(ACPI_STRING(PCI_ROOT_HID_STRING), Bridge::detect,
+		                        this, &pci_bridge);
+		if (status != AE_OK || pci_bridge == (void *)PCI_ROOT_HID_STRING)
+			pci_bridge = nullptr;
+
+		/* lookup PCI Express root bridge */
+		void * pcie_bridge = (void *)PCI_EXPRESS_ROOT_HID_STRING;
+		status = AcpiGetDevices(ACPI_STRING(PCI_EXPRESS_ROOT_HID_STRING),
+		                        Bridge::detect, this, &pcie_bridge);
+		if (status != AE_OK || pcie_bridge == (void *)PCI_EXPRESS_ROOT_HID_STRING)
+			pcie_bridge = nullptr;
+
+		if (pcie_bridge && pci_bridge)
+			Genode::log("PCI and PCIE root bridge found - using PCIE for IRQ "
+			            "routing information");
+
+		Bridge *bridge = pcie_bridge ? reinterpret_cast<Bridge *>(pcie_bridge)
+		                             : reinterpret_cast<Bridge *>(pci_bridge);
+
+		/* Generate report for platform driver */
+		Acpica::generate_report(env, bridge);
 	}
 
 	/* Embedded controller */
