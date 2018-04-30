@@ -216,7 +216,7 @@ struct Genode::List_model<ELEM>::Update_policy
 	 * This method allows the policy to disregard certain XML node types from
 	 * building the data model.
 	 */
-	static bool node_is_element(Xml_node node) { return true; }
+	static bool node_is_element(Xml_node) { return true; }
 };
 
 #endif /* _INCLUDE__UTIL__LIST_MODEL_H_ */
