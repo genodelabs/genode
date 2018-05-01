@@ -1,0 +1,73 @@
+#
+# Test runs only on Linux
+#
+assert_spec linux
+
+#
+# Build
+#
+build { core init drivers/timer server/lx_block app/gpt_write }
+
+create_boot_directory
+
+#
+# Generate config
+#
+install_config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="TRACE"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<default caps="100"/>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+	<start name="lx_block">
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="Block"/> </provides>
+		<config file="gpt.img" block_size="512" writeable="yes"/>
+	</start>
+	<start name="gpt_write">
+		<resource name="RAM" quantum="2M"/>
+		<config verbose="yes" initialize="yes" align="4K">
+			<actions>
+				<add entry="1" type="BIOS"  label="GRUB BIOS"  start="2048"  size="1M"/>
+				<add entry="2" type="EFI"   label="EFI System" start="4096"  size="16M"/>
+				<add entry="3" type="Linux" label="GENODE"     start="36864" size="128M"/>
+				<add           type="BDP"   label="FAT32 Data" size="max"/>
+				<delete entry="1"/>
+				<delete label="FAT32 Data"/>
+				<modify label="GENODE" new_label="GENODE*" new_size="max"/>
+			</actions>
+		</config>
+	</start>
+</config>}
+
+#
+# Create test file
+#
+catch { exec dd if=/dev/zero of=bin/gpt.img bs=1M count=256 }
+
+#
+# Boot modules
+#
+build_boot_image {
+	core ld.lib.so init timer lx_block gpt_write
+	gpt.img
+}
+
+run_genode_until {child "gpt_write" exited with exit value 0.*\n} 10
+
+exec rm -f bin/gpt.img

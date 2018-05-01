@@ -1,0 +1,99 @@
+Brief
+=====
+
+This component creates a GPT on a Block device. It supports the common
+actions, as in adding, deleting and modifying entries in the GPT, while
+considering alignment constraints. If needed it will round the length of
+a partition down to meet those constraints. The component will not perform
+layout checking, i.e., it does not care about overlapping partitions. Only
+when apping a partition it will make sure that the partition will fit.
+
+As a temporary limitation it does not handle Block devices with a logical
+block size of 4096 or larger well.
+
+
+Configuration
+=============
+
+The component is instructed to manage the GPT by specifying actions.
+The actions are:
+
+  * 'add' for adding a new partition. The used entry is set by
+    the 'entry' attribute, while the 'start' attributes denotes the
+    starting LBA of the partition. If the 'entry' attribute is missing,
+    the component operates in append-mode and the next free entry will
+    be used, while the component selects a proper start LBA and ignores
+    the 'start' attribute. The mandatory 'label', 'size' and 'type'
+    attributes must be used to set the corresponding property.
+
+  * 'delete' for removing partitions by clearing the corresponding entry.
+    The entry can by selected by using either the 'entry' or 'label'
+    attribute.
+
+  * 'modify' for changing properties of an existing entry. The
+    entry can be selected by using either the 'entry' or 'label'
+    attribute. The 'new_label', 'new_size' and 'new_type' attributes
+    may be set to change the corresponding property.
+
+The size-related attributes, 'size' and 'new_size', can take as value
+a suffixed number (K, M, G) to interpret the value to the base of 2^10,
+2^20 or 2^30. As special treatment it is also possible to use 'max' as
+value. In this case the component will try to use all free space between
+this partition and the next partition or, for that matter, the end of the
+addressable space within the GPT.
+
+The type-related attributes, 'type' and 'new_type', take a identifier,
+which selects the proper GUID. Valid identifiers are:
+
+  * 'EFI' for the EFI system partition type
+  * 'BIOS' for a BIOS boot partition type (for GRUB to store its core.img)
+  * 'BDP' for basic data partition type (Windows/DOS file systems)
+  * 'Linux' for a Linux file system data type (Linux file systems)
+
+The label-related attributes, 'label' and 'new_label', take a ASCII string,
+i.e., [A-Za-z- *].
+
+There are config node attributes, in addition to the actions, that instruct
+the component to perform additional tasks.
+
+To remove the GPT headers as well as the protective MBR the 'wipe'
+attribute can be specified:
+
+! <config wipe="yes"/>
+
+In this case 'gpt_write' will only perform the wiping and than exit,
+even if other attributes are set or actions specified.
+
+To update the GPT information, in case the underlying Block device has
+changed (for example a generated disk image is copied to a larger USB
+stick), the 'update_geometry' attribute may be used to increase the
+useable space of the GPT:
+
+! <config update_geometry="yes"/>
+
+Setting the 'initialize' attribute will instruct the component to clear
+any existing GPT/PMBR.
+
+! <config initialize="yes"/>
+
+The alignment of partitions can by specified by setting the 'align'
+attribute. It defaults to '4096' if not set.
+
+These attributes can be freely mixed, considering the constraint of
+using 'wipe'.
+
+The following snippet shows a examplary configuration:
+
+! <config initialize="yes" align="4K">
+!  <actions>
+!   <add entry="1" type="BIOS"  label="GRUB BIOS"  start="2048"  size="1M"/>
+!   <add entry="2" type="EFI"   label="EFI System" start="4096"  size="16M"/>
+!   <add entry="3" type="Linux" label="Genode"     start="36864" size="32G"/>
+!   <add           type="BDP"   label="FAT32 Data" size="1G"/>
+!
+!   <delete entry="1"/>
+!   <delete label="FAT32 Data"/>
+!
+!   <modify label="Genode" new_label="GENODE*" new_size="max"/>
+!  </actions>
+
