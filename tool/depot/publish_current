@@ -1,0 +1,42 @@
+#!/usr/bin/make -f
+
+#
+# \brief  Tool for assembling a package archive of the current version
+# \author Roman Iten
+# \date   2018-05-02
+#
+
+define HELP_MESSAGE
+
+  Compress and sign depot content for publishing
+
+  usage:
+
+    $(firstword $(MAKEFILE_LIST)) <archive-path>... {PUBLIC_DIR=<public>}
+
+  In contrast to the 'publish' tool, the <archive-path> must be given
+  without the version number of the package archive. Instead, the
+  current version is automatically obtained from the hash file of
+  the recipes.
+
+endef
+
+export GENODE_DIR := $(realpath $(dir $(MAKEFILE_LIST))/../..)
+
+include $(GENODE_DIR)/tool/depot/mk/front_end.inc
+
+_versioned_src_of_bin = $1/$(call recipe_version,src/$(call bin_archive_recipe,$1))
+_versioned_pkg        = $1/$(call recipe_version,pkg/$(call bin_archive_recipe,$1))
+
+versioned_archive = $(if $(call archive_has_type,$1,bin),$(call _versioned_src_of_bin,$1),\
+                       $(if $(call archive_has_type,$1,pkg),$(call _versioned_pkg,$1)))
+
+VERSIONED_ARCHIVES = $(strip $(foreach A,$(MAKECMDGOALS),$(call versioned_archive,$A)))
+
+publish:
+	$(if $(VERSIONED_ARCHIVES),\
+	   $(VERBOSE)$(MAKE) -f $(GENODE_DIR)/tool/depot/publish $(VERSIONED_ARCHIVES))
+
+$(MAKECMDGOALS): publish
+	@true
+
