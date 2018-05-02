@@ -32,7 +32,7 @@
       <Memory RAMSize="256" PageFusion="false"/>
       <HID Pointing="PS2Mouse" Keyboard="PS2Keyboard"/>
       <HPET enabled="false"/>
-      <Chipset type="PIIX3"/>
+      <Chipset type="ICH9"/>
       <Boot>
         <Order position="1" device="Floppy"/>
         <Order position="2" device="DVD"/>

@@ -8,8 +8,8 @@
 # Note: the USB device(s) to be passed through must be included in the whitelist.
 #
 
-if { [have_include "power_on/qemu"] || ![have_spec nova] } {
-	puts "Run script is only supported on NOVA on real hardware"
+if { [have_include "power_on/qemu"] || ![have_spec nova] || ![have_spec x86_64]} {
+	puts "Run script is only supported on 64-bit NOVA on real hardware"
 	exit 0
 }
 
@@ -24,7 +24,7 @@ set build_components {
 	server/ram_fs
 	server/report_rom
 	app/usb_report_filter
-	virtualbox
+	virtualbox5
 }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
@@ -53,7 +53,7 @@ set config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-}
+	<default caps="150"/>}
 
 append_platform_drv_config
 
@@ -160,18 +160,17 @@ append config {
 		</config>
 	</start>
 
-	<start name="virtualbox" priority="-2">
-		<binary name="virtualbox-nova"/>
+	<start name="virtualbox" caps="800" priority="-2">
+		<binary name="virtualbox5-nova"/>
 		<resource name="RAM" quantum="448M"/>
-		<config vbox_file="vm_genode_usb_hid.vbox" vm_name="TestVM" xhci="yes" force_ioapic="yes">
-			<libc stdout="/dev/log" stderr="/dev/log">
-				<vfs>
-					<dir name="dev"> <log/> </dir>
-					<dir name="dev"> <terminal/> </dir>
-					<rom name="vm_genode_usb_hid.vbox" />
-					<rom name="usb_hid.iso" />
-				</vfs>
-			</libc>
+		<config vbox_file="vm_genode_usb_hid.vbox" vm_name="TestVM" xhci="yes">
+			<vfs>
+				<dir name="dev"> <log/> </dir>
+				<dir name="dev"> <terminal/> </dir>
+				<rom name="vm_genode_usb_hid.vbox" />
+				<rom name="usb_hid.iso" />
+			</vfs>
+			<libc stdout="/dev/log" stderr="/dev/log"/>
 		</config>
 		<route>
 			<service name="Report"><child name="report_rom" /></service>
@@ -201,7 +200,7 @@ exec -ignorestderr \
      --include [repository_contains /run/usb_hid.run]/run/usb_hid.run
 
 exec ln -sf ${genode_dir}/repos/ports/run/vm_genode_usb_hid.vbox bin/
-exec ln -sf ../var/run/usb_hid.iso bin/
+exec ln -sf ../../usb_hid.iso bin/
 
 set boot_modules {
 	core
@@ -215,7 +214,7 @@ set boot_modules {
 	fs_rom
 	ram_fs
 	report_rom
-	virtualbox-nova
+	virtualbox5-nova
 	usb_hid.iso
 	vm_genode_usb_hid.vbox
 	ld.lib.so libc.lib.so vfs.lib.so libm.lib.so pthread.lib.so libc_pipe.lib.so
@@ -231,12 +230,12 @@ if { ![get_cmd_switch --autopilot] } { run_genode_until forever }
 
 # autopilot test
 
-run_genode_until {\[init -\> log_terminal\] \[init -\> test-input\] Input event #1\t} 90
+run_genode_until {\[init -\> log_terminal\] \[init -\> test-input\] Input event #0\t} 90
 
 # remove everything before the first interesting line
-regexp {(\[init -\> log_terminal\] \[init -\> test-input\] Input event #1\t.*)} $output all output
+regexp {(\[init -\> log_terminal\] \[init -\> test-input\] Input event #0\t.*)} $output all output
 
-run_genode_until {.*\[init -\> test-input\] Input event #12.*\n} 60 [output_spawn_id]
+run_genode_until {.*\[init -\> test-input\] Input event #11.*\n} 60 [output_spawn_id]
 
 unify_output { number [0-9]+} ""
 unify_output {(?n)on usb-dummy.*$} ""
@@ -245,17 +244,18 @@ unify_output {(?n)^.*__wait_event.*$} ""
 unify_output {(?n)^.*Failed to submit URB.*$} ""
 unify_output {(?n)^.*dev_warn.*$} ""
 unify_output {(?n)^.*dangling allocation.*$} ""
+unify_output {(?n)^.*Warning:.*$} ""
 unify_output { [0-9][0-9][0-9][0-9]:[0-9][0-9][0-9][0-9] } " "
 filter_out_color_escape_sequences
 trim_lines
 
 compare_output_to {
-[init -> log_terminal] [init -> test-input] Input event #1	type=PRESS  	code=45	rx=0	ry=0	ax=0	ay=0	key_cnt=1	KEY_X
-[init -> log_terminal] [init -> test-input] Input event #2	type=RELEASE	code=45	rx=0	ry=0	ax=0	ay=0	key_cnt=-1	KEY_X
-[init -> log_terminal] [init -> test-input] Input event #3	type=PRESS  	code=272	rx=0	ry=0	ax=0	ay=0	key_cnt=1	BTN_LEFT
-[init -> log_terminal] [init -> test-input] Input event #4	type=MOTION 	code=0	rx=-1	ry=0	ax=0	ay=0	key_cnt=1	
-[init -> log_terminal] [init -> test-input] Input event #5	type=MOTION 	code=0	rx=0	ry=1	ax=0	ay=0	key_cnt=1	
-[init -> log_terminal] [init -> test-input] Input event #6	type=RELEASE	code=272	rx=0	ry=0	ax=0	ay=0	key_cnt=-1	BTN_LEFT
+[init -> log_terminal] [init -> test-input] Input event #0	PRESS KEY_X 0
+[init -> log_terminal] [init -> test-input] Input event #1	RELEASE KEY_X
+[init -> log_terminal] [init -> test-input] Input event #2	PRESS BTN_LEFT 0
+[init -> log_terminal] [init -> test-input] Input event #3	REL_MOTION -1+0
+[init -> log_terminal] [init -> test-input] Input event #4	REL_MOTION +0+1
+[init -> log_terminal] [init -> test-input] Input event #5	RELEASE BTN_LEFT
 [init -> usb_drv] dev_info: USB disconnect, device
 [init -> log_terminal] [init -> usb_drv] dev_info: USB disconnect, device
 [init -> usb_drv] dev_info: new full-speed USB device
@@ -265,10 +265,10 @@ compare_output_to {
 [init -> log_terminal] [init -> usb_drv] dev_info: input: USB HID v1.11 Keyboard [D L]
 [init -> log_terminal] [init -> usb_drv] dev_info: D L
 [init -> log_terminal] [init -> usb_drv] dev_info: input: USB HID v1.11 Mouse [D L]
-[init -> log_terminal] [init -> test-input] Input event #7	type=PRESS  	code=45	rx=0	ry=0	ax=0	ay=0	key_cnt=1	KEY_X
-[init -> log_terminal] [init -> test-input] Input event #8	type=RELEASE	code=45	rx=0	ry=0	ax=0	ay=0	key_cnt=-1	KEY_X
-[init -> log_terminal] [init -> test-input] Input event #9	type=PRESS  	code=272	rx=0	ry=0	ax=0	ay=0	key_cnt=1	BTN_LEFT
-[init -> log_terminal] [init -> test-input] Input event #10	type=MOTION 	code=0	rx=-1	ry=0	ax=0	ay=0	key_cnt=1	
-[init -> log_terminal] [init -> test-input] Input event #11	type=MOTION 	code=0	rx=0	ry=1	ax=0	ay=0	key_cnt=1	
-[init -> log_terminal] [init -> test-input] Input event #12	type=RELEASE	code=272	rx=0	ry=0	ax=0	ay=0	key_cnt=-1	BTN_LEFT
+[init -> log_terminal] [init -> test-input] Input event #6	PRESS KEY_X 0
+[init -> log_terminal] [init -> test-input] Input event #7	RELEASE KEY_X
+[init -> log_terminal] [init -> test-input] Input event #8	PRESS BTN_LEFT 0
+[init -> log_terminal] [init -> test-input] Input event #9	REL_MOTION -1+0
+[init -> log_terminal] [init -> test-input] Input event #10	REL_MOTION +0+1
+[init -> log_terminal] [init -> test-input] Input event #11	RELEASE BTN_LEFT
 }
