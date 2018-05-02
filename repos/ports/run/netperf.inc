@@ -19,18 +19,15 @@ if {[get_cmd_switch --autopilot] && [have_include "power_on/qemu"]} {
 	exit
 }
 
-if {[have_spec odroid_xu]} {
-	puts "Run script does not support this platform."
-	exit 0
-}
-
 if {![info exists use_usb_driver]} {
 	set use_usb_driver      [expr [have_spec omap4] || [have_spec arndale] || [have_spec rpi]]
 }
 set use_nic_driver      [expr !$use_usb_driver && !$use_wifi_driver]
 
-if {[expr !$use_usb_driver && !$use_nic_driver && !$use_wifi_driver]} {
-	puts "Run script is not supported on this platform.";
+if {[expr !$use_usb_driver && !$use_nic_driver && !$use_wifi_driver] ||
+    [have_spec odroid_xu] ||
+    [expr [have_spec imx53] && [have_spec trustzone]]} {
+	puts "Run script is not supported on this platform."
 	exit 0
 }
 

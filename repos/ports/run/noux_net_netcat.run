@@ -1,7 +1,9 @@
 set use_usb_driver   [expr [have_spec omap4] || [have_spec arndale] || [have_spec rpi]]
 set use_nic_driver   [expr !$use_usb_driver && ![have_spec linux] && ![have_spec odroid_xu]]
 
-if {[expr !$use_usb_driver && !$use_nic_driver || [expr [have_include "power_on/qemu"] && [have_spec zynq]]]} {
+if {[expr !$use_usb_driver && !$use_nic_driver] ||
+    [expr [have_include "power_on/qemu"] && [have_spec zynq]] ||
+    [expr [have_spec imx53] && [have_spec trustzone]]} {
 	puts "\n Run script is not supported on this platform. \n"; exit 0 }
 
 
