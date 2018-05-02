@@ -38,10 +38,13 @@ proc run_boot_dir {binaries} {
 	# Move kernel files to distinct location within the boot directory so that
 	# we can remove [run_dir]/genode after the core image has been built.
 	#
-	file copy -force [run_dir]/genode/fiasco           [run_dir]/kernel
-	file copy -force [run_dir]/genode/sigma0-fiasco    [run_dir]/sigma0
-	file copy -force [run_dir]/genode/bootstrap-fiasco [run_dir]/bootstrap
+	exec mkdir -p [run_dir]/boot
+	file copy -force [run_dir]/genode/fiasco           [run_dir]/boot/kernel
+	file copy -force [run_dir]/genode/sigma0-fiasco    [run_dir]/boot/sigma0
+	file copy -force [run_dir]/genode/bootstrap-fiasco [run_dir]/boot/bootstrap
 	exec rm -r [run_dir]/genode
+
+	exec mv [run_dir]/image.elf [run_dir]/boot/image.elf
 
 	if {[have_include "image/iso"] || [have_include "image/disk"]} {
 
@@ -65,10 +68,10 @@ proc run_boot_dir {binaries} {
 		puts $fh "menuentry 'Genode on L4/Fiasco' {"
 		puts $fh " insmod multiboot"
 		puts $fh " multiboot /boot/bender"
-		puts $fh " module /bootstrap -serial"
-		puts $fh " module /kernel -serial -jdb_cmd=JH [fiasco_serial_esc_arg]"
-		puts $fh " module /sigma0"
-		puts $fh " module /image.elf"
+		puts $fh " module /boot/bootstrap -serial"
+		puts $fh " module /boot/kernel -serial -jdb_cmd=JH [fiasco_serial_esc_arg]"
+		puts $fh " module /boot/sigma0"
+		puts $fh " module /boot/image.elf"
 		puts $fh "}"
 		close $fh
 	}
@@ -86,10 +89,10 @@ proc run_boot_dir {binaries} {
 		#
 		set fh [open "[run_dir]/config-52-54-00-12-34-56" "WRONLY CREAT TRUNC"]
 		puts $fh " exec /boot/bender"
-		puts $fh " load /bootstrap -serial"
-		puts $fh " load /kernel -serial -serial_esc -jdb_cmd=JH"
-		puts $fh " load /sigma0"
-		puts $fh " load /image.elf"
+		puts $fh " load /boot/bootstrap -serial"
+		puts $fh " load /boot/kernel -serial -serial_esc -jdb_cmd=JH"
+		puts $fh " load /boot/sigma0"
+		puts $fh " load /boot/image.elf"
 		close $fh
 
 		generate_tftp_config
