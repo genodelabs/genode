@@ -176,6 +176,7 @@ struct Mbr_partition_table : public Block::Partition_table
 							xml.attribute("type", r->_type);
 							xml.attribute("start", r->_lba + offset);
 							xml.attribute("length", r->_sectors);
+							xml.attribute("block_size", driver.blk_size());
 
 							if (fs_type.valid()) {
 								xml.attribute("file_system", fs_type);

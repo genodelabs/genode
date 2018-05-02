@@ -277,6 +277,8 @@ class Gpt : public Block::Partition_table
 							xml.attribute("guid", e->_guid.to_string());
 							xml.attribute("start", e->_lba_start);
 							xml.attribute("length", e->_lba_end - e->_lba_start + 1);
+							xml.attribute("block_size", driver.blk_size());
+
 							if (fs_type.valid()) {
 								xml.attribute("file_system", fs_type);
 							}
