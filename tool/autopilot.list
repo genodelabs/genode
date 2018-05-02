@@ -59,6 +59,7 @@ vbox4_win7_32_share
 vbox4_win7_64_multiple
 vbox4_win81_64
 vbox4_win10_64
+vbox5_genode_usb_hid
 vbox5_ubuntu_14_04_32
 vbox5_ubuntu_14_04_64
 vbox5_ubuntu_16_04_32
