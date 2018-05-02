@@ -147,6 +147,9 @@ proc run_boot_dir {binaries} {
 	#
 	exec rm -rf [run_dir]/genode
 
+	exec mkdir -p [run_dir]/boot
+	exec mv [run_dir]/image.elf [run_dir]/boot/image.elf
+
 	if {[have_include "image/iso"] || [have_include "image/disk"]} {
 
 		if {[have_include "image/disk"]} {
@@ -169,7 +172,7 @@ proc run_boot_dir {binaries} {
 		puts $fh "menuentry 'Genode on OKL4' {"
 		puts $fh " insmod multiboot"
 		puts $fh " multiboot /boot/bender"
-		puts $fh " module /image.elf"
+		puts $fh " module /boot/image.elf"
 		puts $fh "}"
 		close $fh
 	}
@@ -192,7 +195,7 @@ proc run_boot_dir {binaries} {
 		# load okl4 at 256M to avoid overwritting binary, adjust by need
 		puts $fh " addr 0x10000000"
 		puts $fh " exec /boot/bender"
-		puts $fh " load /image.elf"
+		puts $fh " load /boot/image.elf"
 		close $fh
 
 		generate_tftp_config

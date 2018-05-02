@@ -50,16 +50,19 @@ proc run_boot_dir {binaries} {
 	#
 	build_core_image $binaries
 
-	exec [cross_dev_prefix]objcopy -O elf32-i386 [run_dir]/genode/hypervisor [run_dir]/hypervisor
-	exec [cross_dev_prefix]strip [run_dir]/hypervisor
+	exec mkdir -p [run_dir]/boot
+	exec [cross_dev_prefix]objcopy -O elf32-i386 [run_dir]/genode/hypervisor [run_dir]/boot/hypervisor
+	exec [cross_dev_prefix]strip [run_dir]/boot/hypervisor
 
 	exec rm -rf [run_dir]/genode
+
+	exec mv   [run_dir]/image.elf [run_dir]/boot/image.elf
 
 	if {[have_include "image/iso"] || [have_include "image/disk"] || [have_include image/uefi]} {
 		#
 		# Compress Genode image, to be uncompressed by GRUB
 		#
-		exec gzip [run_dir]/image.elf
+		exec gzip [run_dir]/boot/image.elf
 
 		set serial_bender_opt ""
 
@@ -95,8 +98,8 @@ proc run_boot_dir {binaries} {
 		puts $fh " insmod multiboot2"
 		puts $fh " insmod gzio"
 		puts $fh " multiboot2 /boot/bender $serial_bender_opt"
-		puts $fh " module2 /hypervisor hypervisor iommu serial novpid novga"
-		puts $fh " module2 /image.elf.gz image.elf"
+		puts $fh " module2 /boot/hypervisor hypervisor iommu serial novpid novga"
+		puts $fh " module2 /boot/image.elf.gz image.elf"
 		puts $fh "}"
 		close $fh
 	}
@@ -117,8 +120,8 @@ proc run_boot_dir {binaries} {
 		#
 		set fh [open "[run_dir]/config-52-54-00-12-34-56" "WRONLY CREAT TRUNC"]
 		puts $fh " exec /boot/bender"
-		puts $fh " load /hypervisor iommu serial novpid novga"
-		puts $fh " load /image.elf"
+		puts $fh " load /boot/hypervisor iommu serial novpid novga"
+		puts $fh " load /boot/image.elf"
 		close $fh
 
 		generate_tftp_config

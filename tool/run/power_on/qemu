@@ -134,7 +134,7 @@ proc run_power_on { } {
 	}
 
 	# on ARM, we supply the boot image as kernel
-	if {[have_spec arm]} { append qemu_args " -kernel [run_dir]/image.elf " }
+	if {[have_spec arm]} { append qemu_args " -kernel [run_dir]/boot/image.elf " }
 
 	eval spawn $qemu $qemu_args
 	set qemu_spawn_id $spawn_id

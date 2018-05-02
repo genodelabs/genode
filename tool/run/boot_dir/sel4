@@ -42,8 +42,11 @@ proc run_boot_dir {binaries} {
 	# Move kernel files to distinct location within the boot directory so that
 	# we can remove [run_dir]/genode after the core image has been built.
 	#
-	file copy -force [run_dir]/genode/sel4 [run_dir]/sel4
+	exec mkdir -p [run_dir]/boot
+	file copy -force [run_dir]/genode/sel4 [run_dir]/boot/sel4
 	exec rm -r [run_dir]/genode
+
+	exec mv [run_dir]/image.elf [run_dir]/boot/image.elf
 
 	if {[have_include "image/iso"] || [have_include "image/disk"] || [have_include image/uefi]} {
 		set serial_bender_opt ""
@@ -79,8 +82,8 @@ proc run_boot_dir {binaries} {
 		puts $fh "menuentry 'Genode on seL4' {"
 		puts $fh " insmod multiboot2"
 		puts $fh " multiboot2 /boot/bender phys_max=256M $serial_bender_opt"
-		puts $fh " module2 /sel4 sel4 disable_iommu"
-		puts $fh " module2 /image.elf image.elf"
+		puts $fh " module2 /boot/sel4 sel4 disable_iommu"
+		puts $fh " module2 /boot/image.elf image.elf"
 		puts $fh "}"
 		close $fh
 	}
@@ -94,19 +97,19 @@ proc run_boot_dir {binaries} {
 			exit 1
 		}
 		# keep Genode image.elf as genode.elf
-		exec mv [run_dir]/image.elf [run_dir]/genode.elf
+		exec mv [run_dir]/boot/image.elf [run_dir]/boot/genode.elf
 
 		# call seL4 elfloader tool to generate image.elf bootable by uboot with 'bootelf' command
 		set ::env(PLAT) imx6
 		set ::env(TOOLPREFIX) [cross_dev_prefix]
-		exec [sel4_elfloader_dir]/gen_boot_image.sh [run_dir]/sel4 [run_dir]/genode.elf [run_dir]/image.elf
+		exec [sel4_elfloader_dir]/gen_boot_image.sh [run_dir]/boot/sel4 [run_dir]/boot/genode.elf [run_dir]/boot/image.elf
 	}
 
-	run_image [run_dir]/image.elf
+	run_image [run_dir]/boot/image.elf
 
 	# set symbolic link to image.elf file in TFTP directory for PXE boot
 	if {[have_spec arm] && [have_include "load/tftp"]} {
-		exec ln -sf [pwd]/[run_dir]/image.elf [load_tftp_base_dir][load_tftp_offset_dir]
+		exec ln -sf [pwd]/[run_dir]/boot/image.elf [load_tftp_base_dir][load_tftp_offset_dir]
 
 		if {[have_include "image/uboot"]} {
 			exec ln -sf [pwd]/[run_dir]/uImage [load_tftp_base_dir][load_tftp_offset_dir]
@@ -124,8 +127,8 @@ proc run_boot_dir {binaries} {
 		#
 		set fh [open "[run_dir]/config-52-54-00-12-34-56" "WRONLY CREAT TRUNC"]
 		puts $fh " exec /boot/bender phys_max=256M"
-		puts $fh " load /sel4 disable_iommu"
-		puts $fh " load /image.elf"
+		puts $fh " load /boot/sel4 disable_iommu"
+		puts $fh " load /boot/image.elf"
 		close $fh
 
 		generate_tftp_config
