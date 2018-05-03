@@ -52,7 +52,8 @@ class Menu_view::Widget : public List_model<Widget>::Element
 		enum { NAME_MAX_LEN = 32 };
 		typedef String<NAME_MAX_LEN> Name;
 
-		typedef Name Type_name;
+		typedef Name       Type_name;
+		typedef String<10> Version;
 
 		struct Unique_id
 		{
@@ -92,6 +93,7 @@ class Menu_view::Widget : public List_model<Widget>::Element
 
 		Type_name const _type_name;
 		Name      const _name;
+		Version   const _version;
 
 		Unique_id const _unique_id;
 
@@ -122,7 +124,8 @@ class Menu_view::Widget : public List_model<Widget>::Element
 			static bool element_matches_xml_node(Widget const &w, Xml_node node)
 			{
 				return node.has_type(w._type_name.string())
-				    && Widget::node_name(node) == w._name;
+				    && Widget::node_name(node) == w._name
+				    && node.attribute_value("version", Version()) == w._version;
 			}
 
 		} _model_update_policy { _factory };
