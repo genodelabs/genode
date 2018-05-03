@@ -1,0 +1,35 @@
+commit 90f5e157c7f8edabcc625ee96e9db157da955d47
+Author: Emery Hemingway <emery@vfemail.net>
+Date:   Wed May 2 21:29:53 2018 +0200
+
+    Disable setTerminate when noCppExceptions is defined
+
+diff --git a/compiler/cgen.nim b/compiler/cgen.nim
+index ff3e6714d..d838f9b9c 100644
+--- a/compiler/cgen.nim
++++ b/compiler/cgen.nim
+@@ -265,7 +265,7 @@ proc rdCharLoc(a: TLoc): Rope =
+ 
+ proc genObjectInit(p: BProc, section: TCProcSection, t: PType, a: TLoc,
+                    takeAddr: bool) =
+-  if p.module.compileToCpp and t.isException:
++  if p.module.compileToCpp and t.isException and not isDefined("noCppExceptions"):
+     # init vtable in Exception object for polymorphic exceptions
+     includeHeader(p.module, "<new>")
+     linefmt(p, section, "new ($1) $2;$n", rdLoc(a), getTypeDesc(p.module, t))
+diff --git a/lib/system.nim b/lib/system.nim
+index 5c0970f85..49f2a29bf 100644
+--- a/lib/system.nim
++++ b/lib/system.nim
+@@ -4172,8 +4172,9 @@ template doAssertRaises*(exception, code: untyped): typed =
+   if wrong:
+     raiseAssert(astToStr(exception) & " wasn't raised by:\n" & astToStr(code))
+ 
+-when defined(cpp) and appType != "lib" and not defined(js) and
+-    not defined(nimscript) and hostOS != "standalone":
++when defined(cpp) and appType != "lib" and
++    not defined(js) and not defined(nimscript) and
++    hostOS != "standalone" and not defined(noCppExceptions):
+   proc setTerminate(handler: proc() {.noconv.})
+     {.importc: "std::set_terminate", header: "<exception>".}
+   setTerminate proc() {.noconv.} =
