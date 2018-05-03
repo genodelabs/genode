@@ -88,6 +88,17 @@ struct Generic
 	uint8_t  creator[4];
 	uint32_t creator_rev;
 
+	void print(Genode::Output &out) const
+	{
+		Genode::String<7> s_oem((const char *)oemid);
+		Genode::String<9> s_oemtabid((const char *)oemtabid);
+		Genode::String<5> s_creator((const char *)creator);
+
+		Genode::print(out, "OEM '", s_oem, "', table id '", s_oemtabid, "', "
+		              "revision ", oemrev, ", creator '", s_creator, "' (",
+		              creator_rev, ")");
+	}
+
 	uint8_t const *data() { return reinterpret_cast<uint8_t *>(this); }
 
 	/* MADT ACPI structure */
@@ -495,6 +506,9 @@ class Pci_routing : public List<Pci_routing>::Element
 		}
 };
 
+/* set during ACPI Table walk to valid value */
+enum { INVALID_ROOT_BRIDGE = 0x10000U };
+static unsigned root_bridge_bdf = INVALID_ROOT_BRIDGE;
 
 /**
  * A table element (method, device, scope or name)
@@ -1081,6 +1095,13 @@ class Element : private List<Element>::Element
 				if (prt) prt->dump();
 
 				if (prt) {
+					uint32_t const hid= e->_value("_HID");
+					uint32_t const cid= e->_value("_CID");
+					if (hid == 0x80ad041 || cid == 0x80ad041 || // "PNP0A08" PCI Express root bridge
+					    hid == 0x30ad041 || cid == 0x30ad041) { // "PNP0A03" PCI root bridge
+						root_bridge_bdf = e->_bdf;
+					}
+
 					if (verbose)
 						Genode::log("Scanning device ", Genode::Hex(e->_bdf));
 
@@ -1090,31 +1111,6 @@ class Element : private List<Element>::Element
 
 				e->_routed = true;
 			}
-		}
-
-		/**
-		 * Search for GSI of given device, bridge, and pin
-		 */
-		static uint32_t search_gsi(uint32_t device_bdf, uint32_t bridge_bdf, uint32_t pin)
-		{
-			Element *e = list()->first();
-
-			for (; e; e = e->next()) {
-				if (!e->is_device() || e->_bdf != bridge_bdf)
-					continue;
-
-				Pci_routing *r = e->pci_list().first();
-				for (; r; r = r->next()) {
-					if (r->match_bdf(device_bdf) && r->pin() == pin) {
-						if (verbose)
-							Genode::log("Found GSI: ", r->gsi(), " "
-							            "device : ", Genode::Hex(device_bdf), " ",
-							            "pin ", pin);
-						return r->gsi();
-					}
-				}
-			}
-			throw -1;
 		}
 };
 
@@ -1287,16 +1283,6 @@ class Acpi_table
 					return;
 				}
 
-				if (verbose) {
-					uint8_t oem[7];
-					memcpy(oem, rsdp->oemid, 6);
-					oem[6] = 0;
-					Genode::log("ACPI revision ", rsdp->revision, " of "
-					            "OEM '", oem, "', "
-					            "rsdt:", Genode::Hex(rsdp->rsdt), " "
-					            "xsdt:", Genode::Hex(rsdp->xsdt));
-				}
-
 				rsdt = rsdp->rsdt;
 				xsdt = rsdp->xsdt;
 				acpi_revision = rsdp->revision;
@@ -1311,6 +1297,8 @@ class Acpi_table
 
 				uint64_t * entries = reinterpret_cast<uint64_t *>(table.table() + 1);
 				_parse_tables(alloc, entries, table.entry_count(entries));
+
+				Genode::log("XSDT ", *table.table());
 			} else {
 				/* running (32bit) or (64bit and xsdt isn't valid) */
 				Table_wrapper table(_memory, rsdt);
@@ -1318,6 +1306,8 @@ class Acpi_table
 
 				uint32_t * entries = reinterpret_cast<uint32_t *>(table.table() + 1);
 				_parse_tables(alloc, entries, table.entry_count(entries));
+
+				Genode::log("RSDT ", *table.table());
 			}
 
 			/* free up memory of elements not of any use */
@@ -1348,14 +1338,11 @@ void Acpi::generate_report(Genode::Env &env, Genode::Allocator &alloc)
 	acpi.enabled(true);
 
 	Genode::Reporter::Xml_generator xml(acpi, [&] () {
-		if (!(!Fadt::features && !Fadt::reset_type &&
-		      !Fadt::reset_addr && !Fadt::reset_value))
-			xml.node("fadt", [&] () {
-				attribute_hex(xml, "features"   , Fadt::features);
-				attribute_hex(xml, "reset_type" , Fadt::reset_type);
-				attribute_hex(xml, "reset_addr" , Fadt::reset_addr);
-				attribute_hex(xml, "reset_value", Fadt::reset_value);
+		if (root_bridge_bdf != INVALID_ROOT_BRIDGE) {
+			xml.node("root_bridge", [&] () {
+				attribute_hex(xml, "bdf", root_bridge_bdf);
 			});
+		}
 
 		for (Pci_config_space *e = Pci_config_space::list()->first(); e;
 		     e = e->next())

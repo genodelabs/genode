@@ -287,12 +287,15 @@ void Platform::Irq_session_component::sigh(Genode::Signal_context_capability sig
 
 
 unsigned short Platform::Irq_routing::rewrite(unsigned char bus, unsigned char dev,
-                                         unsigned char /* func */, unsigned char pin)
+                                              unsigned char, unsigned char pin)
 {
-	for (Irq_routing *i = list()->first(); i; i = i->next())
+	unsigned const bridge_bdf_bus = Platform::bridge_bdf(bus);
+
+	for (Irq_routing *i = list()->first(); i; i = i->next()) {
 		if ((dev == i->_device) && (pin - 1 == i->_device_pin) &&
-		    (i->_bridge_bdf == Platform::bridge_bdf(bus)))
+		    (i->_bridge_bdf == bridge_bdf_bus))
 			return i->_gsi;
+	}
 
 	return 0;
 }
