@@ -31,7 +31,7 @@ proc run_image { {unused ""} } {
 	if {[image_disk_size] > 0} {
 		set disk_size_kb [expr [image_disk_size] * 1024 * 1024]
 	} else {
-		set disk_size_kb [expr ($size_run + 256) / 32 * 32]
+		set disk_size_kb [expr ($size_run + 256 + 128) / 32 * 32]
 	}
 
 	# setup partition with content
