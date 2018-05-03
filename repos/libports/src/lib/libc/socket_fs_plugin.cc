@@ -666,7 +666,7 @@ static ssize_t do_sendto(Libc::File_descriptor *fd,
 	/* TODO ECONNRESET */
 
 	try {
-		if (dest_addr) {
+		if (dest_addr && context->proto() == Context::Proto::UDP) {
 			try {
 				Sockaddr_string addr_string(host_string(*(sockaddr_in const *)dest_addr),
 				                            port_string(*(sockaddr_in const *)dest_addr));
