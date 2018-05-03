@@ -20,6 +20,7 @@
 
 #include "driver.h"
 #include "partition_table.h"
+#include "fsprobe.h"
 
 namespace {
 
@@ -265,6 +266,10 @@ class Gpt : public Block::Partition_table
 							continue;
 						}
 
+						enum { BYTES = 4096, };
+						Sector fs(driver, e->_lba_start, BYTES / driver.blk_size());
+						Fs::Type fs_type = Fs::probe(fs.addr<Genode::uint8_t*>(), BYTES);
+
 						xml.node("partition", [&] () {
 							xml.attribute("number", i + 1);
 							xml.attribute("name", e->name());
@@ -272,6 +277,9 @@ class Gpt : public Block::Partition_table
 							xml.attribute("guid", e->_guid.to_string());
 							xml.attribute("start", e->_lba_start);
 							xml.attribute("length", e->_lba_end - e->_lba_start + 1);
+							if (fs_type.valid()) {
+								xml.attribute("file_system", fs_type);
+							}
 						});
 					}
 				});
