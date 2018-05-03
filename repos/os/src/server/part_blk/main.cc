@@ -45,7 +45,9 @@ class Main
 
 	public:
 
-		class No_partion_table : Genode::Exception {};
+		struct No_partion_table : Genode::Exception { };
+		struct Ambiguous_tables : Genode::Exception { };
+		struct Invalid_config   : Genode::Exception { };
 
 		Main(Genode::Env &env) : _env(env)
 		{
@@ -63,14 +65,24 @@ class Main
 
 Block::Partition_table & Main::_table()
 {
-	bool valid_mbr = false;
-	bool valid_gpt = false;
-	bool use_gpt   = false;
-	bool report    = false;
+	using namespace Genode;
+
+	bool valid_mbr  = false;
+	bool valid_gpt  = false;
+	bool ignore_gpt = false;
+	bool ignore_mbr = false;
+	bool pmbr_found = false;
+	bool report     = false;
 
 	try {
-		use_gpt = _config.xml().attribute_value("use_gpt", false);
+		ignore_gpt = _config.xml().attribute_value("ignore_gpt", false);
+		ignore_mbr = _config.xml().attribute_value("ignore_mbr", false);
 	} catch(...) {}
+
+	if (ignore_gpt && ignore_mbr) {
+		error("invalid configuration: cannot ignore GPT as well as MBR");
+		throw Invalid_config();
+	}
 
 	try {
 		report = _config.xml().sub_node("report").attribute_value
@@ -79,24 +91,51 @@ Block::Partition_table & Main::_table()
 			_reporter.enabled(true);
 	} catch(...) {}
 
-	if (use_gpt)
-		try { valid_gpt = _gpt.parse(); } catch (...) { }
+	/*
+	 * Try to parse MBR as well as GPT first if not instructued
+	 * to ignore either one of them.
+	 */
 
-	/* fall back to MBR */
-	if (!valid_gpt) {
+	if (!ignore_mbr) {
 		try { valid_mbr = _mbr.parse(); }
 		catch (Mbr_partition_table::Protective_mbr_found) {
-			if (!use_gpt)
-				Genode::error("Aborting: found protective MBR but ",
-				              "GPT usage was not requested.");
-			throw;
+			pmbr_found = true;
 		}
 	}
+
+	if (!ignore_gpt) {
+		try { valid_gpt = _gpt.parse(); }
+		catch (...) { }
+	}
+
+	/*
+	 * Both tables are valid (although we would have expected a PMBR in
+	 * conjunction with a GPT header - hybrid operation is not supported)
+	 * and we will not decide which one to use, it is up to the user.
+	 */
+
+	if (valid_mbr && valid_gpt) {
+		error("ambigious tables: found valid MBR as well as valid GPT");
+		throw Ambiguous_tables();
+	}
+
+	if (valid_gpt && !pmbr_found) {
+		warning("will use GPT without proper protective MBR");
+	}
+
+	/* PMBR missing, i.e, MBR part[0] contains whole disk and GPT valid */
+	if (pmbr_found && ignore_gpt) {
+		warning("found protective MBR but GPT is to be ignored");
+	}
+
+	/*
+	 * Return the appropriate table or abort if none is found.
+	 */
 
 	if (valid_gpt) return _gpt;
 	if (valid_mbr) return _mbr;
 
-	Genode::error("Aborting: no partition table found.");
+	error("Aborting: no partition table found.");
 	throw No_partion_table();
 }
 
