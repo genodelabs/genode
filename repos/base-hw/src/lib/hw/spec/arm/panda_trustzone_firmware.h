@@ -30,9 +30,11 @@ namespace Hw {
 	{
 		register Genode::addr_t _func asm("r12") = func;
 		register Genode::addr_t _val  asm("r0")  = val;
-		asm volatile("dsb; smc #0" :: "r" (_func), "r" (_val) :
-		             "memory", "cc", "r1", "r2", "r3", "r4", "r5", "r6", "r7",
-		             "r8", "r9", "r10", "r11");
+		asm volatile("dsb           \n"
+		             "push {r1-r11} \n"
+		             "smc  #0       \n"
+		             "pop  {r1-r11} \n"
+		             :: "r" (_func), "r" (_val) : "memory", "cc");
 	}
 }
 
