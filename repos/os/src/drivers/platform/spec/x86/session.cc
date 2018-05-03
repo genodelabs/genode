@@ -15,6 +15,10 @@
 #include "pci_bridge.h"
 
 
+/* set during ACPI ROM parsing to valid value */
+unsigned Platform::Bridge::root_bridge_bdf = INVALID_ROOT_BRIDGE;
+
+
 static Genode::List<Platform::Bridge> *bridges()
 {
 	static Genode::List<Platform::Bridge> list;
@@ -30,7 +34,8 @@ unsigned short Platform::bridge_bdf(unsigned char bus)
 		if (bridge->part_of(bus))
 			return bridge->bdf();
 	}
-	return 0;
+	/* XXX Ideally, this case should never happen */
+	return Platform::Bridge::root_bridge_bdf;
 }
 
 void Platform::Pci_buses::scan_bus(Config_access &config_access,

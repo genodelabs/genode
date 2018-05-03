@@ -34,9 +34,10 @@
 #include <base/allocator_guard.h>
 
 /* local */
-#include "pci_device_component.h"
-#include "pci_config_access.h"
 #include "device_pd.h"
+#include "pci_bridge.h"
+#include "pci_config_access.h"
+#include "pci_device_component.h"
 
 typedef Genode::Ram_dataspace_capability Ram_capability;
 
@@ -828,27 +829,6 @@ class Platform::Root : public Genode::Root_component<Session_component>
 {
 	private:
 
-		struct Fadt {
-			Genode::uint32_t features = 0, reset_type = 0, reset_value = 0;
-			Genode::uint64_t reset_addr = 0;
-
-			/* Table 5-35 Fixed ACPI Description Table Fixed Feature Flags */
-			struct Features : Genode::Register<32> {
-				struct Reset : Bitfield<10, 1> { };
-			};
-
-			/* ACPI spec - 5.2.3.2 Generic Address Structure */
-			struct Gas : Genode::Register<32>
-			{
-				struct Address_space : Bitfield <0, 8> {
-					enum { SYSTEM_IO = 1 };
-				};
-				struct Access_size : Bitfield<24,8> {
-					enum { UNDEFINED = 0, BYTE = 1, WORD = 2, DWORD = 3, QWORD = 4};
-				};
-			};
-		} fadt { };
-
 		Genode::Env                    &_env;
 		Genode::Attached_rom_dataspace &_config;
 
@@ -974,11 +954,8 @@ class Platform::Root : public Genode::Root_component<Session_component>
 					continue;
 				}
 
-				if (node.has_type("fadt")) {
-					node.attribute("features").value(&fadt.features);
-					node.attribute("reset_type").value(&fadt.reset_type);
-					node.attribute("reset_addr").value(&fadt.reset_addr);
-					node.attribute("reset_value").value(&fadt.reset_value);
+				if (node.has_type("root_bridge")) {
+					node.attribute("bdf").value(&Platform::Bridge::root_bridge_bdf);
 					continue;
 				}
 
@@ -997,40 +974,9 @@ class Platform::Root : public Genode::Root_component<Session_component>
 				node.attribute("device").value(&device);
 				node.attribute("device_pin").value(&device_pin);
 
-				/* check that bridge bdf is actually a valid device */
-				Device_config config((bridge_bdf >> 8 & 0xff),
-				                     (bridge_bdf >> 3) & 0x1f,
-				                      bridge_bdf & 0x7, &config_access);
-
-				if (!config.valid())
-					continue;
-
 				/* drop routing information on non ACPI platform */
-				if (!acpi_platform) {
-					if (config.pci_bridge())
-						continue;
-
-					Device_config dev(device << 3);
-
-					enum { PCI_IRQ_LINE = 0x3c };
-					uint8_t pin = dev.read(config_access, PCI_IRQ_LINE,
-					                       Platform::Device::ACCESS_8BIT);
-					warning(dev, " ignore ACPI IRQ routing: ", pin, "->", gsi);
+				if (!acpi_platform)
 					continue;
-				}
-
-				if (!config.pci_bridge() && bridge_bdf != 0)
-					/**
-					 * If the bridge bdf has not a type header of a bridge in
-					 * the pci config space, then it should be the host bridge
-					 * device. The host bridge device need not to be
-					 * necessarily at 0:0.0, it may be on another location. The
-					 * irq routing information for the host bridge however
-					 * contain entries for the bridge bdf to be 0:0.0 -
-					 * therefore we override it here for the irq rerouting
-					 * information of host bridge devices.
-					 */
-					bridge_bdf = 0;
 
 				Irq_routing * r = new (_heap) Irq_routing(gsi, bridge_bdf,
 				                                          device, device_pin);
@@ -1122,6 +1068,12 @@ class Platform::Root : public Genode::Root_component<Session_component>
 				Genode::error("ACPI report parsing error.");
 				throw;
 			}
+
+			if (Platform::Bridge::root_bridge_bdf < Platform::Bridge::INVALID_ROOT_BRIDGE) {
+				Device_config config(Platform::Bridge::root_bridge_bdf);
+				Genode::log("Root bridge: ", config);
+			} else
+				Genode::warning("Root bridge: unknown");
 
 			_construct_buses();
 

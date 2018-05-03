@@ -53,4 +53,7 @@ class Platform::Bridge : public Genode::List<Bridge>::Element
 			bdf = (bdf << 8) | ((_dev & 0x1f) << 3) | (_fun & 0x7);
 			return bdf;
 		}
+
+		enum { INVALID_ROOT_BRIDGE = 0x10000U };
+		static unsigned root_bridge_bdf;
 };
