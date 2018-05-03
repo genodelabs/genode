@@ -1,0 +1,17 @@
+diff --git a/config/nim.cfg b/config/nim.cfg
+index a2a774b23..a664e3e7b 100644
+--- a/config/nim.cfg
++++ b/config/nim.cfg
+@@ -243,3 +243,12 @@ vcc.cpp.options.size = "/O1"
+ 
+ # Configuration for the Tiny C Compiler:
+ tcc.options.always = "-w"
++
++# Configuration for Genode toolchain
++amd64.genode.gcc.path = "/usr/local/genode-gcc/bin"
++amd64.genode.gcc.exe = "genode-x86-gcc"
++amd64.genode.gcc.cpp.exe = "genode-x86-g++"
++
++arm.genode.gcc.path = "/usr/local/genode-gcc/bin"
++arm.genode.gcc.exe = "genode-arm-gcc"
++arm.genode.gcc.cpp.exe = "genode-arm-g++"

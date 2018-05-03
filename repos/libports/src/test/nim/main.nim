@@ -103,9 +103,6 @@ suite "time":
   echo "An hour from now      : ", getLocalTime(getTime()) + 1.hours
   echo "An hour from (UTC) now: ", getGmTime(getTime()) + initInterval(0,0,0,1)
 
-  test "getTime":
-    assert(getTime() != 0.Time)
-
 suite "garbage collector":
   echo GC_getStatistics()
 
