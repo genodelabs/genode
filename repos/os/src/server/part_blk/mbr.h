@@ -21,6 +21,7 @@
 #include <block_session/client.h>
 
 #include "partition_table.h"
+#include "fsprobe.h"
 
 
 struct Mbr_partition_table : public Block::Partition_table
@@ -165,11 +166,20 @@ struct Mbr_partition_table : public Block::Partition_table
 					xml.attribute("type", "mbr");
 
 					_parse_mbr(mbr, [&] (int i, Partition_record *r, unsigned offset) {
+
+						enum { BYTES = 4096, };
+						Sector fs(driver, r->_lba + offset, BYTES / driver.blk_size());
+						Fs::Type fs_type = Fs::probe(fs.addr<Genode::uint8_t*>(), BYTES);
+
 						xml.node("partition", [&] {
 							xml.attribute("number", i);
 							xml.attribute("type", r->_type);
 							xml.attribute("start", r->_lba + offset);
 							xml.attribute("length", r->_sectors);
+
+							if (fs_type.valid()) {
+								xml.attribute("file_system", fs_type);
+							}
 						});
 					});
 				});
