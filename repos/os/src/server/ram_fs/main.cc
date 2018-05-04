@@ -256,7 +256,6 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 							File(_alloc, name.string());
 
 						dir->adopt_unsynchronized(file);
-						open_node.mark_as_written();
 					}
 					catch (Allocator::Out_of_memory) { throw No_space(); }
 				}
@@ -444,7 +443,6 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 				dir->discard(node);
 
 				destroy(_alloc, node);
-				open_node.mark_as_written();
 			};
 
 			try {
@@ -507,20 +505,6 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 
 						from_dir->discard(node);
 						to_dir->adopt_unsynchronized(node);
-
-						/*
-						 * If the file was moved from one directory to another we
-						 * need to inform the new directory 'to_dir'. The original
-						 * directory 'from_dir' will always get notified (i.e.,
-						 * when just the file name was changed) below.
-						 */
-						to_dir->mark_as_updated();
-						open_to_dir_node.mark_as_written();
-						to_dir->notify_listeners();
-
-						from_dir->mark_as_updated();
-						open_from_dir_node.mark_as_written();
-						from_dir->notify_listeners();
 
 						node->mark_as_updated();
 						node->notify_listeners();
