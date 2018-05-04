@@ -5,10 +5,10 @@
 		<xs:restriction base="xs:string">
 			<xs:enumeration value="true" />
 			<xs:enumeration value="yes" />
-			<xs:enumeration value="1" />
+			<xs:enumeration value="on" />
 			<xs:enumeration value="false" />
 			<xs:enumeration value="no" />
-			<xs:enumeration value="0" />
+			<xs:enumeration value="off" />
 		</xs:restriction>
 	</xs:simpleType><!-- Boolean -->
 
