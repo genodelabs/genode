@@ -145,44 +145,70 @@ struct Mbr_partition_table : public Block::Partition_table
 			Mbr *mbr = s.addr<Mbr *>();
 
 			/* no partition table, use whole disc as partition 0 */
-			if (!(mbr->valid()))
+			bool const mbr_valid = mbr->valid();
+			if (!mbr_valid) {
 				_part_list[0] = new (&heap)
 					Block::Partition(0, driver.blk_cnt() - 1);
-
-			_parse_mbr(mbr, [&] (int i, Partition_record *r, unsigned offset) {
-				Genode::log("Partition ", i, ": LBA ",
-				            (unsigned int) r->_lba + offset, " (",
-				            (unsigned int) r->_sectors, " blocks) type: ",
-				            Genode::Hex(r->_type, Genode::Hex::OMIT_PREFIX));
-				if (!r->extended())
-					_part_list[i] = new (&heap)
-						Block::Partition(r->_lba + offset, r->_sectors);
-			});
+			} else {
+				_parse_mbr(mbr, [&] (int i, Partition_record *r, unsigned offset) {
+					Genode::log("Partition ", i, ": LBA ",
+					            (unsigned int) r->_lba + offset, " (",
+					            (unsigned int) r->_sectors, " blocks) type: ",
+					            Genode::Hex(r->_type, Genode::Hex::OMIT_PREFIX));
+					if (!r->extended())
+						_part_list[i] = new (&heap)
+							Block::Partition(r->_lba + offset, r->_sectors);
+				});
+			}
 
 			/* Report the partitions */
-			if (reporter.enabled())
-			{
+			if (reporter.enabled()) {
+
+				enum { PROBE_BYTES = 4096, };
+				Genode::size_t const block_size = driver.blk_size();
+
 				Genode::Reporter::Xml_generator xml(reporter, [&] () {
-					xml.attribute("type", "mbr");
 
-					_parse_mbr(mbr, [&] (int i, Partition_record *r, unsigned offset) {
+					if (mbr_valid) {
+						xml.attribute("type", "mbr");
 
-						enum { BYTES = 4096, };
-						Sector fs(driver, r->_lba + offset, BYTES / driver.blk_size());
-						Fs::Type fs_type = Fs::probe(fs.addr<Genode::uint8_t*>(), BYTES);
+						_parse_mbr(mbr, [&] (int i, Partition_record *r, unsigned offset) {
+
+							Sector fs(driver, r->_lba + offset, PROBE_BYTES / block_size);
+							Fs::Type fs_type = Fs::probe(fs.addr<Genode::uint8_t*>(), PROBE_BYTES);
+
+							xml.node("partition", [&] {
+								xml.attribute("number", i);
+								xml.attribute("type", r->_type);
+								xml.attribute("start", r->_lba + offset);
+								xml.attribute("length", r->_sectors);
+								xml.attribute("block_size", driver.blk_size());
+
+								if (fs_type.valid()) {
+									xml.attribute("file_system", fs_type);
+								}
+							});
+						});
+					} else {
+						xml.attribute("type", "disk");
+
+						enum { PART_NUM = 0, };
+						Block::Partition const &disk = *_part_list[PART_NUM];
+
+						Sector fs(driver, disk.lba, PROBE_BYTES / block_size);
+						Fs::Type fs_type = Fs::probe(fs.addr<Genode::uint8_t*>(), PROBE_BYTES);
 
 						xml.node("partition", [&] {
-							xml.attribute("number", i);
-							xml.attribute("type", r->_type);
-							xml.attribute("start", r->_lba + offset);
-							xml.attribute("length", r->_sectors);
+							xml.attribute("number", PART_NUM);
+							xml.attribute("start",  disk.lba);
+							xml.attribute("length", disk.sectors + 1);
 							xml.attribute("block_size", driver.blk_size());
 
 							if (fs_type.valid()) {
 								xml.attribute("file_system", fs_type);
 							}
 						});
-					});
+					}
 				});
 			}
 
