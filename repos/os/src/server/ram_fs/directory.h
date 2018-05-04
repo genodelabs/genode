@@ -62,6 +62,7 @@ class Ram_fs::Directory : public Node
 			_num_entries++;
 
 			mark_as_updated();
+			notify_listeners();
 		}
 
 		void discard(Node *node) override
@@ -70,6 +71,7 @@ class Ram_fs::Directory : public Node
 			_num_entries--;
 
 			mark_as_updated();
+			notify_listeners();
 		}
 
 		Node *lookup(char const *path, bool return_parent = false) override
