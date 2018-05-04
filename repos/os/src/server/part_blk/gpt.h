@@ -17,6 +17,7 @@
 #include <base/env.h>
 #include <base/log.h>
 #include <block_session/client.h>
+#include <util/misc_math.h>
 
 #include "driver.h"
 #include "partition_table.h"
@@ -185,7 +186,7 @@ class Gpt : public Block::Partition_table
 			Genode::uint64_t _attr;           /* partition attributes */
 			Genode::uint16_t _name[NAME_LEN]; /* partition name in UNICODE-16 */
 
-			bool valid()
+			bool valid() const
 			{
 				if (_type.time_low == 0x00000000)
 					return false;
@@ -226,6 +227,89 @@ class Gpt : public Block::Partition_table
 
 
 		/**
+		 * Calculate free blocks until the start of the logical next entry
+		 *
+		 * \param header   pointer to GPT header
+		 * \param entry    pointer to current entry
+		 * \param entries  pointer to entries
+		 * \param num      number of entries
+		 *
+		 * \return the number of free blocks to the next logical entry
+		 */
+		Genode::uint64_t _calculate_gap(Gpt_hdr   const *header,
+		                                Gpt_entry const *entry,
+		                                Gpt_entry const *entries,
+		                                Genode::uint32_t num,
+		                                Genode::uint64_t total_blocks)
+		{
+			using namespace Genode;
+
+			/* add one block => end == start */
+			uint64_t const end_lba = entry->_lba_end + 1;
+
+			enum { INVALID_START = ~0ull, };
+			uint64_t next_start_lba = INVALID_START;
+
+			for (uint32_t i = 0; i < num; i++) {
+				Gpt_entry const *e = (entries + i);
+
+				if (!e->valid() || e == entry) { continue; }
+
+				/*
+				 * Check if the entry starts afterwards and save the
+				 * entry with the smallest distance.
+				 */
+				if (e->_lba_start >= end_lba) {
+					next_start_lba = min(next_start_lba, e->_lba_start);
+				}
+			}
+
+			/* sanity check if GPT is broken */
+			if (end_lba > header->_part_lba_end) { return 0; }
+
+			/* if the underyling Block device changes we might be able to expand more */
+			Genode::uint64_t const part_end = max(header->_part_lba_end, total_blocks);
+
+			/*
+			 * Use stored next start LBA or paritions end LBA from header,
+			 * if there is no other entry or we are the only one.
+			 */
+			return (next_start_lba == INVALID_START ? part_end
+			                                        : next_start_lba) - end_lba;
+		}
+
+
+		/**
+		 * Calculate total used blocks
+		 *
+		 * \param header   pointer to GPT header
+		 * \param entries  pointer to entries
+		 * \param num      number of entries
+		 *
+		 * \return the number of used blocks
+		 */
+		Genode::uint64_t _calculate_used(Gpt_hdr const *,
+		                                 Gpt_entry const *entries,
+		                                 Genode::uint32_t num)
+		{
+			using namespace Genode;
+
+			uint64_t used = 0;
+
+			for (uint32_t i = 0; i < num; i++) {
+				Gpt_entry const *e = (entries + i);
+
+				if (!e->valid()) { continue; }
+
+				uint64_t const v = (e->_lba_end - e->_lba_start) + 1;
+				used += v;
+			}
+
+			return used;
+		}
+
+
+		/**
 		 * Parse the GPT header
 		 */
 		void _parse_gpt(Gpt_hdr *gpt)
@@ -259,6 +343,17 @@ class Gpt : public Block::Partition_table
 				Genode::Reporter::Xml_generator xml(reporter, [&] () {
 					xml.attribute("type", "gpt");
 
+					Genode::uint64_t const total_blocks = driver.blk_cnt();
+					xml.attribute("total_blocks", total_blocks);
+
+					Genode::uint64_t const gpt_total =
+						(gpt->_part_lba_end - gpt->_part_lba_start) + 1;
+					xml.attribute("gpt_total", gpt_total);
+
+					Genode::uint64_t const gpt_used =
+						_calculate_used(gpt, entries, gpt->_entries);
+					xml.attribute("gpt_used", gpt_used);
+
 					for (int i = 0; i < MAX_PARTITIONS; i++) {
 						Gpt_entry *e = (entries + i);
 
@@ -278,6 +373,11 @@ class Gpt : public Block::Partition_table
 							xml.attribute("start", e->_lba_start);
 							xml.attribute("length", e->_lba_end - e->_lba_start + 1);
 							xml.attribute("block_size", driver.blk_size());
+
+							Genode::uint64_t const gap = _calculate_gap(gpt, e, entries,
+							                                            gpt->_entries,
+							                                            total_blocks);
+							if (gap) { xml.attribute("expandable", gap); }
 
 							if (fs_type.valid()) {
 								xml.attribute("file_system", fs_type);
