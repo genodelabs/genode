@@ -1,29 +1,31 @@
-set use_net 1
-set use_ps2 [have_spec ps2]
-set use_serial 1
+if {[expr ![have_spec nova] || ![have_spec x86] || [have_include power_on/qemu] ]} {
+	puts "\n Run script is not supported on this platform. \n"; exit 0 }
 
-set build_components {
-	core init
-	drivers/framebuffer
-	drivers/timer
-	server/nic_dump
-	server/nic_router
-}
+proc wifi_ssid {} {
+	return "$::env(GENODE_WIFI_SSID)" }
 
-append build_components virtualbox
-set virtualbox_binary "virtualbox-rem"
-if {[have_spec muen]} { set virtualbox_binary "virtualbox-muen" }
-if {[have_spec nova]} { set virtualbox_binary "virtualbox-nova" }
+proc wifi_psk {} {
+	return "$::env(GENODE_WIFI_PSK)" }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
-# override defaults of platform_drv.inc
 proc platform_drv_priority {} { return { priority="-1"} }
 
-lappend_if [expr $use_ps2]    build_components drivers/input
-lappend_if [expr $use_serial] build_components server/log_terminal
-lappend_if [have_spec x86]    build_components drivers/rtc
-
-lappend_if [expr $use_net]    build_components drivers/nic
+append build_components { core }
+append build_components { init }
+append build_components { drivers/framebuffer }
+append build_components { drivers/timer }
+append build_components { server/nic_router }
+append build_components { virtualbox }
+append build_components { server/dynamic_rom }
+append build_components { server/report_rom }
+append build_components { drivers/wifi }
+append build_components { server/log_terminal }
+append build_components { lib/vfs/jitterentropy }
+append build_components { drivers/input }
+append build_components { drivers/rtc }
+append build_components { drivers/usb }
+append build_components { drivers/nic }
+append build_components { server/input_merger }
 
 append_platform_drv_build_components
 
@@ -31,7 +33,8 @@ build $build_components
 
 create_boot_directory
 
-set config {
+append config {
+
 <config prio_levels="4">
 	<parent-provides>
 		<service name="ROM"/>
@@ -41,146 +44,301 @@ set config {
 		<service name="PD"/>
 		<service name="RM"/>
 		<service name="CPU"/>
-		<service name="LOG"/>}
-
-append_if [have_spec muen] config {
-		<service name="VM"/>}
-
-append config {
+		<service name="LOG"/>
 	</parent-provides>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>
-	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Timer"/></provides>
-	</start>}
+	<default caps="100"/>}
 
 append_platform_drv_config
+append config {
 
-append_if [expr $use_ps2] config {
+	<start name="timer" priority="0">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+
 	<start name="ps2_drv" priority="-1">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Input"/></provides>
-	</start>}
+	</start>
 
-append_if [have_spec framebuffer] config {
 	<start name="fb_drv" priority="-1" caps="150">
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Framebuffer"/></provides>
-	</start>}
+	</start>
 
-append_if [have_spec sdl] config {
-	<start name="fb_sdl" priority="-1">
-		<resource name="RAM" quantum="4M"/>
-		<provides>
-			<service name="Input"/>
-			<service name="Framebuffer"/>
-		</provides>
-	</start>}
-
-append_if [have_spec x86] config {
 	<start name="rtc_drv" priority="-1">
 		<resource name="RAM" quantum="1M"/>
 		<provides>
 			<service name="Rtc"/>
 		</provides>
-	</start>}
+	</start>
 
-append_if [expr $use_net] config {
+	<start name="usb_drv" priority="-1" caps="200">
+		<resource name="RAM" quantum="20M"/>
+		<provides><service name="Input"/></provides>
+		<config uhci="yes" ehci="yes" xhci="yes"> <hid/> </config>
+	</start>
+
 	<start name="nic_drv" priority="-1">
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Nic"/></provides>
 	</start>
 
-	<start name="router1" caps="200">
-		<binary name="nic_router"/>
-		<resource name="RAM" quantum="10M"/>
-		<provides><service name="Nic"/></provides>
-		<config verbose="yes">
-
-			<policy label_prefix="router2" domain="router2"/>
-
-			<domain name="router2" interface="10.0.1.79/24">
-				<dhcp-server ip_first="10.0.1.80"
-				             ip_last="10.0.1.100"
-				             ip_lease_time_sec="20"
-				             dns_server="10.0.0.2"/>
-				<tcp dst="0.0.0.0/0"><permit-any domain="uplink"/></tcp>
-				<udp dst="0.0.0.0/0"><permit-any domain="uplink"/></udp>
-			</domain>
-
-			<domain name="uplink">
-				<nat domain="router2" tcp-ports="999" udp-ports="999"/>
-			</domain>
-
+	<start name="wifi_drv" priority="-1" caps="300">
+		<resource name="RAM" quantum="54M"/>
+		<provides> <service name="Nic"/> </provides>
+		<config ld_verbose="yes" verbose="yes" use_11n="no" connected_scan_interval="0">
+			<vfs>
+				<dir name="dev"> <log/> <rtc/> <null/>
+					<jitterentropy name="random"/>
+					<jitterentropy name="urandom"/>
+				</dir>
+				<dir name="config"> <ram/> </dir>
+			</vfs>
+			<libc stdout="/dev/null" stderr="/dev/log" rtc="/dev/rtc"/>
 		</config>
 		<route>
-			<service name="Nic"> <child name="nic_drv"/> </service>
+			<service name="Rtc"> <any-child/> </service>
+			<service name="Report"> <child name="report_rom"/> </service>
+			<service name="ROM" label="wlan_configuration"> <child name="config_rom"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
 
-	<start name="router2" caps="200">
+	<start name="input_merger" priority="-2">
+		<resource name="RAM" quantum="1M" />
+		<provides>
+			<service name="Input" />
+		</provides>
+		<config>
+			<input label="ps2" />
+			<input label="usb_hid" />
+		</config>
+		<route>
+			<service name="Input" label="ps2"> <child name="ps2_drv" /> </service>
+			<service name="Input" label="usb_hid"> <child name="usb_drv" /> </service>
+			<any-service> <parent /> <any-child /> </any-service>
+		</route>
+	</start>
+
+	<start name="report_rom" priority="-2">
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config/>
+	</start>
+
+	<start name="config_rom" priority="-2">
+		<binary name="dynamic_rom"/>
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="ROM"/></provides>
+		<config verbose="yes">
+			<rom name="wlan_configuration">
+				<inline description="CONNECT">
+				<selected_network ssid="} [wifi_ssid] {"
+				                  protection="WPA-PSK"
+				                  psk="} [wifi_psk] {"/>
+				</inline>
+				<sleep milliseconds="600000"/> <!-- 10 minutes -->
+			</rom>
+		</config>
+	</start>
+
+	<start name="dynamic_rom" priority="-2">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="ROM"/> </provides>
+		<config verbose="yes">
+			<rom name="router1.config">
+				<inline>
+
+					<config verbose_domain_state="no"
+					        verbose_packets="no"
+					        verbose="no"
+					        dhcp_discover_timeout_sec="1">
+
+						<policy label_prefix="vbox" domain="downlink"/>
+
+						<domain name="uplink" label="wifi">
+							<nat domain="downlink"
+							     tcp-ports="999"
+							     udp-ports="999"
+							     icmp-ids="999"/>
+						</domain>
+
+						<domain name="downlink" interface="10.0.1.79/24">
+							<dhcp-server ip_first="10.0.1.80"
+							             ip_last="10.0.1.100"
+							             ip_lease_time_sec="20"
+							             dns_server="1.1.1.1"/>
+							<tcp dst="0.0.0.0/0">
+								<permit-any domain="uplink"/>
+							</tcp>
+							<udp dst="0.0.0.0/0">
+								<permit-any domain="uplink"/>
+							</udp>
+							<icmp dst="0.0.0.0/0" domain="uplink" />
+						</domain>
+
+					</config>
+
+				</inline>
+				<sleep milliseconds="15000"/>
+				<inline>
+
+					<config verbose_domain_state="no"
+					        verbose_packets="no"
+					        verbose="no"
+					        dhcp_discover_timeout_sec="1">
+
+						<policy label_prefix="vbox" domain="downlink"/>
+
+						<domain name="uplink" label="wifi">
+							<nat domain="downlink"
+							     tcp-ports="999"
+							     udp-ports="999"
+							     icmp-ids="999"/>
+						</domain>
+
+						<domain name="downlink" interface="10.0.1.79/24">
+							<dhcp-server ip_first="10.0.1.80"
+							             ip_last="10.0.1.100"
+							             ip_lease_time_sec="20"
+							             dns_server="1.1.1.1"/>
+							<tcp dst="0.0.0.0/0">
+								<permit-any domain="uplink"/>
+							</tcp>
+							<udp dst="0.0.0.0/0">
+								<permit-any domain="uplink"/>
+							</udp>
+							<icmp dst="0.0.0.0/0" domain="uplink" />
+						</domain>
+
+					</config>
+
+				</inline>
+				<sleep milliseconds="15000"/>
+				<inline>
+
+					<config verbose_domain_state="no"
+					        verbose_packets="no"
+					        verbose="no"
+					        dhcp_discover_timeout_sec="1">
+
+						<policy label_prefix="vbox" domain="downlink"/>
+
+						<domain name="downlink" interface="10.0.1.79/24">
+							<dhcp-server ip_first="10.0.1.80"
+							             ip_last="10.0.1.100"
+							             ip_lease_time_sec="20"
+							             dns_server="1.1.1.1"/>
+							<tcp dst="0.0.0.0/0">
+								<permit-any domain="uplink"/>
+							</tcp>
+							<udp dst="0.0.0.0/0">
+								<permit-any domain="uplink"/>
+							</udp>
+							<icmp dst="0.0.0.0/0" domain="uplink" />
+						</domain>
+
+					</config>
+
+				</inline>
+				<sleep milliseconds="15000"/>
+			</rom>
+			<rom name="router2.config">
+				<inline>
+
+					<config verbose_domain_state="no"
+					        verbose_packets="no"
+					        verbose="no">
+
+						<policy label_prefix="vbox" domain="downlink"/>
+
+						<domain name="uplink">
+							<nat domain="downlink"
+							     tcp-ports="999"
+							     udp-ports="999"
+							     icmp-ids="999"/>
+						</domain>
+
+						<domain name="downlink" interface="10.0.1.79/24">
+							<dhcp-server ip_first="10.0.1.80"
+							             ip_last="10.0.1.100"
+							             ip_lease_time_sec="20"
+							             dns_server="1.1.1.1"/>
+							<tcp dst="0.0.0.0/0">
+								<permit-any domain="uplink"/>
+							</tcp>
+							<udp dst="0.0.0.0/0">
+								<permit-any domain="uplink"/>
+							</udp>
+							<icmp dst="0.0.0.0/0" domain="uplink" />
+						</domain>
+
+					</config>
+
+				</inline>
+				<sleep milliseconds="3600000"/>
+			</rom>
+		</config>
+	</start>
+
+	<start name="router1" caps="200" priority="-2">
 		<binary name="nic_router"/>
 		<resource name="RAM" quantum="10M"/>
 		<provides><service name="Nic"/></provides>
-		<config verbose="yes">
-
-			<policy label_prefix="vbox1" domain="vbox"/>
-
-			<domain name="vbox" interface="10.0.2.79/24">
-				<dhcp-server ip_first="10.0.2.80"
-				             ip_last="10.0.2.100"
-				             ip_lease_time_sec="20"
-				             dns_server="10.0.0.2"/>
-				<tcp dst="0.0.0.0/0"><permit-any domain="uplink"/></tcp>
-				<udp dst="0.0.0.0/0"><permit-any domain="uplink"/></udp>
-			</domain>
-
-			<domain name="uplink">
-				<nat domain="vbox" tcp-ports="999" udp-ports="999"/>
-			</domain>
-
-		</config>
 		<route>
+			<service name="Nic" label="wifi">
+				<child name="wifi_drv"/>
+			</service>
+			<service name="Nic" label="nic">
+				<child name="nic_drv"/>
+			</service>
+			<service name="ROM" label="config">
+				<child name="dynamic_rom" label="router1.config"/>
+			</service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="router2" caps="200" priority="-2">
+		<binary name="nic_router"/>
+		<resource name="RAM" quantum="10M"/>
+		<provides><service name="Nic"/></provides>
+		<route>
+			<service name="ROM" label="config">
+				<child name="dynamic_rom" label="router2.config"/>
+			</service>
 			<service name="Nic"> <child name="router1"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
-}
 
-append_if [expr $use_serial] config {
 	<start name="log_terminal" priority="-1">
 		<resource name="RAM" quantum="2M"/>
 		<provides>
 			<service name="Terminal"/>
 		</provides>
 	</start>
-}
 
-append config {
-	<start name="vbox1" priority="-2" caps="500">}
-append config "
-		<binary name=\"$virtualbox_binary\"/>"
-append config {
+	<start name="vbox" priority="-2" caps="500">
+		<binary name="virtualbox-nova"/>
 		<resource name="RAM" quantum="2G"/>
 		<config vbox_file="virtualbox_nic_router.vbox" vm_name="TestVM">
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
 			<vfs>
-				<dir name="dev"> <log/> <rtc/> </dir>}
-
-append_if [expr $use_serial] config {
-				<dir name="dev"> <terminal/> </dir>}
-
-append config {
+				<dir name="dev"> <log/> <rtc/> </dir>
+				<dir name="dev"> <terminal/> </dir>
 				<rom name="virtualbox_nic_router.vbox" />
 				<rom name="test.iso" />
 			</vfs>
 		</config>
 		<route>
+			<service name="Input"><child name="input_merger" /></service>
 			<service name="Nic"> <child name="router2"/> </service>
+			<service name="Report"> <child name="report_rom"/> </service>
 			<any-service> <parent /> <any-child /> </any-service>
 		</route>
 	</start>
@@ -191,33 +349,49 @@ install_config $config
 
 exec cp ${genode_dir}/repos/ports/run/virtualbox_nic_router.vbox bin/.
 
-set boot_modules { core nic_dump nic_router ld.lib.so init timer test.iso virtualbox_nic_router.vbox }
-
-append boot_modules $virtualbox_binary
-
-# platform-specific modules
-lappend_if [expr         $use_ps2] boot_modules ps2_drv
-lappend_if [have_spec framebuffer] boot_modules fb_drv
-lappend_if [have_spec       linux] boot_modules fb_sdl
-lappend_if [have_spec         x86] boot_modules rtc_drv
-
-append boot_modules {
-	ld.lib.so libc.lib.so vfs.lib.so libm.lib.so pthread.lib.so libc_pipe.lib.so
-	libc_terminal.lib.so libiconv.lib.so stdcxx.lib.so
-	qemu-usb.lib.so
-}
-
-append_if [expr $use_net]          boot_modules { nic_drv }
-append_if [expr $use_serial]       boot_modules { log_terminal }
-
+append boot_modules { virtualbox-nova }
+append boot_modules { iwlwifi-6000-4.ucode }
+append boot_modules { iwlwifi-6000g2a-6.ucode }
+append boot_modules { iwlwifi-6000g2b-6.ucode }
+append boot_modules { iwlwifi-7260-16.ucode }
+append boot_modules { iwlwifi-7265-16.ucode }
+append boot_modules { iwlwifi-7265D-16.ucode }
+append boot_modules { iwlwifi-8000C-16.ucode }
+append boot_modules { report_rom }
+append boot_modules { vfs_jitterentropy.lib.so }
+append boot_modules { libcrypto.lib.so }
+append boot_modules { libssl.lib.so }
+append boot_modules { wpa_driver_nl80211.lib.so }
+append boot_modules { wpa_supplicant.lib.so }
+append boot_modules { wifi.lib.so }
+append boot_modules { wifi_drv }
+append boot_modules { core }
+append boot_modules { nic_router }
+append boot_modules { ld.lib.so }
+append boot_modules { init }
+append boot_modules { timer }
+append boot_modules { test.iso }
+append boot_modules { virtualbox_nic_router.vbox }
+append boot_modules { ld.lib.so }
+append boot_modules { libc.lib.so }
+append boot_modules { libm.lib.so }
+append boot_modules { pthread.lib.so }
+append boot_modules { libc_pipe.lib.so }
+append boot_modules { libc_terminal.lib.so }
+append boot_modules { libiconv.lib.so }
+append boot_modules { stdcxx.lib.so }
+append boot_modules { qemu-usb.lib.so }
+append boot_modules { dynamic_rom }
+append boot_modules { ps2_drv }
+append boot_modules { fb_drv }
+append boot_modules { rtc_drv }
+append boot_modules { usb_drv }
+append boot_modules { vfs.lib.so }
+append boot_modules { nic_drv }
+append boot_modules { input_merger }
+append boot_modules { log_terminal }
 append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
-
-if {[have_include "power_on/qemu"]} {
-	append qemu_args " -m 768 "
-
-	append qemu_args " -cpu phenom "
-}
 
 run_genode_until forever
