@@ -160,6 +160,16 @@ class Menu_view::Widget : public List_model<Widget>::Element
 
 		Animated_rect _animated_geometry { _factory.animator };
 
+		void _trigger_geometry_animation()
+		{
+			if (_animated_geometry.animated())
+				return;
+
+			if (_geometry.p1() != _animated_geometry.p1()
+			 || _geometry.p2() != _animated_geometry.p2())
+				_animated_geometry.move_to(_geometry, Animated_rect::Steps{60});
+		}
+
 	public:
 
 		Margin margin { 0, 0, 0, 0 };
@@ -167,7 +177,7 @@ class Menu_view::Widget : public List_model<Widget>::Element
 		void geometry(Rect geometry)
 		{
 			_geometry = geometry;
-			_animated_geometry.move_to(_geometry, Animated_rect::Steps{60});
+			_trigger_geometry_animation();
 		}
 
 		Rect geometry() const { return _geometry; }
@@ -213,6 +223,8 @@ class Menu_view::Widget : public List_model<Widget>::Element
 			_geometry = Rect(_geometry.p1(), size);
 
 			_layout();
+
+			_trigger_geometry_animation();
 		}
 
 		void position(Point position)

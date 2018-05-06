@@ -52,9 +52,6 @@ struct Menu_view::Root_widget : Widget
 		}
 
 		_update_children(node);
-
-		_children.for_each([&] (Widget &child) {
-			child.geometry(Rect(Point(0, 0), child.min_size())); });
 	}
 
 	Area min_size() const override

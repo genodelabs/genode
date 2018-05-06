@@ -75,7 +75,7 @@ class Menu_view::Animated_rect : public Rect, Animator::Item, Noncopyable
 			                                  Point(_p2.x(), _p2.y()));
 
 			/* schedule / de-schedule animation */
-			animated(_p1.animated() || _p2.animated());
+			Animator::Item::animated(_p1.animated() || _p2.animated());
 		}
 
 		/**
@@ -91,6 +91,8 @@ class Menu_view::Animated_rect : public Rect, Animator::Item, Noncopyable
 			_p2.move_to(rect.p2(), steps);
 			animate();
 		}
+
+		bool animated() const { return Animator::Item::animated(); }
 };
 
 #endif /* _ANIMATED_GEOMETRY_H_ */
