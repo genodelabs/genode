@@ -55,20 +55,22 @@ struct Menu_view::Box_layout_widget : Widget
 
 			Area const child_min_size = w.min_size();
 
+			w.position(position);
+
 			if (_direction == VERTICAL) {
-				w.geometry(Rect(position, Area(largest_size, child_min_size.h())));
 				unsigned const next_top_margin = w.next() ? w.next()->margin.top : 0;
 				unsigned const dy = child_min_size.h() - min(w.margin.bottom, next_top_margin);
 				position = position + Point(0, dy);
 			} else {
-				w.geometry(Rect(position, Area(child_min_size.w(), largest_size)));
 				unsigned const next_left_margin = w.next() ? w.next()->margin.left : 0;
 				unsigned const dx = child_min_size.w() - min(w.margin.right, next_left_margin);
 				position = position + Point(dx, 0);
 			}
-
-			_min_size = Area(w.geometry().x2() + 1, w.geometry().y2() + 1);
 		});
+
+		_min_size = (_direction == VERTICAL)
+		          ? Area(largest_size, position.y())
+		          : Area(position.x(), largest_size);
 	}
 
 	Area min_size() const override
