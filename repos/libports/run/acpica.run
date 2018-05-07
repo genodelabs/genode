@@ -21,26 +21,30 @@ set build_components {
 	test/input
 }
 
+set use_acpica_as_acpi_drv 0
+
 source ${genode_dir}/repos/base/run/platform_drv.inc
 
-# override default platform driver policy
-proc platform_drv_policy {} {
-	return {
-			<policy label_prefix="ps2_drv"> <device name="PS2"/> </policy>
-			<policy label_prefix="acpica"> <pci class="ALL"/> </policy>}
-}
+if {!$use_acpica_as_acpi_drv} {
 
-# add routing information to dynamically generate change of 'system' ROM
-proc platform_drv_add_routing {} {
-	return {
-			<service name="ROM" label="system"> <child name="dynamic_rom"/> </service>
-			<service name="ROM" label="acpi_ready"> <child name="acpi_state"/> </service>}
-}
+	# override default platform driver policy
+	proc platform_drv_policy {} {
+		return {
+				<policy label_prefix="ps2_drv"> <device name="PS2"/> </policy>
+				<policy label_prefix="acpica"> <pci class="ALL"/> </policy>}
+	}
 
-# override default config to react on 'system' ROM changes for reset
-proc platform_drv_config_config {} {
-	return {
-		<config acpi="yes" system="yes" acpi_ready="yes">}
+	# add routing information
+	proc platform_drv_add_routing {} {
+		return {
+				<service name="ROM" label="acpi_ready"> <child name="acpi_state"/> </service>}
+	}
+
+	# override default config to react on 'acpi_ready' ROM change
+	proc platform_drv_config_config {} {
+		return {
+			<config acpi_ready="yes">}
+	}
 }
 
 append_platform_drv_build_components
@@ -68,15 +72,12 @@ set config {
 		<start name="timer">
 			<resource name="RAM" quantum="2M"/>
 			<provides><service name="Timer"/></provides>
-		</start>
-		<start name="acpica">
-<!--			<binary name="debug-acpica"/> -->
-			<resource name="RAM" quantum="4M"/>
+		</start>}
+
+append_if [expr !$use_acpica_as_acpi_drv] config {
+		<start name="acpica" caps="150">
+			<resource name="RAM" quantum="5M"/>
 			<config ld_verbose="yes" reset="no" poweroff="no" report="yes" acpi_ready="yes">
-<!-- required for "debug-acpica":
-				<vfs> <dir name="dev"> <log/> </dir> </vfs>
-				<libc stdout="/dev/log"/>
--->
 			</config>
 			<route>
 				<service name="ROM" label="system"> <child name="dynamic_rom"/> </service>
@@ -218,4 +219,4 @@ build_boot_image $boot_modules
 
 append qemu_args "-nographic "
 
-run_genode_until {\[init -\> acpica\].*SCI IRQ:.*\n} 30
+run_genode_until {\[init -\> acpi.*SCI IRQ:.*\n} 30
