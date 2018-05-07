@@ -137,7 +137,7 @@ struct Usb::Block_driver : Usb::Completion,
 
 	bool _writeable = false;
 
-	bool force_cmd_10 = false;
+	bool force_cmd_16 = false;
 
 	uint8_t active_interface = 0;
 	uint8_t active_lun       = 0;
@@ -490,19 +490,37 @@ struct Usb::Block_driver : Usb::Completion,
 				}
 			}
 
-			/* Scsi::Opcode::READ_CAPACITY_16 */
-			Read_capacity_16 read_cap((addr_t)cbw_buffer, CAP_TAG, active_lun);
+			/*
+			 * Some devices (e.g. corsair voyager usb stick (1b1c:1a03)) failed
+			 * when the 16-byte command was tried first and when the 10-byte
+			 * command was tried afterwards as a fallback.
+			 *
+			 * For this reason, we use the 10-byte commands by default and the
+			 * 16-byte commands only when the capacity of the device requires
+			 * it.
+			 */
+
+			/* Scsi::Opcode::READ_CAPACITY_10 */
+			Read_capacity_10 read_cap((addr_t)cbw_buffer, CAP_TAG, active_lun);
 
 			cbw(cbw_buffer, init, true);
-			resp(Scsi::Capacity_response_16::LENGTH, init, true);
+			resp(Scsi::Capacity_response_10::LENGTH, init, true);
 			csw(init, true);
 
 			if (!init.read_capacity) {
-				/* try Scsi::Opcode::READ_CAPACITY_10 next */
-				Read_capacity_10 read_cap((addr_t)cbw_buffer, CAP_TAG, active_lun);
+				Genode::warning("Read_capacity_cmd failed");
+				throw -1;
+			}
+
+			if (init.block_count == 0x100000000) {
+
+				/* capacity too large, try Scsi::Opcode::READ_CAPACITY_16 next */
+				Read_capacity_16 read_cap((addr_t)cbw_buffer, CAP_TAG, active_lun);
+
+				init.read_capacity = false;
 
 				cbw(cbw_buffer, init, true);
-				resp(Scsi::Capacity_response_10::LENGTH, init, true);
+				resp(Scsi::Capacity_response_16::LENGTH, init, true);
 				csw(init, true);
 
 				if (!init.read_capacity) {
@@ -510,8 +528,7 @@ struct Usb::Block_driver : Usb::Completion,
 					throw -1;
 				}
 
-				Genode::warning("Device does not support CDB 16-byte commands, force 10-byte commands");
-				force_cmd_10 = true;
+				force_cmd_16 = true;
 			}
 
 			_block_size  = init.block_size;
@@ -747,11 +764,11 @@ struct Usb::Block_driver : Usb::Completion,
 
 		char cb[Cbw::LENGTH];
 		if (read) {
-			if (!force_cmd_10) Read_16 r((addr_t)cb, t, active_lun, lba, len, _block_size);
-			else               Read_10 r((addr_t)cb, t, active_lun, lba, len, _block_size);
+			if (force_cmd_16) Read_16 r((addr_t)cb, t, active_lun, lba, len, _block_size);
+			else              Read_10 r((addr_t)cb, t, active_lun, lba, len, _block_size);
 		} else {
-			if (!force_cmd_10) Write_16 w((addr_t)cb, t, active_lun, lba, len, _block_size);
-			else               Write_10 w((addr_t)cb, t, active_lun, lba, len, _block_size);
+			if (force_cmd_16) Write_16 w((addr_t)cb, t, active_lun, lba, len, _block_size);
+			else              Write_10 w((addr_t)cb, t, active_lun, lba, len, _block_size);
 		}
 
 		cbw(cb, *this);
