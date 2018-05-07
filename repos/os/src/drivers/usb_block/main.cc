@@ -149,7 +149,9 @@ struct Usb::Block_driver : Usb::Completion,
 		INQ_TAG = 0x01, RDY_TAG = 0x02, CAP_TAG = 0x04,
 		REQ_TAG = 0x08, SS_TAG = 0x10
 	};
-	enum Endpoints  { IN = 0, OUT = 1 };
+
+	uint8_t ep_in = 0;
+	uint8_t ep_out = 0;
 
 	/*
 	 * Completion used while initializing the device
@@ -301,7 +303,7 @@ struct Usb::Block_driver : Usb::Completion,
 	{
 		enum { CBW_VALID_SIZE = Cbw::LENGTH };
 		Usb::Interface     &iface = device.interface(active_interface);
-		Usb::Endpoint         &ep = iface.endpoint(OUT);
+		Usb::Endpoint         &ep = iface.endpoint(ep_out);
 		Usb::Packet_descriptor  p = iface.alloc(CBW_VALID_SIZE);
 		memcpy(iface.content(p), cb, CBW_VALID_SIZE);
 		iface.bulk_transfer(p, ep, block, &c);
@@ -314,7 +316,7 @@ struct Usb::Block_driver : Usb::Completion,
 	{
 		enum { CSW_VALID_SIZE = Csw::LENGTH };
 		Usb::Interface     &iface = device.interface(active_interface);
-		Usb::Endpoint         &ep = iface.endpoint(IN);
+		Usb::Endpoint         &ep = iface.endpoint(ep_in);
 		Usb::Packet_descriptor  p = iface.alloc(CSW_VALID_SIZE);
 		iface.bulk_transfer(p, ep, block, &c);
 	}
@@ -325,7 +327,7 @@ struct Usb::Block_driver : Usb::Completion,
 	void resp(size_t size, Completion &c, bool block = false)
 	{
 		Usb::Interface     &iface = device.interface(active_interface);
-		Usb::Endpoint         &ep = iface.endpoint(IN);
+		Usb::Endpoint         &ep = iface.endpoint(ep_in);
 		Usb::Packet_descriptor  p = iface.alloc(size);
 		iface.bulk_transfer(p, ep, block, &c);
 	}
@@ -387,6 +389,17 @@ struct Usb::Block_driver : Usb::Completion,
 				Genode::error("No mass storage SCSI bulk-only device");
 				return false;
 			}
+
+			for (int i = 0; i < alt_iface.num_endpoints; i++) {
+				Endpoint ep = alt_iface.endpoint(i);
+				if (!ep.is_bulk())
+					continue;
+				if (ep.address & Usb::ENDPOINT_IN)
+					ep_in = i;
+				else
+					ep_out = i;
+			}
+
 		} catch (Usb::Session::Interface_not_found) {
 			Genode::error("Interface not found");
 			return false;
@@ -543,7 +556,7 @@ struct Usb::Block_driver : Usb::Completion,
 	bool execute_pending_request()
 	{
 		Usb::Interface     &iface = device.interface(active_interface);
-		Usb::Endpoint          ep = iface.endpoint(req.read ? IN : OUT);
+		Usb::Endpoint          ep = iface.endpoint(req.read ? ep_in : ep_out);
 		Usb::Packet_descriptor  p = iface.alloc(req.size);
 
 		if (!req.read) memcpy(iface.content(p), req.buffer, req.size);
