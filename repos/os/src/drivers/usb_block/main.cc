@@ -206,7 +206,6 @@ struct Usb::Block_driver : Usb::Completion,
 			using namespace Scsi;
 
 			switch (actual_size) {
-			case 36: /* min INQUIRY data size */
 			case Inquiry_response::LENGTH:
 			{
 				Inquiry_response r((addr_t)data);
