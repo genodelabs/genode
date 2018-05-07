@@ -10,21 +10,25 @@ body_exists := $(filter $1.adb,$(shell if [ -e $2/$1.adb ]; then echo $1.adb; fi
 ADA_RTS_SOURCE = $(call select_from_ports,gcc)/src/noux-pkg/gcc/gcc/ada
 SRC_ADS += $(foreach package, $(PACKAGES), $(package).ads)
 SRC_ADB += $(foreach package, $(PACKAGES), $(body_exists, $(package), $(ADA_RTS_SOURCE)))
-SRC_ADB += $(foreach package, $(PACKAGES), $(body_exists, $(package), $(REP_DIR)/src/lib/ada))
+SRC_ADB += $(foreach package, $(PACKAGES), $(body_exists, $(package), $(REP_DIR)/src/lib/ada/runtime))
 
 CUSTOM_ADA_MAKE    = $(CC)
 CUSTOM_ADA_FLAGS   = -c -gnatg -gnatp -gnatpg -gnatn2
 CUSTOM_ADA_OPT     = $(CC_ADA_OPT)
-CUSTOM_ADA_INCLUDE = -I- -I$(REP_DIR)/src/lib/ada -I$(ADA_RTS_SOURCE) -I$(REP_DIR)/src/lib/ada/libsrc
+CUSTOM_ADA_INCLUDE = -I- -I$(REP_DIR)/src/lib/ada/runtime -I$(ADA_RTS_SOURCE) -I$(REP_DIR)/src/lib/ada/runtimelib
 
-SRC_CC += a-except.cc s-soflin.cc
-SRC_CC += c-secsta.cc gnat_except.cc
+# pure C runtime implementations
+SRC_CC += a-except_c.cc s-soflin_c.cc
+
+# C runtime glue code
+SRC_CC += s-secsta_c.cc gnat_except.cc
+
+# Ada packages that implement runtime functionality
 SRC_ADB += ss_utils.adb
 
-vpath %.cc $(REP_DIR)/src/lib/ada
-
-vpath %.adb $(REP_DIR)/src/lib/ada $(ADA_RTS_SOURCE) $(REP_DIR)/src/lib/ada/libsrc
-vpath %.ads $(REP_DIR)/src/lib/ada $(ADA_RTS_SOURCE)
+vpath %.cc $(REP_DIR)/src/lib/ada/runtimelib
+vpath %.adb $(REP_DIR)/src/lib/ada/runtime $(ADA_RTS_SOURCE) $(REP_DIR)/src/lib/ada/runtimelib
+vpath %.ads $(REP_DIR)/src/lib/ada/runtime $(ADA_RTS_SOURCE)
 
 SHARED_LIB = yes
 
