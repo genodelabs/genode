@@ -3,7 +3,7 @@ VERSION   := 2.21
 DOWNLOADS := which.archive
 
 URL(which) := https://ftp.gnu.org/gnu/which/which-$(VERSION).tar.gz
-SHA(which) := 6b6bec3d2b3d4661c164feb81b9b1d22d1359ded
+SHA(which) := f4a245b94124b377d8b49646bf421f9155d36aa7614b6ebf83705d3ffc76eaad
 SIG(which) := ${URL(which)}.sig
 KEY(which) := GNU
 DIR(which) := src/noux-pkg/which

@@ -3,5 +3,5 @@ VERSION   := 2.4.21
 DOWNLOADS := libdrm.archive
 
 URL(libdrm) := http://dri.freedesktop.org/libdrm/libdrm-$(VERSION).tar.bz2
-SHA(libdrm) := be7754008424a12e01ab0f0da3deb8de13ad2f0c
+SHA(libdrm) := 4e1b612ba3b6b1deae4a8c14946099283e7a00e48a5ab002eaf4312f5a8ba14b
 DIR(libdrm) := src/lib/libdrm

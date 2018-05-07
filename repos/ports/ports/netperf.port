@@ -3,7 +3,7 @@ VERSION   := 2.6.0
 DOWNLOADS := netperf.archive
 
 URL(netperf) := http://archive.ubuntu.com/ubuntu/pool/multiverse/n/netperf/netperf_$(VERSION).orig.tar.gz
-SHA(netperf) := c25362801dfdf8c40e0e6cab538be757b9de28fc
+SHA(netperf) := 8eda5aa348ed9ea3ffd99b45ab2d860ffdde09f2f6faeab64fa52f12ebe17a33
 DIR(netperf) := src/app/netperf
 
 PATCHES := src/app/netperf/*.patch

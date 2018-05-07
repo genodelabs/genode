@@ -3,6 +3,6 @@ VERSION   := 0.7.1
 DOWNLOADS := netcat.archive
 
 URL(netcat) := http://downloads.sourceforge.net/sourceforge/netcat/netcat-$(VERSION).tar.bz2
-SHA(netcat) := b761d70fe9e3e8b3fe33a329b9bc31300dc04d11
+SHA(netcat) := b55af0bbdf5acc02d1eb6ab18da2acd77a400bafd074489003f3df09676332bb
 DIR(netcat) := src/noux-pkg/netcat
 

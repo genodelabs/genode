@@ -3,7 +3,7 @@ VERSION   := 5.1.5
 DOWNLOADS := lua.archive
 
 URL(lua) := http://www.lua.org/ftp/lua-$(VERSION).tar.gz
-SHA(lua) := b3882111ad02ecc6b972f8c1241647905cb2e3fc
+SHA(lua) := 2640fc56a795f29d28ef15e13c34a47e223960b0240e8cb0a82d9b0738695333
 DIR(lua) := src/lib/lua
 
 DIRS := include/lua

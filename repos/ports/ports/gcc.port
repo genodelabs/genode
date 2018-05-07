@@ -3,7 +3,7 @@ VERSION   := 6.3.0
 DOWNLOADS := gcc.archive
 
 URL(gcc)  := ftp://ftp.fu-berlin.de/gnu/gcc/gcc-$(VERSION)/gcc-$(VERSION).tar.bz2
-SHA(gcc)  := 928ab552666ee08eed645ff20ceb49d139205dea
+SHA(gcc)  := ff390fa5a4e489e9ee377a019d1a10833541e6bad9e6752a3482b12d3f6ce0dc
 SIG(gcc)  := ${URL(gcc)}.sig
 KEY(gcc)  := GNU
 DIR(gcc)  := src/noux-pkg/gcc

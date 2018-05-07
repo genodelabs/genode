@@ -3,7 +3,7 @@ VERSION   := 2.0.11
 DOWNLOADS := sdl_ttf.archive
 
 URL(sdl_ttf) := http://www.libsdl.org/projects/SDL_ttf/release/SDL_ttf-$(VERSION).tar.gz
-SHA(sdl_ttf) := 0ccf7c70e26b7801d83f4847766e09f09db15cc6
+SHA(sdl_ttf) := 724cd895ecf4da319a3ef164892b72078bd92632a5d812111261cde248ebcdb7
 DIR(sdl_ttf) := src/lib/sdl_ttf
 
 DIRS := include/SDL

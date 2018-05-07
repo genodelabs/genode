@@ -3,7 +3,7 @@ VERSION   := 0.19.5
 DOWNLOADS := fribidi.archive
 
 URL(fribidi) := https://download.videolan.org/pub/contrib/fribidi/fribidi-$(VERSION).tar.bz2
-SHA(fribidi) := 58445266df185f7e5109f356c0261d41db39182a
+SHA(fribidi) := 501231e4260f83fccedae1cafe983a7de87082e3f5387e0b283d016f7f4cb428
 DIR(fribidi) := src/lib/fribidi/contrib
 
 DIRS := include/fribidi

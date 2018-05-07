@@ -3,7 +3,7 @@ VERSION   := 1.2.13
 DOWNLOADS := sdl.archive
 
 URL(sdl) := http://www.libsdl.org/release/SDL-$(VERSION).tar.gz
-SHA(sdl) := 51fcaa3e1d5c01fd813ea08688780f86b19cf539
+SHA(sdl) := 94f99df1d60f296b57f4740650a71b6425da654044ca30f8f0ce34934429e132
 SIG(sdl) := ${URL(sdl)}.sig
 KEY(sdl) := 1528635D8053A57F77D1E08630A59377A7763BE6
 DIR(sdl) := src/lib/sdl

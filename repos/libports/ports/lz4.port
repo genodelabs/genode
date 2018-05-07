@@ -3,7 +3,7 @@ DOWNLOADS := lz4.archive
 VERSION   := 1.8.0
 
 URL(lz4) := https://github.com/lz4/lz4/archive/v$(VERSION).tar.gz
-SHA(lz4) := 3ef95c78f14ac26a806518846e4a24a2b0d825b4
+SHA(lz4) := 2ca482ea7a9bb103603108b5a7510b7592b90158c151ff50a28f1ca8389fccf6
 DIR(lz4) := src/lib/lz4
 
 DIRS := include/lz4

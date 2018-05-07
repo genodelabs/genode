@@ -7,7 +7,7 @@ VIRTUALBOX_SDK_ZIP := VirtualBoxSDK-$(VERSION)-121010.zip
 
 URL(virtualbox) := http://download.virtualbox.org/virtualbox/$(VERSION)/$(VIRTUALBOX_TBZ2)
 DIR(virtualbox) := src/app/virtualbox
-SHA(virtualbox) := 0b6b89cf577e2b5c8da6abab3ab8fce66d06f997
+SHA(virtualbox) := b8a16bcc4267cad9cb92c7211d4081267c890efad16e89949f7449b8ae32f28c
 
 URL(virtualbox_sdk) := http://download.virtualbox.org/virtualbox/$(VERSION)/$(VIRTUALBOX_SDK_ZIP)
 DIR(virtualbox_sdk) := src/app/virtualbox_sdk

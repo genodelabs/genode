@@ -4,7 +4,7 @@ DOWNLOADS := openjpeg.archive
 
 URL(openjpeg) := https://github.com/uclouvain/openjpeg/archive/version.$(VERSION).tar.gz
 DIR(openjpeg) := src/lib/openjpeg
-SHA(openjpeg) := c018900b2203a1c6331ec8b4b5f116a54be973d4
+SHA(openjpeg) := 7cc1f5a51dcac7379d083f0ee005c09c876a6795aaeda3608c5c83fecb81fad9
 
 DIRS := include/openjpeg
 DIR_CONTENT(include/openjpeg) := src/lib/openjpeg/libopenjpeg/openjpeg.h

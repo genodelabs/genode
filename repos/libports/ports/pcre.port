@@ -3,7 +3,7 @@ VERSION   := 8.30
 DOWNLOADS := pcre.archive
 
 URL(pcre) := http://sourceforge.net/projects/pcre/files/pcre/$(VERSION)/pcre-$(VERSION).tar.bz2
-SHA(pcre) := 68d28fb383325b8af9e3d481d30f586b46c56022
+SHA(pcre) := c1113fd7db934e97ad8b3917d432e5b642e9eb9afd127eb797804937c965f4ac
 SIG(pcre) := ${URL(pcre)}.sig
 KEY(pcre) := ph10@cam.ac.uk
 DIR(pcre) := src/lib/pcre

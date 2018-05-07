@@ -3,7 +3,7 @@ VERSION   := 2.4.1
 DOWNLOADS := qemu.archive
 
 URL(qemu)     := http://wiki.qemu-project.org/download/qemu-$(VERSION).tar.bz2
-SHA(qemu)     := 629fb77fc03713b1267c1d51a8df6c0d9c7fd39b
+SHA(qemu)     := e3d5cf4c8b1f9129c9c797329a515bfb6b3b1ded0ab8b394c8a316490fe3a177
 DIR(qemu)     := src/lib/qemu
 TAR_OPT(qemu) := --strip-components=1 --files-from $(REP_DIR)/src/lib/qemu-usb/files.list
 HASH_INPUT    += $(REP_DIR)/src/lib/qemu-usb/files.list

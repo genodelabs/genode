@@ -3,7 +3,7 @@ VERSION   := 3.82
 DOWNLOADS := make.archive
 
 URL(make) := http://ftp.gnu.org/pub/gnu/make/make-$(VERSION).tar.gz
-SHA(make) := 92d1b87a30d1c9482e52fb4a68e8a355e7946331
+SHA(make) := 3d991b33e604187c5881a0abc2e102d5b9776da5569640e73778f85d617242e7
 SIG(make) := ${URL(make)}.sig
 KEY(make) := GNU
 DIR(make) := src/noux-pkg/make

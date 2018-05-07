@@ -3,7 +3,7 @@ VERSION   := 4.4
 DOWNLOADS := sed.archive
 
 URL(sed) := https://ftp.gnu.org/pub/gnu/sed/sed-$(VERSION).tar.xz
-SHA(sed) := a196cd036efd52a8e349cfe88ab4baa555fb29d5
+SHA(sed) := cbd6ebc5aaf080ed60d0162d7f6aeae58211a1ee9ba9bb25623daa6cd942683b
 SIG(sed) := ${URL(sed)}
 KEY(sed) := GNU
 DIR(sed) := src/noux-pkg/sed

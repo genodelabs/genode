@@ -3,7 +3,7 @@ DOWNLOADS := libpng.archive
 VERSION   := 1.4.1
 
 URL(libpng) := http://prdownloads.sourceforge.net/libpng/libpng-$(VERSION).tar.gz
-SHA(libpng) := 7a3488f5844068d67074f2507dd8a7ed9c69ff04
+SHA(libpng) := 0c25e1095805a626d2b1e44aafaed35b43b02d43510f8a84dce3c8b7da0d2417
 DIR(libpng) := src/lib/libpng
 
 DIRS := include/libpng

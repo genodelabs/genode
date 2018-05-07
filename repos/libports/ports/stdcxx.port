@@ -3,7 +3,7 @@ VERSION   := 6.3.0
 DOWNLOADS := gcc.archive
 
 URL(gcc) := ftp://ftp.fu-berlin.de/gnu/gcc/gcc-$(VERSION)/gcc-$(VERSION).tar.bz2
-SHA(gcc) := 928ab552666ee08eed645ff20ceb49d139205dea
+SHA(gcc) := f06ae7f3f790fbf0f018f6d40e844451e6bc3b7bc96e128e63b09825c1f8b29f
 DIR(gcc) := src/lib/stdcxx
 SIG(gcc) := ${URL(gcc)}
 KEY(gcc) := GNU

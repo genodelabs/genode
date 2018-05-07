@@ -3,7 +3,7 @@ VERSION   := 2.1.1
 DOWNLOADS := okl4.archive
 
 URL(okl4) := https://genode.org/files/okl4_2.1.1-patch.9.tar.gz
-SHA(okl4) := ff3062344fd6b0a3bd69d99583aa271d3bb13911
+SHA(okl4) := 9c5bc4f80c22c214ec6a11f46e4acdffc4a541e10c5c96858926431fe8f3823e
 DIR(okl4) := src/kernel/okl4
 
 PATCHES   := $(sort $(wildcard $(REP_DIR)/patches/*.patch))

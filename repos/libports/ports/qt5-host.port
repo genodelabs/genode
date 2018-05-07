@@ -6,5 +6,5 @@ QT5 := qtbase-opensource-src-${VERSION}
 DOWNLOADS := ${QT5}.archive
 
 URL(${QT5}) := http://download.qt.io/archive/qt/5.8/$(VERSION)/submodules/$(QT5).tar.xz
-SHA(${QT5}) := eacdd022615734ccdba4e7a92f1f5f3366c0c415
+SHA(${QT5}) := c17111ae02a44dc7be1ec2cf979a47ee9e58edf4904041a525c21f4fa53fc005
 DIR(${QT5}) := src/lib/qt5-host

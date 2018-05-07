@@ -8,15 +8,15 @@ QTSCRIPTCLASSIC := qtscriptclassic-1.0_1-opensource
 DOWNLOADS := ${QT5}.archive ${QT5_WEBKIT}.archive ${QTSCRIPTCLASSIC}.archive symbols.git
 
 URL(${QT5}) := http://download.qt.io/archive/qt/5.8/$(VERSION)/single/$(QT5).tar.xz
-SHA(${QT5}) := 1a056ca4f731798e4142a691d0448c2c853228ca
+SHA(${QT5}) := 0f4c54386d3dbac0606a936a7145cebb7b94b0ca2d29bc001ea49642984824b6
 DIR(${QT5}) := src/lib/qt5/qt5
 
 URL(${QT5_WEBKIT}) := http://download.qt.io/community_releases/5.8/$(VERSION)-final/${QT5_WEBKIT}.tar.xz
-SHA(${QT5_WEBKIT}) := 79d898f0e447039fb9f12b2f798a0aedf071ea82
+SHA(${QT5_WEBKIT}) := 79ae8660086bf92ffb0008b17566270e6477c8fa0daf9bb3ac29404fb5911bec
 DIR(${QT5_WEBKIT}) := src/lib/qt5/qt5/qtwebkit
 
 URL(${QTSCRIPTCLASSIC}) := http://ftp.icm.edu.pl/packages/qt.old/solutions/lgpl/${QTSCRIPTCLASSIC}.tar.gz
-SHA(${QTSCRIPTCLASSIC}) := 74e9dc82dd194d8ae0fb0f8f1df74081948b943a
+SHA(${QTSCRIPTCLASSIC}) := 6a4c4ada6f0064f6c5d7663602a37c99250ed6c7398b1775f95de1c41357b19d
 DIR(${QTSCRIPTCLASSIC}) := src/lib/qt5/${QTSCRIPTCLASSIC}
 
 URL(symbols) := https://github.com/cproc/genode-symbols.git

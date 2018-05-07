@@ -3,7 +3,7 @@ VERSION   := 2.2.4
 DOWNLOADS := gnupg.archive
 
 URL(gnupg) := https://www.gnupg.org/ftp/gcrypt/gnupg/gnupg-$(VERSION).tar.bz2
-SHA(gnupg) := 732266e8888c6f41c084d043c7a0058332ff3580
+SHA(gnupg) := 401a3e64780fdfa6d7670de0880aa5c9d589b3db7a7098979d7606cec546f2ec
 DIR(gnupg) := src/app/gnupg
 
 PATCHES := src/app/verify/patches/verify.patch

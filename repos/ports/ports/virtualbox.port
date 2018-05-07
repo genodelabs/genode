@@ -7,11 +7,11 @@ VIRTUALBOX_SDK_ZIP := VirtualBoxSDK-$(VERSION)-110317.zip
 
 URL(virtualbox) := http://download.virtualbox.org/virtualbox/$(VERSION)/$(VIRTUALBOX_TBZ2)
 DIR(virtualbox) := src/app/virtualbox
-SHA(virtualbox) := 89f9f702e94afe7dccacb76c34792038564edbdc
+SHA(virtualbox) := 4bbea49ee1eaa600db7af64b05c8ce6a1f7585de08f4f85cd7b6f0f7a798bcc6
 
 URL(virtualbox_sdk) := http://download.virtualbox.org/virtualbox/$(VERSION)/$(VIRTUALBOX_SDK_ZIP)
 DIR(virtualbox_sdk) := src/app/virtualbox_sdk
-SHA(virtualbox_sdk) := 438e2994a0103c5e10b61d29b1bca68287ecb134
+SHA(virtualbox_sdk) := e227edd309cce72921797641cbd0c668c89a6fcaf557fb0242d42d32de82aa9b
 
 PATCHES_DIR       := src/virtualbox/patches
 PATCHES_DIR_VBOX4 := src/virtualbox/patches

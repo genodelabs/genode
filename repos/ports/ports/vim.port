@@ -3,7 +3,7 @@ VERSION   := 7.3
 DOWNLOADS := vim.archive
 
 URL(vim) := ftp://ftp.vim.org/pub/vim/unix/vim-$(VERSION).tar.bz2
-SHA(vim) := 46faa96c5fab639899b1c655c23d8755b62f036f
+SHA(vim) := 5c5d5d6e07f1bbc49b6fe3906ff8a7e39b049928b68195b38e3e3d347100221d
 DIR(vim) := src/noux-pkg/vim
 
 PATCHES := src/noux-pkg/vim/build.patch

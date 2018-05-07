@@ -3,7 +3,7 @@ DOWNLOADS := icu.archive
 VERSION   := 51.2
 
 URL(icu) := http://download.icu-project.org/files/icu4c/$(VERSION)/icu4c-51_2-src.tgz
-SHA(icu) := 074a28dfc96d37ce72c831f3e3e2d686f1f76a14
+SHA(icu) := deb027a05f1b3bec03298b96fb93b28c84e9683c22e6f94effa67fdc7bd704cc
 DIR(icu) := src/lib/icu
 
 DIRS := include/icu/common include/icu/i18n

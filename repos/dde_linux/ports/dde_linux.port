@@ -33,7 +33,7 @@ usb.archive: dwc_otg.git
 SRC_DIR_USB  := src/lib/usb
 VERSION_USB  := 4.4.3
 URL(usb)     := https://www.kernel.org/pub/linux/kernel/v4.x/linux-$(VERSION_USB).tar.xz
-SHA(usb)     := 336d66925a15ce9077cbf2c38acbdc6c2644e33f
+SHA(usb)     := 0b379cb19bbd7e38fc5a9a000ea927db55cce519a7400ec7fa705c581a6491dd
 DIR(usb)     := $(SRC_DIR_USB)
 TAR_OPT(usb) := --strip-components=1 --files-from - < <(sed 's/-x.x.x/-$(VERSION_USB)/g' $(REP_DIR)/usb.list)
 HASH_INPUT   += $(REP_DIR)/usb.list
@@ -52,7 +52,7 @@ DIR(dwc_otg) := $(SRC_DIR_USB)/drivers/usb/host/dwc_otg
 SRC_DIR_INTEL_FB  := src/drivers/framebuffer/intel
 VERSION_INTEL_FB  := 4.4.3
 URL(intel_fb)     := https://www.kernel.org/pub/linux/kernel/v4.x/linux-$(VERSION_INTEL_FB).tar.xz
-SHA(intel_fb)     := 336d66925a15ce9077cbf2c38acbdc6c2644e33f
+SHA(intel_fb)     := 0b379cb19bbd7e38fc5a9a000ea927db55cce519a7400ec7fa705c581a6491dd
 DIR(intel_fb)     := $(SRC_DIR_INTEL_FB)
 TAR_OPT(intel_fb) := --strip-components=1  --files-from - < <(sed 's/-x.x.x/-$(VERSION_INTEL_FB)/g' $(REP_DIR)/intel_fb.list)
 HASH_INPUT        += $(REP_DIR)/intel_fb.list
@@ -63,7 +63,7 @@ HASH_INPUT        += $(REP_DIR)/intel_fb.list
 SRC_DIR_WIFI  := src/lib/wifi
 VERSION_WIFI  := 4.4.3
 URL(wifi)     := https://www.kernel.org/pub/linux/kernel/v4.x/linux-$(VERSION_WIFI).tar.xz
-SHA(wifi)     := 336d66925a15ce9077cbf2c38acbdc6c2644e33f
+SHA(wifi)     := 0b379cb19bbd7e38fc5a9a000ea927db55cce519a7400ec7fa705c581a6491dd
 DIR(wifi)     := $(SRC_DIR_WIFI)
 TAR_OPT(wifi) := --strip-components=1  --files-from - < <(sed 's/-x.x.x/-$(VERSION_WIFI)/g' $(REP_DIR)/wifi.list)
 HASH_INPUT    += $(REP_DIR)/wifi.list
@@ -74,7 +74,7 @@ HASH_INPUT    += $(REP_DIR)/wifi.list
 SRC_DIR_LXIP  := src/lib/lxip
 VERSION_LXIP  := 4.4.3
 URL(lxip)     := https://www.kernel.org/pub/linux/kernel/v4.x/linux-$(VERSION_LXIP).tar.xz
-SHA(lxip)     := 336d66925a15ce9077cbf2c38acbdc6c2644e33f
+SHA(lxip)     := 0b379cb19bbd7e38fc5a9a000ea927db55cce519a7400ec7fa705c581a6491dd
 DIR(lxip)     := $(SRC_DIR_LXIP)
 TAR_OPT(lxip) := --strip-components=1  --files-from - < <(sed 's/-x.x.x/-$(VERSION_LXIP)/g' $(REP_DIR)/lxip.list)
 HASH_INPUT    += $(REP_DIR)/lxip.list
@@ -85,7 +85,7 @@ HASH_INPUT    += $(REP_DIR)/lxip.list
 SRC_DIR_FEC  := src/drivers/nic/fec
 VERSION_FEC  := 4.4.3
 URL(fec)     := https://www.kernel.org/pub/linux/kernel/v4.x/linux-$(VERSION_FEC).tar.xz
-SHA(fec)     := 336d66925a15ce9077cbf2c38acbdc6c2644e33f
+SHA(fec)     := 0b379cb19bbd7e38fc5a9a000ea927db55cce519a7400ec7fa705c581a6491dd
 DIR(fec)     := $(SRC_DIR_FEC)
 TAR_OPT(fec) := --strip-components=1  --files-from - < <(sed 's/-x.x.x/-$(VERSION_FEC)/g'     $(REP_DIR)/fec.list)
 HASH_INPUT   += $(REP_DIR)/fec.list
@@ -94,7 +94,7 @@ HASH_INPUT   += $(REP_DIR)/fec.list
 # libnl sources
 #
 URL(libnl) := https://github.com/thom311/libnl/releases/download/libnl3_2_25/libnl-3.2.25.tar.gz
-SHA(libnl) := b7a4981f7edf7398256d35fd3c0b87bc84ae27d1
+SHA(libnl) := 8beb7590674957b931de6b7f81c530b85dc7c1ad8fbda015398bc1e8d1ce8ec5
 DIR(libnl) := src/lib/libnl
 
 
@@ -116,63 +116,63 @@ generate_libnl_files: $(DOWNLOADS)
 # wpa_supplicant sources
 #
 URL(wpa_supplicant) := https://w1.fi/releases/wpa_supplicant-2.2.tar.gz
-SHA(wpa_supplicant) := 0c2ff4fd2e2f6325147cca0357d6c9f524efa26a
+SHA(wpa_supplicant) := e0d8b8fd68a659636eaba246bb2caacbf53d22d53b2b6b90eb4b4fef0993c8ed
 DIR(wpa_supplicant) := src/app/wpa_supplicant
 
 #
 # Firmware images for iwlwifi Intel Wireless 3160
 #
 URL(fw_3160) := https://wireless.wiki.kernel.org/_media/en/users/drivers/iwlwifi-3160-ucode-16.242414.0.tgz
-SHA(fw_3160) := 4777e85d75d3dc17ba40dd32f30cd9ebdcf9e533
+SHA(fw_3160) := ea2f272f40b7a76fde049449813a5d6e323769efd603acd303d1e9a4e0e57820
 DIR(fw_3160) := firmware
 
 #
 # Firmware images for iwlwifi Ultimate-N 6300 and Advanced-N 6200
 #
 URL(fw_6000) := https://wireless.wiki.kernel.org/_media/en/users/drivers/iwlwifi-6000-ucode-9.221.4.1.tgz
-SHA(fw_6000) := a888cf54974702594e82bcbfca20c26d8f906e9f
+SHA(fw_6000) := 7f04623231663dc4ee63df32fd890bfa9514dce1fab9dc7a25fda90350da836b
 DIR(fw_6000) := firmware
 
 #
 # Firmware images for iwlwifi Advanced-N 6205
 #
 URL(fw_6205a) := https://wireless.wiki.kernel.org/_media/en/users/drivers/iwlwifi-6000g2a-ucode-18.168.6.1.tgz
-SHA(fw_6205a) := a542c82dba96e0bfb1b0e01817a59575c5c87fc4
+SHA(fw_6205a) := a7f2615756addafbf3e6912cb0265f9650b2807d1ccdf54b620735772725bbe9
 DIR(fw_6205a) := firmware
 
 #
 # Firmware images for iwlwifi Advanced-N 6230 / 6235 and Wireless-N 130 / 1030
 #
 URL(fw_6205b) := https://wireless.wiki.kernel.org/_media/en/users/drivers/iwlwifi-6000g2b-ucode-18.168.6.1.tgz
-SHA(fw_6205b) := f4c72b75ae8415661182d63154234dc0a55bc3db
+SHA(fw_6205b) := 1683c76b52c3505205447c338603ad08611fcc2da024f476e56e1298b4f10bea
 DIR(fw_6205b) := firmware
 
 #
 # Firmware images for iwlwifi Wireless 7260
 #
 URL(fw_7260) := https://wireless.wiki.kernel.org/_media/en/users/drivers/iwlwifi-7260-ucode-16.242414.0.tgz
-SHA(fw_7260) := e167ae4d3ed5ac5ca4d8b5f154d47324809717e6
+SHA(fw_7260) := 3bf102cd3ea8a720bef89dca120c94aa5ff34bcc756413fc5982a39613641d84
 DIR(fw_7260) := firmware
 
 #
 # Firmware images for iwlwifi Wireless 7265
 #
 URL(fw_7265) := https://wireless.wiki.kernel.org/_media/en/users/drivers/iwlwifi-7265-ucode-16.242414.0.tgz
-SHA(fw_7265) := 2a408809f51d552aa2c5d26c9a582d7729ce612b
+SHA(fw_7265) := 2d599b091fa81b66a3e2cb1e607e060a8e82d178d26f3077146ce5483d798d65
 DIR(fw_7265) := firmware
 
 #
 # Firmware images for iwlwifi Wireless 8260
 #
 URL(fw_8260) := https://wireless.wiki.kernel.org/_media/en/users/drivers/iwlwifi-8000-ucode-16.242414.0.tgz
-SHA(fw_8260) := ec5ee829aeebab93e1228848a7675e4469ab3ce2
+SHA(fw_8260) := 802d7406354016b98d1b485f0446b5a16c4ac795278315a55a7b901b223cb871
 DIR(fw_8260) := firmware
 
 #
 # Firmware images for iwlwifi Wireless-N 1000
 #
 URL(fw_1000) := https://wireless.wiki.kernel.org/_media/en/users/drivers/iwlwifi-1000-ucode-39.31.5.1.tgz
-SHA(fw_1000) := 6b2d9e0fe18ffa98c8335f989833ef12a2f4604b
+SHA(fw_1000) := ed0f1fbc2571c8da9a0cd9410fa8883494a9e1ac469d5000bc2c9dceaf83c970
 DIR(fw_1000) := firmware
 
 https://wireless.wiki.kernel.org/_media/en/users/drivers/iwlwifi-1000-ucode-39.31.5.1.tgz

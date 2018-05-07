@@ -3,7 +3,7 @@ VERSION   := 1.0.1i
 DOWNLOADS := openssl.archive
 
 URL(openssl) := https://www.openssl.org/source/old/1.0.1/openssl-$(VERSION).tar.gz
-SHA(openssl) := 74eed314fa2c93006df8d26cd9fc630a101abd76
+SHA(openssl) := 3c179f46ca77069a6a0bac70212a9b3b838b2f66129cb52d568837fc79d8fcc7
 SIG(openssl) := ${URL(openssl)}.asc
 KEY(openssl) := "49A563D9 26BB437D F295C759 9C58A66D 2118CF83 F709453B 5A6A9B85"
 DIR(openssl) := src/lib/openssl

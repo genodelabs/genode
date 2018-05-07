@@ -6,7 +6,7 @@ OWNER = imneme
 REPO  = pcg-c
 REV   = 03a84f9db5782a3f5a66185836f3db73c832251a
 URL(pcg-c) := https://github.com/$(OWNER)/$(REPO)/archive/$(REV).tar.gz
-SHA(pcg-c) := 4137d821a99fb8b4b5b0ca2285d14ec071305bd2
+SHA(pcg-c) := 7fc826f2430e4b0aca68abc0c2136cee3644e878a611bdaa931388db1a733eda
 DIR(pcg-c) := src/lib/pcg-c
 
 _dirs: include/pcg-c/pcg_variants.h

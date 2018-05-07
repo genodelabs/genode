@@ -3,7 +3,7 @@ DOWNLOADS = libyaml.archive
 VERSION  = 0.1.7
 
 URL(libyaml) := http://pyyaml.org/download/libyaml/yaml-$(VERSION).tar.gz
-SHA(libyaml) := 3590cbf092ef4c71bc0a9b404c00a626b1e04dee
+SHA(libyaml) := 8088e457264a98ba451a90b8661fcb4f9d6f478f7265d48322a196cec2480729
 DIR(libyaml) := src/lib/yaml
 
 DIRS := include/yaml

@@ -3,7 +3,7 @@ VERSION   := 4.3.2
 DOWNLOADS := gmp.archive
 
 URL(gmp) := https://ftp.gnu.org/gnu/gmp/gmp-$(VERSION).tar.bz2
-SHA(gmp) := c011e8feaf1bb89158bd55eaabd7ef8fdd101a2c
+SHA(gmp) := 936162c0312886c21581002b79932829aa048cfaf9937c6265aeaa14f1cd1775
 SIG(gmp) := ${URL(gmp)}.sig
 KEY(gmp) := "73D46C3667461E4BD93972495D6D47DFDB899F46 343C2FF0FBEE5EC2EDBEF399F3599FF828C67298"
 DIR(gmp) := src/lib/gmp

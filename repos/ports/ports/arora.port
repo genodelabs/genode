@@ -3,7 +3,7 @@ VERSION   := 7c7514d85a22b570fc85b47c010d0615f39e270d
 DOWNLOADS := arora.archive
 
 URL(arora) := https://github.com/Arora/arora/archive/$(VERSION).tar.gz
-SHA(arora) := 67bbe66b5869723fa7261fe32d73ec7a8621902c
+SHA(arora) := d625910daebc93ab39769907dbc80b4314d416b2bee8ce49983a2c8eead894f0
 DIR(arora) := src/app/arora
 
 PATCHES := $(foreach P,$(shell cat $(REP_DIR)/src/app/arora/patches/series),\

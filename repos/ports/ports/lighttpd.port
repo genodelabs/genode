@@ -3,7 +3,7 @@ VERSION   := 1.4.38
 DOWNLOADS := lighttpd.archive
 
 URL(lighttpd) := http://download.lighttpd.net/lighttpd/releases-1.4.x/lighttpd-$(VERSION).tar.gz
-SHA(lighttpd) := c5333bafa266b3cb99c36f2f84dd50139c7aec14
+SHA(lighttpd) := eb3c689f83ee3545dc688d99e36011b28145a1727bb6d17c94c5ed6684edcdd1
 SIG(lighttpd) := ${URL(lighttpd)}.asc
 KEY(lighttpd) := stbuehler@lighttpd.net
 DIR(lighttpd) := src/app/lighttpd

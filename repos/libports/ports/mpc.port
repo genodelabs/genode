@@ -3,7 +3,7 @@ VERSION   := 0.9
 DOWNLOADS := mpc.archive
 
 URL(mpc) := http://www.multiprecision.org/downloads/mpc-$(VERSION).tar.gz
-SHA(mpc) := 229722d553030734d49731844abfef7617b64f1a
+SHA(mpc) := fd3efe422f0d454592059e80f2c00d1a2e381bf2beda424c5094abd4deb049ac
 SIG(mpc) := ${URL(mpc)}.asc
 KEY(mpc) := AD17A21EF8AED8F1CC02DBD9F7D5C9BF765C61E3
 DIR(mpc) := src/lib/mpc
