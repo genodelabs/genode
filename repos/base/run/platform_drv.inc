@@ -81,7 +81,7 @@ proc platform_drv_build_components {} {
 			lappend drv_build_components drivers/acpi
 		}
 		if {[acpi_drv_name] eq "acpica"} {
-			lappend [have_spec x86] drv_build_components app/acpica
+			lappend drv_build_components app/acpica
 		}
 	}
 	return $drv_build_components
