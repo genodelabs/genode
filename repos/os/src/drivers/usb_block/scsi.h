@@ -176,18 +176,18 @@ struct Scsi::Capacity_response_10 : Genode::Mmio
 {
 	enum { LENGTH = 8 };
 
-	struct Bc : Register<0x0, 32> { };
-	struct Bs : Register<0x4, 32> { };
+	struct Lba : Register<0x0, 32> { };
+	struct Bs  : Register<0x4, 32> { };
 
 	Capacity_response_10(addr_t addr) : Mmio(addr) { }
 
-	uint32_t block_count() const { return be32(read<Bc>()); }
-	uint32_t block_size()  const { return be32(read<Bs>()); }
+	uint32_t last_block() const { return be32(read<Lba>()); }
+	uint32_t block_size() const { return be32(read<Bs>()); }
 
 	void dump()
 	{
 		Genode::log("--- Dump READ_CAPACITY_10 data ---");
-		Genode::log("Bc: ", Genode::Hex(block_count()));
+		Genode::log("Lba: ", Genode::Hex(last_block()));
 		Genode::log("Bs: ", Genode::Hex(block_size()));
 	}
 };
@@ -197,18 +197,18 @@ struct Scsi::Capacity_response_16 : Genode::Mmio
 {
 	enum { LENGTH = 32 };
 
-	struct Bc : Register<0x0, 64> { };
-	struct Bs : Register<0x8, 32> { };
+	struct Lba : Register<0x0, 64> { };
+	struct Bs  : Register<0x8, 32> { };
 
 	Capacity_response_16(addr_t addr) : Mmio(addr) { }
 
-	uint64_t block_count() const { return be64(read<Bc>()); }
-	uint32_t block_size()  const { return be32(read<Bs>()); }
+	uint64_t last_block() const { return be64(read<Lba>()); }
+	uint32_t block_size() const { return be32(read<Bs>()); }
 
 	void dump()
 	{
 		Genode::log("--- Dump READ_CAPACITY_16 data ---");
-		Genode::log("Bc: ", Genode::Hex(block_count()));
+		Genode::log("Lba: ", Genode::Hex(last_block()));
 		Genode::log("Bs: ", Genode::Hex(block_size()));
 	}
 };
