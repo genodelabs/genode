@@ -410,8 +410,10 @@ struct Usb::Block_driver : Usb::Completion,
 			iface.control_transfer(p, 0x21, 0xff, 0, active_interface, 100);
 			if (!p.succeded) {
 				Genode::error("Could not reset device");
+				iface.release(p);
 				throw -1;
 			}
+			iface.release(p);
 
 			/*
 			 * Let us do GetMaxLUN and simply ignore the return value because none
