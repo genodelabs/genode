@@ -98,7 +98,14 @@ Genode::uint64_t Scsi::be64(Genode::uint64_t val)
 
 struct Scsi::Inquiry_response : Genode::Mmio
 {
-	enum { LENGTH = 36 /* default */ + 20 /* drive serial number and vendor unique */};
+	/*
+	 * Minimum response length is 36 bytes.
+	 *
+	 * Some devices have problems when more is requested, e.g.: 
+	 * - hama sd card reader (05e3:0738)
+	 * - delock sata adapter (174c:5106)
+	 */
+	enum { LENGTH = 36 };
 
 	struct Dt  : Register<0x0, 8> { }; /* device type */
 	struct Rm  : Register<0x1, 8> { struct Rmb : Bitfield<7, 1> { }; }; /* removable media */
