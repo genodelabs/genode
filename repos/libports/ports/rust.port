@@ -4,7 +4,7 @@ DATE      := 2016-03-03
 DOWNLOADS := rust.archive
 
 URL(rust) := http://static.rust-lang.org/dist/$(DATE)/rustc-$(VERSION)-src.tar.gz
-SHA(rust) := c75656f1238ce82e1cdede174d9cbc05f0b98ae2
+SHA(rust) := 044069447d4700f273d7f038c3ee2fac66f2ab36b987125db2108c2daa030fdd
 DIR(rust) := src/lib/rust
 
 PATCHES := src/lib/rust/freebsd.patch

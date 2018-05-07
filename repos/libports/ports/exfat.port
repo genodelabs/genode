@@ -3,7 +3,7 @@ VERSION   := 1.0.1
 DOWNLOADS := exfat.archive
 
 URL(exfat) := https://genode.org/files/fuse-exfat-$(VERSION).tar.gz
-SHA(exfat) := e24d2322797c26fb3bff5952c23f52f3274e887f
+SHA(exfat) := 12ac1ba1b7d4343bef64e7898176705a41cfe3b5a7a179e28549d242e2854758
 DIR(exfat) := src/lib/exfat
 
 PATCHES := src/lib/exfat/main.c.patch

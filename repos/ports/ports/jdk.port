@@ -4,7 +4,7 @@ DOWNLOADS := jdk.archive
 
 NAME(jdk) := jdk.tgz
 URL(jdk)  := https://api.github.com/repos/dmlloyd/openjdk/tarball/$(VERSION)
-SHA(jdk)  := 46a6bfab37216a8726bb55ab11743536678810ae
+SHA(jdk)  := d5b032d5d312148d1c15cde975aa43c4dfa4f2441472d70270ffd6aa22a33694
 DIR(jdk)  := src/app/jdk
 
 PATCHES   := $(addprefix src/app/jdk/patches/,jdk.patch arm.patch size.patch \

@@ -3,7 +3,7 @@ VERSION   := 487
 DOWNLOADS := less.archive
 
 URL(less) := https://ftp.gnu.org/gnu/less/less-$(VERSION).tar.gz
-SHA(less) := 8a5c4be2a51f11543793defec7ccb77c525f007e
+SHA(less) := f3dc8455cb0b2b66e0c6b816c00197a71bf6d1787078adeee0bcf2aea4b12706
 SIG(less) := ${URL(less)}.sig
 KEY(less) := GNU
 DIR(less) := src/noux-pkg/less

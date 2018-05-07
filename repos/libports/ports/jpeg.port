@@ -3,7 +3,7 @@ VERSION   := 7
 DOWNLOADS := jpeg.archive
 
 URL(jpeg) := http://www.ijg.org/files/jpegsrc.v7.tar.gz
-SHA(jpeg) := 88cced0fc3dbdbc82115e1d08abce4e9d23a4b47
+SHA(jpeg) := 50b7866206c5be044c4a2b0d7895898f5a58d31b50e16e79cf7dea3b90337ebf
 DIR(jpeg) := src/lib/jpeg
 
 DIRS := include/jpeg

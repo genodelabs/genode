@@ -3,7 +3,7 @@ VERSION   := 1.2.12
 DOWNLOADS := sdl_image.archive
 
 URL(sdl_image) := http://www.libsdl.org/projects/SDL_image/release/SDL_image-$(VERSION).tar.gz
-SHA(sdl_image) := 5e3e393d4e366638048bbb10d6a269ea3f4e4cf2
+SHA(sdl_image) := 0b90722984561004de84847744d566809dbb9daf732a9e503b91a1b5a84e5699
 DIR(sdl_image) := src/lib/sdl_image
 
 DIRS := include/SDL

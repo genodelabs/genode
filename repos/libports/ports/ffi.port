@@ -3,7 +3,7 @@ DOWNLOADS := ffi.archive
 VERSION   := 3.2.1
 
 URL(ffi) := https://github.com/libffi/libffi/archive/v$(VERSION).tar.gz
-SHA(ffi) := 4d8dabf78a9892f207f2968453d4eceb6c48ec26
+SHA(ffi) := 96d08dee6f262beea1a18ac9a3801f64018dc4521895e9198d029d6850febe23
 DIR(ffi) := src/lib/ffi
 
 $(call check_tool,sed)

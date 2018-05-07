@@ -3,7 +3,7 @@ VERSION   := 5.2.3
 DOWNLOADS := xz.archive
 
 URL(xz) := http://tukaani.org/xz/xz-$(VERSION).tar.xz
-SHA(xz) := a2975d12e0905daec48ec87c0098602e0669d195
+SHA(xz) := 7876096b053ad598c31f6df35f7de5cd9ff2ba3162e5a5554e4fc198447e0347
 DIR(xz) := src/xz
 
 DIRS := include/liblzma

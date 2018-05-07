@@ -3,7 +3,7 @@ VERSION   := 4.6.0
 DOWNLOADS := findutils.archive
 
 URL(findutils) := https://ftp.gnu.org/pub/gnu/findutils/findutils-$(VERSION).tar.gz
-SHA(findutils) := f18e8aaee3f3d4173a1f598001003be8706d28b0
+SHA(findutils) := ded4c9f73731cd48fec3b6bdaccce896473b6d8e337e9612e16cf1431bb1169d
 SIG(findutils) := ${URL(findutils)}
 KEY(findutils) := GNU
 DIR(findutils) := src/noux-pkg/findutils

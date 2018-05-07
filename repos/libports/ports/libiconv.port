@@ -3,7 +3,7 @@ VERSION   := 1.14
 DOWNLOADS := libiconv.archive
 
 URL(libiconv) := http://ftp.gnu.org/pub/gnu/libiconv/libiconv-$(VERSION).tar.gz
-SHA(libiconv) := be7d67e50d72ff067b2c0291311bc283add36965
+SHA(libiconv) := 72b24ded17d687193c3366d0ebe7cde1e6b18f0df8c55438ac95be39e8a30613
 SIG(libiconv) := ${URL(libiconv)}.sig
 KEY(libiconv) := GNU
 DIR(libiconv) := src/lib/libiconv

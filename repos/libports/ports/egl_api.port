@@ -6,12 +6,12 @@ GITHUB_PATH = https://raw.githubusercontent.com/KhronosGroup/EGL-Registry/5804dc
 
  URL(egl.h) := $(GITHUB_PATH)/EGL/egl.h
 NAME(egl.h) := include/EGL/egl.h
- SHA(egl.h) := 572914c13175b1317dc18ae5ef6b6714c2fcad76
+ SHA(egl.h) := ac71f423a7e7f1d39fe980aa8bf3c60eccf31c323d8ac5f734895783cdad6e99
 
  URL(eglext.h) := $(GITHUB_PATH)/EGL/eglext.h
 NAME(eglext.h) := include/EGL/eglext.h
- SHA(eglext.h) := 1667d58f56fd2676e3d6ea9f62849f1fccb1649c
+ SHA(eglext.h) := 38d7bb0e3d4554f84daa742c1f648c840b5975ef18a8f5b19a7ee834145f89f1
 
  URL(khrplatform.h) := $(GITHUB_PATH)/KHR/khrplatform.h
 NAME(khrplatform.h) := include/KHR/khrplatform.h
- SHA(khrplatform.h) := 8e0d9a99eb3053b448f4166beee7e3bf77631332
+ SHA(khrplatform.h) := 890c04e4cc75739666aa8ff989a0a37b7f11d9e0ec60bc362b40f91835d11b5c

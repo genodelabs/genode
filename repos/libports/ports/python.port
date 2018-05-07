@@ -3,7 +3,7 @@ VERSION   := 2.6.4
 DOWNLOADS := python.archive
 
 URL(python) := http://www.python.org/ftp/python/2.6.4/Python-$(VERSION).tgz
-SHA(python) := f30c7e64c2caf8a58705ab9184bea12db39ca0a9
+SHA(python) := 1a25a47506e4165704cfe2b07c0a064b0b5762a2d18b8fbdad5af688aeacd252
 SIG(python) := ${URL(python)}.asc
 PYTHON_KEY  := 12EF3DC38047DA382D18A5B999CDEA9DA4135B38
 DIR(python) := src/lib/python

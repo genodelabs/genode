@@ -3,7 +3,7 @@ DOWNLOADS = getdns.archive
 VERSION  = 1.4.0
 
 URL(getdns) := https://getdnsapi.net/releases/getdns-1-4-0/getdns-1.4.0.tar.gz
-SHA(getdns) := 5955268b3ce3d0551ba8a20a97380a8ad3bcf302
+SHA(getdns) := de360cd554fdec4bae3f5afbb36145872b8ff7306ded5deb0905442c4909f7b3
 DIR(getdns) := src/lib/getdns
 
 DIRS := include/getdns

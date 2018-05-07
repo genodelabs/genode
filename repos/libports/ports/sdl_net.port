@@ -3,7 +3,7 @@ VERSION   := 1.2.8
 DOWNLOADS := sdl_net.archive
 
 URL(sdl_net) := http://www.libsdl.org/projects/SDL_net/release/SDL_net-$(VERSION).tar.gz
-SHA(sdl_net) := fd393059fef8d9925dc20662baa3b25e02b8405d
+SHA(sdl_net) := 5f4a7a8bb884f793c278ac3f3713be41980c5eedccecff0260411347714facb4
 DIR(sdl_net) := src/lib/sdl_net
 
 PATCHES := src/lib/sdl_net/SDLnet.patch src/lib/sdl_net/SDL_net.h.patch

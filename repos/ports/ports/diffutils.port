@@ -3,7 +3,7 @@ VERSION   := 3.3
 DOWNLOADS := diffutils.archive
 
 URL(diffutils) := http://ftp.gnu.org/gnu/diffutils/diffutils-$(VERSION).tar.xz
-SHA(diffutils) := 6463cce7d3eb73489996baefd0e4425928ecd61e
+SHA(diffutils) := a25e89a8ab65fded1731e4186be1bb25cda967834b6df973599cdcd5abdfc19c
 SIG(diffutils) := ${URL(diffutils)}.sig
 KEY(diffutils) := GNU
 DIR(diffutils) := src/noux-pkg/diffutils

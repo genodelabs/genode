@@ -4,7 +4,7 @@ VERSION := 1.12.0
 DOWNLOADS := xserver.archive
 
 URL(xserver) := http://xorg.freedesktop.org/releases/individual/xserver/xorg-server-1.12.0.tar.bz2
-SHA(xserver) := 5f48db767f71e9f58ded6ff356f3b8340820e524
+SHA(xserver) := 280a14c5de8697a4aab18dca85429671286e69e5ada0c1535f03666e56f07799
 DIR(xserver) := src/lib/x86emu/contrib
 
 TAR_OPT(xserver) := --strip-components=4 xorg-server-$(VERSION)/hw/xfree86/x86emu

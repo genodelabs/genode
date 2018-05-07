@@ -3,7 +3,7 @@ VERSION   := 3.0.0
 DOWNLOADS := mpfr.archive
 
 URL(mpfr) := http://www.mpfr.org/mpfr-$(VERSION)/mpfr-$(VERSION).tar.gz
-SHA(mpfr) := d45409b4586c7dda9cc0c0953f27e6dd5188a908
+SHA(mpfr) := 71333528c0e7f0e86383a618151edc28e745a9fb5dd64e4893aa6e925601d540
 SIG(mpfr) := ${URL(mpfr)}.asc
 KEY(mpfr) := GNU
 DIR(mpfr) := src/lib/mpfr

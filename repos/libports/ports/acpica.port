@@ -3,7 +3,7 @@ VERSION   := 20160212
 DOWNLOADS := acpica.archive
 
 URL(acpica) := http://acpica.org/sites/acpica/files/acpica-unix2-$(VERSION).tar.gz
-SHA(acpica) := 9b4ceb8562952c16bfb70c567429509504f388b8
+SHA(acpica) := c0c68c7a8e9b1f4f66895b5950023042cb8e619fd92dab288010c8bd023d3270
 DIR(acpica) := src/lib/acpica
 
 PATCHES := src/lib/acpica/acpica.patch

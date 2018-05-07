@@ -3,6 +3,6 @@ VERSION   := 2.8.8rel.2
 DOWNLOADS := lynx.archive
 
 URL(lynx) := ftp://ftp.invisible-island.net/lynx/tarballs/lynx$(VERSION).tar.gz
-SHA(lynx) := 670587ec5265869604baf10e1d640f748a3d94f2
+SHA(lynx) := 234c9dc77d4c4594ad6216d7df4d49eae3019a3880e602f39721b35b97fbc408
 SIG(lynx) := ${URL(lynx)}.asc
 DIR(lynx) := src/noux-pkg/lynx

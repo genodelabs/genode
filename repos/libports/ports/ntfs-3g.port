@@ -3,7 +3,7 @@ VERSION   := 2013.1.13
 DOWNLOADS := ntfs-3g.archive
 
 URL(ntfs-3g) := http://tuxera.com/opensource/ntfs-3g_ntfsprogs-$(VERSION).tgz
-SHA(ntfs-3g) := 8c12b7644d90ae9fb8d0aca0d7ebd5f8fac2c818
+SHA(ntfs-3g) := 4b383f0074a3ab7683339d1f18222b107aaeb4983db119292c43c2b275cefb27
 DIR(ntfs-3g) := src/lib/ntfs-3g
 
 PATCHES := src/lib/ntfs-3g/*.patch

@@ -3,7 +3,7 @@ VERSION   := 6.0
 DOWNLOADS := readline.archive
 
 URL(readline) := ftp://ftp.gnu.org/gnu/readline/readline-$(VERSION).tar.gz
-SHA(readline) := 1e511b091514ef631c539552316787c75ace5262
+SHA(readline) := 1199d905c025735b34cf67d03078585e18f84707052413279fe68ce48c1cc1de
 SIG(readline) := ${URL(readline)}.sig
 KEY(readline) := GNU
 DIR(readline) := src/lib/readline

@@ -3,7 +3,7 @@ VERSION   := 7.1p1
 DOWNLOADS := openssh.archive
 
 URL(openssh) := http://artfiles.org/openbsd/OpenSSH/portable/openssh-$(VERSION).tar.gz
-SHA(openssh) := ed22af19f962262c493fcc6ed8c8826b2761d9b6
+SHA(openssh) := fc0a6d2d1d063d5c66dffd952493d0cda256cad204f681de0f84ef85b2ad8428
 SIG(openssh) := ${URL(openssh)}.asc
 KEY(openssh) := 3981992A1523ABA079DBFC66CE8ECB0386FF9C48
 DIR(openssh) := src/noux-pkg/openssh

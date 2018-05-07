@@ -3,7 +3,7 @@ DOWNLOADS := curl.archive
 VERSION   := 7.29.0
 
 URL(curl) := http://curl.haxx.se/download/curl-$(VERSION).tar.gz
-SHA(curl) := 6f5fd02bd9db83d5a1e2f52c8fa3566a60eda4f1
+SHA(curl) := 67dc5b952ac489191b62dbe95b18d336b821649f61404a280186c72e8cd0b9d6
 SIG(curl) := ${URL(curl)}.asc
 KEY(curl) := daniel@haxx.se
 DIR(curl) := src/lib/curl

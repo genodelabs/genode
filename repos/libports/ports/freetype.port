@@ -8,7 +8,7 @@ BASE_URL := https://sourceforge.net/projects/freetype/files/freetype2
 URL(freetype) := $(BASE_URL)/$(VERSION)/freetype-$(VERSION).tar.gz
 SIG(freetype) := ${URL(freetype)}.sig
 KEY(freetype) := wl@gnu.org
-SHA(freetype) := 2c82a4f87b076c13d878129c8651645803585ff4
+SHA(freetype) := 3c3fc489c75af93e9f4367951114b0274bddef60d70ffe419b7e22cda210b9c0
 DIR(freetype) := src/lib/freetype/contrib
 
 DIRS := include include/freetype

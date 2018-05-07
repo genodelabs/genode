@@ -3,6 +3,6 @@ VERSION   := 8.6.8
 DOWNLOADS := tcl.archive
 
 URL(tcl) := https://prdownloads.sourceforge.net/tcl/tcl$(VERSION)-src.tar.gz
-SHA(tcl) := 0d014d97ca38534d4be1dfc6c563a7a3a6aa737f
+SHA(tcl) := c43cb0c1518ce42b00e7c8f6eaddd5195c53a98f94adc717234a65cbcfd3f96a
 DIR(tcl) := src/noux-pkg/tcl
 

@@ -4,7 +4,7 @@ DOWNLOADS := mesa.archive
 
 URL_BASE      := https://mesa.freedesktop.org/archive/older-versions
 URL(mesa)     := $(URL_BASE)/11.x/$(VERSION)/mesa-$(VERSION).tar.gz
-SHA(mesa)     := af95222c289615638b3ab2c35564877a57c0c5db
+SHA(mesa)     := e2453014cd2cc5337a5180cdeffe8cf24fffbb83e20a96888e2b01df868eaae6
 
 DIR(mesa)     := src/lib/mesa
 TAR_OPT(mesa) := --strip-components=1 --files-from $(REP_DIR)/src/lib/mesa/files.list
