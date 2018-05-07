@@ -808,23 +808,16 @@ struct Usb::Main
 		Env                       &env;
 		Allocator                 &alloc;
 		Signal_context_capability  sigh;
-
-		Usb::Block_driver *driver = nullptr;
+		Usb::Block_driver          driver;
 
 		Factory(Env &env, Allocator &alloc,
 		        Signal_context_capability sigh)
-		: env(env), alloc(alloc), sigh(sigh)
-		{
-			driver = new (&alloc) Usb::Block_driver(env, alloc, sigh);
-		}
+		: env(env), alloc(alloc), sigh(sigh),
+		  driver(env, alloc, sigh) { }
 
-		Block::Driver *create() override { return driver; }
+		Block::Driver *create() override { return &driver; }
 
-		void destroy(Block::Driver *driver) override
-		{
-			Genode::destroy(alloc, driver);
-			driver = nullptr;
-		}
+		void destroy(Block::Driver *) override { }
 
 		private:
 
