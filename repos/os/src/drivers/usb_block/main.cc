@@ -223,7 +223,7 @@ struct Usb::Block_driver : Usb::Completion,
 				Capacity_response_10 r((addr_t)data);
 				if (verbose_scsi) r.dump();
 
-				block_count = r.block_count();
+				block_count = r.last_block() + 1;
 				block_size  = r.block_size();
 				break;
 			}
@@ -232,7 +232,7 @@ struct Usb::Block_driver : Usb::Completion,
 				Capacity_response_16 r((addr_t)data);
 				if (verbose_scsi) r.dump();
 
-				block_count = r.block_count();
+				block_count = r.last_block() + 1;
 				block_size  = r.block_size();
 				break;
 			}
