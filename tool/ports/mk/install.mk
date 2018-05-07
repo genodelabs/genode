@@ -195,19 +195,6 @@ _svn_dir = $(call _assert,$(DIR($1)),Missing declaration of DIR($*))
 
 _file_name = $(call _prefer,$(NAME($1)),$(notdir $(URL($1))))
 
-_verify_sha256 = \
-	($(ECHO) "$(SHA($1))  $(call _file_name,$1)" \
-		| sha256sum -c > /dev/null 2> /dev/null)
-
-# Generate shell code for verifying a file
-ifeq ($(CHECK_HASH),no)
-_verify_sha1 = ($(ECHO) CHECK_HASH=no enables only SHA256 checksums; false)
-else
-_verify_sha1 = \
-	($(ECHO) "$(SHA($1))  $(call _file_name,$1)" \
-		| sha1sum -c > /dev/null 2> /dev/null)
-endif
-
 # Some downloads are available via HTTPS only, but wget < 3.14 does not support
 # server-name identification, which is used by some sites. So, we disable
 # certificate checking in wget and check the validity of the download via SIG
@@ -221,8 +208,10 @@ endif
 		(test -f $$name || $(MSG_DOWNLOAD)$(URL($*))); \
 		(test -f $$name || wget --quiet --no-check-certificate $(URL($*)) -O $$name) || \
 			($(ECHO) Error: Download for $* failed; false)
-	$(VERBOSE) $(call _verify_sha256,$*) || $(call _verify_sha1,$*) \
-		|| ($(ECHO) Error: Hash sum check for $* failed; false)
+	$(VERBOSE)\
+		($(ECHO) "$(SHA($*))  $(call _file_name,$*)" |\
+		sha256sum -c > /dev/null 2> /dev/null) || \
+			($(ECHO) Error: Hash sum check for $* failed; false)
 
 
 ##
