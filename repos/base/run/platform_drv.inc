@@ -64,12 +64,26 @@ proc audio_drv_binary { } {
 	return no_audio_drv_available
 }
 
+proc platform_drv_name { } {
+	global use_acpica_as_acpi_drv
+	if {[info exists use_acpica_as_acpi_drv] && $use_acpica_as_acpi_drv} {
+		return acpica }
+
+	return acpi_drv
+}
 
 proc platform_drv_build_components {} {
 	set drv_build_components ""
 	lappend_if [have_platform_drv] drv_build_components drivers/platform
-	lappend_if [have_spec x86]     drv_build_components drivers/acpi
 	lappend_if [have_spec x86]     drv_build_components server/report_rom
+	if {[have_spec x86]} {
+		if {[platform_drv_name] eq "acpi_drv"} {
+			lappend_if [have_spec x86] drv_build_components drivers/acpi
+		}
+		if {[platform_drv_name] eq "acpica"} {
+			lappend_if [have_spec x86] drv_build_components app/acpica
+		}
+	}
 	return $drv_build_components
 }
 
@@ -88,7 +102,7 @@ proc platform_drv_boot_modules {} {
 		if {[have_spec muen]} {
 			lappend drv_boot_modules acpi
 		} else {
-			lappend drv_boot_modules acpi_drv
+			lappend drv_boot_modules [platform_drv_name]
 		}
 	}
 
@@ -103,8 +117,18 @@ proc append_platform_drv_boot_modules {} {
 
 proc platform_drv_policy {} {
 
-	if ([have_spec x86]) {
-		return {
+	if (![have_spec x86]) {
+		return {}
+	}
+
+	set drv_policy ""
+
+	if {[platform_drv_name] eq "acpica"} {
+		append drv_policy {
+			<policy label="acpi_drv -> ">    <pci class="ALL"/> </policy>}
+	}
+
+	append drv_policy {
 			<policy label_prefix="ps2_drv">  <device name="PS2"/> </policy>
 			<policy label_prefix="nic_drv">  <pci class="ETHERNET"/> </policy>
 			<policy label_prefix="fb_drv">   <pci class="VGA"/> </policy>
@@ -118,17 +142,17 @@ proc platform_drv_policy {} {
 				<pci bus="0" device="0" function="0"/>
 				<pci class="ISABRIDGE"/>
 			</policy>}
-	} else {
-		return {}
-	}
+
+	return $drv_policy
 }
 
 
 proc platform_drv_priority {} { return "" }
 proc platform_drv_add_routing {} {
-	if {[have_spec x86]} {
+
+	if {[platform_drv_name] eq "acpica"} {
 		return {
-			<service name="ROM" label="system"> <child name="acpi_report_rom"/> </service>}
+			<service name="ROM" label="acpi_ready"> <child name="acpi_report_rom"/> </service>}
 	}
 
 	return ""
@@ -136,6 +160,11 @@ proc platform_drv_add_routing {} {
 
 
 proc platform_drv_config_config {} {
+	if {[platform_drv_name] eq "acpica"} {
+		return {
+		<config acpi_ready="yes">}
+	}
+
 	if {[have_spec acpi] || [have_spec arm] || [have_spec muen]} {
 		return {
 		<config>}
@@ -153,14 +182,30 @@ proc platform_drv_config {} {
 
 		append drv_config {
 	<start name="acpi_drv" } [platform_drv_priority] { caps="400" >
-		<resource name="RAM" quantum="3M"/>
+		<binary name="} [platform_drv_name] {"/>
+		<resource name="RAM" quantum="3M"/>}
+
+		if {[platform_drv_name] eq "acpica"} {
+			append drv_config {
+		<config acpi_ready="yes" act_as_acpi_drv="yes" report="yes"/>}
+		}
+
+		append drv_config {
 		<route>
 			<service name="IO_MEM"> <parent/> </service>
 			<service name="LOG">    <parent/> </service>
 			<service name="PD">     <parent/> </service>
 			<service name="RM">     <parent/> </service>
 			<service name="CPU">    <parent/> </service>
-			<service name="ROM">    <parent/> </service>
+			<service name="ROM">    <parent/> </service>}
+
+		append_if [expr {[platform_drv_name] eq "acpica"}] drv_config {
+			<service name="IO_PORT">  <parent/> </service>
+			<service name="IRQ">      <parent/> </service>
+			<service name="Platform"> <child name="platform_drv"/> </service>
+			<service name="Acpi">     <child name="platform_drv"/> </service>}
+
+		append drv_config {
 			<service name="Report"> <child name="acpi_report_rom"/> </service>
 			<service name="ROM" label="platform_info"> <parent/> </service>
 		</route>
@@ -177,7 +222,12 @@ proc platform_drv_config {} {
 			<service name="Report" />
 		</provides>
 		<config>
-			<policy label="platform_drv -> acpi" report="acpi_drv -> acpi"/>
+			<policy label="platform_drv -> acpi" report="acpi_drv -> acpi"/>}
+
+		append_if [expr {[platform_drv_name] eq "acpica"}] drv_config {
+			<policy label="platform_drv -> acpi_ready" report="acpi_drv -> acpi_ready"/>}
+
+		append drv_config {
 		</config>
 		<route>
 			<service name="LOG"> <parent/> </service>

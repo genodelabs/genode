@@ -4,12 +4,22 @@ assert_spec pci
 #
 set build_components { core init test/pci }
 
+set use_acpica_as_acpi_drv 0
+
 source ${genode_dir}/repos/base/run/platform_drv.inc
 
 # override default platform driver policy
 proc platform_drv_policy {} {
-	return {
+	global use_acpica_as_acpi_drv
+	set policy ""
+
+	append_if $use_acpica_as_acpi_drv policy {
+			<policy label="acpi_drv -> ">    <pci class="ALL"/> </policy>}
+
+	append policy {
 			<policy label_prefix="test-pci"> <pci class="ALL"/> </policy>}
+
+	return $policy
 }
 
 append_platform_drv_build_components
