@@ -86,7 +86,7 @@ struct Fetchurl::Main
 
 	Timer::Connection _timer { _env, "reporter" };
 
-	Genode::Reporter _reporter { _env, "progress" };
+	Genode::Constructible<Genode::Expanding_reporter> _reporter { };
 
 	Genode::List<Fetch> _fetches { };
 
@@ -108,13 +108,15 @@ struct Fetchurl::Main
 
 	void _report()
 	{
-		using namespace Genode;
-		Reporter::Xml_generator xml_gen(_reporter, [&] {
+		if (!_reporter.constructed())
+			return;
+
+		_reporter->generate([&] (Genode::Xml_generator &xml) {
 			for (Fetch *f = _fetches.first(); f; f = f->next()) {
-				xml_gen.node("fetch", [&] {
-					xml_gen.attribute("url", f->url);
-					xml_gen.attribute("total", f->dltotal);
-					xml_gen.attribute("now", f->dlnow);
+				xml.node("fetch", [&] {
+					xml.attribute("url",   f->url);
+					xml.attribute("total", f->dltotal);
+					xml.attribute("now",   f->dlnow);
 				});
 			}
 		});
@@ -139,7 +141,7 @@ struct Fetchurl::Main
 
 				_report_delay = Duration(delay_ms);
 				_schedule_report();
-				_reporter.enabled(true);
+				_reporter.construct(_env, "progress", "progress");
 			}
 		}
 		catch (...) { }
@@ -269,8 +271,7 @@ struct Fetchurl::Main
 		}
 
 		while (true) {
-			if (_reporter.enabled())
-				_report();
+			_report();
 
 			bool retry_some = false;
 			for (Fetch *f = _fetches.first(); f; f = f->next()) {
@@ -288,8 +289,7 @@ struct Fetchurl::Main
 			if (!retry_some) break;
 		}
 
-		if (_reporter.enabled())
-			_report();
+		_report();
 
 		curl_easy_cleanup(curl);
 
