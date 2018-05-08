@@ -58,7 +58,7 @@ class Stack_area_region_map : public Region_map
 		 * Allocate and attach on-the-fly backing store to the stack area
 		 */
 		Local_addr attach(Dataspace_capability, size_t size, off_t,
-		                  bool, Local_addr local_addr, bool) override
+		                  bool, Local_addr local_addr, bool, bool) override
 		{
 			size = round_page(size);
 

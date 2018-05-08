@@ -35,7 +35,7 @@ struct Genode::Expanding_region_map_client : Region_map_client
 
 	Local_addr attach(Dataspace_capability ds, size_t size, off_t offset,
 	                  bool use_local_addr, Local_addr local_addr,
-	                  bool executable) override
+	                  bool executable, bool writeable) override
 	{
 		return retry<Out_of_ram>(
 			[&] () {
@@ -44,7 +44,8 @@ struct Genode::Expanding_region_map_client : Region_map_client
 						return Region_map_client::attach(ds, size, offset,
 						                                 use_local_addr,
 						                                 local_addr,
-						                                 executable); },
+						                                 executable,
+						                                 writeable); },
 					[&] { _pd_client.upgrade_caps(2); });
 			},
 			[&] () { _pd_client.upgrade_ram(8*1024); });

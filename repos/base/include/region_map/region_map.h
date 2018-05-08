@@ -103,6 +103,7 @@ struct Genode::Region_map : Interface
 	 *                           the specified 'local_addr'
 	 * \param local_addr         local destination address
 	 * \param executable         if the mapping should be executable
+	 * \param writeable          if the mapping should be writeable
 	 *
 	 * \throw Invalid_dataspace
 	 * \throw Region_conflict
@@ -116,7 +117,8 @@ struct Genode::Region_map : Interface
 	                          size_t size = 0, off_t offset = 0,
 	                          bool use_local_addr = false,
 	                          Local_addr local_addr = (void *)0,
-	                          bool executable = false) = 0;
+	                          bool executable = false,
+	                          bool writeable = true) = 0;
 
 	/**
 	 * Shortcut for attaching a dataspace at a predefined local address
@@ -165,7 +167,8 @@ struct Genode::Region_map : Interface
 	GENODE_RPC_THROW(Rpc_attach, Local_addr, attach,
 	                 GENODE_TYPE_LIST(Invalid_dataspace, Region_conflict,
 	                                  Out_of_ram, Out_of_caps),
-	                 Dataspace_capability, size_t, off_t, bool, Local_addr, bool);
+	                 Dataspace_capability, size_t, off_t, bool, Local_addr,
+	                 bool, bool);
 	GENODE_RPC(Rpc_detach, void, detach, Local_addr);
 	GENODE_RPC(Rpc_fault_handler, void, fault_handler, Signal_context_capability);
 	GENODE_RPC(Rpc_state, State, state);

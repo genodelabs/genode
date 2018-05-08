@@ -51,7 +51,7 @@ Region_map::Local_addr
 Core_region_map::attach(Dataspace_capability ds_cap, size_t,
                         off_t offset, bool use_local_addr,
                         Region_map::Local_addr,
-                        bool executable)
+                        bool executable, bool writeable)
 {
 	auto lambda = [&] (Dataspace_component *ds) -> Local_addr {
 		if (!ds)
@@ -76,7 +76,7 @@ Core_region_map::attach(Dataspace_capability ds_cap, size_t,
 
 		/* map it */
 		Nova::Utcb * const utcb = reinterpret_cast<Nova::Utcb *>(Thread::myself()->utcb());
-		const Nova::Rights rights(true, ds->writable(), executable);
+		const Nova::Rights rights(true, writeable && ds->writable(), executable);
 
 		if (map_local(utcb, ds->phys_addr(), reinterpret_cast<addr_t>(virt_ptr),
 		              page_rounded_size >> get_page_size_log2(), rights, true)) {

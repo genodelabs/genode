@@ -39,10 +39,10 @@ Region_map::Local_addr
 Region_map_client::attach(Dataspace_capability ds, size_t size,
                           off_t offset, bool use_local_addr,
                           Region_map::Local_addr local_addr,
-                          bool executable)
+                          bool executable, bool writeable)
 {
 	return _local(*this)->attach(ds, size, offset, use_local_addr,
-	                             local_addr, executable);
+	                             local_addr, executable, writeable);
 }
 
 

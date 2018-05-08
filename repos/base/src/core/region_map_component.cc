@@ -213,7 +213,8 @@ int Rm_client::pager(Ipc_pager &pager)
 		/*
 		 * Check if dataspace is compatible with page-fault type
 		 */
-		if (pf_type == Region_map::State::WRITE_FAULT && !dsc->writable()) {
+		if (pf_type == Region_map::State::WRITE_FAULT &&
+		    (!region->write() || !dsc->writable())) {
 
 			print_page_fault("attempted write at read-only memory",
 			                 pf_addr, pf_ip, pf_type, *this);
@@ -345,7 +346,7 @@ Region_map::Local_addr
 Region_map_component::attach(Dataspace_capability ds_cap, size_t size,
                              off_t offset, bool use_local_addr,
                              Region_map::Local_addr local_addr,
-                             bool executable)
+                             bool executable, bool writeable)
 {
 	/* serialize access */
 	Lock::Guard lock_guard(_lock);
@@ -427,8 +428,9 @@ Region_map_component::attach(Dataspace_capability ds_cap, size_t size,
 
 		/* store attachment info in meta data */
 		try {
-			_map.metadata(attach_at, Rm_region((addr_t)attach_at, size, true,
-			                                   dsc, offset, this, executable));
+			_map.metadata(attach_at, Rm_region((addr_t)attach_at, size,
+			                                   writeable, dsc, offset, this,
+			                                   executable));
 		}
 		catch (Allocator_avl_tpl<Rm_region>::Assign_metadata_failed) {
 			error("failed to store attachment info");
