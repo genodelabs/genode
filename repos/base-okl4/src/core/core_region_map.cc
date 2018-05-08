@@ -22,7 +22,7 @@ using namespace Genode;
 Region_map::Local_addr
 Core_region_map::attach(Dataspace_capability ds_cap, size_t size,
                         off_t offset, bool use_local_addr,
-                        Region_map::Local_addr, bool)
+                        Region_map::Local_addr, bool, bool)
 {
 	using namespace Okl4;
 

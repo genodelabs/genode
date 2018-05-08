@@ -53,7 +53,8 @@ class Genode::Region_map_component : public Rpc_object<Region_map>,
 		void add_client(Rm_client &) { }
 		void remove_client(Rm_client &) { }
 
-		Local_addr attach(Dataspace_capability, size_t, off_t, bool, Local_addr, bool) {
+		Local_addr attach(Dataspace_capability, size_t, off_t, bool,
+		                  Local_addr, bool, bool) {
 			return (addr_t)0; }
 
 		void detach(Local_addr) { }

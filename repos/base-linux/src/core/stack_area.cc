@@ -43,7 +43,8 @@ class Stack_area_region_map : public Genode::Region_map
 		 * Attach backing store to stack area
 		 */
 		Local_addr attach(Genode::Dataspace_capability, Genode::size_t size,
-		                  Genode::off_t, bool, Local_addr local_addr, bool)
+		                  Genode::off_t, bool, Local_addr local_addr, bool,
+		                  bool) override
 		{
 			using namespace Genode;
 
@@ -61,17 +62,17 @@ class Stack_area_region_map : public Genode::Region_map
 			return local_addr;
 		}
 
-		void detach(Local_addr local_addr)
+		void detach(Local_addr local_addr) override
 		{
 			Genode::warning("stack area detach from ", (void*)local_addr,
 			                " - not implemented");
 		}
 
-		void fault_handler(Genode::Signal_context_capability) { }
+		void fault_handler(Genode::Signal_context_capability) override { }
 
-		State state() { return State(); }
+		State state() override { return State(); }
 
-		Genode::Dataspace_capability dataspace() {
+		Genode::Dataspace_capability dataspace() override {
 			return Genode::Dataspace_capability(); }
 };
 

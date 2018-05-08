@@ -37,7 +37,8 @@ class Genode::Core_region_map : public Region_map
 		Local_addr attach(Dataspace_capability, size_t size = 0,
 		                  off_t offset=0, bool use_local_addr = false,
 		                  Local_addr local_addr = 0,
-		                  bool executable = false) override;
+		                  bool executable = false,
+		                  bool writeable = true) override;
 
 		void detach(Local_addr);
 

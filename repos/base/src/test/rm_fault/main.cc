@@ -301,25 +301,45 @@ struct Main_parent
 		_address_space.detach((void *)child_virt_addr);
 	}
 
-	void _test_write_fault(addr_t const child_virt_addr)
+	void _test_write_fault(addr_t const child_virt_addr, unsigned round)
 	{
-		if (_child_value() == WRITE_TEST) {
-			_child_stop() = STOP_TEST;
+		if (_child_value() != WRITE_TEST) {
+			Genode::log("test WRITE faults on read-only binary and "
+			            "read-only attached RAM");
 
-			Genode::log("got write fault on ROM ", Hex(child_virt_addr));
+			_child_value() = WRITE_TEST;
 
-			/* let client continue by providing a dataspace it may write to */
-			_address_space.detach((void *)child_virt_addr);
-			_address_space.attach_at(_ds.cap(), child_virt_addr);
-
+			_address_space.attach_at(_binary.dataspace(), child_virt_addr);
 			return;
 		}
 
-		Genode::log("test WRITE fault on read-only binary");
+		enum { ROUND_FAULT_ON_ROM_BINARY = 1, ROUND_FAULT_ON_RO_RAM = 2 };
 
-		_child_value() = WRITE_TEST;
+		if (round == ROUND_FAULT_ON_RO_RAM)
+			_child_stop() = STOP_TEST;
 
-		_address_space.attach_at(_binary.dataspace(), child_virt_addr);
+		Genode::log("got write fault on ", Hex(child_virt_addr),
+		            (round == ROUND_FAULT_ON_ROM_BINARY) ? " ROM (binary)" :
+		            (round == ROUND_FAULT_ON_RO_RAM) ? " read-only attached RAM"
+		                                             : " unknown");
+
+		/* detach region where fault happened */
+		_address_space.detach((void *)child_virt_addr);
+
+		if (round == ROUND_FAULT_ON_ROM_BINARY) {
+			/* attach a RAM dataspace read-only */
+			enum {
+				SIZE = 4096, OFFSET = 0, ATTACH_AT = true, NON_EXEC = false,
+				READONLY = false
+			};
+
+			_address_space.attach(_ds.cap(), SIZE, OFFSET, ATTACH_AT,
+			                      child_virt_addr, NON_EXEC, READONLY);
+		} else
+		if (round == ROUND_FAULT_ON_RO_RAM) {
+			/* let client continue by attaching RAM dataspace writeable */
+			_address_space.attach_at(_ds.cap(), child_virt_addr);
+		}
 	}
 
 	void _test_exec_fault(Region_map::State &state)
@@ -344,7 +364,7 @@ struct Main_parent
 
 	void _handle_fault()
 	{
-		enum { FAULT_CNT_READ = 4, FAULT_CNT_WRITE = 5 };
+		enum { FAULT_CNT_READ = 4, FAULT_CNT_WRITE = 6 };
 
 		log("received region-map fault signal, request fault state");
 
@@ -364,7 +384,7 @@ struct Main_parent
 			_test_read_fault(child_virt_addr);
 
 		if (_fault_cnt <= FAULT_CNT_WRITE && _fault_cnt >= FAULT_CNT_READ)
-			_test_write_fault(child_virt_addr);
+			_test_write_fault(child_virt_addr, _fault_cnt - FAULT_CNT_READ);
 
 		if (!_config.xml().attribute_value("executable_fault_test", true) &&
 		    _fault_cnt >=FAULT_CNT_WRITE)

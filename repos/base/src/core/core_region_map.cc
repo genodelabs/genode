@@ -23,7 +23,7 @@ using namespace Genode;
 
 Region_map::Local_addr
 Core_region_map::attach(Dataspace_capability ds_cap, size_t, off_t, bool,
-                        Region_map::Local_addr, bool)
+                        Region_map::Local_addr, bool, bool)
 {
 	auto lambda = [] (Dataspace_component *ds) {
 		if (!ds)

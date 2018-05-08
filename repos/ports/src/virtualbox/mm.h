@@ -47,7 +47,8 @@ class Sub_rm_connection : private Genode::Rm_connection,
 		                  Genode::size_t size = 0, Genode::off_t offset = 0,
 		                  bool use_local_addr = false,
 		                  Local_addr local_addr = (void *)0,
-		                  bool executable = false) override
+		                  bool executable = false,
+		                  bool writeable = true) override
 		{
 			Local_addr addr = Genode::retry<Genode::Out_of_ram>(
 				[&] () {
@@ -56,7 +57,8 @@ class Sub_rm_connection : private Genode::Rm_connection,
 							return Region_map_client::attach(ds, size, offset,
 							                                 use_local_addr,
 							                                 local_addr,
-							                                 executable); },
+							                                 executable,
+							                                 writeable); },
 						[&] () { upgrade_caps(2); });
 					},
 				[&] () { upgrade_ram(8192); });

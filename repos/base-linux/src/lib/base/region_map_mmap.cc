@@ -123,10 +123,11 @@ void *Region_map_mmap::_map_local(Dataspace_capability ds,
                                   bool                 use_local_addr,
                                   addr_t               local_addr,
                                   bool                 executable,
-                                  bool                 overmap)
+                                  bool                 overmap,
+                                  bool                 writeable)
 {
 	int  const  fd        = _dataspace_fd(ds);
-	bool const  writable  = _dataspace_writable(ds);
+	bool const  writable  = _dataspace_writable(ds) && writeable;
 
 	int  const  flags     = MAP_SHARED | (overmap ? MAP_FIXED : 0);
 	int  const  prot      = PROT_READ
@@ -172,7 +173,7 @@ Region_map::Local_addr Region_map_mmap::attach(Dataspace_capability ds,
                                                size_t size, off_t offset,
                                                bool use_local_addr,
                                                Region_map::Local_addr local_addr,
-                                               bool executable)
+                                               bool executable, bool writeable)
 {
 	Lock::Guard lock_guard(lock());
 
@@ -239,7 +240,7 @@ Region_map::Local_addr Region_map_mmap::attach(Dataspace_capability ds,
 		 * argument as the region was reserved by a PROT_NONE mapping.
 		 */
 		if (_is_attached())
-			_map_local(ds, region_size, offset, true, _base + (addr_t)local_addr, executable, true);
+			_map_local(ds, region_size, offset, true, _base + (addr_t)local_addr, executable, true, writeable);
 
 		return (void *)local_addr;
 
@@ -290,7 +291,7 @@ Region_map::Local_addr Region_map_mmap::attach(Dataspace_capability ds,
 				 */
 				_map_local(region.dataspace(), region.size(), region.offset(),
 				           true, rm->_base + region.start() + region.offset(),
-				           executable, true);
+				           executable, true, writeable);
 			}
 
 			return rm->_base;
@@ -304,7 +305,7 @@ Region_map::Local_addr Region_map_mmap::attach(Dataspace_capability ds,
 			 * Note, we do not overmap.
 			 */
 			void *addr = _map_local(ds, region_size, offset, use_local_addr,
-			                        local_addr, executable);
+			                        local_addr, executable, false, writeable);
 
 			_add_to_rmap(Region((addr_t)addr, offset, ds, region_size));
 

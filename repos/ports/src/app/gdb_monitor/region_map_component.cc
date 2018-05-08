@@ -54,7 +54,7 @@ Region_map::Local_addr
 Region_map_component::attach(Dataspace_capability ds_cap, size_t size,
                              off_t offset, bool use_local_addr,
                              Region_map::Local_addr local_addr,
-                             bool executable)
+                             bool executable, bool const writeable)
 {
 	size_t ds_size = Dataspace_client(ds_cap).size();
 
@@ -72,7 +72,7 @@ Region_map_component::attach(Dataspace_capability ds_cap, size_t size,
 
 	void *addr = _parent_region_map.attach(ds_cap, size, offset,
 	                                       use_local_addr, local_addr,
-	                                       executable);
+	                                       executable, writeable);
 
 	Lock::Guard lock_guard(_region_map_lock);
 	_region_map.insert(new (_alloc) Region(addr, (void*)((addr_t)addr + size - 1), ds_cap, offset));

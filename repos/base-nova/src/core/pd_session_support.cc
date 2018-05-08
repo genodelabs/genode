@@ -66,10 +66,13 @@ void Pd_session_component::map(addr_t virt, addr_t size)
 			/* one item ever fits on the UTCB */
 			(void)res;
 
+			Nova::Rights const map_rights (true,
+			                               region->write() && dsc->writable(),
+			                              region->executable());
+
 			/* receive window in destination pd */
 			Nova::Mem_crd crd_mem(mapping.dst_addr() >> 12,
-			                      mapping.mem_crd().order(),
-			                      Nova::Rights(true, dsc->writable(), region->executable()));
+			                      mapping.mem_crd().order(), map_rights);
 
 			err = Nova::delegate(pd_core, pd_dst, crd_mem);
 		} while (err == Nova::NOVA_PD_OOM &&
