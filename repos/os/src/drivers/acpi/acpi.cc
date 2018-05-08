@@ -177,6 +177,10 @@ struct Device_scope : Genode::Mmio
 	};
 
 	unsigned count() const {
+		unsigned const length = read<Length>();
+		if (length < 6)
+			return 0;
+
 		unsigned paths = (read<Length>() - 6) / 2;
 		if (paths > MAX_PATHS) {
 			Genode::error("Device_scope: more paths (", paths, ") than"
@@ -187,6 +191,29 @@ struct Device_scope : Genode::Mmio
 	}
 };
 
+/* DMA Remapping Hardware Definition - Intel VT-d IO Spec - 8.3. */
+struct Dmar_drhd : Genode::Mmio
+{
+	struct Length  : Register<0x2, 16> { };
+	struct Flags   : Register<0x4,  8> { };
+	struct Segment : Register<0x6, 16> { };
+	struct Phys    : Register<0x8, 64> { };
+
+	Dmar_drhd(addr_t a) : Genode::Mmio(a) { }
+
+	template <typename FUNC>
+	void apply(FUNC const &func = [] () { } )
+	{
+		addr_t addr = base() + 16;
+		do {
+			Device_scope scope(addr);
+
+			func(scope);
+
+			addr = scope.base() + scope.read<Device_scope::Length>();
+		} while (addr < base() + read<Length>());
+	}
+};
 
 /* DMA Remapping Reporting structure - Intel VT-d IO Spec - 8.3. */
 struct Dmar_rmrr : Genode::Mmio
@@ -1368,6 +1395,7 @@ void Acpi::generate_report(Genode::Env &env, Genode::Allocator &alloc)
 		{
 			xml.node("scope", [&] () {
 				xml.attribute("bus_start", scope.read<Device_scope::Bus>());
+				xml.attribute("type", scope.read<Device_scope::Type>());
 				for (unsigned j = 0 ; j < scope.count(); j++) {
 					xml.node("path", [&] () {
 						attribute_hex(xml, "dev",
@@ -1383,6 +1411,17 @@ void Acpi::generate_report(Genode::Env &env, Genode::Allocator &alloc)
 		     entry; entry = entry->next()) {
 
 			entry->apply([&] (Dmar_common const &dmar) {
+				if (dmar.read<Dmar_common::Type>() == Dmar_common::Type::DRHD) {
+					Dmar_drhd drhd(dmar.base());
+
+					xml.node("drhd", [&] () {
+						attribute_hex(xml, "phys", drhd.read<Dmar_drhd::Phys>());
+						attribute_hex(xml, "flags", drhd.read<Dmar_drhd::Flags>());
+						attribute_hex(xml, "segment", drhd.read<Dmar_drhd::Segment>());
+						drhd.apply(func_scope);
+					});
+				}
+
 				if (dmar.read<Dmar_common::Type>() != Dmar_common::Type::RMRR)
 					return;
 

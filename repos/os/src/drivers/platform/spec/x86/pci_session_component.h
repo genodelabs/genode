@@ -219,7 +219,7 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 		Genode::List<Device_component>     _device_list { };
 		Platform::Pci_buses               &_pci_bus;
 		Genode::Heap                      &_global_heap;
-		bool                               _no_device_pd = false;
+		bool                               _iommu;
 
 		/**
 		 * Registry of RAM dataspaces allocated by the session
@@ -463,7 +463,8 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 		                  Genode::Attached_io_mem_dataspace &pciconf,
 		                  Platform::Pci_buses               &buses,
 		                  Genode::Heap                      &global_heap,
-		                  char                        const *args)
+		                  char                        const *args,
+		                  bool                        const iommu)
 		:
 			_env(env),
 			_config(config),
@@ -472,7 +473,7 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 			_cap_guard(Genode::cap_quota_from_args(args)),
 			_md_alloc(_env_ram, env.rm()),
 			_label(Genode::label_from_args(args)),
-			_pci_bus(buses), _global_heap(global_heap)
+			_pci_bus(buses), _global_heap(global_heap), _iommu(iommu)
 		{
 			/* subtract the RPC session and session dataspace capabilities */
 			_cap_guard.withdraw(Genode::Cap_quota{2});
@@ -763,7 +764,7 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 		{
 			using namespace Genode;
 
-			if (!device || device->config_space() == ~0UL)
+			if (!device || device->config_space() == ~0UL || !_iommu)
 				return;
 
 			try {
@@ -840,6 +841,8 @@ class Platform::Root : public Genode::Root_component<Session_component>
 
 		Genode::Constructible<Platform::Pci_buses> _buses { };
 
+		bool _iommu { false };
+
 		void _parse_report_rom(Genode::Env &env, const char * acpi_rom,
 		                       bool acpi_platform)
 		{
@@ -911,6 +914,11 @@ class Platform::Root : public Genode::Root_component<Session_component>
 					Irq_override * o = new (_heap) Irq_override(irq, gsi,
 					                                            flags);
 					Irq_override::list()->insert(o);
+					continue;
+				}
+
+				if (node.has_type("drhd")) {
+					_iommu = true;
 					continue;
 				}
 
@@ -1029,7 +1037,8 @@ class Platform::Root : public Genode::Root_component<Session_component>
 		{
 			try {
 				return  new (md_alloc())
-					Session_component(_env, _config, *_pci_confspace, *_buses, _heap, args);
+					Session_component(_env, _config, *_pci_confspace, *_buses,
+					                  _heap, args, _iommu);
 			}
 			catch (Genode::Session_policy::No_policy_defined) {
 				Genode::error("Invalid session request, no matching policy for ",
