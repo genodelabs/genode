@@ -108,6 +108,15 @@ struct Depot_download_manager::Main
 			_generate_init_config(xml); });
 	}
 
+	void _handle_installation()
+	{
+		_installation.update();
+		_generate_init_config();
+	}
+
+	Signal_handler<Main> _installation_handler {
+		_env.ep(), *this, &Main::_handle_installation };
+
 	Signal_handler<Main> _query_result_handler {
 		_env.ep(), *this, &Main::_handle_query_result };
 
@@ -124,6 +133,7 @@ struct Depot_download_manager::Main
 		_current_user.sigh(_query_result_handler);
 		_init_state  .sigh(_init_state_handler);
 		_verified    .sigh(_init_state_handler);
+		_installation.sigh(_installation_handler);
 
 		_generate_init_config();
 	}
