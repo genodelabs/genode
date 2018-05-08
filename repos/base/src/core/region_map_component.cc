@@ -429,8 +429,8 @@ Region_map_component::attach(Dataspace_capability ds_cap, size_t size,
 		/* store attachment info in meta data */
 		try {
 			_map.metadata(attach_at, Rm_region((addr_t)attach_at, size,
-			                                   writeable, dsc, offset, this,
-			                                   executable));
+			                                   dsc->writable() && writeable,
+			                                   dsc, offset, this, executable));
 		}
 		catch (Allocator_avl_tpl<Rm_region>::Assign_metadata_failed) {
 			error("failed to store attachment info");
