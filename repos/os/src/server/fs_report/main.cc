@@ -23,6 +23,7 @@
 #include <util/arg_string.h>
 
 namespace Fs_report {
+
 	using namespace Genode;
 	using namespace Report;
 	using namespace Vfs;
@@ -33,55 +34,93 @@ namespace Fs_report {
 
 	typedef Genode::Path<Session_label::capacity()> Path;
 
-static bool create_parent_dir(Vfs::Directory_service &vfs, Path const &child,
-                              Genode::Allocator &alloc)
-{
-	typedef Vfs::Directory_service::Opendir_result Opendir_result;
+	static bool create_parent_dir(Vfs::Directory_service &vfs, Path const &child,
+	                              Genode::Allocator &alloc)
+	{
+		typedef Vfs::Directory_service::Opendir_result Opendir_result;
 
-	Path parent = child;
-	parent.strip_last_element();
-	if (parent == "/")
-		return true;
+		Path parent = child;
+		parent.strip_last_element();
+		if (parent == "/")
+			return true;
 
-	Vfs_handle *dir_handle;
-	Opendir_result res = vfs.opendir(parent.base(), true, &dir_handle, alloc);
-	if (res == Opendir_result::OPENDIR_ERR_LOOKUP_FAILED) {
-		if (!create_parent_dir(vfs, parent, alloc))
+		Vfs_handle *dir_handle;
+		Opendir_result res = vfs.opendir(parent.base(), true, &dir_handle, alloc);
+		if (res == Opendir_result::OPENDIR_ERR_LOOKUP_FAILED) {
+			if (!create_parent_dir(vfs, parent, alloc))
+				return false;
+			res = vfs.opendir(parent.base(), true, &dir_handle, alloc);
+		}
+
+		switch (res) {
+		case Opendir_result::OPENDIR_OK:
+			vfs.close(dir_handle);
+			return true;
+		case Opendir_result::OPENDIR_ERR_NODE_ALREADY_EXISTS:
+			 return true;
+		default:
 			return false;
-		res = vfs.opendir(parent.base(), true, &dir_handle, alloc);
+		}
 	}
 
-	switch (res) {
-	case Opendir_result::OPENDIR_OK:
-		vfs.close(dir_handle);
-		return true;
-	case Opendir_result::OPENDIR_ERR_NODE_ALREADY_EXISTS:
-		 return true;
-	default:
-		return false;
-	}
 }
 
-}
 
 class Fs_report::Session_component : public Genode::Rpc_object<Report::Session>
 {
 	private:
+
+		Genode::Entrypoint     &_ep;
+		Genode::Allocator      &_alloc;
+		Vfs::File_system       &_vfs;
+
+		Attached_ram_dataspace _ds;
+		Path                   _path { };
+
+		file_size _file_size = 0;
+		bool      _success   = true;
+
+		struct Open_failed { };
+
+		template <typename FN> void _file_op(FN const &fn)
+		{
+			typedef Vfs::Directory_service::Open_result Open_result;
+
+			Vfs_handle *handle;
+			Open_result res = _vfs.open(_path.base(),
+			                            Directory_service::OPEN_MODE_WRONLY,
+			                            &handle, _alloc);
+
+			/* try to create file if not accessible */
+			if (res == Open_result::OPEN_ERR_UNACCESSIBLE) {
+				res = _vfs.open(_path.base(),
+				                Directory_service::OPEN_MODE_WRONLY |
+				                Directory_service::OPEN_MODE_CREATE,
+				                &handle, _alloc);
+			}
+
+			if (res != Open_result::OPEN_OK) {
+				error("failed to open '", _path, "' res=", (int)res);
+				throw Open_failed();
+			}
+
+			fn(handle);
+
+			/* sync file operations before close */
+			while (!handle->fs().queue_sync(handle))
+				_ep.wait_and_dispatch_one_io_signal();
+
+			while (handle->fs().complete_sync(handle) == Vfs::File_io_service::SYNC_QUEUED)
+				_ep.wait_and_dispatch_one_io_signal();
+
+			handle->close();
+		}
 
 		/*
 		 * Noncopyable
 		 */
 		Session_component(Session_component const &);
 		Session_component &operator = (Session_component const &);
-
-		Path _leaf_path { };
-
-		Attached_ram_dataspace  _ds;
-		Genode::Entrypoint     &_ep;
-
-		Vfs_handle *_handle = nullptr;
-		file_size   _file_size = 0;
-		bool        _success = true;
 
 	public:
 
@@ -90,87 +129,57 @@ class Fs_report::Session_component : public Genode::Rpc_object<Report::Session>
 		                  Vfs::File_system            &vfs,
 		                  Genode::Session_label const &label,
 		                  size_t                       buffer_size)
-		: _ds(env.ram(), env.rm(), buffer_size), _ep(env.ep())
+		:
+			_ep(env.ep()), _alloc(alloc), _vfs(vfs),
+			_ds(env.ram(), env.rm(), buffer_size),
+			_path(path_from_label<Path>(label.string()))
 		{
-			typedef Vfs::Directory_service::Open_result Open_result;
+			create_parent_dir(_vfs, _path, _alloc);
 
-			Path path = path_from_label<Path>(label.string());
-
-			create_parent_dir(vfs, path, alloc);
-
-			Open_result res = vfs.open(
-				path.base(),
-				Directory_service::OPEN_MODE_WRONLY |
-					Directory_service::OPEN_MODE_CREATE,
-				&_handle, alloc);
-
-			if (res == Open_result::OPEN_ERR_EXISTS) {
-				res = vfs.open(
-					path.base(),
-					Directory_service::OPEN_MODE_WRONLY,
-					&_handle, alloc);
-				if (res == Open_result::OPEN_OK)
-					_handle->fs().ftruncate(_handle, 0);
-			}
-
-			if (res != Open_result::OPEN_OK) {
-				error("failed to open '", path, "'");
-				throw Service_denied();
-			}
-
-			/* get the leaf path from the leaf file-system */
-			if (char const *leaf_path = _handle->ds().leaf_path(path.base()))
-				_leaf_path.import(leaf_path);
+			try {
+				_file_op([&] (Vfs_handle *handle) { handle->fs().ftruncate(handle, 0); });
+			} catch (...) { throw Service_denied(); }
 		}
 
-		~Session_component()
-		{
-			if (_handle)
-				_handle->ds().close(_handle);
-		}
+		~Session_component() { }
 
 		Dataspace_capability dataspace() override { return _ds.cap(); }
 
 		void submit(size_t const length) override
 		{
-			/* TODO: close and reopen on error */
+			auto fn = [&] (Vfs_handle *handle) {
 
-			typedef Vfs::File_io_service::Write_result Write_result;
+				typedef Vfs::File_io_service::Write_result Write_result;
 
-			if (_file_size != length)
-				_handle->fs().ftruncate(_handle, length);
+				if (_file_size != length)
+					handle->fs().ftruncate(handle, length);
 
-			size_t offset = 0;
-			while (offset < length) {
-				file_size n = 0;
+				size_t offset = 0;
+				while (offset < length) {
+					file_size n = 0;
 
-				_handle->seek(offset);
-				Write_result res = _handle->fs().write(
-					_handle, _ds.local_addr<char const>()+offset,
-					length - offset, n);
+					handle->seek(offset);
+					Write_result res = handle->fs().write(
+						handle, _ds.local_addr<char const>() + offset,
+						length - offset, n);
 
-				if (res != Write_result::WRITE_OK) {
-					/* do not spam the log */
-					if (_success)
-						error("failed to write report to '", _leaf_path, "'");
-					_file_size = 0;
-					_success = false;
-					return;
+					if (res != Write_result::WRITE_OK) {
+						/* do not spam the log */
+						if (_success)
+							error("failed to write report to '", _path, "'");
+						_file_size = 0;
+						_success = false;
+						return;
+					}
+
+					offset += n;
 				}
 
-				offset += n;
-			}
+				_file_size = length;
+				_success = true;
+			};
 
-			_file_size = length;
-			_success = true;
-
-			/* flush to notify watchers */
-			while (!_handle->fs().queue_sync(_handle))
-				_ep.wait_and_dispatch_one_io_signal();
-
-			while (_handle->fs().complete_sync(_handle) ==
-			       Vfs::File_io_service::SYNC_QUEUED)
-				_ep.wait_and_dispatch_one_io_signal();
+			try { _file_op(fn); } catch (...) { }
 		}
 
 		void response_sigh(Genode::Signal_context_capability) override { }
