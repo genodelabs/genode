@@ -29,6 +29,7 @@ void Depot_download_manager::gen_fetchurl_start_content(Xml_generator &xml,
 			xml.attribute("rtc",    "/dev/rtc");
 			xml.attribute("socket", "/socket");
 		});
+		xml.node("report", [&] () { xml.attribute("progress", "yes"); });
 		xml.node("vfs", [&] () {
 			xml.node("dir", [&] () {
 				xml.attribute("name", "download");
@@ -99,10 +100,11 @@ void Depot_download_manager::gen_fetchurl_start_content(Xml_generator &xml,
 		gen_parent_rom_route(xml, "vfs.lib.so");
 		gen_parent_rom_route(xml, "zlib.lib.so");
 		gen_parent_rom_route(xml, "pthread.lib.so");
-		gen_parent_route<Cpu_session>   (xml);
-		gen_parent_route<Pd_session>    (xml);
-		gen_parent_route<Log_session>   (xml);
-		gen_parent_route<Timer::Session>(xml);
-		gen_parent_route<Nic::Session>  (xml);
+		gen_parent_route<Cpu_session>    (xml);
+		gen_parent_route<Pd_session>     (xml);
+		gen_parent_route<Log_session>    (xml);
+		gen_parent_route<Timer::Session> (xml);
+		gen_parent_route<Nic::Session>   (xml);
+		gen_parent_route<Report::Session>(xml);
 	});
 }
