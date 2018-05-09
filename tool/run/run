@@ -516,7 +516,7 @@ proc have_installed {program} {
 #
 proc requires_installation_of {program} {
 	if {![have_installed $program]} {
-		puts "Run script aborted because $program is not installed"; exit
+		puts "Run script aborted because $program is not installed"; exit 1
 	}
 }
 
