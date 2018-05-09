@@ -158,23 +158,44 @@ install_config {
 				<inline description="example menu">
 					<dialog>
 						<frame>
-							<vbox>
-								<button name="virtualbox">
-									<label text="VirtualBox"/>
-								</button>
-								<button name="toolchain" hovered="yes">
-									<label text="Tool chain"
-									       font="monospace/regular"/>
-								</button>
-								<button name="log" hovered="yes" selected="yes">
-									<label text="Log window"
-									       font="title/regular"/>
-								</button>
-								<button name="config" selected="yes">
-									<label text="Configuration"
-									       font="annotation/regular"/>
-								</button>
-							</vbox>
+							<hbox>
+								<vbox name="x">
+									<button name="virtualbox">
+										<label text="VirtualBox"/>
+									</button>
+									<button name="toolchain" hovered="yes">
+										<label text="Tool chain"
+										       font="monospace/regular"/>
+									</button>
+									<button name="log" hovered="yes" selected="yes">
+										<label text="Log window"
+										       font="title/regular"/>
+									</button>
+									<button name="config" selected="yes">
+										<label text="Configuration Configuration Configuration"
+										       font="annotation/regular"/>
+									</button>
+									<hbox>
+										<button name="x1"> <label text="x1"/> </button>
+										<button name="x2"> <label text="x2"/> </button>
+										<button name="x3"> <label text="x3"/> </button>
+									</hbox>
+									<frame>
+										<label text="A single line" font="annotation/regular"/>
+									</frame>
+								</vbox>
+								<float north="yes">
+									<vbox>
+										<button name="virtualbox">
+											<label text="VirtualBox"/>
+										</button>
+										<button name="toolchain" hovered="yes">
+											<label text="Tool chain"
+											       font="monospace/regular"/>
+										</button>
+									</vbox>
+								</float>
+							</hbox>
 						</frame>
 					</dialog>
 				</inline>
