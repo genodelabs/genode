@@ -83,7 +83,7 @@ proc run_power_on { } {
 		if {[check_version $qemu_version $qemu_good_old $qemu_good_new]} {
 			puts "\nYour Qemu version '$qemu_version' is not working with AMD SVM virtualisation"
 			puts "Known good Qemu versions are until $qemu_good_old and starting with $qemu_good_new\n"
-			exit
+			exit 1
 		}
 	}
 
