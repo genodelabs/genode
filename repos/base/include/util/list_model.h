@@ -135,6 +135,16 @@ void Genode::List_model<ELEM>::update_from_xml(POLICY &policy, Xml_node node)
 		if (!policy.node_is_element(sub_node))
 			return;
 
+		/* check for duplicates, which must not exist in the list model */
+		for (Element *dup = updated_list.first(); dup; dup = dup->_next()) {
+
+			/* update existing element with information from later node */
+			if (policy.element_matches_xml_node(*dup, sub_node)) {
+				policy.update_element(*dup, sub_node);
+				return;
+			}
+		}
+
 		/* look up corresponding element in original list */
 		Element *curr = _elements.first();
 		while (curr && !policy.element_matches_xml_node(*curr, sub_node))
