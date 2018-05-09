@@ -34,6 +34,7 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		typedef String<100> Name;
 		typedef String<80>  Binary_name;
 		typedef String<80>  Config_name;
+		typedef String<32>  Depot_rom_server;
 
 	private:
 
@@ -72,7 +73,7 @@ class Depot_deploy::Child : public List_model<Child>::Element
 			   && (_config_pkg_path() == _blueprint_pkg_path);
 		}
 
-		inline void _gen_routes(Xml_generator &, Xml_node common) const;
+		inline void _gen_routes(Xml_generator &, Xml_node, Depot_rom_server const &) const;
 
 		static void _gen_provides_sub_node(Xml_generator &xml, Xml_node service,
 		                                   Xml_node::Type const &node_type,
@@ -181,14 +182,19 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		/**
 		 * Generate start node of init configuration
 		 *
-		 * \param common  session routes to be added in addition to the ones
-		 *                found in the pkg blueprint
+		 * \param common     session routes to be added in addition to the ones
+		 *                   found in the pkg blueprint
+		 * \param depot_rom  name of the server that provides the depot content
+		 *                   as ROM modules. If the string is invalid, ROM
+		 *                   requests are routed to the parent.
 		 */
-		inline void gen_start_node(Xml_generator &, Xml_node common) const;
+		inline void gen_start_node(Xml_generator &, Xml_node common,
+		                           Depot_rom_server const &depot_rom) const;
 };
 
 
-void Depot_deploy::Child::gen_start_node(Xml_generator &xml, Xml_node common) const
+void Depot_deploy::Child::gen_start_node(Xml_generator &xml, Xml_node common,
+                                         Depot_rom_server const &depot_rom) const
 {
 	if (!_configured())
 		return;
@@ -250,12 +256,13 @@ void Depot_deploy::Child::gen_start_node(Xml_generator &xml, Xml_node common) co
 			});
 		}
 
-		xml.node("route", [&] () { _gen_routes(xml, common); });
+		xml.node("route", [&] () { _gen_routes(xml, common, depot_rom); });
 	});
 }
 
 
-void Depot_deploy::Child::_gen_routes(Xml_generator &xml, Xml_node common) const
+void Depot_deploy::Child::_gen_routes(Xml_generator &xml, Xml_node common,
+                                      Depot_rom_server const &depot_rom) const
 {
 	if (!_pkg_xml.constructed())
 		return;
@@ -289,10 +296,16 @@ void Depot_deploy::Child::_gen_routes(Xml_generator &xml, Xml_node common) const
 			xml.node("service", [&] () {
 				xml.attribute("name",  "ROM");
 				xml.attribute("label", "config");
-				xml.node("parent", [&] () {
-					typedef String<160> Path;
-					xml.attribute("label", rom.attribute_value("path", Path()));
-				});
+				typedef String<160> Path;
+				Path const path = rom.attribute_value("path", Path());
+
+				if (depot_rom.valid())
+					xml.node("child", [&] () {
+						xml.attribute("name", depot_rom);
+						xml.attribute("label", path); });
+				else
+					xml.node("parent", [&] () {
+						xml.attribute("label", path); });
 			});
 		});
 	}
@@ -318,8 +331,16 @@ void Depot_deploy::Child::_gen_routes(Xml_generator &xml, Xml_node common) const
 		xml.node("service", [&] () {
 			xml.attribute("name", "ROM");
 			xml.attribute("label_last", label);
-			xml.node("parent", [&] () {
-				xml.attribute("label", path); });
+
+			if (depot_rom.valid()) {
+				xml.node("child", [&] () {
+					xml.attribute("name", depot_rom);
+					xml.attribute("label", path);
+				});
+			} else {
+				xml.node("parent", [&] () {
+					xml.attribute("label", path); });
+			}
 		});
 	});
 }
