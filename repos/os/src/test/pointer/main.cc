@@ -24,8 +24,11 @@ struct Shape
 	typedef Genode::String<16> Id;
 
 	Id            const id;
+	bool          const visible;
 	unsigned      const x_hot;
 	unsigned      const y_hot;
+	unsigned      const width;
+	unsigned      const height;
 	unsigned char const map[WIDTH*HEIGHT];
 
 	void print(Genode::Output &output) const
@@ -36,7 +39,7 @@ struct Shape
 
 
 static Shape const shape[] = {
-	{ "arrow", 0, 0, {
+	{ "arrow", true, 0, 0, Shape::WIDTH, Shape::HEIGHT, {
 		1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 		0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,
 		0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,
@@ -53,24 +56,19 @@ static Shape const shape[] = {
 		0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,
 		0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,
 		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 } },
-	{ "blade", 0, 0, {
-		1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-		1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,
-		0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,
-		0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,
-		0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,
-		0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,
-		0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,
-		0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,
-		0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,
-		0,0,0,0,0,0,0,0,1,0,1,0,1,1,0,0,
-		0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,
-		0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,
-		0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,
-		0,0,0,0,0,0,0,0,0,1,1,0,1,1,1,0,
-		0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,
-		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 } },
-	{ "bladex", 8, 8, {
+	{ "blade", true, 0, 0, 11, 11, {
+		1,1,0,0,0,0,0,0,0,0,0,
+		1,0,1,0,0,0,0,0,0,0,0,
+		0,1,0,1,0,0,0,0,0,0,0,
+		0,0,1,0,1,0,0,0,0,0,0,
+		0,0,0,1,0,1,0,0,0,0,0,
+		0,0,0,0,1,0,1,0,1,1,0,
+		0,0,0,0,0,1,1,1,1,1,0,
+		0,0,0,0,0,0,1,1,1,0,0,
+		0,0,0,0,0,1,1,1,1,1,0,
+		0,0,0,0,0,1,1,0,1,1,1,
+		0,0,0,0,0,0,0,0,0,1,1 } },
+	{ "bladex", true, 8, 8, Shape::WIDTH, Shape::HEIGHT, {
 		1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,
 		1,0,1,0,0,0,0,0,0,0,0,0,0,1,0,1,
 		0,1,0,1,0,0,0,0,0,0,0,0,1,0,1,0,
@@ -87,7 +85,7 @@ static Shape const shape[] = {
 		0,1,1,1,0,1,1,0,0,1,1,0,1,1,1,0,
 		0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,
 		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 } },
-	{ "smiley", 8, 8, {
+	{ "smiley", true, 8, 8, Shape::WIDTH, Shape::HEIGHT, {
 		0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,
 		0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,0,
 		0,0,1,0,0,0,0,0,0,0,0,0,0,1,0,0,
@@ -104,7 +102,7 @@ static Shape const shape[] = {
 		0,0,1,0,0,0,0,0,0,0,0,0,0,1,0,0,
 		0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,0,
 		0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0 } },
-	{ "yelims", 8, 8, {
+	{ "yelims", true, 8, 8, Shape::WIDTH, Shape::HEIGHT, {
 		0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,
 		0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,0,
 		0,0,1,0,0,0,0,0,0,0,0,0,0,1,0,0,
@@ -120,7 +118,9 @@ static Shape const shape[] = {
 		0,1,0,1,0,0,0,0,0,0,0,0,1,0,1,0,
 		0,0,1,0,0,0,0,0,0,0,0,0,0,1,0,0,
 		0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,0,
-		0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0 } }
+		0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0 } },
+	{ "empty", true, 0, 0, 0, 0, { } },
+	{ "invisible", false, 0, 0, Shape::WIDTH, Shape::HEIGHT, { } },
 };
 
 
@@ -158,18 +158,21 @@ struct Main
 
 		Shape const &shape = select_shape(_config.xml());
 
-		_shape_report.x_hot = shape.x_hot;
-		_shape_report.y_hot = shape.y_hot;
+		_shape_report.visible = shape.visible;
+		_shape_report.x_hot   = shape.x_hot;
+		_shape_report.y_hot   = shape.y_hot;
+		_shape_report.width   = shape.width;
+		_shape_report.height  = shape.height;
 
-		unsigned const w = Shape::WIDTH;
-		unsigned const h = Shape::HEIGHT;
+		unsigned const w = shape.width;
+		unsigned const h = shape.height;
 
 		for (unsigned y = 0; y < h; ++y) {
 			for (unsigned x = 0; x < w; ++x) {
 				_shape_report.shape[(y*w + x)*4 + 0] = 0xff;
-				_shape_report.shape[(y*w + x)*4 + 1] = 0xff;
-				_shape_report.shape[(y*w + x)*4 + 2] = 0xff;
-				_shape_report.shape[(y*w + x)*4 + 3] = shape.map[y*w +x] ? 0xe0 : 0;
+				_shape_report.shape[(y*w + x)*4 + 1] = 0xf2;
+				_shape_report.shape[(y*w + x)*4 + 2] = 0xac;
+				_shape_report.shape[(y*w + x)*4 + 3] = shape.map[y*w + x] ? 0xe0 : 0;
 			}
 		}
 

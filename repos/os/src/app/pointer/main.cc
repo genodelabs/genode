@@ -260,7 +260,8 @@ void Pointer::Main::_update_pointer()
 
 			shape_module.read_content(*this, (char*)&shape_report, sizeof(shape_report));
 
-			if (shape_report.visible &&
+			/* show default pointer on invisible/empty/invalid shape report */
+			if (!shape_report.visible ||
 			    ((shape_report.width == 0) ||
 			     (shape_report.height == 0) ||
 			     (shape_report.width > MAX_WIDTH) ||
