@@ -157,14 +157,14 @@ set config {
 		<provides> <service name="ROM"/> </provides>
 		<config>
 			<rom name="smiley.config">
-				<inline description="smiley">
-					<config shape="smiley"/>
-				</inline>
-				<sleep milliseconds="500" />
-				<inline description="yelims">
-					<config shape="yelims"/>
-				</inline>
-				<sleep milliseconds="500" />
+				<inline description="smiley"> <config shape="smiley"/> </inline>
+				<sleep milliseconds="800" />
+				<inline description="smiley"> <config shape="empty"/> </inline>
+				<sleep milliseconds="800" />
+				<inline description="yelims"> <config shape="yelims"/> </inline>
+				<sleep milliseconds="800" />
+				<inline description="yelims"> <config shape="invisible"/> </inline>
+				<sleep milliseconds="800" />
 			</rom>
 		</config>
 		<route>
