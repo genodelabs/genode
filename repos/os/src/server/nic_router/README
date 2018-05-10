@@ -411,6 +411,27 @@ router:
 !         dhcp_request_timeout_sec="6">
 
 
+The uplink domain
+~~~~~~~~~~~~~~~~~
+
+The uplink domain is treated like every other domain wherever possible.
+However, there are still some differences that are visible to the user:
+
+* 'policy' tags that target the uplink domain have no effect at all
+* The domain tag of the uplink is the only domain tag in which the
+  'label' attribute has an effect
+* The uplink domain, as long as existant, has exactly one NIC session in which
+  the NIC router is the session client
+* When the uplink 'domain' tag appears, the uplink NIC session is requested by
+  the NIC router using the label denoted in the 'label' attribute of the
+  uplink 'domain' tag (default label "")
+* When the 'label' attribute of the uplink 'domain' tag changes, the NIC
+  router closes the uplink NIC session and requests it again with the new
+  label
+* When the uplink 'domain' tag disappears, the NIC router closes the uplink
+  NIC session
+
+
 Configuring reporting functionality
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
