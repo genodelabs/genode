@@ -115,7 +115,8 @@ Domain::Domain(Configuration &config, Xml_node const node, Allocator &alloc)
 	           _node.attribute_value("gateway",    Ipv4_address()),
 	           Ipv4_address()),
 	_verbose_packets(_node.attribute_value("verbose_packets", false) ||
-	                 _config.verbose_packets())
+	                 _config.verbose_packets()),
+	_label(_node.attribute_value("label", String<160>()).string())
 {
 	if (_name == Domain_name()) {
 		log("[?] Missing name attribute in domain node");

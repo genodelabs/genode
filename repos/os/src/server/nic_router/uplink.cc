@@ -23,16 +23,18 @@ using namespace Net;
 using namespace Genode;
 
 
-Net::Uplink::Uplink(Env               &env,
-                    Timer::Connection &timer,
-                    Genode::Allocator &alloc,
-                    Interface_list    &interfaces,
-                    Configuration     &config)
+Net::Uplink::Uplink(Env                 &env,
+                    Timer::Connection   &timer,
+                    Genode::Allocator   &alloc,
+                    Interface_list      &interfaces,
+                    Configuration       &config,
+                    Session_label const &label)
 :
 	Nic::Packet_allocator(&alloc),
-	Nic::Connection(env, this, BUF_SIZE, BUF_SIZE),
+	Nic::Connection(env, this, BUF_SIZE, BUF_SIZE, label.string()),
 	Net::Interface(env.ep(), timer, mac_address(), alloc, Mac_address(),
-	               config, interfaces, _intf_policy)
+	               config, interfaces, _intf_policy),
+	_label(label)
 {
 	rx_channel()->sigh_ready_to_ack(_sink_ack);
 	rx_channel()->sigh_packet_avail(_sink_submit);

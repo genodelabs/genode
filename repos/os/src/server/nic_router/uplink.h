@@ -62,6 +62,8 @@ class Net::Uplink : public Uplink_base,
 			BUF_SIZE = Nic::Session::QUEUE_SIZE * PKT_SIZE,
 		};
 
+		Genode::Session_label const &_label;
+
 		Ipv4_address_prefix _read_interface();
 
 
@@ -74,18 +76,20 @@ class Net::Uplink : public Uplink_base,
 
 	public:
 
-		Uplink(Genode::Env        &env,
-		       Timer::Connection  &timer,
-		       Genode::Allocator  &alloc,
-		       Interface_list     &interfaces,
-		       Configuration      &config);
+		Uplink(Genode::Env                 &env,
+		       Timer::Connection           &timer,
+		       Genode::Allocator           &alloc,
+		       Interface_list              &interfaces,
+		       Configuration               &config,
+		       Genode::Session_label const &label);
 
 
 		/***************
 		 ** Accessors **
 		 ***************/
 
-		Mac_address const &router_mac() const { return _router_mac; }
+		Mac_address           const &router_mac() const { return _router_mac; }
+		Genode::Session_label const &label()      const { return _label; }
 };
 
 #endif /* _UPLINK_H_ */

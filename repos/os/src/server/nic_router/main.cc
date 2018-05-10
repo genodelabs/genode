@@ -47,7 +47,12 @@ class Net::Main
 
 		Configuration &_init_config();
 
-		void _try_init_uplink(Configuration &config);
+		void _deinit_uplink(Configuration &config);
+
+		void _init_uplink(Configuration       &config,
+		                  Session_label const &label);
+
+		void _uplink_handle_config(Configuration &config);
 
 		template <typename FUNC>
 		void _for_each_interface(FUNC && functor)
@@ -83,21 +88,55 @@ Configuration &Net::Main::_init_config()
 
 Net::Main::Main(Env &env) : _env(env)
 {
-	_try_init_uplink(_config());
+	_uplink_handle_config(_config());
 	_config_rom.sigh(_config_handler);
 	env.parent().announce(env.ep().manage(_root));
 }
 
 
-void Net::Main::_try_init_uplink(Configuration &config)
+void Net::Main::_init_uplink(Configuration       &config,
+                             Session_label const &label)
+{
+	if (config.verbose()) {
+		log("[uplink] request NIC session \"", label, "\""); }
+
+	Uplink &uplink = *new (_heap) Uplink(_env, _timer, _heap, _interfaces,
+	                                     config, label);
+	_uplink = Pointer<Uplink>(uplink);
+	uplink.init();
+}
+
+
+void Net::Main::_deinit_uplink(Configuration &config)
 {
 	try {
-		config.domains().find_by_name("uplink");
-		Uplink &uplink = *new (_heap) Uplink(_env, _timer, _heap, _interfaces, config);
-		_uplink = Pointer<Uplink>(uplink);
-		uplink.init();
+		Uplink &uplink = _uplink();
+		if (config.verbose()) {
+			log("[uplink] close NIC session \"", uplink.label(), "\""); }
+
+		destroy(_heap, &uplink);
+		_uplink = Pointer<Uplink>();
 	}
-	catch (Domain_tree::No_match) { }
+	catch (Pointer<Uplink>::Invalid) { }
+}
+
+
+void Net::Main::_uplink_handle_config(Configuration &config)
+{
+	try {
+		Session_label const &label =
+			config.domains().find_by_name("uplink").label();
+
+		try {
+			if (label == _uplink().label()) {
+				return;
+			}
+			_deinit_uplink(config);
+			_init_uplink(config, label);
+		}
+		catch (Pointer<Uplink>::Invalid) { _init_uplink(config, label); }
+	}
+	catch (Domain_tree::No_match) { _deinit_uplink(config); }
 }
 
 
@@ -107,16 +146,7 @@ void Net::Main::_handle_config()
 	Configuration &config = *new (_heap)
 		Configuration(_env, _config_rom.xml(), _heap, _timer, _config());
 
-	try {
-		Uplink &uplink = _uplink();
-		try { config.domains().find_by_name("uplink"); }
-		catch (Domain_tree::No_match) {
-			destroy(_heap, &uplink);
-			_uplink = Pointer<Uplink>();
-		}
-	}
-	catch (Pointer<Uplink>::Invalid) { _try_init_uplink(config); }
-
+	_uplink_handle_config(config);
 	_root.handle_config(config);
 	_for_each_interface([&] (Interface &intf) { intf.handle_config(config); });
 	_for_each_interface([&] (Interface &intf) { intf.handle_config_aftermath(); });
