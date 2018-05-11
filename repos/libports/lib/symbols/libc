@@ -82,6 +82,7 @@ clearerr T
 clearerr_unlocked T
 clock T
 clock_gettime W
+clock_getres W
 close T
 closedir T
 closelog T
