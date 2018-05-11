@@ -1,0 +1,27 @@
++++ src/lib/python3/Python/pylifecycle.c	2018-05-11 15:20:34.421070206 +0200
+@@ -1051,15 +1051,7 @@
+     int fd2;
+     if (fd < 0)
+         return 0;
+-    _Py_BEGIN_SUPPRESS_IPH
+-    /* Prefer dup() over fstat(). fstat() can require input/output whereas
+-       dup() doesn't, there is a low risk of EMFILE/ENFILE at Python
+-       startup. */
+-    fd2 = dup(fd);
+-    if (fd2 >= 0)
+-        close(fd2);
+-    _Py_END_SUPPRESS_IPH
+-    return fd2 >= 0;
++    return fd >= 0;
+ #endif
+ }
+ 
++++ src/lib/python3/Python/fileutils.c	2018-05-11 15:15:46.841809875 +0200
+@@ -1543,6 +1543,7 @@
+ int
+ _Py_dup(int fd)
+ {
++	return fd;
+ #ifdef MS_WINDOWS
+     HANDLE handle;
+     DWORD ftype;

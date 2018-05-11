@@ -1,0 +1,130 @@
+#
+# \brief  Test for running python
+# \author Norman Feske
+# \author Johannes Schlatow
+# \date   2011-11-22
+#
+
+if {![have_spec x86]} {
+	puts "Run script is only supported on x86"; exit 0 }
+
+
+#
+# Build
+#
+
+build {
+	core init
+	app/python3
+	lib/vfs/jitterentropy
+	drivers/timer
+	drivers/rtc
+}
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+set config {
+<config verbose="yes">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<default caps="100"/>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer" /></provides>
+	</start>
+	<start name="rtc_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Rtc"/> </provides>
+	</start>
+	<start name="python3">
+		<resource name="RAM" quantum="16M"/>
+		<config>
+			<pythonpath name="lib/python3.zip" />
+			<file name="hello.py" />
+			<vfs>
+				<dir name="dev">
+					<log/>
+					<jitterentropy name="urandom" />
+					<jitterentropy name="random" />
+					<rtc/>
+					<zero/>
+				</dir>
+				<dir name="lib">
+					<rom name="python3.zip" />
+				</dir>
+				<inline name="hello.py">
+print(" \r\n\r");
+print("        -============================-");
+print("        ||                          ||");
+print("        ||    Python Core 3         ||");
+print("        ||                          ||");
+print("        ||       Genode 17.11       ||");
+print("        ||                          ||");
+print("        -============================-");
+print(" \r");
+print("   2018 by Genode Labs www.genode-labs.com");
+print(" \r\n\r");
+				</inline>
+			</vfs>
+			<libc stdin="/dev/zero" stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
+		</config>
+	</start>
+</config>
+}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core init
+	ld.lib.so libc.lib.so libm.lib.so python3.lib.so posix.lib.so
+	python3
+	vfs_jitterentropy.lib.so
+	timer
+	rtc_drv
+	python3.zip
+	vfs.lib.so
+}
+
+build_boot_image $boot_modules
+
+#
+# Execute test case
+#
+
+append qemu_args "  -nographic "
+
+run_genode_until {.*Executed .*} 60
+
+grep_output {python3\]  }
+compare_output_to {
+[init -> python3]
+[init -> python3]         -============================-
+[init -> python3]         ||                          ||
+[init -> python3]         ||    Python Core 3         ||
+[init -> python3]         ||                          ||
+[init -> python3]         ||       Genode 17.11       ||
+[init -> python3]         ||                          ||
+[init -> python3]         -============================-
+[init -> python3]
+[init -> python3]    2018 by Genode Labs www.genode-labs.com
+[init -> python3]
+}
+
+# vi: set ft=tcl :
