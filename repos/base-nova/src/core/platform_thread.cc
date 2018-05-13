@@ -48,7 +48,7 @@ static uint8_t map_thread_portals(Pager_object &pager,
 
 	/* xxx better map portals with solely pt_call and sm separately ? xxx */
 	addr_t const rights = Obj_crd::RIGHT_EC_RECALL |
-	                      Obj_crd::RIGHT_PT_CTRL | Obj_crd::RIGHT_PT_CALL |
+	                      Obj_crd::RIGHT_PT_CTRL | Obj_crd::RIGHT_PT_CALL | Obj_crd::RIGHT_PT_XCPU |
 	                      Obj_crd::RIGHT_SM_UP | Obj_crd::RIGHT_SM_DOWN;
 
 	Obj_crd const source_initial_caps(source_exc_base, NUM_INITIAL_PT_LOG2,

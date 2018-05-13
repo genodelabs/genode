@@ -442,6 +442,7 @@ namespace Nova {
 				RIGHT_EC_RECALL = 0x1U,
 				RIGHT_PT_CALL   = 0x2U,
 				RIGHT_PT_CTRL   = 0x1U,
+				RIGHT_PT_XCPU   = 0x10U,
 				RIGHT_SM_UP     = 0x1U,
 				RIGHT_SM_DOWN   = 0x2U
 			};
