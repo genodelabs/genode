@@ -58,7 +58,13 @@ struct Genode::Arm_cpu : public Hw::Arm_cpu
 		}
 	};
 
-	struct alignas(4) Context : Cpu_state
+	struct Fpu_context
+	{
+		uint32_t fpscr { 1UL << 24 }; /* VFP/SIMD - status/control register     */
+		uint64_t d0_d31[32];  /* VFP/SIMD - general purpose registers   */
+	};
+
+	struct alignas(4) Context : Cpu_state, Fpu_context
 	{
 		Context(bool privileged);
 	};
@@ -145,8 +151,6 @@ struct Genode::Arm_cpu : public Hw::Arm_cpu
 	/*************
 	 ** Dummies **
 	 *************/
-
-	bool retry_undefined_instr(Context&) { return false; }
 
 	/**
 	 * Return kernel name of the executing CPU

@@ -13,7 +13,7 @@ SRC_CC += platform_services.cc
 
 NR_OF_CPUS += 2
 
-CC_MARCH = -mcpu=cortex-a9
+CC_MARCH = -mcpu=cortex-a9 -mfpu=vfpv3 -mfloat-abi=softfp
 
 # include less specific configuration
 include $(REP_DIR)/lib/mk/spec/cortex_a9/core-hw.inc

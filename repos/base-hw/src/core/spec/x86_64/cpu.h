@@ -117,11 +117,6 @@ class Genode::Cpu : public Hw::X86_64_cpu
 		Fpu & fpu() { return _fpu; }
 
 		/**
-		 * Return wether to retry an undefined user instruction after this call
-		 */
-		bool retry_undefined_instr(Context&) { return false; }
-
-		/**
 		 * Return kernel name of the executing CPU
 		 */
 		static unsigned executing_id();

@@ -31,6 +31,13 @@ struct Genode::Vm_state : Genode::Cpu_state_modes
 	Genode::addr_t dfar;
 	Genode::addr_t ttbr[2];
 	Genode::addr_t ttbrc;
+
+	/**
+	 * Fpu registers
+	 */
+	Genode::uint32_t fpscr;
+	Genode::uint64_t d0_d31[32];
+
 	Genode::addr_t irq_injection;
 };
 

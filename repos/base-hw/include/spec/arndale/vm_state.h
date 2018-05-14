@@ -51,6 +51,11 @@ struct Genode::Vm_state : Genode::Cpu_state_modes
 	Genode::uint32_t tls3;
 	Genode::uint32_t cpacr;
 
+	/**
+	 * Fpu registers
+	 */
+	Genode::uint32_t fpscr;
+	Genode::uint64_t d0_d31[32];
 
 	/**
 	 * Timer related registers

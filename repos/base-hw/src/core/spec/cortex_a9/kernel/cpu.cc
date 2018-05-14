@@ -23,8 +23,6 @@
 
 void Kernel::Cpu::init(Kernel::Pic &pic)
 {
-	_fpu.init();
-
 	{
 		Lock::Guard guard(data_lock());
 

@@ -115,12 +115,26 @@
 	stmia r0!, {r1-r3}       /* save pc, cpsr and exception type */
 	clrex                    /* clear exclusive access needed for cmpxchg */
 	cps   #SVC_MODE
+
+	mov   r1, #1             /* clear exception state of the VFP */
+	lsl   r1, #30
+	vmsr  fpexc, r1
+	adr   r1, _fpu_save
+	ldr   r1, [r1]
+	blx   r1
+
+	/*
+	 * Go to kernel entry code
+	 */
 	adr   lr, _kernel_entry
 	ldr   lr, [lr]
 	bx    lr
 
 	_kernel_entry:
 	.long kernel
+
+	_fpu_save:
+	.long vfp_save_fpu_context
 
 
 .section .text
@@ -133,3 +147,21 @@
 	idle_thread_main:
 	wfi
 	b idle_thread_main
+
+
+	/*****************************
+	 ** kernel to userland switch **
+	 *******************************/
+
+	.global kernel_to_user_context_switch
+	kernel_to_user_context_switch:
+	push  { r0 }
+	mov   r0, r1
+	bl    vfp_load_fpu_context
+	pop   { r0 }
+	mov   sp, r0
+	ldr   lr, [sp, #15*4]
+	ldr   r1, [sp, #16*4]
+	msr   spsr_cxsf, r1
+	ldm   sp, {r0-r14}^
+	subs  pc, lr, #0

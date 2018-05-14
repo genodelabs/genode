@@ -69,10 +69,14 @@ monitor_mode_exception_vector:
 	_nonsecure_kernel_entry:
 	ldr   lr, [sp, #17*4]         /* load kernel sp from vm context  */
 	stmia r0!, {r1-r2}            /* save spsr, and exception reason */
+	mov   r1, #1                  /* clear exception state of the VFP */
+	lsl   r1, #30
+	vmsr  fpexc, r1
 	mrc   p15, 0, r3, c6, c0, 0   /* move DFAR  to r3                */
 	mrc   p15, 0, r4, c2, c0, 0   /* move TTBR0 to r4                */
 	mrc   p15, 0, r5, c2, c0, 1   /* move TTBR1 to r5                */
 	mrc   p15, 0, r6, c2, c0, 2   /* move TTBRC to r6                */
+	vmrs  r7, fpscr               /* move FPU ctrl to r7             */
 	mov   r1, #0
 	mcr   p15, 0, r1, c1, c1, 0   /* disable non-secure bit          */
 	.irp mode,27,19,23,18,17      /* save mode specific registers    */
@@ -81,7 +85,9 @@ monitor_mode_exception_vector:
 		stmia r0!, {r1,sp,lr}     /* store mode-specific sp and lr   */
 	.endr
 	stmia r0!, {r8-r12}           /* save fiq r8-r12                 */
-	stmia r0!, {r3-r6}            /* save MMU registers              */
+	stmia r0!, {r3-r7}            /* save MMU registers              */
+	vstm  r0!, {d0-d15}           /* save FPU registers              */
+	vstm  r0!, {d16-d31}
 	cps   #22                     /* switch back to monitor mode     */
 	mov   r0, #0b111010011        /* spsr to SVC mode, irqs masked   */
 	msr   spsr_cxsf, r0
@@ -109,6 +115,12 @@ monitor_mode_enter_normal_world:
 		msr   spsr_cxfs, r2       /* load mode's spsr                */
 	.endr
 	ldmia r0!, {r8 - r12}         /* load fiq r8-r12                 */
+	add   r0, r0, #4*4
+	ldr   r1, [r0]
+	vmsr  fpscr, r1
+	add   r1, r0, #4
+	vldm  r1!, {d0-d15}
+	vldm  r1!, {d16-d31}
 	cps   #22                     /* switch to monitor mode          */
 	ldmia sp, {r0-lr}^            /* load user r0-r12,sp,lr          */
 	str   lr, [sp, #17*4]         /* store kernel sp in vm context   */

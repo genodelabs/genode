@@ -1,0 +1,1712 @@
+#
+# Raspberry PI 1 needs "undef exc" handling emulation code in the kernel
+# for ieee754 full-compliant support
+#
+if {[have_spec rpi]} {
+	puts "Run script does not support Raspberry Pi 1"
+	exit 0
+}
+
+build "core init test/ieee754"
+create_boot_directory
+
+install_config {
+	<config>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="CPU"/>
+			<service name="RM"/>
+			<service name="PD"/>
+			<service name="LOG"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> </any-service>
+		</default-route>
+		<default caps="100"/>
+		<start name="test1">
+			<binary name="test-ieee754"/>
+			<resource name="RAM" quantum="2M"/>
+			<config>
+				<vfs> <dir name="dev"><log/></dir></vfs>
+				<libc stdout="/dev/log"/>
+			</config>
+		</start>
+		<start name="test2">
+			<binary name="test-ieee754"/>
+			<resource name="RAM" quantum="2M"/>
+			<config>
+				<vfs> <dir name="dev"><log/></dir></vfs>
+				<libc stdout="/dev/log"/>
+			</config>
+		</start>
+		<start name="test3">
+			<binary name="test-ieee754"/>
+			<resource name="RAM" quantum="2M"/>
+			<config>
+				<vfs> <dir name="dev"><log/></dir></vfs>
+				<libc stdout="/dev/log"/>
+			</config>
+		</start>
+		<start name="test4">
+			<binary name="test-ieee754"/>
+			<resource name="RAM" quantum="2M"/>
+			<config>
+				<vfs> <dir name="dev"><log/></dir></vfs>
+				<libc stdout="/dev/log"/>
+			</config>
+		</start>
+	</config>
+}
+
+build_boot_image "core ld.lib.so init test-ieee754 libc.lib.so libm.lib.so vfs.lib.so"
+
+append qemu_args "-nographic "
+
+# increase expect output buffer, as we have a lot of lines
+match_max -d 100000
+
+set exit_line "exited with exit value"
+run_genode_until $exit_line 30
+set serial_id [output_spawn_id]
+while {true} {
+	global output
+	set old_output $output
+	grep_output $exit_line
+	set count [expr {[llength [split $output \n]] - 1}]
+	set output $old_output
+	if {$count >= 4} break
+	run_genode_until $exit_line 5 $serial_id
+}
+
+set reference_output_arm {
+FLT_RADIX = 2
+FLT_MANT_DIG = 24
+DBL_MANT_DIG = 53
+LDBL_MANT_DIG = 53
+
+FLT_MIN_EXP = -125
+DBL_MIN_EXP = -1021
+LDBL_MIN_EXP = -1021
+
+FLT_MAX_EXP = 128
+DBL_MAX_EXP = 1024
+LDBL_MAX_EXP = 1024
+
+FLT_EPSILON = 1.19209e-07 = 0x1p-23
+DBL_EPSILON = 2.22045e-16 = 0x1p-52
+LDBL_EPSILON = 0 = 0x1p-52
+
+FLT_MIN = 1.17549e-38 = 0x1p-126
+DBL_MIN = 2.22507e-308 = 0x1p-1022
+LDBL_MIN = 0 = 0x1p-1022
+
+FLT_MAX = 3.40282e+38 = 0x1.fffffep+127
+DBL_MAX = 1.79769e+308 = 0x1.fffffffffffffp+1023
+LDBL_MAX = 8.98846e+307 = 0x1.fffffffffffffp+1023
+
+sizeof(float) = 4
+sizeof(double) = 8
+sizeof(long double) = 8
+
+x + y, with x = 9007199254740994.0 and y = 1.0 - 1/65536.0 (type double).
+The IEEE-754 result is 9007199254740994 with double precision.
+The IEEE-754 result is 9007199254740996 with extended precision.
+The obtained result is 9007199254740994.
+
+NAN != NAN --> 1 (should be 1)
+isnan(NAN) --> 1 (should be 1)
+NAN >= 0.0 --> 0 (should be 0)
+NAN <= 0.0 --> 0 (should be 0)
+  #3||#4   --> 0 (should be 0)
+!(#3||#4)  --> 1 (should be 1)
+  #3 + #4  --> 0 (should be 0)
+!(#3 + #4) --> 1 (should be 1)
+The FE_INVALID flag is not set for NAN >= 0.
+The FE_INVALID flag is not set for NAN <= 0.
+The FE_INVALID flag is not set for NAN > 0.
+The FE_INVALID flag is not set for NAN < 0.
+
+x * y + z with FP_CONTRACT OFF is not fused.
+
+Rounding to nearest
+Error, but let's do the test since it should be the default rounding mode.
+(double) 0 = 0
+Signed zero tests (x is 0.0 and y is -0.0):
+  Test 1.0 / x != 1.0 / y  returns 1 (should be 1).
+  Test 1.0 / x == 1.0 / +x returns 1 (should be 1).
+  Test 1.0 / x != 1.0 / +y returns 1 (should be 1).
+  Test 1.0 / x != 1.0 / -x returns 1 (should be 1).
+  Test 1.0 / x == 1.0 / -y returns 1 (should be 1).
+0 + 0 = 0
+0 - 0 = 0
+0 + -0 = 0
+0 - -0 = 0
+-0 + 0 = 0
+-0 - 0 = -0
+-0 + -0 = -0
+-0 - -0 = 0
+1 + 1 = 2
+1 - 1 = 0
+1 + -1 = 0
+1 - -1 = 2
+0 * 0 = 0
+0 * -0 = -0
+-0 * 0 = -0
+-0 * -0 = 0
+Constant expression 1 + DBL_MIN = 1
+Variable expression 1 + DBL_MIN = 1
+Constant expression 1 - DBL_MIN = 1
+Variable expression 1 - DBL_MIN = 1
+1/3 in float       : 0x1.555556p-2
+1/3 in double      : 0x1.5555555555555p-2
+1/3 in long double : 0x1.5555555555555p-2
+Dec 1.1  = 0x1.199999999999ap+0
+FLT_MAX  = 0x1.fffffep+127
+DBL_MAX  = 0x1.fffffffffffffp+1023
+LDBL_MAX = 0x1.fffffffffffffp+1023
+FLT_EPSILON  = 0x1p-23
+DBL_EPSILON  = 0x1p-52
+LDBL_EPSILON = 0x1p-52
+pow(nan, nan) = nan
+pow(nan, inf) = nan
+pow(nan, -inf) = nan
+pow(nan, 0) = 1
+pow(nan, -0) = 1
+pow(nan, 0.5) = nan
+pow(nan, -0.5) = nan
+pow(nan, 1) = nan
+pow(nan, -1) = nan
+pow(nan, 2) = nan
+pow(nan, -2) = nan
+pow(inf, nan) = nan
+pow(inf, inf) = inf
+pow(inf, -inf) = 0
+pow(inf, 0) = 1
+pow(inf, -0) = 1
+pow(inf, 0.5) = inf
+pow(inf, -0.5) = 0
+pow(inf, 1) = inf
+pow(inf, -1) = 0
+pow(inf, 2) = inf
+pow(inf, -2) = 0
+pow(-inf, nan) = nan
+pow(-inf, inf) = inf
+pow(-inf, -inf) = 0
+pow(-inf, 0) = 1
+pow(-inf, -0) = 1
+pow(-inf, 0.5) = inf
+pow(-inf, -0.5) = 0
+pow(-inf, 1) = -inf
+pow(-inf, -1) = -0
+pow(-inf, 2) = inf
+pow(-inf, -2) = 0
+pow(0, nan) = nan
+pow(0, inf) = 0
+pow(0, -inf) = inf
+pow(0, 0) = 1
+pow(0, -0) = 1
+pow(0, 0.5) = 0
+pow(0, -0.5) = inf
+pow(0, 1) = 0
+pow(0, -1) = inf
+pow(0, 2) = 0
+pow(0, -2) = inf
+pow(-0, nan) = nan
+pow(-0, inf) = 0
+pow(-0, -inf) = inf
+pow(-0, 0) = 1
+pow(-0, -0) = 1
+pow(-0, 0.5) = 0
+pow(-0, -0.5) = inf
+pow(-0, 1) = -0
+pow(-0, -1) = -inf
+pow(-0, 2) = 0
+pow(-0, -2) = inf
+pow(0.5, nan) = nan
+pow(0.5, inf) = 0
+pow(0.5, -inf) = inf
+pow(0.5, 0) = 1
+pow(0.5, -0) = 1
+pow(0.5, 0.5) = 0.707107
+pow(0.5, -0.5) = 1.41421
+pow(0.5, 1) = 0.5
+pow(0.5, -1) = 2
+pow(0.5, 2) = 0.25
+pow(0.5, -2) = 4
+pow(-0.5, nan) = nan
+pow(-0.5, inf) = 0
+pow(-0.5, -inf) = inf
+pow(-0.5, 0) = 1
+pow(-0.5, -0) = 1
+pow(-0.5, 0.5) = nan
+pow(-0.5, -0.5) = nan
+pow(-0.5, 1) = -0.5
+pow(-0.5, -1) = -2
+pow(-0.5, 2) = 0.25
+pow(-0.5, -2) = 4
+pow(1, nan) = nan
+pow(1, inf) = nan
+pow(1, -inf) = nan
+pow(1, 0) = 1
+pow(1, -0) = 1
+pow(1, 0.5) = 1
+pow(1, -0.5) = 1
+pow(1, 1) = 1
+pow(1, -1) = 1
+pow(1, 2) = 1
+pow(1, -2) = 1
+pow(-1, nan) = nan
+pow(-1, inf) = nan
+pow(-1, -inf) = nan
+pow(-1, 0) = 1
+pow(-1, -0) = 1
+pow(-1, 0.5) = nan
+pow(-1, -0.5) = nan
+pow(-1, 1) = -1
+pow(-1, -1) = -1
+pow(-1, 2) = 1
+pow(-1, -2) = 1
+pow(2, nan) = nan
+pow(2, inf) = inf
+pow(2, -inf) = 0
+pow(2, 0) = 1
+pow(2, -0) = 1
+pow(2, 0.5) = 1.41421
+pow(2, -0.5) = 0.707107
+pow(2, 1) = 2
+pow(2, -1) = 0.5
+pow(2, 2) = 4
+pow(2, -2) = 0.25
+pow(-2, nan) = nan
+pow(-2, inf) = inf
+pow(-2, -inf) = 0
+pow(-2, 0) = 1
+pow(-2, -0) = 1
+pow(-2, 0.5) = nan
+pow(-2, -0.5) = nan
+pow(-2, 1) = -2
+pow(-2, -1) = -0.5
+pow(-2, 2) = 4
+pow(-2, -2) = 0.25
+
+Rounding toward 0
+Error
+
+Rounding to -oo
+Error
+
+Rounding to +oo
+Error
+}
+
+set reference_output_x86_64 {
+FLT_RADIX = 2
+FLT_MANT_DIG = 24
+DBL_MANT_DIG = 53
+LDBL_MANT_DIG = 64
+
+FLT_MIN_EXP = -125
+DBL_MIN_EXP = -1021
+LDBL_MIN_EXP = -16381
+
+FLT_MAX_EXP = 128
+DBL_MAX_EXP = 1024
+LDBL_MAX_EXP = 16384
+
+FLT_EPSILON = 1.19209e-07 = 0x1p-23
+DBL_EPSILON = 2.22045e-16 = 0x1p-52
+LDBL_EPSILON = 1.0842e-19 = 0x1p-63
+
+FLT_MIN = 1.17549e-38 = 0x1p-126
+DBL_MIN = 2.22507e-308 = 0x1p-1022
+LDBL_MIN = 3.3621e-4932 = 0x1p-16382
+
+FLT_MAX = 3.40282e+38 = 0x1.fffffep+127
+DBL_MAX = 1.79769e+308 = 0x1.fffffffffffffp+1023
+LDBL_MAX = 1.18973e+4932 = 0x1.fffffffffffffffep+16383
+
+sizeof(float) = 4
+sizeof(double) = 8
+sizeof(long double) = 16
+
+x + y, with x = 9007199254740994.0 and y = 1.0 - 1/65536.0 (type double).
+The IEEE-754 result is 9007199254740994 with double precision.
+The IEEE-754 result is 9007199254740996 with extended precision.
+The obtained result is 9007199254740994.
+
+NAN != NAN --> 1 (should be 1)
+isnan(NAN) --> 1 (should be 1)
+NAN >= 0.0 --> 0 (should be 0)
+NAN <= 0.0 --> 0 (should be 0)
+  #3||#4   --> 0 (should be 0)
+!(#3||#4)  --> 1 (should be 1)
+  #3 + #4  --> 0 (should be 0)
+!(#3 + #4) --> 1 (should be 1)
+The FE_INVALID flag is not set for NAN >= 0.
+The FE_INVALID flag is not set for NAN <= 0.
+The FE_INVALID flag is not set for NAN > 0.
+The FE_INVALID flag is not set for NAN < 0.
+
+x * y + z with FP_CONTRACT OFF is not fused.
+
+Rounding to nearest
+(double) 0 = 0
+Signed zero tests (x is 0.0 and y is -0.0):
+  Test 1.0 / x != 1.0 / y  returns 1 (should be 1).
+  Test 1.0 / x == 1.0 / +x returns 1 (should be 1).
+  Test 1.0 / x != 1.0 / +y returns 1 (should be 1).
+  Test 1.0 / x != 1.0 / -x returns 1 (should be 1).
+  Test 1.0 / x == 1.0 / -y returns 1 (should be 1).
+0 + 0 = 0
+0 - 0 = 0
+0 + -0 = 0
+0 - -0 = 0
+-0 + 0 = 0
+-0 - 0 = -0
+-0 + -0 = -0
+-0 - -0 = 0
+1 + 1 = 2
+1 - 1 = 0
+1 + -1 = 0
+1 - -1 = 2
+0 * 0 = 0
+0 * -0 = -0
+-0 * 0 = -0
+-0 * -0 = 0
+Constant expression 1 + DBL_MIN = 1
+Variable expression 1 + DBL_MIN = 1
+Constant expression 1 - DBL_MIN = 1
+Variable expression 1 - DBL_MIN = 1
+1/3 in float       : 0x1.555556p-2
+1/3 in double      : 0x1.5555555555555p-2
+1/3 in long double : 0x1.5555555555555556p-2
+Dec 1.1  = 0x1.199999999999ap+0
+FLT_MAX  = 0x1.fffffep+127
+DBL_MAX  = 0x1.fffffffffffffp+1023
+LDBL_MAX = 0x1.fffffffffffffffep+16383
+FLT_EPSILON  = 0x1p-23
+DBL_EPSILON  = 0x1p-52
+LDBL_EPSILON = 0x1p-63
+pow(nan, nan) = nan
+pow(nan, inf) = nan
+pow(nan, -inf) = nan
+pow(nan, 0) = 1
+pow(nan, -0) = 1
+pow(nan, 0.5) = nan
+pow(nan, -0.5) = nan
+pow(nan, 1) = nan
+pow(nan, -1) = nan
+pow(nan, 2) = nan
+pow(nan, -2) = nan
+pow(inf, nan) = nan
+pow(inf, inf) = inf
+pow(inf, -inf) = 0
+pow(inf, 0) = 1
+pow(inf, -0) = 1
+pow(inf, 0.5) = inf
+pow(inf, -0.5) = 0
+pow(inf, 1) = inf
+pow(inf, -1) = 0
+pow(inf, 2) = inf
+pow(inf, -2) = 0
+pow(-inf, nan) = nan
+pow(-inf, inf) = inf
+pow(-inf, -inf) = 0
+pow(-inf, 0) = 1
+pow(-inf, -0) = 1
+pow(-inf, 0.5) = inf
+pow(-inf, -0.5) = 0
+pow(-inf, 1) = -inf
+pow(-inf, -1) = -0
+pow(-inf, 2) = inf
+pow(-inf, -2) = 0
+pow(0, nan) = nan
+pow(0, inf) = 0
+pow(0, -inf) = inf
+pow(0, 0) = 1
+pow(0, -0) = 1
+pow(0, 0.5) = 0
+pow(0, -0.5) = inf
+pow(0, 1) = 0
+pow(0, -1) = inf
+pow(0, 2) = 0
+pow(0, -2) = inf
+pow(-0, nan) = nan
+pow(-0, inf) = 0
+pow(-0, -inf) = inf
+pow(-0, 0) = 1
+pow(-0, -0) = 1
+pow(-0, 0.5) = 0
+pow(-0, -0.5) = inf
+pow(-0, 1) = -0
+pow(-0, -1) = -inf
+pow(-0, 2) = 0
+pow(-0, -2) = inf
+pow(0.5, nan) = nan
+pow(0.5, inf) = 0
+pow(0.5, -inf) = inf
+pow(0.5, 0) = 1
+pow(0.5, -0) = 1
+pow(0.5, 0.5) = 0.707107
+pow(0.5, -0.5) = 1.41421
+pow(0.5, 1) = 0.5
+pow(0.5, -1) = 2
+pow(0.5, 2) = 0.25
+pow(0.5, -2) = 4
+pow(-0.5, nan) = nan
+pow(-0.5, inf) = 0
+pow(-0.5, -inf) = inf
+pow(-0.5, 0) = 1
+pow(-0.5, -0) = 1
+pow(-0.5, 0.5) = nan
+pow(-0.5, -0.5) = nan
+pow(-0.5, 1) = -0.5
+pow(-0.5, -1) = -2
+pow(-0.5, 2) = 0.25
+pow(-0.5, -2) = 4
+pow(1, nan) = nan
+pow(1, inf) = nan
+pow(1, -inf) = nan
+pow(1, 0) = 1
+pow(1, -0) = 1
+pow(1, 0.5) = 1
+pow(1, -0.5) = 1
+pow(1, 1) = 1
+pow(1, -1) = 1
+pow(1, 2) = 1
+pow(1, -2) = 1
+pow(-1, nan) = nan
+pow(-1, inf) = nan
+pow(-1, -inf) = nan
+pow(-1, 0) = 1
+pow(-1, -0) = 1
+pow(-1, 0.5) = nan
+pow(-1, -0.5) = nan
+pow(-1, 1) = -1
+pow(-1, -1) = -1
+pow(-1, 2) = 1
+pow(-1, -2) = 1
+pow(2, nan) = nan
+pow(2, inf) = inf
+pow(2, -inf) = 0
+pow(2, 0) = 1
+pow(2, -0) = 1
+pow(2, 0.5) = 1.41421
+pow(2, -0.5) = 0.707107
+pow(2, 1) = 2
+pow(2, -1) = 0.5
+pow(2, 2) = 4
+pow(2, -2) = 0.25
+pow(-2, nan) = nan
+pow(-2, inf) = inf
+pow(-2, -inf) = 0
+pow(-2, 0) = 1
+pow(-2, -0) = 1
+pow(-2, 0.5) = nan
+pow(-2, -0.5) = nan
+pow(-2, 1) = -2
+pow(-2, -1) = -0.5
+pow(-2, 2) = 4
+pow(-2, -2) = 0.25
+
+Rounding toward 0
+(double) 0 = 0
+Signed zero tests (x is 0.0 and y is -0.0):
+  Test 1.0 / x != 1.0 / y  returns 1 (should be 1).
+  Test 1.0 / x == 1.0 / +x returns 1 (should be 1).
+  Test 1.0 / x != 1.0 / +y returns 1 (should be 1).
+  Test 1.0 / x != 1.0 / -x returns 1 (should be 1).
+  Test 1.0 / x == 1.0 / -y returns 1 (should be 1).
+0 + 0 = 0
+0 - 0 = 0
+0 + -0 = 0
+0 - -0 = 0
+-0 + 0 = 0
+-0 - 0 = -0
+-0 + -0 = -0
+-0 - -0 = 0
+1 + 1 = 2
+1 - 1 = 0
+1 + -1 = 0
+1 - -1 = 2
+0 * 0 = 0
+0 * -0 = -0
+-0 * 0 = -0
+-0 * -0 = 0
+Constant expression 1 + DBL_MIN = 1
+Variable expression 1 + DBL_MIN = 1
+Constant expression 1 - DBL_MIN = 1
+Variable expression 1 - DBL_MIN = 0.99999999999999988897
+1/3 in float       : 0x1.555554p-2
+1/3 in double      : 0x1.5555555555555p-2
+1/3 in long double : 0x1.5555555555555554p-2
+Dec 1.1  = 0x1.199999999999ap+0
+FLT_MAX  = 0x1.fffffep+127
+DBL_MAX  = 0x1.fffffffffffffp+1023
+LDBL_MAX = 0x1.fffffffffffffffep+16383
+FLT_EPSILON  = 0x1p-23
+DBL_EPSILON  = 0x1p-52
+LDBL_EPSILON = 0x1p-63
+pow(nan, nan) = nan
+pow(nan, inf) = nan
+pow(nan, -inf) = nan
+pow(nan, 0) = 1
+pow(nan, -0) = 1
+pow(nan, 0.5) = nan
+pow(nan, -0.5) = nan
+pow(nan, 1) = nan
+pow(nan, -1) = nan
+pow(nan, 2) = nan
+pow(nan, -2) = nan
+pow(inf, nan) = nan
+pow(inf, inf) = inf
+pow(inf, -inf) = 0
+pow(inf, 0) = 1
+pow(inf, -0) = 1
+pow(inf, 0.5) = inf
+pow(inf, -0.5) = 0
+pow(inf, 1) = inf
+pow(inf, -1) = 0
+pow(inf, 2) = inf
+pow(inf, -2) = 0
+pow(-inf, nan) = nan
+pow(-inf, inf) = inf
+pow(-inf, -inf) = 0
+pow(-inf, 0) = 1
+pow(-inf, -0) = 1
+pow(-inf, 0.5) = inf
+pow(-inf, -0.5) = 0
+pow(-inf, 1) = -inf
+pow(-inf, -1) = -0
+pow(-inf, 2) = inf
+pow(-inf, -2) = 0
+pow(0, nan) = nan
+pow(0, inf) = 0
+pow(0, -inf) = inf
+pow(0, 0) = 1
+pow(0, -0) = 1
+pow(0, 0.5) = 0
+pow(0, -0.5) = inf
+pow(0, 1) = 0
+pow(0, -1) = inf
+pow(0, 2) = 0
+pow(0, -2) = inf
+pow(-0, nan) = nan
+pow(-0, inf) = 0
+pow(-0, -inf) = inf
+pow(-0, 0) = 1
+pow(-0, -0) = 1
+pow(-0, 0.5) = 0
+pow(-0, -0.5) = inf
+pow(-0, 1) = -0
+pow(-0, -1) = -inf
+pow(-0, 2) = 0
+pow(-0, -2) = inf
+pow(0.5, nan) = nan
+pow(0.5, inf) = 0
+pow(0.5, -inf) = inf
+pow(0.5, 0) = 1
+pow(0.5, -0) = 1
+pow(0.5, 0.5) = 0.707106
+pow(0.5, -0.5) = 1.41421
+pow(0.5, 1) = 0.5
+pow(0.5, -1) = 2
+pow(0.5, 2) = 0.25
+pow(0.5, -2) = 4
+pow(-0.5, nan) = nan
+pow(-0.5, inf) = 0
+pow(-0.5, -inf) = inf
+pow(-0.5, 0) = 1
+pow(-0.5, -0) = 1
+pow(-0.5, 0.5) = nan
+pow(-0.5, -0.5) = nan
+pow(-0.5, 1) = -0.5
+pow(-0.5, -1) = -2
+pow(-0.5, 2) = 0.25
+pow(-0.5, -2) = 4
+pow(1, nan) = nan
+pow(1, inf) = nan
+pow(1, -inf) = nan
+pow(1, 0) = 1
+pow(1, -0) = 1
+pow(1, 0.5) = 1
+pow(1, -0.5) = 1
+pow(1, 1) = 1
+pow(1, -1) = 1
+pow(1, 2) = 1
+pow(1, -2) = 1
+pow(-1, nan) = nan
+pow(-1, inf) = nan
+pow(-1, -inf) = nan
+pow(-1, 0) = 1
+pow(-1, -0) = 1
+pow(-1, 0.5) = nan
+pow(-1, -0.5) = nan
+pow(-1, 1) = -1
+pow(-1, -1) = -1
+pow(-1, 2) = 1
+pow(-1, -2) = 1
+pow(2, nan) = nan
+pow(2, inf) = inf
+pow(2, -inf) = 0
+pow(2, 0) = 1
+pow(2, -0) = 1
+pow(2, 0.5) = 1.41421
+pow(2, -0.5) = 0.707106
+pow(2, 1) = 2
+pow(2, -1) = 0.5
+pow(2, 2) = 4
+pow(2, -2) = 0.25
+pow(-2, nan) = nan
+pow(-2, inf) = inf
+pow(-2, -inf) = 0
+pow(-2, 0) = 1
+pow(-2, -0) = 1
+pow(-2, 0.5) = nan
+pow(-2, -0.5) = nan
+pow(-2, 1) = -2
+pow(-2, -1) = -0.5
+pow(-2, 2) = 4
+pow(-2, -2) = 0.25
+
+Rounding to -oo
+(double) 0 = 0
+Signed zero tests (x is 0.0 and y is -0.0):
+  Test 1.0 / x != 1.0 / y  returns 1 (should be 1).
+  Test 1.0 / x == 1.0 / +x returns 1 (should be 1).
+  Test 1.0 / x != 1.0 / +y returns 1 (should be 1).
+  Test 1.0 / x != 1.0 / -x returns 1 (should be 1).
+  Test 1.0 / x == 1.0 / -y returns 1 (should be 1).
+0 + 0 = 0
+0 - 0 = -0
+0 + -0 = -0
+0 - -0 = 0
+-0 + 0 = -0
+-0 - 0 = -0
+-0 + -0 = -0
+-0 - -0 = -0
+1 + 1 = 2
+1 - 1 = -0
+1 + -1 = -0
+1 - -1 = 2
+0 * 0 = 0
+0 * -0 = -0
+-0 * 0 = -0
+-0 * -0 = 0
+Constant expression 1 + DBL_MIN = 1
+Variable expression 1 + DBL_MIN = 1
+Constant expression 1 - DBL_MIN = 1
+Variable expression 1 - DBL_MIN = 0.99999999999999988897
+1/3 in float       : 0x1.555554p-2
+1/3 in double      : 0x1.5555555555555p-2
+1/3 in long double : 0x1.5555555555555554p-2
+Dec 1.1  = 0x1.199999999999ap+0
+FLT_MAX  = 0x1.fffffep+127
+DBL_MAX  = 0x1.fffffffffffffp+1023
+LDBL_MAX = 0x1.fffffffffffffffep+16383
+FLT_EPSILON  = 0x1p-23
+DBL_EPSILON  = 0x1p-52
+LDBL_EPSILON = 0x1p-63
+pow(nan, nan) = nan
+pow(nan, inf) = nan
+pow(nan, -inf) = nan
+pow(nan, 0) = 1
+pow(nan, -0) = 1
+pow(nan, 0.5) = nan
+pow(nan, -0.5) = nan
+pow(nan, 1) = nan
+pow(nan, -1) = nan
+pow(nan, 2) = nan
+pow(nan, -2) = nan
+pow(inf, nan) = nan
+pow(inf, inf) = inf
+pow(inf, -inf) = 0
+pow(inf, 0) = 1
+pow(inf, -0) = 1
+pow(inf, 0.5) = inf
+pow(inf, -0.5) = 0
+pow(inf, 1) = inf
+pow(inf, -1) = 0
+pow(inf, 2) = inf
+pow(inf, -2) = 0
+pow(-inf, nan) = nan
+pow(-inf, inf) = inf
+pow(-inf, -inf) = 0
+pow(-inf, 0) = 1
+pow(-inf, -0) = 1
+pow(-inf, 0.5) = inf
+pow(-inf, -0.5) = 0
+pow(-inf, 1) = -inf
+pow(-inf, -1) = -0
+pow(-inf, 2) = inf
+pow(-inf, -2) = 0
+pow(0, nan) = nan
+pow(0, inf) = 0
+pow(0, -inf) = inf
+pow(0, 0) = 1
+pow(0, -0) = 1
+pow(0, 0.5) = 0
+pow(0, -0.5) = inf
+pow(0, 1) = 0
+pow(0, -1) = inf
+pow(0, 2) = 0
+pow(0, -2) = inf
+pow(-0, nan) = nan
+pow(-0, inf) = 0
+pow(-0, -inf) = inf
+pow(-0, 0) = 1
+pow(-0, -0) = 1
+pow(-0, 0.5) = 0
+pow(-0, -0.5) = inf
+pow(-0, 1) = -0
+pow(-0, -1) = -inf
+pow(-0, 2) = 0
+pow(-0, -2) = inf
+pow(0.5, nan) = nan
+pow(0.5, inf) = 0
+pow(0.5, -inf) = inf
+pow(0.5, 0) = 1
+pow(0.5, -0) = 1
+pow(0.5, 0.5) = 0.707106
+pow(0.5, -0.5) = 1.41421
+pow(0.5, 1) = 0.5
+pow(0.5, -1) = 2
+pow(0.5, 2) = 0.25
+pow(0.5, -2) = 4
+pow(-0.5, nan) = nan
+pow(-0.5, inf) = 0
+pow(-0.5, -inf) = inf
+pow(-0.5, 0) = 1
+pow(-0.5, -0) = 1
+pow(-0.5, 0.5) = nan
+pow(-0.5, -0.5) = nan
+pow(-0.5, 1) = -0.5
+pow(-0.5, -1) = -2
+pow(-0.5, 2) = 0.25
+pow(-0.5, -2) = 4
+pow(1, nan) = nan
+pow(1, inf) = nan
+pow(1, -inf) = nan
+pow(1, 0) = 1
+pow(1, -0) = 1
+pow(1, 0.5) = 1
+pow(1, -0.5) = 1
+pow(1, 1) = 1
+pow(1, -1) = 1
+pow(1, 2) = 1
+pow(1, -2) = 1
+pow(-1, nan) = nan
+pow(-1, inf) = nan
+pow(-1, -inf) = nan
+pow(-1, 0) = 1
+pow(-1, -0) = 1
+pow(-1, 0.5) = nan
+pow(-1, -0.5) = nan
+pow(-1, 1) = -1
+pow(-1, -1) = -1
+pow(-1, 2) = 1
+pow(-1, -2) = 1
+pow(2, nan) = nan
+pow(2, inf) = inf
+pow(2, -inf) = 0
+pow(2, 0) = 1
+pow(2, -0) = 1
+pow(2, 0.5) = 1.41421
+pow(2, -0.5) = 0.707106
+pow(2, 1) = 2
+pow(2, -1) = 0.5
+pow(2, 2) = 4
+pow(2, -2) = 0.25
+pow(-2, nan) = nan
+pow(-2, inf) = inf
+pow(-2, -inf) = 0
+pow(-2, 0) = 1
+pow(-2, -0) = 1
+pow(-2, 0.5) = nan
+pow(-2, -0.5) = nan
+pow(-2, 1) = -2
+pow(-2, -1) = -0.5
+pow(-2, 2) = 4
+pow(-2, -2) = 0.25
+
+Rounding to +oo
+(double) 0 = 0
+Signed zero tests (x is 0.0 and y is -0.0):
+  Test 1.0 / x != 1.0 / y  returns 1 (should be 1).
+  Test 1.0 / x == 1.0 / +x returns 1 (should be 1).
+  Test 1.0 / x != 1.0 / +y returns 1 (should be 1).
+  Test 1.0 / x != 1.0 / -x returns 1 (should be 1).
+  Test 1.0 / x == 1.0 / -y returns 1 (should be 1).
+0 + 0 = 0
+0 - 0 = 0
+0 + -0 = 0
+0 - -0 = 0
+-0 + 0 = 0
+-0 - 0 = -0
+-0 + -0 = -0
+-0 - -0 = 0
+1 + 1 = 2
+1 - 1 = 0
+1 + -1 = 0
+1 - -1 = 2
+0 * 0 = 0
+0 * -0 = -0
+-0 * 0 = -0
+-0 * -0 = 0
+Constant expression 1 + DBL_MIN = 1
+Variable expression 1 + DBL_MIN = 1.0000000000000002221
+Constant expression 1 - DBL_MIN = 1
+Variable expression 1 - DBL_MIN = 1
+1/3 in float       : 0x1.555556p-2
+1/3 in double      : 0x1.5555555555556p-2
+1/3 in long double : 0x1.5555555555555556p-2
+Dec 1.1  = 0x1.199999999999ap+0
+FLT_MAX  = 0x1.fffffep+127
+DBL_MAX  = 0x1.fffffffffffffp+1023
+LDBL_MAX = 0x1.fffffffffffffffep+16383
+FLT_EPSILON  = 0x1p-23
+DBL_EPSILON  = 0x1p-52
+LDBL_EPSILON = 0x1p-63
+pow(nan, nan) = nan
+pow(nan, inf) = nan
+pow(nan, -inf) = nan
+pow(nan, 0) = 1
+pow(nan, -0) = 1
+pow(nan, 0.5) = nan
+pow(nan, -0.5) = nan
+pow(nan, 1) = nan
+pow(nan, -1) = nan
+pow(nan, 2) = nan
+pow(nan, -2) = nan
+pow(inf, nan) = nan
+pow(inf, inf) = inf
+pow(inf, -inf) = 0
+pow(inf, 0) = 1
+pow(inf, -0) = 1
+pow(inf, 0.5) = inf
+pow(inf, -0.5) = 0
+pow(inf, 1) = inf
+pow(inf, -1) = 0
+pow(inf, 2) = inf
+pow(inf, -2) = 0
+pow(-inf, nan) = nan
+pow(-inf, inf) = inf
+pow(-inf, -inf) = 0
+pow(-inf, 0) = 1
+pow(-inf, -0) = 1
+pow(-inf, 0.5) = inf
+pow(-inf, -0.5) = 0
+pow(-inf, 1) = -inf
+pow(-inf, -1) = -0
+pow(-inf, 2) = inf
+pow(-inf, -2) = 0
+pow(0, nan) = nan
+pow(0, inf) = 0
+pow(0, -inf) = inf
+pow(0, 0) = 1
+pow(0, -0) = 1
+pow(0, 0.5) = 0
+pow(0, -0.5) = inf
+pow(0, 1) = 0
+pow(0, -1) = inf
+pow(0, 2) = 0
+pow(0, -2) = inf
+pow(-0, nan) = nan
+pow(-0, inf) = 0
+pow(-0, -inf) = inf
+pow(-0, 0) = 1
+pow(-0, -0) = 1
+pow(-0, 0.5) = 0
+pow(-0, -0.5) = inf
+pow(-0, 1) = -0
+pow(-0, -1) = -inf
+pow(-0, 2) = 0
+pow(-0, -2) = inf
+pow(0.5, nan) = nan
+pow(0.5, inf) = 0
+pow(0.5, -inf) = inf
+pow(0.5, 0) = 1
+pow(0.5, -0) = 1
+pow(0.5, 0.5) = 0.707107
+pow(0.5, -0.5) = 1.41422
+pow(0.5, 1) = 0.5
+pow(0.5, -1) = 2
+pow(0.5, 2) = 0.25
+pow(0.5, -2) = 4
+pow(-0.5, nan) = nan
+pow(-0.5, inf) = 0
+pow(-0.5, -inf) = inf
+pow(-0.5, 0) = 1
+pow(-0.5, -0) = 1
+pow(-0.5, 0.5) = nan
+pow(-0.5, -0.5) = nan
+pow(-0.5, 1) = -0.5
+pow(-0.5, -1) = -2
+pow(-0.5, 2) = 0.25
+pow(-0.5, -2) = 4
+pow(1, nan) = nan
+pow(1, inf) = nan
+pow(1, -inf) = nan
+pow(1, 0) = 1
+pow(1, -0) = 1
+pow(1, 0.5) = 1
+pow(1, -0.5) = 1
+pow(1, 1) = 1
+pow(1, -1) = 1
+pow(1, 2) = 1
+pow(1, -2) = 1
+pow(-1, nan) = nan
+pow(-1, inf) = nan
+pow(-1, -inf) = nan
+pow(-1, 0) = 1
+pow(-1, -0) = 1
+pow(-1, 0.5) = nan
+pow(-1, -0.5) = nan
+pow(-1, 1) = -1
+pow(-1, -1) = -1
+pow(-1, 2) = 1
+pow(-1, -2) = 1
+pow(2, nan) = nan
+pow(2, inf) = inf
+pow(2, -inf) = 0
+pow(2, 0) = 1
+pow(2, -0) = 1
+pow(2, 0.5) = 1.41422
+pow(2, -0.5) = 0.707107
+pow(2, 1) = 2
+pow(2, -1) = 0.5
+pow(2, 2) = 4
+pow(2, -2) = 0.25
+pow(-2, nan) = nan
+pow(-2, inf) = inf
+pow(-2, -inf) = 0
+pow(-2, 0) = 1
+pow(-2, -0) = 1
+pow(-2, 0.5) = nan
+pow(-2, -0.5) = nan
+pow(-2, 1) = -2
+pow(-2, -1) = -0.5
+pow(-2, 2) = 4
+pow(-2, -2) = 0.25
+}
+
+set reference_output_x86_32 {
+FLT_RADIX = 2
+FLT_MANT_DIG = 24
+DBL_MANT_DIG = 53
+LDBL_MANT_DIG = 64
+
+FLT_MIN_EXP = -125
+DBL_MIN_EXP = -1021
+LDBL_MIN_EXP = -16381
+
+FLT_MAX_EXP = 128
+DBL_MAX_EXP = 1024
+LDBL_MAX_EXP = 16384
+
+FLT_EPSILON = 1.19209e-07 = 0x1p-23
+  (dynamic epsilon = 1.0842e-19 = 0x1p-63)
+DBL_EPSILON = 2.22045e-16 = 0x1p-52
+  (dynamic epsilon = 1.0842e-19 = 0x1p-63)
+LDBL_EPSILON = 1.0842e-19 = 0x1p-63
+
+FLT_MIN = 1.17549e-38 = 0x1p-126
+DBL_MIN = 2.22507e-308 = 0x1p-1022
+LDBL_MIN = 3.3621e-4932 = 0x1p-16382
+
+FLT_MAX = 3.40282e+38 = 0x1.fffffep+127
+DBL_MAX = 1.79769e+308 = 0x1.fffffffffffffp+1023
+LDBL_MAX = 1.18973e+4932 = 0x1.fffffffffffffffep+16383
+
+sizeof(float) = 4
+sizeof(double) = 8
+sizeof(long double) = 12
+
+x + y, with x = 9007199254740994.0 and y = 1.0 - 1/65536.0 (type double).
+The IEEE-754 result is 9007199254740994 with double precision.
+The IEEE-754 result is 9007199254740996 with extended precision.
+The obtained result is 9007199254740996.
+
+BUG:
+The implementation doesn't seem to convert values to the target type after
+an assignment (see ISO/IEC 9899: 5.1.2.3#12, 6.3.1.5#2 and 6.3.1.8#2[52]).
+
+NAN != NAN --> 1 (should be 1)
+isnan(NAN) --> 1 (should be 1)
+NAN >= 0.0 --> 0 (should be 0)
+NAN <= 0.0 --> 0 (should be 0)
+  #3||#4   --> 0 (should be 0)
+!(#3||#4)  --> 1 (should be 1)
+  #3 + #4  --> 0 (should be 0)
+!(#3 + #4) --> 1 (should be 1)
+The FE_INVALID flag is not set for NAN >= 0.
+The FE_INVALID flag is not set for NAN <= 0.
+The FE_INVALID flag is not set for NAN > 0.
+The FE_INVALID flag is not set for NAN < 0.
+
+x * y + z with FP_CONTRACT OFF is not fused.
+
+Rounding to nearest
+(double) 0 = 0
+Signed zero tests (x is 0.0 and y is -0.0):
+  Test 1.0 / x != 1.0 / y  returns 1 (should be 1).
+  Test 1.0 / x == 1.0 / +x returns 1 (should be 1).
+  Test 1.0 / x != 1.0 / +y returns 1 (should be 1).
+  Test 1.0 / x != 1.0 / -x returns 1 (should be 1).
+  Test 1.0 / x == 1.0 / -y returns 1 (should be 1).
+0 + 0 = 0
+0 - 0 = 0
+0 + -0 = 0
+0 - -0 = 0
+-0 + 0 = 0
+-0 - 0 = -0
+-0 + -0 = -0
+-0 - -0 = 0
+1 + 1 = 2
+1 - 1 = 0
+1 + -1 = 0
+1 - -1 = 2
+0 * 0 = 0
+0 * -0 = -0
+-0 * 0 = -0
+-0 * -0 = 0
+Constant expression 1 + DBL_MIN = 1
+Variable expression 1 + DBL_MIN = 1
+Constant expression 1 - DBL_MIN = 1
+Variable expression 1 - DBL_MIN = 1
+1/3 in float       : 0x1.555556p-2
+1/3 in double      : 0x1.5555555555555p-2
+1/3 in long double : 0x1.5555555555555556p-2
+Dec 1.1  = 0x1.199999999999ap+0
+FLT_MAX  = 0x1.fffffep+127
+DBL_MAX  = 0x1.fffffffffffffp+1023
+LDBL_MAX = 0x1.fffffffffffffffep+16383
+FLT_EPSILON  = 0x1p-23
+DBL_EPSILON  = 0x1p-52
+LDBL_EPSILON = 0x1p-63
+pow(nan, nan) = nan
+pow(nan, inf) = nan
+pow(nan, -inf) = nan
+pow(nan, 0) = 1
+pow(nan, -0) = 1
+pow(nan, 0.5) = nan
+pow(nan, -0.5) = nan
+pow(nan, 1) = nan
+pow(nan, -1) = nan
+pow(nan, 2) = nan
+pow(nan, -2) = nan
+pow(inf, nan) = nan
+pow(inf, inf) = inf
+pow(inf, -inf) = 0
+pow(inf, 0) = 1
+pow(inf, -0) = 1
+pow(inf, 0.5) = inf
+pow(inf, -0.5) = 0
+pow(inf, 1) = inf
+pow(inf, -1) = 0
+pow(inf, 2) = inf
+pow(inf, -2) = 0
+pow(-inf, nan) = nan
+pow(-inf, inf) = inf
+pow(-inf, -inf) = 0
+pow(-inf, 0) = 1
+pow(-inf, -0) = 1
+pow(-inf, 0.5) = inf
+pow(-inf, -0.5) = 0
+pow(-inf, 1) = -inf
+pow(-inf, -1) = -0
+pow(-inf, 2) = inf
+pow(-inf, -2) = 0
+pow(0, nan) = nan
+pow(0, inf) = 0
+pow(0, -inf) = inf
+pow(0, 0) = 1
+pow(0, -0) = 1
+pow(0, 0.5) = 0
+pow(0, -0.5) = inf
+pow(0, 1) = 0
+pow(0, -1) = inf
+pow(0, 2) = 0
+pow(0, -2) = inf
+pow(-0, nan) = nan
+pow(-0, inf) = 0
+pow(-0, -inf) = inf
+pow(-0, 0) = 1
+pow(-0, -0) = 1
+pow(-0, 0.5) = 0
+pow(-0, -0.5) = inf
+pow(-0, 1) = -0
+pow(-0, -1) = -inf
+pow(-0, 2) = 0
+pow(-0, -2) = inf
+pow(0.5, nan) = nan
+pow(0.5, inf) = 0
+pow(0.5, -inf) = inf
+pow(0.5, 0) = 1
+pow(0.5, -0) = 1
+pow(0.5, 0.5) = 0.707107
+pow(0.5, -0.5) = 1.41421
+pow(0.5, 1) = 0.5
+pow(0.5, -1) = 2
+pow(0.5, 2) = 0.25
+pow(0.5, -2) = 4
+pow(-0.5, nan) = nan
+pow(-0.5, inf) = 0
+pow(-0.5, -inf) = inf
+pow(-0.5, 0) = 1
+pow(-0.5, -0) = 1
+pow(-0.5, 0.5) = nan
+pow(-0.5, -0.5) = nan
+pow(-0.5, 1) = -0.5
+pow(-0.5, -1) = -2
+pow(-0.5, 2) = 0.25
+pow(-0.5, -2) = 4
+pow(1, nan) = nan
+pow(1, inf) = nan
+pow(1, -inf) = nan
+pow(1, 0) = 1
+pow(1, -0) = 1
+pow(1, 0.5) = 1
+pow(1, -0.5) = 1
+pow(1, 1) = 1
+pow(1, -1) = 1
+pow(1, 2) = 1
+pow(1, -2) = 1
+pow(-1, nan) = nan
+pow(-1, inf) = nan
+pow(-1, -inf) = nan
+pow(-1, 0) = 1
+pow(-1, -0) = 1
+pow(-1, 0.5) = nan
+pow(-1, -0.5) = nan
+pow(-1, 1) = -1
+pow(-1, -1) = -1
+pow(-1, 2) = 1
+pow(-1, -2) = 1
+pow(2, nan) = nan
+pow(2, inf) = inf
+pow(2, -inf) = 0
+pow(2, 0) = 1
+pow(2, -0) = 1
+pow(2, 0.5) = 1.41421
+pow(2, -0.5) = 0.707107
+pow(2, 1) = 2
+pow(2, -1) = 0.5
+pow(2, 2) = 4
+pow(2, -2) = 0.25
+pow(-2, nan) = nan
+pow(-2, inf) = inf
+pow(-2, -inf) = 0
+pow(-2, 0) = 1
+pow(-2, -0) = 1
+pow(-2, 0.5) = nan
+pow(-2, -0.5) = nan
+pow(-2, 1) = -2
+pow(-2, -1) = -0.5
+pow(-2, 2) = 4
+pow(-2, -2) = 0.25
+
+Rounding toward 0
+(double) 0 = 0
+Signed zero tests (x is 0.0 and y is -0.0):
+  Test 1.0 / x != 1.0 / y  returns 1 (should be 1).
+  Test 1.0 / x == 1.0 / +x returns 1 (should be 1).
+  Test 1.0 / x != 1.0 / +y returns 1 (should be 1).
+  Test 1.0 / x != 1.0 / -x returns 1 (should be 1).
+  Test 1.0 / x == 1.0 / -y returns 1 (should be 1).
+0 + 0 = 0
+0 - 0 = 0
+0 + -0 = 0
+0 - -0 = 0
+-0 + 0 = 0
+-0 - 0 = -0
+-0 + -0 = -0
+-0 - -0 = 0
+1 + 1 = 2
+1 - 1 = 0
+1 + -1 = 0
+1 - -1 = 2
+0 * 0 = 0
+0 * -0 = -0
+-0 * 0 = -0
+-0 * -0 = 0
+Constant expression 1 + DBL_MIN = 1
+Variable expression 1 + DBL_MIN = 1
+Constant expression 1 - DBL_MIN = 1
+Variable expression 1 - DBL_MIN = 0.99999999999999988897
+1/3 in float       : 0x1.555554p-2
+1/3 in double      : 0x1.5555555555555p-2
+1/3 in long double : 0x1.5555555555555554p-2
+Dec 1.1  = 0x1.199999999999ap+0
+FLT_MAX  = 0x1.fffffep+127
+DBL_MAX  = 0x1.fffffffffffffp+1023
+LDBL_MAX = 0x1.fffffffffffffffep+16383
+FLT_EPSILON  = 0x1p-23
+DBL_EPSILON  = 0x1p-52
+LDBL_EPSILON = 0x1p-63
+pow(nan, nan) = nan
+pow(nan, inf) = nan
+pow(nan, -inf) = nan
+pow(nan, 0) = 1
+pow(nan, -0) = 1
+pow(nan, 0.5) = nan
+pow(nan, -0.5) = nan
+pow(nan, 1) = nan
+pow(nan, -1) = nan
+pow(nan, 2) = nan
+pow(nan, -2) = nan
+pow(inf, nan) = nan
+pow(inf, inf) = inf
+pow(inf, -inf) = 0
+pow(inf, 0) = 1
+pow(inf, -0) = 1
+pow(inf, 0.5) = inf
+pow(inf, -0.5) = 0
+pow(inf, 1) = inf
+pow(inf, -1) = 0
+pow(inf, 2) = inf
+pow(inf, -2) = 0
+pow(-inf, nan) = nan
+pow(-inf, inf) = inf
+pow(-inf, -inf) = 0
+pow(-inf, 0) = 1
+pow(-inf, -0) = 1
+pow(-inf, 0.5) = inf
+pow(-inf, -0.5) = 0
+pow(-inf, 1) = -inf
+pow(-inf, -1) = -0
+pow(-inf, 2) = inf
+pow(-inf, -2) = 0
+pow(0, nan) = nan
+pow(0, inf) = 0
+pow(0, -inf) = inf
+pow(0, 0) = 1
+pow(0, -0) = 1
+pow(0, 0.5) = 0
+pow(0, -0.5) = inf
+pow(0, 1) = 0
+pow(0, -1) = inf
+pow(0, 2) = 0
+pow(0, -2) = inf
+pow(-0, nan) = nan
+pow(-0, inf) = 0
+pow(-0, -inf) = inf
+pow(-0, 0) = 1
+pow(-0, -0) = 1
+pow(-0, 0.5) = 0
+pow(-0, -0.5) = inf
+pow(-0, 1) = -0
+pow(-0, -1) = -inf
+pow(-0, 2) = 0
+pow(-0, -2) = inf
+pow(0.5, nan) = nan
+pow(0.5, inf) = 0
+pow(0.5, -inf) = inf
+pow(0.5, 0) = 1
+pow(0.5, -0) = 1
+pow(0.5, 0.5) = 0.707106
+pow(0.5, -0.5) = 1.41421
+pow(0.5, 1) = 0.5
+pow(0.5, -1) = 2
+pow(0.5, 2) = 0.25
+pow(0.5, -2) = 4
+pow(-0.5, nan) = nan
+pow(-0.5, inf) = 0
+pow(-0.5, -inf) = inf
+pow(-0.5, 0) = 1
+pow(-0.5, -0) = 1
+pow(-0.5, 0.5) = nan
+pow(-0.5, -0.5) = nan
+pow(-0.5, 1) = -0.5
+pow(-0.5, -1) = -2
+pow(-0.5, 2) = 0.25
+pow(-0.5, -2) = 4
+pow(1, nan) = nan
+pow(1, inf) = nan
+pow(1, -inf) = nan
+pow(1, 0) = 1
+pow(1, -0) = 1
+pow(1, 0.5) = 1
+pow(1, -0.5) = 1
+pow(1, 1) = 1
+pow(1, -1) = 1
+pow(1, 2) = 1
+pow(1, -2) = 1
+pow(-1, nan) = nan
+pow(-1, inf) = nan
+pow(-1, -inf) = nan
+pow(-1, 0) = 1
+pow(-1, -0) = 1
+pow(-1, 0.5) = nan
+pow(-1, -0.5) = nan
+pow(-1, 1) = -1
+pow(-1, -1) = -1
+pow(-1, 2) = 1
+pow(-1, -2) = 1
+pow(2, nan) = nan
+pow(2, inf) = inf
+pow(2, -inf) = 0
+pow(2, 0) = 1
+pow(2, -0) = 1
+pow(2, 0.5) = 1.41421
+pow(2, -0.5) = 0.707106
+pow(2, 1) = 2
+pow(2, -1) = 0.5
+pow(2, 2) = 4
+pow(2, -2) = 0.25
+pow(-2, nan) = nan
+pow(-2, inf) = inf
+pow(-2, -inf) = 0
+pow(-2, 0) = 1
+pow(-2, -0) = 1
+pow(-2, 0.5) = nan
+pow(-2, -0.5) = nan
+pow(-2, 1) = -2
+pow(-2, -1) = -0.5
+pow(-2, 2) = 4
+pow(-2, -2) = 0.25
+
+Rounding to -oo
+(double) 0 = 0
+Signed zero tests (x is 0.0 and y is -0.0):
+  Test 1.0 / x != 1.0 / y  returns 1 (should be 1).
+  Test 1.0 / x == 1.0 / +x returns 1 (should be 1).
+  Test 1.0 / x != 1.0 / +y returns 1 (should be 1).
+  Test 1.0 / x != 1.0 / -x returns 1 (should be 1).
+  Test 1.0 / x == 1.0 / -y returns 1 (should be 1).
+0 + 0 = 0
+0 - 0 = -0
+0 + -0 = -0
+0 - -0 = 0
+-0 + 0 = -0
+-0 - 0 = -0
+-0 + -0 = -0
+-0 - -0 = -0
+1 + 1 = 2
+1 - 1 = -0
+1 + -1 = -0
+1 - -1 = 2
+0 * 0 = 0
+0 * -0 = -0
+-0 * 0 = -0
+-0 * -0 = 0
+Constant expression 1 + DBL_MIN = 1
+Variable expression 1 + DBL_MIN = 1
+Constant expression 1 - DBL_MIN = 1
+Variable expression 1 - DBL_MIN = 0.99999999999999988897
+1/3 in float       : 0x1.555554p-2
+1/3 in double      : 0x1.5555555555555p-2
+1/3 in long double : 0x1.5555555555555554p-2
+Dec 1.1  = 0x1.199999999999ap+0
+FLT_MAX  = 0x1.fffffep+127
+DBL_MAX  = 0x1.fffffffffffffp+1023
+LDBL_MAX = 0x1.fffffffffffffffep+16383
+FLT_EPSILON  = 0x1p-23
+DBL_EPSILON  = 0x1p-52
+LDBL_EPSILON = 0x1p-63
+pow(nan, nan) = nan
+pow(nan, inf) = nan
+pow(nan, -inf) = nan
+pow(nan, 0) = 1
+pow(nan, -0) = 1
+pow(nan, 0.5) = nan
+pow(nan, -0.5) = nan
+pow(nan, 1) = nan
+pow(nan, -1) = nan
+pow(nan, 2) = nan
+pow(nan, -2) = nan
+pow(inf, nan) = nan
+pow(inf, inf) = inf
+pow(inf, -inf) = 0
+pow(inf, 0) = 1
+pow(inf, -0) = 1
+pow(inf, 0.5) = inf
+pow(inf, -0.5) = 0
+pow(inf, 1) = inf
+pow(inf, -1) = 0
+pow(inf, 2) = inf
+pow(inf, -2) = 0
+pow(-inf, nan) = nan
+pow(-inf, inf) = inf
+pow(-inf, -inf) = 0
+pow(-inf, 0) = 1
+pow(-inf, -0) = 1
+pow(-inf, 0.5) = inf
+pow(-inf, -0.5) = 0
+pow(-inf, 1) = -inf
+pow(-inf, -1) = -0
+pow(-inf, 2) = inf
+pow(-inf, -2) = 0
+pow(0, nan) = nan
+pow(0, inf) = 0
+pow(0, -inf) = inf
+pow(0, 0) = 1
+pow(0, -0) = 1
+pow(0, 0.5) = 0
+pow(0, -0.5) = inf
+pow(0, 1) = 0
+pow(0, -1) = inf
+pow(0, 2) = 0
+pow(0, -2) = inf
+pow(-0, nan) = nan
+pow(-0, inf) = 0
+pow(-0, -inf) = inf
+pow(-0, 0) = 1
+pow(-0, -0) = 1
+pow(-0, 0.5) = 0
+pow(-0, -0.5) = inf
+pow(-0, 1) = -0
+pow(-0, -1) = -inf
+pow(-0, 2) = 0
+pow(-0, -2) = inf
+pow(0.5, nan) = nan
+pow(0.5, inf) = 0
+pow(0.5, -inf) = inf
+pow(0.5, 0) = 1
+pow(0.5, -0) = 1
+pow(0.5, 0.5) = 0.707106
+pow(0.5, -0.5) = 1.41421
+pow(0.5, 1) = 0.5
+pow(0.5, -1) = 2
+pow(0.5, 2) = 0.25
+pow(0.5, -2) = 4
+pow(-0.5, nan) = nan
+pow(-0.5, inf) = 0
+pow(-0.5, -inf) = inf
+pow(-0.5, 0) = 1
+pow(-0.5, -0) = 1
+pow(-0.5, 0.5) = nan
+pow(-0.5, -0.5) = nan
+pow(-0.5, 1) = -0.5
+pow(-0.5, -1) = -2
+pow(-0.5, 2) = 0.25
+pow(-0.5, -2) = 4
+pow(1, nan) = nan
+pow(1, inf) = nan
+pow(1, -inf) = nan
+pow(1, 0) = 1
+pow(1, -0) = 1
+pow(1, 0.5) = 1
+pow(1, -0.5) = 1
+pow(1, 1) = 1
+pow(1, -1) = 1
+pow(1, 2) = 1
+pow(1, -2) = 1
+pow(-1, nan) = nan
+pow(-1, inf) = nan
+pow(-1, -inf) = nan
+pow(-1, 0) = 1
+pow(-1, -0) = 1
+pow(-1, 0.5) = nan
+pow(-1, -0.5) = nan
+pow(-1, 1) = -1
+pow(-1, -1) = -1
+pow(-1, 2) = 1
+pow(-1, -2) = 1
+pow(2, nan) = nan
+pow(2, inf) = inf
+pow(2, -inf) = 0
+pow(2, 0) = 1
+pow(2, -0) = 1
+pow(2, 0.5) = 1.41421
+pow(2, -0.5) = 0.707106
+pow(2, 1) = 2
+pow(2, -1) = 0.5
+pow(2, 2) = 4
+pow(2, -2) = 0.25
+pow(-2, nan) = nan
+pow(-2, inf) = inf
+pow(-2, -inf) = 0
+pow(-2, 0) = 1
+pow(-2, -0) = 1
+pow(-2, 0.5) = nan
+pow(-2, -0.5) = nan
+pow(-2, 1) = -2
+pow(-2, -1) = -0.5
+pow(-2, 2) = 4
+pow(-2, -2) = 0.25
+
+Rounding to +oo
+(double) 0 = 0
+Signed zero tests (x is 0.0 and y is -0.0):
+  Test 1.0 / x != 1.0 / y  returns 1 (should be 1).
+  Test 1.0 / x == 1.0 / +x returns 1 (should be 1).
+  Test 1.0 / x != 1.0 / +y returns 1 (should be 1).
+  Test 1.0 / x != 1.0 / -x returns 1 (should be 1).
+  Test 1.0 / x == 1.0 / -y returns 1 (should be 1).
+0 + 0 = 0
+0 - 0 = 0
+0 + -0 = 0
+0 - -0 = 0
+-0 + 0 = 0
+-0 - 0 = -0
+-0 + -0 = -0
+-0 - -0 = 0
+1 + 1 = 2
+1 - 1 = 0
+1 + -1 = 0
+1 - -1 = 2
+0 * 0 = 0
+0 * -0 = -0
+-0 * 0 = -0
+-0 * -0 = 0
+Constant expression 1 + DBL_MIN = 1
+Variable expression 1 + DBL_MIN = 1.0000000000000002221
+Constant expression 1 - DBL_MIN = 1
+Variable expression 1 - DBL_MIN = 1
+1/3 in float       : 0x1.555556p-2
+1/3 in double      : 0x1.5555555555556p-2
+1/3 in long double : 0x1.5555555555555556p-2
+Dec 1.1  = 0x1.199999999999ap+0
+FLT_MAX  = 0x1.fffffep+127
+DBL_MAX  = 0x1.fffffffffffffp+1023
+LDBL_MAX = 0x1.fffffffffffffffep+16383
+FLT_EPSILON  = 0x1p-23
+DBL_EPSILON  = 0x1p-52
+LDBL_EPSILON = 0x1p-63
+pow(nan, nan) = nan
+pow(nan, inf) = nan
+pow(nan, -inf) = nan
+pow(nan, 0) = 1
+pow(nan, -0) = 1
+pow(nan, 0.5) = nan
+pow(nan, -0.5) = nan
+pow(nan, 1) = nan
+pow(nan, -1) = nan
+pow(nan, 2) = nan
+pow(nan, -2) = nan
+pow(inf, nan) = nan
+pow(inf, inf) = inf
+pow(inf, -inf) = 0
+pow(inf, 0) = 1
+pow(inf, -0) = 1
+pow(inf, 0.5) = inf
+pow(inf, -0.5) = 0
+pow(inf, 1) = inf
+pow(inf, -1) = 0
+pow(inf, 2) = inf
+pow(inf, -2) = 0
+pow(-inf, nan) = nan
+pow(-inf, inf) = inf
+pow(-inf, -inf) = 0
+pow(-inf, 0) = 1
+pow(-inf, -0) = 1
+pow(-inf, 0.5) = inf
+pow(-inf, -0.5) = 0
+pow(-inf, 1) = -inf
+pow(-inf, -1) = -0
+pow(-inf, 2) = inf
+pow(-inf, -2) = 0
+pow(0, nan) = nan
+pow(0, inf) = 0
+pow(0, -inf) = inf
+pow(0, 0) = 1
+pow(0, -0) = 1
+pow(0, 0.5) = 0
+pow(0, -0.5) = inf
+pow(0, 1) = 0
+pow(0, -1) = inf
+pow(0, 2) = 0
+pow(0, -2) = inf
+pow(-0, nan) = nan
+pow(-0, inf) = 0
+pow(-0, -inf) = inf
+pow(-0, 0) = 1
+pow(-0, -0) = 1
+pow(-0, 0.5) = 0
+pow(-0, -0.5) = inf
+pow(-0, 1) = -0
+pow(-0, -1) = -inf
+pow(-0, 2) = 0
+pow(-0, -2) = inf
+pow(0.5, nan) = nan
+pow(0.5, inf) = 0
+pow(0.5, -inf) = inf
+pow(0.5, 0) = 1
+pow(0.5, -0) = 1
+pow(0.5, 0.5) = 0.707107
+pow(0.5, -0.5) = 1.41422
+pow(0.5, 1) = 0.5
+pow(0.5, -1) = 2
+pow(0.5, 2) = 0.25
+pow(0.5, -2) = 4
+pow(-0.5, nan) = nan
+pow(-0.5, inf) = 0
+pow(-0.5, -inf) = inf
+pow(-0.5, 0) = 1
+pow(-0.5, -0) = 1
+pow(-0.5, 0.5) = nan
+pow(-0.5, -0.5) = nan
+pow(-0.5, 1) = -0.5
+pow(-0.5, -1) = -2
+pow(-0.5, 2) = 0.25
+pow(-0.5, -2) = 4
+pow(1, nan) = nan
+pow(1, inf) = nan
+pow(1, -inf) = nan
+pow(1, 0) = 1
+pow(1, -0) = 1
+pow(1, 0.5) = 1
+pow(1, -0.5) = 1
+pow(1, 1) = 1
+pow(1, -1) = 1
+pow(1, 2) = 1
+pow(1, -2) = 1
+pow(-1, nan) = nan
+pow(-1, inf) = nan
+pow(-1, -inf) = nan
+pow(-1, 0) = 1
+pow(-1, -0) = 1
+pow(-1, 0.5) = nan
+pow(-1, -0.5) = nan
+pow(-1, 1) = -1
+pow(-1, -1) = -1
+pow(-1, 2) = 1
+pow(-1, -2) = 1
+pow(2, nan) = nan
+pow(2, inf) = inf
+pow(2, -inf) = 0
+pow(2, 0) = 1
+pow(2, -0) = 1
+pow(2, 0.5) = 1.41422
+pow(2, -0.5) = 0.707107
+pow(2, 1) = 2
+pow(2, -1) = 0.5
+pow(2, 2) = 4
+pow(2, -2) = 0.25
+pow(-2, nan) = nan
+pow(-2, inf) = inf
+pow(-2, -inf) = 0
+pow(-2, 0) = 1
+pow(-2, -0) = 1
+pow(-2, 0.5) = nan
+pow(-2, -0.5) = nan
+pow(-2, 1) = -2
+pow(-2, -1) = -0.5
+pow(-2, 2) = 4
+pow(-2, -2) = 0.25
+}
+
+if {[have_spec arm]} {
+	set reference_output $reference_output_arm
+}
+if {[have_spec x86_64]} {
+	set reference_output $reference_output_x86_64
+}
+if {[have_spec x86_32]} {
+	set reference_output $reference_output_x86_32
+}
+
+proc filter_and_compare_output {pattern expected} {
+	global output
+	set    old_output $output
+	grep_output  "init -> $pattern"
+	unify_output {\[init -> test.\] } {}
+	compare_output_to $expected
+	set output $old_output
+}
+
+filter_and_compare_output "test1" $reference_output
+filter_and_compare_output "test2" $reference_output
+filter_and_compare_output "test3" $reference_output
+filter_and_compare_output "test4" $reference_output

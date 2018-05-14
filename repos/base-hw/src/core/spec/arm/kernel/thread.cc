@@ -19,6 +19,9 @@
 
 using namespace Kernel;
 
+extern "C" void kernel_to_user_context_switch(Cpu::Context*, Cpu::Fpu_context*);
+
+
 void Thread::exception(Cpu & cpu)
 {
 	switch (regs->cpu_exception) {
@@ -34,7 +37,6 @@ void Thread::exception(Cpu & cpu)
 		_interrupt(cpu.id());
 		return;
 	case Cpu::Context::UNDEFINED_INSTRUCTION:
-		if (_cpu->retry_undefined_instr(*regs)) { return; }
 		Genode::warning(*this, ": undefined instruction at ip=",
 		                Genode::Hex(regs->ip));
 		_die();
@@ -106,14 +108,8 @@ void Thread::proceed(Cpu & cpu)
 	cpu.switch_to(*regs, pd()->mmu_regs);
 
 	regs->cpu_exception = cpu.stack_start();
-
-	asm volatile("mov  sp, %0        \n"
-	             "msr  spsr_cxsf, %1 \n"
-	             "mov  lr, %2        \n"
-	             "ldm  sp, {r0-r14}^ \n"
-	             "subs pc, lr, #0    \n"
-	             :: "r" (static_cast<Cpu::Context*>(&*regs)),
-	                "r" (regs->cpsr), "r" (regs->ip));
+	kernel_to_user_context_switch((static_cast<Cpu::Context*>(&*regs)),
+	                              (static_cast<Cpu::Fpu_context*>(&*regs)));
 }
 
 

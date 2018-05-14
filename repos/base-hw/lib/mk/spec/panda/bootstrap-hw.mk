@@ -9,6 +9,6 @@ SRC_CC    += hw/spec/arm/arm_v7_cpu.cc
 SRC_CC    += hw/spec/32bit/memory_map.cc
 SRC_S     += bootstrap/spec/arm/crt0.s
 
-CC_MARCH = -mcpu=cortex-a9
+CC_MARCH = -mcpu=cortex-a9 -mfpu=vfpv3 -mfloat-abi=softfp
 
 include $(BASE_DIR)/../base-hw/lib/mk/bootstrap-hw.inc

@@ -62,6 +62,22 @@
 	add sp, r0, r1
 
 
+	/****************
+	 ** Enable VFP **
+	 ****************/
+
+	mov r0, #0xf
+	lsl r0, #20
+	mcr p15, 0, r0, c1, c0, 2   /* write to CPACR to enable VFP access */
+	mcr p15, 0, r0, c7, c5, 4   /* deprecated ISB instruction <= ARMv6 */
+
+	vmrs r0, fpexc              /* enable the VFP by read/write fpexc  */
+	mov  r1, #1                 /* enable bit 30                       */
+	lsl  r1, #30
+	orr  r0, r1
+	vmsr fpexc, r0
+
+
 	/************************************
 	 ** Jump to high-level entry point **
 	 ************************************/

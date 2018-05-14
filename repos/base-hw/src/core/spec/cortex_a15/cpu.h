@@ -135,13 +135,6 @@ class Genode::Cpu : public Arm_v7_cpu
 			if (mmu_context.id() && (Ttbr0_64bit::read() != mmu_context.ttbr0))
 				Ttbr0_64bit::write(mmu_context.ttbr0);
 		}
-
-
-		/*************
-		 ** Dummies **
-		 *************/
-
-		bool retry_undefined_instr(Context&) { return false; }
 };
 
 #endif /* _CORE__SPEC__CORTEX_A15__CPU_H_ */
