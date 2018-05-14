@@ -28,8 +28,6 @@ extern "C" void __gnat_rcheck_CE_Overflow_Check()
 
 void Component::construct(Genode::Env &env)
 {
-    env.exec_static_constructors();
-
     Genode::log("running iteration test");
     stack__calloc(32);
     stack__calloc(128);
