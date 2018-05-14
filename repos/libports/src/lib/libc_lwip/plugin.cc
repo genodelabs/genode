@@ -29,7 +29,7 @@
 extern "C" {
 #include <lwip/netdb.h>
 }
-#include <lwip/genode.h>
+#include <lwip_legacy/genode.h>
 #include <lwip/sockets.h>
 
 /* lwip and libc have different definitions for the FD_* macros and renaming

@@ -1,5 +1,5 @@
 TARGET   = test-ping_server_lwip
-LIBS     = posix lwip
+LIBS     = posix lwip_legacy
 SRC_CC   = main.cc pingpong.cc
 
 CC_OPT += -DLWIP_NATIVE

@@ -4,8 +4,8 @@
 # The library implementes TCP and UDP as well as DNS and DHCP.
 #
 
-LWIP_PORT_DIR := $(call select_from_ports,lwip)
-LWIP_DIR      := $(LWIP_PORT_DIR)/src/lib/lwip
+LWIP_PORT_DIR := $(call select_from_ports,lwip_legacy)
+LWIP_DIR      := $(LWIP_PORT_DIR)/src/lib/lwip_legacy
 
 # Genode platform files
 SRC_CC   = nic.cc printf.cc sys_arch.cc
@@ -30,17 +30,17 @@ D_OPTS   = ERRNO
 D_OPTS  := $(addprefix -D,$(D_OPTS))
 CC_DEF  += $(D_OPTS)
 
-LD_OPT  += --version-script=$(REP_DIR)/src/lib/lwip/symbol.map
+LD_OPT  += --version-script=$(REP_DIR)/src/lib/lwip_legacy/symbol.map
 
-INC_DIR += $(REP_DIR)/include/lwip \
-           $(LWIP_PORT_DIR)/include/lwip \
+INC_DIR += $(REP_DIR)/include/lwip_legacy \
+           $(LWIP_PORT_DIR)/include/lwip_legacy \
            $(LWIP_DIR)/src/include \
            $(LWIP_DIR)/src/include/ipv4 \
            $(LWIP_DIR)/src/include/api \
            $(LWIP_DIR)/src/include/netif \
-           $(REP_DIR)/src/lib/lwip/include
+           $(REP_DIR)/src/lib/lwip_legacy/include
 
-vpath %.cc $(REP_DIR)/src/lib/lwip/platform
+vpath %.cc $(REP_DIR)/src/lib/lwip_legacy/platform
 vpath %.c  $(LWIP_DIR)/src/core
 vpath %.c  $(LWIP_DIR)/src/core/ipv4
 vpath %.c  $(LWIP_DIR)/src/api

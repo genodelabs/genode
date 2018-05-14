@@ -61,7 +61,7 @@ proc server_config { name prot ip_addr gateway netmask nic port } {
 
 set boot_modules "
 	core init timer nic_router nic_bridge nic_loopback ld.lib.so
-	libc.lib.so vfs.lib.so lwip.lib.so [client_bin udp] [server_bin udp]
+	libc.lib.so vfs.lib.so lwip_legacy.lib.so [client_bin udp] [server_bin udp]
 	[client_bin http] [server_bin http] [platform_drv_boot_modules]"
 
 append qemu_args "-nographic "

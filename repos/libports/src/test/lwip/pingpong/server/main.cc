@@ -17,7 +17,7 @@
 
 #ifdef LWIP_NATIVE
 #include <nic/packet_allocator.h>
-#include <lwip/genode.h>
+#include <lwip_legacy/genode.h>
 #endif
 
 #include "../pingpong.h"
