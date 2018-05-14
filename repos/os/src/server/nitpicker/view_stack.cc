@@ -213,13 +213,8 @@ void View_stack::refresh_view(View_component &view, Rect const rect)
 	/* rectangle constrained to view geometry */
 	Rect const view_rect = Rect::intersect(rect, _outline(view));
 
-	for (View_component *v = _first_view(); v; v = v->view_stack_next()) {
-
-		Rect const intersection = Rect::intersect(view_rect, _outline(*v));
-
-		if (intersection.valid())
-			_mark_view_as_dirty(*v, intersection);
-	}
+	for (View_component *v = _first_view(); v; v = v->view_stack_next())
+		_mark_view_as_dirty(*v, view_rect);
 
 	view.for_each_child([&] (View_component &child) { refresh_view(child, rect); });
 }
