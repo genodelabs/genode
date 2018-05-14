@@ -1398,8 +1398,8 @@ void Interface::_update_link_check_nat(Link        &link,
 }
 
 
-void Interface::_update_links(L3_protocol  prot,
-                              Domain      &cln_dom)
+void Interface::_update_udp_tcp_links(L3_protocol  prot,
+                                      Domain      &cln_dom)
 {
 	links(prot).for_each([&] (Link &link) {
 		try {
@@ -1434,6 +1434,24 @@ void Interface::_update_links(L3_protocol  prot,
 			catch (Permit_single_rule_tree::No_match) { _dismiss_link_log(link, "no permit rule"); }
 			catch (Dismiss_link)                      { }
 		}
+		catch (Dismiss_link) { }
+		_destroy_link(link);
+	});
+}
+
+
+void Interface::_update_icmp_links(Domain &cln_dom)
+{
+	L3_protocol const prot = L3_protocol::ICMP;
+	links(prot).for_each([&] (Link &link) {
+		try {
+			Ip_rule const &rule = cln_dom.icmp_rules().
+				longest_prefix_match(link.client().dst_ip());
+
+			_update_link_check_nat(link, rule.domain(), prot, cln_dom);
+			return;
+		}
+		catch (Ip_rule_list::No_match) { _dismiss_link_log(link, "no ICMP rule"); }
 		catch (Dismiss_link) { }
 		_destroy_link(link);
 	});
@@ -1554,9 +1572,9 @@ void Interface::handle_config(Configuration &config)
 			return;
 		}
 		/* update state objects */
-		_update_links(L3_protocol::TCP,  new_domain);
-		_update_links(L3_protocol::UDP,  new_domain);
-		_update_links(L3_protocol::ICMP, new_domain);
+		_update_udp_tcp_links(L3_protocol::TCP, new_domain);
+		_update_udp_tcp_links(L3_protocol::UDP, new_domain);
+		_update_icmp_links(new_domain);
 		_update_dhcp_allocations(old_domain, new_domain);
 		_update_own_arp_waiters(new_domain);
 	}
