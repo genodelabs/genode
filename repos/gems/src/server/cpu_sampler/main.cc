@@ -196,8 +196,5 @@ struct Cpu_sampler::Main : Thread_list_change_handler
 
 void Component::construct(Genode::Env &env)
 {
-	/* XXX execute constructors of global statics (uses shared objects) */
-	env.exec_static_constructors();
-
 	static Cpu_sampler::Main inst(env);
 }

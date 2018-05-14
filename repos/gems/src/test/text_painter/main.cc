@@ -205,14 +205,6 @@ struct Test::Main
 
 void Component::construct(Genode::Env &env)
 {
-	/*
-	 * The indirect dependency from libc (via ttf_font) introduces a global
-	 * constructor in the binary. (typeinfo for 'Genode::Exception').
-	 *
-	 * XXX Why is this ctors entry generated?
-	 */
-	env.exec_static_constructors();
-
 	static Test::Main main(env);
 }
 
