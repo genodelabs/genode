@@ -143,9 +143,14 @@ ACPI_STATUS AcpiOsReadPciConfiguration (ACPI_PCI_ID *pcidev, UINT32 reg,
                                         UINT64 *value, UINT32 width)
 {
 	if (!Acpica::platform_drv()) {
-		*value = pci_io_read(pcidev->Bus, pcidev->Device, pcidev->Function,
-		                     reg, width);
-		dump_read(__func__, pcidev, reg, *value, width);
+		try {
+			*value = pci_io_read(pcidev->Bus, pcidev->Device, pcidev->Function,
+			                     reg, width);
+			dump_read(__func__, pcidev, reg, *value, width);
+		} catch (...) {
+			dump_error(__func__, pcidev, reg, width);
+			return AE_ERROR;
+		}
 		return AE_OK;
 	}
 
@@ -199,10 +204,15 @@ ACPI_STATUS AcpiOsWritePciConfiguration (ACPI_PCI_ID *pcidev, UINT32 reg,
                                          UINT64 value, UINT32 width)
 {
 	if (!Acpica::platform_drv()) {
-		dump_write(__func__, pcidev, reg, value, width);
-		pci_io_write(pcidev->Bus, pcidev->Device, pcidev->Function, reg,
-		             width, value);
-		return AE_OK;
+		try {
+			dump_write(__func__, pcidev, reg, value, width);
+			pci_io_write(pcidev->Bus, pcidev->Device, pcidev->Function, reg,
+			             width, value);
+			return AE_OK;
+		} catch (...) {
+			dump_error(__func__, pcidev, reg, width);
+			return AE_ERROR;
+		}
 	}
 
 	Platform::Device_capability cap = Acpica::platform().first_device();
