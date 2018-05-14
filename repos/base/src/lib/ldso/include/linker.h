@@ -132,6 +132,8 @@ class Linker::Object : private Fifo<Object>::Element,
 
 		Object *_next_object() const { return List<Object>::Element::next(); }
 
+		Elf::Addr _symbol_address(char const *name);
+
 		Name        _name       { };
 		File const *_file       { nullptr };
 		Elf::Addr   _reloc_base { 0 };
@@ -195,6 +197,8 @@ class Linker::Object : private Fifo<Object>::Element,
 		 * Return address info for symboal at addr
 		 */
 		virtual Symbol_info symbol_at_address(addr_t addr) const = 0;
+
+		bool needs_static_construction();
 };
 
 

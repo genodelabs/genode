@@ -385,10 +385,7 @@ struct Linker::Binary : private Root_object, public Elf_object
 	{
 		if (static_construction_finished) return false;
 
-		Func * const ctors_start = (Func *)lookup_symbol("_ctors_start");
-		Func * const ctors_end   = (Func *)lookup_symbol("_ctors_end");
-
-		return (ctors_end != ctors_start) || Init::list()->contains_deps();
+		return Init::list()->needs_static_construction();
 	}
 
 	void finish_static_construction()
@@ -475,6 +472,28 @@ struct Linker::Binary : private Root_object, public Elf_object
 
 	bool is_binary() const override { return true; }
 };
+
+
+/**********************************
+ ** Linker object implementation **
+ **********************************/
+
+Elf64_Addr Linker::Object::_symbol_address(char const *name)
+{
+	unsigned long   hash = Hash_table::hash(name);
+	Elf::Sym const *sym  = dynamic().lookup_symbol(name, hash);
+
+	if (sym)
+		return reloc_base() + sym->st_value;
+	else
+		return Elf64_Addr(0);
+}
+
+
+bool Linker::Object::needs_static_construction()
+{
+	return _symbol_address("_ctors_end") != _symbol_address("_ctors_start");
+}
 
 
 /***************************************

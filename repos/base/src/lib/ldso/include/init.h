@@ -104,6 +104,15 @@ struct Linker::Init : List<Object>
 			exec_static_constructors();
 	}
 
+	bool needs_static_construction()
+	{
+		for (Object *obj = first(); obj; obj = obj->next_init())
+			if (obj->needs_static_construction())
+				return true;
+
+		return false;
+	}
+
 	void exec_static_constructors()
 	{
 		in_progress = true;
