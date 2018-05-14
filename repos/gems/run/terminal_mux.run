@@ -34,6 +34,7 @@ append config {
 		<default-route>
 			<any-service> <any-child/> <parent/> </any-service>
 		</default-route>
+		<default caps="100"/>
 		<start name="timer">
 			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Timer"/></provides>
@@ -46,7 +47,7 @@ append config {
 				<service name="Terminal"/>
 			</provides>
 			<config>
-				<policy label_prefix="terminal_mux" uart="1" detect_size="yes"/> }
+				<policy label_prefix="terminal_mux" uart="1" detect_size="yes"/>
 			</config>
 			<route> <any-service> <parent/> <any-child/> </any-service> </route>
 		</start>
