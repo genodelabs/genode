@@ -26,6 +26,7 @@ namespace Acpica {
 
 	void init(Genode::Env &, Genode::Allocator &, Wait_acpi_ready,
 	          Act_as_acpi_drv);
+	void use_platform_drv();
 }
 
 #endif /* _INCLUDE__ACPICA__ACPICA_H_ */

@@ -308,6 +308,9 @@ void Acpica::Main::init_acpica(Wait_acpi_ready wait_acpi_ready,
 		return;
 	}
 
+	/* Tell PCI backend to use platform_drv for PCI device access from now on */
+	Acpica::use_platform_drv();
+
 	status = AcpiUpdateAllGpes();
 	if (status != AE_OK) {
 		Genode::error("AcpiUpdateAllGpes failed, status=", status);
