@@ -44,7 +44,7 @@
 #include <nic/packet_allocator.h>
 #include <util/string.h>
 
-#include <lwip/genode.h>
+#include <lwip_legacy/genode.h>
 
 #undef AF_INET6
 #undef MSG_PEEK

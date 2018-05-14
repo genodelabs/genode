@@ -26,7 +26,7 @@ extern "C" {
 #include <netif/etharp.h>
 }
 
-#include <lwip/genode.h>
+#include <lwip_legacy/genode.h>
 
 
 /**

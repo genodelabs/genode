@@ -30,7 +30,7 @@ extern "C" {
 #include <lwip/api.h>
 }
 
-#include <lwip/genode.h>
+#include <lwip_legacy/genode.h>
 
 using Response = Genode::String<1024>;
 

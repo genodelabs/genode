@@ -56,6 +56,5 @@ CC_WARN += -Wno-unused-variable -Wno-unused-function -Wno-switch -Wno-unused-val
            -Wno-parentheses
 
 LIBS += libpng libc sdl sdlmain sdl_net stdcxx zlib
-LIBS += libc_lwip_nic_dhcp
 
 CC_CXX_WARN_STRICT =

@@ -130,7 +130,7 @@ install_config $config
 # generic modules
 set boot_modules {
 	core init timer
-	ld.lib.so libc.lib.so vfs.lib.so lwip.lib.so posix.lib.so
+	ld.lib.so libc.lib.so vfs.lib.so lwip_legacy.lib.so posix.lib.so
 	test-ping_client_libc_lwip
 }
 

@@ -142,7 +142,7 @@ set boot_modules {
 	wifi.lib.so
 	wifi_drv
 
-	test-lwip_httpsrv lwip.lib.so
+	test-lwip_httpsrv lwip_legacy.lib.so
 }
 
 append boot_modules $firmware_modules

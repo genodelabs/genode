@@ -100,7 +100,7 @@ install_config $config
 # generic modules
 set boot_modules {
 	core ld.lib.so init timer usb_drv
-	libc.lib.so vfs.lib.so libc_pipe.lib.so lwip.lib.so pthread.lib.so
+	libc.lib.so vfs.lib.so libc_pipe.lib.so lwip_legacy.lib.so pthread.lib.so
 	tcp_terminal
 	test-terminal_echo
 }

@@ -118,7 +118,7 @@ foreach pkg {bash coreutils} {
 set boot_modules {
 	ram_fs
 	noux libc_noux.lib.so posix.lib.so bash.tar coreutils.tar
-	tcp_terminal lwip.lib.so nic_drv report_rom
+	tcp_terminal lwip_legacy.lib.so nic_drv report_rom
 	input_merger
 	test.bin template.bat
 }

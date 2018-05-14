@@ -20,7 +20,7 @@
 #include <os/timed_semaphore.h>
 
 /* LwIP includes */
-#include <lwip/genode.h>
+#include <lwip_legacy/genode.h>
 #include <ring_buffer.h>
 #include <thread.h>
 #include <verbose.h>

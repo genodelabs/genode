@@ -107,7 +107,7 @@ append boot_modules {
 	ld.lib.so
 	libc.lib.so vfs.lib.so
 	libm.lib.so
-	lwip.lib.so
+	lwip_legacy.lib.so
 	test-http_clnt
 	test-lwip_httpsrv_static
 }

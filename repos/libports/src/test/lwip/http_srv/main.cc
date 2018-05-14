@@ -29,7 +29,7 @@ extern "C" {
 #include <lwip/api.h>
 }
 
-#include <lwip/genode.h>
+#include <lwip_legacy/genode.h>
 
 
 const static char http_html_hdr[] =
