@@ -32,7 +32,8 @@ class Usb::Packet_handler
 		Io_signal_handler<Packet_handler> _rpc_ready_submit {
 			_ep, *this, &Packet_handler::_ready_handler };
 
-		bool _ready_submit = true;
+		bool _ready_submit  = true;
+		bool _in_completion = false;
 
 		void _packet_handler()
 		{
@@ -42,9 +43,11 @@ class Usb::Packet_handler
 			while (packet_avail()) {
 				Packet_descriptor p = _connection.source()->get_acked_packet();
 
-				if (p.completion)
+				if (p.completion) {
+					_in_completion = true;
 					p.completion->complete(p);
-				else
+					_in_completion = false;
+				} else
 					release(p);
 			}
 		}
@@ -116,9 +119,10 @@ class Usb::Packet_handler
 
 			/*
 			 * If an acknowledgement available signal occurred in the meantime,
-			 * retrieve packets.
+			 * retrieve packets, but avoid recursion if 'submit()' was called
+			 * from the completion handler.
 			 */
-			if (packet_avail())
+			if (packet_avail() && !_in_completion)
 				_packet_handler();
 		}
 
