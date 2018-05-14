@@ -245,8 +245,10 @@ class Net::Interface : private Interface_list::Element
 
 		void _update_own_arp_waiters(Domain &domain);
 
-		void _update_links(L3_protocol  prot,
-		                   Domain      &cln_dom);
+		void _update_udp_tcp_links(L3_protocol  prot,
+		                           Domain      &cln_dom);
+
+		void _update_icmp_links(Domain &cln_dom);
 
 		void _update_link_check_nat(Link        &link,
 		                            Domain      &new_srv_dom,
