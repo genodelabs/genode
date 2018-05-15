@@ -190,6 +190,8 @@ class Net::Root : public Genode::Root_component<Net::Session_component>
 {
 	private:
 
+		enum { DEFAULT_MAC = 0x02 };
+
 		Mac_allocator     _mac_alloc;
 		Genode::Env      &_env;
 		Net::Nic         &_nic;
@@ -245,7 +247,7 @@ class Net::Root : public Genode::Root_component<Net::Session_component>
 		Root(Genode::Env &env, Net::Nic &nic, Genode::Allocator &md_alloc,
 		     Genode::Xml_node config)
 		: Genode::Root_component<Session_component>(env.ep(), md_alloc),
-		  _mac_alloc(Mac_address(config.attribute_value("mac", (Genode::uint8_t)0))),
+		  _mac_alloc(Mac_address(config.attribute_value("mac", (Genode::uint8_t)DEFAULT_MAC))),
 		  _env(env), _nic(nic), _config(config) { }
 };
 
