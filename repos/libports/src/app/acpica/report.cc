@@ -18,6 +18,8 @@
 
 using Genode::Reporter;
 
+extern void AcpiGenodeFreeIOMem(ACPI_PHYSICAL_ADDRESS const phys, ACPI_SIZE const size);
+
 template <typename H, typename S, typename F, typename FSIZE>
 void for_each_element(H const head, S *, F const &fn, FSIZE const &fn_size)
 {
@@ -72,6 +74,10 @@ static void add_mcfg(ACPI_TABLE_MCFG const * const mcfg,
 			xml.attribute("count", func_count);
 			xml.attribute("base", String<24>(Hex(e->Address)));
 		});
+
+		/* force freeing I/O mem so that platform driver can use it XXX */
+		AcpiGenodeFreeIOMem(e->Address, 0x1000UL * func_count);
+
 	}, [](Mcfg_sub const * const e) { return sizeof(*e); });
 }
 

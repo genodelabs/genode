@@ -269,32 +269,6 @@ void Acpica::Main::init_acpica(Wait_acpi_ready wait_acpi_ready,
 		return;
 	}
 
-	if (act_as_acpi_drv.enabled) {
-		/* lookup PCI root bridge */
-		void * pci_bridge = (void *)PCI_ROOT_HID_STRING;
-		status = AcpiGetDevices(ACPI_STRING(PCI_ROOT_HID_STRING), Bridge::detect,
-		                        this, &pci_bridge);
-		if (status != AE_OK || pci_bridge == (void *)PCI_ROOT_HID_STRING)
-			pci_bridge = nullptr;
-
-		/* lookup PCI Express root bridge */
-		void * pcie_bridge = (void *)PCI_EXPRESS_ROOT_HID_STRING;
-		status = AcpiGetDevices(ACPI_STRING(PCI_EXPRESS_ROOT_HID_STRING),
-		                        Bridge::detect, this, &pcie_bridge);
-		if (status != AE_OK || pcie_bridge == (void *)PCI_EXPRESS_ROOT_HID_STRING)
-			pcie_bridge = nullptr;
-
-		if (pcie_bridge && pci_bridge)
-			Genode::log("PCI and PCIE root bridge found - using PCIE for IRQ "
-			            "routing information");
-
-		Bridge *bridge = pcie_bridge ? reinterpret_cast<Bridge *>(pcie_bridge)
-		                             : reinterpret_cast<Bridge *>(pci_bridge);
-
-		/* Generate report for platform driver */
-		Acpica::generate_report(env, bridge);
-	}
-
 	/* Embedded controller */
 	status = AcpiGetDevices(ACPI_STRING("PNP0C09"), Ec::detect, this, nullptr);
 	if (status != AE_OK) {
@@ -307,9 +281,6 @@ void Acpica::Main::init_acpica(Wait_acpi_ready wait_acpi_ready,
 		Genode::error("AcpiInitializeObjects (full init) failed, status=", status);
 		return;
 	}
-
-	/* Tell PCI backend to use platform_drv for PCI device access from now on */
-	Acpica::use_platform_drv();
 
 	status = AcpiUpdateAllGpes();
 	if (status != AE_OK) {
@@ -359,6 +330,35 @@ void Acpica::Main::init_acpica(Wait_acpi_ready wait_acpi_ready,
 		Genode::error("AcpiGetDevices (PNP0C0D) failed, status=", status);
 		return;
 	}
+
+	if (act_as_acpi_drv.enabled) {
+		/* lookup PCI root bridge */
+		void * pci_bridge = (void *)PCI_ROOT_HID_STRING;
+		status = AcpiGetDevices(ACPI_STRING(PCI_ROOT_HID_STRING), Bridge::detect,
+		                        this, &pci_bridge);
+		if (status != AE_OK || pci_bridge == (void *)PCI_ROOT_HID_STRING)
+			pci_bridge = nullptr;
+
+		/* lookup PCI Express root bridge */
+		void * pcie_bridge = (void *)PCI_EXPRESS_ROOT_HID_STRING;
+		status = AcpiGetDevices(ACPI_STRING(PCI_EXPRESS_ROOT_HID_STRING),
+		                        Bridge::detect, this, &pcie_bridge);
+		if (status != AE_OK || pcie_bridge == (void *)PCI_EXPRESS_ROOT_HID_STRING)
+			pcie_bridge = nullptr;
+
+		if (pcie_bridge && pci_bridge)
+			Genode::log("PCI and PCIE root bridge found - using PCIE for IRQ "
+			            "routing information");
+
+		Bridge *bridge = pcie_bridge ? reinterpret_cast<Bridge *>(pcie_bridge)
+		                             : reinterpret_cast<Bridge *>(pci_bridge);
+
+		/* Generate report for platform driver */
+		Acpica::generate_report(env, bridge);
+	}
+
+	/* Tell PCI backend to use platform_drv for PCI device access from now on */
+	Acpica::use_platform_drv();
 }
 
 
