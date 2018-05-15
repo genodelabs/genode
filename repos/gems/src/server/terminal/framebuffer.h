@@ -83,7 +83,8 @@ class Terminal::Framebuffer
 			 * the old (possibly too small) dataspace.
 			 */
 			_mode = _fb.mode();
-			_ds.construct(_env.rm(), _fb.dataspace());
+			if (_mode.width() && _mode.height())
+				_ds.construct(_env.rm(), _fb.dataspace());
 		}
 };
 
