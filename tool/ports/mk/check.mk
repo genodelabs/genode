@@ -12,11 +12,6 @@
 
 check:
 
-#
-# Utility to check if a tool is installed
-#
-check_tool = $(if $(shell which $(1)),,$(error Need to have '$(1)' installed.))
-
 $(call check_tool,curl)
 $(call check_tool,git)
 $(call check_tool,svn)

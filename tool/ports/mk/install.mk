@@ -21,11 +21,6 @@
 STRICT_HASH ?= no
 
 #
-# Utility to check if a tool is installed
-#
-check_tool = $(if $(shell which $(1)),,$(error Need to have '$(1)' installed.))
-
-#
 # Utility to check if a python module is installed
 #
 check_python_module = $(if $(shell python -c "import $(1)" 2>&1),$(error Need to have python module '$(1)' installed.),)
@@ -59,9 +54,7 @@ include $(GENODE_DIR)/tool/ports/mk/common.inc
 
 $(call check_tool,wget)
 $(call check_tool,patch)
-$(call check_tool,sha1sum)
 $(call check_tool,sha256sum)
-$(call check_tool,$(HASHSUM))
 
 #
 # Assertion for the presence of a LICENSE and VERSION declarations in the port

@@ -7,7 +7,6 @@
 SHELL   := bash
 VERBOSE ?= @
 ECHO    := echo -e
-HASHSUM := sha1sum
 
 BRIGHT_COL  ?= \x1b[01;33m
 DARK_COL    ?= \x1b[00;33m
@@ -25,3 +24,8 @@ MSG_GIT        := $(MSG_PREFIX_TXT)git
 
 # Force stable sorting order
 export LC_COLLATE=C
+
+#
+# Utility to check if a tool is installed
+#
+check_tool = $(if $(shell which $(1)),,$(error Need to have '$(1)' installed.))
