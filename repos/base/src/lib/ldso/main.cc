@@ -478,7 +478,7 @@ struct Linker::Binary : private Root_object, public Elf_object
  ** Linker object implementation **
  **********************************/
 
-Elf64_Addr Linker::Object::_symbol_address(char const *name)
+Elf::Addr Linker::Object::_symbol_address(char const *name)
 {
 	unsigned long   hash = Hash_table::hash(name);
 	Elf::Sym const *sym  = dynamic().lookup_symbol(name, hash);
@@ -486,7 +486,7 @@ Elf64_Addr Linker::Object::_symbol_address(char const *name)
 	if (sym)
 		return reloc_base() + sym->st_value;
 	else
-		return Elf64_Addr(0);
+		return Elf::Addr(0);
 }
 
 
