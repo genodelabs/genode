@@ -186,7 +186,7 @@ class Pci_driver : public Bsd::Bus_driver
 				if ((device.device_id() == PCI_PRODUCT_INTEL_CORE4G_HDA_2) ||
 				    (bus == 0 && dev == 3 && func == 0)) {
 					Genode::warning("ignore ", (unsigned)bus, ":", (unsigned)dev, ":",
-					                (unsigned)func, "not supported HDMI/DP HDA device");
+					                (unsigned)func, ", not supported HDMI/DP HDA device");
 					continue;
 				}
 
