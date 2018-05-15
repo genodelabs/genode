@@ -15,6 +15,8 @@
 # STRICT_HASH to 'no', the MAKEFILE_LIST can be exluded.
 #
 
+$(call check_tool,sha1sum)
+
 _PATCHES_IN_REP_DIR := $(foreach P,$(PATCHES),\
                          $(wildcard $(REP_DIR)/$(subst $(REP_DIR)/,,$(P))))
 
@@ -25,7 +27,7 @@ endif
 
 $(_DST_HASH_FILE): $(HASH_INPUT) $(MAKEFILE_LIST)
 	@$(MSG_GENERATE)$(notdir $@)
-	$(VERBOSE)cat $(HASH_INPUT) | $(HASHSUM) | sed "s/ .*//" > $@
+	$(VERBOSE)cat $(HASH_INPUT) | sha1sum | sed "s/ .*//" > $@
 
 _check_hash: $(_DST_HASH_FILE)
 ifneq ($(CHECK_HASH),no)
