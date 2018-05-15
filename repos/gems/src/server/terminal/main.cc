@@ -229,9 +229,7 @@ void Terminal::Main::_handle_config()
 			_text_screen_surface->geometry(new_geometry);
 		}
 	}
-	catch (Text_screen_surface<PT>::Geometry::Invalid)
-	{
-		warning("invalid framebuffer size");
+	catch (Text_screen_surface<PT>::Geometry::Invalid) {
 
 		/*
 		 * Make sure to never operate on an invalid-sized framebuffer
@@ -240,6 +238,7 @@ void Terminal::Main::_handle_config()
 		 * there may still be a stale '_text_screen_surface'.
 		 */
 		_text_screen_surface.destruct();
+		_terminal_size = Area(0, 0);
 	}
 
 	_root.notify_resized(Session::Size(_terminal_size.w(), _terminal_size.h()));
