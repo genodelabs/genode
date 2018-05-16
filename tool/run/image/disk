@@ -37,7 +37,7 @@ proc run_image { {unused ""} } {
 
 	# setup partition with content
 	exec dd if=/dev/zero of=[run_dir].partition bs=1k count=$disk_size_kb 2>/dev/null
-	exec mkfs.ext2 -L GENODE* -q -T default [run_dir].partition
+	exec mkfs.ext2 -L GENODE -q -T default [run_dir].partition
 
 	# copy content to disk image
 	foreach file [exec find [run_dir]] {
@@ -74,7 +74,7 @@ proc run_image { {unused ""} } {
 	exec rm [run_dir].partition
 
 	# create partition table entry pointing to the content
-	catch { exec parted -a none [run_dir].img -- mkpart Fix GENODE* ext2 [expr $first_sector]s ${last_sector}s }
+	catch { exec parted -a none [run_dir].img -- mkpart Fix GENODE ext2 [expr $first_sector]s ${last_sector}s }
 
 	# create hybrid MBR
 	exec echo -e "r\no\nh\n1\nn\n\ny\nn\no\nw\ny\n" | gdisk [run_dir].img
