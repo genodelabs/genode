@@ -63,10 +63,11 @@ struct Gpt::Writer
 
 	void _handle_config(Genode::Xml_node config)
 	{
-		_verbose         = config.attribute_value("verbose",     false);
-		_initialize      = config.attribute_value("initialize",  false);
-		_wipe            = config.attribute_value("wipe",        false);
-		_force_alignment = config.attribute_value("force_align", false);
+		_verbose         = config.attribute_value("verbose",         false);
+		_initialize      = config.attribute_value("initialize",      false);
+		_wipe            = config.attribute_value("wipe",            false);
+		_force_alignment = config.attribute_value("force_align",     false);
+		_update_geometry = config.attribute_value("update_geometry", false);
 
 		{
 			Util::Size_string align =
