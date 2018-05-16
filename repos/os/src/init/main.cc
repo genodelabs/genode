@@ -349,12 +349,12 @@ void Init::Main::_handle_config()
 
 			if (used_ram.value > avail_ram.value) {
 				error("RAM exhausted while starting childen");
-				throw Out_of_ram();
+				return;
 			}
 
 			if (used_caps.value > avail_caps.value) {
 				error("capabilities exhausted while starting childen");
-				throw Out_of_caps();
+				return;
 			}
 
 			try {
