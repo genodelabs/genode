@@ -20,6 +20,12 @@ proc gpio_drv { } { if {[have_spec rpi] && [have_spec hw]}  { return hw_gpio_drv
 
 lappend_if [have_spec gpio] build_components drivers/gpio
 
+if {[have_spec odroid_xu] ||
+    [expr [have_spec imx53] && [have_spec trustzone]]} {
+	puts "Run script is not supported on this platform."
+	exit 0
+}
+
 proc dst_ip { } {
 	if {![have_include power_on/qemu]} {
 		return "10.0.0.2"
