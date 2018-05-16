@@ -253,27 +253,32 @@ void Interface::_detach_from_domain_raw()
 }
 
 
-void Interface::_attach_to_domain(Domain_name const &domain_name,
-                                  bool               apply_foreign_arp)
+void Interface::_attach_to_domain(Domain_name const &domain_name)
 {
 	_attach_to_domain_raw(domain_name);
-
-	/* ensure that DHCP requests are sent on each interface of the domain */
-	if (!domain().ip_config().valid) {
-		_dhcp_client.discover();
-	}
-	/* ensure that DHCP requests are sent on each interface of the domain */
-	if ( apply_foreign_arp) { _apply_foreign_arp(); }
-	else                    { _apply_foreign_arp_pending = true; }
+	_attach_to_domain_finish();
 }
 
 
-void Interface::_apply_foreign_arp()
+void Interface::_attach_to_domain_finish()
 {
-	/* sent ARP request for each foreign ARP waiter */
-	Domain &domain_ = domain();
-	domain_.foreign_arp_waiters().for_each([&] (Arp_waiter_list_element &le) {
-		_broadcast_arp_request(domain_.ip_config().interface.address,
+	/* if domain has yet no IP config, participate in requesting one */
+	Domain &domain = _domain();
+	Ipv4_config const &ip_config = domain.ip_config();
+	if (!ip_config.valid) {
+		_dhcp_client.discover();
+		return;
+	}
+	attach_to_ip_config(domain, ip_config);
+}
+
+
+void Interface::attach_to_ip_config(Domain            &domain,
+                                    Ipv4_config const &ip_config)
+{
+	/* if others wait for ARP at the domain, participate in requesting it */
+	domain.foreign_arp_waiters().for_each([&] (Arp_waiter_list_element &le) {
+		_broadcast_arp_request(ip_config.interface.address,
 		                       le.object()->ip());
 	});
 }
@@ -293,16 +298,6 @@ bool Interface::link_state()
 void Interface::link_state_sigh(Signal_context_capability sigh)
 {
 	_link_state_sigh = sigh;
-}
-
-
-void Interface::handle_config_aftermath()
-{
-	/* ensure that ARP requests are sent on each interface of the domain */
-	if (_apply_foreign_arp_pending) {
-		_apply_foreign_arp();
-		_apply_foreign_arp_pending = false;
-	}
 }
 
 
@@ -336,12 +331,18 @@ void Interface::detach_from_remote_ip_config()
 }
 
 
+void Interface::attach_to_remote_ip_config()
+{
+	/* only the DNS server address of the local DHCP server can be remote */
+	Signal_transmitter(_link_state_sigh).submit();
+}
+
+
 void Interface::_detach_from_domain()
 {
 	try {
 		detach_from_ip_config();
 		_detach_from_domain_raw();
-		_apply_foreign_arp_pending = false;
 	}
 	catch (Pointer<Domain>::Invalid) { }
 }
@@ -1349,7 +1350,7 @@ Interface::Interface(Genode::Entrypoint     &ep,
 
 void Interface::init()
 {
-	try { _attach_to_domain(_policy.determine_domain_name(), true); }
+	try { _attach_to_domain(_policy.determine_domain_name()); }
 	catch (Domain_tree::No_match) { }
 }
 
@@ -1541,9 +1542,9 @@ void Interface::_update_own_arp_waiters(Domain &domain)
 }
 
 
-void Interface::handle_config(Configuration &config)
+void Interface::handle_config_1(Configuration &config)
 {
-	/* deteremine the name of the new domain */
+	/* update config and policy */
 	_config = config;
 	_policy.handle_config(config);
 	Domain_name const &new_domain_name = _policy.determine_domain_name();
@@ -1555,16 +1556,72 @@ void Interface::handle_config(Configuration &config)
 		_destroy_dissolved_links<Tcp_link> (_dissolved_tcp_links,  _alloc);
 		_destroy_released_dhcp_allocations(old_domain);
 
+		/* do not consider to reuse IP config if the domains differ */
+		if (old_domain.name() != new_domain_name) {
+			return; }
+
+		/* interface stays with its domain, so, try to reuse IP config */
+		Domain &new_domain = config.domains().find_by_name(new_domain_name);
+		new_domain.try_reuse_ip_config(old_domain);
+		return;
+	}
+	catch (Domain_tree::No_match) { }
+	catch (Pointer<Domain>::Invalid) { }
+}
+
+
+void Interface::handle_config_2()
+{
+	Domain_name const &new_domain_name = _policy.determine_domain_name();
+	try {
 		/* if the domains differ, detach completely from the domain */
+		Domain &old_domain = domain();
 		if (old_domain.name() != new_domain_name) {
 			_detach_from_domain();
-			_attach_to_domain(new_domain_name, false);
+			_attach_to_domain_raw(new_domain_name);
 			return;
 		}
 		/* move to new domain object without considering any state objects */
 		_detach_from_domain_raw();
 		_attach_to_domain_raw(new_domain_name);
 		Domain &new_domain = domain();
+
+		/* remember that the interface stays attached to the same domain */
+		_update_domain = *new (_alloc)
+			Update_domain { old_domain, new_domain };
+
+		return;
+	}
+	catch (Domain_tree::No_match) {
+
+		/* the interface no longer has a domain */
+		_detach_from_domain();
+	}
+	catch (Pointer<Domain>::Invalid) {
+
+		/* the interface had no domain but now it may get one */
+		try {
+			_attach_to_domain_raw(new_domain_name);
+		}
+		catch (Domain_tree::No_match) { }
+	}
+}
+
+
+void Interface::handle_config_3()
+{
+	try {
+		/*
+		 * Update the domain object only if handle_config_2 determined that
+		 * the interface stays attached to the same domain. Otherwise the
+		 * interface already got detached from its old domain and there is
+		 * nothing to update.
+		 */
+		Update_domain &update_domain = _update_domain();
+		Domain &old_domain = update_domain.old_domain;
+		Domain &new_domain = update_domain.new_domain;
+		destroy(_alloc, &update_domain);
+		_update_domain = Pointer<Update_domain>();
 
 		/* if the IP configs differ, detach completely from the IP config */
 		if (old_domain.ip_config() != new_domain.ip_config()) {
@@ -1582,16 +1639,11 @@ void Interface::handle_config(Configuration &config)
 		_update_dhcp_allocations(old_domain, new_domain);
 		_update_own_arp_waiters(new_domain);
 	}
-	catch (Domain_tree::No_match) {
+	catch (Pointer<Update_domain>::Invalid) {
 
-		/* the interface no longer has a domain */
-		_detach_from_domain();
-	}
-	catch (Pointer<Domain>::Invalid) {
-
-		/* the interface had no domain but now it may get one */
-		try { _attach_to_domain(new_domain_name, false); }
-		catch (Domain_tree::No_match) { }
+		/* if the interface moved to another domain, finish the operation */
+		try { _attach_to_domain_finish(); }
+		catch (Pointer<Domain>::Invalid) { }
 	}
 }
 

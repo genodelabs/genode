@@ -143,16 +143,18 @@ void Net::Main::_uplink_handle_config(Configuration &config)
 void Net::Main::_handle_config()
 {
 	_config_rom.update();
-	Configuration &config = *new (_heap)
-		Configuration(_env, _config_rom.xml(), _heap, _timer, _config());
+	Configuration &old_config = _config();
+	Configuration &new_config = *new (_heap)
+		Configuration(_env, _config_rom.xml(), _heap, _timer, old_config);
 
-	_uplink_handle_config(config);
-	_root.handle_config(config);
-	_for_each_interface([&] (Interface &intf) { intf.handle_config(config); });
-	_for_each_interface([&] (Interface &intf) { intf.handle_config_aftermath(); });
+	_uplink_handle_config(new_config);
+	_root.handle_config(new_config);
+	_for_each_interface([&] (Interface &intf) { intf.handle_config_1(new_config); });
+	_for_each_interface([&] (Interface &intf) { intf.handle_config_2(); });
+	_config = Reference<Configuration>(new_config);
+	_for_each_interface([&] (Interface &intf) { intf.handle_config_3(); });
 
-	destroy(_heap, &_config());
-	_config = Reference<Configuration>(config);
+	destroy(_heap, &old_config);
 }
 
 
