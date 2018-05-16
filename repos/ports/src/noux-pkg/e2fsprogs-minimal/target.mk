@@ -1,4 +1,4 @@
-BINARIES := fsck.ext2 mkfs.ext2
+BINARIES := fsck.ext2 mkfs.ext2 resize2fs
 
 INSTALL_TAR_CONTENT := $(addprefix bin/,$(BINARIES))
 
