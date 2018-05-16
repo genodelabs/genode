@@ -101,6 +101,7 @@ class Net::Domain : public Domain_base,
 		unsigned long                         _interface_cnt        { 0 };
 		Pointer<Dhcp_server>                  _dhcp_server          { };
 		Genode::Reconstructible<Ipv4_config>  _ip_config;
+		bool                            const _ip_config_dynamic    { !ip_config().valid };
 		List<Domain>                          _ip_config_dependents { };
 		Arp_cache                             _arp_cache            { *this };
 		Arp_waiter_list                       _foreign_arp_waiters  { };
@@ -124,8 +125,6 @@ class Net::Domain : public Domain_base,
 		                           char             const *type,
 		                           Transport_rule_list    &rules);
 
-		void _ip_config_changed();
-
 		void __FIXME__dissolve_foreign_arp_waiters();
 
 	public:
@@ -143,12 +142,16 @@ class Net::Domain : public Domain_base,
 
 		Ipv4_address const &next_hop(Ipv4_address const &ip) const;
 
+		void ip_config(Ipv4_config const &ip_config);
+
 		void ip_config(Ipv4_address ip,
 		               Ipv4_address subnet_mask,
 		               Ipv4_address gateway,
 		               Ipv4_address dns_server);
 
 		void discard_ip_config();
+
+		void try_reuse_ip_config(Domain const &domain);
 
 		Link_side_tree &links(L3_protocol const protocol);
 
