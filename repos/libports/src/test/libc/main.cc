@@ -24,6 +24,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
+#include <unistd.h>
+#include <sys/syscall.h>
 
 
 int main(int argc, char **argv)
@@ -114,6 +117,23 @@ int main(int argc, char **argv)
 		if ((unsigned long)addr & 0xf) {
 			printf("large malloc(%zu) returned addr = %p - ERROR\n", size, addr);
 			++error_count;
+		}
+	}
+
+	{
+		pid_t const tid = syscall(SYS_thr_self);
+		if (tid == -1) {
+			printf("syscall(SYS_thr_self) returned %d (%s) - ERROR\n", tid, strerror(errno));
+			++error_count;
+		} else {
+			printf("syscall(SYS_thr_self) returned %d\n", tid);
+		}
+		int const ret = syscall(0xffff);
+		if (ret != -1) {
+			printf("syscall(unknown) returned %d - ERROR\n", ret);
+			++error_count;
+		} else {
+			printf("syscall(unknown) returned %d (%s)\n", ret, strerror(errno));
 		}
 	}
 
