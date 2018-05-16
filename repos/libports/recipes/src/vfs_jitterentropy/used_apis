@@ -3,3 +3,4 @@ os
 so
 libc
 vfs
+jitterentropy
