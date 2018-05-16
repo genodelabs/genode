@@ -32,12 +32,10 @@
 namespace Fs_rom {
 	using namespace Genode;
 
-	struct Packet_handler;
-
 	class Rom_session_component;
 	class Rom_root;
 
-	typedef List<Rom_session_component> Sessions;
+	typedef Id_space<Rom_session_component> Sessions;
 
 	typedef File_system::Session_client::Tx::Source Tx_source;
 }
@@ -46,17 +44,18 @@ namespace Fs_rom {
 /**
  * A 'Rom_session_component' exports a single file of the file system
  */
-class Fs_rom::Rom_session_component : public  Rpc_object<Rom_session>,
-                                      private Sessions::Element
+class Fs_rom::Rom_session_component : public  Rpc_object<Rom_session>
 {
 	private:
 
 		friend class List<Rom_session_component>;
 		friend class Packet_handler;
 
-		Env &_env;
-
+		Env                  &_env;
+		Sessions             &_sessions;
 		File_system::Session &_fs;
+
+		Constructible<Sessions::Element> _watch_elem { };
 
 		enum { PATH_MAX_LEN = 512 };
 		typedef Genode::Path<PATH_MAX_LEN> Path;
@@ -131,6 +130,8 @@ class Fs_rom::Rom_session_component : public  Rpc_object<Rom_session>,
 				while (true) {
 					try {
 						_watch_handle.construct(_fs.watch(watch_path.base()));
+						_watch_elem.construct(
+							*this, _sessions, Sessions::Id{_watch_handle->value});
 						_watching_file = at_the_file;
 						return;
 					}
@@ -155,6 +156,7 @@ class Fs_rom::Rom_session_component : public  Rpc_object<Rom_session>,
 		void _close_watch_handle()
 		{
 			if (_watch_handle.constructed()) {
+				_watch_elem.destruct();
 				_fs.close(*_watch_handle);
 				_watch_handle.destruct();
 			}
@@ -184,6 +186,8 @@ class Fs_rom::Rom_session_component : public  Rpc_object<Rom_session>,
 				parent_handle, file_name.base() + 1,
 				File_system::READ_ONLY, false);
 			Handle_guard file_guard(_fs, _file_handle);
+			Sessions::Element read_elem(
+				*this, _sessions, Sessions::Id{_file_handle.value});
 			/* ...but only for the lifetime of this procedure */
 
 			_file_seek = 0;
@@ -288,10 +292,11 @@ class Fs_rom::Rom_session_component : public  Rpc_object<Rom_session>,
 		 *                  creation time)
 		 */
 		Rom_session_component(Env &env,
+		                      Sessions &sessions,
 		                      File_system::Session &fs,
 		                      const char *file_path)
 		:
-			_env(env), _fs(fs),
+			_env(env), _sessions(sessions), _fs(fs),
 			_file_path(file_path),
 			_file_ds(env.ram(), env.rm(), 0) /* realloc later */
 		{
@@ -344,17 +349,15 @@ class Fs_rom::Rom_session_component : public  Rpc_object<Rom_session>,
 			return _try_read_dataspace(UPDATE_ONLY); }
 
 		/**
-		 * If packet corresponds to this session then process and return true.
-		 *
-		 * Called from the signal handler.
+		 * Called by the packet signal handler.
 		 */
-		bool process_packet(File_system::Packet_descriptor const packet)
+		void process_packet(File_system::Packet_descriptor const packet)
 		{
 			switch (packet.operation()) {
 
 			case File_system::Packet_descriptor::CONTENT_CHANGED:
 				if (!(packet.handle() == *_watch_handle))
-					return false;
+					return;
 
 				if (!_watching_file) {
 					/* try and get closer to the file */
@@ -366,68 +369,38 @@ class Fs_rom::Rom_session_component : public  Rpc_object<Rom_session>,
 					_curr_version = Version { _curr_version.value + 1 };
 					_notify_client_about_new_version();
 				}
-				return true;
+				return;
 
 			case File_system::Packet_descriptor::READ: {
 
 				if (!(packet.handle() == _file_handle))
-					return false;
+					return;
 
 				if (packet.position() > _file_seek || _file_seek >= _file_size) {
 					error("bad packet seek position");
 					_file_ds.realloc(&_env.ram(), 0);
 					_file_seek = 0;
-					return true;
+					return;
 				}
 
 				size_t const n = min(packet.length(), _file_size - _file_seek);
 				memcpy(_file_ds.local_addr<char>()+_file_seek,
 				       _fs.tx()->packet_content(packet), n);
 				_file_seek += n;
-				return true;
+				return;
 			}
 
 			case File_system::Packet_descriptor::WRITE:
 				warning("discarding strange WRITE acknowledgement");
-				return true;
+				return;
 			case File_system::Packet_descriptor::SYNC:
 				warning("discarding strange SYNC acknowledgement");
-				return true;
+				return;
 			case File_system::Packet_descriptor::READ_READY:
 				warning("discarding strange READ_READY acknowledgement");
-				return true;
+				return;
 			}
-			return false;
 		}
-};
-
-struct Fs_rom::Packet_handler : Io_signal_handler<Packet_handler>
-{
-	Tx_source &source;
-
-	/* list of open sessions */
-	Sessions sessions { };
-
-	void handle_packets()
-	{
-		while (source.ack_avail()) {
-			File_system::Packet_descriptor pack = source.get_acked_packet();
-			for (Rom_session_component *session = sessions.first();
-			     session; session = session->next())
-			{
-				if (session->process_packet(pack))
-					break;
-			}
-			source.release_packet(pack);
-		}
-	}
-
-	Packet_handler(Entrypoint &ep, Tx_source &source)
-	:
-		Io_signal_handler<Packet_handler>(
-			ep, *this, &Packet_handler::handle_packets),
-		source(source)
-	{ }
 };
 
 
@@ -437,12 +410,34 @@ class Fs_rom::Rom_root : public Root_component<Fs_rom::Rom_session_component>
 
 		Env          &_env;
 		Heap          _heap { _env.ram(), _env.rm() };
+		Sessions    _sessions { };
+
 		Allocator_avl _fs_tx_block_alloc { &_heap };
 
 		/* open file-system session */
 		File_system::Connection _fs { _env, _fs_tx_block_alloc };
 
-		Packet_handler _packet_handler { _env.ep(), *_fs.tx() };
+		Io_signal_handler<Rom_root> _packet_handler {
+			_env.ep(), *this, &Rom_root::_handle_packets };
+
+		void _handle_packets()
+		{
+			Tx_source &source = *_fs.tx();
+
+			while (source.ack_avail()) {
+				File_system::Packet_descriptor pkt = source.get_acked_packet();
+
+				/* sessions are indexed in space by watch and read handles */
+
+				auto const apply_fn = [pkt] (Rom_session_component &session) {
+					session.process_packet(pkt); };
+
+				_sessions.apply<Rom_session_component&>(
+					Sessions::Id{pkt.handle().value}, apply_fn);
+
+				source.release_packet(pkt);
+			}
+		}
 
 		Rom_session_component *_create_session(const char *args) override
 		{
@@ -450,17 +445,8 @@ class Fs_rom::Rom_root : public Root_component<Fs_rom::Rom_session_component>
 			Session_label const module_name = label.last_element();
 
 			/* create new session for the requested file */
-			Rom_session_component *session = new (md_alloc())
-				Rom_session_component(_env, _fs, module_name.string());
-
-			_packet_handler.sessions.insert(session);
-			return session;
-		}
-
-		void _destroy_session(Rom_session_component *session) override
-		{
-			_packet_handler.sessions.remove(session);
-			Genode::destroy(md_alloc(), session);
+			return new (md_alloc())
+				Rom_session_component(_env, _sessions, _fs, module_name.string());
 		}
 
 	public:
