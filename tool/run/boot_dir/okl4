@@ -145,7 +145,7 @@ proc run_boot_dir {binaries} {
 	#
 	# Keep only the ELF boot image, but remove stripped binaries
 	#
-	exec rm -rf [run_dir]/genode
+	remove_genode_dir
 
 	exec mkdir -p [run_dir]/boot
 	exec mv [run_dir]/image.elf [run_dir]/boot/image.elf

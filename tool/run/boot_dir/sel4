@@ -44,7 +44,7 @@ proc run_boot_dir {binaries} {
 	#
 	exec mkdir -p [run_dir]/boot
 	file copy -force [run_dir]/genode/sel4 [run_dir]/boot/sel4
-	exec rm -r [run_dir]/genode
+	remove_genode_dir
 
 	exec mv [run_dir]/image.elf [run_dir]/boot/image.elf
 

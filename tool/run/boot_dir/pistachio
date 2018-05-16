@@ -41,7 +41,7 @@ proc run_boot_dir {binaries} {
 	file copy -force [run_dir]/genode/pistachio           [run_dir]/boot/kernel
 	file copy -force [run_dir]/genode/sigma0-pistachio    [run_dir]/boot/sigma0
 	file copy -force [run_dir]/genode/kickstart-pistachio [run_dir]/boot/kickstart
-	exec rm -r [run_dir]/genode
+	remove_genode_dir
 
 	exec mv [run_dir]/image.elf [run_dir]/boot/image.elf
 

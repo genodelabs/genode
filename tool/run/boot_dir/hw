@@ -94,7 +94,7 @@ proc run_boot_dir {binaries} {
 	build_core [run_dir]/genode/$core_obj $modules [run_dir]/genode/core.elf [core_link_address]
 	exec [cross_dev_prefix]strip [run_dir]/genode/core.elf
 	build_core [run_dir]/genode/$bootstrap_obj { core.elf } [run_dir]/image.elf [bootstrap_link_address]
-	exec rm -fr [run_dir]/genode
+	remove_genode_dir
 	exec [cross_dev_prefix]strip [run_dir]/image.elf
 
 	exec mkdir -p [run_dir]/boot
