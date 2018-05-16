@@ -16,7 +16,7 @@
 #include <dataspace/client.h>
 #include <base/lock.h>
 
-#include <lwip/genode.h>
+#include <lwip_legacy/genode.h>
 
 /* Noux includes */
 #include <child.h>
