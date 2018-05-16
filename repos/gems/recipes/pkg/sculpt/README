@@ -926,8 +926,9 @@ be prepared. The following command prepares all of them at once:
 !      bash coreutils curl dde_ipxe dde_linux \
 !      dde_rump e2fsprogs gnupg grub2 jitterentropy \
 !      libarchive libc libgcrypt libiconv libssh \
-!      lwip ncurses nova openssl qemu-usb stdcxx \
-!      vim virtualbox5 x86emu xz zlib
+!      lwip_legacy ncurses nova openssl qemu-usb \
+!      stdcxx vim virtualbox5 x86emu xz zlib libpng \
+!      ttf-bitstream-vera stb
 
 The ingredients of the boot image are subsumed by the 'pkg/sculpt' package.
 The default set of software installed by the update runtime is defined by
