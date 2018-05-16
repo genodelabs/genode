@@ -755,6 +755,7 @@ sys_nerr R 4
 sys_nsig R 4
 sys_siglist D 256
 sys_signame D 256
+syscall T
 sysconf T
 sysctl T
 sysctlbyname T
