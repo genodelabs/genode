@@ -232,10 +232,11 @@ class Noux::Region_map_component : public Rpc_object<Region_map>,
 		 **************************/
 
 		Local_addr attach(Dataspace_capability ds,
-		                  size_t size = 0, off_t offset = 0,
-		                  bool use_local_addr = false,
-		                  Local_addr local_addr = (addr_t)0,
-		                  bool executable = false) override
+		                  size_t size, off_t offset,
+		                  bool use_local_addr,
+		                  Local_addr local_addr,
+		                  bool executable,
+		                  bool writeable) override
 		{
 			/*
 			 * Region map subtracts offset from size if size is 0
@@ -245,7 +246,7 @@ class Noux::Region_map_component : public Rpc_object<Region_map>,
 			for (;;) {
 				try {
 					local_addr = _rm.attach(ds, size, offset, use_local_addr,
-					                        local_addr, executable);
+					                        local_addr, executable, writeable);
 					break;
 				}
 				catch (Out_of_ram)  { _pd.upgrade_ram(8*1024); }

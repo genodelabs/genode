@@ -59,7 +59,8 @@ class Platform::Device_pd
 			                  Genode::size_t size = 0, Genode::off_t offset = 0,
 			                  bool use_local_addr = false,
 			                  Local_addr local_addr = (void *)0,
-			                  bool executable = false) override
+			                  bool executable = false,
+			                  bool writeable  = true) override
 			{
 				return Genode::retry<Genode::Out_of_ram>(
 					[&] () {
@@ -68,7 +69,8 @@ class Platform::Device_pd
 								return Region_map_client::attach(ds, size, offset,
 								                                 use_local_addr,
 								                                 local_addr,
-								                                 executable); },
+								                                 executable,
+								                                 writeable); },
 							[&] () {
 								enum { UPGRADE_CAP_QUOTA = 2 };
 								Genode::Cap_quota const caps { UPGRADE_CAP_QUOTA };
