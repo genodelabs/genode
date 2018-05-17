@@ -14,7 +14,7 @@
 
 #include <base/log.h>
 
-#include <lwip/genode.h>
+#include <lwip_legacy/genode.h>
 
 extern void create_lwip_plugin();
 
