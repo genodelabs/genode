@@ -83,4 +83,48 @@ struct Net::Network_address
 }
 __attribute__((packed));
 
+
+namespace Genode {
+
+	template <unsigned LEN, char DELIM, bool HEX>
+	inline size_t ascii_to(char                            const *str,
+	                       Net::Network_address<LEN, DELIM, HEX> &result)
+	{
+		Net::Network_address<LEN, DELIM, HEX> result_buf;
+		size_t number_id = 0;
+		size_t read_len  = 0;
+		while (1) {
+
+			/* read the current number */
+			size_t number_len =
+				ascii_to_unsigned(str, result_buf.addr[number_id],
+				                  HEX ? 16 : 10);
+
+			/* fail if there's no number */
+			if (!number_len) {
+				return 0; }
+
+			/* update read length and number index */
+			read_len += number_len;
+			number_id++;
+
+			/* if we have all numbers, fill result and return read length */
+			if (number_id == LEN) {
+				result = result_buf;
+				return read_len;
+			}
+			/* there are numbers left, check for the delimiter */
+			str += number_len;
+			if (*str != DELIM) {
+				return 0; }
+
+			/* seek to next number */
+			read_len++;
+			str++;
+		}
+	}
+}
+
+
+
 #endif /* _NET__NETADDRESS_H_ */
