@@ -155,3 +155,13 @@ Session_component::~Session_component() {
 	vlan().mac_list.remove(&_mac_node);
 	_unset_ipv4_node();
 }
+
+
+Net::Root::Root(Genode::Env &env, Net::Nic &nic, Genode::Allocator &md_alloc,
+                Genode::Xml_node config)
+:
+	Genode::Root_component<Session_component>(env.ep(), md_alloc),
+	_mac_alloc(Mac_address(config.attribute_value("mac", Mac_address(DEFAULT_MAC)))),
+	_env(env),
+	_nic(nic),
+	_config(config) { }
