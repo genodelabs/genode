@@ -17,11 +17,6 @@
 /* OS includes */
 #include <net/netaddress.h>
 
-namespace Net
-{
-	using Mac_address = Net::Network_address<6, ':', true>;
-
-	Mac_address mac_from_string(const char * mac);
-}
+namespace Net { using Mac_address = Net::Network_address<6, ':', true>; }
 
 #endif /* _NET__MAC_ADDRESS_H_ */
