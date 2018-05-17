@@ -42,6 +42,13 @@ struct Net::Ipv4_config
 		       gateway    != other.gateway ||
 		       dns_server != other.dns_server;
 	}
+
+
+	/*********
+	 ** log **
+	 *********/
+
+	void print(Genode::Output &output) const;
 };
 
 #endif /* _IPV4_CONFIG_H_ */
