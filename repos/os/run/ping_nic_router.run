@@ -10,6 +10,7 @@ set build_components {
 	drivers/timer
 	drivers/nic
 	server/nic_router
+	server/nic_bridge
 	app/ping
 }
 
@@ -181,16 +182,28 @@ append config {
 		</route>
 	</start>
 
+	<start name="ping_2_nic_bridge" caps="200">
+		<binary name="nic_bridge"/>
+		<resource name="RAM" quantum="10M"/>
+		<provides><service name="Nic"/></provides>
+		<config mac="12:12:12:12:12:00">
+			<policy label_prefix="ping_21"/>
+			<policy label_prefix="ping_23"/>
+		</config>
+		<route>
+		<service name="Nic"> <child name="ping_2_nic_router"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
 	<start name="ping_21">
 		<binary name="ping"/>
 		<resource name="RAM" quantum="8M"/>
-		<config interface="10.0.5.2/24"
-		        gateway="10.0.5.1"
-		        dst_ip="} [good_dst_ip] {"
+		<config dst_ip="} [good_dst_ip] {"
 		        period_sec="1"
 		        verbose="no"/>
 		<route>
-			<service name="Nic"> <child name="ping_2_nic_router"/> </service>
+			<service name="Nic"> <child name="ping_2_nic_bridge"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
@@ -220,7 +233,7 @@ append_if $on_hardware config {
 		        dst_ip="} [good_dst_ip] {"
 		        dst_port="} [bad_dst_port] {"/>
 		<route>
-			<service name="Nic"> <child name="ping_2_nic_router"/> </service>
+			<service name="Nic"> <child name="ping_2_nic_bridge"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>}
@@ -242,6 +255,7 @@ append boot_modules {
 	ping
 	ld.lib.so
 	nic_router
+	nic_bridge
 }
 
 # platform-specific modules
