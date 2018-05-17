@@ -102,7 +102,8 @@ namespace Gdb_monitor {
 			 **************************************/
 
 			Local_addr       attach        (Dataspace_capability, size_t,
-			                                off_t, bool, Local_addr, bool) override;
+			                                off_t, bool, Local_addr, bool,
+			                                bool) override;
 			void             detach        (Local_addr) override;
 			void             fault_handler (Signal_context_capability) override;
 			State            state         () override;
