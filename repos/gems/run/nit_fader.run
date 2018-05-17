@@ -20,6 +20,8 @@ install_config {
 		<service name="IO_PORT"/>
 	</parent-provides>
 
+	<default caps="100"/>
+
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
@@ -29,7 +31,7 @@ install_config {
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="drivers">
+	<start name="drivers" caps="2000">
 		<resource name="RAM" quantum="32M" constrain_phys="yes"/>
 		<binary name="init"/>
 		<route>
@@ -102,7 +104,7 @@ install_config {
 	</start>
 
 	<start name="scout">
-		<resource name="RAM" quantum="8M"/>
+		<resource name="RAM" quantum="10M"/>
 		<route>
 			<service name="Nitpicker"> <child name="nit_fader" /> </service>
 			<any-service> <parent/> <any-child/> </any-service>
@@ -111,7 +113,7 @@ install_config {
 
 	<start name="scout2">
 		<binary name="scout" />
-		<resource name="RAM" quantum="8M"/>
+		<resource name="RAM" quantum="10M"/>
 		<route>
 			<service name="Nitpicker"> <child name="nitpicker" /> </service>
 			<any-service> <parent/> <any-child/> </any-service>
