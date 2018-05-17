@@ -61,9 +61,8 @@ class Net::Dhcp_client
 			INIT = 0, SELECT = 1, REQUEST = 2, BOUND = 3, RENEW = 4, REBIND = 5
 		};
 
-		enum { DISCOVER_TIMEOUT_SEC = 10 };
-		enum { REQUEST_TIMEOUT_SEC  = 10 };
-		enum { OFFER_TIMEOUT_SEC    = 10 };
+		enum { DISCOVER_TIMEOUT_SEC = 2 };
+		enum { REQUEST_TIMEOUT_SEC  = 2 };
 
 		Genode::Allocator                    &_alloc;
 		State                                 _state { State::INIT };
@@ -71,7 +70,6 @@ class Net::Dhcp_client
 		unsigned long                         _lease_time_sec = 0;
 		Genode::Microseconds const            _discover_timeout { DISCOVER_TIMEOUT_SEC * 1000 * 1000 };
 		Genode::Microseconds const            _request_timeout  { REQUEST_TIMEOUT_SEC * 1000 * 1000  };
-		Genode::Microseconds const            _offer_timeout    { OFFER_TIMEOUT_SEC * 1000 * 1000    };
 		Nic                                  &_nic;
 		Dhcp_client_handler                  &_handler;
 
