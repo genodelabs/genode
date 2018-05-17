@@ -451,6 +451,7 @@ void Interface::_nat_link_and_pass(Ethernet_frame        &eth,
 
 
 void Interface::_send_dhcp_reply(Dhcp_server               const &dhcp_srv,
+                                 Mac_address               const &eth_dst,
                                  Mac_address               const &client_mac,
                                  Ipv4_address              const &client_ip,
                                  Dhcp_packet::Message_type        msg_type,
@@ -462,7 +463,10 @@ void Interface::_send_dhcp_reply(Dhcp_server               const &dhcp_srv,
 
 		/* create ETH header of the reply */
 		Ethernet_frame &eth = Ethernet_frame::construct_at(pkt_base, size_guard);
-		eth.dst(client_mac);
+		if (msg_type == Dhcp_packet::Message_type::OFFER) {
+			eth.dst(Ethernet_frame::broadcast()); }
+		else {
+			eth.dst(eth_dst); }
 		eth.src(_router_mac);
 		eth.type(Ethernet_frame::Type::IPV4);
 
@@ -543,7 +547,7 @@ void Interface::_new_dhcp_allocation(Ethernet_frame &eth,
 		log("Offer DHCP allocation: ", allocation,
 		                       " at ", local_domain);
 	}
-	_send_dhcp_reply(dhcp_srv, eth.src(),
+	_send_dhcp_reply(dhcp_srv, eth.src(), dhcp.client_mac(),
 	                 allocation.ip(),
 	                 Dhcp_packet::Message_type::OFFER,
 	                 dhcp.xid(),
@@ -584,7 +588,7 @@ void Interface::_handle_dhcp_request(Ethernet_frame &eth,
 
 				} else {
 					allocation.lifetime(_config().dhcp_offer_timeout());
-					_send_dhcp_reply(dhcp_srv, eth.src(),
+					_send_dhcp_reply(dhcp_srv, eth.src(), dhcp.client_mac(),
 					                 allocation.ip(),
 					                 Dhcp_packet::Message_type::OFFER,
 					                 dhcp.xid(), local_intf);
@@ -594,7 +598,7 @@ void Interface::_handle_dhcp_request(Ethernet_frame &eth,
 
 				if (allocation.bound()) {
 					allocation.lifetime(dhcp_srv.ip_lease_time());
-					_send_dhcp_reply(dhcp_srv, eth.src(),
+					_send_dhcp_reply(dhcp_srv, eth.src(), dhcp.client_mac(),
 					                 allocation.ip(),
 					                 Dhcp_packet::Message_type::ACK,
 					                 dhcp.xid(), local_intf);
@@ -612,7 +616,7 @@ void Interface::_handle_dhcp_request(Ethernet_frame &eth,
 							log("Bind DHCP allocation: ", allocation,
 							                      " at ", local_domain);
 						}
-						_send_dhcp_reply(dhcp_srv, eth.src(),
+						_send_dhcp_reply(dhcp_srv, eth.src(), dhcp.client_mac(),
 						                 allocation.ip(),
 						                 Dhcp_packet::Message_type::ACK,
 						                 dhcp.xid(), local_intf);
@@ -627,7 +631,7 @@ void Interface::_handle_dhcp_request(Ethernet_frame &eth,
 				}
 			case Dhcp_packet::Message_type::INFORM:
 
-				_send_dhcp_reply(dhcp_srv, eth.src(),
+				_send_dhcp_reply(dhcp_srv, eth.src(), dhcp.client_mac(),
 				                 allocation.ip(),
 				                 Dhcp_packet::Message_type::ACK,
 				                 dhcp.xid(), local_intf);
