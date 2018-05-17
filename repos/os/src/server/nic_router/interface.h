@@ -120,6 +120,7 @@ class Net::Interface : private Interface_list::Element
 		                          Domain         &local_domain);
 
 		void _send_dhcp_reply(Dhcp_server               const &dhcp_srv,
+		                      Mac_address               const &eth_dst,
 		                      Mac_address               const &client_mac,
 		                      Ipv4_address              const &client_ip,
 		                      Dhcp_packet::Message_type        msg_type,
