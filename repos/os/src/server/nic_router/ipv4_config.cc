@@ -30,3 +30,13 @@ Ipv4_config::Ipv4_config(Ipv4_address_prefix interface,
 		error("Bad IP configuration");
 	}
 }
+
+
+void Ipv4_config::print(Output &output) const
+{
+	if (valid) {
+		Genode::print(output, "interface ", interface, ", gateway ", gateway,
+		              ", DNS server ", dns_server); }
+	else {
+		Genode::print(output, "none"); }
+}
