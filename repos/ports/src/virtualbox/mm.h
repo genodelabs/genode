@@ -57,7 +57,8 @@ class Sub_rm_connection : private Genode::Rm_connection,
 							return Region_map_client::attach(ds, size, offset,
 							                                 use_local_addr,
 							                                 local_addr,
-							                                 executable); },
+							                                 executable,
+							                                 writeable); },
 						[&] () { upgrade_caps(2); });
 					},
 				[&] () { upgrade_ram(8192); });
