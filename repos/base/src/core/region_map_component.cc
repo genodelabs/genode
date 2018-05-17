@@ -338,7 +338,8 @@ Mapping Region_map_component::create_map_item(Region_map_component *,
 
 	return Mapping(dst_fault_area.base(), src_fault_area.base(),
 	               dsc->cacheability(), dsc->io_mem(),
-	               map_size_log2, dsc->writable(), region->executable());
+	               map_size_log2, region->write() && dsc->writable(),
+	               region->executable());
 };
 
 
