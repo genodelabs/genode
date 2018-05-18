@@ -71,9 +71,12 @@ class Acpica::Reportstate {
 		void lid_event()     { _changed_lid   = true; }
 		void ac_event()      { _changed_ac    = true; battery_event(); }
 
-		void generate_report()
+		bool generate_report(bool force = false)
 		{
-			if (_changed_lid) {
+			bool const changed = _changed_sb  || _changed_ec ||
+			                     _changed_fixed || _changed_lid || _changed_ac;
+
+			if (_changed_lid || force) {
 				_changed_lid = false;
 				if (_lid)
 					Genode::Reporter::Xml_generator xml(_reporter_lid, [&] () {
@@ -81,7 +84,7 @@ class Acpica::Reportstate {
 					});
 			}
 
-			if (_changed_ac) {
+			if (_changed_ac || force) {
 				_changed_ac = false;
 				Genode::Reporter::Xml_generator xml(_reporter_ac, [&] () {
 					for (Callback<Ac> * ac = _list_ac.first(); ac; ac = ac->next())
@@ -89,7 +92,7 @@ class Acpica::Reportstate {
 				});
 			}
 
-			if (_changed_ec) {
+			if (_changed_ec || force) {
 				_changed_ec = false;
 				Genode::Reporter::Xml_generator xml(_reporter_ec, [&] () {
 					for (Callback<Ec> * ec = _list_ec.first(); ec; ec = ec->next())
@@ -97,7 +100,7 @@ class Acpica::Reportstate {
 				});
 			}
 
-			if (_changed_sb) {
+			if (_changed_sb || force) {
 				_changed_sb = false;
 				Genode::Reporter::Xml_generator xml(_reporter_sb, [&] () {
 					for (Callback<Battery> * sb = _list_sb.first(); sb; sb = sb->next())
@@ -105,12 +108,14 @@ class Acpica::Reportstate {
 				});
 			}
 
-			if (_changed_fixed) {
+			if (_changed_fixed || force) {
 				_changed_fixed = false;
 				if (_fixed)
 					Genode::Reporter::Xml_generator xml(_reporter_fix, [&] () {
 						_fixed->generate(xml);
 					});
 			}
+
+			return changed;
 		}
 };
