@@ -22,4 +22,4 @@ LICENSE:
 	  echo "  include/jitterentropy/jitterentropy.h"; \
 	  echo "  src/lib/jitterentropy/jitterentropy-base.c"; \
 	  echo "by Stephan Mueller are licensed under a BSD-style license (please"; \
-	  echo "see the corresponding copyright header in the files)."; )
+	  echo "see the corresponding copyright header in the files)." ) > $@
