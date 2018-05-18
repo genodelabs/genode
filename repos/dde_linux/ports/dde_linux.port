@@ -6,15 +6,6 @@ DOWNLOADS   := dwc_otg.git usb.archive intel_fb.archive lxip.archive \
                fw_7260.archive fw_7265.archive fw_8260.archive fw_1000.archive
 
 #
-# Tools
-#
-$(call check_tool,flex)
-$(call check_tool,bison)
-
-FLEX = flex
-YACC = bison
-
-#
 # The git checkout checks for the existence of SRC_DIR, which is created by the
 # Linux extraction, therefore make sure to checkout the GIT sources first.
 #
@@ -97,20 +88,6 @@ URL(libnl) := https://github.com/thom311/libnl/releases/download/libnl3_2_25/lib
 SHA(libnl) := 8beb7590674957b931de6b7f81c530b85dc7c1ad8fbda015398bc1e8d1ce8ec5
 DIR(libnl) := src/lib/libnl
 
-
-default: generate_libnl_files
-generate_libnl_files: $(DOWNLOADS)
-	@$(MSG_PREFIX)"generate libnl files "
-	$(VERBOSE)$(FLEX) --header-file=${DIR(libnl)}/lib/route/pktloc_grammar.h \
-	                  -o ${DIR(libnl)}/lib/route/pktloc_grammar.c            \
-	                   ${DIR(libnl)}/lib/route/pktloc_grammar.l
-	$(VERBOSE)$(YACC) -d -o ${DIR(libnl)}/lib/route/pktloc_syntax.c \
-	                  ${DIR(libnl)}/lib/route/pktloc_syntax.y
-	$(VERBOSE)$(FLEX) --header-file=${DIR(libnl)}/lib/route/cls/ematch_grammar.h \
-	                  -o ${DIR(libnl)}/lib/route/cls/ematch_grammar.c            \
-	                  ${DIR(libnl)}/lib/route/cls/ematch_grammar.l
-	$(VERBOSE)$(YACC) -d -o ${DIR(libnl)}/lib/route/cls/ematch_syntax.c \
-	                  ${DIR(libnl)}/lib/route/cls/ematch_syntax.y
 
 #
 # wpa_supplicant sources

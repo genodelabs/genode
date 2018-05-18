@@ -22,20 +22,6 @@ CC_C_OPT += -include $(LIB_INC_DIR)/libnl_emul.h
 
 CC_OPT += -D_LINUX_SOCKET_H
 
-# libnl-route
-#SRC_C += $(wildcard lib/fib_lookup/*.c)   \
-#         $(wildcard lib/route/act/*.c)    \
-#         $(wildcard lib/route/cls/*.c)    \
-#         $(wildcard lib/route/link/*.c)   \
-#         $(wildcard lib/route/qdisc/*.c)  \
-#         $(wildcard lib/route/*.c)
-
-# libnl-netfilter
-#SRC_C += $(wildcard lib/netfilter/*.c)
-
-# libnl-diag
-#SRC_C += $(wildcard lib/idiag/*.c)
-
 vpath %.c  $(LIBNL_CONTRIB_DIR)
 vpath %.c  $(LIB_DIR)
 vpath %.cc $(LIB_DIR)
