@@ -109,7 +109,10 @@ struct Acpica::Main
 	Genode::Signal_handler<Acpica::Main>          sci_irq;
 	Genode::Constructible<Genode::Irq_connection> sci_conn;
 
-	Acpica::Reportstate * report = nullptr;
+	Acpica::Reportstate * report { nullptr };
+
+	unsigned unchanged_state_count { 0 };
+	unsigned unchanged_state_max;
 
 	static struct Irq_handler {
 		UINT32 irq;
@@ -122,7 +125,8 @@ struct Acpica::Main
 	Main(Genode::Env &env)
 	:
 		env(env),
-		sci_irq(env.ep(), *this, &Main::acpi_irq)
+		sci_irq(env.ep(), *this, &Main::acpi_irq),
+		unchanged_state_max(config.xml().attribute_value("update_unchanged", 20U))
 	{
 		bool const enable_reset    = config.xml().attribute_value("reset", false);
 		bool const enable_poweroff = config.xml().attribute_value("poweroff", false);
@@ -177,8 +181,24 @@ struct Acpica::Main
 
 		AcpiOsWaitEventsComplete();
 
-		if (report)
-			report->generate_report();
+		if (report) {
+			bool const changed = report->generate_report();
+
+			if (unchanged_state_max) {
+				if (changed)
+					unchanged_state_count = 0;
+				else
+					unchanged_state_count ++;
+
+				if (unchanged_state_count >= unchanged_state_max) {
+					Genode::log("generate report because of ",
+					            unchanged_state_count, " irqs without state "
+					            "changes");
+					report->generate_report(true);
+					unchanged_state_count = 0;
+				}
+			}
+		}
 
 		if (res == ACPI_INTERRUPT_HANDLED)
 			return;
