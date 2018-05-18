@@ -64,7 +64,7 @@ proc audio_drv_binary { } {
 	return no_audio_drv_available
 }
 
-proc platform_drv_name { } {
+proc acpi_drv_name { } {
 	global use_acpica_as_acpi_drv
 	if {[info exists use_acpica_as_acpi_drv] && $use_acpica_as_acpi_drv} {
 		return acpica }
@@ -77,11 +77,11 @@ proc platform_drv_build_components {} {
 	lappend_if [have_platform_drv] drv_build_components drivers/platform
 	lappend_if [have_spec x86]     drv_build_components server/report_rom
 	if {[have_spec x86]} {
-		if {[platform_drv_name] eq "acpi_drv"} {
-			lappend_if [have_spec x86] drv_build_components drivers/acpi
+		if {[acpi_drv_name] eq "acpi_drv"} {
+			lappend drv_build_components drivers/acpi
 		}
-		if {[platform_drv_name] eq "acpica"} {
-			lappend_if [have_spec x86] drv_build_components app/acpica
+		if {[acpi_drv_name] eq "acpica"} {
+			lappend [have_spec x86] drv_build_components app/acpica
 		}
 	}
 	return $drv_build_components
@@ -102,7 +102,7 @@ proc platform_drv_boot_modules {} {
 		if {[have_spec muen]} {
 			lappend drv_boot_modules acpi
 		} else {
-			lappend drv_boot_modules [platform_drv_name]
+			lappend drv_boot_modules [acpi_drv_name]
 		}
 	}
 
@@ -123,7 +123,7 @@ proc platform_drv_policy {} {
 
 	set drv_policy ""
 
-	if {[platform_drv_name] eq "acpica"} {
+	if {[acpi_drv_name] eq "acpica"} {
 		append drv_policy {
 			<policy label="acpi_drv -> ">    <pci class="ALL"/> </policy>}
 	}
@@ -150,7 +150,7 @@ proc platform_drv_policy {} {
 proc platform_drv_priority {} { return "" }
 proc platform_drv_add_routing {} {
 
-	if {[platform_drv_name] eq "acpica"} {
+	if {[acpi_drv_name] eq "acpica"} {
 		return {
 			<service name="ROM" label="acpi_ready"> <child name="acpi_report_rom"/> </service>}
 	}
@@ -160,7 +160,7 @@ proc platform_drv_add_routing {} {
 
 
 proc platform_drv_config_config {} {
-	if {[platform_drv_name] eq "acpica"} {
+	if {[acpi_drv_name] eq "acpica"} {
 		return {
 		<config acpi_ready="yes">}
 	}
@@ -182,12 +182,15 @@ proc platform_drv_config {} {
 
 		append drv_config {
 	<start name="acpi_drv" } [platform_drv_priority] { caps="400" >
-		<binary name="} [platform_drv_name] {"/>
-		<resource name="RAM" quantum="3M"/>}
+		<binary name="} [acpi_drv_name] {"/>}
 
-		if {[platform_drv_name] eq "acpica"} {
+		if {[acpi_drv_name] eq "acpica"} {
 			append drv_config {
+		<resource name="RAM" quantum="5M"/>
 		<config acpi_ready="yes" act_as_acpi_drv="yes" report="yes"/>}
+		} else {
+			append drv_config {
+		<resource name="RAM" quantum="3M"/>}
 		}
 
 		append drv_config {
@@ -199,9 +202,10 @@ proc platform_drv_config {} {
 			<service name="CPU">    <parent/> </service>
 			<service name="ROM">    <parent/> </service>}
 
-		append_if [expr {[platform_drv_name] eq "acpica"}] drv_config {
+		append_if [expr {[acpi_drv_name] eq "acpica"}] drv_config {
 			<service name="IO_PORT">  <parent/> </service>
 			<service name="IRQ">      <parent/> </service>
+			<service name="Timer">    <child name="timer"/> </service>
 			<service name="Platform"> <child name="platform_drv"/> </service>
 			<service name="Acpi">     <child name="platform_drv"/> </service>}
 
@@ -224,7 +228,7 @@ proc platform_drv_config {} {
 		<config>
 			<policy label="platform_drv -> acpi" report="acpi_drv -> acpi"/>}
 
-		append_if [expr {[platform_drv_name] eq "acpica"}] drv_config {
+		append_if [expr {[acpi_drv_name] eq "acpica"}] drv_config {
 			<policy label="platform_drv -> acpi_ready" report="acpi_drv -> acpi_ready"/>}
 
 		append drv_config {

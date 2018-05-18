@@ -75,8 +75,8 @@ set config {
 		</start>}
 
 append_if [expr !$use_acpica_as_acpi_drv] config {
-		<start name="acpica">
-			<resource name="RAM" quantum="4M"/>
+		<start name="acpica" caps="150">
+			<resource name="RAM" quantum="5M"/>
 			<config ld_verbose="yes" reset="no" poweroff="no" report="yes" acpi_ready="yes">
 			</config>
 			<route>
