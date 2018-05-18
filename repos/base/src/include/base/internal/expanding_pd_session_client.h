@@ -43,7 +43,7 @@ struct Genode::Expanding_pd_session_client : Pd_session_client
 		 * If the RAM session runs out of quota, issue a resource request
 		 * to the parent and retry.
 		 */
-		enum { NUM_ATTEMPTS = 2 };
+		enum { NUM_ATTEMPTS = 10 };
 		enum { UPGRADE_CAPS = 4 };
 		return retry<Out_of_ram>(
 			[&] () {
