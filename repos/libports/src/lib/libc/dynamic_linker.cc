@@ -93,7 +93,7 @@ void *dlsym(void *handle, const char *name)
 	}
 
 	try {
-		if (RTLD_DEFAULT) {
+		if (handle == RTLD_DEFAULT) {
 			static Libc::Allocator global_alloc;
 
 			return Shared_object(*genode_env, global_alloc, nullptr,
