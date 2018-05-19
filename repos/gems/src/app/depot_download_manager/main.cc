@@ -50,15 +50,16 @@ struct Depot_download_manager::Child_exit_state
 };
 
 
-struct Depot_download_manager::Main
+struct Depot_download_manager::Main : Import::Download_progress
 {
 	Env &_env;
 
 	Heap _heap { _env.ram(), _env.rm() };
 
-	Attached_rom_dataspace _installation { _env, "installation" };
-	Attached_rom_dataspace _dependencies { _env, "dependencies" };
-	Attached_rom_dataspace _init_state   { _env, "init_state"   };
+	Attached_rom_dataspace _installation      { _env, "installation"      };
+	Attached_rom_dataspace _dependencies      { _env, "dependencies"      };
+	Attached_rom_dataspace _init_state        { _env, "init_state"        };
+	Attached_rom_dataspace _fetchurl_progress { _env, "fetchurl_progress" };
 
 	/**
 	 * User identity, from which current downloads are fetched
@@ -89,6 +90,8 @@ struct Depot_download_manager::Main
 
 	Expanding_reporter _init_config { _env, "config", "init_config" };
 
+	Expanding_reporter _state_reporter { _env, "state", "state" };
+
 	/**
 	 * Version counters, used to enforce the restart or reconfiguration of
 	 * components.
@@ -99,6 +102,32 @@ struct Depot_download_manager::Main
 	Archive::User _next_user { };
 
 	Constructible<Import> _import { };
+
+	/**
+	 * Download_progress interface
+	 */
+	Info download_progress(Archive::Path const &path) const
+	{
+		Info result { Info::Bytes(), Info::Bytes() };
+		try {
+			Url const url_path(_current_user_url(), "/", path, ".tar.xz");
+
+			/* search fetchurl progress report for matching 'url_path' */
+			_fetchurl_progress.xml().for_each_sub_node("fetch", [&] (Xml_node fetch) {
+				if (fetch.attribute_value("url", Url()) == url_path)
+					result = { .total = fetch.attribute_value("total", Info::Bytes()),
+					           .now   = fetch.attribute_value("now",   Info::Bytes()) }; });
+
+		} catch (Invalid_download_url) { }
+		return result;
+	}
+
+	void _update_state_report()
+	{
+		_state_reporter.generate([&] (Xml_generator &xml) {
+			if (_import.constructed())
+				_import->report(xml, *this); });
+	}
 
 	void _generate_init_config(Xml_generator &);
 
@@ -127,13 +156,23 @@ struct Depot_download_manager::Main
 
 	void _handle_init_state();
 
+	Signal_handler<Main> _fetchurl_progress_handler {
+		_env.ep(), *this, &Main::_handle_fetchurl_progress };
+
+	void _handle_fetchurl_progress()
+	{
+		_fetchurl_progress.update();
+		_update_state_report();
+	}
+
 	Main(Env &env) : _env(env)
 	{
-		_dependencies.sigh(_query_result_handler);
-		_current_user.sigh(_query_result_handler);
-		_init_state  .sigh(_init_state_handler);
-		_verified    .sigh(_init_state_handler);
-		_installation.sigh(_installation_handler);
+		_dependencies     .sigh(_query_result_handler);
+		_current_user     .sigh(_query_result_handler);
+		_init_state       .sigh(_init_state_handler);
+		_verified         .sigh(_init_state_handler);
+		_installation     .sigh(_installation_handler);
+		_fetchurl_progress.sigh(_fetchurl_progress_handler);
 
 		_generate_init_config();
 	}
@@ -225,6 +264,7 @@ void Depot_download_manager::Main::_handle_query_result()
 
 	if (!dependencies.has_sub_node("missing")) {
 		log("installation complete.");
+		_update_state_report();
 		return;
 	}
 
@@ -241,6 +281,7 @@ void Depot_download_manager::Main::_handle_query_result()
 
 	/* start new import */
 	_import.construct(_heap, _current_user_name(), _dependencies.xml());
+	_update_state_report();
 
 	/* spawn fetchurl */
 	_generate_init_config();
@@ -323,6 +364,10 @@ void Depot_download_manager::Main::_handle_init_state()
 			reconfigure_init = true;
 		}
 	}
+
+	/* report before destructing '_import' to avoid empty intermediate reports */
+	if (reconfigure_init)
+		_update_state_report();
 
 	if (import_finished)
 		_import.destruct();

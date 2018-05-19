@@ -16,6 +16,7 @@
 
 /* Genode includes */
 #include <util/xml_node.h>
+#include <util/xml_generator.h>
 #include <base/registry.h>
 #include <base/allocator.h>
 
@@ -29,6 +30,22 @@ namespace Depot_download_manager {
 
 class Depot_download_manager::Import
 {
+	public:
+
+		/**
+		 * Interface for obtaining the download progress for a given archive
+		 */
+		struct Download_progress : Interface
+		{
+			struct Info
+			{
+				typedef String<32> Bytes;
+				Bytes total, now;
+			};
+
+			virtual Info download_progress(Archive::Path const &) const = 0;
+		};
+
 	private:
 
 		struct Item
@@ -49,6 +66,18 @@ class Depot_download_manager::Import
 			:
 				_element(registry, *this), path(path)
 			{ }
+
+			char const *state_text() const
+			{
+				switch (state) {
+				case DOWNLOAD_IN_PROGRESS: return "download";
+				case DOWNLOAD_COMPLETE:    return "verify";
+				case VERIFIED:             return "extract";
+				case VERIFICATION_FAILED:  return "verification failed";
+				case UNPACKED:             return "done";
+				};
+				return "";
+			}
 		};
 
 		Allocator &_alloc;
@@ -170,6 +199,23 @@ class Depot_download_manager::Import
 			_items.for_each([&] (Item &item) {
 				if (item.state == Item::VERIFIED)
 					item.state = Item::UNPACKED; });
+		}
+
+		void report(Xml_generator &xml, Download_progress const &progress) const
+		{
+			_items.for_each([&] (Item const &item) {
+				xml.node("archive", [&] () {
+					xml.attribute("path",  item.path);
+					xml.attribute("state", item.state_text());
+
+					if (item.state == Item::DOWNLOAD_IN_PROGRESS) {
+						Download_progress::Info const info =
+							progress.download_progress(item.path);
+						xml.attribute("total", info.total);
+						xml.attribute("now",   info.now);
+					}
+				});
+			});
 		}
 };
 

@@ -102,6 +102,7 @@ append config {
 		<route>
 			<service name="ROM" label="config">
 				<parent label="depot_download.config"/> </service>
+			<service name="Report"> <child name="report_rom"/> </service>
 			<service name="File_system"> <child name="vfs"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
