@@ -140,6 +140,9 @@ class Depot_deploy::Child : public List_model<Child>::Element
 			if (pkg.attribute_value("path", Archive::Path()) != _blueprint_pkg_path)
 				return;
 
+			/* package was missing but is installed now */
+			_pkg_incomplete = false;
+
 			Xml_node const runtime = pkg.sub_node("runtime");
 
 			Number_of_bytes const ram { runtime.attribute_value("ram", Number_of_bytes()) };
@@ -165,9 +168,20 @@ class Depot_deploy::Child : public List_model<Child>::Element
 			if (path != _blueprint_pkg_path)
 				return;
 
-			error(path, " incomplete or missing");
+			log(path, " incomplete or missing");
 
 			_pkg_incomplete = true;
+		}
+
+		/**
+		 * Reconsider deployment of child after installing missing archives
+		 */
+		void reset_incomplete()
+		{
+			if (_pkg_incomplete) {
+				_pkg_incomplete = false;
+				_pkg_xml.destruct();
+			}
 		}
 
 		void gen_query(Xml_generator &xml) const
@@ -190,6 +204,19 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		 */
 		inline void gen_start_node(Xml_generator &, Xml_node common,
 		                           Depot_rom_server const &depot_rom) const;
+
+		/**
+		 * Generate installation entry needed for the completion of the child
+		 */
+		void gen_installation_entry(Xml_generator &xml) const
+		{
+			if (!_pkg_incomplete) return;
+
+			xml.node("archive", [&] () {
+				xml.attribute("path", _config_pkg_path());
+				xml.attribute("source", "no");
+			});
+		}
 };
 
 

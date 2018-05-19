@@ -78,6 +78,12 @@ class Depot_deploy::Children
 					child.mark_as_incomplete(missing); }); });
 		}
 
+		void reset_incomplete()
+		{
+			_children.for_each([&] (Child &child) {
+				child.reset_incomplete(); });
+		}
+
 		void gen_start_nodes(Xml_generator &xml, Xml_node common,
 		                     Child::Depot_rom_server const &depot_rom) const
 		{
@@ -89,6 +95,12 @@ class Depot_deploy::Children
 		{
 			_children.for_each([&] (Child const &child) {
 				child.gen_query(xml); });
+		}
+
+		void gen_installation_entries(Xml_generator &xml) const
+		{
+			_children.for_each([&] (Child const &child) {
+				child.gen_installation_entry(xml); });
 		}
 };
 
