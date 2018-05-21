@@ -2,39 +2,6 @@
  * \brief  Stub for compiling GCC support libraries without libc
  * \author Norman Feske
  * \date   2011-08-31
- *
- * The target components of GCC tool chains (i.e. libsupc++, libgcc_eh, and
- * libstdc++) depend on the presence of libc includes. For this reason, a C
- * library for the target platform is normally regarded as a prerequisite for
- * building a complete tool chain. However, for low-level operating-system
- * code, this prerequisite is not satisfied.
- *
- * There are two traditional solutions to this problem. The first is to leave
- * out those target components from the tool chain and live without full C++
- * support (using '-fno-rtti' and '-fno-exceptions'). Because Genode relies on
- * such C++ features however, this is no option. The other traditional solution
- * is to use a tool chain compiled for a different target platform such as
- * Linux. However, this approach calls for subtle problems because the target
- * components are compiled against glibc and make certain presumptions about
- * the underlying OS environment. E.g., the 'libstdc++' library of a Linux tool
- * chain contains references to glibc's 'stderr' symbol, which does not exist
- * on Genode's libc derived from FreeBSD. More critical assumptions are related
- * to the mechanism used for thread-local storage.
- *
- * This header file overcomes these problems by providing all function
- * prototypes and type declarations that are mandatory for compiling GCC's
- * target components. Using this libc stub, all GCC target components can be
- * built without the need for additional libc support. Of course, for actually
- * using these target components, the target OS has to provide the
- * implementation of a small subset of functions declared herein. On Genode,
- * this subset is provided by the 'cxx' library.
- *
- * The code of the target components expects usual C header file names such as
- * 'stdio.h'. It does not include 'libgcc_libc_stub.h'. By creating symlinks
- * for all those file names pointing to this file, we ensure that this file is
- * always included on the first occurrence of the inclusion of any libc header
- * file. The set of symlinks pointing to this libc stub are created
- * automatically by the 'tool_chain' script.
  */
 
 /*
