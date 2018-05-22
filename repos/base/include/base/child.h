@@ -451,12 +451,21 @@ class Genode::Child : protected Rpc_object<Parent>,
 				{
 					session.ready_callback = this;
 					session.async_client_notify = true;
+
 					_service.initiate_request(session);
 
 					if (session.phase == Session_state::SERVICE_DENIED)
 						error(_child._policy.name(), ": environment ",
 						      CONNECTION::service_name(), " session denied "
 						      "(", session.args(), ")");
+
+					/*
+					 * If the env session is provided by an async service,
+					 * we have to wake up the server when closing the env
+					 * session.
+					 */
+					if (session.phase == Session_state::CLOSE_REQUESTED)
+						_service.wakeup();
 				}
 
 				/**
@@ -575,6 +584,10 @@ class Genode::Child : protected Rpc_object<Parent>,
 			Capability<SESSION> cap() const {
 				return _connection.constructed() ? _connection->cap()
 				                                 : Capability<SESSION>(); }
+
+			bool alive() const { return _connection.constructed() && _connection->alive(); }
+
+			void close() { if (_connection.constructed()) _connection->close(); }
 		};
 
 		Env_connection<Pd_connection>  _pd     { *this, Env::pd(),     _policy.name() };
@@ -665,6 +678,21 @@ class Genode::Child : protected Rpc_object<Parent>,
 		 * See the description of 'Child_policy::initiate_env_sessions'.
 		 */
 		void initiate_env_sessions();
+
+		/**
+		 * Return true if the child is safe to be destroyed
+		 *
+		 * The child must not be destroyed until all environment sessions
+		 * are closed at the respective servers. Otherwise, the session state,
+		 * which is kept as part of the child object may be gone before
+		 * the close request reaches the server.
+		 */
+		bool env_sessions_closed() const
+		{
+			if (_linker.constructed() && _linker->alive()) return false;
+
+			return !_pd.alive() && !_cpu.alive() && !_log.alive() && !_binary.alive();
+		}
 
 		/**
 		 * Quota unconditionally consumed by the child's environment

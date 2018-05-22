@@ -818,6 +818,16 @@ void Child::close_all_sessions()
 	catch (Child_policy::Nonexistent_id_space) { }
 
 	/*
+	 * Issue close requests to the providers of the environment sessions,
+	 * which may be async services.
+	 */
+	_pd.close();
+	_log.close();
+	_binary.close();
+	if (_linker.constructed())
+		_linker->close();
+
+	/*
 	 * Remove statically created env sessions from the child's ID space.
 	 */
 	_discard_env_session(Env::cpu());

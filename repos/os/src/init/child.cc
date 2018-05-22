@@ -15,6 +15,14 @@
 #include <child.h>
 
 
+void Init::Child::destroy_services()
+{
+	_child_services.for_each([&] (Routed_service &service) {
+		if (service.has_id_space(_session_requester.id_space()))
+			destroy(_alloc, &service); });
+}
+
+
 Init::Child::Apply_config_result
 Init::Child::apply_config(Xml_node start_node)
 {
@@ -687,9 +695,4 @@ Init::Child::Child(Env                      &env,
 }
 
 
-Init::Child::~Child()
-{
-	_child_services.for_each([&] (Routed_service &service) {
-		if (service.has_id_space(_session_requester.id_space()))
-			destroy(_alloc, &service); });
-}
+Init::Child::~Child() { }

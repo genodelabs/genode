@@ -383,7 +383,7 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 				    service.name() == node.attribute_value("name", Service::Name()))
 					exists = true; });
 
-			return exists;
+			return exists && !abandoned();
 		}
 
 		void _add_service(Xml_node service)
@@ -409,6 +409,8 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 
 		bool _exited     { false };
 		int  _exit_value { -1 };
+
+		void _destroy_services();
 
 	public:
 
@@ -491,7 +493,13 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 					service.abandon(); });
 		}
 
+		void destroy_services();
+
+		void close_all_sessions() { _child.close_all_sessions(); }
+
 		bool abandoned() const { return _state == STATE_ABANDONED; }
+
+		bool env_sessions_closed() const { return _child.env_sessions_closed(); }
 
 		enum Apply_config_result { MAY_HAVE_SIDE_EFFECTS, NO_SIDE_EFFECTS };
 
