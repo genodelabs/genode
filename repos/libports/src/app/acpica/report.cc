@@ -84,36 +84,53 @@ static void add_mcfg(ACPI_TABLE_MCFG const * const mcfg,
 static void add_dmar(ACPI_TABLE_DMAR const * const dmar_table,
                      Reporter::Xml_generator &xml)
 {
-	for_each_element(dmar_table, (ACPI_DMAR_HEADER *) nullptr, [&](ACPI_DMAR_HEADER const * const e) {
-		if (e->Type != ACPI_DMAR_TYPE_RESERVED_MEMORY)
-			return;
+	using Genode::String;
+	using Genode::Hex;
 
-		using Genode::String;
-		using Genode::Hex;
+	auto scope_length = [](ACPI_DMAR_DEVICE_SCOPE const * const e) {
+		return e->Length; };
 
-		ACPI_DMAR_RESERVED_MEMORY const * const dmar = ACPI_CAST_PTR (ACPI_DMAR_RESERVED_MEMORY, e);
+	auto scope_lambda = [&](ACPI_DMAR_DEVICE_SCOPE const * const e) {
+		xml.node("scope", [&] () {
+			xml.attribute("bus_start", e->Bus);
+			xml.attribute("type", e->EntryType);
 
-		xml.node("rmrr", [&] () {
-			xml.attribute("start", String<24>(Hex(dmar->BaseAddress)));
-			xml.attribute("end"  , String<24>(Hex(dmar->EndAddress)));
+			unsigned const count = (e->Length < 6) ? 0 : ((e->Length - 6) / 2);
 
-			for_each_element(dmar, (ACPI_DMAR_DEVICE_SCOPE *) nullptr, [&](ACPI_DMAR_DEVICE_SCOPE const * const e) {
-
-				xml.node("scope", [&] () {
-					xml.attribute("bus_start", e->Bus);
-
-					unsigned const count = (e->Length - 6) / 2;
-
-					ACPI_DMAR_PCI_PATH * path = ACPI_CAST_PTR(ACPI_DMAR_PCI_PATH, e + 1);
-					for (unsigned i = 0; i < count; i++) {
-						xml.node("path", [&] () {
-							xml.attribute("dev", String<8>(Hex(path->Device)));
-							xml.attribute("func", String<8>(Hex(path->Function)));
-						});
-					}
+			ACPI_DMAR_PCI_PATH * path = ACPI_CAST_PTR(ACPI_DMAR_PCI_PATH, e + 1);
+			for (unsigned i = 0; i < count; i++) {
+				xml.node("path", [&] () {
+					xml.attribute("dev", String<8>(Hex(path->Device)));
+					xml.attribute("func", String<8>(Hex(path->Function)));
 				});
-			}, [](ACPI_DMAR_DEVICE_SCOPE const * const e) { return e->Length; });
+			}
 		});
+	};
+
+	for_each_element(dmar_table, (ACPI_DMAR_HEADER *) nullptr, [&](ACPI_DMAR_HEADER const * const e) {
+		if (e->Type == ACPI_DMAR_TYPE_RESERVED_MEMORY) {
+			ACPI_DMAR_RESERVED_MEMORY const * const dmar = ACPI_CAST_PTR (ACPI_DMAR_RESERVED_MEMORY, e);
+
+			xml.node("rmrr", [&] () {
+				xml.attribute("start", String<24>(Hex(dmar->BaseAddress)));
+				xml.attribute("end"  , String<24>(Hex(dmar->EndAddress)));
+
+				for_each_element(dmar, (ACPI_DMAR_DEVICE_SCOPE *) nullptr,
+				                 scope_lambda, scope_length);
+			});
+		} else
+		if (e->Type == ACPI_DMAR_TYPE_HARDWARE_UNIT) {
+			ACPI_DMAR_HARDWARE_UNIT const * const drhd = ACPI_CAST_PTR (ACPI_DMAR_HARDWARE_UNIT, e);
+
+			xml.node("drhd", [&] () {
+				xml.attribute("phys", String<24>(Hex(drhd->Address)));
+				xml.attribute("flags", String<4>(Hex(drhd->Flags)));
+				xml.attribute("segment", String<8>(Hex(drhd->Segment)));
+
+				for_each_element(drhd, (ACPI_DMAR_DEVICE_SCOPE *) nullptr,
+				                 scope_lambda, scope_length);
+			});
+		}
 	}, [](ACPI_DMAR_HEADER const * const e) { return e->Length; });
 }
 
