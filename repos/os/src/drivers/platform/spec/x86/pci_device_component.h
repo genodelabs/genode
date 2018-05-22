@@ -48,8 +48,9 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 		Genode::addr_t               _config_space;
 		Config_access                _config_access;
 		Platform::Session_component &_session;
-		unsigned short               _irq_line;
 		Irq_session_component       *_irq_session = nullptr;
+		unsigned short               _irq_line;
+		bool                         _enabled_bus_master { false };
 
 		Genode::Allocator           &_global_heap;
 
@@ -72,8 +73,6 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 			                Device::NUM_RESOURCES + 32 + 8 * sizeof(void *),
 			IO_MEM_SIZE   = sizeof(Io_mem) *
 			                Device::NUM_RESOURCES + 32 + 8 * sizeof(void *),
-			PCI_CMD_REG   = 0x4,
-			PCI_CMD_DMA   = 0x4,
 			PCI_IRQ_LINE  = 0x3c,
 			PCI_IRQ_PIN   = 0x3d,
 
@@ -184,12 +183,7 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 			if (_device_config.pci_bridge())
 				return;
 
-			unsigned cmd = _device_config.read(_config_access, PCI_CMD_REG,
-			                                   Platform::Device::ACCESS_16BIT);
-			if (cmd & PCI_CMD_DMA)
-				_device_config.write(_config_access, PCI_CMD_REG,
-				                     cmd ^ PCI_CMD_DMA,
-				                     Platform::Device::ACCESS_16BIT);
+			_device_config.disable_bus_master_dma(_config_access);
 		}
 
 	public:
@@ -217,8 +211,6 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 			for (unsigned i = 0; i < Device::NUM_RESOURCES; i++) {
 				_io_port_conn[i] = nullptr;
 			}
-
-			_disable_bus_master_dma();
 		}
 
 		/**
@@ -263,7 +255,7 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 				}
 			}
 
-			if (_device_config.valid())
+			if (_device_config.valid() && _enabled_bus_master)
 				_disable_bus_master_dma();
 		}
 

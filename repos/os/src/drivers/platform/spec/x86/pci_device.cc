@@ -108,10 +108,10 @@ void Platform::Device_component::config_write(unsigned char address,
 			              "size=",    Genode::Hex(size),    " "
 			              "denied - it is used by the platform driver.");
 			return;
-		case PCI_CMD_REG: /* COMMAND register - first byte */
+		case Device_config::PCI_CMD_REG: /* COMMAND register - first byte */
 			if (size == Access_size::ACCESS_16BIT)
 				break;
-		case PCI_CMD_REG + 1: /* COMMAND register - second byte */
+		case Device_config::PCI_CMD_REG + 1: /* COMMAND register - second byte */
 		case 0xd: /* Latency timer */
 			if (size == Access_size::ACCESS_8BIT)
 				break;
@@ -125,13 +125,16 @@ void Platform::Device_component::config_write(unsigned char address,
 	}
 
 	/* assign device to device_pd */
-	if (address == PCI_CMD_REG && value & PCI_CMD_DMA) {
+	if (address == Device_config::PCI_CMD_REG &&
+	    (value & Device_config::PCI_CMD_DMA)) {
+
 		try { _session.assign_device(this); }
 		catch (Out_of_ram)  { throw; }
 		catch (Out_of_caps) { throw; }
 		catch (...) {
 			Genode::error("assignment to device failed");
 		}
+		_enabled_bus_master = true;
 	}
 
 	_device_config.write(_config_access, address, value, size,

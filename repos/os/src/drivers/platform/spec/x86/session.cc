@@ -47,6 +47,33 @@ void Platform::Pci_buses::scan_bus(Config_access &config_access,
 			/* read config space */
 			Device_config config(bus, dev, fun, &config_access);
 
+			/*
+			 * Switch off PCI bus master DMA for some classes of devices,
+			 * which caused trouble.
+			 * Some devices are enabled by BIOS/UEFI or/and bootloaders and
+			 * aren't switch off when handing over to the kernel and Genode.
+			 * By disabling bus master DMA they should stop to issue DMA
+			 * operations and IRQs. IRQs are problematic, if it is a shared
+			 * IRQ - e.g. Ethernet and graphic card share a GSI IRQ. If the
+			 * graphic card driver is started without a Ethernet driver,
+			 * the graphic card may ack all IRQs. We may end up in a endless
+			 * IRQ/ACK loop, since no Ethernet driver acknowledge/disable IRQ
+			 * generation on the Ethernet device.
+			 *
+			 * Switching off PCI bus master DMA in general is a bad idea,
+			 * since some device classes require a explicit handover protocol
+			 * between BIOS/UEFI and device, e.g. USB. Violating such protocols
+			 * lead to hard hangs on some machines.
+			 */
+			if (config.class_code() >> 8) {
+				uint16_t classcode = config.class_code() >> 16;
+				uint16_t subclass  = (config.class_code() >> 8) & 0xff;
+
+				if ((classcode == 0x2 && subclass == 0x00) /* ETHERNET */) {
+					config.disable_bus_master_dma(config_access);
+				}
+			}
+
 			if (!config.valid())
 				continue;
 
@@ -68,25 +95,22 @@ void Platform::Pci_buses::scan_bus(Config_access &config_access,
 				bridges()->insert(new (heap) Bridge(bus, dev, fun, sec_bus,
 				                                    sub_bus));
 
-				enum {
-					PCI_CMD_REG    = 0x4,
-					PCI_CMD_MASK   = 0x7 /* IOPORT, MEM, DMA */
-				};
+				uint16_t cmd = config.read(config_access,
+				                           Device_config::PCI_CMD_REG,
+				                           Platform::Device::ACCESS_16BIT);
 
-				unsigned short cmd = config.read(config_access, PCI_CMD_REG,
-			                                     Platform::Device::ACCESS_16BIT);
+				const bool enabled = (cmd & Device_config::PCI_CMD_MASK)
+				                     == Device_config::PCI_CMD_MASK;
 
-				if ((cmd & PCI_CMD_MASK) != PCI_CMD_MASK) {
-					config.write(config_access, PCI_CMD_REG,
-					             cmd | PCI_CMD_MASK,
+				if (!enabled) {
+					config.write(config_access, Device_config::PCI_CMD_REG,
+					             cmd | Device_config::PCI_CMD_MASK,
 					             Platform::Device::ACCESS_16BIT);
 				}
 
-				Genode::log(config, " - bridge ",
-				            Hex(sec_bus, Hex::Prefix::OMIT_PREFIX, Hex::Pad::PAD),
-				            ":00.0",
-				            ((cmd & PCI_CMD_MASK) != PCI_CMD_MASK) ? " enabled"
-				                                                   : "");
+				log(config, " - bridge ",
+				    Hex(sec_bus, Hex::Prefix::OMIT_PREFIX, Hex::Pad::PAD),
+				    ":00.0", !enabled ? " enabled" : "");
 
 				scan_bus(config_access, heap, sec_bus);
 			}

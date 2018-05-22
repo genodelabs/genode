@@ -65,6 +65,12 @@ namespace Platform {
 
 			enum { MAX_BUSES = 256, MAX_DEVICES = 32, MAX_FUNCTIONS = 8 };
 
+			enum {
+				PCI_CMD_REG    = 0x4,
+				PCI_CMD_MASK   = 0x7, /* IOPORT (1), MEM(2), DMA(4) */
+				PCI_CMD_DMA    = 0x4,
+			};
+
 			/**
 			 * Constructor
 			 */
@@ -220,6 +226,15 @@ namespace Platform {
 			bool reg_in_use(Config_access &pci_config, unsigned char address,
 			                Device::Access_size size) {
 				return pci_config.reg_in_use(address, size); }
+
+			void disable_bus_master_dma(Config_access &pci_config)
+			{
+				unsigned const cmd = read(pci_config, PCI_CMD_REG,
+				                          Platform::Device::ACCESS_16BIT);
+				if (cmd & PCI_CMD_DMA)
+					write(pci_config, PCI_CMD_REG, cmd ^ PCI_CMD_DMA,
+					      Platform::Device::ACCESS_16BIT);
+			}
 	};
 
 	class Config_space : private Genode::List<Config_space>::Element
