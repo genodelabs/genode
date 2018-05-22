@@ -153,6 +153,8 @@ struct Usb::Block_driver : Usb::Completion,
 	uint8_t ep_in = 0;
 	uint8_t ep_out = 0;
 
+	bool reset_device = false;
+
 	/*
 	 * Completion used while initializing the device
 	 */
@@ -354,7 +356,8 @@ struct Usb::Block_driver : Usb::Completion,
 	 * Initialize device
 	 *
 	 * All USB transfers in this method are done synchronously. First we reset
-	 * the device, than we query the max LUN. Afterwards we start sending CBWs.
+	 * the device (optional), then we query the max LUN. Afterwards we start
+	 * sending CBWs.
 	 *
 	 * Since it might take some time for the device to get ready to use, we
 	 * have to check the SCSI logical unit several times.
@@ -405,21 +408,30 @@ struct Usb::Block_driver : Usb::Completion,
 		}
 
 		try {
-			/* reset */
-			Usb::Packet_descriptor p = iface.alloc(0);
-			iface.control_transfer(p, 0x21, 0xff, 0, active_interface, 100);
-			if (!p.succeded) {
-				Genode::error("Could not reset device");
+
+			/*
+			 * reset
+			 *
+			 * This command caused write command errors on a
+			 * 'SanDisk Cruzer Force' (0781:557d) USB stick, so it is
+			 * omitted by default.
+			 */
+			if (reset_device) {
+				Usb::Packet_descriptor p = iface.alloc(0);
+				iface.control_transfer(p, 0x21, 0xff, 0, active_interface, 100);
+				if (!p.succeded) {
+					Genode::error("Could not reset device");
+					iface.release(p);
+					throw -1;
+				}
 				iface.release(p);
-				throw -1;
 			}
-			iface.release(p);
 
 			/*
 			 * Let us do GetMaxLUN and simply ignore the return value because none
 			 * of the devices that were tested did infact report another value than 0.
 			 */
-			p = iface.alloc(1);
+			Usb::Packet_descriptor p = iface.alloc(1);
 			iface.control_transfer(p, 0xa1, 0xfe, 0, active_interface, 100);
 			uint8_t max_lun = *(uint8_t*)iface.content(p);
 			if (p.succeded && max_lun == 0) { max_lun = 1; }
@@ -727,6 +739,8 @@ struct Usb::Block_driver : Usb::Completion,
 
 		active_interface = node.attribute_value<unsigned long>("interface", 0);
 		active_lun       = node.attribute_value<unsigned long>("lun", 0);
+
+		reset_device = node.attribute_value<bool>("reset_device", false);
 
 		verbose_scsi = node.attribute_value<bool>("verbose_scsi", false);
 	}
