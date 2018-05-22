@@ -275,6 +275,9 @@ void Init::Child::apply_ram_downgrade()
 
 void Init::Child::report_state(Xml_generator &xml, Report_detail const &detail) const
 {
+	/* true if it's safe to call the PD for requesting resource information */
+	bool const pd_alive = !abandoned() && !_exited;
+
 	xml.node("child", [&] () {
 
 		xml.attribute("name",   _unique_name);
@@ -298,7 +301,8 @@ void Init::Child::report_state(Xml_generator &xml, Report_detail const &detail) 
 				xml.attribute("assigned", String<32> {
 					Number_of_bytes(_resources.assigned_ram_quota.value) });
 
-				generate_ram_info(xml, _child.ram());
+				if (pd_alive)
+					generate_ram_info(xml, _child.ram());
 
 				if (_requested_resources.constructed() && _requested_resources->ram.value)
 					xml.attribute("requested", String<32>(_requested_resources->ram));
@@ -310,7 +314,8 @@ void Init::Child::report_state(Xml_generator &xml, Report_detail const &detail) 
 
 				xml.attribute("assigned", String<32>(_resources.assigned_cap_quota));
 
-				generate_caps_info(xml, _child.pd());
+				if (pd_alive)
+					generate_caps_info(xml, _child.pd());
 
 				if (_requested_resources.constructed() && _requested_resources->caps.value)
 					xml.attribute("requested", String<32>(_requested_resources->caps));
