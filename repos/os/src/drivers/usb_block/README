@@ -14,7 +14,7 @@ driver:
 !<start name="usb_block_drv">
 !  <resource name="RAM" quantum="4M"/>
 !  <provides> <service name="Block"/> </provides>
-!  <config label="usb_stick" report="yes" writeable="yes" interface="0" lun="0"/>
+!  <config label="usb_stick" report="yes" writeable="yes" interface="0" lun="0" reset_device="no" verbose_scsi="no"/>
 !  <route>
 !   <service name="Usb"> <child name="usb_drv"/> </service>
 !   <any-service> <parent/> <any-child/> </any-service>
@@ -63,7 +63,10 @@ session client to write to the USB device. Independent thereof the driver will
 query the device and will set the Block session operations accordingly. The
 'interface' specifies the USB interface the driver should use. If the device
 provides multiple SCSI devices the 'lun' attribute is used to select the right
-one.
+one. When 'reset_device' is enabled, a 'bulk-only mass storage reset' command
+is sent to the device at the beginning of the initialization step. This command
+caused problems on at least one device, so it is omitted by default. The
+'verbose_scsi' attribute can be useful for debugging.
 
 The configuration of the USB block driver cannot be changed at run-time. The
 driver is either used in a static system configuration where it is configured
