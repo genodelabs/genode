@@ -273,7 +273,7 @@ void Init::Main::_update_children_config()
 				node.attribute_value("name", Child_policy::Name());
 
 			_children.for_each_child([&] (Child &child) {
-				if (child.name() == start_node_name) {
+				if (!child.abandoned() && child.name() == start_node_name) {
 					switch (child.apply_config(node)) {
 					case Child::NO_SIDE_EFFECTS: break;
 					case Child::MAY_HAVE_SIDE_EFFECTS: side_effects = true; break;
@@ -318,7 +318,16 @@ void Init::Main::_handle_config()
 
 	/* kill abandoned children */
 	_children.for_each_child([&] (Child &child) {
-		if (child.abandoned()) {
+
+		if (!child.abandoned())
+			return;
+
+		/* make the child's services unavailable */
+		child.destroy_services();
+		child.close_all_sessions();
+
+		/* destroy child once all environment sessions are gone */
+		if (child.env_sessions_closed()) {
 			_children.remove(&child);
 			destroy(_heap, &child);
 		}
@@ -341,7 +350,8 @@ void Init::Main::_handle_config()
 			/* skip start node if corresponding child already exists */
 			bool exists = false;
 			_children.for_each_child([&] (Child const &child) {
-				if (child.name() == start_node.attribute_value("name", Child_policy::Name()))
+				if (!child.abandoned()
+				 && child.name() == start_node.attribute_value("name", Child_policy::Name()))
 					exists = true; });
 			if (exists) {
 				return;
@@ -409,13 +419,15 @@ void Init::Main::_handle_config()
 	 * Initiate RAM sessions of all new children
 	 */
 	_children.for_each_child([&] (Child &child) {
-		child.initiate_env_ram_session(); });
+		if (!child.abandoned())
+			child.initiate_env_ram_session(); });
 
 	/*
 	 * Initiate remaining environment sessions of all new children
 	 */
 	_children.for_each_child([&] (Child &child) {
-		child.initiate_env_sessions(); });
+		if (!child.abandoned())
+			child.initiate_env_sessions(); });
 
 	/*
 	 * (Re-)distribute RAM among the childen, given their resource assignments

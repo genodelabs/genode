@@ -426,7 +426,7 @@ append config {
 			<sleep ms="100"/>
 
 
-			<message string="test label rewritiong and binary-name update"/>
+			<message string="test label rewriting and binary-name update"/>
 
 			<init_config>
 				<parent-provides>
@@ -1051,6 +1051,64 @@ append config {
 			</expect_init_state>
 			<sleep ms="150"/>
 
+
+			<message string="test destruction of async env sessions"/>
+
+			<init_config version="async env session">
+				<parent-provides>
+					<service name="ROM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
+					<service name="LOG"/>
+				</parent-provides>
+				<default caps="100"/>
+				<start name="server">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="1M"/>
+					<provides> <service name="LOG"/> </provides>
+					<config> <log_service/> </config>
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+				<start name="dummy" version="1">
+					<resource name="RAM" quantum="1M"/>
+					<config> <log string="started version 1"/> </config>
+					<route>
+						<service name="LOG">
+							<child name="server"/> </service>
+						<any-service> <parent/> </any-service>
+					</route>
+				</start>
+			</init_config>
+			<expect_log string="[init -> server] [dummy] started version 1"/>
+			<sleep ms="150"/>
+			<init_config version="async env session">
+				<parent-provides>
+					<service name="ROM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
+					<service name="LOG"/>
+				</parent-provides>
+				<default caps="100"/>
+				<start name="server">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="1M"/>
+					<provides> <service name="LOG"/> </provides>
+					<config> <log_service/> </config>
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+				<start name="dummy" version="2">
+					<resource name="RAM" quantum="1M"/>
+					<config> <log string="started version 2"/> </config>
+					<route>
+						<service name="LOG">
+							<child name="server"/> </service>
+						<any-service> <parent/> </any-service>
+					</route>
+				</start>
+			</init_config>
+			<expect_log string="[init -> server] [dummy] started version 2"/>
+			<sleep ms="150"/>
+
 			<message string="test complete"/>
 
 		</config>
@@ -1094,5 +1152,5 @@ build_boot_image $boot_modules
 
 append qemu_args " -nographic "
 
-run_genode_until {.*child "test-init" exited with exit value 0.*} 150
+run_genode_until {.*child "test-init" exited with exit value 0.*} 170
 
