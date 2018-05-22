@@ -1393,6 +1393,9 @@ void Acpi::generate_report(Genode::Env &env, Genode::Allocator &alloc)
 		/* lambda definition for scope evaluation in rmrr */
 		auto func_scope = [&] (Device_scope const &scope)
 		{
+			if (!scope.count())
+				return;
+
 			xml.node("scope", [&] () {
 				xml.attribute("bus_start", scope.read<Device_scope::Bus>());
 				xml.attribute("type", scope.read<Device_scope::Type>());
