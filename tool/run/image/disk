@@ -32,7 +32,7 @@ proc run_image { {unused ""} } {
 	if {[image_disk_size] > 0} {
 		set disk_size_kb [expr [image_disk_size] * 1024 * 1024]
 	} else {
-		set disk_size_kb [expr ($size_run + 256 + 128) / 32 * 32]
+		set disk_size_kb [expr ($size_run + 512) / 32 * 32]
 	}
 
 	# setup partition with content
@@ -75,6 +75,7 @@ proc run_image { {unused ""} } {
 
 	# create partition table entry pointing to the content
 	catch { exec parted -a none [run_dir].img -- mkpart Fix GENODE ext2 [expr $first_sector]s ${last_sector}s }
+	exec parted [run_dir].img -s 'name 3 GENODE'
 
 	# create hybrid MBR
 	exec echo -e "r\no\nh\n1\nn\n\ny\nn\no\nw\ny\n" | gdisk [run_dir].img

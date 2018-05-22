@@ -69,6 +69,11 @@ proc run_boot_dir {binaries} {
 		if {[have_include "image/disk"]} {
 			exec mkdir -p [run_dir]/boot/grub
 			exec cp [genode_dir]/tool/boot/bender [run_dir]/boot/bender
+			exec cp [genode_dir]/tool/boot/boot.png [run_dir]/boot/boot.png
+			if {[file exists /boot/grub/unicode.pf2]} {
+				# needed in graphical menu with non-scrampled characters
+				# exec cp /boot/grub/unicode.pf2 [run_dir]/boot/grub/unicode.pf2
+			}
 		}
 
 		if {[have_include "image/iso"]} {
@@ -84,6 +89,12 @@ proc run_boot_dir {binaries} {
 			exec mkdir -p [run_dir]/boot/grub
 			exec cp [genode_dir]/tool/boot/bender [run_dir]/boot/bender
 
+			exec cp [genode_dir]/tool/boot/boot.png [run_dir]/boot/boot.png
+			if {[file exists /boot/grub/unicode.pf2]} {
+				# needed in graphical menu with non-scrampled characters
+				# exec cp /boot/grub/unicode.pf2 [run_dir]/boot/grub/unicode.pf2
+			}
+
 			set serial_bender_opt "serial_fallback"
 		}
 
@@ -91,9 +102,26 @@ proc run_boot_dir {binaries} {
 		# Generate GRUB2 config file
 		#
 		set fh [open "[run_dir]/boot/grub/grub.cfg" "WRONLY CREAT TRUNC"]
+
+		# If timeout != 0 is used and gfxterm, enable and add unicode.pf2 (see above)
+		# puts $fh "loadfont /boot/grub/unicode.pf2"
 		puts $fh "set timeout=0"
+
 		# tell grub2 to prefer 32bit framebuffer resolution
 		puts $fh "set gfxpayload=\"0x0x32\""
+
+		if {[have_include image/uefi]} {
+			puts $fh "insmod gfxterm"
+			puts $fh "terminal_output gfxterm"
+			puts $fh "insmod gfxterm_background"
+			puts $fh "insmod png"
+			puts $fh "background_image -m center /boot/boot.png"
+		}
+
+		# set this to get text console instead of graphical console
+		# puts $fh "terminal_input console"
+		# puts $fh "terminal_output console"
+
 		puts $fh "menuentry 'Genode on NOVA' {"
 		puts $fh " insmod multiboot2"
 		puts $fh " insmod gzio"

@@ -3,7 +3,7 @@ VERSION   := git
 DOWNLOADS := g2fg.git
 
 URL(g2fg) := https://github.com/alex-ab/g2fg.git
-REV(g2fg) := e6095dd34d71cb180271f47a7bbf20a813102a28
+REV(g2fg) := cf35a6e5dc35a9b1961f66cd37cb1d4c23309832
 DIR(g2fg) := boot
 
 default: $(DOWNLOADS)
