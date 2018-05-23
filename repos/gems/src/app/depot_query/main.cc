@@ -183,8 +183,31 @@ struct Depot_query::Main
 
 	typedef String<64> Rom_label;
 	typedef String<16> Architecture;
+	typedef String<32> Version;
 
-	Architecture _architecture { };
+	Architecture _architecture  { };
+
+	/**
+	 * Produce report that reflects the query version
+	 *
+	 * The functor 'fn' is called with an 'Xml_generator &' as argument to
+	 * produce the report content.
+	 */
+	template <typename FN>
+	void _gen_versioned_report(Constructible_reporter &reporter, Version const &version,
+	                           FN const &fn)
+	{
+		if (!reporter.constructed())
+			return;
+
+		reporter->generate([&] (Xml_generator &xml) {
+
+			if (version.valid())
+				xml.attribute("version", version);
+
+			fn(xml);
+		});
+	}
 
 	/**
 	 * Look up ROM module 'rom_label' in the archives referenced by 'pkg_path'
@@ -254,59 +277,53 @@ struct Depot_query::Main
 
 		_architecture = query.attribute_value("arch", Architecture());
 
-		if (_directory_reporter.constructed()) {
-			_directory_reporter->generate([&] (Xml_generator &xml) {
-				query.for_each_sub_node("scan", [&] (Xml_node node) {
-					Archive::User const user = node.attribute_value("user", Archive::User());
-					Directory::Path path("depot/", user, "/pkg");
-					Directory pkg_dir(_root, path);
-					_scan_depot_user_pkg(user, pkg_dir, xml);
-				});
+		Version const version = query.attribute_value("version", Version());
+
+		_gen_versioned_report(_directory_reporter, version, [&] (Xml_generator &xml) {
+			query.for_each_sub_node("scan", [&] (Xml_node node) {
+				Archive::User const user = node.attribute_value("user", Archive::User());
+				Directory::Path path("depot/", user, "/pkg");
+				Directory pkg_dir(_root, path);
+				_scan_depot_user_pkg(user, pkg_dir, xml);
 			});
-		}
+		});
 
-		if (_blueprint_reporter.constructed()) {
-			_blueprint_reporter->generate([&] (Xml_generator &xml) {
-				query.for_each_sub_node("blueprint", [&] (Xml_node node) {
-					Archive::Path pkg = node.attribute_value("pkg", Archive::Path());
-					try { _query_blueprint(pkg, xml); }
-					catch (Xml_generator::Buffer_exceeded) {
-						throw; /* handled by 'generate' */ }
-					catch (...) {
-						xml.node("missing", [&] () {
-							xml.attribute("path", pkg); }); }
-				});
+		_gen_versioned_report(_blueprint_reporter, version, [&] (Xml_generator &xml) {
+			query.for_each_sub_node("blueprint", [&] (Xml_node node) {
+				Archive::Path pkg = node.attribute_value("pkg", Archive::Path());
+				try { _query_blueprint(pkg, xml); }
+				catch (Xml_generator::Buffer_exceeded) {
+					throw; /* handled by 'generate' */ }
+				catch (...) {
+					xml.node("missing", [&] () {
+						xml.attribute("path", pkg); }); }
 			});
-		}
+		});
 
-		if (_dependencies_reporter.constructed()) {
-			_dependencies_reporter->generate([&] (Xml_generator &xml) {
-				Dependencies dependencies(_heap, _depot_dir);
-				query.for_each_sub_node("dependencies", [&] (Xml_node node) {
+		_gen_versioned_report(_dependencies_reporter, version, [&] (Xml_generator &xml) {
+			Dependencies dependencies(_heap, _depot_dir);
+			query.for_each_sub_node("dependencies", [&] (Xml_node node) {
 
-					Archive::Path const path = node.attribute_value("path", Archive::Path());
+				Archive::Path const path = node.attribute_value("path", Archive::Path());
 
-					if (node.attribute_value("source", false))
-						_collect_source_dependencies(path, dependencies, Recursion_limit{8});
+				if (node.attribute_value("source", false))
+					_collect_source_dependencies(path, dependencies, Recursion_limit{8});
 
-					if (node.attribute_value("binary", false))
-						_collect_binary_dependencies(path, dependencies, Recursion_limit{8});
-				});
-				dependencies.xml(xml);
+				if (node.attribute_value("binary", false))
+					_collect_binary_dependencies(path, dependencies, Recursion_limit{8});
 			});
-		}
+			dependencies.xml(xml);
+		});
 
-		if (_user_reporter.constructed()) {
-			_user_reporter->generate([&] (Xml_generator &xml) {
+		_gen_versioned_report(_user_reporter, version, [&] (Xml_generator &xml) {
 
-				/* query one user only */
-				bool first = true;
-				query.for_each_sub_node("user", [&] (Xml_node node) {
-					if (!first) return;
-					first = false;
-					_query_user(node.attribute_value("name", Archive::User()), xml); });
-			});
-		}
+			/* query one user only */
+			bool first = true;
+			query.for_each_sub_node("user", [&] (Xml_node node) {
+				if (!first) return;
+				first = false;
+				_query_user(node.attribute_value("name", Archive::User()), xml); });
+		});
 	}
 
 	Main(Env &env) : _env(env)
