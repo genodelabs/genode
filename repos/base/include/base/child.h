@@ -691,7 +691,7 @@ class Genode::Child : protected Rpc_object<Parent>,
 		{
 			if (_linker.constructed() && _linker->alive()) return false;
 
-			return !_pd.alive() && !_cpu.alive() && !_log.alive() && !_binary.alive();
+			return !_cpu.alive() && !_log.alive() && !_binary.alive();
 		}
 
 		/**

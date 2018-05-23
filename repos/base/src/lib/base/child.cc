@@ -819,9 +819,9 @@ void Child::close_all_sessions()
 
 	/*
 	 * Issue close requests to the providers of the environment sessions,
-	 * which may be async services.
+	 * which may be async services. Don't close the PD session since it
+	 * is still needed for reverting session quotas.
 	 */
-	_pd.close();
 	_log.close();
 	_binary.close();
 	if (_linker.constructed())
@@ -846,6 +846,9 @@ void Child::close_all_sessions()
 	};
 
 	while (_id_space.apply_any<Session_state>(close_fn));
+
+	if (!KERNEL_SUPPORTS_EAGER_CHILD_DESTRUCTION)
+		_cpu._connection.destruct();
 }
 
 
