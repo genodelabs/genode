@@ -34,10 +34,19 @@ Net::Uplink::Uplink(Env                 &env,
 	Nic::Connection(env, this, BUF_SIZE, BUF_SIZE, label.string()),
 	Net::Interface(env.ep(), timer, mac_address(), alloc, Mac_address(),
 	               config, interfaces, _intf_policy),
-	_label(label)
+	_label(label),
+	_link_state_handler(env.ep(), *this, &Uplink::_handle_link_state)
 {
 	rx_channel()->sigh_ready_to_ack(_sink_ack);
 	rx_channel()->sigh_packet_avail(_sink_submit);
 	tx_channel()->sigh_ack_avail(_source_ack);
 	tx_channel()->sigh_ready_to_submit(_source_submit);
+	Nic::Connection::link_state_sigh(_link_state_handler);
+}
+
+
+void Net::Uplink::_handle_link_state()
+{
+	try { domain().discard_ip_config(); }
+	catch (Domain::Ip_config_static) { }
 }

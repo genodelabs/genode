@@ -62,9 +62,12 @@ class Net::Uplink : public Uplink_base,
 			BUF_SIZE = Nic::Session::QUEUE_SIZE * PKT_SIZE,
 		};
 
-		Genode::Session_label const &_label;
+		Genode::Session_label    const &_label;
+		Genode::Signal_handler<Uplink>  _link_state_handler;
 
 		Ipv4_address_prefix _read_interface();
+
+		void _handle_link_state();
 
 
 		/********************

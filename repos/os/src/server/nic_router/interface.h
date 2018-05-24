@@ -271,8 +271,6 @@ class Net::Interface : private Interface_list::Element
 
 		void _attach_to_domain_raw(Domain_name const &domain_name);
 
-		void _attach_to_domain_finish();
-
 		void _apply_foreign_arp();
 
 		void _send_icmp_dst_unreachable(Ipv4_address_prefix const &local_intf,
@@ -381,6 +379,8 @@ class Net::Interface : private Interface_list::Element
 		void link_state_sigh(Genode::Signal_context_capability sigh);
 
 		void init();
+
+		void attach_to_domain_finish();
 
 
 		/***************

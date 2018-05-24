@@ -129,8 +129,9 @@ class Net::Domain : public Domain_base,
 
 	public:
 
-		struct Invalid     : Genode::Exception { };
-		struct No_next_hop : Genode::Exception { };
+		struct Invalid          : Genode::Exception { };
+		struct Ip_config_static : Genode::Exception { };
+		struct No_next_hop      : Genode::Exception { };
 
 		Domain(Configuration          &config,
 		       Genode::Xml_node const  node,

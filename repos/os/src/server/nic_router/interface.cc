@@ -256,11 +256,11 @@ void Interface::_detach_from_domain_raw()
 void Interface::_attach_to_domain(Domain_name const &domain_name)
 {
 	_attach_to_domain_raw(domain_name);
-	_attach_to_domain_finish();
+	attach_to_domain_finish();
 }
 
 
-void Interface::_attach_to_domain_finish()
+void Interface::attach_to_domain_finish()
 {
 	/* if domain has yet no IP config, participate in requesting one */
 	Domain &domain = _domain();
@@ -1631,7 +1631,7 @@ void Interface::handle_config_3()
 	catch (Pointer<Update_domain>::Invalid) {
 
 		/* if the interface moved to another domain, finish the operation */
-		try { _attach_to_domain_finish(); }
+		try { attach_to_domain_finish(); }
 		catch (Pointer<Domain>::Invalid) { }
 	}
 }

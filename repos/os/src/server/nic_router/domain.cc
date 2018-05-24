@@ -53,6 +53,9 @@ Domain_base::Domain_base(Xml_node const node)
 
 void Domain::ip_config(Ipv4_config const &new_ip_config)
 {
+	if (!_ip_config_dynamic) {
+		throw Ip_config_static(); }
+
 	/* discard old IP config if any */
 	if (ip_config().valid) {
 
@@ -86,6 +89,10 @@ void Domain::ip_config(Ipv4_config const &new_ip_config)
 				interface.attach_to_remote_ip_config();
 			});
 		});
+	} else {
+		_interfaces.for_each([&] (Interface &interface) {
+			interface.attach_to_domain_finish();
+		});
 	}
 }
 
@@ -93,7 +100,8 @@ void Domain::ip_config(Ipv4_config const &new_ip_config)
 void Domain::discard_ip_config()
 {
 	/* install invalid IP config */
-	ip_config(Ipv4_address(), Ipv4_address(), Ipv4_address(), Ipv4_address());
+	Ipv4_config const new_ip_config;
+	ip_config(new_ip_config);
 }
 
 
