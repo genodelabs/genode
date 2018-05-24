@@ -217,6 +217,8 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 			for (unsigned i = 0; i < Device::NUM_RESOURCES; i++) {
 				_io_port_conn[i] = nullptr;
 			}
+
+			_disable_bus_master_dma();
 		}
 
 		/**
