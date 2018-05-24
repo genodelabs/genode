@@ -26,7 +26,8 @@ Net::Report::Report(Xml_node const     node,
                     Reporter          &reporter)
 :
 	_config(node.attribute_value("config", true)),
-	_bytes (node.attribute_value("bytes",  true)),
+	_config_triggers(node.attribute_value("config_triggers", false)),
+	_bytes(node.attribute_value("bytes", true)),
 	_reporter(reporter),
 	_domains(domains),
 	_timeout(timer, *this, &Report::_handle_report_timeout,
@@ -36,7 +37,7 @@ Net::Report::Report(Xml_node const     node,
 }
 
 
-void Net::Report::_handle_report_timeout(Duration)
+void Net::Report::_report()
 {
 	try {
 		Reporter::Xml_generator xml(_reporter, [&] () {
@@ -47,4 +48,19 @@ void Net::Report::_handle_report_timeout(Duration)
 	} catch (Xml_generator::Buffer_exceeded) {
 		Genode::warning("Failed to generate report");
 	}
+}
+
+
+void Net::Report::_handle_report_timeout(Duration)
+{
+	_report();
+}
+
+
+void Net::Report::handle_config()
+{
+	if (!_config_triggers) {
+		return; }
+
+	_report();
 }

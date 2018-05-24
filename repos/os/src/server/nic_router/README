@@ -435,22 +435,24 @@ However, there are still some differences that are visible to the user:
 Configuring reporting functionality
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The NIC router can be configured to periodically send reports.
+The NIC router can be configured to send reports about its state.
 
 Configuration example (shows default values of attributes):
 
 <config>
-    <report interval_sec="5" bytes="yes" config="yes">
+    <report interval_sec="5" bytes="yes" config="yes" config_triggers="no">
 </config>
 
 If the 'report' tag is not available, no reports are send.
 The attributes of the 'report' tag:
 
-'bytes'        : Boolean : Whether to report sent bytes and received bytes per
-                           domain
-'config'       : Boolean : Whether to report ipv4 interface and gateway per
-                           domain
-'interval_sec' : 1..3600 : Interval of sending reports in seconds
+'bytes'           : Boolean : Whether to report sent bytes and received bytes
+                              per domain
+'config'          : Boolean : Whether to report IPv4 interface and gateway per
+                              domain
+'config_triggers' : Boolean : Wether to force a report each time the IPv4
+                              config changes
+'interval_sec'    : 1..3600 : Interval of sending reports in seconds
 
 
 Verbosity
