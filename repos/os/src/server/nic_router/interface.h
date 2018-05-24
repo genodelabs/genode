@@ -235,10 +235,6 @@ class Net::Interface : private Interface_list::Element
 
 		void _ack_packet(Packet_descriptor const &pkt);
 
-		virtual Packet_stream_sink &_sink() = 0;
-
-		virtual Packet_stream_source &_source() = 0;
-
 		void _send_alloc_pkt(Genode::Packet_descriptor   &pkt,
 		                     void                      * &pkt_base,
 		                     Genode::size_t               pkt_size);
@@ -284,6 +280,15 @@ class Net::Interface : private Interface_list::Element
 		                                Ipv4_packet         const &req_ip,
                                         Icmp_packet::Code   const  code);
 
+		/*******************
+		 ** Pure virtuals **
+		 *******************/
+
+		virtual Packet_stream_sink &_sink() = 0;
+
+		virtual Packet_stream_source &_source() = 0;
+
+		virtual bool _link_state() = 0;
 
 
 		/***********************************
@@ -372,8 +377,6 @@ class Net::Interface : private Interface_list::Element
 		void detach_from_remote_ip_config();
 
 		void attach_to_remote_ip_config();
-
-		bool link_state();
 
 		void link_state_sigh(Genode::Signal_context_capability sigh);
 

@@ -284,17 +284,6 @@ void Interface::attach_to_ip_config(Domain            &domain,
 }
 
 
-bool Interface::link_state()
-{
-	try {
-		_domain();
-		return true;
-	}
-	catch (Pointer<Domain>::Invalid) { }
-	return false;
-}
-
-
 void Interface::link_state_sigh(Signal_context_capability sigh)
 {
 	_link_state_sigh = sigh;

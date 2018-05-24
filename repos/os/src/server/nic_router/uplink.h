@@ -71,8 +71,9 @@ class Net::Uplink : public Uplink_base,
 		 ** Net::Interface **
 		 ********************/
 
-		Packet_stream_sink   &_sink()   override { return *rx(); }
-		Packet_stream_source &_source() override { return *tx(); }
+		Packet_stream_sink   &_sink()       override { return *rx(); }
+		Packet_stream_source &_source()     override { return *tx(); }
+		bool                  _link_state() override { return link_state(); }
 
 	public:
 

@@ -108,6 +108,17 @@ Net::Session_component::Session_component(Allocator           &alloc,
 }
 
 
+bool Net::Session_component::_link_state()
+{
+	try {
+		domain();
+		return true;
+	}
+	catch (Pointer<Domain>::Invalid) { }
+	return false;
+}
+
+
 /**********
  ** Root **
  **********/
