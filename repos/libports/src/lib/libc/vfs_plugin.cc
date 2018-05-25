@@ -91,14 +91,10 @@ static void vfs_stat_to_libc_stat_struct(Vfs::Directory_service::Stat const &src
 
 static Genode::Xml_node *_config_node;
 
+char const *libc_resolv_path;
+
 
 namespace Libc {
-
-	void libc_config_init(Genode::Xml_node node)
-	{
-		static Genode::Xml_node config = node;
-		_config_node = &config;
-	}
 
 	Genode::Xml_node config() __attribute__((weak));
 	Genode::Xml_node config()
@@ -141,6 +137,22 @@ namespace Libc {
 	{
 		static Config_attr socket("socket", "");
 		return socket.string();
+	}
+
+	char const *config_nameserver_file() __attribute__((weak));
+	char const *config_nameserver_file()
+	{
+		static Config_attr ns_file("nameserver_file",
+		                           "/socket/nameserver");
+		return ns_file.string();
+	}
+
+	void libc_config_init(Genode::Xml_node node)
+	{
+		static Genode::Xml_node config = node;
+		_config_node = &config;
+
+		libc_resolv_path = config_nameserver_file();
 	}
 
 	void notify_read_ready(Vfs::Vfs_handle *handle)

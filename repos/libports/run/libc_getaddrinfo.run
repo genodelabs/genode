@@ -52,9 +52,6 @@ append config {
 		<resource name="RAM" quantum="32M"/>
 		<config>
 			<vfs>
-				<dir name="etc">
-					<inline name="resolv.conf">nameserver 10.0.2.3</inline>
-				</dir>
 				<dir name="dev"> <log/> </dir>
 				<dir name="socket"> <lxip dhcp="yes"/> </dir>
 			</vfs>

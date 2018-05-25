@@ -22,7 +22,6 @@ copy-contrib-files:
 	done
 
 generate-files: copy-contrib-files
-	$(VERBOSE)echo 'nameserver 8.8.8.8' > $(TARGET_DIR)/resolv.conf
 
 $(BUILD_BIN_DIR)/$(TARGET): generate-files
 

@@ -1,6 +1,6 @@
 /*
  * \brief  Libc plugin providing lwIP's DNS server address in the
- *         '/etc/resolv.conf' file
+ *         '/socket/nameserver' file
  * \author Christian Prochaska
  * \date   2013-05-02
  */
@@ -122,13 +122,13 @@ namespace {
 			/**
 			 * File name this plugin feels responsible for
 			 */
-			static char const *_file_name() { return "/etc/resolv.conf"; }
+			static char const *_file_name() { return "/socket/nameserver"; }
 
 			const char *_file_content()
 			{
 				static char result[32];
 				ip_addr_t nameserver_ip = dns_getserver(0);
-				snprintf(result, sizeof(result), "nameserver %s\n",
+				snprintf(result, sizeof(result), "%s\n",
 				         ipaddr_ntoa(&nameserver_ip));
 				return result;
 			}
@@ -150,7 +150,7 @@ namespace {
 
 			bool supports_stat(const char *path)
 			{
-				return (Genode::strcmp(path, "/etc") == 0) ||
+				return (Genode::strcmp(path, "/socket") == 0) ||
 				       (Genode::strcmp(path, _file_name()) == 0);
 			}
 
@@ -177,7 +177,7 @@ namespace {
 			{
 				if (buf) {
 					Genode::memset(buf, 0, sizeof(struct stat));
-					if (Genode::strcmp(path, "/etc") == 0)
+					if (Genode::strcmp(path, "/socket") == 0)
 						buf->st_mode = S_IFDIR;
 					else if (Genode::strcmp(path, _file_name()) == 0) {
 						buf->st_mode = S_IFREG;

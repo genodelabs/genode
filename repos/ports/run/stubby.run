@@ -99,14 +99,12 @@ append config {
 		<config>
 			<vfs>
 				<ram/>
-				<dir name="etc">
-					<inline name="resolv.conf">nameserver 10.0.2.3</inline> </dir>
 				<dir name="dev">
 					<log/> <null/> <rtc/>
 					<jitterentropy name="random"/>
 				</dir>
 				<dir name="socket">
-					<lxip ip_addr="10.0.53.2" netmask="255.255.255.0" gateway="10.0.53.1"/>
+					<lxip ip_addr="10.0.53.2" netmask="255.255.255.0" gateway="10.0.53.1" nameserver="10.0.2.3"/>
 				</dir>
 <inline name="stubby.yaml">
 listen_addresses:
@@ -125,9 +123,6 @@ listen_addresses:
 		<provides> <service name="File_system"/> </provides>
 		<config>
 			<vfs>
-				<dir name="etc">
-					<inline name="resolv.conf">nameserver 10.0.53.2</inline>
-				</dir>
 				<dir name="socket"> <lxip dhcp="yes"/> </dir>
 			</vfs>
 			<default-policy writeable="yes" root="/"/>

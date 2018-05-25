@@ -85,9 +85,6 @@ append config {
 		<config>
 			<report progress="yes"/>
 			<vfs>
-				<dir name="etc">
-					<inline name="resolv.conf">nameserver 1.1.1.1</inline>
-				</dir>
 				<dir name="dev">
 					<log/> <null/> <inline name="rtc">2000-01-01 00:00</inline>
 					<inline name="random">01234567890123456789</inline>

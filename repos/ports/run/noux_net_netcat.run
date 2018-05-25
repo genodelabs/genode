@@ -40,7 +40,7 @@ build $build_components
 
 #
 # The '<build-dir>/bin/etc/' directory is expected to contain the
-# files 'services', 'protocols', 'hosts', and 'resolv.conf'.
+# files 'services', 'protocols', and 'hosts'.
 # Download these files from the FreeBSD source tree is possible.
 #
 exec mkdir -p bin/etc
@@ -48,7 +48,6 @@ set freebsd_url "http://svn.freebsd.org/base/release/8.2.0/etc"
 foreach etc_file { services protocols hosts } {
 	if {![file exists bin/etc/$etc_file]} {
 		catch { exec wget -c -P bin/etc $freebsd_url/$etc_file } } }
-exec touch bin/etc/resolv.conf
 
 exec tar rfv bin/netcat.tar -h -C bin/ etc
 

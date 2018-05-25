@@ -1,0 +1,69 @@
++++ src/lib/libc/lib/libc/resolv/res_init.c
+@@ -152,6 +152,10 @@
+ 	return (__res_vinit(statp, 0));
+ }
+ 
++
++extern char const *libc_resolv_path;
++
++
+ /*% This function has to be reachable by res_data.c but not publically. */
+ int
+ __res_vinit(res_state statp, int preinit) {
+@@ -304,8 +308,47 @@
+ 	 line[sizeof(name) - 1] == '\t'))
+ 
+ 	nserv = 0;
+-	if ((fp = fopen(_PATH_RESCONF, "r")) != NULL) {
++	if ((fp = fopen(libc_resolv_path, "r")) != NULL) {
+ 	    /* read the config file */
++#if 1
++		if (fgets(buf, sizeof(buf), fp) != NULL) {
++			/* read nameservers to query */
++			struct addrinfo hints, *ai;
++			char sbuf[NI_MAXSERV];
++			const size_t minsiz = sizeof(statp->_u._ext.ext->nsaddrs[0]);
++
++			cp = buf;
++			cp[strcspn(cp, "\n")] = '\0';
++
++			if ((*cp != '\0') && (*cp != '\n')) {
++
++				memset(&hints, 0, sizeof(hints));
++				hints.ai_family = PF_UNSPEC;
++				hints.ai_socktype = SOCK_DGRAM;	/*dummy*/
++				hints.ai_flags = AI_NUMERICHOST;
++				sprintf(sbuf, "%u", NAMESERVER_PORT);
++
++				if (getaddrinfo(cp, sbuf, &hints, &ai) == 0 &&
++				    ai->ai_addrlen <= minsiz) {
++					if (statp->_u._ext.ext != NULL) {
++						memcpy(&statp->_u._ext.ext->nsaddrs[nserv],
++						       ai->ai_addr, ai->ai_addrlen);
++					}
++
++					if (ai->ai_addrlen <=
++					    sizeof(statp->nsaddr_list[nserv])) {
++						memcpy(&statp->nsaddr_list[nserv],
++						       ai->ai_addr, ai->ai_addrlen);
++					} else {
++						statp->nsaddr_list[nserv].sin_family = 0;
++					}
++
++					freeaddrinfo(ai);
++					nserv++;
++				}
++			}
++		}
++#else
+ 	    while (fgets(buf, sizeof(buf), fp) != NULL) {
+ 		/* skip comments */
+ 		if (*buf == ';' || *buf == '#')
+@@ -502,6 +545,7 @@
+ 		    continue;
+ 		}
+ 	    }
++#endif /* 1 */
+ 	    if (nserv > 0) 
+ 		statp->nscount = nserv;
+ #ifdef RESOLVSORT

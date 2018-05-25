@@ -45,14 +45,12 @@
 			<config>
 				<vfs>
 					<ram/>
-					<dir name="etc">
-						<inline name="resolv.conf">nameserver 9.9.9.9</inline> </dir>
 					<dir name="dev">
 						<log/> <null/> <rtc/>
 						<jitterentropy name="random"/>
 					</dir>
 					<dir name="socket">
-						<lxip ip_addr="10.0.1.2" netmask="255.255.255.0" gateway="10.0.1.1"/>
+						<lxip ip_addr="10.0.1.2" netmask="255.255.255.0" gateway="10.0.1.1" nameserver="9.9.9.9"/>
 					</dir>
 <inline name="stubby.yaml">
 listen_addresses:
