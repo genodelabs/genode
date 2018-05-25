@@ -145,7 +145,10 @@ void Domain::_read_forward_rules(Cstring  const    &protocol,
 			if (_config.verbose()) {
 				log("[", *this, "] forward rule: ", protocol, " ", rule); }
 		}
-		catch (Rule::Invalid) { log("[", *this, "] invalid forward rule"); }
+		catch (Rule::Invalid) {
+			log("[", *this, "] invalid domain (invalid forward rule)");
+			throw Invalid();
+		}
 	});
 }
 
@@ -161,7 +164,10 @@ void Domain::_read_transport_rules(Cstring  const      &protocol,
 			rules.insert(*new (_alloc) Transport_rule(domains, node, _alloc,
 			                                          protocol, _config));
 		}
-		catch (Rule::Invalid) { log("[", *this, "] invalid transport rule"); }
+		catch (Rule::Invalid) {
+			log("[", *this, "] invalid domain (invalid transport rule)");
+			throw Invalid();
+		}
 	});
 }
 
@@ -286,17 +292,26 @@ void Domain::init(Domain_tree &domains)
 				                      _udp_port_alloc, _icmp_port_alloc,
 				                      node));
 		}
-		catch (Rule::Invalid) { log("[", *this, "] invalid NAT rule"); }
+		catch (Rule::Invalid) {
+			log("[", *this, "] invalid domain (invalid NAT rule)");
+			throw Invalid();
+		}
 	});
 	/* read ICMP rules */
 	_node.for_each_sub_node("icmp", [&] (Xml_node const node) {
 		try { _icmp_rules.insert(*new (_alloc) Ip_rule(domains, node)); }
-		catch (Rule::Invalid) { warning("invalid ICMP rule"); }
+		catch (Rule::Invalid) {
+			log("[", *this, "] invalid domain (invalid ICMP rule)");
+			throw Invalid();
+		}
 	});
 	/* read IP rules */
 	_node.for_each_sub_node("ip", [&] (Xml_node const node) {
 		try { _ip_rules.insert(*new (_alloc) Ip_rule(domains, node)); }
-		catch (Rule::Invalid) { log("[", *this, "] invalid IP rule"); }
+		catch (Rule::Invalid) {
+			log("[", *this, "] invalid domain (invalid IP rule)");
+			throw Invalid();
+		}
 	});
 }
 
