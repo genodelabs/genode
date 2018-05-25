@@ -221,6 +221,8 @@ struct Net::Domain_tree : Genode::Avl_tree<Genode::Avl_string_base>
 
 	void insert(Domain &domain) { Avl_tree::insert(&domain.avl_member()); }
 
+	void remove(Domain &domain) { Avl_tree::remove(&domain.avl_member()); }
+
 	void destroy_each(Genode::Deallocator &dealloc);
 };
 

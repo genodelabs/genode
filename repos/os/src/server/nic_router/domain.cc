@@ -247,7 +247,7 @@ void Domain::init(Domain_tree &domains)
 	try {
 		Xml_node const dhcp_server_node = _node.sub_node("dhcp-server");
 		if (_ip_config_dynamic) {
-			log("[", *this, "] cannot be DHCP server and client at the same time");
+			log("[", *this, "] invalid domain (DHCP server and client at once)");
 			throw Invalid();
 		}
 		Dhcp_server &dhcp_server = *new (_alloc)
@@ -262,6 +262,11 @@ void Domain::init(Domain_tree &domains)
 			log("[", *this, "] DHCP server: ", _dhcp_server()); }
 	}
 	catch (Xml_node::Nonexistent_sub_node) { }
+	catch (Dhcp_server::Invalid) {
+		if (_config.verbose()) {
+			log("[", *this, "] invalid domain (invalid DHCP server)"); }
+		throw Invalid();
+	}
 
 	/* read forward rules */
 	_read_forward_rules(tcp_name(), domains, _node, "tcp-forward",
@@ -374,7 +379,7 @@ void Domain_tree::destroy_each(Deallocator &dealloc)
 {
 	while (Avl_string_base *first_ = first()) {
 		Domain &domain_ = domain(*first_);
-		remove(first_);
+		Avl_tree::remove(first_);
 		destroy(dealloc, &domain_);
 	}
 }

@@ -57,14 +57,21 @@ Configuration::Configuration(Env               &env,
 	/* read domains */
 	node.for_each_sub_node("domain", [&] (Xml_node const node) {
 		try { _domains.insert(*new (_alloc) Domain(*this, node, _alloc)); }
-		catch (Domain::Invalid) { warning("invalid domain"); }
+		catch (Domain::Invalid) { log("invalid domain"); }
 	});
 	/* do those parts of domain init that require the domain tree to be complete */
+	List<Domain> invalid_domains;
 	_domains.for_each([&] (Domain &domain) {
-		if (_verbose) {
-			log("Domain: ", domain); }
-
-		domain.init(_domains);
+		try {
+			domain.init(_domains);
+			if (_verbose) {
+				log("[", domain, "] initiated domain"); }
+		}
+		catch (Domain::Invalid) { invalid_domains.insert(&domain); }
+	});
+	invalid_domains.for_each([&] (Domain &domain) {
+		_domains.remove(domain);
+		destroy(_alloc, &domain);
 	});
 	try {
 		/* check whether we shall create a report generator */
