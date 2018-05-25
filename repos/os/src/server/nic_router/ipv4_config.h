@@ -25,10 +25,14 @@ struct Net::Ipv4_config
 	bool                const interface_valid { interface.valid() };
 	Ipv4_address        const gateway         { };
 	bool                const gateway_valid   { gateway.valid() };
+	bool                const point_to_point  { gateway_valid &&
+	                                            interface_valid &&
+	                                            interface.prefix == 32 };
 	Ipv4_address        const dns_server      { };
-	bool                const valid           { interface_valid &&
-	                                            (!gateway_valid ||
-	                                             interface.prefix_matches(gateway)) };
+	bool                const valid           { point_to_point ||
+	                                            (interface_valid &&
+	                                             (!gateway_valid ||
+	                                              interface.prefix_matches(gateway))) };
 
 	Ipv4_config(Ipv4_address_prefix interface,
 	            Ipv4_address        gateway,

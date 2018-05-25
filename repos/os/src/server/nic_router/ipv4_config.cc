@@ -27,8 +27,7 @@ Ipv4_config::Ipv4_config(Ipv4_address_prefix interface,
 	interface(interface), gateway(gateway), dns_server(dns_server)
 {
 	if (!valid && (interface_valid || gateway_valid)) {
-		error("Bad IP configuration");
-	}
+		error("Bad IP configuration ", *this); }
 }
 
 
@@ -36,7 +35,7 @@ void Ipv4_config::print(Output &output) const
 {
 	if (valid) {
 		Genode::print(output, "interface ", interface, ", gateway ", gateway,
-		              ", DNS server ", dns_server); }
+		              ", DNS server ", dns_server, " p2p ", point_to_point); }
 	else {
 		Genode::print(output, "none"); }
 }
