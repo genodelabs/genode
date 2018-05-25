@@ -41,8 +41,9 @@ void Pd_session_component::map(addr_t virt, addr_t size)
 
 	auto lambda = [&] (Region_map_component *region_map,
 	                   Rm_region            *region,
-	                   addr_t                ds_offset,
-	                   addr_t                region_offset) -> addr_t
+	                   addr_t const          ds_offset,
+	                   addr_t const          region_offset,
+	                   addr_t const          dst_region_size) -> addr_t
 	{
 		Dataspace_component * dsc = region ? region->dataspace() : nullptr;
 		if (!dsc) {
@@ -54,7 +55,8 @@ void Pd_session_component::map(addr_t virt, addr_t size)
 		                                                        region,
 		                                                        ds_offset,
 		                                                        region_offset,
-		                                                        dsc, virt);
+		                                                        dsc, virt,
+		                                                        dst_region_size);
 
 		/* asynchronously map memory */
 		uint8_t err = Nova::NOVA_PD_OOM;

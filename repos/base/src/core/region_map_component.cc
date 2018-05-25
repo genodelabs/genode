@@ -185,8 +185,9 @@ int Rm_client::pager(Ipc_pager &pager)
 
 	auto lambda = [&] (Region_map_component *region_map,
 	                   Rm_region            *region,
-	                   addr_t                ds_offset,
-	                   addr_t                region_offset) -> int
+	                   addr_t const          ds_offset,
+	                   addr_t const          region_offset,
+	                   addr_t const          dst_region_size) -> int
 	{
 		Dataspace_component * dsc = region ? region->dataspace() : nullptr;
 		if (!dsc) {
@@ -240,7 +241,8 @@ int Rm_client::pager(Ipc_pager &pager)
 		                                                        region,
 		                                                        ds_offset,
 		                                                        region_offset,
-		                                                        dsc, pf_addr);
+		                                                        dsc, pf_addr,
+		                                                        dst_region_size);
 
 		/*
 		 * On kernels with a mapping database, the 'dsc' dataspace is a leaf
@@ -312,16 +314,17 @@ void Rm_faulter::continue_after_resolved_fault()
 
 Mapping Region_map_component::create_map_item(Region_map_component *,
                                               Rm_region            *region,
-                                              addr_t                ds_offset,
-                                              addr_t                region_offset,
+                                              addr_t const          ds_offset,
+                                              addr_t const          region_offset,
                                               Dataspace_component  *dsc,
-                                              addr_t                page_addr)
+                                              addr_t const          page_addr,
+                                              addr_t const          dst_region_size)
 {
 	addr_t ds_base = dsc->map_src_addr();
 	Fault_area src_fault_area(ds_base + ds_offset);
 	Fault_area dst_fault_area(page_addr);
 	src_fault_area.constrain(ds_base, dsc->size());
-	dst_fault_area.constrain(region_offset + region->base(), region->size());
+	dst_fault_area.constrain(region_offset + region->base(), dst_region_size);
 
 	/*
 	 * Determine mapping size compatible with source and destination,
@@ -359,6 +362,10 @@ Region_map_component::attach(Dataspace_capability ds_cap, size_t size,
 	auto lambda = [&] (Dataspace_component *dsc) {
 		/* check dataspace validity */
 		if (!dsc) throw Invalid_dataspace();
+
+		size_t const off = offset;
+		if (off >= dsc->size())
+			throw Region_conflict();
 
 		if (!size)
 			size = dsc->size() - offset;

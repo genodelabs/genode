@@ -318,7 +318,8 @@ class Genode::Region_map_component : private Weak_object<Region_map_component>,
 		Dataspace_capability          _ds_cap;
 
 		template <typename F>
-		auto _apply_to_dataspace(addr_t addr, F f, addr_t offset, unsigned level)
+		auto _apply_to_dataspace(addr_t addr, F f, addr_t offset,
+		                         unsigned level, addr_t dst_region_size)
 		-> typename Trait::Functor<decltype(&F::operator())>::Return_type
 		{
 			using Functor = Trait::Functor<decltype(&F::operator())>;
@@ -327,12 +328,16 @@ class Genode::Region_map_component : private Weak_object<Region_map_component>,
 			Lock::Guard lock_guard(_lock);
 
 			/* skip further lookup when reaching the recursion limit */
-			if (!level) return f(this, nullptr, 0, 0);
+			if (!level) return f(this, nullptr, 0, 0, dst_region_size);
 
 			/* lookup region and dataspace */
 			Rm_region *region        = _map.metadata((void*)addr);
 			Dataspace_component *dsc = region ? region->dataspace()
 			                                  : nullptr;
+
+			if (region && dst_region_size > region->size())
+				dst_region_size = region->size();
+
 
 			/* calculate offset in dataspace */
 			addr_t ds_offset = region ? (addr - region->base()
@@ -342,15 +347,16 @@ class Genode::Region_map_component : private Weak_object<Region_map_component>,
 			Native_capability cap = dsc ? dsc->sub_rm()
 			                            : Native_capability();
 
-			if (!cap.valid()) return f(this, region, ds_offset, offset);
+			if (!cap.valid()) return f(this, region, ds_offset, offset, dst_region_size);
 
 			/* in case of a nested dataspace perform a recursive lookup */
 			auto lambda = [&] (Region_map_component *rmc) -> Return_type
 			{
-				return (!rmc) ? f(nullptr, nullptr, ds_offset, offset)
+				return (!rmc) ? f(nullptr, nullptr, ds_offset, offset, dst_region_size)
 				              : rmc->_apply_to_dataspace(ds_offset, f,
 				                                         offset+region->base(),
-				                                         --level);
+				                                         --level,
+				                                         dst_region_size);
 			};
 			return _session_ep->apply(cap, lambda);
 		}
@@ -419,7 +425,7 @@ class Genode::Region_map_component : private Weak_object<Region_map_component>,
 		{
 			enum { RECURSION_LIMIT = 5 };
 
-			return _apply_to_dataspace(addr, f, 0, RECURSION_LIMIT);
+			return _apply_to_dataspace(addr, f, 0, RECURSION_LIMIT, ~0UL);
 		}
 
 		/**
@@ -438,7 +444,7 @@ class Genode::Region_map_component : private Weak_object<Region_map_component>,
 		                               addr_t                ds_offset,
 		                               addr_t                region_offset,
 		                               Dataspace_component  *dsc,
-		                               addr_t);
+		                               addr_t, addr_t);
 
 		/**************************
 		 ** Region map interface **
