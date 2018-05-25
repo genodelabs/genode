@@ -83,13 +83,10 @@ struct Menu_view::Button_widget : Widget, Animator::Item
 
 		_update_children(node);
 
-		bool const dy = selected ? 1 : 0;
-
 		_children.for_each([&] (Widget &child) {
 			child.geometry(Rect(Point(margin.left + padding.left,
-			                          margin.top  + padding.top + dy),
-			                    child.min_size()));
-		});
+			                          margin.top  + padding.top),
+			                    child.min_size())); });
 	}
 
 	Area min_size() const override
@@ -136,6 +133,9 @@ struct Menu_view::Button_widget : Widget, Animator::Item
 
 		Icon_painter::paint(alpha_surface, Rect(at, _animated_geometry.area()),
 		                    scratch.texture(), 255);
+
+		if (selected)
+			at = at + Point(0, 1);
 
 		_draw_children(pixel_surface, alpha_surface, at);
 	}
