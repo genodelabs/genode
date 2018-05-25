@@ -235,6 +235,7 @@ struct Nitpicker::Main : Focus_updater
 	}
 
 	void _handle_fb_mode();
+	void _report_displays();
 
 	Signal_handler<Main> _fb_mode_handler = { _env.ep(), *this, &Main::_handle_fb_mode };
 
@@ -277,6 +278,7 @@ struct Nitpicker::Main : Focus_updater
 	Reporter _focus_reporter    = { _env, "focus" };
 	Reporter _keystate_reporter = { _env, "keystate" };
 	Reporter _clicked_reporter  = { _env, "clicked" };
+	Reporter _displays_reporter = { _env, "displays" };
 
 	Attached_rom_dataspace _config_rom { _env, "config" };
 
@@ -377,6 +379,8 @@ struct Nitpicker::Main : Focus_updater
 		_framebuffer.mode_sigh(_fb_mode_handler);
 
 		_env.parent().announce(_env.ep().manage(_root));
+
+		_report_displays();
 	}
 };
 
@@ -526,6 +530,7 @@ void Nitpicker::Main::_handle_config()
 	configure_reporter(config, _focus_reporter);
 	configure_reporter(config, _keystate_reporter);
 	configure_reporter(config, _clicked_reporter);
+	configure_reporter(config, _displays_reporter);
 
 	/* update domain registry and session policies */
 	for (Session_component *s = _session_list.first(); s; s = s->next())
@@ -570,6 +575,20 @@ void Nitpicker::Main::_handle_config()
 }
 
 
+void Nitpicker::Main::_report_displays()
+{
+	if (!_displays_reporter.enabled())
+		return;
+
+	Reporter::Xml_generator xml(_displays_reporter, [&] () {
+		xml.node("display", [&] () {
+			xml.attribute("width",  _fb_screen->size.w());
+			xml.attribute("height", _fb_screen->size.h());
+		});
+	});
+}
+
+
 void Nitpicker::Main::_handle_fb_mode()
 {
 	/* reconstruct framebuffer screen and menu bar */
@@ -584,6 +603,8 @@ void Nitpicker::Main::_handle_fb_mode()
 	/* notify clients about the change screen mode */
 	for (Session_component *s = _session_list.first(); s; s = s->next())
 		s->notify_mode_change();
+
+	_report_displays();
 }
 
 
