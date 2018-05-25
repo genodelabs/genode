@@ -15,6 +15,7 @@
 #define _INCLUDE__OS__REPORTER_H_
 
 #include <util/retry.h>
+#include <util/xml_node.h>
 #include <util/reconstructible.h>
 #include <base/attached_dataspace.h>
 #include <report_session/connection.h>
@@ -190,6 +191,12 @@ class Genode::Expanding_reporter
 			_reporter->enabled(true);
 		}
 
+		void _increase_report_buffer()
+		{
+			_buffer_size += 4096;
+			_construct();
+		}
+
 	public:
 
 		Expanding_reporter(Env &env, Node_type const &type, Label const &label)
@@ -200,16 +207,21 @@ class Genode::Expanding_reporter
 		{
 			retry<Xml_generator::Buffer_exceeded>(
 
-				/* attempt to generate a report, may throw */
 				[&] () {
 					Reporter::Xml_generator
 						xml(*_reporter, [&] () { fn(xml); }); },
 
-				/* respond to exception by successively increasing the buffer */
-				[&] () {
-					_buffer_size += 4096;
-					_construct();
-				}
+				[&] () { _increase_report_buffer(); }
+			);
+		}
+
+		void generate(Xml_node node)
+		{
+			retry<Xml_generator::Buffer_exceeded>(
+
+				[&] () { _reporter->report(node.addr(), node.size()); },
+
+				[&] () { _increase_report_buffer(); }
 			);
 		}
 };
