@@ -362,6 +362,7 @@ void Domain::report(Xml_generator &xml)
 		if (config) {
 			xml.attribute("ipv4", String<19>(ip_config().interface));
 			xml.attribute("gw",   String<16>(ip_config().gateway));
+			xml.attribute("dns",  String<16>(ip_config().dns_server));
 		}
 	});
 }
