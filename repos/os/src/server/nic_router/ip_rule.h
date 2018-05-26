@@ -15,21 +15,37 @@
 #define _IP_RULE_H_
 
 /* local includes */
-#include <leaf_rule.h>
 #include <direct_rule.h>
 
 namespace Net {
+
+	class Domain;
+	class Domain_tree;
 
 	class  Ip_rule;
 	struct Ip_rule_list : Direct_rule_list<Ip_rule> { };
 }
 
 
-struct Net::Ip_rule : Leaf_rule, Direct_rule<Ip_rule>
+class Net::Ip_rule : public Direct_rule<Ip_rule>
 {
+	private:
+
+		Domain &_domain;
+
+		static Domain &_find_domain(Domain_tree            &domains,
+		                            Genode::Xml_node const  node);
+
 	public:
 
 		Ip_rule(Domain_tree &domains, Genode::Xml_node const node);
+
+
+		/***************
+		 ** Accessors **
+		 ***************/
+
+		Domain &domain() const { return _domain; }
 };
 
 #endif /* _IP_RULE_H_ */

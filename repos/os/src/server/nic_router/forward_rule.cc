@@ -26,18 +26,29 @@ using namespace Genode;
  ** Forward_rule **
  ******************/
 
+
+Domain &Forward_rule::_find_domain(Domain_tree    &domains,
+                                   Xml_node const  node)
+{
+	try {
+		return domains.find_by_name(
+			node.attribute_value("domain", Domain_name()));
+	}
+	catch (Domain_tree::No_match) { throw Invalid(); }
+}
+
+
 void Forward_rule::print(Output &output) const
 {
-	Genode::print(output, "port ", _port, " requests to ", _to,
-	              " at ", _domain);
+	Genode::print(output, "port ", _port, " domain ", _domain, " to ", _to);
 }
 
 
 Forward_rule::Forward_rule(Domain_tree &domains, Xml_node const node)
 :
-	Leaf_rule(domains, node),
 	_port(node.attribute_value("port", Port(0))),
-	_to(node.attribute_value("to", Ipv4_address()))
+	_to(node.attribute_value("to", Ipv4_address())),
+	_domain(_find_domain(domains, node))
 {
 	if (_port == Port(0) || !_to.valid() || dynamic_port(_port)) {
 		throw Invalid(); }

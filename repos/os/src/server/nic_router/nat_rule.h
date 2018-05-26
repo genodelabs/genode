@@ -16,7 +16,6 @@
 
 /* local includes */
 #include <port_allocator.h>
-#include <leaf_rule.h>
 #include <l3_protocol.h>
 #include <avl_tree.h>
 
@@ -25,6 +24,9 @@
 
 namespace Net {
 
+	class Domain;
+	class Domain_tree;
+
 	class Port_allocator;
 	class Nat_rule_base;
 	class Nat_rule;
@@ -32,16 +34,21 @@ namespace Net {
 }
 
 
-class Net::Nat_rule : public Leaf_rule,
-                      public Genode::Avl_node<Nat_rule>
+class Net::Nat_rule : public Genode::Avl_node<Nat_rule>
 {
 	private:
 
-		Port_allocator_guard _tcp_port_alloc;
-		Port_allocator_guard _udp_port_alloc;
-		Port_allocator_guard _icmp_port_alloc;
+		Domain               &_domain;
+		Port_allocator_guard  _tcp_port_alloc;
+		Port_allocator_guard  _udp_port_alloc;
+		Port_allocator_guard  _icmp_port_alloc;
+
+		static Domain &_find_domain(Domain_tree            &domains,
+		                            Genode::Xml_node const  node);
 
 	public:
+
+		struct Invalid : Genode::Exception { };
 
 		Nat_rule(Domain_tree            &domains,
 		         Port_allocator         &tcp_port_alloc,
@@ -72,6 +79,7 @@ class Net::Nat_rule : public Leaf_rule,
 		 ** Accessors **
 		 ***************/
 
+		Domain               &domain()    const { return _domain; }
 		Port_allocator_guard &tcp_port_alloc()  { return _tcp_port_alloc; }
 		Port_allocator_guard &udp_port_alloc()  { return _udp_port_alloc; }
 		Port_allocator_guard &icmp_port_alloc() { return _icmp_port_alloc; }

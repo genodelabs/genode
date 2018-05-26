@@ -48,7 +48,8 @@ class Net::Transport_rule : public Direct_rule<Transport_rule>
 		               Genode::Xml_node const  node,
 		               Genode::Allocator      &alloc,
 		               Genode::Cstring  const &protocol,
-		               Configuration          &config);
+		               Configuration          &config,
+		               Domain           const &domain);
 
 		~Transport_rule();
 

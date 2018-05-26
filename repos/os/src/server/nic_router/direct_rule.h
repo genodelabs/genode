@@ -16,7 +16,6 @@
 
 /* local includes */
 #include <ipv4_address_prefix.h>
-#include <rule.h>
 #include <list.h>
 
 /* Genode includes */
@@ -33,13 +32,15 @@ namespace Net {
 }
 
 
-class Net::Direct_rule_base : public Rule
+class Net::Direct_rule_base
 {
 	protected:
 
 		Ipv4_address_prefix const _dst;
 
 	public:
+
+		struct Invalid : Genode::Exception { };
 
 		Direct_rule_base(Genode::Xml_node const node);
 

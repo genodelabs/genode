@@ -35,7 +35,6 @@ Transport_rule::_read_permit_any_rule(Domain_tree    &domains,
 		                                Permit_any_rule(domains, sub_node));
 	}
 	catch (Xml_node::Nonexistent_sub_node) { }
-	catch (Rule::Invalid) { warning("invalid permit-any rule"); }
 	return Pointer<Permit_any_rule>();
 }
 
@@ -44,7 +43,8 @@ Transport_rule::Transport_rule(Domain_tree    &domains,
                                Xml_node const  node,
                                Allocator      &alloc,
                                Cstring  const &protocol,
-                               Configuration  &config)
+                               Configuration  &config,
+                               Domain   const &domain)
 :
 	Direct_rule(node),
 	_alloc(alloc),
@@ -54,26 +54,27 @@ Transport_rule::Transport_rule(Domain_tree    &domains,
 	try {
 		Permit_any_rule &permit_any_rule = _permit_any_rule();
 		if (config.verbose()) {
-			log("  ", protocol, " rule: ", _dst, " ", permit_any_rule); }
-
+			log("[", domain, "] ", protocol, " permit-any rule: ", permit_any_rule);
+			log("[", domain, "] ", protocol, " rule: dst ", _dst);
+		}
 		return;
 	} catch (Pointer<Permit_any_rule>::Invalid) { }
 
 	/* read specific permit rules */
 	node.for_each_sub_node("permit", [&] (Xml_node const node) {
-		try {
-			Permit_single_rule &rule = *new (alloc)
-				Permit_single_rule(domains, node);
+		Permit_single_rule &rule = *new (alloc)
+			Permit_single_rule(domains, node);
 
-			_permit_single_rules.insert(&rule);
-			if (config.verbose()) {
-				log("  ", protocol, " rule: ", _dst, " ", rule); }
-		}
-		catch (Rule::Invalid) { warning("invalid permit rule"); }
+		_permit_single_rules.insert(&rule);
+		if (config.verbose()) {
+			log("[", domain, "] ", protocol, " permit rule: ", rule); }
 	});
 	/* drop the transport rule if it has no permitted ports */
 	if (!_permit_single_rules.first()) {
 		throw Invalid(); }
+
+	if (config.verbose()) {
+		log("[", domain, "] ", protocol, " rule: dst ", _dst); }
 }
 
 

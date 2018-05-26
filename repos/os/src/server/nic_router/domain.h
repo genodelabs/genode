@@ -125,6 +125,8 @@ class Net::Domain : public Domain_base,
 		                           char             const *type,
 		                           Transport_rule_list    &rules);
 
+		void _invalid(char const *reason) const;
+
 		void __FIXME__dissolve_foreign_arp_waiters();
 
 	public:

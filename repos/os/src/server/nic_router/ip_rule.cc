@@ -13,13 +13,25 @@
 
 /* local includes */
 #include <ip_rule.h>
+#include <domain.h>
 
 using namespace Net;
 using namespace Genode;
 
 
+Domain &Ip_rule::_find_domain(Domain_tree    &domains,
+                              Xml_node const  node)
+{
+	try {
+		return domains.find_by_name(
+			node.attribute_value("domain", Domain_name()));
+	}
+	catch (Domain_tree::No_match) { throw Invalid(); }
+}
+
+
 Ip_rule::Ip_rule(Domain_tree &domains, Xml_node const node)
 :
-	Leaf_rule(domains, node),
-	Direct_rule(node)
+	Direct_rule(node),
+	_domain(_find_domain(domains, node))
 { }

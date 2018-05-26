@@ -33,7 +33,6 @@ namespace Net {
 	using Packet_stream_sink   = ::Nic::Packet_stream_sink< ::Nic::Session::Policy>;
 	using Packet_stream_source = ::Nic::Packet_stream_source< ::Nic::Session::Policy>;
 	using Domain_name          = Genode::String<160>;
-	class Leaf_rule;
 	class Ipv4_config;
 	class Forward_rule_tree;
 	class Transport_rule_list;

@@ -26,6 +26,17 @@ using namespace Net;
 using namespace Genode;
 
 
+Domain &Nat_rule::_find_domain(Domain_tree    &domains,
+                               Xml_node const  node)
+{
+	try {
+		return domains.find_by_name(
+			node.attribute_value("domain", Domain_name()));
+	}
+	catch (Domain_tree::No_match) { throw Invalid(); }
+}
+
+
 bool Nat_rule::higher(Nat_rule *rule)
 {
 	return (addr_t)&rule->domain() > (addr_t)&_domain;
@@ -38,7 +49,7 @@ Nat_rule::Nat_rule(Domain_tree    &domains,
                    Port_allocator &icmp_port_alloc,
                    Xml_node const  node)
 :
-	Leaf_rule(domains, node),
+	_domain(_find_domain(domains, node)),
 	_tcp_port_alloc (tcp_port_alloc,  node.attribute_value("tcp-ports", 0UL)),
 	_udp_port_alloc (udp_port_alloc,  node.attribute_value("udp-ports", 0UL)),
 	_icmp_port_alloc(icmp_port_alloc, node.attribute_value("icmp-ids", 0UL))

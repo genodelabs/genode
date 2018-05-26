@@ -22,35 +22,47 @@ using namespace Net;
 using namespace Genode;
 
 
-/*****************
- ** Permit_rule **
- *****************/
-
-Permit_rule::Permit_rule(Domain_tree &domains, Xml_node const node)
-:
-	Leaf_rule(domains, node)
-{ }
-
-
 /*********************
  ** Permit_any_rule **
  *********************/
 
+Domain &Permit_any_rule::_find_domain(Domain_tree    &domains,
+                                      Xml_node const  node)
+{
+	try {
+		return domains.find_by_name(
+			node.attribute_value("domain", Domain_name()));
+	}
+	catch (Domain_tree::No_match) { throw Invalid(); }
+}
+
+
 void Permit_any_rule::print(Output &output) const
 {
-	Genode::print(output, "requests to ", domain());
+	Genode::print(output, "domain ", domain());
 }
 
 
 Permit_any_rule::Permit_any_rule(Domain_tree &domains, Xml_node const node)
 :
-	Permit_rule(domains, node)
+	Permit_rule(_find_domain(domains, node))
 { }
 
 
 /************************
  ** Permit_single_rule **
  ************************/
+
+Domain &Permit_single_rule::_find_domain(Domain_tree    &domains,
+                                         Xml_node const  node)
+{
+	try {
+		return domains.find_by_name(
+			node.attribute_value("domain", Domain_name()));
+	}
+	catch (Domain_tree::No_match) { throw Invalid(); }
+}
+
 
 bool Permit_single_rule::higher(Permit_single_rule *rule)
 {
@@ -60,14 +72,14 @@ bool Permit_single_rule::higher(Permit_single_rule *rule)
 
 void Permit_single_rule::print(Output &output) const
 {
-	Genode::print(output, "port ", _port, " requests to ", domain());
+	Genode::print(output, "port ", _port, " domain ", domain());
 }
 
 
 Permit_single_rule::Permit_single_rule(Domain_tree    &domains,
                                        Xml_node const  node)
 :
-	Permit_rule(domains, node),
+	Permit_rule(_find_domain(domains, node)),
 	_port(node.attribute_value("port", Port(0)))
 {
 	if (_port == Port(0) || dynamic_port(_port)) {

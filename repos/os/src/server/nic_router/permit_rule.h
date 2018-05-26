@@ -15,18 +15,23 @@
 #define _PERMIT_RULE_H_
 
 /* local includes */
-#include <leaf_rule.h>
 #include <avl_tree.h>
 
 /* Genode includes */
 #include <util/avl_tree.h>
 #include <net/port.h>
 
-namespace Genode { class Output; }
+namespace Genode {
+
+	class Output;
+	class Xml_node;
+}
 
 namespace Net {
 
 	class Interface;
+	class Domain;
+	class Domain_tree;
 
 	class Permit_rule;
 	class Permit_any_rule;
@@ -35,34 +40,53 @@ namespace Net {
 }
 
 
-struct Net::Permit_rule : private Leaf_rule, public Genode::Interface
+struct Net::Permit_rule : public Genode::Interface
 {
 	friend class Interface;
 
-	Permit_rule(Domain_tree &domains, Genode::Xml_node const node);
+	private:
 
-	using Leaf_rule::domain;
-	using Leaf_rule::Invalid;
+		Domain &_domain;
+
+	public:
+
+		Permit_rule(Domain &domain) : _domain(domain) { };
 
 
-	/*********
-	 ** log **
-	 *********/
+		/*********
+		 ** log **
+		 *********/
 
-	virtual void print(Genode::Output &output) const = 0;
+		virtual void print(Genode::Output &output) const = 0;
+
+
+		/***************
+		 ** Accessors **
+		 ***************/
+
+		Domain &domain() const { return _domain; }
 };
 
 
 struct Net::Permit_any_rule : Permit_rule
 {
-	Permit_any_rule(Domain_tree &domains, Genode::Xml_node const node);
+	private:
+
+		static Domain &_find_domain(Domain_tree            &domains,
+		                            Genode::Xml_node const  node);
+
+	public:
+
+		struct Invalid : Genode::Exception { };
+
+		Permit_any_rule(Domain_tree &domains, Genode::Xml_node const node);
 
 
-	/*********
-	 ** log **
-	 *********/
+		/*********
+		 ** log **
+		 *********/
 
-	void print(Genode::Output &output) const;
+		void print(Genode::Output &output) const;
 };
 
 
@@ -78,7 +102,12 @@ class Net::Permit_single_rule : public  Permit_rule,
 
 		Port const _port;
 
+		static Domain &_find_domain(Domain_tree            &domains,
+		                            Genode::Xml_node const  node);
+
 	public:
+
+		struct Invalid : Genode::Exception { };
 
 		Permit_single_rule(Domain_tree            &domains,
 		                   Genode::Xml_node const  node);

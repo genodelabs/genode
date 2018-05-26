@@ -15,7 +15,6 @@
 #define _FORWARD_RULE_H_
 
 /* local includes */
-#include <leaf_rule.h>
 #include <avl_tree.h>
 
 /* Genode includes */
@@ -23,7 +22,12 @@
 #include <net/ipv4.h>
 #include <net/port.h>
 
+namespace Genode { class Xml_node; }
+
 namespace Net {
+
+	class Domain;
+	class Domain_tree;
 
 	class Forward_rule;
 	class Forward_rule_tree;
@@ -32,15 +36,20 @@ namespace Net {
 }
 
 
-class Net::Forward_rule : public Leaf_rule,
-                          public Genode::Avl_node<Forward_rule>
+class Net::Forward_rule : public Genode::Avl_node<Forward_rule>
 {
 	private:
 
-		Port         const _port;
-		Ipv4_address const _to;
+		Port         const  _port;
+		Ipv4_address const  _to;
+		Domain             &_domain;
+
+		static Domain &_find_domain(Domain_tree            &domains,
+		                            Genode::Xml_node const  node);
 
 	public:
+
+		struct Invalid : Genode::Exception { };
 
 		Forward_rule(Domain_tree &domains, Genode::Xml_node const node);
 
@@ -66,7 +75,8 @@ class Net::Forward_rule : public Leaf_rule,
 		 ** Accessors **
 		 ***************/
 
-		Ipv4_address const &to() const { return _to; }
+		Ipv4_address const &to()     const { return _to; }
+		Domain             &domain() const { return _domain; }
 };
 
 
