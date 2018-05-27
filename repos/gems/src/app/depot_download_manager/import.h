@@ -56,6 +56,7 @@ class Depot_download_manager::Import
 
 			enum State { DOWNLOAD_IN_PROGRESS,
 			             DOWNLOAD_COMPLETE,
+			             DOWNLOAD_UNAVAILABLE,
 			             VERIFIED,
 			             VERIFICATION_FAILED,
 			             UNPACKED };
@@ -72,6 +73,7 @@ class Depot_download_manager::Import
 				switch (state) {
 				case DOWNLOAD_IN_PROGRESS: return "download";
 				case DOWNLOAD_COMPLETE:    return "verify";
+				case DOWNLOAD_UNAVAILABLE: return "unavailable";
 				case VERIFIED:             return "extract";
 				case VERIFICATION_FAILED:  return "verification failed";
 				case UNPACKED:             return "done";
@@ -176,6 +178,13 @@ class Depot_download_manager::Import
 			_items.for_each([&] (Item &item) {
 				if (item.state == Item::DOWNLOAD_IN_PROGRESS)
 					item.state =  Item::DOWNLOAD_COMPLETE; });
+		}
+
+		void all_downloads_unavailable()
+		{
+			_items.for_each([&] (Item &item) {
+				if (item.state == Item::DOWNLOAD_IN_PROGRESS)
+					item.state =  Item::DOWNLOAD_UNAVAILABLE; });
 		}
 
 		void archive_verified(Archive::Path const &archive)

@@ -99,6 +99,9 @@ struct Depot_download_manager::Main : Import::Download_progress
 	Depot_query_version _depot_query_count { 1 };
 	Fetchurl_version    _fetchurl_count    { 1 };
 
+	unsigned const _fetchurl_max_attempts = 3;
+	unsigned       _fetchurl_attempt      = 0;
+
 	Archive::User _next_user { };
 
 	Constructible<Import> _import { };
@@ -281,6 +284,7 @@ void Depot_download_manager::Main::_handle_query_result()
 
 	/* start new import */
 	_import.construct(_heap, _current_user_name(), _dependencies.xml());
+	_fetchurl_attempt = 0;
 	_update_state_report();
 
 	/* spawn fetchurl */
@@ -310,6 +314,12 @@ void Depot_download_manager::Main::_handle_init_state()
 
 			/* retry by incrementing the version attribute of the start node */
 			_fetchurl_count.value++;
+
+			if (_fetchurl_attempt++ >= _fetchurl_max_attempts) {
+				import.all_downloads_unavailable();
+				_fetchurl_attempt = 0;
+			}
+
 			reconfigure_init = true;
 		}
 
