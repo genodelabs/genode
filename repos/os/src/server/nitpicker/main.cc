@@ -380,6 +380,13 @@ struct Nitpicker::Main : Focus_updater
 
 		_env.parent().announce(_env.ep().manage(_root));
 
+		/*
+		 * Detect initial motion activity such that the first hover report
+		 * contains the boot-time activity of the user in the very first
+		 * report.
+		 */
+		_handle_input();
+
 		_report_displays();
 	}
 };
