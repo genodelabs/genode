@@ -447,6 +447,7 @@ file copy -force [genode_dir]/repos/gems/recipes/raw/depot_download/depot_downlo
 file copy -force [genode_dir]/VERSION [run_dir]/genode/
 
 file copy -force [genode_dir]/repos/gems/src/app/backdrop/genode_logo.png [run_dir]/genode/
+file copy -force [genode_dir]/repos/gems/run/sculpt/drop_shadow.png       [run_dir]/genode/
 
 exec gzip -dc [genode_dir]/repos/gems/run/sculpt/machine.vdi.gz > [run_dir]/genode/machine.vdi
 

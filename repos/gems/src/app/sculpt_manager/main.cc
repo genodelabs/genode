@@ -64,7 +64,24 @@ struct Sculpt::Main : Input_event_handler,
 	Managed_config<Main> _fonts_config {
 		_env, "config", "fonts", *this, &Main::_handle_fonts_config };
 
-	void _handle_fonts_config(Xml_node) { _handle_nitpicker_mode(); }
+	void _handle_fonts_config(Xml_node config)
+	{
+		/*
+		 * Obtain font size from manually maintained fonts configuration
+		 * so that we can adjust the GUI layout accordingly.
+		 */
+		config.for_each_sub_node("vfs", [&] (Xml_node vfs) {
+			vfs.for_each_sub_node("dir", [&] (Xml_node dir) {
+				if (dir.attribute_value("name", String<16>()) == "fonts") {
+					dir.for_each_sub_node("dir", [&] (Xml_node type) {
+						if (type.attribute_value("name", String<16>()) == "text") {
+							type.for_each_sub_node("ttf", [&] (Xml_node ttf) {
+								float const px = ttf.attribute_value("size_px", 0.0);
+								if (px > 0.0)
+									_gui.font_size(px); }); } }); } }); });
+
+		_handle_nitpicker_mode();
+	}
 
 	Managed_config<Main> _input_filter_config {
 		_env, "config", "input_filter", *this, &Main::_handle_input_filter_config };
@@ -337,6 +354,22 @@ struct Sculpt::Main : Input_event_handler,
 		_gui.generate_config();
 	}
 
+	void _handle_window_layout();
+
+	Attached_rom_dataspace _window_list { _env, "window_list" };
+
+	Signal_handler<Main> _window_list_handler {
+		_env.ep(), *this, &Main::_handle_window_layout };
+
+	Expanding_reporter _wm_focus { _env, "focus", "wm_focus" };
+
+	Attached_rom_dataspace _decorator_margins { _env, "decorator_margins" };
+
+	Signal_handler<Main> _decorator_margins_handler {
+		_env.ep(), *this, &Main::_handle_window_layout };
+
+	Expanding_reporter _window_layout { _env, "window_layout", "window_layout" };
+
 	Main(Env &env) : _env(env)
 	{
 		_runtime_state.sigh(_runtime_state_handler);
@@ -345,10 +378,12 @@ struct Sculpt::Main : Input_event_handler,
 		/*
 		 * Subscribe to reports
 		 */
-		_update_state_rom.sigh(_update_state_handler);
-		_nitpicker_hover .sigh(_nitpicker_hover_handler);
-		_hover_rom       .sigh(_hover_handler);
-		_pci_devices     .sigh(_pci_devices_handler);
+		_update_state_rom .sigh(_update_state_handler);
+		_nitpicker_hover  .sigh(_nitpicker_hover_handler);
+		_hover_rom        .sigh(_hover_handler);
+		_pci_devices      .sigh(_pci_devices_handler);
+		_window_list      .sigh(_window_list_handler);
+		_decorator_margins.sigh(_decorator_margins_handler);
 
 		/*
 		 * Generate initial configurations
@@ -368,15 +403,125 @@ struct Sculpt::Main : Input_event_handler,
 };
 
 
+void Sculpt::Main::_handle_window_layout()
+{
+	struct Decorator_margins
+	{
+		unsigned top = 0, bottom = 0, left = 0, right = 0;
+
+		Decorator_margins(Xml_node node)
+		{
+			if (!node.has_sub_node("floating"))
+				return;
+
+			Xml_node const floating = node.sub_node("floating");
+
+			top    = floating.attribute_value("top",    0UL);
+			bottom = floating.attribute_value("bottom", 0UL);
+			left   = floating.attribute_value("left",   0UL);
+			right  = floating.attribute_value("right",  0UL);
+		}
+	};
+
+	/* read decorator margins from the decorator's report */
+	_decorator_margins.update();
+	Decorator_margins const margins(_decorator_margins.xml());
+
+	unsigned const log_min_w = 400, log_min_h = 200;
+
+	if (!_nitpicker.constructed())
+		return;
+
+	Framebuffer::Mode const mode = _nitpicker->mode();
+
+	typedef Nitpicker::Rect Rect;
+
+	Rect avail(Point(_gui.menu_width, 0),
+	           Point(mode.width() - 1, mode.height() - 1));
+
+	/*
+	 * When the screen width is at least twice the log width, place the
+	 * log at the right side of the screen. Otherwise, with resolutions
+	 * as low as 1024x768, place it to the bottom to allow the inspect
+	 * window to use the available screen width to the maximum extend.
+	 */
+	bool const log_at_right =
+		(avail.w() > 2*(log_min_w + margins.left + margins.right));
+
+	/* the upper-left point depends on whether the log is at the right or bottom */
+	Point const log_p1 =
+		log_at_right ? Point(avail.x2() - log_min_w - margins.right + 1,
+		                     margins.top)
+		             : Point(_gui.menu_width + margins.left,
+		                     avail.y2() - log_min_h - margins.bottom + 1);
+
+	/* the lower-right point (p2) of the log is always the same */
+	Point const log_p2(mode.width()  - margins.right  - 1,
+	                   mode.height() - margins.bottom - 1);
+
+	/* position of the inspect window */
+	Point const inspect_p1(avail.x1() + margins.right, margins.top);
+
+	Point const inspect_p2 =
+		log_at_right ? Point(log_p1.x() - margins.right - margins.left - 1, log_p2.y())
+		             : Point(log_p2.x(), log_p1.y() - margins.bottom - margins.top - 1);
+
+	typedef String<128> Label;
+	Label const inspect_label("runtime -> leitzentrale -> storage browser");
+
+	_window_list.update();
+	_window_layout.generate([&] (Xml_generator &xml) {
+
+		_window_list.xml().for_each_sub_node("window", [&] (Xml_node win) {
+
+			Label const label = win.attribute_value("label", Label());
+
+			/**
+			 * Generate window with 'rect' geometry if label matches 'match'
+			 */
+			auto gen_matching_window = [&] (Label const &match, Rect rect) {
+				if (label == match && rect.valid()) {
+					xml.node("window", [&] () {
+						xml.attribute("id", win.attribute_value("id", 0UL));
+						xml.attribute("xpos",   rect.x1());
+						xml.attribute("ypos",   rect.y1());
+						xml.attribute("width",  rect.w());
+						xml.attribute("height", rect.h());
+					});
+				}
+			};
+
+			gen_matching_window("log", Rect(log_p1, log_p2));
+			gen_matching_window(inspect_label, Rect(inspect_p1, inspect_p2));
+		});
+	});
+
+	/* define window-manager focus */
+	_wm_focus.generate([&] (Xml_generator &xml) {
+		_window_list.xml().for_each_sub_node("window", [&] (Xml_node win) {
+			Label const label = win.attribute_value("label", Label());
+			if (label == inspect_label)
+				xml.node("window", [&] () {
+					xml.attribute("id", win.attribute_value("id", 0UL)); });
+		});
+	});
+}
+
+
 void Sculpt::Main::_handle_nitpicker_mode()
 {
-	if (!_fonts_config.try_generate_manually_managed()) {
+	if (!_nitpicker.constructed())
+		return;
 
-		Framebuffer::Mode const mode = _nitpicker->mode();
+	Framebuffer::Mode const mode = _nitpicker->mode();
+
+	_handle_window_layout();
+
+	if (!_fonts_config.try_generate_manually_managed()) {
 
 		float const text_size = (float)mode.height() / 60.0;
 
-		_gui.menu_width = text_size*21;
+		_gui.font_size(text_size);
 
 		_fonts_config.generate([&] (Xml_generator &xml) {
 			xml.node("vfs", [&] () {
@@ -403,6 +548,18 @@ void Sculpt::Main::_handle_nitpicker_mode()
 				});
 			});
 			xml.node("default-policy", [&] () { xml.attribute("root", "/fonts"); });
+
+			auto gen_color = [&] (unsigned index, Color color) {
+				xml.node("color", [&] () {
+					xml.attribute("index", index);
+					xml.attribute("bg", String<16>(color));
+				});
+			};
+
+			Color const background(0x1c, 0x22, 0x32);
+
+			gen_color(0, background);
+			gen_color(8, background);
 		});
 	}
 

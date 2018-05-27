@@ -279,10 +279,11 @@ install_config {
 
 </config>}
 
-file copy -force [genode_dir]/repos/gems/recipes/raw/fonts_fs/fonts_fs.config [run_dir]/genode/fonts.config
-file copy -force [genode_dir]/repos/gems/run/sculpt/leitzentrale.config [run_dir]/genode/
-file copy -force [genode_dir]/repos/gems/run/sculpt/vimrc               [run_dir]/genode/
+file copy -force [genode_dir]/repos/gems/run/sculpt/fonts.config          [run_dir]/genode/
+file copy -force [genode_dir]/repos/gems/run/sculpt/leitzentrale.config   [run_dir]/genode/
+file copy -force [genode_dir]/repos/gems/run/sculpt/vimrc                 [run_dir]/genode/
 file copy -force [genode_dir]/repos/gems/src/app/backdrop/genode_logo.png [run_dir]/genode/
+file copy -force [genode_dir]/repos/gems/run/sculpt/drop_shadow.png       [run_dir]/genode/
 
 proc install_rom_module { name content } {
 	set fd [open [run_dir]/genode/$name w]

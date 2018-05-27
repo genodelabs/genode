@@ -38,7 +38,6 @@ _/src/e2fsprogs-minimal
 _/src/nvme_drv
 _/src/wm
 _/src/themed_decorator
-_/src/floating_window_layouter
 _/src/libpng
 _/src/zlib
 _/src/menu_view

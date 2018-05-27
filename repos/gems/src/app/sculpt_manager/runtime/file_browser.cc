@@ -34,7 +34,7 @@ namespace Sculpt {
 
 void Sculpt::gen_nit_fb_start(Xml_generator &xml, Rom_name const &name)
 {
-	gen_common_start_content(xml, name, Cap_quota{100}, Ram_quota{4*1024*1024});
+	gen_common_start_content(xml, name, Cap_quota{100}, Ram_quota{8*1024*1024});
 
 	gen_named_node(xml, "binary", "nit_fb");
 
@@ -43,10 +43,7 @@ void Sculpt::gen_nit_fb_start(Xml_generator &xml, Rom_name const &name)
 		gen_service_node<Input::Session>(xml, [&] () {});
 	});
 
-	xml.node("config", [&] () {
-		xml.attribute("initial_width",  "600");
-		xml.attribute("initial_height", "500");
-	});
+	xml.node("config", [&] () { });
 
 	xml.node("route", [&] () {
 		gen_parent_rom_route(xml, "nit_fb");

@@ -48,6 +48,11 @@ struct Sculpt::Gui
 		_config.generate([&] (Xml_generator &xml) { _generate_config(xml); });
 	}
 
+	void font_size(float px)
+	{
+		menu_width = max(px*21, 320.0);
+	}
+
 	Gui(Env &env) : _env(env) { }
 };
 
