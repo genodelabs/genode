@@ -11,6 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+#include <vfs/simple_env.h>
+#include <base/heap.h>
 #include <base/log.h>
 #include <base/component.h>
 #include <base/attached_rom_dataspace.h>
@@ -28,7 +30,23 @@ struct Test::Main
 {
 	Env &_env;
 
+	Genode::Heap _heap { _env.pd(), _env.rm() };
+
 	Timer::Connection _timer { _env };
+
+	Genode::Attached_rom_dataspace _config_rom { _env, "config" };
+
+	Genode::Xml_node vfs_config()
+	{
+		try { return _config_rom.xml().sub_node("vfs"); }
+		catch (...) {
+			Genode::error("VFS not configured");
+			_env.parent().exit(~0);
+			throw;
+		}
+	}
+
+	Vfs::Simple_env _vfs_env { _env, _heap, vfs_config() };
 
 	Constructible<Reporter> _devices_reporter { };
 	Constructible<Reporter> _focus_reporter   { };
@@ -49,6 +67,9 @@ struct Test::Main
 
 	Signal_handler<Main> _focus_rom_update_handler {
 		_env.ep(), *this, &Main::_handle_focus_rom_update };
+
+	Signal_handler<Main> _focus_removal_handler {
+		_env.ep(), *this, &Main::_handle_focus_removal };
 
 	Constructible<Timer::One_shot_timeout<Main> > _one_shot_timeout { };
 
@@ -84,7 +105,7 @@ struct Test::Main
 
 		_devices_rom->update();
 		if (_devices_rom->xml().attribute_value("version", Version()) != "version 2") {
-			error("unexpected content of \"devices\" ROM after update");
+			error("(6) unexpected content of \"devices\" ROM after update");
 			throw Exception();
 		}
 
@@ -111,11 +132,28 @@ struct Test::Main
 		_focus_rom->update();
 
 		if (_focus_rom->xml().attribute_value("version", Version()) != "focus version 1") {
-			error("unexpected content of \"focus\" ROM");
+			error("(9) unexpected content of \"focus\" ROM");
 			throw Exception();
 		}
 
 		log("(9) received expected focus ROM content");
+
+		_focus_rom->sigh(_focus_removal_handler);
+
+		log("(10) remove focus file");
+		_vfs_env.root_dir().unlink("focus");
+	}
+
+	void _handle_focus_removal()
+	{
+		_focus_rom->update();
+
+		if (!_focus_rom->xml().has_type("empty")) {
+			error("(11) unexpected content of \"focus\" ROM");
+			throw Exception();
+		}
+
+		log("(11) received empty focus ROM");
 
 		/* test completed successfully */
 		_env.parent().exit(0);

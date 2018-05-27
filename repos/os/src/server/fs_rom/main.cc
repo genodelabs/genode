@@ -100,7 +100,7 @@ class Fs_rom::Rom_session_component : public  Rpc_object<Rom_session>
 		 */
 		struct Version { unsigned value; };
 		Version _curr_version       { 0 };
-		Version _handed_out_version { ~0U };
+		Version _handed_out_version { 0 };
 
 		/**
 		 * Track if the session file or a directory is being watched
@@ -257,26 +257,18 @@ class Fs_rom::Rom_session_component : public  Rpc_object<Rom_session>
 			catch (Permission_denied) { error(_file_path, ": permission denied"); }
 			catch (...)               { error(_file_path, ": unhandled error"); };
 
+			if (_file_size > 0) {
+				memset(_file_ds.local_addr<char>(), 0x00, min(_file_size, _file_ds.size()));
+				_file_size = 0;
+			}
+
 			return false;
 		}
 
 		void _notify_client_about_new_version()
 		{
-			using namespace File_system;
-
-			if (_sigh.valid() && _curr_version.value != _handed_out_version.value) {
-
-				/* notify if the file is not empty */
-				try {
-					Node_handle file = _fs.node(_file_path.base());
-					Handle_guard g(_fs, file);
-					_file_size = _fs.status(file).size;
-				}
-				catch (...) { _file_size = 0; }
-
-				if (_file_size > 0)
-					Signal_transmitter(_sigh).submit();
-			}
+			if (_sigh.valid() && _curr_version.value != _handed_out_version.value)
+				Signal_transmitter(_sigh).submit();
 		}
 
 	public:
@@ -364,11 +356,9 @@ class Fs_rom::Rom_session_component : public  Rpc_object<Rom_session>
 					_open_watch_handle();
 				}
 
-				if (_watching_file) {
-					/* notify the client of the change */
-					_curr_version = Version { _curr_version.value + 1 };
-					_notify_client_about_new_version();
-				}
+				/* notify the client of the change */
+				_curr_version = Version { _curr_version.value + 1 };
+				_notify_client_about_new_version();
 				return;
 
 			case File_system::Packet_descriptor::READ: {
@@ -466,7 +456,6 @@ class Fs_rom::Rom_root : public Root_component<Fs_rom::Rom_session_component>
 			Root_component<Rom_session_component>(env.ep(), md_alloc),
 			_env(env)
 		{
-			/* Process CONTENT_CHANGED acknowledgement packets at the entrypoint  */
 			_fs.sigh_ack_avail(_packet_handler);
 
 			env.parent().announce(env.ep().manage(*this));

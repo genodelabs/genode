@@ -45,6 +45,7 @@ append config {
 			</content>
 			<policy label_prefix="fs_report -> " root="/" writeable="yes"/>
 			<policy label_prefix="fs_rom -> "    root="/test-fs_report"/>
+			<policy label_prefix="test-fs_report -> " root="/test-fs_report" writeable="yes"/>
 		</config>
 	</start>
 	<!--
@@ -63,7 +64,7 @@ append config {
 	</start>
 	<start name="test-fs_report">
 		<resource name="RAM" quantum="4M"/>
-		<config/>
+		<config> <vfs> <fs/> </vfs> </config>
 		<route>
 			<service name="ROM"    label="devices"> <child name="fs_rom"/> </service>
 			<service name="ROM"    label="focus">   <child name="fs_rom"/> </service>
