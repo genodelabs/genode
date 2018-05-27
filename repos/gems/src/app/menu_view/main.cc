@@ -45,6 +45,15 @@ struct Menu_view::Main
 
 	Point _position;
 
+	Area _configured_size;
+
+	Area _root_widget_size() const
+	{
+		Area const min_size = _root_widget.min_size();
+		return Area(max(_configured_size.w(), min_size.w()),
+		            max(_configured_size.h(), min_size.h()));
+	}
+
 	Rect _view_geometry;
 
 	void _update_view()
@@ -182,7 +191,12 @@ struct Menu_view::Main
 void Menu_view::Main::_handle_dialog_update()
 {
 	try {
-		_position = Decorator::point_attribute(_config.xml());
+		Xml_node const config = _config.xml();
+
+		_position = Decorator::point_attribute(config);
+
+		_configured_size = Area(config.attribute_value("width",  0UL),
+		                        config.attribute_value("height", 0UL));
 	} catch (...) { }
 
 	_dialog_rom.update();
@@ -191,7 +205,8 @@ void Menu_view::Main::_handle_dialog_update()
 		Xml_node dialog_xml(_dialog_rom.local_addr<char>());
 
 		_root_widget.update(dialog_xml);
-		_root_widget.size(_root_widget.min_size());
+
+		_root_widget.size(_root_widget_size());
 	} catch (...) {
 		Genode::error("failed to construct widget tree");
 	}
@@ -291,7 +306,7 @@ void Menu_view::Main::_handle_frame_timer()
 		_frame_cnt = 0;
 
 		Area const old_size = _buffer.constructed() ? _buffer->size() : Area();
-		Area const size     = _root_widget.min_size();
+		Area const size     = _root_widget_size();
 
 		if (!_buffer.constructed() || size.w() > old_size.w() || size.h() > old_size.h())
 			_buffer.construct(_nitpicker, size, _env.ram(), _env.rm());
