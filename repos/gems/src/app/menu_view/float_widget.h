@@ -54,9 +54,6 @@ struct Menu_view::Float_widget : Widget
 		_south = node.attribute_value("south", false),
 		_east  = node.attribute_value("east",  false),
 		_west  = node.attribute_value("west",  false);
-
-		_children.for_each([&] (Widget &child) {
-			_place_child(child); });
 	}
 
 	Area min_size() const override
