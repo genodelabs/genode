@@ -63,6 +63,7 @@ class Net::Uplink : public Uplink_base,
 		};
 
 		Genode::Session_label    const &_label;
+		bool                            _link_state_ { false };
 		Genode::Signal_handler<Uplink>  _link_state_handler;
 
 		Ipv4_address_prefix _read_interface();
@@ -76,7 +77,7 @@ class Net::Uplink : public Uplink_base,
 
 		Packet_stream_sink   &_sink()       override { return *rx(); }
 		Packet_stream_source &_source()     override { return *tx(); }
-		bool                  _link_state() override { return link_state(); }
+		bool                  _link_state() override { return _link_state_; }
 
 	public:
 

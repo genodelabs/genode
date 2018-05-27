@@ -42,11 +42,13 @@ Net::Uplink::Uplink(Env                 &env,
 	tx_channel()->sigh_ack_avail(_source_ack);
 	tx_channel()->sigh_ready_to_submit(_source_submit);
 	Nic::Connection::link_state_sigh(_link_state_handler);
+	_link_state_ = link_state();
 }
 
 
 void Net::Uplink::_handle_link_state()
 {
+	_link_state_ = link_state();
 	try { domain().discard_ip_config(); }
 	catch (Domain::Ip_config_static) { }
 }

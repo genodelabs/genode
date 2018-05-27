@@ -1559,6 +1559,19 @@ void Interface::handle_config_1(Configuration &config)
 }
 
 
+void Interface::_failed_to_send_packet_link()
+{
+	if (_config().verbose()) {
+		log("[", _domain(), "] failed to send packet (link down)"); }
+}
+
+
+void Interface::_failed_to_send_packet_alloc()
+{
+	log("[", _domain(), "] failed to send packet (packet alloc failed)");
+}
+
+
 void Interface::handle_config_2()
 {
 	Domain_name const &new_domain_name = _policy.determine_domain_name();

@@ -273,10 +273,14 @@ class Net::Interface : private Interface_list::Element
 
 		void _apply_foreign_arp();
 
+		void _failed_to_send_packet_link();
+
+		void _failed_to_send_packet_alloc();
+
 		void _send_icmp_dst_unreachable(Ipv4_address_prefix const &local_intf,
 		                                Ethernet_frame      const &req_eth,
 		                                Ipv4_packet         const &req_ip,
-                                        Icmp_packet::Code   const  code);
+		                                Icmp_packet::Code   const  code);
 
 		/*******************
 		 ** Pure virtuals **
@@ -338,6 +342,10 @@ class Net::Interface : private Interface_list::Element
 		template <typename FUNC>
 		void send(Genode::size_t pkt_size, FUNC && write_to_pkt)
 		{
+			if (!_link_state()) {
+				_failed_to_send_packet_link();
+				return;
+			}
 			try {
 				Packet_descriptor  pkt;
 				void              *pkt_base;
@@ -348,7 +356,7 @@ class Net::Interface : private Interface_list::Element
 				_send_submit_pkt(pkt, pkt_base, pkt_size);
 			}
 			catch (Packet_stream_source::Packet_alloc_failed) {
-				Genode::warning("failed to allocate packet");
+				_failed_to_send_packet_alloc();
 			}
 		}
 
