@@ -65,8 +65,10 @@ class Ipxe_session_component  : public Nic::Session_component
 				return true;
 			}
 
-			if (dde_ipxe_nic_tx(1, _tx.sink()->packet_content(packet), packet.size()))
-				Genode::warning("Sending packet failed!");
+			if (link_state()) {
+				if (dde_ipxe_nic_tx(1, _tx.sink()->packet_content(packet), packet.size()))
+					Genode::warning("Sending packet failed!");
+			}
 
 			_tx.sink()->acknowledge_packet(packet);
 			return true;

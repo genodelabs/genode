@@ -199,10 +199,20 @@ static void irq_handler(void *p)
 
 	dde_lock_leave();
 
-	if (link_ok != netdev_link_ok(net_dev))
+	int const new_link_ok = netdev_link_ok(net_dev);
+	if (link_ok != new_link_ok) {
+
 		/* report link-state changes */
 		if (link_callback)
 			link_callback();
+
+		/* on link down, drain TX DMA to not leak packets on next link up */
+		if (!new_link_ok) {
+			netdev_close(net_dev);
+			netdev_open(net_dev);
+			netdev_irq(net_dev, 1);
+		}
+	}
 }
 
 
