@@ -1,0 +1,766 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 18.05
+              ===============================================
+
+                               Genode Labs
+
+
+
+The driver behind the release 18.05 is the rapid evolution of the Sculpt
+general-purpose OS. Following the initial version from February, which was
+targeted at early adopters, the new Sculpt for The Curious (TC) introduces a
+much more welcoming and empowering user experience (Section
+[Sculpt for The Curious]).
+
+It goes without saying that the interactive and dynamic nature of the Sculpt
+scenario puts a lot more pressure on Genode's components compared to static
+workloads. For example, Sculpt calls for the dynamic adjustment of user-level
+network routing, the dynamic detection and management of partitions and file
+systems, the support of USB storage devices from diverse vendors, and a way to
+adapt the visual appearance to a great variety of screen resolutions. Most
+improvements described below are our responses to these challenges.
+
+That said, the release is not short of new features either. E.g., it features
+the initial port of OpenJDK's HotSpot VM for executing Java programs on Genode
+directly (Section [Java language support]), improves the support for the NXP
+i.MX family of SoCs (Section [NXP i.MX SoC]), and enhances the VFS with new
+plugins for copy-on-write and the auditing of file accesses
+(Section [New VFS plugins]).
+
+The release is complemented by the annual update of the Genode Foundations
+book (PDF), which covers the fundamentals of the framework in great detail
+(Section [New revision of the Genode Foundations book]).
+
+
+Sculpt for The Curious
+######################
+
+With Sculpt for The Curious (TC), Genode 18.05 features the second revision of
+the Sculpt general-purpose OS. Compared to the initial version for Early
+Adopters (EA), it features a new interactive system-management component that
+streamlines common tasks like the management of storage devices, or
+configuring the network connectivity. The highlights of the new version of the
+base system image are:
+
+* Live-customization of almost all aspects of the system,
+* The ability to install and run software in memory only,
+* Hotplugging of USB storage devices,
+* New support for NVMe storage devices in addition to SATA disks,
+* Interactive network configuration including Wifi connectivity,
+* Interactive management and inspection of storage devices and partitions,
+* The option to host a complete and customized Sculpt installation on a
+  USB stick,
+* Automated on-demand installation of software packages with visual feedback,
+* Scalable fonts that are automatically adjusted to the screen resolution, and
+* UEFI boot supported by default.
+
+The base image is extensible by downloadable software packages that may
+originate from different sources, safeguarded by cryptographic signatures.
+It contains several example subsystems as a starting point:
+
+* Basic GUI components like a window manager, a scalable backdrop, a
+  font server, and a simple software-rendering demo,
+* A light-weight noux runtime for executing command-line-based software
+  such as GNU coreutils, bash, and vim.
+* A package for downloading the installer and a suitable virtual-machine
+  configuration for Debian Linux,
+* VirtualBox running Debian Linux,
+* An example for running libretro-based games,
+* A disposable VM that runs Firefox on TinyCore Linux, executed either in
+  VirtualBox or the light-weight Seoul virtual-machine monitor,
+* A Qt5-based text editor.
+
+Please refer to the updated
+[https://genode.org/documentation/articles/sculpt-tc - Sculpt documentation]
+to explore Sculpt TC.
+
+The Sculpt version included with the current release requires the user to
+build a boot image by hand. Following the steps described in the
+documentation, this procedure takes a few minutes. We plan to provide
+downloadable boot images a few weeks down the road once Sculpt TC received
+intensive day-to-day testing by the early adopters. Your feedback is very
+welcome!
+
+
+New revision of the Genode Foundations book
+###########################################
+
+The "Genode Foundations" book received its annual revision, which reflects
+the evolution of the framework over the past year. Specifically, the changes
+since the last year's edition are:
+
+: <div class="visualClear"><!-- --></div>
+: <p>
+:  <div style="clear: both; float: left; margin-right:20px;">
+:   <a class="internal-link" href="https://genode.org">
+:    <img class="image-inline" src="http://genode.org/documentation/genode-foundations-title.png">
+:   </a>
+:  </div>
+: </p>
+
+* Changed boot-loader infrastructure on PC hardware
+* Package management
+* Structural changes of Genode's custom base-hw kernel
+* API improvements: Unicode handling, support for XML-based data models,
+  timeout-handling API
+
+: <div class="visualClear"><!-- --></div>
+
+To examine the changes in detail, please refer to the book's
+[https://github.com/nfeske/genode-manual/commits/master - revision history].
+
+
+Storage infrastructure
+######################
+
+VFS library and plugin interface
+================================
+
+The VFS (Virtual-File-System) library was expanded to meet new requirements
+for the Sculpt scenario. The traditional file-system medium for component
+state and configuration sculpting is the *ram_fs* server, but with the
+limitation that files stored in the server are ephemeral. Any changes to
+the initial state are lost when a system is shut down or the *ram_fs* server
+is restarted. Now that persistent storage is usually served by a VFS plugin
+hosted by the VFS server, it was a natural progression to introduce a means
+for indicating VFS changes with 'File_system' session notifications. To this
+end the VFS server was amended to send session notifications, and notification
+support was added to the Rump and FatFs VFS plugins, allowing Ext2 and FAT
+file-systems to host dynamic component state and configuration information.
+
+Using the VFS for serving font data produced from files stored in the VFS made
+it practical to allow VFS plugins to introspect the file system. Plugins now
+have the means to access arbitrary paths from the file-system root or they may
+host and expose their own internal file systems.
+
+While the core of the VFS library is small compared to contemporaries in other
+operating systems, the moment came to promote the VFS from a static to a
+shared library. Components that use the C runtime have always loaded the VFS
+dynamically as a subsystem of _libc.lib.so_, but native components carried the
+bulk of its implementation. The VFS library is now provided as a shared
+library and is included with the front-end server in the _src/vfs_ depot
+archive. This change affects components that have been rebuilt against the
+shared library but do not have their ROM policies updated to allow access to
+the _vfs.lib.so_ ROM.
+
+
+New VFS plugins
+===============
+
+File-system introspection has made two additional plugins possible, the *audit*
+and *cow* plugins.
+
+The *audit* plugin logs VFS paths as they are accessed to a dedicated LOG
+session. This is useful for finding the files required by third-party
+components without relying on documentation or auditing source code.
+
+The *cow* plugin emulates copy-on-write behavior by copying the contents of
+files lying in a read-only path to a read-write path as they are opened. This
+plugin is considered a proof-of-concept and under-performing, but opens a way
+of experimenting with seeding user-managed file-systems from immutable
+file-system archives.
+
+Plugins of this kind are most appropriately instantiated in the VFS server
+with policies to restrict the intended components into paths provided by the
+plugins. This prevents a component from escaping the effect of the plugin. An
+example of "auditing" a libc component follows:
+
+! <start name="audit_fs">
+!   <binary name="vfs"/>
+!   <config>
+!     <vfs>
+!       <dir name="data"> <!-- source files -->
+!         <tar "data.tar"/>
+!         <ram/>
+!       </dir>
+!       <dir name="audit"> <!-- virtual path that captures /data -->
+!         <audit path="/data"/>
+!       </dir>
+!     </vfs>
+!     <!-- route into virtual audit path -->
+!     <policy label_suffix="audit" root="/audit" writeable="yes"/>
+!   </config>
+! </start>
+!
+! <start name="app">
+!   <config>
+!     <libc stdout="/log" stderr="/log"/>
+!     <vfs>
+!       <log/>
+!       <fs label="audit"/>
+!     </vfs>
+!   </config>
+! </start>
+
+
+Improved disk-partition discovery and access
+============================================
+
+The 'part_blk' component, which parses the partition table on a block device
+and provides access to each partition through a block session, was extended to
+make it easier to implement a management component on top of it. It now
+features additional attributes in its report. For one the block size of each
+partition as well as the type of the file system on the partition are
+reported. The file system probing implementation is minimal and only contains
+file systems that are commonly used on Genode systems, i.e., FAT32 and Ext2.
+Furthermore, on GPT formatted disks, each partition has an 'expandable'
+attribute that contains the number of blocks by which the partition can be
+grown. The following exemplary report illustrates the adjustments:
+
+!<partitions type="gpt" total_blocks="500118192" gpt_total="500118125" gpt_used="302254080">
+!  <partition number="1" name="BIOS boot partition"
+!   type="21686148-6449-6e6f-744e-656564454649" guid="db0701aa-02ae-474d-92d0-82738bfce5d2"
+!   start="2048" length="2048" block_size="512"/>
+!  <partition number="2" name="EFI System"
+!   type="c12a7328-f81f-11d2-ba4b-00a0c93ec93b" guid="74e43226-2afb-4575-bdda-83bf72f5a6e7"
+!   start="4096" length="262144" block_size="512" file_system="FAT32"/>
+!  <partition number="3" name="GENODE"
+!   type="0fc63daf-8483-4772-8e79-3d69d8477de4" guid="a950091d-87ba-4800-85bf-7b6a58abe6d5"
+!   start="235147264" length="67108864" block_size="512" file_system="Ext2"
+!   expandable="197862064"/>
+!</partitions>
+
+The heuristics of how the component probes the partition table were also
+loosened. Instead of explicitly enabling support for GPT, the component will
+now always try to parse the MBR as well as the GPT. It will bail out if both
+are considered valid since using GPT/MBR hybrid tables is not supported and it
+should be up to the user to make an educated decision. In cases where there is
+no partition table, a 'partitions' report of 'type="disk"' will be generated
+in which the complete disk is presented as partition number '0'. This is
+needed as compatibility fallback for Sculpt EA installations.
+
+
+Creating and modifying GUID partition tables
+============================================
+
+Part of the enhancements of Sculpt TC is the ability to manipulate the block
+device used by Sculpt. We implemented a component called 'gpt_write', which
+can create and modify a GPT and its entries. It considers alignment
+constraints to make better use of 512e devices. It will, however, not perform
+any boundary checking. It does not handle overlapping partitions and only when
+applying a partition, it makes sure that the partition will fit. The following
+configuration illustrates its operation:
+
+!<start name="gpt_write">
+!  <resource name="RAM" quantum="2M"/>
+!  <config verbose="yes" initialize="yes" align="4K">
+!    <actions>
+!      <add entry="1" type="BIOS"  label="GRUB BIOS"  start="2048"  size="1M"/>
+!      <add entry="2" type="EFI"   label="EFI System" start="4096"  size="16M"/>
+!      <add entry="3" type="Linux" label="GENODE"     start="36864" size="128M"/>
+!      <add           type="BDP"   label="FAT32 Data" size="max"/>
+!      <delete entry="1"/>
+!      <delete label="FAT32 Data"/>
+!      <modify label="GENODE" new_label="GENODE*" new_size="max"/>
+!    </actions>
+!  </config>
+!</start>
+
+Please read _repos/gems/src/app/gpt_write/README_ for more detailed information
+on how to use the component and feel free to check out the run script
+_repos/gems/run/gpt_write.run_.
+
+
+User-level networking
+#####################
+
+NIC router
+==========
+
+The NIC router has received major improvements that were mainly motivated by
+our daily experience with the Sculpt scenario where the router serves as NAPT
+component in front of the virtual machines that host our work OS's. In this
+role, it is subject to a permanent load driven by real-world tasks.
+Furthermore, it has to have a user interface that makes it a pleasant
+experience to deploy in a dynamic environment. This led to our primary goal:
+We had to overcome the need to restart the NIC router, and thereby all
+components that depend on it, whenever its configuration changes and while
+doing so, not to interrupt the communication of its client unnecessarily.
+
+We managed to make the NIC router fully re-configurable at runtime in a way
+that it always tries to keep as much state information as possible throughout
+the process. This means that network communication going through the NIC
+router is not affected by a configuration update unless the configuration
+change affects parts that were involved in an existing communication channel.
+
+One prerequisite for this feature was that NIC session clients can connect at
+any time to the NIC router regardless of whether there is a matching domain
+for the session or not. As long as a session has no domain, the NIC router
+does not send any packet to it and drops all packets coming from it. But, at
+least, the session and the corresponding client component stay alive, even if
+their already assigned domain disappears with a new configuration.
+
+At the uplink, in contrast, the lifetime of the session remains bound to the
+lifetime of the domain. The uplink domain-tag received a new attribute
+named 'label' (only considered at the domain-tag of the uplink). It denotes
+the label of the uplink session. With these two particularities of the uplink
+domain, one can now easily switch between different NIC session servers. The
+NIC router will close and request the corresponding NIC session with the
+current 'label' value if the 'domain' node is removed/added or the label
+changes. Thereby, the NIC router can now be used to dynamically switch between
+network interfaces like wireless and wired adapters.
+
+Furthermore, we improved the NIC router's ability to handle DNS server
+information. Domains can wait for the DNS server info of the DHCP client of
+another domain. This is done with the new attribute 'dns_server_from' in the
+'<dhcp_server>' tag. Each time the DNS server info of the remote domain
+changes, the DHCP server with the 'dns_server_from' attribute will toggle the
+link state of each session at its domain. This can be used by clients as a
+hint to request their DHCP info anew from the NIC router and thereby receive
+the updated DNS server information.
+
+When it comes to protocols, the most notable change is that the NIC router now
+also supports routing and NAPT for ICMP. With the new '<icmp>' sub node of the
+'<domain>' tag, ICMP routes to other domains can be created. Instead of ports,
+the ICMP IDs are used for NAPT. Similar to the 'udp-ports' and 'tcp-ports'
+attributes, the size of the ID space for each NAPT client is configured via
+the new 'icmp-ids' attribute in the '<nat>' tag.
+
+Last but not least, the following small features were also added to the NIC
+router:
+
+:Attribute 'verbose_packets' for the '<config>' and the '<domain>' node:
+  Toggles the logging of most important protocol header fields globally or
+  domain-locally. The 'verbose' attribute does not affect this kind of debug
+  output anymore.
+
+:Report DNS server info:
+  If the 'config' attribute in the '<report>' node is enabled, the NIC router
+  will now also report the DNS server info for each domain.
+
+:Attribute 'config_triggers' in the '<report>' node:
+  Toggles whether the NIC router immediately sends a report whenever the IPv4
+  configuration of a domain changes, regardless of any timeouts.
+
+:IPv4 point-to-point support:
+  If a domain receives an IP configuration with a subnet mask of
+  255.255.255.255 it will switch to point-to-point IPv4 (requires a valid
+  gateway address at the domain).
+
+:ICMP destination unreachable on non-routable packets:
+  The NIC router now responds with an ICMP "destination unreachable" packet to
+  packets that are not routable at an interface with a domain.
+
+For more information, have a look at the _os/src/server/nic_router/README_
+file. Examples can be found in the run scripts
+_dde_linux/run/nic_router_uplinks.run_,
+_libports/run/nic_router_dyn_config.run_, and _os/run/ping_nic_router.run_.
+
+
+NIC dump
+========
+
+The output level of the NIC dump component can now be configured per protocol
+by using the protocol names as attributes: 'eth', 'arp', 'ipv4', 'dhcp',
+'udp', 'icmp', and 'tcp'.
+
+The available debug levels are:
+
+:no:      Do not print out this protocol.
+:name:    Print only the protocol name.
+:default: Print a short summary of the most important header values.
+:all:     Print all available header values.
+
+Additionally, you can set a default debug level for protocols that are not
+configured using the 'default' attribute.
+
+For more information, please refer to _os/src/server/nic_dump/README_.
+
+
+GUI stack
+#########
+
+With Sculpt becoming more and more end-user oriented, Genode's GUI stack came
+into focus. It was time to reconsider several interim solutions that worked
+well in the past but would not scale up to a modern general-purpose OS. Two
+concrete examples are the support of scalable fonts and Unicode characters. In
+the past, Genode used to restrict textual output to the Latin-1 character set
+and employed pixel-based fonts only. The current release overcomes these
+limitations by featuring completely new text-output facilities.
+
+
+UTF-8 support and improved text rendering
+=========================================
+
+The UTF-8 text encoding overcomes the severely limited code-point range of the
+ASCII and Latin-1 character sets by representing characters by a varying
+number of bytes. Today, UTF-8 is generally considered as the standard encoding
+for text. The new UTF-8 decoder at _os/util/utf8.h_ clears the path for
+Genode's native GUI components to follow suit. The first beneficiary is
+Genode's graphical terminal, which has become able to display Unicode
+characters and pass user input as UTF-8-encoded data to its terminal-session
+client.
+
+
+Terminal enhancements
+=====================
+
+Speaking of the graphical terminal, the current incarnation got a welcome
+overhaul. First, we reduced its complexity by removing obsolete features like
+built-in keyboard-layout handling, which are no longer needed when combining
+the terminal with our modern input-filter component. Furthermore, the terminal
+has become dynamically resizeable, forwarding screen-size changes to the
+terminal client. Should the client be a Noux runtime, such a change is
+reflected to the running application as a SIG_WINCH signal. The application -
+e.g., Vim - responds to the signal by requesting the new terminal size.
+Finally, the terminal protocol was changed from 'linux' escape sequences to
+'screen' escape sequences in the anticipation of making the terminal more
+flexible in the future.
+
+
+Text rendering
+==============
+
+Throughout Genode, many GUI components reused the text-output utilities
+of the nitpicker GUI server. These utilities, however, relied on a simple
+pixel font format. To make the text output more flexible, nitpicker's text
+painter located at _nitpicker_gfx/text_painter.h_ has been replaced by a
+completely new implementation that decouples the font format from the
+glyph rendering and takes UTF-8 strings as input. In the process, the glyph
+rendering got a lot more sophisticated, supporting horizontal sub-pixel
+positioning and filtering.
+
+
+Font-format support
+===================
+
+To remove the omnipresent use of fixed-size pixel fonts throughout Genode,
+the following new components entered the picture:
+
+First, the new 'ttf_font' library implements nitpicker's font interface by
+using the TrueType renderer of the STB single-header library.
+
+Second, the new 'vfs_ttf' VFS plugin uses the 'ttf_font' library to export a
+rendered TrueType font as a virtual file system. The various font properties
+as well as the actual glyph images become accessible as regular files. This
+way, an application that needs to draw text can read the glyph data directly
+from its VFS instead of depending on a font-rendering library.
+
+Third, the new 'Vfs_font' utility located at _gems/include/gems/vfs_font.h_
+implements nitpicker's font interface by obtaining the glyphs from the
+component-local VFS. It is complemented by the 'Cached_font' utility, which
+implements an LRU glyph cache.
+
+With this infrastructure in place, several existing GUI components could
+be updated, most prominently the graphical terminal and the menu-view
+widget-rendering engine. By facilitating the VFS as interface for propagating
+glyph data, components no longer need to manage fonts and their configuration
+individually. They just access their VFS. When integrating the component into
+a scenario, one can decide whether to mount a font-rendering library directly
+at the component, or - alternatively - route a file-system session to a
+central font server. The latter is just a regular VFS server with the fonts
+mounted as pseudo file systems. Since the glyph renderer is a VFS plugin, it
+could be replaced by another implementation in the future without touching any
+component.
+
+
+Modernized API for input-event processing
+=========================================
+
+Genode's input-session interface changed very little over the years. Even
+though it received evolutionary enhancements from time to time, its design
+resembled a traditional C-style interface from the medieval era. We found that
+the interface left too much room for interpretation. In particular, the meta
+data per event type was defined in a rather ad-hoc way, which raised
+uncertainties. For example, is a button-press event accompanied with a
+positional value or not? To remove these uncertainties, the current release
+replaces the 'Input::Event', with a new implementation that facilitates a safe
+way of accessing event meta data. Besides this design change, there is one
+noteworthy semantic change as well. With the new interface, symbolic character
+information are provided along with their corresponding press events rather
+than as distinct events, which - according to our practical findings - greatly
+simplifies the consumer side of the 'Input::Event' interface.
+
+
+Improved keyboard-focus handling
+================================
+
+The nitpicker GUI server multiplexes one screen among multiple GUI clients in
+a secure way. One aspect remained underdeveloped so far, which is the keyboard
+focus handling. Nitpicker's 'Session:focus' call previously triggered a one-off
+focus change at call time. This focus change did not pass the same code paths
+as a focus change triggered by a "focus" ROM update, which led to
+inconsistencies.
+
+The new version changes the implementation of 'Session::focus' such that the
+relationship of the caller and the focused session is preserved beyond the
+call time. Whenever the calling session is focused in the future, the
+specified session will receive the focus instead. So 'Session::focus' no
+longer represents a single operation but propagates the information about the
+inter-session relationship. This information is taken into account whenever
+the focus is evaluated regardless of how the change is triggered. This makes
+the focus handling in scenarios like the window manager more robust.
+
+
+Device drivers
+##############
+
+NVMe storage devices
+====================
+
+Since NVMe devices have become common in contemporary systems, it is time to
+provide a driver for such devices on Genode. With this release, we introduce a
+component that is able to drive consumer-grade NVMe storage devices, i.e.,
+there is no support for namespace management or other enterprise-grade
+features. For now, to keep things simple, the driver uses the device in an
+old-fashioned way and uses only one I/O queue with at most 128 entries. That
+is to say it does not exploit the parallelism necessary to unlock the full
+potential of NVMe storage. Nonetheless, it performs well. The following
+snippet illustrates its configuration:
+
+!<start name="nvme_drv">
+!  <resource name="ram" quantum="8M"/>
+!  <provides><service name="Block"/></provides>
+!  <config>
+!    <report namespace="yes"/>
+!    <policy label_prefix="client1" writeable="yes"/>
+!  </config>
+!</start>
+
+The component will generate a report, which contains all active namespaces, if
+reporting is enabled by setting the 'namespace' attribute of the '<report>'
+node to 'yes'. A report may look like the following example:
+
+!<controller model="QEMU NVMe Ctrl" serial="FNRD">
+! <namespace id="1" block_count="32768" block_size="512"/>
+!</controller>
+
+For an example on how to integrate this component, please have a look at the
+_repos/os/run/nvme.run_ script.
+
+While implementing the NVMe driver, a new component for testing block-sessions
+was used. In contrast to the already existing 'blk_bench' and 'blk_cli'
+components, it features a variety of different test patterns, which can be
+selected in its configuration and can be used to test a block component more
+thoroughly. For more information please refer to
+_repos/os/src/app/block_tester/README_
+
+
+NXP i.MX SoC
+============
+
+We extended the Linux kernel driver port for Ethernet cards found in NXP i.MX
+SoC, which was introduced in the previous release. Now does it not only
+support i.MX6Q SoC based boards like the Wandboard, but the i.MX53 and i.MX6SX
+SoC as well. The new driver was successfully tested with the i.MX53 Quick
+Start Board and the Nitrogen6 SOLOX. The latter board even contains two
+Ethernet cards. But due to technical limitations of the board design, the same
+driver instance has to be used for both cards. Currently, the driver is
+tweaked to run on different boards via its configuration ROM. When no
+configuration is provided, it appropriates the values for successfully
+executing on the Wandboard. The following is an example configuration for the
+i.MX53:
+
+! <config>
+!   <card name="fec0" type="fsl,imx25-fec" mii="rmii" irq="87" mmio="0x63fec000"/>
+! </config>
+
+As a side effect of enabling networking on the Nitrogen6 SOLOX, support for
+GPIO based signals has been added to the framework too. The existing GPIO
+driver for i.MX53 SoC got extended to additionally support the i.MX6 family.
+
+There are some known limitations when using different drivers like Ethernet
+and SD-card drivers on the Wandboard right now. At the moment, those drivers
+adjust clock parameters and I/O pin configurations independently from each
+other, which can lead to inconsistencies. We plan to address those issues with
+the implementation of a platform driver for the i.MX6 SoC family.
+
+
+Improved USB-storage driver
+===========================
+
+We improved the stability of the USB-storage driver (usb_block_drv) and
+made it compatible with a lot more devices as the driver has become a pivotal
+ingredient of the Sculpt scenario. Due to the changes, the way the driver
+operates has changed. On the one hand, now it first tries to use 10-byte
+Command Descriptor Blocks (CDB) in its SCSI layer and will only switch to
+16-byte CDBs when it encounters a device whose blocks cannot be completely
+accessed via the former descriptor size. On the other hand, because some
+tested devices stopped working after issuing a USB device reset, the reset was
+made optional. By setting the 'reset_device' attribute in the '<config>' node
+to 'yes', the driver is instructed to perform the USB device reset.
+
+
+Libraries and applications
+##########################
+
+Packaged Qt5 framework
+======================
+
+We created package recipes for all previously ported Qt5 libraries and their
+dependencies and adapted the run scripts accordingly. Please note that the
+host tools needed for building Qt applications (moc, rcc, uic) are not built
+automatically anymore, but need to be built and installed manually with the
+new 'tool/tool_chain_qt5' script.
+
+
+Java language support
+=====================
+
+Over the course of the past year, we started to look into Java support for
+Genode with the ultimate goal of porting an existing Java Virtual Machine
+(JVM), which translates and executes Java byte code, to Genode. After
+investigating possible JVM candidates, it became obvious that
+[http://openjdk.java.net - OpenJDK] is the only viable option when looking for
+a functional, maintained, feature complete, and open-source Java SDK.
+Therefore, we decided upon OpenJDK version 9 and started to port OpenJDK's
+HotSpot virtual machine.
+
+In the first step, we followed the approach to enable HotSpot's internal
+Just-in Time (JIT) compiler, which translates byte code into machine code and
+is the option with the most to offer performance wise. But we also wanted
+support for ARM platforms and soon realized, there was almost no JIT compiler
+support for ARM other than for Linux. The Linux version is deeply integrated
+into the Linux system libraries (e.g., glibc), which makes it very hard to
+bring the compiler onto Genode. For example, Genode uses FreeBSD's libc and
+that would now have to offer glibc semantics.
+
+After additional research, we found the so-called interpreter version of the
+HotSpot VM. This version does not compile byte code, but interprets and
+emulates the code at runtime. It is of course slower than the JIT compiler
+version, but also machine-architecture independent, so the same HotSpot VM can
+be compiled for x86 and ARM platforms. With the JVM running on Genode, we
+added networking and file-system access support via Genode's VFS layer. Note,
+there is no graphical toolkit support as of now, but most standard library
+classes should work. Also, the byte code has to be compiled on a different
+host system (e.g., Linux, *BSD) as of now, since we did not bring the Java
+compiler to Genode.
+
+To give Java a spin, a run script can be found under _ports/run/java.run_.
+
+
+Ada language support
+====================
+
+Support for components and libraries written in the Ada/SPARK programming
+language experienced a rework with the final goal of seamless integration with
+the base framework. We added a new _ada_ library, which contains a (currently
+minimal) runtime taken from the sources of our GCC port and thus is always
+consistent with the tool chain in use. It is built as a shared library
+_ada.lib.so_ that needs to be added to the list of boot modules.
+
+The example in _libports/src/test/ada_ showcases the implementation of an Ada
+component using a custom library _test-ada_, which is also implemented in Ada.
+
+
+Seoul VMM on NOVA
+=================
+
+The Seoul/Vancouver VMM - introduced to Genode with release 11.11 - received
+some renovations to be able to run recent Linux VMs. Namely the output of the
+guest during early boot is now visible and the network models got revised.
+Additionally, the Seoul VMM has been packaged and can be used in Sculpt.
+
+
+Ported software
+===============
+
+The [https://dnsprivacy.org/wiki/display/DP/DNS+Privacy+Daemon+-+Stubby - Stubby]
+DNS daemon has been ported to begin experimentations with DNS as a native
+service. There is a tendency for DNS configuration frameworks to diverge
+between operating systems and releases, an inconvenience that is magnified
+when maintaining virtual machines. Name-server configuration via DHCP has been
+the only constant, so hosting DNS natively and configuring virtual-machines
+with the *nic_router* DHCP server presents itself as a viable solution to the
+guest resolver quagmire. Expect DNS services in later Sculpt releases.
+
+
+Platforms
+#########
+
+Accessing PCI via ECAM/MMCONF
+=============================
+
+The platform driver on x86 is trusted with guarding access to PCI
+devices. Up to now, I/O ports have been used to configure the PCI subsystem.
+
+On modern x86 architectures, PCI devices can be configured by using Memory
+Mapped I/O (MMIO). This method was introduced with PCI Express and is called
+Enhanced Configuration Access Mechanism (ECAM). For Each PCI device a separate
+4 KiB MMIO page exists to serves as the configuration interface between OS and
+PCI device.
+
+The exact location of all the 4K MMIO pages of the PCI devices is machine
+specific and must be determined during the bootstrap phase. The ACPI driver on
+Genode is in charge of this procedure and reports the location of the
+ECAM/MMCONF region to the platform driver via the 'acpi' ROM.
+
+Besides using a modern PCI interface, switching to ECAM/MMCON served to ease
+the execution of Genode/hw on top of the Muen separation kernel.
+
+
+Kernel-agnostic platform-information handling
+=============================================
+
+Up to now, special kernel-specific information was propagated to components
+such as Virtualbox, the Seoul VMM, and the timer by reusing the
+kernel-provided data structures. For Genode/NOVA, the hypervisor info page
+(HIP) was exported as an ordinary Genode ROM. With the rise of Sculpt and the
+packaging of components in a - as far as possible - kernel-independent way,
+the propagation of kernel-specific information became a stumbling block.
+
+With this release we abandon the 'hypervisor_info_page' ROM of Genode/NOVA and
+replace it with a Genode ROM called 'platform_info'. The 'platform_info' ROM
+is planned to contain solely information about the host hardware, which may
+not be gathered otherwise by Genode components. In the current state it
+contains information required by VMMs, namely whether AMD SVM or Intel VMX is
+available and usable. Additionally, the ROM contains information about the
+frequency of the time stamp counter.
+
+
+Updated seL4 kernel to version 9.0.1
+====================================
+
+Thanks to Hinnerk van Bruinehsen, the seL4 version used by Genode has been
+updated to 9.0.1.
+
+
+Updated Muen separation kernel
+==============================
+
+With the addition of memory-mapped access to the PCI config-space in Genode,
+base-hw subjects on Muen now only see the effectively assigned physical
+devices. This makes it possible to run Genode in parallel with other subjects
+and to pass-through different PCI devices for each instance.
+
+The Muen update also brings a much simplified subject info structure plus some
+tweaks to the Muen system policy XML format to facilitate easier integration
+of new hardware platform specifications.
+
+
+Build system and tools
+######################
+
+Validating 3rd-party code downloads via SHA256
+==============================================
+
+This release removes support for verifying source code of third-party ports
+with the SHA1 hash algorithm. Last year, SHA1 was banished as a credible
+cryptographic hash function after the demonstration of a full collision
+attack. Since the
+[https://genode.org/documentation/release-notes/14.05 - 14.05 release],
+port files have been verified using SHA1, this release replaces all file
+digests with SHA256 digests. Any port definitions maintained in external
+repositories are required to make these replacements as well. No collisions
+have been discovered against source code archives but nonetheless there is an
+obligation to widen our margin of safety.
+
+
+Creating GPT-based disk images by default
+=========================================
+
+Up to now Genode's run tool was able to create x86 bootable images in three
+flavours:
+
+* Either as ISO bootable by BIOS legacy - 'image/iso', or as
+* GPT partitioned disk image only bootable by UEFI - 'image/uefi', or as
+* MBR partitioned disk image only bootable by BIOS legacy - 'image/disk'.
+
+With Sculpt came the demand to have a single image type that is in principle
+bootable by both UEFI and BIOS legacy. Additionally with Sculpt, we began to
+prefer working with GPT partitioned devices.
+
+In the light of the new demands, we changed the 'image/disk' run tool support
+to create a GPT partitioned disk image bootable by a legacy BIOS and by UEFI.
