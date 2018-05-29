@@ -135,10 +135,6 @@ class Fs_report::Session_component : public Genode::Rpc_object<Report::Session>
 			_path(path_from_label<Path>(label.string()))
 		{
 			create_parent_dir(_vfs, _path, _alloc);
-
-			try {
-				_file_op([&] (Vfs_handle *handle) { handle->fs().ftruncate(handle, 0); });
-			} catch (...) { throw Service_denied(); }
 		}
 
 		~Session_component() { }
