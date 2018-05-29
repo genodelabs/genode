@@ -233,9 +233,8 @@ Interface::_transport_rules(Domain &local_domain, L3_protocol const prot) const
 }
 
 
-void Interface::_attach_to_domain_raw(Domain_name const &domain_name)
+void Interface::_attach_to_domain_raw(Domain &domain)
 {
-	Domain &domain = _config().domains().find_by_name(domain_name);
 	_domain = domain;
 	Signal_transmitter(_link_state_sigh).submit();
 	_interfaces.remove(this);
@@ -255,7 +254,7 @@ void Interface::_detach_from_domain_raw()
 
 void Interface::_attach_to_domain(Domain_name const &domain_name)
 {
-	_attach_to_domain_raw(domain_name);
+	_attach_to_domain_raw(_config().domains().find_by_name(domain_name));
 	attach_to_domain_finish();
 }
 
@@ -1566,15 +1565,15 @@ void Interface::handle_config_2()
 	try {
 		/* if the domains differ, detach completely from the domain */
 		Domain &old_domain = domain();
+		Domain &new_domain = _config().domains().find_by_name(new_domain_name);
 		if (old_domain.name() != new_domain_name) {
 			_detach_from_domain();
-			_attach_to_domain_raw(new_domain_name);
+			_attach_to_domain_raw(new_domain);
 			return;
 		}
 		/* move to new domain object without considering any state objects */
 		_detach_from_domain_raw();
-		_attach_to_domain_raw(new_domain_name);
-		Domain &new_domain = domain();
+		_attach_to_domain_raw(new_domain);
 
 		/* remember that the interface stays attached to the same domain */
 		_update_domain = *new (_alloc)
@@ -1590,9 +1589,7 @@ void Interface::handle_config_2()
 	catch (Pointer<Domain>::Invalid) {
 
 		/* the interface had no domain but now it may get one */
-		try {
-			_attach_to_domain_raw(new_domain_name);
-		}
+		try { _attach_to_domain_raw(_config().domains().find_by_name(new_domain_name)); }
 		catch (Domain_tree::No_match) { }
 	}
 }

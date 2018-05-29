@@ -269,7 +269,7 @@ class Net::Interface : private Interface_list::Element
 
 		void _attach_to_domain(Domain_name const &domain_name);
 
-		void _attach_to_domain_raw(Domain_name const &domain_name);
+		void _attach_to_domain_raw(Domain &domain);
 
 		void _apply_foreign_arp();
 

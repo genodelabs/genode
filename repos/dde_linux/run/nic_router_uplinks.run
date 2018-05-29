@@ -154,7 +154,7 @@ append config {
 				<sleep milliseconds="3002"/>
 				<inline>
 
-					<config dhcp_discover_timeout_sec="1">
+					<config dhcp_discover_timeout_sec="1" verbose="yes">
 						<default-policy domain="downlink"/>
 						<domain name="downlink" interface="10.0.1.79/24">
 							<dhcp-server ip_first="10.0.1.80" ip_last="10.0.1.100"/>
@@ -196,7 +196,7 @@ append config {
 				<sleep milliseconds="3005"/>
 				<inline>
 
-					<config dhcp_discover_timeout_sec="1">
+					<config dhcp_discover_timeout_sec="1" verbose="yes">
 						<default-policy domain="downlink"/>
 						<domain name="downlink" interface="10.0.1.79/24">
 							<dhcp-server ip_first="10.0.1.80" ip_last="10.0.1.100"/>
@@ -242,7 +242,6 @@ append config {
 						<default-policy domain="downlink"/>
 						<domain name="downlink" interface="10.0.1.79/24">
 							<dhcp-server ip_first="10.0.1.80" ip_last="10.0.1.100"/>
-							<icmp dst="0.0.0.0/0" domain="uplink" />
 						</domain>
 					</config>
 
@@ -318,40 +317,40 @@ append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 
-append done_string ".*router.config: change.*"
-append done_string ".*router.config: sleep 3001 milliseconds.*"
-append done_string ".*64 bytes from 1.1.1.1: icmp_seq=.*"
+append done_string ".*router.config: change"
+append done_string ".*router.config: sleep 3001 milliseconds"
+append done_string ".*64 bytes from 1.1.1.1: icmp_seq="
 
-append done_string ".*router.config: change.*"
-append done_string ".*router.config: sleep 3002 milliseconds.*"
-append done_string ".*64 bytes from 1.1.1.1: icmp_seq=.*"
+append done_string ".*router.config: change"
+append done_string ".*router.config: sleep 3002 milliseconds"
+append done_string ".*64 bytes from 1.1.1.1: icmp_seq="
 
-append done_string ".*router.config: change.*"
-append done_string ".*router.config: sleep 3003 milliseconds.*"
-append done_string "From 10.0.1.79 icmp_seq=.* Destination Unreachable"
+append done_string ".*router.config: change"
+append done_string ".*router.config: sleep 3003 milliseconds"
+append done_string ".*downlink.*invalid domain.*invalid ICMP rule"
 
-append done_string ".*router.config: change.*"
-append done_string ".*router.config: sleep 3004 milliseconds.*"
-append done_string ".*64 bytes from 1.1.1.1: icmp_seq=.*"
+append done_string ".*router.config: change"
+append done_string ".*router.config: sleep 3004 milliseconds"
+append done_string ".*64 bytes from 1.1.1.1: icmp_seq="
 
-append done_string ".*router.config: change.*"
-append done_string ".*router.config: sleep 3005 milliseconds.*"
-append done_string ".*64 bytes from 1.1.1.1: icmp_seq=.*"
+append done_string ".*router.config: change"
+append done_string ".*router.config: sleep 3005 milliseconds"
+append done_string ".*64 bytes from 1.1.1.1: icmp_seq="
 
-append done_string ".*router.config: change.*"
-append done_string ".*router.config: sleep 3006 milliseconds.*"
-append done_string "From 10.0.1.79 icmp_seq=.* Destination Unreachable"
+append done_string ".*router.config: change"
+append done_string ".*router.config: sleep 3006 milliseconds"
+append done_string ".*downlink.*invalid domain.*invalid ICMP rule"
 
-append done_string ".*router.config: change.*"
-append done_string ".*router.config: sleep 3007 milliseconds.*"
-append done_string ".*64 bytes from 1.1.1.1: icmp_seq=.*"
+append done_string ".*router.config: change"
+append done_string ".*router.config: sleep 3007 milliseconds"
+append done_string ".*64 bytes from 1.1.1.1: icmp_seq="
 
-append done_string ".*router.config: change.*"
-append done_string ".*router.config: sleep 3008 milliseconds.*"
-append done_string ".*64 bytes from 1.1.1.1: icmp_seq=.*"
+append done_string ".*router.config: change"
+append done_string ".*router.config: sleep 3008 milliseconds"
+append done_string ".*64 bytes from 1.1.1.1: icmp_seq="
 
-append done_string ".*router.config: change.*"
-append done_string ".*router.config: sleep 600000 milliseconds.*"
-append done_string "From 10.0.1.79 icmp_seq=.* Destination Unreachable"
+append done_string ".*router.config: change"
+append done_string ".*router.config: sleep 600000 milliseconds"
+append done_string ".*From 10.0.1.79 icmp_seq=.* Destination Unreachable"
 
 run_genode_until $done_string 60
