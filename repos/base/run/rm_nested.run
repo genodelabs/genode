@@ -29,3 +29,6 @@ build_boot_image "core ld.lib.so init test-rm_nested"
 append qemu_args "-nographic "
 
 run_genode_until ".*--- finished nested region map test ---.*\n" 300
+
+grep_output {(Error)}
+compare_output_to {}

@@ -3,6 +3,7 @@ ldso
 timer
 lwip
 rm_fault
+rm_nested
 rom_blk
 tar_rom
 noux
