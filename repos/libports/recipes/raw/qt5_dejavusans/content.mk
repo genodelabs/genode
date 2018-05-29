@@ -7,5 +7,5 @@ qt/lib/fonts/DejaVuSans.ttf:
 	cp $(PORT_DIR)/src/lib/qt5/qt5/qtquickcontrols/examples/quickcontrols/extras/dashboard/fonts/$(notdir $@) $@
 
 qt5_dejavusans.tar: qt/lib/fonts/DejaVuSans.ttf
-	tar cf $@ qt
+	tar cf $@ --mtime='1970-01-01' qt
 	rm -rf qt

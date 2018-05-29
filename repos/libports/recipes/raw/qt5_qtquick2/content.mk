@@ -12,5 +12,5 @@ $(QMLDIR): $(INSTALL_DIR)
 	cp $(PORT_DIR)/src/lib/qt5/qt5/qtdeclarative/src/imports/qtquick2/qmldir $@
 
 qt5_qtquick2.tar: $(QMLDIR)
-	tar cf $@ qt
+	tar cf $@ --mtime='1970-01-01' qt
 	rm -rf qt
