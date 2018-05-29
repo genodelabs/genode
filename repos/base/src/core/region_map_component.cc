@@ -414,24 +414,19 @@ Region_map_component::attach(Dataspace_capability ds_cap, size_t size,
 				Range_allocator::Alloc_return alloc_return =
 					_map.alloc_aligned(size, &attach_at, align_log2);
 
-				if (!alloc_return.ok())
-					_map.free(attach_at);
-
 				typedef Range_allocator::Alloc_return Alloc_return;
 
 				switch (alloc_return.value) {
 				case Alloc_return::OK:              break; /* switch */
 				case Alloc_return::OUT_OF_METADATA: throw Out_of_ram();
-				case Alloc_return::RANGE_CONFLICT:  throw Region_conflict();
+				case Alloc_return::RANGE_CONFLICT:  continue; /* for loop */
 				}
-
 				break; /* for loop */
+
 			}
 
-			if (align_log2 < get_page_size_log2()) {
-				_map.free(attach_at);
+			if (align_log2 < get_page_size_log2())
 				throw Region_conflict();
-			}
 		}
 
 		/* store attachment info in meta data */
