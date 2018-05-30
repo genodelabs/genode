@@ -1,0 +1,43 @@
+<runtime ram="64M" caps="500" binary="init" config="init.config">
+
+	<requires>
+		<nitpicker/>
+		<timer/>
+	</requires>
+
+	<content>
+	
+		<!-- common for Qt GUI applications -->
+
+		<rom label="init.config"/>
+		<rom label="egl.lib.so"/>
+		<rom label="expat.lib.so"/>
+		<rom label="freetype.lib.so"/>
+		<rom label="glapi.lib.so"/>
+		<rom label="jpeg.lib.so"/>
+		<rom label="libc.lib.so"/>
+		<rom label="libc_pipe.lib.so"/>
+		<rom label="libm.lib.so"/>
+		<rom label="libpng.lib.so"/>
+		<rom label="mesa.lib.so"/>
+		<rom label="pcre16.lib.so"/>
+		<rom label="pthread.lib.so"/>
+		<rom label="qt5_core.lib.so"/>
+		<rom label="qt5_dejavusans.tar"/>
+		<rom label="qt5_gui.lib.so"/>
+		<rom label="qt5_qjpeg.lib.so"/>
+		<rom label="qt5_qpa_nitpicker.lib.so"/>
+		<rom label="stdcxx.lib.so"/>
+		<rom label="vfs.lib.so"/>
+		<rom label="zlib.lib.so"/>
+
+		<!-- application -->
+		
+		<rom label="qt5_component.lib.so"/>
+		<rom label="qt5_printsupport.lib.so"/>
+		<rom label="qt5_widgets.lib.so"/>
+		<rom label="textedit"/>
+
+	</content>
+
+</runtime>
