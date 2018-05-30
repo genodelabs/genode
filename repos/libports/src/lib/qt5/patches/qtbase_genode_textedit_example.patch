@@ -4,9 +4,51 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
 
 
 ---
+ .../widgets/richtext/textedit/textedit.cpp         |   15 +++++++++++----
  .../widgets/richtext/textedit/textedit.pro         |    4 ----
- 1 file changed, 4 deletions(-)
+ 2 files changed, 11 insertions(+), 8 deletions(-)
 
+diff --git a/qtbase/examples/widgets/richtext/textedit/textedit.cpp b/qtbase/examples/widgets/richtext/textedit/textedit.cpp
+index dec0b0b..a91002c 100644
+--- a/qtbase/examples/widgets/richtext/textedit/textedit.cpp
++++ b/qtbase/examples/widgets/richtext/textedit/textedit.cpp
+@@ -430,7 +430,8 @@ void TextEdit::fileOpen()
+     QFileDialog fileDialog(this, tr("Open File..."));
+     fileDialog.setAcceptMode(QFileDialog::AcceptOpen);
+     fileDialog.setFileMode(QFileDialog::ExistingFile);
+-    fileDialog.setMimeTypeFilters(QStringList() << "text/html" << "text/plain");
++    fileDialog.setMimeTypeFilters(QStringList() << "text/html" << "text/plain" << "application/octet-stream");
++    fileDialog.selectMimeTypeFilter("application/octet-stream");
+     if (fileDialog.exec() != QDialog::Accepted)
+         return;
+     const QString fn = fileDialog.selectedFiles().first();
+@@ -447,7 +448,12 @@ bool TextEdit::fileSave()
+     if (fileName.startsWith(QStringLiteral(":/")))
+         return fileSaveAs();
+ 
+-    QTextDocumentWriter writer(fileName);
++    /* if the file name has no extension, assume plain text */
++    QByteArray format = QByteArray();
++    if (fileName.indexOf(".", 1) == -1)
++        format = "plaintext";
++
++    QTextDocumentWriter writer(fileName, format);
+     bool success = writer.write(textEdit->document());
+     if (success) {
+         textEdit->document()->setModified(false);
+@@ -464,9 +470,10 @@ bool TextEdit::fileSaveAs()
+     QFileDialog fileDialog(this, tr("Save as..."));
+     fileDialog.setAcceptMode(QFileDialog::AcceptSave);
+     QStringList mimeTypes;
+-    mimeTypes << "application/vnd.oasis.opendocument.text" << "text/html" << "text/plain";
++    mimeTypes << "application/vnd.oasis.opendocument.text" << "text/html" << "text/plain" << "application/octet-stream";
+     fileDialog.setMimeTypeFilters(mimeTypes);
+-    fileDialog.setDefaultSuffix("odt");
++    fileDialog.selectMimeTypeFilter("application/octet-stream");
++    //fileDialog.setDefaultSuffix("odt");
+     if (fileDialog.exec() != QDialog::Accepted)
+         return false;
+     const QString fn = fileDialog.selectedFiles().first();
 diff --git a/qtbase/examples/widgets/richtext/textedit/textedit.pro b/qtbase/examples/widgets/richtext/textedit/textedit.pro
 index c32bf68..704f738 100644
 --- a/qtbase/examples/widgets/richtext/textedit/textedit.pro
