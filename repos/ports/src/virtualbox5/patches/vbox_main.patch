@@ -977,7 +977,7 @@ index a717aff..3d52b9f 100644
 
 --- a/src/app/virtualbox/src/VBox/Main/src-client/DisplayImpl.cpp
 +++ b/src/app/virtualbox/src/VBox/Main/src-client/DisplayImpl.cpp
-@@ -956,7 +956,9 @@
+@@ -998,7 +998,9 @@
  
      /* Inform the VRDP server about the change of display parameters. */
      LogRelFlowFunc(("Calling VRDP\n"));
@@ -987,7 +987,18 @@ index a717aff..3d52b9f 100644
  
      /* And re-send the seamless rectangles if necessary. */
      if (mfSeamlessEnabled)
-@@ -1076,7 +1078,9 @@
+@@ -1121,8 +1123,10 @@
+                                      xOrigin, yOrigin, 0, 0);
+ 
+     /* Inform the VRDP server about the change of display parameters. */
++#if 0
+     LogRelFlowFunc(("Calling VRDP\n"));
+     mParent->i_consoleVRDPServer()->SendResize();
++#endif
+ 
+     /* And re-send the seamless rectangles if necessary. */
+     if (mfSeamlessEnabled)
+@@ -1353,7 +1357,9 @@
           * either in VideoAccelFlush or displayVBVAUpdateProcess.
           * Inform the server here only if VBVA is disabled.
           */
@@ -997,7 +1008,7 @@ index a717aff..3d52b9f 100644
      }
  }
  
-@@ -2452,8 +2456,10 @@
+@@ -2811,8 +2817,10 @@
          rc = VERR_INVALID_PARAMETER;
      }
  
@@ -1008,15 +1019,13 @@ index a717aff..3d52b9f 100644
  
      return rc;
  }
-@@ -3023,6 +3029,7 @@
+@@ -3442,11 +3450,13 @@
           * The server can now process redraw requests from clients or initial
           * fullscreen updates for new clients.
           */
 +#if 0
          for (uScreenId = 0; uScreenId < pDisplay->mcMonitors; uScreenId++)
          {
-             DISPLAYFBINFO *pFBInfo = &pDisplay->maFramebuffers[uScreenId];
-@@ -3030,6 +3037,7 @@
              Assert(pDisplay->mParent && pDisplay->mParent->i_consoleVRDPServer());
              pDisplay->mParent->i_consoleVRDPServer()->SendUpdate(uScreenId, NULL, 0);
          }
@@ -1024,17 +1033,17 @@ index a717aff..3d52b9f 100644
      }
  
  #ifdef VBOX_WITH_VPX
-@@ -3830,7 +3838,9 @@
+@@ -4292,7 +4302,9 @@
+     pHdrUnconst->x -= (int16_t)pFBInfo->xOrigin;
      pHdrUnconst->y -= (int16_t)pFBInfo->yOrigin;
  
-     /** @todo new SendUpdate entry which can get a separate cmd header or coords. */
 +#if 0
      pThis->mParent->i_consoleVRDPServer()->SendUpdate(uScreenId, pHdrUnconst, (uint32_t)cbCmd);
 +#endif
  
      *pHdrUnconst = hdrSaved;
  }
-@@ -4031,7 +4041,9 @@
+@@ -4519,7 +4531,9 @@
          {
              /* VRDP server still need this notification. */
              LogRelFlowFunc(("Calling VRDP\n"));

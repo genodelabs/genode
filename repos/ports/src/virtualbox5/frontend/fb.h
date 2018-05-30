@@ -211,7 +211,7 @@ class Genodefb :
 			Assert(!"FixMe");
 			return E_NOTIMPL; }
 
-		STDMETHODIMP ProcessVHWACommand(BYTE *pCommand) override {
+		STDMETHODIMP ProcessVHWACommand(BYTE *, LONG, BOOL) override {
 			Assert(!"FixMe");
 		    return E_NOTIMPL; }
 

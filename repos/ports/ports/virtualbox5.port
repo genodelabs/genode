@@ -1,17 +1,17 @@
 LICENSE         := GPLv2
-VERSION         := 5.1.34
+VERSION         := 5.1.38
 DOWNLOADS       := virtualbox.archive virtualbox_sdk.archive
 
 VIRTUALBOX_TBZ2    := VirtualBox-$(VERSION).tar.bz2
-VIRTUALBOX_SDK_ZIP := VirtualBoxSDK-$(VERSION)-121010.zip
+VIRTUALBOX_SDK_ZIP := VirtualBoxSDK-$(VERSION)-122592.zip
 
 URL(virtualbox) := http://download.virtualbox.org/virtualbox/$(VERSION)/$(VIRTUALBOX_TBZ2)
 DIR(virtualbox) := src/app/virtualbox
-SHA(virtualbox) := b8a16bcc4267cad9cb92c7211d4081267c890efad16e89949f7449b8ae32f28c
+SHA(virtualbox) := 96cab2296fb014ce0a16b7b9603b52208b9403c10c1524b44201d3c274e8a821
 
 URL(virtualbox_sdk) := http://download.virtualbox.org/virtualbox/$(VERSION)/$(VIRTUALBOX_SDK_ZIP)
 DIR(virtualbox_sdk) := src/app/virtualbox_sdk
-SHA(virtualbox_sdk) := d9058973bb420382a583384f53f4a600215e6f4b16bdf333ebe7d5c13a3026f8
+SHA(virtualbox_sdk) := 038c1d069ecf2886a2a7ca1ad5483bde4169b7bee39d77fbb16943a28ce64341
 
 PATCHES_DIR       := src/virtualbox5/patches
 PATCHES_DIR_VBOX4 := src/virtualbox/patches
@@ -96,7 +96,7 @@ VBOX_INC += VBoxVideo.h Hardware bioslogo.h scsi.h shflsvc.h VBoxGuest2.h vd.h
 VBOX_INC += vd-plugin.h vd-ifs.h vd-ifs-internal.h vd-image-backend.h
 VBOX_INC += vd-cache-backend.h vd-filter-backend.h msi.h asmdefs.mac err.mac
 VBOX_INC += VBoxVideoHost3D.h VBoxVideo3D.h settings.h VBoxAuth.h
-VBOX_INC += usb.h usbfilter.h vrdpusb.h
+VBOX_INC += usb.h usbfilter.h vrdpusb.h AssertGuest.h
 VBOX_INC += RemoteDesktop ExtPack/ExtPack.h
 
 VBOX_INC_COM := array.h assert.h AutoLock.h ErrorInfo.h EventQueue.h Guid.h
