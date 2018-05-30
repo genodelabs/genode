@@ -1,0 +1,11 @@
+--- a/src/app/virtualbox/src/VBox/VMM/VMMAll/CPUMAllMsrs.cpp
+--- b/src/app/virtualbox/src/VBox/VMM/VMMAll/CPUMAllMsrs.cpp
+@@ -251,6 +251,8 @@
+     RT_NOREF_PV(pVCpu); RT_NOREF_PV(idMsr); RT_NOREF_PV(pRange);
+     /** @todo fake microcode update. */
+     *puValue = pRange->uValue;
++    *puValue = ~0ULL;
++    RTLogPrintf("%s: overwrite %llx->%llx to avoid endless microcode patch loop\n", __func__, pRange->uValue, *puValue);
+     return VINF_SUCCESS;
+ }
+ 
