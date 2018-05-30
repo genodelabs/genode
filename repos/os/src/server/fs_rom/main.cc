@@ -257,18 +257,37 @@ class Fs_rom::Rom_session_component : public  Rpc_object<Rom_session>
 			catch (Permission_denied) { error(_file_path, ": permission denied"); }
 			catch (...)               { error(_file_path, ": unhandled error"); };
 
-			if (_file_size > 0) {
-				memset(_file_ds.local_addr<char>(), 0x00, min(_file_size, _file_ds.size()));
-				_file_size = 0;
-			}
-
 			return false;
 		}
 
 		void _notify_client_about_new_version()
 		{
-			if (_sigh.valid() && _curr_version.value != _handed_out_version.value)
-				Signal_transmitter(_sigh).submit();
+			using namespace File_system;
+
+			if (_sigh.valid() && _curr_version.value != _handed_out_version.value) {
+
+				/* notify if the file exists and is not empty */
+				try {
+					Node_handle file = _fs.node(_file_path.base());
+					Handle_guard g(_fs, file);
+					_file_size = _fs.status(file).size;
+					if (_file_size > 0) {
+						/* assume a transition between versions */
+						Signal_transmitter(_sigh).submit();
+					}
+				}
+
+				/* notify if the file is removed */
+				catch (File_system::Lookup_failed) {
+					if (_file_size > 0) {
+						memset(_file_ds.local_addr<char>(), 0x00, _file_size);
+						_file_size = 0;
+						Signal_transmitter(_sigh).submit();
+					}
+				}
+
+				catch (...) { }
+			}
 		}
 
 	public:
@@ -356,9 +375,11 @@ class Fs_rom::Rom_session_component : public  Rpc_object<Rom_session>
 					_open_watch_handle();
 				}
 
-				/* notify the client of the change */
-				_curr_version = Version { _curr_version.value + 1 };
-				_notify_client_about_new_version();
+				if (_watching_file) {
+					/* notify the client of the change */
+					_curr_version = Version { _curr_version.value + 1 };
+					_notify_client_about_new_version();
+				}
 				return;
 
 			case File_system::Packet_descriptor::READ: {
@@ -456,6 +477,7 @@ class Fs_rom::Rom_root : public Root_component<Fs_rom::Rom_session_component>
 			Root_component<Rom_session_component>(env.ep(), md_alloc),
 			_env(env)
 		{
+			/* Process CONTENT_CHANGED acknowledgement packets at the entrypoint  */
 			_fs.sigh_ack_avail(_packet_handler);
 
 			env.parent().announce(env.ep().manage(*this));
