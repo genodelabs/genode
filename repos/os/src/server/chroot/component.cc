@@ -116,26 +116,8 @@ struct Chroot::Main
 		if (policy.has_attribute("path")) {
 			policy.attribute("path").value(tmp, sizeof(tmp));
 			root_path.import(tmp);
-		}
-
-		/* if policy specifies a merge, use a truncated label */
-		else if (policy.has_attribute("label_prefix")
-		        && policy.attribute_value("merge", false))
-		{
-			/* merge at the next element */
-			size_t offset = policy.attribute("label_prefix").value_size();
-			for (size_t i = offset; i < label.length()-4; ++i) {
-				if (strcmp(label.string()+i, " -> ", 4))
-					continue;
-
-				strncpy(tmp, label.string(), min(sizeof(tmp), i+1));
-				break;
-			}
-			root_path = path_from_label<Path>(tmp);
-		}
-
-		/* use an implicit chroot path from the label */
-		else {
+		} else {
+			/* generate implicit chroot path from the label */
 			root_path = path_from_label<Path>(label.string());
 		}
 

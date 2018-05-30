@@ -1,37 +1,14 @@
 This component intercepts File_system requests and changes
-the root directory of the request using the session label.
+the root directory attached to requests as defined by
+policy or by converting session label elements to a
+hierarchy of directories.
 
-In this example if cli_monitor had a child named "X", every
-file system session from "X" would be rooted to the directory
-"/cli_monitor/X" at "fs_server".
+Sessions matching policies with _path_ attributes will be "chrooted" to the
+configured policy path, sessions not matching policies with _path_ attributes
+will be chrooted into paths formed from each session label element. Sessions
+requests are downgraded to read-only requests unless matched by polices
+with an affirmative _writeable_ attribute. Sessions not matching any
+policy are rejected.
 
-! <start name="fs_server">
-!   <provides> <service name="File_system"/> </provides>
-!   ...
-! </start>
-!
-! <start name="chroot">
-!   <provides> <service name="File_system"/> </provides>
-!   <config>
-!     <policy label_prefix="cli_monitor ->" merge="yes"/>
-!   </config>
-!   <route>
-!     <any-service>
-!       <child name="fs_server"/> <parent/>
-!     </any-service>
-!   </route>
-!   ...
-! </start>
-!
-! <start name="cli_monitior">
-!   <route>
-!     <any-service>
-!       <child name="chroot"/> <parent/>
-!     </any-service>
-!   </route>
-!   ...
-! </start>
-
-In addition, the 'chroot' component will intercept the 'writeable' session
-argument and only if its own policy allows it (i.e. the 'writeable' attribute
-is to 'yes') the child is permitted to create a writeable connection.
+Please note that this server is only effective for File_system servers that
+honor the "root" or "writeable" argument to session requests.
