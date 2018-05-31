@@ -4,6 +4,42 @@
                                ===========
 
 
+Genode OS Framework release 18.05 | 2018-05-31
+##############################################
+
+| With Genode 18.05, we have reached the second stage of Sculpt OS,
+| empowering the user with the automation of fundamental work flows and
+| a new user interface for storage management and network access.
+| Further highlights include the added support for Java, a new NVMe device
+| driver, enhanced VFS infrastructure, and an updated revision of the Genode
+| Foundations book.
+
+Our [https://genode.org/about/road-map - Year of Sculpt] continues at a
+rapid pace. The just released version 18.05 of the Genode OS Framework
+features the second incarnation of the Sculpt general-purpose OS, targeting
+the group of people who follow our project with curiosity. Sculpt for The
+Curios (TC) introduces an interactive user interface for fundamental tasks
+like selecting and managing storage options, or connecting to a network.
+It completely streamlines the installation and deployment of additional
+software by leveraging Genode's custom package-management system. The result
+is an operating system with a flexibility and fun factor that strikes even us
+with surprise.
+
+The current release contains countless side products of this line work,
+including the resolution-independent display of text, the dynamic adjustment
+of user-level network routing, the flexible detection and management of
+partitions and file systems, and the support of USB storage devices from
+diverse vendors.
+
+Beyond the immediate scope of Sculpt, the new version features the initial
+support for the Java language, improves the Ada language support, enhances the
+VFS infrastructure with new copy-on-write and audit plugins, and improves
+the support for the NXP i.MX SoCs.
+
+The entire picture is presented in detail by the
+[https:/documentation/release-notes/18.05 - release documentation of version 18.05...]
+
+
 Sculpt for Early Adopters | 2018-03-02
 ######################################
 
