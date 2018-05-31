@@ -61,6 +61,9 @@ $(DEPOT_ARCHIVE_DIR)/_archives: checked_recipe_hash_value_exists
 #
 RECIPE_FILES := $(notdir $(wildcard $(RECIPE_DIR)/*))
 RECIPE_FILES := $(patsubst %~,,$(RECIPE_FILES))
+RECIPE_FILES := $(patsubst %.rej,,$(RECIPE_FILES))
+RECIPE_FILES := $(patsubst %.orig,,$(RECIPE_FILES))
+RECIPE_FILES := $(patsubst %.swp,,$(RECIPE_FILES))
 RECIPE_FILES := $(filter-out archives hash,$(RECIPE_FILES))
 
 checked_readme_exists:
