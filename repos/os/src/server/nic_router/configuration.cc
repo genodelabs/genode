@@ -35,6 +35,17 @@ Configuration::Configuration(Xml_node const  node,
 { }
 
 
+void Configuration::_invalid_domain(Domain     &domain,
+                                    char const *reason)
+{
+	if (_verbose) {
+		log("[", domain, "] invalid domain (", reason, ") "); }
+
+	_domains.remove(domain);
+	destroy(_alloc, &domain);
+}
+
+
 Configuration::Configuration(Env               &env,
                              Xml_node const     node,
                              Allocator         &alloc,
@@ -56,8 +67,15 @@ Configuration::Configuration(Env               &env,
 {
 	/* read domains */
 	node.for_each_sub_node("domain", [&] (Xml_node const node) {
-		try { _domains.insert(*new (_alloc) Domain(*this, node, _alloc)); }
-		catch (Domain::Invalid) { log("invalid domain"); }
+		try {
+			Domain &domain = *new (_alloc) Domain(*this, node, _alloc);
+			try { _domains.insert(domain); }
+			catch (Domain_tree::Name_not_unique exception) {
+				_invalid_domain(domain,           "name not unique");
+				_invalid_domain(exception.object, "name not unique");
+			}
+		}
+		catch (Domain::Invalid) { log("[?] invalid domain"); }
 	});
 	/* do those parts of domain init that require the domain tree to be complete */
 	List<Domain> invalid_domains;

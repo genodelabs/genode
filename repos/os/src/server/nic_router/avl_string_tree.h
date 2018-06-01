@@ -14,6 +14,9 @@
 #ifndef _AVL_STRING_TREE_H_
 #define _AVL_STRING_TREE_H_
 
+/* local includes */
+#include <reference.h>
+
 /* Genode includes */
 #include <util/avl_string.h>
 #include <base/allocator.h>
@@ -44,7 +47,13 @@ class Net::Avl_string_tree : public Genode::Avl_tree<Genode::Avl_string_base>
 
 	public:
 
-		struct No_match : Genode::Exception { };
+		struct No_match        : Genode::Exception { };
+		struct Name_not_unique : Genode::Exception
+		{
+			OBJECT &object;
+
+			Name_not_unique(OBJECT &object) : object(object) { }
+		};
 
 		OBJECT &find_by_name(NAME const &name) { return _find_by_name(name.string()); }
 
@@ -72,7 +81,11 @@ class Net::Avl_string_tree : public Genode::Avl_tree<Genode::Avl_string_base>
 			}
 		}
 
-		void insert(OBJECT &object) { Tree::insert(&object); }
+		void insert(OBJECT &object)
+		{
+			try { throw Name_not_unique(_find_by_name(static_cast<Node *>(&object)->name())); }
+			catch (No_match) { Tree::insert(&object); }
+		}
 
 		void remove(OBJECT &object) { Tree::remove(&object); }
 };

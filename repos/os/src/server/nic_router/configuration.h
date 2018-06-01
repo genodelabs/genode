@@ -48,6 +48,9 @@ class Net::Configuration
 		Domain_tree                 _domains                 { };
 		Genode::Xml_node     const  _node;
 
+		void _invalid_domain(Domain     &domain,
+		                     char const *reason);
+
 	public:
 
 		enum { DEFAULT_REPORT_INTERVAL_SEC       =   5 };
