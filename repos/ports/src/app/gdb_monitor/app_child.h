@@ -172,9 +172,10 @@ class Gdb_monitor::App_child : public Child_policy,
 		}
 
 		/**
-		 * Init::Report_update_trigger callback
+		 * Init::Report_update_trigger callbacks
 		 */
 		void trigger_report_update() override { }
+		void trigger_immediate_report_update() override { }
 
 		/**
 		 * Init::Routed_service::Ram_accessor interface

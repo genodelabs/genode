@@ -68,7 +68,20 @@ class Init::Report_detail : Genode::Noncopyable
 
 struct Init::Report_update_trigger : Interface
 {
+	/**
+	 * Trigger regular (rate-limited) report update
+	 */
 	virtual void trigger_report_update() = 0;
+
+	/**
+	 * Trigger immediate report update
+	 *
+	 * This method is intended for situations that require a timely response of
+	 * the consumer of the report. This is particularly important for resource
+	 * requests that would otherwise unnecessarily stall the execution of the
+	 * respective child.
+	 */
+	virtual void trigger_immediate_report_update() = 0;
 };
 
 #endif /* _SRC__INIT__REPORT_H_ */

@@ -63,6 +63,9 @@ class Init::State_reporter : public Report_update_trigger
 		Signal_handler<State_reporter> _timer_periodic_handler {
 			_env.ep(), *this, &State_reporter::_handle_timer };
 
+		Signal_handler<State_reporter> _immediate_handler {
+			_env.ep(), *this, &State_reporter::_handle_timer };
+
 		bool _scheduled = false;
 
 		void _handle_timer()
@@ -182,6 +185,12 @@ class Init::State_reporter : public Report_update_trigger
 				_timer->trigger_once(_report_delay_ms*1000);
 				_scheduled = true;
 			}
+		}
+
+		void trigger_immediate_report_update() override
+		{
+			if (_report_delay_ms)
+				Signal_transmitter(_immediate_handler).submit();
 		}
 };
 
