@@ -19,6 +19,7 @@
 #include <model/nic_state.h>
 #include <model/wifi_connection.h>
 #include <model/wpa_passphrase.h>
+#include <model/pci_info.h>
 #include <view/dialog.h>
 #include <view/selectable_item.h>
 
@@ -39,6 +40,7 @@ struct Sculpt::Network_dialog : Dialog
 	Nic_state            const &_nic_state;
 	Blind_wpa_passphrase const &_wpa_passphrase;
 	Wlan_config_policy   const &_wlan_config_policy;
+	Pci_info             const &_pci_info;
 
 	Hoverable_item  _nic_item     { };
 	Selectable_item _ap_item      { };
@@ -101,12 +103,14 @@ struct Sculpt::Network_dialog : Dialog
 	               Wifi_connection      const &wifi_connection,
 	               Nic_state            const &nic_state,
 	               Blind_wpa_passphrase const &wpa_passphrase,
-	               Wlan_config_policy   const &wlan_config_policy)
+	               Wlan_config_policy   const &wlan_config_policy,
+	               Pci_info             const &pci_info)
 	:
 		_env(env), _dialog_generator(dialog_generator),
 		_nic_target(nic_target), _access_points(access_points),
 		_wifi_connection(wifi_connection), _nic_state(nic_state),
-		_wpa_passphrase(wpa_passphrase), _wlan_config_policy(wlan_config_policy)
+		_wpa_passphrase(wpa_passphrase), _wlan_config_policy(wlan_config_policy),
+		_pci_info(pci_info)
 	{ }
 };
 

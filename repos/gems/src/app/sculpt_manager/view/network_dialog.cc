@@ -224,7 +224,8 @@ void Sculpt::Network_dialog::generate(Xml_generator &xml) const
 					gen_nic_button("wired", Nic_target::WIRED, "Wired");
 
 				if (_nic_target.managed() || _nic_target.wifi())
-					gen_nic_button("wifi",  Nic_target::WIFI,  "Wifi");
+					if (_pci_info.wifi_present)
+						gen_nic_button("wifi",  Nic_target::WIFI,  "Wifi");
 			});
 
 			if (_nic_target.type == Nic_target::WIFI || _nic_target.type == Nic_target::WIRED) {

@@ -84,6 +84,31 @@ struct Sculpt::Main : Input_event_handler,
 	void _handle_nitpicker_hover();
 
 
+	/**********************
+	 ** Device discovery **
+	 **********************/
+
+	Attached_rom_dataspace _pci_devices { _env, "report -> drivers/pci_devices" };
+
+	Signal_handler<Main> _pci_devices_handler {
+		_env.ep(), *this, &Main::_handle_pci_devices };
+
+	Pci_info _pci_info { };
+
+	void _handle_pci_devices()
+	{
+		_pci_devices.update();
+		_pci_info.wifi_present = false;
+
+		_pci_devices.xml().for_each_sub_node("device", [&] (Xml_node device) {
+
+			/* detect Intel Wireless card */
+			if (device.attribute_value("class_code", 0UL) == 0x28000)
+				_pci_info.wifi_present = true;
+		});
+	}
+
+
 	/***************************
 	 ** Configuration loading **
 	 ***************************/
@@ -115,7 +140,7 @@ struct Sculpt::Main : Input_event_handler,
 	}
 
 
-	Network _network { _env, _heap, *this, *this, *this };
+	Network _network { _env, _heap, *this, *this, *this, _pci_info };
 
 
 	/************
@@ -323,6 +348,7 @@ struct Sculpt::Main : Input_event_handler,
 		_update_state_rom.sigh(_update_state_handler);
 		_nitpicker_hover .sigh(_nitpicker_hover_handler);
 		_hover_rom       .sigh(_hover_handler);
+		_pci_devices     .sigh(_pci_devices_handler);
 
 		/*
 		 * Generate initial configurations
@@ -334,6 +360,7 @@ struct Sculpt::Main : Input_event_handler,
 		 */
 		_storage.handle_storage_devices_update();
 		_deploy.handle_deploy();
+		_handle_pci_devices();
 
 		generate_runtime_config();
 		generate_dialog();
