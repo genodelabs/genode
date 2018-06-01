@@ -94,7 +94,20 @@ extern "C" {
 		if (video_events.resize_pending) {
 			video_events.resize_pending = false;
 
-			SDL_PrivateResize(video_events.width, video_events.height);
+			int const width  = video_events.width;
+			int const height = video_events.height;
+
+			bool const quit = width == 0 && height == 0;
+
+			if (!quit)
+				SDL_PrivateResize(width, height);
+			else {
+				/* at least try to quit w/o other event handling */
+				if (SDL_PrivateQuit())
+					return;
+				else
+					Genode::warning("could not deliver requested SDL_QUIT event");
+			}
 		}
 
 		if (!input->pending())
