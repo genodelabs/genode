@@ -25,9 +25,9 @@
 #include <ipv4_config.h>
 #include <dhcp_server.h>
 #include <interface.h>
+#include <avl_string_tree.h>
 
 /* Genode includes */
-#include <util/avl_string.h>
 #include <util/reconstructible.h>
 
 namespace Genode {
@@ -40,32 +40,14 @@ namespace Net {
 
 	class Interface;
 	class Configuration;
-	class Domain_avl_member;
 	class Domain_base;
 	class Domain;
-	class Domain_tree;
 	using Domain_name = Genode::String<160>;
+	class Domain_tree;
 }
 
 
-class Net::Domain_avl_member : public Genode::Avl_string_base
-{
-	private:
-
-		Domain &_domain;
-
-	public:
-
-		Domain_avl_member(Domain_name const &name,
-		                  Domain            &domain);
-
-
-		/***************
-		 ** Accessors **
-		 ***************/
-
-		Domain &domain() const { return _domain; }
-};
+class Net::Domain_tree : public Avl_string_tree<Domain, Domain_name> { };
 
 
 class Net::Domain_base
@@ -79,11 +61,11 @@ class Net::Domain_base
 
 
 class Net::Domain : public Domain_base,
-                    public List<Domain>::Element
+                    public List<Domain>::Element,
+                    public Genode::Avl_string_base
 {
 	private:
 
-		Domain_avl_member                     _avl_member;
 		Configuration                        &_config;
 		Genode::Xml_node                      _node;
 		Genode::Allocator                    &_alloc;
@@ -194,38 +176,12 @@ class Net::Domain : public Domain_base,
 		Nat_rule_tree               &nat_rules()             { return _nat_rules; }
 		Interface_list              &interfaces()            { return _interfaces; }
 		Configuration               &config()          const { return _config; }
-		Domain_avl_member           &avl_member()            { return _avl_member; }
 		Dhcp_server                 &dhcp_server();
 		Arp_cache                   &arp_cache()             { return _arp_cache; }
 		Arp_waiter_list             &foreign_arp_waiters()   { return _foreign_arp_waiters; }
 		Link_side_tree              &tcp_links()             { return _tcp_links; }
 		Link_side_tree              &udp_links()             { return _udp_links; }
 		Link_side_tree              &icmp_links()            { return _icmp_links; }
-};
-
-
-struct Net::Domain_tree : Genode::Avl_tree<Genode::Avl_string_base>
-{
-	using Avl_tree = Genode::Avl_tree<Genode::Avl_string_base>;
-
-	struct No_match : Genode::Exception { };
-
-	static Domain &domain(Genode::Avl_string_base const &node);
-
-	Domain &find_by_name(Domain_name name);
-
-	template <typename FUNC>
-	void for_each(FUNC && functor) const {
-		Avl_tree::for_each([&] (Genode::Avl_string_base const &node) {
-			functor(domain(node));
-		});
-	}
-
-	void insert(Domain &domain) { Avl_tree::insert(&domain.avl_member()); }
-
-	void remove(Domain &domain) { Avl_tree::remove(&domain.avl_member()); }
-
-	void destroy_each(Genode::Deallocator &dealloc);
 };
 
 #endif /* _DOMAIN_H_ */

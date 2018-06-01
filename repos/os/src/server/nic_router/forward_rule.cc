@@ -31,8 +31,8 @@ Domain &Forward_rule::_find_domain(Domain_tree    &domains,
                                    Xml_node const  node)
 {
 	try {
-		return domains.find_by_name(
-			node.attribute_value("domain", Domain_name()));
+		Domain_name const domain_name = node.attribute_value("domain", Domain_name());
+		return domains.find_by_name(domain_name);
 	}
 	catch (Domain_tree::No_match) { throw Invalid(); }
 }

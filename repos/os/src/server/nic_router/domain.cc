@@ -26,17 +26,6 @@ using namespace Net;
 using namespace Genode;
 
 
-/***********************
- ** Domain_avl_member **
- ***********************/
-
-Domain_avl_member::Domain_avl_member(Domain_name const &name,
-                                     Domain            &domain)
-:
-	Avl_string_base(name.string()), _domain(domain)
-{ }
-
-
 /*****************
  ** Domain_base **
  *****************/
@@ -184,7 +173,7 @@ void Domain::print(Output &output) const
 
 Domain::Domain(Configuration &config, Xml_node const node, Allocator &alloc)
 :
-	Domain_base(node), _avl_member(_name, *this), _config(config),
+	Domain_base(node), Avl_string_base(_name.string()), _config(config),
 	_node(node), _alloc(alloc),
 	_ip_config(_node.attribute_value("interface",  Ipv4_address_prefix()),
 	           _node.attribute_value("gateway",    Ipv4_address()),
@@ -357,37 +346,4 @@ void Domain::report(Xml_generator &xml)
 			xml.attribute("dns",  String<16>(ip_config().dns_server));
 		}
 	});
-}
-
-
-/*****************
- ** Domain_tree **
- *****************/
-
-Domain &Domain_tree::domain(Avl_string_base const &node)
-{
-	return static_cast<Domain_avl_member const *>(&node)->domain();
-}
-
-
-Domain &Domain_tree::find_by_name(Domain_name name)
-{
-	if (name == Domain_name() || !first()) {
-		throw No_match(); }
-
-	Avl_string_base *node = first()->find_by_name(name.string());
-	if (!node) {
-		throw No_match(); }
-
-	return domain(*node);
-}
-
-
-void Domain_tree::destroy_each(Deallocator &dealloc)
-{
-	while (Avl_string_base *first_ = first()) {
-		Domain &domain_ = domain(*first_);
-		Avl_tree::remove(first_);
-		destroy(dealloc, &domain_);
-	}
 }
