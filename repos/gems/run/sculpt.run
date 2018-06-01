@@ -355,6 +355,7 @@ install_config {
 				<child name="config_fs_rom"/> </service>
 			<service name="ROM" label="manager -> nitpicker_hover">
 				<child name="report_rom"/> </service>
+			<service name="Report"> <child name="fs_report"/> </service>
 			<service name="Nitpicker"> <child name="nitpicker"/> </service>
 			<service name="Timer"> <child name="timer"/> </service>
 			<service name="File_system" label="config">
