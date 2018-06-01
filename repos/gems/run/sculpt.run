@@ -638,7 +638,7 @@ append manual_deploy_config {
 		<route>
 			<service name="ROM"    label="capslock"> <parent label="capslock"/> </service>
 			<service name="ROM"    label="platform_info"> <parent/> </service>
-			<service name="Report" label="shape"> <parent label="wm -> wm -> vm -> shape"/> </service>
+			<service name="Report" label="shape"> <parent label="wm -> wm -> vbox5-tc-browser -> shape"/> </service>
 			<service name="RM">        <parent/> </service>
 			<service name="Rtc">       <parent/> </service>
 			<service name="Nitpicker"> <child name="wm"/> </service>
