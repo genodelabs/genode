@@ -173,7 +173,7 @@ void Sculpt::gen_noux_start(Xml_generator &xml, Rom_name const &name,
 		gen_parent_rom_route(xml, "ncurses.lib.so");
 		gen_parent_rom_route(xml, "posix.lib.so");
 		gen_parent_rom_route(xml, "depot_users.tar");
-		gen_parent_rom_route(xml, "vimrc");
+		gen_parent_rom_route(xml, "vimrc", "config -> vimrc");
 		gen_parent_rom_route(xml, "VERSION");
 		gen_parent_route<Cpu_session>    (xml);
 		gen_parent_route<Pd_session>     (xml);
