@@ -125,6 +125,8 @@ class Net::Domain : public Domain_base,
 
 		void init(Domain_tree &domains);
 
+		void deinit();
+
 		Ipv4_address const &next_hop(Ipv4_address const &ip) const;
 
 		void ip_config(Ipv4_config const &ip_config);

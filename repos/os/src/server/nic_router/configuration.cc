@@ -65,7 +65,7 @@ Configuration::Configuration(Env               &env,
 	_tcp_max_segm_lifetime(read_sec_attr(node, "tcp_max_segm_lifetime_sec", DEFAULT_TCP_MAX_SEGM_LIFETIME_SEC)),
 	_node(node)
 {
-	/* read domains */
+	/* do parts of domain initialization that do not lookup other domains */
 	node.for_each_sub_node("domain", [&] (Xml_node const node) {
 		try {
 			Domain &domain = *new (_alloc) Domain(*this, node, _alloc);
@@ -77,20 +77,40 @@ Configuration::Configuration(Env               &env,
 		}
 		catch (Domain::Invalid) { log("[?] invalid domain"); }
 	});
-	/* do those parts of domain init that require the domain tree to be complete */
-	List<Domain> invalid_domains;
-	_domains.for_each([&] (Domain &domain) {
+	/* do parts of domain initialization that may lookup other domains */
+	while (true) {
+
+		struct Retry_without_domain : Genode::Exception
+		{
+			Domain &domain;
+
+			Retry_without_domain(Domain &domain) : domain(domain) { }
+		};
 		try {
-			domain.init(_domains);
-			if (_verbose) {
-				log("[", domain, "] initiated domain"); }
+			_domains.for_each([&] (Domain &domain) {
+				try { domain.init(_domains); }
+				catch (Domain::Invalid) { throw Retry_without_domain(domain); }
+				if (_verbose) {
+					log("[", domain, "] initiated domain"); }
+			});
 		}
-		catch (Domain::Invalid) { invalid_domains.insert(&domain); }
-	});
-	invalid_domains.for_each([&] (Domain &domain) {
-		_domains.remove(domain);
-		destroy(_alloc, &domain);
-	});
+		catch (Retry_without_domain exception) {
+
+			/* deinitialize all domains again */
+			_domains.for_each([&] (Domain &domain) {
+				domain.deinit();
+				if (_verbose) {
+					log("[", domain, "] deinitiated domain"); }
+			});
+			/* destroy domain that became invalid during initialization */
+			_domains.remove(exception.domain);
+			destroy(_alloc, &exception.domain);
+
+			/* retry to initialize the remaining domains */
+			continue;
+		}
+		break;
+	}
 	try {
 		/* check whether we shall create a report generator */
 		Xml_node const report_node = node.sub_node("report");

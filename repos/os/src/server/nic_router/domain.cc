@@ -204,18 +204,7 @@ Link_side_tree &Domain::links(L3_protocol const protocol)
 
 Domain::~Domain()
 {
-	/* destroy rules */
-	_ip_rules.destroy_each(_alloc);
-	_nat_rules.destroy_each(_alloc);
-	_icmp_rules.destroy_each(_alloc);
-	_udp_rules.destroy_each(_alloc);
-	_tcp_rules.destroy_each(_alloc);
-	_udp_forward_rules.destroy_each(_alloc);
-	_tcp_forward_rules.destroy_each(_alloc);
-
-	/* destroy DHCP server and IP config */
-	try { destroy(_alloc, &_dhcp_server()); }
-	catch (Pointer<Dhcp_server>::Invalid) { }
+	deinit();
 	_ip_config.destruct();
 }
 
@@ -294,6 +283,20 @@ void Domain::init(Domain_tree &domains)
 		try { _ip_rules.insert(*new (_alloc) Ip_rule(domains, node)); }
 		catch (Ip_rule::Invalid) { _invalid("invalid IP rule"); }
 	});
+}
+
+
+void Domain::deinit()
+{
+	_ip_rules.destroy_each(_alloc);
+	_nat_rules.destroy_each(_alloc);
+	_icmp_rules.destroy_each(_alloc);
+	_udp_rules.destroy_each(_alloc);
+	_tcp_rules.destroy_each(_alloc);
+	_udp_forward_rules.destroy_each(_alloc);
+	_tcp_forward_rules.destroy_each(_alloc);
+	try { destroy(_alloc, &_dhcp_server()); }
+	catch (Pointer<Dhcp_server>::Invalid) { }
 }
 
 
