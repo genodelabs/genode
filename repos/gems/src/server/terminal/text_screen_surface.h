@@ -257,11 +257,14 @@ class Terminal::Text_screen_surface
 			}
 
 			int const num_dirty_lines = last_dirty_line - first_dirty_line + 1;
-			if (num_dirty_lines > 0)
-				_framebuffer.refresh(Rect(Point(0, first_dirty_line*_geometry.char_height),
-				                          Area(_geometry.fb_size.w(),
-				                               num_dirty_lines*_geometry.char_height +
-				                               _geometry.unused_pixels().h())));
+			if (num_dirty_lines > 0) {
+				int      const y = _geometry.start().y()
+				                 + first_dirty_line*_geometry.char_height;
+				unsigned const h = num_dirty_lines*_geometry.char_height
+				                 + _geometry.unused_pixels().h();
+				_framebuffer.refresh(Rect(Point(0, y),
+				                          Area(_geometry.fb_size.w(), h)));
+			}
 		}
 
 		void apply_character(Character c)
