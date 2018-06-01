@@ -8,3 +8,5 @@ set backspace=indent,eol,start
 set nowrap
 set ruler
 set ts=2
+set wildmode=list:longest
+set completeopt=menu,longest
