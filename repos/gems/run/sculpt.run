@@ -580,7 +580,21 @@ append manual_deploy_config {
 		</route>
 		<config> <default-policy path="/vm/debian" writeable="yes"/> </config>
 	</start>
+	-->
 
+<!--
+	<start name="download_debian" pkg="cnuke/pkg/download_debian/2018-05-30">
+		<route>
+			<service name="File_system" label="fonts">  <child name="fonts_fs"/> </service>
+			<service name="File_system" label="target"> <child name="vm_fs"/> </service>
+			<service name="Nic">       <child name="nic_router"/> </service>
+			<service name="Nitpicker"> <child name="wm"/> </service>
+			<service name="RM">        <parent/> </service>
+		</route>
+	</start>
+-->
+
+<!--
 	<start name="vm" ram="4300M" pkg="} [depot_user]/pkg/[current_pkg vbox5-nova-sculpt] {">
 		<route>
 			<service name="ROM"    label="capslock"> <parent label="capslock"/> </service>
@@ -595,18 +609,6 @@ append manual_deploy_config {
 			<service name="Usb">    <parent/> </service>
 			<service name="File_system" label="vm">     <child name="vm_fs"/>     </service>
 			<service name="File_system" label="shared"> <child name="shared_fs"/> </service>
-		</route>
-	</start>
--->
-
-<!--
-	<start name="download_debian" pkg="cnuke/pkg/download_debian/2018-05-30">
-		<route>
-			<service name="File_system" label="fonts">  <child name="fonts_fs"/> </service>
-			<service name="File_system" label="target"> <child name="vm_fs"/> </service>
-			<service name="Nic">       <child name="nic_router"/> </service>
-			<service name="Nitpicker"> <child name="wm"/> </service>
-			<service name="RM">        <parent/> </service>
 		</route>
 	</start>
 -->
