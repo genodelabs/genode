@@ -1,0 +1,18 @@
+<runtime ram="40M" caps="1000" binary="init" config="wm.config">
+
+	<requires> <nitpicker/> <timer/> </requires>
+
+	<provides> <nitpicker/> </provides>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="report_rom"/>
+		<rom label="decorator"/>
+		<rom label="floating_window_layouter"/>
+		<rom label="wm"/>
+		<rom label="wm.config"/>
+		<rom label="decorator_init.config"/>
+		<rom label="layouter.config"/>
+	</content>
+
+</runtime>
