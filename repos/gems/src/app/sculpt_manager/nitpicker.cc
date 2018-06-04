@@ -92,8 +92,14 @@ struct Nitpicker::Session_component : Rpc_object<Nitpicker::Session>
 	void mode_sigh(Signal_context_capability sigh) override {
 		_connection.mode_sigh(sigh); }
 
-	void buffer(Framebuffer::Mode mode, bool use_alpha) override {
-		_connection.buffer(mode, use_alpha); }
+	void buffer(Framebuffer::Mode mode, bool use_alpha) override
+	{
+		/*
+		 * Do not call 'Connection::buffer' to avoid paying session quota
+		 * from our own budget.
+		 */
+		_connection.Client::buffer(mode, use_alpha);
+	}
 
 	void focus(Capability<Nitpicker::Session> session) override {
 		_connection.focus(session); }
