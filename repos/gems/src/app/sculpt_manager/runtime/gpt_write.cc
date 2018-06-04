@@ -34,6 +34,7 @@ void Sculpt::_gen_gpt_write_start_content(Xml_generator        &xml,
 	xml.node("config", [&] () {
 		xml.attribute("verbose",         "yes");
 		xml.attribute("update_geometry", "yes");
+		xml.attribute("preserve_hybrid", "yes");
 
 		xml.node("actions", [&] () { fn(xml); });
 	});
