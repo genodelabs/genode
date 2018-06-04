@@ -71,6 +71,10 @@ useable space of the GPT:
 
 ! <config update_geometry="yes"/>
 
+When updating the geometry, setting the 'preserve_hybrid' attribute to 'yes'
+will prevent the component from overriding a hybrid MBR with a proper
+protective MBR.
+
 Setting the 'initialize' attribute will instruct the component to clear
 any existing GPT/PMBR.
 

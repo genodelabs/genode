@@ -53,6 +53,7 @@ struct Gpt::Writer
 	/* flags */
 	bool   _verbose         { false };
 	bool   _update_geometry { false };
+	bool   _preserve_hybrid { false };
 	bool   _initialize      { false };
 	bool   _wipe            { false };
 	bool   _force_alignment { false };
@@ -68,6 +69,7 @@ struct Gpt::Writer
 		_wipe            = config.attribute_value("wipe",            false);
 		_force_alignment = config.attribute_value("force_align",     false);
 		_update_geometry = config.attribute_value("update_geometry", false);
+		_preserve_hybrid = config.attribute_value("preserve_hybrid", false);
 
 		{
 			Util::Size_string align =
@@ -362,7 +364,7 @@ struct Gpt::Writer
 	{
 		if (_pgpt.backup_lba == _block_count - 1) { return; }
 
-		_setup_pmbr();
+		if (!_preserve_hybrid) { _setup_pmbr(); }
 
 		_old_backup_hdr_lba = _pgpt.backup_lba;
 
