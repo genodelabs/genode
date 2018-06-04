@@ -2,7 +2,7 @@ LICENSE   := LGPL
 DOWNLOADS := pcsc-lite.archive
 VERSION   := 1.8.18
 
-URL(pcsc-lite) := https://alioth.debian.org/frs/download.php/file/4179/pcsc-lite-$(VERSION).tar.bz2
+URL(pcsc-lite) := https://pcsclite.apdu.fr/files/pcsc-lite-$(VERSION).tar.bz2
 SHA(pcsc-lite) := b22d32b018f6a1016adba91abfcc63876cca999daa472dd86e953ddd41d00905
 DIR(pcsc-lite) := src/lib/pcsc-lite
 
