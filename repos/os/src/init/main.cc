@@ -25,8 +25,9 @@
 namespace Init { struct Main; }
 
 
-struct Init::Main : State_reporter::Producer, Child::Default_route_accessor,
-                    Child::Default_caps_accessor, Child::Ram_limit_accessor
+struct Init::Main : State_reporter::Producer,
+                    Child::Default_route_accessor, Child::Default_caps_accessor,
+                    Child::Ram_limit_accessor, Child::Cap_limit_accessor
 {
 	Env &_env;
 
@@ -59,7 +60,7 @@ struct Init::Main : State_reporter::Producer, Child::Default_route_accessor,
 		return Ram_quota { preserve };
 	}
 
-	Ram_quota _avail_ram()
+	Ram_quota _avail_ram() const
 	{
 		Ram_quota const preserved_ram = _preserved_ram_from_config(_config_xml);
 
@@ -85,7 +86,7 @@ struct Init::Main : State_reporter::Producer, Child::Default_route_accessor,
 		return Cap_quota { preserve };
 	}
 
-	Cap_quota _avail_caps()
+	Cap_quota _avail_caps() const
 	{
 		Cap_quota const preserved_caps = _preserved_caps_from_config(_config_xml);
 
@@ -103,7 +104,12 @@ struct Init::Main : State_reporter::Producer, Child::Default_route_accessor,
 	/**
 	 * Child::Ram_limit_accessor interface
 	 */
-	Ram_quota ram_limit() override { return _avail_ram(); }
+	Ram_quota resource_limit(Ram_quota const &) const override { return _avail_ram(); }
+
+	/**
+	 * Child::Cap_limit_accessor interface
+	 */
+	Cap_quota resource_limit(Cap_quota const &) const override { return _avail_caps(); }
 
 	void _handle_resource_avail() { }
 
@@ -374,7 +380,7 @@ void Init::Main::_handle_config()
 					            start_node, *this, *this, _children,
 					            Ram_quota { avail_ram.value  - used_ram.value },
 					            Cap_quota { avail_caps.value - used_caps.value },
-					             *this, prio_levels, affinity_space,
+					             *this, *this, prio_levels, affinity_space,
 					            _parent_services, _child_services);
 				_children.insert(&child);
 
@@ -430,13 +436,13 @@ void Init::Main::_handle_config()
 			child.initiate_env_sessions(); });
 
 	/*
-	 * (Re-)distribute RAM among the childen, given their resource assignments
-	 * and the available slack memory. We first apply possible downgrades to
-	 * free as much memory as we can. This memory is then incorporated in the
-	 * subsequent upgrade step.
+	 * (Re-)distribute RAM and capability quota among the childen, given their
+	 * resource assignments and the available slack memory. We first apply
+	 * possible downgrades to free as much resources as we can. These resources
+	 * are then incorporated in the subsequent upgrade step.
 	 */
-	_children.for_each_child([&] (Child &child) { child.apply_ram_downgrade(); });
-	_children.for_each_child([&] (Child &child) { child.apply_ram_upgrade(); });
+	_children.for_each_child([&] (Child &child) { child.apply_downgrade(); });
+	_children.for_each_child([&] (Child &child) { child.apply_upgrade(); });
 
 	_server.apply_config(_config_xml);
 }

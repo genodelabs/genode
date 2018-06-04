@@ -163,13 +163,11 @@ Init::Child::apply_config(Xml_node start_node)
 }
 
 
-static Init::Ram_quota assigned_ram_from_start_node(Genode::Xml_node start_node)
+Init::Ram_quota Init::Child::_configured_ram_quota() const
 {
-	using namespace Init;
-
 	size_t assigned = 0;
 
-	start_node.for_each_sub_node("resource", [&] (Xml_node resource) {
+	_start_node->xml().for_each_sub_node("resource", [&] (Xml_node resource) {
 		if (resource.attribute_value("name", String<8>()) == "RAM")
 			assigned = resource.attribute_value("quantum", Number_of_bytes()); });
 
@@ -177,38 +175,48 @@ static Init::Ram_quota assigned_ram_from_start_node(Genode::Xml_node start_node)
 }
 
 
-void Init::Child::apply_ram_upgrade()
+Init::Cap_quota Init::Child::_configured_cap_quota() const
 {
-	Ram_quota const assigned_ram_quota = assigned_ram_from_start_node(_start_node->xml());
+	size_t const default_caps = _default_caps_accessor.default_caps().value;
 
-	if (assigned_ram_quota.value <= _resources.assigned_ram_quota.value)
+	return Cap_quota { _start_node->xml().attribute_value("caps", default_caps) };
+}
+
+
+template <typename QUOTA, typename LIMIT_ACCESSOR>
+void Init::Child::_apply_resource_upgrade(QUOTA &assigned, QUOTA const configured,
+                                          LIMIT_ACCESSOR const &limit_accessor)
+{
+	if (configured.value <= assigned.value)
 		return;
 
-	size_t const increase = assigned_ram_quota.value
-	                      - _resources.assigned_ram_quota.value;
-	size_t const limit    = _ram_limit_accessor.ram_limit().value;
-	size_t const transfer = min(increase, limit);
-
-	if (increase > limit)
-		warning(name(), ": assigned RAM exceeds available RAM");
+	QUOTA  const limit     = limit_accessor.resource_limit(QUOTA{});
+	size_t const increment = configured.value - assigned.value;
 
 	/*
-	 * Remember assignment and apply RAM upgrade to child
-	 *
-	 * Note that we remember the actually transferred amount as the
-	 * assigned amount. In the case where the value is clamped to to
-	 * the limit, the value as given in the config remains diverged
-	 * from the assigned value. This way, a future config update will
-	 * attempt the completion of the upgrade if memory become
-	 * available.
+	 * If the configured quota exceeds our own quota, we donate all remaining
+	 * quota to the child.
 	 */
-	if (transfer) {
-		_resources.assigned_ram_quota =
-			Ram_quota { _resources.assigned_ram_quota.value + transfer };
+	if (increment > limit.value)
+		if (_verbose.enabled())
+			warn_insuff_quota(limit.value);
 
-		_check_ram_constraints(_ram_limit_accessor.ram_limit());
+	QUOTA const transfer { min(increment, limit.value) };
 
-		ref_pd().transfer_quota(_child.pd_session_cap(), Ram_quota{transfer});
+	/*
+	 * Remember assignment and apply upgrade to child
+	 *
+	 * Note that we remember the actually transferred amount as the assigned
+	 * amount. In the case where the value is clamped to to the limit, the
+	 * value as given in the config remains diverged from the assigned value.
+	 * This way, a future config update will attempt the completion of the
+	 * upgrade if memory become available.
+	 */
+	if (transfer.value) {
+
+		assigned.value += transfer.value;
+
+		ref_pd().transfer_quota(_child.pd_session_cap(), transfer);
 
 		/* wake up child that blocks on a resource request */
 		if (_requested_resources.constructed()) {
@@ -219,57 +227,91 @@ void Init::Child::apply_ram_upgrade()
 }
 
 
-void Init::Child::apply_ram_downgrade()
+void Init::Child::apply_upgrade()
 {
-	Ram_quota const assigned_ram_quota = assigned_ram_from_start_node(_start_node->xml());
+	if (_resources.effective_ram_quota().value == 0)
+		warning(name(), ": no valid RAM quota defined");
 
-	if (assigned_ram_quota.value >= _resources.assigned_ram_quota.value)
+	_apply_resource_upgrade(_resources.assigned_ram_quota,
+	                        _configured_ram_quota(), _ram_limit_accessor);
+
+	if (_resources.effective_cap_quota().value == 0)
+		warning(name(), ": no valid capability quota defined");
+
+	_apply_resource_upgrade(_resources.assigned_cap_quota,
+	                        _configured_cap_quota(), _cap_limit_accessor);
+}
+
+
+template <typename QUOTA, typename CHILD_AVAIL_QUOTA_FN>
+void Init::Child::_apply_resource_downgrade(QUOTA &assigned, QUOTA const configured,
+                                            QUOTA const preserved,
+                                            CHILD_AVAIL_QUOTA_FN const &child_avail_quota_fn)
+{
+	if (configured.value >= assigned.value)
 		return;
 
-	size_t const decrease = _resources.assigned_ram_quota.value
-	                      - assigned_ram_quota.value;
+	QUOTA const decrement { assigned.value - configured.value };
 
 	/*
-	 * The child may concurrently consume quota from its RAM session,
+	 * The child may concurrently consume quota from its PD session,
 	 * causing the 'transfer_quota' to fail. For this reason, we repeatedly
 	 * attempt the transfer.
 	 */
 	unsigned max_attempts = 4, attempts = 0;
 	for (; attempts < max_attempts; attempts++) {
 
-		/* give up if the child's available RAM is exhausted */
-		size_t const preserved = 16*1024;
-		size_t const avail     = _child.ram().avail_ram().value;
-
-		if (avail < preserved)
+		/* give up if the child's available quota is exhausted */
+		size_t const avail = child_avail_quota_fn().value;
+		if (avail < preserved.value)
 			break;
 
-		size_t const transfer = min(avail - preserved, decrease);
+		QUOTA const transfer { min(avail - preserved.value, decrement.value) };
 
 		try {
-			_child.pd().transfer_quota(ref_pd_cap(), Ram_quota{transfer});
-			_resources.assigned_ram_quota =
-				Ram_quota { _resources.assigned_ram_quota.value - transfer };
+			_child.pd().transfer_quota(ref_pd_cap(), transfer);
+			assigned.value -= transfer.value;
 			break;
 		} catch (...) { }
 	}
 
 	if (attempts == max_attempts)
-		warning(name(), ": RAM downgrade failed after ", max_attempts, " attempts");
+		warning(name(), ": downgrade failed after ", max_attempts, " attempts");
+}
+
+
+void Init::Child::apply_downgrade()
+{
+	Ram_quota const configured_ram_quota = _configured_ram_quota();
+	Cap_quota const configured_cap_quota = _configured_cap_quota();
+
+	_apply_resource_downgrade(_resources.assigned_ram_quota,
+	                          configured_ram_quota, Ram_quota{16*1024},
+	                          [&] () { return _child.pd().avail_ram(); });
+
+	_apply_resource_downgrade(_resources.assigned_cap_quota,
+	                          configured_cap_quota, Cap_quota{5},
+	                          [&] () { return _child.pd().avail_caps(); });
 
 	/*
-	 * If designated RAM quota is lower than the child's consumed RAM, issue
-	 * a yield request to the child.
+	 * If designated resource quota is lower than the child's consumed quota,
+	 * issue a yield request to the child.
 	 */
-	if (assigned_ram_quota.value < _resources.assigned_ram_quota.value) {
+	size_t demanded_ram_quota = 0;
+	size_t demanded_cap_quota = 0;
 
-		size_t const demanded = _resources.assigned_ram_quota.value
-		                      - assigned_ram_quota.value;
+	if (configured_ram_quota.value < _resources.assigned_ram_quota.value)
+		demanded_ram_quota = _resources.assigned_ram_quota.value - configured_ram_quota.value;
 
-		Parent::Resource_args const args { "ram_quota=", Number_of_bytes(demanded) };
+	if (configured_cap_quota.value < _resources.assigned_cap_quota.value)
+		demanded_cap_quota = _resources.assigned_cap_quota.value - configured_cap_quota.value;
+
+	if (demanded_ram_quota || demanded_cap_quota) {
+		Parent::Resource_args const
+			args { "ram_quota=", Number_of_bytes(demanded_ram_quota), ", ",
+			       "cap_quota=", demanded_cap_quota};
 		_child.yield(args);
 	}
-
 }
 
 
@@ -657,6 +699,7 @@ Init::Child::Child(Env                      &env,
                    Ram_quota                 ram_limit,
                    Cap_quota                 cap_limit,
                    Ram_limit_accessor       &ram_limit_accessor,
+                   Cap_limit_accessor       &cap_limit_accessor,
                    Prio_levels               prio_levels,
                    Affinity::Space const    &affinity_space,
                    Registry<Parent_service> &parent_services,
@@ -667,12 +710,13 @@ Init::Child::Child(Env                      &env,
 	_list_element(this),
 	_start_node(_alloc, start_node),
 	_default_route_accessor(default_route_accessor),
+	_default_caps_accessor(default_caps_accessor),
 	_ram_limit_accessor(ram_limit_accessor),
+	_cap_limit_accessor(cap_limit_accessor),
 	_name_registry(name_registry),
 	_resources(_resources_from_start_node(start_node, prio_levels, affinity_space,
 	                                      default_caps_accessor.default_caps(), cap_limit)),
-	_resources_checked((_check_ram_constraints(ram_limit),
-	                    _check_cap_constraints(cap_limit), true)),
+	_resources_clamped_to_limit((_clamp_resources(ram_limit, cap_limit), true)),
 	_parent_services(parent_services),
 	_child_services(child_services),
 	_session_requester(_env.ep().rpc_ep(), _env.ram(), _env.rm())

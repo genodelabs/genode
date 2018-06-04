@@ -48,7 +48,18 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 
 		struct Default_route_accessor : Interface { virtual Xml_node default_route() = 0; };
 		struct Default_caps_accessor  : Interface { virtual Cap_quota default_caps() = 0; };
-		struct Ram_limit_accessor     : Interface { virtual Ram_quota ram_limit()    = 0; };
+
+		template <typename QUOTA>
+		struct Resource_limit_accessor : Interface
+		{
+			/*
+			 * The argument is unused. It exists solely as an overload selector.
+			 */
+			virtual QUOTA resource_limit(QUOTA const &) const = 0;
+		};
+
+		typedef Resource_limit_accessor<Ram_quota> Ram_limit_accessor;
+		typedef Resource_limit_accessor<Cap_quota> Cap_limit_accessor;
 
 	private:
 
@@ -80,8 +91,9 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 		Version _version { _start_node->xml().attribute_value("version", Version()) };
 
 		Default_route_accessor &_default_route_accessor;
-
-		Ram_limit_accessor &_ram_limit_accessor;
+		Default_caps_accessor  &_default_caps_accessor;
+		Ram_limit_accessor     &_ram_limit_accessor;
+		Cap_limit_accessor     &_cap_limit_accessor;
 
 		Name_registry &_name_registry;
 
@@ -96,7 +108,7 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 			if (name.valid())
 				return name;
 
-			warning("missing 'name' attribute in '<start>' entry");
+			warning("missint 'name' attribute in '<start>' entry");
 			throw Missing_name_attribute();
 		}
 
@@ -196,41 +208,28 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 
 		Resources _resources;
 
-		void _check_ram_constraints(Ram_quota ram_limit)
+		/**
+		 * Print diagnostic information on misconfiguration
+		 */
+		void _clamp_resources(Ram_quota ram_limit, Cap_quota cap_limit)
 		{
-			if (_resources.effective_ram_quota().value == 0)
-				warning(name(), ": no valid RAM quota defined");
-
-			if (_resources.effective_cap_quota().value == 0)
-				warning(name(), ": no valid cap quota defined");
-
-			/*
-			 * If the configured RAM quota exceeds our own quota, we donate
-			 * all remaining quota to the child.
-			 */
 			if (_resources.assigned_ram_quota.value > ram_limit.value) {
-				_resources.assigned_ram_quota.value = ram_limit.value;
-
-				if (_verbose.enabled())
-					warn_insuff_quota(ram_limit.value);
+				warning(name(), " assigned RAM (", _resources.assigned_ram_quota, ") "
+				        "exceeds available RAM (", ram_limit, ")");
+				_resources.assigned_ram_quota = ram_limit;
 			}
-		}
-
-		void _check_cap_constraints(Cap_quota cap_limit)
-		{
-			if (_resources.assigned_cap_quota.value == 0)
-				warning(name(), ": no valid cap quota defined");
 
 			if (_resources.assigned_cap_quota.value > cap_limit.value) {
-
-				warning(name(), ": assigned caps (", _resources.assigned_cap_quota.value, ") "
-				        "exceed available caps (", cap_limit.value, ")");
-
-				_resources.assigned_cap_quota.value = cap_limit.value;
+				warning(name(), " assigned caps (", _resources.assigned_cap_quota, ") "
+				        "exceed available caps (", cap_limit, ")");
+				_resources.assigned_cap_quota = cap_limit;
 			}
 		}
 
-		bool const _resources_checked;
+		Ram_quota _configured_ram_quota() const;
+		Cap_quota _configured_cap_quota() const;
+
+		bool const _resources_clamped_to_limit;
 
 		Registry<Parent_service> &_parent_services;
 		Registry<Routed_service> &_child_services;
@@ -443,6 +442,7 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 		      Ram_quota                 ram_limit,
 		      Cap_quota                 cap_limit,
 		      Ram_limit_accessor       &ram_limit_accessor,
+		      Cap_limit_accessor       &cap_limit_accessor,
 		      Prio_levels               prio_levels,
 		      Affinity::Space const    &affinity_space,
 		      Registry<Parent_service> &parent_services,
@@ -511,8 +511,16 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 		 */
 		Apply_config_result apply_config(Xml_node start_node);
 
-		void apply_ram_upgrade();
-		void apply_ram_downgrade();
+		/* common code for upgrading RAM and caps */
+		template <typename QUOTA, typename LIMIT_ACCESSOR>
+		void _apply_resource_upgrade(QUOTA &, QUOTA, LIMIT_ACCESSOR const &);
+
+		template <typename QUOTA, typename CHILD_AVAIL_QUOTA_FN>
+		void _apply_resource_downgrade(QUOTA &, QUOTA, QUOTA,
+                                       CHILD_AVAIL_QUOTA_FN const &);
+
+		void apply_upgrade();
+		void apply_downgrade();
 
 		void report_state(Xml_generator &xml, Report_detail const &detail) const;
 
@@ -577,7 +585,7 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 
 		void yield_response() override
 		{
-			apply_ram_downgrade();
+			apply_downgrade();
 			_report_update_trigger.trigger_report_update();
 		}
 };

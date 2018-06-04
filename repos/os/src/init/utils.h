@@ -16,7 +16,7 @@
 
 namespace Init {
 
-	static void warn_insuff_quota(size_t const avail)
+	static inline void warn_insuff_quota(size_t const avail)
 	{
 		warning("specified quota exceeds available quota, "
 		        "proceeding with a quota of ", avail);

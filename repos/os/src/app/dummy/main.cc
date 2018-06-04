@@ -25,6 +25,7 @@ namespace Dummy {
 	struct Log_service;
 	struct Log_connections;
 	struct Ram_consumer;
+	struct Cap_consumer;
 	struct Resource_yield_handler;
 	struct Main;
 	using namespace Genode;
@@ -188,24 +189,79 @@ struct Dummy::Ram_consumer
 };
 
 
+struct Dummy::Cap_consumer
+{
+	Entrypoint &_ep;
+
+	size_t _amount = 0;
+
+	struct Interface : Genode::Interface { GENODE_RPC_INTERFACE(); };
+
+	struct Object : Genode::Rpc_object<Interface>
+	{
+		Entrypoint &_ep;
+		Object(Entrypoint &ep) : _ep(ep) { _ep.manage(*this); }
+		~Object() { _ep.dissolve(*this); }
+	};
+
+	/*
+	 * Statically allocate an array of RPC objects to avoid RAM allocations
+	 * as side effect during the cap-consume step.
+	 */
+	static constexpr size_t MAX = 200;
+
+	Constructible<Object> _objects[MAX];
+
+	Cap_consumer(Entrypoint &ep) : _ep(ep) { }
+
+	void release()
+	{
+		if (!_amount)
+			return;
+
+		log("release ", _amount, " caps");
+		for (unsigned i = 0; i < MAX; i++)
+			_objects[i].destruct();
+
+		_amount = 0;
+	}
+
+	void consume(size_t amount)
+	{
+		if (_amount)
+			release();
+
+		log("consume ", amount, " caps");
+		for (unsigned i = 0; i < min(amount, MAX); i++)
+			_objects[i].construct(_ep);
+
+		_amount = amount;
+	}
+};
+
+
 struct Dummy::Resource_yield_handler
 {
 	Env &_env;
 
 	Ram_consumer &_ram_consumer;
+	Cap_consumer &_cap_consumer;
 
 	void _handle_yield()
 	{
 		log("got yield request");
 		_ram_consumer.release();
+		_cap_consumer.release();
 		_env.parent().yield_response();
 	}
 
 	Signal_handler<Resource_yield_handler> _yield_handler {
 		_env.ep(), *this, &Resource_yield_handler::_handle_yield };
 
-	Resource_yield_handler(Env &env, Ram_consumer &ram_consumer)
-	: _env(env), _ram_consumer(ram_consumer)
+	Resource_yield_handler(Env &env,
+	                       Ram_consumer &ram_consumer, Cap_consumer &cap_consumer)
+	:
+		_env(env), _ram_consumer(ram_consumer), _cap_consumer(cap_consumer)
 	{
 		_env.parent().yield_sigh(_yield_handler);
 	}
@@ -229,6 +285,7 @@ struct Dummy::Main
 	Signal_handler<Main> _config_handler { _env.ep(), *this, &Main::_handle_config };
 
 	Ram_consumer _ram_consumer { _env.ram() };
+	Cap_consumer _cap_consumer { _env.ep() };
 
 	Constructible<Resource_yield_handler> _resource_yield_handler { };
 
@@ -260,8 +317,11 @@ struct Dummy::Main
 			if (node.type() == "consume_ram")
 				_ram_consumer.consume(node.attribute_value("amount", Number_of_bytes()));
 
+			if (node.type() == "consume_caps")
+				_cap_consumer.consume(node.attribute_value("amount", 0UL));
+
 			if (node.type() == "handle_yield_requests")
-				_resource_yield_handler.construct(_env, _ram_consumer);
+				_resource_yield_handler.construct(_env, _ram_consumer, _cap_consumer);
 
 			if (node.type() == "sleep") {
 

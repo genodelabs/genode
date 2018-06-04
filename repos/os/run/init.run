@@ -852,6 +852,331 @@ append config {
 					</node>
 				</node>
 			</expect_init_state>
+			<init_config>
+				<parent-provides>
+					<service name="ROM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
+					<service name="LOG"/>
+				</parent-provides>
+			</init_config>
+			<sleep ms="150"/>
+
+
+			<message string="test capability-quota adjustments"/>
+
+			<init_config>
+				<report child_caps="yes"/>
+				<parent-provides>
+					<service name="ROM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
+					<service name="LOG"/>
+				</parent-provides>
+				<start name="test" caps="100">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="1M"/>
+					<config version="initial" />
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+			</init_config>
+			<expect_log string="[init -> test] config 1: initial"/>
+			<sleep ms="150"/>
+			<expect_init_state>
+				<node name="child"> <attribute name="name" value="test"/>
+					<node name="caps">
+						<attribute name="assigned" value="100"/>
+						<attribute name="quota"    lower="100"/>
+					</node>
+				</node>
+			</expect_init_state>
+
+			<!-- increase capability quota of child by 300 -->
+			<init_config>
+				<report init_caps="yes" child_caps="yes"/>
+				<parent-provides>
+					<service name="ROM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
+					<service name="LOG"/>
+				</parent-provides>
+				<start name="test" caps="400">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="1M"/>
+					<config version="upgraded" />
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+			</init_config>
+			<expect_log string="[init -> test] config 2: upgraded"/>
+			<sleep ms="150"/>
+			<expect_init_state>
+				<node name="child"> <attribute name="name" value="test"/>
+					<node name="caps">
+						<attribute name="assigned" value="400"/>
+						<attribute name="quota"    higher="300"/>
+					</node>
+				</node>
+			</expect_init_state>
+
+			<!-- start second child consuming all slack capabilities -->
+			<init_config>
+				<report init_caps="yes" child_caps="yes"/>
+				<parent-provides>
+					<service name="ROM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
+					<service name="LOG"/>
+				</parent-provides>
+				<start name="test" caps="400">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="4M"/>
+					<config/>
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+				<start name="greedy" caps="1000000">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="4M"/>
+					<config version="started"/>
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+			</init_config>
+			<expect_log string="[init -> greedy] config 1: started"/>
+			<sleep ms="150"/>
+			<expect_init_state>
+				<node name="caps"> <attribute name="avail" lower="1000"/> </node>
+			</expect_init_state>
+
+			<!-- attempt to upgrade the 'test' child to 800 caps, hitting the limit -->
+			<init_config>
+				<report init_caps="yes" child_caps="yes"/>
+				<parent-provides>
+					<service name="ROM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
+					<service name="LOG"/>
+				</parent-provides>
+				<start name="test" caps="800">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="4M"/>
+					<config version="upgrade impossible"/>
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+				<start name="greedy" caps="1000000">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="4M"/>
+					<config version="started"/>
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+			</init_config>
+			<expect_log string="[init -> test] config 4: upgrade impossible"/>
+			<sleep ms="150"/>
+			<expect_init_state>
+				<node name="child"> <attribute name="name" value="test"/>
+					<node name="caps">
+						<attribute name="assigned" lower="800"/>
+					</node>
+				</node>
+			</expect_init_state>
+
+			<!-- kill greedy child, now the upgrade of 'test' can be completed -->
+			<init_config>
+				<report init_caps="yes" child_caps="yes"/>
+				<parent-provides>
+					<service name="ROM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
+					<service name="LOG"/>
+				</parent-provides>
+				<default caps="100"/>
+				<start name="test" caps="800">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="4M"/>
+					<config version="upgraded to 800 caps"/>
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+			</init_config>
+			<expect_log string="[init -> test] config 5: upgraded to 800 caps"/>
+			<sleep ms="150"/>
+			<expect_init_state>
+				<node name="child"> <attribute name="name" value="test"/>
+					<node name="caps">
+						<attribute name="assigned" value="800"/>
+						<attribute name="quota"    higher="700"/>
+					</node>
+				</node>
+			</expect_init_state>
+
+			<!-- reduce quota -->
+			<init_config>
+				<report init_caps="yes" child_caps="yes"/>
+				<parent-provides>
+					<service name="ROM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
+					<service name="LOG"/>
+				</parent-provides>
+				<start name="test" caps="200">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="4M"/>
+					<config version="downgraded to 200 caps"/>
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+			</init_config>
+			<expect_log string="[init -> test] config 6: downgraded to 200 caps"/>
+			<sleep ms="150"/>
+			<expect_init_state>
+				<node name="child"> <attribute name="name" value="test"/>
+					<node name="caps">
+						<attribute name="assigned" value="200"/>
+						<attribute name="quota"    lower="200"/>
+					</node>
+				</node>
+			</expect_init_state>
+
+
+			<!-- let child consume quota -->
+			<init_config version="consumed">
+				<parent-provides>
+					<service name="ROM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
+					<service name="LOG"/>
+				</parent-provides>
+				<start name="test" caps="200">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="4M"/>
+					<config version="consume 100 caps">
+						<handle_yield_requests/>
+						<consume_caps amount="100"/>
+					</config>
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+			</init_config>
+			<expect_log string="[init -> test] config 7: consume 100 caps"/>
+			<expect_log string="[init -> test] consume 100 caps"/>
+			<sleep ms="1000"/>
+
+			<!-- activate child_caps report -->
+			<init_config version="report consumed">
+				<report child_caps="yes"/>
+				<parent-provides>
+					<service name="ROM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
+					<service name="LOG"/>
+				</parent-provides>
+				<start name="test" caps="200">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="4M"/>
+					<config version="consume 100 caps">
+						<handle_yield_requests/>
+						<consume_caps amount="100"/>
+					</config>
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+			</init_config>
+			<sleep ms="200"/>
+			<expect_init_state>
+				<node name="child"> <attribute name="name" value="test"/>
+					<node name="caps">
+						<attribute name="avail" lower="100"/>
+					</node>
+				</node>
+			</expect_init_state>
+
+			<!-- reduce child quota by 100 caps, triggering a resource-yield request -->
+			<init_config>
+				<report init_caps="yes" child_caps="yes"/>
+				<parent-provides>
+					<service name="ROM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
+					<service name="LOG"/>
+				</parent-provides>
+				<start name="test" caps="100">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="4M"/>
+					<config version="consume 100 caps">
+						<handle_yield_requests/>
+						<consume_caps amount="100"/>
+					</config>
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+			</init_config>
+			<expect_log string="[init -> test] got yield request"/>
+			<expect_log string="[init -> test] release 100 caps"/>
+			<sleep ms="500"/>
+			<expect_init_state>
+				<node name="child"> <attribute name="name" value="test"/>
+					<node name="caps"> <attribute name="quota" lower="100"/> </node>
+				</node>
+			</expect_init_state>
+
+			<!-- let child issue a resource request -->
+			<init_config version="resources requested">
+				<report init_caps="yes" child_caps="yes" delay_ms="2000"/>
+				<parent-provides>
+					<service name="ROM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
+					<service name="LOG"/>
+				</parent-provides>
+				<start name="test" caps="100">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="4M"/>
+					<config version="request more quota than avail">
+						<consume_caps amount="100"/>
+					</config>
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+			</init_config>
+			<expect_log string="[init -> test] config 8: request more quota than avail"/>
+			<sleep ms="2000"/>
+			<expect_init_state>
+				<node name="child"> <attribute name="name" value="test"/>
+					<node name="caps">
+						<attribute name="assigned"   value="100"/>
+						<attribute name="requested" higher="1"/>
+					</node>
+				</node>
+			</expect_init_state>
+
+			<!-- respond to resource request-->
+			<init_config>
+				<report init_caps="yes" child_caps="yes"/>
+				<parent-provides>
+					<service name="ROM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
+					<service name="LOG"/>
+				</parent-provides>
+				<start name="test" caps="200">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="4M"/>
+					<config version="request more quota than avail">
+						<consume_caps amount="100"/>
+					</config>
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+			</init_config>
+			<sleep ms="150"/>
+			<expect_init_state>
+				<node name="child"> <attribute name="name" value="test"/>
+					<node name="caps">
+						<attribute name="assigned" value="200"/>
+						<attribute name="quota"   higher="100"/>
+					</node>
+				</node>
+			</expect_init_state>
+			<init_config>
+				<parent-provides>
+					<service name="ROM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
+					<service name="LOG"/>
+				</parent-provides>
+			</init_config>
+			<sleep ms="150"/>
 
 
 			<message string="forward session request to children"/>
@@ -1011,11 +1336,11 @@ append config {
 			<expect_init_state>
 				<node name="child">
 					<attribute name="name" value="server"/>
-					<attribute name="id"   value="21"/>
+					<attribute name="id"   value="23"/>
 				</node>
 				<node name="child">
 					<attribute name="name" value="client"/>
-					<attribute name="id"   value="22"/>
+					<attribute name="id"   value="24"/>
 				</node>
 			</expect_init_state>
 			<sleep ms="150"/>
@@ -1046,7 +1371,7 @@ append config {
 			<expect_init_state>
 				<node name="child">
 					<attribute name="name" value="client"/>
-					<attribute name="id"   value="23"/>
+					<attribute name="id"   value="25"/>
 				</node>
 			</expect_init_state>
 			<sleep ms="150"/>
@@ -1109,6 +1434,7 @@ append config {
 			<expect_log string="[init -> server] [dummy] started version 2"/>
 			<sleep ms="150"/>
 
+
 			<message string="test complete"/>
 
 		</config>
@@ -1152,5 +1478,5 @@ build_boot_image $boot_modules
 
 append qemu_args " -nographic "
 
-run_genode_until {.*child "test-init" exited with exit value 0.*} 170
+run_genode_until {.*child "test-init" exited with exit value 0.*} 200
 
