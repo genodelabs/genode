@@ -340,7 +340,7 @@ user - most likely discharge the latter. As mentioned in Section
 [Drivers subsystem], user input is processed by the input-filter component.
 You can edit this component's configuration via
 
-! genode:/> vim /config/input_filter
+! inspect:/> vim /config/input_filter
 
 To change the keyboard layout to German, change "en_us.chargen" to
 "de.chargen" and save the file. The change becomes effective immediately at
