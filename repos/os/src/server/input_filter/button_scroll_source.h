@@ -134,6 +134,11 @@ class Input_filter::Button_scroll_source : public Source, Source::Sink
 				return (_state == ACTIVE && event.relative_motion())
 				     || event.key_press(_button);
 			}
+
+			bool release(Input::Event const event) const
+			{
+				return event.key_release(_button);
+			}
 		};
 
 		Wheel _vertical_wheel, _horizontal_wheel;
@@ -169,18 +174,25 @@ class Input_filter::Button_scroll_source : public Source, Source::Sink
 			/*
 			 * Submit both press event and release event of magic button at
 			 * button-release time.
-			 *
-			 * Use bitwise or '|' instead of logical or '||' to always execute
-			 * both conditions regardless of the result of the first call of
-			 * 'handle_activation'.
 			 */
-			event.handle_release([&] (Input::Keycode key) {
-				if (_vertical_wheel  .handle_deactivation(event)
-				  | _horizontal_wheel.handle_deactivation(event)) {
+			if (_vertical_wheel.release(event) || _horizontal_wheel.release(event)) {
 
-					_destination.submit_event(Input::Press{key});
-				}
-			});
+				event.handle_release([&] (Input::Keycode key) {
+
+					/*
+					 * Use bitwise or '|' instead of logical or '||' to always
+					 * execute both conditions regardless of the result of the
+					 * first call of 'handle_activation'.
+					 */
+					if (_vertical_wheel  .handle_deactivation(event)
+					  | _horizontal_wheel.handle_deactivation(event)) {
+
+						_destination.submit_event(Input::Press{key});
+						_destination.submit_event(Input::Release{key});
+					}
+				});
+				return;
+			}
 
 			/* hide consumed relative motion and magic-button press events */
 			if (_vertical_wheel  .suppressed(event)) return;
