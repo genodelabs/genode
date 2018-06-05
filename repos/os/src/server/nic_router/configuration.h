@@ -17,6 +17,7 @@
 /* local includes */
 #include <domain.h>
 #include <report.h>
+#include <uplink.h>
 
 /* Genode includes */
 #include <os/duration.h>
@@ -46,7 +47,11 @@ class Net::Configuration
 		Pointer<Report>             _report                  { };
 		Pointer<Genode::Reporter>   _reporter                { };
 		Domain_tree                 _domains                 { };
+		Uplink_tree                 _uplinks                 { };
 		Genode::Xml_node     const  _node;
+
+		void _invalid_uplink(Uplink     &uplink,
+		                     char const *reason);
 
 		void _invalid_domain(Domain     &domain,
 		                     char const *reason);
@@ -69,7 +74,8 @@ class Net::Configuration
 		              Genode::Xml_node const  node,
 		              Genode::Allocator      &alloc,
 		              Timer::Connection      &timer,
-		              Configuration          &old_config);
+		              Configuration          &old_config,
+		              Interface_list         &interfaces);
 
 		~Configuration();
 

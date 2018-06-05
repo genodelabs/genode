@@ -101,6 +101,8 @@ Net::Session_component::Session_component(Allocator           &alloc,
 	                         config, interfaces, *_tx.sink(), *_rx.source(),
 	                         _link_state, _interface_policy }
 {
+	_interface.attach_to_domain();
+
 	_tx.sigh_ready_to_ack   (_interface.sink_ack());
 	_tx.sigh_packet_avail   (_interface.sink_submit());
 	_rx.sigh_ack_avail      (_interface.source_ack());

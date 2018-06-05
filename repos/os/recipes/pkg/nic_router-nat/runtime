@@ -5,6 +5,7 @@
 
 	<config verbose_domain_state="yes">
 		<default-policy domain="default" />
+		<uplink         domain="uplink"  />
 		<domain name="uplink">
 			<nat domain="default"
 			     tcp-ports="1000"

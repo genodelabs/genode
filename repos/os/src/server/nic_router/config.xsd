@@ -112,6 +112,13 @@
 					</xs:complexType>
 				</xs:element><!-- policy -->
 
+				<xs:element name="uplink">
+					<xs:complexType>
+						<xs:attribute name="label"  type="Session_label" />
+						<xs:attribute name="domain" type="Domain_name" />
+					</xs:complexType>
+				</xs:element><!-- uplink -->
+
 				<xs:element name="domain">
 					<xs:complexType>
 						<xs:choice minOccurs="0" maxOccurs="unbounded">

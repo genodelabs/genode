@@ -15,6 +15,24 @@
 #include <network.h>
 
 
+void Sculpt::Network::_generate_nic_router_uplink(Xml_generator &xml,
+                                                  char    const *label)
+{
+	xml.node("uplink", [&] () {
+		xml.attribute("label", label);
+		xml.attribute("domain", "uplink");
+	});
+	gen_named_node(xml, "domain", "uplink", [&] () {
+		xml.node("nat", [&] () {
+			xml.attribute("domain",    "default");
+			xml.attribute("tcp-ports", "1000");
+			xml.attribute("udp-ports", "1000");
+			xml.attribute("icmp-ids",  "1000");
+		});
+	});
+}
+
+
 void Sculpt::Network::handle_key_press(Codepoint code)
 {
 	enum { BACKSPACE = 8, ENTER = 10 };
@@ -70,22 +88,12 @@ void Sculpt::Network::_generate_nic_router_config()
 		xml.node("default-policy", [&] () {
 			xml.attribute("domain", "default"); });
 
-		if (_nic_target.type() != Nic_target::LOCAL) {
-			gen_named_node(xml, "domain", "uplink", [&] () {
-				switch (_nic_target.type()) {
-				case Nic_target::WIRED: xml.attribute("label", "wired"); break;
-				case Nic_target::WIFI:  xml.attribute("label", "wifi");  break;
-				default: break;
-				}
-				xml.node("nat", [&] () {
-					xml.attribute("domain",    "default");
-					xml.attribute("tcp-ports", "1000");
-					xml.attribute("udp-ports", "1000");
-					xml.attribute("icmp-ids",  "1000");
-				});
-			});
+		bool uplink_exists = true;
+		switch (_nic_target.type()) {
+		case Nic_target::WIRED: _generate_nic_router_uplink(xml, "wired"); break;
+		case Nic_target::WIFI:  _generate_nic_router_uplink(xml, "wifi");  break;
+		default: uplink_exists = false;
 		}
-
 		gen_named_node(xml, "domain", "default", [&] () {
 			xml.attribute("interface", "10.0.1.1/24");
 
@@ -96,7 +104,7 @@ void Sculpt::Network::_generate_nic_router_config()
 					xml.attribute("dns_server_from", "uplink"); }
 			});
 
-			if (_nic_target.type() != Nic_target::LOCAL) {
+			if (uplink_exists) {
 				xml.node("tcp", [&] () {
 					xml.attribute("dst", "0.0.0.0/0");
 					xml.node("permit-any", [&] () {
@@ -171,19 +179,31 @@ void Sculpt::Network::_handle_nic_router_config(Xml_node config)
 		if (!config.has_sub_node("domain"))
 			target = Nic_target::OFF;
 
-		config.for_each_sub_node("domain", [&] (Xml_node domain) {
+		struct Break : Exception { };
+		try {
+			config.for_each_sub_node("domain", [&] (Xml_node domain) {
 
-			/* skip non-uplink domains */
-			if (domain.attribute_value("name", String<16>()) != "uplink")
-				return;
+				/* skip domains that are not called "uplink" */
+				if (domain.attribute_value("name", String<16>()) != "uplink")
+					return;
 
-			if (domain.attribute_value("label", String<16>()) == "wired")
-				target = Nic_target::WIRED;
+				config.for_each_sub_node("uplink", [&] (Xml_node uplink) {
 
-			if (domain.attribute_value("label", String<16>()) == "wifi")
-				target = Nic_target::WIFI;
-		});
+					/* skip uplinks not assigned to a domain called "uplink" */
+					if (uplink.attribute_value("domain", String<16>()) != "uplink")
+						return;
 
+					if (uplink.attribute_value("label", String<16>()) == "wired") {
+						target = Nic_target::WIRED;
+						throw Break();
+					}
+					if (uplink.attribute_value("label", String<16>()) == "wifi") {
+						target = Nic_target::WIFI;
+						throw Break();
+					}
+				});
+			});
+		} catch (Break) { }
 		_nic_target.manual_type = target;
 	}
 

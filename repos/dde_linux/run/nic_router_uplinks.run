@@ -125,8 +125,9 @@ append config {
 				<inline>
 
 					<config dhcp_discover_timeout_sec="1">
-						<default-policy domain="downlink"/>
-						<domain name="uplink" label="nic">
+						<default-policy     domain="downlink"/>
+						<uplink label="nic" domain="uplink"  />
+						<domain name="uplink">
 							<nat domain="downlink" icmp-ids="999"/>
 						</domain>
 						<domain name="downlink" interface="10.0.1.79/24">
@@ -140,8 +141,9 @@ append config {
 				<inline>
 
 					<config dhcp_discover_timeout_sec="1">
-						<default-policy domain="downlink"/>
-						<domain name="uplink" label="wifi">
+						<default-policy      domain="downlink"/>
+						<uplink label="wifi" domain="uplink"  />
+						<domain name="uplink">
 							<nat domain="downlink" icmp-ids="999"/>
 						</domain>
 						<domain name="downlink" interface="10.0.1.79/24">
@@ -167,8 +169,9 @@ append config {
 				<inline>
 
 					<config dhcp_discover_timeout_sec="1">
-						<default-policy domain="downlink"/>
-						<domain name="uplink" label="nic">
+						<default-policy     domain="downlink"/>
+						<uplink label="nic" domain="uplink"  />
+						<domain name="uplink">
 							<nat domain="downlink" icmp-ids="999"/>
 						</domain>
 						<domain name="downlink" interface="10.0.1.79/24">
@@ -182,8 +185,9 @@ append config {
 				<inline>
 
 					<config dhcp_discover_timeout_sec="1">
-						<default-policy domain="downlink"/>
-						<domain name="uplink" label="nic">
+						<default-policy     domain="downlink"/>
+						<uplink label="nic" domain="uplink"  />
+						<domain name="uplink">
 							<nat domain="downlink" icmp-ids="999"/>
 						</domain>
 						<domain name="downlink" interface="10.0.1.79/24">
@@ -209,8 +213,9 @@ append config {
 				<inline>
 
 					<config dhcp_discover_timeout_sec="1">
-						<default-policy domain="downlink"/>
-						<domain name="uplink" label="wifi">
+						<default-policy      domain="downlink"/>
+						<uplink label="wifi" domain="uplink"  />
+						<domain name="uplink">
 							<nat domain="downlink" icmp-ids="999"/>
 						</domain>
 						<domain name="downlink" interface="10.0.1.79/24">
@@ -224,8 +229,9 @@ append config {
 				<inline>
 
 					<config dhcp_discover_timeout_sec="1">
-						<default-policy domain="downlink"/>
-						<domain name="uplink" label="nic">
+						<default-policy     domain="downlink"/>
+						<uplink label="nic" domain="uplink"  />
+						<domain name="uplink">
 							<nat domain="downlink" icmp-ids="999"/>
 						</domain>
 						<domain name="downlink" interface="10.0.1.79/24">

@@ -19,22 +19,35 @@ these domains. This is a brief overview of the features thereby provided:
 Basics
 ~~~~~~
 
-The 'nic_router' component provides multiple sessions of the 'NIC' service
-(downlinks) while requesting one 'NIC' session (the uplink) itself. Through
-common Genode session routing, the uplink can be connected to any other NIC
-server. Inside the component, uplink and downlinks are treated the same. Its
-routing algorithm is ultimately controlled through the configuration. NIC
+The NIC router can act as server of multiple NIC session clients (downlinks)
+and at the same time as client of multiple NIC session servers (uplinks).
+Besides the decision which side initiates the NIC session and provides MAC
+address respectively link state, uplinks and downlinks are equal to the NIC
+router.
+
+The routing algorithm is ultimately controlled through the configuration. NIC
 sessions are assigned to domains. Each domain represents one subnet and a
-corresponding routing configuration. Currently, each domain can contain
-only one NIC session at a time. The assignment of sessions to domains is
-controlled through the the common Genode session-policy tag:
+corresponding routing configuration. The assignment of downlink NIC sessions
+to domains is controlled through the policy tag that is also known from other
+Genode components:
 
-! <policy label_prefix="http_server" domain="http_servers" />
-! <policy label_prefix="imap_server" domain="imap_servers" />
+! <policy label_prefix="vlan_" domain="vlan" />
+! <policy label_suffix="_server" domain="servers" />
+! <policy label="nic_bridge_1" domain="wired_bridge" />
+! <policy label="nic_bridge_2" domain="wired_bridge" />
 
-The domain name can be freely choosen but must be unique. There is no need
-to have a policy for the uplink. It is automatically assigned to the domain
-named "uplink". For each domain there must be a domain tag:
+The domain name can be freely choosen but must be unique.
+The uplink tag instructs the NIC router to create an uplink NIC session that
+is assigned to the give domain:
+
+! <uplink               domain="wired_bridge" />
+! <uplink label="wired" domain="wired_bridge" />
+! <uplink label="wifi"  domain="wifi_uplink" />
+
+The label is the session label that is used when requesting the uplink NIC
+session. The label attribute is optional. It is perfectly fine to have a
+domain with uplinks and downlinks assigned to at the same time. For each
+domain there must be a domain tag:
 
 ! <domain name="uplink"       interface="10.0.2.55/24"    />
 ! <domain name="http_servers" interface="192.168.1.18/24" />
@@ -411,27 +424,6 @@ router:
 !         dhcp_request_timeout_sec="6">
 
 
-The uplink domain
-~~~~~~~~~~~~~~~~~
-
-The uplink domain is treated like every other domain wherever possible.
-However, there are still some differences that are visible to the user:
-
-* 'policy' tags that target the uplink domain have no effect at all
-* The domain tag of the uplink is the only domain tag in which the
-  'label' attribute has an effect
-* The uplink domain, as long as existant, has exactly one NIC session in which
-  the NIC router is the session client
-* When the uplink 'domain' tag appears, the uplink NIC session is requested by
-  the NIC router using the label denoted in the 'label' attribute of the
-  uplink 'domain' tag (default label "")
-* When the 'label' attribute of the uplink 'domain' tag changes, the NIC
-  router closes the uplink NIC session and requests it again with the new
-  label
-* When the uplink 'domain' tag disappears, the NIC router closes the uplink
-  NIC session
-
-
 Configuring reporting functionality
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -511,6 +503,7 @@ following configuration:
 
 ! <policy label_prefix="virtnet_a" domain="virtnet_a" />
 ! <policy label_prefix="virtnet_b" domain="virtnet_b" />
+! <uplink                          domain="uplink"    />
 !
 ! <domain name="uplink" interface="10.0.2.55/24" gateway="10.0.2.1/24">
 !    <ip dst="192.168.1.0/24" domain="virtnet_a"/>
@@ -550,6 +543,7 @@ internet. The router would have the following configuration:
 
 ! <policy label_prefix="virtnet_a" domain="virtnet_a" />
 ! <policy label_prefix="virtnet_b" domain="virtnet_b" />
+! <uplink                          domain="uplink"    />
 !
 ! <domain name="uplink" interface="10.0.2.55/24" gateway="10.0.2.1/24">
 !    <nat domain="virtnet_a" tcp_ports="1000" udp_ports="1000">
@@ -588,6 +582,7 @@ following configuration:
 
 ! <policy label_prefix="virtnet_a" domain="virtnet_a" />
 ! <policy label_prefix="virtnet_b" domain="virtnet_b" />
+! <uplink                          domain="uplink"    />
 !
 ! <domain name="uplink" interface="10.0.2.55/24" gateway="10.0.2.1">
 !    <tcp-forward port="80" domain="virtnet_a" to="192.168.1.2" />

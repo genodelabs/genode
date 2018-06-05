@@ -64,8 +64,10 @@ append config {
 		<resource name="RAM" quantum="10M"/>
 		<provides><service name="Nic"/></provides>
 		<config verbose="no">
-			<policy label_prefix="vfs" domain="default" />
-			<policy label_prefix="stubby" domain="dns"/>
+			<policy label_prefix="vfs"    domain="default" />
+			<policy label_prefix="stubby" domain="dns"     />
+			<uplink                       domain="uplink"  />
+
 			<domain name="uplink">
 				<nat domain="dns" tcp-ports="64" udp-ports="64"/>
 			</domain>

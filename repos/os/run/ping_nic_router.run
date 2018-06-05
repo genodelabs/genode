@@ -98,6 +98,7 @@ append config {
 
 			<policy label_prefix="ping_1" domain="ping_1"/>
 			<policy label_prefix="ping_2" domain="ping_2"/>
+			<uplink                       domain="uplink"/>
 
 			<domain name="uplink">
 				<nat domain="ping_1" icmp-ids="100"/>
@@ -131,6 +132,7 @@ append config {
 		        icmp_idle_timeout_sec="10">
 
 			<policy label_prefix="ping_2" domain="ping_2"/>
+			<uplink                       domain="uplink"/>
 
 			<domain name="uplink" interface="10.0.4.2/24" gateway="10.0.4.1">
 				<nat domain="ping_2" icmp-ids="100" udp-ports="100"/>

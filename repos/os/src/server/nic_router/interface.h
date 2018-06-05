@@ -274,8 +274,6 @@ class Net::Interface : private Interface_list::Element
 
 		void _detach_from_domain();
 
-		void _attach_to_domain(Domain_name const &domain_name);
-
 		void _attach_to_domain_raw(Domain &domain);
 
 		void _apply_foreign_arp();
@@ -375,6 +373,8 @@ class Net::Interface : private Interface_list::Element
 
 		void handle_config_3();
 
+		void attach_to_domain();
+
 		void detach_from_ip_config();
 
 		void attach_to_ip_config(Domain            &domain,
@@ -387,6 +387,8 @@ class Net::Interface : private Interface_list::Element
 		void attach_to_domain_finish();
 
 		bool link_state() const;
+
+		void handle_link_state();
 
 
 		/***************

@@ -93,6 +93,7 @@ append config {
 
 			<policy label_prefix="flood_links" domain="flood_links"/>
 			<policy label_prefix="ping"        domain="flood_links"/>
+			<uplink                            domain="uplink"/>
 
 			<domain name="uplink" verbose_packets="no">
 				<nat domain="flood_links" udp-ports="16384"

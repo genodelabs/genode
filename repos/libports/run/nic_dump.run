@@ -88,6 +88,7 @@ append config {
 			<policy label_prefix="http_server_2" domain="http_server_2" />
 			<policy label_prefix="udp_server_1"  domain="udp_server_1"  />
 			<policy label_prefix="udp_server_2"  domain="udp_server_2"  />
+			<uplink                              domain="uplink"        />
 
 			<domain name="uplink" interface="10.0.2.55/24" gateway="10.0.2.1">
 				<tcp-forward port="80"   domain="http_server_1" to="192.168.1.18" />

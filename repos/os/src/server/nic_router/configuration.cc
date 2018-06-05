@@ -35,6 +35,17 @@ Configuration::Configuration(Xml_node const  node,
 { }
 
 
+void Configuration::_invalid_uplink(Uplink     &uplink,
+                                    char const *reason)
+{
+	if (_verbose) {
+		log("[", uplink.domain(), "] invalid uplink: ", uplink, " (", reason, ")"); }
+
+	_uplinks.remove(uplink);
+	destroy(_alloc, &uplink);
+}
+
+
 void Configuration::_invalid_domain(Domain     &domain,
                                     char const *reason)
 {
@@ -50,7 +61,8 @@ Configuration::Configuration(Env               &env,
                              Xml_node const     node,
                              Allocator         &alloc,
                              Timer::Connection &timer,
-                             Configuration     &old_config)
+                             Configuration     &old_config,
+                             Interface_list    &interfaces)
 :
 	_alloc(alloc),
 	_verbose              (node.attribute_value("verbose",              false)),
@@ -129,11 +141,35 @@ Configuration::Configuration(Env               &env,
 			Report(report_node, timer, _domains, _reporter());
 	}
 	catch (Genode::Xml_node::Nonexistent_sub_node) { }
+
+	/* initialize uplinks */
+	_node.for_each_sub_node("uplink", [&] (Xml_node const node) {
+		try {
+			Uplink &uplink = *new (_alloc)
+				Uplink { node, alloc, old_config._uplinks, env, timer,
+				         interfaces, *this };
+
+			try { _uplinks.insert(uplink); }
+			catch (Uplink_tree::Name_not_unique exception) {
+				_invalid_uplink(uplink,           "label not unique");
+				_invalid_uplink(exception.object, "label not unique");
+			}
+		}
+		catch (Uplink::Invalid) { }
+	});
+	/*
+	 * Destroy old uplinks to ensure that uplink interfaces that were not
+	 * re-used are not re-attached to the new domains.
+	 */
+	old_config._uplinks.destroy_each(_alloc);
 }
 
 
 Configuration::~Configuration()
 {
+	/* destroy uplinks */
+	_uplinks.destroy_each(_alloc);
+
 	/* destroy reporter */
 	try { destroy(_alloc, &_reporter()); }
 	catch (Pointer<Reporter>::Invalid) { }

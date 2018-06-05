@@ -158,6 +158,7 @@ proc test_7_config { } {
 				<config>
 
 					<policy label_prefix="lan_2" domain="downlink" />
+					<uplink                      domain="uplink"   />
 
 					<domain name="uplink">
 						<nat domain="downlink" tcp-ports="6" />
@@ -259,6 +260,8 @@ append config {
 		        tcp_max_segm_lifetime_sec="15">
 
 			<report bytes="yes" config="yes" interval_sec="60" />
+
+			<uplink domain="uplink"/>
 
 			<domain name="uplink"
 			        interface="10.0.2.55/24"

@@ -19,6 +19,7 @@
 #include <nic/packet_allocator.h>
 
 /* local includes */
+#include <avl_string_tree.h>
 #include <interface.h>
 #include <ipv4_address_prefix.h>
 
@@ -27,32 +28,110 @@ namespace Net {
 	using Domain_name = Genode::String<160>;
 	class Uplink_base;
 	class Uplink;
+	class Uplink_tree;
+	class Uplink_interface_base;
+	class Uplink_interface;
 }
+
+
+class Net::Uplink_tree
+:
+	public Avl_string_tree<Uplink, Genode::Session_label>
+{ };
 
 
 class Net::Uplink_base
 {
-	protected:
+	private:
 
-		struct Interface_policy : Net::Interface_policy
-		{
-			/***************************
-			 ** Net::Interface_policy **
-			 ***************************/
+		Genode::Session_label const _label;
+		Domain_name           const _domain;
 
-			Domain_name determine_domain_name() const override { return Genode::Cstring("uplink"); };
-			void handle_config(Configuration const &) override { }
-		};
+	public:
 
-		Interface_policy _intf_policy { };
+		Uplink_base(Genode::Xml_node const &node);
 
 		virtual ~Uplink_base() { }
+
+
+		/**************
+		 ** Acessors **
+		 **************/
+
+		Genode::Session_label const &label()  const { return _label; }
+		Domain_name           const &domain() const { return _domain; }
 };
 
 
-class Net::Uplink : public Uplink_base,
-                    public Nic::Packet_allocator,
-                    public Nic::Connection
+struct Net::Uplink : public  Uplink_base,
+                     private Genode::Avl_string_base
+{
+	friend class Avl_string_tree<Uplink, Genode::Session_label>;
+	friend class Genode::List<Uplink>;
+
+	private:
+
+		Genode::Allocator         &_alloc;
+		Configuration       const &_config;
+		Pointer<Uplink_interface>  _interface { };
+
+		void _invalid(char const *reason) const;
+
+	public:
+
+		struct Invalid : Genode::Exception { };
+
+		Uplink(Genode::Xml_node const &node,
+		       Genode::Allocator      &alloc,
+		       Uplink_tree            &old_uplinks,
+		       Genode::Env            &env,
+		       Timer::Connection      &timer,
+		       Interface_list         &interfaces,
+		       Configuration          &config);
+
+		~Uplink();
+
+
+		/*********
+		 ** log **
+		 *********/
+
+		void print(Genode::Output &output) const;
+};
+
+
+class Net::Uplink_interface_base : public Interface_policy
+{
+	private:
+
+		Const_reference<Domain_name> _domain_name;
+
+
+		/***************************
+		 ** Net::Interface_policy **
+		 ***************************/
+
+		Domain_name determine_domain_name() const override { return _domain_name(); };
+		void handle_config(Configuration const &) override { }
+
+	public:
+
+		Uplink_interface_base(Domain_name const &domain_name) : _domain_name(domain_name) { }
+
+		virtual ~Uplink_interface_base() { }
+
+
+		/***************
+		 ** Accessors **
+		 ***************/
+
+		void domain_name(Domain_name const &v) { _domain_name = v; }
+};
+
+
+class Net::Uplink_interface : public Uplink_interface_base,
+                              public Nic::Packet_allocator,
+                              public Nic::Connection
 {
 	private:
 
@@ -61,10 +140,9 @@ class Net::Uplink : public Uplink_base,
 			BUF_SIZE = Nic::Session::QUEUE_SIZE * PKT_SIZE,
 		};
 
-		Genode::Session_label    const &_label;
-		bool                            _link_state { false };
-		Genode::Signal_handler<Uplink>  _link_state_handler;
-		Net::Interface                  _interface;
+		bool                                     _link_state { false };
+		Genode::Signal_handler<Uplink_interface> _link_state_handler;
+		Net::Interface                           _interface;
 
 		Ipv4_address_prefix _read_interface();
 
@@ -72,20 +150,20 @@ class Net::Uplink : public Uplink_base,
 
 	public:
 
-		Uplink(Genode::Env                 &env,
-		       Timer::Connection           &timer,
-		       Genode::Allocator           &alloc,
-		       Interface_list              &interfaces,
-		       Configuration               &config,
-		       Genode::Session_label const &label);
+		Uplink_interface(Genode::Env                 &env,
+		                 Timer::Connection           &timer,
+		                 Genode::Allocator           &alloc,
+		                 Interface_list              &interfaces,
+		                 Configuration               &config,
+		                 Domain_name           const &domain_name,
+		                 Genode::Session_label const &label);
 
 
 		/***************
 		 ** Accessors **
 		 ***************/
 
-		Mac_address           const &router_mac() const { return _interface.router_mac(); }
-		Genode::Session_label const &label()      const { return _label; }
+		Mac_address const &router_mac() const { return _interface.router_mac(); }
 };
 
 #endif /* _UPLINK_H_ */

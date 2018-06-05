@@ -159,6 +159,7 @@ append config {
 					        dhcp_discover_timeout_sec="1">
 
 						<policy label_prefix="vbox" domain="downlink"/>
+						<uplink                     domain="uplink"  />
 
 						<domain name="uplink" label="wifi">
 							<nat domain="downlink"

@@ -63,6 +63,9 @@ struct Sculpt::Network : Network_dialog::Action
 
 	void _generate_nic_router_config();
 
+	void _generate_nic_router_uplink(Xml_generator &xml,
+	                                 char    const *label);
+
 	Access_points _access_points { };
 
 	Wifi_connection _wifi_connection = Wifi_connection::disconnected_wifi_connection();

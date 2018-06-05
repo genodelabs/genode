@@ -149,6 +149,7 @@ append_if $use_nic_router config {
 		<config verbose_domain_state="yes">
 
 			<policy label_prefix="netserver_genode" domain="server"/>
+			<uplink                                 domain="uplink"/>
 
 			<domain name="uplink"}
 append_if [expr $use_nic_router && [have_spec linux]] config "
