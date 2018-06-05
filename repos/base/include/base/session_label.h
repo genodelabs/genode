@@ -25,13 +25,12 @@ struct Genode::Session_label : String<160>
 {
 	private:
 
-		typedef String<capacity()> String;
-
 		static char const *_separator()     { return " -> "; }
 		static size_t      _separator_len() { return 4; }
 
 	public:
 
+		using String = String<capacity()>;
 		using String::String;
 
 		Session_label last_element() const
