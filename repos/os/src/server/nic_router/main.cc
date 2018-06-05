@@ -75,13 +75,13 @@ class Net::Main
 
 Configuration &Net::Main::_init_config()
 {
-	Configuration &config_legacy = *new (_heap)
+	Configuration &dummy_config = *new (_heap)
 		Configuration(_config_rom.xml(), _heap);
 
 	Configuration &config = *new (_heap)
-		Configuration(_env, _config_rom.xml(), _heap, _timer, config_legacy);
+		Configuration(_env, _config_rom.xml(), _heap, _timer, dummy_config);
 
-	destroy(_heap, &config_legacy);
+	destroy(_heap, &dummy_config);
 	return config;
 }
 

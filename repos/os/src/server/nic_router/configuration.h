@@ -69,7 +69,7 @@ class Net::Configuration
 		              Genode::Xml_node const  node,
 		              Genode::Allocator      &alloc,
 		              Timer::Connection      &timer,
-		              Configuration          &legacy);
+		              Configuration          &old_config);
 
 		~Configuration();
 

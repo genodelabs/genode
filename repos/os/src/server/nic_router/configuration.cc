@@ -50,7 +50,7 @@ Configuration::Configuration(Env               &env,
                              Xml_node const     node,
                              Allocator         &alloc,
                              Timer::Connection &timer,
-                             Configuration     &legacy)
+                             Configuration     &old_config)
 :
 	_alloc(alloc),
 	_verbose              (node.attribute_value("verbose",              false)),
@@ -116,8 +116,8 @@ Configuration::Configuration(Env               &env,
 		Xml_node const report_node = node.sub_node("report");
 		try {
 			/* try to re-use existing reporter */
-			_reporter = legacy._reporter();
-			legacy._reporter = Pointer<Reporter>();
+			_reporter = old_config._reporter();
+			old_config._reporter = Pointer<Reporter>();
 		}
 		catch (Pointer<Reporter>::Invalid) {
 
