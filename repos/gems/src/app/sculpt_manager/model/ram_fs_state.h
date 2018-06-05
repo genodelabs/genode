@@ -24,9 +24,11 @@ namespace Sculpt { struct Ram_fs_state; }
 
 struct Sculpt::Ram_fs_state : Noncopyable
 {
-	static Ram_quota initial_ram() { return Ram_quota{1024*1024}; }
+	static Ram_quota initial_ram_quota() { return Ram_quota{1024*1024}; }
+	static Cap_quota initial_cap_quota() { return Cap_quota{300}; }
 
-	Ram_quota ram_quota = initial_ram();
+	Ram_quota ram_quota = initial_ram_quota();
+	Cap_quota cap_quota = initial_cap_quota();
 
 	struct Version { unsigned value; } version { 0 };
 

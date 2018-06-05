@@ -581,13 +581,23 @@ void Sculpt::Main::_handle_runtime_state()
 	/* upgrade ram_fs quota on demand */
 	state.for_each_sub_node("child", [&] (Xml_node child) {
 
-		if (child.attribute_value("name", String<16>()) == "ram_fs"
-		 && child.has_sub_node("ram")
-		 && child.sub_node("ram").has_attribute("requested")) {
+		if (child.attribute_value("name", String<16>()) == "ram_fs")  {
 
-			_storage._ram_fs_state.ram_quota.value *= 2;
-			reconfigure_runtime = true;
-			generate_dialog();
+			if (child.has_sub_node("ram")
+			 && child.sub_node("ram").has_attribute("requested")) {
+
+				_storage._ram_fs_state.ram_quota.value *= 2;
+				reconfigure_runtime = true;
+				generate_dialog();
+			}
+
+			if (child.has_sub_node("caps")
+			 && child.sub_node("caps").has_attribute("requested")) {
+
+				_storage._ram_fs_state.cap_quota.value += 100;
+				reconfigure_runtime = true;
+				generate_dialog();
+			}
 		}
 	});
 
@@ -622,6 +632,7 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 		xml.attribute("init_ram",   "yes");
 		xml.attribute("init_caps",  "yes");
 		xml.attribute("child_ram",  "yes");
+		xml.attribute("child_caps", "yes");
 		xml.attribute("delay_ms",   4*500);
 		xml.attribute("buffer",     "64K");
 	});

@@ -182,7 +182,8 @@ struct Sculpt::Storage : Storage_dialog::Action
 
 	void reset_ram_fs() override
 	{
-		_ram_fs_state.ram_quota = Ram_fs_state::initial_ram();
+		_ram_fs_state.ram_quota = Ram_fs_state::initial_ram_quota();
+		_ram_fs_state.cap_quota = Ram_fs_state::initial_cap_quota();
 		_ram_fs_state.version.value++;
 
 		dialog.reset_operation();
