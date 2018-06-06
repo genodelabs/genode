@@ -26,7 +26,9 @@ namespace Sculpt { struct Discovery_state; }
 
 struct Sculpt::Discovery_state
 {
-	bool user_intervention = false;
+	enum User_state { USER_UNKNOWN, USER_IDLE, USER_INTERVENED };
+
+	User_state user_state { USER_UNKNOWN };
 
 	bool _done = false;
 
@@ -39,8 +41,13 @@ struct Sculpt::Discovery_state
 			return Storage_target { };
 
 		/* user intervention disarms the built-in selection policy */
-		if (user_intervention)
+		if (user_state == USER_UNKNOWN)
 			return Storage_target { };
+
+		if (user_state == USER_INTERVENED) {
+			_done = true;
+			return Storage_target { };
+		}
 
 		/* defer decision until the low-level device enumeration is complete */
 		if (!devices.all_devices_enumerated())
