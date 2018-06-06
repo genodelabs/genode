@@ -490,11 +490,17 @@ Platform::Platform() :
 
 	Hip::Mem_desc *boot_fb = nullptr;
 
+	bool efi_boot = false;
+
 	/*
 	 * All "available" ram must be added to our physical allocator before all
 	 * non "available" regions that overlaps with ram get removed.
 	 */
 	for (unsigned i = 0; i < num_mem_desc; i++, mem_desc++) {
+		/* 32/64bit EFI image handle pointer - see multiboot spec 2 */
+		if (mem_desc->type == 20 || mem_desc->type == 19)
+			efi_boot = true;
+
 		if (mem_desc->type == Hip::Mem_desc::FRAMEBUFFER)
 			boot_fb = mem_desc;
 		if (mem_desc->type != Hip::Mem_desc::AVAILABLE_MEMORY) continue;
@@ -673,6 +679,9 @@ Platform::Platform() :
 			});
 			xml.node("boot", [&] () {
 				if (!boot_fb)
+					return;
+
+				if (!efi_boot)
 					return;
 
 				xml.node("framebuffer", [&] () {

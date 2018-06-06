@@ -107,8 +107,8 @@ proc run_boot_dir {binaries} {
 		# puts $fh "loadfont /boot/grub/unicode.pf2"
 		puts $fh "set timeout=0"
 
-		# tell grub2 to prefer 32bit framebuffer resolution
-		puts $fh "set gfxpayload=\"0x0x32\""
+		# choose best graphic mode
+		puts $fh "set gfxpayload=auto"
 
 		if {[have_include image/uefi]} {
 			puts $fh "insmod gfxterm"
