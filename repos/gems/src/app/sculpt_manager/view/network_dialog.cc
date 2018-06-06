@@ -204,7 +204,7 @@ void Sculpt::Network_dialog::generate(Xml_generator &xml) const
 
 						_nic_item.gen_button_attr(xml, id);
 
-						if (_nic_target.type == type)
+						if (_nic_target.type() == type)
 							xml.attribute("selected", "yes");
 
 						xml.node("label", [&] () { xml.attribute("text", label); });
@@ -217,18 +217,18 @@ void Sculpt::Network_dialog::generate(Xml_generator &xml) const
 				 * Allow interactive selection only if NIC-router configuration
 				 * is not manually maintained.
 				 */
-				if (_nic_target.managed() || _nic_target.local())
+				if (_nic_target.managed() || _nic_target.manual_type == Nic_target::LOCAL)
 					gen_nic_button("local", Nic_target::LOCAL, "Local");
 
-				if (_nic_target.managed() || _nic_target.wired())
+				if (_nic_target.managed() || _nic_target.manual_type == Nic_target::WIRED)
 					gen_nic_button("wired", Nic_target::WIRED, "Wired");
 
-				if (_nic_target.managed() || _nic_target.wifi())
+				if (_nic_target.managed() || _nic_target.manual_type == Nic_target::WIFI)
 					if (_pci_info.wifi_present)
 						gen_nic_button("wifi",  Nic_target::WIFI,  "Wifi");
 			});
 
-			if (_nic_target.type == Nic_target::WIFI || _nic_target.type == Nic_target::WIRED) {
+			if (_nic_target.wifi() || _nic_target.wired()) {
 				gen_named_node(xml, "frame", "nic_info", [&] () {
 					xml.node("vbox", [&] () {
 
@@ -238,7 +238,7 @@ void Sculpt::Network_dialog::generate(Xml_generator &xml) const
 						 * the complete list of access points with the option
 						 * to select one.
 						 */
-						if (_nic_target.type == Nic_target::WIFI) {
+						if (_nic_target.wifi()) {
 							if (_wifi_connection.connected())
 								_gen_connected_ap(xml);
 							else

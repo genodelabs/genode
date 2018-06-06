@@ -135,8 +135,8 @@ struct Sculpt::Network : Network_dialog::Action
 		if (type == Nic_target::WIFI)  _use_wifi_drv = true;
 		if (type == Nic_target::WIRED) _use_nic_drv  = true;
 
-		if (type != _nic_target.type) {
-			_nic_target.type = type;
+		if (type != _nic_target.managed_type) {
+			_nic_target.managed_type = type;
 			_generate_nic_router_config();
 			_runtime_config_generator.generate_runtime_config();
 			_dialog_generator.generate_dialog();

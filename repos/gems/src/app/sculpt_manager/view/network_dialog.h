@@ -47,7 +47,7 @@ struct Sculpt::Network_dialog : Dialog
 	Hoverable_item  _nic_info     { };
 	Hoverable_item  _connect_item { }; /* confirm WPA passphrase */
 
-	bool ap_list_hovered() const { return _nic_target.type == Nic_target::WIFI
+	bool ap_list_hovered() const { return _nic_target.wifi()
 	                                   && _nic_info.hovered("nic_info"); }
 
 	/*
