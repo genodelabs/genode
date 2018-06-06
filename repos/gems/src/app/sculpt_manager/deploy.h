@@ -25,6 +25,7 @@
 #include <types.h>
 #include <runtime.h>
 #include <managed_config.h>
+#include <view/dialog.h>
 
 namespace Sculpt { struct Deploy; }
 
@@ -34,6 +35,10 @@ struct Sculpt::Deploy
 	Env &_env;
 
 	Allocator &_alloc;
+
+	Runtime_info const &_runtime_info;
+
+	Dialog::Generator &_dialog_generator;
 
 	Runtime_config_generator &_runtime_config_generator;
 
@@ -85,6 +90,44 @@ struct Sculpt::Deploy
 		handle_deploy();
 	}
 
+	/**
+	 * Call 'fn' for each unsatisfied dependency of the child's 'start' node
+	 */
+	template <typename FN>
+	void _for_each_missing_server(Xml_node start, FN const &fn) const
+	{
+		start.for_each_sub_node("route", [&] (Xml_node route) {
+			route.for_each_sub_node("service", [&] (Xml_node service) {
+				service.for_each_sub_node("child", [&] (Xml_node child) {
+					Start_name const name = child.attribute_value("name", Start_name());
+
+					/*
+					 * The dependency to the default-fs alias is always
+					 * satisfied during the deploy phase. But it does not
+					 * appear in the runtime-state report.
+					 */
+					if (name == "default_fs_rw")
+						return;
+
+					if (!_runtime_info.present_in_runtime(name))
+						fn(name);
+				});
+			});
+		});
+	}
+
+	/**
+	 * Re-evaluate child dependencies
+	 *
+	 * \return true if any condition has changed and new children may have
+	 *              become able to start
+	 */
+	bool update_child_conditions();
+
+	void _gen_missing_dependencies(Xml_generator &, Xml_node, int &) const;
+
+	void gen_child_diagnostics(Xml_generator &xml) const;
+
 	void gen_runtime_start_nodes(Xml_generator &) const;
 
 	Signal_handler<Deploy> _manual_deploy_handler {
@@ -107,10 +150,12 @@ struct Sculpt::Deploy
 		handle_deploy();
 	}
 
-	Deploy(Env &env, Allocator &alloc,
+	Deploy(Env &env, Allocator &alloc, Runtime_info const &runtime_info,
+	       Dialog::Generator &dialog_generator,
 	       Runtime_config_generator &runtime_config_generator)
 	:
-		_env(env), _alloc(alloc),
+		_env(env), _alloc(alloc), _runtime_info(runtime_info),
+		_dialog_generator(dialog_generator),
 		_runtime_config_generator(runtime_config_generator)
 	{
 		_manual_deploy_rom.sigh(_manual_deploy_handler);

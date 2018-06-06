@@ -78,6 +78,24 @@ class Depot_deploy::Children
 					child.mark_as_incomplete(missing); }); });
 		}
 
+		template <typename COND_FN>
+		void apply_condition(COND_FN const &fn)
+		{
+			_children.for_each([&] (Child &child) {
+				child.apply_condition(fn); });
+		}
+
+		/**
+		 * Call 'fn' with start 'Xml_node' of each child that has an
+		 * unsatisfied start condition.
+		 */
+		template <typename FN>
+		void for_each_unsatisfied_child(FN const &fn) const
+		{
+			_children.for_each([&] (Child const &child) {
+				child.apply_if_unsatisfied(fn); });
+		}
+
 		void reset_incomplete()
 		{
 			_children.for_each([&] (Child &child) {

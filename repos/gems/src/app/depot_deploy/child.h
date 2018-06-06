@@ -43,6 +43,16 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		Reconstructible<Buffered_xml> _start_xml;     /* from config */
 		Constructible<Buffered_xml>   _pkg_xml { };   /* from blueprint */
 
+		/*
+		 * State of the condition check for generating the start node of
+		 * the child. I.e., if the child is complete and configured but
+		 * a used server component is missing, we need to suppress the start
+		 * node until the condition is satisfied.
+		 */
+		enum Condition { UNCHECKED, SATISFIED, UNSATISFIED };
+
+		Condition _condition { UNCHECKED };
+
 		Name const _name;
 
 		Archive::Path _config_pkg_path() const
@@ -158,6 +168,24 @@ class Depot_deploy::Child : public List_model<Child>::Element
 			_pkg_xml.construct(_alloc, pkg);
 		}
 
+		template <typename COND_FN>
+		void apply_condition(COND_FN const &fn)
+		{
+			/* don't check the condition twice */
+			if (_condition == SATISFIED)
+				return;
+
+			if (_start_xml.constructed())
+				_condition = fn(_start_xml->xml()) ? SATISFIED : UNSATISFIED;
+		}
+
+		template <typename FN>
+		void apply_if_unsatisfied(FN const &fn) const
+		{
+			if (_condition == UNSATISFIED && _start_xml.constructed())
+				fn(_start_xml->xml());
+		}
+
 		void mark_as_incomplete(Xml_node missing)
 		{
 			/* print error message only once */
@@ -225,7 +253,7 @@ class Depot_deploy::Child : public List_model<Child>::Element
 void Depot_deploy::Child::gen_start_node(Xml_generator &xml, Xml_node common,
                                          Depot_rom_server const &depot_rom) const
 {
-	if (!_configured())
+	if (!_configured() || _condition == UNSATISFIED)
 		return;
 
 	if (!_pkg_xml->xml().has_sub_node("runtime")) {

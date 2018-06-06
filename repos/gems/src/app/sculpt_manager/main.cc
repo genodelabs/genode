@@ -158,7 +158,7 @@ struct Sculpt::Main : Input_event_handler,
 	                                   && _network.ready()
 	                                   && _deploy.update_needed(); };
 
-	Deploy _deploy { _env, _heap, *this };
+	Deploy _deploy { _env, _heap, *this, *this, *this };
 
 
 
@@ -213,6 +213,8 @@ struct Sculpt::Main : Input_event_handler,
 							xml.attribute("text", "Runtime");
 							xml.attribute("font", "title/regular");
 						});
+
+						_deploy.gen_child_diagnostics(xml);
 
 						Xml_node const state = _update_state_rom.xml();
 						if (_update_running() && state.has_sub_node("archive"))
@@ -617,6 +619,11 @@ void Sculpt::Main::_handle_runtime_state()
 	 * available in the meantime.
 	 */
 	_network.reattempt_nic_router_config();
+
+	if (_deploy.update_child_conditions()) {
+		reconfigure_runtime = true;
+		generate_dialog();
+	}
 
 	if (reconfigure_runtime)
 		generate_runtime_config();

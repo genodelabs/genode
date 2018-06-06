@@ -15,6 +15,68 @@
 #include <deploy.h>
 
 
+bool Sculpt::Deploy::update_child_conditions()
+{
+	/* track whether any condition changed for the better */
+	bool result = false;
+
+	_children.apply_condition([&] (Xml_node start) {
+
+		/* the child cannot be started as long as any dependency is missing */
+		bool condition = true;
+		_for_each_missing_server(start, [&] (Start_name const &) {
+			condition = false; });
+
+		result |= condition;
+		return condition;
+	});
+	return result;
+}
+
+
+void Sculpt::Deploy::_gen_missing_dependencies(Xml_generator &xml,
+                                               Xml_node start, int &count) const
+{
+	Start_name const child = start.attribute_value("name", Start_name());
+	_for_each_missing_server(start, [&] (Start_name const &server) {
+		gen_named_node(xml, "hbox", String<20>(count++), [&] () {
+			gen_named_node(xml, "float", "left", [&] () {
+				xml.attribute("west", "yes");
+				xml.node("label", [&] () {
+					xml.attribute("text", String<64>(child, " requires ", server));
+					xml.attribute("font", "annotation/regular");
+				});
+			});
+		});
+	});
+}
+
+
+void Sculpt::Deploy::gen_child_diagnostics(Xml_generator &xml) const
+{
+	bool all_children_ok = true;
+	_children.for_each_unsatisfied_child([&] (Xml_node) {
+		all_children_ok = false; });
+
+	if (all_children_ok)
+		return;
+
+	int count = 0;
+	gen_named_node(xml, "frame", "diagnostics", [&] () {
+		xml.node("vbox", [&] () {
+
+			xml.node("label", [&] () {
+				xml.attribute("text", "Diagnostics"); });
+
+			xml.node("float", [&] () {
+				xml.node("vbox", [&] () {
+					_children.for_each_unsatisfied_child([&] (Xml_node start) {
+						_gen_missing_dependencies(xml, start, count); }); }); });
+		});
+	});
+}
+
+
 void Sculpt::Deploy::handle_deploy()
 {
 	Xml_node const manual_deploy = _manual_deploy_rom.xml();
@@ -60,6 +122,10 @@ void Sculpt::Deploy::handle_deploy()
 			xml.attribute("arch", _arch);
 			_children.gen_installation_entries(xml); });
 
+	/* apply runtime condition checks */
+	update_child_conditions();
+
+	_dialog_generator.generate_dialog();
 	_runtime_config_generator.generate_runtime_config();
 }
 
