@@ -544,10 +544,45 @@ void Child::session_response(Server::Id id, Session_response response)
 				 * i.e., if the close request was issued by ourself while
 				 * killing a child, we drop the session state immediately.
 				 */
-				if (session.closed_callback)
+				if (session.closed_callback) {
 					session.closed_callback->session_closed(session);
-				else
-					_revert_quota_and_destroy(session);
+
+				} else {
+
+					/*
+					 * The client no longer exists. So we cannot take the
+					 * regular path of executing '_revert_quota_and_destroy' in
+					 * the context of the client. Instead, we immediately
+					 * withdraw the session quota from the server ('this') to
+					 * the reference account, and destroy the session object.
+					 */
+					Ram_transfer::Remote_account ref_ram_account(_policy.ref_pd(), _policy.ref_pd_cap());
+					Ram_transfer::Account   &service_ram_account = session.service();
+
+					Cap_transfer::Remote_account ref_cap_account(_policy.ref_pd(), _policy.ref_pd_cap());
+					Cap_transfer::Account   &service_cap_account = session.service();
+
+					try {
+						/* transfer session quota from the service to ourself */
+						Ram_transfer ram_donation_from_service(session.donated_ram_quota(),
+						                                       service_ram_account, ref_ram_account);
+
+						Cap_transfer cap_donation_from_service(session.donated_cap_quota(),
+						                                       service_cap_account, ref_cap_account);
+
+						ram_donation_from_service.acknowledge();
+						cap_donation_from_service.acknowledge();
+					}
+					catch (Ram_transfer::Quota_exceeded) {
+						warning(_policy.name(), " failed to return session RAM quota "
+						        "(", session.donated_ram_quota(), ")"); }
+					catch (Cap_transfer::Quota_exceeded) {
+						warning(_policy.name(), " failed to return session cap quota "
+						        "(", session.donated_cap_quota(), ")"); }
+
+					session.destroy();
+					_policy.session_state_changed();
+				}
 				break;
 
 			case Parent::SERVICE_DENIED:
