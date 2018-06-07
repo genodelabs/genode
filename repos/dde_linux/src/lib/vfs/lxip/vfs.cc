@@ -1616,19 +1616,15 @@ class Vfs::Lxip_file_system : public Vfs::File_system,
 				Addr gateway    = config.attribute_value("gateway", Addr());
 				Addr nameserver = config.attribute_value("nameserver", Addr());
 
-				/* either none or all 4 interface attributes must exist */
 				if (ip_addr == "") {
 					warning("Missing \"ip_addr\" attribute. Ignoring network interface config.");
 					throw Genode::Xml_node::Nonexistent_attribute();
 				} else if (netmask == "") {
 					warning("Missing \"netmask\" attribute. Ignoring network interface config.");
 					throw Genode::Xml_node::Nonexistent_attribute();
-				} else if (gateway == "") {
-					warning("Missing \"gateway\" attribute. Ignoring network interface config.");
-					throw Genode::Xml_node::Nonexistent_attribute();
 				}
 
-				log("static network interface: ip_addr=",ip_addr," netmask=",netmask," gateway=",gateway);
+				log("static network interface: ip_addr=",ip_addr," netmask=",netmask);
 
 				lxip_configure_static(ip_addr.string(), netmask.string(),
 				                      gateway.string(), nameserver.string());

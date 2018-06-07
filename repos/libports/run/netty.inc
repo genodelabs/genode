@@ -64,7 +64,7 @@ append_if [use_dynamic_rom] config {
 			<config ld_verbose="yes">
 				<vfs>
 					<dir name="socket">
-						<lxip mtu="400" ip_addr="10.0.2.55" netmask="255.255.255.0" gateway="10.0.2.1" nameserver="8.8.8.8"/>
+						<lxip mtu="400" ip_addr="10.0.2.55" netmask="255.255.255.0" nameserver="8.8.8.8"/>
 					</dir>
 				</vfs>
 				<default-policy root="/socket" writeable="yes" />
