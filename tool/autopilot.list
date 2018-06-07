@@ -19,6 +19,7 @@ fs_log
 fs_report
 gdb_monitor
 init
+init_loop
 init_smp
 input_filter
 ldso

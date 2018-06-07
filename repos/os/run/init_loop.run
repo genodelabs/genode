@@ -1,0 +1,68 @@
+create_boot_directory
+
+import_from_depot genodelabs/src/[base_src] \
+                  genodelabs/src/report_rom
+
+install_config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="CPU"/>
+		<service name="PD"/>
+		<service name="LOG"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+	</parent-provides>
+
+	<default caps="100"/>
+
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+		<route> <any-service> <parent/> </any-service> </route>
+	</start>
+
+	<start name="report_rom">
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="ROM"/> <service name="Report"/> </provides>
+		<config verbose="no">
+			<policy label="init -> config"          report="test-init_loop -> init.config"/>
+			<policy label="test-init_loop -> state" report="init -> state"/>
+		</config>
+		<route> <any-service> <parent/> </any-service> </route>
+	</start>
+
+	<start name="test-init_loop">
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="LOG"/> </provides>
+		<config/>
+		<route>
+			<service name="Report">            <child name="report_rom"/> </service>
+			<service name="ROM" label="state"> <child name="report_rom"/> </service>
+			<service name="Timer">             <child name="timer"/>      </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="init" caps="2000">
+		<binary name="init"/>
+		<resource name="RAM" quantum="8M"/>
+		<route>
+			<service name="ROM" label="config"> <child name="report_rom"/> </service>
+			<service name="Report">             <child name="report_rom"/> </service>
+			<service name="Timer">              <child name="timer"/>     </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+</config>}
+
+build { lib/ld init app/dummy test/init_loop }
+
+build_boot_image { ld.lib.so init dummy test-init_loop }
+
+append qemu_args " -nographic "
+
+run_genode_until {.*child "test-init_loop" exited with exit value 0.*} 100
+
