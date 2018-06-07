@@ -42,28 +42,26 @@ Session_component_base(Allocator           &guarded_alloc_backing,
                        size_t        const  guarded_alloc_amount,
                        Ram_session         &buf_ram,
                        size_t        const  tx_buf_size,
-                       size_t        const  rx_buf_size,
-                       Configuration const &config,
-                       Session_label const &label)
+                       size_t        const  rx_buf_size)
 :
 	_guarded_alloc(&guarded_alloc_backing, guarded_alloc_amount),
 	_range_alloc(&_guarded_alloc), _tx_buf(buf_ram, tx_buf_size),
-	_rx_buf(buf_ram, rx_buf_size), _intf_policy(label, config)
+	_rx_buf(buf_ram, rx_buf_size)
 { }
 
 
-/**********************************************
- ** Session_component_base::Interface_policy **
- **********************************************/
+/*****************************************
+ ** Session_component::Interface_policy **
+ *****************************************/
 
-Net::Session_component_base::
+Net::Session_component::
 Interface_policy::Interface_policy(Genode::Session_label const &label,
                                    Configuration         const &config)
 : _label(label), _config(config) { }
 
 
 Domain_name
-Net::Session_component_base::Interface_policy::determine_domain_name() const
+Net::Session_component::Interface_policy::determine_domain_name() const
 {
 	Domain_name domain_name;
 	try {
@@ -94,28 +92,19 @@ Net::Session_component::Session_component(Allocator           &alloc,
                                           Interface_list      &interfaces,
                                           Configuration       &config)
 :
-	Session_component_base(alloc, amount, buf_ram, tx_buf_size, rx_buf_size,
-	                       config, label),
-	Session_rpc_object(region_map, _tx_buf, _rx_buf, &_range_alloc,
-	                   ep.rpc_ep()),
-	Interface(ep, timer, router_mac, _guarded_alloc, mac, config, interfaces,
-	          _intf_policy)
+	Session_component_base { alloc, amount, buf_ram, tx_buf_size,
+	                         rx_buf_size },
+	Session_rpc_object     { region_map, _tx_buf, _rx_buf, &_range_alloc,
+	                         ep.rpc_ep() },
+	_interface_policy      { label, config },
+	_interface             { ep, timer, router_mac, _guarded_alloc, mac,
+	                         config, interfaces, *_tx.sink(), *_rx.source(),
+	                         _link_state, _interface_policy }
 {
-	_tx.sigh_ready_to_ack(_sink_ack);
-	_tx.sigh_packet_avail(_sink_submit);
-	_rx.sigh_ack_avail(_source_ack);
-	_rx.sigh_ready_to_submit(_source_submit);
-}
-
-
-bool Net::Session_component::_link_state()
-{
-	try {
-		domain();
-		return true;
-	}
-	catch (Pointer<Domain>::Invalid) { }
-	return false;
+	_tx.sigh_ready_to_ack   (_interface.sink_ack());
+	_tx.sigh_packet_avail   (_interface.sink_submit());
+	_rx.sigh_ack_avail      (_interface.source_ack());
+	_rx.sigh_ready_to_submit(_interface.source_submit());
 }
 
 
@@ -164,14 +153,11 @@ Session_component *Net::Root::_create_session(char const *args)
 			throw Insufficient_ram_quota();
 		}
 		Session_label const label(label_from_args(args));
-		Session_component &component = *new (md_alloc())
+		return new (md_alloc())
 			Session_component(*md_alloc(), _timer, ram_quota - session_size,
 			                  _buf_ram, tx_buf_size, rx_buf_size, _region_map,
 			                  _mac_alloc.alloc(), _ep, _router_mac, label,
 			                  _interfaces, _config());
-
-		component.init();
-		return &component;
 	}
 	catch (Mac_allocator::Alloc_failed) {
 		error("failed to allocate MAC address");

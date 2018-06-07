@@ -62,18 +62,10 @@ class Net::Interface : private Interface_list::Element
 	friend class List<Interface>;
 	friend class Genode::List<Interface>;
 
-	protected:
-
-		using Signal_handler = Genode::Signal_handler<Interface>;
-
-		Signal_handler      _sink_ack;
-		Signal_handler      _sink_submit;
-		Signal_handler      _source_ack;
-		Signal_handler      _source_submit;
-		Mac_address  const  _router_mac;
-		Mac_address  const  _mac;
-
 	private:
+
+		using Signal_handler            = Genode::Signal_handler<Interface>;
+		using Signal_context_capability = Genode::Signal_context_capability;
 
 		enum { IPV4_TIME_TO_LIVE = 64 };
 
@@ -86,24 +78,33 @@ class Net::Interface : private Interface_list::Element
 			Domain &new_domain;
 		};
 
-		Reference<Configuration>           _config;
-		Interface_policy                  &_policy;
-		Timer::Connection                 &_timer;
-		Genode::Allocator                 &_alloc;
-		Pointer<Domain>                    _domain                    { };
-		Arp_waiter_list                    _own_arp_waiters           { };
-		Link_list                          _tcp_links                 { };
-		Link_list                          _udp_links                 { };
-		Link_list                          _icmp_links                { };
-		Link_list                          _dissolved_tcp_links       { };
-		Link_list                          _dissolved_udp_links       { };
-		Link_list                          _dissolved_icmp_links      { };
-		Dhcp_allocation_tree               _dhcp_allocations          { };
-		Dhcp_allocation_list               _released_dhcp_allocations { };
-		Dhcp_client                        _dhcp_client               { _alloc, _timer, *this };
-		Interface_list                    &_interfaces;
-		Genode::Signal_context_capability  _link_state_sigh           { };
-		Pointer<Update_domain>             _update_domain             { };
+		Packet_stream_sink        &_sink;
+		Packet_stream_source      &_source;
+		bool                      &_session_link_state;
+		Signal_context_capability  _session_link_state_sigh   { };
+		Signal_handler             _sink_ack;
+		Signal_handler             _sink_submit;
+		Signal_handler             _source_ack;
+		Signal_handler             _source_submit;
+		Mac_address         const  _router_mac;
+		Mac_address         const  _mac;
+		Reference<Configuration>   _config;
+		Interface_policy          &_policy;
+		Timer::Connection         &_timer;
+		Genode::Allocator         &_alloc;
+		Pointer<Domain>            _domain                    { };
+		Arp_waiter_list            _own_arp_waiters           { };
+		Link_list                  _tcp_links                 { };
+		Link_list                  _udp_links                 { };
+		Link_list                  _icmp_links                { };
+		Link_list                  _dissolved_tcp_links       { };
+		Link_list                  _dissolved_udp_links       { };
+		Link_list                  _dissolved_icmp_links      { };
+		Dhcp_allocation_tree       _dhcp_allocations          { };
+		Dhcp_allocation_list       _released_dhcp_allocations { };
+		Dhcp_client                _dhcp_client               { _alloc, _timer, *this };
+		Interface_list            &_interfaces;
+		Pointer<Update_domain>     _update_domain             { };
 
 		void _new_link(L3_protocol             const  protocol,
 		               Link_side_id            const &local_id,
@@ -281,16 +282,6 @@ class Net::Interface : private Interface_list::Element
 		                                Ipv4_packet         const &req_ip,
 		                                Icmp_packet::Code   const  code);
 
-		/*******************
-		 ** Pure virtuals **
-		 *******************/
-
-		virtual Packet_stream_sink &_sink() = 0;
-
-		virtual Packet_stream_source &_source() = 0;
-
-		virtual bool _link_state() = 0;
-
 
 		/***********************************
 		 ** Packet-stream signal handlers **
@@ -332,6 +323,9 @@ class Net::Interface : private Interface_list::Element
 		          Mac_address      const  mac,
 		          Configuration          &config,
 		          Interface_list         &interfaces,
+		          Packet_stream_sink     &sink,
+		          Packet_stream_source   &source,
+		          bool                   &session_link_state,
 		          Interface_policy       &policy);
 
 		virtual ~Interface();
@@ -341,7 +335,7 @@ class Net::Interface : private Interface_list::Element
 		template <typename FUNC>
 		void send(Genode::size_t pkt_size, FUNC && write_to_pkt)
 		{
-			if (!_link_state()) {
+			if (!link_state()) {
 				_failed_to_send_packet_link();
 				return;
 			}
@@ -383,20 +377,25 @@ class Net::Interface : private Interface_list::Element
 
 		void attach_to_remote_ip_config();
 
-		void link_state_sigh(Genode::Signal_context_capability sigh);
-
-		void init();
-
 		void attach_to_domain_finish();
+
+		bool link_state() const;
 
 
 		/***************
 		 ** Accessors **
 		 ***************/
 
-		Domain          &domain()           { return _domain(); }
-		Mac_address      router_mac() const { return _router_mac; }
-		Arp_waiter_list &own_arp_waiters()  { return _own_arp_waiters; }
+		Domain            &domain()           { return _domain(); }
+		Mac_address const &router_mac() const { return _router_mac; }
+		Mac_address const &mac()        const { return _mac; }
+		Arp_waiter_list   &own_arp_waiters()  { return _own_arp_waiters; }
+		Signal_handler    &sink_ack()         { return _sink_ack; }
+		Signal_handler    &sink_submit()      { return _sink_submit; }
+		Signal_handler    &source_ack()       { return _source_ack; }
+		Signal_handler    &source_submit()    { return _source_submit; }
+
+		void session_link_state_sigh(Genode::Signal_context_capability sigh);
 };
 
 #endif /* _INTERFACE_H_ */

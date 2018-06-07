@@ -53,6 +53,26 @@ class Net::Session_component_base
 {
 	protected:
 
+		Genode::Allocator_guard _guarded_alloc;
+		Nic::Packet_allocator   _range_alloc;
+		Communication_buffer    _tx_buf;
+		Communication_buffer    _rx_buf;
+
+	public:
+
+		Session_component_base(Genode::Allocator           &guarded_alloc_backing,
+		                       Genode::size_t        const  guarded_alloc_amount,
+		                       Genode::Ram_session         &buf_ram,
+		                       Genode::size_t        const  tx_buf_size,
+		                       Genode::size_t        const  rx_buf_size);
+};
+
+
+class Net::Session_component : private Session_component_base,
+                               public  ::Nic::Session_rpc_object
+{
+	private:
+
 		struct Interface_policy : Net::Interface_policy
 		{
 			private:
@@ -74,37 +94,9 @@ class Net::Session_component_base
 				void handle_config(Configuration const &config) override { _config = config; }
 		};
 
-		Genode::Allocator_guard _guarded_alloc;
-		Nic::Packet_allocator   _range_alloc;
-		Communication_buffer    _tx_buf;
-		Communication_buffer    _rx_buf;
-		Interface_policy        _intf_policy;
-
-	public:
-
-		Session_component_base(Genode::Allocator           &guarded_alloc_backing,
-		                       Genode::size_t        const  guarded_alloc_amount,
-		                       Genode::Ram_session         &buf_ram,
-		                       Genode::size_t        const  tx_buf_size,
-		                       Genode::size_t        const  rx_buf_size,
-		                       Configuration         const &config,
-		                       Genode::Session_label const &label);
-};
-
-
-class Net::Session_component : private Session_component_base,
-                               public  ::Nic::Session_rpc_object,
-                               public  Interface
-{
-	private:
-
-		/********************
-		 ** Net::Interface **
-		 ********************/
-
-		Packet_stream_sink   &_sink()       override { return *_tx.sink(); }
-		Packet_stream_source &_source()     override { return *_rx.source(); }
-		bool                  _link_state() override;
+		bool             _link_state { true };
+		Interface_policy _interface_policy;
+		Interface        _interface;
 
 	public:
 
@@ -127,9 +119,10 @@ class Net::Session_component : private Session_component_base,
 		 ** Nic::Session **
 		 ******************/
 
-		Mac_address mac_address()                                           override { return _mac; }
-		bool        link_state()                                            override { return _link_state(); }
-		void        link_state_sigh(Genode::Signal_context_capability sigh) override { Interface::link_state_sigh(sigh); }
+		Mac_address mac_address() override { return _interface.mac(); }
+		bool link_state() override { return _interface.link_state(); }
+		void link_state_sigh(Genode::Signal_context_capability sigh) override {
+			_interface.session_link_state_sigh(sigh); }
 };
 
 

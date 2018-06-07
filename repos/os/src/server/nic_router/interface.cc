@@ -236,7 +236,7 @@ Interface::_transport_rules(Domain &local_domain, L3_protocol const prot) const
 void Interface::_attach_to_domain_raw(Domain &domain)
 {
 	_domain = domain;
-	Signal_transmitter(_link_state_sigh).submit();
+	Signal_transmitter(_session_link_state_sigh).submit();
 	_interfaces.remove(this);
 	domain.attach_interface(*this);
 }
@@ -248,7 +248,7 @@ void Interface::_detach_from_domain_raw()
 	domain.detach_interface(*this);
 	_interfaces.insert(this);
 	_domain = Pointer<Domain>();
-	Signal_transmitter(_link_state_sigh).submit();
+	Signal_transmitter(_session_link_state_sigh).submit();
 }
 
 
@@ -283,9 +283,9 @@ void Interface::attach_to_ip_config(Domain            &domain,
 }
 
 
-void Interface::link_state_sigh(Signal_context_capability sigh)
+void Interface::session_link_state_sigh(Signal_context_capability sigh)
 {
-	_link_state_sigh = sigh;
+	_session_link_state_sigh = sigh;
 }
 
 
@@ -315,14 +315,14 @@ void Interface::detach_from_ip_config()
 void Interface::detach_from_remote_ip_config()
 {
 	/* only the DNS server address of the local DHCP server can be remote */
-	Signal_transmitter(_link_state_sigh).submit();
+	Signal_transmitter(_session_link_state_sigh).submit();
 }
 
 
 void Interface::attach_to_remote_ip_config()
 {
 	/* only the DNS server address of the local DHCP server can be remote */
-	Signal_transmitter(_link_state_sigh).submit();
+	Signal_transmitter(_session_link_state_sigh).submit();
 }
 
 
@@ -722,6 +722,12 @@ void Interface::_send_icmp_dst_unreachable(Ipv4_address_prefix const &local_intf
 		ip.total_length(size_guard.head_size() - ip_off);
 		ip.update_checksum();
 	});
+}
+
+
+bool Interface::link_state() const
+{
+	return _domain.valid() && _session_link_state;
 }
 
 
@@ -1168,10 +1174,10 @@ void Interface::_handle_arp(Ethernet_frame &eth,
 
 void Interface::_ready_to_submit()
 {
-	while (_sink().packet_avail()) {
-		Packet_descriptor const pkt = _sink().get_packet();
+	while (_sink.packet_avail()) {
+		Packet_descriptor const pkt = _sink.get_packet();
 		Size_guard size_guard(pkt.size());
-		try { _handle_eth(_sink().packet_content(pkt), size_guard, pkt); }
+		try { _handle_eth(_sink.packet_content(pkt), size_guard, pkt); }
 		catch (Packet_postponed) { continue; }
 		_ack_packet(pkt);
 	}
@@ -1181,7 +1187,7 @@ void Interface::_ready_to_submit()
 void Interface::_continue_handle_eth(Packet_descriptor const &pkt)
 {
 	Size_guard size_guard(pkt.size());
-	try { _handle_eth(_sink().packet_content(pkt), size_guard, pkt); }
+	try { _handle_eth(_sink.packet_content(pkt), size_guard, pkt); }
 	catch (Packet_postponed) { error("failed twice to handle packet"); }
 	_ack_packet(pkt);
 }
@@ -1189,8 +1195,8 @@ void Interface::_continue_handle_eth(Packet_descriptor const &pkt)
 
 void Interface::_ready_to_ack()
 {
-	while (_source().ack_avail()) {
-		_source().release_packet(_source().get_acked_packet()); }
+	while (_source.ack_avail()) {
+		_source.release_packet(_source.get_acked_packet()); }
 }
 
 
@@ -1293,8 +1299,8 @@ void Interface::_send_alloc_pkt(Packet_descriptor &pkt,
                                 void            * &pkt_base,
                                 size_t             pkt_size)
 {
-	pkt      = _source().alloc_packet(pkt_size);
-	pkt_base = _source().packet_content(pkt);
+	pkt      = _source.alloc_packet(pkt_size);
+	pkt_base = _source.packet_content(pkt);
 }
 
 
@@ -1312,7 +1318,7 @@ void Interface::_send_submit_pkt(Packet_descriptor &pkt,
 		}
 		catch (Size_guard::Exceeded) { log("[", local_domain, "] snd ?"); }
 	}
-	_source().submit_packet(pkt);
+	_source.submit_packet(pkt);
 }
 
 
@@ -1323,22 +1329,27 @@ Interface::Interface(Genode::Entrypoint     &ep,
                      Mac_address      const  mac,
                      Configuration          &config,
                      Interface_list         &interfaces,
+                     Packet_stream_sink     &sink,
+                     Packet_stream_source   &source,
+                     bool                   &session_link_state,
                      Interface_policy       &policy)
 :
-	_sink_ack(ep, *this, &Interface::_ack_avail),
-	_sink_submit(ep, *this, &Interface::_ready_to_submit),
-	_source_ack(ep, *this, &Interface::_ready_to_ack),
-	_source_submit(ep, *this, &Interface::_packet_avail),
-	_router_mac(router_mac), _mac(mac), _config(config),
-	_policy(policy), _timer(timer), _alloc(alloc),
-	_interfaces(interfaces)
+	_sink               { sink },
+	_source             { source },
+	_session_link_state { session_link_state },
+	_sink_ack           { ep, *this, &Interface::_ack_avail },
+	_sink_submit        { ep, *this, &Interface::_ready_to_submit },
+	_source_ack         { ep, *this, &Interface::_ready_to_ack },
+	_source_submit      { ep, *this, &Interface::_packet_avail },
+	_router_mac         { router_mac },
+	_mac                { mac },
+	_config             { config },
+	_policy             { policy },
+	_timer              { timer },
+	_alloc              { alloc },
+	_interfaces         { interfaces }
 {
 	_interfaces.insert(this);
-}
-
-
-void Interface::init()
-{
 	try { _attach_to_domain(_policy.determine_domain_name()); }
 	catch (Domain_tree::No_match) { }
 }
@@ -1650,11 +1661,11 @@ void Interface::handle_config_3()
 
 void Interface::_ack_packet(Packet_descriptor const &pkt)
 {
-	if (!_sink().ready_to_ack()) {
+	if (!_sink.ready_to_ack()) {
 		error("ack state FULL");
 		return;
 	}
-	_sink().acknowledge_packet(pkt);
+	_sink.acknowledge_packet(pkt);
 }
 
 

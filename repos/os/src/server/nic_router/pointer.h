@@ -46,6 +46,8 @@ class Net::Pointer
 
 			return *_obj;
 		}
+
+		bool valid() const { return _obj != nullptr; }
 };
 
 

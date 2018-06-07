@@ -30,25 +30,29 @@ Net::Uplink::Uplink(Env                 &env,
                     Configuration       &config,
                     Session_label const &label)
 :
-	Nic::Packet_allocator(&alloc),
-	Nic::Connection(env, this, BUF_SIZE, BUF_SIZE, label.string()),
-	Net::Interface(env.ep(), timer, mac_address(), alloc, Mac_address(),
-	               config, interfaces, _intf_policy),
-	_label(label),
-	_link_state_handler(env.ep(), *this, &Uplink::_handle_link_state)
+	Nic::Packet_allocator { &alloc },
+	Nic::Connection       { env, this, BUF_SIZE, BUF_SIZE, label.string() },
+	_label                { label },
+	_link_state_handler   { env.ep(), *this, &Uplink::_handle_link_state },
+	_interface            { env.ep(), timer, mac_address(), alloc,
+	                        Mac_address(), config, interfaces, *rx(), *tx(),
+	                        _link_state, _intf_policy }
 {
-	rx_channel()->sigh_ready_to_ack(_sink_ack);
-	rx_channel()->sigh_packet_avail(_sink_submit);
-	tx_channel()->sigh_ack_avail(_source_ack);
-	tx_channel()->sigh_ready_to_submit(_source_submit);
+	/* install packet stream signal handlers */
+	rx_channel()->sigh_ready_to_ack   (_interface.sink_ack());
+	rx_channel()->sigh_packet_avail   (_interface.sink_submit());
+	tx_channel()->sigh_ack_avail      (_interface.source_ack());
+	tx_channel()->sigh_ready_to_submit(_interface.source_submit());
+
+	/* initialize link state handling */
 	Nic::Connection::link_state_sigh(_link_state_handler);
-	_link_state_ = link_state();
+	_link_state = link_state();
 }
 
 
 void Net::Uplink::_handle_link_state()
 {
-	_link_state_ = link_state();
-	try { domain().discard_ip_config(); }
+	_link_state = link_state();
+	try { _interface.domain().discard_ip_config(); }
 	catch (Domain::Ip_config_static) { }
 }

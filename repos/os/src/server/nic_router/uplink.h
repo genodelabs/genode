@@ -52,8 +52,7 @@ class Net::Uplink_base
 
 class Net::Uplink : public Uplink_base,
                     public Nic::Packet_allocator,
-                    public Nic::Connection,
-                    public Interface
+                    public Nic::Connection
 {
 	private:
 
@@ -63,21 +62,13 @@ class Net::Uplink : public Uplink_base,
 		};
 
 		Genode::Session_label    const &_label;
-		bool                            _link_state_ { false };
+		bool                            _link_state { false };
 		Genode::Signal_handler<Uplink>  _link_state_handler;
+		Net::Interface                  _interface;
 
 		Ipv4_address_prefix _read_interface();
 
 		void _handle_link_state();
-
-
-		/********************
-		 ** Net::Interface **
-		 ********************/
-
-		Packet_stream_sink   &_sink()       override { return *rx(); }
-		Packet_stream_source &_source()     override { return *tx(); }
-		bool                  _link_state() override { return _link_state_; }
 
 	public:
 
@@ -93,7 +84,7 @@ class Net::Uplink : public Uplink_base,
 		 ** Accessors **
 		 ***************/
 
-		Mac_address           const &router_mac() const { return _router_mac; }
+		Mac_address           const &router_mac() const { return _interface.router_mac(); }
 		Genode::Session_label const &label()      const { return _label; }
 };
 

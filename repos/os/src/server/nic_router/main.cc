@@ -103,7 +103,6 @@ void Net::Main::_init_uplink(Configuration       &config,
 	Uplink &uplink = *new (_heap) Uplink(_env, _timer, _heap, _interfaces,
 	                                     config, label);
 	_uplink = Pointer<Uplink>(uplink);
-	uplink.init();
 }
 
 
