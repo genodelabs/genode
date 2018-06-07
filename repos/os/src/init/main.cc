@@ -296,6 +296,8 @@ void Init::Main::_update_children_config()
 
 void Init::Main::_handle_config()
 {
+	bool update_state_report = false;
+
 	_config.update();
 
 	_config_xml = _config.xml();
@@ -331,6 +333,7 @@ void Init::Main::_handle_config()
 		/* make the child's services unavailable */
 		child.destroy_services();
 		child.close_all_sessions();
+		update_state_report = true;
 
 		/* destroy child once all environment sessions are gone */
 		if (child.env_sessions_closed()) {
@@ -383,6 +386,8 @@ void Init::Main::_handle_config()
 					             *this, *this, prio_levels, affinity_space,
 					            _parent_services, _child_services);
 				_children.insert(&child);
+
+				update_state_report = true;
 
 				/* account for the start XML node buffered in the child */
 				size_t const metadata_overhead = start_node.size()
@@ -445,6 +450,9 @@ void Init::Main::_handle_config()
 	_children.for_each_child([&] (Child &child) { child.apply_upgrade(); });
 
 	_server.apply_config(_config_xml);
+
+	if (update_state_report)
+		_state_reporter.trigger_immediate_report_update();
 }
 
 
