@@ -356,15 +356,26 @@ void Init::Main::_handle_config()
 	try {
 		_config_xml.for_each_sub_node("start", [&] (Xml_node start_node) {
 
-			/* skip start node if corresponding child already exists */
 			bool exists = false;
+
+			unsigned num_abandoned = 0;
+
 			_children.for_each_child([&] (Child const &child) {
-				if (!child.abandoned()
-				 && child.name() == start_node.attribute_value("name", Child_policy::Name()))
-					exists = true; });
-			if (exists) {
+				if (child.name() == start_node.attribute_value("name", Child_policy::Name())) {
+					if (child.abandoned())
+						num_abandoned++;
+					else
+						exists = true;
+				}
+			});
+
+			/* skip start node if corresponding child already exists */
+			if (exists)
 				return;
-			}
+
+			/* prevent queuing up abandoned children with the same name */
+			if (num_abandoned > 1)
+				return;
 
 			if (used_ram.value > avail_ram.value) {
 				error("RAM exhausted while starting childen");
