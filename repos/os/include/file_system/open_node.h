@@ -73,9 +73,9 @@ class File_system::Open_node : public File_system::Node
 			/*
 			 * Notify remaining listeners about the changed file
 			 */
-			if (_was_written)
-				if (node.valid())
-					node->notify_listeners();
+			if (_was_written && node.valid()) {
+				node->notify_listeners();
+			}
 		}
 
 		Genode::Weak_ptr<NODE>&node()     { return _node; }
@@ -109,7 +109,8 @@ class File_system::Open_node : public File_system::Node
 			}
 		}
 
-		void mark_as_written() { _was_written = true; }
+		void   mark_as_written() { _was_written = true;  }
+		void unmark_as_written() { _was_written = false; }
 };
 
 #endif /* _OPEN_NODE_H_ */

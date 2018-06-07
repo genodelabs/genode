@@ -53,8 +53,7 @@ namespace File_system {
 			{ }
 
 			/*
-			 * Called on close of written files, on sync, or on arrival
-			 * of a client's CONTENT_CHANGED packet.
+			 * Called on close of written files
 			 */
 			void notify(Version curr_version)
 			{
@@ -66,11 +65,11 @@ namespace File_system {
 				if (curr_version.value == _notified_version.value)
 					return;
 
-				if (_sink.ready_to_ack())
+				if (_sink.ready_to_ack()) {
 					_sink.acknowledge_packet(Packet_descriptor(
 						_handle, Packet_descriptor::CONTENT_CHANGED));
-
-				_notified_version = curr_version;
+					_notified_version = curr_version;
+				}
 			}
 
 			/*

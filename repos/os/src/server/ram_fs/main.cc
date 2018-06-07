@@ -123,6 +123,7 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 				if (!node.valid())
 					break; 
 				node->notify_listeners();
+				open_node.unmark_as_written();
 				succeeded = true;
 				break;
 			}
