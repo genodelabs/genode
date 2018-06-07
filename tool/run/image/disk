@@ -9,6 +9,11 @@ source [genode_dir]/tool/run/grub2.inc
 
 proc image_disk_size { } { return [get_cmd_arg --image-disk-size 0] }
 
+#
+# Disable parted heuristics for Apple to prevent error messages
+#
+set ::env(PARTED_GPT_APPLE) 0
+
 
 ##
 # Create disk image with the content of the run directory
@@ -23,7 +28,7 @@ proc run_image { {unused ""} } {
 	exec cp [get_grub2_dir]/boot/grub2-head.img [run_dir].header
 
 	# remove template partition
-	exec parted -a none -s [run_dir].header -- rm 3
+	exec -ignorestderr parted -a none -s [run_dir].header -- rm 3
 
 	# calculate size of grub2 header and the size of Genode scenario
 	set size_header [expr [regsub {\s.*} [exec du -b  [run_dir].header] {}]]
@@ -58,7 +63,7 @@ proc run_image { {unused ""} } {
 	set last_sector [expr ((($size_header + ($disk_size_kb * 1024)) / 512) - 1)]
 
 	# add free space for the backup gpt at the end of disk
-	set sector_backup [exec parted -s [run_dir].header 'unit s print']
+	set sector_backup [exec -ignorestderr parted -s [run_dir].header 'unit s print']
 	set sector_backup [regexp -all -inline { 1 .*BIOSBOOT} $sector_backup]
 	set sector_backup [regexp -all -inline {([0-9]+)} $sector_backup]
 	set sector_backup [lindex $sector_backup 2]
@@ -74,8 +79,8 @@ proc run_image { {unused ""} } {
 	exec rm [run_dir].partition
 
 	# create partition table entry pointing to the content
-	catch { exec parted -a none [run_dir].img -- mkpart Fix GENODE ext2 [expr $first_sector]s ${last_sector}s }
-	exec parted [run_dir].img -s 'name 3 GENODE'
+	catch { exec -ignorestderr parted -a none [run_dir].img -- mkpart Fix GENODE ext2 [expr $first_sector]s ${last_sector}s }
+	exec -ignorestderr parted [run_dir].img -s 'name 3 GENODE'
 
 	# create hybrid MBR
 	exec echo -e "r\no\nh\n1\nn\n\ny\nn\no\nw\ny\n" | gdisk [run_dir].img
