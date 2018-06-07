@@ -131,5 +131,5 @@ build_boot_image $boot_modules
 
 append qemu_args " -nographic -net nic,model=e1000 -net user "
 
-run_genode_until {.*\[init -> depot_download -> manager\] installation complete.*\n} 120
+run_genode_until {.*\[init -> depot_download -> manager\] installation complete.*\n} 150
 
