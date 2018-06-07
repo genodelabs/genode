@@ -139,7 +139,12 @@ struct Test::Main
 		log("(9) received expected focus ROM content");
 
 		_focus_rom->sigh(_focus_removal_handler);
+		_one_shot_timeout.construct(_timer, *this, &Main::_handle_timer_3);
+		_one_shot_timeout->schedule(Microseconds(500*1000));
+	}
 
+	void _handle_timer_3(Duration)
+	{
 		log("(10) remove focus file");
 		_vfs_env.root_dir().unlink("focus");
 	}
