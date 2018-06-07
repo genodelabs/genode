@@ -211,6 +211,26 @@ class Genode::Session_state : public Parent::Client, public Parent::Server
 			return false;
 		}
 
+		bool closed() const
+		{
+			switch (phase) {
+
+			case SERVICE_DENIED:
+			case INSUFFICIENT_RAM_QUOTA:
+			case INSUFFICIENT_CAP_QUOTA:
+			case CLOSED:
+				return true;
+
+			case CREATE_REQUESTED:
+			case AVAILABLE:
+			case CAP_HANDED_OUT:
+			case UPGRADE_REQUESTED:
+			case CLOSE_REQUESTED:
+				return false;
+			}
+			return false;
+		}
+
 		/**
 		 * Return client-side label of the session request
 		 */

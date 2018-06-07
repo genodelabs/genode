@@ -447,12 +447,38 @@ class Genode::Child : protected Rpc_object<Parent>,
 					_child(child), _service(service)
 				{ }
 
+				/*
+				 * The 'Local_connection' may call 'initial_request' multiple
+				 * times. We use 'initial_request' as a hook to transfer the
+				 * session quota to an async service but we want to transfer
+				 * the session quota only once. The '_first_request' allows
+				 * us to distinguish the first from subsequent calls.
+				 */
+				bool _first_request = true;
+
 				void initiate_request(Session_state &session) override
 				{
 					session.ready_callback = this;
 					session.async_client_notify = true;
 
 					_service.initiate_request(session);
+
+					/*
+					 * If the env session is provided by an async service,
+					 * transfer the session resources.
+					 */
+					bool const async_service =
+						session.phase == Session_state::CREATE_REQUESTED;
+
+					if (_first_request && async_service
+					 && _service.name() != Pd_session::service_name()) {
+
+						Ram_quota const ram_quota { CONNECTION::RAM_QUOTA };
+						Cap_quota const cap_quota { CONNECTION::CAP_QUOTA };
+						_child._policy.ref_pd().transfer_quota(cap(ram_quota), ram_quota);
+						_child._policy.ref_pd().transfer_quota(cap(cap_quota), cap_quota);
+						_first_request = false;
+					}
 
 					if (session.phase == Session_state::SERVICE_DENIED)
 						error(_child._policy.name(), ": environment ",
@@ -585,7 +611,7 @@ class Genode::Child : protected Rpc_object<Parent>,
 				return _connection.constructed() ? _connection->cap()
 				                                 : Capability<SESSION>(); }
 
-			bool alive() const { return _connection.constructed() && _connection->alive(); }
+			bool closed() const { return !_connection.constructed() || _connection->closed(); }
 
 			void close() { if (_connection.constructed()) _connection->close(); }
 		};
@@ -689,9 +715,14 @@ class Genode::Child : protected Rpc_object<Parent>,
 		 */
 		bool env_sessions_closed() const
 		{
-			if (_linker.constructed() && _linker->alive()) return false;
+			if (_linker.constructed() && !_linker->closed()) return false;
 
-			return !_cpu.alive() && !_log.alive() && !_binary.alive();
+			/*
+			 * Note that the state of the CPU session remains unchecked here
+			 * because the eager CPU-session destruction does not work on all
+			 * kernels (search for KERNEL_SUPPORTS_EAGER_CHILD_DESTRUCTION).
+			 */
+			return _log.closed() && _binary.closed();
 		}
 
 		/**

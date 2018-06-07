@@ -175,7 +175,8 @@ class Genode::Local_connection : Local_connection_base
 			service.wakeup();
 		}
 
-		bool alive() const { return _session_state->alive(); }
+		bool alive()  const { return _session_state->alive();  }
+		bool closed() const { return _session_state->closed(); }
 
 		using Local_connection_base::close;
 };
