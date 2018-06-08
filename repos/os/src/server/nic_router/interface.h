@@ -76,35 +76,42 @@ class Net::Interface : private Interface_list::Element
 		{
 			Domain &old_domain;
 			Domain &new_domain;
+
+			Update_domain(Domain &old_domain,
+			              Domain &new_domain)
+			:
+				old_domain(old_domain),
+				new_domain(new_domain)
+			{ }
 		};
 
-		Packet_stream_sink        &_sink;
-		Packet_stream_source      &_source;
-		bool                      &_session_link_state;
-		Signal_context_capability  _session_link_state_sigh   { };
-		Signal_handler             _sink_ack;
-		Signal_handler             _sink_submit;
-		Signal_handler             _source_ack;
-		Signal_handler             _source_submit;
-		Mac_address         const  _router_mac;
-		Mac_address         const  _mac;
-		Reference<Configuration>   _config;
-		Interface_policy          &_policy;
-		Timer::Connection         &_timer;
-		Genode::Allocator         &_alloc;
-		Pointer<Domain>            _domain                    { };
-		Arp_waiter_list            _own_arp_waiters           { };
-		Link_list                  _tcp_links                 { };
-		Link_list                  _udp_links                 { };
-		Link_list                  _icmp_links                { };
-		Link_list                  _dissolved_tcp_links       { };
-		Link_list                  _dissolved_udp_links       { };
-		Link_list                  _dissolved_icmp_links      { };
-		Dhcp_allocation_tree       _dhcp_allocations          { };
-		Dhcp_allocation_list       _released_dhcp_allocations { };
-		Dhcp_client                _dhcp_client               { _alloc, _timer, *this };
-		Interface_list            &_interfaces;
-		Pointer<Update_domain>     _update_domain             { };
+		Packet_stream_sink                   &_sink;
+		Packet_stream_source                 &_source;
+		bool                                 &_session_link_state;
+		Signal_context_capability             _session_link_state_sigh   { };
+		Signal_handler                        _sink_ack;
+		Signal_handler                        _sink_submit;
+		Signal_handler                        _source_ack;
+		Signal_handler                        _source_submit;
+		Mac_address                    const  _router_mac;
+		Mac_address                    const  _mac;
+		Reference<Configuration>              _config;
+		Interface_policy                     &_policy;
+		Timer::Connection                    &_timer;
+		Genode::Allocator                    &_alloc;
+		Pointer<Domain>                       _domain                    { };
+		Arp_waiter_list                       _own_arp_waiters           { };
+		Link_list                             _tcp_links                 { };
+		Link_list                             _udp_links                 { };
+		Link_list                             _icmp_links                { };
+		Link_list                             _dissolved_tcp_links       { };
+		Link_list                             _dissolved_udp_links       { };
+		Link_list                             _dissolved_icmp_links      { };
+		Dhcp_allocation_tree                  _dhcp_allocations          { };
+		Dhcp_allocation_list                  _released_dhcp_allocations { };
+		Dhcp_client                           _dhcp_client               { _alloc, _timer, *this };
+		Interface_list                       &_interfaces;
+		Genode::Constructible<Update_domain>  _update_domain             { };
 
 		void _new_link(L3_protocol             const  protocol,
 		               Link_side_id            const &local_id,
