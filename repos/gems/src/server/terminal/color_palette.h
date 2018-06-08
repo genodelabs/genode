@@ -61,6 +61,15 @@ class Terminal::Color_palette
 			}
 		}
 
+		void apply_config(Xml_node config)
+		{
+			config.for_each_sub_node("color", [&] (Xml_node color) {
+				unsigned const index = min(color.attribute_value("index", 0U), 15U);
+				Color const bg = color.attribute_value("bg", Color());
+				_colors[index] = bg;
+			});
+		}
+
 		Color foreground(Index index, Highlighted highlighted, Inverse inverse) const
 		{
 			if (index.value >= NUM_COLORS/2)

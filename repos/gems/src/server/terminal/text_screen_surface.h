@@ -175,11 +175,15 @@ class Terminal::Text_screen_surface
 
 			/* clear border */
 			{
+				Color const bg_color =
+					_palette.background(Color_palette::Index{0},
+					                    Color_palette::Highlighted{false},
+					                    Color_palette::Inverse{false});
 				Rect r[4] { };
 				Rect const all(Point(0, 0), _geometry.fb_size);
 				_geometry.fb_rect().cut(_geometry.used_rect(), &r[0], &r[1], &r[2], &r[3]);
 				for (unsigned i = 0; i < 4; i++)
-					Box_painter::paint(surface, r[i], Color(0, 0, 0));
+					Box_painter::paint(surface, r[i], bg_color);
 			}
 
 			int const clip_top  = 0, clip_bottom = _geometry.fb_size.h(),

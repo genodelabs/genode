@@ -159,6 +159,8 @@ void Terminal::Main::_handle_config()
 
 	Xml_node const config = _config.xml();
 
+	_color_palette.apply_config(config);
+
 	_font.destruct();
 
 	_root_dir.apply_config(config.sub_node("vfs"));
