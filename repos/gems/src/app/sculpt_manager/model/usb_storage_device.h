@@ -101,7 +101,7 @@ struct Sculpt::Usb_storage_device : List_model<Usb_storage_device>::Element,
 void Sculpt::Usb_storage_device::gen_usb_block_drv_start_content(Xml_generator &xml) const
 {
 	gen_common_start_content(xml, usb_block_drv_name(),
-	                         Cap_quota{100}, Ram_quota{4*1024*1024});
+	                         Cap_quota{100}, Ram_quota{6*1024*1024});
 
 	gen_named_node(xml, "binary", "usb_block_drv");
 
