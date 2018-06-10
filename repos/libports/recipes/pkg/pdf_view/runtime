@@ -1,9 +1,8 @@
-<runtime ram="64M" caps="2000" binary="init" config="pdf_view.config">
+<runtime ram="64M" caps="2000" binary="init">
 
-	<requires> <timer/> <nitpicker/> <rom label="slides.pdf"/> </requires>
+	<requires> <timer/> <nitpicker/> <file-system/> </requires>
 
 	<content>
-		<rom label="pdf_view.config"/>
 		<rom label="ld.lib.so"/>
 		<rom label="libc.lib.so"/>
 		<rom label="libm.lib.so"/>
@@ -18,5 +17,39 @@
 		<rom label="openjpeg.lib.so"/>
 		<rom label="vfs.lib.so"/>
 	</content>
+
+	<config>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="PD"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="LOG"/>
+			<service name="Nitpicker"/>
+			<service name="Timer"/>
+			<service name="File_system"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<default caps="100"/>
+		<start name="nit_fb">
+			<resource name="RAM" quantum="16M"/>
+			<provides> <service name="Framebuffer"/> <service name="Input"/> </provides>
+			<config xpos="64" ypos="64" initial_width="320" initial_height="240"/>
+		</start>
+		<start name="pdf_view" caps="300">
+			<binary name="pdf_view"/>
+			<exit propagate="yes"/>
+			<resource name="RAM" quantum="100M"/>
+			<config>
+				<vfs>
+					<fs writeable="no"/>
+					<dir name="dev"> <log/> </dir>
+				</vfs>
+				<libc stdout="/dev/log" stderr="/dev/log"/>
+			</config>
+		</start>
+	</config>
 
 </runtime>
