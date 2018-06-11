@@ -60,6 +60,25 @@ void Sculpt::Storage::handle_storage_devices_update()
 			use(default_target);
 	}
 
+	/*
+	 * Detect the removal of a USB stick that is currently in "use". Reset
+	 * the '_sculpt_partition' to enable the selection of another storage
+	 * target to use.
+	 */
+	if (_sculpt_partition.valid()) {
+		bool sculpt_partition_exists = false;
+		_storage_devices.for_each([&] (Storage_device const &device) {
+			device.for_each_partition([&] (Partition const &partition) {
+				if (device.label == _sculpt_partition.device
+				 && partition.number == _sculpt_partition.partition)
+					sculpt_partition_exists = true; }); });
+
+		if (!sculpt_partition_exists) {
+			warning("sculpt partition unexpectedly vanished");
+			_sculpt_partition = Storage_target { };
+		}
+	}
+
 	_dialog_generator.generate_dialog();
 
 	if (reconfigure_runtime)
