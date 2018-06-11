@@ -381,30 +381,24 @@ struct Usb::Block_driver : Usb::Completion,
 			ISUBCLASS_SCSI      = 6,
 			IPROTO_BULK_ONLY    = 80
 		};
-		try {
-			Alternate_interface &alt_iface = iface.alternate_interface(0);
-			iface.set_alternate_interface(alt_iface);
 
-			if (alt_iface.iclass != ICLASS_MASS_STORAGE
-				|| alt_iface.isubclass != ISUBCLASS_SCSI
-				|| alt_iface.iprotocol != IPROTO_BULK_ONLY) {
-				Genode::error("No mass storage SCSI bulk-only device");
-				return false;
-			}
+		Alternate_interface &alt_iface = iface.current();
 
-			for (int i = 0; i < alt_iface.num_endpoints; i++) {
-				Endpoint ep = alt_iface.endpoint(i);
-				if (!ep.is_bulk())
-					continue;
-				if (ep.address & Usb::ENDPOINT_IN)
-					ep_in = i;
-				else
-					ep_out = i;
-			}
-
-		} catch (Usb::Session::Interface_not_found) {
-			Genode::error("Interface not found");
+		if (alt_iface.iclass != ICLASS_MASS_STORAGE
+			|| alt_iface.isubclass != ISUBCLASS_SCSI
+			|| alt_iface.iprotocol != IPROTO_BULK_ONLY) {
+			Genode::error("No mass storage SCSI bulk-only device");
 			return false;
+		}
+
+		for (int i = 0; i < alt_iface.num_endpoints; i++) {
+			Endpoint ep = alt_iface.endpoint(i);
+			if (!ep.bulk())
+				continue;
+			if (ep.address & Usb::ENDPOINT_IN)
+				ep_in = i;
+			else
+				ep_out = i;
 		}
 
 		try {
