@@ -33,6 +33,7 @@ extern "C" {
 }
 
 /* libc includes */
+#include <dirent.h>
 #include <unistd.h>
 
 
@@ -105,6 +106,16 @@ static void convert_line_rgba_to_rgb565(const unsigned char *rgba_src,
 }
 
 
+static int pdf_select(const struct dirent *d)
+{
+	char const *name = d->d_name;
+	int n = strlen(name);
+	return (n > 4)
+		? (!strncmp(&name[n-4], ".pdf", 4))
+		: 0;
+}
+
+
 /**************
  ** PDF view **
  **************/
@@ -117,7 +128,6 @@ class Pdf_view
 		 * Exception types
 		 */
 		class Non_supported_framebuffer_mode { };
-		class Invalid_input_file_name { };
 		class Unexpected_document_color_depth { };
 
 	private:
@@ -140,7 +150,7 @@ class Pdf_view
 				handle_resize();
 			}
 
-			Genode::Constructible<Genode::Attached_dataspace> ds;
+			Genode::Constructible<Genode::Attached_dataspace> ds { };
 
 			void handle_resize()
 			{
@@ -185,7 +195,10 @@ class Pdf_view
 
 		Genode::Signal_handler<Pdf_view> _resize_handler;
 
-		pdfapp_t _pdfapp;
+		pdfapp_t _pdfapp { };
+
+		int _motion_x = 0;
+		int _motion_y = 0;
 
 	public:
 
@@ -193,10 +206,9 @@ class Pdf_view
 		 * Constructor
 		 *
 		 * \throw Non_supported_framebuffer_mode
-		 * \throw Invalid_input_file_name
 		 * \throw Unexpected_document_color_depth
 		 */
-		Pdf_view(Genode::Env &env, char const *file_name)
+		Pdf_view(Genode::Env &env)
 		:
 			_framebuffer_mode(0, 0, Framebuffer::Mode::RGB565),
 			_framebuffer(env, _framebuffer_mode),
@@ -209,12 +221,23 @@ class Pdf_view
 			_update_pdfapp_parameters();
 			_pdfapp.pageno     = 0;    /* XXX read from config */
 
-			int fd = open(file_name, O_BINARY | O_RDONLY, 0666);
-			if (fd < 0) {
-				Genode::error("Could not open input file \"", file_name, "\", Exiting.");
-				throw Invalid_input_file_name();
+			{
+				struct dirent **list = NULL;
+				if (scandir("/", &list, pdf_select, alphasort) > 0) {
+
+					char const *file_name = list[0]->d_name;
+					int fd = open(file_name, O_BINARY | O_RDONLY, 0666);
+					if (fd < 0) {
+						Genode::error("Could not open input file \"", file_name, "\", Exiting.");
+						exit(fd);
+					}
+					pdfapp_open(&_pdfapp, (char *)file_name, fd, 0);
+
+				} else {
+					Genode::error("failed to find a PDF to open");
+					exit(~0);
+				}
 			}
-			pdfapp_open(&_pdfapp, (char *)file_name, fd, 0);
 
 			if (_pdfapp.image->n != 4) {
 				Genode::error("Unexpected color depth, expected 4, got ",
@@ -225,9 +248,40 @@ class Pdf_view
 
 		void show();
 
-		void handle_key(int ascii)
+		void handle_input(Input::Event const &ev)
 		{
-			Libc::with_libc([&] () { pdfapp_onkey(&_pdfapp, ascii); });
+			using namespace Input;
+
+			ev.handle_relative_motion([&] (int x, int y) {
+				_motion_x += x;
+				_motion_y += y;
+			});
+
+			ev.handle_absolute_motion([&] (int x, int y) {
+				_motion_x = x;
+				_motion_y = y;
+			});
+
+			if (ev.key_press(BTN_LEFT))
+				pdfapp_onmouse(&_pdfapp, _motion_x, _motion_y, 1, 0, -1);
+
+			if (ev.key_release(BTN_LEFT))
+				pdfapp_onmouse(&_pdfapp, _motion_x, _motion_y, 1, 0, 1);
+
+			ev.handle_press([&] (Keycode, Codepoint glyph) {
+				if ((glyph.value & 0x7f) && !(glyph.value & 0x80)) {
+					pdfapp_onkey(&_pdfapp, glyph.value);
+				}
+			});
+
+			/**
+			 * XXX: wheel pans the view, which doesn't seem to be implemented
+			ev.handle_wheel([&] (int, int y) {
+				pdfapp_onmouse(
+					&_pdfapp, _motion_x, _motion_y,
+					y > 0 ? 4 : 5, 0, 1);
+			});
+			*/
 		}
 };
 
@@ -287,15 +341,19 @@ void winrepaint(pdfapp_t *pdfapp)
 }
 
 
-void winrepaintsearch(pdfapp_t *)
+void winrepaintsearch(pdfapp_t *pdfapp)
 {
-	Genode::warning(__func__, " not implemented");
+	Pdf_view *pdf_view = (Pdf_view *)pdfapp->userdata;
+	pdf_view->show();
 }
 
 
-void wincursor(pdfapp_t *, int curs)
+void wincursor(pdfapp_t *, int)
 {
 }
+
+
+void windocopy(pdfapp_t*) { }
 
 
 void winerror(pdfapp_t *, fz_error error)
@@ -311,7 +369,10 @@ void winwarn(pdfapp_t *, char *msg)
 }
 
 
-void winhelp(pdfapp_t *) { }
+void winhelp(pdfapp_t *pdfapp)
+{
+	Genode::log(Genode::Cstring(pdfapp_usage(pdfapp)));
+}
 
 
 char *winpassword(pdfapp_t *, char *)
@@ -321,9 +382,15 @@ char *winpassword(pdfapp_t *, char *)
 }
 
 
-void winclose(pdfapp_t *app)
+void winopenuri(pdfapp_t*, char *s)
 {
-	Genode::warning(__func__, " not implemented");
+	Genode::log(Genode::Cstring(s));
+}
+
+
+void winclose(pdfapp_t *)
+{
+	exit(0);
 }
 
 
@@ -333,12 +400,12 @@ void winreloadfile(pdfapp_t *)
 }
 
 
-void wintitle(pdfapp_t *app, char *s)
+void wintitle(pdfapp_t *, char *)
 {
 }
 
 
-void winresize(pdfapp_t *app, int w, int h)
+void winresize(pdfapp_t *, int, int)
 {
 }
 
@@ -347,41 +414,19 @@ void winresize(pdfapp_t *app, int w, int h)
  ** Main program **
  ******************/
 
-static int keycode_to_ascii(int code)
-{
-	switch (code) {
-	case Input::KEY_LEFT:      return 'h';
-	case Input::KEY_RIGHT:     return 'l';
-	case Input::KEY_DOWN:      return 'j';
-	case Input::KEY_UP:        return 'k';
-	case Input::KEY_PAGEDOWN:
-	case Input::KEY_ENTER:     return ' ';
-	case Input::KEY_PAGEUP:
-	case Input::KEY_BACKSPACE: return 'b';
-	case Input::KEY_9:         return '-';
-	case Input::KEY_0:         return '+';
-	default:                   return 0;
-	}
-}
-
 
 struct Main
 {
 	Genode::Env       &_env;
 
-	char const        *_file_name { "test.pdf" }; /* XXX read from config */
-
-	Pdf_view           _pdf_view { _env, _file_name };
+	Pdf_view           _pdf_view { _env };
 	Input::Connection  _input    { _env };
 
 	void _handle_input()
 	{
-		_input.for_each_event([&] (Input::Event const &ev) {
-			ev.handle_press([&] (Input::Keycode key, Genode::Codepoint) {
-				int const ascii = keycode_to_ascii(key);
-				if (ascii) { _pdf_view.handle_key(ascii); }
-			});
-		});
+		Libc::with_libc([&] () {
+			_input.for_each_event([&] (Input::Event const &ev) {
+				_pdf_view.handle_input(ev); }); });
 	}
 
 	Genode::Signal_handler<Main> _input_handler {
