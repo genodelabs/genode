@@ -33,9 +33,18 @@ Init::Child::apply_config(Xml_node start_node)
 	 * If the child's environment is incomplete, restart it to attempt
 	 * the re-routing of its environment sessions.
 	 */
-	if (!_child.active()) {
-		abandon();
-		return MAY_HAVE_SIDE_EFFECTS;
+	{
+		bool env_log_exists = false, env_binary_exists = false;
+		_child.for_each_session([&] (Session_state const &session) {
+			Parent::Client::Id const id = session.id_at_client();
+			env_log_exists    |= (id == Parent::Env::log());
+			env_binary_exists |= (id == Parent::Env::binary());
+		});
+
+		if (!env_binary_exists || !env_log_exists) {
+			abandon();
+			return MAY_HAVE_SIDE_EFFECTS;
+		}
 	}
 
 	bool provided_services_changed = false;
