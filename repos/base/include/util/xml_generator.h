@@ -252,10 +252,17 @@ class Genode::Xml_generator
 					xml._curr_node = this;
 					xml._curr_indent++;
 
-					/*
-					 * Process attributes and sub nodes
-					 */
-					func();
+					try {
+						/*
+						 * Process attributes and sub nodes
+						 */
+						func();
+					} catch (...) {
+						/* reset and drop changes by not committing it */
+						xml._curr_node = _parent_node;
+						xml._curr_indent--;
+						throw;
+					}
 
 					xml._curr_node = _parent_node;
 					xml._curr_indent--;

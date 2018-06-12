@@ -63,6 +63,35 @@ static size_t fill_buffer_with_xml(char *dst, size_t dst_len)
 }
 
 
+static size_t xml_with_exceptions(char *dst, size_t dst_len)
+{
+	Genode::Xml_generator xml(dst, dst_len, "config", [&]
+	{
+		xml.node("level1", [&] ()
+		{
+			xml.node("level2", [&] ()
+			{
+				for (unsigned i=0; i < 3; i++) {
+					try {
+						xml.node("level3_exception", [&] ()
+						{
+							throw 10 + i;
+						});
+					} catch (unsigned error) {
+						Genode::log("exception on level3 (expected exception value=", error, ")");
+					}
+					xml.node("level3", [&] ()
+					{
+						xml.node("level4", [&] () { });
+					});
+				}
+			});
+		});
+	});
+	return xml.used();
+}
+
+
 void Component::construct(Genode::Env &env)
 {
 	using namespace Genode;
@@ -84,7 +113,14 @@ void Component::construct(Genode::Env &env)
 	try {
 		fill_buffer_with_xml(dst, 20); }
 	catch (Genode::Xml_generator::Buffer_exceeded) {
-		log("buffer exceeded (expected error)"); }
+		log("buffer exceeded (expected error)\n"); }
+
+	/*
+	 * Test throwing non-XML related exceptions during xml generation
+	 */
+	memset(dst, 0, sizeof(dst));
+	used = xml_with_exceptions(dst, sizeof(dst));
+	log("\nused ", used, " bytes, result:\n\n", Cstring(dst));
 
 	/*
 	 * Test the sanitizing of XML node content

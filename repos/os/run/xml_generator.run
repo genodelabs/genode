@@ -48,5 +48,31 @@ compare_output_to {
 	[init -> test-xml_generator] 
 	[init -> test-xml_generator] used 307 bytes
 	[init -> test-xml_generator] buffer exceeded (expected error)
+	[init -> test-xml_generator] 
+	[init -> test-xml_generator] exception on level3 (expected exception value=10)
+	[init -> test-xml_generator] exception on level3 (expected exception value=11)
+	[init -> test-xml_generator] exception on level3 (expected exception value=12)
+	[init -> test-xml_generator] 
+	[init -> test-xml_generator] used 183 bytes, result:
+	[init -> test-xml_generator] 
+	[init -> test-xml_generator] <config>
+	[init -> test-xml_generator] 	<level1>
+	[init -> test-xml_generator] 		<level2>
+	[init -> test-xml_generator] 
+	[init -> test-xml_generator] 			<level3>
+	[init -> test-xml_generator] 				<level4/>
+	[init -> test-xml_generator] 			</level3>
+	[init -> test-xml_generator] 
+	[init -> test-xml_generator] 			<level3>
+	[init -> test-xml_generator] 				<level4/>
+	[init -> test-xml_generator] 			</level3>
+	[init -> test-xml_generator] 
+	[init -> test-xml_generator] 			<level3>
+	[init -> test-xml_generator] 				<level4/>
+	[init -> test-xml_generator] 			</level3>
+	[init -> test-xml_generator] 		</level2>
+	[init -> test-xml_generator] 	</level1>
+	[init -> test-xml_generator] </config>
+	[init -> test-xml_generator] 
 	[init -> test-xml_generator] --- XML generator test finished ---
 }
