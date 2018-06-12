@@ -317,6 +317,9 @@ void Init::Child::apply_downgrade()
 
 void Init::Child::report_state(Xml_generator &xml, Report_detail const &detail) const
 {
+	if (abandoned())
+		return;
+
 	/* true if it's safe to call the PD for requesting resource information */
 	bool const pd_alive = !abandoned() && !_exited;
 
