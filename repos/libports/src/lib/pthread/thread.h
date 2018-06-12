@@ -17,6 +17,7 @@
 #define _INCLUDE__SRC_LIB_PTHREAD_THREAD_H_
 
 /* Genode includes */
+#include <libc/component.h>
 #include <util/reconstructible.h>
 
 #include <pthread.h>
@@ -50,10 +51,8 @@ extern "C" {
 
 	struct pthread_attr
 	{
-		pthread_t pthread;
-		size_t stack_size;
-
-		pthread_attr() : pthread(0), stack_size(0) { }
+		void   *stack_addr { nullptr };
+		size_t  stack_size { Libc::Component::stack_size() };
 	};
 
 	/*
@@ -107,15 +106,21 @@ struct pthread : Genode::Noncopyable, Genode::Thread::Tls::Base
 			void           *_arg;
 			bool            _exiting = false;
 
+			void          *&_stack_addr;
+			size_t         &_stack_size;
+
 			enum { WEIGHT = Genode::Cpu_session::Weight::DEFAULT_WEIGHT };
 
+			/* 'stack_addr_out' and 'stack_size_out' are written when the thread starts */
 			Thread_object(char const *name, size_t stack_size,
 			              Genode::Cpu_session *cpu,
 			              Genode::Affinity::Location location,
-			              start_routine_t start_routine, void *arg)
+			              start_routine_t start_routine, void *arg,
+			              void *&stack_addr_out, size_t &stack_size_out)
 			:
 				Genode::Thread(WEIGHT, name, stack_size, Type::NORMAL, cpu, location),
-				_start_routine(start_routine), _arg(arg)
+				_start_routine(start_routine), _arg(arg),
+				_stack_addr(stack_addr_out), _stack_size(stack_size_out)
 			{ }
 
 			void entry() override;
@@ -144,6 +149,10 @@ struct pthread : Genode::Noncopyable, Genode::Thread::Tls::Base
 			pthread_registry().insert(this);
 		}
 
+		/* attributes for 'pthread_attr_get_np()' */
+		void   *_stack_addr = nullptr;
+		size_t  _stack_size = 0;
+
 	public:
 
 		/**
@@ -154,7 +163,8 @@ struct pthread : Genode::Noncopyable, Genode::Thread::Tls::Base
 		        Genode::Cpu_session * cpu, Genode::Affinity::Location location)
 		:
 			_thread(_construct_thread_object(name, stack_size, cpu, location,
-			                                 start_routine, arg))
+			                                 start_routine, arg,
+			                                 _stack_addr, _stack_size))
 		{
 			_associate_thread_with_pthread();
 		}
@@ -167,6 +177,11 @@ struct pthread : Genode::Noncopyable, Genode::Thread::Tls::Base
 		:
 			_thread(existing_thread)
 		{
+			/* obtain stack attributes of main thread */
+			Genode::Thread::Stack_info info = Genode::Thread::mystack();
+			_stack_addr = (void *)info.base;
+			_stack_size = info.top - info.base;
+
 			_associate_thread_with_pthread();
 		}
 
@@ -183,8 +198,8 @@ struct pthread : Genode::Noncopyable, Genode::Thread::Tls::Base
 
 		void join() { _thread.join(); }
 
-		void *stack_top()  const { return _thread.stack_top();  }
-		void *stack_base() const { return _thread.stack_base(); }
+		void   *stack_addr() const { return _stack_addr; }
+		size_t  stack_size() const { return _stack_size; }
 };
 
 #endif /* _INCLUDE__SRC_LIB_PTHREAD_THREAD_H_ */

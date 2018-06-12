@@ -67,6 +67,11 @@ static __attribute__((constructor)) Thread * main_thread()
  */
 void pthread::Thread_object::entry()
 {
+	/* obtain stack attributes of new thread */
+	Thread::Stack_info info = Thread::mystack();
+	_stack_addr = (void *)info.base;
+	_stack_size = info.top - info.base;
+
 	void *exit_status = _start_routine(_arg);
 	_exiting = true;
 	Libc::resume_all();
@@ -276,18 +281,8 @@ extern "C" {
 		if (!attr || !*attr || !stackaddr || !stacksize)
 			return EINVAL;
 
-		pthread_t pthread = (*attr)->pthread;
-
-		if (pthread != pthread_self()) {
-			error("pthread_attr_getstack() called, where pthread != phtread_self");
-			*stackaddr = nullptr;
-			*stacksize = 0;
-			return EINVAL;
-		}
-
-		Thread::Stack_info info = Thread::mystack();
-		*stackaddr = (void *)info.base;
-		*stacksize = info.top - info.base;
+		*stackaddr = (*attr)->stack_addr;
+		*stacksize = (*attr)->stack_size;
 
 		return 0;
 	}
@@ -312,7 +307,9 @@ extern "C" {
 		if (!attr)
 			return EINVAL;
 
-		(*attr)->pthread = pthread;
+		(*attr)->stack_addr = pthread->stack_addr();
+		(*attr)->stack_size = pthread->stack_size();
+
 		return 0;
 	}
 

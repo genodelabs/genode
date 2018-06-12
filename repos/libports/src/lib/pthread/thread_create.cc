@@ -22,8 +22,6 @@
 
 extern "C"
 {
-	enum { STACK_SIZE=64*1024 };
-
 	int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
 	                   void *(*start_routine) (void *), void *arg)
 	{
@@ -31,7 +29,8 @@ extern "C"
 		pthread_cleanup();
 
 		size_t const stack_size = (attr && *attr && (*attr)->stack_size)
-		                        ? (*attr)->stack_size : STACK_SIZE;
+		                        ? (*attr)->stack_size
+		                        : Libc::Component::stack_size();
 
 		pthread_t thread_obj = new pthread(start_routine, arg, stack_size,
 		                                   "pthread", nullptr,
