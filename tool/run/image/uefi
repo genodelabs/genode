@@ -8,17 +8,13 @@ source [genode_dir]/tool/run/grub2.inc
 
 proc image_uefi_size { } { return [get_cmd_arg --image-uefi_size 0] }
 
-#
-# Disable parted heuristics for Apple to prevent error messages
-#
-set ::env(PARTED_GPT_APPLE) 0
 
 ##
 # Create uefi image
 #
 proc run_image { {unused ""} } {
 
-	requires_installation_of parted
+	requires_installation_of sgdisk
 	requires_installation_of mkfs.vfat
 	requires_installation_of mcopy
 
@@ -43,7 +39,7 @@ proc run_image { {unused ""} } {
 
 	exec cat [run_dir].header [run_dir].partition > [run_dir].img
 
-	exec -ignorestderr parted -a none -s [run_dir].img -- mklabel gpt mkpart ESP fat32 34s [expr $disk_size * 1024 * 1024 / 512]s set 1 boot on
+	exec sgdisk --set-alignment=1 --largest-new=1 --typecode=1:EF00 [run_dir].img
 
 	exec rm -f [run_dir].header [run_dir].partition
 }
