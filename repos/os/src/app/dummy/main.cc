@@ -36,7 +36,7 @@ struct Dummy::Log_service
 {
 	Env &_env;
 
-	Heap _heap { _env.ram(), _env.rm() };
+	Sliced_heap _heap { _env.ram(), _env.rm() };
 
 	bool const _verbose;
 
@@ -208,7 +208,7 @@ struct Dummy::Cap_consumer
 	 * Statically allocate an array of RPC objects to avoid RAM allocations
 	 * as side effect during the cap-consume step.
 	 */
-	static constexpr size_t MAX = 200;
+	static constexpr size_t MAX = 100;
 
 	Constructible<Object> _objects[MAX];
 
