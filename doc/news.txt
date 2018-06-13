@@ -4,6 +4,26 @@
                                ===========
 
 
+Sculpt for The Curious | 2018-06-13
+###################################
+
+| The second incarnation of Sculpt OS comes in the form of a ready-to-use
+| disk image.
+
+Sculpt for The Curious is the second development stage of the Genode-based
+general-purpose OS used at Genode Labs. Compared to the initial version, which
+was targeted at early adopters only, the new version invites a broader user
+base to explore the system. It comes in the form of a ready-to-use disk image
+for a bootable USB thumb drive. Immediately after booting the Sculpt base
+system, a graphical user interface enables the user to access and manage
+storage devices, and to configure network connectivity. The actual "sculpting"
+of the system is performed using a text-based interface, which is described in
+the accompanied documentation. It covers everything from the configuration of
+the base system up to the installation and deployment of software.
+
+[https://genode.org/download/sculpt - Download Sculpt OS...]
+
+
 Genode OS Framework release 18.05 | 2018-05-31
 ##############################################
 
