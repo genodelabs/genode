@@ -295,7 +295,13 @@ void Domain::deinit()
 	_tcp_rules.destroy_each(_alloc);
 	_udp_forward_rules.destroy_each(_alloc);
 	_tcp_forward_rules.destroy_each(_alloc);
-	try { destroy(_alloc, &_dhcp_server()); }
+	try {
+		Dhcp_server &dhcp_server = _dhcp_server();
+		_dhcp_server = Pointer<Dhcp_server>();
+		try { dhcp_server.dns_server_from().ip_config_dependents().remove(this); }
+		catch (Pointer<Domain>::Invalid) { }
+		destroy(_alloc, &dhcp_server);
+	}
 	catch (Pointer<Dhcp_server>::Invalid) { }
 }
 
