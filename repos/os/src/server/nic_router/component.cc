@@ -68,8 +68,16 @@ Net::Session_component::Interface_policy::determine_domain_name() const
 		Session_policy policy(_label, _config().node());
 		domain_name = policy.attribute_value("domain", Domain_name());
 	}
-	catch (Session_policy::No_policy_defined) { if (_config().verbose()) { log("No matching policy"); } }
-	catch (Xml_node::Nonexistent_attribute)   { if (_config().verbose()) { log("No domain attribute in policy"); } }
+	catch (Session_policy::No_policy_defined) {
+		if (_config().verbose()) {
+			log("[?] no policy for downlink label \"", _label, "\""); }
+	}
+	catch (Xml_node::Nonexistent_attribute) {
+		if (_config().verbose()) {
+			log("[?] no domain attribute in policy for downlink label \"",
+			    _label, "\"");
+		}
+	}
 	return domain_name;
 }
 
@@ -145,13 +153,14 @@ Session_component *Net::Root::_create_session(char const *args)
 			max((size_t)4096, sizeof(Session_component));
 
 		if (ram_quota < session_size) {
-			throw Insufficient_ram_quota(); }
-
+			_invalid_downlink("NIC session RAM quota");
+			throw Insufficient_ram_quota();
+		}
 		if (tx_buf_size               > ram_quota - session_size ||
 		    rx_buf_size               > ram_quota - session_size ||
 		    tx_buf_size + rx_buf_size > ram_quota - session_size)
 		{
-			error("insufficient 'ram_quota' for session creation");
+			_invalid_downlink("NIC session RAM quota for buffers)");
 			throw Insufficient_ram_quota();
 		}
 		Session_label const label(label_from_args(args));
@@ -162,7 +171,14 @@ Session_component *Net::Root::_create_session(char const *args)
 			                  _interfaces, _config());
 	}
 	catch (Mac_allocator::Alloc_failed) {
-		error("failed to allocate MAC address");
-	}
+		_invalid_downlink("failed to allocate MAC address"); }
+
 	throw Service_denied();
+}
+
+
+void Net::Root::_invalid_downlink(char const *reason)
+{
+	if (_config().verbose()) {
+		log("[?] invalid downlink (", reason, ")"); }
 }

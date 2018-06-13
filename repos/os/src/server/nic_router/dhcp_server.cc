@@ -15,6 +15,7 @@
 #include <dhcp_server.h>
 #include <interface.h>
 #include <domain.h>
+#include <configuration.h>
 
 using namespace Net;
 using namespace Genode;
@@ -24,8 +25,18 @@ using namespace Genode;
  ** Dhcp_server **
  *****************/
 
+void Dhcp_server::_invalid(Domain     &domain,
+                           char const *reason)
+{
+	if (domain.config().verbose()) {
+		log("[", domain, "] invalid DHCP server (", reason, ")"); }
+
+	throw Domain::Invalid();
+}
+
+
 Dhcp_server::Dhcp_server(Xml_node            const  node,
-                         Domain              const &domain,
+                         Domain                    &domain,
                          Allocator                 &alloc,
                          Ipv4_address_prefix const &interface,
                          Domain_tree               &domains)
@@ -40,17 +51,13 @@ Dhcp_server::Dhcp_server(Xml_node            const  node,
 	_ip_alloc(alloc, _ip_count)
 {
 	if (!interface.prefix_matches(_ip_first)) {
-		log("[", domain, "] first IP of DHCP server does not match domain subnet");
-		throw Domain::Invalid();
-	}
+		_invalid(domain, "first IP does not match domain subnet"); }
+
 	if (!interface.prefix_matches(_ip_last)) {
-		log("[", domain, "] last IP of DHCP server does not match domain subnet");
-		throw Domain::Invalid();
-	}
+		_invalid(domain, "last IP does not match domain subnet"); }
+
 	if (interface.address.is_in_range(_ip_first, _ip_last)) {
-		log("[", domain, "] IP range of DHCP server contains IP address of domain");
-		throw Domain::Invalid();
-	}
+		_invalid(domain, "IP range contains IP address of domain"); }
 }
 
 

@@ -40,6 +40,26 @@ Domain_base::Domain_base(Xml_node const node)
  ** Domain **
  ************/
 
+void Domain::_log_ip_config() const
+{
+	Ipv4_config const &ip_config = *_ip_config;
+	if (_config.verbose()) {
+		if (!ip_config.valid &&
+			(ip_config.interface_valid ||
+			 ip_config.gateway_valid ||
+			 ip_config.dns_server_valid))
+		{
+			log("[", *this, "] malformed ", _ip_config_dynamic ? "dynamic" :
+			    "static", "IP config: ", ip_config);
+		}
+	}
+	if (_config.verbose_domain_state()) {
+		log("[", *this, "] ", _ip_config_dynamic ? "dynamic" : "static",
+		    " IP config: ", ip_config);
+	}
+}
+
+
 void Domain::ip_config(Ipv4_config const &new_ip_config)
 {
 	if (!_ip_config_dynamic) {
@@ -63,10 +83,7 @@ void Domain::ip_config(Ipv4_config const &new_ip_config)
 	}
 	/* overwrite old with new IP config */
 	_ip_config.construct(new_ip_config);
-
-	/* log the event */
-	if (_config.verbose_domain_state()) {
-		log("[", *this, "] IP config: ", ip_config()); }
+	_log_ip_config();
 
 	/* attach all dependent interfaces to new IP config if it is valid */
 	if (ip_config().valid) {
@@ -167,7 +184,10 @@ void Domain::_read_transport_rules(Cstring  const      &protocol,
 
 void Domain::print(Output &output) const
 {
-	Genode::print(output, _name);
+	if (_name == Domain_name()) {
+		Genode::print(output, "?");
+	} else {
+		Genode::print(output, _name); }
 }
 
 
@@ -182,13 +202,13 @@ Domain::Domain(Configuration &config, Xml_node const node, Allocator &alloc)
 	                 _config.verbose_packets()),
 	_label(_node.attribute_value("label", String<160>()).string())
 {
+	_log_ip_config();
+
 	if (_name == Domain_name()) {
-		log("[?] Missing name attribute in domain node");
-		throw Invalid();
-	}
+		_invalid("missing name attribute"); }
+
 	if (_config.verbose_domain_state()) {
-		log("[", *this, "] NIC sessions: ", _interface_cnt);
-	}
+		log("[", *this, "] NIC sessions: ", _interface_cnt); }
 }
 
 

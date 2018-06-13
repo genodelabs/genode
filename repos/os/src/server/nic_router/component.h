@@ -141,6 +141,8 @@ class Net::Root : public Genode::Root_component<Session_component>
 		Genode::Region_map       &_region_map;
 		Interface_list           &_interfaces;
 
+		void _invalid_downlink(char const *reason);
+
 
 		/********************
 		 ** Root_component **

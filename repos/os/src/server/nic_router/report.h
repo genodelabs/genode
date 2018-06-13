@@ -35,6 +35,7 @@ class Net::Report
 {
 	private:
 
+		bool const                      &_verbose;
 		bool const                       _config;
 		bool const                       _config_triggers;
 		bool const                       _bytes;
@@ -48,7 +49,8 @@ class Net::Report
 
 	public:
 
-		Report(Genode::Xml_node const  node,
+		Report(bool             const &verbose,
+		       Genode::Xml_node const  node,
 		       Timer::Connection      &timer,
 		       Domain_tree            &domains,
 		       Genode::Reporter       &reporter);

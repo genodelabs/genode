@@ -56,7 +56,7 @@ Link_side::Link_side(Domain             &domain,
 	_domain(domain), _id(id), _link(link)
 {
 	if (link.config().verbose()) {
-		log("[", domain, "] New ", l3_protocol_name(link.protocol()),
+		log("[", domain, "] new ", l3_protocol_name(link.protocol()),
 		    " link ", is_client() ? "client" : "server", ": ", *this);
 	}
 }

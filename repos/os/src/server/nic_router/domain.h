@@ -109,6 +109,8 @@ class Net::Domain : public Domain_base,
 
 		void _invalid(char const *reason) const;
 
+		void _log_ip_config() const;
+
 		void __FIXME__dissolve_foreign_arp_waiters();
 
 	public:

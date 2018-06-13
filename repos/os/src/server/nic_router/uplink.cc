@@ -101,7 +101,7 @@ Net::Uplink::~Uplink()
 void Net::Uplink::print(Output &output) const
 {
 	if (label() == Session_label()) {
-		Genode::print(output, "<unlabeled>"); }
+		Genode::print(output, "?"); }
 	else {
 		Genode::print(output, label()); }
 }

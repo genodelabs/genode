@@ -87,7 +87,7 @@ Configuration::Configuration(Env               &env,
 				_invalid_domain(exception.object, "name not unique");
 			}
 		}
-		catch (Domain::Invalid) { log("[?] invalid domain"); }
+		catch (Domain::Invalid) { }
 	});
 	/* do parts of domain initialization that may lookup other domains */
 	while (true) {
@@ -138,7 +138,7 @@ Configuration::Configuration(Env               &env,
 		}
 		/* create report generator */
 		_report = *new (_alloc)
-			Report(report_node, timer, _domains, _reporter());
+			Report(_verbose, report_node, timer, _domains, _reporter());
 	}
 	catch (Genode::Xml_node::Nonexistent_sub_node) { }
 

@@ -20,11 +20,13 @@ using namespace Net;
 using namespace Genode;
 
 
-Net::Report::Report(Xml_node const     node,
+Net::Report::Report(bool     const    &verbose,
+                    Xml_node const     node,
                     Timer::Connection &timer,
                     Domain_tree       &domains,
                     Reporter          &reporter)
 :
+	_verbose(verbose),
 	_config(node.attribute_value("config", true)),
 	_config_triggers(node.attribute_value("config_triggers", false)),
 	_bytes(node.attribute_value("bytes", true)),
@@ -46,7 +48,8 @@ void Net::Report::_report()
 			});
 		});
 	} catch (Xml_generator::Buffer_exceeded) {
-		Genode::warning("Failed to generate report");
+		if (_verbose) {
+			log("Failed to generate report"); }
 	}
 }
 
