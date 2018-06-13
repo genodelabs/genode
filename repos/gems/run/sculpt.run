@@ -472,7 +472,7 @@ exec gzip -dc [genode_dir]/repos/gems/run/sculpt/machine.vdi.gz > [run_dir]/geno
 # Define 'VERSION' ROM module
 #
 proc sculpt_version { } {
-	return "[string trim [exec cat [genode_dir]/VERSION]]" }
+	return "18.06" }
 
 # write file with newline (for producing nice output when using 'cat /VERSION')
 set fd [open [run_dir]/genode/VERSION w]
@@ -601,7 +601,7 @@ append manual_deploy_config {
 	-->
 
 <!--
-	<start name="download_debian" pkg="cnuke/pkg/download_debian/2018-05-30">
+	<start name="download_debian" pkg="cnuke/pkg/download_debian/2018-06-13">
 		<route>
 			<service name="File_system" label="fonts">  <child name="fonts_fs"/> </service>
 			<service name="File_system" label="target"> <child name="vm_fs"/> </service>
@@ -679,7 +679,7 @@ append manual_deploy_config {
 	-->
 
 <!--
-	<start name="qt5_textedit" pkg="cproc/pkg/qt5_textedit/2018-05-30">
+	<start name="qt5_textedit" pkg="genodelabs/pkg/qt5_textedit/2018-06-12">
 		<route>
 			<service name="File_system" label="rw"> <parent label="config"/> </service>
 			<service name="Nitpicker"> <child name="wm"/> </service>
