@@ -96,16 +96,16 @@ Configuration::Configuration(Env               &env,
 		}
 		catch (Retry_without_domain exception) {
 
-			/* deinitialize all domains again */
+			/* destroy domain that became invalid during initialization */
+			_domains.remove(exception.domain);
+			destroy(_alloc, &exception.domain);
+
+			/* deinitialize the remaining domains again */
 			_domains.for_each([&] (Domain &domain) {
 				domain.deinit();
 				if (_verbose) {
 					log("[", domain, "] deinitiated domain"); }
 			});
-			/* destroy domain that became invalid during initialization */
-			_domains.remove(exception.domain);
-			destroy(_alloc, &exception.domain);
-
 			/* retry to initialize the remaining domains */
 			continue;
 		}
