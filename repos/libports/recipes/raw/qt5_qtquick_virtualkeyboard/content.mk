@@ -19,5 +19,5 @@ $(STYLES_QMLDIR): $(INSTALL_DIR)/Styles
 	cp $(PORT_DIR)/src/lib/qt5/qt5/qtvirtualkeyboard/src/virtualkeyboard/styles/qmldir $@
 
 qt5_qtquick_virtualkeyboard.tar: $(QMLDIR) $(STYLES_QMLDIR)
-	tar cf $@ --mtime='1970-01-01' qt
+	tar --owner=0 --group=0 --numeric-owner --mode='go=' --mtime='1970-01-01' -cf $@ qt
 	rm -rf qt

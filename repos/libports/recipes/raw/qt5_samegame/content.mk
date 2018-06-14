@@ -29,5 +29,5 @@ $(addprefix samegame/shared/pics/, $(SAMEGAME_RESOURCES)): samegame/shared/pics
 
 qt5_samegame.tar: $(addprefix samegame/, $(SAMEGAME3_RESOURCES)) \
                   $(addprefix samegame/shared/pics/, $(SAMEGAME_RESOURCES))
-	tar cf $@ --mtime='1970-01-01' -C samegame .
+	tar --owner=0 --group=0 --numeric-owner --mode='go=' --mtime='1970-01-01' -cf $@ -C samegame .
 	rm -rf samegame/
