@@ -24,7 +24,7 @@ namespace Genode {
 	 *
 	 * See https://github.com/genodelabs/genode/issues/2659
 	 */
-	constexpr bool KERNEL_SUPPORTS_EAGER_CHILD_DESTRUCTION = false;
+	constexpr bool KERNEL_SUPPORTS_EAGER_CHILD_DESTRUCTION = true;
 }
 
 #endif /* _INCLUDE__BASE__INTERNAL__CHILD_POLICY_H_ */
