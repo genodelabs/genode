@@ -138,14 +138,14 @@ GNU/Linux system. For reference, Ubuntu 16.04 is known to work well.
 
 # Download the support for the NOVA microkernel
 
-  ! ./tool/depot/download genodelabs/bin/x86_64/base-nova/2018-05-30
+  ! ./tool/depot/download genodelabs/bin/x86_64/base-nova/2018-06-12
 
   The content is downloaded to the _public/_ directory and extracted to
   the _depot/_ directory.
 
 # Download all ingredients for the Sculpt boot image
 
-  ! ./tool/depot/download genodelabs/pkg/x86_64/sculpt/2018-05-31
+  ! ./tool/depot/download genodelabs/pkg/x86_64/sculpt/2018-06-12
 
 # Create a build directory
 
