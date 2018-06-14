@@ -318,6 +318,8 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &,
 {
 	Receive_window &rcv_window = Thread::myself()->native_thread().rcv_window;
 
+	bool need_to_wait = false;
+
 	for (;;) {
 
 		request_msg.reset();
@@ -333,7 +335,8 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &,
 		l4_msgtag_t request_tag;
 		l4_umword_t label = 0; /* kernel-protected label of invoked capability */
 
-		if (exc.value != Rpc_exception_code::INVALID_OBJECT) {
+		if (exc.value != Rpc_exception_code::INVALID_OBJECT
+		    && !need_to_wait) {
 
 			l4_msgtag_t const reply_tag = copy_msgbuf_to_utcb(reply_msg, exc.value);
 
@@ -342,8 +345,10 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &,
 			request_tag = l4_ipc_wait(l4_utcb(), &label, L4_IPC_NEVER);
 		}
 
-		if (ipc_error(request_tag, false))
+		if (ipc_error(request_tag, false)) {
+			need_to_wait = true;
 			continue;
+		} else need_to_wait = false;
 
 		/* copy request message from the UTCBs message registers */
 		unsigned long const badge =
