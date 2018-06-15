@@ -22,12 +22,13 @@
 #define _INCLUDE__LIBC__COMPONENT_H_
 
 #include <util/meta.h>
-#include <vfs/file_system.h>
 #include <base/env.h>
 #include <base/stdint.h>
+#include <util/xml_node.h>
 
 namespace Libc { class Env; }
 
+namespace Vfs { struct File_system; }
 
 /**
  * Interface to be provided by the component implementation
