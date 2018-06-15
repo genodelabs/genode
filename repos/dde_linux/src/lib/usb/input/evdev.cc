@@ -449,6 +449,8 @@ static Genode::Constructible<Usb::Led> _led;
 static int led_connect(struct input_handler *handler, struct input_dev *dev,
                        const struct input_device_id *id)
 {
+	_led->wait_for_registry();
+
 	Keyboard_led *keyboard = new (Lx_kit::env().heap()) Keyboard_led(_registry, dev);
 	_led->update(*keyboard);
 
