@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2012-2017 Genode Labs GmbH
+ * Copyright (C) 2012-2018 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -14,15 +14,15 @@
 /* Genode includes */
 #include <base/env.h>
 #include <libc/component.h>
-#include <framebuffer_session/connection.h>
+#include <framebuffer_session/client.h>
 #include <base/sleep.h>
 #include <util/reconstructible.h>
 #include <base/attached_rom_dataspace.h>
 #include <util/geometry.h>
-#include <input_session/connection.h>
+#include <input_session/client.h>
 #include <input/event.h>
 #include <input/keycodes.h>
-#include <timer_session/connection.h>
+#include <nitpicker_session/connection.h>
 
 /* MuPDF includes */
 extern "C" {
@@ -130,48 +130,56 @@ class Pdf_view
 		class Non_supported_framebuffer_mode { };
 		class Unexpected_document_color_depth { };
 
+		typedef uint16_t pixel_t;
+		typedef Framebuffer::Mode Mode;
+
 	private:
 
-		Framebuffer::Mode _framebuffer_mode;
+		enum { NO_ALPHA = false };
 
-		struct _Framebuffer : Framebuffer::Connection
+		Genode::Env &_env;
+
+		Nitpicker::Connection  _nitpicker { _env };
+		Framebuffer::Session  &_framebuffer = *_nitpicker.framebuffer();
+		Input::Session_client &_input       = *_nitpicker.input();
+
+		Framebuffer::Mode _nit_mode = _nitpicker.mode();
+		Framebuffer::Mode  _fb_mode {};
+
+		Genode::Constructible<Genode::Attached_dataspace> _fb_ds { };
+
+		Genode::Signal_handler<Pdf_view> _nit_mode_handler {
+			_env.ep(), *this, &Pdf_view::_handle_nit_mode };
+
+		Genode::Signal_handler<Pdf_view> _sync_handler {
+			_env.ep(), *this, &Pdf_view::_refresh };
+
+		Genode::Signal_handler<Pdf_view> _input_handler {
+			_env.ep(), *this, &Pdf_view::_handle_input_events };
+
+		Nitpicker::Session::View_handle _view = _nitpicker.create_view();
+
+		pixel_t *_fb_base() { return _fb_ds->local_addr<pixel_t>(); }
+
+		void _rebuffer()
 		{
-			Genode::Env &env;
+			using namespace Nitpicker;
 
-			typedef uint16_t pixel_t;
+			_nit_mode = _nitpicker.mode();
 
-			Framebuffer::Mode mode;
+			int max_x = Genode::max(_nit_mode.width(),  _fb_mode.width());
+			int max_y = Genode::max(_nit_mode.height(), _fb_mode.height());
 
-			_Framebuffer(Genode::Env &env, Framebuffer::Mode &mode)
-			:
-				Framebuffer::Connection(env, mode), env(env),
-				mode(Framebuffer::Connection::mode())
-			{
-				handle_resize();
+			if (max_x > _fb_mode.width() || max_y > _fb_mode.height()) {
+				_fb_mode = Mode(max_x, max_y, _nit_mode.format());
+				_nitpicker.buffer(_fb_mode, NO_ALPHA);
+				if (_fb_ds.constructed())
+					_fb_ds.destruct();
+				_fb_ds.construct(_env.rm(), _framebuffer.dataspace());
 			}
 
-			Genode::Constructible<Genode::Attached_dataspace> ds { };
-
-			void handle_resize()
-			{
-				mode = Framebuffer::Connection::mode();
-				if (mode.format() != Framebuffer::Mode::RGB565) {
-					Genode::error("Color modes other than RGB565 are not supported. Exiting.");
-					throw Non_supported_framebuffer_mode();
-				}
-				Genode::log("Framebuffer is ", mode);
-
-				ds.construct(env.rm(), Framebuffer::Connection::dataspace());
-			}
-
-			pixel_t *base() { return ds->local_addr<pixel_t>(); }
-
-		} _framebuffer;
-
-		void _update_pdfapp_parameters()
-		{
-			_pdfapp.scrw = _framebuffer.mode.width();
-			_pdfapp.scrh = _framebuffer.mode.height();
+			_pdfapp.scrw = _nit_mode.width();
+			 _pdfapp.scrh = _nit_mode.height();
 
 			/*
 			 * XXX replace heuristics with a meaningful computation
@@ -179,26 +187,78 @@ class Pdf_view
 			 * The magic values are hand-tweaked manually to accommodating the
 			 * use case of showing slides.
 			 */
-			_pdfapp.resolution = Genode::min(_framebuffer.mode.width()/5,
-			                                 _framebuffer.mode.height()/3.8);
+			_pdfapp.resolution = Genode::min(_nit_mode.width()/5,
+			                                 _nit_mode.height()/3.8);
+
+			typedef Nitpicker::Session::Command Command;
+			_nitpicker.enqueue<Command::Geometry>(
+				_view, Rect(Point(), Area(_nit_mode.width(), _nit_mode.height())));
+			_nitpicker.enqueue<Command::To_front>(_view, Nitpicker::Session::View_handle());
+			_nitpicker.execute();
 		}
 
-		void _handle_resize()
+		void _handle_nit_mode()
 		{
-			_framebuffer.handle_resize();
-
-			_update_pdfapp_parameters();
-
-			/* reload file */
-			Libc::with_libc([&] () { pdfapp_onkey(&_pdfapp, 'r'); });
+			_rebuffer();
+			pdfapp_onresize(&_pdfapp, _nit_mode.width(), _nit_mode.height());
 		}
-
-		Genode::Signal_handler<Pdf_view> _resize_handler;
 
 		pdfapp_t _pdfapp { };
 
 		int _motion_x = 0;
 		int _motion_y = 0;
+
+		void _handle_input_event(Input::Event const &ev)
+		{
+			using namespace Input;
+
+			ev.handle_relative_motion([&] (int x, int y) {
+				_motion_x += x;
+				_motion_y += y;
+				//pdfapp_onmouse(&_pdfapp, _motion_x, _motion_y, 0, 0, 0);
+			});
+
+			ev.handle_absolute_motion([&] (int x, int y) {
+				_motion_x = x;
+				_motion_y = y;
+				//pdfapp_onmouse(&_pdfapp, _motion_x, _motion_y, 0, 0, 0);
+			});
+
+			if (ev.key_press(BTN_LEFT))
+				pdfapp_onmouse(&_pdfapp, _motion_x, _motion_y, 1, 0, -1);
+
+			if (ev.key_release(BTN_LEFT))
+				pdfapp_onmouse(&_pdfapp, _motion_x, _motion_y, 1, 0, 1);
+
+			ev.handle_press([&] (Keycode, Codepoint glyph) {
+				if ((glyph.value & 0x7f) && !(glyph.value & 0x80)) {
+					pdfapp_onkey(&_pdfapp, glyph.value);
+				}
+			});
+
+			/*
+			ev.handle_wheel([&] (int, int y) {
+				pdfapp_onmouse(
+					&_pdfapp, _motion_x, _motion_y,
+					y > 0 ? 4 : 5, 1, 1);
+			});
+			 */
+		}
+
+		void _handle_input_events()
+		{
+			Libc::with_libc([&] () {
+				_input.for_each_event([&] (Input::Event const &ev) {
+					_handle_input_event(ev); }); });
+		}
+
+		void _refresh()
+		{
+			_framebuffer.refresh(0, 0, _nit_mode.width(), _nit_mode.height());
+
+			/* handle one sync signal only */
+			_framebuffer.sync_sigh(Genode::Signal_context_capability());
+		}
 
 	public:
 
@@ -208,18 +268,16 @@ class Pdf_view
 		 * \throw Non_supported_framebuffer_mode
 		 * \throw Unexpected_document_color_depth
 		 */
-		Pdf_view(Genode::Env &env)
-		:
-			_framebuffer_mode(0, 0, Framebuffer::Mode::RGB565),
-			_framebuffer(env, _framebuffer_mode),
-			_resize_handler(env.ep(), *this, &Pdf_view::_handle_resize)
+		Pdf_view(Genode::Env &env) : _env(env)
 		{
-			_framebuffer.mode_sigh(_resize_handler);
+			_nitpicker.mode_sigh(_nit_mode_handler);
+			_input.sigh(_input_handler);
 
 			pdfapp_init(&_pdfapp);
 			_pdfapp.userdata = this;
-			_update_pdfapp_parameters();
-			_pdfapp.pageno     = 0;    /* XXX read from config */
+			_pdfapp.pageno   = 0;
+
+			_rebuffer();
 
 			{
 				struct dirent **list = NULL;
@@ -244,62 +302,37 @@ class Pdf_view
 				              _pdfapp.image->n, ", Exiting.");
 				throw Unexpected_document_color_depth();
 			}
+
+			Genode::log(Genode::Cstring(pdfapp_version(&_pdfapp)));
+		}
+
+		void title(char const *msg)
+		{
+			typedef Nitpicker::Session::Command Command;
+			_nitpicker.enqueue<Command::Title>(_view, msg);
+			_nitpicker.execute();
 		}
 
 		void show();
 
-		void handle_input(Input::Event const &ev)
-		{
-			using namespace Input;
-
-			ev.handle_relative_motion([&] (int x, int y) {
-				_motion_x += x;
-				_motion_y += y;
-			});
-
-			ev.handle_absolute_motion([&] (int x, int y) {
-				_motion_x = x;
-				_motion_y = y;
-			});
-
-			if (ev.key_press(BTN_LEFT))
-				pdfapp_onmouse(&_pdfapp, _motion_x, _motion_y, 1, 0, -1);
-
-			if (ev.key_release(BTN_LEFT))
-				pdfapp_onmouse(&_pdfapp, _motion_x, _motion_y, 1, 0, 1);
-
-			ev.handle_press([&] (Keycode, Codepoint glyph) {
-				if ((glyph.value & 0x7f) && !(glyph.value & 0x80)) {
-					pdfapp_onkey(&_pdfapp, glyph.value);
-				}
-			});
-
-			/**
-			 * XXX: wheel pans the view, which doesn't seem to be implemented
-			ev.handle_wheel([&] (int, int y) {
-				pdfapp_onmouse(
-					&_pdfapp, _motion_x, _motion_y,
-					y > 0 ? 4 : 5, 0, 1);
-			});
-			*/
-		}
+		void exit(int code = 0) { _env.parent().exit(code); }
 };
 
 
 void Pdf_view::show()
 {
-	Genode::Area<> const fb_size(_framebuffer.mode.width(), _framebuffer.mode.height());
+	Genode::Area<> const fb_size(_fb_mode.width(), _fb_mode.height());
 	int const x_max = Genode::min((int)fb_size.w(), _pdfapp.image->w);
 	int const y_max = Genode::min((int)fb_size.h(), _pdfapp.image->h);
 
 	/* clear framebuffer */
-	memset(_framebuffer.base(), 0, sizeof(_Framebuffer::pixel_t)*fb_size.count());
+	memset(_fb_base(), 0, _fb_ds->size());
 
 	Genode::size_t src_line_bytes   = _pdfapp.image->n * _pdfapp.image->w;
 	unsigned char *src_line         = _pdfapp.image->samples;
 
 	Genode::size_t dst_line_width   = fb_size.w(); /* in pixels */
-	_Framebuffer::pixel_t *dst_line = _framebuffer.base();
+	pixel_t *dst_line = _fb_base();
 
 	/* skip first two lines as they contain white (XXX) */
 	src_line += 2*src_line_bytes;
@@ -307,12 +340,12 @@ void Pdf_view::show()
 	int const tweaked_y_max = y_max - 2;
 
 	/* center vertically if the dst buffer is higher than the image */
-	if (_pdfapp.image->h < (int)fb_size.h())
-		dst_line += dst_line_width*((fb_size.h() - _pdfapp.image->h)/2);
+	if (_pdfapp.image->h < _nit_mode.height())
+		dst_line += dst_line_width*((_nit_mode.height() - _pdfapp.image->h)/2);
 
 	/* center horizontally if the dst buffer is wider than the image */
-	if (_pdfapp.image->w < (int)fb_size.w())
-		dst_line += (fb_size.w() - _pdfapp.image->w)/2;
+	if (_pdfapp.image->w < _nit_mode.width())
+		dst_line += (_nit_mode.width() - _pdfapp.image->w)/2;
 
 	for (int y = 0; y < tweaked_y_max; y++) {
 		convert_line_rgba_to_rgb565(src_line, dst_line, x_max, y);
@@ -320,7 +353,8 @@ void Pdf_view::show()
 		dst_line += dst_line_width;
 	}
 
-	_framebuffer.refresh(0, 0, _framebuffer.mode.width(), _framebuffer.mode.height());
+	/* refresh after the next sync signal */
+	_framebuffer.sync_sigh(_sync_handler);
 }
 
 
@@ -356,10 +390,11 @@ void wincursor(pdfapp_t *, int)
 void windocopy(pdfapp_t*) { }
 
 
-void winerror(pdfapp_t *, fz_error error)
+void winerror(pdfapp_t *pdfapp, fz_error error)
 {
 	Genode::error("winerror: error=", error);
-	Genode::sleep_forever();
+	Pdf_view *pdf_view = (Pdf_view *)pdfapp->userdata;
+	pdf_view->exit();
 }
 
 
@@ -388,9 +423,10 @@ void winopenuri(pdfapp_t*, char *s)
 }
 
 
-void winclose(pdfapp_t *)
+void winclose(pdfapp_t *pdfapp)
 {
-	exit(0);
+	Pdf_view *pdf_view = (Pdf_view *)pdfapp->userdata;
+	pdf_view->exit();
 }
 
 
@@ -400,46 +436,19 @@ void winreloadfile(pdfapp_t *)
 }
 
 
-void wintitle(pdfapp_t *, char *)
+void wintitle(pdfapp_t *pdfapp, char *s)
 {
+	Pdf_view *pdf_view = (Pdf_view *)pdfapp->userdata;
+	pdf_view->title(s);
 }
 
 
-void winresize(pdfapp_t *, int, int)
+void winresize(pdfapp_t*, int, int)
 {
 }
-
-
-/******************
- ** Main program **
- ******************/
-
-
-struct Main
-{
-	Genode::Env       &_env;
-
-	Pdf_view           _pdf_view { _env };
-	Input::Connection  _input    { _env };
-
-	void _handle_input()
-	{
-		Libc::with_libc([&] () {
-			_input.for_each_event([&] (Input::Event const &ev) {
-				_pdf_view.handle_input(ev); }); });
-	}
-
-	Genode::Signal_handler<Main> _input_handler {
-		_env.ep(), *this, &Main::_handle_input };
-
-	Main(Genode::Env &env) : _env(env)
-	{
-		_input.sigh(_input_handler);
-	}
-};
 
 
 void Libc::Component::construct(Libc::Env &env)
 {
-	Libc::with_libc([&] () { static Main main(env); });
+	Libc::with_libc([&] () { static Pdf_view main(env); });
 }

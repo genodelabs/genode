@@ -1,0 +1,11 @@
+--- src/lib/mupdf/apps/pdfapp.c	2018-06-18 16:04:44.818141706 +0200
++++ src/lib/mupdf/apps/pdfapp.c.new	2018-06-18 16:04:49.128241547 +0200
+@@ -675,7 +675,7 @@
+ 		app->winw = w;
+ 		app->winh = h;
+ 		pdfapp_panview(app, app->panx, app->pany);
+-		winrepaint(app);
++		pdfapp_showpage(app, 0, 1, 1);
+ 	}
+ }
+ 

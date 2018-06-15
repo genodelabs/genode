@@ -7,8 +7,11 @@ build $build_components
 create_boot_directory
 
 import_from_depot \
-	genodelabs/src/[base_src] \
 	genodelabs/pkg/[drivers_interactive_pkg] \
+	genodelabs/pkg/wm \
+	genodelabs/src/[base_src] \
+	genodelabs/src/init \
+	genodelabs/src/nitpicker \
 
 set config {
 <config>
@@ -23,6 +26,7 @@ set config {
 		<service name="LOG"/>
 	</parent-provides>
 	<default-route>
+		<service name="Nitpicker"> <child name="wm"/> </service>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 	<default caps="100"/>
@@ -42,6 +46,38 @@ set config {
 			<service name="Input"/> <service name="Framebuffer"/>
 		</provides>
 	</start>
+
+	<start name="nitpicker">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Nitpicker"/></provides>
+		<config focus="rom">
+			<domain name="pointer" layer="1" content="client" label="no" origin="pointer" />
+			<domain name="default" layer="2" content="client" label="no" hover="always"/>
+
+			<policy label_prefix="pointer" domain="pointer"/>
+			<default-policy domain="default"/>
+		</config>
+	</start>
+
+	<start name="pointer">
+		<resource name="RAM" quantum="1M"/>
+		<route>
+			<service name="Nitpicker"> <child name="nitpicker"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="wm" caps="1000">
+		<resource name="RAM" quantum="32M"/>
+		<binary name="init"/>
+		<provides> <service name="Nitpicker"/> </provides>
+		<route>
+			<service name="ROM" label="config"> <parent label="wm.config"/> </service>
+			<service name="Nitpicker"> <child name="nitpicker"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
 	<start name="pdf_view" caps="256">
 		<resource name="RAM" quantum="1G"/>
 		<config>
@@ -70,8 +106,14 @@ if {![file exist bin/test.pdf]} {
 	exit 1
 }
 
+#
+# Pin the nitpicker focus to the window manager by providing a static focus ROM
+#
+set fd [open [run_dir]/genode/focus w]
+puts $fd "<focus label=\"wm -> wm -> \"/>"
+close $fd
+
 append boot_modules {
-	core init ld.lib.so timer
 	libc.lib.so vfs.lib.so libm.lib.so
 	openjpeg.lib.so freetype.lib.so libpng.lib.so zlib.lib.so jbig2dec.lib.so
 	mupdf.lib.so jpeg.lib.so

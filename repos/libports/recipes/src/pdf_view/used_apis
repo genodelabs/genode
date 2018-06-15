@@ -3,7 +3,7 @@ framebuffer_session
 input_session
 libc
 mupdf
+nitpicker_session
 os
 so
-timer_session
 vfs

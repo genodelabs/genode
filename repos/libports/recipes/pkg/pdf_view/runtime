@@ -1,4 +1,4 @@
-<runtime ram="64M" caps="2000" binary="init">
+<runtime ram="64M" caps="2000" binary="pdf_view">
 
 	<requires> <timer/> <nitpicker/> <file-system/> </requires>
 
@@ -10,7 +10,6 @@
 		<rom label="zlib.lib.so"/>
 		<rom label="pdf_view"/>
 		<rom label="mupdf.lib.so"/>
-		<rom label="nit_fb"/>
 		<rom label="freetype.lib.so"/>
 		<rom label="jbig2dec.lib.so"/>
 		<rom label="jpeg.lib.so"/>
@@ -19,37 +18,11 @@
 	</content>
 
 	<config>
-		<parent-provides>
-			<service name="ROM"/>
-			<service name="PD"/>
-			<service name="RM"/>
-			<service name="CPU"/>
-			<service name="LOG"/>
-			<service name="Nitpicker"/>
-			<service name="Timer"/>
-			<service name="File_system"/>
-		</parent-provides>
-		<default-route>
-			<any-service> <parent/> <any-child/> </any-service>
-		</default-route>
-		<default caps="100"/>
-		<start name="nit_fb">
-			<resource name="RAM" quantum="16M"/>
-			<provides> <service name="Framebuffer"/> <service name="Input"/> </provides>
-			<config xpos="64" ypos="64" initial_width="320" initial_height="240"/>
-		</start>
-		<start name="pdf_view" caps="300">
-			<binary name="pdf_view"/>
-			<exit propagate="yes"/>
-			<resource name="RAM" quantum="100M"/>
-			<config>
-				<vfs>
-					<fs writeable="no"/>
-					<dir name="dev"> <log/> </dir>
-				</vfs>
-				<libc stdout="/dev/log" stderr="/dev/log"/>
-			</config>
-		</start>
+		<vfs>
+			<fs writeable="no"/>
+			<dir name="dev"> <log/> </dir>
+		</vfs>
+		<libc stdout="/dev/log" stderr="/dev/log"/>
 	</config>
 
 </runtime>
