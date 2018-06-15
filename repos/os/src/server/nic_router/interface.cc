@@ -1598,27 +1598,33 @@ void Interface::_update_dhcp_allocations(Domain &old_domain,
 
 void Interface::_update_own_arp_waiters(Domain &domain)
 {
+	bool const verbose = _config().verbose();
 	_own_arp_waiters.for_each([&] (Arp_waiter_list_element &le) {
 		Arp_waiter &arp_waiter = *le.object();
 		try {
 			Domain &dst = _config().domains().find_by_name(arp_waiter.dst().name());
 			if (dst.ip_config() != arp_waiter.dst().ip_config()) {
-				throw Dismiss_arp_waiter(); }
-
+				if (verbose) {
+					log("[", domain, "] dismiss ARP waiter: ", arp_waiter,
+					    " (IP config changed)");
+				}
+				throw Dismiss_arp_waiter();
+			}
 			/* keep ARP waiter */
 			arp_waiter.handle_config(dst);
-			if (_config().verbose()) {
+			if (verbose) {
 				log("[", domain, "] update ARP waiter: ", arp_waiter);
 			}
 			return;
 		}
-		catch (Domain_tree::No_match) { }
-		catch (Dismiss_arp_waiter) { }
-
 		/* dismiss ARP waiter */
-		if (_config().verbose()) {
-			log("[", domain, "] dismiss ARP waiter: ", arp_waiter, " (no domain)");
+		catch (Domain_tree::No_match) {
+			if (verbose) {
+				log("[", domain, "] dismiss ARP waiter: ", arp_waiter,
+				    " (domain disappeared)");
+			}
 		}
+		catch (Dismiss_arp_waiter) { }
 		cancel_arp_waiting(*_own_arp_waiters.first()->object());
 	});
 }
