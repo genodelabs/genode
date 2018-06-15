@@ -1,0 +1,13 @@
+<runtime ram="32M" caps="200" binary="vfs">
+
+	<provides> <file_system/> </provides>
+
+	<config/>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="vfs.lib.so"/>
+		<rom label="vfs"/>
+	</content>
+
+</runtime>
