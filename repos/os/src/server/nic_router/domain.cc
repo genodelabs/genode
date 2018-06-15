@@ -80,6 +80,11 @@ void Domain::ip_config(Ipv4_config const &new_ip_config)
 				interface.detach_from_remote_ip_config();
 			});
 		});
+		/* dissolve foreign ARP waiters */
+		while (_foreign_arp_waiters.first()) {
+			Arp_waiter &waiter = *_foreign_arp_waiters.first()->object();
+			waiter.src().cancel_arp_waiting(waiter);
+		}
 	}
 	/* overwrite old with new IP config */
 	_ip_config.construct(new_ip_config);
@@ -226,16 +231,6 @@ Domain::~Domain()
 {
 	deinit();
 	_ip_config.destruct();
-}
-
-
-void Domain::__FIXME__dissolve_foreign_arp_waiters()
-{
-	/* let other interfaces destroy their ARP waiters that wait for us */
-	while (_foreign_arp_waiters.first()) {
-		Arp_waiter &waiter = *_foreign_arp_waiters.first()->object();
-		waiter.src().cancel_arp_waiting(waiter);
-	}
 }
 
 
