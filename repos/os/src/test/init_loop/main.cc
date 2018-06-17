@@ -91,6 +91,7 @@ struct Test::Main
 	{
 		xml.node("report", [&] () {
 			xml.attribute("requested",  "yes");
+			xml.attribute("provided",   "yes");
 			xml.attribute("init_ram",   "yes");
 			xml.attribute("init_caps",  "yes");
 			xml.attribute("child_ram",  "yes");
@@ -154,12 +155,12 @@ struct Test::Main
 
 				if (current < _previous) {
 					total_loss += _previous - current;
-					log(_name, " lost ", _previous - current, ", bytes", " "
+					log(_name, " lost ", _previous - current, " bytes", " "
 					    "(total ", total_loss, " bytes)");
 				}
 
 				if (current > _previous)
-					log(_name, " gained ", current - _previous, ", bytes");
+					log(_name, " gained ", current - _previous, " bytes");
 			}
 			_previous = current;
 		}
@@ -196,9 +197,8 @@ struct Test::Main
 		 * Detect state where the client is running and has established a
 		 * session to the LOG server.
 		 */
-		bool client_present = false;
+		bool client_present  = false;
 		bool client_complete = false;
-
 		_apply_child(state, "client", [&] (Xml_node child) {
 			client_present = true;
 			child.for_each_sub_node("requested", [&] (Xml_node requested) {
@@ -206,6 +206,11 @@ struct Test::Main
 					if (session.attribute_value("service", String<16>()) == "LOG"
 					 && session.attribute_value("state", String<16>()) == "CAP_HANDED_OUT")
 						client_complete = true; }); }); });
+
+		bool client_connected = false;
+		_apply_child(state, "server", [&] (Xml_node child) {
+			child.for_each_sub_node("provided", [&] (Xml_node provided) {
+				client_connected |= (provided.num_sub_nodes() > 0); }); });
 
 		if (_client_starting) {
 
@@ -216,7 +221,8 @@ struct Test::Main
 		} else {
 
 			/* restart client as soon as it vanished */
-			if (!client_present) {
+			if (!client_present && !client_connected) {
+
 				_cnt++;
 				log("iteration ", _cnt);
 
@@ -227,14 +233,14 @@ struct Test::Main
 					_server_ram_tracker.update(child.sub_node("ram")); });
 
 				_client_starting = true;
+
+				if (_init_ram_tracker.total_loss   > 16*1024
+				 || _server_ram_tracker.total_loss > 16*1024) {
+
+					error("unexpected quota distribution");
+					_env.parent().exit(1);
+				}
 			}
-		}
-
-		if (_init_ram_tracker.total_loss   > 16*1024
-		 || _server_ram_tracker.total_loss > 16*1024) {
-
-			error("unexpected quota distribution");
-			_env.parent().exit(1);
 		}
 
 		/* success after 50 iterations without any accounting issues */
