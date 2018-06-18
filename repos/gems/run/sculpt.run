@@ -228,6 +228,8 @@ install_config {
 			<service name="ROM" label_last="capslock"> <child name="report_rom"/> </service>
 			<service name="ROM" label_last="input_filter.config">
 				<child name="config_fs_rom" label="managed/input_filter"/> </service>
+			<service name="ROM" label_prefix="input_filter" label_suffix=".chargen">
+				<child name="config_fs_rom"/> </service>
 			<service name="ROM" label_last="fb_drv.config">
 				<child name="config_fs_rom" label="managed/fb_drv"/> </service>
 			<service name="ROM" label_last="numlock_remap.config">
