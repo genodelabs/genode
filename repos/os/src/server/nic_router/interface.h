@@ -140,6 +140,12 @@ class Net::Interface : private Interface_list::Element
 		                      Genode::uint32_t                 xid,
 		                      Ipv4_address_prefix       const &local_intf);
 
+		void _send_icmp_echo_reply(Ethernet_frame &eth,
+		                           Ipv4_packet    &ip,
+		                           Icmp_packet    &icmp,
+		                           Genode::size_t  icmp_sz,
+		                           Size_guard     &size_guard);
+
 		Forward_rule_tree &_forward_rules(Domain            &local_domain,
 		                                  L3_protocol const  prot) const;
 
@@ -190,14 +196,15 @@ class Net::Interface : private Interface_list::Element
 		                        Icmp_packet             &icmp,
 		                        Genode::size_t           icmp_sz);
 
-		void _handle_icmp(Ethernet_frame          &eth,
-		                  Size_guard              &size_guard,
-		                  Ipv4_packet             &ip,
-		                  Packet_descriptor const &pkt,
-		                  L3_protocol              prot,
-		                  void                    *prot_base,
-		                  Genode::size_t           prot_size,
-		                  Domain                  &local_domain);
+		void _handle_icmp(Ethernet_frame            &eth,
+		                  Size_guard                &size_guard,
+		                  Ipv4_packet               &ip,
+		                  Packet_descriptor   const &pkt,
+		                  L3_protocol                prot,
+		                  void                      *prot_base,
+		                  Genode::size_t             prot_size,
+		                  Domain                    &local_domain,
+		                  Ipv4_address_prefix const &local_intf);
 
 		void _adapt_eth(Ethernet_frame          &eth,
 		                Ipv4_address      const &dst_ip,

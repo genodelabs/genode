@@ -205,6 +205,8 @@ Domain::Domain(Configuration &config, Xml_node const node, Allocator &alloc)
 	           Ipv4_address()),
 	_verbose_packets(_node.attribute_value("verbose_packets", false) ||
 	                 _config.verbose_packets()),
+	_icmp_echo_server(_node.attribute_value("icmp_echo_server",
+	                                        _config.icmp_echo_server())),
 	_label(_node.attribute_value("label", String<160>()).string())
 {
 	_log_ip_config();

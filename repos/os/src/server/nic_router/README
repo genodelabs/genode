@@ -10,6 +10,7 @@ these domains. This is a brief overview of the features thereby provided:
 * NAPT for UDP, TCP and ICMP "Echo",
 * forwarding of ICMP "Destination Unreachable" according to the UDP, TCP or
   ICMP "Echo" connection it refers to,
+* acting as ICMP echo server per domain
 * acting as DHCP server or client per domain,
 * provide per-domain network statistics via a report session,
 * print out header information for each packet received or sent,
@@ -359,6 +360,21 @@ one of these attributes must be set for the NAT rule to be sensible.
 Restricting the port usage is necessary to avoid that a client can run
 Denial-of-Service attacks against the destination domain by occupying all of
 its ports or IDs.
+
+
+Configuring ICMP-Echo-server functionality
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ICMP-Echo-server functionality of the router has the following
+configuration attributes (default values shown):
+
+! <config icmp_echo_server="yes">
+!    <domain icmp_echo_server="yes" ... />
+! </config>
+
+The icmp_echo_server attribute configures whether the router answers ICMP Echo
+requests that address the router. The <config> value affects all domains
+without a <domain> local value.
 
 
 Configuring DHCP server functionality

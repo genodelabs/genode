@@ -37,6 +37,7 @@ class Net::Configuration
 		bool                 const  _verbose                 { false };
 		bool                 const  _verbose_packets         { false };
 		bool                 const  _verbose_domain_state    { false };
+		bool                 const  _icmp_echo_server        { true };
 		Genode::Microseconds const  _dhcp_discover_timeout   { DEFAULT_DHCP_DISCOVER_TIMEOUT_SEC };
 		Genode::Microseconds const  _dhcp_request_timeout    { DEFAULT_DHCP_REQUEST_TIMEOUT_SEC  };
 		Genode::Microseconds const  _dhcp_offer_timeout      { DEFAULT_DHCP_OFFER_TIMEOUT_SEC    };
@@ -87,6 +88,7 @@ class Net::Configuration
 		bool                  verbose()               const { return _verbose; }
 		bool                  verbose_packets()       const { return _verbose_packets; }
 		bool                  verbose_domain_state()  const { return _verbose_domain_state; }
+		bool                  icmp_echo_server()      const { return _icmp_echo_server; }
 		Genode::Microseconds  dhcp_discover_timeout() const { return _dhcp_discover_timeout; }
 		Genode::Microseconds  dhcp_request_timeout()  const { return _dhcp_request_timeout; }
 		Genode::Microseconds  dhcp_offer_timeout()    const { return _dhcp_offer_timeout; }

@@ -151,11 +151,12 @@
 							<xs:element name="udp-forward" type="L3_forward_rule" />
 
 						</xs:choice>
-						<xs:attribute name="name"            type="Domain_name" />
-						<xs:attribute name="interface"       type="Ipv4_address_prefix" />
-						<xs:attribute name="gateway"         type="Ipv4_address" />
-						<xs:attribute name="verbose_packets" type="Boolean" />
-						<xs:attribute name="label"           type="Session_label" />
+						<xs:attribute name="name"             type="Domain_name" />
+						<xs:attribute name="interface"        type="Ipv4_address_prefix" />
+						<xs:attribute name="gateway"          type="Ipv4_address" />
+						<xs:attribute name="verbose_packets"  type="Boolean" />
+						<xs:attribute name="label"            type="Session_label" />
+						<xs:attribute name="icmp_echo_server" type="Boolean" />
 					</xs:complexType>
 				</xs:element><!-- domain -->
 
@@ -170,6 +171,7 @@
 			<xs:attribute name="tcp_idle_timeout_sec"      type="Seconds" />
 			<xs:attribute name="icmp_idle_timeout_sec"     type="Seconds" />
 			<xs:attribute name="tcp_max_segm_lifetime_sec" type="Seconds" />
+			<xs:attribute name="icmp_echo_server"          type="Boolean" />
 		</xs:complexType>
 	</xs:element><!-- config -->
 

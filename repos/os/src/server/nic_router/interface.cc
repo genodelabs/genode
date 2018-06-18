@@ -787,6 +787,33 @@ void Interface::handle_link_state()
 }
 
 
+void Interface::_send_icmp_echo_reply(Ethernet_frame &eth,
+                                      Ipv4_packet    &ip,
+                                      Icmp_packet    &icmp,
+                                      size_t          icmp_sz,
+                                      Size_guard     &size_guard)
+{
+	/* adapt Ethernet header */
+	Mac_address const eth_src = eth.src();
+	eth.src(eth.dst());
+	eth.dst(eth_src);
+
+	/* adapt IPv4 header */
+	Ipv4_address const ip_src = ip.src();
+	ip.src(ip.dst());
+	ip.dst(ip_src);
+
+	/* adapt ICMP header */
+	icmp.type(Icmp_packet::Type::ECHO_REPLY);
+	icmp.code(Icmp_packet::Code::ECHO_REPLY);
+
+	/* update checksums and send */
+	icmp.update_checksum(icmp_sz - sizeof(Icmp_packet));
+	ip.update_checksum();
+	send(eth, size_guard);
+}
+
+
 void Interface::_handle_icmp_query(Ethernet_frame          &eth,
                                    Size_guard              &size_guard,
                                    Ipv4_packet             &ip,
@@ -908,26 +935,38 @@ void Interface::_handle_icmp_error(Ethernet_frame          &eth,
 }
 
 
-void Interface::_handle_icmp(Ethernet_frame          &eth,
-                             Size_guard              &size_guard,
-                             Ipv4_packet             &ip,
-                             Packet_descriptor const &pkt,
-                             L3_protocol              prot,
-                             void                    *prot_base,
-                             size_t                   prot_size,
-                             Domain                  &local_domain)
+void Interface::_handle_icmp(Ethernet_frame            &eth,
+                             Size_guard                &size_guard,
+                             Ipv4_packet               &ip,
+                             Packet_descriptor   const &pkt,
+                             L3_protocol                prot,
+                             void                      *prot_base,
+                             size_t                     prot_size,
+                             Domain                    &local_domain,
+                             Ipv4_address_prefix const &local_intf)
 {
 	/* drop packet if ICMP checksum is invalid */
 	Icmp_packet &icmp = *reinterpret_cast<Icmp_packet *>(prot_base);
 	if (icmp.checksum_error(size_guard.unconsumed())) {
-		throw Drop_packet("bad ICMP checksum");
+		throw Drop_packet("bad ICMP checksum"); }
+
+	/* try to act as ICMP Echo server */
+	if (icmp.type() == Icmp_packet::Type::ECHO_REQUEST &&
+	    ip.dst() == local_intf.address &&
+	    local_domain.icmp_echo_server())
+	{
+		if(_config().verbose()) {
+			log("[", local_domain, "] act as ICMP Echo server"); }
+
+		_send_icmp_echo_reply(eth, ip, icmp, prot_size, size_guard);
+		return;
 	}
-	/* select ICMP message type */
+	/* try to act as ICMP router */
 	switch (icmp.type()) {
 	case Icmp_packet::Type::ECHO_REPLY:
 	case Icmp_packet::Type::ECHO_REQUEST:    _handle_icmp_query(eth, size_guard, ip, pkt, prot, prot_base, prot_size, local_domain); break;
 	case Icmp_packet::Type::DST_UNREACHABLE: _handle_icmp_error(eth, size_guard, ip, pkt, local_domain, icmp, prot_size); break;
-	default: Drop_packet("unknown ICMP message type"); }
+	default: Drop_packet("unhandled type in ICMP"); }
 }
 
 
@@ -979,7 +1018,8 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 			}
 		}
 		else if (prot == L3_protocol::ICMP) {
-			_handle_icmp(eth, size_guard, ip, pkt, prot, prot_base, prot_size, local_domain);
+			_handle_icmp(eth, size_guard, ip, pkt, prot, prot_base, prot_size,
+			             local_domain, local_intf);
 			return;
 		}
 
