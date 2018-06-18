@@ -467,28 +467,24 @@ Verbosity
 ~~~~~~~~~
 
 This is how you can configure the routers verbosity on its environment LOG
-session:
+session (default values shown):
 
-! <config verbose="yes">
+! <config verbose="no">
 
-Log router decisions and optional hints.
+Whether to log router decisions and optional hints.
 
-! <config verbose_packets="yes">
-
-Log most important protocol header fields of each packet that is received or
-sent by the router (ETH, IPv4, ARP, UDP, TCP, DHCP, ICMP).
-
-! <config verbose_domain_state="yes">
-
-Log most important changes in the state of a domain (number of nic sessions
-connected, current IPv4 config).
-
-! <config>
-!     <domain verbose_packets="yes" ... >
+! <config verbose_packets="no" ... >
+!     <domain verbose_packets="no" ... />
 ! <config/>
 
-Log most important protocol header fields of each packet that is received or
-sent at a specific domain (ETH, IPv4, ARP, UDP, TCP, DHCP, ICMP).
+Whether to log most important protocol header fields of each packet that is
+received or sent (ETH, IPv4, ARP, UDP, TCP, DHCP, ICMP). The <config> value
+affects all domains without a <domain> local value.
+
+! <config verbose_domain_state="no">
+
+Whether to log most important changes in the state of a domain (number of NIC
+sessions connected, current IPv4 config).
 
 
 Examples

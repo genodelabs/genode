@@ -92,7 +92,7 @@ class Net::Domain : public Domain_base,
 		Link_side_tree                        _icmp_links           { };
 		Genode::size_t                        _tx_bytes             { 0 };
 		Genode::size_t                        _rx_bytes             { 0 };
-		bool                            const _verbose_packets      { false };
+		bool                            const _verbose_packets;
 		bool                            const _icmp_echo_server;
 		Genode::Session_label           const _label;
 

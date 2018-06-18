@@ -203,8 +203,8 @@ Domain::Domain(Configuration &config, Xml_node const node, Allocator &alloc)
 	_ip_config(_node.attribute_value("interface",  Ipv4_address_prefix()),
 	           _node.attribute_value("gateway",    Ipv4_address()),
 	           Ipv4_address()),
-	_verbose_packets(_node.attribute_value("verbose_packets", false) ||
-	                 _config.verbose_packets()),
+	_verbose_packets(_node.attribute_value("verbose_packets",
+	                                       _config.verbose_packets())),
 	_icmp_echo_server(_node.attribute_value("icmp_echo_server",
 	                                        _config.icmp_echo_server())),
 	_label(_node.attribute_value("label", String<160>()).string())
