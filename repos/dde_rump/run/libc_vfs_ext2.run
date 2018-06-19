@@ -1,4 +1,4 @@
-set mkfs_cmd  [check_installed mke2fs]
+set mkfs_cmd  [installed_command mke2fs]
 set mkfs_opts "-F"
 
 set test_build_components "lib/vfs/rump"

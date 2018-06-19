@@ -2,7 +2,7 @@
 # \brief  Test of Block session interface provided by server/part_blk
 #
 
-requires_installation_of parted
+set parted [installed_command parted]
 
 #
 # Build
@@ -30,15 +30,15 @@ if { ![file exists $img_path] } then {
 	puts "using parted to partition disk image"
 
 	if { $mode == "mbr" } {
-		exec parted -s $img_path mklabel msdos
-		exec parted -s $img_path mkpart primary fat32  2048s 4095s
-		exec parted -s $img_path mkpart extended       4096s 20479s
-		exec parted -s $img_path mkpart logical fat32  6144s 10239s
-		exec parted -s $img_path mkpart logical fat32 12288s 20479s
+		exec $parted -s $img_path mklabel msdos
+		exec $parted -s $img_path mkpart primary fat32  2048s 4095s
+		exec $parted -s $img_path mkpart extended       4096s 20479s
+		exec $parted -s $img_path mkpart logical fat32  6144s 10239s
+		exec $parted -s $img_path mkpart logical fat32 12288s 20479s
 	} else {
-		exec parted -s $img_path mklabel gpt
-		exec parted -s $img_path mkpart one fat32  2048s 4095s
-		exec parted -s $img_path mkpart two fat32  4096s 20446s
+		exec $parted -s $img_path mklabel gpt
+		exec $parted -s $img_path mkpart one fat32  2048s 4095s
+		exec $parted -s $img_path mkpart two fat32  4096s 20446s
 	}
 }
 

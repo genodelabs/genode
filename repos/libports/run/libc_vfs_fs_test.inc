@@ -7,7 +7,7 @@
 set use_sd_card_drv [expr [have_spec omap4] || [have_spec arndale] || [have_spec pl180]]
 set use_ahci_drv   [expr [have_spec x86] && ![have_spec linux]]
 set use_ram_blk    [have_spec linux]
-set mkfs [check_installed $mkfs_cmd]
+set mkfs [installed_command $mkfs_cmd]
 
 if {[have_spec odroid_xu]} {
         puts "Run script does not support this platform"; exit }

@@ -3,7 +3,7 @@ set use_linux [have_spec linux]
 #
 # Check used commands
 #
-set dd [check_installed dd]
+set dd [installed_command dd]
 
 #
 # Build

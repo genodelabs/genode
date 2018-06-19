@@ -17,7 +17,7 @@ build $build_components
 
 create_boot_directory
 
-set mkfs_cmd [check_installed mkfs.vfat]
+set mkfs_cmd [installed_command mkfs.vfat]
 
 catch { exec $mkfs_cmd -C bin/fat.img -n "ROM_UPDATE" 64 }
 
@@ -127,6 +127,7 @@ set boot_modules {
 	rom_to_file
 	timer
 	vfs
+	vfs.lib.so
 	vfs_fatfs.lib.so
 }
 

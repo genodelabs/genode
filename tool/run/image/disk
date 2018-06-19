@@ -15,14 +15,13 @@ proc image_disk_size { } { return [get_cmd_arg --image-disk-size 0] }
 #
 proc run_image { {unused ""} } {
 
-	requires_installation_of sgdisk
-	requires_installation_of e2cp
+	set sgdisk [installed_command sgdisk]
 
 	# make copy of template grub2 header image
 	exec cp [get_grub2_dir]/boot/grub2-head.img [run_dir].header
 
 	# remove template partition
-	exec sgdisk --delete=3 [run_dir].header
+	exec $sgdisk --delete=3 [run_dir].header
 
 	# calculate size of grub2 header and the size of Genode scenario
 	set size_header [expr [regsub {\s.*} [exec du -b  [run_dir].header] {}]]
@@ -36,7 +35,7 @@ proc run_image { {unused ""} } {
 
 	# setup partition with content
 	exec dd if=/dev/zero of=[run_dir].partition bs=1k count=$disk_size_kb 2>/dev/null
-	exec mkfs.ext2 -L GENODE -q -T default [run_dir].partition
+	exec [installed_command mkfs.ext2] -L GENODE -q -T default [run_dir].partition
 
 	# copy content to disk image
 	foreach file [exec find [run_dir]] {
@@ -46,9 +45,9 @@ proc run_image { {unused ""} } {
 		}
 
 		if {[file isdirectory $file]} {
-			exec e2mkdir [run_dir].partition:$filename
+			exec [installed_command e2mkdir] [run_dir].partition:$filename
 		} else {
-			exec e2cp $file [run_dir].partition:$filename
+			exec [installed_command e2cp] $file [run_dir].partition:$filename
 		}
 	}
 
@@ -57,7 +56,7 @@ proc run_image { {unused ""} } {
 	set last_sector [expr ((($size_header + ($disk_size_kb * 1024)) / 512) - 1)]
 
 	# add free space for the backup gpt at the end of disk
-	set sector_backup [exec sgdisk --info=1 [run_dir].header]
+	set sector_backup [exec $sgdisk --info=1 [run_dir].header]
 	set sector_backup [regexp -all -line -inline {First sector: ([0-9]+)} $sector_backup]
 	set sector_backup [lindex $sector_backup 1]
 
@@ -72,14 +71,14 @@ proc run_image { {unused ""} } {
 	exec rm [run_dir].partition
 
 	# move backup GPT to the end of the disk
-	exec sgdisk --move-second-header [run_dir].img
+	exec $sgdisk --move-second-header [run_dir].img
 
 	# create partition table entry pointing to the content
-	exec sgdisk --new=3:$first_sector:$last_sector [run_dir].img
-	exec sgdisk --change-name=3:GENODE [run_dir].img
+	exec $sgdisk --new=3:$first_sector:$last_sector [run_dir].img
+	exec $sgdisk --change-name=3:GENODE [run_dir].img
 
 	# create hybrid MBR
-	exec sgdisk --hybrid [run_dir].img
+	exec $sgdisk --hybrid [run_dir].img
 
 	set size_image [expr [regsub {\s.*} [exec du -sk [run_dir].img] {}]]
 	puts "Created image file [run_dir].img (${size_image}kiB)"

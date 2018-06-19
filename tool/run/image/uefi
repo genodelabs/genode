@@ -14,10 +14,6 @@ proc image_uefi_size { } { return [get_cmd_arg --image-uefi_size 0] }
 #
 proc run_image { {unused ""} } {
 
-	requires_installation_of sgdisk
-	requires_installation_of mkfs.vfat
-	requires_installation_of mcopy
-
 	set run_size [expr [regsub {\s.*} [exec du -sm [run_dir]] {}]]
 
 	if {[image_uefi_size] > 0} {
@@ -30,16 +26,16 @@ proc run_image { {unused ""} } {
 	exec dd if=/dev/zero of=[run_dir].header count=34 bs=512 2>/dev/null
 
 	exec dd if=/dev/zero of=[run_dir].partition bs=1M count=$disk_size 2>/dev/null
-	exec mkfs.vfat -n GENODE [run_dir].partition
+	exec [installed_command mkfs.vfat] -n GENODE [run_dir].partition
 
 	# copy content to disk image
 	foreach file [exec ls [run_dir]] {
-		exec mcopy -i [run_dir].partition -s [run_dir]/$file ::
+		exec [installed_command mcopy] -i [run_dir].partition -s [run_dir]/$file ::
 	}
 
 	exec cat [run_dir].header [run_dir].partition > [run_dir].img
 
-	exec sgdisk --set-alignment=1 --largest-new=1 --typecode=1:EF00 [run_dir].img
+	exec [installed_command sgdisk] --set-alignment=1 --largest-new=1 --typecode=1:EF00 [run_dir].img
 
 	exec rm -f [run_dir].header [run_dir].partition
 }

@@ -49,7 +49,7 @@ proc run_power_on { } {
 		exit -1
 	}
 
-	set telnet [check_installed telnet]
+	set telnet [installed_command telnet]
 
 	spawn $telnet $host $port
 	set connection_id $spawn_id

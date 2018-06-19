@@ -27,7 +27,7 @@ set small_test [expr $is_qemu || [have_spec foc] || [have_spec sel4]]
 #
 # Check used commands
 #
-set dd [check_installed dd]
+set dd [installed_command dd]
 
 #
 # Build

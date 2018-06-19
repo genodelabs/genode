@@ -4,7 +4,7 @@ assert_spec x86
 # Check used commands
 #
 
-set wget [check_installed wget]
+set wget [installed_command wget]
 
 #
 # Configure

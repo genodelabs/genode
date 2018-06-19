@@ -19,7 +19,7 @@ create_boot_directory
 
 catch { exec dd if=/dev/zero of=bin/ext2.img bs=1024 count=8192 }
 
-set mkfs_cmd [check_installed mkfs.ext2]
+set mkfs_cmd [installed_command mkfs.ext2]
 
 catch { exec $mkfs_cmd -F bin/ext2.img }
 
@@ -131,6 +131,7 @@ set boot_modules {
 	rump.lib.so
 	timer
 	vfs
+	vfs.lib.so
 	vfs_rump.lib.so
 }
 

@@ -5,7 +5,7 @@ if {[have_spec arm]} {
 #
 # Check used commands
 #
-set mkisofs [check_installed mkisofs]
+set mkisofs [installed_command mkisofs]
 
 #
 # Build
@@ -51,7 +51,7 @@ append config {
 		<config file="fs.iso" block_size="2048"/>
 	</start>
 	<start name="rump_fs" caps="200">
-		<resource name="RAM" quantum="8M" />
+		<resource name="RAM" quantum="10M" />
 		<provides><service name="File_system"/></provides>
 		<config fs="cd9660"><policy label_prefix="fs_rom" root="/" writeable="no"/></config>
 	</start>

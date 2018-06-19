@@ -5,8 +5,8 @@ if {[have_spec arm]} {
 #
 # Check used commands
 #
-set mke2fs [check_installed mke2fs]
-set dd     [check_installed dd]
+set mke2fs [installed_command mke2fs]
+set dd     [installed_command dd]
 
 #
 # Build

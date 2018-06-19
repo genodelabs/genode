@@ -7,8 +7,8 @@
 #
 # Check used commands
 #
-set mke2fs [check_installed mke2fs]
-set dd     [check_installed dd]
+set mke2fs [installed_command mke2fs]
+set dd     [installed_command dd]
 
 build "core init drivers/timer test/vfs_stress server/ram_blk server/rump_fs"
 
@@ -63,7 +63,7 @@ install_config {
 set boot_modules {
  	core init ld.lib.so timer vfs_stress
 	rump.lib.so rump_fs.lib.so rump_fs
-	ram_blk ext2.raw
+	ram_blk ext2.raw vfs.lib.so
 }
 
 build_boot_image $boot_modules

@@ -5,8 +5,8 @@ if {[have_spec arm]} {
 #
 # Check used commands
 #
-set mkfs [check_installed mkfs.vfat]
-set dd   [check_installed dd]
+set mkfs [installed_command mkfs.vfat]
+set dd   [installed_command dd]
 
 #
 # Build
@@ -58,7 +58,7 @@ append config {
 		<config file="fs.raw" block_size="512"/>
 	</start>
 	<start name="rump_fs" caps="200">
-		<resource name="RAM" quantum="8M" />
+		<resource name="RAM" quantum="10M" />
 		<provides><service name="File_system"/></provides>
 		<config fs="msdos"><default-policy root="/" writeable="yes"/></config>
 	</start>

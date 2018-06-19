@@ -506,18 +506,41 @@ proc have_spec {spec} { global specs; return [expr [lsearch $specs $spec] != -1]
 # Return true if specified program is installed
 #
 proc have_installed {program} {
-	if {[catch { exec which $program }]} { return false; }
-	return true
+	if {[catch { exec which $program }] == 0} { return true; }
+	if {[catch { exec which "/sbin/$program" }] == 0} { return true; }
+	if {[catch { exec which "/usr/sbin/$program" }] == 0} { return true; }
+	if {[catch { exec which "/usr/local/bin/$program" }] == 0} { return true; }
+
+	return false;
 }
 
 
 ##
-# Return true if specified program is installed on the host platform
+# Check if a shell command is installed
 #
-proc requires_installation_of {program} {
-	if {![have_installed $program]} {
-		puts "Run script aborted because $program is not installed"; exit 1
+# \param  command  name of the command to search
+#
+# \return absolute path of command if found, or exists if not
+#
+proc installed_command {command} {
+	if { [catch {set path [exec which $command]}] == 0} {
+		return $path
 	}
+
+	set dir { /sbin /usr/sbin /usr/local/bin }
+
+	foreach location $dir  {
+		append location / $command
+
+		if { [file exists $location] == 1} {
+			return $location
+		}
+	}
+
+	puts stderr "Error: '$command' command could be not found. Please make sure to install the"
+	puts stderr "        packet containing '$command', or make it available in your PATH variable.\n"
+
+	exit 1
 }
 
 
@@ -757,39 +780,7 @@ proc gdb { } {
 	if {[have_installed "[cross_dev_prefix]gdb"]} {
 		return "[cross_dev_prefix]gdb" }
 
-	if {[have_installed gdb]} {
-		return "gdb" }
-
-	requires_installation_of gdb
-}
-
-
-##
-# Check if a shell command is installed
-#
-# \param  command  name of the command to search
-#
-# \return absolute path of command if found, or exists if not
-#
-proc check_installed {command} {
-	if { [catch {set path [exec which $command]}] == 0} {
-		return $path
-	}
-
-	set dir { /sbin /usr/sbin /usr/local/bin }
-
-	foreach location $dir  {
-		append location / $command
-
-		if { [file exists $location] == 1} {
-			return $location
-		}
-	}
-
-	puts stderr "Error: '$command' command could be not found. Please make sure to install the"
-	puts stderr "        packet containing '$command', or make it available in your PATH variable.\n"
-
-	exit 1
+	return [installed_command gdb]
 }
 
 

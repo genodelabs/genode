@@ -1,5 +1,5 @@
-set genext2fs [check_installed genext2fs]
-set e2fsck [check_installed e2fsck]
+set genext2fs [installed_command genext2fs]
+set e2fsck [installed_command e2fsck]
 
 create_boot_directory
 
