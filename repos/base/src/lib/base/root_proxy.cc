@@ -127,7 +127,7 @@ namespace {
 
 			Tslab<Service::Session, 4000> _session_slab { &_sliced_heap };
 
-			void _handle_session_request(Xml_node);
+			void _handle_session_request(Xml_node, char const *type);
 			void _handle_session_requests();
 
 			Service_registry _services { };
@@ -153,9 +153,9 @@ namespace {
 }
 
 
-void Root_proxy::_handle_session_request(Xml_node request)
+void Root_proxy::_handle_session_request(Xml_node request, char const *type)
 {
-	if (!request.has_attribute("id"))
+	if (!request.has_attribute("id") || !request.has_type(type))
 		return;
 
 	Parent::Server::Id const id { request.attribute_value("id", 0UL) };
@@ -226,8 +226,22 @@ void Root_proxy::_handle_session_requests()
 
 	Xml_node const requests = _session_requests.xml();
 
+	/*
+	 * Make sure to hande create requests after close requests. Otherwise, a
+	 * single-session server (like a block driver) may fail to handle a
+	 * situation where one session (of a disappearing client) is closed and a
+	 * new session (by a freshly appearing client) is created in one atomic
+	 * step. If we served the new client before the old one, it would look like
+	 * an attempt to create a second session.
+	 */
 	requests.for_each_sub_node([&] (Xml_node request) {
-		_handle_session_request(request); });
+		_handle_session_request(request, "upgrade"); });
+
+	requests.for_each_sub_node([&] (Xml_node request) {
+		_handle_session_request(request, "close"); });
+
+	requests.for_each_sub_node([&] (Xml_node request) {
+		_handle_session_request(request, "create"); });
 }
 
 
