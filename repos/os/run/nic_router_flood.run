@@ -85,6 +85,7 @@ append config {
 		<provides><service name="Nic"/></provides>
 		<config verbose="no"
 		        verbose_packets="no"
+		        verbose_packet_drop="yes"
 		        verbose_domain_state="yes"
 		        dhcp_discover_timeout_sec="1"
 		        tcp_idle_timeout_sec="3600"
@@ -156,7 +157,7 @@ append config {
 		<resource name="RAM" quantum="8M"/>
 		<config dst_ip="} [good_dst_ip] {"
 		        period_sec="2"
-		        count="20"/>
+		        count="999"/>
 		<route>
 			<service name="Nic"> <child name="nic_router"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
@@ -195,4 +196,10 @@ append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
 
 append qemu_args " -net user -nographic "
 
-run_genode_until ".*\"ping\" exited with exit value 0.*\n" 60
+set done_string ""
+for {set i 0} {$i < 2} {incr i 1} {
+	append done_string {.*nic_router\] \[flood_links\] drop packet \(RAM quota exhausted.*\n}
+	append done_string {.*ping\] 64 bytes from 10\.0\.2\.2.*\n}
+}
+
+run_genode_until $done_string 120
