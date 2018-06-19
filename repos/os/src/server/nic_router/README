@@ -481,6 +481,13 @@ Whether to log most important protocol header fields of each packet that is
 received or sent (ETH, IPv4, ARP, UDP, TCP, DHCP, ICMP). The <config> value
 affects all domains without a <domain> local value.
 
+! <config verbose_packet_drop="no" ... >
+!     <domain verbose_packet_drop="no" ... />
+! <config/>
+
+Whether to log each packet drop and the rational behind it. The <config> value
+affects all domains without a <domain> local value.
+
 ! <config verbose_domain_state="no">
 
 Whether to log most important changes in the state of a domain (number of NIC

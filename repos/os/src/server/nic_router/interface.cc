@@ -1177,7 +1177,7 @@ void Interface::_handle_arp_reply(Ethernet_frame &eth,
 			Arp_waiter &waiter = *waiter_le->object();
 			waiter_le = waiter_le->next();
 			if (ip != waiter.ip()) { continue; }
-			waiter.src()._continue_handle_eth(waiter.packet());
+			waiter.src()._continue_handle_eth(local_domain, waiter.packet());
 			destroy(waiter.src()._alloc, &waiter);
 		}
 	}
@@ -1284,13 +1284,14 @@ void Interface::_ready_to_submit()
 }
 
 
-void Interface::_continue_handle_eth(Packet_descriptor const &pkt)
+void Interface::_continue_handle_eth(Domain            const &domain,
+                                     Packet_descriptor const &pkt)
 {
 	Size_guard size_guard(pkt.size());
 	try { _handle_eth(_sink.packet_content(pkt), size_guard, pkt); }
 	catch (Packet_postponed) {
-		if (_config().verbose()) {
-			log("[", _domain(), "] drop packet (handling postponed twice)"); }
+		if (domain.verbose_packet_drop()) {
+			log("[", domain, "] drop packet (handling postponed twice)"); }
 	}
 	_ack_packet(pkt);
 }
@@ -1381,7 +1382,7 @@ void Interface::_handle_eth(void              *const  eth_base,
 				}
 			}
 			catch (Drop_packet exception) {
-				if (_config().verbose()) {
+				if (local_domain.verbose_packet_drop()) {
 					log("[", local_domain, "] drop packet (",
 					    exception.reason, ")");
 				}
@@ -1799,9 +1800,13 @@ void Interface::_ack_packet(Packet_descriptor const &pkt)
 
 void Interface::cancel_arp_waiting(Arp_waiter &waiter)
 {
-	if (_config().verbose()) {
-		try { log("[", _domain(), "] drop packet (ARP got cancelled)"); }
-		catch (Pointer<Domain>::Invalid) {
+	try {
+		Domain &domain = _domain();
+		if (domain.verbose_packet_drop()) {
+			log("[", domain, "] drop packet (ARP got cancelled)"); }
+	}
+	catch (Pointer<Domain>::Invalid) {
+		if (_config().verbose_packet_drop()) {
 			log("[?] drop packet (ARP got cancelled)"); }
 	}
 	_ack_packet(waiter.packet());

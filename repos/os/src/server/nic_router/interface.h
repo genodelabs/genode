@@ -239,7 +239,8 @@ class Net::Interface : private Interface_list::Element
 		              Size_guard           &size_guard,
 		              Ipv4_packet          &ip);
 
-		void _continue_handle_eth(Packet_descriptor const &pkt);
+		void _continue_handle_eth(Domain            const &domain,
+		                          Packet_descriptor const &pkt);
 
 		Ipv4_address const &_router_ip() const;
 

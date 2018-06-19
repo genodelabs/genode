@@ -93,6 +93,7 @@ class Net::Domain : public Domain_base,
 		Genode::size_t                        _tx_bytes             { 0 };
 		Genode::size_t                        _rx_bytes             { 0 };
 		bool                            const _verbose_packets;
+		bool                            const _verbose_packet_drop;
 		bool                            const _icmp_echo_server;
 		Genode::Session_label           const _label;
 
@@ -167,27 +168,28 @@ class Net::Domain : public Domain_base,
 		 ** Accessors **
 		 ***************/
 
-		bool                         verbose_packets()  const { return _verbose_packets; }
-		bool                         icmp_echo_server() const { return _icmp_echo_server; }
-		Genode::Session_label const &label()            const { return _label; }
-		Ipv4_config           const &ip_config()        const { return *_ip_config; }
-		List<Domain>                &ip_config_dependents()   { return _ip_config_dependents; }
-		Domain_name           const &name()             const { return _name; }
-		Ip_rule_list                &ip_rules()               { return _ip_rules; }
-		Forward_rule_tree           &tcp_forward_rules()      { return _tcp_forward_rules; }
-		Forward_rule_tree           &udp_forward_rules()      { return _udp_forward_rules; }
-		Transport_rule_list         &tcp_rules()              { return _tcp_rules; }
-		Transport_rule_list         &udp_rules()              { return _udp_rules; }
-		Ip_rule_list                &icmp_rules()             { return _icmp_rules; }
-		Nat_rule_tree               &nat_rules()              { return _nat_rules; }
-		Interface_list              &interfaces()             { return _interfaces; }
-		Configuration               &config()           const { return _config; }
+		bool                         verbose_packets()     const { return _verbose_packets; }
+		bool                         verbose_packet_drop() const { return _verbose_packet_drop; }
+		bool                         icmp_echo_server()    const { return _icmp_echo_server; }
+		Genode::Session_label const &label()               const { return _label; }
+		Ipv4_config           const &ip_config()           const { return *_ip_config; }
+		List<Domain>                &ip_config_dependents()      { return _ip_config_dependents; }
+		Domain_name           const &name()                const { return _name; }
+		Ip_rule_list                &ip_rules()                  { return _ip_rules; }
+		Forward_rule_tree           &tcp_forward_rules()         { return _tcp_forward_rules; }
+		Forward_rule_tree           &udp_forward_rules()         { return _udp_forward_rules; }
+		Transport_rule_list         &tcp_rules()                 { return _tcp_rules; }
+		Transport_rule_list         &udp_rules()                 { return _udp_rules; }
+		Ip_rule_list                &icmp_rules()                { return _icmp_rules; }
+		Nat_rule_tree               &nat_rules()                 { return _nat_rules; }
+		Interface_list              &interfaces()                { return _interfaces; }
+		Configuration               &config()              const { return _config; }
 		Dhcp_server                 &dhcp_server();
-		Arp_cache                   &arp_cache()              { return _arp_cache; }
-		Arp_waiter_list             &foreign_arp_waiters()    { return _foreign_arp_waiters; }
-		Link_side_tree              &tcp_links()              { return _tcp_links; }
-		Link_side_tree              &udp_links()              { return _udp_links; }
-		Link_side_tree              &icmp_links()             { return _icmp_links; }
+		Arp_cache                   &arp_cache()                 { return _arp_cache; }
+		Arp_waiter_list             &foreign_arp_waiters()       { return _foreign_arp_waiters; }
+		Link_side_tree              &tcp_links()                 { return _tcp_links; }
+		Link_side_tree              &udp_links()                 { return _udp_links; }
+		Link_side_tree              &icmp_links()                { return _icmp_links; }
 };
 
 #endif /* _DOMAIN_H_ */
