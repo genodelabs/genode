@@ -1,0 +1,22 @@
+diff --git a/drivers/input/evdev.c b/drivers/input/evdev.c
+index c81c79d..c75bd8d 100644
+--- a/drivers/input/evdev.c
++++ b/drivers/input/evdev.c
+@@ -1425,6 +1425,7 @@ static int evdev_connect(struct input_handler *handler, struct input_dev *dev,
+ 	if (error)
+ 		goto err_cleanup_evdev;
+ 
++	evdev_open_device(evdev);
+ 	return 0;
+ 
+  err_cleanup_evdev:
+@@ -1456,8 +1457,7 @@ static const struct input_device_id evdev_ids[] = {
+ MODULE_DEVICE_TABLE(input, evdev_ids);
+ 
+ static struct input_handler evdev_handler = {
+-	.event		= evdev_event,
+-	.events		= evdev_events,
++	.event		= genode_evdev_event,
+ 	.connect	= evdev_connect,
+ 	.disconnect	= evdev_disconnect,
+ 	.legacy_minors	= true,

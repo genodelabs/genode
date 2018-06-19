@@ -2,7 +2,7 @@ LICENSE     := GPLv2
 VERSION     := 2
 DOWNLOADS   := dwc_otg.git usb.archive intel_fb.archive lxip.archive \
                wifi.archive fec.archive libnl.archive wpa_supplicant.git \
-               fw.archive usb_host.archive dwc_otg_host.git
+               fw.archive usb_host.archive dwc_otg_host.git usb_hid.archive
 
 #
 # Tools
@@ -42,6 +42,14 @@ SHA(usb_host)     := 0d6971a81da97e38b974c5eba31a74803bfe41aabc46d406c3acda56306
 DIR(usb_host)     := $(SRC_DIR_USB_HOST)
 TAR_OPT(usb_host) := --strip-components=1 --files-from - < <(sed 's/-x.x.x/-$(VERSION_USB_HOST)/g' $(REP_DIR)/usb_host.list)
 HASH_INPUT        += $(REP_DIR)/usb_host.list
+
+SRC_DIR_USB_HID  := src/drivers/usb_hid
+VERSION_USB_HID  := 4.16.3
+URL(usb_hid)     := https://www.kernel.org/pub/linux/kernel/v4.x/linux-$(VERSION_USB_HID).tar.xz
+SHA(usb_hid)     := 0d6971a81da97e38b974c5eba31a74803bfe41aabc46d406c3acda56306c81a3
+DIR(usb_hid)     := $(SRC_DIR_USB_HID)
+TAR_OPT(usb_hid) := --strip-components=1 --files-from - < <(sed 's/-x.x.x/-$(VERSION_USB_HID)/g' $(REP_DIR)/usb_hid.list)
+HASH_INPUT       += $(REP_DIR)/usb_hid.list
 
 #
 # Raspberry Pi USB controller
@@ -135,6 +143,7 @@ PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/usb_host*
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/usb*.patch)))
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/intel*.patch)))
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/fec_*.patch)))
+PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/usb_hid*.patch)))
 
 #IP stack
 LXIP_OPT = -p1 -d$(SRC_DIR_LXIP)
@@ -171,6 +180,12 @@ PATCH_OPT(patches/usb_tv64.patch)        := $(USB_OPT)
 USB_HOST_OPT = -p1 -d$(SRC_DIR_USB_HOST)
 PATCH_OPT(patches/usb_host_mem.patch)    := $(USB_HOST_OPT)
 PATCH_OPT(patches/usb_host_omap.patch)   := $(USB_HOST_OPT)
+
+# USB HID
+USB_HID_OPT = -p1 -d$(SRC_DIR_USB_HID)
+PATCH_OPT(patches/usb_hid_usbhid.patch)    := $(USB_HID_OPT)
+PATCH_OPT(patches/usb_hid_wacom_sys.patch) := $(USB_HID_OPT)
+PATCH_OPT(patches/usb_hid_evdev.patch)     := $(USB_HID_OPT)
 
 # INTEL FB
 PATCH_OPT(patches/intel_fb_backlight.patch) := -p1 -d$(SRC_DIR_INTEL_FB)
