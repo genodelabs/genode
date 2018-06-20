@@ -104,6 +104,7 @@ install_config {
 				<rom name="manual_deploy.config" as="deploy"/>
 				<rom name="en_us.chargen"/>
 				<rom name="de.chargen"/>
+				<rom name="de_ch.chargen"/>
 				<rom name="special.chargen"/>
 				<rom name="vimrc"/>
 				<inline name="system">} [config_system_content] {
@@ -452,7 +453,7 @@ file copy -force [genode_dir]/repos/gems/run/sculpt/machine.vbox [run_dir]/genod
 file copy -force [genode_dir]/repos/gems/recipes/raw/drivers_managed-pc/drivers.config \
                  [run_dir]/genode/drivers.config
 
-foreach file { en_us.chargen de.chargen special.chargen } {
+foreach file { en_us.chargen de.chargen de_ch.chargen special.chargen } {
 	file copy -force [genode_dir]/repos/os/src/server/input_filter/$file \
 	                 [run_dir]/genode/$file }
 
