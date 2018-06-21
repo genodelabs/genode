@@ -21,7 +21,7 @@ CUSTOM_ADA_INCLUDE = -I- -I$(REP_DIR)/src/lib/ada/runtime -I$(ADA_RTS_SOURCE) -I
 SRC_CC += a-except_c.cc s-soflin_c.cc a-exctab_c.cc
 
 # C runtime glue code
-SRC_CC += s-secsta_c.cc
+SRC_CC += s-secsta_c.cc libc.cc
 
 # Ada packages that implement runtime functionality
 SRC_ADB += ss_utils.adb
