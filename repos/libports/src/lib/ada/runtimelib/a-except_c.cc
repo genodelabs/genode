@@ -13,10 +13,15 @@ extern "C" {
     }
 
     /* Constraint Error */
-    void __gnat_rcheck_CE_Explicit_Raise(char *file, int line)
+    void constraint_error(char *file, int line)
     {
         Genode::error("Constraint Error in ", Genode::Cstring(file), " at line ", line);
         throw Ada::Exception::Constraint_Error();
+    }
+
+    void __gnat_rcheck_CE_Explicit_Raise(char *file, int line)
+    {
+         constraint_error(file, line);
     }
 
     /* Storage Error */
