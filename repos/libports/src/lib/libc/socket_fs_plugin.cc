@@ -131,7 +131,7 @@ struct Libc::Socket_fs::Context : Plugin_context
 	private:
 
 		enum Fd : unsigned {
-			DATA, CONNECT, BIND, LISTEN, ACCEPT, LOCAL, REMOTE, MAX
+			DATA, PEEK, CONNECT, BIND, LISTEN, ACCEPT, LOCAL, REMOTE, MAX
 		};
 
 		struct
@@ -140,7 +140,7 @@ struct Libc::Socket_fs::Context : Plugin_context
 			int              num;
 			File_descriptor *file;
 		} _fd[Fd::MAX] = {
-			{ "data",    -1, nullptr },
+			{ "data",    -1, nullptr }, { "peek",   -1, nullptr },
 			{ "connect", -1, nullptr }, { "bind",   -1, nullptr },
 			{ "listen",  -1, nullptr }, { "accept", -1, nullptr },
 			{ "local",   -1, nullptr }, { "remote", -1, nullptr }
@@ -205,6 +205,7 @@ struct Libc::Socket_fs::Context : Plugin_context
 		}
 
 		int data_fd()    { return _fd_for_type(Fd::DATA,    O_RDWR); }
+		int peek_fd()    { return _fd_for_type(Fd::PEEK,    O_RDONLY); }
 		int connect_fd() { return _fd_for_type(Fd::CONNECT, O_RDWR); }
 		int bind_fd()    { return _fd_for_type(Fd::BIND,    O_WRONLY); }
 		int listen_fd()  { return _fd_for_type(Fd::LISTEN,  O_WRONLY); }
@@ -751,9 +752,11 @@ static ssize_t do_recvfrom(File_descriptor *fd,
 	/* TODO ENOTCONN */
 	/* TODO ECONNREFUSED */
 
+	int data_fd = flags & MSG_PEEK ? context->peek_fd() : context->data_fd();
+
 	try {
-		lseek(context->data_fd(), 0, 0);
-		ssize_t out_len = read(context->data_fd(), buf, len);
+		lseek(data_fd, 0, 0);
+		ssize_t out_len = read(data_fd, buf, len);
 		return out_len;
 	} catch (Socket_fs::Context::Inaccessible) {
 		return Errno(EINVAL);
