@@ -3,7 +3,7 @@ include $(REP_DIR)/lib/import/import-ada.mk
 ADALIB = $(ADA_RTS)/adalib
 ADAINCLUDE = $(ADA_RTS)/adainclude
 
-PACKAGES = system s-stoele s-secsta a-except
+PACKAGES = system s-stoele s-secsta a-except s-arit64
 
 body_exists := $(filter $1.adb,$(shell if [ -e $2/$1.adb ]; then echo $1.adb; fi))
 
