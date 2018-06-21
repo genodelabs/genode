@@ -16,6 +16,7 @@
 #include <base/registry.h>
 #include <base/component.h>
 #include <base/attached_rom_dataspace.h>
+#include <base/sleep.h>
 #include <root/component.h>
 #include <timer_session/connection.h>
 #include <log_session/connection.h>
@@ -333,6 +334,11 @@ struct Dummy::Main
 
 			if (node.type() == "log")
 				log(node.attribute_value("string", String<50>()));
+
+			if (node.type() == "exit") {
+				_env.parent().exit(0);
+				sleep_forever();
+			}
 		});
 	}
 

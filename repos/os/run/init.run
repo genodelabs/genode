@@ -91,6 +91,78 @@ append config {
 			</expect_init_state>
 
 
+			<message string="exit state handling"/>
+
+			<init_config version="exiting child">
+				<report ids="yes"/>
+				<parent-provides>
+					<service name="ROM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
+					<service name="LOG"/>
+				</parent-provides>
+				<default caps="100"/>
+				<start name="exiting">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="2M"/>
+					<config>
+						<log string="started"/>
+						<exit/>
+					</config>
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+			</init_config>
+			<expect_log string="[init -> exiting] started"/>
+			<sleep ms="200"/>
+			<expect_init_state>
+				<attribute name="version" value="exiting child"/>
+				<node name="child">
+					<attribute name="name"   value="exiting"/>
+					<attribute name="binary" value="dummy"/>
+					<attribute name="id"     value="2"/>
+					<attribute name="exited" value="0"/>
+				</node>
+			</expect_init_state>
+			<!-- Trigger reconfiguration without changing anything about
+			     the exited application.
+			     The exited application must remain in its 'exited' state. -->
+			<init_config version="exiting child 2">
+				<report ids="yes"/>
+				<parent-provides>
+					<service name="ROM"/>
+					<service name="CPU"/>
+					<service name="PD"/>
+					<service name="LOG"/>
+				</parent-provides>
+				<default caps="100"/>
+				<start name="exiting">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="2M"/>
+					<config>
+						<log string="started"/>
+						<exit/>
+					</config>
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+				<start name="unrelated">
+					<binary name="dummy"/>
+					<resource name="RAM" quantum="2M"/>
+					<config/>
+					<route> <any-service> <parent/> </any-service> </route>
+				</start>
+			</init_config>
+			<sleep ms="200"/>
+			<expect_init_state>
+				<attribute name="version" value="exiting child 2"/>
+				<node name="child">
+					<attribute name="name"   value="exiting"/>
+					<attribute name="binary" value="dummy"/>
+					<attribute name="id"     value="2"/>
+					<attribute name="exited" value="0"/>
+				</node>
+			</expect_init_state>
+
+
 			<message string="routing to custom log service"/>
 
 			<!-- We let the client manually create a LOG session in addition
@@ -143,11 +215,11 @@ append config {
 			<expect_init_state>
 				<node name="child">
 					<attribute name="name" value="server"/>
-					<attribute name="id"   value="2"/>
+					<attribute name="id"   value="4"/>
 				</node>
 				<node name="child">
 					<attribute name="name" value="client"/>
-					<attribute name="id"   value="4"/>
+					<attribute name="id"   value="6"/>
 				</node>
 			</expect_init_state>
 			<sleep ms="150"/>
@@ -203,11 +275,11 @@ append config {
 			<expect_init_state>
 				<node name="child">
 					<attribute name="name" value="server"/>
-					<attribute name="id"   value="2"/>
+					<attribute name="id"   value="4"/>
 				</node>
 				<node name="child">
 					<attribute name="name" value="client"/>
-					<attribute name="id"   value="6"/> <!-- client was restarted -->
+					<attribute name="id"   value="8"/> <!-- client was restarted -->
 				</node>
 			</expect_init_state>
 			<sleep ms="100"/>
@@ -1336,11 +1408,11 @@ append config {
 			<expect_init_state>
 				<node name="child">
 					<attribute name="name" value="server"/>
-					<attribute name="id"   value="23"/>
+					<attribute name="id"   value="25"/>
 				</node>
 				<node name="child">
 					<attribute name="name" value="client"/>
-					<attribute name="id"   value="24"/>
+					<attribute name="id"   value="26"/>
 				</node>
 			</expect_init_state>
 			<sleep ms="150"/>
@@ -1371,7 +1443,7 @@ append config {
 			<expect_init_state>
 				<node name="child">
 					<attribute name="name" value="client"/>
-					<attribute name="id"   value="25"/>
+					<attribute name="id"   value="27"/>
 				</node>
 			</expect_init_state>
 			<sleep ms="150"/>
@@ -1478,5 +1550,5 @@ build_boot_image $boot_modules
 
 append qemu_args " -nographic "
 
-run_genode_until {.*child "test-init" exited with exit value 0.*} 200
+run_genode_until {.*child "test-init" exited with exit value 0.*} 300
 

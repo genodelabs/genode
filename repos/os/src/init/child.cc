@@ -26,7 +26,7 @@ void Init::Child::destroy_services()
 Init::Child::Apply_config_result
 Init::Child::apply_config(Xml_node start_node)
 {
-	if (_state == STATE_ABANDONED)
+	if (_state == STATE_ABANDONED || _exited)
 		return NO_SIDE_EFFECTS;
 
 	/*
