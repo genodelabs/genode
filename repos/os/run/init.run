@@ -13,7 +13,7 @@ create_boot_directory
 #
 
 append config {
-<config>
+<config prio_levels="2">
 	<parent-provides>
 		<service name="ROM"/>
 		<service name="CPU"/>
@@ -35,7 +35,7 @@ append config {
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="report_rom">
+	<start name="report_rom" priority="-1">
 		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="ROM"/> <service name="Report"/> </provides>
 		<config verbose="no">
@@ -44,7 +44,7 @@ append config {
 		</config>
 	</start>
 
-	<start name="test-init">
+	<start name="test-init" priority="-1">
 		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="LOG"/> </provides>
 		<config>
@@ -1518,7 +1518,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="init" caps="2000">
+	<start name="init" caps="2000" priority="-1">
 		<binary name="init"/>
 		<resource name="RAM" quantum="16M"/>
 		<configfile name="init.config"/>
