@@ -2,6 +2,7 @@
 
 #include "VirtualBoxImpl.h"
 #include "VBox/com/MultiResult.h"
+#include "iprt/cpp/exception.h"
 
 #include "dummy/macros.h"
 
@@ -30,9 +31,17 @@ HRESULT VirtualBoxBase::setErrorNoLog(HRESULT, const char *, ...)               
 void    VirtualBoxBase::clearError()                                            TRACE()
 HRESULT VirtualBoxBase::setError(HRESULT aResultCode)                           DUMMY(E_FAIL)
 HRESULT VirtualBoxBase::setError(const com::ErrorInfo &ei)                      DUMMY(E_FAIL)
-HRESULT VirtualBoxBase::handleUnexpectedExceptions(VirtualBoxBase *const,
-                                                   RT_SRC_POS_DECL)             TRACE(E_FAIL)
 HRESULT VirtualBoxBase::setErrorInternal(HRESULT, GUID const&, char const*,
                                          com::Utf8Str, bool, bool)              DUMMY(E_FAIL)
 HRESULT VirtualBoxBase::initializeComForThread(void)                            TRACE(S_OK)
 void    VirtualBoxBase::uninitializeComForThread(void)                          TRACE()
+
+HRESULT VirtualBoxBase::handleUnexpectedExceptions(VirtualBoxBase *const, RT_SRC_POS_DECL)
+{
+    try { throw; }
+    catch (const RTCError &err) { Genode::error(err.what()); }
+    catch (const std::exception &err) { Genode::error(err.what()); }
+    catch (...) { Genode::error("An unexpected exception occurred"); }
+
+    return E_FAIL;
+}
