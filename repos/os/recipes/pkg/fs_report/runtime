@@ -1,0 +1,14 @@
+<runtime ram="4M" caps="100" binary="fs_report">
+
+	<requires> <file_system/> </requires>
+	<provides> <report/> </provides>
+
+	<config/>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="vfs.lib.so"/>
+		<rom label="fs_report"/>
+	</content>
+
+</runtime>
