@@ -21,6 +21,9 @@ package System.Secondary_Stack is
 
 private
 
+   SS_Pool : Integer;
+   --  This is not used but needed since the build will fail otherwise
+
    type Mark_Id is record
       Sstk : System.Address;
       Sptr : SSE.Integer_Address;

@@ -1,0 +1,33 @@
+build "core init test/ada_exception"
+
+create_boot_directory
+
+install_config {
+	<config>
+		<parent-provides>
+			<service name="LOG"/>
+			<service name="PD"/>
+			<service name="CPU"/>
+			<service name="ROM"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> </any-service>
+		</default-route>
+		<default caps="100"/>
+		<start name="test-ada_exception">
+			<resource name="RAM" quantum="10M"/>
+		</start>
+	</config>
+}
+
+build_boot_image "core ld.lib.so ada.lib.so init test-ada_exception"
+
+append qemu_args "-nographic "
+
+run_genode_until {child "test-ada_secondary_stack" exited with exit value 0.*} 20
+
+grep_output {successful}
+
+compare_output_to {
+	[init -> test-ada_secondary_stack] secondary stack test successful
+}
