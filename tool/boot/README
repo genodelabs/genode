@@ -11,7 +11,7 @@ code respectively the download source of binaries are described below.
   The changes are available from
   https://github.com/alex-ab/morbo.git.
 
-  branch genode_bender, git commit 82d6397b6e13ed82f6a1965aaac59606af8c423b
+  branch genode_bender, git commit e4744198ed481886c48e3dee12c1fbd47411770f
 
 :'pulsar':
 
