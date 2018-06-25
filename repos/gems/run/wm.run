@@ -86,7 +86,7 @@ install_config {
 		<resource name="RAM" quantum="20M"/>
 		<config>
 			<launcher name="nit_fb" ram_quota="7M" caps="100">
-				<config width="500" height="400" />
+				<config initial_width="500" initial_height="400" />
 			</launcher>
 			<launcher name="nitpicker" ram_quota="1M" caps="100">
 				<config>
