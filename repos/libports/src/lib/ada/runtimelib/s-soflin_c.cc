@@ -23,4 +23,14 @@ extern "C" {
         Genode::warning(__func__, " not implemented");
     }
 
+    void system__soft_links__lock_task()
+    {
+        Genode::warning(__func__, " not implemented");
+    }
+
+    void system__soft_links__unlock_task()
+    {
+        Genode::warning(__func__, " not implemented");
+    }
+
 }
