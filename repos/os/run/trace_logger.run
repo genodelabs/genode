@@ -53,7 +53,7 @@ append config {
 append_platform_drv_config
 
 append_if [have_spec gpio] config "
-	<start name=\"[gpio_drv]\">
+	<start name=\"[gpio_drv]\" caps=\"140\">
 		<resource name=\"RAM\" quantum=\"4M\"/>
 		<provides><service name=\"Gpio\"/></provides>
 		<config/>

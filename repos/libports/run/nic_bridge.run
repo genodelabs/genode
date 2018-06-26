@@ -80,7 +80,7 @@ append config {
 			      gateway="10.0.2.1"/>
 		</config>
 	</start>
-	<start name="test-http_clnt">
+	<start name="test-http_clnt" caps="120">
 		<resource name="RAM" quantum="32M"/>
 		<route>
 			<service name="Nic"> <child name="nic_bridge"/> </service>
@@ -126,4 +126,4 @@ append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
 
 append qemu_args " -net user "
 
-run_genode_until ".*\"test-http_clnt\" exited with exit value 0.*\n" 30
+run_genode_until ".*\"test-http_clnt\" exited with exit value 0.*\n" 40
