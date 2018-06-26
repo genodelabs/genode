@@ -88,7 +88,6 @@ sub_rm
 synced_interface
 tar_rom
 thread
-thread_join
 timed_semaphore
 timeout
 timer

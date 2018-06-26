@@ -657,6 +657,43 @@ static void test_cxa_guards(Env &env)
 	log("running '", __func__, "' done");
 }
 
+
+/*********************************************
+ ** Successive construction and destruction **
+ *********************************************/
+
+struct Create_destroy_helper : Thread
+{
+	enum { STACK_SIZE = 0x2000 };
+
+	unsigned const    result_value;
+	unsigned volatile result { ~0U };
+
+	Create_destroy_helper(Env &env, unsigned result_value)
+	: Thread(env, "create_destroy", STACK_SIZE),
+	  result_value(result_value)
+	{ }
+
+	void entry()
+	{
+		result = result_value;
+	}
+};
+
+static void test_successive_create_destroy_threads(Env &env)
+{
+	log("running '", __func__, "'");
+
+	for (unsigned i = 0; i < 500; i++) {
+		Create_destroy_helper thread(env, i);
+		thread.start();
+		thread.join();
+		if (thread.result != i)
+			throw -30;
+	}
+}
+
+
 void Component::construct(Env &env)
 {
 	log("--- thread test started ---");
@@ -676,6 +713,7 @@ void Component::construct(Env &env)
 			test_pause_resume(env);
 
 		test_create_as_many_threads(env);
+		test_successive_create_destroy_threads(env);
 	} catch (int error) {
 		Genode::error("error ", error);
 		throw;
