@@ -78,6 +78,9 @@ bool Sculpt::Network_dialog::need_keyboard_focus_for_passphrase() const
 	if (_wifi_connection.state == Wifi_connection::CONNECTED)
 		return false;
 
+	if (!_nic_target.wifi())
+		return false;
+
 	return _for_each_ap([&] (Access_point const &ap) {
 		return _ap_item.selected(ap.bssid) && ap.wpa_protected(); });
 }
