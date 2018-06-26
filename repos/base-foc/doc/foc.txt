@@ -7,8 +7,10 @@
                             Stefan Kalkowski
 
 
-Fiasco.OC is a microkernel developed by the OS group of the TU-Dresden. It's
-an object-oriented capability-based system for x86, ARM and PowerPC platforms.
+Fiasco.OC is a microkernel originally developed by the OS group of the
+TU-Dresden. Nowadays, it is primarily maintained and developed by
+the company Kernkonzept. It's an object-oriented capability-based system
+for x86, ARM, PowerPC and MIPS platforms.
 
 This document provides brief instructions about downloading, building and
 booting the Fiasco.OC version of Genode.
@@ -20,7 +22,7 @@ Prerequisites
 You need certain tools to use the Fiasco.OC build system. On Debian/Ubuntu
 systems you have to install the following packages:
 
-! apt-get install make gawk pkg-config subversion patch
+! apt-get install make gawk g++ binutils pkg-config g++-multilib subversion
 
 Moreover, you need to download and install the tool-chain used by Genode. Have
 a look at this page:
@@ -28,22 +30,16 @@ a look at this page:
 :[http://genode.org/download/tool-chain]:
   Genode tool-chain
 
-If you want to use the so called run-scripts in Genode, a mechanism that
-automates building, integration and testing of components, you have to install
-the following, additional package:
-
-! apt-get install expect
-
 
 Building the Fiasco.OC version of Genode
 ########################################
 
-The current version of Genode is available at the public subversion repository:
+The current version of Genode is available at the public Github repository:
 
-:http://genode.org/download/subversion-repository:
-  Information about accessing the Genode public subversion repository
+:http://github.com/genodelabs/genode:
+  Github repository of Genode
 
-After you've fetched the Genode source tree from the subversion repository, or
+After you've fetched the Genode source tree from the git repository, or
 downloaded the latest release tar archive, you need the Fiasco.OC source code,
 its kernel-bindings, additional bootstrap tools etc. To simplify that step,
 you can use the 'prepare_port' tool:
@@ -52,26 +48,19 @@ you can use the 'prepare_port' tool:
 
 This will install all necessary third-party source code in the 'contrib' folder.
 
-For the vesa driver on x86 the x86emu library is required and can be downloaded
-and prepared by invoking the following command:
-
-! ./tool/ports/prepare_port x86emu
-
 Now, go to a directory where you want the Genode/Fiasco.OC build directory to
 remain. Use the helper script in the 'tool' directory of the Genode
 source tree to create the initial build environment. You need to state the
 build directory you want to create, and the hardware architecture to run
-Fiasco.OC/Genode on. Choose 'foc_x86_32', 'foc_x86_64', or 'foc_pbxa9'
-depending on whether you want to build for the 32-bit or 64-bit X86
-architecture, or for ARMs Cortex-A9.
+Fiasco.OC/Genode on. Choose 'x86_32', 'x86_64', or one of the available ARM
+boards.
 
-! <genode-dir>/tool/create_builddir foc_x86_32 \
-!     BUILD_DIR=<build-dir>
+! <genode-dir>/tool/create_builddir x86_64
 
 Now, go to the newly created build directory and type make:
 
-! cd <build-dir>
-! make
+! cd build/x86_64
+! make KERNEL=foc
 
 This will build the Fiasco.OC kernel, its bootstrap code, and every Genode component,
 that runs on top of Fiasco.OC.
@@ -79,12 +68,11 @@ that runs on top of Fiasco.OC.
 If you just want to give Genode/Fiasco.OC a try, you can call e.g.: the demo run-script
 instead of building everything:
 
-! cd <build-dir>
-! make run/demo
+! make run/demo KERNEL=foc
 
 
 Further Information
 ###################
 
-:[http://os.inf.tu-dresden.de/fiasco]:
+:[https://l4re.org/fiasco/]:
   Official website for the Fiasco.OC microkernel.

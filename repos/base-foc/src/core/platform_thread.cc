@@ -259,7 +259,7 @@ void Platform_thread::_finalize_construction(const char *name)
 		warning("creating thread's irq failed");
 
 	/* attach thread to irq */
-	tag = l4_irq_attach(_irq.local.data()->kcap(), 0, _thread.local.data()->kcap());
+	tag = l4_rcv_ep_bind_thread(_irq.local.data()->kcap(), _thread.local.data()->kcap(), 0);
 	if (l4_msgtag_has_error(tag))
 		warning("attaching thread's irq failed");
 

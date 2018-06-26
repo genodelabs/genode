@@ -5,6 +5,7 @@
 CONFIG_ARCH_ENABLE_STACK_PROTECTOR=y
 # CONFIG_BUILD_ARCH_amd64 is not set
 CONFIG_BUILD_ARCH_arm=y
+# CONFIG_BUILD_ARCH_arm64 is not set
 # CONFIG_BUILD_ARCH_mips is not set
 # CONFIG_BUILD_ARCH_ppc32 is not set
 # CONFIG_BUILD_ARCH_sparc is not set
@@ -23,34 +24,39 @@ CONFIG_CPU_ARM_ARMV6=y
 # CONFIG_CPU_ARM_ARMV7A is not set
 CONFIG_CPU="armv6"
 CONFIG_CPU_ARMV6PLUS=y
-# CONFIG_PLATFORM_TYPE_armada38x is not set
-# CONFIG_PLATFORM_TYPE_beagleboard is not set
-# CONFIG_PLATFORM_TYPE_cubieboard2 is not set
 # CONFIG_PLATFORM_TYPE_exynos4 is not set
-# CONFIG_PLATFORM_TYPE_exynos5 is not set
-# CONFIG_PLATFORM_TYPE_imx21 is not set
-# CONFIG_PLATFORM_TYPE_imx28 is not set
 # CONFIG_PLATFORM_TYPE_imx35 is not set
+# CONFIG_PLATFORM_TYPE_zedboard is not set
+# CONFIG_PLATFORM_TYPE_beagleboard is not set
+# CONFIG_PLATFORM_TYPE_rv_pbx is not set
+# CONFIG_PLATFORM_TYPE_exynos5 is not set
+# CONFIG_PLATFORM_TYPE_kirkwood is not set
+# CONFIG_PLATFORM_TYPE_ls1012afrdm is not set
+# CONFIG_PLATFORM_TYPE_pandaboard is not set
+# CONFIG_PLATFORM_TYPE_arm_virt is not set
+# CONFIG_PLATFORM_TYPE_tegra2 is not set
+# CONFIG_PLATFORM_TYPE_rv is not set
+# CONFIG_PLATFORM_TYPE_rv_vexpress_a15 is not set
+# CONFIG_PLATFORM_TYPE_cubieboard2 is not set
+# CONFIG_PLATFORM_TYPE_omap3_am33xx is not set
+# CONFIG_PLATFORM_TYPE_parallella is not set
+CONFIG_PLATFORM_TYPE_rpi_b=y
+# CONFIG_PLATFORM_TYPE_imx21 is not set
 # CONFIG_PLATFORM_TYPE_imx51 is not set
+# CONFIG_PLATFORM_TYPE_ls1021atwr is not set
+# CONFIG_PLATFORM_TYPE_tegra3 is not set
+# CONFIG_PLATFORM_TYPE_imx7 is not set
+# CONFIG_PLATFORM_TYPE_imx28 is not set
+# CONFIG_PLATFORM_TYPE_omap3evm is not set
+# CONFIG_PLATFORM_TYPE_rcar3_m3 is not set
+# CONFIG_PLATFORM_TYPE_zynqmp is not set
 # CONFIG_PLATFORM_TYPE_imx6 is not set
 # CONFIG_PLATFORM_TYPE_imx6ul is not set
-# CONFIG_PLATFORM_TYPE_integrator is not set
-# CONFIG_PLATFORM_TYPE_kirkwood is not set
-# CONFIG_PLATFORM_TYPE_ls1021atwr is not set
-# CONFIG_PLATFORM_TYPE_omap3_am33xx is not set
-# CONFIG_PLATFORM_TYPE_omap3evm is not set
+# CONFIG_PLATFORM_TYPE_armada38x is not set
 # CONFIG_PLATFORM_TYPE_omap5 is not set
-# CONFIG_PLATFORM_TYPE_pandaboard is not set
-# CONFIG_PLATFORM_TYPE_parallella is not set
-# CONFIG_PLATFORM_TYPE_rpi_a is not set
-CONFIG_PLATFORM_TYPE_rpi_b=y
-# CONFIG_PLATFORM_TYPE_rv is not set
-# CONFIG_PLATFORM_TYPE_rv_pbx is not set
-# CONFIG_PLATFORM_TYPE_rv_vexpress_a15 is not set
 # CONFIG_PLATFORM_TYPE_rv_vexpress is not set
-# CONFIG_PLATFORM_TYPE_tegra2 is not set
-# CONFIG_PLATFORM_TYPE_tegra3 is not set
-# CONFIG_PLATFORM_TYPE_zedboard is not set
+# CONFIG_PLATFORM_TYPE_rpi_a is not set
+# CONFIG_PLATFORM_TYPE_integrator is not set
 # CONFIG_PLATFORM_TYPE_custom is not set
 CONFIG_PLATFORM_TYPE="rpi_b"
 # CONFIG_USE_DROPS_STDDIR is not set

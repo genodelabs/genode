@@ -43,9 +43,9 @@ Signal_source_client::Signal_source_client(Capability<Signal_source> cap)
 
 	Foc_native_cpu_client cpu_client(env_deprecated()->cpu_session()->native_cpu());
 	Native_capability thread_cap = cpu_client.native_cap(Thread::myself()->cap());
-	l4_msgtag_t tag = l4_irq_attach(_sem.data()->kcap(), 0, thread_cap.data()->kcap());
+	l4_msgtag_t tag = l4_rcv_ep_bind_thread(_sem.data()->kcap(), thread_cap.data()->kcap(), 0);
 	if (l4_error(tag))
-		Genode::raw("l4_irq_attach failed with ", l4_error(tag));
+		Genode::raw("l4_rcv_ep_bind_thread failed with ", l4_error(tag));
 }
 
 
