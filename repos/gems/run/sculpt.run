@@ -691,6 +691,17 @@ append manual_deploy_config {
 	</start>
 -->
 
+<!--
+	<start name="report_dump" pkg="} [depot_user]/pkg/[current_pkg report_dump] {">
+		<route>
+			<service name="File_system" label="report">
+				<parent label="report"/> </service>
+			<service name="File_system" label="target">
+				<child name="default_fs_rw"/> </service>
+		</route>
+	</start>
+	-->
+
 </config>}
 
 set fd [open [run_dir]/genode/manual_deploy.config w]

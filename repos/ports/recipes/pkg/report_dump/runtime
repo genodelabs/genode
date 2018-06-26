@@ -1,0 +1,45 @@
+<runtime ram="50M" caps="1000" binary="noux">
+
+	<requires>
+		<timer/>
+		<file_system label="report" writeable="no"/>
+		<file_system label="target" writeable="yes"/>
+	</requires>
+
+	<config stdin="/dev/null" stdout="/dev/log" stderr="/dev/log">
+		<fstab>
+			<tar name="bash-minimal.tar" />
+			<tar name="coreutils.tar" />
+			<dir name="dev"> <zero/> <null/> <log/> </dir>
+			<dir name="rw">     <fs label="target"/> </dir>
+			<dir name="report"> <fs label="report"/> </dir>
+			<dir name="tmp"> <ram /> </dir>
+			<inline name=".bash_profile">
+				while true; do
+					export VERSION=`printf "%(%T)T"`
+					mkdir "/rw/$VERSION"
+					cp -r /report/* "/rw/$VERSION/"
+					sleep 10
+				done
+			</inline>
+		</fstab>
+		<start name="/bin/bash">
+			<arg value="--login" />
+			<env name="HOME" value="/" />
+			<env name="TERM" value="screen" />
+		</start>
+	</config>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="libc.lib.so"/>
+		<rom label="libm.lib.so"/>
+		<rom label="noux"/>
+		<rom label="libc_noux.lib.so"/>
+		<rom label="posix.lib.so"/>
+		<rom label="bash-minimal.tar"/>
+		<rom label="coreutils.tar"/>
+		<rom label="vfs.lib.so"/>
+	</content>
+
+</runtime>

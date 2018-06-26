@@ -1,0 +1,7 @@
+_/src/noux
+_/src/bash-minimal
+_/src/coreutils
+_/src/libc
+_/src/posix
+_/src/init
+_/src/vfs

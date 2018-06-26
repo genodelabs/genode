@@ -1,0 +1,2 @@
+A subsystem that periodically copies Sculpt's report file system to the
+default file system.
