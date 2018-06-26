@@ -68,8 +68,10 @@ void Thread::_thread_start()
 	lx_sigaction(LX_SIGUSR1, empty_signal_handler, false);
 
 	/* inform core about the new thread and process ID of the new thread */
-	Linux_native_cpu_client native_cpu(thread->_cpu_session->native_cpu());
-	native_cpu.thread_id(thread->cap(), thread->native_thread().pid, thread->native_thread().tid);
+	{
+		Linux_native_cpu_client native_cpu(thread->_cpu_session->native_cpu());
+		native_cpu.thread_id(thread->cap(), thread->native_thread().pid, thread->native_thread().tid);
+	}
 
 	/* wakeup 'start' function */
 	startup_lock().unlock();
