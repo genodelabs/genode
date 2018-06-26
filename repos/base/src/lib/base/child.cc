@@ -644,6 +644,20 @@ void Child::deliver_session_cap(Server::Id id, Session_capability cap)
 				return;
 			}
 
+			/*
+			 * If the client vanished during the session creation, the
+			 * session-close state change must be reflected to the server
+			 * as soon as the session becomes available. This enables the
+			 * server to wind down the session. If we just discarded the
+			 * session, the server's ID space would become inconsistent
+			 * with ours.
+			 */
+			if (!session.client_exists()) {
+				session.phase = Session_state::CLOSE_REQUESTED;
+				session.service().initiate_request(session);
+				return;
+			}
+
 			session.cap   = cap;
 			session.phase = Session_state::AVAILABLE;
 

@@ -236,6 +236,8 @@ class Genode::Session_state : public Parent::Client, public Parent::Server
 		 */
 		Session::Label client_label() const { return label_from_args(_args.string()); }
 
+		bool client_exists() const { return _id_at_client.constructed(); }
+
 		/**
 		 * Return label presented to the server along with the session request
 		 */
