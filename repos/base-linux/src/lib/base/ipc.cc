@@ -301,8 +301,20 @@ static void extract_sds_from_message(unsigned start_index,
 
 		int const associated_sd = Genode::ep_sd_registry()->try_associate(sd, id);
 
-		buf.insert(Capability_space::import(Rpc_destination(associated_sd),
-		                                    Rpc_obj_key(badge)));
+		Native_capability arg_cap = Capability_space::lookup(Rpc_obj_key(badge));
+
+		if (arg_cap.valid()) {
+
+			/*
+			 * Discard the received selector and keep using the already
+			 * present one.
+			 */
+
+			buf.insert(arg_cap);
+		} else {
+			buf.insert(Capability_space::import(Rpc_destination(associated_sd),
+			                                    Rpc_obj_key(badge)));
+		}
 
 		if ((associated_sd >= 0) && (associated_sd != sd)) {
 
