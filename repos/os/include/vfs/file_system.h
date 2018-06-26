@@ -16,6 +16,7 @@
 
 #include <vfs/directory_service.h>
 #include <vfs/file_io_service.h>
+#include <util/xml_node.h>
 
 namespace Vfs { class File_system; }
 
