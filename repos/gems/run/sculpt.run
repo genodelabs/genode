@@ -655,7 +655,7 @@ append manual_deploy_config {
 	-->
 
 <!--
-	<start name="vbox5-tc-browser" pkg="alex-ab/pkg/vbox5-tc-firefox-nova-sculpt/2018-06-11">
+	<start name="vbox5-tc-browser" pkg="alex-ab/pkg/vbox5-tc-firefox-nova-sculpt/2018-06-27">
 		<route>
 			<service name="ROM"    label="capslock"> <parent label="capslock"/> </service>
 			<service name="ROM"    label="platform_info"> <parent/> </service>
@@ -670,7 +670,7 @@ append manual_deploy_config {
 	-->
 
 <!--
-	<start name="seoul-vmm-browser" pkg="alex-ab/pkg/seoul-nova-sculpt/2018-06-11">
+	<start name="seoul-vmm-browser" pkg="alex-ab/pkg/seoul-nova-sculpt/2018-06-27">
 		<route>
 			<service name="ROM" label="platform_info"> <parent/> </service>
 			<service name="RM">        <parent/> </service>
