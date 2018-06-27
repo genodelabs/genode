@@ -97,7 +97,7 @@ install_config {
 	<start name="test-driver_manager">
 		<resource name="RAM" quantum="1M"/>
 		<config>
-			<check_ahci_block_device label="ahci-0" block_count="65536" block_size="512"
+			<check_ahci_block_device label="ahci-1" block_count="65536" block_size="512"
 			                         model="QEMU HARDDISK"/>
 			<check_input/>
 			<check_framebuffer/>
@@ -147,7 +147,7 @@ if {[have_include "power_on/qemu"]} {
 append qemu_args " -m 128 "
 append qemu_args " -nographic "
 append qemu_args " -device ahci,id=ahci "
-append qemu_args " -drive id=hdd,file=bin/hdd_disk.raw,format=raw,if=none -device ide-hd,drive=hdd,bus=ahci.0 "
+append qemu_args " -drive id=hdd,file=bin/hdd_disk.raw,format=raw,if=none -device ide-hd,drive=hdd,bus=ahci.1 "
 
 run_genode_until {.*all expected devices present and accessible.*\n} 120
 
