@@ -635,7 +635,7 @@ append manual_deploy_config {
 -->
 
 <!--
-	<start name="top_view" pkg="alex-ab/pkg/top_view/2018-05-29-a">
+	<start name="top_view" pkg="alex-ab/pkg/top_view/2018-06-27">
 		<route>
 			<service name="TRACE"> <parent/> </service>
 			<service name="Timer"> <parent/> </service>
