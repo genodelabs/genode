@@ -102,6 +102,7 @@ install_config {
 				<rom name="leitzentrale.config"  as="leitzentrale"/>
 				<rom name="drivers.config"       as="drivers"/>
 				<rom name="manual_deploy.config" as="deploy"/>
+				<rom name="usb.config"           as="usb"/>
 				<rom name="en_us.chargen"/>
 				<rom name="de.chargen"/>
 				<rom name="de_ch.chargen"/>
@@ -235,6 +236,8 @@ install_config {
 				<child name="config_fs_rom" label="managed/fb_drv"/> </service>
 			<service name="ROM" label_last="numlock_remap.config">
 				<child name="config_fs_rom" label="numlock_remap"/> </service>
+			<service name="ROM" label_last="usb_policy">
+				<child name="config_fs_rom" label="usb"/> </service>
 			<service name="ROM" label_last="numlock">  <child name="report_rom"/> </service>
 			<service name="Timer"> <child name="timer"/> </service>
 			<service name="Report"> <child name="fs_report"/> </service>

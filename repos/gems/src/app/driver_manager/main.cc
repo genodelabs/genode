@@ -316,6 +316,7 @@ struct Driver_manager::Main : Block_devices_generator
 
 	Attached_rom_dataspace _platform    { _env, "platform_info" };
 	Attached_rom_dataspace _usb_devices { _env, "usb_devices" };
+	Attached_rom_dataspace _usb_policy  { _env, "usb_policy"  };
 	Attached_rom_dataspace _pci_devices { _env, "pci_devices" };
 	Attached_rom_dataspace _ahci_ports  { _env, "ahci_ports"  };
 	Attached_rom_dataspace _nvme_ns     { _env, "nvme_ns"     };
@@ -349,6 +350,9 @@ struct Driver_manager::Main : Block_devices_generator
 	Signal_handler<Main> _usb_devices_update_handler {
 		_env.ep(), *this, &Main::_handle_usb_devices_update };
 
+	Signal_handler<Main> _usb_policy_update_handler {
+		_env.ep(), *this, &Main::_handle_usb_devices_update };
+
 	void _handle_ahci_ports_update();
 
 	Signal_handler<Main> _ahci_ports_update_handler {
@@ -365,7 +369,7 @@ struct Driver_manager::Main : Block_devices_generator
 	};
 
 	void _generate_init_config    (Reporter &) const;
-	void _generate_usb_drv_config (Reporter &, Xml_node) const;
+	void _generate_usb_drv_config (Reporter &, Xml_node, Xml_node) const;
 	void _generate_block_devices  (Reporter &) const;
 
 	Ahci_driver::Default_label _default_block_device() const;
@@ -383,11 +387,14 @@ struct Driver_manager::Main : Block_devices_generator
 
 		_pci_devices.sigh(_pci_devices_update_handler);
 		_usb_devices.sigh(_usb_devices_update_handler);
+		_usb_policy .sigh(_usb_policy_update_handler);
 		_ahci_ports .sigh(_ahci_ports_update_handler);
 		_nvme_ns    .sigh(_nvme_ns_update_handler);
 
 		_generate_init_config(_init_config);
-		_generate_usb_drv_config(_usb_drv_config, Xml_node("<devices/>"));
+		_generate_usb_drv_config(_usb_drv_config,
+		                         Xml_node("<devices/>"),
+		                         Xml_node("<usb/>"));
 
 		_handle_pci_devices_update();
 		_handle_usb_devices_update();
@@ -494,8 +501,9 @@ void Driver_manager::Main::_handle_nvme_ns_update()
 void Driver_manager::Main::_handle_usb_devices_update()
 {
 	_usb_devices.update();
+	_usb_policy.update();
 
-	_generate_usb_drv_config(_usb_drv_config, _usb_devices.xml());
+	_generate_usb_drv_config(_usb_drv_config, _usb_devices.xml(), _usb_policy.xml());
 }
 
 
@@ -635,7 +643,8 @@ void Driver_manager::Main::_generate_block_devices(Reporter &block_devices) cons
 
 
 void Driver_manager::Main::_generate_usb_drv_config(Reporter &usb_drv_config,
-                                                    Xml_node devices) const
+                                                    Xml_node devices,
+                                                    Xml_node policy) const
 {
 	Reporter::Xml_generator xml(usb_drv_config, [&] () {
 
@@ -647,6 +656,9 @@ void Driver_manager::Main::_generate_usb_drv_config(Reporter &usb_drv_config,
 		xml.node("hid", [&] () { });
 		xml.node("raw", [&] () {
 			xml.node("report", [&] () { xml.attribute("devices", true); });
+
+			/* incorporate user-managed policy */
+			xml.append(policy.content_base(), policy.content_size());
 
 			devices.for_each_sub_node("device", [&] (Xml_node device) {
 
