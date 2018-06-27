@@ -41,6 +41,7 @@ namespace Input {
 	struct Touch_release   { Touch_id id; };
 
 	class Event;
+	class Binding;
 }
 
 
@@ -73,6 +74,8 @@ class Input::Event
 		 */
 		template <typename R, typename T>
 		static Genode::Point<R> _xy(T const &a) { return Genode::Point<R>(a.x, a.y); }
+
+		friend class Input::Binding;
 
 	public:
 

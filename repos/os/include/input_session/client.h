@@ -31,6 +31,8 @@ class Input::Session_client : public Genode::Rpc_client<Session>
 		Genode::size_t const _max_events =
 			_event_ds.size() / sizeof(Input::Event);
 
+		friend class Input::Binding;
+
 	public:
 
 		Session_client(Genode::Region_map &local_rm, Session_capability session)
