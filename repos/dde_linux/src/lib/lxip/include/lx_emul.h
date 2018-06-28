@@ -764,6 +764,11 @@ unsigned long nr_free_buffer_pages(void);
 
 #include <lx_emul/gfp.h>
 
+enum {
+	__GFP_COLD   = 0x00000100u,
+	__GFP_REPEAT = 0x00000400u,
+};
+
 struct page *alloc_pages_node(int nid, gfp_t gfp_mask,
                               unsigned int order);
 
@@ -1719,6 +1724,8 @@ enum {
  ***********************/
 
 #include <lx_emul/work.h>
+
+#define wait_queue_t wait_queue_entry_t
 
 void INIT_DEFERRABLE_WORK(struct delayed_work *, void (*func)(struct work_struct *));
 
