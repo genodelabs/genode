@@ -4,6 +4,10 @@ proc test_char_repeat { } {
 	# Qemu
 	if {[have_include "power_on/qemu"]} { return 0 }
 
+	# the legacy PIT timer driver is too inaccurate to produce stable results
+	# for the character-repeat test
+	if {[binary_name_timer] == "pit_timer_drv"} { return 0 }
+
 	return 1
 }
 
