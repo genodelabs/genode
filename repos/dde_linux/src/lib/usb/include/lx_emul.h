@@ -69,13 +69,6 @@ static inline void bt()
 
 #include <lx_emul/bug.h>
 
-
-/*********************
- ** linux/kconfig.h **
- *********************/
-
-#define IS_ENABLED(x) x
-
 /*****************
  ** asm/param.h **
  *****************/
@@ -181,8 +174,6 @@ typedef struct { __u8 b[16]; } uuid_le;
 
 #include <lx_emul/byteorder.h>
 
-#define __aligned(N) __attribute__((aligned(N)))
-
 struct __una_u16 { u16 x; } __attribute__((packed));
 struct __una_u32 { u32 x; } __attribute__((packed));
 struct __una_u64 { u64 x; } __attribute__((packed));
@@ -241,7 +232,6 @@ struct page
 #include <lx_emul/errno.h>
 
 enum {
-	ENOEXEC       = 8,
 	EISDIR        = 21,
 	EXFULL        = 52,
 	ERESTART      = 53,
@@ -629,6 +619,9 @@ ktime_t ktime_mono_to_real(ktime_t mono);
 
 #include <lx_emul/timer.h>
 
+#define from_timer(var, callback_timer, timer_fieldname) \
+	container_of(callback_timer, typeof(*var), timer_fieldname)
+
 
 /*******************
  ** linux/delay.h **
@@ -649,9 +642,10 @@ extern unsigned long loops_per_jiffy;  /* needed by 'dwc_otg_attr.c' */
 
 #include <lx_emul/work.h>
 
+#define wait_queue_t wait_queue_entry_t
+
 enum {
 	WORK_STRUCT_PENDING_BIT = 0,
-	WQ_FREEZABLE            = (1 << 2),
 };
 
 
@@ -1516,7 +1510,6 @@ int seq_putc(struct seq_file *, char);
 
 enum {
 	GFP_NOIO     = GFP_LX_DMA,
-	GFP_NOWAIT   = 0x2000000u,
 };
 
 unsigned long get_zeroed_page(gfp_t gfp_mask);

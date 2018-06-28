@@ -741,11 +741,6 @@ void *sg_virt(struct scatterlist *sg)
  ** linux/ioport.h **
  ********************/
 
-resource_size_t resource_size(const struct resource *res)
-{
-	return res->end - res->start + 1;
-}
-
 struct resource * devm_request_mem_region(struct device *dev, resource_size_t start,
                                           resource_size_t n, const char *name)
 {
@@ -989,9 +984,9 @@ signed long schedule_timeout_uninterruptible(signed long timeout)
 #include <lx_emul/impl/completion.h>
 
 
-static void _completion_timeout(unsigned long t)
+static void _completion_timeout(struct timer_list *t)
 {
-	Lx::Task *task = (Lx::Task *)t;
+	Lx::Task *task = (Lx::Task *)t->data;
 	task->unblock();
 }
 
@@ -1002,7 +997,8 @@ long __wait_completion(struct completion *work, unsigned long timeout)
 	unsigned long j = timeout ? jiffies + timeout : 0;
 
 	if (timeout) {
-		setup_timer(&t, _completion_timeout, (unsigned long)Lx::scheduler().current());
+		timer_setup(&t, _completion_timeout, 0u);
+		t.data = (unsigned long)Lx::scheduler().current();
 		mod_timer(&t, timeout);
 	}
 
@@ -1119,4 +1115,19 @@ int hex2bin(u8 *dst, const char *src, size_t count)
 		*dst++ = (hi << 4) | lo;
 	}
 	return 0;
+}
+
+
+/*******************
+ ** linux/timer.h **
+ *******************/
+
+extern "C" void init_timer(struct timer_list *) { }
+
+
+extern "C" void setup_timer(struct timer_list *timer, void (*function)(unsigned long),
+                            unsigned long data)
+{
+	timer_setup(timer, function, 0u);
+	timer->data = data;
 }

@@ -232,13 +232,6 @@ void cpu_relax(void) { SKIP; }
 struct task_struct *current;
 
 
-/******************
- ** linux/wait.h **
- ******************/
-
-void add_wait_queue(wait_queue_head_t *q, wait_queue_t *wait) { TRACE; }
-
-
 /*********************
  ** linux/kthread.h **
  *********************/
