@@ -84,8 +84,8 @@ void Platform::Device_pd::assign_pci(Genode::Io_mem_dataspace_capability const i
 		{
 			using Genode::print;
 			using Genode::Hex;
-			print(out, Hex(v >> 8, Hex::Prefix::OMIT_PREFIX), ":",
-			      Hex((v >> 3) & 0x1f, Hex::Prefix::OMIT_PREFIX), ".",
+			print(out, Hex((uint8_t)(v >> 8), Hex::Prefix::OMIT_PREFIX, Hex::PAD), ":",
+			      Hex((uint8_t)((v >> 3) & 0x1f), Hex::Prefix::OMIT_PREFIX, Hex::PAD), ".",
 			      Hex(v & 0x7, Hex::Prefix::OMIT_PREFIX));
 		}
 	};

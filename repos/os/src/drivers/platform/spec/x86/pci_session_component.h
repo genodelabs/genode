@@ -777,13 +777,14 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 				if (base_ecam + base_offset != device->config_space())
 					throw 1;
 
-				_device_pd.assign_pci(_pciconf.cap(), base_offset, device->config().bdf());
-
 				for (Rmrr *r = Rmrr::list()->first(); r; r = r->next()) {
 					Io_mem_dataspace_capability rmrr_cap = r->match(_env, device->config());
 					if (rmrr_cap.valid())
 						_device_pd.attach_dma_mem(rmrr_cap);
 				}
+
+				_device_pd.assign_pci(_pciconf.cap(), base_offset, device->config().bdf());
+
 			} catch (...) {
 				Genode::error("assignment to device pd or of RMRR region failed");
 			}
