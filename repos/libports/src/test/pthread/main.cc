@@ -13,6 +13,7 @@
 
 #include <pthread.h>
 #include <semaphore.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -52,7 +53,44 @@ void *thread_func(void *arg)
 	return 0;
 }
 
-void *thread_func_self_destruct(void *arg) { return 0; }
+/*
+ * Test self-destructing threads with 'pthread_join()', both when created and
+ * joined by the main thread and when created and joined by a pthread.
+ */
+
+void test_self_destruct(void *(*start_routine)(void*), uintptr_t num_iterations)
+{
+	for (uintptr_t i = 0; i < num_iterations; i++) {
+
+		pthread_t  t;
+		void      *retval;
+
+		if (pthread_create(&t, 0, start_routine, (void*)i) != 0) {
+			printf("error: pthread_create() failed\n");
+			exit(-1);
+		}
+
+		pthread_join(t, &retval);
+		
+		if (retval != (void*)i) {
+			printf("error: return value does not match\n");
+			exit(-1);
+		}
+	}
+}
+
+void *thread_func_self_destruct2(void *arg)
+{
+	return arg;
+}
+
+void *thread_func_self_destruct(void *arg)
+{
+	test_self_destruct(thread_func_self_destruct2, 2);
+
+	return arg;
+}
+
 
 static inline void compare_semaphore_values(int reported_value, int expected_value)
 {
@@ -120,12 +158,24 @@ int main(int argc, char **argv)
 	for (int i = 0; i < NUM_THREADS; i++)
 		if (thread[i].thread_args.thread_id_self != thread[i].thread_id_create) {
 			printf("error: thread IDs don't match\n");
+			return -1;
 		}
 
 	printf("main thread: destroying the threads\n");
 
-	for (int i = 0; i < NUM_THREADS; i++)
+	for (int i = 0; i < NUM_THREADS; i++) {
+
+		void *retval;
+
 		pthread_cancel(thread[i].thread_id_create);
+
+		pthread_join(thread[i].thread_id_create, &retval);
+
+		if (retval != PTHREAD_CANCELED) {
+			printf("error: return value is not PTHREAD_CANCELED\n");
+			return -1;
+		}
+	}
 
 	printf("main thread: destroying the semaphores\n");
 
@@ -134,13 +184,7 @@ int main(int argc, char **argv)
 
 	printf("main thread: create pthreads which self de-struct\n");
 
-	for (unsigned i = 0 ; i < 100; i++) {
-		pthread_t t;
-		if (pthread_create(&t, 0, thread_func_self_destruct, 0) != 0) {
-			printf("error: pthread_create() failed\n");
-			return -1;
-		}
-	}
+	test_self_destruct(thread_func_self_destruct, 100);
 
 	printf("--- returning from main ---\n");
 	return 0;

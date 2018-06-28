@@ -60,8 +60,6 @@ extern "C" {
 	 * defined as 'struct pthread*' in '_pthreadtypes.h'
 	 */
 	struct pthread;
-
-	void pthread_cleanup();
 }
 
 
@@ -104,7 +102,6 @@ struct pthread : Genode::Noncopyable, Genode::Thread::Tls::Base
 		{
 			start_routine_t _start_routine;
 			void           *_arg;
-			bool            _exiting = false;
 
 			void          *&_stack_addr;
 			size_t         &_stack_size;
@@ -149,6 +146,23 @@ struct pthread : Genode::Noncopyable, Genode::Thread::Tls::Base
 			pthread_registry().insert(this);
 		}
 
+		bool _exiting = false;
+
+		/*
+		 * The join lock is needed because 'Libc::resume_all()' uses a
+		 * 'Signal_transmitter' which holds a reference to a signal context
+		 * capability, which needs to be released before the thread can be
+		 * destroyed.
+		 *
+		 * Also, we cannot use 'Genode::Thread::join()', because it only
+		 * returns when the thread entry function returns, which does not
+		 * happen with 'pthread_cancel()'.
+		 */
+		Genode::Lock _join_lock { Genode::Lock::LOCKED };
+
+		/* return value for 'pthread_join()' */
+		void *_retval = PTHREAD_CANCELED;
+
 		/* attributes for 'pthread_attr_get_np()' */
 		void   *_stack_addr = nullptr;
 		size_t  _stack_size = 0;
@@ -191,12 +205,20 @@ struct pthread : Genode::Noncopyable, Genode::Thread::Tls::Base
 		}
 
 		void start() { _thread.start(); }
-		bool exiting() const
-		{
-			return _thread_object->_exiting;
-		}
 
-		void join() { _thread.join(); }
+		void join(void **retval);
+
+		/*
+		 * Inform the thread calling 'pthread_join()' that this thread can be
+		 * destroyed.
+		 */
+		void cancel();
+
+		void exit(void *retval)
+		{
+			_retval = retval;
+			cancel();
+		}
 
 		void   *stack_addr() const { return _stack_addr; }
 		size_t  stack_size() const { return _stack_size; }

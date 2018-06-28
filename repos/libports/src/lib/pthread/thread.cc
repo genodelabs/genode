@@ -13,6 +13,7 @@
  */
 
 #include <base/log.h>
+#include <base/sleep.h>
 #include <base/thread.h>
 #include <os/timed_semaphore.h>
 #include <util/list.h>
@@ -25,24 +26,6 @@
 #include <libc/task.h> /* libc suspend/resume */
 
 using namespace Genode;
-
-/*
- * Structure to handle self-destructing pthreads.
- */
-struct thread_cleanup : List<thread_cleanup>::Element
-{
-	pthread_t thread;
-
-	thread_cleanup(pthread_t t) : thread(t) { }
-
-	~thread_cleanup() {
-		if (thread)
-			delete thread;
-	}
-};
-
-static Lock pthread_cleanup_list_lock;
-static List<thread_cleanup> pthread_cleanup_list;
 
 
 void * operator new(__SIZE_TYPE__ size) { return malloc(size); }
@@ -72,10 +55,43 @@ void pthread::Thread_object::entry()
 	_stack_addr = (void *)info.base;
 	_stack_size = info.top - info.base;
 
-	void *exit_status = _start_routine(_arg);
+	pthread_exit(_start_routine(_arg));
+}
+
+
+void pthread::join(void **retval)
+{
+	struct Check : Libc::Suspend_functor
+	{
+		bool retry { false };
+
+		pthread &_thread;
+
+		Check(pthread &thread) : _thread(thread) { }
+		
+		bool suspend() override
+		{
+			retry = !_thread._exiting;
+			return retry;
+ 		}
+	} check(*this);
+
+	do {
+		Libc::suspend(check);
+	} while (check.retry);
+
+	_join_lock.lock();
+
+	if (retval)
+		*retval = _retval;
+}
+
+
+void pthread::cancel()
+{
 	_exiting = true;
 	Libc::resume_all();
-	pthread_exit(exit_status);
+	_join_lock.unlock();
 }
 
 
@@ -136,20 +152,9 @@ extern "C" {
 
 	int pthread_join(pthread_t thread, void **retval)
 	{
-		struct Check : Libc::Suspend_functor
-		{
-			bool suspend() override {
-				return true;
-			}
-		} check;
+		thread->join(retval);
 
-		while (!thread->exiting()) {
-			Libc::suspend(check);
-		}
-
-
-		thread->join();
-		*((int **)retval) = 0;
+		delete thread;
 
 		return 0;
 	}
@@ -178,38 +183,17 @@ extern "C" {
 	}
 
 
-	void pthread_cleanup()
-	{
-		{
-			Lock_guard<Lock> lock_guard(pthread_cleanup_list_lock);
-
-			while (thread_cleanup * t = pthread_cleanup_list.first()) {
-				pthread_cleanup_list.remove(t);
-				delete t;
-			}
-		}
-	}
-
 	int pthread_cancel(pthread_t thread)
 	{
-		/* cleanup threads which tried to self-destruct */
-		pthread_cleanup();
-
-		if (pthread_equal(pthread_self(), thread)) {
-			Lock_guard<Lock> lock_guard(pthread_cleanup_list_lock);
-			pthread_cleanup_list.insert(new thread_cleanup(thread));
-		} else
-			delete thread;
-
+		thread->cancel();
 		return 0;
 	}
 
+
 	void pthread_exit(void *value_ptr)
 	{
-		pthread_cancel(pthread_self());
-
-		Lock lock;
-		while (true) lock.lock();
+		pthread_self()->exit(value_ptr);
+		Genode::sleep_forever();
 	}
 
 
