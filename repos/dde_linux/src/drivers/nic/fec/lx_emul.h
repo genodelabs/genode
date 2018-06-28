@@ -109,6 +109,10 @@ size_t iov_iter_count(struct iov_iter *i);
 #include <lx_emul/jiffies.h>
 #include <lx_emul/time.h>
 #include <lx_emul/timer.h>
+
+#define from_timer(var, callback_timer, timer_fieldname) \
+	container_of(callback_timer, typeof(*var), timer_fieldname)
+
 #include <lx_emul/mutex.h>
 #include <lx_emul/bitops.h>
 #include <lx_emul/atomic.h>
@@ -119,6 +123,12 @@ size_t iov_iter_count(struct iov_iter *i);
 #include <lx_emul/module.h>
 #include <lx_emul/bug.h>
 #include <lx_emul/gfp.h>
+
+enum {
+	__GFP_COLD   = 0x00000100u,
+	__GFP_REPEAT = 0x00000400u,
+};
+
 #include <lx_emul/barrier.h>
 #include <uapi/linux/swab.h>
 #include <lx_emul/byteorder.h>
@@ -192,7 +202,7 @@ static inline s64 timespec64_to_ns(const struct timespec64 *ts)
 	return ((s64) ts->tv_sec * NSEC_PER_SEC) + ts->tv_nsec;
 }
 
-#define ktime_to_ns(kt) ((kt).tv64)
+#define ktime_to_ns(kt) ((kt))
 
 ktime_t ns_to_ktime(u64 ns);
 

@@ -203,5 +203,6 @@ PATCH_OPT(patches/intel_fb_backlight.patch)  := -p1 -d$(SRC_DIR_INTEL_FB)
 # Freescale NIC
 PATCH_OPT(patches/fec_skbuff_cast.patch) := -p1 -d$(SRC_DIR_FEC)
 PATCH_OPT(patches/fec_tx_bounce_dma.patch) := -p1 -d$(SRC_DIR_FEC)
+PATCH_OPT(patches/fec_tv64.patch) := -p1 -d$(SRC_DIR_FEC)
 
 # vi: set ft=make :

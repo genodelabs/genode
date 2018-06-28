@@ -728,9 +728,9 @@ void reinit_completion(struct completion *work)
 }
 
 
-static void _completion_timeout(unsigned long t)
+static void _completion_timeout(struct timer_list *t)
 {
-	Lx::Task *task = (Lx::Task *)t;
+	Lx::Task *task = (Lx::Task *)t->data;
 	task->unblock();
 }
 
@@ -742,7 +742,8 @@ long __wait_completion(struct completion *work, unsigned long timeout)
 	unsigned long j = timeout ? jiffies + timeout : 0;
 
 	if (timeout) {
-		setup_timer(&t, _completion_timeout, (unsigned long)Lx::scheduler().current());
+		timer_setup(&t, _completion_timeout, 0u);
+		t.data = (unsigned long) Lx::scheduler().current();
 		mod_timer(&t, j);
 	}
 

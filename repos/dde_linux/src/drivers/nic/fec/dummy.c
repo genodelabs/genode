@@ -193,12 +193,6 @@ int regulator_disable(struct regulator *r)
 	return -1;
 }
 
-resource_size_t resource_size(const struct resource *res)
-{
-	TRACE_AND_STOP;
-	return -1;
-}
-
 bool page_is_pfmemalloc(struct page *page)
 {
 	TRACE_AND_STOP;
