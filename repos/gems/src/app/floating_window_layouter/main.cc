@@ -66,6 +66,9 @@ struct Floating_window_layouter::Main : Operations
 
 	Genode::Attached_rom_dataspace config { env, "config" };
 
+	Genode::Signal_handler<Main> config_dispatcher {
+		env.ep(), *this, &Main::handle_config };
+
 	Genode::Heap heap { env.ram(), env.rm() };
 
 	Genode::Tslab<Window,4096> window_slab { &heap };
@@ -73,6 +76,11 @@ struct Floating_window_layouter::Main : Operations
 	List<Window> windows;
 
 	Focus_history focus_history;
+
+	void handle_config()
+	{
+		config.update();
+	}
 
 	Window *lookup_window_by_id(Window_id const id)
 	{
@@ -336,6 +344,9 @@ struct Floating_window_layouter::Main : Operations
 
 		/* import initial state */
 		handle_window_list_update();
+
+		/* attach update handler for config */
+		config.sigh(config_dispatcher);
 	}
 };
 
