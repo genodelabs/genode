@@ -81,6 +81,8 @@ void Packet_handler::handle_ethernet(void* src, Genode::size_t size)
 		/* parse ethernet frame header */
 		Size_guard size_guard(size);
 		Ethernet_frame &eth = Ethernet_frame::cast_from(src, size_guard);
+		if (_verbose) {
+			Genode::log("[", _label, "] rcv ", eth); }
 		switch (eth.type()) {
 		case Ethernet_frame::Type::ARP:
 			if (!handle_arp(eth, size_guard)) return;
@@ -101,6 +103,8 @@ void Packet_handler::handle_ethernet(void* src, Genode::size_t size)
 
 void Packet_handler::send(Ethernet_frame *eth, Genode::size_t size)
 {
+	if (_verbose) {
+		Genode::log("[", _label, "] snd ", *eth); }
 	try {
 		/* copy and submit packet */
 		Packet_descriptor packet  = source()->alloc_packet(size);
@@ -113,11 +117,19 @@ void Packet_handler::send(Ethernet_frame *eth, Genode::size_t size)
 }
 
 
-Packet_handler::Packet_handler(Genode::Entrypoint &ep, Vlan &vlan)
+Packet_handler::Packet_handler(Genode::Entrypoint          &ep,
+                               Vlan                        &vlan,
+                               Genode::Session_label const &label,
+                               bool                  const &verbose)
 : _vlan(vlan),
+  _label(label),
+  _verbose(verbose),
   _sink_ack(ep, *this, &Packet_handler::_ack_avail),
   _sink_submit(ep, *this, &Packet_handler::_ready_to_submit),
   _source_ack(ep, *this, &Packet_handler::_ready_to_ack),
   _source_submit(ep, *this, &Packet_handler::_packet_avail),
   _client_link_state(ep, *this, &Packet_handler::_link_state)
-{ }
+{
+	if (_verbose) {
+		Genode::log("[", _label, "] interface initialized"); }
+}

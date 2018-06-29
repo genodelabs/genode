@@ -122,8 +122,12 @@ bool Net::Nic::handle_ip(Ethernet_frame &eth,
 }
 
 
-Net::Nic::Nic(Genode::Env &env, Genode::Heap &heap, Net::Vlan &vlan)
-: Packet_handler(env.ep(), vlan),
+Net::Nic::Nic(Genode::Env         &env,
+              Genode::Heap        &heap,
+              Net::Vlan           &vlan,
+              bool          const &verbose,
+              Session_label const &label)
+: Packet_handler(env.ep(), vlan, label, verbose),
   _tx_block_alloc(&heap),
   _nic(env, &_tx_block_alloc, BUF_SIZE, BUF_SIZE),
   _mac(_nic.mac_address().addr)

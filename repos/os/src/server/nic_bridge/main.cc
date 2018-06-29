@@ -28,12 +28,16 @@
 struct Main
 {
 	Genode::Env                    &env;
-	Genode::Entrypoint             &ep     { env.ep() };
-	Genode::Heap                    heap   { env.ram(), env.rm() };
-	Genode::Attached_rom_dataspace  config { env, "config" };
-	Net::Vlan                       vlan   { };
-	Net::Nic                        nic    { env, heap, vlan };
-	Net::Root                       root   { env, nic, heap, config.xml() };
+	Genode::Entrypoint             &ep        { env.ep() };
+	Genode::Heap                    heap      { env.ram(), env.rm() };
+	Genode::Attached_rom_dataspace  config    { env, "config" };
+	Net::Vlan                       vlan      { };
+	Genode::Session_label     const nic_label { "uplink" };
+	bool                      const verbose   { config.xml().attribute_value("verbose", false) };
+	Net::Nic                        nic       { env, heap, vlan, verbose,
+	                                            nic_label };
+	Net::Root                       root      { env, nic, heap, verbose,
+	                                            config.xml() };
 
 	Main(Genode::Env &e) : env(e)
 	{

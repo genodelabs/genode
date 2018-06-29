@@ -108,22 +108,24 @@ void Session_component::set_ipv4_address(Ipv4_address ip_addr)
 }
 
 
-Session_component::Session_component(Genode::Ram_session        &ram,
-                                     Genode::Region_map         &rm,
-                                     Genode::Entrypoint         &ep,
-                                     Genode::size_t              amount,
-                                     Genode::size_t              tx_buf_size,
-                                     Genode::size_t              rx_buf_size,
-                                     Mac_address                 vmac,
-                                     Net::Nic                   &nic,
-                                     char                       *ip_addr)
+Session_component::Session_component(Genode::Ram_session         &ram,
+                                     Genode::Region_map          &rm,
+                                     Genode::Entrypoint          &ep,
+                                     Genode::size_t               amount,
+                                     Genode::size_t               tx_buf_size,
+                                     Genode::size_t               rx_buf_size,
+                                     Mac_address                  vmac,
+                                     Net::Nic                    &nic,
+                                     bool                  const &verbose,
+                                     Genode::Session_label const &label,
+                                     char                        *ip_addr)
 : Stream_allocator(ram, rm, amount),
   Stream_dataspaces(ram, tx_buf_size, rx_buf_size),
   Session_rpc_object(rm,
                      Stream_dataspaces::tx_ds,
                      Stream_dataspaces::rx_ds,
                      Stream_allocator::range_allocator(), ep.rpc_ep()),
-  Packet_handler(ep, nic.vlan()),
+  Packet_handler(ep, nic.vlan(), label, verbose),
   _mac_node(*this, vmac),
   _ipv4_node(*this),
   _nic(nic)
@@ -157,11 +159,16 @@ Session_component::~Session_component() {
 }
 
 
-Net::Root::Root(Genode::Env &env, Net::Nic &nic, Genode::Allocator &md_alloc,
-                Genode::Xml_node config)
+Net::Root::Root(Genode::Env       &env,
+                Net::Nic          &nic,
+                Genode::Allocator &md_alloc,
+                bool        const &verbose,
+                Genode::Xml_node   config)
 :
 	Genode::Root_component<Session_component>(env.ep(), md_alloc),
 	_mac_alloc(Mac_address(config.attribute_value("mac", Mac_address(DEFAULT_MAC)))),
 	_env(env),
 	_nic(nic),
-	_config(config) { }
+	_config(config),
+	_verbose(verbose)
+{ }

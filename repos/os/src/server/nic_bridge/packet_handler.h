@@ -39,8 +39,10 @@ class Net::Packet_handler
 {
 	private:
 
-		Packet_descriptor _packet { };
-		Net::Vlan        &_vlan;
+		Packet_descriptor      _packet { };
+		Net::Vlan             &_vlan;
+		Genode::Session_label  _label;
+		bool            const &_verbose;
 
 		/**
 		 * submit queue not empty anymore
@@ -83,7 +85,10 @@ class Net::Packet_handler
 
 	public:
 
-		Packet_handler(Genode::Entrypoint&, Vlan&);
+		Packet_handler(Genode::Entrypoint&,
+		               Vlan&,
+		               Genode::Session_label const &label,
+		               bool                  const &verbose);
 
 		virtual ~Packet_handler() { }
 

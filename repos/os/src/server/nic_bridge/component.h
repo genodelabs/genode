@@ -123,15 +123,17 @@ class Net::Session_component : private Net::Stream_allocator,
 		 * \param rx_buf_size  buffer size for rx channel
 		 * \param vmac         virtual mac address
 		 */
-		Session_component(Genode::Ram_session &ram,
-		                  Genode::Region_map  &rm,
-		                  Genode::Entrypoint  &ep,
-		                  Genode::size_t       amount,
-		                  Genode::size_t       tx_buf_size,
-		                  Genode::size_t       rx_buf_size,
-		                  Mac_address          vmac,
-		                  Net::Nic            &nic,
-		                  char                *ip_addr = 0);
+		Session_component(Genode::Ram_session         &ram,
+		                  Genode::Region_map          &rm,
+		                  Genode::Entrypoint          &ep,
+		                  Genode::size_t               amount,
+		                  Genode::size_t               tx_buf_size,
+		                  Genode::size_t               rx_buf_size,
+		                  Mac_address                  vmac,
+		                  Net::Nic                    &nic,
+		                  bool                  const &verbose,
+		                  Genode::Session_label const &label,
+		                  char                        *ip_addr = 0);
 
 		~Session_component();
 
@@ -196,6 +198,7 @@ class Net::Root : public Genode::Root_component<Net::Session_component>
 		Genode::Env      &_env;
 		Net::Nic         &_nic;
 		Genode::Xml_node  _config;
+		bool       const &_verbose;
 
 	protected:
 
@@ -207,8 +210,9 @@ class Net::Root : public Genode::Root_component<Net::Session_component>
 			char ip_addr[MAX_IP_ADDR_LENGTH];
 			memset(ip_addr, 0, MAX_IP_ADDR_LENGTH);
 
+			Session_label label;
 			 try {
-				Session_label const label = label_from_args(args);
+				label = label_from_args(args);
 				Session_policy policy(label, _config);
 				policy.attribute("ip_addr").value(ip_addr, sizeof(ip_addr));
 			} catch (Xml_node::Nonexistent_attribute) {
@@ -226,7 +230,8 @@ class Net::Root : public Genode::Root_component<Net::Session_component>
 				return new (md_alloc())
 					Session_component(_env.ram(), _env.rm(), _env.ep(),
 					                  ram_quota, tx_buf_size, rx_buf_size,
-					                  _mac_alloc.alloc(), _nic, ip_addr);
+					                  _mac_alloc.alloc(), _nic, _verbose,
+					                  label, ip_addr);
 			}
 			catch (Mac_allocator::Alloc_failed) {
 				Genode::warning("Mac address allocation failed!");
@@ -244,8 +249,11 @@ class Net::Root : public Genode::Root_component<Net::Session_component>
 
 	public:
 
-		Root(Genode::Env &env, Net::Nic &nic, Genode::Allocator &md_alloc,
-		     Genode::Xml_node config);
+		Root(Genode::Env             &env,
+		     Net::Nic                &nic,
+		     Genode::Allocator       &md_alloc,
+		     bool              const &verbose,
+		     Genode::Xml_node         config);
 };
 
 #endif /* _COMPONENT_H_ */

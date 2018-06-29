@@ -59,7 +59,7 @@ append config {
 	<start name="nic_bridge" caps="200">
 		<resource name="RAM" quantum="24M"/>
 		<provides><service name="Nic"/></provides>
-		<config>
+		<config verbose="yes">
 			<policy label_prefix="test-lwip_httpsrv_static" ip_addr="10.0.2.55"/>
 		</config>
 		<route>

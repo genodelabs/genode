@@ -23,6 +23,7 @@ running as Genode processes without real network connectivity.
 The static IP can be configured per client of the NIC bridge using a '<policy>'
 node of the configuration. For example, the following policy assigns a static
 address to a client with the session label "lighttpd".
+
 !<start name="nic_bridge">
 !  ...
 !  <config>
@@ -34,6 +35,7 @@ Of course, the client needs to configure its TCP/IP stack to use the assigned
 IP address. This can be done via configuration arguments examined by the
 'lwip_nic_dhcp' libc plugin. For the given example, the configuration for the
 lighttpd process would look as follows.
+
 !<start name="lighttpd">
 !  <config>
 !    <interface ip_addr="10.0.2.55"
@@ -41,3 +43,11 @@ lighttpd process would look as follows.
 !               gateway="10.0.2.1"/>
 !  </config>
 !</start>
+
+The verbosity mode of the NIC bridge can be toggled with the verbose attribute
+(default value shown):
+
+! <config verbose="no" />
+
+If enabled, the NIC bridge logs sent and received packets as well as the
+lifetime of interfaces connected to the bridge.

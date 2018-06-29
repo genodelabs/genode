@@ -37,7 +37,11 @@ class Net::Nic : public Net::Packet_handler
 
 	public:
 
-		Nic(Genode::Env&, Genode::Heap&, Vlan&);
+		Nic(Genode::Env&,
+		    Genode::Heap&,
+		    Vlan&,
+		    bool                  const &verbose,
+		    Genode::Session_label const &label);
 
 		::Nic::Connection          *nic() { return &_nic; }
 		Mac_address mac() { return _mac; }
