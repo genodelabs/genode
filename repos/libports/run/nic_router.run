@@ -42,6 +42,8 @@ proc test_1_router_config { } {
 		<domain name="lan_1" interface="10.0.99.33/24" />} }
 }
 
+proc test_1_router_uplink_config { } { }
+
 
 #
 # Test 2 utilities
@@ -57,6 +59,11 @@ proc test_2_router_config { } {
 	if {[enable_test_2]} { return {
 		<policy label_prefix="udp_server_2" domain="udp_server_2" />
 		<domain name="udp_server_2" interface="18.17.16.14/24" />} }
+}
+
+proc test_2_router_uplink_config { } {
+	if {[enable_test_2]} { return {
+		<udp-forward port="1" domain="udp_server_2" to="18.17.16.15" />} }
 }
 
 
@@ -79,6 +86,11 @@ proc test_3_router_config { } {
 		</domain>} }
 }
 
+proc test_3_router_uplink_config { } {
+	if {[enable_test_3]} { return {
+		<ip dst="217.13.192.0/24" domain="udp_client_3" />} }
+}
+
 
 #
 # Test 4 utilities
@@ -96,6 +108,10 @@ proc test_4_router_config { } {
 		<domain name="http_server_1" interface="192.168.1.1/24" />} }
 }
 
+proc test_4_router_uplink_config { } {
+	if {[enable_test_4]} { return {
+		<tcp-forward port="80" domain="http_server_1" to="192.168.1.18" />} }
+}
 
 #
 # Test 5 utilities
@@ -111,6 +127,11 @@ proc test_5_router_config { } {
 	if {[enable_test_5]} { return {
 		<policy label_prefix="http_server_2" domain="http_server_2" />
 		<domain name="http_server_2" interface="192.168.2.1/24" />} }
+}
+
+proc test_5_router_uplink_config { } {
+	if {[enable_test_5]} { return {
+		<tcp-forward port="8080" domain="http_server_2" to="192.168.2.72" />} }
 }
 
 
@@ -133,6 +154,11 @@ proc test_6_router_config { } {
 				<permit port="2345" domain="uplink" />
 			</tcp>
 		</domain>} }
+}
+
+proc test_6_router_uplink_config { } {
+	if {[enable_test_6]} { return {
+		<nat domain="http_client_3" tcp-ports="6" />} }
 }
 
 
@@ -186,7 +212,6 @@ proc test_7_config { } {
 	}
 }
 
-
 proc test_7_router_config { } {
 	if {[enable_test_7]} { return {
 		<policy label_prefix="lan_2" domain="lan_2" />
@@ -208,6 +233,8 @@ proc test_7_router_config { } {
 			<nat domain="lan_2" tcp-ports="18" />
 		</domain>} }
 }
+
+proc test_7_router_uplink_config { } { }
 
 
 #
@@ -268,11 +295,14 @@ append config {
 			        gateway="10.0.2.1"
 			        verbose_packets="no">
 
-				<tcp-forward port="80"   domain="http_server_1" to="192.168.1.18" />
-				<tcp-forward port="8080" domain="http_server_2" to="192.168.2.72" />
-				<udp-forward port="1"    domain="udp_server_2"  to="18.17.16.15"  />
-				<nat domain="http_client_3" tcp-ports="6" />
-				<ip dst="217.13.192.0/24" domain="udp_client_3" />
+				} [test_1_router_uplink_config] {
+				} [test_2_router_uplink_config] {
+				} [test_3_router_uplink_config] {
+				} [test_4_router_uplink_config] {
+				} [test_5_router_uplink_config] {
+				} [test_6_router_uplink_config] {
+				} [test_7_router_uplink_config] {
+
 			</domain>
 
 			} [test_1_router_config] {
