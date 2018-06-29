@@ -14,7 +14,6 @@ SRC_CC      += stack_area.cc \
                dataspace_component.cc \
                default_log.cc \
                dump_alloc.cc \
-               echo.cc \
                io_mem_session_component.cc \
                io_mem_session_support.cc \
                io_port_session_component.cc \

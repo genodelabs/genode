@@ -91,9 +91,10 @@ int Platform_thread::start(void *ip, void *sp)
 
 	Utcb * const utcb = reinterpret_cast<Utcb *>(Thread::myself()->utcb());
 	unsigned const kernel_cpu_id = platform_specific()->kernel_cpu_id(_location.xpos());
+	addr_t const source_pd = platform_specific()->core_pd_sel();
 
 	addr_t const pt_oom = _pager->get_oom_portal();
-	if (!pt_oom || map_local(utcb,
+	if (!pt_oom || map_local(source_pd, utcb,
 	                         Obj_crd(pt_oom, 0), Obj_crd(_sel_pt_oom(), 0))) {
 		error("setup of out-of-memory notification portal - failed");
 		return -8;
@@ -162,7 +163,7 @@ int Platform_thread::start(void *ip, void *sp)
 
 		/* remap exception portals for first thread */
 		for (unsigned i = 0; i < sizeof(remap_dst)/sizeof(remap_dst[0]); i++) {
-			if (map_local(utcb,
+			if (map_local(source_pd, utcb,
 			              Obj_crd(remap_src[i], 0),
 			              Obj_crd(_sel_exc_base + remap_dst[i], 0)))
 				return -6;

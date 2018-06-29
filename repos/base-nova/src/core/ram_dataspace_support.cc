@@ -87,7 +87,8 @@ void Ram_dataspace_factory::_export_ram_ds(Dataspace_component *ds) {
 	Nova::Utcb * const utcb = reinterpret_cast<Nova::Utcb *>(Thread::myself()->utcb());
 	const Nova::Rights rights_rw(true, true, false);
 
-	if (map_local(utcb, ds->phys_addr(), reinterpret_cast<addr_t>(virt_ptr),
+	if (map_local(platform_specific()->core_pd_sel(), utcb, ds->phys_addr(),
+	              reinterpret_cast<addr_t>(virt_ptr),
 	              page_rounded_size >> get_page_size_log2(), rights_rw, true)) {
 		platform()->region_alloc()->free(virt_ptr, page_rounded_size);
 		throw Core_virtual_memory_exhausted();

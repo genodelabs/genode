@@ -86,7 +86,8 @@ addr_t Platform::_map_pages(addr_t const phys_addr, addr_t const pages,
 
 	addr_t const core_local_addr = reinterpret_cast<addr_t>(core_local_ptr);
 
-	int res = map_local(__main_thread_utcb, phys_addr, core_local_addr, pages,
+	int res = map_local(_core_pd_sel, __main_thread_utcb, phys_addr,
+	                    core_local_addr, pages,
 	                    Nova::Rights(true, true, false), true);
 
 	return res ? 0 : core_local_addr;
@@ -219,7 +220,7 @@ static void startup_handler()
 
 static addr_t init_core_page_fault_handler(addr_t const core_pd_sel)
 {
-	/* create echo EC */
+	/* create fault handler EC for core main thread */
 	enum {
 		GLOBAL     = false,
 		EXC_BASE   = 0
@@ -307,12 +308,13 @@ Platform::Platform() :
 
 	/* locally map the whole I/O port range */
 	enum { ORDER_64K = 16 };
-	map_local_one_to_one(__main_thread_utcb, Io_crd(0, ORDER_64K));
+	map_local_one_to_one(__main_thread_utcb, Io_crd(0, ORDER_64K), _core_pd_sel);
 	/* map BDA region, console reads IO ports at BDA_VIRT_ADDR + 0x400 */
 	enum { BDA_PHY = 0x0U, BDA_VIRT = 0x1U, BDA_VIRT_ADDR = 0x1000U };
 	map_local_phys_to_virt(__main_thread_utcb,
 	                       Mem_crd(BDA_PHY,  0, Rights(true, false, false)),
-	                       Mem_crd(BDA_VIRT, 0, Rights(true, false, false)));
+	                       Mem_crd(BDA_VIRT, 0, Rights(true, false, false)),
+	                       _core_pd_sel);
 
 
 	/*
@@ -324,7 +326,7 @@ Platform::Platform() :
 	 * we do this that early, because Core_mem_allocator uses
 	 * the main_thread_utcb very early to establish mappings
 	 */
-	if (map_local(__main_thread_utcb, (addr_t)__main_thread_utcb,
+	if (map_local(_core_pd_sel, __main_thread_utcb, (addr_t)__main_thread_utcb,
 	              (addr_t)main_thread_utcb(), 1, Rights(true, true, false))) {
 		error("could not remap utcb of main thread");
 		nova_die();
@@ -359,7 +361,7 @@ Platform::Platform() :
 		error("unaligned sc_idle_base value ", Hex(sc_idle_base));
 		nova_die();
 	}
-	if (map_local(__main_thread_utcb, Obj_crd(0, log2cpu),
+	if (map_local(_core_pd_sel, __main_thread_utcb, Obj_crd(0, log2cpu),
 	              Obj_crd(sc_idle_base, log2cpu), true))
 		nova_die();
 
@@ -388,7 +390,7 @@ Platform::Platform() :
 #endif
 
 	/* set up page fault handler for core - for debugging */
-	addr_t const ec_echo_sel = init_core_page_fault_handler(core_pd_sel());
+	addr_t const ec_core_exc_sel = init_core_page_fault_handler(core_pd_sel());
 
 	if (verbose_boot_info) {
 		if (hip->has_feature_vmx())
@@ -458,10 +460,6 @@ Platform::Platform() :
 	region_alloc()->remove_range(CORE_PAGER_UTCB_ADDR - get_page_size(),
 	                             get_page_size() * 3);
 
-	/* exclude utcb of echo thread + empty guard pages before and after */
-	region_alloc()->remove_range(Echo::ECHO_UTCB_ADDR - get_page_size(),
-	                             get_page_size() * 3);
-
 	/* exclude utcb of main thread and hip + empty guard pages before and after */
 	region_alloc()->remove_range((addr_t)__main_thread_utcb - get_page_size(),
 	                             get_page_size() * 4);
@@ -469,7 +467,7 @@ Platform::Platform() :
 	/* sanity checks */
 	addr_t check [] = {
 		reinterpret_cast<addr_t>(__main_thread_utcb), CORE_PAGER_UTCB_ADDR,
-		Echo::ECHO_UTCB_ADDR, BDA_VIRT_ADDR
+		BDA_VIRT_ADDR
 	};
 
 	for (unsigned i = 0; i < sizeof(check) / sizeof(check[0]); i++) { 
@@ -826,7 +824,7 @@ Platform::Platform() :
 		                                    "cross");
 	}
 
-	/* add echo thread and EC root thread to trace sources */
+	/* add exception handler EC for core and EC root thread to trace sources */
 	struct Core_trace_source : public  Trace::Source::Info_accessor,
 	                           private Trace::Control,
 	                           private Trace::Source
@@ -867,7 +865,7 @@ Platform::Platform() :
 	new (core_mem_alloc())
 		Core_trace_source(Trace::sources(),
 		                  Affinity::Location(0, 0, _cpus.width(), 1),
-		                  ec_echo_sel, "echo");
+		                  ec_core_exc_sel, "core_fault");
 
 	new (core_mem_alloc())
 		Core_trace_source(Trace::sources(),
@@ -899,7 +897,12 @@ unsigned Platform::kernel_cpu_id(unsigned genode_cpu_id)
 bool Mapped_mem_allocator::_map_local(addr_t virt_addr, addr_t phys_addr,
                                       unsigned size)
 {
-	map_local((Utcb *)Thread::myself()->utcb(), phys_addr,
+	/* platform_specific()->core_pd_sel() deadlocks if called from platform constructor */
+	Hip const * const hip  = (Hip const * const)__initial_sp;
+	Genode::addr_t const core_pd_sel = hip->sel_exc;
+
+	map_local(core_pd_sel,
+	          (Utcb *)Thread::myself()->utcb(), phys_addr,
 	          virt_addr, size / get_page_size(),
 	          Rights(true, true, false), true);
 	return true;

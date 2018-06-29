@@ -78,7 +78,8 @@ Core_region_map::attach(Dataspace_capability ds_cap, size_t,
 		Nova::Utcb * const utcb = reinterpret_cast<Nova::Utcb *>(Thread::myself()->utcb());
 		const Nova::Rights rights(true, writeable && ds->writable(), executable);
 
-		if (map_local(utcb, ds->phys_addr(), reinterpret_cast<addr_t>(virt_ptr),
+		if (map_local(platform_specific()->core_pd_sel(), utcb,
+		              ds->phys_addr(), reinterpret_cast<addr_t>(virt_ptr),
 		              page_rounded_size >> get_page_size_log2(), rights, true)) {
 			platform()->region_alloc()->free(virt_ptr, page_rounded_size);
 			throw Out_of_ram();

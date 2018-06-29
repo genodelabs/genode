@@ -23,7 +23,6 @@
 #include <nova/syscalls.h>
 
 /* local includes */
-#include <echo.h>
 #include <util.h>
 
 /**
@@ -55,31 +54,22 @@ inline Genode::addr_t boot_cpu()
  *                   target
  * \param kern_pd    Whether to map the items from the kernel or from core
  * \param dma_mem    Whether the memory is usable for DMA or not
- *
- * This functions sends a message from the calling EC to the echo EC.
- * The calling EC opens a receive window and the echo EC creates a transfer
- * item of the message and replies. The kernel will map during the reply
- * from the echo EC to the calling EC.
  */
-static int map_local(Nova::Utcb *utcb, Nova::Crd src_crd, Nova::Crd dst_crd,
-                     bool kern_pd = false, bool dma_mem = false,
-                     bool write_combined = false)
+static int map_local(Genode::addr_t const pd, Nova::Utcb * const utcb,
+                     Nova::Crd const src_crd, Nova::Crd const dst_crd,
+                     bool const kern_pd = false, bool const dma_mem = false,
+                     bool const write_combined = false)
 {
-	/* open receive window at current EC */
-	utcb->crd_rcv = dst_crd;
+	/* asynchronously map capabilities */
+	utcb->set_msg_word(0);
 
-	/* tell echo thread what to map */
-	utcb->msg()[0] = src_crd.value();
-	utcb->msg()[1] = 0;
-	utcb->msg()[2] = kern_pd;
-	utcb->msg()[3] = dma_mem;
-	utcb->msg()[4] = write_combined;
-	utcb->set_msg_word(5);
+	/* ignore return value as one item always fits into the utcb */
+	bool const ok = utcb->append_item(src_crd, 0, kern_pd, false, false,
+	                                  dma_mem, write_combined);
+	(void)ok;
 
-	/* establish the mapping via a portal traversal during reply phase */
-	Nova::uint8_t res = Nova::call(echo()->pt_sel());
-	if (res != Nova::NOVA_OK || utcb->msg_words() != 1 || !utcb->msg()[0] ||
-	    utcb->msg_items() != 1) {
+	Nova::uint8_t res = Nova::delegate(pd, pd, dst_crd);
+	if (res != Nova::NOVA_OK) {
 
 		typedef Genode::Hex Hex;
 		error("map_local failed ",
@@ -103,12 +93,17 @@ static int map_local(Nova::Utcb *utcb, Nova::Crd src_crd, Nova::Crd dst_crd,
 static inline int unmap_local(Nova::Crd crd, bool self = true) {
 	return Nova::revoke(crd, self); }
 
-inline int map_local_phys_to_virt(Nova::Utcb *utcb, Nova::Crd src,
-                                  Nova::Crd dst) {
-	return map_local(utcb, src, dst, true); }
+inline int map_local_phys_to_virt(Nova::Utcb * const utcb, Nova::Crd const src,
+                                  Nova::Crd const dst, Genode::addr_t const pd)
+{
+	return map_local(pd, utcb, src, dst, true);
+}
 
-inline int map_local_one_to_one(Nova::Utcb *utcb, Nova::Crd crd) {
-	return map_local(utcb, crd, crd, true); }
+inline int map_local_one_to_one(Nova::Utcb * const utcb, Nova::Crd const crd,
+                                Genode::addr_t const pd)
+{
+	return map_local(pd, utcb, crd, crd, true);
+}
 
 
 /**
@@ -133,7 +128,7 @@ lsb_bit(unsigned long const &value, unsigned char const shift = 0)
  * \param to_start    local virtual destination address
  * \param num_pages   number of pages to map
  */
-inline int map_local(Nova::Utcb *utcb,
+inline int map_local(Genode::addr_t const pd, Nova::Utcb *utcb,
                      Genode::addr_t from_start, Genode::addr_t to_start,
                      Genode::size_t num_pages,
                      Nova::Rights const &permission,
@@ -169,7 +164,7 @@ inline int map_local(Nova::Utcb *utcb,
 		if ((to_end - to_curr) < (1UL << order))
 			order = log2(to_end - to_curr);
 
-		int const res = map_local(utcb,
+		int const res = map_local(pd, utcb,
 		                          Mem_crd((from_curr >> 12), order - get_page_size_log2(), permission),
 		                          Mem_crd((to_curr   >> 12), order - get_page_size_log2(), permission),
 		                          kern_pd, dma_mem, write_combined);

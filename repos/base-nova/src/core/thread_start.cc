@@ -114,7 +114,8 @@ void Thread::start()
 	utcb_obj->crd_rcv = Obj_crd();
 	utcb_obj->crd_xlt = Obj_crd();
 
-	if (map_local(reinterpret_cast<Nova::Utcb *>(Thread::myself()->utcb()),
+	if (map_local(platform_specific()->core_pd_sel(),
+	              reinterpret_cast<Nova::Utcb *>(Thread::myself()->utcb()),
 	              Obj_crd(PT_SEL_PAGE_FAULT, 0),
 	              Obj_crd(native_thread().exc_pt_sel + PT_SEL_PAGE_FAULT, 0))) {
 		error("could not create page fault portal");
