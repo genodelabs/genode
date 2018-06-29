@@ -72,9 +72,14 @@ ifneq ($(filter-out $(RECIPE_FILES),README),)
 	          "      $(RECIPE_DIR)/README"; false
 endif
 
+checked_runtime_valid:
+ifeq ($(filter $(RECIPE_FILES),runtime),runtime)
+	$(VERBOSE)xmllint --noout $(addprefix $(RECIPE_DIR)/,runtime)
+endif
+
 .NOTPARALLEL: $(DEPOT_ARCHIVE_DIR)/$(TAG_FILE)
 
-$(DEPOT_ARCHIVE_DIR)/$(TAG_FILE): checked_readme_exists
+$(DEPOT_ARCHIVE_DIR)/$(TAG_FILE): checked_readme_exists checked_runtime_valid
 	$(VERBOSE)cp $(addprefix $(RECIPE_DIR)/,$(RECIPE_FILES)) $(DEPOT_ARCHIVE_DIR)/
 
 #
