@@ -65,6 +65,20 @@
      </xs:complexType>
     </xs:element> <!-- "default" -->
 
+    <xs:element name="report">
+     <xs:complexType>
+      <xs:attribute name="ids" type="xs:string" />
+      <xs:attribute name="requested" type="xs:string" />
+      <xs:attribute name="provided" type="xs:string" />
+      <xs:attribute name="session_args" type="xs:string" />
+      <xs:attribute name="child_caps" type="xs:string" />
+      <xs:attribute name="child_ram" type="xs:string" />
+      <xs:attribute name="init_caps" type="xs:string" />
+      <xs:attribute name="init_ram" type="xs:string" />
+      <xs:attribute name="delay_ms" type="xs:int" />
+     </xs:complexType>
+    </xs:element> <!-- "report" -->
+
     <xs:element name="resource">
      <xs:complexType>
       <xs:attribute name="name" type="xs:string" />
