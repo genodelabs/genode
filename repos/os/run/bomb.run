@@ -17,6 +17,13 @@ if {[have_include "power_on/qemu"]} {
 	}
 }
 
+if {[have_spec pistachio]} {
+	# The bomb test triggers a kernel assertion at kernel/src/api/v4/tcb.h,
+	# line 727, which remains unfixed since the kernel is no longer developed.
+	puts "Run script does not support Pistachio"
+	exit 0
+}
+
 # prevent hitting the socket-descriptor limit on Linux
 if {[have_spec linux]} { set generations 4 }
 
