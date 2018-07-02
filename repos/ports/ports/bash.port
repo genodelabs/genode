@@ -10,5 +10,6 @@ DIR(bash) := src/noux-pkg/bash
 
 PATCHES   := src/noux-pkg/bash/build.patch \
              src/noux-pkg/bash/check_dev_tty.patch \
-             src/noux-pkg/bash/disable_man2html.patch
+             src/noux-pkg/bash/disable_man2html.patch \
+             src/noux-pkg/bash/home_end.patch
 PATCH_OPT := -p1 -d src/noux-pkg/bash

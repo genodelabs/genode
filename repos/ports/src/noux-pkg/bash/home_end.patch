@@ -1,0 +1,18 @@
+This patch adjust the default encoding for the home and end keys to match the
+'screen' terminal as used by Genode. It is related to the following issue:
+
+  https://github.com/genodelabs/genode/issues/2705
+
+--- a/lib/readline/readline.c
++++ b/lib/readline/readline.c
+@@ -1293,8 +1293,8 @@
+   rl_bind_keyseq_if_unbound ("\033OB", rl_get_next_history);
+   rl_bind_keyseq_if_unbound ("\033OC", rl_forward_char);
+   rl_bind_keyseq_if_unbound ("\033OD", rl_backward_char);
+-  rl_bind_keyseq_if_unbound ("\033OH", rl_beg_of_line);
+-  rl_bind_keyseq_if_unbound ("\033OF", rl_end_of_line);
++  rl_bind_keyseq_if_unbound ("\033[1~", rl_beg_of_line);
++  rl_bind_keyseq_if_unbound ("\033[4~", rl_end_of_line);
+ 
+ #if defined (__MINGW32__)
+   rl_bind_keyseq_if_unbound ("\340H", rl_get_previous_history);
