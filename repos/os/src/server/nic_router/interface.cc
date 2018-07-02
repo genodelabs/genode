@@ -1189,6 +1189,9 @@ void Interface::_handle_arp_reply(Ethernet_frame &eth,
 		 * Packet targets IP local to the domain's subnet and doesn't target
 		 * the router. Thus, forward it to all other interfaces of the domain.
 		 */
+		if (_config().verbose()) {
+			log("[", local_domain, "] forward ARP reply for local IP "
+			    "to all interfaces of the sender domain"); }
 		_domain_broadcast(eth, size_guard, local_domain);
 	}
 }
@@ -1231,11 +1234,17 @@ void Interface::_handle_arp_request(Ethernet_frame &eth,
 		} else if (arp.dst_ip() == local_intf.address) {
 
 			/* ARP request for the routers IP at this domain */
+			if (_config().verbose()) {
+				log("[", local_domain, "] answer ARP request for router IP "
+				    "with router MAC"); }
 			_send_arp_reply(eth, size_guard, arp);
 
 		} else {
 
 			/* forward request to all other interfaces of the domain */
+			if (_config().verbose()) {
+				log("[", local_domain, "] forward ARP request for local IP "
+				    "to all interfaces of the sender domain"); }
 			_domain_broadcast(eth, size_guard, local_domain);
 		}
 
@@ -1250,6 +1259,9 @@ void Interface::_handle_arp_request(Ethernet_frame &eth,
 		} else {
 
 			/* try to act as gateway for the domain as none is configured */
+			if (_config().verbose()) {
+				log("[", local_domain, "] answer ARP request for foreign IP "
+				    "with router MAC"); }
 			_send_arp_reply(eth, size_guard, arp);
 		}
 	}
