@@ -48,9 +48,7 @@ void Thread::_deinit_platform_thread()
 
 void Thread::_init_platform_thread(size_t weight, Type type)
 {
-	/* if no cpu session is given, use it from the environment */
-	if (!_cpu_session)
-		_cpu_session = env_deprecated()->cpu_session();
+	_init_cpu_session_and_trace_control();
 
 	if (type == NORMAL)
 	{

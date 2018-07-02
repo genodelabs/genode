@@ -107,9 +107,8 @@ void Thread::_init_platform_thread(size_t weight, Type type)
 	if (native_thread().exc_pt_sel == Native_thread::INVALID_INDEX)
 		throw Cpu_session::Thread_creation_failed();
 
-	/* if no cpu session is given, use it from the environment */
-	if (!_cpu_session)
-		_cpu_session = env_deprecated()->cpu_session();
+
+	_init_cpu_session_and_trace_control();
 
 	/* create thread at core */
 	_thread_cap = _cpu_session->create_thread(env_deprecated()->pd_session_cap(), name(),

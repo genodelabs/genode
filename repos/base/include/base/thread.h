@@ -172,6 +172,8 @@ class Genode::Thread
 		 */
 		void _init_platform_thread(size_t weight, Type type);
 
+		void _init_cpu_session_and_trace_control();
+
 	public:
 
 		/**
