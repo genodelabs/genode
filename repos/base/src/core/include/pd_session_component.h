@@ -51,8 +51,8 @@ class Genode::Pd_session_component : public Session_object<Pd_session>
 		Constrained_core_ram       _constrained_core_ram_alloc;
 		Sliced_heap                _sliced_heap;
 		Capability<Parent>         _parent { };
-		Signal_broker              _signal_broker;
 		Ram_dataspace_factory      _ram_ds_factory;
+		Signal_broker              _signal_broker;
 		Rpc_cap_factory            _rpc_cap_factory;
 		Native_pd_component        _native_pd;
 
@@ -133,9 +133,9 @@ class Genode::Pd_session_component : public Session_object<Pd_session>
 			_constrained_md_ram_alloc(*this, _ram_quota_guard(), _cap_quota_guard()),
 			_constrained_core_ram_alloc(_ram_quota_guard(), _cap_quota_guard(), core_mem),
 			_sliced_heap(_constrained_md_ram_alloc, local_rm),
-			_signal_broker(_sliced_heap, signal_ep, signal_ep),
 			_ram_ds_factory(ep, phys_alloc, phys_range, local_rm,
 			                _constrained_core_ram_alloc),
+			_signal_broker(_sliced_heap, signal_ep, signal_ep),
 			_rpc_cap_factory(_sliced_heap),
 			_native_pd(*this, args),
 			_address_space(ep, _sliced_heap, pager_ep,
