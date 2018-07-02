@@ -374,7 +374,7 @@ append qemu_args " -net user -redir tcp:12865::12865 -redir tcp:49153::49153 "
 
 set force_ports ""
 if $use_nic_router {
-	set ip_match_string "nic_router\\\] \\\[uplink\\\] IP config: interface (\[0-9]{1,3}.\[0-9]{1,3}.\[0-9]{1,3}.\[0-9]{1,3}).*\n"
+	set ip_match_string "nic_router\\\] \\\[uplink\\\] dynamic IP config: interface (\[0-9]{1,3}.\[0-9]{1,3}.\[0-9]{1,3}.\[0-9]{1,3}).*\n"
 	set force_ports "-P 12864,12864"
 }
 
