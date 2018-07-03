@@ -301,6 +301,8 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 		 */
 		void _process_packets()
 		{
+			using namespace Genode;
+
 			/*
 			 * XXX Process client backlog before looking at new requests. This
 			 *     limits the number of simultaneously addressed handles (which
@@ -311,7 +313,19 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 				/* backlog not cleared - block for next condition change */
 				return;
 
+			/**
+			 * Process packets in batches, otherwise a client that
+			 * submits packets as fast as they are processed will
+			 * starve the signal handler.
+			 */
+			int quantum = TX_QUEUE_SIZE;
+
 			while (tx_sink()->packet_avail()) {
+				if (--quantum == 0) {
+					/* come back to this later */
+					Signal_transmitter(_process_packet_handler).submit();
+					break;
+				}
 
 				/*
 				 * Make sure that the '_process_packet' function does not
