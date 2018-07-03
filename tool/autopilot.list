@@ -16,6 +16,7 @@ fb_bench
 fetchurl
 fpu
 fs_log
+fs_packet
 fs_report
 gdb_monitor
 init
