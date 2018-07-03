@@ -1,0 +1,8 @@
++++ src/lib/python3/Modules/expat/expat_config.h	2018-05-29 14:26:26.737762285 +0200
+@@ -16,4 +16,6 @@
+ #define XML_DTD 1
+ #define XML_CONTEXT_BYTES 1024
+ 
++#undef PREFIX
++
+ #endif /* EXPAT_CONFIG_H */
