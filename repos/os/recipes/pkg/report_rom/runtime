@@ -1,0 +1,15 @@
+<runtime ram="4M" caps="100" binary="report_rom">
+
+	<provides>
+		<report/>
+		<rom/>
+	</provides>
+
+	<config/>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="report_rom"/>
+	</content>
+
+</runtime>
