@@ -443,7 +443,7 @@ core_initcall(sock_init);
 
 codel_time_t codel_get_time(void)
 {
-	u64 ns = ktime_get_ns();
+	u64 ns = ktime_get();
 	return ns >> CODEL_SHIFT;
 }
 
@@ -478,4 +478,42 @@ void codel_stats_init(struct codel_stats *stats)
 u64 ktime_get_boot_ns(void)
 {
 	return (u64)ktime_get();
+}
+
+
+/********************
+ ** linux/device.h **
+ ********************/
+
+struct device *device_create_with_groups(struct class *class,
+                                         struct device *parent, dev_t devt,
+                                         void *drvdata,
+                                         const struct attribute_group **groups,
+                                         const char *fmt, ...)
+{
+	long ret = -ENODEV;
+	if (class == NULL || IS_ERR(class)) { goto err; }
+
+	struct device *dev = kzalloc(sizeof(*dev), GFP_KERNEL);
+	if (!dev) {
+		ret = -ENOMEM;
+		goto err;
+	}
+
+	return dev;
+
+err:
+	return (void*)ret;
+}
+
+
+struct class *__class_create(struct module *owner,
+		const char *name,
+		struct lock_class_key *key)
+{
+	struct class *cls = kzalloc(sizeof(*cls), GFP_KERNEL);
+	if (!cls) { return (void*)-ENOMEM; }
+
+	cls->name = name;
+	return cls;
 }

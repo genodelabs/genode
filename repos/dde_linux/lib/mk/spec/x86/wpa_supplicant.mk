@@ -10,11 +10,14 @@ CC_OPT += -Wno-unused-function
 
 CC_CXX_OPT += -fpermissive
 
-SRC_C  += main.c ctrl_iface_genode.c
-SRC_CC += reporter.cc
+SRC_C   += main.c ctrl_iface_genode.c
+INC_DIR += $(REP_DIR)/include
+
 
 # wpa_supplicant
 SRC_C_wpa_supplicant = blacklist.c      \
+                       bgscan.c         \
+                       bgscan_simple.c  \
                        bss.c            \
                        config.c         \
                        config_file.c    \
@@ -32,7 +35,8 @@ SRC_C_wpa_supplicant = blacklist.c      \
 SRC_C   += $(addprefix wpa_supplicant/, $(SRC_C_wpa_supplicant))
 INC_DIR += $(WS_CONTRIB_DIR)/wpa_supplicant
 CC_OPT  += -DCONFIG_BACKEND_FILE -DCONFIG_NO_CONFIG_WRITE \
-           -DCONFIG_SME -DCONFIG_CTRL_IFACE
+           -DCONFIG_SME -DCONFIG_CTRL_IFACE \
+           -DCONFIG_BGSCAN -DCONFIG_BGSCAN_SIMPLE
 
 CC_OPT  += -DTLS_DEFAULT_CIPHERS=\"DEFAULT:!EXP:!LOW\"
 

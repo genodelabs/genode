@@ -72,9 +72,9 @@ class Socket_registry
 {
 	private :
 
-		/* abritary value (it goes to eleven!) */
 		enum {
-			SOCKETS_INITIAL_VALUE = 11,
+			/* lower FDs might be special */
+			SOCKETS_OFFSET_VALUE = 100,
 			MAX_SOCKETS = 7,
 		};
 
@@ -99,7 +99,7 @@ class Socket_registry
 				if (sfd.s != nullptr) { return false; }
 
 				sfd.s  = s;
-				sfd.fd = ++_sockets;
+				sfd.fd = (++_sockets & 0xff) + SOCKETS_OFFSET_VALUE;
 
 				/* return fd */
 				fd = sfd.fd;
@@ -144,7 +144,7 @@ class Socket_registry
 };
 
 Socket_fd Socket_registry::_socket_fd[MAX_SOCKETS] = {};
-unsigned Socket_registry::_sockets = Socket_registry::SOCKETS_INITIAL_VALUE;
+unsigned Socket_registry::_sockets = 0;
 
 
 extern "C" {
@@ -480,10 +480,36 @@ int fcntl(int fd, int cmd, ... /* arg */ )
  ** sys/poll.h **
  ****************/
 
+static bool _ctrl_fd_set = false;
+
+
+extern "C" void nl_set_wpa_ctrl_fd()
+{
+	_ctrl_fd_set = true;
+}
+
+static bool special_fd(int fd)
+{
+	/*
+	 * This range is used by the CTRL and RFKILL fds.
+	 */
+	return (fd > 40 && fd < 60);
+}
+
 int poll(struct pollfd *fds, nfds_t nfds, int timeout)
 {
 	Poll_socket_fd sockets[Wifi::MAX_POLL_SOCKETS];
 	unsigned num = 0;
+	int nready = 0;
+
+	/* handle special FDs first */
+	for (nfds_t i = 0; i < nfds; i++) {
+		if (!special_fd(fds[i].fd)) { continue; }
+
+		fds[i].revents  = 0;
+		fds[i].revents |= POLLIN;
+		nready++;
+	}
 
 	for (nfds_t i = 0; i < nfds; i++) {
 		Socket *s = Socket_registry::find(fds[i].fd);
@@ -504,11 +530,16 @@ int poll(struct pollfd *fds, nfds_t nfds, int timeout)
 		num++;
 	}
 
-	int nready = socket_call.poll_all(sockets, num, timeout);
-	if (!nready)
-		return 0;
-	if (nready < 0)
-		return -1;
+	/* make sure we do not block in poll_all */
+	if (_ctrl_fd_set) {
+		_ctrl_fd_set = false;
+		timeout = 0;
+	}
+
+	int sready = socket_call.poll_all(sockets, num, timeout);
+	if (sready < 0 || sready == 0)  { return nready; }
+
+	nready += sready;
 
 	for (unsigned i = 0; i < num; i++) {
 		int revents  = sockets[i].revents;

@@ -359,7 +359,6 @@ linux-x.x.x/net/packet/af_packet.c
 linux-x.x.x/net/packet/internal.h
 linux-x.x.x/net/rfkill/core.c
 linux-x.x.x/net/rfkill/input.c
-linux-x.x.x/net/rfkill/rfkill-gpio.c
 linux-x.x.x/net/rfkill/rfkill.h
 linux-x.x.x/net/wireless/ap.c
 linux-x.x.x/net/wireless/chan.c

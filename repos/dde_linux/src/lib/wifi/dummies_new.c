@@ -14,7 +14,7 @@
 /* local includes */
 #include <lx_emul.h>
 
-#if 1
+#if 0
 #define TRACE \
 		do { \
 			lx_printf("%s not implemented from: %p\n", __func__, \
@@ -140,12 +140,6 @@ unsigned int memalloc_noreclaim_save(void)
 	return 0;
 }
 
-
-u64 ktime_get_ns(void)
-{
-	TRACE;
-	return 0;
-}
 
 struct fq_flow *fq_flow_classify(struct fq *fq, struct fq_tin *tin,
                                  struct sk_buff *skb,
@@ -510,6 +504,13 @@ void wireless_nlevent_flush(void)
 
 bool wq_has_sleeper(struct wait_queue_head *wq_head)
 {
-	TRACE;
+	TRACE_OK;
 	return true;
+}
+
+
+bool sysfs_streq(const char *s1, const char *s2)
+{
+	TRACE;
+	return false;
 }

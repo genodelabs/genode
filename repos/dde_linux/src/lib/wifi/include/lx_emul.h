@@ -927,7 +927,7 @@ static inline int no_printk(const char *fmt, ...) { return 0; }
 #define pr_warn(fmt, ...)     printk(KERN_WARN   fmt, ##__VA_ARGS__)
 #define pr_warn_once          pr_warn
 #define pr_notice(fmt, ...)   printk(KERN_NOTICE fmt, ##__VA_ARGS__)
-#define pr_info(fmt, ...)     printk(KERN_INFO   fmt, ##__VA_ARGS__)
+#define pr_info(fmt, ...)  no_printk(KERN_INFO   fmt, ##__VA_ARGS__)
 #define pr_cont(fmt, ...)     printk(KERN_CONT   fmt, ##__VA_ARGS__)
 /* pr_devel() should produce zero code unless DEBUG is defined */
 #ifdef DEBUG
@@ -2923,7 +2923,7 @@ unsigned int dev_get_flags(const struct net_device *);
 struct rtnl_link_stats64 *dev_get_stats(struct net_device *dev, struct rtnl_link_stats64 *storage);
 int dev_change_net_namespace(struct net_device *, struct net *, const char *);
 int dev_alloc_name(struct net_device *dev, const char *name);
-int dev_close(struct net_device *dev);
+void dev_close(struct net_device *dev);
 int dev_set_mac_address(struct net_device *, struct sockaddr *);
 int dev_set_mtu(struct net_device *, int);
 int dev_set_promiscuity(struct net_device *dev, int inc);
@@ -3245,6 +3245,7 @@ struct file_operations {
 	int          (*release) (struct inode *, struct file *);
 	ssize_t      (*write) (struct file *, const char __user *, size_t, loff_t *);
 	int          (*fasync) (int, struct file *, int);
+	long         (*compat_ioctl) (struct file *, unsigned int, unsigned long);
 };
 
 static inline loff_t no_llseek(struct file *file, loff_t offset, int origin) {
@@ -3285,13 +3286,6 @@ struct platform_device {
 	u32 num_resources;
 	struct resource * resource;
 
-};
-
-/* needed by net/rfkill/rfkill-gpio.c */
-struct platform_driver {
-	int (*probe)(struct platform_device *);
-	int (*remove)(struct platform_device *);
-	struct device_driver driver;
 };
 
 void *platform_get_drvdata(const struct platform_device *pdev);
@@ -5633,5 +5627,13 @@ unsigned long rlimit(unsigned int limit);
 int device_property_read_string(struct device *dev, const char *propname, const char **val);
 
 #include <lx_emul/extern_c_end.h>
+
+
+/******************************
+ ** uapi/asm-generic/ioctl.h **
+ ******************************/
+
+#define _IOC_NR(nr) (nr)
+#define _IOC_TYPE(nr) (nr)
 
 #endif /* _LX_EMUL_H_ */

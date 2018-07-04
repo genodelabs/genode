@@ -10,9 +10,14 @@
 		*Socket_call*;
 		/* Wifi::Socket_call instance */
 		socket_call;
+		/* rfkill interface */
+		_*wifi_*_rfkill*;
+		_*wifi_kick_*;
 
 		/* used by libnl's time() */
 		jiffies;
+
+		lx_printf*;
 
 	local:
 

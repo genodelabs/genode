@@ -12,6 +12,9 @@
 
 		poll;
 
+		/* needed by wpa_supplicant lib for wifi_drv */
+		nl_set_wpa_ctrl_fd;
+
 	local:
 
 		*;

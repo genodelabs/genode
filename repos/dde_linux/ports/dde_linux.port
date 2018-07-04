@@ -129,6 +129,7 @@ PATCH_OPT(patches/lxip_skbuff_cast.patch)  := $(LXIP_OPT)
 WIFI_OPT = -p1 -d$(SRC_DIR_WIFI)
 PATCH_OPT(patches/wifi.patch)        := $(WIFI_OPT)
 PATCH_OPT(patches/wifi_mem.patch)    := $(WIFI_OPT)
+PATCH_OPT(patches/wifi_rfkill.patch) := $(WIFI_OPT)
 
 # libnl
 PATCH_OPT(patches/libnl.patch) := -p1 -d ${DIR(libnl)}

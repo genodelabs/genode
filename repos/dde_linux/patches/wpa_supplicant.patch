@@ -1,7 +1,41 @@
 diff --git a/src/drivers/driver_nl80211.c b/src/drivers/driver_nl80211.c
-index 5cff47fab..5cba03efe 100644
+index 5cff47fab..af08177b2 100644
 --- a/src/drivers/driver_nl80211.c
 +++ b/src/drivers/driver_nl80211.c
+@@ -1682,13 +1682,13 @@ static void wpa_driver_nl80211_rfkill_blocked(void *ctx)
+ {
+ 	struct wpa_driver_nl80211_data *drv = ctx;
+ 
+-	wpa_printf(MSG_DEBUG, "nl80211: RFKILL blocked");
++	wpa_printf(MSG_INFO, "nl80211: RFKILL blocked");
+ 
+ 	/*
+ 	 * rtnetlink ifdown handler will report interfaces other than the P2P
+ 	 * Device interface as disabled.
+ 	 */
+-	if (drv->nlmode == NL80211_IFTYPE_P2P_DEVICE)
++	// if (drv->nlmode == NL80211_IFTYPE_P2P_DEVICE)
+ 		wpa_supplicant_event(drv->ctx, EVENT_INTERFACE_DISABLED, NULL);
+ }
+ 
+@@ -1696,7 +1696,7 @@ static void wpa_driver_nl80211_rfkill_blocked(void *ctx)
+ static void wpa_driver_nl80211_rfkill_unblocked(void *ctx)
+ {
+ 	struct wpa_driver_nl80211_data *drv = ctx;
+-	wpa_printf(MSG_DEBUG, "nl80211: RFKILL unblocked");
++	wpa_printf(MSG_INFO, "nl80211: RFKILL unblocked");
+ 	if (i802_set_iface_flags(drv->first_bss, 1)) {
+ 		wpa_printf(MSG_DEBUG, "nl80211: Could not set interface UP "
+ 			   "after rfkill unblock");
+@@ -1710,7 +1710,7 @@ static void wpa_driver_nl80211_rfkill_unblocked(void *ctx)
+ 	 * rtnetlink ifup handler will report interfaces other than the P2P
+ 	 * Device interface as enabled.
+ 	 */
+-	if (drv->nlmode == NL80211_IFTYPE_P2P_DEVICE)
++	// if (drv->nlmode == NL80211_IFTYPE_P2P_DEVICE)
+ 		wpa_supplicant_event(drv->ctx, EVENT_INTERFACE_ENABLED, NULL);
+ }
+ 
 @@ -7645,7 +7645,7 @@ static void * nl80211_global_init(void *ctx)
  	if (wpa_driver_nl80211_init_nl_global(global) < 0)
  		goto err;
@@ -24,8 +58,30 @@ index 0e960f48c..38fb26c18 100644
  
  struct netlink_data {
  	struct netlink_config *cfg;
+diff --git a/src/utils/common.c b/src/utils/common.c
+index 1eb33705b..e4447306a 100644
+--- a/src/utils/common.c
++++ b/src/utils/common.c
+@@ -498,12 +498,12 @@ void printf_encode(char *txt, size_t maxlen, const u8 *data, size_t len)
+ 			*txt++ = 't';
+ 			break;
+ 		default:
+-			if (data[i] >= 32 && data[i] <= 126) {
++			// if (data[i] >= 32 && data[i] <= 126) {
+ 				*txt++ = data[i];
+-			} else {
+-				txt += os_snprintf(txt, end - txt, "\\x%02x",
+-						   data[i]);
+-			}
++			// } else {
++			// 	txt += os_snprintf(txt, end - txt, "\\x%02x",
++			// 			   data[i]);
++			// }
+ 			break;
+ 		}
+ 	}
 diff --git a/src/utils/eloop.c b/src/utils/eloop.c
-index 436bc8c99..fd72eaef3 100644
+index 436bc8c99..f5ff4facb 100644
 --- a/src/utils/eloop.c
 +++ b/src/utils/eloop.c
 @@ -28,7 +28,7 @@
@@ -37,75 +93,3 @@ index 436bc8c99..fd72eaef3 100644
  #endif /* CONFIG_ELOOP_POLL */
  
  #ifdef CONFIG_ELOOP_EPOLL
-@@ -961,7 +961,7 @@ static void eloop_handle_alarm(int sig)
- #endif /* CONFIG_NATIVE_WINDOWS */
- 
- 
--static void eloop_handle_signal(int sig)
-+void eloop_handle_signal(int sig)
- {
- 	int i;
- 
-diff --git a/wpa_supplicant/events.c b/wpa_supplicant/events.c
-index fb77f1dbd..9142f3f1b 100644
---- a/wpa_supplicant/events.c
-+++ b/wpa_supplicant/events.c
-@@ -1754,6 +1754,9 @@ static int wpa_supplicant_need_to_roam(struct wpa_supplicant *wpa_s,
- }
- 
- 
-+extern void wpa_report_scan_results(struct wpa_supplicant *);
-+
-+
- /*
-  * Return a negative value if no scan results could be fetched or if scan
-  * results should not be shared with other virtual interfaces.
-@@ -1799,6 +1802,8 @@ static int _wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
- 		goto scan_work_done;
- 	}
- 
-+	wpa_report_scan_results(wpa_s);
-+
- #ifndef CONFIG_NO_RANDOM_POOL
- 	num = scan_res->num;
- 	if (num > 10)
-@@ -2813,6 +2818,9 @@ static int disconnect_reason_recoverable(u16 reason_code)
- }
- 
- 
-+void wpa_report_disconnect_event(struct wpa_supplicant *);
-+
-+
- static void wpa_supplicant_event_disassoc(struct wpa_supplicant *wpa_s,
- 					  u16 reason_code,
- 					  int locally_generated)
-@@ -2834,6 +2842,7 @@ static void wpa_supplicant_event_disassoc(struct wpa_supplicant *wpa_s,
- 
- 	if (!is_zero_ether_addr(bssid) ||
- 	    wpa_s->wpa_state >= WPA_AUTHENTICATING) {
-+		wpa_report_disconnect_event(wpa_s);
- 		wpa_msg(wpa_s, MSG_INFO, WPA_EVENT_DISCONNECTED "bssid=" MACSTR
- 			" reason=%d%s",
- 			MAC2STR(bssid), reason_code,
-diff --git a/wpa_supplicant/wpa_supplicant.c b/wpa_supplicant/wpa_supplicant.c
-index 185a8d50f..4baedabb3 100644
---- a/wpa_supplicant/wpa_supplicant.c
-+++ b/wpa_supplicant/wpa_supplicant.c
-@@ -822,6 +822,9 @@ void wpa_supplicant_reinit_autoscan(struct wpa_supplicant *wpa_s)
- }
- 
- 
-+void wpa_report_connect_event(struct wpa_supplicant *);
-+
-+
- /**
-  * wpa_supplicant_set_state - Set current connection state
-  * @wpa_s: Pointer to wpa_supplicant data
-@@ -879,6 +882,7 @@ void wpa_supplicant_set_state(struct wpa_supplicant *wpa_s,
- 
- 	if (state == WPA_COMPLETED && wpa_s->new_connection) {
- 		struct wpa_ssid *ssid = wpa_s->current_ssid;
-+		wpa_report_connect_event(wpa_s);
- 		int fils_hlp_sent = 0;
- 
- #ifdef CONFIG_SME

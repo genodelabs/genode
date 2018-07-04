@@ -303,8 +303,9 @@ size_t copy_from_iter(void *addr, size_t bytes, struct iov_iter *i)
 
 bool copy_from_iter_full(void *addr, size_t bytes, struct iov_iter *i)
 {
+	/* XXX at some point check if i->count > bytes could be a problem */
 	if (bytes > i->count)
-		return false;
+		bytes = i->count;
 
 	if (bytes == 0)
 		return true;
@@ -727,28 +728,6 @@ struct timeval ns_to_timeval(ktime_t const nsec)
 time64_t ktime_get_seconds(void)
 {
 	return jiffies_to_msecs(jiffies) / 1000;
-}
-
-
-/***********************
- ** linux/workqueue.h **
- ***********************/
-
-struct workqueue_struct *create_singlethread_workqueue(char const *)
-{
-	workqueue_struct *wq = (workqueue_struct *)kzalloc(sizeof(workqueue_struct), 0);
-	return wq;
-}
-
-struct workqueue_struct *alloc_ordered_workqueue(char const *name , unsigned int flags, ...)
-{
-	return create_singlethread_workqueue(name);
-}
-
-struct workqueue_struct *alloc_workqueue(const char *fmt, unsigned int flags,
-                                         int max_active, ...)
-{
-	return create_singlethread_workqueue(nullptr);
 }
 
 
@@ -1375,11 +1354,11 @@ void pci_dev_put(struct pci_dev *pci_dev)
 	Genode::destroy(Lx_kit::env().heap(), pci_dev);
 }
 
+
 /***********************
- ** linux/workquque.h **
+ ** linux/workqueue.h **
  ***********************/
 
-/* Linux emul includes */
 #include <lx_emul/impl/work.h>
 
 
@@ -1388,6 +1367,88 @@ bool mod_delayed_work(struct workqueue_struct *wq, struct delayed_work *dwork,
 {
 	queue_delayed_work(wq, dwork, delay);
 	return true;
+}
+
+
+struct workqueue_struct *alloc_ordered_workqueue(char const *fmt , unsigned int flags, ...)
+{
+	return alloc_workqueue(fmt, flags, 1);
+}
+
+
+struct workqueue_struct *alloc_workqueue(const char *fmt, unsigned int flags,
+                                         int max_active, ...)
+{
+	workqueue_struct *wq = (workqueue_struct *)kzalloc(sizeof(workqueue_struct), 0);
+	Lx::Work *work = Lx::Work::alloc_work_queue(&Lx::Malloc::mem(), fmt);
+	wq->task       = (void *)work;
+
+	return wq;
+}
+
+
+void flush_workqueue(struct workqueue_struct *wq)
+{
+	Lx::Task *current = Lx::scheduler().current();
+	if (!current) {
+		Genode::error("BUG: flush_workqueue executed without task");
+		Genode::sleep_forever();
+	}
+
+	Lx::Work *lx_work = (wq && wq->task) ? (Lx::Work*) wq->task
+	                                     : &Lx::Work::work_queue();
+
+	lx_work->flush(*current);
+	Lx::scheduler().current()->block_and_schedule();
+}
+
+
+static inline bool work_queued(struct workqueue_struct *wq, void *work)
+{
+	Lx::Work *lx_work = (wq && wq->task) ? (Lx::Work*) wq->task
+	                                     : &Lx::Work::work_queue();
+	return lx_work->work_queued(work);
+}
+
+
+bool flush_work(struct work_struct *work)
+{
+	/* XXX AFAIU if the work was not queued it is already 'idle' and
+	 *     we just return false
+	 */
+	bool const queued = work_queued(work->wq, work);
+	if (queued) {
+		Genode::error(__func__, " work: ", work, " (", work->func, ") queued");
+
+		struct workqueue_struct *wq = work->wq;
+
+		Lx::Work *lx_work = (wq && wq->task) ? (Lx::Work*) wq->task
+		                                     : &Lx::Work::work_queue();
+
+		Lx::Task *current = Lx::scheduler().current();
+		lx_work->wakeup_for(work, *current);
+
+		Lx::scheduler().current()->block_and_schedule();
+		return true;
+	}
+
+	return false;
+}
+
+
+bool flush_delayed_work(struct delayed_work *dwork)
+{
+	/* XXX AFAIU if the work was not queued it is already 'idle' and
+	 *     we just return false
+	 */
+	bool const queued = work_queued(dwork->wq, dwork);
+	if (queued) {
+		Genode::error(__func__, " dwork: ", dwork, " (", dwork->work.func, ") queued");
+		Genode::sleep_forever();
+		return true;
+	}
+
+	return false;
 }
 
 
@@ -1512,7 +1573,7 @@ struct Idr
 		if (index == INVALID_ENTRY) { return INVALID_ENTRY; }
 
 		_barray.set(index, 1);
-		_ptr[index] = ptr;
+		_ptr[index] = (addr_t) ptr;
 		return index;
 	}
 

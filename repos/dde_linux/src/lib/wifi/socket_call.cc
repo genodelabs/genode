@@ -358,8 +358,9 @@ class Lx::Socket
 			case Call::NON_BLOCK:       _do_non_block();       break;
 
 			default:
-				_call.err = -EINVAL;
 				Genode::warning("unknown opcode: ", (int)_call.opcode);
+			case Call::NONE: /* ignore silently */
+				_call.err = -EINVAL;
 				break;
 			}
 
@@ -371,6 +372,11 @@ class Lx::Socket
 		{
 			_sender.submit();
 			_block.down();
+		}
+
+		void unblock_task()
+		{
+			_task.unblock();
 		}
 };
 
@@ -384,6 +390,15 @@ void Lx::socket_init(Genode::Entrypoint &ep, Genode::Allocator &alloc)
 	static Lx::Socket socket_ctx(ep);
 	_socket = &socket_ctx;
 	_alloc = &alloc;
+}
+
+
+void Lx::socket_kick()
+{
+	/* ignore silently, the function might be called to before init */
+	if (!_socket) { return; }
+
+	_socket->unblock_task();
 }
 
 

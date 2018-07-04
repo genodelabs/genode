@@ -132,18 +132,18 @@ DUMMY_SKIP(0, in_irq) /* XXX */
 
 DUMMY_SKIP(0, local_bh_disable)
 DUMMY_SKIP(0, local_bh_enable)
-DUMMY_SKIP(0, dma_unmap_page)
 
 DUMMY_SKIP(0, dma_set_coherent_mask) /* we set the mask always to ~0UL */
 DUMMY_SKIP(0, dma_set_mask)          /* in the PCI driver */
-DUMMY(-1, dma_sync_single_for_cpu)
-DUMMY(-1, dma_sync_single_for_device)
-
-
-/* XXX DUMMY_SKIP safe? */
+DUMMY_SKIP(0, dma_sync_single_for_cpu)
+DUMMY_SKIP(0, dma_sync_single_for_device)
+/*
+ * There is no actual mapping going on as the memory is always
+ * allocated from the DMA backend. It is safe to _not_ implement
+ * the unmap functions.
+ */
+DUMMY_SKIP(0, dma_unmap_page)
 DUMMY_SKIP(0, dma_unmap_single)
-DUMMY_SKIP(0, kunmap)
-DUMMY_SKIP(0, kunmap_atomic)
 
 DUMMY_SKIP(-1, dump_stack)
 DUMMY_SKIP(-1, gfp_pfmemalloc_allowed)
@@ -189,9 +189,6 @@ DUMMY(0, device_rename)
 DUMMY(0, device_unregister)
 DUMMY(0, do_posix_clock_monotonic_gettime)
 DUMMY(0, do_softirq)
-DUMMY(0, flush_delayed_work)
-DUMMY(0, flush_work)
-DUMMY(0, flush_workqueue)
 DUMMY(0, genl_dump_check_consistent)
 DUMMY(0, genl_info_net)
 DUMMY(0, genlmsg_cancel)
@@ -370,9 +367,8 @@ DUMMY(0, __hw_addr_sync)
 DUMMY(0, __hw_addr_unsync)
 DUMMY_SKIP(0, dev_alloc_name)
 DUMMY(0, dev_change_net_namespace)
-DUMMY(0, dev_close)
 DUMMY(0, dev_kfree_skb_any)
-DUMMY_SKIP(0, dev_net_set)
+DUMMY(0, dev_net_set)
 DUMMY(0, dev_open)
 DUMMY_SKIP(0, dev_hold)
 DUMMY_SKIP(0, dev_put)
@@ -406,7 +402,6 @@ DUMMY(0, request_firmware)
 DUMMY(0, tcp_v4_check)
 DUMMY(0, sk_attach_filter)
 
-DUMMY(0, __class_create)
 DUMMY(0, __module_get)
 DUMMY(0, __sock_recv_timestamp)
 DUMMY(0, __sock_recv_wifi_status)
@@ -449,12 +444,6 @@ DUMMY(0, regulator_enable)
 DUMMY(0, regulator_get_exclusive)
 DUMMY(0, regulator_is_enabled)
 DUMMY(0, regulator_put)
-DUMMY(0, rfkill_epo)
-DUMMY(0, rfkill_get_global_sw_state)
-DUMMY(0, rfkill_is_epo_lock_active)
-DUMMY(0, rfkill_remove_epo_lock)
-DUMMY(0, rfkill_restore_states)
-DUMMY(0, rfkill_switch_all)
 DUMMY(0, send_sigurg)
 DUMMY(0, simple_strtoul)
 DUMMY(0, skb_gro_len)
@@ -533,7 +522,6 @@ DUMMY(0, release_pages)
 DUMMY(0, sk_busy_loop)
 DUMMY(0, sk_can_busy_loop)
 
-// DUMMY_SKIP(0, complete_all)
 DUMMY_SKIP(0, simple_strtol)
 DUMMY_SKIP(0, alg_test)
 
@@ -550,7 +538,6 @@ DUMMY(0, config_enabled)
 DUMMY(0, dev_change_proto_down)
 DUMMY(0, dev_get_iflink)
 DUMMY(0, dev_get_phys_port_name)
-DUMMY(-1, device_create_with_groups)
 DUMMY(0, device_enable_async_suspend)
 DUMMY(0, fatal_signal_pending)
 DUMMY_RET(1, file_ns_capable)
@@ -586,7 +573,7 @@ DUMMY(0, netif_xmit_frozen_or_drv_stopped)
 DUMMY(0, netif_xmit_frozen_or_stopped)
 DUMMY_STOP(0, netif_rx_ni)
 DUMMY_STOP(0, netif_tx_start_all_queues)
-DUMMY_STOP(0, netif_tx_stop_all_queues)
+DUMMY(0, netif_tx_stop_all_queues)
 
 DUMMY(0, peernet_has_id)
 DUMMY(0, peernet2id_alloc)

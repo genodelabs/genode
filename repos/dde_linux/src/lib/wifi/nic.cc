@@ -598,6 +598,57 @@ extern "C" size_t LL_RESERVED_SPACE(struct net_device *dev)
 }
 
 
+extern "C" void dev_close(struct net_device *ndev)
+{
+	/*
+	 * First instruct cfg80211 to leave the associated network
+	 * and then shutdown the interface.
+	 */
+	net_notifier().call_all_blocks(NETDEV_GOING_DOWN, ndev);
+	net_notifier().call_all_blocks(NETDEV_DOWN, ndev);
+
+	ndev->state &= ~(1UL << __LINK_STATE_START);
+	netif_carrier_off(ndev);
+
+	const struct net_device_ops *ops = ndev->netdev_ops;
+	if (ops->ndo_stop) { ops->ndo_stop(ndev); }
+
+	ndev->flags &= ~IFF_UP;
+}
+
+
+bool Lx::open_device()
+{
+	if (!Root::instance->device) {
+		Genode::error("no net_device available");
+		return false;
+	}
+
+	struct net_device * const ndev = Root::instance->device;
+
+	int err = ndev->netdev_ops->ndo_open(ndev);
+	if (err) {
+		Genode::error("Open device failed");
+		throw -1;
+		return err;
+	}
+
+	/*
+	 * Important, otherwise netif_running checks fail and AF_PACKET
+	 * will not bind and EAPOL will cease to work.
+	 */
+	ndev->flags |= IFF_UP;
+	ndev->state |= (1UL << __LINK_STATE_START);
+
+	if (ndev->netdev_ops->ndo_set_rx_mode)
+		ndev->netdev_ops->ndo_set_rx_mode(ndev);
+
+	net_notifier().call_all_blocks(NETDEV_UP, ndev);
+
+	return true;
+}
+
+
 extern "C" int register_netdevice(struct net_device *ndev)
 {
 	static bool already_registered = false;

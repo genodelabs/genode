@@ -1,0 +1,22 @@
+--- a/net/rfkill/core.c
++++ b/net/rfkill/core.c
+@@ -911,6 +911,19 @@ bool rfkill_blocked(struct rfkill *rfkill)
+ }
+ EXPORT_SYMBOL(rfkill_blocked);
+ 
++bool rfkill_get_any(enum rfkill_type type)
++{
++	bool blocked = false;
++
++	struct rfkill *rfkill;
++	list_for_each_entry(rfkill, &rfkill_list, node) {
++		if (rfkill->type != type && type != RFKILL_TYPE_ALL)
++			continue;
++
++		blocked |= rfkill_blocked(rfkill);
++	}
++	return blocked;
++}
+ 
+ struct rfkill * __must_check rfkill_alloc(const char *name,
+ 					  struct device *parent,

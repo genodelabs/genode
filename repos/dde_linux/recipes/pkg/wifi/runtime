@@ -1,17 +1,16 @@
-<runtime ram="54M" caps="300" binary="wifi_drv">
+<runtime ram="32M" caps="300" binary="wifi_drv">
 
-	<requires> <rom label="wlan_configuration"/> </requires>
+	<requires> <rom label="wifi_config"/> </requires>
 	<provides> <nic/> </provides>
 
-	<config ld_verbose="yes" verbose="yes" use_11n="no" connected_scan_interval="0">
+	<config ld_verbose="yes" verbose="no">
 		<vfs>
 			<dir name="dev"> <log/> <rtc/> <null/>
 				<jitterentropy name="random"/>
 				<jitterentropy name="urandom"/>
 			</dir>
-			<dir name="config"> <ram/> </dir>
 		</vfs>
-		<libc stdout="/dev/null" stderr="/dev/log" rtc="/dev/rtc"/>
+		<libc stdout="/dev/null" stderr="/dev/null" rtc="/dev/rtc"/>
 	</config>
 
 	<content>

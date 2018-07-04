@@ -28,6 +28,7 @@ namespace Lx
 	void emul_init(Genode::Env&, Genode::Allocator&);
 
 	void socket_init(Genode::Entrypoint&, Genode::Allocator&);
+	void socket_kick();
 
 	void nic_init(Genode::Env&, Genode::Allocator&);
 
@@ -35,6 +36,8 @@ namespace Lx
 	void backend_free(Genode::Ram_dataspace_capability);
 
 	void get_mac_address(unsigned char *);
+
+	bool open_device();
 }
 
 #endif /* _LX_H_ */

@@ -7,6 +7,7 @@
 		/* needed by wifi_drv */
 		wpa_main;
 		wpa_reporter_init;
+		wpa_ctrl_set_fd;
 
 		/* needed by wpa_driver_nl80211 */
 		__hide_aliasing_typecast;

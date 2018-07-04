@@ -80,6 +80,19 @@ index 7152fdc..5d133e5 100644
  	.configure_filter = iwl_mvm_configure_filter,
  	.config_iface_filter = iwl_mvm_config_iface_filter,
  	.bss_info_changed = iwl_mvm_bss_info_changed,
+diff --git a/drivers/net/wireless/intel/iwlwifi/mvm/mac80211.c b/drivers/net/wireless/intel/iwlwifi/mvm/mac80211.c
+index 5d133e5..ec770d4 100644
+--- a/drivers/net/wireless/intel/iwlwifi/mvm/mac80211.c
++++ b/drivers/net/wireless/intel/iwlwifi/mvm/mac80211.c
+@@ -1573,7 +1573,7 @@ static void iwl_mvm_recalc_multicast(struct iwl_mvm *mvm)
+ 
+ 	lockdep_assert_held(&mvm->mutex);
+ 
+-	if (WARN_ON_ONCE(!mvm->mcast_filter_cmd))
++	if (!mvm->mcast_filter_cmd)
+ 		return;
+ 
+ 	ieee80211_iterate_active_interfaces_atomic(
 diff --git a/drivers/net/wireless/intel/iwlwifi/pcie/rx.c b/drivers/net/wireless/intel/iwlwifi/pcie/rx.c
 index f25ce3a..85007fc 100644
 --- a/drivers/net/wireless/intel/iwlwifi/pcie/rx.c
@@ -106,27 +119,28 @@ index 99df171..4632cdf 100644
  	}
  
  	delta = remcsum_adjust(ptr, skb->csum, start, offset);
+diff --git a/include/linux/rtnetlink.h b/include/linux/rtnetlink.h
+index 1fdcde9..5f221bd 100644
+--- a/include/linux/rtnetlink.h
++++ b/include/linux/rtnetlink.h
+@@ -97,9 +97,13 @@ void rtnetlink_init(void);
+ void __rtnl_unlock(void);
+ void rtnl_kfree_skbs(struct sk_buff *head, struct sk_buff *tail);
+ 
++#if 1
++#define ASSERT_RTNL()
++# else
+ #define ASSERT_RTNL() \
+ 	WARN_ONCE(!rtnl_is_locked(), \
+ 		  "RTNL: assertion failed at %s (%d)\n", __FILE__,  __LINE__)
++#endif
+ 
+ extern int ndo_dflt_fdb_dump(struct sk_buff *skb,
+ 			     struct netlink_callback *cb,
 diff --git a/net/packet/af_packet.c b/net/packet/af_packet.c
 index e0f3f4a..a309257 100644
 --- a/net/packet/af_packet.c
 +++ b/net/packet/af_packet.c
-@@ -3977,6 +3977,8 @@ static int packet_notifier(struct notifier_block *this,
- 	struct net_device *dev = netdev_notifier_info_to_dev(ptr);
- 	struct net *net = dev_net(dev);
- 
-+// XXX check if still needed
-+#if 0
- 	rcu_read_lock();
- 	sk_for_each_rcu(sk, &net->packet.sklist) {
- 		struct packet_sock *po = pkt_sk(sk);
-@@ -4017,6 +4019,7 @@ static int packet_notifier(struct notifier_block *this,
- 		}
- 	}
- 	rcu_read_unlock();
-+#endif
- 	return NOTIFY_DONE;
- }
- 
 @@ -4544,8 +4547,10 @@ static int __net_init packet_net_init(struct net *net)
  	mutex_init(&net->packet.sklist_lock);
  	INIT_HLIST_HEAD(&net->packet.sklist);

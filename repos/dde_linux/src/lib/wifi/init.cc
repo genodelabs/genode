@@ -29,6 +29,62 @@
 #include <lx_kit/pci.h>
 
 
+/*********************
+ ** RFKILL handling **
+ *********************/
+
+#include <linux/rfkill.h>
+
+extern "C" void rfkill_switch_all(enum rfkill_type type, bool blocked);
+extern "C" bool rfkill_get_any(enum rfkill_type type);
+
+#include <wifi/rfkill.h>
+
+bool wifi_get_rfkill(void)
+{
+	return rfkill_get_any(RFKILL_TYPE_WLAN);
+}
+
+
+static Lx::Task *_lx_task       = nullptr;
+static bool      _lx_init_done  = false;
+static bool      _switch_rfkill = false;
+static bool      _new_blocked   = false;
+static Genode::Signal_context_capability _rfkill_sig_ctx;
+
+
+void wifi_set_rfkill(bool blocked)
+{
+	bool const cur = wifi_get_rfkill();
+
+	_switch_rfkill = blocked != cur;
+	if (_lx_init_done && _switch_rfkill) {
+		_new_blocked = blocked;
+
+		_lx_task->unblock();
+		Lx::scheduler().schedule();
+	}
+}
+
+
+/**************************
+ ** socketcall poll hack **
+ **************************/
+
+void wifi_kick_socketcall()
+{
+	/*
+	 * Kicking is going to unblock the socketcall task that
+	 * probably is waiting in poll_all().
+	 */
+	Lx::socket_kick();
+}
+
+
+/*****************************
+ ** Initialization handling **
+ *****************************/
+
 extern "C" void core_netlink_proto_init(void);
 extern "C" void core_sock_init(void);
 extern "C" void module_packet_init(void);
@@ -44,6 +100,7 @@ extern "C" void module_aes_init(void);
 extern "C" void module_arc4_init(void);
 // extern "C" void module_chainiv_module_init(void);
 extern "C" void module_krng_mod_init(void);
+extern "C" void subsys_leds_init(void);
 
 extern "C" unsigned int *module_param_11n_disable;
 
@@ -69,6 +126,7 @@ static void run_linux(void *args)
 	module_packet_init();
 	subsys_genl_init();
 	subsys_rfkill_init();
+	subsys_leds_init();
 	fs_cfg80211_init();
 	subsys_ieee80211_init();
 
@@ -77,7 +135,6 @@ static void run_linux(void *args)
 	module_crypto_ctr_module_init();
 	module_aes_init();
 	module_arc4_init();
-	// module_chainiv_module_init();
 
 	try {
 		int const err = module_iwl_drv_init();
@@ -91,15 +148,40 @@ static void run_linux(void *args)
 
 	_wpa_lock->unlock();
 
+	_lx_init_done = true;
+
 	while (1) {
 		Lx::scheduler().current()->block_and_schedule();
+
+		if (!_switch_rfkill) { continue; }
+
+		Genode::log("RFKILL: ", _new_blocked ? "BLOCKED" : "UNBLOCKED");
+		rfkill_switch_all(RFKILL_TYPE_WLAN, _new_blocked);
+
+		if (!_new_blocked) {
+			try {
+				bool const ok = Lx::open_device();
+				if (!ok) { throw -1; }
+
+			} catch (...) {
+				Genode::Env &env = *(Genode::Env*)args;
+
+				env.parent().exit(1);
+				Genode::sleep_forever();
+			}
+		}
+
+		/* notify front end */
+		Genode::Signal_transmitter(_rfkill_sig_ctx).submit();
 	}
 }
+
 
 unsigned long jiffies;
 
 
-void wifi_init(Genode::Env &env, Genode::Lock &lock, bool disable_11n)
+void wifi_init(Genode::Env &env, Genode::Lock &lock, bool disable_11n,
+               Genode::Signal_context_capability rfkill)
 {
 	Lx_kit::construct_env(env);
 
@@ -128,9 +210,13 @@ void wifi_init(Genode::Env &env, Genode::Lock &lock, bool disable_11n)
 		*module_param_11n_disable = 1;
 	}
 
+	_rfkill_sig_ctx = rfkill;
+
 	/* Linux task (handles the initialization only currently) */
 	static Lx::Task linux(run_linux, &env, "linux",
 	                      Lx::Task::PRIORITY_0, Lx::scheduler());
+	
+	_lx_task = &linux;
 
 	/* give all task a first kick before returning */
 	Lx::scheduler().schedule();
