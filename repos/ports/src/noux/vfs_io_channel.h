@@ -79,6 +79,11 @@ struct Noux::Vfs_io_channel : Io_channel
 
 		while (_fh->fs().complete_sync(_fh) == Vfs::File_io_service::SYNC_QUEUED)
 			vfs_io_waiter.wait_for_io();
+
+		/* wake up threads blocking for 'queue_*()' or 'write()' */
+		_vfs_io_waiter_registry.for_each([] (Vfs_io_waiter &r) {
+			r.wakeup();
+		});
 	}
 
 	Vfs_io_channel(char const *path, char const *leaf_path,
@@ -123,6 +128,11 @@ struct Noux::Vfs_io_channel : Io_channel
 			}
 		}
 
+		/* wake up threads blocking for 'queue_*()' or 'write()' */
+		_vfs_io_waiter_registry.for_each([] (Vfs_io_waiter &r) {
+			r.wakeup();
+		});
+
 		if (sysio.error.write != Vfs::File_io_service::WRITE_OK)
 			return false;
 
@@ -160,6 +170,11 @@ struct Noux::Vfs_io_channel : Io_channel
 			vfs_io_waiter.wait_for_io();
 		}
 
+		/* wake up threads blocking for 'queue_*()' or 'write()' */
+		_vfs_io_waiter_registry.for_each([] (Vfs_io_waiter &r) {
+			r.wakeup();
+		});
+	
 		if (sysio.error.read != Vfs::File_io_service::READ_OK)
 			return false;
 
@@ -270,6 +285,11 @@ struct Noux::Vfs_io_channel : Io_channel
 
 			vfs_io_waiter.wait_for_io();
 		}
+
+		/* wake up threads blocking for 'queue_*()' or 'write()' */
+		_vfs_io_waiter_registry.for_each([] (Vfs_io_waiter &r) {
+			r.wakeup();
+		});
 
 		if ((read_result != Vfs::File_io_service::READ_OK) ||
 		    (out_count != sizeof(dirent))) {

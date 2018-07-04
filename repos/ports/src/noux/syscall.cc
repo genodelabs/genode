@@ -103,11 +103,6 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				size_t   path_len  = strlen(_sysio.stat_in.path);
 				uint32_t path_hash = hash_path(_sysio.stat_in.path, path_len);
 
-				/* XXX: remove sync */
-
-				Registered_no_delete<Vfs_io_waiter>
-					vfs_io_waiter(_vfs_io_waiter_registry);
-
 				Vfs::Directory_service::Stat stat_out;
 				_sysio.error.stat = _root_dir.stat(_sysio.stat_in.path, stat_out);
 
@@ -668,6 +663,11 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				read_context.vfs_io_waiter.wait_for_io();
 			}
 
+			/* wake up threads blocking for 'queue_*()' or 'write()' */
+			_vfs_io_waiter_registry.for_each([] (Vfs_io_waiter &r) {
+				r.wakeup();
+			});
+
 			symlink_handle->ds().close(symlink_handle);
 
 			_sysio.readlink_out.count = out_count;
@@ -766,6 +766,11 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				}
 			}
 
+			/* wake up threads blocking for 'queue_*()' or 'write()' */
+			_vfs_io_waiter_registry.for_each([] (Vfs_io_waiter &r) {
+				r.wakeup();
+			});
+
 			if (out_count != count) {
 				_sysio.error.symlink = Sysio::SYMLINK_ERR_NAME_TOO_LONG;
 				result = false;
@@ -781,6 +786,11 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 			while (symlink_handle->fs().complete_sync(symlink_handle) ==
 				   Vfs::File_io_service::SYNC_QUEUED)
 				sync_context.vfs_io_waiter.wait_for_io();
+
+			/* wake up threads blocking for 'queue_*()' or 'write()' */
+			_vfs_io_waiter_registry.for_each([] (Vfs_io_waiter &r) {
+				r.wakeup();
+			});
 
 			symlink_handle->ds().close(symlink_handle);
 
@@ -915,6 +925,11 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				while (sync_handle->fs().complete_sync(sync_handle) ==
 				   Vfs::File_io_service::SYNC_QUEUED)
 					sync_context.vfs_io_waiter.wait_for_io();
+
+				/* wake up threads blocking for 'queue_*()' or 'write()' */
+				_vfs_io_waiter_registry.for_each([] (Vfs_io_waiter &r) {
+					r.wakeup();
+				});
 
 				sync_handle->ds().close(sync_handle);
 

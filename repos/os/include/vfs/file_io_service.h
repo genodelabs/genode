@@ -47,8 +47,9 @@ struct Vfs::File_io_service : Interface
 	 ***********/
 
 	/*
-	 * Exception, thrown when 'alloc_packet()' or 'submit_packet()' failed in the
-	 * VFS plugin and the caller should wait for an IO response and try again.
+	 * Exception, thrown when, for example, 'alloc_packet()' or
+	 * 'submit_packet()' failed in the VFS plugin. The caller can try again
+	 * after a previous VFS request is completed.
 	 */
 	struct Insufficient_buffer { };
 
@@ -74,6 +75,9 @@ struct Vfs::File_io_service : Interface
 	 * Queue read operation
 	 *
 	 * \return false if queue is full
+	 *
+	 * If the queue is full, the caller can try again after a previous VFS
+	 * request is completed.
 	 */
 	virtual bool queue_read(Vfs_handle *, file_size)
 	{
@@ -177,6 +181,9 @@ struct Vfs::File_io_service : Interface
 	 * Queue sync operation
 	 *
 	 * \return false if queue is full
+	 *
+	 * If the queue is full, the caller can try again after a previous VFS
+	 * request is completed.
 	 */
 	virtual bool queue_sync(Vfs_handle *) { return true; }
 

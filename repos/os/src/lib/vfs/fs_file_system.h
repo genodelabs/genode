@@ -140,12 +140,6 @@ class Vfs::Fs_file_system : public File_system
 
 				source.release_packet(packet);
 
-				/*
-				 * Notify anyone who might have failed on
-				 * 'alloc_packet()' or 'submit_packet()'
-				 */
-				_io_handler.handle_io_response(nullptr);
-
 				return READ_OK;
 			}
 
@@ -221,12 +215,6 @@ class Vfs::Fs_file_system : public File_system
 				queued_sync_packet = ::File_system::Packet_descriptor();
 
 				source.release_packet(packet);
-
-				/*
-				 * Notify anyone who might have failed on
-				 * 'alloc_packet()' or 'submit_packet()'
-				 */
-				_io_handler.handle_io_response(nullptr);
 
 				return SYNC_OK;
 			}

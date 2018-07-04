@@ -106,6 +106,11 @@ struct Noux::Vfs_dataspace
 					read_context.vfs_io_waiter.wait_for_io();
 				}
 
+				/* wake up threads blocking for 'queue_*()' or 'write()' */
+				vfs_io_waiter_registry.for_each([] (Vfs_io_waiter &r) {
+					r.wakeup();
+				});
+
 				if (read_result != Vfs::File_io_service::READ_OK) {
 					Genode::error("Error reading dataspace from VFS");
 					rm.detach(addr);

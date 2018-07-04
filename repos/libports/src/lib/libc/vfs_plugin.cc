@@ -422,6 +422,10 @@ ssize_t Libc::Vfs_plugin::write(Libc::File_descriptor *fd, const void *buf,
 
 		try {
 			out_result = VFS_THREAD_SAFE(handle->fs().write(handle, (char const *)buf, count, out_count));
+
+			/* wake up threads blocking for 'queue_*()' or 'write()' */
+			Libc::resume_all();
+
 		} catch (Vfs::File_io_service::Insufficient_buffer) { }
 
 	} else {
@@ -461,6 +465,9 @@ ssize_t Libc::Vfs_plugin::write(Libc::File_descriptor *fd, const void *buf,
 			Libc::suspend(check);
 		} while (check.retry);
 	}
+
+	/* wake up threads blocking for 'queue_*()' or 'write()' */
+	Libc::resume_all();
 
 	switch (out_result) {
 	case Result::WRITE_ERR_AGAIN:       return Errno(EAGAIN);
@@ -551,6 +558,9 @@ ssize_t Libc::Vfs_plugin::read(Libc::File_descriptor *fd, void *buf,
 			Libc::suspend(check);
 		} while (check.retry);
 	}
+
+	/* wake up threads blocking for 'queue_*()' or 'write()' */
+	Libc::resume_all();
 
 	switch (out_result) {
 	case Result::READ_ERR_AGAIN:       return Errno(EAGAIN);
@@ -644,6 +654,9 @@ ssize_t Libc::Vfs_plugin::getdirentries(Libc::File_descriptor *fd, char *buf,
 			Libc::suspend(check);
 		} while (check.retry);
 	}
+
+	/* wake up threads blocking for 'queue_*()' or 'write()' */
+	Libc::resume_all();
 
 	if ((out_result != Result::READ_OK) ||
 	    (out_count < sizeof(Dirent))) {
@@ -979,6 +992,9 @@ int Libc::Vfs_plugin::symlink(const char *oldpath, const char *newpath)
 		Libc::suspend(check);
 	} while (check.retry);
 
+	/* wake up threads blocking for 'queue_*()' or 'write()' */
+	Libc::resume_all();
+
 	_vfs_sync(handle);
 	VFS_THREAD_SAFE(handle->close());
 
@@ -1077,6 +1093,9 @@ ssize_t Libc::Vfs_plugin::readlink(const char *path, char *buf, ::size_t buf_siz
 			Libc::suspend(check);
 		} while (check.retry);
 	}
+
+	/* wake up threads blocking for 'queue_*()' or 'write()' */
+	Libc::resume_all();
 
 	switch (out_result) {
 	case Result::READ_ERR_AGAIN:       return Errno(EAGAIN);
