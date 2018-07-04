@@ -227,7 +227,7 @@ struct Noux::Terminal_io_channel : Io_channel
 	{
 		/* respond to terminal-close event */
 		Terminal::Session::Size const size = _terminal.size();
-		if (_terminal.size().columns()*_terminal.size().lines() == 0)
+		if (size.columns()*size.lines() == 0)
 			read_buffer.add(EOF);
 
 		Io_channel::invoke_all_interrupt_handlers(Sysio::SIG_WINCH);
