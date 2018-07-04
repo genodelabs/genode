@@ -1,28 +1,30 @@
 <?xml version="1.0"?>
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
 
+ <xs:include schemaLocation="base_types.xsd"/>
+
  <xs:complexType name="template_service">
   <xs:choice minOccurs="1" maxOccurs="3">
    <xs:element name="parent"/>
    <xs:element name="any-child"/>
    <xs:element name="child">
     <xs:complexType>
-     <xs:attribute name="name" type="xs:string" />
-     <xs:attribute name="label" type="xs:string" />
+     <xs:attribute name="name"  type="xs:string" />
+     <xs:attribute name="label" type="Session_label" />
     </xs:complexType>
    </xs:element>
   </xs:choice>
-  <xs:attribute name="name" type="xs:string" />
-  <xs:attribute name="label" type="xs:string" />
-  <xs:attribute name="label_prefix" type="xs:string" />
-  <xs:attribute name="label_suffix" type="xs:string" />
-  <xs:attribute name="label_last"   type="xs:string" />
-  <xs:attribute name="unscoped_label" type="xs:string" />
+  <xs:attribute name="name"           type="xs:string" />
+  <xs:attribute name="label"          type="Session_label" />
+  <xs:attribute name="label_prefix"   type="Session_label" />
+  <xs:attribute name="label_suffix"   type="Session_label" />
+  <xs:attribute name="label_last"     type="Session_label" />
+  <xs:attribute name="unscoped_label" type="Session_label" />
  </xs:complexType>
 
  <xs:complexType name="template_route">
   <xs:choice minOccurs="0" maxOccurs="unbounded">
-   <xs:element name="service" type="template_service"/>
+   <xs:element name="service"     type="template_service"/>
    <xs:element name="any-service" type="template_service"/>
   </xs:choice>
  </xs:complexType>
@@ -33,7 +35,7 @@
 
     <xs:element name="affinity-space">
      <xs:complexType>
-      <xs:attribute name="width" type="xs:int" />
+      <xs:attribute name="width"  type="xs:int" />
       <xs:attribute name="height" type="xs:int" />
      </xs:complexType>
     </xs:element> <!-- "affinity-space" -->
@@ -52,7 +54,7 @@
 
     <xs:element name="alias">
      <xs:complexType>
-      <xs:attribute name="name" type="xs:string" />
+      <xs:attribute name="name"  type="xs:string" />
       <xs:attribute name="child" type="xs:string" />
      </xs:complexType>
     </xs:element> <!-- "alias" -->
@@ -67,22 +69,22 @@
 
     <xs:element name="report">
      <xs:complexType>
-      <xs:attribute name="ids" type="xs:string" />
-      <xs:attribute name="requested" type="xs:string" />
-      <xs:attribute name="provided" type="xs:string" />
-      <xs:attribute name="session_args" type="xs:string" />
-      <xs:attribute name="child_caps" type="xs:string" />
-      <xs:attribute name="child_ram" type="xs:string" />
-      <xs:attribute name="init_caps" type="xs:string" />
-      <xs:attribute name="init_ram" type="xs:string" />
-      <xs:attribute name="delay_ms" type="xs:int" />
+      <xs:attribute name="ids"          type="Boolean" />
+      <xs:attribute name="requested"    type="Boolean" />
+      <xs:attribute name="provided"     type="Boolean" />
+      <xs:attribute name="session_args" type="Boolean" />
+      <xs:attribute name="child_caps"   type="Boolean" />
+      <xs:attribute name="child_ram"    type="Boolean" />
+      <xs:attribute name="init_caps"    type="Boolean" />
+      <xs:attribute name="init_ram"     type="Boolean" />
+      <xs:attribute name="delay_ms"     type="xs:int" />
      </xs:complexType>
     </xs:element> <!-- "report" -->
 
     <xs:element name="resource">
      <xs:complexType>
-      <xs:attribute name="name" type="xs:string" />
-      <xs:attribute name="preserve" type="xs:string" />
+      <xs:attribute name="name"     type="xs:string" />
+      <xs:attribute name="preserve" type="Number_of_bytes" />
      </xs:complexType>
     </xs:element> <!-- "resource" -->
 
@@ -98,18 +100,18 @@
 
        <xs:element name="affinity">
         <xs:complexType>
-         <xs:attribute name="xpos" type="xs:int" />
-         <xs:attribute name="ypos" type="xs:int" />
-         <xs:attribute name="width" type="xs:int" />
+         <xs:attribute name="xpos"   type="xs:int" />
+         <xs:attribute name="ypos"   type="xs:int" />
+         <xs:attribute name="width"  type="xs:int" />
          <xs:attribute name="height" type="xs:int" />
         </xs:complexType>
        </xs:element> <!-- "affinity" -->
 
        <xs:element name="resource">
         <xs:complexType>
-         <xs:attribute name="name" type="xs:string" />
-         <xs:attribute name="quantum" type="xs:string" />
-         <xs:attribute name="constrain_phys" type="xs:string" />
+         <xs:attribute name="name"           type="xs:string" />
+         <xs:attribute name="quantum"        type="Number_of_bytes" />
+         <xs:attribute name="constrain_phys" type="Boolean" />
         </xs:complexType>
        </xs:element> <!-- "resource" -->
 
@@ -143,17 +145,17 @@
        </xs:element> <!-- "config" -->
 
       </xs:choice>
-      <xs:attribute name="name" type="xs:string" />
-      <xs:attribute name="ld"   type="xs:string" />
-      <xs:attribute name="caps" type="xs:int" />
+      <xs:attribute name="name"     type="xs:string" />
+      <xs:attribute name="ld"       type="Boolean" />
+      <xs:attribute name="caps"     type="xs:int" />
       <xs:attribute name="priority" type="xs:int" />
      </xs:complexType>
     </xs:element> <!-- "start" -->
 
    </xs:choice>
    <xs:attribute name="prio_levels" type="xs:int" />
-   <xs:attribute name="verbose" type="xs:string" />
-   <xs:attribute name="ld_verbose" type="xs:string" />
+   <xs:attribute name="verbose"     type="Boolean" />
+   <xs:attribute name="ld_verbose"  type="Boolean" />
   </xs:complexType>
  </xs:element> <!-- "config" -->
 </xs:schema>

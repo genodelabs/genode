@@ -1,23 +1,14 @@
 <?xml version="1.0"?>
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
 
+	<xs:include schemaLocation="base_types.xsd"/>
+
 	<xs:simpleType name="Interface_label">
 		<xs:restriction base="xs:string">
 			<xs:minLength value="1"/>
 			<xs:maxLength value="64"/>
 		</xs:restriction>
 	</xs:simpleType><!-- Interface_label -->
-
-	<xs:simpleType name="Boolean">
-		<xs:restriction base="xs:string">
-			<xs:enumeration value="true" />
-			<xs:enumeration value="yes" />
-			<xs:enumeration value="on" />
-			<xs:enumeration value="false" />
-			<xs:enumeration value="no" />
-			<xs:enumeration value="off" />
-		</xs:restriction>
-	</xs:simpleType><!-- Boolean -->
 
 	<xs:simpleType name="Log_style">
 		<xs:restriction base="xs:string">

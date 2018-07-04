@@ -115,7 +115,7 @@ proc check_xml_syntax {xml_file} {
 #                         configurations of children of the component
 # \param nesting_level    level of recursive calls of this procedure
 #
-proc check_config {bin xml_file xsd_file label avail_xsd_files nesting_level} {
+proc check_config {bin xml_file xsd_file label avail_xsd_files xsd_inc nesting_level} {
 
 	# check prerequisites if this is not a recursive call
 	if {$nesting_level == 0} {
@@ -130,7 +130,7 @@ proc check_config {bin xml_file xsd_file label avail_xsd_files nesting_level} {
 
 	# check the given component configuration itself
 	puts "  CHECK $label"
-	if {[catch {exec xmllint --noout -schema $xsd_file $xml_file} result]} {
+	if {[catch {exec xmllint --noout --path $xsd_inc -schema $xsd_file $xml_file} result]} {
 
 		if {$result != "$xml_file validates"} {
 
@@ -199,7 +199,8 @@ proc check_config {bin xml_file xsd_file label avail_xsd_files nesting_level} {
 			# call this procedure again on the child config file
 			set child_label "$label -> $child_name"
 			check_config $child_bin $child_xml_file $child_xsd_file \
-			             $child_label $avail_xsd_files [expr $nesting_level+1]
+			             $child_label $avail_xsd_files $xsd_inc \
+			             [expr $nesting_level+1]
 
 			# clean up
 			exec rm -f $child_xml_file
@@ -246,9 +247,16 @@ proc build_boot_image {binaries} {
 			set init_xsd_file $xsd_file
 		}
 	}
+	# determine include directories that can be used by the XSD files
+	global repositories;
+	set xsd_inc ""
+	foreach repo $repositories {
+		if {[file exists $repo/xsd]} {
+			append xsd_inc "$repo/xsd " }
+	}
 	# check configurations of init and its children
 	puts "checking configuration syntax"
-	check_config init [run_dir]/genode/config $init_xsd_file init $xsd_files 0
+	check_config init [run_dir]/genode/config $init_xsd_file init $xsd_files $xsd_inc 0
 
 	run_boot_dir $binaries
 }

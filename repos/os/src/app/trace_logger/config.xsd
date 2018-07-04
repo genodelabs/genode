@@ -1,36 +1,8 @@
 <?xml version="1.0"?>
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
 
-	<xs:simpleType name="Boolean">
-		<xs:restriction base="xs:string">
-			<xs:enumeration value="true" />
-			<xs:enumeration value="yes" />
-			<xs:enumeration value="on" />
-			<xs:enumeration value="false" />
-			<xs:enumeration value="no" />
-			<xs:enumeration value="off" />
-		</xs:restriction>
-	</xs:simpleType><!-- Boolean -->
-
-	<xs:simpleType name="Seconds">
-		<xs:restriction base="xs:integer">
-			<xs:minInclusive value="1"/>
-			<xs:maxInclusive value="3600"/>
-		</xs:restriction>
-	</xs:simpleType><!-- Seconds -->
-
-	<xs:simpleType name="Number_of_bytes">
-		<xs:restriction base="xs:string">
-			<xs:minLength value="1"/>
-		</xs:restriction>
-	</xs:simpleType><!-- Thread_name -->
-
-	<xs:simpleType name="Thread_name">
-		<xs:restriction base="xs:string">
-			<xs:minLength value="1"/>
-			<xs:maxLength value="40"/>
-		</xs:restriction>
-	</xs:simpleType><!-- Thread_name -->
+	<xs:include schemaLocation="base_types.xsd"/>
+	<xs:include schemaLocation="timeout_types.xsd"/>
 
 	<xs:simpleType name="Trace_policy_name">
 		<xs:restriction base="xs:string">
@@ -38,13 +10,6 @@
 			<xs:maxLength value="40"/>
 		</xs:restriction>
 	</xs:simpleType><!-- Trace_policy_name -->
-
-	<xs:simpleType name="Session_label">
-		<xs:restriction base="xs:string">
-			<xs:minLength value="1"/>
-			<xs:maxLength value="160"/>
-		</xs:restriction>
-	</xs:simpleType><!-- Session_label -->
 
 	<xs:element name="config">
 		<xs:complexType>

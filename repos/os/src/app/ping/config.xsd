@@ -1,23 +1,9 @@
 <?xml version="1.0"?>
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
 
-	<xs:simpleType name="Boolean">
-		<xs:restriction base="xs:string">
-			<xs:enumeration value="true" />
-			<xs:enumeration value="yes" />
-			<xs:enumeration value="on" />
-			<xs:enumeration value="false" />
-			<xs:enumeration value="no" />
-			<xs:enumeration value="off" />
-		</xs:restriction>
-	</xs:simpleType><!-- Boolean -->
-
-	<xs:simpleType name="Port">
-		<xs:restriction base="xs:integer">
-			<xs:minInclusive value="0"/>
-			<xs:maxInclusive value="65535"/>
-		</xs:restriction>
-	</xs:simpleType><!-- Port -->
+	<xs:include schemaLocation="base_types.xsd"/>
+	<xs:include schemaLocation="net_types.xsd"/>
+	<xs:include schemaLocation="timeout_types.xsd"/>
 
 	<xs:simpleType name="Protocol">
 		<xs:restriction base="xs:string">
@@ -25,25 +11,6 @@
 			<xs:enumeration value="udp" />
 		</xs:restriction>
 	</xs:simpleType><!-- Protocol -->
-
-	<xs:simpleType name="Seconds">
-		<xs:restriction base="xs:integer">
-			<xs:minInclusive value="1"/>
-			<xs:maxInclusive value="3600"/>
-		</xs:restriction>
-	</xs:simpleType><!-- Seconds -->
-
-	<xs:simpleType name="Ipv4_address">
-		<xs:restriction base="xs:string">
-			<xs:pattern value="[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}"/>
-		</xs:restriction>
-	</xs:simpleType><!-- Ipv4_address -->
-
-	<xs:simpleType name="Ipv4_address_prefix">
-		<xs:restriction base="xs:string">
-			<xs:pattern value="[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}/[0-9]{1,2}"/>
-		</xs:restriction>
-	</xs:simpleType><!-- Ipv4_address_prefix -->
 
 	<xs:element name="config">
 		<xs:complexType>
