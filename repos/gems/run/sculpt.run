@@ -81,38 +81,41 @@ install_config {
 	</start>
 
 	<start name="config_fs" caps="200">
-		<binary name="ram_fs"/>
-		<resource name="RAM" quantum="10M"/>
+		<binary name="vfs"/>
+		<resource name="RAM" quantum="12M"/>
 		<provides> <service name="File_system"/> </provides>
 		<config>
-			<content>
-				<dir name="managed">
-					<rom name="fonts.config"         as="fonts"/>
-					<rom name="fb_drv.config"        as="fb_drv"/>
-					<rom name="wlan.config"          as="wlan"/>
-					<rom name="installation"/>
-					<rom name="empty_runtime.config" as="runtime"/>
-					<rom name="input_filter.config"  as="input_filter"/>
-					<inline name="depot_query"><query/></inline>
-				</dir>
-				<rom name="input_filter.config"  as="input_filter"/>
-				<rom name="fb_drv.config"        as="fb_drv"/>
-				<rom name="nitpicker.config"     as="nitpicker"/>
-				<rom name="numlock_remap.config" as="numlock_remap"/>
-				<rom name="leitzentrale.config"  as="leitzentrale"/>
-				<rom name="drivers.config"       as="drivers"/>
-				<rom name="manual_deploy.config" as="deploy"/>
-				<rom name="usb.config"           as="usb"/>
-				<rom name="en_us.chargen"/>
-				<rom name="de.chargen"/>
-				<rom name="de_ch.chargen"/>
-				<rom name="special.chargen"/>
-				<rom name="vimrc"/>
-				<inline name="system">} [config_system_content] {
-				</inline>
-			</content>
+			<vfs>
+				<ram/>
+				<import>
+					<dir name="managed">
+						<rom name="fonts"  label="fonts.config"/>
+						<rom name="fb_drv" label="fb_drv.config"/>
+						<rom name="wlan"   label="wlan.config"/>
+						<rom name="installation"/>
+						<rom name="runtime"      label="empty_runtime.config"/>
+						<rom name="input_filter" label="input_filter.config"/>
+						<inline name="depot_query"><query/></inline>
+					</dir>
+					<rom name="input_filter"  label="input_filter.config"/>
+					<rom name="fb_drv"        label="fb_drv.config"/>
+					<rom name="nitpicker"     label="nitpicker.config"/>
+					<rom name="numlock_remap" label="numlock_remap.config"/>
+					<rom name="leitzentrale"  label="leitzentrale.config"/>
+					<rom name="drivers"       label="drivers.config"/>
+					<rom name="deploy"        label="manual_deploy.config"/>
+					<rom name="usb"           label="usb.config"/>
+					<rom name="en_us.chargen"/>
+					<rom name="de.chargen"/>
+					<rom name="de_ch.chargen"/>
+					<rom name="special.chargen"/>
+					<rom name="vimrc"/>
+					<inline name="system">} [config_system_content] {
+					</inline>
+				</import>
+			</vfs>
 			<policy label="config_fs_rom -> " root="/" />
-			<policy label="rw" root="/" writeable="yes" />
+			<policy label="rw"                root="/" writeable="yes" />
 		</config>
 	</start>
 

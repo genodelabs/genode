@@ -24,6 +24,7 @@ _/src/bash-minimal
 _/src/vim-minimal
 _/src/coreutils-minimal
 _/src/vfs
+_/src/vfs_import
 _/src/vfs_lxip
 _/src/rump
 _/src/ipxe_nic_drv
