@@ -24,12 +24,17 @@ class Vfs::Rom_file_system : public Single_file_system
 {
 	private:
 
+		enum Rom_type { ROM_TEXT, ROM_BINARY };
+
 		struct Label
 		{
 			enum { LABEL_MAX_LEN = 64 };
 			char string[LABEL_MAX_LEN];
+			bool const binary;
 
 			Label(Xml_node config)
+			:
+				binary(config.attribute_value("binary", true))
 			{
 				/* obtain label from config */
 				string[0] = 0;
@@ -52,19 +57,33 @@ class Vfs::Rom_file_system : public Single_file_system
 
 				Genode::Attached_rom_dataspace &_rom;
 
+				file_size const _content_size;
+
+				file_size _init_content_size(Rom_type type)
+				{
+					if (type == ROM_TEXT) {
+						for (file_size pos = 0; pos < _rom.size(); pos++) 
+							if (_rom.local_addr<char>()[pos] == 0x00)
+								return pos;
+					}
+
+					return _rom.size();
+				}
+
 			public:
 
 				Rom_vfs_handle(Directory_service              &ds,
 				               File_io_service                &fs,
 				               Genode::Allocator              &alloc,
-				               Genode::Attached_rom_dataspace &rom)
-				: Single_vfs_handle(ds, fs, alloc, 0), _rom(rom) { }
+				               Genode::Attached_rom_dataspace &rom,
+				               Rom_type                        type)
+				: Single_vfs_handle(ds, fs, alloc, 0), _rom(rom), _content_size(_init_content_size(type)) { }
 
 				Read_result read(char *dst, file_size count,
 				                 file_size &out_count) override
 				{
 					/* file read limit is the size of the dataspace */
-					file_size const max_size = _rom.size();
+					file_size const max_size = _content_size;
 
 					/* current read offset */
 					file_size const read_offset = seek();
@@ -128,7 +147,7 @@ class Vfs::Rom_file_system : public Single_file_system
 
 			try {
 				*out_handle = new (alloc)
-					Rom_vfs_handle(*this, *this, alloc, _rom);
+					Rom_vfs_handle(*this, *this, alloc, _rom, _label.binary ? ROM_BINARY : ROM_TEXT);
 				return OPEN_OK;
 			}
 			catch (Genode::Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
