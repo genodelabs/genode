@@ -6,6 +6,7 @@
  */
 
 /*
+ * Copyright (C) 2018 Genode Labs GmbH
  * Copyright (C) 2018 Componolit GmbH
  *
  * This file is part of the Genode OS framework, which is distributed

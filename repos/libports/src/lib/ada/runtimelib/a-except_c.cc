@@ -1,11 +1,13 @@
 /*
  * \brief Implementation of Ada exception functions, propagating to C++
- * \author Alexander Senier, Johannes Kliemann
+ * \author Alexander Senier
+ * \author Johannes Kliemann
  * \date 2018-04-16
  *
  */
 
 /*
+ * Copyright (C) 2018 Genode Labs GmbH
  * Copyright (C) 2018 Componolit GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
