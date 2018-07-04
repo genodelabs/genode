@@ -21,6 +21,7 @@
 #include <nitpicker_session/nitpicker_session.h>
 #include <usb_session/usb_session.h>
 #include <log_session/log_session.h>
+#include <rm_session/rm_session.h>
 #include <timer_session/timer_session.h>
 #include <file_system_session/file_system_session.h>
 #include <report_session/report_session.h>

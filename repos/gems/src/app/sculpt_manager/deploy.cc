@@ -132,9 +132,17 @@ void Sculpt::Deploy::handle_deploy()
 
 void Sculpt::Deploy::gen_runtime_start_nodes(Xml_generator &xml) const
 {
+	/* depot-ROM instance for regular (immutable) depot content */
 	xml.node("start", [&] () {
-		gen_fs_rom_start_content(xml, "depot_rom", "depot",
-		                         depot_rom_state.ram_quota); });
+		gen_fs_rom_start_content(xml, "depot_rom", "cached_fs_rom", "depot",
+		                         cached_depot_rom_state.ram_quota,
+		                         cached_depot_rom_state.cap_quota); });
+
+	/* depot-ROM instance for mutable content (/depot/local/) */
+	xml.node("start", [&] () {
+		gen_fs_rom_start_content(xml, "dynamic_depot_rom", "fs_rom", "depot",
+		                         uncached_depot_rom_state.ram_quota,
+		                         uncached_depot_rom_state.cap_quota); });
 
 	xml.node("start", [&] () {
 		gen_depot_query_start_content(xml); });
@@ -150,5 +158,5 @@ void Sculpt::Deploy::gen_runtime_start_nodes(Xml_generator &xml) const
 	/* generate start nodes for deployed packages */
 	if (manual_deploy.has_sub_node("common_routes"))
 		_children.gen_start_nodes(xml, manual_deploy.sub_node("common_routes"),
-		                          "depot_rom");
+		                          "depot_rom", "dynamic_depot_rom");
 }

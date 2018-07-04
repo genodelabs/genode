@@ -15,13 +15,14 @@
 
 void Sculpt::gen_fs_rom_start_content(Xml_generator &xml,
                                       Start_name const &name,
+                                      Start_name const &binary,
                                       Start_name const &server,
-                                      Ram_quota ram_quota)
+                                      Ram_quota ram_quota,
+                                      Cap_quota cap_quota)
 {
-	gen_common_start_content(xml, name,
-	                         Cap_quota{200}, ram_quota);
+	gen_common_start_content(xml, name, cap_quota, ram_quota);
 
-	gen_named_node(xml, "binary", "fs_rom");
+	gen_named_node(xml, "binary", binary);
 
 	xml.node("config", [&] () { });
 
@@ -32,10 +33,11 @@ void Sculpt::gen_fs_rom_start_content(Xml_generator &xml,
 		gen_service_node<::File_system::Session>(xml, [&] () {
 			gen_named_node(xml, "child", server); });
 
-		gen_parent_rom_route(xml, "fs_rom");
+		gen_parent_rom_route(xml, binary);
 		gen_parent_rom_route(xml, "ld.lib.so");
 		gen_parent_route<Cpu_session>(xml);
 		gen_parent_route<Pd_session> (xml);
 		gen_parent_route<Log_session>(xml);
+		gen_parent_route<Rm_session> (xml);
 	});
 }

@@ -64,7 +64,8 @@ struct Depot_deploy::Main
 			Xml_node static_config = config.sub_node("static");
 			xml.append(static_config.content_base(), static_config.content_size());
 			Child::Depot_rom_server const parent { };
-			_children.gen_start_nodes(xml, config.sub_node("common_routes"), parent);
+			_children.gen_start_nodes(xml, config.sub_node("common_routes"),
+			                          parent, parent);
 		});
 
 		/* update query for blueprints of all unconfigured start nodes */

@@ -739,36 +739,43 @@ void Sculpt::Main::_handle_runtime_state()
 	/* upgrade ram_fs quota on demand */
 	state.for_each_sub_node("child", [&] (Xml_node child) {
 
-		if (child.attribute_value("name", String<16>()) == "ram_fs")  {
+		if (child.attribute_value("name", String<16>()) != "ram_fs")
+			return;
 
-			if (child.has_sub_node("ram")
-			 && child.sub_node("ram").has_attribute("requested")) {
+		if (child.has_sub_node("ram") && child.sub_node("ram").has_attribute("requested")) {
+			_storage._ram_fs_state.ram_quota.value *= 2;
+			reconfigure_runtime = true;
+			generate_dialog();
+		}
 
-				_storage._ram_fs_state.ram_quota.value *= 2;
-				reconfigure_runtime = true;
-				generate_dialog();
-			}
-
-			if (child.has_sub_node("caps")
-			 && child.sub_node("caps").has_attribute("requested")) {
-
-				_storage._ram_fs_state.cap_quota.value += 100;
-				reconfigure_runtime = true;
-				generate_dialog();
-			}
+		if (child.has_sub_node("caps") && child.sub_node("caps").has_attribute("requested")) {
+			_storage._ram_fs_state.cap_quota.value += 100;
+			reconfigure_runtime = true;
+			generate_dialog();
 		}
 	});
 
 	/* upgrade depot_rom quota on demand */
 	state.for_each_sub_node("child", [&] (Xml_node child) {
 
-		if (child.attribute_value("name", String<16>()) == "depot_rom"
-		 && child.has_sub_node("ram")
-		 && child.sub_node("ram").has_attribute("requested")) {
+		auto upgrade_depot_rom = [&] (Deploy::Depot_rom_state &state, Start_name const &name)
+		{
+			if (child.attribute_value("name", Start_name()) != name)
+				return;
 
-			_deploy.depot_rom_state.ram_quota.value *= 2;
-			reconfigure_runtime = true;
-		}
+			if (child.has_sub_node("ram") && child.sub_node("ram").has_attribute("requested")) {
+				state.ram_quota.value *= 2;
+				reconfigure_runtime = true;
+			}
+
+			if (child.has_sub_node("caps") && child.sub_node("caps").has_attribute("requested")) {
+				state.cap_quota.value += 100;
+				reconfigure_runtime = true;
+			}
+		};
+
+		upgrade_depot_rom(_deploy.cached_depot_rom_state,   "depot_rom");
+		upgrade_depot_rom(_deploy.uncached_depot_rom_state, "dynamic_depot_rom");
 	});
 
 	/*

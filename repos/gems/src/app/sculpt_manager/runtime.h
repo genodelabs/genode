@@ -47,7 +47,9 @@ namespace Sculpt {
 	void gen_fs_start_content(Xml_generator &, Storage_target const &,
 	                          File_system::Type);
 
-	void gen_fs_rom_start_content(Xml_generator &, Start_name const &, Start_name const &, Ram_quota);
+	void gen_fs_rom_start_content(Xml_generator &, Start_name const &,
+	                              Start_name const &, Start_name const &,
+	                              Ram_quota, Cap_quota);
 
 	void gen_gpt_relabel_start_content(Xml_generator &, Storage_device const &);
 	void gen_gpt_expand_start_content (Xml_generator &, Storage_device const &);

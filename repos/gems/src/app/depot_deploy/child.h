@@ -83,7 +83,9 @@ class Depot_deploy::Child : public List_model<Child>::Element
 			   && (_config_pkg_path() == _blueprint_pkg_path);
 		}
 
-		inline void _gen_routes(Xml_generator &, Xml_node, Depot_rom_server const &) const;
+		inline void _gen_routes(Xml_generator &, Xml_node,
+		                        Depot_rom_server const &,
+		                        Depot_rom_server const &) const;
 
 		static void _gen_provides_sub_node(Xml_generator &xml, Xml_node service,
 		                                   Xml_node::Type const &node_type,
@@ -224,14 +226,19 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		/**
 		 * Generate start node of init configuration
 		 *
-		 * \param common     session routes to be added in addition to the ones
-		 *                   found in the pkg blueprint
-		 * \param depot_rom  name of the server that provides the depot content
-		 *                   as ROM modules. If the string is invalid, ROM
-		 *                   requests are routed to the parent.
+		 * \param common              session routes to be added in addition to
+		 *                            the ones found in the pkg blueprint
+		 * \param cached_depot_rom    name of the server that provides the depot
+		 *                            content as ROM modules. If the string is
+		 *                            invalid, ROM requests are routed to the
+		 *                            parent.
+		 * \param uncached_depot_rom  name of the depot-ROM server used to obtain
+		 *                            the content of the depot user "local", which
+		 *                            is assumed to be mutable
 		 */
 		inline void gen_start_node(Xml_generator &, Xml_node common,
-		                           Depot_rom_server const &depot_rom) const;
+		                           Depot_rom_server const &cached_depot_rom,
+		                           Depot_rom_server const &uncached_depot_rom) const;
 
 		/**
 		 * Generate installation entry needed for the completion of the child
@@ -251,7 +258,8 @@ class Depot_deploy::Child : public List_model<Child>::Element
 
 
 void Depot_deploy::Child::gen_start_node(Xml_generator &xml, Xml_node common,
-                                         Depot_rom_server const &depot_rom) const
+                                         Depot_rom_server const &cached_depot_rom,
+                                         Depot_rom_server const &uncached_depot_rom) const
 {
 	if (!_configured() || _condition == UNSATISFIED)
 		return;
@@ -313,13 +321,15 @@ void Depot_deploy::Child::gen_start_node(Xml_generator &xml, Xml_node common,
 			});
 		}
 
-		xml.node("route", [&] () { _gen_routes(xml, common, depot_rom); });
+		xml.node("route", [&] () {
+			_gen_routes(xml, common, cached_depot_rom, uncached_depot_rom); });
 	});
 }
 
 
 void Depot_deploy::Child::_gen_routes(Xml_generator &xml, Xml_node common,
-                                      Depot_rom_server const &depot_rom) const
+                                      Depot_rom_server const &cached_depot_rom,
+                                      Depot_rom_server const &uncached_depot_rom) const
 {
 	if (!_pkg_xml.constructed())
 		return;
@@ -333,6 +343,18 @@ void Depot_deploy::Child::_gen_routes(Xml_generator &xml, Xml_node common,
 		Xml_node const route = _start_xml->xml().sub_node("route");
 		xml.append(route.content_base(), route.content_size());
 	}
+
+	/**
+	 * Return name of depot-ROM server used for obtaining the 'path'
+	 *
+	 * If the depot path refers to the depot-user "local", route the
+	 * session request to the non-cached ROM service.
+	 */
+	auto rom_server = [&] (Path const &path) {
+
+		return (String<7>(path) == "local/") ? uncached_depot_rom
+		                                     : cached_depot_rom;
+	};
 
 	/*
 	 * Redirect config ROM request to label as given in the 'config' attribute,
@@ -356,9 +378,9 @@ void Depot_deploy::Child::_gen_routes(Xml_generator &xml, Xml_node common,
 				typedef String<160> Path;
 				Path const path = rom.attribute_value("path", Path());
 
-				if (depot_rom.valid())
+				if (cached_depot_rom.valid())
 					xml.node("child", [&] () {
-						xml.attribute("name", depot_rom);
+						xml.attribute("name", rom_server(path));
 						xml.attribute("label", path); });
 				else
 					xml.node("parent", [&] () {
@@ -389,9 +411,9 @@ void Depot_deploy::Child::_gen_routes(Xml_generator &xml, Xml_node common,
 			xml.attribute("name", "ROM");
 			xml.attribute("label_last", label);
 
-			if (depot_rom.valid()) {
+			if (cached_depot_rom.valid()) {
 				xml.node("child", [&] () {
-					xml.attribute("name", depot_rom);
+					xml.attribute("name",  rom_server(path));
 					xml.attribute("label", path);
 				});
 			} else {

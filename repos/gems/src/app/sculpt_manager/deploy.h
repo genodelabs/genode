@@ -47,9 +47,10 @@ struct Sculpt::Deploy
 
 	struct Query_version { unsigned value; } _query_version { 0 };
 
-	struct Depot_rom_state { Ram_quota ram_quota; };
+	struct Depot_rom_state { Ram_quota ram_quota; Cap_quota cap_quota; };
 
-	Depot_rom_state depot_rom_state { 32*1024*1024 };
+	Depot_rom_state cached_depot_rom_state   { 24*1024*1024, 200 };
+	Depot_rom_state uncached_depot_rom_state {  8*1024*1024, 200 };
 
 	Attached_rom_dataspace _manual_deploy_rom { _env, "config -> deploy" };
 

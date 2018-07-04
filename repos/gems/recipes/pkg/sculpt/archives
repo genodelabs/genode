@@ -6,6 +6,7 @@ _/src/report_rom
 _/src/init
 _/src/ram_fs
 _/src/fs_rom
+_/src/cached_fs_rom
 _/src/fs_report
 _/src/nitpicker
 _/src/global_keys_handler

@@ -103,10 +103,11 @@ class Depot_deploy::Children
 		}
 
 		void gen_start_nodes(Xml_generator &xml, Xml_node common,
-		                     Child::Depot_rom_server const &depot_rom) const
+		                     Child::Depot_rom_server const &cached_depot_rom,
+		                     Child::Depot_rom_server const &uncached_depot_rom) const
 		{
 			_children.for_each([&] (Child const &child) {
-				child.gen_start_node(xml, common, depot_rom); });
+				child.gen_start_node(xml, common, cached_depot_rom, uncached_depot_rom); });
 		}
 
 		void gen_queries(Xml_generator &xml) const
