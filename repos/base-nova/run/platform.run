@@ -24,7 +24,7 @@ set config {
 		<default-route>
 			<any-service> <parent/> </any-service>
 		</default-route>
-		<start name="test-platform" caps="12000">
+		<start name="test-platform" caps="12000" ld="no">
 			<resource name="RAM" quantum="128M"/>}
 
 append config "

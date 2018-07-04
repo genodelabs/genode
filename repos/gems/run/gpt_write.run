@@ -34,7 +34,7 @@ install_config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
-	<start name="lx_block">
+	<start name="lx_block" ld="no">
 		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Block"/> </provides>
 		<config file="gpt.img" block_size="512" writeable="yes"/>

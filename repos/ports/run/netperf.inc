@@ -216,8 +216,14 @@ append_if $use_usb_driver config {
 		</config>
 	</start>}
 
+# don't use the dynamic linker for loading the lx_hybrid nic_drv on Linux
+proc nic_drv_ld_attr {} {
+	if {[have_spec linux]} { return {ld="no"} }
+	return ""
+}
+
 append_if $use_nic_driver config {
-	<start name="nic_drv" caps="130">
+	<start name="nic_drv" caps="130" } [nic_drv_ld_attr] {>
 		<binary name="} [nic_drv_binary] {"/>
 		<resource name="RAM" quantum="20M"/>
 		<provides><service name="Nic"/></provides>

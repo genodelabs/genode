@@ -165,7 +165,7 @@ proc drivers_start_nodes { feature_arg } {
 	}
 
 	append_if [use_fb_sdl feature] start_nodes {
-		<start name="fb_sdl">
+		<start name="fb_sdl" ld="no">
 			<resource name="RAM" quantum="4M"/>
 			<provides>
 				<service name="Input"/>

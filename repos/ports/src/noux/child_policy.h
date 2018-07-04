@@ -194,6 +194,8 @@ class Noux::Child_policy : public Genode::Child_policy
 		{
 			return &static_cast<Pd_session_component &>(pd).address_space_region_map();
 		}
+
+		bool forked() const override { return _forked; }
 };
 
 #endif /* _NOUX__CHILD_POLICY_H_ */

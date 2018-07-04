@@ -108,7 +108,7 @@ append_if [have_spec framebuffer] config {
 	</start>}
 
 append_if [have_spec sdl] config {
-	<start name="fb_sdl" priority="-1">
+	<start name="fb_sdl" priority="-1" ld="no">
 		<resource name="RAM" quantum="4M"/>
 		<provides>
 			<service name="Input"/>

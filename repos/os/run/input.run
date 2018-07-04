@@ -77,7 +77,7 @@ append_if [have_spec ps2] config {
 	<alias name="input_drv" child="ps2_drv"/>}
 
 append_if [have_spec sdl] config {
-	<start name="fb_sdl">
+	<start name="fb_sdl" ld="no">
 		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="Input"/> <service name="Framebuffer"/> </provides>
 		<route>

@@ -90,6 +90,11 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 		typedef String<80> Version;
 		Version _version { _start_node->xml().attribute_value("version", Version()) };
 
+		/*
+		 * True if the binary is loaded with ld.lib.so
+		 */
+		bool const _use_ld = _start_node->xml().attribute_value("ld", true);
+
 		Default_route_accessor &_default_route_accessor;
 		Default_caps_accessor  &_default_caps_accessor;
 		Ram_limit_accessor     &_ram_limit_accessor;

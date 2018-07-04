@@ -28,7 +28,7 @@ install_config {
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
 		<default caps="100"/>
-		<start name="test-lx_hybrid_pthread_ipc">
+		<start name="test-lx_hybrid_pthread_ipc" ld="no">
 			<resource name="RAM" quantum="1M"/>
 		</start>
 	</config>

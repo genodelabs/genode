@@ -53,7 +53,7 @@ set config {
 }
 
 append_if [have_spec linux] config {
-	<start name="fb_sdl" caps="200">
+	<start name="fb_sdl" caps="200" ld="no">
 		<resource name="RAM" quantum="4M"/>
 		<provides>
 			<service name="Input"/>

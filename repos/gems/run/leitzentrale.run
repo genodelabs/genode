@@ -202,7 +202,7 @@ install_config {
 	</start>
 
 	<start name="ahci-1">
-		<binary name="lx_block"/>
+		<binary name="lx_block" ld="no"/>
 		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Block"/> </provides>
 		<config file="ahci-1.img" block_size="512" writeable="yes"/>

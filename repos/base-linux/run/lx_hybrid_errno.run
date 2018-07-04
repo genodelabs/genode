@@ -25,7 +25,7 @@ install_config {
 		<default-route>
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
-		<start name="test-lx_hybrid_errno">
+		<start name="test-lx_hybrid_errno" ld="no">
 			<resource name="RAM" quantum="1M"/>
 		</start>
 	</config>

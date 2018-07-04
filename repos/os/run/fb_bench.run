@@ -61,7 +61,7 @@ append_if [have_spec gpio] config "
 	</start>"
 
 append_if [have_spec sdl] config {
-	<start name="fb_sdl">
+	<start name="fb_sdl" ld="no">
 		<resource name="RAM" quantum="4M"/>
 		<provides>
 			<service name="Input"/>

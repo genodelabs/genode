@@ -222,6 +222,11 @@ struct Genode::Child_policy
 	 * would otherwise produce a deadlock.
 	 */
 	virtual Region_map *address_space(Pd_session &) { return nullptr; }
+
+	/**
+	 * Return true if ELF loading should be inhibited
+	 */
+	virtual bool forked() const { return false; }
 };
 
 
@@ -344,6 +349,8 @@ class Genode::Child : protected Rpc_object<Parent>,
 			class Missing_dynamic_linker : Exception { };
 			class Invalid_executable     : Exception { };
 
+			enum Type { TYPE_LOADED, TYPE_FORKED };
+
 			struct Loaded_executable
 			{
 				/**
@@ -368,7 +375,7 @@ class Genode::Child : protected Rpc_object<Parent>,
 				 * \throw Out_of_ram
 				 * \throw Out_of_caps
 				 */
-				Loaded_executable(Dataspace_capability elf_ds,
+				Loaded_executable(Type type,
 				                  Dataspace_capability ldso_ds,
 				                  Ram_session &ram,
 				                  Region_map &local_rm,
@@ -379,11 +386,6 @@ class Genode::Child : protected Rpc_object<Parent>,
 			/**
 			 * Constructor
 			 *
-			 * \param ram     RAM session used to allocate the BSS and
-			 *                DATA segments for the new process
-			 * \param parent  parent of the new protection domain
-			 * \param name    name of protection domain
-			 *
 			 * \throw Missing_dynamic_linker
 			 * \throw Invalid_executable
 			 * \throw Region_map::Region_conflict
@@ -391,25 +393,21 @@ class Genode::Child : protected Rpc_object<Parent>,
 			 * \throw Out_of_ram
 			 * \throw Out_of_caps
 			 *
-			 * The other arguments correspond to those of 'Child::Child'.
-			 *
 			 * On construction of a protection domain, the initial thread is
 			 * started immediately.
 			 *
-			 * The argument 'elf_ds' may be invalid to create an empty process.
-			 * In this case, all process initialization steps except for the
-			 * creation of the initial thread must be done manually, i.e., as
-			 * done for implementing fork.
+			 * The 'type' 'TYPE_FORKED' creates an empty process. In this case,
+			 * all process initialization steps except for the creation of the
+			 * initial thread must be done manually, i.e., as done for
+			 * implementing fork.
 			 */
-			Process(Dataspace_capability  elf_ds,
-			        Dataspace_capability  ldso_ds,
-			        Pd_session_capability pd_cap,
-			        Pd_session           &pd,
-			        Ram_session          &ram,
-			        Initial_thread_base  &initial_thread,
-			        Region_map           &local_rm,
-			        Region_map           &remote_rm,
-			        Parent_capability     parent);
+			Process(Type                 type,
+			        Dataspace_capability ldso_ds,
+			        Pd_session          &pd,
+			        Initial_thread_base &initial_thread,
+			        Region_map          &local_rm,
+			        Region_map          &remote_rm,
+			        Parent_capability    parent);
 
 			~Process();
 		};

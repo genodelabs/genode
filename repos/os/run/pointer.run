@@ -50,7 +50,7 @@ set config {
 			<service name="LOG"> <parent/> </service>
 		</route>
 	</start>
-	<start name="fb_sdl">
+	<start name="fb_sdl" ld="no">
 		<resource name="RAM" quantum="6M"/>
 		<provides>
 			<service name="Framebuffer"/>

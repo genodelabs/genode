@@ -44,7 +44,7 @@ install_config {
 			</rom>
 		</config>
 	</start>
-	<start name="lx_fs">
+	<start name="lx_fs" ld="no">
 		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="File_system" /> </provides>
 		<config>

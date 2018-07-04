@@ -32,7 +32,7 @@ install_config {
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
 		<default caps="100"/>
-		<start name="test-lx_hybrid_ctors">
+		<start name="test-lx_hybrid_ctors" ld="no">
 			<resource name="RAM" quantum="1M"/>
 		</start>
 	</config>
