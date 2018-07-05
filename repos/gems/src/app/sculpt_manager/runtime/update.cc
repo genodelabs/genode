@@ -21,6 +21,16 @@ void Sculpt::gen_update_start_content(Xml_generator &xml)
 
 	xml.node("route", [&] () {
 
+		typedef String<32> Label;
+		auto gen_fs = [&] (Label const &label, Label const &server) {
+			gen_service_node<::File_system::Session>(xml, [&] () {
+				xml.attribute("label", label);
+				gen_named_node(xml, "child", server); }); };
+
+		/* connect file-system sessions to chroot instances */
+		gen_fs("depot",  "depot_rw");
+		gen_fs("public", "public_rw");
+
 		gen_parent_rom_route(xml, "ld.lib.so");
 		gen_parent_rom_route(xml, "vfs.lib.so");
 		gen_parent_rom_route(xml, "libc.lib.so");
@@ -52,16 +62,6 @@ void Sculpt::gen_update_start_content(Xml_generator &xml)
 		gen_parent_route<Rm_session>     (xml);
 		gen_parent_route<Timer::Session> (xml);
 		gen_parent_route<Report::Session>(xml);
-
-		typedef String<32> Label;
-		auto gen_fs = [&] (Label const &label, Label const &server) {
-			gen_service_node<::File_system::Session>(xml, [&] () {
-				xml.attribute("label", label);
-				gen_named_node(xml, "child", server); }); };
-
-		/* connect file-system sessions to chroot instances */
-		gen_fs("depot",  "depot_rw");
-		gen_fs("public", "public_rw");
 
 		auto gen_relabeled_log = [&] (Label const &label, Label const &relabeled) {
 			gen_service_node<Log_session>(xml, [&] () {

@@ -40,15 +40,16 @@ void Sculpt::_gen_gpt_write_start_content(Xml_generator        &xml,
 	});
 
 	xml.node("route", [&] () {
+
+		Storage_target const target { device.label, Partition::Number { } };
+		target.gen_block_session_route(xml);
+
 		gen_parent_rom_route(xml, "gpt_write");
 		gen_parent_rom_route(xml, "ld.lib.so");
 		gen_parent_route<Cpu_session>    (xml);
 		gen_parent_route<Pd_session>     (xml);
 		gen_parent_route<Log_session>    (xml);
 		gen_parent_route<Rom_session>    (xml);
-
-		Storage_target const target { device.label, Partition::Number { } };
-		target.gen_block_session_route(xml);
 	});
 }
 

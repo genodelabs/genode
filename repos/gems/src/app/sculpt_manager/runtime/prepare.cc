@@ -70,6 +70,11 @@ void Sculpt::gen_prepare_start_content(Xml_generator &xml, Prepare_version versi
 	});
 
 	xml.node("route", [&] () {
+
+		gen_service_node<::File_system::Session>(xml, [&] () {
+			xml.attribute("label", "target");
+			gen_named_node(xml, "child", "default_fs_rw"); });
+
 		gen_parent_rom_route(xml, "noux");
 		gen_parent_rom_route(xml, "ld.lib.so");
 		gen_parent_rom_route(xml, "bash-minimal.tar");
@@ -85,10 +90,6 @@ void Sculpt::gen_prepare_start_content(Xml_generator &xml, Prepare_version versi
 		gen_parent_route<Log_session>    (xml);
 		gen_parent_route<Rom_session>    (xml);
 		gen_parent_route<Timer::Session> (xml);
-
-		gen_service_node<::File_system::Session>(xml, [&] () {
-			xml.attribute("label", "target");
-			gen_named_node(xml, "child", "default_fs_rw"); });
 
 		gen_service_node<::File_system::Session>(xml, [&] () {
 			xml.attribute("label", "config");

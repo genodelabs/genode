@@ -104,6 +104,6 @@ void Sculpt::Gui::_generate_config(Xml_generator &xml) const
 	 });
 
 	xml.node("start", [&] () {
-		_gen_menu_view_start_content(xml, "menu_view", Point(0, 0)); });
+		_gen_menu_view_start_content(xml, "menu", Point(0, 0)); });
 }
 

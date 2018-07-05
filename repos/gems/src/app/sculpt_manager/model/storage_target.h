@@ -44,9 +44,9 @@ struct Sculpt::Storage_target
 		return partition.valid() ? Label(device, ".", partition) : Label(device);
 	}
 
-	Label fs() const { return Label(label(), ".fs"); }
-
 	bool ram_fs() const { return device == "ram_fs"; }
+
+	Label fs() const { return ram_fs() ? label() : Label(label(), ".fs"); }
 
 	void gen_block_session_route(Xml_generator &xml) const
 	{

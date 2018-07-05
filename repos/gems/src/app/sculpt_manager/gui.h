@@ -33,6 +33,8 @@ struct Sculpt::Gui
 
 	Expanding_reporter _config { _env, "config", "gui_config" };
 
+	float _font_size_px = 14;
+
 	typedef String<32> Label;
 
 	struct Version { unsigned value; } version { 0 };
@@ -48,8 +50,11 @@ struct Sculpt::Gui
 		_config.generate([&] (Xml_generator &xml) { _generate_config(xml); });
 	}
 
+	float font_size() const { return _font_size_px; }
+
 	void font_size(float px)
 	{
+		_font_size_px = px;
 		menu_width = max(px*21, 320.0);
 	}
 

@@ -230,11 +230,6 @@ void Sculpt::Storage_device::gen_part_blk_start_content(Xml_generator &xml,
 	gen_provides<Block::Session>(xml);
 
 	xml.node("route", [&] () {
-		gen_parent_rom_route(xml, "part_blk");
-		gen_parent_rom_route(xml, "ld.lib.so");
-		gen_parent_route<Cpu_session> (xml);
-		gen_parent_route<Pd_session>  (xml);
-		gen_parent_route<Log_session> (xml);
 
 		gen_service_node<Block::Session>(xml, [&] () {
 			if (server_name.valid())
@@ -242,6 +237,12 @@ void Sculpt::Storage_device::gen_part_blk_start_content(Xml_generator &xml,
 			else
 				xml.node("parent", [&] () {
 					xml.attribute("label", label); }); });
+
+		gen_parent_rom_route(xml, "part_blk");
+		gen_parent_rom_route(xml, "ld.lib.so");
+		gen_parent_route<Cpu_session> (xml);
+		gen_parent_route<Pd_session>  (xml);
+		gen_parent_route<Log_session> (xml);
 
 		gen_service_node<Report::Session>(xml, [&] () {
 			xml.attribute("label", "partitions");

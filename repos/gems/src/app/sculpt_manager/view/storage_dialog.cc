@@ -406,7 +406,7 @@ void Sculpt::Storage_dialog::_gen_ram_fs(Xml_generator &xml) const
 }
 
 
-void Sculpt::Storage_dialog::generate(Xml_generator &xml) const
+void Sculpt::Storage_dialog::generate(Xml_generator &xml, bool expanded) const
 {
 	gen_named_node(xml, "frame", "storage", [&] () {
 		xml.node("vbox", [&] () {
@@ -414,6 +414,10 @@ void Sculpt::Storage_dialog::generate(Xml_generator &xml) const
 				xml.attribute("text", "Storage");
 				xml.attribute("font", "title/regular");
 			});
+
+			if (!expanded)
+				return;
+
 			_storage_devices.block_devices.for_each([&] (Block_device const &dev) {
 				_gen_block_device(xml, dev); });
 			_storage_devices.usb_storage_devices.for_each([&] (Usb_storage_device const &dev) {

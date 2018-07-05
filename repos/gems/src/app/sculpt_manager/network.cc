@@ -224,5 +224,5 @@ void Sculpt::Network::gen_runtime_start_nodes(Xml_generator &xml) const
 
 	if (_nic_target.type() != Nic_target::OFF)
 		xml.node("start", [&] () {
-			gen_nic_router_start_content(xml); });
+			gen_nic_router_start_content(xml, _nic_target); });
 }

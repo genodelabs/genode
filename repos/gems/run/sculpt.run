@@ -70,6 +70,8 @@ install_config {
 			        report="global_keys_handler -> slides"/>
 			<policy label="leitzentrale -> manager -> displays"
 			        report="nitpicker -> displays"/>
+			<policy label="runtime -> runtime_view -> dialog"
+			        report="leitzentrale -> manager -> runtime_view_dialog"/>
 		</config>
 	</start>
 
@@ -381,6 +383,8 @@ install_config {
 				<child name="config_fs_rom"/> </service>
 			<service name="ROM" label="manager -> nitpicker_hover">
 				<child name="report_rom"/> </service>
+			<service name="Report" label="manager -> runtime_view_dialog">
+				<child name="report_rom"/> </service>
 			<service name="Report"> <child name="fs_report"/> </service>
 			<service name="Nitpicker"> <child name="nitpicker"/> </service>
 			<service name="Timer"> <child name="timer"/> </service>
@@ -410,6 +414,8 @@ install_config {
 			<service name="ROM" label="capslock">
 				<child name="report_rom"/> </service>
 			<service name="ROM" label="clicked">
+				<child name="report_rom"/> </service>
+			<service name="ROM" label="runtime_view -> dialog">
 				<child name="report_rom"/> </service>
 			<service name="File_system" label="config">
 				<child name="config_fs" label="rw"/> </service>

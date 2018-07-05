@@ -43,7 +43,7 @@ struct Sculpt::Storage_dialog : Dialog
 	Selectable_item  _operation_item { };
 	Activatable_item _confirm_item   { };
 
-	void generate(Xml_generator &) const;
+	void generate(Xml_generator &, bool expanded) const;
 
 	void _gen_block_device(Xml_generator &, Block_device const &) const;
 

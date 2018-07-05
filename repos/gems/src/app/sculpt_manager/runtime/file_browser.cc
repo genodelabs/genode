@@ -72,6 +72,12 @@ void Sculpt::gen_terminal_start(Xml_generator &xml, Rom_name const &name,
 	gen_provides<Terminal::Session>(xml);
 
 	xml.node("route", [&] () {
+		gen_service_node<Framebuffer::Session>(xml, [&] () {
+			gen_named_node(xml, "child", nit_fb_name); });
+
+		gen_service_node<Input::Session>(xml, [&] () {
+			gen_named_node(xml, "child", nit_fb_name);  });
+
 		gen_parent_rom_route(xml, "terminal");
 		gen_parent_rom_route(xml, "ld.lib.so");
 		gen_parent_rom_route(xml, "vfs.lib.so");
@@ -89,12 +95,6 @@ void Sculpt::gen_terminal_start(Xml_generator &xml, Rom_name const &name,
 			xml.attribute("label", "config");
 			xml.node("parent", [&] () {
 				xml.attribute("label", "config -> managed/fonts"); }); });
-
-		gen_service_node<Framebuffer::Session>(xml, [&] () {
-			gen_named_node(xml, "child", nit_fb_name); });
-
-		gen_service_node<Input::Session>(xml, [&] () {
-			gen_named_node(xml, "child", nit_fb_name);  });
 	});
 }
 
@@ -158,6 +158,10 @@ void Sculpt::gen_noux_start(Xml_generator &xml, Rom_name const &name,
 	});
 
 	xml.node("route", [&] () {
+
+		gen_service_node<Terminal::Session>(xml, [&] () {
+			gen_named_node(xml, "child", terminal_name); });
+
 		gen_parent_rom_route(xml, "noux");
 		gen_parent_rom_route(xml, "ld.lib.so");
 		gen_parent_rom_route(xml, "vfs.lib.so");
@@ -176,9 +180,6 @@ void Sculpt::gen_noux_start(Xml_generator &xml, Rom_name const &name,
 		gen_parent_route<Pd_session>     (xml);
 		gen_parent_route<Log_session>    (xml);
 		gen_parent_route<Timer::Session> (xml);
-
-		gen_service_node<Terminal::Session>(xml, [&] () {
-			gen_named_node(xml, "child", terminal_name); });
 
 		gen_service_node<::File_system::Session>(xml, [&] () {
 			xml.attribute("label", "config");
@@ -212,13 +213,13 @@ void Sculpt::gen_file_browser(Xml_generator &xml,
                               File_browser_version version)
 {
 	xml.node("start", [&] () {
-		gen_nit_fb_start(xml, "storage browser"); });
+		gen_nit_fb_start(xml, "inspect"); });
 
 	xml.node("start", [&] () {
-		gen_terminal_start(xml, "storage browser terminal", "storage browser",
+		gen_terminal_start(xml, "inspect terminal", "inspect",
 		                   version); });
 
 	xml.node("start", [&] () {
-		gen_noux_start(xml, "storage browser noux", "storage browser terminal",
+		gen_noux_start(xml, "inspect noux", "inspect terminal",
 		               devices, ram_fs_state, version); });
 }

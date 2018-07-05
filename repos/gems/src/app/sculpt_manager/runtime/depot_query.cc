@@ -27,6 +27,9 @@ void Sculpt::gen_depot_query_start_content(Xml_generator &xml)
 				xml.node("fs", [&] () {}); }); }); });
 
 	xml.node("route", [&] () {
+		gen_service_node<::File_system::Session>(xml, [&] () {
+			gen_named_node(xml, "child", "depot"); });
+
 		gen_parent_rom_route(xml, "depot_query");
 		gen_parent_rom_route(xml, "ld.lib.so");
 		gen_parent_rom_route(xml, "vfs.lib.so");
@@ -36,8 +39,5 @@ void Sculpt::gen_depot_query_start_content(Xml_generator &xml)
 		gen_parent_route<Pd_session>      (xml);
 		gen_parent_route<Log_session>     (xml);
 		gen_parent_route<Report::Session> (xml);
-
-		gen_service_node<::File_system::Session>(xml, [&] () {
-			gen_named_node(xml, "child", "depot"); });
 	});
 }

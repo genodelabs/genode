@@ -31,6 +31,7 @@
 #include <network.h>
 #include <storage.h>
 #include <deploy.h>
+#include <graph.h>
 
 namespace Sculpt { struct Main; }
 
@@ -184,14 +185,14 @@ struct Sculpt::Main : Input_event_handler,
 
 	Gui _gui { _env };
 
-	Expanding_reporter _dialog_reporter { _env, "dialog", "menu_dialog" };
+	Expanding_reporter _menu_dialog_reporter { _env, "dialog", "menu_dialog" };
 
 	Attached_rom_dataspace _hover_rom { _env, "menu_view_hover" };
 
 	Signal_handler<Main> _hover_handler {
 		_env.ep(), *this, &Main::_handle_hover };
 
-	struct Hovered { enum Dialog { NONE, STORAGE, NETWORK } value; };
+	struct Hovered { enum Dialog { NONE, LOGO, STORAGE, NETWORK, RUNTIME } value; };
 
 	Hovered::Dialog _hovered_dialog { Hovered::NONE };
 
@@ -209,7 +210,7 @@ struct Sculpt::Main : Input_event_handler,
 	 */
 	void generate_dialog() override
 	{
-		_dialog_reporter.generate([&] (Xml_generator &xml) {
+		_menu_dialog_reporter.generate([&] (Xml_generator &xml) {
 
 			xml.node("vbox", [&] () {
 				gen_named_node(xml, "frame", "logo", [&] () {
@@ -220,7 +221,10 @@ struct Sculpt::Main : Input_event_handler,
 				if (_manually_managed_runtime)
 					return;
 
-				_storage.dialog.generate(xml);
+				bool const storage_dialog_expanded = _last_clicked == Hovered::STORAGE
+				                                  || !_storage.any_file_system_inspected();
+
+				_storage.dialog.generate(xml, storage_dialog_expanded);
 				_network.dialog.generate(xml);
 
 				gen_named_node(xml, "frame", "runtime", [&] () {
@@ -276,14 +280,23 @@ struct Sculpt::Main : Input_event_handler,
 
 	Keyboard_focus _keyboard_focus { _env, _network.dialog, _network.wpa_passphrase };
 
+	Hovered::Dialog _last_clicked { Hovered::NONE };
+
 	/**
 	 * Input_event_handler interface
 	 */
 	void handle_input_event(Input::Event const &ev) override
 	{
 		if (ev.key_press(Input::BTN_LEFT)) {
+
+			if (_hovered_dialog != _last_clicked && _hovered_dialog != Hovered::NONE) {
+				_last_clicked = _hovered_dialog;
+				_handle_window_layout();
+			}
+
 			if (_hovered_dialog == Hovered::STORAGE) _storage.dialog.click(_storage);
 			if (_hovered_dialog == Hovered::NETWORK) _network.dialog.click(_network);
+			if (_hovered_dialog == Hovered::RUNTIME) _network.dialog.click(_network);
 		}
 
 		if (ev.key_release(Input::BTN_LEFT))
@@ -359,6 +372,14 @@ struct Sculpt::Main : Input_event_handler,
 
 	Expanding_reporter _window_layout { _env, "window_layout", "window_layout" };
 
+
+	/*******************
+	 ** Runtime graph **
+	 *******************/
+
+	Graph _graph { _env, _storage._sculpt_partition };
+
+
 	Main(Env &env) : _env(env)
 	{
 		_runtime_state_rom.sigh(_runtime_state_handler);
@@ -423,7 +444,9 @@ void Sculpt::Main::_handle_window_layout()
 
 	Framebuffer::Mode const mode = _nitpicker->mode();
 
-	typedef Nitpicker::Rect Rect;
+	typedef Nitpicker::Rect  Rect;
+	typedef Nitpicker::Area  Area;
+	typedef Nitpicker::Point Point;
 
 	Rect avail(Point(_gui.menu_width, 0),
 	           Point(mode.width() - 1, mode.height() - 1));
@@ -456,7 +479,8 @@ void Sculpt::Main::_handle_window_layout()
 		             : Point(log_p2.x(), log_p1.y() - margins.bottom - margins.top - 1);
 
 	typedef String<128> Label;
-	Label const inspect_label("runtime -> leitzentrale -> storage browser");
+	Label const inspect_label     ("runtime -> leitzentrale -> inspect");
+	Label const runtime_view_label("runtime -> leitzentrale -> runtime_view");
 
 	_window_list.update();
 	_window_layout.generate([&] (Xml_generator &xml) {
@@ -481,7 +505,23 @@ void Sculpt::Main::_handle_window_layout()
 			};
 
 			gen_matching_window("log", Rect(log_p1, log_p2));
-			gen_matching_window(inspect_label, Rect(inspect_p1, inspect_p2));
+
+			if (label == runtime_view_label) {
+
+				/* center runtime view within the available main (inspect) area */
+				unsigned const inspect_w = inspect_p2.x() - inspect_p1.x(),
+				               inspect_h = inspect_p2.y() - inspect_p1.y();
+
+				Area const size(min(inspect_w, win.attribute_value("width",  0UL)),
+				                min(inspect_h, win.attribute_value("height", 0UL)));
+
+				Point const pos = Rect(inspect_p1, inspect_p2).center(size);
+
+				gen_matching_window(runtime_view_label, Rect(pos, size));
+			}
+
+			if (_last_clicked == Hovered::STORAGE)
+				gen_matching_window(inspect_label, Rect(inspect_p1, inspect_p2));
 		});
 	});
 
@@ -571,6 +611,8 @@ void Sculpt::Main::_handle_hover()
 	_hovered_dialog = Hovered::NONE;
 	if (top_level_frame == "network") _hovered_dialog = Hovered::NETWORK;
 	if (top_level_frame == "storage") _hovered_dialog = Hovered::STORAGE;
+	if (top_level_frame == "runtime") _hovered_dialog = Hovered::RUNTIME;
+	if (top_level_frame == "logo")    _hovered_dialog = Hovered::LOGO;
 
 	if (orig_hovered_dialog != _hovered_dialog)
 		_apply_to_hovered_dialog(orig_hovered_dialog, [&] (Dialog &dialog) {
@@ -817,6 +859,9 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 		gen_parent_service<Io_port_session>(xml);
 		gen_parent_service<Irq_session>(xml);
 	});
+
+	xml.node("start", [&] () {
+		gen_runtime_view_start_content(xml, _gui.font_size()); });
 
 	_storage.gen_runtime_start_nodes(xml);
 
