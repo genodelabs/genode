@@ -67,6 +67,8 @@ struct Genode::Directory : Noncopyable, Interface
 				typedef String<Vfs::Directory_service::DIRENT_MAX_NAME_LEN> Name;
 
 				Name name() const { return Name(Cstring(_dirent.name)); }
+
+				Vfs::Directory_service::Dirent_type type() const { return _dirent.type; }
 		};
 
 		typedef String<256> Path;
