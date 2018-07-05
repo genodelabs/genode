@@ -1,0 +1,21 @@
+<runtime ram="60M" caps="100" binary="mixer">
+
+	<requires>
+		<audio_out/>
+		<audio_in/>
+		<report/>
+	</requires>
+
+	<provides>
+		<audio_out/>
+		<audio_in/>
+	</provides>
+
+	<config/>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="mixer"/>
+	</content>
+
+</runtime>
