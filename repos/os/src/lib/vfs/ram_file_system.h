@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2015-2017 Genode Labs GmbH
+ * Copyright (C) 2015-2018 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -859,6 +859,7 @@ class Vfs::Ram_file_system : public Vfs::File_system
 
 			node->lock();
 			parent->release(node);
+			node->notify(_env.watch_handler());
 			parent->notify(_env.watch_handler());
 			remove(node);
 			return UNLINK_OK;

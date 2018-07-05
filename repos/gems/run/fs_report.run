@@ -3,7 +3,11 @@
 #
 set build_components {
 	core init drivers/timer
-	server/fs_report server/fs_rom server/ram_fs test/fs_report
+	lib/vfs/import
+	server/fs_report
+	server/fs_rom
+	server/vfs
+	test/fs_report
 }
 
 build $build_components
@@ -32,17 +36,20 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
-	<start name="ram_fs">
+	<start name="vfs">
 		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="File_system"/> </provides>
 		<config>
-			<content>
-				<dir name="test-fs_report">
-					<inline name="devices">
-						<devices version="initial"/>
-					</inline>
-				</dir>
-			</content>
+			<vfs>
+				<ram/>
+				<import>
+					<dir name="test-fs_report">
+						<inline name="devices">
+							<devices version="initial"/>
+						</inline>
+					</dir>
+				</import>
+			</vfs>
 			<policy label_prefix="fs_report -> " root="/" writeable="yes"/>
 			<policy label_prefix="fs_rom -> "    root="/test-fs_report"/>
 			<policy label_prefix="test-fs_report -> " root="/test-fs_report" writeable="yes"/>
@@ -82,7 +89,8 @@ install_config $config
 #
 set boot_modules {
 	core ld.lib.so init timer
-	fs_report fs_rom ram_fs test-fs_report vfs.lib.so
+	fs_report fs_rom test-fs_report
+	vfs vfs.lib.so vfs_import.lib.so
 }
 
 build_boot_image $boot_modules
