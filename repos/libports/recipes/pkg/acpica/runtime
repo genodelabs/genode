@@ -1,0 +1,18 @@
+<runtime ram="5M" caps="150" binary="acpica">
+
+	<requires>
+		<io_mem/>
+		<io_port/>
+		<irq/>
+		<platform/>
+		<timer/>
+	</requires>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="acpica"/>
+	</content>
+
+	<config/>
+
+</runtime>
