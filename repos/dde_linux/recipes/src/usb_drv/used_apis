@@ -7,4 +7,3 @@ block_session
 platform_session
 timer_session
 report_session
-libc_setjmp

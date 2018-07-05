@@ -4,5 +4,4 @@ platform_session
 timer_session
 report_session
 framebuffer_session
-libc_setjmp
 blit
