@@ -71,7 +71,9 @@ struct Genode::Directory : Noncopyable, Interface
 				Vfs::Directory_service::Dirent_type type() const { return _dirent.type; }
 		};
 
-		typedef String<256> Path;
+		enum { MAX_PATH_LEN = 256 };
+
+		typedef String<MAX_PATH_LEN> Path;
 
 		static Path join(Path const &x, Path const &y)
 		{
@@ -231,6 +233,51 @@ struct Genode::Directory : Noncopyable, Interface
 			if (!(stat.mode & Vfs::Directory_service::STAT_MODE_FILE))
 				throw Nonexistent_file();
 			return stat.size;
+		}
+
+		/**
+		 * Return symlink content at specified directory-relative path
+		 *
+		 * \throw Nonexistent_file  symlink at path does not exist or
+		 *                          access is denied
+		 *
+		 */
+		Path read_symlink(Path const &rel_path) const
+		{
+			using namespace Vfs;
+			Vfs_handle *link_handle;
+
+			auto open_res = _nonconst_fs().openlink(
+				join(_path, rel_path).string(),
+				false, &link_handle, _alloc);
+			if (open_res != Directory_service::OPENLINK_OK)
+				throw Nonexistent_file();
+			Vfs_handle::Guard guard(link_handle);
+
+			char buf[MAX_PATH_LEN];
+
+			Vfs::file_size count = sizeof(buf)-1;
+			Vfs::file_size out_count = 0;
+			while (!link_handle->fs().queue_read(link_handle, count)) {
+				_ep.wait_and_dispatch_one_io_signal();
+			}
+
+			File_io_service::Read_result result;
+
+			for (;;) {
+				result = link_handle->fs().complete_read(
+					link_handle, buf, count, out_count);
+
+				if (result != File_io_service::READ_QUEUED)
+					break;
+
+				_ep.wait_and_dispatch_one_io_signal();
+			};
+
+			if (result != File_io_service::READ_OK)
+				throw Nonexistent_file();
+
+			return Path(Genode::Cstring(buf, out_count));
 		}
 };
 

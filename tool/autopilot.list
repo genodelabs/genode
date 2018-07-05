@@ -122,6 +122,7 @@ vbox5_win7_64_multiple
 vbox5_win7_64_raw
 vbox5_win7_64_share
 verify
+vfs_import
 vmm
 weak_ptr
 xml_generator

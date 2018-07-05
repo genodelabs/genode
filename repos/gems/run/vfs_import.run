@@ -1,0 +1,90 @@
+build { app/sequence server/vfs lib/vfs/import test/libc }
+
+create_boot_directory
+
+import_from_depot \
+	genodelabs/src/[base_src] \
+	genodelabs/src/coreutils \
+	genodelabs/src/init \
+	genodelabs/src/libc \
+	genodelabs/src/noux \
+	genodelabs/src/posix \
+
+install_config {
+	<config verbose="yes">
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="LOG"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="PD"/>
+			<service name="IRQ"/>
+			<service name="IO_MEM"/>
+			<service name="IO_PORT"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <any-child/> <parent/> </any-service>
+		</default-route>
+		<default caps="100"/>
+		<start name="timer">
+			<resource name="RAM" quantum="1M"/>
+			<provides><service name="Timer"/></provides>
+		</start>
+
+		<start name="vfs">
+			<resource name="RAM" quantum="4M"/>
+			<provides><service name="File_system"/></provides>
+			<config>
+				<vfs> <ram/> </vfs>
+				<default-policy root="/" writeable="yes"/>
+			</config>
+		</start>
+
+		<start name="test" caps="500">
+			<binary name="sequence"/>
+			<resource name="RAM" quantum="1G"/>
+			<config>
+				<start name="true" caps="500">
+					<binary name="noux"/>
+					<config stdin="/dev/null" stdout="/dev/log" stderr="/dev/log">
+						<fstab>
+							<dir name="fs"> <fs/> </dir>
+							<dir name="dev"> <log/> <null/> </dir>
+							<ram/>
+							<import overwrite="yes">
+								<tar name="coreutils.tar" />
+								<dir name="fs">
+									<symlink name="link" target="test"/>
+									<inline name="test">Hello world!</inline>
+								</dir>
+							</import>
+						</fstab>
+						<start name="/bin/true"> </start>
+					</config>
+				</start>
+
+				<start name="cat" caps="500">
+					<binary name="noux"/>
+					<config stdin="/dev/null" stdout="/dev/log" stderr="/dev/log">
+						<fstab>
+							<dir name="fs"> <fs writeable="no"/> </dir>
+							<dir name="dev"> <log/> <null/> </dir>
+							<ram/>
+							<import>
+								<tar name="coreutils.tar" />
+							</import>
+						</fstab>
+						<start name="/bin/cat"> <arg value="/fs/link"/> </start>
+					</config>
+				</start>
+
+			</config>
+		</start>
+	</config>
+}
+
+build_boot_image { vfs_import.lib.so libc.lib.so vfs vfs.lib.so sequence }
+
+append qemu_args " -nographic -serial mon:stdio "
+
+run_genode_until {Hello world!} 30

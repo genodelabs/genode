@@ -24,10 +24,37 @@ class Vfs::Symlink_file_system : public Single_file_system
 {
 	private:
 
-		enum { FILENAME_MAX_LEN = 64 };
 		typedef Genode::String<MAX_PATH_LEN> Target;
 
 		Target const _target;
+
+		struct Symlink_handle final : Single_vfs_handle
+		{
+			Target const &_target;
+
+			Symlink_handle(Directory_service &ds,
+			               File_io_service   &fs,
+			               Genode::Allocator &alloc,
+			               Target const &target)
+			: Single_vfs_handle(ds, fs, alloc, 0), _target(target)
+			{ }
+
+
+			Read_result read(char *dst, file_size count,
+			                 file_size &out_count) override
+			{
+				auto n = min(count, _target.length());
+				strncpy(dst, _target.string(), n);
+				out_count = n - 1;
+				return READ_OK;
+			}
+
+			Write_result write(char const*, file_size,
+			                   file_size&) override {
+				return WRITE_ERR_INVALID; }
+
+			bool read_ready() override { return true; }
+		};
 
 	public:
 
@@ -57,44 +84,12 @@ class Vfs::Symlink_file_system : public Single_file_system
 				return OPENLINK_ERR_NODE_ALREADY_EXISTS;
 
 			try {
-				*out_handle = new (alloc) Vfs_handle(*this, *this, alloc, 0);
+				*out_handle = new (alloc) Symlink_handle(*this, *this, alloc, _target);
 				return OPENLINK_OK;
 			}
 			catch (Genode::Out_of_ram)  { return OPENLINK_ERR_OUT_OF_RAM; }
 			catch (Genode::Out_of_caps) { return OPENLINK_ERR_OUT_OF_CAPS; }
 		}
-
-		void close(Vfs_handle *vfs_handle) override
-		{
-			if (!vfs_handle)
-				return;
-
-			destroy(vfs_handle->alloc(), vfs_handle);
-		}
-
-
-		/********************************
-		 ** File I/O service interface **
-		 ********************************/
-
-		Write_result write(Vfs_handle *, char const *,
-		                   file_size, file_size &) override {
-			return WRITE_ERR_INVALID; }
-
-		Read_result complete_read(Vfs_handle *, char *buf, file_size buf_len,
-		                          file_size &out_len) override
-		{
-			out_len = min(buf_len, (file_size)_target.length()-1);
-			memcpy(buf, _target.string(), out_len);
-			if (out_len < buf_len)
-				buf[out_len] = '\0';
-			return READ_OK;
-		}
-
-		bool read_ready(Vfs_handle *) override { return false; }
-
-		Ftruncate_result ftruncate(Vfs_handle *, file_size) override {
-			return FTRUNCATE_ERR_NO_PERM; }
 };
 
 #endif /* _INCLUDE__VFS__SYMLINK_FILE_SYSTEM_H_ */
