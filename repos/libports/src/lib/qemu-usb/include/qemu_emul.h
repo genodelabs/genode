@@ -56,10 +56,8 @@ enum {
 	EINVAL = 22,
 };
 
-void *malloc(size_t size);
 void *memset(void *s, int c, size_t n);
 void *memcpy(void *dest, const void *src, size_t n);
-void free(void *p);
 
 void abort();
 
@@ -247,17 +245,17 @@ const char *object_get_typename(Object *obj);
  ** glib emulation **
  ********************/
 
+void *g_malloc(size_t size);
+void  g_free(void *ptr);
+
 #define g_new0(type, count)({ \
-	typeof(type) *t = (typeof(type)*)malloc(sizeof(type) * count); \
+	typeof(type) *t = (typeof(type)*)g_malloc(sizeof(type) * count); \
 	memset(t, 0, sizeof(type) * count); \
 	t; \
 	})
 
-#define g_free(p) free(p)
-#define g_malloc malloc
-
 #define g_malloc0(size) ({ \
-	void *t = malloc((size)); \
+	void *t = g_malloc((size)); \
 	memset(t, 0, (size)); \
 	t; \
 	})

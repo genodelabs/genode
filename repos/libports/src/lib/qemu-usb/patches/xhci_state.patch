@@ -1,5 +1,5 @@
 diff --git a/src/lib/qemu/hw/usb/hcd-xhci.c b/src/lib/qemu/hw/usb/hcd-xhci.c
-index c673bed..b2a8939 100644
+index c673bed..cd930da 100644
 --- a/src/lib/qemu/hw/usb/hcd-xhci.c
 +++ b/src/lib/qemu/hw/usb/hcd-xhci.c
 @@ -486,6 +486,8 @@ struct XHCIState {
@@ -11,7 +11,22 @@ index c673bed..b2a8939 100644
  #define XHCI(obj) \
      OBJECT_CHECK(XHCIState, (obj), TYPE_XHCI)
  
-@@ -2361,6 +2363,7 @@ static TRBCCode xhci_address_slot(XHCIState *xhci, unsigned int slotid,
+@@ -1349,6 +1351,14 @@ static void xhci_set_ep_state(XHCIState *xhci, XHCIEPContext *epctx,
+ static void xhci_ep_kick_timer(void *opaque)
+ {
+     XHCIEPContext *epctx = opaque;
++
++    /*
++     * We might have blocked in the entry lock, while the endpoint was stopped
++     * by another thread
++     */
++    if (epctx->state == CC_STOPPED)
++        return;
++
+     xhci_kick_ep(epctx->xhci, epctx->slotid, epctx->epid, 0);
+ }
+ 
+@@ -2361,6 +2371,7 @@ static TRBCCode xhci_address_slot(XHCIState *xhci, unsigned int slotid,
  
      if (bsr) {
          slot_ctx[3] = SLOT_DEFAULT << SLOT_STATE_SHIFT;
@@ -19,7 +34,7 @@ index c673bed..b2a8939 100644
      } else {
          USBPacket p;
          uint8_t buf[1];
-@@ -3914,3 +3917,5 @@ static void xhci_register_types(void)
+@@ -3914,3 +3925,5 @@ static void xhci_register_types(void)
  }
  
  type_init(xhci_register_types)

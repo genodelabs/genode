@@ -92,18 +92,18 @@ void Qemu::usb_timer_callback(void (*cb)(void*), void *data)
  ** libc **
  **********/
 
-void *malloc(size_t size) {
+void *g_malloc(size_t size) {
 	return _heap->alloc(size); }
+
+
+void g_free(void *p) {
+	if (!p) return;
+	_heap->free(p, 0);
+}
 
 
 void *memset(void *s, int c, size_t n) {
 	return Genode::memset(s, c, n); }
-
-
-void free(void *p) {
-	if (!p) return;
-	_heap->free(p, 0);
-}
 
 
 void q_printf(char const *fmt, ...)
@@ -400,7 +400,7 @@ Type type_register_static(TypeInfo const *t)
 {
 	if (!Genode::strcmp(t->name, TYPE_XHCI)) {
 		Wrapper *w = &Object_pool::p()->obj[Object_pool::XHCI];
-		w->_xhci_state = (XHCIState*) malloc(sizeof(XHCIState));
+		w->_xhci_state = (XHCIState*) g_malloc(sizeof(XHCIState));
 		Genode::memset(w->_xhci_state, 0, sizeof(XHCIState));
 
 		t->class_init(&w->_object_class, 0);
@@ -439,7 +439,7 @@ void qbus_create_inplace(void* bus, size_t size , const char* type,
 	Wrapper    *w =  &Object_pool::p()->obj[Object_pool::USB_BUS];
 	BusState   *b = &w->_bus_state;
 	char const *n = "xhci.0";
-	b->name = (char *)malloc(Genode::strlen(n) + 1);
+	b->name = (char *)g_malloc(Genode::strlen(n) + 1);
 	Genode::strncpy(b->name, n, Genode::strlen(n) + 1);
 }
 
@@ -453,7 +453,7 @@ void timer_del(QEMUTimer *t)
 void timer_free(QEMUTimer *t)
 {
 	_timer_queue->delete_timer(t);
-	free(t);
+	g_free(t);
 }
 
 
@@ -465,7 +465,7 @@ void timer_mod(QEMUTimer *t, int64_t expire)
 
 QEMUTimer* timer_new_ns(QEMUClockType, void (*cb)(void*), void *opaque)
 {
-	QEMUTimer *t = (QEMUTimer*)malloc(sizeof(QEMUTimer));
+	QEMUTimer *t = (QEMUTimer*)g_malloc(sizeof(QEMUTimer));
 	if (t == nullptr) {
 		Genode::error("could not create QEMUTimer");
 		return nullptr;
@@ -710,7 +710,7 @@ void qemu_iovec_add(QEMUIOVector *qiov, void *base, size_t len)
 			            " <= niov: ", niov);
 
 		qiov->alloc_hint += 64;
-		iovec *new_iov = (iovec*) malloc(sizeof(iovec) * qiov->alloc_hint);
+		iovec *new_iov = (iovec*) g_malloc(sizeof(iovec) * qiov->alloc_hint);
 		if (new_iov == nullptr) {
 			Genode::error("could not reallocate iov");
 			throw -1;
@@ -721,7 +721,7 @@ void qemu_iovec_add(QEMUIOVector *qiov, void *base, size_t len)
 			new_iov[i].iov_len  = qiov->iov[i].iov_len;
 		}
 
-		free(qiov->iov);
+		g_free(qiov->iov);
 		qiov->iov = new_iov;
 	}
 
@@ -740,7 +740,7 @@ void qemu_iovec_destroy(QEMUIOVector *qiov)
 {
 	qemu_iovec_reset(qiov);
 
-	free(qiov->iov);
+	g_free(qiov->iov);
 	qiov->iov = nullptr;
 }
 
@@ -770,7 +770,7 @@ void qemu_iovec_init(QEMUIOVector *qiov, int alloc_hint)
 
 	qiov->alloc_hint = alloc_hint;
 
-	qiov->iov = (iovec*) malloc(sizeof(iovec) * alloc_hint);
+	qiov->iov = (iovec*) g_malloc(sizeof(iovec) * alloc_hint);
 	if (qiov->iov == nullptr) {
 		Genode::error("could not allocate iov");
 		throw -1;
@@ -890,7 +890,7 @@ void error_setg(Error **errp, const char *fmt, ...)
 {
 	assert(*errp == nullptr);
 
-	*errp = (Error*) malloc(sizeof(Error));
+	*errp = (Error*) g_malloc(sizeof(Error));
 	if (*errp == nullptr) {
 		Genode::error("could not allocate Error");
 		return;
@@ -911,4 +911,4 @@ void error_propagate(Error **dst_errp, Error *local_err) {
 	*dst_errp = local_err; }
 
 
-void error_free(Error *err) { free(err); }
+void error_free(Error *err) { g_free(err); }
