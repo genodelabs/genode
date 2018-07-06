@@ -117,7 +117,6 @@ struct Timer_queue : public Qemu::Timer_queue
 	void _append_new_context(void *qtimer, void (*cb)(void*), void *data)
 	{
 		Context *new_ctx = new (vmm_heap()) Context(qtimer, cb, data);
-
 		_context_list.insert(new_ctx);
 	}
 
@@ -140,7 +139,7 @@ struct Timer_queue : public Qemu::Timer_queue
 			return min;
 
 		for (Context *c = min->next(); c; c = c->next()) {
-			if (c->timeout_abs_ns < min->timeout_abs_ns && c->pending)
+			if ((c->timeout_abs_ns < min->timeout_abs_ns) && c->pending)
 				min = c;
 		}
 
@@ -166,12 +165,10 @@ struct Timer_queue : public Qemu::Timer_queue
 			throw -1;
 		}
 
-		if (c->pending) {
-			Context *min = _min_pending();
-			if (min == c) {
-				TMTimerStop(tm_timer);
-				_program_min_timer();
-			}
+		if (c == _min_pending()) {
+			c->pending = false;
+			TMTimerStop(tm_timer);
+			_program_min_timer();
 		}
 
 		c->pending = false;
@@ -185,8 +182,8 @@ struct Timer_queue : public Qemu::Timer_queue
 
 		for (Context *c = _context_list.first(); c; c = c->next()) {
 			if (c->pending && c->timeout_abs_ns <= now) {
-				Qemu::usb_timer_callback(c->cb, c->data);
 				c->pending = false;
+				Qemu::usb_timer_callback(c->cb, c->data);
 			}
 		}
 
