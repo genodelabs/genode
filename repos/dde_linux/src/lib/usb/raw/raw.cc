@@ -233,7 +233,7 @@ class Usb::Worker : public Genode::Weak_object<Usb::Worker>
 				p.succeded             = true;
 
 				if (read)
-					Genode::memcpy(_sink->packet_content(p), urb->transfer_buffer, 
+					Genode::memcpy(_sink->packet_content(p), urb->transfer_buffer,
 					               urb->actual_length);
 			}
 
@@ -357,6 +357,66 @@ class Usb::Worker : public Genode::Weak_object<Usb::Worker>
 		}
 
 		/**
+		 * Isochronous transfer
+		 */
+		bool _isoc(Packet_descriptor &p, bool read)
+		{
+			unsigned           pipe;
+			usb_host_endpoint *ep;
+			void              *buf = dma_malloc(p.size());
+
+			if (read) {
+				pipe = usb_rcvisocpipe(_device->udev, p.transfer.ep);
+				ep   = _device->udev->ep_in[p.transfer.ep & 0x0f];
+			}
+			else {
+				pipe = usb_sndisocpipe(_device->udev, p.transfer.ep);
+				ep   = _device->udev->ep_out[p.transfer.ep & 0x0f];
+				Genode::memcpy(buf, _sink->packet_content(p), p.size());
+			}
+
+			urb *urb = usb_alloc_urb(p.transfer.number_of_packets, GFP_KERNEL);
+			if (!urb) {
+				error("Failed to allocate isochronous URB");
+				dma_free(buf);
+				p.error = Usb::Packet_descriptor::SUBMIT_ERROR;
+				return false;
+			}
+
+			Complete_data *data         = alloc_complete_data(p);
+			urb->dev                    = _device->udev;
+			urb->pipe                   = pipe;
+			urb->start_frame            = -1;
+			urb->stream_id              = 0;
+			urb->transfer_buffer        = buf;
+			urb->transfer_buffer_length = p.size();
+			urb->number_of_packets      = p.transfer.number_of_packets;
+			urb->interval               = 1 << min(15, ep->desc.bInterval - 1);
+			urb->context                = (void *)data;
+			urb->transfer_flags         = URB_ISO_ASAP | (read ? URB_DIR_IN : URB_DIR_OUT);
+			urb->complete               = _async_complete;
+
+			unsigned offset = 0;
+			for (int i = 0; i < p.transfer.number_of_packets; i++) {
+				urb->iso_frame_desc[i].offset = offset;
+				urb->iso_frame_desc[i].length = p.transfer.packet_size[i];
+				offset += p.transfer.packet_size[i];
+			}
+
+			int ret = usb_submit_urb(urb, GFP_KERNEL);
+			if (ret == 0)
+				return true;
+
+			error("Failed to submit URB, error: ", ret);
+			p.error = Usb::Packet_descriptor::SUBMIT_ERROR;
+
+			free_complete_data(data);
+			usb_free_urb(urb);
+			dma_free(buf);
+			return false;
+		}
+
+		/**
 		 * Change alternate settings for device
 		 */
 		void _alt_setting(Packet_descriptor &p)
@@ -441,12 +501,17 @@ class Usb::Worker : public Genode::Weak_object<Usb::Worker>
 						break;
 
 					case Packet_descriptor::BULK:
-						if (_bulk(p, !!(p.transfer.ep & USB_DIR_IN)))
+						if (_bulk(p, p.read_transfer()))
 							continue;
 						break;
 
 					case Packet_descriptor::IRQ:
-						if (_irq(p, !!(p.transfer.ep & USB_DIR_IN)))
+						if (_irq(p, p.read_transfer()))
+							continue;
+						break;
+
+					case Packet_descriptor::ISOC:
+						if (_isoc(p, p.read_transfer()))
 							continue;
 						break;
 
