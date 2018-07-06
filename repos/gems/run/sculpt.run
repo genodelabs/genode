@@ -703,7 +703,20 @@ append manual_deploy_config {
 				<child name="default_fs_rw"/> </service>
 		</route>
 	</start>
-	-->
+-->
+
+<!--
+	<start name="acpica" pkg="} [depot_user]/pkg/[current_pkg acpica] {">
+		<config reset="no" poweroff="no" report="yes" act_as_acpi_drv="no"/>
+		<route>
+			<service name="ROM" label="platform_info"> <parent/> </service>
+			<service name="Platform"> <parent/> </service>
+			<service name="IO_MEM">   <parent label="acpica"/> </service>
+			<service name="IO_PORT">  <parent label="acpica"/> </service>
+			<service name="IRQ">      <parent label="acpica"/> </service>
+		</route>
+	</start>
+-->
 
 </config>}
 
