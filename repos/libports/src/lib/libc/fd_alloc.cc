@@ -59,7 +59,7 @@ File_descriptor *File_descriptor_allocator::alloc(Plugin *plugin,
 	/* allocate fresh fd if the default value for 'libc_fd' was specified */
 	bool alloc_ok = false;
 	if (libc_fd <= ANY_FD)
-		alloc_ok = Allocator_avl_base::alloc(1, reinterpret_cast<void**>(&addr));
+		alloc_ok = Allocator_avl_base::alloc_aligned(1, reinterpret_cast<void**>(&addr), 0).ok();
 	else
 		alloc_ok = (Allocator_avl_base::alloc_addr(1, addr).ok());
 
