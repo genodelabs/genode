@@ -15,14 +15,23 @@
 		<xs:complexType>
 			<xs:choice minOccurs="0" maxOccurs="unbounded">
 
+				<xs:element name="default-policy">
+					<xs:complexType>
+						<xs:attribute name="thread" type="Thread_name" />
+						<xs:attribute name="buffer" type="Number_of_bytes" />
+						<xs:attribute name="policy" type="Trace_policy_name" />
+					</xs:complexType>
+				</xs:element><!-- default-policy -->
+
 				<xs:element name="policy">
 					<xs:complexType>
-						<xs:attribute name="label_prefix" type="Session_label" />
-						<xs:attribute name="label_suffix" type="Session_label" />
-						<xs:attribute name="label"        type="Session_label" />
-						<xs:attribute name="thread"       type="Thread_name" />
-						<xs:attribute name="buffer"       type="Number_of_bytes" />
-						<xs:attribute name="policy"       type="Trace_policy_name" />
+					<xs:complexContent>
+					<xs:extension base="Session_policy">
+						<xs:attribute name="thread" type="Thread_name" />
+						<xs:attribute name="buffer" type="Number_of_bytes" />
+						<xs:attribute name="policy" type="Trace_policy_name" />
+					</xs:extension>
+					</xs:complexContent>
 					</xs:complexType>
 				</xs:element><!-- policy -->
 

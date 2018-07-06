@@ -63,12 +63,19 @@
 					</xs:complexType>
 				</xs:element><!-- report -->
 
+				<xs:element name="default-policy">
+					<xs:complexType>
+						<xs:attribute name="domain" type="Domain_name" />
+					</xs:complexType>
+				</xs:element><!-- default-policy -->
+
 				<xs:element name="policy">
 					<xs:complexType>
-						<xs:attribute name="label_prefix" type="Session_label" />
-						<xs:attribute name="label_suffix" type="Session_label" />
-						<xs:attribute name="label"        type="Session_label" />
-						<xs:attribute name="domain"       type="Domain_name" />
+					<xs:complexContent>
+					<xs:extension base="Session_policy">
+						<xs:attribute name="domain" type="Domain_name" />
+					</xs:extension>
+					</xs:complexContent>
 					</xs:complexType>
 				</xs:element><!-- policy -->
 

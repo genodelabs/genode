@@ -32,4 +32,10 @@
 		</xs:restriction>
 	</xs:simpleType><!-- Session_label -->
 
+	<xs:complexType name="Session_policy">
+		<xs:attribute name="label_prefix" type="Session_label" />
+		<xs:attribute name="label_suffix" type="Session_label" />
+		<xs:attribute name="label"        type="Session_label" />
+	</xs:complexType>
+
 </xs:schema>

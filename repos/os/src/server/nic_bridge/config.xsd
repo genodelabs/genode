@@ -8,12 +8,19 @@
 		<xs:complexType>
 			<xs:choice minOccurs="0" maxOccurs="unbounded">
 
+				<xs:element name="default-policy">
+					<xs:complexType>
+						<xs:attribute name="ip_addr" type="Ipv4_address" />
+					</xs:complexType>
+				</xs:element><!-- default-policy -->
+
 				<xs:element name="policy">
 					<xs:complexType>
-						<xs:attribute name="label_prefix" type="Session_label" />
-						<xs:attribute name="label_suffix" type="Session_label" />
-						<xs:attribute name="label"        type="Session_label" />
-						<xs:attribute name="ip_addr"      type="Ipv4_address" />
+					<xs:complexContent>
+					<xs:extension base="Session_policy">
+						<xs:attribute name="ip_addr" type="Ipv4_address" />
+					</xs:extension>
+					</xs:complexContent>
 					</xs:complexType>
 				</xs:element><!-- policy -->
 
