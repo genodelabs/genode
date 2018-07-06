@@ -35,6 +35,13 @@ namespace Fiasco {
 using namespace Genode;
 using namespace Fiasco;
 
+unsigned long long Platform_thread::execution_time() const
+{
+	Fiasco::l4_kernel_clock_t us = 0;
+	l4_thread_stats_time(_thread.local.data()->kcap(), &us);
+	return (unsigned long long)us;
+}
+
 
 int Platform_thread::start(void *ip, void *sp)
 {
