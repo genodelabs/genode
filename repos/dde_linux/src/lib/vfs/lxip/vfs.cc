@@ -1748,8 +1748,11 @@ class Vfs::Lxip_file_system : public Vfs::File_system,
 			return node ? dynamic_cast<Vfs::Directory *>(node) : 0;
 		}
 
-		char const *leaf_path(char const *path) override {
-			return path; }
+		char const *leaf_path(char const *path) override
+		{
+			Vfs::Node *node = _lookup(path);
+			return node ? path : nullptr;
+		}
 
 		Vfs::Directory_service::Open_result
 		open(char const *path, unsigned mode,

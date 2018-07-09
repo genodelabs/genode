@@ -223,6 +223,9 @@ struct Vfs::Directory_service : Interface
 
 	virtual bool directory(char const *path) = 0;
 
+	/**
+	 * Return leaf path or nullptr if the path does not exist
+	 */
 	virtual char const *leaf_path(char const *path) = 0;
 };
 
