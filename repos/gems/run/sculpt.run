@@ -718,6 +718,14 @@ append manual_deploy_config {
 	</start>
 -->
 
+<!--
+	<start name="gambatte" pkg="ehmry/pkg/gambatte/2018-07-08">
+		<route>
+			<service name="Nitpicker"> <child name="wm"/> </service>
+		</route>
+	</start>
+	-->
+
 </config>}
 
 set fd [open [run_dir]/genode/manual_deploy.config w]
