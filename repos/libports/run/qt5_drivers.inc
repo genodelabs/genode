@@ -244,8 +244,14 @@ proc drivers_start_nodes { feature_arg } {
 		}
 	}
 
+	# don't use the dynamic linker for loading the lx_hybrid nic_drv on Linux
+	proc nic_drv_ld_attr {} {
+		if {[have_spec linux]} { return {ld="no"} }
+		return ""
+	}
+
 	append_if [use_nic_drv feature] start_nodes {
-		<start name="nic_drv">
+		<start name="nic_drv" } [nic_drv_ld_attr] {>
 			<binary name="} [nic_drv_binary] {"/>
 			<resource name="RAM" quantum="8M"/>
 			<provides><service name="Nic"/></provides>
