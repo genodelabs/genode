@@ -61,6 +61,11 @@ poll(struct pollfd fds[], nfds_t nfds, int timeout)
 	}
 
 	/* populate event bit vectors for the events we're interested in */
+
+	FD_ZERO(&readfds);
+	FD_ZERO(&writefds);
+	FD_ZERO(&exceptfds);
+
 	for (i = 0; i < nfds; i++) {
 		fd = fds[i].fd;
 		if (fd == -1)
