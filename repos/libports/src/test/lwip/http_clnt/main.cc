@@ -1,6 +1,7 @@
 /*
  * \brief  HTTP client test
  * \author Ivan Loskutov
+ * \author Martin Stein
  * \date   2012-12-21
  */
 
@@ -20,117 +21,117 @@
 #include <timer_session/connection.h>
 #include <util/string.h>
 
-extern "C" {
-#include <lwip/sockets.h>
-#include <lwip/api.h>
-#include <netif/etharp.h>
+/* Libc includes */
+#include <stdio.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+using namespace Genode;
+
+void close_socket(Libc::Env &env, int sd)
+{
+	if (::shutdown(sd, SHUT_RDWR)) {
+		error("failed to shutdown");
+		env.parent().exit(-1);
+	}
+	if (::close(sd)) {
+		error("failed to close");
+		env.parent().exit(-1);
+	}
 }
 
-#include <lwip_legacy/genode.h>
 
-
-/**
- * The client simply loops endless,
- * and sends as much 'http get' requests as possible,
- * printing out the response.
- */
-void Libc::Component::construct(Libc::Env &env)
+static void test(Libc::Env &env)
 {
-	using namespace Genode;
-	using Address = Genode::String<16>;
+	using Ipv4_string = String<16>;
+	enum { NR_OF_REPLIES = 5 };
+	enum { NR_OF_TRIALS  = 15 };
 
-	enum { BUF_SIZE = Nic::Packet_allocator::DEFAULT_PACKET_SIZE * 128 };
+	/* read component configuration */
+	Attached_rom_dataspace  config_rom  { env, "config" };
+	Xml_node                config_node { config_rom.xml() };
+	Ipv4_string       const srv_ip      { config_node.attribute_value("server_ip", Ipv4_string("0.0.0.0")) };
+	uint16_t          const srv_port    { config_node.attribute_value("server_port", (uint16_t)0) };
 
-	static Timer::Connection _timer(env);
-	_timer.msleep(2000);
-	lwip_tcpip_init();
+	/* construct server socket address */
+	struct sockaddr_in srv_addr;
+	srv_addr.sin_port        = htons(srv_port);
+	srv_addr.sin_family      = AF_INET;
+	srv_addr.sin_addr.s_addr = inet_addr(srv_ip.string());
 
-	uint32_t ip = 0, nm = 0, gw = 0;
-	Address serv_addr, ip_addr, netmask, gateway;
-
-	Attached_rom_dataspace config(env, "config");
-	Xml_node config_node = config.xml();
-	Xml_node libc_node   = env.libc_config();
-	try {
-		libc_node.attribute("ip_addr").value(&ip_addr);
-		libc_node.attribute("netmask").value(&netmask);
-		libc_node.attribute("gateway").value(&gateway);
-		ip = inet_addr(ip_addr.string());
-		nm = inet_addr(netmask.string());
-		gw = inet_addr(gateway.string());
-	} catch (...) {}
-	config_node.attribute("server_ip").value(&serv_addr);
-
-	if (lwip_nic_init(ip, nm, gw, BUF_SIZE, BUF_SIZE)) {
-		error("We got no IP address!");
-		exit(1);
-	}
-
-	for (unsigned trial_cnt = 0, success_cnt = 0; trial_cnt < 10; trial_cnt++)
+	/* try several times to request a reply */
+	for (unsigned trial_cnt = 0, reply_cnt = 0; trial_cnt < NR_OF_TRIALS;
+	     trial_cnt++)
 	{
-		_timer.msleep(2000);
+		/* pause a while between each trial */
+		usleep(1000000);
 
-		log("Create new socket ...");
-		int s = lwip_socket(AF_INET, SOCK_STREAM, 0 );
-		if (s < 0) {
-			error("no socket available!");
+		/* create socket */
+		int sd = ::socket(AF_INET, SOCK_STREAM, 0);
+		if (sd < 0) {
+			error("failed to create socket");
 			continue;
 		}
-
-		log("Connect to server ...");
-
-		unsigned port = 0;
-		try { config_node.attribute("server_port").value(&port); }
-		catch (...) {
-			error("Missing \"server_port\" attribute.");
-			throw Xml_node::Nonexistent_attribute();
-		}
-
-		struct sockaddr_in addr;
-		addr.sin_port = htons(port);
-		addr.sin_family = AF_INET;
-		addr.sin_addr.s_addr = inet_addr(serv_addr.string());
-
-		if((lwip_connect(s, (struct sockaddr *)&addr, sizeof(addr))) < 0) {
-			error("Could not connect!");
-			lwip_close(s);
+		/* connect to server */
+		if (::connect(sd, (struct sockaddr *)&srv_addr, sizeof(srv_addr))) {
+			error("Failed to connect to server");
+			close_socket(env, sd);
 			continue;
 		}
-
-		log("Send request...");
-
-		/* simple HTTP request header */
-		static const char *http_get_request =
-			"GET / HTTP/1.0\r\nHost: localhost:80\r\n\r\n";
-
-		unsigned long bytes = lwip_send(s, (char*)http_get_request,
-		                                Genode::strlen(http_get_request), 0);
-		if ( bytes < 0 ) {
-			error("couldn't send request ...");
-			lwip_close(s);
+		/* send request */
+		char   const *req    = "GET / HTTP/1.0\r\nHost: localhost:80\r\n\r\n";
+		size_t const  req_sz = Genode::strlen(req);
+		if (::send(sd, req, req_sz, 0) != (int)req_sz) {
+			error("failed to send request");
+			close_socket(env, sd);
 			continue;
 		}
-
-		/* Receive http header and content independently in 2 packets */
-		for(int i=0; i<2; i++) {
-			char buf[1024];
-			ssize_t buflen;
-			buflen = lwip_recv(s, buf, 1024, 0);
-			if(buflen > 0) {
-				buf[buflen] = 0;
-				log("Received \"", String<64>(buf), " ...\"");
-				;
-				if (++success_cnt >= 5) {
-					log("Test done");
-					env.parent().exit(0);
-				}
-			} else
+		/* receive reply */
+		enum { REPLY_BUF_SZ = 1024 };
+		char          reply_buf[REPLY_BUF_SZ];
+		size_t        reply_sz     = 0;
+		bool          reply_failed = false;
+		char   const *reply_end    = "</html>";
+		size_t const  reply_end_sz = Genode::strlen(reply_end);
+		for (; reply_sz <= REPLY_BUF_SZ; ) {
+			char         *rcv_buf    = &reply_buf[reply_sz];
+			size_t const  rcv_buf_sz = REPLY_BUF_SZ - reply_sz;
+			signed long   rcv_sz     = ::recv(sd, rcv_buf, rcv_buf_sz, 0);
+			if (rcv_sz < 0) {
+				reply_failed = true;
 				break;
+			}
+			reply_sz += rcv_sz;
+			if (reply_sz >= reply_end_sz) {
+				if (!strcmp(&reply_buf[reply_sz - reply_end_sz], reply_end, reply_end_sz)) {
+					break; }
+			}
 		}
-
-		/* Close socket */
-		lwip_close(s);
+		/* ignore failed replies */
+		if (reply_failed) {
+			error("failed to receive reply");
+			close_socket(env, sd);
+			continue;
+		}
+		/* handle reply */
+		reply_buf[reply_sz] = 0;
+		log("Received \"", Cstring(reply_buf), "\"");
+		if (++reply_cnt == NR_OF_REPLIES) {
+			log("Test done");
+			env.parent().exit(0);
+		}
+		/* close socket and retry */
+		close_socket(env, sd);
 	}
 	log("Test failed");
 	env.parent().exit(-1);
 }
+
+void Libc::Component::construct(Libc::Env &env) { with_libc([&] () { test(env); }); }

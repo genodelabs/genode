@@ -2,6 +2,7 @@
  * \brief  Minimal HTTP server lwIP demonstration
  * \author lwIP Team
  * \author Stefan Kalkowski
+ * \author Martin Stein
  * \date   2009-10-23
  *
  * This small example shows how to use the LwIP in Genode directly.
@@ -18,19 +19,25 @@
  */
 
 /* Genode includes */
+#include <base/attached_rom_dataspace.h>
 #include <base/log.h>
-#include <base/thread.h>
-#include <util/string.h>
+#include <libc/component.h>
 #include <nic/packet_allocator.h>
+#include <util/string.h>
 
-/* LwIP includes */
-extern "C" {
-#include <lwip/sockets.h>
-#include <lwip/api.h>
-}
+/* Libc includes */
+#include <stdio.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <string.h>
 
-#include <lwip_legacy/genode.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
+using namespace Genode;
 
 const static char http_html_hdr[] =
 	"HTTP/1.0 200 OK\r\nContent-type: text/html\r\n\r\n"; /* HTTP response header */
@@ -44,13 +51,14 @@ const static char http_index_html[] =
  *
  * \param conn  socket connected to the client
  */
-void http_server_serve(int conn) {
+void http_server_serve(int conn)
+{
 	char    buf[1024];
 	ssize_t buflen;
 
 	/* Read the data from the port, blocking if nothing yet there.
 	   We assume the request (the part we care about) is in one packet */
-	buflen = lwip_recv(conn, buf, 1024, 0);
+	buflen = recv(conn, buf, 1024, 0);
 	Genode::log("Packet received!");
 
 	/* Ignore all receive errors */
@@ -68,62 +76,57 @@ void http_server_serve(int conn) {
 			Genode::log("Will send response");
 
 			/* Send http header */
-			lwip_send(conn, http_html_hdr, Genode::strlen(http_html_hdr), 0);
+			send(conn, http_html_hdr, Genode::strlen(http_html_hdr), 0);
 
 			/* Send our HTML page */
-			lwip_send(conn, http_index_html, Genode::strlen(http_index_html), 0);
+			send(conn, http_index_html, Genode::strlen(http_index_html), 0);
 		}
 	}
 }
 
 
-int main()
+static void test(Libc::Env &env)
 {
-	enum { BUF_SIZE = Nic::Packet_allocator::DEFAULT_PACKET_SIZE * 128 };
-
-	int s;
-
-	lwip_tcpip_init();
-
-	/* Initialize network stack and do DHCP */
-	if (lwip_nic_init(0, 0, 0, BUF_SIZE, BUF_SIZE)) {
-		Genode::error("got no IP address!");
-		return -1;
-	}
+	Attached_rom_dataspace config(env, "config");
+	uint16_t const port = config.xml().attribute_value("port", (uint16_t)80);
 
 	Genode::log("Create new socket ...");
-	if((s = lwip_socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-		Genode::error("no socket available!");
-		return -1;
+	int s;
+	if((s = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+		error("no socket available!");
+		env.parent().exit(-1);
 	}
 
 	Genode::log("Now, I will bind ...");
 	struct sockaddr_in in_addr;
 	in_addr.sin_family = AF_INET;
-	in_addr.sin_port = htons(80);
+	in_addr.sin_port = htons(port);
 	in_addr.sin_addr.s_addr = INADDR_ANY;
-	if(lwip_bind(s, (struct sockaddr*)&in_addr, sizeof(in_addr))) {
+	if (bind(s, (struct sockaddr*)&in_addr, sizeof(in_addr))) {
 		Genode::error("bind failed!");
-		return -1;
+		env.parent().exit(-1);
 	}
 
 	Genode::log("Now, I will listen ...");
-	if(lwip_listen(s, 5)) {
+	if (listen(s, 5)) {
 		Genode::error("listen failed!");
-		return -1;
+		env.parent().exit(-1);
 	}
 
 	Genode::log("Start the server loop ...");
-	while(true) {
+	while (true) {
 		struct sockaddr addr;
 		socklen_t len = sizeof(addr);
-		int client = lwip_accept(s, &addr, &len);
+		int client = accept(s, &addr, &len);
 		if(client < 0) {
 			Genode::warning("invalid socket from accept!");
 			continue;
 		}
 		http_server_serve(client);
-		lwip_close(client);
+		close(client);
 	}
-	return 0;
+	env.parent().exit(0);
 }
+
+
+void Libc::Component::construct(Libc::Env &env) { with_libc([&] () { test(env); }); }

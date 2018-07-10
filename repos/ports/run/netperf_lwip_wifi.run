@@ -32,7 +32,9 @@ set use_usb_30          "no"
 set wifi_ssid           $::env(GENODE_WIFI_SSID)
 set wifi_psk            $::env(GENODE_WIFI_PSK)
 
-source ${genode_dir}/repos/ports/run/netperf_lwip.inc
+set ip_match_string "address=(\[0-9\]+\.\[0-9\]+\.\[0-9\]+\.\[0-9\]+).*\n"
+
+source ${genode_dir}/repos/libports/run/vfs_lwip.inc
 source ${genode_dir}/repos/ports/run/netperf.inc
 
 # remove firmware images

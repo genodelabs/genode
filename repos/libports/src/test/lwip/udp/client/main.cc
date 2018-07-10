@@ -23,19 +23,19 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <unistd.h>
 
 using namespace Genode;
 using Ipv4_addr_str = Genode::String<16>;
 
-void Libc::Component::construct(Libc::Env &env)
+static void test(Libc::Env &env)
 {
-	/* wait a while for the server to come up */
 	Timer::Connection timer(env);
-	timer.msleep(4000);
+
 	/* try to send and receive a message multiple times */
-	for (unsigned trial_cnt = 0, success_cnt = 0; trial_cnt < 10; trial_cnt++)
+	for (unsigned trial_cnt = 0, success_cnt = 0; trial_cnt < 15; trial_cnt++)
 	{
-		timer.msleep(2000);
+		usleep(1000);
 
 		/* create socket */
 		int s = socket(AF_INET, SOCK_DGRAM, 0 );
@@ -85,3 +85,5 @@ void Libc::Component::construct(Libc::Env &env)
 	log("Test failed");
 	env.parent().exit(-1);
 }
+
+void Libc::Component::construct(Libc::Env &env) { with_libc([&] () { test(env); }); }

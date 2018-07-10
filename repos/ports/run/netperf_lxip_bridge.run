@@ -23,5 +23,7 @@ set use_usb_11          "no"
 set use_usb_20          "no"
 set use_usb_30          "yes"
 
-source ${genode_dir}/repos/ports/run/netperf_lxip.inc
+set ip_match_string "ipaddr=(\[0-9\]+\.\[0-9\]+\.\[0-9\]+\.\[0-9\]+).*\n"
+
+source ${genode_dir}/repos/dde_linux/run/vfs_lxip.inc
 source ${genode_dir}/repos/ports/run/netperf.inc

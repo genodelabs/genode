@@ -12,7 +12,6 @@
  */
 
 /* Genode includes */
-#include <base/attached_rom_dataspace.h>
 #include <libc/component.h>
 #include <nic/packet_allocator.h>
 #include <util/string.h>
@@ -34,7 +33,7 @@ struct Bind_failed       : Genode::Exception { };
 struct Read_port_attr_failed : Genode::Exception { };
 
 
-void Libc::Component::construct(Libc::Env & env)
+static void test(Libc::Env & env)
 {
 	/* create socket */
 	int s = socket(AF_INET, SOCK_DGRAM, 0 );
@@ -43,12 +42,12 @@ void Libc::Component::construct(Libc::Env & env)
 	}
 	/* read server port */
 	unsigned port = 0;
-	Attached_rom_dataspace config(env, "config");
-	Xml_node config_node = config.xml();
-	try { config_node.attribute("port").value(&port); }
-	catch (...) {
-		throw Read_port_attr_failed();
-	}
+	env.config([&] (Xml_node config_node) {
+		try { config_node.attribute("port").value(&port); }
+		catch (...) {
+			throw Read_port_attr_failed();
+		}
+	});
 	/* create server socket address */
 	struct sockaddr_in in_addr;
 	in_addr.sin_family = AF_INET;
@@ -78,3 +77,5 @@ void Libc::Component::construct(Libc::Env & env)
 		}
 	}
 }
+
+void Libc::Component::construct(Libc::Env &env) { with_libc([&] () { test(env); }); }

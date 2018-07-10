@@ -8,7 +8,7 @@ proc enable_test_3 { } { return 1 }
 proc enable_test_4 { } { return 1 }
 proc enable_test_5 { } { return 1 }
 proc enable_test_6 { } { return 1 }
-proc enable_test_7 { } { return 0 }
+proc enable_test_7 { } { return 1 }
 
 source ${genode_dir}/repos/libports/run/nic_router.inc
 
@@ -364,4 +364,4 @@ for {set i 0} {$i < $nr_of_clients} {incr i 1} {
 	append done_string {.*Test done.*\n}
 }
 
-run_genode_until $done_string 240
+run_genode_until $done_string 60
