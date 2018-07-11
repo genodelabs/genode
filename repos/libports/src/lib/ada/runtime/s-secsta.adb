@@ -1,3 +1,15 @@
+--
+--  \brief  Ada secondary stack
+--  \author Johannes Kliemann
+--  \date   2018-04-16
+--
+--  Copyright (C) 2018 Genode Labs GmbH
+--  Copyright (C) 2018 Componolit GmbH
+--
+--  This file is part of the Genode OS framework, which is distributed
+--  under the terms of the GNU Affero General Public License version 3.
+--
+
 package body System.Secondary_Stack is
 
    procedure SS_Allocate (
