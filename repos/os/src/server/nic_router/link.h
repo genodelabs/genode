@@ -200,13 +200,21 @@ class Net::Tcp_link : public Link
 {
 	private:
 
-		bool _client_fin       { false };
-		bool _server_fin       { false };
-		bool _client_fin_acked { false };
-		bool _server_fin_acked { false };
-		bool _closed           { false };
+		enum class State : Genode::uint8_t { OPEN, CLOSING, CLOSED, };
 
-		void _fin_acked();
+		struct Peer
+		{
+			bool fin       { false };
+			bool fin_acked { false };
+		};
+
+		State _state  { State::OPEN };
+		Peer  _client { };
+		Peer  _server { };
+
+		void _tcp_packet(Tcp_packet &tcp,
+		                 Peer       &sender,
+		                 Peer       &receiver);
 
 	public:
 
@@ -219,9 +227,9 @@ class Net::Tcp_link : public Link
 		         Configuration                 &config,
 		         L3_protocol             const  protocol);
 
-		void client_packet(Tcp_packet &tcp);
+		void client_packet(Tcp_packet &tcp) { _tcp_packet(tcp, _client, _server); }
 
-		void server_packet(Tcp_packet &tcp);
+		void server_packet(Tcp_packet &tcp) { _tcp_packet(tcp, _server, _client); }
 };
 
 
