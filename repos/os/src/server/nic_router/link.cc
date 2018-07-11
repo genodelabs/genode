@@ -218,46 +218,34 @@ Tcp_link::Tcp_link(Interface                     &cln_interface,
 { }
 
 
-void Tcp_link::_fin_acked()
+void Tcp_link::_tcp_packet(Tcp_packet &tcp,
+                           Peer       &sender,
+                           Peer       &receiver)
 {
-	if (_server_fin_acked && _client_fin_acked) {
-		_dissolve_timeout.schedule(Microseconds(_config().tcp_max_segm_lifetime().value << 1));
-		_closed = true;
-	}
-}
-
-
-void Tcp_link::server_packet(Tcp_packet &tcp)
-{
-	if (_closed) {
+	if (_state == State::CLOSED) {
 		return; }
 
-	if (tcp.fin()) {
-		_server_fin  = true; }
-
-	if (tcp.ack() && _client_fin) {
-		_client_fin_acked = true;
-		_fin_acked();
+	if (tcp.rst()) {
+		_state = State::CLOSED;
+	} else {
+		if (tcp.fin()) {
+			sender.fin = true;
+			_state = State::CLOSING;
+		}
+		if (receiver.fin && tcp.ack()) {
+			receiver.fin_acked = true;
+			if (sender.fin_acked) {
+				_state = State::CLOSED; }
+			else {
+				_state = State::CLOSING; }
+		}
 	}
-	if (!_closed) {
-		_packet(); }
-}
-
-
-void Tcp_link::client_packet(Tcp_packet &tcp)
-{
-	if (_closed) {
-		return; }
-
-	if (tcp.fin()) {
-		_client_fin = true; }
-
-	if (tcp.ack() && _server_fin) {
-		_server_fin_acked = true;
-		_fin_acked();
+	if (_state == State::OPEN) {
+		_packet();
+	} else {
+		_dissolve_timeout.schedule(
+			Microseconds(_config().tcp_max_segm_lifetime().value << 1));
 	}
-	if (!_closed) {
-		_packet(); }
 }
 
 
