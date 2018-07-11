@@ -1720,7 +1720,8 @@ void Interface::_failed_to_send_packet_link()
 
 void Interface::_failed_to_send_packet_alloc()
 {
-	log("[", _domain(), "] failed to send packet (packet alloc failed)");
+	if (_config().verbose()) {
+		log("[", _domain(), "] failed to send packet (packet alloc failed)"); }
 }
 
 
