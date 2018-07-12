@@ -35,7 +35,7 @@ struct Genode::Session_request_handler : Interface
 };
 
 
-class Genode::Session_requests_rom
+class Genode::Session_requests_rom : public Signal_handler<Session_requests_rom>
 {
 	private:
 
@@ -44,21 +44,7 @@ class Genode::Session_requests_rom
 
 		Attached_rom_dataspace  _parent_rom;
 
-		Signal_handler<Session_requests_rom> _handler;
-
-	public:
-
-		Session_requests_rom(Genode::Env &env,
-		                         Session_request_handler &requests_handler)
-		: _parent(env.parent()),
-		  _requests_handler(requests_handler),
-		  _parent_rom(env, "session_requests"),
-		  _handler(env.ep(), *this, &Session_requests_rom::process)
-		{
-			_parent_rom.sigh(_handler);
-		}
-
-		void process()
+		void _process()
 		{
 			_parent_rom.update();
 			Xml_node requests = _parent_rom.xml();
@@ -69,10 +55,18 @@ class Genode::Session_requests_rom
 					request.attribute_value("id", ~0UL) };
 
 				typedef Session_state::Name Name;
-				Name const name = request.attribute_value("service", Name());
-
 				typedef Session_state::Args Args;
-				Args const args = request.sub_node("args").decoded_content<Args>();
+
+				Name name { };
+				Args args { };
+
+				try {
+					name = request.attribute_value("service", Name());
+					args = request.sub_node("args").decoded_content<Args>();
+				} catch (...) {
+					Genode::error("failed to parse request ", request);
+					return;
+				}
 
 				try { _requests_handler.handle_session_create(name, id, args); }
 				catch (Service_denied) {
@@ -94,7 +88,12 @@ class Genode::Session_requests_rom
 					request.attribute_value("id", ~0UL) };
 
 				typedef Session_state::Args Args;
-				Args const args = request.sub_node("args").decoded_content<Args>();
+				Args args { };
+				try { args = request.sub_node("args").decoded_content<Args>(); }
+				catch (...) {
+					Genode::error("failed to parse request ", request);
+					return;
+				}
 
 				_requests_handler.handle_session_upgrade(id, args);
 			};
@@ -115,6 +114,24 @@ class Genode::Session_requests_rom
 			/* create new sessions */
 			requests.for_each_sub_node("create", create_fn);
 		}
+
+	public:
+
+		Session_requests_rom(Genode::Env &env,
+		                     Session_request_handler &requests_handler)
+		: Signal_handler<Session_requests_rom>(env.ep(), *this, &Session_requests_rom::_process),
+		  _parent(env.parent()),
+		  _requests_handler(requests_handler),
+		  _parent_rom(env, "session_requests")
+		{
+			_parent_rom.sigh(*this);
+		}
+
+		/**
+		 * Post a signal to this requests handler
+		 */
+		void schedule() {
+			Signal_transmitter(*this).submit(); }
 };
 
 #endif

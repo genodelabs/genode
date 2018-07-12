@@ -311,18 +311,6 @@ struct Cached_fs_rom::Main final : Genode::Session_request_handler
 		env.ep(), *this, &Main::handle_packets };
 
 	/**
-	 * Signal handler to disable blocking behavior in 'Expanding_parent_client'
-	 */
-	Signal_handler<Main> resource_handler {
-		env.ep(), *this, &Main::handle_resources };
-
-	/**
-	 * Process requests again if parent gives us an upgrade
-	 */
-	void handle_resources() {
-		session_requests.process(); }
-
-	/**
 	 * Return true when a cache element is freed
 	 */
 	bool cache_evict()
@@ -489,7 +477,7 @@ struct Cached_fs_rom::Main final : Genode::Session_request_handler
 			{
 				rom.process_packet(pkt);
 				if (rom.completed())
-					session_requests.process();
+					session_requests.schedule();
 				stray_pkt = false;
 			});
 
@@ -500,12 +488,13 @@ struct Cached_fs_rom::Main final : Genode::Session_request_handler
 
 	Main(Genode::Env &env) : env(env)
 	{
-		env.parent().resource_avail_sigh(resource_handler);
+		/* process the requests when more resources are made available */
+		env.parent().resource_avail_sigh(session_requests);
 
 		fs.sigh_ack_avail(packet_handler);
 
 		/* process any requests that have already queued */
-		session_requests.process();
+		session_requests.schedule();
 	}
 };
 
