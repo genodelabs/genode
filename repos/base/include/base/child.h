@@ -473,8 +473,13 @@ class Genode::Child : protected Rpc_object<Parent>,
 
 						Ram_quota const ram_quota { CONNECTION::RAM_QUOTA };
 						Cap_quota const cap_quota { CONNECTION::CAP_QUOTA };
-						_child._policy.ref_pd().transfer_quota(cap(ram_quota), ram_quota);
-						_child._policy.ref_pd().transfer_quota(cap(cap_quota), cap_quota);
+
+						if (cap(ram_quota).valid())
+							_child._policy.ref_pd().transfer_quota(cap(ram_quota), ram_quota);
+
+						if (cap(cap_quota).valid())
+							_child._policy.ref_pd().transfer_quota(cap(cap_quota), cap_quota);
+
 						_first_request = false;
 					}
 
