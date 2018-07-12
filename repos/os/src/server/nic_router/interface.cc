@@ -362,9 +362,8 @@ Interface::_new_link(L3_protocol             const  protocol,
 				           remote, _timer, _config(), protocol };
 		}
 		catch (Quota_guard<Ram_quota>::Limit_exceeded) {
-			throw Drop_packet(
-				"RAM quota exhausted during allocation of TCP link");
-		}
+			throw Free_resources_and_retry_handle_eth(); }
+
 		break;
 	case L3_protocol::UDP:
 		try {
@@ -373,9 +372,8 @@ Interface::_new_link(L3_protocol             const  protocol,
 				           remote, _timer, _config(), protocol };
 		}
 		catch (Quota_guard<Ram_quota>::Limit_exceeded) {
-			throw Drop_packet(
-				"RAM quota exhausted during allocation of UDP link");
-		}
+			throw Free_resources_and_retry_handle_eth(); }
+
 		break;
 	case L3_protocol::ICMP:
 		try {
@@ -384,9 +382,8 @@ Interface::_new_link(L3_protocol             const  protocol,
 				            remote, _timer, _config(), protocol };
 		}
 		catch (Quota_guard<Ram_quota>::Limit_exceeded) {
-			throw Drop_packet(
-				"RAM quota exhausted during allocation of ICMP link");
-		}
+			throw Free_resources_and_retry_handle_eth(); }
+
 		break;
 	default: throw Bad_transport_protocol(); }
 }
@@ -437,9 +434,8 @@ void Interface::_adapt_eth(Ethernet_frame          &eth,
 		});
 		try { new (_alloc) Arp_waiter { *this, remote_domain, hop_ip, pkt }; }
 		catch (Quota_guard<Ram_quota>::Limit_exceeded) {
-			throw Drop_packet(
-				"RAM quota exhausted during allocation of ARP waiter");
-		}
+			throw Free_resources_and_retry_handle_eth(); }
+
 		throw Packet_postponed();
 	}
 }
@@ -577,9 +573,7 @@ void Interface::_new_dhcp_allocation(Ethernet_frame &eth,
 		                 local_domain.ip_config().interface);
 	}
 	catch (Quota_guard<Ram_quota>::Limit_exceeded) {
-		throw Drop_packet(
-			"RAM quota exhausted during allocation of DHCP allocation");
-	}
+		throw Free_resources_and_retry_handle_eth(); }
 }
 
 
@@ -1289,9 +1283,11 @@ void Interface::_ready_to_submit()
 	while (_sink.packet_avail()) {
 		Packet_descriptor const pkt = _sink.get_packet();
 		Size_guard size_guard(pkt.size());
-		try { _handle_eth(_sink.packet_content(pkt), size_guard, pkt); }
-		catch (Packet_postponed) { continue; }
-		_ack_packet(pkt);
+		try {
+			_handle_eth(_sink.packet_content(pkt), size_guard, pkt);
+			_ack_packet(pkt);
+		}
+		catch (Packet_postponed) { }
 	}
 }
 
@@ -1334,6 +1330,27 @@ void Interface::_destroy_released_dhcp_allocations(Domain &local_domain)
 }
 
 
+void Interface::_handle_eth(Ethernet_frame           &eth,
+                            Size_guard               &size_guard,
+                            Packet_descriptor  const &pkt,
+                            Domain                   &local_domain)
+{
+	if (local_domain.ip_config().valid) {
+
+		switch (eth.type()) {
+		case Ethernet_frame::Type::ARP:  _handle_arp(eth, size_guard, local_domain);     break;
+		case Ethernet_frame::Type::IPV4: _handle_ip(eth, size_guard, pkt, local_domain); break;
+		default: throw Bad_network_protocol(); }
+
+	} else {
+
+		switch (eth.type()) {
+		case Ethernet_frame::Type::IPV4: _dhcp_client.handle_ip(eth, size_guard); break;
+		default: throw Bad_network_protocol(); }
+	}
+}
+
+
 void Interface::_handle_eth(void              *const  eth_base,
                             Size_guard               &size_guard,
                             Packet_descriptor  const &pkt)
@@ -1350,21 +1367,30 @@ void Interface::_handle_eth(void              *const  eth_base,
 				_destroy_dissolved_links<Tcp_link>(_dissolved_tcp_links,   _alloc);
 				_destroy_released_dhcp_allocations(local_domain);
 
+				/* log received packet if desired */
 				if (local_domain.verbose_packets()) {
 					log("[", local_domain, "] rcv ", eth); }
 
-				if (local_domain.ip_config().valid) {
+				/* try to handle ethernet frame */
+				try { _handle_eth(eth, size_guard, pkt, local_domain); }
+				catch (Free_resources_and_retry_handle_eth) {
+					try {
+						if (_config().verbose()) {
+							log("[", local_domain, "] free resources and retry to handle packet"); }
 
-					switch (eth.type()) {
-					case Ethernet_frame::Type::ARP:  _handle_arp(eth, size_guard, local_domain);     break;
-					case Ethernet_frame::Type::IPV4: _handle_ip(eth, size_guard, pkt, local_domain); break;
-					default: throw Bad_network_protocol(); }
+						/* resources do not suffice, destroy all links */
+						_destroy_links<Tcp_link> (_tcp_links,  _dissolved_tcp_links,  _alloc);
+						_destroy_links<Udp_link> (_udp_links,  _dissolved_udp_links,  _alloc);
+						_destroy_links<Icmp_link>(_icmp_links, _dissolved_icmp_links, _alloc);
 
-				} else {
+						/* retry to handle ethernet frame */
+						_handle_eth(eth, size_guard, pkt, local_domain);
+					}
+					catch (Free_resources_and_retry_handle_eth) {
 
-					switch (eth.type()) {
-					case Ethernet_frame::Type::IPV4: _dhcp_client.handle_ip(eth, size_guard); break;
-					default: throw Bad_network_protocol(); }
+						/* give up if the resources still not suffice */
+						throw Drop_packet("insufficient resources");
+					}
 				}
 			}
 			catch (Dhcp_server::Alloc_ip_failed) {
