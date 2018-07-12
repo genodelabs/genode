@@ -45,6 +45,7 @@ namespace Cached_fs_rom {
 	struct Packet_handler;
 	struct Main;
 
+	typedef File_system::Session::Tx::Source::Packet_alloc_failed Packet_alloc_failed;
 }
 
 
@@ -72,12 +73,28 @@ class Cached_fs_rom::Rom_file final
 		/**
 		 * Size of file
 		 */
-		File_system::file_size_t _file_size = 0;
+		File_system::file_size_t const _file_size;
 
 		/**
 		 * Read offset of file handle
 		 */
 		File_system::seek_off_t _file_seek = 0;
+
+		/**
+		 * Allocate space in the File_system packet buffer
+		 *
+		 * \throw  Packet_alloc_failed
+		 */
+		File_system::Packet_descriptor _alloc_packet()
+		{
+			size_t chunk_size = min(_file_size, _fs.tx()->bulk_buffer_size()/4);
+			return _fs.tx()->alloc_packet(chunk_size);
+		}
+
+		/**
+		 * Packet space used by this session
+		 */
+		File_system::Packet_descriptor _raw_pkt = _alloc_packet();
 
 		/**
 		 * Dataspace to read into
@@ -92,11 +109,6 @@ class Cached_fs_rom::Rom_file final
 		Dataspace_capability   _rm_ds { };
 
 		/**
-		 * Packet space used by this session
-		 */
-		File_system::Packet_descriptor _raw_pkt { };
-
-		/**
 		 * Reference count of ROM file, initialize to one and
 		 * decrement after read completes.
 		 */
@@ -106,39 +118,12 @@ class Cached_fs_rom::Rom_file final
 		{
 			using namespace File_system;
 
-			Tx_source &source = *_fs.tx();
-
-			while (!source.ready_to_submit()) {
-				warning("FS packet queue congestion");
-				_env.ep().wait_and_dispatch_one_io_signal();
-			}
-
 			File_system::Packet_descriptor
 				packet(_raw_pkt, *_file_handle,
 				       File_system::Packet_descriptor::READ,
 				       _raw_pkt.size(), _file_seek);
 
-			source.submit_packet(packet);
-		}
-
-		void _initiate_read()
-		{
-			using namespace File_system;
-
-			Tx_source &source = *_fs.tx();
-
-			size_t chunk_size = min(_file_size, source.bulk_buffer_size()/2);
-
-			/* loop until a packet space is allocated */
-			while (true) {
-				try { _raw_pkt = source.alloc_packet(chunk_size); break; }
-				catch (File_system::Session::Tx::Source::Packet_alloc_failed) {
-					chunk_size = min(_file_size, source.bulk_buffer_size()/4);
-					_env.ep().wait_and_dispatch_one_io_signal();
-				}
-			}
-
-			_submit_next_packet();
+			_fs.tx()->submit_packet(packet);
 		}
 
 	public:
@@ -171,7 +156,7 @@ class Cached_fs_rom::Rom_file final
 			_roms_elem.construct(*this, _roms, Rom_files::Id{~handle.value});
 			_file_handle.construct(handle);
 
-			_initiate_read();
+			_submit_next_packet();
 		}
 
 		/**
@@ -196,9 +181,6 @@ class Cached_fs_rom::Rom_file final
 
 		bool unused() const { return (_ref_count < 1); }
 
-		bool matches(File_system::Node_handle h) const {
-			return _file_handle.constructed() ? (*_file_handle == h) : false; }
-
 		/**
 		 * Return dataspace with content of file
 		 */
@@ -210,16 +192,9 @@ class Cached_fs_rom::Rom_file final
 		 */
 		void process_packet(File_system::Packet_descriptor const packet)
 		{
-			if (!(packet.handle() == *_file_handle)) {
-				error("packet and handle mismatch");
+			if (packet.position() != _file_seek || _file_seek >= _file_size) {
+				error("bad packet seek position for ", _file_path, "!");
 				throw ~0;
-			}
-
-			if (packet.position() > _file_seek || _file_seek >= _file_size) {
-				error("bad packet seek position");
-				_file_ds.realloc(&_env.ram(), 0);
-				_file_seek = 0;
-				_file_size = 0;
 			} else {
 				size_t const n = min(packet.length(), _file_size - _file_seek);
 				memcpy(_file_ds.local_addr<char>()+_file_seek,
@@ -404,6 +379,11 @@ struct Cached_fs_rom::Main final : Genode::Session_request_handler
 		});
 
 		if (!rom_file) {
+			if (!fs.tx()->ready_to_submit()) {
+				Genode::warning("File_system packet queue is congested, defering read of ", path);
+				return;
+			}
+
 			File_system::File_handle handle = try_open(path);
 			size_t file_size = fs.status(handle).size;
 
@@ -413,6 +393,11 @@ struct Cached_fs_rom::Main final : Genode::Session_request_handler
 					new (heap)
 						Rom_file(env, rm, fs, handle, file_size, rom_cache, path);
 					/* session is ready when read completes */
+					return;
+				}
+				catch (Packet_alloc_failed) {
+					Genode::warning("File_system packet buffer is congested, defering read of ", path);
+					fs.close(handle);
 					return;
 				}
 				/*
@@ -427,6 +412,7 @@ struct Cached_fs_rom::Main final : Genode::Session_request_handler
 			/* eviction failed */
 			warning("insufficient resources for '", label, "'"
 			        ", stalling for upgrade");
+			fs.close(handle);
 			return;
 		}
 
