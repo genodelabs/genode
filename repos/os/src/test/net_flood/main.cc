@@ -39,8 +39,9 @@ class Main : public Nic_handler,
 
 		using Periodic_timeout = Timer::Periodic_timeout<Main>;
 
+		struct Bad_protocol : Exception { };
+
 		enum { IPV4_TIME_TO_LIVE = 64 };
-		enum { ICMP_DATA_SIZE    = 56 };
 		enum { ICMP_SEQ          = 1 };
 		enum { SRC_PORT          = 50000 };
 		enum { FIRST_DST_PORT    = 49152 };
@@ -50,7 +51,7 @@ class Main : public Nic_handler,
 		Attached_rom_dataspace          _config_rom  { _env, "config" };
 		Xml_node                        _config      { _config_rom.xml() };
 		Timer::Connection               _timer       { _env };
-		Microseconds                    _period_us   { 100 };
+		Microseconds                    _period_us   { 1 };
 		Constructible<Periodic_timeout> _period      { };
 		Heap                            _heap        { &_env.ram(), &_env.rm() };
 		bool                     const  _verbose     { _config.attribute_value("verbose", false) };
@@ -63,6 +64,9 @@ class Main : public Nic_handler,
 		                                               Ipv4_address() };
 		Protocol                 const  _protocol    { _config.attribute_value("protocol", Protocol::ICMP) };
 		Port                            _dst_port    { FIRST_DST_PORT };
+		size_t                          _ping_sz     { _init_ping_sz() };
+
+		size_t _init_ping_sz() const;
 
 		void _handle_arp(Ethernet_frame &eth,
 		                 Size_guard     &size_guard);
@@ -195,6 +199,18 @@ void Main::_handle_arp(Ethernet_frame &eth,
 }
 
 
+size_t Main::_init_ping_sz() const
+{
+	enum { IP_SZ = sizeof(Ethernet_frame) + sizeof(Ipv4_packet) };
+	switch (_protocol) {
+	case Protocol::ICMP: return IP_SZ + sizeof(Icmp_packet);
+	case Protocol::UDP:  return IP_SZ + sizeof(Udp_packet);
+	case Protocol::TCP:  return IP_SZ + sizeof(Tcp_packet);
+	default:             throw Bad_protocol();
+	}
+}
+
+
 void Main::_send_arp_reply(Ethernet_frame &req_eth,
                            Arp_packet     &req_arp)
 {
@@ -258,97 +274,98 @@ void Main::_send_ping(Duration)
 			_broadcast_arp_request(ip_config().gateway); }
 		return;
 	}
-	_nic.send(sizeof(Ethernet_frame) + sizeof(Ipv4_packet) +
-	          sizeof(Icmp_packet) + ICMP_DATA_SIZE,
-	          [&] (void *pkt_base, Size_guard &size_guard)
-	{
-		/* create ETH header */
-		Ethernet_frame &eth = Ethernet_frame::construct_at(pkt_base, size_guard);
-		eth.dst(_dst_mac);
-		eth.src(_nic.mac());
-		eth.type(Ethernet_frame::Type::IPV4);
-
-		/* create IP header */
-		size_t const ip_off = size_guard.head_size();
-		Ipv4_packet &ip = eth.construct_at_data<Ipv4_packet>(size_guard);
-		ip.header_length(sizeof(Ipv4_packet) / 4);
-		ip.version(4);
-		ip.time_to_live(IPV4_TIME_TO_LIVE);
-		ip.src(ip_config().interface.address);
-		ip.dst(_dst_ip);
-
-		/* select IP-encapsulated protocol */
-		switch (_protocol) {
-		case Protocol::ICMP:
+	try {
+		while (true) {
+			_nic.send(_ping_sz, [&] (void *pkt_base, Size_guard &size_guard)
 			{
-				/* adapt IP header to ICMP */
-				ip.protocol(Ipv4_packet::Protocol::ICMP);
+				/* create ETH header */
+				Ethernet_frame &eth = Ethernet_frame::construct_at(pkt_base, size_guard);
+				eth.dst(_dst_mac);
+				eth.src(_nic.mac());
+				eth.type(Ethernet_frame::Type::IPV4);
 
-				/* create ICMP header */
-				Icmp_packet &icmp = ip.construct_at_data<Icmp_packet>(size_guard);
-				icmp.type(Icmp_packet::Type::ECHO_REQUEST);
-				icmp.code(Icmp_packet::Code::ECHO_REQUEST);
-				icmp.query_id(_dst_port.value);
-				icmp.query_seq(ICMP_SEQ);
+				/* create IP header */
+				size_t const ip_off = size_guard.head_size();
+				Ipv4_packet &ip = eth.construct_at_data<Ipv4_packet>(size_guard);
+				ip.header_length(sizeof(Ipv4_packet) / 4);
+				ip.version(4);
+				ip.time_to_live(IPV4_TIME_TO_LIVE);
+				ip.src(ip_config().interface.address);
+				ip.dst(_dst_ip);
 
-				/* finish ICMP header */
-				icmp.update_checksum(ICMP_DATA_SIZE);
+				/* select IP-encapsulated protocol */
+				switch (_protocol) {
+				case Protocol::ICMP:
+					{
+						/* adapt IP header to ICMP */
+						ip.protocol(Ipv4_packet::Protocol::ICMP);
 
-				/* prepare next ICMP ping */
-				if (_dst_port.value == LAST_DST_PORT) {
-					_dst_port.value = FIRST_DST_PORT; }
-				else {
-					_dst_port.value++; }
-				break;
-			}
-		case Protocol::UDP:
-			{
-				/* adapt IP header to UDP */
-				ip.protocol(Ipv4_packet::Protocol::UDP);
+						/* create ICMP header */
+						Icmp_packet &icmp = ip.construct_at_data<Icmp_packet>(size_guard);
+						icmp.type(Icmp_packet::Type::ECHO_REQUEST);
+						icmp.code(Icmp_packet::Code::ECHO_REQUEST);
+						icmp.query_id(_dst_port.value);
+						icmp.query_seq(ICMP_SEQ);
+						icmp.update_checksum(0);
 
-				/* create UDP header */
-				size_t const udp_off = size_guard.head_size();
-				Udp_packet &udp = ip.construct_at_data<Udp_packet>(size_guard);
-				udp.src_port(Port(SRC_PORT));
-				udp.dst_port(_dst_port);
+						/* prepare next ICMP ping */
+						if (_dst_port.value == LAST_DST_PORT) {
+							_dst_port.value = FIRST_DST_PORT; }
+						else {
+							_dst_port.value++; }
+						break;
+					}
+				case Protocol::UDP:
+					{
+						/* adapt IP header to UDP */
+						ip.protocol(Ipv4_packet::Protocol::UDP);
 
-				/* finish UDP header */
-				udp.length(size_guard.head_size() - udp_off);
-				udp.update_checksum(ip.src(), ip.dst());
+						/* create UDP header */
+						size_t const udp_off = size_guard.head_size();
+						Udp_packet &udp = ip.construct_at_data<Udp_packet>(size_guard);
+						udp.src_port(Port(SRC_PORT));
+						udp.dst_port(_dst_port);
 
-				/* prepare next ping */
-				if (_dst_port.value == LAST_DST_PORT) {
-					_dst_port.value = FIRST_DST_PORT; }
-				else {
-					_dst_port.value++; }
-				break;
-			}
-		case Protocol::TCP:
-			{
-				/* adapt IP header to TCP */
-				ip.protocol(Ipv4_packet::Protocol::TCP);
+						/* finish UDP header */
+						udp.length(size_guard.head_size() - udp_off);
+						udp.update_checksum(ip.src(), ip.dst());
 
-				/* create TCP header */
-				size_t const tcp_off = size_guard.head_size();
-				Tcp_packet &tcp = ip.construct_at_data<Tcp_packet>(size_guard);
-				tcp.src_port(Port(SRC_PORT));
-				tcp.dst_port(_dst_port);
+						/* prepare next ping */
+						if (_dst_port.value == LAST_DST_PORT) {
+							_dst_port.value = FIRST_DST_PORT; }
+						else {
+							_dst_port.value++; }
+						break;
+					}
+				case Protocol::TCP:
+					{
+						/* adapt IP header to TCP */
+						ip.protocol(Ipv4_packet::Protocol::TCP);
 
-				/* finish TCP header */
-				tcp.update_checksum(ip.src(), ip.dst(), size_guard.head_size() - tcp_off);
+						/* create TCP header */
+						size_t const tcp_off = size_guard.head_size();
+						Tcp_packet &tcp = ip.construct_at_data<Tcp_packet>(size_guard);
+						tcp.src_port(Port(SRC_PORT));
+						tcp.dst_port(_dst_port);
 
-				/* prepare next ping */
-				if (_dst_port.value == LAST_DST_PORT) {
-					_dst_port.value = FIRST_DST_PORT; }
-				else {
-					_dst_port.value++; }
-				break;
-			}
+						/* finish TCP header */
+						tcp.update_checksum(ip.src(), ip.dst(), size_guard.head_size() - tcp_off);
+
+						/* prepare next ping */
+						if (_dst_port.value == LAST_DST_PORT) {
+							_dst_port.value = FIRST_DST_PORT; }
+						else {
+							_dst_port.value++; }
+						break;
+					}
+				}
+				/* finish IP header */
+				ip.total_length(size_guard.head_size() - ip_off);
+				ip.update_checksum();
+			});
 		}
-		/* finish IP header */
-		ip.total_length(size_guard.head_size() - ip_off);
-		ip.update_checksum();
-	});
+	}
+	catch (Net::Packet_stream_source::Packet_alloc_failed) { }
 }
 
 
