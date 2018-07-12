@@ -196,10 +196,4 @@ append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
 
 append qemu_args " -net user -nographic "
 
-set done_string ""
-for {set i 0} {$i < 2} {incr i 1} {
-	append done_string {.*nic_router\] \[flood_links\] drop packet \(RAM quota exhausted.*\n}
-	append done_string {.*ping\] 64 bytes from 10\.0\.2\.2.*\n}
-}
-
-run_genode_until $done_string 120
+run_genode_until {.*ping\] 64 bytes from 10\.0\.2\.2: icmp_seq=30 .*\n} 120

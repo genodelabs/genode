@@ -248,6 +248,11 @@ class Net::Interface : private Interface_list::Element
 		                 Size_guard               &size_guard,
 		                 Packet_descriptor  const &pkt);
 
+		void _handle_eth(Ethernet_frame           &eth,
+		                 Size_guard               &size_guard,
+		                 Packet_descriptor  const &pkt,
+		                 Domain                   &local_domain);
+
 		void _ack_packet(Packet_descriptor const &pkt);
 
 		void _send_alloc_pkt(Genode::Packet_descriptor   &pkt,
@@ -307,11 +312,12 @@ class Net::Interface : private Interface_list::Element
 
 	public:
 
-		struct Bad_send_dhcp_args           : Genode::Exception { };
-		struct Bad_transport_protocol       : Genode::Exception { };
-		struct Bad_network_protocol         : Genode::Exception { };
-		struct Packet_postponed             : Genode::Exception { };
-		struct Alloc_dhcp_msg_buffer_failed : Genode::Exception { };
+		struct Free_resources_and_retry_handle_eth : Genode::Exception { };
+		struct Bad_send_dhcp_args                  : Genode::Exception { };
+		struct Bad_transport_protocol              : Genode::Exception { };
+		struct Bad_network_protocol                : Genode::Exception { };
+		struct Packet_postponed                    : Genode::Exception { };
+		struct Alloc_dhcp_msg_buffer_failed        : Genode::Exception { };
 
 		struct Drop_packet : Genode::Exception
 		{
