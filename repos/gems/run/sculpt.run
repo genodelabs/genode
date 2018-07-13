@@ -676,7 +676,7 @@ append manual_deploy_config {
 	-->
 
 <!--
-	<start name="seoul-vmm-browser" pkg="alex-ab/pkg/seoul-nova-sculpt/2018-06-27">
+	<start name="seoul-vmm-browser" pkg="alex-ab/pkg/seoul-nova-sculpt/2018-07-13">
 		<route>
 			<service name="ROM" label="platform_info"> <parent/> </service>
 			<service name="RM">        <parent/> </service>
