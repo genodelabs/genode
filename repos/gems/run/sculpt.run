@@ -661,7 +661,7 @@ append manual_deploy_config {
 	-->
 
 <!--
-	<start name="vbox5-tc-browser" pkg="alex-ab/pkg/vbox5-tc-firefox-nova-sculpt/2018-06-27">
+	<start name="vbox5-tc-browser" pkg="alex-ab/pkg/vbox5-tc-firefox-nova-sculpt/2018-07-13">
 		<route>
 			<service name="ROM"    label="capslock"> <parent label="capslock"/> </service>
 			<service name="ROM"    label="platform_info"> <parent/> </service>
