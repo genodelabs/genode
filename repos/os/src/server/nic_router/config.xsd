@@ -141,6 +141,7 @@
 			<xs:attribute name="icmp_idle_timeout_sec"     type="Seconds" />
 			<xs:attribute name="tcp_max_segm_lifetime_sec" type="Seconds" />
 			<xs:attribute name="icmp_echo_server"          type="Boolean" />
+			<xs:attribute name="ld_verbose"                type="Boolean" />
 		</xs:complexType>
 	</xs:element><!-- config -->
 
