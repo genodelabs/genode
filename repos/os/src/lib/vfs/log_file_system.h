@@ -50,7 +50,31 @@ class Vfs::Log_file_system : public Single_file_system
 		{
 			private:
 
+				char _line_buf[Genode::Log_session::MAX_STRING_LEN];
+				int  _line_pos = 0;
+
 				Genode::Log_session &_log;
+
+				void _flush()
+				{
+					int strip = 0;
+					for (int i = _line_pos - 1; i > 0; --i) {
+						switch(_line_buf[i]) {
+						case '\n':
+						case '\t':
+						case ' ':
+							++strip;
+							--_line_pos;
+							continue;
+						}
+						break;
+					}
+
+					_line_buf[_line_pos > 0 ? _line_pos : 0] = '\0';
+
+					_log.write(_line_buf);
+					_line_pos = 0;
+				}
 
 			public:
 
@@ -60,6 +84,11 @@ class Vfs::Log_file_system : public Single_file_system
 				               Genode::Log_session &log)
 				: Single_vfs_handle(ds, fs, alloc, 0),
 				  _log(log) { }
+
+				~Log_vfs_handle()
+				{
+					if (_line_pos > 0) _flush();
+				}
 
 				Read_result read(char *, file_size, file_size &out_count) override
 				{
@@ -74,11 +103,22 @@ class Vfs::Log_file_system : public Single_file_system
 
 					/* count does not include the trailing '\0' */
 					while (count > 0) {
-						char tmp[Genode::Log_session::MAX_STRING_LEN];
-						int const curr_count = min(count, sizeof(tmp) - 1);
-						memcpy(tmp, src, curr_count);
-						tmp[curr_count > 0 ? curr_count : 0] = 0;
-						_log.write(tmp);
+						int curr_count = min(count, ((sizeof(_line_buf) - 1) - _line_pos));
+
+						for (int i = 0; i < curr_count; ++i) {
+							if (src[i] == '\n') {
+								curr_count = i + 1;
+								break;
+							}
+						}
+
+						memcpy(_line_buf + _line_pos, src, curr_count);
+						_line_pos += curr_count;
+
+						if ((_line_pos == sizeof(_line_buf) - 1) ||
+						    (_line_buf[_line_pos - 1] == '\n'))
+							_flush();
+
 						count -= curr_count;
 						src   += curr_count;
 					}
@@ -86,7 +126,13 @@ class Vfs::Log_file_system : public Single_file_system
 					return WRITE_OK;
 				}
 
-				bool read_ready() { return false; }
+				bool read_ready() override { return false; }
+
+				void sync()
+				{
+					if (_line_pos > 0)
+						_flush();
+				}
 		};
 
 	public:
@@ -120,6 +166,12 @@ class Vfs::Log_file_system : public Single_file_system
 			}
 			catch (Genode::Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
 			catch (Genode::Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
+		}
+
+		Sync_result complete_sync(Vfs_handle *vfs_handle)
+		{
+			static_cast<Log_vfs_handle *>(vfs_handle)->sync();
+			return SYNC_OK;
 		}
 };
 

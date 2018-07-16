@@ -22,7 +22,7 @@ install_config {
 		<resource name="RAM" quantum="400M"/>
 		<config>
 			<vfs> <dir name="dev"> <log/> </dir> </vfs>
-			<libc stdout="/dev/log"/>
+			<libc stdout="/dev/log" stderr="/dev/log"/>
 		</config>
 	</start>
 </config>

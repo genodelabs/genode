@@ -36,6 +36,15 @@ int main(int argc, char **argv)
 	printf("Does printf work?\n");
 	printf("We can find out by printing a floating-point number: %f. How does that work?\n", 1.2345);
 
+	fprintf(stdout, "stdout: ");
+	for (int x = 0; x < 10; ++x)
+		fprintf(stdout, "%d ", x);
+	fprintf(stdout, "\n");
+
+	fprintf(stderr, "stderr: ");
+	for (int x = 0; x < 10; ++x)
+		fprintf(stderr, "%d ", x);
+	fprintf(stderr, "\n\n");
 
 	enum { ROUNDS = 64, SIZE_LARGE = 2048 };
 
@@ -136,6 +145,8 @@ int main(int argc, char **argv)
 			printf("syscall(unknown) returned %d (%s)\n", ret, strerror(errno));
 		}
 	}
+
+	perror("perror");
 
 	exit(error_count);
 }
