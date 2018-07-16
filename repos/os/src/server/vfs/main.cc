@@ -554,7 +554,7 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 			/* re-root the path */
 			Path sub_path(path_str+1, _root_path.base());
 			path_str = sub_path.base();
-			if (!_vfs.leaf_path(path_str))
+			if (sub_path != "/" && !_vfs.leaf_path(path_str))
 				throw Lookup_failed();
 
 			Node *node;
