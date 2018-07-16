@@ -1,0 +1,135 @@
+build "core init app/sequence server/vfs test/libc_getpwent"
+
+create_boot_directory
+
+install_config {
+<config>
+	<parent-provides>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="ROM"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<default caps="128"/>
+
+	<start name="fs">
+		<binary name="vfs"/>
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="File_system"/> </provides>
+		<config>
+			<vfs> <log label="log"/> </vfs>
+			<default-policy root="/" writeable="yes"/>
+		</config>
+	</start>
+
+	<start name="test">
+		<binary name="sequence"/>
+		<resource name="RAM" quantum="4M"/>
+		<config>
+
+			<start name="root">
+				<binary name="test-libc_getpwent"/>
+				<config>
+					<vfs> <fs/> </vfs>
+					<libc stdout="/log" stderr="/log"/>
+					<arg value="test-libc_getpwent"/>
+					<env key="HOME" value="/home-from-getenv"/>
+				</config>
+			</start>
+
+			<start name="alice">
+				<binary name="test-libc_getpwent"/>
+				<config>
+					<vfs> <fs/> </vfs>
+					<libc stdout="/log" stderr="/log">
+						<passwd name="alice" uid="1" home="/home/alice"/>
+					</libc>
+				</config>
+			</start>
+
+			<start name="bob">
+				<binary name="test-libc_getpwent"/>
+				<config>
+					<vfs> <fs/> </vfs>
+					<libc stdout="/log" stderr="/log">
+						<passwd name="bob" uid="2" home="/root"/>
+					</libc>
+				</config>
+			</start>
+
+		</config>
+	</start>
+</config>
+}
+
+build_boot_image {
+	core init vfs sequence test-libc_getpwent
+	ld.lib.so libc.lib.so vfs.lib.so libm.lib.so posix.lib.so
+}
+
+append qemu_args " -nographic  "
+
+run_genode_until "child .* exited with exit value 0.*\n" 20
+
+grep_output {\[init -\> fs -\> log\] }
+
+compare_output_to {
+[init -> fs -> log] [getpwent] user:root uid:0 home:/
+[init -> fs -> log] [getpwent] NULL
+[init -> fs -> log] [getpwent] NULL
+[init -> fs -> log] [getpwent_r] user:root uid:0 home:/
+[init -> fs -> log] [getpwent_r] NULL
+[init -> fs -> log] [getpwent_r] NULL
+[init -> fs -> log] [getpwnam root] user:root uid:0 home:/
+[init -> fs -> log] [getpwnam alice] NULL
+[init -> fs -> log] [getpwnam bob] NULL
+[init -> fs -> log] [getpwnam_r root] user:root uid:0 home:/
+[init -> fs -> log] [getpwnam_r alice] NULL
+[init -> fs -> log] [getpwnam_r bob] NULL
+[init -> fs -> log] [getpwuid 0] user:root uid:0 home:/
+[init -> fs -> log] [getpwuid 1] NULL
+[init -> fs -> log] [getpwuid 2] NULL
+[init -> fs -> log] [getpwuid_r 0] user:root uid:0 home:/
+[init -> fs -> log] [getpwuid_r 1] NULL
+[init -> fs -> log] [getpwuid_r 2] NULL
+[init -> fs -> log] [getpwent] user:alice uid:1 home:/home/alice
+[init -> fs -> log] [getpwent] NULL
+[init -> fs -> log] [getpwent] NULL
+[init -> fs -> log] [getpwent_r] user:alice uid:1 home:/home/alice
+[init -> fs -> log] [getpwent_r] NULL
+[init -> fs -> log] [getpwent_r] NULL
+[init -> fs -> log] [getpwnam root] NULL
+[init -> fs -> log] [getpwnam alice] user:alice uid:1 home:/home/alice
+[init -> fs -> log] [getpwnam bob] NULL
+[init -> fs -> log] [getpwnam_r root] NULL
+[init -> fs -> log] [getpwnam_r alice] user:alice uid:1 home:/home/alice
+[init -> fs -> log] [getpwnam_r bob] NULL
+[init -> fs -> log] [getpwuid 0] NULL
+[init -> fs -> log] [getpwuid 1] user:alice uid:1 home:/home/alice
+[init -> fs -> log] [getpwuid 2] NULL
+[init -> fs -> log] [getpwuid_r 0] NULL
+[init -> fs -> log] [getpwuid_r 1] user:alice uid:1 home:/home/alice
+[init -> fs -> log] [getpwuid_r 2] NULL
+[init -> fs -> log] [getpwent] user:bob uid:2 home:/root
+[init -> fs -> log] [getpwent] NULL
+[init -> fs -> log] [getpwent] NULL
+[init -> fs -> log] [getpwent_r] user:bob uid:2 home:/root
+[init -> fs -> log] [getpwent_r] NULL
+[init -> fs -> log] [getpwent_r] NULL
+[init -> fs -> log] [getpwnam root] NULL
+[init -> fs -> log] [getpwnam alice] NULL
+[init -> fs -> log] [getpwnam bob] user:bob uid:2 home:/root
+[init -> fs -> log] [getpwnam_r root] NULL
+[init -> fs -> log] [getpwnam_r alice] NULL
+[init -> fs -> log] [getpwnam_r bob] user:bob uid:2 home:/root
+[init -> fs -> log] [getpwuid 0] NULL
+[init -> fs -> log] [getpwuid 1] NULL
+[init -> fs -> log] [getpwuid 2] user:bob uid:2 home:/root
+[init -> fs -> log] [getpwuid_r 0] NULL
+[init -> fs -> log] [getpwuid_r 1] NULL
+[init -> fs -> log] [getpwuid_r 2] user:bob uid:2 home:/root
+}

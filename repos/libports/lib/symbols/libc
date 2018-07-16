@@ -278,7 +278,9 @@ getprogname W
 getprotobyname T
 getprotobyname_r T
 getpwent W
+getpwent_r W
 getpwnam W
+getpwnam_r W
 getpwuid W
 getpwuid_r W
 getrlimit W
