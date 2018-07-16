@@ -951,6 +951,12 @@ void Libc::execute_in_application_context(Libc::Application_code &app_code)
 }
 
 
+Genode::Xml_node Libc::libc_config()
+{
+	return kernel->libc_env().libc_config();
+}
+
+
 /***************************
  ** Component entry point **
  ***************************/

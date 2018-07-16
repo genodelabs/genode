@@ -21,6 +21,8 @@
 #ifndef _LIBC__TASK_H_
 #define _LIBC__TASK_H_
 
+#include <util/xml_node.h>
+
 namespace Libc {
 
 	/**
@@ -66,6 +68,11 @@ namespace Libc {
 	 * Schedule select handler that is deblocked by ready fd sets
 	 */
 	void schedule_select(Select_handler_base *);
+
+	/**
+	 * Access libc configuration Xml_node.
+	 */
+	Genode::Xml_node libc_config();
 }
 
 #endif /* _LIBC__TASK_H_ */
