@@ -84,6 +84,9 @@ struct Terminal::Position
 		return x >= 0 && x < boundary.width
 		    && y >= 0 && y < boundary.height;
 	}
+
+	void print(Genode::Output &out) const {
+		Genode::print(out, y, ",", x); }
 };
 
 

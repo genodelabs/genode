@@ -15,9 +15,9 @@
 #define _TERMINAL__DECODER_H_
 
 #include <terminal/character_screen.h>
+#include <terminal/print.h>
 
 namespace Terminal { class Decoder; }
-
 
 class Terminal::Decoder
 {
@@ -61,11 +61,24 @@ class Terminal::Decoder
 			return number % factor;
 		}
 
+		enum State {
+			STATE_IDLE,
+			STATE_ESC_CSI,    /* read CONTROL SEQUENCE INTRODUCER */
+			STATE_ESC_ECMA,   /* read an ECMA-48 escape sequence  */
+			STATE_ESC_SCS,    /* read an Select Character Set sequence  */
+			STATE_ESC_VT100,  /* read a VT100 escape sequence     */
+			STATE_ESC_OSC    /* skip an Operating System Command */
+		};
+
 		/**
 		 * Buffer used for collecting escape sequences
 		 */
 		class Escape_stack
 		{
+			private:
+
+				Log_buffer _dump_log { };
+
 			public:
 
 				struct Entry
@@ -74,6 +87,22 @@ class Terminal::Decoder
 
 					int type  = INVALID;
 					int value = 0;
+
+					void print(Genode::Output &out, State state) const
+					{
+						if (type == NUMBER) {
+							Genode::print(out, value);
+						} else if (state == STATE_ESC_ECMA) {
+							Ecma(value).print(out);
+						} else {
+							Ascii(value).print(out);
+						}
+					}
+
+					void print(Genode::Output &out) const
+					{
+						print(out, STATE_ESC_VT100);
+					}
 				};
 
 				struct Number_entry : Entry
@@ -90,21 +119,16 @@ class Terminal::Decoder
 
 			private:
 
-				enum { MAX_ENTRIES = 16 };
+				enum { MAX_ENTRIES = 32 };
 				Entry _entries[MAX_ENTRIES];
 				int   _index;
 
-				void _dump() const
+				void _dump(State state)
 				{
-					Genode::log("--- escape stack follows ---");
+					_dump_log.print("ESC");
 					for (int i = 0; i < _index; i++) {
-						int type = _entries[i].type;
-						int value = _entries[i].value;
-						Genode::log(type == Entry::INVALID ? " INVALID" :
-						            type == Entry::NUMBER  ? " NUMBER "
-						                                   : " CODE   ",
-						            " ", value, " ",
-						            "(", Genode::Hex(value), ")");
+						_dump_log.out_char(' ');
+						_entries[i].print(_dump_log, state);
 					}
 				}
 
@@ -114,11 +138,20 @@ class Terminal::Decoder
 
 				void reset() { _index = 0; }
 
+				void discard(State state = STATE_ESC_VT100)
+				{
+					_dump_log.print("unhandled sequence ");
+					_dump(state);
+					_dump_log.flush_warning();
+					_index = 0;
+				}
+
 				void push(Entry const &entry)
 				{
 					if (_index == MAX_ENTRIES - 1) {
 						Genode::error("escape stack overflow");
-						_dump();
+						_dump(STATE_ESC_VT100);
+						_dump_log.flush_error();
 						reset();
 						return;
 					}
@@ -135,44 +168,50 @@ class Terminal::Decoder
 				 *
 				 * 'index' is relative to the bottom of the stack.
 				 */
-				Entry operator [] (int index)
+				Entry operator [] (int index) const
 				{
 					return (index <= _index) ? _entries[index] : Invalid_entry();
 				}
 
 		} _escape_stack { };
 
-		enum State {
-			STATE_IDLE,
-			STATE_ESC_SEQ,    /* read escape sequence */
-			STATE_ESC_NUMBER  /* read number argument within escape sequence */
-		} _state;
-
 		Character_screen &_screen;
 
-		int _number; /* current number argument supplied in escape sequence */
+		State _state = STATE_IDLE;
+
+		int _number = -1; /* current number argument supplied in escape sequence */
 
 		void _append_to_number(char c)
 		{
-			_number = _number*10 + digit(c);
+			_number = (_number < 0 ? 0 : _number)*10 + digit(c);
 		}
 
 		void _enter_state_idle()
 		{
 			_state = STATE_IDLE;
 			_escape_stack.reset();
+			_number = -1;
 		}
 
-		void _enter_state_esc_seq()
+		void _enter_state_esc_csi()
 		{
-			_state = STATE_ESC_SEQ;
+			_state = STATE_ESC_CSI;
 			_escape_stack.reset();
 		}
 
-		void _enter_state_esc_number()
+		void _enter_state_esc_ecma()
 		{
-			_state = STATE_ESC_NUMBER;
-			_number = 0;
+			_state = STATE_ESC_ECMA;
+		}
+
+		void _enter_state_esc_vt100()
+		{
+			_state = STATE_ESC_VT100;
+		}
+
+		void _enter_state_esc_osc()
+		{
+			_state = STATE_ESC_OSC;
 		}
 
 		bool _sgr(int const p)
@@ -199,14 +238,11 @@ class Terminal::Decoder
 		bool _handle_esc_seq_1()
 		{
 			switch (_escape_stack[0].value) {
-			case '7': return (_screen.sc(),  true);
-			case '8': return (_screen.rc(),  true);
-			case 'E': return (_screen.nel(), true);
 			case 'H': return (_screen.hts(), true);
-			case 'M': return (_screen.cuu1(), true);
-			case '=': return true; /* follows 'smkx' */
-			case '>': return true; /* follows 'rmkx' */
 			case 'c': return true; /* prefixes 'rs2' */
+			case 'E': return (_screen.nel(), true);
+			case '>': return true; /* follows 'rmkx' */
+			case '=': return true; /* follows 'smkx' */
 			default:  return false;
 			}
 		}
@@ -216,32 +252,36 @@ class Terminal::Decoder
 			switch (_escape_stack[0].value) {
 
 			case '[':
-
 				switch (_escape_stack[1].value) {
-				case 'C': return (_screen.cuf(1), true);
-				case 'H': return (_screen.home(), true);
+
+				case 'A': return (_screen.cuu(), true);
+				case 'B': return (_screen.cud(), true);
+				case 'C': return (_screen.cuf(), true);
+				case 'D': return (_screen.cub(), true);
+				case 'G': return (_screen.cha(), true);
+				case 'H': return (_screen.cup(1,1), true);
 				case 'J': return (_screen.ed(),   true);
 				case 'K': return (_screen.el(),   true);
-				case 'L': return (_screen.il(1),  true);
-				case 'M': return (_screen.dl(1),  true);
-				case 'P': return (_screen.dch(1), true);
-				case 'Z': return (_screen.cbt(),  true);
-				case 'm': return (_screen.sgr0(), true);
+				case 'L': return (_screen.il(),  true);
+				case 'M': return (_screen.dl(), true);
+				case 'P': return (_screen.dch(), true);
+				case 'm': return _sgr(0);
+				case 'S': return (_screen.su(), true);
+				case 'T': return (_screen.sd(), true);
+				case 'c': return (_screen.da(), true);
+				case 'd': return (_screen.vpa(), true);
+				case 'n': return (_screen.vpb(), true);
+				case '@': return (_screen.ich(), true);
 				default:  return false;
 				}
 				break;
 
-			case ')':
-				return (_escape_stack[1].value == 0) && (_screen.is2(), true);
-
 			default: return false;
 			}
-			return false;
 		}
 
 		bool _handle_esc_seq_3()
 		{
-
 			/*
 			 * All three-element sequences have the form \E[<NUMBER><COMMAND>
 			 */
@@ -253,25 +293,29 @@ class Terminal::Decoder
 			char const command = _escape_stack[2].value;
 
 			switch (command) {
-			case 'm': return _sgr(p1);
-			case 'D': return (_screen.cub(p1), true);
 			case 'A': return (_screen.cuu(p1), true);
 			case 'B': return (_screen.cud(p1), true);
+			case 'C': return (_screen.cuf(p1), true);
+			case 'D': return (_screen.cub(p1), true);
+			case 'd': return (_screen.vpa(p1), true);
 			case 'g': return (p1 == 3) && (_screen.tbc(), true);
-			case 'h': return ((p1 ==  4) && (_screen.smir(), true))
-			              || ((p1 == 34) && (_screen.cnorm(), true));
-			case 'K': return ((p1 ==  0) && (_screen.el(),  true))
-			              || ((p1 ==  1) && (_screen.el1(), true));
-			case 'l': return ((p1 ==  4) && (_screen.rmir(), true))
-			              || ((p1 == 34) && (_screen.cvvis(), true));
+			case 'G': return (_screen.cha(p1), true);
+			case 'h': return (_screen.decsm(p1), true);
+			case 'l': return (_screen.decrm(p1), true);
+			case 'J': return (_screen.ed(p1), true);
+			case 'K': return (_screen.el(p1), true);
 			case 'L': return (_screen.il(p1), true);
 			case 'M': return (_screen.dl(p1), true);
+			case 'm': return _sgr(p1);
+			case 'n': return (_screen.vpb(p1), true);
 			case 'P': return (_screen.dch(p1), true);
 			case '@': return (_screen.ich(p1), true);
-			case 'C': return (_screen.cuf(p1), true);
-
-			default: return false;
+			case 'S': return (_screen.su(p1), true);
+			case 'T': return (_screen.sd(p1), true);
+			case 'X': return (_screen.ech(p1), true);
+			default: break;
 			}
+			return false;
 		}
 
 		bool _handle_esc_seq_4()
@@ -289,29 +333,11 @@ class Terminal::Decoder
 			char const command = _escape_stack[3].value;
 
 			switch (command) {
-			case 'l':
-				if (p1 ==    1) return (_screen.rmkx(),  true);
-				if (p1 ==   25) return (_screen.civis(), true);
-				if (p1 == 1000) return (_screen.rs2(),   true);
-				if (p1 == 1049) return (_screen.rmcup(), true);
-				if (p1 == 2004) {
-					/* disable bracketed paste */
-					Genode::warning("Sequence '[?2004l' is not implemented");
-					return true;
-				}
-				return false;
-			case 'h':
-				if (p1 ==    1) return (_screen.smkx(),  true);
-				if (p1 ==   25) return (_screen.cnorm(), true);
-				if (p1 == 1049) return (_screen.smcup(), true);
-				if (p1 == 2004) {
-					/* enable bracketed paste */
-					Genode::warning("Sequence '[?2004h' is not implemented");
-					return true;
-				}
-				return false;
-			default: return false;
+			case 'h': return (_screen.decsm(p1), true);
+			case 'l': return (_screen.decrm(p1), true);
+			default: break;
 			}
+			return false;
 		}
 
 		bool _handle_esc_seq_5()
@@ -351,13 +377,34 @@ class Terminal::Decoder
 			}
 		}
 
+		bool _handle_esc_seq_6()
+		{
+			/*
+			 * All five-element escape sequences have the form
+			 * \E[?<NUMBER1>;<NUMBER2><COMMAND>
+			 */
+			if ((_escape_stack[0].value != '[')
+			 || (_escape_stack[1].value != '?')
+			 || (_escape_stack[2].type  != Escape_stack::Entry::NUMBER)
+			 || (_escape_stack[3].value != ';')
+			 || (_escape_stack[4].type  != Escape_stack::Entry::NUMBER))
+				return false;
+
+			int const p[2] = { _escape_stack[2].value,
+			                   _escape_stack[4].value };
+			switch (_escape_stack[5].value) {
+			case 'h': return (_screen.decsm(p[0], p[1]), true);
+			case 'l': return (_screen.decrm(p[0], p[1]), true);
+			default: return false;
+			}
+		}
+
 		bool _handle_esc_seq_7()
 		{
 			/*
 			 * All six-element escape sequences have the form
 			 * \E[<NUMBER1>;<NUMBER2>;<NUMBER3><COMMAND>
 			 */
-
 			if ((_escape_stack[0].value != '[')
 			 || (_escape_stack[1].type  != Escape_stack::Entry::NUMBER)
 			 || (_escape_stack[2].value != ';')
@@ -390,10 +437,20 @@ class Terminal::Decoder
 			return true;
 		}
 
+		bool _complete()
+		{
+			return (((_escape_stack.num_elem() == 1) && _handle_esc_seq_1())
+			     || ((_escape_stack.num_elem() == 2) && _handle_esc_seq_2())
+			     || ((_escape_stack.num_elem() == 3) && _handle_esc_seq_3())
+			     || ((_escape_stack.num_elem() == 4) && _handle_esc_seq_4())
+			     || ((_escape_stack.num_elem() == 5) && _handle_esc_seq_5())
+			     || ((_escape_stack.num_elem() == 6) && _handle_esc_seq_6())
+			     || ((_escape_stack.num_elem() == 7) && _handle_esc_seq_7()));
+		}
+
 	public:
 
-		Decoder(Character_screen &screen)
-		: _state(STATE_IDLE), _screen(screen), _number(0) { }
+		Decoder(Character_screen &screen) : _screen(screen) { }
 
 		void insert(unsigned char c)
 		{
@@ -403,7 +460,7 @@ class Terminal::Decoder
 
 				enum { ESC_PREFIX = 0x1b };
 				if (c == ESC_PREFIX) {
-					_enter_state_esc_seq();
+					_enter_state_esc_csi();
 					break;
 				}
 
@@ -414,8 +471,48 @@ class Terminal::Decoder
 
 				break;
 
-			case STATE_ESC_SEQ:
+			case STATE_ESC_CSI:
+				/* check that the second byte is in set C1 - ECMA-48 5.3 */
+				switch (c) {
+				case '7':
+					_screen.decsc();
+					_enter_state_idle();
+					break;
+				case '8':
+					_screen.decrc();
+					_enter_state_idle();
+					break;
+				case '(':
+				case ')':
+					_escape_stack.push(Escape_stack::Code_entry(c));
+					_state = STATE_ESC_SCS;
+					break;
+				case ']':
+					_enter_state_esc_osc();
+					break;
+				case 'M':
+					_screen.reverse_index();
+					_enter_state_idle();
+					break;
+				case '=':
+				case '>':
+					/* keypad mode, not useful enough to handle */
+					_enter_state_idle();
+					break;
+				default:
+					if (0x40 <= c && c <= 0x5f) {
+						_escape_stack.push(Escape_stack::Code_entry(c));
+						_enter_state_esc_ecma();
+						break;
+					}
+					Genode::error("unknown CSI ESC", Ascii(c));
+					_enter_state_idle();
+				}
 
+				break;
+
+			case STATE_ESC_ECMA:
+			case STATE_ESC_VT100:
 				/*
 				 * We received the prefix character of an escape sequence,
 				 * collect the escape-sequence elements until we detect the
@@ -423,52 +520,50 @@ class Terminal::Decoder
 				 */
 
 				/* check for start of a number argument */
-				if (is_digit(c) && !_number)
-				{
-					_enter_state_esc_number();
-					_append_to_number(c);
-					break;
-				}
-
-				/* non-number character of escape sequence */
-				_escape_stack.push(Escape_stack::Code_entry(c));
-				break;
-
-			case STATE_ESC_NUMBER:
-
-				/*
-				 * We got the first character belonging to a number
-				 * argument of an escape sequence. Keep reading digits.
-				 */
 				if (is_digit(c)) {
 					_append_to_number(c);
-					break;
 				}
 
-				/*
-				 * End of number is reached.
-				 */
+				else /* non-number character of escape sequence */
+				{
+					if (-1 < _number) {
+						_escape_stack.push(Escape_stack::Number_entry(_number));
+						_number = -1;
+					}
 
-				/* push the complete number to the escape stack */
-				_escape_stack.push(Escape_stack::Number_entry(_number));
-				_number = 0;
+					_escape_stack.push(Escape_stack::Code_entry(c));
 
-				/* push non-number character as commend entry */
+					/* check for Final Byte - ECMA-48 5.4 */
+					if (_state == STATE_ESC_ECMA && c > 0x3f && c < 0x7f) {
+						if (!_complete()) {
+							_escape_stack.discard(_state);
+						}
+						_enter_state_idle();
+					} else {
+						if (_complete())
+							_enter_state_idle();
+					}
+				}
+				break;
+
+			case STATE_ESC_SCS:
+				switch (_escape_stack[0].value) {
+				case '(': _screen.scs_g0(c); break;
+				case ')': _screen.scs_g1(c); break;
+				}
+				_enter_state_idle();
+				break;
+
+			case STATE_ESC_OSC:
+				enum { BELL = 07 };
 				_escape_stack.push(Escape_stack::Code_entry(c));
+				if (c == BELL) {
+					_escape_stack.discard(_state);
+					_enter_state_idle();
+				}
 
 				break;
 			}
-
-			/*
-			 * Check for the completeness of an escape sequence.
-			 */
-			if (((_escape_stack.num_elem() == 1) && _handle_esc_seq_1())
-			 || ((_escape_stack.num_elem() == 2) && _handle_esc_seq_2())
-			 || ((_escape_stack.num_elem() == 3) && _handle_esc_seq_3())
-			 || ((_escape_stack.num_elem() == 4) && _handle_esc_seq_4())
-			 || ((_escape_stack.num_elem() == 5) && _handle_esc_seq_5())
-			 || ((_escape_stack.num_elem() == 7) && _handle_esc_seq_7()))
-				_enter_state_idle();
 		};
 };
 
