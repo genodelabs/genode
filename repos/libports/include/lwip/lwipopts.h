@@ -73,8 +73,13 @@ extern "C" {
 #define MEMP_NUM_SYS_TIMEOUT        16
 #define MEMP_NUM_TCP_PCB           128
 
-void genode_memcpy(void * dst, const void *src, unsigned long size);
+#ifndef MEMCPY
 #define MEMCPY(dst,src,len)             genode_memcpy(dst,src,len)
+#endif
+
+#ifndef MEMMOVE
+#define MEMMOVE(dst,src,len)            genode_memmove(dst,src,len)
+#endif
 
 /********************
  ** Debug settings **

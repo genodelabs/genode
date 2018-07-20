@@ -1,12 +1,15 @@
 LICENSE   := BSD
-VERSION   := 2.0.3
+VERSION   := 2_1_0_RC1
 DOWNLOADS := lwip.archive
 
-URL(lwip) := http://download.savannah.nongnu.org/releases/lwip/lwip-$(VERSION).zip
-SHA(lwip) := 1488829ca48890cc7e5e86c5e76a74b32a1bc9ac8dc01b2177b3a937650e9730
+URL(lwip) := http://git.savannah.nongnu.org/cgit/lwip.git/snapshot/lwip-STABLE-$(VERSION).tar.gz
+SHA(lwip) := 731c1bc74e9a73daebe9ef83b602ce35f878818eff06dc33785248e9de032666
 DIR(lwip) := src/lib/lwip
 
-UNPACKED_DIR := src/lib/lwip/lwip-$(VERSION)
+UNPACKED_DIR := src/lib/lwip
+
+PATCHES   := $(wildcard $(REP_DIR)/src/lib/lwip/*.patch)
+PATCH_OPT := -p1 -d src/lib/lwip
 
 DIRS := \
 	include/lwip/lwip \

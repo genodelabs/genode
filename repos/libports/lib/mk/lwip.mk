@@ -5,7 +5,7 @@
 #
 
 LWIP_PORT_DIR := $(call select_from_ports,lwip)
-LWIPDIR := $(LWIP_PORT_DIR)/src/lib/lwip/lwip-2.0.3/src
+LWIPDIR := $(LWIP_PORT_DIR)/src/lib/lwip/src
 
 -include $(LWIPDIR)/Filelists.mk
 
@@ -33,9 +33,5 @@ INC_DIR += $(REP_DIR)/include/lwip \
            $(REP_DIR)/src/lib/lwip/include
 
 vpath %.cc $(REP_DIR)/src/lib/lwip/platform
-vpath %.c  $(LWIPDIR)/core
-vpath %.c  $(LWIPDIR)/core/ipv4
-vpath %.c  $(LWIPDIR)/core/ipv6
-vpath %.c  $(LWIPDIR)/netif
-
-CC_CXX_WARN_STRICT =
+vpath %.c  $(sort $(dir \
+	$(COREFILES) $(CORE4FILES) $(CORE6FILES) $(NETIFFILES)))

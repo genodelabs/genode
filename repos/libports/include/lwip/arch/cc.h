@@ -30,17 +30,31 @@ typedef unsigned long size_t;
 typedef          long ptrdiff_t;
 #endif /* LWIP_NO_STDDEF_H */
 
-
 #ifndef LWIP_NO_STDINT_H
 #define LWIP_NO_STDINT_H 1
-typedef genode_uint8_t    u8_t;
-typedef genode_int8_t     s8_t;
-typedef genode_uint16_t   u16_t;
-typedef genode_int16_t    s16_t;
-typedef genode_uint32_t   u32_t;
-typedef genode_int32_t    s32_t;
+#define LWIP_HAVE_INT64
+typedef genode_uint8_t    uint8_t;
+typedef genode_int8_t     int8_t;
+typedef genode_uint16_t   uint16_t;
+typedef genode_int16_t    int16_t;
+typedef genode_uint32_t   uint32_t;
+typedef genode_int32_t    int32_t;
+typedef genode_uint64_t   uint64_t;
+typedef genode_int64_t    int64_t;
+typedef unsigned long     uintptr_t;
+typedef uint8_t   u8_t;
+typedef int8_t    s8_t;
+typedef uint16_t  u16_t;
+typedef int16_t   s16_t;
+typedef uint32_t  u32_t;
+typedef int32_t   s32_t;
+typedef uint64_t  u64_t;
+typedef int64_t   s64_t;
+typedef uintptr_t mem_ptr_t;
 
-typedef unsigned long     mem_ptr_t;
+#ifndef NULL
+#define NULL (uintptr_t)0
+#endif
 #endif /* LWIP_NO_STDINT_H */
 
 
@@ -78,6 +92,11 @@ void lwip_platform_assert(char const* msg, char const *file, int line);
 #endif
 
 
+#ifndef LWIP_NO_CTYPE_H
+#define LWIP_NO_CTYPE_H 1
+#endif
+
+
 #define LWIP_SKIP_PACKING_CHECK 1
 #define PACK_STRUCT_FIELD(x) x
 #define PACK_STRUCT_STRUCT
@@ -88,8 +107,13 @@ void lwip_platform_assert(char const* msg, char const *file, int line);
 #define BYTE_ORDER LITTLE_ENDIAN
 #endif /* BYTE_ORDER */
 
+/*
+ * XXX: Should these be inlined?
+ */
+void  genode_memcpy( void *dst, const void *src, size_t len);
+void *genode_memmove(void *dst, const void *src, size_t len);
 
-void genode_free(void *ptr);
+void  genode_free(void *ptr);
 void *genode_malloc(unsigned long size);
 void *genode_calloc(unsigned long number, unsigned long size);
 

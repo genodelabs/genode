@@ -19,4 +19,4 @@ $(MIRROR_FROM_PORT_DIR):
 	cp -r $(PORT_DIR)/$@ $@
 
 LICENSE:
-	cp $(PORT_DIR)/src/lib/lwip/lwip-*/COPYING $@
+	cp $(PORT_DIR)/src/lib/lwip/COPYING $@

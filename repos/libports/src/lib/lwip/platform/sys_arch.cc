@@ -34,9 +34,6 @@ namespace Lwip {
 
 	static Genode::Allocator *_heap;
 
-	/**
-	 * XXX: can this be replaced with an alarm?
-	 */
 	struct Sys_timer
 	{
 		void check_timeouts(Genode::Duration) {
@@ -98,8 +95,11 @@ extern "C" {
 	u32_t sys_now(void) {
 		return Lwip::_sys_timer->timer.curr_time().trunc_to_plain_ms().value; }
 
-	void genode_memcpy(void * dst, const void *src, unsigned long size) {
-		Genode::memcpy(dst, src, size); }
+	void genode_memcpy(void *dst, const void *src, size_t len) {
+		Genode::memcpy(dst, src, len); }
+
+	void *genode_memmove(void *dst, const void *src, size_t len) {
+		return Genode::memmove(dst, src, len); }
 
 	int memcmp(const void *b1, const void *b2, ::size_t len) {
 		return Genode::memcmp(b1, b2, len); }
