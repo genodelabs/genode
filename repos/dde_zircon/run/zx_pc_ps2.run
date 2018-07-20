@@ -1,0 +1,147 @@
+#
+# Build
+#
+
+assert_spec x86
+
+set build_components {
+	core init
+	drivers/timer
+	server/dynamic_rom
+	test/input
+	drivers/input/zx_pc_ps2
+}
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
+
+build $build_components
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+append config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+	<default-route/>
+	<default caps="100"/>
+
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+		<route>
+			<service name="PD">      <parent/> </service>
+			<service name="CPU">     <parent/> </service>
+			<service name="LOG">     <parent/> </service>
+			<service name="ROM">     <parent/> </service>
+			<service name="IO_MEM">  <parent/> </service>
+			<service name="IRQ">     <parent/> </service>
+			<service name="IO_PORT"> <parent/> </service>
+		</route>
+	</start>}
+
+append_platform_drv_config
+
+append config {
+	<start name="ps2_drv">
+                <binary name="zx_pc_ps2_drv"/>
+		<resource name="RAM" quantum="2M"/>
+		<provides><service name="Input"/></provides>
+		<config verbose_keyboard="no" verbose_mouse="no" verbose_scancodes="no"
+		        capslock_led="rom" numlock_led="rom" scrlock_led="rom"/>
+		<route>
+			<service name="ROM" label="capslock"> <child name="dynamic_rom"/> </service>
+			<service name="ROM" label="numlock">  <child name="dynamic_rom"/> </service>
+			<service name="ROM" label="scrlock">  <child name="dynamic_rom"/> </service>
+			<service name="ROM">      <parent/>    </service>
+			<service name="CPU">      <parent/>    </service>
+			<service name="PD">       <parent/>    </service>
+			<service name="IO_PORT">  <parent/>    </service>
+			<service name="LOG">      <parent/>    </service>
+			<service name="Platform"> <any-child/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+		</route>
+	</start>
+	<alias name="input_drv" child="ps2_drv"/>
+
+	<start name="dynamic_rom">
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="ROM"/> </provides>
+		<config verbose="no">
+			<rom name="capslock">
+				<inline> <capslock enabled="no"/> </inline>
+				<sleep milliseconds="250" />
+				<inline> <capslock enabled="yes"/> </inline>
+				<sleep milliseconds="250" />
+			</rom>
+			<rom name="numlock">
+				<inline> <numlock enabled="no"/> </inline>
+				<sleep milliseconds="500" />
+				<inline> <numlock enabled="yes"/> </inline>
+				<sleep milliseconds="500" />
+			</rom>
+			<rom name="scrlock">
+				<inline> <scrlock enabled="no"/> </inline>
+				<sleep milliseconds="1000" />
+				<inline> <scrlock enabled="yes"/> </inline>
+				<sleep milliseconds="1000" />
+			</rom>
+		</config>
+		<route>
+			<service name="ROM">   <parent/>             </service>
+			<service name="CPU">   <parent/>             </service>
+			<service name="PD">    <parent/>             </service>
+			<service name="LOG">   <parent/>             </service>
+			<service name="Timer"> <child name="timer"/> </service>
+		</route>
+	</start>
+
+	<start name="test-input">
+		<resource name="RAM" quantum="1M"/>
+		<route>
+			<service name="ROM">   <parent/>                 </service>
+			<service name="CPU">   <parent/>                 </service>
+			<service name="PD">    <parent/>                 </service>
+			<service name="LOG">   <parent/>                 </service>
+			<service name="Timer"> <child name="timer"/>     </service>
+			<service name="Input"> <child name="input_drv"/> </service>
+		</route>
+	</start>}
+
+append config {
+</config>}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core ld.lib.so init
+	timer dynamic_rom
+	test-input
+	zircon.lib.so
+	zx_pc_ps2_drv
+}
+
+# platform-specific modules
+append_platform_drv_boot_modules
+
+build_boot_image $boot_modules
+
+
+run_genode_until forever

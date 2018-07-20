@@ -1,0 +1,14 @@
+
+Device drivers ported from the Zircon kernel
+
+zircon.lib.so
+#############
+
+The zircon.lib.so provides the interfacing between Genode and Zircon APIs.
+It is meant to be extended if required and is required by any Zircon driver.
+
+PS2
+###
+
+The zx_pc_ps2_drv can be used as a drop in replacement of the
+ps2_drv. Its RAM resources needs to be increased to at least 2M.

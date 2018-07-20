@@ -8,3 +8,8 @@
 #
 #REPOSITORIES += $(GENODE_DIR)/repos/dde_ipxe
 
+#
+# Drivers ported from Zircon
+#
+#REPOSITORIES += $(GENODE_DIR)/repos/dde_zircon
+
