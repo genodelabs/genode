@@ -1,0 +1,7 @@
+LICENSE := MIT
+VERSION := git
+DOWNLOADS := zircon.git
+
+URL(zircon) := https://github.com/fuchsia-mirror/zircon.git
+REV(zircon) := eaed741a38d648f6f2236d3dd171059d4b0c4c7a
+DIR(zircon) := zircon/src
