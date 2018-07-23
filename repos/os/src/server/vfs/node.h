@@ -270,7 +270,7 @@ class Vfs_server::Io_node : public  Vfs_server::Node,
 
 		bool notify_read_ready() const { return _notify_read_ready; }
 
-		void sync()
+		bool sync()
 		{
 			typedef Vfs::File_io_service::Sync_result Result;
 			Result out_result = Result::SYNC_OK;
@@ -288,7 +288,10 @@ class Vfs_server::Io_node : public  Vfs_server::Node,
 				switch (out_result) {
 				case Result::SYNC_OK:
 					op_state = Op_state::IDLE;
-					return;
+					return true;
+
+				case Result::SYNC_ERR_INVALID:
+					return false;
 
 				case Result::SYNC_QUEUED:
 					op_state = Op_state::SYNC_QUEUED;
@@ -299,6 +302,7 @@ class Vfs_server::Io_node : public  Vfs_server::Node,
 			case Op_state::READ_QUEUED:
 				throw Operation_incomplete();
 			}
+			return false;
 		}
 };
 

@@ -175,7 +175,7 @@ struct Vfs::File_io_service : Interface
 	 ** Sync **
 	 **********/
 
-	enum Sync_result { SYNC_QUEUED, SYNC_OK };
+	enum Sync_result { SYNC_QUEUED, SYNC_ERR_INVALID, SYNC_OK };
 
 	/**
 	 * Queue sync operation

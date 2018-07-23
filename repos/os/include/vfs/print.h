@@ -187,6 +187,7 @@ static inline void print(Genode::Output &output, Vfs::File_io_service::Sync_resu
 	switch (r) {
 	CASE_PRINT(SYNC_OK);
 	CASE_PRINT(SYNC_QUEUED);
+	CASE_PRINT(SYNC_ERR_INVALID);
 	}
 
 #undef CASE_PRINT

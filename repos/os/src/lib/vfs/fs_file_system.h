@@ -211,12 +211,15 @@ class Vfs::Fs_file_system : public File_system
 
 				::File_system::Session::Tx::Source &source = *_fs.tx();
 
+				Sync_result result = packet.succeeded()
+					? SYNC_OK : SYNC_ERR_INVALID;
+
 				queued_sync_state  = Handle_state::Queued_state::IDLE;
 				queued_sync_packet = ::File_system::Packet_descriptor();
 
 				source.release_packet(packet);
 
-				return SYNC_OK;
+				return result;
 			}
 		};
 

@@ -227,8 +227,7 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 				 */
 				try {
 					_apply(packet.handle(), [&] (Io_node &node) {
-						node.sync();
-						succeeded = true;
+						succeeded = node.sync();
 					});
 				} catch (Operation_incomplete) {
 					throw Not_ready();
