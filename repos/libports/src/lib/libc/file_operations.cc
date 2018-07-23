@@ -430,6 +430,10 @@ extern "C" void *mmap(void *addr, ::size_t length, int prot, int flags,
 	if (!addr && libc_fd == -1) {
 		bool const executable = prot & PROT_EXEC;
 		void *start = Libc::mem_alloc(executable)->alloc(length, PAGE_SHIFT);
+		if (!start) {
+			errno = ENOMEM;
+			return MAP_FAILED;
+		}
 		mmap_registry()->insert(start, length, 0);
 		return start;
 	}
@@ -439,7 +443,7 @@ extern "C" void *mmap(void *addr, ::size_t length, int prot, int flags,
 	if (!fd || !fd->plugin || !fd->plugin->supports_mmap()) {
 		Genode::warning("mmap not supported for file descriptor ", libc_fd);
 		errno = EBADF;
-		return (void *)INVALID_FD;
+		return MAP_FAILED;
 	}
 
 	void *start = fd->plugin->mmap(addr, length, prot, flags, fd, offset);
