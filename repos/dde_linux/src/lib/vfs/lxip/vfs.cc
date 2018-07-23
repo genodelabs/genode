@@ -195,6 +195,9 @@ struct Vfs::File : Vfs::Node
 		Genode::error(name(), " not readable");
 		return -1;
 	}
+
+	virtual File_io_service::Sync_result sync() {
+		return File_io_service::Sync_result::SYNC_OK; }
 };
 
 
@@ -256,6 +259,7 @@ struct Vfs::Lxip_vfs_handle : Vfs::Vfs_handle
 {
 	typedef File_io_service:: Read_result Read_result;
 	typedef File_io_service::Write_result Write_result;
+	typedef File_io_service::Sync_result Sync_result;
 
 	Lxip_vfs_handle(Vfs::File_system &fs, Allocator &alloc, int status_flags)
 	: Vfs::Vfs_handle(fs, fs, alloc, status_flags) { }
@@ -267,6 +271,8 @@ struct Vfs::Lxip_vfs_handle : Vfs::Vfs_handle
 	virtual Write_result write(char const *src,
 	                           file_size count, file_size &out_count) = 0;
 
+	virtual Sync_result sync() {
+		return Sync_result::SYNC_OK; }
 };
 
 
@@ -327,6 +333,9 @@ struct Vfs::Lxip_vfs_file_handle final : Vfs::Lxip_vfs_handle
 		content_buffer[len+1] = '\0';
 		return true;
 	}
+
+	virtual Sync_result sync() override {
+		return (file) ? file->sync() : Sync_result::SYNC_ERR_INVALID; }
 };
 
 
@@ -386,6 +395,8 @@ class Vfs::Lxip_file : public Vfs::File
 		Lxip::Socket_dir &_parent;
 		Linux::socket    &_sock;
 
+		int _write_err = 0;
+
 		bool _sock_valid() { return _sock.sk != nullptr; }
 
 	public:
@@ -408,6 +419,13 @@ class Vfs::Lxip_file : public Vfs::File
 				h->file = nullptr;
 				le = handles.first();
 			}
+		}
+
+		File_io_service::Sync_result sync() override
+		{
+			return (_write_err)
+				? File_io_service::Sync_result::SYNC_ERR_INVALID
+				: File_io_service::Sync_result::SYNC_OK;
 		}
 };
 
@@ -451,7 +469,8 @@ class Vfs::Lxip_data_file : public Vfs::Lxip_file
 			msghdr msg = create_msghdr(&_parent.remote_addr(),
 			                           sizeof(sockaddr_in), len, &iov);
 
-			return _sock.ops->sendmsg(&_sock, &msg, len);
+			_write_err = _sock.ops->sendmsg(&_sock, &msg, len);
+			return _write_err;
 		}
 
 		Lxip::ssize_t read(Lxip_vfs_file_handle &,
@@ -519,8 +538,8 @@ class Vfs::Lxip_bind_file : public Vfs::Lxip_file
 			addr->sin_addr.s_addr = get_addr(handle.content_buffer);
 			addr->sin_family      = AF_INET;
 
-			int res = _sock.ops->bind(&_sock, (sockaddr*)addr, sizeof(addr_storage));
-			if (res != 0) return -1;
+			_write_err = _sock.ops->bind(&_sock, (sockaddr*)addr, sizeof(addr_storage));
+			if (_write_err != 0) return -1;
 
 			_port = port;
 
@@ -572,15 +591,13 @@ class Vfs::Lxip_listen_file : public Vfs::Lxip_file
 
 			if (!handle.write_content_line(src, len)) return -1;
 
-			Lxip::ssize_t res;
-
 			Genode::ascii_to_unsigned(
 				handle.content_buffer, _backlog, sizeof(handle.content_buffer));
 
 			if (_backlog == ~0UL) return -1;
 
-			res = _sock.ops->listen(&_sock, _backlog);
-			if (res != 0) {
+			_write_err = _sock.ops->listen(&_sock, _backlog);
+			if (_write_err != 0) {
 				handle.write_content_line("", 0);
 				return -1;
 			}
@@ -637,9 +654,9 @@ class Vfs::Lxip_connect_file : public Vfs::Lxip_file
 			addr->sin_addr.s_addr = get_addr(handle.content_buffer);
 			addr->sin_family      = AF_INET;
 
-			int res = _sock.ops->connect(&_sock, (sockaddr *)addr, sizeof(addr_storage), 0);
+			_write_err = _sock.ops->connect(&_sock, (sockaddr *)addr, sizeof(addr_storage), 0);
 
-			switch (res) {
+			switch (_write_err) {
 			case Lxip::Io_result::LINUX_EINPROGRESS:
 				_connecting = true;
 				return -1;
@@ -658,7 +675,7 @@ class Vfs::Lxip_connect_file : public Vfs::Lxip_file
 				break;
 
 			default:
-				if (res != 0) return -1;
+				if (_write_err != 0) return -1;
 				break;
 			}
 
@@ -1882,6 +1899,13 @@ class Vfs::Lxip_file_system : public Vfs::File_system,
 			Lxip_vfs_handle &handle =
 				*static_cast<Lxip_vfs_handle *>(vfs_handle);
 			return handle.read_ready();
+		}
+
+		Sync_result complete_sync(Vfs_handle *vfs_handle)
+		{
+			Vfs::Lxip_vfs_handle *handle =
+				static_cast<Vfs::Lxip_vfs_handle*>(vfs_handle);
+			return handle->sync();
 		}
 };
 
