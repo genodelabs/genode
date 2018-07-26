@@ -59,7 +59,7 @@ void http_server_serve(int conn)
 	/* Read the data from the port, blocking if nothing yet there.
 	   We assume the request (the part we care about) is in one packet */
 	buflen = recv(conn, buf, 1024, 0);
-	Genode::log("Packet received!");
+	puts("Packet received!");
 
 	/* Ignore all receive errors */
 	if (buflen > 0) {
@@ -73,7 +73,7 @@ void http_server_serve(int conn)
 			buf[3] == ' ' &&
 			buf[4] == '/' ) {
 
-			Genode::log("Will send response");
+			puts("Will send response");
 
 			/* Send http header */
 			send(conn, http_html_hdr, Genode::strlen(http_html_hdr), 0);
@@ -90,36 +90,36 @@ static void test(Libc::Env &env)
 	Attached_rom_dataspace config(env, "config");
 	uint16_t const port = config.xml().attribute_value("port", (uint16_t)80);
 
-	Genode::log("Create new socket ...");
+	puts("Create new socket ...");
 	int s;
 	if((s = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 		error("no socket available!");
 		env.parent().exit(-1);
 	}
 
-	Genode::log("Now, I will bind ...");
+	puts("Now, I will bind ...");
 	struct sockaddr_in in_addr;
 	in_addr.sin_family = AF_INET;
 	in_addr.sin_port = htons(port);
 	in_addr.sin_addr.s_addr = INADDR_ANY;
 	if (bind(s, (struct sockaddr*)&in_addr, sizeof(in_addr))) {
-		Genode::error("bind failed!");
+		fprintf(stderr, "bind failed!\n");
 		env.parent().exit(-1);
 	}
 
-	Genode::log("Now, I will listen ...");
+	puts("Now, I will listen ...");
 	if (listen(s, 5)) {
-		Genode::error("listen failed!");
+		fprintf(stderr, "listen failed!\n");
 		env.parent().exit(-1);
 	}
 
-	Genode::log("Start the server loop ...");
+	puts("Start the server loop ...");
 	while (true) {
 		struct sockaddr addr;
 		socklen_t len = sizeof(addr);
 		int client = accept(s, &addr, &len);
 		if(client < 0) {
-			Genode::warning("invalid socket from accept!");
+			fprintf(stderr, "invalid socket from accept!\n");
 			continue;
 		}
 		http_server_serve(client);
