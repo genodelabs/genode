@@ -1,8 +1,0 @@
-TARGET   = test-ping_server_libc_lwip
-LIBS     = posix libc_lwip_nic_dhcp libc_lwip lwip_legacy
-SRC_CC   = main.cc pingpong.cc
-
-vpath main.cc     $(PRG_DIR)/..
-vpath pingpong.cc $(PRG_DIR)/../..
-
-CC_CXX_WARN_STRICT =
