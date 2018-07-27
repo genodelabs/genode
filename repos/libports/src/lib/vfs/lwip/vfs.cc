@@ -215,6 +215,8 @@ struct Lwip::Lwip_file_handle final : Lwip_handle, private Lwip_handle_list::Ele
 		PENDING  = 1 << 9,
 	};
 
+	enum { DATA_READY = DATA | PEEK };
+
 	/*
 	  * Noncopyable
 	 */
@@ -411,7 +413,7 @@ void Lwip::Lwip_file_handle::print(Genode::Output &output) const
 {
 	output.out_string(socket->name().string());
 	switch (kind) {
-	
+
 	case Lwip_file_handle::ACCEPT:   output.out_string("/accept"); break;
 	case Lwip_file_handle::BIND:     output.out_string("/bind"); break;
 	case Lwip_file_handle::CONNECT:  output.out_string("/connect"); break;
@@ -656,7 +658,7 @@ class Lwip::Udp_socket_dir final :
 	private Udp_socket_dir_list::Element
 {
 	private:
-	
+
 		/*
 		  * Noncopyable
 		 */
@@ -767,7 +769,7 @@ class Lwip::Udp_socket_dir final :
 				pbuf_free(buf);
 			}
 
-			handle_io(Lwip_file_handle::REMOTE|Lwip_file_handle::DATA);
+			handle_io(Lwip_file_handle::REMOTE|Lwip_file_handle::DATA_READY);
 		}
 
 
@@ -1099,7 +1101,7 @@ class Lwip::Tcp_socket_dir final :
 			_pcb = NULL;
 
 			/* churn the application */
-			handle_io(Lwip_file_handle::REMOTE|Lwip_file_handle::DATA);
+			handle_io(Lwip_file_handle::REMOTE|Lwip_file_handle::DATA_READY);
 		}
 
 		/**
@@ -1454,8 +1456,9 @@ err_t tcp_connect_callback(void *arg, struct tcp_pcb *pcb, err_t)
 	Lwip::Tcp_socket_dir *socket_dir = static_cast<Lwip::Tcp_socket_dir *>(arg);
 	socket_dir->state = Lwip::Tcp_socket_dir::READY;
 
-	socket_dir->handle_io(Lwip_file_handle::CONNECT |
-	                      Lwip_file_handle::DATA);
+	socket_dir->handle_io(
+		Lwip_file_handle::CONNECT |
+		Lwip_file_handle::DATA_READY);
 	return ERR_OK;
 }
 
@@ -1485,7 +1488,7 @@ err_t tcp_recv_callback(void *arg, struct tcp_pcb*, struct pbuf *p, err_t)
 	} else {
 		socket_dir->recv(p);
 	}
-	socket_dir->handle_io(Lwip_file_handle::DATA);
+	socket_dir->handle_io(Lwip_file_handle::DATA_READY);
 	return ERR_OK;
 }
 
