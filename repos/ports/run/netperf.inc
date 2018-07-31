@@ -244,14 +244,14 @@ append_if $use_wifi_driver config {
 		<provides> <service name="File_system"/> </provides>
 		<config>
 			<policy label_prefix="config_rom" root="/"/>
-			<policy label="wifi_drv -> config" root="/" writeable="yes"/>
 			<content>
-				<inline name="wlan_configuration">}
+				<inline name="wifi_config">
+<wifi_config connected_scan_interval="30" scan_interval="10" rfkill="no" verbose="no">}
 append_if $use_wifi_driver config "
-<selected_network ssid=\"$wifi_ssid\" protection=\"WPA-PSK\" psk=\"$wifi_psk\"/>"
+		<accesspoint enabled=\"true\" ssid=\"$wifi_ssid\" protection=\"WPA2\" passphrase=\"$wifi_psk\"/>"
 append_if $use_wifi_driver config {
+</wifi_config>
 				</inline>
-				<inline name="wpa_supplicant.conf"></inline>
 			</content>
 		</config>
 	</start>
@@ -264,25 +264,24 @@ append_if $use_wifi_driver config {
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
-	<start name="wifi_drv" caps="250">
-		<resource name="RAM" quantum="32M"/>
+	<start name="wifi_drv" caps="200">
+		<resource name="RAM" quantum="24M"/>
 		<provides> <service name="Nic"/> </provides>
-		<config use_11n="no">
-			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
+		<config>
+			<libc stdout="/dev/null" stderr="/dev/log" rtc="/dev/rtc"/>
 			<vfs>
 				<dir name="dev">
-					<log/>
+					<log/> <null/>
 					<jitterentropy name="random"/>
 					<jitterentropy name="urandom"/>
 					<inline name="rtc">2018-01-01 00:01</inline>
 				</dir>
-				<dir name="config"> <fs label="config"/> </dir>
 			</vfs>
 		</config>
 		<route>
 			<service name="Rtc"> <any-child/> </service>
 			<service name="File_system"> <child name="config_fs"/> </service>
-			<service name="ROM" label="wlan_configuration"> <child name="config_rom" /> </service>
+			<service name="ROM" label="wifi_config"> <child name="config_rom" /> </service>
 			<service name="Report"> <child name="report_rom"/> </service>
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
@@ -363,10 +362,12 @@ append_if $use_wifi_driver boot_modules {
 	iwlwifi-6000-4.ucode
 	iwlwifi-6000g2a-6.ucode
 	iwlwifi-6000g2b-6.ucode
-	iwlwifi-7260-16.ucode
-	iwlwifi-7265-16.ucode
-	iwlwifi-7265D-16.ucode
-	iwlwifi-8000C-16.ucode
+	iwlwifi-7260-17.ucode
+	iwlwifi-7265-17.ucode
+	iwlwifi-7265D-29.ucode
+	iwlwifi-8000C-36.ucode
+	iwlwifi-8265-36.ucode
+	regulatory.db
 }
 
 append_platform_drv_boot_modules
