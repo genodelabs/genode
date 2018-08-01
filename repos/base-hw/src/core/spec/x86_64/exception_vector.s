@@ -111,12 +111,22 @@
 	pushq %r9
 	pushq %r8
 
+	/**
+	 * Calculate offset into Kernel_stack member of Cpu::Context as defined
+	 * in cpu.h - struct Context : Cpu_state, Kernel_stack, Fpu_context
+	 */
+	.set REGISTER_COUNT, 22
+	.set REGISTER_SIZE, 8
+	.set SIZEOF_CPU_STATE, REGISTER_COUNT * REGISTER_SIZE /* sizeof (Cpu_state) */
+	.set KERNEL_STACK_OFFSET, SIZEOF_CPU_STATE
+	/* rsp contains pointer to Cpu::Context */
+
 	/* Restore kernel stack and continue kernel execution */
-	_load_address kernel_stack rax
-	_load_address kernel_stack_size rbx
+	movq %rsp, %rax
+	addq $KERNEL_STACK_OFFSET, %rax
+	movq (%rax), %rsp
+
 	_load_address kernel rcx
-	add (%rbx), %rax
-	mov %rax, %rsp
 	jmp *%rcx
 
 
@@ -159,5 +169,7 @@
 
 	.global idle_thread_main
 	idle_thread_main:
-	pause
+	sti
+	hlt
+	cli
 	jmp idle_thread_main

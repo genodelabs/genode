@@ -4,15 +4,18 @@
  * \author  Martin Stein
  * \author  Reto Buerki
  * \author  Stefan Kalkowski
+ * \author  Alexander Boettcher
  * \date    2015-02-06
  */
 
 /*
- * Copyright (C) 2011-2017 Genode Labs GmbH
+ * Copyright (C) 2011-2018 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
  */
+
+.set STACK_SIZE, 4096
 
 .section ".text.crt0"
 
@@ -34,9 +37,55 @@
 	.long   0x8
 	__mbi2_end:
 
-	/**********************************
-	 ** Startup code for primary CPU **
-	 **********************************/
+
+.macro SETUP_PAGING
+	/* Enable PAE (prerequisite for IA-32e mode) */
+	movl $0x20, %eax
+	movl %eax, %cr4
+
+	/* Enable IA-32e mode and execute-disable */
+	movl $0xc0000080, %ecx
+	rdmsr
+	btsl $8, %eax
+	btsl $11, %eax
+	wrmsr
+
+	/* Enable paging, write protection and caching */
+	xorl %eax, %eax
+	btsl  $0, %eax /* protected mode */
+	btsl $16, %eax /* write protect */
+	btsl $31, %eax /* paging */
+	movl %eax, %cr0
+.endm
+
+
+	/*******************************************************************
+	 ** Startup code for non-primary CPU (AP - application processor) **
+	 *******************************************************************/
+
+.code16
+	.global _ap
+	_ap:
+
+	/* Load initial pagetables */
+	mov $_kernel_pml4, %eax
+	mov %eax, %cr3
+
+	/* setup paging */
+	SETUP_PAGING
+
+	/* setup GDT */
+	lgdtl %cs:__gdt - _ap
+	ljmpl $8, $_start64
+
+__gdt:
+	.word  55
+	.long  __gdt_start
+
+
+	/**************************************************************
+	 ** Startup code for primary CPU (bootstrap processor - BSP) **
+	 **************************************************************/
 
 .code32
 	.global _start
@@ -55,40 +104,30 @@
 	xor %eax, %eax
 	rep stosl
 
-	/* Enable PAE (prerequisite for IA-32e mode) */
-	movl %cr4, %eax
-	btsl $5, %eax
-	movl %eax, %cr4
-
 	/* Load initial pagetables */
 	leal _kernel_pml4, %eax
 	mov %eax, %cr3
 
-	/* Enable IA-32e mode and execute-disable */
-	movl $0xc0000080, %ecx
-	rdmsr
-	btsl $8, %eax
-	btsl $11, %eax
-	wrmsr
+	/* setup paging */
+	SETUP_PAGING
 
-	/* Enable paging, write protection and caching */
-	movl %cr0, %eax
-	btsl $16, %eax
-	btrl $29, %eax
-	btrl $30, %eax
-	btsl $31, %eax
-	movl %eax, %cr0
-
-	/* Set up GDT */
-	movl $__gdt_ptr+2, %eax
-	movl $__gdt_start, (%eax)
+	/* setup GDT */
 	lgdt __gdt_ptr
 
 	/* Indirect long jump to 64-bit code */
-	ljmp $8, $_start64
+	ljmp $8, $_start64_bsp
 
 
 .code64
+	_start64_bsp:
+
+	/* save rax & rbx, used to lookup multiboot structures */
+	movq __initial_ax@GOTPCREL(%rip),%rax
+	movq %rsi, (%rax)
+
+	movq __initial_bx@GOTPCREL(%rip),%rax
+	movq %rbx, (%rax)
+
 	_start64:
 
 	/*
@@ -99,25 +138,37 @@
 	mov %eax, %fs
 	mov %eax, %gs
 
-	/*
-	 * Install initial temporary environment that is replaced later by the
-	 * environment that init_main_thread creates.
-	 */
-	leaq _stack_high@GOTPCREL(%rip),%rax
+	/* increment CPU counter atomically */
+	movq __cpus_booted@GOTPCREL(%rip),%rax
+	movq $1, %rcx
+	lock xaddq %rcx, (%rax)
+
+	/* if more CPUs started than supported, then stop them */
+	cmp $NR_OF_CPUS, %rcx
+	jge 1f
+
+	/* calculate stack depending on CPU counter */
+	movq $STACK_SIZE, %rax
+	inc  %rcx
+	mulq %rcx
+	movq %rax, %rcx
+	subq $8, %rcx
+	leaq __bootstrap_stack@GOTPCREL(%rip),%rax
 	movq (%rax), %rsp
-
-	movq __initial_ax@GOTPCREL(%rip),%rax
-	movq %rsi, (%rax)
-
-	movq __initial_bx@GOTPCREL(%rip),%rax
-	movq %rbx, (%rax)
+	addq %rcx, %rsp
 
 	/* kernel-initialization */
 	call init
 
 	/* catch erroneous return of the kernel initialization */
-	1: jmp 1b
+	1:
+	hlt
+	jmp 1b
 
+
+	.global bootstrap_stack_size
+	bootstrap_stack_size:
+	.quad STACK_SIZE
 
 	/******************************************
 	 ** Global Descriptor Table (GDT)        **
@@ -128,7 +179,7 @@
 	.space 2
 	__gdt_ptr:
 	.word 55 /* limit        */
-	.long 0  /* base address */
+	.long __gdt_start  /* base address */
 
 	.set TSS_LIMIT, 0x68
 	.set TSS_TYPE, 0x8900
@@ -171,12 +222,19 @@
 .bss
 
 	/* stack of the temporary initial environment */
-	.p2align 8
-	.space 32 * 1024
-	_stack_high:
+	.p2align 12
+	.globl __bootstrap_stack
+	__bootstrap_stack:
+	.rept NR_OF_CPUS
+		.space STACK_SIZE
+	.endr
+
 	.globl __initial_ax
 	__initial_ax:
 	.space 8
 	.globl __initial_bx
 	__initial_bx:
 	.space 8
+	.globl __cpus_booted
+	__cpus_booted:
+	.quad 0

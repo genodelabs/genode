@@ -2,11 +2,12 @@
  * \brief   Platform implementations specific for x86_64
  * \author  Reto Buerki
  * \author  Stefan Kalkowski
+ * \author  Alexander Boettcher
  * \date    2015-05-04
  */
 
 /*
- * Copyright (C) 2015-2017 Genode Labs GmbH
+ * Copyright (C) 2015-2018 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -26,6 +27,39 @@ using namespace Genode;
 extern "C" Genode::addr_t __initial_ax;
 /* contains physical pointer to multiboot */
 extern "C" Genode::addr_t __initial_bx;
+
+/* pointer to stack base */
+extern "C" Genode::addr_t __bootstrap_stack;
+
+/* number of booted CPUs */
+extern "C" Genode::addr_t __cpus_booted;
+
+/* stack size per CPU */
+extern "C" Genode::addr_t const bootstrap_stack_size;
+
+
+/* hardcoded physical page or AP CPUs boot code */
+enum { AP_BOOT_CODE_PAGE = 0x1000 };
+
+extern "C" void * _start;
+extern "C" void * _ap;
+
+static Hw::Acpi_rsdp search_rsdp(addr_t area, addr_t area_size)
+{
+	if (area && area_size && area < area + area_size) {
+		for (addr_t addr = 0; addr + sizeof(Hw::Acpi_rsdp) <= area_size;
+		     addr += sizeof(Hw::Acpi_rsdp::signature))
+		{
+			Hw::Acpi_rsdp * rsdp = reinterpret_cast<Hw::Acpi_rsdp *>(area + addr);
+			if (rsdp->valid())
+				return *rsdp;
+		}
+	}
+
+	Hw::Acpi_rsdp invalid;
+	return invalid;
+}
+
 
 Bootstrap::Platform::Board::Board()
 : core_mmio(Memory_region { 0, 0x1000 },
@@ -97,67 +131,178 @@ Bootstrap::Platform::Board::Board()
 
 			lambda(base, size);
 		}
+
+		/* search ACPI RSDP pointer at known places */
+
+		/* BIOS range to scan for */
+		enum { BIOS_BASE = 0xe0000, BIOS_SIZE = 0x20000 };
+		acpi_rsdp = search_rsdp(BIOS_BASE, BIOS_SIZE);
+
+		if (!acpi_rsdp.valid()) {
+			/* page 0 is remapped to 2M - 4k - see crt_translation table */
+			addr_t const bios_addr = 2 * 1024 * 1024 - 4096;
+
+			/* search EBDA (BIOS addr + 0x40e) */
+			addr_t ebda_phys = (*reinterpret_cast<uint16_t *>(bios_addr + 0x40e)) << 4;
+			if (ebda_phys < 0x1000)
+				ebda_phys = bios_addr;
+
+			acpi_rsdp = search_rsdp(ebda_phys, 0x1000 /* EBDA size */);
+		}
 	} else {
 		error("invalid multiboot magic value: ", Hex(__initial_ax));
 	}
 
-	if (!acpi_rsdp.valid())
-		return;
-
-	uint64_t const table_addr = acpi_rsdp.xsdt ? acpi_rsdp.xsdt : acpi_rsdp.rsdt;
-
-	if (!table_addr)
-		return;
-
-	/* find out the number of available CPUs */
+	/* remember max supported CPUs and use ACPI to get the actual number */
 	unsigned const max_cpus = cpus;
 	cpus = 0;
 
-	Hw::Acpi_generic * table = reinterpret_cast<Hw::Acpi_generic *>(table_addr);
-	if (!memcmp(table->signature, "RSDT", 4)) {
-		Hw::for_each_rsdt_entry(*table, [&](uint32_t paddr_table) {
-			addr_t const table_virt_addr = paddr_table;
-			Hw::Acpi_generic * table = reinterpret_cast<Hw::Acpi_generic *>(table_virt_addr);
+	/* scan ACPI tables to find out number of CPUs in this machine */
+	if (acpi_rsdp.valid()) {
+		uint64_t const table_addr = acpi_rsdp.xsdt ? acpi_rsdp.xsdt : acpi_rsdp.rsdt;
 
-			if (memcmp(table->signature, "APIC", 4))
-				return;
+		if (table_addr) {
+			Hw::Acpi_generic * table = reinterpret_cast<Hw::Acpi_generic *>(table_addr);
+			if (!memcmp(table->signature, "RSDT", 4)) {
+				Hw::for_each_rsdt_entry(*table, [&](uint32_t paddr_table) {
+					addr_t const table_virt_addr = paddr_table;
+					Hw::Acpi_generic * table = reinterpret_cast<Hw::Acpi_generic *>(table_virt_addr);
 
-			Hw::for_each_apic_struct(*table,[&](Hw::Apic_madt const *e){
-				if (e->type == Hw::Apic_madt::LAPIC) {
-					Hw::Apic_madt::Lapic lapic(e);
-					cpus ++;
-				}
-			});
-		});
-	} else if (!memcmp(table->signature, "XSDT", 4)) {
-		Hw::for_each_xsdt_entry(*table, [&](uint64_t paddr_table) {
-			addr_t const table_virt_addr = paddr_table;
-			Hw::Acpi_generic * table = reinterpret_cast<Hw::Acpi_generic *>(table_virt_addr);
+					if (memcmp(table->signature, "APIC", 4))
+						return;
 
-			if (memcmp(table->signature, "APIC", 4))
-				return;
+					Hw::for_each_apic_struct(*table,[&](Hw::Apic_madt const *e){
+						if (e->type == Hw::Apic_madt::LAPIC) {
+							Hw::Apic_madt::Lapic lapic(e);
+							cpus ++;
+						}
+					});
+				});
+			} else if (!memcmp(table->signature, "XSDT", 4)) {
+				Hw::for_each_xsdt_entry(*table, [&](uint64_t paddr_table) {
+					addr_t const table_virt_addr = paddr_table;
+					Hw::Acpi_generic * table = reinterpret_cast<Hw::Acpi_generic *>(table_virt_addr);
 
-			Hw::for_each_apic_struct(*table,[&](Hw::Apic_madt const *e){
-				if (e->type == Hw::Apic_madt::LAPIC) {
-					Hw::Apic_madt::Lapic lapic(e);
-					cpus ++;
-				}
-			});
-		});
-	} else
-		Genode::error("unknown table signature");
+					if (memcmp(table->signature, "APIC", 4))
+						return;
+
+					Hw::for_each_apic_struct(*table,[&](Hw::Apic_madt const *e){
+						if (e->type == Hw::Apic_madt::LAPIC) {
+							Hw::Apic_madt::Lapic lapic(e);
+							cpus ++;
+						}
+					});
+				});
+			}
+		}
+	}
 
 	if (!cpus || cpus > max_cpus) {
-		Genode::warning("CPU count is unsupported ", cpus, "/", max_cpus);
-		cpus = max_cpus;
+		Genode::warning("CPU count is unsupported ", cpus, "/", max_cpus,
+		                acpi_rsdp.valid() ? " - invalid or missing RSDT/XSDT"
+		                                  : " - invalid RSDP");
+		cpus = !cpus ? 1 : max_cpus;
 	}
+
+	if (cpus > 1) {
+		/* copy 16 bit boot code for AP CPUs */
+		addr_t ap_code_size = (addr_t)&_start - (addr_t)&_ap;
+		memcpy((void *)AP_BOOT_CODE_PAGE, &_ap, ap_code_size);
+	}
+
 }
 
+struct Lapic : Mmio
+{
+	struct Svr : Register<0x0f0, 32>
+	{
+		struct APIC_enable : Bitfield<8, 1> { };
+	};
+	struct Icr_low  : Register<0x300, 32> {
+		struct Vector          : Bitfield< 0, 8> { };
+		struct Delivery_mode   : Bitfield< 8, 3> {
+			enum Mode { INIT = 5, SIPI = 6 };
+		};
+		struct Delivery_status : Bitfield<12, 1> { };
+		struct Level_assert    : Bitfield<14, 1> { };
+		struct Dest_shorthand  : Bitfield<18, 2> {
+			enum { ALL_OTHERS = 3 };
+		};
+	};
+	struct Icr_high : Register<0x310, 32> {
+		struct Destination : Bitfield<24, 8> { };
+	};
+
+	Lapic(addr_t const addr) : Mmio(addr) { }
+};
+
+static inline Genode::uint64_t rdtsc()
+{
+	Genode::uint32_t lo, hi;
+	asm volatile("rdtsc" : "=a" (lo), "=d" (hi));
+	return (Genode::uint64_t)hi << 32 | lo;
+}
+
+static inline void ipi_to_all(Lapic &lapic, unsigned const boot_frame,
+                              Lapic::Icr_low::Delivery_mode::Mode const mode)
+{
+	/* wait until ready */
+	while (lapic.read<Lapic::Icr_low::Delivery_status>())
+		asm volatile ("pause":::"memory");
+
+	unsigned const apic_cpu_id = 0; /* unused for IPI to all */
+
+	Lapic::Icr_low::access_t icr_low = 0;
+
+	Lapic::Icr_low::Vector::set(icr_low, boot_frame);
+	Lapic::Icr_low::Delivery_mode::set(icr_low, mode);
+	Lapic::Icr_low::Level_assert::set(icr_low);
+	Lapic::Icr_low::Level_assert::set(icr_low);
+	Lapic::Icr_low::Dest_shorthand::set(icr_low, Lapic::Icr_low::Dest_shorthand::ALL_OTHERS);
+
+	/* program */
+	lapic.write<Lapic::Icr_high::Destination>(apic_cpu_id);
+	lapic.write<Lapic::Icr_low>(icr_low);
+}
 
 unsigned Bootstrap::Platform::enable_mmu()
 {
 	Cpu::Cr3::write(Cpu::Cr3::Pdb::masked((addr_t)core_pd->table_base));
-	return 0;
+
+	addr_t const stack_base = reinterpret_cast<addr_t>(&__bootstrap_stack);
+	addr_t const this_stack = reinterpret_cast<addr_t>(&stack_base);
+	addr_t const cpu_id     = (this_stack - stack_base) / bootstrap_stack_size;
+
+	/* we like to use local APIC */
+	Cpu::IA32_apic_base::access_t lapic_msr = Cpu::IA32_apic_base::read();
+	Cpu::IA32_apic_base::Lapic::set(lapic_msr);
+	Cpu::IA32_apic_base::write(lapic_msr);
+
+	/* skip the SMP when ACPI parsing did not reveal the number of CPUs */
+	if (board.cpus <= 1)
+		return cpu_id;
+
+	Lapic lapic(board.core_mmio.virt_addr(Hw::Cpu_memory_map::lapic_phys_base()));
+
+	/* enable local APIC if required */
+	if (!lapic.read<Lapic::Svr::APIC_enable>())
+		lapic.write<Lapic::Svr::APIC_enable>(true);
+
+	if (!Cpu::IA32_apic_base::Bsp::get(lapic_msr))
+		/* AP - done */
+		return cpu_id;
+
+	/* BSP - we're primary CPU - wake now all other CPUs */
+
+	/* see Intel Multiprocessor documentation - we need to do INIT-SIPI-SIPI */
+	ipi_to_all(lapic, 0 /* unused */, Lapic::Icr_low::Delivery_mode::INIT);
+	/* wait 10  ms - debates ongoing whether this is still required */
+	ipi_to_all(lapic, AP_BOOT_CODE_PAGE >> 12, Lapic::Icr_low::Delivery_mode::SIPI);
+	/* wait 200 us - debates ongoing whether this is still required */
+	/* debates ongoing whether the second SIPI is still required */
+	ipi_to_all(lapic, AP_BOOT_CODE_PAGE >> 12, Lapic::Icr_low::Delivery_mode::SIPI);
+
+	return cpu_id;
 }
 
 

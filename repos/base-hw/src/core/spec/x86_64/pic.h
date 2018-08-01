@@ -1,11 +1,12 @@
 /*
  * \brief  Programmable interrupt controller for core
  * \author Reto Buerki
+ * \author Alexander Boettcher
  * \date   2015-02-17
  */
 
 /*
- * Copyright (C) 2015-2017 Genode Labs GmbH
+ * Copyright (C) 2015-2018 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -142,6 +143,7 @@ class Genode::Pic : public Mmio
 		 * Registers
 		 */
 
+		struct Id  : Register<0x020, 32> { };
 		struct EOI : Register<0x0b0, 32, true> { };
 		struct Svr : Register<0x0f0, 32>
 		{
@@ -155,6 +157,18 @@ class Genode::Pic : public Mmio
 		 */
 		struct Isr : Register_array<0x100, 32, 8 * 4, 32> { };
 
+		/*
+		 * Interrupt control register
+		 */
+		struct Icr_low  : Register<0x300, 32, true> {
+			struct Vector          : Bitfield< 0, 8> { };
+			struct Delivery_status : Bitfield<12, 1> { };
+			struct Level_assert    : Bitfield<14, 1> { };
+		};
+		struct Icr_high : Register<0x310, 32, true> {
+			struct Destination : Bitfield<24, 8> { };
+		};
+
 		/**
 		 * Determine lowest pending interrupt in ISR register
 		 *
@@ -162,6 +176,11 @@ class Genode::Pic : public Mmio
 		 *         bit is set.
 		 */
 		inline unsigned get_lowest_bit(void);
+
+		/**
+		 * Mapping of our logical boot CPUs to the local APIC IDs
+		 */
+		static uint8_t lapic_ids[NR_OF_CPUS];
 
 	public:
 
@@ -190,12 +209,12 @@ class Genode::Pic : public Mmio
 
 		void mask(unsigned const i);
 
-		/*
-		 * Dummies
-		 */
+		void store_apic_id(unsigned const cpu_id) {
+			Id::access_t const lapic_id = read<Id>();
+			lapic_ids[cpu_id] = (lapic_id >> 24) & 0xff;
+		}
 
-		bool is_ip_interrupt(unsigned, unsigned) { return false; }
-		void trigger_ip_interrupt(unsigned) { }
+		void send_ipi(unsigned const);
 };
 
 namespace Kernel { using Genode::Pic; }

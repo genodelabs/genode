@@ -11,6 +11,7 @@ if {
 	![expr [have_spec zynq] && ![have_spec zynq_qemu] ] &&
 	![expr [have_spec x86_32] && [have_spec foc] ] &&
 	![expr [have_spec x86_64] && [have_spec foc] ] &&
+	![expr [have_spec x86_64] && [have_spec hw] ] &&
 	![have_spec nova] &&
 	![have_spec sel4]
 } {

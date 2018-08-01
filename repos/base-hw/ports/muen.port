@@ -6,6 +6,8 @@ URL(muen) := https://git.codelabs.ch/git/muen.git
 REV(muen) := 807cb0381e12329d84cb7e6b2f778b1e1559a2e8
 DIR(muen) := src/kernel/muen
 
+PATCHES := ports/muen.patch
+
 $(call check_tool,git)
 $(call check_tool,iasl)
 $(call check_tool,tidy)

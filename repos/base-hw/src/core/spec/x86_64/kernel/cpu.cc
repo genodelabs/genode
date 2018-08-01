@@ -30,6 +30,7 @@ void Kernel::Cpu::init(Pic &pic)
 
 	/* enable timer interrupt */
 	unsigned const cpu = Cpu::executing_id();
+	pic.store_apic_id(cpu);
 	pic.unmask(_timer.interrupt_id(), cpu);
 }
 

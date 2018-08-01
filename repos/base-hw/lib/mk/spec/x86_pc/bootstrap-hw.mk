@@ -6,4 +6,6 @@ SRC_S   += bootstrap/spec/x86_64/crt0_translation_table.s
 
 SRC_CC  += hw/spec/64bit/memory_map.cc
 
+NR_OF_CPUS = 32
+
 include $(BASE_DIR)/../base-hw/lib/mk/bootstrap-hw.inc

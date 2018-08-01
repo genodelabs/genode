@@ -20,7 +20,6 @@ SRC_CC += spec/x86_64/kernel/thread_exception.cc
 SRC_CC += spec/x86_64/platform_support.cc
 SRC_CC += spec/x86/platform_services.cc
 
-SRC_CC += kernel/kernel.cc
 SRC_CC += spec/x86/io_port_session_component.cc
 SRC_CC += spec/x86/io_port_session_support.cc
 SRC_CC += spec/x86_64/bios_data_area.cc
@@ -30,10 +29,14 @@ SRC_CC += spec/x86_64/kernel/cpu.cc
 SRC_CC += spec/x86_64/kernel/thread.cc
 SRC_CC += spec/x86_64/kernel/thread.cc
 SRC_CC += spec/x86_64/platform_support_common.cc
+SRC_CC += spec/x86_64/smp/cpu.cc
 
 SRC_CC += spec/64bit/memory_map.cc
 
 vpath spec/64bit/memory_map.cc $(BASE_DIR)/../base-hw/src/lib/hw
 
+NR_OF_CPUS = 32
+
 # include less specific configuration
 include $(BASE_DIR)/../base-hw/lib/mk/core-hw.inc
+include $(BASE_DIR)/../base-hw/lib/mk/spec/smp/core-hw.inc

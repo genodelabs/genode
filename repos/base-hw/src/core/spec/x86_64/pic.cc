@@ -2,11 +2,12 @@
  * \brief  Programmable interrupt controller for core
  * \author Adrian-Ken Rueegsegger
  * \author Reto Buerki
+ * \author Alexander Boettcher
  * \date   2015-02-17
  */
 
 /*
- * Copyright (C) 2015-2017 Genode Labs GmbH
+ * Copyright (C) 2015-2018 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -22,6 +23,8 @@
 #include <platform.h>
 
 using namespace Genode;
+
+uint8_t Pic::lapic_ids[NR_OF_CPUS];
 
 enum {
 	PIC_CMD_MASTER  = 0x20,
@@ -97,6 +100,25 @@ inline unsigned Pic::get_lowest_bit(void)
 		vec_base += 32;
 	}
 	return 0;
+}
+
+void Pic::send_ipi(unsigned const cpu_id) {
+
+	while (read<Icr_low::Delivery_status>())
+		asm volatile("pause" : : : "memory");
+
+	Icr_high::access_t icr_high = 0;
+	Icr_low::access_t  icr_low  = 0;
+
+	Icr_high::Destination::set(icr_high, lapic_ids[cpu_id]);
+
+	Icr_low::Vector::set(icr_low, Pic::IPI);
+	Icr_low::Level_assert::set(icr_low);
+
+	/* program */
+	write<Icr_high>(icr_high);
+	write<Icr_low>(icr_low);
+
 }
 
 Ioapic::Irq_mode Ioapic::_irq_mode[IRQ_COUNT];

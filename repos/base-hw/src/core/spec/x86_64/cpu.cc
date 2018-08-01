@@ -105,6 +105,10 @@ void Genode::Cpu::mmu_fault(Context & regs, Kernel::Thread_fault & fault)
 }
 
 
+extern void const * const kernel_stack;
+extern Genode::size_t const kernel_stack_size;
+
+
 void Genode::Cpu::switch_to(Context & context, Mmu_context &mmu_context)
 {
 	_fpu.switch_to(context);
@@ -113,4 +117,19 @@ void Genode::Cpu::switch_to(Context & context, Mmu_context &mmu_context)
 		Cr3::write(mmu_context.cr3);
 
 	tss.ist[0] = (addr_t)&context + sizeof(Genode::Cpu_state);
+
+	addr_t const stack_base = reinterpret_cast<addr_t>(&kernel_stack);
+	context.kernel_stack = stack_base +
+	                       (Cpu::executing_id() + 1) * kernel_stack_size -
+	                       sizeof(addr_t);
+}
+
+
+unsigned Genode::Cpu::executing_id()
+{
+	void * const stack_ptr  = nullptr;
+	addr_t const stack_addr = reinterpret_cast<addr_t>(&stack_ptr);
+	addr_t const stack_base = reinterpret_cast<addr_t>(&kernel_stack);
+	unsigned const cpu_id = (stack_addr - stack_base) / kernel_stack_size;
+	return cpu_id;
 }

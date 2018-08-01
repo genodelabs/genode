@@ -92,7 +92,10 @@ class Genode::Cpu : public Hw::X86_64_cpu
 		/**
 		 * Extend basic CPU state by members relevant for 'base-hw' only
 		 */
-		struct alignas(16) Context : Cpu_state, Fpu::Context
+		struct Kernel_stack { unsigned long kernel_stack { }; };
+
+		/* exception_vector.s depends on the position of the Kernel_stack */
+		struct alignas(16) Context : Cpu_state, Kernel_stack, Fpu::Context
 		{
 			enum Eflags {
 				EFLAGS_IF_SET = 1 << 9,
@@ -100,7 +103,7 @@ class Genode::Cpu : public Hw::X86_64_cpu
 			};
 
 			Context(bool privileged);
-		};
+		} __attribute__((packed));
 
 
 		struct Mmu_context
@@ -121,7 +124,7 @@ class Genode::Cpu : public Hw::X86_64_cpu
 		/**
 		 * Return kernel name of the executing CPU
 		 */
-		static unsigned executing_id() { return 0; }
+		static unsigned executing_id();
 
 		/**
 		 * Return kernel name of the primary CPU

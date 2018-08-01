@@ -34,14 +34,15 @@
 	/* PDP */
 	.p2align MIN_PAGE_SIZE_LOG2
 	_kernel_pdp:
-	.quad _kernel_pd + 0xf
-	.fill 2, 8, 0x0
-	.quad _kernel_pd_503 + 0xf
+	.quad _kernel_pd_0 + 0xf
+	.fill 1, 8, 0x0
+	.quad _kernel_pd_2 + 0xf
+	.quad _kernel_pd_3 + 0xf
 	.fill 508, 8, 0x0
 
-	/* PD */
+	/* PD [0G-1G) */
 	.p2align MIN_PAGE_SIZE_LOG2
-	_kernel_pd:
+	_kernel_pd_0:
 	.quad _kernel_pt_bda + 0xf
 	.set entry, 0x20018f
 	.rept 511
@@ -49,9 +50,23 @@
 	.set entry, entry + 0x200000
 	.endr
 
+	/* PD [2G-3G) */
 	.p2align MIN_PAGE_SIZE_LOG2
-	_kernel_pd_503:
-	.fill 502, 8, 0x0
+	_kernel_pd_2:
+	.set entry, 0x8000018f
+	.rept 512
+	.quad entry
+	.set entry, entry + 0x200000
+	.endr
+
+	/* PD [3G-4G) */
+	.p2align MIN_PAGE_SIZE_LOG2
+	_kernel_pd_3:
+	.set entry, 0xc000018f
+	.rept 502
+	.quad entry
+	.set entry, entry + 0x200000
+	.endr
 	.quad 0xfec0019f
 	.quad 0xfee0019f
 	.fill 8, 8, 0x0
