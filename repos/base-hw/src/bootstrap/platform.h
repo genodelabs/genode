@@ -47,6 +47,7 @@ class Bootstrap::Platform
 			Mmio_space const    core_mmio;
 			Hw::Acpi_rsdp       acpi_rsdp         { };
 			Hw::Framebuffer     framebuffer       { };
+			unsigned            cpus              { NR_OF_CPUS };
 
 			Board();
 		};

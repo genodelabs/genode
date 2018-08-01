@@ -144,7 +144,7 @@ class Genode::Platform : public Genode::Platform_generic
 		bool supports_direct_unmap() const { return 1; }
 
 		Affinity::Space affinity_space() const {
-			return Affinity::Space(NR_OF_CPUS); }
+			return Affinity::Space(_boot_info().cpus); }
 
 		/*
 		 * The system-wide maximum number of capabilities is constrained

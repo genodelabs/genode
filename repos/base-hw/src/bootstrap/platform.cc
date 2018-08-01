@@ -198,7 +198,7 @@ Platform::Platform()
 		                         (addr_t)&core_pd->array,
 		                         core_pd->mappings, boot_modules,
 		                         board.core_mmio, board.acpi_rsdp,
-		                         board.framebuffer);
+		                         board.framebuffer, board.cpus);
 
 	/* add all left RAM to bootinfo */
 	ram_alloc.for_each_free_region([&] (Memory_region const & r) {
