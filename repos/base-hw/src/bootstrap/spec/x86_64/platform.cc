@@ -18,6 +18,8 @@
 #include <multiboot.h>
 #include <multiboot2.h>
 
+#include <hw/spec/x86_64/acpi.h>
+
 using namespace Genode;
 
 /* contains Multiboot MAGIC value (either version 1 or 2) */
@@ -83,25 +85,71 @@ Bootstrap::Platform::Board::Board()
 		[&] (Hw::Framebuffer const &fb) {
 			framebuffer = fb;
 		});
+	} else if (__initial_ax == Multiboot_info::MAGIC) {
+		for (unsigned i = 0; true; i++) {
+			using Mmap = Multiboot_info::Mmap;
 
-		return;
-	}
+			Mmap v(Multiboot_info(__initial_bx).phys_ram_mmap_base(i));
+			if (!v.base()) break;
 
-	if (__initial_ax != Multiboot_info::MAGIC) {
+			Mmap::Addr::access_t   base = v.read<Mmap::Addr>();
+			Mmap::Length::access_t size = v.read<Mmap::Length>();
+
+			lambda(base, size);
+		}
+	} else {
 		error("invalid multiboot magic value: ", Hex(__initial_ax));
-		return;
 	}
 
-	for (unsigned i = 0; true; i++) {
-		using Mmap = Multiboot_info::Mmap;
+	if (!acpi_rsdp.valid())
+		return;
 
-		Mmap v(Multiboot_info(__initial_bx).phys_ram_mmap_base(i));
-		if (!v.base()) break;
+	uint64_t const table_addr = acpi_rsdp.xsdt ? acpi_rsdp.xsdt : acpi_rsdp.rsdt;
 
-		Mmap::Addr::access_t   base = v.read<Mmap::Addr>();
-		Mmap::Length::access_t size = v.read<Mmap::Length>();
+	if (!table_addr)
+		return;
 
-		lambda(base, size);
+	/* find out the number of available CPUs */
+	unsigned const max_cpus = cpus;
+	cpus = 0;
+
+	Hw::Acpi_generic * table = reinterpret_cast<Hw::Acpi_generic *>(table_addr);
+	if (!memcmp(table->signature, "RSDT", 4)) {
+		Hw::for_each_rsdt_entry(*table, [&](uint32_t paddr_table) {
+			addr_t const table_virt_addr = paddr_table;
+			Hw::Acpi_generic * table = reinterpret_cast<Hw::Acpi_generic *>(table_virt_addr);
+
+			if (memcmp(table->signature, "APIC", 4))
+				return;
+
+			Hw::for_each_apic_struct(*table,[&](Hw::Apic_madt const *e){
+				if (e->type == Hw::Apic_madt::LAPIC) {
+					Hw::Apic_madt::Lapic lapic(e);
+					cpus ++;
+				}
+			});
+		});
+	} else if (!memcmp(table->signature, "XSDT", 4)) {
+		Hw::for_each_xsdt_entry(*table, [&](uint64_t paddr_table) {
+			addr_t const table_virt_addr = paddr_table;
+			Hw::Acpi_generic * table = reinterpret_cast<Hw::Acpi_generic *>(table_virt_addr);
+
+			if (memcmp(table->signature, "APIC", 4))
+				return;
+
+			Hw::for_each_apic_struct(*table,[&](Hw::Apic_madt const *e){
+				if (e->type == Hw::Apic_madt::LAPIC) {
+					Hw::Apic_madt::Lapic lapic(e);
+					cpus ++;
+				}
+			});
+		});
+	} else
+		Genode::error("unknown table signature");
+
+	if (!cpus || cpus > max_cpus) {
+		Genode::warning("CPU count is unsupported ", cpus, "/", max_cpus);
+		cpus = max_cpus;
 	}
 }
 
