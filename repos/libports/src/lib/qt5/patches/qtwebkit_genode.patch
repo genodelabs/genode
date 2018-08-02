@@ -11,7 +11,7 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  qtwebkit/Source/WTF/wtf/Assertions.cpp             |    9 +++++++++
  qtwebkit/Source/WTF/wtf/FastMalloc.cpp             |    2 +-
  qtwebkit/Source/WTF/wtf/InlineASM.h                |    4 ++--
- qtwebkit/Source/WTF/wtf/OSAllocatorPosix.cpp       |   13 +++++++++++++
+ qtwebkit/Source/WTF/wtf/OSAllocatorPosix.cpp       |   20 ++++++++++++++++++++
  qtwebkit/Source/WTF/wtf/OSRandomSource.cpp         |    8 ++++++++
  qtwebkit/Source/WTF/wtf/Platform.h                 |   19 +++++++++++++++----
  qtwebkit/Source/WTF/wtf/StackBounds.cpp            |   13 +++++++++++++
@@ -20,7 +20,7 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  .../platform/graphics/qt/MediaPlayerPrivateQt.cpp  |    3 +++
  .../network/qt/SocketStreamHandlePrivate.h         |    1 +
  .../platform/network/qt/SocketStreamHandleQt.cpp   |   14 ++++++++++++++
- 16 files changed, 118 insertions(+), 9 deletions(-)
+ 16 files changed, 125 insertions(+), 9 deletions(-)
 
 diff --git a/qtwebkit/Source/JavaScriptCore/assembler/ARMAssembler.h b/qtwebkit/Source/JavaScriptCore/assembler/ARMAssembler.h
 index 19db71d..9cbe4e3 100644
@@ -156,18 +156,34 @@ index 0a2fe78..d1fdd01 100644
  #define HIDE_SYMBOL(name) ".hidden " #name
  #else
 diff --git a/qtwebkit/Source/WTF/wtf/OSAllocatorPosix.cpp b/qtwebkit/Source/WTF/wtf/OSAllocatorPosix.cpp
-index fb24cd9..e289dc3 100644
+index fb24cd9..db2ec31 100644
 --- a/qtwebkit/Source/WTF/wtf/OSAllocatorPosix.cpp
 +++ b/qtwebkit/Source/WTF/wtf/OSAllocatorPosix.cpp
-@@ -158,6 +158,7 @@ void* OSAllocator::reserveAndCommit(size_t bytes, Usage usage, bool writable, bo
+@@ -33,6 +33,10 @@
+ #include <sys/mman.h>
+ #include <wtf/Assertions.h>
+ 
++#if OS(GENODE)
++#include <base/log.h>
++#endif
++
+ namespace WTF {
+ 
+ #if CPU(MIPS)
+@@ -156,8 +160,12 @@ void* OSAllocator::reserveAndCommit(size_t bytes, Usage usage, bool writable, bo
+             result = 0;
+         else
  #endif
++#if OS(GENODE)
++            Genode::error("WTF::OSAllocator::reserveAndCommit(): mmap() failed");
++#endif
              CRASH();
      }
 +#if !OS(GENODE)
      if (result && includesGuardPages) {
          // We use mmap to remap the guardpages rather than using mprotect as
          // mprotect results in multiple references to the code region.  This
-@@ -166,6 +167,7 @@ void* OSAllocator::reserveAndCommit(size_t bytes, Usage usage, bool writable, bo
+@@ -166,6 +174,7 @@ void* OSAllocator::reserveAndCommit(size_t bytes, Usage usage, bool writable, bo
          mmap(result, pageSize(), PROT_NONE, MAP_FIXED | MAP_PRIVATE | MAP_ANON, fd, 0);
          mmap(static_cast<char*>(result) + bytes - pageSize(), pageSize(), PROT_NONE, MAP_FIXED | MAP_PRIVATE | MAP_ANON, fd, 0);
      }
@@ -175,7 +191,7 @@ index fb24cd9..e289dc3 100644
      return result;
  }
  
-@@ -224,9 +226,20 @@ void OSAllocator::decommit(void* address, size_t bytes)
+@@ -224,9 +233,20 @@ void OSAllocator::decommit(void* address, size_t bytes)
  
  void OSAllocator::releaseDecommitted(void* address, size_t bytes)
  {
