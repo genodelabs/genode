@@ -1,5 +1,5 @@
 base
-libc
+lwip
 nic_session
 os
 so
