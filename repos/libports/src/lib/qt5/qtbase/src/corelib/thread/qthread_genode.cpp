@@ -659,6 +659,19 @@ void QThread::start(Priority priority)
     if (d->running)
         return;
 
+#ifdef Q_OS_GENODE
+    if (d->finished) {
+        /**
+          * Thread is to be restarted.
+          *
+          * Since a new Genode thread is going to be created below, the old one
+          * needs to be destroyed first.
+          */
+        delete d->genode_thread;
+        d->genode_thread = 0;
+	}
+#endif
+
     d->running = true;
     d->finished = false;
     d->returnCode = 0;
