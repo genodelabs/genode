@@ -146,6 +146,8 @@ class Pdf_view
 		Framebuffer::Mode _nit_mode = _nitpicker.mode();
 		Framebuffer::Mode  _fb_mode {};
 
+		Nitpicker::Area _view_area { };
+
 		Genode::Constructible<Genode::Attached_dataspace> _fb_ds { };
 
 		Genode::Signal_handler<Pdf_view> _nit_mode_handler {
@@ -159,28 +161,43 @@ class Pdf_view
 
 		Nitpicker::Session::View_handle _view = _nitpicker.create_view();
 
+		pdfapp_t _pdfapp { };
+
+		int _motion_x = 0;
+		int _motion_y = 0;
+
 		pixel_t *_fb_base() { return _fb_ds->local_addr<pixel_t>(); }
 
-		void _rebuffer()
+		/**
+		 * Replace the backing framebuffer
+		 *
+		 * The Nitpicker view is reduced if rebuffering
+		 * is too expensive.
+		 */
+		void _rebuffer(int w, int h)
 		{
-			using namespace Nitpicker;
-
-			_nit_mode = _nitpicker.mode();
-
-			int max_x = Genode::max(_nit_mode.width(),  _fb_mode.width());
-			int max_y = Genode::max(_nit_mode.height(), _fb_mode.height());
-
-			if (max_x > _fb_mode.width() || max_y > _fb_mode.height()) {
-				_fb_mode = Mode(max_x, max_y, _nit_mode.format());
-				_nitpicker.buffer(_fb_mode, NO_ALPHA);
-				if (_fb_ds.constructed())
-					_fb_ds.destruct();
-				_fb_ds.construct(_env.rm(), _framebuffer.dataspace());
+			while (!_fb_ds.constructed()
+			    || w > _fb_mode.width()
+			    || h > _fb_mode.height())
+			{
+				try {
+					Mode new_mode(w, h, _nit_mode.format());
+					_nitpicker.buffer(new_mode, NO_ALPHA);
+					_fb_mode = new_mode;
+					if (_fb_ds.constructed())
+						_fb_ds.destruct();
+					_fb_ds.construct(_env.rm(), _framebuffer.dataspace());
+					break;
+				} catch (Genode::Out_of_ram) { }
+				w -= w >> 2;
+				h -= h >> 2;
 			}
 
-			_pdfapp.scrw = _nit_mode.width();
-			 _pdfapp.scrh = _nit_mode.height();
+			_view_area = Nitpicker::Area(w, h);
+		}
 
+		void _resize(int w, int h)
+		{
 			/*
 			 * XXX replace heuristics with a meaningful computation
 			 *
@@ -190,23 +207,25 @@ class Pdf_view
 			_pdfapp.resolution = Genode::min(_nit_mode.width()/5,
 			                                 _nit_mode.height()/3.8);
 
+			_rebuffer(w, h);
+
+			_pdfapp.scrw = _view_area.w();
+			_pdfapp.scrh = _view_area.h();
+			pdfapp_onresize(&_pdfapp, _view_area.w(), _view_area.h());
+
+			using namespace Nitpicker;
 			typedef Nitpicker::Session::Command Command;
 			_nitpicker.enqueue<Command::Geometry>(
-				_view, Rect(Point(), Area(_nit_mode.width(), _nit_mode.height())));
+				_view, Rect(Point(), _view_area));
 			_nitpicker.enqueue<Command::To_front>(_view, Nitpicker::Session::View_handle());
 			_nitpicker.execute();
 		}
 
 		void _handle_nit_mode()
 		{
-			_rebuffer();
-			pdfapp_onresize(&_pdfapp, _nit_mode.width(), _nit_mode.height());
+			_nit_mode = _nitpicker.mode();
+			_resize(_nit_mode.width(), _nit_mode.height());
 		}
-
-		pdfapp_t _pdfapp { };
-
-		int _motion_x = 0;
-		int _motion_y = 0;
 
 		void _handle_input_event(Input::Event const &ev)
 		{
@@ -226,9 +245,21 @@ class Pdf_view
 
 			if (ev.key_press(BTN_LEFT))
 				pdfapp_onmouse(&_pdfapp, _motion_x, _motion_y, 1, 0, -1);
-
+			else
 			if (ev.key_release(BTN_LEFT))
 				pdfapp_onmouse(&_pdfapp, _motion_x, _motion_y, 1, 0, 1);
+			else
+			if (ev.key_press(KEY_PAGEDOWN) || ev.key_press(KEY_RIGHT))
+				pdfapp_onkey(&_pdfapp, '.');
+			else
+			if (ev.key_press(KEY_PAGEUP) || ev.key_press(KEY_LEFT))
+				pdfapp_onkey(&_pdfapp, ',');
+			else
+			if (ev.key_press(KEY_DOWN))
+				pdfapp_onkey(&_pdfapp, 'j');
+			else
+			if (ev.key_press(KEY_UP))
+				pdfapp_onkey(&_pdfapp, 'k');
 
 			ev.handle_press([&] (Keycode, Codepoint glyph) {
 				if ((glyph.value & 0x7f) && !(glyph.value & 0x80)) {
@@ -240,7 +271,7 @@ class Pdf_view
 			ev.handle_wheel([&] (int, int y) {
 				pdfapp_onmouse(
 					&_pdfapp, _motion_x, _motion_y,
-					y > 0 ? 4 : 5, 1, 1);
+					y > 0 ? 4 : 5, 0, 1);
 			});
 			 */
 		}
@@ -254,7 +285,7 @@ class Pdf_view
 
 		void _refresh()
 		{
-			_framebuffer.refresh(0, 0, _nit_mode.width(), _nit_mode.height());
+			_framebuffer.refresh(0, 0, _view_area.w(), _view_area.h());
 
 			/* handle one sync signal only */
 			_framebuffer.sync_sigh(Genode::Signal_context_capability());
@@ -276,8 +307,6 @@ class Pdf_view
 			pdfapp_init(&_pdfapp);
 			_pdfapp.userdata = this;
 			_pdfapp.pageno   = 0;
-
-			_rebuffer();
 
 			{
 				struct dirent **list = NULL;
@@ -321,6 +350,9 @@ class Pdf_view
 
 void Pdf_view::show()
 {
+	if (!_fb_ds.constructed())
+		_resize(_pdfapp.image->w, _pdfapp.image->h);
+
 	Genode::Area<> const fb_size(_fb_mode.width(), _fb_mode.height());
 	int const x_max = Genode::min((int)fb_size.w(), _pdfapp.image->w);
 	int const y_max = Genode::min((int)fb_size.h(), _pdfapp.image->h);
@@ -340,12 +372,16 @@ void Pdf_view::show()
 	int const tweaked_y_max = y_max - 2;
 
 	/* center vertically if the dst buffer is higher than the image */
-	if (_pdfapp.image->h < _nit_mode.height())
-		dst_line += dst_line_width*((_nit_mode.height() - _pdfapp.image->h)/2);
+	if (_pdfapp.image->h < (int)_view_area.h()) {
+		dst_line += dst_line_width*((_view_area.h() - _pdfapp.image->h)/2);
+	} else {
+		auto n = src_line_bytes * Genode::min(_pdfapp.image->h - (int)_view_area.h(), -_pdfapp.pany);
+		src_line += n;
+	}
 
 	/* center horizontally if the dst buffer is wider than the image */
-	if (_pdfapp.image->w < _nit_mode.width())
-		dst_line += (_nit_mode.width() - _pdfapp.image->w)/2;
+	if (_pdfapp.image->w < (int)_view_area.w())
+		dst_line += (_view_area.w() - _pdfapp.image->w)/2;
 
 	for (int y = 0; y < tweaked_y_max; y++) {
 		convert_line_rgba_to_rgb565(src_line, dst_line, x_max, y);
