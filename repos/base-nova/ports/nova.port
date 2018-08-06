@@ -2,9 +2,9 @@ LICENSE   := GPLv2
 VERSION   := git
 DOWNLOADS := nova.git
 
-# r9 branch - use r9_debug for more verbose kernel messages
+# r10 branch
 URL(nova) := https://github.com/alex-ab/NOVA.git
-REV(nova) := 720fd5033a830d9425dbb33d8ced86d01353881b
+REV(nova) := b44329a8601ff3936aa77336752d85cff95f1a94
 DIR(nova) := src/kernel/nova
 
 PATCHES   := $(sort $(wildcard $(REP_DIR)/patches/*.patch))

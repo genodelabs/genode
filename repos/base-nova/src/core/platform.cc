@@ -283,7 +283,7 @@ Platform::Platform() :
 {
 	Hip  *hip  = (Hip *)__initial_sp;
 	/* check for right API version */
-	if (hip->api_version != 7)
+	if (hip->api_version != 8)
 		nova_die();
 
 	/*
@@ -699,6 +699,23 @@ Platform::Platform() :
 				xml.node("tsc", [&] () {
 					xml.attribute("invariant", cpuid_invariant_tsc());
 					xml.attribute("freq_khz" , hip->tsc_freq);
+				});
+				xml.node("cpus", [&] () {
+					unsigned const cpus = hip->cpus();
+					for (unsigned i = 0; i < cpus; i++) {
+						xml.node("cpu", [&] () {
+							unsigned const kernel_cpu_id = Platform::kernel_cpu_id(i);
+							xml.attribute("id",       i);
+							xml.attribute("package",  hip->cpu_desc_of_cpu(kernel_cpu_id)->package);
+							xml.attribute("core",     hip->cpu_desc_of_cpu(kernel_cpu_id)->core);
+							xml.attribute("thread",   hip->cpu_desc_of_cpu(kernel_cpu_id)->thread);
+							xml.attribute("family",   String<5>(Hex(hip->cpu_desc_of_cpu(kernel_cpu_id)->family)));
+							xml.attribute("model",    String<5>(Hex(hip->cpu_desc_of_cpu(kernel_cpu_id)->model)));
+							xml.attribute("stepping", String<5>(Hex(hip->cpu_desc_of_cpu(kernel_cpu_id)->stepping)));
+							xml.attribute("platform", String<5>(Hex(hip->cpu_desc_of_cpu(kernel_cpu_id)->platform)));
+							xml.attribute("patch",    String<12>(Hex(hip->cpu_desc_of_cpu(kernel_cpu_id)->patch)));
+						});
+					}
 				});
 			});
 		});

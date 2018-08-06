@@ -1,0 +1,76 @@
+assert_spec x86
+
+if { [get_cmd_switch --autopilot] } {
+
+	if {[have_include "power_on/qemu"]} {
+		puts "\nRun script does not support Qemu.\n"
+		exit 0
+	}
+
+	# platform_info data about CPUs on other kernels missing
+	assert_spec nova
+}
+
+build "core init test/microcode"
+
+create_boot_directory
+
+install_config {
+	<config>
+		<parent-provides>
+			<service name="LOG"/>
+			<service name="PD"/>
+			<service name="CPU"/>
+			<service name="ROM"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> </any-service>
+		</default-route>
+		<default caps="50"/>
+		<start name="test-microcode">
+			<resource name="RAM" quantum="10M"/>
+		</start>
+	</config>
+}
+
+set ::env(MAKEFLAGS) s
+set path_microcode [exec [genode_dir]/tool/ports/current microcode_intel]
+set microcode_files [glob -dir $path_microcode/src/app/intel *-*-*]
+
+file copy -force {*}$microcode_files bin/
+
+
+set boot_modules { core ld.lib.so init test-microcode }
+
+
+set microcode_files [glob -tails -dir bin {[0-9,a-f][0-9,a-f]-[0-9,a-f][0-9,a-f]-[0-9,a-f][0-9,a-f]}]
+append boot_modules $microcode_files
+
+
+build_boot_image $boot_modules
+
+
+append qemu_args "-nographic "
+append qemu_args "-smp 4 "
+
+run_genode_until "microcode check done" 30
+
+# cleanup
+if { [get_cmd_switch --autopilot] } {
+	foreach file $microcode_files {
+	  file delete bin/$file
+	}
+}
+
+# check results
+grep_output {\[init -\> test-microcode}
+
+# no errors please
+set filtered_output $output
+grep_output {Error: }
+compare_output_to {}
+
+# no warnings please
+set output $filtered_output
+grep_output {Warning: }
+compare_output_to {}
