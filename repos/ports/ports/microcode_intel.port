@@ -1,0 +1,12 @@
+#
+# https://downloadcenter.intel.com/download/28087/Linux-Processor-Microcode-Data-File
+#
+LICENSE   := Intel
+VERSION   := 20180807a
+DOWNLOADS := intel.archive
+
+URL(intel)  := https://downloadmirror.intel.com/28087/eng/microcode-$(VERSION).tgz
+SHA(intel)  := 46ab18699ec42eb6cc01ee1846ec4d7ca979766dee2156f92d69e2f6df548137
+DIR(intel)  := src/app/intel
+
+TAR_OPT(intel) := --strip-components=0
