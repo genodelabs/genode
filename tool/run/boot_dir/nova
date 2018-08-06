@@ -9,6 +9,7 @@ proc run_boot_string { } {
 	return "\nHypervisor reports "
 }
 
+proc apply_microcode { } { return false }
 
 proc core_link_address { } { return "0x100000" }
 
@@ -65,6 +66,11 @@ proc run_boot_dir {binaries} {
 		exec gzip [run_dir]/boot/image.elf
 
 		set serial_bender_opt ""
+
+		if {[apply_microcode]} {
+			exec cp bin/micro.code [run_dir]/boot/
+			exec cp [genode_dir]/tool/boot/microcode [run_dir]/boot/
+		}
 
 		if {[have_include "image/disk"]} {
 			exec mkdir -p [run_dir]/boot/grub
@@ -126,6 +132,10 @@ proc run_boot_dir {binaries} {
 		puts $fh " insmod multiboot2"
 		puts $fh " insmod gzio"
 		puts $fh " multiboot2 /boot/bender $serial_bender_opt"
+		if {[apply_microcode]} {
+			puts $fh " module2 /boot/microcode serial"
+			puts $fh " module2 /boot/micro.code micro.code"
+		}
 		puts $fh " module2 /boot/hypervisor hypervisor iommu novpid [kernel_output]"
 		puts $fh " module2 /boot/image.elf.gz image.elf"
 		puts $fh "}"
@@ -143,11 +153,20 @@ proc run_boot_dir {binaries} {
 		#
 		install_pxe_bootloader_to_run_dir
 
+		if {[apply_microcode]} {
+			exec cp [genode_dir]/tool/boot/microcode [run_dir]/boot/
+			exec cp bin/micro.code [run_dir]/boot/
+		}
+
 		#
 		# Generate pulsar config file
 		#
 		set fh [open "[run_dir]/config-52-54-00-12-34-56" "WRONLY CREAT TRUNC"]
 		puts $fh " exec /boot/bender"
+		if {[apply_microcode]} {
+			puts $fh " load /boot/microcode serial"
+			puts $fh " load /boot/micro.code micro.code"
+		}
 		puts $fh " load /boot/hypervisor iommu novpid [kernel_output]"
 		puts $fh " load /boot/image.elf"
 		close $fh

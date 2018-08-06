@@ -2,16 +2,19 @@ This directory contains boot-loader files needed to boot Genode and to create
 boot images. The tools are available in binary form. Pointers to the source
 code respectively the download source of binaries are described below.
 
-:'bender'
+:'bender', 'microcode'
 
-  The 'bender' tool is part of the 'morbo' toolchain available under GPL.
+  The tools are part of the 'morbo' toolchain available under GPL.
   The toolchain was obtained from https://github.com/TUD-OS/morbo.
-  For Genode the bender was modified so that binaries are only relocated up
+  For Genode bender was modified so that binaries are only relocated up
   to 2G physical. Additional, relocation can be limited to 256M for sel4.
+  The microcode tools expect to find a module named micro.code which contains
+  a valid Intel microcode file for the target CPU.
+
   The changes are available from
   https://github.com/alex-ab/morbo.git.
 
-  branch genode_bender, git commit e4744198ed481886c48e3dee12c1fbd47411770f
+  git commit 003016e096fa132e2086b4db52d1fd965dbd7363
 
 :'pulsar':
 
