@@ -469,8 +469,11 @@ class Vfs::Lxip_data_file : public Vfs::Lxip_file
 			msghdr msg = create_msghdr(&_parent.remote_addr(),
 			                           sizeof(sockaddr_in), len, &iov);
 
-			_write_err = _sock.ops->sendmsg(&_sock, &msg, len);
-			return _write_err;
+			Lxip::ssize_t res = _sock.ops->sendmsg(&_sock, &msg, len);
+
+			if (res < 0) _write_err = res;
+
+			return res;
 		}
 
 		Lxip::ssize_t read(Lxip_vfs_file_handle &,
