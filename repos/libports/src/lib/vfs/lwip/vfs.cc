@@ -1101,7 +1101,7 @@ class Lwip::Tcp_socket_dir final :
 			_pcb = NULL;
 
 			/* churn the application */
-			handle_io(Lwip_file_handle::REMOTE|Lwip_file_handle::DATA_READY);
+			handle_io(~0U);
 		}
 
 		/**
@@ -1421,9 +1421,16 @@ class Lwip::Tcp_socket_dir final :
 
 		Sync_result complete_sync() override
 		{
-			/* sync will queue until the socket is connected and ready */
-			return (state == CONNECT) ?
-				Sync_result::SYNC_QUEUED : Sync_result::SYNC_OK;
+			switch (state) {
+			case CONNECT:
+				/* sync will queue until the socket is connected and ready */
+				return Sync_result::SYNC_QUEUED;
+			case CLOSED:
+				/* assumed to be caused by error */
+				return Sync_result::SYNC_ERR_INVALID;
+			default:
+				return Sync_result::SYNC_OK;
+			}
 		}
 };
 
