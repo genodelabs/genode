@@ -47,7 +47,7 @@ struct Sculpt::Access_point : List_model<Access_point>::Element
 
 
 /**
- * Policy for transforming a 'wlan_accesspoints' report into a list model
+ * Policy for transforming a 'accesspoints' report into a list model
  */
 struct Sculpt::Access_point_update_policy : List_model<Access_point>::Update_policy
 {
@@ -60,12 +60,13 @@ struct Sculpt::Access_point_update_policy : List_model<Access_point>::Update_pol
 	Access_point &create_element(Xml_node node)
 	{
 		auto const protection = node.attribute_value("protection", String<16>());
+		bool const use_protection = protection == "WPA" || protection == "WPA2";
 
 		return *new (_alloc)
 			Access_point(node.attribute_value("bssid", Access_point::Bssid()),
 			             node.attribute_value("ssid",  Access_point::Ssid()),
-			             protection == "WPA-PSK" ? Access_point::Protection::WPA_PSK :
-			                                       Access_point::Protection::UNPROTECTED);
+			             use_protection ? Access_point::Protection::WPA_PSK
+			                            : Access_point::Protection::UNPROTECTED);
 	}
 
 	void update_element(Access_point &ap, Xml_node node)

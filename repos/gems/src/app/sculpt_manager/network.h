@@ -53,10 +53,10 @@ struct Sculpt::Network : Network_dialog::Action
 	bool _use_wifi_drv = false;
 
 	Attached_rom_dataspace _wlan_accesspoints_rom {
-		_env, "report -> runtime/wifi_drv/wlan_accesspoints" };
+		_env, "report -> runtime/wifi_drv/accesspoints" };
 
 	Attached_rom_dataspace _wlan_state_rom {
-		_env, "report -> runtime/wifi_drv/wlan_state" };
+		_env, "report -> runtime/wifi_drv/state" };
 
 	Attached_rom_dataspace _nic_router_state_rom {
 		_env, "report -> runtime/nic_router/state" };
@@ -102,7 +102,7 @@ struct Sculpt::Network : Network_dialog::Action
 		_pci_info };
 
 	Managed_config<Network> _wlan_config {
-		_env, "selected_network", "wlan", *this, &Network::_handle_wlan_config };
+		_env, "config", "wifi", *this, &Network::_handle_wlan_config };
 
 	void _handle_wlan_config(Xml_node)
 	{
@@ -157,12 +157,24 @@ struct Sculpt::Network : Network_dialog::Action
 			_wifi_connection.state = Wifi_connection::CONNECTING;
 
 			_wlan_config.generate([&] (Xml_generator &xml) {
-				xml.attribute("ssid", ap.ssid);
-				if (ap.protection == Access_point::WPA_PSK) {
-					xml.attribute("protection", "WPA-PSK");
-					String<128> const psk(wpa_passphrase);
-					xml.attribute("psk", psk);
-				}
+
+				xml.attribute("connected_scan_interval", 0U);
+				xml.attribute("scan_interval", 10U);
+				xml.attribute("use_11n", false);
+
+				xml.attribute("verbose_state", false);
+				xml.attribute("verbose",       false);
+
+				xml.node("accesspoint", [&]() {
+					xml.attribute("ssid", ap.ssid);
+
+					/* for now always try to use WPA2 */
+					if (ap.protection == Access_point::WPA_PSK) {
+						xml.attribute("protection", "WPA2");
+						String<128> const psk(wpa_passphrase);
+						xml.attribute("passphrase", psk);
+					}
+				});
 			});
 		});
 	}
@@ -177,10 +189,19 @@ struct Sculpt::Network : Network_dialog::Action
 
 		_wlan_config.generate([&] (Xml_generator &xml) {
 
-			/* generate attributes to ease subsequent manual tweaking */
-			xml.attribute("ssid", "");
-			xml.attribute("protection", "WPA-PSK");
-			xml.attribute("psk", "");
+			xml.attribute("connected_scan_interval", 0U);
+			xml.attribute("scan_interval", 10U);
+			xml.attribute("use_11n", false);
+
+			xml.node("accesspoints", [&]() {
+				xml.node("accesspoint", [&]() {
+
+					/* generate attributes to ease subsequent manual tweaking */
+					xml.attribute("ssid", "");
+					xml.attribute("protection", "NONE");
+					xml.attribute("passphrase", "");
+				});
+			});
 		});
 
 		_runtime_config_generator.generate_runtime_config();

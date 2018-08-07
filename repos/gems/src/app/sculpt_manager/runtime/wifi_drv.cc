@@ -15,13 +15,11 @@
 
 void Sculpt::gen_wifi_drv_start_content(Xml_generator &xml)
 {
-	gen_common_start_content(xml, "wifi_drv", Cap_quota{300}, Ram_quota{54*1024*1024});
+	gen_common_start_content(xml, "wifi_drv", Cap_quota{200}, Ram_quota{24*1024*1024});
 
 	gen_provides<Nic::Session>(xml);
 
 	xml.node("config", [&] () {
-		xml.attribute("connected_scan_interval", "0");
-		xml.attribute("use_11n", "no");
 
 		xml.node("vfs", [&] () {
 			gen_named_node(xml, "dir", "dev", [&] () {
@@ -29,16 +27,14 @@ void Sculpt::gen_wifi_drv_start_content(Xml_generator &xml)
 				xml.node("zero", [&] () {});
 				xml.node("rtc",  [&] () {});
 				xml.node("log",  [&] () {});
+				xml.node("null", [&] () {});
 				gen_named_node(xml, "jitterentropy", "random");
 				gen_named_node(xml, "jitterentropy", "urandom"); });
-
-			gen_named_node(xml, "dir", "config", [&] () {
-				xml.node("ram", [&] () {}); });
 		});
 
 		xml.node("libc", [&] () {
 			xml.attribute("stdout", "/dev/null");
-			xml.attribute("stderr", "/dev/log");
+			xml.attribute("stderr", "/dev/null");
 			xml.attribute("rtc",    "/dev/rtc");
 		});
 	});
@@ -75,9 +71,9 @@ void Sculpt::gen_wifi_drv_start_content(Xml_generator &xml)
 		gen_parent_route<Report::Session>  (xml);
 
 		gen_service_node<Rom_session>(xml, [&] () {
-			xml.attribute("label", "wlan_configuration");
+			xml.attribute("label", "wifi_config");
 			xml.node("parent", [&] () {
-				xml.attribute("label", "config -> managed/wlan"); }); });
+				xml.attribute("label", "config -> managed/wifi"); }); });
 
 		gen_service_node<Platform::Session>(xml, [&] () {
 			xml.node("parent", [&] () {

@@ -151,7 +151,7 @@ void Sculpt::Network_dialog::_gen_access_point_list(Xml_generator &xml) const
 	});
 
 	/*
-	 * Present motivational message until we get the first 'wlan_accesspoints'
+	 * Present motivational message until we get the first 'accesspoints'
 	 * report.
 	 */
 	if (cnt == 0)
@@ -177,7 +177,7 @@ void Sculpt::Network_dialog::_gen_connected_ap(Xml_generator &xml) const
 
 	/*
 	 * If access point is not present in the list, fall back to the information
-	 * given in the 'wlan_state' report.
+	 * given in the 'state' report.
 	 */
 	if (!done)
 		_gen_access_point(xml, Access_point { _wifi_connection.bssid,

@@ -29,7 +29,7 @@ struct Sculpt::Wifi_connection
 	Access_point::Ssid  ssid;
 
 	/**
-	 * Create 'Wifi_connection' object from 'wlan_state' report
+	 * Create 'Wifi_connection' object from 'state' report
 	 */
 	static Wifi_connection from_xml(Xml_node node)
 	{

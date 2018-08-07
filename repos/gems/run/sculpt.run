@@ -91,7 +91,7 @@ install_config {
 					<dir name="managed">
 						<rom name="fonts"  label="fonts.config"/>
 						<rom name="fb_drv" label="fb_drv.config"/>
-						<rom name="wlan"   label="wlan.config"/>
+						<rom name="wifi"   label="wifi.config"/>
 						<rom name="installation"/>
 						<rom name="runtime"      label="empty_runtime.config"/>
 						<rom name="input_filter" label="input_filter.config"/>
@@ -149,8 +149,8 @@ install_config {
 				<dir name="runtime">
 					<inline name="state"><empty/></inline>
 					<dir name="wifi_drv">
-						<inline name="wlan_accesspoints"><empty/></inline>
-						<inline name="wlan_state">       <empty/>       </inline>
+						<inline name="accesspoints"><empty/></inline>
+						<inline name="state">       <empty/></inline>
 					</dir>
 					<dir name="nic_router"> <inline name="state">    <empty/></inline> </dir>
 					<dir name="update">     <inline name="state">    <empty/></inline> </dir>
