@@ -47,21 +47,27 @@ extern "C" {
 
 	extern "C" {
 
-		/**
-		 * Metadata for packet backed pbufs
-		 */
-		struct nic_netif_pbuf
-		{
-			struct pbuf_custom p { };
-			Nic_netif *netif = nullptr;
-			Nic::Packet_descriptor packet { };
-		};
-
 		static void nic_netif_pbuf_free(pbuf *p);
 		static err_t nic_netif_init(struct netif *netif);
 		static err_t nic_netif_linkoutput(struct netif *netif, struct pbuf *p);
 		static void  nic_netif_status_callback(struct netif *netif);
 	}
+
+	/**
+	 * Metadata for packet backed pbufs
+	 */
+	struct Nic_netif_pbuf
+	{
+		struct pbuf_custom p { };
+		Nic_netif &netif;
+		Nic::Packet_descriptor packet;
+
+		Nic_netif_pbuf(Nic_netif &nic, Nic::Packet_descriptor &pkt)
+		: netif(nic), packet(pkt)
+		{
+			p.custom_free_function = nic_netif_pbuf_free;
+		}
+	};
 }
 
 
@@ -70,15 +76,11 @@ class Lwip::Nic_netif
 	private:
 
 		enum {
-			PBUFS_QUEUE_SIZE = 128,
-			NIC_BUF_SIZE =
-				Nic::Packet_allocator::DEFAULT_PACKET_SIZE *
-				PBUFS_QUEUE_SIZE
+			PACKET_SIZE = Nic::Packet_allocator::DEFAULT_PACKET_SIZE,
+			BUF_SIZE    = 128 * PACKET_SIZE,
 		};
 
-		nic_netif_pbuf _pbufs[PBUFS_QUEUE_SIZE];
-		unsigned _pbufs_next = 0;
-		unsigned _alloced = 0;
+		Genode::Tslab<struct Nic_netif_pbuf, 128> _pbuf_alloc;
 
 		Nic::Packet_allocator _nic_tx_alloc;
 		Nic::Connection _nic;
@@ -94,14 +96,14 @@ class Lwip::Nic_netif
 
 	public:
 
-		void free_pbuf(nic_netif_pbuf &pbuf)
+		void free_pbuf(Nic_netif_pbuf &pbuf)
 		{
 			if (!_nic.rx()->ready_to_ack()) {
 				Genode::error("Nic rx acknowledgement queue congested, blocking to  free pbuf");
 			}
 
 			_nic.rx()->acknowledge_packet(pbuf.packet);
-			pbuf.packet = Nic::Packet_descriptor();
+			destroy(_pbuf_alloc, &pbuf);
 		}
 
 
@@ -129,30 +131,17 @@ class Lwip::Nic_netif
 			auto &rx = *_nic.rx();
 
 			while (rx.packet_avail() && rx.ready_to_ack()) {
-				unsigned const initial_index = _pbufs_next;
 
-				while (_pbufs[_pbufs_next].packet.size()) {
-					_pbufs_next = (_pbufs_next+1) % PBUFS_QUEUE_SIZE;
-					if (_pbufs_next == initial_index) {
-						/* internal pbuf queue congested */
-						return;
-					}
-				}
+				Nic::Packet_descriptor packet = rx.get_packet();
 
-				Nic::Packet_descriptor const packet = rx.get_packet();
-
-				nic_netif_pbuf &nic_pbuf = _pbufs[_pbufs_next];
-				_pbufs_next = (_pbufs_next+1) % PBUFS_QUEUE_SIZE;
-
-				nic_pbuf.p.custom_free_function = nic_netif_pbuf_free;
-				nic_pbuf.netif = this;
-				nic_pbuf.packet = packet;
+				Nic_netif_pbuf *nic_pbuf = new (_pbuf_alloc)
+					Nic_netif_pbuf(*this, packet);
 
 				pbuf* p = pbuf_alloced_custom(
 					PBUF_RAW,
 					packet.size(),
 					PBUF_REF,
-					&nic_pbuf.p,
+					&nic_pbuf->p,
 					rx.packet_content(packet),
 					packet.size());
 				LINK_STATS_INC(link.recv);
@@ -217,9 +206,10 @@ class Lwip::Nic_netif
 		          Genode::Allocator &alloc,
 		          Genode::Xml_node config)
 		:
-			_nic_tx_alloc(&alloc),
-			_nic(env, &_nic_tx_alloc, NIC_BUF_SIZE, NIC_BUF_SIZE,
-			    config.attribute_value("label", Genode::String<160>("lwip")).string()),
+			_pbuf_alloc(alloc), _nic_tx_alloc(&alloc),
+			_nic(env, &_nic_tx_alloc,
+			     BUF_SIZE, BUF_SIZE,
+			     config.attribute_value("label", Genode::String<160>("lwip")).string()),
 			_link_state_handler(env.ep(), *this, &Nic_netif::handle_link_state),
 			_rx_packet_handler( env.ep(), *this, &Nic_netif::handle_rx_packets)
 		{
@@ -359,8 +349,8 @@ namespace Lwip {
  */
 static void nic_netif_pbuf_free(pbuf *p)
 {
-	nic_netif_pbuf *nic_pbuf = (nic_netif_pbuf*)(p);
-	nic_pbuf->netif->free_pbuf(*nic_pbuf);
+	Nic_netif_pbuf *nic_pbuf = reinterpret_cast<Nic_netif_pbuf*>(p);
+	nic_pbuf->netif.free_pbuf(*nic_pbuf);
 }
 
 
