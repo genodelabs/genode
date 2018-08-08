@@ -13,7 +13,7 @@ ds_ownership
 extract
 fault_detection
 fb_bench
-fetchurl
+fetchurl_lxip
 fetchurl_lwip
 fpu
 fs_log
