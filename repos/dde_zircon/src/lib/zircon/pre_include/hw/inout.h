@@ -1,6 +1,5 @@
-
 /*
- * \brief Custom define of system/ulib/ddk/include/hw/inout.h
+ * \brief  Custom define of system/ulib/ddk/include/hw/inout.h
  * \author Johannes Kliemann
  * \date   2018-07-25
  */

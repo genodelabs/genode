@@ -1,6 +1,5 @@
-
 /*
- * \brief Zircon thread wrapper
+ * \brief  Zircon thread wrapper
  * \author Johannes Kliemann
  * \date   2018-07-25
  */
@@ -21,23 +20,23 @@
 
 namespace ZX
 {
-    class Thread;
-};
+	class Thread;
+}
 
 class ZX::Thread : public Genode::Thread
 {
-    private:
+	private:
 
-        thrd_start_t _thread_worker;
-        unsigned long _arg;
-        int _result;
+		thrd_start_t _thread_worker;
+		unsigned long _arg;
+		int _result;
 
-        void entry() override;
+		void entry() override;
 
-    public:
+	public:
 
-        Thread(Genode::Env &, thrd_start_t, const char *, void *);
-        int result();
+		Thread(Genode::Env &, thrd_start_t, const char *, void *);
+		int result();
 };
 
 #endif /* ifndef _ZX_THREAD_H_ */

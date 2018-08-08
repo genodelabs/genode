@@ -1,6 +1,5 @@
-
 /*
- * \brief Definition of Zircon system calls
+ * \brief  Definition of Zircon system calls
  * \author Johannes Kliemann
  * \date   2018-07-25
  */
@@ -24,28 +23,28 @@
 
 extern "C" {
 
-    zx_handle_t get_root_resource()
-    {
-        return 0;
-    }
+	zx_handle_t get_root_resource()
+	{
+		return 0;
+	}
 
-    zx_status_t zx_handle_close(zx_handle_t)
-    {
-        return ZX_OK;
-    }
+	zx_status_t zx_handle_close(zx_handle_t)
+	{
+		return ZX_OK;
+	}
 
-    zx_status_t device_add_from_driver(zx_driver_t *,
-            zx_device_t *,
-            device_add_args_t *args,
-            zx_device_t **)
-    {
-        ZX::Device &dev = ZX::Resource<ZX::Device>::get_component();
-        hidbus_ifc_t *hidbus;
-        if(dev.hidbus(&hidbus)){
-            static_cast<hidbus_protocol_ops_t *>(args->proto_ops)->start(
-                    args->ctx, hidbus, dev.component());
-        }
-        return ZX_OK;
-    }
+	zx_status_t device_add_from_driver(zx_driver_t *,
+	                                   zx_device_t *,
+	                                   device_add_args_t *args,
+	                                   zx_device_t **)
+	{
+		ZX::Device &dev = ZX::Resource<ZX::Device>::get_component();
+		hidbus_ifc_t *hidbus;
+		if (dev.hidbus(&hidbus)){
+			static_cast<hidbus_protocol_ops_t *>(args->proto_ops)->start(
+				args->ctx, hidbus, dev.component());
+		}
+		return ZX_OK;
+	}
 
 }

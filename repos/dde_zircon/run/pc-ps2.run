@@ -56,7 +56,7 @@ append_platform_drv_config
 
 append config {
 	<start name="ps2_drv">
-                <binary name="pc-ps2_drv"/>
+                <binary name="zx_pc_ps2_drv"/>
 		<resource name="RAM" quantum="2M"/>
 		<provides><service name="Input"/></provides>
 		<config verbose_keyboard="no" verbose_mouse="no" verbose_scancodes="no"
@@ -135,7 +135,7 @@ set boot_modules {
 	timer dynamic_rom
 	test-input
         zircon.lib.so
-        pc-ps2_drv
+        zx_pc_ps2_drv
 }
 
 # platform-specific modules

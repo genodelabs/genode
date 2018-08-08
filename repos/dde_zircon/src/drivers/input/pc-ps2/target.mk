@@ -1,6 +1,6 @@
 REQUIRES = x86
 
-TARGET = pc-ps2_drv
+TARGET = zx_pc_ps2_drv
 LIBS = base zircon
 
 SRC_CC += main.cc

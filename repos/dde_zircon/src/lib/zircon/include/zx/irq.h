@@ -1,6 +1,5 @@
-
 /*
- * \brief Zircon interrupt handler
+ * \brief  Zircon interrupt handler
  * \author Johannes Kliemann
  * \date   2018-07-25
  */
@@ -21,47 +20,47 @@
 #include <base/lock.h>
 
 namespace ZX{
-    enum {
-        IRQ_LINES = 256
-            /* we assume that a single driver will never need more than 256 interrupt lines */
-    };
+	enum {
+		IRQ_LINES = 256
+		/* we assume that a single driver will never need more than 256 interrupt lines */
+	};
 
-    template <typename tsession>
-        class Irq
-        {
-            private:
-                tsession _irq;
-                Genode::Signal_handler<Irq> _irq_handler;
-                Genode::Lock _lock;
+	template <typename tsession>
+	class Irq
+	{
+		private:
+			tsession _irq;
+			Genode::Signal_handler<Irq> _irq_handler;
+			Genode::Lock _lock;
 
-                void unlock()
-                {
-                    _lock.unlock();
-                }
+			void _unlock()
+			{
+				_lock.unlock();
+			}
 
-            public:
-                Irq(Genode::Env &env, int irq) :
-                    _irq(env, irq),
-                    _irq_handler(env.ep(), *this, &Irq::unlock),
-                    _lock()
-                {
-                    _irq.sigh(_irq_handler);
-                }
+		public:
+			Irq(Genode::Env &env, int irq) :
+				_irq(env, irq),
+				_irq_handler(env.ep(), *this, &Irq::_unlock),
+				_lock()
+			{
+				_irq.sigh(_irq_handler);
+			}
 
-                Irq(Genode::Env &env, Genode::Irq_session_capability cap) :
-                    _irq(cap),
-                    _irq_handler(env.ep(), *this, &Irq::unlock),
-                    _lock()
-                {
-                    _irq.sigh(_irq_handler);
-                }
+			Irq(Genode::Env &env, Genode::Irq_session_capability cap) :
+				_irq(cap),
+				_irq_handler(env.ep(), *this, &Irq::_unlock),
+				_lock()
+			{
+				_irq.sigh(_irq_handler);
+			}
 
-                void wait()
-                {
-                    _irq.ack_irq();
-                    _lock.lock();
-                }
-        };
-};
+			void wait()
+			{
+				_irq.ack_irq();
+				_lock.lock();
+			}
+	};
+}
 
 #endif /* ifndef_ZX_IRQ_H_ */

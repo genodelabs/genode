@@ -1,6 +1,5 @@
-
 /*
- * \brief Overwrite Zircon specific mutex type
+ * \brief  Overwrite Zircon specific mutex type
  * \author Johannes Kliemann
  * \date   2018-07-25
  */
@@ -17,9 +16,9 @@
 
 typedef struct
 {
-    void *lock;
+	void *lock;
 } mtx_t;
 
-#endif //__DEFINED_mtx_t
+#endif /* __DEFINED_mtx_t */
 
 #include_next <bits/alltypes.h>

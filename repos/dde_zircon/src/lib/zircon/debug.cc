@@ -1,6 +1,5 @@
-
 /*
- * \brief Zircon debug functions
+ * \brief  Zircon debug functions
  * \author Johannes Kliemann
  * \date   2018-07-25
  */
@@ -19,17 +18,19 @@
 
 extern "C" {
 
-    void platform_dputc(char c){
-        Genode::warning(__func__, " called with ", c);
-    }
+	void platform_dputc(char c)
+	{
+		Genode::warning(__func__, " called with ", c);
+	}
 
-    void platform_dputs_thread(const char *str, size_t len){
-        Genode::warning(__func__, " called with (", len, ") ", Genode::Cstring(str));
-    }
+	void platform_dputs_thread(const char *str, size_t len)
+	{
+		Genode::warning(__func__, " called with (", len, ") ", Genode::Cstring(str));
+	}
 
-    int platform_dgetc(char *, bool)
-    {
-        return ZX_ERR_NOT_SUPPORTED;
-    }
+	int platform_dgetc(char *, bool)
+	{
+		return ZX_ERR_NOT_SUPPORTED;
+	}
 
 }
