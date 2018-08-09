@@ -13,7 +13,6 @@ proc platform_drv_priority {} { return { priority="-1"} }
 
 append build_components { core }
 append build_components { init }
-append build_components { drivers/framebuffer }
 append build_components { drivers/timer }
 append build_components { server/nic_router }
 append build_components { server/dynamic_rom }
@@ -68,10 +67,10 @@ append config {
 		<provides><service name="Nic"/></provides>
 	</start>
 
-	<start name="wifi_drv" caps="300" priority="-1">
-		<resource name="RAM" quantum="54M"/>
+	<start name="wifi_drv" caps="200" priority="-1">
+		<resource name="RAM" quantum="24M"/>
 		<provides> <service name="Nic"/> </provides>
-		<config ld_verbose="no" verbose="no" use_11n="no" connected_scan_interval="0">
+		<config ld_verbose="no">
 			<vfs>
 				<dir name="dev"> <log/> <rtc/> <null/>
 					<jitterentropy name="random"/>
@@ -79,12 +78,12 @@ append config {
 				</dir>
 				<dir name="config"> <ram/> </dir>
 			</vfs>
-			<libc stdout="/dev/null" stderr="/dev/log" rtc="/dev/rtc"/>
+			<libc stdout="/dev/null" stderr="/dev/null" rtc="/dev/rtc"/>
 		</config>
 		<route>
 			<service name="Rtc"> <any-child/> </service>
 			<service name="Report"> <child name="report_rom"/> </service>
-			<service name="ROM" label="wlan_configuration"> <child name="config_rom"/> </service>
+			<service name="ROM" label="wifi_config"> <child name="config_rom"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
@@ -100,11 +99,13 @@ append config {
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="ROM"/></provides>
 		<config verbose="no">
-			<rom name="wlan_configuration">
+			<rom name="wifi_config">
 				<inline description="CONNECT">
-				<selected_network ssid="} [wifi_ssid] {"
-				                  protection="WPA-PSK"
-				                  psk="} [wifi_psk] {"/>
+<wifi_config connected_scan_interval="30" scan_interval="5" rfkill="no" verbose="no">
+    <accesspoints>
+        <accesspoint enabled="true" ssid="} [wifi_ssid] {" protection="WPA2" passphrase="} [wifi_psk] {"/>
+    </accesspoints>
+</wifi_config>
 				</inline>
 				<sleep milliseconds="600000"/> <!-- 10 minutes -->
 			</rom>
@@ -293,13 +294,18 @@ install_config $config
 
 exec cp ${genode_dir}/repos/ports/run/virtualbox_nic_router.vbox bin/.
 
-append boot_modules { iwlwifi-6000-4.ucode }
-append boot_modules { iwlwifi-6000g2a-6.ucode }
-append boot_modules { iwlwifi-6000g2b-6.ucode }
-append boot_modules { iwlwifi-7260-16.ucode }
-append boot_modules { iwlwifi-7265-16.ucode }
-append boot_modules { iwlwifi-7265D-16.ucode }
-append boot_modules { iwlwifi-8000C-16.ucode }
+append boot_modules {
+	iwlwifi-6000-4.ucode
+	iwlwifi-6000g2a-6.ucode
+	iwlwifi-6000g2b-6.ucode
+	iwlwifi-7260-17.ucode
+	iwlwifi-7265-17.ucode
+	iwlwifi-7265D-29.ucode
+	iwlwifi-8000C-36.ucode
+	iwlwifi-8265-36.ucode
+	regulatory.db
+}
+
 append boot_modules { report_rom }
 append boot_modules { vfs_jitterentropy.lib.so }
 append boot_modules { libcrypto.lib.so }
