@@ -430,9 +430,6 @@ install_config {
 			<service name="LOG" label="unlogged"> <parent/> </service>
 			<service name="LOG"> <child name="log"/> </service>
 			<service name="Rtc"> <child name="rtc_drv"/> </service>
-			<service name="IO_MEM"  label_prefix="acpica"> <parent/> </service>
-			<service name="IO_PORT" label_prefix="acpica"> <parent/> </service>
-			<service name="IRQ"     label_prefix="acpica"> <parent/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
 	</start>
@@ -714,9 +711,10 @@ append manual_deploy_config {
 		<route>
 			<service name="ROM" label="platform_info"> <parent/> </service>
 			<service name="Platform"> <parent/> </service>
-			<service name="IO_MEM">   <parent label="acpica"/> </service>
-			<service name="IO_PORT">  <parent label="acpica"/> </service>
-			<service name="IRQ">      <parent label="acpica"/> </service>
+			<service name="IO_MEM">   <parent/> </service>
+			<service name="IO_PORT">  <parent/> </service>
+			<service name="IRQ">      <parent/> </service>
+			<service name="Report">   <parent/> </service>
 		</route>
 	</start>
 -->
