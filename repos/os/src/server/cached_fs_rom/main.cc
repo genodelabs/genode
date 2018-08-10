@@ -12,7 +12,6 @@
  */
 
 /* Genode includes */
-#include <os/reporter.h>
 #include <os/path.h>
 #include <file_system_session/connection.h>
 #include <file_system/util.h>
@@ -134,16 +133,6 @@ struct Cached_fs_rom::Cached_rom final
 		~Guard() {
 			--_rom._ref_count; };
 	};
-
-	void report(Reporter::Xml_generator &xml) const
-	{
-		xml.node("cache", [&] () {
-			xml.attribute("path", path.string());
-			xml.attribute("ref", _ref_count);
-			xml.attribute("size", file_size);
-			xml.attribute("ready", completed());
-		});
-	}
 };
 
 
@@ -235,16 +224,6 @@ struct Cached_fs_rom::Transfer final
 			else
 				_submit_next_packet();
 		}
-
-		void report(Reporter::Xml_generator &xml) const
-		{
-			xml.node("transfer", [&] () {
-				xml.attribute("path", path().string());
-				xml.attribute("pkt_size", _raw_pkt.size());
-				xml.attribute("seek", _seek);
-				xml.attribute("size", _size);
-			});
-		}
 };
 
 
@@ -268,13 +247,6 @@ class Cached_fs_rom::Session_component final : public  Rpc_object<Rom_session>
 			_label(label)
 		{ }
 
-		void report(Reporter::Xml_generator &xml) const
-		{
-			xml.node("session", [&] () {
-				xml.attribute("id", _sessions_elem.id().value);
-				xml.attribute("label", _label.string());
-			});
-		}
 
 		/***************************
 		 ** ROM session interface **
@@ -293,8 +265,6 @@ struct Cached_fs_rom::Main final : Genode::Session_request_handler
 {
 	Genode::Env &env;
 
-	Reporter reporter { env, "state", "state", 1<<20 };
-
 	Rm_connection rm { env };
 
 	Cache_space    cache     { };
@@ -310,20 +280,6 @@ struct Cached_fs_rom::Main final : Genode::Session_request_handler
 
 	Io_signal_handler<Main> packet_handler {
 		env.ep(), *this, &Main::handle_packets };
-
-	void report_state()
-	{
-		if (!reporter.enabled()) return;
-
-		Reporter::Xml_generator xml(reporter, [&] () {
-			cache.for_each<Cached_rom&>([&] (Cached_rom &rom) {
-				rom.report(xml); });
-			transfers.for_each<Transfer&>([&] (Transfer &transfer) {
-				transfer.report(xml); });
-			sessions.for_each<Session_component&>([&] (Session_component &session) {
-				session.report(xml); });
-		});
-	}
 
 	/**
 	 * Return true when a cache element is freed
@@ -431,7 +387,6 @@ struct Cached_fs_rom::Main final : Genode::Session_request_handler
 			}
 
 			rom = new (heap) Cached_rom(cache, env, rm, path, file_size);
-			report_state();
 		}
 
 		if (rom->completed()) {
@@ -439,7 +394,6 @@ struct Cached_fs_rom::Main final : Genode::Session_request_handler
 			Session_component *session = new (heap)
 				Session_component(*rom, sessions, id, label);
 			env.parent().deliver_session_cap(pid, env.ep().manage(*session));
-			report_state();
 
 		} else if (!rom->transfer) {
 			File_system::File_handle handle = try_open(path);
@@ -450,7 +404,6 @@ struct Cached_fs_rom::Main final : Genode::Session_request_handler
 				/* retry when next pending transfer completes */
 				return;
 			}
-			report_state();
 		}
 	}
 
@@ -464,8 +417,6 @@ struct Cached_fs_rom::Main final : Genode::Session_request_handler
 			destroy(heap, &session);
 			env.parent().session_response(pid, Parent::SESSION_CLOSED);
 		});
-
-		report_state();
 	}
 
 	void handle_packets()
@@ -501,9 +452,6 @@ struct Cached_fs_rom::Main final : Genode::Session_request_handler
 
 		/* process any requests that have already queued */
 		session_requests.schedule();
-
-		try { reporter.enabled(true); }
-		catch (...) { log("state report disabled"); }
 	}
 };
 
