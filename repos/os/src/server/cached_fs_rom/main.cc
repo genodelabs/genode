@@ -64,8 +64,11 @@ struct Cached_fs_rom::Cached_rom final
 
 	/**
 	 * Backing RAM dataspace
+	 *
+	 * This shall be valid even if the file is empty.
 	 */
-	Attached_ram_dataspace ram_ds { env.pd(), env.rm(), file_size };
+	Attached_ram_dataspace ram_ds {
+		env.pd(), env.rm(), file_size ? file_size : 1 };
 
 	/**
 	 * Read-only region map exposed as ROM module to the client
@@ -94,7 +97,10 @@ struct Cached_fs_rom::Cached_rom final
 		env(env), rm_connection(rm), file_size(size),
 		path(file_path),
 		cache_elem(*this, cache_space)
-	{ }
+	{
+		if (size == 0)
+			complete();
+	}
 
 	/**
 	 * Destructor
@@ -113,7 +119,7 @@ struct Cached_fs_rom::Cached_rom final
 		/* attach dataspace read-only into region map */
 		enum { OFFSET = 0, LOCAL_ADDR = false, EXEC = true, WRITE = false };
 		rm_attachment = rm.attach(
-			ram_ds.cap(), file_size, OFFSET,
+			ram_ds.cap(), ram_ds.size(), OFFSET,
 			LOCAL_ADDR, (addr_t)~0, EXEC, WRITE);
 		rm_ds = rm.dataspace();
 	}
@@ -375,11 +381,6 @@ struct Cached_fs_rom::Main final : Genode::Session_request_handler
 			File_system::File_handle handle = try_open(path);
 			File_system::Handle_guard guard(fs, handle);
 			size_t file_size = fs.status(handle).size;
-
-			if (file_size == 0) {
-				error("unable to serve zero-length file \"", path, "\"");
-				throw Service_denied();
-			}
 
 			while (env.pd().avail_ram().value < file_size || env.pd().avail_caps().value < 8) {
 				/* drop unused cache entries */
