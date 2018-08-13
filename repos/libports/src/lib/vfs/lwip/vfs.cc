@@ -1050,7 +1050,8 @@ class Lwip::Tcp_socket_dir final :
 				destroy(alloc, p);
 			}
 
-			if (state != CLOSED && _pcb != NULL) {
+			if (_pcb != NULL) {
+				tcp_arg(_pcb, NULL);
 				tcp_close(_pcb);
 			}
 
@@ -1095,8 +1096,13 @@ class Lwip::Tcp_socket_dir final :
 		void error()
 		{
 			state = CLOSED;
+
 			/* the PCB is expired now */
-			_pcb = NULL;
+			if (_pcb) {
+				tcp_arg(_pcb, NULL);
+				tcp_close(_pcb);
+				_pcb = NULL;
+			}
 
 			/* churn the application */
 			handle_io(~0U);
@@ -1113,11 +1119,12 @@ class Lwip::Tcp_socket_dir final :
 			if (_recv_pbuf)
 				return;
 
-			tcp_close(_pcb);
-			tcp_arg(_pcb, NULL);
-			state = CLOSED;
-			/* lwIP may reuse the PCB memory for the next connection */
-			_pcb = NULL;
+			if (_pcb) {
+				tcp_arg(_pcb, NULL);
+				tcp_close(_pcb);
+				state = CLOSED;
+				_pcb = NULL;
+			}
 		}
 
 		/**************************
@@ -1174,15 +1181,19 @@ class Lwip::Tcp_socket_dir final :
 		                 char *dst, file_size count,
 		                 file_size &out_count) override
 		{
-			if (_pcb == NULL)
-				return Read_result::READ_OK;
-
 			switch(handle.kind) {
 
 			case Lwip_file_handle::DATA:
-				if (state == READY || state == CLOSING) {
+				{
 					if (_recv_pbuf == nullptr) {
-						return Read_result::READ_QUEUED;
+						/*
+						 * queue the read if the PCB is active and
+						 * there is nothing to read, otherwise return
+						 * zero to indicate the connection is closed
+						 */
+						return (state == READY)
+							? Read_result::READ_QUEUED
+							: Read_result::READ_OK;
 					}
 
 					u16_t const ucount = count;
@@ -1205,14 +1216,13 @@ class Lwip::Tcp_socket_dir final :
 					}
 
 					/* ACK the remote */
-					tcp_recved(_pcb, n);
+					if (_pcb)
+						tcp_recved(_pcb, n);
 
 					if (state == CLOSING)
 						shutdown();
 
 					out_count = n;
-					return Read_result::READ_OK;
-				} else if (state == CLOSED) {
 					return Read_result::READ_OK;
 				}
 				break;
@@ -1443,12 +1453,15 @@ namespace Lwip {
 	extern "C" {
 
 static
-void udp_recv_callback(void *arg, struct udp_pcb*, struct pbuf *p, const ip_addr_t *addr, u16_t port)
+void udp_recv_callback(void *arg, struct udp_pcb*, struct pbuf *buf, const ip_addr_t *addr, u16_t port)
 {
-	if (!arg) return;
-
-	Lwip::Udp_socket_dir *socket_dir = static_cast<Lwip::Udp_socket_dir *>(arg);
-	socket_dir->queue(addr, port, p);
+	if (arg) {
+		Lwip::Udp_socket_dir *socket_dir =
+			static_cast<Lwip::Udp_socket_dir *>(arg);
+		socket_dir->queue(addr, port, buf);
+	} else {
+		pbuf_free(buf);
+	}
 }
 
 
@@ -1456,8 +1469,8 @@ static
 err_t tcp_connect_callback(void *arg, struct tcp_pcb *pcb, err_t)
 {
 	if (!arg) {
-		tcp_close(pcb);
-		return ERR_ARG;
+		tcp_abort(pcb);
+		return ERR_ABRT;
 	}
 
 	Lwip::Tcp_socket_dir *socket_dir = static_cast<Lwip::Tcp_socket_dir *>(arg);
@@ -1474,8 +1487,8 @@ static
 err_t tcp_accept_callback(void *arg, struct tcp_pcb *newpcb, err_t err)
 {
 	if (!arg) {
-		tcp_close(newpcb);
-		return ERR_OK;
+		tcp_abort(newpcb);
+		return ERR_ABRT;
 	}
 
 	Lwip::Tcp_socket_dir *socket_dir = static_cast<Lwip::Tcp_socket_dir *>(arg);
@@ -1485,9 +1498,12 @@ err_t tcp_accept_callback(void *arg, struct tcp_pcb *newpcb, err_t err)
 
 
 static
-err_t tcp_recv_callback(void *arg, struct tcp_pcb*, struct pbuf *p, err_t)
+err_t tcp_recv_callback(void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t)
 {
-	if (!arg) return ERR_ARG;
+	if (!arg) {
+		tcp_abort(pcb);
+		return ERR_ABRT;
+	}
 
 	Lwip::Tcp_socket_dir *socket_dir = static_cast<Lwip::Tcp_socket_dir *>(arg);
 	if (p == NULL) {
@@ -1501,8 +1517,13 @@ err_t tcp_recv_callback(void *arg, struct tcp_pcb*, struct pbuf *p, err_t)
 
 
 static
-err_t tcp_delayed_recv_callback(void *arg, struct tcp_pcb*, struct pbuf *buf, err_t)
+err_t tcp_delayed_recv_callback(void *arg, struct tcp_pcb *pcb, struct pbuf *buf, err_t)
 {
+	if (!arg) {
+		tcp_abort(pcb);
+		return ERR_ABRT;
+	}
+
 	Lwip::Tcp_socket_dir::Pcb_pending *pending =
 		static_cast<Lwip::Tcp_socket_dir::Pcb_pending *>(arg);
 
@@ -1516,11 +1537,17 @@ err_t tcp_delayed_recv_callback(void *arg, struct tcp_pcb*, struct pbuf *buf, er
 };
 
 
-/*
+/**
+ * This would be the ACK callback, we could defer sync completion
+ * until then, but performance is expected to be unacceptable.
+ *
 static
 err_t tcp_sent_callback(void *arg, struct tcp_pcb*, u16_t len)
 {
-	if (!arg) return ERR_ARG;
+	if (!arg) {
+		tcp_abort(pcb);
+		return ERR_ABRT;
+	}
 
 	Lwip::Tcp_socket_dir *socket_dir = static_cast<Lwip::Tcp_socket_dir *>(arg);
 	socket_dir->pending_ack -= len;
