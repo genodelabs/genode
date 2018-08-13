@@ -20,7 +20,7 @@ SHA(${QTSCRIPTCLASSIC}) := 6a4c4ada6f0064f6c5d7663602a37c99250ed6c7398b1775f95de
 DIR(${QTSCRIPTCLASSIC}) := src/lib/qt5/${QTSCRIPTCLASSIC}
 
 URL(symbols) := https://github.com/cproc/genode-symbols.git
-REV(symbols) := 732fb1b64a0e8e704d5a8a4fb5458be3df068751
+REV(symbols) := c8b59b3e9372b6ac713b5407bfd1affb840ccb2f
 DIR(symbols) := lib/symbols
 
 
@@ -122,6 +122,9 @@ $(BUILD_DIR)/qtbase/src/printsupport/Makefile: $(BUILD_DIR)/qtbase/src/Makefile 
 
 $(BUILD_DIR)/qtbase/src/sql/Makefile: $(BUILD_DIR)/qtbase/src/Makefile
 	$(call generate_makefile, $(QT5_CONTRIB_DIR)/qtbase/src/sql/sql.pro)
+
+$(BUILD_DIR)/qtbase/src/testlib/Makefile: $(BUILD_DIR)/qtbase/src/Makefile
+	$(call generate_makefile, $(QT5_CONTRIB_DIR)/qtbase/src/testlib/testlib.pro)
 
 $(BUILD_DIR)/qtbase/src/widgets/Makefile: $(BUILD_DIR)/qtbase/src/Makefile
 	$(call generate_makefile, $(QT5_CONTRIB_DIR)/qtbase/src/widgets/widgets.pro)
@@ -270,6 +273,12 @@ include/QtSql: $(BUILD_DIR)/qtbase/src/sql/Makefile
 	$(VERBOSE)make -f $< INSTALL_ROOT=$(CURDIR) install_private_headers $(OUTPUT_FILTER)
 	$(VERBOSE)cp $(QT5_CONTRIB_DIR)/qtbase/src/sql/qtsql-config.h $@/
 	$(VERBOSE)cp $(QT5_CONTRIB_DIR)/qtbase/src/sql/qtsql-config_p.h $@/$(VERSION)/QtSql/private/
+
+include/QtTest: $(BUILD_DIR)/qtbase/src/testlib/Makefile
+	$(VERBOSE)$(MSG_GENERATE)$@
+	$(VERBOSE)make -f $< INSTALL_ROOT=$(CURDIR) install_class_headers $(OUTPUT_FILTER)
+	$(VERBOSE)make -f $< INSTALL_ROOT=$(CURDIR) install_targ_headers $(OUTPUT_FILTER)
+	$(VERBOSE)make -f $< INSTALL_ROOT=$(CURDIR) install_private_headers $(OUTPUT_FILTER)
 
 include/QtWidgets: $(BUILD_DIR)/qtbase/src/widgets/Makefile
 	$(VERBOSE)$(MSG_GENERATE)$@
@@ -503,6 +512,7 @@ qt5_headers: include/QtCore \
              include/QtPlatformHeaders \
              include/QtPrintSupport \
              include/QtSql \
+             include/QtTest \
              include/QtWidgets \
              include/QtXml \
              include/QtScript \

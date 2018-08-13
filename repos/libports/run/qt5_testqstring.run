@@ -1,0 +1,69 @@
+source ${genode_dir}/repos/libports/run/qt5_common.inc
+
+import_from_depot [depot_user]/src/qt5_component \
+                  [depot_user]/src/qt5_test \
+                  [depot_user]/src/qt5_widgets \
+                  [depot_user]/src/qt5_testqstring
+
+#
+# Build
+#
+
+append build_components [qt5_build_components feature]
+
+build $build_components
+
+
+#
+# Generate config
+#
+
+append config {
+<config>
+	<parent-provides>}
+append config [qt5_parent_provides feature]
+append config {
+	</parent-provides>
+	<default caps="100"/>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>}
+
+append config [qt5_start_nodes feature]
+
+append config {
+	<start name="testqstring" caps="200">
+		<resource name="RAM" quantum="80M"/>
+		<config>
+			<vfs>
+				<dir name="dev">
+					<log/>
+					<inline name="rtc">2018-01-01 00:01</inline>
+				</dir>
+				<tar name="qt5_dejavusans.tar"/>
+			</vfs>
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
+		</config>
+		<route>
+			<service name="Nitpicker"> <child name="wm"/> </service>
+			<service name="Report" label="shape">
+				<child name="pointer" label="wm -> testqstring -> shape"/>
+			</service>
+			<service name="ROM" label="egl_drv.lib.so"> <parent label="egl_swrast.lib.so" /> </service>
+			<any-service> <parent /> <any-child/> </any-service>
+		</route>
+	</start>
+</config>
+}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+append boot_modules [qt5_boot_modules feature]
+
+build_boot_image $boot_modules
+
+run_genode_until " Finished testing of TestQString" 30

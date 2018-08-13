@@ -29,9 +29,10 @@ Genode-specific adaptations
  .../evdevkeyboard/qevdevkeyboard_defaultmap_p.h    |    4 +
  .../input/evdevkeyboard/qevdevkeyboardhandler.cpp  |   17 ++++++
  .../input/evdevkeyboard/qevdevkeyboardhandler_p.h  |    2 +
+ qtbase/src/testlib/qtestcase.cpp                   |    2 -
  qtbase/src/widgets/dialogs/qfiledialog.cpp         |    2 -
  qtbase/src/widgets/styles/qstylefactory.cpp        |    7 +++
- 27 files changed, 196 insertions(+), 9 deletions(-)
+ 28 files changed, 197 insertions(+), 10 deletions(-)
 
 diff --git a/qtbase/src/corelib/codecs/qtextcodec.cpp b/qtbase/src/corelib/codecs/qtextcodec.cpp
 index 0c9036a..0dac7c1 100644
@@ -623,6 +624,19 @@ index 1ec4915..fed7024 100644
      KeycodeAction processKeycode(quint16 keycode, bool pressed, bool autorepeat);
  
  private:
+diff --git a/qtbase/src/testlib/qtestcase.cpp b/qtbase/src/testlib/qtestcase.cpp
+index 1c13f8e..f89b55c 100644
+--- a/qtbase/src/testlib/qtestcase.cpp
++++ b/qtbase/src/testlib/qtestcase.cpp
+@@ -1391,7 +1391,7 @@ FatalSignalHandler::FatalSignalHandler()
+ 
+ // tvOS/watchOS both define SA_ONSTACK (in sys/signal.h) but mark sigaltstack() as
+ // unavailable (__WATCHOS_PROHIBITED __TVOS_PROHIBITED in signal.h)
+-#if defined(SA_ONSTACK) && !defined(Q_OS_TVOS) && !defined(Q_OS_WATCHOS)
++#if defined(SA_ONSTACK) && !defined(Q_OS_TVOS) && !defined(Q_OS_WATCHOS) && !defined(Q_OS_GENODE)
+     // Let the signal handlers use an alternate stack
+     // This is necessary if SIGSEGV is to catch a stack overflow
+ #  if defined(Q_CC_GNU) && defined(Q_OF_ELF)
 diff --git a/qtbase/src/widgets/dialogs/qfiledialog.cpp b/qtbase/src/widgets/dialogs/qfiledialog.cpp
 index 74875fa..2f6410e 100644
 --- a/qtbase/src/widgets/dialogs/qfiledialog.cpp

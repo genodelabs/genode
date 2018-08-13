@@ -45,6 +45,11 @@ LIBS += qt5_scriptclassic
 endif
 endif
 
+# QtTest
+ifeq ($(findstring testlib, $(QT)), testlib)
+LIBS += qt5_test
+endif
+
 # QtXml
 ifeq ($(findstring xml, $(QT)), xml)
 LIBS += qt5_xml
