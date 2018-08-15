@@ -277,7 +277,7 @@ proc drivers_start_nodes { feature_arg } {
 					<service name="Nic"/>}
 		append start_nodes {
 				</provides>
-				<config uhci="yes" ehci="yes" xhci="no">}
+				<config uhci="yes" ehci="yes" xhci="yes">}
 		append_if [use_usb_input feature] start_nodes {
 					<hid/>}
 		append_if [use_usb_nic feature] start_nodes {
