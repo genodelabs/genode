@@ -129,8 +129,16 @@ extern "C" int __sysctl(int *name, u_int namelen, void *oldp, size_t *oldlenp,
 
 			case HW_PHYSMEM:
 			case HW_USERMEM:
-				*(unsigned long*)oldp = _global_env->ram().ram_quota().value;
-				*oldlenp = sizeof(unsigned long);
+				switch (*oldlenp) {
+				case 4:
+					*(Genode::int32_t*)oldp = _global_env->ram().ram_quota().value;
+					break;
+				case 8:
+					*(Genode::int64_t*)oldp = _global_env->ram().ram_quota().value;
+					break;
+				default:
+					return Libc::Errno(EINVAL);
+				}
 				return 0;
 
 			case HW_PAGESIZE:
