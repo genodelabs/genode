@@ -1,0 +1,12 @@
+<launcher pkg="alex-ab/pkg/vbox5-tc-firefox-nova-sculpt/2018-07-13">
+	<route>
+		<service name="Nic"> <child name="nic_router"/> </service>
+		<service name="ROM"    label="capslock"> <parent label="capslock"/> </service>
+		<service name="ROM"    label="platform_info"> <parent/> </service>
+		<service name="Report" label="shape"> <parent label="wm -> wm -> vbox5-tc-browser -> shape"/> </service>
+		<service name="RM">        <parent/> </service>
+		<service name="Rtc">       <parent/> </service>
+		<service name="Nitpicker"> <child name="wm"/> </service>
+		<service name="File_system" label="shared"> <child name="shared_fs"/> </service>
+	</route>
+</launcher>

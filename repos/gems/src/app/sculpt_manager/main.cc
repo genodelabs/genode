@@ -22,11 +22,11 @@
 #include <children.h>
 
 /* local includes */
+#include <model/runtime_state.h>
 #include <model/child_exit_state.h>
 #include <view/download_status.h>
 #include <gui.h>
 #include <nitpicker.h>
-#include <runtime.h>
 #include <keyboard_focus.h>
 #include <network.h>
 #include <storage.h>
@@ -38,7 +38,6 @@ namespace Sculpt { struct Main; }
 struct Sculpt::Main : Input_event_handler,
                       Dialog::Generator,
                       Runtime_config_generator,
-                      Runtime_info,
                       Storage::Target_user
 {
 	Env &_env;
@@ -155,7 +154,7 @@ struct Sculpt::Main : Input_event_handler,
 	}
 
 
-	Network _network { _env, _heap, *this, *this, *this, _pci_info };
+	Network _network { _env, _heap, *this, *this, _runtime_state, _pci_info };
 
 
 	/************
@@ -175,7 +174,7 @@ struct Sculpt::Main : Input_event_handler,
 	                                   && _network.ready()
 	                                   && _deploy.update_needed(); };
 
-	Deploy _deploy { _env, _heap, *this, *this, *this };
+	Deploy _deploy { _env, _heap, _runtime_state, *this, *this };
 
 
 
@@ -242,19 +241,9 @@ struct Sculpt::Main : Input_event_handler,
 		});
 	}
 
-	Attached_rom_dataspace _runtime_state { _env, "report -> runtime/state" };
+	Attached_rom_dataspace _runtime_state_rom { _env, "report -> runtime/state" };
 
-	/**
-	 * Runtime_info interface
-	 */
-	bool present_in_runtime(Start_name const &name) const override
-	{
-		bool present = false;
-		_runtime_state.xml().for_each_sub_node("child", [&] (Xml_node child) {
-			if (child.attribute_value("name", Start_name()) == name)
-				present = true; });
-		return present;
-	}
+	Runtime_state _runtime_state { _heap };
 
 	Managed_config<Main> _runtime_config {
 		_env, "config", "runtime", *this, &Main::_handle_runtime };
@@ -372,7 +361,7 @@ struct Sculpt::Main : Input_event_handler,
 
 	Main(Env &env) : _env(env)
 	{
-		_runtime_state.sigh(_runtime_state_handler);
+		_runtime_state_rom.sigh(_runtime_state_handler);
 		_nitpicker_displays.sigh(_nitpicker_displays_handler);
 
 		/*
@@ -631,9 +620,11 @@ void Sculpt::Main::_handle_update_state()
 
 void Sculpt::Main::_handle_runtime_state()
 {
-	_runtime_state.update();
+	_runtime_state_rom.update();
 
-	Xml_node state = _runtime_state.xml();
+	Xml_node state = _runtime_state_rom.xml();
+
+	_runtime_state.update_from_state_report(state);
 
 	bool reconfigure_runtime = false;
 
@@ -861,8 +852,12 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 		xml.node("start", [&] () {
 			gen_update_start_content(xml); });
 
-	if (_storage._sculpt_partition.valid() && !_prepare_in_progress())
+	if (_storage._sculpt_partition.valid() && !_prepare_in_progress()) {
+		xml.node("start", [&] () {
+			gen_launcher_query_start_content(xml); });
+
 		_deploy.gen_runtime_start_nodes(xml);
+	}
 }
 
 

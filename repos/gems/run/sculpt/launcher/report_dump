@@ -1,0 +1,8 @@
+<launcher pkg="report_dump">
+	<route>
+		<service name="File_system" label="report">
+			<parent label="report"/> </service>
+		<service name="File_system" label="target">
+			<child name="default_fs_rw"/> </service>
+	</route>
+</launcher>

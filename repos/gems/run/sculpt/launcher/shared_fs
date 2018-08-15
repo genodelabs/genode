@@ -1,0 +1,6 @@
+<launcher pkg="chroot">
+	<route>
+		<service name="File_system"> <child name="default_fs_rw"/> </service>
+	</route>
+	<config> <default-policy path="/shared" writeable="yes"/> </config>
+</launcher>

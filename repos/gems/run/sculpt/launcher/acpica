@@ -1,0 +1,11 @@
+<launcher pkg="acpica">
+	<config reset="no" poweroff="no" report="yes" act_as_acpi_drv="no"/>
+	<route>
+		<service name="ROM" label="platform_info"> <parent/> </service>
+		<service name="Platform"> <parent/> </service>
+		<service name="IO_MEM">   <parent/> </service>
+		<service name="IO_PORT">  <parent/> </service>
+		<service name="IRQ">      <parent/> </service>
+		<service name="Report">   <parent/> </service>
+	</route>
+</launcher>

@@ -1,0 +1,9 @@
+<launcher pkg="alex-ab/pkg/seoul-nova-sculpt/2018-07-13">
+	<route>
+		<service name="Nic"> <child name="nic_router"/> </service>
+		<service name="ROM" label="platform_info"> <parent/> </service>
+		<service name="RM">        <parent/> </service>
+		<service name="Rtc">       <parent/> </service>
+		<service name="Nitpicker"> <child name="wm"/> </service>
+	</route>
+</launcher>

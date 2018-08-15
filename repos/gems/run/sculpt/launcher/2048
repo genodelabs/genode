@@ -1,0 +1,5 @@
+<launcher pkg="ehmry/pkg/2048/18.05">
+	<route>
+		<service name="Nitpicker"> <child name="wm"/> </service>
+	</route>
+</launcher>

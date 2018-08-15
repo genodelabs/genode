@@ -1,0 +1,15 @@
+<launcher pkg="noux-system">
+	<route>
+		<service name="File_system" label="target">
+			<child name="default_fs_rw"/> </service>
+		<service name="Nitpicker"> <child name="wm"/> </service>
+		<service name="File_system" label="config">
+			<parent label="config"/> </service>
+		<service name="File_system" label="report">
+			<parent label="report"/> </service>
+		<service name="File_system" label="fonts">
+			<child name="fonts_fs"/> </service>
+		<service name="ROM" label_last="vimrc">
+			<parent label="config -> vimrc"/> </service>
+	</route>
+</launcher>

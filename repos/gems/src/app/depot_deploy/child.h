@@ -35,13 +35,15 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		typedef String<80>  Binary_name;
 		typedef String<80>  Config_name;
 		typedef String<32>  Depot_rom_server;
+		typedef String<100> Launcher_name;
 
 	private:
 
 		Allocator &_alloc;
 
-		Reconstructible<Buffered_xml> _start_xml;     /* from config */
-		Constructible<Buffered_xml>   _pkg_xml { };   /* from blueprint */
+		Reconstructible<Buffered_xml> _start_xml;         /* from config */
+		Constructible<Buffered_xml>   _launcher_xml { };
+		Constructible<Buffered_xml>   _pkg_xml { };       /* from blueprint */
 
 		/*
 		 * State of the condition check for generating the start node of
@@ -55,9 +57,32 @@ class Depot_deploy::Child : public List_model<Child>::Element
 
 		Name const _name;
 
+		bool _defined_by_launcher() const
+		{
+			/*
+			 * If the <start> node lacks a 'pkg' attribute, we expect the
+			 * policy to be defined by a launcher XML snippet.
+			 */
+			return _start_xml.constructed() && !_start_xml->xml().has_attribute("pkg");
+		}
+
 		Archive::Path _config_pkg_path() const
 		{
+			if (_defined_by_launcher() && _launcher_xml.constructed())
+				return _launcher_xml->xml().attribute_value("pkg", Archive::Path());
+
 			return _start_xml->xml().attribute_value("pkg", Archive::Path());
+		}
+
+		Launcher_name _launcher_name() const
+		{
+			if (!_defined_by_launcher())
+				return Launcher_name();
+
+			if (_start_xml->xml().has_attribute("launcher"))
+				return _start_xml->xml().attribute_value("launcher", Launcher_name());
+
+			return _start_xml->xml().attribute_value("name", Launcher_name());
 		}
 
 		/*
@@ -67,8 +92,12 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		 */
 		Archive::Path _blueprint_pkg_path = _config_pkg_path();
 
-		Ram_quota   _ram_quota { 0 };
-		Cap_quota   _cap_quota { 0 };
+		/*
+		 * Quota definitions obtained from the blueprint
+		 */
+		Number_of_bytes _pkg_ram_quota { 0 };
+		unsigned long   _pkg_cap_quota { 0 };
+
 		Binary_name _binary_name { };
 		Config_name _config_name { };
 
@@ -131,20 +160,21 @@ class Depot_deploy::Child : public List_model<Child>::Element
 			if (!start_node_changed)
 				return;
 
-			Archive::Path const pkg =
-				start_node.attribute_value("pkg", Archive::Path());
-
-			/* invalidate blueprint if 'pkg' attribute of start node changed */
-			if (pkg != _config_pkg_path())
-				_pkg_xml.destruct();
-
-			_blueprint_pkg_path = pkg;
+			Archive::Path const old_pkg_path = _config_pkg_path();
 
 			/* import new start node */
 			_start_xml.construct(_alloc, start_node);
 
-			/* reset error state, attempt to obtain the blueprint again */
-			_pkg_incomplete = false;
+			Archive::Path const new_pkg_path = _config_pkg_path();
+
+			/* invalidate blueprint if 'pkg' path changed */
+			if (old_pkg_path != new_pkg_path) {
+				_blueprint_pkg_path = new_pkg_path;
+				_pkg_xml.destruct();
+
+				/* reset error state, attempt to obtain the blueprint again */
+				_pkg_incomplete = false;
+			}
 		}
 
 		void apply_blueprint(Xml_node pkg)
@@ -157,11 +187,8 @@ class Depot_deploy::Child : public List_model<Child>::Element
 
 			Xml_node const runtime = pkg.sub_node("runtime");
 
-			Number_of_bytes const ram { runtime.attribute_value("ram", Number_of_bytes()) };
-			_ram_quota = Ram_quota { _start_xml->xml().attribute_value("ram",  ram) };
-
-			unsigned long const caps = runtime.attribute_value("caps", 0UL);
-			_cap_quota = Cap_quota { _start_xml->xml().attribute_value("caps", caps) };
+			_pkg_ram_quota = runtime.attribute_value("ram", Number_of_bytes());
+			_pkg_cap_quota = runtime.attribute_value("caps", 0UL);
 
 			_binary_name = runtime.attribute_value("binary", Binary_name());
 			_config_name = runtime.attribute_value("config", Config_name());
@@ -170,22 +197,57 @@ class Depot_deploy::Child : public List_model<Child>::Element
 			_pkg_xml.construct(_alloc, pkg);
 		}
 
-		template <typename COND_FN>
-		void apply_condition(COND_FN const &fn)
+		void apply_launcher(Launcher_name const &name, Xml_node launcher)
 		{
-			/* don't check the condition twice */
-			if (_condition == SATISFIED)
+			if (!_defined_by_launcher())
 				return;
 
+			if (_launcher_name() != name)
+				return;
+
+			if (_launcher_xml.constructed()) {
+				bool const launcher_changed =
+					(launcher.size() != _launcher_xml->xml().size()) ||
+					(strcmp(launcher.addr(), _launcher_xml->xml().addr(),
+					        launcher.size()) != 0);
+
+				if (!launcher_changed)
+					return;
+			}
+
+			_launcher_xml.construct(_alloc, launcher);
+
+			_blueprint_pkg_path = _config_pkg_path();
+		}
+
+		/*
+		 * \return true if condition changed
+		 */
+		template <typename COND_FN>
+		bool apply_condition(COND_FN const &fn)
+		{
+			Condition const orig_condition = _condition;
+
+			Xml_node launcher_xml = _launcher_xml.constructed()
+			                      ? _launcher_xml->xml()
+			                      : Xml_node("<empty/>");
+
 			if (_start_xml.constructed())
-				_condition = fn(_start_xml->xml()) ? SATISFIED : UNSATISFIED;
+				_condition = fn(_start_xml->xml(), launcher_xml)
+				           ? SATISFIED : UNSATISFIED;
+
+			return _condition != orig_condition;
 		}
 
 		template <typename FN>
 		void apply_if_unsatisfied(FN const &fn) const
 		{
+			Xml_node launcher_xml = _launcher_xml.constructed()
+			                      ? _launcher_xml->xml()
+			                      : Xml_node("<empty/>");
+
 			if (_condition == UNSATISFIED && _start_xml.constructed())
-				fn(_start_xml->xml());
+				fn(_start_xml->xml(), launcher_xml);
 		}
 
 		void mark_as_incomplete(Xml_node missing)
@@ -217,6 +279,9 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		void gen_query(Xml_generator &xml) const
 		{
 			if (_configured() || _pkg_incomplete)
+				return;
+
+			if (_defined_by_launcher() && !_launcher_xml.constructed())
 				return;
 
 			xml.node("blueprint", [&] () {
@@ -264,6 +329,9 @@ void Depot_deploy::Child::gen_start_node(Xml_generator &xml, Xml_node common,
 	if (!_configured() || _condition == UNSATISFIED)
 		return;
 
+	if (_defined_by_launcher() && !_launcher_xml.constructed())
+		return;
+
 	if (!_pkg_xml->xml().has_sub_node("runtime")) {
 		warning("blueprint for '", _name, "' lacks runtime information");
 		return;
@@ -272,7 +340,13 @@ void Depot_deploy::Child::gen_start_node(Xml_generator &xml, Xml_node common,
 	xml.node("start", [&] () {
 
 		xml.attribute("name", _name);
-		xml.attribute("caps", _cap_quota.value);
+
+		unsigned long caps = _pkg_cap_quota;
+		if (_defined_by_launcher())
+			caps = _launcher_xml->xml().attribute_value("caps", caps);
+		caps = _start_xml->xml().attribute_value("caps", caps);
+
+		xml.attribute("caps", caps);
 
 		typedef String<64> Version;
 		Version const version = _start_xml->xml().attribute_value("version", Version());
@@ -281,22 +355,32 @@ void Depot_deploy::Child::gen_start_node(Xml_generator &xml, Xml_node common,
 
 		xml.node("binary", [&] () { xml.attribute("name", _binary_name); });
 
+		Number_of_bytes ram = _pkg_ram_quota;
+		if (_defined_by_launcher())
+			ram = _launcher_xml->xml().attribute_value("ram", ram);
+		ram = _start_xml->xml().attribute_value("ram", ram);
+
 		xml.node("resource", [&] () {
 			xml.attribute("name", "RAM");
-			xml.attribute("quantum", String<32>(Number_of_bytes(_ram_quota.value)));
+			xml.attribute("quantum", String<32>(ram));
 		});
 
 		Xml_node const runtime = _pkg_xml->xml().sub_node("runtime");
 
 		/*
-		 * Insert inline '<config>' node if provided by the start node or the
+		 * Insert inline '<config>' node if provided by the start node,
+		 * the launcher definition (if a launcher is user), or the
 		 * blueprint. The former is preferred over the latter.
 		 */
 		if (_start_xml->xml().has_sub_node("config")) {
 			_gen_copy_of_sub_node(xml, _start_xml->xml(), "config");
 		} else {
-			if (runtime.has_sub_node("config"))
-				_gen_copy_of_sub_node(xml, runtime, "config");
+			if (_defined_by_launcher() && _launcher_xml->xml().has_sub_node("config")) {
+				_gen_copy_of_sub_node(xml, _launcher_xml->xml(), "config");
+			} else {
+				if (runtime.has_sub_node("config"))
+					_gen_copy_of_sub_node(xml, runtime, "config");
+			}
 		}
 
 		/*
@@ -341,6 +425,14 @@ void Depot_deploy::Child::_gen_routes(Xml_generator &xml, Xml_node common,
 	 */
 	if (_start_xml->xml().has_sub_node("route")) {
 		Xml_node const route = _start_xml->xml().sub_node("route");
+		xml.append(route.content_base(), route.content_size());
+	}
+
+	/*
+	 * Add routes given in the launcher definition.
+	 */
+	if (_launcher_xml.constructed() && _launcher_xml->xml().has_sub_node("route")) {
+		Xml_node const route = _launcher_xml->xml().sub_node("route");
 		xml.append(route.content_base(), route.content_size());
 	}
 

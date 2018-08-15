@@ -39,6 +39,7 @@ namespace Sculpt {
 	                              Path const &, Writeable);
 
 	void gen_depot_query_start_content(Xml_generator &);
+	void gen_launcher_query_start_content(Xml_generator &);
 
 	struct File_browser_version { unsigned value; };
 	void gen_file_browser(Xml_generator &, Storage_devices const &,

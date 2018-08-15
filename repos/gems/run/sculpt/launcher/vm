@@ -1,0 +1,16 @@
+<launcher ram="4300M" pkg="vbox5-nova-sculpt">
+	<route>
+		<service name="File_system" label="vm"> <child name="vm_fs"/> </service>
+		<service name="ROM"    label="capslock"> <parent label="capslock"/> </service>
+		<service name="ROM"    label="platform_info"> <parent/> </service>
+		<service name="ROM"    label="usb_devices"> <child name="usb_devices_rom"/> </service>
+		<service name="Report" label="shape"> <parent label="wm -> wm -> vm -> shape"/> </service>
+		<service name="Nitpicker"> <child name="wm"/> </service>
+		<service name="Nic">       <child name="nic_router"/> </service>
+		<service name="Report"> <parent/> </service>
+		<service name="RM">     <parent/> </service>
+		<service name="Rtc">    <parent/> </service>
+		<service name="Usb">    <parent/> </service>
+		<service name="File_system" label="shared"> <child name="shared_fs"/> </service>
+	</route>
+</launcher>

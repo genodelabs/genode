@@ -1,0 +1,5 @@
+<launcher pkg="ehmry/pkg/gambatte/2018-07-08">
+	<route>
+		<service name="Nitpicker"> <child name="wm"/> </service>
+	</route>
+</launcher>

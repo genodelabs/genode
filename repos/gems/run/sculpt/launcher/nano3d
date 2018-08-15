@@ -1,0 +1,5 @@
+<launcher pkg="nano3d">
+	<route>
+		<service name="Nitpicker"> <child name="wm"/> </service>
+	</route>
+</launcher>

@@ -16,6 +16,7 @@
 
 #include <runtime/chroot.cc>
 #include <runtime/depot_query.cc>
+#include <runtime/launcher_query.cc>
 #include <runtime/e2fs.cc>
 #include <runtime/file_browser.cc>
 #include <runtime/file_system.cc>

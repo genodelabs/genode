@@ -1,0 +1,6 @@
+<launcher pkg="themed_wm">
+	<route>
+		<service name="Nitpicker" label="wm -> "> <parent label="focus"/> </service>
+		<service name="Nitpicker"> <parent/> </service>
+	</route>
+</launcher>

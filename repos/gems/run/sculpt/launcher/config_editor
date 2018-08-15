@@ -1,0 +1,7 @@
+<launcher pkg="qt5_textedit">
+	<route>
+		<service name="File_system" label="rw"> <parent label="config"/> </service>
+		<service name="Nitpicker"> <child name="wm"/> </service>
+		<service name="Report" label="shape"> <parent label="wm -> wm -> qt5_textedit -> shape"/> </service>
+	</route>
+</launcher>
