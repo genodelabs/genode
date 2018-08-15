@@ -1,24 +1,24 @@
 source ${genode_dir}/repos/libports/run/qt5_common.inc
 
-import_from_depot genodelabs/raw/qt5_qt_labs_folderlistmodel \
-                  genodelabs/raw/qt5_qtquick_layouts \
-                  genodelabs/raw/qt5_qtquick_virtualkeyboard \
-                  genodelabs/raw/qt5_qtquick_window \
-                  genodelabs/raw/qt5_qtquick2 \
-                  genodelabs/src/libcrypto \
-                  genodelabs/src/libssl \
-                  genodelabs/src/qt5_component \
-                  genodelabs/src/qt5_network \
-                  genodelabs/src/qt5_qml \
-                  genodelabs/src/qt5_qt_labs_folderlistmodel \
-                  genodelabs/src/qt5_qtquick_layouts \
-                  genodelabs/src/qt5_qtquick_virtualkeyboard \
-                  genodelabs/src/qt5_qtquick_window \
-                  genodelabs/src/qt5_qtquick2 \
-                  genodelabs/src/qt5_quick \
-                  genodelabs/src/qt5_svg \
-                  genodelabs/src/qt5_virtualkeyboard \
-                  genodelabs/src/qt5_widgets
+import_from_depot [depot_user]/raw/qt5_qt_labs_folderlistmodel \
+                  [depot_user]/raw/qt5_qtquick_layouts \
+                  [depot_user]/raw/qt5_qtquick_virtualkeyboard \
+                  [depot_user]/raw/qt5_qtquick_window \
+                  [depot_user]/raw/qt5_qtquick2 \
+                  [depot_user]/src/libcrypto \
+                  [depot_user]/src/libssl \
+                  [depot_user]/src/qt5_component \
+                  [depot_user]/src/qt5_network \
+                  [depot_user]/src/qt5_qml \
+                  [depot_user]/src/qt5_qt_labs_folderlistmodel \
+                  [depot_user]/src/qt5_qtquick_layouts \
+                  [depot_user]/src/qt5_qtquick_virtualkeyboard \
+                  [depot_user]/src/qt5_qtquick_window \
+                  [depot_user]/src/qt5_qtquick2 \
+                  [depot_user]/src/qt5_quick \
+                  [depot_user]/src/qt5_svg \
+                  [depot_user]/src/qt5_virtualkeyboard \
+                  [depot_user]/src/qt5_widgets
 
 #
 # Build

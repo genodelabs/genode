@@ -1,10 +1,10 @@
 source ${genode_dir}/repos/libports/run/qt5_common.inc
 
-import_from_depot genodelabs/src/qt5_component \
-                  genodelabs/src/qt5_scriptclassic \
-                  genodelabs/src/qt5_tetrix \
-                  genodelabs/src/qt5_ui_tools \
-                  genodelabs/src/qt5_widgets
+import_from_depot [depot_user]/src/qt5_component \
+                  [depot_user]/src/qt5_scriptclassic \
+                  [depot_user]/src/qt5_tetrix \
+                  [depot_user]/src/qt5_ui_tools \
+                  [depot_user]/src/qt5_widgets
 
 #
 # Build

@@ -1,15 +1,17 @@
 create_boot_directory
 
-import_from_depot genodelabs/src/[base_src] \
-                  genodelabs/src/init \
-                  genodelabs/src/libc \
-                  genodelabs/src/pcre16 \
-                  genodelabs/src/qt5_component \
-                  genodelabs/src/qt5_core \
-                  genodelabs/src/stdcxx \
-                  genodelabs/src/vfs \
-                  genodelabs/src/zlib \
-                  genodelabs/src/test-qt_core
+proc depot_user {} { return [get_cmd_arg --depot-user genodelabs] }
+
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/src/init \
+                  [depot_user]/src/libc \
+                  [depot_user]/src/pcre16 \
+                  [depot_user]/src/qt5_component \
+                  [depot_user]/src/qt5_core \
+                  [depot_user]/src/stdcxx \
+                  [depot_user]/src/vfs \
+                  [depot_user]/src/zlib \
+                  [depot_user]/src/test-qt_core
 
 install_config {
 <config verbose="yes">

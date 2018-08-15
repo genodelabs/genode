@@ -1,7 +1,7 @@
 source ${genode_dir}/repos/libports/run/qt5_common.inc
 
-import_from_depot genodelabs/src/qt5_component \
-                  genodelabs/src/qt5_openglwindow
+import_from_depot [depot_user]/src/qt5_component \
+                  [depot_user]/src/qt5_openglwindow
 
 #
 # Build

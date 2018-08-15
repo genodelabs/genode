@@ -1,13 +1,13 @@
 source ${genode_dir}/repos/libports/run/qt5_common.inc
 
-import_from_depot genodelabs/raw/qt5_avplay \
-                  genodelabs/src/avplay \
-                  genodelabs/src/libav \
-                  genodelabs/src/qt5_avplay \
-                  genodelabs/src/qt5_qnitpickerviewwidget \
-                  genodelabs/src/qt5_widgets \
-                  genodelabs/src/qt5_xml \
-                  genodelabs/src/sdl
+import_from_depot [depot_user]/raw/qt5_avplay \
+                  [depot_user]/src/avplay \
+                  [depot_user]/src/libav \
+                  [depot_user]/src/qt5_avplay \
+                  [depot_user]/src/qt5_qnitpickerviewwidget \
+                  [depot_user]/src/qt5_widgets \
+                  [depot_user]/src/qt5_xml \
+                  [depot_user]/src/sdl
 
 set feature(Audio_out) 1
 

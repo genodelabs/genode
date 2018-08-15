@@ -1,13 +1,13 @@
 source ${genode_dir}/repos/libports/run/qt5_common.inc
 
-import_from_depot genodelabs/src/libcrypto \
-                  genodelabs/src/libssl \
-                  genodelabs/src/qt5_component \
-                  genodelabs/src/qt5_network \
-                  genodelabs/src/qt5_qnitpickerviewwidget \
-                  genodelabs/src/qt5_qpluginwidget \
-                  genodelabs/src/qt5_widgets \
-                  genodelabs/src/test-qpluginwidget
+import_from_depot [depot_user]/src/libcrypto \
+                  [depot_user]/src/libssl \
+                  [depot_user]/src/qt5_component \
+                  [depot_user]/src/qt5_network \
+                  [depot_user]/src/qt5_qnitpickerviewwidget \
+                  [depot_user]/src/qt5_qpluginwidget \
+                  [depot_user]/src/qt5_widgets \
+                  [depot_user]/src/test-qpluginwidget
 
 #
 # Build

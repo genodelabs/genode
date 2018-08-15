@@ -1,3 +1,6 @@
+
+proc depot_user {} { return [get_cmd_arg --depot-user genodelabs] }
+
 source ${genode_dir}/repos/libports/run/qt5_drivers.inc
 
 set feature(Input) 1
@@ -6,28 +9,28 @@ set feature(Timer) 1
 
 create_boot_directory
 
-import_from_depot genodelabs/src/[base_src] \
-                  genodelabs/src/decorator \
-                  genodelabs/src/expat \
-                  genodelabs/src/floating_window_layouter \
-                  genodelabs/src/freetype \
-                  genodelabs/src/init \
-                  genodelabs/src/jpeg \
-                  genodelabs/src/libc \
-                  genodelabs/src/libpng \
-                  genodelabs/src/mesa \
-                  genodelabs/src/nitpicker \
-                  genodelabs/src/pcre16 \
-                  genodelabs/src/qt5_core \
-                  genodelabs/src/qt5_gui \
-                  genodelabs/src/qt5_qjpeg \
-                  genodelabs/src/qt5_qpa_nitpicker \
-                  genodelabs/src/report_rom \
-                  genodelabs/src/stdcxx \
-                  genodelabs/src/vfs \
-                  genodelabs/src/wm \
-                  genodelabs/src/zlib \
-                  genodelabs/raw/qt5_dejavusans
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/src/decorator \
+                  [depot_user]/src/expat \
+                  [depot_user]/src/floating_window_layouter \
+                  [depot_user]/src/freetype \
+                  [depot_user]/src/init \
+                  [depot_user]/src/jpeg \
+                  [depot_user]/src/libc \
+                  [depot_user]/src/libpng \
+                  [depot_user]/src/mesa \
+                  [depot_user]/src/nitpicker \
+                  [depot_user]/src/pcre16 \
+                  [depot_user]/src/qt5_core \
+                  [depot_user]/src/qt5_gui \
+                  [depot_user]/src/qt5_qjpeg \
+                  [depot_user]/src/qt5_qpa_nitpicker \
+                  [depot_user]/src/report_rom \
+                  [depot_user]/src/stdcxx \
+                  [depot_user]/src/vfs \
+                  [depot_user]/src/wm \
+                  [depot_user]/src/zlib \
+                  [depot_user]/raw/qt5_dejavusans
 
 #
 # Build
