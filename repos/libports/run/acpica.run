@@ -152,6 +152,7 @@ append config {
 			<config verbose_keyboard="no" verbose_mouse="no" verbose_scancodes="no"/>
 			<route>
 				<service name="Platform"> <child name="platform_drv"/> </service>
+				<service name="Timer"> <child name="timer"/> </service>
 				<any-service> <parent/> </any-service>
 			</route>
 		</start>

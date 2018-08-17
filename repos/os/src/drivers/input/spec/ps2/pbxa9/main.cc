@@ -17,6 +17,7 @@
 #include <drivers/defs/pbxa9.h>
 #include <input/component.h>
 #include <input/root.h>
+#include <timer_session/connection.h>
 
 /* local includes */
 #include "ps2_keyboard.h"
@@ -46,11 +47,13 @@ struct Ps2::Main
 	Input::Session_component _session { _env, _env.ram() };
 	Input::Root_component    _root { _env.ep().rpc_ep(), _session };
 
+	Timer::Connection _timer { _env };
+
 	Genode::Attached_rom_dataspace _config { _env, "config" };
 
 	Genode::Reconstructible<Verbose> _verbose { _config.xml() };
 
-	Mouse    _mouse    { _pl050.aux_interface(), _session.event_queue(),        *_verbose };
+	Mouse    _mouse    { _pl050.aux_interface(), _session.event_queue(), _timer, *_verbose };
 	Keyboard _keyboard { _pl050.kbd_interface(), _session.event_queue(), false, *_verbose };
 
 	Irq_handler _mouse_irq    { _env, PL050_MOUSE_IRQ, _pl050.aux_interface(), _mouse };

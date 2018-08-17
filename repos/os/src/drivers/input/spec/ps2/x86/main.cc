@@ -20,6 +20,7 @@
 #include <input/component.h>
 #include <input/root.h>
 #include <platform_session/connection.h>
+#include <timer_session/connection.h>
 
 /* local includes */
 #include "i8042.h"
@@ -41,6 +42,8 @@ struct Ps2::Main
 
 	Platform::Connection _platform { _env };
 
+	Timer::Connection _timer { _env };
+
 	Platform::Device_capability _ps2_device_cap()
 	{
 		return _platform.with_upgrade([&] () {
@@ -61,7 +64,7 @@ struct Ps2::Main
 	Keyboard _keyboard { _i8042.kbd_interface(), _session.event_queue(),
 	                     _i8042.kbd_xlate(), *_verbose };
 
-	Mouse _mouse { _i8042.aux_interface(), _session.event_queue(), *_verbose };
+	Mouse _mouse { _i8042.aux_interface(), _session.event_queue(), _timer, *_verbose };
 
 	Irq_handler _keyboard_irq { _env.ep(), _keyboard, _device_ps2.irq(0) };
 	Irq_handler _mouse_irq    { _env.ep(), _mouse,    _device_ps2.irq(1) };

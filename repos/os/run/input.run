@@ -72,6 +72,7 @@ append_if [have_spec ps2] config {
 			<service name="IO_PORT">  <parent/>    </service>
 			<service name="LOG">      <parent/>    </service>
 			<service name="Platform"> <any-child/> </service>
+			<service name="Timer">    <child name="timer"/> </service>
 		</route>
 	</start>
 	<alias name="input_drv" child="ps2_drv"/>}

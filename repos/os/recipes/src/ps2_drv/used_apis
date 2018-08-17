@@ -2,3 +2,4 @@ base
 os
 platform_session
 input_session
+timer_session

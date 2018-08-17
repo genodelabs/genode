@@ -17,6 +17,7 @@
 #include <base/log.h>
 #include <input/event_queue.h>
 #include <input/keycodes.h>
+#include <timer_session/connection.h>
 
 #include "input_driver.h"
 
@@ -77,6 +78,7 @@ class Ps2::Mouse : public Input_driver
 
 		Type                _type { PS2 };
 
+		Timer::Connection  &_timer;
 		Verbose      const &_verbose;
 		bool                _button_state[NUM_BUTTONS];
 
@@ -166,9 +168,9 @@ class Ps2::Mouse : public Input_driver
 	public:
 
 		Mouse(Serial_interface &aux, Input::Event_queue &ev_queue,
-		      Verbose const &verbose)
+		      Timer::Connection &timer, Verbose const &verbose)
 		:
-			_aux(aux), _ev_queue(ev_queue), _verbose(verbose)
+			_aux(aux), _ev_queue(ev_queue), _timer(timer), _verbose(verbose)
 		{
 			for (unsigned i = 0; i < NUM_BUTTONS; ++i)
 				_button_state[i] = false;
@@ -180,6 +182,20 @@ class Ps2::Mouse : public Input_driver
 			_aux.write(CMD_RESET);
 			if (_aux.read() != RET_ACK)
 				Genode::warning("could not reset mouse (missing ack)");
+
+			/* poll TIMEOUT_MS for reset results each SLEEP_MS */
+			enum { TIMEOUT_MS = 700, SLEEP_MS = 10 };
+			unsigned timeout_ms = 0;
+			do {
+				_timer.msleep(SLEEP_MS);
+				timeout_ms += SLEEP_MS;
+			} while (!_aux.data_read_ready() && timeout_ms < TIMEOUT_MS);
+
+			if (!_aux.data_read_ready()) {
+				Genode::warning("could not reset mouse (no response)");
+				return;
+			}
+
 			if (_aux.read() != 0xaa)
 				Genode::warning("could not reset mouse (unexpected response)");
 			if (_aux.read() != 0x00)
@@ -188,6 +204,13 @@ class Ps2::Mouse : public Input_driver
 			_aux.write(CMD_ENABLE_STREAM);
 			if (_aux.read() != RET_ACK)
 				Genode::warning("could not enable stream");
+
+			/*
+			 * Give the hardware some time to settle before probing extended
+			 * mouse versions. Otherwise, current Lenovo trackpoints (X260,
+			 * T470) stop working.
+			 */
+			_timer.msleep(5);
 
 			/* probe for protocol extensions */
 			if (_probe_exps2()) {
