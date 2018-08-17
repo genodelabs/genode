@@ -153,7 +153,7 @@ class Ps2::Keyboard : public Input_driver
 					case READ_E0_VALUE:
 
 						/* drop fake shifts */
-						if ((v & 0x7f) == 0x2a) {
+						if ((v & 0x7f) == 0x2a || (v & 0x7f) == 0x36) {
 							reset();
 							return;
 						}
@@ -301,7 +301,7 @@ class Ps2::Keyboard : public Input_driver
 					case READ_EXT:
 
 						/* drop fake shifts */
-						if (v == 0x12) {
+						if (v == 0x12 || v == 0x59) {
 							reset();
 							return;
 						}
