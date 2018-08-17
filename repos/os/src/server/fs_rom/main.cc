@@ -495,19 +495,6 @@ class Fs_rom::Rom_root : public Root_component<Fs_rom::Rom_session_component>
 
 void Component::construct(Genode::Env &env)
 {
-	/*
-	 * Print message to force the creation of the env LOG session, which would
-	 * otherwise be created on the first (error) message. The latter becomes a
-	 * problem when using the fs_rom as a provider for the env ROM sessions
-	 * (like depot_rom in the sculpt scenario). Here, an error message printed
-	 * in the synchronously called 'Rom_session::dataspace' RPC function may
-	 * create a livelock on the attempt to obtain the LOG session.
-	 *
-	 * XXX This workaround can be removed with the eager creation of the
-	 *     the env log session.
-	 */
-	Genode::log("--- fs_rom ---");
-
 	static Genode::Sliced_heap sliced_heap(env.ram(), env.rm());
 	static Fs_rom::Rom_root inst(env, sliced_heap);
 }
