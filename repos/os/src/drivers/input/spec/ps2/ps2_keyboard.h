@@ -365,23 +365,41 @@ class Ps2::Keyboard : public Input_driver
 		 */
 		Scan_code_state_machine *_state_machine = nullptr;
 
-		bool _capslock = false;
-		bool _numlock  = false;
-		bool _scrlock  = false;
+		struct Led_state
+		{
+			bool capslock = false;
+			bool numlock  = false;
+			bool scrlock  = false;
+
+			bool operator == (Led_state const &other) const {
+				return other.capslock == capslock
+				    && other.numlock  == numlock
+				    && other.scrlock  == scrlock; }
+		};
+
+		Led_state _led_state      { };
+		Led_state _next_led_state { };
 
 		void _update_leds()
 		{
+			/* don't interfere with pending events when applying next led state */
+			if (event_pending() || _led_state == _next_led_state)
+				return;
+
 			_kbd.write(0xed);
 			if (_kbd.read() != ACK) {
 				Genode::warning("setting of mode indicators failed (0xed)");
 				return;
 			}
 
-			_kbd.write((_capslock ? 4:0) | (_numlock ? 2:0) | (_scrlock ? 1:0));
+			_kbd.write((_next_led_state.capslock ? 4:0) | (_next_led_state.numlock ? 2:0)
+			                                            | (_next_led_state.scrlock ? 1:0));
 			if (_kbd.read() != ACK) {
 				Genode::warning("setting of mode indicators failed");
 				return;
 			}
+
+			_led_state = _next_led_state;
 		}
 
 	public:
@@ -420,9 +438,9 @@ class Ps2::Keyboard : public Input_driver
 		void led_enabled(Led led, bool enabled)
 		{
 			switch (led) {
-			case CAPSLOCK_LED: _capslock = enabled; break;
-			case NUMLOCK_LED:  _numlock  = enabled; break;
-			case SCRLOCK_LED:  _scrlock  = enabled; break;
+			case CAPSLOCK_LED: _next_led_state.capslock = enabled; break;
+			case NUMLOCK_LED:  _next_led_state.numlock  = enabled; break;
+			case SCRLOCK_LED:  _next_led_state.scrlock  = enabled; break;
 			}
 			_update_leds();
 		}
@@ -476,6 +494,7 @@ class Ps2::Keyboard : public Input_driver
 			 */
 			if (_key_state[key_code] == press) {
 				_state_machine->reset();
+				_update_leds();
 				return;
 			}
 
@@ -499,6 +518,7 @@ class Ps2::Keyboard : public Input_driver
 
 			/* start with new packet */
 			_state_machine->reset();
+			_update_leds();
 		}
 
 		bool event_pending() const { return _kbd.data_read_ready(); }
