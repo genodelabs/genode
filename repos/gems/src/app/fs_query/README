@@ -1,0 +1,14 @@
+The fs_query component queries and monitors information stored on a file
+system. The file system is configured as a component-local VFS. The component
+accepts any number of '<query>' nodes within its '<config>' node. Each
+'<query>' node must contain a 'path' attribute pointing to a directory to
+watch. The component generates a report labeled "listing". For each
+existing queried directory, the report contains a '<dir>' node with the
+list of files as '<file>' nodes featuring the corresponding 'name' as
+attribute value.
+
+A '<query>' can be equipped with a 'content="yes"' attribute. If set, the
+content of the queried files is supplemented as body of the '<file>' nodes.
+The reported content is limited to 4 KiB per file. If the content is valid
+XML, the '<file>' node contains an attribute 'xml="yes"' indicating that
+the XML information is inserted as is. Otherwise, the content is sanitized.

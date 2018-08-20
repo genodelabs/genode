@@ -1,0 +1,199 @@
+create_boot_directory
+
+import_from_depot \
+	genodelabs/src/[base_src] \
+	genodelabs/src/coreutils \
+	genodelabs/src/bash \
+	genodelabs/src/init \
+	genodelabs/src/libc \
+	genodelabs/src/noux \
+	genodelabs/src/posix \
+	genodelabs/src/report_rom \
+	genodelabs/src/vfs \
+	genodelabs/src/vfs_import
+
+install_config {
+	<config>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="LOG"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="PD"/>
+			<service name="IRQ"/>
+			<service name="IO_MEM"/>
+			<service name="IO_PORT"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<default caps="100"/>
+
+		<start name="timer">
+			<resource name="RAM" quantum="1M"/>
+			<provides> <service name="Timer"/> </provides>
+		</start>
+
+		<start name="report_rom">
+			<resource name="RAM" quantum="1M"/>
+			<provides> <service name="Report"/> <service name="ROM"/> </provides>
+			<config verbose="yes"/>
+		</start>
+
+		<start name="vfs">
+			<resource name="RAM" quantum="4M"/>
+			<provides><service name="File_system"/></provides>
+			<config>
+				<vfs>
+					<ram/>
+					<import>
+						<dir name="items">
+							<inline name="1">first</inline>
+							<inline name="2">second</inline>
+							<inline name="3"><third/></inline>
+						</dir>
+						<inline name="4">fourth</inline>
+					</import>
+				</vfs>
+				<default-policy root="/" writeable="yes"/>
+			</config>
+		</start>
+
+		<start name="fs_query">
+			<resource name="RAM" quantum="1M"/>
+			<config>
+				<vfs> <dir name="fs"> <fs writeable="yes"/> </dir> </vfs>
+				<query path="/fs/items" content="yes"/>
+			</config>
+		</start>
+
+		<start name="test" caps="700">
+			<binary name="sequence"/>
+			<resource name="RAM" quantum="64M"/>
+			<config>
+				<start name="sleep" caps="500">
+					<binary name="noux"/>
+					<config stdin="/dev/null" stdout="/dev/log" stderr="/dev/log">
+						<fstab>
+							<tar name="coreutils.tar" />
+							<dir name="dev"> <log/> <null/> </dir>
+						</fstab>
+						<start name="/bin/sleep"> <arg value="0.5"/> </start>
+					</config>
+				</start>
+
+				<start name="remove" caps="500">
+					<binary name="noux"/>
+					<config stdin="/dev/null" stdout="/dev/log" stderr="/dev/log">
+						<fstab>
+							<tar name="coreutils.tar" />
+							<dir name="fs"> <fs writeable="yes"/> </dir>
+							<dir name="dev"> <log/> <null/> </dir>
+						</fstab>
+						<start name="/bin/rm"> <arg value="/fs/items/2"/> </start>
+					</config>
+				</start>
+
+				<start name="sleep" caps="500">
+					<binary name="noux"/>
+					<config stdin="/dev/null" stdout="/dev/log" stderr="/dev/log">
+						<fstab>
+							<tar name="coreutils.tar" />
+							<dir name="dev"> <log/> <null/> </dir>
+						</fstab>
+						<start name="/bin/sleep"> <arg value="0.5"/> </start>
+					</config>
+				</start>
+
+				<start name="add" caps="500">
+					<binary name="noux"/>
+					<config stdin="/dev/null" stdout="/dev/log" stderr="/dev/log">
+						<fstab>
+							<tar name="coreutils.tar" />
+							<dir name="fs"> <fs writeable="yes"/> </dir>
+							<dir name="dev"> <log/> <null/> </dir>
+						</fstab>
+						<start name="/bin/cp">
+							<arg value="/fs/4"/>
+							<arg value="/fs/items/"/>
+						</start>
+					</config>
+				</start>
+
+				<start name="sleep" caps="500">
+					<binary name="noux"/>
+					<config stdin="/dev/null" stdout="/dev/log" stderr="/dev/log">
+						<fstab>
+							<tar name="coreutils.tar" />
+							<dir name="dev"> <log/> <null/> </dir>
+						</fstab>
+						<start name="/bin/sleep"> <arg value="0.5"/> </start>
+					</config>
+				</start>
+
+				<start name="modify" caps="500">
+					<binary name="noux"/>
+					<config stdin="/dev/null" stdout="/dev/log" stderr="/dev/log">
+						<fstab>
+							<tar name="bash.tar" />
+							<dir name="fs"> <fs writeable="yes"/> </dir>
+							<dir name="dev"> <log/> <null/> </dir>
+						</fstab>
+						<start name="/bin/bash">
+							<arg value="-c"/>
+							<arg value="echo updated > /fs/items/3"/>
+						</start>
+					</config>
+				</start>
+
+				<start name="sleep" caps="500">
+					<binary name="noux"/>
+					<config stdin="/dev/null" stdout="/dev/log" stderr="/dev/log">
+						<fstab>
+							<tar name="coreutils.tar" />
+							<dir name="dev"> <log/> <null/> </dir>
+						</fstab>
+						<start name="/bin/sleep"> <arg value="1"/> </start>
+					</config>
+				</start>
+
+			</config>
+		</start>
+	</config>
+}
+
+build { app/sequence app/fs_query }
+
+build_boot_image { sequence fs_query }
+
+append qemu_args " -nographic -serial mon:stdio "
+
+run_genode_until {.*child "test" exited with exit value 0.*\n} 30
+
+grep_output {\[init -> report_rom\].*}
+
+set num_listings [regexp -all {report 'fs_query -> listing'} $output dummy]
+
+# we expect at least four intermediate reports
+if {$num_listings < 4} {
+	puts "Error: too few reports generated"
+	exit 1
+}
+
+#
+# We cannot reliably compare the full output because some file operations
+# may trigger one or two reports depending on the timing of signal delivery.
+# However, we can at least check the last report for validity.
+#
+regsub {.*report 'fs_query -> listing'} $output {} output
+
+compare_output_to {
+[init -> report_rom]   <listing>
+[init -> report_rom]   	<dir path="/fs/items">
+[init -> report_rom]   		<file name="4">fourth</file>
+[init -> report_rom]   		<file name="1">first</file>
+[init -> report_rom]   		<file name="3">updated
+[init -> report_rom]   </file>
+[init -> report_rom]   	</dir>
+[init -> report_rom]   </listing>
+}

@@ -18,6 +18,7 @@ fetchurl_lwip
 fpu
 fs_log
 fs_packet
+fs_query
 fs_report
 gdb_monitor
 init
