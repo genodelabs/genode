@@ -215,19 +215,22 @@ int    strcmp(const char *s1, const char *s2)
 size_t strlen(const char *s) { return Genode::strlen(s); }
 
 
-size_t strlcat(char *dest, const char *src, size_t dest_size)
+size_t strlcat(char *dest, const char *src, size_t count)
 {
-	size_t len_d = strlen(dest);
-	size_t len_s = strlen(src);
+	size_t dsize = strlen(dest);
+	size_t len = strlen(src);
+	size_t res = dsize + len;
 
-	if (len_d > dest_size)
-		return 0;
+	/* This would be a bug */
+	BUG_ON(dsize >= count);
 
-	size_t len = dest_size - len_d - 1;
-
-	memcpy(dest + len_d, src, len);
-	dest[len_d + len] = 0;
-	return len;
+	dest += dsize;
+	count -= dsize;
+	if (len >= count)
+		len = count-1;
+	memcpy(dest, src, len);
+	dest[len] = 0;
+	return res;
 }
 
 
