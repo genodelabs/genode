@@ -274,7 +274,9 @@ ACPI_STATUS AcpiOsSignal (UINT32, void *)
 	FAIL(AE_BAD_PARAMETER)
 
 UINT64 AcpiOsGetTimer (void)
-	FAIL(0)
+{
+	return timer_connection().elapsed_us() * 10;
+}
 
 ACPI_STATUS AcpiOsReadMemory (ACPI_PHYSICAL_ADDRESS, UINT64 *, UINT32)
 	FAIL(AE_BAD_PARAMETER)
@@ -287,6 +289,29 @@ ACPI_STATUS AcpiOsRemoveInterruptHandler (UINT32, ACPI_OSD_HANDLER)
 
 ACPI_STATUS AcpiOsGetLine (char *, UINT32, UINT32 *)
 	FAIL(AE_BAD_PARAMETER)
+
+ACPI_STATUS
+AcpiOsWaitCommandReady (
+    void)
+{
+	FAIL(AE_BAD_PARAMETER)
+}
+
+ACPI_STATUS
+AcpiOsNotifyCommandComplete (
+    void)
+{
+	FAIL(AE_BAD_PARAMETER)
+}
+
+ACPI_STATUS
+AcpiOsEnterSleep (
+    UINT8                   SleepState,
+    UINT32                  RegaValue,
+    UINT32                  RegbValue)
+{
+	FAIL(AE_BAD_PARAMETER)
+}
 
 extern "C"
 {

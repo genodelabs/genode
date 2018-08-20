@@ -1,9 +1,9 @@
 LICENSE   := BSD
-VERSION   := 20160212
+VERSION   := 20180810
 DOWNLOADS := acpica.archive
 
 URL(acpica) := http://acpica.org/sites/acpica/files/acpica-unix2-$(VERSION).tar.gz
-SHA(acpica) := c0c68c7a8e9b1f4f66895b5950023042cb8e619fd92dab288010c8bd023d3270
+SHA(acpica) := 679bac35a761ead4bafbcb5e9e9df3a2acad56622f93409a473a6c00c570b905
 DIR(acpica) := src/lib/acpica
 
 PATCHES := src/lib/acpica/acpica.patch
