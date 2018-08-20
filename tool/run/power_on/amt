@@ -18,6 +18,11 @@ proc power_on_amt_password { } {
 }
 
 
+proc power_on_amt_timeout { } {
+	return [get_cmd_arg_first --power-on-amt-timeout 5]
+}
+
+
 ##
 # Reset via Intel AMT (works up to version smaller Intel AMT 9)
 #
@@ -126,6 +131,8 @@ proc run_power_on { } {
 		}
 	}
 
-	sleep 5
+	puts "wait [power_on_amt_timeout] seconds for power on"
+	sleep [power_on_amt_timeout]
+
 	return true
 }
