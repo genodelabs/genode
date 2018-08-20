@@ -27,6 +27,9 @@ namespace Genode {
 	struct File;
 	struct Readonly_file;
 	struct File_content;
+	struct Watcher;
+	template <typename>
+	struct Watch_handler;
 }
 
 
@@ -102,6 +105,7 @@ struct Genode::Directory : Noncopyable, Interface
 
 		friend class Readonly_file;
 		friend class Root_directory;
+		friend class Watcher;
 
 		/*
 		 * Operations such as 'file_size' that are expected to be 'const' at
@@ -513,6 +517,67 @@ class Genode::File_content
 		 */
 		template <typename FN>
 		void bytes(FN const &fn) const { fn((char const *)_buffer, _size); }
+};
+
+
+class Genode::Watcher : Interface, Vfs::Vfs_watch_handle::Context
+{
+	private:
+
+		/*
+		 * Noncopyable
+		 */
+		Watcher(Watcher const &);
+		Watcher &operator = (Watcher const &);
+
+		Vfs::Vfs_watch_handle mutable *_handle = nullptr;
+
+		void _watch(Vfs::File_system &fs, Allocator &alloc, Directory::Path const path)
+		{
+			Vfs::Directory_service::Watch_result res =
+				fs.watch(path.string(), &_handle, alloc);
+
+			if (res != Vfs::Directory_service::WATCH_OK)
+				error("failed to watch '", path, "'");
+		}
+
+		static Directory &_mutable(Directory const &dir)
+		{
+			return const_cast<Directory &>(dir);
+		}
+
+	public:
+
+		Watcher(Directory const &dir, Directory::Path const &rel_path)
+		{
+			_watch(_mutable(dir)._fs, _mutable(dir)._alloc,
+			       Directory::join(dir._path, rel_path));
+			_handle->context(this);
+		}
+
+		~Watcher() { _handle->fs().close(_handle); }
+
+		virtual void handle_watch_notification() { }
+};
+
+
+template <typename T>
+class Genode::Watch_handler : Watcher
+{
+	private:
+
+		T  &_obj;
+		void (T::*_member) ();
+
+	public:
+
+		Watch_handler(Directory &dir, Directory::Path const &rel_path,
+		              T &obj, void (T::*member)())
+		:
+			Watcher(dir, rel_path), _obj(obj), _member(member)
+		{ }
+
+		void handle_watch_notification() override { (_obj.*_member)(); }
 };
 
 #endif /* _INCLUDE__GEMS__VFS_H_ */
