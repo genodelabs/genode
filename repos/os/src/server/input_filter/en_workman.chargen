@@ -67,6 +67,7 @@
 		<key name="KEY_KPDOT"      char="."/>
 		<key name="KEY_KPENTER"    ascii="10"/>
 		<key name="KEY_KPSLASH"    char="/"/>
+		<key name="KEY_KPASTERISK" char="*"/>
 	</map>
 	<map mod1="yes">
 		<key name="KEY_1"          char="!"/>
