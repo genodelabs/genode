@@ -450,9 +450,12 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 
 		void handle_node_io(Io_node &node) override
 		{
-			if (!tx_sink()->ready_to_ack())
+			_process_backlog();
+
+			if (!tx_sink()->ready_to_ack()) {
 				Genode::error(
 					"dropping I/O notfication, congested packet buffer to '", _label, "'");
+			}
 
 			if (node.notify_read_ready() && node.read_ready()
 			 && tx_sink()->ready_to_ack()) {
@@ -464,23 +467,20 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 				tx_sink()->acknowledge_packet(packet);
 				node.notify_read_ready(false);
 			}
-			_process_packets();
 		}
 
 		void handle_node_watch(Watch_node &node) override
 		{
-			if (!tx_sink()->ready_to_ack())
+			if (!tx_sink()->ready_to_ack()) {
 				Genode::error(
 					"dropping watch notfication, congested packet buffer to '", _label, "'");
-
-			if (tx_sink()->ready_to_ack()) {
+			} else {
 				Packet_descriptor packet(Packet_descriptor(),
 				                         Node_handle { node.id().value },
 				                         Packet_descriptor::CONTENT_CHANGED,
 				                         0, 0);
 				tx_sink()->acknowledge_packet(packet);
 			}
-			_process_packets();
 		}
 
 		/***************************
