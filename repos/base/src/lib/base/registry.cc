@@ -134,7 +134,21 @@ void Registry_base::_for_each(Untyped_functor &functor)
 		try { functor.call(e->_obj); }
 
 		/* propagate exceptions while keeping registry consistent */
-		catch (...) { at = _processed(notify, processed, *e, at); throw; }
+		catch (...) {
+
+			/* handle current element */
+			at = _processed(notify, processed, *e, at);
+
+			/* handle the remaining elements without invoking the functor */
+			while (Element *e = _elements.first()) {
+				_elements.remove(e);
+				at = _processed(notify, processed, *e, at);
+			};
+			_elements = processed;
+
+			/* propagate exception to caller */
+			throw;
+		}
 
 		at = _processed(notify, processed, *e, at);
 	}

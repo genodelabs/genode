@@ -71,6 +71,7 @@ pthread
 python
 ram_fs_chunk
 reconstructible
+registry
 report_rom
 resource_request
 resource_yield
