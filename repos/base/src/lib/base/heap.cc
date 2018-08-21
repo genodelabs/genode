@@ -215,6 +215,9 @@ bool Heap::_unsynchronized_alloc(size_t size, void **out_addr)
 
 bool Heap::alloc(size_t size, void **out_addr)
 {
+	if (size == 0)
+		error("attempt to allocated zero-size block from heap");
+
 	/* serialize access of heap functions */
 	Lock::Guard lock_guard(_lock);
 
