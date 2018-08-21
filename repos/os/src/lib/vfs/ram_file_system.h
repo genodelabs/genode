@@ -832,7 +832,13 @@ class Vfs::Ram_file_system : public Vfs::File_system
 					if (dir->length() || (!dynamic_cast<Directory*>(from_node)))
 						return RENAME_ERR_NO_PERM;
 
+				/* detach node to be replaced from directory */
 				to_dir->release(to_node);
+
+				/* notify the node being replaced */
+				to_node->notify(_env.watch_handler());
+
+				/* free the node that is replaced */
 				remove(to_node);
 			}
 
