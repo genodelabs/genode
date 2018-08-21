@@ -15,7 +15,7 @@
 #include <lx_kit/scheduler.h>
 
 
-void prepare_to_wait(wait_queue_head_t *q, wait_queue_entry_t *w, int state)
+void prepare_to_wait(wait_queue_head_t *q, wait_queue_entry_t *, int)
 {
 	if (!q) { return; }
 
@@ -26,13 +26,13 @@ void prepare_to_wait(wait_queue_head_t *q, wait_queue_entry_t *w, int state)
 }
 
 
-void prepare_to_wait_exclusive(wait_queue_head_t *q, wait_queue_entry_t *w, int state)
+void prepare_to_wait_exclusive(wait_queue_head_t *q, wait_queue_entry_t *, int)
 {
-	prepare_to_wait(q, w, state);
+	prepare_to_wait(q, 0, 0);
 }
 
 
-void finish_wait(wait_queue_head_t *q, wait_queue_entry_t *w)
+void finish_wait(wait_queue_head_t *q, wait_queue_entry_t *)
 {
 	if (!q) { return; }
 
