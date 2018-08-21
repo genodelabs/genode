@@ -566,51 +566,53 @@ class Vfs::Fs_file_system : public File_system
 
 				Handle_space::Id const id(packet.handle());
 
+				auto handle_read = [&] (Fs_vfs_handle &handle) {
+
+					if (!packet.succeeded())
+						Genode::error("packet operation=", (int)packet.operation(), " failed");
+
+					switch (packet.operation()) {
+					case Packet_descriptor::READ_READY:
+						handle.read_ready_state = Handle_state::Read_ready_state::READY;
+						_post_signal_hook.arm_io_event(handle.context);
+						break;
+
+					case Packet_descriptor::READ:
+						handle.queued_read_packet = packet;
+						handle.queued_read_state  = Handle_state::Queued_state::ACK;
+						_post_signal_hook.arm_io_event(handle.context);
+						break;
+
+					case Packet_descriptor::WRITE:
+						/*
+						 * Notify anyone who might have failed on
+						 * 'alloc_packet()'
+						 */
+						_post_signal_hook.arm_io_event(nullptr);
+						break;
+
+					case Packet_descriptor::SYNC:
+						handle.queued_sync_packet = packet;
+						handle.queued_sync_state  = Handle_state::Queued_state::ACK;
+						_post_signal_hook.arm_io_event(handle.context);
+						break;
+
+					case Packet_descriptor::CONTENT_CHANGED:
+						/* previously handled */
+						break;
+					}
+				};
+
 				try {
 					if (packet.operation() == Packet_descriptor::CONTENT_CHANGED) {
-					_watch_handle_space.apply<Fs_vfs_watch_handle>(id, [&] (Fs_vfs_watch_handle &handle) {
-
-						if (auto *ctx = handle.context())
-								_post_signal_hook.arm_watch_event(*ctx);
-					});
-				} else _handle_space.apply<Fs_vfs_handle>(id, [&] (Fs_vfs_handle &handle)
-					{
-						if (!packet.succeeded())
-							Genode::error("packet operation=", (int)packet.operation(), " failed");
-
-						switch (packet.operation()) {
-						case Packet_descriptor::READ_READY:
-							handle.read_ready_state = Handle_state::Read_ready_state::READY;
-							_post_signal_hook.arm_io_event(handle.context);
-							break;
-
-						case Packet_descriptor::READ:
-							handle.queued_read_packet = packet;
-							handle.queued_read_state  = Handle_state::Queued_state::ACK;
-							_post_signal_hook.arm_io_event(handle.context);
-							break;
-
-						case Packet_descriptor::WRITE:
-							/*
-							 * Notify anyone who might have failed on
-							 * 'alloc_packet()'
-							 */
-							_post_signal_hook.arm_io_event(nullptr);
-
-							break;
-
-						case Packet_descriptor::SYNC:
-							handle.queued_sync_packet = packet;
-							handle.queued_sync_state  = Handle_state::Queued_state::ACK;
-							_post_signal_hook.arm_io_event(handle.context);
-							break;
-
-						case Packet_descriptor::CONTENT_CHANGED:
-							/* previously handled */
-							break;
-						}
-					});
-				} catch (Handle_space::Unknown_id) {
+						_watch_handle_space.apply<Fs_vfs_watch_handle>(id, [&] (Fs_vfs_watch_handle &handle) {
+							if (auto *ctx = handle.context())
+								_post_signal_hook.arm_watch_event(*ctx); });
+					} else {
+						_handle_space.apply<Fs_vfs_handle>(id, handle_read);
+					}
+				}
+				catch (Handle_space::Unknown_id) {
 					Genode::warning("ack for unknown VFS handle"); }
 
 				if (packet.operation() == Packet_descriptor::WRITE) {
