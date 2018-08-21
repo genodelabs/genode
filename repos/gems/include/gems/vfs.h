@@ -426,16 +426,26 @@ class Genode::File_content
 {
 	private:
 
-		Allocator &_alloc;
-		size_t const _size;
+		class Buffer
+		{
+			private:
 
-		char *_buffer = (char *)_alloc.alloc(_size);
+				/*
+				 * Noncopyable
+				 */
+				Buffer(Buffer const &);
+				Buffer &operator = (Buffer const &);
 
-		/*
-		 * Noncopyable
-		 */
-		File_content(File_content const &);
-		File_content &operator = (File_content const &);
+			public:
+
+				Allocator   &alloc;
+				size_t const size;
+				char * const ptr = size ? (char *)alloc.alloc(size) : nullptr;
+
+				Buffer(Allocator &alloc, size_t size) : alloc(alloc), size(size) { }
+				~Buffer() { if (ptr) alloc.free(ptr, size); }
+
+		} _buffer;
 
 	public:
 
@@ -456,14 +466,11 @@ class Genode::File_content
 		File_content(Allocator &alloc, Directory const &dir, Path const &rel_path,
 		             Limit limit)
 		:
-			_alloc(alloc),
-			_size(min(dir.file_size(rel_path), (Vfs::file_size)limit.value))
+			_buffer(alloc, min(dir.file_size(rel_path), (Vfs::file_size)limit.value))
 		{
-			if (Readonly_file(dir, rel_path).read(_buffer, _size) != _size)
+			if (Readonly_file(dir, rel_path).read(_buffer.ptr, _buffer.size) != _buffer.size)
 				throw Truncated_during_read();
 		}
-
-		~File_content() { _alloc.free(_buffer, _size); }
 
 		/**
 		 * Call functor 'fn' with content as 'Xml_node' argument
@@ -474,7 +481,7 @@ class Genode::File_content
 		template <typename FN>
 		void xml(FN const &fn) const
 		{
-			try { fn(Xml_node(_buffer, _size)); }
+			try { fn(Xml_node(_buffer.ptr, _buffer.size)); }
 			catch (Xml_node::Invalid_syntax) { fn(Xml_node("<empty/>")); }
 		}
 
@@ -486,14 +493,14 @@ class Genode::File_content
 		template <typename STRING, typename FN>
 		void for_each_line(FN const &fn) const
 		{
-			char const *src           = _buffer;
+			char const *src           = _buffer.ptr;
 			char const *curr_line     = src;
 			size_t      curr_line_len = 0;
 
 			for (size_t n = 0; ; n++) {
 
 				char const c = *src++;
-				bool const end_of_data = (c == 0 || n == _size);
+				bool const end_of_data = (c == 0 || n == _buffer.size);
 				bool const end_of_line = (c == '\n');
 
 				if (!end_of_data && !end_of_line) {
@@ -516,7 +523,7 @@ class Genode::File_content
 		 * Call functor 'fn' with the data pointer and size in bytes
 		 */
 		template <typename FN>
-		void bytes(FN const &fn) const { fn((char const *)_buffer, _size); }
+		void bytes(FN const &fn) const { fn((char const *)_buffer.ptr, _buffer.size); }
 };
 
 
