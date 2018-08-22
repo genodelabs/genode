@@ -127,7 +127,7 @@ append config {
 	<start name="usb_drv" caps="120"> }
 append config "<binary name=\"[usb_host_drv_binary]\"/>"
 append config {
-		<resource name="RAM" quantum="10M"/>
+		<resource name="RAM" quantum="11M"/>
 		<provides> <service name="Usb"/> </provides>
 		<config bios_handoff="no">
 			<report devices="yes"/>
@@ -140,7 +140,7 @@ append config {
 	</start>
 
 	<start name="usb_hid_drv" caps="120">
-		<resource name="RAM" quantum="10M"/>
+		<resource name="RAM" quantum="11M"/>
 		<provides><service name="Input"/></provides>
 		<config use_report="yes" capslock_led="rom" numlock_led="rom" scrlock_led="rom"/>
 		<route>
@@ -207,7 +207,6 @@ append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 
-append qemu_args "  -nographic"
 append qemu_args "  -usb  -usbdevice mouse -usbdevice keyboard"
 append qemu_args " -device usb-ehci,id=ehci"
 append xen_args  { usbdevice=\["mouse","keyboard"\] }

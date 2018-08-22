@@ -13,20 +13,23 @@
 
 set build_components {
 	core init
-	drivers/timer drivers/usb
+	drivers/timer
+	drivers/usb_host
+	drivers/usb_net
 	test/lwip/http_srv
+	lib/vfs/lwip
 }
 
-proc gpio_drv { } { if {[have_spec rpi] && [have_spec hw]}  { return hw_gpio_drv }
-                    if {[have_spec rpi] && [have_spec foc]} { return foc_gpio_drv }
-                    return gpio_drv }
+lappend_if [have_spec gpio] build_components drivers/gpio
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
 append_platform_drv_build_components
 
-lappend_if [have_spec gpio]             build_components drivers/gpio
-
 build $build_components
+
+proc gpio_drv { } { if {[have_spec rpi] && [have_spec hw]}  { return hw_gpio_drv }
+                    if {[have_spec rpi] && [have_spec foc]} { return foc_gpio_drv }
+                    return gpio_drv }
 
 create_boot_directory
 
@@ -34,8 +37,8 @@ create_boot_directory
 # Generate config
 #
 
-set config {
-<config verbose="yes">
+append config {
+<config>
 	<parent-provides>
 		<service name="ROM"/>
 		<service name="IRQ"/>
@@ -49,29 +52,7 @@ set config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>
-	<start name="timer">
-		<resource name="RAM" quantum="1M"/>
-		<provides> <service name="Timer"/> </provides>
-	</start>
-	<start name="usb_drv">
-		<resource name="RAM" quantum="24M"/>
-		<provides>
-			<service name="Nic"/>
-		</provides>
-		<config uhci="no" ohci="no" ehci="yes" xhci="yes">
-			<nic mac="02:00:00:00:01:01" />
-		</config>
-	</start>
-	<start name="test-lwip_httpsrv">
-		<resource name="RAM" quantum="4M"/>
-		<config>
-			<vfs> <dir name="dev"> <log/> </dir> </vfs>
-			<libc stdout="/dev/log" stderr="/dev/log"/>
-		</config>
-	</start>}
-
-append_platform_drv_config
+	<default caps="200"/>}
 
 append_if [have_spec gpio] config "
 	<start name=\"[gpio_drv]\">
@@ -80,7 +61,50 @@ append_if [have_spec gpio] config "
 		<config/>
 	</start>"
 
+append_platform_drv_config
+
 append config {
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+
+	<start name="usb_drv" caps="120"> }
+append config "<binary name=\"[usb_host_drv_binary]\"/>"
+append config {
+		<resource name="RAM" quantum="10M"/>
+		<provides> <service name="Usb"/> </provides>
+		<config bios_handoff="no">}
+append_if [have_spec arndale] config {
+			<policy label_prefix="usb_net_drv" vendor_id="0x0b95" product_id="0x772a"/> }
+append_if [expr [have_spec panda] || [have_spec rpi] ] config {
+			<policy label_prefix="usb_net_drv" vendor_id="0x0424" product_id="0xec00"/> }
+append_if [have_spec x86] config {
+			<policy label_prefix="usb_net_drv" vendor_id="0x0b95" product_id="0x1790"/> }
+append config {
+		</config>
+		<route>
+			<service name="Report"> <child name="report_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="usb_net_drv">
+		<resource name="RAM" quantum="10M"/>
+		<provides> <service name="Nic"/> </provides>
+		<config mac="02:00:00:00:01:01" />
+	</start>
+
+	<start name="test-lwip_httpsrv" caps="120">
+		<resource name="RAM" quantum="4M"/>
+		<config>
+			<vfs>
+				<dir name="dev">    <log/>             </dir>
+				<dir name="socket"> <lwip dhcp="yes"/> </dir>
+			</vfs>
+			<libc stdout="/dev/log" stderr="/dev/log" socket="/socket"/>
+		</config>
+	</start>
 </config>
 }
 
@@ -92,12 +116,14 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core ld.lib.so init timer usb_drv
-	libc.lib.so vfs.lib.so libm.lib.so lwip_legacy.lib.so posix.lib.so test-lwip_httpsrv
+	core init timer usb_net_drv
+	ld.lib.so libc.lib.so vfs.lib.so vfs_lwip.lib.so test-lwip_httpsrv
 }
 
-append_platform_drv_boot_modules
+append boot_modules [usb_host_drv_binary]
 lappend_if [have_spec gpio] boot_modules [gpio_drv]
+
+append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 
