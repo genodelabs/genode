@@ -138,7 +138,7 @@ suffixed_version = $1$(if $(call suffix_from_list,$2),-$(call suffix_from_list,$
 _string_higher_than = $(filter-out $(firstword $(sort $1 $2)),$1)
 _higher_string      = $(if $(call _string_higher_than,$1,$2),$1,$2)
 
-CURRENT_DATE = $(strip $(shell date --iso-8601))
+VERSION_CMD ?= $(strip $(shell date --iso-8601))
 
 _version_higher_than_recipe = $(call _string_higher_than,\
                                  $(call suffixed_version,$1,$2),$(RECIPE_VERSION))
@@ -151,7 +151,7 @@ _next_version = $(eval FOUND := $(if $(call _version_higher_than_recipe,$1,$2),\
                            $(eval FOUND := $(call suffixed_version,$1,$2 $C)))))\
                 $(if $(FOUND),$(FOUND),$(addsuffix -x,$(RECIPE_VERSION)))
 
-next_version = $(strip $(call _next_version,$(CURRENT_DATE)))
+next_version = $(strip $(call _next_version,$(VERSION_CMD)))
 
 #
 # Message presented to the user whenever a recipe hash is out of date

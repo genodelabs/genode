@@ -39,9 +39,14 @@ define HELP_MESSAGE
     UPDATE_VERSIONS=1  Automatically increase the version of recipe
                        hash files whenever their respective archive
                        content has changed. The versions are named
-                       after the current date, suffixed with a single
-                       letter to differentiate multiple versions
-                       created on the same day.
+                       after the output of the VERSION_CMD, suffixed
+                       with a single letter in case VERSION_CMD would
+                       return the same version the archive already
+                       has.
+
+    VERSION_CMD=       The script whose output is used in case the
+                       archive version needs to be updated. The default
+                       is to use the current date.
 
 endef
 
