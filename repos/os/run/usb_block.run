@@ -7,7 +7,7 @@ set use_qemu [have_include "power_on/qemu"]
 set build_components {
 	core init
 	drivers/timer
-	drivers/usb
+	drivers/usb_host
 	drivers/usb_block
 	server/report_rom
 	test/blk/cli
@@ -70,33 +70,33 @@ append config {
 			<default-policy report="usb_drv -> devices"/>
 		</config>
 	</start>
-	<start name="usb_drv" caps="120">
-		<resource name="RAM" quantum="16M"/>
+	<start name="usb_drv" caps="120"> }
+append config "<binary name=\"[usb_host_drv_binary]\"/>"
+append config {
+		<resource name="RAM" quantum="10M"/>
 		<provides> <service name="Usb"/> </provides>
-		<config uhci="yes" ehci="yes" xhci="yes">
-			<raw>
-				<report devices="no"/>}
+		<config>
+			<report devices="no"/>}
 append_if [expr !$use_qemu] config  {
-				<!--
-					The order is important because only the first policy is
-					picked up - an entry may be moved to the front to test the
-					corresponding device.
-				 -->
-				<!-- zte open c needs interface="3" -->
-				<default-policy vendor_id="0x19d2" product_id="0x1350"/>
-				<!-- kingston -->
-				<default-policy vendor_id="0x0951" product_id="0x1666"/>
-				<!-- voyager gt stick -->
-				<default-policy vendor_id="0x1b1c" product_id="0x1a09"/>
-				<!-- usb3 hdd adapter -->
-				<default-policy vendor_id="0x174c" product_id="0x5106"/>
-				<!-- lenovo disc -->
-				<default-policy vendor_id="0x0984" product_id="0x0066"/>
+			<!--
+				The order is important because only the first policy is
+				picked up - an entry may be moved to the front to test the
+				corresponding device.
+			 -->
+			<!-- zte open c needs interface="3" -->
+			<default-policy vendor_id="0x19d2" product_id="0x1350"/>
+			<!-- kingston -->
+			<default-policy vendor_id="0x0951" product_id="0x1666"/>
+			<!-- voyager gt stick -->
+			<default-policy vendor_id="0x1b1c" product_id="0x1a09"/>
+			<!-- usb3 hdd adapter -->
+			<default-policy vendor_id="0x174c" product_id="0x5106"/>
+			<!-- lenovo disc -->
+			<default-policy vendor_id="0x0984" product_id="0x0066"/>
 }
 append_if $use_qemu config {
-				<default-policy bus="0x001" dev="0x002"/> }
+			<default-policy bus="0x001" dev="0x002"/> }
 append config {
-			</raw>
 		</config>
 		<route>
 			<service name="Report"> <child name="report_rom"/> </service>
@@ -137,11 +137,12 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core init timer report_rom usb_drv usb_block_drv
+	core init timer report_rom usb_block_drv
 	test-blk-cli test-blk-bench
 	ld.lib.so
 }
 
+append boot_modules [usb_host_drv_binary]
 lappend_if [have_spec gpio] boot_modules [gpio_drv]
 
 append_platform_drv_boot_modules

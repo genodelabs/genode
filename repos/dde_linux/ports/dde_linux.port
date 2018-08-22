@@ -2,20 +2,24 @@ LICENSE     := GPLv2
 VERSION     := 2
 DOWNLOADS   := dwc_otg.git usb.archive intel_fb.archive lxip.archive \
                wifi.archive fec.archive libnl.archive wpa_supplicant.git \
-               fw.archive
+               fw.archive usb_host.archive dwc_otg_host.git
+
+#
+# Tools
+#
+$(call check_tool,flex)
+$(call check_tool,bison)
+
+FLEX = flex
+YACC = bison
 
 #
 # The git checkout checks for the existence of SRC_DIR, which is created by the
 # Linux extraction, therefore make sure to checkout the GIT sources first.
 #
 usb.archive: dwc_otg.git
+usb_host.archive: dwc_otg_host.git
 
-
-#
-# The git checkout checks for the existence of SRC_DIR, which is created by the
-# Linux extraction, therefore make sure to checkout the GIT sources first.
-#
-usb.archive: dwc_otg.git
 
 #
 # USB
@@ -29,11 +33,26 @@ TAR_OPT(usb) := --strip-components=1 --files-from - < <(sed 's/-x.x.x/-$(VERSION
 HASH_INPUT   += $(REP_DIR)/usb.list
 
 #
+# USB host controller
+#
+SRC_DIR_USB_HOST  := src/drivers/usb_host
+VERSION_USB_HOST  := 4.16.3
+URL(usb_host)     := https://www.kernel.org/pub/linux/kernel/v4.x/linux-$(VERSION_USB_HOST).tar.xz
+SHA(usb_host)     := 0d6971a81da97e38b974c5eba31a74803bfe41aabc46d406c3acda56306c81a3
+DIR(usb_host)     := $(SRC_DIR_USB_HOST)
+TAR_OPT(usb_host) := --strip-components=1 --files-from - < <(sed 's/-x.x.x/-$(VERSION_USB_HOST)/g' $(REP_DIR)/usb_host.list)
+HASH_INPUT        += $(REP_DIR)/usb_host.list
+
+#
 # Raspberry Pi USB controller
 #
 URL(dwc_otg) := https://github.com/ssumpf/dwc_otg.git
 REV(dwc_otg) := r3
 DIR(dwc_otg) := $(SRC_DIR_USB)/drivers/usb/host/dwc_otg
+
+URL(dwc_otg_host) := https://github.com/skalk/dwc_otg.git
+REV(dwc_otg_host) := r4
+DIR(dwc_otg_host) := $(SRC_DIR_USB_HOST)/drivers/usb/host
 
 
 #
@@ -112,6 +131,7 @@ PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/libnl*.pa
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/wifi*.patch)))
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/lxip*.patch)))
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/intel*.patch)))
+PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/usb_host*.patch)))
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/usb*.patch)))
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/intel*.patch)))
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/fec_*.patch)))
@@ -146,6 +166,11 @@ PATCH_OPT(patches/usb_mem.patch)         := $(USB_OPT)
 PATCH_OPT(patches/usb_usbnet.patch)      := $(USB_OPT)
 PATCH_OPT(patches/usb_rndis.patch)       := $(USB_OPT)
 PATCH_OPT(patches/usb_tv64.patch)        := $(USB_OPT)
+
+# USB HOST
+USB_HOST_OPT = -p1 -d$(SRC_DIR_USB_HOST)
+PATCH_OPT(patches/usb_host_mem.patch)    := $(USB_HOST_OPT)
+PATCH_OPT(patches/usb_host_omap.patch)   := $(USB_HOST_OPT)
 
 # INTEL FB
 PATCH_OPT(patches/intel_fb_backlight.patch) := -p1 -d$(SRC_DIR_INTEL_FB)

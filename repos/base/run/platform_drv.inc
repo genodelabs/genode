@@ -31,6 +31,20 @@ proc need_usb_hid { } {
 
 
 ##
+# Return name of the USB driver binary
+#
+proc usb_host_drv_binary { } {
+	if {[have_spec arndale]}   { return arndale_usb_host_drv   }
+	if {[have_spec panda]}     { return panda_usb_host_drv     }
+	if {[have_spec rpi]}       { return rpi_usb_host_drv       }
+	if {[have_spec wand_quad]} { return wand_quad_usb_host_drv }
+	if {[have_spec odroid_x2]} { return odroid_x2_usb_host_drv }
+	if {[have_spec x86]}       { return x86_pc_usb_host_drv    }
+	return no_usb_drv_available
+}
+
+
+##
 # Return name of the NIC driver binary
 #
 proc nic_drv_binary { } {
