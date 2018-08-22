@@ -364,8 +364,16 @@ class Lx::Socket
 				break;
 			}
 
+			/*
+			 * Save old call opcode as we may only release the blocker
+			 * when actually did something useful, i.e., were called by
+			 * some socket operation and not by kicking the socket.
+			 */
+			Call::Opcode old = _call.opcode;
+
 			_call.opcode = Call::NONE;
-			_block.up();
+
+			if (old != Call::NONE) { _block.up(); }
 		}
 
 		void submit_and_block()
@@ -399,6 +407,7 @@ void Lx::socket_kick()
 	if (!_socket) { return; }
 
 	_socket->unblock_task();
+	Lx::scheduler().schedule();
 }
 
 
