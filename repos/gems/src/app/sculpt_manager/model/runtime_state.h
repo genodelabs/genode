@@ -26,6 +26,19 @@ namespace Sculpt { class Runtime_state; }
 
 class Sculpt::Runtime_state : public Runtime_info
 {
+	public:
+
+		struct Info
+		{
+			bool selected;
+
+			unsigned long assigned_ram;
+			unsigned long avail_ram;
+
+			unsigned long assigned_caps;
+			unsigned long avail_caps;
+		};
+
 	private:
 
 		Allocator &_alloc;
@@ -33,6 +46,8 @@ class Sculpt::Runtime_state : public Runtime_info
 		struct Child : List_model<Child>::Element
 		{
 			Start_name const name;
+
+			Info info { false, 0, 0, 0, 0 };
 
 			Child(Start_name const &name) : name(name) { }
 		};
@@ -53,7 +68,22 @@ class Sculpt::Runtime_state : public Runtime_info
 					Child(node.attribute_value("name", Start_name()));
 			}
 
-			void update_element(Child &, Xml_node) { }
+			void update_element(Child &child, Xml_node node)
+			{
+				if (node.has_sub_node("ram")) {
+					Xml_node const ram = node.sub_node("ram");
+					child.info.assigned_ram = max(ram.attribute_value("assigned", Number_of_bytes()),
+					                              ram.attribute_value("quota",    Number_of_bytes()));
+					child.info.avail_ram    = ram.attribute_value("avail",    Number_of_bytes());
+				}
+
+				if (node.has_sub_node("caps")) {
+					Xml_node const caps = node.sub_node("caps");
+					child.info.assigned_caps = max(caps.attribute_value("assigned", 0UL),
+					                               caps.attribute_value("quota",    0UL));
+					child.info.avail_caps    = caps.attribute_value("avail",    0UL);
+				}
+			}
 
 			static bool element_matches_xml_node(Child const &elem, Xml_node node)
 			{
@@ -81,6 +111,21 @@ class Sculpt::Runtime_state : public Runtime_info
 				if (!result && child.name == name)
 					result = true; });
 			return result;
+		}
+
+		Info info(Start_name const &name) const
+		{
+			Info result { .selected = false, 0, 0, 0, 0 };
+			_children.for_each([&] (Child const &child) {
+				if (child.name == name)
+					result = child.info; });
+			return result;
+		}
+
+		void toggle_selection(Start_name const &name)
+		{
+			_children.for_each([&] (Child &child) {
+				child.info.selected = (child.name == name) && !child.info.selected; });
 		}
 };
 

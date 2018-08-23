@@ -72,6 +72,8 @@ install_config {
 			        report="nitpicker -> displays"/>
 			<policy label="runtime -> runtime_view -> dialog"
 			        report="leitzentrale -> manager -> runtime_view_dialog"/>
+			<policy label="leitzentrale -> manager -> runtime_view_hover"
+			        report="runtime -> runtime_view -> hover"/>
 		</config>
 	</start>
 
@@ -383,6 +385,8 @@ install_config {
 				<child name="config_fs_rom"/> </service>
 			<service name="ROM" label="manager -> nitpicker_hover">
 				<child name="report_rom"/> </service>
+			<service name="ROM" label="manager -> runtime_view_hover">
+				<child name="report_rom"/> </service>
 			<service name="Report" label="manager -> runtime_view_dialog">
 				<child name="report_rom"/> </service>
 			<service name="Report"> <child name="fs_report"/> </service>
@@ -433,6 +437,8 @@ install_config {
 			<service name="Nitpicker"> <child name="nitpicker"/> </service>
 			<service name="Timer"> <child name="timer"/> </service>
 			<service name="Report" label_suffix="-> shape"> <child name="pointer"/> </service>
+			<service name="Report" label="runtime_view -> hover">
+				<child name="report_rom"/> </service>
 			<service name="Report"> <child name="fs_report"/> </service>
 			<service name="LOG" label="unlogged"> <parent/> </service>
 			<service name="LOG"> <child name="log"/> </service>

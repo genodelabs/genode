@@ -297,6 +297,8 @@ struct Sculpt::Main : Input_event_handler,
 			if (_hovered_dialog == Hovered::STORAGE) _storage.dialog.click(_storage);
 			if (_hovered_dialog == Hovered::NETWORK) _network.dialog.click(_network);
 			if (_hovered_dialog == Hovered::RUNTIME) _network.dialog.click(_network);
+
+			if (_graph.hovered()) _graph.click();
 		}
 
 		if (ev.key_release(Input::BTN_LEFT))
@@ -377,7 +379,7 @@ struct Sculpt::Main : Input_event_handler,
 	 ** Runtime graph **
 	 *******************/
 
-	Graph _graph { _env, _storage._sculpt_partition };
+	Graph _graph { _env, _runtime_state, _storage._sculpt_partition };
 
 
 	Main(Env &env) : _env(env)
