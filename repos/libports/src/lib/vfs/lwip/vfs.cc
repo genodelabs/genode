@@ -35,7 +35,7 @@ extern "C" {
 }
 
 	using namespace Vfs;
-	using Genode::warning;
+
 	typedef Vfs::File_io_service::Read_result Read_result;
 	typedef Vfs::File_io_service::Write_result Write_result;
 	typedef Vfs::File_io_service::Sync_result Sync_result;
@@ -1596,7 +1596,6 @@ class Lwip::File_system final : public Vfs::File_system
 			 */
 			void status_callback() override
 			{
-				Genode::warning("notify that interface is up");
 				tcp_dir.notify();
 				udp_dir.notify();
 
@@ -1788,12 +1787,8 @@ class Lwip::File_system final : public Vfs::File_system
 			return Read_result::READ_ERR_INVALID;
 		}
 
-		bool queue_read(Vfs_handle *, file_size)
-		{
-			if (!_netif.ready())
-				Genode::warning(__func__, ": LwIP interface not ready");
-			return _netif.ready();
-		}
+		bool queue_read(Vfs_handle *, file_size) {
+			return _netif.ready(); }
 
 		bool read_ready(Vfs_handle *vfs_handle) override
 		{
