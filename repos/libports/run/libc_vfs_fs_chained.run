@@ -1,0 +1,94 @@
+#
+# \brief  Test for using the vfs server
+# \author Emery Hemingway
+# \date   2015-08-17
+#
+
+#
+# Build
+#
+
+build { core init server/vfs test/libc_vfs }
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+set config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<default caps="100"/>
+	<start name="vfs1">
+		<binary name="vfs"/>
+		<resource name="RAM" quantum="12M"/>
+		<provides> <service name="File_system"/> </provides>
+		<config>
+			<vfs> <ram/> </vfs>
+			<default-policy root="/" writeable="yes"/>
+		</config>
+	</start>
+	<start name="vfs2">
+		<binary name="vfs"/>
+		<resource name="RAM" quantum="12M"/>
+		<provides> <service name="File_system"/> </provides>
+		<config>
+			<vfs> <fs/> </vfs>
+			<default-policy root="/" writeable="yes"/>
+		</config>
+		<route>
+			<service name="File_system"><child name="vfs1"/></service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="test-libc_vfs">
+		<resource name="RAM" quantum="4M"/>
+		<config>
+			<iterations value="1"/>}
+append_if [have_include "power_on/qemu"] config {
+			<write-read size="1M" buffer_size="8K"/>}
+append config {
+			<vfs>
+				<dir name="tmp"> <fs/> </dir>
+				<dir name="dev"> <log/> </dir>
+			</vfs>
+			<libc stdout="/dev/log" cwd="/tmp"/>
+		</config>
+		<route>
+			<service name="File_system"><child name="vfs2"/></service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+</config>
+}
+
+install_config $config
+
+#
+# Boot modules
+#
+
+build_boot_image {
+	core init vfs
+	ld.lib.so libc.lib.so vfs.lib.so
+	test-libc_vfs
+}
+
+#
+# Execute test case
+#
+
+append qemu_args " -nographic "
+run_genode_until {.*child "test-libc_vfs" exited with exit value 0.*} 60
+
+# vi: set ft=tcl :

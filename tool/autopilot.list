@@ -32,6 +32,7 @@ libc_pipe
 libc_vfs
 libc_vfs_block
 libc_vfs_fs
+libc_vfs_fs_chained
 libc_vfs_ram
 log
 log_core
