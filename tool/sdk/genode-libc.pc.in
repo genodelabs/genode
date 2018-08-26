@@ -1,0 +1,11 @@
+prefix=!SDK_DIR!
+includedir=${prefix}/include/libc
+libdir=${prefix}/lib
+
+Name: genode-libc
+Description: Genode C runtime library
+URL: https://genode.org/
+Version: !VERSION!
+Requires: genode-base genode-vfs
+Cflags: -D__FreeBSD__=8 -D__ISO_C_VISIBLE=1999 -fno-builtin-sin -fno-builtin-cos -fno-builtin-sinf -fno-builtin-cosf -I${includedir} -I${includedir}/libc -I${includedir}/libc/libc -I${includedir}/libc-genode
+Libs: ${libdir}/libc.lib.so ${libdir}/libm.lib.so

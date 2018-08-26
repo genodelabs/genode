@@ -1,0 +1,10 @@
+prefix=!SDK_DIR!
+includedir=${prefix}/include/libc
+libdir=${prefix}/lib
+
+Name: genode-posix
+Description: Genode POSIX entrypoint library
+URL: https://genode.org/
+Version: !VERSION!
+Requires: genode-libc
+Libs: ${libdir}/posix.lib.so

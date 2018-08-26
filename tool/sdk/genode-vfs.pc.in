@@ -1,0 +1,9 @@
+prefix=!SDK_DIR!
+libdir=${prefix}/lib
+
+Name: genode-vfs
+Description: Genode Virtual File-System library
+URL: https://genode.org/
+Version: !VERSION!
+Requires: genode-base
+Libs: ${libdir}/vfs.lib.so

@@ -1,0 +1,15 @@
+prefix=!SDK_DIR!
+lddir=${prefix}/ld
+libdir=${prefix}/lib
+toolchaindir=!TOOLCHAIN_DIR!
+cc=${toolchaindir}/bin/genode-x86-gcc
+cxx=${toolchaindir}/bin/genode-x86-g++
+ld=${toolchaindir}/bin/genode-x86-ld
+ar=${toolchaindir}/bin/genode-x86-ar
+ranlib=${toolchaindir}/bin/genode-x86-ranlib
+
+Name: genode-base
+Description: Genode base compiler definitions
+URL: https://genode.org/
+Version: !VERSION!
+Cflags: -nostdinc -fPIC -I${prefix}/include/genode -I${toolchaindir}/lib/gcc/x86_64-pc-elf/6.3.0/include

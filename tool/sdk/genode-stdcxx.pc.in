@@ -1,0 +1,11 @@
+prefix=!SDK_DIR!
+includedir=${prefix}/include/stdcxx/stdcxx
+libdir=${prefix}/lib
+
+Name: genode-stdcxx
+Description: Genode Standard C++ library
+URL: https://genode.org/
+Version: !VERSION!
+Requires: genode-libc
+Cflags:  -D_GLIBCXX_HAVE_MBSTATE_T -D_GLIBCXX_ATOMIC_BUILTINS_4 -I${includedir} -I${includedir}/std  -I${includedir}/c_global
+Libs: ${libdir}/stdcxx.lib.so

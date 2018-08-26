@@ -1,0 +1,11 @@
+prefix=!SDK_DIR!
+lddir=${prefix}/ld
+libdir=${prefix}/lib
+toolchaindir=!TOOLCHAIN_DIR!
+
+Name: genode-lib
+Description: Flags for linking Genode libraries
+URL: https://genode.org/
+Version: !VERSION!
+Requires: genode-base
+Libs: -shared --eh-frame-hdr -melf_x86_64 -gc-sections -z max-page-size=0x1000 -T ${lddir}/genode_rel.ld --entry=0x0 ${libdir}/ldso-startup.lib.a ${toolchaindir}/lib/gcc/x86_64-pc-elf/6.3.0/64/libgcc.a

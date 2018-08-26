@@ -1,0 +1,11 @@
+prefix=!SDK_DIR!
+lddir=${prefix}/ld
+libdir=${prefix}/lib
+toolchaindir=!TOOLCHAIN_DIR!
+ld=${toolchaindir}/bin/genode-x86-ld
+
+Name: genode-prg
+Description: Flags for dynamically-linked Genode programs
+URL: https://genode.org/
+Version: !VERSION!
+Libs: -melf_x86_64 -gc-sections -z max-page-size=0x1000 --dynamic-list=${lddir}/genode_dyn.dl -nostdlib -Ttext=0x01000000 --dynamic-linker=ld.lib.so --eh-frame-hdr -rpath-link=. -T ${lddir}/genode_dyn.ld ${libdir}/ld.lib.so ${toolchaindir}/lib/gcc/x86_64-pc-elf/6.3.0/64/libgcc.a
