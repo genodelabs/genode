@@ -149,3 +149,8 @@ extern "C" bool PGMUnmapMemoryGenode(void *, ::size_t)
 	Genode::error(__func__, " unimplemented");
 	return VERR_GENERAL_FAILURE;
 }
+
+extern "C" void PGMFlushVMMemory()
+{
+	Genode::error(__func__, " unimplemented");
+}

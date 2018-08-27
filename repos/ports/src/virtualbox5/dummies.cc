@@ -130,7 +130,6 @@ int GIMR3InitCompleted(PVM pVM)
 
 
 void HMR3Relocate(PVM)                                                          TRACE()
-void HMR3Reset(PVM pVM)                                                         TRACE()
 
 int  SELMR3Init(PVM)                                                            TRACE(VINF_SUCCESS)
 int  SELMR3Term(PVM)                                                            TRACE(VINF_SUCCESS)

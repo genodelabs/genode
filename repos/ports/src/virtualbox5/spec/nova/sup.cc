@@ -48,6 +48,7 @@
 
 
 extern "C" bool PGMUnmapMemoryGenode(void *, ::size_t);
+extern "C" void PGMFlushVMMemory();
 
 
 /*
@@ -755,6 +756,11 @@ bool PGMUnmapMemoryGenode(void * vmm_local, ::size_t size)
 	}
 
 	return true;
+}
+
+extern "C" void PGMFlushVMMemory()
+{
+	PGMUnmapMemoryGenode((void *)vm_memory().local_addr(0), MAX_VM_MEMORY);
 }
 
 

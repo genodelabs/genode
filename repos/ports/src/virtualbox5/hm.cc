@@ -157,6 +157,12 @@ VMMR3_INT_DECL(void) HMR3ResetCpu(PVMCPU pVCpu)
 	pVCpu->hm.s.fActive = false;
 }
 
+extern "C" void PGMFlushVMMemory();
+VMMR3_INT_DECL(void) HMR3Reset(PVM pVM)
+{
+	PGMFlushVMMemory();
+}
+
 VMMR3_INT_DECL(void) HMR3PagingModeChanged(PVM pVM, PVMCPU pVCpu, PGMMODE enmShadowMode, PGMMODE enmGuestMode)
 {
 }
