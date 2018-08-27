@@ -11,3 +11,5 @@ go_libbacktrace.patch
 target_libbacktrace.patch
 noux_build.patch
 arm.patch
+ubsan.patch
+ucontext_t.patch

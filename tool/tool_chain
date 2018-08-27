@@ -143,7 +143,10 @@ EXPAT_OK = $(call check_equal_f,\
 #
 # Check if 'GNAT' is installed
 #
-HOST_GCC_VERSION := $(shell gcc -dumpversion)
+# The '-dumpfullversion' option is used by GCC version 7, the '-dumpversion' option
+# is used by GCC versions < 7.
+#
+HOST_GCC_VERSION := $(shell gcc -dumpfullversion -dumpversion)
 GNAT_OK = $(call check_equal_f,$(shell gnatmake --version | sed -n -e 's/GNATMAKE //p'),$(HOST_GCC_VERSION),\
             Need to have GNAT installed and the GNAT version must match the GCC version (found GCC $(HOST_GCC_VERSION)).)
 

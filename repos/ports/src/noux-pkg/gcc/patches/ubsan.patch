@@ -1,0 +1,32 @@
+From c0c52589c6a7265e8fc6b77706a83d22aa1ef0ce Mon Sep 17 00:00:00 2001
+From: rguenth <rguenth@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date: Thu, 26 Jan 2017 10:46:01 +0000
+Subject: [PATCH] 2017-01-26  Richard Biener  <rguenther@suse.de>
+
+	Backport from mainline
+	2016-09-03  Kirill Yukhin  <kirill.yukhin@intel.com>
+
+	* ubsan.c (ubsan_use_new_style_p): Fix check for empty string.
+
+
+git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/branches/gcc-6-branch@244923 138bc75d-0d04-0410-961f-82ee72b054a4
+
+cproc: removed ChangeLog part (didn't apply)
+---
+ gcc/ChangeLog | 7 +++++++
+ gcc/ubsan.c   | 2 +-
+ 2 files changed, 8 insertions(+), 1 deletion(-)
+
+diff --git a/gcc/ubsan.c b/gcc/ubsan.c
+index 56637d8f0a9e..109382498fda 100644
+--- a/gcc/ubsan.c
++++ b/gcc/ubsan.c
+@@ -1471,7 +1471,7 @@ ubsan_use_new_style_p (location_t loc)
+ 
+   expanded_location xloc = expand_location (loc);
+   if (xloc.file == NULL || strncmp (xloc.file, "\1", 2) == 0
+-      || xloc.file == '\0' || xloc.file[0] == '\xff'
++      || xloc.file[0] == '\0' || xloc.file[0] == '\xff'
+       || xloc.file[1] == '\xff')
+     return false;
+ 
