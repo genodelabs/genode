@@ -1,0 +1,1075 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 18.08
+              ===============================================
+
+                               Genode Labs
+
+
+
+With Genode 18.08, we enter the third episode of the story of Sculpt, which is
+our endeavor to shape Genode into a general-purpose operating system. In the
+first two episodes, we addressed early adopters and curious technology
+enthusiasts. Our current ambition is to gradually widen the audience beyond
+those groups. The release reflects this by addressing four concerns that are
+crucial for general-purpose computing.
+
+First and foremost, the system must support *current-generation hardware*.
+Section [Device drivers] describes the substantial update of Genode's arsenal
+of device drivers. This line of work ranges from updated 3rd-party drivers,
+over architectural changes like the split of the USB subsystem into multiple
+components, to experimental undertakings like running Zircon drivers of
+Google's Fuchsia project as Genode components.
+
+Second, the steady stream of new discovered CPU-level vulnerabilities call
+for the timely application of *microcode updates*.
+Section [New Intel Microcode update mechanism] presents a kernel-agnostic
+mechanism for applying CPU-microcode updates to Genode-based systems.
+
+Third, in order to be actually useful, the system needs to be *scalable*
+towards a vast variety of *workloads*. Genode's VFS infrastructure is a
+pivotal element here - it is almost like a Swiss army knife. For example,
+Section [New VFS plugin for using LwIP as TCP/IP stack] presents how the VFS
+enables the lwIP and Linux TCP/IP stacks to be used interchangeably for a
+network application by merely tweaking the component's configuration. The VFS
+ultimately enables us to host sophisticated 3rd-party software, like the new
+port of Python 3 (Section [Python 3]). Also on account of workload
+scalability, the release features a new caching mechanism described in
+Section [Cached file-system-based ROM service].
+
+Fourth, to overcome the perception of being a toy for geeks, Sculpt must
+become *easy to use*. We are aiming higher than mere convenience though. We
+ought to give the user full transparency of the system's operation at an
+intuitive level of abstraction. The user should be empowered to see and
+consciously control the interaction of components with one another and with
+the hardware. For example, unless the user explicitly allows an application to
+reach the network, the application remains completely disconnected. Founded on
+capability-based security, Genode already provides the solution on the
+technological level. Now, we have to make this power available to the user. To
+make this possible, we need to walk off the beaten tracks of commodity user
+interfaces. Section [Sculpt with Visual Composition] gives a glimpse to the
+upcoming features and future.
+
+Besides the developments driven by Sculpt's requirements, the current release
+features an extended Ada language runtime, updated kernels, new
+multi-processor support for our custom microkernel on x86, and the ability to
+route network traffic between an arbitrary number of physical network
+interfaces.
+
+
+Sculpt with Visual Composition
+##############################
+
+Sculpt is our take on creating a Genode-based general-purpose operating
+system. With the Year of Sculpt as our leitmotif for 2018, the current release
+features the ingredients of the third evolution step advertised on the
+[https://genode.org/about/road-map - road map].
+With Sculpt VC (Visual Composition), we pursue the gradual transition from a
+text-based user interface to a graphical user interface for most
+administrative tasks while preserving the text-based interface for the full
+flexibility. All packages for the current version of Sculpt are readily
+available at [https://depot.genode.org/genodelabs/]. The official disk image
+of Sculpt VC will be released in September.
+
+[image sculpt_18_08]
+
+
+Live runtime view
+-----------------
+
+The central element of Sculpt's envisioned graphical user interface will be an
+interactive representation of the runtime state, giving the user an intuitive
+picture of the relationship between components and their respective trusted
+computing bases, and thereby a sense of control that is unknown from today's
+commodity operating systems.
+
+[image sculpt_runtime_view]
+
+The runtime view is generated on the fly and updated whenever the system
+undergoes a structural change. It is organized such that components with a
+close semantic relationship are grouped together. By default, the most
+significant relationship between any two components is highlighted by a line
+connecting them. The runtime view already supports a basic form of
+interaction: By clicking on a component, all relationships to other components
+of the runtime become visible, and additional details about the resource usage
+are presented. In the forthcoming versions, the graph will become more and
+more interactive.
+
+Within Sculpt's leitzentrale, the runtime view is now displayed by default.
+However, when inspecting file systems, the runtime view is replaced by the
+inspect window. Both views can toggled by clicking on the title of the
+storage dialog for the inspect window, or any other dialog for the runtime
+view.
+
+
+Revised deployment configuration
+--------------------------------
+
+In its current incarnation, the deployment of components is directly controlled
+by editing the _/config/deploy_ file of Sculpt's config file system. With
+the move to a non-textual user interface, this responsibility will be handed
+over to the sculpt-manager component. To make this transition possible,
+we moved all manually-defined parts of the deploy configuration to so-called
+"launcher" configurations that reside at _/config/launcher/_. The deploy
+configuration merely controls the instantiation of components while
+referring to launchers. The name of each launcher corresponds to its file name.
+That said, the deploy configuration is backwards compatible. Whenever a
+'<start>' node contains a 'pkg' attribute, it still works as before, not using
+any launcher policy.
+
+In the new version, the default deploy configuration contains just a list of
+nodes, each referring to a launcher according to the 'name' attribute. It is
+possible to explicitly refer to a differently named launcher by specifying a
+'launcher' attribute. This way, one launcher can be instantiated multiple
+times. A '<config>' node within a launcher - when present - overrides the one
+of the pkg. In turn, a '<config>' node within a node of the deploy config
+overrides any other node. Both the launcher and a '<start>' node may contain a
+'<route>' node. The routing rules defined in the '<start>' node have
+precedence over the ones defined by the launcher. This way, the routing of a
+launcher can be parameterized at the deploy configuration. The files at
+_/config/launcher/_ are monitored by the sculpt manager and therefore can be
+edited on the fly. This is especially useful for editing the '<config>' node
+of _/config/launcher/usb_devices_rom_ to pass USB devices to a virtual
+machine.
+
+The launchers integrated in the boot image are defined at
+_gems/run/sculpt/launcher/_. Each file contains a node with a mandatory pkg
+attribute. If the attribute value contains one or more '/' characters, it is
+assumed to be a complete pkg path of the form '<user>/pkg/<name>/<version>'.
+Otherwise it is assumed to be just the pkg name and is replaced by the current
+version of the current depot user's pkg at system-integration time.
+
+
+Sculpt as a hardware-probing instrument
+---------------------------------------
+
+The new 'report_dump' subsystem periodically copies the content of Sculpt's
+report file system to the default file system. It thereby can be used to turn
+Sculpt into a diagnostic instrument for probing the driver support on new
+hardware.
+
+First, a USB stick with a fresh Sculpt image is booted on a fully supported
+machine. The user then customizes the USB stick within the running system by
+expanding the USB stick's Genode partition, setting it as the default
+storage location, and deploying the 'report_dump' subsystem. The last step
+triggers the installation of the 'report_dump' package onto the USB stick.
+Finally, the user copies the deploy configuration from the in-memory config
+file system (_/config/deploy_) to the USB stick
+(_/usb-<N>/config/18.08/deploy_). When booting this prepared USB stick,
+this deployment configuration becomes active automatically. At this point, the
+Sculpt system will copy a snapshot of the report file system to the Genode
+partition of the USB stick every 10 seconds. The snapshots captured on
+the USB stick can later be analyzed on another machine.
+
+The snapshots not only contain all log messages (_/report/log_) but also the
+reports generated by various components of the drivers subsystem and any other
+deployed components. E.g., with 'acpica' present in the deploy configuration,
+the battery state is captured as well. The report-dump subsystem nicely
+showcases how the addition of a simple package allows the reshaping of Sculpt
+into a handy special-purpose appliance.
+
+
+Device drivers
+##############
+
+Linux device-driver environment based on kernel version 4.16.3
+==============================================================
+
+We updated our DDE Linux version from 4.4.3 to 4.16.3 to support newer
+Intel wireless cards as well as Intel HD graphics devices. Since there
+were changes to the Linux internal APIs, we had to adapt the Linux
+emulation environment. We managed to do that in a way that still makes
+it possible to keep using the old Linux version for certain drivers like the
+FEC network driver and the TCP/IP stack, which will be updated in the future.
+Furthermore, some drivers received additional features while updating the code
+base.
+
+
+Updated and enhanced Intel framebuffer driver
+=============================================
+
+The updated Intel graphics driver gained support for changing the brightness
+of notebook displays. The driver's configuration features a new attribute
+named 'brightness' that expects a percentage value:
+
+! ...
+! <config>
+!  <connector name="LVDS-11" width="1280" height="800"
+!             hz="60" brightness="75" enabled="true"/>
+! </config>
+! ...
+
+By default the brightness is set to 75 percent. The connector status report
+also includes the current brightness of supported displays for each status
+update.
+
+! <connectors>
+!   <connector name="LVDS-11" connected="1" brightness="75">
+!     <mode width="1280" height="800" hz="60"/>
+!     ...
+!   </connector>
+!   <connector name="HDMI-A-1" connected="false"/>
+!   ...
+! </connectors>
+
+
+Updated and reworked Intel wireless driver
+==========================================
+
+The update of the iwlwifi driver's code base brings new support for 8265 as
+well as 9xxx devices. The WPA supplicant code was also updated to a recent
+git version that contains critical fixes for issues like the KRACK attack.
+
+Since the updated driver requires newer firmware images which are not as easily
+accessible as the old ones, we now provide the appropriate images ourselves:
+
+[https://github.com/cnuke/dde_linux_firmware - Firmware images for DDE Linux]
+
+We took the update as an opportunity to rework the wifi_drv's configuration
+interface. The old driver used the 'wpa_supplicant.conf' POSIX config-file
+interface as configuration mechanism. Unfortunately, this implementation
+detail became apparent to the user of the driver because a file-system for
+storing the file needed to be configured. For this reason, we now make use of
+the CTRL interface of the supplicant and implemented a Genode-specific back
+end. In this context, we refined the structure of the configuration of the
+driver.
+
+The driver still reports its current state but the report is now simply called
+'state' instead of 'wlan_state'. At the moment, SSIDs are provided verbatim
+within the report and are not sanitized. SSIDs that contain unusual characters
+like '"' and the NUL byte will lead to invalid reports. This also applies for
+the 'accesspoints' report that supersedes the former 'wlan_accesspoints'
+report. We will address this remaining issue in a future update.
+
+The main configuration was moved from the common '<config>' node to a new ROM
+called 'wifi_config'. In doing so, we cleanly separate the wireless
+configuration from the component's internal configuration, such as libc or VFS
+settings that would not be changed during the component's lifetime. The new
+'wifi_config' configuration looks as follows:
+
+!<wifi_config connected_scan_interval="30" scan_interval="5">
+!  <accesspoint ssid="Foobar" protection="WPA2" passphrase="allyourbase"/>
+!</wifi_config>
+
+The 'connected_scan_interval' specifies the timeout after which the driver
+will request a new scan of the existing access points when connected to an
+access point. This setting influences the frequency at which the driver will
+make a roaming decision within the network (SSID). The 'scan_interval'
+attribute specifies the timeout after which a new scan request will be
+executed while still trying to find a suitable access point. In addition to
+those attributes there is the 'use_11n' attribute that is evaluated once on
+start-up to enable or disable 11N support within the iwlwifi module. It cannot
+be toggled at run-time. Furthermore there are various verbosity attributes
+like 'verbose' and 'verbose_state'. If either of those is set to yes, the
+driver will print diagnostic messages to the log. The verbosity can be toggled
+at run-time. It is now also possible to temporarily suspend the radio activity
+of the wireless device by setting the 'rfkill' attribute to 'yes'. This will
+disable all connectivity and can be toggled at runtime.
+
+The '<accesspoint>' node replaces the previously used '<selected_network>'
+node. The SSID of the preferred network is set via the 'ssid' attribute. Like
+the SSID in the driver's report, its value is copied verbatim. At the
+moment, there is no way to express or escape non alphanumeric characters.
+The type of protection of the network is set via the 'protection' attribute.
+Valid values are 'WPA' and 'WPA2'. The alphanumeric password is set via the
+'passphrase' attribute. Setting a PSK directly is not supported as of now. The
+configuration can contain more than one '<accesspoint>' entry. In this case
+the driver will choose the network that offers the best quality from the list.
+To prevent the driver from auto-connecting to a network, the 'auto_connect'
+attribute can be set to 'false'. The 'bssid' attribute may be used in addition
+to the 'ssid' attribute to select a specific access point within one network.
+
+There is no backwards compatibility for the old configuration format. Users
+are advised to adapt their system scenarios. As an unfortunate regression,
+some 6xxx cards will not work properly. This issue is being investigated.
+
+
+De-componentized USB stack
+==========================
+
+The USB stack has a long history in the Genode OS framework. Back in May 2009,
+the first DDE-Linux-based driver was introduced, which was the USB input
+driver. It used compilation units related to the USB host controller, HID, and
+input subsystems of Linux. To other Genode components, it offered the input
+session interface. At that time the driver ran on 32-bit x86 machines only.
+
+Since then the USB driver underwent manifold alterations. It was extended to
+support different architectures (ARMv6, ARMv7, x86_64) and USB
+host-controllers of various platforms. The support for USB endpoint devices
+was extended by additional HID, storage, and network devices. Nonetheless, the
+USB driver remained a monolithic component comprising different session
+interfaces like block, NIC and input. Nevertheless, we always regarded the
+monolithic approach as an intermediate step towards a componentized USB stack,
+as can be seen in the
+[https://genode.org/documentation/release-notes/9.05#USB_support - release notes of 9.05].
+
+[image multi_component_usb_1]
+
+The first qualitative change of the USB landscape in Genode was the
+introduction of the USB session interface and its support by the
+DDE-Linux-based monolithic driver with the Genode release 15.02. It enabled
+the development of independent driver components for USB-connected devices.
+Simultaneously, the first self-contained driver was released for the Prolific
+PL2303 USB to UART adapter. More, independent, written-from-scratch drivers
+followed, supporting HID and USB block devices. The icing on the cake was
+support of USB sessions within VirtualBox introduced in May 2015. From that
+point on, it was possible to drive dedicated USB devices within a guest
+operating system.
+
+Nevertheless, the USB host-controller driver still contained the overall
+complexity of Linux' input, storage, network, and USB subsystems. This
+complexity is unfortunate because it inflates the trusted computing base of
+all its clients. When updating different DDE Linux based drivers to a more
+recent version, we finally took the opportunity to split the monolithic USB
+driver stack into several parts. By separating the USB controller driver from
+the actual USB device drivers, we significantly reduce the complexity of the
+USB resource multiplexing.
+
+[image multi_component_usb_2]
+
+
+USB host driver
+---------------
+
+You can find the new USB host-controller-only driver for different
+platforms (arndale, panda, rpi, wandboard, x86_32, x86_64) at
+_repos/dde_linux/src/drivers/usb_host_. During a transitional period,
+the new driver stack will exist besides the old one. Most run scripts
+still use the old variant but you can have a look at the scripts
+_usb_block.run_, _usb_hid.run_, and _usb_net.run_ to get a notion of
+how to combine the new building blocks.
+
+The new driver can be configured to dynamically report all USB devices
+connected to the host controller and its HUBs by adding
+
+! <report devices="yes"/>
+
+to its configuration node. Like with the previous driver, one can use
+'product_id' and 'vendor_id', or 'bus' and 'dev' number attributes - delivered
+via the report - to define policy rules in the configuration of the driver.
+Thereby, different client drivers can access a dedicated device only. To ease
+up the migration to the new USB host driver, it is possible to just state the
+'class' number within a policy rule. A USB client-side driver then is able to
+open sessions for all devices of that class, but must use the correct label to
+address a unique device when opening the USB session. A possible driver
+configuration for the new USB host driver looks as follows.
+
+! ...
+! <provides><service name="Usb"/></provides>
+! <config>
+!   <report devices="yes"/>
+!   <policy label_prefix="usb_net_drv"   vendor_id="0x0b95" product_id="0x772a"/>
+!   <policy label_prefix="usb_block_drv" vendor_id="0x19d2" product_id="0x1350"/>
+!   <policy label_prefix="usb_hid_drv"   class="0x03"/>
+! </config>
+! ...
+
+The new host driver does not need to be configured with respect to the kind of
+host controller used, e.g., OHCI, EHCI, XHCI. By providing the appropriate
+device-hardware resources to the driver, it automatically detects what kind of
+controller should be driven.
+
+
+USB HID driver
+--------------
+
+The new self-contained USB HID driver is platform independent, as it solely
+depends on the USB-session interface. It comprises drivers for several kinds
+of HID devices. One can either enable support for all kinds of HID devices by
+one driver instance for compatibility reasons, or use one dedicated driver
+instance per HID device. To support all HID devices provided by the USB host
+driver, the HID driver can subscribe to a report of the host driver. When
+configuring the HID driver, like in the following snippet, it will track
+changes of a ROM called 'report', and open a USB session to all HID devices
+listed in the report.
+
+! ...
+! <config use_report="yes"/>
+! ...
+
+All options for tracking the state of keyboard LEDs like 'capslock', and the
+configuration values to support multi-touch devices are still supported and
+equal to the former monolithic driver.
+
+
+USB network driver
+------------------
+
+The self-contained USB network driver is called 'usb_net_drv' and resides
+at _repos/dde_linux/src/drivers_. It supports different chipsets, but
+in contrast to the HID driver supports exactly one device per driver
+instance. If you need support for more than one USB connected network card,
+additional drivers must be instantiated. Like in the old monolithic driver, it
+is advised to state a MAC for those platforms where it is not possible to read
+one from an EEPROM, otherwise a hard-coded one is used.
+
+
+USB devices with timing constraints
+===================================
+
+Devices like USB headsets, webcams, or sound cards require the assertion of a
+guaranteed bandwidth from the USB host controller in order to function
+correctly. USB achieves this through so-called isochronous endpoints, which
+guarantee the desired bandwidth but do not assert the correctness of the data
+delivered.
+
+Because Genode's USB-session interface lacked support for this kind of
+devices, we extended the interface and added support for isochronous endpoints
+in our host controller drivers. Additionally, we adapted our Qemu-XHCI device
+model to also handle isochronous requests seamlessly. With these extensions in
+place, it becomes possible to directly access, for example a headset, from a
+guest operating system within VirtualBox (e.g., Linux, Windows).
+
+We consider this feature as preliminary as the current implementation limits
+the support of isochronous endpoints to one IN and one OUT endpoint per USB
+device.
+
+
+Updated iPXE-based NIC driver
+=============================
+
+Since Genode 18.05, we extended our support of Intel Ethernet NICs by another
+I219-LM variant and I218V. We also introduced I210 support including upstream
+fixes for boot-time MAC address configuration.
+
+
+Experimental runtime for Zircon-based drivers
+=============================================
+
+The new dde_zircon repository provides a device-driver environment for the
+Zircon microkernel, which is the kernel of Google's Fuchsia OS. It consists of
+the 'zircon.lib.so' shared library, which implements an adaption layer between
+Zircon and Genode, and the 'zx_pc_ps2' driver that serves as a
+proof-of-concept. Thanks to Johannes Kliemann for contributing this line of
+work!
+
+
+Improved PS/2 device compatibility
+==================================
+
+Once again we invested time into our PS/2-driver implementation due to
+compatibility issues with keyboards, touchpads, and trackpoints in recent
+notebooks. As a result, input devices of current Lenovo X and T notebooks as
+well as the Dell Latitude 6430u work solid now.
+
+
+Base framework and OS-level infrastructure
+##########################################
+
+Streamlined ELF-binary loading
+==============================
+
+In scenarios like Sculpt's runtime subsystem, a parent component may create a
+subsystem out of ELF binaries provided by one of its children. However, since
+the parent has to access the ELF binary in order to load it, the parent has to
+interact with the child service. It thereby becomes dependent on the
+liveliness of this particular child. This is unfortunate because the parent
+does not need to trust any of its children otherwise. To dissolve this
+unwelcome circular trust relationship, we simplified Genode's ELF loading
+procedure such that the parent never has to deal with the ELF binaries
+directly. Instead, the parent unconditionally loads the dynamic linker only,
+which is obtained from its trusted parent. The dynamic linker - running in the
+context of the new component - obtains the ELF binary as a regular ROM session
+provided by a sibling component. If this sibling misbehaves for any reason,
+the parent remains unaffected. To achieve this level of independence, we had
+to drop the handling of statically-linked executables as first-class citizens.
+In order to distinguish static from dynamic binaries, the parent needed to
+look into the binary after all.
+
+Statically linked binaries and hybrid Linux/Genode (lx_hybrid) binaries can
+still be started by relabeling the ROM-session route of "ld.lib.so" to the
+binary name, so as to pretend that the binary is the dynamic linker. This can
+be achieved via init's label rewriting mechanism:
+
+! <route>
+!   <service name="ROM" unscoped_label="ld.lib.so">
+!     <parent label="test-platform"/> </service>
+! </route>
+
+However, as this is quite cryptic and would need to be applied for all
+lx_hybrid components, we added a shortcut to init's configuration. One can
+simply add the 'ld="no"' attribute to the <start> node of the corresponding
+component:
+
+! <start name="test-platform" ld="no"/>
+
+
+NIC-router support for multiple uplinks
+=======================================
+
+A comprehensive concept for the configuration of uplinks
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The main purpose of the NIC router is to mediate between an arbitrary number
+of NIC sessions according to user policies for the OSI layers 3 and 4. Once a
+NIC session is established and integrated into this mediation algorithm, the
+fact whether the NIC router is client or server of the session becomes reduced
+to subtleties that are transparent to the user. Though, when establishing the
+session, there exist some differences that must be reflected by the NIC
+router's configuration interface. As NIC session server, the router simply
+accepts all incoming session requests, given they transfer sufficient
+resources. We refer to these sessions as "downlinks". As NIC session client,
+on the other hand, the router is supposed to request the desired sessions -
+called "uplinks" - by itself and therefore has also to determine their session
+arguments in some way.
+
+The original version of the NIC router used a simplified model that was based
+on the assumption that there is either none or only one uplink. The existence
+of the one possible uplink was bound to the presence of a special domain named
+"uplink" in the configuration, thereby obviating the need for uplink-specific
+means of configuration.
+
+This model has now been broken up to make room for a more potent and elegant
+solution. We introduced the new '<uplink>' node for uplinks as an equivalent
+to the '<policy>' node for downlinks. Like the '<policy>' node, the '<uplink>'
+node assigns the corresponding NIC session to a specific domain. But unlike
+the '<policy>' node, each '<uplink>' node represents exactly one uplink or NIC
+session client whose lifetime and session arguments it defines. Here is a
+short configuration example demonstrating the usage of the new node:
+
+! <config>
+!   <policy label_prefix="virtualbox" domain="default">
+!   <policy label_prefix="arora"      domain="wifi_domain">
+!
+!   <uplink                 domain="default" />
+!   <uplink label="wired_1" domain="wired_bridge" />
+!   <uplink label="wired_2" domain="wired_bridge" />
+!   <uplink label="wifi"    domain="wifi_domain" />
+!   ...
+!
+!   <domain name="wired_bridge"> ... </domain>
+!   <domain name="default">      ... </domain>
+! </config>
+
+As can be observed, multiple '<uplink>' nodes are supported. The 'label'
+attribute represents the label of the corresponding NIC session client. This
+attribute can be omitted, which results in an empty string as label. But keep
+in mind that each uplink label must be unique. The label can be used to route
+different uplink sessions to different NIC servers. Assuming that the above
+NIC router instance is a child of an init component, its configuration can be
+accompanied by init's routing configuration as follows:
+
+! <route>
+!   <service name="Nic" label="wifi">    <child name="wifi_drv"/>  </service>
+!   <service name="Nic" label="wired_1"> <child name="nic_drv_1"/> </service>
+!   <service name="Nic" label="wired_2"> <child name="nic_drv_2"/> </service>
+!   <service name="Nic">                 <parent/>                 </service>
+! </route>
+
+[image multiple_nic_uplinks]
+
+The 'domain' attribute of the '<uplink>' node defines to which domain the
+corresponding uplink tries to assign itself. As you can see in the example,
+there is no problem with assigning multiple uplinks to the same domain or even
+uplinks together with downlinks. Independent of whether they are uplinks or
+downlinks, NIC sessions that share the same domain can communicate with each
+other as if they were connected through a repeating hub and without any
+restriction applied by the router.
+
+Similar to downlinks, uplinks are not required to stay connected to a certain
+domain during their lifetime. They can be safely moved from one domain to
+another without closing the corresponding NIC session. This is achieved by
+reconfiguring the respective 'domain' attribute. An uplink can even exist
+without a domain at all, like the 'wifi' uplink in the example above. In this
+case, all packets from the uplink are ignored by the NIC router but the
+session still remains open. Finally, an uplink and its NIC session client can
+be terminated by removing the corresponding '<uplink>' node from the NIC
+router configuration.
+
+
+ICMP echo server
+~~~~~~~~~~~~~~~~
+
+The NIC router can now act as ICMP echo server. This functionality can be
+configured as shown in the following two configuration snippets:
+
+! <config>
+!    <domain name="one">                         ... </domain>
+!    <domain name="two"  icmp_echo_server="no" > ... </domain>
+! </config>
+
+! <config icmp_echo_server="no">
+!    <domain name="three">                       ... </domain>
+!    <domain name="four" icmp_echo_server="yes"> ... </domain>
+! </config>
+
+By default, the ICMP echo server is enabled. So, in the example above, it is
+enabled for all NIC sessions assigned to domain "one" and "four". This implies
+that the router will answer ICMP echo requests from sessions that target the
+IP address of the corresponding domain. For the domains "two" and "three", the
+ICMP echo server is disabled, meaning, that they will drop the above mentioned
+requests at their NIC sessions.
+
+
+New verbosity class "packet drop"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+As the NIC router is being deployed in a growing number of real-live scenarios
+(e.g., Sculpt OS) the ability to list dropped packets proved to be helpful
+for localizing causes of complicated networking problems. But this type of
+log message came along with all the other output of the routers 'verbose'
+flag. Thus, we moved them to a dedicated verbosity class, which is controlled
+through the new 'verbose_packet_drop' flag as illustrated by the following two
+configuration snippets:
+
+! <config>
+!    <domain name="one">                             ... </domain>
+!    <domain name="two"  verbose_packet_drop="yes" > ... </domain>
+! </config>
+
+! <config verbose_packet_drop="yes">
+!    <domain name="three">                         ... </domain>
+!    <domain name="four" verbose_packet_drop="no"> ... </domain>
+! </config>
+
+This feature is disabled by default. So domain "one" and "four" won't log
+dropped packets whereas domain "two" and "three" will. A dropped packet
+message is accompanied by the rationale that led to the decision.
+
+
+New VFS plugin for using LwIP as TCP/IP stack
+=============================================
+
+[image socket_fs]
+
+The architecture and philosophy of Genode mandates that network protocol
+stacks be moved up and away from the kernel whenever practical. Eliminating
+the TCP/IP stack from the TCB of non-networked components has obvious
+benefits, but poses a challenge for isolating or sharing IP stacks otherwise.
+In
+[https://genode.org/documentation/release-notes/17.02#Enhanced_VFS_infrastructure - version 17.02],
+we introduced a BSD-sockets API layer to the POSIX C runtime that uses the
+local virtual-file-system layer to access an abstract TCP/IP stack via control
+files. A stack may be instantiated locally or shared via the File_system
+service. The first stack plugin for the VFS layer was a port of the Linux IP
+stack, referred to as LxIP.
+
+Ported in the
+[https://genode.org/documentation/release-notes/9.11#Light-weight_IP_stack__lwIP_ - 9.11 release],
+LwIP is a lightweight alternative to LxIP. It features a low-level
+asynchronous interface as well as an optional implementation of the
+BSD-sockets API. In this release, we updated LwIP to the latest version,
+reconfigured it for asynchronous mode only, and use its low-level API in the
+new LwIP VFS plugin. This plugin retains the modest resource usage of the LwIP
+library with performance that is competitive with LxIP.
+
+The previous LwIP port has been renamed to 'lwip_legacy' and is scheduled for
+removal. Developers and integrators are encouraged to transition from the old
+'libc_lwip' libraries to the new VFS plugin by simply removing the legacy
+libraries from components and updating configurations to load and configure
+the plugin at start time.
+
+
+Dynamic capability-quota balancing
+==================================
+
+Since
+[https://genode.org/documentation/release-notes/17.05#Dynamic_resource_management_and_service_forwarding_via_init - version 17.05],
+the init component supports the dynamic adjustment of RAM quota values. But
+this mechanism remained unavailable for capability quotas. This became a
+limitation in use cases like Sculpt's RAM file system where an upper bound of
+needed capabilities is hard to define. For this reason, init has gained the
+ability to adjust capability quotas of its children according to dynamic
+configuration changes.
+
+
+Simplified DNS handling of libc-using components
+================================================
+
+We overhauled the way the libc acquires DNS server information. Instead of
+simply accessing the commonly used _/etc/resolv.conf_ file it now inspects the
+file given by the 'nameserver_file' attribute to retrieve the DNS name server
+address. It defaults to '/socket/nameserver' which is the common location when
+using the lxip or lwip VFS plugin. As a constraint the libc will read the
+first line and expects the verbatim name-server address.
+
+
+Cached file-system-based ROM service
+====================================
+
+The fs_rom server has long been part of the foundation of dynamic Genode
+systems, both for serving configuration and loading component binaries and
+libraries. For the server to dynamically update ROM dataspaces as requested by
+clients it must maintain independent dataspaces for each client. This is a
+small price for dynamic configurations but a burden when serving more than a
+few static binary images.
+
+The new cached_fs_rom server is an alternative ROM service that deduplicates
+dataspaces across client sessions as well as load and deliver sessions
+out-of-order. Implementing the 'cached_fs_rom' component required an amendment
+to the RM session interface to support read-only attachments in managed
+dataspaces. This allows the server to allocate a managed memory region for
+each session, map the dataspace with file content into the region without
+write permissions, and finally hand out a dataspace capability for this region
+to its client. This is the prerequisite for safely delegating shared memory
+across clients.
+
+Note that granting access to such a component would of course allow a client
+to discover which files have been loaded by other components by measuring the
+round-trip time for session requests, but this discovery is mitigated in
+Sculpt OS by restricting components to a ROM whitelist. Under these conditions
+a component may only determine if a component with a similar whitelist has
+been loaded previously, but only for ROMs that have not been loaded by the
+dynamic linker before measurements can be taken.
+
+
+VFS plugin for importing initial content
+========================================
+
+The previous release added a long anticipated feature plugin for the VFS
+layer, the Copy-On-Write plugin, or COW. This plugin transparently forwards
+write operations to a read-only file to a writable file in a different
+location, such as initial disk images for virtual machines. The implementation
+appeared to provide these semantics without sophisticated knowledge of what
+portions of a file-system had been duplicated for writing, but in practical
+use the plugin suffered from a number of issues. First, the plugin was not
+able to reliably detect recursion into itself, and second, chaining
+asynchronous operations together proved to be more complicated than we had
+planned for.
+
+With a look on the features we were using rather than the features we
+anticipated, we focused on the initial content feature of the 'ram_fs'. This
+server provides a non-persistent file-system that can be populated with
+content before servicing clients. To foster the goal of providing a toolkit of
+orthogonal components we have been gradually merging the 'ram_fs' server, the
+first file-system server, into the newer, more powerful 'vfs' server. Initial
+population happened to be the last feature before parity, so we created a
+special 'import' plugin for the VFS library that instantiates a temporary
+internal file-system that is copied to the root of the main VFS instance. The
+copy is recursive and non-destructive by default. Should the import process
+need to overwrite existing files, 'overwrite="yes"' may be added to the plugin
+configuration node. This plugin covers all use cases we have for the COW
+plugin and turned out to be quite intuitive. Therefore, with this release, the
+COW plugin is replaced by the 'import' plugin.
+
+The plugin is quite easy to use, for example, importing a shell configuration
+into a Noux instance:
+
+! <start name="shell">
+!   <binary name="noux"/>
+!   ...
+!   <config>
+!     <start name="/bin/bash">
+!       <env name="HOME" value="home" />
+!     </start>
+!     <fstab>
+!       <tar name="coreutils.tar" />
+!       <fs/>
+!       <import overwrite="true">
+!         <dir name="home">
+!           <inline name=".bash_profile">
+!           PS1="\w $ "
+!           </inline>
+!         </dir>
+!       </import>
+!     </fstab>
+!   </config>
+! </start>
+
+To compare the use of the plugin in the VFS server:
+
+! <start name="config_fs">
+!   <binary name="vfs"/>
+!   ...
+!   <config>
+!     <vfs>
+!       <ram/>
+!       <import>
+!         <dir name="managed">
+!           <rom name="fonts"  label="fonts.config"/>
+!           <rom name="fb_drv" label="fb_drv.config"/>
+!           <rom name="wifi"   label="wifi.config"/>
+!           <inline name="depot_query"><query/></inline>
+!           ...
+!         </dir>
+!         <rom name="input_filter"  label="input_filter.config"/>
+!         <rom name="fb_drv"        label="fb_drv.config"/>
+!         <rom name="nitpicker"     label="nitpicker.config"/>
+!         ...
+!       </import>
+!     </vfs>
+!     <policy label="config_fs_rom -> " root="/" />
+!     <policy label="rw"                root="/" writeable="yes" />
+!   </config>
+! </start>
+
+And the traditional 'ram_fs' content configuration:
+
+! <start name="config_fs">
+!   <binary name="ram_fs"/>
+!   ...
+!   <config>
+!     <content>
+!       <dir name="managed">
+!         <rom name="fonts.config"         as="fonts"/>
+!         <rom name="fb_drv.config"        as="fb_drv"/>
+!         <rom name="wlan.config"          as="wlan"/>
+!         <inline name="depot_query"><query/></inline>
+!         ...
+!       </dir>
+!       <rom name="input_filter.config"  as="input_filter"/>
+!       <rom name="fb_drv.config"        as="fb_drv"/>
+!       <rom name="nitpicker.config"     as="nitpicker"/>
+!       ...
+!     </content>
+!     <policy label="config_fs_rom -> " root="/" />
+!     <policy label="rw" root="/" writeable="yes" />
+!   </config>
+! </start>
+
+
+Enhanced Ada language support
+=============================
+
+Genode's runtime for the Ada programming language has been extended with
+exception support for C++ interfacing. Ada exceptions can now be caught in C++
+and provide type and error location information when raised. Further
+improvements are runtime support for 64-bit arithmetic and some minor fixes in
+Gnatmake's include paths. Thanks to Johannes Kliemann for these welcome
+improvements!
+
+
+Enhanced Terminal compatibility
+===============================
+
+During this release cycle, a simple SSH client was added to the world
+repository and we quickly noticed that our graphical terminal was unprepared
+for the variety of terminal escape sequences found in the wild. The escape
+sequence parser in the 'terminal' server is now able to handle or ignore the
+litany of sequences that might be considered part of the ad hoc
+VT100/Screen/Xterm standard. We may never be able to say that we handle them
+all, but the 'terminal' server is now compatible with most robust TUI
+applications.
+
+
+Libraries and applications
+##########################
+
+Python 3
+========
+
+Thanks to the work of Johannes Schlatow, Python 3 has become available at the
+[https://github.com/genodelabs/genode-world - Genode-world] repository. It
+supersedes Genode's original Python 2 port, which is scheduled for removal now.
+
+The Python 3 port is accompanied with the _python3.run_ script for a quick
+test drive. It also features depot-archive recipes, which in principle enable
+the deployment of Python 3 within Sculpt OS.
+
+
+New component for querying information from a file system
+=========================================================
+
+There are situations where a security critical application needs to obtain
+information stored on a file system but must not depend on the liveliness of
+the file-system implementation. A prominent example is the sculpt manager of
+Sculpt OS. Instead of accessing file systems directly, it uses a helper
+component that performs the actual file-system access and generates a report
+containing the aggregated information. Should the file system crash or become
+unavailable for reasons such as the removal of a USB stick, the helper
+component may get stuck but the security-critical application remains
+unaffected.
+
+The new fs_query component resides at _repos/gems/src/app/fs_query/_ and is
+accompanied with the _fs_query.run_ script. The file system is configured as a
+component-local VFS. The component accepts any number of '<query>' nodes
+within its '<config>' node. Each '<query>' node must contain a 'path'
+attribute pointing to a directory to watch. The component generates a report
+labeled "listing". For each existing directory queried, the report contains a
+'<dir>' node with the list of files as '<file>' nodes featuring the
+corresponding 'name' as an attribute value.
+
+A '<query>' can be equipped with a 'content="yes"' attribute. If set, the
+content of the queried files is supplemented as body of the '<file>' nodes.
+The reported content is limited to 4 KiB per file. If the content is valid
+XML, the '<file>' node contains an attribute 'xml="yes"' indicating that the
+XML information is inserted as is. Otherwise, the content is sanitized.
+
+
+Updated ported 3rd-party software
+=================================
+
+User-level ACPICA
+-----------------
+
+We have updated our port of the ACPI Component Architecture (ACPICA) from
+version 2016-02-12 to the most recent release version 2018-08-10. This was
+motivated by recent notebooks that apparently were not supported
+well by the old version. According to the ACPICA documentation, this update
+mainly marks the step from ACPI specification version 6.1 to 6.2 and, as
+hoped, our problems with modern laptops got fixed too.
+
+VirtualBox
+----------
+
+We updated the VirtualBox 5 port on Genode to the latest available 5.1
+version (5.1.38).
+
+
+Platforms
+#########
+
+New Intel Microcode update mechanism
+====================================
+
+Applying CPU microcode patches is a common task for the UEFI/BIOS firmware
+shipped by hardware vendors of PCs and/or motherboards. For various
+reasons, however, machines may not receive firmware updates as often
+or as quickly as they should. Based on the recent high rate of disclosures for
+Spectre-related hardware bugs in CPUs, there is the desire to use microcode
+updates as rapidly as they are released. To address this concern, we added
+principle support for applying Intel microcode patches as part of the Genode
+framework.
+
+The first step was to add support to download the Intel microcode patches via
+the Genode port mechanism.
+
+! tool/ports/prepare_port microcode_intel
+
+As next step, a Genode component, showcased by _repos/ports/run/microcode.run_,
+can compare the current microcode patch level on Genode/NOVA with the
+downloaded Intel microcode. The relevant information about the CPUs and their
+microcode patch level are provided by the 'platform_info' ROM on Genode/NOVA.
+
+If a microcode update is necessary, the Intel microcode can be applied during
+the next boot. We decided to implement this functionality as a separate
+chained bootloader called 'microcode' in order to not inflate each of our
+supported x86 kernels with additional management code for applying microcode
+patches on all CPUs. The 'microcode' bootloader expects a module called
+'micro.code' which contains the specific Intel microcode from the
+'microcode_intel' port for the target CPU. The relevant excerpt of a Genode
+GRUB2 configuration looks like this:
+
+! multiboot2 /boot/bender
+! module2 /boot/microcode
+! module2 /boot/micro.code micro.code
+! module2 /boot/hypervisor hypervisor ...
+! module2 /boot/image.elf.gz image.elf
+
+The microcode update functionality has been integrated into the
+_tool/run/boot_dir/nova_ support file and can be enabled by providing a
+'apply_microcode' TCL procedure as showcased in _repos/ports/run/microcode.run_.
+
+We developed the 'microcode' chained bootloader as part of the
+[https://github.com/alex-ab/morbo - Morbo] project. It checks for an Intel CPU
+and a valid 'micro.code' module that matches the currently running CPU.
+Afterwards, the bootloader looks up all CPUs and some LAPIC information by
+parsing the relevant ACPI tables. With this information, the CPUs are booted
+to apply the microcode update to each processor. On CPUs with hyperthreading
+enabled, it is effectual to start a single hyperthread per CPU to apply the
+update. Finally, all previously started CPUs are halted and the microcode
+bootloader hands over control to the next module which is typically the x86
+kernel.
+
+
+Multiprocessor support for our custom kernel on x86
+===================================================
+
+As announced on this year's roadmap, we extended our 'hw' kernel on x86 with
+multiprocessor support. The 'bootstrap' part of the kernel now parses ACPI
+tables to obtain the required CPU information and finally starts them. The
+number of the running CPUs is reported by 'bootstrap' to the 'hw' kernel to
+foster the x86 case, where the maximum supported number of CPUs is not
+identical to the number of running CPUs. This is in contrast to our supported
+ARM boards where both numbers are the same.
+
+
+NOVA microhypervisor
+====================
+
+The NOVA kernel branch in use has been switched to revision r10, which is an
+intermediate result of [http://cyberus-technology.de/ - Cyberus Technology]
+and of [https://www.genode-labs.com/ - Genode Labs] to harmonize their
+independently developed NOVA kernel branches. We hope to mutually benefit from
+the evolution of NOVA over the long run by having a common NOVA trunk and
+short individual branches.
+
+Feature-wise the r10 branch contains the following changes:
+* Export kernel trace messages via memory, which can be used by Genode
+  for debugging purposes. The feature is used in Sculpt OS
+  already and may be tested by _repos/os/run/log_core.run_.
+* Cross-core IPC via NOVA portals can now be restricted.
+* Avoid general protection fault on AMD machines where SVM is disabled by UEFI
+  firmware
+* More robust ACPI table parsing of broken/defect ACPI tables
+* Using eager FPU switching on Intel CPUs to mitigate Spectre FPU CVE
+* Report CPU microcode patch level information via the hypervisor information
+  page
+
+
+Fiasco.OC microkernel updated
+=============================
+
+In the past, we repeatedly encountered problems with kernel object destruction
+when using Genode on top of the Fiasco.OC microkernel. The effect was a
+non-responsive kernel and halt of the machine. Thanks to recent development of
+the Fiasco.OC/L4Re community, those problems seem to be solved now. Jakub
+Jermar gave us the hint to update to a more recent kernel version, which
+solved the observed issues.
+Now, the Genode fork of the Fiasco.OC version is based on the official Github
+sources from
+[https://github.com/kernkonzept/fiasco/commit/b9145d3ec4ffe3b02b3d49475ff3391905f0b51f - June 25, 2018].
+The L4Re parts that are used by Genode, namely the sigma0 and bootstrap
+components, are still based on the official [https://svn.l4re.org/repos/oc/l4re/ - subversion repository],
+referring to revision 79.
+
+
+Build system and tools
+######################
+
+Improved run tool
+=================
+
+Genode's run tool automates the workflows for building, configuring,
+integrating, and executing system scenarios.
+
+
+Unified precondition checks
+---------------------------
+
+We refined the run tool by removing the 'check_installed' and
+'requires_installation_of' functions. They were used to determine if a certain
+shell command was present on the host system and are now superseded by the
+'installed_command' function. This new function also checks if a shell command
+is present on the system by searching the PATH variable and additionally the
+'sbin' directories that might not be part of the PATH on some Linux
+distributions. If a shell command cannot be located, a warning message will be
+given and the run script will be aborted.
+
+
+Optional preservation of boot-directory content
+-----------------------------------------------
+
+Executing a run script on Genode yields the creation of image files (e.g.,
+'image.elf', '<run-script>.img' ...). These image files are created from a
+temporary directory under _<build_dir>/var/run/<run-script>/genode_, where the
+Genode components required by the run script are being stored.
+
+After image creation, it becomes difficult to determine the set of components
+present in a certain image. Therefore, we added a new run option for our
+RUN_OPT environment variable called '--preserve-genode-dir', which leaves the
+temporary 'genode' directory intact.
+
+! RUN_OPT += --preserve-genode-dir
+
+This way all Genode components of an image file can be inspected with ease.
+Note that this option inflates the size of the resulting boot image because
+the content is contained twice, once in the 'image.elf' file and once in the
+_genode/_ directory.
+
+
+Configurable AMT power-on timeout
+---------------------------------
+
+Boot time may vary vastly between PCs. This is particularly troublesome when
+AMT Serial-Over-LAN is the only debug option for different test machines.
+Because Intel ME is quite picky at which time window AMT SOL connects, it may
+just fall flat. So, we added a run option to optionally change the default AMT
+boot timeout of 5 seconds like follows.
+
+!RUN_OPT += --power-on-amt-timeout 11
+
+On some PCs, we had to increase this option up to 26 seconds, which may
+further increase with attached USB mass storage if USB boot is enabled.
+
