@@ -1,5 +1,9 @@
-<launcher pkg="ehmry/pkg/gambatte/2018-07-08">
+<launcher pkg="ehmry/pkg/gambatte/2018-08-28">
 	<route>
 		<service name="Nitpicker"> <child name="wm"/> </service>
+		<!-- The emulator will automatically open the first Game Boy ROM in finds in its file-system session -->
+		<!-- <service name="File_system"> <child name="chroot" label="shared -> GB"/> </service> -->
+		<!-- <service name="Audio_out"> <child name="audio_drv"/> </service> -->
 	</route>
 </launcher>
+

@@ -1,0 +1,12 @@
+<launcher pkg="ehmry/pkg/quake_shareware/2018-08-28">
+	<route>
+		<service name="Nitpicker"> <child name="wm"/> </service>
+		<!-- <service name="Audio_out"> <child name="audio_drv"/> </service> -->
+
+		<!-- id1/pak1.pak will be loaded automatically
+		     if present in the file-system session -->
+		<!-- <service name="File_system">
+			<child name="chroot" label="shared -> quake"/> </service> -->
+	</route>
+</launcher>
+
