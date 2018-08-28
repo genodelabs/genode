@@ -1775,6 +1775,12 @@ class Lwip::File_system final : public Vfs::File_system
 		                                  char *dst, file_size count,
 		                                  file_size &out_count) override
 		{
+			/*
+			 * LwIP buffer operations are limited to sizes that
+			 * can be expressed in sixteen bits
+			 */
+			count = Genode::min(count, 0xffffU);
+
 			out_count = 0;
 
 			if ((!vfs_handle) ||
