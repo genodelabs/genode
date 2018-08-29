@@ -1,4 +1,4 @@
-<launcher pkg="alex-ab/pkg/top_view/2018-06-27">
+<launcher pkg="alex-ab/pkg/top_view/18.08">
 	<route>
 		<service name="Nitpicker"> <child name="wm"/> </service>
 		<service name="TRACE"> <parent/> </service>
