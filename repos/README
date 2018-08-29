@@ -111,6 +111,11 @@ but build upon of each other:
   The repository contains a server that uses a rump kernel to provide
   various NetBSD file systems to Genode.
 
+:'dde_zircon':
+
+  This repository contains the emulation environment for drivers
+  ported from the Zircon kernel.
+
 :'ports':
 
   This source-code repository hosts ports of 3rd-party applications to
