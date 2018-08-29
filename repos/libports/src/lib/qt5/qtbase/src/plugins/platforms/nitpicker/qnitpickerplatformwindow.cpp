@@ -548,7 +548,14 @@ void QNitpickerPlatformWindow::setWindowState(Qt::WindowState state)
 {
 	if (qnpw_verbose)
 	    qDebug() << "QNitpickerPlatformWindow::setWindowState(" << state << ")";
+
 	QPlatformWindow::setWindowState(state);
+
+	if ((state == Qt::WindowMaximized) || (state == Qt::WindowFullScreen)) {
+		QRect screen_geometry { screen()->geometry() };
+		QWindowSystemInterface::handleGeometryChange(window(), screen_geometry);
+		setGeometry(screen_geometry);
+	}
 }
 
 WId QNitpickerPlatformWindow::winId() const
