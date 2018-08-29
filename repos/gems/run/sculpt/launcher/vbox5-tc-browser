@@ -1,4 +1,4 @@
-<launcher pkg="alex-ab/pkg/vbox5-tc-firefox-nova-sculpt/2018-07-13">
+<launcher pkg="alex-ab/pkg/vbox5-tc-firefox-nova-sculpt/18.08">
 	<route>
 		<service name="Nic"> <child name="nic_router"/> </service>
 		<service name="ROM"    label="capslock"> <parent label="capslock"/> </service>
