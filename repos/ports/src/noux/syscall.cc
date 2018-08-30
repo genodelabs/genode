@@ -969,7 +969,8 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 		case SYSCALL_SHUTDOWN:
 		case SYSCALL_CONNECT:
 
-			result = _syscall_net(sc);
+			/* network support was removed */
+			result = false;
 			break;
 
 		case SYSCALL_INVALID: break;

@@ -106,7 +106,7 @@ set build_components {
 	server/ram_fs server/report_rom
 	server/tcp_terminal drivers/nic
 	lib/libc_noux
-	noux/minimal
+	noux
 }
 
 #

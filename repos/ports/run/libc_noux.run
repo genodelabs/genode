@@ -5,7 +5,7 @@ if {[have_spec linux]} {
 
 set build_components {
 	core init drivers/timer drivers/uart
-	noux/minimal lib/libc_noux
+	noux lib/libc_noux
 	server/ram_fs test/libc_noux
 }
 

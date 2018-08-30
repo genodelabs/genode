@@ -10,7 +10,7 @@
 if {[have_spec linux]} { puts "Run script does not support Linux"; exit 0 }
 
 set build_components {
-	core init noux/minimal lib/libc_noux app/cli_monitor test/bomb test/signal
+	core init noux lib/libc_noux app/cli_monitor test/bomb test/signal
 	test/resource_yield drivers/timer drivers/uart server/terminal_mux
 	server/terminal_log noux-pkg/vim
 }

@@ -30,7 +30,7 @@ set use_usb_input [expr ![have_spec ps2] && ![have_spec sdl] && [have_spec usb]]
 create_boot_directory
 
 set build_components {
-	core init drivers/timer noux/minimal lib/libc_noux
+	core init drivers/timer noux lib/libc_noux
 	server/log_terminal server/ram_fs
 	test/libports/ncurses
 }

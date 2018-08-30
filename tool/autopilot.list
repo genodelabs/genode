@@ -60,7 +60,6 @@ nic_router
 nic_router_flood
 nic_router_uplinks
 noux
-noux_net_netcat
 noux_tool_chain_auto
 nvme
 part_blk

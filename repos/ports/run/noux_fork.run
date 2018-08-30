@@ -1,5 +1,5 @@
 build {
-	core init drivers/timer server/log_terminal noux/minimal lib/libc_noux
+	core init drivers/timer server/log_terminal noux lib/libc_noux
 	test/noux_fork
 }
 

@@ -1,6 +1,6 @@
 set build_components {
 	core init drivers/timer drivers/uart
-	noux/minimal
+	noux
     test/noux_signals
 }
 

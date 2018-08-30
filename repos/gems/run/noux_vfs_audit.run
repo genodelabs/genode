@@ -3,7 +3,7 @@ build {
 	app/sequence
 	drivers/timer
 	lib/libc_noux
-	noux/minimal
+	noux
 	noux-pkg/coreutils
 	server/vfs
 	lib/vfs/audit

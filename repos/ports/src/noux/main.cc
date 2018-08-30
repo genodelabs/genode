@@ -18,7 +18,6 @@
 
 /* Noux includes */
 #include <child.h>
-#include <construct.h>
 #include <noux_session/sysio.h>
 #include <vfs_io_channel.h>
 #include <terminal_io_channel.h>
@@ -37,8 +36,6 @@ namespace Noux {
 	bool init_process(Child *child) { return child == init_child; }
 	void init_process_exited(int exit) { init_child = 0; exit_value = exit; }
 }
-
-extern void init_network();
 
 
 Noux::Io_receptor_registry * Noux::io_receptor_registry()
@@ -271,8 +268,6 @@ struct Noux::Main
 
 	User_info _user_info { _config.xml() };
 
-	bool _network_initialized = (init_network(), true);
-
 	Signal_handler<Main> _destruct_handler {
 		_env.ep(), *this, &Main::_handle_destruct };
 
@@ -355,7 +350,7 @@ struct Noux::Main
 };
 
 
-void noux_construct(Genode::Env &env)
+void Component::construct(Genode::Env &env)
 {
 	static Noux::Main main(env);
 }

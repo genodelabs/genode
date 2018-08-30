@@ -1,4 +1,4 @@
-build { core init drivers/timer noux/minimal server/log_terminal
+build { core init drivers/timer noux server/log_terminal
         lib/libc_noux noux-pkg/coreutils }
 
 create_boot_directory

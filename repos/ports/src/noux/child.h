@@ -285,11 +285,6 @@ class Noux::Child : public Rpc_object<Session>,
 			io->unregister_wake_up_notifier(&notifier);
 		}
 
-		/**
-		 * Method for handling noux network related system calls
-		 */
-		bool _syscall_net(Syscall sc);
-
 		void _destruct()
 		{
 			_ep.dissolve(this);
