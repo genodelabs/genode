@@ -4,6 +4,42 @@
                                ===========
 
 
+Genode OS Framework release 18.08 | 2018-08-30
+##############################################
+
+| Genode 18.08 advances the framework's device drivers to accommodate modern
+| PC hardware, introduces a new microcode-update mechanism for Intel CPUs, and
+| enhances the networking and VFS infrastructure. With the new version,
+| Sculpt OS enters the next stage by moving towards an interactive graphical
+| user interface.
+
+With Genode 18.08, we enter the third episode of our story of developing the
+Sculpt general-purpose OS. The release addresses four crucial concerns of
+general-purpose computing, namely the support of modern hardware, the
+ability to timely respond to the discovery of new CPU-level vulnerabilities
+by the means of applying microcode updates, the scalability of application
+workloads, and the interactive usability of the system. The latter is
+particularly exciting as Genode allows us to explore new user-interface
+paradigms to lay the power of capability-based security into the hands of
+the user.
+
+The most prominent aspect of the current release is the framework's
+device-driver support, which includes the update of all Linux-based drivers
+to kernel version 4.16.3, a largely reworked wifi stack, the split of the
+USB driver into multiple components, and improved hardware compatibility of
+the PS/2 and network drivers. The release also introduces an experimental
+runtime for hosting drivers of Google's Fuchsia OS as Genode components.
+
+Among the many further improvements are an extended Ada language runtime,
+added multi-processor support for our custom base-hw microkernel on x86,
+the ability to route network traffic between an arbitrary number of
+physical NICs, and a new way to select the networking stack of a
+component between lwIP and the Linux TCP/IP by a mere configuration change.
+
+All improvements are covered in detail by the
+[https:/documentation/release-notes/18.08 - release documentation of version 18.08...]
+
+
 Sculpt for The Curious | 2018-06-13
 ###################################
 
