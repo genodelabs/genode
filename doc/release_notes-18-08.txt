@@ -285,8 +285,8 @@ are advised to adapt their system scenarios. As an unfortunate regression,
 some 6xxx cards will not work properly. This issue is being investigated.
 
 
-De-componentized USB stack
-==========================
+Decomposed USB stack
+====================
 
 The USB stack has a long history in the Genode OS framework. Back in May 2009,
 the first DDE-Linux-based driver was introduced, which was the USB input
