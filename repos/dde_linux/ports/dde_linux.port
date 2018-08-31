@@ -123,21 +123,12 @@ URL(libnl) := https://github.com/thom311/libnl/releases/download/libnl3_2_25/lib
 SHA(libnl) := 8beb7590674957b931de6b7f81c530b85dc7c1ad8fbda015398bc1e8d1ce8ec5
 DIR(libnl) := src/lib/libnl
 
-
 #
 # wpa_supplicant sources
 #
 URL(wpa_supplicant) := git://w1.fi/srv/git/hostap.git
 REV(wpa_supplicant) := 25bd4e7beb582509596fe60cb3591e1299f3121b
 DIR(wpa_supplicant) := src/app/wpa_supplicant
-
-# remove unused code and git history from the repo
-_patch: cleanup-wpa
-cleanup-wpa:
-	@for dir in doc eap_example hs20 mac80211_hwsim radius_example \
-	            hostapd tests wlantest wpadebug wpaspy; do \
-		rm -rf ${DIR(wpa_supplicant)}/$$dir; done
-
 
 #
 # Firmware images

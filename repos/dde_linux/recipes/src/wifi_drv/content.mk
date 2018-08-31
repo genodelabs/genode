@@ -23,7 +23,7 @@ MIRROR_FROM_PORT_DIR := $(shell cd $(PORT_DIR); find src/lib/libnl -type f) \
                         $(shell cd $(PORT_DIR); find src/app/wpa_supplicant -type f)
 MIRROR_FROM_PORT_DIR := $(filter-out $(MIRROR_FROM_REP_DIR),$(MIRROR_FROM_PORT_DIR))
 
-content: $(MIRROR_FROM_REP_DIR) $(MIRROR_FROM_PORT_DIR)
+content: $(MIRROR_FROM_REP_DIR) $(MIRROR_FROM_PORT_DIR) cleanup-wpa
 
 $(MIRROR_FROM_REP_DIR):
 	$(mirror_from_rep_dir)
@@ -31,6 +31,11 @@ $(MIRROR_FROM_REP_DIR):
 $(MIRROR_FROM_PORT_DIR):
 	mkdir -p $(dir $@)
 	cp -r $(PORT_DIR)/$@ $@
+
+cleanup-wpa: $(MIRROR_FROM_PORT_DIR)
+	@for dir in .git doc eap_example hs20 mac80211_hwsim radius_example \
+		hostapd tests wlantest wpadebug wpaspy; do \
+		rm -rf src/app/wpa_supplicant/$$dir; done
 
 content: LICENSE
 LICENSE:
