@@ -14,8 +14,6 @@
 #include <base/child.h>
 #include <base/log.h>
 #include <base/sleep.h>
-#include <lwip_legacy/genode.h>
-#include <nic/packet_allocator.h>
 
 #include <sys/socket.h>
 #include <sys/types.h>

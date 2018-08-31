@@ -18,6 +18,7 @@ set build_components {
 	core init
 	drivers/timer
 	app/lighttpd
+	lib/vfs/lwip
 }
 
 set use_usb_driver      [expr [have_spec omap4] || [have_spec arndale] || [have_spec rpi]]
@@ -102,9 +103,12 @@ append config {
 					<log/>
 					<null/>
 				</dir>
+				<dir name="socket">
+					<lwip dhcp="yes"/> </dir>
 				<tar name="genode_org.tar"/>
 			</vfs>
-			<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log"/>
+			<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log"
+			      socket="/socket" />
 		</config>
 	</start>}
 
@@ -160,8 +164,8 @@ exec tar cfv bin/genode_org.tar -h -C bin/genode_org .
 # generic modules
 set boot_modules {
 	core init timer ld.lib.so
-	libc.lib.so vfs.lib.so libm.lib.so posix.lib.so
-	lwip_legacy.lib.so zlib.lib.so
+	libc.lib.so libm.lib.so posix.lib.so
+	vfs.lib.so vfs_lwip.lib.so zlib.lib.so
 	lighttpd genode_org.tar
 }
 

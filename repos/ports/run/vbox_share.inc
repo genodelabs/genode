@@ -106,6 +106,7 @@ set build_components {
 	server/ram_fs server/report_rom
 	server/tcp_terminal drivers/nic
 	lib/libc_noux
+	lib/vfs/lwip
 	noux
 }
 
@@ -118,7 +119,7 @@ foreach pkg {bash coreutils} {
 set boot_modules {
 	ram_fs
 	noux libc_noux.lib.so posix.lib.so bash.tar coreutils.tar
-	tcp_terminal lwip_legacy.lib.so nic_drv report_rom
+	tcp_terminal vfs_lwip.lib.so nic_drv report_rom
 	input_merger
 	test.bin template.bat
 }
@@ -136,8 +137,11 @@ set config_of_app {
 		<provides> <service name="Terminal"/> </provides>
 		<config>
 			<policy label_prefix="noux" port="8888"/>
-			<vfs> <dir name="dev"> <log/> </dir> </vfs>
-			<libc stdout="/dev/log"/>
+			<vfs>
+				<dir name="dev"> <log/> </dir>
+				<dir name="socket"> <lwip dhcp="yes"/> </dir>
+			</vfs>
+			<libc stdout="/dev/log" socket="/socket" />
 		</config>
 	</start>
 

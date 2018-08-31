@@ -48,7 +48,7 @@ append config {
 		<provides> <service name="Terminal"/> </provides>
 		<config ld_verbose="yes">
 			<policy label="test-terminal_echo" port="8888"/>
-			<libc stdout="/dev/log">
+			<libc stdout="/dev/log" socket="/socket"/>
 				<vfs>
 					<dir name="dev"> <log/> </dir>
 					<dir name="socket">
