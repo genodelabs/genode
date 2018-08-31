@@ -215,7 +215,7 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 				}
 
 			default:
-				if (0x1f < c.ascii() && c.ascii() < 0x7f) {
+				if (c.ascii() > 0x1f) {
 					Cursor_guard guard(*this);
 					_char_cell_array.set_cell(_cursor_pos.x, _cursor_pos.y,
 					                          Char_cell(c.ascii(), Font_face::REGULAR,
