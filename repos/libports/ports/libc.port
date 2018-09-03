@@ -154,13 +154,13 @@ common_include_libc_arch_machine_content = \
 #
 # i386-specific headers
 #
-DIRS += include/libc-i386
-DIR_CONTENT(include/libc-i386) := \
+DIRS += include/spec/x86_32/libc
+DIR_CONTENT(include/spec/x86_32/libc) := \
     $(call common_include_libc_arch_content,i386) \
     src/lib/libc/lib/msun/i387/fenv.h
 
-DIRS += include/libc-i386/machine
-DIR_CONTENT(include/libc-i386/machine) := \
+DIRS += include/spec/x86_32/libc/machine
+DIR_CONTENT(include/spec/x86_32/libc/machine) := \
     $(call common_include_libc_arch_machine_content,i386) \
     $(addprefix src/lib/libc/sys/i386/include/, specialreg.h npx.h)
 
@@ -168,13 +168,13 @@ DIR_CONTENT(include/libc-i386/machine) := \
 #
 # AMD64-specific headers
 #
-DIRS += include/libc-amd64
-DIR_CONTENT(include/libc-amd64) := \
+DIRS += include/spec/x86_64/libc
+DIR_CONTENT(include/spec/x86_64/libc) := \
     $(call common_include_libc_arch_content,amd64) \
     src/lib/libc/lib/msun/amd64/fenv.h
 
-DIRS += include/libc-amd64/machine
-DIR_CONTENT(include/libc-amd64/machine) := \
+DIRS += include/spec/x86_64/libc/machine
+DIR_CONTENT(include/spec/x86_64/libc/machine) := \
     $(call common_include_libc_arch_machine_content,amd64) \
     $(addprefix src/lib/libc/sys/amd64/include/, specialreg.h fpu.h)
 
@@ -182,13 +182,13 @@ DIR_CONTENT(include/libc-amd64/machine) := \
 #
 # ARM-specific headers
 #
-DIRS += include/libc-arm
-DIR_CONTENT(include/libc-arm) := \
+DIRS += include/spec/arm/libc
+DIR_CONTENT(include/spec/arm/libc) := \
     $(call common_include_libc_arch_content,arm) \
     src/lib/libc/lib/msun/arm/fenv.h
 
-DIRS += include/libc-arm/machine
-DIR_CONTENT(include/libc-arm/machine) := \
+DIRS += include/spec/arm/libc/machine
+DIR_CONTENT(include/spec/arm/libc/machine) := \
     $(call common_include_libc_arch_machine_content,arm) \
     $(addprefix src/lib/libc/sys/arm/include/, pte.h cpuconf.h armreg.h ieee.h)
 

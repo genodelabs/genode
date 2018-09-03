@@ -1,18 +1,16 @@
 #
 # Add platform-specific libc headers to standard include search paths
 #
-ifeq ($(filter-out $(SPECS),x86),)
-  ifeq ($(filter-out $(SPECS),32bit),)
-    LIBC_ARCH_INC_DIR := include/libc-i386
-  endif # 32bit
+ifeq ($(filter-out $(SPECS),x86_32),)
+	LIBC_ARCH_INC_DIR := include/spec/x86_32/libc
+endif # x86_32
 
-  ifeq ($(filter-out $(SPECS),64bit),)
-    LIBC_ARCH_INC_DIR := include/libc-amd64
-  endif # 64bit
-endif # x86
+ifeq ($(filter-out $(SPECS),x86_64),)
+	LIBC_ARCH_INC_DIR := include/spec/x86_64/libc
+endif # x86_64
 
 ifeq ($(filter-out $(SPECS),arm),)
-  LIBC_ARCH_INC_DIR := include/libc-arm
+	LIBC_ARCH_INC_DIR := include/spec/arm/libc
 endif # ARM
 
 #
