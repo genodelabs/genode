@@ -22,7 +22,6 @@ namespace Lx_kit { class Env; }
 namespace Lx {
 
 	void nic_client_init(Genode::Env &env,
-	                     Genode::Entrypoint &ep,
 	                     Genode::Allocator &alloc,
 	                     void (*ticker)());
 

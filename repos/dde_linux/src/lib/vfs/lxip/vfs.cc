@@ -1971,7 +1971,7 @@ struct Lxip_factory : Vfs::File_system_factory
 			Lx::malloc_init(env, lx_env.heap());
 			Lx::timer_init(env, lx_env.env().ep(), lx_env.heap(), &poll_all);
 			Lx::event_init(env, lx_env.env().ep(), &poll_all);
-			Lx::nic_client_init(env, lx_env.env().ep(), lx_env.heap(), &poll_all);
+			Lx::nic_client_init(env, lx_env.heap(), &poll_all);
 
 			lxip_init();
 		}
