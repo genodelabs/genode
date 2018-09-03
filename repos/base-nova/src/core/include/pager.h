@@ -306,8 +306,6 @@ namespace Genode {
 			 */
 			void unresolved_page_fault_occurred()
 			{
-				Lock::Guard _state_lock_guard(_state_lock);
-
 				_state.thread.unresolved_page_fault = true;
 			}
 

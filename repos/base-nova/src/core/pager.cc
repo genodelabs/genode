@@ -121,6 +121,20 @@ void Pager_object::_page_fault_handler(addr_t pager_obj)
 	if (utcb->msg_words() == 1)
 		_invoke_handler(pager_obj);
 
+	/*
+	 * obj->pager() (pager thread) may issue a signal to the remote region
+	 * handler thread which may respond via wake_up() (ep thread) before
+	 * we are done here - we have to lock the whole page lookup procedure
+	 */
+	obj->_state_lock.lock();
+
+	obj->_state.thread.ip     = ipc_pager.fault_ip();
+	obj->_state.thread.sp     = 0;
+	obj->_state.thread.trapno = PT_SEL_PAGE_FAULT;
+
+	obj->_state.block();
+	obj->_state.block_pause_sm();
+
 	/* lookup fault address and decide what to do */
 	int error = obj->pager(ipc_pager);
 
@@ -135,30 +149,25 @@ void Pager_object::_page_fault_handler(addr_t pager_obj)
 		/* dst pd has not enough kernel quota ? - try to recover */
 		if (ipc_pager.syscall_result() == Nova::NOVA_PD_OOM) {
 			uint8_t res = obj->handle_oom();
-			if (res == Nova::NOVA_PD_OOM)
+			if (res == Nova::NOVA_PD_OOM) {
+				obj->_state.unblock_pause_sm();
+				obj->_state.unblock();
+				obj->_state_lock.unlock();
 				/* block until revoke is due */
 				ipc_pager.reply_and_wait_for_fault(obj->sel_sm_block_oom());
-			else if (res == Nova::NOVA_OK)
+			} else if (res == Nova::NOVA_OK)
 				/* succeeded to recover - continue normally */
 				error = 0;
 		}
 	}
 
 	/* good case - found a valid region which is mappable */
-	if (!error)
+	if (!error) {
+		obj->_state.unblock_pause_sm();
+		obj->_state.unblock();
+		obj->_state_lock.unlock();
 		ipc_pager.reply_and_wait_for_fault();
-
-
-	obj->_state_lock.lock();
-
-	obj->_state.thread.ip     = ipc_pager.fault_ip();
-	obj->_state.thread.sp     = 0;
-	obj->_state.thread.trapno = PT_SEL_PAGE_FAULT;
-
-	obj->_state.block();
-	obj->_state.block_pause_sm();
-
-	obj->_state_lock.unlock();
+	}
 
 	const char * client_thread = obj->client_thread();
 	const char * client_pd = obj->client_pd();
@@ -172,6 +181,8 @@ void Pager_object::_page_fault_handler(addr_t pager_obj)
 
 	/* region manager fault - to be handled */
 	log("page fault, ", fault_info, " reason=", error);
+
+	obj->_state_lock.unlock();
 
 	/* block the faulting thread until region manager is done */
 	ipc_pager.reply_and_wait_for_fault(obj->sel_sm_block_pause());
