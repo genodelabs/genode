@@ -18,9 +18,11 @@
 #include <runtime.h>
 
 
-void Sculpt::gen_runtime_view_start_content(Xml_generator &xml, float font_size)
+void Sculpt::gen_runtime_view_start_content(Xml_generator &xml,
+                                            Child_state const &state,
+                                            float font_size)
 {
-	gen_common_start_content(xml, "runtime_view", Cap_quota{200}, Ram_quota{9*1024*1024});
+	state.gen_start_node_content(xml);
 
 	gen_named_node(xml, "binary", "menu_view");
 

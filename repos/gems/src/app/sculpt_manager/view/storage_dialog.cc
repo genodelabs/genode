@@ -358,7 +358,7 @@ void Sculpt::Storage_dialog::_gen_ram_fs(Xml_generator &xml) const
 			gen_named_node(xml, "float", "capacity", [&] () {
 				xml.attribute("east", "yes");
 				xml.node("label", [&] () {
-					Capacity const capacity { _ram_fs_state.ram_quota.value };
+					Capacity const capacity { _ram_fs_state.ram_quota().value };
 					xml.attribute("text", String<64>(capacity)); }); });
 		});
 	});

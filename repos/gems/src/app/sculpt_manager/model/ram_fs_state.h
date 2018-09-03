@@ -18,21 +18,17 @@
 #include <util/xml_node.h>
 
 /* local includes */
-#include "types.h"
+#include <types.h>
+#include <model/child_state.h>
 
 namespace Sculpt { struct Ram_fs_state; }
 
-struct Sculpt::Ram_fs_state : Noncopyable
+struct Sculpt::Ram_fs_state : Child_state
 {
-	static Ram_quota initial_ram_quota() { return Ram_quota{1024*1024}; }
-	static Cap_quota initial_cap_quota() { return Cap_quota{300}; }
-
-	Ram_quota ram_quota = initial_ram_quota();
-	Cap_quota cap_quota = initial_cap_quota();
-
-	struct Version { unsigned value; } version { 0 };
-
 	bool inspected = false;
+
+	Ram_fs_state(Start_name const &name)
+	: Child_state(name, Ram_quota{1024*1024}, Cap_quota{300}) { }
 };
 
 #endif /* _MODEL__RAM_FS_STATE_H_ */

@@ -16,9 +16,7 @@
 void Sculpt::gen_ram_fs_start_content(Xml_generator &xml,
                                       Ram_fs_state const &state)
 {
-	xml.attribute("version", state.version.value);
-
-	gen_common_start_content(xml, "ram_fs", state.cap_quota, state.ram_quota);
+	state.gen_start_node_content(xml);
 
 	gen_provides<::File_system::Session>(xml);
 

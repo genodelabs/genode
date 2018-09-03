@@ -14,13 +14,11 @@
 #include <runtime.h>
 
 void Sculpt::gen_fs_rom_start_content(Xml_generator &xml,
-                                      Start_name const &name,
                                       Start_name const &binary,
                                       Start_name const &server,
-                                      Ram_quota ram_quota,
-                                      Cap_quota cap_quota)
+                                      Child_state const &state)
 {
-	gen_common_start_content(xml, name, cap_quota, ram_quota);
+	state.gen_start_node_content(xml);
 
 	gen_named_node(xml, "binary", binary);
 

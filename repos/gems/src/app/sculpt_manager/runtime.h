@@ -41,7 +41,8 @@ namespace Sculpt {
 	void gen_depot_query_start_content(Xml_generator &);
 	void gen_launcher_query_start_content(Xml_generator &);
 
-	void gen_runtime_view_start_content(Xml_generator &, float font_size);
+	void gen_runtime_view_start_content(Xml_generator &, Child_state const &,
+	                                    float font_size);
 
 	struct File_browser_version { unsigned value; };
 	void gen_file_browser(Xml_generator &, Storage_devices const &,
@@ -52,9 +53,9 @@ namespace Sculpt {
 	void gen_fs_start_content(Xml_generator &, Storage_target const &,
 	                          File_system::Type);
 
-	void gen_fs_rom_start_content(Xml_generator &, Start_name const &,
+	void gen_fs_rom_start_content(Xml_generator &,
 	                              Start_name const &, Start_name const &,
-	                              Ram_quota, Cap_quota);
+	                              Child_state const &);
 
 	void gen_gpt_relabel_start_content(Xml_generator &, Storage_device const &);
 	void gen_gpt_expand_start_content (Xml_generator &, Storage_device const &);

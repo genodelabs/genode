@@ -49,7 +49,7 @@ struct Sculpt::Storage : Storage_dialog::Action
 
 	Storage_devices _storage_devices { };
 
-	Ram_fs_state _ram_fs_state { };
+	Ram_fs_state _ram_fs_state { "ram_fs" };
 
 	Storage_target _sculpt_partition { };
 
@@ -182,9 +182,7 @@ struct Sculpt::Storage : Storage_dialog::Action
 
 	void reset_ram_fs() override
 	{
-		_ram_fs_state.ram_quota = Ram_fs_state::initial_ram_quota();
-		_ram_fs_state.cap_quota = Ram_fs_state::initial_cap_quota();
-		_ram_fs_state.version.value++;
+		_ram_fs_state.trigger_restart();
 
 		dialog.reset_operation();
 		_runtime_config_generator.generate_runtime_config();

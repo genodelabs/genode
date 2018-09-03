@@ -381,6 +381,9 @@ struct Sculpt::Main : Input_event_handler,
 
 	Graph _graph { _env, _runtime_state, _storage._sculpt_partition };
 
+	Child_state _runtime_view_state {
+		"runtime_view", Ram_quota{8*1024*1024}, Cap_quota{200} };
+
 
 	Main(Env &env) : _env(env)
 	{
@@ -771,46 +774,18 @@ void Sculpt::Main::_handle_runtime_state()
 		}
 	}
 
-	/* upgrade ram_fs quota on demand */
+	/* upgrade RAM and cap quota on demand */
 	state.for_each_sub_node("child", [&] (Xml_node child) {
 
-		if (child.attribute_value("name", String<16>()) != "ram_fs")
-			return;
+		/* use binary OR (|), not logical OR (||), to always execute all elements */
+		if (_storage._ram_fs_state.apply_child_state_report(child)
+		  | _deploy.cached_depot_rom_state.apply_child_state_report(child)
+		  | _deploy.uncached_depot_rom_state.apply_child_state_report(child)
+		  | _runtime_view_state.apply_child_state_report(child)) {
 
-		if (child.has_sub_node("ram") && child.sub_node("ram").has_attribute("requested")) {
-			_storage._ram_fs_state.ram_quota.value *= 2;
 			reconfigure_runtime = true;
 			generate_dialog();
 		}
-
-		if (child.has_sub_node("caps") && child.sub_node("caps").has_attribute("requested")) {
-			_storage._ram_fs_state.cap_quota.value += 100;
-			reconfigure_runtime = true;
-			generate_dialog();
-		}
-	});
-
-	/* upgrade depot_rom quota on demand */
-	state.for_each_sub_node("child", [&] (Xml_node child) {
-
-		auto upgrade_depot_rom = [&] (Deploy::Depot_rom_state &state, Start_name const &name)
-		{
-			if (child.attribute_value("name", Start_name()) != name)
-				return;
-
-			if (child.has_sub_node("ram") && child.sub_node("ram").has_attribute("requested")) {
-				state.ram_quota.value *= 2;
-				reconfigure_runtime = true;
-			}
-
-			if (child.has_sub_node("caps") && child.sub_node("caps").has_attribute("requested")) {
-				state.cap_quota.value += 100;
-				reconfigure_runtime = true;
-			}
-		};
-
-		upgrade_depot_rom(_deploy.cached_depot_rom_state,   "depot_rom");
-		upgrade_depot_rom(_deploy.uncached_depot_rom_state, "dynamic_depot_rom");
 	});
 
 	/*
@@ -863,7 +838,7 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 	});
 
 	xml.node("start", [&] () {
-		gen_runtime_view_start_content(xml, _gui.font_size()); });
+		gen_runtime_view_start_content(xml, _runtime_view_state, _gui.font_size()); });
 
 	_storage.gen_runtime_start_nodes(xml);
 
