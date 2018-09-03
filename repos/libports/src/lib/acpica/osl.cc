@@ -124,8 +124,16 @@ ACPI_STATUS AcpiOsSignalSemaphore (ACPI_SEMAPHORE h, UINT32 units)
 	return AE_OK;
 }
 
-ACPI_STATUS AcpiOsDeleteSemaphore (ACPI_SEMAPHORE)
-	FAIL(AE_BAD_PARAMETER)
+ACPI_STATUS AcpiOsDeleteSemaphore (ACPI_SEMAPHORE h)
+{
+	Genode::Semaphore *sem = reinterpret_cast<Genode::Semaphore *>(h);
+
+	if (!sem)
+		return AE_BAD_PARAMETER;
+
+	Genode::destroy(Acpica::heap(), sem);
+	return AE_OK;
+}
 
 ACPI_THREAD_ID AcpiOsGetThreadId (void) {
 	return reinterpret_cast<Genode::addr_t>(Genode::Thread::myself()); }
@@ -265,6 +273,9 @@ void AcpiOsStall (UINT32 stall_us)
 	timer_connection().usleep(stall_us);
 }
 
+ACPI_STATUS AcpiOsEnterSleep (UINT8, UINT32, UINT32) {
+	/* unused notification hook for OS */
+	return (AE_OK); }
 
 /********************************
  * unsupported/unused functions *
@@ -304,14 +315,6 @@ AcpiOsNotifyCommandComplete (
 	FAIL(AE_BAD_PARAMETER)
 }
 
-ACPI_STATUS
-AcpiOsEnterSleep (
-    UINT8                   SleepState,
-    UINT32                  RegaValue,
-    UINT32                  RegbValue)
-{
-	FAIL(AE_BAD_PARAMETER)
-}
 
 extern "C"
 {
