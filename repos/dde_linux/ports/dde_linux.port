@@ -134,7 +134,7 @@ DIR(wpa_supplicant) := src/app/wpa_supplicant
 # remove unused code and git history from the repo
 _patch: cleanup-wpa
 cleanup-wpa:
-	@for dir in .git doc eap_example hs20 mac80211_hwsim radius_example \
+	@for dir in doc eap_example hs20 mac80211_hwsim radius_example \
 	            hostapd tests wlantest wpadebug wpaspy; do \
 		rm -rf ${DIR(wpa_supplicant)}/$$dir; done
 
