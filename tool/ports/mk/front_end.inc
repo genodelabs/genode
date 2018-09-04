@@ -45,6 +45,18 @@ _REL_HASH_FILE := $(notdir $(REP_DIR))/ports/$(notdir $(PORT))
 # directory where to install the port
 PORT_DIR := $(CONTRIB_DIR)/$(PORT_NAME)-$(HASH)
 
+#
+# Protect the GENODE_DIR Git repository by creating an
+# empty Git repository in CONTRIB_DIR. This is to catch
+# Git tools called by port recipes from falling through
+# the parent directories of PORT_DIR and affecting other
+# Git repositories.
+#
+$(PORT_DIR): $(CONTRIB_DIR)/.git
+$(CONTRIB_DIR)/.git:
+	$(VERBOSE)mkdir -p $(CONTRIB_DIR)
+	$(VERBOSE)git init --quiet $(CONTRIB_DIR)
+
 # path to hash file generated during installation
 PORT_HASH_FILE := $(PORT_DIR)/$(PORT_NAME).hash
 
