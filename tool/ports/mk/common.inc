@@ -8,6 +8,9 @@ SHELL   := bash
 VERBOSE ?= @
 ECHO    := echo -e
 
+# limit destructive git operations (e.g., reset) to local directory
+GIT := git --git-dir=.git
+
 BRIGHT_COL  ?= \x1b[01;33m
 DARK_COL    ?= \x1b[00;33m
 DEFAULT_COL ?= \x1b[0m
