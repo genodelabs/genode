@@ -68,9 +68,6 @@ struct Driver
 		static void urb_task_entry(void *);
 		void register_device();
 		void unregister_device();
-		void scan_interfaces(unsigned iface_idx);
-		void scan_altsettings(usb_interface * iface,
-		                      unsigned iface_idx, unsigned alt_idx);
 		void probe_interface(usb_interface *, usb_device_id *);
 		void remove_interface(usb_interface *);
 	};

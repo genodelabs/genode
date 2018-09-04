@@ -7,6 +7,7 @@ LIBS    := base usb_hid_include lx_kit_setjmp
 
 USB_CONTRIB_DIR := $(call select_from_ports,dde_linux)/src/drivers/usb_hid
 
+INC_DIR += $(USB_CONTRIB_DIR)/drivers/usb/core
 INC_DIR += $(PRG_DIR)
 INC_DIR += $(REP_DIR)/src/include
 
@@ -23,7 +24,11 @@ SRC_C += drivers/hid/usbhid/hid-core.c
 SRC_C += drivers/input/evdev.c
 SRC_C += drivers/input/input-mt.c
 SRC_C += drivers/input/input.c
+SRC_C += drivers/usb/core/config.c
+SRC_C += drivers/usb/core/generic.c
+SRC_C += drivers/usb/core/quirks.c
 
+CC_OPT   += -D__KERNEL__
 CC_C_OPT += -Wno-unused-but-set-variable -Wno-pointer-sign \
             -Wno-incompatible-pointer-types -Wno-unused-variable \
             -Wno-unused-function -Wno-uninitialized -Wno-maybe-uninitialized

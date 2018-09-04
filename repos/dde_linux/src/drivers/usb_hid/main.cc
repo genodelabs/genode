@@ -26,66 +26,7 @@
 #include <linux/usb.h>
 #include <lx_emul/extern_c_end.h>
 
-void Driver::Device::scan_altsettings(usb_interface * iface,
-                                      unsigned iface_idx, unsigned alt_idx)
-{
-	Usb::Interface_descriptor iface_desc;
-	usb.interface_descriptor(iface_idx, alt_idx, &iface_desc);
-	Genode::memcpy(&iface->altsetting[alt_idx].desc, &iface_desc,
-	               sizeof(usb_interface_descriptor));
-	if (iface_desc.active)
-		iface->cur_altsetting = &iface->altsetting[alt_idx];
-
-	if (iface_desc.iclass == USB_CLASS_HID) {
-		hid_descriptor * hd = (hid_descriptor*)
-			kzalloc(sizeof(hid_descriptor), GFP_KERNEL);
-		if (usb_control_msg(udev, usb_rcvctrlpipe(udev, 0),
-		                    USB_REQ_GET_DESCRIPTOR,
-		                    USB_RECIP_INTERFACE | USB_DIR_IN,
-		                    (HID_DT_HID << 8), iface_idx, (void*)hd,
-		                    sizeof(hid_descriptor), USB_CTRL_GET_TIMEOUT) < 0) {
-			Genode::warning("could not get HID descriptor");
-		} else {
-			iface->altsetting[alt_idx].extra = (unsigned char*)hd;
-			iface->altsetting[alt_idx].extralen = sizeof(hid_descriptor);
-		}
-	}
-
-	iface->altsetting[alt_idx].endpoint = (usb_host_endpoint*)
-		kzalloc(sizeof(usb_host_endpoint)*iface->altsetting[alt_idx].desc.bNumEndpoints, GFP_KERNEL);
-
-	for (unsigned i = 0; i < iface->altsetting[alt_idx].desc.bNumEndpoints; i++) {
-		Usb::Endpoint_descriptor ep_desc;
-		usb.endpoint_descriptor(iface_idx, alt_idx, i, &ep_desc);
-		Genode::memcpy(&iface->altsetting[alt_idx].endpoint[i].desc,
-		               &ep_desc, sizeof(usb_endpoint_descriptor));
-		int epnum = usb_endpoint_num(&iface->altsetting[alt_idx].endpoint[i].desc);
-		if (usb_endpoint_dir_out(&iface->altsetting[alt_idx].endpoint[i].desc))
-			udev->ep_out[epnum] = &iface->altsetting[alt_idx].endpoint[i];
-		else
-			udev->ep_in[epnum]  = &iface->altsetting[alt_idx].endpoint[i];
-	}
-}
-
-
-void Driver::Device::scan_interfaces(unsigned iface_idx)
-{
-	struct usb_interface * iface =
-		(usb_interface*) kzalloc(sizeof(usb_interface), GFP_KERNEL);
-	iface->num_altsetting = usb.alt_settings(iface_idx);
-	iface->altsetting     = (usb_host_interface*)
-		kzalloc(sizeof(usb_host_interface)*iface->num_altsetting, GFP_KERNEL);
-	iface->dev.parent = &udev->dev;
-	iface->dev.bus    = (bus_type*) 0xdeadbeef;
-
-	for (unsigned i = 0; i < iface->num_altsetting; i++)
-		scan_altsettings(iface, iface_idx, i);
-
-	struct usb_device_id id;
-	probe_interface(iface, &id);
-	udev->config->interface[iface_idx] = iface;
-};
-
+extern "C" void usb_detect_interface_quirks(struct usb_device *udev);
 
 void Driver::Device::register_device()
 {
@@ -103,13 +44,38 @@ void Driver::Device::register_device()
 	udev->config = (usb_host_config*) kzalloc(sizeof(usb_host_config), GFP_KERNEL);
 	udev->bus->bus_name = "usbbus";
 	udev->bus->controller = (device*) (&usb);
+	udev->bus_mA = 900; /* set to maximum USB3.0 */
 
-	udev->descriptor.idVendor  = dev_desc.vendor_id;
-	udev->descriptor.idProduct = dev_desc.product_id;
-	udev->descriptor.bcdDevice = dev_desc.device_release;
+	Genode::memcpy(&udev->descriptor,   &dev_desc,    sizeof(usb_device_descriptor));
+	Genode::memcpy(&udev->config->desc, &config_desc, sizeof(usb_config_descriptor));
+	udev->devnum = dev_desc.num;
+	udev->speed  = (usb_device_speed) dev_desc.speed;
+	udev->authorized = 1;
 
-	for (unsigned i = 0; i < config_desc.num_interfaces; i++)
-		scan_interfaces(i);
+	int cfg = usb_get_configuration(udev);
+	if (cfg < 0) {
+		Genode::error("usb_get_configuration returned error ", cfg);
+		return;
+	}
+	usb_detect_interface_quirks(udev);
+	cfg = usb_choose_configuration(udev);
+	usb_set_configuration(udev, cfg);
+
+	for (int i = 0; i < udev->config->desc.bNumInterfaces; i++) {
+		struct usb_interface      * iface = udev->config->interface[i];
+		struct usb_host_interface * alt   = iface->cur_altsetting;
+
+		for (int j = 0; j < alt->desc.bNumEndpoints; ++j) {
+			struct usb_host_endpoint * ep = &alt->endpoint[j];
+			int epnum  = usb_endpoint_num(&ep->desc);
+			int is_out = usb_endpoint_dir_out(&ep->desc);
+			if (is_out) udev->ep_out[epnum] = ep;
+			else        udev->ep_in[epnum]  = ep;
+		}
+
+		struct usb_device_id   id;
+		probe_interface(iface, &id);
+	}
 }
 
 

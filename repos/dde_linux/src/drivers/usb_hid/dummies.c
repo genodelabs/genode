@@ -334,7 +334,7 @@ void kref_get(struct kref *kref)
 
 void kref_init(struct kref *kref)
 {
-	TRACE_AND_STOP;
+	TRACE;
 }
 
 int  kref_put(struct kref *kref, void (*release) (struct kref *kref))
@@ -659,4 +659,10 @@ int  sysfs_create_group(struct kobject *kobj, const struct attribute_group *grp)
 void up(struct semaphore *sem)
 {
 	TRACE;
+}
+
+bool usb_device_is_owned(struct usb_device *udev)
+{
+	TRACE;
+	return false;
 }

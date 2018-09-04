@@ -25,6 +25,73 @@
 
 #include <lx_kit/backend_alloc.h>
 
+extern "C" int usb_match_device(struct usb_device *dev,
+                                const struct usb_device_id *id)
+{
+	if ((id->match_flags & USB_DEVICE_ID_MATCH_VENDOR) &&
+	    id->idVendor != le16_to_cpu(dev->descriptor.idVendor))
+		return 0;
+
+	if ((id->match_flags & USB_DEVICE_ID_MATCH_PRODUCT) &&
+	    id->idProduct != le16_to_cpu(dev->descriptor.idProduct))
+		return 0;
+
+	if ((id->match_flags & USB_DEVICE_ID_MATCH_DEV_LO) &&
+	    (id->bcdDevice_lo > le16_to_cpu(dev->descriptor.bcdDevice)))
+		return 0;
+
+	if ((id->match_flags & USB_DEVICE_ID_MATCH_DEV_HI) &&
+	    (id->bcdDevice_hi < le16_to_cpu(dev->descriptor.bcdDevice)))
+		return 0;
+
+	if ((id->match_flags & USB_DEVICE_ID_MATCH_DEV_CLASS) &&
+	    (id->bDeviceClass != dev->descriptor.bDeviceClass))
+		return 0;
+
+	if ((id->match_flags & USB_DEVICE_ID_MATCH_DEV_SUBCLASS) &&
+	    (id->bDeviceSubClass != dev->descriptor.bDeviceSubClass))
+		return 0;
+
+	if ((id->match_flags & USB_DEVICE_ID_MATCH_DEV_PROTOCOL) &&
+	    (id->bDeviceProtocol != dev->descriptor.bDeviceProtocol))
+		return 0;
+
+	return 1;
+}
+
+
+extern "C" int usb_match_one_id_intf(struct usb_device *dev,
+                                     struct usb_host_interface *intf,
+                                     const struct usb_device_id *id)
+{
+	if (dev->descriptor.bDeviceClass == USB_CLASS_VENDOR_SPEC &&
+	    !(id->match_flags & USB_DEVICE_ID_MATCH_VENDOR) &&
+	    (id->match_flags & (USB_DEVICE_ID_MATCH_INT_CLASS |
+	                        USB_DEVICE_ID_MATCH_INT_SUBCLASS |
+	                        USB_DEVICE_ID_MATCH_INT_PROTOCOL |
+	                        USB_DEVICE_ID_MATCH_INT_NUMBER)))
+		return 0;
+
+	if ((id->match_flags & USB_DEVICE_ID_MATCH_INT_CLASS) &&
+	    (id->bInterfaceClass != intf->desc.bInterfaceClass))
+		return 0;
+
+	if ((id->match_flags & USB_DEVICE_ID_MATCH_INT_SUBCLASS) &&
+	    (id->bInterfaceSubClass != intf->desc.bInterfaceSubClass))
+		return 0;
+
+	if ((id->match_flags & USB_DEVICE_ID_MATCH_INT_PROTOCOL) &&
+	    (id->bInterfaceProtocol != intf->desc.bInterfaceProtocol))
+		return 0;
+
+	if ((id->match_flags & USB_DEVICE_ID_MATCH_INT_NUMBER) &&
+	    (id->bInterfaceNumber != intf->desc.bInterfaceNumber))
+		return 0;
+
+	return 1;
+}
+
+
 struct Lx_driver
 {
 	using Element = Genode::List_element<Lx_driver>;
@@ -93,12 +160,6 @@ void Driver::Device::probe_interface(usb_interface * iface, usb_device_id * id)
 void Driver::Device::remove_interface(usb_interface * iface)
 {
 	hid_driver->disconnect(iface);
-	for (unsigned i = 0; i < iface->num_altsetting; i++) {
-		if (iface->altsetting[i].extra)
-			kfree(iface->altsetting[i].extra);
-		kfree(iface->altsetting[i].endpoint);
-		kfree(iface->altsetting);
-	}
 	kfree(iface);
 }
 
@@ -307,4 +368,186 @@ u32 get_unaligned_le32(const void *p)
 void *devm_kzalloc(struct device *dev, size_t size, gfp_t gfp)
 {
 	return kzalloc(size, gfp);
+}
+
+
+int usb_get_descriptor(struct usb_device *dev, unsigned char type,
+                       unsigned char index, void *buf, int size)
+{
+	int i;
+	int result;
+
+	memset(buf, 0, size);
+
+	for (i = 0; i < 3; ++i) {
+		/* retry on length 0 or error; some devices are flakey */
+		result = usb_control_msg(dev, usb_rcvctrlpipe(dev, 0),
+		                         USB_REQ_GET_DESCRIPTOR, USB_DIR_IN,
+		                         (type << 8) + index, 0, buf, size,
+		                         USB_CTRL_GET_TIMEOUT);
+		if (result <= 0 && result != -ETIMEDOUT)
+			continue;
+		if (result > 1 && ((u8 *)buf)[1] != type) {
+			result = -ENODATA;
+			continue;
+		}
+		break;
+	}
+	return result;
+}
+
+
+
+static struct usb_interface_assoc_descriptor *find_iad(struct usb_device *dev,
+                                                       struct usb_host_config *config,
+                                                       u8 inum)
+{
+	struct usb_interface_assoc_descriptor *retval = NULL;
+	struct usb_interface_assoc_descriptor *intf_assoc;
+	int first_intf;
+	int last_intf;
+	int i;
+
+	for (i = 0; (i < USB_MAXIADS && config->intf_assoc[i]); i++) {
+		intf_assoc = config->intf_assoc[i];
+		if (intf_assoc->bInterfaceCount == 0)
+			continue;
+
+		first_intf = intf_assoc->bFirstInterface;
+		last_intf = first_intf + (intf_assoc->bInterfaceCount - 1);
+		if (inum >= first_intf && inum <= last_intf) {
+			if (!retval)
+				retval = intf_assoc;
+			else
+				dev_err(&dev->dev, "Interface #%d referenced"
+						" by multiple IADs\n", inum);
+		}
+	}
+
+	return retval;
+}
+
+
+struct usb_host_interface *usb_altnum_to_altsetting(const struct usb_interface *intf,
+                                                    unsigned int altnum)
+{
+	for (unsigned i = 0; i < intf->num_altsetting; i++) {
+		if (intf->altsetting[i].desc.bAlternateSetting == altnum)
+			return &intf->altsetting[i];
+	}
+	return NULL;
+}
+
+
+int usb_set_configuration(struct usb_device *dev, int configuration)
+{
+	int i, ret;
+	struct usb_host_config *cp = NULL;
+	struct usb_interface **new_interfaces = NULL;
+	int n, nintf;
+
+	if (dev->authorized == 0 || configuration == -1)
+		configuration = 0;
+	else {
+		for (i = 0; i < dev->descriptor.bNumConfigurations; i++) {
+			if (dev->config[i].desc.bConfigurationValue ==
+				configuration) {
+				cp = &dev->config[i];
+				break;
+			}
+		}
+	}
+	if ((!cp && configuration != 0))
+		return -EINVAL;
+
+	/* The USB spec says configuration 0 means unconfigured.
+	 * But if a device includes a configuration numbered 0,
+	 * we will accept it as a correctly configured state.
+	 * Use -1 if you really want to unconfigure the device.
+	 */
+	if (cp && configuration == 0)
+		dev_warn(&dev->dev, "config 0 descriptor??\n");
+
+	/* Allocate memory for new interfaces before doing anything else,
+	 * so that if we run out then nothing will have changed. */
+	n = nintf = 0;
+	if (cp) {
+		nintf = cp->desc.bNumInterfaces;
+		new_interfaces = (struct usb_interface **)
+			kmalloc(nintf * sizeof(*new_interfaces), GFP_KERNEL);
+		if (!new_interfaces)
+			return -ENOMEM;
+
+		for (; n < nintf; ++n) {
+			new_interfaces[n] = (struct usb_interface*)
+				kzalloc( sizeof(struct usb_interface), GFP_KERNEL);
+			if (!new_interfaces[n]) {
+				ret = -ENOMEM;
+				while (--n >= 0)
+					kfree(new_interfaces[n]);
+				kfree(new_interfaces);
+				return ret;
+			}
+		}
+	}
+
+	/*
+	 * Initialize the new interface structures and the
+	 * hc/hcd/usbcore interface/endpoint state.
+	 */
+	for (i = 0; i < nintf; ++i) {
+		struct usb_interface_cache *intfc;
+		struct usb_interface *intf;
+		struct usb_host_interface *alt;
+		u8 ifnum;
+
+		cp->interface[i] = intf = new_interfaces[i];
+		intfc = cp->intf_cache[i];
+		intf->altsetting = intfc->altsetting;
+		intf->num_altsetting = intfc->num_altsetting;
+		intf->authorized = 1; //FIXME
+
+		alt = usb_altnum_to_altsetting(intf, 0);
+
+		/* No altsetting 0?  We'll assume the first altsetting.
+		 * We could use a GetInterface call, but if a device is
+		 * so non-compliant that it doesn't have altsetting 0
+		 * then I wouldn't trust its reply anyway.
+		 */
+		if (!alt)
+			alt = &intf->altsetting[0];
+
+		ifnum = alt->desc.bInterfaceNumber;
+		intf->intf_assoc = find_iad(dev, cp, ifnum);
+		intf->cur_altsetting = alt;
+		intf->dev.parent = &dev->dev;
+		intf->dev.driver = NULL;
+		intf->dev.bus = (bus_type*) 0xdeadbeef /*&usb_bus_type*/;
+		intf->minor = -1;
+		device_initialize(&intf->dev);
+		dev_set_name(&intf->dev, "%d-%s:%d.%d", dev->bus->busnum,
+					 dev->devpath, configuration, ifnum);
+	}
+	kfree(new_interfaces);
+
+	ret = usb_control_msg(dev, usb_sndctrlpipe(dev, 0),
+						  USB_REQ_SET_CONFIGURATION, 0, configuration, 0,
+						  NULL, 0, USB_CTRL_SET_TIMEOUT);
+	if (ret < 0 && cp) {
+		for (i = 0; i < nintf; ++i) {
+			put_device(&cp->interface[i]->dev);
+			cp->interface[i] = NULL;
+		}
+		cp = NULL;
+	}
+
+	dev->actconfig = cp;
+
+	if (!cp) {
+		dev->state = USB_STATE_ADDRESS;
+		return ret;
+	}
+	dev->state = USB_STATE_CONFIGURED;
+
+	return 0;
 }

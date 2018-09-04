@@ -19,8 +19,6 @@
 
 #include <lx_emul/extern_c_begin.h>
 
-#define __KERNEL__ 1
-
 #include <lx_emul/compiler.h>
 #include <lx_emul/printf.h>
 #include <lx_emul/types.h>
@@ -614,6 +612,13 @@ int module_wacom_driver_init();
 
 struct input_handle;
 void genode_evdev_event(struct input_handle *handle, unsigned int type, unsigned int code, int value);
+
+struct usb_device;
+extern int usb_get_configuration(struct usb_device *dev);
+
+struct usb_hcd { unsigned amd_resume_bug:1; };
+
+bool usb_device_is_owned(struct usb_device *udev);
 
 #include <lx_emul/extern_c_end.h>
 
