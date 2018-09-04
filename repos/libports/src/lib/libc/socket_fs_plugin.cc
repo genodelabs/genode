@@ -30,6 +30,7 @@
 #include <unistd.h>
 #include <ctype.h>
 #include <stdio.h>
+#include <sys/ioctl.h>
 
 /* libc-internal includes */
 #include "socket_fs_plugin.h"
@@ -257,6 +258,7 @@ struct Socket_fs::Plugin : Libc::Plugin
 	int fcntl(Libc::File_descriptor *, int, long) override;
 	int close(Libc::File_descriptor *) override;
 	int select(int, fd_set *, fd_set *, fd_set *, timeval *) override;
+	int ioctl(Libc::File_descriptor *, int, char *) override;
 };
 
 
@@ -960,6 +962,27 @@ int Socket_fs::Plugin::close(Libc::File_descriptor *fd)
 	 */
 
 	return 0;
+}
+
+
+int Socket_fs::Plugin::ioctl(Libc::File_descriptor *, int request, char*)
+{
+	if (request == FIONREAD) {
+		/*
+		 * This request occurs quite often when using the Arora web browser,
+		 * so print the error message only once.
+		 */
+		static bool print_fionread_error_message = true;
+		if (print_fionread_error_message) {
+			Genode::error(__func__, " request FIONREAD not supported on sockets"
+			              " (this message will not be shown again)");
+			print_fionread_error_message = false;
+		}
+		return -1;
+	}
+
+	Genode::error(__func__, " request ", request, " not supported on sockets");
+	return -1;
 }
 
 
