@@ -1127,10 +1127,24 @@ int hex2bin(u8 *dst, const char *src, size_t count)
 
 extern "C" void init_timer(struct timer_list *) { }
 
+struct callback_timer {
+	void (*function)(unsigned long);
+	unsigned long data;
+};
+
+static void timer_callback(struct timer_list *t)
+{
+	struct callback_timer * tc = (struct callback_timer *)t->data;
+	tc->function(tc->data);
+}
 
 extern "C" void setup_timer(struct timer_list *timer, void (*function)(unsigned long),
                             unsigned long data)
 {
-	timer_setup(timer, function, 0u);
-	timer->data = data;
+	callback_timer * tc = new (Lx::Malloc::mem()) callback_timer;
+	tc->function = function;
+	tc->data     = data;
+
+	timer_setup(timer, timer_callback, 0u);
+	timer->data = (unsigned long)tc;
 }

@@ -622,6 +622,10 @@ ktime_t ktime_mono_to_real(ktime_t mono);
 #define from_timer(var, callback_timer, timer_fieldname) \
 	container_of(callback_timer, typeof(*var), timer_fieldname)
 
+void setup_timer(struct timer_list *timer, void (*function)(unsigned long),
+                 unsigned long data);
+void init_timer(struct timer_list *);
+void set_timer_slack(struct timer_list *, int);
 
 /*******************
  ** linux/delay.h **
