@@ -1771,3 +1771,36 @@ int stop_machine(cpu_stop_fn_t a, void *b, const struct cpumask *c)
 	TRACE_AND_STOP;
 	return -1;
 }
+
+int unregister_acpi_notifier(struct notifier_block *nb)
+{
+	TRACE_AND_STOP;
+	return -1;
+}
+
+const struct acpi_device_id * i2c_acpi_match_device(const struct acpi_device_id *matches,
+                                                    struct i2c_client *client)
+{
+	TRACE_AND_STOP;
+	return 0;
+}
+
+static int i2c_acpi_notify(struct notifier_block *nb, unsigned long value, void *arg)
+{
+	TRACE_AND_STOP;
+	return -1;
+}
+
+struct notifier_block i2c_acpi_notifier = {
+	.notifier_call = i2c_acpi_notify,
+};
+
+void intel_unregister_dsm_handler(void)
+{
+	TRACE_AND_STOP;
+}
+
+enum acpi_backlight_type acpi_video_get_backlight_type(void)
+{
+	TRACE_AND_STOP;
+}

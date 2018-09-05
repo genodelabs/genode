@@ -1231,9 +1231,29 @@ struct acpi_device;
 struct acpi_dev_node { struct acpi_device *companion; };
 
 
+/*********************
+ ** acpi/acpi_bus.h **
+ *********************/
+
+typedef char acpi_bus_id[8];
+typedef char acpi_device_class[20];
+
+struct acpi_bus_event {
+	struct list_head node;
+	acpi_device_class device_class;
+	acpi_bus_id bus_id;
+	u32 type;
+	u32 data;
+};
+
+
 /****************
  ** linux/io.h **
  ****************/
+
+enum {
+	MEMREMAP_WB = 1 << 0,
+};
 
 #define writel(value, addr) (*(volatile uint32_t *)(addr) = (value))
 #define readl(addr)         (*(volatile uint32_t *)(addr))
@@ -1563,8 +1583,6 @@ void vga_put(struct pci_dev *pdev, unsigned int rsrc);
  ** linux/notifier.h **
  **********************/
 
-#define NOTIFY_DONE 0x0000
-
 /* needed by intel_lvds.c */
 
 struct notifier_block;
@@ -1573,7 +1591,12 @@ typedef int (*notifier_fn_t)(struct notifier_block *nb, unsigned long action, vo
 
 struct notifier_block { notifier_fn_t notifier_call; };
 
-enum { NOTIFY_OK = 0x0001 };
+enum {
+	NOTIFY_DONE      = 0x0000,
+	NOTIFY_OK        = 0x0001,
+	NOTIFY_STOP_MASK = 0x8000,
+	NOTIFY_BAD       = (NOTIFY_STOP_MASK|0x0002),
+};
 
 struct atomic_notifier_head { unsigned dummy; };
 
@@ -1605,8 +1628,31 @@ static inline bool vgacon_text_force(void) { return false; }
  ** acpi/video.h **
  ******************/
 
+#define ACPI_VIDEO_CLASS "video"
+
 int acpi_video_register(void);
 void acpi_video_unregister(void);
+
+enum acpi_backlight_type {
+	acpi_backlight_native = 3,
+};
+enum acpi_backlight_type acpi_video_get_backlight_type(void);
+
+
+/******************
+ ** acpi/video.h **
+ ******************/
+
+int register_acpi_notifier(struct notifier_block *);
+int unregister_acpi_notifier(struct notifier_block *);
+
+
+/**********************
+ ** linux/memremap.h **
+ **********************/
+
+void *memremap(resource_size_t offset, size_t size, unsigned long flags);
+void memunmap(void *addr);
 
 
 /*****************

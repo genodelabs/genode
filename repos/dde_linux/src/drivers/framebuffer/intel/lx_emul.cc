@@ -1121,17 +1121,33 @@ void cpu_relax(void)
  ** drivers/pci/rom.c **
  ***********************/
 
+static Genode::Constructible<Genode::Attached_io_mem_dataspace> video_rom;
+
 void __iomem __must_check *pci_map_rom(struct pci_dev *pdev, size_t *size)
 {
+	/* solely available in BIOS legacy mode ... */
 	enum { VIDEO_ROM_BASE = 0xC0000, VIDEO_ROM_SIZE = 0x20000 };
 
-	static Genode::Attached_io_mem_dataspace vrom(Lx_kit::env().env(),
-	                                              VIDEO_ROM_BASE, VIDEO_ROM_SIZE);
-	*size = VIDEO_ROM_SIZE;
-	return vrom.local_addr<void*>();
+	BUG_ON(video_rom.constructed());
+
+	try {
+		video_rom.construct(Lx_kit::env().env(), VIDEO_ROM_BASE, VIDEO_ROM_SIZE);
+		*size = VIDEO_ROM_SIZE;
+		return video_rom->local_addr<void*>();
+	} catch (...) {
+		Genode::warning("could not map ",
+		                Genode::Hex_range<Genode::addr_t>(VIDEO_ROM_BASE,
+		                                                  VIDEO_ROM_SIZE),
+		                " video rom region");
+	}
+
+	return nullptr;
 }
 
-void pci_unmap_rom(struct pci_dev *pdev, void __iomem *rom) {}
+void pci_unmap_rom(struct pci_dev *pdev, void __iomem *rom) {
+	BUG_ON(!video_rom.constructed());
+	video_rom.destruct();
+}
 
 
 /******************
@@ -1922,6 +1938,61 @@ u64 local_clock(void)
 {
 	Lx::timer_update_jiffies();
 	return jiffies_to_nsecs(jiffies);
+}
+
+
+/******************************************************************
+ ** ACPI related function called by Intel driver (-DCONFIG_ACPI) **
+ ******************************************************************/
+
+
+static Genode::Constructible<Genode::Attached_io_mem_dataspace> opregion;
+
+void *memremap(resource_size_t offset, size_t size, unsigned long flags)
+{
+	Genode::addr_t paddr = offset & ~0xfffUL;
+	Genode::addr_t psize = size + (offset & 0xfff);
+
+	BUG_ON(opregion.constructed());
+
+	try {
+		opregion.construct(Lx_kit::env().env(), paddr, psize);
+		return opregion->local_addr<uint8_t>() + (offset & 0xfff);
+	} catch (...) {
+		Genode::warning("could not map ",
+		                Genode::Hex_range<Genode::addr_t>(offset, size),
+		                " ACPI opregion");
+	}
+	return nullptr;
+}
+
+void memunmap(void *addr)
+{
+	BUG_ON(!opregion.constructed());
+	opregion.destruct();
+}
+
+
+void intel_register_dsm_handler(void)
+{
+	Genode::warning(__func__, " called");
+}
+
+void i2c_acpi_register_devices(struct i2c_adapter *adap)
+{
+	Genode::warning(__func__, " called");
+}
+
+int register_acpi_notifier(struct notifier_block *nb)
+{
+	Genode::warning(__func__, " called");
+	return 0;
+}
+
+int acpi_reconfig_notifier_register(struct notifier_block *nb)
+{
+	Genode::warning(__func__, " called");
+	return 0;
 }
 
 } /* extern "C" */

@@ -128,6 +128,7 @@ linux-x.x.x/drivers/gpu/drm/i915/intel_lvds.c
 linux-x.x.x/drivers/gpu/drm/i915/intel_mocs.c
 linux-x.x.x/drivers/gpu/drm/i915/intel_mocs.h
 linux-x.x.x/drivers/gpu/drm/i915/intel_modes.c
+linux-x.x.x/drivers/gpu/drm/i915/intel_opregion.c
 linux-x.x.x/drivers/gpu/drm/i915/intel_opregion.h
 linux-x.x.x/drivers/gpu/drm/i915/intel_overlay.c
 linux-x.x.x/drivers/gpu/drm/i915/intel_panel.c

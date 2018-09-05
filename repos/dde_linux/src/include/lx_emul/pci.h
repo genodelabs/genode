@@ -36,6 +36,7 @@ enum { PCI_ANY_ID = ~0U };
 typedef enum {
 	PCI_D0    = 0,
 	PCI_D1    = 1,
+	PCI_D2    = 2,
 	PCI_D3hot = 3,
 	PCI_D3cold = 4,
 } pci_power_t;
