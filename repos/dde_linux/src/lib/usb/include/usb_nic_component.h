@@ -18,6 +18,12 @@
 #include <nic/component.h>
 #include <root/component.h>
 
+#include <lx_emul.h>
+#include <lx_emul/extern_c_begin.h>
+#include <linux/usb.h>
+#include <linux/usb/usbnet.h>
+#include <lx_emul/extern_c_end.h>
+
 namespace Usb_nic {
 	using namespace Genode;
 	using Genode::size_t;

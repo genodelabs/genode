@@ -311,8 +311,6 @@ int   scnprintf(char *, size_t, const char *, ...);
 	buf; \
 })
 
-#define clamp(val, lo, hi) min((typeof(val))max(val, lo), hi)
-
 char *get_options(const char *str, int nints, int *ints);
 int   hex_to_bin(char);
 

@@ -237,8 +237,6 @@ void vfree(void *addr);
 struct pm_message {};
 typedef struct pm_message pm_message_t;
 
-#define clamp(val, lo, hi) min((typeof(val))max(val, lo), hi)
-
 struct task_struct
 {
 	char comm[16];

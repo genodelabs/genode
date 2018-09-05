@@ -239,7 +239,7 @@ class Net::Socketcall : public Lxip::Socketcall,
 			                                          (struct Linux::sockaddr *)&_call.addr,
 			                                          &len, peer);
 
-			*_call.accept.len = Linux::min(*_call.accept.len, len);
+			*_call.accept.len = min(*_call.accept.len, len);
 			Genode::memcpy(_call.accept.addr, &_call.addr, *_call.accept.len);
 		}
 

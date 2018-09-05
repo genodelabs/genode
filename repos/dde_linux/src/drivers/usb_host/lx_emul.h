@@ -222,15 +222,6 @@ enum {
 char *kasprintf(gfp_t gfp, const char *fmt, ...);
 int   kstrtouint(const char *s, unsigned int base, unsigned int *res);
 
-#define clamp(val, min, max) ({           \
-	typeof(val) __val = (val);              \
-	typeof(min) __min = (min);              \
-	typeof(max) __max = (max);              \
-	(void) (&__val == &__min);              \
-	(void) (&__val == &__max);              \
-	__val = __val < __min ? __min: __val;   \
-	__val > __max ? __max: __val; })
-
 #define rounddown(x, y) (                 \
 {                                         \
 	typeof(x) __x = (x);                    \

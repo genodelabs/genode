@@ -193,8 +193,6 @@ struct __una_u32 { u32 x; } __attribute__((packed));
 u16 get_unaligned_le16(const void *p);
 u32  get_unaligned_le32(const void *p);
 
-#define clamp(val, lo, hi) min((typeof(val))max(val, lo), hi)
-
 struct completion
 {
 	unsigned int done;

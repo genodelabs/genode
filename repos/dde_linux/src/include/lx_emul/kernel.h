@@ -98,19 +98,6 @@ static inline void panic(const char *fmt, ...)
         type __max2 = (y);                      \
         __max1 > __max2 ? __max1: __max2; })
 
-/**
- * Return minimum of two given values
- *
- * XXX check how this function is used (argument types)
- */
-static inline size_t min(size_t a, size_t b) {
-        return a < b ? a : b; }
-
-/**
- * Return maximum of two given values
- *
- * XXX check how this function is used (argument types)
- */
 #define max(x, y) ({                      \
         typeof(x) _max1 = (x);                  \
         typeof(y) _max2 = (y);                  \
@@ -120,6 +107,11 @@ static inline size_t min(size_t a, size_t b) {
         type __min1 = (x); \
         type __min2 = (y); \
         __min1 < __min2 ? __min1: __min2; })
+
+#define min(x, y) ({                      \
+        typeof(x) _min1 = (x);                  \
+        typeof(y) _min2 = (y);                  \
+        _min1 > _min2 ? _min2 : _min1; })
 
 #define abs(x) ( { \
                   typeof (x) _x = (x); \
@@ -137,6 +129,8 @@ static inline size_t min(size_t a, size_t b) {
 #define __round_mask(x, y) ((__typeof__(x))((y)-1))
 #define round_up(x, y) ((((x)-1) | __round_mask(x, y))+1)
 #define round_down(x, y) ((x) & ~__round_mask(x, y))
+
+#define clamp(val, lo, hi) min((typeof(val))max(val, lo), hi)
 
 #define clamp_val(val, min, max) ({             \
         typeof(val) __val = (val);              \

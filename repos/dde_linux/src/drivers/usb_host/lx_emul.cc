@@ -596,7 +596,7 @@ int utf16s_to_utf8s(const wchar_t *pwcs, int len,
 	 */
 	u16 *out = (u16 *)s;
 	u16 *in  = (u16 *)pwcs;
-	int length = Genode::min(len, maxlen / 2);
+	int length = min(len, maxlen / 2);
 	for (int i = 0; i < length; i++)
 		out[i] = in[i];
 

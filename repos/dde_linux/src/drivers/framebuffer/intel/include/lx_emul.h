@@ -271,14 +271,6 @@ enum { SPRINTF_STR_LEN = 64 };
 extern int panic_timeout;
 extern struct atomic_notifier_head panic_notifier_list;
 
-#define min(x, y) ({                            \
-		typeof(x) _min1 = (x);                  \
-		typeof(y) _min2 = (y);                  \
-		(void) (&_min1 == &_min2);              \
-		_min1 < _min2 ? _min1 : _min2; })
-
-#define clamp(val, lo, hi) min((typeof(val))max(val, lo), hi)
-
 /* linux/i2c.h */
 #define __deprecated
 

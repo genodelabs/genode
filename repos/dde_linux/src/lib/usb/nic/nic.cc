@@ -17,18 +17,11 @@
 #include <nic/xml_node.h>
 #include <util/xml_node.h>
 
-#include <lx_emul.h>
-#include <lx_emul/extern_c_begin.h>
-#include <linux/usb.h>
-#include <linux/usb/usbnet.h>
-#include <lx_emul/extern_c_end.h>
-
 #include <lx_kit/env.h>
 #include <lx_kit/malloc.h>
 
 #include <usb_nic_component.h>
 #include "signal.h"
-
 
 static Signal_helper *_signal = 0;
 
