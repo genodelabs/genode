@@ -331,6 +331,8 @@ struct Driver_manager::Main : Block_devices_generator
 	Constructible<Ahci_driver>     _ahci_driver;
 	Constructible<Nvme_driver>     _nvme_driver;
 
+	bool _use_ohci { true };
+
 	Boot_fb_driver::Mode _boot_fb_mode() const
 	{
 		try {
@@ -386,18 +388,13 @@ struct Driver_manager::Main : Block_devices_generator
 		_block_devices.enabled(true);
 
 		_pci_devices.sigh(_pci_devices_update_handler);
-		_usb_devices.sigh(_usb_devices_update_handler);
 		_usb_policy .sigh(_usb_policy_update_handler);
 		_ahci_ports .sigh(_ahci_ports_update_handler);
 		_nvme_ns    .sigh(_nvme_ns_update_handler);
 
 		_generate_init_config(_init_config);
-		_generate_usb_drv_config(_usb_drv_config,
-		                         Xml_node("<devices/>"),
-		                         Xml_node("<usb/>"));
 
 		_handle_pci_devices_update();
-		_handle_usb_devices_update();
 		_handle_ahci_ports_update();
 		_handle_nvme_ns_update();
 	}
@@ -425,6 +422,7 @@ void Driver_manager::Main::_handle_pci_devices_update()
 		uint16_t const class_code = device.attribute_value("class_code", 0UL) >> 8;
 
 		enum {
+			VENDOR_VBOX  = 0x80EEU,
 			VENDOR_INTEL = 0x8086U,
 			CLASS_VGA    = 0x300U,
 			CLASS_AHCI   = 0x106U,
@@ -439,6 +437,9 @@ void Driver_manager::Main::_handle_pci_devices_update()
 
 		if (vendor_id == VENDOR_INTEL && class_code == CLASS_AHCI)
 			has_ahci = true;
+
+		if (vendor_id == VENDOR_VBOX)
+			_use_ohci = false;
 
 		if (class_code == CLASS_NVME)
 			has_nvme = true;
@@ -475,6 +476,15 @@ void Driver_manager::Main::_handle_pci_devices_update()
 		_nvme_driver.construct();
 		_generate_init_config(_init_config);
 	}
+
+	/* generate initial usb driver config not before we know whether ohci should be enabled */
+	_generate_usb_drv_config(_usb_drv_config,
+	                         Xml_node("<devices/>"),
+	                         Xml_node("<usb/>"));
+
+	_usb_devices.sigh(_usb_devices_update_handler);
+
+	_handle_usb_devices_update();
 }
 
 
@@ -650,7 +660,7 @@ void Driver_manager::Main::_generate_usb_drv_config(Reporter &usb_drv_config,
 
 		xml.attribute("uhci", true);
 		xml.attribute("ehci", true);
-		xml.attribute("ohci", true);
+		xml.attribute("ohci", _use_ohci);
 		xml.attribute("xhci", true);
 		xml.attribute("capslock_led", "rom");
 		xml.attribute("numlock_led",  "rom");
