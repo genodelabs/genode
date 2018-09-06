@@ -58,12 +58,12 @@ class Genode::Pd_session_component : public Session_object<Pd_session>
 
 		Constructible<Platform_pd> _pd { };
 
+		Constructible<Account<Cap_quota> > _cap_account { };
+		Constructible<Account<Ram_quota> > _ram_account { };
+
 		Region_map_component _address_space;
 		Region_map_component _stack_area;
 		Region_map_component _linker_area;
-
-		Constructible<Account<Cap_quota> > _cap_account { };
-		Constructible<Account<Ram_quota> > _ram_account { };
 
 		friend class Native_pd_component;
 
