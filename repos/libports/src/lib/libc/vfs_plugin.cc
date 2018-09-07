@@ -157,16 +157,13 @@ namespace Libc {
 
 	void notify_read_ready(Vfs::Vfs_handle *handle)
 	{
-		struct Check : Libc::Suspend_functor
-		{
-			Vfs::Vfs_handle *handle;
-			Check(Vfs::Vfs_handle *handle) : handle(handle) { }
-			bool suspend() override {
-				return !VFS_THREAD_SAFE(handle->fs().notify_read_ready(handle)); }
-		} check(handle);
-
-		while (!VFS_THREAD_SAFE(handle->fs().notify_read_ready(handle)))
-			Libc::suspend(check);
+		/*
+		 * If this call fails, the VFS plugin is expected to call the IO
+		 * handler when the notification request can be processed. The
+		 * libc IO handler will then call 'notify_read_ready()' again
+		 * via 'select_notify()'.
+		 */
+		VFS_THREAD_SAFE(handle->fs().notify_read_ready(handle));
 	}
 
 	bool read_ready(Libc::File_descriptor *fd)
