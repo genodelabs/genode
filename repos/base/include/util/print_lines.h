@@ -69,12 +69,14 @@ void Genode::print_lines(char const *string, size_t len, FUNC const &func)
 		size_t const line_len =
 			({
 				size_t i = 0;
-				for (; string[i] && i < len && string[i] != '\n'; i++);
+				for (; i < len; i++) {
+					if (string[i] == '\0' || string[i] == '\n') {
 
-				/* the newline character belongs to the line */
-				if (string[i] == '\n')
-					i++;
-
+						/* the line length is the offset of the last real character + 1 */
+						i++;
+						break;
+					}
+				}
 				i;
 			});
 
