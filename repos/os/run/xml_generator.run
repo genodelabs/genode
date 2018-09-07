@@ -30,46 +30,56 @@ run_genode_until "--- XML generator test finished ---.*\n" 30
 grep_output {^\[init -> test-xml_generator}
 
 compare_output_to {
-	[init -> test-xml_generator] --- XML generator test started ---
-	[init -> test-xml_generator] result:
-	[init -> test-xml_generator] 
-	[init -> test-xml_generator] <config xpos="27" ypos="34">
-	[init -> test-xml_generator] 	<box width="320" height="240"/>
-	[init -> test-xml_generator] 	<label name="a test">
-	[init -> test-xml_generator] 		<sub_label/>
-	[init -> test-xml_generator] 		<another_sub_label>
-	[init -> test-xml_generator] 			<sub_sub_label/>
-	[init -> test-xml_generator] 		</another_sub_label>
-	[init -> test-xml_generator] 	</label>
-	[init -> test-xml_generator] 	<bool true="true" false="false"/>
-	[init -> test-xml_generator] 	<signed int="-1" long="-2" longlong="-3"/>
-	[init -> test-xml_generator] 	<unsigned int="1" long="2" longlong="3"/>
-	[init -> test-xml_generator] </config>
-	[init -> test-xml_generator] 
-	[init -> test-xml_generator] used 307 bytes
-	[init -> test-xml_generator] buffer exceeded (expected error)
-	[init -> test-xml_generator] 
-	[init -> test-xml_generator] exception on level3 (expected exception value=10)
-	[init -> test-xml_generator] exception on level3 (expected exception value=11)
-	[init -> test-xml_generator] exception on level3 (expected exception value=12)
-	[init -> test-xml_generator] 
-	[init -> test-xml_generator] used 180 bytes, result:
-	[init -> test-xml_generator] 
-	[init -> test-xml_generator] <config>
-	[init -> test-xml_generator] 	<level1>
-	[init -> test-xml_generator] 		<level2>
-	[init -> test-xml_generator] 			<level3>
-	[init -> test-xml_generator] 				<level4/>
-	[init -> test-xml_generator] 			</level3>
-	[init -> test-xml_generator] 			<level3>
-	[init -> test-xml_generator] 				<level4/>
-	[init -> test-xml_generator] 			</level3>
-	[init -> test-xml_generator] 			<level3>
-	[init -> test-xml_generator] 				<level4/>
-	[init -> test-xml_generator] 			</level3>
-	[init -> test-xml_generator] 		</level2>
-	[init -> test-xml_generator] 	</level1>
-	[init -> test-xml_generator] </config>
-	[init -> test-xml_generator] 
-	[init -> test-xml_generator] --- XML generator test finished ---
+[init -> test-xml_generator] --- XML generator test started ---
+[init -> test-xml_generator] 
+[init -> test-xml_generator] used 308 bytes, result:
+[init -> test-xml_generator] 
+[init -> test-xml_generator] <config xpos="27" ypos="34">
+[init -> test-xml_generator] 	<box width="320" height="240"/>
+[init -> test-xml_generator] 	<label name="a test">
+[init -> test-xml_generator] 		<sub_label/>
+[init -> test-xml_generator] 		<another_sub_label>
+[init -> test-xml_generator] 			<sub_sub_label/>
+[init -> test-xml_generator] 		</another_sub_label>
+[init -> test-xml_generator] 	</label>
+[init -> test-xml_generator] 	<bool true="true" false="false"/>
+[init -> test-xml_generator] 	<signed int="-1" long="-2" longlong="-3"/>
+[init -> test-xml_generator] 	<unsigned int="1" long="2" longlong="3"/>
+[init -> test-xml_generator] </config>
+[init -> test-xml_generator] 
+[init -> test-xml_generator] buffer exceeded (expected error)
+[init -> test-xml_generator] 
+[init -> test-xml_generator] exception with value 10 on level 4 (expected error)
+[init -> test-xml_generator] exception with value 20 on level 8 (expected error)
+[init -> test-xml_generator] exception with value 30 on level 4 (expected error)
+[init -> test-xml_generator] exception with value 11 on level 4 (expected error)
+[init -> test-xml_generator] exception with value 21 on level 8 (expected error)
+[init -> test-xml_generator] exception with value 31 on level 4 (expected error)
+[init -> test-xml_generator] exception with value 12 on level 4 (expected error)
+[init -> test-xml_generator] exception with value 22 on level 8 (expected error)
+[init -> test-xml_generator] exception with value 32 on level 4 (expected error)
+[init -> test-xml_generator] exception with value 40 on level 2 (expected error)
+[init -> test-xml_generator] 
+[init -> test-xml_generator] used 419 bytes, result:
+[init -> test-xml_generator] 
+[init -> test-xml_generator] <config>
+[init -> test-xml_generator] 	<level1>
+[init -> test-xml_generator] 		<level2 attr1="2271560481">
+[init -> test-xml_generator] 			<level3 attr1="Hallo" attr2="123000">
+[init -> test-xml_generator] 				<level4_1 attr1="true" attr2="Welt"/>
+[init -> test-xml_generator] 				<level4_2/>
+[init -> test-xml_generator] 			</level3>
+[init -> test-xml_generator] 			<level3 attr1="Hallo" attr2="123001">
+[init -> test-xml_generator] 				<level4_1 attr1="true" attr2="Welt"/>
+[init -> test-xml_generator] 				<level4_2/>
+[init -> test-xml_generator] 			</level3>
+[init -> test-xml_generator] 			<level3 attr1="Hallo" attr2="123002">
+[init -> test-xml_generator] 				<level4_1 attr1="true" attr2="Welt"/>
+[init -> test-xml_generator] 				<level4_2/>
+[init -> test-xml_generator] 			</level3>
+[init -> test-xml_generator] 		</level2>
+[init -> test-xml_generator] 	</level1>
+[init -> test-xml_generator] </config>
+[init -> test-xml_generator] 
+[init -> test-xml_generator] --- XML generator test finished ---
 }

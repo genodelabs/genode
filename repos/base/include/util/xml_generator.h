@@ -329,6 +329,7 @@ class Genode::Xml_generator
 			if (dst) {
 				node(name, func);
 				_out_buffer.append('\n');
+				_out_buffer.append('\0');
 			}
 		}
 
