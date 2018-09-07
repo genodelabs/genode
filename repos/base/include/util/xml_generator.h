@@ -236,7 +236,7 @@ class Genode::Xml_generator
 					dst.append(name);
 					dst.append("=\"");
 					dst.append(value, strlen(value));
-					dst.append('\"');
+					dst.append("\"");
 
 					_attr_offset += gap;
 				}
@@ -280,8 +280,8 @@ class Genode::Xml_generator
 						func();
 					} catch (...) {
 						/* reset and drop changes by not committing it */
-						xml._curr_indent--;
 						xml._curr_node = _parent_node;
+						xml._curr_indent--;
 						if (_parent_node) {
 							_parent_node->_undo_content_buffer(true, _parent_was_indented, _parent_had_content); }
 						throw;
