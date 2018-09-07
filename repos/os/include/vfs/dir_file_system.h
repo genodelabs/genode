@@ -634,8 +634,8 @@ class Vfs::Dir_file_system : public File_system
 					switch (r) {
 					case OPENDIR_OK:
 						break;
-					case OPEN_ERR_OUT_OF_RAM:
-					case OPEN_ERR_OUT_OF_CAPS:
+					case OPENDIR_ERR_OUT_OF_RAM:
+					case OPENDIR_ERR_OUT_OF_CAPS:
 						return r;
 					default:
 						continue;
