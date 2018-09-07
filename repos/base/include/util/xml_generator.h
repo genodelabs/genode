@@ -60,6 +60,9 @@ class Genode::Xml_generator
 					_used += len;
 				}
 
+				void undo_append(size_t const len) {
+					_used = len < _used ? _used - len : 0; }
+
 				/**
 				 * Append character
 				 */
@@ -162,6 +165,8 @@ class Genode::Xml_generator
 				unsigned const _indent_level;
 
 				Node * const _parent_node = 0;
+				bool   const _parent_was_indented;
+				bool   const _parent_had_content;
 
 				Out_buffer _out_buffer;
 
@@ -197,6 +202,20 @@ class Genode::Xml_generator
 					return _out_buffer.remainder();
 				}
 
+				void _undo_content_buffer(bool indented,
+				                          bool was_indented,
+				                          bool had_content)
+				{
+					_is_indented = was_indented;
+					_has_content = had_content;
+
+					if (indented)
+						_out_buffer.undo_append(1);
+
+					if (!_has_content)
+						_out_buffer.undo_append(1);
+				}
+
 				/**
 				 * Called by sub node
 				 */
@@ -217,7 +236,7 @@ class Genode::Xml_generator
 					dst.append(name);
 					dst.append("=\"");
 					dst.append(value, strlen(value));
-					dst.append("\"");
+					dst.append('\"');
 
 					_attr_offset += gap;
 				}
@@ -241,6 +260,8 @@ class Genode::Xml_generator
 				:
 					_indent_level(xml._curr_indent),
 					_parent_node(xml._curr_node),
+					_parent_was_indented(_parent_node ? _parent_node->is_indented() : false),
+					_parent_had_content (_parent_node ? _parent_node->has_content() : false),
 					_out_buffer(_parent_node ? _parent_node->_content_buffer(true)
 					                         : xml._out_buffer)
 				{
@@ -259,8 +280,10 @@ class Genode::Xml_generator
 						func();
 					} catch (...) {
 						/* reset and drop changes by not committing it */
-						xml._curr_node = _parent_node;
 						xml._curr_indent--;
+						xml._curr_node = _parent_node;
+						if (_parent_node) {
+							_parent_node->_undo_content_buffer(true, _parent_was_indented, _parent_had_content); }
 						throw;
 					}
 
@@ -286,6 +309,9 @@ class Genode::Xml_generator
 
 					_out_buffer.append('\0');
 				}
+
+				bool has_content() { return _has_content; }
+				bool is_indented() { return _is_indented; }
 		};
 
 		Out_buffer _out_buffer;
