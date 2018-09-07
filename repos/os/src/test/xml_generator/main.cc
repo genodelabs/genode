@@ -71,21 +71,89 @@ static size_t xml_with_exceptions(char *dst, size_t dst_len)
 		{
 			xml.node("level2", [&] ()
 			{
+				xml.attribute("attr1", 0x87654321ULL);
 				for (unsigned i=0; i < 3; i++) {
 					try {
 						xml.node("level3_exception", [&] ()
 						{
-							throw 10 + i;
+							xml.attribute("attr1", 1234);
+							xml.attribute("attr2", 4321);
+							xml.attribute("attr3", 2143);
+							xml.node("level4_exception", [&] ()
+							{
+								xml.attribute("attr1", "Hallo");
+								xml.node("level5_exception_1", [&] ()
+								{
+									xml.attribute("attr1", true);
+									xml.attribute("attr2", false);
+								});
+								xml.node("level5_exception_2", [&] () { });
+								throw 10 + i;
+							});
 						});
 					} catch (unsigned error) {
-						Genode::log("exception on level3 (expected exception value=", error, ")");
+						Genode::log("exception with value ", error, " on level 4 (expected error)");
 					}
 					xml.node("level3", [&] ()
 					{
-						xml.node("level4", [&] () { });
+						xml.attribute("attr1", "Hallo");
+						xml.attribute("attr2", 123000 + i);
+						xml.node("level4_1", [&] () {
+							xml.attribute("attr1", true);
+							xml.attribute("attr2", "Welt");
+						});
+						try {
+							xml.node("level4_exception", [&] ()
+							{
+								xml.attribute("attr1", "Welt");
+								xml.attribute("attr2", 2143);
+								xml.attribute("attr3", false);
+								xml.attribute("attr3", 0x12345678ULL);
+								xml.node("level5_exception_1", [&] () { });
+								xml.node("level5_exception_2", [&] () { });
+								xml.node("level5_exception_3", [&] ()
+								{
+									xml.node("level6_exception", [&] ()
+									{
+										xml.attribute("attr1", 0x12345678ULL);
+										xml.node("level7_exception_3", [&] ()
+										{
+											xml.node("level8_exception_1", [&] () { });
+											xml.node("level8_exception_2", [&] () { });
+											xml.node("level8_exception_3", [&] () { });
+											xml.node("level8_exception_4", [&] ()
+											{
+												throw 20 + i;
+											});
+										});
+									});
+								});
+							});
+						} catch (unsigned error) {
+							Genode::log("exception with value ", error, " on level 8 (expected error)");
+						}
+						xml.node("level4_2", [&] () { });
+						try {
+							xml.node("level4_exception", [&] ()
+							{
+								xml.attribute("attr1", "Welt");
+								xml.attribute("attr2", 2143);
+								throw 30 + i;
+							});
+						} catch (unsigned error) {
+							Genode::log("exception with value ", error, " on level 4 (expected error)");
+						}
 					});
 				}
 			});
+			try {
+				xml.node("level2_exception", [&] ()
+				{
+					throw 40;
+				});
+			} catch (int error) {
+				Genode::log("exception with value ", error, " on level 2 (expected error)");
+			}
 		});
 	});
 	return xml.used();
@@ -105,7 +173,7 @@ void Component::construct(Genode::Env &env)
 	 * corresponding run script).
 	 */
 	size_t used = fill_buffer_with_xml(dst, sizeof(dst));
-	log("result:\n\n", Cstring(dst), "\nused ", used, " bytes");
+	log("\nused ", used, " bytes, result:\n\n", Cstring(dst));
 
 	/*
 	 * Test buffer overflow
