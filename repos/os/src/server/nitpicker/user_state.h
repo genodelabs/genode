@@ -193,7 +193,12 @@ class Nitpicker::User_state
 		/**
 		 * Discard all references to specified view owner
 		 */
-		void forget(View_owner const &);
+		struct Handle_forget_result
+		{
+			bool const hover_changed;
+			bool const focus_changed;
+		};
+		Handle_forget_result forget(View_owner const &);
 
 		void report_keystate(Xml_generator &) const;
 		void report_pointer_position(Xml_generator &) const;

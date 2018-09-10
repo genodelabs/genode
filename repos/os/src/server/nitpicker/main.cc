@@ -80,6 +80,7 @@ class Nitpicker::Root : public Root_component<Session_component>,
 		View_component               &_builtin_background;
 		Framebuffer::Session         &_framebuffer;
 		Reporter                     &_focus_reporter;
+		Reporter                     &_hover_reporter;
 		Focus_updater                &_focus_updater;
 
 	protected:
@@ -132,9 +133,21 @@ class Nitpicker::Root : public Root_component<Session_component>,
 			_global_keys.apply_config(_config.xml(), _session_list);
 
 			session->destroy_all_views();
-			_user_state.forget(*session);
+			User_state::Handle_forget_result result = _user_state.forget(*session);
 
 			Genode::destroy(md_alloc(), session);
+
+			/* report hover changes */
+			if (_hover_reporter.enabled() && result.hover_changed) {
+				Reporter::Xml_generator xml(_hover_reporter, [&] () {
+					_user_state.report_hovered_view_owner(xml, false); });
+			}
+
+			/* report focus changes */
+			if (_focus_reporter.enabled() && result.focus_changed) {
+				Reporter::Xml_generator xml(_focus_reporter, [&] () {
+					_user_state.report_focused_view_owner(xml, false); });
+			}
 		}
 
 	public:
@@ -148,7 +161,7 @@ class Nitpicker::Root : public Root_component<Session_component>,
 		     User_state &user_state, View_component &pointer_origin,
 		     View_component &builtin_background, Allocator &md_alloc,
 		     Framebuffer::Session &framebuffer, Reporter &focus_reporter,
-		     Focus_updater &focus_updater)
+		     Reporter &hover_reporter, Focus_updater &focus_updater)
 		:
 			Root_component<Session_component>(&env.ep().rpc_ep(), &md_alloc),
 			_env(env), _config(config), _session_list(session_list),
@@ -157,7 +170,8 @@ class Nitpicker::Root : public Root_component<Session_component>,
 			_pointer_origin(pointer_origin),
 			_builtin_background(builtin_background),
 			_framebuffer(framebuffer),
-			_focus_reporter(focus_reporter), _focus_updater(focus_updater)
+			_focus_reporter(focus_reporter), _hover_reporter(hover_reporter),
+			_focus_updater(focus_updater)
 		{ }
 
 
@@ -291,7 +305,7 @@ struct Nitpicker::Main : Focus_updater
 	Root<PT> _root { _env, _config_rom, _session_list, *_domain_registry,
 	                 _global_keys, _view_stack, _font, _user_state, _pointer_origin,
 	                 _builtin_background, _sliced_heap, _framebuffer,
-	                 _focus_reporter, *this };
+	                 _focus_reporter, _hover_reporter, *this };
 
 	/**
 	 * Focus_updater interface
