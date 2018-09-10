@@ -258,7 +258,7 @@ append config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 
-	<default caps="100"/>
+	<default caps="200"/>
 
 	} [platform_drv_config] {
 
@@ -273,7 +273,7 @@ append config {
 		<provides> <service name="Nic"/> </provides>
 	</start>
 
-	<start name="nic_router" caps="200" priority="-1">
+	<start name="nic_router" caps="400" priority="-1">
 		<resource name="RAM" quantum="10M"/>
 		<provides><service name="Nic"/></provides>
 		<config verbose="no"
