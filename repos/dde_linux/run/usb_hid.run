@@ -139,7 +139,7 @@ append config {
 		</route>
 	</start>
 
-	<start name="usb_hid_drv" caps="120">
+	<start name="usb_hid_drv" caps="140">
 		<resource name="RAM" quantum="11M"/>
 		<provides><service name="Input"/></provides>
 		<config use_report="yes" capslock_led="rom" numlock_led="rom" scrlock_led="rom"/>

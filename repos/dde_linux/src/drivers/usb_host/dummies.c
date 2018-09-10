@@ -931,11 +931,6 @@ void *idr_get_next(struct idr *idp, int *nextid)
 	return NULL;
 }
 
-void idr_remove(struct idr *idp, int id)
-{
-	TRACE_AND_STOP;
-}
-
 unsigned int jiffies_to_usecs(const unsigned long j)
 {
 	TRACE_AND_STOP;
@@ -985,7 +980,7 @@ void pci_clear_mwi(struct pci_dev *dev)
 
 void pci_free_irq_vectors(struct pci_dev *dev)
 {
-	TRACE_AND_STOP;
+	TRACE;
 }
 
 int pci_reset_function_locked(struct pci_dev *dev)

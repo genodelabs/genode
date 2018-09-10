@@ -784,6 +784,12 @@ int idr_alloc(struct idr *idp, void *ptr, int start, int end, gfp_t gfp_mask)
 }
 
 
+void idr_remove(struct idr *idp, int id)
+{
+	if (id > 0) id_allocator.free(id);
+}
+
+
 int object_is_on_stack(const void *obj)
 {
 	Genode::Thread::Stack_info info = Genode::Thread::mystack();
