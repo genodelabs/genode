@@ -1092,17 +1092,13 @@ class Lwip::Tcp_socket_dir final :
 		 *
 		 * Triggered by error callback, usually
 		 * just by an aborted connection.
+		 * The corresponding pcb is already freed
+		 * when this callback is called!
 		 */
 		void error()
 		{
 			state = CLOSED;
-
-			/* the PCB is expired now */
-			if (_pcb) {
-				tcp_arg(_pcb, NULL);
-				tcp_close(_pcb);
-				_pcb = NULL;
-			}
+			_pcb = NULL;
 
 			/* churn the application */
 			handle_io(~0U);

@@ -61,6 +61,7 @@ typedef uintptr_t mem_ptr_t;
 #ifndef LWIP_NO_INTTYPES_H
 #define LWIP_NO_INTTYPES_H 1
 /* Define (sn)printf formatters */
+#define X8_F "02x"
 #define U16_F "u" // we don't have hu
 #define S16_F "d" // we don't have hd
 #define X16_F "x" // we don't have hx
