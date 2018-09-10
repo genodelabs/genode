@@ -278,8 +278,12 @@ struct Noux::Main
 		_destruct_queue.flush();
 
 		/* let noux exit if the init process exited */
-		if (!init_child)
+		if (!init_child) {
+			_channel_0 = Shared_pointer<Io_channel>();
+			_channel_1 = Shared_pointer<Io_channel>();
+			_channel_2 = Shared_pointer<Io_channel>();
 			_env.parent().exit(exit_value);
+		}
 	}
 
 	struct Kill_broadcaster_impl: Kill_broadcaster
