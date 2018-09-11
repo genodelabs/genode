@@ -16,6 +16,7 @@
 
 /* libc includes */
 #include <stdlib.h> /* 'exit'   */
+#include <pthread.h>
 
 /* Qt includes */
 #include <qpluginwidget/qpluginwidget.h>
@@ -26,6 +27,19 @@ extern "C" int main(int argc, char const **argv);
 extern void initialize_qt_core(Genode::Env &);
 extern void initialize_qt_gui(Genode::Env &);
 
+/*
+ * The main function is called from a dedicated thread, because it sometimes
+ * blocks on a pthread condition variable, which prevents Genode signal
+ * processing with the current implementation.
+ */
+void *arora_main(void *)
+{
+	int argc = 1;
+	char const *argv[] = { "arora", 0 };
+
+	exit(main(argc, argv));
+}
+
 void Libc::Component::construct(Libc::Env &env)
 {
 	Libc::with_libc([&] {
@@ -34,9 +48,7 @@ void Libc::Component::construct(Libc::Env &env)
 		initialize_qt_gui(env);
 		QPluginWidget::env(env);
 
-		int argc = 1;
-		char const *argv[] = { "arora", 0 };
-
-		exit(main(argc, argv));
+		pthread_t main_thread;
+		pthread_create(&main_thread, nullptr, arora_main, nullptr);
 	});
 }
