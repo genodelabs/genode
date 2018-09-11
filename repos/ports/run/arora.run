@@ -96,6 +96,18 @@ append config {
 		</route>
 	</start>
 
+	<start name="vfs" caps="250">
+		<resource name="RAM" quantum="32M"/>
+		<provides> <service name="File_system"/> </provides>
+		<config>
+			<vfs>
+				<dir name="socket"> <lxip dhcp="yes"/> </dir>
+			</vfs>
+			<default-policy writeable="yes" root="/"/>
+		</config>
+	</start>
+
+
 	<start name="arora" caps="2000">
 		<resource name="RAM" quantum="2G"/>
 		<config clipboard="yes">
@@ -105,7 +117,7 @@ append config {
 					<jitterentropy name="random"/>
 					<inline name="rtc">2018-01-01 00:01</inline> 
 				</dir>
-				<dir name="socket"> <lxip dhcp="yes"/> </dir>
+				<fs/>
 				<tar name="qt5_dejavusans.tar"/>
 			</vfs>
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" socket="/socket"/>
