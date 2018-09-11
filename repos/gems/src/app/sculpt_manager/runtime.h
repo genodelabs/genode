@@ -33,6 +33,10 @@ namespace Sculpt {
 		 * Return true if specified child is present in the runtime subsystem
 		 */
 		virtual bool present_in_runtime(Start_name const &) const = 0;
+
+		virtual bool abandoned_by_user(Start_name const &) const = 0;
+
+		virtual void gen_launched_deploy_start_nodes(Xml_generator &) const = 0;
 	};
 
 	void gen_chroot_start_content(Xml_generator &, Start_name const &,
@@ -63,7 +67,7 @@ namespace Sculpt {
 	void gen_nic_drv_start_content(Xml_generator &);
 	void gen_wifi_drv_start_content(Xml_generator &);
 
-	void gen_nic_router_start_content(Xml_generator &, Nic_target const &);
+	void gen_nic_router_start_content(Xml_generator &, Nic_target const &, bool, bool);
 	void gen_nic_router_uplink(Xml_generator &, char const *);
 
 	struct Prepare_version { unsigned value; };

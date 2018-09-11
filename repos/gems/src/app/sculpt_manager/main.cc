@@ -25,6 +25,7 @@
 #include <model/runtime_state.h>
 #include <model/child_exit_state.h>
 #include <view/download_status.h>
+#include <view/popup_dialog.h>
 #include <gui.h>
 #include <nitpicker.h>
 #include <keyboard_focus.h>
@@ -39,7 +40,9 @@ namespace Sculpt { struct Main; }
 struct Sculpt::Main : Input_event_handler,
                       Dialog::Generator,
                       Runtime_config_generator,
-                      Storage::Target_user
+                      Storage::Target_user,
+                      Graph::Action,
+                      Popup_dialog::Action
 {
 	Env &_env;
 
@@ -175,8 +178,49 @@ struct Sculpt::Main : Input_event_handler,
 	                                   && _network.ready()
 	                                   && _deploy.update_needed(); };
 
-	Deploy _deploy { _env, _heap, _runtime_state, *this, *this };
 
+	/************
+	 ** Deploy **
+	 ************/
+
+	Attached_rom_dataspace _launcher_listing_rom {
+		_env, "report -> /runtime/launcher_query/listing" };
+
+	Launchers _launchers { _heap };
+
+	Signal_handler<Main> _launcher_listing_handler {
+		_env.ep(), *this, &Main::_handle_launcher_listing };
+
+	void _handle_launcher_listing()
+	{
+		_launcher_listing_rom.update();
+
+		Xml_node listing = _launcher_listing_rom.xml();
+		if (listing.has_sub_node("dir")) {
+			Xml_node dir = listing.sub_node("dir");
+
+			/* let 'update_from_xml' iterate over <file> nodes */
+			_launchers.update_from_xml(dir);
+		}
+
+		_popup_dialog.generate();
+		_deploy._handle_managed_deploy();
+	}
+
+
+	Deploy _deploy { _env, _heap, _runtime_state, *this, *this, _launcher_listing_rom };
+
+	Attached_rom_dataspace _manual_deploy_rom { _env, "config -> deploy" };
+
+	void _handle_manual_deploy()
+	{
+		_runtime_state.reset_abandoned_and_launched_children();
+		_manual_deploy_rom.update();
+		_deploy.update_managed_deploy_config(_manual_deploy_rom.xml());
+	}
+
+	Signal_handler<Main> _manual_deploy_handler {
+		_env.ep(), *this, &Main::_handle_manual_deploy };
 
 
 	/************
@@ -298,11 +342,29 @@ struct Sculpt::Main : Input_event_handler,
 			if (_hovered_dialog == Hovered::NETWORK) _network.dialog.click(_network);
 			if (_hovered_dialog == Hovered::RUNTIME) _network.dialog.click(_network);
 
-			if (_graph.hovered()) _graph.click();
+			/* remove popup dialog when clicking somewhere outside */
+			if (!_popup_dialog.hovered() && _popup.state == Popup::VISIBLE
+			 && !_graph.add_button_hovered()) {
+
+				_popup.state = Popup::OFF;
+
+				/* de-select '+' button */
+				_graph._gen_graph_dialog();
+
+				/* remove popup window from window layout */
+				_handle_window_layout();
+			}
+
+			if (_graph.hovered()) _graph.click(*this);
+
+			if (_popup_dialog.hovered()) _popup_dialog.click(*this);
 		}
 
-		if (ev.key_release(Input::BTN_LEFT))
-			_storage.dialog.clack(_storage);
+		if (ev.key_release(Input::BTN_LEFT)) {
+			if (_hovered_dialog == Hovered::STORAGE) _storage.dialog.clack(_storage);
+
+			if (_graph.hovered()) _graph.clack(*this);
+		}
 
 		if (_keyboard_focus.target == Keyboard_focus::WPA_PASSPHRASE)
 			ev.handle_press([&] (Input::Keycode, Codepoint code) {
@@ -311,6 +373,49 @@ struct Sculpt::Main : Input_event_handler,
 		if (ev.press())
 			_keyboard_focus.update();
 	}
+
+	/*
+	 * Graph::Action interface
+	 */
+	void remove_deployed_component(Start_name const &name) override
+	{
+		_runtime_state.abandon(name);
+
+		/* update config/managed/deploy with the component 'name' removed */
+		_deploy.update_managed_deploy_config(_manual_deploy_rom.xml());
+	}
+
+	/*
+	 * Graph::Action interface
+	 */
+	void toggle_launcher_selector(Rect anchor) override
+	{
+		_popup_dialog.generate();
+		_popup.anchor = anchor;
+		_popup.toggle();
+		_graph._gen_graph_dialog();
+		_handle_window_layout();
+	}
+
+	/*
+	 * Popup_dialog::Action interface
+	 */
+	void launch_global(Path const &launcher) override
+	{
+		_runtime_state.launch(launcher, launcher);
+
+		/* close popup menu */
+		_popup.state = Popup::OFF;
+		_handle_window_layout();
+
+		/* reset state of the '+' button */
+		_graph._gen_graph_dialog();
+
+		/* trigger change of the deployment */
+		_deploy.update_managed_deploy_config(_manual_deploy_rom.xml());
+	}
+
+	Popup_dialog _popup_dialog { _env, _launchers, _runtime_state };
 
 	Managed_config<Main> _fb_drv_config {
 		_env, "config", "fb_drv", *this, &Main::_handle_fb_drv_config };
@@ -360,6 +465,14 @@ struct Sculpt::Main : Input_event_handler,
 
 	void _handle_window_layout();
 
+	template <size_t N, typename FN>
+	void _with_window(Xml_node window_list, String<N> const &match, FN const &fn)
+	{
+		window_list.for_each_sub_node("window", [&] (Xml_node win) {
+			if (win.attribute_value("label", String<N>()) == match)
+				fn(win); });
+	}
+
 	Attached_rom_dataspace _window_list { _env, "window_list" };
 
 	Signal_handler<Main> _window_list_handler {
@@ -379,7 +492,10 @@ struct Sculpt::Main : Input_event_handler,
 	 ** Runtime graph **
 	 *******************/
 
-	Graph _graph { _env, _runtime_state, _storage._sculpt_partition };
+	Popup _popup { };
+
+	Graph _graph { _env, _runtime_state, _storage._sculpt_partition,
+	               _popup.state, _deploy._children };
 
 	Child_state _runtime_view_state {
 		"runtime_view", Ram_quota{8*1024*1024}, Cap_quota{200} };
@@ -387,18 +503,20 @@ struct Sculpt::Main : Input_event_handler,
 
 	Main(Env &env) : _env(env)
 	{
+		_manual_deploy_rom.sigh(_manual_deploy_handler);
 		_runtime_state_rom.sigh(_runtime_state_handler);
 		_nitpicker_displays.sigh(_nitpicker_displays_handler);
 
 		/*
 		 * Subscribe to reports
 		 */
-		_update_state_rom .sigh(_update_state_handler);
-		_nitpicker_hover  .sigh(_nitpicker_hover_handler);
-		_hover_rom        .sigh(_hover_handler);
-		_pci_devices      .sigh(_pci_devices_handler);
-		_window_list      .sigh(_window_list_handler);
-		_decorator_margins.sigh(_decorator_margins_handler);
+		_update_state_rom    .sigh(_update_state_handler);
+		_nitpicker_hover     .sigh(_nitpicker_hover_handler);
+		_hover_rom           .sigh(_hover_handler);
+		_pci_devices         .sigh(_pci_devices_handler);
+		_window_list         .sigh(_window_list_handler);
+		_decorator_margins   .sigh(_decorator_margins_handler);
+		_launcher_listing_rom.sigh(_launcher_listing_handler);
 
 		/*
 		 * Generate initial configurations
@@ -411,6 +529,11 @@ struct Sculpt::Main : Input_event_handler,
 		_storage.handle_storage_devices_update();
 		_deploy.handle_deploy();
 		_handle_pci_devices();
+
+		/*
+		 * Generate initial config/managed/deploy configuration
+		 */
+		_handle_manual_deploy();
 
 		generate_runtime_config();
 		generate_dialog();
@@ -449,10 +572,10 @@ void Sculpt::Main::_handle_window_layout()
 
 	Framebuffer::Mode const mode = _nitpicker->mode();
 
-	typedef Nitpicker::Rect  Rect;
-	typedef Nitpicker::Area  Area;
-	typedef Nitpicker::Point Point;
+	/* area preserved for the menu */
+	Rect const menu(Point(0, 0), Area(_gui.menu_width, mode.height()));
 
+	/* available space on the right of the menu */
 	Rect avail(Point(_gui.menu_width, 0),
 	           Point(mode.width() - 1, mode.height() - 1));
 
@@ -490,43 +613,68 @@ void Sculpt::Main::_handle_window_layout()
 	_window_list.update();
 	_window_layout.generate([&] (Xml_generator &xml) {
 
-		_window_list.xml().for_each_sub_node("window", [&] (Xml_node win) {
+		Xml_node const window_list = _window_list.xml();
 
-			Label const label = win.attribute_value("label", Label());
-
-			/**
-			 * Generate window with 'rect' geometry if label matches 'match'
-			 */
-			auto gen_matching_window = [&] (Label const &match, Rect rect) {
-				if (label == match && rect.valid()) {
-					xml.node("window", [&] () {
-						xml.attribute("id", win.attribute_value("id", 0UL));
-						xml.attribute("xpos",   rect.x1());
-						xml.attribute("ypos",   rect.y1());
-						xml.attribute("width",  rect.w());
-						xml.attribute("height", rect.h());
-					});
-				}
-			};
-
-			gen_matching_window("log", Rect(log_p1, log_p2));
-
-			if (label == runtime_view_label) {
-
-				/* center runtime view within the available main (inspect) area */
-				unsigned const inspect_w = inspect_p2.x() - inspect_p1.x(),
-				               inspect_h = inspect_p2.y() - inspect_p1.y();
-
-				Area const size(min(inspect_w, win.attribute_value("width",  0UL)),
-				                min(inspect_h, win.attribute_value("height", 0UL)));
-
-				Point const pos = Rect(inspect_p1, inspect_p2).center(size);
-
-				gen_matching_window(runtime_view_label, Rect(pos, size));
+		auto gen_window = [&] (Xml_node win, Rect rect) {
+			if (rect.valid()) {
+				xml.node("window", [&] () {
+					xml.attribute("id", win.attribute_value("id", 0UL));
+					xml.attribute("xpos",   rect.x1());
+					xml.attribute("ypos",   rect.y1());
+					xml.attribute("width",  rect.w());
+					xml.attribute("height", rect.h());
+				});
 			}
+		};
 
-			if (_last_clicked == Hovered::STORAGE)
-				gen_matching_window(inspect_label, Rect(inspect_p1, inspect_p2));
+		auto win_size = [&] (Xml_node win) {
+
+			unsigned const inspect_w = inspect_p2.x() - inspect_p1.x(),
+			               inspect_h = inspect_p2.y() - inspect_p1.y();
+
+			return Area(min(inspect_w, win.attribute_value("width",  0UL)),
+			            min(inspect_h, win.attribute_value("height", 0UL)));
+		};
+
+		_with_window(window_list, Label("gui -> menu -> "), [&] (Xml_node win) {
+			gen_window(win, menu); });
+
+		/* calculate centered runtime view within the available main (inspect) area */
+		Rect runtime_view;
+		_with_window(window_list, runtime_view_label, [&] (Xml_node win) {
+			Area  const size = win_size(win);
+			Point const pos  = Rect(inspect_p1, inspect_p2).center(size);
+			runtime_view = Rect(pos, size);
+		});
+
+		if (_popup.state == Popup::VISIBLE) {
+			_with_window(window_list, Label("gui -> popup -> "), [&] (Xml_node win) {
+				Area const size = win_size(win);
+
+				int const anchor_y_center = (_popup.anchor.y1() + _popup.anchor.y2())/2;
+
+				int const x = runtime_view.x1() + _popup.anchor.x2();
+				int const y = max(0, runtime_view.y1() + anchor_y_center - (int)size.h()/2);
+
+				gen_window(win, Rect(Point(x, y), size));
+			});
+		}
+
+		_with_window(window_list, Label("log"), [&] (Xml_node win) {
+			gen_window(win, Rect(log_p1, log_p2)); });
+
+		if (_last_clicked == Hovered::STORAGE) {
+			_with_window(window_list, inspect_label, [&] (Xml_node win) {
+				gen_window(win, Rect(inspect_p1, inspect_p2)); });
+		}
+
+		_with_window(window_list, runtime_view_label, [&] (Xml_node win) {
+
+			/* center runtime view within the available main (inspect) area */
+			Area  const size = win_size(win);
+			Point const pos  = Rect(inspect_p1, inspect_p2).center(size);
+
+			gen_window(win, Rect(pos, size));
 		});
 	});
 

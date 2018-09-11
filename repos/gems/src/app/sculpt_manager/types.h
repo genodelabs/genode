@@ -43,6 +43,8 @@ namespace Sculpt {
 	typedef String<64>  Label;
 
 	typedef Nitpicker::Point Point;
+	typedef Nitpicker::Rect  Rect;
+	typedef Nitpicker::Area  Area;
 
 	enum Writeable { WRITEABLE, READ_ONLY };
 }

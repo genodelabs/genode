@@ -81,14 +81,14 @@ void Sculpt::Deploy::gen_child_diagnostics(Xml_generator &xml) const
 
 void Sculpt::Deploy::handle_deploy()
 {
-	Xml_node const manual_deploy = _manual_deploy_rom.xml();
+	Xml_node const managed_deploy = _managed_deploy_rom.xml();
 
 	/* determine CPU architecture of deployment */
-	_arch = manual_deploy.attribute_value("arch", Arch());
+	_arch = managed_deploy.attribute_value("arch", Arch());
 	if (!_arch.valid())
-		warning("manual deploy config lacks 'arch' attribute");
+		warning("managed deploy config lacks 'arch' attribute");
 
-	try { _children.apply_config(manual_deploy); }
+	try { _children.apply_config(managed_deploy); }
 	catch (...) {
 		error("spurious exception during deploy update (apply_config)"); }
 
@@ -172,16 +172,16 @@ void Sculpt::Deploy::gen_runtime_start_nodes(Xml_generator &xml) const
 	xml.node("start", [&] () {
 		gen_depot_query_start_content(xml); });
 
-	Xml_node const manual_deploy = _manual_deploy_rom.xml();
+	Xml_node const managed_deploy = _managed_deploy_rom.xml();
 
 	/* insert content of '<static>' node as is */
-	if (manual_deploy.has_sub_node("static")) {
-		Xml_node static_config = manual_deploy.sub_node("static");
+	if (managed_deploy.has_sub_node("static")) {
+		Xml_node static_config = managed_deploy.sub_node("static");
 		xml.append(static_config.content_base(), static_config.content_size());
 	}
 
 	/* generate start nodes for deployed packages */
-	if (manual_deploy.has_sub_node("common_routes"))
-		_children.gen_start_nodes(xml, manual_deploy.sub_node("common_routes"),
+	if (managed_deploy.has_sub_node("common_routes"))
+		_children.gen_start_nodes(xml, managed_deploy.sub_node("common_routes"),
 		                          "depot_rom", "dynamic_depot_rom");
 }

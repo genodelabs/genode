@@ -49,10 +49,36 @@ class Sculpt::Runtime_state : public Runtime_info
 
 			Info info { false, 0, 0, 0, 0 };
 
+			bool abandoned_by_user = false;
+
 			Child(Start_name const &name) : name(name) { }
 		};
 
 		List_model<Child> _children { };
+
+		/**
+		 * Child present in initial deploy config but interactively removed
+		 */
+		struct Abandoned_child : Interface
+		{
+			Start_name const name;
+			Abandoned_child(Start_name const &name) : name(name) { };
+		};
+
+		Registry<Registered<Abandoned_child> > _abandoned_children { };
+
+		/**
+		 * Child that was interactively launched
+		 */
+		struct Launched_child : Interface
+		{
+			Start_name const name;
+			Path       const launcher;
+			Launched_child(Start_name const &name, Path const &launcher)
+			: name(name), launcher(launcher) { };
+		};
+
+		Registry<Registered<Launched_child> > _launched_children { };
 
 		struct Update_policy : List_model<Child>::Update_policy
 		{
@@ -60,7 +86,10 @@ class Sculpt::Runtime_state : public Runtime_info
 
 			Update_policy(Allocator &alloc) : _alloc(alloc) { }
 
-			void destroy_element(Child &elem) { destroy(_alloc, &elem); }
+			void destroy_element(Child &elem)
+			{
+				destroy(_alloc, &elem);
+			}
 
 			Child &create_element(Xml_node node)
 			{
@@ -95,6 +124,8 @@ class Sculpt::Runtime_state : public Runtime_info
 
 		Runtime_state(Allocator &alloc) : _alloc(alloc) { }
 
+		~Runtime_state() { reset_abandoned_and_launched_children(); }
+
 		void update_from_state_report(Xml_node state)
 		{
 			Update_policy policy(_alloc);
@@ -113,6 +144,29 @@ class Sculpt::Runtime_state : public Runtime_info
 			return result;
 		}
 
+		/**
+		 * Runtime_info interface
+		 */
+		bool abandoned_by_user(Start_name const &name) const override
+		{
+			bool result = false;
+			_abandoned_children.for_each([&] (Abandoned_child const &child) {
+				if (!result && child.name == name)
+					result = true; });
+			return result;
+		}
+
+		/**
+		 * Runtime_info interface
+		 */
+		void gen_launched_deploy_start_nodes(Xml_generator &xml) const override
+		{
+			_launched_children.for_each([&] (Launched_child const &child) {
+				gen_named_node(xml, "start", child.name, [&] () {
+					if (child.name != child.launcher)
+						xml.attribute("launcher", child.launcher); }); });
+		}
+
 		Info info(Start_name const &name) const
 		{
 			Info result { .selected = false, 0, 0, 0, 0 };
@@ -122,10 +176,56 @@ class Sculpt::Runtime_state : public Runtime_info
 			return result;
 		}
 
+		Start_name selected() const
+		{
+			Start_name result;
+			_children.for_each([&] (Child const &child) {
+				if (child.info.selected)
+					result = child.name; });
+			return result;
+		}
+
 		void toggle_selection(Start_name const &name)
 		{
 			_children.for_each([&] (Child &child) {
 				child.info.selected = (child.name == name) && !child.info.selected; });
+		}
+
+		void abandon(Start_name const &name)
+		{
+			/*
+			 * If child was launched interactively, remove corresponding
+			 * entry from '_launched_children'.
+			 */
+			bool was_interactively_launched = false;
+			_launched_children.for_each([&] (Launched_child &child) {
+				if (child.name == name) {
+					was_interactively_launched = true;
+					destroy(_alloc, &child);
+				}
+			});
+
+			if (was_interactively_launched)
+				return;
+
+			/*
+			 * Child was present at initial deploy config, mark as abandoned
+			 */
+			new (_alloc) Registered<Abandoned_child>(_abandoned_children, name);
+		}
+
+		void launch(Start_name const &name, Path const &launcher)
+		{
+			new (_alloc) Registered<Launched_child>(_launched_children, name, launcher);
+		}
+
+		void reset_abandoned_and_launched_children()
+		{
+			_abandoned_children.for_each([&] (Abandoned_child &child) {
+				destroy(_alloc, &child); });
+
+			_launched_children.for_each([&] (Launched_child &child) {
+				destroy(_alloc, &child); });
 		}
 };
 

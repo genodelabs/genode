@@ -23,7 +23,8 @@
 
 void Sculpt::Gui::_gen_menu_view_start_content(Xml_generator &xml,
                                                Label const &label,
-                                               Point pos) const
+                                               Point pos,
+                                               unsigned width) const
 {
 	xml.attribute("version", version.value);
 
@@ -34,7 +35,8 @@ void Sculpt::Gui::_gen_menu_view_start_content(Xml_generator &xml,
 	xml.node("config", [&] () {
 		xml.attribute("xpos", pos.x());
 		xml.attribute("ypos", pos.y());
-		xml.attribute("width", menu_width);
+		if (width)
+			xml.attribute("width", width);
 		xml.node("libc", [&] () { xml.attribute("stderr", "/dev/log"); });
 		xml.node("report", [&] () { xml.attribute("hover", "yes"); });
 		xml.node("vfs", [&] () {
@@ -104,6 +106,9 @@ void Sculpt::Gui::_generate_config(Xml_generator &xml) const
 	 });
 
 	xml.node("start", [&] () {
-		_gen_menu_view_start_content(xml, "menu", Point(0, 0)); });
+		_gen_menu_view_start_content(xml, "menu", Point(0, 0), menu_width); });
+
+	xml.node("start", [&] () {
+		_gen_menu_view_start_content(xml, "popup", Point(0, 0), 0); });
 }
 

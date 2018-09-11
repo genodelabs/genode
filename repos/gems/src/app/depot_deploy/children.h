@@ -140,6 +140,15 @@ class Depot_deploy::Children
 				result |= child.incomplete(); });
 			return result;
 		}
+
+		bool exists(Child::Name const &name) const
+		{
+			bool result = false;
+			_children.for_each([&] (Child const &child) {
+				if (child.name() == name)
+					result = true; });
+			return result;
+		}
 };
 
 #endif /* _CHILDREN_H_ */

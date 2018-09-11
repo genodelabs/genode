@@ -22,6 +22,7 @@
 #include <children.h>
 
 /* local includes */
+#include <model/launchers.h>
 #include <types.h>
 #include <runtime.h>
 #include <managed_config.h>
@@ -42,6 +43,8 @@ struct Sculpt::Deploy
 
 	Runtime_config_generator &_runtime_config_generator;
 
+	Attached_rom_dataspace const &_launcher_listing_rom;
+
 	typedef String<16> Arch;
 	Arch _arch { };
 
@@ -53,13 +56,55 @@ struct Sculpt::Deploy
 	Child_state uncached_depot_rom_state {
 		"dynamic_depot_rom", Ram_quota{8*1024*1024}, Cap_quota{200} };
 
-	Attached_rom_dataspace _manual_deploy_rom { _env, "config -> deploy" };
-
-	Attached_rom_dataspace _launcher_listing_rom { _env, "report -> /runtime/launcher_query/listing" };
-
 	Attached_rom_dataspace _blueprint_rom { _env, "report -> runtime/depot_query/blueprint" };
 
 	Expanding_reporter _depot_query_reporter { _env, "query", "depot_query"};
+
+	/*
+	 * Report written to '/config/managed/deploy'
+	 *
+	 * This report takes the manually maintained '/config/deploy' and the
+	 * interactive state as input.
+	 */
+	Expanding_reporter _managed_deploy_config { _env, "config", "deploy_config" };
+
+	/* config obtained from '/config/managed/deploy' */
+	Attached_rom_dataspace _managed_deploy_rom { _env, "config -> managed/deploy" };
+
+	void update_managed_deploy_config(Xml_node deploy)
+	{
+		_managed_deploy_config.generate([&] (Xml_generator &xml) {
+
+			Arch const arch = deploy.attribute_value("arch", Arch());
+			if (arch.valid())
+				xml.attribute("arch", arch);
+
+			auto append_xml_node = [&] (Xml_node node) {
+				xml.append("\t");
+				xml.append(node.addr(), node.size());
+				xml.append("\n");
+			};
+
+			/* copy <common_routes> from manual deploy config */
+			deploy.for_each_sub_node("common_routes", [&] (Xml_node node) {
+				append_xml_node(node); });
+
+			/*
+			 * Copy the <start> node from manual deploy config, unless the
+			 * component was interactively killed by the user.
+			 */
+			deploy.for_each_sub_node("start", [&] (Xml_node node) {
+				Start_name const name = node.attribute_value("name", Start_name());
+				if (!_runtime_info.abandoned_by_user(name))
+					append_xml_node(node);
+			});
+
+			/*
+			 * Add start nodes for interactively launched components.
+			 */
+			_runtime_info.gen_launched_deploy_start_nodes(xml);
+		});
+	}
 
 	bool _manual_installation_scheduled = false;
 
@@ -81,10 +126,9 @@ struct Sculpt::Deploy
 
 	void handle_deploy();
 
-	void _handle_manual_deploy()
+	void _handle_managed_deploy()
 	{
-		_manual_deploy_rom.update();
-		_launcher_listing_rom.update();
+		_managed_deploy_rom.update();
 		_query_version.value++;
 		handle_deploy();
 	}
@@ -135,11 +179,8 @@ struct Sculpt::Deploy
 
 	void gen_runtime_start_nodes(Xml_generator &) const;
 
-	Signal_handler<Deploy> _manual_deploy_handler {
-		_env.ep(), *this, &Deploy::_handle_manual_deploy };
-
-	Signal_handler<Deploy> _launcher_listing_handler {
-		_env.ep(), *this, &Deploy::_handle_manual_deploy };
+	Signal_handler<Deploy> _managed_deploy_handler {
+		_env.ep(), *this, &Deploy::_handle_managed_deploy };
 
 	Signal_handler<Deploy> _blueprint_handler {
 		_env.ep(), *this, &Deploy::_handle_blueprint };
@@ -160,14 +201,15 @@ struct Sculpt::Deploy
 
 	Deploy(Env &env, Allocator &alloc, Runtime_info const &runtime_info,
 	       Dialog::Generator &dialog_generator,
-	       Runtime_config_generator &runtime_config_generator)
+	       Runtime_config_generator &runtime_config_generator,
+	       Attached_rom_dataspace const &launcher_listing_rom)
 	:
 		_env(env), _alloc(alloc), _runtime_info(runtime_info),
 		_dialog_generator(dialog_generator),
-		_runtime_config_generator(runtime_config_generator)
+		_runtime_config_generator(runtime_config_generator),
+		_launcher_listing_rom(launcher_listing_rom)
 	{
-		_manual_deploy_rom.sigh(_manual_deploy_handler);
-		_launcher_listing_rom.sigh(_launcher_listing_handler);
+		_managed_deploy_rom.sigh(_managed_deploy_handler);
 		_blueprint_rom.sigh(_blueprint_handler);
 	}
 };

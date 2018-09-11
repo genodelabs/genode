@@ -41,7 +41,8 @@ struct Sculpt::Gui
 
 	unsigned menu_width = 0;
 
-	void _gen_menu_view_start_content(Xml_generator &, Label const &, Point) const;
+	void _gen_menu_view_start_content(Xml_generator &, Label const &, Point,
+	                                  unsigned) const;
 
 	void _generate_config(Xml_generator &) const;
 
