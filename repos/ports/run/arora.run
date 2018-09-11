@@ -2,22 +2,22 @@ source ${genode_dir}/repos/libports/run/qt5_common.inc
 
 set feature(Nic) 1
 
-import_from_depot genodelabs/src/arora \
-                  genodelabs/src/icu \
-                  genodelabs/src/libcrypto \
-                  genodelabs/src/libssl \
-                  genodelabs/src/qt5_network \
-                  genodelabs/src/qt5_printsupport \
-                  genodelabs/src/qt5_qnitpickerviewwidget \
-                  genodelabs/src/qt5_opengl \
-                  genodelabs/src/qt5_qpluginwidget \
-                  genodelabs/src/qt5_scriptclassic \
-                  genodelabs/src/qt5_sql \
-                  genodelabs/src/qt5_ui_tools \
-                  genodelabs/src/qt5_webkit \
-                  genodelabs/src/qt5_widgets \
-                  genodelabs/src/vfs_jitterentropy \
-                  genodelabs/src/vfs_lxip
+import_from_depot [depot_user]/src/arora \
+                  [depot_user]/src/icu \
+                  [depot_user]/src/libcrypto \
+                  [depot_user]/src/libssl \
+                  [depot_user]/src/qt5_network \
+                  [depot_user]/src/qt5_printsupport \
+                  [depot_user]/src/qt5_qnitpickerviewwidget \
+                  [depot_user]/src/qt5_opengl \
+                  [depot_user]/src/qt5_qpluginwidget \
+                  [depot_user]/src/qt5_scriptclassic \
+                  [depot_user]/src/qt5_sql \
+                  [depot_user]/src/qt5_ui_tools \
+                  [depot_user]/src/qt5_webkit \
+                  [depot_user]/src/qt5_widgets \
+                  [depot_user]/src/vfs_jitterentropy \
+                  [depot_user]/src/vfs_lxip
 
 #
 # Build
