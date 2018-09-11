@@ -101,14 +101,14 @@ append config {
 		<config clipboard="yes">
 			<vfs>
 				<dir name="dev">
-					<dir name="socket"> <lxip dhcp="yes"/> </dir>
 					<log/>
 					<jitterentropy name="random"/>
 					<inline name="rtc">2018-01-01 00:01</inline> 
 				</dir>
+				<dir name="socket"> <lxip dhcp="yes"/> </dir>
 				<tar name="qt5_dejavusans.tar"/>
 			</vfs>
-			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" socket="/dev/socket"/>
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" socket="/socket"/>
 		</config>
 		<route>
 			<service name="Nitpicker"> <child name="wm"/> </service>
