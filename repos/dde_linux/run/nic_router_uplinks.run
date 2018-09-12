@@ -102,9 +102,7 @@ append config {
 			<rom name="wifi_config">
 				<inline description="CONNECT">
 <wifi_config connected_scan_interval="30" scan_interval="5" rfkill="no" verbose="no">
-    <accesspoints>
-        <accesspoint enabled="true" ssid="} [wifi_ssid] {" protection="WPA2" passphrase="} [wifi_psk] {"/>
-    </accesspoints>
+   <accesspoint enabled="true" ssid="} [wifi_ssid] {" protection="WPA2" passphrase="} [wifi_psk] {"/>
 </wifi_config>
 				</inline>
 				<sleep milliseconds="600000"/> <!-- 10 minutes -->
@@ -117,12 +115,12 @@ append config {
 		<provides><service name="ROM"/> </provides>
 		<config verbose="yes">
 			<rom name="router.config">
-				<inline>
 
-					<config/>
+				<!-- give the drivers time to come up -->
+				<inline> <config/> </inline>
+				<sleep milliseconds="15000"/>
 
-				</inline>
-				<sleep milliseconds="5000"/>
+				<!-- start the actual test -->
 				<inline>
 
 					<config dhcp_discover_timeout_sec="1">
@@ -365,4 +363,4 @@ append done_string ".*router.config: change"
 append done_string ".*router.config: sleep 600000 milliseconds"
 append done_string ".*From 10.0.1.79 icmp_seq=.* Destination Unreachable"
 
-run_genode_until $done_string 60
+run_genode_until $done_string 70
