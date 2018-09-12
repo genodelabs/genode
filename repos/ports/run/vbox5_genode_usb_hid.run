@@ -238,7 +238,7 @@ regexp {(\[init -\> log_terminal\] \[init -\> test-input\] Input event #0\t.*)} 
 run_genode_until {.*\[init -\> test-input\] Input event #11.*\n} 60 [output_spawn_id]
 
 unify_output { number [0-9]+} ""
-unify_output {(?n)on usb-dummy.*$} ""
+unify_output {(?n)on usb-usbbus.*$} ""
 unify_output {(?n)using .*$} ""
 unify_output {(?n)^.*__wait_event.*$} ""
 unify_output {(?n)^.*Failed to submit URB.*$} ""
@@ -261,10 +261,8 @@ compare_output_to {
 [init -> usb_drv] dev_info: new full-speed USB device
 [init -> virtualbox] Attach USB device (vendor=3eb, product=204d)
 [init -> log_terminal] [init -> usb_drv] dev_info: new full-speed USB device
-[init -> log_terminal] [init -> usb_drv] dev_info: D L
-[init -> log_terminal] [init -> usb_drv] dev_info: input: USB HID v1.11 Keyboard [D L]
-[init -> log_terminal] [init -> usb_drv] dev_info: D L
-[init -> log_terminal] [init -> usb_drv] dev_info: input: USB HID v1.11 Mouse [D L]
+[init -> log_terminal] [init -> usb_hid_drv] dev_info: input: USB HID v1.11 Keyboard [HID 03eb:204d]
+[init -> log_terminal] [init -> usb_hid_drv] dev_info: input: USB HID v1.11 Mouse [HID 03eb:204d]
 [init -> log_terminal] [init -> test-input] Input event #6	PRESS KEY_X 0
 [init -> log_terminal] [init -> test-input] Input event #7	RELEASE KEY_X
 [init -> log_terminal] [init -> test-input] Input event #8	PRESS BTN_LEFT 0
