@@ -7,6 +7,18 @@ proc wifi_ssid {} {
 proc wifi_psk {} {
 	return "$::env(GENODE_WIFI_PSK2)" }
 
+proc router_verbose {} {
+	return "no" }
+
+proc router_verbose_packet_drop {} {
+	return "no" }
+
+proc router_verbose_packets {} {
+	return "no" }
+
+proc router_verbose_domain_state {} {
+	return "yes" }
+
 source ${genode_dir}/repos/base/run/platform_drv.inc
 
 proc platform_drv_priority {} { return { priority="-1"} }
@@ -123,7 +135,12 @@ append config {
 				<!-- start the actual test -->
 				<inline>
 
-					<config dhcp_discover_timeout_sec="1">
+					<config dhcp_discover_timeout_sec="1"
+					        verbose="}              [router_verbose] {"
+					        verbose_packet_drop="}  [router_verbose_packet_drop] {"
+					        verbose_domain_state="} [router_verbose_domain_state] {"
+					        verbose_packets="}      [router_verbose_packets] {">
+
 						<default-policy     domain="downlink"/>
 						<uplink label="nic" domain="uplink"  />
 						<domain name="uplink">
@@ -139,7 +156,12 @@ append config {
 				<sleep milliseconds="3001"/>
 				<inline>
 
-					<config dhcp_discover_timeout_sec="1">
+					<config dhcp_discover_timeout_sec="1"
+					        verbose="}              [router_verbose] {"
+					        verbose_packet_drop="}  [router_verbose_packet_drop] {"
+					        verbose_domain_state="} [router_verbose_domain_state] {"
+					        verbose_packets="}      [router_verbose_packets] {">
+
 						<default-policy      domain="downlink"/>
 						<uplink label="wifi" domain="uplink"  />
 						<domain name="uplink">
@@ -155,7 +177,12 @@ append config {
 				<sleep milliseconds="3002"/>
 				<inline>
 
-					<config dhcp_discover_timeout_sec="1" verbose="yes">
+					<config dhcp_discover_timeout_sec="1"
+					        verbose="yes"
+					        verbose_packet_drop="}  [router_verbose_packet_drop] {"
+					        verbose_domain_state="} [router_verbose_domain_state] {"
+					        verbose_packets="}      [router_verbose_packets] {">
+
 						<default-policy domain="downlink"/>
 						<domain name="downlink" interface="10.0.1.79/24">
 							<dhcp-server ip_first="10.0.1.80" ip_last="10.0.1.100"/>
@@ -167,7 +194,12 @@ append config {
 				<sleep milliseconds="3003"/>
 				<inline>
 
-					<config dhcp_discover_timeout_sec="1">
+					<config dhcp_discover_timeout_sec="1"
+					        verbose="}              [router_verbose] {"
+					        verbose_packet_drop="}  [router_verbose_packet_drop] {"
+					        verbose_domain_state="} [router_verbose_domain_state] {"
+					        verbose_packets="}      [router_verbose_packets] {">
+
 						<default-policy     domain="downlink"/>
 						<uplink label="nic" domain="uplink"  />
 						<domain name="uplink">
@@ -183,7 +215,12 @@ append config {
 				<sleep milliseconds="3004"/>
 				<inline>
 
-					<config dhcp_discover_timeout_sec="1">
+					<config dhcp_discover_timeout_sec="1"
+					        verbose="}              [router_verbose] {"
+					        verbose_packet_drop="}  [router_verbose_packet_drop] {"
+					        verbose_domain_state="} [router_verbose_domain_state] {"
+					        verbose_packets="}      [router_verbose_packets] {">
+
 						<default-policy     domain="downlink"/>
 						<uplink label="nic" domain="uplink"  />
 						<domain name="uplink">
@@ -199,7 +236,12 @@ append config {
 				<sleep milliseconds="3005"/>
 				<inline>
 
-					<config dhcp_discover_timeout_sec="1" verbose="yes">
+					<config dhcp_discover_timeout_sec="1"
+					        verbose="yes"
+					        verbose_packet_drop="}  [router_verbose_packet_drop] {"
+					        verbose_domain_state="} [router_verbose_domain_state] {"
+					        verbose_packets="}      [router_verbose_packets] {">
+
 						<default-policy domain="downlink"/>
 						<domain name="downlink" interface="10.0.1.79/24">
 							<dhcp-server ip_first="10.0.1.80" ip_last="10.0.1.100"/>
@@ -211,7 +253,12 @@ append config {
 				<sleep milliseconds="3006"/>
 				<inline>
 
-					<config dhcp_discover_timeout_sec="1">
+					<config dhcp_discover_timeout_sec="1"
+					        verbose="}              [router_verbose] {"
+					        verbose_packet_drop="}  [router_verbose_packet_drop] {"
+					        verbose_domain_state="} [router_verbose_domain_state] {"
+					        verbose_packets="}      [router_verbose_packets] {">
+
 						<default-policy      domain="downlink"/>
 						<uplink label="wifi" domain="uplink"  />
 						<domain name="uplink">
@@ -227,7 +274,12 @@ append config {
 				<sleep milliseconds="3007"/>
 				<inline>
 
-					<config dhcp_discover_timeout_sec="1">
+					<config dhcp_discover_timeout_sec="1"
+					        verbose="}              [router_verbose] {"
+					        verbose_packet_drop="}  [router_verbose_packet_drop] {"
+					        verbose_domain_state="} [router_verbose_domain_state] {"
+					        verbose_packets="}      [router_verbose_packets] {">
+
 						<default-policy     domain="downlink"/>
 						<uplink label="nic" domain="uplink"  />
 						<domain name="uplink">
@@ -243,7 +295,12 @@ append config {
 				<sleep milliseconds="3008"/>
 				<inline>
 
-					<config dhcp_discover_timeout_sec="1">
+					<config dhcp_discover_timeout_sec="1"
+					        verbose="}              [router_verbose] {"
+					        verbose_packet_drop="}  [router_verbose_packet_drop] {"
+					        verbose_domain_state="} [router_verbose_domain_state] {"
+					        verbose_packets="}      [router_verbose_packets] {">
+
 						<default-policy domain="downlink"/>
 						<domain name="downlink" interface="10.0.1.79/24">
 							<dhcp-server ip_first="10.0.1.80" ip_last="10.0.1.100"/>
