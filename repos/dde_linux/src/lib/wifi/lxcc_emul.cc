@@ -1466,12 +1466,7 @@ void tasklet_init(struct tasklet_struct *t, void (*f)(unsigned long), unsigned l
 void tasklet_schedule(struct tasklet_struct *tasklet)
 {
 	Lx::Work::work_queue().schedule_tasklet(tasklet);
-}
-
-
-void tasklet_hi_schedule(struct tasklet_struct *tasklet)
-{
-	tasklet_schedule(tasklet);
+	Lx::Work::work_queue().unblock();
 }
 
 
