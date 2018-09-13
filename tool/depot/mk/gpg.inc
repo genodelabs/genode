@@ -19,3 +19,6 @@ missing_pubkey_files:
 	@echo "Error: missing public-key files:";\
 	 for i in $(MISSING_PUBKEY_FILES); do echo "       $$i"; done; false
 
+# Allow the gpg command to be overridden on the command line
+GPG ?= gpg
+

@@ -72,8 +72,8 @@ TARGETS := $(addsuffix .tar.xz.sig,$(addprefix $(PUBLIC_DIR)/,$(ARCHIVES)))
 
 $(PUBLIC_DIR)/%.tar.xz.sig : $(PUBLIC_DIR)/%.tar.xz
 	$(VERBOSE)rm -f $@;
-	$(VERBOSE)gpg --detach-sign --digest-algo SHA256 --no-tty --use-agent \
-	              --local-user $(call pubkey_id,$*) $<
+	$(VERBOSE)$(GPG) --detach-sign --digest-algo SHA256 --no-tty --use-agent \
+	              --local-user $(call pubkey_id,$*) - < $< > $@
 
 .PRECIOUS: $(TARGETS:.tar.xz.sig=.tar.xz)
 
