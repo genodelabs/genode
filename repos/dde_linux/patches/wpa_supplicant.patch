@@ -93,3 +93,16 @@ index 436bc8c99..f5ff4facb 100644
  #endif /* CONFIG_ELOOP_POLL */
  
  #ifdef CONFIG_ELOOP_EPOLL
+diff --git a/wpa_supplicant/ctrl_iface.c b/wpa_supplicant/ctrl_iface.c
+index fe39c25b7..3a682785e 100644
+--- a/wpa_supplicant/ctrl_iface.c
++++ b/wpa_supplicant/ctrl_iface.c
+@@ -9778,7 +9778,7 @@ char * wpa_supplicant_ctrl_iface_process(struct wpa_supplicant *wpa_s,
+ 					 char *buf, size_t *resp_len)
+ {
+ 	char *reply;
+-	const int reply_size = 4096;
++	const int reply_size = 4096*8;
+ 	int reply_len;
+ 
+ 	if (os_strncmp(buf, WPA_CTRL_RSP, os_strlen(WPA_CTRL_RSP)) == 0 ||

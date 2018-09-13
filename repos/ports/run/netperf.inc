@@ -246,9 +246,9 @@ append_if $use_wifi_driver config {
 			<policy label_prefix="config_rom" root="/"/>
 			<content>
 				<inline name="wifi_config">
-<wifi_config connected_scan_interval="30" scan_interval="10" rfkill="no" verbose="no">}
+<wifi_config connected_scan_interval="0" scan_interval="10" rfkill="no" verbose="no" verbose_state="no">}
 append_if $use_wifi_driver config "
-		<accesspoint enabled=\"true\" ssid=\"$wifi_ssid\" protection=\"WPA2\" passphrase=\"$wifi_psk\"/>"
+		<network ssid=\"$wifi_ssid\" protection=\"WPA2\" passphrase=\"$wifi_psk\"/>"
 append_if $use_wifi_driver config {
 </wifi_config>
 				</inline>

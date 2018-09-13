@@ -79,7 +79,15 @@ append config {
 		</config>
 	</start>
 
-	<start name="report_rom">
+	<start name="scan_report_rom">
+		<binary name="report_rom"/>
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config verbose="no"/>
+	</start>
+
+	<start name="accesspoints_report_rom">
+		<binary name="report_rom"/>
 		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config verbose="no"/>
@@ -91,30 +99,28 @@ append config {
 		<provides><service name="ROM"/></provides>
 		<config verbose="yes">
 			<rom name="wifi_config">
+				<inline description="disconnect">
+<wifi_config connected_scan_interval="30" scan_interval="5" rfkill="no" verbose="no" verbose_state="no"/>
+				</inline>
+				<sleep milliseconds="15000"/>
 				<inline description="connect">
-<wifi_config connected_scan_interval="30" scan_interval="5" rfkill="no" verbose="yes">
-	<accesspoint ssid="} [wifi_ssid] {" protection="WPA2" passphrase="} [wifi_psk] {"/>
+<wifi_config connected_scan_interval="30" scan_interval="5" rfkill="no" verbose="no" verbose_state="no">
+	<network ssid="} [wifi_ssid] {" protection="WPA2" explicit_scan="true" passphrase="} [wifi_psk] {"/>
 </wifi_config>
 				</inline>
 				<sleep milliseconds="60000"/>
 				<inline description="rfkill block">
-<wifi_config connected_scan_interval="30" scan_interval="5" rfkill="yes" verbose="yes">
-	<accesspoint ssid="} [wifi_ssid] {" protection="WPA2" passphrase="} [wifi_psk] {"/>
+<wifi_config connected_scan_interval="30" scan_interval="5" rfkill="yes" verbose="no" verbose_state="no">
+	<network ssid="} [wifi_ssid] {" protection="WPA2" explicit_scan="true" passphrase="} [wifi_psk] {"/>
 </wifi_config>
 				</inline>
 				<sleep milliseconds="30000"/>
 				<inline description="rfkill unblock">
-<wifi_config connected_scan_interval="30" scan_interval="5" rfkill="no" verbose="yes">
-	<accesspoint ssid="} [wifi_ssid] {" protection="WPA2" passphrase="} [wifi_psk] {"/>
+<wifi_config connected_scan_interval="30" scan_interval="5" rfkill="no" verbose="no" verbose_state="no">
+	<network ssid="} [wifi_ssid] {" protection="WPA2" explicit_scan="true" passphrase="} [wifi_psk] {"/>
 </wifi_config>
 				</inline>
 				<sleep milliseconds="30000"/>
-				<inline description="disconnect">
-<wifi_config connected_scan_interval="30" scan_interval="5" rfkill="no" verbose="yes">
-	<accesspoint ssid="} [wifi_ssid] {" protection="WPA2" passphrase="} [wifi_psk] {"/>
-</wifi_config>
-				</inline>
-				<sleep milliseconds="60000"/>
 			</rom>
 		</config>
 	</start>
@@ -133,7 +139,8 @@ append config {
 		</config>
 		<route>
 			<service name="Rtc"> <any-child/> </service>
-			<service name="Report"> <child name="report_rom"/> </service>
+			<service name="Report" label="accesspoints"> <child name="accesspoints_report_rom"/> </service>
+			<service name="Report" label="state"> <child name="scan_report_rom"/> </service>
 			<service name="ROM" label="wifi_config"> <child name="config_rom"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>

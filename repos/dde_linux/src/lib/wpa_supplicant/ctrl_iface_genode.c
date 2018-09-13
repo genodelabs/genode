@@ -63,6 +63,7 @@ struct ctrl_iface_global_priv {
 };
 
 
+extern void lx_printf(char const *, ...) __attribute__((format(printf, 1, 2)));
 extern void nl_set_wpa_ctrl_fd(void);
 
 
@@ -72,19 +73,19 @@ void wpa_ctrl_set_fd()
 }
 
 
-static int send_reply(struct ctrl_iface_priv *priv, char const *txt, size_t len)
+static void send_reply(struct ctrl_iface_priv *priv, char const *txt, size_t len)
 {
 	char   *msg  = priv->send_buffer;
 	size_t  mlen = priv->send_buffer_size;
 
-	if (!msg || !len || (len > mlen)) { return -1; }
+	if (len >= mlen) {
+		lx_printf("Warning: cmd reply will be truncated\n");
+		len = mlen - 1;
+	}
 
-	memset(msg, 0, mlen);
 	memcpy(msg, txt, len);
-
+	msg[len] = 0;
 	(*priv->send_id)++;
-
-	return 0;
 }
 
 
@@ -112,7 +113,6 @@ static void wpa_supplicant_ctrl_iface_receive(int fd, void *eloop_ctx,
 
 	reply = wpa_supplicant_ctrl_iface_process(wpa_s, msg,
 	                                          &reply_len);
-	// lx_printf("%s:%d %p %zu\n", __func__, __LINE__, reply, reply_len);
 
 	if (reply) {
 		wifi_notify_cmd_result();
@@ -121,10 +121,12 @@ static void wpa_supplicant_ctrl_iface_receive(int fd, void *eloop_ctx,
 	} else
 
 	if (reply_len == 1) {
+		wifi_notify_cmd_result();
 		send_reply(priv, "FAIL", 4);
 	} else
 
 	if (reply_len == 2) {
+		wifi_notify_cmd_result();
 		send_reply(priv, "OK", 2);
 	}
 }
@@ -139,19 +141,19 @@ static void print_txt(char const *txt, size_t len)
 }
 
 
-static int send_event(struct ctrl_iface_priv *priv, char const *txt, size_t len)
+static void send_event(struct ctrl_iface_priv *priv, char const *txt, size_t len)
 {
 	char   *msg  = priv->event_buffer;
 	size_t  mlen = priv->event_buffer_size;
 
-	if (!msg || !len || (len > mlen)) { return -1; }
+	if (len >= mlen) {
+		lx_printf("Warning: event will be truncated\n");
+		len = mlen - 1;
+	}
 
-	memset(msg, 0, mlen);
 	memcpy(msg, txt, len);
-
+	msg[len] = 0;
 	(*priv->event_id)++;
-
-	return 0;
 }
 
 
@@ -191,6 +193,7 @@ static void wpa_supplicant_ctrl_iface_msg_cb(void *ctx, int level,
 		   strncmp(txt, "CTRL-EVENT-SCAN-RESULTS", 23) == 0
 		|| strncmp(txt, "CTRL-EVENT-CONNECTED",    20) == 0
 		|| strncmp(txt, "CTRL-EVENT-DISCONNECTED", 23) == 0
+		|| strncmp(txt, "CTRL-EVENT-NETWORK-NOT-FOUND", 28) == 0
 		/* needed to detect connecting state */
 		|| strncmp(txt, "SME: Trying to authenticate", 27) == 0
 	;

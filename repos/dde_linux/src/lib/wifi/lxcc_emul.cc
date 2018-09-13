@@ -1418,7 +1418,6 @@ bool flush_work(struct work_struct *work)
 	 */
 	bool const queued = work_queued(work->wq, work);
 	if (queued) {
-		Genode::error(__func__, " work: ", work, " (", work->func, ") queued");
 
 		struct workqueue_struct *wq = work->wq;
 
