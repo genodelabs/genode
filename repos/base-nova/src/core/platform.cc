@@ -489,6 +489,7 @@ Platform::Platform() :
 	Hip::Mem_desc *boot_fb = nullptr;
 
 	bool efi_boot = false;
+	addr_t kernel_memory = 0;
 
 	/*
 	 * All "available" ram must be added to our physical allocator before all
@@ -501,6 +502,9 @@ Platform::Platform() :
 
 		if (mem_desc->type == Hip::Mem_desc::FRAMEBUFFER)
 			boot_fb = mem_desc;
+		if (mem_desc->type == Hip::Mem_desc::MICROHYPERVISOR)
+			kernel_memory += mem_desc->size;
+
 		if (mem_desc->type != Hip::Mem_desc::AVAILABLE_MEMORY) continue;
 
 		if (verbose_boot_info) {
@@ -731,7 +735,7 @@ Platform::Platform() :
 	/* core log as ROM module */
 	{
 		void * phys_ptr = nullptr;
-		unsigned const pages  = 1;
+		unsigned const pages  = 4;
 		size_t const log_size = pages << get_page_size_log2();
 
 		ram_alloc()->alloc_aligned(log_size, &phys_ptr, get_page_size_log2());
@@ -759,6 +763,8 @@ Platform::Platform() :
 	_gsi_base_sel = (hip->mem_desc_offset - hip->cpu_desc_offset) / hip->cpu_desc_size;
 
 	log(_rom_fs);
+
+	log(Number_of_bytes(kernel_memory), " kernel memory"); log("");
 
 	/* add capability selector ranges to map */
 	unsigned const first_index = 0x2000;

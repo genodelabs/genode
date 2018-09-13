@@ -20,7 +20,10 @@ CC_OPT          += -pipe \
                    -fdata-sections -fomit-frame-pointer -freg-struct-return \
                    -freorder-blocks -funit-at-a-time -fno-exceptions -fno-rtti \
                    -fno-stack-protector -fvisibility-inlines-hidden \
-                   -fno-asynchronous-unwind-tables -std=gnu++0x 
+                   -fno-asynchronous-unwind-tables -std=gnu++0x
+# kernel memory: 28M minimum dynamic or 10 pro mill of the system memory
+CC_OPT          += -DCONFIG_MEMORY_DYN_MIN=0x1c00000 \
+                   -DCONFIG_MEMORY_DYN_PER_MILL=10
 CC_OPT_PIC      :=
 ifeq ($(filter-out $(SPECS),32bit),)
 override CC_MARCH = -m32
@@ -44,7 +47,7 @@ LD_SCRIPT_STATIC = hypervisor.o
 $(TARGET): hypervisor.o
 
 hypervisor.o: $(NOVA_SRC_DIR)/src/hypervisor.ld target.mk
-	$(VERBOSE)$(CC) $(INCLUDES) -DCONFIG_KERNEL_MEMORY=32M -MP -MMD -pipe $(CC_MARCH) -xc -E -P $< -o $@
+	$(VERBOSE)$(CC) $(INCLUDES) -DCONFIG_MEMORY_BOOT=4M -MP -MMD -pipe $(CC_MARCH) -xc -E -P $< -o $@
 
 clean cleanall:
 	$(VERBOSE)rm -rf $(NOVA_BUILD_DIR)
