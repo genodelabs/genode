@@ -565,6 +565,7 @@ append manual_deploy_config {
 	<!-- <start name="report_dump"/> -->
 	<!-- <start name="acpica"/> -->
 	<!-- <start name="gambatte"/> -->
+	<!-- <start name="arora"/> -->
 
 </config>}
 

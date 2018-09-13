@@ -1,0 +1,64 @@
+<runtime ram="512M" caps="10000" binary="init" config="init.config">
+
+	<requires>
+		<nic/>
+		<nitpicker/>
+		<timer/>
+	</requires>
+
+	<content>
+
+		<!-- common for Qt GUI applications -->
+
+		<rom label="init.config"/>
+		<rom label="egl.lib.so"/>
+		<rom label="egl_swrast.lib.so"/>
+		<rom label="expat.lib.so"/>
+		<rom label="freetype.lib.so"/>
+		<rom label="glapi.lib.so"/>
+		<rom label="jpeg.lib.so"/>
+		<rom label="libc.lib.so"/>
+		<rom label="libc_pipe.lib.so"/>
+		<rom label="libm.lib.so"/>
+		<rom label="libpng.lib.so"/>
+		<rom label="mesa.lib.so"/>
+		<rom label="pcre16.lib.so"/>
+		<rom label="pthread.lib.so"/>
+		<rom label="qt5_core.lib.so"/>
+		<rom label="qt5_dejavusans.tar"/>
+		<rom label="qt5_gui.lib.so"/>
+		<rom label="qt5_qjpeg.lib.so"/>
+		<rom label="qt5_qpa_nitpicker.lib.so"/>
+		<rom label="stdcxx.lib.so"/>
+		<rom label="vfs.lib.so"/>
+		<rom label="zlib.lib.so"/>
+
+		<!-- application -->
+
+		<rom label="vfs"/>
+		<rom label="arora"/>
+		<rom label="icu.lib.so"/>
+		<rom label="libcrypto.lib.so"/>
+		<rom label="libssl.lib.so"/>
+		<rom label="lxip.lib.so"/>
+		<rom label="qt5_angle.lib.so"/>
+		<rom label="qt5_jscore.lib.so"/>
+		<rom label="qt5_network.lib.so"/>
+		<rom label="qt5_opengl.lib.so"/>
+		<rom label="qt5_printsupport.lib.so"/>
+		<rom label="qt5_qnitpickerviewwidget.lib.so"/>
+		<rom label="qt5_qpluginwidget.lib.so"/>
+		<rom label="qt5_scriptclassic.lib.so"/>
+		<rom label="qt5_sql.lib.so"/>
+		<rom label="qt5_ui_tools.lib.so"/>
+		<rom label="qt5_webcore.lib.so"/>
+		<rom label="qt5_webkit.lib.so"/>
+		<rom label="qt5_webkitwidgets.lib.so"/>
+		<rom label="qt5_widgets.lib.so"/>
+		<rom label="qt5_wtf.lib.so"/>
+		<rom label="vfs_jitterentropy.lib.so"/>
+		<rom label="vfs_lxip.lib.so"/>
+
+	</content>
+
+</runtime>
