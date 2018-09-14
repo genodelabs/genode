@@ -11,6 +11,7 @@ INC_DIR += $(USB_CONTRIB_DIR)/drivers/usb/core
 INC_DIR += $(PRG_DIR)
 INC_DIR += $(REP_DIR)/src/include
 
+SRC_C += drivers/hid/hid-apple.c
 SRC_C += drivers/hid/hid-cherry.c
 SRC_C += drivers/hid/hid-core.c
 SRC_C += drivers/hid/hid-generic.c

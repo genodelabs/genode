@@ -1,3 +1,4 @@
+linux-x.x.x/drivers/hid/hid-apple.c
 linux-x.x.x/drivers/hid/hid-cherry.c
 linux-x.x.x/drivers/hid/hid-core.c
 linux-x.x.x/drivers/hid/hid-generic.c

@@ -51,6 +51,9 @@ typedef __u32 __le32;
 typedef __u64 __le64;
 typedef __u64 __be64;
 
+#define DECLARE_BITMAP(name,bits) \
+	unsigned long name[BITS_TO_LONGS(bits)]
+
 #include <lx_emul/byteorder.h>
 #include <lx_emul/atomic.h>
 #include <lx_emul/work.h>
@@ -617,6 +620,7 @@ int module_hid_init();
 int module_hid_generic_init();
 int module_ch_driver_init();
 int module_holtek_mouse_driver_init();
+int module_apple_driver_init();
 int module_ms_driver_init();
 int module_mt_driver_init();
 int module_wacom_driver_init();
