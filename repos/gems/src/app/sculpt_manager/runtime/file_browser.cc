@@ -34,7 +34,7 @@ namespace Sculpt {
 
 void Sculpt::gen_nit_fb_start(Xml_generator &xml, Rom_name const &name)
 {
-	gen_common_start_content(xml, name, Cap_quota{100}, Ram_quota{8*1024*1024});
+	gen_common_start_content(xml, name, Cap_quota{100}, Ram_quota{18*1024*1024});
 
 	gen_named_node(xml, "binary", "nit_fb");
 

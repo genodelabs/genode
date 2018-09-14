@@ -369,7 +369,7 @@ install_config {
 
 	<start name="leitzentrale" caps="4000" priority="-2">
 		<binary name="init"/>
-		<resource name="RAM" quantum="128M"/>
+		<resource name="RAM" quantum="164M"/>
 		<provides> <service name="Nitpicker"/> </provides>
 		<route>
 			<service name="LOG"> <child name="log"/> </service>
