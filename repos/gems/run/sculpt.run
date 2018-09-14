@@ -231,7 +231,7 @@ install_config {
 	</start>
 
 	<start name="drivers" caps="3000" priority="-1">
-		<resource name="RAM" quantum="66M" constrain_phys="yes"/>
+		<resource name="RAM" quantum="96M" constrain_phys="yes"/>
 		<binary name="init"/>
 		<route>
 			<service name="LOG"> <child name="log"/> </service>
