@@ -169,6 +169,7 @@ void Driver::main_task_entry(void * arg)
 	module_hid_init();
 	module_hid_generic_init();
 	module_ch_driver_init();
+	module_holtek_mouse_driver_init();
 	module_ms_driver_init();
 	module_mt_driver_init();
 	module_wacom_driver_init();

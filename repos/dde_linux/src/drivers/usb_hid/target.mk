@@ -14,6 +14,7 @@ INC_DIR += $(REP_DIR)/src/include
 SRC_C += drivers/hid/hid-cherry.c
 SRC_C += drivers/hid/hid-core.c
 SRC_C += drivers/hid/hid-generic.c
+SRC_C += drivers/hid/hid-holtek-mouse.c
 SRC_C += drivers/hid/hid-input.c
 SRC_C += drivers/hid/hid-microsoft.c
 SRC_C += drivers/hid/hid-multitouch.c

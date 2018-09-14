@@ -1,6 +1,7 @@
 linux-x.x.x/drivers/hid/hid-cherry.c
 linux-x.x.x/drivers/hid/hid-core.c
 linux-x.x.x/drivers/hid/hid-generic.c
+linux-x.x.x/drivers/hid/hid-holtek-mouse.c
 linux-x.x.x/drivers/hid/hid-ids.h
 linux-x.x.x/drivers/hid/hid-input.c
 linux-x.x.x/drivers/hid/hid-microsoft.c
