@@ -88,21 +88,27 @@ Heap::Dataspace *Heap::_allocate_dataspace(size_t size, bool enforce_separate_me
 	/* make new ram dataspace available at our local address space */
 	try {
 		new_ds_cap = _ds_pool.ram_alloc->alloc(size);
-		ds_addr = _ds_pool.region_map->attach(new_ds_cap);
+		try { ds_addr = _ds_pool.region_map->attach(new_ds_cap); }
+		catch (Out_of_ram) {
+			_ds_pool.ram_alloc->free(new_ds_cap);
+			return nullptr;
+		}
+		catch (Out_of_caps) {
+			_ds_pool.ram_alloc->free(new_ds_cap);
+			throw;
+		}
+		catch (Region_map::Invalid_dataspace) {
+			warning("heap: attempt to attach invalid dataspace");
+			_ds_pool.ram_alloc->free(new_ds_cap);
+			return nullptr;
+		}
+		catch (Region_map::Region_conflict) {
+			warning("heap: region conflict while allocating dataspace");
+			_ds_pool.ram_alloc->free(new_ds_cap);
+			return nullptr;
+		}
 	}
-	catch (Out_of_ram) {
-		return nullptr;
-	}
-	catch (Region_map::Invalid_dataspace) {
-		warning("heap: attempt to attach invalid dataspace");
-		_ds_pool.ram_alloc->free(new_ds_cap);
-		return nullptr;
-	}
-	catch (Region_map::Region_conflict) {
-		warning("heap: region conflict while allocating dataspace");
-		_ds_pool.ram_alloc->free(new_ds_cap);
-		return nullptr;
-	}
+	catch (Out_of_ram)  { return nullptr; }
 
 	if (enforce_separate_metadata) {
 
@@ -122,7 +128,6 @@ Heap::Dataspace *Heap::_allocate_dataspace(size_t size, bool enforce_separate_me
 			warning("could not allocate dataspace meta data - this should never happen");
 			return 0;
 		}
-
 	}
 
 	ds = construct_at<Dataspace>(ds_meta_data_addr, new_ds_cap, ds_addr, size);
