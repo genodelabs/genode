@@ -26,10 +26,11 @@ using namespace Genode;
  ** Communication_buffer **
  **************************/
 
-Communication_buffer::Communication_buffer(Ram_session          &ram,
-                                           Genode::size_t const  size)
+Communication_buffer::Communication_buffer(Ram_allocator &ram_alloc,
+                                           size_t const   size)
 :
-	Ram_dataspace_capability(ram.alloc(size)), _ram(ram)
+	_ram_alloc { ram_alloc },
+	_ram_ds    { ram_alloc.alloc(size) }
 { }
 
 
@@ -38,15 +39,15 @@ Communication_buffer::Communication_buffer(Ram_session          &ram,
  ****************************/
 
 Session_component_base::
-Session_component_base(Allocator           &guarded_alloc_backing,
-                       size_t        const  guarded_alloc_amount,
-                       Ram_session         &buf_ram,
-                       size_t        const  tx_buf_size,
-                       size_t        const  rx_buf_size)
+Session_component_base(Session_env  &session_env,
+                       size_t const  tx_buf_size,
+                       size_t const  rx_buf_size)
 :
-	_guarded_alloc(&guarded_alloc_backing, guarded_alloc_amount),
-	_range_alloc(&_guarded_alloc), _tx_buf(buf_ram, tx_buf_size),
-	_rx_buf(buf_ram, rx_buf_size)
+	_session_env  { session_env },
+	_alloc        { _session_env, _session_env },
+	_packet_alloc { &_alloc },
+	_tx_buf       { _session_env, tx_buf_size },
+	_rx_buf       { _session_env, rx_buf_size }
 { }
 
 
@@ -56,8 +57,13 @@ Session_component_base(Allocator           &guarded_alloc_backing,
 
 Net::Session_component::
 Interface_policy::Interface_policy(Genode::Session_label const &label,
+                                   Session_env           const &session_env,
                                    Configuration         const &config)
-: _label(label), _config(config) { }
+:
+	_label       { label },
+	_config      { config },
+	_session_env { session_env }
+{ }
 
 
 Domain_name
@@ -86,28 +92,25 @@ Net::Session_component::Interface_policy::determine_domain_name() const
  ** Session_component **
  ***********************/
 
-Net::Session_component::Session_component(Allocator           &alloc,
-                                          Timer::Connection   &timer,
-                                          size_t        const  amount,
-                                          Ram_session         &buf_ram,
-                                          size_t        const  tx_buf_size,
-                                          size_t        const  rx_buf_size,
-                                          Region_map          &region_map,
-                                          Mac_address   const  mac,
-                                          Entrypoint          &ep,
-                                          Mac_address   const &router_mac,
-                                          Session_label const &label,
-                                          Interface_list      &interfaces,
-                                          Configuration       &config)
+Net::Session_component::Session_component(Session_env                    &session_env,
+                                          size_t                   const  tx_buf_size,
+                                          size_t                   const  rx_buf_size,
+                                          Timer::Connection              &timer,
+                                          Mac_address              const  mac,
+                                          Mac_address              const &router_mac,
+                                          Session_label            const &label,
+                                          Interface_list                 &interfaces,
+                                          Configuration                  &config,
+                                          Ram_dataspace_capability const  ram_ds)
 :
-	Session_component_base { alloc, amount, buf_ram, tx_buf_size,
-	                         rx_buf_size },
-	Session_rpc_object     { region_map, _tx_buf, _rx_buf, &_range_alloc,
-	                         ep.rpc_ep() },
-	_interface_policy      { label, config },
-	_interface             { ep, timer, router_mac, _guarded_alloc, mac,
-	                         config, interfaces, *_tx.sink(), *_rx.source(),
-	                         _link_state, _interface_policy }
+	Session_component_base { session_env, tx_buf_size,rx_buf_size },
+	Session_rpc_object     { _session_env, _tx_buf.ds(), _rx_buf.ds(),
+	                         &_packet_alloc, _session_env.ep().rpc_ep() },
+	_interface_policy      { label, _session_env, config },
+	_interface             { _session_env.ep(), timer, router_mac, _alloc,
+	                         mac, config, interfaces, *_tx.sink(),
+	                         *_rx.source(), _link_state, _interface_policy },
+	_ram_ds                { ram_ds }
 {
 	_interface.attach_to_domain();
 
@@ -122,58 +125,123 @@ Net::Session_component::Session_component(Allocator           &alloc,
  ** Root **
  **********/
 
-Net::Root::Root(Entrypoint        &ep,
+Net::Root::Root(Env               &env,
                 Timer::Connection &timer,
                 Allocator         &alloc,
                 Configuration     &config,
-                Ram_session       &buf_ram,
-                Interface_list    &interfaces,
-                Region_map        &region_map)
+                Quota             &shared_quota,
+                Interface_list    &interfaces)
 :
-	Root_component<Session_component>(&ep.rpc_ep(), &alloc), _timer(timer),
-	_mac_alloc(MAC_ALLOC_BASE), _ep(ep), _router_mac(_mac_alloc.alloc()),
-	_config(config), _buf_ram(buf_ram), _region_map(region_map),
-	_interfaces(interfaces)
+	Root_component<Session_component> { &env.ep().rpc_ep(), &alloc },
+	_env                              { env },
+	_timer                            { timer },
+	_mac_alloc                        { MAC_ALLOC_BASE },
+	_router_mac                       { _mac_alloc.alloc() },
+	_config                           { config },
+	_shared_quota                     { shared_quota },
+	_interfaces                       { interfaces }
 { }
 
 
 Session_component *Net::Root::_create_session(char const *args)
 {
 	try {
-		size_t const ram_quota =
-			Arg_string::find_arg(args, "ram_quota").ulong_value(0);
+		/* create session environment temporarily on the stack */
+		Session_env session_env_tmp { _env, _shared_quota,
+			Ram_quota { Arg_string::find_arg(args, "ram_quota").ulong_value(0) },
+			Cap_quota { Arg_string::find_arg(args, "cap_quota").ulong_value(0) } };
+		Reference<Session_env> session_env { session_env_tmp };
 
-		size_t const tx_buf_size =
-			Arg_string::find_arg(args, "tx_buf_size").ulong_value(0);
+		/* alloc/attach RAM block and move session env to base of the block */
+		Ram_dataspace_capability ram_ds {
+			session_env().alloc(sizeof(Session_env) +
+			                    sizeof(Session_component), CACHED) };
+		try {
+			void * const ram_ptr { session_env().attach(ram_ds) };
+			session_env = *construct_at<Session_env>(ram_ptr, session_env());
 
-		size_t const rx_buf_size =
-			Arg_string::find_arg(args, "rx_buf_size").ulong_value(0);
-
-		size_t const session_size =
-			max((size_t)4096, sizeof(Session_component));
-
-		if (ram_quota < session_size) {
+			/* create new session object behind session env in the RAM block */
+			try {
+				Session_label const label { label_from_args(args) };
+				return construct_at<Session_component>(
+					(void*)((addr_t)ram_ptr + sizeof(Session_env)),
+					session_env(),
+					Arg_string::find_arg(args, "tx_buf_size").ulong_value(0),
+					Arg_string::find_arg(args, "rx_buf_size").ulong_value(0),
+					_timer, _mac_alloc.alloc(), _router_mac, label,
+					_interfaces, _config(), ram_ds);
+			}
+			catch (Mac_allocator::Alloc_failed) {
+				session_env().detach(ram_ptr);
+				session_env().free(ram_ds);
+				_invalid_downlink("failed to allocate MAC address");
+				throw Service_denied();
+			}
+			catch (Out_of_ram) {
+				session_env().detach(ram_ptr);
+				session_env().free(ram_ds);
+				_invalid_downlink("NIC session RAM quota");
+				throw Insufficient_ram_quota();
+			}
+			catch (Out_of_caps) {
+				session_env().detach(ram_ptr);
+				session_env().free(ram_ds);
+				_invalid_downlink("NIC session CAP quota");
+				throw Insufficient_cap_quota();
+			}
+		}
+		catch (Region_map::Invalid_dataspace) {
+			session_env().free(ram_ds);
+			_invalid_downlink("Failed to attach RAM");
+			throw Service_denied();
+		}
+		catch (Region_map::Region_conflict) {
+			session_env().free(ram_ds);
+			_invalid_downlink("Failed to attach RAM");
+			throw Service_denied();
+		}
+		catch (Out_of_ram) {
+			session_env().free(ram_ds);
 			_invalid_downlink("NIC session RAM quota");
 			throw Insufficient_ram_quota();
 		}
-		if (tx_buf_size               > ram_quota - session_size ||
-		    rx_buf_size               > ram_quota - session_size ||
-		    tx_buf_size + rx_buf_size > ram_quota - session_size)
-		{
-			_invalid_downlink("NIC session RAM quota for buffers)");
-			throw Insufficient_ram_quota();
+		catch (Out_of_caps) {
+			session_env().free(ram_ds);
+			_invalid_downlink("NIC session CAP quota");
+			throw Insufficient_cap_quota();
 		}
-		Session_label const label(label_from_args(args));
-		return new (md_alloc())
-			Session_component(*md_alloc(), _timer, ram_quota - session_size,
-			                  _buf_ram, tx_buf_size, rx_buf_size, _region_map,
-			                  _mac_alloc.alloc(), _ep, _router_mac, label,
-			                  _interfaces, _config());
 	}
-	catch (Mac_allocator::Alloc_failed) {
-		_invalid_downlink("failed to allocate MAC address"); }
+	catch (Out_of_ram) {
+		_invalid_downlink("NIC session RAM quota");
+		throw Insufficient_ram_quota();
+	}
+	catch (Out_of_caps) {
+		_invalid_downlink("NIC session CAP quota");
+		throw Insufficient_cap_quota();
+	}
+}
 
-	throw Service_denied();
+void Net::Root::_destroy_session(Session_component *session)
+{
+	/* read out initial dataspace and session env and destruct session */
+	Ram_dataspace_capability  ram_ds        { session->ram_ds() };
+	Session_env        const &session_env   { session->session_env() };
+	Session_label      const  session_label { session->interface_policy().label() };
+	session->~Session_component();
+
+	/* copy session env to stack and detach/free all session data */
+	Session_env session_env_stack { session_env };
+	session_env_stack.detach(session);
+	session_env_stack.detach(&session_env);
+	session_env_stack.free(ram_ds);
+
+	/* check for leaked quota */
+	if (session_env_stack.ram_guard().used().value) {
+		error("NIC session component \"", session_label, "\" leaks RAM quota of ",
+		      session_env_stack.ram_guard().used().value, " byte(s)"); };
+	if (session_env_stack.cap_guard().used().value) {
+		error("NIC session component \"", session_label, "\" leaks CAP quota of ",
+		      session_env_stack.cap_guard().used().value, " cap(s)"); };
 }
 
 

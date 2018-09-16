@@ -28,6 +28,7 @@ Arp_waiter::Arp_waiter(Interface               &src,
 	_src_le(this), _src(src), _dst_le(this), _dst(dst), _ip(ip),
 	_packet(packet)
 {
+	_src.arp_stats().alive++;
 	_src.own_arp_waiters().insert(&_src_le);
 	_dst().foreign_arp_waiters().insert(&_dst_le);
 }
@@ -35,6 +36,8 @@ Arp_waiter::Arp_waiter(Interface               &src,
 
 Arp_waiter::~Arp_waiter()
 {
+	_src.arp_stats().alive--;
+	_src.arp_stats().destroyed++;
 	_src.own_arp_waiters().remove(&_src_le);
 	_dst().foreign_arp_waiters().remove(&_dst_le);
 }

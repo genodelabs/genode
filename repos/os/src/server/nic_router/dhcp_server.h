@@ -31,7 +31,6 @@ namespace Net {
 	class Configuration;
 	class Dhcp_server;
 	class Dhcp_allocation;
-	class Dhcp_allocation;
 	class Dhcp_allocation_tree;
 	using Dhcp_allocation_list = List<Dhcp_allocation>;
 
@@ -124,6 +123,8 @@ class Net::Dhcp_allocation : public  Genode::Avl_node<Dhcp_allocation>,
 		                Mac_address    const &mac,
 		                Timer::Connection    &timer,
 		                Genode::Microseconds  lifetime);
+
+		~Dhcp_allocation();
 
 		Dhcp_allocation &find_by_mac(Mac_address const &mac);
 

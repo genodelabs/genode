@@ -163,7 +163,15 @@ Dhcp_allocation::Dhcp_allocation(Interface      &interface,
 	_interface(interface), _ip(ip), _mac(mac),
 	_timeout(timer, *this, &Dhcp_allocation::_handle_timeout)
 {
+	_interface.dhcp_stats().alive++;
 	_timeout.schedule(lifetime);
+}
+
+
+Dhcp_allocation::~Dhcp_allocation()
+{
+	_interface.dhcp_stats().alive--;
+	_interface.dhcp_stats().destroyed++;
 }
 
 

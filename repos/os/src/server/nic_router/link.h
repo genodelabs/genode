@@ -45,6 +45,7 @@
 
 namespace Net {
 
+	class  Interface_link_stats;
 	class  Configuration;
 	class  Port_allocator_guard;
 	class  Tcp_packet;
@@ -152,6 +153,9 @@ class Net::Link : public Link_list::Element
 		L3_protocol             const  _protocol;
 		Link_side                      _client;
 		Link_side                      _server;
+		bool                           _opening { true };
+		Interface_link_stats          &_stats;
+		Reference<Genode::size_t>      _stats_curr;
 
 		void _handle_dissolve_timeout(Genode::Duration);
 
@@ -169,9 +173,12 @@ class Net::Link : public Link_list::Element
 		     Timer::Connection                   &timer,
 		     Configuration                       &config,
 		     L3_protocol                   const  protocol,
-		     Genode::Microseconds          const  dissolve_timeout);
+		     Genode::Microseconds          const  dissolve_timeout,
+		     Interface_link_stats                &stats);
 
-		void dissolve();
+		~Link();
+
+		void dissolve(bool timeout);
 
 		void handle_config(Domain                        &cln_domain,
 		                   Domain                        &srv_domain,
@@ -216,6 +223,10 @@ class Net::Tcp_link : public Link
 		                 Peer       &sender,
 		                 Peer       &receiver);
 
+		void _closing();
+
+		void _closed();
+
 	public:
 
 		Tcp_link(Interface                     &cln_interface,
@@ -225,11 +236,12 @@ class Net::Tcp_link : public Link
 		         Link_side_id            const &srv_id,
 		         Timer::Connection             &timer,
 		         Configuration                 &config,
-		         L3_protocol             const  protocol);
+		         L3_protocol             const  protocol,
+		         Interface_link_stats          &stats);
 
 		void client_packet(Tcp_packet &tcp) { _tcp_packet(tcp, _client, _server); }
 
-		void server_packet(Tcp_packet &tcp) { _tcp_packet(tcp, _server, _client); }
+		void server_packet(Tcp_packet &tcp);
 };
 
 
@@ -242,9 +254,12 @@ struct Net::Udp_link : Link
 	         Link_side_id            const &srv_id,
 	         Timer::Connection             &timer,
 	         Configuration                 &config,
-	         L3_protocol             const  protocol);
+	         L3_protocol             const  protocol,
+	         Interface_link_stats          &stats);
 
-	void packet() { _packet(); }
+	void client_packet() { _packet(); }
+
+	void server_packet();
 };
 
 
@@ -257,9 +272,12 @@ struct Net::Icmp_link : Link
 	          Link_side_id            const &srv_id,
 	          Timer::Connection             &timer,
 	          Configuration                 &config,
-	          L3_protocol             const  protocol);
+	          L3_protocol             const  protocol,
+	          Interface_link_stats          &stats);
 
-	void packet() { _packet(); }
+	void client_packet() { _packet(); }
+
+	void server_packet();
 };
 
 #endif /* _LINK_H_ */
