@@ -44,7 +44,31 @@ namespace Net {
 	class Domain;
 	using Domain_name = Genode::String<160>;
 	class Domain_tree;
+	class Domain_link_stats;
+	class Domain_object_stats;
 }
+
+
+struct Net::Domain_object_stats
+{
+	Genode::size_t destroyed { 0 };
+
+	void dissolve_interface(Interface_object_stats const &stats);
+
+	void report(Genode::Xml_generator &xml);
+};
+
+
+struct Net::Domain_link_stats : Domain_object_stats
+{
+	Genode::size_t refused_for_ram   { 0 };
+	Genode::size_t refused_for_ports { 0 };
+	Genode::size_t destroyed         { 0 };
+
+	void dissolve_interface(Interface_link_stats const &stats);
+
+	void report(Genode::Xml_generator &xml);
+};
 
 
 class Net::Domain_tree : public Avl_string_tree<Domain, Domain_name> { };
@@ -96,6 +120,11 @@ class Net::Domain : public Domain_base,
 		bool                            const _verbose_packet_drop;
 		bool                            const _icmp_echo_server;
 		Genode::Session_label           const _label;
+		Domain_link_stats                     _udp_stats            { };
+		Domain_link_stats                     _tcp_stats            { };
+		Domain_link_stats                     _icmp_stats           { };
+		Domain_object_stats                   _arp_stats            { };
+		Domain_object_stats                   _dhcp_stats           { };
 
 		void _read_forward_rules(Genode::Cstring  const &protocol,
 		                         Domain_tree            &domains,
@@ -190,6 +219,11 @@ class Net::Domain : public Domain_base,
 		Link_side_tree              &tcp_links()                 { return _tcp_links; }
 		Link_side_tree              &udp_links()                 { return _udp_links; }
 		Link_side_tree              &icmp_links()                { return _icmp_links; }
+		Domain_link_stats           &udp_stats()                 { return _udp_stats; }
+		Domain_link_stats           &tcp_stats()                 { return _tcp_stats; }
+		Domain_link_stats           &icmp_stats()                { return _icmp_stats; }
+		Domain_object_stats         &arp_stats()                 { return _arp_stats; }
+		Domain_object_stats         &dhcp_stats()                { return _dhcp_stats; }
 };
 
 #endif /* _DOMAIN_H_ */

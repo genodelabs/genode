@@ -79,6 +79,7 @@ class Net::Configuration
 		              Genode::Allocator      &alloc,
 		              Timer::Connection      &timer,
 		              Configuration          &old_config,
+		              Quota            const &shared_quota,
 		              Interface_list         &interfaces);
 
 		~Configuration();

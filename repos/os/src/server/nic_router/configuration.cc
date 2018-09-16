@@ -58,27 +58,28 @@ void Configuration::_invalid_domain(Domain     &domain,
 
 
 Configuration::Configuration(Env               &env,
-                             Xml_node const     node,
+                             Xml_node    const  node,
                              Allocator         &alloc,
                              Timer::Connection &timer,
                              Configuration     &old_config,
+                             Quota       const &shared_quota,
                              Interface_list    &interfaces)
 :
-	_alloc(alloc),
-	_max_packets_per_signal(node.attribute_value("max_packets_per_signal",   (unsigned long)DEFAULT_MAX_PACKETS_PER_SIGNAL)),
-	_verbose               (node.attribute_value("verbose",                  false)),
-	_verbose_packets       (node.attribute_value("verbose_packets",          false)),
-	_verbose_packet_drop   (node.attribute_value("verbose_packet_drop",      false)),
-	_verbose_domain_state  (node.attribute_value("verbose_domain_state",     false)),
-	_icmp_echo_server      (node.attribute_value("icmp_echo_server",         true)),
-	_dhcp_discover_timeout (read_sec_attr(node, "dhcp_discover_timeout_sec", DEFAULT_DHCP_DISCOVER_TIMEOUT_SEC)),
-	_dhcp_request_timeout  (read_sec_attr(node, "dhcp_request_timeout_sec",  DEFAULT_DHCP_REQUEST_TIMEOUT_SEC )),
-	_dhcp_offer_timeout    (read_sec_attr(node, "dhcp_offer_timeout_sec",    DEFAULT_DHCP_OFFER_TIMEOUT_SEC   )),
-	_icmp_idle_timeout     (read_sec_attr(node, "icmp_idle_timeout_sec",     DEFAULT_ICMP_IDLE_TIMEOUT_SEC    )),
-	_udp_idle_timeout      (read_sec_attr(node, "udp_idle_timeout_sec",      DEFAULT_UDP_IDLE_TIMEOUT_SEC     )),
-	_tcp_idle_timeout      (read_sec_attr(node, "tcp_idle_timeout_sec",      DEFAULT_TCP_IDLE_TIMEOUT_SEC     )),
-	_tcp_max_segm_lifetime (read_sec_attr(node, "tcp_max_segm_lifetime_sec", DEFAULT_TCP_MAX_SEGM_LIFETIME_SEC)),
-	_node(node)
+	_alloc                  { alloc },
+	_max_packets_per_signal { node.attribute_value("max_packets_per_signal",    (unsigned long)DEFAULT_MAX_PACKETS_PER_SIGNAL) },
+	_verbose                { node.attribute_value("verbose",                   false) },
+	_verbose_packets        { node.attribute_value("verbose_packets",           false) },
+	_verbose_packet_drop    { node.attribute_value("verbose_packet_drop",       false) },
+	_verbose_domain_state   { node.attribute_value("verbose_domain_state",      false) },
+	_icmp_echo_server       { node.attribute_value("icmp_echo_server",          true) },
+	_dhcp_discover_timeout  { read_sec_attr(node,  "dhcp_discover_timeout_sec", DEFAULT_DHCP_DISCOVER_TIMEOUT_SEC) },
+	_dhcp_request_timeout   { read_sec_attr(node,  "dhcp_request_timeout_sec",  DEFAULT_DHCP_REQUEST_TIMEOUT_SEC ) },
+	_dhcp_offer_timeout     { read_sec_attr(node,  "dhcp_offer_timeout_sec",    DEFAULT_DHCP_OFFER_TIMEOUT_SEC   ) },
+	_icmp_idle_timeout      { read_sec_attr(node,  "icmp_idle_timeout_sec",     DEFAULT_ICMP_IDLE_TIMEOUT_SEC    ) },
+	_udp_idle_timeout       { read_sec_attr(node,  "udp_idle_timeout_sec",      DEFAULT_UDP_IDLE_TIMEOUT_SEC     ) },
+	_tcp_idle_timeout       { read_sec_attr(node,  "tcp_idle_timeout_sec",      DEFAULT_TCP_IDLE_TIMEOUT_SEC     ) },
+	_tcp_max_segm_lifetime  { read_sec_attr(node,  "tcp_max_segm_lifetime_sec", DEFAULT_TCP_MAX_SEGM_LIFETIME_SEC) },
+	_node                   { node }
 {
 	/* do parts of domain initialization that do not lookup other domains */
 	node.for_each_sub_node("domain", [&] (Xml_node const node) {
@@ -137,11 +138,12 @@ Configuration::Configuration(Env               &env,
 		catch (Pointer<Reporter>::Invalid) {
 
 			/* there is no reporter by now, create a new one */
-			_reporter = *new (_alloc) Reporter(env, "state");
+			_reporter = *new (_alloc) Reporter(env, "state", nullptr, 4096 * 4);
 		}
 		/* create report generator */
 		_report = *new (_alloc)
-			Report(_verbose, report_node, timer, _domains, _reporter());
+			Report(_verbose, report_node, timer, _domains, shared_quota,
+			       env.pd(), _reporter());
 	}
 	catch (Genode::Xml_node::Nonexistent_sub_node) { }
 

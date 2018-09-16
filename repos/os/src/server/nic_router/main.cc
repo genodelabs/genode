@@ -34,13 +34,14 @@ class Net::Main
 	private:
 
 		Genode::Env                    &_env;
+		Quota                           _shared_quota   { };
 		Interface_list                  _interfaces     { };
 		Timer::Connection               _timer          { _env };
 		Genode::Heap                    _heap           { &_env.ram(), &_env.rm() };
 		Genode::Attached_rom_dataspace  _config_rom     { _env, "config" };
 		Reference<Configuration>        _config         { *new (_heap) Configuration { _config_rom.xml(), _heap } };
 		Signal_handler<Main>            _config_handler { _env.ep(), *this, &Main::_handle_config };
-		Root                            _root           { _env.ep(), _timer, _heap, _config(), _env.ram(), _interfaces, _env.rm()};
+		Root                            _root           { _env, _timer, _heap, _config(), _shared_quota, _interfaces };
 
 		void _handle_config();
 
@@ -77,7 +78,7 @@ void Net::Main::_handle_config()
 	Configuration &old_config = _config();
 	Configuration &new_config = *new (_heap)
 		Configuration(_env, _config_rom.xml(), _heap, _timer, old_config,
-		              _interfaces);
+		              _shared_quota, _interfaces);
 
 	_root.handle_config(new_config);
 	_for_each_interface([&] (Interface &intf) { intf.handle_config_1(new_config); });

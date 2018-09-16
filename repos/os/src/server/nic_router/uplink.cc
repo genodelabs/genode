@@ -107,6 +107,18 @@ void Net::Uplink::print(Output &output) const
 }
 
 
+/***************************
+ ** Uplink_interface_base **
+ ***************************/
+
+Net::Uplink_interface_base::Uplink_interface_base(Domain_name   const &domain_name,
+                                                  Session_label const &label)
+:
+	_domain_name { domain_name },
+	_label       { label }
+{ }
+
+
 /**********************
  ** Uplink_interface **
  **********************/
@@ -119,7 +131,7 @@ Net::Uplink_interface::Uplink_interface(Env                 &env,
                                         Domain_name   const &domain_name,
                                         Session_label const &label)
 :
-	Uplink_interface_base { domain_name },
+	Uplink_interface_base { domain_name, label },
 	Nic::Packet_allocator { &alloc },
 	Nic::Connection       { env, this, BUF_SIZE, BUF_SIZE, label.string() },
 	_link_state_handler   { env.ep(), *this,

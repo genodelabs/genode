@@ -447,15 +447,22 @@ The NIC router can be configured to send reports about its state.
 
 Configuration example (shows default values of attributes):
 
-<config>
-    <report interval_sec="5" bytes="yes" config="yes" config_triggers="no">
-</config>
+! <config>
+!    <report bytes="yes"
+!            stats="yes"
+!            quota="yes"
+!            config="yes"
+!            config_triggers="no"
+!            interval_sec="5">
+! </config>
 
 If the 'report' tag is not available, no reports are send.
 The attributes of the 'report' tag:
 
 'bytes'           : Boolean : Whether to report sent bytes and received bytes
                               per domain
+'stats'           : Boolean : Whether to report statistics about session objects
+'quota'           : Boolean : Whether to report quota and its utilization
 'config'          : Boolean : Whether to report IPv4 interface and gateway per
                               domain
 'config_triggers' : Boolean : Wether to force a report each time the IPv4

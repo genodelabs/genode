@@ -59,6 +59,8 @@
 						<xs:attribute name="config"          type="Boolean" />
 						<xs:attribute name="config_triggers" type="Boolean" />
 						<xs:attribute name="bytes"           type="Boolean" />
+						<xs:attribute name="stats"           type="Boolean" />
+						<xs:attribute name="quota"           type="Boolean" />
 						<xs:attribute name="interval_sec"    type="Seconds" />
 					</xs:complexType>
 				</xs:element><!-- report -->

@@ -104,7 +104,8 @@ class Net::Uplink_interface_base : public Interface_policy
 {
 	private:
 
-		Const_reference<Domain_name> _domain_name;
+		Const_reference<Domain_name>  _domain_name;
+		Genode::Session_label  const &_label;
 
 
 		/***************************
@@ -113,10 +114,12 @@ class Net::Uplink_interface_base : public Interface_policy
 
 		Domain_name determine_domain_name() const override { return _domain_name(); };
 		void handle_config(Configuration const &) override { }
+		Genode::Session_label const &label() const override { return _label; }
 
 	public:
 
-		Uplink_interface_base(Domain_name const &domain_name) : _domain_name(domain_name) { }
+		Uplink_interface_base(Domain_name           const &domain_name,
+		                      Genode::Session_label const &label);
 
 		virtual ~Uplink_interface_base() { }
 

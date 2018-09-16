@@ -28,17 +28,29 @@ namespace Net {
 
 	class Domain_tree;
 	class Report;
+	class Quota;
 }
+
+
+struct Net::Quota
+{
+	Genode::size_t ram { 0 };
+	Genode::size_t cap { 0 };
+};
 
 
 class Net::Report
 {
 	private:
 
-		bool const                      &_verbose;
-		bool const                       _config;
-		bool const                       _config_triggers;
-		bool const                       _bytes;
+		bool                      const &_verbose;
+		bool                      const  _config;
+		bool                      const  _config_triggers;
+		bool                      const  _bytes;
+		bool                      const  _stats;
+		bool                      const  _quota;
+		Quota                     const &_shared_quota;
+		Genode::Pd_session              &_pd;
 		Genode::Reporter                &_reporter;
 		Domain_tree                     &_domains;
 		Timer::Periodic_timeout<Report>  _timeout;
@@ -49,10 +61,14 @@ class Net::Report
 
 	public:
 
+		struct Empty : Genode::Exception { };
+
 		Report(bool             const &verbose,
 		       Genode::Xml_node const  node,
 		       Timer::Connection      &timer,
 		       Domain_tree            &domains,
+		       Quota            const &shared_quota,
+		       Genode::Pd_session     &pd,
 		       Genode::Reporter       &reporter);
 
 		void handle_config();
@@ -64,6 +80,7 @@ class Net::Report
 
 		bool config() const { return _config; }
 		bool bytes()  const { return _bytes; }
+		bool stats()  const { return _stats; }
 };
 
 #endif /* _REPORT_H_ */
