@@ -25,7 +25,7 @@
              continue;
 --- a/src/app/virtualbox/src/VBox/Devices/Audio/DevHDA.cpp
 +++ b/src/app/virtualbox/src/VBox/Devices/Audio/DevHDA.cpp
-@@ -1392,7 +1392,9 @@
+@@ -1393,7 +1393,9 @@
      if (   HDA_REG_FLAG_VALUE(pThis, INTCTL, GIE)
          && ((HDA_REG(pThis, INTSTS) & ~HDA_INTSTS_FLAG_GIS) & HDA_REG(pThis, INTCTL)))
      {
@@ -35,7 +35,7 @@
  
          PDMDevHlpPCISetIrq(pThis->CTX_SUFF(pDevIns), 0, 1 /* Assert */);
          pThis->u8IRQL = 1;
-@@ -1404,7 +1406,9 @@
+@@ -1405,7 +1407,9 @@
      }
      else
      {
@@ -45,16 +45,28 @@
  
          PDMDevHlpPCISetIrq(pThis->CTX_SUFF(pDevIns), 0, 0 /* Deassert */);
          pThis->u8IRQL = 0;
-@@ -1867,7 +1871,7 @@
-                  pStream->u8SD, pThis->u16TimerHz, cTicksPerHz, pStream->State.cTicksPerByte,
-                  pStream->State.cbTransferChunk, pStream->State.cTransferTicks, pStream->State.cbTransferSize));
+@@ -1976,7 +1980,7 @@
+         /* Make sure to also update the stream's DMA counter (based on its current LPIB value). */
+         hdaStreamSetPosition(pThis, pStream, HDA_STREAM_REG(pThis, LPIB, pStream->u8SD));
  
 -#ifdef LOG_ENABLED
 +#ifdef DEBUG
          hdaBDLEDumpAll(pThis, pStream->u64BDLBase, pStream->u16LVI + 1);
  #endif
-         /*
-@@ -2658,7 +2662,7 @@
+     }
+@@ -2331,9 +2335,11 @@
+ 
+     const uint64_t u64WalClkNew = hdaWalClkGetCurrent(pThis);
+ 
++#ifdef VBOX_STRICT
+     Log3Func(("Cur: %RU64, New: %RU64 (force %RTbool) -> %RU64 %s\n",
+               u64WalClkCur, u64WalClk, fForce,
+               u64WalClkNew, u64WalClkNew == u64WalClk ? "[OK]" : "[DELAYED]"));
++#endif
+ 
+     return (u64WalClkNew == u64WalClk);
+ }
+@@ -2658,7 +2664,7 @@
      PHDASTREAM pStream = hdaStreamFromID(pThis, HDA_SD_NUM_FROM_REG(pThis, STS, iReg));
      if (!pStream)
      {
@@ -63,7 +75,7 @@
                           HDA_SD_NUM_FROM_REG(pThis, STS, iReg), u32Value));
  
          DEVHDA_UNLOCK_BOTH(pThis);
-@@ -3388,7 +3392,7 @@
+@@ -3474,7 +3480,7 @@
  }
  # endif /* HDA_USE_DMA_ACCESS_HANDLER */
  
@@ -72,16 +84,22 @@
  static void hdaBDLEDumpAll(PHDASTATE pThis, uint64_t u64BDLBase, uint16_t cBDLE)
  {
      LogFlowFunc(("BDLEs @ 0x%x (%RU16):\n", u64BDLBase, cBDLE));
-@@ -5074,7 +5078,7 @@
+@@ -5230,11 +5236,13 @@
+         RTCircBufReleaseReadBlock(pStrm->State.pCircBuf, 0 /* Don't advance read pointer -- see comment above */);
+     }
+ 
++#ifdef VBOX_STRICT
+     Log2Func(("[SD%RU8] LPIB=%RU32, CBL=%RU32, LVI=%RU32\n",
                pStrm->u8SD,
                HDA_STREAM_REG(pThis, LPIB, pStrm->u8SD), HDA_STREAM_REG(pThis, CBL, pStrm->u8SD), HDA_STREAM_REG(pThis, LVI, pStrm->u8SD)));
++#endif
  
 -#ifdef LOG_ENABLED
 +#ifdef DEBUG
      hdaBDLEDumpAll(pThis, pStrm->u64BDLBase, pStrm->u16LVI + 1);
  #endif
  
-@@ -5485,7 +5489,7 @@
+@@ -5645,7 +5653,7 @@
                      Log2Func(("[SD%RU8] LPIB=%RU32, CBL=%RU32, LVI=%RU32\n",
                                uStreamID,
                                HDA_STREAM_REG(pThis, LPIB, uStreamID), HDA_STREAM_REG(pThis, CBL, uStreamID), HDA_STREAM_REG(pThis, LVI, uStreamID)));
@@ -90,7 +108,7 @@
                      hdaBDLEDumpAll(pThis, pStrm->u64BDLBase, pStrm->u16LVI + 1);
  #endif
                  }
-@@ -5695,7 +5699,7 @@
+@@ -5855,7 +5863,7 @@
          Log2Func(("[SD%RU8] LPIB=%RU32, CBL=%RU32, LVI=%RU32\n",
                    uStreamID,
                    HDA_STREAM_REG(pThis, LPIB, uStreamID), HDA_STREAM_REG(pThis, CBL, uStreamID), HDA_STREAM_REG(pThis, LVI, uStreamID)));

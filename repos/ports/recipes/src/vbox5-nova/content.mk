@@ -23,10 +23,14 @@ $(MIRROR_FROM_REP_DIR):
 	$(mirror_from_rep_dir)
 
 # omit virtualbox5-rem binary (12 MiB) from binary archive
-content: disable_virtualbox_rem
+content: disable_virtualbox_rem disable_assertions
 
 disable_virtualbox_rem: $(MIRROR_FROM_REP_DIR)
 	rm src/virtualbox5/target.mk
+
+disable_assertions: $(MIRROR_FROM_REP_DIR)
+	rm lib/mk/virtualbox5-debug.inc
+	touch lib/mk/virtualbox5-debug.inc
 
 PORT_DIR := $(call port_dir,$(REP_DIR)/ports/virtualbox5)
 
