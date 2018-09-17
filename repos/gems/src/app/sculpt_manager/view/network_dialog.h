@@ -73,8 +73,8 @@ struct Sculpt::Network_dialog : Dialog
 	bool _selected_ap_unprotected() const;
 
 	void _gen_access_point(Xml_generator &, Access_point const &) const;
-	void _gen_connected_ap(Xml_generator &) const;
-	void _gen_access_point_list(Xml_generator &) const;
+	void _gen_connected_ap(Xml_generator &, bool) const;
+	void _gen_access_point_list(Xml_generator &, bool) const;
 
 	void generate(Xml_generator &) const;
 

@@ -75,7 +75,8 @@ bool Sculpt::Network_dialog::_selected_ap_unprotected() const
 
 bool Sculpt::Network_dialog::need_keyboard_focus_for_passphrase() const
 {
-	if (_wifi_connection.state == Wifi_connection::CONNECTED)
+	if (   _wifi_connection.state == Wifi_connection::CONNECTED
+	    || _wifi_connection.state == Wifi_connection::CONNECTING)
 		return false;
 
 	if (!_nic_target.wifi())
@@ -86,7 +87,8 @@ bool Sculpt::Network_dialog::need_keyboard_focus_for_passphrase() const
 }
 
 
-void Sculpt::Network_dialog::_gen_access_point_list(Xml_generator &xml) const
+void Sculpt::Network_dialog::_gen_access_point_list(Xml_generator &xml,
+                                                    bool auth_failure) const
 {
 	if (_wlan_config_policy == WLAN_CONFIG_MANUAL)
 		return;
@@ -121,7 +123,9 @@ void Sculpt::Network_dialog::_gen_access_point_list(Xml_generator &xml) const
 
 		if (ap.protection == Access_point::WPA_PSK) {
 			gen_named_node(xml, "label", "passphrase msg", [&] () {
-				xml.attribute("text", "Enter passphrase:"); });
+				xml.attribute("text", auth_failure ? "Enter passphrase (auth failure):"
+				                                   : "Enter passphrase:");
+			});
 
 			gen_named_node(xml, "frame", "passphrase", [&] () {
 				xml.node("float", [&] () {
@@ -160,7 +164,7 @@ void Sculpt::Network_dialog::_gen_access_point_list(Xml_generator &xml) const
 }
 
 
-void Sculpt::Network_dialog::_gen_connected_ap(Xml_generator &xml) const
+void Sculpt::Network_dialog::_gen_connected_ap(Xml_generator &xml, bool connected) const
 {
 	bool done = false;
 
@@ -185,7 +189,9 @@ void Sculpt::Network_dialog::_gen_connected_ap(Xml_generator &xml) const
 		                                      Access_point::UNKNOWN });
 
 	gen_named_node(xml, "label", "associated", [&] () {
-		xml.attribute("text", "associated"); });
+		xml.attribute("text", connected ? "associated"
+		                                : "connecting");
+	});
 }
 
 
@@ -243,9 +249,12 @@ void Sculpt::Network_dialog::generate(Xml_generator &xml) const
 						 */
 						if (_nic_target.wifi()) {
 							if (_wifi_connection.connected())
-								_gen_connected_ap(xml);
+								_gen_connected_ap(xml, true);
+							else if (_wifi_connection.connecting())
+								_gen_connected_ap(xml, false);
 							else
-								_gen_access_point_list(xml);
+								_gen_access_point_list(xml,
+								                       _wifi_connection.auth_failure());
 						}
 
 						/* append display of uplink IP address */

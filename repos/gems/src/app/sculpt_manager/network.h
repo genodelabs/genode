@@ -165,7 +165,7 @@ struct Sculpt::Network : Network_dialog::Action
 				xml.attribute("verbose_state", false);
 				xml.attribute("verbose",       false);
 
-				xml.node("accesspoint", [&]() {
+				xml.node("network", [&]() {
 					xml.attribute("ssid", ap.ssid);
 
 					/* for now always try to use WPA2 */
@@ -193,14 +193,14 @@ struct Sculpt::Network : Network_dialog::Action
 			xml.attribute("scan_interval", 10U);
 			xml.attribute("use_11n", false);
 
-			xml.node("accesspoints", [&]() {
-				xml.node("accesspoint", [&]() {
+			xml.attribute("verbose_state", false);
+			xml.attribute("verbose",       false);
 
-					/* generate attributes to ease subsequent manual tweaking */
-					xml.attribute("ssid", "");
-					xml.attribute("protection", "NONE");
-					xml.attribute("passphrase", "");
-				});
+			xml.node("network", [&]() {
+				/* generate attributes to ease subsequent manual tweaking */
+				xml.attribute("ssid", "");
+				xml.attribute("protection", "NONE");
+				xml.attribute("passphrase", "");
 			});
 		});
 

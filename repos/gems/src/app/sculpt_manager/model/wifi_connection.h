@@ -25,6 +25,8 @@ struct Sculpt::Wifi_connection
 
 	State state;
 
+	bool auth_failed;
+
 	Access_point::Bssid bssid;
 	Access_point::Ssid  ssid;
 
@@ -36,25 +38,35 @@ struct Sculpt::Wifi_connection
 		bool const connected =
 			node.has_sub_node("accesspoint") &&
 			node.sub_node("accesspoint").attribute("state").has_value("connected");
+		bool const connecting =
+			node.has_sub_node("accesspoint") &&
+			node.sub_node("accesspoint").attribute("state").has_value("connecting");
+		bool const auth_failed =
+			node.has_sub_node("accesspoint") &&
+			node.sub_node("accesspoint").attribute_value("auth_failure", false);
 
-		if (!connected)
+		if (!connected && !connecting)
 			return { .state = DISCONNECTED,
+			         .auth_failed = auth_failed,
 			         .bssid = Access_point::Bssid{},
 			         .ssid  = Access_point::Bssid{} };
 
 		Xml_node const ap = node.sub_node("accesspoint");
 
-		return { .state = CONNECTED,
+		return { .state = connected ? CONNECTED : CONNECTING,
+		         .auth_failed = false,
 		         .bssid = ap.attribute_value("bssid", Access_point::Bssid()),
 		         .ssid  = ap.attribute_value("ssid",  Access_point::Ssid()) };
 	}
 
 	static Wifi_connection disconnected_wifi_connection()
 	{
-		return Wifi_connection { DISCONNECTED, Access_point::Bssid{}, Access_point::Ssid{} };
+		return Wifi_connection { DISCONNECTED, false, Access_point::Bssid{}, Access_point::Ssid{} };
 	}
 
-	bool connected() const { return state == CONNECTED; }
+	bool connected()    const { return state == CONNECTED;  }
+	bool connecting()   const { return state == CONNECTING; }
+	bool auth_failure() const { return auth_failed;         }
 };
 
 #endif /* _MODEL__WIFI_CONNECTION_H_ */
