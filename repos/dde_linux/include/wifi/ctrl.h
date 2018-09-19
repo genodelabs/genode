@@ -23,7 +23,7 @@ extern "C" {
 struct Msg_buffer
 {
 	unsigned char recv[4096*8];
-	unsigned char send[1024];
+	unsigned char send[4096];
 	unsigned recv_id;
 	unsigned send_id;
 	unsigned char event[1024];

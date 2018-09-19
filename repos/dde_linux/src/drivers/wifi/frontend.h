@@ -44,10 +44,13 @@
 /* Genode includes */
 #include <libc/component.h>
 #include <base/attached_rom_dataspace.h>
+#include <base/heap.h>
 #include <base/log.h>
+#include <base/registry.h>
 #include <base/sleep.h>
 #include <os/reporter.h>
 #include <timer_session/connection.h>
+#include <util/interface.h>
 #include <util/xml_node.h>
 
 /* rep includes */
@@ -127,7 +130,7 @@ static bool list_network_results(char const *msg) {
 /*
  * Central network data structure
  */
-struct Accesspoint
+struct Accesspoint : Genode::Interface
 {
 	using Bssid = Genode::String<17+1>;
 	using Freq  = Genode::String< 4+1>;
@@ -251,48 +254,46 @@ struct Wifi::Frontend
 {
 	/* accesspoint */
 
-	enum { MAX_ACCESSPOINTS = 16, };
-	Accesspoint _aps[MAX_ACCESSPOINTS];
+	Genode::Heap _ap_allocator;
+
+	using Accesspoint_r = Genode::Registered<Accesspoint>;
+
+	Genode::Registry<Accesspoint_r> _aps { };
 
 	Accesspoint *_lookup_ap_by_ssid(Accesspoint::Ssid const &ssid)
 	{
-		for (Accesspoint &ap : _aps) {
-			if (ap.valid() && ap.ssid == ssid) { return &ap; }
-		}
-		return nullptr;
+		Accesspoint *p = nullptr;
+		_aps.for_each([&] (Accesspoint &ap) {
+			if (ap.valid() && ap.ssid == ssid) { p = &ap; }
+		});
+		return p;
 	}
 
 	Accesspoint *_lookup_ap_by_bssid(Accesspoint::Bssid const &bssid)
 	{
-		for (Accesspoint &ap : _aps) {
-			if (ap.valid() && ap.bssid == bssid) { return &ap; }
-		}
-		return nullptr;
+		Accesspoint *p = nullptr;
+		_aps.for_each([&] (Accesspoint &ap) {
+			if (ap.valid() && ap.bssid == bssid) { p = &ap; }
+		});
+		return p;
 	}
 
-	Accesspoint *_ap_slot()
+	Accesspoint *_alloc_ap()
 	{
-		for (Accesspoint &ap : _aps) {
-			if (!ap.valid()) { return &ap; }
-		}
-		return nullptr;
+		return new (&_ap_allocator) Accesspoint_r(_aps);
 	}
 
-	void _free_ap_slot(Accesspoint &ap)
+	void _free_ap(Accesspoint &ap)
 	{
-		ap.ssid  = Accesspoint::Ssid();
-		ap.bssid = Accesspoint::Bssid();
-		ap.freq  = Accesspoint::Freq();
-		ap.id    = -1;
+		Genode::destroy(&_ap_allocator, &ap);
 	}
 
 	template <typename FUNC>
 	void _for_each_ap(FUNC const &func)
 	{
-		for (Accesspoint &ap : _aps) {
-			if (!ap.valid()) { continue; }
+		_aps.for_each([&] (Accesspoint &ap) {
 			func(ap);
-		}
+		});
 	}
 
 	unsigned _count_to_be_enabled()
@@ -453,7 +454,7 @@ struct Wifi::Frontend
 				/* mark for updating */
 				p->update = true;
 			} else {
-				p = _ap_slot();
+				p = _alloc_ap();
 				if (!p) {
 					Genode::warning("could not add accesspoint, no slots left");
 					return;
@@ -646,11 +647,15 @@ struct Wifi::Frontend
 		}
 
 		enum { SSID_ARG_LEN = 64 + 5, /* "ssid " + "a5a5a5a5..." */ };
-		/* count * (SSID_ARG_LEN + " ") + NUL */
-		char ssid_buffer[MAX_ACCESSPOINTS * (SSID_ARG_LEN + 1) + 1] = { };
+		/* send buffer - 'SCAN ' + stuff */
+		char ssid_buffer[sizeof(Msg_buffer::send)-16] = { };
 		size_t buffer_pos = 0;
 
 		auto valid_ssid = [&] (Accesspoint const &ap) {
+
+			if (buffer_pos + SSID_ARG_LEN >= sizeof(ssid_buffer)) {
+				return;
+			}
 
 			if (!ap.explicit_scan) { return; }
 
@@ -760,12 +765,11 @@ struct Wifi::Frontend
 
 		if (_processed_ap) { return; }
 
-		for (Accesspoint &ap : _aps) {
-			if (ap.valid() && ap.stale) {
+		_aps.for_each([&] (Accesspoint &ap) {
+			if (!_processed_ap && ap.valid() && ap.stale) {
 				_processed_ap = &ap;
-				break;
 			}
-		}
+		});
 
 		if (!_processed_ap) {
 			/* TODO move State transition somewhere more sane */
@@ -791,12 +795,11 @@ struct Wifi::Frontend
 
 		if (_processed_ap) { return; }
 
-		for (Accesspoint &ap : _aps) {
-			if (ap.valid() && ap.stored() && ap.update) {
+		_aps.for_each([&] (Accesspoint &ap) {
+			if (!_processed_ap && ap.stored() && ap.update) {
 				_processed_ap = &ap;
-				break;
 			}
-		}
+		});
 
 		if (!_processed_ap) { return; }
 
@@ -819,12 +822,11 @@ struct Wifi::Frontend
 
 		if (_processed_ap) { return; }
 
-		for (Accesspoint &ap : _aps) {
-			if (ap.valid() && !ap.stored()) {
+		_aps.for_each([&] (Accesspoint &ap) {
+			if (!_processed_ap && ap.valid() && !ap.stored()) {
 				_processed_ap = &ap;
-				break;
 			}
-		}
+		});
 
 		if (!_processed_ap) {
 			/* XXX move State transition somewhere more sane */
@@ -850,13 +852,12 @@ struct Wifi::Frontend
 
 		if (_processed_ap) { return; }
 
-		for (Accesspoint &ap : _aps) {
-			if (    ap.valid()
+		_aps.for_each([&] (Accesspoint &ap) {
+			if (   !_processed_ap && ap.valid()
 			    && !ap.enabled && ap.auto_connect) {
 				_processed_ap = &ap;
-				break;
 			}
-		}
+		});
 
 		if (!_processed_ap) {
 
@@ -880,12 +881,12 @@ struct Wifi::Frontend
 
 		if (_processed_ap) { return; }
 
-		for (Accesspoint &ap : _aps) {
-			if (ap.valid() && ap.enabled && !ap.auto_connect) {
+		_aps.for_each([&] (Accesspoint &ap) {
+			if (   !_processed_ap && ap.valid()
+			    && ap.enabled && ap.auto_connect) {
 				_processed_ap = &ap;
-				break;
 			}
-		}
+		});
 
 		if (!_processed_ap) {
 			/* XXX move State transition somewhere more sane */
@@ -988,7 +989,7 @@ struct Wifi::Frontend
 			if (cmd_fail(msg)) {
 				Genode::error("could not remove network: ", msg);
 			} else {
-				_free_ap_slot(*_processed_ap);
+				_free_ap(*_processed_ap);
 
 				/* trigger the next round */
 				_processed_ap = nullptr;
@@ -1529,6 +1530,7 @@ struct Wifi::Frontend
 	 */
 	Frontend(Genode::Env &env)
 	:
+		_ap_allocator(env.ram(), env.rm()),
 		_rfkill_handler(env.ep(), *this, &Wifi::Frontend::_handle_rfkill),
 		_config_rom(env, "wifi_config"),
 		_config_sigh(env.ep(), *this, &Wifi::Frontend::_handle_config_update),
