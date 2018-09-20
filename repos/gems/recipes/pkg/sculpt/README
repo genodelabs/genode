@@ -1,8 +1,8 @@
 
 
-                      ===========================
-                      Sculpt for The Curious (TC)
-                      ===========================
+                   ===================================
+                   Sculpt with Visual Composition (VC)
+                   ===================================
 
 
                                Norman Feske
@@ -47,29 +47,25 @@ Your feedback is appreciated!
   [https://www.genode-labs.com]
 
 A printable PDF version of this document is available at
-[https://genode.org/documentation/sculpt-tc.pdf].
+[https://genode.org/documentation/sculpt-vc.pdf].
 
 
 Prerequisites
 #############
 
-Sculpt for The Curious (TC) is the second of four revisions planned for 2018
-with a successively increased ease of use. In constrast to the initial version,
-it introduces a graphical user interface for performing fundamental tasks like
-connecting to a wireless network.
-
-Sculpt TC expects that you already know your way around Genode's source tree
-and tool chain. Should this not be the case, please consider the "Getting
-started" section of the Genode Foundations book that is available as a free
-download at [https://genode.org].
+Sculpt with Visual Composition (VC) is the third of four revisions planned for
+2018 with a successively increased ease of use. It features a graphical user
+interface for performing fundamental tasks like connecting to a wireless
+network, or installing and running software from packages. However, the full
+power of the system is accessible only via a textual interface.
 
 
-Vim skills required
-===================
+Vim skills recommended
+======================
 
-Sculpt TC leverages (a subset of) GNU coreutils, bash, and Vim as the user
+Sculpt VC leverages (a subset of) GNU coreutils, bash, and Vim as the user
 interface for sculpting the system. If you are not yet familiar with using
-Vim, you may take Sculpt TC as a welcome chance to get your toes wet. To
+Vim, you may take Sculpt VC as a welcome chance to get your toes wet. To
 enjoy the experience, you should be comfortable with the following
 operations:
 
@@ -88,13 +84,13 @@ operations:
 Hardware requirements and preparations
 ======================================
 
-Sculpt TC should be compatible with recent Intel-based PC hardware
+Sculpt VC should be compatible with recent Intel-based PC hardware
 featuring Intel graphics, E1000 networking, Intel wireless, and AHCI.
 
 It is tested best on laptops of the Lenovo X and T series (X220, X250,
-X260, T430, T460). For experimenting with Sculpt, we recommend getting a
+X260, T430, T460, T470). For experimenting with Sculpt, we recommend getting a
 refurbished version of one of these. You may also find the unofficial
-hardware compatibility list [http://usr.sysret.de/jws/genode/hcl.html]
+hardware compatibility list [https://usr.sysret.de/jws/genode/hcl.html]
 helpful for finding Genode-compatible hardware.
 
 Sculpt has been tested with screen resolutions up to 2560 x 1440. Displays
@@ -111,12 +107,12 @@ Please revisit the BIOS settings of your machine in the following respects:
 
 :Boot from USB enabled: Sculpt is usually booted from a USB stick.
 
-:UEFI boot enabled: Sculpt TC boots via UEFI by default. The boot image
+:UEFI boot enabled: Sculpt boots via UEFI by default. The boot image
   is specially prepared such that it can be started via legacy boot on older
   machines. However, booting it via legacy boot on a modern machine is
   hit or miss.
 
-:UEFI secure boot disabled: The Sculpt TC boot image is not cryptographically
+:UEFI secure boot disabled: The Sculpt boot image is not cryptographically
   signed.
 
 :Optimize for performance when battery powered: If the latter is not set,
@@ -124,54 +120,110 @@ Please revisit the BIOS settings of your machine in the following respects:
   battery).
 
 
-Building the boot image
-#######################
+Getting a first impression
+##########################
 
-The following steps assume that you have the Genode tool chain installed on a
-GNU/Linux system. For reference, Ubuntu 16.04 is known to work well.
+Sculpt is best explored by first booting the prebuilt disk image downloadable
+from [https://genode.org/download/sculpt].
+Right after booting the system, Sculpt's system-management user interface
+("Leitzentrale") appears. The menu on the left provides convenient access to
+the connected storage devices and the network configuration. The center
+displays a live graph (runtime view) of the running components and their
+relationships. On the right, diagnostic messages are presented.
 
-# Clone Genode's Git repository:
+# Select the in-memory file system as default storage location by clicking
+  on the "ram" item of the "Storage" dialog and enabling the "Use" button.
+  This instructs Sculpt that installed software is stored in memory without
+  accessing any real storage device.
 
-  ! git clone https://github.com/genodelabs/genode.git
-  ! cd genode
-  ! git checkout 18.05
+# Enable networking in the "Network" dialog by selecting the "Wired" or
+  "Wifi" option. In the latter case, select an access point and enter the
+  corresponding passphrase (if needed). The successful network connection is
+  indicated by the IP address displayed at the bottom of the network dialog.
 
-# Download the support for the NOVA microkernel
+# With a storage location selected and network connectivity, it is
+  time to install and start additional components by clicking on the '+'
+  button of the runtime view and selecting a component from the
+  context menu. When started for the first time, the ingredients of the
+  selected subsystem are downloaded to the "used" storage location.
+  Once the download is complete, the subsystem is started. As a
+  first try, select the "backdrop" item. You can follow the progress of the
+  installation procedure in the "Runtime" dialog. Once the installation is
+  complete, you should notice a slight visual change.
 
-  ! ./tool/depot/download genodelabs/bin/x86_64/base-nova/2018-06-12
+# Press F12 to toggle between the Leitzentrale and the actual runtime.
+  Now, the backdrop should become visible in full glory.
 
-  The content is downloaded to the _public/_ directory and extracted to
-  the _depot/_ directory.
+# Try adding additional components by selecting items in the "+" context
+  menu of the runtime view. Most components expect the presence of a
+  window manager. Hence, you should first select "wm". Please pay attention
+  to diagnostic messages given in the runtime dialog on the left. Whenever
+  a component depends on another one, a corresponding message appears.
 
-# Download all ingredients for the Sculpt boot image
+# You may click on any component in the runtime view to reveal additional
+  information such as its memory usage. For components that you started
+  manually, a remove button is displayed.
 
-  ! ./tool/depot/download genodelabs/pkg/x86_64/sculpt/2018-06-12
+The following example subsystems are available from the "+" menu:
 
-# Create a build directory
+:'fonts_fs': A file-system server that transforms TrueType fonts into
+  glyph images, which become thereby accessible as virtual files.
+  This provides a hook for customizing the font size of any component that
+  uses the font server, and relieves components from depending on a specific
+  font-rendering library. According to the '<route>' information, its
+  configuration is taken from _/config/managed/fonts_. The 'fonts_fs'
+  is used by the graphical terminal of the noux subsystem and the 'top_view'
+  application.
 
-  ! ./tool/create_builddir x86_64
+:'wm': A window manager that displays clients in windows that can be arranged
+  with the mouse.
 
-# Configure the build directory by editing _build/x86_64/etc/build.conf_.
-  Most importantly, enable the 'gems' source-code repository where the
-  Sculpt scenario resides. In addition, the 'ports', 'dde_linux' and 'dde_ipxe'
-  repository are needed as well. Second, change the default configuration
-  of the 'QEMU_RUN_OPT' variable to 'image/disk' instead of 'image/iso'.
-  This way, the build process will produce a valid disk image with a GPT
-  partition table instead of a legacy ISO image.
+:'backdrop': A wallpaper that adjusts itself to any screen size.
 
-# Create the Sculpt boot image (defined by the run script at
-  _repos/gems/run/sculpt.run_)
+:'nano3d': A simple software-rendering demo, which can be adjusted at runtime
+  by modifying its configuration via the textual interface described in
+  Section [Runtime management]. For example, by adding a custom config node
+  directly inside the '<start>' node, the appearance can be changed on the fly:
+  ! <config painter="shaded" shape="cube"/>
 
-  ! make -C build/x86_64 run/sculpt KERNEL=nova
+:'noux-system': A noux instance with a graphical terminal, similar to the
+  inspect window of the Leitzentrale. Note the routing of the various
+  file-system sessions when selecting the component in the runtime view.
 
-  The boot image is created at _build/x86_64/var/run/sculpt.img_.
+:'shared_fs': A file-system server that provides the _/shared_ sub directory
+  of the Sculpt file system as a new file system. A client of this server
+  will not see any other parts of the file system.
 
-# Write the boot image to a USB stick:
+:'usb_devices_rom': A hook for assigning USB devices to a virtual machine,
+  explained in Section [Updating the USB boot device from within VirtualBox].
 
-  ! sudo dd if=build/x86_64/var/run/sculpt.img of=/dev/sdx bs=1M conv=fsync
+:'vm_fs': A file-system server that provides the _/vm/debian/_ sub directory
+  of the Sculpt file system as a new file system. It is explained in Section
+  [Hosting a guest operating system].
 
-  Here, '/dev/sdx' refers to the device node of your USB stick. To determine
-  it, you may inspect the output of 'dmesg' after plugging it in.
+:'top_view': An application that shows the CPU load, similar to 'top'.
+
+:'2048': A _Threes!_ inspired puzzle game running in a native Libretro runtime.
+
+:'vbox5-tc-browser': A throw-away virtual machine for running Firefox on
+  TinyCore Linux. It uses VirtualBox as virtual-machine monitor.
+
+:'seoul-tc-browser': The same virtual machine as 'vbox5-tc-browser' but
+  executed inside the light-weight Seoul virtual-machine monitor.
+
+:'config_editor': Qt5-based text editor that is explicitly granted access to
+  the config file system.
+
+:'arora': Qt5-based web browser, which does not touch any persistent file
+  system.
+
+:'acpica': ACPI driver, which reports power-management state to
+  _/report/runtime/acpica/_ and responds to changes of the _/config/system_
+  state.
+
+:'report_dump': A subsystem that periodically copies the content of the
+  report file system to the default file system. Please refer to Section
+  [Sculpt as a hardware-probing instrument] for more information.
 
 
 Base system
@@ -183,8 +235,8 @@ advantages. First, it makes the update of the base system straight-forward
 and completely risk-free. Simply install the new version on a second USB
 stick. Should the new version cause any trouble, one can fall back to the
 original one by swapping the USB sticks. Second, it alleviates the need to
-install any boot-loader infrastructure on disk. In fact, we will not create
-a partition table and use the entire disk as one file system.
+install any boot-loader infrastructure on disk. In fact, one can use an
+entire disk as one file system without creating a partition table.
 
 _Note that Genode is not limited to booting from USB. It also supports_
 _the use of partitions. But for this guide, we keep things as simple as_
@@ -275,7 +327,7 @@ Whenever an Intel graphics device is present, the Intel framebuffer driver
 is spawned. Otherwise, a generic VESA driver or a driver for a
 boot-time-initialized framebuffer is used.
 
-Several components of the drivers subsystem report their state. E.g., when
+Several components of the drivers subsystem report their state. For example, when
 the Intel framebuffer is used, it reports the list of connectors present.
 Most importantly, the driver manager reports the available block devices.
 
@@ -304,6 +356,9 @@ connectivity. Most importantly, however, it allows the user to spawn an
 interactive shell for manual _config_ and _report_ file
 systems access. To spawn this command-line interface, click on the "ram" item from
 the menu and select "Inspect".
+While inspecting file systems, the inspect window replaces the runtime view.
+However, both views can be toggled by clicking on the title of the storage dialog
+for the inspect window, or any other dialog for the runtime view.
 
 [image noux 45%]
   Noux runtime environment for executing Unix tools
@@ -375,9 +430,7 @@ displays and their supported resolutions by taking a look at the report at
 _/report/drivers/dynamic/intel_fb_drv/connectors_. This report is updated
 whenever a display is connected or disconnected. You can use this
 information to enable or disable a display in the driver's configuration,
-which you can find at _/config/fb_drv_. Please don't forget to
-correctly specify all attributes including the 'hz' attribute. Otherwise,
-the driver will not consider the '<connector>' setting.
+which you can find at _/config/fb_drv_.
 
 For a quick test, change the attribute 'height="768"' to 'force_height="768"'
 (you may modify 'width' analogously). When saving the file, the screen
@@ -416,8 +469,8 @@ Analogously to the drivers subsystem, you can find the construction plan
 for the Leitzentrale subsystem at _/config/leitzentrale_. Try out
 the following tweaks:
 
-* Change the transparency of the two noux instances by modifying the
-  'alpha' attribute of the 'fader' component.
+* Change the transparency of the Leitzentrale by modifying the 'alpha'
+  attribute of the 'fader' component.
 
 * Change the font size of the 'log_terminal' component from "10"
   to "18".
@@ -433,51 +486,76 @@ Runtime management
 
 [image sculpt_runtime_highlighted]
 
-So far, we have not lost any words on the third subsystem called
-"runtime" that exists besides the drivers and Leitzentrale subsystems.
-The runtime subsystem has no predefined purpose but can be filled with
-life at your wish.
+In contrast to the drivers subsystem and the Leitzentrale, which have a
+predefined purpose, the runtime subsystem is shaped by the user. The
+components present in the runtime subsystem are displayed by the runtime view.
+Some of them are managed by the Leitzentrale. For example, while inspecting a
+file system, the corresponding "inspect", "inspect_terminal", and
+"inspect_noux" components appear automatically. Other components correspond to
+subsystems deployed from installed packages, in particular the ones created
+via the runtime view's "+" menu.
 
-Analogously to the drivers subsystem, the current configuration of the runtime
-subsystem is located at _/config/runtime_. Where the initial Sculpt EA
-version required the user to control the runtime configuration manually,
-Sculpt TC automates these steps through the interactive Sculpt manager that is
-hosted in the Leitzentrale subsystem. You can click on any of those items to
-reveal possible operations of the selected item.
+The current configuration of the runtime subsystem is available at
+_/config/managed/runtime_. It is not recommended to modify this file manually.
+However, in some situations, it is useful to take manual control over
+the runtime configuration. This is possible by copying the file to
+_config/runtime_. Note that this will inhibit the management functionality
+of the Leitzentrale. You can yield back the control to the Leitzentrale by
+removing the _/config/runtime_ file.
 
-For the start, it is best to experiment with the "ram" in-memory file system.
-In the previous section, we have already launched the inspect window via the
-"Inspect" button of the in-memory file system. By additionally selecting the
-"Use" button, we tell the Sculpt manager that we intent to use this file
-system as storage location for the Sculpt session. This has two immediate
-effects. First, any files present at _config/<version>/_ at the selected file
-system are copied to the config file system. As the RAM file system is empty,
-no files are copied. Second, the so-called _depot/_ is initialized at the
-selected file system. The depot is the designated place for the installation
-of software packages. By default, the depot is initialized such that the
-Sculpt system accepts software published by Genode's core developers. You may
-inspect the content of _/ram/depot_ using the inspect window.
+As a prerequisite for deploying user-selected components, a default storage
+location must be defined by selecting the "Use" button of a file system
+in the menu. For the start, it is best to select the "ram" file system as
+storage location. Once you are comfortable with Sculpt, you may make the
+installation and customizations permanent by using a real storage device
+instead.
+The selection of a "used" file system has two immediate effects. First, any
+files present at _config/<version>/_ at the selected file system are copied to
+the config file system. As the RAM file system is empty, no files are copied.
+Second, the so-called _depot/_ is initialized at the selected file system. The
+depot is the designated place for the installation of software packages. By
+default, the depot is initialized such that the Sculpt system accepts software
+published by Genode's core developers. You may inspect the content of
+_/ram/depot_ using the inspect window.
 
-The second dialog of the menu presents options for network connectivity.
-In order to install any software packages, one needs to select either
-"Wired" or "Wifi". In the latter case, one is prompted with the selection
-of an access point and the WPA passphrase (if needed). Once connected, the
-network dialog displays the IP address of the machine.
+With a file system and an Internet connection selected, additional software
+can be installed and run. The primary interface for software installation and
+deployment is the _/config/deploy_ file and the so-called launchers located at
+_/config/launcher/_. The deploy file contains a number of commented-out
+template snippets for various subsystems. As a first test, uncomment the
+'<start>' entries for the _fonts_fs_, _wm_, and _backdrop_. When saving the
+file, the Sculpt manager will automatically kick off the download of the
+selected packages and its dependencies and thereby populate the depot. Once
+the download has completed, the packages are started.
 
-With a file system selected and an Internet connection, it is time to
-install and run additional software. The interface for software installation
-and deployment is the _/config/deploy_ file. It contains a number of
-commented-out template snippets for various subsystems. As a first test,
-uncomment the '<start>' entries for the _fonts_fs_, _wm_, and _backdrop_.
-When saving the file, the Sculpt manager will automatically kick off the
-download of the selected packages and its dependencies and thereby
-populate the depot. Once the download has completed, the packages are
-started. Pay special attention to the '<route>' definitions. They define
-how the respective subsystem is connected to other parts of the system.
-For example, by default, the backdrop is directly connected to the nitpicker
-GUI server of the base system (parent). By changing the route from '<parent/>'
-to '<child name="wm"/>' the backdrop subsystem will be connected to the window
-manager instead.
+Each '<start>' node refers a launcher according to the 'name' attribute. It is
+possible to explicitly refer to a differently named launcher by specifying a
+'launcher' attribute. This way, one launcher can be instantiated multiple
+times. Pay special attention to the '<route>' definitions in the launchers.
+They define how the respective subsystem is connected to other parts of the
+system. For example, by default, the launcher for the backdrop connects the
+component directly to the nitpicker GUI server of the base system (parent). By
+changing the route from '<parent/>' to '<child name="wm"/>' the backdrop
+subsystem will be connected to the window manager instead.
+The files at _/config/launcher/_ are monitored by Sculpt and therefore can be
+edited on the fly. This is especially useful for editing '<config>' nodes.
+
+A '<config>' node within a launcher - when present - overrides the one
+provided by the package. In turn, a '<config>' node within a node of the
+deploy config overrides any other '<config>' node. Both the launcher and a
+'<start>' node may contain a '<route>' node. The routing rules defined in the
+'<start>' node have precedence over the ones defined by the launcher. This
+way, the routing of a launcher can be parameterized at the deploy
+configuration.
+
+Under the hood, the deployment is not directly controlled by _/config/deploy_.
+Instead, Sculpt incorporates the user interaction with the runtime view and
+the information provided by _/config/deploy_ into the actually used deploy
+configuration at _/config/managed/deploy_. Note that any modification of
+_/config/deploy_ resets _/config/managed/deploy_ to the state defined
+in _/config/deploy_. To preserve interactive changes, you may copy
+_/config/managed/deploy_ to _/config/deploy_ before tweaking _/config/deploy_
+manually.
 
 
 Storage device access and preparation
@@ -485,7 +563,7 @@ Storage device access and preparation
 
 Whereas the RAM file system is practical for quick tests, it goes without
 saying that we want to persistently store data, programs, and configuration
-information on a storage device. Sculpt TC supports SATA disks, NVMe devices,
+information on a storage device. Sculpt supports SATA disks, NVMe devices,
 and USB-storage devices. The storage dialog lists all devices detected by
 the drivers subsystem. A click on a device reveals possible operations or -
 if a partition table is present - more details about the device structure.
@@ -546,70 +624,14 @@ the last partition of the Sculpt USB stick can be marked as default or
 non-default using this button.
 
 
-Examples
-########
-
-The _config/deploy_ file contains several example subsystems that are
-installed on demand when uncommenting the corresponding '<start>' nodes.
-
-:'fonts_fs': A file-system server that transforms TrueType fonts into
-  glyph images, which become thereby accessible as virtual files.
-  This provides a hook for customizing the font size of any component that
-  uses the font server, and relieves components from depending on a specific
-  font-rendering library. According to the '<route>' information, its
-  configuration is taken from _/config/managed/fonts_. The 'fonts_fs'
-  is used by the graphical terminal of the noux subsystem and the 'top_view'
-  application.
-
-:'wm': A window manager that displays clients in windows that can be arranged
-  with the mouse.
-
-:'backdrop': A wallpaper that adjusts itself to any screen size.
-
-:'nano3d': A simple software-rendering demo, which can be adjusted at runtime
-  by modifying its configuration. E.g., by adding a custom config node
-  directly inside the '<start>' node, the appearance can be changed on the fly:
-  ! <config painter="shaded" shape="cube"/>
-
-:'noux': A noux instance with a graphical terminal, similar to the
-  inspect window of the leitzentrale. Note the routing of the various
-  file-system sessions.
-
-:'shared_fs': A file-system server that provides the _/shared_ sub directory
-  of the Sculpt file system as a new file system. A client of this server
-  won't see any other parts of the file system.
-
-:'usb_devices_rom': A hook for assigning USB devices to a virtual machine,
-  explained in Section [Updating the USB boot device from within VirtualBox].
-
-:'vm_fs': A file-system server that provides the _/vm/debian/_ sub directory
-  of the Sculpt file system as a new file system. It is explained in Section
-  [Hosting a guest operating system].
-
-:'top_view': An application that shows the CPU load, similar to 'top'.
-
-:'2048': A _Threes!_ inspired puzzle game running in a native Libretro runtime.
-
-:'vbox5-tc-browser': A throw-away virtual machine for running Firefox on
-  TinyCore Linux. It uses VirtualBox as virtual-machine monitor.
-
-:'seoul-tc-browser': The same virtual machine as 'vbox5-tc-browser' but
-  executed inside the light-weight Seoul virtual-machine monitor.
-
-:'qt5_textedit': Qt5-based text editor that is explicitly granted access to
-  the config file system. You may change the route to other file-system
-  services. For example, by specifying '<child name="shared_fs"/>' instead of
-  '<parent label="config"/>' you can edit the shared folder of 'vm' subsystem.
-
-
 Hosting a guest operating system
 ################################
 
-The default deploy configuration found at _/config/deploy_ contains all the
-pieces needed to host a virtual machine on top of Sculpt. A virtual machine
-(VM) is a convenient stop-gap solution for running programs that are not yet
-available natively on Genode. It ultimately enables us to use Sculpt as
-day-to-day OS today.
+The default deploy configuration found at _/config/deploy_ and the launcher
+at _/config/launcher/vm_ contain all the pieces needed to host a virtual
+machine on top of Sculpt. A virtual machine (VM) is a convenient stop-gap
+solution for running programs that are not yet available natively on Genode.
+It ultimately enables us Genode developers to use Sculpt as day-to-day OS.
 
 By convention, we host the content of each VM in a dedicated
 directory _/vm/<guest-os>/_ at the file system. The VM directory contains
@@ -686,7 +708,7 @@ Advanced usage
 Manual configuration
 ====================
 
-Thanks to the Sculpt manager component of the Leitzentrale, many typical
+Thanks to the Sculpt-manager component of the Leitzentrale, many typical
 work flows and configuration tweaks are largely automated. For example,
 
 * The management of storage devices,
@@ -728,12 +750,65 @@ Examples of manual customization are:
   additional reporting when troubleshooting.
 * Manually defining the default font sizes by creating a custom _config/fonts_
   configuration.
-* Managing Wifi credentials manually by supplying a custom _config/wlan_ file.
+* Managing Wifi credentials manually by supplying a custom _config/wifi_ file.
 
 To revert any manual customization, delete the corresponding file. In this
 case, the Sculpt manager will take over again. Note that all manual
 customizations can be made permanent by following the steps explained in
 Section [Making customizations permanent].
+
+
+Building the boot image
+=======================
+
+The following steps assume that you have the Genode tool chain installed on a
+GNU/Linux system. For reference, Ubuntu 16.04 is known to work well. If you
+don't know your way around Genode's source tree yet, please consider the
+"Getting started" section of the Genode Foundations book that is available as
+a free download at [https://genode.org].
+
+# Clone Genode's Git repository:
+
+  ! git clone https://github.com/genodelabs/genode.git
+  ! cd genode
+  ! git checkout -b sculpt_vc sculpt_vc
+
+# Download the support for the NOVA microkernel
+
+  ! ./tool/depot/download genodelabs/bin/x86_64/base-nova/2018-09-19
+
+  The content is downloaded to the _public/_ directory and extracted to
+  the _depot/_ directory.
+
+# Download all ingredients for the Sculpt boot image
+
+  ! ./tool/depot/download genodelabs/pkg/x86_64/sculpt/2018-09-21
+
+# Create a build directory
+
+  ! ./tool/create_builddir x86_64
+
+# Configure the build directory by editing _build/x86_64/etc/build.conf_.
+  Most importantly, enable the 'gems' source-code repository where the
+  Sculpt scenario resides. In addition, the 'ports', 'dde_linux' and 'dde_ipxe'
+  repository are needed as well. Second, change the default configuration
+  of the 'QEMU_RUN_OPT' variable to 'image/disk' instead of 'image/iso'.
+  This way, the build process will produce a valid disk image with a GPT
+  partition table instead of a legacy ISO image.
+
+# Create the Sculpt boot image (defined by the run script at
+  _repos/gems/run/sculpt.run_)
+
+  ! make -C build/x86_64 run/sculpt KERNEL=nova
+
+  The boot image is created at _build/x86_64/var/run/sculpt.img_.
+
+# Write the boot image to a USB stick:
+
+  ! sudo dd if=build/x86_64/var/run/sculpt.img of=/dev/sdx bs=1M conv=fsync
+
+  Here, '/dev/sdx' refers to the device node of your USB stick. To determine
+  it, you may inspect the output of 'dmesg' after plugging it in.
 
 
 Reproducing the system from source
@@ -802,7 +877,14 @@ The current version of the 'sculpt-installation' can be obtained via
 
 The first part is the version. The second part is the content hash of the
 version. For more information about working with the depot tool, refer to
-[http://genode.org/documentation/developer-resources/package_management].
+[https://genode.org/documentation/developer-resources/package_management].
+
+The launchers integrated in the boot image are defined at
+_gems/run/sculpt/launcher/_. Each file contains a node with a mandatory pkg
+attribute. If the attribute value contains one or more '/' characters, it is
+assumed to be a complete pkg path of the form '<user>/pkg/<name>/<version>'.
+Otherwise it is assumed to be just the pkg name and is replaced by the current
+version of the current depot user's pkg at system-integration time.
 
 
 Updating the USB boot device from within VirtualBox
@@ -812,18 +894,45 @@ The _/config/deploy_ example is prepared to assign USB storage
 devices directly to a running virtual machine. You may inspect the report
 _/report/drivers/usb_active_config_ to get a list of attached USB devices.
 Use Vim to copy the '<policy>' node of the selected device into the
-'<inline>' section of the 'usb_devices_rom' start node within your
-_/config/deploy/config_, and adjust the line as follows:
+'<inline>' section within the _/config/launcher/usb_devices_rom_ file, and
+adjust the line as follows:
 
 * Replace the node type '<policy>' by '<device>', and
 * Rename the attribute 'label_suffix' to 'label'.
 
 The updated 'usb_devices' ROM prompts VirtualBox to open a USB session at
 the drivers subsystem. Hence, when saving the modified
-_/config/deploy_ file, the guest OS should detect a new USB device
-(check the output of 'dmesg'). You may now write a new version of the
+_/config/launcher/usb_devices_rom_ file, the guest OS should detect a new USB
+device (check the output of 'dmesg'). You may now write a new version of the
 Sculpt ISO image to the device by following the steps described in Section
 [Building the boot image].
+
+
+Sculpt as a hardware-probing instrument
+=======================================
+
+Sculpt can be used as a convenient tool for probing Genode's compatibility
+with new hardware via the so-called 'report_dump' subsystem, which
+periodically copies the content of Sculpt's report file system to the default
+file system.
+
+First, a USB stick with a fresh Sculpt image is booted on a fully supported
+machine. The user then customizes the USB stick within the running system by
+expanding the USB stick's Genode partition, setting it as the default
+storage location, and deploying the 'report_dump' subsystem. The last step
+triggers the installation of the 'report_dump' package onto the USB stick.
+Finally, the user copies the deploy configuration from the in-memory config
+file system (_/config/deploy_) to the USB stick
+(_/usb-<N>/config/<VERSION>/deploy_). When booting this prepared USB stick,
+this deployment configuration becomes active automatically. At this point, the
+Sculpt system will copy a snapshot of the report file system to the Genode
+partition of the USB stick every 10 seconds. The snapshots captured on
+the USB stick can later be analyzed on another machine.
+
+The snapshots not only contain all log messages (_/report/log_) but also the
+reports generated by various components of the drivers subsystem and any other
+deployed components. For example, with 'acpica' present in the deploy configuration,
+the battery state is captured as well.
 
 
 Credits
