@@ -368,7 +368,7 @@ struct Wifi::Frontend
 	bool _deferred_config_update { false };
 	bool _single_autoconnect     { false };
 
-	unsigned _connected_scan_interval { 15 };
+	unsigned _connected_scan_interval { 30 };
 	unsigned _scan_interval           {  5 };
 
 	void _config_update(bool signal)
@@ -385,15 +385,23 @@ struct Wifi::Frontend
 		/* only evaluated at start-up */
 		_use_11n = config.attribute_value("use_11n", _use_11n);
 
-		_connected_scan_interval =
+		unsigned connected_scan_interval =
 			Util::check_time(config.attribute_value("connected_scan_interval",
 			                                        _connected_scan_interval),
 			                 0, 15*60);
 
-		_scan_interval =
+		unsigned scan_interval =
 			Util::check_time(config.attribute_value("scan_interval",
 			                                        _scan_interval),
 			                 5, 15*60);
+
+		if (   connected_scan_interval > _connected_scan_interval
+		    || scan_interval > _scan_interval) {
+			_arm_scan_timer(_connected_ap.bssid_valid());
+		}
+
+		_connected_scan_interval = connected_scan_interval;
+		_scan_interval           = scan_interval;
 
 		/*
 		 * Always handle rfkill, regardless in which state we are currently in.
@@ -635,7 +643,10 @@ struct Wifi::Frontend
 			return;
 		}
 
-		_arm_scan_timer(_connected_ap.bssid_valid());
+		/* scanning was disabled, ignore current request */
+		if (!_arm_scan_timer(_connected_ap.bssid_valid())) {
+			return;
+		}
 
 		/* skip as we will be scheduled some time soon(tm) anyway */
 		if (_state != State::IDLE) { return; }
@@ -678,10 +689,10 @@ struct Wifi::Frontend
 		_submit_cmd(Cmd_str("SCAN ", (char const*)ssid_buffer));
 	}
 
-	void _arm_scan_timer(bool connected)
+	bool _arm_scan_timer(bool connected)
 	{
 		unsigned const sec = connected ? _connected_scan_interval : _scan_interval;
-		if (!sec) { return; }
+		if (!sec) { return false; }
 
 		if (_verbose) {
 			Genode::log("Arm ", connected ? "connected " : "",
@@ -689,6 +700,7 @@ struct Wifi::Frontend
 		}
 
 		_scan_timer.trigger_once(sec * (1000 * 1000));
+		return true;
 	}
 
 	Genode::Constructible<Genode::Reporter> _ap_reporter;
