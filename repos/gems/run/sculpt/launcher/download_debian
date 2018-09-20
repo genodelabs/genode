@@ -1,4 +1,4 @@
-<launcher pkg="cnuke/pkg/download_debian/18.08">
+<launcher pkg="cnuke/pkg/download_debian/18.09">
 	<route>
 		<service name="File_system" label="target"> <child name="vm_fs"/> </service>
 		<service name="File_system" label="fonts">  <child name="fonts_fs"/> </service>
