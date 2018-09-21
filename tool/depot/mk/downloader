@@ -41,8 +41,8 @@ include $(GENODE_DIR)/tool/depot/mk/gpg.inc
 
 $(DEPOT_DIR)/% : $(PUBLIC_DIR)/%.tar.xz $(PUBLIC_DIR)/%.tar.xz.sig
 	$(VERBOSE)pubkey_file=$(DEPOT_DIR)/$(call archive_user,$*)/pubkey; \
-	          gpg --yes -o $$pubkey_file.dearmored --dearmor $$pubkey_file; \
-	          ( gpg --no-tty --no-default-keyring \
+	          $(GPG) --yes -o $$pubkey_file.dearmored --dearmor $$pubkey_file; \
+	          ( $(GPG) --no-tty --no-default-keyring \
 	                --keyring $$pubkey_file.dearmored \
 	                --verify $(PUBLIC_DIR)/$*.tar.xz.sig 2> /dev/null; retval=$$?; \
 	            rm -f $$pubkey_file.dearmored; \

@@ -4,11 +4,14 @@
 # \date   2017-03-27
 #
 
+# Allow the gpg command to be overridden on the command line
+GPG ?= gpg
+
 pubkey_filename = $(call archive_user,$1)/pubkey
 pubkey_path     = $(wildcard $(DEPOT_DIR)/$(call pubkey_filename,$1))
 
 # obtain key ID of 'depot/<user>/pubkey' to be used to select signing key
-pubkey_id = $(shell gpg --with-colon < $(call pubkey_path,$1) | head -1 | cut -d: -f5 )
+pubkey_id = $(shell $(GPG) --with-colon < $(call pubkey_path,$1) | head -1 | cut -d: -f5 )
 
 MISSING_PUBKEY_FILES := $(sort \
                            $(foreach A,$(ARCHIVES),\
@@ -18,7 +21,4 @@ MISSING_PUBKEY_FILES := $(sort \
 missing_pubkey_files:
 	@echo "Error: missing public-key files:";\
 	 for i in $(MISSING_PUBKEY_FILES); do echo "       $$i"; done; false
-
-# Allow the gpg command to be overridden on the command line
-GPG ?= gpg
 
