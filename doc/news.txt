@@ -4,6 +4,29 @@
                                ===========
 
 
+Sculpt with Visual Composition | 2018-09-21
+###########################################
+
+| The third version of Sculpt OS introduces an interactive runtime view for
+| managing components.
+
+Sculpt with Visual Composition (VC) is the third stage of the evolution of our
+Genode-based general-purpose OS. With the new version, we pursue the gradual
+transition from a text-based user interface to a graphical user interface for
+most administrative tasks while preserving the text-based interface for
+full flexibility. The central element of the new user interface is a live view
+of the current system composition and the relationships between components.
+The live view is accompanied with a convenient graphical user interface for
+adding and removing components.
+
+The new version is available as a ready-to-use disk image. The updated
+documentation covers everything from a quick-start guide, over a high-level
+description of the architecture, to advanced topics like Sculpt's manifold
+customization opportunities.
+
+[https://genode.org/download/sculpt - Download Sculpt OS...]
+
+
 Genode OS Framework release 18.08 | 2018-08-30
 ##############################################
 
