@@ -389,22 +389,30 @@ class Genode::Vm_space
 			_cap_sel_alloc.free(_vm_pad_cnode.sel());
 		}
 
-		void map(addr_t const from_phys, addr_t const to_virt,
+		bool map(addr_t const from_phys, addr_t const to_virt,
 		         size_t const num_pages, Cache_attribute const cacheability,
 		         bool const writable, bool const executable, bool flush_support)
 		{
 			Lock::Guard guard(_lock);
 
+			bool ok = true;
+
 			for (size_t i = 0; i < num_pages; i++) {
 				off_t const offset = i << get_page_size_log2();
 
-				if (!_map_frame(from_phys + offset, to_virt + offset,
-				                cacheability, writable, executable,
-				                flush_support))
-					warning("mapping failed ", Hex(from_phys + offset),
-					        " -> ", Hex(to_virt + offset), " ",
-					        !flush_support ? "core" : "");
+				if (_map_frame(from_phys + offset, to_virt + offset,
+				               cacheability, writable, executable,
+				               flush_support))
+					continue;
+
+				ok = false;
+
+				warning("mapping failed ", Hex(from_phys + offset),
+				        " -> ", Hex(to_virt + offset), " ",
+				        !flush_support ? "core" : "");
 			}
+
+			return ok;
 		}
 
 		bool unmap(addr_t const virt, size_t const num_pages,

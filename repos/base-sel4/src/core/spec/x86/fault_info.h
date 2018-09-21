@@ -37,4 +37,5 @@ struct Fault_info
 	{ }
 
 	bool exec_fault() const { return false; }
+	bool align_fault() const { return false; }
 };

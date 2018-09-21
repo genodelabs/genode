@@ -93,6 +93,7 @@ class Genode::Ipc_pager : public Native_capability
 		addr_t _fault_type = 0;    /* type of fault */
 		bool   _pf_write = false;  /* true on write fault            */
 		bool   _pf_exec  = false;  /* true on exec  fault            */
+		bool   _pf_align = false;  /* true on unaligned fault */
 
 		Mapping _reply_mapping { };
 
@@ -151,6 +152,16 @@ class Genode::Ipc_pager : public Native_capability
 		 * Return true if page fault was on non-executable memory
 		 */
 		bool exec_fault() const { return _pf_exec; }
+
+		/**
+		 * Return true if page fault was due to unaligned memory access
+		 */
+		bool align_fault() const { return _pf_align; }
+
+		/**
+		 * Install memory mapping after pager code executed.
+		 */
+		bool install_mapping();
 };
 
 #endif /* _CORE__INCLUDE__IPC_PAGER_H_ */

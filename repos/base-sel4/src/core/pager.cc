@@ -47,12 +47,14 @@ void Ipc_pager::wait_for_fault()
 	reply_and_wait_for_fault();
 }
 
+bool Ipc_pager::install_mapping()
+{
+	_badge = Genode::install_mapping(_reply_mapping, _badge);
+	return _badge;
+}
 
 void Ipc_pager::reply_and_wait_for_fault()
 {
-	if (_badge)
-		_badge = install_mapping(_reply_mapping, _badge);
-
 	seL4_Word badge = Rpc_obj_key::INVALID;
 
 	seL4_MessageInfo_t page_fault_msg_info;
@@ -76,6 +78,7 @@ void Ipc_pager::reply_and_wait_for_fault()
 	_pf_write   = fault_info.write;
 	_pf_exec    = fault_info.exec_fault();
 	_fault_type = seL4_MessageInfo_get_label(page_fault_msg_info);
+	_pf_align   = fault_info.align_fault();
 
 	_badge = badge;
 }
@@ -187,6 +190,23 @@ void Pager_entrypoint::entry()
 				        " ip=", Hex(_pager.fault_ip()),
 				        " pf-addr=", Hex(_pager.fault_addr()));
 				_pager.reply_save_caller(obj->reply_cap_sel());
+				return;
+			}
+
+			try {
+				/* install memory mappings */
+				if (_pager.install_mapping())
+					return;
+
+				/* on alignment fault don't reply and submit signal */
+				if (_pager.align_fault()) {
+					warning("alignment fault, addr=", Hex(_pager.fault_addr()),
+					        " ip=", Hex(_pager.fault_ip()));
+					throw 1;
+				}
+			} catch (...) {
+				reply_pending = false;
+				obj->submit_exception_signal();
 			}
 		});
 	}

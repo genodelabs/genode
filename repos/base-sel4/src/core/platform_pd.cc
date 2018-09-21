@@ -160,10 +160,14 @@ bool Platform_pd::install_mapping(Mapping const &mapping,
 		_vm_space.alloc_page_tables(mapping.to_virt(),
 		                            mapping.num_pages() * get_page_size());
 
-		_vm_space.map(mapping.from_phys(), mapping.to_virt(),
-		              mapping.num_pages(), mapping.cacheability(),
-		              mapping.writeable(), mapping.executable(), FLUSHABLE);
-		return true;
+		if (_vm_space.map(mapping.from_phys(), mapping.to_virt(),
+		                  mapping.num_pages(), mapping.cacheability(),
+		                  mapping.writeable(), mapping.executable(), FLUSHABLE))
+			return true;
+
+		Genode::warning("mapping failure for thread '", thread_name,
+		                "' in pd '", _vm_space.pd_label(), "'");
+		return false;
 	} catch (...) {
 		char const * fault_name = "unknown";
 
@@ -185,11 +189,12 @@ bool Platform_pd::install_mapping(Mapping const &mapping,
 			break;
 		}
 
-		/* pager ep would die when we re-throw - let core survive */
 		Genode::error("unexpected exception during fault '", fault_name, "'",
 		              " - thread '", thread_name, "' in pd '",
 		              _vm_space.pd_label(),"' stopped");
-		return false;
+
+		/* catched by Pager_entrypoint::entry() in base-sel4/pager.cc */
+		throw;
 	}
 }
 

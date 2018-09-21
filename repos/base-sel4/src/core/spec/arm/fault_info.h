@@ -13,14 +13,16 @@
 
 struct Fault_info
 {
-	Genode::addr_t ip         = 0;
-	Genode::addr_t pf         = 0;
-	bool           data_abort = 0;
-	bool           write      = 0;
+	Genode::addr_t const ip;
+	Genode::addr_t const pf;
+	bool           data_abort;
+	bool const     write;
+	bool const     align;
 
 	enum {
 		IFSR_FAULT = 1,
 		IFSR_FAULT_PERMISSION = 0xf,
+		DFSR_ALIGN_FAULT = 1UL << 0,
 		DFSR_WRITE_FAULT = 1UL << 11
 	};
 
@@ -30,11 +32,13 @@ struct Fault_info
 		pf(seL4_GetMR(1)),
 		data_abort(seL4_GetMR(2) != IFSR_FAULT),
 		/* Instruction Fault Status Register (IFSR) resp. Data FSR (DFSR) */
-		write(data_abort && (seL4_GetMR(3) & DFSR_WRITE_FAULT))
+		write(data_abort && (seL4_GetMR(3) & DFSR_WRITE_FAULT)),
+		align(data_abort && (seL4_GetMR(3) == DFSR_ALIGN_FAULT))
 	{
 		if (!data_abort && seL4_GetMR(3) != IFSR_FAULT_PERMISSION)
 			data_abort = true;
 	}
 
 	bool exec_fault() const { return !data_abort; }
+	bool align_fault() const { return align; }
 };
