@@ -32,15 +32,52 @@ class Hw::Pl310 : public Genode::Mmio
 
 		struct Aux : Register<0x104, 32>
 		{
-			struct Associativity  : Bitfield<16,1> { };
-			struct Way_size       : Bitfield<17,3> { };
+			struct Full_line_of_zero : Bitfield<0,1> {};
+
+			struct Associativity : Bitfield<16,1>
+			{
+				enum { WAY_8, WAY_16 };
+			};
+
+			struct Way_size : Bitfield<17,3>
+			{
+				enum {
+					RESERVED,
+					KB_16,
+					KB_32,
+					KB_64,
+					KB_128,
+					KB_256,
+					KB_512
+				};
+			};
+
 			struct Share_override : Bitfield<22,1> { };
-			struct Reserved       : Bitfield<25,1> { };
-			struct Ns_lockdown    : Bitfield<26,1> { };
-			struct Ns_irq_ctrl    : Bitfield<27,1> { };
-			struct Data_prefetch  : Bitfield<28,1> { };
-			struct Inst_prefetch  : Bitfield<29,1> { };
-			struct Early_bresp    : Bitfield<30,1> { };
+
+			struct Replacement_policy : Bitfield<25,1>
+			{
+				enum { ROUND_ROBIN, PRAND };
+			};
+
+			struct Ns_lockdown   : Bitfield<26,1> { };
+			struct Ns_irq_ctrl   : Bitfield<27,1> { };
+			struct Data_prefetch : Bitfield<28,1> { };
+			struct Inst_prefetch : Bitfield<29,1> { };
+			struct Early_bresp   : Bitfield<30,1> { };
+		};
+
+		struct Tag_ram : Register<0x108, 32>
+		{
+			struct Setup_latency : Bitfield<0,3> { };
+			struct Read_latency  : Bitfield<4,3> { };
+			struct Write_latency : Bitfield<8,3> { };
+		};
+
+		struct Data_ram : Register<0x10c, 32>
+		{
+			struct Setup_latency : Bitfield<0,3> { };
+			struct Read_latency  : Bitfield<4,3> { };
+			struct Write_latency : Bitfield<8,3> { };
 		};
 
 		struct Irq_mask                : Register <0x214, 32> { };
@@ -53,6 +90,12 @@ class Hw::Pl310 : public Genode::Mmio
 		{
 			struct Dcl : Bitfield<0,1> { };
 			struct Dwb : Bitfield<1,1> { };
+		};
+
+		struct Prefetch_ctrl : Register<0xf60, 32>
+		{
+			struct Data_prefetch : Bitfield<28,1> { };
+			struct Inst_prefetch : Bitfield<29,1> { };
 		};
 
 		void _sync() { while (read<Cache_sync>()) ; }

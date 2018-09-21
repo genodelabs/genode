@@ -56,15 +56,15 @@ class Board::L2_cache : Hw::Pl310
 		unsigned long _init_value()
 		{
 			Aux::access_t v = 0;
-			Aux::Associativity::set(v, 1);
-			Aux::Way_size::set(v, 3);
-			Aux::Share_override::set(v, 1);
-			Aux::Reserved::set(v, 1);
-			Aux::Ns_lockdown::set(v, 1);
-			Aux::Ns_irq_ctrl::set(v, 1);
-			Aux::Data_prefetch::set(v, 1);
-			Aux::Inst_prefetch::set(v, 1);
-			Aux::Early_bresp::set(v, 1);
+			Aux::Associativity::set(v, Aux::Associativity::WAY_16);
+			Aux::Way_size::set(v, Aux::Way_size::KB_64);
+			Aux::Share_override::set(v, true);
+			Aux::Replacement_policy::set(v, Aux::Replacement_policy::PRAND);
+			Aux::Ns_lockdown::set(v,   true);
+			Aux::Ns_irq_ctrl::set(v,   true);
+			Aux::Data_prefetch::set(v, true);
+			Aux::Inst_prefetch::set(v, true);
+			Aux::Early_bresp::set(v,   true);
 			return v;
 		}
 
