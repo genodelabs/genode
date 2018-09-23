@@ -436,7 +436,8 @@ at the _run/hello.run_ and look as follows:
 !
 !run_genode_until "hello test completed.*\n" 10
 
-When executed via 'make run/hello', it performs the given steps in sequence.
+When executed via 'make run/hello KERNEL=linux', it performs the given steps in
+sequence.
 Note that the run script is kernel-agnostic. Hence, you can execute the system
 scenario on all the different kernels supported by Genode without any
 modification. The regular expression specified to the 'run_genode_until' step
