@@ -42,7 +42,7 @@ class Hello::Root_component
 {
 	protected:
 
-		Session_component *_create_session(const char *args)
+		Session_component *_create_session(const char *)
 		{
 			Genode::log("creating hello session");
 			return new (md_alloc()) Session_component();
