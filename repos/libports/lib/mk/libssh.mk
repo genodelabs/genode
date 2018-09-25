@@ -7,22 +7,27 @@ SRC_C = \
         bignum.c \
         bind.c \
         buffer.c \
+        chachapoly.c \
         callbacks.c \
         channels.c \
         client.c \
         config.c \
         connect.c \
+        connector.c \
         curve25519.c \
         dh.c \
         ecdh.c \
+        ecdh_crypto.c \
         error.c \
         getpass.c \
         gzip.c \
         init.c \
         kex.c \
         known_hosts.c \
+        knownhosts.c \
         legacy.c \
         libcrypto.c \
+        libcrypto-compat.c \
         log.c \
         match.c \
         messages.c \
@@ -47,15 +52,23 @@ SRC_C = \
         threads.c \
         wrapper.c
 
+# threads/
+SRC_C_threads := noop.c libcrypto.c
+
 # external/
-SRC_C += \
-         bcrypt_pbkdf.c \
-         blowfish.c \
-         curve25519_ref.c \
-         ed25519.c \
-         fe25519.c \
-         ge25519.c \
-         sc25519.c
+SRC_C_external := \
+                  bcrypt_pbkdf.c \
+                  blowfish.c \
+                  chacha.c \
+                  curve25519_ref.c \
+                  ed25519.c \
+                  fe25519.c \
+                  ge25519.c \
+                  poly1305.c \
+                  sc25519.c
+
+SRC_C += $(addprefix threads/, $(SRC_C_threads))
+SRC_C += $(addprefix external/, $(SRC_C_external))
 
 INC_DIR += $(LIBSSH_PORT_DIR)/include
 INC_DIR += $(REP_DIR)/src/lib/libssh
@@ -68,5 +81,6 @@ SHARED_LIB = yes
 
 vpath %.c $(LIBSSH_PORT_DIR)/src/lib/libssh/src
 vpath %.c $(LIBSSH_PORT_DIR)/src/lib/libssh/src/external
+vpath %.c $(LIBSSH_PORT_DIR)/src/lib/libssh/src/threads
 
 CC_CXX_WARN_STRICT =

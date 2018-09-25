@@ -1,9 +1,9 @@
 LICENSE   := LGPL
-VERSION   := 0.7.5
+VERSION   := 0.8.4
 DOWNLOADS := libssh.archive
 
-URL(libssh) := https://www.libssh.org/files/0.7/libssh-0.7.5.tar.xz
-SHA(libssh) := 54e86dd5dc20e5367e58f3caab337ce37675f863f80df85b6b1614966a337095
+URL(libssh) := https://www.libssh.org/files/0.8/libssh-0.8.4.tar.xz
+SHA(libssh) := 6bb07713021a8586ba2120b2c36c468dc9ac8096d043f9b1726639aa4275b81b
 DIR(libssh) := src/lib/libssh
 
 DIRS := include
