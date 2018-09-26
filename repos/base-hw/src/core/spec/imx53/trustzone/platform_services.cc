@@ -18,6 +18,7 @@
 /* Core includes */
 #include <platform.h>
 #include <platform_services.h>
+#include <core_env.h>
 #include <core_service.h>
 #include <vm_root.h>
 #include <map_local.h>
@@ -35,6 +36,7 @@ void Genode::platform_add_local_services(Rpc_entrypoint    &ep,
 		Platform::core_phys_addr((addr_t)&monitor_mode_exception_vector);
 	map_local(phys_base, Hw::Mm::system_exception_vector().base, 1,
 	          Hw::PAGE_FLAGS_KERN_TEXT);
-	static Vm_root                            vm_root(ep, sliced_heap);
+	static Vm_root vm_root(ep, sliced_heap, core_env().ram_allocator(),
+	                       core_env().local_rm());
 	static Core_service<Vm_session_component> vm_service(local_services, vm_root);
 }

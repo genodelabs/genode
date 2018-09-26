@@ -18,10 +18,9 @@
 using namespace Genode;
 
 
-void Vm_session_component::exception_handler(Signal_context_capability handler)
+void Vm_session_component::_exception_handler(Signal_context_capability handler, Vcpu_id)
 {
-	if (!create((void*)_ds.core_local_addr(), Capability_space::capid(handler),
-				nullptr))
+	if (!create(_ds_addr, Capability_space::capid(handler), nullptr))
 	{
 		warning("Cannot instantiate vm kernel object twice,"
 		        "or invalid signal context?");
@@ -29,21 +28,35 @@ void Vm_session_component::exception_handler(Signal_context_capability handler)
 }
 
 
-Vm_session_component::Vm_session_component(Rpc_entrypoint  *ds_ep,
-                                           size_t           ram_quota)
-: _ds_ep(ds_ep), _ds(_ds_size(), _alloc_ds(ram_quota), UNCACHED, true, 0),
-  _ds_cap(static_cap_cast<Dataspace>(_ds_ep->manage(&_ds)))
+Vm_session_component::Vm_session_component(Rpc_entrypoint  &ds_ep,
+                                           Resources resources,
+                                           Label const &,
+                                           Diag,
+                                           Ram_allocator &ram_alloc,
+                                           Region_map &region_map)
+:
+	Ram_quota_guard(resources.ram_quota),
+	Cap_quota_guard(resources.cap_quota),
+	_ds_ep(&ds_ep),
+	_constrained_md_ram_alloc(ram_alloc, _ram_quota_guard(), _cap_quota_guard()),
+	_region_map(region_map)
 {
-	_ds.assign_core_local_addr(core_env().rm_session()->attach(_ds_cap));
+	_ds_cap = _constrained_md_ram_alloc.alloc(_ds_size(), Genode::Cache_attribute::UNCACHED);
+
+	try {
+		_ds_addr = region_map.attach(_ds_cap);
+	} catch (...) {
+		_constrained_md_ram_alloc.free(_ds_cap);
+		throw;
+	}
 }
 
 
 Vm_session_component::~Vm_session_component()
 {
-	/* dissolve VM dataspace from service entry point */
-	_ds_ep->dissolve(&_ds);
-
 	/* free region in allocator */
-	core_env().rm_session()->detach(_ds.core_local_addr());
-	platform().ram_alloc().free((void*)_ds.phys_addr());
+	if (_ds_cap.valid()) {
+		_region_map.detach(_ds_addr);
+		_constrained_md_ram_alloc.free(_ds_cap);
+	}
 }

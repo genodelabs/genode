@@ -14,7 +14,7 @@
 #ifndef _CORE__KERNEL__VM_H_
 #define _CORE__KERNEL__VM_H_
 
-#include <vm_state.h>
+#include <cpu/vm_state.h>
 
 /* core includes */
 #include <kernel/cpu_context.h>

@@ -38,10 +38,13 @@ Vm_base::Vm_base(Env                &env,
                  size_t              ram_size,
                  off_t               kernel_off,
                  Machine_type        machine,
-                 Board_revision      board)
+                 Board_revision      board,
+                 Allocator          &alloc,
+                 Vm_handler_base    &handler)
 :
 	_env(env), _kernel(kernel), _cmdline(cmdline), _kernel_off(kernel_off),
-	_machine(machine), _board(board), _ram(env, ram_base, ram_size)
+	_machine(machine), _board(board), _ram(env, ram_base, ram_size),
+	_vcpu_id(_vm.create_vcpu(alloc, env, handler))
 {
 	_state.irq_injection = 0;
 }

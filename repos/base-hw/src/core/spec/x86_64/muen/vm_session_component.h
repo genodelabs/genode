@@ -30,8 +30,11 @@ namespace Genode {
 }
 
 class Genode::Vm_session_component
-: public Genode::Rpc_object<Genode::Vm_session>,
-  private Kernel_object<Kernel::Vm>
+:
+	private Ram_quota_guard,
+	private Cap_quota_guard,
+	public Rpc_object<Vm_session, Vm_session_component>,
+	private Kernel_object<Kernel::Vm>
 {
 	private:
 
@@ -39,32 +42,40 @@ class Genode::Vm_session_component
 
 	public:
 
-		Vm_session_component(Rpc_entrypoint*, size_t) : _state() { }
+		Vm_session_component(Rpc_entrypoint &, Resources resources,
+		                     Label const &, Diag, Ram_allocator &, Region_map &)
+		:
+			Ram_quota_guard(resources.ram_quota),
+			Cap_quota_guard(resources.cap_quota),
+			_state()
+		{ }
+
 		~Vm_session_component() { }
 
-		using Genode::Rpc_object<Genode::Vm_session>::cap;
-
+		using Ram_quota_guard::upgrade;
+		using Cap_quota_guard::upgrade;
+		using Genode::Rpc_object<Genode::Vm_session, Vm_session_component>::cap;
 
 		/**************************
 		 ** Vm session interface **
 		 **************************/
 
-		Dataspace_capability cpu_state(void) { return Dataspace_capability(); }
+		Dataspace_capability _cpu_state(Vcpu_id) { return Dataspace_capability(); }
 
-		void exception_handler(Signal_context_capability handler)
+		void _exception_handler(Signal_context_capability handler, Vcpu_id)
 		{
 			if (!create(&_state, Capability_space::capid(handler), nullptr))
 				warning("Cannot instantiate vm kernel object, "
 				        "invalid signal context?");
 		}
 
-		void run(void)
+		void _run(Vcpu_id)
 		{
 			if (Kernel_object<Kernel::Vm>::_cap.valid())
 				Kernel::run_vm(kernel_object());
 		}
 
-		void pause(void)
+		void _pause(Vcpu_id)
 		{
 			if (Kernel_object<Kernel::Vm>::_cap.valid())
 				Kernel::pause_vm(kernel_object());
@@ -73,6 +84,7 @@ class Genode::Vm_session_component
 		void attach(Dataspace_capability, addr_t) {}
 		void attach_pic(addr_t) {}
 		void detach(addr_t, size_t) {}
+		void _create_vcpu(Thread_capability) {}
 };
 
 #endif /* _CORE__SPEC__X86_64__MUEN__VM_SESSION_COMPONENT_H_ */

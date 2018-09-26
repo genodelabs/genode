@@ -46,8 +46,12 @@ class Genode::Vm : public Vm_base
 		   size_t              ram_sz,
 		   off_t               kernel_off,
 		   Machine_type        mach,
-		   Board_revision      board)
-		: Vm_base(env, kernel, cmdl, ram, ram_sz, kernel_off, mach, board) { }
+		   Board_revision      board,
+		   Allocator          &alloc,
+		   Vm_handler_base    &handler)
+		: Vm_base(env, kernel, cmdl, ram, ram_sz, kernel_off, mach, board,
+		          alloc, handler)
+		{ }
 
 		void on_vmm_exit() { }
 		void on_vmm_entry() { };
