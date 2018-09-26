@@ -1,0 +1,9 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+	<qresource prefix="/">
+		<file>../style.qss</file>
+		<file>wifi.png</file>
+	</qresource>
+</RCC>
+
+<!-- vi: set ft=xml : -->
