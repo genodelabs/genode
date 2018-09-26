@@ -8,7 +8,7 @@
 		<rom label="ld.lib.so"/>
 		<rom label="report_rom"/>
 		<rom label="decorator"/>
-		<rom label="floating_window_layouter"/>
+		<rom label="window_layouter"/>
 		<rom label="wm"/>
 		<rom label="wm.config"/>
 		<rom label="decorator_init.config"/>

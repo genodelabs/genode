@@ -159,7 +159,7 @@ install_config {
 	</start>
 
 	<start name="layouter">
-		<binary name="floating_window_layouter"/>
+		<binary name="window_layouter"/>
 		<resource name="RAM" quantum="4M"/>
 		<route>
 			<service name="ROM" label="window_list">       <child name="report_rom"/> </service>

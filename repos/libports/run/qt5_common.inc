@@ -12,7 +12,7 @@ create_boot_directory
 import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/decorator \
                   [depot_user]/src/expat \
-                  [depot_user]/src/floating_window_layouter \
+                  [depot_user]/src/window_layouter \
                   [depot_user]/src/freetype \
                   [depot_user]/src/init \
                   [depot_user]/src/jpeg \
@@ -149,7 +149,7 @@ proc qt5_start_nodes { feature_arg } {
 		</start>
 
 		<start name="layouter">
-			<binary name="floating_window_layouter"/>
+			<binary name="window_layouter"/>
 			<resource name="RAM" quantum="4M"/>
 			<route>
 				<service name="ROM" label="window_list">       <child name="report_rom"/> </service>

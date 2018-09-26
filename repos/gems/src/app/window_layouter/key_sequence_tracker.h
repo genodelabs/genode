@@ -17,10 +17,10 @@
 /* local includes */
 #include "action.h"
 
-namespace Floating_window_layouter { class Key_sequence_tracker; }
+namespace Window_layouter { class Key_sequence_tracker; }
 
 
-class Floating_window_layouter::Key_sequence_tracker
+class Window_layouter::Key_sequence_tracker
 {
 	private:
 
@@ -75,7 +75,7 @@ class Floating_window_layouter::Key_sequence_tracker
 				entries[pos++] = entry;
 
 				if (pos == MAX_ENTRIES) {
-					Genode::warning("too long key sequence, dropping information");
+					warning("too long key sequence, dropping information");
 					pos = MAX_ENTRIES - 1;
 				}
 			}
@@ -109,14 +109,14 @@ class Floating_window_layouter::Key_sequence_tracker
 			void reset() { pos = 0; }
 		};
 
-		Stack _stack;
+		Stack _stack { };
 
 		Xml_node _matching_sub_node(Xml_node curr, Stack::Entry entry)
 		{
 			char const *node_type = entry.type == Stack::Entry::PRESS
 			                      ? "press" : "release";
 
-			typedef Genode::String<32> Key_name;
+			typedef String<32> Key_name;
 			Key_name const key(Input::key_name(entry.keycode));
 
 			Xml_node result("<none/>");
@@ -179,7 +179,7 @@ class Floating_window_layouter::Key_sequence_tracker
 			typedef String<32> Action;
 			Action action = node.attribute_value("action", Action());
 
-			func(Floating_window_layouter::Action(action));
+			func(Window_layouter::Action(action));
 		}
 
 	public:

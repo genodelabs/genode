@@ -17,14 +17,14 @@
 /* Genode includes */
 #include <util/list.h>
 
-namespace Floating_window_layouter { class Focus_history; }
+namespace Window_layouter { class Focus_history; }
 
 
-class Floating_window_layouter::Focus_history
+class Window_layouter::Focus_history
 {
 	public:
 
-		struct Entry : Genode::List<Entry>::Element
+		struct Entry : List<Entry>::Element
 		{
 			Focus_history  &focus_history;
 			Window_id const window_id;
@@ -36,7 +36,7 @@ class Floating_window_layouter::Focus_history
 
 	private:
 
-		Genode::List<Entry> _entries;
+		List<Entry> _entries { };
 
 		Entry *_lookup(Window_id window_id)
 		{
@@ -58,7 +58,7 @@ class Floating_window_layouter::Focus_history
 		{
 			Entry * const entry = _lookup(window_id);
 			if (!entry) {
-				Genode::warning("unexpected lookup failure for focus history entry");
+				warning("unexpected lookup failure for focus history entry");
 				return;
 			}
 
@@ -106,8 +106,8 @@ class Floating_window_layouter::Focus_history
 };
 
 
-Floating_window_layouter::Focus_history::Entry::Entry(Focus_history &focus_history,
-                                                      Window_id window_id)
+Window_layouter::Focus_history::Entry::Entry(Focus_history &focus_history,
+                                             Window_id window_id)
 :
 	focus_history(focus_history), window_id(window_id)
 {
@@ -115,7 +115,7 @@ Floating_window_layouter::Focus_history::Entry::Entry(Focus_history &focus_histo
 }
 
 
-Floating_window_layouter::Focus_history::Entry::~Entry()
+Window_layouter::Focus_history::Entry::~Entry()
 {
 	focus_history._remove_if_present(*this);
 }

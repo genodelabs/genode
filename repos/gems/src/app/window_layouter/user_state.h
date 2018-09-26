@@ -1,5 +1,5 @@
 /*
- * \brief  Floating window layouter
+ * \brief  Window layouter
  * \author Norman Feske
  * \date   2013-02-14
  */
@@ -18,10 +18,10 @@
 #include "operations.h"
 #include "key_sequence_tracker.h"
 
-namespace Floating_window_layouter { class User_state; }
+namespace Window_layouter { class User_state; }
 
 
-class Floating_window_layouter::User_state
+class Window_layouter::User_state
 {
 	public:
 
@@ -38,13 +38,13 @@ class Floating_window_layouter::User_state
 
 	private:
 
-		Window_id _hovered_window_id;
-		Window_id _focused_window_id;
-		Window_id _dragged_window_id;
+		Window_id _hovered_window_id { };
+		Window_id _focused_window_id { };
+		Window_id _dragged_window_id { };
 
 		unsigned  _key_cnt = 0;
 
-		Key_sequence_tracker _key_sequence_tracker;
+		Key_sequence_tracker _key_sequence_tracker { };
 
 		Window::Element _hovered_element = Window::Element::UNDEFINED;
 		Window::Element _dragged_element = Window::Element::UNDEFINED;
@@ -64,12 +64,12 @@ class Floating_window_layouter::User_state
 		/*
 		 * Pointer position at the beginning of a drag operation
 		 */
-		Point _pointer_clicked;
+		Point _pointer_clicked { };
 
 		/*
 		 * Current pointer position
 		 */
-		Point _pointer_curr;
+		Point _pointer_curr { };
 
 		Operations &_operations;
 
@@ -121,6 +121,9 @@ class Floating_window_layouter::User_state
 				_focus_history.focus(_focused_window_id);
 
 				_operations.toggle_fullscreen(_hovered_window_id);
+
+				_hovered_element   = Window::Element::UNDEFINED;
+				_hovered_window_id = Window_id();
 				return;
 			}
 
@@ -220,8 +223,8 @@ class Floating_window_layouter::User_state
 };
 
 
-void Floating_window_layouter::User_state::_handle_event(Input::Event const &e,
-                                                         Xml_node config)
+void Window_layouter::User_state::_handle_event(Input::Event const &e,
+                                                Xml_node config)
 {
 	e.handle_absolute_motion([&] (int x, int y) {
 		_pointer_curr = Point(x, y); });
@@ -319,7 +322,7 @@ void Floating_window_layouter::User_state::_handle_event(Input::Event const &e,
 				return;
 
 			default:
-				Genode::warning("action ", (int)action.type(), " unhanded");
+				warning("action ", (int)action.type(), " unhanded");
 			}
 		});
 	}

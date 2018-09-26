@@ -1,5 +1,5 @@
 /*
- * \brief  Floating window layouter
+ * \brief  Window layouter
  * \author Norman Feske
  * \date   2013-02-14
  */
@@ -14,14 +14,19 @@
 #ifndef _WINDOW_H_
 #define _WINDOW_H_
 
+/* Genode includes */
+#include <util/list_model.h>
+
 /* local includes */
-#include "types.h"
-#include "focus_history.h"
+#include <types.h>
+#include <focus_history.h>
+#include <assign.h>
+#include <decorator_margins.h>
 
-namespace Floating_window_layouter { class Window; }
+namespace Window_layouter { class Window; }
 
 
-class Floating_window_layouter::Window : public List<Window>::Element
+class Window_layouter::Window : public List_model<Window>::Element
 {
 	public:
 
@@ -66,16 +71,25 @@ class Floating_window_layouter::Window : public List<Window>::Element
 
 		Window_id const _id;
 
-		Title _title;
+		Title _title { };
 
-		Label _label;
+		Label const _label;
 
-		Rect _geometry;
+		Decorator_margins const &_decorator_margins;
+
+		Rect _geometry { };
 
 		/**
 		 * Window geometry at the start of the current drag operation
 		 */
-		Rect _orig_geometry;
+		Rect _orig_geometry { };
+
+		/**
+		 * Destined window geometry as defined by the user's drag operation
+		 */
+		Rect _drag_geometry { };
+
+		Area _client_size;
 
 		/**
 		 * Size as desired by the user during resize drag operations
@@ -83,13 +97,6 @@ class Floating_window_layouter::Window : public List<Window>::Element
 		Area _requested_size;
 
 		/**
-		 * Backup of the original geometry while the window is maximized
-		 */
-		Rect _unmaximized_geometry;
-
-		Rect const &_maximized_geometry;
-
-		/** 
 		 * Window may be partially transparent
 		 */
 		bool _has_alpha = false;
@@ -105,14 +112,22 @@ class Floating_window_layouter::Window : public List<Window>::Element
 
 		bool _dragged = false;
 
+		bool _focused = false;
+
+		Element _hovered { Element::UNDEFINED };
+
 		/*
-		 * Number of times the window has been topped. This value is used by
-		 * the decorator to detect the need for bringing the window to the
-		 * front of nitpicker's global view stack even if the stacking order
-		 * stays the same within the decorator instance. This is important in
-		 * the presence of more than a single decorator.
+		 * Value that keeps track when the window has been moved to front
+		 * most recently. It is used as a criterion for the order of the
+		 * generated <assign> rules.
+		 *
+		 * This value is also used by the decorator to detect the need for
+		 * bringing the window to the front of nitpicker's global view stack
+		 * even if the stacking order stays the same within the decorator
+		 * instance. This is important in the presence of more than a single
+		 * decorator.
 		 */
-		unsigned _topped_cnt = 0;
+		unsigned _to_front_cnt = 0;
 
 		Focus_history::Entry _focus_history_entry;
 
@@ -143,6 +158,7 @@ class Floating_window_layouter::Window : public List<Window>::Element
 			                   || (element.type == Window::Element::BOTTOM_RIGHT);
 
 			_orig_geometry = _geometry;
+			_drag_geometry = _geometry;
 
 			_requested_size = _geometry.area();
 
@@ -154,18 +170,25 @@ class Floating_window_layouter::Window : public List<Window>::Element
 		 */
 		void _apply_drag_operation(Point offset)
 		{
-			if (!_drag_border())
-				position(_orig_geometry.p1() + offset);
+			/* move window */
+			if (!_drag_border()) {
+				_drag_geometry = Rect(_orig_geometry.p1() + offset,
+				                      _orig_geometry.area());
+				return;
+			}
 
-			int requested_w = _orig_geometry.w(),
-			    requested_h = _orig_geometry.h();
+			/* resize window */
+			int x1 = _orig_geometry.x1(), y1 = _orig_geometry.y1(),
+			    x2 = _orig_geometry.x2(), y2 = _orig_geometry.y2();
 
-			if (_drag_left_border)   requested_w -= offset.x();
-			if (_drag_right_border)  requested_w += offset.x();
-			if (_drag_top_border)    requested_h -= offset.y();
-			if (_drag_bottom_border) requested_h += offset.y();
+			if (_drag_left_border)   x1 = min(x1 + offset.x(), x2);
+			if (_drag_right_border)  x2 = max(x2 + offset.x(), x1);
+			if (_drag_top_border)    y1 = min(y1 + offset.y(), y2);
+			if (_drag_bottom_border) y2 = max(y2 + offset.y(), y1);
 
-			_requested_size = Area(max(1, requested_w), max(1, requested_h));
+			_drag_geometry = Rect(Point(x1, y1), Point(x2, y2));
+
+			_requested_size = _drag_geometry.area();
 		}
 
 		/**
@@ -177,14 +200,18 @@ class Floating_window_layouter::Window : public List<Window>::Element
 			     || _drag_top_border  || _drag_bottom_border;
 		}
 
+		Constructible<Assign::Member> _assign_member { };
+
 	public:
 
-		Window(Window_id id, Rect &maximized_geometry, Area initial_size,
-		       Focus_history &focus_history)
+		Window(Window_id id, Label const &label, Area initial_size,
+		       Focus_history &focus_history,
+		       Decorator_margins const &decorator_margins)
 		:
-			_id(id),
+			_id(id), _label(label),
+			_decorator_margins(decorator_margins),
+			_client_size(initial_size),
 			_requested_size(initial_size),
-			_maximized_geometry(maximized_geometry),
 			_focus_history_entry(focus_history, _id)
 		{ }
 
@@ -194,13 +221,57 @@ class Floating_window_layouter::Window : public List<Window>::Element
 
 		void title(Title const &title) { _title = title; }
 
-		void label(Label const &label) { _label = label; }
+		Label label() const { return _label; }
 
-		void geometry(Rect geometry) { _geometry = geometry; }
+		Rect effective_inner_geometry() const
+		{
+			if (!_dragged)
+				return _geometry;
+
+			int x1 = _orig_geometry.x1(), y1 = _orig_geometry.y1(),
+			    x2 = _orig_geometry.x2(), y2 = _orig_geometry.y2();
+
+			/* move window */
+			if (!_drag_border())
+				return _drag_geometry;
+
+			/* resize window */
+			if (_drag_left_border)   x1 = x2 - _client_size.w();
+			if (_drag_right_border)  x2 = x1 + _client_size.w();
+			if (_drag_top_border)    y1 = y2 - _client_size.h();
+			if (_drag_bottom_border) y2 = y1 + _client_size.h();
+
+			return Rect(Point(x1, y1), Point(x2, y2));
+		}
+
+		/**
+		 * Place window
+		 *
+		 * \param geometry  outer geometry available to the window
+		 */
+		void outer_geometry(Rect outer)
+		{
+			/* drop attempts to apply layout while dragging the window */
+			if (_dragged)
+				return;
+
+			_geometry = _decorator_margins.inner_geometry(outer);
+
+			_requested_size = _geometry.area();
+		}
+
+		Rect outer_geometry() const
+		{
+			return _decorator_margins.outer_geometry(_geometry);
+		}
+
+		Area client_size() const { return _client_size; }
+
+		void focused(bool focused) { _focused = focused; }
+
+		void hovered(Element hovered) { _hovered = hovered; }
 
 		Point position() const { return _geometry.p1(); }
-
-		void position(Point pos) { _geometry = Rect(pos, _geometry.area()); }
 
 		void has_alpha(bool has_alpha) { _has_alpha = has_alpha; }
 
@@ -215,40 +286,27 @@ class Floating_window_layouter::Window : public List<Window>::Element
 		 *
 		 * This function is called when the window-list model changes.
 		 */
-		void size(Area size)
+		void client_size(Area size) { _client_size = size; }
+
+		/*
+		 * Called for generating the 'rules' report
+		 */
+		void gen_inner_geometry(Xml_generator &xml) const
 		{
-			if (_maximized) {
-				_geometry = Rect(_maximized_geometry.p1(), size);
-				return;
-			}
+			Rect const inner = effective_inner_geometry();
 
-			if (!_drag_border()) {
-				_geometry = Rect(_geometry.p1(), size);
-				return;
-			}
+			xml.attribute("xpos",   inner.x1());
+			xml.attribute("ypos",   inner.y1());
+			xml.attribute("width",  inner.w());
+			xml.attribute("height", inner.h());
 
-			Point p1 = _geometry.p1(), p2 = _geometry.p2();
-
-			if (_drag_left_border)
-				p1 = Point(p2.x() - size.w() + 1, p1.y());
-
-			if (_drag_right_border)
-				p2 = Point(p1.x() + size.w() - 1, p2.y());
-
-			if (_drag_top_border)
-				p1 = Point(p1.x(), p2.y() - size.h() + 1);
-
-			if (_drag_bottom_border)
-				p2 = Point(p2.x(), p1.y() + size.h() - 1);
-
-			_geometry = Rect(p1, p2);
+			if (_maximized)
+				xml.attribute("maximized", true);
 		}
-
-		Area size() const { return _geometry.area(); }
 
 		Area requested_size() const { return _requested_size; }
 
-		void serialize(Xml_generator &xml, bool focused, Element highlight)
+		void generate(Xml_generator &xml) const
 		{
 			/* omit window from the layout if hidden */
 			if (_hidden)
@@ -260,29 +318,27 @@ class Floating_window_layouter::Window : public List<Window>::Element
 
 				/* present concatenation of label and title in the window's title bar */
 				{
-					bool const has_title = Genode::strlen(_title.string()) > 0;
+					bool const has_title = strlen(_title.string()) > 0;
 
-					char buf[Label::capacity()];
-					Genode::snprintf(buf, sizeof(buf), "%s%s%s",
-					                 _label.string(),
-					                 has_title ? " " : "",
-					                 _title.string());
+					String<Label::capacity()> const
+						title(_label, (has_title ? " " : ""), _title);
 
-					xml.attribute("title",  buf);
+					xml.attribute("title",  title);
 				}
 
-				xml.attribute("xpos",   _geometry.x1());
-				xml.attribute("ypos",   _geometry.y1());
-				xml.attribute("width",  _geometry.w());
-				xml.attribute("height", _geometry.h());
-				xml.attribute("topped", _topped_cnt);
+				Rect const rect = effective_inner_geometry();
 
-				if (focused)
+				xml.attribute("xpos",   rect.x1());
+				xml.attribute("ypos",   rect.y1());
+				xml.attribute("width",  rect.w());
+				xml.attribute("height", rect.h());
+
+				if (_focused)
 					xml.attribute("focused", "yes");
 
-				if (highlight.type != Element::UNDEFINED) {
+				if (_hovered.type != Element::UNDEFINED) {
 					xml.node("highlight", [&] () {
-						xml.node(highlight.name());
+						xml.node(_hovered.name());
 					});
 				}
 
@@ -310,35 +366,36 @@ class Floating_window_layouter::Window : public List<Window>::Element
 
 		void finalize_drag_operation()
 		{
-			_requested_size     = _geometry.area();
-			_dragged         = false;
+			_dragged            = false;
 			_drag_left_border   = false;
 			_drag_right_border  = false;
 			_drag_top_border    = false;
 			_drag_bottom_border = false;
+			_requested_size     = effective_inner_geometry().area();
 		}
 
-		void topped() { _topped_cnt++; }
+		void to_front_cnt(unsigned to_front_cnt) { _to_front_cnt = to_front_cnt; }
+
+		unsigned to_front_cnt() const { return _to_front_cnt; }
 
 		void close() { _requested_size = Area(0, 0); }
 
 		bool maximized() const { return _maximized; }
 
-		void maximized(bool maximized)
+		void maximized(bool maximized) { _maximized = maximized; }
+
+		void dissolve_from_assignment() { _assign_member.destruct(); }
+
+		/**
+		 * Associate window with a <assign> definition
+		 */
+		void assignment(Registry<Assign::Member> &registry)
 		{
-			/* enter maximized state */
-			if (!_maximized && maximized) {
-				_unmaximized_geometry = _geometry;
-				_requested_size = _maximized_geometry.area();
-			}
+			/* retain first matching assignment only */
+			if (_assign_member.constructed())
+				return;
 
-			/* leave maximized state */
-			if (_maximized && !maximized) {
-				_requested_size = _unmaximized_geometry.area();
-				_geometry = Rect(_unmaximized_geometry.p1(), _geometry.area());
-			}
-
-			_maximized = maximized;
+			_assign_member.construct(registry, *this);
 		}
 };
 
