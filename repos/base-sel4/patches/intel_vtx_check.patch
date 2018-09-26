@@ -1,0 +1,85 @@
+--- src/kernel/sel4/include/arch/x86/arch/object/vcpu.h
++++ src/kernel/sel4/include/arch/x86/arch/object/vcpu.h
+@@ -322,7 +322,7 @@ unverified_compile_assert(vcpu_fpu_state_alignment_valid,
+ 
+ /* Initializes a VCPU object with default values. A VCPU object that is not inititlized
+  * must not be run/loaded with vmptrld */
+-void vcpu_init(vcpu_t *vcpu);
++bool_t vcpu_init(vcpu_t *vcpu);
+ 
+ /* Cleans up the VCPU object such that its memory can be freed */
+ void vcpu_finalise(vcpu_t *vcpu);
+--- src/kernel/sel4/src/arch/x86/kernel/boot.c
++++ src/kernel/sel4/src/arch/x86/kernel/boot.c
+@@ -582,9 +582,7 @@ init_cpu(
+ 
+ #ifdef CONFIG_VTX
+     /* initialise Intel VT-x extensions */
+-    if (!vtx_init()) {
+-        return false;
+-    }
++    vtx_init();
+ #endif
+ 
+     return true;
+--- src/kernel/sel4/src/arch/x86/object/objecttype.c
++++ src/kernel/sel4/src/arch/x86/object/objecttype.c
+@@ -476,7 +476,8 @@ Arch_createObject(object_t t, void *regionBase, word_t userSize, bool_t deviceMe
+     case seL4_X86_VCPUObject: {
+         vcpu_t *vcpu;
+         vcpu = VCPU_PTR((word_t)regionBase);
+-        vcpu_init(vcpu);
++        if (!vcpu_init(vcpu))
++            return cap_null_cap_new();
+         return cap_vcpu_cap_new(VCPU_REF(vcpu));
+     }
+     case seL4_X86_EPTPML4Object:
+--- src/kernel/sel4/src/arch/x86/object/vcpu.c
++++ src/kernel/sel4/src/arch/x86/object/vcpu.c
+@@ -409,9 +416,14 @@ applyFixedBits(uint32_t original, uint32_t high, uint32_t low)
+     return original;
+ }
+ 
+-void
++static bool_t vcpu_support_available = false;
++
++bool_t
+ vcpu_init(vcpu_t *vcpu)
+ {
++    if (!vcpu_support_available)
++        return false;
++
+     vcpu->vcpuTCB = NULL;
+     vcpu->launched = false;
+ 
+@@ -481,6 +493,8 @@ vcpu_init(vcpu_t *vcpu)
+     memset(vcpu->io, ~(word_t)0, VCPU_IOBITMAP_SIZE);
+     vmwrite(VMX_CONTROL_IOA_ADDRESS, pptr_to_paddr(vcpu->io));
+     vmwrite(VMX_CONTROL_IOB_ADDRESS, pptr_to_paddr((char *)vcpu->io + (VCPU_IOBITMAP_SIZE / 2)));
++
++    return true;
+ }
+ 
+ static void
+@@ -1067,6 +1081,12 @@ vtx_init(void)
+             printf("vt-x: lack of required features\n");
+             return false;
+         }
++
++        /* enable unrestricted guest support if available */
++        if (secondary_control_low & BIT(7)) {
++            secondary_control_high |= BIT(7);
++            cr0_high &= ~(BIT(31) | BIT(0));
++        }
+     }
+     if (!check_vtx_fixed_values(vmx_basic_msr_get_true_msrs(vmx_basic))) {
+         printf("vt-x: cores have inconsistent features\n");
+@@ -1109,6 +1129,8 @@ vtx_init(void)
+         return false;
+     }
+ 
++    vcpu_support_available = true;
++
+     return true;
+ }
+ 

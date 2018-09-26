@@ -406,8 +406,11 @@ void Platform::_init_rom_modules()
 
 				xml.node("hardware", [&] () {
 					xml.node("features", [&] () {
-						xml.attribute("svm", false);
+						#ifdef CONFIG_VTX
+						xml.attribute("vmx", true);
+						#else
 						xml.attribute("vmx", false);
+						#endif
 					});
 					xml.node("tsc", [&] () {
 						xml.attribute("freq_khz" , boot_freq->freq_mhz * 1000UL);

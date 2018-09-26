@@ -18,7 +18,9 @@
 #include <boot_modules.h>
 #include <platform.h>
 
+#include <thread_sel4.h>
 #include "arch_kernel_object.h"
+
 
 seL4_Word Genode::Untyped_memory::smallest_page_type() { return seL4_X86_4K; }
 
@@ -58,6 +60,22 @@ void Genode::Platform::_init_core_page_table_registry()
 		                                            PAGE_TABLE_LOG2_SIZE);
 		virt_addr += 512 * get_page_size();
 	}
+
+	/* initialize 16k memory allocator */
+	phys_alloc_16k(&core_mem_alloc());
+
+	/* reserve some memory for VCPUs - must be 16k */
+	enum { MAX_VCPU_COUNT = 16 };
+	addr_t const max_pd_mem = MAX_VCPU_COUNT * (1UL << Vcpu_kobj::SIZE_LOG2);
+
+	_initial_untyped_pool.turn_into_untyped_object(Core_cspace::TOP_CNODE_UNTYPED_16K,
+		[&] (addr_t const phys, addr_t const size, bool) {
+			phys_alloc_16k().add_range(phys, size);
+			_unused_phys_alloc.remove_range(phys, size);
+		},
+		Vcpu_kobj::SIZE_LOG2, max_pd_mem);
+
+	log(":phys_mem_16k:     ",  phys_alloc_16k());
 
 	/*
 	 * Register initial page frames

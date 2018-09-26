@@ -123,6 +123,8 @@ class Genode::Platform_pd : public Address_space
 		size_t cspace_size_log2() { return CSPACE_SIZE_LOG2; }
 
 		bool install_mapping(Mapping const &mapping, const char * thread_name);
+
+		static Bit_allocator<1024> &pd_id_alloc();
 };
 
 #endif /* _CORE__INCLUDE__PLATFORM_PD_H_ */

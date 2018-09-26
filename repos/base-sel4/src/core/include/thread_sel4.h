@@ -32,8 +32,10 @@ namespace Genode {
 		Cap_sel tcb_sel { 0 };
 		Cap_sel ep_sel  { 0 };
 		Cap_sel lock_sel { 0 };
+		Cap_sel vcpu_sel { 0 };
 
-		addr_t ipc_buffer_phys = 0;
+		addr_t ipc_buffer_phys { 0 };
+		addr_t vcpu_state_phys { 0 };
 
 		inline void write_thread_info_to_ipc_buffer(Cap_sel pd_ep_sel);
 
@@ -44,6 +46,7 @@ namespace Genode {
 		inline void init(addr_t const utcb_virt_addr, unsigned const prio);
 		inline void destruct();
 
+		bool init_vcpu(Platform &, Cap_sel ept);
 	};
 
 	/**
@@ -128,6 +131,11 @@ void Genode::Thread_info::destruct()
 	if (tcb_sel.value()) {
 		seL4_CNode_Delete(seL4_CapInitThreadCNode, tcb_sel.value(), 32);
 		platform_specific().core_sel_alloc().free(tcb_sel);
+	}
+	if (vcpu_sel.value()) {
+		/* XXX free 16k memory */
+		seL4_CNode_Delete(seL4_CapInitThreadCNode, vcpu_sel.value(), 32);
+		platform_specific().core_sel_alloc().free(vcpu_sel);
 	}
 
 	if (ipc_buffer_phys) {

@@ -66,6 +66,8 @@ class Genode::Platform_thread : public List<Platform_thread>::Element
 		Cap_sel _fault_handler_sel { 0 };
 		Cap_sel _ep_sel            { 0 };
 		Cap_sel _lock_sel          { 0 };
+		Cap_sel _vcpu_sel          { 0 };
+		Cap_sel _vcpu_notify_sel   { 0 };
 
 		friend class Platform_pd;
 
@@ -188,6 +190,8 @@ class Genode::Platform_thread : public List<Platform_thread>::Element
 		Cap_sel tcb_sel() const { return _info.tcb_sel; }
 
 		bool install_mapping(Mapping const &mapping);
+
+		void setup_vcpu(Cap_sel ept, Cap_sel notification);
 };
 
 #endif /* _CORE__INCLUDE__PLATFORM_THREAD_H_ */

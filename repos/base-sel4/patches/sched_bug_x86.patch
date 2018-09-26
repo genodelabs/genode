@@ -1,0 +1,27 @@
+--- src/kernel/sel4/src/kernel/thread.c
++++ src/kernel/sel4/src/kernel/thread.c
+@@ -437,8 +437,11 @@ scheduleTCB(tcb_t *tptr)
+ void
+ timerTick(void)
+ {
+-    if (likely(thread_state_get_tsType(NODE_STATE(ksCurThread)->tcbState) ==
+-               ThreadState_Running)) {
++    switch (thread_state_get_tsType(NODE_STATE(ksCurThread)->tcbState)) {
++    case ThreadState_Running:
++#ifdef CONFIG_VTX
++    case ThreadState_RunningVM:
++#endif
+         if (NODE_STATE(ksCurThread)->tcbTimeSlice > 1) {
+             NODE_STATE(ksCurThread)->tcbTimeSlice--;
+         } else {
+@@ -446,6 +449,10 @@ timerTick(void)
+             SCHED_APPEND_CURRENT_TCB;
+             rescheduleRequired();
+         }
++        break;
++    default:
++        /* no tick updates */
++        break;
+     }
+ 
+     if (CONFIG_NUM_DOMAINS > 1) {

@@ -275,3 +275,19 @@ unsigned long long Platform_thread::execution_time() const
 	uint64_t const execution_time = values[BENCHMARK_TCB_UTILISATION];
 	return execution_time;
 }
+
+void Platform_thread::setup_vcpu(Cap_sel ept, Cap_sel notification)
+{
+	if (!_info.init_vcpu(platform_specific(), ept)) {
+		Genode::error("creating vCPU failed");
+		return;
+	}
+
+	/* install the thread's endpoint selector to the PD's CSpace */
+	_pd->cspace_cnode(_vcpu_sel).copy(platform_specific().core_cnode(),
+	                                  _info.vcpu_sel, _vcpu_sel);
+	_pd->cspace_cnode(_vcpu_notify_sel).copy(platform_specific().core_cnode(),
+	                                         notification, _vcpu_notify_sel);
+
+	prepopulate_ipc_buffer(_info.ipc_buffer_phys, _vcpu_sel, _vcpu_notify_sel);
+}

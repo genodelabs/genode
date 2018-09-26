@@ -15,8 +15,11 @@
 #define _CORE__X86_32_ARCH_KERNEL_OBJECT_H_
 
 #include <sel4/objecttype.h>
+#include <platform.h>
 
 namespace Genode {
+
+	Phys_allocator &phys_alloc_16k(Allocator * core_mem_alloc = nullptr);
 
 	enum {
 		PAGE_TABLE_LOG2_SIZE = 22 /* 4M region */
@@ -35,6 +38,17 @@ namespace Genode {
 		static char const *name() { return "page directory"; }
 	};
 
+	struct Vcpu_kobj
+	{
+		enum { SEL4_TYPE = seL4_X86_VCPUObject, SIZE_LOG2 = 14 };
+		static char const *name() { return "vcpu"; }
+	};
+
+	struct Ept_kobj
+	{
+		enum { SEL4_TYPE = seL4_X86_EPTPML4Object, SIZE_LOG = 12 };
+		static char const *name() { return "ept pml4"; }
+	};
 };
 
 #endif /* _CORE__X86_32_ARCH_KERNEL_OBJECT_H_ */

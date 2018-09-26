@@ -1,0 +1,28 @@
+--- src/kernel/sel4/src/arch/x86/object/vcpu.c
++++ src/kernel/sel4/src/arch/x86/object/vcpu.c
+@@ -377,6 +379,12 @@ check_vtx_fixed_values(bool_t useTrueMsrs)
+     uint32_t local_cr4_high = x86_rdmsr_low(IA32_VMX_CR4_FIXED0_MSR);
+     uint32_t local_cr4_low = x86_rdmsr_low(IA32_VMX_CR4_FIXED1_MSR);
+ 
++    /* if UG was switched on on boot CPU, do it also on all other CPUs */
++    if (secondary_control_low & BIT(7)) {
++        local_secondary_control_high &= BIT(7);
++        local_cr0_high &= ~(BIT(31) | BIT(0));
++    }
++
+     /* We want to check that any bits that there are no bits that this core
+      * requires to be high, that the BSP did not require to be high. This can
+      * be checked with 'local_high & high == local_high'.
+@@ -1067,6 +1075,12 @@ vtx_init(void)
+             printf("vt-x: lack of required features\n");
+             return false;
+         }
++
++        /* enable unrestricted guest support if available */
++        if (secondary_control_low & BIT(7)) {
++            secondary_control_high |= BIT(7);
++            cr0_high &= ~(BIT(31) | BIT(0));
++        }
+     }
+     if (!check_vtx_fixed_values(vmx_basic_msr_get_true_msrs(vmx_basic))) {
+         printf("vt-x: cores have inconsistent features\n");

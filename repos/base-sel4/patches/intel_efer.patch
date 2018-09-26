@@ -1,0 +1,9 @@
+--- src/kernel/sel4/src/arch/x86/object/vcpu.c
++++ src/kernel/sel4/src/arch/x86/object/vcpu.c
+@@ -340,6 +340,7 @@ init_vtx_fixed_values(bool_t useTrueMsrs)
+     secondary_control_high |= secondary_control_mask;
+     exit_control_high |= exit_control_mask;
+ 
++    entry_control_high |= BIT(15);
+     return true;
+ }
