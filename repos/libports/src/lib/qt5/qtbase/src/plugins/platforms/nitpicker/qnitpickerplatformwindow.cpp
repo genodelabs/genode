@@ -321,6 +321,8 @@ void QNitpickerPlatformWindow::_handle_mode_changed(unsigned int)
 	if ((mode.width() == 0) && (mode.height() == 0)) {
 		/* interpret a size of 0x0 as indication to close the window */
 		QWindowSystemInterface::handleCloseEvent(window(), 0);
+		/* don't actually set geometry to 0x0; either close or remain open */
+		return;
 	}
 
 	if ((mode.width() != _current_mode.width()) ||
