@@ -28,7 +28,8 @@ void Genode::platform_add_local_services(Rpc_entrypoint    &ep,
                                          Sliced_heap       &sliced_heap,
                                          Registry<Service> &services)
 {
-	static Vm_root vm_root(ep, sliced_heap);
+	static Vm_root vm_root(ep, sliced_heap, core_env().ram_allocator(),
+	                       core_env().local_rm());
 	static Core_service<Vm_session_component> vm_ls(services, vm_root);
 
 	static Io_port_root io_port_root(*core_env().pd_session(),

@@ -16,6 +16,7 @@
 #include <base/attached_rom_dataspace.h>
 #include <base/component.h>
 #include <base/exception.h>
+#include <base/heap.h>
 #include <base/log.h>
 #include <cpu/cpu_state.h>
 #include <drivers/defs/exynos5.h>
@@ -26,7 +27,7 @@
 #include <util/mmio.h>
 #include <vm_session/connection.h>
 
-#include <vm_state.h>
+#include <cpu/vm_state.h>
 #include <board.h>
 
 
@@ -119,11 +120,13 @@ class Vm {
 			DTB_OFFSET    = 64 * 1024 * 1024,
 		};
 
-		Genode::Vm_connection          _vm_con;
+		Genode::Vm_connection          _vm;
 		Genode::Attached_rom_dataspace _kernel_rom;
 		Genode::Attached_rom_dataspace _dtb_rom;
 		Genode::Attached_ram_dataspace _vm_ram;
 		Ram                            _ram;
+		Genode::Heap                   _heap;
+		Genode::Vm_session::Vcpu_id    _vcpu_id;
 		State &                        _state;
 		bool                           _active = true;
 
@@ -170,20 +173,21 @@ class Vm {
 
 
 		Vm(const char *kernel, const char *dtb, Genode::size_t const ram_size,
-		   Genode::Signal_context_capability sig_cap, Genode::Env & env)
-		: _vm_con(env),
+		   Genode::Vm_handler_base &handler, Genode::Env & env)
+		: _vm(env),
 		  _kernel_rom(env, kernel),
 		  _dtb_rom(env, dtb),
 		  _vm_ram(env.ram(), env.rm(), ram_size, Genode::UNCACHED),
 		  _ram(RAM_ADDRESS, ram_size, (Genode::addr_t)_vm_ram.local_addr<void>()),
-		  _state(*((State*)env.rm().attach(_vm_con.cpu_state())))
+		  _heap(env.ram(), env.rm()),
+		  _vcpu_id(_vm.create_vcpu(_heap, env, handler)),
+		  _state(*((State*)env.rm().attach(_vm.cpu_state(_vcpu_id))))
 		{
 			Genode::log("ram is at ",
 			            Genode::Hex(Genode::Dataspace_client(_vm_ram.cap()).phys_addr()));
 
-			_vm_con.exception_handler(sig_cap);
-			_vm_con.attach(_vm_ram.cap(), RAM_ADDRESS);
-			_vm_con.attach_pic(0x2C002000);
+			_vm.attach(_vm_ram.cap(), RAM_ADDRESS);
+			_vm.attach_pic(0x2C002000);
 		}
 
 		void start()
@@ -209,8 +213,8 @@ class Vm {
 			Genode::log("ready to run");
 		}
 
-		void run()                { if (_active) _vm_con.run();   }
-		void pause()              { _vm_con.pause(); }
+		void run()                { if (_active) _vm.run(_vcpu_id); }
+		void pause()              { _vm.pause(_vcpu_id); }
 		void wait_for_interrupt() { _active = false;              }
 		void interrupt()          { _active = true;               }
 		bool active()             { return _active;               }
@@ -265,9 +269,9 @@ class Vmm
 	private:
 
 		template <typename T>
-		struct Signal_handler : Genode::Signal_handler<Signal_handler<T>>
+		struct Signal_handler : Genode::Vm_handler<Signal_handler<T>>
 		{
-			using Base = Genode::Signal_handler<Signal_handler<T>>;
+			using Base = Genode::Vm_handler<Signal_handler<T>>;
 
 			Vmm & vmm;
 			T  & obj;

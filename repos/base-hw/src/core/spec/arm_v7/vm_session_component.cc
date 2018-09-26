@@ -18,26 +18,24 @@
 using namespace Genode;
 
 
-addr_t Vm_session_component::_alloc_ds(size_t &ram_quota)
+addr_t Vm_session_component::_alloc_ds()
 {
 	addr_t addr;
-	if (_ds_size() > ram_quota ||
-		platform().ram_alloc().alloc_aligned(_ds_size(), (void**)&addr,
+	if (platform().ram_alloc().alloc_aligned(_ds_size(), (void**)&addr,
 		                                     get_page_size_log2()).error())
 		throw Insufficient_ram_quota();
-	ram_quota -= _ds_size();
 	return addr;
 }
 
 
-void Vm_session_component::run(void)
+void Vm_session_component::_run(Vcpu_id)
 {
 	if (Kernel_object<Kernel::Vm>::_cap.valid())
 		Kernel::run_vm(kernel_object());
 }
 
 
-void Vm_session_component::pause(void)
+void Vm_session_component::_pause(Vcpu_id)
 {
 	if (Kernel_object<Kernel::Vm>::_cap.valid())
 		Kernel::pause_vm(kernel_object());

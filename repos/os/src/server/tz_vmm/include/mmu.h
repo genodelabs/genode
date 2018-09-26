@@ -14,8 +14,10 @@
 #ifndef _SRC__SERVER__VMM__INCLUDE__MMU_H_
 #define _SRC__SERVER__VMM__INCLUDE__MMU_H_
 
+/* base includes */
+#include <cpu/vm_state.h>
+
 /* local includes */
-#include <vm_state.h>
 #include <ram.h>
 
 class Mmu

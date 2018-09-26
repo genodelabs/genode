@@ -44,7 +44,7 @@ class Main
 		Vm::Kernel_name  const  _kernel_name       { "linux" };
 		Vm::Command_line const  _cmd_line          { "console=ttymxc0,115200" };
 		Attached_rom_dataspace  _config            { _env, "config" };
-		Signal_handler<Main>    _exception_handler { _env.ep(), *this,
+		Vm_handler<Main>        _exception_handler { _env.ep(), *this,
 		                                             &Main::_handle_exception };
 
 		Heap          _heap    { &_env.ram(), &_env.rm() };
@@ -52,7 +52,8 @@ class Main
 		                         Trustzone::NONSECURE_RAM_BASE,
 		                         Trustzone::NONSECURE_RAM_SIZE,
 		                         KERNEL_OFFSET, Machine_type(MACHINE_QSB),
-		                         Board_revision(BOARD_QSB) };
+		                         Board_revision(BOARD_QSB),
+		                         _heap, _exception_handler };
 		M4if          _m4if    { _env, Imx53::M4IF_BASE, Imx53::M4IF_SIZE };
 		Serial_driver _serial  { _env.ram() };
 		Block_driver  _block   { _env.ep(), _config.xml(), _heap, _vm };
@@ -106,7 +107,6 @@ class Main
 			log("Start virtual machine ...");
 			_m4if.set_region0(Trustzone::SECURE_RAM_BASE,
 			                  Trustzone::SECURE_RAM_SIZE);
-			_vm.exception_handler(_exception_handler);
 			_vm.start();
 			_vm.run();
 		}

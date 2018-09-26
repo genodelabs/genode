@@ -16,9 +16,10 @@
 
 /* Genode includes */
 #include <vm_session/capability.h>
+#include <vm_session/handler.h>
 #include <base/rpc_client.h>
 
-namespace Genode { struct Vm_session_client; }
+namespace Genode { struct Vm_session_client; class Allocator; class Vm_state; }
 
 /**
  * Client-side VM session interface
@@ -36,14 +37,10 @@ struct Genode::Vm_session_client : Rpc_client<Vm_session>
 	 ** Vm_session interface **
 	 **************************/
 
-	Dataspace_capability cpu_state() {
-		return call<Rpc_cpu_state>(); }
+	Dataspace_capability cpu_state(Vcpu_id);
 
-	void exception_handler(Signal_context_capability handler) {
-		call<Rpc_exception_handler>(handler); }
-
-	void run()   { call<Rpc_run>();   }
-	void pause() { call<Rpc_pause>(); }
+	void run(Vcpu_id);
+	void pause(Vcpu_id);
 
 	void attach(Dataspace_capability ds,addr_t vm_addr) {
 		call<Rpc_attach>(ds, vm_addr); }
@@ -53,6 +50,8 @@ struct Genode::Vm_session_client : Rpc_client<Vm_session>
 
 	void attach_pic(addr_t vm_addr) {
 		call<Rpc_attach_pic>(vm_addr); }
+
+	Vcpu_id create_vcpu(Allocator &, Env &, Vm_handler_base &);
 };
 
 #endif /* _INCLUDE__VM_SESSION__CLIENT_H_ */

@@ -14,6 +14,7 @@
 #ifndef _INCLUDE__VM_SESSION__CONNECTION_H_
 #define _INCLUDE__VM_SESSION__CONNECTION_H_
 
+#include <util/retry.h>
 #include <vm_session/client.h>
 #include <cpu_session/cpu_session.h>
 #include <base/connection.h>
@@ -65,6 +66,19 @@ struct Genode::Vm_connection : Connection<Vm_session>, Vm_session_client
 		Connection<Vm_session>(_session(*env_deprecated()->parent(), label, priority, affinity)),
 		Vm_session_client(cap())
 	{ }
+
+	template <typename FUNC>
+	auto with_upgrade(FUNC func) -> decltype(func())
+	{
+		return Genode::retry<Genode::Out_of_ram>(
+			[&] () {
+				return Genode::retry<Genode::Out_of_caps>(
+					[&] () { return func(); },
+					[&] () { this->upgrade_caps(2); });
+			},
+			[&] () { this->upgrade_ram(4096); }
+		);
+	}
 };
 
 #endif /* _INCLUDE__VM_SESSION__CONNECTION_H_ */

@@ -20,9 +20,9 @@
 #include <rom_session/connection.h>
 #include <vm_session/connection.h>
 #include <util/noncopyable.h>
+#include <cpu/vm_state.h>
 
 /* local includes */
-#include <vm_state.h>
 #include <ram.h>
 
 namespace Genode
@@ -70,8 +70,8 @@ class Genode::Vm_base : Noncopyable, Interface
 		Board_revision const  _board;
 		Ram            const  _ram;
 		Vm_connection         _vm    { _env };
-		Vm_state             &_state { *(Vm_state*)_env.rm()
-		                                           .attach(_vm.cpu_state()) };
+		Vm_session::Vcpu_id   _vcpu_id;
+		Vm_state             &_state { *(Vm_state*)_env.rm().attach(_vm.cpu_state(_vcpu_id)) };
 
 		void _load_kernel();
 
@@ -90,13 +90,12 @@ class Genode::Vm_base : Noncopyable, Interface
 		        size_t              ram_size,
 		        off_t               kernel_off,
 		        Machine_type        machine,
-		        Board_revision      board);
+		        Board_revision      board,
+		        Allocator          &alloc,
+		        Vm_handler_base    &handler);
 
-		void exception_handler(Signal_context_capability handler) {
-			_vm.exception_handler(handler); }
-
-		void run()   { _vm.run();   }
-		void pause() { _vm.pause(); }
+		void run()   { _vm.run(_vcpu_id); }
+		void pause() { _vm.pause(_vcpu_id); }
 
 		void   start();
 		void   dump();
