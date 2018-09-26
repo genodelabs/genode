@@ -183,8 +183,12 @@ struct Linker::Elf_file : File
 	 */
 	void loadable_segments(Phdr &result)
 	{
+		bool dynamic = false;
 		for (unsigned i = 0; i < phdr.count; i++) {
 			Elf::Phdr *ph = &phdr.phdr[i];
+
+			if (ph->p_type == PT_DYNAMIC)
+				dynamic = true;
 
 			if (ph->p_type != PT_LOAD)
 				continue;
@@ -195,6 +199,16 @@ struct Linker::Elf_file : File
 			}
 
 			result.phdr[result.count++] = *ph;
+		}
+
+		/*
+		 * Check for 'DYNAMIC' segment which should be present in all dynamic ELF
+		 * files.
+		 */
+		if (!dynamic) {
+			error("LD: ELF without DYNAMIC segment appears to be statically linked ",
+			      "(ld=\"no\")");
+			throw Incompatible();
 		}
 	}
 
