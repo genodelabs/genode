@@ -14,13 +14,13 @@
 #ifndef _ACTION_H_
 #define _ACTION_H_
 
-namespace Floating_window_layouter { class Action; }
+namespace Window_layouter { class Action; }
 
 
 /**
  * Result of the application of a key event to the key-sequence tracker
  */
-class Floating_window_layouter::Action
+class Window_layouter::Action
 {
 	public:
 

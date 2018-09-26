@@ -35,7 +35,7 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/coreutils-minimal \
                   [depot_user]/src/e2fsprogs-minimal \
                   [depot_user]/src/gpt_write \
-                  [depot_user]/src/floating_window_layouter
+                  [depot_user]/src/window_layouter
 
 install_config {
 <config>

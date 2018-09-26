@@ -1,0 +1,255 @@
+create_boot_directory
+
+#
+# To use the themed decorator instead of the default one, replace 'pkg/wm'
+# with 'pkg/themed_wm'.
+#
+
+import_from_depot genodelabs/src/[base_src] \
+                  genodelabs/pkg/[drivers_interactive_pkg] \
+                  genodelabs/pkg/wm \
+                  genodelabs/raw/genode_bg \
+                  genodelabs/pkg/backdrop \
+                  genodelabs/src/demo \
+                  genodelabs/src/init \
+                  genodelabs/src/nitpicker \
+                  genodelabs/src/dynamic_rom \
+                  genodelabs/src/nit_fb \
+                  genodelabs/src/vfs
+
+install_config {
+<config prio_levels="2">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<default caps="100"/>
+
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+
+	<start name="drivers" caps="1000">
+		<resource name="RAM" quantum="32M" constrain_phys="yes"/>
+		<binary name="init"/>
+		<route>
+			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+		<provides>
+			<service name="Input"/> <service name="Framebuffer"/>
+		</provides>
+	</start>
+
+	<start name="nitpicker">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Nitpicker"/></provides>
+		<config focus="rom">
+			<domain name="pointer" layer="1" content="client" label="no" origin="pointer" />
+			<domain name="default" layer="2" content="client" label="no" hover="always"/>
+
+			<policy label_prefix="pointer" domain="pointer"/>
+			<default-policy domain="default"/>
+		</config>
+	</start>
+
+	<start name="pointer">
+		<resource name="RAM" quantum="1M"/>
+		<route>
+			<service name="Nitpicker"> <child name="nitpicker"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="wm_report_rom">
+		<binary name="report_rom"/>
+		<resource name="RAM" quantum="4M"/>
+		<provides>
+			<service name="Report"/>
+			<service name="ROM"/>
+		</provides>
+		<config verbose="no">
+			<policy label="layouter -> window_list"       report="wm -> window_list"/>
+			<policy label="layouter -> rules"             report="layouter -> rules"/>
+			<policy label="decorator -> window_layout"    report="layouter -> window_layout"/>
+			<policy label="wm -> resize_request"          report="layouter -> resize_request"/>
+			<policy label="decorator -> pointer"          report="wm -> pointer"/>
+			<policy label="layouter -> hover"             report="decorator -> hover"/>
+			<policy label="layouter -> decorator_margins" report="decorator -> decorator_margins"/>
+			<policy label="wm -> focus"                   report="layouter -> focus"/>
+		</config>
+	</start>
+
+	<start name="dynamic_rom">
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="ROM"/> </provides>
+		<config verbose="yes">
+			<rom name="focus_request">
+
+				<inline description="focus launchpad">
+					<focus label="launchpad" id="1"/>
+				</inline>
+
+				<sleep milliseconds="1000" />
+
+				<inline description="focus wm_backdrop">
+					<focus label="wm_backdrop" id="2"/>
+				</inline>
+
+				<sleep milliseconds="1000" />
+
+			</rom>
+		</config>
+	</start>
+
+	<start name="wm" caps="250">
+		<resource name="RAM" quantum="6M"/>
+		<provides>
+			<service name="Nitpicker"/>
+		</provides>
+		<config>
+			<policy label_prefix="decorator" role="decorator"/>
+			<policy label_prefix="layouter"  role="layouter"/>
+		</config>
+		<route>
+			<service name="ROM" label="resize_request"> <child name="wm_report_rom"/> </service>
+			<service name="ROM" label="focus">          <child name="wm_report_rom"/> </service>
+			<service name="Report">                     <child name="wm_report_rom"/> </service>
+			<any-service>
+				<child name="nitpicker"/> <parent/> <any-child/>
+			</any-service>
+		</route>
+	</start>
+
+	<start name="layouter">
+		<binary name="window_layouter"/>
+		<resource name="RAM" quantum="4M"/>
+		<config rules="rom">
+			<report rules="yes"/>
+			<rules>
+				<screen name="screen">
+					<column name="left"/>
+					<column name="middle" layer="2">
+						<row/>
+						<row name="center" layer="1"/>
+						<row/>
+					</column>
+					<column name="right"/>
+				</screen>
+				<assign label_prefix="" target="screen" xpos="any" ypos="any"/>
+
+				<!--
+				<assign label_prefix="launchpad -> testnit" target="center"/>
+				<assign label_prefix="launchpad -> "        target="right"/>
+				<assign label_prefix="wm_backdrop"          target="center"/>
+				-->
+			</rules>
+		</config>
+		<route>
+			<service name="ROM" label="window_list">       <child name="wm_report_rom"/> </service>
+			<service name="ROM" label="hover">             <child name="wm_report_rom"/> </service>
+			<service name="ROM" label="decorator_margins"> <child name="wm_report_rom"/> </service>
+			<service name="ROM" label="focus_request">     <child name="dynamic_rom"/>   </service>
+			<service name="ROM" label="rules">             <child name="wm_report_rom"/> </service>
+			<service name="Report">                        <child name="wm_report_rom"/> </service>
+			<any-service> <child name="wm"/> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="decorator" caps="200">
+		<resource name="RAM" quantum="12M"/>
+		<config>
+			<controls> <maximizer/> <title/> </controls>
+		</config>
+		<route>
+			<service name="ROM"    label="window_layout">     <child name="wm_report_rom"/> </service>
+			<service name="ROM"    label="pointer">           <child name="wm_report_rom"/> </service>
+			<service name="Report" label="decorator_margins"> <child name="wm_report_rom"/> </service>
+			<service name="Report" label="hover">             <child name="wm_report_rom"/> </service>
+			<any-service> <child name="wm"/> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="launchpad" priority="-1" caps="1000">
+		<resource name="RAM" quantum="20M"/>
+		<config>
+			<launcher name="nit_fb" ram_quota="7M" caps="100">
+				<config initial_width="500" initial_height="400" />
+			</launcher>
+			<launcher name="nitpicker" ram_quota="1M" caps="100">
+				<config>
+					<domain name="default" layer="2" content="client"
+					        label="no" hover="always" focus="click"/>
+					<default-policy domain="default"/>
+				</config>
+			</launcher>
+			<launcher name="testnit" ram_quota="1M" caps="100"/>
+		</config>
+		<route>
+			<any-service> <child name="wm"/> <parent/> <any-child/>
+			</any-service>
+		</route>
+	</start>
+
+	<start name="backdrop" priority="-1">
+		<resource name="RAM" quantum="24M"/>
+		<config>
+			<libc/>
+			<vfs>
+				<rom name="genode_logo.png"/>
+				<rom name="grid.png"/>
+			</vfs>
+			<fill color="#224433" />
+			<image png="grid.png"        tiled="yes" alpha="200" />
+			<image png="genode_logo.png" anchor="bottom_right" alpha="150"
+			                             xpos="-20" ypos="-20" />
+		</config>
+		<route>
+			<any-service> <child name="nitpicker" label="backdrop"/> <parent/> <any-child/>
+			</any-service>
+		</route>
+	</start>
+
+	<start name="wm_backdrop" priority="-1">
+		<binary name="backdrop" />
+		<resource name="RAM" quantum="24M"/>
+		<config>
+			<libc/>
+			<vfs>
+				<rom name="genode_logo.png"/>
+			</vfs>
+			<fill color="#664455" />
+			<image png="genode_logo.png" scale="zoom" alpha="150" />
+			<image png="genode_logo.png" scale="fit" alpha="150" tiled="yes" />
+			<image png="genode_logo.png" />
+		</config>
+		<route>
+			<any-service> <child name="wm"/> <parent/> <any-child/>
+			</any-service>
+		</route>
+	</start>
+</config>}
+
+#
+# Pin the nitpicker focus to the window manager by providing a static focus ROM
+#
+set fd [open [run_dir]/genode/focus w]
+puts $fd "<focus label=\"wm -> \"/>"
+close $fd
+
+build { app/decorator server/nitpicker server/wm app/window_layouter test/nitpicker }
+
+build_boot_image { decorator nitpicker wm window_layouter testnit }
+
+run_genode_until forever

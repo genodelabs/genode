@@ -2,4 +2,4 @@ _/raw/wm
 _/src/wm
 _/src/report_rom
 _/src/decorator
-_/src/floating_window_layouter
+_/src/window_layouter

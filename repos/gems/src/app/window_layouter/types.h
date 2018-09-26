@@ -1,11 +1,11 @@
 /*
- * \brief  Floating window layouter
+ * \brief  Window layouter
  * \author Norman Feske
  * \date   2015-12-31
  */
 
 /*
- * Copyright (C) 2015-2017 Genode Labs GmbH
+ * Copyright (C) 2015-2018 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -16,8 +16,9 @@
 
 /* Genode includes */
 #include <decorator/types.h>
+#include <decorator/xml_utils.h>
 
-namespace Floating_window_layouter {
+namespace Window_layouter {
 
 	using namespace Genode;
 
@@ -49,6 +50,8 @@ namespace Floating_window_layouter {
 			return other.value == value;
 		}
 	};
+
+	class Window;
 }
 
 #endif /* _TYPES_H_ */
