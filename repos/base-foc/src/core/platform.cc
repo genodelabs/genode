@@ -17,6 +17,7 @@
 #include <base/allocator_avl.h>
 #include <base/sleep.h>
 #include <util/misc_math.h>
+#include <util/xml_generator.h>
 
 /* base-internal includes */
 #include <base/internal/crt0.h>
@@ -384,6 +385,13 @@ void Platform::_setup_basics()
 	/* configure applicable address space but never use page0 */
 	_vm_size  = _vm_start == 0 ? _vm_size - L4_PAGESIZE : _vm_size;
 	_vm_start = _vm_start == 0 ? L4_PAGESIZE : _vm_start;
+
+	/* reserve virtual range for extended vCPU features - better way XXX ? */
+	if (_vm_start < VCPU_VIRT_EXT_END) {
+		_vm_size -= VCPU_VIRT_EXT_END - _vm_start;
+		_vm_start = VCPU_VIRT_EXT_END;
+	}
+
 	_region_alloc.add_range(_vm_start, _vm_size);
 
 	/* preserve stack area in core's virtual address space */
@@ -456,17 +464,38 @@ Platform::Platform() :
 	core_thread.pager(_sigma0);
 	_core_pd->bind_thread(core_thread);
 
+	/* export x86 platform specific infos */
 	{
-		/* export x86 platform specific infos */
-		void * phys_ptr = nullptr;
-		if (ram_alloc().alloc_aligned(get_page_size(), &phys_ptr,
-		                              get_page_size_log2()).ok()) {
-			addr_t const phys_addr = reinterpret_cast<addr_t>(phys_ptr);
-			/* empty for now */
-			_rom_fs.insert(new (core_mem_alloc()) Rom_module(phys_addr,
-			                                                 get_page_size(),
-			                                                 "platform_info"));
-		}
+		void * core_local_ptr = nullptr;
+		void * phys_ptr       = nullptr;
+		unsigned const pages  = 1;
+		size_t const   align  = get_page_size_log2();
+		size_t const   size   = pages << get_page_size_log2();
+
+		if (ram_alloc().alloc_aligned(size, &phys_ptr, align).error())
+			return;
+		if (region_alloc().alloc_aligned(size, &core_local_ptr, align).error())
+			return;
+
+		addr_t const phys_addr = reinterpret_cast<addr_t>(phys_ptr);
+		addr_t const core_local_addr = reinterpret_cast<addr_t>(core_local_ptr);
+
+		if (!map_local(phys_addr, core_local_addr, pages))
+			return;
+
+		memset(core_local_ptr, 0, size);
+
+		Genode::Xml_generator xml(reinterpret_cast<char *>(core_local_addr),
+		                          pages << get_page_size_log2(),
+		                          "platform_info", [&] ()
+		{
+			xml.node("hardware", [&] () {
+				_setup_platform_info(xml, sigma0_map_kip());
+			});
+		});
+
+		_rom_fs.insert(new (core_mem_alloc()) Rom_module(phys_addr, size,
+		                                                 "platform_info"));
 	}
 
 	/* core log as ROM module */
@@ -474,22 +503,26 @@ Platform::Platform() :
 		void * core_local_ptr = nullptr;
 		void * phys_ptr       = nullptr;
 		unsigned const pages  = 1;
-		size_t const log_size = pages << get_page_size_log2();
+		size_t const   align  = get_page_size_log2();
+		size_t const   size   = pages << get_page_size_log2();
 
-		ram_alloc().alloc_aligned(log_size, &phys_ptr, get_page_size_log2());
+		if (ram_alloc().alloc_aligned(size, &phys_ptr, align).error())
+			return;
+		if (region_alloc().alloc_aligned(size, &core_local_ptr, align).error())
+			return;
+
 		addr_t const phys_addr = reinterpret_cast<addr_t>(phys_ptr);
-
-		/* let one page free after the log buffer */
-		region_alloc().alloc_aligned(log_size, &core_local_ptr, get_page_size_log2());
 		addr_t const core_local_addr = reinterpret_cast<addr_t>(core_local_ptr);
 
-		map_local(phys_addr, core_local_addr, pages);
-		memset(core_local_ptr, 0, log_size);
+		if (!map_local(phys_addr, core_local_addr, pages))
+			return;
 
-		_rom_fs.insert(new (core_mem_alloc()) Rom_module(phys_addr, log_size,
+		memset(core_local_ptr, 0, size);
+
+		_rom_fs.insert(new (core_mem_alloc()) Rom_module(phys_addr, size,
 		                                                 "core_log"));
 
-		init_core_log(Core_log_range { core_local_addr, log_size } );
+		init_core_log(Core_log_range { core_local_addr, size } );
 	}
 }
 

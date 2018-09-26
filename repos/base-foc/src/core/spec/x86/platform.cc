@@ -15,6 +15,7 @@
 /* Genode includes */
 #include <base/log.h>
 #include <irq_session/irq_session.h>
+#include <util/xml_generator.h>
 
 #include "platform.h"
 #include "util.h"
@@ -23,6 +24,7 @@
 namespace Fiasco {
 #include <l4/sys/ipc.h>
 #include <l4/sys/icu.h>
+#include <l4/sys/kip.h>
 }
 
 void Genode::Platform::_setup_io_port_alloc()
@@ -85,4 +87,28 @@ void Genode::Platform::setup_irq_mode(unsigned irq_number, unsigned trigger,
 	 */
 	if (l4_error(l4_icu_set_mode(L4_BASE_ICU_CAP, irq_number, mode)))
 		error("setting mode for IRQ ", irq_number, " failed");
+}
+
+static bool cpu_name(char const * name) {
+	using Genode::uint32_t;
+
+	uint32_t cpuid = 0, edx = 0, ebx = 0, ecx = 0;
+	asm volatile ("cpuid" : "+a" (cpuid), "=d" (edx), "=b"(ebx), "=c"(ecx));
+
+	return ebx == *reinterpret_cast<uint32_t const *>(name) &&
+	       edx == *reinterpret_cast<uint32_t const *>(name + 4) &&
+	       ecx == *reinterpret_cast<uint32_t const *>(name + 8);
+}
+
+void Genode::Platform::_setup_platform_info(Xml_generator &xml,
+                                            Fiasco::l4_kernel_info_t &kip)
+{
+	xml.node("features", [&] () {
+		/* XXX better detection required, best told us by kernel !? */
+		xml.attribute("svm", cpu_name("AuthenticAMD"));
+		xml.attribute("vmx", cpu_name("GenuineIntel"));
+	});
+	xml.node("tsc", [&] () {
+		xml.attribute("freq_khz" , kip.frequency_cpu);
+	});
 }

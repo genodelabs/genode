@@ -27,7 +27,6 @@ SRC_CC      += stack_area.cc \
                platform.cc \
                platform_rom_modules.cc \
                platform_pd.cc \
-               platform_services.cc \
                platform_thread.cc \
                pd_session_component.cc \
                ram_dataspace_support.cc \
@@ -39,6 +38,7 @@ SRC_CC      += stack_area.cc \
                signal_receiver.cc \
                thread_start.cc \
                trace_session_component.cc \
+               vm_session_component.cc \
                heartbeat.cc
 
 INC_DIR     += $(REP_DIR)/src/core/include \

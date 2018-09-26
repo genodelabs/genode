@@ -48,7 +48,7 @@ namespace Fiasco {
 	static constexpr l4_cap_idx_t THREAD_AREA_BASE = 0xcUL << L4_CAP_SHIFT;
 
 	/* size of one thread slot */
-	static constexpr l4_cap_idx_t THREAD_AREA_SLOT = 0x3UL << L4_CAP_SHIFT;
+	static constexpr l4_cap_idx_t THREAD_AREA_SLOT = 0x5UL << L4_CAP_SHIFT;
 
 	/* offset to the ipc gate cap selector in the slot */
 	static constexpr l4_cap_idx_t THREAD_GATE_CAP  = 0;
@@ -58,6 +58,12 @@ namespace Fiasco {
 
 	/* offset to the irq cap selector in the slot */
 	static constexpr l4_cap_idx_t THREAD_IRQ_CAP = 0x2UL << L4_CAP_SHIFT;
+
+	/* offset to the irq cap selector in the slot */
+	static constexpr l4_cap_idx_t TASK_VCPU_CAP = 0x3UL << L4_CAP_SHIFT;
+
+	/* offset to the irq cap selector in the slot */
+	static constexpr l4_cap_idx_t TASK_VCPU_IRQ_CAP = 0x4UL << L4_CAP_SHIFT;
 
 	/* shortcut to the main thread's gate cap */
 	static constexpr l4_cap_idx_t MAIN_THREAD_CAP = THREAD_AREA_BASE

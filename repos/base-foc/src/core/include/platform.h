@@ -28,8 +28,13 @@
 #include <platform_pd.h>
 #include <assertion.h>
 
+namespace Fiasco {
+	struct l4_kernel_info_t;
+}
 
 namespace Genode {
+
+	class Xml_generator;
 
 	class Platform : public Platform_generic
 	{
@@ -73,12 +78,6 @@ namespace Genode {
 			addr_t           _vm_start = 0;      /* begin of virtual memory */
 			size_t           _vm_size  = 0;      /* size of virtual memory */
 
-
-			/*
-			 * We do not export any boot module loaded before FIRST_ROM.
-			 */
-			enum { FIRST_ROM = 3 };
-
 			/**
 			 * Setup base resources
 			 *
@@ -98,6 +97,12 @@ namespace Genode {
 			void _setup_io_port_alloc();
 
 			/**
+			 * Setup content of platform_info ROM
+			 */
+			void _setup_platform_info(Xml_generator &,
+			                          Fiasco::l4_kernel_info_t &);
+
+			/**
 			 * Setup IRQ allocator
 			 */
 			void _setup_irq_alloc();
@@ -115,6 +120,8 @@ namespace Genode {
 			addr_t _rom_module_phys(addr_t virt) { return virt; }
 
 		public:
+
+			enum { VCPU_VIRT_EXT_START = 0x1000, VCPU_VIRT_EXT_END = 0x10000 };
 
 			/**
 			 * Core pager thread that handles core-internal page-faults

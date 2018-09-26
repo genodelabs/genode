@@ -16,3 +16,6 @@
 void Genode::Platform::_setup_io_port_alloc() { }
 
 void Genode::Platform::setup_irq_mode(unsigned, unsigned, unsigned) { }
+
+void Genode::Platform::_setup_platform_info(Xml_generator &,
+                                            Fiasco::l4_kernel_info_t &) { }

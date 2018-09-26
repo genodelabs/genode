@@ -156,6 +156,12 @@ namespace Genode {
 			 */
 			Affinity::Location affinity() const;
 
+			/**
+			 * Make thread to vCPU
+			 */
+			Fiasco::l4_cap_idx_t setup_vcpu(unsigned, Cap_mapping const &,
+			                                Cap_mapping &);
+
 			/************************
 			 ** Accessor functions **
 			 ************************/

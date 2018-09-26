@@ -18,7 +18,7 @@ if { [get_cmd_switch --autopilot] } {
 		exit 0
 	}
 
-	if {[have_spec nova]} {
+	if {[have_spec nova] || [have_spec foc]} {
 	} else {
 		puts "\n Run script is not supported on this platform. \n";
 		exit 0
