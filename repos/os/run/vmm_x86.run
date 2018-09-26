@@ -1,0 +1,206 @@
+#
+# \brief  rudimentary x86 virtual-machine monitor interface test
+# \author Alexander Boettcher
+# \date   2018-08-26
+#
+
+assert_spec x86
+
+if { [get_cmd_switch --autopilot] } {
+	# nightly x86 32bit test machine has no vmx support
+	if {[have_spec x86_32] && ![have_include "power_on/qemu"]} {
+		puts "\n Run script is not supported on this platform. \n";
+		exit 0
+	}
+
+	if {[have_include "power_on/qemu"] && [have_spec sel4]} {
+		puts "\n Run script is not supported on this platform. \n";
+		exit 0
+	}
+
+	if {[have_spec nova]} {
+	} else {
+		puts "\n Run script is not supported on this platform. \n";
+		exit 0
+	}
+}
+
+set build_components {
+	core init
+	timer
+	test/vmm_x86
+}
+build $build_components
+create_boot_directory
+
+install_config {
+<config verbose="yes">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="VM"/>
+	</parent-provides>
+	<default-route>
+		<any-service><parent/><any-child/></any-service>
+	</default-route>
+	<default caps="100"/>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+	<start name="vmm" caps="2048">
+		<binary name="test-vmm_x86"/>
+		<resource name="RAM" quantum="256M"/>
+	</start>
+</config>
+}
+
+set boot_modules {
+	core ld.lib.so init
+	timer
+	test-vmm_x86
+}
+build_boot_image $boot_modules
+
+append qemu_args " -cpu phenom -smp 2"
+append qemu_args " -nographic "
+
+#run_genode_until {.*vcpu 1 : 7\. vm exit -.*\n} 20
+#run_genode_until forever
+run_genode_until "vmm test finished" 25
+
+set output_saved $output
+grep_output {^\[init -> vmm\] vcpu 0 :.*}
+set output_0 $output
+unify_output {\[init -> vmm\] vcpu 0 : [0-9]+} "vcpu 0 : XX"
+# transform INTEL HLT to AMD HLT number
+unify_output "vcpu 0 : XX. vm exit - reason 0xc" "vcpu 0 : XX. vm exit - reason 0x78"
+# AMD with NPT
+unify_output "vcpu 0 : XX. vm exit - reason 0xfc handled by 'ep'" ""
+# AMD w/o NPT
+unify_output "vcpu 0 : XX. vm exit - reason 0x4e handled by 'ep'" ""
+# Intel with EPT
+unify_output "vcpu 0 : XX. vm exit - reason 0x30 handled by 'ep'" ""
+unify_output "vcpu 0 : XX. vm exit -  guest fault address: 0xfffffff0" ""
+unify_output "vcpu 0 : XX. vm exit - resume vcpu" ""
+trim_lines
+set output_0 $output
+
+set output $output_saved
+grep_output {^\[init -> vmm\] vcpu 1 :.*}
+unify_output {\[init -> vmm\] vcpu 1 : [0-9]+} "vcpu 1 : XX"
+# transform INTEL HLT to AMD HLT number
+unify_output "vcpu 1 : XX. vm exit - reason 0xc" "vcpu 1 : XX. vm exit - reason 0x78"
+# AMD with NPT
+unify_output "vcpu 1 : XX. vm exit - reason 0xfc handled by 'ep'" ""
+# AMD w/o NPT
+unify_output "vcpu 1 : XX. vm exit - reason 0x4e handled by 'ep'" ""
+# Intel with EPT
+unify_output "vcpu 1 : XX. vm exit - reason 0x30 handled by 'ep'" ""
+unify_output "vcpu 1 : XX. vm exit -  guest fault address: 0xfffffff0" ""
+unify_output "vcpu 1 : XX. vm exit - resume vcpu" ""
+trim_lines
+set output_1 $output
+
+set output $output_saved
+grep_output {^\[init -> vmm\] vcpu 2 :.*}
+unify_output {\[init -> vmm\] vcpu 2 : [0-9]+} "vcpu 2 : XX"
+# transform INTEL HLT to AMD HLT number
+unify_output "vcpu 2 : XX. vm exit - reason 0xc" "vcpu 2 : XX. vm exit - reason 0x78"
+# AMD with NPT
+unify_output "vcpu 2 : XX. vm exit - reason 0xfc handled by 'second ep'" ""
+# AMD w/o NPT
+unify_output "vcpu 2 : XX. vm exit - reason 0x4e handled by 'second ep'" ""
+# Intel with EPT
+unify_output "vcpu 2 : XX. vm exit - reason 0x30 handled by 'second ep'" ""
+unify_output "vcpu 2 : XX. vm exit -  guest fault address: 0xfffffff0" ""
+unify_output "vcpu 2 : XX. vm exit - resume vcpu" ""
+trim_lines
+set output_2 $output
+
+set output $output_saved
+grep_output {^\[init -> vmm\] vcpu 3 :.*}
+unify_output {\[init -> vmm\] vcpu 3 : [0-9]+} "vcpu 3 : XX"
+# transform INTEL HLT to AMD HLT number
+unify_output "vcpu 3 : XX. vm exit - reason 0xc" "vcpu 3 : XX. vm exit - reason 0x78"
+# AMD with NPT
+unify_output "vcpu 3 : XX. vm exit - reason 0xfc handled by 'second ep'" ""
+# AMD w/o NPT
+unify_output "vcpu 3 : XX. vm exit - reason 0x4e handled by 'second ep'" ""
+# Intel with EPT
+unify_output "vcpu 3 : XX. vm exit - reason 0x30 handled by 'second ep'" ""
+unify_output "vcpu 3 : XX. vm exit -  guest fault address: 0xfffffff0" ""
+unify_output "vcpu 3 : XX. vm exit - resume vcpu" ""
+trim_lines
+set output_3 $output
+
+puts "comparing output ..."
+
+puts $output_0
+set output $output_0
+compare_output_to {
+[init -> vmm] vcpu 0 : created
+vcpu 0 : XX. vm exit - reason 0xfe handled by 'ep'
+vcpu 0 : XX. vm exit - reason 0x78 handled by 'ep'
+vcpu 0 : XX. vm exit -  halting vCPU - guest called HLT - ip=0xfff0
+}
+
+puts $output_1
+set output $output_1
+compare_output_to {
+[init -> vmm] vcpu 1 : created
+vcpu 1 : XX. vm exit - reason 0xfe handled by 'ep'
+vcpu 1 : XX. vm exit - reason 0x78 handled by 'ep'
+vcpu 1 : XX. vm exit -  halting vCPU - guest called HLT - ip=0xfff0
+vcpu 1 : XX. vm exit - reason 0xff handled by 'ep'
+vcpu 1 : XX. vm exit -  due to pause() request - ip=0xfff0
+vcpu 1 : XX. vm exit - reason 0x78 handled by 'ep'
+vcpu 1 : XX. vm exit -  halting vCPU - guest called HLT - ip=0xfff0
+vcpu 1 : XX. vm exit - reason 0xff handled by 'ep'
+vcpu 1 : XX. vm exit -  due to pause() request - ip=0xfff0
+vcpu 1 : XX. vm exit - reason 0xff handled by 'ep'
+vcpu 1 : XX. vm exit -  due to pause() request - ip=0xfff2
+vcpu 1 : XX. vm exit - reason 0x78 handled by 'ep'
+vcpu 1 : XX. vm exit -  halting vCPU - guest called HLT - ip=0xfff4
+vcpu 1 : XX. vm exit - reason 0xff handled by 'ep'
+vcpu 1 : XX. vm exit -  due to pause() request - ip=0xfff4
+}
+
+puts $output_2
+set output $output_2
+compare_output_to {
+[init -> vmm] vcpu 2 : created
+vcpu 2 : XX. vm exit - reason 0xfe handled by 'second ep'
+vcpu 2 : XX. vm exit - reason 0x78 handled by 'second ep'
+vcpu 2 : XX. vm exit -  halting vCPU - guest called HLT - ip=0xfff0
+vcpu 2 : XX. vm exit - reason 0xff handled by 'second ep'
+vcpu 2 : XX. vm exit -  due to pause() request - ip=0xfff0
+vcpu 2 : XX. vm exit - reason 0x78 handled by 'second ep'
+vcpu 2 : XX. vm exit -  halting vCPU - guest called HLT - ip=0xfff0
+vcpu 2 : XX. vm exit - reason 0xff handled by 'second ep'
+vcpu 2 : XX. vm exit -  due to pause() request - ip=0xfff0
+vcpu 2 : XX. vm exit - reason 0x78 handled by 'second ep'
+vcpu 2 : XX. vm exit -  halting vCPU - guest called HLT - ip=0xfff1
+vcpu 2 : XX. vm exit - reason 0xff handled by 'second ep'
+vcpu 2 : XX. vm exit -  due to pause() request - ip=0xfff1
+}
+
+puts $output_3
+set output $output_3
+compare_output_to {
+[init -> vmm] vcpu 3 : created
+vcpu 3 : XX. vm exit - reason 0xfe handled by 'second ep'
+vcpu 3 : XX. vm exit - reason 0x78 handled by 'second ep'
+vcpu 3 : XX. vm exit -  halting vCPU - guest called HLT - ip=0xfff0
+}
+
+set output $output_saved
+grep_output {(Error)}
+compare_output_to {}
+

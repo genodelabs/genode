@@ -74,4 +74,5 @@ vbox5_win7_64_share
 verify
 vfs_import
 vmm
+vmm_x86
 microcode
