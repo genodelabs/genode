@@ -1,0 +1,197 @@
+#
+# \brief  Test for the SSH terminal
+#
+
+assert_spec x86
+
+if {[have_spec linux]} {
+	puts "Run script is not supported on this platform."
+	exit 0
+}
+
+# Build
+#
+
+set build_components {
+	core init
+	drivers/timer
+	drivers/nic
+	drivers/rtc
+	server/ssh_terminal
+	lib/libc_noux
+	lib/vfs/jitterentropy
+	lib/vfs/lxip
+	test/libports/ncurses
+	test/terminal_echo
+	noux
+	noux-pkg/bash
+}
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
+
+build $build_components
+
+create_boot_directory
+
+#
+# Generate config
+#
+
+set config {
+<config verbose="no">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<default caps="100"/>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>
+	<start name="report_rom">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config verbose="yes"/>
+	</start>
+	<start name="nic_drv">
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="Nic"/> </provides>
+	</start>
+	<start name="rtc_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Rtc"/> </provides>
+	</start>
+	<start name="ssh_terminal" caps="250">
+		<resource name="RAM" quantum="32M"/>
+		<provides> <service name="Terminal"/> </provides>
+		<config port="22" allow_password="yes"
+		        show_password="yes" ed25519_key="/etc/ssh/ed25519_key">
+			<policy label_prefix="noux" user="noux" password="xuon" multi_login="yes" request_terminal="yes"/>
+			<policy label_prefix="test-terminal_echo" user="charlie" password="echo"/>
+
+			<vfs>
+				<dir name="dev">
+					<log/>
+					<jitterentropy name="random"/>
+					<jitterentropy name="urandom"/>
+					<rtc/>
+				</dir>
+				<dir name="etc">
+					<dir name="ssh">
+						<rom name="ed25519_key"/>
+					</dir>
+				</dir>
+				<dir name="socket"> <lxip dhcp="yes"/> </dir>
+			</vfs>
+			<libc stdout="/dev/log" stderr="/dev/log" socket="/socket" rtc="/dev/rtc">
+			</libc>
+		</config>
+		<route>
+			<service name="Report"> <child name="report_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="test-terminal_echo">
+		<resource name="RAM" quantum="1M"/>
+	</start>
+	<start name="noux" caps="500">
+		<resource name="RAM" quantum="64M"/>
+		<config verbose="yes">
+			<fstab>
+				<tar name="bash.tar" />
+			</fstab>
+			<start name="/bin/bash">
+				<env name="TERM" value="screen"/>
+				<env name="HOME" value="/"/>
+				<env name="IGNOREEOF" value="3"/>
+			</start>
+		</config>
+	</start>
+}
+
+append_platform_drv_config
+
+append config {
+</config>}
+
+install_config $config
+
+#
+# Generate a new host key
+#
+if {![file exists bin/ed25519_key]} {
+	exec ssh-keygen -t ed25519 -f bin/ed25519_key -q -N ""
+}
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	core ld.lib.so init timer nic_drv rtc_drv report_rom
+	noux test-terminal_echo
+
+	libc.lib.so pthread.lib.so libm.lib.so vfs.lib.so
+	vfs_lxip.lib.so lxip.lib.so libc_pipe.lib.so libc_noux.lib.so
+	posix.lib.so libcrypto.lib.so libssh.lib.so zlib.lib.so ncurses.lib.so
+	vfs_jitterentropy.lib.so ssh_terminal
+
+	bash.tar ed25519_key
+}
+
+# platform-specific modules
+append_platform_drv_boot_modules
+
+build_boot_image $boot_modules
+
+#
+# Execute test
+#
+
+append qemu_args " -m 512 -nographic "
+
+append_if [have_spec x86] qemu_args " -net nic,model=e1000 "
+
+append qemu_args " -net user -redir tcp:5555::22 "
+
+set lxip_match_string "ipaddr=(\[0-9\]+\.\[0-9\]+\.\[0-9\]+\.\[0-9\]+).*\n"
+
+if {[get_cmd_switch --autopilot]} {
+	run_genode_until $lxip_match_string 60
+	set serial_id [output_spawn_id]
+
+	if {[have_include "power_on/qemu"]} {
+		set host "localhost"
+		set port "5555"
+	} else {
+		regexp $lxip_match_string $output all host
+		puts ""
+		set port "22"
+	}
+	# wait for ssh_terminal to come up
+	sleep 5
+	spawn sshpass -p xuon ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -l noux $host -p $port
+	set ssh_id $spawn_id
+	set spawn_id_list [list $ssh_id $serial_id]
+	run_genode_until "--- noux started ---" 15 $spawn_id_list
+	puts ""
+	puts ""
+} else {
+	run_genode_until forever
+}
+
+exec rm bin/ed25519_key bin/ed25519_key.pub
+
+# vi: set ft=tcl :
