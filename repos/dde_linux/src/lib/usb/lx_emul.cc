@@ -1002,7 +1002,7 @@ long __wait_completion(struct completion *work, unsigned long timeout)
 	if (timeout) {
 		timer_setup(&t, _completion_timeout, 0u);
 		t.data = (unsigned long)Lx::scheduler().current();
-		mod_timer(&t, timeout);
+		mod_timer(&t, j);
 	}
 
 	while (!work->done) {
