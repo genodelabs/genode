@@ -116,7 +116,7 @@ struct Usb_device
 
 			if (!p.succeded) {
 				Genode::error("USB transfer failed");
-				itransfer->transferred = -1;
+				itransfer->transferred = 0;
 				usb_connection.source()->release_packet(p);
 				usbi_signal_transfer_completion(itransfer);
 				continue;
