@@ -24,6 +24,17 @@ $(call check_tool,bison)
 $(call check_tool,flex)
 $(call check_tool,python)
 
+
+#
+# Determine python version to use
+#
+PYTHON := $(notdir $(lastword $(shell which python2 $(addprefix python2.,4 5 6 7 8))))
+ifeq ($(PYTHON),)
+default: python_not_installed
+python_not_installed:
+	$(error mesa requires python2)
+endif
+
 #
 # Generate files
 #
@@ -65,7 +76,7 @@ src/lib/mesa/src/mesa/program/lex.yy.c:
 src/lib/mesa/src/mapi/shared-glapi/glapi_mapi_tmp.h:
 	@$(MSG_GENERATE)$(notdir $@)
 	$(VERBOSE)mkdir -p $(@D)
-	$(VERBOSE)python $(@D)/../mapi_abi.py --mode lib --printer shared-glapi \
+	$(VERBOSE)$(PYTHON) $(@D)/../mapi_abi.py --mode lib --printer shared-glapi \
 		$(@D)/../glapi/gen/gl_and_es_API.xml > $@
 
 default: $(DOWNLOADS) $(generated_files)
