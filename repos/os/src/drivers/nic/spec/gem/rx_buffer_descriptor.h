@@ -1,11 +1,12 @@
 /*
  * \brief  Base EMAC driver for the Xilinx EMAC PS used on Zynq devices
  * \author Timo Wischer
+ * \author Johannes Schlatow
  * \date   2015-03-10
  */
 
 /*
- * Copyright (C) 2015-2017 Genode Labs GmbH
+ * Copyright (C) 2015-2018 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -22,10 +23,11 @@ using namespace Genode;
 class Rx_buffer_descriptor : public Buffer_descriptor
 {
 	private:
+
 		struct Addr : Register<0x00, 32> {
-			struct Addr31to2 : Bitfield<2, 28> {};
+			struct Addr31to2 : Bitfield<2, 30> {};
 			struct Wrap : Bitfield<1, 1> {};
-			struct Package_available : Bitfield<0, 1> {};
+			struct Used : Bitfield<0, 1> {};
 		};
 		struct Status : Register<0x04, 32> {
 			struct Length : Bitfield<0, 13> {};
@@ -33,102 +35,101 @@ class Rx_buffer_descriptor : public Buffer_descriptor
 			struct End_of_frame : Bitfield<15, 1> {};
 		};
 
-		enum { BUFFER_COUNT = 16 };
+		enum { MAX_BUFFER_COUNT = 1024 };
 
+		addr_t const _phys_base;
 
-		/**
-		 * @brief _set_buffer_processed resets the available flag
-		 * So the DMA controller can use this buffer for an received package.
-		 * The buffer index will be incremented, too.
-		 * So the right sequenz of packages will be keeped.
-		 */
-		void _set_package_processed()
-		{
-			/* reset package available for new package */
-			_current_descriptor().addr &= ~Addr::Package_available::bits(1);
-			/* use next buffer descriptor for next package */
-			_increment_descriptor_index();
+		void _reset_descriptor(unsigned const i, addr_t phys_addr) {
+			if (i > _max_index())
+				return;
+
+			/* clear status */
+			_descriptors[i].status = 0;
+
+			/* set physical buffer address and set not used by SW
+			 * last descriptor must be marked by Wrap bit
+			 */
+			_descriptors[i].addr =
+				(phys_addr & Addr::Addr31to2::reg_mask())
+				| Addr::Wrap::bits(i == _max_index());
 		}
 
+		inline bool _head_available()
+		{
+			return Addr::Used::get(_head().addr)
+			    && Status::Length::get(_head().status);
+		}
 
 	public:
-		Rx_buffer_descriptor(Genode::Env &env) : Buffer_descriptor(env, BUFFER_COUNT)
+		Rx_buffer_descriptor(Genode::Env &env,
+		                     Nic::Session::Tx::Source &source)
+		: Buffer_descriptor(env, MAX_BUFFER_COUNT),
+		  _phys_base(Dataspace_client(source.dataspace()).phys_addr())
 		{
-			/*
-			 * mark the last buffer descriptor
-			 * so the dma will start at the beginning again
-			 */
-			_descriptors[BUFFER_COUNT-1].addr |= Addr::Wrap::bits(1);
+			for (size_t i=0; i <= _max_index(); i++) {
+				try {
+					Nic::Packet_descriptor p = source.alloc_packet(BUFFER_SIZE);
+					_reset_descriptor(i, _phys_base + p.offset());
+				} catch (Nic::Session::Rx::Source::Packet_alloc_failed) {
+					/* set new _buffer_count */
+					_max_index(i-1);
+					/* set wrap bit */
+					_descriptors[_max_index()].addr |= Addr::Wrap::bits(1);
+					break;
+				}
+			}
+
+			Genode::log("Initialised ", _max_index()+1, " RX buffer descriptors");
 		}
 
-
-		bool package_available()
+		bool reset_descriptor(Packet_descriptor pd)
 		{
-			for (unsigned int i=0; i<BUFFER_COUNT; i++) {
-				const bool available = Addr::Package_available::get(_current_descriptor().addr);
-				if (available) {
+			addr_t const phys = _phys_base + pd.offset();
+
+			for (size_t i=0; i <= _max_index(); i++) {
+				_advance_tail();
+				if (Addr::Addr31to2::masked(_tail().addr) == phys) {
+					_reset_descriptor(_tail_index(), phys);
 					return true;
 				}
+			}
+			return false;
+		}
 
-				_increment_descriptor_index();
+		bool next_packet()
+		{
+			/* Find next available descriptor (head) holding a packet. */
+			for (unsigned int i=0; i < _max_index(); i++) {
+				if (_head_available())
+					return true;
+
+				_advance_head();
 			}
 
 			return false;
 		}
 
-
-		size_t package_length()
+		Nic::Packet_descriptor get_packet_descriptor()
 		{
-			if (!package_available())
-				return 0;
+			if (!_head_available())
+				return Nic::Packet_descriptor(0, 0);
 
-			return Status::Length::get(_current_descriptor().status);
-		}
-
-
-		size_t get_package(char* const package, const size_t max_length)
-		{
-			if (!package_available())
-				return 0;
-
-			const Status::access_t status = _current_descriptor().status;
+			const Status::access_t status = _head().status;
 			if (!Status::Start_of_frame::get(status) || !Status::End_of_frame::get(status)) {
-				warning("Package splitted over more than one descriptor. Package ignored!");
+				warning("Packet split over more than one descriptor. Packet ignored!");
 
-				_set_package_processed();
-				return 0;
+				_reset_descriptor(_head_index(), _head().addr);
+				return Nic::Packet_descriptor(0, 0);
 			}
 
 			const size_t length = Status::Length::get(status);
-			if (length > max_length) {
-				warning("Buffer for received package to small. Package ignored!");
+			
+			/* reset status */
+			_head().status = 0;
 
-				_set_package_processed();
-				return 0;
-			}
-
-			const char* const src_buffer = _current_buffer();
-			memcpy(package, src_buffer, length);
-
-			_set_package_processed();
-
-
-			return length;
+			return Nic::Packet_descriptor((addr_t)Addr::Addr31to2::masked(_head().addr) - _phys_base, length);
 		}
 
-		void show_mem_diffs()
-		{
-			static unsigned int old_data[0x1F];
-
-			log("Rx buffer:");
-			const unsigned int* const cur_data = local_addr<unsigned int>();
-			for (unsigned i=0; i<sizeof(old_data)/sizeof(old_data[0]); i++) {
-				if (cur_data[i] != old_data[i]) {
-					log(i*4, ": ", Hex(old_data[i]), " -> ", Hex(cur_data[i]));
-				}
-			}
-			memcpy(old_data, cur_data, sizeof(old_data));
-		}
 };
 
 #endif /* _INCLUDE__DRIVERS__NIC__GEM__RX_BUFFER_DESCRIPTOR_H_ */
