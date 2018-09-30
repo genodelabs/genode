@@ -10,6 +10,10 @@ if {![have_include power_on/qemu] ||
 	exit 0
 }
 
+proc min_duration_sec { } { return 8 }
+proc pause_sec        { } { return 5 }
+proc good_dst_ip      { } { return "10.0.2.2" }
+proc bad_dst_ip       { } { return "10.0.0.123" }
 
 set build_components {
 	core
@@ -19,14 +23,13 @@ set build_components {
 	server/nic_router
 	test/net_flood
 	app/ping
+	server/report_rom
+	server/dynamic_rom
 }
 
 proc gpio_drv { } { if {[have_spec rpi] && [have_spec hw]}  { return hw_gpio_drv }
                     if {[have_spec rpi] && [have_spec foc]} { return foc_gpio_drv }
                     return gpio_drv }
-
-proc good_dst_ip { } { return "10.0.2.2" }
-proc bad_dst_ip  { } { return "10.0.0.123" }
 
 lappend_if [have_spec gpio] build_components drivers/gpio
 
@@ -45,6 +48,7 @@ append config {
 <config>
 	<parent-provides>
 		<service name="ROM"/>
+		<service name="RAM"/>
 		<service name="IRQ"/>
 		<service name="IO_MEM"/>
 		<service name="IO_PORT"/>
@@ -61,6 +65,7 @@ append config {
 append_platform_drv_config
 
 append_if [have_spec gpio] config "
+
 	<start name=\"[gpio_drv]\" caps=\"150\">
 		<resource name=\"RAM\" quantum=\"4M\"/>
 		<provides><service name=\"Gpio\"/></provides>
@@ -68,6 +73,7 @@ append_if [have_spec gpio] config "
 	</start>"
 
 append config {
+
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
@@ -80,29 +86,35 @@ append config {
 		} [nic_drv_config] {
 	</start>
 
+	<start name="report_rom">
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config verbose="yes"/>
+	</start>
+
 	<start name="nic_router" caps="200">
-		<resource name="RAM" quantum="10M"/>
+		<resource name="RAM" quantum="6M"/>
 		<provides><service name="Nic"/></provides>
-		<config verbose="no"
+		<config ld_verbose="yes" verbose="no"
 		        verbose_packets="no"
 		        verbose_packet_drop="yes"
-		        verbose_domain_state="yes"
+		        verbose_domain_state="no"
 		        dhcp_discover_timeout_sec="1"
 		        tcp_idle_timeout_sec="3600"
 		        udp_idle_timeout_sec="3600"
 		        icmp_idle_timeout_sec="3600">
 
-			<policy label_prefix="flood_links" domain="flood_links"/>
-			<policy label_prefix="ping"        domain="flood_links"/>
-			<uplink                            domain="uplink"/>
+			<report stats="yes" config="no" bytes="no" interval_sec="} [expr [pause_sec] - 1] {"/>
+			<policy label_prefix="init -> " domain="downlinks"/>
+			<uplink                         domain="uplink"/>
 
 			<domain name="uplink" verbose_packets="no">
-				<nat domain="flood_links" udp-ports="16384"
-				                          tcp-ports="16384"
-				                          icmp-ids="16384"/>
+				<nat domain="downlinks" udp-ports="16384"
+				                        tcp-ports="16384"
+				                        icmp-ids="16384"/>
 			</domain>
 
-			<domain name="flood_links" interface="10.0.1.1/24">
+			<domain name="downlinks" interface="10.0.1.1/24">
 				<dhcp-server ip_first="10.0.1.100"
 				             ip_last="10.0.1.200"/>
 				
@@ -114,51 +126,92 @@ append config {
 		</config>
 		<route>
 			<service name="Nic"> <child name="nic_drv"/> </service>
+			<service name="Report"> <child name="report_rom"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
 
-	<start name="flood_links_tcp">
-		<binary name="test-net_flood"/>
-		<resource name="RAM" quantum="8M"/>
-		<config dst_ip="} [bad_dst_ip] {"
-		        protocol="tcp"
-		        verbose="no"/>
-		<route>
-			<service name="Nic"> <child name="nic_router"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-	<start name="flood_links_udp">
-		<binary name="test-net_flood"/>
-		<resource name="RAM" quantum="8M"/>
-		<config dst_ip="} [bad_dst_ip] {"
-		        protocol="udp"
-		        verbose="no"/>
-		<route>
-			<service name="Nic"> <child name="nic_router"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-	<start name="flood_links_icmp">
-		<binary name="test-net_flood"/>
-		<resource name="RAM" quantum="8M"/>
-		<config dst_ip="} [bad_dst_ip] {"
-		        protocol="icmp"
-		        verbose="no"/>
-		<route>
-			<service name="Nic"> <child name="nic_router"/> </service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
+	<start name="dynamic_rom">
+		<resource name="RAM" quantum="10M"/>
+		<provides><service name="ROM"/> </provides>
+		<config verbose="yes">
+
+			<rom name="init.config">
+
+				<inline description="pause phase">
+					<config/>
+				</inline>
+
+				<sleep milliseconds="} [expr [pause_sec] * 1000] {"/>
+
+				<inline description="test phase">
+					<config>
+
+						<parent-provides>
+							<service name="ROM"/>
+							<service name="RAM"/>
+							<service name="IRQ"/>
+							<service name="IO_MEM"/>
+							<service name="IO_PORT"/>
+							<service name="PD"/>
+							<service name="RM"/>
+							<service name="CPU"/>
+							<service name="LOG"/>
+							<service name="Timer"/>
+							<service name="Nic"/>
+						</parent-provides>
+						<default-route>
+							<any-service> <parent/> </any-service>
+						</default-route>
+						<default caps="100"/>
+
+						<start name="test_flood_tcp">
+							<binary name="test-net_flood"/>
+							<resource name="RAM" quantum="8M"/>
+							<config dst_ip="} [bad_dst_ip] {"
+							        protocol="tcp"
+							        verbose="no"
+							        sec="} [min_duration_sec] {"/>
+						</start>
+
+						<start name="test_flood_udp">
+							<binary name="test-net_flood"/>
+							<resource name="RAM" quantum="8M"/>
+							<config dst_ip="} [bad_dst_ip] {"
+							        protocol="udp"
+							        verbose="no"
+							        sec="} [min_duration_sec] {"/>
+						</start>
+
+						<start name="test_flood_icmp">
+							<binary name="test-net_flood"/>
+							<resource name="RAM" quantum="8M"/>
+							<config dst_ip="} [bad_dst_ip] {"
+							        protocol="icmp"
+							        verbose="no"
+							        sec="} [min_duration_sec] {"/>
+						</start>
+
+						<start name="test_ping">
+							<binary name="ping"/>
+							<resource name="RAM" quantum="8M"/>
+							<config dst_ip="} [good_dst_ip] {"
+							        period_sec="1"
+							        count="} [expr [min_duration_sec] - 1] {"/>
+						</start>
+
+					</config>
+				</inline>
+
+				<sleep milliseconds="} [expr ([min_duration_sec] + 2) * 1000] {"/>
+			</rom>
+		</config>
 	</start>
 
-
-	<start name="ping">
-		<resource name="RAM" quantum="8M"/>
-		<config dst_ip="} [good_dst_ip] {"
-		        period_sec="2"
-		        count="999"/>
+	<start name="init" caps="1000">
+		<resource name="RAM" quantum="50M"/>
 		<route>
+			<service name="ROM" label="config"> <child name="dynamic_rom" label="init.config"/> </service>
 			<service name="Nic"> <child name="nic_router"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
@@ -181,6 +234,8 @@ append boot_modules {
 	ld.lib.so
 	nic_router
 	ping
+	report_rom
+	dynamic_rom
 }
 
 # platform-specific modules
@@ -196,4 +251,158 @@ append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
 
 append qemu_args " -net user -nographic "
 
-run_genode_until {.*ping\] 64 bytes from 10\.0\.2\.2: icmp_seq=30 .*\n} 120
+
+#########################
+## Execute and analyse ##
+#########################
+
+proc test {} {
+
+	global output
+	global serial_id
+	global ram_quota_1
+	global cap_quota_1
+	global used_ram_1
+	global used_cap_1
+	global shared_ram_1
+	global shared_cap_1
+
+	set ram_quota_2  {}
+	set cap_quota_2  {}
+	set used_ram_2   {}
+	set used_cap_2   {}
+	set shared_ram_2 {}
+	set shared_cap_2 {}
+
+
+	################
+	## Test phase ##
+	################
+
+	set    output      {}
+	set    desired_str {}
+	append desired_str {.*child "test_ping" exited with exit value 0.*\n}
+	append desired_str {.*child "test_fl.*" exited with exit value 0.*\n}
+	append desired_str {.*child "test_fl.*" exited with exit value 0.*\n}
+	append desired_str {.*child "test_fl.*" exited with exit value 0.*\n}
+
+	run_genode_until $desired_str [expr [min_duration_sec] * 2] $serial_id
+
+	if {[regexp {refused_for} $output]} {
+		puts stderr "*** Error: connections were refused during the test"
+		exit -1
+	}
+	if {[regexp {drop packet} $output]} {
+		puts stderr "*** Error: packets were dropped during the test"
+		exit -1
+	}
+	if {[regexp {Warning: (?!submitting signal failed)} $output]} {
+		puts stderr "*** Error: unexpected warnings during test"
+		exit -1
+	}
+	if {[regexp {Error} $output]} {
+		puts stderr "*** Error: unexpected errors during test"
+		exit -1
+	}
+
+
+	#################
+	## Pause phase ##
+	#################
+
+	set    output      {}
+	set    desired_str {}
+	append desired_str {.*<ram quota=.*\n}
+	append desired_str {.*<cap quota=.*\n}
+
+	run_genode_until $desired_str [expr [pause_sec] * 2] $serial_id
+
+	set quota_ram {}
+	regexp {<ram quota=\"[0-9]+\" used=\"[0-9]+\" shared=\"[0-9]+} $output quota_ram
+	regexp {[0-9]+} [regexp -inline {quota=\"[0-9]+}  $quota_ram] ram_quota_2
+	regexp {[0-9]+} [regexp -inline {used=\"[0-9]+}   $quota_ram] used_ram_2
+	regexp {[0-9]+} [regexp -inline {shared=\"[0-9]+} $quota_ram] shared_ram_2
+
+	set quota_cap {}
+	regexp {<cap quota=\"[0-9]+\" used=\"[0-9]+\" shared=\"[0-9]+} $output quota_cap
+	regexp {[0-9]+} [regexp -inline {quota=\"[0-9]+}  $quota_cap] cap_quota_2
+	regexp {[0-9]+} [regexp -inline {used=\"[0-9]+}   $quota_cap] used_cap_2
+	regexp {[0-9]+} [regexp -inline {shared=\"[0-9]+} $quota_cap] shared_cap_2
+
+	if {$ram_quota_1 != $ram_quota_2} {
+		puts stderr "*** Error: routers ram quota changed"
+		exit -1
+	}
+	if {$cap_quota_1 != $cap_quota_2} {
+		puts stderr "*** Error: routers cap quota changed"
+		exit -1
+	}
+	if {($used_ram_1 - $used_ram_2) != ($shared_ram_1 - $shared_ram_2)} {
+		puts stderr "*** Error: unexpected change in routers used ram quota"
+		exit -1
+	}
+	if {($used_cap_1 - $used_cap_2) != ($shared_cap_1 - $shared_cap_2)} {
+		puts stderr "*** Error: unexpected change in routers used cap quota"
+		exit -1
+	}
+	if {$shared_ram_1 > 4096} {
+		puts stderr "*** Error: routers shared ram quota bigger than expected"
+		exit -1
+	}
+	if {$shared_cap_1 > 1} {
+		puts stderr "*** Error: routers shared cap quota bigger than expected"
+		exit -1
+	}
+
+	set ram_quota_1  $ram_quota_2
+	set cap_quota_1  $cap_quota_2
+	set used_ram_1   $used_ram_2
+	set used_cap_1   $used_cap_2
+	set shared_ram_1 $shared_ram_2
+	set shared_cap_1 $shared_cap_2
+}
+
+
+################
+## Init phase ##
+################
+
+global output
+global serial_id
+global ram_quota_1
+global cap_quota_1
+global used_ram_1
+global used_cap_1
+global shared_ram_1
+global shared_cap_1
+
+set ram_quota_1  {}
+set cap_quota_1  {}
+set used_ram_1   {}
+set used_cap_1   {}
+set shared_ram_1 {}
+set shared_cap_1 {}
+
+set    desired_str {}
+append desired_str {.*<ram quota=.*\n}
+append desired_str {.*<cap quota=.*\n}
+
+run_genode_until $desired_str [expr [pause_sec] * 2]
+
+set serial_id [output_spawn_id]
+
+set quota_ram {}
+regexp {<ram quota=\"[0-9]+\" used=\"[0-9]+\" shared=\"[0-9]+} $output quota_ram
+regexp {[0-9]+} [regexp -inline {quota=\"[0-9]+}  $quota_ram] ram_quota_1
+regexp {[0-9]+} [regexp -inline {used=\"[0-9]+}   $quota_ram] used_ram_1
+regexp {[0-9]+} [regexp -inline {shared=\"[0-9]+} $quota_ram] shared_ram_1
+
+set quota_cap {}
+regexp {<cap quota=\"[0-9]+\" used=\"[0-9]+\" shared=\"[0-9]+} $output quota_cap
+regexp {[0-9]+} [regexp -inline {quota=\"[0-9]+}  $quota_cap] cap_quota_1
+regexp {[0-9]+} [regexp -inline {used=\"[0-9]+}   $quota_cap] used_cap_1
+regexp {[0-9]+} [regexp -inline {shared=\"[0-9]+} $quota_cap] shared_cap_1
+
+test
+test
+test
