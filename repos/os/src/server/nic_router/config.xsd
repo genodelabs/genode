@@ -129,6 +129,7 @@
 				</xs:element><!-- domain -->
 
 			</xs:choice>
+			<xs:attribute name="max_packets_per_signal"    type="xs:nonNegativeInteger" />
 			<xs:attribute name="verbose"                   type="Boolean" />
 			<xs:attribute name="verbose_packets"           type="Boolean" />
 			<xs:attribute name="verbose_packet_drop"       type="Boolean" />

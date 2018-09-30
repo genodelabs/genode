@@ -494,6 +494,21 @@ Whether to log most important changes in the state of a domain (number of NIC
 sessions connected, current IPv4 config).
 
 
+Other configuration attributes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If possible, the NIC router normally handles multiple packets from a NIC
+session per signal. However, if one NIC session has a high packet rate and a
+big buffer, this can lead to starvation of the other NIC sessions. Thus, the
+maximum number of packets handled per signal is limited by default. This limit
+can be configured as follows (default value shown):
+
+! <config max_packets_per_signal="32">
+
+When set to zero, the limit is deactivated, meaning that the router always
+handles all available packets of a NIC session.
+
+
 Examples
 ~~~~~~~~
 

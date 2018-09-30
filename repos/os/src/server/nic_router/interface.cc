@@ -1278,16 +1278,33 @@ void Interface::_handle_arp(Ethernet_frame &eth,
 }
 
 
+void Interface::_handle_pkt()
+{
+	Packet_descriptor const pkt = _sink.get_packet();
+	Size_guard size_guard(pkt.size());
+	try {
+		_handle_eth(_sink.packet_content(pkt), size_guard, pkt);
+		_ack_packet(pkt);
+	}
+	catch (Packet_postponed) { }
+}
+
+
 void Interface::_ready_to_submit()
 {
-	while (_sink.packet_avail()) {
-		Packet_descriptor const pkt = _sink.get_packet();
-		Size_guard size_guard(pkt.size());
-		try {
-			_handle_eth(_sink.packet_content(pkt), size_guard, pkt);
-			_ack_packet(pkt);
+	unsigned long const max_pkts = _config().max_packets_per_signal();
+	if (max_pkts) {
+		for (unsigned long i = 0; _sink.packet_avail(); i++) {
+
+			if (i >= max_pkts) {
+				Signal_transmitter(_sink_submit).submit();
+				break;
+			}
+			_handle_pkt();
 		}
-		catch (Packet_postponed) { }
+	} else {
+		while (_sink.packet_avail()) {
+			_handle_pkt(); }
 	}
 }
 
