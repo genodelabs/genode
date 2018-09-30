@@ -34,6 +34,7 @@ class Net::Configuration
 		using Mac_string = Genode::String<17>;
 
 		Genode::Allocator          &_alloc;
+		unsigned long        const  _max_packets_per_signal  { 0 };
 		bool                 const  _verbose                 { false };
 		bool                 const  _verbose_packets         { false };
 		bool                 const  _verbose_packet_drop     { false };
@@ -68,6 +69,7 @@ class Net::Configuration
 		enum { DEFAULT_UDP_IDLE_TIMEOUT_SEC      =  30 };
 		enum { DEFAULT_TCP_IDLE_TIMEOUT_SEC      = 600 };
 		enum { DEFAULT_TCP_MAX_SEGM_LIFETIME_SEC =  30 };
+		enum { DEFAULT_MAX_PACKETS_PER_SIGNAL    =  32 };
 
 		Configuration(Genode::Xml_node const  node,
 		              Genode::Allocator      &alloc);
@@ -86,21 +88,22 @@ class Net::Configuration
 		 ** Accessors **
 		 ***************/
 
-		bool                  verbose()               const { return _verbose; }
-		bool                  verbose_packets()       const { return _verbose_packets; }
-		bool                  verbose_packet_drop()   const { return _verbose_packet_drop; }
-		bool                  verbose_domain_state()  const { return _verbose_domain_state; }
-		bool                  icmp_echo_server()      const { return _icmp_echo_server; }
-		Genode::Microseconds  dhcp_discover_timeout() const { return _dhcp_discover_timeout; }
-		Genode::Microseconds  dhcp_request_timeout()  const { return _dhcp_request_timeout; }
-		Genode::Microseconds  dhcp_offer_timeout()    const { return _dhcp_offer_timeout; }
-		Genode::Microseconds  icmp_idle_timeout()     const { return _icmp_idle_timeout; }
-		Genode::Microseconds  udp_idle_timeout()      const { return _udp_idle_timeout; }
-		Genode::Microseconds  tcp_idle_timeout()      const { return _tcp_idle_timeout; }
-		Genode::Microseconds  tcp_max_segm_lifetime() const { return _tcp_max_segm_lifetime; }
-		Domain_tree          &domains()                     { return _domains; }
-		Report               &report()                      { return _report(); }
-		Genode::Xml_node      node()                  const { return _node; }
+		unsigned long         max_packets_per_signal() const { return _max_packets_per_signal; }
+		bool                  verbose()                const { return _verbose; }
+		bool                  verbose_packets()        const { return _verbose_packets; }
+		bool                  verbose_packet_drop()    const { return _verbose_packet_drop; }
+		bool                  verbose_domain_state()   const { return _verbose_domain_state; }
+		bool                  icmp_echo_server()       const { return _icmp_echo_server; }
+		Genode::Microseconds  dhcp_discover_timeout()  const { return _dhcp_discover_timeout; }
+		Genode::Microseconds  dhcp_request_timeout()   const { return _dhcp_request_timeout; }
+		Genode::Microseconds  dhcp_offer_timeout()     const { return _dhcp_offer_timeout; }
+		Genode::Microseconds  icmp_idle_timeout()      const { return _icmp_idle_timeout; }
+		Genode::Microseconds  udp_idle_timeout()       const { return _udp_idle_timeout; }
+		Genode::Microseconds  tcp_idle_timeout()       const { return _tcp_idle_timeout; }
+		Genode::Microseconds  tcp_max_segm_lifetime()  const { return _tcp_max_segm_lifetime; }
+		Domain_tree          &domains()                      { return _domains; }
+		Report               &report()                       { return _report(); }
+		Genode::Xml_node      node()                   const { return _node; }
 };
 
 #endif /* _CONFIGURATION_H_ */
