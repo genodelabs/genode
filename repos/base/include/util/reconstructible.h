@@ -137,6 +137,19 @@ class Genode::Reconstructible : Noncopyable
 		bool is_constructed() const { return constructed(); }
 
 		/**
+		 * Construct or destruct volatile object according to 'condition'
+		 */
+		template <typename... ARGS>
+		void conditional(bool condition, ARGS &&... args)
+		{
+			if (condition && !constructed())
+				construct(args...);
+
+			if (!condition && constructed())
+				destruct();
+		}
+
+		/**
 		 * Access contained object
 		 */
 		MT       *operator -> ()       { _check_constructed(); return       _ptr(); }
@@ -161,11 +174,8 @@ class Genode::Reconstructible : Noncopyable
 template <typename MT>
 struct Genode::Constructible : Reconstructible<MT>
 {
-	template <typename... ARGS>
-	Constructible(ARGS &&...)
-	:
-		Reconstructible<MT>((typename Reconstructible<MT>::Lazy *)nullptr)
-	{ }
+	Constructible()
+	: Reconstructible<MT>((typename Reconstructible<MT>::Lazy *)nullptr) { }
 };
 
 #endif /* _INCLUDE__UTIL__RECONSTRUCTIBLE_H_ */
