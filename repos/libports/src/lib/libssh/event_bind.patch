@@ -1,0 +1,53 @@
+--- a/include/libssh/server.h
++++ b/include/libssh/server.h
+@@ -176,6 +176,26 @@
+ LIBSSH_API int ssh_bind_accept_fd(ssh_bind ssh_bind_o, ssh_session session,
+         socket_t fd);
+ 
++/**
++ * @brief Register for non-blocking accepts of incoming ssh connections
++ *
++ * @param  ssh_bind_o     The ssh server bind to accept a connection.
++ * @param  event          A non-blocking event mainloop
++ * @see ssh_bind_accept
++ * @return SSH_OK when successfully registered
++ */
++LIBSSH_API int ssh_event_add_bind(ssh_event event, ssh_bind ssh_bind_o);
++
++/**
++ * @brief Remove bind from the event
++ *
++ * @param  ssh_bind_o     The ssh server bind to accept a connection.
++ * @param  event          A non-blocking event mainloop
++ * @see ssh_bind_accept
++ * @return SSH_OK when successfully registered
++ */
++LIBSSH_API int ssh_event_remove_bind(ssh_event event, ssh_bind ssh_bind_o);
++
+ LIBSSH_API ssh_gssapi_creds ssh_gssapi_get_creds(ssh_session session);
+ 
+ /**
+--- a/src/bind.c
++++ b/src/bind.c
+@@ -532,6 +532,21 @@
+   return rc;
+ }
+ 
++int ssh_event_add_bind(ssh_event event, ssh_bind sshbind) {
++  ssh_poll_handle h = ssh_bind_get_poll(sshbind);
++  if (h == NULL)
++       return SSH_ERROR;
++  return ssh_event_add_poll(event, h);
++}
++
++int ssh_event_remove_bind(ssh_event event, ssh_bind sshbind) {
++  ssh_poll_handle h = ssh_bind_get_poll(sshbind);
++  if (h == NULL)
++       return SSH_ERROR;
++  ssh_event_remove_poll(event, h);
++  return SSH_OK;
++}
++
+ 
+ /**
+  * @}
