@@ -1,0 +1,577 @@
+####################
+## User interface ##
+####################
+
+#
+# Convenience variables for debugging one specific test
+#
+# single_test_pkg:     if set to one of the test packages, only this one is run
+# single_test_build:   list of components that shall be build from repos
+# single_test_modules: list of boot modules to overlay the test-depot content
+#
+# To get a hint which build components and which boot modules you may want to
+# enter for a given test package please see these files:
+#
+#   repos/<REPO>/recipes/pkg/<TEST_PKG>/archives
+#   repos/<REPO>/recipes/pkg/<TEST_PKG>/runtime (<content> tag)
+#
+# Example:
+#
+#   set single_test_pkg "test-libc_vfs"
+#   set single_test_build { server/ram_fs test/libc_vfs }
+#   set single_test_modules { ram_fs test-libc_vfs vfs.lib.so }
+#
+set single_test_pkg ""
+set single_test_build { }
+set single_test_modules { }
+
+#
+# The list of available test packages - was obtained by issuing:
+#
+# ! cd <GENODE_DIR>/repos
+# ! find . -type d -wholename *recipes/pkg/test-* -printf '%f\n' | sort
+#
+set avail_test_pkgs {
+	test-ada
+	test-ada_secondary_stack
+	test-blk
+	test-blk_cache
+	test-clipboard
+	test-ds_ownership
+	test-dynamic_config
+	test-dynamic_config_loader
+	test-dynamic_config_slave
+	test-fault_detection
+	test-fpu
+	test-fs_log
+	test-fs_packet
+	test-fs_report
+	test-fs_rom_update
+	test-fs_rom_update_fs
+	test-fs_rom_update_ram
+	test-init
+	test-init_loop
+	test-libc_getenv
+	test-libc_pipe
+	test-libc_vfs
+	test-libc_vfs_block
+	test-libc_vfs_fs
+	test-libc_vfs_fs_chained
+	test-libc_vfs_ram
+	test-log
+	test-lx_block
+	test-mmio
+	test-new_delete
+	test-nic_loopback
+	test-part_blk_gpt
+	test-part_blk_mbr
+	test-ram_fs_chunk
+	test-read_only_rom
+	test-reconstructible
+	test-registry
+	test-report_rom
+	test-resource_request
+	test-resource_yield
+	test-rm_fault
+	test-rm_fault_no_nox
+	test-rm_nested
+	test-rom_blk
+	test-rom_filter
+	test-rtc
+	test-rust
+	test-signal
+	test-slab
+	test-stdcxx
+	test-synced_interface
+	test-terminal_crosslink
+	test-timed_semaphore
+	test-timer
+	test-trace
+	test-trace_logger
+	test-utf8
+	test-vfs_stress_fs
+	test-vfs_stress_ram
+	test-weak_ptr
+	test-xml_generator
+	test-xml_node
+}
+
+#
+# Whether the platform supports non-executable dataspaces
+#
+proc non_executable_supported { } {
+	if {[have_spec hw]   && [have_spec x86_64]} { return true }
+	if {[have_spec hw]   && [have_spec arm]}    { return true }
+	if {[have_spec nova] && [have_spec x86_64]} { return true }
+	if {[have_spec foc]  && [have_spec x86_64]} { return true }
+	if {[have_spec foc]  && [have_spec arm]}    { return true }
+	if {[have_spec sel4] && [have_spec arm]}    { return true }
+	return false
+}
+
+#
+# Whether to skip a test - if undefined for a test, the test is not skipped
+#
+set skip_test_pkg(test-slab)            [expr [get_cmd_switch --autopilot] && [have_include "power_on/qemu"]]
+set skip_test_pkg(test-rm_nested)       [expr [have_spec linux]]
+set skip_test_pkg(test-fault_detection) [expr [have_spec pistachio] || [have_spec fiasco]]
+set skip_test_pkg(test-fs_packet)       [expr [get_cmd_switch --autopilot] && [have_include "power_on/qemu"]]
+set skip_test_pkg(test-rtc)             [expr [have_spec linux] || ![have_spec x86]]
+set skip_test_pkg(test-rm_fault)        [expr [have_spec linux] || ![non_executable_supported]]
+set skip_test_pkg(test-rm_fault_no_nox) [expr [have_spec linux] || !$skip_test_pkg(test-rm_fault)]
+set skip_test_pkg(test-lx_block)        [expr ![have_spec linux]]
+
+
+##############################################################
+## Local copies of run tool procedures with small adaptions ##
+##                                                          ##
+## FIXME: Adapt original and remove local copies            ##
+##############################################################
+
+proc autopilot_wait_for_output { wait_for_re timeout_value running_spawn_id } {
+	global output
+
+	if {$wait_for_re == "forever"} {
+		set timeout -1
+		interact {
+			\003 {
+				send_user "Expect: 'interact' received 'strg+c' and was cancelled\n";
+				exit
+			}
+			-i $running_spawn_id
+		}
+	} else {
+		set timeout $timeout_value
+	}
+
+	set platform_msg [run_boot_string]
+	if {$platform_msg eq ""} {
+		set platform_msg "undefined platform command startup string sequence"
+	}
+
+	expect {
+		-i $running_spawn_id $platform_msg { puts stderr "Error: platform rebooted unexpectedly"; exit -4 }
+		-i $running_spawn_id -re $wait_for_re { }
+		eof     { puts stderr "Error: Spawned process died unexpectedly"; exit -3 }
+		timeout {
+			puts stderr "Error: Test execution timed out";
+			global last_test_timed_out
+			set last_test_timed_out 1
+			return
+		}
+	}
+	append output $expect_out(buffer)
+}
+
+proc autopilot_create_tar_from_depot_binaries { archive_path args } {
+
+	# filter out api and src archives from requested depot content
+	set content {}
+	foreach subdir [_collect_from_depot $args] {
+		if {[regexp [_depot_archive_versioned_path_pattern] $subdir dummy user type]} {
+			if {$type == "src"} continue;
+			if {$type == "api"} continue;
+		}
+		lappend content $subdir
+	}
+
+	check_for_missing_depot_archives
+
+	eval "exec tar cf $archive_path -T /dev/null -C [depot_dir] [lsort -unique $content]"
+}
+
+proc autopilot_run_genode_until {{wait_for_re forever} {timeout_value 0} {running_spawn_id -1}} {
+	#
+	# If a running_spawn_id is specified, wait for the expected output
+	#
+	if {$running_spawn_id != -1} {
+		autopilot_wait_for_output $wait_for_re $timeout_value $running_spawn_id
+		return;
+	}
+
+	set retry 3
+	while { $retry != 0 } {
+
+		if {[expr [run_power_on] == false]} {
+			puts "Power on step failed, retry."
+			sleep 3
+			incr retry -1;
+			continue
+		}
+
+		if {![run_load]} {
+			puts "Load step failed, retry."
+
+			# kill the spawned load process if there is one
+			if {[load_spawn_id] != -1} {
+				set pid [exp_pid -i [load_spawn_id]]
+				exec kill -9 $pid
+			}
+
+			incr retry -1;
+			continue;
+		}
+
+		if {![run_log $wait_for_re $timeout_value]} {
+			puts "Log step failed, retry."
+			incr retry -1;
+			continue;
+		}
+
+		return;
+	}
+
+	puts stderr "Boot process failed 3 times in series. I give up!";
+	exit -1;
+}
+
+
+########################
+## Utility procedures ##
+########################
+
+#
+# Check if archives are available without doing anything with them
+#
+proc check_archives_available { args } {
+
+	# filter out api and src archives from requested depot content
+	set content {}
+	foreach subdir [_collect_from_depot $args] {
+		if {[regexp [_depot_archive_versioned_path_pattern] $subdir dummy user type]} {
+			if {$type == "src"} continue;
+			if {$type == "api"} continue;
+		}
+		lappend content $subdir
+	}
+
+	check_for_missing_depot_archives
+}
+
+#
+# Return routes for boot modules that shall overlay the test-depot content
+#
+proc single_test_module_routes { } {
+
+	global single_test_modules
+	set result ""
+	foreach module $single_test_modules {
+		append result {
+			<service name="ROM" label_last="} $module {"> <parent/> </service>}
+	}
+	return $result
+}
+
+#
+# Return autopilot start-nodes for the test packages that shall be run
+#
+proc test_pkgs_start_nodes { } {
+
+	global test_pkgs
+	global skip_test_pkg
+
+	set result ""
+	foreach test_pkg $test_pkgs {
+		if { [info exists skip_test_pkg($test_pkg)] && $skip_test_pkg($test_pkg)} {
+			append result {
+				<start name="} $test_pkg {" skip="true"/>}
+		} else {
+			append result {
+				<start name="} $test_pkg {" pkg="genodelabs/pkg/} $test_pkg {/} [_current_depot_archive_version pkg $test_pkg] {"/>}
+		}
+	}
+	return $result
+}
+
+
+#
+# Prepare to call run_genode_until (again, with a changed setup)
+#
+proc prepare_to_run_genode { } {
+
+	global output
+	global qemu_args
+	global previous_results
+	global previous_time_sec
+	global skip_test_pkg
+	global test_pkgs
+	global single_test_build
+	global single_test_modules
+	global last_test_pkg
+	global last_test_timed_out
+	global serial_id
+	global timeout
+
+	set qemu_args " -nographic -serial mon:stdio"
+
+
+	#
+	# Create a depot archive that contains the test packages
+	#
+
+	create_boot_directory
+
+	set depot_tar_archives ""
+	set import_archives ""
+
+	foreach test_pkg $test_pkgs {
+		if { [info exists skip_test_pkg($test_pkg)] } {
+			append_if [expr !$skip_test_pkg($test_pkg)] depot_tar_archives " genodelabs/pkg/$test_pkg "
+		} else {
+			append depot_tar_archives " genodelabs/pkg/$test_pkg "
+		}
+	}
+
+	append import_archives {
+		genodelabs/src/} [base_src] {
+		genodelabs/src/report_rom
+		genodelabs/src/fs_rom
+		genodelabs/src/vfs
+		genodelabs/src/loader
+		genodelabs/src/init
+	}
+	if {!$skip_test_pkg(test-lx_block)} {
+		append import_archives { genodelabs/raw/test-lx_block }
+	}
+
+	set all_archives [concat $depot_tar_archives $import_archives]
+	check_archives_available {*}$all_archives
+
+	autopilot_create_tar_from_depot_binaries [run_dir]/genode/depot.tar {*}$depot_tar_archives
+
+
+	#
+	# Install the root-init config
+	#
+
+	append config {
+	<config prio_levels="2">
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="IRQ"/>
+			<service name="IO_MEM"/>
+			<service name="IO_PORT"/>
+			<service name="PD"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="LOG"/>
+			<service name="TRACE"/>
+		</parent-provides>
+
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<default caps="100"/>
+
+		<start name="timer" priority="0">
+			<resource name="RAM" quantum="1M"/>
+			<provides> <service name="Timer"/> </provides>
+		</start>
+
+		<start name="report_rom" priority="-1">
+			<binary name="report_rom"/>
+			<resource name="RAM" quantum="2M"/>
+			<provides> <service name="Report"/> <service name="ROM"/> </provides>
+			<config verbose="no">
+				<policy label="depot_autopilot -> blueprint" report="depot_query -> blueprint"/>
+				<policy label="depot_query -> query"      report="depot_autopilot -> query"/>
+				<policy label="dynamic -> config"         report="depot_autopilot -> init.config"/>
+			</config>
+		</start>
+
+		<start name="vfs" priority="-1">
+			<resource name="RAM" quantum="4M"/>
+			<provides> <service name="File_system"/> </provides>
+			<config>
+				<vfs> <tar name="depot.tar"/> </vfs>
+				<policy label="depot_query -> depot" root="/" />
+				<policy label="fs_rom -> "           root="/" />
+			</config>
+		</start>
+
+		<start name="fs_rom" priority="-1">
+			<resource name="RAM" quantum="16M"/>
+			<provides> <service name="ROM"/> </provides>
+		</start>
+
+		<start name="depot_query" priority="-1">
+			<resource name="RAM" quantum="2M"/>
+			<config query="rom">
+				<vfs> <dir name="depot"> <fs label="depot"/> </dir> </vfs>
+			</config>
+			<route>
+				<service name="ROM" label="query"> <child name="report_rom"/> </service>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
+		</start>
+
+		<start name="depot_autopilot" priority="-1">
+			<resource name="RAM" quantum="2M"/>
+			<provides> <service name="LOG"/> </provides>
+			<config arch="} [depot_spec] {" children_label_prefix="dynamic -> ">
+				<static>
+					<parent-provides>
+						<service name="ROM"/>
+						<service name="CPU"/>
+						<service name="PD"/>
+						<service name="LOG"/>
+						<service name="IO_PORT"/>
+						<service name="RM"/>
+						<service name="Timer"/>
+						<service name="TRACE"/>
+					</parent-provides>
+				</static>
+				<common_routes>
+
+					} [single_test_module_routes] {
+
+					<service name="ROM" label_last="ld.lib.so"> <parent/> </service>
+					<service name="ROM" label_last="init">      <parent/> </service>
+					<service name="CPU">                        <parent/> </service>
+					<service name="PD">                         <parent/> </service>
+					<service name="LOG">                        <parent/> </service>
+					<service name="IO_PORT">                    <parent/> </service>
+					<service name="Timer">                      <parent/> </service>
+					<service name="RM">                         <parent/> </service>
+					<service name="TRACE">                      <parent/> </service>
+				</common_routes>
+
+				<previous-results time_sec="} $previous_time_sec {">} $previous_results {</previous-results>
+
+				} [test_pkgs_start_nodes] {
+
+			</config>
+			<route>
+				<service name="ROM" label="blueprint"> <child name="report_rom"/> </service>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
+		</start>
+
+		<start name="dynamic" caps="8000" priority="-1">
+			<resource name="RAM" quantum="100M"/>
+			<binary name="init"/>
+			<route>
+
+				} [single_test_module_routes] {
+
+				<service name="ROM" label_last="ld.lib.so">   <parent/>                       </service>
+				<service name="ROM" label_last="init">        <parent/>                       </service>
+				<service name="ROM" label="config">           <child name="report_rom"/>      </service>
+				<service name="ROM">                          <child name="fs_rom"/>          </service>
+				<service name="LOG" unscoped_label="dynamic"> <parent/>                       </service>
+				<service name="LOG">                          <child name="depot_autopilot"/> </service>
+				<service name="Timer">                        <child name="timer"/>           </service>
+				<any-service>                                 <parent/> <any-child/>          </any-service>
+			</route>
+		</start>
+
+	</config>}
+	install_config $config
+
+
+	#
+	# Create the rest of the boot modules
+	#
+
+	set build_components { init app/depot_query app/depot_autopilot }
+	append build_components $single_test_build
+	build $build_components
+
+	import_from_depot {*}$import_archives
+
+
+	#
+	# Build boot image from boot modules
+	#
+
+	set boot_modules { init depot_query depot_autopilot vfs.lib.so }
+	append boot_modules $single_test_modules
+	build_boot_image $boot_modules
+
+	set last_test_pkg ""
+	set last_test_timed_out 0
+	set serial_id -1
+	set timeout 20
+}
+
+
+##################
+## Main routine ##
+##################
+
+#
+# Compose the test_pkgs list from a list of available test packages by
+# applying the skip_test(...) and the single_test_pkg variables.
+#
+set test_pkgs ""
+foreach test_pkg $avail_test_pkgs {
+	if { $single_test_pkg == "" || $single_test_pkg == $test_pkg } {
+		append test_pkgs " $test_pkg "
+	}
+}
+
+set previous_results ""
+set previous_time_sec 0
+prepare_to_run_genode
+
+while {1} {
+
+	# wait for the next autopilot event
+	if {$serial_id == -1} {
+		run_genode_until {depot_autopilot\] --- .*?\n} $timeout
+	} else {
+		set init_time_sec [clock clicks -millisec]
+		autopilot_run_genode_until {depot_autopilot\] --- .*?\n} $timeout $serial_id
+		set previous_time_sec [expr $previous_time_sec + [expr {([clock clicks -millisec]-$init_time_sec)/1000.}]]
+	}
+	# remove last test from list and check if we have to reboot the system
+	set serial_id [output_spawn_id]
+	if {$last_test_pkg != ""} {
+		set test_pkgs [lsearch -all -inline -not -exact $test_pkgs $last_test_pkg]
+		if {$last_test_timed_out} {
+
+			# shut-down running system
+			exec kill -9 [exp_pid -i $serial_id]
+
+			# remember result of last test
+			if {$previous_results != ""} {
+				append previous_results \012
+			}
+			append previous_results { } [format {%-31s %-6s  %7s} $last_test_pkg "failed " "$timeout.000"] {  reboot}
+
+			# prepare system re-boot
+			prepare_to_run_genode
+			continue
+		}
+	}
+	# if the autopilot finished all tests, evaluate its return value
+	if {[regexp {depot_autopilot\] --- Finished} $output]} {
+		set output ""
+		run_genode_until {child "depot_autopilot" exited with exit value.*?\n} 10 $serial_id
+		grep_output {^\[init\] }
+		compare_output_to {[init] child "depot_autopilot" exited with exit value 0}
+		exit 0
+	}
+	# if the autopilot started a new test, set a new timeout
+	if {[regexp {depot_autopilot\] --- Run} $output]} {
+
+		if {$last_test_pkg != ""} {
+
+			# remember result of last test in case the system must be restartet
+			set last_test_result ""
+			regexp {depot_autopilot\] ( [^\033]+)} $output ignored last_test_result
+			regsub -all {<}  $last_test_result {\&lt;} last_test_result
+			if {$previous_results != ""} {
+				append previous_results \012
+			}
+			append previous_results $last_test_result
+		}
+
+		# determine timeout for the next timeout
+		set min_timeout 10
+		regexp {depot_autopilot\] --- Run "(.*?)" \(max ([0-9]*?) } $output] ignore last_test_pkg min_timeout
+		set timeout [expr $min_timeout + 10]
+
+		set output ""
+	}
+}
