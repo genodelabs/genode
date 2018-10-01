@@ -166,10 +166,10 @@ struct Depot_query::Main
 
 	typedef Constructible<Expanding_reporter> Constructible_reporter;
 
-	Constructible_reporter _directory_reporter    { _env, "directory"    };
-	Constructible_reporter _blueprint_reporter    { _env, "blueprint"    };
-	Constructible_reporter _dependencies_reporter { _env, "dependencies" };
-	Constructible_reporter _user_reporter         { _env, "user"         };
+	Constructible_reporter _directory_reporter    { };
+	Constructible_reporter _blueprint_reporter    { };
+	Constructible_reporter _dependencies_reporter { };
+	Constructible_reporter _user_reporter         { };
 
 	template <typename T, typename... ARGS>
 	static void _construct_if(bool condition, Constructible<T> &obj, ARGS &&... args)

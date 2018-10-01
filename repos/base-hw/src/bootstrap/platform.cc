@@ -163,7 +163,6 @@ static constexpr Genode::Boot_modules_header & header() {
 Platform::Platform()
 : bootstrap_region((addr_t)&_prog_img_beg,
                    ((addr_t)&_prog_img_end - (addr_t)&_prog_img_beg)),
-  core_pd(ram_alloc),
   core_elf_addr(header().base),
   core_elf(core_elf_addr)
 {

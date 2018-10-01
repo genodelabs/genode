@@ -127,7 +127,7 @@ class Bootstrap::Platform
 		Bootstrap::Pic            pic       { };
 		Ram_allocator             ram_alloc { };
 		Memory_region const       bootstrap_region;
-		Genode::Constructible<Pd> core_pd;
+		Genode::Constructible<Pd> core_pd { };
 		addr_t                    core_elf_addr;
 		Elf                       core_elf;
 
