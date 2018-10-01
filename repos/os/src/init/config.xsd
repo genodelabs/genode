@@ -33,6 +33,50 @@
   <xs:complexType>
    <xs:choice minOccurs="0" maxOccurs="unbounded">
 
+    <xs:element name="service">
+     <xs:complexType>
+      <xs:choice minOccurs="1" maxOccurs="unbounded">
+
+       <xs:element name="default-policy">
+        <xs:complexType>
+         <xs:choice minOccurs="1" maxOccurs="1">
+
+          <xs:element name="child">
+           <xs:complexType>
+            <xs:attribute name="name"  type="xs:string" />
+            <xs:attribute name="label" type="Session_label" />
+           </xs:complexType>
+          </xs:element><!-- child -->
+
+         </xs:choice>
+        </xs:complexType>
+       </xs:element><!-- default-policy -->
+
+       <xs:element name="policy">
+        <xs:complexType>
+         <xs:choice minOccurs="1" maxOccurs="1">
+
+          <xs:element name="child">
+           <xs:complexType>
+            <xs:attribute name="name"  type="xs:string" />
+            <xs:attribute name="label" type="Session_label" />
+           </xs:complexType>
+          </xs:element><!-- child -->
+
+         </xs:choice>
+         <xs:attribute name="label"          type="Session_label" />
+         <xs:attribute name="label_prefix"   type="Session_label" />
+         <xs:attribute name="label_suffix"   type="Session_label" />
+         <xs:attribute name="label_last"     type="Session_label" />
+         <xs:attribute name="unscoped_label" type="Session_label" />
+        </xs:complexType>
+       </xs:element><!-- policy -->
+
+      </xs:choice>
+      <xs:attribute name="name" type="xs:string" />
+     </xs:complexType>
+    </xs:element><!-- "service" -->
+
     <xs:element name="affinity-space">
      <xs:complexType>
       <xs:attribute name="width"  type="xs:int" />
