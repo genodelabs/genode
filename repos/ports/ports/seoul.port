@@ -26,6 +26,7 @@ default : additional_steps
 additional_steps : $(DOWNLOADS)
 	@echo "fix python version in code generator scripts ..." && \
 	sed -i "s/env python2/env $(PYTHON2)/" $(I82576VF_DIR)/genreg.py $(EXECUTOR_DIR)/build_instructions.py && \
+	sed -i "/Generated on/d" $(I82576VF_DIR)/genreg.py && \
 	echo "call code generators ... takes a while ..." && \
 	cd $(EXECUTOR_DIR) && \
 	          ./build_instructions.py > instructions.inc && \
