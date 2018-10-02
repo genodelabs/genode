@@ -81,7 +81,7 @@ append_if [expr ![have_spec linux]] config {
 	</start>}
 
 append config {
-	<start name="textedit" caps="250">
+	<start name="textedit" caps="300">
 		<resource name="RAM" quantum="70M"/>
 		<config>
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
@@ -103,7 +103,7 @@ append config {
 			<any-service> <parent /> <any-child/> </any-service>
 		</route>
 	</start>
-	<start name="textedit2" caps="250">
+	<start name="textedit2" caps="300">
 		<binary name="textedit" />
 		<resource name="RAM" quantum="70M"/>
 		<config>

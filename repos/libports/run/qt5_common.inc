@@ -10,9 +10,7 @@ set feature(Timer) 1
 create_boot_directory
 
 import_from_depot [depot_user]/src/[base_src] \
-                  [depot_user]/src/decorator \
                   [depot_user]/src/expat \
-                  [depot_user]/src/window_layouter \
                   [depot_user]/src/freetype \
                   [depot_user]/src/init \
                   [depot_user]/src/jpeg \
@@ -28,8 +26,8 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/report_rom \
                   [depot_user]/src/stdcxx \
                   [depot_user]/src/vfs \
-                  [depot_user]/src/wm \
                   [depot_user]/src/zlib \
+                  [depot_user]/pkg/themed_wm \
                   [depot_user]/raw/qt5_dejavusans
 
 #
@@ -54,6 +52,31 @@ proc qt5_build_components { feature_arg } {
 # Configuration
 #
 
+proc qt5_layouter_config { } {
+	return {
+		<config rules="rom">
+			<report rules="yes"/>
+			<rules>
+				<screen name="screen"/>
+				<assign label_prefix="" target="screen" xpos="any" ypos="any"/>
+			</rules>
+		</config>}
+}
+
+proc qt5_decorator_binary { } { return "decorator" }
+
+proc qt5_decorator_config { } {
+	return {
+		<config>
+			<!-- this is an example config for the themed decorator
+			<vfs>
+				<tar name="plain_decorator_theme.tar"/>
+			</vfs>
+			<libc/>
+			-->
+		</config>}
+}
+
 proc qt5_parent_provides { feature_arg } {
 
 	upvar $feature_arg feature
@@ -70,7 +93,7 @@ proc qt5_start_nodes { feature_arg } {
 	set start_nodes [drivers_start_nodes feature]
 
 	append start_nodes {
-		<start name="nitpicker">
+		<start name="nitpicker" caps="200">
 			<resource name="RAM" quantum="2M"/>
 			<provides><service name="Nitpicker"/></provides>
 			<route> }
@@ -82,7 +105,7 @@ proc qt5_start_nodes { feature_arg } {
 	}
 	append start_nodes {
 				<service name="Input">  <child name="input_filter"/> </service>
-				<service name="Report"> <child name="report_rom"/> </service>
+				<service name="Report"> <child name="wm_report_rom"/> </service>
 				<any-service> <parent /> <any-child /> </any-service>
 			</route>
 			<config>
@@ -102,35 +125,37 @@ proc qt5_start_nodes { feature_arg } {
 			<config shapes="yes"/>
 			<route>
 				<service name="Nitpicker"> <child name="nitpicker"/> </service>
-				<service name="ROM" label="hover"> <child name="report_rom"/> </service>
-				<service name="ROM" label="xray"> <child name="report_rom"/> </service>
+				<service name="ROM" label="hover"> <child name="wm_report_rom"/> </service>
+				<service name="ROM" label="xray"> <child name="wm_report_rom"/> </service>
 				<any-service> <parent/> <any-child/> </any-service>
 			</route>
 		</start>
 
-		<start name="report_rom">
+		<start name="wm_report_rom">
+			<binary name="report_rom"/>
 			<resource name="RAM" quantum="4M"/>
 			<provides>
 				<service name="Report"/>
 				<service name="ROM"/>
 			</provides>
-			<config>
-				<policy label="layouter -> window_list"       report="wm -> window_list"/>
+			<config verbose="no">
 				<policy label="layouter -> focus_request"     report="wm -> focus_request"/>
-				<policy label="decorator -> window_layout"    report="layouter -> window_layout"/>
-				<policy label="wm -> resize_request"          report="layouter -> resize_request"/>
 				<policy label="decorator -> pointer"          report="wm -> pointer"/>
-				<policy label="layouter -> hover"             report="decorator -> hover"/>
+				<policy label="layouter -> window_list"       report="wm -> window_list"/>
 				<policy label="wm -> focus"                   report="layouter -> focus"/>
-				<policy label="clipboard -> focus"            report="nitpicker -> focus"/>
+				<policy label="wm -> resize_request"          report="layouter -> resize_request"/>
+				<policy label="decorator -> window_layout"    report="layouter -> window_layout"/>
+				<policy label="layouter -> rules"             report="layout_rules"/>
 				<policy label="layouter -> decorator_margins" report="decorator -> decorator_margins"/>
+				<policy label="layouter -> hover"             report="decorator -> hover"/>
+				<policy label="clipboard -> focus"            report="nitpicker -> focus"/>
 				<policy label="pointer -> hover"              report="nitpicker -> hover"/>
 				<policy label="pointer -> xray"               report="nitpicker -> xray"/>
 			</config>
 		</start>
 
-		<start name="wm" caps="150">
-			<resource name="RAM" quantum="12M"/>
+		<start name="wm" caps="250">
+			<resource name="RAM" quantum="8M"/>
 			<provides>
 				<service name="Nitpicker"/>
 			</provides>
@@ -139,9 +164,9 @@ proc qt5_start_nodes { feature_arg } {
 				<policy label_prefix="layouter"  role="layouter"/>
 			</config>
 			<route>
-				<service name="ROM" label="focus">          <child name="report_rom"/> </service>
-				<service name="ROM" label="resize_request"> <child name="report_rom"/> </service>
-				<service name="Report">                     <child name="report_rom"/> </service>
+				<service name="ROM" label="focus">          <child name="wm_report_rom"/> </service>
+				<service name="ROM" label="resize_request"> <child name="wm_report_rom"/> </service>
+				<service name="Report">                     <child name="wm_report_rom"/> </service>
 				<any-service>
 					<child name="nitpicker"/> <parent/> <any-child/>
 				</any-service>
@@ -150,26 +175,28 @@ proc qt5_start_nodes { feature_arg } {
 
 		<start name="layouter">
 			<binary name="window_layouter"/>
-			<resource name="RAM" quantum="4M"/>
+			<resource name="RAM" quantum="4M"/>} [qt5_layouter_config] {
 			<route>
-				<service name="ROM" label="window_list">       <child name="report_rom"/> </service>
-				<service name="ROM" label="focus_request">     <child name="report_rom"/> </service>
-				<service name="ROM" label="hover">             <child name="report_rom"/> </service>
-				<service name="ROM" label="decorator_margins"> <child name="report_rom"/> </service>
-				<service name="Report">                        <child name="report_rom"/> </service>
+				<service name="ROM" label="window_list">       <child name="wm_report_rom"/> </service>
+				<service name="ROM" label="focus_request">     <child name="wm_report_rom"/> </service>
+				<service name="ROM" label="hover">             <child name="wm_report_rom"/> </service>
+				<service name="ROM" label="decorator_margins"> <child name="wm_report_rom"/> </service>
+				<service name="ROM" label="rules">             <child name="wm_report_rom"/> </service>
+				<service name="Report" label="rules"> <child name="wm_report_rom" label="layout_rules"/> </service>
+				<service name="Report">               <child name="wm_report_rom"/> </service>
 				<any-service>
 					<child name="wm"/> <parent/> <any-child/>
 				</any-service>
 			</route>
 		</start>
 
-		<start name="decorator">
-			<binary name="decorator"/>
-			<resource name="RAM" quantum="12M"/>
+		<start name="decorator" caps="300">
+			<binary name="} [qt5_decorator_binary] {"/>
+			<resource name="RAM" quantum="16M"/>} [qt5_decorator_config] {
 			<route>
-				<service name="ROM" label="window_layout"> <child name="report_rom"/> </service>
-				<service name="ROM" label="pointer">       <child name="report_rom"/> </service>
-				<service name="Report">                    <child name="report_rom"/> </service>
+				<service name="ROM" label="window_layout"> <child name="wm_report_rom"/> </service>
+				<service name="ROM" label="pointer">       <child name="wm_report_rom"/> </service>
+				<service name="Report">                    <child name="wm_report_rom"/> </service>
 				<any-service>
 					<child name="wm"/> <parent/> <any-child/>
 				</any-service>
