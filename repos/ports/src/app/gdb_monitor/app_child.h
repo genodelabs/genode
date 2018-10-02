@@ -58,7 +58,7 @@ class Gdb_monitor::App_child : public Child_policy,
 			Genode::Env &genode_env;
 
 			Genode::Entrypoint  local_ep {
-				genode_env, 4*1024*sizeof(addr_t), "target_ep" };
+				genode_env, 4*1024*sizeof(addr_t), "target_ep", Affinity::Location() };
 
 			Local_env(Env &genode_env) : genode_env(genode_env) { }
 

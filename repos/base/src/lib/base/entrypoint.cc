@@ -329,12 +329,14 @@ Entrypoint::Entrypoint(Env &env)
 	_process_incoming_signals();
 }
 
-
-Entrypoint::Entrypoint(Env &env, size_t stack_size, char const *name)
+Entrypoint::Entrypoint(Env &env, size_t stack_size, char const *name,
+                       Affinity::Location location)
 :
 	_env(env),
-	_rpc_ep(&env.pd(), stack_size, name), _signalling_initialized(true)
+	_rpc_ep(&env.pd(), stack_size, name, true, location),
+	_signalling_initialized(true)
 {
-	_signal_proxy_thread.construct(env, *this);
+	_signal_proxy_thread.construct(env, *this, location,
+	                               Thread::Weight(), env.cpu());
 }
 

@@ -116,7 +116,7 @@ namespace {
 
 			Id_space<Parent::Server> _id_space { };
 
-			Entrypoint _ep { _env, 2*1024*sizeof(long), "root" };
+			Entrypoint _ep { _env, 2*1024*sizeof(long), "root", Affinity::Location() };
 
 			Attached_rom_dataspace _session_requests { _env, "session_requests" };
 

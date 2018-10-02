@@ -66,7 +66,8 @@ class Local_fault_handler : public Entrypoint
 	public:
 
 		Local_fault_handler(Genode::Env & env, Region_map &region_map)
-		: Entrypoint(env, sizeof(addr_t)*2048, "local_fault_handler"),
+		: Entrypoint(env, sizeof(addr_t)*2048, "local_fault_handler",
+		             Affinity::Location()),
 		  _env(env),
 		  _region_map(region_map),
 		  _handler(*this, *this, &Local_fault_handler::_handle_fault)

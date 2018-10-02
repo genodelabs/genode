@@ -145,7 +145,8 @@ class Test::Input_to_filter
 		 */
 		enum { STACK_SIZE = 4*1024*sizeof(long) };
 
-		Entrypoint _ep { _env, STACK_SIZE, "input_server_ep" };
+		Entrypoint _ep { _env, STACK_SIZE, "input_server_ep",
+		                 Affinity::Location() };
 
 		/*
 		 * Input supplied to the input_filter

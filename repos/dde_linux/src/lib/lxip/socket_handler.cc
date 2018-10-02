@@ -410,7 +410,8 @@ class Net::Socketcall : public Lxip::Socketcall,
 
 		Socketcall(Genode::Env &env)
 		:
-			Entrypoint(env,  64 * 1024 * sizeof(long), "socketcall")
+			Entrypoint(env,  64 * 1024 * sizeof(long), "socketcall",
+			           Genode::Affinity::Location())
 		{ }
 
 		/**************************

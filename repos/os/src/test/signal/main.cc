@@ -456,7 +456,7 @@ struct Nested_test : Signal_test
 	};
 
 	Env &env;
-	Entrypoint ep { env, 2048 * sizeof(long), "wait_dispatch_ep" };
+	Entrypoint ep { env, 2048 * sizeof(long), "wait_dispatch_ep", Affinity::Location() };
 
 	Signal_handler<Nested_test>   app_handler { ep, *this, &Nested_test::handle_app };
 	Signal_handler<Nested_test>   nop_handler { ep, *this, &Nested_test::handle_nop };
@@ -559,7 +559,8 @@ struct Nested_stress_test : Signal_test
 		Io_signal_handler<Receiver> handler { ep, *this, &Receiver::handle };
 
 		Receiver(Env &env, char const *name)
-		: ep(env, 3 * 1024 * sizeof(long), name), name(name) { }
+		: ep(env, 3 * 1024 * sizeof(long), name, Affinity::Location()),
+		  name(name) { }
 
 		void handle()
 		{

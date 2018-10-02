@@ -804,7 +804,7 @@ struct Fast_polling : Test
 	             unsigned                   id)
 	:
 		Test(env, error_cnt, done, id, brief),
-		main_ep(env, STACK_SIZE, "fast_polling_ep"),
+		main_ep(env, STACK_SIZE, "fast_polling_ep", Affinity::Location()),
 		main_handler(main_ep, *this, &Fast_polling::main)
 	{
 		if (precise_time(config.xml())) {

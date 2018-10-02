@@ -173,6 +173,7 @@ extern "C" int eglut_main(int argc, char *argv[]);
 void Libc::Component::construct(Libc::Env &env)
 {
 	genode_env = &env;
-	signal_ep.construct(env, 1024*sizeof(long), "eglut_signal_ep");
+	signal_ep.construct(env, 1024*sizeof(long), "eglut_signal_ep",
+	                    Genode::Affinity::Location());
 	Libc::with_libc([] () { eglut_main(1, nullptr); });
 }

@@ -26,7 +26,8 @@ struct Qt_launchpad_namespace::Local_env : Genode::Env
 
 	Genode::Entrypoint  local_ep { genode_env,
 	                               2*1024*sizeof(addr_t),
-	                               "qt_launchpad_ep" };
+	                               "qt_launchpad_ep",
+	                               Affinity::Location() };
 
 	Local_env(Env &genode_env) : genode_env(genode_env) { }
 

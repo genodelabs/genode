@@ -57,9 +57,11 @@ class Genode::Entrypoint : Noncopyable
 		{
 			enum { STACK_SIZE = 2*1024*sizeof(long) };
 			Entrypoint &ep;
-			Signal_proxy_thread(Env &env, Entrypoint &ep)
+			Signal_proxy_thread(Env &env, Entrypoint &ep, Location location,
+			                    Weight weight, Cpu_session &cpu_session)
 			:
-				Thread(env, "signal_proxy", STACK_SIZE),
+				Thread(env, "signal_proxy", STACK_SIZE, location,
+				       weight, cpu_session),
 				ep(ep)
 			{ start(); }
 
@@ -136,7 +138,8 @@ class Genode::Entrypoint : Noncopyable
 
 	public:
 
-		Entrypoint(Env &env, size_t stack_size, char const *name);
+		Entrypoint(Env &env, size_t stack_size, char const *name,
+		           Affinity::Location);
 
 		~Entrypoint()
 		{
