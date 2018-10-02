@@ -251,13 +251,12 @@ class Acpica::Io_mem
 			return 0UL;
 		}
 
-		template <typename FUNC>
-		static Acpica::Io_mem * apply_p(FUNC const &func = [] () { } )
+		static Acpica::Io_mem * unused_slot()
 		{
 			for (unsigned i = 0; i < sizeof(_ios) / sizeof(_ios[0]); i++)
 			{
-				Acpica::Io_mem * r = func(_ios[i]);
-				if (r) return r;
+				if (_ios[i].unused())
+					return &_ios[i];
 			}
 			return nullptr;
 		}
@@ -265,21 +264,24 @@ class Acpica::Io_mem
 		static Acpica::Io_mem * allocate(ACPI_PHYSICAL_ADDRESS p, ACPI_SIZE s,
 		                                 unsigned r)
 		{
-			return Acpica::Io_mem::apply_p([&] (Acpica::Io_mem &io_mem) {
-				if (!io_mem.unused())
-					return reinterpret_cast<Acpica::Io_mem *>(0);
+			Acpica::Io_mem * io_mem = unused_slot();
+			if (!io_mem)
+				return nullptr;
 
-				io_mem._phys = p & ~0xFFFUL;
-				io_mem._size = Genode::align_addr(p + s - io_mem._phys, 12);
-				io_mem._ref  = r;
-				io_mem._virt = 0;
+			ACPI_PHYSICAL_ADDRESS const phys = p & ~0xFFFUL;
+			ACPI_SIZE             const size = Genode::align_addr(p + s - phys, 12);
+			try {
+				io_mem->_io_mem = new (Acpica::heap()) Genode::Io_mem_connection(Acpica::env(), phys, size);
+			} catch (...) {
+				return nullptr;
+			}
 
-				io_mem._io_mem = new (Acpica::heap())
-					Genode::Io_mem_connection(Acpica::env(), io_mem._phys,
-					                          io_mem._size);
+			io_mem->_phys = phys;
+			io_mem->_size = size;
+			io_mem->_ref  = r;
+			io_mem->_virt = 0;
 
-				return &io_mem;
-			});
+			return io_mem;
 		}
 
 		static Genode::addr_t insert(ACPI_PHYSICAL_ADDRESS p, ACPI_SIZE s)
@@ -421,7 +423,7 @@ void * AcpiOsMapMemory (ACPI_PHYSICAL_ADDRESS phys, ACPI_SIZE size)
 	if (virt)
 		return reinterpret_cast<void *>(virt + (phys & 0xfffU));
 
-	FAIL(nullptr)
+	return 0UL;
 }
 
 void AcpiOsUnmapMemory (void * ptr, ACPI_SIZE size)
