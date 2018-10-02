@@ -27,7 +27,7 @@
 
 	<xs:simpleType name="Session_label">
 		<xs:restriction base="xs:string">
-			<xs:minLength value="1"/>
+			<xs:minLength value="0"/>
 			<xs:maxLength value="160"/>
 		</xs:restriction>
 	</xs:simpleType><!-- Session_label -->
