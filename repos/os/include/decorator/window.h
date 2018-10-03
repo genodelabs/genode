@@ -125,6 +125,10 @@ class Decorator::Window_base : public Window_list::Element
 		/**
 		 * Update internal window representation from XML model
 		 *
+		 * \param new_top_most  true if window became the new top-most
+		 *                      window, which should prompt a corresponding
+		 *                      nitpicker stacking operation.
+		 *
 		 * \return true if window changed
 		 *
 		 * We do not immediately update the views as part of the update
@@ -132,7 +136,7 @@ class Decorator::Window_base : public Window_list::Element
 		 * decorations haven't been redrawn already. If we updated the
 		 * nitpicker views at this point, we would reveal not-yet-drawn pixels.
 		 */
-		virtual bool update(Xml_node window_node) = 0;
+		virtual bool update(Xml_node window_node, bool new_top_most) = 0;
 
 		virtual void update_nitpicker_views() { }
 

@@ -405,7 +405,7 @@ class Decorator::Window : public Window_base, public Animator::Item
 			animate();
 		}
 
-		bool update(Xml_node window_node) override
+		bool update(Xml_node window_node, bool new_top_most) override
 		{
 			bool updated = false;
 
@@ -414,7 +414,7 @@ class Decorator::Window : public Window_base, public Animator::Item
 			 * view stack.
 			 */
 			unsigned const topped_cnt = attribute(window_node, "topped", 0UL);
-			if (topped_cnt != _topped_cnt) {
+			if (topped_cnt != _topped_cnt || new_top_most) {
 
 				_topped_cnt = topped_cnt;
 
