@@ -35,6 +35,8 @@ class Decorator::Window_stack : public Window_base::Draw_behind_fn
 		Window_factory_base &_window_factory;
 		Dirty_rect mutable   _dirty_rect;
 
+		unsigned long _top_most_id = ~0UL;
+
 		inline void _draw_rec(Canvas_base &canvas, Window_base const *win,
 		                      Rect rect) const;
 
@@ -44,7 +46,7 @@ class Decorator::Window_stack : public Window_base::Draw_behind_fn
 				if (win->id() == id)
 					return win;
 
-			return 0;
+			return nullptr;
 		}
 
 		static inline
@@ -99,7 +101,8 @@ class Decorator::Window_stack : public Window_base::Draw_behind_fn
 			return result;
 		}
 
-		inline void update_model(Xml_node root_node);
+		template <typename FN>
+		inline void update_model(Xml_node root_node, FN const &flush);
 
 		bool schedule_animated_windows()
 		{
@@ -205,21 +208,36 @@ void Decorator::Window_stack::_draw_rec(Decorator::Canvas_base       &canvas,
 }
 
 
-void Decorator::Window_stack::update_model(Genode::Xml_node root_node)
+template <typename FN>
+void Decorator::Window_stack::update_model(Genode::Xml_node root_node,
+                                           FN const &flush_window_stack_changes)
 {
+	Window_list _destroyed_windows { };
+
+	unsigned long new_top_most_id = ~0UL;
+	if (root_node.has_sub_node("window"))
+		new_top_most_id = root_node.sub_node("window").attribute_value("id", ~0UL);
+
 	/*
 	 * Step 1: Remove windows that are no longer present.
 	 */
-	for (Window_base *window = _windows.first(), *next = 0; window; window = next) {
+	for (Window_base *window = _windows.first(), *next = nullptr; window; window = next) {
 		next = window->next();
 		try {
 			_xml_node_by_window_id(root_node, window->id());
 		}
 		catch (Xml_node::Nonexistent_sub_node) {
 			_dirty_rect.mark_as_dirty(window->outer_geometry());
-			_destroy(*window);
+			_windows.remove(window);
+			_destroyed_windows.insert(window);
 		};
 	}
+
+	/**
+	 * Return true if window has came to front
+	 */
+	auto window_is_new_top_most = [&] (Window_base const &window) {
+		return (_top_most_id != new_top_most_id) && (window.id() == new_top_most_id); };
 
 	/*
 	 * Step 2: Update window properties of already present windows.
@@ -233,7 +251,8 @@ void Decorator::Window_stack::update_model(Genode::Xml_node root_node)
 		 */
 		try {
 			Rect const orig_geometry = window->outer_geometry();
-			if (window->update(_xml_node_by_window_id(root_node, window->id()))) {
+			if (window->update(_xml_node_by_window_id(root_node, window->id()),
+			                   window_is_new_top_most(*window))) {
 				_dirty_rect.mark_as_dirty(orig_geometry);
 				_dirty_rect.mark_as_dirty(window->outer_geometry());
 			}
@@ -255,7 +274,7 @@ void Decorator::Window_stack::update_model(Genode::Xml_node root_node)
 
 			if (new_window) {
 
-				new_window->update(window_node);
+				new_window->update(window_node, window_is_new_top_most(*new_window));
 
 				/*
 				 * Insert new window in front of all other windows.
@@ -275,7 +294,7 @@ void Decorator::Window_stack::update_model(Genode::Xml_node root_node)
 	/*
 	 * Step 4: Adjust window order.
 	 */
-	Window_base *previous_window = 0;
+	Window_base *previous_window = nullptr;
 	Window_base *window          = _windows.first();
 
 	for_each_sub_node(root_node, "window", [&] (Xml_node window_node) {
@@ -335,6 +354,29 @@ void Decorator::Window_stack::update_model(Genode::Xml_node root_node)
 			w->stack(neighbor->frontmost_view());
 		}
 	}
+
+	/*
+	 * Apply window-creation operations before destroying windows to prevent
+	 * flickering.
+	 */
+	flush_window_stack_changes();
+
+	/*
+	 * Destroy window objects.
+	 *
+	 * This is done after all other operations to avoid flickering whenever one
+	 * window is replaced by another one. If we first destroyed the original
+	 * one, the window background would appear for a brief moment until the new
+	 * window is created. By deferring the destruction of the old window to the
+	 * point when the new one already exists, one of both windows is visible at
+	 * all times.
+	 */
+	for (Window_base *window = _destroyed_windows.first(), *next = nullptr; window; window = next) {
+		next = window->next();
+		_destroy(*window);
+	}
+
+	_top_most_id = new_top_most_id;
 }
 
 #endif /* _INCLUDE__DECORATOR__WINDOW_STACK_H_ */

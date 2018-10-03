@@ -193,7 +193,7 @@ void Decorator::Window::draw(Decorator::Canvas_base &canvas,
 }
 
 
-bool Decorator::Window::update(Genode::Xml_node window_node)
+bool Decorator::Window::update(Genode::Xml_node window_node, bool new_top_most)
 {
 	bool updated = false;
 
@@ -202,7 +202,7 @@ bool Decorator::Window::update(Genode::Xml_node window_node)
 	 * view stack.
 	 */
 	unsigned const topped_cnt = attribute(window_node, "topped", 0UL);
-	if (topped_cnt != _topped_cnt) {
+	if (topped_cnt != _topped_cnt || new_top_most) {
 
 		_topped_cnt = topped_cnt;
 

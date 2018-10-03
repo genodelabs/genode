@@ -269,7 +269,10 @@ void Decorator::Main::_handle_nitpicker_sync()
 		try {
 			Xml_node xml(_window_layout.local_addr<char>(),
 			             _window_layout.size());
-			_window_stack.update_model(xml);
+
+			auto flush_window_stack_changes = [&] () { };
+
+			_window_stack.update_model(xml, flush_window_stack_changes);
 
 			model_updated = true;
 
