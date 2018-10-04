@@ -381,6 +381,26 @@ class Genode::Allocator_avl_tpl : public Allocator_avl_base
 			_metadata.backing_store(md_bs);
 			return ret;
 		}
+
+		/**
+		 * Apply functor 'fn' to the metadata of an arbitrary
+		 * member of the allocator. This method is provided for
+		 * destructing each member of the allocator. Calling
+		 * the method repeatedly without removing or inserting
+		 * members will produce the same member.
+		 */
+		template <typename FUNC>
+		bool apply_any(FUNC const &fn)
+		{
+			addr_t addr = 0;
+			if (any_block_addr(&addr)) {
+				if (BMDT *b = metadata((void*)addr)) {
+					fn((BMDT&)*b);
+					return true;
+				}
+			}
+			return false;
+		}
 };
 
 #endif /* _INCLUDE__BASE__ALLOCATOR_AVL_H_ */
