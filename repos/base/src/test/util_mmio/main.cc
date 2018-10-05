@@ -184,13 +184,17 @@ int compare_mem(uint8_t * base1, uint8_t * base2, size_t size)
 /**
  * End a failed test
  */
-void error(unsigned line) { error("Test in line ", line, " failed"); }
+void failed(unsigned  line,
+            Env      &env)
+{
+	Genode::error("Test in line ", line, " failed");
+	env.parent().exit(-1);
+}
 
 
-void Component::construct(Genode::Env &)
+void Component::construct(Genode::Env &env)
 {
 	using ::Cpu_state;
-
 
 	/************************************
 	 ** 'Genode::Mmio::Register' tests **
@@ -207,7 +211,7 @@ void Component::construct(Genode::Env &)
 	static uint8_t mmio_cmpr_1[MMIO_SIZE] = {0,0,0,0,0b00010101,0,0,0};
 	if (compare_mem(mmio_mem, mmio_cmpr_1, sizeof(mmio_mem)) ||
 	    mmio.read<Test_mmio::Reg>() != 0x15)
-	{ error(__LINE__); }
+	{ failed(__LINE__, env); }
 
 	/* read/write bit appropriately */
 	zero_mem(mmio_mem, sizeof(mmio_mem));
@@ -215,7 +219,7 @@ void Component::construct(Genode::Env &)
 	static uint8_t mmio_cmpr_2[MMIO_SIZE] = {0,0,0,0,0b00000001,0,0,0};
 	if (compare_mem(mmio_mem, mmio_cmpr_2, sizeof(mmio_mem)) ||
 	    mmio.read<Test_mmio::Reg::Bit_1>() != 1)
-	{ error(__LINE__); }
+	{ failed(__LINE__, env); }
 
 	/* read/write bit overflowing */
 	mmio.write<Test_mmio::Reg::Bit_2>(0xff);
@@ -223,14 +227,14 @@ void Component::construct(Genode::Env &)
 	static uint8_t mmio_cmpr_3[MMIO_SIZE] = {0,0,0,0,0b00010001,0,0,0};
 	if (compare_mem(mmio_mem, mmio_cmpr_3, sizeof(mmio_mem)) ||
 	    mmio.read<Test_mmio::Reg::Bit_2>() != 1)
-	{ error(__LINE__); }
+	{ failed(__LINE__, env); }
 
 	/* read/write bitarea appropriately */
 	mmio.write<Test_mmio::Reg::Area>(Test_mmio::Reg::Area::VALUE_3);
 	static uint8_t mmio_cmpr_4[MMIO_SIZE] = {0,0,0,0,0b00011011,0,0,0};
 	if (compare_mem(mmio_mem, mmio_cmpr_4, sizeof(mmio_mem)) ||
 	    mmio.read<Test_mmio::Reg::Area>() != Test_mmio::Reg::Area::VALUE_3)
-	{ error(__LINE__); }
+	{ failed(__LINE__, env); }
 
 	/* read/write bitarea overflowing */
 	zero_mem(mmio_mem, sizeof(mmio_mem));
@@ -238,27 +242,27 @@ void Component::construct(Genode::Env &)
 	static uint8_t mmio_cmpr_5[MMIO_SIZE] = {0,0,0,0,0b00001010,0,0,0};
 	if (compare_mem(mmio_mem, mmio_cmpr_5, sizeof(mmio_mem)) ||
 	    mmio.read<Test_mmio::Reg::Area>() != 0b101)
-	{ error(__LINE__); }
+	{ failed(__LINE__, env); }
 
 	/* read/write bit out of regrange */
 	mmio.write<Test_mmio::Reg::Invalid_bit>(1);
 	if (compare_mem(mmio_mem, mmio_cmpr_5, sizeof(mmio_mem)) ||
 	    mmio.read<Test_mmio::Reg::Invalid_bit>() != 0)
-	{ error(__LINE__); }
+	{ failed(__LINE__, env); }
 
 	/* read/write bitarea that exceeds regrange */
 	mmio.write<Test_mmio::Reg::Invalid_area>(0xff);
 	static uint8_t mmio_cmpr_7[MMIO_SIZE] = {0,0,0,0,0b11001010,0,0,0};
 	if (compare_mem(mmio_mem, mmio_cmpr_7, sizeof(mmio_mem)) ||
 	    mmio.read<Test_mmio::Reg::Invalid_area>() != 0b11)
-	{ error(__LINE__); }
+	{ failed(__LINE__, env); }
 
 	/* read/write bitarea that overlaps other bitfields */
 	mmio.write<Test_mmio::Reg::Overlapping_area>(0b00110011);
 	static uint8_t mmio_cmpr_8[MMIO_SIZE] = {0,0,0,0,0b11110011,0,0,0};
 	if (compare_mem(mmio_mem, mmio_cmpr_8, sizeof(mmio_mem)) ||
 	    mmio.read<Test_mmio::Reg::Overlapping_area>() != 0b110011)
-	{ error(__LINE__); }
+	{ failed(__LINE__, env); }
 
 
 	/******************************
@@ -284,7 +288,7 @@ void Component::construct(Genode::Env &)
 	    || Cpu_state::Irq::get(state)          != 0b101
 	    || Cpu_state::Invalid_bit::get(state)  != 0
 	    || Cpu_state::Invalid_area::get(state) != 1)
-	{ error(__LINE__); }
+	{ failed(__LINE__, env); }
 
 	/* clear bitfields */
 	Cpu_state::B::clear(state);
@@ -294,7 +298,7 @@ void Component::construct(Genode::Env &)
 	if (cpu_state != 0b1000010001001010
 	    || Cpu_state::B::get(state)   != 0
 	    || Cpu_state::Irq::get(state) != 0)
-	{ error(__LINE__); }
+	{ failed(__LINE__, env); }
 
 
 	/******************************************
@@ -315,7 +319,7 @@ void Component::construct(Genode::Env &)
 	    mmio.read<Test_mmio::Array>(5) != 0xc ||
 	    mmio.read<Test_mmio::Array>(9) != 0xd ||
 	    mmio.read<Test_mmio::Array>(11) !=  0 )
-	{ error(__LINE__); }
+	{ failed(__LINE__, env); }
 
 	/* item- and bitfield overflows - also test overlapping bitfields */
 	zero_mem(mmio_mem, sizeof(mmio_mem));
@@ -341,7 +345,7 @@ void Component::construct(Genode::Env &)
 		mmio.read<Test_mmio::Array::C>(8)  != 0x0 ||
 		mmio.read<Test_mmio::Array::D>(8)  != 0x3 ||
 		mmio.read<Test_mmio::Array::A>(11) != 0   )
-	{ error(__LINE__); }
+	{ failed(__LINE__, env); }
 
 	/* writing to registers with 'STRICT_WRITE' set */
 	zero_mem(mmio_mem, sizeof(mmio_mem));
@@ -350,7 +354,7 @@ void Component::construct(Genode::Env &)
 	mmio.write<Test_mmio::Strict_reg::B>(0xff);
 	static uint8_t mmio_cmpr_13[MMIO_SIZE] = {0,0,0,0b11000000,0b10101010,0,0,0};
 	if (compare_mem(mmio_mem, mmio_cmpr_13, sizeof(mmio_mem))) {
-		error(__LINE__); }
+		failed(__LINE__, env); }
 
 	/* writing to register array items with 'STRICT_WRITE' set */
 	zero_mem(mmio_mem, sizeof(mmio_mem));
@@ -362,7 +366,7 @@ void Component::construct(Genode::Env &)
 	mmio.write<Test_mmio::Strict_array>(0b110011, 3);
 	static uint8_t mmio_cmpr_14[MMIO_SIZE] = {0,0b00110000,0b10101010,0,0,0,0,0};
 	if (compare_mem(mmio_mem, mmio_cmpr_14, sizeof(mmio_mem))) {
-		error(__LINE__); }
+		failed(__LINE__, env); }
 
 	/* writing to register array bitfields with 'STRICT_WRITE' set */
 	zero_mem(mmio_mem, sizeof(mmio_mem));
@@ -371,7 +375,7 @@ void Component::construct(Genode::Env &)
 	mmio.write<Test_mmio::Strict_array::B>(0xff, 3);
 	static uint8_t mmio_cmpr_15[MMIO_SIZE] = {0,0b11000000,0b10101010,0,0,0,0,0};
 	if (compare_mem(mmio_mem, mmio_cmpr_15, sizeof(mmio_mem))) {
-		error(__LINE__); }
+		failed(__LINE__, env); }
 
 	/* writing to simple register array */
 	zero_mem(mmio_mem, sizeof(mmio_mem));
@@ -383,47 +387,47 @@ void Component::construct(Genode::Env &)
 	mmio.write<Test_mmio::Simple_array_2>(0xabcd, 2);
 	static uint8_t mmio_cmpr_16[MMIO_SIZE] = {0x78,0x56,0xdc,0xfe,0x21,0x43,0xcd,0xab};
 	if (compare_mem(mmio_mem, mmio_cmpr_16, sizeof(mmio_mem))) {
-		error(__LINE__); }
+		failed(__LINE__, env); }
 
 	/* write and read a bitset with 2 parts */
 	zero_mem(mmio_mem, sizeof(mmio_mem));
 	mmio.write<Test_mmio::My_bitset_2>(0x1234);
 	static uint8_t mmio_cmpr_17[MMIO_SIZE] = {0x00,0x46,0x08,0x00,0x00,0x00,0x00,0x00};
 	if (compare_mem(mmio_mem, mmio_cmpr_17, sizeof(mmio_mem)))
-		error(__LINE__);
+		failed(__LINE__, env);
 	if (mmio.read<Test_mmio::My_bitset_2>() != 0x234)
-		error(__LINE__);
+		failed(__LINE__, env);
 
 	/* write and read a bitset with 3 parts */
 	zero_mem(mmio_mem, sizeof(mmio_mem));
 	mmio.write<Test_mmio::My_bitset_3>(0x12345678);
 	static uint8_t mmio_cmpr_18[MMIO_SIZE] = {0x00,0x78,0x00,0x00,0x30,0x00,0xac,0x08};
 	if (compare_mem(mmio_mem, mmio_cmpr_18, sizeof(mmio_mem)))
-		error(__LINE__);
+		failed(__LINE__, env);
 	if (mmio.read<Test_mmio::My_bitset_3>() != 0x345678)
-		error(__LINE__);
+		failed(__LINE__, env);
 
 	/* write and read a nested bitset */
 	zero_mem(mmio_mem, sizeof(mmio_mem));
 	mmio.write<Test_mmio::My_bitset_4>(0x5679);
 	static uint8_t mmio_cmpr_19[MMIO_SIZE] = {0x00,0xcf,0x02,0x00,0xa0,0x00,0x00,0x00};
 	if (compare_mem(mmio_mem, mmio_cmpr_19, sizeof(mmio_mem)))
-		error(__LINE__);
+		failed(__LINE__, env);
 	if (mmio.read<Test_mmio::My_bitset_4>() != 0x5679)
-		error(__LINE__);
+		failed(__LINE__, env);
 
 	/* bitfield methods at bitsets */
 	Test_mmio::Reg_1::access_t bs5 =
 		Test_mmio::My_bitset_5::bits(0b1011110010110);
 	if (bs5 != 0b1100000010001010) {
-		error(__LINE__);
+		failed(__LINE__, env);
 	}
 	if (Test_mmio::My_bitset_5::get(bs5) != 0b110010110) {
-		error(__LINE__);
+		failed(__LINE__, env);
 	}
 	Test_mmio::My_bitset_5::set(bs5, 0b1011101101001);
 	if (bs5 != 0b1011000001000100) {
-		error(__LINE__);
+		failed(__LINE__, env);
 	}
 
 	/**********************************
@@ -437,8 +441,8 @@ void Component::construct(Genode::Env &)
 			0xef, 0xcd, 0xab, 0x89, 0x67, 0x45, 0x23, 0x01 };
 		zero_mem(mmio_mem, MMIO_SIZE);
 		mmio.write<Reg>(REG);
-		if (mmio.read<Reg>() != REG) { error(__LINE__); }
-		if (compare_mem(mmio_mem, cmp_mem, MMIO_SIZE)) { error(__LINE__); }
+		if (mmio.read<Reg>() != REG) { failed(__LINE__, env); }
+		if (compare_mem(mmio_mem, cmp_mem, MMIO_SIZE)) { failed(__LINE__, env); }
 
 		/* bitfields in a register */
 		enum {
@@ -453,21 +457,20 @@ void Component::construct(Genode::Env &)
 		mmio.write<Reg::Bits_1>(BITS_1 | BITS_TRASH);
 		mmio.write<Reg::Bits_2>(BITS_2 | BITS_TRASH);
 		mmio.write<Reg::Bits_3>(BITS_3 | BITS_TRASH);
-		if (mmio.read<Reg::Bits_0>() != BITS_0) { error(__LINE__); }
-		if (mmio.read<Reg::Bits_1>() != BITS_1) { error(__LINE__); }
-		if (mmio.read<Reg::Bits_2>() != BITS_2) { error(__LINE__); }
-		if (mmio.read<Reg::Bits_3>() != BITS_3) { error(__LINE__); }
-		if (compare_mem(mmio_mem, cmp_mem, MMIO_SIZE)) { error(__LINE__); }
+		if (mmio.read<Reg::Bits_0>() != BITS_0) { failed(__LINE__, env); }
+		if (mmio.read<Reg::Bits_1>() != BITS_1) { failed(__LINE__, env); }
+		if (mmio.read<Reg::Bits_2>() != BITS_2) { failed(__LINE__, env); }
+		if (mmio.read<Reg::Bits_3>() != BITS_3) { failed(__LINE__, env); }
+		if (compare_mem(mmio_mem, cmp_mem, MMIO_SIZE)) { failed(__LINE__, env); }
 
 		/* bitsets */
 		typedef Test_mmio::Bitset_64 Bitset;
 		enum { BITSET = 0x4abcdef056789123 };
 		zero_mem(mmio_mem, MMIO_SIZE);
 		mmio.write<Bitset>(BITSET);
-		if (mmio.read<Bitset>() != BITSET) { error(__LINE__); }
-		if (compare_mem(mmio_mem, cmp_mem, MMIO_SIZE)) { error(__LINE__); }
+		if (mmio.read<Bitset>() != BITSET) { failed(__LINE__, env); }
+		if (compare_mem(mmio_mem, cmp_mem, MMIO_SIZE)) { failed(__LINE__, env); }
 	}
-
-	log("Test done");
+	env.parent().exit(0);
 }
 
