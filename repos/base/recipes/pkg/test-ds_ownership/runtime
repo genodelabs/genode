@@ -1,0 +1,36 @@
+<runtime ram="32M" caps="1000" binary="init">
+
+	<events>
+		<timeout meaning="failed" sec="20" />
+		<log meaning="succeeded">test succeeded</log>
+		<log meaning="failed"   >test failed</log>
+	</events>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="test-ds_ownership"/>
+	</content>
+
+	<config verbose="yes">
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="PD"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="LOG"/>
+		</parent-provides>
+		<start name="test-ds_ownership" caps="100">
+			<resource name="RAM" quantum="10M"/>
+			<route><any-service><parent/></any-service></route>
+			<config verbose="yes">
+				<parent-provides>
+					<service name="ROM"/>
+					<service name="PD"/>
+					<service name="RM"/>
+					<service name="CPU"/>
+					<service name="LOG"/>
+				</parent-provides>
+			</config>
+		</start>
+	</config>
+</runtime>
