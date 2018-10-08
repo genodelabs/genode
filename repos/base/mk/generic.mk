@@ -75,7 +75,7 @@ endif
 # We need to override these to build the ada runtime
 #
 CUSTOM_ADA_MAKE    ?= $(GNATMAKE)
-CUSTOM_ADA_FLAGS   ?= -q -c --GCC=$(CC) --RTS=$(ADA_RTS)
+CUSTOM_ADA_FLAGS   ?= -q -c --GCC=$(ADA_CC) --RTS=$(ADA_RTS)
 CUSTOM_ADA_OPT     ?= -cargs $(CC_ADA_OPT)
 CUSTOM_ADA_INCLUDE ?= -I- $(INCLUDES)
 
