@@ -5,7 +5,7 @@
 #
 
 # Set program name
-TARGET = test-util_mmio
+TARGET = test-mmio
 
 # Add C++ sources
 SRC_CC += main.cc

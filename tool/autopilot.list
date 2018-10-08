@@ -101,7 +101,7 @@ trace_logger
 tz_vmm
 usb_hid
 utf8
-util_mmio
+mmio
 vbox4_ubuntu_14_04_32
 vbox4_ubuntu_14_04_64
 vbox4_ubuntu_16_04_32
