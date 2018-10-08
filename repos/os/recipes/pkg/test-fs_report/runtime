@@ -2,6 +2,12 @@
 
 	<requires> <timer/> </requires>
 
+	<events>
+		<timeout meaning="failed" sec="10" />
+		<log     meaning="succeeded">child "test-fs_report" exited with exit value 0</log>
+		<log     meaning="failed"   >child "test-fs_report" exited with exit value -1</log>
+	</events>
+
 	<content>
 		<rom label="ld.lib.so"/>
 		<rom label="ram_fs"/>
