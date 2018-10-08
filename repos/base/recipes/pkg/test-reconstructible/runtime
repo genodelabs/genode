@@ -1,0 +1,63 @@
+<runtime ram="32M" caps="1000" binary="init">
+
+	<events>
+		<timeout meaning="failed" sec="20" />
+		<log meaning="succeeded">
+			[init -> test-reconstructible] --- Reconstructible utility test ---
+			[init -> test-reconstructible] construct Object 1
+			[init -> test-reconstructible] construct Object 2
+			[init -> test-reconstructible] create Compound object
+			[init -> test-reconstructible] construct Member_with_reference
+			[init -> test-reconstructible] construct Compound
+			[init -> test-reconstructible] compound.member.constructed returns 1
+			[init -> test-reconstructible] compound.lazy_member.constructed returns 0
+			[init -> test-reconstructible] construct lazy member
+			[init -> test-reconstructible] construct Member_with_reference
+			[init -> test-reconstructible] compound.lazy_member.constructed returns 1
+			[init -> test-reconstructible] call method on member (with reference to Object 1)
+			[init -> test-reconstructible] const method called on Object 1
+			[init -> test-reconstructible] reconstruct member with Object 2 as reference
+			[init -> test-reconstructible] destruct Member_with_reference
+			[init -> test-reconstructible] construct Member_with_reference
+			[init -> test-reconstructible] call method on member
+			[init -> test-reconstructible] const method called on Object 2
+			[init -> test-reconstructible] destruct member
+			[init -> test-reconstructible] destruct Member_with_reference
+			[init -> test-reconstructible] try to call method on member, catch exception
+			[init -> test-reconstructible] got exception, as expected
+			[init -> test-reconstructible] destruct Compound and Objects 1 and 2
+			[init -> test-reconstructible] destruct Compound
+			[init -> test-reconstructible] destruct Member_with_reference
+			[init -> test-reconstructible] destruct Object 2
+			[init -> test-reconstructible] destruct Object 1
+			[init -> test-reconstructible] construct Throwing object
+			[init -> test-reconstructible] construct Throwing -> don't throw
+			[init -> test-reconstructible] destruct Throwing
+			[init -> test-reconstructible] construct Throwing -> throw exception
+			[init -> test-reconstructible] got exception, as expected
+			[init -> test-reconstructible] --- Reconstructible utility test finished ---
+		</log>
+	</events>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="test-reconstructible"/>
+	</content>
+
+	<config>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="CPU"/>
+			<service name="RM"/>
+			<service name="PD"/>
+			<service name="LOG"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<default caps="100"/>
+		<start name="test-reconstructible">
+			<resource name="RAM" quantum="1M"/>
+		</start>
+	</config>
+</runtime>
