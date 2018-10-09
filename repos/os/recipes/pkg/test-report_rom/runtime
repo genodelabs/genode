@@ -1,0 +1,76 @@
+<runtime ram="32M" caps="1000" binary="init">
+
+	<requires> <timer/> </requires>
+
+	<events>
+		<timeout meaning="failed" sec="30" />
+		<log     meaning="failed">exited with exit value -1</log>
+		<log     meaning="succeeded">
+			[init -> test-report_rom] --- test-report_rom started ---
+			[init -> test-report_rom] Reporter: open session
+			[init -> test-report_rom] Reporter: brightness 10
+			[init -> test-report_rom] ROM client: request brightness report
+			[init -> test-report_rom]          -> &lt;brightness value="10"/>
+			[init -> test-report_rom] 
+			[init -> test-report_rom] Reporter: updated brightness to 77
+			[init -> test-report_rom] ROM client: wait for update notification
+			[init -> test-report_rom] ROM client: got signal
+			[init -> test-report_rom] ROM client: request updated brightness report
+			[init -> test-report_rom]          -> &lt;brightness value="77"/>
+			[init -> test-report_rom] 
+			[init -> test-report_rom] Reporter: close report session, wait a bit
+			[init -> test-report_rom] got timeout
+			[init -> test-report_rom]          -> &lt;brightness value="77"/>
+			[init -> test-report_rom] 
+			[init -> test-report_rom] ROM client: ROM is available despite report was closed - OK
+			[init -> test-report_rom] Reporter: start reporting (while the ROM client still listens)
+			[init -> test-report_rom] ROM client: wait for update notification
+			[init -> test-report_rom] ROM client: try to open the same report again
+			[init -> test-report_rom] Error: Report-session creation failed (label="brightness", ram_quota=14336, cap_quota=3, buffer_size=4096)
+			[init -> test-report_rom] ROM client: caught Service_denied - OK
+			[init -> test-report_rom] --- test-report_rom finished ---
+			[init] child "test-report_rom" exited with exit value 0
+		</log>
+	</events>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="test-report_rom"/>
+		<rom label="report_rom"/>
+	</content>
+
+	<config>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="IRQ"/>
+			<service name="IO_MEM"/>
+			<service name="IO_PORT"/>
+			<service name="PD"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="LOG"/>
+			<service name="Timer"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<default caps="100"/>
+		<start name="report_rom">
+			<resource name="RAM" quantum="2M"/>
+			<provides> <service name="ROM"/> <service name="Report"/> </provides>
+			<config>
+				<policy label_prefix="test-report_rom ->" label_suffix="brightness"
+				       report="test-report_rom -> brightness"/>
+			</config>
+		</start>
+		<start name="test-report_rom">
+			<resource name="RAM" quantum="2M"/>
+			<route>
+				<service name="ROM" label="brightness">
+					<child name="report_rom"/>
+				</service>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
+		</start>
+	</config>
+</runtime>
