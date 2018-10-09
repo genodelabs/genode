@@ -201,40 +201,42 @@ void Component::construct(Genode::Env & env)
 {
 	log("--- nested region map test ---");
 
-	/*
-	 * Initialize sub region map and set up a local fault handler for it.
-	 */
-	static Rm_connection rm(env);
-	static Region_map_client   region_map(rm.create(MANAGED_SIZE));
-	static Local_fault_handler fault_handler(env, region_map);
+	{
+		/*
+		 * Initialize sub region map and set up a local fault handler for it.
+		 */
+		Rm_connection rm(env);
+		Region_map_client   region_map(rm.create(MANAGED_SIZE));
+		Local_fault_handler fault_handler(env, region_map);
 
-	/*
-	 * Attach region map as dataspace to the local address space.
-	 */
-	void *addr = env.rm().attach(region_map.dataspace());
+		/*
+		 * Attach region map as dataspace to the local address space.
+		 */
+		void *addr = env.rm().attach(region_map.dataspace());
 
-	log("attached sub dataspace at local address ", addr);
-	Dataspace_client client(region_map.dataspace());
-	log("sub dataspace size is ", client.size(), " should be ",
-	    (size_t)MANAGED_SIZE);
+		log("attached sub dataspace at local address ", addr);
+		Dataspace_client client(region_map.dataspace());
+		log("sub dataspace size is ", client.size(), " should be ",
+			(size_t)MANAGED_SIZE);
 
-	/*
-	 * Walk through the address range belonging to the region map
-	 */
-	char *managed = (char *)addr;
-	for (int i = 0; i < MANAGED_SIZE; i += PAGE_SIZE/16) {
-		log("write to ", (void*)&managed[i]);
-		managed[i] = 13;
+		/*
+		 * Walk through the address range belonging to the region map
+		 */
+		char *managed = (char *)addr;
+		for (int i = 0; i < MANAGED_SIZE; i += PAGE_SIZE/16) {
+			log("write to ", (void*)&managed[i]);
+			managed[i] = 13;
+		}
+
+		fault_handler.dissolve();
+
+		log("test destruction of region_map");
+		Capability<Region_map> rcap = rm.create(4096);
+		rm.destroy(rcap);
+
+		log("test multiple nested regions stacked");
+		nested_regions(env);
 	}
-
-	fault_handler.dissolve();
-
-	log("test destruction of region_map");
-	Capability<Region_map> rcap = rm.create(4096);
-	rm.destroy(rcap);
-
-	log("test multiple nested regions stacked");
-	nested_regions(env);
 
 	log("--- finished nested region map test ---");
 }
