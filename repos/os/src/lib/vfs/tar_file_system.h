@@ -117,8 +117,9 @@ class Vfs::Tar_file_system : public File_system
 			unsigned   type() const  { return _long_name() ? _next()->type() : _read(_type);  }
 			void      *data() const  { return _long_name() ? _next()->data() : (void *)_data_begin(); }
 
-			char const *name()        const { return _long_name() ? _data_begin() : _name;        }
-			char const *linked_name() const { return _long_name() ? _data_begin() : _linked_name; }
+			char const         *name() const { return _long_name() ? _data_begin() : _name;        }
+			unsigned    max_name_len() const { return _long_name() ? MAX_PATH_LEN : 100;           }
+			char const *linked_name()  const { return _long_name() ? _data_begin() : _linked_name; }
 
 			file_size storage_size()
 			{
@@ -355,9 +356,20 @@ class Vfs::Tar_file_system : public File_system
 
 			void operator()(Record const *record)
 			{
-				Absolute_path current_path(record->name());
+				Absolute_path current_path;
 
 				char path_element[MAX_PATH_LEN];
+
+				if (record->max_name_len() > 100 || record->name()[99] == 0)
+					current_path.import(record->name());
+
+				/*
+				 * GNU tar does not null terminate names of length 100
+				 */
+				else {
+					strncpy(path_element, record->name(), 101);
+					current_path.import(path_element);
+				}
 
 				Path_element_token t(current_path.base());
 
