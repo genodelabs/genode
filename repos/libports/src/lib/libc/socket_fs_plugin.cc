@@ -29,6 +29,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <netinet/tcp.h>
 #include <stdio.h>
 #include <sys/ioctl.h>
 
@@ -765,7 +766,19 @@ extern "C" int socket_fs_setsockopt(int libc_fd, int level, int optname,
 		case SO_REUSEADDR:
 			/* not yet implemented - always return true */
 			return 0;
+		case SO_LINGER:
+			{
+				linger *l = (linger *)optval;
+				if (l->l_onoff == 0)
+					return 0;
+			}
 		default: return Errno(ENOPROTOOPT);
+		}
+	case IPPROTO_TCP:
+		switch (optname) {
+			case TCP_NODELAY:
+				return 0;
+			default: return Errno(ENOPROTOOPT);
 		}
 
 	default: return Errno(EINVAL);
