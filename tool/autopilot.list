@@ -1,5 +1,7 @@
 ada
+ada_secondary_stack
 affinity
+blk
 blk_cache
 bomb
 clipboard
@@ -10,6 +12,9 @@ demo
 depot_download
 depot_query
 ds_ownership
+dynamic_config
+dynamic_config_loader
+dynamic_config_slave
 extract
 fault_detection
 fb_bench
@@ -20,6 +25,9 @@ fs_log
 fs_packet
 fs_query
 fs_report
+fs_rom_update
+fs_rom_update_fs
+fs_rom_update_ram
 gdb_monitor
 init
 init_loop
@@ -37,6 +45,7 @@ libc_vfs_ram
 log
 log_core
 lwip
+lx_block
 lx_hybrid_ctors
 lx_hybrid_exception
 lx_hybrid_pthread_ipc
@@ -70,6 +79,7 @@ platform
 pthread
 python
 ram_fs_chunk
+read_only_rom
 reconstructible
 registry
 report_rom
@@ -78,8 +88,8 @@ resource_yield
 rm_fault
 rm_nested
 rom_blk
-rom_blk
 rom_filter
+rtc
 rump_ext2
 rust
 sd_card_bench
@@ -91,6 +101,7 @@ stdcxx
 sub_rm
 synced_interface
 tar_rom
+terminal_crosslink
 thread
 timed_semaphore
 timeout
@@ -126,6 +137,8 @@ vbox5_win7_64_raw
 vbox5_win7_64_share
 verify
 vfs_import
+vfs_stress_fs
+vfs_stress_ram
 vmm
 weak_ptr
 xml_generator
