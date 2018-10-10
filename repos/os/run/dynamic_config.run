@@ -25,7 +25,7 @@ install_config {
 			<resource name="RAM" quantum="1M"/>
 			<provides> <service name="ROM" /> </provides>
 		</start>
-		<start name="test-dynamic_config" cap="500">
+		<start name="test-dynamic_config" caps="500">
 			<resource name="RAM" quantum="1M"/>
 			<configfile name="config.dynamic" />
 			<route>
