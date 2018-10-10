@@ -4,17 +4,7 @@
 
 	<events>
 		<timeout meaning="failed" sec="100" />
-		<log     meaning="succeeded">
-			[init -> test-dynamic_config_master -> test-dynamic_config] obtained counter value 1 from config
-			[init -> test-dynamic_config_master -> test-dynamic_config] obtained counter value 2 from config
-			[init -> test-dynamic_config_master -> test-dynamic_config] obtained counter value 3 from config
-			[init -> test-dynamic_config_master -> test-dynamic_config] obtained counter value 4 from config
-			[init -> test-dynamic_config_master -> test-dynamic_config] obtained counter value 5 from config
-			[init -> test-dynamic_config_master -> test-dynamic_config] obtained counter value 6 from config
-			[init -> test-dynamic_config_master -> test-dynamic_config] obtained counter value 7 from config
-			[init -> test-dynamic_config_master -> test-dynamic_config] obtained counter value 8 from config
-			[init -> test-dynamic_config_master -> test-dynamic_config] obtained counter value 9 from config
-			[init -> test-dynamic_config_master -> test-dynamic_config] obtained counter value 10 from config
+		<log meaning="succeeded">
 			[init -> test-dynamic_config_master -> test-dynamic_config] obtained counter value 11 from config
 		</log>
 	</events>
