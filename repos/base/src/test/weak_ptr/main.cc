@@ -121,6 +121,22 @@ static void test_weak_pointer_tracking(Genode::Heap & heap)
 		log("test: assign weak pointer to another");
 		Weak_ptr<Object> ptr_3 = ptr_2;
 		assert_weak_ptr_cnt(obj, 3);
+		assert_weak_ptr_valid(ptr_3, true);
+
+		log("test: destruct weak pointer");
+		/* 'ptr_3' gets destructed when leaving the scope */
+	}
+	assert_weak_ptr_cnt(obj, 2);
+
+	{
+		log("test: assign invalid weak pointer to another");
+		Weak_ptr<Object> ptr_3 = ptr_2;
+		assert_weak_ptr_cnt(obj, 3);
+		assert_weak_ptr_valid(ptr_3, true);
+
+		ptr_3 = Weak_ptr<Object>();
+		assert_weak_ptr_cnt(obj, 2);
+		assert_weak_ptr_valid(ptr_3, false);
 
 		log("test: destruct weak pointer");
 		/* 'ptr_3' gets destructed when leaving the scope */

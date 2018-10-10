@@ -368,11 +368,9 @@ struct Genode::Locked_ptr : Genode::Locked_ptr_base
 
 void Genode::Weak_ptr_base::_adopt(Genode::Weak_object_base *obj)
 {
-	if (!obj)
-		return;
-
 	_obj = obj;
 
+	if (_obj)
 	{
 		Lock::Guard guard(_obj->_list_lock);
 		_obj->_list.insert(this);
