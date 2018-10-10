@@ -10,6 +10,9 @@ demo
 depot_download
 depot_query
 ds_ownership
+dynamic_config
+dynamic_config_loader
+dynamic_config_slave
 extract
 fault_detection
 fb_bench
