@@ -1,0 +1,41 @@
+<runtime ram="72M" caps="1000" binary="init">
+
+	<events>
+		<timeout meaning="failed" sec="20" />
+		<log meaning="succeeded">--- returning from main ---</log>
+		<log meaning="failed">Error: </log>
+	</events>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="libc.lib.so"/>
+		<rom label="libm.lib.so"/>
+		<rom label="posix.lib.so"/>
+		<rom label="vfs.lib.so"/>
+		<rom label="pthread.lib.so"/>
+		<rom label="test-pthread"/>
+	</content>
+
+	<config>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="IRQ"/>
+			<service name="IO_MEM"/>
+			<service name="IO_PORT"/>
+			<service name="PD"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="LOG"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<start name="test-pthread" caps="200">
+			<resource name="RAM" quantum="64M"/>
+			<config>
+				<vfs> <dir name="dev"> <log/> </dir> </vfs>
+				<libc stdout="/dev/log"/>
+			</config>
+		</start>
+	</config>
+</runtime>

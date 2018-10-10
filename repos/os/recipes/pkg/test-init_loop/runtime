@@ -1,0 +1,64 @@
+<runtime ram="64M" caps="3000" binary="init">
+
+	<requires> <timer/> </requires>
+
+	<events>
+		<timeout meaning="failed" sec="100" />
+		<log     meaning="succeeded">child "test-init_loop" exited with exit value 0</log>
+		<log     meaning="failed"   >test-init_loop] Error: </log>
+	</events>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="test-init_loop"/>
+		<rom label="dummy"/>
+		<rom label="report_rom"/>
+	</content>
+
+	<config>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="CPU"/>
+			<service name="PD"/>
+			<service name="LOG"/>
+			<service name="IRQ"/>
+			<service name="IO_MEM"/>
+			<service name="IO_PORT"/>
+			<service name="Timer"/>
+		</parent-provides>
+
+		<default caps="100"/>
+
+		<start name="report_rom">
+			<resource name="RAM" quantum="2M"/>
+			<provides> <service name="ROM"/> <service name="Report"/> </provides>
+			<config verbose="no">
+				<policy label="init -> config"          report="test-init_loop -> init.config"/>
+				<policy label="test-init_loop -> state" report="init -> state"/>
+			</config>
+			<route> <any-service> <parent/> </any-service> </route>
+		</start>
+
+		<start name="test-init_loop">
+			<resource name="RAM" quantum="4M"/>
+			<provides> <service name="LOG"/> </provides>
+			<config/>
+			<route>
+				<service name="Report">            <child name="report_rom"/> </service>
+				<service name="ROM" label="state"> <child name="report_rom"/> </service>
+				<any-service> <parent/> </any-service>
+			</route>
+		</start>
+
+		<start name="init" caps="2000">
+			<binary name="init"/>
+			<resource name="RAM" quantum="8M"/>
+			<route>
+				<service name="ROM" label="config"> <child name="report_rom"/> </service>
+				<service name="Report">             <child name="report_rom"/> </service>
+				<any-service> <parent/> </any-service>
+			</route>
+		</start>
+
+	</config>
+</runtime>

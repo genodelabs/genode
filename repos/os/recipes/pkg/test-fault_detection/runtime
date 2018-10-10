@@ -1,0 +1,41 @@
+<runtime ram="32M" caps="1000" binary="init">
+
+	<events>
+		<timeout meaning="failed" sec="30" />
+		<log     meaning="succeeded">--- finished fault_detection test ---</log>
+	</events>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="loader"/>
+		<rom label="test-segfault"/>
+		<rom label="test-fault_detection"/>
+	</content>
+
+	<config>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="LOG"/>
+			<service name="CPU"/>
+			<service name="RM"/>
+			<service name="PD"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<start name="loader" caps="100">
+			<resource name="RAM" quantum="10M"/>
+			<provides> <service name="Loader"/> </provides>
+			<config>
+				<policy label_prefix="test-fault_detection">
+					<parent-rom name="test-segfault"/>
+					<parent-rom name="ld.lib.so"/>
+					<parent-rom name="init"/>
+				</policy>
+			</config>
+		</start>
+		<start name="test-fault_detection" caps="500">
+			<resource name="RAM" quantum="10M"/>
+		</start>
+	</config>
+</runtime>

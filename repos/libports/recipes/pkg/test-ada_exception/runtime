@@ -1,0 +1,34 @@
+<runtime ram="32M" caps="1000" binary="init">
+
+	<events>
+		<timeout meaning="failed" sec="20" />
+		<log meaning="succeeded">
+			[init -> test-ada_exception] Ada exception test*
+			[init -> test-ada_exception] Error: Program Error in except.adb at line 6*
+			[init -> test-ada_exception] Caught Ada::Exception::Program_Error*
+			[init] child "test-ada_exception" exited with exit value 0
+		</log>
+	</events>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="ada.lib.so"/>
+		<rom label="test-ada_exception"/>
+	</content>
+
+	<config>
+		<parent-provides>
+			<service name="LOG"/>
+			<service name="PD"/>
+			<service name="CPU"/>
+			<service name="ROM"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> </any-service>
+		</default-route>
+		<default caps="100"/>
+		<start name="test-ada_exception">
+			<resource name="RAM" quantum="10M"/>
+		</start>
+	</config>
+</runtime>

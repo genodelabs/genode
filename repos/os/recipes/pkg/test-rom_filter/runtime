@@ -1,0 +1,120 @@
+<runtime ram="32M" caps="1000" binary="init">
+
+	<requires> <timer/> </requires>
+
+	<events>
+		<timeout meaning="failed" sec="50" />
+		<log meaning="succeeded">
+			[init -> rom_logger] ROM 'generated':
+			[init -> rom_logger]   &lt;config>&lt;!-- ... fallback ... -->&lt;/config>*
+			[init -> rom_logger] ROM 'generated':
+			[init -> rom_logger]   &lt;config>&lt;!-- ... fallback ... -->&lt;/config>*
+			[init -> rom_logger] ROM 'generated':
+			[init -> rom_logger]   &lt;config>&lt;!-- xray enabled -->&lt;/config>*
+			[init -> rom_logger] ROM 'generated':
+			[init -> rom_logger]   &lt;config message="system locked">&lt;!-- ... fallback ... -->&lt;/config>*
+			[init -> dynamic_rom] xray: change (finished)
+		</log>
+		<log meaning="failed">Error: </log>
+	</events>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="rom_filter"/>
+		<rom label="rom_logger"/>
+		<rom label="dynamic_rom"/>
+	</content>
+
+	<config>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="PD"/>
+			<service name="LOG"/>
+			<service name="CPU"/>
+			<service name="IRQ"/>
+			<service name="IO_MEM"/>
+			<service name="IO_PORT"/>
+			<service name="Timer"/>
+		</parent-provides>
+
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+
+		<default caps="100"/>
+
+		<start name="dynamic_rom">
+			<resource name="RAM" quantum="4M"/>
+			<provides><service name="ROM"/></provides>
+			<config verbose="yes">
+				<rom name="xray">
+					<sleep milliseconds="1000" />
+					<inline description="disable X-ray mode">
+						<xray enabled="no"/>
+					</inline>
+					<sleep milliseconds="1000" />
+					<inline description="enable X-ray mode">
+						<xray enabled="yes"/>
+					</inline>
+					<sleep milliseconds="1000" />
+					<inline description="leave X-ray mode undefined">
+						<xray> <!-- undefined -->
+							<details>
+								<message reason="error"/> <!-- not selected -->
+								<message reason="no access" text="system locked"/>
+							</details>
+						</xray>
+					</inline>
+					<sleep milliseconds="1000" />
+					<inline description="finished"/>
+				</rom>
+			</config>
+		</start>
+
+		<start name="rom_filter">
+			<resource name="RAM" quantum="4M"/>
+			<provides><service name="ROM"/></provides>
+			<config verbose="no">
+
+				<input name="xray_enabled" rom="xray" node="xray">
+					<attribute name="enabled" />
+				</input>
+
+				<input name="diagnostic_message" rom="xray" node="xray">
+					<node type="details">
+						<node type="message" attribute="reason" value="no access">
+							<attribute name="text" />
+						</node>
+					</node>
+				</input>
+
+				<output node="config">
+					<attribute name="message" input="diagnostic_message"/>
+					<if>
+						<has_value input="xray_enabled" value="yes" />
+						<then>
+							<inline><!-- xray enabled --></inline>
+						</then>
+						<else>
+							<inline><!-- ... fallback ... --></inline>
+						</else>
+					</if>
+				</output>
+
+			</config>
+			<route>
+				<service name="ROM" label="xray"> <child name="dynamic_rom"/> </service>
+				<any-service> <parent/> </any-service>
+			</route>
+		</start>
+
+		<start name="rom_logger">
+			<resource name="RAM" quantum="1M"/>
+			<config rom="generated" />
+			<route>
+				<service name="ROM" label="generated"> <child name="rom_filter"/> </service>
+				<any-service> <parent/> </any-service>
+			</route>
+		</start>
+	</config>
+</runtime>

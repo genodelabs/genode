@@ -1,0 +1,63 @@
+<runtime ram="32M" caps="1000" binary="init">
+
+	<requires> <timer/> </requires>
+
+	<events>
+		<timeout meaning="failed" sec="240" />
+		<log meaning="succeeded">[0] Done.</log>
+	</events>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="bomb"/>
+		<rom label="vfs"/>
+		<rom label="fs_log"/>
+		<rom label="vfs.lib.so"/>
+	</content>
+
+	<config prio_levels="2">
+		<parent-provides>
+			<service name="CPU"/>
+			<service name="LOG"/>
+			<service name="PD"/>
+			<service name="RM"/>
+			<service name="ROM"/>
+			<service name="IO_PORT"/>
+			<service name="IO_MEM"/>
+			<service name="IRQ"/>
+			<service name="Timer"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<default caps="100"/>
+		<start name="vfs">
+			<resource name="RAM" quantum="2M"/>
+			<provides><service name="File_system"/></provides>
+			<config>
+				<vfs>
+					<log name="bomb-master.log"/>
+					<dir name="bomb-master"> <log name="bomb_g5.log"/> </dir>
+				</vfs>
+				<policy label_prefix="fs_log" writeable="yes"/>
+			</config>
+		</start>
+		<start name="fs_log">
+			<resource name="RAM" quantum="2M"/>
+			<provides><service name="LOG"/></provides>
+			<config>
+				<policy label="bomb-master"/>
+				<policy label_prefix="bomb-master" merge="true"/>
+			</config>
+		</start>
+		<start name="bomb-master" priority="-1" caps="500">
+			<binary name="bomb"/>
+			<resource name="CPU" quantum="90"/>
+			<resource name="RAM" quantum="2G"/>
+			<route>
+				<any-service> <any-child/> <parent/> </any-service>
+			</route>
+			<config rounds="1" generations="1" sleep="500"/>
+		</start>
+	</config>
+</runtime>

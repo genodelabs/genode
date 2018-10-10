@@ -1,0 +1,40 @@
+<runtime ram="32M" caps="1000" binary="init">
+
+	<requires> <timer/> </requires>
+
+	<events>
+		<timeout meaning="failed" sec="10" />
+		<log     meaning="succeeded">Test succeeded</log>
+	</events>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="terminal_crosslink"/>
+		<rom label="test-terminal_crosslink"/>
+	</content>
+
+	<config>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="IRQ"/>
+			<service name="IO_MEM"/>
+			<service name="IO_PORT"/>
+			<service name="PD"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="LOG"/>
+			<service name="Timer"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<default caps="200"/>
+		<start name="terminal_crosslink">
+			<resource name="RAM" quantum="1M"/>
+			<provides> <service name="Terminal"/> </provides>
+		</start>
+		<start name="test-terminal_crosslink">
+			<resource name="RAM" quantum="1M"/>
+		</start>
+	</config>
+</runtime>

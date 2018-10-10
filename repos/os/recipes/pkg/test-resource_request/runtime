@@ -1,0 +1,54 @@
+<runtime ram="64M" caps="7000" binary="init">
+
+	<events>
+		<timeout meaning="failed" sec="60" />
+		<log meaning="succeeded">child "test-resource_request" exited with exit value 0</log>
+	</events>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="test-resource_request"/>
+		<rom label="report_rom"/>
+	</content>
+
+	<config>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="CPU"/>
+			<service name="PD"/>
+			<service name="IRQ"/>
+			<service name="IO_PORT"/>
+			<service name="IO_MEM"/>
+			<service name="LOG"/>
+			<service name="Timer"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<default caps="100"/>
+		<start name="report_rom">
+			<resource name="RAM" quantum="2M"/>
+			<provides> <service name="ROM"/> <service name="Report"/> </provides>
+			<config verbose="no">
+				<policy label="init -> config" report="init_monitor -> init.config"/>
+				<policy label="init_monitor -> state" report="init -> state"/>
+			</config>
+		</start>
+		<start name="init" caps="4000">
+			<resource name="RAM" quantum="10M"/>
+			<route>
+				<service name="ROM" label="config"> <child name="report_rom"/> </service>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
+		</start>
+		<start name="init_monitor">
+			<binary name="test-resource_request"/>
+			<resource name="RAM" quantum="2M"/>
+			<config role="monitor"/>
+			<route>
+				<service name="ROM" label="state"> <child name="report_rom"/> </service>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
+		</start>
+	</config>
+</runtime>

@@ -1,0 +1,33 @@
+<runtime ram="32M" caps="1000" binary="init">
+
+	<requires> <timer/> </requires>
+
+	<events>
+		<timeout meaning="failed" sec="20" />
+		<log meaning="succeeded">child "test" exited with exit value 0</log>
+		<log meaning="failed">child "test" exited with exit value -1</log>
+	</events>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="test-mmio"/>
+	</content>
+
+	<config>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="CPU"/>
+			<service name="RM"/>
+			<service name="PD"/>
+			<service name="LOG"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> </any-service>
+		</default-route>
+		<default caps="100"/>
+		<start name="test">
+			<binary name="test-mmio"/>
+			<resource name="RAM" quantum="10M"/>
+		</start>
+	</config>
+</runtime>

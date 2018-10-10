@@ -1,0 +1,57 @@
+<runtime ram="32M" caps="1000" binary="init">
+
+	<requires> <timer/> </requires>
+
+	<events>
+		<timeout meaning="failed" sec="10" />
+		<log meaning="succeeded">
+			[init -> test-expat]  start of element: config*
+			[init -> test-expat]  start of element: test_tag*
+			[init -> test-expat]  attribute: name='test_attribute', value='test_value'*
+			[init -> test-expat]  end of element: test_tag*
+			[init -> test-expat]  end of element: config*
+			[init] child "test-expat" exited with exit value 0
+		</log>
+		<log meaning="failed">Error: </log>
+	</events>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="libc.lib.so"/>
+		<rom label="libm.lib.so"/>
+		<rom label="posix.lib.so"/>
+		<rom label="vfs.lib.so"/>
+		<rom label="expat.lib.so"/>
+		<rom label="test-expat"/>
+	</content>
+
+	<config>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="PD"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="LOG"/>
+			<service name="IO_PORT"/>
+			<service name="IRQ"/>
+			<service name="Timer"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<default caps="200"/>
+		<start name="test-expat">
+			<resource name="RAM" quantum="2M"/>
+			<config>
+				<vfs>
+					<inline name="config"><config>
+							<test_tag test_attribute="test_value" />
+						</config>
+					</inline>
+					<dir name="dev"> <log/> </dir>
+				</vfs>
+				<libc stdout="/dev/log"/>
+			</config>
+		</start>
+	</config>
+</runtime>

@@ -1,0 +1,43 @@
+<runtime ram="32M" caps="1000" binary="init">
+
+	<events>
+		<timeout meaning="failed" sec="20" />
+		<log meaning="succeeded">
+			[init -> test-log] hex range:          [0e00,1680)
+			[init -> test-log] empty hex range:    [0abc0000,0abc0000) (empty!)
+			[init -> test-log] hex range to limit: [f8,ff]
+			[init -> test-log] invalid hex range:  [f8,08) (overflow!)
+			[init -> test-log] negative hex char:  0xfe
+			[init -> test-log] positive hex char:  0x02
+			[init -> test-log] multiarg string:    "parent -> child.7"
+			[init -> test-log] String(Hex(3)):     0x3
+			[init -> test-log] Very long messages:
+			[init -> test-log -> log] 1.....................................................................................................................................................................................................................................2
+			[init -> test-log] 3.....................................................................................................................................................................................................................................4
+			[init -> test-log] 5.....................................................................................................................................................................................................................................6
+			[init -> test-log] 
+			[init -> test-log] Test done.
+		</log>
+	</events>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="test-log"/>
+	</content>
+
+	<config>
+		<parent-provides>
+			<service name="LOG"/>
+			<service name="PD"/>
+			<service name="CPU"/>
+			<service name="ROM"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> </any-service>
+		</default-route>
+		<default caps="50"/>
+		<start name="test-log">
+			<resource name="RAM" quantum="10M"/>
+		</start>
+	</config>
+</runtime>

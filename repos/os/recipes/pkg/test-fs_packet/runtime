@@ -1,0 +1,64 @@
+<runtime ram="32M" caps="1000" binary="init">
+
+	<requires> <timer/> </requires>
+
+	<events>
+		<timeout meaning="failed" sec="120" />
+		<log     meaning="succeeded">child "short-test" exited with exit value 0</log>
+	</events>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="test-fs_packet"/>
+		<rom label="sequence"/>
+		<rom label="vfs"/>
+		<rom label="vfs.lib.so"/>
+		<rom label="vfs_jitterentropy.lib.so"/>
+	</content>
+
+	<config>
+		<parent-provides>
+			<service name="IRQ"/>
+			<service name="IO_MEM"/>
+			<service name="IO_PORT"/>
+			<service name="CPU"/>
+			<service name="LOG"/>
+			<service name="PD"/>
+			<service name="ROM"/>
+			<service name="Timer"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<default caps="100"/>
+		<start name="vfs">
+			<resource name="RAM" quantum="4M"/>
+			<provides> <service name="File_system"/> </provides>
+			<config>
+				<vfs> <jitterentropy name="test"/> </vfs>
+				<default-policy root="/" writeable="yes"/>
+			</config>
+		</start>
+		<start name="long-test">
+			<binary name="test-fs_packet"/>
+			<resource name="RAM" quantum="2M"/>
+					<config count="1024"/>
+		</start>
+		<start name="short-test">
+			<binary name="sequence"/>
+			<resource name="RAM" quantum="4M"/>
+			<config>
+				<start name="a">
+					<binary name="test-fs_packet"/>
+					<resource name="RAM" quantum="2M"/>
+					<config count="64"/>
+				</start>
+				<start name="b">
+					<binary name="test-fs_packet"/>
+					<resource name="RAM" quantum="2M"/>
+					<config count="64"/>
+				</start>
+			</config>
+		</start>
+	</config>
+</runtime>

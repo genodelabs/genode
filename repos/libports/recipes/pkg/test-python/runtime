@@ -1,0 +1,69 @@
+<runtime ram="32M" caps="1000" binary="init">
+
+	<events>
+		<timeout meaning="failed" sec="20" />
+		<log meaning="succeeded">
+			[init -> test-python]  *
+			[init -> test-python] *
+			[init -> test-python]         -============================-*
+			[init -> test-python]         ||                          ||*
+			[init -> test-python]         ||    Python Core 2.6.4     ||*
+			[init -> test-python]         ||                          ||*
+			[init -> test-python]         ||       Genode 11.11       ||*
+			[init -> test-python]         ||                          ||*
+			[init -> test-python]         -============================-*
+			[init -> test-python]  *
+			[init -> test-python]    2011 by Genode Labs www.genode-labs.com*
+			[init -> test-python]  *
+			[init -> test-python] *
+			[init] child "test-python" exited with exit value 0
+		</log>
+	</events>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="python.lib.so"/>
+		<rom label="libc.lib.so"/>
+		<rom label="libm.lib.so"/>
+		<rom label="posix.lib.so"/>
+		<rom label="vfs.lib.so"/>
+		<rom label="test-python"/>
+	</content>
+
+	<config verbose="yes">
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="PD"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="LOG"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<default caps="100"/>
+		<start name="test-python">
+			<resource name="RAM" quantum="4M"/>
+			<config>
+				<vfs>
+					<dir name="dev"> <log/> </dir>
+					<inline name="hello.py">
+print " \r\n\r";
+print "        -============================-";
+print "        ||                          ||";
+print "        ||    Python Core 2.6.4     ||";
+print "        ||                          ||";
+print "        ||       Genode 11.11       ||";
+print "        ||                          ||";
+print "        -============================-";
+print " \r";
+print "   2011 by Genode Labs www.genode-labs.com";
+print " \r\n\r";
+					</inline>
+				</vfs>
+				<libc stdout="/dev/log" stderr="/dev/log"/>
+				<arg value="hello.py"/>
+			</config>
+		</start>
+	</config>
+</runtime>

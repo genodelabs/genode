@@ -1,0 +1,31 @@
+<runtime ram="32M" caps="1000" binary="init">
+
+	<requires> <timer/> </requires>
+
+	<events>
+		<timeout meaning="failed" sec="30" />
+		<log     meaning="succeeded">child "test-utf8" exited with exit value 0</log>
+		<log     meaning="failed"   >Error: </log>
+	</events>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="test-utf8"/>
+	</content>
+
+	<config>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="LOG"/>
+			<service name="CPU"/>
+			<service name="PD"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <any-child/> <parent/> </any-service>
+		</default-route>
+		<default caps="100"/>
+		<start name="test-utf8">
+			<resource name="RAM" quantum="1M"/>
+		</start>
+	</config>
+</runtime>

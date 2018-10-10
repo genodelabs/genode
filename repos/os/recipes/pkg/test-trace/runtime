@@ -1,0 +1,46 @@
+<runtime ram="90M" caps="1000" binary="init">
+
+	<requires> <timer/> </requires>
+
+	<events>
+		<timeout meaning="failed" sec="30" />
+		<log meaning="succeeded">child "test-trace" exited with exit value 0</log>
+		<log meaning="failed">Error: </log>
+	</events>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="top"/>
+		<rom label="test-trace"/>
+		<rom label="null"/>
+	</content>
+
+	<config>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="IRQ"/>
+			<service name="IO_MEM"/>
+			<service name="IO_PORT"/>
+			<service name="PD"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="LOG"/>
+			<service name="TRACE"/>
+			<service name="Timer"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<default caps="100"/>
+		<start name="test-trace">
+			<resource name="RAM" quantum="10M"/>
+			<config>
+				<trace_policy label="init -> dynamic -> test-trace -> test-trace" module="null" />
+			</config>
+		</start>
+		<start name="top">
+			<resource name="RAM" quantum="2M"/>
+			<config period_ms="2000"/>
+		</start>
+	</config>
+</runtime>

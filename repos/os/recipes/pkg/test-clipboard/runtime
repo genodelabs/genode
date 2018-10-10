@@ -1,0 +1,82 @@
+<runtime ram="32M" caps="1000" binary="init">
+
+	<requires> <timer/> </requires>
+
+	<events>
+		<timeout meaning="failed" sec="40" />
+		<log     meaning="succeeded">-- state WAIT_FOR_SUCCESS --</log>
+	</events>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="test-clipboard"/>
+		<rom label="clipboard"/>
+		<rom label="report_rom"/>
+	</content>
+
+	<config>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="CPU"/>
+			<service name="PD"/>
+			<service name="LOG"/>
+			<service name="IRQ"/>
+			<service name="IO_MEM"/>
+			<service name="IO_PORT"/>
+			<service name="Timer"/>
+		</parent-provides>
+
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+
+		<default caps="100"/>
+
+		<start name="report_rom">
+			<resource name="RAM" quantum="1M"/>
+			<provides> <service name="Report"/> <service name="ROM"/> </provides>
+			<config verbose="yes">
+				<policy label="clipboard -> focus" report="test-clipboard -> focus"/>
+			</config>
+		</start>
+
+		<start name="clipboard">
+			<resource name="RAM" quantum="4M"/>
+			<provides>
+				<service name="ROM"/>
+				<service name="Report"/>
+			</provides>
+			<config verbose="yes">
+
+				<flow from="hobby" to="work"  />
+				<flow from="hobby" to="admin" />
+				<flow from="work"  to="admin" />
+
+				<policy label_prefix="test-clipboard -> win7"  domain="work"  />
+				<policy label_prefix="test-clipboard -> linux" domain="hobby" />
+				<policy label_prefix="test-clipboard -> noux"  domain="admin" />
+
+			</config>
+			<route>
+				<service name="ROM" label="focus"> <child name="report_rom"/> </service>
+				<any-service> <parent/> </any-service>
+			</route>
+		</start>
+
+		<start name="test-clipboard">
+			<resource name="RAM" quantum="4M"/>
+			<route>
+				<!-- for the simulation of nitpicker's focus reports -->
+				<service name="Report" label="focus"> <child name="report_rom"/> </service>
+
+				<!-- for the simulation of clipboard clients -->
+				<service name="ROM" label="linux -> clipboard"> <child name="clipboard"/> </service>
+				<service name="ROM" label="win7 -> clipboard">  <child name="clipboard"/> </service>
+				<service name="ROM" label="noux -> clipboard">  <child name="clipboard"/> </service>
+				<service name="Report"> <child name="clipboard"/> </service>
+				<any-service> <parent/> </any-service>
+			</route>
+		</start>
+
+	</config>
+</runtime>

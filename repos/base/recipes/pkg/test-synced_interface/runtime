@@ -1,0 +1,36 @@
+<runtime ram="32M" caps="1000" binary="init">
+
+	<events>
+		<timeout meaning="failed" sec="20" />
+		<log meaning="succeeded">
+			[init -> test-synced_interface] --- Synced interface test ---
+			[init -> test-synced_interface] lock
+			[init -> test-synced_interface] adding 13 + 14
+			[init -> test-synced_interface] unlock
+			[init -> test-synced_interface] result is 27
+			[init -> test-synced_interface] --- Synced interface test finished ---
+		</log>
+	</events>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="test-synced_interface"/>
+	</content>
+
+	<config>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="CPU"/>
+			<service name="RM"/>
+			<service name="PD"/>
+			<service name="LOG"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<default caps="100"/>
+		<start name="test-synced_interface">
+			<resource name="RAM" quantum="1M"/>
+		</start>
+	</config>
+</runtime>
