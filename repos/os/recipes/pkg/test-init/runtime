@@ -1,0 +1,74 @@
+<runtime ram="64M" caps="3000" binary="init">
+
+	<requires> <timer/> </requires>
+
+	<events>
+		<timeout meaning="failed" sec="300" />
+		<log meaning="succeeded">child "test-init" exited with exit value 0</log>
+	</events>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="test-init"/>
+		<rom label="dummy"/>
+		<rom label="report_rom"/>
+		<rom label="test-init.config"/>
+	</content>
+
+	<config prio_levels="2">
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="CPU"/>
+			<service name="PD"/>
+			<service name="LOG"/>
+			<service name="IRQ"/>
+			<service name="IO_MEM"/>
+			<service name="IO_PORT"/>
+			<service name="Timer"/>
+		</parent-provides>
+
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+
+		<default caps="100"/>
+
+		<start name="report_rom" priority="-1">
+			<resource name="RAM" quantum="2M"/>
+			<provides> <service name="ROM"/> <service name="Report"/> </provides>
+			<config verbose="no">
+				<policy label="init -> init.config" report="test-init -> init.config"/>
+				<policy label="test-init -> state"  report="init -> state"/>
+			</config>
+		</start>
+
+		<start name="test-init" priority="-1">
+			<resource name="RAM" quantum="4M"/>
+			<provides> <service name="LOG"/> </provides>
+			<route>
+				<service name="Report">             <child name="report_rom"/>         </service>
+				<service name="ROM" label="state">  <child name="report_rom"/>         </service>
+				<service name="ROM" label="config"> <parent label="test-init.config"/> </service>
+				<any-service> <parent/> </any-service>
+			</route>
+		</start>
+
+		<start name="init" caps="2000" priority="-1">
+			<binary name="init"/>
+			<resource name="RAM" quantum="16M"/>
+			<configfile name="init.config"/>
+			<route>
+				<service name="ROM" label="init.config"> <child name="report_rom"/> </service>
+				<service name="Report"> <child name="report_rom"/> </service>
+				<service name="LOG">    <child name="test-init"/> </service>
+
+				<!-- alias for the binary as requested by the binary-name update test -->
+				<service name="ROM" label="another_dummy">
+					<parent label="dummy"/> </service>
+
+				<any-service> <parent/> </any-service>
+			</route>
+		</start>
+
+	</config>
+</runtime>
