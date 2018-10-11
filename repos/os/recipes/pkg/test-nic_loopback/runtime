@@ -1,0 +1,38 @@
+<runtime ram="32M" caps="1000" binary="init">
+
+	<events>
+		<timeout meaning="failed" sec="60" />
+		<log     meaning="succeeded">child "test-nic_loopback" exited with exit value 0</log>
+		<log     meaning="failed"   >Error: </log>
+	</events>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="nic_loopback"/>
+		<rom label="test-nic_loopback"/>
+	</content>
+
+	<config>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="IRQ"/>
+			<service name="IO_MEM"/>
+			<service name="IO_PORT"/>
+			<service name="PD"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="LOG"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<default caps="100"/>
+		<start name="nic_loopback">
+			<resource name="RAM" quantum="1M"/>
+			<provides><service name="Nic"/></provides>
+		</start>
+		<start name="test-nic_loopback">
+			<resource name="RAM" quantum="2M"/>
+		</start>
+	</config>
+</runtime>
