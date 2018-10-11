@@ -23,6 +23,9 @@ fs_log
 fs_packet
 fs_query
 fs_report
+fs_rom_update
+fs_rom_update_fs
+fs_rom_update_ram
 gdb_monitor
 init
 init_loop
