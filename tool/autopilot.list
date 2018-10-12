@@ -99,6 +99,7 @@ stdcxx
 sub_rm
 synced_interface
 tar_rom
+terminal_crosslink
 thread
 timed_semaphore
 timeout
