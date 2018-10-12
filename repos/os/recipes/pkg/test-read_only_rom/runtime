@@ -1,0 +1,52 @@
+<runtime ram="32M" caps="1000" binary="init">
+
+	<events>
+		<timeout meaning="succeeded" sec="20" />
+		<log meaning="failed">ROM dataspace modified</log>
+	</events>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="test-immutable_rom"/>
+		<rom label="vfs"/>
+		<rom label="vfs.lib.so"/>
+		<rom label="cached_fs_rom"/>
+	</content>
+
+	<config>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="PD"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="LOG"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<default caps="100"/>
+		<start name="vfs">
+			<resource name="RAM" quantum="2M"/>
+			<provides><service name="File_system"/></provides>
+			<config>
+				<vfs>
+					<inline name="test">DONT TOUCH</inline>
+				</vfs>
+				<default-policy root="/"/>
+			</config>
+		</start>
+		<start name="cached_fs_rom">
+			<resource name="RAM" quantum="4M"/>
+			<provides> <service name="ROM"/> </provides>
+		</start>
+		<start name="test-immutable_rom">
+			<resource name="RAM" quantum="2M"/>
+			<route>
+				<service name="ROM" label="test">
+					<child name="cached_fs_rom"/>
+				</service>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
+		</start>
+	</config>
+</runtime>
