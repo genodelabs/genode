@@ -86,7 +86,6 @@ resource_yield
 rm_fault
 rm_nested
 rom_blk
-rom_blk
 rom_filter
 rump_ext2
 rust
