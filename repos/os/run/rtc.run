@@ -1,4 +1,8 @@
 # RTC test
+assert_spec x86
+
+if {[have_spec linux]} {
+	puts "Platform not supported"; exit }
 
 build { core init drivers/rtc drivers/timer test/rtc }
 
