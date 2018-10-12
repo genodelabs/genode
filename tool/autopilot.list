@@ -87,6 +87,7 @@ rm_fault
 rm_nested
 rom_blk
 rom_filter
+rtc
 rump_ext2
 rust
 sd_card_bench
