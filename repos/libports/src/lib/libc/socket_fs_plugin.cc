@@ -977,7 +977,7 @@ int Socket_fs::Plugin::fcntl(Libc::File_descriptor *fd, int cmd, long arg)
 
 	switch (cmd) {
 	case F_GETFL:
-		return context->fd_flags();
+		return context->fd_flags() | O_RDWR;
 	case F_SETFL:
 		context->fd_flags(arg);
 		return 0;
