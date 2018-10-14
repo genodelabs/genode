@@ -1,0 +1,130 @@
+<runtime ram="90M" caps="1000" binary="init">
+
+	<requires> <timer/> </requires>
+
+	<events>
+		<timeout meaning="failed" sec="60" />
+		<log meaning="succeeded">
+			[init -> trace_logger] --- Report * (3/* subjects) ---*
+			[init -> trace_logger] &lt;subject label="init -> dynamic -> test-trace_logger -> cpu_burner.*" thread="ep" id="*" state="TRACED">
+			[init -> trace_logger]    &lt;activity total="*" recent="*">
+			[init -> trace_logger]    &lt;affinity xpos="0" ypos="0">
+			[init -> trace_logger]    &lt;buffer />
+			[init -> trace_logger] &lt;/subject>*
+			[init -> trace_logger] &lt;subject label="init -> dynamic -> test-trace_logger -> cpu_burner.*" thread="ep" id="*" state="TRACED">
+			[init -> trace_logger]    &lt;activity total="*" recent="*">
+			[init -> trace_logger]    &lt;affinity xpos="0" ypos="0">
+			[init -> trace_logger]    &lt;buffer />
+			[init -> trace_logger] &lt;/subject>*
+			[init -> trace_logger] &lt;subject label="init -> dynamic -> test-trace_logger -> test-trace_logger" thread="ep" id="*" state="TRACED">
+			[init -> trace_logger]    &lt;activity total="*" recent="*">
+			[init -> trace_logger]    &lt;affinity xpos="0" ypos="0">
+			[init -> trace_logger]    &lt;buffer>*
+			[init -> trace_logger] 100 *
+			[init -> trace_logger] trigger_once
+			[init -> trace_logger] trigger_once
+		</log>
+	</events>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="dynamic_rom"/>
+		<rom label="cpu_burner"/>
+		<rom label="test-trace_logger"/>
+		<rom label="trace_logger"/>
+		<rom label="null"/>
+		<rom label="rpc_name"/>
+	</content>
+
+	<config>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="IRQ"/>
+			<service name="IO_MEM"/>
+			<service name="IO_PORT"/>
+			<service name="PD"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="LOG"/>
+			<service name="TRACE"/>
+			<service name="Timer"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<default caps="100"/>
+
+		<start name="trace_logger" >
+			<resource name="RAM" quantum="80M"/>
+			<config verbose="yes"
+					session_ram="10M"
+					session_parent_levels="1"
+					session_arg_buffer="64K"
+					period_sec="3"
+					activity="yes"
+					affinity="yes"
+					default_policy="null"
+					default_buffer="1K">
+
+				<policy label_prefix="init -> dynamic -> test-trace_logger -> cpu_burner"
+				        thread="ep"/>
+
+				<policy label="init -> dynamic -> test-trace_logger -> test-trace_logger"
+				        thread="ep"
+				        buffer="4K"
+				        policy="rpc_name"/>
+			</config>
+		</start>
+
+		<start name="dynamic_rom">
+			<resource name="RAM" quantum="4M"/>
+			<provides><service name="ROM"/></provides>
+			<config verbose="yes">
+				<rom name="cpu_burner1.config">
+					<inline description="initial state">
+						<config percent="5"/>
+					</inline>
+					<sleep milliseconds="5000" />
+					<inline description="50%">
+						<config percent="50" />
+					</inline>
+					<sleep milliseconds="5000" />
+				</rom>
+				<rom name="cpu_burner2.config">
+					<inline description="initial state">
+						<config percent="5"/>
+					</inline>
+					<sleep milliseconds="4800" />
+					<inline description="100%">
+						<config percent="70" />
+					</inline>
+					<sleep milliseconds="2700" />
+				</rom>
+			</config>
+		</start>
+
+		<start name="test-trace_logger" >
+			<resource name="RAM" quantum="1M"/>
+		</start>
+
+		<start name="cpu_burner.1">
+			<binary name="cpu_burner"/>
+			<resource name="RAM" quantum="1M"/>
+			<configfile name="cpu_burner1.config"/>
+			<route>
+				<service name="ROM" label="cpu_burner1.config"> <child name="dynamic_rom"/> </service>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
+		</start>
+
+		<start name="cpu_burner.2">
+			<binary name="cpu_burner"/>
+			<resource name="RAM" quantum="1M"/>
+			<configfile name="cpu_burner2.config"/>
+			<route>
+				<service name="ROM" label="cpu_burner2.config"> <child name="dynamic_rom"/> </service>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
+		</start>
+	</config>
+</runtime>
