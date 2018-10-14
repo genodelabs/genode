@@ -14,16 +14,6 @@ set build_components {
 	lib/trace/policy/rpc_name
 }
 
-proc gpio_drv { } { if {[have_spec rpi] && [have_spec hw]}  { return hw_gpio_drv }
-                    if {[have_spec rpi] && [have_spec foc]} { return foc_gpio_drv }
-                    return gpio_drv }
-
-source ${genode_dir}/repos/base/run/platform_drv.inc
-
-lappend_if [have_spec gpio] build_components drivers/gpio
-
-append_platform_drv_build_components
-
 build $build_components
 
 create_boot_directory
@@ -33,7 +23,7 @@ create_boot_directory
 #
 
 append config {
-<config prio_levels="2" ld_verbose="yes">
+<config prio_levels="2">
 	<parent-provides>
 		<service name="ROM"/>
 		<service name="IRQ"/>
@@ -48,18 +38,8 @@ append config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>}
+	<default caps="100"/>
 
-append_platform_drv_config
-
-append_if [have_spec gpio] config "
-	<start name=\"[gpio_drv]\" caps=\"140\">
-		<resource name=\"RAM\" quantum=\"4M\"/>
-		<provides><service name=\"Gpio\"/></provides>
-		<config/>
-	</start>"
-
-append config {
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
@@ -160,16 +140,9 @@ set boot_modules {
 	rpc_name
 }
 
-# platform-specific modules
-append_platform_drv_boot_modules
-
-lappend_if [have_spec gpio] boot_modules [gpio_drv]
-
 build_boot_image $boot_modules
 
 append qemu_args " -nographic "
-
-if {[have_spec x86]} { append qemu_args " -smp 4,cores=4 " }
 
 set done_string ""
 for {set i 50} {$i <= 100} {incr i 1} {
