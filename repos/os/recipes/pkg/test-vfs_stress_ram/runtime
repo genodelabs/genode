@@ -1,0 +1,37 @@
+<runtime ram="90M" caps="1000" binary="init">
+
+	<requires> <timer/> </requires>
+
+	<events>
+		<timeout meaning="failed" sec="600" />
+		<log meaning="succeeded">child "vfs_stress" exited with exit value 0</log>
+	</events>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="vfs.lib.so"/>
+		<rom label="vfs_stress"/>
+	</content>
+
+	<config>
+		<affinity-space width="3" height="2" />
+		<parent-provides>
+			<service name="CPU"/>
+			<service name="IO_PORT"/>
+			<service name="IRQ"/>
+			<service name="LOG"/>
+			<service name="PD"/>
+			<service name="RM"/>
+			<service name="ROM"/>
+			<service name="Timer"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<default caps="100"/>
+		<start name="vfs_stress">
+			<resource name="RAM" quantum="80M"/>
+			<config depth="16"> <vfs> <ram/> </vfs> </config>
+		</start>
+	</config>
+</runtime>
