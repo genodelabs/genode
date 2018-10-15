@@ -135,6 +135,8 @@ vbox5_win7_64_raw
 vbox5_win7_64_share
 verify
 vfs_import
+vfs_stress_fs
+vfs_stress_ram
 vmm
 weak_ptr
 xml_generator
