@@ -72,7 +72,7 @@ compare_output_to {
 [init -> test-xml_node]   XML node: name = "program", number of subnodes = 2
 [init -> test-xml_node]     XML node: name = "filename", leaf content = "timer"
 [init -> test-xml_node]     XML node: name = "quota", leaf content = "64K"
-[init -> test-xml_node]   XML node: name = "program", number of subnodes = 2
+[t] child "client" exited with exit value 0init -> test-xml_node]   XML node: name = "program", number of subnodes = 2
 [init -> test-xml_node]     XML node: name = "filename", leaf content = "framebuffer"
 [init -> test-xml_node]     XML node: name = "quota", leaf content = "8M"
 [init -> test-xml_node]
