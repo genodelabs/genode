@@ -1,10 +1,10 @@
 --- a/crypto/rand/rand_unix.c
 +++ b/crypto/rand/rand_unix.c
-@@ -233,6 +233,26 @@
- 
- 	return 1;
+@@ -222,6 +222,26 @@
+     }
+     return 1;
  }
-+#elif defined RAND_GENODE
++# elif defined RAND_GENODE
 +int RAND_poll(void)
 +{
 +	unsigned char buf[ENTROPY_NEEDED];
@@ -13,7 +13,7 @@
 +	int fd = open(rand_file, O_RDONLY);
 +	if (fd == -1) {
 +		fprintf(stderr, "libcrypto: open(%s) failed with '%s'\n",
-+		        rand_file, strerror(errno));
++				rand_file, strerror(errno));
 +		return 0;
 +	}
 +
@@ -24,6 +24,6 @@
 +
 +	return 1;
 +}
- #else /* !defined(__OpenBSD__) */
+ # elif defined __OpenBSD__
  int RAND_poll(void)
  {

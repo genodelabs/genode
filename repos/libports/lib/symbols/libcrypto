@@ -16,7 +16,7 @@ AES_options T
 AES_set_decrypt_key T
 AES_set_encrypt_key T
 AES_unwrap_key T
-AES_version R 38
+AES_version R 40
 AES_wrap_key T
 ASN1_ANY_it D 56
 ASN1_BIT_STRING_check T
@@ -101,6 +101,7 @@ ASN1_SET_ANY_it D 56
 ASN1_STRING_TABLE_add T
 ASN1_STRING_TABLE_cleanup T
 ASN1_STRING_TABLE_get T
+ASN1_STRING_clear_free T
 ASN1_STRING_cmp T
 ASN1_STRING_copy T
 ASN1_STRING_data T
@@ -127,6 +128,7 @@ ASN1_T61STRING_new T
 ASN1_TBOOLEAN_it D 56
 ASN1_TIME_adj T
 ASN1_TIME_check T
+ASN1_TIME_diff T
 ASN1_TIME_free T
 ASN1_TIME_it D 56
 ASN1_TIME_new T
@@ -218,7 +220,7 @@ ASN1_template_i2d T
 ASN1_template_new T
 ASN1_unpack_string T
 ASN1_verify T
-ASN1_version R 40
+ASN1_version R 42
 AUTHORITY_INFO_ACCESS_free T
 AUTHORITY_INFO_ACCESS_it D 56
 AUTHORITY_INFO_ACCESS_new T
@@ -236,7 +238,7 @@ BF_encrypt T
 BF_ofb64_encrypt T
 BF_options T
 BF_set_key T
-BF_version R 43
+BF_version R 45
 BIGNUM_it D 56
 BIO_CONNECT_free T
 BIO_CONNECT_new T
@@ -287,6 +289,7 @@ BIO_get_retry_BIO T
 BIO_get_retry_reason T
 BIO_gethostbyname T
 BIO_gets T
+BIO_hex_string T
 BIO_indent T
 BIO_int_ctrl T
 BIO_method_name T
@@ -501,7 +504,7 @@ BN_uadd T
 BN_ucmp T
 BN_usub T
 BN_value_one T
-BN_version R 45
+BN_version R 47
 BUF_MEM_free T
 BUF_MEM_grow T
 BUF_MEM_grow_clean T
@@ -512,7 +515,8 @@ BUF_strdup T
 BUF_strlcat T
 BUF_strlcpy T
 BUF_strndup T
-CAMELLIA_version R 43
+BUF_strnlen T
+CAMELLIA_version R 45
 CAST_S_table0 R 1024
 CAST_S_table1 R 1024
 CAST_S_table2 R 1024
@@ -528,7 +532,7 @@ CAST_ecb_encrypt T
 CAST_encrypt T
 CAST_ofb64_encrypt T
 CAST_set_key T
-CAST_version R 39
+CAST_version R 41
 CBIGNUM_it D 56
 CERTIFICATEPOLICIES_free T
 CERTIFICATEPOLICIES_it D 56
@@ -583,6 +587,8 @@ CMS_Receipt_it D 56
 CMS_ReceiptsFrom_it D 56
 CMS_RecipientEncryptedKey_it D 56
 CMS_RecipientInfo_decrypt T
+CMS_RecipientInfo_encrypt T
+CMS_RecipientInfo_get0_pkey_ctx T
 CMS_RecipientInfo_it D 56
 CMS_RecipientInfo_kekri_get0_id T
 CMS_RecipientInfo_kekri_id_cmp T
@@ -595,11 +601,16 @@ CMS_RecipientInfo_set0_pkey T
 CMS_RecipientInfo_type T
 CMS_RecipientKeyIdentifier_it D 56
 CMS_RevocationInfoChoice_it D 56
+CMS_SharedInfo_encode T
+CMS_SharedInfo_it D 56
 CMS_SignedData_init T
 CMS_SignedData_it D 56
 CMS_SignerIdentifier_it D 56
 CMS_SignerInfo_cert_cmp T
 CMS_SignerInfo_get0_algs T
+CMS_SignerInfo_get0_md_ctx T
+CMS_SignerInfo_get0_pkey_ctx T
+CMS_SignerInfo_get0_signature T
 CMS_SignerInfo_get0_signer_id T
 CMS_SignerInfo_it D 56
 CMS_SignerInfo_set1_signer_cert T
@@ -679,7 +690,7 @@ COMP_expand_block T
 COMP_rle T
 COMP_zlib T
 COMP_zlib_cleanup T
-CONF_def_version R 43
+CONF_def_version R 45
 CONF_dump_bio T
 CONF_dump_fp T
 CONF_free T
@@ -708,10 +719,12 @@ CONF_modules_unload T
 CONF_parse_list T
 CONF_set_default_method T
 CONF_set_nconf T
-CONF_version R 39
+CONF_version R 41
 CRL_DIST_POINTS_free T
 CRL_DIST_POINTS_it D 56
 CRL_DIST_POINTS_new T
+CRYPTO_128_unwrap T
+CRYPTO_128_wrap T
 CRYPTO_THREADID_cmp T
 CRYPTO_THREADID_cpy T
 CRYPTO_THREADID_current T
@@ -879,6 +892,7 @@ DH_OpenSSL T
 DH_check T
 DH_check_pub_key T
 DH_compute_key T
+DH_compute_key_padded T
 DH_free T
 DH_generate_key T
 DH_generate_parameters T
@@ -893,11 +907,13 @@ DH_set_ex_data T
 DH_set_method T
 DH_size T
 DH_up_ref T
-DH_version R 49
+DH_version R 51
 DHparams_dup T
 DHparams_it D 56
 DHparams_print T
 DHparams_print_fp T
+DHvparams_it D 56
+DHxparams_it D 56
 DIRECTORYSTRING_free T
 DIRECTORYSTRING_it D 56
 DIRECTORYSTRING_new T
@@ -939,7 +955,7 @@ DSA_sign_setup T
 DSA_size T
 DSA_up_ref T
 DSA_verify T
-DSA_version R 38
+DSA_version R 40
 DSAparams_dup T
 DSAparams_it D 56
 DSAparams_print T
@@ -977,7 +993,16 @@ ECDH_get_ex_new_index T
 ECDH_set_default_method T
 ECDH_set_ex_data T
 ECDH_set_method T
-ECDH_version R 39
+ECDH_version R 41
+ECDSA_METHOD_free T
+ECDSA_METHOD_get_app_data T
+ECDSA_METHOD_new T
+ECDSA_METHOD_set_app_data T
+ECDSA_METHOD_set_flags T
+ECDSA_METHOD_set_name T
+ECDSA_METHOD_set_sign T
+ECDSA_METHOD_set_sign_setup T
+ECDSA_METHOD_set_verify T
 ECDSA_OpenSSL T
 ECDSA_SIG_free T
 ECDSA_SIG_it D 56
@@ -996,7 +1021,7 @@ ECDSA_sign_ex T
 ECDSA_sign_setup T
 ECDSA_size T
 ECDSA_verify T
-ECDSA_version R 40
+ECDSA_version R 42
 ECPARAMETERS_free T
 ECPARAMETERS_it D 56
 ECPARAMETERS_new T
@@ -1036,6 +1061,7 @@ EC_GROUP_get_curve_GF2m T
 EC_GROUP_get_curve_GFp T
 EC_GROUP_get_curve_name T
 EC_GROUP_get_degree T
+EC_GROUP_get_mont_data T
 EC_GROUP_get_order T
 EC_GROUP_get_pentanomial_basis T
 EC_GROUP_get_point_conversion_form T
@@ -1118,7 +1144,10 @@ EC_POINTs_mul T
 EC_PRIVATEKEY_free T
 EC_PRIVATEKEY_it D 56
 EC_PRIVATEKEY_new T
+EC_curve_nid2nist T
+EC_curve_nist2nid T
 EC_get_builtin_curves T
+EC_version R 39
 EDIPARTYNAME_free T
 EDIPARTYNAME_it D 56
 EDIPARTYNAME_new T
@@ -1185,7 +1214,6 @@ ENGINE_load_openssl T
 ENGINE_load_private_key T
 ENGINE_load_public_key T
 ENGINE_load_rdrand T
-ENGINE_load_rsax T
 ENGINE_load_ssl_client_cert T
 ENGINE_new T
 ENGINE_pkey_asn1_find_str T
@@ -1467,6 +1495,7 @@ EVP_PKEY_asn1_get_count T
 EVP_PKEY_asn1_new T
 EVP_PKEY_asn1_set_ctrl T
 EVP_PKEY_asn1_set_free T
+EVP_PKEY_asn1_set_item T
 EVP_PKEY_asn1_set_param T
 EVP_PKEY_asn1_set_private T
 EVP_PKEY_asn1_set_public T
@@ -1506,6 +1535,20 @@ EVP_PKEY_meth_copy T
 EVP_PKEY_meth_find T
 EVP_PKEY_meth_free T
 EVP_PKEY_meth_get0_info T
+EVP_PKEY_meth_get_cleanup T
+EVP_PKEY_meth_get_copy T
+EVP_PKEY_meth_get_ctrl T
+EVP_PKEY_meth_get_decrypt T
+EVP_PKEY_meth_get_derive T
+EVP_PKEY_meth_get_encrypt T
+EVP_PKEY_meth_get_init T
+EVP_PKEY_meth_get_keygen T
+EVP_PKEY_meth_get_paramgen T
+EVP_PKEY_meth_get_sign T
+EVP_PKEY_meth_get_signctx T
+EVP_PKEY_meth_get_verify T
+EVP_PKEY_meth_get_verify_recover T
+EVP_PKEY_meth_get_verifyctx T
 EVP_PKEY_meth_new T
 EVP_PKEY_meth_set_cleanup T
 EVP_PKEY_meth_set_copy T
@@ -1553,6 +1596,7 @@ EVP_add_cipher T
 EVP_add_digest T
 EVP_aes_128_cbc T
 EVP_aes_128_cbc_hmac_sha1 T
+EVP_aes_128_cbc_hmac_sha256 T
 EVP_aes_128_ccm T
 EVP_aes_128_cfb T
 EVP_aes_128_cfb1 T
@@ -1562,6 +1606,7 @@ EVP_aes_128_ctr T
 EVP_aes_128_ecb T
 EVP_aes_128_gcm T
 EVP_aes_128_ofb T
+EVP_aes_128_wrap T
 EVP_aes_128_xts T
 EVP_aes_192_cbc T
 EVP_aes_192_ccm T
@@ -1573,8 +1618,10 @@ EVP_aes_192_ctr T
 EVP_aes_192_ecb T
 EVP_aes_192_gcm T
 EVP_aes_192_ofb T
+EVP_aes_192_wrap T
 EVP_aes_256_cbc T
 EVP_aes_256_cbc_hmac_sha1 T
+EVP_aes_256_cbc_hmac_sha256 T
 EVP_aes_256_ccm T
 EVP_aes_256_cfb T
 EVP_aes_256_cfb1 T
@@ -1584,6 +1631,7 @@ EVP_aes_256_ctr T
 EVP_aes_256_ecb T
 EVP_aes_256_gcm T
 EVP_aes_256_ofb T
+EVP_aes_256_wrap T
 EVP_aes_256_xts T
 EVP_bf_cbc T
 EVP_bf_cfb T
@@ -1629,6 +1677,7 @@ EVP_des_ede3_cfb64 T
 EVP_des_ede3_cfb8 T
 EVP_des_ede3_ecb T
 EVP_des_ede3_ofb T
+EVP_des_ede3_wrap T
 EVP_des_ede_cbc T
 EVP_des_ede_cfb T
 EVP_des_ede_cfb64 T
@@ -1676,7 +1725,7 @@ EVP_sha224 T
 EVP_sha256 T
 EVP_sha384 T
 EVP_sha512 T
-EVP_version R 38
+EVP_version R 40
 EVP_whirlpool T
 EXTENDED_KEY_USAGE_free T
 EXTENDED_KEY_USAGE_it D 56
@@ -1708,7 +1757,7 @@ HMAC_Final T
 HMAC_Init T
 HMAC_Init_ex T
 HMAC_Update T
-IDEA_version R 39
+IDEA_version R 41
 ISSUING_DIST_POINT_free T
 ISSUING_DIST_POINT_it D 56
 ISSUING_DIST_POINT_new T
@@ -1751,13 +1800,13 @@ MD4_Final T
 MD4_Init T
 MD4_Transform T
 MD4_Update T
-MD4_version R 38
+MD4_version R 40
 MD5 T
 MD5_Final T
 MD5_Init T
 MD5_Transform T
 MD5_Update T
-MD5_version R 38
+MD5_version R 40
 MDC2 T
 MDC2_Final T
 MDC2_Init T
@@ -1889,6 +1938,12 @@ OCSP_REQUEST_new T
 OCSP_REQUEST_print T
 OCSP_REQ_CTX_add1_header T
 OCSP_REQ_CTX_free T
+OCSP_REQ_CTX_get0_mem_bio T
+OCSP_REQ_CTX_http T
+OCSP_REQ_CTX_i2d T
+OCSP_REQ_CTX_nbio T
+OCSP_REQ_CTX_nbio_d2i T
+OCSP_REQ_CTX_new T
 OCSP_REQ_CTX_set1_req T
 OCSP_RESPBYTES_free T
 OCSP_RESPBYTES_it D 56
@@ -1964,6 +2019,7 @@ OCSP_response_status_str T
 OCSP_sendreq_bio T
 OCSP_sendreq_nbio T
 OCSP_sendreq_new T
+OCSP_set_max_response_length T
 OCSP_single_get0_status T
 OCSP_url_svcloc_new T
 OPENSSL_DIR_end T
@@ -1977,7 +2033,8 @@ OPENSSL_config T
 OPENSSL_cpuid_setup T
 OPENSSL_gmtime T
 OPENSSL_gmtime_adj T
-OPENSSL_ia32cap_P B 8
+OPENSSL_gmtime_diff T
+OPENSSL_ia32cap_P B 16
 OPENSSL_ia32cap_loc T
 OPENSSL_init T
 OPENSSL_isservice T
@@ -1990,8 +2047,8 @@ OPENSSL_stderr T
 OPENSSL_strcasecmp T
 OPENSSL_strncasecmp T
 OPENSSL_uni2asc T
-OSSL_DES_version R 38
-OSSL_libdes_version R 41
+OSSL_DES_version R 40
+OSSL_libdes_version R 43
 OTHERNAME_cmp T
 OTHERNAME_free T
 OTHERNAME_it D 56
@@ -2074,10 +2131,11 @@ PEM_read_bio_X509_AUX T
 PEM_read_bio_X509_CERT_PAIR T
 PEM_read_bio_X509_CRL T
 PEM_read_bio_X509_REQ T
-PEM_version R 38
+PEM_version R 40
 PEM_write T
 PEM_write_CMS T
 PEM_write_DHparams T
+PEM_write_DHxparams T
 PEM_write_DSAPrivateKey T
 PEM_write_DSA_PUBKEY T
 PEM_write_DSAparams T
@@ -2106,6 +2164,7 @@ PEM_write_bio_ASN1_stream T
 PEM_write_bio_CMS T
 PEM_write_bio_CMS_stream T
 PEM_write_bio_DHparams T
+PEM_write_bio_DHxparams T
 PEM_write_bio_DSAPrivateKey T
 PEM_write_bio_DSA_PUBKEY T
 PEM_write_bio_DSAparams T
@@ -2326,7 +2385,7 @@ RAND_seed T
 RAND_set_rand_engine T
 RAND_set_rand_method T
 RAND_status T
-RAND_version R 39
+RAND_version R 41
 RAND_write_file T
 RC2_cbc_encrypt T
 RC2_cfb64_encrypt T
@@ -2335,21 +2394,24 @@ RC2_ecb_encrypt T
 RC2_encrypt T
 RC2_ofb64_encrypt T
 RC2_set_key T
-RC2_version R 38
+RC2_version R 40
 RC4 T
 RC4_options T
 RC4_set_key T
-RC4_version R 38
+RC4_version R 40
 RIPEMD160 T
 RIPEMD160_Final T
 RIPEMD160_Init T
 RIPEMD160_Transform T
 RIPEMD160_Update T
-RMD160_version R 45
+RMD160_version R 47
 RSAPrivateKey_dup T
 RSAPrivateKey_it D 56
 RSAPublicKey_dup T
 RSAPublicKey_it D 56
+RSA_OAEP_PARAMS_free T
+RSA_OAEP_PARAMS_it D 56
+RSA_OAEP_PARAMS_new T
 RSA_PKCS1_SSLeay T
 RSA_PSS_PARAMS_free T
 RSA_PSS_PARAMS_it D 56
@@ -2371,6 +2433,7 @@ RSA_new T
 RSA_new_method T
 RSA_null_method T
 RSA_padding_add_PKCS1_OAEP T
+RSA_padding_add_PKCS1_OAEP_mgf1 T
 RSA_padding_add_PKCS1_PSS T
 RSA_padding_add_PKCS1_PSS_mgf1 T
 RSA_padding_add_PKCS1_type_1 T
@@ -2379,6 +2442,7 @@ RSA_padding_add_SSLv23 T
 RSA_padding_add_X931 T
 RSA_padding_add_none T
 RSA_padding_check_PKCS1_OAEP T
+RSA_padding_check_PKCS1_OAEP_mgf1 T
 RSA_padding_check_PKCS1_type_1 T
 RSA_padding_check_PKCS1_type_2 T
 RSA_padding_check_SSLv23 T
@@ -2402,7 +2466,7 @@ RSA_verify T
 RSA_verify_ASN1_OCTET_STRING T
 RSA_verify_PKCS1_PSS T
 RSA_verify_PKCS1_PSS_mgf1 T
-RSA_version R 38
+RSA_version R 40
 SEED_cbc_encrypt T
 SEED_cfb128_encrypt T
 SEED_decrypt T
@@ -2416,7 +2480,7 @@ SHA1_Final T
 SHA1_Init T
 SHA1_Transform T
 SHA1_Update T
-SHA1_version R 39
+SHA1_version R 41
 SHA224 T
 SHA224_Final T
 SHA224_Init T
@@ -2426,7 +2490,7 @@ SHA256_Final T
 SHA256_Init T
 SHA256_Transform T
 SHA256_Update T
-SHA256_version R 42
+SHA256_version R 44
 SHA384 T
 SHA384_Final T
 SHA384_Init T
@@ -2436,12 +2500,12 @@ SHA512_Final T
 SHA512_Init T
 SHA512_Transform T
 SHA512_Update T
-SHA512_version R 42
+SHA512_version R 44
 SHA_Final T
 SHA_Init T
 SHA_Transform T
 SHA_Update T
-SHA_version R 38
+SHA_version R 40
 SMIME_crlf_copy T
 SMIME_read_ASN1 T
 SMIME_read_CMS T
@@ -2457,6 +2521,7 @@ SRP_Calc_server_key T
 SRP_Calc_u T
 SRP_Calc_x T
 SRP_VBASE_free T
+SRP_VBASE_get1_by_user T
 SRP_VBASE_get_by_user T
 SRP_VBASE_init T
 SRP_VBASE_new T
@@ -2466,9 +2531,10 @@ SRP_check_known_gN_param T
 SRP_create_verifier T
 SRP_create_verifier_BN T
 SRP_get_default_gN T
+SRP_user_pwd_free T
 SSLeay T
 SSLeay_version T
-STACK_version R 40
+STACK_version R 42
 SXNETID_free T
 SXNETID_it D 56
 SXNETID_new T
@@ -2628,7 +2694,7 @@ TXT_DB_free T
 TXT_DB_get_by_index T
 TXT_DB_insert T
 TXT_DB_read T
-TXT_DB_version R 41
+TXT_DB_version R 43
 TXT_DB_write T
 UI_OpenSSL T
 UI_UTIL_read_pw T
@@ -2706,6 +2772,7 @@ X509V3_EXT_cleanup T
 X509V3_EXT_conf T
 X509V3_EXT_conf_nid T
 X509V3_EXT_d2i T
+X509V3_EXT_free T
 X509V3_EXT_get T
 X509V3_EXT_get_nid T
 X509V3_EXT_i2d T
@@ -2736,6 +2803,7 @@ X509V3_set_ctx T
 X509V3_set_nconf T
 X509V3_string_free T
 X509_ALGORS_it D 56
+X509_ALGOR_cmp T
 X509_ALGOR_dup T
 X509_ALGOR_free T
 X509_ALGOR_get0 T
@@ -2776,8 +2844,10 @@ X509_CRL_METHOD_new T
 X509_CRL_add0_revoked T
 X509_CRL_add1_ext_i2d T
 X509_CRL_add_ext T
+X509_CRL_check_suiteb T
 X509_CRL_cmp T
 X509_CRL_delete_ext T
+X509_CRL_diff T
 X509_CRL_digest T
 X509_CRL_dup T
 X509_CRL_free T
@@ -2790,6 +2860,7 @@ X509_CRL_get_ext_by_critical T
 X509_CRL_get_ext_count T
 X509_CRL_get_ext_d2i T
 X509_CRL_get_meth_data T
+X509_CRL_http_nbio T
 X509_CRL_it D 56
 X509_CRL_match T
 X509_CRL_new T
@@ -2933,6 +3004,7 @@ X509_REQ_verify T
 X509_REVOKED_add1_ext_i2d T
 X509_REVOKED_add_ext T
 X509_REVOKED_delete_ext T
+X509_REVOKED_dup T
 X509_REVOKED_free T
 X509_REVOKED_get_ext T
 X509_REVOKED_get_ext_by_NID T
@@ -2954,6 +3026,7 @@ X509_STORE_CTX_get0_current_issuer T
 X509_STORE_CTX_get0_param T
 X509_STORE_CTX_get0_parent_ctx T
 X509_STORE_CTX_get0_policy_tree T
+X509_STORE_CTX_get0_store T
 X509_STORE_CTX_get1_chain T
 X509_STORE_CTX_get1_issuer T
 X509_STORE_CTX_get_chain T
@@ -2993,6 +3066,7 @@ X509_STORE_set1_param T
 X509_STORE_set_default_paths T
 X509_STORE_set_depth T
 X509_STORE_set_flags T
+X509_STORE_set_lookup_crls_cb T
 X509_STORE_set_purpose T
 X509_STORE_set_trust T
 X509_STORE_set_verify_cb T
@@ -3011,18 +3085,28 @@ X509_VAL_it D 56
 X509_VAL_new T
 X509_VERIFY_PARAM_add0_policy T
 X509_VERIFY_PARAM_add0_table T
+X509_VERIFY_PARAM_add1_host T
 X509_VERIFY_PARAM_clear_flags T
 X509_VERIFY_PARAM_free T
+X509_VERIFY_PARAM_get0 T
+X509_VERIFY_PARAM_get0_name T
+X509_VERIFY_PARAM_get0_peername T
+X509_VERIFY_PARAM_get_count T
 X509_VERIFY_PARAM_get_depth T
 X509_VERIFY_PARAM_get_flags T
 X509_VERIFY_PARAM_inherit T
 X509_VERIFY_PARAM_lookup T
 X509_VERIFY_PARAM_new T
 X509_VERIFY_PARAM_set1 T
+X509_VERIFY_PARAM_set1_email T
+X509_VERIFY_PARAM_set1_host T
+X509_VERIFY_PARAM_set1_ip T
+X509_VERIFY_PARAM_set1_ip_asc T
 X509_VERIFY_PARAM_set1_name T
 X509_VERIFY_PARAM_set1_policies T
 X509_VERIFY_PARAM_set_depth T
 X509_VERIFY_PARAM_set_flags T
+X509_VERIFY_PARAM_set_hostflags T
 X509_VERIFY_PARAM_set_purpose T
 X509_VERIFY_PARAM_set_time T
 X509_VERIFY_PARAM_set_trust T
@@ -3034,8 +3118,14 @@ X509_add_ext T
 X509_alias_get0 T
 X509_alias_set1 T
 X509_certificate_type T
+X509_chain_check_suiteb T
+X509_chain_up_ref T
 X509_check_akid T
 X509_check_ca T
+X509_check_email T
+X509_check_host T
+X509_check_ip T
+X509_check_ip_asc T
 X509_check_issued T
 X509_check_private_key T
 X509_check_purpose T
@@ -3051,6 +3141,7 @@ X509_find_by_issuer_and_serial T
 X509_find_by_subject T
 X509_free T
 X509_get0_pubkey_bitstr T
+X509_get0_signature T
 X509_get1_email T
 X509_get1_ocsp T
 X509_get_default_cert_area T
@@ -3071,8 +3162,10 @@ X509_get_issuer_name T
 X509_get_pubkey T
 X509_get_pubkey_parameters T
 X509_get_serialNumber T
+X509_get_signature_nid T
 X509_get_subject_name T
 X509_gmtime_adj T
+X509_http_nbio T
 X509_issuer_and_serial_cmp T
 X509_issuer_and_serial_hash T
 X509_issuer_name_cmp T
@@ -3126,7 +3219,7 @@ X509_trust_clear T
 X509_verify T
 X509_verify_cert T
 X509_verify_cert_error_string T
-X509_version R 40
+X509_version R 42
 X509at_add1_attr T
 X509at_add1_attr_by_NID T
 X509at_add1_attr_by_OBJ T
@@ -3153,54 +3246,6 @@ X9_62_PENTANOMIAL_free T
 X9_62_PENTANOMIAL_it D 56
 X9_62_PENTANOMIAL_new T
 ZLONG_it D 56
-_CONF_add_string T
-_CONF_free_data T
-_CONF_get_section T
-_CONF_get_section_values T
-_CONF_get_string T
-_CONF_new_data T
-_CONF_new_section T
-_des_crypt T
-_ossl_096_des_random_seed T
-_ossl_old_crypt T
-_ossl_old_des_cbc_cksum T
-_ossl_old_des_cbc_encrypt T
-_ossl_old_des_cfb64_encrypt T
-_ossl_old_des_cfb_encrypt T
-_ossl_old_des_crypt T
-_ossl_old_des_decrypt3 T
-_ossl_old_des_ecb3_encrypt T
-_ossl_old_des_ecb_encrypt T
-_ossl_old_des_ede3_cbc_encrypt T
-_ossl_old_des_ede3_cfb64_encrypt T
-_ossl_old_des_ede3_ofb64_encrypt T
-_ossl_old_des_enc_read T
-_ossl_old_des_enc_write T
-_ossl_old_des_encrypt T
-_ossl_old_des_encrypt2 T
-_ossl_old_des_encrypt3 T
-_ossl_old_des_fcrypt T
-_ossl_old_des_is_weak_key T
-_ossl_old_des_key_sched T
-_ossl_old_des_ncbc_encrypt T
-_ossl_old_des_ofb64_encrypt T
-_ossl_old_des_ofb_encrypt T
-_ossl_old_des_options T
-_ossl_old_des_pcbc_encrypt T
-_ossl_old_des_quad_cksum T
-_ossl_old_des_random_key T
-_ossl_old_des_random_seed T
-_ossl_old_des_read_2passwords T
-_ossl_old_des_read_password T
-_ossl_old_des_read_pw T
-_ossl_old_des_read_pw_string T
-_ossl_old_des_set_key T
-_ossl_old_des_set_odd_parity T
-_ossl_old_des_string_to_2keys T
-_ossl_old_des_string_to_key T
-_ossl_old_des_xcbc_encrypt T
-_shadow_DES_check_key B 4
-_shadow_DES_rw_mode D 4
 a2d_ASN1_OBJECT T
 a2i_ASN1_ENUMERATED T
 a2i_ASN1_INTEGER T
@@ -3222,10 +3267,13 @@ asn1_enc_restore T
 asn1_enc_save T
 asn1_ex_c2i T
 asn1_ex_i2c T
+asn1_generalizedtime_to_tm T
 asn1_get_choice_selector T
 asn1_get_field_ptr T
+asn1_item_combine_free T
 asn1_set_choice_selector T
 asn1_template_print_ctx T
+asn1_utctime_to_tm T
 b2i_PVK_bio T
 b2i_PrivateKey T
 b2i_PrivateKey_bio T
@@ -3233,11 +3281,13 @@ b2i_PublicKey T
 b2i_PublicKey_bio T
 bn_add_part_words T
 bn_add_words T
+bn_bn2binpad T
 bn_cmp_part_words T
 bn_cmp_words T
 bn_div_words T
 bn_dup_expand T
 bn_expand2 T
+bn_mod_add_fixed_top T
 bn_mul_add_words T
 bn_mul_comba4 T
 bn_mul_comba8 T
@@ -3245,6 +3295,7 @@ bn_mul_high T
 bn_mul_low_normal T
 bn_mul_low_recursive T
 bn_mul_mont T
+bn_mul_mont_fixed_top T
 bn_mul_normal T
 bn_mul_part_recursive T
 bn_mul_recursive T
@@ -3256,11 +3307,11 @@ bn_sqr_recursive T
 bn_sqr_words T
 bn_sub_part_words T
 bn_sub_words T
+bn_to_mont_fixed_top T
 c2i_ASN1_BIT_STRING T
 c2i_ASN1_INTEGER T
 c2i_ASN1_OBJECT T
 check_defer T
-cleanse_ctr B 1
 cmac_asn1_meth D 208
 cmac_pkey_meth D 208
 cms_Data_create T
@@ -3282,9 +3333,15 @@ cms_SignerIdentifier_cert_cmp T
 cms_SignerIdentifier_get0_signer_id T
 cms_content_bio T
 cms_encode_Receipt T
+cms_env_asn1_ctrl T
 cms_get0_enveloped T
+cms_ias_cert_cmp T
+cms_keyid_cert_cmp T
 cms_msgSigDigest_add1 T
+cms_pkey_get_ri_type T
 cms_set1_SignerIdentifier T
+cms_set1_ias T
+cms_set1_keyid T
 d2i_ACCESS_DESCRIPTION T
 d2i_ASN1_BIT_STRING T
 d2i_ASN1_BMPSTRING T
@@ -3322,6 +3379,7 @@ d2i_CMS_ReceiptRequest T
 d2i_CMS_bio T
 d2i_CRL_DIST_POINTS T
 d2i_DHparams T
+d2i_DHxparams T
 d2i_DIRECTORYSTRING T
 d2i_DISPLAYTEXT T
 d2i_DIST_POINT T
@@ -3436,6 +3494,7 @@ d2i_RSAPublicKey T
 d2i_RSAPublicKey_bio T
 d2i_RSAPublicKey_fp T
 d2i_RSA_NET T
+d2i_RSA_OAEP_PARAMS T
 d2i_RSA_PSS_PARAMS T
 d2i_RSA_PUBKEY T
 d2i_RSA_PUBKEY_bio T
@@ -3484,11 +3543,16 @@ d2i_X509_SIG T
 d2i_X509_VAL T
 d2i_X509_bio T
 d2i_X509_fp T
+d2i_int_dhx T
 default_pctx D 40
 dh_asn1_meth D 208
 dh_pkey_meth D 208
+dhx_asn1_meth D 208
+dhx_pkey_meth D 208
 dsa_asn1_meths D 1040
 dsa_builtin_paramgen T
+dsa_builtin_paramgen2 T
+dsa_paramgen_check_g T
 dsa_pkey_meth D 208
 dsa_pub_internal_it D 56
 ec_GF2m_have_precompute_mult T
@@ -3588,6 +3652,7 @@ ec_GFp_simple_points_make_affine T
 ec_GFp_simple_set_Jprojective_coordinates_GFp T
 ec_GFp_simple_set_compressed_coordinates T
 ec_pkey_meth D 208
+ec_precompute_mont_data T
 ec_wNAF_have_precompute_mult T
 ec_wNAF_mul T
 ec_wNAF_precompute_mult T
@@ -3666,6 +3731,7 @@ i2d_CMS_bio T
 i2d_CMS_bio_stream T
 i2d_CRL_DIST_POINTS T
 i2d_DHparams T
+i2d_DHxparams T
 i2d_DIRECTORYSTRING T
 i2d_DISPLAYTEXT T
 i2d_DIST_POINT T
@@ -3786,6 +3852,7 @@ i2d_RSAPublicKey T
 i2d_RSAPublicKey_bio T
 i2d_RSAPublicKey_fp T
 i2d_RSA_NET T
+i2d_RSA_OAEP_PARAMS T
 i2d_RSA_PSS_PARAMS T
 i2d_RSA_PUBKEY T
 i2d_RSA_PUBKEY_bio T
@@ -3834,6 +3901,8 @@ i2d_X509_SIG T
 i2d_X509_VAL T
 i2d_X509_bio T
 i2d_X509_fp T
+i2d_int_dhx T
+i2d_re_X509_tbs T
 i2o_ECPublicKey T
 i2s_ASN1_ENUMERATED T
 i2s_ASN1_ENUMERATED_TABLE T
@@ -3869,12 +3938,13 @@ lh_retrieve T
 lh_stats T
 lh_stats_bio T
 lh_strhash T
-lh_version R 40
+lh_version R 42
 md4_block_data_order T
 md5_block_data_order T
 name_cmp T
 o2i_ECPublicKey T
 obj_cleanup_defer B 4
+ossl_safe_getenv T
 pem_check_suffix T
 pitem_free T
 pitem_new T
@@ -3909,6 +3979,7 @@ s2i_ASN1_INTEGER T
 s2i_ASN1_OCTET_STRING T
 sig_app B 8
 sigx_app B 8
+sk_deep_copy T
 sk_delete T
 sk_delete_ptr T
 sk_dup T
@@ -3946,6 +4017,7 @@ v3_crl_invdate D 104
 v3_crl_num D 104
 v3_crl_reason D 104
 v3_crld D 104
+v3_ct_scts D 208
 v3_delta_crl D 104
 v3_ext_ku D 104
 v3_freshest_crl D 104

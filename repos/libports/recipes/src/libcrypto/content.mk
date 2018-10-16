@@ -11,8 +11,6 @@ src/lib/openssl:
 	cp -r $(REP_DIR)/src/lib/openssl/* $@
 	mkdir -p $@/crypto
 	cp -r $(PORT_DIR)/src/lib/openssl/crypto/* $@/crypto
-	mkdir -p $@/x86_64
-	cp -r $(PORT_DIR)/src/lib/openssl/x86_64/* $@/x86_64
 
 src/lib/libcrypto/target.mk: src/lib/libcrypto src/lib/openssl
 	echo "LIBS += libcrypto" > $@

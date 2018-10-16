@@ -1,0 +1,30 @@
++++ a/ssl/s2_srvr.c
+@@ -111,7 +111,7 @@
+ 
+ #include "ssl_locl.h"
+ #ifndef OPENSSL_NO_SSL2
+-#include "../crypto/constant_time_locl.h"
++#include <crypto/constant_time_locl.h>
+ # include <stdio.h>
+ # include <openssl/bio.h>
+ # include <openssl/rand.h>
++++ a/ssl/s3_cbc.c
+@@ -53,7 +53,7 @@
+  *
+  */
+ 
+-#include "../crypto/constant_time_locl.h"
++#include <crypto/constant_time_locl.h>
+ #include "ssl_locl.h"
+ 
+ #include <openssl/md5.h>
++++ a/ssl/s3_srvr.c
+@@ -154,7 +154,7 @@
+ #include <stdio.h>
+ #include "ssl_locl.h"
+ #include "kssl_lcl.h"
+-#include "../crypto/constant_time_locl.h"
++#include <crypto/constant_time_locl.h>
+ #include <openssl/buffer.h>
+ #include <openssl/rand.h>
+ #include <openssl/objects.h>

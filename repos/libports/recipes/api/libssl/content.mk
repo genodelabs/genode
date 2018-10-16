@@ -14,6 +14,9 @@ include:
 	mkdir $@
 	cp -r $(PORT_DIR)/include/* $@/
 	cp $(PORT_DIR)/include/openssl/e_os* $@/
+	cp -r $(PORT_DIR)/src/lib/openssl/crypto/o_time.h $@/
+	mkdir -p $@/crypto
+	cp -r $(PORT_DIR)/src/lib/openssl/crypto/constant_time_locl.h $@/crypto
 
 content: LICENSE
 

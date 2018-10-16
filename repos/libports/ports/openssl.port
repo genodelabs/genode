@@ -1,42 +1,92 @@
 LICENSE   := OpenSSL
-VERSION   := 1.0.1i
+VERSION   := 1.0.2q
 DOWNLOADS := openssl.archive
 
-URL(openssl) := https://www.openssl.org/source/old/1.0.1/openssl-$(VERSION).tar.gz
-SHA(openssl) := 3c179f46ca77069a6a0bac70212a9b3b838b2f66129cb52d568837fc79d8fcc7
-SIG(openssl) := ${URL(openssl)}.asc
-KEY(openssl) := "49A563D9 26BB437D F295C759 9C58A66D 2118CF83 F709453B 5A6A9B85"
+URL(openssl) := https://www.openssl.org/source/openssl-$(VERSION).tar.gz
+SHA(openssl) := 5744cfcbcec2b1b48629f7354203bc1e5e9b5466998bbccc5b5fcde3b18eb684
 DIR(openssl) := src/lib/openssl
 
 DIRS := include/openssl
-DIR_CONTENT(include/openssl) = $(shell find src/lib/openssl/include/openssl/ -name *.h) \
-                               src/lib/openssl/e_os.h \
+DIR_CONTENT(include/openssl) = \
+                               src/lib/openssl/crypto/aes/aes.h  \
+                               src/lib/openssl/crypto/asn1/asn1.h  \
+                               src/lib/openssl/crypto/asn1/asn1_mac.h  \
+                               src/lib/openssl/crypto/asn1/asn1t.h  \
+                               src/lib/openssl/crypto/bf/blowfish.h  \
+                               src/lib/openssl/crypto/bio/bio.h  \
+                               src/lib/openssl/crypto/bn/bn.h  \
+                               src/lib/openssl/crypto/buffer/buffer.h  \
+                               src/lib/openssl/crypto/camellia/camellia.h  \
+                               src/lib/openssl/crypto/cast/cast.h  \
+                               src/lib/openssl/crypto/cmac/cmac.h  \
+                               src/lib/openssl/crypto/cms/cms.h  \
+                               src/lib/openssl/crypto/comp/comp.h  \
+                               src/lib/openssl/crypto/conf/conf.h  \
+                               src/lib/openssl/crypto/conf/conf_api.h  \
+                               src/lib/openssl/crypto/crypto.h  \
+                               src/lib/openssl/crypto/des/des.h  \
+                               src/lib/openssl/crypto/des/des_old.h  \
+                               src/lib/openssl/crypto/dh/dh.h  \
+                               src/lib/openssl/crypto/dsa/dsa.h  \
+                               src/lib/openssl/crypto/dso/dso.h  \
+                               src/lib/openssl/crypto/ebcdic.h  \
+                               src/lib/openssl/crypto/ec/ec.h  \
+                               src/lib/openssl/crypto/ecdh/ecdh.h  \
+                               src/lib/openssl/crypto/ecdsa/ecdsa.h  \
+                               src/lib/openssl/crypto/engine/engine.h  \
+                               src/lib/openssl/crypto/err/err.h  \
+                               src/lib/openssl/crypto/evp/evp.h  \
+                               src/lib/openssl/crypto/hmac/hmac.h  \
+                               src/lib/openssl/crypto/idea/idea.h  \
+                               src/lib/openssl/crypto/krb5/krb5_asn.h  \
+                               src/lib/openssl/crypto/lhash/lhash.h  \
                                src/lib/openssl/crypto/md2/md2.h \
+                               src/lib/openssl/crypto/md4/md4.h  \
+                               src/lib/openssl/crypto/md5/md5.h  \
+                               src/lib/openssl/crypto/mdc2/mdc2.h  \
+                               src/lib/openssl/crypto/modes/modes.h  \
+                               src/lib/openssl/crypto/objects/obj_mac.h  \
+                               src/lib/openssl/crypto/objects/objects.h  \
+                               src/lib/openssl/crypto/ocsp/ocsp.h  \
+                               src/lib/openssl/crypto/opensslconf.h  \
+                               src/lib/openssl/crypto/opensslv.h  \
+                               src/lib/openssl/crypto/ossl_typ.h  \
+                               src/lib/openssl/crypto/pem/pem.h  \
+                               src/lib/openssl/crypto/pem/pem2.h  \
+                               src/lib/openssl/crypto/pkcs12/pkcs12.h  \
+                               src/lib/openssl/crypto/pkcs7/pkcs7.h  \
+                               src/lib/openssl/crypto/pqueue/pqueue.h  \
+                               src/lib/openssl/crypto/rand/rand.h  \
+                               src/lib/openssl/crypto/rc2/rc2.h  \
+                               src/lib/openssl/crypto/rc4/rc4.h  \
                                src/lib/openssl/crypto/rc5/rc5.h \
-                               src/lib/openssl/crypto/store/store.h
+                               src/lib/openssl/crypto/ripemd/ripemd.h  \
+                               src/lib/openssl/crypto/rsa/rsa.h  \
+                               src/lib/openssl/crypto/seed/seed.h  \
+                               src/lib/openssl/crypto/sha/sha.h  \
+                               src/lib/openssl/crypto/srp/srp.h  \
+                               src/lib/openssl/crypto/stack/safestack.h  \
+                               src/lib/openssl/crypto/stack/stack.h  \
+                               src/lib/openssl/crypto/store/store.h  \
+                               src/lib/openssl/crypto/symhacks.h  \
+                               src/lib/openssl/crypto/ts/ts.h  \
+                               src/lib/openssl/crypto/txt_db/txt_db.h  \
+                               src/lib/openssl/crypto/ui/ui.h  \
+                               src/lib/openssl/crypto/ui/ui_compat.h  \
+                               src/lib/openssl/crypto/whrlpool/whrlpool.h  \
+                               src/lib/openssl/crypto/x509/x509.h  \
+                               src/lib/openssl/crypto/x509/x509_vfy.h  \
+                               src/lib/openssl/e_os.h \
+                               src/lib/openssl/e_os2.h  \
+                               src/lib/openssl/ssl/dtls1.h  \
+                               src/lib/openssl/ssl/kssl.h  \
+                               src/lib/openssl/ssl/srtp.h  \
+                               src/lib/openssl/ssl/ssl.h  \
+                               src/lib/openssl/ssl/ssl2.h  \
+                               src/lib/openssl/ssl/ssl23.h  \
+                               src/lib/openssl/ssl/ssl3.h  \
+                               src/lib/openssl/ssl/tls1.h  \
+                               src/lib/openssl/crypto/x509v3/x509v3.h
 
-#
-# Generate ASM codes
-#
-
-$(call check_tool,perl)
-
-gen_files := src/lib/openssl/x86_64/modexp512.s src/lib/openssl/x86_64/rc4_md5.s
-
-default: $(gen_files)
-$(gen_files): $(DOWNLOADS)
-
-src/lib/openssl/x86_64/modexp512.s:
-	@$(MSG_GENERATE)$@
-	$(VERBOSE)mkdir -p $(dir $@)
-	$(VERBOSE)perl src/lib/openssl/crypto/bn/asm/modexp512-x86_64.pl \
-		src/lib/openssl/crypto/perlasm/x86as.pl > $@
-
-src/lib/openssl/x86_64/rc4_md5.s:
-	@$(MSG_GENERATE)$@
-	$(VERBOSE)mkdir -p $(dir $@)
-	$(VERBOSE)perl src/lib/openssl/crypto/rc4/asm/rc4-md5-x86_64.pl \
-		src/lib/openssl/crypto/perlasm/x86as.pl > $@
-
-PATCHES   := $(addprefix src/lib/openssl/,rand_unix_c.patch ssl.patch)
+PATCHES   := $(addprefix src/lib/openssl/,rand_unix_c.patch ssl.patch constant_time_locl.patch)
 PATCH_OPT := -p1 -d src/lib/openssl
