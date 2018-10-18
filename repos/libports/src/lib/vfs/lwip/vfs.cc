@@ -1322,39 +1322,32 @@ class Lwip::Tcp_socket_dir final :
 			switch(handle.kind) {
 			case Lwip_file_handle::DATA:
 				if (state == READY) {
+					Write_result res = Write_result::WRITE_ERR_WOULD_BLOCK;
 					file_size out = 0;
-					while (count) {
-						/* check if the send buffer is exhausted */
-						if (tcp_sndbuf(_pcb) == 0) {
-							Genode::warning("TCP send buffer congested");
-							out_count = out;
-							return out
-								? Write_result::WRITE_OK
-								: Write_result::WRITE_ERR_WOULD_BLOCK;
-						}
-
+					/*
+					 * write in a loop to account for LwIP chunking
+					 * and the availability of send buffer
+					 */
+					while (count && tcp_sndbuf(_pcb)) {
 						u16_t n = min(count, tcp_sndbuf(_pcb));
-						/* how much can we queue right now? */
 
-						count -= n;
 						/* write to outgoing TCP buffer */
-						err_t err = tcp_write(
-							_pcb, src, n, TCP_WRITE_FLAG_COPY);
-						if (err == ERR_OK)
-							/* flush the buffer */
-							err = tcp_output(_pcb);
+						err_t err = tcp_write(_pcb, src, n, TCP_WRITE_FLAG_COPY);
 						if (err != ERR_OK) {
 							Genode::error("lwIP: tcp_write failed, error ", (int)-err);
-							return Write_result::WRITE_ERR_IO;
+							res = Write_result::WRITE_ERR_IO;
+							break;
 						}
 
+						count -= n;
 						src += n;
 						out += n;
 						/* pending_ack += n; */
+						res = Write_result::WRITE_OK;
 					}
 
 					out_count = out;
-					return Write_result::WRITE_OK;
+					return res;
 				}
 				break;
 
@@ -1575,6 +1568,8 @@ class Lwip::File_system final : public Vfs::File_system
 {
 	private:
 
+		Genode::Entrypoint &_ep;
+
 		/**
 		 * LwIP connection to Nic service
 		 */
@@ -1628,7 +1623,7 @@ class Lwip::File_system final : public Vfs::File_system
 	public:
 
 		File_system(Vfs::Env &vfs_env, Genode::Xml_node config)
-		: _netif(vfs_env, config, vfs_env.io_handler())
+		: _ep(vfs_env.env().ep()), _netif(vfs_env, config, vfs_env.io_handler())
 		{ }
 
 		/**
@@ -1758,13 +1753,19 @@ class Lwip::File_system final : public Vfs::File_system
 		                   char const *src, file_size count,
 		                   file_size &out_count) override
 		{
+			Write_result res = Write_result::WRITE_ERR_INVALID;
 			out_count = 0;
 
 			if ((vfs_handle->status_flags() & OPEN_MODE_ACCMODE) == OPEN_MODE_RDONLY)
 				return Write_result::WRITE_ERR_INVALID;
-			if (Lwip_handle *handle = dynamic_cast<Lwip_handle*>(vfs_handle))
-				return handle->write(src, count, out_count);
-			return Write_result::WRITE_ERR_INVALID;
+			if (Lwip_handle *handle = dynamic_cast<Lwip_handle*>(vfs_handle)) {
+				while (true) {
+					res = handle->write(src, count, out_count);
+					if (res != WRITE_ERR_WOULD_BLOCK) break;
+					_ep.wait_and_dispatch_one_io_signal();
+				}
+			}
+			return res;
 		}
 
 		Read_result complete_read(Vfs_handle *vfs_handle,
