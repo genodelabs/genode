@@ -26,6 +26,7 @@
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
+#include <time.h>
 #include <sys/syscall.h>
 
 
@@ -147,6 +148,14 @@ int main(int argc, char **argv)
 	}
 
 	perror("perror");
+
+	struct timespec ts;
+	for (int i = 0; i < 3; ++i) {
+		sleep(1);
+		ts.tv_sec = ts.tv_nsec = 0;
+		clock_gettime(CLOCK_MONOTONIC, &ts);
+		printf("sleep/gettime: %.09f\n", ts.tv_sec + ts.tv_nsec / 1000000000.0);
+	}
 
 	exit(error_count);
 }
