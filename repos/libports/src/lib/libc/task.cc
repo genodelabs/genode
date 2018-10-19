@@ -217,9 +217,9 @@ struct Libc::Timer
 
 	Timer(Genode::Env &env) : _timer(env) { }
 
-	unsigned long curr_time()
+	Genode::Duration curr_time()
 	{
-		return _timer.curr_time().trunc_to_plain_us().value/1000;
+		return _timer.curr_time();
 	}
 
 	static Microseconds microseconds(unsigned long timeout_ms)
@@ -281,22 +281,22 @@ struct Libc::Timeout
 
 	void start(unsigned long timeout_ms)
 	{
-		unsigned long const now = _timer_accessor.timer().curr_time();
+		Milliseconds const now = _timer_accessor.timer().curr_time().trunc_to_plain_ms();
 
 		_expired             = false;
-		_absolute_timeout_ms = now + timeout_ms;
+		_absolute_timeout_ms = now.value + timeout_ms;
 
 		_timeout.schedule(_timer_accessor.timer().microseconds(timeout_ms));
 	}
 
 	unsigned long duration_left() const
 	{
-		unsigned long const now = _timer_accessor.timer().curr_time();
+		Milliseconds const now = _timer_accessor.timer().curr_time().trunc_to_plain_ms();
 
-		if (_expired || _absolute_timeout_ms < now)
+		if (_expired || _absolute_timeout_ms < now.value)
 			return 0;
 
-		return _absolute_timeout_ms - now;
+		return _absolute_timeout_ms - now.value;
 	}
 };
 
@@ -751,7 +751,7 @@ struct Libc::Kernel
 			}
 		}
 
-		unsigned long current_time()
+		Genode::Duration current_time()
 		{
 			return _timer_accessor.timer().curr_time();
 		}
@@ -889,7 +889,7 @@ void Libc::dispatch_pending_io_signals()
 }
 
 
-unsigned long Libc::current_time()
+Genode::Duration Libc::current_time()
 {
 	return kernel->current_time();
 }

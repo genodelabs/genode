@@ -21,6 +21,7 @@
 #ifndef _LIBC__TASK_H_
 #define _LIBC__TASK_H_
 
+#include <os/duration.h>
 #include <util/xml_node.h>
 
 namespace Libc {
@@ -53,7 +54,7 @@ namespace Libc {
 	/**
 	 * Get time since startup in ms
 	 */
-	unsigned long current_time();
+	Genode::Duration current_time();
 
 	/**
 	 * Suspend main user context and the component entrypoint

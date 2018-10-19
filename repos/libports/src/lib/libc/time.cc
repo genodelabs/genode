@@ -24,32 +24,54 @@ namespace Libc { time_t read_rtc(); }
 extern "C" __attribute__((weak))
 int clock_gettime(clockid_t clk_id, struct timespec *ts)
 {
-	if (!ts) return 0;
+	if (!ts) return Libc::Errno(EFAULT);
 
-	static bool   initial_rtc_requested = false;
-	static time_t initial_rtc = 0;
-	static unsigned long t0 = 0;
-
+	/* initialize timespec just in case users do not check for errors */
 	ts->tv_sec  = 0;
 	ts->tv_nsec = 0;
 
-	/* try to read rtc once */
-	if (!initial_rtc_requested) {
-		initial_rtc_requested = true;
+	switch (clk_id) {
 
-		initial_rtc = Libc::read_rtc();
+	/* IRL wall-time */
+	case CLOCK_REALTIME:
+	case CLOCK_SECOND: /* FreeBSD specific */
+	{
+		static bool   initial_rtc_requested = false;
+		static time_t initial_rtc = 0;
+		static unsigned long t0_ms = 0;
 
-		if (initial_rtc)
-			t0 = Libc::current_time();
+		/* try to read rtc once */
+		if (!initial_rtc_requested) {
+			initial_rtc_requested = true;
+			initial_rtc = Libc::read_rtc();
+			if (initial_rtc) {
+				t0_ms = Libc::current_time().trunc_to_plain_ms().value;
+			}
+		}
+
+		if (!initial_rtc) return Libc::Errno(EINVAL);
+
+		unsigned long time = Libc::current_time().trunc_to_plain_ms().value - t0_ms;
+
+		ts->tv_sec  = initial_rtc + time/1000;
+		ts->tv_nsec = (time % 1000) * (1000*1000);
+		break;
 	}
 
-	if (!initial_rtc)
+	/* component uptime */
+	case CLOCK_MONOTONIC:
+	case CLOCK_UPTIME:
+	{
+		unsigned long us = Libc::current_time().trunc_to_plain_us().value;
+
+		ts->tv_sec  = us / (1000*1000);
+		ts->tv_nsec = (us % (1000*1000)) * 1000;
+		break;
+	}
+
+	default:
 		return Libc::Errno(EINVAL);
-
-	unsigned long time = Libc::current_time() - t0;
-
-	ts->tv_sec  = initial_rtc + time/1000;
-	ts->tv_nsec = (time % 1000) * (1000*1000);
+	}
 
 	return 0;
 }
@@ -62,7 +84,7 @@ int gettimeofday(struct timeval *tv, struct timezone *)
 
 	struct timespec ts;
 
-	if (int ret = clock_gettime(0, &ts))
+	if (int ret = clock_gettime(CLOCK_REALTIME, &ts))
 		return ret;
 
 	tv->tv_sec  = ts.tv_sec;
