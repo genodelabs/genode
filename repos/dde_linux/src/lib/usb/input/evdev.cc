@@ -133,7 +133,7 @@ static void handle_absolute_axis(input_dev *dev, unsigned code, int value, Axis 
 {
 	slots[slot].event = code;
 
-	input_event_type type;
+	input_event_type type = EVENT_TYPE_MOTION;
 
 	switch (axis) {
 	case AXIS_X:

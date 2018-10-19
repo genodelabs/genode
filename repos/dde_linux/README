@@ -60,7 +60,7 @@ hid xml tag:
 !...
 !<hid>
 !  <touchscreen width="1024" height="768" multitouch="no"/>
-!<hid/>
+!</hid>
 !...
 
 If a touchscreen is multi-touch-capable than the multitouch attribute gears
