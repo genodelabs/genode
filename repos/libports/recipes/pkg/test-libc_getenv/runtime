@@ -1,0 +1,48 @@
+<runtime ram="32M" caps="1000" binary="init">
+
+	<events>
+		<timeout meaning="failed" sec="20" />
+		<log meaning="succeeded">
+			[init -> test-libc_getenv] foo="bar"
+			[init -> test-libc_getenv] bar="foo"
+			[init -> test-libc_getenv] baz="(null)"
+			[init] child "test-libc_getenv" exited with exit value 0
+		</log>
+	</events>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="test-libc_getenv"/>
+		<rom label="libc.lib.so"/>
+		<rom label="libm.lib.so"/>
+		<rom label="vfs.lib.so"/>
+		<rom label="posix.lib.so"/>
+	</content>
+
+	<config>
+		<parent-provides>
+			<service name="CPU"/>
+			<service name="LOG"/>
+			<service name="PD"/>
+			<service name="RM"/>
+			<service name="ROM"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<default caps="100"/>
+		<start name="test-libc_getenv">
+			<resource name="RAM" quantum="4M"/>
+			<config>
+				<vfs> <dir name="dev"> <log/> </dir> </vfs>
+				<libc stdout="/dev/log"/>
+				<arg value="test-libc_getenv"/>
+				<arg value="foo"/>
+				<arg value="bar"/>
+				<arg value="baz"/>
+				<env key="foo" value="bar"/>
+				<env key="bar" value="foo"/>
+			</config>
+		</start>
+	</config>
+</runtime>
