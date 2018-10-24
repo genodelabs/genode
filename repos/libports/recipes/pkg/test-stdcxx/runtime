@@ -1,0 +1,37 @@
+<runtime ram="32M" caps="1000" binary="init">
+
+	<events>
+		<timeout meaning="failed" sec="20" />
+		<log meaning="succeeded">test-stdcxx finished</log>
+	</events>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="libc.lib.so"/>
+		<rom label="libm.lib.so"/>
+		<rom label="vfs.lib.so"/>
+		<rom label="posix.lib.so"/>
+		<rom label="stdcxx.lib.so"/>
+		<rom label="test-stdcxx"/>
+	</content>
+
+	<config>
+		<parent-provides>
+			<service name="LOG"/>
+			<service name="PD"/>
+			<service name="ROM"/>
+			<service name="CPU"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> </any-service>
+		</default-route>
+		<default caps="100"/>
+		<start name="test-stdcxx">
+			<resource name="RAM" quantum="10M"/>
+			<config>
+				<vfs> <dir name="dev"> <log/> </dir> </vfs>
+				<libc stdout="/dev/log"/>
+			</config>
+		</start>
+	</config>
+</runtime>
