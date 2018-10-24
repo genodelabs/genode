@@ -44,6 +44,7 @@ libc_vfs_ram
 log
 log_core
 lwip
+lx_block
 lx_hybrid_ctors
 lx_hybrid_exception
 lx_hybrid_pthread_ipc
