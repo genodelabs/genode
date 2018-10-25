@@ -512,8 +512,13 @@ void Region_map_component::detach(Local_addr local_addr)
 		        "the beginning of the region ", Hex(region_ptr->base()));
 
 	Dataspace_component *dsc = region_ptr->dataspace();
-	if (!dsc && _diag.enabled)
-		warning("detach: region of ", this, " may be inconsistent!");
+
+	if (!dsc) {
+		if (_diag.enabled)
+			warning("detach: region of ", this, " may be inconsistent!");
+		return;
+	}
+
 
 	/* inform dataspace about detachment */
 	dsc->detached_from(region_ptr);

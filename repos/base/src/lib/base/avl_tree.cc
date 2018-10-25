@@ -49,6 +49,11 @@ void Avl_node_base::_rotate_subtree(Avl_node_base *node, Side side, Policy &poli
 	Avl_node_base *node_r   = node->_child[!side];
 	Avl_node_base *node_r_l = node_r->_child[side];
 
+	if (!node_r) {
+		error("avl rotation node_r is invalid");
+		return;
+	}
+
 	/* simple rotation */
 	if (node_r->_bias() == !side) {
 
