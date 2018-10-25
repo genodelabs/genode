@@ -189,13 +189,13 @@ class Genode::Rpc_client : public RPC_INTERFACE
 		template <typename IF, typename... ARGS>
 		typename IF::Ret_type call(ARGS &&...args)
 		{
-			return _cap.call<IF>(args...);
+			return _cap.template call<IF>(args...);
 		}
 
 		template <typename IF, typename... ARGS>
 		typename IF::Ret_type call(ARGS &&...args) const
 		{
-			return _cap.call<IF>(args...);
+			return _cap.template call<IF>(args...);
 		}
 
 		/**
