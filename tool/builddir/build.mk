@@ -132,6 +132,13 @@ $(error "$(CUSTOM_CXX) version $(REQUIRED_GCC_VERSION) is required")
 endif
 endif
 
+ifneq ($(STATIC_ANALYZE),)
+check_tool = $(if $(shell which $(1)),,$(error Need to have '$(1)' installed.))
+$(call check_tool,scan-build)
+
+MAKE := scan-build --use-c++=$(CUSTOM_CXX) --use-cc=$(CUSTOM_CC) $(MAKE)
+endif
+
 #
 # Default rule: build all directories specified as make arguments
 #
