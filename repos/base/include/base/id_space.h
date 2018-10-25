@@ -65,12 +65,12 @@ class Genode::Id_space : public Noncopyable
 				void _for_each(FUNC const &fn) const
 				{
 					if (Avl_node<Element>::child(Avl_node_base::LEFT))
-						Avl_node<Element>::child(Avl_node_base::LEFT)->_for_each<ARG>(fn);
+						Avl_node<Element>::child(Avl_node_base::LEFT)->template _for_each<ARG>(fn);
 
 					fn(static_cast<ARG &>(_obj));
 
 					if (Avl_node<Element>::child(Avl_node_base::RIGHT))
-						Avl_node<Element>::child(Avl_node_base::RIGHT)->_for_each<ARG>(fn);
+						Avl_node<Element>::child(Avl_node_base::RIGHT)->template _for_each<ARG>(fn);
 				}
 
 			public:
