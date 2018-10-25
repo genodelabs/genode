@@ -1,3 +1,0 @@
-set mode gpt
-
-source ${genode_dir}/repos/os/run/part_blk.inc
