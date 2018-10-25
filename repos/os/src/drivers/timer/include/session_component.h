@@ -70,7 +70,7 @@ class Timer::Session_component : public  Genode::Rpc_object<Session>,
 			 *       Alarm framework takes solely relative time values, please
 			 *       remove this.
 			 */
-			Microseconds typed_us(us > ~0UL >> 1 ? ~0UL >> 1 : us);
+			Microseconds typed_us((us > ~0U >> 1) ? ~0U >> 1 : us);
 			_timeout.schedule_one_shot(typed_us, *this);
 		}
 
