@@ -164,6 +164,9 @@ inline int map_local(Genode::addr_t const pd, Nova::Utcb *utcb,
 		if ((to_end - to_curr) < (1UL << order))
 			order = log2(to_end - to_curr);
 
+		if (order >= sizeof(void *)*8)
+			return 1;
+
 		int const res = map_local(pd, utcb,
 		                          Mem_crd((from_curr >> 12), order - get_page_size_log2(), permission),
 		                          Mem_crd((to_curr   >> 12), order - get_page_size_log2(), permission),

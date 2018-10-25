@@ -40,8 +40,17 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 	if (rcv_caps != ~0UL) {
 
 		/* calculate max order of caps to be received during reply */
-		unsigned short log2_max = rcv_caps ? log2(rcv_caps) : 0;
-		if ((1U << log2_max) < rcv_caps) log2_max ++;
+		unsigned short log2_max = 0;
+		if (rcv_caps) {
+			log2_max = log2(rcv_caps);
+
+			/* if this happens, the call is bogus and invalid */
+			if ((log2_max >= sizeof(rcv_caps) * 8))
+				throw Ipc_error();
+
+			if ((1UL << log2_max) < rcv_caps)
+				log2_max ++;
+		}
 
 		rcv_window.rcv_wnd(log2_max);
 	}
