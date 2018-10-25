@@ -106,6 +106,9 @@ class Genode::Flexpage_iterator
 				order = (order == ~0UL) ? 12 : order;
 			}
 
+			if (order >= sizeof(_offset) * 8)
+				return Flexpage();
+
 			/* advance offset by current flexpage size */
 			_offset += (1UL << order);
 

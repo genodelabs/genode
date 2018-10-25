@@ -400,10 +400,13 @@ Region_map_component::attach(Dataspace_capability ds_cap, size_t size,
 			 * constraints.
 			 */
 			size_t align_log2 = log2(size);
+			if (align_log2 >= sizeof(void *)*8)
+				align_log2 = get_page_size_log2();
+
 			for (; align_log2 >= get_page_size_log2(); align_log2--) {
 
 				/*
-				 * Don't use an aligment higher than the alignment of the backing
+				 * Don't use an alignment higher than the alignment of the backing
 				 * store. The backing store would constrain the mapping size
 				 * anyway such that a higher alignment of the region is of no use.
 				 */

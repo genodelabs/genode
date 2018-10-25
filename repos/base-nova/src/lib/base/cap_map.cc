@@ -178,6 +178,12 @@ void Capability_map::remove(Genode::addr_t const sel, uint8_t num_log_2,
 	while (last_sel > last_range) {
 		uint8_t left_log2 = log2(last_sel - last_range);
 
+		/* take care for a case which should not happen */
+		if (left_log2 >= sizeof(last_range)*8) {
+			error("cap remove error");
+			return;
+		}
+
 		remove(last_range, left_log2, revoke);
 
 		last_range += 1UL << left_log2;
