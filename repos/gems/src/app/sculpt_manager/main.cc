@@ -347,6 +347,7 @@ struct Sculpt::Main : Input_event_handler,
 			 && !_graph.add_button_hovered()) {
 
 				_popup.state = Popup::OFF;
+				_popup_dialog.reset_hover();
 
 				/* de-select '+' button */
 				_graph._gen_graph_dialog();
@@ -406,6 +407,7 @@ struct Sculpt::Main : Input_event_handler,
 
 		/* close popup menu */
 		_popup.state = Popup::OFF;
+		_popup_dialog.reset_hover();
 		_handle_window_layout();
 
 		/* reset state of the '+' button */

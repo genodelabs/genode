@@ -102,6 +102,23 @@ struct Sculpt::Popup_dialog
 		action.launch_global(_item._hovered);
 	}
 
+	/*
+	 * XXX
+	 *
+	 * This method should not be needed. However, in some situations,
+	 * the popup menu_view does not receive a leave event when the popup
+	 * is closed, to the effect of maintaining stale hover information
+	 * instead of generating an empty hover report. So from the sculpt-
+	 * manager's point of view, the popup is still hovered even if it is
+	 * actually closed. The 'reset_hover' shortcuts the regular hover
+	 * update in this situation.
+	 */
+	void reset_hover()
+	{
+		_item._hovered = Hoverable_item::Id();
+		_hovered = false;
+	}
+
 	Popup_dialog(Env &env, Launchers const &launchers,
 	             Runtime_info const &runtime_info)
 	:
