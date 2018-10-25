@@ -55,6 +55,8 @@ Child::Process::Loaded_executable::Loaded_executable(Type type,
 	/* setup region map for the new pd */
 	Elf_segment seg;
 
+	bool parent_info = false;
+
 	for (unsigned n = 0; (seg = elf.get_segment(n)).valid(); ++n) {
 		if (seg.flags().skip)    continue;
 		if (seg.mem_size() == 0) continue;
@@ -62,8 +64,6 @@ Child::Process::Loaded_executable::Loaded_executable(Type type,
 		/* same values for r/o and r/w segments */
 		addr_t const addr = (addr_t)seg.start();
 		size_t const size = seg.mem_size();
-
-		bool parent_info = false;
 
 		bool const write = seg.flags().w;
 		bool const exec = seg.flags().x;
