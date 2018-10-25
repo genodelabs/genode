@@ -98,7 +98,8 @@ void Cancelable_lock::lock()
 		if (!applicants)
 			_last_applicant = &myself;
 	} else {
-		_last_applicant->applicant_to_wake_up(&myself);
+		if (_last_applicant)
+			_last_applicant->applicant_to_wake_up(&myself);
 		_last_applicant = &myself;
 	}
 
