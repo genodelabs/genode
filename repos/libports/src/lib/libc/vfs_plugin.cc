@@ -711,8 +711,15 @@ int Libc::Vfs_plugin::ioctl(Libc::File_descriptor *fd, int request, char *argp)
 	switch (request) {
 
 	case TIOCGWINSZ:
-		opcode = Opcode::IOCTL_OP_TIOCGWINSZ;
-		break;
+		{
+			if (!argp) {
+				errno = EINVAL;
+				return -1;
+			}
+
+			opcode = Opcode::IOCTL_OP_TIOCGWINSZ;
+			break;
+		}
 
 	case TIOCGETA:
 		{
@@ -811,7 +818,7 @@ int Libc::Vfs_plugin::ioctl(Libc::File_descriptor *fd, int request, char *argp)
 
 	case TIOCGWINSZ:
 		{
-			::winsize *winsize = (::winsize *)arg;
+			::winsize *winsize = (::winsize *)argp;
 			winsize->ws_row = out.tiocgwinsz.rows;
 			winsize->ws_col = out.tiocgwinsz.columns;
 			return 0;
