@@ -20,7 +20,7 @@ SHA(${QTSCRIPTCLASSIC}) := 6a4c4ada6f0064f6c5d7663602a37c99250ed6c7398b1775f95de
 DIR(${QTSCRIPTCLASSIC}) := src/lib/qt5/${QTSCRIPTCLASSIC}
 
 URL(symbols) := https://github.com/cproc/genode-symbols.git
-REV(symbols) := c8b59b3e9372b6ac713b5407bfd1affb840ccb2f
+REV(symbols) := f8a947501ce52fe8eb6893d26563278be2f42cc0
 DIR(symbols) := lib/symbols
 
 
