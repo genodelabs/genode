@@ -296,6 +296,8 @@ proc check_for_missing_depot_archives { } {
 	set local_user_archives {}
 	set foreign_archives {}
 
+	set _missing_depot_archives [lsort -unique $_missing_depot_archives]
+
 	foreach archive $_missing_depot_archives {
 
 		set user    [lindex $archive 0]
