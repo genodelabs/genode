@@ -27,6 +27,15 @@ struct Genode_cpy_test {
 		Genode::memcpy(dst, src, size); }
 };
 
+struct Genode_set_test {
+
+	void start()    { log("start Genode memset");    }
+	void finished() { log("finished Genode memset"); }
+
+	void copy(void *dst, const void *src, size_t size) {
+		Genode::memcpy(dst, src, size); }
+};
+
 struct Libc_cpy_test {
 
 	void start()    { log("start libc memcpy");    }
@@ -51,6 +60,7 @@ void Libc::Component::construct(Libc::Env &env)
 
 	memcpy_test<Bytewise_test>();
 	memcpy_test<Genode_cpy_test>();
+	memcpy_test<Genode_set_test>();
 	memcpy_test<Libc_cpy_test>();
 	memcpy_test<Libc_set_test>();
 
