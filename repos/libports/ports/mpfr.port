@@ -2,11 +2,13 @@ LICENSE   := GPLv3
 VERSION   := 3.0.0
 DOWNLOADS := mpfr.archive
 
-URL(mpfr) := http://www.mpfr.org/mpfr-$(VERSION)/mpfr-$(VERSION).tar.gz
-SHA(mpfr) := 71333528c0e7f0e86383a618151edc28e745a9fb5dd64e4893aa6e925601d540
+URL(mpfr) := https://gforge.inria.fr/frs/download.php/file/27104/mpfr-3.0.0.tar.xz
+SHA(mpfr) := 22de51fee8ccfae75eaea85938acf8c9d8e9415269d9abb7ced52ebf0a29b5d8
 SIG(mpfr) := ${URL(mpfr)}.asc
 KEY(mpfr) := GNU
 DIR(mpfr) := src/lib/mpfr
+
+TAR_OPT(mpfr) := --strip-components=1
 
 DIRS := include/mpfr
 DIR_CONTENT(include/mpfr) := src/lib/mpfr/mpfr.h
@@ -16,4 +18,3 @@ default: include/mpfr/mparam.h
 include/mpfr/mparam.h: _dirs
 	@$(MSG_INSTALL)$@
 	@cp src/lib/mpfr/mparam_h.in $@
-
