@@ -159,8 +159,8 @@ static unsigned long extract_msg_from_utcb(l4_msgtag_t     tag,
 	 */
 	for (unsigned i = 0; i < num_caps; i++) {
 		if (caps[i].valid) {
-			rcv_msg.insert(Native_capability(*cap_map()->insert_map(caps[i].badge,
-			                                                        caps[i].sel)));
+			rcv_msg.insert(Native_capability(cap_map()->insert_map(caps[i].badge,
+			                                                       caps[i].sel)));
 		} else {
 			rcv_msg.insert(Native_capability());
 		}
@@ -367,7 +367,7 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &,
 
 Ipc_server::Ipc_server()
 :
-	Native_capability(*(Cap_index*)Fiasco::l4_utcb_tcr()->user[Fiasco::UTCB_TCR_BADGE])
+	Native_capability((Cap_index*)Fiasco::l4_utcb_tcr()->user[Fiasco::UTCB_TCR_BADGE])
 {
 	Thread::myself()->native_thread().rcv_window.init();
 }

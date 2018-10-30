@@ -198,12 +198,12 @@ class Genode::Capability_space_tpl
 		Native_capability lookup(Rpc_obj_key rpc_obj_key)
 		{
 			Native_capability::Data *data = _lookup(rpc_obj_key);
-			return data ? Native_capability(*data) : Native_capability();
+			return data ? Native_capability(data) : Native_capability();
 		}
 
 		Native_capability import(Rpc_destination dst, Rpc_obj_key key)
 		{
-			return Native_capability(create_capability(dst, key));
+			return Native_capability(&create_capability(dst, key));
 		}
 };
 

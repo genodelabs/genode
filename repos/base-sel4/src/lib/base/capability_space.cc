@@ -97,9 +97,8 @@ Native_capability Capability_space::create_ep_cap(Thread &ep_thread)
 {
 	Cap_sel const ep_sel = Cap_sel(ep_thread.native_thread().ep_sel);
 
-	Native_capability::Data &data =
-		local_capability_space().create_capability(ep_sel, Rpc_obj_key());
-
+	Native_capability::Data *data =
+		&local_capability_space().create_capability(ep_sel, Rpc_obj_key());
 	return Native_capability(data);
 }
 
@@ -138,7 +137,7 @@ Native_capability Capability_space::lookup(Rpc_obj_key rpc_obj_key)
 {
 	Native_capability::Data *data = local_capability_space().lookup(rpc_obj_key);
 
-	return data ? Native_capability(*data) : Native_capability();
+	return data ? Native_capability(data) : Native_capability();
 }
 
 
@@ -162,9 +161,9 @@ void Capability_space::reset_sel(unsigned sel)
 
 Native_capability Capability_space::import(Ipc_cap_data ipc_cap_data)
 {
-	Native_capability::Data &data =
-		local_capability_space().create_capability(ipc_cap_data.sel,
-		                                           ipc_cap_data.rpc_obj_key);
+	Native_capability::Data *data =
+		&local_capability_space().create_capability(ipc_cap_data.sel,
+		                                            ipc_cap_data.rpc_obj_key);
 
 	return Native_capability(data);
 }

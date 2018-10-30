@@ -45,7 +45,7 @@ Main::Main(Env &env)
                     idx->kcap() | L4_ITEM_MAP);
 
 		Log_session_capability log_session_cap =
-			reinterpret_cap_cast<Log_session>(Native_capability(*idx));
+			reinterpret_cap_cast<Log_session>(Native_capability(idx));
 		Log_session_client log_session_client(log_session_cap);
 		try {
 			log_session_client.write("test message");

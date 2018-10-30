@@ -40,7 +40,7 @@ namespace Genode { namespace Capability_space {
 	{
 		Nova::Obj_crd const crd = (sel == INVALID_INDEX)
 		                        ? Nova::Obj_crd() : Nova::Obj_crd(sel, 0, rights);
-		return Native_capability(*(Native_capability::Data *)crd.value());
+		return Native_capability((Native_capability::Data *)crd.value());
 	}
 } }
 

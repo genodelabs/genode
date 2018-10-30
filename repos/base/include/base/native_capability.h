@@ -68,7 +68,7 @@ class Genode::Native_capability
 		 *
 		 * \noapi
 		 */
-		Native_capability(Data &data) : _data(&data) { _inc(); }
+		Native_capability(Data *data) : _data(data) { _inc(); }
 
 		/**
 		 * Destructor
@@ -78,7 +78,7 @@ class Genode::Native_capability
 		Data const *data() const { return _data; }
 
 		/**
-		 * Overloaded comparision operator
+		 * Overloaded comparison operator
 		 */
 		bool operator == (const Native_capability &o) const
 		{

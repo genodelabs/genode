@@ -151,7 +151,7 @@ void Ipc_pager::acknowledge_exception()
 
 Ipc_pager::Ipc_pager()
 :
-	Native_capability(*(Cap_index*)Fiasco::l4_utcb_tcr()->user[Fiasco::UTCB_TCR_BADGE]),
+	Native_capability((Cap_index*)Fiasco::l4_utcb_tcr()->user[Fiasco::UTCB_TCR_BADGE]),
 	_badge(0)
 { }
 

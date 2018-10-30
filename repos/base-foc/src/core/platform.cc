@@ -133,7 +133,7 @@ Platform::Sigma0::Sigma0(Cap_index* i)
 	 * We use the Pager_object here in a slightly different manner,
 	 * just to tunnel the pager cap to the Platform_thread::start method.
 	 */
-	cap(*i);
+	cap(i);
 }
 
 

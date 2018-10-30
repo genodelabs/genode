@@ -114,15 +114,15 @@ void Platform_pd::flush(addr_t, size_t size, Core_local_addr core_local)
 }
 
 
-static Core_cap_index & debug_cap()
+static Core_cap_index * debug_cap()
 {
 	unsigned long id = platform_specific()->cap_id_alloc()->alloc();
 	static Cap_index * idx = cap_map()->insert(id, DEBUG_CAP);
-	return *reinterpret_cast<Core_cap_index*>(idx);
+	return reinterpret_cast<Core_cap_index*>(idx);
 }
 
 Platform_pd::Platform_pd(Core_cap_index* i)
-: _task(Native_capability(*i), TASK_CAP)
+: _task(Native_capability(i), TASK_CAP)
 {
 	for (unsigned i = 0; i < THREAD_MAX; i++)
 		_threads[i] = (Platform_thread*) 0;

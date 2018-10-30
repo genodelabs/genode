@@ -77,7 +77,7 @@ void Cap_mapping::map(Fiasco::l4_cap_idx_t task)
 
 
 Cap_mapping::Cap_mapping(bool alloc, Fiasco::l4_cap_idx_t r)
-: local(alloc ? *_get_cap() : *(Native_capability::Data *)nullptr), remote(r) { }
+: local(alloc ? _get_cap() : (Native_capability::Data *)nullptr), remote(r) { }
 
 
 Cap_mapping::Cap_mapping(Native_capability cap, Fiasco::l4_cap_idx_t r)
@@ -131,7 +131,7 @@ Native_capability Rpc_cap_factory::alloc(Native_capability ep)
 		// XXX remove cast
 		idx->session((Pd_session_component *)this);
 		idx->pt(ref->pt());
-		cap = Native_capability(*idx);
+		cap = Native_capability(idx);
 	} catch (Cap_id_allocator::Out_of_ids) {
 		error("out of capability IDs");
 	}

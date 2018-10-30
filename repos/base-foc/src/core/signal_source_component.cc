@@ -70,7 +70,7 @@ Signal_source::Signal Signal_source_component::wait_for_signal()
 
 Signal_source_component::Signal_source_component(Rpc_entrypoint *ep)
 :
-	Signal_source_rpc_object(*cap_map()->insert(platform_specific()->cap_id_alloc()->alloc())),
+	Signal_source_rpc_object(cap_map()->insert(platform_specific()->cap_id_alloc()->alloc())),
 	_entrypoint(ep)
 {
 	using namespace Fiasco;

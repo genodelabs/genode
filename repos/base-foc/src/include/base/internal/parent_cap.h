@@ -44,7 +44,7 @@ namespace Genode {
 			i = cap_map()->insert(local_name, Fiasco::PARENT_CAP);
 		}
 
-		return reinterpret_cap_cast<Parent>(Native_capability(*i));
+		return reinterpret_cap_cast<Parent>(Native_capability(i));
 	}
 }
 

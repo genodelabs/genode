@@ -33,7 +33,7 @@ namespace Genode { namespace Capability_space {
 
 	static inline Native_capability import(Kernel::capid_t capid)
 	{
-		return Native_capability(*(Native_capability::Data *)(addr_t)capid);
+		return Native_capability((Native_capability::Data *)(addr_t)capid);
 	}
 } }
 
