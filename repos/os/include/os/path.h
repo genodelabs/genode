@@ -182,7 +182,8 @@ class Genode::Path_base
 			if (strlen(path) + orig_len + 1 >= _path_max_len)
 				throw Path_too_long();
 
-			strncpy(_path + orig_len, path, _path_max_len - orig_len);
+			if (_path)
+				strncpy(_path + orig_len, path, _path_max_len - orig_len);
 		}
 
 		void _append_slash_if_needed()
@@ -270,7 +271,8 @@ class Genode::Path_base
 		void strip_last_element()
 		{
 			char *p = last_element(_path);
-			p[p == _path ? 1 : 0] = 0;
+			if (p)
+				p[p == _path ? 1 : 0] = 0;
 		}
 
 		bool equals(Path_base const &ref) const { return strcmp(ref._path, _path) == 0; }
@@ -406,6 +408,8 @@ namespace Genode {
 		PATH path;
 
 		char tmp[path.capacity()];
+		memset(tmp, 0, sizeof(tmp));
+
 		size_t len = strlen(label);
 
 		size_t i = 0;
@@ -414,7 +418,7 @@ namespace Genode {
 				path.append("/");
 
 				strncpy(tmp, label+i, (j-i)+1);
-				/* rewrite any directory seperators */
+				/* rewrite any directory separators */
 				for (size_t k = 0; k < path.capacity(); ++k)
 					if (tmp[k] == '/')
 						tmp[k] = '_';
@@ -426,7 +430,7 @@ namespace Genode {
 		}
 		path.append("/");
 		strncpy(tmp, label+i, path.capacity());
-		/* rewrite any directory seperators */
+		/* rewrite any directory separators */
 		for (size_t k = 0; k < path.capacity(); ++k)
 			if (tmp[k] == '/')
 				tmp[k] = '_';
