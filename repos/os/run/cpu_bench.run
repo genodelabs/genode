@@ -1,0 +1,56 @@
+if { [get_cmd_switch --autopilot] } {
+	if {[have_include "power_on/qemu"]} {
+		puts "\nRun script does not support Qemu.\n"
+		exit 0
+	}
+}
+
+build "core init test/cpu_bench"
+
+create_boot_directory
+
+install_config {
+<config prio_levels="2">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+
+	<default-route> <any-service> <parent/> <any-child/> </any-service> </default-route>
+	<default caps="200"/>
+
+	<start name="timer" caps="64" priority="0">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+	<start name="test-cpu" priority="-1">
+		<resource name="RAM" quantum="1M"/>
+	</start>
+</config>
+}
+
+build_boot_image {
+	core init test-cpu ld.lib.so timer
+}
+
+append qemu_args " -nographic  "
+
+proc run_test {name serial_id} {
+	run_genode_until "start $name.*\n"    20  $serial_id
+	set t1  [clock milliseconds]
+	run_genode_until "finished $name.*\n" 200 $serial_id
+	set t2  [clock milliseconds]
+	return [expr {$t2 - $t1}]
+}
+
+run_genode_until "Cpu testsuite started.*\n" 60
+set serial_id       [output_spawn_id]
+set bogomips        [run_test "bogomips" $serial_id]
+puts "bogomips: 2G Bogus instructions in $bogomips milliseconds ([expr {2000000.0 / $bogomips}] BogoMIPS)"
+exit 0
