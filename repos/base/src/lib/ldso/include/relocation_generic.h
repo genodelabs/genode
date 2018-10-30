@@ -170,7 +170,7 @@ class Linker::Reloc_jmpslot_generic
 			}
 		}
 
-		Elf::Addr target_addr() const { return *_addr; }
+		Elf::Addr target_addr() const { return _addr ? *_addr : 0; }
 };
 
 

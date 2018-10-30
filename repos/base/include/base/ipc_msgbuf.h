@@ -198,7 +198,8 @@ class Genode::Msgbuf_base : Noncopyable
 			if (_data_size + num_bytes > _capacity) return;
 
 			/* copy buffer */
-			memcpy(_data_last(), src_addr, num_bytes);
+			if (src_addr && num_bytes)
+				memcpy(_data_last(), src_addr, num_bytes);
 
 			/* increment write pointer to next dword-aligned value */
 			_data_size += align_natural(num_bytes);
