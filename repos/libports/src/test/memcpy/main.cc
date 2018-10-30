@@ -32,8 +32,8 @@ struct Genode_set_test {
 	void start()    { log("start Genode memset");    }
 	void finished() { log("finished Genode memset"); }
 
-	void copy(void *dst, const void *src, size_t size) {
-		Genode::memcpy(dst, src, size); }
+	void copy(void *dst, const void *, size_t size) {
+		Genode::memset(dst, 0, size); }
 };
 
 struct Libc_cpy_test {
