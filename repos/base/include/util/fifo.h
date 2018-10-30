@@ -94,7 +94,7 @@ class Genode::Fifo
 
 			/* if specified element is the first of the queue */
 			if (qe == _head) {
-				_head = qe->Element::_next;
+				_head = qe->Fifo::Element::_next;
 				if (!_head) _tail  = 0;
 			}
 			else {
@@ -108,12 +108,12 @@ class Genode::Fifo
 				if (!e->_next) return;
 
 				/* e->_next is the element to remove, skip it in list */
-				e->Element::_next = e->Element::_next->Element::_next;
+				e->Fifo::Element::_next = e->Fifo::Element::_next->Fifo::Element::_next;
 				if (!e->Element::_next) _tail = e;
 			}
 
-			qe->Element::_next = 0;
-			qe->Element::_enqueued = 0;
+			qe->Fifo::Element::_next = 0;
+			qe->Fifo::Element::_enqueued = 0;
 		}
 
 		/**
