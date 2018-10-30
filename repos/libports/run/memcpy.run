@@ -45,7 +45,7 @@ append qemu_args " -nographic  "
 proc run_test {name serial_id} {
 	run_genode_until "start $name.*\n"    20  $serial_id
 	set t1  [clock milliseconds]
-	run_genode_until "finished $name.*\n" 180 $serial_id
+	run_genode_until "finished $name.*\n" 300 $serial_id
 	set t2  [clock milliseconds]
 	return [expr {$t2 - $t1}]
 }
@@ -54,12 +54,14 @@ run_genode_until "Memcpy testsuite started.*\n" 60
 set serial_id       [output_spawn_id]
 set byte_dur        [run_test "bytewise memcpy" $serial_id]
 set genode_dur      [run_test "Genode memcpy"   $serial_id]
+set genode_set_dur  [run_test "Genode memset"   $serial_id]
 set libc_cpy_dur    [run_test "libc memcpy"     $serial_id]
 set libc_set_dur    [run_test "libc memset"     $serial_id]
 set uncached_wr_dur [run_test "Genode memcpy"   $serial_id]
 set uncached_rd_dur [run_test "Genode memcpy"   $serial_id]
 puts "bytewise:                copied 8 GB in $byte_dur milliseconds ([expr {8192000 / $byte_dur}] MiB/sec)"
 puts "memcpy:                  copied 8 GB in $genode_dur milliseconds ([expr {8192000 / $genode_dur}] MiB/sec)"
+puts "memset:                  copied 8 GB in $genode_set_dur milliseconds ([expr {8192000 / $genode_set_dur}] MiB/sec)"
 puts "libc memcpy:             copied 8 GB in $libc_cpy_dur milliseconds ([expr {8192000 / $libc_cpy_dur}] MiB/sec)"
 puts "libc memset:             copied 8 GB in $libc_set_dur milliseconds ([expr {8192000 / $libc_set_dur}] MiB/sec)"
 puts "memcpy (uncached write): copied 8 GB in $uncached_wr_dur milliseconds ([expr {8192000 / $uncached_wr_dur}] MiB/sec)"
