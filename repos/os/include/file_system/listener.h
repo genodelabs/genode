@@ -22,7 +22,7 @@
 
 namespace File_system {
 
-	typedef File_system::Session_rpc_object::Tx::Sink Sink;
+	typedef ::File_system::Session_rpc_object::Tx::Sink Sink;
 
 	class Listener : public Genode::List<Listener>::Element
 	{

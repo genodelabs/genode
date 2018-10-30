@@ -86,7 +86,7 @@ namespace Vfs_server {
 	 */
 }
 
-class Vfs_server::Node : public  File_system::Node_base,
+class Vfs_server::Node : public  ::File_system::Node_base,
                          private Node_space::Element
 {
 	public:
@@ -554,7 +554,7 @@ struct Vfs_server::Directory : Io_node
 	size_t read(char *dst, size_t len, seek_off_t seek_offset) override
 	{
 		Directory_service::Dirent vfs_dirent;
-		size_t blocksize = sizeof(File_system::Directory_entry);
+		size_t blocksize = sizeof(::File_system::Directory_entry);
 
 		unsigned index = (seek_offset / blocksize);
 
@@ -567,18 +567,18 @@ struct Vfs_server::Directory : Io_node
 			    (vfs_dirent.type == Vfs::Directory_service::DIRENT_TYPE_END))
 				return len - remains;
 
-			File_system::Directory_entry *fs_dirent = (Directory_entry *)dst;
+			::File_system::Directory_entry *fs_dirent = (Directory_entry *)dst;
 			fs_dirent->inode = vfs_dirent.fileno;
 			switch (vfs_dirent.type) {
 			case Vfs::Directory_service::DIRENT_TYPE_DIRECTORY:
-				fs_dirent->type = File_system::Directory_entry::TYPE_DIRECTORY;
+				fs_dirent->type = ::File_system::Directory_entry::TYPE_DIRECTORY;
 				break;
 			case Vfs::Directory_service::DIRENT_TYPE_SYMLINK:
-				fs_dirent->type = File_system::Directory_entry::TYPE_SYMLINK;
+				fs_dirent->type = ::File_system::Directory_entry::TYPE_SYMLINK;
 				break;
 			case Vfs::Directory_service::DIRENT_TYPE_FILE:
 			default:
-				fs_dirent->type = File_system::Directory_entry::TYPE_FILE;
+				fs_dirent->type = ::File_system::Directory_entry::TYPE_FILE;
 				break;
 			}
 			strncpy(fs_dirent->name, vfs_dirent.name, MAX_NAME_LEN);

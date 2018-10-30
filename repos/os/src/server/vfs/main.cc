@@ -54,7 +54,7 @@ namespace Vfs_server {
 };
 
 
-class Vfs_server::Session_component : public File_system::Session_rpc_object,
+class Vfs_server::Session_component : public ::File_system::Session_rpc_object,
                                       public Session_io_handler
 {
 	private:
@@ -488,7 +488,7 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 		 ** File_system interface **
 		 ***************************/
 
-		Dir_handle dir(File_system::Path const &path, bool create) override
+		Dir_handle dir(::File_system::Path const &path, bool create) override
 		{
 			if (create && (!_writable))
 				throw Permission_denied();
@@ -546,7 +546,7 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 			});
 		}
 
-		Node_handle node(File_system::Path const &path) override
+		Node_handle node(::File_system::Path const &path) override
 		{
 			char const *path_str = path.string();
 
@@ -566,7 +566,7 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 			return Node_handle { node->id().value };
 		}
 
-		Watch_handle watch(File_system::Path const &path) override
+		Watch_handle watch(::File_system::Path const &path) override
 		{
 			char const *path_str = path.string();
 
@@ -602,12 +602,12 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 		{
 			try { _apply_node(handle, [&] (Node &node) {
 				_close(node);
-			}); } catch (File_system::Invalid_handle) { }
+			}); } catch (::File_system::Invalid_handle) { }
 		}
 
 		Status status(Node_handle node_handle) override
 		{
-			File_system::Status      fs_stat;
+			::File_system::Status fs_stat;
 
 			_apply_node(node_handle, [&] (Node &node) {
 				Directory_service::Stat vfs_stat;
@@ -620,19 +620,19 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 				switch (vfs_stat.mode & (
 					Directory_service::STAT_MODE_DIRECTORY |
 					Directory_service::STAT_MODE_SYMLINK |
-					File_system::Status::MODE_FILE)) {
+					::File_system::Status::MODE_FILE)) {
 
 				case Directory_service::STAT_MODE_DIRECTORY:
-					fs_stat.mode = File_system::Status::MODE_DIRECTORY;
+					fs_stat.mode = ::File_system::Status::MODE_DIRECTORY;
 					fs_stat.size = _vfs.num_dirent(node.path()) * sizeof(Directory_entry);
 					return;
 
 				case Directory_service::STAT_MODE_SYMLINK:
-					fs_stat.mode = File_system::Status::MODE_SYMLINK;
+					fs_stat.mode = ::File_system::Status::MODE_SYMLINK;
 					break;
 
 				default: /* Directory_service::STAT_MODE_FILE */
-					fs_stat.mode = File_system::Status::MODE_FILE;
+					fs_stat.mode = ::File_system::Status::MODE_FILE;
 					break;
 				}
 
