@@ -158,7 +158,7 @@ class Net::Ethernet_frame_sized : public Ethernet_frame
 		Ethernet_frame_sized(Mac_address dst_in, Mac_address src_in,
 		                     Type type_in)
 		:
-			Ethernet_frame(sizeof(Ethernet_frame))
+			Ethernet_frame()
 		{
 			dst(dst_in);
 			src(src_in);
