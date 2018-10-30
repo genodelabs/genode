@@ -242,7 +242,7 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 		{
 			if (_irq_session) {
 				_env.ep().rpc_ep().dissolve(_irq_session);
-				_irq_session->~Irq_session();
+				_irq_session->~Irq_session_component();
 			}
 
 			for (unsigned i = 0; i < Device::NUM_RESOURCES; i++) {
