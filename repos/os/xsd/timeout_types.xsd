@@ -3,7 +3,7 @@
 
 	<xs:simpleType name="Seconds">
 		<xs:restriction base="xs:integer">
-			<xs:minInclusive value="1"/>
+			<xs:minInclusive value="0"/>
 			<xs:maxInclusive value="3600"/>
 		</xs:restriction>
 	</xs:simpleType><!-- Seconds -->
