@@ -1,0 +1,94 @@
+<?xml version="1.0"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+	<xs:include schemaLocation="base_types.xsd"/>
+	<xs:include schemaLocation="timeout_types.xsd"/>
+
+	<xs:simpleType name="Architecture">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="x86_64" />
+			<xs:enumeration value="x86_32" />
+			<xs:enumeration value="arm_v7a" />
+		</xs:restriction>
+	</xs:simpleType><!-- Architecture -->
+
+	<xs:simpleType name="Child_name">
+		<xs:restriction base="xs:string">
+			<xs:minLength value="1"/>
+			<xs:maxLength value="100"/>
+		</xs:restriction>
+	</xs:simpleType><!-- Child_name -->
+
+	<xs:simpleType name="Archive_path">
+		<xs:restriction base="xs:string">
+			<xs:minLength value="1"/>
+			<xs:maxLength value="100"/>
+		</xs:restriction>
+	</xs:simpleType><!-- Archive_path -->
+
+	<xs:complexType name="Service">
+		<xs:choice minOccurs="1" maxOccurs="3">
+			<xs:element name="parent"/>
+			<xs:element name="any-child"/>
+			<xs:element name="child">
+				<xs:complexType>
+					<xs:attribute name="name"  type="xs:string" />
+					<xs:attribute name="label" type="Session_label" />
+				</xs:complexType>
+			</xs:element>
+		</xs:choice>
+		<xs:attribute name="name"           type="xs:string" />
+		<xs:attribute name="label"          type="Session_label" />
+		<xs:attribute name="label_prefix"   type="Session_label" />
+		<xs:attribute name="label_suffix"   type="Session_label" />
+		<xs:attribute name="label_last"     type="Session_label" />
+		<xs:attribute name="unscoped_label" type="Session_label" />
+	</xs:complexType> <!-- Service -->
+
+	<xs:complexType name="Route">
+		<xs:choice minOccurs="0" maxOccurs="unbounded">
+			<xs:element name="service"     type="Service"/>
+			<xs:element name="any-service" type="Service"/>
+		</xs:choice>
+	</xs:complexType> <!-- Route -->
+
+	<xs:element name="config">
+		<xs:complexType>
+			<xs:choice minOccurs="0" maxOccurs="unbounded">
+
+				<xs:element name="static">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:any minOccurs="0" maxOccurs="unbounded" processContents="skip" />
+						</xs:sequence>
+						<xs:anyAttribute processContents="skip"/>
+					</xs:complexType>
+				</xs:element> <!-- static -->
+
+				<xs:element name="common_routes" type="Route"/>
+
+				<xs:element name="previous-results">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:any minOccurs="0" maxOccurs="unbounded" processContents="skip" />
+						</xs:sequence>
+						<xs:attribute name="time_sec" type="Seconds" />
+					</xs:complexType>
+				</xs:element> <!-- previous-results -->
+
+				<xs:element name="start">
+					<xs:complexType>
+						<xs:attribute name="name" type="Child_name" />
+						<xs:attribute name="pkg"  type="Archive_path" />
+						<xs:attribute name="skip" type="Boolean" />
+					</xs:complexType>
+				</xs:element> <!-- start -->
+
+			</xs:choice>
+			<xs:attribute name="arch"                  type="Architecture" />
+			<xs:attribute name="children_label_prefix" type="Session_label" />
+			<xs:attribute name="ld_verbose"            type="Boolean" />
+		</xs:complexType>
+	</xs:element><!-- config -->
+
+</xs:schema>
