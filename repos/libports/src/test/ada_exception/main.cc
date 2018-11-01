@@ -15,6 +15,7 @@
 
 #include <base/log.h>
 #include <base/component.h>
+#include <ada/exception.h>
 
 extern "C" void except__raise_task();
 
@@ -22,7 +23,10 @@ void Component::construct(Genode::Env &env)
 {
 	Genode::log("Ada exception test");
 
-	except__raise_task();
-
-	env.parent().exit(0);
+	try { except__raise_task(); }
+	catch (Ada::Exception::Program_Error) {
+		Genode::log("Caught Ada::Exception::Program_Error");
+		env.parent().exit(0);
+	}
+	env.parent().exit(-1);
 }
