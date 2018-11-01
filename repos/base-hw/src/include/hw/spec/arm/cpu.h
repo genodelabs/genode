@@ -249,6 +249,9 @@ struct Hw::Arm_cpu
 	/* Physical Count register */
 	ARM_CP15_REGISTER_64BIT(Cntpct, c14, 0);
 
+	/* Diagnostic register */
+	ARM_CP15_REGISTER_32BIT(Diag, c15, c0, 0, 1);
+
 	/******************************
 	 ** Program status registers **
 	 ******************************/

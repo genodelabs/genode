@@ -109,13 +109,18 @@ unsigned Bootstrap::Platform::enable_mmu()
 	static Cpu_counter   data_cache_invalidated;
 	static Cpu_counter   data_cache_enabled;
 	static Cpu_counter   smp_coherency_enabled;
+	static unsigned long diag_reg = 0;
 
 	bool primary = primary_cpu;
-	if (primary) primary_cpu = false;
+	if (primary) {
+		primary_cpu = false;
+		diag_reg = Cpu::Diag::read();
+	}
 
 	Cpu::Sctlr::init();
 	Cpu::Cpsr::init();
 	Actlr::disable_smp();
+	Cpu::Diag::write(diag_reg);
 
 	/* locally initialize interrupt controller */
 	::Board::Pic pic { };
