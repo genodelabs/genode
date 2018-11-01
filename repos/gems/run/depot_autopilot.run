@@ -96,6 +96,11 @@ set avail_test_pkgs {
 	test-xml_node
 }
 
+if { $single_test_pkg != "" && [lsearch -exact $avail_test_pkgs $single_test_pkg] == -1} {
+	puts stderr "Error: single_test_pkg \"$single_test_pkg\" not available"
+	exit 1
+}
+
 #
 # Whether the platform supports non-executable dataspaces
 #
@@ -501,7 +506,7 @@ proc prepare_to_run_genode { } {
 
 #
 # Compose the test_pkgs list from a list of available test packages by
-# applying the skip_test(...) and the single_test_pkg variables.
+# applying the single_test_pkg variable.
 #
 set test_pkgs ""
 foreach test_pkg $avail_test_pkgs {
