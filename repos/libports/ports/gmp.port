@@ -11,7 +11,7 @@ DIR(gmp) := src/lib/gmp
 DIRS := include
 DIR_CONTENT(include) := ${DIR(gmp)}/gmp-impl.h
 
-DIRS += $(addprefix include/, x86_32 x86_64 arm)
-DIR_CONTENT(include/x86_32) := ${DIR(gmp)}/mpn/x86/pentium/gmp-mparam.h
-DIR_CONTENT(include/x86_64) := ${DIR(gmp)}/mpn/x86_64//gmp-mparam.h
-DIR_CONTENT(include/arm)    := ${DIR(gmp)}/mpn/arm/gmp-mparam.h
+DIRS += $(addprefix include/spec/, x86_32 x86_64 arm)
+DIR_CONTENT(include/spec/x86_32) := ${DIR(gmp)}/mpn/x86/pentium/gmp-mparam.h
+DIR_CONTENT(include/spec/x86_64) := ${DIR(gmp)}/mpn/x86_64/gmp-mparam.h
+DIR_CONTENT(include/spec/arm)    := ${DIR(gmp)}/mpn/arm/gmp-mparam.h
