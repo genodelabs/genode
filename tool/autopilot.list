@@ -15,7 +15,6 @@ fs_query
 gdb_monitor
 init_smp
 input_filter
-ldso
 libc_fatfs
 log_core
 lwip
