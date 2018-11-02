@@ -4,6 +4,7 @@ cpu_quota
 cpu_sampler
 cpu_sampler_noux
 demo
+depot_autopilot
 depot_download
 depot_query
 extract
