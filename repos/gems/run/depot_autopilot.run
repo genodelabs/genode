@@ -447,8 +447,15 @@ proc prepare_to_run_genode { } {
 
 			</config>
 			<route>
-				<service name="ROM" label="blueprint"> <child name="report_rom"/> </service>
-				<any-service> <parent/> <any-child/> </any-service>
+				<service name="PD"     unscoped_label="depot_autopilot"> <parent/>                  </service>
+				<service name="CPU"    unscoped_label="depot_autopilot"> <parent/>                  </service>
+				<service name="LOG"    unscoped_label="depot_autopilot"> <parent/>                  </service>
+				<service name="ROM"    unscoped_label="depot_autopilot"> <parent/>                  </service>
+				<service name="ROM"    unscoped_label="ld.lib.so">       <parent/>                  </service>
+				<service name="ROM"    label="blueprint">                <child name="report_rom"/> </service>
+				<service name="Report" label="query">                    <child name="report_rom"/> </service>
+				<service name="Report" label="init.config">              <child name="report_rom"/> </service>
+				<service name="Timer"  label="">                         <child name="timer"/>      </service>
 			</route>
 		</start>
 
