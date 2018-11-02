@@ -405,9 +405,10 @@ void Child::log_session_write(Log_event::Line const &log_line)
 		{ "[33m", 4 },
 		{ "[34m", 4 },
 	};
-	static Replace_ampersend_sequence replace_amp_seq[2]
+	static Replace_ampersend_sequence replace_amp_seq[3]
 	{
 		{ "lt;", 3, '<' },
+		{ "amp;", 4, '&' },
 		{ "#42;", 4, '*' }
 	};
 
