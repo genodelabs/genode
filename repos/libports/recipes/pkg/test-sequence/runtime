@@ -1,0 +1,121 @@
+<runtime ram="32M" caps="1000" binary="init">
+
+	<events>
+		<timeout meaning="failed" sec="30" />
+		<log meaning="succeeded">
+			[init -> sequence -> test_1] foo="bar1"*
+			[init -> sequence -> test_1] bar1="(null)"*
+			[init -> sequence -> test_1] baz="(null)"*
+			[init -> sequence -> test_2] foo="bar2"*
+			[init -> sequence -> test_2] bar2="(null)"*
+			[init -> sequence -> test_2] baz="(null)"*
+			[init -> sequence -> test_3] foo="bar3"*
+			[init -> sequence -> test_3] bar3="(null)"*
+			[init -> sequence -> test_3] baz="(null)"*
+			[init] child "sequence" exited with exit value 0
+		</log>
+		<log meaning="failed">Error: </log>
+	</events>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="libc.lib.so"/>
+		<rom label="libm.lib.so"/>
+		<rom label="posix.lib.so"/>
+		<rom label="vfs.lib.so"/>
+		<rom label="vfs"/>
+		<rom label="sequence"/>
+		<rom label="test-libc_getenv"/>
+	</content>
+
+	<config>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="PD"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="LOG"/>
+		</parent-provides>
+		<default-route> <any-service> <parent/> </any-service> </default-route>
+		<start name="log_1" caps="64">
+			<binary name="vfs"/>
+			<resource name="RAM" quantum="4M"/>
+			<provides> <service name="File_system"/> </provides>
+			<config>
+				<vfs> <log/> </vfs>
+				<default-policy writeable="yes"/>
+			</config>
+		</start>
+		<start name="log_2" caps="64">
+			<binary name="vfs"/>
+			<resource name="RAM" quantum="4M"/>
+			<provides> <service name="File_system"/> </provides>
+			<config>
+				<vfs> <log/> </vfs>
+				<default-policy writeable="yes"/>
+			</config>
+		</start>
+		<start name="log_3" caps="64">
+			<binary name="vfs"/>
+			<resource name="RAM" quantum="4M"/>
+			<provides> <service name="File_system"/> </provides>
+			<config>
+				<vfs> <log/> </vfs>
+				<default-policy writeable="yes"/>
+			</config>
+		</start>
+		<start name="sequence" caps="200">
+			<resource name="RAM" quantum="16M"/>
+			<route>
+				<service name="File_system" label_prefix="test_1">
+					<child name="log_1"/> </service>
+				<service name="File_system" label_prefix="test_2">
+					<child name="log_2"/> </service>
+				<service name="File_system" label_prefix="test_3">
+					<child name="log_3"/> </service>
+				<any-service> <parent/> </any-service>
+			</route>
+			<config>
+				<start name="test_1">
+					<binary name="test-libc_getenv"/>
+					<config>
+						<vfs> <dir name="dev"> <log/> </dir> </vfs>
+						<libc stdout="/dev/log"/>
+						<arg value="test-libc_getenv"/>
+						<arg value="foo"/>
+						<arg value="bar1"/>
+						<arg value="baz"/>
+						<env key="foo" value="bar1"/>
+						<env key="bar" value="foo"/>
+					</config>
+				</start>
+				<start name="test_2">
+					<binary name="test-libc_getenv"/>
+					<config>
+						<vfs> <dir name="dev"> <log/> </dir> </vfs>
+						<libc stdout="/dev/log"/>
+						<arg value="test-libc_getenv"/>
+						<arg value="foo"/>
+						<arg value="bar2"/>
+						<arg value="baz"/>
+						<env key="foo" value="bar2"/>
+						<env key="bar" value="foo"/>
+					</config>
+				</start>
+				<start name="test_3">
+					<binary name="test-libc_getenv"/>
+					<config>
+						<vfs> <dir name="dev"> <log/> </dir> </vfs>
+						<libc stdout="/dev/log"/>
+						<arg value="test-libc_getenv"/>
+						<arg value="foo"/>
+						<arg value="bar3"/>
+						<arg value="baz"/>
+						<env key="foo" value="bar3"/>
+						<env key="bar" value="foo"/>
+					</config>
+				</start>
+			</config>
+		</start>
+	</config>
+</runtime>
