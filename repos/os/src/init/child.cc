@@ -595,7 +595,7 @@ Init::Child::Route Init::Child::resolve_session_request(Service::Name const &ser
 		}
 	} catch (Xml_node::Nonexistent_sub_node) { }
 
-	warning(name(), ": no route to service \"", service_name, "\"");
+	warning(name(), ": no route to service \"", service_name, "\" (label=\"", label, "\")");
 	throw Service_denied();
 }
 
