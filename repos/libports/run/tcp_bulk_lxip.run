@@ -1,2 +1,0 @@
-source ${genode_dir}/repos/dde_linux/run/vfs_lxip.inc
-source ${genode_dir}/repos/libports/run/tcp_bulk.inc

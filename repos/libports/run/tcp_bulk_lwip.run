@@ -1,2 +1,0 @@
-source ${genode_dir}/repos/libports/run/vfs_lwip.inc
-source ${genode_dir}/repos/libports/run/tcp_bulk.inc

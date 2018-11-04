@@ -90,6 +90,8 @@ set avail_test_pkgs {
 	test-slab
 	test-stdcxx
 	test-synced_interface
+	test-tcp_bulk_lwip
+	test-tcp_bulk_lxip
 	test-terminal_crosslink
 	test-timed_semaphore
 	test-timer
@@ -132,6 +134,8 @@ set skip_test_pkg(test-rtc)             [expr [have_spec linux] || ![have_spec x
 set skip_test_pkg(test-rm_fault)        [expr [have_spec linux] || ![non_executable_supported]]
 set skip_test_pkg(test-rm_fault_no_nox) [expr [have_spec linux] || !$skip_test_pkg(test-rm_fault)]
 set skip_test_pkg(test-lx_block)        [expr ![have_spec linux]]
+set skip_test_pkg(test-tcp_bulk_lwip)   [expr ![have_spec x86]]
+set skip_test_pkg(test-tcp_bulk_lxip)   [expr ![have_spec x86]]
 
 
 ##############################################################

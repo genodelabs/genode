@@ -1,0 +1,8 @@
+_/src/init
+_/src/test-tcp
+_/src/nic_bridge
+_/src/nic_loopback
+_/src/posix
+_/src/libc
+_/src/vfs
+_/src/vfs_lwip
