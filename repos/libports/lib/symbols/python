@@ -1,0 +1,1122 @@
+PyAST_Check T
+PyAST_Compile T
+PyAST_FromNode T
+PyAST_mod2obj T
+PyAST_obj2mod T
+PyArena_AddPyObject T
+PyArena_Free T
+PyArena_Malloc T
+PyArena_New T
+PyArg_Parse T
+PyArg_ParseTuple T
+PyArg_ParseTupleAndKeywords T
+PyArg_UnpackTuple T
+PyArg_VaParse T
+PyArg_VaParseTupleAndKeywords T
+PyBaseObject_Type D 392
+PyBaseString_Type D 392
+PyBool_FromLong T
+PyBool_Type D 392
+PyBuffer_FillContiguousStrides T
+PyBuffer_FillInfo T
+PyBuffer_FromContiguous T
+PyBuffer_FromMemory T
+PyBuffer_FromObject T
+PyBuffer_FromReadWriteMemory T
+PyBuffer_FromReadWriteObject T
+PyBuffer_GetPointer T
+PyBuffer_IsContiguous T
+PyBuffer_New T
+PyBuffer_Release T
+PyBuffer_ToContiguous T
+PyBuffer_Type D 392
+PyByteArrayIter_Type D 392
+PyByteArray_AsString T
+PyByteArray_Concat T
+PyByteArray_Fini T
+PyByteArray_FromObject T
+PyByteArray_FromStringAndSize T
+PyByteArray_Init T
+PyByteArray_Resize T
+PyByteArray_Size T
+PyByteArray_Type D 392
+PyCFunction_Call T
+PyCFunction_ClearFreeList T
+PyCFunction_Fini T
+PyCFunction_GetFlags T
+PyCFunction_GetFunction T
+PyCFunction_GetSelf T
+PyCFunction_New T
+PyCFunction_NewEx T
+PyCFunction_Type D 392
+PyCObject_AsVoidPtr T
+PyCObject_FromVoidPtr T
+PyCObject_FromVoidPtrAndDesc T
+PyCObject_GetDesc T
+PyCObject_Import T
+PyCObject_SetVoidPtr T
+PyCObject_Type D 392
+PyCallIter_New T
+PyCallIter_Type D 392
+PyCallable_Check T
+PyCell_Get T
+PyCell_New T
+PyCell_Set T
+PyCell_Type D 392
+PyClassMethod_New T
+PyClassMethod_Type D 392
+PyClass_IsSubclass T
+PyClass_New T
+PyClass_Type D 392
+PyCode_Addr2Line T
+PyCode_CheckLineNumber T
+PyCode_New T
+PyCode_Optimize T
+PyCode_Type D 392
+PyCodec_BackslashReplaceErrors T
+PyCodec_Decode T
+PyCodec_Decoder T
+PyCodec_Encode T
+PyCodec_Encoder T
+PyCodec_IgnoreErrors T
+PyCodec_IncrementalDecoder T
+PyCodec_IncrementalEncoder T
+PyCodec_LookupError T
+PyCodec_Register T
+PyCodec_RegisterError T
+PyCodec_ReplaceErrors T
+PyCodec_StreamReader T
+PyCodec_StreamWriter T
+PyCodec_StrictErrors T
+PyCodec_XMLCharRefReplaceErrors T
+PyComplex_AsCComplex T
+PyComplex_FromCComplex T
+PyComplex_FromDoubles T
+PyComplex_ImagAsDouble T
+PyComplex_RealAsDouble T
+PyComplex_Type D 392
+PyDescr_NewClassMethod T
+PyDescr_NewGetSet T
+PyDescr_NewMember T
+PyDescr_NewMethod T
+PyDescr_NewWrapper T
+PyDictIterItem_Type D 392
+PyDictIterKey_Type D 392
+PyDictIterValue_Type D 392
+PyDictProxy_New T
+PyDictProxy_Type D 392
+PyDict_Clear T
+PyDict_Contains T
+PyDict_Copy T
+PyDict_DelItem T
+PyDict_DelItemString T
+PyDict_Fini T
+PyDict_GetItem T
+PyDict_GetItemString T
+PyDict_Items T
+PyDict_Keys T
+PyDict_Merge T
+PyDict_MergeFromSeq2 T
+PyDict_New T
+PyDict_Next T
+PyDict_SetItem T
+PyDict_SetItemString T
+PyDict_Size T
+PyDict_Type D 392
+PyDict_Update T
+PyDict_Values T
+PyEllipsis_Type D 392
+PyEnum_Type D 392
+PyErr_BadArgument T
+PyErr_BadInternalCall T
+PyErr_CheckSignals T
+PyErr_Clear T
+PyErr_Display T
+PyErr_ExceptionMatches T
+PyErr_Fetch T
+PyErr_Format T
+PyErr_GivenExceptionMatches T
+PyErr_NewException T
+PyErr_NoMemory T
+PyErr_NormalizeException T
+PyErr_Occurred T
+PyErr_Print T
+PyErr_PrintEx T
+PyErr_ProgramText T
+PyErr_Restore T
+PyErr_SetFromErrno T
+PyErr_SetFromErrnoWithFilename T
+PyErr_SetFromErrnoWithFilenameObject T
+PyErr_SetInterrupt T
+PyErr_SetNone T
+PyErr_SetObject T
+PyErr_SetString T
+PyErr_SyntaxLocation T
+PyErr_Warn T
+PyErr_WarnEx T
+PyErr_WarnExplicit T
+PyErr_WriteUnraisable T
+PyEval_CallFunction T
+PyEval_CallMethod T
+PyEval_CallObject T
+PyEval_CallObjectWithKeywords T
+PyEval_EvalCode T
+PyEval_EvalCodeEx T
+PyEval_EvalFrame T
+PyEval_EvalFrameEx T
+PyEval_GetBuiltins T
+PyEval_GetCallStats T
+PyEval_GetFrame T
+PyEval_GetFuncDesc T
+PyEval_GetFuncName T
+PyEval_GetGlobals T
+PyEval_GetLocals T
+PyEval_GetRestricted T
+PyEval_MergeCompilerFlags T
+PyEval_RestoreThread T
+PyEval_SaveThread T
+PyEval_SetProfile T
+PyEval_SetTrace T
+PyExc_ArithmeticError D 8
+PyExc_AssertionError D 8
+PyExc_AttributeError D 8
+PyExc_BaseException D 8
+PyExc_BufferError D 8
+PyExc_BytesWarning D 8
+PyExc_DeprecationWarning D 8
+PyExc_EOFError D 8
+PyExc_EnvironmentError D 8
+PyExc_Exception D 8
+PyExc_FloatingPointError D 8
+PyExc_FutureWarning D 8
+PyExc_GeneratorExit D 8
+PyExc_IOError D 8
+PyExc_ImportError D 8
+PyExc_ImportWarning D 8
+PyExc_IndentationError D 8
+PyExc_IndexError D 8
+PyExc_KeyError D 8
+PyExc_KeyboardInterrupt D 8
+PyExc_LookupError D 8
+PyExc_MemoryError D 8
+PyExc_MemoryErrorInst B 8
+PyExc_NameError D 8
+PyExc_NotImplementedError D 8
+PyExc_OSError D 8
+PyExc_OverflowError D 8
+PyExc_PendingDeprecationWarning D 8
+PyExc_RecursionErrorInst B 8
+PyExc_ReferenceError D 8
+PyExc_RuntimeError D 8
+PyExc_RuntimeWarning D 8
+PyExc_StandardError D 8
+PyExc_StopIteration D 8
+PyExc_SyntaxError D 8
+PyExc_SyntaxWarning D 8
+PyExc_SystemError D 8
+PyExc_SystemExit D 8
+PyExc_TabError D 8
+PyExc_TypeError D 8
+PyExc_UnboundLocalError D 8
+PyExc_UnicodeDecodeError D 8
+PyExc_UnicodeEncodeError D 8
+PyExc_UnicodeError D 8
+PyExc_UnicodeTranslateError D 8
+PyExc_UnicodeWarning D 8
+PyExc_UserWarning D 8
+PyExc_ValueError D 8
+PyExc_Warning D 8
+PyExc_ZeroDivisionError D 8
+PyFPE_dummy T
+PyFile_AsFile T
+PyFile_DecUseCount T
+PyFile_FromFile T
+PyFile_FromString T
+PyFile_GetLine T
+PyFile_IncUseCount T
+PyFile_Name T
+PyFile_SetBufSize T
+PyFile_SetEncoding T
+PyFile_SetEncodingAndErrors T
+PyFile_SoftSpace T
+PyFile_Type D 392
+PyFile_WriteObject T
+PyFile_WriteString T
+PyFloat_AsDouble T
+PyFloat_AsReprString T
+PyFloat_AsString T
+PyFloat_AsStringEx T
+PyFloat_ClearFreeList T
+PyFloat_Fini T
+PyFloat_FromDouble T
+PyFloat_FromString T
+PyFloat_GetInfo T
+PyFloat_GetMax T
+PyFloat_GetMin T
+PyFloat_Type D 392
+PyFrame_BlockPop T
+PyFrame_BlockSetup T
+PyFrame_ClearFreeList T
+PyFrame_FastToLocals T
+PyFrame_Fini T
+PyFrame_LocalsToFast T
+PyFrame_New T
+PyFrame_Type D 392
+PyFrozenSet_New T
+PyFrozenSet_Type D 392
+PyFunction_GetClosure T
+PyFunction_GetCode T
+PyFunction_GetDefaults T
+PyFunction_GetGlobals T
+PyFunction_GetModule T
+PyFunction_New T
+PyFunction_SetClosure T
+PyFunction_SetDefaults T
+PyFunction_Type D 392
+PyFuture_FromAST T
+PyGC_Collect T
+PyGen_NeedsFinalizing T
+PyGen_New T
+PyGen_Type D 392
+PyGetSetDescr_Type D 392
+PyGrammar_AddAccelerators T
+PyGrammar_FindDFA T
+PyGrammar_LabelRepr T
+PyGrammar_RemoveAccelerators T
+PyImport_AddModule T
+PyImport_AppendInittab T
+PyImport_Cleanup T
+PyImport_ExecCodeModule T
+PyImport_ExecCodeModuleEx T
+PyImport_ExtendInittab T
+PyImport_FrozenModules D 8
+PyImport_GetImporter T
+PyImport_GetMagicNumber T
+PyImport_GetModuleDict T
+PyImport_Import T
+PyImport_ImportFrozenModule T
+PyImport_ImportModule T
+PyImport_ImportModuleLevel T
+PyImport_ImportModuleNoBlock T
+PyImport_Inittab D 8
+PyImport_ReloadModule T
+PyInstance_New T
+PyInstance_NewRaw T
+PyInstance_Type D 392
+PyInt_AsLong T
+PyInt_AsSsize_t T
+PyInt_AsUnsignedLongLongMask T
+PyInt_AsUnsignedLongMask T
+PyInt_ClearFreeList T
+PyInt_Fini T
+PyInt_FromLong T
+PyInt_FromSize_t T
+PyInt_FromSsize_t T
+PyInt_FromString T
+PyInt_FromUnicode T
+PyInt_GetMax T
+PyInt_Type D 392
+PyInterpreterState_Clear T
+PyInterpreterState_Delete T
+PyInterpreterState_Head T
+PyInterpreterState_New T
+PyInterpreterState_Next T
+PyInterpreterState_ThreadHead T
+PyIter_Next T
+PyListIter_Type D 392
+PyListRevIter_Type D 392
+PyList_Append T
+PyList_AsTuple T
+PyList_Fini T
+PyList_GetItem T
+PyList_GetSlice T
+PyList_Insert T
+PyList_New T
+PyList_Reverse T
+PyList_SetItem T
+PyList_SetSlice T
+PyList_Size T
+PyList_Sort T
+PyList_Type D 392
+PyLong_AsDouble T
+PyLong_AsLong T
+PyLong_AsLongLong T
+PyLong_AsSsize_t T
+PyLong_AsUnsignedLong T
+PyLong_AsUnsignedLongLong T
+PyLong_AsUnsignedLongLongMask T
+PyLong_AsUnsignedLongMask T
+PyLong_AsVoidPtr T
+PyLong_FromDouble T
+PyLong_FromLong T
+PyLong_FromLongLong T
+PyLong_FromSize_t T
+PyLong_FromSsize_t T
+PyLong_FromString T
+PyLong_FromUnicode T
+PyLong_FromUnsignedLong T
+PyLong_FromUnsignedLongLong T
+PyLong_FromVoidPtr T
+PyLong_Type D 392
+PyMapping_Check T
+PyMapping_GetItemString T
+PyMapping_HasKey T
+PyMapping_HasKeyString T
+PyMapping_Length T
+PyMapping_SetItemString T
+PyMapping_Size T
+PyMarshal_Init T
+PyMarshal_ReadLastObjectFromFile T
+PyMarshal_ReadLongFromFile T
+PyMarshal_ReadObjectFromFile T
+PyMarshal_ReadObjectFromString T
+PyMarshal_ReadShortFromFile T
+PyMarshal_WriteLongToFile T
+PyMarshal_WriteObjectToFile T
+PyMarshal_WriteObjectToString T
+PyMem_Free T
+PyMem_Malloc T
+PyMem_Realloc T
+PyMemberDescr_Type D 392
+PyMember_Get T
+PyMember_GetOne T
+PyMember_Set T
+PyMember_SetOne T
+PyMethod_Class T
+PyMethod_ClearFreeList T
+PyMethod_Fini T
+PyMethod_Function T
+PyMethod_New T
+PyMethod_Self T
+PyMethod_Type D 392
+PyModule_AddIntConstant T
+PyModule_AddObject T
+PyModule_AddStringConstant T
+PyModule_GetDict T
+PyModule_GetFilename T
+PyModule_GetName T
+PyModule_GetWarningsModule T
+PyModule_New T
+PyModule_Type D 392
+PyNode_AddChild T
+PyNode_Compile T
+PyNode_Free T
+PyNode_ListTree T
+PyNode_New T
+PyNullImporter_Type D 392
+PyNumber_Absolute T
+PyNumber_Add T
+PyNumber_And T
+PyNumber_AsSsize_t T
+PyNumber_Check T
+PyNumber_Coerce T
+PyNumber_CoerceEx T
+PyNumber_Divide T
+PyNumber_Divmod T
+PyNumber_Float T
+PyNumber_FloorDivide T
+PyNumber_InPlaceAdd T
+PyNumber_InPlaceAnd T
+PyNumber_InPlaceDivide T
+PyNumber_InPlaceFloorDivide T
+PyNumber_InPlaceLshift T
+PyNumber_InPlaceMultiply T
+PyNumber_InPlaceOr T
+PyNumber_InPlacePower T
+PyNumber_InPlaceRemainder T
+PyNumber_InPlaceRshift T
+PyNumber_InPlaceSubtract T
+PyNumber_InPlaceTrueDivide T
+PyNumber_InPlaceXor T
+PyNumber_Index T
+PyNumber_Int T
+PyNumber_Invert T
+PyNumber_Long T
+PyNumber_Lshift T
+PyNumber_Multiply T
+PyNumber_Negative T
+PyNumber_Or T
+PyNumber_Positive T
+PyNumber_Power T
+PyNumber_Remainder T
+PyNumber_Rshift T
+PyNumber_Subtract T
+PyNumber_ToBase T
+PyNumber_TrueDivide T
+PyNumber_Xor T
+PyOS_AfterFork T
+PyOS_FiniInterrupts T
+PyOS_GetLastModificationTime T
+PyOS_InitInterrupts T
+PyOS_InputHook B 8
+PyOS_InterruptOccurred T
+PyOS_Readline T
+PyOS_ReadlineFunctionPointer B 8
+PyOS_StdioReadline T
+PyOS_ascii_atof T
+PyOS_ascii_formatd T
+PyOS_ascii_strtod T
+PyOS_getsig T
+PyOS_mystricmp T
+PyOS_mystrnicmp T
+PyOS_setsig T
+PyOS_snprintf T
+PyOS_strtol T
+PyOS_strtoul T
+PyOS_vsnprintf T
+PyObject_AsCharBuffer T
+PyObject_AsFileDescriptor T
+PyObject_AsReadBuffer T
+PyObject_AsWriteBuffer T
+PyObject_Call T
+PyObject_CallFunction T
+PyObject_CallFunctionObjArgs T
+PyObject_CallMethod T
+PyObject_CallMethodObjArgs T
+PyObject_CallObject T
+PyObject_CheckReadBuffer T
+PyObject_ClearWeakRefs T
+PyObject_Cmp T
+PyObject_Compare T
+PyObject_CopyData T
+PyObject_DelItem T
+PyObject_DelItemString T
+PyObject_Dir T
+PyObject_Format T
+PyObject_Free T
+PyObject_GC_Del T
+PyObject_GC_Track T
+PyObject_GC_UnTrack T
+PyObject_GenericGetAttr T
+PyObject_GenericSetAttr T
+PyObject_GetAttr T
+PyObject_GetAttrString T
+PyObject_GetBuffer T
+PyObject_GetItem T
+PyObject_GetIter T
+PyObject_HasAttr T
+PyObject_HasAttrString T
+PyObject_Hash T
+PyObject_HashNotImplemented T
+PyObject_Init T
+PyObject_InitVar T
+PyObject_IsInstance T
+PyObject_IsSubclass T
+PyObject_IsTrue T
+PyObject_Length T
+PyObject_Malloc T
+PyObject_Not T
+PyObject_Print T
+PyObject_Realloc T
+PyObject_Repr T
+PyObject_RichCompare T
+PyObject_RichCompareBool T
+PyObject_SelfIter T
+PyObject_SetAttr T
+PyObject_SetAttrString T
+PyObject_SetItem T
+PyObject_Size T
+PyObject_Str T
+PyObject_Type T
+PyObject_Unicode T
+PyParser_ASTFromFile T
+PyParser_ASTFromString T
+PyParser_AddToken T
+PyParser_Delete T
+PyParser_New T
+PyParser_ParseFile T
+PyParser_ParseFileFlags T
+PyParser_ParseFileFlagsEx T
+PyParser_ParseString T
+PyParser_ParseStringFlags T
+PyParser_ParseStringFlagsFilename T
+PyParser_ParseStringFlagsFilenameEx T
+PyParser_SetError T
+PyParser_SimpleParseFile T
+PyParser_SimpleParseFileFlags T
+PyParser_SimpleParseString T
+PyParser_SimpleParseStringFilename T
+PyParser_SimpleParseStringFlags T
+PyParser_SimpleParseStringFlagsFilename T
+PyProperty_Type D 392
+PyRange_Type D 392
+PyReversed_Type D 392
+PyRun_AnyFile T
+PyRun_AnyFileEx T
+PyRun_AnyFileExFlags T
+PyRun_AnyFileFlags T
+PyRun_File T
+PyRun_FileEx T
+PyRun_FileExFlags T
+PyRun_FileFlags T
+PyRun_InteractiveLoop T
+PyRun_InteractiveLoopFlags T
+PyRun_InteractiveOne T
+PyRun_InteractiveOneFlags T
+PyRun_SimpleFile T
+PyRun_SimpleFileEx T
+PyRun_SimpleFileExFlags T
+PyRun_SimpleString T
+PyRun_SimpleStringFlags T
+PyRun_String T
+PyRun_StringFlags T
+PySTEntry_Type D 392
+PyST_GetScope T
+PySeqIter_New T
+PySeqIter_Type D 392
+PySequence_Check T
+PySequence_Concat T
+PySequence_Contains T
+PySequence_Count T
+PySequence_DelItem T
+PySequence_DelSlice T
+PySequence_Fast T
+PySequence_GetItem T
+PySequence_GetSlice T
+PySequence_In T
+PySequence_InPlaceConcat T
+PySequence_InPlaceRepeat T
+PySequence_Index T
+PySequence_Length T
+PySequence_List T
+PySequence_Repeat T
+PySequence_SetItem T
+PySequence_SetSlice T
+PySequence_Size T
+PySequence_Tuple T
+PySet_Add T
+PySet_Clear T
+PySet_Contains T
+PySet_Discard T
+PySet_Fini T
+PySet_New T
+PySet_Pop T
+PySet_Size T
+PySet_Type D 392
+PySignal_SetWakeupFd T
+PySlice_GetIndices T
+PySlice_GetIndicesEx T
+PySlice_New T
+PySlice_Type D 392
+PyStaticMethod_New T
+PyStaticMethod_Type D 392
+PyString_AsDecodedObject T
+PyString_AsDecodedString T
+PyString_AsEncodedObject T
+PyString_AsEncodedString T
+PyString_AsString T
+PyString_AsStringAndSize T
+PyString_Concat T
+PyString_ConcatAndDel T
+PyString_Decode T
+PyString_DecodeEscape T
+PyString_Encode T
+PyString_Fini T
+PyString_Format T
+PyString_FromFormat T
+PyString_FromFormatV T
+PyString_FromString T
+PyString_FromStringAndSize T
+PyString_InternFromString T
+PyString_InternImmortal T
+PyString_InternInPlace T
+PyString_Repr T
+PyString_Size T
+PyString_Type D 392
+PyStructSequence_InitType T
+PyStructSequence_New T
+PyStructSequence_UnnamedField D 8
+PySuper_Type D 392
+PySymtable_Build T
+PySymtable_Free T
+PySymtable_Lookup T
+PySys_AddWarnOption T
+PySys_GetFile T
+PySys_GetObject T
+PySys_HasWarnOptions T
+PySys_ResetWarnOptions T
+PySys_SetArgv T
+PySys_SetObject T
+PySys_SetPath T
+PySys_WriteStderr T
+PySys_WriteStdout T
+PyThreadState_Clear T
+PyThreadState_Delete T
+PyThreadState_Get T
+PyThreadState_GetDict T
+PyThreadState_New T
+PyThreadState_Next T
+PyThreadState_SetAsyncExc T
+PyThreadState_Swap T
+PyToken_OneChar T
+PyToken_ThreeChars T
+PyToken_TwoChars T
+PyTokenizer_Free T
+PyTokenizer_FromFile T
+PyTokenizer_FromString T
+PyTokenizer_Get T
+PyTokenizer_RestoreEncoding T
+PyTraceBack_Here T
+PyTraceBack_Print T
+PyTraceBack_Type D 392
+PyTupleIter_Type D 392
+PyTuple_ClearFreeList T
+PyTuple_Fini T
+PyTuple_GetItem T
+PyTuple_GetSlice T
+PyTuple_New T
+PyTuple_Pack T
+PyTuple_SetItem T
+PyTuple_Size T
+PyTuple_Type D 392
+PyType_ClearCache T
+PyType_GenericAlloc T
+PyType_GenericNew T
+PyType_IsSubtype T
+PyType_Modified T
+PyType_Ready T
+PyType_Type D 392
+PyUnicodeDecodeError_Create T
+PyUnicodeDecodeError_GetEncoding T
+PyUnicodeDecodeError_GetEnd T
+PyUnicodeDecodeError_GetObject T
+PyUnicodeDecodeError_GetReason T
+PyUnicodeDecodeError_GetStart T
+PyUnicodeDecodeError_SetEnd T
+PyUnicodeDecodeError_SetReason T
+PyUnicodeDecodeError_SetStart T
+PyUnicodeEncodeError_Create T
+PyUnicodeEncodeError_GetEncoding T
+PyUnicodeEncodeError_GetEnd T
+PyUnicodeEncodeError_GetObject T
+PyUnicodeEncodeError_GetReason T
+PyUnicodeEncodeError_GetStart T
+PyUnicodeEncodeError_SetEnd T
+PyUnicodeEncodeError_SetReason T
+PyUnicodeEncodeError_SetStart T
+PyUnicodeTranslateError_Create T
+PyUnicodeTranslateError_GetEnd T
+PyUnicodeTranslateError_GetObject T
+PyUnicodeTranslateError_GetReason T
+PyUnicodeTranslateError_GetStart T
+PyUnicodeTranslateError_SetEnd T
+PyUnicodeTranslateError_SetReason T
+PyUnicodeTranslateError_SetStart T
+PyUnicodeUCS2_AsASCIIString T
+PyUnicodeUCS2_AsCharmapString T
+PyUnicodeUCS2_AsEncodedObject T
+PyUnicodeUCS2_AsEncodedString T
+PyUnicodeUCS2_AsLatin1String T
+PyUnicodeUCS2_AsRawUnicodeEscapeString T
+PyUnicodeUCS2_AsUTF16String T
+PyUnicodeUCS2_AsUTF32String T
+PyUnicodeUCS2_AsUTF8String T
+PyUnicodeUCS2_AsUnicode T
+PyUnicodeUCS2_AsUnicodeEscapeString T
+PyUnicodeUCS2_ClearFreelist T
+PyUnicodeUCS2_Compare T
+PyUnicodeUCS2_Concat T
+PyUnicodeUCS2_Contains T
+PyUnicodeUCS2_Count T
+PyUnicodeUCS2_Decode T
+PyUnicodeUCS2_DecodeASCII T
+PyUnicodeUCS2_DecodeCharmap T
+PyUnicodeUCS2_DecodeLatin1 T
+PyUnicodeUCS2_DecodeRawUnicodeEscape T
+PyUnicodeUCS2_DecodeUTF16 T
+PyUnicodeUCS2_DecodeUTF16Stateful T
+PyUnicodeUCS2_DecodeUTF32 T
+PyUnicodeUCS2_DecodeUTF32Stateful T
+PyUnicodeUCS2_DecodeUTF8 T
+PyUnicodeUCS2_DecodeUTF8Stateful T
+PyUnicodeUCS2_DecodeUnicodeEscape T
+PyUnicodeUCS2_Encode T
+PyUnicodeUCS2_EncodeASCII T
+PyUnicodeUCS2_EncodeCharmap T
+PyUnicodeUCS2_EncodeDecimal T
+PyUnicodeUCS2_EncodeLatin1 T
+PyUnicodeUCS2_EncodeRawUnicodeEscape T
+PyUnicodeUCS2_EncodeUTF16 T
+PyUnicodeUCS2_EncodeUTF32 T
+PyUnicodeUCS2_EncodeUTF8 T
+PyUnicodeUCS2_EncodeUnicodeEscape T
+PyUnicodeUCS2_Find T
+PyUnicodeUCS2_Format T
+PyUnicodeUCS2_FromEncodedObject T
+PyUnicodeUCS2_FromObject T
+PyUnicodeUCS2_FromOrdinal T
+PyUnicodeUCS2_FromString T
+PyUnicodeUCS2_FromStringAndSize T
+PyUnicodeUCS2_FromUnicode T
+PyUnicodeUCS2_GetDefaultEncoding T
+PyUnicodeUCS2_GetMax T
+PyUnicodeUCS2_GetSize T
+PyUnicodeUCS2_Join T
+PyUnicodeUCS2_Partition T
+PyUnicodeUCS2_RPartition T
+PyUnicodeUCS2_RSplit T
+PyUnicodeUCS2_Replace T
+PyUnicodeUCS2_Resize T
+PyUnicodeUCS2_RichCompare T
+PyUnicodeUCS2_SetDefaultEncoding T
+PyUnicodeUCS2_Split T
+PyUnicodeUCS2_Splitlines T
+PyUnicodeUCS2_Tailmatch T
+PyUnicodeUCS2_Translate T
+PyUnicodeUCS2_TranslateCharmap T
+PyUnicode_AsDecodedObject T
+PyUnicode_BuildEncodingMap T
+PyUnicode_DecodeUTF7 T
+PyUnicode_DecodeUTF7Stateful T
+PyUnicode_EncodeUTF7 T
+PyUnicode_Type D 392
+PyWeakref_GetObject T
+PyWeakref_NewProxy T
+PyWeakref_NewRef T
+PyWrapperDescr_Type D 392
+PyWrapper_New T
+Py_AddPendingCall T
+Py_AtExit T
+Py_BuildValue T
+Py_BytesWarningFlag B 4
+Py_CompileString T
+Py_CompileStringFlags T
+Py_DebugFlag B 4
+Py_DecRef T
+Py_DivisionWarningFlag B 4
+Py_DontWriteBytecodeFlag B 4
+Py_EndInterpreter T
+Py_Exit T
+Py_FatalError T
+Py_FdIsInteractive T
+Py_FileSystemDefaultEncoding B 8
+Py_Finalize T
+Py_FindMethod T
+Py_FindMethodInChain T
+Py_FlushLine T
+Py_FrozenFlag B 4
+Py_FrozenMain T
+Py_GetArgcArgv T
+Py_GetBuildInfo T
+Py_GetCompiler T
+Py_GetCopyright T
+Py_GetExecPrefix T
+Py_GetPath T
+Py_GetPlatform T
+Py_GetPrefix T
+Py_GetProgramFullPath T
+Py_GetProgramName T
+Py_GetPythonHome T
+Py_GetRecursionLimit T
+Py_GetVersion T
+Py_IgnoreEnvironmentFlag B 4
+Py_IncRef T
+Py_InitModule4_64 T
+Py_Initialize T
+Py_InitializeEx T
+Py_InspectFlag B 4
+Py_InteractiveFlag B 4
+Py_IsInitialized T
+Py_Main T
+Py_MakePendingCalls T
+Py_NewInterpreter T
+Py_NoSiteFlag B 4
+Py_NoUserSiteDirectory B 4
+Py_OptimizeFlag B 4
+Py_Py3kWarningFlag B 4
+Py_ReprEnter T
+Py_ReprLeave T
+Py_SetProgramName T
+Py_SetPythonHome T
+Py_SetRecursionLimit T
+Py_SubversionRevision T
+Py_SubversionShortBranch T
+Py_SymtableString T
+Py_TabcheckFlag B 4
+Py_UnicodeFlag B 4
+Py_UniversalNewlineFgets T
+Py_UniversalNewlineFread T
+Py_UseClassExceptionsFlag D 4
+Py_VaBuildValue T
+Py_VerboseFlag B 4
+Py_meta_grammar T
+Py_pgen T
+_PyArg_NoKeywords T
+_PyArg_ParseTupleAndKeywords_SizeT T
+_PyArg_ParseTuple_SizeT T
+_PyArg_Parse_SizeT T
+_PyArg_VaParseTupleAndKeywords_SizeT T
+_PyArg_VaParse_SizeT T
+_PyBuiltin_Init T
+_PyBytes_FormatAdvanced T
+_PyCodec_Lookup T
+_PyDict_Contains T
+_PyDict_NewPresized T
+_PyDict_Next T
+_PyErr_BadInternalCall T
+_PyEval_CallTracing T
+_PyEval_SliceIndex T
+_PyExc_Fini T
+_PyExc_Init T
+_PyFile_SanitizeMode T
+_PyFloat_FormatAdvanced T
+_PyFloat_Init T
+_PyFloat_Pack4 T
+_PyFloat_Pack8 T
+_PyFloat_Unpack4 T
+_PyFloat_Unpack8 T
+_PyFrame_Init T
+_PyGC_Dump T
+_PyGC_generation0 D 8
+_PyImportHooks_Init T
+_PyImport_DynLoadFiletab D 72
+_PyImport_Filetab B 8
+_PyImport_FindExtension T
+_PyImport_FindModule T
+_PyImport_Fini T
+_PyImport_FixupExtension T
+_PyImport_GetDynLoadFunc T
+_PyImport_Init T
+_PyImport_Inittab D 304
+_PyImport_IsScript T
+_PyImport_LoadDynamicModule T
+_PyInstance_Lookup T
+_PyInt_Format T
+_PyInt_FormatAdvanced T
+_PyInt_Init T
+_PyList_Extend T
+_PyLong_AsByteArray T
+_PyLong_AsScaledDouble T
+_PyLong_Copy T
+_PyLong_DigitValue D 1024
+_PyLong_Format T
+_PyLong_FormatAdvanced T
+_PyLong_FromByteArray T
+_PyLong_New T
+_PyLong_NumBits T
+_PyLong_Sign T
+_PyModule_Clear T
+_PyNumber_ConvertIntegralToInt T
+_PyOS_GetOpt T
+_PyOS_ReadlineTState B 8
+_PyOS_optarg B 8
+_PyOS_opterr D 4
+_PyOS_optind D 4
+_PyObject_CallFunction_SizeT T
+_PyObject_CallMethod_SizeT T
+_PyObject_Del T
+_PyObject_Dump T
+_PyObject_GC_Del T
+_PyObject_GC_Malloc T
+_PyObject_GC_New T
+_PyObject_GC_NewVar T
+_PyObject_GC_Resize T
+_PyObject_GC_Track T
+_PyObject_GC_UnTrack T
+_PyObject_GetDictPtr T
+_PyObject_LengthHint T
+_PyObject_New T
+_PyObject_NewVar T
+_PyObject_RealIsInstance T
+_PyObject_RealIsSubclass T
+_PyObject_SlotCompare T
+_PyObject_Str T
+_PyParser_Grammar D 40
+_PyParser_TokenNames D 432
+_PySequence_IterSearch T
+_PySet_Next T
+_PySet_NextEntry T
+_PySet_Update T
+_PySlice_FromIndices T
+_PyString_Eq T
+_PyString_FormatLong T
+_PyString_InsertThousandsGrouping T
+_PyString_Join T
+_PyString_Resize T
+_PySys_Init T
+_PyThreadState_Current B 8
+_PyThreadState_GetFrame B 8
+_PyThread_CurrentFrames T
+_PyTrash_delete_later B 8
+_PyTrash_delete_nesting B 4
+_PyTrash_deposit_object T
+_PyTrash_destroy_chain T
+_PyTuple_Resize T
+_PyType_Lookup T
+_PyUnicodeUCS2_AsDefaultEncodedString T
+_PyUnicodeUCS2_Fini T
+_PyUnicodeUCS2_Init T
+_PyUnicodeUCS2_IsAlpha T
+_PyUnicodeUCS2_IsDecimalDigit T
+_PyUnicodeUCS2_IsDigit T
+_PyUnicodeUCS2_IsLinebreak T
+_PyUnicodeUCS2_IsLowercase T
+_PyUnicodeUCS2_IsNumeric T
+_PyUnicodeUCS2_IsTitlecase T
+_PyUnicodeUCS2_IsUppercase T
+_PyUnicodeUCS2_IsWhitespace T
+_PyUnicodeUCS2_ToDecimalDigit T
+_PyUnicodeUCS2_ToDigit T
+_PyUnicodeUCS2_ToLowercase T
+_PyUnicodeUCS2_ToNumeric T
+_PyUnicodeUCS2_ToTitlecase T
+_PyUnicodeUCS2_ToUppercase T
+_PyUnicode_DecodeUnicodeInternal T
+_PyUnicode_FormatAdvanced T
+_PyUnicode_TypeRecords R 1600
+_PyUnicode_XStrip T
+_PyWarnings_Init T
+_PyWeakref_CallableProxyType D 392
+_PyWeakref_ClearRef T
+_PyWeakref_GetWeakrefCount T
+_PyWeakref_ProxyType D 392
+_PyWeakref_RefType D 392
+_Py_Assert T
+_Py_Assign T
+_Py_Attribute T
+_Py_AugAssign T
+_Py_BinOp T
+_Py_BoolOp T
+_Py_Break T
+_Py_BuildValue_SizeT T
+_Py_Call T
+_Py_CheckInterval D 4
+_Py_CheckRecursionLimit D 4
+_Py_CheckRecursiveCall T
+_Py_ClassDef T
+_Py_Compare T
+_Py_Continue T
+_Py_Delete T
+_Py_Dict T
+_Py_DisplaySourceLine T
+_Py_Ellipsis T
+_Py_EllipsisObject D 16
+_Py_ExceptHandler T
+_Py_Exec T
+_Py_Expr T
+_Py_Expression T
+_Py_ExtSlice T
+_Py_For T
+_Py_FunctionDef T
+_Py_GeneratorExp T
+_Py_Global T
+_Py_HashDouble T
+_Py_HashPointer T
+_Py_If T
+_Py_IfExp T
+_Py_Import T
+_Py_ImportFrom T
+_Py_Index T
+_Py_Interactive T
+_Py_Lambda T
+_Py_List T
+_Py_ListComp T
+_Py_Mangle T
+_Py_Module T
+_Py_Name T
+_Py_NoneStruct D 16
+_Py_NotImplementedStruct D 16
+_Py_Num T
+_Py_PackageContext B 8
+_Py_Pass T
+_Py_Print T
+_Py_QnewFlag B 4
+_Py_Raise T
+_Py_ReadyTypes T
+_Py_ReleaseInternedStrings T
+_Py_Repr T
+_Py_Return T
+_Py_Slice T
+_Py_Str T
+_Py_Subscript T
+_Py_Suite T
+_Py_SwappedOp D 24
+_Py_Ticker D 4
+_Py_TrueStruct D 24
+_Py_TryExcept T
+_Py_TryFinally T
+_Py_Tuple T
+_Py_UnaryOp T
+_Py_VaBuildValue_SizeT T
+_Py_While T
+_Py_With T
+_Py_Yield T
+_Py_ZeroStruct D 24
+_Py_abstract_hack D 8
+_Py_addarc T
+_Py_addbit T
+_Py_adddfa T
+_Py_addfirstsets T
+_Py_addlabel T
+_Py_addstate T
+_Py_alias T
+_Py_arguments T
+_Py_ascii_whitespace R 128
+_Py_bytes_capitalize T
+_Py_bytes_isalnum T
+_Py_bytes_isalpha T
+_Py_bytes_isdigit T
+_Py_bytes_islower T
+_Py_bytes_isspace T
+_Py_bytes_istitle T
+_Py_bytes_isupper T
+_Py_bytes_lower T
+_Py_bytes_swapcase T
+_Py_bytes_title T
+_Py_bytes_upper T
+_Py_c_abs T
+_Py_c_diff T
+_Py_c_neg T
+_Py_c_pow T
+_Py_c_prod T
+_Py_c_quot T
+_Py_c_sum T
+_Py_capitalize__doc__ R 1
+_Py_cobject_hack D 8
+_Py_comprehension T
+_Py_ctype_table R 1024
+_Py_ctype_tolower R 256
+_Py_ctype_toupper R 256
+_Py_delbitset T
+_Py_findlabel T
+_Py_isalnum__doc__ R 1
+_Py_isalpha__doc__ R 1
+_Py_isdigit__doc__ R 1
+_Py_islower__doc__ R 1
+_Py_isspace__doc__ R 1
+_Py_istitle__doc__ R 1
+_Py_isupper__doc__ R 1
+_Py_keyword T
+_Py_lower__doc__ R 1
+_Py_mergebitset T
+_Py_meta_grammar T
+_Py_newbitset T
+_Py_newgrammar T
+_Py_pgen T
+_Py_samebitset T
+_Py_svnversion T
+_Py_swapcase__doc__ R 1
+_Py_title__doc__ R 1
+_Py_translatelabels T
+_Py_upper__doc__ R 1
+acosh T
+asdl_int_seq_new T
+asdl_seq_new T
+asinh T
+atanh T
+copysign T
+dup T
+hypot T
+init_ast T
+init_codecs T
+init_sre T
+init_symtable T
+initerrno T
+initgc T
+initimp T
+initposix T
+initpwd T
+initsignal T
+initxxsubtype T
+initzipimport T
+log1p T
