@@ -71,6 +71,7 @@ set avail_test_pkgs {
 	test-part_blk_gpt
 	test-part_blk_mbr
 	test-pthread
+	test-python
 	test-ram_fs_chunk
 	test-read_only_rom
 	test-reconstructible

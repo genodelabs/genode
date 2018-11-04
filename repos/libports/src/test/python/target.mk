@@ -1,5 +1,5 @@
 TARGET   = test-python
-LIBS     = python posix
+LIBS     = base python posix
 REQUIRES = x86
 SRC_CC   = main.cc
 
