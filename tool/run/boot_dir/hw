@@ -205,8 +205,15 @@ proc run_boot_dir {binaries} {
 #
 proc base_src { } {
 
-	if {[have_spec x86_64] && ![have_spec muen]} { return base-hw-pc }
-	if {[have_spec pbxa9]}                       { return base-hw-pbxa9 }
+	if {[have_spec x86_64] && ![have_spec muen]}         { return base-hw-pc }
+	if {[have_spec pbxa9]}                               { return base-hw-pbxa9 }
+	if {[have_spec rpi]}                                 { return base-hw-rpi }
+	if {[have_spec wand_quad]}                           { return base-hw-wand_quad }
+	if {[have_spec odroid_xu]}                           { return base-hw-odroid_xu }
+	if {[have_spec imx53_qsb] && ![have_spec trustzone]} { return base-hw-imx53_qsb }
+	if {[have_spec imx53_qsb] &&  [have_spec trustzone]} { return base-hw-imx53_qsb_tz }
+	if {[have_spec arndale]}                             { return base-hw-arndale }
+	if {[have_spec panda]}                               { return base-hw-panda }
 
 	global specs
 
