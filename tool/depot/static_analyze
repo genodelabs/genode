@@ -1,0 +1,29 @@
+#!/usr/bin/make -f
+
+#
+# \brief  Tool for invoking depot tool with static clang/llvm analyzer
+# \author Alexander Boettcher
+# \date   2018-11-08
+#
+
+define HELP_MESSAGE
+
+  Invoke depot tool with static clang/llvm analyzer
+
+  usage:
+
+    $(firstword $(MAKEFILE_LIST)) tool/depot/<tool> ...
+
+  This tool is a front end to the depot tools like 'create', 'extract' or
+  'build'. The tool takes care to enable and to invoke the clang/llvm
+  tool 'scan-build' such that the make command is correctly recognized
+  by the static analyzer.
+
+endef
+
+export GENODE_DIR := $(realpath $(dir $(MAKEFILE_LIST))/../..)
+
+include $(GENODE_DIR)/tool/depot/mk/front_end.inc
+
+$(MAKECMDGOALS):
+	+ STATIC_ANALYZE=1 make -f $(MAKECMDGOALS)
