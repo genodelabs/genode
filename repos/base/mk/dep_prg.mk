@@ -17,6 +17,13 @@ PRG_DIR := $(dir $(TARGET_MK))
 include $(TARGET_MK)
 
 #
+# Add libgcov if coverage is requested
+#
+ifeq ($(COVERAGE),yes)
+LIBS += libgcov
+endif
+
+#
 # Include lib-import description files
 #
 include $(foreach LIB,$(LIBS),$(call select_from_repositories,lib/import/import-$(LIB).mk))
