@@ -219,7 +219,9 @@ proc run_boot_dir {binaries} {
 #
 proc base_src { } {
 
-	if {[have_spec x86]} { return base-foc }
+	if {[have_spec x86]}     { return base-foc-pc }
+	if {[have_spec pbxa9]}   { return base-foc-pbxa9 }
+	if {[have_spec arndale]} { return base-foc-arndale }
 
 	global specs
 

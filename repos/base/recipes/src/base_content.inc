@@ -17,7 +17,7 @@ content: etc/specs.conf
 etc/specs.conf:
 	$(mirror_from_rep_dir)
 
-MIRRORED_FROM_OS := $(addprefix lib/mk/,timeout.mk alarm.mk timed_semaphore.mk)\
+MIRRORED_FROM_OS := $(addprefix lib/mk/,timeout.mk timeout-arm.mk alarm.mk timed_semaphore.mk)\
                     $(addprefix src/lib/,timeout alarm timed_semaphore) \
                     $(addprefix include/os/,alarm.h duration.h timed_semaphore.h) \
                     include/timer/timeout.h \

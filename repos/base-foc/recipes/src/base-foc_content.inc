@@ -24,7 +24,7 @@ include/spec/%/trace/timestamp.h:
 
 content: README
 README:
-	cp $(REP_DIR)/recipes/src/base-foc/README $@
+	cp $(RECIPE_DIR)/README $@
 
 content: lib/import config etc
 lib/import config etc:
