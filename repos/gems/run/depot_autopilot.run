@@ -334,6 +334,7 @@ proc prepare_to_run_genode { } {
 		genodelabs/src/vfs
 		genodelabs/src/loader
 		genodelabs/src/init
+		genodelabs/src/depot_query
 	}
 	if {!$skip_test_pkg(test-lx_block)} {
 		append import_archives { genodelabs/raw/test-lx_block }
@@ -485,7 +486,7 @@ proc prepare_to_run_genode { } {
 	# Create the rest of the boot modules
 	#
 
-	set build_components { init app/depot_query app/depot_autopilot }
+	set build_components { app/depot_autopilot }
 	append build_components $single_test_build
 	build $build_components
 
@@ -496,7 +497,7 @@ proc prepare_to_run_genode { } {
 	# Build boot image from boot modules
 	#
 
-	set boot_modules { init depot_query depot_autopilot vfs.lib.so }
+	set boot_modules { depot_autopilot }
 	append boot_modules $single_test_modules
 	build_boot_image $boot_modules
 
