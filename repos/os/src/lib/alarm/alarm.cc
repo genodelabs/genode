@@ -261,7 +261,7 @@ bool Alarm_scheduler::next_deadline(Alarm::Time *deadline)
 	if (deadline)
 		*deadline = _head->_raw.deadline;
 
-	if (*deadline < _min_handle_period.deadline) {
+	if (deadline && *deadline < _min_handle_period.deadline) {
 		*deadline = _min_handle_period.deadline;
 	}
 	return true;
