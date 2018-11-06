@@ -28,6 +28,7 @@ struct Dither_painter
 	                         Genode::Texture<SRC_PT> const &texture)
 	{
 		if (surface.size() != texture.size()) return;
+		if (!texture.pixel() || !texture.alpha()) return;
 
 		Genode::Surface_base::Rect const clipped = surface.clip();
 
