@@ -44,6 +44,7 @@
 #define size_t __SIZE_TYPE__
 
 /* Linux includes */
+#include <sys/cdefs.h>   /* include first to avoid double definition of '__always_inline' */
 #include <linux/futex.h>
 #include <unistd.h>
 #include <signal.h>
