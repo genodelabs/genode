@@ -1,0 +1,13 @@
+solo5_abort T
+solo5_app_main U
+solo5_block_info T
+solo5_block_read T
+solo5_block_write T
+solo5_clock_monotonic T
+solo5_clock_wall T
+solo5_console_write T
+solo5_exit T
+solo5_net_info T
+solo5_net_read T
+solo5_net_write T
+solo5_yield T

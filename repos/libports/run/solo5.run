@@ -1,0 +1,94 @@
+if {[have_spec linux]} {
+        puts "\nRunscript not compatible with base-linux drivers\n"
+        exit 0
+}
+
+create_boot_directory
+
+import_from_depot \
+	genodelabs/src/[base_src] \
+	genodelabs/src/init \
+	genodelabs/src/rtc_drv \
+
+install_config {
+<config>
+	<parent-provides>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="PD"/>
+		<service name="RAM"/>
+		<service name="ROM"/>
+		<service name="IO_PORT"/>
+	</parent-provides>
+
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service> </default-route>
+
+	<start name="timer" caps="96">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>
+
+	<start name="rtc_drv" caps="96">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Rtc"/> </provides>
+	</start>
+
+	<start name="nic_loopback" caps="96">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Nic"/> </provides>
+	</start>
+
+	<start name="ram_blk" caps="96">
+		<resource name="RAM" quantum="40M"/>
+		<provides> <service name="Block"/> </provides>
+		<config size="32M" block_size="4096"/>
+	</start>
+
+	<start name="test" caps="256">
+		<binary name="sequence"/>
+		<resource name="RAM" quantum="16M"/>
+		<config>
+			<start name="solo5-test_hello">
+				<config>
+					<solo5 cmdline="Hello_Solo5"/>
+					<rtc/> <nic/> <blk/>
+				</config>
+			</start>
+			<start name="solo5-test_fpu"/>
+			<start name="solo5-test_globals"/>
+			<start name="solo5-test_quiet"/>
+			<start name="solo5-test_blk">
+				<config> <blk/> </config>
+			</start>
+			<start name="solo5-test_time">
+				<config> <rtc/> </config>
+			</start>
+		</config>
+	</start>
+</config>
+}
+
+build {
+	app/sequence
+	server/nic_loopback
+	server/ram_blk
+	test/solo5
+}
+
+build_boot_image {
+	nic_loopback
+	ram_blk
+	sequence
+	solo5.lib.so
+	solo5-test_blk
+	solo5-test_fpu
+	solo5-test_globals
+	solo5-test_hello
+	solo5-test_quiet
+	solo5-test_time
+}
+
+append qemu_args " -nographic "
+
+run_genode_until {child "test" exited with exit value 0} 40
