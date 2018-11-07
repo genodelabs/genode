@@ -1,0 +1,117 @@
+if {![have_spec x86_64]} {
+	puts "\nSolo5 requires a 64bit architecture\n"
+	exit 0
+}
+
+if {![file exists bin/mirage]} {
+	puts ""
+	puts "A mirage image must be provided at 'bin/mirage' to execute this scenario."
+	puts ""
+	exit 1
+}
+
+if {[have_spec linux]} {
+	puts ""
+	puts "This scenario is not available for the Linux platform."
+	puts ""
+	exit 1
+}
+
+create_boot_directory
+
+import_from_depot \
+	genodelabs/src/[base_src] \
+	genodelabs/src/init \
+	genodelabs/src/rtc_drv \
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+
+set build_components {
+	drivers/nic
+	drivers/rtc
+	lib/solo5
+}
+
+append_platform_drv_build_components
+
+lappend_if [expr {[nic_drv_binary] == "nic_drv"}] build_components drivers/nic
+lappend_if [expr {[nic_drv_binary] == "usb_drv"}] build_components drivers/usb
+
+proc gpio_drv { } { if {[have_spec rpi] && [have_spec hw]}  { return hw_gpio_drv }
+                    if {[have_spec rpi] && [have_spec foc]} { return foc_gpio_drv }
+                    return gpio_drv }
+
+lappend_if [have_spec gpio] build_components drivers/gpio
+
+build $build_components
+
+append config {
+<config>
+	<default caps="256"/>
+	<parent-provides>
+		<service name="CPU"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="IRQ"/>
+		<service name="LOG"/>
+		<service name="PD"/>
+		<service name="RAM"/>
+		<service name="RM"/>
+		<service name="ROM"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service> </default-route>}
+
+append_platform_drv_config
+
+append_if [have_spec gpio] config "
+	<start name=\"[gpio_drv]\" caps=\"140\">
+		<resource name=\"RAM\" quantum=\"4M\"/>
+		<provides><service name=\"Gpio\"/></provides>
+		<config/>
+	</start>"
+
+append config {
+	<start name="timer" caps="96">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>
+	<start name="nic_drv">
+		<binary name="} [nic_drv_binary] {"/>
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Nic"/></provides>
+	</start>
+	<start name="rtc_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Rtc"/></provides>
+	</start>
+	<start name="mirage" caps="256">
+		<resource name="RAM" quantum="32M"/>
+		<config> <nic/> <rtc/> </config>
+	</start>
+</config>
+}
+
+install_config $config
+
+set boot_modules {
+	mirage
+	rtc_drv
+	solo5.lib.so
+}
+
+# platform-specific modules
+append_platform_drv_boot_modules
+
+lappend boot_modules [nic_drv_binary]
+
+lappend_if [have_spec gpio] boot_modules [gpio_drv]
+
+build_boot_image $boot_modules
+
+append qemu_args " -nographic -net user"
+
+append_if [have_spec x86]     qemu_args " -net nic,model=e1000 "
+append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
+
+run_genode_until forever
