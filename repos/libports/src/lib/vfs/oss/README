@@ -1,0 +1,42 @@
+The VFS OSS plugin offers access to Genode's Audio_out session by providing a
+file-system that can be mounted at arbitrary location within the VFS of a
+component. It exposes a data file that can by used as 'dsp' file, e.g., _/dev/dsp_
+as is common with OSS. The support I/O control operations or rather the
+properties of the pseudo-device are provide in form of a structured 'info'
+file located in the directory named after the data file, e.g., _/dev/.dsp/info_.
+
+This file may by used to query the configured parameters and has the following
+structure:
+
+! <oss channels="2" sample_rate="44000" format="16"
+!      queue_size="256" frag_size="1024" frag_avail="256"/>
+
+Each parameter can also be accessed via its own file. The following list
+presents all files:
+
+  * :channels: number of available channels. Set to 2 (stereo).
+
+  * :sample_rate: sample rate of the underlying Audio_out session.
+
+  * :format: sample format, e.g. s16le. Defaults to AFMT_S16_LE.
+
+  * :queue_size: number of packets in the underlying Audio_out session's
+    packet-stream.
+
+  * :frag_size: size of a fragment. Set to 1024 (number of channels times
+    size of Audio_out period times size of s16le sample).
+
+  * :frag_avail: number of available bytes. Initially set to queue size
+    times frag size.
+
+In its current state it is merely enough to use simply applications requiring
+nothing more than a minimal set of the OSSv3 API. It does not allow altering
+of parameters. Therefore it will only work when 44000Hz/s16le is used.
+
+The following config snippets illustrates its configuration:
+
+! <vfs>
+!   <dir name="dev">
+!     <oss name="dsp"/>
+!   </dir>
+! </vfs>
