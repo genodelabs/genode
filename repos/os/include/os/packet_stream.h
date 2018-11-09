@@ -487,7 +487,7 @@ class Genode::Packet_stream_base
 			_ds_local_base(rm.attach(_ds_cap)),
 			_submit_queue_offset(0),
 			_ack_queue_offset(_submit_queue_offset + submit_queue_size),
-			_bulk_buffer_offset(_ack_queue_offset + ack_queue_size)
+			_bulk_buffer_offset(align_addr(_ack_queue_offset + ack_queue_size, 6))
 		{
 			Genode::size_t ds_size = Genode::Dataspace_client(_ds_cap).size();
 
