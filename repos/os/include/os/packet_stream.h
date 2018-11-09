@@ -463,6 +463,7 @@ class Genode::Packet_stream_base
 		Genode::Region_map          &_rm;
 		Genode::Dataspace_capability _ds_cap;
 		void                        *_ds_local_base;
+		void                        *_ds_phys_base;
 
 		Genode::off_t  _submit_queue_offset;
 		Genode::off_t  _ack_queue_offset;
@@ -485,6 +486,7 @@ class Genode::Packet_stream_base
 
 			/* map dataspace locally */
 			_ds_local_base(rm.attach(_ds_cap)),
+			_ds_phys_base((void*)Dataspace_client(_ds_cap).phys_addr()),
 			_submit_queue_offset(0),
 			_ack_queue_offset(_submit_queue_offset + submit_queue_size),
 			_bulk_buffer_offset(_ack_queue_offset + ack_queue_size)
@@ -701,6 +703,20 @@ class Genode::Packet_stream_source : private Packet_stream_base
 		}
 
 		/**
+		 * Get physical address to the content of the specified packet
+		 *
+		 * \return 0 if the packet is invalid
+		 */
+		Content_type *packet_content_phys(Packet_descriptor packet)
+		{
+			if (!packet_valid(packet) || packet.size() < sizeof(Content_type))
+				return 0;
+
+			return (Content_type *)((Genode::addr_t)_ds_phys_base + packet.offset());
+		}
+
+
+		/**
 		 * Return true if submit queue can hold another packet
 		 */
 		bool ready_to_submit()
@@ -870,6 +886,19 @@ class Genode::Packet_stream_sink : private Packet_stream_base
 				return 0;
 
 			return (Content_type *)((Genode::addr_t)_ds_local_base + packet.offset());
+		}
+
+		/**
+		 * Get physical address to the content of the specified packet
+		 *
+		 * \return 0 if the packet is invalid
+		 */
+		Content_type *packet_content_phys(Packet_descriptor packet)
+		{
+			if (!packet_valid(packet) || packet.size() < sizeof(Content_type))
+				return 0;
+
+			return (Content_type *)((Genode::addr_t)_ds_phys_base + packet.offset());
 		}
 
 		/**
