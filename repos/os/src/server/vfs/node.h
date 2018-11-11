@@ -369,7 +369,7 @@ struct Vfs_server::Symlink : Io_node
 	: Io_node(space, link_path, mode, node_io_handler)
 	{
 		assert_openlink(vfs.openlink(link_path, create, &_handle, alloc));
-		_handle->context = &context();
+		_handle->context(&context());
 	}
 
 	~Symlink() { _handle->close(); }
@@ -446,7 +446,7 @@ class Vfs_server::File : public Io_node
 
 			assert_open(vfs.open(file_path, vfs_mode, &_handle, alloc));
 			_leaf_path       = vfs.leaf_path(path());
-			_handle->context = &context();
+			_handle->context(&context());
 		}
 
 		~File() { _handle->close(); }
@@ -499,7 +499,7 @@ struct Vfs_server::Directory : Io_node
 	: Io_node(space, dir_path, READ_ONLY, node_io_handler)
 	{
 		assert_opendir(vfs.opendir(dir_path, create, &_handle, alloc));
-		_handle->context = &context();
+		_handle->context(&context());
 	}
 
 	~Directory() { _handle->close(); }

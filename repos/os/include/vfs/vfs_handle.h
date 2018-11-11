@@ -26,6 +26,13 @@ namespace Vfs{
 
 class Vfs::Vfs_handle
 {
+	public:
+
+		/**
+		 * Opaque handle context
+		 */
+		struct Context { };
+
 	private:
 
 		Directory_service &_ds;
@@ -33,6 +40,7 @@ class Vfs::Vfs_handle
 		Genode::Allocator &_alloc;
 		int                _status_flags;
 		file_size          _seek = 0;
+		Context           *_context = nullptr;
 
 		/*
 		 * Noncopyable
@@ -41,13 +49,6 @@ class Vfs::Vfs_handle
 		Vfs_handle &operator = (Vfs_handle const &);
 
 	public:
-
-		/**
-		 * Opaque handle context
-		 */
-		struct Context : List<Context>::Element { };
-
-		Context *context = nullptr;
 
 		class Guard
 		{
@@ -89,6 +90,8 @@ class Vfs::Vfs_handle
 		Directory_service &ds() { return _ds; }
 		File_io_service   &fs() { return _fs; }
 		Allocator      &alloc() { return _alloc; }
+		void context(Context *context) { _context = context; }
+		Context *context() const { return _context; }
 
 		int status_flags() const { return _status_flags; }
 
@@ -125,7 +128,7 @@ class Vfs::Vfs_watch_handle
 		/**
 		 * Opaque handle context
 		 */
-		struct Context : List<Context>::Element { };
+		struct Context { };
 
 	private:
 

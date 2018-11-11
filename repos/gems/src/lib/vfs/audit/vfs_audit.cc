@@ -87,7 +87,7 @@ class Vfs_audit::File_system : public Vfs::File_system
 			void sync_state()
 			{
 				audit->seek(Vfs_handle::seek());
-				audit->context = context;
+				audit->context(context());
 			}
 
 			Handle(Vfs_audit::File_system &fs,

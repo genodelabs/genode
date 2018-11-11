@@ -369,7 +369,7 @@ struct Lwip::Socket_dir : Lwip::Directory
 			     h; h = h->next())
 			{
 				if (h->kind & mask) {
-					io_handler.handle_io_response(h->context);
+					io_handler.handle_io_response(h->context());
 				}
 			}
 		}
@@ -1609,7 +1609,7 @@ class Lwip::File_system final : public Vfs::File_system
 				udp_dir.notify();
 
 				nameserver_handles.for_each([&] (Lwip_nameserver_handle &h) {
-					io_handler.handle_io_response(h.context); });
+					io_handler.handle_io_response(h.context()); });
 			}
 
 			Vfs_netif(Vfs::Env &vfs_env,

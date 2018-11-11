@@ -314,7 +314,7 @@ class Vfs::Dir_file_system : public File_system
 					vfs_handle.seek(index * sizeof(Dirent));
 
 					/* forward the handle context */
-					vfs_handle.context = dir_vfs_handle->context;
+					vfs_handle.context(dir_vfs_handle->context());
 
 					result = vfs_handle.fs().queue_read(&vfs_handle, sizeof(Dirent));
 				}
@@ -951,7 +951,7 @@ class Vfs::Dir_file_system : public File_system
 
 			auto f = [&result, dir_vfs_handle] (Dir_vfs_handle::Subdir_handle_element &e) {
 				/* forward the handle context */
-				e.vfs_handle.context = dir_vfs_handle->context;
+				e.vfs_handle.context(dir_vfs_handle->context());
 				e.synced = false;
 
 				if (!e.vfs_handle.fs().queue_sync(&e.vfs_handle)) {

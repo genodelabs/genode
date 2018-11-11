@@ -78,7 +78,8 @@ struct Noux::Vfs_dataspace
 				return;
 
 			Vfs_handle_context read_context;
-			file->context = &read_context;
+			Vfs::Vfs_handle::Guard guard(file);
+			file->context(&read_context);
 
 			ds = ram.alloc(stat_out.size);
 
@@ -124,7 +125,6 @@ struct Noux::Vfs_dataspace
 			}
 
 			rm.detach(addr);
-			root_dir.close(file);
 		}
 	}
 

@@ -44,15 +44,15 @@ class Vfs::Terminal_file_system : public Single_file_system
 		{
 			Genode::Entrypoint  &_ep;
 			Io_response_handler &_io_handler;
-			Vfs_handle::Context *_context = nullptr;
+			Vfs_handle          *_handle = nullptr;
 
 			Post_signal_hook(Genode::Entrypoint &ep,
 			                 Io_response_handler &io_handler)
 			: _ep(ep), _io_handler(io_handler) { }
 
-			void arm(Vfs_handle::Context *context)
+			void arm(Vfs_handle &handle)
 			{
-				_context = context;
+				_handle = &handle;
 				_ep.schedule_post_signal_hook(this);
 			}
 
@@ -65,8 +65,8 @@ class Vfs::Terminal_file_system : public Single_file_system
 				 *     this object in a signal handler.
 				 */
 
-				_io_handler.handle_io_response(_context);
-				_context = nullptr;
+				_io_handler.handle_io_response(_handle ? _handle->context() : nullptr);
+				_handle = nullptr;
 			}
 
 			private:
@@ -88,7 +88,7 @@ class Vfs::Terminal_file_system : public Single_file_system
 		void _handle_read_avail()
 		{
 			_handle_registry.for_each([this] (Registered_handle &h) {
-				_post_signal_hook.arm(h.context);
+				_post_signal_hook.arm(h);
 			});
 		}
 

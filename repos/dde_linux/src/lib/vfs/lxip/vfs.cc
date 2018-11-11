@@ -380,7 +380,7 @@ static void poll_all()
 	{
 		Vfs::Lxip_vfs_file_handle *handle = le->object();
 		if (handle->file)
-			handle->file->poll(true, handle->context);
+			handle->file->poll(true, handle->context());
 	}
 }
 
