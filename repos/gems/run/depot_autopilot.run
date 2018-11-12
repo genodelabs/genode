@@ -513,6 +513,16 @@ proc prepare_to_run_genode { } {
 ##################
 
 #
+# Check platform support
+#
+if {[expr ![have_spec x86] && \
+          ![have_spec arm_v7a] ]} \
+{
+	puts "\n Run script is not supported on this platform. \n";
+	exit 0
+}
+
+#
 # Compose the test_pkgs list from a list of available test packages by
 # applying the single_test_pkg variable.
 #
