@@ -1,0 +1,96 @@
+<runtime ram="100M" caps="1000" binary="init">
+
+	<requires> <timer/> </requires>
+
+	<events>
+		<timeout meaning="failed" sec="240" />
+		<log meaning="succeeded">child "recv" exited with exit value 0</log>
+	</events>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="libc.lib.so"/>
+		<rom label="libm.lib.so"/>
+		<rom label="posix.lib.so"/>
+		<rom label="vfs.lib.so"/>
+		<rom label="vfs_lxip.lib.so"/>
+		<rom label="lxip.lib.so"/>
+		<rom label="nic_bridge"/>
+		<rom label="nic_loopback"/>
+		<rom label="test-tcp"/>
+	</content>
+
+	<config verbose="yes">
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="IRQ"/>
+			<service name="IO_MEM"/>
+			<service name="IO_PORT"/>
+			<service name="PD"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="LOG"/>
+			<service name="Timer"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<default caps="256"/>
+		<start name="nic_loopback">
+			<resource name="RAM" quantum="1M"/>
+			<provides> <service name="Nic"/> </provides>
+		</start>
+		<start name="nic_bridge">
+			<resource name="RAM" quantum="10M"/>
+			<provides><service name="Nic"/></provides>
+			<config verbose="no">
+				<policy label_prefix="recv" ip_addr="192.168.1.1" />
+				<policy label_prefix="send" ip_addr="192.168.1.2" />
+			</config>
+			<route>
+				<service name="Nic"> <child name="nic_loopback"/> </service>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
+		</start>
+
+		<start name="recv">
+			<binary name="test-tcp"/>
+			<resource name="RAM" quantum="32M"/>
+			<config>
+				<arg value="recv"/>
+				<libc stdout="/log" stderr="/log" socket="/sockets"/>
+				<vfs>
+					<log/>
+					<dir name="sockets">
+						<lxip ip_addr="192.168.1.1" netmask="255.255.255.0"/>
+					</dir>
+				</vfs>
+			</config>
+			<route>
+				<service name="Nic"> <child name="nic_bridge"/> </service>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
+		</start>
+
+		<start name="send">
+			<binary name="test-tcp"/>
+			<resource name="RAM" quantum="32M"/>
+			<config>
+				<arg value="send"/>
+				<arg value="192.168.1.1"/>
+				<libc stdout="/log" stderr="/log" socket="/sockets"/>
+				<vfs>
+					<log/>
+					<dir name="sockets">
+						<lxip ip_addr="192.168.1.2" netmask="255.255.255.0"/>
+					</dir>
+				</vfs>
+			</config>
+			<route>
+				<service name="Nic"> <child name="nic_bridge"/> </service>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
+		</start>
+
+	</config>
+</runtime>
