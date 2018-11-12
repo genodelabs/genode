@@ -1,0 +1,29 @@
+<runtime ram="32M" caps="1000" binary="init">
+
+	<events>
+		<timeout meaning="failed" sec="10" />
+		<log meaning="succeeded">child "test-magic_ring_buffer" exited with exit value 0</log>
+		<log meaning="failed">Error: </log>
+	</events>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="test-magic_ring_buffer"/>
+	</content>
+
+	<config>
+		<parent-provides>
+			<service name="CPU"/>
+			<service name="LOG"/>
+			<service name="PD"/>
+			<service name="RM"/>
+			<service name="ROM"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> </any-service>
+		</default-route>
+		<start name="test-magic_ring_buffer" caps="64">
+			<resource name="RAM" quantum="2M"/>
+		</start>
+	</config>
+</runtime>
