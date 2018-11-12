@@ -71,6 +71,7 @@ set avail_test_pkgs {
 	test-nic_loopback
 	test-part_blk_gpt
 	test-part_blk_mbr
+	test-pipe
 	test-pthread
 	test-python
 	test-ram_fs_chunk
