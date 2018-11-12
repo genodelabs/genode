@@ -16,13 +16,12 @@ BASE_SRC_INCLUDE := src/include/base/internal/crt0.h \
 
 src/include:
 	mkdir -p $@/base/internal
-	cp -r $(GENODE_DIR)/repos/base-nova/$@ $(dir $@)
 	for file in $(BASE_SRC_INCLUDE); do \
 		cp $(GENODE_DIR)/repos/base/$$file $$file; \
 	done
 
 MIRROR_FROM_PORT_DIR := lib/mk/seoul_libc_support.mk \
-                        include/vmm
+                        include/vmm/types.h
 
 content: $(MIRROR_FROM_PORT_DIR)
 
@@ -39,17 +38,7 @@ $(MIRROR_FROM_LIBPORTS):
 	mkdir -p $(dir $@)
 	cp -r $(GENODE_DIR)/repos/libports/$@ $(dir $@)
 
-MIRROR_FROM_BASE_NOVA := lib/mk/base-nova-common.mk \
-                         lib/mk/base-nova.mk \
-                         lib/mk/spec/x86_32/startup-nova.mk \
-                         lib/mk/spec/x86_64/startup-nova.mk \
-                         src/lib/base
-
-content: $(MIRROR_FROM_BASE_NOVA)
-
-$(MIRROR_FROM_BASE_NOVA):
-	mkdir -p $(dir $@)
-	cp -r $(GENODE_DIR)/repos/base-nova/$@ $(dir $@)
+content:
 
 MIRROR_FROM_BASE := lib/mk/cxx.mk
 

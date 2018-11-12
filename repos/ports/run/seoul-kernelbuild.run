@@ -7,7 +7,7 @@
 # It assumes that the module files are present at '<build-dir>/bin/'
 #
 
-assert_spec nova
+assert_spec x86
 
 if {[have_include power_on/qemu]} {
 	puts "\nAuto test running on Qemu is not recommended.\n"

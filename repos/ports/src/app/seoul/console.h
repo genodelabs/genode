@@ -38,10 +38,12 @@
 /* local includes */
 #include "keyboard.h"
 #include "synced_motherboard.h"
+#include "guest_memory.h"
 
 namespace Seoul {
 	class Console;
 	using Genode::Pixel_rgb565;
+	using Genode::Dataspace_capability;
 }
 
 class Seoul::Console : public StaticReceiver<Seoul::Console>
@@ -53,9 +55,13 @@ class Seoul::Console : public StaticReceiver<Seoul::Console>
 		Synced_motherboard           &_motherboard;
 		Framebuffer::Session         &_framebuffer;
 		Input::Session_client        &_input;
-		Genode::Dataspace_capability  _guest_fb_ds;
-		Framebuffer::Mode             _fb_mode;
-		size_t                        _fb_size;
+		Seoul::Guest_memory          &_memory;
+		Dataspace_capability const    _fb_ds;
+		Framebuffer::Mode    const    _fb_mode;
+		size_t               const    _fb_size;
+		Dataspace_capability const    _fb_vm_ds;
+		Genode::addr_t       const    _fb_vm_mapping;
+		Genode::addr_t       const    _vm_phys_fb;
 		short                        *_pixels;
 		Genode::Surface<Pixel_rgb565> _surface;
 		Keyboard                      _vkeyb    { _motherboard };
@@ -83,6 +89,10 @@ class Seoul::Console : public StaticReceiver<Seoul::Console>
 
 	public:
 
+		Genode::addr_t attached_framebuffer() const { return _fb_vm_mapping; }
+		Genode::addr_t framebuffer_size()     const { return _fb_size; }
+		Genode::addr_t vm_phys_framebuffer()  const { return _vm_phys_fb; }
+
 		/* bus callbacks */
 		bool receive(MessageConsole &);
 		bool receive(MessageMemRegion &);
@@ -93,8 +103,9 @@ class Seoul::Console : public StaticReceiver<Seoul::Console>
 		/**
 		 * Constructor
 		 */
-		Console(Genode::Env &env, Synced_motherboard &, Motherboard &,
-		        Nitpicker::Connection &, Genode::Dataspace_capability fb_ds);
+		Console(Genode::Env &env, Genode::Allocator &alloc,
+		        Synced_motherboard &, Motherboard &,
+		        Nitpicker::Connection &, Seoul::Guest_memory &);
 };
 
 #endif /* _CONSOLE_H_ */

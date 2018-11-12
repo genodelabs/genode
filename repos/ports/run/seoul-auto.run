@@ -7,10 +7,16 @@
 # It assumes that the module files are present at '<build-dir>/bin/'
 #
 
-assert_spec nova
+assert_spec x86
 
 if { [get_cmd_switch --autopilot] && ![have_include "power_on/qemu"] && [have_spec x86_32] } {
 	puts "Run script does not support autopilot mode on 32 bit"
+	exit 0
+}
+
+if {[have_spec foc] || [have_spec sel4] || [have_spec nova]} {
+} else {
+	puts "\n Run script is not supported on this platform. \n";
 	exit 0
 }
 
@@ -34,6 +40,11 @@ set use_top           0
 set memory_vmm_vm     "128M"
 
 set vcpus_to_be_used  2
+
+if {[have_spec sel4]} {
+	# The seL4 kernel dies with an exception XXX
+	set vcpus_to_be_used  1
+}
 
 set multiboot_files {
 		<rom name="munich"/>
@@ -64,7 +75,11 @@ append qemu_args " -cpu phenom "
 append qemu_args " -net nic,model=e1000 "
 append qemu_args " -nographic "
 
-run_genode_until {\[init -\> seoul\] VMM: #   Hello Genode world!} 300
+if { [get_cmd_switch --autopilot] } {
+	run_genode_until {\[init -\> seoul\] VMM: #   Hello Genode world!} 300
+} else {
+	run_genode_until forever
+}
 
 foreach binary $guest_os_binaries {
 	exec rm -f bin/$binary

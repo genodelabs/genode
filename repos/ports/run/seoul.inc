@@ -1,5 +1,5 @@
 #
-# \brief  Using Vancouver/Seoul on Genode
+# \brief  Using Seoul on Genode
 # \author Norman Feske
 # \author Markus Partheymueller
 # \author Alexander Boettcher
@@ -14,12 +14,31 @@ import_from_depot [depot_user]/src/[base_src] \
 # Build
 #
 
-if {![have_spec nova]} {
-	puts "\nSeoul is solely supported on NOVA.\n"
-	exit 0
+assert_spec x86
+
+set rdtsc_exit "no"
+set map_small  "no"
+
+if {[have_spec sel4]} {
+	set map_small  "yes"
+	set rdtsc_exit "yes"
+
+	# seL4 has no AMD SVM support
+	if {[have_include "power_on/qemu"]} {
+		puts "\n Run script is not supported on this platform. \n";
+		exit 0
+	}
 }
 
-assert_spec acpi
+if {[have_spec foc]} {
+	set rdtsc_exit yes
+
+	# Qemu SVM has no EPT support
+	if {[have_include "power_on/qemu"]} {
+		puts "\n Run script is not supported on this platform. \n";
+		exit 0
+	}
+}
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
 # override defaults of platform_drv.inc
@@ -52,8 +71,8 @@ build $build_components
 
 # write Seoul config file
 set vm_cfg_fd [open "bin/vm_seoul.cfg" w]
-puts $vm_cfg_fd {<config colocate="1" >
-	<machine>
+puts $vm_cfg_fd "<config map_small=\"$map_small\" exit_on_rdtsc=\"$rdtsc_exit\">"
+puts $vm_cfg_fd {	 <machine>
 		<mem start="0x0" end="0x9a000"/>
 		<mem start="0x100000" end="0xfffff000"/>
 		<!--<ioio/>-->
@@ -151,6 +170,7 @@ append config {
 		<service name="PD"/>
 		<service name="RM"/>
 		<service name="CPU"/>
+		<service name="VM"/>
 		<service name="LOG"/>}
 
 append_if $use_top config {
@@ -234,20 +254,24 @@ append_if [expr $use_nic_session && $use_nic_bridge] config {
 }
 
 append_if $use_framebuffer config {
-	<start name="fb_drv" priority="-1" caps="120">
+	<start name="fb_drv" priority="-1" caps="130">
 		<resource name="RAM" quantum="8M"/>
 		<provides><service name="Framebuffer"/></provides>
 		<route>
 			<service name="Timer"><child name="timer"/></service>
 			<service name="Platform"><any-child/></service>
 			<any-service><parent/></any-service>
-		</route>
-		<config width="1280" height="1024" depth="16" buffered="yes"/>
+		</route>}
+append_if [expr $use_framebuffer &&  [have_include "power_on/qemu"]] config {
+		<config width="1280" height="960" depth="16" buffered="yes"/>}
+append_if [expr $use_framebuffer && ![have_include "power_on/qemu"]] config {
+		<config buffered="yes"/>}
+append_if $use_framebuffer config {
 	</start> }
 
 if {!$use_fancy_stuff} {
 append config {
-	<start name="seoul" priority="-3" caps="200" ld="no">
+	<start name="seoul" priority="-3" caps="400">
 		<binary name="seoul"/>}
 append config "
 		<resource name=\"RAM\" quantum=\"$memory_vmm_vm\"/>"
@@ -260,6 +284,7 @@ append_if [expr $use_nic_session && !$use_nic_bridge] config {
 			<service name="Nic"> <child name="nic_drv"/> </service>}
 append_if $use_genode_iso config {
 			<service name="ROM" unscoped_label="seoul"> <parent/> </service>
+			<service name="ROM" unscoped_label="ld.lib.so"> <parent/> </service>
 			<service name="ROM" label="vm_seoul.cfg"> <parent/> </service>
 			<service name="ROM" label="platform_info"> <parent/> </service>
 			<service name="ROM"><child name="iso9660"/></service>}
@@ -281,7 +306,7 @@ append_if $use_usb config {
 	</start>}
 
 append config {
-	<start name="nitpicker" priority="-1">
+	<start name="nitpicker" priority="-1" caps="120">
 		<resource name="RAM" quantum="8M"/>
 		<config>
 			<report focus="yes" />
@@ -314,7 +339,7 @@ append config {
 	</start>
 
 	<start name="pointer">
-		<resource name="RAM" quantum="1M"/>
+		<resource name="RAM" quantum="2M"/>
 	</start>
 
 	<start name="report_rom">
@@ -323,6 +348,12 @@ append config {
 		<config>
 			<policy label="status_bar -> focus" report="nitpicker -> focus"/>
 		</config>
+	</start>}
+
+append_if $use_top config {
+	<start name="top">
+		<resource name="RAM" quantum="2M"/>
+		<config period_ms="10000"/>
 	</start>}
 
 append_if $use_fancy_stuff config {
@@ -340,12 +371,6 @@ append_if $use_fancy_stuff config {
 			<service name="Nic"><child name="nic_bridge"/></service>
 			<any-service><parent/><any-child/></any-service>
 		</route>
-	</start>}
-
-append_if $use_top config {
-	<start name="top">
-		<resource name="RAM" quantum="2M"/>
-		<config period_ms="10000"/>
 	</start>}
 
 append config {
@@ -376,9 +401,10 @@ if {$use_fancy_stuff} {
 				<service name="Nic"/>
 				<service name="Block"/>
 				<service name="Rtc"/>
+				<service name="VM"/>
 			</parent-provides>
 
-			<start name="seoul" priority="-1" caps="200" ld="no">
+			<start name="seoul" priority="-1" caps="200">
 				<binary name="seoul"/>
 				<resource name="RAM" quantum="256M"/>
 				<route>

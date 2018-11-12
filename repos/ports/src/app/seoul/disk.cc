@@ -24,9 +24,6 @@
 #include <block_session/connection.h>
 #include <base/heap.h>
 
-/* VMM utility includes */
-#include <vmm/utcb_guard.h>
-
 /* local includes */
 #include "disk.h"
 
@@ -156,9 +153,6 @@ void Seoul::Disk::handle_disk(unsigned disknr)
 
 bool Seoul::Disk::receive(MessageDisk &msg)
 {
-	static Vmm::Utcb_guard::Utcb_backup utcb_backup;
-	Vmm::Utcb_guard guard(utcb_backup);
-
 	if (msg.disknr >= MAX_DISKS)
 		Logging::panic("You configured more disks than supported.\n");
 

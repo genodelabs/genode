@@ -1,11 +1,11 @@
 /*
- * \brief  Environment expected by the Vancouver code
+ * \brief  Environment expected by the Seoul code
  * \author Norman Feske
  * \date   2011-11-18
  */
 
 /*
- * Copyright (C) 2011-2017 Genode Labs GmbH
+ * Copyright (C) 2011-2019 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -19,10 +19,7 @@
 #include <base/sleep.h>
 #include <base/thread.h>
 
-/* VMM utils */
-#include <vmm/utcb_guard.h>
-
-/* NOVA userland includes */
+/* Seoul userland includes */
 #include <service/logging.h>
 #include <service/memory.h>
 
@@ -32,14 +29,7 @@ static
 void vprintf(const char *format, va_list &args)
 {
 	using namespace Genode;
-	typedef Vmm::Utcb_guard::Utcb_backup Utcb_backup;
-
-	static Lock lock;
-	static Utcb_backup utcb_backup;
 	static char buf[Log_session::MAX_STRING_LEN-4];
-
-	Lock::Guard guard(lock);
-	utcb_backup = *(Utcb_backup *)Thread::myself()->utcb();
 
 	String_console sc(buf, sizeof(buf));
 	sc.vprintf(format, args);
@@ -48,8 +38,6 @@ void vprintf(const char *format, va_list &args)
 	if (0 < n && buf[n-1] == '\n') n--;
 
 	log("VMM: ", Cstring(buf, n));
-
-	*(Utcb_backup *)Thread::myself()->utcb() = utcb_backup;
 }
 
 void Logging::printf(const char *format, ...)

@@ -1,30 +1,19 @@
 /*
- * \brief  Vancouver main program for Genode
+ * \brief  Seoul component for Genode
+ * \author Alexander Boettcher
  * \author Norman Feske
  * \author Markus Partheymueller
  * \date   2011-11-18
- *
- * Important remark about debugging output:
- *
- * Most of the code within this file is called during virtualization event
- * handling. NOVA's virtualization fault mechanism carries information about
- * the fault cause and fault resolution in the UTCB of the VCPU handler EC.
- * Consequently, the code involved in the fault handling is expected to
- * preserve the UTCB content. I.e., it must not involve the use of IPC, which
- * employs the UTCB to carry IPC payload. Because Genode's debug-output macros
- * use the remote LOG service via IPC as back end, those macros must not be
- * used directly. Instead, the 'Logging::printf' function should be used, which
- * takes care about saving and restoring the UTCB.
  */
 
 /*
- * Copyright (C) 2011-2017 Genode Labs GmbH
+ * Copyright (C) 2011-2019 Genode Labs GmbH
  * Copyright (C) 2012 Intel Corporation
  *
  * This file is distributed under the terms of the GNU General Public License
  * version 2.
  *
- * The code is partially based on the Vancouver VMM, which is distributed
+ * The code is partially based on the Seoul/Vancouver VMM, which is distributed
  * under the terms of the GNU General Public License version 2.
  *
  * Modifications by Intel Corporation are contributed under the terms and
@@ -43,25 +32,20 @@
 #include <util/touch.h>
 #include <util/misc_math.h>
 
+#include <vm_session/connection.h>
+#include <cpu/vm_state.h>
+
 /* os includes */
 #include <nic_session/connection.h>
 #include <nic/packet_allocator.h>
 #include <rtc_session/connection.h>
 #include <timer_session/connection.h>
 
-/* VMM utilities includes */
-#include <vmm/guest_memory.h>
-#include <vmm/vcpu_thread.h>
-#include <vmm/vcpu_dispatcher.h>
-#include <vmm/utcb_guard.h>
+#include <vmm/types.h>
 
-/* NOVA includes that come with Genode */
-#include <nova/syscalls.h>
-
-/* NOVA userland includes */
+/* Seoul includes as used by NOVA userland (NUL) */
 #include <nul/vcpu.h>
 #include <nul/motherboard.h>
-#include <sys/hip.h>
 
 /* utilities includes */
 #include <service/time.h>
@@ -73,21 +57,13 @@
 #include "console.h"
 #include "network.h"
 #include "disk.h"
+#include "state.h"
+#include "guest_memory.h"
 
 
 enum { verbose_debug = false };
 enum { verbose_npt   = false };
 enum { verbose_io    = false };
-
-typedef Vmm::Utcb_guard::Utcb_backup Utcb_backup;
-
-static Utcb_backup utcb_backup;
-
-Genode::Lock *utcb_lock()
-{
-	static Genode::Lock inst;
-	return &inst;
-}
 
 
 using Genode::Attached_rom_dataspace;
@@ -158,164 +134,229 @@ class Timeouts
 };
 
 
-/**
- * Representation of guest memory
- *
- * The VMM and the guest share the same PD. However, the guest's view on the PD
- * is restricted to the guest-physical-to-VMM-local mappings installed by the
- * VMM for the VCPU's EC.
- *
- * The guest memory is shadowed at the lower portion of the VMM's address
- * space. If the guest (the VCPU EC) tries to access a page that has no mapping
- * in the VMM's PD, NOVA does not generate a page-fault (which would be
- * delivered to the pager of the VMM, i.e., core) but it produces a NPT
- * virtualization event handled locally by the VMM. The NPT event handler is
- * the '_svm_npt' function.
- */
-class Guest_memory
+class Vcpu : public StaticReceiver<Vcpu>
 {
+
 	private:
 
-		Genode::Env                      &_env;
-		Genode::Ram_dataspace_capability  _ds;
-		Genode::Ram_dataspace_capability  _fb_ds;
+		Genode::Vm_connection              &_vm_con;
+		Genode::Vm_handler<Vcpu>            _handler;
+		bool const                          _vmx;
+		bool const                          _svm;
+		bool const                          _map_small;
+		bool const                          _rdtsc_exit;
+		Genode::Vm_session_client::Vcpu_id  _id;
+		Genode::Attached_dataspace          _state_ds;
+		Genode::Vm_state                   &_state;
 
-		Genode::size_t const _backing_store_size;
-		Genode::size_t const _fb_size;
+		Seoul::Guest_memory                &_guest_memory;
+		Synced_motherboard                 &_motherboard;
+		Genode::Synced_interface<VCpu>      _vcpu;
 
-		Genode::addr_t _local_addr;
-		Genode::addr_t _fb_addr;
+		CpuState                            _seoul_state { };
 
-		/*
-		 * Noncopyable
-		 */
-		Guest_memory(Guest_memory const &);
-		Guest_memory &operator = (Guest_memory const &);
+		Genode::Semaphore                   _block { 0 };
 
 	public:
 
-		/**
-		 * Number of bytes that are available to the guest
-		 *
-		 * At startup time, some device models (i.e., the VGA controller) claim
-		 * a bit of guest-physical memory for their respective devices (i.e.,
-		 * the virtual frame buffer) by calling 'OP_ALLOC_FROM_GUEST'. This
-		 * function allocates such blocks from the end of the backing store.
-		 * The 'remaining_size' contains the number of bytes left at the lower
-		 * part of the backing store for the use as  normal guest-physical RAM.
-		 * It is initialized with the actual backing store size and then
-		 * managed by the 'OP_ALLOC_FROM_GUEST' handler.
-		 */
-		Genode::size_t remaining_size;
-
-		/**
-		 * Constructor
-		 *
-		 * \param backing_store_size  number of bytes of physical RAM to be
-		 *                            used as guest-physical and device memory,
-		 *                            allocated from core's RAM service
-		 */
-		Guest_memory(Genode::Env &env, Genode::size_t backing_store_size,
-		             Genode::size_t fb_size)
+		Vcpu(Genode::Entrypoint &ep,
+		     Genode::Vm_connection &vm_con,
+		     Genode::Allocator &alloc, Genode::Env &env,
+		     Genode::Lock &vcpu_lock, VCpu *unsynchronized_vcpu,
+		     Seoul::Guest_memory &guest_memory, Synced_motherboard &motherboard,
+		     bool vmx, bool svm, bool map_small, bool rdtsc)
 		:
-			_env(env),
-			_ds(env.ram().alloc(backing_store_size-fb_size)),
-			_fb_ds(env.ram().alloc(fb_size)),
-			_backing_store_size(backing_store_size),
-			_fb_size(fb_size),
-			_local_addr(0),
-			_fb_addr(0),
-			remaining_size(backing_store_size-fb_size)
-		{
-			try {
-				/* reserve some contiguous memory region */
-				Genode::Rm_connection rm_conn(env);
-				Genode::Region_map_client rm(rm_conn.create(_backing_store_size));
-				Genode::addr_t const local_addr = env.rm().attach(rm.dataspace());
-				env.rm().detach(local_addr);
-				/*
-				 * RAM used as backing store for guest-physical memory
-				 */
-				env.rm().attach_executable(_ds, local_addr);
-				_local_addr = local_addr;
+			_vm_con(vm_con),
+			_handler(ep, *this, &Vcpu::_handle_vm_exception,
+			         vmx ? &Vcpu::exit_config_intel :
+			         svm ? &Vcpu::exit_config_amd : nullptr),
+			_vmx(vmx), _svm(svm), _map_small(map_small), _rdtsc_exit(rdtsc),
+			/* construct vcpu */
+			_id(_vm_con.with_upgrade([&]() {
+				return _vm_con.create_vcpu(alloc, env, _handler);
+			})),
+			/* get state of vcpu */
+			_state_ds(env.rm(), _vm_con.cpu_state(_id)),
+			_state(*_state_ds.local_addr<Genode::Vm_state>()),
 
-				Genode::addr_t const fb_addr = local_addr + remaining_size;
-				env.rm().attach_at(_fb_ds, fb_addr);
-				_fb_addr = fb_addr;
+			_guest_memory(guest_memory),
+			_motherboard(motherboard),
+			_vcpu(vcpu_lock, unsynchronized_vcpu)
+		{
+			if (!_svm && !_vmx)
+				Logging::panic("no SVM/VMX available, sorry");
+
+			_seoul_state.clear();
+
+			/* handle cpuid overrides */
+			unsynchronized_vcpu->executor.add(this, receive_static<CpuMessage>);
+
+			/* let vCPU run */
+			_vm_con.run(id());
+		}
+
+		Genode::Vm_session_client::Vcpu_id id() const { return _id; }
+
+		void block() { _block.down(); }
+		void unblock() { _block.up(); }
+
+		void recall() { _vm_con.pause(id()); }
+
+		void _handle_vm_exception()
+		{
+			unsigned const exit = _state.exit_reason;
+
+			if (_svm) {
+				switch (exit) {
+				case 0x00 ... 0x1f: _svm_cr(); break;
+				case 0x62: _irqwin(); break;
+				case 0x64: _irqwin(); break;
+				case 0x6e: _svm_rdtsc(); break;
+				case 0x72: _svm_cpuid(); break;
+				case 0x78: _svm_hlt(); break;
+				case 0x7b: _svm_ioio(); break;
+				case 0x7c: _svm_msr(); break;
+				case 0x7f: _triple(); break;
+				case 0xfd: _svm_invalid(); break;
+				case 0xfc: _svm_npt(); break;
+				case 0xfe: _svm_startup(); break;
+				case 0xff: _recall(); break;
+				default:
+					Genode::error(__func__, " exit=", Genode::Hex(exit));
+					/* no resume */
+					return;
+				}
 			}
-			catch (Genode::Region_map::Region_conflict) {
-				Genode::error("region conflict"); }
+			if (_vmx) {
+				switch (exit) {
+				case 0x02: _triple(); break;
+				case 0x03: _vmx_init(); break;
+				case 0x07: _irqwin(); break;
+				case 0x0a: _vmx_cpuid(); break;
+				case 0x0c: _vmx_hlt(); break;
+				case 0x10: _vmx_rdtsc(); break;
+				case 0x12: _vmx_vmcall(); break;
+				case 0x1c: _vmx_mov_crx(); break;
+				case 0x1e: _vmx_ioio(); break;
+				case 0x1f: _vmx_msr_read(); break;
+				case 0x20: _vmx_msr_write(); break;
+				case 0x21: _vmx_invalid(); break;
+				case 0x28: _vmx_pause(); break;
+				case 0x30: _vmx_ept(); break;
+				case 0xfe: _vmx_startup(); break;
+				case 0xff: _recall(); break;
+				default:
+					Genode::error(__func__, " exit=", Genode::Hex(exit));
+					/* no resume */
+					return;
+				}
+			}
+
+			/* resume */
+			_vm_con.run(id());
+
 		}
 
-		~Guest_memory()
+		void exit_config_intel(Genode::Vm_state &state, unsigned exit)
 		{
-			/* detach and free backing store */
-			_env.rm().detach((void *)_local_addr);
-			_env.ram().free(_ds);
+			CpuState dummy_state;
+			unsigned mtd = 0;
 
-			_env.rm().detach((void *)_fb_addr);
-			_env.ram().free(_fb_ds);
+			/* touch the register state required for the specific vm exit */
+
+			switch (exit) {
+			case 0x02: /* _triple */
+				mtd = MTD_ALL;
+				break;
+			case 0x03: /* _vmx_init */
+				mtd = MTD_ALL;
+				break;
+			case 0x07: /* _vmx_irqwin */
+				mtd = MTD_IRQ;
+				break;
+			case 0x0a: /* _vmx_cpuid */
+				mtd = MTD_RIP_LEN | MTD_GPR_ACDB | MTD_STATE;
+				break;
+			case 0x0c: /* _vmx_hlt */
+				mtd = MTD_RIP_LEN | MTD_IRQ;
+				break;
+			case 0x10: /* _vmx_rdtsc */
+				mtd = MTD_RIP_LEN | MTD_GPR_ACDB | MTD_TSC | MTD_STATE;
+				break;
+			case 0x12: /* _vmx_vmcall */
+				mtd = MTD_RIP_LEN | MTD_GPR_ACDB;
+				break;
+			case 0x1c: /* _vmx_mov_crx */
+				mtd = MTD_ALL;
+				break;
+			case 0x1e: /* _vmx_ioio */
+				mtd = MTD_RIP_LEN | MTD_QUAL | MTD_GPR_ACDB | MTD_STATE | MTD_RFLAGS;
+				break;
+			case 0x28: /* _vmx_pause */
+				mtd = MTD_RIP_LEN | MTD_STATE;
+				break;
+			case 0x1f: /* _vmx_msr_read */
+			case 0x20: /* _vmx_msr_write */
+				mtd = MTD_RIP_LEN | MTD_GPR_ACDB | MTD_TSC | MTD_SYSENTER | MTD_STATE;
+				break;
+			case 0x21: /* _vmx_invalid */
+			case 0x30: /* _vmx_ept */
+			case 0xfe: /* _vmx_startup */
+				mtd = MTD_ALL;
+				break;
+			case 0xff: /* _recall */
+				mtd = MTD_IRQ | MTD_RIP_LEN | MTD_GPR_ACDB | MTD_GPR_BSD;
+				break;
+			default:
+//				mtd = MTD_RIP_LEN;
+				break;
+			}
+
+			Seoul::write_vm_state(dummy_state, mtd, state);
 		}
 
-		/**
-		 * Return pointer to locally mapped backing store
-		 */
-		char *backing_store_local_base()
+		void exit_config_amd(Genode::Vm_state &state, unsigned exit)
 		{
-			return reinterpret_cast<char *>(_local_addr);
+			CpuState dummy_state;
+			unsigned mtd = 0;
+
+			/* touch the register state required for the specific vm exit */
+
+			switch (exit) {
+			case 0x00 ... 0x1f: /* _svm_cr */
+				mtd = MTD_RIP_LEN | MTD_CS_SS | MTD_GPR_ACDB | MTD_GPR_BSD | MTD_CR;
+				break;
+			case 0x72: /* _svm_cpuid */
+				mtd = MTD_RIP_LEN | MTD_GPR_ACDB | MTD_IRQ;
+				break;
+			case 0x78: /* _svm_hlt */
+				mtd = MTD_RIP_LEN | MTD_IRQ;
+				break;
+			case 0xff: /*_recall */
+			case 0x62: /* _irqwin - SMI */
+			case 0x64: /* _irqwin */
+				mtd = MTD_IRQ;
+				break;
+			case 0x6e: /* _svm_rdtsc */
+				mtd = MTD_RIP_LEN | MTD_GPR_ACDB | MTD_TSC | MTD_STATE;
+				break;
+			case 0x7b: /* _svm_ioio */
+				mtd = MTD_RIP_LEN | MTD_QUAL | MTD_GPR_ACDB | MTD_STATE;
+				break;
+			case 0x7c: /* _svm_msr, MTD_ALL */
+			case 0x7f: /* _triple, MTD_ALL */
+			case 0xfd: /* _svm_invalid, MTD_ALL */
+			case 0xfc: /*_svm_npt, MTD_ALL */
+			case 0xfe: /*_svm_startup, MTD_ALL */
+				mtd = MTD_ALL;
+				break;
+			default:
+//				mtd = MTD_RIP_LEN;
+				break;
+			}
+
+			Seoul::write_vm_state(dummy_state, mtd, state);
 		}
-
-		Genode::size_t backing_store_size()
-		{
-			return _backing_store_size;
-		}
-
-		/**
-		 * Return pointer to lo locally mapped fb backing store
-		 */
-		char *backing_store_fb_local_base()
-		{
-			return reinterpret_cast<char *>(_fb_addr);
-		}
-
-		Genode::size_t fb_size() { return _fb_size; }
-
-		Genode::Dataspace_capability fb_ds() { return _fb_ds; }
-};
-
-
-typedef Vmm::Vcpu_dispatcher<Genode::Thread> Vcpu_handler;
-
-class Vcpu_dispatcher : public Vcpu_handler,
-                        public StaticReceiver<Vcpu_dispatcher>
-{
-	private:
-
-		/**
-		 * Pointer to corresponding VCPU model
-		 */
-		Genode::Synced_interface<VCpu> _vcpu;
-
-		Vmm::Vcpu_thread *_vcpu_thread;
-
-		/**
-		 * Guest-physical memory
-		 */
-		Guest_memory &_guest_memory;
-
-		/**
-		 * Motherboard representing the inter-connections of all device models
-		 */
-		Synced_motherboard &_motherboard;
-
-
-		/***************
-		 ** Shortcuts **
-		 ***************/
-
-		static ::Utcb *_utcb_of_myself() {
-			return (::Utcb *)Genode::Thread::myself()->utcb(); }
-
 
 		/***********************************
 		 ** Virtualization event handlers **
@@ -340,9 +381,10 @@ class Vcpu_dispatcher : public Vcpu_handler,
 
 		void _handle_vcpu(Skip skip, CpuMessage::Type type)
 		{
-			Utcb *utcb = _utcb_of_myself();
+			/* convert Genode VM state to Seoul state */
+			unsigned mtd = Seoul::read_vm_state(_state, _seoul_state);
 
-			CpuMessage msg(type, static_cast<CpuState *>(utcb), utcb->mtd);
+			CpuMessage msg(type, &_seoul_state, mtd);
 
 			if (skip == SKIP)
 				_skip_instruction(msg);
@@ -374,68 +416,18 @@ class Vcpu_dispatcher : public Vcpu_handler,
 					               __func__, msg.cpu->cs.sel, msg.cpu->eip);
 			}
 
-			msg.cpu->mtd = msg.mtr_out;
-		}
+			if (~mtd & msg.mtr_out)
+				Genode::error("mtd issue !? exit=", Genode::Hex(_state.exit_reason),
+				              " ", Genode::Hex(mtd), "->", Genode::Hex(msg.mtr_out),
+				              " ", Genode::Hex(~mtd & msg.mtr_out));
 
-		/**
-		 * Get position of the least significant 1 bit.
-		 * bsf is undefined for value == 0.
-		 */
-		Genode::addr_t bsf(Genode::addr_t value) {
-		        return __builtin_ctz(value); }
-
-		bool max_map_crd(Nova::Mem_crd &crd, Genode::addr_t vmm_start,
-		                 Genode::addr_t vm_start, Genode::addr_t size,
-		                 Genode::addr_t vm_fault)
-		{
-			Nova::Mem_crd crd_save = crd;
-
-			retry:
-
-			/* lookup whether page is mapped and its size */
-			Nova::uint8_t ret = Nova::lookup(crd);
-			if (ret != Nova::NOVA_OK)
-				return false;
-
-			/* page is not mapped, touch it */
-			if (crd.is_null()) {
-				crd = crd_save;
-				Genode::touch_read((unsigned char volatile *)crd.addr());
-				goto retry;
-			}
-
-			/* cut-set crd region and vmm region */
-			Genode::addr_t cut_start = Genode::max(vmm_start, crd.base());
-			Genode::addr_t cut_size  = Genode::min(vmm_start + size,
-			                           crd.base() + (1UL << crd.order())) -
-			                           cut_start;
-
-			/* calculate minimal order of page to be mapped */
-			Genode::addr_t map_page  = vmm_start + vm_fault - vm_start;
-			Genode::addr_t map_order = bsf(vm_fault | map_page | cut_size);
-
-			Genode::addr_t hotspot = 0;
-
-			/* calculate maximal aligned order of page to be mapped */
-			do {
-				crd = Nova::Mem_crd(map_page, map_order,
-				                    crd_save.rights());
-
-				map_order += 1;
-				map_page  &= ~((1UL << map_order) - 1);
-				hotspot    = vm_start + map_page - vmm_start;
-			}
-			while (cut_start <= map_page &&
-			      ((map_page + (1UL << map_order)) <= (cut_start + cut_size)) &&
-			      !(hotspot & ((1UL << map_order) - 1)));
-
-			return true;
+			/* convert Seoul state to Genode VM state */
+			Seoul::write_vm_state(_seoul_state, msg.mtr_out, _state);
 		}
 
 		bool _handle_map_memory(bool need_unmap)
 		{
-			Utcb *utcb = _utcb_of_myself();
-			Genode::addr_t const vm_fault_addr = utcb->qual[1];
+			Genode::addr_t const vm_fault_addr = _state.qual_secondary.value();
 
 			if (verbose_npt)
 				Logging::printf("--> request mapping at 0x%lx\n", vm_fault_addr);
@@ -460,8 +452,9 @@ class Vcpu_dispatcher : public Vcpu_handler,
 			Genode::addr_t vmm_memory_fault = vmm_memory_base +
 			        (vm_fault_addr - (mem_region.start_page << Vmm::PAGE_SIZE_LOG2));
 
+			/* XXX: Not yet supported by Seoul/Vancouver.
+
 			bool read=true, write=true, execute=true;
-                        /* XXX: Not yet supported by Vancouver.
 			if (mem_region.attr == (DESC_TYPE_MEM | DESC_RIGHT_R)) {
 				if (verbose_npt)
 					Logging::printf("Mapping readonly to %p (err:%x, attr:%x)\n",
@@ -469,42 +462,41 @@ class Vcpu_dispatcher : public Vcpu_handler,
 				write = execute = false;
 			}*/
 
-			Nova::Mem_crd crd(vmm_memory_fault >> Vmm::PAGE_SIZE_LOG2, 0,
-			                  Nova::Rights(read, write, execute));
-
-			if (!max_map_crd(crd, vmm_memory_base >> Vmm::PAGE_SIZE_LOG2,
-			                 mem_region.start_page,
-			                 mem_region.count, mem_region.page))
-				Logging::panic("mapping failed");
-
 			if (need_unmap)
 				Logging::panic("_handle_map_memory: need_unmap not handled, yet\n");
 
-			Genode::addr_t hotspot = (mem_region.start_page << Vmm::PAGE_SIZE_LOG2)
-			                         + crd.addr() - vmm_memory_base;
-
-			if (verbose_npt)
-				Logging::printf("NPT mapping (base=0x%lx, order=%lu, hotspot=0x%lx)\n",
-				                crd.base(), crd.order(), hotspot);
-
-			utcb->mtd = 0;
+			assert(_state.inj_info.valid());
 
 			/* EPT violation during IDT vectoring? */
-			if (utcb->inj_info & 0x80000000) {
-				utcb->mtd |= MTD_INJ;
+			if (_state.inj_info.value() & 0x80000000U) {
+				/* convert Genode VM state to Seoul state */
+				unsigned mtd = Seoul::read_vm_state(_state, _seoul_state);
+				assert(mtd & MTD_INJ);
+
 				Logging::printf("EPT violation during IDT vectoring.\n");
-				CpuMessage _win(CpuMessage::TYPE_CALC_IRQWINDOW,
-				                static_cast<CpuState *>(utcb), utcb->mtd);
+
+				CpuMessage _win(CpuMessage::TYPE_CALC_IRQWINDOW, &_seoul_state, mtd);
 				_win.mtr_out = MTD_INJ;
 				if (!_vcpu()->executor.send(_win, true))
 					Logging::panic("nobody to execute %s at %x:%x\n",
-					               __func__, utcb->cs.sel, utcb->eip);
-			}
+					               __func__, _seoul_state.cs.sel, _seoul_state.eip);
 
-			Nova::Utcb * u = (Nova::Utcb *)utcb;
-			u->set_msg_word(0);
-			if (!u->append_item(crd, hotspot, false, true))
-				Logging::printf("Could not map everything");
+				/* convert Seoul state to Genode VM state */
+				Seoul::write_vm_state(_seoul_state, _win.mtr_out, _state);
+//				_state.inj_info.value(_state.inj_info.value() & ~0x80000000U);
+			} else
+				_state = Genode::Vm_state {}; /* reset */
+
+			_vm_con.with_upgrade([&]() {
+				if (_map_small)
+					_guest_memory.attach_to_vm(_vm_con,
+					                           mem_region.page << Vmm::PAGE_SIZE_LOG2,
+					                           1 << Vmm::PAGE_SIZE_LOG2);
+				else
+					_guest_memory.attach_to_vm(_vm_con,
+					                           mem_region.start_page << Vmm::PAGE_SIZE_LOG2,
+					                           mem_region.count << Vmm::PAGE_SIZE_LOG2);
+			});
 
 			return true;
 		}
@@ -515,74 +507,87 @@ class Vcpu_dispatcher : public Vcpu_handler,
 				Logging::printf("--> I/O is_in=%d, io_order=%d, port=%x\n",
 				                is_in, io_order, port);
 
-			Utcb *utcb = _utcb_of_myself();
-			CpuMessage msg(is_in, static_cast<CpuState *>(utcb), io_order,
-			               port, &utcb->eax, utcb->mtd);
-			_skip_instruction(msg);
-			{
-				if (!_vcpu()->executor.send(msg, true))
-					Logging::panic("nobody to execute %s at %x:%x\n",
-					               __func__, msg.cpu->cs.sel, msg.cpu->eip);
-			}
+			/* convert Genode VM state to Seoul state */
+			unsigned mtd = Seoul::read_vm_state(_state, _seoul_state);
 
-			utcb->mtd = msg.mtr_out;
+			Genode::addr_t ax = _state.ax.value();
+
+			CpuMessage msg(is_in, &_seoul_state, io_order,
+			               port, &ax, mtd);
+
+			_skip_instruction(msg);
+
+			if (!_vcpu()->executor.send(msg, true))
+				Logging::panic("nobody to execute %s at %x:%x\n",
+				               __func__, msg.cpu->cs.sel, msg.cpu->eip);
+
+			if (ax != _seoul_state.rax)
+				_seoul_state.rax = ax;
+
+			/* convert Seoul state to Genode VM state */
+			Seoul::write_vm_state(_seoul_state, msg.mtr_out, _state);
 		}
 
 		/* SVM portal functions */
 		void _svm_startup()
 		{
 			_handle_vcpu(NO_SKIP, CpuMessage::TYPE_CHECK_IRQ);
+			_state.ctrl_primary.value(_rdtsc_exit ? (1U << 14) : 0);
 		}
 
 		void _svm_npt()
 		{
-			Utcb *utcb = _utcb_of_myself();
-			MessageMemRegion msg(utcb->qual[1] >> Vmm::PAGE_SIZE_LOG2);
-			if (!_handle_map_memory(utcb->qual[0] & 1))
+			if (!_handle_map_memory(_state.qual_primary.value() & 1))
 				_svm_invalid();
+		}
+
+		void _svm_cr()
+		{
+			_handle_vcpu(NO_SKIP, CpuMessage::TYPE_SINGLE_STEP);
 		}
 
 		void _svm_invalid()
 		{
 			_handle_vcpu(NO_SKIP, CpuMessage::TYPE_SINGLE_STEP);
-			Utcb *utcb = _utcb_of_myself();
-			utcb->mtd |= MTD_CTRL;
-			utcb->ctrl[0] = 1 << 18; /* cpuid */
-			utcb->ctrl[1] = 1 << 0;  /* vmrun */
+			_state.ctrl_primary.value(1 << 18 /* cpuid */ | (_rdtsc_exit ? (1U << 14) : 0));
+			_state.ctrl_secondary.value(1 << 0  /* vmrun */);
 		}
 
 		void _svm_ioio()
 		{
-			Utcb *utcb = _utcb_of_myself();
-
-			if (utcb->qual[0] & 0x4) {
-				Logging::printf("invalid gueststate\n");
-				utcb->ctrl[1] = 0;
-				utcb->mtd = MTD_CTRL;
+			if (_state.qual_primary.value() & 0x4) {
+				Genode::log("invalid gueststate");
+				_state = Genode::Vm_state {}; /* reset */
+				_state.ctrl_secondary.value(0);
 			} else {
-				unsigned order = ((utcb->qual[0] >> 4) & 7) - 1;
+				unsigned order = ((_state.qual_primary.value() >> 4) & 7) - 1;
 
 				if (order > 2)
 					order = 2;
 
-				utcb->inst_len = utcb->qual[1] - utcb->eip;
+				_state.ip_len.value(_state.qual_secondary.value() - _state.ip.value());
 
-				_handle_io(utcb->qual[0] & 1, order, utcb->qual[0] >> 16);
+				_handle_io(_state.qual_primary.value() & 1, order,
+				           _state.qual_primary.value() >> 16);
 			}
 		}
 
 		void _svm_cpuid()
 		{
-			Utcb *utcb = _utcb_of_myself();
-			utcb->inst_len = 2;
+			_state.ip_len.value(2);
 			_handle_vcpu(SKIP, CpuMessage::TYPE_CPUID);
 		}
 
 		void _svm_hlt()
 		{
-			Utcb *utcb = _utcb_of_myself();
-			utcb->inst_len = 1;
+			_state.ip_len.value(1);
 			_vmx_hlt();
+		}
+
+		void _svm_rdtsc()
+		{
+			_state.ip_len.value(2);
+			_handle_vcpu(SKIP, CpuMessage::TYPE_RDTSC);
 		}
 
 		void _svm_msr()
@@ -595,8 +600,12 @@ class Vcpu_dispatcher : public Vcpu_handler,
 			_handle_vcpu(NO_SKIP, CpuMessage::TYPE_CHECK_IRQ);
 		}
 
-		/* VMX portal functions */
-		void _vmx_triple()
+		void _irqwin()
+		{
+			_handle_vcpu(NO_SKIP, CpuMessage::TYPE_CHECK_IRQ);
+		}
+
+		void _triple()
 		{
 			_handle_vcpu(NO_SKIP, CpuMessage::TYPE_TRIPLE);
 		}
@@ -604,11 +613,6 @@ class Vcpu_dispatcher : public Vcpu_handler,
 		void _vmx_init()
 		{
 			_handle_vcpu(NO_SKIP, CpuMessage::TYPE_INIT);
-		}
-
-		void _vmx_irqwin()
-		{
-			_handle_vcpu(NO_SKIP, CpuMessage::TYPE_CHECK_IRQ);
 		}
 
 		void _vmx_hlt()
@@ -623,61 +627,56 @@ class Vcpu_dispatcher : public Vcpu_handler,
 
 		void _vmx_vmcall()
 		{
-			Utcb *utcb = _utcb_of_myself();
-			utcb->eip += utcb->inst_len;
+			_state = Genode::Vm_state {}; /* reset */
+			_state.ip.value(_state.ip.value() + _state.ip_len.value());
 		}
 
 		void _vmx_pause()
 		{
-			Utcb *utcb = _utcb_of_myself();
-			CpuMessage msg(CpuMessage::TYPE_SINGLE_STEP,
-			               static_cast<CpuState *>(utcb), utcb->mtd);
+			/* convert Genode VM state to Seoul state */
+			unsigned mtd = Seoul::read_vm_state(_state, _seoul_state);
+
+			CpuMessage msg(CpuMessage::TYPE_SINGLE_STEP, &_seoul_state, mtd);
+
 			_skip_instruction(msg);
+
+			/* convert Seoul state to Genode VM state */
+			Seoul::write_vm_state(_seoul_state, msg.mtr_out, _state);
 		}
 
 		void _vmx_invalid()
 		{
-			Utcb *utcb = _utcb_of_myself();
-			utcb->efl |= 2;
+			_state.flags.value(_state.flags.value() | 2);
 			_handle_vcpu(NO_SKIP, CpuMessage::TYPE_SINGLE_STEP);
-			utcb->mtd |= MTD_RFLAGS;
 		}
 
 		void _vmx_startup()
 		{
-			Utcb *utcb = _utcb_of_myself();
 			_handle_vcpu(NO_SKIP, CpuMessage::TYPE_HLT);
-			utcb->mtd |= MTD_CTRL;
-			utcb->ctrl[0] = 0;
-			utcb->ctrl[1] = 0;
-		}
-
-		void _vmx_recall()
-		{
-			_handle_vcpu(NO_SKIP, CpuMessage::TYPE_CHECK_IRQ);
+			_state.ctrl_primary.value(_rdtsc_exit ? (1U << 12) : 0);
+			_state.ctrl_secondary.value(0);
 		}
 
 		void _vmx_ioio()
 		{
-			Utcb *utcb = _utcb_of_myself();
 			unsigned order = 0U;
-			if (utcb->qual[0] & 0x10) {
+			if (_state.qual_primary.value() & 0x10) {
 				Logging::printf("invalid gueststate\n");
-				assert(utcb->mtd & MTD_RFLAGS);
-				utcb->efl &= ~2;
-				utcb->mtd = MTD_RFLAGS;
+				assert(_state.flags.valid());
+				_state = Genode::Vm_state {}; /* reset */
+				_state.flags.value(_state.flags.value() & ~2U);
 			} else {
-				order = utcb->qual[0] & 7;
+				order = _state.qual_primary.value() & 7;
 				if (order > 2) order = 2;
-				_handle_io(utcb->qual[0] & 8, order, utcb->qual[0] >> 16);
+
+				_handle_io(_state.qual_primary.value() & 8, order,
+				           _state.qual_primary.value() >> 16);
 			}
 		}
 
 		void _vmx_ept()
 		{
-			Utcb *utcb = _utcb_of_myself();
-
-			if (!_handle_map_memory(utcb->qual[0] & 0x38))
+			if (!_handle_map_memory(_state.qual_primary.value() & 0x38))
 				/* this is an access to MMIO */
 				_handle_vcpu(NO_SKIP, CpuMessage::TYPE_SINGLE_STEP);
 		}
@@ -697,149 +696,9 @@ class Vcpu_dispatcher : public Vcpu_handler,
 			_handle_vcpu(SKIP, CpuMessage::TYPE_WRMSR);
 		}
 
-		/*
-		 * This VM exit is in part handled by the NOVA kernel (writing the CR
-		 * register) and in part by Seoul (updating the PDPTE registers,
-		 * which requires access to the guest physical memory).
-		 * Intel manual sections 4.4.1 of Vol. 3A and 26.3.2.4 of Vol. 3C
-		 * indicate the conditions when the PDPTE registers need to get
-		 * updated.
-		 *
-		 * XXX: not implemented yet
-		 *
-		 */
 		void _vmx_mov_crx()
 		{
-			Logging::panic("%s: not implemented, but needed for VMs using PAE "
-			               "with nested paging.", __PRETTY_FUNCTION__);
-		}
-
-		/**
-		 * Shortcut for calling 'Vmm::Vcpu_dispatcher::register_handler'
-		 * with 'Vcpu_dispatcher' as template argument
-		 */
-		template <unsigned EV, void (Vcpu_dispatcher::*FUNC)()>
-		void _register_handler(Genode::addr_t exc_base, Nova::Mtd mtd)
-		{
-			if (!register_handler<EV, Vcpu_dispatcher, FUNC>(exc_base, mtd))
-				Genode::error("could not register handler ", Genode::Hex(exc_base + EV));
-		}
-
-		/*
-		 * Noncopyable
-		 */
-		Vcpu_dispatcher(Vcpu_dispatcher const &);
-		Vcpu_dispatcher &operator = (Vcpu_dispatcher const &);
-
-	public:
-
-		enum { STACK_SIZE = 1024*sizeof(Genode::addr_t) };
-
-
-		Vcpu_dispatcher(Genode::Lock           &vcpu_lock,
-		                Genode::Env            &env,
-		                VCpu                   *unsynchronized_vcpu,
-		                Guest_memory           &guest_memory,
-		                Synced_motherboard     &motherboard,
-		                Vmm::Vcpu_thread       *vcpu_thread,
-		                Genode::Cpu_session    *cpu_session,
-		                Genode::Affinity::Location &location)
-		:
-			Vcpu_handler(env, STACK_SIZE, cpu_session, location),
-			_vcpu(vcpu_lock, unsynchronized_vcpu),
-			_vcpu_thread(vcpu_thread),
-			_guest_memory(guest_memory),
-			_motherboard(motherboard)
-		{
-			using namespace Genode;
-			using namespace Nova;
-
-			/* shortcuts for common message-transfer descriptors */
-			Mtd const mtd_all(Mtd::ALL);
-			Mtd const mtd_cpuid(Mtd::EIP | Mtd::ACDB | Mtd::IRQ);
-			Mtd const mtd_irq(Mtd::IRQ);
-
-			/* detect virtualization extension */
-			Attached_rom_dataspace const info(env, "platform_info");
-			Genode::Xml_node const features = info.xml().sub_node("hardware").sub_node("features");
-
-			bool const has_svm = features.attribute_value("svm", false);
-			bool const has_vmx = features.attribute_value("vmx", false);
-
-			/*
-			 * Register vCPU event handlers
-			 */
-			Genode::addr_t const exc_base = _vcpu_thread->exc_base();
-			typedef Vcpu_dispatcher This;
-
-			if (has_svm) {
-				_register_handler<0x64, &This::_vmx_irqwin>
-					(exc_base, MTD_IRQ);
-				_register_handler<0x72, &This::_svm_cpuid>
-					(exc_base, MTD_RIP_LEN | MTD_GPR_ACDB | MTD_IRQ);
-				_register_handler<0x78, &This::_svm_hlt>
-					(exc_base, MTD_RIP_LEN | MTD_IRQ);
-				_register_handler<0x7b, &This::_svm_ioio>
-					(exc_base, MTD_RIP_LEN | MTD_QUAL | MTD_GPR_ACDB | MTD_STATE);
-				_register_handler<0x7c, &This::_svm_msr>
-					(exc_base, MTD_ALL);
-				_register_handler<0x7f, &This::_vmx_triple>
-					(exc_base, MTD_ALL);
-				_register_handler<0xfc, &This::_svm_npt>
-					(exc_base, MTD_ALL);
-				_register_handler<0xfd, &This::_svm_invalid>
-					(exc_base, MTD_ALL);
-				_register_handler<0xfe, &This::_svm_startup>
-					(exc_base, MTD_ALL);
-				_register_handler<0xff, &This::_recall>
-					(exc_base, MTD_IRQ);
-
-			} else if (has_vmx) {
-				_register_handler<2, &This::_vmx_triple>
-					(exc_base, MTD_ALL);
-				_register_handler<3, &This::_vmx_init>
-					(exc_base, MTD_ALL);
-				_register_handler<7, &This::_vmx_irqwin>
-					(exc_base, MTD_IRQ);
-				_register_handler<10, &This::_vmx_cpuid>
-					(exc_base, MTD_RIP_LEN | MTD_GPR_ACDB | MTD_STATE);
-				_register_handler<12, &This::_vmx_hlt>
-					(exc_base, MTD_RIP_LEN | MTD_IRQ);
-				_register_handler<16, &This::_vmx_rdtsc>
-					(exc_base, MTD_RIP_LEN | MTD_GPR_ACDB | MTD_TSC | MTD_STATE);
-				_register_handler<18, &This::_vmx_vmcall>
-					(exc_base, MTD_RIP_LEN | MTD_GPR_ACDB);
-				_register_handler<28, &This::_vmx_mov_crx>
-					(exc_base, MTD_ALL);
-				_register_handler<30, &This::_vmx_ioio>
-					(exc_base, MTD_RIP_LEN | MTD_QUAL | MTD_GPR_ACDB | MTD_STATE | MTD_RFLAGS);
-				_register_handler<31, &This::_vmx_msr_read>
-					(exc_base, MTD_RIP_LEN | MTD_GPR_ACDB | MTD_TSC | MTD_SYSENTER | MTD_STATE);
-				_register_handler<32, &This::_vmx_msr_write>
-					(exc_base, MTD_RIP_LEN | MTD_GPR_ACDB | MTD_TSC | MTD_SYSENTER | MTD_STATE);
-				_register_handler<33, &This::_vmx_invalid>
-					(exc_base, MTD_ALL);
-				_register_handler<40, &This::_vmx_pause>
-					(exc_base, MTD_RIP_LEN | MTD_STATE);
-				_register_handler<48, &This::_vmx_ept>
-					(exc_base, MTD_ALL);
-				_register_handler<0xfe, &This::_vmx_startup>
-					(exc_base, MTD_IRQ);
-				_register_handler<0xff, &This::_vmx_recall>
-					(exc_base, MTD_IRQ | MTD_RIP_LEN | MTD_GPR_ACDB | MTD_GPR_BSD);
-			} else {
-
-				/*
-				 * We need Hardware Virtualization Features.
-				 */
-				Logging::panic("no SVM/VMX available, sorry");
-			}
-
-			/* let vCPU run */
-			_vcpu_thread->start(sel_sm_ec() + 1);
-
-			/* handle cpuid overrides */
-			unsynchronized_vcpu->executor.add(this, receive_static<CpuMessage>);
+			_handle_vcpu(NO_SKIP, CpuMessage::TYPE_SINGLE_STEP);
 		}
 
 		/***********************************
@@ -886,7 +745,7 @@ class Machine : public StaticReceiver<Machine>
 
 		Genode::Env           &_env;
 		Genode::Heap          &_heap;
-		Genode::Cpu_connection _cpu_session = { _env, "Seoul vCPUs", Genode::Cpu_session::PRIORITY_LIMIT / 16 };
+		Genode::Vm_connection &_vm_con;
 		Clock                  _clock;
 		Genode::Lock           _motherboard_lock;
 		Motherboard            _unsynchronized_motherboard;
@@ -894,16 +753,21 @@ class Machine : public StaticReceiver<Machine>
 		Genode::Lock           _timeouts_lock { };
 		TimeoutList<32, void>  _unsynchronized_timeouts { };
 		Synced_timeout_list    _timeouts;
-		Guest_memory          &_guest_memory;
+		Seoul::Guest_memory   &_guest_memory;
 		Boot_module_provider  &_boot_modules;
 		Timeouts               _alarm_thread = { _env, _motherboard, _timeouts };
-		bool                   _colocate_vm_vmm;
 		unsigned short         _vcpus_up = 0;
 
-		bool                   _alloc_fb_mem = false; /* For detecting FB alloc message */
-		Genode::Pd_connection *_pd_vcpus     = nullptr;
-		Seoul::Network        *_nic          = nullptr;
-		Rtc::Session          *_rtc          = nullptr;
+		Genode::addr_t         _alloc_fb_size { 0 };
+		Genode::addr_t         _alloc_fb_mem  { 0 };
+		Genode::addr_t         _vm_phys_fb    { 0 };
+
+		bool                   _map_small    { false   };
+		bool                   _rdtsc_exit   { false   };
+		Seoul::Network        *_nic          { nullptr };
+		Rtc::Session          *_rtc          { nullptr };
+
+		Vcpu *                 _vcpus[32] { nullptr };
 
 		/*
 		 * Noncopyable
@@ -921,6 +785,22 @@ class Machine : public StaticReceiver<Machine>
 		{
 			switch (msg.type) {
 
+			case MessageHostOp::OP_ALLOC_IOMEM:
+			{
+				if (msg.len & 0xfff)
+					return false;
+
+				Genode::addr_t const guest_addr = msg.value;
+				try {
+					Genode::Dataspace_capability ds = _env.ram().alloc(msg.len);
+					Genode::addr_t local_addr = _env.rm().attach(ds);
+					_guest_memory.add_region(_heap, guest_addr, local_addr, ds, msg.len);
+					msg.ptr = reinterpret_cast<char *>(local_addr);
+					return true;
+				} catch (...) {
+					return false;
+				}
+			}
 			/**
 			 * Request available guest memory starting at specified address
 			 */
@@ -930,11 +810,9 @@ class Machine : public StaticReceiver<Machine>
 					Logging::printf("OP_GUEST_MEM value=0x%lx\n", msg.value);
 
 				if (_alloc_fb_mem) {
-					msg.len = _guest_memory.fb_size();
-					msg.ptr = _guest_memory.backing_store_local_base();
-					_alloc_fb_mem = false;
-					Logging::printf("_alloc_fb_mem -> len=0x%zx, ptr=0x%p\n",
-					                msg.len, msg.ptr);
+					msg.len = _alloc_fb_size;
+					msg.ptr = (char *)_alloc_fb_mem - _vm_phys_fb;
+					_alloc_fb_mem = _alloc_fb_size = _vm_phys_fb = 0;
 					return true;
 				}
 
@@ -958,9 +836,8 @@ class Machine : public StaticReceiver<Machine>
 				if (verbose_debug)
 					Logging::printf("OP_ALLOC_FROM_GUEST\n");
 
-				if (msg.value == _guest_memory.fb_size()) {
-					_alloc_fb_mem = true;
-					msg.phys = _guest_memory.remaining_size;
+				if (_alloc_fb_mem) {
+					msg.phys = _vm_phys_fb;
 					return true;
 				}
 
@@ -973,63 +850,96 @@ class Machine : public StaticReceiver<Machine>
 
 				if (verbose_debug)
 					Logging::printf("-> allocated from guest %08lx+%lx\n",
-					                _guest_memory.remaining_size, msg.value);
+					                msg.phys, msg.value);
 				return true;
 
 			case MessageHostOp::OP_VCPU_CREATE_BACKEND:
 				{
+					enum { STACK_SIZE = 2*1024*sizeof(Genode::addr_t) };
+
 					if (verbose_debug)
 						Logging::printf("OP_VCPU_CREATE_BACKEND\n");
 
-					_vcpus_up ++;
-
-					Genode::Affinity::Space cpu_space = _cpu_session.affinity_space();
-					Genode::Affinity::Location location = cpu_space.location_of_index(_vcpus_up);
-
-					Vmm::Vcpu_thread * vcpu_thread;
-					if (_colocate_vm_vmm)
-						vcpu_thread = new Vmm::Vcpu_same_pd(&_cpu_session, location, _env.pd_session_cap(), Vcpu_dispatcher::STACK_SIZE);
-					else {
-						if (!_pd_vcpus)
-							_pd_vcpus = new Genode::Pd_connection(_env, "VM");
-
-						vcpu_thread = new Vmm::Vcpu_other_pd(&_cpu_session, location, _pd_vcpus->rpc_cap());
+					if (_vcpus_up >= sizeof(_vcpus)/sizeof(_vcpus[0])) {
+						Logging::panic("too many vCPUs");
+						return false;
 					}
 
-					Vcpu_dispatcher *vcpu_dispatcher =
-						new Vcpu_dispatcher(_motherboard_lock, _env,
-						                    msg.vcpu, _guest_memory,
-						                    _motherboard, vcpu_thread,
-						                    &_cpu_session, location);
+					Logging::printf("create vcpu %u\n", _vcpus_up);
 
-					msg.value = vcpu_dispatcher->sel_sm_ec();
+					/* detect virtualization extension */
+					Attached_rom_dataspace const info(_env, "platform_info");
+					Genode::Xml_node const features = info.xml().sub_node("hardware").sub_node("features");
+
+					bool const has_svm = features.attribute_value("svm", false);
+					bool const has_vmx = features.attribute_value("vmx", false);
+
+					if (!has_svm && !has_vmx) {
+						Logging::panic("no VMX nor SVM virtualization support found");
+						return false;
+					}
+
+					using Genode::Entrypoint;
+					using Genode::String;
+
+					String<16> * ep_name = new String<16>("vCPU EP ", _vcpus_up);
+					Entrypoint * ep = new Entrypoint(_env, STACK_SIZE,
+					                                 ep_name->string(),
+					                                 _env.cpu().affinity_space().location_of_index(_vcpus_up + 1));
+
+					Vcpu * vcpu = new Vcpu(*ep, _vm_con, _heap, _env,
+					                       _motherboard_lock, msg.vcpu,
+					                       _guest_memory, _motherboard,
+					                       has_vmx, has_svm, _map_small,
+					                       _rdtsc_exit);
+
+					_vcpus[_vcpus_up] = vcpu;
+					msg.value = _vcpus_up;
+
+					_vcpus_up ++;
+
 					return true;
 				}
 
 			case MessageHostOp::OP_VCPU_RELEASE:
-
+			{
 				if (verbose_debug)
-					Logging::printf("OP_VCPU_RELEASE\n");
+					Genode::log("- OP_VCPU_RELEASE ", Genode::Thread::myself()->name());
+
+				unsigned vcpu_id = msg.value;
+				if ((_vcpus_up >= sizeof(_vcpus)/sizeof(_vcpus[0])))
+					return false;
+
+				if (!_vcpus[vcpu_id])
+					return false;
 
 				if (msg.len) {
-					if (Nova::sm_ctrl(msg.value, Nova::SEMAPHORE_UP) != 0) {
-						Logging::printf("vcpu release: sm_ctrl failed\n");
-						return false;
-					}
+					_vcpus[vcpu_id]->unblock();
+					return true;
 				}
-				return (Nova::ec_ctrl(Nova::EC_RECALL, msg.value + 1) == 0);
 
+				_vcpus[vcpu_id]->recall();
+				return true;
+			}
 			case MessageHostOp::OP_VCPU_BLOCK:
 				{
 					if (verbose_debug)
-						Logging::printf("OP_VCPU_BLOCK\n");
+						Genode::log("- OP_VCPU_BLOCK ", Genode::Thread::myself()->name());
+
+					unsigned vcpu_id = msg.value;
+					if ((_vcpus_up >= sizeof(_vcpus)/sizeof(_vcpus[0])))
+						return false;
+
+					if (!_vcpus[vcpu_id])
+						return false;
 
 					_motherboard_lock.unlock();
-					bool res = (Nova::sm_ctrl(msg.value, Nova::SEMAPHORE_DOWN) == 0);
-					if (verbose_debug)
-						Logging::printf("woke up from vcpu sem, block on global_lock\n");
+
+					_vcpus[vcpu_id]->block();
+
 					_motherboard_lock.lock();
-					return res;
+
+					return true;
 				}
 
 			case MessageHostOp::OP_GET_MODULE:
@@ -1167,20 +1077,12 @@ class Machine : public StaticReceiver<Machine>
 
 		bool receive(MessageTime &msg)
 		{
-			Genode::Lock::Guard guard(*utcb_lock());
-
-			Vmm::Utcb_guard utcb_guard(utcb_backup);
-			utcb_backup = *(Utcb_backup *)Genode::Thread::myself()->utcb();
-
 			if (!_rtc) {
 				try {
 					_rtc = new Rtc::Connection(_env);
 				} catch (...) {
 					Logging::printf("No RTC present, returning dummy time.\n");
 					msg.wallclocktime = msg.timestamp = 0;
-
-					*(Utcb_backup *)Genode::Thread::myself()->utcb() = utcb_backup;
-
 					return true;
 				}
 			}
@@ -1193,8 +1095,6 @@ class Machine : public StaticReceiver<Machine>
 			Logging::printf("Got time %llx\n", msg.wallclocktime);
 			msg.timestamp = _unsynchronized_motherboard.clock()->clock(MessageTime::FREQUENCY);
 
-			*(Utcb_backup *)Genode::Thread::myself()->utcb() = utcb_backup;
-
 			return true;
 		}
 
@@ -1205,10 +1105,7 @@ class Machine : public StaticReceiver<Machine>
 			if (!_nic)
 				return false;
 
-			Genode::Lock::Guard guard(*utcb_lock());
-
-			Vmm::Utcb_guard utcb_guard(utcb_backup);
-
+			/* XXX parallel invocations supported ? */
 			return _nic->transmit(msg.buffer, msg.len);
 		}
 
@@ -1239,11 +1136,13 @@ class Machine : public StaticReceiver<Machine>
 		 * Constructor
 		 */
 		Machine(Genode::Env &env, Genode::Heap &heap,
+		        Genode::Vm_connection &vm_con,
 		        Boot_module_provider &boot_modules,
-		        Guest_memory &guest_memory, bool colocate,
-		        size_t const fb_size)
+		        Seoul::Guest_memory &guest_memory,
+		        size_t const fb_size,
+		        bool map_small, bool rdtsc_exit)
 		:
-			_env(env), _heap(heap),
+			_env(env), _heap(heap), _vm_con(vm_con),
 			_clock(Attached_rom_dataspace(env, "platform_info").xml().sub_node("hardware").sub_node("tsc").attribute_value("freq_khz", 0ULL) * 1000ULL),
 			_motherboard_lock(Genode::Lock::LOCKED),
 			_unsynchronized_motherboard(&_clock, nullptr),
@@ -1251,7 +1150,8 @@ class Machine : public StaticReceiver<Machine>
 			_timeouts(_timeouts_lock, &_unsynchronized_timeouts),
 			_guest_memory(guest_memory),
 			_boot_modules(boot_modules),
-			_colocate_vm_vmm(colocate)
+			_map_small(map_small),
+			_rdtsc_exit(rdtsc_exit)
 		{
 			_timeouts()->init();
 
@@ -1288,7 +1188,8 @@ class Machine : public StaticReceiver<Machine>
 		 * Device models are instantiated in the order of appearance in the XML
 		 * configuration.
 		 */
-		void setup_devices(Genode::Xml_node machine_node)
+		void setup_devices(Genode::Xml_node machine_node,
+		                   Seoul::Console &console)
 		{
 			using namespace Genode;
 
@@ -1334,7 +1235,15 @@ class Machine : public StaticReceiver<Machine>
 				 * We never pass any argument string to a device model because
 				 * it is not examined by the existing device models.
 				 */
+				if (!strcmp(dmi->name, "vga", 4)) {
+					_alloc_fb_mem  = console.attached_framebuffer();
+					_alloc_fb_size = console.framebuffer_size();
+					_vm_phys_fb    = console.vm_phys_framebuffer();
+				}
+
 				dmi->create(_unsynchronized_motherboard, argv, "", 0);
+
+				if (_alloc_fb_mem) _alloc_fb_mem = _alloc_fb_size = 0;
 
 				if (node.last())
 					break;
@@ -1346,9 +1255,7 @@ class Machine : public StaticReceiver<Machine>
 		 */
 		void boot()
 		{
-			Genode::log("VM and VMM are ",
-			            _colocate_vm_vmm ? "co-located" : "not co-located",
-			            ". VM is starting with ", _vcpus_up, " vCPU",
+			Genode::log("VM is starting with ", _vcpus_up, " vCPU",
 			            _vcpus_up > 1 ? "s" : "");
 
 			/* init VCPUs */
@@ -1359,7 +1266,7 @@ class Machine : public StaticReceiver<Machine>
 				vcpu->set_cpuid(0, 1, reinterpret_cast<const unsigned *>(short_name)[0]);
 				vcpu->set_cpuid(0, 3, reinterpret_cast<const unsigned *>(short_name)[1]);
 				vcpu->set_cpuid(0, 2, reinterpret_cast<const unsigned *>(short_name)[2]);
-				const char *long_name = "Vancouver VMM proudly presents this VirtualCPU. ";
+				const char *long_name = "Seoul VMM proudly presents this VirtualCPU. ";
 				for (unsigned i=0; i<12; i++)
 					vcpu->set_cpuid(0x80000002 + (i / 4), i % 4, reinterpret_cast<const unsigned *>(long_name)[i]);
 
@@ -1399,22 +1306,17 @@ extern void heap_init_env(Genode::Heap *);
 
 void Component::construct(Genode::Env &env)
 {
-	Genode::addr_t vm_size;
-	unsigned       colocate = 1; /* by default co-locate VM and VMM in same PD */
+	static Genode::Heap          heap(env.ram(), env.rm());
+	static Genode::Vm_connection vm_con(env, "Seoul vCPUs", Genode::Cpu_session::PRIORITY_LIMIT / 16);
+
+	Genode::addr_t vm_size    = 0;
+	bool           map_small  = false;
+	bool           rdtsc_exit = false;
 
 	static Attached_rom_dataspace config(env, "config");
 
 	{
-		/*
-		 * Reserve complete lower address space so that nobody else can take
-		 * it. The stack area is moved as far as possible to a high virtual
-		 * address. So we can use its base address as upper bound. The
-		 * reservation will be dropped when this scope is left and re-acquired
-		 * with the actual VM size which is determined below inside this scope.
-		 */
-		Vmm::Virtual_reservation reservation(env, Genode::Thread::stack_area_virtual_base());
-
-		Genode::log("--- Vancouver VMM starting ---");
+		Genode::log("--- Seoul VMM starting ---");
 
 		/* request max available memory */
 		vm_size = env.pd().avail_ram().value;
@@ -1425,13 +1327,15 @@ void Component::construct(Genode::Env &env)
 
 		/* read out whether VM and VMM should be colocated or not */
 		try {
-			config.xml().attribute("colocate").value(&colocate);
+			map_small = config.xml().attribute_value("map_small", false);
+			rdtsc_exit  = config.xml().attribute_value("exit_on_rdtsc", false);
 		} catch (...) { }
-	}
 
-	if (colocate)
-		/* re-adjust reservation to actual VM size */
-		static Vmm::Virtual_reservation reservation(env, vm_size);
+		Genode::log(" using ", map_small ? "small": "large",
+		            " memory attachments for guest VM.");
+		if (rdtsc_exit)
+			Genode::log(" enabling VM exit on RDTSC.");
+	}
 
 	/* setup framebuffer memory for guest */
 	static Nitpicker::Connection    nitpicker { env };
@@ -1461,38 +1365,23 @@ void Component::construct(Genode::Env &env)
 	nitpicker.execute();
 
 	/* setup guest memory */
-	static Guest_memory guest_memory(env, vm_size, fb_size);
+	static Seoul::Guest_memory guest_memory(env, heap, vm_con, vm_size);
 
 	typedef Genode::Hex_range<unsigned long> Hex_range;
 
 	/* diagnostic messages */
-	if (colocate)
-		Genode::log(Hex_range(0UL, vm_size), " - ", vm_size / 1024 / 1024,
-		            " MiB - VM accessible memory");
-
 	if (guest_memory.backing_store_local_base())
 		Genode::log(Hex_range((unsigned long)guest_memory.backing_store_local_base(),
 		                      guest_memory.remaining_size),
 		            " - ", vm_size / 1024 / 1024, " MiB",
 		            " - VMM accessible shadow mapping of VM memory"); 
 
-	if (guest_memory.backing_store_fb_local_base())
-		Genode::log(Hex_range((unsigned long)guest_memory.backing_store_fb_local_base(),
-		                      fb_size),
-		            " - ", fb_size / 1024 / 1024, " MiB"
-		            " - VMM accessible framebuffer memory of VM");
-
-	Genode::log(Hex_range(Genode::Thread::stack_area_virtual_base(),
-	                      Genode::Thread::stack_area_virtual_size()),
-	            " - Genode stack area");
-
 	Genode::log(Hex_range((Genode::addr_t)&_prog_img_beg,
 	                      (Genode::addr_t)&_prog_img_end -
 	                      (Genode::addr_t)&_prog_img_beg),
 	            " - VMM program image");
 
-	if (!guest_memory.backing_store_local_base() ||
-		!guest_memory.backing_store_fb_local_base()) {
+	if (!guest_memory.backing_store_local_base()) {
 		Genode::error("Not enough space left for ",
 		              guest_memory.backing_store_local_base() ? "framebuffer"
 		                                                      : "VMM");
@@ -1500,9 +1389,10 @@ void Component::construct(Genode::Env &env)
 		return;
 	}
 
-	Genode::log("\n--- Setup VM ---");
+	/* register device models of Seoul, see device_model_registry.cc */
+	env.exec_static_constructors();
 
-	static Genode::Heap heap(env.ram(), env.rm());
+	Genode::log("\n--- Setup VM ---");
 
 	heap_init_env(&heap);
 
@@ -1510,13 +1400,13 @@ void Component::construct(Genode::Env &env)
 		boot_modules(config.xml().sub_node("multiboot"));
 
 	/* create the PC machine based on the configuration given */
-	static Machine machine(env, heap, boot_modules, guest_memory, colocate, fb_size);
+	static Machine machine(env, heap, vm_con, boot_modules, guest_memory,
+	                       fb_size, map_small, rdtsc_exit);
 
 	/* create console thread */
-	static Seoul::Console vcon(env, machine.motherboard(),
+	static Seoul::Console vcon(env, heap, machine.motherboard(),
 	                           machine.unsynchronized_motherboard(),
-	                           nitpicker,
-	                           guest_memory.fb_ds());
+	                           nitpicker, guest_memory);
 
 	vcon.register_host_operations(machine.unsynchronized_motherboard());
 
@@ -1527,7 +1417,7 @@ void Component::construct(Genode::Env &env)
 
 	vdisk.register_host_operations(machine.unsynchronized_motherboard());
 
-	machine.setup_devices(config.xml().sub_node("machine"));
+	machine.setup_devices(config.xml().sub_node("machine"), vcon);
 
 	Genode::log("\n--- Booting VM ---");
 
