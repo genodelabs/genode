@@ -21,7 +21,7 @@
 #   set single_test_build { server/ram_fs test/libc_vfs }
 #   set single_test_modules { ram_fs test-libc_vfs vfs.lib.so }
 #
-set single_test_pkg "test-ldso"
+set single_test_pkg ""
 set single_test_build { }
 set single_test_modules { }
 
@@ -71,6 +71,7 @@ set avail_test_pkgs {
 	test-nic_loopback
 	test-part_blk_gpt
 	test-part_blk_mbr
+	test-pthread
 	test-ram_fs_chunk
 	test-read_only_rom
 	test-reconstructible
