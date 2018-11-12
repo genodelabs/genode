@@ -129,18 +129,19 @@ void Child::gen_start_node(Xml_generator          &xml,
 		if (runtime.has_sub_node("provides")) {
 			xml.node("provides", [&] () {
 				runtime.sub_node("provides").for_each_sub_node([&] (Xml_node service) {
-					_gen_provides_sub_node(xml, service, "rom",         "ROM");
-					_gen_provides_sub_node(xml, service, "log",         "LOG");
-					_gen_provides_sub_node(xml, service, "timer",       "Timer");
+					_gen_provides_sub_node(xml, service, "audio_in",    "Audio_in");
+					_gen_provides_sub_node(xml, service, "audio_out",   "Audio_out");
 					_gen_provides_sub_node(xml, service, "block",       "Block");
-					_gen_provides_sub_node(xml, service, "report",      "Report");
-					_gen_provides_sub_node(xml, service, "nic",         "Nic");
-					_gen_provides_sub_node(xml, service, "nitpicker",   "Nitpicker");
+					_gen_provides_sub_node(xml, service, "file_system", "File_system");
 					_gen_provides_sub_node(xml, service, "framebuffer", "Framebuffer");
 					_gen_provides_sub_node(xml, service, "input",       "Input");
-					_gen_provides_sub_node(xml, service, "audio_out",   "Audio_out");
-					_gen_provides_sub_node(xml, service, "audio_in",    "Audio_in");
-					_gen_provides_sub_node(xml, service, "file_system", "File_system");
+					_gen_provides_sub_node(xml, service, "log",         "LOG");
+					_gen_provides_sub_node(xml, service, "nic",         "Nic");
+					_gen_provides_sub_node(xml, service, "nitpicker",   "Nitpicker");
+					_gen_provides_sub_node(xml, service, "report",      "Report");
+					_gen_provides_sub_node(xml, service, "rom",         "ROM");
+					_gen_provides_sub_node(xml, service, "terminal",    "Terminal");
+					_gen_provides_sub_node(xml, service, "timer",       "Timer");
 				});
 			});
 		}
