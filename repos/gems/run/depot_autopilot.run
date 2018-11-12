@@ -54,10 +54,12 @@ set avail_test_pkgs {
 	test-init
 	test-init_loop
 	test-libc
+	test-libc_counter
 	test-libc_getenv
 	test-libc_pipe
 	test-libc_vfs
 	test-libc_vfs_block
+	test-libc_vfs_counter
 	test-libc_vfs_fs
 	test-libc_vfs_fs_chained
 	test-libc_vfs_ram
