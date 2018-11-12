@@ -85,7 +85,6 @@ set avail_test_pkgs {
 	test-rom_filter
 	test-rtc
 	test-rust
-	test-sequence
 	test-signal
 	test-slab
 	test-stdcxx
