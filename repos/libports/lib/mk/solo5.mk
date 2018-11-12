@@ -1,3 +1,5 @@
+REQUIRES += 64bit
+
 SHARED_LIB = yes
 
 include $(REP_DIR)/lib/import/import-solo5.mk

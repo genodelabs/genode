@@ -1,3 +1,8 @@
+if {![have_spec x86_64]} {
+	puts "\nSolo5 requires a 64bit architecture\n"
+	exit 0
+}
+
 if {[have_spec linux]} {
         puts "\nRunscript not compatible with base-linux drivers\n"
         exit 0
