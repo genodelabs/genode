@@ -44,6 +44,7 @@ nvme
 ping
 ping_nic_router
 platform
+python
 rump_ext2
 sd_card_bench
 seoul-auto
