@@ -21,7 +21,7 @@
 #   set single_test_build { server/ram_fs test/libc_vfs }
 #   set single_test_modules { ram_fs test-libc_vfs vfs.lib.so }
 #
-set single_test_pkg ""
+set single_test_pkg "test-ldso"
 set single_test_build { }
 set single_test_modules { }
 
@@ -53,6 +53,7 @@ set avail_test_pkgs {
 	test-fs_rom_update_ram
 	test-init
 	test-init_loop
+	test-ldso
 	test-libc
 	test-libc_counter
 	test-libc_getenv
