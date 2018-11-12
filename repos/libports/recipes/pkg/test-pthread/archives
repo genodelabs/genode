@@ -1,0 +1,5 @@
+_/src/init
+_/src/test-pthread
+_/src/libc
+_/src/vfs
+_/src/posix
