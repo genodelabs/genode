@@ -1,0 +1,71 @@
+<runtime ram="32M" caps="1000" binary="init">
+
+	<requires> <timer/> </requires>
+
+	<events>
+		<timeout meaning="failed" sec="30" />
+		<log meaning="succeeded">child "test-libc_counter-sink" exited with exit value 0</log>
+		<log meaning="failed">Error: </log>
+	</events>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="libc.lib.so"/>
+		<rom label="libm.lib.so"/>
+		<rom label="posix.lib.so"/>
+		<rom label="vfs.lib.so"/>
+		<rom label="vfs"/>
+		<rom label="test-libc_counter-source"/>
+		<rom label="test-libc_counter-sink"/>
+		<rom label="terminal_crosslink"/>
+	</content>
+
+	<config>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="PD"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="LOG"/>
+			<service name="Timer"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<default caps="100"/>
+		<start name="terminal_crosslink">
+			<resource name="RAM" quantum="1M"/>
+			<provides> <service name="Terminal"/> </provides>
+		</start>
+		<start name="vfs">
+			<resource name="RAM" quantum="12M"/>
+			<provides> <service name="File_system"/> </provides>
+			<config>
+				<vfs>
+					<terminal/>
+				</vfs>
+				<default-policy root="/" writeable="yes"/>
+			</config>
+		</start>
+
+		<start name="test-libc_counter-source">
+			<resource name="RAM" quantum="8M"/>
+			<config>
+				<vfs>
+					<dir name="dev"> <terminal/> <log/> </dir>
+				</vfs>
+				<libc stdin="/dev/terminal" stdout="/dev/terminal" stderr="/dev/log"/>
+			</config>
+		</start>
+		<start name="test-libc_counter-sink">
+			<resource name="RAM" quantum="8M"/>
+			<config>
+				<vfs>
+					<dir name="dev"> <log/> <null/> </dir>
+					<dir name="vfs"> <fs/> </dir>
+				</vfs>
+				<libc stdin="/vfs/terminal" stdout="/vfs/terminal" stderr="/dev/log"/>
+			</config>
+		</start>
+	</config>
+</runtime>
