@@ -52,7 +52,6 @@ set avail_test_pkgs {
 	test-fs_rom_update_ram
 	test-init
 	test-init_loop
-	test-libc
 	test-libc_getenv
 	test-libc_pipe
 	test-libc_vfs
@@ -455,7 +454,7 @@ proc prepare_to_run_genode { } {
 		</start>
 
 		<start name="dynamic" caps="8000" priority="-1">
-			<resource name="RAM" quantum="420M"/>
+			<resource name="RAM" quantum="100M"/>
 			<binary name="init"/>
 			<route>
 
