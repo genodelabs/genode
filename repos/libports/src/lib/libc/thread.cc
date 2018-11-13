@@ -639,15 +639,26 @@ extern "C" {
 	}
 
 
-	int pthread_cond_init(pthread_cond_t *__restrict cond,
-	                      const pthread_condattr_t *__restrict attr)
+	static int cond_init(pthread_cond_t *__restrict cond,
+	                     const pthread_condattr_t *__restrict attr)
 	{
+		static Genode::Lock cond_init_lock { };
+
 		if (!cond)
 			return EINVAL;
 
-		*cond = new pthread_cond;
+		try {
+			Genode::Lock::Guard g(cond_init_lock);
+			*cond = new pthread_cond;
+			return 0;
+		} catch (...) { return ENOMEM; }
+	}
 
-		return 0;
+
+	int pthread_cond_init(pthread_cond_t *__restrict cond,
+	                      const pthread_condattr_t *__restrict attr)
+	{
+		return cond_init(cond, attr);
 	}
 
 
@@ -710,8 +721,11 @@ extern "C" {
 	{
 		int result = 0;
 
-		if (!cond || !*cond)
+		if (!cond)
 			return EINVAL;
+
+		if (*cond == PTHREAD_COND_INITIALIZER)
+			cond_init(cond, NULL);
 
 		pthread_cond *c = *cond;
 

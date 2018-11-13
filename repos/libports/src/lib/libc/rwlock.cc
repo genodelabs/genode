@@ -91,10 +91,23 @@ extern "C" {
 	{
 	};
 
+	static int rwlock_init(pthread_rwlock_t *rwlock, const pthread_rwlockattr_t *attr)
+	{
+		static Genode::Lock rwlock_init_lock { };
+
+		if (!rwlock)
+			return EINVAL;
+
+		try {
+			Genode::Lock::Guard g(rwlock_init_lock);
+			*rwlock = new struct pthread_rwlock();
+			return 0;
+		} catch (...) { return ENOMEM; }
+	}
+
 	int pthread_rwlock_init(pthread_rwlock_t *rwlock, const pthread_rwlockattr_t *attr)
 	{
-		*rwlock = new struct pthread_rwlock();
-		return 0;
+		return rwlock_init(rwlock, attr);
 	}
 
 	int pthread_rwlock_destroy(pthread_rwlock_t *rwlock)
@@ -105,12 +118,26 @@ extern "C" {
 
 	int pthread_rwlock_rdlock(pthread_rwlock_t * rwlock)
 	{
+		if (!rwlock)
+			return EINVAL;
+
+		if (*rwlock == PTHREAD_RWLOCK_INITIALIZER)
+			if (rwlock_init(rwlock, NULL))
+				return ENOMEM;
+
 		(*rwlock)->rdlock();
 		return 0;
 	}
 
 	int pthread_rwlock_wrlock(pthread_rwlock_t *rwlock)
 	{
+		if (!rwlock)
+			return EINVAL;
+
+		if (*rwlock == PTHREAD_RWLOCK_INITIALIZER)
+			if (rwlock_init(rwlock, NULL))
+				return ENOMEM;
+
 		(*rwlock)->wrlock();
 		return 0;
 	}
