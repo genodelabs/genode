@@ -1,4 +1,3 @@
-affinity
 bomb
 cpu_quota
 cpu_sampler
@@ -22,7 +21,6 @@ lx_hybrid_ctors
 lx_hybrid_exception
 lx_hybrid_pthread_ipc
 moon
-mp_server
 netperf_lwip
 netperf_lwip_bridge
 netperf_lwip_router
@@ -48,6 +46,7 @@ rump_ext2
 sd_card_bench
 seoul-auto
 smartcard
+smp
 solo5
 sub_rm
 tar_rom

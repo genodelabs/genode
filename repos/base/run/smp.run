@@ -1,11 +1,12 @@
 #
 # \brief  Test to start and call RPC entrypoint on all available CPUs
+# \author Stefan Kalkowski
 # \author Norman Feske
 # \author Alexander Boettcher
 #
 
 
-build "core init test/mp_server"
+build "core init test/smp"
 
 create_boot_directory
 
@@ -21,15 +22,17 @@ install_config {
 			<any-service> <parent/> </any-service>
 		</default-route>
 		<default caps="100"/>
-		<start name="test-server-mp">
+		<start name="test-smp">
 			<resource name="RAM" quantum="10M"/>
 		</start>
 	</config>
 }
 
-build_boot_image "core ld.lib.so init test-server-mp"
+build_boot_image "core ld.lib.so init test-smp"
 
 if {[have_include "power_on/qemu"]} {
+	if {[get_cmd_switch --autopilot]} { exit 0 }
+
 	# in general we want to have at least 2 CPUs
 	set want_cpus 2
 
@@ -46,7 +49,7 @@ if {[have_include "power_on/qemu"]} {
 }
 
 # run the test
-run_genode_until {\[init -\> test-server-mp\] done.*\n} 60
+run_genode_until {\[init -\> test-smp\] --- SMP testsuite finished.*\n} 120
 
 set cpus [regexp -inline {Detected [0-9x]+ CPU[s\.]} $output]
 set cpus [regexp -all -inline {[0-9]+} $cpus]
@@ -59,48 +62,49 @@ if {[have_include "power_on/qemu"]} {
 	}
 }
 
-# pay only attention to the output of init and its children
-grep_output {^\[init }
-
-# remove upgrade messages from init
-unify_output {\[init \-\> test\-server\-mp\] upgrading quota donation for .* \([0-9]+ bytes\)} ""
-trim_lines
-
+set original_output $output
+grep_output {\[init -\> test-smp\] RPC:}
 unify_output {transfer cap [a-f0-9]+} "transfer cap UNIFIED"
 unify_output {yes - idx [a-f0-9]+} "yes - idx UNIFIED"
 unify_output {\- received cap [a-f0-9]+} "- received cap UNIFIED"
 
-set good_string {
-	[init -> test-server-mp] --- test-mp_server started ---
-	[init -> test-server-mp] Detected }
-append good_string "$cpus"
-append good_string "x1 CPU"
-if {$cpus > 1} { append good_string "s" }
-append good_string ".\n"
-
+set good_string {[init -> test-smp] RPC: --- test started ---
+}
 for {set r 0} {$r < $cpus} {incr r} {
-	append good_string {[init -> test-server-mp] call server on CPU }
+	append good_string {[init -> test-smp] RPC: call server on CPU }
 	append good_string "$r\n"
-	append good_string {[init -> test-server-mp] function test_untyped: got value }
+	append good_string {[init -> test-smp] RPC: function test_untyped: got value }
 	append good_string "$r\n"
 }
-
 for {set r 0} {$r < $cpus} {incr r} {
-	append good_string {[init -> test-server-mp] call server on CPU }
+	append good_string {[init -> test-smp] RPC: call server on CPU }
 	append good_string "$r - transfer cap UNIFIED\n"
-	append good_string {[init -> test-server-mp] function test_cap: capability is valid ? yes - idx UNIFIED}
+	append good_string {[init -> test-smp] RPC: function test_cap: capability is valid ? yes - idx UNIFIED}
 	append good_string "\n"
 }
-
 for {set r 0} {$r < $cpus} {incr r} {
-	append good_string {[init -> test-server-mp] call server on CPU }
+	append good_string {[init -> test-smp] RPC: call server on CPU }
 	append good_string "$r - transfer cap UNIFIED\n"
-	append good_string {[init -> test-server-mp] function test_cap_reply: capability is valid ? yes - idx UNIFIED}
+	append good_string {[init -> test-smp] RPC: function test_cap_reply: capability is valid ? yes - idx UNIFIED}
 	append good_string "\n"
-	append good_string {[init -> test-server-mp] got from server on CPU }
+	append good_string {[init -> test-smp] RPC: got from server on CPU }
 	append good_string "$r - received cap UNIFIED\n"
 }
-
-append good_string {[init -> test-server-mp] done}
-
 compare_output_to $good_string
+puts "RPC test: passed"
+
+set output $original_output
+grep_output {\[init -\> test-smp\] Affinity: Round}
+set rounds "10"
+set good_string {}
+for {set r 0} {$r <= $rounds} {incr r} {
+	append good_string {[init -> test-smp] Affinity: Round } 
+	append good_string [format "%02d" $r]
+	append good_string ":"
+	for {set i 0} {$i < $cpus} {incr i} {
+		append good_string "  A"
+	}
+	append good_string "\n"
+}
+compare_output_to $good_string
+puts "Affinity test: passed"
