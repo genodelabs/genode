@@ -1,13 +1,13 @@
 create_boot_directory
 
 #
-# To use the themed decorator instead of the default one, replace 'pkg/wm'
-# with 'pkg/themed_wm'.
+# To use the themed decorator instead of the default one, replace
+# 'pkg/motif_wm' with 'pkg/themed_wm'.
 #
 
 import_from_depot genodelabs/src/[base_src] \
                   genodelabs/pkg/[drivers_interactive_pkg] \
-                  genodelabs/pkg/wm \
+                  genodelabs/pkg/motif_wm \
                   genodelabs/raw/genode_bg \
                   genodelabs/pkg/backdrop \
                   genodelabs/src/demo \
