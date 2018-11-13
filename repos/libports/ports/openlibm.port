@@ -1,0 +1,14 @@
+LICENSE   = MIT+ISC+BSD
+DOWNLOADS = openlibm.archive
+VERSION  = 0.6.0
+
+OWNER := JuliaMath
+REPO  := openlibm
+REV   := a96f0740e32c3d8aaa0a34c3988201018dfa90ce
+
+URL(openlibm) := https://github.com/$(OWNER)/$(REPO)/archive/$(REV).tar.gz
+SHA(openlibm) := a9c7d4450c3e9a8b92ec1e20c7a9fd2682e900743dff37f163c9a9ac68b4f471
+DIR(openlibm) := src/lib/openlibm
+
+DIRS := include/openlibm
+DIR_CONTENT(include/openlibm) = src/lib/openlibm/include/*
