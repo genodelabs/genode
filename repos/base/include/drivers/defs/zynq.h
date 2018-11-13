@@ -30,7 +30,6 @@ namespace Zynq {
 
 		/* normal RAM */
 		RAM_0_BASE = 0x00000000,
-		RAM_0_SIZE = 0x40000000, /* 1GiB */
 
 		/* AXI */
 		AXI_0_MMIO_BASE = 0x40000000, /* PL AXI Slave port #0 */
