@@ -48,6 +48,11 @@ class Vfs::Single_file_system : public File_system
 			virtual Write_result write(char const *src, file_size count,
 			                           file_size &out_count) = 0;
 
+			virtual Sync_result sync()
+			{
+				return SYNC_OK;
+			}
+
 			virtual bool read_ready() = 0;
 		};
 
@@ -274,6 +279,17 @@ class Vfs::Single_file_system : public File_system
 		Ftruncate_result ftruncate(Vfs_handle *, file_size) override
 		{
 			return FTRUNCATE_ERR_NO_PERM;
+		}
+
+		Sync_result complete_sync(Vfs_handle *vfs_handle)
+		{
+			Single_vfs_handle *handle =
+				static_cast<Single_vfs_handle*>(vfs_handle);
+
+			if (handle)
+				return handle->sync();
+
+			return SYNC_ERR_INVALID;
 		}
 };
 

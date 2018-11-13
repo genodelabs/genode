@@ -122,16 +122,17 @@ class Vfs::Log_file_system : public Single_file_system
 						count -= curr_count;
 						src   += curr_count;
 					}
-
 					return WRITE_OK;
 				}
 
 				bool read_ready() override { return false; }
 
-				void sync()
+				Sync_result sync() override
 				{
 					if (_line_pos > 0)
 						_flush();
+
+					return SYNC_OK;
 				}
 		};
 
@@ -166,12 +167,6 @@ class Vfs::Log_file_system : public Single_file_system
 			}
 			catch (Genode::Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
 			catch (Genode::Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
-		}
-
-		Sync_result complete_sync(Vfs_handle *vfs_handle)
-		{
-			static_cast<Log_vfs_handle *>(vfs_handle)->sync();
-			return SYNC_OK;
 		}
 };
 
