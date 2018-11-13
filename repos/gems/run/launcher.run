@@ -2,7 +2,7 @@ create_boot_directory
 
 import_from_depot genodelabs/src/[base_src] \
                   genodelabs/pkg/[drivers_interactive_pkg] \
-                  genodelabs/pkg/wm \
+                  genodelabs/pkg/motif_wm \
                   genodelabs/raw/genode_bg \
                   genodelabs/pkg/fonts_fs \
                   genodelabs/pkg/backdrop \
