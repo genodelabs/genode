@@ -83,7 +83,7 @@ class Genode::Vm_session_component
 				Kernel::pause_vm(kernel_object());
 		}
 
-		void attach(Dataspace_capability, addr_t) override { }
+		void attach(Dataspace_capability, addr_t, Attach_attr) override { }
 		void attach_pic(addr_t)                   override { }
 		void detach(addr_t, size_t)               override { }
 		void _create_vcpu(Thread_capability) { }

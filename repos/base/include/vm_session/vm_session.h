@@ -28,6 +28,13 @@ struct Genode::Vm_session : Session
 	static const char *service_name() { return "VM"; }
 
 	struct Vcpu_id { unsigned id; };
+	struct Attach_attr
+	{
+		addr_t offset;
+		addr_t size;
+		bool executable;
+		bool writeable;
+	};
 
 	enum { CAP_QUOTA = 3 };
 
@@ -45,7 +52,7 @@ struct Genode::Vm_session : Session
 	 * \param ds       dataspace to be attached
 	 * \param vm_addr  address in guest-physical memory address space
 	 */
-	virtual void attach(Dataspace_capability ds, addr_t vm_addr) = 0;
+	virtual void attach(Dataspace_capability ds, addr_t, Attach_attr) = 0;
 
 	/**
 	 * Invalidate region of the guest-physical memory address space
@@ -78,7 +85,7 @@ struct Genode::Vm_session : Session
 	GENODE_RPC_THROW(Rpc_attach, void, attach,
 	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps, Region_conflict,
 	                                  Invalid_dataspace),
-	                 Dataspace_capability, addr_t);
+	                 Dataspace_capability, addr_t, Attach_attr);
 	GENODE_RPC(Rpc_detach, void, detach, addr_t, size_t);
 	GENODE_RPC(Rpc_attach_pic, void, attach_pic, addr_t);
 	GENODE_RPC_THROW(Rpc_create_vcpu, void, _create_vcpu,

@@ -242,16 +242,45 @@ void Vm_session_component::_pause(Vcpu_id const vcpu_id)
 
 void Vm_session_component::_attach_vm_memory(Dataspace_component &dsc,
                                              addr_t const guest_phys,
-                                             bool const executable,
-                                             bool const writeable)
+                                             Attach_attr const attribute)
 {
-	_vm_space.alloc_guest_page_tables(guest_phys, dsc.size());
+	Flexpage_iterator flex(dsc.phys_addr() + attribute.offset, attribute.size,
+	                       guest_phys, attribute.size, guest_phys);
 
-	enum { FLUSHABLE = true };
-	_vm_space.map_guest(dsc.phys_addr(), guest_phys, dsc.size() >> 12,
-	                    dsc.cacheability(),
-	                    dsc.writable() && writeable,
-	                    executable, FLUSHABLE);
+	Flexpage page = flex.page();
+	while (page.valid()) {
+		try {
+			_vm_space.alloc_guest_page_tables(page.hotspot, 1 << page.log2_order);
+		} catch (...) {
+			// Alloc_page_table_failed
+			Genode::error("alloc_guest_page_table exception");
+			return;
+		}
+
+		enum { NO_FLUSH = false, FLUSH = true };
+		try {
+			_vm_space.map_guest(page.addr, page.hotspot,
+			                    (1 << page.log2_order) / 4096,
+			                    dsc.cacheability(),
+			                    dsc.writable() && attribute.writeable,
+			                    attribute.executable, NO_FLUSH);
+		} catch (Page_table_registry::Mapping_cache_full full) {
+			if (full.reason == Page_table_registry::Mapping_cache_full::MEMORY)
+				throw Out_of_ram();
+			if (full.reason == Page_table_registry::Mapping_cache_full::CAPS)
+				throw Out_of_caps();
+			return;
+		} catch (Genode::Bit_allocator<4096u>::Out_of_indices) {
+			Genode::warning("run out of indices - flush all");
+			_vm_space.map_guest(page.addr, page.hotspot,
+			                    (1 << page.log2_order) / 4096,
+			                    dsc.cacheability(),
+			                    dsc.writable() && attribute.writeable,
+			                    attribute.executable, FLUSH);
+		}
+
+		page = flex.page();
+	}
 }
 
 void Vm_session_component::_detach_vm_memory(addr_t guest_phys, size_t size)

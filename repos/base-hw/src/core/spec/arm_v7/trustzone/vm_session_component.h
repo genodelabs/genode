@@ -80,7 +80,7 @@ class Genode::Vm_session_component
 		void _run(Vcpu_id);
 		void _pause(Vcpu_id);
 
-		void attach(Dataspace_capability, addr_t /* vm_addr */) override {
+		void attach(Dataspace_capability, addr_t, Attach_attr) override {
 			warning("Not implemented for TrustZone case"); }
 
 		void attach_pic(addr_t /* vm_addr */) override {

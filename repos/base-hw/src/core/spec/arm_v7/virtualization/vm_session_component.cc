@@ -55,10 +55,9 @@ void Vm_session_component::_attach(addr_t phys_addr, addr_t vm_addr, size_t size
 
 void Vm_session_component::_attach_vm_memory(Dataspace_component &dsc,
                                              addr_t const vm_addr,
-                                             bool const /* executable */,
-                                             bool const /* writeable */)
+                                             Attach_attr const attribute)
 {
-	_attach(dsc.phys_addr(), vm_addr, dsc.size());
+	_attach(dsc.phys_addr() + attribute.offset, vm_addr, attribute.size);
 }
 
 

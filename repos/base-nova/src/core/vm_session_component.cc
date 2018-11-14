@@ -331,20 +331,20 @@ Vm_session_component::~Vm_session_component()
 
 void Vm_session_component::_attach_vm_memory(Dataspace_component &dsc,
                                              addr_t const guest_phys,
-                                             bool const executable,
-                                             bool const writeable)
+                                             Attach_attr const attribute)
 {
 	using Nova::Utcb;
 	Utcb & utcb = *reinterpret_cast<Utcb *>(Thread::myself()->utcb());
 	addr_t const src_pd = platform_specific().core_pd_sel();
 
-	Flexpage_iterator flex(dsc.phys_addr(), dsc.size(),
-	                       guest_phys, dsc.size(), guest_phys);
+	Flexpage_iterator flex(dsc.phys_addr() + attribute.offset, attribute.size,
+	                       guest_phys, attribute.size, guest_phys);
 
 	Flexpage page = flex.page();
 	while (page.valid()) {
-		Nova::Rights const map_rights (true, dsc.writable() && writeable,
-		                               executable);
+		Nova::Rights const map_rights (true,
+		                               dsc.writable() && attribute.writeable,
+		                               attribute.executable);
 		Nova::Mem_crd const mem(page.addr >> 12, page.log2_order - 12,
 		                        map_rights);
 

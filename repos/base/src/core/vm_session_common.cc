@@ -23,7 +23,8 @@ using Genode::addr_t;
 using Genode::Vm_session_component;
 
 void Vm_session_component::attach(Dataspace_capability const cap,
-                                  addr_t const guest_phys)
+                                  addr_t const guest_phys,
+                                  Attach_attr attribute)
 {
 	if (!cap.valid())
 		throw Invalid_dataspace();
@@ -39,11 +40,25 @@ void Vm_session_component::attach(Dataspace_capability const cap,
 		if (dsc.managed())
 			throw Invalid_dataspace();
 
-		bool const writeable  = true;
-		bool const executable = true;
-		unsigned const offset = 0;
+		if (guest_phys & 0xffful || attribute.offset & 0xffful ||
+		    attribute.size & 0xffful)
+			throw Invalid_dataspace();
 
-		switch (_map.alloc_addr(dsc.size(), guest_phys).value) {
+		if (!attribute.size) {
+			attribute.size = dsc.size();
+
+			if (attribute.offset < attribute.size)
+				attribute.size -= attribute.offset;
+		}
+
+		if (attribute.size > dsc.size())
+			attribute.size = dsc.size();
+
+		if (attribute.offset >= dsc.size() ||
+		    attribute.offset > dsc.size() - attribute.size)
+			throw Invalid_dataspace();
+
+		switch (_map.alloc_addr(attribute.size, guest_phys).value) {
 		case Range_allocator::Alloc_return::OUT_OF_METADATA:
 			throw Out_of_ram();
 		case Range_allocator::Alloc_return::RANGE_CONFLICT:
@@ -68,9 +83,10 @@ void Vm_session_component::attach(Dataspace_capability const cap,
 			/* store attachment info in meta data */
 			try {
 				_map.construct_metadata((void *)guest_phys,
-				                        guest_phys, dsc.size(),
-				                        dsc.writable() && writeable,
-				                        dsc, offset, *this, executable);
+				                        guest_phys, attribute.size,
+				                        dsc.writable() && attribute.writeable,
+				                        dsc, attribute.offset, *this,
+				                        attribute.executable);
 			} catch (Allocator_avl_tpl<Rm_region>::Assign_metadata_failed) {
 				error("failed to store attachment info");
 				throw Invalid_dataspace();
@@ -86,7 +102,7 @@ void Vm_session_component::attach(Dataspace_capability const cap,
 		};
 
 		/* kernel specific code to attach memory to guest */
-		_attach_vm_memory(dsc, guest_phys, executable, writeable);
+		_attach_vm_memory(dsc, guest_phys, attribute);
 	});
 }
 

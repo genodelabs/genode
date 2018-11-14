@@ -31,7 +31,12 @@ class Genode::Page_table_registry
 {
 	public:
 
-		class Mapping_cache_full : Exception { };
+		struct Mapping_cache_full : Exception
+		{
+			enum Type { MEMORY, CAPS } reason;
+
+			Mapping_cache_full(enum Type reason) : reason(reason) { };
+		};
 
 	private:
 
@@ -175,9 +180,9 @@ class Genode::Page_table_registry
 					break;
 				}
 			} catch (Genode::Allocator::Out_of_memory) {
-				throw Mapping_cache_full();
+				throw Mapping_cache_full(Mapping_cache_full::Type::MEMORY);
 			} catch (Genode::Out_of_caps) {
-				throw Mapping_cache_full();
+				throw Mapping_cache_full(Mapping_cache_full::Type::CAPS);
 			}
 		}
 

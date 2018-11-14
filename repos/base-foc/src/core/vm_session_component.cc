@@ -165,22 +165,21 @@ Dataspace_capability Vm_session_component::_cpu_state(Vcpu_id const vcpu_id)
 
 void Vm_session_component::_attach_vm_memory(Dataspace_component &dsc,
                                              addr_t const guest_phys,
-                                             bool const executable,
-                                             bool const writeable)
+                                             Attach_attr const attribute)
 {
-	Flexpage_iterator flex(dsc.phys_addr(), dsc.size(),
-	                       guest_phys, dsc.size(), guest_phys);
+	Flexpage_iterator flex(dsc.phys_addr() + attribute.offset, attribute.size,
+	                       guest_phys, attribute.size, guest_phys);
 
 	using namespace Fiasco;
 
 	uint8_t flags = L4_FPAGE_RO;
-	if (dsc.writable() && writeable)
-		if (executable)
+	if (dsc.writable() && attribute.writeable)
+		if (attribute.executable)
 			flags = L4_FPAGE_RWX;
 		else
 			flags = L4_FPAGE_RW;
 	else
-		if (executable)
+		if (attribute.executable)
 			flags = L4_FPAGE_RX;
 
 	Flexpage page = flex.page();

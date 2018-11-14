@@ -93,7 +93,7 @@ class Genode::Vm_session_component
 			return nullptr;
 		}
 
-		void _attach_vm_memory(Dataspace_component &, addr_t, bool, bool);
+		void _attach_vm_memory(Dataspace_component &, addr_t, Attach_attr);
 		void _detach_vm_memory(addr_t, size_t);
 
 	protected:
@@ -126,7 +126,7 @@ class Genode::Vm_session_component
 		void _exception_handler(Signal_context_capability, Vcpu_id);
 		void _run(Vcpu_id);
 		void _pause(Vcpu_id) { }
-		void attach(Dataspace_capability, addr_t) override;
+		void attach(Dataspace_capability, addr_t, Attach_attr) override;
 		void attach_pic(addr_t) override {}
 		void detach(addr_t, size_t) override;
 		void _create_vcpu(Thread_capability);
