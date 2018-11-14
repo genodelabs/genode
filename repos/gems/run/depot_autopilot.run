@@ -59,10 +59,7 @@ set avail_test_pkgs {
 	test-libc_getenv
 	test-libc_pipe
 	test-libc_vfs
-<<<<<<< HEAD
-=======
 	test-libc_vfs_audit
->>>>>>> b086147... run/libc_vfs_audit: replace via depot_autopilot
 	test-libc_vfs_block
 	test-libc_vfs_counter
 	test-libc_vfs_fs
