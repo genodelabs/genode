@@ -135,6 +135,8 @@ Init::Child::apply_config(Xml_node start_node)
 		 */
 		_binary_name = _binary_from_xml(start_node, _unique_name);
 
+		_heartbeat_enabled = start_node.has_sub_node("heartbeat");
+
 		/* import new start node */
 		_start_node.construct(_alloc, start_node);
 	}
@@ -348,6 +350,9 @@ void Init::Child::report_state(Xml_generator &xml, Report_detail const &detail) 
 
 		if (_exited)
 			xml.attribute("exited", _exit_value);
+
+		if (_heartbeat_enabled && _child.skipped_heartbeats())
+			xml.attribute("skipped_heartbeats", _child.skipped_heartbeats());
 
 		if (detail.child_ram() && _child.ram_session_cap().valid()) {
 			xml.node("ram", [&] () {
@@ -730,6 +735,7 @@ Init::Child::Child(Env                      &env,
 	_ram_limit_accessor(ram_limit_accessor),
 	_cap_limit_accessor(cap_limit_accessor),
 	_name_registry(name_registry),
+	_heartbeat_enabled(start_node.has_sub_node("heartbeat")),
 	_resources(_resources_from_start_node(start_node, prio_levels, affinity_space,
 	                                      default_caps_accessor.default_caps(), cap_limit)),
 	_resources_clamped_to_limit((_clamp_resources(ram_limit, cap_limit), true)),

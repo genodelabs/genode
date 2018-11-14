@@ -132,6 +132,9 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 		/* updated on configuration update */
 		Binary_name _binary_name { _binary_from_xml(_start_node->xml(), _unique_name) };
 
+		/* initialized in constructor, updated by 'apply_config' */
+		bool _heartbeat_enabled;
+
 		/**
 		 * Resources assigned to the child
 		 */
@@ -526,6 +529,17 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 
 		void apply_upgrade();
 		void apply_downgrade();
+
+		void heartbeat()
+		{
+			if (_heartbeat_enabled)
+				_child.heartbeat();
+		}
+
+		unsigned skipped_heartbeats() const
+		{
+			return _heartbeat_enabled ? _child.skipped_heartbeats() : 0;
+		}
 
 		void report_state(Xml_generator &xml, Report_detail const &detail) const;
 

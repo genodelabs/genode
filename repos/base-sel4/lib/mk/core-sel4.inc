@@ -21,7 +21,8 @@ GEN_SRC_CC += \
               rom_session_component.cc \
               signal_receiver.cc \
               signal_transmitter_proxy.cc \
-              trace_session_component.cc
+              trace_session_component.cc \
+              heartbeat.cc
 
 REP_SRC_CC += \
               capability_space.cc \

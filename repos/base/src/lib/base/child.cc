@@ -721,6 +721,42 @@ Parent::Resource_args Child::yield_request()
 void Child::yield_response() { _policy.yield_response(); }
 
 
+void Child::heartbeat()
+{
+	/*
+	 * Issue heartbeat requests not before the component has registered a
+	 * handler
+	 */
+	if (!_heartbeat_sigh.valid())
+		return;
+
+	_outstanding_heartbeats++;
+
+	Signal_transmitter(_heartbeat_sigh).submit();
+}
+
+
+unsigned Child::skipped_heartbeats() const
+{
+	/*
+	 * An '_outstanding_heartbeats' value of 1 is fine because the child needs
+	 * some time to respond to the heartbeat signal. However, at the time when
+	 * the second (or later) heartbeat signal is triggered, the first one
+	 * should have been answered.
+	 */
+	return (_outstanding_heartbeats > 1) ? _outstanding_heartbeats - 1 : 0;
+}
+
+
+void Child::heartbeat_sigh(Signal_context_capability sigh)
+{
+	_heartbeat_sigh = sigh;
+}
+
+
+void Child::heartbeat_response() { _outstanding_heartbeats = 0; }
+
+
 namespace {
 
 	/**

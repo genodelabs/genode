@@ -38,7 +38,8 @@ SRC_CC      += stack_area.cc \
                signal_transmitter_proxy.cc \
                signal_receiver.cc \
                thread_start.cc \
-               trace_session_component.cc
+               trace_session_component.cc \
+               heartbeat.cc
 
 INC_DIR     += $(REP_DIR)/src/core/include \
                $(GEN_CORE_DIR)/include \
@@ -70,5 +71,6 @@ vpath signal_receiver.cc          $(GEN_CORE_DIR)
 vpath core_rpc_cap_alloc.cc       $(GEN_CORE_DIR)
 vpath core_region_map.cc          $(GEN_CORE_DIR)
 vpath platform_rom_modules.cc     $(GEN_CORE_DIR)
+vpath heartbeat.cc                $(GEN_CORE_DIR)
 vpath %.cc                        $(REP_DIR)/src/core
 vpath %.cc                        $(REP_DIR)/src/lib/base

@@ -332,6 +332,9 @@ struct Dummy::Main
 				_timer->msleep(node.attribute_value("ms", 100UL));
 			}
 
+			if (node.type() == "sleep_forever")
+				sleep_forever();
+
 			if (node.type() == "log")
 				log(node.attribute_value("string", String<50>()));
 

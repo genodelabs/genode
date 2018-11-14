@@ -236,6 +236,8 @@ _ZN6Genode4SlabD2Ev T
 _ZN6Genode5AlarmD0Ev T
 _ZN6Genode5AlarmD1Ev T
 _ZN6Genode5AlarmD2Ev T
+_ZN6Genode5Child9heartbeatEv T
+_ZNK6Genode5Child18skipped_heartbeatsEv T
 _ZN6Genode5Child10yield_sighENS_10CapabilityINS_14Signal_contextEEE T
 _ZN6Genode5Child11session_capENS_8Id_spaceINS_6Parent6ClientEE2IdE T
 _ZN6Genode5Child12session_sighENS_10CapabilityINS_14Signal_contextEEE T
@@ -557,7 +559,7 @@ _ZTVN6Genode4HeapE D 72
 _ZTVN6Genode4SlabE D 72
 _ZTVN6Genode5AlarmE D 40
 _ZTVN6Genode5Child14Initial_threadE D 48
-_ZTVN6Genode5ChildE D 408
+_ZTVN6Genode5ChildE D 440
 _ZTVN6Genode6OutputE D 48
 _ZTVN6Genode6ThreadE D 48
 _ZTVN6Genode7ConsoleE D 48

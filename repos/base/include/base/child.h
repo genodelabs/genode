@@ -312,10 +312,14 @@ class Genode::Child : protected Rpc_object<Parent>,
 		Signal_context_capability _resource_avail_sigh { };
 		Signal_context_capability _yield_sigh          { };
 		Signal_context_capability _session_sigh        { };
+		Signal_context_capability _heartbeat_sigh      { };
 
 		/* arguments fetched by the child in response to a yield signal */
 		Lock          _yield_request_lock { };
 		Resource_args _yield_request_args { };
+
+		/* number of unanswered heartbeat signals */
+		unsigned _outstanding_heartbeats = 0;
 
 		/* sessions opened by the child */
 		Id_space<Client> _id_space { };
@@ -799,6 +803,17 @@ class Genode::Child : protected Rpc_object<Parent>,
 		 */
 		void notify_resource_avail() const;
 
+		/**
+		 * Notify the child to give a lifesign
+		 */
+		void heartbeat();
+
+		/**
+		 * Return number of missing heartbeats since the last response from
+		 * the child
+		 */
+		unsigned skipped_heartbeats() const;
+
 
 		/**********************
 		 ** Parent interface **
@@ -820,6 +835,8 @@ class Genode::Child : protected Rpc_object<Parent>,
 		void yield_sigh(Signal_context_capability) override;
 		Resource_args yield_request() override;
 		void yield_response() override;
+		void heartbeat_sigh(Signal_context_capability) override;
+		void heartbeat_response() override;
 };
 
 #endif /* _INCLUDE__BASE__CHILD_H_ */

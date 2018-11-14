@@ -33,6 +33,7 @@ SRC_CC        = main.cc \
                 core_log_out.cc \
                 default_log.cc \
                 env_reinit.cc \
+                heartbeat.cc \
                 thread.cc thread_myself.cc
 
 INC_DIR      += $(REP_DIR)/src/core/include \
@@ -65,6 +66,7 @@ vpath signal_receiver.cc          $(GEN_CORE_DIR)
 vpath trace_session_component.cc  $(GEN_CORE_DIR)
 vpath core_rpc_cap_alloc.cc       $(GEN_CORE_DIR)
 vpath default_log.cc              $(GEN_CORE_DIR)
+vpath heartbeat.cc                $(GEN_CORE_DIR)
 vpath thread.cc                   $(BASE_DIR)/src/lib/base
 vpath thread_myself.cc            $(BASE_DIR)/src/lib/base
 vpath trace.cc                    $(BASE_DIR)/src/lib/base

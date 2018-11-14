@@ -16,11 +16,10 @@
 #include <base/attached_rom_dataspace.h>
 
 /* local includes */
-#include <child_registry.h>
 #include <child.h>
 #include <alias.h>
-#include <state_reporter.h>
 #include <server.h>
+#include <heartbeat.h>
 
 namespace Init { struct Main; }
 
@@ -140,6 +139,8 @@ struct Init::Main : State_reporter::Producer,
 	Cap_quota default_caps() override { return _default_caps; }
 
 	State_reporter _state_reporter { _env, *this };
+
+	Heartbeat _heartbeat { _env, _children, _state_reporter };
 
 	Signal_handler<Main> _resource_avail_handler {
 		_env.ep(), *this, &Main::_handle_resource_avail };
@@ -304,6 +305,7 @@ void Init::Main::_handle_config()
 
 	_verbose.construct(_config_xml);
 	_state_reporter.apply_config(_config_xml);
+	_heartbeat.apply_config(_config_xml);
 
 	/* determine default route for resolving service requests */
 	try {

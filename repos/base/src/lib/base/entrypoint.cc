@@ -146,6 +146,7 @@ void Entrypoint::_process_incoming_signals()
 		_suspend_dispatcher.destruct();
 		_sig_rec.destruct();
 		dissolve(_signal_proxy);
+		deinit_heartbeat_monitoring();
 		_signal_proxy_cap = Capability<Signal_proxy>();
 		_rpc_ep.destruct();
 		destroy_signal_thread();
@@ -156,6 +157,7 @@ void Entrypoint::_process_incoming_signals()
 		init_signal_thread(_env);
 
 		_rpc_ep.construct(&_env.pd(), Component::stack_size(), initial_ep_name());
+		init_heartbeat_monitoring(_env);
 		_signal_proxy_cap = manage(_signal_proxy);
 		_sig_rec.construct();
 
@@ -288,6 +290,8 @@ namespace {
 			 * parent resource mechanism
 			 */
 			init_parent_resource_requests(env);
+
+			init_heartbeat_monitoring(env);
 
 			Component::construct(env);
 		}
