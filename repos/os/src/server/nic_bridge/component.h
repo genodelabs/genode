@@ -211,14 +211,30 @@ class Net::Root : public Genode::Root_component<Net::Session_component>
 			memset(ip_addr, 0, MAX_IP_ADDR_LENGTH);
 
 			Session_label label;
-			 try {
+			Mac_address mac;
+			try {
 				label = label_from_args(args);
 				Session_policy policy(label, _config);
-				policy.attribute("ip_addr").value(ip_addr, sizeof(ip_addr));
-			} catch (Xml_node::Nonexistent_attribute) {
-				Genode::log("Missing \"ip_addr\" attribute in policy definition");
-			} catch (Session_policy::No_policy_defined) { }
 
+				/* determine session MAC address */
+				mac = policy.attribute_value("mac", Mac_address());
+				if (mac == Mac_address()) {
+					mac = _mac_alloc.alloc(); }
+				else if (_mac_alloc.mac_managed_by_allocator(mac)) {
+					Genode::warning("Bad MAC address in policy");
+					throw Service_denied();
+				}
+
+				policy.attribute("ip_addr").value(ip_addr, sizeof(ip_addr));
+			}
+			catch (Xml_node::Nonexistent_attribute) {
+				Genode::log("Missing \"ip_addr\" attribute in policy definition");
+			}
+			catch (Session_policy::No_policy_defined) { }
+			catch (Mac_allocator::Alloc_failed) {
+				Genode::warning("Mac address allocation failed!");
+				throw Service_denied();
+			}
 			size_t ram_quota =
 				Arg_string::find_arg(args, "ram_quota"  ).ulong_value(0);
 			size_t tx_buf_size =
@@ -230,12 +246,7 @@ class Net::Root : public Genode::Root_component<Net::Session_component>
 				return new (md_alloc())
 					Session_component(_env.ram(), _env.rm(), _env.ep(),
 					                  ram_quota, tx_buf_size, rx_buf_size,
-					                  _mac_alloc.alloc(), _nic, _verbose,
-					                  label, ip_addr);
-			}
-			catch (Mac_allocator::Alloc_failed) {
-				Genode::warning("Mac address allocation failed!");
-				throw Service_denied();
+					                  mac, _nic, _verbose, label, ip_addr);
 			}
 			catch (Out_of_ram) {
 				Genode::warning("insufficient 'ram_quota'");

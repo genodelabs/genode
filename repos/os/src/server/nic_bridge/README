@@ -14,6 +14,19 @@ For example:
 Note that the least relevant byte will be ignored. NIC bridge will use it for
 enumerating its clients, starting from 0.
 
+A fixed MAC can be configured per client of the NIC bridge using the '<policy>'
+tag. For example:
+
+!<start name="nic_bridge">
+!  ...
+!  <config>
+!    <policy label_prefix="lighttpd" mac="02:02:02:01:23:45"/>
+!  </config>
+!</start>
+
+Note that the fixed MAC addresses must not fall in the range that is used for
+runtime MAC allocation.
+
 Normally, NIC bridge is expected to be used in scenarios where an DHCP server
 is available. However, there are situations where the use of static IPs for
 virtual NICs is useful. For example, when using the NIC bridge to create a

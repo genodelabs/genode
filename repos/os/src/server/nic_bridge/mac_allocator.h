@@ -52,6 +52,15 @@ class Net::Mac_allocator
 		}
 
 		void free(Mac_address mac) { _free[mac.addr[5]] = true; }
+
+		bool mac_managed_by_allocator(Mac_address &mac)
+		{
+			return _base.addr[0] == mac.addr[0] &&
+			       _base.addr[1] == mac.addr[1] &&
+			       _base.addr[2] == mac.addr[2] &&
+			       _base.addr[3] == mac.addr[3] &&
+			       _base.addr[4] == mac.addr[4];
+		}
 };
 
 #endif /* _MAC_ALLOCATOR_H_ */

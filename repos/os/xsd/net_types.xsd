@@ -3,7 +3,7 @@
 
 	<xs:simpleType name="Mac_address">
 		<xs:restriction base="xs:string">
-			<xs:pattern value="[0-9a-fA-F]{2}.[0-9a-fA-F]{2}.[0-9a-fA-F]{2}.[0-9a-fA-F]{2}.[0-9a-fA-F]{2}.[0-9a-fA-F]{2}"/>
+			<xs:pattern value="[0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}"/>
 		</xs:restriction>
 	</xs:simpleType><!-- Mac_address -->
 
