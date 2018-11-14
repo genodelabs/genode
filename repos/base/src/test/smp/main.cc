@@ -13,6 +13,7 @@
  */
 
 /* Genode includes */
+#include <base/attached_ram_dataspace.h>
 #include <base/component.h>
 #include <base/heap.h>
 #include <base/log.h>
@@ -243,6 +244,73 @@ namespace Affinity_test {
 	}
 }
 
+namespace Tlb_shootdown_test {
+
+	struct Thread : Genode::Thread, Genode::Noncopyable
+	{
+		enum { STACK_SIZE = sizeof(long)*2048 };
+
+		unsigned            cpu_idx;
+		volatile unsigned * values;
+		Genode::Lock        barrier;
+
+		void entry()
+		{
+			Genode::log("TLB: thread started on CPU ", cpu_idx);
+			values[cpu_idx] = 1;
+			barrier.unlock();
+
+			for (; values[cpu_idx] == 1;) ;
+
+			Genode::raw("Unforseeable crosstalk effect!");
+		}
+
+		Thread(Genode::Env &env, Location location, unsigned idx,
+		       volatile unsigned * values)
+		: Genode::Thread(env, Name("tlb_thread"), STACK_SIZE, location,
+		                 Weight(), env.cpu()),
+		  cpu_idx(idx), values(values), barrier(Genode::Lock::LOCKED) {
+			  start(); }
+
+		/*
+		 * Noncopyable
+		 */
+		Thread(Thread const&);
+		Thread &operator = (Thread const &);
+	};
+
+	void execute(Genode::Env &env, Genode::Heap & heap,
+	             Genode::Affinity::Space & cpus)
+	{
+		using namespace Genode;
+
+		log("TLB: --- test started ---");
+
+		enum { DS_SIZE = 4096 };
+		Genode::Attached_ram_dataspace * ram_ds =
+			new (heap) Genode::Attached_ram_dataspace(env.ram(), env.rm(),
+			                                          DS_SIZE);
+
+		/* get some memory for the thread objects */
+		Thread ** threads = new (heap) Thread*[cpus.total()];
+
+		/* construct the thread objects */
+		for (unsigned i = 1; i < cpus.total(); i++)
+			threads[i] = new (heap) Thread(env, cpus.location_of_index(i), i,
+			                               ram_ds->local_addr<volatile unsigned>());
+
+		/* wait until all threads are up and running */
+		for (unsigned i = 1; i < cpus.total(); i++) threads[i]->barrier.lock();
+
+		log("TLB: all threads are up and running...");
+		destroy(heap, ram_ds);
+		log("TLB: ram dataspace destroyed, all will fault...");
+		for (unsigned i = 1; i < cpus.total(); i++) destroy(heap, threads[i]);
+		destroy(heap, threads);
+
+		log("TLB: --- test finished ---");
+	}
+}
 void Component::construct(Genode::Env & env)
 {
 	using namespace Genode;
@@ -257,6 +325,7 @@ void Component::construct(Genode::Env & env)
 
 	Mp_server_test::execute(env, heap, cpus);
 	Affinity_test::execute(env, heap, cpus);
+	Tlb_shootdown_test::execute(env, heap, cpus);
 
 	log("--- SMP testsuite finished ---");
 }
