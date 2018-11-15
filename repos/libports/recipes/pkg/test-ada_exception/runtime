@@ -4,7 +4,7 @@
 		<timeout meaning="failed" sec="20" />
 		<log meaning="succeeded">
 			[init -> test-ada_exception] Ada exception test*
-			[init -> test-ada_exception] Error: Program Error in except.adb at line 6*
+			[init -> test-ada_exception] Error: Exception raised: explicit raise in except.adb: 6
 			[init -> test-ada_exception] Caught Ada::Exception::Program_Error*
 			[init] child "test-ada_exception" exited with exit value 0
 		</log>

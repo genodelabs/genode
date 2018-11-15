@@ -4,30 +4,50 @@ include $(REP_DIR)/lib/mk/ada.inc
 ADALIB     = $(ADA_RTS)/adalib
 ADAINCLUDE = $(ADA_RTS)/adainclude
 
-PACKAGES = system s-stoele s-secsta a-except s-conca2 s-arit64
+ADA_RTS_SOURCE = $(call select_from_ports,ada-runtime)/ada-runtime/contrib/gcc-6.3.0
+ADA_RUNTIME_DIR = $(call select_from_ports,ada-runtime)/ada-runtime/src
+ADA_RUNTIME_LIB_DIR = $(call select_from_ports,ada-runtime)/ada-runtime/src/lib
+ADA_RUNTIME_PLATFORM_DIR = $(call select_from_ports,ada-runtime)/ada-runtime/platform
 
-body_exists := $(filter $1.adb,$(shell if [ -e $2/$1.adb ]; then echo $1.adb; fi))
-
-SRC_ADS += $(foreach package, $(PACKAGES), $(package).ads)
-SRC_ADB += $(foreach package, $(PACKAGES), $(body_exists, $(package), $(ADA_RTS_SOURCE)))
-SRC_ADB += $(foreach package, $(PACKAGES), $(body_exists, $(package), $(REP_DIR)/src/lib/ada/runtime))
+SRC_ADS += system.ads \
+	   s-soflin.ads \
+	   s-imgint.ads \
+	   s-stoele.ads \
+	   s-secsta.ads \
+	   interfac.ads \
+	   a-except.ads
 
 CUSTOM_ADA_MAKE    = $(CC)
 CUSTOM_ADA_FLAGS   = -c -gnatg -gnatp -gnatpg -gnatn2
 CUSTOM_ADA_OPT     = $(CC_ADA_OPT)
-CUSTOM_ADA_INCLUDE = -I- -I$(REP_DIR)/src/lib/ada/runtime -I$(ADA_RTS_SOURCE) -I$(REP_DIR)/src/lib/ada/runtimelib
+CUSTOM_ADA_INCLUDE = -I- -I$(ADA_RUNTIME_DIR) -I$(ADA_RTS_SOURCE) -I$(ADA_RUNTIME_LIB_DIR)
 
-# pure C runtime implementations
-SRC_CC += a-except_c.cc s-soflin_c.cc a-exctab_c.cc
+INC_DIR += $(ADA_RUNTIME_LIB_DIR)
 
 # C runtime glue code
-SRC_CC += s-secsta_c.cc libc.cc
+SRC_CC += genode.cc
 
 # Ada packages that implement runtime functionality
-SRC_ADB += ss_utils.adb
+SRC_ADB += ss_utils.adb string_utils.adb platform.adb
 
-vpath %.cc $(REP_DIR)/src/lib/ada/runtimelib
-vpath %.adb $(REP_DIR)/src/lib/ada/runtime $(ADA_RTS_SOURCE) $(REP_DIR)/src/lib/ada/runtimelib
-vpath %.ads $(REP_DIR)/src/lib/ada/runtime $(ADA_RTS_SOURCE)
+vpath %.cc  $(ADA_RUNTIME_PLATFORM_DIR)
+
+vpath system.ads $(ADA_RTS_SOURCE)
+vpath s-soflin.ads $(ADA_RUNTIME_DIR)
+vpath s-stoele.ads $(ADA_RTS_SOURCE)
+vpath s-secsta.ads $(ADA_RUNTIME_DIR)
+vpath s-imgint.ads $(ADA_RTS_SOURCE)
+vpath a-except.ads $(ADA_RUNTIME_DIR)
+vpath interfac.ads $(ADA_RTS_SOURCE)
+
+vpath s-stoele.adb $(ADA_RTS_SOURCE)
+vpath s-secsta.adb $(ADA_RUNTIME_DIR)
+vpath s-soflin.adb $(ADA_RUNTIME_DIR)
+vpath s-imgint.adb $(ADA_RTS_SOURCE)
+vpath a-except.adb $(ADA_RUNTIME_DIR)
+
+vpath platform.% $(ADA_RUNTIME_LIB_DIR)
+vpath string_utils.% $(ADA_RUNTIME_LIB_DIR)
+vpath ss_utils.% $(ADA_RUNTIME_LIB_DIR)
 
 SHARED_LIB = yes

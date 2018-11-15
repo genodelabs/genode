@@ -1,4 +1,38 @@
-PORT_DIR := $(call port_dir,$(GENODE_DIR)/repos/ports/ports/gcc)
+ADA_RT_DIR := $(call port_dir,$(GENODE_DIR)/repos/libports/ports/ada-runtime)
+
+MIRROR_FROM_ADA_RT_DIR := \
+	$(addprefix ada-runtime/contrib/gcc-6.3.0/,\
+		ada.ads \
+		system.ads \
+		s-stoele.ads \
+		a-unccon.ads \
+	)\
+	$(addprefix ada-runtime/src/,\
+		s-stalib.ads \
+		a-except.ads \
+		s-secsta.ads \
+		s-parame.ads \
+		s-soflin.ads \
+	)\
+	$(addprefix ada-runtime/src/lib/,\
+		ss_utils.ads \
+	)
+
+#	$(addprefix ada-runtime/src/,\
+		s-stache.ads \
+		s-conca2.ads \
+		s-arit64.ads \
+	)\
+	$(addprefix ada-runtime/contrib/gcc-6.3.0/,\
+		interfac.ads \
+		system.ads \
+	)
+
+content: $(MIRROR_FROM_ADA_RT_DIR)
+
+$(MIRROR_FROM_ADA_RT_DIR):
+	mkdir -p src/noux-pkg/gcc/gcc/ada/
+	cp -r $(ADA_RT_DIR)/$@ src/noux-pkg/gcc/gcc/ada/
 
 MIRROR_FROM_REP_DIR := \
 	lib/import/import-ada.mk \
@@ -9,33 +43,6 @@ content: $(MIRROR_FROM_REP_DIR)
 
 $(MIRROR_FROM_REP_DIR):
 	$(mirror_from_rep_dir)
-
-content: LICENSE
-
-LICENSE:
-	cp $(PORT_DIR)/src/noux-pkg/gcc/gcc/COPYING $@
-
-MIRROR_FROM_PORT_DIR := $(addprefix src/noux-pkg/gcc/gcc/ada/,\
-	a-except.ads \
-	s-parame.ads \
-	s-stalib.ads \
-	s-traent.ads \
-	s-soflin.ads \
-	s-stache.ads \
-	s-stoele.ads \
-	s-secsta.ads \
-	s-conca2.ads \
-	s-arit64.ads \
-	ada.ads \
-	interfac.ads \
-	a-unccon.ads \
-	system.ads )
-
-content: $(MIRROR_FROM_PORT_DIR)
-
-$(MIRROR_FROM_PORT_DIR):
-	mkdir -p $(dir $@)
-	cp -r $(PORT_DIR)/$@ $@
 
 content: lib/mk/ada.mk
 
