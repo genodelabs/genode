@@ -40,6 +40,8 @@ class QNitpickerPlatformWindow : public QObject, public QPlatformWindow
 	private:
 
 		Genode::Env                     &_env;
+		QString                          _nitpicker_session_label;
+		static QStringList               _nitpicker_session_label_list;
 		Nitpicker::Connection            _nitpicker_session;
 		Framebuffer::Session_client      _framebuffer_session;
 		unsigned char                   *_framebuffer;
@@ -76,6 +78,8 @@ class QNitpickerPlatformWindow : public QObject, public QPlatformWindow
 		Nitpicker::Session::View_handle _create_view();
 		void _adjust_and_set_geometry(const QRect &rect);
 
+		QString _sanitize_label(QString label);
+
 	private Q_SLOTS:
 
 		void _handle_input(unsigned int);
@@ -91,6 +95,8 @@ class QNitpickerPlatformWindow : public QObject, public QPlatformWindow
 		QNitpickerPlatformWindow(Genode::Env &env, QWindow *window,
 		                         Genode::Signal_receiver &signal_receiver,
 		                         int screen_width, int screen_height);
+
+		~QNitpickerPlatformWindow();
 
 	    QWindow *window() const;
 
