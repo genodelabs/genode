@@ -1,0 +1,49 @@
+<runtime ram="16M" caps="1000" binary="init">
+
+	<events>
+		<timeout meaning="failed" sec="300" />
+		<log meaning="succeeded">
+			[init] child "gcov" exited with exit value 0
+		</log>
+	</events>
+
+	<content>
+		<rom label="gcov"/>
+		<rom label="gmp.lib.so"/>
+		<rom label="ld.lib.so"/>
+		<rom label="libc.lib.so"/>
+		<rom label="libm.lib.so"/>
+		<rom label="posix.lib.so"/>
+		<rom label="stdcxx.lib.so"/>
+		<rom label="vfs.lib.so"/>
+	</content>
+
+	<config>
+		<parent-provides>
+			<service name="LOG"/>
+			<service name="PD"/>
+			<service name="CPU"/>
+			<service name="ROM"/>
+			<service name="File_system"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> </any-service>
+		</default-route>
+		<default caps="150"/>
+		<start name="gcov">
+			<resource name="RAM" quantum="10M"/>
+			<config>
+				<arg value="gcov"/>
+				<arg value="--genode-autopilot"/>
+				<arg value="--function-summaries"/>
+				<arg value="--demangled-names"/>
+				<vfs>
+					<dir name="dev"> <log/> </dir>
+					<fs label="depot"/>
+					<fs label="gcov_data"/>
+				</vfs>
+				<libc stdout="/dev/log" stderr="/dev/log"/>
+			</config>
+		</start>
+	</config>
+</runtime>

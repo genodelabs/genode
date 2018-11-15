@@ -1,0 +1,38 @@
+libgcov.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ gcc/tsystem.h |    6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/gcc/tsystem.h b/gcc/tsystem.h
+index 7dc4b54..c7a09df 100644
+--- a/gcc/tsystem.h
++++ b/gcc/tsystem.h
+@@ -90,7 +90,9 @@ extern void *memset (void *, int, size_t);
+ #include <sys/types.h>
+ 
+ /* All systems have this header.  */
++#if 0
+ #include <errno.h>
++#endif
+ 
+ #ifndef errno
+ extern int errno;
+@@ -102,10 +104,14 @@ extern int errno;
+ #include <unistd.h>
+ 
+ /* GCC supplies this header.  */
++#if 0
+ #include <limits.h>
++#endif
+ 
+ /* If these system headers do not exist, fixincludes must create them.  */
++#if 0
+ #include <time.h>
++#endif
+ 
+ #endif /* inhibit_libc */
+ 

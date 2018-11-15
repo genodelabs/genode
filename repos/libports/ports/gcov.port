@@ -1,0 +1,151 @@
+LICENSE   := GPLv2
+VERSION   := 6.3.0
+DOWNLOADS := gcov.archive generated.git
+
+URL(gcov) := ftp://ftp.fu-berlin.de/gnu/gcc/gcc-$(VERSION)/gcc-$(VERSION).tar.bz2
+SHA(gcov) := f06ae7f3f790fbf0f018f6d40e844451e6bc3b7bc96e128e63b09825c1f8b29f
+DIR(gcov) := src/gcov
+SIG(gcov) := ${URL(gcov)}
+KEY(gcov) := GNU
+
+URL(generated) := https://github.com/cproc/genode-generated.git
+REV(generated) := c0b4333a7df8de45036506b9542b57349796775d
+DIR(generated) := include
+
+TAR_OPT(gcov) := gcc-$(VERSION)/gcc/coretypes.h \
+                 gcc-$(VERSION)/gcc/defaults.h \
+                 gcc-$(VERSION)/gcc/diagnostic.c \
+                 gcc-$(VERSION)/gcc/diagnostic-color.c \
+                 gcc-$(VERSION)/gcc/diagnostic-color.h \
+                 gcc-$(VERSION)/gcc/diagnostic-core.h \
+                 gcc-$(VERSION)/gcc/diagnostic.def \
+                 gcc-$(VERSION)/gcc/diagnostic.h \
+                 gcc-$(VERSION)/gcc/diagnostic-show-locus.c \
+                 gcc-$(VERSION)/gcc/double-int.h \
+                 gcc-$(VERSION)/gcc/fixed-value.h \
+                 gcc-$(VERSION)/gcc/flag-types.h \
+                 gcc-$(VERSION)/gcc/gcov.c \
+                 gcc-$(VERSION)/gcc/gcov-counter.def \
+                 gcc-$(VERSION)/gcc/gcov-io.c \
+                 gcc-$(VERSION)/gcc/gcov-io.h \
+                 gcc-$(VERSION)/gcc/ggc.h \
+                 gcc-$(VERSION)/gcc/ggc-none.c \
+                 gcc-$(VERSION)/gcc/hash-map.h \
+                 gcc-$(VERSION)/gcc/hash-map-traits.h \
+                 gcc-$(VERSION)/gcc/hash-set.h \
+                 gcc-$(VERSION)/gcc/hash-table.c \
+                 gcc-$(VERSION)/gcc/hash-table.h \
+                 gcc-$(VERSION)/gcc/hash-traits.h \
+                 gcc-$(VERSION)/gcc/hwint.h \
+                 gcc-$(VERSION)/gcc/inchash.h \
+                 gcc-$(VERSION)/gcc/input.c \
+                 gcc-$(VERSION)/gcc/input.h \
+                 gcc-$(VERSION)/gcc/intl.c \
+                 gcc-$(VERSION)/gcc/intl.h \
+                 gcc-$(VERSION)/gcc/is-a.h \
+                 gcc-$(VERSION)/gcc/machmode.h \
+                 gcc-$(VERSION)/gcc/memory-block.cc \
+                 gcc-$(VERSION)/gcc/memory-block.h \
+                 gcc-$(VERSION)/gcc/mem-stats.h \
+                 gcc-$(VERSION)/gcc/mem-stats-traits.h \
+                 gcc-$(VERSION)/gcc/mode-classes.def \
+                 gcc-$(VERSION)/gcc/pretty-print.c \
+                 gcc-$(VERSION)/gcc/pretty-print.h \
+                 gcc-$(VERSION)/gcc/real.h \
+                 gcc-$(VERSION)/gcc/signop.h \
+                 gcc-$(VERSION)/gcc/statistics.h \
+                 gcc-$(VERSION)/gcc/system.h \
+                 gcc-$(VERSION)/gcc/tsystem.h \
+                 gcc-$(VERSION)/gcc/vec.c \
+                 gcc-$(VERSION)/gcc/vec.h \
+                 gcc-$(VERSION)/gcc/version.c \
+                 gcc-$(VERSION)/gcc/version.h \
+                 gcc-$(VERSION)/gcc/wide-int.h \
+                 gcc-$(VERSION)/gcc/wide-int-print.h \
+                 gcc-$(VERSION)/gcc/config/dbxelf.h \
+                 gcc-$(VERSION)/gcc/config/elfos.h \
+                 gcc-$(VERSION)/gcc/config/initfini-array.h \
+                 gcc-$(VERSION)/gcc/config/newlib-stdint.h \
+                 gcc-$(VERSION)/gcc/config/vxworks-dummy.h \
+                 gcc-$(VERSION)/gcc/config/arm/aout.h \
+                 gcc-$(VERSION)/gcc/config/arm/arm-cores.def \
+                 gcc-$(VERSION)/gcc/config/arm/arm.h \
+                 gcc-$(VERSION)/gcc/config/arm/arm-opts.h \
+                 gcc-$(VERSION)/gcc/config/arm/bpabi.h \
+                 gcc-$(VERSION)/gcc/config/arm/elf.h \
+                 gcc-$(VERSION)/gcc/config/arm/unknown-elf.h \
+                 gcc-$(VERSION)/gcc/config/i386/att.h \
+                 gcc-$(VERSION)/gcc/config/i386/biarch64.h \
+                 gcc-$(VERSION)/gcc/config/i386/i386elf.h \
+                 gcc-$(VERSION)/gcc/config/i386/i386.h \
+                 gcc-$(VERSION)/gcc/config/i386/i386-opts.h \
+                 gcc-$(VERSION)/gcc/config/i386/stringop.def \
+                 gcc-$(VERSION)/gcc/config/i386/unix.h \
+                 gcc-$(VERSION)/gcc/config/i386/x86-64.h \
+                 gcc-$(VERSION)/gcc/config/i386/x86-tune.def \
+                 gcc-$(VERSION)/include/ansidecl.h \
+                 gcc-$(VERSION)/include/demangle.h \
+                 gcc-$(VERSION)/include/environ.h \
+                 gcc-$(VERSION)/include/filenames.h \
+                 gcc-$(VERSION)/include/hashtab.h \
+                 gcc-$(VERSION)/include/libiberty.h \
+                 gcc-$(VERSION)/include/obstack.h \
+                 gcc-$(VERSION)/include/safe-ctype.h \
+                 gcc-$(VERSION)/libcpp/internal.h \
+                 gcc-$(VERSION)/libcpp/line-map.c \
+                 gcc-$(VERSION)/libcpp/system.h \
+                 gcc-$(VERSION)/libcpp/include/cpp-id-data.h \
+                 gcc-$(VERSION)/libcpp/include/cpplib.h \
+                 gcc-$(VERSION)/libcpp/include/line-map.h \
+                 gcc-$(VERSION)/libcpp/include/symtab.h \
+                 gcc-$(VERSION)/libgcc/gthr.h \
+                 gcc-$(VERSION)/libgcc/libgcov-driver.c \
+                 gcc-$(VERSION)/libgcc/libgcov-driver-system.c \
+                 gcc-$(VERSION)/libgcc/libgcov.h \
+                 gcc-$(VERSION)/libgcc/libgcov-interface.c \
+                 gcc-$(VERSION)/libgcc/libgcov-merge.c \
+                 gcc-$(VERSION)/libgcc/libgcov-profiler.c \
+                 gcc-$(VERSION)/libiberty/argv.c \
+                 gcc-$(VERSION)/libiberty/concat.c \
+                 gcc-$(VERSION)/libiberty/cp-demangle.c \
+                 gcc-$(VERSION)/libiberty/cp-demangle.h \
+                 gcc-$(VERSION)/libiberty/cplus-dem.c \
+                 gcc-$(VERSION)/libiberty/d-demangle.c \
+                 gcc-$(VERSION)/libiberty/filename_cmp.c \
+                 gcc-$(VERSION)/libiberty/fopen_unlocked.c \
+                 gcc-$(VERSION)/libiberty/hashtab.c \
+                 gcc-$(VERSION)/libiberty/lbasename.c \
+                 gcc-$(VERSION)/libiberty/obstack.c \
+                 gcc-$(VERSION)/libiberty/safe-ctype.c \
+                 gcc-$(VERSION)/libiberty/vprintf-support.c \
+                 gcc-$(VERSION)/libiberty/vprintf-support.h \
+                 gcc-$(VERSION)/libiberty/xexit.c \
+                 gcc-$(VERSION)/libiberty/xmalloc.c \
+                 gcc-$(VERSION)/libiberty/xstrdup.c \
+                 gcc-$(VERSION)/libiberty/xstrerror.c \
+                 gcc-$(VERSION)/libiberty/xvasprintf.c \
+                 gcc-$(VERSION)/COPYING \
+                --strip-components=1
+
+PATCHES   := src/app/gcov/patches/*.patch \
+             src/lib/gcov/patches/*.patch
+PATCH_OPT := -p1 -d src/gcov
+
+default: symlinks
+
+#
+# These .c files need to be compiled with g++
+#
+symlinks: $(DOWNLOADS)
+	$(VERBOSE)ln -s diagnostic-color.c       ${DIR(gcov)}/gcc/diagnostic-color.cc
+	$(VERBOSE)ln -s diagnostic-show-locus.c  ${DIR(gcov)}/gcc/diagnostic-show-locus.cc
+	$(VERBOSE)ln -s diagnostic.c             ${DIR(gcov)}/gcc/diagnostic.cc
+	$(VERBOSE)ln -s gcov.c                   ${DIR(gcov)}/gcc/gcov.cc
+	$(VERBOSE)ln -s ggc-none.c               ${DIR(gcov)}/gcc/ggc-none.cc
+	$(VERBOSE)ln -s hash-table.c             ${DIR(gcov)}/gcc/hash-table.cc
+	$(VERBOSE)ln -s input.c                  ${DIR(gcov)}/gcc/input.cc
+	$(VERBOSE)ln -s intl.c                   ${DIR(gcov)}/gcc/intl.cc
+	$(VERBOSE)ln -s pretty-print.c           ${DIR(gcov)}/gcc/pretty-print.cc
+	$(VERBOSE)ln -s vec.c                    ${DIR(gcov)}/gcc/vec.cc
+	$(VERBOSE)ln -s version.c                ${DIR(gcov)}/gcc/version.cc
+	$(VERBOSE)ln -s line-map.c               ${DIR(gcov)}/libcpp/line-map.cc

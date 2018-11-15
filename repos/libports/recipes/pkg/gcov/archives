@@ -1,0 +1,7 @@
+_/src/init
+_/src/gcov
+_/src/gmp
+_/src/libc
+_/src/posix
+_/src/stdcxx
+_/src/vfs
