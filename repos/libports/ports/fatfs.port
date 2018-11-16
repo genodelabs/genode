@@ -3,7 +3,7 @@ VERSION   := 0.13b
 DOWNLOADS := fatfs.archive
 
 URL(fatfs) := http://www.elm-chan.org/fsw/ff/arc/ff13b.zip
-SHA(fatfs) := 6cc9673ddb5a4d34ca526a72a5e4914d5be4465ef426c4ba55f2465bd0617318
+SHA(fatfs) := 43a577724e5595d73c643891cb2959919885b458149794a085a98254784f5a9b
 DIR(fatfs) := src/lib/fatfs
 
 DIRS := include/fatfs
