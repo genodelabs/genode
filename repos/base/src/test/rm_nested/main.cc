@@ -228,8 +228,6 @@ void Component::construct(Genode::Env & env)
 			managed[i] = 13;
 		}
 
-		fault_handler.dissolve();
-
 		log("test destruction of region_map");
 		Capability<Region_map> rcap = rm.create(4096);
 		rm.destroy(rcap);
