@@ -16,7 +16,11 @@ import_from_depot [depot_user]/src/[base_src] \
 
 create_tar_from_depot_binaries [run_dir]/genode/depot.tar \
                                [depot_user]/pkg/sculpt-installation \
-                               [depot_user]/pkg/themed_wm \
+                               [depot_user]/pkg/wm \
+                               [depot_user]/pkg/nano3d \
+                               [depot_user]/pkg/window_layouter \
+                               [depot_user]/pkg/motif_decorator \
+                               [depot_user]/pkg/themed_decorator \
                                [depot_user]/pkg/sticks_blue_backdrop
 
 proc current_pkg { pkg } { return $pkg/[_current_depot_archive_version pkg $pkg] }
@@ -151,11 +155,33 @@ install_config {
 				<service name="Timer"> <parent/> </service>
 			</common_routes>
 
-			<start name="wm" pkg="} [depot_user]/pkg/[current_pkg themed_wm] {">
+			<start name="wm" pkg="} [depot_user]/pkg/[current_pkg wm] {">
 				<route>
 					<service name="Nitpicker"> <parent/> </service>
 				</route>
 			</start>
+
+			<start name="window_layouter" pkg="} [depot_user]/pkg/[current_pkg window_layouter] {">
+				<route>
+					<service name="ROM" label="window_list">       <child name="wm"/> </service>
+					<service name="ROM" label="focus_request">     <child name="wm"/> </service>
+					<service name="ROM" label="hover">             <child name="wm"/> </service>
+					<service name="ROM" label="decorator_margins"> <child name="wm"/> </service>
+					<service name="ROM" label="rules">             <child name="wm"/> </service>
+					<service name="Report">                        <child name="wm"/> </service>
+					<service name="Nitpicker">                     <child name="wm"/> </service>
+				</route>
+			</start>
+
+			<start name="themed_decorator" pkg="} [depot_user]/pkg/[current_pkg themed_decorator] {">
+				<route>
+					<service name="ROM"    label="window_layout">     <child name="wm"/> </service>
+					<service name="ROM"    label="pointer">           <child name="wm"/> </service>
+					<service name="Report">                           <child name="wm"/> </service>
+					<service name="Nitpicker">                        <child name="wm"/> </service>
+				</route>
+			</start>
+
 
 			<start name="backdrop" pkg="} [depot_user]/pkg/[current_pkg sticks_blue_backdrop] {">
 				<route>
@@ -171,15 +197,14 @@ install_config {
 			</start>
 			-->
 
-<!--
 			<start name="nano3d" pkg="} [depot_user]/pkg/[current_pkg nano3d] {">
 				<route>
 					<service name="Nitpicker"> <child name="wm"/> </service>
 				</route>
 				<config shape="cube"/>
 			</start>
-			-->
 
+<!--
 			<start name="fonts_fs" pkg="} [depot_user]/pkg/[current_pkg fonts_fs] {">
 				<route>
 					<service name="ROM" label="config"> <parent label="fonts.config"/> </service>
@@ -193,6 +218,7 @@ install_config {
 					<service name="File_system"> <parent/> </service>
 				</route>
 			</start>
+			-->
 
 			<!-- vbox, nic_router, acpica -->
 

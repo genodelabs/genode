@@ -1,0 +1,11 @@
+<runtime ram="4M" caps="200" binary="window_layouter" config="window_layouter.config">
+
+	<requires> <nitpicker/> <timer/> </requires>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="window_layouter"/>
+		<rom label="window_layouter.config"/>
+	</content>
+
+</runtime>

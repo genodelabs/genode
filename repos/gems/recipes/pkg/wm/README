@@ -1,0 +1,19 @@
+
+                              Window manager
+
+This package provides the central part of Genode's componentized GUI stack
+via a custom implementation of the nitpicker session interface.
+It must be complemented by a window layouter and a window decorator, each of
+which is a separate client component. Whereas the window decorator defines how
+windows look, the window layouter defines how they behave.
+
+The window manager, decorator, and layouter propagate their respective state
+(like the window layout or the decoration margins) via reports and ROMs. The
+window-manager package manages the flow of information between those parties
+by providing a report and ROM service to the external layouter and decorator.
+
+The special roles of the layouter and decorator among the window-manager
+clients are identified according to their names (labels), which are suffixed
+with "layouter" and "decorator" respectively. All other clients are expected
+to be regular windowed applications.
+

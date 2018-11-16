@@ -1,0 +1,8 @@
+<launcher pkg="themed_decorator">
+	<route>
+		<service name="ROM" label="window_layout"> <child name="wm"/> </service>
+		<service name="ROM" label="pointer">       <child name="wm"/> </service>
+		<service name="Report">                    <child name="wm"/> </service>
+		<service name="Nitpicker">                 <child name="wm"/> </service>
+	</route>
+</launcher>

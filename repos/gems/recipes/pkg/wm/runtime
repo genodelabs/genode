@@ -1,0 +1,15 @@
+<runtime ram="16M" caps="500" binary="init" config="wm.config">
+
+	<requires> <nitpicker/> <timer/> </requires>
+
+	<provides> <nitpicker/> <rom/> <report/> </provides>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="report_rom"/>
+		<rom label="wm"/>
+		<rom label="init"/>
+		<rom label="wm.config"/>
+	</content>
+
+</runtime>

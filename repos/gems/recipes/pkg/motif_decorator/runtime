@@ -1,0 +1,14 @@
+<runtime ram="8M" caps="400" binary="decorator">
+
+	<requires> <nitpicker/> <timer/> </requires>
+
+	<config>
+		<controls> <maximizer/> <title/> </controls>
+	</config>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="decorator"/>
+	</content>
+
+</runtime>

@@ -1,0 +1,21 @@
+<runtime ram="8M" caps="400" binary="themed_decorator">
+
+	<requires> <nitpicker/> <timer/> </requires>
+
+	<config>
+		<libc/>
+		<vfs> <tar name="plain_decorator_theme.tar"/> </vfs>
+	</config>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="libc.lib.so"/>
+		<rom label="libm.lib.so"/>
+		<rom label="libpng.lib.so"/>
+		<rom label="vfs.lib.so"/>
+		<rom label="zlib.lib.so"/>
+		<rom label="themed_decorator"/>
+		<rom label="plain_decorator_theme.tar"/>
+	</content>
+
+</runtime>

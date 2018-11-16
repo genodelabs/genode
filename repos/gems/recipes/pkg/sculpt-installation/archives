@@ -7,7 +7,10 @@ _/pkg/rom_filter
 _/pkg/rom_reporter
 _/pkg/nic_router-nat
 _/pkg/vbox5-nova-sculpt
-_/pkg/themed_wm
+_/pkg/wm
+_/pkg/themed_decorator
+_/pkg/motif_decorator
+_/pkg/window_layouter
 _/pkg/sticks_blue_backdrop
 _/pkg/nano3d
 _/pkg/fonts_fs

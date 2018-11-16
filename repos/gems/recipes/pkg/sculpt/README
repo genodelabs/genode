@@ -156,9 +156,13 @@ relationships. On the right, diagnostic messages are presented.
 
 # Try adding additional components by selecting items in the "+" context
   menu of the runtime view. Most components expect the presence of a
-  window manager. Hence, you should first select "wm". Please pay attention
-  to diagnostic messages given in the runtime dialog on the left. Whenever
-  a component depends on another one, a corresponding message appears.
+  window manager. Hence, you should first select the "wm", "window_layouter",
+  and "motif_decorator" components to make the window-management functionality
+  available. The distinct roles of the three components are described below.
+
+  Please pay attention to diagnostic messages given in the runtime dialog on
+  the left. Whenever a component depends on another one, a corresponding
+  message appears.
 
 # You may click on any component in the runtime view to reveal additional
   information such as its memory usage. For components that you started
@@ -175,8 +179,20 @@ The following example subsystems are available from the "+" menu:
   is used by the graphical terminal of the noux subsystem and the 'top_view'
   application.
 
-:'wm': A window manager that displays clients in windows that can be arranged
-  with the mouse.
+:'wm': A component that allows for the creation of windowed graphical
+  user interfaces. It must be combined with a window layouter and a window
+  decorator (see below).
+
+:'window_layouter': A component that defines the behavior and layout policy
+  of the window manager's windows. By default, each application is hosted in a
+  floating window that can be moved, resized, and re-stacked with the mouse.
+
+:'motif_decorator': A window decorator component that defines how window
+  decorations look. It is inspired by the simplistic look of traditional
+  Motif-based graphical user interfaces.
+
+:'themed_decorator: A modern looking window layouter that can be used as
+  an alternative to the 'motif_decorator'.
 
 :'backdrop': A wallpaper that adjusts itself to any screen size.
 

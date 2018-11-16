@@ -1,4 +1,4 @@
-content: wm.config decorator_init.config layouter.config
+content: wm.config
 
-wm.config decorator_init.config layouter.config:
+wm.config:
 	cp $(REP_DIR)/recipes/raw/wm/$@ $@
