@@ -4,6 +4,29 @@
                                ===========
 
 
+Dual licensing of 3rd-party Genode components | 2018-11-16
+##########################################################
+
+| To nurture a sustainable ecosystem around the Genode OS framework, we
+| introduce a new approach for conducting dual-licensing businesses enabled
+| by Genode.
+
+Since founded ten years ago, Genode Labs pursues the Genode project based on a
+dual-licensing business model, which allows us to fund the development of
+Genode as an independent team. The licensing business is enabled by the
+combination of the AGPLv3 as a strong copyleft license with the library-like
+nature of Genode. Until today, this model is applicable to our framework but
+impractical for 3rd-party component developers. To foster a sustainable
+ecosystem around Genode, we wish to enable others to pursue a similar business
+model while maintaining the spirit of open collaboration and free software.
+
+We eventually crafted a new license called "Genode Component Public License"
+(Genode CPL) specifically for components developed by 3rd parties, outside of
+Genode Labs. The article
+[https://genode.org/documentation/articles/component_public_license - Dual licensing of 3rd-party Genode components]
+provides the rationale, license text, and FAQ of this software license.
+
+
 Sculpt with Visual Composition | 2018-09-21
 ###########################################
 
