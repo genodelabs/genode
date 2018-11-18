@@ -66,7 +66,7 @@ void Duration::add(Milliseconds ms)
 }
 
 
-bool Duration::less_than(Duration &other) const
+bool Duration::less_than(Duration const &other) const
 {
 	if (_hours != other._hours) {
 		return _hours < other._hours; }

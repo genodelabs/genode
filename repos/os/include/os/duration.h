@@ -17,6 +17,7 @@
 /* Genode includes */
 #include <base/stdint.h>
 #include <base/exception.h>
+#include <base/output.h>
 
 namespace Genode {
 
@@ -34,6 +35,12 @@ struct Genode::Microseconds
 	unsigned long value;
 
 	explicit Microseconds(unsigned long value) : value(value) { }
+
+	void print(Output &out) const
+	{
+		Genode::print(out, value);
+		out.out_string(" us");
+	}
 };
 
 
@@ -45,6 +52,12 @@ struct Genode::Milliseconds
 	unsigned long value;
 
 	explicit Milliseconds(unsigned long value) : value(value) { }
+
+	void print(Output &out) const
+	{
+		Genode::print(out, value);
+		out.out_string(" ms");
+	}
 };
 
 
@@ -74,13 +87,32 @@ struct Genode::Duration
 		void add(Microseconds us);
 		void add(Milliseconds ms);
 
-		bool less_than(Duration &other) const;
+		bool less_than(Duration const &other) const;
 
 		explicit Duration(Milliseconds ms) { add(ms); }
 		explicit Duration(Microseconds us) { add(us); }
 
 		Microseconds trunc_to_plain_us() const;
 		Milliseconds trunc_to_plain_ms() const;
+};
+
+namespace Genode
+{
+	static inline
+	Microseconds min(Microseconds const x, Microseconds const y) {
+		return (x.value < y.value) ? x : y; }
+
+	static inline
+	Microseconds max(Microseconds const x, Microseconds const y) {
+		return (x.value > y.value) ? x : y; }
+
+	static inline
+	Milliseconds min(Milliseconds const x, Milliseconds const y) {
+		return (x.value < y.value) ? x : y; }
+
+	static inline
+	Milliseconds max(Milliseconds const x, Milliseconds const y) {
+		return (x.value > y.value) ? x : y; }
 };
 
 #endif /* _OS__DURATION_H_ */
