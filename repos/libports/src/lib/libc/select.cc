@@ -220,6 +220,8 @@ __attribute__((weak))
 _select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
         struct timeval *tv)
 {
+	using namespace Libc;
+
 	fd_set in_readfds, in_writefds, in_exceptfds;
 
 	Genode::Constructible<Libc::Select_cb> select_cb;
@@ -262,10 +264,10 @@ _select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
 	{
 		timeval const *_tv;
 		bool    const  valid    { _tv != nullptr };
-		unsigned long  duration {
-			valid ? (unsigned long)_tv->tv_sec*1000 + _tv->tv_usec/1000 : 0UL };
+		Microseconds   duration {
+			valid ? (unsigned long)_tv->tv_sec*1000 + _tv->tv_usec : 0UL };
 
-		bool expired() const { return valid && duration == 0; };
+		bool expired() const { return valid && duration.value == 0; };
 
 		Timeout(timeval *tv) : _tv(tv) { }
 	} timeout { tv };

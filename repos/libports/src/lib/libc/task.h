@@ -26,6 +26,8 @@
 
 namespace Libc {
 
+	using Genode::Microseconds;
+
 	/**
 	 * Resume all user contexts
 	 *
@@ -36,18 +38,19 @@ namespace Libc {
 	/**
 	 * Suspend the execution of the calling user context
 	 *
-	 * \param timeout_ms  maximum time to stay suspended in milliseconds,
-	 *                    0 for infinite suspend
+	 * \param timeout  maximum time to stay suspended in microseconds,
+	 *                 0 for infinite suspend
 	 *
-	 * \return            remaining duration until timeout,
-	 *                    0 if the timeout expired
+	 * \return         remaining duration until timeout,
+	 *                 0 if the timeout expired
 	 *
 	 * The context could be running on the component entrypoint as main context
 	 * or as separate pthread. This function returns after the libc kernel
 	 * resumed the user context execution.
 	 */
 	struct Suspend_functor { virtual bool suspend() = 0; };
-	unsigned long suspend(Suspend_functor &, unsigned long timeout_ms = 0UL);
+	Microseconds suspend(Suspend_functor &,
+	                     Microseconds timeout = Microseconds(0UL));
 
 	void dispatch_pending_io_signals();
 

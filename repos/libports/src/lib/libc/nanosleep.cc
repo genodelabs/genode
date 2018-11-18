@@ -19,12 +19,14 @@
 extern "C" __attribute__((weak))
 int _nanosleep(const struct timespec *req, struct timespec *rem)
 {
-	unsigned long sleep_ms = req->tv_sec*1000 + req->tv_nsec/1000000;
+	using namespace Libc;
 
-	if (!sleep_ms) return 0;
+	Microseconds sleep_us(req->tv_sec*1000*1000 + req->tv_nsec/1000);
+
+	if (!sleep_us.value) return 0;
 
 	struct Check : Libc::Suspend_functor { bool suspend() override { return true; } } check;
-	do { sleep_ms = Libc::suspend(check, sleep_ms); } while (sleep_ms);
+	do { sleep_us = Libc::suspend(check, sleep_us); } while (sleep_us.value);
 
 	if (rem) {
 		rem->tv_sec = 0;
