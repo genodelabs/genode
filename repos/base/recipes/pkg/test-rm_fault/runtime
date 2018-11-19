@@ -3,6 +3,7 @@
 	<events>
 		<timeout meaning="failed" sec="20" />
 		<log meaning="succeeded">child "test-rm_fault" exited with exit value 0</log>
+		<log meaning="failed">Error: could modify ROM</log>
 	</events>
 
 	<content>
