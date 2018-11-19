@@ -71,7 +71,10 @@
 					<xs:complexType>
 						<xs:simpleContent>
 							<xs:extension base="xs:string">
-								<xs:attribute name="time_sec" type="Seconds" />
+								<xs:attribute name="time_sec"  type="Seconds" />
+								<xs:attribute name="succeeded" type="xs:nonNegativeInteger" />
+								<xs:attribute name="failed"    type="xs:nonNegativeInteger" />
+								<xs:attribute name="skipped"   type="xs:nonNegativeInteger" />
 							</xs:extension>
 						</xs:simpleContent>
 					</xs:complexType>

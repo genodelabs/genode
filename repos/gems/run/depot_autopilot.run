@@ -323,6 +323,9 @@ proc prepare_to_run_genode { } {
 	global qemu_args
 	global previous_results
 	global previous_time_ms
+	global previous_succeeded
+	global previous_failed
+	global previous_skipped
 	global skip_test_pkg
 	global test_pkgs
 	global single_test_build
@@ -466,7 +469,10 @@ proc prepare_to_run_genode { } {
 					<service name="TRACE">                      <parent/> </service>
 				</common_routes>
 
-				<previous-results time_sec="} [expr ($previous_time_ms + 999) / 1000] {">} $previous_results {</previous-results>
+				<previous-results time_sec="} [expr ($previous_time_ms + 999) / 1000] {"
+				                  succeeded="} $previous_succeeded {"
+				                  skipped="} $previous_skipped {"
+				                  failed="} $previous_failed {">} $previous_results {</previous-results>
 
 				} [test_pkgs_start_nodes] {
 
@@ -557,8 +563,11 @@ foreach test_pkg $avail_test_pkgs {
 	}
 }
 
-set previous_results ""
-set previous_time_ms 0
+set previous_results   ""
+set previous_time_ms   0
+set previous_succeeded 0
+set previous_failed    0
+set previous_skipped   0
 prepare_to_run_genode
 
 while {1} {
@@ -586,6 +595,7 @@ while {1} {
 				append previous_results \012
 			}
 			append previous_results { } [format {%-31s %-6s  %7s} $last_test_pkg "failed " "$timeout.000"] {  reboot}
+			incr previous_failed
 
 			# prepare system re-boot
 			prepare_to_run_genode
@@ -609,6 +619,23 @@ while {1} {
 			set last_test_result ""
 			regexp {depot_autopilot\] ( [^\033]+)} $output ignored last_test_result
 			regsub -all {<}  $last_test_result {\&lt;} last_test_result
+
+			set failed_off  [string first " failed"  $last_test_result]
+			set skipped_off [string first " skipped" $last_test_result]
+			set ok_off      [string first " ok"      $last_test_result]
+
+			if {$failed_off > 0 && ($skipped_off < 0 || $failed_off < $skipped_off) && ($ok_off < 0 || $failed_off < $ok_off)} {
+				incr previous_failed
+			} elseif {$skipped_off > 0 && ($ok_off < 0 || $skipped_off < $ok_off)} {
+				incr previous_skipped
+			} elseif {$ok_off > 0} {
+				incr previous_succeeded
+			} else {
+				puts "Error: malformed test result"
+				puts $last_test_result
+				exit -1
+			}
+
 			if {$previous_results != ""} {
 				append previous_results \012
 			}

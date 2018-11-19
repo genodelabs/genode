@@ -154,9 +154,14 @@ struct Depot_deploy::Main
 		});
 		if (finished) {
 
+			Result result;
 			unsigned long previous_time_sec { 0UL };
 			if (config.has_sub_node("previous-results")) {
-				previous_time_sec += config.sub_node("previous-results").attribute_value("time_sec", 0UL);
+				Xml_node const previous_results = config.sub_node("previous-results");
+				previous_time_sec += previous_results.attribute_value("time_sec", 0UL);
+				result.succeeded  += previous_results.attribute_value("succeeded", 0UL);
+				result.failed     += previous_results.attribute_value("failed", 0UL);
+				result.skipped    += previous_results.attribute_value("skipped", 0UL);
 			}
 			unsigned long const time_us  { _timer.curr_time().trunc_to_plain_us().value };
 			unsigned long       time_ms  { time_us / 1000UL };
@@ -170,10 +175,11 @@ struct Depot_deploy::Main
 					log(Cstring(previous_results.content_base(), previous_results.content_size()));
 				}
 			}
-			int result = _children.conclusion();
+			_children.conclusion(result);
 			log("");
-			_env.parent().exit(result);
-
+			log(result);
+			log("");
+			_env.parent().exit(result.failed ? -1 : 0);
 		}
 
 		/* update query for blueprints of all unconfigured start nodes */

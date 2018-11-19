@@ -158,13 +158,11 @@ class Depot_deploy::Children
 			return finished;
 		}
 
-		int conclusion()
+		void conclusion(Result &result)
 		{
-			int result = 0;
 			_children.for_each([&] (Child &child) {
 				child.conclusion(result);
 			});
-			return result;
 		}
 
 		void gen_queries(Xml_generator &xml)

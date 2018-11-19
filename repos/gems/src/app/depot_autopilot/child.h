@@ -31,6 +31,20 @@ namespace Depot_deploy {
 
 	using namespace Depot;
 
+	struct Result
+	{
+		Genode::size_t failed    { 0 };
+		Genode::size_t succeeded { 0 };
+		Genode::size_t skipped   { 0 };
+
+
+		/*********
+		 ** log **
+		 *********/
+
+		void print(Genode::Output &output) const;
+	};
+
 	class Child;
 	class Event;
 	class Timeout_event;
@@ -147,7 +161,7 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		 * node until the condition is satisfied.
 		 */
 		enum Condition { UNCHECKED, SATISFIED, UNSATISFIED };
-		enum State     { UNFINISHED, SUCCEEDED, FAILED };
+		enum State     { UNFINISHED, SUCCEEDED, FAILED, SKIPPED };
 
 		bool                    const  _skip;
 		Allocator                     &_alloc;
@@ -209,7 +223,7 @@ class Depot_deploy::Child : public List_model<Child>::Element
 
 		void log_session_write(Log_event::Line const &log_line);
 
-		void conclusion(int &result);
+		void conclusion(Result &result);
 
 		void event_occured(Event         const &event,
 		                   unsigned long const  time_us);

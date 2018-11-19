@@ -61,7 +61,10 @@ This is an example configuration of the Depot Autopilot:
 !     ...
 !   </common_routes>
 !
-!   <previous-results time_sec="3"> test-rm_fault_no_nox            skipped
+!   <previous-results time_sec="3"
+!                     succeeded="0"
+!                     skipped="1"
+!                     failed="1"> test-rm_fault_no_nox            skipped
 ! test-rm_nested                  failed     0.653  log "Error: "</previous-results>
 !
 !   <start name="test-mmio" pkg="genodelabs/pkg/test-mmio/2018-10-30"/>
@@ -113,6 +116,14 @@ This is an example configuration of the Depot Autopilot:
 
   Contains a time in seconds that shall be added to the total time shown in
   header of the overview.
+
+:<config><previous-results succeeded>:
+:<config><previous-results failed>:
+:<config><previous-results skipped>:
+
+  A non-negative number that denotes how many tests are already
+  succeeded/failed/skipped. The number is added to the number of
+  succeeded/failed/skipped tests in the result overview.
 
 :<config><start>:
 

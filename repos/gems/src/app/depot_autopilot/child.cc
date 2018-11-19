@@ -50,7 +50,7 @@ void Child::gen_start_node(Xml_generator          &xml,
 		log("--- Run \"", _name, "\" (max 1 sec) ---");
 		log("");
 
-		_state = State::SUCCEEDED;
+		_state = State::SKIPPED;
 
 		char name_padded[32];
 		for (size_t i = 0; i < sizeof(name_padded) - 1; name_padded[i++] = ' ');
@@ -677,17 +677,23 @@ Child::State_name Child::_padded_state_name() const
 	switch (_state) {
 	case SUCCEEDED:  return "ok     ";
 	case FAILED:     return "failed ";
+	case SKIPPED:;
 	case UNFINISHED: ;
 	}
 	return "?";
 }
 
 
-void Child::conclusion(int &result)
+void Child::conclusion(Result &result)
 {
+	struct Bad_state : Exception { };
 	log(" ", _conclusion);
-	if (_state != SUCCEEDED) {
-		result = -1; }
+	switch (_state) {
+	case SUCCEEDED: result.succeeded++; break;
+	case FAILED:    result.failed++;    break;
+	case SKIPPED:   result.skipped++;   break;
+	default:        throw Bad_state();
+	}
 }
 
 
@@ -890,4 +896,15 @@ Event::Event(Xml_node const &node,
 	{
 		throw Invalid();
 	}
+}
+
+
+/************
+ ** Result **
+ ************/
+
+void Result::print(Output &output) const
+{
+	Genode::print(output, "succeeded: ", succeeded, " failed: ", failed,
+	              " skipped: ", skipped);
 }
