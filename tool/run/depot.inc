@@ -36,24 +36,31 @@ set _missing_depot_archives {}
 
 
 #
-# Pattern to parse an version-less archive path into <user>, <type>, <name>
+# Pattern to parse a version-less archive path into <user>, <type>, <name>
 #
 proc _depot_archive_path_pattern { } {
 	return {^([\w\d]+)/([\w]+)/([\w\d\-_]+)$} }
 
 
 #
-# Pattern to parse an versioned archive path into <user>, <type>, <name>, <version>
+# Pattern to parse a versioned archive path into <user>, <type>, <name>, <version>
 #
 proc _depot_archive_versioned_path_pattern { } {
 	return {^([\w\d]+)/([\w]+)/([\w\d\-_]+)/([\w\d\-\._]+)$} }
 
 
 #
-# Pattern to parse an binary archive path into <user>, <spec>, <name>.
+# Pattern to parse a binary archive path into <user>, <spec>, <name>.
 #
 proc _depot_bin_archive_path_pattern { } {
 	return {^([\w\d]+)/bin/([\w\d]+)/([\w\d\-_]+)$} }
+
+
+#
+# Pattern to parse a versioned api name into <name>, <version>
+#
+proc _depot_api_versioned_name_pattern { } {
+	return {^([\w\d\-_]+)/([\w\d\-\._]+)$} }
 
 
 ##
@@ -104,7 +111,7 @@ proc _collect_raw_archive_from_depot { user name version } {
 
 
 ##
-# Determine binary content for a given source archive
+# Determine binary and api content for a given source archive
 #
 proc _collect_src_archive_from_depot { user name version } {
 
@@ -112,14 +119,35 @@ proc _collect_src_archive_from_depot { user name version } {
 
 	set src_archive_dir "$user/src/$name/$version"
 	set bin_archive_dir "$user/bin/[depot_spec]/$name/$version"
+	set used_apis_file  "[depot_dir]/$src_archive_dir/used_apis"
+
+	set content {}
 
 	if {[file exists [depot_dir]/$bin_archive_dir]} {
-		return [list $src_archive_dir $bin_archive_dir]
+		append content [list $src_archive_dir $bin_archive_dir]
 	} else {
 		lappend _missing_depot_archives [list $user bin [depot_spec] $name $version]
 	}
 
-	return {}
+	if {![file exists $used_apis_file]} {
+		puts stderr "Error: missing file $used_apis_file"
+		exit 1
+	}
+
+	set fh [open $used_apis_file "RDONLY"]
+	set used_apis [read $fh]
+	close $fh
+
+	foreach api $used_apis {
+		regexp [_depot_api_versioned_name_pattern] $api dummy api_name api_version
+		if {![_depot_contains_archive $user api $api_name $api_version]} {
+			lappend _missing_depot_archives [list $user api "" $api_name $api_version]
+			continue
+		}
+		lappend content $user/api/$api_name/$api_version
+	}
+
+	return $content
 }
 
 
@@ -247,6 +275,25 @@ proc create_tar_from_depot_binaries { archive_path args } {
 	check_for_missing_depot_archives
 
 	eval "exec tar cf $archive_path -C [depot_dir] [lsort -unique $content]"
+}
+
+
+##
+# Append src and api packages to the tar archive
+#
+proc append_src_and_api_depot_packages_to_tar { archive_path args } {
+
+	set content {}
+	foreach subdir [_collect_from_depot $args] {
+		if {[regexp [_depot_archive_versioned_path_pattern] $subdir dummy user type]} {
+			if {($type != "src") && ($type != "api")} continue;
+			lappend content $subdir
+		}
+	}
+
+	check_for_missing_depot_archives
+
+	eval "exec tar rf $archive_path -C [depot_dir] [lsort -unique $content]"
 }
 
 
