@@ -5,8 +5,6 @@ REP_INC_DIR += include/spec/arm
 
 SPECS += 32bit
 
-NIM_CPU ?= arm
-
 #
 # Prevent compiler message
 # "note: the mangling of 'va_list' has changed in GCC 4.4"

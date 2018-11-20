@@ -55,16 +55,6 @@ HOST_CC  = $(CUSTOM_HOST_CC)
 ADA_CC   = $(CUSTOM_ADA_CC)
 
 #
-# Nim toolchain
-#
-NIM ?= /usr/local/genode-nim/bin/nim
-
-#
-# JSON parsing utility
-#
-JQ ?= jq
-
-#
 # Compiler and Linker options
 #
 

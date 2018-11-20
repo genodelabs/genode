@@ -1,2 +1,1 @@
 CC_OPT += -DGENODE_RELEASE
-NIM_OPT += -d:release

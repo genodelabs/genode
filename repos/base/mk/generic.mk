@@ -103,48 +103,6 @@ CUSTOM_ADA_INCLUDE ?= -I- $(INCLUDES)
 	$(VERBOSE)ar p $< $*.0.o > $@
 
 #
-# Compiling Nim source code
-#
-ifneq ($(SRC_NIM),)
-
-ifeq ($(NIM_CPU),)
-$(warning NIM_CPU not defined for any of the following SPECS: $(SPECS))
-else
-
-ifeq ($(wildcard $(NIM)),)
-$(error Nim compiler not found at $(NIM), see the 'tool/tool_chain_nim' script)
-endif
-
-NIM_MAKEFILES := $(foreach X,$(SRC_NIM),$(X).mk)
-
-NIM_ARGS  = --compileOnly --os:genode --cpu:$(NIM_CPU)
-NIM_ARGS += --verbosity:0 --hint[Processing]:off --nimcache:.
-NIM_ARGS += --noCppExceptions
-NIM_ARGS += $(foreach DIR,$(foreach REP,$(REPOSITORIES),$(wildcard $(REP)/include/nim)), --path:$(DIR))
-NIM_ARGS += $(NIM_OPT)
-
-# Generate the C++ sources and compilation info
-#
-# Unfortunately the existing sources must be purged
-# because of comma problems in the JSON recipe
-%.nim.mk: %.nim
-	$(MSG_BUILD)$(basename $@).cpp
-	$(VERBOSE) rm -f stdlib_*.cpp
-	$(VERBOSE)$(NIM) compileToCpp $(NIM_ARGS) $<
-	$(VERBOSE)$(JQ) --raw-output '"SRC_O_NIM +=" + (.link | join(" ")) +"\n" + (.compile | map((.[0] | sub("cpp$$";"o: ") | sub("c$$";"o: ")) + .[0] + "\n\t"+(.[1] | sub("^g\\++";"$$(MSG_COMP)$$@\n\t$$(VERBOSE)$$(NIM_CC)"))) | join("\n"))'  < $(basename $(basename $@)).json > $@
-
-NIM_CC := $(CXX) $(CXX_DEF) $(CC_CXX_OPT) $(INCLUDES) -D__GENODE__
-
-# Parse the generated makefiles
--include $(NIM_MAKEFILES)
-
-# Append the new objects
-SRC_O += $(sort $(SRC_O_NIM))
-
-endif
-endif
-
-#
 # Assembler files that must be preprocessed are fed to the C compiler.
 #
 %.o: %.S
