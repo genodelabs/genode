@@ -108,6 +108,11 @@ set avail_test_pkgs {
 	test-weak_ptr
 	test-xml_generator
 	test-xml_node
+	gcov
+}
+
+set avail_test_src_pkgs {
+
 }
 
 if { $single_test_pkg != "" && [lsearch -exact $avail_test_pkgs $single_test_pkg] == -1} {
@@ -328,6 +333,7 @@ proc prepare_to_run_genode { } {
 	global previous_skipped
 	global skip_test_pkg
 	global test_pkgs
+	global test_src_pkgs
 	global single_test_build
 	global single_test_modules
 	global last_test_pkg
@@ -345,6 +351,7 @@ proc prepare_to_run_genode { } {
 	create_boot_directory
 
 	set depot_tar_archives ""
+	set depot_tar_src_archives ""
 	set import_archives ""
 
 	foreach test_pkg $test_pkgs {
@@ -352,6 +359,14 @@ proc prepare_to_run_genode { } {
 			append_if [expr !$skip_test_pkg($test_pkg)] depot_tar_archives " genodelabs/pkg/$test_pkg "
 		} else {
 			append depot_tar_archives " genodelabs/pkg/$test_pkg "
+		}
+	}
+
+	foreach test_src_pkg $test_src_pkgs {
+		if { [info exists skip_test_pkg($test_src_pkg)] } {
+			append_if [expr !$skip_test_pkg($test_src_pkg)] depot_tar_src_archives " genodelabs/src/$test_src_pkg "
+		} else {
+			append depot_tar_src_archives " genodelabs/src/$test_src_pkg "
 		}
 	}
 
@@ -372,7 +387,7 @@ proc prepare_to_run_genode { } {
 	check_archives_available {*}$all_archives
 
 	autopilot_create_tar_from_depot_binaries [run_dir]/genode/depot.tar {*}$depot_tar_archives
-
+	append_src_and_api_depot_packages_to_tar [run_dir]/genode/depot.tar {*}$depot_tar_src_archives
 
 	#
 	# Install the root-init config
@@ -413,12 +428,17 @@ proc prepare_to_run_genode { } {
 		</start>
 
 		<start name="vfs" priority="-1">
-			<resource name="RAM" quantum="4M"/>
+			<resource name="RAM" quantum="16M"/>
 			<provides> <service name="File_system"/> </provides>
 			<config>
-				<vfs> <tar name="depot.tar"/> </vfs>
-				<policy label="depot_query -> depot" root="/" />
-				<policy label="fs_rom -> "           root="/" />
+				<vfs>
+					<dir name="depot"> <tar name="depot.tar"/> </dir>
+					<dir name="gcov_data"> <ram/> </dir>
+				</vfs>
+				<policy label="depot_query -> depot"             root="/depot" />
+				<policy label="fs_rom -> "                       root="/depot" />
+				<policy label="dynamic -> gcov -> gcov -> depot" root="/depot" />
+				<policy label_suffix=" -> gcov_data"             root="/gcov_data" writeable="yes" />
 			</config>
 		</start>
 
@@ -452,21 +472,24 @@ proc prepare_to_run_genode { } {
 						<service name="RM"/>
 						<service name="Timer"/>
 						<service name="TRACE"/>
+						<service name="File_system"/>
 					</parent-provides>
 				</static>
 				<common_routes>
 
 					} [single_test_module_routes] {
 
-					<service name="ROM" label_last="ld.lib.so"> <parent/> </service>
-					<service name="ROM" label_last="init">      <parent/> </service>
-					<service name="CPU">                        <parent/> </service>
-					<service name="PD">                         <parent/> </service>
-					<service name="LOG">                        <parent/> </service>
-					<service name="IO_PORT">                    <parent/> </service>
-					<service name="Timer">                      <parent/> </service>
-					<service name="RM">                         <parent/> </service>
-					<service name="TRACE">                      <parent/> </service>
+					<service name="ROM" label_last="ld.lib.so">           <parent/> </service>
+					<service name="ROM" label_last="init">                <parent/> </service>
+					<service name="CPU">                                  <parent/> </service>
+					<service name="PD">                                   <parent/> </service>
+					<service name="LOG">                                  <parent/> </service>
+					<service name="IO_PORT">                              <parent/> </service>
+					<service name="Timer">                                <parent/> </service>
+					<service name="RM">                                   <parent/> </service>
+					<service name="TRACE">                                <parent/> </service>
+					<service name="File_system" label="gcov -> depot">    <parent/> </service>
+					<service name="File_system" label_suffix="gcov_data"> <parent/> </service>
 				</common_routes>
 
 				<previous-results time_sec="} [expr ($previous_time_ms + 999) / 1000] {"
@@ -563,11 +586,25 @@ foreach test_pkg $avail_test_pkgs {
 	}
 }
 
+
+#
+# Compose the test_src_pkgs list from a list of available source packages by
+# applying the single_test_pkg variable.
+#
+set test_src_pkgs ""
+foreach test_src_pkg $avail_test_src_pkgs {
+	if { $single_test_pkg == "" || $single_test_pkg == $test_src_pkg } {
+		append test_src_pkgs " $test_src_pkg "
+	}
+}
+
+
 set previous_results   ""
 set previous_time_ms   0
 set previous_succeeded 0
 set previous_failed    0
 set previous_skipped   0
+
 prepare_to_run_genode
 
 while {1} {
