@@ -1,9 +1,80 @@
-<runtime ram="4M" caps="200" binary="window_layouter" config="window_layouter.config">
+<runtime ram="7M" caps="400" binary="init">
 
-	<requires> <nitpicker/> <timer/> </requires>
+	<requires> <nitpicker/> <file_system/> <timer/> </requires>
+
+	<config>
+		<parent-provides>
+			<service name="CPU"/>
+			<service name="LOG"/>
+			<service name="PD"/>
+			<service name="ROM"/>
+			<service name="Report"/>
+			<service name="Timer"/>
+			<service name="Nitpicker"/>
+			<service name="File_system"/>
+		</parent-provides>
+
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+
+		<default caps="100"/>
+
+		<start name="fs_report">
+			<resource name="RAM" quantum="1M"/>
+			<provides> <service name="Report"/> </provides>
+			<config> <vfs> <fs/> </vfs> </config>
+			<route>
+				<service name="File_system"> <parent label="recall"/> </service>
+				<any-service> <parent/> </any-service>
+			</route>
+		</start>
+
+		<start name="fs_rom">
+			<resource name="RAM" quantum="1M"/>
+			<provides> <service name="ROM"/> </provides>
+			<config/>
+			<route>
+				<service name="File_system"> <parent label="recall"/> </service>
+				<any-service> <parent/> </any-service>
+			</route>
+		</start>
+
+		<start name="window_layouter">
+			<resource name="RAM" quantum="6M"/>
+			<route>
+				<service name="ROM" label="config">
+					<parent label="window_layouter.config"/> </service>
+				<service name="ROM" label="rules">
+					<child name="fs_rom" label="rules"/> </service>
+				<service name="ROM" label="window_list">
+					<parent label="window_list"/> </service>
+				<service name="ROM" label="focus_request">
+					<parent label="focus_request"/> </service>
+				<service name="ROM" label="hover">
+					<parent label="hover"/> </service>
+				<service name="ROM" label="decorator_margins">
+					<parent label="decorator_margins"/> </service>
+				<service name="Report" label="rules">
+					<child name="fs_report" label="rules"/> </service>
+				<service name="Report" label="window_layout">
+					<parent label="window_layout"/> </service>
+				<service name="Report" label="resize_request">
+					<parent label="resize_request"/> </service>
+				<service name="Report" label="focus">
+					<parent label="focus"/> </service>
+				<any-service> <parent/> </any-service>
+			</route>
+		</start>
+
+	</config>
 
 	<content>
 		<rom label="ld.lib.so"/>
+		<rom label="vfs.lib.so"/>
+		<rom label="init"/>
+		<rom label="fs_report"/>
+		<rom label="fs_rom"/>
 		<rom label="window_layouter"/>
 		<rom label="window_layouter.config"/>
 	</content>

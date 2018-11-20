@@ -1,2 +1,6 @@
 _/raw/window_layouter
 _/src/window_layouter
+_/src/init
+_/src/fs_report
+_/src/fs_rom
+_/src/vfs
