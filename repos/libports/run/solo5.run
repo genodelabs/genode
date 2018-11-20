@@ -4,8 +4,8 @@ if {![have_spec 64bit]} {
 }
 
 if {[have_spec linux]} {
-        puts "\nRunscript not compatible with base-linux drivers\n"
-        exit 0
+	puts "\nRun script is not supported on this platform\n"
+	exit 0
 }
 
 create_boot_directory
