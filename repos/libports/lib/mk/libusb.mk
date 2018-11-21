@@ -1,5 +1,5 @@
 LIBUSB_DIR := $(call select_from_ports,libusb)/src/lib/libusb
-LIBS       += libc libc_pipe pthread
+LIBS       += libc libc_pipe
 
 # find 'config.h'
 INC_DIR += $(REP_DIR)/src/lib/libusb

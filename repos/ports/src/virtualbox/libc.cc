@@ -25,8 +25,6 @@
 #include <errno.h>
 #include <fcntl.h>        /* open */
 
-#include "libc_errno.h"
-
 /* Genode specific Vbox include */
 #include "vmm.h"
 
@@ -248,8 +246,10 @@ extern "C" int _sigprocmask()
  */
 extern "C" int statfs(const char *path, struct statfs *buf)
 {
-	if (!buf)
-		return Libc::Errno(EFAULT);
+	if (!buf) {
+		errno = EFAULT;
+		return -1;
+	}
 
 	int fd = open(path, 0);
 

@@ -1,3 +1,3 @@
 TARGET = fetchurl
-LIBS  += curl libc ld pthread
+LIBS  += curl libc ld
 SRC_CC = component.cc

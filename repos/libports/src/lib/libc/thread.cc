@@ -22,8 +22,7 @@
 #include <pthread.h>
 #include <stdlib.h> /* malloc, free */
 #include "thread.h"
-
-#include <libc/task.h> /* libc suspend/resume */
+#include "task.h"
 
 using namespace Genode;
 

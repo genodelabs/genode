@@ -27,12 +27,11 @@ LIBS  += virtualbox-bios virtualbox-recompiler virtualbox-runtime \
          virtualbox-storage virtualbox-zlib virtualbox-liblzf \
          virtualbox-xml virtualbox-main
 
-LIBS  += pthread libc_terminal libc_pipe libiconv
+LIBS  += libc_terminal libc_pipe libiconv
 
 LIBS  += qemu-usb
 
 INC_DIR += $(call select_from_repositories,src/lib/libc)
-INC_DIR += $(call select_from_repositories,src/lib/pthread)
 
 INC_DIR += $(VBOX_DIR)/Runtime/include
 

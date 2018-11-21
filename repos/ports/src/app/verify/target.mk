@@ -1,6 +1,6 @@
 TARGET   = verify
 SRC_CC   = main.cc
-LIBS     = base libc pthread libgcrypt
+LIBS     = base libc libgcrypt
 
 GNUPG_SRC_DIR := $(call select_from_ports,gnupg)/src/app/gnupg/g10
 

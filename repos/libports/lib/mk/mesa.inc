@@ -1,5 +1,5 @@
 SHARED_LIB = yes
-LIBS       = libc stdcxx expat glapi pthread mesa_api
+LIBS       = libc stdcxx expat glapi mesa_api
 
 include $(REP_DIR)/lib/mk/mesa-common.inc
 

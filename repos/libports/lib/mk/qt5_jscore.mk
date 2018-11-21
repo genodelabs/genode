@@ -17,6 +17,6 @@ QT_INCPATH += qtwebkit/Source/JavaScriptCore/generated
 
 include $(REP_DIR)/lib/mk/qt5.inc
 
-LIBS += qt5_network qt5_core icu pthread libc libm
+LIBS += qt5_network qt5_core icu libc libm
 
 CC_CXX_WARN_STRICT =

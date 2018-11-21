@@ -17,7 +17,6 @@
 		<rom label="libc_pipe.lib.so"/>
 		<rom label="libc_terminal.lib.so"/>
 		<rom label="libm.lib.so"/>
-		<rom label="pthread.lib.so"/>
 		<rom label="libiconv.lib.so"/>
 		<rom label="qemu-usb.lib.so"/>
 		<rom label="stdcxx.lib.so"/>

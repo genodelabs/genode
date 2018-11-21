@@ -5,7 +5,6 @@ LIBS  += stdcxx
 SRC_CC = sup.cc pgm.cc
 
 INC_DIR += $(call select_from_repositories,src/lib/libc)
-INC_DIR += $(call select_from_repositories,src/lib/pthread)
 
 INC_DIR += $(VIRTUALBOX_DIR)/VBoxAPIWrap
 

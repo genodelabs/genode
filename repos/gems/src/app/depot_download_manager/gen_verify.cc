@@ -78,7 +78,6 @@ void Depot_download_manager::gen_verify_start_content(Xml_generator &xml,
 		gen_parent_unscoped_rom_route(xml, "ld.lib.so");
 		gen_parent_rom_route(xml, "libc.lib.so");
 		gen_parent_rom_route(xml, "libm.lib.so");
-		gen_parent_rom_route(xml, "pthread.lib.so");
 		gen_parent_rom_route(xml, "vfs.lib.so");
 		gen_parent_route<Cpu_session>    (xml);
 		gen_parent_route<Pd_session>     (xml);

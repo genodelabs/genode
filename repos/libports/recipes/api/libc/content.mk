@@ -1,8 +1,6 @@
 MIRROR_FROM_REP_DIR := lib/import/import-libc.mk \
                        lib/symbols/libc \
                        lib/symbols/libm \
-                       lib/mk/pthread.mk \
-                       src/lib/pthread
 
 content: $(MIRROR_FROM_REP_DIR)
 

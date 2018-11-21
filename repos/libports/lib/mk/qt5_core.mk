@@ -29,6 +29,6 @@ include $(REP_DIR)/lib/mk/qt5.inc
 SRC_CC += libc_dummies.cc
 vpath libc_dummies.cc $(REP_DIR)/src/lib/qt5
 
-LIBS += zlib pcre16 libc libm libc_pipe pthread
+LIBS += zlib pcre16 libc libm libc_pipe
 
 CC_CXX_WARN_STRICT =

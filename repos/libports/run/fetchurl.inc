@@ -110,7 +110,6 @@ set boot_modules {
 	libcrypto.lib.so
 	libssh.lib.so
 	libssl.lib.so
-	pthread.lib.so
 	timer
 	zlib.lib.so
 	report_rom

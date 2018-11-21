@@ -17,7 +17,7 @@
 #include <cpu_session/connection.h>
 
 /* Genode libc pthread binding */
-#include "thread.h"
+#include <thread_create.h>
 
 #include "sup.h"
 #include "vmm.h"
@@ -98,19 +98,10 @@ static int create_thread(pthread_t *thread, const pthread_attr_t *attr,
 		 */
 	}
 
-	pthread_t thread_obj = new (vmm_heap())
-		pthread(start_routine, arg, stack_size, rtthread->szName,
-		        cpu_connection(rtthread->enmType),
-		        Genode::Affinity::Location());
-
-	if (!thread_obj)
-		return EAGAIN;
-
-	*thread = thread_obj;
-
-	thread_obj->start();
-
-	return 0;
+	return Libc::pthread_create(thread, start_routine, arg,
+	                            stack_size, rtthread->szName,
+	                            cpu_connection(rtthread->enmType),
+	                            Genode::Affinity::Location());
 }
 
 extern "C" int pthread_create(pthread_t *thread, const pthread_attr_t *attr,

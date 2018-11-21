@@ -90,7 +90,7 @@ CC_OPT += -D__intptr_t_defined
 
 CC_WARN += -Wno-deprecated-declarations
 
-LIBS = stdcxx pthread
+LIBS = stdcxx
 
 vpath % $(ICU_DIR)/source/common
 vpath % $(ICU_DIR)/source/i18n

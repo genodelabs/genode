@@ -20,7 +20,6 @@
 		<rom label="libpng.lib.so"/>
 		<rom label="mesa.lib.so"/>
 		<rom label="pcre16.lib.so"/>
-		<rom label="pthread.lib.so"/>
 		<rom label="qt5_core.lib.so"/>
 		<rom label="qt5_dejavusans.tar"/>
 		<rom label="qt5_gui.lib.so"/>

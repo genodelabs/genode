@@ -2,7 +2,7 @@
 # /build/jdk/openjdk-jdk9-jdk9/build/linux-x86_64-normal-zero-release/hotspot/variant-zero/gensrc/jvmtifiles/jvmtiEnter.cpp
 # /build/jdk/openjdk-jdk9-jdk9/build/linux-x86_64-normal-zero-release/hotspot/variant-zero/gensrc/jvmtifiles/jvmtiEnterTrace.cpp
 
-LIBS          = stdcxx pthread jzip jimage nio jnet ffi
+LIBS          = stdcxx jzip jimage nio jnet ffi
 SHARED_LIB    = yes
 HOTSPOT_BASE  = $(call select_from_ports,jdk)/src/app/jdk/hotspot/src
 JDK_GENERATED = $(call select_from_ports,jdk_generated)/src/app/jdk

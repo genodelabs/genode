@@ -19,6 +19,12 @@ SRC_CC = atexit.cc dummies.cc rlimit.cc sysctl.cc \
          socket_operations.cc task.cc socket_fs_plugin.cc syscall.cc \
 	getpwent.cc
 
+#
+# Pthreads
+#
+SRC_CC += semaphore.cc rwlock.cc \
+          thread.cc thread_create.cc
+
 CC_OPT_sysctl += -Wno-write-strings
 
 INC_DIR += $(REP_DIR)/src/lib/libc
@@ -43,5 +49,3 @@ vpath % $(LIBC_DIR)/lib/libc/string
 #
 SHARED_LIB  = yes
 LD_OPT     += --version-script=$(REP_DIR)/src/lib/libc/Version.def
-
-CC_CXX_WARN_STRICT =
