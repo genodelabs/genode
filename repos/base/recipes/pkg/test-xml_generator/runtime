@@ -54,7 +54,8 @@
 			[init -> test-xml_generator] 	&lt;/level1>
 			[init -> test-xml_generator] &lt;/config>
 			[init -> test-xml_generator] 
-			[init -> test-xml_generator] --- XML generator test finished ---
+			[init -> test-xml_generator] --- XML generator test finished ---*
+			[init] child "test-xml_generator" exited with exit value 0
 		</log>
 		<log meaning="failed">Error: </log>
 	</events>
@@ -71,6 +72,7 @@
 			<service name="CPU"/>
 			<service name="RM"/>
 			<service name="PD"/>
+			<service name="File_system"/>
 		</parent-provides>
 		<default-route>
 			<any-service> <any-child/> <parent/> </any-service>

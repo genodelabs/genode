@@ -112,7 +112,7 @@ set avail_test_pkgs {
 }
 
 set avail_test_src_pkgs {
-
+	test-xml_generator
 }
 
 if { $single_test_pkg != "" && [lsearch -exact $avail_test_pkgs $single_test_pkg] == -1} {

@@ -159,12 +159,17 @@ static size_t xml_with_exceptions(char *dst, size_t dst_len)
 	return xml.used();
 }
 
+extern void gcov_init(Genode::Env &env);
+extern void genode_exit(int status);
 
 void Component::construct(Genode::Env &env)
 {
 	using namespace Genode;
 
 	log("--- XML generator test started ---");
+
+	env.exec_static_constructors();
+	gcov_init(env);
 
 	static char dst[1000];
 
@@ -222,6 +227,6 @@ void Component::construct(Genode::Env &env)
 	}
 
 	log("--- XML generator test finished ---");
-	env.parent().exit(0);
+	genode_exit(0);
 }
 

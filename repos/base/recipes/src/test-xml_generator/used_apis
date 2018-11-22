@@ -1,1 +1,4 @@
 base
+file_system_session
+libgcov
+os
