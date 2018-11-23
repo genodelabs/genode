@@ -389,7 +389,10 @@ proc prepare_to_run_genode { } {
 	check_archives_available {*}$all_archives
 
 	autopilot_create_tar_from_depot_binaries [run_dir]/genode/depot.tar {*}$depot_tar_archives
+	set depot_tar_wo_src_size [file size [run_dir]/genode/depot.tar]
 	append_src_and_api_depot_packages_to_tar [run_dir]/genode/depot.tar {*}$depot_tar_src_archives
+	set depot_tar_size [file size [run_dir]/genode/depot.tar]
+	puts "Depot archive has a size of $depot_tar_size bytes ($depot_tar_wo_src_size bytes without sources)"
 
 	#
 	# Install the root-init config
