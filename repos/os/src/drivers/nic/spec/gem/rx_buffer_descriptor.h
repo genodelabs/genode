@@ -37,7 +37,7 @@ class Rx_buffer_descriptor : public Buffer_descriptor
 
 		enum { MAX_BUFFER_COUNT = 1024 };
 
-		addr_t _phys_base { 0 };
+		addr_t const _phys_base;
 
 		void _reset_descriptor(unsigned const i, addr_t phys_addr) {
 			if (i > _max_index())
@@ -63,19 +63,13 @@ class Rx_buffer_descriptor : public Buffer_descriptor
 	public:
 		Rx_buffer_descriptor(Genode::Env &env,
 		                     Nic::Session::Tx::Source &source)
-		: Buffer_descriptor(env, MAX_BUFFER_COUNT)
+		: Buffer_descriptor(env, MAX_BUFFER_COUNT),
+		  _phys_base(Dataspace_client(source.dataspace()).phys_addr())
 		{
 			for (size_t i=0; i <= _max_index(); i++) {
 				try {
 					Nic::Packet_descriptor p = source.alloc_packet(BUFFER_SIZE);
-					addr_t phys_addr = (addr_t)source.packet_content_phys(p);
-					if (i == 0) {
-						_phys_base = phys_addr - p.offset();
-					}
-					else if (phys_addr - p.offset() != _phys_base) {
-						Genode::error("physical base error");
-					}
-					_reset_descriptor(i, phys_addr);
+					_reset_descriptor(i, _phys_base + p.offset());
 				} catch (Nic::Session::Rx::Source::Packet_alloc_failed) {
 					/* set new _buffer_count */
 					_max_index(i-1);
@@ -88,8 +82,10 @@ class Rx_buffer_descriptor : public Buffer_descriptor
 			Genode::log("Initialised ", _max_index()+1, " RX buffer descriptors");
 		}
 
-		bool reset_descriptor_by_addr(addr_t phys)
+		bool reset_descriptor(Packet_descriptor pd)
 		{
+			addr_t const phys = _phys_base + pd.offset();
+
 			for (size_t i=0; i <= _max_index(); i++) {
 				_advance_tail();
 				if (Addr::Addr31to2::masked(_tail().addr) == phys) {

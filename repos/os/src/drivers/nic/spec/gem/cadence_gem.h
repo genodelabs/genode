@@ -478,8 +478,7 @@ namespace Genode
 			{
 				while (_rx.source()->ack_avail()) {
 					Nic::Packet_descriptor p = _rx.source()->get_acked_packet();
-					_rx_buffer.reset_descriptor_by_addr(
-						(addr_t)_rx.source()->packet_content_phys(p));
+					_rx_buffer.reset_descriptor(p);
 				}
 			}
 
@@ -586,7 +585,7 @@ namespace Genode
 				Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc, env),
 				_timer(env),
 				_sys_ctrl(env, _timer),
-				_tx_buffer(env, _timer),
+				_tx_buffer(env, *_tx.sink(), _timer),
 				_rx_buffer(env, *_rx.source()),
 				_irq(env, irq),
 				_irq_handler(env.ep(), *this, &Cadence_gem::_handle_irq),
@@ -650,7 +649,7 @@ namespace Genode
 				}
 
 				try {
-					_tx_buffer.add_to_queue(*_tx.sink(), packet);
+					_tx_buffer.add_to_queue(packet);
 					write<Control>(Control::start_tx());
 				} catch (Tx_buffer_descriptor::Package_send_timeout) {
 					Genode::warning("Package Tx timeout");

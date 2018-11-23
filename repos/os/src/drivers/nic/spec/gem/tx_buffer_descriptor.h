@@ -39,7 +39,7 @@ class Tx_buffer_descriptor : public Buffer_descriptor
 
 		Timer::Connection &_timer;
 
-		addr_t _phys_base { 0 };
+		addr_t const _phys_base;
 
 		void _reset_descriptor(unsigned const i, addr_t phys_addr) {
 			if (i > _max_index())
@@ -61,8 +61,11 @@ class Tx_buffer_descriptor : public Buffer_descriptor
 
 		class Package_send_timeout : public Genode::Exception {};
 
-		Tx_buffer_descriptor(Genode::Env &env, Timer::Connection &timer)
-		: Buffer_descriptor(env, BUFFER_COUNT), _timer(timer)
+		Tx_buffer_descriptor(Genode::Env &env,
+		                     Nic::Session::Rx::Sink &sink,
+		                     Timer::Connection &timer)
+		: Buffer_descriptor(env, BUFFER_COUNT), _timer(timer),
+		  _phys_base(Dataspace_client(sink.dataspace()).phys_addr())
 		{
 			for (size_t i=0; i <= _max_index(); i++) {
 				/* configure all descriptors with address 0, which we
@@ -100,7 +103,7 @@ class Tx_buffer_descriptor : public Buffer_descriptor
 			}
 		}
 
-		void add_to_queue(Nic::Session::Rx::Sink &sink, Nic::Packet_descriptor p)
+		void add_to_queue(Nic::Packet_descriptor p)
 		{
 			/* the head marks the descriptor that we use next for
 			 * handing over the packet to hardware */
@@ -109,7 +112,7 @@ class Tx_buffer_descriptor : public Buffer_descriptor
 				return;
 			}
 
-			addr_t packet_phys = (addr_t)sink.packet_content_phys(p);
+			addr_t const packet_phys = _phys_base + p.offset();
 			if (packet_phys & 0x1f) {
 				warning("Packet is not aligned properly.");
 			}
@@ -125,13 +128,6 @@ class Tx_buffer_descriptor : public Buffer_descriptor
 				/*  TODO buffer is full, instead of sleeping we should
 				 *       therefore wait for tx_complete interrupt */
 				_timer.usleep(1000);
-			}
-
-			if (_phys_base == 0) {
-				_phys_base = packet_phys - p.offset();
-			}
-			else if (packet_phys - p.offset() != _phys_base) {
-				Genode::error("physical base error");
 			}
 
 			_reset_descriptor(_head_index(), packet_phys);
