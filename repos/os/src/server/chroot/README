@@ -6,8 +6,10 @@ hierarchy of directories.
 Sessions matching policies with _path_ attributes will be "chrooted" to the
 configured policy path, sessions not matching policies with _path_ attributes
 will be chrooted into paths formed from each session label element. Sessions
-requests are downgraded to read-only requests unless matched by polices
-with an affirmative _writeable_ attribute. Sessions not matching any
+matching polices with a _path_prefix_ attribute are both rooted at the
+attribute path and in sub-directories formed by the session label.
+Sessions requests are downgraded to read-only requests unless matched by
+polices with an affirmative _writeable_ attribute. Sessions not matching any
 policy are rejected.
 
 Please note that this server is only effective for File_system servers that

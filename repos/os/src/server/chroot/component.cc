@@ -112,8 +112,13 @@ struct Chroot::Main
 		Session_label const label = label_from_args(args.string());
 		Session_policy const policy(label, config_rom.xml());
 
-		/* Use a chroot path from policy */
-		if (policy.has_attribute("path")) {
+		if (policy.has_attribute("path_prefix")) {
+			/* Use a chroot path from policy and label sub-directories */
+			policy.attribute("path_prefix").value(tmp, sizeof(tmp));
+			root_path.import(tmp);
+			root_path.append(path_from_label<Path>(label.string()).string());
+		} else if (policy.has_attribute("path")) {
+			/* Use a chroot path from policy */
 			policy.attribute("path").value(tmp, sizeof(tmp));
 			root_path.import(tmp);
 		} else {
