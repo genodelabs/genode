@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2010-2017 Genode Labs GmbH
+ * Copyright (C) 2010-2018 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -17,6 +17,9 @@
 
 #include "task.h"
 #include "libc_errno.h"
+
+/* Genode includes */
+#include <base/log.h>
 
 namespace Libc { time_t read_rtc(); }
 
@@ -90,4 +93,12 @@ int gettimeofday(struct timeval *tv, struct timezone *)
 	tv->tv_sec  = ts.tv_sec;
 	tv->tv_usec = ts.tv_nsec / 1000;
 	return 0;
+}
+
+
+extern "C"
+clock_t clock()
+{
+	Genode::error(__func__, " not implemented, use 'clock_gettime' instead");
+	return -1;
 }

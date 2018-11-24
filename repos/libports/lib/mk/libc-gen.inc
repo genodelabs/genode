@@ -8,6 +8,9 @@ FILTER_OUT_C += \
 	devname.c feature_present.c getpagesizes.c getvfsbyname.c \
 	setproctitle.c sysconf.c sysctlbyname.c
 
+# the following is a wrapper over rusage, which we cannot provide
+FILTER_OUT_C += clock.c
+
 SRC_C = $(filter-out $(FILTER_OUT_C),$(notdir $(wildcard $(LIBC_GEN_DIR)/*.c)))
 
 # 'sysconf.c' includes the local 'stdtime/tzfile.h'
