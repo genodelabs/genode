@@ -140,12 +140,11 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 		 */
 		void _process_packet_op(Packet_descriptor &packet)
 		{
-			void     * const content = tx_sink()->packet_content(packet);
-			size_t     const length  = packet.length();
-			seek_off_t const seek    = packet.position();
-
 			/* assume failure by default */
 			packet.succeeded(false);
+
+			size_t     const length  = packet.length();
+			seek_off_t const seek    = packet.position();
 
 			if ((packet.length() > packet.size()))
 				return;
@@ -166,7 +165,8 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 						}
 
 						if (node.mode() & READ_ONLY) {
-							res_length = node.read((char *)content, length, seek);
+							res_length = node.read(
+								(char *)tx_sink()->packet_content(packet), length, seek);
 							/* no way to distinguish EOF from unsuccessful
 							   reads, both have res_length == 0 */
 							succeeded = true;
@@ -184,7 +184,8 @@ class Vfs_server::Session_component : public File_system::Session_rpc_object,
 				try {
 					_apply(packet.handle(), [&] (Io_node &node) {
 						if (node.mode() & WRITE_ONLY) {
-							res_length = node.write((char const *)content, length, seek);
+							res_length = node.write(
+								(char const *)tx_sink()->packet_content(packet), length, seek);
 
 							/* File system session can't handle partial writes */
 							if (res_length != length) {

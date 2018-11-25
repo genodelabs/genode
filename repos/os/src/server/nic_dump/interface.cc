@@ -70,7 +70,7 @@ void Net::Interface::_ready_to_submit()
 	while (_sink().packet_avail()) {
 
 		Packet_descriptor const pkt = _sink().get_packet();
-		if (!pkt.size()) {
+		if (!pkt.size() || !_sink().packet_valid(pkt)) {
 			continue; }
 
 		_handle_eth(_sink().packet_content(pkt), pkt.size(), pkt);

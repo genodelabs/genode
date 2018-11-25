@@ -65,7 +65,6 @@ class Rump_fs::Session_component : public Session_rpc_object
 		 */
 		void _process_packet_op(Packet_descriptor &packet, Open_node &open_node)
 		{
-			void     * const content = tx_sink()->packet_content(packet);
 			size_t     const length  = packet.length();
 
 			/* resulting length */
@@ -75,9 +74,9 @@ class Rump_fs::Session_component : public Session_rpc_object
 			switch (packet.operation()) {
 
 			case Packet_descriptor::READ:
-				if (content && (packet.length() <= packet.size())) {
-					res_length = open_node.node().read((char *)content, length,
-					                                   packet.position());
+				if (tx_sink()->packet_valid(packet) && packet.length() <= packet.size()) {
+					res_length = open_node.node().read((char *)tx_sink()->packet_content(packet),
+					                                   length, packet.position());
 
 					/* read data or EOF is a success */
 					succeeded = res_length || (packet.position() >= open_node.node().status().size);
@@ -85,8 +84,8 @@ class Rump_fs::Session_component : public Session_rpc_object
 				break;
 
 			case Packet_descriptor::WRITE:
-				if (content && (packet.length() <= packet.size())) {
-					res_length = open_node.node().write((char const *)content,
+				if (tx_sink()->packet_valid(packet) && packet.length() <= packet.size()) {
+					res_length = open_node.node().write((char const *)tx_sink()->packet_content(packet),
 					                                    length,
 					                                    packet.position());
 					/* File system session can't handle partial writes */

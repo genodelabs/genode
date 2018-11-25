@@ -74,8 +74,9 @@ class Nic_client
 			       count++ < MAX_PACKETS)
 			{
 				Nic::Packet_descriptor p = _nic.rx()->get_packet();
-				net_driver_rx(_nic.rx()->packet_content(p), p.size());
-
+				try { net_driver_rx(_nic.rx()->packet_content(p), p.size()); }
+				catch (Genode::Packet_descriptor::Invalid_packet) {
+					Genode::error("received invalid Nic packet"); }
 				_nic.rx()->acknowledge_packet(p);
 			}
 

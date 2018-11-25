@@ -67,7 +67,6 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 		 */
 		void _process_packet_op(Packet_descriptor &packet, Open_node &open_node)
 		{
-			void     * const content = tx_sink()->packet_content(packet);
 			size_t     const length  = packet.length();
 
 			/* resulting length */
@@ -77,12 +76,12 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 			switch (packet.operation()) {
 
 			case Packet_descriptor::READ:
-				if (content && (packet.length() <= packet.size())) {
+				if (packet.length() <= packet.size()) {
 					Locked_ptr<Node> node { open_node.node() };
 					if (!node.valid())
 						break; 
-					res_length = node->read((char *)content, length,
-					                        packet.position());
+					res_length = node->read((char *)tx_sink()->packet_content(packet),
+					                        length, packet.position());
 
 					/* read data or EOF is a success */
 					succeeded = res_length || (packet.position() >= node->status().size);
@@ -90,12 +89,12 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 				break;
 
 			case Packet_descriptor::WRITE:
-				if (content && (packet.length() <= packet.size())) {
+				if (packet.length() <= packet.size()) {
 					Locked_ptr<Node> node { open_node.node() };
 					if (!node.valid())
 						break; 
-					res_length = node->write((char const *)content, length,
-					                         packet.position());
+					res_length = node->write((char const *)tx_sink()->packet_content(packet),
+					                         length, packet.position());
 
 					/* File system session can't handle partial writes */
 					if (res_length != length) {
@@ -150,6 +149,8 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 			} catch (Id_space<File_system::Node>::Unknown_id const &) {
 				Genode::error("Invalid_handle");
 				tx_sink()->acknowledge_packet(packet);
+			} catch (Genode::Packet_descriptor::Invalid_packet) {
+				Genode::error("dropping invalid File_system packet");
 			}
 		}
 

@@ -92,7 +92,6 @@ class Block::Session_component : public  Block::Session_rpc_object,
 			bool write   = _p_to_handle.operation() == Packet_descriptor::WRITE;
 			sector_t off = _p_to_handle.block_number() + _partition->lba;
 			size_t cnt   = _p_to_handle.block_count();
-			void* addr   = tx_sink()->packet_content(_p_to_handle);
 
 			if (write && !_writeable) {
 				_ack_packet(_p_to_handle);
@@ -100,12 +99,17 @@ class Block::Session_component : public  Block::Session_rpc_object,
 			}
 
 			try {
-				_driver.io(write, off, cnt, addr, *this, _p_to_handle);
+				_driver.io(write, off, cnt,
+				           tx_sink()->packet_content(_p_to_handle),
+				           *this, _p_to_handle);
 			} catch (Block::Session::Tx::Source::Packet_alloc_failed) {
 				if (!_req_queue_full) {
 					_req_queue_full = true;
 					Session_component::wait_queue().insert(this);
 				}
+			} catch (Genode::Packet_descriptor::Invalid_packet) {
+				Genode::error("dropping invalid Block packet");
+				_p_to_handle = Packet_descriptor();
 			}
 		}
 
@@ -172,14 +176,19 @@ class Block::Session_component : public  Block::Session_rpc_object,
 
 		void dispatch(Packet_descriptor &request, Packet_descriptor &reply)
 		{
+			request.succeeded(reply.succeeded());
+
 			if (request.operation() == Block::Packet_descriptor::READ) {
 				void *src =
 					_driver.session().tx()->packet_content(reply);
 				Genode::size_t sz =
 					request.block_count() * _driver.blk_size();
-				Genode::memcpy(tx_sink()->packet_content(request), src, sz);
+				try { Genode::memcpy(tx_sink()->packet_content(request), src, sz); }
+				catch (Genode::Packet_descriptor::Invalid_packet) {
+					request.succeeded(false);
+				}
 			}
-			request.succeeded(reply.succeeded());
+
 			_ack_packet(request);
 
 			if (_ack_queue_full)

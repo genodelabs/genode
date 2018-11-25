@@ -130,6 +130,11 @@ class Genode::Packet_descriptor
 		enum Alignment { PACKET_ALIGNMENT = 0 };
 
 		/**
+		 * Exception type thrown by packet streams
+		 */
+		class Invalid_packet { };
+
+		/**
 		 * Constructor
 		 */
 		Packet_descriptor(Genode::off_t offset, Genode::size_t size) :
@@ -530,6 +535,24 @@ class Genode::Packet_stream_base
 		 * Return communication buffer
 		 */
 		Genode::Dataspace_capability _dataspace() { return _ds_cap; }
+
+		bool packet_valid(Packet_descriptor packet)
+		{
+			return (packet.offset() >= _bulk_buffer_offset
+				 && packet.offset() < _bulk_buffer_offset + (Genode::off_t)_bulk_buffer_size
+				 && packet.offset() + packet.size() <= _bulk_buffer_offset + _bulk_buffer_size);
+		}
+
+		template<typename CONTENT_TYPE>
+		CONTENT_TYPE *packet_content(Packet_descriptor packet)
+		{
+			if (!packet.size()) return nullptr;
+
+			if (!packet_valid(packet) || packet.size() < sizeof(CONTENT_TYPE))
+				throw Packet_descriptor::Invalid_packet();
+
+			return (CONTENT_TYPE *)((Genode::addr_t)_ds_local_base + packet.offset());
+		}
 };
 
 
@@ -621,6 +644,8 @@ class Genode::Packet_stream_source : private Packet_stream_base
 			                            _bulk_buffer_size);
 		}
 
+		using Packet_stream_base::packet_valid;
+
 		/**
 		 * Return the size of the bulk buffer.
 		 */
@@ -680,25 +705,14 @@ class Genode::Packet_stream_source : private Packet_stream_base
 			return Packet_descriptor((Genode::off_t)base, size);
 		}
 
-		bool packet_valid(Packet_descriptor packet)
-		{
-			return (packet.offset() >= _bulk_buffer_offset
-				 && packet.offset() < _bulk_buffer_offset + (Genode::off_t)_bulk_buffer_size
-				 && packet.offset() + packet.size() <= _bulk_buffer_offset + _bulk_buffer_size);
-		}
-
 		/**
 		 * Get pointer to the content of the specified packet
 		 *
-		 * \return 0 if the packet is invalid
+		 * \throw Packet_descriptor::Invalid_packet  raise an exception if
+		                                             the packet is invalid
 		 */
-		Content_type *packet_content(Packet_descriptor packet)
-		{
-			if (!packet_valid(packet) || packet.size() < sizeof(Content_type))
-				return 0;
-
-			return (Content_type *)((Genode::addr_t)_ds_local_base + packet.offset());
-		}
+		Content_type *packet_content(Packet_descriptor packet) {
+			return Packet_stream_base::packet_content<Content_type>(packet); }
 
 		/**
 		 * Return true if submit queue can hold another packet
@@ -786,6 +800,8 @@ class Genode::Packet_stream_sink : private Packet_stream_base
 			                                         Ack_queue::PRODUCER))
 		{ }
 
+		using Packet_stream_base::packet_valid;
+
 		/**
 		 * Register signal handler to notify that new acknowledgements
 		 * are available in the ack queue.
@@ -828,16 +844,6 @@ class Genode::Packet_stream_sink : private Packet_stream_base
 		bool packet_avail() { return _submit_receiver.ready_for_rx(); }
 
 		/**
-		 * Check if packet descriptor refers to a range within the bulk buffer
-		 */
-		bool packet_valid(Packet_descriptor packet)
-		{
-			return (packet.offset() >= _bulk_buffer_offset
-				 && packet.offset() < _bulk_buffer_offset + (Genode::off_t)_bulk_buffer_size
-				 && packet.offset() + packet.size() <= _bulk_buffer_offset + _bulk_buffer_size);
-		}
-
-		/**
 		 * Get next packet from source
 		 *
 		 * This method blocks if no packets are available.
@@ -862,15 +868,11 @@ class Genode::Packet_stream_sink : private Packet_stream_base
 		/**
 		 * Get pointer to the content of the specified packet
 		 *
-		 * \return 0 if the packet is invalid
+		 * \throw Packet_descriptor::Invalid_packet  raise an exception if
+		                                             the packet is invalid
 		 */
-		Content_type *packet_content(Packet_descriptor packet)
-		{
-			if (!packet_valid(packet) || packet.size() < sizeof(Content_type))
-				return 0;
-
-			return (Content_type *)((Genode::addr_t)_ds_local_base + packet.offset());
-		}
+		Content_type *packet_content(Packet_descriptor packet) {
+			return Packet_stream_base::packet_content<Content_type>(packet); }
 
 		/**
 		 * Returns true if no further acknowledgements can be submitted

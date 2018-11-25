@@ -482,7 +482,7 @@ class Usb::Worker : public Genode::Weak_object<Usb::Worker>
 
 				_p_in_flight++;
 
-				if (!_device || !_device->udev) {
+				if (!_device || !_device->udev || !_sink->packet_valid(p)) {
 					_ack_packet(p);
 					continue;
 				}

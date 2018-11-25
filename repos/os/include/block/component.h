@@ -106,7 +106,7 @@ class Block::Session_component : public Block::Session_component_base,
 			_p_to_handle.succeeded(false);
 
 			/* ignore invalid packets */
-			if (!packet.size() || !_range_check(_p_to_handle)) {
+			if (!packet.size() || !_range_check(_p_to_handle) || !tx_sink()->packet_valid(packet)) {
 				_ack_packet(_p_to_handle);
 				return;
 			}
@@ -151,6 +151,9 @@ class Block::Session_component : public Block::Session_component_base,
 				_req_queue_full = true;
 			} catch (Driver::Io_error) {
 				_ack_packet(_p_to_handle);
+			} catch (Genode::Packet_descriptor::Invalid_packet) {
+				_p_to_handle = Packet_descriptor();
+				Genode::error("dropping invalid Block packet");
 			}
 		}
 

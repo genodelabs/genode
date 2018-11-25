@@ -138,7 +138,7 @@ class Wifi_session_component : public Nic::Session_component
 			if (!_tx.sink()->packet_avail()) { return false; }
 
 			Packet_descriptor packet = _tx.sink()->get_packet();
-			if (!packet.size()) {
+			if (!packet.size() || !_tx.sink()->packet_valid(packet)) {
 				warning("invalid tx packet");
 				return true;
 			}

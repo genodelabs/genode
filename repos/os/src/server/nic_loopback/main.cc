@@ -120,8 +120,8 @@ void Nic_loopback::Session_component::_handle_packet_stream()
 
 		/* obtain packet */
 		Packet_descriptor const packet_from_client = _tx.sink()->get_packet();
-		if (!packet_from_client.size()) {
-			warning("received zero-size packet");
+		if (!packet_from_client.size() || !_tx.sink()->packet_valid(packet_from_client)) {
+			warning("received invalid packet");
 			_rx.source()->release_packet(packet_to_client);
 			continue;
 		}

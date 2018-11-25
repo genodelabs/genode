@@ -131,7 +131,8 @@ class Usb_nic::Session_component : public Nic::Session_component
 				}
 
 				/* copy packet to current data pos */
-				Genode::memcpy(work_skb.data, _tx.sink()->packet_content(packet), packet.size());
+				try { Genode::memcpy(work_skb.data, _tx.sink()->packet_content(packet), packet.size()); }
+				catch (Genode::Packet_descriptor::Invalid_packet) { }
 				/* call fixup on dummy SKB */
 				_device->tx_fixup(&work_skb);
 				/* advance to next slot */
@@ -155,7 +156,7 @@ class Usb_nic::Session_component : public Nic::Session_component
 				return false;
 
 			Genode::Packet_descriptor packet = _tx.sink()->get_packet();
-			if (!packet.size()) {
+			if (!packet.size() || !_tx.sink()->packet_valid(packet)) {
 				Genode::warning("Invalid tx packet");
 				return true;
 			}
