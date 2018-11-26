@@ -539,33 +539,14 @@ append manual_deploy_config {
 <config arch="} [depot_spec] {">
 
 	<common_routes>
-		<service name="ROM" label_last="ld.lib.so"> <parent/> </service>
-		<service name="ROM" label_last="init">      <parent/> </service>
+		<service name="ROM" label_last="ld.lib.so">  <parent/> </service>
+		<service name="ROM" label_last="vfs.lib.so"> <parent/> </service>
+		<service name="ROM" label_last="init">       <parent/> </service>
 		<service name="CPU">   <parent/> </service>
 		<service name="PD">    <parent/> </service>
 		<service name="LOG">   <parent/> </service>
 		<service name="Timer"> <parent/> </service>
 	</common_routes>
-
-	<!-- <start name="shared_fs"/> -->
-	<!-- <start name="usb_devices_rom"/> -->
-	<!-- <start name="vm_fs"/> -->
-	<!-- <start name="fonts_fs"/> -->
-	<!-- <start name="wm"/> -->
-	<!-- <start name="backdrop"/> -->
-	<!-- <start name="nano3d"/> -->
-	<!-- <start name="noux" launcher="noux-system"/> -->
-	<!-- <start name="download_debian"/> --> 
-	<!-- <start name="vm"/> -->
-	<!-- <start name="top_view"/> -->
-	<!-- <start name="2048"/> -->
-	<!-- <start name="vbox5-tc-browser"/> -->
-	<!-- <start name="seoul-vmm-browser"/> -->
-	<!-- <start name="config_editor"/> -->
-	<!-- <start name="report_dump"/> -->
-	<!-- <start name="acpica"/> -->
-	<!-- <start name="gambatte"/> -->
-	<!-- <start name="arora"/> -->
 
 </config>}
 
