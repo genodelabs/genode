@@ -265,6 +265,8 @@ proc autopilot_run_genode_until {{wait_for_re forever} {timeout_value 0} {runnin
 ## Utility procedures ##
 ########################
 
+proc depot_user {} { return [get_cmd_arg --depot-user genodelabs] }
+
 #
 # Check if archives are available without doing anything with them
 #
@@ -312,7 +314,7 @@ proc test_pkgs_start_nodes { } {
 				<start name="} $test_pkg {" skip="true"/>}
 		} else {
 			append result {
-				<start name="} $test_pkg {" pkg="genodelabs/pkg/} $test_pkg {/} [_current_depot_archive_version pkg $test_pkg] {"/>}
+				<start name="} $test_pkg {" pkg="} [depot_user] {/pkg/} $test_pkg {/} [_current_depot_archive_version pkg $test_pkg] {"/>}
 		}
 	}
 	return $result
@@ -356,31 +358,31 @@ proc prepare_to_run_genode { } {
 
 	foreach test_pkg $test_pkgs {
 		if { [info exists skip_test_pkg($test_pkg)] } {
-			append_if [expr !$skip_test_pkg($test_pkg)] depot_tar_archives " genodelabs/pkg/$test_pkg "
+			append_if [expr !$skip_test_pkg($test_pkg)] depot_tar_archives " [depot_user]/pkg/$test_pkg "
 		} else {
-			append depot_tar_archives " genodelabs/pkg/$test_pkg "
+			append depot_tar_archives " [depot_user]/pkg/$test_pkg "
 		}
 	}
 
 	foreach test_src_pkg $test_src_pkgs {
 		if { [info exists skip_test_pkg($test_src_pkg)] } {
-			append_if [expr !$skip_test_pkg($test_src_pkg)] depot_tar_src_archives " genodelabs/src/$test_src_pkg "
+			append_if [expr !$skip_test_pkg($test_src_pkg)] depot_tar_src_archives " [depot_user]/src/$test_src_pkg "
 		} else {
-			append depot_tar_src_archives " genodelabs/src/$test_src_pkg "
+			append depot_tar_src_archives " [depot_user]/src/$test_src_pkg "
 		}
 	}
 
 	append import_archives {
-		genodelabs/src/} [base_src] {
-		genodelabs/src/report_rom
-		genodelabs/src/fs_rom
-		genodelabs/src/vfs
-		genodelabs/src/loader
-		genodelabs/src/init
-		genodelabs/src/depot_query
+		} [depot_user] {/src/} [base_src] {
+		} [depot_user] {/src/report_rom
+		} [depot_user] {/src/fs_rom
+		} [depot_user] {/src/vfs
+		} [depot_user] {/src/loader
+		} [depot_user] {/src/init
+		} [depot_user] {/src/depot_query
 	}
 	if {!$skip_test_pkg(test-lx_block)} {
-		append import_archives { genodelabs/raw/test-lx_block }
+		append import_archives [depot_user] {/raw/test-lx_block }
 	}
 
 	set all_archives [concat $depot_tar_archives $import_archives]
