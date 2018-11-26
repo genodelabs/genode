@@ -54,7 +54,7 @@ void Thread::exception(Cpu & cpu)
 
 void Kernel::Thread::_call_update_data_region()
 {
-	Cpu * const cpu  = cpu_pool()->cpu(Cpu::executing_id());
+	Cpu & cpu  = cpu_pool()->cpu(Cpu::executing_id());
 
 	/*
 	 * FIXME: If the caller is not a core thread, the kernel operates in a
@@ -66,19 +66,19 @@ void Kernel::Thread::_call_update_data_region()
 	 *        until then we apply operations to caches as a whole instead.
 	 */
 	if (!_core) {
-		cpu->clean_invalidate_data_cache();
+		cpu.clean_invalidate_data_cache();
 		return;
 	}
 	auto base = (addr_t)user_arg_1();
 	auto const size = (size_t)user_arg_2();
-	cpu->clean_invalidate_data_cache_by_virt_region(base, size);
-	cpu->invalidate_instr_cache();
+	cpu.clean_invalidate_data_cache_by_virt_region(base, size);
+	cpu.invalidate_instr_cache();
 }
 
 
 void Kernel::Thread::_call_update_instr_region()
 {
-	Cpu * const cpu  = cpu_pool()->cpu(Cpu::executing_id());
+	Cpu & cpu  = cpu_pool()->cpu(Cpu::executing_id());
 
 	/*
 	 * FIXME: If the caller is not a core thread, the kernel operates in a
@@ -90,18 +90,25 @@ void Kernel::Thread::_call_update_instr_region()
 	 *        until then we apply operations to caches as a whole instead.
 	 */
 	if (!_core) {
-		cpu->clean_invalidate_data_cache();
-		cpu->invalidate_instr_cache();
+		cpu.clean_invalidate_data_cache();
+		cpu.invalidate_instr_cache();
 		return;
 	}
 	auto base = (addr_t)user_arg_1();
 	auto const size = (size_t)user_arg_2();
-	cpu->clean_invalidate_data_cache_by_virt_region(base, size);
-	cpu->invalidate_instr_cache_by_virt_region(base, size);
+	cpu.clean_invalidate_data_cache_by_virt_region(base, size);
+	cpu.invalidate_instr_cache_by_virt_region(base, size);
 }
 
 
-extern void * kernel_stack;
+/**
+ * on ARM with multiprocessing extensions, maintainance operations on TLB,
+ * and caches typically work coherently across CPUs when using the correct
+ * coprocessor registers (there might be ARM SoCs where this is not valid,
+ * with several shareability domains, but until now we do not support them)
+ */
+void Kernel::Thread::Pd_update::execute() { };
+
 
 void Thread::proceed(Cpu & cpu)
 {

@@ -20,6 +20,7 @@
 #include <kernel/pd.h>
 #include <pic.h>
 #include <hw/assert.h>
+#include <hw/boot_info.h>
 
 /* base-internal includes */
 #include <base/internal/unmanaged_singleton.h>
@@ -194,36 +195,34 @@ addr_t Cpu::stack_start() {
 	return (addr_t)&kernel_stack + KERNEL_STACK_SIZE * (_id+1); }
 
 
-Cpu::Cpu(unsigned const id)
+Cpu::Cpu(unsigned const id, Pic & pic,
+         Inter_processor_work_list & global_work_list)
 :
-	_id(id), _timer(_id),
+	_id(id), _pic(pic), _timer(_id),
 	_scheduler(&_idle, _quota(), _fill()), _idle(this),
-	_ipi_irq(*this), _timer_irq(_timer.interrupt_id(), *this)
-{ }
+	_ipi_irq(*this), _timer_irq(_timer.interrupt_id(), *this),
+	_global_work_list(global_work_list)
+{ _arch_init(); }
 
 
 /**************
  ** Cpu_pool **
  **************/
 
-Cpu * Cpu_pool::cpu(unsigned const id) const
+bool Cpu_pool::initialize(Pic & pic)
 {
-	assert(id < NR_OF_CPUS);
-	char * const p = const_cast<char *>(_cpus[id]);
-	return reinterpret_cast<Cpu *>(p);
+	unsigned id = Cpu::executing_id();
+	_cpus[id].construct(id, pic, _global_work_list);
+	return --_initialized == 0;
+}
+
+
+Cpu & Cpu_pool::cpu(unsigned const id)
+{
+	assert(id < _count && _cpus[id].constructed());
+	return *_cpus[id];
 }
 
 
 Cpu_pool::Cpu_pool()
-{
-	for (unsigned id = 0; id < NR_OF_CPUS; id++) {
-		new (_cpus[id]) Cpu(id); }
-}
-
-
-/***********************
- ** Cpu_domain_update **
- ***********************/
-
-Cpu_domain_update::Cpu_domain_update() {
-	for (unsigned i = 0; i < NR_OF_CPUS; i++) { _pending[i] = false; } }
+: _count(reinterpret_cast<Hw::Boot_info*>(Hw::Mm::boot_info().base)->cpus) { }

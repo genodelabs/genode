@@ -18,16 +18,23 @@
 #include <kernel/thread.h>
 #include <kernel/pd.h>
 
+void Kernel::Thread::Pd_update::execute()
+{
+	/* invalidate cpu-local TLB */
+	Cpu::invalidate_tlb();
+
+	/* if this is the last cpu, wake up the caller thread */
+	if (--cnt == 0) {
+		cpu_pool()->work_list().remove(&_le);
+		caller._restart();
+	}
+};
+
 
 void Kernel::Thread::_call_update_data_region() { }
 
 
 void Kernel::Thread::_call_update_instr_region() { }
-
-
-void Kernel::Thread::_call_update_pd() {
-	Genode::Cpu::Cr3::write(Genode::Cpu::Cr3::read());
-}
 
 
 void Kernel::Thread::proceed(Cpu & cpu)

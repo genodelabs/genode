@@ -15,9 +15,12 @@
 #ifndef _CORE__KERNEL__CPU_H_
 #define _CORE__KERNEL__CPU_H_
 
+#include <util/reconstructible.h>
+
 /* core includes */
 #include <kernel/cpu_context.h>
 #include <kernel/irq.h>
+#include <kernel/inter_processor_work.h>
 #include <kernel/thread.h>
 
 namespace Kernel
@@ -67,7 +70,6 @@ namespace Kernel
  */
 #pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
 
-
 class Kernel::Cpu : public Genode::Cpu, private Irq::Pool, private Timeout
 {
 	private:
@@ -79,7 +81,15 @@ class Kernel::Cpu : public Genode::Cpu, private Irq::Pool, private Timeout
 		 */
 		struct Ipi : Irq
 		{
-			bool pending = false;
+			Cpu & cpu;
+			bool  pending { false };
+
+			/**
+			 * Constructor
+			 *
+			 * \param cpu  cpu this IPI belongs to
+			 */
+			Ipi(Cpu & cpu);
 
 
 			/*********************
@@ -87,22 +97,9 @@ class Kernel::Cpu : public Genode::Cpu, private Irq::Pool, private Timeout
 			 *********************/
 
 			void occurred();
-
-			/**
-			 * Constructor
-			 *
-			 * \param p  interrupt pool this irq shall reside in
-			 */
-			Ipi(Irq::Pool &p);
-
-			/**
-			 * Trigger the ipi
-			 *
-			 * \param cpu_id  id of the cpu this ipi object is related to
-			 */
-			void trigger(unsigned const cpu_id);
 		};
 
+		friend void Ipi::occurred(void);
 
 		struct Idle_thread : Kernel::Thread
 		{
@@ -114,12 +111,17 @@ class Kernel::Cpu : public Genode::Cpu, private Irq::Pool, private Timeout
 
 
 		unsigned const _id;
+		Pic           &_pic;
 		Timer          _timer;
 		Cpu_scheduler  _scheduler;
 		Idle_thread    _idle;
 		Ipi            _ipi_irq;
 		Irq            _timer_irq; /* timer IRQ implemented as empty event */
 
+		Inter_processor_work_list &_global_work_list;
+		Inter_processor_work_list  _local_work_list {};
+
+		void     _arch_init();
 		unsigned _quota() const { return _timer.us_to_ticks(cpu_quota_us); }
 		unsigned _fill() const  { return _timer.us_to_ticks(cpu_fill_us); }
 
@@ -130,21 +132,13 @@ class Kernel::Cpu : public Genode::Cpu, private Irq::Pool, private Timeout
 		/**
 		 * Construct object for CPU 'id'
 		 */
-		Cpu(unsigned const id);
-
-		/**
-		 * Initialize primary cpu object
-		 *
-		 * \param pic      interrupt controller object
-		 * \param core_pd  core's pd object
-		 * \param board    object encapsulating board specifics
-		 */
-		void init(Pic &pic/*, Kernel::Pd &core_pd, Genode::Board & board*/);
+		Cpu(unsigned const id, Pic & pic,
+		    Inter_processor_work_list & global_work_list);
 
 		/**
 		 * Raise the IPI of the CPU
 		 */
-		void trigger_ip_interrupt() { _ipi_irq.trigger(_id); }
+		void trigger_ip_interrupt();
 
 		/**
 		 * Deliver interrupt to the CPU
@@ -188,6 +182,9 @@ class Kernel::Cpu : public Genode::Cpu, private Irq::Pool, private Timeout
 		unsigned timer_interrupt_id() const { return _timer.interrupt_id(); }
 
 		Irq::Pool &irq_pool() { return *this; }
+
+		Inter_processor_work_list & work_list() {
+			return _local_work_list; }
 };
 
 
@@ -201,39 +198,40 @@ class Kernel::Cpu_pool
 {
 	private:
 
-		/*
-		 * Align to machine word size, otherwise load/stores might fail on some
-		 * platforms.
-		 */
-		char _cpus[NR_OF_CPUS][sizeof(Cpu)]
-		     __attribute__((aligned(sizeof(addr_t))));
+		Inter_processor_work_list  _global_work_list {};
+		unsigned                   _count;
+		unsigned                   _initialized { _count };
+		Genode::Constructible<Cpu> _cpus[NR_OF_CPUS];
 
 	public:
 
 		Cpu_pool();
 
+		bool initialize(Pic & pic);
+
 		/**
 		 * Return object of CPU 'id'
 		 */
-		Cpu * cpu(unsigned const id) const;
+		Cpu & cpu(unsigned const id);
 
 		/**
 		 * Return object of primary CPU
 		 */
-		Cpu * primary_cpu() const { return cpu(Cpu::primary_id()); }
+		Cpu & primary_cpu() { return cpu(Cpu::primary_id()); }
 
 		/**
 		 * Return object of current CPU
 		 */
-		Cpu * executing_cpu() const { return cpu(Cpu::executing_id()); }
+		Cpu & executing_cpu() { return cpu(Cpu::executing_id()); }
 
 		template <typename FUNC>
-		void for_each_cpu(FUNC const &func) const
+		void for_each_cpu(FUNC const &func)
 		{
-			for (unsigned i = 0; i < sizeof(_cpus)/sizeof(_cpus[i]); i++) {
-				func(*cpu(i));
-			}
+			for (unsigned i = 0; i < _count; i++) func(cpu(i));
 		}
+
+		Inter_processor_work_list & work_list() {
+			return _global_work_list; }
 };
 
 #endif /* _CORE__KERNEL__CPU_H_ */

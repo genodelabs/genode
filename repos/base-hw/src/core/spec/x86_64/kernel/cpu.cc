@@ -15,10 +15,8 @@
 /* core includes */
 #include <kernel/cpu.h>
 #include <kernel/kernel.h>
-#include <kernel/pd.h>
 
-
-void Kernel::Cpu::init(Pic &pic)
+void Kernel::Cpu::_arch_init()
 {
 	gdt.init((addr_t)&tss);
 	Idt::init();
@@ -29,10 +27,6 @@ void Kernel::Cpu::init(Pic &pic)
 	fpu().init();
 
 	/* enable timer interrupt */
-	unsigned const cpu = Cpu::executing_id();
-	pic.store_apic_id(cpu);
-	pic.unmask(_timer.interrupt_id(), cpu);
+	_pic.store_apic_id(id());
+	_pic.unmask(_timer.interrupt_id(), id());
 }
-
-
-void Kernel::Cpu_domain_update::_domain_update() { }

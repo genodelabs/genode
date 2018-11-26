@@ -37,8 +37,6 @@ class Genode::Pic : public Hw::Pic
 		void trigger(unsigned const i) {
 			write<Swint>(Swint::Intid::bits(i)); }
 
-		void trigger_ip_interrupt(unsigned) { }
-
 		bool secure(unsigned i) {
 			return !read<Intsec::Nonsecure>(i); }
 

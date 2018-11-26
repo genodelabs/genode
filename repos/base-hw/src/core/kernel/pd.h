@@ -28,6 +28,8 @@ namespace Genode {
 
 namespace Kernel
 {
+	class Cpu;
+
 	/**
 	 * Kernel backend of protection domains
 	 */
@@ -81,7 +83,6 @@ class Kernel::Pd : public Kernel::Object
 				oir->~Object_identity_reference();
 		}
 
-
 		static capid_t syscall_create(void * const dst,
 		                              Hw::Page_table * tt,
 		                              Genode::Platform_pd * const pd)
@@ -92,6 +93,12 @@ class Kernel::Pd : public Kernel::Object
 
 		static void syscall_destroy(Pd * const pd) {
 			call(call_id_delete_pd(), (Call_arg)pd); }
+
+		/**
+		 * Check whether the given 'cpu' needs to do some maintainance
+		 * work, after this pd has had changes in its page-tables
+		 */
+		bool update(Cpu & cpu);
 
 
 		/***************

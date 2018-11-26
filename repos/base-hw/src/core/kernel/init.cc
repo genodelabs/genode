@@ -16,6 +16,7 @@
 #include <kernel/pd.h>
 #include <kernel/cpu.h>
 #include <kernel/kernel.h>
+#include <kernel/lock.h>
 #include <platform_pd.h>
 #include <pic.h>
 #include <board.h>
@@ -42,22 +43,32 @@ extern "C" void kernel_init();
  */
 extern "C" void kernel_init()
 {
-	static volatile bool initialized = false;
-	if (Cpu::executing_id()) while (!initialized) ;
-	else {
+	static volatile bool pool_ready   = false;
+	static volatile bool kernel_ready = false;
+
+	{
+		Lock::Guard guard(data_lock());
+
+		/* initialize current cpu */
+		pool_ready = cpu_pool()->initialize(*pic());
+	};
+
+	/* wait until all cpus have initialized their corresponding cpu object */
+	while (!pool_ready) { ; }
+
+	/* the boot-cpu initializes the rest of the kernel */
+	if (Cpu::executing_id() == Cpu::primary_id()) {
+		Lock::Guard guard(data_lock());
+
 		Genode::log("");
 		Genode::log("kernel initialized");
+
+		Core_thread::singleton();
+		kernel_ready = true;
+	} else {
+		/* secondary cpus spin until the kernel is initialized */
+		while (!kernel_ready) {;}
 	}
-
-	/* initialize cpu pool */
-	cpu_pool();
-
-	/* initialize current cpu */
-	cpu_pool()->cpu(Cpu::executing_id())->init(*pic());
-
-	Core_thread::singleton();
-
-	if (!Cpu::executing_id()) initialized = true;
 
 	kernel();
 }

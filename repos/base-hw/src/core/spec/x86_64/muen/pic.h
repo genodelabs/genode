@@ -61,7 +61,6 @@ class Genode::Pic
 		void unmask(unsigned const, unsigned) { }
 		void mask(unsigned const) { }
 		bool is_ip_interrupt(unsigned, unsigned) { return false; }
-		void trigger_ip_interrupt(unsigned) { }
 		void store_apic_id(unsigned const) { }
 
 	private:

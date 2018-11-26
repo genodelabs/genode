@@ -19,9 +19,27 @@
 
 namespace Kernel
 {
-	using Lock = Hw::Spin_lock;
+	class Lock;
 
 	Lock & data_lock();
 }
+
+
+class Kernel::Lock
+{
+	private:
+
+		enum { INVALID = ~0U };
+
+		Hw::Spin_lock     _lock { };
+		volatile unsigned _current_cpu { INVALID };
+
+	public:
+
+		void lock();
+		void unlock();
+
+		using Guard = Genode::Lock_guard<Lock>;
+};
 
 #endif /* _CORE__SPEC__SMP__KERNEL__LOCK_H_ */

@@ -38,6 +38,30 @@ extern "C" void _core_start(void);
 using namespace Kernel;
 
 
+Thread::Pd_update::Pd_update(Thread & caller, Pd & pd, unsigned cnt)
+: caller(caller), pd(pd), cnt(cnt)
+{
+	cpu_pool()->work_list().insert(&_le);
+	caller._become_inactive(AWAITS_RESTART);
+}
+
+
+Thread::Destroy::Destroy(Thread & caller, Thread & to_delete)
+: caller(caller), thread_to_destroy(to_delete)
+{
+	thread_to_destroy._cpu->work_list().insert(&_le);
+	caller._become_inactive(AWAITS_RESTART);
+}
+
+
+void Thread::Destroy::execute()
+{
+	thread_to_destroy.~Thread();
+	cpu_pool()->executing_cpu().work_list().remove(&_le);
+	caller._restart();
+}
+
+
 void Thread_fault::print(Genode::Output &out) const
 {
 	Genode::print(out, "ip=",          Genode::Hex(ip));
@@ -200,18 +224,13 @@ void Thread::_call_thread_quota()
 void Thread::_call_start_thread()
 {
 	/* lookup CPU */
-	Cpu * const cpu = cpu_pool()->cpu(user_arg_2());
-	if (!cpu) {
-		Genode::warning("failed to lookup CPU");
-		user_arg_0(-2);
-		return;
-	}
+	Cpu & cpu = cpu_pool()->cpu(user_arg_2());
 	user_arg_0(0);
 	Thread * const thread = (Thread*) user_arg_1();
 
-	assert(thread->_state == AWAITS_START)
+	assert(thread->_state == AWAITS_START);
 
-	thread->affinity(cpu);
+	thread->affinity(&cpu);
 
 	/* join protection domain */
 	thread->_pd = (Pd *) user_arg_3();
@@ -310,6 +329,29 @@ void Thread::_cancel_blocking()
 void Thread::_call_yield_thread()
 {
 	Cpu_job::_yield();
+}
+
+
+void Thread::_call_delete_thread()
+{
+	Thread * to_delete = reinterpret_cast<Thread*>(user_arg_1());
+
+	/**
+	 * Delete a thread immediately if it has no cpu assigned yet,
+	 * or it is assigned to this cpu, or the assigned cpu did not scheduled it.
+	 */
+	if (!to_delete->_cpu ||
+	    (to_delete->_cpu->id() == Cpu::executing_id() ||
+	     &to_delete->_cpu->scheduled_job() != to_delete)) {
+		_call_delete<Thread>();
+		return;
+	}
+
+	/**
+	 * Construct a cross-cpu work item and send an IPI
+	 */
+	_destroy.construct(*this, *to_delete);
+	to_delete->_cpu->trigger_ip_interrupt();
 }
 
 
@@ -557,6 +599,20 @@ void Thread::_call_delete_cap()
 }
 
 
+void Kernel::Thread::_call_update_pd()
+{
+	Pd * const pd = (Pd *) user_arg_1();
+	unsigned cnt = 0;
+
+	cpu_pool()->for_each_cpu([&] (Cpu & cpu) {
+		/* if a cpu needs to update increase the counter */
+		if (pd->update(cpu)) cnt++; });
+
+	/* insert the work item in the list if there are outstanding cpus */
+	if (cnt) _pd_update.construct(*this, *pd, cnt);
+}
+
+
 void Thread::_call()
 {
 	try {
@@ -597,7 +653,7 @@ void Thread::_call()
 	case call_id_new_thread():             _call_new_thread(); return;
 	case call_id_new_core_thread():        _call_new_core_thread(); return;
 	case call_id_thread_quota():           _call_thread_quota(); return;
-	case call_id_delete_thread():          _call_delete<Thread>(); return;
+	case call_id_delete_thread():          _call_delete_thread(); return;
 	case call_id_start_thread():           _call_start_thread(); return;
 	case call_id_resume_thread():          _call_resume_thread(); return;
 	case call_id_cancel_thread_blocking(): _call_cancel_thread_blocking(); return;
@@ -695,7 +751,7 @@ Core_thread::Core_thread()
 	regs->sp = (addr_t)&__initial_stack_base[0] + DEFAULT_STACK_SIZE;
 	regs->ip = (addr_t)&_core_start;
 
-	affinity(cpu_pool()->primary_cpu());
+	affinity(&cpu_pool()->primary_cpu());
 	_utcb       = utcb;
 	Thread::_pd = core_pd();
 	_become_active();

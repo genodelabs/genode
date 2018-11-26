@@ -14,25 +14,13 @@
 
 /* core includes */
 #include <kernel/cpu.h>
-#include <kernel/pd.h>
 #include <kernel/perf_counter.h>
-#include <pic.h>
 
-void Kernel::Cpu::init(Kernel::Pic &pic)
+void Kernel::Cpu::_arch_init()
 {
 	/* enable performance counter */
 	perf_counter()->enable();
 
 	/* enable timer interrupt */
-	pic.unmask(_timer.interrupt_id(), id());
-}
-
-
-void Kernel::Cpu_domain_update::_domain_update()
-{
-	/* flush TLB by ASID */
-	if (_domain_id)
-		Cpu::Tlbiasid::write(_domain_id);
-	else
-		Cpu::Tlbiall::write(0);
+	_pic.unmask(_timer.interrupt_id(), id());
 }

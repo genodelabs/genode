@@ -1,5 +1,5 @@
 /*
- * \brief  Kernel entrypoint for non-SMP systems
+ * \brief  Kernel entrypoint
  * \author Martin Stein
  * \author Stefan Kalkowski
  * \date   2011-10-20
@@ -14,21 +14,22 @@
 
 /* core includes */
 #include <kernel/cpu.h>
+#include <kernel/lock.h>
+#include <kernel/kernel.h>
 
 
 extern "C" void kernel()
 {
 	using namespace Kernel;
 
-	Cpu * const cpu = cpu_pool()->cpu(Cpu::executing_id());
-	cpu->schedule().proceed(*cpu);
+	Cpu & cpu = cpu_pool()->cpu(Cpu::executing_id());
+	Cpu_job * new_job;
+
+	{
+		Lock::Guard guard(data_lock());
+
+		new_job = &cpu.schedule();
+	}
+
+	new_job->proceed(cpu);
 }
-
-
-void Kernel::Cpu::Ipi::occurred() { }
-
-
-void Kernel::Cpu::Ipi::trigger(unsigned) { }
-
-
-Kernel::Cpu::Ipi::Ipi(Kernel::Irq::Pool &p) : Kernel::Irq(Kernel::Pic::IPI, p) { }

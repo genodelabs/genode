@@ -23,6 +23,15 @@ namespace Genode { struct Arm_v7_cpu; }
 struct Genode::Arm_v7_cpu : Arm_cpu
 {
 	/**
+	 * Returns whether this cpu implements the multiprocessor extensions
+	 */
+	static bool multi_processor()
+	{
+		static bool mp = Mpidr::Me::get(Mpidr::read());
+		return mp;
+	}
+
+	/**
 	 * Write back dirty lines of inner data cache and invalidate all
 	 */
 	static void clean_invalidate_inner_data_cache();
@@ -31,6 +40,17 @@ struct Genode::Arm_v7_cpu : Arm_cpu
 	 * Invalidate all lines of the inner data cache
 	 */
 	static void invalidate_inner_data_cache();
+
+	/**
+	 * Invalidate TLB for given address space id
+	 */
+	static void invalidate_tlb(unsigned asid)
+	{
+		if (multi_processor()) {
+			if (asid) Tlbiasidis::write(asid);
+			else      Tlbiallis::write(0);
+		} else Arm_cpu::invalidate_tlb(asid);
+	}
 };
 
 #endif /* _CORE__SPEC__ARM_V7__CPU_SUPPORT_H_ */

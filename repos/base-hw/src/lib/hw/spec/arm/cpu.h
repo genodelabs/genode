@@ -193,8 +193,14 @@ struct Hw::Arm_cpu
 	/* Invalidate entire unified TLB */
 	ARM_CP15_REGISTER_32BIT(Tlbiall, c8, c7, 0, 0);
 
+	/* Invalidate entire unified TLB (inner-shareable) */
+	ARM_CP15_REGISTER_32BIT(Tlbiallis, c8, c3, 0, 0);
+
 	/* Invalidate unified TLB by ASID */
 	ARM_CP15_REGISTER_32BIT(Tlbiasid, c8, c7, 0, 2);
+
+	/* Invalidate unified TLB by ASID (inner-shareable) */
+	ARM_CP15_REGISTER_32BIT(Tlbiasidis, c8, c3, 0, 2);
 
 	/* Memory Attribute Indirection Register 0 */
 	ARM_CP15_REGISTER_32BIT(Mair0, c10, c2, 0, 0,
@@ -256,6 +262,12 @@ struct Hw::Arm_cpu
 
 	static void clean_invalidate_data_cache();
 	static void invalidate_data_cache();
+
+	static inline void synchronization_barrier()
+	{
+		asm volatile("dsb\n"
+		             "isb\n");
+	}
 };
 
 #endif /* _SRC__LIB__HW__SPEC__ARM__CPU_H_ */

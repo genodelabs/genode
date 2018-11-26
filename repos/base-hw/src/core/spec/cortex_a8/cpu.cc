@@ -17,8 +17,8 @@
 #include <kernel/cpu.h>
 
 
-void Genode::Cpu::translation_added(Genode::addr_t const addr,
-                                    Genode::size_t const size)
+void Genode::Cpu::translation_added(Genode::addr_t const,
+                                    Genode::size_t const)
 {
 	using namespace Kernel;
 
@@ -29,9 +29,5 @@ void Genode::Cpu::translation_added(Genode::addr_t const addr,
 	 * page table entry is added. We only do this as core as the kernel
 	 * adds translations solely before MMU and caches are enabled.
 	 */
-	if (is_user()) update_data_region(addr, size);
-	else {
-		Cpu * const cpu  = cpu_pool()->cpu(Cpu::executing_id());
-		cpu->clean_invalidate_data_cache();
-	}
+	Cpu::clean_invalidate_data_cache();
 }

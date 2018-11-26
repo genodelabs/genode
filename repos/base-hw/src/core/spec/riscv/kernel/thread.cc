@@ -18,6 +18,9 @@
 
 using namespace Kernel;
 
+void Thread::Pd_update::execute() {}
+
+
 void Thread::exception(Cpu&)
 {
 	using Context = Genode::Cpu::Context;
@@ -42,12 +45,6 @@ void Thread::exception(Cpu&)
 		              " addr=", Genode::Hex(Genode::Cpu::Sbadaddr::read()));
 		_die();
 	}
-}
-
-
-void Thread::_call_update_pd()
-{
-	Genode::Cpu::sfence();
 }
 
 

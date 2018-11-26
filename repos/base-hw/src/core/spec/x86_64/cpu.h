@@ -134,6 +134,12 @@ class Genode::Cpu : public Hw::X86_64_cpu
 		void switch_to(Context & context, Mmu_context &mmu_context);
 
 		static void mmu_fault(Context & regs, Kernel::Thread_fault & fault);
+
+		/**
+		 * Invalidate the whole TLB
+		 */
+		static void invalidate_tlb() {
+			Genode::Cpu::Cr3::write(Genode::Cpu::Cr3::read()); }
 };
 
 #endif /* _CORE__SPEC__X86_64__CPU_H_ */

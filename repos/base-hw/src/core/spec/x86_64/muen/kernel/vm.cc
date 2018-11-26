@@ -27,7 +27,7 @@ Kernel::Vm::Vm(void * const state, Kernel::Signal_context * const context,
   _context(context),
   _table(nullptr)
 {
-	affinity(cpu_pool()->primary_cpu());
+	affinity(&cpu_pool()->primary_cpu());
 }
 
 

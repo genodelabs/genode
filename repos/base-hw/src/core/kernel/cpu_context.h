@@ -27,49 +27,7 @@ namespace Kernel
 	 * Context of a job (thread, VM, idle) that shall be executed by a CPU
 	 */
 	class Cpu_job;
-
-	/**
-	 * Ability to do a domain update on all CPUs
-	 */
-	class Cpu_domain_update;
 }
-
-class Kernel::Cpu_domain_update : private Double_list_item
-{
-	friend class Cpu_domain_update_list;
-	friend class Kernel::Double_list_typed<Cpu_domain_update>;
-
-	private:
-
-		bool     _pending[NR_OF_CPUS];
-		unsigned _domain_id = 0;
-
-		/**
-		 * Domain-update back-end
-		 */
-		void _domain_update();
-
-		/**
-		 * Perform the domain update on the executing CPU
-		 */
-		void _do();
-
-	protected:
-
-		Cpu_domain_update();
-
-		virtual ~Cpu_domain_update() { };
-
-		/**
-		 * Do an update of domain 'id' on all CPUs and return if this blocks
-		 */
-		bool _do_global(unsigned const id);
-
-		/**
-		 * Notice that the update isn't pending on any CPU anymore
-		 */
-		virtual void _cpu_domain_update_unblocks() = 0;
-};
 
 class Kernel::Cpu_job : private Cpu_share
 {

@@ -9,14 +9,12 @@ INC_DIR += $(BASE_DIR)/../base-hw/src/core/spec/cortex_a9
 INC_DIR += $(BASE_DIR)/../base-hw/src/core/spec/arm_gic
 
 # add C++ sources
-SRC_CC += spec/cortex_a9/kernel/cpu.cc
 SRC_CC += spec/cortex_a9/board.cc
 SRC_CC += spec/cortex_a9/timer.cc
-SRC_CC += spec/arm/smp/kernel/thread_update_pd.cc
-SRC_CC += spec/arm/smp/kernel/cpu.cc
 SRC_CC += spec/arm_gic/pic.cc
 SRC_CC += kernel/vm_thread_off.cc
+SRC_CC += kernel/cpu_mp.cc
+SRC_CC += kernel/kernel.cc
 
 # include less specific configuration
-include $(BASE_DIR)/../base-hw/lib/mk/spec/smp/core-hw.inc
 include $(BASE_DIR)/../base-hw/lib/mk/spec/arm_v7/core-hw.inc

@@ -132,6 +132,15 @@ struct Genode::Arm_cpu : public Hw::Arm_cpu
 		for (; base < top; base += line_size) { Icimvau::write(base); }
 	}
 
+	/**
+	 * Invalidate TLB regarding the given address space id
+	 */
+	static void invalidate_tlb(unsigned asid)
+	{
+		if (asid) Tlbiasid::write(asid);
+		else      Tlbiall::write(0);
+	}
+
 	void switch_to(Context&, Mmu_context & o)
 	{
 		if (o.cidr == 0) return;

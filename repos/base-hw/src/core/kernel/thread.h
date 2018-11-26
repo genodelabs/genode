@@ -14,13 +14,16 @@
 #ifndef _CORE__KERNEL__THREAD_H_
 #define _CORE__KERNEL__THREAD_H_
 
+#include <base/signal.h>
+#include <util/reconstructible.h>
+
 /* core includes */
 #include <cpu.h>
+#include <kernel/cpu_context.h>
+#include <kernel/inter_processor_work.h>
 #include <kernel/signal_receiver.h>
 #include <kernel/ipc_node.h>
-#include <kernel/cpu_context.h>
 #include <kernel/object.h>
-#include <base/signal.h>
 
 namespace Kernel
 {
@@ -47,7 +50,7 @@ struct Kernel::Thread_fault
  */
 class Kernel::Thread
 :
-	public Kernel::Object, public Cpu_job, public Cpu_domain_update,
+	public Kernel::Object, public Cpu_job,
 	public Ipc_node, public Signal_context_killer, public Signal_handler,
 	private Timeout
 {
@@ -58,6 +61,47 @@ class Kernel::Thread
 		 */
 		Thread(Thread const &);
 		Thread &operator = (Thread const &);
+
+		/**
+		 * An update of page-table entries that requires architecture-wise
+		 * maintainance operations, e.g., a TLB invalidation needs
+		 * cross-cpu synchronization
+		 */
+		struct Pd_update : Inter_processor_work
+		{
+			Thread & caller; /* the caller gets blocked until all finished */
+			Pd     & pd;     /* the corresponding pd */
+			unsigned cnt;    /* count of cpus left */
+
+			Pd_update(Thread & caller, Pd & pd, unsigned cnt);
+
+			/************************************
+			 ** Inter_processor_work interface **
+			 ************************************/
+
+			void execute();
+		};
+
+		/**
+		 * The destruction of a thread still active on another cpu
+		 * needs cross-cpu synchronization
+		 */
+		struct Destroy : Inter_processor_work
+		{
+			Thread & caller; /* the caller gets blocked till the end */
+			Thread & thread_to_destroy; /* thread to be destroyed */
+
+			Destroy(Thread & caller, Thread & to_destroy);
+
+			/************************************
+			 ** Inter_processor_work interface **
+			 ************************************/
+
+			void execute();
+		};
+
+		friend void Pd_update::execute();
+		friend void Destroy::execute();
 
 	protected:
 
@@ -83,6 +127,9 @@ class Kernel::Thread
 		bool               _paused = false;
 		bool               _cancel_next_await_signal = false;
 		bool const         _core = false;
+
+		Genode::Constructible<Pd_update> _pd_update {};
+		Genode::Constructible<Destroy>   _destroy {};
 
 		/**
 		 * Notice that another thread yielded the CPU to this thread
@@ -160,6 +207,7 @@ class Kernel::Thread
 		void _call_cancel_thread_blocking();
 		void _call_restart_thread();
 		void _call_yield_thread();
+		void _call_delete_thread();
 		void _call_await_request_msg();
 		void _call_send_request_msg();
 		void _call_send_reply_msg();
@@ -230,13 +278,6 @@ class Kernel::Thread
 		void _send_request_failed();
 		void _await_request_succeeded();
 		void _await_request_failed();
-
-
-		/***********************
-		 ** Cpu_domain_update **
-		 ***********************/
-
-		void _cpu_domain_update_unblocks() { _restart(); }
 
 	public:
 
