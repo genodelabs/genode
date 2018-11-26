@@ -64,7 +64,7 @@ namespace Init {
 		bool const service_matches =
 			service_node.has_type("any-service") ||
 			(service_node.has_type("service") &&
-			 service_node.attribute("name").has_value(service_name.string()));
+			 service_node.attribute_value("name", Service::Name()) == service_name);
 
 		if (!service_matches)
 			return false;
