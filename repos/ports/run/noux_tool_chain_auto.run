@@ -120,13 +120,12 @@ puts $bash_profile_fd "./genode/tool/depot/create DEPOT_DIR=/home/build/depot \
 close $bash_profile_fd
 
 
-
 exec mkdir -p [depot_dir]/test
-exec $genode_dir/tool/depot/create test/src/zlib
+exec $genode_dir/tool/depot/create DEPOT_DIR=[depot_dir] test/src/zlib
 exec tar cvf bin/genode.tar -C $genode_dir tool repos/base \
              repos/libports/recipes/src/zlib \
              repos/libports/recipes/api
-exec tar rvf bin/genode.tar -C [depot_dir]/.. depot/test
+exec tar rvf bin/genode.tar -C [depot_dir]/.. [file tail [depot_dir]]/test
 exec rm -rf [depot_dir]/test
 
 append config {
