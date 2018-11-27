@@ -169,7 +169,7 @@ CC_OPT     += $(CC_OPT_PIC)
 #
 CC_CXX_OPT += $(CC_OPT) $(CC_CXX_WARN)
 CC_C_OPT   += $(CC_OPT)
-CC_ADA_OPT += $(CC_OPT)
+CC_ADA_OPT += $(CC_OPT) -fexceptions
 
 #
 # Rust-specific arguments
