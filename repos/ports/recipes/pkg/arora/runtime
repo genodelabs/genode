@@ -3,7 +3,7 @@
 	<requires>
 		<nic/>
 		<nitpicker/>
-		<report label="shape"/>
+		<report label="arora -> shape"/>
 		<rm/>
 		<rtc/>
 		<timer/>
