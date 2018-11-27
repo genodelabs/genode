@@ -90,6 +90,14 @@ class Window_layouter::Assign_list : Noncopyable
 					fn(assign, member); }); });
 		}
 
+		template <typename FN>
+		void for_each_wildcard_assigned_window(FN const &fn)
+		{
+			_assignments.for_each([&] (Assign &assign) {
+				assign.for_each_wildcard_member([&] (Assign::Member &member) {
+					fn(member.window); }); });
+		}
+
 		/**
 		 * Return true if any window is assigned via a wildcard
 		 *

@@ -148,7 +148,7 @@ class Window_layouter::Assign : public List_model<Assign>::Element
 		Target::Name target_name() const { return _target_name; }
 
 		/**
-		 * Generate <assign> nodes of windows captured via wildcard
+		 * Used to generate <assign> nodes of windows captured via wildcard
 		 */
 		template <typename FN>
 		void for_each_wildcard_member(FN const &fn) const
@@ -158,6 +158,18 @@ class Window_layouter::Assign : public List_model<Assign>::Element
 				return;
 
 			_members.for_each([&] (Assign::Member const &member) { fn(member); });
+		}
+
+		/**
+		 * Used to bring wildcard-matching windows to front
+		 */
+		template <typename FN>
+		void for_each_wildcard_member(FN const &fn)
+		{
+			if (_label.valid())
+				return;
+
+			_members.for_each([&] (Assign::Member &member) { fn(member); });
 		}
 
 		bool floating() const { return _pos_defined; }

@@ -64,6 +64,22 @@ struct Window_layouter::Main : Operations,
 
 	Target_list _target_list { _heap };
 
+	/**
+	 * Bring window to front, return true if the stacking order changed
+	 */
+	bool _to_front(Window &window)
+	{
+		bool stacking_order_changed = false;
+
+		if (window.to_front_cnt() != _to_front_cnt) {
+			_to_front_cnt++;
+			window.to_front_cnt(_to_front_cnt);
+			stacking_order_changed = true;
+		};
+
+		return stacking_order_changed;
+	}
+
 	void _update_window_layout()
 	{
 		_window_list.dissolve_windows_from_assignments();
@@ -94,6 +110,10 @@ struct Window_layouter::Main : Operations,
 				});
 			});
 		});
+
+		/* bring new windows that solely match a wildcard assignment to the front */
+		_assign_list.for_each_wildcard_assigned_window([&] (Window &window) {
+			_to_front(window); });
 
 		_gen_window_layout();
 
@@ -147,13 +167,7 @@ struct Window_layouter::Main : Operations,
 		bool stacking_order_changed = false;
 
 		_window_list.with_window(id, [&] (Window &window) {
-
-			if (window.to_front_cnt() != _to_front_cnt) {
-				_to_front_cnt++;
-				window.to_front_cnt(_to_front_cnt);
-				stacking_order_changed = true;
-			};
-		});
+			stacking_order_changed = _to_front(window); });
 
 		if (stacking_order_changed)
 			_gen_rules();
