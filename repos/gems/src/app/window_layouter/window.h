@@ -366,8 +366,8 @@ class Window_layouter::Window : public List_model<Window>::Element
 
 				xml.attribute("xpos",   rect.x1());
 				xml.attribute("ypos",   rect.y1());
-				xml.attribute("width",  rect.w());
-				xml.attribute("height", rect.h());
+				xml.attribute("width",  min(rect.w(), _client_size.w()));
+				xml.attribute("height", min(rect.h(), _client_size.h()));
 
 				if (_focused)
 					xml.attribute("focused", "yes");
