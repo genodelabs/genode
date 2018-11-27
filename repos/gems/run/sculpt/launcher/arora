@@ -1,4 +1,4 @@
-<launcher pkg="cproc/pkg/arora/2018-09-20-a">
+<launcher pkg="cproc/pkg/arora/18.11">
 	<route>
 		<service name="Nic">                  <child name="nic_router"/> </service>
 		<service name="Nitpicker">            <child name="wm"/> </service>
