@@ -97,6 +97,14 @@ class Window_layouter::Window : public List_model<Window>::Element
 		Area _requested_size;
 
 		/**
+		 * Most recent resize request propagated to the window manager
+		 *
+		 * Initially, no resize request must be generated because the
+		 * '_requested_size' corresponds to the window size.
+		 */
+		Area _reported_resize_request = _requested_size;
+
+		/**
 		 * Window may be partially transparent
 		 */
 		bool _has_alpha = false;
@@ -236,10 +244,10 @@ class Window_layouter::Window : public List_model<Window>::Element
 				return _drag_geometry;
 
 			/* resize window */
-			if (_drag_left_border)   x1 = x2 - _client_size.w();
-			if (_drag_right_border)  x2 = x1 + _client_size.w();
-			if (_drag_top_border)    y1 = y2 - _client_size.h();
-			if (_drag_bottom_border) y2 = y1 + _client_size.h();
+			if (_drag_left_border)   x1 = x2 - _client_size.w() + 1;
+			if (_drag_right_border)  x2 = x1 + _client_size.w() - 1;
+			if (_drag_top_border)    y1 = y2 - _client_size.h() + 1;
+			if (_drag_bottom_border) y2 = y1 + _client_size.h() - 1;
 
 			return Rect(Point(x1, y1), Point(x2, y2));
 		}
@@ -304,7 +312,35 @@ class Window_layouter::Window : public List_model<Window>::Element
 				xml.attribute("maximized", true);
 		}
 
-		Area requested_size() const { return _requested_size; }
+		/**
+		 * Return true if a request request to the window manager is due
+		 */
+		bool resize_request_needed() const
+		{
+			/* a resize request for the current size is already in flight */
+			if (_requested_size == _reported_resize_request)
+				return false;
+
+			return (_requested_size != _client_size);
+		}
+
+		/**
+		 * Mark the currently requested size as processed so that no further
+		 * resize requests for the same size are generated
+		 */
+		void resize_request_updated() { _reported_resize_request = _requested_size; }
+
+		void gen_resize_request(Xml_generator &xml) const
+		{
+			if (_requested_size == _client_size)
+				return;
+
+			xml.node("window", [&] () {
+				xml.attribute("id",     _id.value);
+				xml.attribute("width",  _requested_size.w());
+				xml.attribute("height", _requested_size.h());
+			});
+		}
 
 		void generate(Xml_generator &xml) const
 		{
@@ -372,6 +408,7 @@ class Window_layouter::Window : public List_model<Window>::Element
 			_drag_top_border    = false;
 			_drag_bottom_border = false;
 			_requested_size     = effective_inner_geometry().area();
+
 		}
 
 		void to_front_cnt(unsigned to_front_cnt) { _to_front_cnt = to_front_cnt; }

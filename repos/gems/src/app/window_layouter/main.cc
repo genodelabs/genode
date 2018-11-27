@@ -362,26 +362,19 @@ void Window_layouter::Main::_gen_resize_request()
 {
 	bool resize_needed = false;
 	_window_list.for_each_window([&] (Window const &window) {
-		if (window.client_size() != window.requested_size())
+		if (window.resize_request_needed())
 			resize_needed = true; });
 
 	if (!resize_needed)
 		return;
 
 	_resize_request_reporter.generate([&] (Xml_generator &xml) {
-
 		_window_list.for_each_window([&] (Window const &window) {
+			window.gen_resize_request(xml); }); });
 
-			Area const requested_size = window.requested_size();
-			if (requested_size != window.client_size()) {
-				xml.node("window", [&] () {
-					xml.attribute("id",     window.id().value);
-					xml.attribute("width",  requested_size.w());
-					xml.attribute("height", requested_size.h());
-				});
-			}
-		});
-	});
+	/* prevent superfluous resize requests for the same size */
+	_window_list.for_each_window([&] (Window &window) {
+		window.resize_request_updated(); });
 }
 
 
