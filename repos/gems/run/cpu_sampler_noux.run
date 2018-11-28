@@ -4,6 +4,12 @@ if { ![have_spec foc] && ![have_spec nova] &&
 	exit 0
 }
 
+# there are no drivers_interactive packages for every platform yet
+if { ![have_spec pbxa9] && ![have_spec x86] } {
+	puts "Run script is not supported on this platform"
+	exit 0
+}
+
 create_boot_directory
 
 import_from_depot genodelabs/src/[base_src] \
