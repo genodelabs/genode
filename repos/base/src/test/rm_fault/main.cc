@@ -245,7 +245,7 @@ struct Main_parent
 	Heap _heap { _env.ram(), _env.rm() };
 
 	Attached_rom_dataspace _config { _env, "config" };
-	Rom_connection _binary { _env, "test-rm_fault" };
+	Rom_connection _binary { _env, "ld.lib.so" };
 
 	/* parent services */
 	struct Parent_services : Test_child_policy::Parent_services
