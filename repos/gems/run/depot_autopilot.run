@@ -134,6 +134,7 @@ proc non_executable_supported { } {
 #
 # Whether to skip a test - if undefined for a test, the test is not skipped
 #
+set skip_test_pkg(test-python)          [expr ![have_spec x86]]
 set skip_test_pkg(test-slab)            [expr [get_cmd_switch --autopilot] && [have_include "power_on/qemu"]]
 set skip_test_pkg(test-rm_nested)       [expr [have_spec linux]]
 set skip_test_pkg(test-fault_detection) [expr [have_spec pistachio] || [have_spec fiasco]]
