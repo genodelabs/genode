@@ -36,7 +36,7 @@ static void end_element(void *userdata, const char *name)
 
 int main(int argc, char *argv[])
 {
-	char buf[128];
+	static char buf[128];
 
 	XML_Parser parser = XML_ParserCreate(NULL);
 	XML_SetElementHandler(parser, start_element, end_element);
@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-	read(config_fd, buf, sizeof(buf));
+	read(config_fd, buf, sizeof(buf) - 1);
 
 	if (XML_Parse(parser, buf, strlen(buf), 1) == XML_STATUS_ERROR) {
 		printf(" Error: %s at line %lu\n",
