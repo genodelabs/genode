@@ -217,20 +217,24 @@ class Net::Root : public Genode::Root_component<Net::Session_component>
 				Session_policy policy(label, _config);
 
 				/* determine session MAC address */
-				mac = policy.attribute_value("mac", Mac_address());
-				if (mac == Mac_address()) {
-					mac = _mac_alloc.alloc(); }
-				else if (_mac_alloc.mac_managed_by_allocator(mac)) {
-					Genode::warning("Bad MAC address in policy");
-					throw Service_denied();
+				try {
+					policy.attribute("mac").value<Mac_address>(&mac);
+					if (_mac_alloc.mac_managed_by_allocator(mac)) {
+						Genode::warning("Bad MAC address in policy");
+						throw Service_denied();
+					}
 				}
+				catch (Xml_node::Nonexistent_attribute) {
+					mac = _mac_alloc.alloc(); }
 
 				policy.attribute("ip_addr").value(ip_addr, sizeof(ip_addr));
 			}
 			catch (Xml_node::Nonexistent_attribute) {
-				Genode::log("Missing \"ip_addr\" attribute in policy definition");
-			}
-			catch (Session_policy::No_policy_defined) { }
+				Genode::log("Missing \"ip_addr\" attribute in policy definition"); }
+
+			catch (Session_policy::No_policy_defined) {
+				mac = _mac_alloc.alloc(); }
+
 			catch (Mac_allocator::Alloc_failed) {
 				Genode::warning("Mac address allocation failed!");
 				throw Service_denied();
