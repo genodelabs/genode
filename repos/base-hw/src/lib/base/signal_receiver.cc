@@ -77,6 +77,13 @@ void Signal_receiver::_platform_destructor()
 
 void Signal_receiver::_platform_begin_dissolve(Signal_context * const c)
 {
+	/**
+	 * Mark the Signal_context as already pending to prevent the receiver
+	 * from taking the lock, and set an invalid context to prevent further
+	 * processing
+	 */
+	c->_pending     = true;
+	c->_curr_signal = Signal::Data(nullptr, 0);
 	Kernel::kill_signal_context(Capability_space::capid(c->_cap));
 }
 
@@ -123,7 +130,12 @@ void Signal_receiver::block_for_signal()
 	const void * const     utcb    = Thread::myself()->utcb()->data();
 	Signal::Data * const   data    = (Signal::Data *)utcb;
 	Signal_context * const context = data->context;
-	{
+
+	/**
+	 * Check for the signal being pending already to prevent a dead-lock
+	 * when the context is in destruction, and its lock is held
+	 */
+	if (!context->_pending) {
 		/* update signal context */
 		Lock::Guard lock_guard(context->_lock);
 		unsigned const num    = context->_curr_signal.num + data->num;
