@@ -11,9 +11,8 @@ content: $(SRC_DIR) $(MIRROR_FROM_REP_DIR)
 
 $(SRC_DIR):
 	mkdir -p $@
-	cp -rH $(REP_DIR)/$@/* $@/
 	cp -r $(PORT_DIR_SOLO5)/$@/* $@/
-	cp -r $(PORT_DIR_SOLO5)/include/solo5/solo5.h $@/
+	cp -r $(PORT_DIR_SOLO5)/include/solo5/* $@/bindings
 	cp $(PORT_DIR_SOLO5)/$@/LICENSE .
 	echo 'LIBS=solo5' > $@/target.mk
 

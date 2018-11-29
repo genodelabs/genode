@@ -91,6 +91,7 @@ set avail_test_pkgs {
 	test-sequence
 	test-signal
 	test-slab
+	test-solo5
 	test-stdcxx
 	test-synced_interface
 	test-tcp_bulk_lwip
@@ -144,6 +145,7 @@ set skip_test_pkg(test-rm_fault_no_nox) [expr [have_spec linux] || !$skip_test_p
 set skip_test_pkg(test-lx_block)        [expr ![have_spec linux]]
 set skip_test_pkg(test-tcp_bulk_lwip)   [expr ![have_spec x86]]
 set skip_test_pkg(test-tcp_bulk_lxip)   [expr ![have_spec x86]]
+set skip_test_pkg(test-solo5)           [expr ![have_spec x86_64]]
 
 #
 # FIXME

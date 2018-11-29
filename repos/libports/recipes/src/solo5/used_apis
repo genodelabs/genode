@@ -4,3 +4,4 @@ block_session
 nic_session
 rtc_session
 timer_session
+solo5

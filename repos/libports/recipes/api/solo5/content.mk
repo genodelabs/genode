@@ -1,13 +1,15 @@
-content: include lib/symbols/solo5 LICENSE
+MIRROR_FROM_REP_DIR = lib/import/import-solo5.mk lib/symbols/solo5
+
+content: $(MIRROR_FROM_REP_DIR) include/solo5 LICENSE
 
 PORT_DIR := $(call port_dir,$(REP_DIR)/ports/solo5)/src/lib/solo5
 
-include:
+include/solo5:
 	mkdir -p $@
-	cp -r $(PORT_DIR)/include $@
-	cp -r $(REP_DIR)/include $@
+	cp -r $(PORT_DIR)/include/solo5/* $@
+	cp -r $(REP_DIR)/include/solo5/* $@
 
-lib/symbols/solo5:
+$(MIRROR_FROM_REP_DIR):
 	$(mirror_from_rep_dir)
 
 LICENSE:
