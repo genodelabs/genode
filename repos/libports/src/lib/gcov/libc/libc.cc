@@ -212,13 +212,6 @@ extern "C" void *malloc(size_t size)
 }
 
 
-extern "C" void setbuf(FILE *stream, char *buf)
-{
-	if (buf)
-		Genode::error("setbuf(", (void*)buf, "): not implemented");
-}
-
-
 extern "C" char *strcpy(char *dest, const char *src)
 {
 	return Genode::strncpy(dest, src, Genode::strlen(src) + 1);

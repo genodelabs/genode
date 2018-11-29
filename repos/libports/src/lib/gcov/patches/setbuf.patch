@@ -1,0 +1,23 @@
+open files in buffered mode
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ gcc/gcov-io.c |    2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/gcc/gcov-io.c b/gcc/gcov-io.c
+index 17fcae0..269196a 100644
+--- a/gcc/gcov-io.c
++++ b/gcc/gcov-io.c
+@@ -217,7 +217,9 @@ gcov_open (const char *name, int mode)
+     return 0;
+ #endif
+ 
++#if 0
+   setbuf (gcov_var.file, (char *)0);
++#endif
+ 
+   return 1;
+ }
