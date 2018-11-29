@@ -4,6 +4,36 @@
                                ===========
 
 
+Genode OS Framework release 18.11 | 2018-11-29
+##############################################
+
+| Genode 18.11 is focused on improving quality assurance on various fronts,
+| including static code analysis, on-target test orchestration, and
+| code-coverage measurements. Furthermore, it introduces support for Mirage-OS
+| unikernels, a new health-monitoring mechanism, a Genode SDK, an SSH server,
+| and a new window layouter.
+
+On our road map for 2018, we identified software quality and resilience
+as one of the major topics for this year. With the current release, we fulfil
+this promise on various levels, ranging from static code analysis, over
+the gathering of test-coverage metrics, a new Genode-based test-automation
+framework, over to the health monitoring of components at runtime.
+
+The second theme of the current release is the use of Genode for network
+appliances and server applications. On that account, the new ability of
+hosting Mirage-OS unikernels directly on top of Genode as well as a new SSH
+server component clear the way to entirely new application areas.
+
+Further highlights of the current release are the enhanced flexibility of the
+GUI stack of Sculpt OS, the increased network performance on Xilinx Zynq, the
+initial version of a Genode SDK, performance improvements of the base-hw
+kernel on NXP i.MX platforms, and the updated language support for Ada and
+Java.
+
+These and many more topics of the new version are covered by the
+[https:/documentation/release-notes/18.11 - release documentation of version 18.11...]
+
+
 Dual licensing of 3rd-party Genode components | 2018-11-16
 ##########################################################
 
