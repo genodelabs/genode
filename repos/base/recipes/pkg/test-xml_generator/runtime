@@ -79,7 +79,7 @@
 		</default-route>
 		<default caps="100"/>
 		<start name="test-xml_generator">
-			<resource name="RAM" quantum="1M"/>
+			<resource name="RAM" quantum="2M"/>
 		</start>
 	</config>
 </runtime>

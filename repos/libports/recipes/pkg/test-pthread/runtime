@@ -4,6 +4,7 @@
 		<timeout meaning="failed" sec="20" />
 		<log meaning="succeeded">--- returning from main ---</log>
 		<log meaning="failed">Error: </log>
+		<log meaning="failed">child "test-pthread" exited</log>
 	</events>
 
 	<content>

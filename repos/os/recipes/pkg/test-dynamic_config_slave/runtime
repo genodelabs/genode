@@ -31,7 +31,7 @@
 		</default-route>
 		<default caps="200"/>
 		<start name="test-dynamic_config_master">
-			<resource name="RAM" quantum="2M"/>
+			<resource name="RAM" quantum="4M"/>
 		</start>
 	</config>
 </runtime>

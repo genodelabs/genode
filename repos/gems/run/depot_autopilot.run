@@ -443,7 +443,7 @@ proc prepare_to_run_genode { } {
 			</config>
 		</start>
 
-		<start name="fs_rom" priority="-1">
+		<start name="fs_rom" priority="-1" caps="300">
 			<resource name="RAM" quantum="16M"/>
 			<provides> <service name="ROM"/> </provides>
 		</start>

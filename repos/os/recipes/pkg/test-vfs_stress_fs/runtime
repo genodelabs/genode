@@ -5,7 +5,6 @@
 	<events>
 		<timeout meaning="failed" sec="180" />
 		<log meaning="succeeded">child "vfs_stress" exited with exit value 0</log>
-		<log meaning="failed">Error: </log>
 	</events>
 
 	<content>

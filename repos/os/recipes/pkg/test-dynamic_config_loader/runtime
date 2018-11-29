@@ -32,7 +32,7 @@
 		</default-route>
 		<default caps="200"/>
 		<start name="loader">
-			<resource name="RAM" quantum="1M"/>
+			<resource name="RAM" quantum="2M"/>
 			<provides><service name="Loader"/></provides>
 			<config>
 				<policy label_prefix="test-dynamic_config_loader">

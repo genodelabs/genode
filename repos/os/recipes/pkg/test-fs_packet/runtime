@@ -44,7 +44,7 @@
 			<resource name="RAM" quantum="2M"/>
 					<config count="1024"/>
 		</start>
-		<start name="short-test">
+		<start name="short-test" caps="200">
 			<binary name="sequence"/>
 			<resource name="RAM" quantum="4M"/>
 			<config>
