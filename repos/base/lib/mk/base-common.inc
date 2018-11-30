@@ -31,6 +31,7 @@ SRC_CC += trace.cc
 SRC_CC += root_proxy.cc
 SRC_CC += env_session_id_space.cc
 SRC_CC += vm_session.cc
+SRC_CC += stack_protector.cc
 
 INC_DIR += $(REP_DIR)/src/include $(BASE_DIR)/src/include
 

@@ -640,6 +640,8 @@ __cxa_throw_bad_array_new_length T
 __cxa_type_match T
 __dynamic_cast T
 __gxx_personality_v0 T
+__stack_chk_guard B 8
+__stack_chk_fail W
 dl_iterate_phdr T
 dl_unwind_find_exidx T
 genode_argc D 4
