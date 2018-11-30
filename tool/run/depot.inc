@@ -21,6 +21,7 @@ proc depot_dir { } {
 proc depot_spec { } {
 	if {[have_spec x86_32]}  { return "x86_32" }
 	if {[have_spec x86_64]}  { return "x86_64" }
+	if {[have_spec arm_v6]}  { return "arm_v6" }
 	if {[have_spec arm_v7a]} { return "arm_v7a" }
 }
 

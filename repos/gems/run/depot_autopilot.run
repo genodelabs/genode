@@ -572,6 +572,7 @@ proc prepare_to_run_genode { } {
 # Check platform support
 #
 if {[expr ![have_spec x86] && \
+          ![have_spec arm_v6] && \
           ![have_spec arm_v7a] ]} \
 {
 	puts "\n Run script is not supported on this platform. \n";
