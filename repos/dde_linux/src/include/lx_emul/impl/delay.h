@@ -11,6 +11,15 @@
  * version 2.
  */
 
+/*
+ * Disable preprocessor macros that are incompatible to Genode headers for this
+ * file.
+ */
+#pragma push_macro("max")
+#pragma push_macro("min")
+#undef max
+#undef min
+
 /* Genode includes */
 #include <timer_session/connection.h>
 
@@ -49,3 +58,7 @@ void msleep(unsigned int msecs)
 
 
 void mdelay(unsigned long msecs) { msleep(msecs); }
+
+
+#pragma pop_macro("max")
+#pragma pop_macro("min")

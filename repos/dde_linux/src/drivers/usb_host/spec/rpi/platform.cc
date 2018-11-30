@@ -20,7 +20,6 @@
 /* emulation */
 #include <platform.h>
 #include <lx_emul.h>
-#include <timer_session/connection.h>
 
 /* dwc-otg */
 #define new new_
