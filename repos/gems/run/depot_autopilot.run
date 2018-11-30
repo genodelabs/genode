@@ -146,6 +146,7 @@ set skip_test_pkg(test-lx_block)        [expr ![have_spec linux]]
 set skip_test_pkg(test-tcp_bulk_lwip)   [expr ![have_spec x86]]
 set skip_test_pkg(test-tcp_bulk_lxip)   [expr ![have_spec x86]]
 set skip_test_pkg(test-solo5)           [expr ![have_spec x86_64]]
+set skip_test_pkg(test-libc)            [expr [expr [have_spec pbxa9] && [have_spec foc]] || [expr [have_spec imx53] && [have_spec trustzone]]]
 
 #
 # FIXME
