@@ -1331,7 +1331,7 @@ class Lwip::Tcp_socket_dir final :
 					while (count && tcp_sndbuf(_pcb)) {
 						u16_t n = min(count, tcp_sndbuf(_pcb));
 
-						/* write to outgoing TCP buffer */
+						/* queue data to outgoing TCP buffer */
 						err_t err = tcp_write(_pcb, src, n, TCP_WRITE_FLAG_COPY);
 						if (err != ERR_OK) {
 							Genode::error("lwIP: tcp_write failed, error ", (int)-err);
@@ -1345,6 +1345,9 @@ class Lwip::Tcp_socket_dir final :
 						/* pending_ack += n; */
 						res = Write_result::WRITE_OK;
 					}
+
+					/* send queued data */
+					if (out > 0) tcp_output(_pcb);
 
 					out_count = out;
 					return res;
