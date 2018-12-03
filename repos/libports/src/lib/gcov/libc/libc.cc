@@ -12,6 +12,7 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+#include <base/attached_rom_dataspace.h>
 #include <base/env.h>
 #include <base/heap.h>
 #include <base/log.h>
@@ -20,6 +21,7 @@
 #include <file_system_session/connection.h>
 #include <file_system/util.h>
 #include <util/string.h>
+#include <util/xml_node.h>
 
 extern "C" {
 #include "stdio.h"
@@ -35,11 +37,12 @@ FILE *stderr = &stderr_file;
 
 struct Gcov_env
 {
-	Genode::Env             &env;
-	Genode::Heap             heap { env.ram(), env.rm() };
-	Genode::Allocator_avl    fs_alloc { &heap };
-	File_system::Connection  fs { env, fs_alloc, "gcov_data" };
-	unsigned long            seek_offset { 0 };
+	Genode::Env                    &env;
+	Genode::Attached_rom_dataspace  config { env, "config" };
+	Genode::Heap                    heap { env.ram(), env.rm() };
+	Genode::Allocator_avl           fs_alloc { &heap };
+	File_system::Connection         fs { env, fs_alloc, "gcov_data" };
+	unsigned long                   seek_offset { 0 };
 
 	/* only one file is open at a time */
 	Genode::Constructible<File_system::File_handle> file_handle;
@@ -117,6 +120,55 @@ extern "C" FILE *fopen(const char *path, const char *mode)
 	}
 
 	gcov_env->seek_offset = 0;
+
+	/*
+	 * Write the list of source files to be annotated by gcov into a '.gcan'
+	 * file in the same directory as the '.gcda' file.
+	 */
+
+	try {
+
+		Genode::Xml_node config(gcov_env->config.local_addr<char>(),
+		                        gcov_env->config.size());
+
+		Genode::Xml_node libgcov_node = config.sub_node("libgcov");
+
+		Absolute_path annotate_file_name { file_name };
+		annotate_file_name.remove_trailing('a');
+		annotate_file_name.remove_trailing('d');
+		annotate_file_name.append("an");
+
+		File_system::File_handle annotate_file_handle {
+			gcov_env->fs.file(dir, annotate_file_name.base() + 1,
+			                  File_system::WRITE_ONLY, true) };
+
+		File_system::seek_off_t seek_offset = 0;
+		                                                
+		libgcov_node.for_each_sub_node("annotate",
+		                               [&] (Genode::Xml_node annotate_node) {
+
+			Absolute_path source_path;
+
+			annotate_node.attribute("source").value(source_path.base(),
+			                                        source_path.capacity());
+
+			seek_offset += File_system::write(gcov_env->fs,
+			                                  annotate_file_handle,
+			                                  source_path.base(),
+			                                  Genode::strlen(source_path.base()),
+			                                  seek_offset);
+
+			seek_offset += File_system::write(gcov_env->fs,
+			                                  annotate_file_handle,
+			                                  "\n",
+			                                  1,
+			                                  seek_offset);
+		});
+
+		gcov_env->fs.close(annotate_file_handle);	
+	}
+	catch (Genode::Xml_node::Nonexistent_sub_node) { }
+	catch (Genode::Xml_attribute::Nonexistent_attribute) { }
 
 	return &gcov_env->file;
 }

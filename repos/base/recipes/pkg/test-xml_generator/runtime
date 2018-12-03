@@ -80,6 +80,11 @@
 		<default caps="100"/>
 		<start name="test-xml_generator">
 			<resource name="RAM" quantum="2M"/>
+			<config>
+				<libgcov>
+					<annotate source="include/util/xml_generator.h"/>
+				</libgcov>
+			</config>
 		</start>
 	</config>
 </runtime>
