@@ -404,6 +404,7 @@ proc prepare_to_run_genode { } {
 			<service name="ROM"/>
 			<service name="IRQ"/>
 			<service name="IO_PORT"/>
+			<service name="IO_MEM"/>
 			<service name="PD"/>
 			<service name="RM"/>
 			<service name="CPU"/>
