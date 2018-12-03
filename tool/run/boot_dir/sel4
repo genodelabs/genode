@@ -147,7 +147,8 @@ proc run_boot_dir {binaries} {
 #
 proc base_src { } {
 
-	if {[have_spec x86]} { return base-sel4 }
+	if {[have_spec x86]}       { return base-sel4-x86 }
+	if {[have_spec wand_quad]} { return base-sel4-wand_quad }
 
 	global specs
 

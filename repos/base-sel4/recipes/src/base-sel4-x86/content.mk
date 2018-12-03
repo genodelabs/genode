@@ -17,7 +17,7 @@ include/spec/%/trace/timestamp.h:
 
 content: README
 README:
-	cp $(REP_DIR)/recipes/src/base-sel4/README $@
+	cp $(REP_DIR)/recipes/src/base-sel4-x86/README $@
 
 content: lib/import etc include/sel4
 lib/import etc include/sel4:
