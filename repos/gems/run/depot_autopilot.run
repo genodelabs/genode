@@ -3,35 +3,37 @@
 ####################
 
 #
-# Convenience variables for debugging one specific test
+# Additional environment variables considered by this run script
 #
-# single_test_pkg:     if set to one of the test packages, only this one is run
-# single_test_build:   list of components that shall be build from repos
-# single_test_modules: list of boot modules to overlay the test-depot content
+#   TEST_PKGS     list of test package-archives if set (default list below)
+#   TEST_SRCS     list of test source-archive if TEST_PKGS is set (default list below)
+#   TEST_BUILDS   list of test build-targets that shall be build from repos
+#   TEST_MODULES  list of test boot-modules to overlay the test depot-content
 #
 # To get a hint which build components and which boot modules you may want to
-# enter for a given test package please see these files:
+# enter for a given test package-archive, please see these files:
 #
 #   repos/<REPO>/recipes/pkg/<TEST_PKG>/archives
 #   repos/<REPO>/recipes/pkg/<TEST_PKG>/runtime (<content> tag)
 #
 # Example:
 #
-#   set single_test_pkg "test-libc_vfs"
-#   set single_test_build { server/ram_fs test/libc_vfs }
-#   set single_test_modules { ram_fs test-libc_vfs vfs.lib.so }
+# ! KERNEL="nova" \
+#   TEST_PKGS="test-libc_vfs test-log" \
+#   TEST_BUILDS="server/ram_fs test/libc_vfs" \
+#   TEST_MODULES="ram_fs test-libc_vfs vfs.lib.so" \
+#   make run/depot_autopilot
 #
-set single_test_pkg ""
-set single_test_build { }
-set single_test_modules { }
 
 #
-# The list of available test packages - was obtained by issuing:
+# Default list of test package-archives
+#
+# Was obtained by issuing:
 #
 # ! cd <GENODE_DIR>/repos
 # ! find . -type d -wholename *recipes/pkg/test-* -printf '%f\n' | sort
 #
-set avail_test_pkgs {
+set default_test_pkgs {
 	test-ada
 	test-ada_exception
 	test-ada_secondary_stack
@@ -110,13 +112,11 @@ set avail_test_pkgs {
 	gcov
 }
 
-set avail_test_src_pkgs {
+#
+# Default list of test source-archives 
+#
+set default_test_srcs {
 	test-xml_generator
-}
-
-if { $single_test_pkg != "" && [lsearch -exact $avail_test_pkgs $single_test_pkg] == -1} {
-	puts stderr "Error: single_test_pkg \"$single_test_pkg\" not available"
-	exit 1
 }
 
 #
@@ -269,6 +269,16 @@ proc autopilot_run_genode_until {{wait_for_re forever} {timeout_value 0} {runnin
 proc depot_user {} { return [get_cmd_arg --depot-user genodelabs] }
 
 #
+# Get value of an environment variable
+#
+proc get_env_var { var_name default_value } {
+	if {[info exists ::env($var_name)]} {
+		return $::env($var_name)
+	}
+	return $default_value
+}
+
+#
 # Check if archives are available without doing anything with them
 #
 proc check_archives_available { args } {
@@ -291,9 +301,9 @@ proc check_archives_available { args } {
 #
 proc single_test_module_routes { } {
 
-	global single_test_modules
+	global test_modules
 	set result ""
-	foreach module $single_test_modules {
+	foreach module $test_modules {
 		append result {
 			<service name="ROM" label_last="} $module {"> <parent/> </service>}
 	}
@@ -336,9 +346,9 @@ proc prepare_to_run_genode { } {
 	global previous_skipped
 	global skip_test_pkg
 	global test_pkgs
-	global test_src_pkgs
-	global single_test_build
-	global single_test_modules
+	global test_srcs
+	global test_builds
+	global test_modules
 	global last_test_pkg
 	global last_test_timed_out
 	global serial_id
@@ -365,7 +375,7 @@ proc prepare_to_run_genode { } {
 		}
 	}
 
-	foreach test_src_pkg $test_src_pkgs {
+	foreach test_src_pkg $test_srcs {
 		if { [info exists skip_test_pkg($test_src_pkg)] } {
 			append_if [expr !$skip_test_pkg($test_src_pkg)] depot_tar_src_archives " [depot_user]/src/$test_src_pkg "
 		} else {
@@ -544,7 +554,7 @@ proc prepare_to_run_genode { } {
 	#
 
 	set build_components { app/depot_autopilot }
-	append build_components $single_test_build
+	append build_components $test_builds
 	build $build_components
 
 	import_from_depot {*}$import_archives
@@ -555,7 +565,7 @@ proc prepare_to_run_genode { } {
 	#
 
 	set boot_modules { depot_autopilot }
-	append boot_modules $single_test_modules
+	append boot_modules $test_modules
 	build_boot_image $boot_modules
 
 	set last_test_pkg ""
@@ -581,35 +591,37 @@ if {[expr ![have_spec x86] && \
 }
 
 #
-# Compose the test_pkgs list from a list of available test packages by
-# applying the single_test_pkg variable.
+# Initialize the lists of test package-archives, source-archives,
+# build-targets, and boot-modules to be considered by the run script
 #
-set test_pkgs ""
-foreach test_pkg $avail_test_pkgs {
-	if { $single_test_pkg == "" || $single_test_pkg == $test_pkg } {
+set test_pkgs    [get_env_var TEST_PKGS    ""]
+set test_srcs    [get_env_var TEST_SRCS    ""]
+set test_builds  [get_env_var TEST_BUILDS  ""]
+set test_modules [get_env_var TEST_MODULES ""]
+
+#
+# If the user didn't declare an individual list of test package-archives, use
+# the default lists of test package-archives and source-archives
+#
+if {$test_pkgs == ""} {
+	foreach test_pkg $default_test_pkgs {
 		append test_pkgs " $test_pkg "
 	}
-}
-
-
-#
-# Compose the test_src_pkgs list from a list of available source packages by
-# applying the single_test_pkg variable.
-#
-set test_src_pkgs ""
-foreach test_src_pkg $avail_test_src_pkgs {
-	if { $single_test_pkg == "" || $single_test_pkg == $test_src_pkg } {
-		append test_src_pkgs " $test_src_pkg "
+	foreach test_src_pkg $default_test_srcs {
+		append test_srcs " $test_src_pkg "
 	}
 }
 
-
+#
+# Initialize variables that accumulate test results for possible reboots
+#
 set previous_results   ""
 set previous_time_ms   0
 set previous_succeeded 0
 set previous_failed    0
 set previous_skipped   0
 
+# generic preparation for each system boot
 prepare_to_run_genode
 
 while {1} {
