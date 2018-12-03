@@ -353,8 +353,9 @@ proc prepare_to_run_genode { } {
 	global last_test_timed_out
 	global serial_id
 	global timeout
+	global initial_qemu_args
 
-	set qemu_args " -nographic -serial mon:stdio"
+	set qemu_args $initial_qemu_args
 
 
 	#
@@ -572,6 +573,8 @@ proc prepare_to_run_genode { } {
 	set last_test_timed_out 0
 	set serial_id -1
 	set timeout 20
+
+	append qemu_args "-nographic -serial mon:stdio "
 }
 
 
@@ -588,6 +591,12 @@ if {[expr ![have_spec x86] && \
 {
 	puts "\n Run script is not supported on this platform. \n";
 	exit 0
+}
+
+# remember initial qemu args in case we have to re-boot later
+set initial_qemu_args ""
+if {[info exists qemu_args]} {
+	set initial_qemu_args $qemu_args
 }
 
 #
