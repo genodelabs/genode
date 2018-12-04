@@ -105,7 +105,7 @@ DIR_CONTENT(include/libc/net) := \
 DIRS += include/libc/netinet
 DIR_CONTENT(include/libc/netinet) := \
     $(addprefix src/lib/libc/sys/netinet/, in.h in_systm.h ip.h tcp.h \
-                udp.h ip_icmp.h if_ether.h)
+                udp.h ip_icmp.h if_ether.h tcp_fsm.h)
 
 DIRS += include/libc/netinet6
 DIR_CONTENT(include/libc/netinet6) := src/lib/libc/sys/netinet6/in6.h
