@@ -572,7 +572,7 @@ proc prepare_to_run_genode { } {
 	set last_test_pkg ""
 	set last_test_timed_out 0
 	set serial_id -1
-	set timeout 20
+	set timeout 40
 
 	append qemu_args "-nographic -serial mon:stdio "
 }
