@@ -1,11 +1,9 @@
 LICENSE   := BSD
-VERSION   := 1.4.38
+VERSION   := 1.4.52
 DOWNLOADS := lighttpd.archive
 
 URL(lighttpd) := http://download.lighttpd.net/lighttpd/releases-1.4.x/lighttpd-$(VERSION).tar.gz
-SHA(lighttpd) := eb3c689f83ee3545dc688d99e36011b28145a1727bb6d17c94c5ed6684edcdd1
-SIG(lighttpd) := ${URL(lighttpd)}.asc
-KEY(lighttpd) := stbuehler@lighttpd.net
+SHA(lighttpd) := 0f9de0227681c078f6b8c6154b581ced5fe7bcb5ff428ccf292581764b771145
 DIR(lighttpd) := src/app/lighttpd
 
-PATCHES := src/app/lighttpd/disable_gethostbyaddr_fcntl.patch
+PATCHES := $(addprefix src/app/lighttpd/,fd_cloexec.patch stat_cache.c.patch)

@@ -113,6 +113,7 @@ append boot_modules {
 	core init timer ld.lib.so } [nic_drv_binary] {
 	libc.lib.so libm.lib.so posix.lib.so
 	vfs.lib.so vfs_lwip.lib.so zlib.lib.so
+	libcrypto.lib.so libssl.lib.so
 	lighttpd
 }
 
