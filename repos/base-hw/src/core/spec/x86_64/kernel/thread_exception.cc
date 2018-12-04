@@ -46,6 +46,7 @@ void Thread::exception(Cpu & cpu)
 		return;
 	}
 	Genode::warning(*this, ": triggered unknown exception ", regs->trapno,
-	                " with error code ", regs->errcode, " at ip=", (void*)regs->ip);
+	                " with error code ", regs->errcode, " at ip=", (void*)regs->ip, " sp=", (void*)regs->sp);
+
 	_die();
 }

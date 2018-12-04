@@ -69,7 +69,7 @@ void Pager_object::unresolved_page_fault_occurred()
 	Platform_thread * const pt = (Platform_thread *)badge();
 	if (pt && pt->pd())
 		warning("page fault, pager_object: pd='", pt->pd()->label(),
-		        "' thread='", pt->label(), " ", pt->kernel_object()->fault());
+		        "' thread='", pt->label(), "' ", pt->kernel_object()->fault());
 }
 
 void Pager_object::print(Output &out) const
