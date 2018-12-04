@@ -320,7 +320,7 @@ proc test_pkgs_start_nodes { } {
 
 	set result ""
 	foreach test_pkg $test_pkgs {
-		if { [info exists skip_test_pkg($test_pkg)] && $skip_test_pkg($test_pkg)} {
+		if {[info exists skip_test_pkg($test_pkg)] && $skip_test_pkg($test_pkg)} {
 			append result {
 				<start name="} $test_pkg {" skip="true"/>}
 		} else {
@@ -612,14 +612,25 @@ set test_modules [get_env_var TEST_MODULES ""]
 # If the user didn't declare an individual list of test package-archives, use
 # the default lists of test package-archives and source-archives
 #
+set nr_of_tests_to_run 0
 if {$test_pkgs == ""} {
 	foreach test_pkg $default_test_pkgs {
 		append test_pkgs " $test_pkg "
+		if {!([info exists skip_test_pkg($test_pkg)] && $skip_test_pkg($test_pkg))} {
+			incr nr_of_tests_to_run
+		}
 	}
 	foreach test_src_pkg $default_test_srcs {
 		append test_srcs " $test_src_pkg "
 	}
+} else {
+	foreach test_pkg $test_pkgs {
+		if {!([info exists skip_test_pkg($test_pkg)] && $skip_test_pkg($test_pkg))} {
+			incr nr_of_tests_to_run
+		}
+	}
 }
+puts "Number of tests to run: $nr_of_tests_to_run"
 
 #
 # Initialize variables that accumulate test results for possible reboots
