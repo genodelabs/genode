@@ -25,138 +25,6 @@
 #   make run/depot_autopilot
 #
 
-#
-# Default list of test package-archives
-#
-# Was obtained by issuing:
-#
-# ! cd <GENODE_DIR>/repos
-# ! find . -type d -wholename *recipes/pkg/test-* -printf '%f\n' | sort
-#
-set default_test_pkgs {
-	test-ada
-	test-ada_exception
-	test-ada_secondary_stack
-	test-blk
-	test-blk_cache
-	test-clipboard
-	test-ds_ownership
-	test-dynamic_config
-	test-dynamic_config_loader
-	test-dynamic_config_slave
-	test-expat
-	test-fault_detection
-	test-fs_log
-	test-fs_packet
-	test-fs_report
-	test-fs_rom_update
-	test-fs_rom_update_fs
-	test-fs_rom_update_ram
-	test-init
-	test-init_loop
-	test-ldso
-	test-libc
-	test-libc_counter
-	test-libc_getenv
-	test-libc_pipe
-	test-libc_vfs
-	test-libc_vfs_audit
-	test-libc_vfs_block
-	test-libc_vfs_counter
-	test-libc_vfs_fs
-	test-libc_vfs_fs_chained
-	test-libc_vfs_ram
-	test-log
-	test-lx_block
-	test-magic_ring_buffer
-	test-mmio
-	test-new_delete
-	test-nic_loopback
-	test-part_blk_gpt
-	test-part_blk_mbr
-	test-pipe
-	test-pthread
-	test-python
-	test-ram_fs_chunk
-	test-read_only_rom
-	test-reconstructible
-	test-registry
-	test-report_rom
-	test-resource_request
-	test-resource_yield
-	test-rm_fault
-	test-rm_fault_no_nox
-	test-rm_nested
-	test-rom_blk
-	test-rom_filter
-	test-rust
-	test-sequence
-	test-signal
-	test-slab
-	test-solo5
-	test-stdcxx
-	test-synced_interface
-	test-tcp_bulk_lwip
-	test-tcp_bulk_lxip
-	test-terminal_crosslink
-	test-timed_semaphore
-	test-timer
-	test-trace
-	test-trace_logger
-	test-utf8
-	test-vfs_stress_fs
-	test-vfs_stress_ram
-	test-weak_ptr
-	test-xml_generator
-	test-xml_node
-	gcov
-}
-
-#
-# Default list of test source-archives 
-#
-set default_test_srcs {
-	test-xml_generator
-}
-
-#
-# Whether the platform supports non-executable dataspaces
-#
-proc non_executable_supported { } {
-	if {[have_spec hw]   && [have_spec x86_64]} { return true }
-	if {[have_spec hw]   && [have_spec arm]}    { return true }
-	if {[have_spec nova] && [have_spec x86_64]} { return true }
-	if {[have_spec foc]  && [have_spec x86_64]} { return true }
-	if {[have_spec foc]  && [have_spec arm]}    { return true }
-	if {[have_spec sel4] && [have_spec arm]}    { return true }
-	return false
-}
-
-#
-# Whether to skip a test - if undefined for a test, the test is not skipped
-#
-set skip_test_pkg(test-python)          [expr ![have_spec x86]]
-set skip_test_pkg(test-slab)            [expr [get_cmd_switch --autopilot] && [have_include "power_on/qemu"]]
-set skip_test_pkg(test-rm_nested)       [expr [have_spec linux]]
-set skip_test_pkg(test-fault_detection) [expr [have_spec pistachio] || [have_spec fiasco]]
-set skip_test_pkg(test-fs_packet)       [expr [get_cmd_switch --autopilot] && [have_include "power_on/qemu"]]
-set skip_test_pkg(test-rm_fault)        [expr [have_spec linux] || ![non_executable_supported]]
-set skip_test_pkg(test-rm_fault_no_nox) [expr [have_spec linux] || !$skip_test_pkg(test-rm_fault)]
-set skip_test_pkg(test-lx_block)        [expr ![have_spec linux]]
-set skip_test_pkg(test-tcp_bulk_lwip)   [expr ![have_spec x86]]
-set skip_test_pkg(test-tcp_bulk_lxip)   [expr ![have_spec x86]]
-set skip_test_pkg(test-solo5)           [expr ![have_spec x86_64]]
-set skip_test_pkg(test-libc)            [expr [expr [have_spec pbxa9] && [have_spec foc]] || [expr [have_spec imx53] && [have_spec trustzone]]]
-
-#
-# FIXME
-#
-# When doing the libc_getenv test on autopilot+foc+x86 and one of the
-# subsequent tests crashes the system so it gets rebooted by the run script,
-# the system doesn't come up again. It gets stuck after core initialization.
-#
-set skip_test_pkg(test-libc_getenv) [expr [get_cmd_switch --autopilot] && [have_spec foc] && [have_spec x86]]
-
 
 ##############################################################
 ## Local copies of run tool procedures with small adaptions ##
@@ -587,11 +455,144 @@ proc prepare_to_run_genode { } {
 #
 if {[expr ![have_spec x86] && \
           ![have_spec arm_v6] && \
-          ![have_spec arm_v7a] ]} \
+          ![have_spec arm_v7a]] || \
+    [expr [have_spec foc] && [have_spec panda]]} \
 {
 	puts "\n Run script is not supported on this platform. \n";
 	exit 0
 }
+
+#
+# Default list of test package-archives
+#
+# Was obtained by issuing:
+#
+# ! cd <GENODE_DIR>/repos
+# ! find . -type d -wholename *recipes/pkg/test-* -printf '%f\n' | sort
+#
+set default_test_pkgs {
+	test-ada
+	test-ada_exception
+	test-ada_secondary_stack
+	test-blk
+	test-blk_cache
+	test-clipboard
+	test-ds_ownership
+	test-dynamic_config
+	test-dynamic_config_loader
+	test-dynamic_config_slave
+	test-expat
+	test-fault_detection
+	test-fs_log
+	test-fs_packet
+	test-fs_report
+	test-fs_rom_update
+	test-fs_rom_update_fs
+	test-fs_rom_update_ram
+	test-init
+	test-init_loop
+	test-ldso
+	test-libc
+	test-libc_counter
+	test-libc_getenv
+	test-libc_pipe
+	test-libc_vfs
+	test-libc_vfs_audit
+	test-libc_vfs_block
+	test-libc_vfs_counter
+	test-libc_vfs_fs
+	test-libc_vfs_fs_chained
+	test-libc_vfs_ram
+	test-log
+	test-lx_block
+	test-magic_ring_buffer
+	test-mmio
+	test-new_delete
+	test-nic_loopback
+	test-part_blk_gpt
+	test-part_blk_mbr
+	test-pipe
+	test-pthread
+	test-python
+	test-ram_fs_chunk
+	test-read_only_rom
+	test-reconstructible
+	test-registry
+	test-report_rom
+	test-resource_request
+	test-resource_yield
+	test-rm_fault
+	test-rm_fault_no_nox
+	test-rm_nested
+	test-rom_blk
+	test-rom_filter
+	test-rust
+	test-sequence
+	test-signal
+	test-slab
+	test-solo5
+	test-stdcxx
+	test-synced_interface
+	test-tcp_bulk_lwip
+	test-tcp_bulk_lxip
+	test-terminal_crosslink
+	test-timed_semaphore
+	test-timer
+	test-trace
+	test-trace_logger
+	test-utf8
+	test-vfs_stress_fs
+	test-vfs_stress_ram
+	test-weak_ptr
+	test-xml_generator
+	test-xml_node
+	gcov
+}
+
+#
+# Default list of test source-archives
+#
+set default_test_srcs {
+	test-xml_generator
+}
+
+#
+# Whether the platform supports non-executable dataspaces
+#
+proc non_executable_supported { } {
+	if {[have_spec hw]   && [have_spec x86_64]} { return true }
+	if {[have_spec hw]   && [have_spec arm]}    { return true }
+	if {[have_spec nova] && [have_spec x86_64]} { return true }
+	if {[have_spec foc]  && [have_spec x86_64]} { return true }
+	if {[have_spec foc]  && [have_spec arm]}    { return true }
+	if {[have_spec sel4] && [have_spec arm]}    { return true }
+	return false
+}
+
+#
+# Whether to skip a test - if undefined for a test, the test is not skipped
+#
+set skip_test_pkg(test-python)          [expr ![have_spec x86]]
+set skip_test_pkg(test-slab)            [expr [get_cmd_switch --autopilot] && [have_include "power_on/qemu"]]
+set skip_test_pkg(test-rm_nested)       [expr [have_spec linux]]
+set skip_test_pkg(test-fault_detection) [expr [have_spec pistachio] || [have_spec fiasco]]
+set skip_test_pkg(test-fs_packet)       [expr [get_cmd_switch --autopilot] && [have_include "power_on/qemu"]]
+set skip_test_pkg(test-rm_fault)        [expr [have_spec linux] || ![non_executable_supported]]
+set skip_test_pkg(test-rm_fault_no_nox) [expr [have_spec linux] || !$skip_test_pkg(test-rm_fault)]
+set skip_test_pkg(test-lx_block)        [expr ![have_spec linux]]
+set skip_test_pkg(test-tcp_bulk_lwip)   [expr ![have_spec x86]]
+set skip_test_pkg(test-tcp_bulk_lxip)   [expr ![have_spec x86]]
+set skip_test_pkg(test-solo5)           [expr ![have_spec x86_64]]
+set skip_test_pkg(test-libc)            [expr [expr [have_spec pbxa9] && [have_spec foc]] || [expr [have_spec imx53] && [have_spec trustzone]]]
+
+#
+# FIXME
+#
+# When doing the libc_getenv test on autopilot+foc+x86 and one of the
+# subsequent tests crashes the system so it gets rebooted by the run script,
+# the system doesn't come up again. It gets stuck after core initialization.
+#
+set skip_test_pkg(test-libc_getenv) [expr [get_cmd_switch --autopilot] && [have_spec foc] && [have_spec x86]]
 
 # remember initial qemu args in case we have to re-boot later
 set initial_qemu_args ""
