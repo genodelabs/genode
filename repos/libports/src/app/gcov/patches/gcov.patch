@@ -4,11 +4,11 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
 
 
 ---
- gcc/gcov.c |  134 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++---
- 1 file changed, 128 insertions(+), 6 deletions(-)
+ gcc/gcov.c |  139 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++---
+ 1 file changed, 132 insertions(+), 7 deletions(-)
 
 diff --git a/gcc/gcov.c b/gcc/gcov.c
-index 50061c7..b9ddccb 100644
+index 50061c7..06d3c97 100644
 --- a/gcc/gcov.c
 +++ b/gcc/gcov.c
 @@ -41,10 +41,13 @@ along with Gcov; see the file COPYING3.  If not see
@@ -217,7 +217,19 @@ index 50061c7..b9ddccb 100644
          }
        else
          fnotice (stderr, "Could not open output file '%s'\n", gcov_file_name);
-@@ -968,7 +1073,8 @@ create_file_names (const char *file_name)
+@@ -879,7 +984,10 @@ generate_results (const char *file_name)
+       function_summary (&src->coverage, "File");
+       total_lines += src->coverage.lines;
+       total_executed += src->coverage.lines_executed;
+-      if (flag_gcov_file)
++
++      if (flag_gcov_file &&
++          !(flag_genode_autopilot &&
++            (src->coverage.lines_executed == src->coverage.lines)))
+ 	{
+           if (flag_intermediate_format)
+             /* Output the intermediate format without requiring source
+@@ -968,7 +1076,8 @@ create_file_names (const char *file_name)
    /* Free previous file names.  */
    free (bbg_file_name);
    free (da_file_name);
@@ -227,7 +239,7 @@ index 50061c7..b9ddccb 100644
    bbg_file_time = 0;
    bbg_stamp = 0;
  
-@@ -1014,6 +1120,10 @@ create_file_names (const char *file_name)
+@@ -1014,6 +1123,10 @@ create_file_names (const char *file_name)
    strcpy (da_file_name, name);
    strcpy (da_file_name + length, GCOV_DATA_SUFFIX);
  
@@ -238,7 +250,7 @@ index 50061c7..b9ddccb 100644
    free (name);
    return;
  }
-@@ -1114,6 +1224,18 @@ find_source (const char *file_name)
+@@ -1114,6 +1227,18 @@ find_source (const char *file_name)
  #endif
  	  && IS_DIR_SEPARATOR (src->coverage.name[source_length]))
  	src->coverage.name += source_length + 1;
