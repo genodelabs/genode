@@ -206,6 +206,7 @@ proc run_boot_dir {binaries} {
 proc base_src { } {
 
 	if {[have_spec x86_64] && ![have_spec muen]}         { return base-hw-pc }
+	if {[have_spec x86_64] &&  [have_spec muen]}         { return base-hw-muen }
 	if {[have_spec pbxa9]}                               { return base-hw-pbxa9 }
 	if {[have_spec rpi]}                                 { return base-hw-rpi }
 	if {[have_spec wand_quad]}                           { return base-hw-wand_quad }
