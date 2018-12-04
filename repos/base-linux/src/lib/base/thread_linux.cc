@@ -142,6 +142,8 @@ void Thread::start()
 	static Lock lock;
 	Lock::Guard guard(lock);
 
+	_init_cpu_session_and_trace_control();
+
 	/*
 	 * The first time we enter this code path, the 'start' function is
 	 * called by the main thread as there cannot exist other threads
