@@ -120,6 +120,13 @@ CC_OPT += -fprofile-arcs -ftest-coverage -fprofile-dir=$(PROFILE_DIR)
 endif
 
 #
+# Enable the undefined behavior sanitizer if requested
+#
+ifeq ($(SANITIZE_UNDEFINED),yes)
+CC_OPT += -fsanitize=undefined
+endif
+
+#
 # Default optimization and warning levels
 #
 CC_OLEVEL ?= -O2

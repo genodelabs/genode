@@ -24,6 +24,13 @@ LIBS += libgcov
 endif
 
 #
+# Add libraries for undefined behavior sanitizer if requested
+#
+ifeq ($(SANITIZE_UNDEFINED),yes)
+LIBS += libubsan libsanitizer_common
+endif
+
+#
 # Include lib-import description files
 #
 include $(foreach LIB,$(LIBS),$(call select_from_repositories,lib/import/import-$(LIB).mk))
