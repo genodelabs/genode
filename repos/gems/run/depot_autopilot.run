@@ -714,6 +714,7 @@ set default_test_pkgs {
 	test-signal
 	test-slab
 	test-solo5
+	test-stack_smash
 	test-stdcxx
 	test-synced_interface
 	test-tcp_bulk_lwip

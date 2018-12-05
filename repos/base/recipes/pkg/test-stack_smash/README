@@ -1,0 +1,1 @@
+Scenario that immediately tries to write into previous stack frame
