@@ -91,5 +91,13 @@ Linker::Root_object::Root_object(Env &env, Allocator &md_alloc,
 	new (md_alloc) Dependency(env, md_alloc, linker_name(), this, _deps, DONT_KEEP);
 
 	/* relocate and call constructors */
-	Init::list()->initialize(bind, STAGE_SO);
+	try {
+		Init::list()->initialize(bind, STAGE_SO);
+	} catch (...) {
+		Init::list()->flush();
+		while (Dependency *d = _deps.dequeue())
+			destroy(_md_alloc, d);
+
+		throw;
+	}
 }

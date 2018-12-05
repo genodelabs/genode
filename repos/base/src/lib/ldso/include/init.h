@@ -132,6 +132,15 @@ struct Linker::Init : List<Object>
 
 		in_progress = false;
 	}
+
+	void flush()
+	{
+		while (Object *obj = first())
+			remove(obj);
+
+		in_progress = false;
+		restart     = false;
+	}
 };
 
 #endif /* _INCLUDE__INIT_H_ */
