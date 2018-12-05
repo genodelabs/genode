@@ -408,3 +408,12 @@ proc drivers_interactive_pkg { } {
 	puts stderr "drivers_interactive package undefined for this build configuration"
 	exit 1
 }
+
+
+proc drivers_nic_pkg { } {
+
+	if {[have_spec x86] && ![have_spec linux]} { return drivers_nic-pc }
+
+	puts stderr "drivers_nic package undefined for this build configuration"
+	exit 1
+}
