@@ -56,11 +56,16 @@ proc autopilot_wait_for_output { wait_for_re timeout_value running_spawn_id } {
 	expect {
 		-i $running_spawn_id $platform_msg { puts stderr "Error: platform rebooted unexpectedly"; exit -4 }
 		-i $running_spawn_id -re $wait_for_re { }
-		eof     { puts stderr "Error: Spawned process died unexpectedly"; exit -3 }
+		eof {
+			puts stderr "Error: Spawned process died unexpectedly";
+			global reboot
+			set reboot 1
+			return
+		}
 		timeout {
 			puts stderr "Error: Test execution timed out";
-			global last_test_timed_out
-			set last_test_timed_out 1
+			global reboot
+			set reboot 1
 			return
 		}
 	}
@@ -218,7 +223,7 @@ proc prepare_to_run_genode { } {
 	global test_builds
 	global test_modules
 	global last_test_pkg
-	global last_test_timed_out
+	global reboot
 	global serial_id
 	global timeout
 	global initial_qemu_args
@@ -438,7 +443,7 @@ proc prepare_to_run_genode { } {
 	build_boot_image $boot_modules
 
 	set last_test_pkg ""
-	set last_test_timed_out 0
+	set reboot 0
 	set serial_id -1
 	set timeout 40
 
@@ -659,7 +664,7 @@ while {1} {
 	set serial_id [output_spawn_id]
 	if {$last_test_pkg != ""} {
 		set test_pkgs [lsearch -all -inline -not -exact $test_pkgs $last_test_pkg]
-		if {$last_test_timed_out} {
+		if {$reboot} {
 
 			# shut-down running system
 			exec kill -9 [exp_pid -i $serial_id]
