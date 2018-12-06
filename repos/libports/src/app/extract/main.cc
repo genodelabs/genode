@@ -103,14 +103,18 @@ struct Extract::Extracted_archive : Noncopyable
 	struct Read_failed  : Exception { };
 	struct Write_failed : Exception { };
 
+	struct Strip { unsigned value; };
+
 	/**
 	 * Constructor
+	 *
+	 * \param strip  number of leading path elements to strip
 	 *
 	 * \throw Open_failed
 	 * \throw Read_failed
 	 * \throw Write_failed
 	 */
-	explicit Extracted_archive(Path const &path)
+	explicit Extracted_archive(Path const &path, Strip const strip)
 	{
 		archive_read_support_format_all(src.ptr);
 		archive_read_support_filter_all(src.ptr);
@@ -132,6 +136,39 @@ struct Extract::Extracted_archive : Noncopyable
 
 				if (ret != ARCHIVE_OK)
 					throw Read_failed();
+			}
+
+			/* strip leading path elements */
+			{
+				auto stripped = [] (char const *name, unsigned const n)
+				{
+					char const *s = name;
+
+					for (unsigned i = 0; i < n; i++) {
+
+						/* search end of current path element */
+						auto end = [] (char c) { return c == '/' || c == 0; };
+						while (!end(*s))
+							s++;
+
+						/* check if anything is left from the path */
+						if (*s == 0 || strcmp(s, "/") == 0)
+							return (char const *)nullptr;
+
+						/* skip path delimiter */
+						s++;
+					}
+					return s;
+				};
+
+				char const * const stripped_name =
+					stripped(archive_entry_pathname(entry), strip.value);
+
+				/* skip archive entry it path is completely stripped away */
+				if (stripped_name == nullptr)
+					continue;
+
+				archive_entry_copy_pathname(entry, stripped_name);
 			}
 
 			if (archive_write_header(dst.ptr, entry) != ARCHIVE_OK)
@@ -184,6 +221,8 @@ struct Extract::Main
 			Path const src_path = node.attribute_value("archive", Path());
 			Path const dst_path = node.attribute_value("to",      Path());
 
+			Extracted_archive::Strip const strip { node.attribute_value("strip", 0U) };
+
 			bool success = false;
 
 			struct Create_directories_failed { };
@@ -195,7 +234,7 @@ struct Extract::Main
 				chdir("/");
 				chdir(dst_path.string());
 
-				Extracted_archive extracted_archive(src_path);
+				Extracted_archive extracted_archive(src_path, strip);
 
 				success = true;
 			}
