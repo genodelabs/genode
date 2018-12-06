@@ -398,7 +398,7 @@ proc prepare_to_run_genode { } {
 				<previous-results time_sec="} [expr ($previous_time_ms + 999) / 1000] {"
 				                  succeeded="} $previous_succeeded {"
 				                  skipped="} $previous_skipped {"
-				                  failed="} $previous_failed {">} $previous_results {</previous-results>
+				                  failed="} $previous_failed {">} [string map {\" .}  $previous_results] {</previous-results>
 
 				} [test_pkgs_start_nodes] {
 
