@@ -3,7 +3,7 @@
 	<requires> <timer/> </requires>
 
 	<events>
-		<timeout meaning="failed" sec="50" />
+		<timeout meaning="failed" sec="20" />
 		<log meaning="succeeded">
 			[init -> rom_logger] ROM 'generated':
 			[init -> rom_logger]   &lt;config>&lt;!-- ... fallback ... -->&lt;/config>*

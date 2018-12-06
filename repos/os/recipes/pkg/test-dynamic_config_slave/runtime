@@ -3,7 +3,7 @@
 	<requires> <timer/> </requires>
 
 	<events>
-		<timeout meaning="failed" sec="100" />
+		<timeout meaning="failed" sec="20" />
 		<log meaning="succeeded">
 			[init -> test-dynamic_config_master -> test-dynamic_config] obtained counter value 11 from config
 		</log>

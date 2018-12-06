@@ -3,7 +3,7 @@
 	<requires> <timer/> </requires>
 
 	<events>
-		<timeout meaning="failed" sec="50" />
+		<timeout meaning="failed" sec="30" />
 		<log meaning="succeeded">--- test-resource_yield finished ---</log>
 		<log meaning="failed">Error: </log>
 	</events>

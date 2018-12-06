@@ -3,7 +3,7 @@
 	<requires> <timer/> </requires>
 
 	<events>
-		<timeout meaning="failed" sec="60" />
+		<timeout meaning="failed" sec="20" />
 		<log meaning="succeeded">
 			[init -> trace_logger] --- Report * (3/* subjects) ---*
 			[init -> trace_logger] &lt;subject label="init -> dynamic -> test-trace_logger -> cpu_burner.*" thread="ep" id="*" state="TRACED">

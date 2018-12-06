@@ -1,7 +1,7 @@
 <runtime ram="32M" caps="1000" binary="init">
 
 	<events>
-		<timeout meaning="failed" sec="60" />
+		<timeout meaning="failed" sec="20" />
 		<log     meaning="succeeded">child "test-nic_loopback" exited with exit value 0</log>
 		<log     meaning="failed"   >Error: </log>
 	</events>

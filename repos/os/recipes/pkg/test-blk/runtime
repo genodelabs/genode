@@ -3,7 +3,7 @@
 	<requires> <timer/> </requires>
 
 	<events>
-		<timeout meaning="failed" sec="100" />
+		<timeout meaning="failed" sec="20" />
 		<log meaning="succeeded">Tests finished successfully</log>
 		<log meaning="failed">test-blk-cli] Error: </log>
 	</events>

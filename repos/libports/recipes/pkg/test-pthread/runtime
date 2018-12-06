@@ -1,7 +1,7 @@
 <runtime ram="72M" caps="1000" binary="init">
 
 	<events>
-		<timeout meaning="failed" sec="20" />
+		<timeout meaning="failed" sec="30" />
 		<log meaning="succeeded">--- returning from main ---</log>
 		<log meaning="failed">Error: </log>
 		<log meaning="failed">child "test-pthread" exited</log>
