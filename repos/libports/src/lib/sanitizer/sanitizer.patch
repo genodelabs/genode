@@ -1,0 +1,573 @@
+sanitizer.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ sanitizer_common/sanitizer_genode.cc               |  323 ++++++++++++++++++++
+ sanitizer_common/sanitizer_internal_defs.h         |    6 
+ sanitizer_common/sanitizer_platform.h              |    4 
+ sanitizer_common/sanitizer_printf.cc               |    2 
+ sanitizer_common/sanitizer_stacktrace.h            |    2 
+ sanitizer_common/sanitizer_symbolizer_libcdep.cc   |    5 
+ .../sanitizer_symbolizer_posix_libcdep.cc          |   20 +
+ ubsan/ubsan_diag.cc                                |    4 
+ ubsan/ubsan_type_hash_itanium.cc                   |    2 
+ 9 files changed, 357 insertions(+), 11 deletions(-)
+ create mode 100644 sanitizer_common/sanitizer_genode.cc
+
+diff --git a/sanitizer_common/sanitizer_genode.cc b/sanitizer_common/sanitizer_genode.cc
+new file mode 100644
+index 0000000..b16dc5d
+--- /dev/null
++++ b/sanitizer_common/sanitizer_genode.cc
+@@ -0,0 +1,323 @@
++/*
++ * \brief  Genode-specific functions from sanitizer_common.h
++ *         and sanitizer_libc.h
++ * \author Christian Prochaska
++ * \date   2018-12-05
++ */
++
++/*
++ * Copyright (C) 2018 Genode Labs GmbH
++ *
++ * This file is part of the Genode OS framework, which is distributed
++ * under the terms of the GNU Affero General Public License version 3.
++ */
++
++#include <base/env.h>
++#include <base/heap.h>
++#include <base/log.h>
++#include <base/printf.h>
++
++#include "sanitizer_platform.h"
++
++#include "sanitizer_common.h"
++
++
++extern int  genode_atexit(void (*func)(void));
++extern void genode_exit(int) __attribute__((noreturn));
++
++
++static constexpr bool verbose = false;
++
++
++struct Sanitizer_env
++{
++	Genode::Env  &env;
++	Genode::Heap  heap { env.ram(), env.rm() };
++
++	Sanitizer_env(Genode::Env &env) : env(env) { }
++};
++
++
++static Genode::Constructible<Sanitizer_env> sanitizer_env;
++
++
++void sanitizer_init(Genode::Env &env)
++{
++	sanitizer_env.construct(env);
++}
++
++
++/* sanitizer_common.h */
++
++
++void __sanitizer::Abort()
++{
++	Genode::error("sanitizer: ", __func__, " called");
++	genode_exit(-1);
++}
++
++
++int __sanitizer::Atexit(void (*function)(void))
++{
++	return genode_atexit(function);
++}
++
++
++bool __sanitizer::SupportsColoredOutput(fd_t fd)
++{
++	if (fd == 2)
++		return true;
++	else
++		return false;
++}
++
++
++bool __sanitizer::IsAccessibleMemoryRange(uptr beg, uptr size)
++{
++	if (verbose)
++		Genode::error("sanitizer: ", __func__, " called");
++	return true;
++}
++
++
++void __sanitizer::PrepareForSandboxing(__sanitizer_sandbox_arguments *args)
++{
++	Genode::error("sanitizer: ", __func__, " called");
++}
++
++
++bool __sanitizer::FileExists(const char *filename)
++{
++	Genode::error("sanitizer: ", __func__, " called");
++	return false;
++}
++
++
++const char *__sanitizer::GetEnv(const char *name)
++{
++	if (verbose)
++		Genode::log("sanitizer: ", __func__,
++		            ": ", Genode::Cstring(name));
++	return nullptr;
++}
++
++
++__sanitizer::BlockingMutex::BlockingMutex()
++{
++	Genode::error("sanitizer: ", __func__, " called");
++	internal_memset(this, 0, sizeof(*this));
++}
++
++
++void __sanitizer::BlockingMutex::Lock()
++{
++	Genode::error("sanitizer: ", __func__, " called");
++}
++
++
++void __sanitizer::BlockingMutex::Unlock()
++{
++	Genode::error("sanitizer: ", __func__, " called");
++}
++
++
++void __sanitizer::BlockingMutex::CheckLocked()
++{
++	Genode::error("sanitizer: ", __func__, " called");
++}
++
++
++uptr __sanitizer::internal_getpid()
++{
++	return 0;
++}
++
++
++uptr __sanitizer::GetPageSize()
++{
++	if (verbose)
++		Genode::warning("sanitizer: ", __func__, " called, returning 4096");
++	return 4096;
++}
++
++
++uptr __sanitizer::ReadBinaryName(char *buf, uptr buf_len)
++{
++	return internal_snprintf(buf, buf_len, "binary");
++}
++
++
++uptr __sanitizer::ReadLongProcessName(char *buf, uptr buf_len)
++{
++	internal_strncpy(buf, "process", buf_len);
++	return internal_strlen(buf);
++}
++
++
++uptr __sanitizer::GetMmapGranularity()
++{
++	return GetPageSize();
++}
++
++
++void *__sanitizer::MmapOrDie(uptr size, const char *mem_type)
++{
++	size = RoundUpTo(size, GetPageSizeCached());
++
++	void *res = nullptr;
++	sanitizer_env->heap.alloc(size, &res);
++
++	if (res == nullptr)
++		ReportMmapFailureAndDie(size, mem_type, "allocate", 0);
++
++	IncreaseTotalMmap(size);
++	return res;
++}
++
++
++void __sanitizer::UnmapOrDie(void *addr, uptr size)
++{
++	if (!addr || !size) return;
++
++	sanitizer_env->heap.free(addr, size);
++
++	DecreaseTotalMmap(size);
++}
++
++
++void *__sanitizer::MmapNoReserveOrDie(uptr size, const char *mem_type)
++{
++	Genode::error("sanitizer: ", __func__, " called");
++	return nullptr;
++}
++
++
++bool __sanitizer::MprotectNoAccess(uptr addr, uptr size)
++{
++	Genode::error("sanitizer: ", __func__, " called");
++	return false;
++}
++
++
++uptr __sanitizer::GetRSS()
++{
++	Genode::error("sanitizer: ", __func__, " called");
++	return 0;
++}
++
++
++fd_t __sanitizer::OpenFile(const char *filename,
++                           FileAccessMode mode,
++                           error_t *errno_p)
++{
++	Genode::error("sanitizer: ", __func__, " called");
++	return kInvalidFd;
++}
++
++
++void __sanitizer::CloseFile(fd_t fd)
++{
++	Genode::error("sanitizer: ", __func__, " called");
++}
++
++
++bool __sanitizer::ReadFromFile(fd_t fd, void *buff, uptr buff_size,
++                               uptr *bytes_read, error_t *error_p)
++{
++	Genode::error("sanitizer: ", __func__, " called");
++	return false;
++}
++
++
++bool __sanitizer::WriteToFile(fd_t fd, const void *buff, uptr buff_size,
++                              uptr *bytes_written, error_t *error_p)
++{
++	Genode::error("sanitizer: ", __func__, " called");
++	return true;
++}
++
++
++bool __sanitizer::RenameFile(const char *oldpath, const char *newpath,
++                             error_t *error_p)
++{
++	Genode::error("sanitizer: ", __func__, " called");
++	return false;
++}
++
++
++void *__sanitizer::MapWritableFileToMemory(void *addr, uptr size, fd_t fd,
++                                           OFF_T offset)
++{
++	Genode::error("sanitizer: ", __func__, " called");
++	return nullptr;
++}
++
++
++void __sanitizer::DumpProcessMap()
++{
++	Genode::error("sanitizer: ", __func__, " called");
++}
++
++
++bool __sanitizer::IsPathSeparator(const char c)
++{
++	return c == '/';
++}
++
++
++bool __sanitizer::IsAbsolutePath(const char *path)
++{
++	return path != nullptr && IsPathSeparator(path[0]);
++}
++
++
++void __sanitizer::ReportFile::Write(const char *buffer, uptr length)
++{
++	SpinMutexLock l(mu);
++	Genode::printf("%s", buffer);
++}
++
++
++void __sanitizer::SleepForMillis(int millis)
++{
++	Genode::error("sanitizer: ", __func__, " called");
++}
++
++
++uptr __sanitizer::GetListOfModules(LoadedModule *modules, uptr max_modules,
++                                   string_predicate_t filter)
++{
++	Genode::error("sanitizer: ", __func__, " called");
++	return 0;
++}
++
++
++/* sanitizer_libc.h */
++
++
++uptr __sanitizer::internal_sched_yield()
++{
++	Genode::error("sanitizer: ", __func__, " called");
++	return 0;
++}
++
++
++uptr __sanitizer::internal_ftruncate(fd_t fd, uptr size)
++{
++	Genode::error("sanitizer: ", __func__, " called");
++	return 0;
++}
++
++
++void __sanitizer::internal__exit(int exitcode)
++{
++	genode_exit(exitcode);
++}
++
++
++bool __sanitizer::internal_iserror(uptr retval, int *rverrno)
++{
++	Genode::warning("sanitizer: ", __func__,
++	                " called, returning false");
++	return false;
++}
+diff --git a/sanitizer_common/sanitizer_internal_defs.h b/sanitizer_common/sanitizer_internal_defs.h
+index d76ed75..bab2fdc 100644
+--- a/sanitizer_common/sanitizer_internal_defs.h
++++ b/sanitizer_common/sanitizer_internal_defs.h
+@@ -13,6 +13,8 @@
+ 
+ #include "sanitizer_platform.h"
+ 
++#include <stddef.h>
++
+ #ifndef SANITIZER_DEBUG
+ # define SANITIZER_DEBUG 0
+ #endif
+@@ -101,9 +103,9 @@ typedef uptr OFF_T;
+ typedef u64  OFF64_T;
+ 
+ #if (SANITIZER_WORDSIZE == 64) || SANITIZER_MAC
+-typedef uptr operator_new_size_type;
++typedef size_t operator_new_size_type;
+ #else
+-typedef u32 operator_new_size_type;
++typedef size_t operator_new_size_type;
+ #endif
+ }  // namespace __sanitizer
+ 
+diff --git a/sanitizer_common/sanitizer_platform.h b/sanitizer_common/sanitizer_platform.h
+index 7d0ff28..e096ee9 100644
+--- a/sanitizer_common/sanitizer_platform.h
++++ b/sanitizer_common/sanitizer_platform.h
+@@ -11,10 +11,12 @@
+ #ifndef SANITIZER_PLATFORM_H
+ #define SANITIZER_PLATFORM_H
+ 
++#if 0
+ #if !defined(__linux__) && !defined(__FreeBSD__) && \
+   !defined(__APPLE__) && !defined(_WIN32)
+ # error "This operating system is not supported"
+ #endif
++#endif
+ 
+ #if defined(__linux__)
+ # define SANITIZER_LINUX   1
+@@ -59,7 +61,7 @@
+ # define SANITIZER_ANDROID 0
+ #endif
+ 
+-#define SANITIZER_POSIX (SANITIZER_FREEBSD || SANITIZER_LINUX || SANITIZER_MAC)
++#define SANITIZER_POSIX (SANITIZER_FREEBSD || SANITIZER_LINUX || SANITIZER_MAC || 1)
+ 
+ #if __LP64__ || defined(_WIN64)
+ #  define SANITIZER_WORDSIZE 64
+diff --git a/sanitizer_common/sanitizer_printf.cc b/sanitizer_common/sanitizer_printf.cc
+index 6688610..6efd98b 100644
+--- a/sanitizer_common/sanitizer_printf.cc
++++ b/sanitizer_common/sanitizer_printf.cc
+@@ -16,7 +16,9 @@
+ #include "sanitizer_flags.h"
+ #include "sanitizer_libc.h"
+ 
++#if 0
+ #include <stdio.h>
++#endif
+ #include <stdarg.h>
+ 
+ #if SANITIZER_WINDOWS && defined(_MSC_VER) && _MSC_VER < 1800 &&               \
+diff --git a/sanitizer_common/sanitizer_stacktrace.h b/sanitizer_common/sanitizer_stacktrace.h
+index 7f22455..d16d758 100644
+--- a/sanitizer_common/sanitizer_stacktrace.h
++++ b/sanitizer_common/sanitizer_stacktrace.h
+@@ -31,7 +31,7 @@ static const u32 kStackTraceMax = 256;
+ #if SANITIZER_MAC
+ # define SANITIZER_CAN_SLOW_UNWIND 0
+ #else
+-# define SANITIZER_CAN_SLOW_UNWIND 1
++# define SANITIZER_CAN_SLOW_UNWIND 0
+ #endif
+ 
+ struct StackTrace {
+diff --git a/sanitizer_common/sanitizer_symbolizer_libcdep.cc b/sanitizer_common/sanitizer_symbolizer_libcdep.cc
+index 4264b5e..52fc18d 100644
+--- a/sanitizer_common/sanitizer_symbolizer_libcdep.cc
++++ b/sanitizer_common/sanitizer_symbolizer_libcdep.cc
+@@ -9,6 +9,8 @@
+ // run-time libraries.
+ //===----------------------------------------------------------------------===//
+ 
++#include <base/log.h>
++
+ #include "sanitizer_allocator_internal.h"
+ #include "sanitizer_internal_defs.h"
+ #include "sanitizer_symbolizer_internal.h"
+@@ -146,6 +148,8 @@ bool Symbolizer::FindModuleNameAndOffsetForAddress(uptr address,
+ }
+ 
+ LoadedModule *Symbolizer::FindModuleForAddress(uptr address) {
++  Genode::error("sanitizer: ", __func__, " called");
++#if 0
+   bool modules_were_reloaded = false;
+   if (!modules_fresh_) {
+     for (uptr i = 0; i < n_modules_; i++)
+@@ -170,6 +174,7 @@ LoadedModule *Symbolizer::FindModuleForAddress(uptr address) {
+     modules_fresh_ = false;
+     return FindModuleForAddress(address);
+   }
++#endif
+   return 0;
+ }
+ 
+diff --git a/sanitizer_common/sanitizer_symbolizer_posix_libcdep.cc b/sanitizer_common/sanitizer_symbolizer_posix_libcdep.cc
+index e4ff525..793cbb1 100644
+--- a/sanitizer_common/sanitizer_symbolizer_posix_libcdep.cc
++++ b/sanitizer_common/sanitizer_symbolizer_posix_libcdep.cc
+@@ -10,6 +10,9 @@
+ // POSIX-specific implementation of symbolizer parts.
+ //===----------------------------------------------------------------------===//
+ 
++#include <base/log.h>
++#include <stddef.h>
++
+ #include "sanitizer_platform.h"
+ #if SANITIZER_POSIX
+ #include "sanitizer_allocator_internal.h"
+@@ -23,12 +26,12 @@
+ #include "sanitizer_symbolizer_internal.h"
+ #include "sanitizer_symbolizer_libbacktrace.h"
+ #include "sanitizer_symbolizer_mac.h"
+-
++#if 0
+ #include <errno.h>
+ #include <stdlib.h>
+ #include <sys/wait.h>
+ #include <unistd.h>
+-
++#endif
+ #if SANITIZER_MAC
+ #include <util.h>  // for forkpty()
+ #endif  // SANITIZER_MAC
+@@ -60,6 +63,10 @@ const char *DemangleCXXABI(const char *name) {
+ }
+ 
+ bool SymbolizerProcess::StartSymbolizerSubprocess() {
++  Genode::error("sanitizer: ", __func__, " called");
++  return false;
++
++#if 0
+   if (!FileExists(path_)) {
+     if (!reported_invalid_path_) {
+       Report("WARNING: invalid path to external symbolizer!\n");
+@@ -182,6 +189,7 @@ bool SymbolizerProcess::StartSymbolizerSubprocess() {
+   }
+ 
+   return true;
++#endif
+ }
+ 
+ class Addr2LineProcess : public SymbolizerProcess {
+@@ -376,7 +384,7 @@ const char *Symbolizer::PlatformDemangle(const char *name) {
+ }
+ 
+ void Symbolizer::PlatformPrepareForSandboxing() {}
+-
++#if 0
+ static SymbolizerTool *ChooseExternalSymbolizer(LowLevelAllocator *allocator) {
+   const char *path = common_flags()->external_symbolizer_path;
+   const char *binary_name = path ? StripModuleName(path) : "";
+@@ -424,7 +432,7 @@ static SymbolizerTool *ChooseExternalSymbolizer(LowLevelAllocator *allocator) {
+   }
+   return nullptr;
+ }
+-
++#endif
+ static void ChooseSymbolizerTools(IntrusiveList<SymbolizerTool> *list,
+                                   LowLevelAllocator *allocator) {
+   if (!common_flags()->symbolize) {
+@@ -441,11 +449,11 @@ static void ChooseSymbolizerTools(IntrusiveList<SymbolizerTool> *list,
+     list->push_back(tool);
+     return;
+   }
+-
++#if 0
+   if (SymbolizerTool *tool = ChooseExternalSymbolizer(allocator)) {
+     list->push_back(tool);
+   }
+-
++#endif
+ #if SANITIZER_MAC
+   VReport(2, "Using dladdr symbolizer.\n");
+   list->push_back(new(*allocator) DlAddrSymbolizer());
+diff --git a/ubsan/ubsan_diag.cc b/ubsan/ubsan_diag.cc
+index 1197f83..8ffa8fe 100644
+--- a/ubsan/ubsan_diag.cc
++++ b/ubsan/ubsan_diag.cc
+@@ -20,7 +20,9 @@
+ #include "sanitizer_common/sanitizer_stacktrace_printer.h"
+ #include "sanitizer_common/sanitizer_suppressions.h"
+ #include "sanitizer_common/sanitizer_symbolizer.h"
++#if 0
+ #include <stdio.h>
++#endif
+ 
+ using namespace __ubsan;
+ 
+@@ -204,8 +206,10 @@ static void renderText(const char *Message, const Diag::Arg *Args) {
+ #if SANITIZER_WINDOWS
+         sprintf_s(Buffer, sizeof(Buffer), "%Lg", (long double)A.Float);
+ #else
++#if 0
+         snprintf(Buffer, sizeof(Buffer), "%Lg", (long double)A.Float);
+ #endif
++#endif
+         Printf("%s", Buffer);
+         break;
+       }
+diff --git a/ubsan/ubsan_type_hash_itanium.cc b/ubsan/ubsan_type_hash_itanium.cc
+index e4f1334..57e78cd 100644
+--- a/ubsan/ubsan_type_hash_itanium.cc
++++ b/ubsan/ubsan_type_hash_itanium.cc
+@@ -113,7 +113,7 @@ static __ubsan::HashValue *getTypeCacheHashTableBucket(__ubsan::HashValue V) {
+ static bool isDerivedFromAtOffset(const abi::__class_type_info *Derived,
+                                   const abi::__class_type_info *Base,
+                                   sptr Offset) {
+-  if (Derived->__type_name == Base->__type_name)
++  if (internal_strcmp(Derived->__type_name, Base->__type_name) == 0)
+     return Offset == 0;
+ 
+   if (const abi::__si_class_type_info *SI =
