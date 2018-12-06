@@ -36,6 +36,8 @@ struct Sequence::Child : Genode::Child_policy
 
 	Name const _name = _start_node.attribute_value("name", Name());
 
+	bool const _have_config = _start_node.has_sub_node("config");
+
 	Binary_name _start_binary()
 	{
 		Binary_name name;
@@ -68,12 +70,10 @@ struct Sequence::Child : Genode::Child_policy
 
 	Registry<Parent_service> _parent_services { };
 
-	Genode::Child _child { _env.rm(), _env.ep().rpc_ep(), *this };
-
 	/* queue a child reload from the async Parent interface */
 	Signal_transmitter _exit_transmitter;
 
-	bool _have_config = _start_node.has_sub_node("config");
+	Genode::Child _child { _env.rm(), _env.ep().rpc_ep(), *this };
 
 	Child(Genode::Env &env,
 	      Xml_node const &start_node,
@@ -233,7 +233,15 @@ void Sequence::Main::start_next_child()
 	} }
 
 	catch (Xml_node::Nonexistent_sub_node) {
-		env.parent().exit(0); }
+
+		if (config_xml.attribute_value("repeat", false)) {
+			next_xml_index = 0;
+			Signal_transmitter(exit_handler).submit();
+
+		} else {
+			env.parent().exit(0);
+		}
+	}
 }
 
 
