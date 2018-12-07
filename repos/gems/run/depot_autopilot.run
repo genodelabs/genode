@@ -34,6 +34,7 @@
 
 proc autopilot_wait_for_output { wait_for_re timeout_value running_spawn_id } {
 	global output
+	global run_genode_failed
 
 	if {$wait_for_re == "forever"} {
 		set timeout -1
@@ -60,27 +61,24 @@ proc autopilot_wait_for_output { wait_for_re timeout_value running_spawn_id } {
 		# pistachio kernel fault
 		-i $running_spawn_id -re {--- "KD# Exception caught" ---} {
 			puts stderr "Error: Kernel fault";
-			global reboot
-			set reboot 1
+			set run_genode_failed 1
 			return
 		}
 		# sel4 unknown fault caught by core
 		-i $running_spawn_id -re {Error: unexpected exception during fault.*stopped} {
 			puts stderr "Error: Unknown fault";
-			global reboot
-			set reboot 1
+			set run_genode_failed 1
+			return
 		}
 		# can happen, for instance, on socat TCP-timeout
 		eof {
 			puts stderr "Error: Spawned process died unexpectedly";
-			global reboot
-			set reboot 1
+			set run_genode_failed 1
 			return
 		}
 		timeout {
 			puts stderr "Error: Test execution timed out";
-			global reboot
-			set reboot 1
+			set run_genode_failed 1
 			return
 		}
 	}
@@ -238,7 +236,7 @@ proc prepare_to_run_genode { } {
 	global test_builds
 	global test_modules
 	global last_test_pkg
-	global reboot
+	global run_genode_failed
 	global serial_id
 	global timeout
 	global initial_qemu_args
@@ -458,11 +456,69 @@ proc prepare_to_run_genode { } {
 	build_boot_image $boot_modules
 
 	set last_test_pkg ""
-	set reboot 0
+	set run_genode_failed 0
 	set serial_id -1
 	set timeout 40
 
 	append qemu_args "-nographic -serial mon:stdio "
+}
+
+#
+# Initialize variables that accumulate test results for possible reboots
+#
+proc init_previous_results {} {
+	global previous_results_on_exit
+	global previous_results
+	global previous_time_ms
+	global previous_succeeded
+	global previous_failed
+	global previous_skipped
+
+	set previous_results_on_exit 1
+	set previous_results         ""
+	set previous_time_ms         0
+	set previous_succeeded       0
+	set previous_failed          0
+	set previous_skipped         0
+}
+
+rename exit run_tool_exit
+proc exit {{status 0}} {
+
+	global previous_results_on_exit
+	global previous_results
+	global previous_time_ms
+	global previous_succeeded
+	global previous_failed
+	global previous_skipped
+
+	if {![info exists previous_results_on_exit] || \
+	    ![info exists previous_results] || \
+	    ![info exists previous_time_ms] || \
+	    ![info exists previous_succeeded] || \
+	    ![info exists previous_failed] || \
+	    ![info exists previous_skipped]} \
+	{
+		init_previous_results
+	}
+	if {$previous_results_on_exit != 0} {
+		set previous_time_sec      [expr $previous_time_ms / 1000]
+		set previous_time_sec_frac [expr $previous_time_ms - $previous_time_sec * 1000]
+		set previous_results_list  [split $previous_results "\n"]
+		puts ""
+		puts "Failed to let Depot Autopilot finish!"
+		puts "Result overview simulated by run script:"
+		puts ""
+		puts "\[init -> depot_autopilot] --- Finished after $previous_time_sec.$previous_time_sec_frac sec ---"
+		puts "\[init -> depot_autopilot] "
+		foreach previous_result $previous_results_list {
+			puts "\[init -> depot_autopilot] $previous_result"
+		}
+		puts "\[init -> depot_autopilot] "
+		puts "\[init -> depot_autopilot] succeeded: $previous_succeeded failed: $previous_failed skipped: $previous_skipped"
+		puts "\[init -> depot_autopilot] "
+	}
+	run_tool_exit $status
 }
 
 
@@ -653,14 +709,8 @@ if {$test_pkgs == ""} {
 }
 puts "Number of tests to run: $nr_of_tests_to_run"
 
-#
-# Initialize variables that accumulate test results for possible reboots
-#
-set previous_results   ""
-set previous_time_ms   0
-set previous_succeeded 0
-set previous_failed    0
-set previous_skipped   0
+# initialize variables that hold previous results
+init_previous_results
 
 # generic preparation for each system boot
 prepare_to_run_genode
@@ -669,17 +719,22 @@ while {1} {
 
 	# wait for the next autopilot event
 	if {$serial_id == -1} {
-		run_genode_until {depot_autopilot\] --- .*?\n} $timeout
+		autopilot_run_genode_until {depot_autopilot\] --- .*?\n} $timeout
+		set serial_id [output_spawn_id]
+
+		# if the system didn't even boot, exit (prints previous results)
+		if {$run_genode_failed} {
+			exit -1
+		}
 	} else {
 		set init_time_ms [clock clicks -millisec]
 		autopilot_run_genode_until {depot_autopilot\] --- .*?\n} $timeout $serial_id
 		set previous_time_ms [expr $previous_time_ms + [expr ([clock clicks -millisec] - $init_time_ms)] ]
-	}
-	# remove last test from list and check if we have to reboot the system
-	set serial_id [output_spawn_id]
-	if {$last_test_pkg != ""} {
+		set serial_id [output_spawn_id]
+
+		# remove last test from list and check if we have to reboot the system
 		set test_pkgs [lsearch -all -inline -not -exact $test_pkgs $last_test_pkg]
-		if {$reboot} {
+		if {$run_genode_failed} {
 
 			# shut-down running system
 			exec kill -9 [exp_pid -i $serial_id]
@@ -701,6 +756,7 @@ while {1} {
 	if {[regexp {depot_autopilot\] --- Finished} $output]} {
 		set output ""
 		run_genode_until {child "depot_autopilot" exited with exit value.*?\n} 10 $serial_id
+		set previous_results_on_exit 0
 		grep_output {^\[init\] }
 		compare_output_to {[init] child "depot_autopilot" exited with exit value 0}
 		exit 0
