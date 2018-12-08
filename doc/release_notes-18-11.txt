@@ -35,8 +35,8 @@ obtain.
 
 To improve the resilience of Genode systems that contain parts that are
 known/expected to sometimes fail, e.g., because they depend on hugely complex
-software stacks, the new release features the ability to *monitor* *the*
-*health* of components (Section [Component health monitoring]). Using this new
+software stacks, the new release features the ability to *monitor the health*
+of components (Section [Component health monitoring]). Using this new
 introspection mechanism, Genode systems become able to respond to such
 conditions by restarting the affected component or by logging the event.
 
