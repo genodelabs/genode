@@ -28,7 +28,7 @@ proc run_image { {unused ""} } {
 	set size_run    [expr [regsub {\s.*} [exec du -skL [run_dir]] {}]]
 
 	if {[image_disk_size] > 0} {
-		set disk_size_kb [expr [image_disk_size] * 1024 * 1024]
+		set disk_size_kb [expr [image_disk_size] * 1024]
 	} else {
 		set disk_size_kb [expr ($size_run + 512) / 32 * 32]
 	}
