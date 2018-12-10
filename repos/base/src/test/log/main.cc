@@ -28,6 +28,8 @@ void Component::construct(Genode::Env &env)
 	log("negative hex char:  ", Hex((char)-2LL, Hex::PREFIX, Hex::PAD));
 	log("positive hex char:  ", Hex((char) 2LL, Hex::PREFIX, Hex::PAD));
 
+	log("floating point:     ", 1700.0 / 1000);
+
 	typedef String<128> Label;
 	log("multiarg string:    ", Label(Char('"'), "parent -> child.", 7, Char('"')));
 

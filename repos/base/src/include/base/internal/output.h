@@ -114,13 +114,27 @@ static inline void out_float(T value, unsigned base, unsigned length, OUT_CHAR_F
 {
 	using namespace Genode;
 
+	/*
+	 * If the compiler decides to move a value from the FPU to the stack and
+	 * back, the value can slightly change because of different encodings. This
+	 * can cause problems if the value is assumed to stay the same in a chain
+	 * of calculations. For example, if casting 6.999 to int results in 6, this
+	 * number 6 needs to be subtracted from 6.999 in the next step and not from
+	 * 7 after an unexpected conversion, otherwise the next cast for a decimal
+	 * place would result in 10 instead of 9.
+	 * By storing the value in a volatile variable, the conversion step between
+	 * FPU and stack happens in a more deterministic way, which gives more
+	 * consistent results with this function.
+	 */
+	T volatile volatile_value = value;
+
 	/* set flag if value is negative */
-	int neg = value < 0 ? 1 : 0;
+	int neg = volatile_value < 0 ? 1 : 0;
 
 	/* get absolute value */
-	value = value < 0 ? -value : value;
+	volatile_value = volatile_value < 0 ? -volatile_value : volatile_value;
 
-	uint64_t integer = (uint64_t)value;
+	uint64_t integer = (uint64_t)volatile_value;
 
 	if (neg)
 		out_char('-');
@@ -130,14 +144,14 @@ static inline void out_float(T value, unsigned base, unsigned length, OUT_CHAR_F
 
 	if (length) {
 		do {
-			value -= integer;
-			value = value*base;
+			volatile_value -= integer;
+			volatile_value = volatile_value*base;
 
-			integer = (int64_t)value;
+			integer = (int64_t)volatile_value;
 			out_char(ascii(integer));
 
 			length--;
-		} while (length && (value > 0.0));
+		} while (length && (volatile_value > 0.0));
 	}
 }
 

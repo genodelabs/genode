@@ -9,6 +9,7 @@
 			[init -> test-log] invalid hex range:  [f8,08) (overflow!)
 			[init -> test-log] negative hex char:  0xfe
 			[init -> test-log] positive hex char:  0x02
+			[init -> test-log] floating point:     1.70
 			[init -> test-log] multiarg string:    "parent -> child.7"
 			[init -> test-log] String(Hex(3)):     0x3
 			[init -> test-log] Very long messages:
