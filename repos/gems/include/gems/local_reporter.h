@@ -19,33 +19,40 @@
 #include <util/xml_generator.h>
 #include <report_session/client.h>
 
-struct Local_reporter
+class Local_reporter
 {
-	Report::Session_client _session;
+	private:
 
-	Genode::Attached_dataspace _ds;
+		Local_reporter(Local_reporter const &);
+		Local_reporter &operator = (Local_reporter const &);
 
-	char const *_name;
+		Report::Session_client _session;
 
-	Local_reporter(Genode::Region_map &rm, char const *name,
-	               Genode::Capability<Report::Session> session_cap)
-	:
-		_session(session_cap), _ds(rm, _session.dataspace()), _name(name)
-	{ }
+		Genode::Attached_dataspace _ds;
 
-	struct Xml_generator : public Genode::Xml_generator
-	{
-		template <typename FUNC>
-		Xml_generator(Local_reporter &reporter, FUNC const &func)
+		char const *_name;
+
+	public:
+
+		Local_reporter(Genode::Region_map &rm, char const *name,
+		               Genode::Capability<Report::Session> session_cap)
 		:
-			Genode::Xml_generator(reporter._ds.local_addr<char>(),
-			                      reporter._ds.size(),
-			                      reporter._name,
-			                      func)
+			_session(session_cap), _ds(rm, _session.dataspace()), _name(name)
+		{ }
+
+		struct Xml_generator : public Genode::Xml_generator
 		{
-			reporter._session.submit(used());
-		}
-	};
+			template <typename FUNC>
+			Xml_generator(Local_reporter &reporter, FUNC const &func)
+			:
+				Genode::Xml_generator(reporter._ds.local_addr<char>(),
+				                      reporter._ds.size(),
+				                      reporter._name,
+				                      func)
+			{
+				reporter._session.submit(used());
+			}
+		};
 };
 
 #endif /* _INCLUDE__GEMS__LOCAL_REPORTER_H_ */

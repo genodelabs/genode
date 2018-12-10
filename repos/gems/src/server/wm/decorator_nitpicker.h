@@ -36,6 +36,7 @@ namespace Wm { class Main;
 	using Genode::Attached_ram_dataspace;
 	using Genode::Signal_handler;
 	using Genode::Reporter;
+	using Genode::Interface;
 }
 
 
@@ -47,7 +48,7 @@ namespace Wm {
 }
 
 
-struct Wm::Decorator_content_callback
+struct Wm::Decorator_content_callback : Interface
 {
 	virtual void content_geometry(Window_registry::Id win_id, Rect rect) = 0;
 
@@ -81,7 +82,7 @@ class Wm::Decorator_content_registry
 			{ }
 		};
 
-		List<Entry>  _list;
+		List<Entry>  _list { };
 		Allocator   &_entry_alloc;
 
 		Entry const &_lookup(Nitpicker::Session::View_handle view_handle) const
@@ -149,8 +150,11 @@ class Wm::Decorator_content_registry
 
 
 struct Wm::Decorator_nitpicker_session : Genode::Rpc_object<Nitpicker::Session>,
-                                         List<Decorator_nitpicker_session>::Element
+                                         private List<Decorator_nitpicker_session>::Element
 {
+	friend class List<Decorator_nitpicker_session>;
+	using List<Decorator_nitpicker_session>::Element::next;
+
 	typedef Nitpicker::View_capability      View_capability;
 	typedef Nitpicker::Session::View_handle View_handle;
 
@@ -162,7 +166,7 @@ struct Wm::Decorator_nitpicker_session : Genode::Rpc_object<Nitpicker::Session>,
 
 	Nitpicker::Connection _nitpicker_session { _env, "decorator" };
 
-	Genode::Signal_context_capability _mode_sigh;
+	Genode::Signal_context_capability _mode_sigh { };
 
 	typedef Nitpicker::Session::Command_buffer Command_buffer;
 

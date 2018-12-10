@@ -37,7 +37,7 @@ struct Wm::Layouter_nitpicker_session : Genode::Rpc_object<Nitpicker::Session>
 	 */
 	Nitpicker::Connection _mode_sigh_nitpicker;
 
-	Genode::Signal_context_capability _mode_sigh;
+	Genode::Signal_context_capability _mode_sigh { };
 
 	Attached_ram_dataspace _command_ds;
 

@@ -51,6 +51,7 @@ namespace Wm {
 	using Genode::Signal_transmitter;
 	using Genode::Reporter;
 	using Genode::Capability;
+	using Genode::Interface;
 }
 
 namespace Wm { namespace Nitpicker {
@@ -81,19 +82,24 @@ namespace Wm { namespace Nitpicker {
  * clicks into an already focused window should be of no interest to the
  * layouter. So we hide them from the layouter.
  */
-struct Wm::Nitpicker::Click_handler
+struct Wm::Nitpicker::Click_handler : Interface
 {
 	virtual void handle_click(Point pos) = 0;
 	virtual void handle_enter(Point pos) = 0;
 };
 
 
-struct Nitpicker::View { GENODE_RPC_INTERFACE(); };
+struct Nitpicker::View : Genode::Interface { GENODE_RPC_INTERFACE(); };
 
 
-class Wm::Nitpicker::View : public Genode::Weak_object<View>,
+class Wm::Nitpicker::View : private Genode::Weak_object<View>,
                             public Genode::Rpc_object< ::Nitpicker::View>
 {
+	private:
+
+		friend class Genode::Weak_ptr<View>;
+		friend class Genode::Locked_ptr<View>;
+
 	protected:
 
 		typedef Genode::String<100>             Title;
@@ -102,12 +108,12 @@ class Wm::Nitpicker::View : public Genode::Weak_object<View>,
 
 		Session_label              _session_label;
 		Nitpicker::Session_client &_real_nitpicker;
-		View_handle                _real_handle;
-		Title                      _title;
-		Rect                       _geometry;
-		Point                      _buffer_offset;
-		Weak_ptr<View>             _neighbor_ptr;
-		bool                       _neighbor_behind;
+		View_handle                _real_handle     { };
+		Title                      _title           { };
+		Rect                       _geometry        { };
+		Point                      _buffer_offset   { };
+		Weak_ptr<View>             _neighbor_ptr    { };
+		bool                       _neighbor_behind { };
 		bool                       _has_alpha;
 
 		View(Nitpicker::Session_client &real_nitpicker,
@@ -165,6 +171,9 @@ class Wm::Nitpicker::View : public Genode::Weak_object<View>,
 				_real_nitpicker.destroy_view(_real_handle);
 		}
 
+		using Genode::Weak_object<View>::weak_ptr;
+		using Genode::Weak_object<View>::lock_for_destruction;
+
 		Point virtual_position() const { return _geometry.p1(); }
 
 		virtual bool belongs_to_win_id(Window_registry::Id id) const = 0;
@@ -194,7 +203,7 @@ class Wm::Nitpicker::View : public Genode::Weak_object<View>,
 
 		virtual Point input_anchor_position() const = 0;
 
-		virtual void stack(Weak_ptr<View> neighbor_ptr, bool behind) { }
+		virtual void stack(Weak_ptr<View>, bool) { }
 
 		View_handle real_handle() const { return _real_handle; }
 
@@ -218,11 +227,13 @@ class Wm::Nitpicker::View : public Genode::Weak_object<View>,
 
 
 class Wm::Nitpicker::Top_level_view : public View,
-                                      public List<Top_level_view>::Element
+                                      private List<Top_level_view>::Element
 {
 	private:
 
-		Window_registry::Id _win_id;
+		friend class List<Top_level_view>;
+
+		Window_registry::Id _win_id { };
 
 		Window_registry &_window_registry;
 
@@ -230,11 +241,11 @@ class Wm::Nitpicker::Top_level_view : public View,
 		 * Geometry of window-content view, which corresponds to the location
 		 * of the window content as known by the decorator.
 		 */
-		Rect _content_geometry;
+		Rect _content_geometry { };
 
 		bool _resizeable = false;
 
-		Title         _window_title;
+		Title         _window_title { };
 		Session_label _session_label;
 
 		typedef Nitpicker::Session::Command Command;
@@ -258,6 +269,8 @@ class Wm::Nitpicker::Top_level_view : public View,
 
 			View::lock_for_destruction();
 		}
+
+		using List<Top_level_view>::Element::next;
 
 		void _propagate_view_geometry() override { }
 
@@ -337,9 +350,11 @@ class Wm::Nitpicker::Top_level_view : public View,
 
 
 class Wm::Nitpicker::Child_view : public View,
-                                  public List<Child_view>::Element
+                                  private List<Child_view>::Element
 {
 	private:
+
+		friend class List<Child_view>;
 
 		Weak_ptr<View> mutable _parent;
 
@@ -359,6 +374,8 @@ class Wm::Nitpicker::Child_view : public View,
 		{
 			View::lock_for_destruction();
 		}
+
+		using List<Child_view>::Element::next;
 
 		void _propagate_view_geometry() override
 		{
@@ -418,7 +435,7 @@ class Wm::Nitpicker::Child_view : public View,
 };
 
 
-struct Wm::Nitpicker::Session_control_fn
+struct Wm::Nitpicker::Session_control_fn : Interface
 {
 	virtual void session_control(char const *selector, Session::Session_control) = 0;
 	
@@ -426,9 +443,11 @@ struct Wm::Nitpicker::Session_control_fn
 
 
 class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
-                                         public List<Session_component>::Element
+                                         private List<Session_component>::Element
 {
 	private:
+
+		friend class List<Session_component>;
 
 		typedef Nitpicker::Session::View_handle View_handle;
 
@@ -442,13 +461,13 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 		Session_control_fn          &_session_control_fn;
 		Tslab<Top_level_view, 4000>  _top_level_view_alloc;
 		Tslab<Child_view, 4000>      _child_view_alloc;
-		List<Top_level_view>         _top_level_views;
-		List<Child_view>             _child_views;
+		List<Top_level_view>         _top_level_views { };
+		List<Child_view>             _child_views { };
 		Input::Session_component     _input_session { _env, _ram };
 		Input::Session_capability    _input_session_cap;
 		Click_handler               &_click_handler;
-		Signal_context_capability    _mode_sigh;
-		Area                         _requested_size;
+		Signal_context_capability    _mode_sigh { };
+		Area                         _requested_size { };
 		bool                         _resize_requested = false;
 		bool                         _has_alpha = false;
 		Point                  const _initial_pointer_pos { -1, -1 };
@@ -744,6 +763,8 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 			_env.ep().dissolve(_input_session);
 		}
 
+		using List<Session_component>::Element::next;
+
 		void upgrade(char const *args)
 		{
 			size_t const ram_quota = Arg_string::find_arg(args, "ram_quota").ulong_value(0);
@@ -986,6 +1007,12 @@ class Wm::Nitpicker::Root : public Genode::Rpc_object<Genode::Typed_root<Session
 {
 	private:
 
+		/**
+		 * Noncopyable
+		 */
+		Root(Root const &);
+		Root &operator = (Root const &);
+
 		Genode::Env &_env;
 
 		Genode::Attached_rom_dataspace _config { _env, "config" };
@@ -1064,11 +1091,11 @@ class Wm::Nitpicker::Root : public Genode::Rpc_object<Genode::Typed_root<Session
 		/**
 		 * List of regular sessions
 		 */
-		List<Session_component> _sessions;
+		List<Session_component> _sessions { };
 
 		Layouter_nitpicker_session *_layouter_session = nullptr;
 
-		List<Decorator_nitpicker_session> _decorator_sessions;
+		List<Decorator_nitpicker_session> _decorator_sessions { };
 
 		/**
 		 * Nitpicker session used to perform session-control operations
@@ -1104,7 +1131,7 @@ class Wm::Nitpicker::Root : public Genode::Rpc_object<Genode::Typed_root<Session
 		 ********************/
 
 		Genode::Session_capability session(Session_args const &args,
-		                                   Affinity     const &affinity) override
+		                                   Affinity     const &) override
 		{
 			Genode::Session_label const session_label =
 				Genode::label_from_args(args.string());

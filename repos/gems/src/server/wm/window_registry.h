@@ -76,9 +76,9 @@ class Wm::Window_registry
 
 				struct Attr
 				{
-					Title         title;
-					Session_label label;
-					Area          size;
+					Title         title { };
+					Session_label label { };
+					Area          size  { };
 					Has_alpha     has_alpha = HAS_NO_ALPHA;
 					Hidden        hidden = NOT_HIDDEN;
 					Resizeable    resizeable = NOT_RESIZEABLE;
@@ -94,8 +94,8 @@ class Wm::Window_registry
 					}
 				};
 
-				Attr         _attr;
-				Attr mutable _flushed_attr;
+				Attr         _attr { };
+				Attr mutable _flushed_attr { };
 
 				friend class Window_registry;
 
@@ -164,9 +164,9 @@ class Wm::Window_registry
 
 		enum { MAX_WINDOWS = 1024 };
 
-		Genode::Bit_allocator<MAX_WINDOWS> _window_ids;
+		Genode::Bit_allocator<MAX_WINDOWS> _window_ids { };
 
-		List<Window> _windows;
+		List<Window> _windows { };
 
 		Window *_lookup(Id id)
 		{
