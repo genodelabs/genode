@@ -75,6 +75,9 @@ class Nic::Session_component : Communication_buffers, public Session_rpc_object
 		Genode::Signal_handler<Session_component> _packet_stream_dispatcher {
 			_ep, *this, &Session_component::_dispatch };
 
+		using Communication_buffers::_tx_ds;
+		using Communication_buffers::_rx_ds;
+
 	public:
 
 		/**

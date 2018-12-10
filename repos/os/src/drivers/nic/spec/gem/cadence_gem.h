@@ -28,6 +28,7 @@
 #include "rx_buffer_descriptor.h"
 #include "marvell_phy.h"
 
+#include <kernel/interface.h>
 
 namespace Genode
 {
@@ -339,10 +340,13 @@ namespace Genode
 			Genode::Signal_handler<Cadence_gem> _irq_handler;
 			Marvel_phy                          _phy;
 
+			addr_t  _rx_buf_region;
+			addr_t  _tx_buf_region;
+			size_t  _rx_buf_size;
+			size_t  _tx_buf_size;
 
 			void _init()
 			{
-				// TODO checksum offloading and pause frames
 				/* see 16.3.2 Configure the Controller */
 
 				/* 1. Program the Network Configuration register (gem.net_cfg) */
@@ -482,12 +486,24 @@ namespace Genode
 				}
 			}
 
+			void _invalidate_rx_buffers()
+			{
+				Kernel::update_data_region(_rx_buf_region, _rx_buf_size);
+			}
+
+			void _clean_tx_buffers()
+			{
+				Kernel::update_data_region(_tx_buf_region, _tx_buf_size);
+			}
+
 			virtual void _handle_irq()
 			{
 				/* 16.3.9 Receiving Frames */
 				/* read interrupt status, to detect the interrupt reasone */
 				const Interrupt_status::access_t status = read<Interrupt_status>();
 				const Rx_status::access_t rxStatus = read<Rx_status>();
+
+				_invalidate_rx_buffers();
 
 				if ( Interrupt_status::Rx_complete::get(status) ) {
 
@@ -589,7 +605,11 @@ namespace Genode
 				_rx_buffer(env, *_rx.source()),
 				_irq(env, irq),
 				_irq_handler(env.ep(), *this, &Cadence_gem::_handle_irq),
-				_phy(*this, _timer)
+				_phy(*this, _timer),
+				_rx_buf_region((addr_t)_tx_ds.local_addr<void>()),
+				_tx_buf_region((addr_t)_rx_ds.local_addr<void>()),
+				_rx_buf_size(_tx_ds.size()),
+				_tx_buf_size(_rx_ds.size())
 			{
 				_irq.sigh(_irq_handler);
 				_irq.ack_irq();
@@ -685,6 +705,8 @@ namespace Genode
 			void _handle_packet_stream() override
 			{
 				_handle_acks();
+
+				_clean_tx_buffers();
 
 				while (_send());
 			}
