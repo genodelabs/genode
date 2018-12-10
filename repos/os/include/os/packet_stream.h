@@ -538,7 +538,7 @@ class Genode::Packet_stream_base
 
 		bool packet_valid(Packet_descriptor packet)
 		{
-			return (packet.offset() >= _bulk_buffer_offset
+			return !packet.size() || (packet.offset() >= _bulk_buffer_offset
 				 && packet.offset() < _bulk_buffer_offset + (Genode::off_t)_bulk_buffer_size
 				 && packet.offset() + packet.size() <= _bulk_buffer_offset + _bulk_buffer_size);
 		}
