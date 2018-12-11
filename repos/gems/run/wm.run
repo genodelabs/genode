@@ -149,8 +149,10 @@ set fd [open [run_dir]/genode/focus w]
 puts $fd "<focus label=\"wm -> wm -> \"/>"
 close $fd
 
-build { server/nitpicker server/wm test/nitpicker }
+file copy -force [genode_dir]/repos/gems/recipes/raw/motif_wm/wm.config [run_dir]/genode/
 
-build_boot_image { nitpicker wm testnit }
+build { app/decorator server/nitpicker server/wm test/nitpicker }
+
+build_boot_image { decorator nitpicker wm testnit }
 
 run_genode_until forever
