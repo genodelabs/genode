@@ -113,7 +113,7 @@ platform requirements and success conditions). Furthermore for managing
 package depots, Genode already provides a comprehensive set of well-tested
 tools, most noteworthy in this context the depot-query application. This
 component makes querying the contents of packages as easy as writing the
-package path to a report and awaiting an according blueprint through a ROM
+package path to a report and awaiting the resulting blueprint through a ROM
 dataspace. That said, the choice of the back-end mechanism was clear and
 consequently, we named the new component _depot autopilot_.
 
