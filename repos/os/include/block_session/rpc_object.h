@@ -57,7 +57,7 @@ class Block::Session_rpc_object : public Genode::Rpc_object<Session, Session_rpc
 		 * This method is called by the client via an RPC call at session
 		 * construction time.
 		 */
-		Genode::Capability<Tx> _tx_cap() { return _tx.cap(); }
+		Genode::Capability<Tx> tx_cap() override { return _tx.cap(); }
 
 		Tx::Sink *tx_sink() { return _tx.sink(); }
 };

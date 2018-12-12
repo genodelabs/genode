@@ -41,7 +41,7 @@ class Block::Session_client : public Genode::Rpc_client<Session>
 		               Genode::Region_map      &rm)
 		:
 			Genode::Rpc_client<Session>(session),
-			_tx(call<Rpc_tx_cap>(), rm, tx_buffer_alloc)
+			_tx(tx_cap(), rm, tx_buffer_alloc)
 		{ }
 
 
@@ -56,8 +56,12 @@ class Block::Session_client : public Genode::Rpc_client<Session>
 		}
 
 		Tx *tx_channel() { return &_tx; }
+
 		Tx::Source *tx() { return _tx.source(); }
+
 		void sync() override { call<Rpc_sync>(); }
+
+		Genode::Capability<Tx> tx_cap() override { return call<Rpc_tx_cap>(); }
 
 		/*
 		 * Wrapper for alloc_packet, allocates 2KB aligned packets

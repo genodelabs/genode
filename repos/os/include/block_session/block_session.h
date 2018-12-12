@@ -162,6 +162,11 @@ struct Block::Session : public Genode::Session
 	 */
 	virtual Tx::Source *tx() { return 0; }
 
+	/**
+	 * Return capability for packet-transmission channel
+	 */
+	virtual Genode::Capability<Tx> tx_cap() = 0;
+
 
 	/*******************
 	 ** RPC interface **
@@ -169,7 +174,7 @@ struct Block::Session : public Genode::Session
 
 	GENODE_RPC(Rpc_info, void, info, Block::sector_t *,
 	           Genode::size_t *, Operations *);
-	GENODE_RPC(Rpc_tx_cap, Genode::Capability<Tx>, _tx_cap);
+	GENODE_RPC(Rpc_tx_cap, Genode::Capability<Tx>, tx_cap);
 	GENODE_RPC(Rpc_sync, void, sync);
 	GENODE_RPC_INTERFACE(Rpc_info, Rpc_tx_cap, Rpc_sync);
 };
