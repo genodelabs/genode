@@ -47,7 +47,7 @@ namespace Decorator {
 /**
  * Abstract interface of graphics back end
  */
-struct Decorator::Canvas_base
+struct Decorator::Canvas_base : Interface
 {
 	virtual Rect clip() const = 0;
 	virtual void clip(Rect) = 0;

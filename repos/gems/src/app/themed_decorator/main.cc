@@ -56,9 +56,9 @@ struct Decorator::Main : Window_factory_base
 	Signal_handler<Main> _pointer_handler = {
 		_env.ep(), *this, &Main::_handle_pointer_update };
 
-	Constructible<Attached_rom_dataspace> _pointer;
+	Constructible<Attached_rom_dataspace> _pointer { };
 
-	Window_base::Hover _hover;
+	Window_base::Hover _hover { };
 
 	Reporter _hover_reporter = { _env, "hover" };
 
@@ -69,7 +69,7 @@ struct Decorator::Main : Window_factory_base
 
 	bool _window_layout_update_needed = false;
 
-	Animator _animator;
+	Animator _animator { };
 
 	Heap _heap { _env.ram(), _env.rm() };
 
@@ -258,14 +258,14 @@ void Decorator::Main::_handle_nitpicker_sync()
 
 	bool model_updated = false;
 
+	auto flush_window_stack_changes = [&] () {
+		_window_stack.update_nitpicker_views(); };
+
 	if (_window_layout_update_needed && _window_layout.valid()) {
 
 		try {
 			Xml_node xml(_window_layout.local_addr<char>(),
 			             _window_layout.size());
-
-			auto flush_window_stack_changes = [&] () {
-				_window_stack.update_nitpicker_views(); };
 
 			_window_stack.update_model(xml, flush_window_stack_changes);
 
@@ -285,7 +285,8 @@ void Decorator::Main::_handle_nitpicker_sync()
 			 * An error occured with processing the XML model. Flush the
 			 * internal representation.
 			 */
-			_window_stack.flush();
+			_window_stack.update_model(Xml_node("<window_layout/>"),
+			                           flush_window_stack_changes);
 		}
 
 		_window_layout_update_needed = false;

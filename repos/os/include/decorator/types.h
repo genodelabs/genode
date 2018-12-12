@@ -21,6 +21,8 @@
 #include <util/geometry.h>
 #include <util/color.h>
 #include <util/dirty_rect.h>
+#include <util/list_model.h>
+#include <util/interface.h>
 #include <os/surface.h>
 
 namespace Decorator {
@@ -34,6 +36,8 @@ namespace Decorator {
 	using Genode::size_t;
 	using Genode::Color;
 	using Genode::Xml_node;
+	using Genode::List_model;
+	using Genode::Interface;
 }
 
 #endif /* _INCLUDE__DECORATOR__TYPES_H_ */

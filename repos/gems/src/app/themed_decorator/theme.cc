@@ -120,6 +120,8 @@ Decorator::Area Decorator::Theme::background_size() const
 struct Margins_from_metadata : Decorator::Theme::Margins
 {
 	Margins_from_metadata(char const *sub_node, Genode::Allocator &alloc)
+	:
+		Decorator::Theme::Margins()
 	{
 		Genode::Xml_node aura = metadata(alloc).sub_node(sub_node);
 		top    = aura.attribute_value("top",    0UL);
@@ -259,7 +261,7 @@ void Decorator::Theme::draw_background(Decorator::Pixel_surface &pixel_surface,
 
 
 void Decorator::Theme::draw_title(Decorator::Pixel_surface &pixel_surface,
-                                  Decorator::Alpha_surface &alpha_surface,
+                                  Decorator::Alpha_surface &,
                                   char const *title) const
 {
 	/* skip title drawing if the metadata lacks a title declaration */

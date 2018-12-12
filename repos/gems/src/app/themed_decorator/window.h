@@ -55,11 +55,9 @@ class Decorator::Window : public Window_base, public Animator::Item
 		 */
 		bool _nitpicker_views_up_to_date = false;
 
-		Nitpicker::Session::View_handle _neighbor;
-
 		unsigned _topped_cnt = 0;
 
-		Window_title _title;
+		Window_title _title { };
 
 		bool _focused = false;
 
@@ -67,63 +65,73 @@ class Decorator::Window : public Window_base, public Animator::Item
 
 		Animator &_animator;
 
-		struct Element : Animator::Item
+		class Element : public Animator::Item
 		{
-			Theme::Element_type const type;
+			private:
 
-			char const * const attr;
+				/*
+				 * Noncopyable
+				 */
+				Element(Element const &);
+				Element & operator = (Element const &);
 
-			bool _highlighted = false;
-			bool _present = false;
+				bool _highlighted = false;
+				bool _present = false;
 
-			Lazy_value<int> alpha = 0;
+				int _alpha_dst() const
+				{
+					if (!_present)
+						return 0;
 
-			int _alpha_dst() const
-			{
-				if (!_present)
-					return 0;
+					return _highlighted ? 255 : 150;
+				}
 
-				return _highlighted ? 255 : 150;
-			}
+				void _update_alpha_dst()
+				{
+					if ((int)alpha == _alpha_dst())
+						return;
 
-			void _update_alpha_dst()
-			{
-				if ((int)alpha == _alpha_dst())
-					return;
+					alpha.dst(_alpha_dst(), 20);
+					animate();
+				}
 
-				alpha.dst(_alpha_dst(), 20);
-				animate();
-			}
+			public:
 
-			void highlighted(bool highlighted)
-			{
-				_highlighted = highlighted;
-				_update_alpha_dst();
-			}
+				Theme::Element_type const type;
 
-			bool highlighted() const { return _highlighted; }
+				char const * const attr;
 
-			void present(bool present)
-			{
-				_present = present;
-				_update_alpha_dst();
-			}
+				Lazy_value<int> alpha = 0;
 
-			bool present() const { return _present; }
+				void highlighted(bool highlighted)
+				{
+					_highlighted = highlighted;
+					_update_alpha_dst();
+				}
 
-			void animate() override
-			{
-				alpha.animate();
-				animated((int)alpha != alpha.dst());
-			}
+				bool highlighted() const { return _highlighted; }
 
-			Element(Animator &animator, Theme::Element_type type, char const *attr)
-			:
-				Animator::Item(animator),
-				type(type), attr(attr)
-			{
-				_update_alpha_dst();
-			}
+				void present(bool present)
+				{
+					_present = present;
+					_update_alpha_dst();
+				}
+
+				bool present() const { return _present; }
+
+				void animate() override
+				{
+					alpha.animate();
+					animated((int)alpha != alpha.dst());
+				}
+
+				Element(Animator &animator, Theme::Element_type type, char const *attr)
+				:
+					Animator::Item(animator),
+					type(type), attr(attr)
+				{
+					_update_alpha_dst();
+				}
 		};
 
 		Element _closer    { _animator, Theme::ELEMENT_TYPE_CLOSER,    "closer" };
@@ -139,7 +147,6 @@ class Decorator::Window : public Window_base, public Animator::Item
 		struct Nitpicker_view
 		{
 			typedef Nitpicker::Session::Command Command;
-			typedef Nitpicker::Session::View_handle View_handle;
 
 			bool const _view_is_remote;
 
@@ -202,6 +209,11 @@ class Decorator::Window : public Window_base, public Animator::Item
 				_nitpicker.enqueue<Command::To_front>(_handle, neighbor);
 			}
 
+			void stack_back_most()
+			{
+				_nitpicker.enqueue<Command::To_back>(_handle, View_handle());
+			}
+
 			void place(Rect rect, Point offset)
 			{
 				_nitpicker.enqueue<Command::Geometry>(_handle, rect);
@@ -223,7 +235,7 @@ class Decorator::Window : public Window_base, public Animator::Item
 		 * represent the fractional part to enable smooth
 		 * interpolation between the color values.
 		 */
-		Lazy_value<int> _r, _g, _b;
+		Lazy_value<int> _r { }, _g { }, _b { };
 
 		Color _color() const { return Color(_r >> 4, _g >> 4, _b >> 4); }
 
@@ -232,14 +244,14 @@ class Decorator::Window : public Window_base, public Animator::Item
 		 * decorations.
 		 */
 		Nitpicker::Connection _nitpicker_top_bottom { _env };
-		Genode::Constructible<Nitpicker_buffer> _buffer_top_bottom;
+		Genode::Constructible<Nitpicker_buffer> _buffer_top_bottom { };
 
 		/**
 		 * Nitpicker session that contains the left and right window
 		 * decorations.
 		 */
 		Nitpicker::Connection _nitpicker_left_right { _env };
-		Genode::Constructible<Nitpicker_buffer> _buffer_left_right;
+		Genode::Constructible<Nitpicker_buffer> _buffer_left_right { };
 
 		Nitpicker_view _bottom_view { _nitpicker, _nitpicker_top_bottom },
 		               _right_view  { _nitpicker, _nitpicker_left_right },
@@ -313,6 +325,14 @@ class Decorator::Window : public Window_base, public Animator::Item
 			_b.dst(_base_color.b << 4, 20);
 		}
 
+		void _stack_decoration_views()
+		{
+			_top_view.stack(_content_view.handle());
+			_left_view.stack(_top_view.handle());
+			_right_view.stack(_left_view.handle());
+			_bottom_view.stack(_right_view.handle());
+		}
+
 	public:
 
 		Window(Genode::Env &env, unsigned id, Nitpicker::Session_client &nitpicker,
@@ -328,20 +348,27 @@ class Decorator::Window : public Window_base, public Animator::Item
 			animate();
 		}
 
-		void stack(Nitpicker::Session::View_handle neighbor) override
+		void stack(View_handle neighbor) override
 		{
-			_neighbor = neighbor;
+			_content_view.stack(neighbor);
+			_stack_decoration_views();
 
-			_top_view.stack(neighbor);
-			_left_view.stack(_top_view.handle());
-			_right_view.stack(_left_view.handle());
-			_bottom_view.stack(_right_view.handle());
-			_content_view.stack(_bottom_view.handle());
+		}
+		void stack_front_most() override
+		{
+			_content_view.stack(View_handle());
+			_stack_decoration_views();
 		}
 
-		Nitpicker::Session::View_handle frontmost_view() const override
+		void stack_back_most() override
 		{
-			return _content_view.handle();
+			_content_view.stack_back_most();
+			_stack_decoration_views();
+		}
+
+		View_handle frontmost_view() const override
+		{
+			return _bottom_view.handle();
 		}
 
 		Rect _decor_geometry() const
@@ -369,11 +396,6 @@ class Decorator::Window : public Window_base, public Animator::Item
 		void border_rects(Rect *top, Rect *left, Rect *right, Rect *bottom) const
 		{
 			outer_geometry().cut(geometry(), top, left, right, bottom);
-		}
-
-		bool in_front_of(Window_base const &neighbor) const override
-		{
-			return _neighbor == neighbor.frontmost_view();
 		}
 
 		void update_nitpicker_views() override
@@ -405,23 +427,9 @@ class Decorator::Window : public Window_base, public Animator::Item
 			animate();
 		}
 
-		bool update(Xml_node window_node, bool new_top_most) override
+		bool update(Xml_node window_node) override
 		{
 			bool updated = false;
-
-			/*
-			 * Detect the need to bring the window to the top of the global
-			 * view stack.
-			 */
-			unsigned const topped_cnt = attribute(window_node, "topped", 0UL);
-			if (topped_cnt != _topped_cnt || new_top_most) {
-
-				_topped_cnt = topped_cnt;
-
-				stack(Nitpicker::Session::View_handle());
-
-				updated = true;
-			}
 
 			bool trigger_animation = false;
 

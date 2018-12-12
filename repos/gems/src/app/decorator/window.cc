@@ -94,7 +94,7 @@ void Decorator::Window::draw(Decorator::Canvas_base &canvas,
 	Point right_pos = controls_rect.p1() + Point(controls_rect.w() - _icon_size.w(), 0);
 
 	if (_controls.num() > 0) {
-		for (unsigned i = _controls.num() - 1; i >= 0; i--) {
+		for (int i = _controls.num() - 1; i >= 0; i--) {
 
 			Control control = _controls.control(i);
 
@@ -193,22 +193,9 @@ void Decorator::Window::draw(Decorator::Canvas_base &canvas,
 }
 
 
-bool Decorator::Window::update(Genode::Xml_node window_node, bool new_top_most)
+bool Decorator::Window::update(Genode::Xml_node window_node)
 {
 	bool updated = false;
-
-	/*
-	 * Detect the need to bring the window to the top of the global
-	 * view stack.
-	 */
-	unsigned const topped_cnt = attribute(window_node, "topped", 0UL);
-	if (topped_cnt != _topped_cnt || new_top_most) {
-
-		_topped_cnt = topped_cnt;
-
-		stack(Nitpicker::Session::View_handle());
-		updated |= true;
-	}
 
 	/*
 	 * Detect geometry changes
@@ -276,13 +263,13 @@ bool Decorator::Window::update(Genode::Xml_node window_node, bool new_top_most)
 		Xml_node highlight = window_node.sub_node("highlight");
 
 		for (unsigned i = 0; i < num_elements(); i++)
-			updated |= _apply_state(_elements[i].type(), _focused,
+			updated |= _apply_state(_elements[i].type(),
 			                        highlight.has_sub_node(_elements[i].type_name()));
 	} catch (...) {
 
 		/* window node has no "highlight" sub node, reset highlighting */
 		for (unsigned i = 0; i < num_elements(); i++)
-			updated |= _apply_state(_elements[i].type(), _focused, false);
+			updated |= _apply_state(_elements[i].type(), false);
 	}
 
 	return updated;
@@ -354,7 +341,7 @@ Decorator::Window_base::Hover Decorator::Window::hover(Point abs_pos) const
 				Point pos = titlbar_pos +
 				            Point(area.w() - _border_size - _icon_size.w(), 0);
 
-				for (unsigned i = _controls.num() - 1; i >= 0; i--) {
+				for (int i = _controls.num() - 1; i >= 0; i--) {
 
 					/* controls end when we reach the title */
 					if (_controls.control(i).type() == Control::TYPE_TITLE)

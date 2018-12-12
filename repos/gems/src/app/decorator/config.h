@@ -82,6 +82,12 @@ class Decorator::Config
 
 	private:
 
+		/**
+		 * Noncopyable
+		 */
+		Config(Config const &);
+		Config & operator = (Config const &);
+
 		Genode::Allocator &_alloc;
 
 		Reconstructible<Genode::Buffered_xml> _buffered_config;

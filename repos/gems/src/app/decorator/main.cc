@@ -41,15 +41,40 @@ struct Decorator::Main : Window_factory_base
 
 	Nitpicker::Connection _nitpicker { _env };
 
-	Framebuffer::Mode _mode = { _nitpicker.mode() };
+	struct Canvas
+	{
+		Framebuffer::Mode         const mode;
+		Attached_dataspace              fb_ds;
+		Decorator::Canvas<Pixel_rgb565> canvas;
 
-	Attached_dataspace _fb_ds = { _env.rm(),
-	                              (_nitpicker.buffer(_mode, false),
-	                               _nitpicker.framebuffer()->dataspace()) };
+		Canvas(Env &env, Nitpicker::Connection &nitpicker)
+		:
+			mode(nitpicker.mode()),
+			fb_ds(env.rm(),
+			      (nitpicker.buffer(mode, false), nitpicker.framebuffer()->dataspace())),
+			canvas(fb_ds.local_addr<Pixel_rgb565>(),
+			       Area(mode.width(), mode.height()),
+			       env.ram(), env.rm())
+		{ }
+	};
 
-	Canvas<Pixel_rgb565> _canvas = { _fb_ds.local_addr<Pixel_rgb565>(),
-	                                 Area(_mode.width(), _mode.height()),
-	                                 _env.ram(), _env.rm() };
+	Reconstructible<Canvas> _canvas { _env, _nitpicker };
+
+	Signal_handler<Main> _mode_handler { _env.ep(), *this, &Main::_handle_mode };
+
+	void _handle_mode()
+	{
+		_canvas.construct(_env, _nitpicker);
+
+		_window_stack.mark_as_dirty(Rect(Point(0, 0),
+		                            Area(_canvas->mode.width(),
+		                                 _canvas->mode.height())));
+
+		Dirty_rect dirty = _window_stack.draw(_canvas->canvas);
+
+		dirty.flush([&] (Rect const &r) {
+			_nitpicker.framebuffer()->refresh(r.x1(), r.y1(), r.w(), r.h()); });
+	}
 
 	Window_stack _window_stack = { *this };
 
@@ -73,7 +98,7 @@ struct Decorator::Main : Window_factory_base
 
 	Attached_rom_dataspace _pointer { _env, "pointer" };
 
-	Window_base::Hover _hover;
+	Window_base::Hover _hover { };
 
 	Reporter _hover_reporter = { _env, "hover" };
 
@@ -81,7 +106,7 @@ struct Decorator::Main : Window_factory_base
 
 	Reporter _decorator_margins_reporter = { _env, "decorator_margins" };
 
-	Animator _animator;
+	Animator _animator { };
 
 	/**
 	 * Process the update every 'frame_period' nitpicker sync signals. The
@@ -123,6 +148,8 @@ struct Decorator::Main : Window_factory_base
 	{
 		_config.sigh(_config_handler);
 		_handle_config();
+
+		_nitpicker.mode_sigh(_mode_handler);
 
 		_window_layout.sigh(_window_layout_handler);
 		_pointer.sigh(_pointer_handler);
@@ -264,13 +291,13 @@ void Decorator::Main::_handle_nitpicker_sync()
 
 	bool model_updated = false;
 
+	auto flush_window_stack_changes = [&] () { };
+
 	if (_window_layout_update_needed && _window_layout.valid()) {
 
 		try {
 			Xml_node xml(_window_layout.local_addr<char>(),
 			             _window_layout.size());
-
-			auto flush_window_stack_changes = [&] () { };
 
 			_window_stack.update_model(xml, flush_window_stack_changes);
 
@@ -288,9 +315,10 @@ void Decorator::Main::_handle_nitpicker_sync()
 
 			/*
 			 * An error occured with processing the XML model. Flush the
-			 * internal representation.
+			 * internal representation with an empty window layout.
 			 */
-			_window_stack.flush();
+			_window_stack.update_model(Xml_node("<window_layout/>"),
+			                           flush_window_stack_changes);
 		}
 
 		_window_layout_update_needed = false;
@@ -309,7 +337,7 @@ void Decorator::Main::_handle_nitpicker_sync()
 	if (!model_updated && !windows_animated)
 		return;
 
-	Dirty_rect dirty = _window_stack.draw(_canvas);
+	Dirty_rect dirty = _window_stack.draw(_canvas->canvas);
 
 	_window_stack.update_nitpicker_views();
 

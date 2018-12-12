@@ -22,7 +22,7 @@ namespace Decorator {
 }
 
 
-struct Decorator::Window_factory_base
+struct Decorator::Window_factory_base : Interface
 {
 	virtual Window_base *create  (Xml_node) = 0;
 	virtual void         destroy (Window_base *) = 0;

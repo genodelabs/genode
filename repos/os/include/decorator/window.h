@@ -15,9 +15,9 @@
 #define _INCLUDE__DECORATOR__WINDOW_H_
 
 /* Genode includes */
-#include <util/list.h>
 #include <util/string.h>
 #include <util/xml_generator.h>
+#include <util/list_model.h>
 #include <nitpicker_session/client.h>
 #include <base/snprintf.h>
 
@@ -29,13 +29,17 @@
 namespace Decorator {
 	class Canvas_base;
 	class Window_base;
-	typedef Genode::List<Window_base> Window_list;
+
+	typedef Genode::List<Genode::List_element<Window_base> > Abandoned_windows;
+	typedef Genode::List<Genode::List_element<Window_base> > Reversed_windows;
 }
 
 
-class Decorator::Window_base : public Window_list::Element
+class Decorator::Window_base : private Genode::List_model<Window_base>::Element
 {
 	public:
+
+		typedef Nitpicker::Session::View_handle View_handle;
 
 		struct Border
 		{
@@ -80,39 +84,83 @@ class Decorator::Window_base : public Window_list::Element
 		 * This functor is used for drawing the decorations of partially
 		 * transparent windows. It is implemented by the window stack.
 		 */
-		struct Draw_behind_fn
+		struct Draw_behind_fn : Interface
 		{
 			virtual void draw_behind(Canvas_base &, Window_base const &, Rect) const = 0;
 		};
 
 	private:
 
+		/* allow 'List_model' to access 'List_model::Element' */
+		friend class Genode::List_model<Window_base>;
+		friend class Genode::List<Window_base>;
+
 		/*
 		 * Geometry of content
 		 */
-		Rect _geometry;
+		Rect _geometry { };
 
 		/*
 		 * Unique window ID
 		 */
 		unsigned const _id;
 
+		bool _stacked = false;
+
+		/*
+		 * View immediately behind the window
+		 */
+		View_handle _neighbor { };
+
+		Genode::List_element<Window_base> _abandoned { this };
+
+		Genode::List_element<Window_base> _reversed { this };
+
 	public:
 
 		Window_base(unsigned id) : _id(id) { }
 
+		virtual ~Window_base() { }
+
+		void abandon(Abandoned_windows &abandoned_windows)
+		{
+			abandoned_windows.insert(&_abandoned);
+		}
+
+		void prepend_to_reverse_list(Reversed_windows &window_list)
+		{
+			window_list.insert(&_reversed);
+		}
+
+		using List_model<Window_base>::Element::next;
+
 		unsigned long id()       const { return _id; }
 		Rect          geometry() const { return _geometry; }
+
+		void stacking_neighbor(View_handle neighbor)
+		{
+			_neighbor = neighbor;
+			_stacked  = true;
+		}
+
+		bool stacked() const { return _stacked; }
+
+		bool in_front_of(Window_base const &neighbor) const
+		{
+			return _neighbor == neighbor.frontmost_view();
+		}
 
 		void geometry(Rect geometry) { _geometry = geometry; }
 
 		virtual Rect outer_geometry() const = 0;
 
-		virtual void stack(Nitpicker::Session::View_handle neighbor) = 0;
+		virtual void stack(View_handle neighbor) = 0;
 
-		virtual Nitpicker::Session::View_handle frontmost_view() const = 0;
+		virtual void stack_front_most() = 0;
 
-		virtual bool in_front_of(Window_base const &neighbor) const = 0;
+		virtual void stack_back_most() = 0;
+
+		virtual View_handle frontmost_view() const = 0;
 
 		/**
 		 * Draw window elements
@@ -125,10 +173,6 @@ class Decorator::Window_base : public Window_list::Element
 		/**
 		 * Update internal window representation from XML model
 		 *
-		 * \param new_top_most  true if window became the new top-most
-		 *                      window, which should prompt a corresponding
-		 *                      nitpicker stacking operation.
-		 *
 		 * \return true if window changed
 		 *
 		 * We do not immediately update the views as part of the update
@@ -136,7 +180,7 @@ class Decorator::Window_base : public Window_list::Element
 		 * decorations haven't been redrawn already. If we updated the
 		 * nitpicker views at this point, we would reveal not-yet-drawn pixels.
 		 */
-		virtual bool update(Xml_node window_node, bool new_top_most) = 0;
+		virtual bool update(Xml_node window_node) = 0;
 
 		virtual void update_nitpicker_views() { }
 

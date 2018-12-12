@@ -37,12 +37,11 @@ class Decorator::Window : public Window_base
 		 */
 		bool _nitpicker_views_up_to_date = false;
 
-		Nitpicker::Session::View_handle _neighbor;
-
 		struct Nitpicker_view
 		{
-			Nitpicker::Session_client      &_nitpicker;
-			Nitpicker::Session::View_handle _handle { _nitpicker.create_view() };
+			Nitpicker::Session_client &_nitpicker;
+
+			View_handle _handle { _nitpicker.create_view() };
 
 			typedef Nitpicker::Session::Command Command;
 
@@ -66,11 +65,16 @@ class Decorator::Window : public Window_base
 				_nitpicker.destroy_view(_handle);
 			}
 
-			Nitpicker::Session::View_handle handle() const { return _handle; }
+			View_handle handle() const { return _handle; }
 
-			void stack(Nitpicker::Session::View_handle neighbor)
+			void stack(View_handle neighbor)
 			{
 				_nitpicker.enqueue<Command::To_front>(_handle, neighbor);
+			}
+
+			void stack_back_most()
+			{
+				_nitpicker.enqueue<Command::To_back>(_handle, View_handle());
 			}
 
 			void place(Rect rect)
@@ -96,7 +100,7 @@ class Decorator::Window : public Window_base
 
 		unsigned _topped_cnt = 0;
 
-		Window_title _title;
+		Window_title _title { };
 
 		bool _focused = false;
 
@@ -157,7 +161,7 @@ class Decorator::Window : public Window_base
 
 		unsigned num_elements() const { return sizeof(_elements)/sizeof(Element); }
 
-		bool _apply_state(Window::Element::Type type, bool focused, bool highlighted)
+		bool _apply_state(Window::Element::Type type, bool highlighted)
 		{
 			return element(type).apply_state(_focused, highlighted, _base_color);
 		}
@@ -172,7 +176,7 @@ class Decorator::Window : public Window_base
 
 			private:
 
-				Control _controls[MAX_CONTROLS];
+				Control _controls[MAX_CONTROLS] { };
 	
 				unsigned _num = 0;
 
@@ -214,7 +218,7 @@ class Decorator::Window : public Window_base
 				}
 		};
 
-		Controls _controls;
+		Controls _controls { };
 
 
 		/***********************
@@ -387,6 +391,14 @@ class Decorator::Window : public Window_base
 			                    _window_control_texture(control));
 		}
 
+		void _stack_decoration_views()
+		{
+			_top_view.stack(_content_view.handle());
+			_left_view.stack(_top_view.handle());
+			_right_view.stack(_left_view.handle());
+			_bottom_view.stack(_right_view.handle());
+		}
+
 	public:
 
 		Window(unsigned id, Nitpicker::Session_client &nitpicker,
@@ -404,21 +416,27 @@ class Decorator::Window : public Window_base
 		{
 			return Border(_border_size + _title_height,
 			              _border_size, _border_size, _border_size);
-
 		}
 
-		void stack(Nitpicker::Session::View_handle neighbor) override
+		void stack(View_handle neighbor) override
 		{
-			_neighbor = neighbor;
-
 			_content_view.stack(neighbor);
-			_top_view.stack(_content_view.handle());
-			_left_view.stack(_top_view.handle());
-			_right_view.stack(_left_view.handle());
-			_bottom_view.stack(_right_view.handle());
+			_stack_decoration_views();
 		}
 
-		Nitpicker::Session::View_handle frontmost_view() const override
+		void stack_front_most() override
+		{
+			_content_view.stack(View_handle());
+			_stack_decoration_views();
+		}
+
+		void stack_back_most() override
+		{
+			_content_view.stack_back_most();
+			_stack_decoration_views();
+		}
+
+		View_handle frontmost_view() const override
 		{
 			return _bottom_view.handle();
 		}
@@ -432,11 +450,6 @@ class Decorator::Window : public Window_base
 		void border_rects(Rect *top, Rect *left, Rect *right, Rect *bottom) const
 		{
 			outer_geometry().cut(geometry(), top, left, right, bottom);
-		}
-
-		bool in_front_of(Window_base const &neighbor) const override
-		{
-			return _neighbor == neighbor.frontmost_view();
 		}
 
 		void update_nitpicker_views() override
@@ -464,7 +477,7 @@ class Decorator::Window : public Window_base
 
 		void draw(Canvas_base &canvas, Rect clip, Draw_behind_fn const &) const override;
 
-		bool update(Xml_node, bool) override;
+		bool update(Xml_node) override;
 
 		Hover hover(Point) const override;
 

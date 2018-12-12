@@ -44,19 +44,19 @@ class Decorator::Window_element : public Animator::Item
 			             Genode::min(c1.b + c2.b, 255));
 		}
 
-		Type _type;
+		Type const _type;
 
 		/*
 		 * Rememeber base color to detect when it changes
 		 */
-		Color _base_color;
+		Color _base_color { };
 
 		/*
 		 * Color value in 8.4 fixpoint format. We use four bits to
 		 * represent the fractional part to enable smooth
 		 * interpolation between the color values.
 		 */
-		Lazy_value<int> _r, _g, _b;
+		Lazy_value<int> _r { }, _g { }, _b { };
 
 		bool _focused     = false;
 		bool _highlighted = false;
