@@ -24,7 +24,7 @@ void Component::construct(Genode::Env &env)
 	Timer::Connection timer(env);
 	for (unsigned i = 0; ; i++) {
 		timer.msleep(100);
-		Thread::trace(String<32>(i, " ", Trace::timestamp()).string());
+		Thread::trace(String<32>(i, " ").string());
 	}
 	env.parent().exit(0);
 }
