@@ -1,0 +1,62 @@
+build { core init timer test/block_request_stream app/block_tester }
+
+create_boot_directory
+
+install_config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="RAM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+
+	<default caps="100"/>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+
+	<start name="test-block_request_stream">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Block"/></provides>
+		<config/>
+		<route> <any-service> <parent/> </any-service> </route>
+	</start>
+
+	<start name="block_tester">
+		<resource name="RAM" quantum="32M"/>
+		<config verbose="yes" report="no" log="yes" stop_on_error="no">
+			<tests>
+				<sequential length="1M" size="4K" synchronous="yes"/>
+				<sequential length="1M" size="8K" synchronous="yes"/>
+				<sequential length="1M" size="16K"/>
+				<sequential length="1M" size="64K"/>
+				<sequential length="1M" size="128K"/>
+				<sequential length="1M" size="4K" synchronous="yes" write="yes"/>
+				<sequential length="1M" size="64K" write="yes" synchronous="yes"/>
+			</tests>
+		</config>
+		<route>
+			<service name="Block"> <child name="test-block_request_stream"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+</config>}
+
+
+build_boot_image { core init timer block_tester test-block_request_stream ld.lib.so }
+
+
+append qemu_args " -nographic -m 512 "
+
+run_genode_until {.*child "block_tester" exited with exit value 0.*\n} 360
