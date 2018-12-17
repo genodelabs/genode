@@ -468,27 +468,54 @@ Region_map_component::attach(Dataspace_capability ds_cap, size_t size,
 }
 
 
-static void unmap_managed(Region_map_component *rm, Rm_region *region, int level)
+addr_t Region_map_component::_core_local_addr(Rm_region & region)
 {
-	for (Rm_region *managed = rm->dataspace_component()->regions()->first();
-	     managed;
-	     managed = managed->List<Rm_region>::Element::next()) {
+	/**
+	 * If this region references a managed dataspace,
+	 * we have to recursively request the core-local address
+	 */
+	if (region.dataspace()->sub_rm().valid()) {
+		auto lambda = [&] (Region_map_component * rmc) -> addr_t
+		{
+			/**
+			 * It is possible that there is no dataspace attached
+			 * inside the managed dataspace, in that case return zero.
+			 */
+			Rm_region * r = rmc ? rmc->_map.metadata((void*)region.offset())
+			                    : nullptr;;
+			return r ? rmc->_core_local_addr(*r) : 0;
+		};
+		return _session_ep->apply(region.dataspace()->sub_rm(), lambda);
+	}
 
-		if (managed->base() - managed->offset() >= region->base() - region->offset()
-		    && managed->base() - managed->offset() + managed->size()
-		       <= region->base() - region->offset() + region->size())
-			unmap_managed(managed->rm(), managed, level + 1);
+	/* return core-local address of dataspace + region offset */
+	return region.dataspace()->core_local_addr() + region.offset();
+}
 
-		if (!managed->rm()->address_space())
-			continue;
 
-		/* found a leaf node (here a leaf is an Region_map whose dataspace has no regions) */
+void Region_map_component::_unmap_region(addr_t base, size_t size)
+{
+	if (address_space()) address_space()->flush(base, size, { 0 });
 
-		Address_space::Core_local_addr core_local
-			= { region->dataspace()->core_local_addr() + region->offset() };
-		managed->rm()->address_space()->flush(managed->base() + region->base() -
-		                                      managed->offset(),
-		                                      region->size(), core_local);
+	/**
+	 * Iterate over all regions that reference this region map
+	 * as managed dataspace
+	 */
+	for (Rm_region * r = dataspace_component()->regions()->first();
+	     r; r = r->List<Rm_region>::Element::next()) {
+
+		/**
+		 * Check whether the region referencing the managed dataspace
+		 * and the region to unmap overlap
+		 */
+		addr_t ds_base = max((addr_t)r->offset(), base);
+		addr_t ds_end  = min((addr_t)r->offset()+r->size(), base+size);
+		size_t ds_size = ds_base < ds_end ? ds_end - ds_base : 0;
+
+		/* if size is not zero, there is an overlap */
+		if (ds_size)
+			r->rm()->_unmap_region(r->base() + ds_base - r->offset(),
+			                           ds_size);
 	}
 }
 
@@ -519,7 +546,6 @@ void Region_map_component::detach(Local_addr local_addr)
 		return;
 	}
 
-
 	/* inform dataspace about detachment */
 	dsc->detached_from(region_ptr);
 
@@ -530,54 +556,33 @@ void Region_map_component::detach(Local_addr local_addr)
 	Rm_region region = *region_ptr;
 
 	/*
-	 * Deallocate region on platforms that support unmap
-	 *
-	 * On platforms without support for unmap, the
-	 * same virtual address must not be reused. Hence, we never mark used
-	 * regions as free.
-	 *
 	 * We unregister the region from region map prior unmapping the pages to
 	 * make sure that page faults occurring immediately after the unmap
 	 * refer to an empty region not to the dataspace, which we just removed.
 	 */
-	if (platform()->supports_unmap())
-		_map.free(reinterpret_cast<void *>(region.base()));
+	_map.free(reinterpret_cast<void *>(region.base()));
 
-	/*
-	 * This function gets called from the destructor of 'Dataspace_component',
-	 * which iterates through all regions the dataspace is attached to. One
-	 * particular case is the destruction of an 'Region_map_component' and its
-	 * contained managed dataspace ('_ds') member. The type of this member is
-	 * derived from 'Dataspace_component' and provides the 'sub_region_map'
-	 * function, which can normally be used to distinguish managed dataspaces
-	 * from leaf dataspaces. However, at destruction time of the '_dsc' base
-	 * class, the vtable entry of 'sub_region_map' already points to the
-	 * base-class's function. Hence, we cannot check the return value of this
-	 * function to determine if the dataspace is a managed dataspace. Instead,
-	 * we introduced a dataspace member '_managed' with the non-virtual accessor
-	 * function 'managed'.
-	 */
+	if (!platform()->supports_direct_unmap()) {
 
-	if (_address_space) {
+		/*
+		 * Determine core local address of the region, where necessary.
+		 * If we can't retrieve it, it is not possible to unmap on kernels
+		 * that do not support direct unmap functionality, therefore return in that
+		 * case.
+		 * Otherwise calling flush with core_local address zero on kernels that
+		 * unmap indirectly via core's address space can lead to illegitime unmaps
+		 * of core memory (reference issue #3082)
+		 */
+		Address_space::Core_local_addr core_local { _core_local_addr(region) };
+		if (core_local.value)
+			platform_specific()->core_pd()->flush(0, region.size(), core_local);
+	} else {
 
-		if (!platform()->supports_direct_unmap() && dsc->managed() &&
-		    dsc->core_local_addr() == 0) {
-
-			if (_diag.enabled)
-				warning("unmapping of managed dataspaces not yet supported");
-
-		} else {
-			Address_space::Core_local_addr core_local
-				= { dsc->core_local_addr() + region.offset() };
-			_address_space->flush(region.base(), region.size(), core_local);
-		}
+		/*
+		 * Unmap this memory region from all region maps referencing it.
+		 */
+		_unmap_region(region.base(), region.size());
 	}
-
-	/*
-	 * If region map is used as nested dataspace, unmap this dataspace from all
-	 * region maps.
-	 */
-	unmap_managed(this, &region, 1);
 }
 
 
@@ -672,9 +677,16 @@ Region_map_component::Region_map_component(Rpc_entrypoint   &ep,
 
 Region_map_component::~Region_map_component()
 {
-	_ds_ep->dissolve(this);
-
 	lock_for_destruction();
+
+	/*
+	 * Normally, detaching ds from all regions maps is done in the
+	 * destructor of the dataspace. But we do it here explicitely
+	 * so that the regions refering this ds can retrieve it via
+	 * there capabilities before it gets dissolved in the next step.
+	 */
+	_ds.detach_from_rm_sessions();
+	_ds_ep->dissolve(this);
 
 	/* dissolve all clients from pager entrypoint */
 	Rm_client *cl;

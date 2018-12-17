@@ -33,7 +33,10 @@
 #include <core_mem_alloc.h>
 #include <translation_table.h>
 
-namespace Genode { class Platform; };
+namespace Genode {
+	class Address_space;
+	class Platform;
+};
 
 class Genode::Platform : public Genode::Platform_generic
 {
@@ -142,6 +145,7 @@ class Genode::Platform : public Genode::Platform_generic
 			while (1) { Kernel::stop_thread(); } };
 
 		bool supports_direct_unmap() const { return 1; }
+		Address_space * core_pd() { return nullptr; }
 
 		Affinity::Space affinity_space() const {
 			return Affinity::Space(_boot_info().cpus); }

@@ -24,6 +24,7 @@
 namespace Genode {
 	class Platform;
 	template <Genode::size_t> class Static_allocator;
+	class Address_space;
 }
 
 
@@ -256,8 +257,8 @@ class Genode::Platform : public Platform_generic
 		Affinity::Space affinity_space() const override {
 			return sel4_boot_info().numNodes; }
 
-		bool supports_unmap() override { return true; }
 		bool supports_direct_unmap() const override { return true; }
+		Address_space * core_pd() { return nullptr; }
 
 		/*******************
 		 ** seL4 specific **

@@ -81,11 +81,6 @@ namespace Genode {
 			virtual void wait_for_exit() = 0;
 
 			/**
-			 * Return true if platform supports unmap
-			 */
-			virtual bool supports_unmap() { return true; }
-
-			/**
 			 * Return true if platform supports direct unmap (no mapping db)
 			 */
 			virtual bool supports_direct_unmap() const { return false; }
