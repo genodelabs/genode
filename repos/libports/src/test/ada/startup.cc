@@ -8,6 +8,9 @@
 #include <base/log.h>
 #include <base/component.h>
 
+/* local includes */
+#include <machinery.h>
+
 /**
  * Declaration of the Ada main procedure
  */
@@ -37,6 +40,8 @@ extern "C" void __gnat_rcheck_CE_Overflow_Check()
 void Component::construct(Genode::Env &env)
 {
 	_ada_main();
+
+	test_spark_object_construction();
 
 	env.parent().exit(0);
 }
