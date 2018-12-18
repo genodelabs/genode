@@ -70,8 +70,8 @@ append_if [expr !$use_linux] config {
 	</start>}
 
 append_if $use_linux config {
-	<start name="ahci_drv">
-		<binary name="lx_block" ld="no"/>
+	<start name="ahci_drv" ld="no">
+		<binary name="lx_block"/>
 		<resource name="RAM" quantum="2G"/>
 		<provides><service name="Block"/></provides>
 		<config file="block.raw" block_size="512" writeable="yes"/>
