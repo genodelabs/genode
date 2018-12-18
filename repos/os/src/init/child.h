@@ -135,6 +135,21 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 		/* initialized in constructor, updated by 'apply_config' */
 		bool _heartbeat_enabled;
 
+		/*
+		 * Number of skipped heartbeats when last checked
+		 *
+		 * This variable is used for the triggering of state-report updates
+		 * due to heartbeat events.
+		 */
+		unsigned _last_skipped_heartbeats = 0;
+
+		/* return true if heartbeat tracking is active */
+		bool _heartbeat_expected() const
+		{
+			/* don't expect heartbeats from a child that is not yet complete */
+			return _heartbeat_enabled && (_state == STATE_ALIVE);
+		}
+
 		/**
 		 * Resources assigned to the child
 		 */
@@ -532,13 +547,21 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 
 		void heartbeat()
 		{
-			if (_heartbeat_enabled)
+			if (_heartbeat_expected())
 				_child.heartbeat();
+
+			unsigned const skipped_heartbeats = _child.skipped_heartbeats();
+
+			if (_last_skipped_heartbeats != skipped_heartbeats)
+				_report_update_trigger.trigger_report_update();
+
+			_last_skipped_heartbeats = skipped_heartbeats;
+
 		}
 
 		unsigned skipped_heartbeats() const
 		{
-			return _heartbeat_enabled ? _child.skipped_heartbeats() : 0;
+			return _heartbeat_expected() ? _child.skipped_heartbeats() : 0;
 		}
 
 		void report_state(Xml_generator &xml, Report_detail const &detail) const;
