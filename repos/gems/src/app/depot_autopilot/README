@@ -20,22 +20,21 @@ provided:
   platforms are comparable
 
 
-The Depot Autopilot is accompanied by the run script
+The Depot Autopilot is accompanied by the Run script
 'repos/gems/run/depot_autopilot.run' which doesn't describe a classical test
-but rather helps integrating the Autopilot into a linux-based test
+but rather helps integrating the Autopilot into a Linux-based test
 environment. The run script provides the following features:
 
-* The user only lists the desired test packages and selectively defines the
-  platform compatibility for tests where this is necessary
-* The run script executes the Autopilot scenario on the target platform,
-  repeadedly if necessary, until an overview with all tests can be presented
-* Each time the system gets booted, the Autopilot is configured only with
-  the remaining tests
-* Tests that caused the run script to re-boot the target platform are listed
-  as "failed" with cause "reboot" in the overview
-* Exits with 0 if a complete overview can be accomplished and all tests are
-  either "ok" or "skipped" and otherwise with a value < 0
-* Provides a convenient interface for debugging single tests
+* Creates a complete Autopilot scenario from a list of local test packages
+* Optional platform dependencies can be defined for each test package
+* Simple interface for selectively using test ingredients built from source
+* Can be combined with a list of source packages and gcov to show test coverage
+* Exits with 0 if all tests are either "ok" or "skipped", otherwise with < 0
+* The target is re-booted if the scenario gets stuck
+* On each re-boot the Autopilot is configured only with the remaining tests
+* Tests that caused a re-boot are listed as "failed" with cause "reboot"
+* The final Autopilot result overview reflects all results from all boots
+* If a complete result overview can't be obtained, a partial one is simulated
 
 
 Depot Autopilot component
@@ -46,7 +45,7 @@ Configuration
 
 This is an example configuration of the Depot Autopilot:
 
-! <config arch="x86_64" children_label_prefix="dynamic -> ">
+! <config arch="x86_64" children_label_prefix="dynamic -> " repeat="false">
 !   <static>
 !     <parent-provides>
 !       <service name="ROM"/>
@@ -79,10 +78,18 @@ This is an example configuration of the Depot Autopilot:
   appropriate variant of the test packages. Must be one of "x86_64", "x86_32",
   "arm_v7a".
 
-:config children_label_prefix:
+:<config children_label_prefix>:
 
   Label prefix of LOG sessions of the components of a test. This is required
   to relate incoming LOG-session request to a running test.
+
+:<config repeat>:
+
+  Can be one of
+
+    "false"         - process the given test list only once,
+    "until_forever" - endlessly repeat processing the given test list,
+    "until_failed"  - repeat processing the given test list until it fails.
 
 :<config><static>:
 
@@ -319,8 +326,65 @@ Integration
   components as part of the LOG output of the Depot Autopilot.
 
 
+Depot Autopilot Run script
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+By default, the Run script tries to evaluate all tests that are internally
+configured, that is, normally, all that are available as package recipes in
+the main repositories. This includes one test that is prepared for the later
+examination by gcov as well as gcov itself, which is executed like a test at
+the end of the test list to examine the above mentioned adapted test. The test
+list is processed only once and all test ingredients are used from packages,
+assuming the depot user is 'genodelabs'. For this default behavior just call
+the script like any "normal" Run script:
+
+! make run/depot_autopilot KERNEL="nova"
+
+However, this is normally a pretty time intensive process and meant for the
+integration into automatic test infrastructures rather than manual evaluation.
+This is why you might want to adapt the scenario, for instance, for debugging
+one or more tests that failed during your automated testing. For this purpose,
+a user interface is given through specific environment variables. This is an
+example containing all of these variables:
+
+! make run/depot_autopilot \
+! > TEST_PKGS="test-libc_vfs test-log" \
+! > TEST_SRCS="test-xml_generator test-xml_node" \
+! > TEST_BUILDS="server/ram_fs test/libc_vfs" \
+! > TEST_MODULES="ram_fs test-libc_vfs vfs.lib.so" \
+! > TEST_REPEAT="until_failed" \
+! > KERNEL="nova"
+
+:TEST_PKGS:
+
+  List of test package-archives that supersedes the internal list if set.
+
+:TEST_SRCS:
+
+  List of test source-archives that supersedes the internal list if set.
+
+:TEST_BUILDS:
+
+  List of test build-targets that be build from the local repositories.
+
+:TEST_MODULES:
+
+  List of test boot-modules that overlay the contents of the package-archives.
+
+:TEST_REPEAT:
+
+  See the <config repeat> attribute of the Depot Autopilot.
+
+To get a hint which build components (TEST_BUILDS) and which boot modules
+(TEST_MODULES) you may want to enter for a given test package, you may have
+a look at the package recipe:
+
+! repos/<REPO>/recipes/pkg/<TEST_PKG>/archives
+! repos/<REPO>/recipes/pkg/<TEST_PKG>/runtime (<content> tag)
+
+
 Examples
 --------
 
-See the run script 'repos/gems/run/depot_autopilot.run' for a comprehensive
-example of how to use the Depot Autopilot.
+Please see the run script 'repos/gems/run/depot_autopilot.run' for a
+comprehensive example of how to use the Depot Autopilot.

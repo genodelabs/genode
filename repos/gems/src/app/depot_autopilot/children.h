@@ -158,6 +158,13 @@ class Depot_deploy::Children
 			return finished;
 		}
 
+		void print_conclusion()
+		{
+			_children.for_each([&] (Child &child) {
+				child.print_conclusion();
+			});
+		}
+
 		void conclusion(Result &result)
 		{
 			_children.for_each([&] (Child &child) {

@@ -4,6 +4,14 @@
 	<xs:include schemaLocation="base_types.xsd"/>
 	<xs:include schemaLocation="timeout_types.xsd"/>
 
+	<xs:simpleType name="Repeat">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="false" />
+			<xs:enumeration value="until_forever" />
+			<xs:enumeration value="until_failed" />
+		</xs:restriction>
+	</xs:simpleType><!-- Architecture -->
+
 	<xs:simpleType name="Architecture">
 		<xs:restriction base="xs:string">
 			<xs:enumeration value="x86_64" />
@@ -91,6 +99,7 @@
 
 			</xs:choice>
 			<xs:attribute name="arch"                  type="Architecture" />
+			<xs:attribute name="repeat"                type="Repeat" />
 			<xs:attribute name="children_label_prefix" type="Session_label" />
 			<xs:attribute name="ld_verbose"            type="Boolean" />
 		</xs:complexType>

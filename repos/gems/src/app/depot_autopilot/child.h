@@ -221,7 +221,11 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		      Timer::Connection                       &timer,
 		      Genode::Signal_context_capability const &config_handler);
 
+		~Child();
+
 		void log_session_write(Log_event::Line const &log_line);
+
+		void print_conclusion();
 
 		void conclusion(Result &result);
 

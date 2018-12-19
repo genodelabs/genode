@@ -1,28 +1,8 @@
-####################
-## User interface ##
-####################
-
 #
-# Additional environment variables considered by this run script
+# Integration of Depot Autopilot into a Run-tool-based test infrastructure
 #
-#   TEST_PKGS     list of test package-archives if set (default list below)
-#   TEST_SRCS     list of test source-archive if TEST_PKGS is set (default list below)
-#   TEST_BUILDS   list of test build-targets that shall be build from repos
-#   TEST_MODULES  list of test boot-modules to overlay the test depot-content
-#
-# To get a hint which build components and which boot modules you may want to
-# enter for a given test package-archive, please see these files:
-#
-#   repos/<REPO>/recipes/pkg/<TEST_PKG>/archives
-#   repos/<REPO>/recipes/pkg/<TEST_PKG>/runtime (<content> tag)
-#
-# Example:
-#
-# ! KERNEL="nova" \
-#   TEST_PKGS="test-libc_vfs test-log" \
-#   TEST_BUILDS="server/ram_fs test/libc_vfs" \
-#   TEST_MODULES="ram_fs test-libc_vfs vfs.lib.so" \
-#   make run/depot_autopilot
+# For a detailed documentation of the user interface and the features of this
+# Run script please see _repos/gems/src/app/depot_autopilot/README_.
 #
 
 
@@ -235,6 +215,7 @@ proc prepare_to_run_genode { } {
 	global test_srcs
 	global test_builds
 	global test_modules
+	global test_repeat
 	global last_test_pkg
 	global run_genode_failed
 	global serial_id
@@ -364,7 +345,7 @@ proc prepare_to_run_genode { } {
 		<start name="depot_autopilot" priority="-1">
 			<resource name="RAM" quantum="2M"/>
 			<provides> <service name="LOG"/> </provides>
-			<config arch="} [depot_spec] {" children_label_prefix="dynamic -> ">
+			<config repeat="} $test_repeat {" arch="} [depot_spec] {" children_label_prefix="dynamic -> ">
 				<static>
 					<parent-provides>
 						<service name="ROM"/>
@@ -481,6 +462,55 @@ proc init_previous_results {} {
 	set previous_failed          0
 	set previous_skipped         0
 }
+
+#
+# Initialize variables that can be configured via the user interface
+#
+proc init_test_setting {} {
+
+	global test_pkgs
+	global test_srcs
+	global test_builds
+	global test_modules
+	global test_repeat
+	global default_test_pkgs
+	global default_test_srcs
+	global skip_test_pkg
+
+	#
+	# Initialize the lists of test package-archives, source-archives,
+	# build-targets, and boot-modules to be considered by the run script
+	#
+	set test_pkgs    [get_env_var TEST_PKGS    ""]
+	set test_srcs    [get_env_var TEST_SRCS    ""]
+	set test_builds  [get_env_var TEST_BUILDS  ""]
+	set test_modules [get_env_var TEST_MODULES ""]
+	set test_repeat  [get_env_var TEST_REPEAT  "false"]
+
+	#
+	# If the user didn't declare an individual list of test package-archives, use
+	# the default lists of test package-archives and source-archives
+	#
+	set nr_of_tests_to_run 0
+	if {$test_pkgs == ""} {
+		foreach test_pkg $default_test_pkgs {
+			append test_pkgs " $test_pkg "
+			if {!([info exists skip_test_pkg($test_pkg)] && $skip_test_pkg($test_pkg))} {
+				incr nr_of_tests_to_run
+			}
+		}
+		foreach test_src_pkg $default_test_srcs {
+			append test_srcs " $test_src_pkg "
+		}
+	} else {
+		foreach test_pkg $test_pkgs {
+			if {!([info exists skip_test_pkg($test_pkg)] && $skip_test_pkg($test_pkg))} {
+				incr nr_of_tests_to_run
+			}
+		}
+	}
+}
+
 
 rename exit run_tool_exit
 proc exit {{status 0}} {
@@ -677,40 +707,8 @@ if {[info exists qemu_args]} {
 	set initial_qemu_args $qemu_args
 }
 
-#
-# Initialize the lists of test package-archives, source-archives,
-# build-targets, and boot-modules to be considered by the run script
-#
-set test_pkgs    [get_env_var TEST_PKGS    ""]
-set test_srcs    [get_env_var TEST_SRCS    ""]
-set test_builds  [get_env_var TEST_BUILDS  ""]
-set test_modules [get_env_var TEST_MODULES ""]
-
-#
-# If the user didn't declare an individual list of test package-archives, use
-# the default lists of test package-archives and source-archives
-#
-set nr_of_tests_to_run 0
-if {$test_pkgs == ""} {
-	foreach test_pkg $default_test_pkgs {
-		append test_pkgs " $test_pkg "
-		if {!([info exists skip_test_pkg($test_pkg)] && $skip_test_pkg($test_pkg))} {
-			incr nr_of_tests_to_run
-		}
-	}
-	foreach test_src_pkg $default_test_srcs {
-		append test_srcs " $test_src_pkg "
-	}
-} else {
-	foreach test_pkg $test_pkgs {
-		if {!([info exists skip_test_pkg($test_pkg)] && $skip_test_pkg($test_pkg))} {
-			incr nr_of_tests_to_run
-		}
-	}
-}
-puts "Number of tests to run: $nr_of_tests_to_run"
-
-# initialize variables that hold previous results
+# initialize global variables
+init_test_setting
 init_previous_results
 
 # generic preparation for each system boot
@@ -787,13 +785,16 @@ while {1} {
 				puts $last_test_result
 				exit -1
 			}
-
 			if {$previous_results != ""} {
 				append previous_results \012
 			}
 			append previous_results $last_test_result
 		}
-
+		# if the Autopilot is currently repeating, reset repeat-influenced variables
+		if {[llength $test_pkgs] == 0} {
+			init_test_setting
+			init_previous_results
+		}
 		# determine timeout for the next timeout
 		set min_timeout 10
 		regexp {depot_autopilot\] --- Run "(.*?)" \(max ([0-9]*?) } $output] ignore last_test_pkg min_timeout

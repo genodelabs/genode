@@ -375,6 +375,19 @@ Child::Child(Allocator                       &alloc,
 { }
 
 
+Child::~Child()
+{
+	while (Timeout_event *event = _timeout_events.first()) {
+		_timeout_events.remove(event);
+		destroy(_alloc, event);
+	}
+	while (Log_event *event = _log_events.first()) {
+		_log_events.remove(event);
+		destroy(_alloc, event);
+	}
+}
+
+
 void Child::log_session_write(Log_event::Line const &log_line)
 {
 	if (_skip) {
@@ -684,10 +697,14 @@ Child::State_name Child::_padded_state_name() const
 }
 
 
+void Child::print_conclusion()
+{
+	log(" ", _conclusion);
+}
+
 void Child::conclusion(Result &result)
 {
 	struct Bad_state : Exception { };
-	log(" ", _conclusion);
 	switch (_state) {
 	case SUCCEEDED: result.succeeded++; break;
 	case FAILED:    result.failed++;    break;
