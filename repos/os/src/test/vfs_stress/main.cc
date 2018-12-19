@@ -569,9 +569,10 @@ void Component::construct(Genode::Env &env)
 
 		vfs_root_sync();
 
-		log("created ",count," empty directories, ",
-		    (elapsed_ms*1000)/count,"μs/op , ",
-		    env.ram().used_ram().value/1024,"KiB consumed");
+		if (count > 0)
+			log("created ",count," empty directories, ",
+			    (elapsed_ms*1000)/count,"μs/op , ",
+			    env.ram().used_ram().value/1024,"KiB consumed");
 	}
 
 
@@ -593,9 +594,10 @@ void Component::construct(Genode::Env &env)
 
 		vfs_root_sync();
 
-		log("created ",count," empty files, ",
-		    (elapsed_ms*1000)/count,"μs/op, ",
-		    env.ram().used_ram().value/1024,"KiB consumed");
+		if (count > 0)
+			log("created ",count," empty files, ",
+			    (elapsed_ms*1000)/count,"μs/op, ",
+			    env.ram().used_ram().value/1024,"KiB consumed");
 	}
 
 
@@ -624,9 +626,13 @@ void Component::construct(Genode::Env &env)
 
 		vfs_root_sync();
 
-		log("wrote ",count," bytes ",
-		    count/elapsed_ms,"kB/s, ",
-		    env.ram().used_ram().value/1024,"KiB consumed");
+		if (elapsed_ms > 0)
+			log("wrote ",count," bytes, ",
+			    count/elapsed_ms,"kB/s, ",
+			    env.ram().used_ram().value/1024,"KiB consumed");
+		else
+			log("wrote ",count," bytes, ",
+			    env.ram().used_ram().value/1024,"KiB consumed");
 	}
 
 
@@ -655,9 +661,13 @@ void Component::construct(Genode::Env &env)
 
 		vfs_root_sync();
 
-		log("read ",count," bytes, ",
-		    count/elapsed_ms,"kB/s, ",
-		    env.ram().used_ram().value/1024,"KiB consumed");
+		if (elapsed_ms > 0)
+			log("read ",count," bytes, ",
+			    count/elapsed_ms,"kB/s, ",
+			    env.ram().used_ram().value/1024,"KiB consumed");
+		else
+			log("read ",count," bytes, ",
+			    env.ram().used_ram().value/1024,"KiB consumed");
 	}
 
 
