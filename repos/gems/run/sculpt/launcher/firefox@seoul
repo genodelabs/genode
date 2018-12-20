@@ -1,4 +1,4 @@
-<launcher pkg="alex-ab/pkg/seoul-nova-sculpt/18.11-63.0.3">
+<launcher pkg="alex-ab/pkg/seoul-nova-sculpt/18.11-64.0">
 	<route>
 		<service name="Nic"> <child name="nic_router"/> </service>
 		<service name="ROM" label="platform_info"> <parent/> </service>
