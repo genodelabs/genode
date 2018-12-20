@@ -1,0 +1,28 @@
+build "core init test/aes_cbc_4k"
+
+create_boot_directory
+
+install_config {
+	<config>
+		<parent-provides>
+			<service name="LOG"/>
+			<service name="PD"/>
+			<service name="CPU"/>
+			<service name="ROM"/>
+		</parent-provides>
+		<default-route> <any-service> <parent/> </any-service> </default-route>
+		<default caps="100"/>
+		<start name="test-aes_cbc_4k">
+			<resource name="RAM" quantum="2M"/>
+		</start>
+	</config>}
+
+exec echo -n "Not for the public"  > [run_dir]/genode/plaintext
+exec echo -n "Better kept private" > [run_dir]/genode/key
+
+build_boot_image "core ld.lib.so spark.lib.so libsparkcrypto.lib.so init test-aes_cbc_4k"
+
+append qemu_args "-nographic "
+
+run_genode_until "Test succeeded.*\n" 20
+
