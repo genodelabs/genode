@@ -11,7 +11,11 @@ pubkey_filename = $(call archive_user,$1)/pubkey
 pubkey_path     = $(wildcard $(DEPOT_DIR)/$(call pubkey_filename,$1))
 
 # obtain key ID of 'depot/<user>/pubkey' to be used to select signing key
-pubkey_id = $(shell $(GPG) --with-colon < $(call pubkey_path,$1) | head -1 | cut -d: -f5 )
+pubkey_id = $(shell pubkey_file=$(call pubkey_path,$1); \
+                    $(GPG) --yes -o $$pubkey_file.dearmored --dearmor $$pubkey_file; \
+                    $(GPG) --with-colon --no-default-keyring --list-public-keys \
+                           --keyring $$pubkey_file.dearmored |\
+                    head -n 2 | tail -n 1 | cut -d: -f5; rm -f $$pubkey_file.dearmored)
 
 MISSING_PUBKEY_FILES := $(sort \
                            $(foreach A,$(ARCHIVES),\
