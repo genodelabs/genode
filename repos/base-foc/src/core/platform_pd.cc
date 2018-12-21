@@ -72,7 +72,8 @@ bool Platform_pd::bind_thread(Platform_thread *thread)
 		/* if it's no core-thread we have to map parent and pager gate cap */
 		if (!thread->core_thread()) {
 			_task.map(_task.local.data()->kcap());
-			_debug.map(_task.local.data()->kcap());
+			// FIXME: there is no debug cap anymore
+			// _debug.map(_task.local.data()->kcap());
 		}
 
 		/* inform thread about binding */
