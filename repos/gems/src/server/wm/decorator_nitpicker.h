@@ -285,8 +285,13 @@ struct Wm::Decorator_nitpicker_session : Genode::Rpc_object<Nitpicker::Session>,
 			}
 
 		case Command::OP_TO_FRONT:
+		case Command::OP_TO_BACK:
 
 			try {
+
+				View_handle const view_handle = (cmd.opcode == Command::OP_TO_FRONT)
+				                              ?  cmd.to_front.view
+				                              :  cmd.to_back.view;
 
 				/*
 				 * If the content view is re-stacked, replace it by the real
@@ -295,7 +300,7 @@ struct Wm::Decorator_nitpicker_session : Genode::Rpc_object<Nitpicker::Session>,
 				 * The lookup fails with an exception for non-content views.
 				 * In this case, forward the command.
 				 */
-				Window_registry::Id win_id = _content_registry.lookup(cmd.to_front.view);
+				Window_registry::Id win_id = _content_registry.lookup(view_handle);
 
 				/*
 				 * Replace content view originally created by the decorator
@@ -304,8 +309,7 @@ struct Wm::Decorator_nitpicker_session : Genode::Rpc_object<Nitpicker::Session>,
 				Nitpicker::View_capability view_cap =
 					_content_callback.content_view(win_id);
 
-				_nitpicker_session.view_handle(view_cap,
-				                               cmd.to_front.view);
+				_nitpicker_session.view_handle(view_cap, view_handle);
 
 				_nitpicker_session.enqueue(cmd);
 				_nitpicker_session.execute();
@@ -357,7 +361,6 @@ struct Wm::Decorator_nitpicker_session : Genode::Rpc_object<Nitpicker::Session>,
 			}
 			return;
 
-		case Command::OP_TO_BACK:
 		case Command::OP_BACKGROUND:
 		case Command::OP_NOP:
 
