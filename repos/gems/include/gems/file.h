@@ -21,6 +21,12 @@ class File
 {
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		File(File const &);
+		File & operator = (File const &);
+
 		Genode::Allocator   &_alloc;
 		Genode::size_t const _file_size;
 		void                *_data;

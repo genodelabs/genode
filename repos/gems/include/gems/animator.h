@@ -28,7 +28,7 @@ class Animator
 
 		friend class Item;
 
-		Genode::List<Genode::List_element<Item> > _items;
+		Genode::List<Genode::List_element<Item> > _items { };
 
 	public:
 

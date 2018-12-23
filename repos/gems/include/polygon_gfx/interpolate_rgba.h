@@ -36,7 +36,7 @@ static inline void Polygon::interpolate_rgba(Polygon::Color start,
                                              PT *dst,
                                              unsigned char *dst_alpha,
                                              unsigned num_values,
-                                             int x, int y)
+                                             int, int)
 {
 	/* sanity check */
 	if (num_values == 0) return;
