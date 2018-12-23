@@ -22,6 +22,7 @@
 /* Genode includes */
 #include <util/xml_node.h>
 #include <util/list.h>
+#include <base/log.h>
 
 namespace Genode { template <typename> class List_model; }
 
@@ -92,6 +93,21 @@ class Genode::List_model
 				next = e->_next();
 				fn(static_cast<ELEM &>(*e));
 			}
+		}
+
+		/**
+		 * Apply functor 'fn' to the first element of the list model
+		 *
+		 * Using this method combined with the 'Element::next' method, the list
+		 * model can be traversed manually. This is handy in situations where
+		 * the list-model elements are visited via recursive function calls
+		 * instead of a 'for_each' loop.
+		 */
+		template <typename FN>
+		void apply_first(FN const &fn) const
+		{
+			if (Element const *e = _elements.first())
+				fn(static_cast<ELEM const &>(*e));
 		}
 
 		/**
