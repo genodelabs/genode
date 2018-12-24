@@ -4,3 +4,4 @@ os
 input_session
 framebuffer_session
 timer_session
+blit

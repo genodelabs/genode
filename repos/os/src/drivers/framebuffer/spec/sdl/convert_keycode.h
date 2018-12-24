@@ -6,27 +6,22 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Genode Labs GmbH
+ * Copyright (C) 2006-2018 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* Linux includes */
-#include <SDL/SDL.h>
+#ifndef _DRIVERS__FRAMEBUFFER__SPEC__SDL__CONVERT_KEYCODE_H_
+#define _DRIVERS__FRAMEBUFFER__SPEC__SDL__CONVERT_KEYCODE_H_
 
-/* Genode includes */
-#include <base/thread.h>
-#include <input/keycodes.h>
-
-/* local includes */
-#include "input.h"
-
+/* Genode include */
+#include <input/event.h>
 
 /**
  * Convert SDL keycode to Genode keycode
  */
-static Input::Keycode convert_keycode(int sdl_keycode)
+static inline Input::Keycode convert_keycode(int sdl_keycode)
 {
 	using namespace Input;
 
@@ -139,107 +134,4 @@ static Input::Keycode convert_keycode(int sdl_keycode)
 	}
 };
 
-
-static Input::Event wait_for_sdl_event()
-{
-	using namespace Input;
-
-	SDL_Event event;
-	static int mx, my;
-
-	SDL_WaitEvent(&event);
-
-	/* query new mouse position */
-	if (event.type == SDL_MOUSEMOTION) {
-		int ox = mx, oy = my;
-		SDL_GetMouseState(&mx, &my);
-
-		/* drop superficial events */
-		if (ox == mx && oy == my)
-			return Event();
-
-		return Absolute_motion{mx, my};
-	}
-
-	/* determine key code */
-	Keycode keycode = KEY_UNKNOWN;
-	switch (event.type) {
-	case SDL_KEYUP:
-	case SDL_KEYDOWN:
-
-		keycode = convert_keycode(event.key.keysym.sym);
-		break;
-
-	case SDL_MOUSEBUTTONDOWN:
-	case SDL_MOUSEBUTTONUP:
-
-		switch (event.button.button) {
-		case SDL_BUTTON_LEFT:   keycode = BTN_LEFT;   break;
-		case SDL_BUTTON_MIDDLE: keycode = BTN_MIDDLE; break;
-		case SDL_BUTTON_RIGHT:  keycode = BTN_RIGHT;  break;
-		default: break;
-		}
-	}
-
-	/* determine event type */
-	switch (event.type) {
-
-	case SDL_KEYUP:
-	case SDL_MOUSEBUTTONUP:
-		if (event.button.button == SDL_BUTTON_WHEELUP
-		 || event.button.button == SDL_BUTTON_WHEELDOWN)
-			/* ignore */
-			return Event();
-
-		return Release{keycode};
-
-	case SDL_KEYDOWN:
-	case SDL_MOUSEBUTTONDOWN:
-
-		if (event.button.button == SDL_BUTTON_WHEELUP)
-			return Wheel{0, 1};
-
-		else if (event.button.button == SDL_BUTTON_WHEELDOWN)
-			return Wheel{0, -1};
-
-		return Press{keycode};
-
-	default:
-		break;
-	}
-	return Event();
-}
-
-
-namespace Input { struct Backend; }
-
-struct Input::Backend : Genode::Thread
-{
-	Handler &handler;
-
-	Backend(Genode::Env &env, Input::Handler &handler)
-	:
-		Genode::Thread(env, "input_backend", 4 * 1024 * sizeof(long)),
-		handler(handler)
-	{
-		start();
-	}
-
-	void entry()
-	{
-		while (true) {
-			Input::Event e;
-
-			/* prevent flooding of client with invalid events */
-			do { e = wait_for_sdl_event(); } while (!e.valid());
-
-			handler.event(e);
-		}
-	}
-};
-
-
-void init_input_backend(Genode::Env &env, Input::Handler &h)
-{
-	static Input::Backend inst(env, h);
-}
+#endif /* _DRIVERS__FRAMEBUFFER__SPEC__SDL__CONVERT_KEYCODE_H_ */
