@@ -21,12 +21,9 @@
 #include <base/attached_dataspace.h>
 #include <util/reconstructible.h>
 
-/* demo includes */
-#include <util/lazy_value.h>
-
 /* gems includes */
-#include <gems/animator.h>
 #include <gems/nitpicker_buffer.h>
+#include <gems/animated_geometry.h>
 
 /* local includes */
 #include "theme.h"
@@ -241,19 +238,44 @@ class Decorator::Window : public Window_base, public Animator::Item
 
 		bool _show_decoration = _config.show_decoration(_title);
 
+		unsigned _motion = _config.motion(_title);
+
+		Genode::Animated_rect _animated_rect { _animator };
+
+		/*
+		 * Geometry most recently propagated to nitpicker
+		 */
+		Rect _nitpicker_view_rect { };
+
 		/**
 		 * Nitpicker session that contains the upper and lower window
 		 * decorations.
 		 */
-		Nitpicker::Connection _nitpicker_top_bottom { _env };
+		Nitpicker::Connection                _nitpicker_top_bottom { _env };
 		Genode::Constructible<Nitpicker_buffer> _buffer_top_bottom { };
+		Area                                      _size_top_bottom { };
 
 		/**
 		 * Nitpicker session that contains the left and right window
 		 * decorations.
 		 */
-		Nitpicker::Connection _nitpicker_left_right { _env };
+		Nitpicker::Connection                _nitpicker_left_right { _env };
 		Genode::Constructible<Nitpicker_buffer> _buffer_left_right { };
+		Area                                      _size_left_right { };
+
+		Area _visible_top_bottom_area(Area const inner_size) const
+		{
+			Area const outer_size = _outer_from_inner_size(inner_size);
+
+			return Area(outer_size.w(), _theme.background_size().h());
+		}
+
+		Area _visible_left_right_area(Area const inner_size) const
+		{
+			Area const outer_size = _outer_from_inner_size(inner_size);
+
+			return Area(outer_size.w() - inner_size.w(), outer_size.h());
+		}
 
 		Nitpicker_view _bottom_view { _nitpicker, _nitpicker_top_bottom },
 		               _right_view  { _nitpicker, _nitpicker_left_right },
@@ -262,60 +284,76 @@ class Decorator::Window : public Window_base, public Animator::Item
 
 		Nitpicker_view _content_view { _nitpicker, (unsigned)id() };
 
-		void _reallocate_nitpicker_buffers()
-		{
-			Area const theme_size = _theme.background_size();
-			bool const use_alpha = true;
-
-			Area const inner_size = geometry().area();
-			Area const outer_size = outer_geometry().area();
-
-			Area const size_top_bottom(outer_size.w(),
-			                           theme_size.h());
-
-			_nitpicker_top_bottom.buffer(Framebuffer::Mode(size_top_bottom.w(),
-			                                               size_top_bottom.h(),
-			                                               Framebuffer::Mode::RGB565),
-			                             use_alpha);
-
-			_buffer_top_bottom.construct(_nitpicker_top_bottom, size_top_bottom,
-			                             _env.ram(), _env.rm());
-
-			Area const size_left_right(outer_size.w() - inner_size.w(),
-			                           outer_size.h());
-
-			_nitpicker_left_right.buffer(Framebuffer::Mode(size_left_right.w(),
-			                                               size_left_right.h(),
-			                                               Framebuffer::Mode::RGB565),
-			                             use_alpha);
-
-			_buffer_left_right.construct(_nitpicker_left_right, size_left_right,
-			                             _env.ram(), _env.rm());
-		}
-
-		void _repaint_decorations(Nitpicker_buffer &buffer)
+		void _repaint_decorations(Nitpicker_buffer &buffer, Area area)
 		{
 			buffer.reset_surface();
 
 			buffer.apply_to_surface([&] (Pixel_surface &pixel,
 			                             Alpha_surface &alpha) {
 
-				_theme.draw_background(pixel, alpha, (int)_alpha);
+				_theme.draw_background(pixel, alpha, area, (int)_alpha);
 
-				_theme.draw_title(pixel, alpha, _title.string());
+				_theme.draw_title(pixel, alpha, area, _title.string());
 				
 				_for_each_element([&] (Element const &element) {
-					_theme.draw_element(pixel, alpha, element.type, element.alpha); });
+					_theme.draw_element(pixel, alpha, area, element.type, element.alpha); });
 
 				Color const tint_color = _color();
 				if (tint_color != Color(0, 0, 0))
-					Tint_painter::paint(pixel, Rect(Point(0, 0), pixel.size()),
+					Tint_painter::paint(pixel, Rect(Point(0, 0), area),
 					                    tint_color);
 			});
 
 			buffer.flush_surface();
 
 			buffer.nitpicker.framebuffer()->refresh(0, 0, buffer.size().w(), buffer.size().h());
+		}
+
+		void _repaint_decorations()
+		{
+			Area const inner_size = _curr_inner_geometry().area();
+
+			_repaint_decorations(*_buffer_top_bottom, _visible_top_bottom_area(inner_size));
+			_repaint_decorations(*_buffer_left_right, _visible_left_right_area(inner_size));
+		}
+
+		void _reallocate_nitpicker_buffers()
+		{
+			bool const use_alpha = true;
+
+			Area const size_top_bottom = _visible_top_bottom_area(geometry().area());
+
+			if (size_top_bottom.w() > _size_top_bottom.w()
+			 || size_top_bottom.h() > _size_top_bottom.h()
+			 || !_buffer_top_bottom.constructed()) {
+
+				_nitpicker_top_bottom.buffer(Framebuffer::Mode(size_top_bottom.w(),
+				                                               size_top_bottom.h(),
+				                                               Framebuffer::Mode::RGB565),
+				                             use_alpha);
+
+				_buffer_top_bottom.construct(_nitpicker_top_bottom, size_top_bottom,
+				                             _env.ram(), _env.rm());
+
+				_size_top_bottom = size_top_bottom;
+			}
+
+			Area const size_left_right = _visible_left_right_area(geometry().area());
+
+			if (size_left_right.w() > _size_left_right.w()
+			 || size_left_right.h() > _size_left_right.h()
+			 || !_buffer_left_right.constructed()) {
+
+				_nitpicker_left_right.buffer(Framebuffer::Mode(size_left_right.w(),
+				                                               size_left_right.h(),
+				                                               Framebuffer::Mode::RGB565),
+				                             use_alpha);
+
+				_buffer_left_right.construct(_nitpicker_left_right, size_left_right,
+				                             _env.ram(), _env.rm());
+
+				_size_left_right = size_left_right;
+			}
 		}
 
 		void _assign_color(Color color)
@@ -375,15 +413,28 @@ class Decorator::Window : public Window_base, public Animator::Item
 			return _show_decoration ? _bottom_view.handle() : _content_view.handle();
 		}
 
+		/**
+		 * Return current inner geometry
+		 *
+		 * While the window is in motion, the returned rectangle corresponds to
+		 * the intermediate window position and size whereas the 'geometry()'
+		 * method returns the final geometry.
+		 */
+		Rect _curr_inner_geometry() const
+		{
+			return (_motion && _animated_rect.initialized())
+			       ? _animated_rect.rect() : geometry();
+		}
+
 		Rect _decor_geometry() const
 		{
 			Theme::Margins const decor = _theme.decor_margins();
 
-			return Rect(geometry().p1() - Point(decor.left, decor.top),
-			            geometry().p2() + Point(decor.right, decor.bottom));
+			return Rect(_curr_inner_geometry().p1() - Point(decor.left, decor.top),
+			            _curr_inner_geometry().p2() + Point(decor.right, decor.bottom));
 		}
 
-		Rect outer_geometry() const override
+		Rect _outer_from_inner_geometry(Rect inner) const
 		{
 			Theme::Margins const aura  = _theme.aura_margins();
 			Theme::Margins const decor = _theme.decor_margins();
@@ -393,34 +444,47 @@ class Decorator::Window : public Window_base, public Animator::Item
 			unsigned const top    = aura.top    + decor.top;
 			unsigned const bottom = aura.bottom + decor.bottom;
 
-			return Rect(geometry().p1() - Point(left, top),
-			            geometry().p2() + Point(right, bottom));
+			return Rect(inner.p1() - Point(left, top),
+			            inner.p2() + Point(right, bottom));
 		}
 
-		void border_rects(Rect *top, Rect *left, Rect *right, Rect *bottom) const
+		Area _outer_from_inner_size(Area inner) const
 		{
-			outer_geometry().cut(geometry(), top, left, right, bottom);
+			return _outer_from_inner_geometry(Rect(Point(0, 0), inner)).area();
+		}
+
+		Rect outer_geometry() const override
+		{
+			return _outer_from_inner_geometry(geometry());
 		}
 
 		void update_nitpicker_views() override
 		{
-			if (!_nitpicker_views_up_to_date) {
+			bool const nitpicker_view_rect_up_to_date =
+				_nitpicker_view_rect.p1() == geometry().p1() &&
+				_nitpicker_view_rect.p2() == geometry().p2();
+
+			if (!_nitpicker_views_up_to_date || !nitpicker_view_rect_up_to_date) {
 
 				Area const theme_size = _theme.background_size();
+				Rect const inner      = _curr_inner_geometry();
+				Rect const outer      = _outer_from_inner_geometry(inner);
 
 				/* update view positions */
 				Rect top, left, right, bottom;
-				border_rects(&top, &left, &right, &bottom);
+				outer.cut(inner, &top, &left, &right, &bottom);
 
-				_content_view.place(geometry(), Point(0, 0));
-				_top_view    .place(top, Point(0, 0));
-				_left_view   .place(left, Point(0, -top.h()));
-				_right_view  .place(right, Point(-right.w(), -top.h()));
+				_content_view.place(inner,  Point(0, 0));
+				_top_view    .place(top,    Point(0, 0));
+				_left_view   .place(left,   Point(0, -top.h()));
+				_right_view  .place(right,  Point(-right.w(), -top.h()));
 				_bottom_view .place(bottom, Point(0, -theme_size.h() + bottom.h()));
 
+				_nitpicker.execute();
+
+				_nitpicker_view_rect        = inner;
 				_nitpicker_views_up_to_date = true;
 			}
-			_nitpicker.execute();
 		}
 
 		void draw(Canvas_base &, Rect, Draw_behind_fn const &) const override { }
@@ -431,6 +495,7 @@ class Decorator::Window : public Window_base, public Animator::Item
 			animate();
 
 			_show_decoration = _config.show_decoration(_title);
+			_motion          = _config.motion(_title);
 		}
 
 		bool update(Xml_node window_node) override
@@ -439,16 +504,39 @@ class Decorator::Window : public Window_base, public Animator::Item
 
 			bool trigger_animation = false;
 
-			Rect const old_geometry = geometry();
+			Window_title const title =
+				window_node.attribute_value("title", Window_title("<untitled>"));
 
-			geometry(rect_attribute(window_node));
+			if (_title != title) {
+				_title = title;
+				trigger_animation = true;
+			}
+
+			_show_decoration = _config.show_decoration(_title);
+			_motion          = _config.motion(_title);
+
+			Rect const old_geometry = geometry();
+			Rect const new_geometry = rect_attribute(window_node);
+
+			geometry(new_geometry);
+
+			bool const geometry_changed = (old_geometry.p1() != new_geometry.p1())
+			                           || (old_geometry.p2() != new_geometry.p2());
+
+			bool const size_changed = (new_geometry.w() != old_geometry.w()
+			                        || new_geometry.h() != old_geometry.h());
+
+			bool const motion_triggered =
+				_motion && (geometry_changed || !_animated_rect.initialized());
+
+			if (motion_triggered)
+				_animated_rect.move_to(new_geometry,
+				                       Genode::Animated_rect::Steps{_motion});
 
 			/*
 			 * Detect position changes
 			 */
-			if (geometry().p1() != old_geometry.p1()
-			 || geometry().p2() != old_geometry.p2()) {
-
+			if (geometry_changed || motion_triggered) {
 				_nitpicker_views_up_to_date = false;
 				updated = true;
 			}
@@ -456,8 +544,7 @@ class Decorator::Window : public Window_base, public Animator::Item
 			/*
 			 * Detect size changes
 			 */
-			if (geometry().w() != old_geometry.w()
-			 || geometry().h() != old_geometry.h()) {
+			if (size_changed || motion_triggered) {
 
 				_reallocate_nitpicker_buffers();
 
@@ -472,16 +559,6 @@ class Decorator::Window : public Window_base, public Animator::Item
 				_alpha.dst(_focused ? 256 : 200, 20);
 				trigger_animation = true;
 			}
-
-			Window_title const title =
-				window_node.attribute_value("title", Window_title("<untitled>"));
-
-			if (_title != title) {
-				_title = title;
-				trigger_animation = true;
-			}
-
-			_show_decoration = _config.show_decoration(_title);
 
 			/* update color on title change as the title is used as policy selector */
 			Color const base_color = _config.base_color(_title);
@@ -529,8 +606,8 @@ class Decorator::Window : public Window_base, public Animator::Item
 		{
 			return (_alpha.dst() != (int)_alpha)
 			    || _r != _r.dst() || _g != _g.dst() || _b != _b.dst()
-			    || _closer.animated() || _maximizer.animated();
-
+			    || _closer.animated() || _maximizer.animated()
+			    || _animated_rect.animated();
 		}
 
 		/**
@@ -542,13 +619,13 @@ class Decorator::Window : public Window_base, public Animator::Item
 			_r.animate();
 			_g.animate();
 			_b.animate();
+			_animated_rect.animate();
 
 			_for_each_element([&] (Element &element) { element.animate(); });
 
-			Animator::Item::animated(animated());
+			_repaint_decorations();
 
-			_repaint_decorations(*_buffer_top_bottom);
-			_repaint_decorations(*_buffer_left_right);
+			Animator::Item::animated(animated());
 		}
 };
 

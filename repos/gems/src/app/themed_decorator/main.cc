@@ -306,6 +306,7 @@ void Decorator::Main::_handle_nitpicker_sync()
 		return;
 
 	_window_stack.update_nitpicker_views();
+	_nitpicker.execute();
 }
 
 

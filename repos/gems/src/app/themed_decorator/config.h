@@ -35,19 +35,31 @@ class Decorator::Config
 
 		Genode::Xml_node _config;
 
+		template <typename T>
+		T _policy_attribute(Window_title const &title, char const *attr,
+		                       T default_value) const
+		{
+			try {
+				Genode::Session_policy policy(title, _config);
+				return policy.attribute_value(attr, default_value);
+
+			} catch (Genode::Session_policy::No_policy_defined) { }
+
+			return default_value;
+		}
+
 	public:
 
 		Config(Genode::Xml_node node) : _config(node) {}
 
 		bool show_decoration(Window_title const &title) const
 		{
-			try {
-				Genode::Session_policy policy(title, _config);
-				return policy.attribute_value("decoration", true);
+			return _policy_attribute(title, "decoration", true);
+		}
 
-			} catch (Genode::Session_policy::No_policy_defined) { }
-
-			return true;
+		unsigned motion(Window_title const &title) const
+		{
+			return _policy_attribute(title, "motion", 0U);
 		}
 
 		/**

@@ -189,7 +189,7 @@ Decorator::Rect Decorator::Theme::element_geometry(Element_type type) const
 
 void Decorator::Theme::draw_background(Decorator::Pixel_surface &pixel_surface,
                                        Decorator::Alpha_surface &alpha_surface,
-                                       unsigned alpha) const
+                                       Area const area, unsigned alpha) const
 {
 	/*
 	 * Back out early there is neither a decor nor an aura. In this case, we
@@ -208,19 +208,19 @@ void Decorator::Theme::draw_background(Decorator::Pixel_surface &pixel_surface,
 	unsigned const left  = aura_margins().left  + decor_margins().left;
 	unsigned const right = aura_margins().right + decor_margins().right;
 
-	unsigned const middle = left + right < pixel_surface.size().w()
-	                      ? pixel_surface.size().w() - left - right
+	unsigned const middle = left + right < area.w()
+	                      ? area.w() - left - right
 	                      : 0;
 
 	Rect const orig_clip = pixel_surface.clip();
 
 	/* left */
 	if (left) {
-		Rect curr_clip = Rect(Point(0, 0), Area(left, pixel_surface.size().h()));
+		Rect curr_clip = Rect(Point(0, 0), Area(left, area.h()));
 		pixel_surface.clip(curr_clip);
 		alpha_surface.clip(curr_clip);
 
-		Rect const rect(Point(0, 0), pixel_surface.size());
+		Rect const rect(Point(0, 0), area);
 
 		Icon_painter::paint(pixel_surface, rect, texture, alpha);
 		Icon_painter::paint(alpha_surface, rect, texture, alpha);
@@ -228,11 +228,11 @@ void Decorator::Theme::draw_background(Decorator::Pixel_surface &pixel_surface,
 
 	/* middle */
 	if (middle) {
-		Rect curr_clip = Rect(Point(left, 0), Area(middle, pixel_surface.size().h()));
+		Rect curr_clip = Rect(Point(left, 0), Area(middle, area.h()));
 		pixel_surface.clip(curr_clip);
 		alpha_surface.clip(curr_clip);
 
-		Rect const rect(Point(0, 0), pixel_surface.size());
+		Rect const rect(Point(0, 0), area);
 
 		Icon_painter::paint(pixel_surface, rect, texture, alpha);
 		Icon_painter::paint(alpha_surface, rect, texture, alpha);
@@ -240,15 +240,15 @@ void Decorator::Theme::draw_background(Decorator::Pixel_surface &pixel_surface,
 
 	/* right */
 	if (right) {
-		Rect curr_clip = Rect(Point(left + middle, 0), Area(right, pixel_surface.size().h()));
+		Rect curr_clip = Rect(Point(left + middle, 0), Area(right, area.h()));
 		pixel_surface.clip(curr_clip);
 		alpha_surface.clip(curr_clip);
 
 		Point at(0, 0);
-		Area size = pixel_surface.size();
+		Area size = area;
 
-		if (texture.size().w() > pixel_surface.size().w()) {
-			at = Point((int)pixel_surface.size().w() - (int)texture.size().w(), 0);
+		if (texture.size().w() > area.w()) {
+			at = Point((int)area.w() - (int)texture.size().w(), 0);
 			size = Area(texture.size().w(), size.h());
 		}
 
@@ -262,7 +262,7 @@ void Decorator::Theme::draw_background(Decorator::Pixel_surface &pixel_surface,
 
 void Decorator::Theme::draw_title(Decorator::Pixel_surface &pixel_surface,
                                   Decorator::Alpha_surface &,
-                                  char const *title) const
+                                  Area const area, char const *title) const
 {
 	/* skip title drawing if the metadata lacks a title declaration */
 	if (!title_geometry().area().valid())
@@ -272,8 +272,8 @@ void Decorator::Theme::draw_title(Decorator::Pixel_surface &pixel_surface,
 
 	Area  const label_area(font.string_width(title).decimal(),
 	                       font.bounding_box().h());
-	Rect  const surface_rect(Point(0, 0), pixel_surface.size());
-	Rect  const title_rect = absolute(title_geometry(), surface_rect);
+	Rect  const target_rect(Point(0, 0), area);
+	Rect  const title_rect = absolute(title_geometry(), target_rect);
 	Point const pos = title_rect.center(label_area) - Point(0, 1);
 
 	Text_painter::paint(pixel_surface, Text_painter::Position(pos.x(), pos.y()),
@@ -283,6 +283,7 @@ void Decorator::Theme::draw_title(Decorator::Pixel_surface &pixel_surface,
 
 void Decorator::Theme::draw_element(Decorator::Pixel_surface &pixel_surface,
                                     Decorator::Alpha_surface &alpha_surface,
+                                    Area area,
                                     Element_type element_type,
                                     unsigned alpha) const
 {
@@ -292,9 +293,9 @@ void Decorator::Theme::draw_element(Decorator::Pixel_surface &pixel_surface,
 	Genode::Texture<Pixel_rgb888> const &texture =
 		texture_by_element_type(_ram, _rm, _alloc, element_type);
 
-	Rect  const surface_rect(Point(0, 0), pixel_surface.size());
+	Rect  const target_rect(Point(0, 0), area);
 	Rect  const element_rect = element_geometry(element_type);
-	Point const pos = absolute(element_rect.p1(), surface_rect);
+	Point const pos = absolute(element_rect.p1(), target_rect);
 	Rect  const rect(pos, element_rect.area());
 
 	Icon_painter::paint(pixel_surface, rect, texture, alpha);
