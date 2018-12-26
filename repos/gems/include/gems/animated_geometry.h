@@ -11,32 +11,36 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _ANIMATED_GEOMETRY_H_
-#define _ANIMATED_GEOMETRY_H_
+#ifndef _INCLUDE__GEMS__ANIMATED_GEOMETRY_H_
+#define _INCLUDE__GEMS__ANIMATED_GEOMETRY_H_
 
 /* demo includes */
 #include <util/lazy_value.h>
 #include <gems/animator.h>
+#include <os/surface.h>
 
-/* local includes */
-#include "types.h"
-
-namespace Menu_view { class Animated_rect; }
+namespace Genode { class Animated_rect; }
 
 
-class Menu_view::Animated_rect : public Rect, Animator::Item, Noncopyable
+class Genode::Animated_rect : private Animator::Item, Noncopyable
 {
 	public:
 
 		struct Steps { unsigned value; };
 
+		typedef Surface_base::Rect  Rect;
+		typedef Surface_base::Area  Area;
+		typedef Surface_base::Point Point;
+
 	private:
+
+		Rect _rect { };
 
 		struct Animated_point
 		{
 			bool _initial = true;
 
-			Lazy_value<int> _x, _y;
+			Lazy_value<int> _x { }, _y { };
 
 			void animate() { _x.animate(); _y.animate(); }
 
@@ -58,7 +62,7 @@ class Menu_view::Animated_rect : public Rect, Animator::Item, Noncopyable
 			int y() const { return _y >> 10; }
 		};
 
-		Animated_point _p1, _p2;
+		Animated_point _p1 { }, _p2 { };
 
 	public:
 
@@ -71,8 +75,7 @@ class Menu_view::Animated_rect : public Rect, Animator::Item, Noncopyable
 		{
 			_p1.animate(); _p2.animate();
 
-			static_cast<Rect &>(*this) = Rect(Point(_p1.x(), _p1.y()),
-			                                  Point(_p2.x(), _p2.y()));
+			_rect = Rect(Point(_p1.x(), _p1.y()), Point(_p2.x(), _p2.y()));
 
 			/* schedule / de-schedule animation */
 			Animator::Item::animated(_p1.animated() || _p2.animated());
@@ -93,6 +96,13 @@ class Menu_view::Animated_rect : public Rect, Animator::Item, Noncopyable
 		}
 
 		bool animated() const { return Animator::Item::animated(); }
+
+		bool initialized() const { return _p1._initial == false; }
+
+		Rect  rect() const { return _rect; }
+		Area  area() const { return _rect.area(); }
+		Point p1()   const { return _rect.p1(); }
+		Point p2()   const { return _rect.p2(); }
 };
 
-#endif /* _ANIMATED_GEOMETRY_H_ */
+#endif /* _INCLUDE__GEMS__ANIMATED_GEOMETRY_H_ */

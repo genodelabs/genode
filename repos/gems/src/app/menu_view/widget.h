@@ -17,10 +17,10 @@
 /* Genode includes */
 #include <util/xml_generator.h>
 #include <util/list_model.h>
+#include <gems/animated_geometry.h>
 
 /* local includes */
 #include <widget_factory.h>
-#include <animated_geometry.h>
 
 namespace Menu_view {
 
@@ -182,7 +182,7 @@ class Menu_view::Widget : public List_model<Widget>::Element
 
 		Rect geometry() const { return _geometry; }
 
-		Rect animated_geometry() const { return _animated_geometry; }
+		Rect animated_geometry() const { return _animated_geometry.rect(); }
 
 		/*
 		 * Return x/y positions of the edges of the widget with the margin
@@ -190,7 +190,7 @@ class Menu_view::Widget : public List_model<Widget>::Element
 		 */
 		Rect edges() const
 		{
-			Rect const r = _animated_geometry;
+			Rect const r = _animated_geometry.rect();
 			return Rect(Point(r.x1() + margin.left,  r.y1() + margin.top),
 		                Point(r.x2() - margin.right, r.y2() - margin.bottom));
 		}
