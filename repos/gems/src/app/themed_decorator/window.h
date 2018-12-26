@@ -239,6 +239,8 @@ class Decorator::Window : public Window_base, public Animator::Item
 
 		Color _color() const { return Color(_r >> 4, _g >> 4, _b >> 4); }
 
+		bool _show_decoration = _config.show_decoration(_title);
+
 		/**
 		 * Nitpicker session that contains the upper and lower window
 		 * decorations.
@@ -327,10 +329,12 @@ class Decorator::Window : public Window_base, public Animator::Item
 
 		void _stack_decoration_views()
 		{
-			_top_view.stack(_content_view.handle());
-			_left_view.stack(_top_view.handle());
-			_right_view.stack(_left_view.handle());
-			_bottom_view.stack(_right_view.handle());
+			if (_show_decoration) {
+				_top_view.stack(_content_view.handle());
+				_left_view.stack(_top_view.handle());
+				_right_view.stack(_left_view.handle());
+				_bottom_view.stack(_right_view.handle());
+			}
 		}
 
 	public:
@@ -340,7 +344,7 @@ class Decorator::Window : public Window_base, public Animator::Item
 		:
 			Window_base(id),
 			Animator::Item(animator),
-			_env(env),_theme(theme), _animator(animator),
+			_env(env), _theme(theme), _animator(animator),
 			_nitpicker(nitpicker), _config(config)
 		{
 			_reallocate_nitpicker_buffers();
@@ -368,7 +372,7 @@ class Decorator::Window : public Window_base, public Animator::Item
 
 		View_handle frontmost_view() const override
 		{
-			return _bottom_view.handle();
+			return _show_decoration ? _bottom_view.handle() : _content_view.handle();
 		}
 
 		Rect _decor_geometry() const
@@ -425,6 +429,8 @@ class Decorator::Window : public Window_base, public Animator::Item
 		{
 			_assign_color(_config.base_color(_title));
 			animate();
+
+			_show_decoration = _config.show_decoration(_title);
 		}
 
 		bool update(Xml_node window_node) override
@@ -467,13 +473,15 @@ class Decorator::Window : public Window_base, public Animator::Item
 				trigger_animation = true;
 			}
 
-			Window_title title = Decorator::string_attribute(window_node, "title",
-			                                                 Window_title("<untitled>"));
+			Window_title const title =
+				window_node.attribute_value("title", Window_title("<untitled>"));
 
 			if (_title != title) {
 				_title = title;
 				trigger_animation = true;
 			}
+
+			_show_decoration = _config.show_decoration(_title);
 
 			/* update color on title change as the title is used as policy selector */
 			Color const base_color = _config.base_color(_title);

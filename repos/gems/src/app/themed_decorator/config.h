@@ -39,6 +39,17 @@ class Decorator::Config
 
 		Config(Genode::Xml_node node) : _config(node) {}
 
+		bool show_decoration(Window_title const &title) const
+		{
+			try {
+				Genode::Session_policy policy(title, _config);
+				return policy.attribute_value("decoration", true);
+
+			} catch (Genode::Session_policy::No_policy_defined) { }
+
+			return true;
+		}
+
 		/**
 		 * Return the base color of the window with the specified title
 		 */
