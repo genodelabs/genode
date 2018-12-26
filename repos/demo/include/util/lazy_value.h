@@ -76,7 +76,10 @@ class Lazy_value
 			else
 				_speed -= _accel;
 
-			if (_speed < 1) _speed = 1;
+			if (_speed < 1) {
+				_speed = 0;
+				_curr = _dst;
+			}
 		}
 
 		operator T () const { return _curr; }
