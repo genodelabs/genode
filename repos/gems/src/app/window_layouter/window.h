@@ -120,6 +120,8 @@ class Window_layouter::Window : public List_model<Window>::Element
 
 		bool _dragged = false;
 
+		Element _dragged_element { Element::UNDEFINED };
+
 		bool _focused = false;
 
 		Element _hovered { Element::UNDEFINED };
@@ -149,6 +151,8 @@ class Window_layouter::Window : public List_model<Window>::Element
 		 */
 		void _initiate_drag_operation(Window::Element element)
 		{
+			_dragged_element = element;
+
 			_drag_left_border   = (element.type == Window::Element::LEFT)
 			                   || (element.type == Window::Element::TOP_LEFT)
 			                   || (element.type == Window::Element::BOTTOM_LEFT);
@@ -230,6 +234,8 @@ class Window_layouter::Window : public List_model<Window>::Element
 		void title(Title const &title) { _title = title; }
 
 		Label label() const { return _label; }
+
+		bool dragged() const { return _dragged; }
 
 		Rect effective_inner_geometry() const
 		{
@@ -372,10 +378,17 @@ class Window_layouter::Window : public List_model<Window>::Element
 				if (_focused)
 					xml.attribute("focused", "yes");
 
-				if (_hovered.type != Element::UNDEFINED) {
+				if (_dragged) {
+
 					xml.node("highlight", [&] () {
-						xml.node(_hovered.name());
-					});
+						xml.node(_dragged_element.name(), [&] () {
+							xml.attribute("pressed", "yes"); }); });
+
+				} else {
+
+					if (_hovered.type != Element::UNDEFINED)
+						xml.node("highlight", [&] () {
+							xml.node(_hovered.name()); });
 				}
 
 				if (_has_alpha)

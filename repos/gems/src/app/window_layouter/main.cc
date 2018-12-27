@@ -195,19 +195,22 @@ struct Window_layouter::Main : Operations,
 	{
 		to_front(id);
 
-		bool window_geometry_changed = false;
+		bool window_layout_changed = false;
 
 		_window_list.with_window(id, [&] (Window &window) {
 
+			bool const orig_dragged  = window.dragged();
 			Rect const orig_geometry = window.effective_inner_geometry();
 			window.drag(element, clicked, curr);
+			bool const next_dragged  = window.dragged();
 			Rect const next_geometry = window.effective_inner_geometry();
 
-			window_geometry_changed = orig_geometry.p1() != next_geometry.p1()
-			                       || orig_geometry.p2() != next_geometry.p2();
+			window_layout_changed = orig_geometry.p1() != next_geometry.p1()
+			                     || orig_geometry.p2() != next_geometry.p2()
+			                     || orig_dragged       != next_dragged;
 		});
 
-		if (window_geometry_changed)
+		if (window_layout_changed)
 			_gen_window_layout();
 
 		_gen_resize_request();
