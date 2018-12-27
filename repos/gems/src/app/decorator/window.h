@@ -112,8 +112,8 @@ class Decorator::Window : public Window_base
 		static unsigned const _border_size = 4;
 		static unsigned const _title_height = 16;
 
-
 		Color _bright = { 255, 255, 255, 64 };
+		Color _dimmed = { 0, 0, 0, 24 };
 		Color _dark   = { 0, 0, 0, 127 };
 
 		Color _base_color = _config.base_color(_title);
@@ -161,9 +161,10 @@ class Decorator::Window : public Window_base
 
 		unsigned num_elements() const { return sizeof(_elements)/sizeof(Element); }
 
-		bool _apply_state(Window::Element::Type type, bool highlighted)
+		bool _apply_state(Window::Element::Type type,
+		                  Window::Element::State const &state)
 		{
-			return element(type).apply_state(_focused, highlighted, _base_color);
+			return element(type).apply_state(state);
 		}
 
 		typedef Config::Window_control Control;
@@ -225,6 +226,12 @@ class Decorator::Window : public Window_base
 		 ** Drawing utilities **
 		 ***********************/
 
+		struct Attr
+		{
+			Color color;
+			bool  pressed;
+		};
+
 		void _draw_hline(Canvas_base &canvas, Point pos, unsigned w,
 		                 bool at_left, bool at_right,
 		                 unsigned border, Color color) const
@@ -247,20 +254,23 @@ class Decorator::Window : public Window_base
 			                     Point(pos.x(), y2)), color);
 		}
 
-		void _draw_raised_frame(Canvas_base &canvas, Rect rect) const
+		void _draw_raised_frame(Canvas_base &canvas, Rect rect, bool pressed) const
 		{
-			_draw_hline(canvas, rect.p1(), rect.w(), true, true, 0, _bright);
-			_draw_vline(canvas, rect.p1(), rect.h(), true, true, 0, _bright);
+			Color const top_left_color = pressed ? _dimmed : _bright;
+
+			_draw_hline(canvas, rect.p1(), rect.w(), true, true, 0, top_left_color);
+			_draw_vline(canvas, rect.p1(), rect.h(), true, true, 0, top_left_color);
+
 			_draw_hline(canvas, Point(rect.p1().x(), rect.p2().y()), rect.w(),
 			            true, true, 0, _dark);
 			_draw_vline(canvas, Point(rect.p2().x(), rect.p1().y()), rect.h(),
 			            true, true, 0, _dark);
 		}
 
-		void _draw_raised_box(Canvas_base &canvas, Rect rect, Color color) const
+		void _draw_raised_box(Canvas_base &canvas, Rect rect, Attr attr) const
 		{
-			canvas.draw_box(rect, color);
-			_draw_raised_frame(canvas, rect);
+			canvas.draw_box(rect, attr.color);
+			_draw_raised_frame(canvas, rect, attr.pressed);
 		}
 
 		static Color _mix_colors(Color c1, Color c2, int alpha)
@@ -270,7 +280,7 @@ class Decorator::Window : public Window_base
 			             (c1.b*alpha + c2.b*(255 - alpha)) >> 8);
 		}
 
-		void _draw_title_box(Canvas_base &canvas, Rect rect, Color color) const
+		void _draw_title_box(Canvas_base &canvas, Rect rect, Attr attr) const
 		{
 			/*
 			 * Produce gradient such that the upper half becomes brighter and
@@ -284,7 +294,8 @@ class Decorator::Window : public Window_base
 
 			int const mid_y = rect.h() / 2;
 
-			Color const white(255, 255, 255), black(0, 0, 0);
+			Color const upper_color = attr.pressed ? Color(0, 0, 0) : Color(255, 255, 255);
+			Color const lower_color = attr.pressed ? Color(127, 127, 127) : Color(0, 0, 0);
 
 			for (unsigned i = 0; i < rect.h(); i++) {
 
@@ -294,20 +305,19 @@ class Decorator::Window : public Window_base
 				                ? (ascent*(mid_y - i)) >> 8
 				                : (ascent*(i - mid_y)) >> 8;
 
-				Color const line_color =
-					_mix_colors(upper_half ? white : black, color, alpha);
+				Color const mix_color  = upper_half ? upper_color : lower_color;
+				Color const line_color = _mix_colors(mix_color, attr.color, alpha);
 
 				canvas.draw_box(Rect(rect.p1() + Point(0, i),
 				                     Area(rect.w(), 1)), line_color);
 			}
 
-			_draw_raised_frame(canvas, rect);
+			_draw_raised_frame(canvas, rect, attr.pressed);
 		}
 
 		void _draw_corner(Canvas_base &canvas, Rect const rect,
 		                  unsigned const border,
-		                  bool const left, bool const top,
-		                  Color color) const
+		                  bool const left, bool const top, Attr const attr) const
 		{
 			bool const bottom = !top;
 			bool const right  = !left;
@@ -319,21 +329,23 @@ class Decorator::Window : public Window_base
 			int const w  = rect.w();
 			int const h  = rect.h();
 
+			Color const top_left_color = attr.pressed ? _dimmed : _bright;
+
 			canvas.draw_box(Rect(Point(x1, top ? y1 : y2 - border + 1),
-			                     Area(w, border)), color);
+			                     Area(w, border)), attr.color);
 
 			canvas.draw_box(Rect(Point(left ? x1 : x2 - border + 1,
 			                           top  ? y1 + border : y1),
-			                     Area(border, h - border)), color);
+			                     Area(border, h - border)), attr.color);
 
 			/* top bright line */
 			_draw_hline(canvas, rect.p1(), w,
-			            top || left, top || right, border, _bright);
+			            top || left, top || right, border, top_left_color);
 
 			/* inner horizontal line */
 			int y = top ? y1 + border - 1 : y2 - border + 1;
 			_draw_hline(canvas, Point(x1, y), w, right, left, w - border,
-			            top ? _dark : _bright);
+			            top ? _dark : top_left_color);
 
 			/* bottom line */
 			_draw_hline(canvas, Point(x1, y2), w,
@@ -341,29 +353,35 @@ class Decorator::Window : public Window_base
 
 			/* left bright line */
 			_draw_vline(canvas, rect.p1(), h,
-			            left || top, left || bottom, border, _bright);
+			            left || top, left || bottom, border, top_left_color);
 
 			/* inner vertical line */
 			int x = left ? x1 + border - 1 : x2 - border + 1;
 			_draw_vline(canvas, Point(x, y1), h, bottom, top, h - border + 1,
-			            left ? _dark : _bright);
+			            left ? _dark : top_left_color);
 
 			/* right line */
 			_draw_vline(canvas, Point(x2, y1), h,
 			            right || top, right || bottom, border, _dark);
 		}
 
-		Color _window_control_color(Control window_control) const
+		Attr _window_elem_attr(Element::Type type) const
+		{
+			return Attr { .color   = element(type).color(),
+			              .pressed = element(type).pressed() };
+		}
+
+		Attr _window_control_attr(Control const &window_control) const
 		{
 			switch (window_control.type()) {
-			case Control::TYPE_CLOSER:      return element(Element::CLOSER).color();
-			case Control::TYPE_MAXIMIZER:   return element(Element::MAXIMIZER).color();
-			case Control::TYPE_MINIMIZER:   return element(Element::MINIMIZER).color();
-			case Control::TYPE_UNMAXIMIZER: return element(Element::UNMAXIMIZER).color();
-			case Control::TYPE_TITLE:       return element(Element::TITLE).color();
+			case Control::TYPE_CLOSER:      return _window_elem_attr(Element::CLOSER);
+			case Control::TYPE_MAXIMIZER:   return _window_elem_attr(Element::MAXIMIZER);
+			case Control::TYPE_MINIMIZER:   return _window_elem_attr(Element::MINIMIZER);
+			case Control::TYPE_UNMAXIMIZER: return _window_elem_attr(Element::UNMAXIMIZER);
+			case Control::TYPE_TITLE:       return _window_elem_attr(Element::TITLE);
 			case Control::TYPE_UNDEFINED:   break;
 			};
-			return Color(0, 0, 0);
+			return Attr { .color = Color(0, 0, 0), .pressed = false };
 		}
 
 		Texture_id _window_control_texture(Control window_control) const
@@ -385,7 +403,7 @@ class Decorator::Window : public Window_base
 		void _draw_window_control(Canvas_base &canvas, Rect rect,
 		                          Control control) const
 		{
-			_draw_title_box(canvas, rect, _window_control_color(control));
+			_draw_title_box(canvas, rect, _window_control_attr(control));
 
 			canvas.draw_texture(rect.p1() + Point(1,1),
 			                    _window_control_texture(control));

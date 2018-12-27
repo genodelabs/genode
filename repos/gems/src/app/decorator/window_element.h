@@ -35,6 +35,22 @@ class Decorator::Window_element : public Animator::Item
 		            TOP_LEFT, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT,
 		            CLOSER, MAXIMIZER, MINIMIZER, UNMAXIMIZER, UNDEFINED };
 
+		struct State
+		{
+			bool  focused;
+			bool  highlighted;
+			bool  pressed;
+			Color base_color;
+
+			bool operator == (State const &other) const
+			{
+				return focused     == other.focused
+				    && highlighted == other.highlighted
+				    && pressed     == other.pressed
+				    && base_color  == other.base_color;
+			}
+		};
+
 	private:
 
 		static Color _add(Color c1, Color c2)
@@ -44,12 +60,16 @@ class Decorator::Window_element : public Animator::Item
 			             Genode::min(c1.b + c2.b, 255));
 		}
 
+		static Color _sub(Color c1, Color c2)
+		{
+			return Color(Genode::max(c1.r - c2.r, 0),
+			             Genode::max(c1.g - c2.g, 0),
+			             Genode::max(c1.b - c2.b, 0));
+		}
+
 		Type const _type;
 
-		/*
-		 * Rememeber base color to detect when it changes
-		 */
-		Color _base_color { };
+		State _state { };
 
 		/*
 		 * Color value in 8.4 fixpoint format. We use four bits to
@@ -58,50 +78,35 @@ class Decorator::Window_element : public Animator::Item
 		 */
 		Lazy_value<int> _r { }, _g { }, _b { };
 
-		bool _focused     = false;
-		bool _highlighted = false;
-
-		static Color _dst_color(bool focused, bool highlighted, Color base)
+		static Color _dst_color(State const &state)
 		{
-			Color result = base;
+			Color result = state.base_color;
 
-			if (focused)
+			if (state.focused)
 				result = _add(result, Color(70, 70, 70));
 
-			if (highlighted)
+			if (state.highlighted)
 				result = _add(result, Color(65, 60, 55));
+
+			if (state.pressed)
+				result = _sub(result, Color(10, 10, 10));
 
 			return result;
 		}
 
-		unsigned _anim_steps(bool focused, bool highlighted) const
+		unsigned _anim_steps(State const &state) const
 		{
-			/* quick fade-in when gaining the focus or hover highlight */
-			if ((!_focused && focused) || (!_highlighted && highlighted))
+			/* immediately respond when pressing or releasing an element */
+			if (_state.pressed != state.pressed)
+				return 0;
+
+			/* medium fade-in when gaining the focus or hover highlight */
+			if ((!_state.focused     && state.focused)
+			 || (!_state.highlighted && state.highlighted))
 				return 15;
 
 			/* slow fade-out when leaving focus or hover highlight */
 			return 20;
-		}
-
-		bool _apply_state(bool focused, bool highlighted, Color base_color)
-		{
-			_base_color = base_color;
-
-			Color const dst_color = _dst_color(focused, highlighted, base_color);
-			unsigned const steps = _anim_steps(focused, highlighted);
-
-			_r.dst(dst_color.r << 4, steps);
-			_g.dst(dst_color.g << 4, steps);
-			_b.dst(dst_color.b << 4, steps);
-
-			/* schedule animation */
-			animate();
-
-			_focused     = focused;
-			_highlighted = highlighted;
-
-			return true;
 		}
 
 	public:
@@ -111,7 +116,10 @@ class Decorator::Window_element : public Animator::Item
 			Animator::Item(animator),
 			_type(type)
 		{
-			_apply_state(false, false, base_color);
+			apply_state(State{ .focused     = false,
+			                   .highlighted = false,
+			                   .pressed     = false,
+			                   .base_color  = base_color });
 		}
 
 		Type type() const { return _type; }
@@ -142,14 +150,29 @@ class Decorator::Window_element : public Animator::Item
 		/**
 		 * \return true if state has changed
 		 */
-		bool apply_state(bool focused, bool highlighted, Color base_color)
+		bool apply_state(State state)
 		{
-			if (_focused == focused && _highlighted == highlighted
-			 && base_color == _base_color)
+			if (_state == state)
 				return false;
 
-			return _apply_state(focused, highlighted, base_color);
+			Color    const dst_color = _dst_color(state);
+			unsigned const steps     = _anim_steps(state);
+
+			_r.dst(dst_color.r << 4, steps);
+			_g.dst(dst_color.g << 4, steps);
+			_b.dst(dst_color.b << 4, steps);
+
+			/* schedule animation */
+			animate();
+
+			_state = state;
+
+			return true;
 		}
+
+		State state() const { return _state; }
+
+		bool pressed() const { return _state.pressed; }
 
 		/**
 		 * Animator::Item interface
