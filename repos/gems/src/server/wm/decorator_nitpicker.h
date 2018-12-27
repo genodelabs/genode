@@ -174,6 +174,8 @@ struct Wm::Decorator_nitpicker_session : Genode::Rpc_object<Nitpicker::Session>,
 
 	Command_buffer &_command_buffer = *_command_ds.local_addr<Command_buffer>();
 
+	Point _pointer_position { };
+
 	Reporter &_pointer_reporter;
 
 	Last_motion &_last_motion;
@@ -228,24 +230,41 @@ struct Wm::Decorator_nitpicker_session : Genode::Rpc_object<Nitpicker::Session>,
 
 	void _handle_input()
 	{
+		auto report_pointer_position = [&] () {
+			Reporter::Xml_generator xml(_pointer_reporter, [&] ()
+			{
+				xml.attribute("xpos", _pointer_position.x());
+				xml.attribute("ypos", _pointer_position.y());
+			});
+		};
+
 		while (_nitpicker_session.input()->pending())
 			_nitpicker_session.input()->for_each_event([&] (Input::Event const &ev) {
 
-				if (ev.press())   _key_cnt++;
-				if (ev.release()) _key_cnt--;
+				if (ev.press()) _key_cnt++;
+
+				if (ev.release()) {
+					_key_cnt--;
+
+					/*
+					 * When returning from a drag operation to idle state, the
+					 * pointer position may have moved to another window
+					 * element. Propagate the least recent pointer position to
+					 * the decorator to update its hover model.
+					 */
+					if (_key_cnt == 0)
+						report_pointer_position();
+				}
 
 				ev.handle_absolute_motion([&] (int x, int y) {
 
 					_last_motion = LAST_MOTION_DECORATOR;
 
+					_pointer_position = Point(x, y);
+
 					/* update pointer model, but only when hovering */
-					if (_key_cnt == 0) {
-						Reporter::Xml_generator xml(_pointer_reporter, [&] ()
-						{
-							xml.attribute("xpos", x);
-							xml.attribute("ypos", y);
-						});
-					}
+					if (_key_cnt == 0)
+						report_pointer_position();
 				});
 
 				if (ev.hover_leave()) {
