@@ -620,11 +620,12 @@ void Sculpt::Main::_handle_window_layout()
 		auto gen_window = [&] (Xml_node win, Rect rect) {
 			if (rect.valid()) {
 				xml.node("window", [&] () {
-					xml.attribute("id", win.attribute_value("id", 0UL));
+					xml.attribute("id",     win.attribute_value("id", 0UL));
 					xml.attribute("xpos",   rect.x1());
 					xml.attribute("ypos",   rect.y1());
 					xml.attribute("width",  rect.w());
 					xml.attribute("height", rect.h());
+					xml.attribute("title",  win.attribute_value("label", Label()));
 				});
 			}
 		};
