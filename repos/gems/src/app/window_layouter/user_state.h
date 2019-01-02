@@ -34,6 +34,12 @@ class Window_layouter::User_state
 			:
 				window_id(id), element(element)
 			{ }
+
+			bool operator != (Hover_state const &other) const
+			{
+				return window_id != other.window_id
+				    || element   != other.element;
+			}
 		};
 
 	private:

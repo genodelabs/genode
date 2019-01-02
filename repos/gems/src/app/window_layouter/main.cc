@@ -549,6 +549,8 @@ void Window_layouter::Main::_handle_hover()
 {
 	_hover.update();
 
+	User_state::Hover_state const orig_hover_state = _user_state.hover_state();
+
 	try {
 		Xml_node const hover_window_xml = _hover.xml().sub_node("window");
 
@@ -573,8 +575,15 @@ void Window_layouter::Main::_handle_hover()
 		 */
 	}
 
-	/* propagate changed hovering to the decorator */
-	_gen_window_layout();
+	/*
+	 * Propagate changed hovering to the decorator
+	 *
+	 * Should a decorator issue a hover update with the unchanged information,
+	 * avoid triggering a superfluous window-layout update. This can happen in
+	 * corner cases such as the completion of a window-drag operation.
+	 */
+	if (_user_state.hover_state() != orig_hover_state)
+		_gen_window_layout();
 }
 
 
