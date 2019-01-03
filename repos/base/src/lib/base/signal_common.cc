@@ -242,20 +242,6 @@ void Signal_receiver::dissolve(Signal_context *context)
 }
 
 
-bool Signal_receiver::pending()
-{
-	Lock::Guard contexts_lock_guard(_contexts_lock);
-	bool result = false;
-	_contexts.for_each_locked([&] (Signal_context &context) {
-		if (context._pending) {
-			result = true;
-			throw Context_ring::Break_for_each();
-		}
-	});
-	return result;
-}
-
-
 void Signal_receiver::Context_ring::insert_as_tail(Signal_context *re)
 {
 	if (_head) {

@@ -400,11 +400,6 @@ class Genode::Signal_receiver : Noncopyable
 		void dissolve(Signal_context *context);
 
 		/**
-		 * Return true if signal was received
-		 */
-		bool pending();
-
-		/**
 		 * Block until a signal is received and return the signal
 		 *
 		 * \return received signal
