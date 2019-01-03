@@ -6,6 +6,8 @@ MIRROR_FROM_ADA_RT_DIR := \
 		system.ads \
 		s-stoele.ads \
 		a-unccon.ads \
+		gnat.ads \
+		g-io.ads \
 	)\
 	$(addprefix ada-runtime/src/,\
 		s-stalib.ads \

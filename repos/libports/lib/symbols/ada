@@ -20,6 +20,19 @@ ada__exceptions__warn_not_implemented T
 allocate_secondary_stack T
 constraint_error T
 get_thread T
+gnat__io__new_line__2 T
+gnat__io__new_line T
+gnat__io__put__2 T
+gnat__io__put__3 T
+gnat__io__put__4 T
+gnat__io__put__5 T
+gnat__io__put__6 T
+gnat__io__put_line__2 T
+gnat__io__put_line T
+gnat__io__put T
+gnat__io__set_output T
+gnat__io__standard_error T
+gnat__io__standard_output T
 memcmp T
 raise_ada_exception T
 ss_utils_E D 2

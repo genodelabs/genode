@@ -1,0 +1,41 @@
+<runtime ram="32M" caps="1000" binary="init">
+
+	<events>
+		<timeout meaning="failed" sec="20" />
+		<log meaning="succeeded">GNAT.IO test program started successfully.</log>
+	</events>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="ada.lib.so"/>
+		<rom label="test-gnatio"/>
+		<rom label="log_terminal"/>
+	</content>
+
+	<config>
+		<parent-provides>
+			<service name="LOG"/>
+			<service name="PD"/>
+			<service name="CPU"/>
+			<service name="ROM"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> </any-service>
+		</default-route>
+		<default caps="100"/>
+
+		<start name="terminal">
+			<binary name="log_terminal"/>
+			<resource name="RAM" quantum="2M"/>
+			<provides><service name="Terminal"/></provides>
+		</start>
+
+		<start name="test-gnatio">
+			<resource name="RAM" quantum="2M"/>
+			<route>
+				<service name="Terminal"> <child name="terminal"/> </service>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
+		</start>
+	</config>
+</runtime>
