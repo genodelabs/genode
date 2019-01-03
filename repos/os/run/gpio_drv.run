@@ -7,8 +7,8 @@ if {[have_spec omap4] == 0} {
 }
 
 set build_components {
-	core init
-	drivers/timer drivers/gpio
+	core init timer
+	drivers/gpio
 	test/gpio_drv
 }
 

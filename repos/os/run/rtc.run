@@ -5,7 +5,7 @@ if {(![have_spec x86] || [have_spec linux])} {
 	exit 0
 }
 
-build { core init drivers/rtc drivers/timer test/rtc }
+build { core init drivers/rtc timer test/rtc }
 
 create_boot_directory
 

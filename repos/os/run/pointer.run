@@ -7,8 +7,7 @@
 assert_spec linux
 
 set build_components {
-	core init
-	drivers/timer
+	core init timer
 	drivers/framebuffer
 	server/report_rom
 	server/dynamic_rom

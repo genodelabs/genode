@@ -5,7 +5,7 @@
 # generic components
 set build_components {
 	core init
-	drivers/timer
+	timer
 	drivers/sd_card
 	test/blk/cli
 }
@@ -65,8 +65,7 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core ld.lib.so init
-	timer
+	core ld.lib.so init timer
 	sd_card_drv
 	test-blk-cli
 }

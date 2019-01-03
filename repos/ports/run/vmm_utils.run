@@ -1,4 +1,4 @@
-build { core init drivers/timer test/vmm_utils }
+build { core init timer test/vmm_utils }
 
 create_boot_directory
 

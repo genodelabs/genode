@@ -33,9 +33,8 @@ set dd [installed_command dd]
 # Build
 #
 set build_components {
-	core init
+	core init timer
 	drivers/nvme
-	drivers/timer
 	app/block_tester
 }
 

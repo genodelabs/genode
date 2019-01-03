@@ -2,10 +2,9 @@
 # Build
 #
 set build_components {
-	core init
+	core init timer
 	app/rom_logger
 	app/rom_to_file
-	drivers/timer
 	lib/vfs/fatfs
 	server/dynamic_rom
 	server/fs_rom

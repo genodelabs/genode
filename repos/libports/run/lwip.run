@@ -34,8 +34,8 @@ set lynx [installed_command lynx]
 #
 
 set build_components {
-	core init
-	drivers/timer drivers/nic
+	core init timer
+	drivers/nic
 	test/lwip/http_srv
 	lib/vfs/lwip
 }

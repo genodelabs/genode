@@ -105,7 +105,7 @@ if { $mmc_rootfs } {
 	if { [have_spec imx53] } { set tz_vmm_block_irq 92 }
 
 	# add targets that enable MMC access via paravirtualized block
-	lappend targets drivers/timer
+	lappend targets timer
 	lappend targets drivers/platform
 	lappend targets drivers/sd_card
 	lappend targets server/part_blk

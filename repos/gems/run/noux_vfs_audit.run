@@ -1,7 +1,6 @@
 build {
-	core init
+	core init timer
 	app/sequence
-	drivers/timer
 	lib/libc_noux
 	noux
 	noux-pkg/coreutils

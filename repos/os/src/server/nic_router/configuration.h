@@ -20,7 +20,7 @@
 #include <uplink.h>
 
 /* Genode includes */
-#include <os/duration.h>
+#include <base/duration.h>
 
 namespace Genode { class Allocator; }
 

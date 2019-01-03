@@ -12,8 +12,8 @@ proc gpio_drv { } { if {[have_spec rpi] && [have_spec hw]}  { return hw_gpio_drv
                     return gpio_drv }
 
 set build_components {
-	core init
-	drivers/timer drivers/nic
+	core init timer
+	drivers/nic
 	test/lxip/http_srv
 }
 

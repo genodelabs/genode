@@ -11,7 +11,7 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#include <os/alarm.h>
+#include <base/alarm.h>
 #include <base/thread.h>
 #include <timer_session/connection.h>
 

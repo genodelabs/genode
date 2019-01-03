@@ -10,8 +10,8 @@
 #
 
 set build_components {
-	core init
-	drivers/timer drivers/uart
+	core init timer
+	drivers/uart
 	app/gdb_monitor
 	test/gdb_monitor
 }

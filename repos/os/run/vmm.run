@@ -8,8 +8,7 @@ assert_spec hw
 assert_spec arndale
 
 set build_components {
-	core init
-	drivers/timer
+	core init timer
 	drivers/platform
 	drivers/uart
 	server/vmm

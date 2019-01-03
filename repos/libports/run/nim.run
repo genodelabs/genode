@@ -1,6 +1,5 @@
 set build_components {
-	core init
-	drivers/timer
+	core init timer
 	drivers/rtc
 	test/nim
 }

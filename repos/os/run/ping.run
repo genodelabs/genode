@@ -5,9 +5,7 @@
 set on_hardware [expr ![have_include power_on/qemu]]
 
 set build_components {
-	core
-	init
-	drivers/timer
+	core init timer
 	drivers/nic
 	server/nic_bridge
 	app/ping

@@ -1,8 +1,8 @@
 assert_spec linux
 
 set build_components {
-	core init
-	drivers/timer drivers/nic server/ram_fs server/vfs
+	core init timer
+	drivers/nic server/ram_fs server/vfs
 	test/nim_echo_server
 	lib/vfs/lxip
 }

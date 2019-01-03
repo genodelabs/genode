@@ -9,9 +9,8 @@ set dd [installed_command dd]
 # Build
 #
 set build_components {
-	core init
+	core init timer
 	drivers/ahci
-	drivers/timer
 	server/ram_blk
 	server/lx_block
 	app/block_tester

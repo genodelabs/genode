@@ -6,8 +6,7 @@ set dd     [installed_command dd]
 # Build
 #
 set build_components {
-	core init
-	drivers/timer
+	core init timer
 	drivers/ahci
 	drivers/platform
 	test/blk/bench

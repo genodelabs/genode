@@ -5,9 +5,7 @@ if { ![have_spec foc] && ![have_spec hw] && ![have_spec nova] &&
 }
 
 set build_components {
-	core
-	init
-	drivers/timer
+	core init timer
 	server/cpu_sampler
 	test/cpu_sampler
 }

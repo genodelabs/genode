@@ -4,8 +4,8 @@
 
 # generic components
 set build_components {
-	core init
-	drivers/timer drivers/uart
+	core init timer
+	drivers/uart
 	test/uart
 }
 

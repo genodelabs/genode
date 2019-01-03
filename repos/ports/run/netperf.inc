@@ -81,8 +81,7 @@ if {$use_nic_driver}    { set network_driver "nic_drv" }
 if {$use_wifi_driver}   { set network_driver "wifi_drv" }
 
 append build_components {
-	core init
-	drivers/timer
+	core init timer
 	app/netperf
 }
 

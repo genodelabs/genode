@@ -18,7 +18,7 @@
 #
 if {[have_spec linux]} { puts "Run script does not support Linux"; exit 0 }
 
-build "core init drivers/timer test/timer server/tar_rom"
+build "core init timer test/timer server/tar_rom"
 
 create_boot_directory
 

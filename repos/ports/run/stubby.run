@@ -9,10 +9,9 @@ set build_components {
 	app/drill
 	app/sequence
 	app/stubby
-	core init
+	core init timer
 	drivers/nic
 	drivers/rtc
-	drivers/timer
 	lib/vfs/jitterentropy
 	lib/vfs/lxip
 	server/nic_router

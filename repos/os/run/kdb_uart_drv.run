@@ -12,8 +12,7 @@ if {![have_spec fiasco]} {
 #
 
 build {
-	core init
-	drivers/timer
+	core init timer
 	drivers/uart
 	test/terminal_echo
 }

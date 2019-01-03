@@ -25,7 +25,7 @@ proc platform_drv_priority {} { return { priority="-1"} }
 
 append build_components { core }
 append build_components { init }
-append build_components { drivers/timer }
+append build_components { timer }
 append build_components { server/nic_router }
 append build_components { server/dynamic_rom }
 append build_components { server/report_rom }

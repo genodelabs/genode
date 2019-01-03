@@ -16,8 +16,8 @@ if {[have_spec linux]} {
 #
 
 set build_components {
-	core init
-	drivers/timer drivers/nic
+	core init timer
+	drivers/nic
 	server/tcp_terminal
 	test/terminal_echo
 	lib/vfs/lwip

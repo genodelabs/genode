@@ -4,7 +4,7 @@ assert_spec linux
 # Build
 #
 
-build { core init drivers/timer
+build { core init timer
 	server/dynamic_rom
 	app/rom_to_file
 	server/lx_fs

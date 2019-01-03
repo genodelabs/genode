@@ -8,4 +8,4 @@ LIBS += alarm
 
 INC_DIR += $(BASE_DIR)/src/include
 
-vpath % $(BASE_DIR)/../os/src/lib/timeout
+vpath % $(BASE_DIR)/src/lib/timeout

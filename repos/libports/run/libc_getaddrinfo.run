@@ -6,8 +6,7 @@ if {[have_spec linux]} {
 }
 
 set build_components {
-	core init
-	drivers/timer
+	core init timer
 	lib/vfs/lwip
 	test/libc_getaddrinfo
 }

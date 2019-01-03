@@ -6,8 +6,8 @@ assert_spec panda
 
 # generic components
 set build_components {
-	core init
-	drivers/timer drivers/uart
+	core init timer
+	drivers/uart
 	test/terminal_echo
 }
 

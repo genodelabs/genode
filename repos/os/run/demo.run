@@ -11,8 +11,7 @@ if {[have_spec odroid_xu] ||
 }
 
 set build_components {
-	core init
-	drivers/timer
+	core init timer
 	server/nitpicker app/pointer app/status_bar app/global_keys_handler
 	app/nit_focus
 	server/liquid_framebuffer app/launchpad app/scout

@@ -11,8 +11,7 @@ set mkisofs [installed_command mkisofs]
 # Build
 #
 set build_components {
-	core init
-	drivers/timer
+	core init timer
 	server/fs_rom
 	server/rom_blk
 	server/rump_fs

@@ -1,7 +1,7 @@
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
 
-set targets "core init drivers/timer server/nic_router server/nic_bridge
+set targets "core init timer server/nic_router server/nic_bridge
              test/lwip/http_srv test/lwip/http_clnt test/lwip/udp
              server/nic_loopback lib/vfs/lwip [platform_drv_build_components]"
 

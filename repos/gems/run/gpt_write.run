@@ -6,7 +6,7 @@ assert_spec linux
 #
 # Build
 #
-build { core init drivers/timer server/lx_block app/gpt_write }
+build { core init timer server/lx_block app/gpt_write }
 
 create_boot_directory
 

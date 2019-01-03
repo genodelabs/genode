@@ -3,8 +3,8 @@
 #
 
 set build_components {
-	core init
-	drivers/timer drivers/input drivers/nic
+	core init timer
+	drivers/input drivers/nic
 	server/nic_bridge
 	app/lighttpd
 	test/lwip/http_clnt

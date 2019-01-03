@@ -5,8 +5,7 @@ set use_qemu [have_include "power_on/qemu"]
 #
 
 set build_components {
-	core init
-	drivers/timer
+	core init timer
 	drivers/usb_host
 	drivers/usb_block
 	server/report_rom

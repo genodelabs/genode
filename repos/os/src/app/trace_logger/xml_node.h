@@ -16,7 +16,7 @@
 
 /* Genode includes */
 #include <util/xml_node.h>
-#include <os/duration.h>
+#include <base/duration.h>
 
 
 namespace Genode {

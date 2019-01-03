@@ -15,7 +15,7 @@
 #define _NOUX__TIMEOUT_SCHEDULER_H_
 
 #include <timer_session/connection.h>
-#include <os/alarm.h>
+#include <base/alarm.h>
 
 namespace Noux {
 	class Timeout_scheduler;

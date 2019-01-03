@@ -11,7 +11,7 @@ if {[have_include "image/uefi"]} {
 	set fb_drv "fb_boot_drv"
 }
 
-set build_components { core init test/framebuffer drivers/framebuffer drivers/timer }
+set build_components { core init test/framebuffer drivers/framebuffer timer }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
 append_platform_drv_build_components

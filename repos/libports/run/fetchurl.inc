@@ -12,9 +12,8 @@ if {[have_spec odroid_xu] || [have_spec linux] ||
 
 set build_components {
 	app/fetchurl
-	core init
+	core init timer
 	drivers/nic
-	drivers/timer
 	server/report_rom
 }
 

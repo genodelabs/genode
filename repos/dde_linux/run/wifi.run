@@ -20,9 +20,8 @@ assert_spec x86
 #
 
 set build_components {
-	core init
+	core init timer
 	drivers/rtc
-	drivers/timer
 	drivers/wifi
 	server/report_rom
 	server/dynamic_rom

@@ -1,8 +1,6 @@
 INCLUDE_SUB_DIRS := os util packet_stream_rx packet_stream_tx
 
-MIRRORED_FROM_REP_DIR := $(addprefix include/,$(INCLUDE_SUB_DIRS)) \
-                         $(addprefix lib/mk/,alarm.mk timeout.mk) \
-                         $(addprefix src/lib/,alarm timeout)
+MIRRORED_FROM_REP_DIR := $(addprefix include/,$(INCLUDE_SUB_DIRS))
 
 content: $(MIRRORED_FROM_REP_DIR) LICENSE
 

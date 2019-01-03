@@ -18,7 +18,7 @@ if {[have_spec nova]} {
 	proc run_boot_string { } { return "Hypervisor reports "}
 }
 
-build "core init drivers/timer server/vfs server/fs_log app/log_core"
+build "core init timer server/vfs server/fs_log app/log_core"
 
 create_boot_directory
 

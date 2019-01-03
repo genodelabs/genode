@@ -1,4 +1,4 @@
-build "core init test/region_map_mmap drivers/timer test/signal"
+build "core init test/region_map_mmap timer test/signal"
 
 create_boot_directory
 

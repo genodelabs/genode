@@ -10,7 +10,7 @@
 set mke2fs [installed_command mke2fs]
 set dd     [installed_command dd]
 
-build "core init drivers/timer test/vfs_stress server/ram_blk lib/vfs/rump"
+build "core init timer test/vfs_stress server/ram_blk lib/vfs/rump"
 
 #
 # Build EXT2-file-system image

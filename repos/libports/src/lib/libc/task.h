@@ -21,7 +21,7 @@
 #ifndef _LIBC__TASK_H_
 #define _LIBC__TASK_H_
 
-#include <os/duration.h>
+#include <base/duration.h>
 #include <util/xml_node.h>
 
 namespace Libc {

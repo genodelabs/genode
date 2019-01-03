@@ -4,8 +4,7 @@
 
 # generic components
 set build_components {
-	core init
-	drivers/timer
+	core init timer
 	drivers/audio
 	server/mixer
 	server/dynamic_rom

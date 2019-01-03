@@ -6,8 +6,7 @@ if {[have_spec odroid_xu]} {
 	puts "Run script not supported on this platform."; exit 0 }
 
 set build_components {
-	core init
-	drivers/timer
+	core init timer
 	server/nitpicker
 	server/dynamic_rom
 	server/report_rom

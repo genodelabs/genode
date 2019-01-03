@@ -3,8 +3,7 @@ assert_spec x86
 proc use_dynamic_rom { } { return true }
 
 set build_components {
-	core init
-	drivers/timer drivers/nic server/vfs
+	core init timer drivers/nic server/vfs
 	lib/vfs/lxip
 }
 

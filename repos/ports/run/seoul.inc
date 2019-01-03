@@ -21,8 +21,7 @@ source ${genode_dir}/repos/base/run/platform_drv.inc
 proc platform_drv_priority {} { return { priority="-1"} }
 
 set build_components {
-	core init
-	drivers/timer
+	core init timer
 	drivers/rtc
 	drivers/input
 	app/seoul

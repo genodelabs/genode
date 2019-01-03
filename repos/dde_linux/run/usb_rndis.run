@@ -9,8 +9,8 @@
 #
 
 set build_components {
-	core init
-	drivers/timer drivers/usb
+	core init timer
+	drivers/usb
 	server/tcp_terminal
 	test/terminal_echo
 	lib/vfs/lwip

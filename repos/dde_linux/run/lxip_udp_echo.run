@@ -6,8 +6,8 @@ set use_nic_driver [expr [have_spec linux] || [expr !$use_usb_driver && ![have_s
 #
 
 set build_components {
-	core init
-	drivers/timer drivers/nic
+	core init timer
+	drivers/nic
 	test/lxip/udp_echo
 }
 

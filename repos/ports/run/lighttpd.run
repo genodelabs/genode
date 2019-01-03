@@ -5,9 +5,8 @@
 #
 
 set build_components {
-	core init
+	core init timer
 	drivers/nic
-	drivers/timer
 	app/lighttpd
 }
 

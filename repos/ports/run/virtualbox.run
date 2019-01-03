@@ -12,9 +12,8 @@ set use_gui 0
 set use_bridge [expr $use_net && $use_gui]
 
 set build_components {
-	core init
+	core init timer
 	drivers/framebuffer
-	drivers/timer
 }
 
 if {$use_vbox4} {

@@ -15,7 +15,7 @@
 #include <base/log.h>
 #include <base/sleep.h>
 #include <base/thread.h>
-#include <os/timed_semaphore.h>
+#include <base/timed_semaphore.h>
 #include <util/list.h>
 
 #include <errno.h>

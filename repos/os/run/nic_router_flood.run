@@ -16,9 +16,7 @@ proc good_dst_ip      { } { return "10.0.2.2" }
 proc bad_dst_ip       { } { return "10.0.0.123" }
 
 set build_components {
-	core
-	init
-	drivers/timer
+	core init timer
 	drivers/nic
 	server/nic_router
 	test/net_flood

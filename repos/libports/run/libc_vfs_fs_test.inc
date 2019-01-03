@@ -17,8 +17,7 @@ if {[have_spec odroid_xu]} {
 #
 
 set build_components {
-	core init
-	drivers/timer
+	core init timer
 	test/libc_vfs
 }
 

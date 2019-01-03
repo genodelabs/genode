@@ -28,12 +28,11 @@ if {[have_spec nova]} {
 }
 
 append build_components {
-	core init
+	core init timer
 	server/part_blk
 	server/fs_rom
 	drivers/ahci
 	drivers/framebuffer
-	drivers/timer
 }
 
 lappend_if [expr $use_rumpfs] build_components server/rump_fs

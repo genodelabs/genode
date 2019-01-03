@@ -16,8 +16,7 @@ if {[have_spec linux]} {
 #
 
 set build_components {
-	core init
-	drivers/timer
+	core init timer
 	drivers/audio
 	test/audio_in
 }

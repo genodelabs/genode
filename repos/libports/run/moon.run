@@ -2,7 +2,7 @@
 # Lua C++ library test
 #
 
-build "core init drivers/timer test/moon"
+build "core init timer test/moon"
 
 create_boot_directory
 

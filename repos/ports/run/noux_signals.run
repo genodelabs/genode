@@ -1,7 +1,7 @@
 set build_components {
-	core init drivers/timer drivers/uart
+	core init timer drivers/uart
 	noux
-    test/noux_signals
+	test/noux_signals
 }
 
 build $build_components

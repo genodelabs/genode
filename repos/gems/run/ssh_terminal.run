@@ -13,8 +13,7 @@ if {[have_spec linux]} {
 #
 
 set build_components {
-	core init
-	drivers/timer
+	core init timer
 	drivers/nic
 	drivers/rtc
 	server/ssh_terminal

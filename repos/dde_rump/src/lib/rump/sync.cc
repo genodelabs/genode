@@ -17,7 +17,7 @@ extern "C" {
 }
 #include <base/lock.h>
 #include <util/fifo.h>
-#include <os/timed_semaphore.h>
+#include <base/timed_semaphore.h>
 #include <rump/env.h>
 
 #include "sched.h"

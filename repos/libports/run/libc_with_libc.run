@@ -1,5 +1,5 @@
 set build_components {
-	core init drivers/timer test/libc_with_libc
+	core init timer test/libc_with_libc
 }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc

@@ -16,7 +16,7 @@
 
 #include <base/log.h>
 #include <base/sleep.h>
-#include <os/timed_semaphore.h>
+#include <base/timed_semaphore.h>
 #include <rump/env.h>
 #include <util/allocator_fap.h>
 #include <util/random.h>

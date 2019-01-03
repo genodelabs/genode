@@ -1,4 +1,4 @@
-build "core init test/bomb drivers/timer"
+build "core init test/bomb timer"
 
 set timeout     240
 set rounds      20

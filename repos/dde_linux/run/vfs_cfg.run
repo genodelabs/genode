@@ -1,7 +1,6 @@
 set build_components {
-	core init
+	core init timer
 	drivers/nic
-	drivers/timer
 	lib/vfs/lxip
 	server/vfs
 	server/dynamic_rom

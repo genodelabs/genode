@@ -32,8 +32,7 @@ if {[expr ![have_include "power_on/qemu"] && !$use_ram_blk]} {
 #
 
 set build_components {
-	core init
-	drivers/timer
+	core init timer
 	test/libc_block
 }
 

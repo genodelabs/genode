@@ -58,8 +58,7 @@ if { [get_cmd_switch --autopilot] && ![have_spec x86_64] } {
 #
 
 set build_components {
-	core init
-	drivers/timer
+	core init timer
 	drivers/usb_host
 	drivers/usb_hid
 	test/input

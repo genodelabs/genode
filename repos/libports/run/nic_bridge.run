@@ -8,8 +8,8 @@ if {![have_include power_on/qemu]} {
 }
 
 set build_components {
-	core init
-	drivers/timer drivers/nic
+	core init timer
+	drivers/nic
 	server/nic_bridge
 	test/lwip/http_srv
 	test/lwip/http_clnt

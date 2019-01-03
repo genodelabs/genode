@@ -9,7 +9,7 @@ assert_spec hw
 # Build
 #
 
-build "core init drivers/timer test/cpu_quota"
+build "core init timer test/cpu_quota"
 
 #
 # Boot image

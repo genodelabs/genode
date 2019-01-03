@@ -16,7 +16,7 @@ proc test_char_repeat { } {
 #
 
 set build_components {
-	core init drivers/timer
+	core init timer
 	server/report_rom server/input_filter test/input_filter
 }
 

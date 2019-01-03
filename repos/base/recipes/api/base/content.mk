@@ -6,11 +6,6 @@ ARCHS := riscv arm_v6 arm_v7 x86_32 x86_64
 include:
 	mkdir -p include
 	cp -r $(REP_DIR)/include/* $@/
-	for a in ${ARCHS}; do \
-	  mkdir -p include/spec/$$a/trace; \
-	  cp $(GENODE_DIR)/repos/os/include/spec/$$a/trace/timestamp.h \
-	     include/spec/$$a/trace; \
-	done
 
 LIB_MK_FILES := base.mk ld.mk ldso-startup.mk
 
