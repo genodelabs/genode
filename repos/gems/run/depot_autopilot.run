@@ -33,6 +33,7 @@ set single_test_modules { }
 #
 set avail_test_pkgs {
 	test-ada
+	test-gnatio
 	test-ada_exception
 	test-ada_secondary_stack
 	test-blk
