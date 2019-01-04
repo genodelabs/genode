@@ -3,7 +3,7 @@
 	<requires> <nitpicker/> <timer/> </requires>
 
 	<config>
-		<controls> <maximizer/> <title/> </controls>
+		<controls> <maximizer/> <title/> <closer/> </controls>
 	</config>
 
 	<content>
