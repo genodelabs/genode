@@ -1,6 +1,0 @@
-set mkfs_cmd        mkfs.ext2
-set mkfs_opts       "-F"
-set filesystem      fuse_ext2
-set libc_dev_blkdev {<block name="blkdev"/>}
-
-source ${genode_dir}/repos/libports/run/libc_filesystem_test.inc

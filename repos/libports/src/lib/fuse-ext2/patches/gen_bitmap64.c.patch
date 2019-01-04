@@ -1,7 +1,0 @@
-+++ src/lib/fuse-ext2/e2fsprogs-1.41.12.newgit/ext2fs/gen_bitmap64.c
-@@ -577,4 +577,5 @@
- 		com_err(0, EXT2_ET_MAGIC_GENERIC_BITMAP,
- 			"called %s with 64-bit bitmap", func);
- #endif
-+	return 0;
- }
