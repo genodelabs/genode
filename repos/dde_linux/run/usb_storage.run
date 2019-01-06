@@ -11,7 +11,7 @@
 set build_components {
 	core init timer
 	drivers/usb
-	test/blk/cli
+	test/block/client
 }
 
 lappend_if [have_spec gpio]             build_components drivers/gpio
@@ -69,7 +69,7 @@ append config {
 	</start>
 		<start name="test-usb">
 		<resource name="RAM" quantum="2M" />
-		<binary name="test-blk-cli" />
+		<binary name="test-block-client" />
 		<config test_size="1M" />
 	</start>
 </config>
@@ -82,7 +82,7 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core ld.lib.so init timer usb_drv test-blk-cli
+	core ld.lib.so init timer usb_drv test-block-client
 }
 
 lappend_if [have_spec gpio] boot_modules [gpio_drv]

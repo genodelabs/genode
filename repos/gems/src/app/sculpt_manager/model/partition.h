@@ -135,7 +135,7 @@ struct Sculpt::Partition : List_model<Partition>::Element
 
 
 /**
- * Policy for transforming a part_blk report into a list of partitions
+ * Policy for transforming a part_block report into a list of partitions
  */
 struct Sculpt::Partition_update_policy : List_model<Partition>::Update_policy
 {

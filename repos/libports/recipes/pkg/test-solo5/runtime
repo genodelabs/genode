@@ -11,7 +11,7 @@
 	<content>
 		<rom label="ld.lib.so"/>
 		<rom label="nic_loopback"/>
-		<rom label="ram_blk"/>
+		<rom label="ram_block"/>
 		<rom label="sequence"/>
 		<rom label="sequence"/>
 		<rom label="solo5.lib.so"/>
@@ -39,7 +39,7 @@
 			<provides> <service name="Nic"/> </provides>
 		</start>
 
-		<start name="ram_blk" caps="96">
+		<start name="ram_block" caps="96">
 			<resource name="RAM" quantum="9M"/>
 			<provides> <service name="Block"/> </provides>
 			<config size="8M" block_size="4096"/>

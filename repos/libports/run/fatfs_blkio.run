@@ -1,5 +1,5 @@
 #
-# \brief  Test of FatFS blkio implementation
+# \brief  Test of FatFS block-io implementation
 # \author Emery Hemingway
 # \date   2017-07-31
 #
@@ -15,10 +15,10 @@ set use_sd_card_drv [expr [have_spec omap4] || [have_spec arndale] || [have_spec
 # use AHCI on x86
 set use_ahci        [expr [have_spec x86] && ![have_spec linux]]
 
-# use ram_blk on Linux
-set use_ram_blk     [have_spec linux]
+# use ram_block on Linux
+set use_ram_block   [have_spec linux]
 
-if {[expr ![have_include "power_on/qemu"] && !$use_ram_blk]} {
+if {[expr ![have_include "power_on/qemu"] && !$use_ram_block]} {
 	puts "\nPlease setup your native sd or hard drive. Remove this fail stop";
 	puts "check when you have prepared your native environment.\n";
 	exit 0
@@ -28,7 +28,7 @@ if {[expr ![have_include "power_on/qemu"] && !$use_ram_blk]} {
 # Build
 #
 set build_components {
-	test/fatfs_blkio
+	test/fatfs_block_io
 }
 
 lappend_if $use_sd_card_drv build_components drivers/sd_card
@@ -42,8 +42,8 @@ create_boot_directory
 
 set depot_pkgs "genodelabs/src/[base_src] genodelabs/src/init"
 
-lappend_if $use_ahci    depot_pkgs genodelabs/src/ahci_drv
-lappend_if $use_ram_blk depot_pkgs genodelabs/src/ram_blk
+lappend_if $use_ahci      depot_pkgs genodelabs/src/ahci_drv
+lappend_if $use_ram_block depot_pkgs genodelabs/src/ram_block
 
 import_from_depot {*}$depot_pkgs
 
@@ -71,7 +71,7 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
-	<start name="test-fatfs_blkio">
+	<start name="test-fatfs_block_io">
 		<resource name="RAM" quantum="10M"/>
 		<config ld_verbose="true">
 			<libc stdout="/log" stderr="/log"/>
@@ -89,7 +89,7 @@ append_if $use_ahci config {
 			<any-service> <parent /> <any-child /></any-service>
 		</route>
 		<config>
-			<policy label_prefix="test-fatfs_blkio" device="0"/>
+			<policy label_prefix="test-fatfs_block_io" device="0"/>
 		</config>
 	</start>}
 
@@ -100,8 +100,8 @@ append_if $use_sd_card_drv config {
 	</start>
 }
 
-append_if $use_ram_blk config {
-	<start name="ram_blk">
+append_if $use_ram_block config {
+	<start name="ram_block">
 		<resource name="RAM" quantum="4M" />
 		<provides><service name="Block"/></provides>
 		<config size="1M" block_size="512"/>
@@ -126,11 +126,11 @@ catch { exec sh -c $cmd }
 set boot_modules {
 	libc.lib.so vfs.lib.so
 	libm.lib.so
-	test-fatfs_blkio
+	test-fatfs_block_io
 }
 
 lappend_if $use_sd_card_drv  boot_modules sd_card_drv
-lappend_if $use_ram_blk      boot_modules test.hda
+lappend_if $use_ram_block    boot_modules test.hda
 
 append_platform_drv_boot_modules
 
@@ -143,6 +143,6 @@ append qemu_args "  -nographic "
 append_if $use_ahci        qemu_args " -drive id=disk,file=$disk_image,format=raw,if=none -device ahci,id=ahci -device ide-drive,drive=disk,bus=ahci.0 -boot d"
 append_if $use_sd_card_drv qemu_args " -drive file=$disk_image,format=raw,if=sd,cache=writeback "
 
-run_genode_until {.*child "test-fatfs_blkio" exited with exit value 0.*} 60
+run_genode_until {.*child "test-fatfs_block_io" exited with exit value 0.*} 60
 
 exec rm -f $disk_image

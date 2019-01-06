@@ -13,7 +13,7 @@ set dd     [installed_command dd]
 #
 set build_components {
 	core init timer
-	server/ram_blk
+	server/ram_block
 	server/rump_fs
 	test/libc_vfs
 }
@@ -51,7 +51,7 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
-	<start name="ram_blk">
+	<start name="ram_block">
 		<resource name="RAM" quantum="20M"/>
 		<provides><service name="Block"/></provides>
 		<config file="ext2.raw" block_size="512"/>
@@ -81,7 +81,7 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core ld.lib.so init timer test-libc_vfs ram_blk
+	core ld.lib.so init timer test-libc_vfs ram_block
 	rump.lib.so rump_fs.lib.so rump_fs
 	ext2.raw libc.lib.so vfs.lib.so
 }

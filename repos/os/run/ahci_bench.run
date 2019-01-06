@@ -9,7 +9,7 @@ set build_components {
 	core init timer
 	drivers/ahci
 	drivers/platform
-	test/blk/bench
+	test/block/bench
 }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
@@ -62,7 +62,7 @@ append config {
 	</start>
 
 	<start name="test-ahci">
-		<binary name="test-blk-bench" />
+		<binary name="test-block-bench" />
 		<resource name="RAM" quantum="5M" />
 		<route>
 			<service name="Block"><child name="ahci_drv"/></service>
@@ -76,7 +76,7 @@ install_config $config
 #
 # Boot modules
 #
-set boot_modules { core init timer ahci_drv test-blk-bench ld.lib.so }
+set boot_modules { core init timer ahci_drv test-block-bench ld.lib.so }
 
 append_platform_drv_boot_modules
 

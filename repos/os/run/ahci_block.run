@@ -1,0 +1,102 @@
+
+set mke2fs [installed_command mke2fs]
+set dd     [installed_command dd]
+
+#
+# Build
+#
+set build_components {
+	core init timer
+	drivers/ahci
+	server/report_rom
+	test/block/client
+}
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
+
+build $build_components
+
+#
+# Build EXT2-file-system image
+#
+catch { exec $dd if=/dev/zero of=bin/ext2.raw bs=1M count=16 }
+catch { exec $mke2fs -F bin/ext2.raw }
+
+create_boot_directory
+
+#
+# Generate config
+#
+set config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<default caps="100"/>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>}
+
+append_platform_drv_config
+
+append config {
+	<start name="ahci_report_rom">
+		<binary name="report_rom"/>
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config verbose="yes"/>
+	</start>
+	<start name="ahci_drv">
+		<resource name="RAM" quantum="10M" />
+		<provides><service name="Block" /></provides>
+		<config>
+			<report ports="yes"/>
+			<policy label_prefix="test-ahci" device="0" writeable="yes" />
+		</config>
+		<route>
+			<service name="Report"> <child name="ahci_report_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="test-ahci">
+		<binary name="test-block-client" />
+		<resource name="RAM" quantum="50M" />
+		<config test_size="100M"></config>
+		<route>
+			<service name="Block"><child name="ahci_drv"/></service>
+			<any-service> <parent/> <any-child /> </any-service>
+		</route>
+	</start>
+</config> }
+
+install_config $config
+
+#
+# Boot modules
+#
+set boot_modules { core ld.lib.so init timer ahci_drv report_rom test-block-client }
+
+append_platform_drv_boot_modules
+
+build_boot_image $boot_modules
+
+append qemu_args " -nographic -device ahci,id=ahci -boot d "
+append qemu_args " -drive id=disk,file=bin/ext2.raw,format=raw,if=none             -device ide-hd,drive=disk,bus=ahci.0 "
+append qemu_args " -drive id=cd,file=[run_dir]/../ahci_block.iso,if=none,media=cdrom -device ide-cd,drive=cd,bus=ahci.1 "
+append qemu_args " -drive id=disk2,file=bin/ext2.raw,format=raw,if=none            -device ide-hd,drive=disk2,bus=ahci.2 "
+
+run_genode_until "Tests finished successfully!" 100
+
+exec rm -f bin/ext2.raw

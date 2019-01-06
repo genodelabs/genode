@@ -319,10 +319,10 @@ subdirectory of a source repository.
   the physical network. DHCP requests originating from the virtual NIC sessions
   are delegated to the physical network.
 
-:Block: The block-device partition server at 'os/src/server/part_blk' reads
+:Block: The block-device partition server at 'os/src/server/part_block' reads
   the partition table of a block session and exports each partition found as
   separate block session. For using this server, please refer to the run
-  script at 'os/run/part_blk'.
+  script at 'os/run/part_block'.
 
 :File system: The FAT file-system service allows multiple clients to
   concurrently access the same FAT-formatted block device. It is located
@@ -382,13 +382,13 @@ Separate components:
   A pseudo file system that can be used as a front end to core's TRACE
   service.
 
-:'os/src/server/rom_blk':
+:'os/src/server/rom_block':
   Provides the content of a ROM file as a block session, similar to the
   loop-mount mechanism on Linux
 
-:'os/src/server/ram_blk':
+:'os/src/server/ram_block':
   Provides the content of a RAM dataspace as a block session. In contrast
-  to 'rom_blk', this server provides a writeable block device.
+  to 'rom_block', this server provides a writeable block device.
 
 :'os/src/server/terminal_log':
   Adapter for forwarding LOG messages to a terminal session.
@@ -434,7 +434,7 @@ Separate components:
   The terminal crosslink service allows to terminal clients to talk to each
   other.
 
-:'gems/src/server/http_blk':
+:'gems/src/server/http_block':
   A block service that fetches a virtual block device over the network from
   a HTTP server.
 

@@ -25,7 +25,7 @@ void Sculpt::Storage::handle_storage_devices_update()
 
 		_storage_devices.block_devices.for_each([&] (Block_device &dev) {
 
-			dev.process_part_blk_report();
+			dev.process_part_block_report();
 
 			if (dev.state == Storage_device::UNKNOWN) {
 				reconfigure_runtime = true; };
@@ -44,7 +44,7 @@ void Sculpt::Storage::handle_storage_devices_update()
 		_storage_devices.usb_storage_devices.for_each([&] (Usb_storage_device &dev) {
 
 			dev.process_driver_report();
-			dev.process_part_blk_report();
+			dev.process_part_block_report();
 
 			if (dev.state == Storage_device::UNKNOWN) {
 				reconfigure_runtime = true; };
@@ -91,19 +91,19 @@ void Sculpt::Storage::gen_runtime_start_nodes(Xml_generator &xml) const
 	xml.node("start", [&] () {
 		gen_ram_fs_start_content(xml, _ram_fs_state); });
 
-	auto part_blk_needed_for_use = [&] (Storage_device const &dev) {
+	auto part_block_needed_for_use = [&] (Storage_device const &dev) {
 		return (_sculpt_partition.device == dev.label)
 		     && _sculpt_partition.partition.valid(); };
 
 	_storage_devices.block_devices.for_each([&] (Block_device const &dev) {
 	
-		if (dev.part_blk_needed_for_discovery()
-		 || dev.part_blk_needed_for_access()
-		 || part_blk_needed_for_use(dev))
+		if (dev.part_block_needed_for_discovery()
+		 || dev.part_block_needed_for_access()
+		 || part_block_needed_for_use(dev))
 
 			xml.node("start", [&] () {
 				Storage_device::Label const parent { };
-				dev.gen_part_blk_start_content(xml, parent); }); });
+				dev.gen_part_block_start_content(xml, parent); }); });
 
 	_storage_devices.usb_storage_devices.for_each([&] (Usb_storage_device const &dev) {
 
@@ -111,13 +111,13 @@ void Sculpt::Storage::gen_runtime_start_nodes(Xml_generator &xml) const
 			xml.node("start", [&] () {
 				dev.gen_usb_block_drv_start_content(xml); });
 
-		if (dev.part_blk_needed_for_discovery()
-		 || dev.part_blk_needed_for_access()
-		 || part_blk_needed_for_use(dev))
+		if (dev.part_block_needed_for_discovery()
+		 || dev.part_block_needed_for_access()
+		 || part_block_needed_for_use(dev))
 
 			xml.node("start", [&] () {
 				Storage_device::Label const driver = dev.usb_block_drv_name();
-				dev.gen_part_blk_start_content(xml, driver);
+				dev.gen_part_block_start_content(xml, driver);
 		});
 	});
 

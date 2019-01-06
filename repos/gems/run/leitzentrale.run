@@ -25,8 +25,8 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/noux \
                   [depot_user]/src/terminal \
                   [depot_user]/src/posix \
-                  [depot_user]/src/ram_blk \
-                  [depot_user]/src/part_blk \
+                  [depot_user]/src/ram_block \
+                  [depot_user]/src/part_block \
                   [depot_user]/src/rump \
                   [depot_user]/src/ncurses \
                   [depot_user]/src/usb_block_drv \
@@ -215,7 +215,7 @@ install_config {
 	</start>
 
 	<start name="ahci-2">
-		<binary name="ram_blk"/>
+		<binary name="ram_block"/>
 		<resource name="RAM" quantum="10M"/>
 		<config nofile="ahci-1.img" size="8M" block_size="512"/>
 		<provides> <service name="Block"/> </provides>

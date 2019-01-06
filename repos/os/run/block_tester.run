@@ -11,7 +11,7 @@ set dd [installed_command dd]
 set build_components {
 	core init timer
 	drivers/ahci
-	server/ram_blk
+	server/ram_block
 	server/lx_block
 	app/block_tester
 }
@@ -155,7 +155,7 @@ install_config $config
 
 # generic modules
 set boot_modules {
-	core init timer ahci_drv ram_blk block_tester
+	core init timer ahci_drv ram_block block_tester
 	ld.lib.so
 }
 

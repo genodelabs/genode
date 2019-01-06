@@ -9,8 +9,8 @@ set build_components {
 	drivers/usb_host
 	drivers/usb_block
 	server/report_rom
-	test/blk/cli
-	test/blk/bench
+	test/block/client
+	test/block/bench
 }
 
 proc gpio_drv { } { if {[have_spec rpi] && [have_spec hw]}  { return hw_gpio_drv }
@@ -114,8 +114,8 @@ append config {
 	</start>
 	<start name="test-usb">
 		<resource name="RAM" quantum="128M"/>
-		<binary name="test-blk-bench"/>
-		<!--binary name="test-blk-cli"/-->
+		<binary name="test-block-bench"/>
+		<!--binary name="test-block-client"/-->
 		<config>
 			<libc stdout="/dev/log">
 				<vfs> <dir name="dev"> <log/> </dir> </vfs>
@@ -137,7 +137,7 @@ install_config $config
 # generic modules
 set boot_modules {
 	core init timer report_rom usb_block_drv
-	test-blk-cli test-blk-bench
+	test-block-client test-block-bench
 	ld.lib.so
 }
 

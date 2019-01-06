@@ -43,4 +43,4 @@ Caching
 
 This plugin may cache some file data but schedules a full write cache flush a few
 seconds after any write operation. If a read caching is desired, please use the
-'blk_cache' component to cache at the block device.
+'block_cache' component to cache at the block device.

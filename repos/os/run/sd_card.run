@@ -7,7 +7,7 @@ set build_components {
 	core init
 	timer
 	drivers/sd_card
-	test/blk/cli
+	test/block/client
 }
 lappend_if [have_spec arndale] build_components drivers/platform
 lappend_if [have_spec rpi]     build_components drivers/platform
@@ -51,7 +51,7 @@ append config {
 			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Block"/></provides>
 		</start>
-		<start name="test-blk-cli">
+		<start name="test-block-client">
 			<resource name="RAM" quantum="1M" />
 		</start>
 	</config> }
@@ -67,7 +67,7 @@ install_config $config
 set boot_modules {
 	core ld.lib.so init timer
 	sd_card_drv
-	test-blk-cli
+	test-block-client
 }
 lappend_if [have_spec arndale] boot_modules platform_drv
 lappend_if [have_spec rpi]     boot_modules platform_drv

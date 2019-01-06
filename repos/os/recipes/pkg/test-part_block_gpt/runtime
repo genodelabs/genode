@@ -1,0 +1,79 @@
+<runtime ram="72M" caps="1000" binary="init">
+
+	<requires> <timer/> </requires>
+
+	<events>
+		<timeout meaning="failed" sec="70" />
+		<log meaning="succeeded">
+			Tests finished successfully!*
+			Tests finished successfully!
+		</log>
+		<log meaning="failed">Error: </log>
+	</events>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="rom_block"/>
+		<rom label="part_block"/>
+		<rom label="test-block-client"/>
+		<rom label="report_rom"/>
+		<rom label="ata.gpt.raw"/>
+	</content>
+
+	<config prio_levels="1" verbose="yes">
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="IRQ"/>
+			<service name="IO_MEM"/>
+			<service name="IO_PORT"/>
+			<service name="PD"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="LOG"/>
+			<service name="Timer"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<default caps="100"/>
+		<start name="rom_block">
+			<resource name="RAM" quantum="32M"/>
+			<provides><service name="Block"/></provides>
+			<config file="ata.gpt.raw" block_size="512"/>
+		</start>
+		<start name="part_block">
+			<resource name="RAM" quantum="10M" />
+			<provides><service name="Block" /></provides>
+			<route>
+				<any-service><child name="rom_block"/> <parent/><any-child/></any-service>
+			</route>
+			<config use_gpt="yes">
+				<report partitions="yes"/>
+				<policy label_prefix="test-part1" partition="2"/>
+				<policy label_prefix="test-part2" partition="1"/>
+			</config>
+		</start>
+		<start name="report_rom">
+			<provides>
+				<service name="Report"/>
+				<service name="ROM"/>
+			</provides>
+			<resource name="RAM" quantum="5M" />
+			<config verbose="yes"/>
+		</start>
+		<start name="test-part1">
+			<binary name="test-block-client"/>
+			<resource name="RAM" quantum="5M" />
+			<route>
+				<any-service> <child name="part_block" /> <parent/> <any-child/> </any-service>
+			</route>
+		</start>
+		<start name="test-part2">
+			<binary name="test-block-client"/>
+			<resource name="RAM" quantum="5M" />
+			<route>
+				<any-service> <child name="part_block" /> <parent/> <any-child/> </any-service>
+			</route>
+		</start>
+	</config>
+</runtime>

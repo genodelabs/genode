@@ -580,8 +580,8 @@ set default_test_pkgs {
 	test-ada
 	test-ada_exception
 	test-ada_secondary_stack
-	test-blk
-	test-blk_cache
+	test-block
+	test-block_cache
 	test-clipboard
 	test-ds_ownership
 	test-dynamic_config
@@ -616,8 +616,8 @@ set default_test_pkgs {
 	test-mmio
 	test-new_delete
 	test-nic_loopback
-	test-part_blk_gpt
-	test-part_blk_mbr
+	test-part_block_gpt
+	test-part_block_mbr
 	test-pipe
 	test-pthread
 	test-python
@@ -631,7 +631,7 @@ set default_test_pkgs {
 	test-rm_fault
 	test-rm_fault_no_nox
 	test-rm_nested
-	test-rom_blk
+	test-rom_block
 	test-rom_filter
 	test-rust
 	test-sanitizer

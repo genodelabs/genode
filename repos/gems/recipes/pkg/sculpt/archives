@@ -34,7 +34,7 @@ _/src/curl
 _/src/libssh
 _/src/zlib
 _/src/log_core
-_/src/part_blk
+_/src/part_block
 _/src/nic_router
 _/src/e2fsprogs-minimal
 _/src/nvme_drv

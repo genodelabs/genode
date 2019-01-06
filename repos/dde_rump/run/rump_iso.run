@@ -13,7 +13,7 @@ set mkisofs [installed_command mkisofs]
 set build_components {
 	core init timer
 	server/fs_rom
-	server/rom_blk
+	server/rom_block
 	server/rump_fs
 	test/iso
 }
@@ -44,7 +44,7 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
-	<start name="rom_blk">
+	<start name="rom_block">
 		<resource name="RAM" quantum="2M"/>
 		<provides><service name="Block"/></provides>
 		<config file="fs.iso" block_size="2048"/>
@@ -87,7 +87,7 @@ install_config $config
 # Boot modules
 #
 set boot_modules {
-	core ld.lib.so init timer test-iso rom_blk
+	core ld.lib.so init timer test-iso rom_block
 	rump.lib.so rump_fs.lib.so rump_fs
 	fs.iso fs_rom
 }

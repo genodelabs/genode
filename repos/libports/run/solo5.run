@@ -45,7 +45,7 @@ install_config {
 		<provides> <service name="Nic"/> </provides>
 	</start>
 
-	<start name="ram_blk" caps="96">
+	<start name="ram_block" caps="96">
 		<resource name="RAM" quantum="40M"/>
 		<provides> <service name="Block"/> </provides>
 		<config size="32M" block_size="4096"/>
@@ -78,13 +78,13 @@ install_config {
 build {
 	app/sequence
 	server/nic_loopback
-	server/ram_blk
+	server/ram_block
 	test/solo5
 }
 
 build_boot_image {
 	nic_loopback
-	ram_blk
+	ram_block
 	sequence
 	solo5.lib.so
 	solo5-test_blk

@@ -30,7 +30,7 @@ set build_components {
 if {$use_fancy_stuff} { set use_framebuffer 1 }
 
 lappend_if $use_usb             build_components drivers/usb
-lappend_if $use_block_ram       build_components server/ram_blk
+lappend_if $use_block_ram       build_components server/ram_block
 lappend_if $use_block_sata      build_components drivers/ahci
 lappend_if $use_nic_session     build_components drivers/nic
 lappend_if $use_nic_bridge      build_components server/nic_bridge
@@ -43,7 +43,7 @@ lappend_if $use_fancy_stuff     build_components app/launchpad
 lappend_if $use_fancy_stuff     build_components server/nitlog
 lappend_if $use_fancy_stuff     build_components server/report_rom
 lappend_if $use_genode_iso      build_components server/iso9660
-lappend_if $use_genode_iso      build_components server/rom_blk
+lappend_if $use_genode_iso      build_components server/rom_block
 lappend_if $use_top             build_components app/top
 
 append_platform_drv_build_components
@@ -192,14 +192,14 @@ append_if $use_block_sata config {
 	</start>}
 
 append_if $use_block_ram config {
-	<start name="ram_blk" priority="-1">
+	<start name="ram_block" priority="-1">
 		<resource name="RAM" quantum="162M" />
 		<provides><service name="Block"/></provides>
 		<config file="seoul-disc.raw" block_size="512"/>
 	</start>}
 
 append_if $use_genode_iso config {
-	<start name="rom_blk" priority="-1">
+	<start name="rom_block" priority="-1">
 		<resource name="RAM" quantum="16M" />
 		<provides><service name="Block"/></provides>
 		<config file="genode.iso" block_size="2048"/>
@@ -209,7 +209,7 @@ append_if $use_genode_iso config {
 		<resource name="RAM" quantum="16M"/>
 		<provides><service name="ROM"/></provides>
 		<route>
-			<service name="Block"><child name="rom_blk"/></service>
+			<service name="Block"><child name="rom_block"/></service>
 			<any-service><parent/></any-service>
 		</route>
 	</start>}
@@ -415,7 +415,7 @@ set boot_modules {
 
 lappend_if [expr !$use_usb]   boot_modules ps2_drv
 lappend_if $use_usb           boot_modules usb_drv
-lappend_if $use_block_ram     boot_modules ram_blk
+lappend_if $use_block_ram     boot_modules ram_block
 lappend_if $use_block_sata    boot_modules ahci_drv
 lappend_if $use_nic_session   boot_modules nic_drv
 lappend_if $use_nic_bridge    boot_modules nic_bridge
@@ -430,7 +430,7 @@ lappend_if $use_fancy_stuff   boot_modules nitlog
 lappend_if $use_fancy_stuff   boot_modules launchpad-config
 lappend_if $use_fancy_stuff   boot_modules report_rom
 
-lappend_if $use_genode_iso    boot_modules rom_blk
+lappend_if $use_genode_iso    boot_modules rom_block
 lappend_if $use_genode_iso    boot_modules iso9660
 lappend_if $use_genode_iso    boot_modules genode.iso
 

@@ -1,5 +1,5 @@
 _/src/init
 _/src/test-libc_vfs_block
-_/src/ram_blk
+_/src/ram_block
 _/src/libc
 _/src/vfs

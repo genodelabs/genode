@@ -25,13 +25,13 @@ set use_sd_card_drv [expr [have_spec omap4] || [have_spec arndale] || [have_spec
 # use AHCI on x86
 set use_ahci        [expr [have_spec x86] && ![have_spec linux]]
 
-# use ram_blk on Linux
-set use_ram_blk     [have_spec linux]
+# use ram_block on Linux
+set use_ram_block   [have_spec linux]
 
 if {[catch { exec which $mkfs_cmd } ]} {
 	puts stderr "Error: $mkfs_cmd not installed, aborting test"; exit }
 
-if {[expr ![have_include "power_on/qemu"] && !$use_ram_blk]} {
+if {[expr ![have_include "power_on/qemu"] && !$use_ram_block]} {
 	puts "\nPlease setup your native sd or hard drive. Remove this fail stop";
 	puts "check when you have prepared your native environment.\n";
 	exit 0
@@ -57,7 +57,7 @@ create_boot_directory
 set depot_pkgs "genodelabs/src/[base_src] genodelabs/src/init"
 
 lappend_if $use_ahci       depot_pkgs genodelabs/src/ahci_drv
-lappend_if $use_ram_blk    depot_pkgs genodelabs/src/ram_blk
+lappend_if $use_ram_block  depot_pkgs genodelabs/src/ram_block
 lappend_if $use_vfs_server depot_pkgs genodelabs/src/vfs
 
 import_from_depot {*}$depot_pkgs
@@ -128,8 +128,8 @@ append_if $use_sd_card_drv config {
 	</start>
 }
 
-append_if $use_ram_blk config {
-	<start name="ram_blk">
+append_if $use_ram_block config {
+	<start name="ram_block">
 		<resource name="RAM" quantum="128M" />
 		<provides><service name="Block"/></provides>
 		<config file="test.hda" block_size="512"/>
@@ -166,7 +166,7 @@ append boot_modules {
 lappend boot_modules {*}$test_boot_modules
 
 lappend_if $use_sd_card_drv  boot_modules sd_card_drv
-lappend_if $use_ram_blk      boot_modules test.hda
+lappend_if $use_ram_block    boot_modules test.hda
 
 append_platform_drv_boot_modules
 

@@ -15,13 +15,13 @@ set use_sd_card_drv [expr [have_spec omap4] || [have_spec arndale] || [have_spec
 # use AHCI on x86
 set use_ahci        [expr [have_spec x86] && ![have_spec linux]]
 
-# use ram_blk on Linux
-set use_ram_blk     [have_spec linux]
+# use ram_block on Linux
+set use_ram_block   [have_spec linux]
 
 if {[catch { exec which $mkfs_cmd } ]} {
 	puts stderr "Error: $mkfs_cmd not installed, aborting test"; exit }
 
-if {[expr ![have_include "power_on/qemu"] && !$use_ram_blk]} {
+if {[expr ![have_include "power_on/qemu"] && !$use_ram_block]} {
 	puts "\nPlease setup your native sd or hard drive. Remove this fail stop";
 	puts "check when you have prepared your native environment.\n";
 	exit 0
@@ -40,7 +40,7 @@ lappend build_components test/libc_$filesystem
 
 lappend_if $use_ahci        build_components drivers/ahci
 lappend_if $use_sd_card_drv build_components drivers/sd_card
-lappend_if $use_ram_blk     build_components server/ram_blk
+lappend_if $use_ram_block   build_components server/ram_block
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
 append_platform_drv_build_components
@@ -116,8 +116,8 @@ append_if $use_sd_card_drv config {
 	</start>
 }
 
-append_if $use_ram_blk config {
-	<start name="ram_blk">
+append_if $use_ram_block config {
+	<start name="ram_block">
 		<resource name="RAM" quantum="128M" />
 		<provides><service name="Block"/></provides>
 		<config file="test.hda" block_size="512"/>
@@ -145,8 +145,8 @@ append boot_modules libc_$filesystem.lib.so
 
 lappend_if $use_ahci         boot_modules ahci_drv
 lappend_if $use_sd_card_drv  boot_modules sd_card_drv
-lappend_if $use_ram_blk      boot_modules ram_blk
-lappend_if $use_ram_blk      boot_modules test.hda
+lappend_if $use_ram_block    boot_modules ram_block
+lappend_if $use_ram_block    boot_modules test.hda
 
 append_platform_drv_boot_modules
 

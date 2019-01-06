@@ -26,8 +26,8 @@ struct Sculpt::Storage_device
 {
 	enum State {
 		UNKNOWN, /* partition information not yet known */
-		USED,    /* part_blk is running and has reported partition info */
-		RELEASED /* partition info is known but part_blk is not running */
+		USED,    /* part_block is running and has reported partition info */
+		RELEASED /* partition info is known but part_block is not running */
 	};
 
 	Allocator &_alloc;
@@ -49,7 +49,7 @@ struct Sculpt::Storage_device
 
 	Attached_rom_dataspace _partitions_rom;
 
-	unsigned _part_blk_version = 0;
+	unsigned _part_block_version = 0;
 
 	/**
 	 * Trigger the rediscovery of the device, e.g., after partitioning of after
@@ -58,13 +58,13 @@ struct Sculpt::Storage_device
 	void rediscover()
 	{
 		state = UNKNOWN;
-		_part_blk_version++;
+		_part_block_version++;
 
 		Partition_update_policy policy(_alloc);
 		partitions.update_from_xml(policy, Xml_node("<partitions/>"));
 	}
 
-	void process_part_blk_report()
+	void process_part_block_report()
 	{
 		_partitions_rom.update();
 
@@ -106,10 +106,10 @@ struct Sculpt::Storage_device
 	               Capacity capacity, Signal_context_capability sigh)
 	:
 		_alloc(alloc), label(label), capacity(capacity),
-		_partitions_rom(env, String<80>("report -> runtime/", label, ".part_blk/partitions").string())
+		_partitions_rom(env, String<80>("report -> runtime/", label, ".part_block/partitions").string())
 	{
 		_partitions_rom.sigh(sigh);
-		process_part_blk_report();
+		process_part_block_report();
 	}
 
 	~Storage_device()
@@ -118,12 +118,12 @@ struct Sculpt::Storage_device
 		rediscover();
 	}
 
-	bool part_blk_needed_for_discovery() const
+	bool part_block_needed_for_discovery() const
 	{
 		return state == UNKNOWN;
 	}
 
-	bool part_blk_needed_for_access() const
+	bool part_block_needed_for_access() const
 	{
 		bool needed_for_access = false;
 		partitions.for_each([&] (Partition const &partition) {
@@ -142,12 +142,12 @@ struct Sculpt::Storage_device
 	}
 
 	/**
-	 * Generate content of start node for part_blk
+	 * Generate content of start node for part_block
 	 *
 	 * \param service_name  name of server that provides the block device, or
 	 *                      if invalid, request block device from parent.
 	 */
-	inline void gen_part_blk_start_content(Xml_generator &xml, Label const &server_name) const;
+	inline void gen_part_block_start_content(Xml_generator &xml, Label const &server_name) const;
 
 	template <typename FN>
 	void for_each_partition(FN const &fn) const
@@ -205,15 +205,15 @@ struct Sculpt::Storage_device
 };
 
 
-void Sculpt::Storage_device::gen_part_blk_start_content(Xml_generator &xml,
-                                                        Label const &server_name) const
+void Sculpt::Storage_device::gen_part_block_start_content(Xml_generator &xml,
+                                                          Label const &server_name) const
 {
-	xml.attribute("version", _part_blk_version);
+	xml.attribute("version", _part_block_version);
 
-	gen_common_start_content(xml, Label(label, ".part_blk"),
+	gen_common_start_content(xml, Label(label, ".part_block"),
 	                         Cap_quota{100}, Ram_quota{8*1024*1024});
 
-	gen_named_node(xml, "binary", "part_blk");
+	gen_named_node(xml, "binary", "part_block");
 
 	xml.node("config", [&] () {
 		xml.node("report", [&] () { xml.attribute("partitions", "yes"); });
@@ -238,7 +238,7 @@ void Sculpt::Storage_device::gen_part_blk_start_content(Xml_generator &xml,
 				xml.node("parent", [&] () {
 					xml.attribute("label", label); }); });
 
-		gen_parent_rom_route(xml, "part_blk");
+		gen_parent_rom_route(xml, "part_block");
 		gen_parent_rom_route(xml, "ld.lib.so");
 		gen_parent_route<Cpu_session> (xml);
 		gen_parent_route<Pd_session>  (xml);

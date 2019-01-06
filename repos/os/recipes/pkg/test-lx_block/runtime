@@ -10,7 +10,7 @@
 
 	<content>
 		<rom label="ld.lib.so"/>
-		<rom label="test-blk-bench"/>
+		<rom label="test-block-bench"/>
 		<rom label="lx_block.img"/>
 		<rom label="lx_block"/>
 	</content>
@@ -37,7 +37,7 @@
 			<provides> <service name="Block"/> </provides>
 			<config file="lx_block.img" block_size="4K" writeable="yes"/>
 		</start>
-		<start name="test-blk-bench">
+		<start name="test-block-bench">
 			<resource name="RAM" quantum="24M"/>
 		</start>
 	</config>

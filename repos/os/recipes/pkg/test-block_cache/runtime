@@ -1,0 +1,54 @@
+<runtime ram="32M" caps="1000" binary="init">
+
+	<requires> <timer/> </requires>
+
+	<events>
+		<timeout meaning="failed" sec="20" />
+		<log meaning="succeeded">Tests finished successfully</log>
+		<log meaning="failed">test-block-client] Error: </log>
+	</events>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="test-block-client"/>
+		<rom label="test-block-server"/>
+		<rom label="block_cache"/>
+	</content>
+
+	<config>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="IRQ"/>
+			<service name="IO_MEM"/>
+			<service name="IO_PORT"/>
+			<service name="PD"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="LOG"/>
+			<service name="Timer"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<default caps="100"/>
+		<start name="test-block-server">
+			<resource name="RAM" quantum="10M"/>
+			<provides><service name="Block"/></provides>
+		</start>
+		<start name="block_cache">
+			<resource name="RAM" quantum="2704K" />
+			<provides><service name="Block" /></provides>
+			<route>
+				<service name="Block"><child name="test-block-server" /></service>
+				<any-service> <parent /> <any-child /></any-service>
+			</route>
+		</start>
+		<start name="test-block-client">
+			<resource name="RAM" quantum="2G" />
+			<route>
+				<service name="Block"><child name="block_cache" /></service>
+				<any-service> <parent /> <any-child /></any-service>
+			</route>
+		</start>
+	</config>
+</runtime>

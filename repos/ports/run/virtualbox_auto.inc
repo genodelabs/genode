@@ -29,7 +29,7 @@ if {[have_spec nova]} {
 
 append build_components {
 	core init timer
-	server/part_blk
+	server/part_block
 	server/fs_rom
 	drivers/ahci
 	drivers/framebuffer
@@ -98,10 +98,10 @@ append config {
 		<resource name="RAM" quantum="10M"/>
 		<provides><service name="Block"/></provides>
 		<config>
-			<policy label_prefix="part_blk" device="0" writeable="yes"/>
+			<policy label_prefix="part_block" device="0" writeable="yes"/>
 		</config>
 	</start>
-	<start name="part_blk" priority="-1">
+	<start name="part_block" priority="-1">
 		<resource name="RAM" quantum="10M"/>
 		<provides><service name="Block"/></provides>
 		<route>
@@ -144,7 +144,7 @@ append_if [expr $use_rumpfs] config {
 			<default-policy root="/" writeable="no"/>
 		</config>
 		<route>
-			<any-service><child name="part_blk"/> <parent/><any-child/></any-service>
+			<any-service><child name="part_block"/> <parent/><any-child/></any-service>
 		</route>
 	</start>}
 
@@ -365,7 +365,7 @@ install_config $config
 
 append boot_modules {
 	core init timer
-	part_blk ahci_drv fs_rom
+	part_block ahci_drv fs_rom
 	ld.lib.so libc.lib.so vfs.lib.so libm.lib.so
 	libc_pipe.lib.so libc_terminal.lib.so
 	libiconv.lib.so stdcxx.lib.so

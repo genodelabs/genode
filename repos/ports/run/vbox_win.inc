@@ -292,7 +292,7 @@ for { set i 1} { $i <= $use_vms } { incr i} {
 	append_if [expr $use_rumpfs] config_of_app {
 				<service name="File_system"> <child name="rump_fs"/> </service>}
 	append_if [expr !$use_rumpfs] config_of_app {
-				<service name="Block"> <child name="part_blk"/> </service>}
+				<service name="Block"> <child name="part_block"/> </service>}
 	append config_of_app "
 			<service name=\"Framebuffer\"> <child name=\"nit_fb${i}\" /> </service>
 			<service name=\"Input\"> <child name=\"nit_fb${i}\" /> </service>
