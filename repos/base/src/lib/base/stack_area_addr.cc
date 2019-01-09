@@ -13,5 +13,6 @@
 
 /* base-internal includes */
 #include <base/internal/stack_area.h>
+#include <base/internal/non_core_stack_area_addr.h>
 
-Genode::addr_t Genode::stack_area_virtual_base() { return 0x40000000UL; }
+Genode::addr_t Genode::stack_area_virtual_base() { return NON_CORE_STACK_AREA_ADDR; }

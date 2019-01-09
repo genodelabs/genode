@@ -31,6 +31,7 @@
 
 /* base-internal includes */
 #include <base/internal/stack_area.h>
+#include <base/internal/non_core_stack_area_addr.h>
 
 /* Fiasco.OC includes */
 namespace Fiasco {
@@ -57,7 +58,7 @@ namespace Genode {
 
 			addr_t utcb_area_start()
 			{
-				return stack_area_virtual_base() +
+				return NON_CORE_STACK_AREA_ADDR +
 				       THREAD_MAX*stack_virtual_size();
 			}
 
