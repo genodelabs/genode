@@ -59,6 +59,10 @@ void Vm_session_component::attach(Dataspace_capability ds_cap, addr_t vm_addr)
 	_ds_ep->apply(ds_cap, [&] (Dataspace_component *dsc) {
 		if (!dsc) throw Invalid_dataspace();
 
+		/* unsupported - deny otherwise arbitrary physical memory can be mapped to a VM */
+		if (dsc->managed())
+			throw Invalid_dataspace();
+
 		_attach(dsc->phys_addr(), vm_addr, dsc->size());
 	});
 }
