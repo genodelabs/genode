@@ -61,6 +61,7 @@ foreach line $abi_content {
 #
 # The following symbols may appear in shared objects but should not by part
 # of any ABI.
+# Keep this list in sync with that in abi_symbols
 #
 set symbol_blacklist {
 	__bss_start

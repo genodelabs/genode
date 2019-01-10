@@ -10,6 +10,27 @@
 # type, and size
 #
 
+#
+# The following symbols may appear in shared objects but should not by part
+# of any ABI.
+# Keep this list in sync with that in check_abi
+#
+set symbol_blacklist {
+	__bss_start
+	__eh_frame_start__
+	__exidx_end
+	__exidx_start
+	__l4sys_invoke_indirect
+	_ctors_end
+	_ctors_start
+	_edata
+	_end
+	_init
+	_parent_cap
+	_parent_cap_local_name
+	_parent_cap_thread_id
+}
+
 # normalize sort order across platforms
 set env(LC_COLLATE) C
 
@@ -77,6 +98,12 @@ foreach line [split $symbols "\n"] {
 	#
 	if {[regexp {W|V} $type] && ($name != $demangled_name)} {
 		set keep 0 }
+
+	foreach blacklisted_symbol $symbol_blacklist {
+		if {$name == $blacklisted_symbol} {
+			set keep 0
+		}
+	}
 
 	# write result
 	if {$keep} {
