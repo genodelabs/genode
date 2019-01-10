@@ -1,6 +1,6 @@
 TARGET = test-netty_udp
 SRC_CC = main.cc netty.cc
-LIBS   = libc
+LIBS   = base libc
 
 INC_DIR += $(PRG_DIR)/..
 

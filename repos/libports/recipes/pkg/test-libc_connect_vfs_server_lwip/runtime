@@ -1,0 +1,102 @@
+<runtime ram="128M" caps="1000" binary="init">
+
+	<requires> <timer/> </requires>
+
+	<events>
+		<timeout meaning="failed" sec="100" />
+		<log meaning="succeeded">child "test-libc_connect" exited with exit value 0</log>
+	</events>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="libc.lib.so"/>
+		<rom label="libm.lib.so"/>
+		<rom label="posix.lib.so"/>
+		<rom label="vfs.lib.so"/>
+		<rom label="vfs_lwip.lib.so"/>
+		<rom label="nic_router"/>
+		<rom label="vfs"/>
+		<rom label="test-netty_tcp"/>
+		<rom label="test-libc_connect"/>
+	</content>
+
+	<config verbose="yes">
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="IRQ"/>
+			<service name="IO_MEM"/>
+			<service name="IO_PORT"/>
+			<service name="PD"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="LOG"/>
+			<service name="Timer"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<default caps="150"/>
+
+		<start name="nic_router">
+			<resource name="RAM" quantum="10M"/>
+			<provides><service name="Nic"/></provides>
+			<config>
+				<domain name="default" interface="10.0.1.1/24"/>
+				<default-policy domain="default"/>
+			</config>
+		</start>
+
+		<start name="socket_fs_server">
+			<binary name="vfs"/>
+			<resource name="RAM" quantum="32M"/>
+			<provides> <service name="File_system"/> </provides>
+			<config>
+				<vfs> <lwip ip_addr="10.0.1.2" netmask="255.255.255.0" gateway="10.0.1.1"/> </vfs>
+				<policy label_prefix="server" root="/" writeable="yes"/>
+			</config>
+		</start>
+
+		<start name="socket_fs_client">
+			<binary name="vfs"/>
+			<resource name="RAM" quantum="32M"/>
+			<provides> <service name="File_system"/> </provides>
+			<config>
+				<vfs> <lwip ip_addr="10.0.1.3" netmask="255.255.255.0" gateway="10.0.1.1"/>	</vfs>
+				<policy label_prefix="test-libc_connect" root="/" writeable="yes"/>
+			</config>
+		</start>
+
+		<start name="server">
+			<binary name="test-netty_tcp"/>
+			<resource name="RAM" quantum="4M"/>
+			<config port="80" read_write="yes" nonblock="false">
+				<vfs>
+					<dir name="dev"> <log/> </dir>
+					<dir name="socket"> <fs/> </dir>
+					<dir name="tmp"> <ram/> </dir>
+				</vfs>
+				<libc stdout="/dev/log" stderr="/dev/log" socket="/socket"/>
+			</config>
+			<route>
+				<service name="File_system"> <child name="socket_fs_server"/> </service>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
+		</start>
+
+		<start name="test-libc_connect">
+			<resource name="RAM" quantum="4M"/>
+			<config>
+				<vfs>
+					<dir name="dev"> <log/> </dir>
+					<dir name="socket"> <fs/> </dir>
+				</vfs>
+				<libc stdout="/dev/log" stderr="/dev/log" socket="/socket" />
+			</config>
+			<route>
+				<service name="File_system"> <child name="socket_fs_client"/> </service>
+				<any-service> <parent/> <any-child/> </any-service>
+			</route>
+		</start>
+
+	</config>
+</runtime>
