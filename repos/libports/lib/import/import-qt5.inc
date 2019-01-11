@@ -44,8 +44,8 @@ SRC_CC += $(SOURCES_FILTERED)
 # handle moc-headers, resources and ui descriptions
 $(addsuffix .o,$(basename $(SRC_CC))): $(addprefix ui_,$(FORMS:.ui=.h))
 
-SRC_CC_QT_GENERATED = $(addprefix moc_,$(HEADERS_FILTERED:.h=.cpp)) \
-                      $(addprefix qrc_,$(RESOURCES:.qrc=.cpp))
+SRC_CC_QT_GENERATED = $(join $(dir $(HEADERS_FILTERED)),$(addprefix moc_,$(notdir $(HEADERS_FILTERED:.h=.cpp)))) \
+                      $(join $(dir $(RESOURCES)),$(addprefix qrc_,$(notdir $(RESOURCES:.qrc=.cpp))))
 
 .SECONDARY: $(SRC_CC_QT_GENERATED)
 SRC_CC += $(SRC_CC_QT_GENERATED)
