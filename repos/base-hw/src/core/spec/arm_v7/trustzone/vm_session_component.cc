@@ -33,7 +33,8 @@ Vm_session_component::Vm_session_component(Rpc_entrypoint  &ds_ep,
                                            Label const &,
                                            Diag,
                                            Ram_allocator &ram_alloc,
-                                           Region_map &region_map)
+                                           Region_map &region_map,
+                                           unsigned)
 :
 	Ram_quota_guard(resources.ram_quota),
 	Cap_quota_guard(resources.cap_quota),

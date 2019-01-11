@@ -86,7 +86,7 @@ class Genode::Vm_session_component
 		using Rpc_object<Vm_session, Vm_session_component>::cap;
 
 		Vm_session_component(Rpc_entrypoint &, Resources, Label const &,
-		                     Diag, Ram_allocator &ram, Region_map &);
+		                     Diag, Ram_allocator &ram, Region_map &, unsigned);
 		~Vm_session_component();
 
 		/*********************************

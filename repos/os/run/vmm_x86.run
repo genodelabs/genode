@@ -34,7 +34,7 @@ build $build_components
 create_boot_directory
 
 install_config {
-<config verbose="yes">
+<config verbose="yes" prio_levels="2">
 	<parent-provides>
 		<service name="ROM"/>
 		<service name="IRQ"/>
@@ -54,7 +54,7 @@ install_config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
-	<start name="vmm" caps="2048">
+	<start name="vmm" caps="2048" priority="-1">
 		<binary name="test-vmm_x86"/>
 		<resource name="RAM" quantum="256M"/>
 	</start>

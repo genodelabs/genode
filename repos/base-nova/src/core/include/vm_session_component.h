@@ -107,7 +107,7 @@ class Genode::Vm_session_component
 		using Cap_quota_guard::upgrade;
 
 		Vm_session_component(Rpc_entrypoint &, Resources, Label const &,
-		                     Diag, Ram_allocator &ram, Region_map &);
+		                     Diag, Ram_allocator &ram, Region_map &, unsigned);
 		~Vm_session_component();
 
 		/*********************************

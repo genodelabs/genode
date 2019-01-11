@@ -44,7 +44,8 @@ class Genode::Vm_session_component
 	public:
 
 		Vm_session_component(Rpc_entrypoint &, Resources resources,
-		                     Label const &, Diag, Ram_allocator &, Region_map &)
+		                     Label const &, Diag, Ram_allocator &,
+		                     Region_map &, unsigned)
 		:
 			Ram_quota_guard(resources.ram_quota),
 			Cap_quota_guard(resources.cap_quota),
