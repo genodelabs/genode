@@ -11,6 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+#include <vm_session/vm_session.h>
+
 /* local includes */
 #include <child.h>
 
@@ -600,7 +602,9 @@ void Init::Child::filter_session_args(Service::Name const &service,
 	/*
 	 * Intercept CPU session requests to scale priorities
 	 */
-	if (service == Cpu_session::service_name() && _prio_levels_log2 > 0) {
+	if ((service == Cpu_session::service_name() ||
+	     service == Vm_session::service_name())
+	    && _prio_levels_log2 > 0) {
 
 		unsigned long priority = Arg_string::find_arg(args, "priority").ulong_value(0);
 
