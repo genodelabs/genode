@@ -1,0 +1,42 @@
+##
+# Reset the target machine via ALLNET MSR poweplug (e.g., ALL4176)
+#
+# \param --power-on-allnet-host       network address of device
+# \param --power-on-allnet-user       user for device
+# \param --power-on-allnet-password   password for device
+# \param --power-on-allnet-port       target port/socket of device
+#
+
+
+proc power_on_allnet_host { } {
+	return [get_cmd_arg_first --power-on-allnet-host 1]
+}
+
+
+proc power_on_allnet_user { } {
+	return [get_cmd_arg_first --power-on-allnet-user 1]
+}
+
+
+proc power_on_allnet_password { } {
+	return [get_cmd_arg_first --power-on-allnet-password 1]
+}
+
+
+proc power_on_allnet_port { } {
+	return [get_cmd_arg_first --power-on-allnet-port 1]
+}
+
+
+proc run_power_on { } {
+	set host       [power_on_allnet_host]
+	set user       [power_on_allnet_user]
+	set password   [power_on_allnet_password]
+	set power_port [power_on_allnet_port]
+
+	puts "switch port $power_port on"
+
+	exec curl -s -o /dev/null -G -d id=$power_port -d set=1 "http://$user:$password@$host/xml/jsonswitch.php"
+
+	return true
+}
