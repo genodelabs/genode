@@ -11,11 +11,10 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _INCLUDE__GEMS__CACHED_FONT_T_
-#define _INCLUDE__GEMS__CACHED_FONT_T_
+#ifndef _INCLUDE__GEMS__CACHED_FONT_H_
+#define _INCLUDE__GEMS__CACHED_FONT_H_
 
-#include <base/output.h>
-#include <base/allocator.h>
+#include <gems/lru_cache.h>
 #include <nitpicker_gfx/text_painter.h>
 
 namespace Genode { class Cached_font; }
@@ -23,178 +22,103 @@ namespace Genode { class Cached_font; }
 
 class Genode::Cached_font : public Text_painter::Font
 {
-	public:
-
-		struct Stats
-		{
-			unsigned misses;
-			unsigned hits;
-			unsigned consumed_bytes;
-
-			void print(Output &out) const
-			{
-				Genode::print(out, "used: ", consumed_bytes/1024, " KiB, "
-				              "hits: ", hits, ", misses: ", misses);
-			}
-		};
-
 	private:
 
 		typedef Text_painter::Area  Area;
 		typedef Text_painter::Font  Font;
 		typedef Text_painter::Glyph Glyph;
 
-		struct Time { unsigned value; };
-
-		Allocator    &_alloc;
-		Font   const &_font;
-		size_t const  _limit;
-		Time  mutable _now { 0 };
-		Stats mutable _stats { };
-
-		class Cached_glyph : Avl_node<Cached_glyph>
+		struct Cached_glyph : Glyph, Noncopyable
 		{
-			private:
+			Glyph::Opacity _values[];
 
-				friend class Avl_node<Cached_glyph>;
-				friend class Avl_tree<Cached_glyph>;
-				friend class Cached_font;
+			/*
+			 * The number of values is not statically known but runtime-
+			 * dependent. The values are stored directly after the
+			 * 'Cached_glyph' object.
+			 */
 
-				Codepoint const _codepoint;
-				Glyph     const _glyph;
-				Time            _last_used;
-
-				Glyph::Opacity _values[];
-
-				bool _higher(Codepoint const other) const
-				{
-					return _codepoint.value > other.value;
-				}
-
-				unsigned _importance(Time now) const
-				{
-					return now.value - _last_used.value;
-				}
-
-			public:
-
-				Cached_glyph(Codepoint c, Glyph const &glyph, Time now)
-				:
-					_codepoint(c),
-					_glyph({ .width   = glyph.width,
-					         .height  = glyph.height,
-					         .vpos    = glyph.vpos,
-					         .advance = glyph.advance,
-					         .values  = _values }),
-					_last_used(now)
-				{
-					for (unsigned i = 0; i < glyph.num_values(); i++)
-						_values[i] = glyph.values[i];
-				}
-
-				/**
-				 * Avl_node interface
-				 */
-				bool higher(Cached_glyph *c) { return _higher(c->_codepoint); }
-
-				Cached_glyph *find_by_codepoint(Codepoint requested)
-				{
-					if (_codepoint.value == requested.value) return this;
-
-					Cached_glyph *c = Avl_node<Cached_glyph>::child(_higher(requested));
-
-					return c ? c->find_by_codepoint(requested) : nullptr;
-				}
-
-				Cached_glyph *find_least_recently_used(Time now)
-				{
-					Cached_glyph *result = this;
-
-					for (unsigned i = 0; i < 2; i++) {
-						Cached_glyph *c = Avl_node<Cached_glyph>::child(i);
-						if (c && c->_importance(now) > result->_importance(now))
-							result = c;
-					}
-					return result;
-				}
-
-				void mark_as_used(Time now) { _last_used = now; }
-
-				void apply(Font::Apply_fn const &fn) const { fn.apply(_glyph); }
+			Cached_glyph(Glyph const &glyph)
+			:
+				Glyph({ .width   = glyph.width,
+				        .height  = glyph.height,
+				        .vpos    = glyph.vpos,
+				        .advance = glyph.advance,
+				        .values  = _values })
+			{
+				for (unsigned i = 0; i < glyph.num_values(); i++)
+					_values[i] = glyph.values[i];
+			}
 		};
 
-		Avl_tree<Cached_glyph> mutable _avl_tree { };
+		Font const &_font;
+
+		size_t const _opacity_values_size = 4*_font.bounding_box().count();
 
 		/**
-		 * Size of one cache entry in bytes
+		 * Allocator wrapper that inflates each allocation with a byte padding
 		 */
-		size_t const _alloc_size = sizeof(Cached_glyph)
-		                         + 4*_font.bounding_box().count();
+		struct Padding_allocator : Allocator
+		{
+			size_t const _padding_bytes;
+
+			Allocator &_alloc;
+
+			size_t _consumed_bytes = 0;
+
+			size_t _padded(size_t size) const { return size + _padding_bytes; }
+
+			Padding_allocator(Allocator &alloc, size_t padding_bytes)
+			: _padding_bytes(padding_bytes), _alloc(alloc) { }
+
+			size_t consumed_bytes() const { return _consumed_bytes; }
+
+			bool alloc(size_t size, void **out_addr) override
+			{
+				size = _padded(size);
+
+				bool const result = _alloc.alloc(size, out_addr);
+
+				if (result) {
+					memset(*out_addr, 0, size);
+					_consumed_bytes += size + overhead(size);
+				}
+
+				return result;
+			}
+
+			size_t consumed() const override { return _alloc.consumed(); }
+
+			size_t overhead(size_t size) const override { return _alloc.overhead(size); };
+
+			void free(void *addr, size_t size) override
+			{
+				size = _padded(size);
+
+				_alloc.free(addr, size);
+				_consumed_bytes -= size + overhead(size);
+			}
+
+			bool need_size_for_free() const override { return _alloc.need_size_for_free(); }
+		};
+
+		Padding_allocator _padding_alloc;
+
+		typedef Lru_cache<Codepoint, Cached_glyph> Cache;
+
+		Cache mutable _cache;
 
 		/**
-		 * Add cache entry for the given glyph
-		 *
-		 * \throw Out_of_ram
-		 * \throw Out_of_caps
+		 * Return number of cache elements that fit in 'avail_bytes'
 		 */
-		void _insert(Codepoint codepoint, Glyph const &glyph)
+		Cache::Size _cache_size(size_t const avail_bytes)
 		{
-			auto const cached_glyph_ptr = (Cached_glyph *)_alloc.alloc(_alloc_size);
+			size_t const element_size = Cache::element_size() + _opacity_values_size;
 
-			_stats.consumed_bytes += _alloc_size;
+			size_t const bytes_per_element = element_size + _padding_alloc.overhead(element_size);
 
-			memset(cached_glyph_ptr, 0, _alloc_size);
-
-			construct_at<Cached_glyph>(cached_glyph_ptr, codepoint, glyph, _now);
-
-			_avl_tree.insert(cached_glyph_ptr);
-		}
-
-		/**
-		 * Evict glyph from cache
-		 */
-		void _remove(Cached_glyph &glyph)
-		{
-			_avl_tree.remove(&glyph);
-
-			glyph.~Cached_glyph();
-
-			_alloc.free(&glyph, _alloc_size);
-
-			_stats.consumed_bytes -= _alloc_size;
-		}
-
-		Cached_glyph *_find_by_codepoint(Codepoint codepoint)
-		{
-			if (!_avl_tree.first())
-				return nullptr;
-
-			return _avl_tree.first()->find_by_codepoint(codepoint);
-		}
-
-		/**
-		 * Evice least recently used glyph from cache
-		 *
-		 * \return true if a glyph was released
-		 */
-		bool _remove_least_recently_used()
-		{
-			if (!_avl_tree.first())
-				return false;
-
-			Cached_glyph *glyph = _avl_tree.first()->find_least_recently_used(_now);
-			if (!glyph)
-				return false; /* this should never happen */
-
-			_remove(*glyph);
-			_stats.misses++;
-			return true;
-		}
-
-		void _remove_all()
-		{
-			while (Cached_glyph *glyph_ptr = _avl_tree.first())
-				_remove(*glyph_ptr);
+			/* bytes_per_element can never be zero */
+			return Cache::Size { avail_bytes / bytes_per_element };
 		}
 
 	public:
@@ -210,44 +134,38 @@ class Genode::Cached_font : public Text_painter::Font
 		 */
 		Cached_font(Allocator &alloc, Font const &font, Limit limit)
 		:
-			_alloc(alloc), _font(font), _limit(limit.value)
+			_font(font),
+			_padding_alloc(alloc, _opacity_values_size),
+			_cache(_padding_alloc, _cache_size(limit.value))
 		{ }
 
-		~Cached_font() { _remove_all(); }
+		struct Stats
+		{
+			Cache::Stats cache_stats;
+			size_t       consumed_bytes;
 
-		Stats stats() const { return _stats; }
+			void print(Output &out) const
+			{
+				Genode::print(out, "used: ", consumed_bytes/1024, " KiB, ", cache_stats);
+			}
+		};
+
+		Stats stats() const
+		{
+			return Stats { _cache.stats(), _padding_alloc.consumed_bytes() };
+		}
 
 		void _apply_glyph(Codepoint c, Apply_fn const &fn) const override
 		{
-			_now.value++;
+			auto hit_fn  = [&] (Glyph const &glyph) { fn.apply(glyph); };
 
-			/*
-			 * Try to lookup glyph from the cache. If it is missing, fill cache
-			 * with requested glyph and repeat the lookup. When under memory
-			 * pressure, flush least recently used glyphs from cache.
-			 *
-			 * Even though '_apply_glyph' is a const method, the internal cache
-			 * and stats must of course be mutated. Hence the 'const_cast'.
-			 */
-			Cached_font &mutable_this = const_cast<Cached_font &>(*this);
-
-			/* retry once after handling a cache miss */
-			for (int i = 0; i < 2; i++) {
-
-				if (Cached_glyph *glyph_ptr = mutable_this._find_by_codepoint(c)) {
-					glyph_ptr->apply(fn);
-					glyph_ptr->mark_as_used(_now);
-					_stats.hits += (i == 0);
-					return;
-				}
-
-				while (_stats.consumed_bytes + _alloc_size > _limit)
-					if (!mutable_this._remove_least_recently_used())
-						break;
-
+			auto miss_fn = [&] (Cache::Missing_element &missing_element)
+			{
 				_font.apply_glyph(c, [&] (Glyph const &glyph) {
-					mutable_this._insert(c, glyph); });
-			}
+					missing_element.construct(glyph); });
+			};
+
+			(void)_cache.try_apply(c, hit_fn, miss_fn);
 		}
 
 		Advance_info advance_info(Codepoint c) const override
@@ -255,7 +173,6 @@ class Genode::Cached_font : public Text_painter::Font
 			unsigned                      width = 0;
 			Text_painter::Fixpoint_number advance { 0 };
 
-			/* go through the '_apply_glyph' cache-fill mechanism */
 			Font::apply_glyph(c, [&] (Glyph const &glyph) {
 				width = glyph.width, advance = glyph.advance; });
 
@@ -267,4 +184,4 @@ class Genode::Cached_font : public Text_painter::Font
 		Area bounding_box() const override { return _font.bounding_box(); }
 };
 
-#endif /* _INCLUDE__GEMS__CACHED_FONT_T_ */
+#endif /* _INCLUDE__GEMS__CACHED_FONT_H_ */
