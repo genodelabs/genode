@@ -23,6 +23,7 @@
 #include <vm_session_component.h>
 #include <platform.h>
 #include <pager.h>
+#include <util.h>
 
 #include <nova/cap_map.h>
 
@@ -222,7 +223,6 @@ void Vm_session_component::_run(Vcpu_id const vcpu_id)
 	if (!vcpu.init())
 		return;
 
-	addr_t const _priority = 1; /* XXX */
 	uint8_t res = _with_kernel_quota_upgrade(_pd_sel, [&] {
 		return Nova::create_sc(vcpu.sc_sel(), _pd_sel, vcpu.ec_sel(),
 		                       Nova::Qpd(Nova::Qpd::DEFAULT_QUANTUM, _priority));
@@ -277,14 +277,14 @@ Vm_session_component::Vm_session_component(Rpc_entrypoint &ep,
                                            Diag,
                                            Ram_allocator &ram,
                                            Region_map &local_rm,
-                                           unsigned)
+                                           unsigned const priority)
 :
 	Ram_quota_guard(resources.ram_quota),
 	Cap_quota_guard(resources.cap_quota),
 	_ep(ep),
 	_constrained_md_ram_alloc(ram, _ram_quota_guard(), _cap_quota_guard()),
 	_sliced_heap(_constrained_md_ram_alloc, local_rm),
-	_priority(1 /*scale_priority(priority, "VM session")*/)
+	_priority(scale_priority(priority, "VM sesssion"))
 {
 	_cap_quota_guard().withdraw(Cap_quota{1});
 

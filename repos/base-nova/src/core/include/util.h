@@ -40,6 +40,22 @@ namespace Genode {
 		return size_log2 > MAX_MAP_LOG2 ? (size_t)MAX_MAP_LOG2 : size_log2;
 	}
 
+	inline unsigned scale_priority(unsigned const prio, char const * name)
+	{
+		using Nova::Qpd;
+		unsigned priority = Cpu_session::scale_priority(Qpd::DEFAULT_PRIORITY,
+		                                                prio);
+		if (priority == 0) {
+			warning("priority of thread '", name, "' below minimum - boost to 1");
+			priority = 1;
+		}
+		if (priority > Nova::Qpd::DEFAULT_PRIORITY) {
+			warning("priority of thread '", name, "' above maximum - limit to ",
+			        (unsigned)Qpd::DEFAULT_PRIORITY);
+			priority = Qpd::DEFAULT_PRIORITY;
+		}
+		return priority;
+	}
 }
 
 #endif /* _CORE__INCLUDE__UTIL_H_ */

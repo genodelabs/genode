@@ -343,19 +343,9 @@ Platform_thread::Platform_thread(size_t, const char *name, unsigned prio,
 	_pd(0), _pager(0), _id_base(cap_map().insert(2)),
 	_sel_exc_base(Native_thread::INVALID_INDEX), _location(affinity),
 	_features(0),
-	_priority(Cpu_session::scale_priority(Nova::Qpd::DEFAULT_PRIORITY, prio)),
+	_priority(scale_priority(prio, name)),
 	_name(name)
-{
-	if (_priority == 0) {
-		warning("priority of thread '", _name, "' below minimum - boost to 1");
-		_priority = 1;
-	}
-	if (_priority > Nova::Qpd::DEFAULT_PRIORITY) {
-		warning("priority of thread '", _name, "' above maximum - limit to ",
-		        (unsigned)Nova::Qpd::DEFAULT_PRIORITY);
-		_priority = Nova::Qpd::DEFAULT_PRIORITY;
-	}
-}
+{ }
 
 
 Platform_thread::~Platform_thread()
