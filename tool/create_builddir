@@ -12,7 +12,7 @@ PLATFORM = $(MAKECMDGOALS)
 
 PLATFORMS = x86_32  x86_64  panda  pbxa9  rpi arndale imx53_qsb imx53_qsb_tz \
             usb_armory wand_quad odroid_xu odroid_x2 zynq_qemu muen \
-            riscv_spike linux
+            imx6q_sabrelite riscv_spike linux
 
 PLATFORMS_DEPR = linux_x86 linux_arm fiasco_x86 okl4_x86 pistachio_x86 \
                  nova_x86_32 nova_x86_64 hw_x86_64 foc_x86_32 foc_x86_64 \
@@ -143,6 +143,7 @@ BUILD_CONF(imx53_qsb)    := run_kernel_hw     run_boot_dir repos
 BUILD_CONF(imx53_qsb_tz) := run_kernel_hw     run_boot_dir repos
 BUILD_CONF(usb_armory)   := run_kernel_hw     run_boot_dir repos
 BUILD_CONF(wand_quad)    := run_kernel_wand_quad run_boot_dir repos
+BUILD_CONF(imx6q_sabrelite) := run_kernel_imx6q_sabrelite run_boot_dir repos
 BUILD_CONF(odroid_xu)    := run_kernel_hw     run_boot_dir repos
 BUILD_CONF(odroid_x2)    := run_kernel_foc    run_boot_dir repos
 BUILD_CONF(zynq_qemu)    := run_kernel_hw run_qemu run_opt_hw run_boot_dir qemu_opt_arm repos
@@ -216,22 +217,23 @@ HOST_SPEC_ARCH := ${SPEC_ARCH(${UNAME_MACHINE})}
 # SPECS definitions
 #
 
-SPECS(x86_32)       := x86_32
-SPECS(x86_64)       := x86_64
-SPECS(pbxa9)        := pbxa9
-SPECS(panda)        := panda
-SPECS(rpi)          := rpi
-SPECS(arndale)      := arndale
-SPECS(imx53_qsb)    := imx53_qsb
-SPECS(imx53_qsb_tz) := imx53_qsb trustzone
-SPECS(usb_armory)   := usb_armory trustzone
-SPECS(wand_quad)    := wand_quad
-SPECS(odroid_xu)    := odroid_xu
-SPECS(odroid_x2)    := odroid_x2
-SPECS(zynq_qemu)    := zynq_qemu
-SPECS(muen)         := muen x86_64
-SPECS(riscv_spike)  := riscv
-SPECS(linux)        := $(HOST_SPEC_ARCH)
+SPECS(x86_32)          := x86_32
+SPECS(x86_64)          := x86_64
+SPECS(pbxa9)           := pbxa9
+SPECS(panda)           := panda
+SPECS(rpi)             := rpi
+SPECS(arndale)         := arndale
+SPECS(imx53_qsb)       := imx53_qsb
+SPECS(imx53_qsb_tz)    := imx53_qsb trustzone
+SPECS(usb_armory)      := usb_armory trustzone
+SPECS(wand_quad)       := wand_quad
+SPECS(imx6q_sabrelite) := imx6q_sabrelite
+SPECS(odroid_xu)       := odroid_xu
+SPECS(odroid_x2)       := odroid_x2
+SPECS(zynq_qemu)       := zynq_qemu
+SPECS(muen)            := muen x86_64
+SPECS(riscv_spike)     := riscv
+SPECS(linux)           := $(HOST_SPEC_ARCH)
 
 # deprecated platforms
 SPECS(linux_x86)       := $(HOST_SPEC_ARCH)
