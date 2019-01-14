@@ -125,7 +125,7 @@ class Cpu_load_display::Cpu : public Genode::List<Cpu>::Element
 
 		Genode::Allocator     &_heap;
 		Genode::Point<>  const _pos;
-		Genode::List<Timeline> _timelines;
+		Genode::List<Timeline> _timelines { };
 
 		Timeline *_lookup_timeline(Xml_node subject)
 		{
@@ -215,7 +215,7 @@ class Cpu_load_display::Cpu_registry
 
 		Genode::Allocator &_heap;
 
-		Genode::List<Cpu> _cpus;
+		Genode::List<Cpu> _cpus { };
 
 		static Genode::Point<> _cpu_pos(Xml_node subject)
 		{
@@ -446,7 +446,7 @@ class Cpu_load_display::Scene : public Nano3d::Scene<PT>
 
 			/* determine number of CPUs */
 			unsigned num_cpus = 0;
-			_cpu_registry.for_each_cpu([&] (Cpu const &cpu) { num_cpus++; });
+			_cpu_registry.for_each_cpu([&] (Cpu const &) { num_cpus++; });
 
 			if (num_cpus == 0)
 				return;

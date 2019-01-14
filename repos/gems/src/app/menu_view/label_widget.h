@@ -26,7 +26,7 @@ struct Menu_view::Label_widget : Widget
 	enum { LABEL_MAX_LEN = 256 };
 
 	typedef String<200> Text;
-	Text text;
+	Text text { };
 
 	Label_widget(Widget_factory &factory, Xml_node node, Unique_id unique_id)
 	:
@@ -69,6 +69,14 @@ struct Menu_view::Label_widget : Widget
 		                    Text_painter::Position(centered.x(), centered.y()),
 		                    *font, Color(255, 255, 255), text.string());
 	}
+
+	private:
+
+		/**
+		 * Noncopyable
+		 */
+		Label_widget(Label_widget const &);
+		Label_widget &operator = (Label_widget const &);
 };
 
 #endif /* _LABEL_WIDGET_H_ */

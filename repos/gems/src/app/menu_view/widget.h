@@ -45,9 +45,16 @@ struct Menu_view::Margin
 };
 
 
-class Menu_view::Widget : public List_model<Widget>::Element
+class Menu_view::Widget : List_model<Widget>::Element
 {
+	private:
+
+		friend class List_model<Widget>;
+		friend class List<Widget>;
+
 	public:
+
+		using List_model<Widget>::Element::next;
 
 		enum { NAME_MAX_LEN = 32 };
 		typedef String<NAME_MAX_LEN> Name;
@@ -93,7 +100,7 @@ class Menu_view::Widget : public List_model<Widget>::Element
 
 		Type_name const _type_name;
 		Name      const _name;
-		Version   const _version;
+		Version   const _version { };
 
 		Unique_id const _unique_id;
 
@@ -101,7 +108,7 @@ class Menu_view::Widget : public List_model<Widget>::Element
 
 		Widget_factory &_factory;
 
-		List_model<Widget> _children;
+		List_model<Widget> _children { };
 
 		struct Model_update_policy : List_model<Widget>::Update_policy
 		{
@@ -156,7 +163,7 @@ class Menu_view::Widget : public List_model<Widget>::Element
 		 * Position relative to the parent widget and actual size, defined by
 		 * the parent
 		 */
-		Rect _geometry;
+		Rect _geometry { };
 
 		Animated_rect _animated_geometry { _factory.animator };
 

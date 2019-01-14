@@ -93,11 +93,11 @@ Nano3d::Sincos_frac16::Sincos_frac16()
 		ny_high = ny_high << 1;
 
 		/* use new sin/cos values for next iteration, preserve sign */
-		x_low = (nx_high & 0x80000000) ? (nx_high | (~0 << 16)) : (nx_high & 0xffff);
+		x_low = (nx_high & 0x80000000) ? (nx_high | (~0U << 16)) : (nx_high & 0xffff);
 		x_low = x_low >> 1;
 		x_mid = nx_high >> 16;
 
-		y_low = (ny_high & 0x80000000) ? (ny_high | (~0 << 16)) : (ny_high & 0xffff);
+		y_low = (ny_high & 0x80000000) ? (ny_high | (~0U << 16)) : (ny_high & 0xffff);
 		y_low = y_low >> 1;
 		y_mid = ny_high >> 16;
 	}

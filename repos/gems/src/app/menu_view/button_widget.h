@@ -33,7 +33,7 @@ struct Menu_view::Button_widget : Widget, Animator::Item
 	Texture<Pixel_rgb888> const * default_texture = nullptr;
 	Texture<Pixel_rgb888> const * hovered_texture = nullptr;
 
-	Lazy_value<int> blend;
+	Lazy_value<int> blend { };
 
 	Padding padding { 9, 9, 2, 1 };
 
@@ -158,6 +158,15 @@ struct Menu_view::Button_widget : Widget, Animator::Item
 
 		animated(blend != blend.dst());
 	}
+
+	private:
+
+	/**
+	 * Noncopyable
+	 */
+	Button_widget(Button_widget const &);
+	Button_widget &operator = (Button_widget const &);
+
 };
 
 #endif /* _BUTTON_WIDGET_H_ */

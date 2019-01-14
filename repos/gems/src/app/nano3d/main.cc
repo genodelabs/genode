@@ -75,7 +75,7 @@ class Scene : public Nano3d::Scene<PT>
 			}
 		};
 
-		Radial_texture _texture;
+		Radial_texture _texture { };
 
 		Shape   _shape   = SHAPE_DODECAHEDRON;
 		Painter _painter = PAINTER_TEXTURED;

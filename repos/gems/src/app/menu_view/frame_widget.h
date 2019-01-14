@@ -86,6 +86,14 @@ struct Menu_view::Frame_widget : Widget
 			child.size(Area(geometry().w() - _space().w(),
 			                geometry().h() - _space().h())); });
 	}
+
+	private:
+
+		/**
+		 * Noncopyable
+		 */
+		Frame_widget(Frame_widget const &);
+		Frame_widget &operator = (Frame_widget const &);
 };
 
 #endif /* _FRAME_WIDGET_H_ */

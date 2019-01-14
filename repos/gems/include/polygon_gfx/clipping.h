@@ -52,12 +52,12 @@ struct Polygon::Point_base : Genode::Point<>
 	/**
 	 * Return edge attribute by ID
 	 */
-	inline int edge_attr(int id) const { return x(); }
+	inline int edge_attr(int) const { return x(); }
 
 	/**
 	 * Assign value to edge attribute with specified ID
 	 */
-	inline void edge_attr(int id, int value) { *this = Point_base(value, y()); }
+	inline void edge_attr(int, int value) { *this = Point_base(value, y()); }
 };
 
 

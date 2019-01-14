@@ -39,13 +39,13 @@ struct Menu_view::Main
 
 	Nitpicker::Connection _nitpicker { _env };
 
-	Constructible<Nitpicker_buffer> _buffer;
+	Constructible<Nitpicker_buffer> _buffer { };
 
 	Nitpicker::Session::View_handle _view_handle = _nitpicker.create_view();
 
-	Point _position;
+	Point _position { };
 
-	Area _configured_size;
+	Area _configured_size { };
 
 	Area _root_widget_size() const
 	{
@@ -54,7 +54,7 @@ struct Menu_view::Main
 		            max(_configured_size.h(), min_size.h()));
 	}
 
-	Rect _view_geometry;
+	Rect _view_geometry { };
 
 	void _update_view()
 	{
@@ -63,11 +63,12 @@ struct Menu_view::Main
 			return;
 
 		/* display view behind all others */
-		typedef Nitpicker::Session::Command Command;
+		typedef Nitpicker::Session::Command     Command;
+		typedef Nitpicker::Session::View_handle View_handle;
 
 		_view_geometry = Rect(_position, _buffer->size());
 		_nitpicker.enqueue<Command::Geometry>(_view_handle, _view_geometry);
-		_nitpicker.enqueue<Command::To_front>(_view_handle);
+		_nitpicker.enqueue<Command::To_front>(_view_handle, View_handle());
 		_nitpicker.execute();
 	}
 
@@ -108,7 +109,7 @@ struct Menu_view::Main
 
 	Style_database _styles { _env.ram(), _env.rm(), _heap, _fonts_dir };
 
-	Animator _animator;
+	Animator _animator { };
 
 	Widget_factory _widget_factory { _heap, _styles, _animator };
 
@@ -118,7 +119,7 @@ struct Menu_view::Main
 
 	Attached_dataspace _input_ds { _env.rm(), _nitpicker.input()->dataspace() };
 
-	Widget::Unique_id _hovered;
+	Widget::Unique_id _hovered { };
 
 	void _handle_config();
 

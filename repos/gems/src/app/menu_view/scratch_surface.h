@@ -25,7 +25,13 @@ class Menu_view::Scratch_surface
 {
 	private:
 
-		Area           _size;
+		/**
+		 * Noncopyable
+		 */
+		Scratch_surface(Scratch_surface const &);
+		Scratch_surface &operator = (Scratch_surface const &);
+
+		Area           _size { };
 		Allocator     &_alloc;
 		unsigned char *_base = nullptr;
 		size_t         _num_bytes = 0;

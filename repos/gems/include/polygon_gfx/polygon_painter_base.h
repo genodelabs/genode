@@ -118,6 +118,12 @@ class Polygon::Painter_base
 
 				int * const _edges = (int *)_alloc.alloc(_edges_size());
 
+				/**
+				 * Noncopyable
+				 */
+				Edge_buffers(Edge_buffers const &);
+				Edge_buffers &operator = (Edge_buffers const &);
+
 			public:
 
 				Edge_buffers(Genode::Allocator &alloc, unsigned edge_len)

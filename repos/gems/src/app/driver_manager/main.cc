@@ -41,7 +41,7 @@ namespace Driver_manager {
 }
 
 
-struct Driver_manager::Block_devices_generator
+struct Driver_manager::Block_devices_generator : Interface
 {
 	virtual void generate_block_devices() = 0;
 };
@@ -310,7 +310,7 @@ struct Driver_manager::Nvme_driver : Device_driver
 };
 
 
-struct Driver_manager::Main : Block_devices_generator
+struct Driver_manager::Main : private Block_devices_generator
 {
 	Env &_env;
 
@@ -325,11 +325,11 @@ struct Driver_manager::Main : Block_devices_generator
 	Reporter _usb_drv_config { _env, "config", "usb_drv.config" };
 	Reporter _block_devices  { _env, "block_devices" };
 
-	Constructible<Intel_fb_driver> _intel_fb_driver;
-	Constructible<Vesa_fb_driver>  _vesa_fb_driver;
-	Constructible<Boot_fb_driver>  _boot_fb_driver;
-	Constructible<Ahci_driver>     _ahci_driver;
-	Constructible<Nvme_driver>     _nvme_driver;
+	Constructible<Intel_fb_driver> _intel_fb_driver { };
+	Constructible<Vesa_fb_driver>  _vesa_fb_driver  { };
+	Constructible<Boot_fb_driver>  _boot_fb_driver  { };
+	Constructible<Ahci_driver>     _ahci_driver     { };
+	Constructible<Nvme_driver>     _nvme_driver     { };
 
 	bool _use_ohci { true };
 

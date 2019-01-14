@@ -22,7 +22,7 @@ namespace Menu_view { struct Box_layout_widget; }
 
 struct Menu_view::Box_layout_widget : Widget
 {
-	Area _min_size; /* value cached from layout computation */
+	Area _min_size { }; /* value cached from layout computation */
 
 	enum Direction { VERTICAL, HORIZONTAL };
 

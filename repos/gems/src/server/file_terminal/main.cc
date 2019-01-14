@@ -41,12 +41,12 @@ class Open_file
 		/**
 		 * Signal handler to be informed about the established connection
 		 */
-		Genode::Signal_context_capability _connected_sigh;
+		Genode::Signal_context_capability _connected_sigh { };
 
 		/**
 		 * Signal handler to be informed about data available to read
 		 */
-		Genode::Signal_context_capability _read_avail_sigh;
+		Genode::Signal_context_capability _read_avail_sigh { };
 
 		/**
 		 * Buffer for incoming data
@@ -61,7 +61,7 @@ class Open_file
 		 */
 		enum { READ_BUF_SIZE = 4096 };
 		char           _read_buf[READ_BUF_SIZE];
-		Genode::size_t _read_buf_bytes_used;
+		Genode::size_t _read_buf_bytes_used { };
 
 	public:
 
@@ -148,7 +148,7 @@ class Open_file
 namespace Terminal {
 
 	class Session_component : public Genode::Rpc_object<Session, Session_component>,
-	                          public Open_file
+	                          private Open_file
 	{
 		private:
 
@@ -221,8 +221,8 @@ namespace Terminal {
 
 			void size_changed_sigh(Genode::Signal_context_capability) override { }
 
-			Genode::size_t read(void *buf, Genode::size_t) override { return 0; }
-			Genode::size_t write(void const *buf, Genode::size_t) override { return 0; }
+			Genode::size_t read(void *, Genode::size_t) override { return 0; }
+			Genode::size_t write(void const *, Genode::size_t) override { return 0; }
 	};
 
 

@@ -141,10 +141,10 @@ class Nit_fader::Framebuffer_session_component
 		Nitpicker::Connection &_nitpicker;
 		Src_buffer            &_src_buffer;
 
-		Constructible<Dst_buffer> _dst_buffer;
+		Constructible<Dst_buffer> _dst_buffer { };
 
 
-		Lazy_value<int> _fade;
+		Lazy_value<int> _fade { };
 
 	public:
 
@@ -279,9 +279,10 @@ class Nit_fader::Nitpicker_session_component
 
 		Framebuffer::Session_capability _fb_cap { _env.ep().manage(_fb_session) };
 
-		Nitpicker::Session::View_handle _view_handle;
+		Nitpicker::Session::View_handle _view_handle { };
+
 		bool _view_visible = false;
-		Rect _view_geometry;
+		Rect _view_geometry { };
 
 		void _update_view_visibility()
 		{

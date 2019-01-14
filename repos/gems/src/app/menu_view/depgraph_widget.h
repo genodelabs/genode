@@ -28,7 +28,7 @@ namespace Menu_view { struct Depgraph_widget; }
 
 struct Menu_view::Depgraph_widget : Widget
 {
-	Area _min_size; /* value cached from layout computation */
+	Area _min_size { }; /* value cached from layout computation */
 
 	struct Depth_direction
 	{
@@ -74,8 +74,8 @@ struct Menu_view::Depgraph_widget : Widget
 			}
 		};
 
-		Registry<Registered<Anchor> > _server_anchors;
-		Registry<Registered<Anchor> > _client_anchors;
+		Registry<Registered<Anchor> > _server_anchors { };
+		Registry<Registered<Anchor> > _client_anchors { };
 
 		struct Dependency
 		{
@@ -135,7 +135,7 @@ struct Menu_view::Depgraph_widget : Widget
 			void apply_to_server(FN const &fn) const { fn(_server); }
 		};
 
-		Registry<Registered<Dependency> > _deps;
+		Registry<Registered<Dependency> > _deps { };
 
 		void cut_dependencies()
 		{
@@ -359,7 +359,7 @@ struct Menu_view::Depgraph_widget : Widget
 	typedef Registered<Node>          Registered_node;
 	typedef Registry<Registered_node> Node_registry;
 
-	Node_registry _nodes;
+	Node_registry _nodes { };
 
 	Registered_node _root_node { _nodes, _factory.alloc, *this };
 

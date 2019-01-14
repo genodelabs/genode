@@ -39,7 +39,7 @@ class Polygon::Shaded_painter : public Polygon::Painter_base
 		 */
 		struct Point : Point_base
 		{
-			Color color;
+			Color color { };
 
 			Point() { }
 			Point(int x, int y, Color color) : Point_base(x, y), color(color) { }

@@ -27,7 +27,7 @@ class Nano3d::Cube_shape
 
 		typedef Nano3d::Vertex_array<NUM_VERTICES> Vertex_array;
 
-		Vertex_array _vertices;
+		Vertex_array _vertices { };
 
 		enum { VERTICES_PER_FACE = 4 };
 

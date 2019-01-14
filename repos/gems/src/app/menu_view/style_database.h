@@ -91,8 +91,8 @@ class Menu_view::Style_database
 		 * The list is mutable because it is populated as a side effect of
 		 * calling the const lookup function.
 		 */
-		List<Texture_entry> mutable _textures;
-		List<Font_entry>    mutable _fonts;
+		List<Texture_entry> mutable _textures { };
+		List<Font_entry>    mutable _fonts    { };
 
 		template <typename T>
 		T const *_lookup(List<T> &list, char const *path) const

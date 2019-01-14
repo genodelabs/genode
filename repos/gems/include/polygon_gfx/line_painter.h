@@ -56,7 +56,7 @@ struct Line_painter
 
 		Lut()
 		{
-			auto fill_segment = [&] (long x1, long y1, long x2, long y2)
+			auto fill_segment = [&] (long x1, long y1, long x2, long)
 			{
 				for (long i = x1; i < x2; i++) value[i] = y1;
 			};

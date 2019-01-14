@@ -35,7 +35,7 @@ namespace Nano3d {
 }
 
 
-struct Nano3d::Input_handler
+struct Nano3d::Input_handler : Genode::Interface
 {
 	virtual void handle_input(Input::Event const [], unsigned num_events) = 0;
 };
@@ -54,6 +54,12 @@ class Nano3d::Scene
 		                    Genode::Surface<Pixel_alpha8> &alpha_surface) = 0;
 
 	private:
+
+		/**
+		 * Noncopyable
+		 */
+		Scene(Scene const &);
+		Scene &operator = (Scene const &);
 
 		Genode::Env &_env;
 
@@ -279,9 +285,11 @@ class Nano3d::Scene
 		:
 			_env(env), _pos(pos), _size(size)
 		{
+			typedef Nitpicker::Session::View_handle View_handle;
+
 			Nitpicker::Rect rect(_pos, _size);
 			_nitpicker.enqueue<Command::Geometry>(_view_handle, rect);
-			_nitpicker.enqueue<Command::To_front>(_view_handle);
+			_nitpicker.enqueue<Command::To_front>(_view_handle, View_handle());
 			_nitpicker.execute();
 
 			_nitpicker.input()->sigh(_input_handler);
@@ -291,6 +299,8 @@ class Nano3d::Scene
 
 			_framebuffer.framebuffer.sync_sigh(_sync_handler);
 		}
+
+		virtual ~Scene() { }
 
 		unsigned long elapsed_ms() const { return _timer.elapsed_ms(); }
 

@@ -8,5 +8,3 @@ INC_DIR += $(PRG_DIR)
 $(TARGET): menu_view_styles.tar
 menu_view_styles.tar:
 	$(VERBOSE)cd $(PRG_DIR); tar cf $(PWD)/bin/$@ styles
-
-CC_CXX_WARN_STRICT =
