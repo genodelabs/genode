@@ -4,6 +4,26 @@
                                ===========
 
 
+Road Map for 2019 | 2019-01-15
+##############################
+
+| In 2019, we will focus on practical use cases, on interoperability, and
+| on harmonizing Genode with existing applications and programming languages.
+
+The past Year of Sculpt was dedicated to bringing Genode to the desktop on
+commodity PC hardware. Now is a good time to focus on making the Sculpt OS
+relevant and appealing for a broader community. The road map for 2019 features
+three major ambitions towards that goal. First, making Genode easier
+approachable and usable by presenting practical use cases while fostering a
+stronger sense of community among users and developers. Second, simplifying
+the use of existing applications and programming languages in Genode-based
+systems. And third, improving the interoperability of Genode with existing
+protocols and systems.
+
+The complete story behind the new road map is presented at the
+[https:/about/road-map - road-map page].
+
+
 Genode OS Framework release 18.11 | 2018-11-29
 ##############################################
 
