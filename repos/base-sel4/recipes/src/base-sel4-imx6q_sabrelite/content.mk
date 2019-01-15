@@ -2,7 +2,7 @@ include $(GENODE_DIR)/repos/base/recipes/src/base_content.inc
 
 content: enable_board_spec
 enable_board_spec: etc/specs.conf
-	echo "SPECS += wand_quad" >> etc/specs.conf
+	echo "SPECS += imx6q_sabrelite" >> etc/specs.conf
 
 content: include/os/attached_mmio.h
 
@@ -12,7 +12,7 @@ include/%.h:
 
 content: README
 README:
-	cp $(REP_DIR)/recipes/src/base-sel4-wand_quad/README $@
+	cp $(REP_DIR)/recipes/src/base-sel4-imx6q_sabrelite/README $@
 
 content: lib/import etc include/sel4
 lib/import etc include/sel4:
@@ -35,5 +35,5 @@ src/tool/elfloader: src/kernel/sel4
 content:
 	mv lib/mk/spec/arm/ld-sel4.mk lib/mk/spec/arm/ld.mk;
 	sed -i "s/ld-sel4/ld/"          src/lib/ld/sel4/target.mk
-	sed -i "s/wand_quad_timer_drv/timer/" src/timer/epit/wand_quad/target.inc
+	sed -i "s/imx6_timer_drv/timer/" src/timer/epit/imx6/target.inc
 

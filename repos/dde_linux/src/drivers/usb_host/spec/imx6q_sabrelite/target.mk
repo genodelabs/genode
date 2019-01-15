@@ -1,7 +1,7 @@
 include $(REP_DIR)/src/drivers/usb_host/target.inc
 
-TARGET    = wand_quad_usb_host_drv
-REQUIRES  = wand_quad
+TARGET    = imx6q_sabrelite_usb_host_drv
+REQUIRES  = imx6q_sabrelite
 
 SRC_C    += usb/chipidea/ci_hdrc_imx.c
 SRC_C    += usb/chipidea/core.c
@@ -14,7 +14,7 @@ INC_DIR += $(REP_DIR)/src/drivers/usb_host/spec/arm
 INC_DIR += $(REP_DIR)/src/include/spec/arm
 
 SRC_CC  += spec/arm/platform.cc
-SRC_CC   += spec/wand_quad/platform.cc
+SRC_CC   += spec/imx6q_sabrelite/platform.cc
 
 CC_OPT   += -DCONFIG_USB_CHIPIDEA
 CC_OPT   += -DCONFIG_USB_CHIPIDEA_HOST

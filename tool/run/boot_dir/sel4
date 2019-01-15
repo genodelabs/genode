@@ -1,8 +1,8 @@
 proc binary_name_ld_lib_so { } { return "ld-sel4.lib.so" }
 proc binary_name_core_o    { } { return "core-sel4.o" }
 proc binary_name_timer     { } {
-	if {[have_spec wand_quad]} { return "wand_quad_timer_drv" }
-	if {[have_spec x86]}       { return "pit_timer_drv" }
+	if {[have_spec imx6]} { return "imx6_timer_drv" }
+	if {[have_spec x86]}  { return "pit_timer_drv" }
 	puts "unknown platform - no timer driver"
 	exit -1
 }
@@ -147,8 +147,8 @@ proc run_boot_dir {binaries} {
 #
 proc base_src { } {
 
-	if {[have_spec x86]}       { return base-sel4-x86 }
-	if {[have_spec wand_quad]} { return base-sel4-wand_quad }
+	if {[have_spec x86]}             { return base-sel4-x86 }
+	if {[have_spec imx6q_sabrelite]} { return base-sel4-imx6q_sabrelite }
 
 	global specs
 

@@ -15,7 +15,6 @@ endif
 elfloader/elfloader.o:
 	$(VERBOSE)cp -rf $(ELFLOADER_DIR) elfloader && \
 	          cd elfloader && \
-	          sed -i "s/define UART_PPTR.*IMX6_UART2_PADDR/define UART_PPTR IMX6_UART1_PADDR/" src/arch-arm/plat-imx6/platform.h && \
 	          $(MAKE) \
 	          TOOLPREFIX=$(CROSS_DEV_PREFIX) \
 	          NK_ASFLAGS=-DARMV7_A \
@@ -28,6 +27,6 @@ elfloader/elfloader.o:
 build_kernel: elfloader/elfloader.o
 	$(VERBOSE)$(MAKE) \
 	          TOOLPREFIX=$(CROSS_DEV_PREFIX) \
-	          BOARD=wand_quad ARCH=arm PLAT=imx6 CPU=cortex-a9 ARMV=armv7-a DEBUG=1 \
+	          BOARD=imx6q_sabrelite ARCH=arm PLAT=imx6 CPU=cortex-a9 ARMV=armv7-a DEBUG=1 \
 	          SOURCE_ROOT=$(SEL4_DIR) -f$(SEL4_DIR)/Makefile
 

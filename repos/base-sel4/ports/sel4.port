@@ -15,7 +15,7 @@ $(call check_python_module,six)
 
 PATCHES   := $(sort $(wildcard $(REP_DIR)/patches/*.patch))
 
-HASH_INPUT += $(REP_DIR)/patches/wand_quad.config
+HASH_INPUT += $(REP_DIR)/patches/imx6q_sabrelite.config
 
 # adjust kernel config usable on qemu and on native hw, and add a 32bit version
 default: $(DOWNLOADS)
@@ -24,6 +24,6 @@ default: $(DOWNLOADS)
 	$(VERBOSE)cp src/kernel/sel4/configs/pc99/autoconf.h src/kernel/sel4/configs/pc99/x86_64/autoconf.h
 	$(VERBOSE)mv src/kernel/sel4/configs/pc99/autoconf.h src/kernel/sel4/configs/pc99/ia32/autoconf.h
 	$(VERBOSE)sed -i "s.^ \*/. \*/\n#ifndef ARCH_IA32\n#define ARCH_IA32\n#endif\n." src/kernel/sel4/configs/pc99/ia32/autoconf.h
-	$(VERBOSE)mkdir -p src/kernel/sel4/configs/imx6/wand_quad
-	$(VERBOSE)mv src/kernel/sel4/configs/imx6/autoconf.h src/kernel/sel4/configs/imx6/wand_quad/autoconf.h
-	$(VERBOSE)patch -p0 <$(REP_DIR)/patches/wand_quad.config
+	$(VERBOSE)mkdir -p src/kernel/sel4/configs/imx6/imx6q_sabrelite
+	$(VERBOSE)mv src/kernel/sel4/configs/imx6/autoconf.h src/kernel/sel4/configs/imx6/imx6q_sabrelite/autoconf.h
+	$(VERBOSE)patch -p0 <$(REP_DIR)/patches/imx6q_sabrelite.config

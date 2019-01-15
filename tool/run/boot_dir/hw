@@ -210,7 +210,6 @@ proc base_src { } {
 	if {[have_spec x86_64] &&  [have_spec muen]}         { return base-hw-muen }
 	if {[have_spec pbxa9]}                               { return base-hw-pbxa9 }
 	if {[have_spec rpi]}                                 { return base-hw-rpi }
-	if {[have_spec wand_quad]}                           { return base-hw-wand_quad }
 	if {[have_spec imx6q_sabrelite]}                     { return base-hw-imx6q_sabrelite }
 	if {[have_spec odroid_xu]}                           { return base-hw-odroid_xu }
 	if {[have_spec imx53_qsb] && ![have_spec trustzone]} { return base-hw-imx53_qsb }
