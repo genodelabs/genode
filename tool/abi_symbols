@@ -21,6 +21,14 @@ set demangled [exec c++filt << $symbols]
 
 set demangled_lines [split $demangled "\n"]
 
+# obtail list of blacklisted symbols
+set fd [open "[file dirname $argv0]/internal_abi.list"]
+set symbol_blacklist [split [read $fd] "\n"]
+close $fd
+
+# add notice that the symbols file hasn't undergone any manual inspection
+puts "# Please review the symbols and remove this line."
+
 set i 0
 set output_lines {}
 foreach line [split $symbols "\n"] {
@@ -77,6 +85,12 @@ foreach line [split $symbols "\n"] {
 	#
 	if {[regexp {W|V} $type] && ($name != $demangled_name)} {
 		set keep 0 }
+
+	#
+	# Drop blacklisted symbols
+	#
+	foreach blacklisted_symbol $symbol_blacklist {
+		if {$name == $blacklisted_symbol} { set keep 0 } }
 
 	# write result
 	if {$keep} {

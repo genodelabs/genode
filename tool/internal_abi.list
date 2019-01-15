@@ -1,0 +1,13 @@
+__bss_start
+__eh_frame_start__
+__exidx_end
+__exidx_start
+__l4sys_invoke_indirect
+_ctors_end
+_ctors_start
+_edata
+_end
+_init
+_parent_cap
+_parent_cap_local_name
+_parent_cap_thread_id
