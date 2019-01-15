@@ -532,6 +532,7 @@ class Genode::Packet_stream_base
 		Genode::Region_map          &_rm;
 		Genode::Dataspace_capability _ds_cap;
 		void                        *_ds_local_base;
+		Genode::size_t               _ds_size { 0 };
 
 		Genode::off_t  _submit_queue_offset;
 		Genode::off_t  _ack_queue_offset;
@@ -563,6 +564,7 @@ class Genode::Packet_stream_base
 			if ((Genode::size_t)_bulk_buffer_offset >= ds_size)
 				throw Transport_dataspace_too_small();
 
+			_ds_size = ds_size;
 			_bulk_buffer_size = ds_size - _bulk_buffer_offset;
 		}
 
@@ -617,6 +619,9 @@ class Genode::Packet_stream_base
 
 			return (CONTENT_TYPE *)((Genode::addr_t)_ds_local_base + packet.offset());
 		}
+
+		Genode::addr_t ds_local_base() const { return (Genode::addr_t)_ds_local_base; }
+		Genode::addr_t ds_size()       const { return _ds_size; }
 };
 
 
@@ -823,6 +828,9 @@ class Genode::Packet_stream_source : private Packet_stream_base
 
 		Genode::Dataspace_capability dataspace() {
 			return Packet_stream_base::_dataspace(); }
+
+		Genode::addr_t ds_local_base() const { return reinterpret_cast<Genode::addr_t>(_ds_local_base); }
+		Genode::addr_t ds_size()       const { return Packet_stream_base::_ds_size; }
 };
 
 
@@ -998,6 +1006,9 @@ class Genode::Packet_stream_sink : private Packet_stream_base
 
 		Genode::Dataspace_capability dataspace() {
 			return Packet_stream_base::_dataspace(); }
+
+		Genode::addr_t ds_local_base() const { return reinterpret_cast<Genode::addr_t>(_ds_local_base); }
+		Genode::addr_t ds_size()       const { return Packet_stream_base::_ds_size; }
 };
 
 #endif /* _INCLUDE__OS__PACKET_STREAM_H_ */
