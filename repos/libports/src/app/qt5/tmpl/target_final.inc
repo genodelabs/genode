@@ -1,5 +1,25 @@
 INC_DIR += $(PRG_DIR)
 
+SOURCES_FILTERED = $(filter-out $(SOURCES_FILTER_OUT), $(SOURCES))
+HEADERS_FILTERED = $(filter-out $(HEADERS_FILTER_OUT), $(HEADERS))
+
+# add sources defined in qmake project files
+SRC_CC += $(SOURCES_FILTERED)
+
+# add generated sources
+SRC_CC_QT_GENERATED = $(addprefix moc_,$(notdir $(HEADERS_FILTERED:.h=.cpp))) \
+                      $(addprefix qrc_,$(notdir $(RESOURCES:.qrc=.cpp)))
+
+SRC_CC += $(SRC_CC_QT_GENERATED)
+
+# handle relative paths in the 'HEADERS' variable
+vpath %.h $(abspath $(addprefix $(PRG_DIR)/,$(sort $(dir $(HEADERS_FILTERED)))))
+
+# handle relative paths in the 'RESOURCES' variable
+vpath %.qrc $(abspath $(addprefix $(PRG_DIR)/,$(sort $(dir $(RESOURCES)))))
+
+$(addsuffix .o,$(basename $(SRC_CC))): $(addprefix ui_,$(FORMS:.ui=.h))
+
 LIBS += libc base
 
 # QtCore

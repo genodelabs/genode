@@ -35,20 +35,7 @@ QT_DEFINES += -D__GENODE__
 
 CC_OPT += $(QT_DEFINES)
 
-SOURCES_FILTERED = $(filter-out $(SOURCES_FILTER_OUT), $(SOURCES))
-HEADERS_FILTERED = $(filter-out $(HEADERS_FILTER_OUT), $(HEADERS))
-
-# add sources defined in qmake project files
-SRC_CC += $(SOURCES_FILTERED)
-
 # handle moc-headers, resources and ui descriptions
-$(addsuffix .o,$(basename $(SRC_CC))): $(addprefix ui_,$(FORMS:.ui=.h))
-
-SRC_CC_QT_GENERATED = $(join $(dir $(HEADERS_FILTERED)),$(addprefix moc_,$(notdir $(HEADERS_FILTERED:.h=.cpp)))) \
-                      $(join $(dir $(RESOURCES)),$(addprefix qrc_,$(notdir $(RESOURCES:.qrc=.cpp))))
-
-.SECONDARY: $(SRC_CC_QT_GENERATED)
-SRC_CC += $(SRC_CC_QT_GENERATED)
 
 #
 # Locations of moc, rcc, and uic binaries
@@ -104,10 +91,4 @@ ifneq ($(filter arm,$(SPECS)),)
 	QT_DEFINES += -DQT_ARCH_ARMV6
 endif
 
-# remove generated files in clean rules
-clean cleanall: clean_rule
-clean_rule:
-	$(VERBOSE)$(RM) -f $(SRC_CC_QT_GENERATED)
-	$(VERBOSE)$(RM) -f $(SOURCES_FILTERED:.cpp=.moc)
-	$(VERBOSE)$(RM) -f $(addprefix ui_,$(FORMS:.ui=.h))
 endif
