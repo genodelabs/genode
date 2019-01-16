@@ -515,6 +515,7 @@ proc init_test_setting {} {
 			}
 		}
 	}
+	puts "Number of tests to run: $nr_of_tests_to_run"
 }
 
 
