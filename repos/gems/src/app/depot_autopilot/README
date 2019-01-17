@@ -357,11 +357,13 @@ example containing all of these variables:
 
 :TEST_PKGS:
 
-  List of test package-archives that supersedes the internal list if set.
+  List of test package-archives that supersedes the internal default list if
+  set to a value other than "default".
 
 :TEST_SRCS:
 
-  List of test source-archives that supersedes the internal list if set.
+  List of test source-archives that supersedes the internal default list if
+  set to a value other than "default".
 
 :TEST_BUILDS:
 
@@ -381,6 +383,42 @@ a look at the package recipe:
 
 ! repos/<REPO>/recipes/pkg/<TEST_PKG>/archives
 ! repos/<REPO>/recipes/pkg/<TEST_PKG>/runtime (<content> tag)
+
+There are two additional features that are rather intended for automated test
+infrastructures. One is the determination of the number of missing tests and
+the other is the less interactive mode. The number of missing tests is the
+number of tests that should have been executed on a platform (not skipped) but
+for which the run script couldn't manage to produce a result. This can happen
+if the hardware runs into unrecoverable problems during testing or if the
+script is called with the less interactive mode (as explained later in more
+detail).
+
+As an example let's say we have 72 tests in total and 8 of them get skipped
+because of incompatibility with the current platform. Then, the number of
+executed tests is 64. Let's assume the run script finishes with 35 tests
+succeeded and 19 tests failed, the number of missing tests is consequently 64 -
+35 - 19 = 10. This calculation can be done automated by summing up the values
+'succeeded' and 'failed' from the results overview and subtracting it from the
+value given in the line "Number of tests to run" that is printed out by the run
+script at the very beginning. Missing tests normally indicate problems with the
+target platform or the testing infrastructure itself.
+
+Now to the less interactive mode: This is a mode in which the run script
+doesn't give up (as usual) when there are test archives missing in the host
+depot. Instead it solves the conflict by removing the affected test packages or
+test sources. If a test package gets removed this way, the corresponding test
+is neither executed nor considered in the result overview (unlike skipped
+tests). Thus, it is a missing test and can be detected as described above. You
+can determine whether a missing test is missing due to unmet archive
+dependencies by inspecting the serial ouput of the run script. For each
+incomplete package or source archive of a test, the run script yields a
+warning:
+
+! Warning: remove test [package|source] of "<TEST_NAME>" because of missing
+           archives
+
+The less interactive mode can be activated by appending " --autopilot " to the
+'RUN_OPT' variable in your '<BUILD_DIR>/etc/build.conf' file.
 
 
 Examples

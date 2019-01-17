@@ -140,6 +140,15 @@ proc autopilot_run_genode_until {{wait_for_re forever} {timeout_value 0} {runnin
 
 proc depot_user {} { return [get_cmd_arg --depot-user genodelabs] }
 
+
+#
+# Whether the run script is used interactively
+#
+proc interactive {} {
+	return [expr ![get_cmd_switch --autopilot]]
+}
+
+
 #
 # Get value of an environment variable
 #
@@ -188,11 +197,10 @@ proc single_test_module_routes { } {
 proc test_pkgs_start_nodes { } {
 
 	global test_pkgs
-	global skip_test_pkg
 
 	set result ""
 	foreach test_pkg $test_pkgs {
-		if {[info exists skip_test_pkg($test_pkg)] && $skip_test_pkg($test_pkg)} {
+		if {[skip_test $test_pkg]} {
 			append result {
 				<start name="} $test_pkg {" skip="true"/>}
 		} else {
@@ -216,7 +224,6 @@ proc prepare_to_run_genode { } {
 	global previous_succeeded
 	global previous_failed
 	global previous_skipped
-	global skip_test_pkg
 	global test_pkgs
 	global test_srcs
 	global test_builds
@@ -228,35 +235,27 @@ proc prepare_to_run_genode { } {
 	global timeout
 	global initial_qemu_args
 
+	# reset the QEMU arguments to the value when the run script was entered
 	set qemu_args $initial_qemu_args
 
-
-	#
-	# Create a depot archive that contains the test packages
-	#
-
-	create_boot_directory
-
-	set depot_tar_archives ""
-	set depot_tar_src_archives ""
-	set import_archives ""
-
+	# compose list of the package archives to add to the depot archive
+	set depot_tar_pkg_archives ""
 	foreach test_pkg $test_pkgs {
-		if { [info exists skip_test_pkg($test_pkg)] } {
-			append_if [expr !$skip_test_pkg($test_pkg)] depot_tar_archives " [depot_user]/pkg/$test_pkg "
-		} else {
-			append depot_tar_archives " [depot_user]/pkg/$test_pkg "
+		if {![skip_test $test_pkg]} {
+			append depot_tar_pkg_archives " [depot_user]/pkg/$test_pkg "
 		}
 	}
 
-	foreach test_src_pkg $test_srcs {
-		if { [info exists skip_test_pkg($test_src_pkg)] } {
-			append_if [expr !$skip_test_pkg($test_src_pkg)] depot_tar_src_archives " [depot_user]/src/$test_src_pkg "
-		} else {
-			append depot_tar_src_archives " [depot_user]/src/$test_src_pkg "
+	# compose list of the source archives to add to the depot archive
+	set depot_tar_src_archives ""
+	foreach test_src $test_srcs {
+		if {![skip_test $test_src]} {
+			append depot_tar_src_archives " [depot_user]/src/$test_src "
 		}
 	}
 
+	# compose list of the archives to import to the boot directory
+	set import_archives ""
 	append import_archives {
 		} [depot_user] {/src/} [base_src] {
 		} [depot_user] {/src/report_rom
@@ -266,18 +265,30 @@ proc prepare_to_run_genode { } {
 		} [depot_user] {/src/init
 		} [depot_user] {/src/depot_query
 	}
-	if {!$skip_test_pkg(test-lx_block)} {
+	if {![skip_test test-lx_block]} {
 		append import_archives [depot_user] {/raw/test-lx_block }
 	}
 
-	set all_archives [concat $depot_tar_archives $import_archives]
-	check_archives_available {*}$all_archives
+	# check existance of all required archives at once
+	set all_archives [concat $depot_tar_pkg_archives \
+	                         $depot_tar_src_archives \
+	                         $import_archives]
+	if {[interactive]} {
+		check_archives_available {*}$all_archives
+	} else {
+		check_archives_available {*}$import_archives
+	}
 
-	autopilot_create_tar_from_depot_binaries [run_dir]/genode/depot.tar {*}$depot_tar_archives
+	# create the depot archive in the boot directory
+	create_boot_directory
+	autopilot_create_tar_from_depot_binaries [run_dir]/genode/depot.tar \
+	                                         {*}$depot_tar_pkg_archives
 	set depot_tar_wo_src_size [file size [run_dir]/genode/depot.tar]
-	append_src_and_api_depot_packages_to_tar [run_dir]/genode/depot.tar {*}$depot_tar_src_archives
+	append_src_and_api_depot_packages_to_tar [run_dir]/genode/depot.tar \
+	                                         {*}$depot_tar_src_archives
 	set depot_tar_size [file size [run_dir]/genode/depot.tar]
-	puts "Depot archive has a size of $depot_tar_size bytes ($depot_tar_wo_src_size bytes without sources)"
+	puts "Depot archive has a size of $depot_tar_size bytes \
+	      ($depot_tar_wo_src_size bytes without sources)"
 
 	#
 	# Install the root-init config
@@ -450,6 +461,7 @@ proc prepare_to_run_genode { } {
 	append qemu_args "-nographic -serial mon:stdio "
 }
 
+
 #
 # Initialize variables that accumulate test results for possible reboots
 #
@@ -469,6 +481,34 @@ proc init_previous_results {} {
 	set previous_skipped         0
 }
 
+
+#
+# Whether a test shall be skipped or not
+#
+proc skip_test { test } {
+	global skip_test
+	if {![info exists skip_test($test)]} {
+		return 0
+	}
+	return $skip_test($test)
+}
+
+
+#
+# Whether all given archives and the archives they depend on are available
+#
+proc archives_available { archives } {
+
+	global _missing_depot_archives
+	set buf $_missing_depot_archives
+	set _missing_depot_archives ""
+	_collect_from_depot $archives
+	set result [expr [llength $_missing_depot_archives] == 0]
+	set _missing_depot_archives $buf
+	return $result
+}
+
+
 #
 # Initialize variables that can be configured via the user interface
 #
@@ -481,44 +521,67 @@ proc init_test_setting {} {
 	global test_repeat
 	global default_test_pkgs
 	global default_test_srcs
-	global skip_test_pkg
 
 	#
 	# Initialize the lists of test package-archives, source-archives,
 	# build-targets, and boot-modules to be considered by the run script
 	#
-	set test_pkgs    [get_env_var TEST_PKGS    ""]
-	set test_srcs    [get_env_var TEST_SRCS    ""]
+	set test_pkgs    [get_env_var TEST_PKGS    "default"]
+	set test_srcs    [get_env_var TEST_SRCS    "default"]
 	set test_builds  [get_env_var TEST_BUILDS  ""]
 	set test_modules [get_env_var TEST_MODULES ""]
 	set test_repeat  [get_env_var TEST_REPEAT  "false"]
 
-	#
-	# If the user didn't declare an individual list of test package-archives, use
-	# the default lists of test package-archives and source-archives
-	#
 	set nr_of_tests_to_run 0
-	if {$test_pkgs == ""} {
-		foreach test_pkg $default_test_pkgs {
-			append test_pkgs " $test_pkg "
-			if {!([info exists skip_test_pkg($test_pkg)] && $skip_test_pkg($test_pkg))} {
-				incr nr_of_tests_to_run
-			}
+
+	# initialize list of test package archives
+	if {$test_pkgs == "default"} {
+		set test_pkgs $default_test_pkgs
+	}
+	foreach test_pkg $test_pkgs {
+		if {[skip_test $test_pkg]} {
+			continue
 		}
-		foreach test_src_pkg $default_test_srcs {
-			append test_srcs " $test_src_pkg "
+		incr nr_of_tests_to_run
+		if {[interactive]} {
+			continue
 		}
-	} else {
-		foreach test_pkg $test_pkgs {
-			if {!([info exists skip_test_pkg($test_pkg)] && $skip_test_pkg($test_pkg))} {
-				incr nr_of_tests_to_run
-			}
+		if {[archives_available [depot_user]/pkg/$test_pkg]} {
+			continue
 		}
+		set test_pkgs [lsearch -all -inline -not -exact \
+		                       $test_pkgs $test_pkg]
+
+		puts stderr "Warning: remove test package of \"$test_pkg\" because of\
+		             missing archives"
+	}
+	# initialize list of test source archives
+	if {$test_srcs == "default"} {
+		set test_srcs $default_test_srcs
+	}
+	foreach test_src $test_srcs {
+		if {[skip_test $test_src]} {
+			continue
+		}
+		if {[interactive]} {
+			continue
+		}
+		if {[archives_available [depot_user]/src/$test_src]} {
+			continue
+		}
+		set test_srcs [lsearch -all -inline -not -exact \
+		                       $test_srcs $test_src]
+
+		puts stderr "Warning: remove test source of \"$test_src\" because of\
+		             missing archives"
 	}
 	puts "Number of tests to run: $nr_of_tests_to_run"
 }
 
 
+#
+# Overwrite exit procedure to ensure to always print a results overview
+#
 rename exit run_tool_exit
 proc exit {{status 0}} {
 
@@ -691,18 +754,18 @@ proc non_executable_supported { } {
 #
 # Whether to skip a test - if undefined for a test, the test is not skipped
 #
-set skip_test_pkg(test-python)          [expr ![have_spec x86]]
-set skip_test_pkg(test-slab)            [expr [get_cmd_switch --autopilot] && [have_include "power_on/qemu"]]
-set skip_test_pkg(test-rm_nested)       [expr [have_spec linux]]
-set skip_test_pkg(test-fault_detection) [expr [have_spec pistachio] || [have_spec fiasco]]
-set skip_test_pkg(test-fs_packet)       [expr [get_cmd_switch --autopilot] && [have_include "power_on/qemu"]]
-set skip_test_pkg(test-rm_fault)        [expr [have_spec linux] || ![non_executable_supported]]
-set skip_test_pkg(test-rm_fault_no_nox) [expr [have_spec linux] || !$skip_test_pkg(test-rm_fault)]
-set skip_test_pkg(test-lx_block)        [expr ![have_spec linux]]
-set skip_test_pkg(test-tcp_bulk_lwip)   [expr ![have_spec x86]]
-set skip_test_pkg(test-tcp_bulk_lxip)   [expr ![have_spec x86]]
-set skip_test_pkg(test-solo5)           [expr ![have_spec x86_64]]
-set skip_test_pkg(test-libc)            [expr [have_spec sel4] || [have_spec rpi] || [expr [have_spec pbxa9] && [have_spec foc]] || [expr [have_spec imx53] && [have_spec trustzone]]]
+set skip_test(test-python)          [expr ![have_spec x86]]
+set skip_test(test-slab)            [expr [get_cmd_switch --autopilot] && [have_include "power_on/qemu"]]
+set skip_test(test-rm_nested)       [expr [have_spec linux]]
+set skip_test(test-fault_detection) [expr [have_spec pistachio] || [have_spec fiasco]]
+set skip_test(test-fs_packet)       [expr [get_cmd_switch --autopilot] && [have_include "power_on/qemu"]]
+set skip_test(test-rm_fault)        [expr [have_spec linux] || ![non_executable_supported]]
+set skip_test(test-rm_fault_no_nox) [expr [have_spec linux] || ![skip_test test-rm_fault]]
+set skip_test(test-lx_block)        [expr ![have_spec linux]]
+set skip_test(test-tcp_bulk_lwip)   [expr ![have_spec x86]]
+set skip_test(test-tcp_bulk_lxip)   [expr ![have_spec x86]]
+set skip_test(test-solo5)           [expr ![have_spec x86_64]]
+set skip_test(test-libc)            [expr [have_spec sel4] || [have_spec rpi] || [expr [have_spec pbxa9] && [have_spec foc]] || [expr [have_spec imx53] && [have_spec trustzone]]]
 
 #
 # FIXME
@@ -711,7 +774,7 @@ set skip_test_pkg(test-libc)            [expr [have_spec sel4] || [have_spec rpi
 # subsequent tests crashes the system so it gets rebooted by the run script,
 # the system doesn't come up again. It gets stuck after core initialization.
 #
-set skip_test_pkg(test-libc_getenv) [expr [get_cmd_switch --autopilot] && [have_spec foc] && [have_spec x86]]
+set skip_test(test-libc_getenv) [expr [get_cmd_switch --autopilot] && [have_spec foc] && [have_spec x86]]
 
 # remember initial qemu args in case we have to re-boot later
 set initial_qemu_args ""
