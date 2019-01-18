@@ -700,6 +700,10 @@ extern "C" int socket_fs_listen(int libc_fd, int backlog)
 	int const n   = write(context->listen_fd(), buf, len);
 	if (n != len) return Errno(EOPNOTSUPP);
 
+	/* sync to block for write completion */
+	int const res = fsync(context->listen_fd());
+	if (res != 0) return res;
+
 	context->state(Context::ACCEPT_ONLY);
 	return 0;
 }
