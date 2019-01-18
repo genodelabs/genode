@@ -1,5 +1,5 @@
 /*
- * \brief  Test for the timed-semaphore
+ * \brief  Test for the libc-internal timed semaphore
  * \author Stefan Kalkowski
  * \author Martin Stein
  * \date   2010-03-05
@@ -14,24 +14,28 @@
 
 /* Genode includes */
 #include <timer_session/connection.h>
-#include <base/timed_semaphore.h>
 #include <base/thread.h>
 #include <base/component.h>
 
+/* libc-internal include */
+#include <timed_semaphore.h>
+
 using namespace Genode;
+using namespace Libc;
 
 
 struct Test : Thread
 {
 	struct Failed : Exception { };
 
-	unsigned          id;
-	Timer::Connection wakeup_timer;
-	unsigned const    wakeup_period;
-	Timed_semaphore   sem            { };
-	bool              stop_wakeup    { false };
-	Lock              wakeup_stopped { Lock::LOCKED };
-	bool              got_timeouts   { false };
+	Timeout_entrypoint timeout_ep;
+	unsigned           id;
+	Timer::Connection  wakeup_timer;
+	unsigned const     wakeup_period;
+	Timed_semaphore    sem            { timeout_ep };
+	bool               stop_wakeup    { false };
+	Lock               wakeup_stopped { Lock::LOCKED };
+	bool               got_timeouts   { false };
 
 	void entry()
 	{
@@ -43,8 +47,10 @@ struct Test : Thread
 	}
 
 	Test(Env &env, bool timeouts, unsigned id, char const *brief)
-	: Thread(env, "wakeup", 1024 * sizeof(addr_t)), id(id), wakeup_timer(env),
-	  wakeup_period(timeouts ? 1000 : 100)
+	:
+		Thread(env, "wakeup", 1024 * sizeof(addr_t)),
+		timeout_ep(env), id(id), wakeup_timer(env),
+		wakeup_period(timeouts ? 1000 : 100)
 	{
 		log("\nTEST ", id, ": ", brief, "\n");
 		Thread::start();

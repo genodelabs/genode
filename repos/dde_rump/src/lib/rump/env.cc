@@ -14,7 +14,7 @@
 #include <rump/env.h>
 
 /*
- * Genode nviroment instance
+ * Genode enviroment instance
  */
 static Genode::Constructible<Rump::Env> _env;
 

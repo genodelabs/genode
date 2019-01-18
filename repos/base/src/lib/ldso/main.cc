@@ -19,7 +19,6 @@
 #include <util/string.h>
 #include <base/thread.h>
 #include <base/heap.h>
-#include <base/timed_semaphore.h>
 
 /* base-internal includes */
 #include <base/internal/unmanaged_singleton.h>
@@ -710,9 +709,6 @@ void Component::construct(Genode::Env &env)
 	} catch (...) {  }
 
 	Link_map::dump();
-
-	/* FIXME: remove 'Timeout_thread' from the base library */
-	Timeout_thread::env(env);
 
 	binary_ready_hook_for_gdb();
 

@@ -224,4 +224,7 @@ struct pthread : Genode::Noncopyable, Genode::Thread::Tls::Base
 		size_t  stack_size() const { return _stack_size; }
 };
 
+
+namespace Libc { void init_pthread_support(Env &env); }
+
 #endif /* _INCLUDE__SRC_LIB_PTHREAD_THREAD_H_ */

@@ -87,7 +87,7 @@ set config {
 		<provides> <service name="Timer"/> </provides>
 	</start>
 	<start name="test-libc_vfs" caps="200">
-		<resource name="RAM" quantum="8M"/>
+		<resource name="RAM" quantum="10M"/>
 		<config>
 			<iterations value="1"/>}
 append_if [have_include "power_on/qemu"] config {

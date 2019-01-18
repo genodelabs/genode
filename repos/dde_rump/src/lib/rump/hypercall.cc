@@ -16,7 +16,6 @@
 
 #include <base/log.h>
 #include <base/sleep.h>
-#include <base/timed_semaphore.h>
 #include <rump/env.h>
 #include <util/allocator_fap.h>
 #include <util/random.h>
@@ -126,13 +125,6 @@ int rumpuser_init(int version, const struct rumpuser_hyperup *hyp)
 	/* register context for main EP */
 	main_context()->thread(Genode::Thread::myself());
 	Hard_context_registry::r().insert(main_context());
-
-	/*
-	 * Start 'Timeout_thread' so it does not get constructed concurrently (which
-	 * causes one thread to spin in cxa_guard_aqcuire), making emulation *really*
-	 * slow
-	 */
-	Genode::Timeout_thread::alarm_timer();
 
 	return 0;
 }

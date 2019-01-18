@@ -18,6 +18,7 @@
 #include <base/env.h>
 #include <base/heap.h>
 #include <util/reconstructible.h>
+#include <rump/timed_semaphore.h>
 
 namespace Rump {
 	class Env;
@@ -32,6 +33,7 @@ class Rump::Env
 	private:
 
 		Genode::Env                   &_env;
+		Timeout_entrypoint             _timeout_ep { _env };
 		Genode::Heap                   _heap { _env.ram(), _env.rm() };
 		Genode::Attached_rom_dataspace _config { _env, "config" };
 
@@ -40,6 +42,7 @@ class Rump::Env
 		Env(Genode::Env &env) : _env(env) { }
 
 		Genode::Env                    &env()        { return _env; }
+		Timeout_entrypoint             &timeout_ep() { return _timeout_ep; }
 		Genode::Heap                   &heap()       { return _heap; }
 		Genode::Attached_rom_dataspace &config_rom() { return _config; }
 };

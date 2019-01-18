@@ -1,7 +1,7 @@
-SRC_DIR = src/test/timed_semaphore src/lib/timed_semaphore src/lib/alarm
+SRC_DIR = src/test/timed_semaphore
 include $(GENODE_DIR)/repos/base/recipes/src/content.inc
 
-MIRROR_FROM_REP_DIR := lib/mk/timed_semaphore.mk lib/mk/alarm.mk
+MIRROR_FROM_REP_DIR := src/lib/libc/timed_semaphore.h
 
 content: $(MIRROR_FROM_REP_DIR)
 

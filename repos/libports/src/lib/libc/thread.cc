@@ -15,7 +15,6 @@
 #include <base/log.h>
 #include <base/sleep.h>
 #include <base/thread.h>
-#include <base/timed_semaphore.h>
 #include <util/list.h>
 
 #include <errno.h>
@@ -23,12 +22,31 @@
 #include <stdlib.h> /* malloc, free */
 #include "thread.h"
 #include "task.h"
+#include "timed_semaphore.h"
 
 using namespace Genode;
 
 
 void * operator new(__SIZE_TYPE__ size) { return malloc(size); }
 void operator delete (void * p) { return free(p); }
+
+
+static Env *_env_ptr;  /* solely needed to spawn the timeout thread for the
+                          timed semaphore */
+
+
+namespace Libc { void init_pthread_support(Env &env) { _env_ptr = &env; } }
+
+
+static Libc::Timeout_entrypoint &_global_timeout_ep()
+{
+	class Missing_call_of_init_pthread_support { };
+	if (!_env_ptr)
+		throw Missing_call_of_init_pthread_support();
+
+	static Libc::Timeout_entrypoint timeout_ep { *_env_ptr };
+	return timeout_ep;
+}
 
 
 /*
@@ -72,7 +90,7 @@ void pthread::join(void **retval)
 		{
 			retry = !_thread._exiting;
 			return retry;
- 		}
+		}
 	} check(*this);
 
 	do {
@@ -579,7 +597,7 @@ extern "C" {
 		int num_waiters;
 		int num_signallers;
 		Lock counter_lock;
-		Timed_semaphore signal_sem;
+		Libc::Timed_semaphore signal_sem { _global_timeout_ep() };
 		Semaphore handshake_sem;
 
 		pthread_cond() : num_waiters(0), num_signallers(0) { }
@@ -712,9 +730,9 @@ extern "C" {
 
 			try {
 				c->signal_sem.down(timeout);
-			} catch (Timeout_exception) {
+			} catch (Libc::Timeout_exception) {
 				result = ETIMEDOUT;
-			} catch (Genode::Nonblocking_exception) {
+			} catch (Libc::Nonblocking_exception) {
 				errno  = ETIMEDOUT;
 				result = ETIMEDOUT;
 			}

@@ -17,7 +17,6 @@ extern "C" {
 }
 #include <base/lock.h>
 #include <util/fifo.h>
-#include <base/timed_semaphore.h>
 #include <rump/env.h>
 
 #include "sched.h"
@@ -215,7 +214,7 @@ struct Cond
 	int                     num_waiters;
 	int                     num_signallers;
 	Genode::Lock            counter_lock;
-	Genode::Timed_semaphore signal_sem;
+	Timed_semaphore         signal_sem { Rump::env().timeout_ep() };
 	Genode::Semaphore       handshake_sem;
 
 	Cond() : num_waiters(0), num_signallers(0) { }

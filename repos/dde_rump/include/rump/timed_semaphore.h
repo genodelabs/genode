@@ -16,90 +16,90 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _INCLUDE__BASE__TIMED_SEMAPHORE_H_
-#define _INCLUDE__BASE__TIMED_SEMAPHORE_H_
+#ifndef _INCLUDE__RUMP__TIMED_SEMAPHORE_H_
+#define _INCLUDE__RUMP__TIMED_SEMAPHORE_H_
 
 #include <base/thread.h>
 #include <base/semaphore.h>
 #include <base/alarm.h>
 #include <timer_session/connection.h>
 
-namespace Genode {
+using Genode::Exception;
+using Genode::Entrypoint;
+using Genode::Alarm;
+using Genode::Alarm_scheduler;
+using Genode::Semaphore;
+using Genode::Signal_handler;
 
-	class Timeout_thread;
-	class Timed_semaphore;
-
-	/**
-	 * Exception types
-	 */
-	class Timeout_exception;
-	class Nonblocking_exception;
-}
+/**
+ * Exception types
+ */
+class Timeout_exception     : public Exception { };
+class Nonblocking_exception : public Exception { };
 
 
 /**
  * Alarm thread, which counts jiffies and triggers timeout events.
  */
-class Genode::Timeout_thread : public  Thread_deprecated<2048*sizeof(long)>,
-                               private Alarm_scheduler
+class Timeout_entrypoint : private Entrypoint
 {
 	private:
 
 		enum { JIFFIES_STEP_MS = 10 };
 
-		static Genode::Env *_env;
+		Alarm_scheduler _alarm_scheduler { };
 
-		Timer::Connection   _timer    { *_env };
-		Signal_context      _context  { };
-		Signal_receiver     _receiver { };
+		Timer::Connection _timer;
 
-		void entry(void);
+		Signal_handler<Timeout_entrypoint> _timer_handler;
+
+		void _handle_timer() { _alarm_scheduler.handle(_timer.elapsed_ms()); }
+
+		static Genode::size_t constexpr STACK_SIZE = 2048*sizeof(long);
 
 	public:
 
-		using Alarm_scheduler::schedule_absolute;
-		using Alarm_scheduler::discard;
-
-		Timeout_thread() : Thread_deprecated("alarm-timer")
+		Timeout_entrypoint(Genode::Env &env)
+		:
+			Entrypoint(env, STACK_SIZE, "alarm-timer", Genode::Affinity::Location()),
+			_timer(env),
+			_timer_handler(*this, *this, &Timeout_entrypoint::_handle_timer)
 		{
-			_timer.sigh(_receiver.manage(&_context));
+			_timer.sigh(_timer_handler);
 			_timer.trigger_periodic(JIFFIES_STEP_MS*1000);
-			start();
 		}
 
-		Genode::Alarm::Time time(void) { return _timer.elapsed_ms(); }
+		Alarm::Time time(void) { return _timer.elapsed_ms(); }
 
-		/*
-		 * Returns the singleton timeout-thread used for all timeouts.
-		 */
-		static Timeout_thread *alarm_timer();
+		void schedule_absolute(Alarm &alarm, Alarm::Time timeout)
+		{
+			_alarm_scheduler.schedule_absolute(&alarm, timeout);
+		}
 
-		static void env(Genode::Env &env) { _env = &env; }
+		void discard(Alarm &alarm) { _alarm_scheduler.discard(&alarm); }
 };
-
-
-class Genode::Timeout_exception     : public Exception { };
-class Genode::Nonblocking_exception : public Exception { };
 
 
 /**
  * Semaphore with timeout on down operation.
  */
-class Genode::Timed_semaphore : public Semaphore
+class Timed_semaphore : public Semaphore
 {
 	private:
 
 		typedef Semaphore::Element Element;
 
+		Timeout_entrypoint &_timeout_ep;
+
 		/**
 		 * Aborts blocking on the semaphore, raised when a timeout occured.
 		 *
 		 * \param  element the waiting-queue element associated with a timeout.
-         * \return true if a thread was aborted/woken up
+		 * \return true if a thread was aborted/woken up
 		 */
 		bool _abort(Element &element)
 		{
-			Lock::Guard lock_guard(Semaphore::_meta_lock);
+			Genode::Lock::Guard lock_guard(Semaphore::_meta_lock);
 
 			/* potentially, the queue is empty */
 			if (++Semaphore::_cnt <= 0) {
@@ -151,22 +151,17 @@ class Genode::Timed_semaphore : public Semaphore
 		{
 			private:
 
-				Timed_semaphore &_sem;       /* semaphore we block on */
-				Element         &_element;   /* queue element timeout belongs to */
-				bool             _triggered; /* timeout expired */
-				Time             _start { };
+				Timed_semaphore &_sem;      /* semaphore we block on */
+				Element         &_element;  /* queue element timeout belongs to */
+				bool             _triggered { false };
+				Time       const _start;
 
 			public:
 
-				Timeout(Time duration, Timed_semaphore *s, Element *e)
-				: _sem(*s), _element(*e), _triggered(false)
-				{
-					Timeout_thread *tt = Timeout_thread::alarm_timer();
-					_start = tt->time();
-					tt->schedule_absolute(this, _start + duration);
-				}
+				Timeout(Time start, Timed_semaphore &s, Element &e)
+				: _sem(s), _element(e), _triggered(false), _start(start)
+				{ }
 
-				void discard(void)   { Timeout_thread::alarm_timer()->discard(this); }
 				bool triggered(void) { return _triggered; }
 				Time start()         { return _start;     }
 
@@ -186,7 +181,8 @@ class Genode::Timed_semaphore : public Semaphore
 		 *
 		 * \param n  initial counter value of the semphore
 		 */
-		Timed_semaphore(int n = 0) : Semaphore(n) { }
+		Timed_semaphore(Timeout_entrypoint &timeout_ep, int n = 0)
+		: Semaphore(n), _timeout_ep(timeout_ep) { }
 
 		/**
 		 * Decrements semaphore and blocks when it's already zero.
@@ -206,7 +202,7 @@ class Genode::Timed_semaphore : public Semaphore
 				if (t == 0) {
 					++_cnt;
 					Semaphore::_meta_lock.unlock();
-					throw Genode::Nonblocking_exception();
+					throw Nonblocking_exception();
 				}
 
 				/*
@@ -218,7 +214,9 @@ class Genode::Timed_semaphore : public Semaphore
 				Semaphore::_meta_lock.unlock();
 
 				/* Create the timeout */
-				Timeout to(t, this, &queue_element);
+				Alarm::Time const curr_time = _timeout_ep.time();
+				Timeout timeout(curr_time, *this, queue_element);
+				_timeout_ep.schedule_absolute(timeout, curr_time + t);
 
 				/*
 				 * The thread is going to block on a local lock now,
@@ -228,17 +226,18 @@ class Genode::Timed_semaphore : public Semaphore
 				queue_element.block();
 
 				/* Deactivate timeout */
-				to.discard();
+				_timeout_ep.discard(timeout);
 
 				/*
 				 * When we were only woken up, because of a timeout,
 				 * throw an exception.
 				 */
-				if (to.triggered())
-					throw Genode::Timeout_exception();
+				if (timeout.triggered())
+					throw Timeout_exception();
 
 				/* return blocking time */
-				return Timeout_thread::alarm_timer()->time() - to.start();
+				return _timeout_ep.time() - timeout.start();
+
 			} else {
 				Semaphore::_meta_lock.unlock();
 			}
@@ -254,4 +253,4 @@ class Genode::Timed_semaphore : public Semaphore
 		void up()   { Semaphore::up();   }
 };
 
-#endif /* _INCLUDE__BASE__TIMED_SEMAPHORE_H_ */
+#endif /* _INCLUDE__RUMP__TIMED_SEMAPHORE_H_ */
