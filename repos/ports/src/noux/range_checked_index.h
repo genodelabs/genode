@@ -29,14 +29,14 @@ struct Noux::Range_checked_index
 
 	Range_checked_index(T value, T max) : value(value), max(max) { }
 
-	T operator++ (int)
+	Range_checked_index<T> operator++ (int)
 	{
 		T old_value = value;
 
 		if (++value >= max)
 			throw Index_out_of_range();
 
-		return old_value;
+		return Range_checked_index<T>(old_value, max);
 	}
 
 	operator T () { return value; }

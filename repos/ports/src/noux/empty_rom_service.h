@@ -42,7 +42,7 @@ class Noux::Empty_rom_factory : public Empty_rom_service::Factory
 		Empty_rom_factory(Allocator &alloc, Rpc_entrypoint &ep)
 		: _alloc(alloc), _ep(ep) { }
 
-		Empty_rom_session_component &create(Args const &args, Affinity) override
+		Empty_rom_session_component &create(Args const &, Affinity) override
 		{
 			try {
 				return *new (_alloc) Empty_rom_session_component(_ep); }

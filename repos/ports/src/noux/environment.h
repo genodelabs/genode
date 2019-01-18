@@ -27,11 +27,13 @@ namespace Noux {
 }
 
 
-class Noux::Environment : private Attached_ram_dataspace
+class Noux::Environment : Noncopyable
 {
 	private:
 
-		Sysio::Env *_env;
+		Attached_ram_dataspace _ds;
+
+		Sysio::Env &_env { *_ds.local_addr<Sysio::Env>() };
 
 	public:
 
@@ -41,19 +43,17 @@ class Noux::Environment : private Attached_ram_dataspace
 		 * \param env  comma-separated list of environment variables
 		 */
 		Environment(Ram_allocator &ram, Region_map &local_rm, Sysio::Env const &env)
-		:
-			Attached_ram_dataspace(ram, local_rm, sizeof(Sysio::Env)),
-			_env(local_addr<Sysio::Env>())
+		: _ds(ram, local_rm, sizeof(Sysio::Env))
 		{
-			memcpy(_env, env, sizeof(Sysio::Env));
+			memcpy(&_env, &env, sizeof(Sysio::Env));
 		}
 
-		using Attached_ram_dataspace::cap;
+		Dataspace_capability cap() { return _ds.cap(); }
 
 		/**
 		 * Return list of environment variables as zero-separated list
 		 */
-		Sysio::Env const &env() { return *_env; }
+		Sysio::Env const &env() { return _env; }
 };
 
 #endif /* _NOUX__ENVIRONMENT_H_ */

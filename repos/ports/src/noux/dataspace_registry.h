@@ -29,8 +29,11 @@ namespace Noux {
 }
 
 
-struct Noux::Dataspace_user : List<Dataspace_user>::Element
+struct Noux::Dataspace_user : Interface, private List<Dataspace_user>::Element
 {
+	friend class Dataspace_info;
+	friend class List<Dataspace_user>;
+
 	virtual void dissolve(Dataspace_info &ds) = 0;
 };
 
@@ -41,8 +44,8 @@ class Noux::Dataspace_info : public Object_pool<Dataspace_info>::Entry
 
 		size_t               _size;
 		Dataspace_capability _ds_cap;
-		Lock                 _users_lock;
-		List<Dataspace_user> _users;
+		Lock                 _users_lock { };
+		List<Dataspace_user> _users { };
 
 	public:
 
@@ -126,7 +129,7 @@ class Noux::Dataspace_info : public Object_pool<Dataspace_info>::Entry
 		 *
 		 * \param addr  address that is covered by the requested region map
 		 */
-		virtual Capability<Region_map> lookup_region_map(addr_t const addr)
+		virtual Capability<Region_map> lookup_region_map(addr_t)
 		{
 			/* by default a dataspace is no sub region map, so return invalid */
 			return Capability<Region_map>();

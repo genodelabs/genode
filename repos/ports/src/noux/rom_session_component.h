@@ -44,7 +44,7 @@ struct Noux::Vfs_dataspace
 	Genode::Region_map  &rm;
 	Genode::Allocator   &alloc;
 
-	Dataspace_capability  ds;
+	Dataspace_capability  ds { };
 	bool                  got_ds_from_vfs { true };
 
 	Vfs_dataspace(Vfs::File_system &root_dir,
@@ -154,7 +154,7 @@ struct Noux::Rom_dataspace_info : Dataspace_info
 		return ds_cap();
 	}
 
-	void poke(Region_map &, addr_t dst_offset, char const *src, size_t len)
+	void poke(Region_map &, addr_t, char const *, size_t) override
 	{
 		error("attempt to poke onto a ROM dataspace");
 	}
@@ -183,12 +183,12 @@ class Noux::Rom_session_component : public Rpc_object<Rom_session>
 		Vfs_io_waiter_registry &_vfs_io_waiter_registry;
 		Dataspace_registry     &_ds_registry;
 
-		Constructible<Vfs_dataspace> _rom_from_vfs;
+		Constructible<Vfs_dataspace> _rom_from_vfs { };
 
 		/**
 		 * Wrapped ROM session at core
 		 */
-		Constructible<Rom_connection> _rom_from_parent;
+		Constructible<Rom_connection> _rom_from_parent { };
 
 		Dataspace_capability _init_ds_cap(Env &env, Name const &name)
 		{

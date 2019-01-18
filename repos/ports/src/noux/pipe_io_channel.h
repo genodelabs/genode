@@ -28,18 +28,18 @@ class Noux::Pipe : public Reference_counter
 {
 	private:
 
-		Lock mutable _lock;
+		Lock mutable _lock { };
 
 		enum { BUFFER_SIZE = 4096 };
 		char _buffer[BUFFER_SIZE];
 
-		unsigned _read_offset;
-		unsigned _write_offset;
+		unsigned _read_offset  { 0 };
+		unsigned _write_offset { 0 };
 
-		Signal_context_capability _read_ready_sigh;
-		Signal_context_capability _write_ready_sigh;
+		Signal_context_capability _read_ready_sigh  { };
+		Signal_context_capability _write_ready_sigh { };
 
-		bool _writer_is_gone;
+		bool _writer_is_gone { false };
 
 		/**
 		 * Return space available in the buffer for writing, in bytes
@@ -74,9 +74,6 @@ class Noux::Pipe : public Reference_counter
 		}
 
 	public:
-
-		Pipe()
-		: _read_offset(0), _write_offset(0), _writer_is_gone(false) { }
 
 		~Pipe()
 		{
@@ -237,7 +234,7 @@ class Noux::Pipe_sink_io_channel : public Io_channel
 
 		~Pipe_sink_io_channel() { _pipe->writer_close(); }
 
-		bool check_unblock(bool rd, bool wr, bool ex) const override
+		bool check_unblock(bool, bool wr, bool) const override
 		{
 			return wr && _pipe->any_space_avail_for_writing();
 		}
@@ -292,7 +289,7 @@ class Noux::Pipe_source_io_channel : public Io_channel
 
 		~Pipe_source_io_channel() { _pipe->reader_close(); }
 
-		bool check_unblock(bool rd, bool wr, bool ex) const override
+		bool check_unblock(bool rd, bool, bool) const override
 		{
 			/* unblock if the writer has already closed its pipe end */
 			if (_pipe->writer_is_gone())

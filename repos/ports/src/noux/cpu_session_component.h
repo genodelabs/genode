@@ -50,10 +50,10 @@ class Noux::Cpu_session_component : public Rpc_object<Cpu_session>
 		enum { MAX_THREADS = 8, MAIN_THREAD_IDX = 0 };
 
 		Thread_capability     _threads[MAX_THREADS];
-		Dataspace_capability  _trace_control;
+		Dataspace_capability  _trace_control { };
 		Dataspace_registry   &_registry;
 
-		Constructible<Static_dataspace_info> _ds_info;
+		Constructible<Static_dataspace_info> _ds_info { };
 
 	public:
 

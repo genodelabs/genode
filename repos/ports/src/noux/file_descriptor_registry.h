@@ -32,7 +32,7 @@ class Noux::File_descriptor_registry
 			bool                       allocated;
 			bool                       close_on_execve;
 			Shared_pointer<Io_channel> io_channel;
-		} _fds[MAX_FILE_DESCRIPTORS];
+		} _fds[MAX_FILE_DESCRIPTORS] { };
 
 		bool _valid_fd(int fd) const
 		{
@@ -70,6 +70,8 @@ class Noux::File_descriptor_registry
 		{
 			flush();
 		}
+
+		virtual ~File_descriptor_registry() { }
 
 		/**
 		 * Associate I/O channel with file descriptor

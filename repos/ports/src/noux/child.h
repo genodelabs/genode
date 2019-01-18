@@ -70,12 +70,10 @@ class Noux::Pid_allocator
 {
 	private:
 
-		Lock _lock;
-		int  _num_pids;
+		Lock _lock     { };
+		int  _num_pids { 0 };
 
 	public:
-
-		Pid_allocator() : _num_pids(0) { }
 
 		int alloc()
 		{
@@ -110,6 +108,12 @@ class Noux::Child : public Rpc_object<Session>,
 {
 	private:
 
+		/*
+		 * Noncopyable
+		 */
+		Child(Child const &);
+		Child &operator = (Child const &);
+
 		Child_policy::Name const _name;
 
 		Verbose const &_verbose;
@@ -127,7 +131,7 @@ class Noux::Child : public Rpc_object<Session>,
 		Vfs::File_system &_root_dir;
 
 		Vfs_io_waiter_registry &_vfs_io_waiter_registry;
-		Vfs_handle_context      _vfs_handle_context;
+		Vfs_handle_context      _vfs_handle_context { };
 
 		Destruct_queue &_destruct_queue;
 
@@ -210,7 +214,7 @@ class Noux::Child : public Rpc_object<Session>,
 
 		typedef Ring_buffer<enum Sysio::Signal, Sysio::SIGNAL_QUEUE_SIZE>
 		        Signal_queue;
-		Signal_queue _pending_signals;
+		Signal_queue _pending_signals { };
 
 		Parent_services &_parent_services;
 

@@ -19,7 +19,7 @@
 
 namespace Noux {
 
-	struct Kill_broadcaster
+	struct Kill_broadcaster : Genode::Interface
 	{
 		virtual bool kill(int pid, Noux::Sysio::Signal sig) = 0;
 	};

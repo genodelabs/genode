@@ -46,8 +46,11 @@ class Noux::Region_map_component : public Rpc_object<Region_map>,
 		/**
 		 * Record of an attached dataspace
 		 */
-		struct Region : List<Region>::Element, Dataspace_user
+		struct Region : private List<Region>::Element, private Dataspace_user
 		{
+			friend class Region_map_component; /* list operations */
+			friend class List<Noux::Region_map_component::Region>;
+
 			Region_map_component &rm;
 			Dataspace_capability  ds;
 			size_t                size;
@@ -76,11 +79,11 @@ class Noux::Region_map_component : public Rpc_object<Region_map>,
 				return List<Region>::Element::next();
 			}
 
-			inline void dissolve(Dataspace_info &ds);
+			void dissolve(Dataspace_info &ds) override;
 		};
 
-		Lock         _region_lock;
-		List<Region> _regions;
+		Lock         _region_lock { };
+		List<Region> _regions     { };
 
 		Region *_lookup_region_by_addr(addr_t local_addr)
 		{
@@ -413,7 +416,7 @@ class Noux::Region_map_component : public Rpc_object<Region_map>,
 };
 
 
-inline void Noux::Region_map_component::Region::dissolve(Dataspace_info &ds)
+inline void Noux::Region_map_component::Region::dissolve(Dataspace_info &)
 {
 	rm.detach(local_addr);
 }

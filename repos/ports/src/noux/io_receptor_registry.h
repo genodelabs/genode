@@ -47,8 +47,8 @@ class Noux::Io_receptor_registry
 {
 	private:
 
-		List<Io_receptor> _receptors;
-		Lock              _receptors_lock;
+		List<Io_receptor> _receptors      { };
+		Lock              _receptors_lock { };
 
 	public:
 

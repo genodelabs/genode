@@ -40,8 +40,10 @@ namespace Noux {
 
 
 struct Noux::Ram_dataspace_info : Dataspace_info,
-                                  List<Ram_dataspace_info>::Element
+                                  private List<Ram_dataspace_info>::Element
 {
+	friend class List<Ram_dataspace_info>;
+
 	Ram_dataspace_info(Ram_dataspace_capability ds_cap)
 	: Dataspace_info(ds_cap) { }
 
@@ -111,7 +113,7 @@ class Noux::Pd_session_component : public Rpc_object<Pd_session>
 
 		Ram_quota _used_ram_quota { 0 };
 
-		List<Ram_dataspace_info> _ds_list;
+		List<Ram_dataspace_info> _ds_list { };
 
 		Dataspace_registry &_ds_registry;
 
@@ -259,9 +261,9 @@ class Noux::Pd_session_component : public Rpc_object<Pd_session>
 		Capability<Region_map> linker_area() override {
 			return _linker_area.Rpc_object<Region_map>::cap(); }
 
-		void ref_account(Capability<Pd_session> pd) override { }
+		void ref_account(Capability<Pd_session>) override { }
 
-		void transfer_quota(Capability<Pd_session> pd, Cap_quota amount) override { }
+		void transfer_quota(Capability<Pd_session>, Cap_quota) override { }
 
 		Cap_quota cap_quota() const { return _pd.cap_quota(); }
 		Cap_quota used_caps() const { return _pd.used_caps(); }

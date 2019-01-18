@@ -23,7 +23,7 @@ namespace Noux {
 }
 
 
-struct Noux::Parent_execve
+struct Noux::Parent_execve : Genode::Interface
 {
 	virtual void execve_child(Family_member &child,
 	                          const char *filename,

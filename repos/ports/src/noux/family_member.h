@@ -25,17 +25,19 @@
 namespace Noux { class Family_member; }
 
 
-class Noux::Family_member : public List<Family_member>::Element,
+class Noux::Family_member : private List<Family_member>::Element,
                             public Parent_exit,
                             public Parent_execve
 {
 	private:
 
+		friend class List<Noux::Family_member>;
+
 		int           const _pid;
-		Lock                _lock;
-		List<Family_member> _list;
-		bool                _has_exited;
-		int                 _exit_status;
+		Lock                _lock { };
+		List<Family_member> _list { };
+		bool                _has_exited { false };
+		int                 _exit_status { 0 };
 
 	protected:
 
@@ -43,13 +45,11 @@ class Noux::Family_member : public List<Family_member>::Element,
 		 * Lock used for implementing blocking syscalls,
 		 * i.e., select, wait4, ...
 		 */
-		Lock _blocker;
+		Lock _blocker { };
 
 	public:
 
-		Family_member(int pid)
-		: _pid(pid), _has_exited(false), _exit_status(0)
-		{ }
+		Family_member(int pid) : _pid(pid) { }
 
 		virtual ~Family_member() { }
 

@@ -25,8 +25,9 @@ class Noux::Destruct_queue
 {
 	public:
 
-		struct Element_base : Genode::List<Element_base>::Element
+		struct Element_base : Interface, private Genode::List<Element_base>::Element
 		{
+			friend class List<Noux::Destruct_queue::Element_base>;
 			virtual void destroy() = 0;
 		};
 
@@ -67,8 +68,8 @@ class Noux::Destruct_queue
 
 	private:
 
-		Genode::List<Element_base> _destruct_list;
-		Genode::Lock               _destruct_list_lock;
+		Genode::List<Element_base> _destruct_list      { };
+		Genode::Lock               _destruct_list_lock { };
 		Signal_context_capability  _sigh;
 
 	public:

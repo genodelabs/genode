@@ -14,11 +14,13 @@
 #ifndef _NOUX__PARENT_EXIT__H_
 #define _NOUX__PARENT_EXIT__H_
 
+#include <util/interface.h>
+
 namespace Noux {
 
 	struct Family_member;
 
-	struct Parent_exit
+	struct Parent_exit : Genode::Interface
 	{
 		/*
 		 * Handle the exiting of a child

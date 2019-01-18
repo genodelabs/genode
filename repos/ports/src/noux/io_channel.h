@@ -53,18 +53,20 @@ struct Noux::Io_channel_backend
 /**
  * Input/output channel interface
  */
-class Noux::Io_channel : public Reference_counter
+class Noux::Io_channel : private Reference_counter
 {
 	private:
+
+		friend class Shared_pointer<Io_channel>;
 
 		/**
 		 * List of notifiers (i.e., processes) used by threads that block
 		 * for an I/O-channel event
 		 */
-		List<Wake_up_notifier>    _notifiers;
-		Lock                      _notifiers_lock;
-		List<Io_channel_listener> _interrupt_handlers;
-		Lock                      _interrupt_handlers_lock;
+		List<Wake_up_notifier>    _notifiers               { };
+		Lock                      _notifiers_lock          { };
+		List<Io_channel_listener> _interrupt_handlers      { };
+		Lock                      _interrupt_handlers_lock { };
 
 	public:
 
@@ -72,14 +74,14 @@ class Noux::Io_channel : public Reference_counter
 
 		virtual Io_channel_backend *backend() { return nullptr; }
 
-		virtual bool     write(Sysio &sysio) { return false; }
-		virtual bool      read(Sysio &sysio) { return false; }
-		virtual bool     fstat(Sysio &sysio) { return false; }
-		virtual bool ftruncate(Sysio &sysio) { return false; }
-		virtual bool     fcntl(Sysio &sysio) { return false; }
-		virtual bool    dirent(Sysio &sysio) { return false; }
-		virtual bool     ioctl(Sysio &sysio) { return false; }
-		virtual bool     lseek(Sysio &sysio) { return false; }
+		virtual bool     write(Sysio &) { return false; }
+		virtual bool      read(Sysio &) { return false; }
+		virtual bool     fstat(Sysio &) { return false; }
+		virtual bool ftruncate(Sysio &) { return false; }
+		virtual bool     fcntl(Sysio &) { return false; }
+		virtual bool    dirent(Sysio &) { return false; }
+		virtual bool     ioctl(Sysio &) { return false; }
+		virtual bool     lseek(Sysio &) { return false; }
 
 		/**
 		 * Return true if an unblocking condition of the channel is satisfied
@@ -88,7 +90,7 @@ class Noux::Io_channel : public Reference_counter
 		 * \param wr  if true, check for readiness for writing
 		 * \param ex  if true, check for exceptions
 		 */
-		virtual bool check_unblock(bool rd, bool wr, bool ex) const {
+		virtual bool check_unblock(bool /* rd */, bool /* wr */, bool /* ex */) const {
 			return false; }
 
 		/**
@@ -193,7 +195,7 @@ class Noux::Io_channel : public Reference_counter
 		 * This function is used to simplify the implemenation of SYSCALL_FSTAT
 		 * and is only implemented by Vfs_io_channel.
 		 */
-		virtual bool path(char *path, size_t len) { return false; }
+		virtual bool path(char * /* path */, size_t /* len */) { return false; }
 };
 
 #endif /* _NOUX__IO_CHANNEL_H_ */

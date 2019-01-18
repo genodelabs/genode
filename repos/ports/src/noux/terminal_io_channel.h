@@ -41,7 +41,7 @@ struct Noux::Terminal_io_channel : Io_channel
 
 	enum Type { STDIN, STDOUT, STDERR } type;
 
-	Ring_buffer<char, Sysio::CHUNK_SIZE + 1> read_buffer;
+	Ring_buffer<char, Sysio::CHUNK_SIZE + 1> read_buffer { };
 
 	Terminal_io_channel(Terminal::Session &terminal, Type type,
 	                    Entrypoint &ep)
@@ -160,7 +160,7 @@ struct Noux::Terminal_io_channel : Io_channel
 		return true;
 	}
 
-	bool check_unblock(bool rd, bool wr, bool ex) const override
+	bool check_unblock(bool rd, bool wr, bool) const override
 	{
 		/* never block for writing */
 		if (wr) return true;

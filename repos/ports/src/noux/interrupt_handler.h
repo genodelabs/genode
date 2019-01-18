@@ -18,7 +18,7 @@
 
 namespace Noux {
 
-	struct Interrupt_handler
+	struct Interrupt_handler : Genode::Interface
 	{
 		virtual void handle_interrupt(Sysio::Signal) = 0;
 	};

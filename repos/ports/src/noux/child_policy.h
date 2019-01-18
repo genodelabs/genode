@@ -41,6 +41,12 @@ class Noux::Child_policy : public Genode::Child_policy
 {
 	private:
 
+		/**
+		 * Noncopyable
+		 */
+		Child_policy(Child_policy const &);
+		Child_policy &operator = (Child_policy const &);
+
 		Name                          const _name;
 		bool                                _forked;
 		Init::Child_policy_provide_rom_file _args_policy;
@@ -124,7 +130,7 @@ class Noux::Child_policy : public Genode::Child_policy
 		Pd_session           &ref_pd()           override { return _ref_pd; }
 		Pd_session_capability ref_pd_cap() const override { return _ref_pd_cap; }
 
-		void init(Pd_session &session, Pd_session_capability cap) override
+		void init(Pd_session &session, Pd_session_capability) override
 		{
 			session.ref_account(_ref_pd_cap);
 		}

@@ -73,7 +73,7 @@ class Noux::Args
 
 		size_t len() const { return _len; }
 
-		char const * const base() const { return _buf; }
+		char const *base() const { return _buf; }
 
 		void append(char const *arg)
 		{

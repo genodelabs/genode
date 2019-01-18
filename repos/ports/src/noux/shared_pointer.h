@@ -33,7 +33,7 @@ class Noux::Reference_counter
 {
 	private:
 
-		Lock _lock;
+		Lock _lock { };
 		long _value;
 
 		friend class Shared_pointer_base;

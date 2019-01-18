@@ -95,7 +95,6 @@ connect_stdio(Genode::Env                                 &env,
               Genode::Constructible<Terminal::Connection> &terminal,
               Genode::Xml_node                             config,
               Vfs::File_system                            &root,
-              Noux::Vfs_handle_context                    &vfs_handle_context,
               Noux::Vfs_io_waiter_registry                &vfs_io_waiter_registry,
               Noux::Terminal_io_channel::Type              type,
               Genode::Allocator                           &alloc)
@@ -141,7 +140,7 @@ connect_stdio(Genode::Env                                 &env,
 	}
 
 	return *new (alloc)
-		Vfs_io_channel(path.string(), root.leaf_path(path.string()), &root,
+		Vfs_io_channel(path.string(), root.leaf_path(path.string()),
 		               vfs_handle, vfs_io_waiter_registry, env.ep());
 }
 
@@ -170,7 +169,7 @@ struct Noux::Main
 	Heap _heap { _env.ram(), _env.rm() };
 
 	/* whitelist of service requests to be routed to the parent */
-	Noux::Parent_services _parent_services;
+	Noux::Parent_services _parent_services { };
 
 	Noux::Parent_service _log_parent_service   { _parent_services, "LOG" };
 	Noux::Parent_service _timer_parent_service { _parent_services, "Timer" };
@@ -215,7 +214,7 @@ struct Noux::Main
 
 	struct Io_response_handler : Vfs::Io_response_handler
 	{
-		Vfs_io_waiter_registry io_waiter_registry;
+		Vfs_io_waiter_registry io_waiter_registry { };
 
 		void handle_io_response(Vfs::Vfs_handle::Context *context) override
 		{
@@ -230,7 +229,7 @@ struct Noux::Main
 			});
 		}
 
-	} _io_response_handler;
+	} _io_response_handler { };
 
 	struct Vfs_env : Vfs::Env, Vfs::Watch_response_handler
 	{
@@ -260,9 +259,7 @@ struct Noux::Main
 
 	Vfs::File_system &_root_dir = _vfs_env.root_dir();
 
-	Vfs_handle_context _vfs_handle_context;
-
-	Pid_allocator _pid_allocator;
+	Pid_allocator _pid_allocator { };
 
 	Timer::Connection _timer_connection { _env };
 
@@ -295,7 +292,7 @@ struct Noux::Main
 			return init_process->deliver_kill(pid, sig);
 		}
 
-	} _kill_broadcaster;
+	} _kill_broadcaster { };
 
 	Noux::Child _init_child { _name_of_init_process(),
 	                          _verbose,
@@ -318,7 +315,7 @@ struct Noux::Main
 	                          false,
 	                          _destruct_queue };
 
-	Constructible<Terminal::Connection> _terminal;
+	Constructible<Terminal::Connection> _terminal { };
 
 	/*
 	 * I/O channels must be dynamically allocated to handle cases where the
@@ -328,13 +325,13 @@ struct Noux::Main
 
 	Shared_pointer<Io_channel>
 		_channel_0 { &connect_stdio(_env, _terminal, _config.xml(), _root_dir,
-		             _vfs_handle_context, _io_response_handler.io_waiter_registry,
+		             _io_response_handler.io_waiter_registry,
 		             Tio::STDIN,  _heap), _heap },
 		_channel_1 { &connect_stdio(_env, _terminal, _config.xml(), _root_dir,
-		            _vfs_handle_context, _io_response_handler.io_waiter_registry,
+		            _io_response_handler.io_waiter_registry,
 		             Tio::STDOUT, _heap), _heap },
 		_channel_2 { &connect_stdio(_env, _terminal, _config.xml(), _root_dir,
-		             _vfs_handle_context, _io_response_handler.io_waiter_registry,
+		             _io_response_handler.io_waiter_registry,
 		             Tio::STDERR, _heap), _heap };
 
 	Main(Env &env) : _env(env)

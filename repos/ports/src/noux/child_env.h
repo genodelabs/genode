@@ -37,9 +37,9 @@ class Noux::Child_env
 {
 	private:
 
-		enum { MAX_LEN_INTERPRETER_LINE = 128 };
+		static unsigned constexpr MAX_LEN_INTERPRETER_LINE = 128;
 
-		char const *_binary_name;
+		char const *_binary_name { nullptr };
 		char        _args[ARGS_SIZE + MAX_LEN_INTERPRETER_LINE];
 		Sysio::Env  _env;
 
