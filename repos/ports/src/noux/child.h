@@ -36,7 +36,7 @@
 #include <local_rom_service.h>
 #include <verbose.h>
 #include <user_info.h>
-#include <timeout_scheduler.h>
+#include <armed_timeout.h>
 
 namespace Noux {
 
@@ -118,7 +118,7 @@ class Noux::Child : public Rpc_object<Session>,
 
 		Parent_exit       *_parent_exit;
 		Kill_broadcaster  &_kill_broadcaster;
-		Timeout_scheduler &_timeout_scheduler;
+		Timer::Connection &_timer_connection;
 		Parent_execve     &_parent_execve;
 		Pid_allocator     &_pid_allocator;
 
@@ -313,7 +313,7 @@ class Noux::Child : public Rpc_object<Session>,
 		      User_info          const &user_info,
 		      Parent_exit              *parent_exit,
 		      Kill_broadcaster         &kill_broadcaster,
-		      Timeout_scheduler        &timeout_scheduler,
+		      Timer::Connection        &timer_connection,
 		      Parent_execve            &parent_execve,
 		      Pid_allocator            &pid_allocator,
 		      int                       pid,
@@ -336,7 +336,7 @@ class Noux::Child : public Rpc_object<Session>,
 			_user_info(user_info),
 			_parent_exit(parent_exit),
 			_kill_broadcaster(kill_broadcaster),
-			_timeout_scheduler(timeout_scheduler),
+			_timer_connection(timer_connection),
 			_parent_execve(parent_execve),
 			_pid_allocator(pid_allocator),
 			_env(env),
@@ -515,7 +515,7 @@ class Noux::Child : public Rpc_object<Session>,
 			                                 _user_info,
 			                                 _parent_exit,
 			                                 _kill_broadcaster,
-			                                 _timeout_scheduler,
+			                                 _timer_connection,
 			                                 _parent_execve,
 			                                 _pid_allocator,
 			                                 pid(),

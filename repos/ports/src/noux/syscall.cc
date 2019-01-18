@@ -307,8 +307,9 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				int _rd_array[in_fds_total];
 				int _wr_array[in_fds_total];
 
-				long timeout_sec     = _sysio.select_in.timeout.sec;
-				long timeout_usec    = _sysio.select_in.timeout.usec;
+				unsigned long timeout_sec  = _sysio.select_in.timeout.sec;
+				unsigned long timeout_usec = _sysio.select_in.timeout.usec;
+
 				bool timeout_reached = false;
 
 				/* reset the blocker lock to the 'locked' state */
@@ -440,9 +441,9 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 					 */
 
 					if (!_sysio.select_in.timeout.infinite()) {
-						unsigned long to_msec = (timeout_sec * 1000) + (timeout_usec / 1000);
-						Timeout_state ts;
-						Timeout_alarm ta(ts, _blocker, _timeout_scheduler, to_msec);
+						Microseconds const us { timeout_sec*1000U*1000U + timeout_usec };
+						Armed_timeout::State ts { };
+						Armed_timeout timeout(ts, _blocker, _timer_connection, us);
 
 						/* block until timeout is reached or we were unblocked */
 						_blocker.lock();
@@ -455,7 +456,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 							 * We woke up before reaching the timeout,
 							 * so we discard the alarm
 							 */
-							ta.discard();
+							timeout.discard();
 						}
 					}
 					else {
@@ -504,7 +505,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 					                          _user_info,
 					                          this,
 					                          _kill_broadcaster,
-					                          _timeout_scheduler,
+					                          _timer_connection,
 					                          *this,
 					                          _pid_allocator,
 					                          new_pid,
@@ -834,19 +835,11 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 
 		case SYSCALL_GETTIMEOFDAY:
 			{
-				/**
-				 * Since the timeout_scheduler thread is started after noux it
-				 * basicly returns the eleapsed time since noux was started. We
-				 * abuse this timer to provide a more useful implemenation of
-				 * gettimeofday() to make certain programs (e.g. ping(1)) happy.
-				 * Note: this is just a short-term solution because Genode currently
-				 * lacks a proper time interface (there is a RTC driver however, but
-				 * there is no interface for it).
-				 */
-				unsigned long time = _timeout_scheduler.curr_time();
+				Milliseconds const ms =
+					_timer_connection.curr_time().trunc_to_plain_ms();
 
-				_sysio.gettimeofday_out.sec  = (time / 1000);
-				_sysio.gettimeofday_out.usec = (time % 1000) * 1000;
+				_sysio.gettimeofday_out.sec  = (ms.value / 1000);
+				_sysio.gettimeofday_out.usec = (ms.value % 1000) * 1000;
 
 				result = true;
 				break;
@@ -857,14 +850,15 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				/**
 				 * It's the same procedure as in SYSCALL_GETTIMEOFDAY.
 				 */
-				unsigned long time = _timeout_scheduler.curr_time();
+				Milliseconds const ms =
+					_timer_connection.curr_time().trunc_to_plain_ms();
 
 				switch (_sysio.clock_gettime_in.clock_id) {
 
 				/* CLOCK_SECOND is used by time(3) in the libc. */
 				case Sysio::CLOCK_ID_SECOND:
 					{
-						_sysio.clock_gettime_out.sec    = (time / 1000);
+						_sysio.clock_gettime_out.sec    = (ms.value / 1000);
 						_sysio.clock_gettime_out.nsec   = 0;
 
 						result = true;

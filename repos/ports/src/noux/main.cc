@@ -264,7 +264,7 @@ struct Noux::Main
 
 	Pid_allocator _pid_allocator;
 
-	Timeout_scheduler _timeout_scheduler { _env };
+	Timer::Connection _timer_connection { _env };
 
 	User_info _user_info { _config.xml() };
 
@@ -302,7 +302,7 @@ struct Noux::Main
 	                          _user_info,
 	                          0,
 	                          _kill_broadcaster,
-	                          _timeout_scheduler,
+	                          _timer_connection,
 	                          _init_child,
 	                          _pid_allocator,
 	                          _pid_allocator.alloc(),
