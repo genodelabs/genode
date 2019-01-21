@@ -32,16 +32,6 @@ struct Noux::Connection : Genode::Connection<Session>, Session_client
 	{ }
 
 	/**
-	 * Constructor
-	 *
-	 * \noapi
-	 * \deprecated  Use the constructor with 'Env &' as first
-	 *              argument instead
-	 */
-	Connection() __attribute__((deprecated))
-	: Genode::Connection<Session>(session("")), Session_client(cap()) { }
-
-	/**
 	 * Remove session ID of the noux session from the ID space.
 	 *
 	 * This must by done before reinitializing the noux connection in a

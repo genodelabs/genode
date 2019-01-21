@@ -59,23 +59,24 @@ static Noux::Sysio::Env &env_string_of_init_process(Genode::Xml_node config)
 	/* read environment variables for init process from config */
 	Genode::Xml_node start_node = config.sub_node("start");
 	try {
-		Genode::Xml_node arg_node = start_node.sub_node("env");
-		for (; ; arg_node = arg_node.next("env")) {
-			static char name_buf[256], value_buf[256];
+		Genode::Xml_node node = start_node.sub_node("env");
+		for (; ; node = node.next("env")) {
 
-			arg_node.attribute("name").value(name_buf, sizeof(name_buf));
-			arg_node.attribute("value").value(value_buf, sizeof(value_buf));
+			typedef Genode::String<256> Var;
+			Var const var(node.attribute_value("name", Var()), "=",
+			              node.attribute_value("value", Var()));
 
-			Genode::size_t env_var_size = Genode::strlen(name_buf) +
-			                              Genode::strlen("=") +
-			                              Genode::strlen(value_buf) + 1;
-			if (index + env_var_size < sizeof(env)) {
-				Genode::snprintf(&env[index], env_var_size, "%s=%s", name_buf, value_buf);
-				index += env_var_size;
-			} else {
+			bool const env_exeeded = index + var.length() >= sizeof(env);
+			bool const var_exeeded = (var.length() == var.capacity());
+
+			if (env_exeeded || var_exeeded) {
+				warning("truncated environment variable: ", node);
 				env[index] = 0;
 				break;
 			}
+
+			Genode::strncpy(&env[index], var.string(), var.length());
+			index += var.length();
 		}
 	}
 	catch (Genode::Xml_node::Nonexistent_sub_node) { }
@@ -171,8 +172,8 @@ struct Noux::Main
 	/* whitelist of service requests to be routed to the parent */
 	Noux::Parent_services _parent_services { };
 
-	Noux::Parent_service _log_parent_service   { _parent_services, "LOG" };
-	Noux::Parent_service _timer_parent_service { _parent_services, "Timer" };
+	Noux::Parent_service _log_parent_service   { _parent_services, _env, "LOG" };
+	Noux::Parent_service _timer_parent_service { _parent_services, _env, "Timer" };
 
 	Attached_rom_dataspace _config { _env, "config" };
 

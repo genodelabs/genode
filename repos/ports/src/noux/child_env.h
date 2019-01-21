@@ -90,7 +90,7 @@ class Noux::Child_env
 		                                   char const *args,
 		                                   Vfs::File_system &root_dir,
 		                                   Vfs_io_waiter_registry &vfs_io_waiter_registry,
-		                                   Ram_session &ram,
+		                                   Ram_allocator &ram,
 		                                   Region_map &rm,
 		                                   Allocator &alloc)
 		{
@@ -212,7 +212,7 @@ class Noux::Child_env
 		          char const *args, Sysio::Env env,
 		          Vfs::File_system &root_dir,
 		          Vfs_io_waiter_registry &vfs_io_waiter_registry,
-		          Ram_session &ram,
+		          Ram_allocator &ram,
 		          Region_map &rm,
 		          Allocator &alloc)
 		{

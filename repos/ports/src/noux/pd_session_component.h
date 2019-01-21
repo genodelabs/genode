@@ -124,7 +124,7 @@ class Noux::Pd_session_component : public Rpc_object<Pd_session>
 			enum { NUM_ATTEMPTS = 3 };
 			return retry<Out_of_caps>(
 				[&] () { return func(); },
-				[&] () { _ref_pd.transfer_quota(_pd, upgrade); },
+				[&] () { _ref_pd.transfer_quota(_pd.rpc_cap(), upgrade); },
 				NUM_ATTEMPTS);
 		}
 
@@ -151,7 +151,7 @@ class Noux::Pd_session_component : public Rpc_object<Pd_session>
 			 * via '_with_automatic_cap_upgrade'.
 			 */
 			_pd.ref_account(env.pd_session_cap());
-			_ref_pd.transfer_quota(_pd, Cap_quota{10});
+			_ref_pd.transfer_quota(_pd.rpc_cap(), Cap_quota{10});
 		}
 
 		~Pd_session_component()

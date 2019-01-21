@@ -35,14 +35,13 @@ namespace Noux {
 struct Noux::Vfs_dataspace
 {
 	typedef Child_policy::Name Name;
+	Name const name;
 
 	Vfs::File_system       &root_dir;
 	Vfs_io_waiter_registry &vfs_io_waiter_registry;
-
-	Name                 const name;
-	Genode::Ram_session &ram;
-	Genode::Region_map  &rm;
-	Genode::Allocator   &alloc;
+	Genode::Ram_allocator  &ram;
+	Genode::Region_map     &rm;
+	Genode::Allocator      &alloc;
 
 	Dataspace_capability  ds { };
 	bool                  got_ds_from_vfs { true };
@@ -50,11 +49,12 @@ struct Noux::Vfs_dataspace
 	Vfs_dataspace(Vfs::File_system &root_dir,
 	              Vfs_io_waiter_registry &vfs_io_waiter_registry,
 	              Name const &name,
-			      Genode::Ram_session &ram, Genode::Region_map &rm,
-			      Genode::Allocator &alloc)
+	              Genode::Ram_allocator &ram, Genode::Region_map &rm,
+	              Genode::Allocator &alloc)
 	:
+		name(name),
 		root_dir(root_dir), vfs_io_waiter_registry(vfs_io_waiter_registry),
-		name(name), ram(ram), rm(rm), alloc(alloc)
+		ram(ram), rm(rm), alloc(alloc)
 	{
 		ds = root_dir.dataspace(name.string());
 

@@ -78,6 +78,45 @@ class Noux::Child_policy : public Genode::Child_policy
 			return service;
 		}
 
+		/**
+		 * Find suitable service for a given session request
+		 *
+		 * \throw Service_denied
+		 */
+		Service &_matching_service(Service::Name const &service_name,
+		                           Session_label const &label)
+		{
+			/*
+			 * Route initial ROM requests (binary and linker) of a forked child
+			 * to the empty ROM service, since the ROMs are already attached in
+			 * the replayed region map.
+			 */
+			if (_forked && (service_name == Genode::Rom_session::service_name())) {
+				if (label.last_element() == name())        return _empty_rom_service;
+				if (label.last_element() == linker_name()) return _empty_rom_service;
+			}
+
+			Genode::Service *service = nullptr;
+
+			/* check for local ROM requests */
+			if ((service = _args_policy  .resolve_session_request_with_label(service_name, label))
+			 || (service = _env_policy   .resolve_session_request_with_label(service_name, label))
+			 || (service = _config_policy.resolve_session_request_with_label(service_name, label)))
+				return *service;
+
+			/* check for local services */
+			if (service_name == Genode::Cpu_session::service_name()) return _cpu_service;
+			if (service_name == Genode::Rom_session::service_name()) return _rom_service;
+			if (service_name == Genode::Pd_session::service_name())  return _pd_service;
+			if (service_name == Noux::Session::service_name())       return _noux_service;
+
+			/* check for parent services */
+			if ((service = _find_service(_parent_services, service_name)))
+				return *service;
+
+			throw Service_denied();
+		}
+
 	public:
 
 		Child_policy(Name               const &name,
@@ -135,40 +174,12 @@ class Noux::Child_policy : public Genode::Child_policy
 			session.ref_account(_ref_pd_cap);
 		}
 
-		Service &resolve_session_request(Service::Name const &service_name,
-		                                 Session_state::Args const &args) override
+		Route resolve_session_request(Service::Name const &service_name,
+		                              Session_label const &label) override
 		{
-			Session_label const label(Genode::label_from_args(args.string()));
-
-			/*
-			 * Route initial ROM requests (binary and linker) of a forked child
-			 * to the empty ROM service, since the ROMs are already attached in
-			 * the replayed region map.
-			 */
-			if (_forked && (service_name == Genode::Rom_session::service_name())) {
-				if (label.last_element() == name())        return _empty_rom_service;
-				if (label.last_element() == linker_name()) return _empty_rom_service;
-			}
-
-			Genode::Service *service = nullptr;
-
-			/* check for local ROM requests */
-			if ((service = _args_policy  .resolve_session_request(service_name.string(), args.string()))
-			 || (service = _env_policy   .resolve_session_request(service_name.string(), args.string()))
-			 || (service = _config_policy.resolve_session_request(service_name.string(), args.string())))
-				return *service;
-
-			/* check for local services */
-			if (service_name == Genode::Cpu_session::service_name()) return _cpu_service;
-			if (service_name == Genode::Rom_session::service_name()) return _rom_service;
-			if (service_name == Genode::Pd_session::service_name())  return _pd_service;
-			if (service_name == Noux::Session::service_name())       return _noux_service;
-
-			/* check for parent services */
-			if ((service = _find_service(_parent_services, service_name)))
-				return *service;
-
-			throw Service_denied();
+			return Route { .service = _matching_service(service_name, label),
+			               .label   = label,
+			               .diag    = Session::Diag() };
 		}
 
 		void exit(int exit_value) override

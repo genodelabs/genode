@@ -564,7 +564,7 @@ static void * in_stack_area;
 static jmp_buf fork_jmp_buf;
 static Genode::Capability<Genode::Parent>::Raw new_parent;
 
-extern "C" void stdout_reconnect(); /* provided by 'log_console.cc' */
+extern "C" void stdout_reconnect(Genode::Parent &); /* provided by 'default_log.cc' */
 
 
 /*
@@ -577,7 +577,7 @@ extern "C" void fork_trampoline()
 	_env_ptr->reinit(new_parent);
 
 	/* reinitialize standard-output connection */
-	stdout_reconnect();
+	stdout_reconnect(_env_ptr->parent());
 
 	/* reinitialize noux connection */
 	noux_connection()->reconnect();
