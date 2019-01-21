@@ -16,12 +16,12 @@
 #include <base/log.h>
 #include <base/attached_ram_dataspace.h>
 #include <base/attached_io_mem_dataspace.h>
+#include <base/snprintf.h>
+#include <base/allocator.h>
 #include <util/avl_tree.h>
 #include <util/misc_math.h>
 #include <util/reconstructible.h>
 #include <io_port_session/connection.h>
-
-#include <base/printf.h> /* XXX for emulating X86emu::printk() */
 
 /* local includes */
 #include "ifx86emu.h"
@@ -502,7 +502,9 @@ void X86emu::printk(const char *format, ...)
 	va_list list;
 	va_start(list, format);
 
-	Genode::vprintf(format, list);
+	char buf[128];
+	String_console sc(buf, sizeof(buf));
+	sc.vprintf(format, list);
 
 	va_end(list);
 }

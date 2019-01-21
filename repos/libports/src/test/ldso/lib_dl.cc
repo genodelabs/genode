@@ -13,7 +13,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <base/log.h>
 
 /* test-local includes */
 #include "test-ldso.h"
@@ -24,7 +24,7 @@ struct Global_object
 {
 	Global_object()
 	{
-		Genode::printf("Global object constructed\n");
+		Genode::log("Global object constructed");
 	}
 };
 
@@ -40,7 +40,7 @@ Global_object global_object;
  */
 extern "C" void lib_dl_symbol()
 {
-	Genode::printf("called (from '%s')\n", __func__);
-	Genode::printf("Call 'lib_1_good': ");
+	Genode::log("called (from '", __func__, "')");
+	Genode::log("Call 'lib_1_good': ");
 	lib_1_good();
 }

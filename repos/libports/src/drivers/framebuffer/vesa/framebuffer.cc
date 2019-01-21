@@ -14,6 +14,7 @@
 
 /* Genode includes */
 #include <base/log.h>
+#include <base/allocator.h>
 #include <io_mem_session/connection.h>
 #include <platform_session/connection.h>
 

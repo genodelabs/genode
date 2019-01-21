@@ -147,19 +147,16 @@ struct Fetchurl::Main
 		catch (...) { }
 
 		auto const parse_fn = [&] (Genode::Xml_node node) {
-			Url url;
-			Path path;
-			Url proxy;
-			long retry;
 
-			try {
-				node.attribute("url").value(&url);
-				node.attribute("path").value(path.base(), path.capacity());
+			if (!node.has_attribute("url") || !node.has_attribute("path")) {
+				Genode::error("error reading 'fetch' XML node");
+				return;
 			}
-			catch (...) { Genode::error("error reading 'fetch' XML node"); return; }
 
-			proxy = node.attribute_value("proxy", Url());
-			retry = node.attribute_value("retry", 0L);
+			Url  const url   = node.attribute_value("url",   Url());
+			Path const path  = node.attribute_value("path",  String<256>());
+			Url  const proxy = node.attribute_value("proxy", Url());
+			long const retry = node.attribute_value("retry", 0L);
 
 			auto *f = new (_heap) Fetch(*this, url, path, proxy, retry);
 			_fetches.insert(f);

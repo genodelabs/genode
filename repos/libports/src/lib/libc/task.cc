@@ -157,26 +157,12 @@ class Libc::Env_implementation : public Libc::Env
 		 ** Genode::Env interface **
 		 ***************************/
 
-		Parent &parent() override {
-			return _env.parent(); }
+		Parent        &parent() override { return _env.parent(); }
+		Cpu_session   &cpu()    override { return _env.cpu(); }
+		Region_map    &rm()     override { return _env.rm(); }
+		Pd_session    &pd()     override { return _env.pd(); }
+		Entrypoint    &ep()     override { return _env.ep(); }
 
-		Ram_session &ram() override {
-			return _env.ram(); }
-
-		Cpu_session &cpu() override {
-			return _env.cpu(); }
-
-		Region_map &rm() override {
-			return _env.rm(); }
-
-		Pd_session &pd() override {
-			return _env.pd(); }
-
-		Entrypoint &ep() override {
-			return _env.ep(); }
-
-		Ram_session_capability ram_session_cap() override {
-			return _env.ram_session_cap(); }
 		Cpu_session_capability cpu_session_cap() override {
 			return _env.cpu_session_cap(); }
 
@@ -187,11 +173,10 @@ class Libc::Env_implementation : public Libc::Env
 			return _env.id_space(); }
 
 		Session_capability session(Parent::Service_name const &name,
-	                                   Parent::Client::Id id,
-	                                   Parent::Session_args const &args,
-	                                   Affinity             const &aff) override {
+		                           Parent::Client::Id id,
+		                           Parent::Session_args const &args,
+		                           Affinity             const &aff) override {
 			return _env.session(name, id, args, aff); }
-
 
 		void upgrade(Parent::Client::Id id,
 		             Parent::Upgrade_args const &args) override {
@@ -199,6 +184,15 @@ class Libc::Env_implementation : public Libc::Env
 
 		void close(Parent::Client::Id id) override {
 			return _env.close(id); }
+
+		/*
+		 * \deprecated
+		 *
+		 * Emulation of deprecated part of the 'Env' interface. To be
+		 * removed once they are removed from 'Genode::Env'.
+		 */
+		Pd_session           &ram()             override { return pd(); }
+		Pd_session_capability ram_session_cap() override { return pd_session_cap(); }
 
 		/* already done by the libc */
 		void exec_static_constructors() override { }
@@ -978,6 +972,7 @@ void Component::construct(Genode::Env &env)
 	Libc::init_mem_alloc(env);
 	Libc::init_dl(env);
 	Libc::sysctl_init(env);
+	Libc::init_pthread_support(env);
 
 	kernel = unmanaged_singleton<Libc::Kernel>(env, heap);
 

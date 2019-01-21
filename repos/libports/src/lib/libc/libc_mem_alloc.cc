@@ -42,7 +42,7 @@ Libc::Mem_alloc_impl::Dataspace_pool::~Dataspace_pool()
 		delete ds;
 
 		_region_map->detach(local_addr);
-		_ram_session->free(ds_cap);
+		_ram->free(ds_cap);
 	}
 }
 
@@ -54,7 +54,7 @@ int Libc::Mem_alloc_impl::Dataspace_pool::expand(size_t size, Range_allocator *a
 
 	/* make new ram dataspace available at our local address space */
 	try {
-		new_ds_cap = _ram_session->alloc(size);
+		new_ds_cap = _ram->alloc(size);
 
 		enum { MAX_SIZE = 0, NO_OFFSET = 0, ANY_LOCAL_ADDR = false };
 		local_addr = _region_map->attach(new_ds_cap, MAX_SIZE, NO_OFFSET,
@@ -63,7 +63,7 @@ int Libc::Mem_alloc_impl::Dataspace_pool::expand(size_t size, Range_allocator *a
 	catch (Out_of_ram) { return -2; }
 	catch (Out_of_caps) { return -4; }
 	catch (Region_map::Region_conflict) {
-		_ram_session->free(new_ds_cap);
+		_ram->free(new_ds_cap);
 		return -3;
 	}
 
@@ -147,7 +147,7 @@ static Libc::Mem_alloc *_libc_mem_alloc_rw  = nullptr;
 static Libc::Mem_alloc *_libc_mem_alloc_rwx = nullptr;
 
 
-static void _init_mem_alloc(Genode::Region_map &rm, Genode::Ram_session &ram)
+static void _init_mem_alloc(Genode::Region_map &rm, Genode::Ram_allocator &ram)
 {
 	enum { MEMORY_EXECUTABLE = true };
 

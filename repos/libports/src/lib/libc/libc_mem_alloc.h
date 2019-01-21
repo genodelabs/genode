@@ -8,11 +8,10 @@
 #define _LIBC_MEM_ALLOC_H_
 
 /* Genode includes */
-#include <base/allocator.h>
+#include <base/ram_allocator.h>
 #include <base/allocator_avl.h>
 #include <base/env.h>
 #include <util/list.h>
-#include <ram_session/ram_session.h>
 #include <rm_session/rm_session.h>
 
 namespace Libc {
@@ -43,7 +42,7 @@ namespace Libc {
 				public:
 
 					Genode::Ram_dataspace_capability cap;
-					void  *local_addr;
+					void *local_addr;
 
 					Dataspace(Genode::Ram_dataspace_capability c, void *a)
 					: cap(c), local_addr(a) {}
@@ -58,18 +57,18 @@ namespace Libc {
 			{
 				private:
 
-					Genode::Ram_session *_ram_session;  /* ram session for backing store */
-					Genode::Region_map  *_region_map;   /* region map of address space   */
-					bool const           _executable;   /* whether to allocate executable dataspaces */
+					Genode::Ram_allocator *_ram;  /* ram session for backing store */
+					Genode::Region_map    *_region_map;   /* region map of address space   */
+					bool const             _executable;   /* whether to allocate executable dataspaces */
 
 				public:
 
 					/**
 					 * Constructor
 					 */
-					Dataspace_pool(Genode::Ram_session *ram,
+					Dataspace_pool(Genode::Ram_allocator *ram,
 					               Genode::Region_map *rm, bool executable) :
-						_ram_session(ram), _region_map(rm),
+						_ram(ram), _region_map(rm),
 						_executable(executable)
 					{ }
 
@@ -91,8 +90,8 @@ namespace Libc {
 					 */
 					int expand(Genode::size_t size, Genode::Range_allocator *alloc);
 
-					void reassign_resources(Genode::Ram_session *ram, Genode::Region_map *rm) {
-						_ram_session = ram, _region_map = rm; }
+					void reassign_resources(Genode::Ram_allocator *ram, Genode::Region_map *rm) {
+						_ram = ram, _region_map = rm; }
 			};
 
 			Genode::Lock   mutable _lock;
@@ -113,7 +112,7 @@ namespace Libc {
 		public:
 
 			Mem_alloc_impl(Genode::Region_map &rm,
-			               Genode::Ram_session &ram,
+			               Genode::Ram_allocator &ram,
 			               bool executable = false)
 			:
 				_ds_pool(&ram, &rm, executable),

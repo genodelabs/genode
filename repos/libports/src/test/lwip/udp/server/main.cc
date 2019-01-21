@@ -43,7 +43,7 @@ static void test(Libc::Env & env)
 	/* read server port */
 	unsigned port = 0;
 	env.config([&] (Xml_node config_node) {
-		try { config_node.attribute("port").value(&port); }
+		try { config_node.attribute("port").value(port); }
 		catch (...) {
 			throw Read_port_attr_failed();
 		}

@@ -61,35 +61,65 @@ static void construct_component(Libc::Env &env)
 		int arg_i = 0;
 		int env_i = 0;
 		node.for_each_sub_node([&] (Xml_node const &node) {
+
 			/* insert an argument */
-			if (node.has_type("arg")) try {
+			if (node.has_type("arg")) {
+
 				Xml_attribute attr = node.attribute("value");
+				attr.with_raw_value([&] (char const *start, size_t length) {
 
-				Genode::size_t const arg_len = attr.value_size()+1;
-				char *arg = argv[arg_i] = (char*)malloc(arg_len);
+					size_t const size = length + 1; /* for null termination */
 
-				attr.value(arg, arg_len);
+					argv[arg_i] = (char *)malloc(size);
+
+					Genode::strncpy(argv[arg_i], start, size);
+				});
+
 				++arg_i;
-
-			} catch (Xml_node::Nonexistent_sub_node) { }
-
+			}
 			else
 
 			/* insert an environment variable */
 			if (node.has_type("env")) try {
-				Xml_attribute key_attr = node.attribute("key");
-				Xml_attribute val_attr = node.attribute("value");
 
-				Genode::size_t const pair_len =
-					key_attr.value_size() +
-					val_attr.value_size() + 1;
-				char *env = envp[env_i] = (char*)malloc(pair_len);
+				Xml_attribute const key   = node.attribute("key");
+				Xml_attribute const value = node.attribute("value");
 
-				Genode::size_t off = 0;
-				key_attr.value(&env[off], key_attr.value_size()+1);
-				off = key_attr.value_size();
-				env[off++] = '=';
-				val_attr.value(&env[off], val_attr.value_size()+1);
+				using namespace Genode;
+
+				/*
+				 * An environment variable has the form <key>=<value>, followed
+				 * by a terminating zero.
+				 */
+				size_t const var_size = key  .value_size() + 1
+				                      + value.value_size() + 1;
+
+				envp[env_i] = (char*)malloc(var_size);
+
+				size_t pos = 0;
+
+				/* append characters to env variable with zero termination */
+				auto append = [&] (char const *s, size_t len) {
+
+					if (pos + len >= var_size) {
+						/* this should never happen */
+						warning("truncated environment variable: ", node);
+						return;
+					}
+
+					/* Genode's strncpy always zero-terminates */
+					Genode::strncpy(envp[env_i] + pos, s, len + 1);
+					pos += len;
+				};
+
+				key.with_raw_value([&] (char const *start, size_t length) {
+					append(start, length); });
+
+				append("=", 1);
+
+				value.with_raw_value([&] (char const *start, size_t length) {
+					append(start, length); });
+
 				++env_i;
 
 			} catch (Xml_node::Nonexistent_sub_node) { }

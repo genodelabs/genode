@@ -166,10 +166,10 @@ struct Transform::Main {
 				Genode::String<16> key_type("PRESS_RELEASE");
 				Keys::Type press_release = Keys::Type::PRESS_RELEASE;
 
-				map_node.attribute("acpi").value(&acpi_type);
-				map_node.attribute("to_key").value(&to_key);
+				map_node.attribute("acpi").value(acpi_type);
+				map_node.attribute("to_key").value(to_key);
 				try {
-					map_node.attribute("as").value(&key_type);
+					map_node.attribute("as").value(key_type);
 					if (key_type == "PRESS")
 						press_release = Keys::Type::PRESS;
 					else if (key_type == "RELEASE")
@@ -179,7 +179,7 @@ struct Transform::Main {
 				} catch (Xml_node::Nonexistent_attribute) { }
 
 				if (acpi_type == "lid" || acpi_type == "ac") {
-					map_node.attribute("value").value(&acpi_value_string);
+					map_node.attribute("value").value(acpi_value_string);
 
 					if (acpi_type == "lid") {
 						if (acpi_value_string == "OPEN")
@@ -197,7 +197,7 @@ struct Transform::Main {
 					} else
 						throw 3;
 				} else
-					map_node.attribute("value").value(&acpi_value);
+					map_node.attribute("value").value(acpi_value);
 
 				Input::Keycode key_code = Input::Keycode::KEY_UNKNOWN;
 
@@ -236,12 +236,18 @@ struct Transform::Main {
 				else
 					throw 5;
 			} catch (...) {
-				String<64> invalid_node(Genode::Cstring(map_node.addr(),
-				                                        map_node.size()));
-				Genode::error("map item : '", invalid_node.string(), "'");
-				/* we want a well formated configuration ! - die */
-				class Invalid_config {} exception;
-				throw exception;
+
+				using namespace Genode;
+
+				map_node.with_raw_node([&] (char const *start, size_t length) {
+
+					String<64> invalid_node(Cstring(start, length));
+					error("map item : '", invalid_node, "'");
+
+					/* abort on malformed configuration */
+					class Invalid_config { };
+					throw Invalid_config();
+				});
 			}
 		});
 
@@ -265,7 +271,7 @@ struct Transform::Main {
 	{
 		_acpi_ec.update();
 
-		if (!_acpi_ec.is_valid()) return;
+		if (!_acpi_ec.valid()) return;
 
 		Xml_node ec_event(_acpi_ec.local_addr<char>(), _acpi_ec.size());
 
@@ -275,8 +281,8 @@ struct Transform::Main {
 					long acpi_value = 0;
 					unsigned long acpi_count = 0;
 
-					data_node.attribute("value").value(&acpi_value);
-					data_node.attribute("count").value(&acpi_count);
+					data_node.attribute("value").value(acpi_value);
+					data_node.attribute("count").value(acpi_count);
 
 					Keys * key = Keys::find_by_ec(acpi_value);
 					if (!key)
@@ -309,7 +315,7 @@ struct Transform::Main {
 	{
 		_acpi_fixed.update();
 
-		if (!_acpi_fixed.is_valid()) return;
+		if (!_acpi_fixed.valid()) return;
 
 		Xml_node fixed_event(_acpi_fixed.local_addr<char>(), _acpi_fixed.size());
 
@@ -318,8 +324,8 @@ struct Transform::Main {
 				bool pressed = false;
 				unsigned long acpi_count = 0;
 
-				pw_node.attribute("value").value(&pressed);
-				pw_node.attribute("count").value(&acpi_count);
+				pw_node.attribute("value").value(pressed);
+				pw_node.attribute("count").value(acpi_count);
 
 				Keys * key = Keys::find_by_fixed(ACPI_POWER_BUTTON);
 				if (!key)
@@ -337,7 +343,7 @@ struct Transform::Main {
 	{
 		_acpi_battery.update();
 
-		if (!_acpi_battery.is_valid()) return;
+		if (!_acpi_battery.valid()) return;
 
 		/* make use of it if we need to ... */
 		Xml_node battery_node(_acpi_battery.local_addr<char>(),
@@ -350,7 +356,7 @@ struct Transform::Main {
 	{
 		_acpi_ac.update();
 
-		if (!_acpi_ac.is_valid()) return;
+		if (!_acpi_ac.valid()) return;
 
 		Xml_node ac_node(_acpi_ac.local_addr<char>(), _acpi_ac.size());
 
@@ -361,7 +367,7 @@ struct Transform::Main {
 	{
 		_acpi_lid.update();
 
-		if (!_acpi_lid.is_valid()) return;
+		if (!_acpi_lid.valid()) return;
 
 		Xml_node lid_node(_acpi_lid.local_addr<char>(), _acpi_lid.size());
 
@@ -376,8 +382,8 @@ struct Transform::Main {
 				unsigned acpi_value = 0;
 				unsigned long acpi_count = 0;
 
-				node.attribute("value").value(&acpi_value);
-				node.attribute("count").value(&acpi_count);
+				node.attribute("value").value(acpi_value);
+				node.attribute("count").value(acpi_count);
 
 				enum { STATE_C = 0, STATE_O = 1 };
 

@@ -5,67 +5,66 @@
 	<events>
 		<timeout meaning="failed" sec="20" />
 		<log meaning="succeeded">
-			[init -> test-ldso] Lib_2_global 11223343*
-			[init -> test-ldso] Lib_1_global_1 5060707*
-			[init -> test-ldso] Lib_1_global_2 1020303*
-			[init -> test-ldso] lib_1_attr_constructor_2 4030200f*
-			[init -> test-ldso] lib_1_attr_constructor_1 8070604f*
-			[init -> test-ldso] Global_1 5060707*
-			[init -> test-ldso] Global_2 1020303*
-			[init -> test-ldso] attr_constructor_2 4030200f*
-			[init -> test-ldso] attr_constructor_1 8070604f*
+			[init -> test-ldso] Lib_2_global 0x11223343*
+			[init -> test-ldso] Lib_1_global_1 0x5060707*
+			[init -> test-ldso] Lib_1_global_2 0x1020303*
+			[init -> test-ldso] lib_1_attr_constructor_2 0x4030200f*
+			[init -> test-ldso] lib_1_attr_constructor_1 0x8070604f*
+			[init -> test-ldso] Global_1 0x5060707*
+			[init -> test-ldso] Global_2 0x1020303*
+			[init -> test-ldso] attr_constructor_2 0x4030200f*
+			[init -> test-ldso] attr_constructor_1 0x8070604f*
 			[init -> test-ldso] *
 			[init -> test-ldso] Dynamic-linker test*
 			[init -> test-ldso] ===================*
 			[init -> test-ldso] *
 			[init -> test-ldso] Global objects and local static objects of program*
 			[init -> test-ldso] --------------------------------------------------*
-			[init -> test-ldso] global_1 5060706*
-			[init -> test-ldso] global_2 1020302*
-			[init -> test-ldso] Local_1 5060707f*
-			[init -> test-ldso] local_1 5060707e*
-			[init -> test-ldso] Local_2 1020303f*
-			[init -> test-ldso] local_2 1020303e*
-			[init -> test-ldso] pod_1 8070604e*
-			[init -> test-ldso] pod_2 4030200e*
+			[init -> test-ldso] global_1 0x5060706*
+			[init -> test-ldso] global_2 0x1020302*
+			[init -> test-ldso] Local_1 0x5060707f*
+			[init -> test-ldso] local_1 0x5060707e*
+			[init -> test-ldso] Local_2 0x1020303f*
+			[init -> test-ldso] local_2 0x1020303e*
+			[init -> test-ldso] pod_1 0x8070604e*
+			[init -> test-ldso] pod_2 0x4030200e*
 			[init -> test-ldso] *
 			[init -> test-ldso] Access shared lib from program*
 			[init -> test-ldso] ------------------------------*
-			[init -> test-ldso] lib_2_global 11223342*
-			[init -> test-ldso] Lib_1_local_3 12345677*
-			[init -> test-ldso] lib_1_local_3 12345676*
-			[init -> test-ldso] lib_1_pod_1 8070604d*
+			[init -> test-ldso] lib_2_global 0x11223342*
+			[init -> test-ldso] Lib_1_local_3 0x12345677*
+			[init -> test-ldso] lib_1_local_3 0x12345676*
+			[init -> test-ldso] lib_1_pod_1 0x8070604d*
 			[init -> test-ldso] Libc::read:*
 			[init -> test-ldso] Error: no plugin found for read(3)*
 			[init -> test-ldso] Libc::abs(-10): 10*
 			[init -> test-ldso] *
 			[init -> test-ldso] Catch exceptions in program*
 			[init -> test-ldso] ---------------------------*
-			[init -> test-ldso] exception in remote procedure call:*
-			[init -> test-ldso] Error: ROM-session creation failed (ram_quota=*, cap_quota=*, label="unknown_file")*
-			[init -> test-ldso] Error: Could not open ROM session for "unknown_file"*
-			[init -> test-ldso] caught*
+			[init -> test-ldso] Error: ROM-session creation failed (ram_quota=*, cap_quota=*, label="unknown_rom")*
+			[init -> test-ldso] Error: Could not open ROM session for "unknown_rom"*
+			[init -> test-ldso] exception in remote procedure call: caught*
 			[init -> test-ldso] exception in program: caught*
 			[init -> test-ldso] exception in shared lib: caught*
 			[init -> test-ldso] exception in dynamic linker: caught*
 			[init -> test-ldso] *
 			[init -> test-ldso] global objects and local static objects of shared lib*
 			[init -> test-ldso] -----------------------------------------------------*
-			[init -> test-ldso] lib_1_global_1 5060706*
-			[init -> test-ldso] lib_1_global_2 1020302*
-			[init -> test-ldso] Lib_1_local_1 5060707f*
-			[init -> test-ldso] lib_1_local_1 5060707e*
-			[init -> test-ldso] Lib_1_local_2 1020303f*
-			[init -> test-ldso] lib_1_local_2 1020303e*
-			[init -> test-ldso] lib_1_pod_1 8070604e*
-			[init -> test-ldso] lib_1_pod_2 4030200e*
+			[init -> test-ldso] lib_1_global_1 0x5060706*
+			[init -> test-ldso] lib_1_global_2 0x1020302*
+			[init -> test-ldso] Lib_1_local_1 0x5060707f*
+			[init -> test-ldso] lib_1_local_1 0x5060707e*
+			[init -> test-ldso] Lib_1_local_2 0x1020303f*
+			[init -> test-ldso] lib_1_local_2 0x1020303e*
+			[init -> test-ldso] lib_1_pod_1 0x8070604e*
+			[init -> test-ldso] lib_1_pod_2 0x4030200e*
 			[init -> test-ldso] *
 			[init -> test-ldso] Access shared lib from another shared lib*
 			[init -> test-ldso] -----------------------------------------*
-			[init -> test-ldso] lib_2_global 11223341*
-			[init -> test-ldso] Lib_2_local 55667787*
-			[init -> test-ldso] lib_2_local 55667786*
-			[init -> test-ldso] lib_2_pod_1 87654320*
+			[init -> test-ldso] lib_2_global 0x11223341*
+			[init -> test-ldso] Lib_2_local 0x55667787*
+			[init -> test-ldso] lib_2_local 0x55667786*
+			[init -> test-ldso] lib_2_pod_1 0x87654320*
 			[init -> test-ldso] *
 			[init -> test-ldso] Catch exceptions in shared lib*
 			[init -> test-ldso] ------------------------------*
@@ -89,19 +88,19 @@
 			[init -> test-ldso] *
 			[init -> test-ldso] Destruction*
 			[init -> test-ldso] -----------*
-			[init -> test-ldso] ~Lib_2_local 55667785*
-			[init -> test-ldso] ~Lib_1_local_2 1020303d*
-			[init -> test-ldso] ~Lib_1_local_1 5060707d*
-			[init -> test-ldso] ~Lib_1_local_3 12345675*
-			[init -> test-ldso] ~Local_2 1020303d*
-			[init -> test-ldso] ~Local_1 5060707d*
-			[init -> test-ldso] attr_destructor_2 4030200d*
-			[init -> test-ldso] attr_destructor_1 8070604c*
-			[init -> test-ldso] ~Global_2 1020301*
-			[init -> test-ldso] ~Global_1 5060705*
-			[init -> test-ldso] ~Lib_1_global_2 1020301*
-			[init -> test-ldso] ~Lib_1_global_1 5060705*
-			[init -> test-ldso] ~Lib_2_global 11223340*
+			[init -> test-ldso] ~Lib_2_local 0x55667785*
+			[init -> test-ldso] ~Lib_1_local_2 0x1020303d*
+			[init -> test-ldso] ~Lib_1_local_1 0x5060707d*
+			[init -> test-ldso] ~Lib_1_local_3 0x12345675*
+			[init -> test-ldso] ~Local_2 0x1020303d*
+			[init -> test-ldso] ~Local_1 0x5060707d*
+			[init -> test-ldso] attr_destructor_2 0x4030200d*
+			[init -> test-ldso] attr_destructor_1 0x8070604c*
+			[init -> test-ldso] ~Global_2 0x1020301*
+			[init -> test-ldso] ~Global_1 0x5060705*
+			[init -> test-ldso] ~Lib_1_global_2 0x1020301*
+			[init -> test-ldso] ~Lib_1_global_1 0x5060705*
+			[init -> test-ldso] ~Lib_2_global 0x11223340*
 			[init] child "test-ldso" exited with exit value 123
 		</log>
 	</events>

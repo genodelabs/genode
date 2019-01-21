@@ -12,8 +12,7 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
-#include <base/console.h>
+#include <base/snprintf.h>
 #include <base/lock.h>
 #include <base/env.h>
 
@@ -28,7 +27,9 @@ extern "C" {
 		va_list list;
 		va_start(list, format);
 
-		Genode::vprintf(format, list);
+		char buf[128] { };
+		Genode::String_console(buf, sizeof(buf)).vprintf(format, list);
+		Genode::log(Genode::Cstring(buf));
 
 		va_end(list);
 	}

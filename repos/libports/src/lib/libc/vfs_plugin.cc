@@ -110,19 +110,18 @@ namespace Libc {
 	{
 		private:
 
-			char _buf[Vfs::MAX_PATH_LEN];
+			typedef String<Vfs::MAX_PATH_LEN> Value;
+			Value const _value;
 
 		public:
 
 			Config_attr(char const *attr_name, char const *default_value)
-			{
-				Genode::strncpy(_buf, default_value, sizeof(_buf));
-				try {
-					Libc::config().attribute(attr_name).value(_buf, sizeof(_buf));
-				} catch (...) { }
-			}
+			:
+				_value(Libc::config().attribute_value(attr_name,
+				                                      Value(default_value)))
+			{ }
 
-			char const *string() const { return _buf; }
+			char const *string() const { return _value.string(); }
 	};
 
 	char const *config_rtc() __attribute__((weak));

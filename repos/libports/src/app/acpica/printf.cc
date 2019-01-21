@@ -5,7 +5,7 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#include <base/printf.h>
+#include <stdarg.h>
 
 extern "C"
 void AcpiOsPrintf (const char *fmt, ...)

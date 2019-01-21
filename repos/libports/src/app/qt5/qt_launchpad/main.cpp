@@ -31,27 +31,34 @@ struct Qt_launchpad_namespace::Local_env : Genode::Env
 
 	Local_env(Env &genode_env) : genode_env(genode_env) { }
 
-	Parent &parent()                         { return genode_env.parent(); }
-	Ram_session &ram()                       { return genode_env.ram(); }
-	Cpu_session &cpu()                       { return genode_env.cpu(); }
-	Region_map &rm()                         { return genode_env.rm(); }
-	Pd_session &pd()                         { return genode_env.pd(); }
-	Entrypoint &ep()                         { return local_ep; }
-	Ram_session_capability ram_session_cap() { return genode_env.ram_session_cap(); }
-	Cpu_session_capability cpu_session_cap() { return genode_env.cpu_session_cap(); }
-	Pd_session_capability pd_session_cap()   { return genode_env.pd_session_cap(); }
-	Id_space<Parent::Client> &id_space()     { return genode_env.id_space(); }
+	Parent &parent()                         override { return genode_env.parent(); }
+	Cpu_session &cpu()                       override { return genode_env.cpu(); }
+	Region_map &rm()                         override { return genode_env.rm(); }
+	Pd_session &pd()                         override { return genode_env.pd(); }
+	Entrypoint &ep()                         override { return local_ep; }
+	Cpu_session_capability cpu_session_cap() override { return genode_env.cpu_session_cap(); }
+	Pd_session_capability pd_session_cap()   override { return genode_env.pd_session_cap(); }
+	Id_space<Parent::Client> &id_space()     override { return genode_env.id_space(); }
+
+	/*
+	 * \deprecated
+	 *
+	 * Emulation of deprecated part of the 'Env' interface. To be
+	 * removed once they are removed from 'Genode::Env'.
+	 */
+	Pd_session           &ram()             override { return pd(); }
+	Pd_session_capability ram_session_cap() override { return pd_session_cap(); }
 
 	Session_capability session(Parent::Service_name const &service_name,
 	                           Parent::Client::Id id,
 	                           Parent::Session_args const &session_args,
-	                           Affinity             const &affinity)
+	                           Affinity             const &affinity) override
 	{ return genode_env.session(service_name, id, session_args, affinity); }
 
-	void upgrade(Parent::Client::Id id, Parent::Upgrade_args const &args)
+	void upgrade(Parent::Client::Id id, Parent::Upgrade_args const &args) override
 	{ return genode_env.upgrade(id, args); }
 
-	void close(Parent::Client::Id id) { return genode_env.close(id); }
+	void close(Parent::Client::Id id) override { return genode_env.close(id); }
 
 	void exec_static_constructors() override { }
 

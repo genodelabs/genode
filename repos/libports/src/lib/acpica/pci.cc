@@ -178,7 +178,7 @@ ACPI_STATUS AcpiOsReadPciConfiguration (ACPI_PCI_ID *pcidev, UINT32 reg,
 				break;
 			default:
 				Genode::error(__func__, " : unsupported access size ", width);
-				Acpica::platform().release_device(client);
+				Acpica::platform().release_device(client.rpc_cap());
 				return AE_ERROR;
 			};
 
@@ -186,13 +186,13 @@ ACPI_STATUS AcpiOsReadPciConfiguration (ACPI_PCI_ID *pcidev, UINT32 reg,
 
 			dump_read(__func__, pcidev, reg, *value, width);
 
-			Acpica::platform().release_device(client);
+			Acpica::platform().release_device(client.rpc_cap());
 			return AE_OK;
 		}
 
 		cap = Acpica::platform().next_device(cap);
 
-		Acpica::platform().release_device(client);
+		Acpica::platform().release_device(client.rpc_cap());
 	}
 
 	dump_error(__func__, pcidev, reg, width);
@@ -239,7 +239,7 @@ ACPI_STATUS AcpiOsWritePciConfiguration (ACPI_PCI_ID *pcidev, UINT32 reg,
 				break;
 			default:
 				Genode::error(__func__, " : unsupported access size ", width);
-				Acpica::platform().release_device(client);
+				Acpica::platform().release_device(client.rpc_cap());
 				return AE_ERROR;
 			};
 
@@ -247,13 +247,13 @@ ACPI_STATUS AcpiOsWritePciConfiguration (ACPI_PCI_ID *pcidev, UINT32 reg,
 
 			dump_write(__func__, pcidev, reg, value, width);
 
-			Acpica::platform().release_device(client);
+			Acpica::platform().release_device(client.rpc_cap());
 			return AE_OK;
 		}
 
 		cap = Acpica::platform().next_device(cap);
 
-		Acpica::platform().release_device(client);
+		Acpica::platform().release_device(client.rpc_cap());
 	}
 
 	dump_error(__func__, pcidev, reg, width);

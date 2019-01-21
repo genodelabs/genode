@@ -832,9 +832,8 @@ class Fatfs_fs::Root : public Root_component<Session_component>
 			Directory *session_root_dir = 0;
 			bool writeable = false;
 
-			enum { ROOT_MAX_LEN = 256 };
-			char root[ROOT_MAX_LEN];
-			root[0] = 0;
+			typedef String<256> Root_path;
+			Root_path root;
 
 			Session_label const label = label_from_args(args);
 			try {
@@ -845,8 +844,8 @@ class Fatfs_fs::Root : public Root_component<Session_component>
 				 * the session.
 				 */
 				try {
-					policy.attribute("root").value(root, sizeof(root));
-					if (is_root(root)) {
+					policy.attribute("root").value(root);
+					if (is_root(root.string())) {
 						session_root_dir = &_root_dir;
 					} else {
 						/*
@@ -854,14 +853,14 @@ class Fatfs_fs::Root : public Root_component<Session_component>
 						 * leading path delimiter. For performing the
 						 * lookup, we skip the first character.
 						 */
-						if (root[0] != '/')
+						if (root.string()[0] != '/')
 							throw Lookup_failed();
 
 						/* Check if the root path exists */
 
 						using namespace Fatfs;
 
-						FRESULT res = f_chdir(root);
+						FRESULT res = f_chdir(root.string());
 
 						switch(res) {
 							case FR_OK:
@@ -892,7 +891,7 @@ class Fatfs_fs::Root : public Root_component<Session_component>
 								throw Service_denied();
 						}
 
-						session_root_dir = new (&_md_alloc) Directory(root);
+						session_root_dir = new (&_md_alloc) Directory(root.string());
 					}
 				}
 				catch (Xml_node::Nonexistent_attribute) {
@@ -900,7 +899,7 @@ class Fatfs_fs::Root : public Root_component<Session_component>
 					throw Service_denied();
 				}
 				catch (Lookup_failed) {
-					error("session root directory \"", Cstring(root), "\" does not exist");
+					error("session root directory \"", root, "\" does not exist");
 					throw Service_denied();
 				}
 

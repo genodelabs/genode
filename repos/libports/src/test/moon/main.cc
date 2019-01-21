@@ -27,8 +27,8 @@ namespace Moon {
 	struct Main;
 	struct Env
 	{
-		Timer::Session      &timer;
-		Genode::Ram_session &ram;
+		Timer::Session     &timer;
+		Genode::Pd_session &pd;
 	};
 	Env *env;
 }
@@ -63,7 +63,7 @@ static int l_quota(lua_State *lua)
 		return 0;
 	}
 
-	lua_pushnumber(lua, Moon::env->ram.ram_quota().value);
+	lua_pushnumber(lua, Moon::env->pd.ram_quota().value);
 
 	return 1;
 }
@@ -126,7 +126,7 @@ struct Moon::Main
 
 	Timer::Connection _timer { _env };
 
-	Moon::Env _moon_env { _timer, _env.ram() };
+	Moon::Env _moon_env { _timer, _env.pd() };
 
 	Main(Libc::Env &env) : _env(env)
 	{

@@ -46,38 +46,36 @@ class Libc::Vfs_plugin : public Libc::Plugin
 		void _open_stdio(Genode::Xml_node const &node, char const *attr,
 		                 int libc_fd, unsigned flags)
 		{
-			try {
-				Genode::String<Vfs::MAX_PATH_LEN> path;
-				struct stat out_stat;
-
-				node.attribute(attr).value(&path);
-
-				if (stat(path.string(), &out_stat) != 0)
-					return;
-
-				Libc::File_descriptor *fd = open(path.string(), flags, libc_fd);
-				if (fd->libc_fd != libc_fd) {
-					Genode::error("could not allocate fd ",libc_fd," for ",path,", "
-					              "got fd ",fd->libc_fd);
-					close(fd);
-					return;
-				}
-
-				/*
-				 * We need to manually register the path. Normally this is done
-				 * by '_open'. But we call the local 'open' function directly
-				 * because we want to explicitly specify the libc fd ID.
-				 *
-				 * We have to allocate the path from the libc (done via 'strdup')
-				 * such that the path can be freed when an stdio fd is closed.
-				 */
-				if (fd->fd_path) { Genode::warning("may leak former FD path memory"); }
-				fd->fd_path = strdup(path.string());
-
-			} catch (Xml_node::Nonexistent_attribute) {
-				/*  fill the stdio number with a EBADF */
+			if (!node.has_attribute(attr)) {
 				Libc::file_descriptor_allocator()->alloc(nullptr, nullptr, libc_fd);
+				return;
 			}
+
+			typedef Genode::String<Vfs::MAX_PATH_LEN> Path;
+			Path const path = node.attribute_value(attr, Path());
+
+			struct stat out_stat { };
+			if (stat(path.string(), &out_stat) != 0)
+				return;
+
+			Libc::File_descriptor *fd = open(path.string(), flags, libc_fd);
+			if (fd->libc_fd != libc_fd) {
+				Genode::error("could not allocate fd ",libc_fd," for ",path,", "
+				              "got fd ",fd->libc_fd);
+				close(fd);
+				return;
+			}
+
+			/*
+			 * We need to manually register the path. Normally this is done
+			 * by '_open'. But we call the local 'open' function directly
+			 * because we want to explicitly specify the libc fd ID.
+			 *
+			 * We have to allocate the path from the libc (done via 'strdup')
+			 * such that the path can be freed when an stdio fd is closed.
+			 */
+			if (fd->fd_path) { Genode::warning("may leak former FD path memory"); }
+			fd->fd_path = strdup(path.string());
 		}
 
 		/**
@@ -160,19 +158,18 @@ class Libc::Vfs_plugin : public Libc::Plugin
 
 			if (_root_dir.num_dirent("/"))
 				env.config([&] (Xml_node const &top) {
-					try {
-						Xml_node const node = top.sub_node("libc");
 
-						try {
-							Genode::String<Vfs::MAX_PATH_LEN> path;
-							node.attribute("cwd").value(&path);
-							chdir(path.string());
-						} catch (Xml_node::Nonexistent_attribute) { }
+					top.with_sub_node("libc", [&] (Xml_node node) {
+
+						typedef Genode::String<Vfs::MAX_PATH_LEN> Path;
+
+						if (node.has_attribute("cwd"))
+							chdir(node.attribute_value("cwd", Path()).string());
 
 						_open_stdio(node, "stdin",  0, O_RDONLY);
 						_open_stdio(node, "stdout", 1, O_WRONLY);
 						_open_stdio(node, "stderr", 2, O_WRONLY);
-					} catch (Xml_node::Nonexistent_sub_node) { }
+					});
 				});
 		}
 

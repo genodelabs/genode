@@ -16,8 +16,8 @@
 #include <base/env.h>
 #include <base/heap.h>
 #include <base/log.h>
-#include <base/printf.h>
 #include <base/sleep.h>
+#include <base/snprintf.h>
 #include <file_system_session/connection.h>
 #include <file_system/util.h>
 #include <util/string.h>
@@ -143,19 +143,17 @@ extern "C" FILE *fopen(const char *path, const char *mode)
 			                  File_system::WRITE_ONLY, true) };
 
 		File_system::seek_off_t seek_offset = 0;
-		                                                
+
 		libgcov_node.for_each_sub_node("annotate",
 		                               [&] (Genode::Xml_node annotate_node) {
 
-			Absolute_path source_path;
-
-			annotate_node.attribute("source").value(source_path.base(),
-			                                        source_path.capacity());
+			typedef Genode::String<File_system::MAX_PATH_LEN> Source;
+			Source const source = annotate_node.attribute_value("source", Source());
 
 			seek_offset += File_system::write(gcov_env->fs,
 			                                  annotate_file_handle,
-			                                  source_path.base(),
-			                                  Genode::strlen(source_path.base()),
+			                                  source.string(),
+			                                  Genode::strlen(source.string()),
 			                                  seek_offset);
 
 			seek_offset += File_system::write(gcov_env->fs,
@@ -183,8 +181,7 @@ extern "C" int fprintf(FILE *stream, const char *format, ...)
 
 	va_list list;
 	va_start(list, format);
-
-	Genode::vprintf(format, list);
+	vfprintf(stream, format, list);
 	va_end(list);
 
 	return 0;
@@ -232,7 +229,7 @@ extern "C" long ftell(FILE *stream)
 extern "C" size_t fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream)
 {
 	if (stream == stderr) {
-		Genode::printf((const char*)ptr);
+		Genode::log(Genode::Cstring((const char*)ptr, size*nmemb));
 		return 0;
 	}
 
@@ -276,11 +273,17 @@ extern "C" size_t strlen(const char *s)
 }
 
 
-extern "C" int vfprintf(FILE *stream, const char *format, va_list ap)
+extern "C" int vfprintf(FILE *stream, const char *format, va_list list)
 {
 	if (stream != stderr)
 		return 0;
 
-	Genode::vprintf(format, ap);
-	return 0;
+	using namespace Genode;
+
+	char buf[128] { };
+	String_console sc { buf, sizeof(buf) };
+	sc.vprintf(format, list);
+	log(Cstring(buf));
+
+	return sc.len();
 }

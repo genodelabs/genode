@@ -13,7 +13,6 @@
 
 #include <base/env.h>
 #include <base/sleep.h>
-#include <base/printf.h>
 
 extern void genode_exit(int status) __attribute__((noreturn));
 

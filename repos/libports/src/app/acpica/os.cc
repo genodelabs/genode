@@ -67,13 +67,13 @@ struct Acpica::Statechange
 
 		_system_state.update();
 
-		if (!_system_state.is_valid()) return;
+		if (!_system_state.valid()) return;
 
 		Genode::Xml_node system(_system_state.local_addr<char>(),
 		                       _system_state.size());
 
-		Genode::String<32> state;
-		system.attribute("state").value<32>(&state);
+		typedef Genode::String<32> State;
+		State const state = system.attribute_value("state", State());
 
 		if (_enable_poweroff && state == "poweroff") {
 			ACPI_STATUS res0 = AcpiEnterSleepStatePrep(5);

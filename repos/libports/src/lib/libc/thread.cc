@@ -23,6 +23,7 @@
 #include "thread.h"
 #include "task.h"
 #include "timed_semaphore.h"
+#include "libc_init.h"
 
 using namespace Genode;
 
@@ -35,7 +36,7 @@ static Env *_env_ptr;  /* solely needed to spawn the timeout thread for the
                           timed semaphore */
 
 
-namespace Libc { void init_pthread_support(Env &env) { _env_ptr = &env; } }
+void Libc::init_pthread_support(Genode::Env &env) { _env_ptr = &env; }
 
 
 static Libc::Timeout_entrypoint &_global_timeout_ep()

@@ -50,15 +50,15 @@ static void test_write_read(Genode::Xml_node node)
 	try {
 		Genode::Xml_node config = node.sub_node("write-read");
 
-		try { config.attribute("rounds").value(&rounds); } catch (...) { }
+		rounds = config.attribute_value("rounds", rounds);
 
-		Genode::Number_of_bytes n;
+		Genode::Number_of_bytes n { };
 		try {
-			config.attribute("size").value(&n);
+			config.attribute("size").value(n);
 			size = n;
 		} catch (...) { }
 		try {
-			config.attribute("buffer_size").value(&n);
+			config.attribute("buffer_size").value(n);
 			buffer_size = n;
 		} catch (...) { }
 	} catch (...) { }
@@ -111,7 +111,7 @@ static void test(Genode::Xml_node node)
 	unsigned int iterations = 1;
 
 	try {
-		node.sub_node("iterations").attribute("value").value(&iterations);
+		node.sub_node("iterations").attribute("value").value(iterations);
 	} catch(...) { }
 
 	for (unsigned int i = 0; i < iterations; i++) {

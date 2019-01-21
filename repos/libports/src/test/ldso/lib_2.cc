@@ -11,22 +11,22 @@
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
  */
-#include <base/printf.h>
+#include <base/log.h>
 #include "test-ldso.h"
 
 using namespace Genode;
 
 void lib_2_exception() { throw 668; }
 
-Lib_2_global::Lib_2_global()      { printf("%s %x\n", __func__, --x); }
-void Lib_2_global::lib_2_global() { printf("%s %x\n", __func__, --x); }
-Lib_2_global::~Lib_2_global()     { printf("%s %x\n", __func__, --x); x=0; }
+Lib_2_global::Lib_2_global()      { log(__func__, " ", Hex(--x)); }
+void Lib_2_global::lib_2_global() { log(__func__, " ", Hex(--x)); }
+Lib_2_global::~Lib_2_global()     { log(__func__, " ", Hex(--x)); x=0; }
 
 Lib_2_global lib_2_global;
 
-Lib_2_local::Lib_2_local()      { printf("%s %x\n", __func__, --x); }
-void Lib_2_local::lib_2_local() { printf("%s %x\n", __func__, --x); }
-Lib_2_local::~Lib_2_local()     { printf("%s %x\n", __func__, --x); x=0; }
+Lib_2_local::Lib_2_local()      { log(__func__, " ", Hex(--x)); }
+void Lib_2_local::lib_2_local() { log(__func__, " ", Hex(--x)); }
+Lib_2_local::~Lib_2_local()     { log(__func__, " ", Hex(--x)); x=0; }
 
 Lib_2_local * lib_2_local()
 {

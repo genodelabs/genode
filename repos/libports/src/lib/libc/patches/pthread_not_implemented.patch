@@ -9,7 +9,7 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  
  #include "libc_private.h"
  
-+#include <libc_pdbg.h>
++
 +
  /*
   * Weak symbols: All libc internal usage of these functions should
@@ -18,14 +18,14 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  	typedef ret (*FUNC_TYPE(name))(void);			\
  	static ret FUNC_EXP(name)(void)				\
  	{							\
-+		PDBG("%s called, not implemented", #name);	\
++		puts(#name " called, not implemented");	\
  		FUNC_TYPE(name) func;				\
  		func = (FUNC_TYPE(name))__thr_jtable[idx][0];	\
  		return (func());				\
  	}							\
  	static ret FUNC_INT(name)(void)				\
  	{							\
-+		PDBG("%s called, not implemented", #name);	\
++		puts(#name " called, not implemented");	\
  		FUNC_TYPE(name) func;				\
  		func = (FUNC_TYPE(name))__thr_jtable[idx][1];	\
  		return (func());				\
@@ -33,14 +33,14 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  	typedef ret (*FUNC_TYPE(name))(p0_type);		\
  	static ret FUNC_EXP(name)(p0_type p0)			\
  	{							\
-+		PDBG("%s called, not implemented", #name);	\
++		puts(#name " called, not implemented");	\
  		FUNC_TYPE(name) func;				\
  		func = (FUNC_TYPE(name))__thr_jtable[idx][0];	\
  		return (func(p0));				\
  	}							\
  	static ret FUNC_INT(name)(p0_type p0)			\
  	{							\
-+		PDBG("%s called, not implemented", #name);	\
++		puts(#name " called, not implemented");	\
  		FUNC_TYPE(name) func;				\
  		func = (FUNC_TYPE(name))__thr_jtable[idx][1];	\
  		return (func(p0));				\
@@ -48,14 +48,14 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  	typedef ret (*FUNC_TYPE(name))(p0_type, p1_type);	\
  	static ret FUNC_EXP(name)(p0_type p0, p1_type p1)	\
  	{							\
-+		PDBG("%s called, not implemented", #name);	\
++		puts(#name " called, not implemented");	\
  		FUNC_TYPE(name) func;				\
  		func = (FUNC_TYPE(name))__thr_jtable[idx][0];	\
  		return (func(p0, p1));				\
  	}							\
  	static ret FUNC_INT(name)(p0_type p0, p1_type p1)	\
  	{							\
-+		PDBG("%s called, not implemented", #name);	\
++		puts(#name " called, not implemented");	\
  		FUNC_TYPE(name) func;				\
  		func = (FUNC_TYPE(name))__thr_jtable[idx][1];	\
  		return (func(p0, p1));				\
@@ -63,14 +63,14 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  	typedef ret (*FUNC_TYPE(name))(p0_type, p1_type, p2_type); \
  	static ret FUNC_EXP(name)(p0_type p0, p1_type p1, p2_type p2) \
  	{							\
-+		PDBG("%s called, not implemented", #name);	\
++		puts(#name " called, not implemented");	\
  		FUNC_TYPE(name) func;				\
  		func = (FUNC_TYPE(name))__thr_jtable[idx][0];	\
  		return (func(p0, p1, p2));			\
  	}							\
  	static ret FUNC_INT(name)(p0_type p0, p1_type p1, p2_type p2) \
  	{							\
-+		PDBG("%s called, not implemented", #name);	\
++		puts(#name " called, not implemented");	\
  		FUNC_TYPE(name) func;				\
  		func = (FUNC_TYPE(name))__thr_jtable[idx][1];	\
  		return (func(p0, p1, p2));			\

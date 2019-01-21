@@ -42,8 +42,14 @@ namespace Libc {
 
 	/**
 	 * Malloc allocator
-         */
+	 */
 	void init_malloc(Genode::Allocator &heap);
+
+	/**
+	 * Allow thread.cc to access the 'Genode::Env' (needed for the
+	 * implementation of condition variables with timeout)
+	 */
+	void init_pthread_support(Genode::Env &env);
 }
 
 #endif /* _LIBC_INIT_H_ */

@@ -43,35 +43,43 @@ static void test(Libc::Env &env)
 			continue;
 		}
 		/* read server IP address and port */
-		Ipv4_addr_str serv_addr;
-		unsigned port = 0;
 		Attached_rom_dataspace config(env, "config");
 		Xml_node config_node = config.xml();
-		try { config_node.attribute("server_ip").value(&serv_addr); }
-		catch (...) {
-			error("cannot read attribute 'server_ip'");
+
+		auto check_attr = [&] (char const *attr)
+		{
+			if (config_node.has_attribute(attr))
+				return true;
+
+			error("cannot read attribute '", attr, "'");
+			return false;
+		};
+
+		if (!check_attr("server_ip") || !check_attr("server_port"))
 			break;
-		}
-		try { config_node.attribute("server_port").value(&port); }
-		catch (...) {
-			error("cannot read attribute 'server_port'");
-			break;
-		}
+
+		Ipv4_addr_str const server_addr =
+			config_node.attribute_value("server_ip", Ipv4_addr_str());
+
+		unsigned const port =
+			config_node.attribute_value("server_port", 0U);
+
 		/* create server socket address */
 		struct sockaddr_in addr;
 		socklen_t addr_sz = sizeof(addr);
 		addr.sin_port = htons(port);
 		addr.sin_family = AF_INET;
-		addr.sin_addr.s_addr = inet_addr(serv_addr.string());
+		addr.sin_addr.s_addr = inet_addr(server_addr.string());
 
 		/* send test message */
 		enum { BUF_SZ = 1024 };
-		char buf[BUF_SZ];
-		::snprintf(buf, BUF_SZ, "UDP server at %s:%u", serv_addr.string(), port);
-		if (sendto(s, buf, BUF_SZ, 0, (struct sockaddr*)&addr, addr_sz) != BUF_SZ) {
+		String<BUF_SZ> const message("UDP server at ", server_addr, ":", port);
+		if (sendto(s, message.string(), BUF_SZ, 0, (struct sockaddr*)&addr, addr_sz) != BUF_SZ) {
 			continue;
 		}
+
 		/* receive and print what has been received */
+		char buf[BUF_SZ] { };
 		if (recvfrom(s, buf, BUF_SZ, 0, (struct sockaddr*)&addr, &addr_sz) != BUF_SZ) {
 			continue;
 		}
