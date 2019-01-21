@@ -98,7 +98,7 @@ void Test::Child::_handle_periodic_timeout()
 {
 	size_t const chunk_size = 1024*1024;
 
-	if (_env.ram().avail_ram().value < chunk_size) {
+	if (_env.pd().avail_ram().value < chunk_size) {
 
 		if (_expand) {
 			log("quota consumed, request additional resources");
@@ -197,8 +197,8 @@ class Test::Parent
 
 		void _print_status()
 		{
-			log("quota: ", _child.ram().ram_quota().value / 1024, " KiB  "
-			    "used: ",  _child.ram().used_ram().value  / 1024, " KiB");
+			log("quota: ", _child.pd().ram_quota().value / 1024, " KiB  "
+			    "used: ",  _child.pd().used_ram().value  / 1024, " KiB");
 		}
 
 		size_t _used_ram_prior_yield = 0;
@@ -229,7 +229,7 @@ class Test::Parent
 		void _request_yield()
 		{
 			/* remember quantum of resources used by the child */
-			_used_ram_prior_yield = _child.ram().used_ram().value;
+			_used_ram_prior_yield = _child.pd().used_ram().value;
 
 			log("request yield (ram prior yield: ", _used_ram_prior_yield);
 
@@ -259,7 +259,7 @@ class Test::Parent
 			_print_status();
 
 			/* validate that the amount of yielded resources matches the request */
-			size_t const used_after_yield = _child.ram().used_ram().value;
+			size_t const used_after_yield = _child.pd().used_ram().value;
 			if (used_after_yield + 5*1024*1024 > _used_ram_prior_yield) {
 				error("child has not yielded enough resources");
 				throw Insufficient_yield();
@@ -278,8 +278,7 @@ class Test::Parent
 
 		struct Policy
 		:
-			private Static_parent_services<Ram_session, Pd_session,
-			                               Cpu_session, Rom_session,
+			private Static_parent_services<Pd_session, Cpu_session, Rom_session,
 			                               Log_session, Timer::Session>,
 			public Slave::Policy
 		{
@@ -294,9 +293,10 @@ class Test::Parent
 
 			Policy(Parent &parent, Env &env)
 			:
+				Static_parent_services(env),
 				Slave::Policy(Label("child"), "test-resource_yield",
 				              *this, env.ep().rpc_ep(), env.rm(),
-				              env.pd(),  env.pd_session_cap(),
+				              env.pd(), env.pd_session_cap(),
 				              Cap_quota{SLAVE_CAPS}, Ram_quota{SLAVE_RAM}),
 				_parent(parent)
 			{

@@ -127,8 +127,8 @@ struct Main
 
 				try {
 					Genode::Attached_rom_dataspace config { env, "config" };
-					config.xml().attribute("sectors").value(&blk_nr);
-					config.xml().attribute("block_size").value(&blk_sz);
+					config.xml().attribute("sectors").value(blk_nr);
+					config.xml().attribute("block_size").value(blk_sz);
 				}
 				catch (...) { }
 

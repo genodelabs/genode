@@ -38,24 +38,11 @@ class Input::Session_component : public Genode::Rpc_object<Input::Session>
 		/**
 		 * Constructor
 		 *
-		 * \param env  Env containing local region map
-		 * \param ram  Ram session at which to allocate session buffer
+		 * \param ram  allocator for the session buffer
 		 */
-		Session_component(Genode::Env &env, Genode::Ram_session &ram)
+		Session_component(Genode::Env &env, Genode::Ram_allocator &ram)
 		:
 			_ds(ram, env.rm(), Event_queue::QUEUE_SIZE*sizeof(Input::Event))
-		{ }
-
-		/**
-		 * Constructor
-		 *
-		 * \noapi
-		 * \deprecated
-		 */
-		Session_component() __attribute__((deprecated))
-		: _ds(*Genode::env_deprecated()->ram_session(),
-		      *Genode::env_deprecated()->rm_session(),
-		      Event_queue::QUEUE_SIZE*sizeof(Input::Event))
 		{ }
 
 		/**
@@ -84,11 +71,6 @@ class Input::Session_component : public Genode::Rpc_object<Input::Session>
 		Genode::Dataspace_capability dataspace() override { return _ds.cap(); }
 
 		bool pending() const override { return !_event_queue.empty(); }
-
-		/*
-		 * \deprecated  use 'pending' instead
-		 */
-		bool is_pending() const { return pending(); }
 
 		int flush() override
 		{

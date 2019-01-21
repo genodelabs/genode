@@ -78,7 +78,8 @@ class Ram_block : public Block::Driver
 		 */
 		Ram_block(Env &env, Allocator &alloc,
 		          const char *name, size_t block_size)
-		:	Block::Driver(env.ram()),
+		:
+			Block::Driver(env.ram()),
 			_env(env), _alloc(&alloc),
 			_rom_ds(new (_alloc) Attached_rom_dataspace(_env, name)),
 			_size(_rom_ds->size()),
@@ -152,29 +153,28 @@ struct Main
 		Env       &env;
 		Allocator &alloc;
 
-		bool   use_file { false };
-		char   file[64];
+		bool use_file { false };
+
+		typedef String<64> File;
+		File file { };
 
 		size_t       size { 0 };
 		size_t block_size { 512 };
 
-		Factory(Env &env, Allocator &alloc,
-		        Xml_node config)
+		Factory(Env &env, Allocator &alloc, Xml_node config)
 		: env(env), alloc(alloc)
 		{
 			use_file = config.has_attribute("file");
 			if (use_file) {
-				config.attribute("file").value(file, sizeof(file));
+				file = config.attribute_value("file", File());
+
 			} else {
-				try {
-					Genode::Number_of_bytes bytes;
-					config.attribute("size").value(&bytes);
-					size = bytes;
-				}
-				catch (...) {
+
+				if (!config.has_attribute("size")) {
 					error("neither file nor size attribute specified");
 					throw Exception();
 				}
+				size = config.attribute_value("size", Number_of_bytes());
 			}
 
 			block_size = config.attribute_value("block_size", block_size);
@@ -185,8 +185,9 @@ struct Main
 			try {
 				if (use_file) {
 					Genode::log("Creating RAM-basd block device populated by file='",
-					            Genode::Cstring(file), "' with block size ", block_size);
-					return new (&alloc) Ram_block(env, alloc, file, block_size);
+					            file, "' with block size ", block_size);
+					return new (&alloc)
+						Ram_block(env, alloc, file.string(), block_size);
 				} else {
 					Genode::log("Creating RAM-based block device with size ",
 					            size, " and block size ", block_size);

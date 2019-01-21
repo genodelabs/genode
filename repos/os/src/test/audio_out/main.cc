@@ -163,8 +163,8 @@ void Main::handle_config()
 				return;
 			}
 
-			filenames[track_count++] =
-				Filename(Cstring(node.content_addr(), node.content_size()));
+			node.with_raw_content([&] (char const *start, size_t length) {
+				filenames[track_count++] = Filename(Cstring(start, length)); });
 		});
 	}
 	catch (...) {

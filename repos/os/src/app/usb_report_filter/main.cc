@@ -186,7 +186,8 @@ class Usb_filter::Device_registry
 				/* copy other nodes */
 				drv_config.for_each_sub_node([&] (Xml_node &node) {
 					if (!node.has_type("raw")) {
-						xml.append(node.addr(), node.size());
+						node.with_raw_node([&] (char const *start, size_t length) {
+							xml.append(start, length); });
 						return;
 					}
 				});
@@ -401,7 +402,7 @@ class Usb_filter::Device_registry
 			config.for_each_sub_node("device", add_new_entry);
 
 			try {
-				config.sub_node("client").attribute("label").value(&_client_label);
+				config.sub_node("client").attribute("label").value(_client_label);
 			} catch (...) {
 				error("could not update client label");
 			}

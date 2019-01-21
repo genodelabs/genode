@@ -99,9 +99,9 @@ class Terminal::Session_component : public Rpc_object<Session, Session_component
 
 	public:
 
-		Session_component(Ram_session &ram,
-		                  Region_map  &rm,
-		                  size_t       io_buffer_size)
+		Session_component(Ram_allocator &ram,
+		                  Region_map    &rm,
+		                  size_t         io_buffer_size)
 		:
 			_io_buffer(ram, rm, io_buffer_size)
 		{ }
@@ -157,8 +157,8 @@ class Terminal::Root_component : public Genode::Root_component<Session_component
 {
 	private:
 
-		Ram_session &_ram;
-		Region_map  &_rm;
+		Ram_allocator &_ram;
+		Region_map    &_rm;
 
 	protected:
 
@@ -170,10 +170,10 @@ class Terminal::Root_component : public Genode::Root_component<Session_component
 
 	public:
 
-		Root_component(Entrypoint  &ep,
-		               Allocator   &md_alloc,
-		               Ram_session &ram,
-		               Region_map  &rm)
+		Root_component(Entrypoint    &ep,
+		               Allocator     &md_alloc,
+		               Ram_allocator &ram,
+		               Region_map    &rm)
 		:
 			Genode::Root_component<Session_component>(&ep.rpc_ep(), &md_alloc),
 			_ram(ram), _rm(rm)

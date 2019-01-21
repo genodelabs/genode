@@ -30,7 +30,7 @@
 /* local includes */
 #include "disk.h"
 
-static Genode::Heap * disk_heap(Genode::Ram_session *ram = nullptr,
+static Genode::Heap * disk_heap(Genode::Ram_allocator *ram = nullptr,
                                 Genode::Region_map *rm = nullptr)
 {
 	static Genode::Heap heap(ram, rm);

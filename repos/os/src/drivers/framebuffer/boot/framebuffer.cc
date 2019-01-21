@@ -27,11 +27,11 @@ Session_component::Session_component(Genode::Env &env,
 	try {
 		Genode::Xml_node fb = pinfo.sub_node("boot").sub_node("framebuffer");
 
-		fb.attribute("phys").value(&_core_fb.addr);
-		fb.attribute("width").value(&_core_fb.width);
-		fb.attribute("height").value(&_core_fb.height);
-		fb.attribute("bpp").value(&_core_fb.bpp);
-		fb.attribute("pitch").value(&_core_fb.pitch);
+		fb.attribute("phys").value(_core_fb.addr);
+		fb.attribute("width").value(_core_fb.width);
+		fb.attribute("height").value(_core_fb.height);
+		fb.attribute("bpp").value(_core_fb.bpp);
+		fb.attribute("pitch").value(_core_fb.pitch);
 		fb_boot_type = fb.attribute_value("type", 0U);
 	} catch (...) {
 		Genode::error("No boot framebuffer information available.");

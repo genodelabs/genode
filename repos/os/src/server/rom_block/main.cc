@@ -35,7 +35,7 @@ class Rom_block : public Block::Driver
 
 		using String = Genode::String<64UL>;
 
-		Rom_block(Env &env, String &name, size_t blk_sz)
+		Rom_block(Env &env, String const &name, size_t blk_sz)
 		: Block::Driver(env.ram()), _env(env), _rom(env, name.string()),
 		  _blk_sz(blk_sz) {}
 
@@ -92,23 +92,22 @@ struct Main
 
 		Block::Driver *create()
 		{
-			Rom_block::String file;
-			size_t blk_sz = 512;
+			Attached_rom_dataspace config(env, "config");
 
-			try {
-				Attached_rom_dataspace config(env, "config");
-				config.xml().attribute("file").value(&file);
-				config.xml().attribute("block_size").value(&blk_sz);
-			}
-			catch (...) { }
+			Rom_block::String const file =
+				config.xml().attribute_value("file", Rom_block::String());
 
-			log("Using file=", file, " as device with block size ", blk_sz, ".");
+			size_t const blk_sz =
+				config.xml().attribute_value("block_size", 512UL);
+
+			log("using file=", file, " as device with block size ", blk_sz, ".");
 
 			try {
 				return new (&heap) Rom_block(env, file, blk_sz);
-			} catch(Rom_connection::Rom_connection_failed) {
-				error("cannot open file ", file);
 			}
+			catch (Rom_connection::Rom_connection_failed) {
+				error("cannot open file ", file); }
+
 			throw Service_denied();
 		}
 

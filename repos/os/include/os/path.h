@@ -375,6 +375,13 @@ class Genode::Path : public Path_base
 		Path(char const *path, char const *pwd = 0)
 		: Path_base(_buf, sizeof(_buf), path, pwd) { }
 
+		/**
+		 * Constructor that implicitly imports a 'String'
+		 */
+		template <size_t N>
+		Path(String<N> const &string)
+		: Path_base(_buf, sizeof(_buf), string.string(), nullptr) { }
+
 		static constexpr size_t capacity() { return MAX_LEN; }
 
 		Path& operator=(char const *path)

@@ -41,9 +41,6 @@ class Nic_loopback::Session_component : public Nic::Session_component
 		 * \param rx_buf_size        buffer size for rx channel
 		 * \param rx_block_md_alloc  backing store of the meta data of the
 		 *                           rx block allocator
-		 * \param ram_session        RAM session to allocate tx and rx buffers
-		 * \param ep                 entry point used for packet stream
-		 *                           channels
 		 */
 		Session_component(size_t const tx_buf_size,
 		                  size_t const rx_buf_size,

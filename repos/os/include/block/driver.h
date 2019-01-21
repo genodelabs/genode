@@ -19,8 +19,7 @@
 #include <base/exception.h>
 #include <base/stdint.h>
 #include <base/signal.h>
-
-#include <ram_session/ram_session.h>
+#include <base/ram_allocator.h>
 #include <block_session/rpc_object.h>
 
 namespace Block {
@@ -64,15 +63,6 @@ class Block::Driver_session : public Driver_session_base,
 		               Genode::Dataspace_capability  tx_ds,
 		               Genode::Rpc_entrypoint       &ep)
 		: Session_rpc_object(rm, tx_ds, ep) { }
-
-		/**
-		 * Constructor
-		 *
-		 * \deprecated
-		 */
-		Driver_session(Genode::Dataspace_capability tx_ds,
-		               Genode::Rpc_entrypoint &ep) __attribute__((deprecated))
-		: Session_rpc_object(*Genode::env_deprecated()->rm_session(), tx_ds, ep) { }
 };
 
 
@@ -89,7 +79,7 @@ class Block::Driver : Genode::Interface
 		Driver(Driver const &);
 		Driver &operator = (Driver const &);
 
-		Genode::Ram_session &_ram_session;
+		Genode::Ram_allocator &_ram;
 
 		Driver_session_base *_session = nullptr;
 
@@ -104,8 +94,7 @@ class Block::Driver : Genode::Interface
 		/**
 		 * Constructor
 		 */
-		Driver(Genode::Ram_session &ram_session)
-		: _ram_session(ram_session) { }
+		Driver(Genode::Ram_allocator &ram) : _ram(ram) { }
 
 		/**
 		 * Destructor
@@ -215,7 +204,7 @@ class Block::Driver : Genode::Interface
 		 */
 		virtual Genode::Ram_dataspace_capability
 		alloc_dma_buffer(Genode::size_t size) {
-			return _ram_session.alloc(size); }
+			return _ram.alloc(size); }
 
 		/**
 		 * Free buffer which is suitable for DMA.
@@ -223,7 +212,7 @@ class Block::Driver : Genode::Interface
 		 * Note: has to be overriden by DMA-capable devices
 		 */
 		virtual void free_dma_buffer(Genode::Ram_dataspace_capability c) {
-			return _ram_session.free(c); }
+			return _ram.free(c); }
 
 		/**
 		 * Synchronize with device.

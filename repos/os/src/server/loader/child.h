@@ -56,6 +56,25 @@ class Loader::Child : public Child_policy
 
 		Genode::Child _child;
 
+		Service &_matching_service(Service::Name const &name)
+		{
+			if (name == "Nitpicker") return _local_nitpicker_service;
+			if (name == "ROM")       return _local_rom_service;
+			if (name == "CPU")       return _local_cpu_service;
+			if (name == "PD")        return _local_pd_service;
+
+			/* populate session-local parent service registry on demand */
+			Service *service = nullptr;
+			_parent_services.for_each([&] (Parent_service &s) {
+				if (s.name() == name)
+					service = &s; });
+
+			if (service)
+				return *service;
+
+			return *new (_alloc) Parent_service(_parent_services, _env, name);
+		}
+
 	public:
 
 		Child(Env                       &env,
@@ -106,24 +125,12 @@ class Loader::Child : public Child_policy
 			ref_pd().transfer_quota(pd_cap, _ram_quota);
 		}
 
-		Service &resolve_session_request(Service::Name const &name,
-		                                 Session_state::Args const &) override
+		Route resolve_session_request(Service::Name const &name,
+		                              Session_label const &label) override
 		{
-			if (name == "Nitpicker") return _local_nitpicker_service;
-			if (name == "ROM")       return _local_rom_service;
-			if (name == "CPU")       return _local_cpu_service;
-			if (name == "PD")        return _local_pd_service;
-
-			/* populate session-local parent service registry on demand */
-			Service *service = nullptr;
-			_parent_services.for_each([&] (Parent_service &s) {
-				if (s.name() == name)
-					service = &s; });
-
-			if (service)
-				return *service;
-
-			return *new (_alloc) Parent_service(_parent_services, name);
+			return Route { .service = _matching_service(name),
+			               .label   = label,
+			               .diag    = Session::Diag() };
 		}
 };
 

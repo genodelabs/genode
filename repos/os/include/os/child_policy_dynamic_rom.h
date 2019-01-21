@@ -17,10 +17,10 @@
 #ifndef _INCLUDE__OS__CHILD_POLICY_DYNAMIC_ROM_H_
 #define _INCLUDE__OS__CHILD_POLICY_DYNAMIC_ROM_H_
 
-#include <ram_session/ram_session.h>
-#include <rom_session/rom_session.h>
+#include <base/ram_allocator.h>
 #include <base/rpc_server.h>
 #include <base/attached_ram_dataspace.h>
+#include <rom_session/rom_session.h>
 
 namespace Genode { class Child_policy_dynamic_rom_file; }
 
@@ -36,8 +36,8 @@ class Genode::Child_policy_dynamic_rom_file : public Rpc_object<Rom_session>,
 		Child_policy_dynamic_rom_file(Child_policy_dynamic_rom_file const &);
 		Child_policy_dynamic_rom_file &operator = (Child_policy_dynamic_rom_file const &);
 
-		Ram_session *_ram;
-		Region_map  &_rm;
+		Ram_allocator *_ram;
+		Region_map    &_rm;
 
 		/*
 		 * The ROM module may be written and consumed by different threads,
@@ -85,33 +85,10 @@ class Genode::Child_policy_dynamic_rom_file : public Rpc_object<Rom_session>,
 		Child_policy_dynamic_rom_file(Region_map     &rm,
 		                              char const     *module_name,
 		                              Rpc_entrypoint &ep,
-		                              Ram_session    *ram)
+		                              Ram_allocator  *ram)
 		:
 			Service("ROM"),
 			_ram(ram), _rm(rm),
-			_fg(*_ram, _rm, 0), _bg(*_ram, _rm, 0),
-			_bg_has_pending_data(false),
-			_ep(ep),
-			_rom_session_cap(_ep.manage(this)),
-			_module_name(module_name)
-		{ }
-
-		/**
-		 * Constructor
-		 *
-		 * \param ram  RAM session used to allocate the backing store
-		 *             for buffering ROM module data
-		 *
-		 * \deprecated
-		 *
-		 * If 'ram' is 0, the child policy is ineffective.
-		 */
-		Child_policy_dynamic_rom_file(char const     *module_name,
-		                              Rpc_entrypoint &ep,
-		                              Ram_session    *ram) __attribute__((deprecated))
-		:
-			Service("ROM"),
-			_ram(ram), _rm(*env_deprecated()->rm_session()),
 			_fg(*_ram, _rm, 0), _bg(*_ram, _rm, 0),
 			_bg_has_pending_data(false),
 			_ep(ep),
@@ -219,16 +196,15 @@ class Genode::Child_policy_dynamic_rom_file : public Rpc_object<Rom_session>,
 		 ** Policy interface **
 		 **********************/
 
-		Service *resolve_session_request(const char *service_name,
-		                                 const char *args)
+		Service *resolve_session_request(Service::Name const &name,
+		                                 Session_label const &label)
 		{
-			if (!_ram) return 0;
+			if (!_ram) return nullptr;
 
 			/* ignore session requests for non-ROM services */
-			if (strcmp(service_name, "ROM")) return 0;
+			if (name != "ROM") return nullptr;
 
 			/* drop out if request refers to another module name */
-			Session_label const label = label_from_args(args);
 			return _module_name == label.last_element() ? this : 0;
 		}
 };

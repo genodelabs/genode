@@ -219,32 +219,16 @@ class Uart::Root : public Uart::Root_component
 
 		Session_component *_create_session(const char *args)
 		{
-			try {
-				Session_label  label = label_from_args(args);
-				Session_policy policy(label, _config.xml());
+			Session_label  const label = label_from_args(args);
+			Session_policy const policy(label, _config.xml());
 
-				unsigned index = 0;
-				policy.attribute("uart").value(&index);
+			unsigned const index       = policy.attribute_value("uart",        0U);
+			unsigned const baudrate    = policy.attribute_value("baudrate",    0U);
+			bool     const detect_size = policy.attribute_value("detect_size", false);
 
-				unsigned baudrate = 0;
-				try {
-					policy.attribute("baudrate").value(&baudrate);
-				} catch (Xml_node::Nonexistent_attribute) { }
-
-				bool detect_size = policy.attribute_value("detect_size", false);
-
-				return new (md_alloc())
-					Session_component(_env, _driver_factory, index,
-					                  baudrate, detect_size);
-			}
-			catch (Xml_node::Nonexistent_attribute) {
-				Genode::error("Missing \"uart\" attribute in policy definition");
-				throw Genode::Service_denied();
-			}
-			catch (Session_policy::No_policy_defined) {
-				Genode::error("Invalid session request, no matching policy");
-				throw Genode::Service_denied();
-			}
+			return new (md_alloc())
+				Session_component(_env, _driver_factory, index,
+				                  baudrate, detect_size);
 		}
 
 	public:

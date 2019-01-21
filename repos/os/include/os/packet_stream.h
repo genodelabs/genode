@@ -78,6 +78,7 @@
 /* Genode includes */
 #include <base/env.h>
 #include <base/signal.h>
+#include <base/allocator.h>
 #include <dataspace/client.h>
 #include <util/string.h>
 #include <util/construct_at.h>

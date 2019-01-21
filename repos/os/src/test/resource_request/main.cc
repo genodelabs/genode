@@ -139,7 +139,7 @@ void Component::construct(Genode::Env &env)
 	 * Consume initial quota to let the test trigger the corner cases of
 	 * exceeded quota.
 	 */
-	size_t const avail_quota = env.ram().avail_ram().value;
+	size_t const avail_quota = env.pd().avail_ram().value;
 	enum { KEEP_QUOTA = 64*1024 };
 	size_t const wasted_quota = (avail_quota >= KEEP_QUOTA)
 	                          ?  avail_quota -  KEEP_QUOTA : 0;
@@ -148,7 +148,7 @@ void Component::construct(Genode::Env &env)
 
 	log("wasted available quota of ", wasted_quota, " bytes");
 
-	print_quota_stats(env.ram());
+	print_quota_stats(env.pd());
 
 	/*
 	 * Drain PD session by allocating a lot of signal-context capabilities.
@@ -167,13 +167,13 @@ void Component::construct(Genode::Env &env)
 		for (unsigned i = 0; i < NUM_SIGH; i++)
 			dummy_handlers[i].construct(env.ep());
 
-		print_quota_stats(env.ram());
+		print_quota_stats(env.pd());
 
 		for (unsigned i = 0; i < NUM_SIGH; i++)
 			dummy_handlers[i].destruct();
 	}
-	print_quota_stats(env.ram());
-	size_t const used_quota_after_draining_session = env.ram().used_ram().value;
+	print_quota_stats(env.pd());
+	size_t const used_quota_after_draining_session = env.pd().used_ram().value;
 
 	/*
 	 * When creating a new session, we try to donate RAM quota to the server.
@@ -183,26 +183,26 @@ void Component::construct(Genode::Env &env)
 	log("\n-- out-of-memory during session request --");
 	static Pd_connection pd(env);
 	pd.ref_account(env.pd_session_cap());
-	print_quota_stats(env.ram());
-	size_t const used_quota_after_session_request = env.ram().used_ram().value;
+	print_quota_stats(env.pd());
+	size_t const used_quota_after_session_request = env.pd().used_ram().value;
 
 	/*
 	 * Quota transfers from the component's RAM session may result in resource
 	 * requests, too.
 	 */
 	log("\n-- out-of-memory during transfer-quota --");
-	env.ram().transfer_quota(pd.cap(), Ram_quota{512*1024});
-	print_quota_stats(env.ram());
-	size_t const used_quota_after_transfer = env.ram().used_ram().value;
+	env.pd().transfer_quota(pd.cap(), Ram_quota{512*1024});
+	print_quota_stats(env.pd());
+	size_t const used_quota_after_transfer = env.pd().used_ram().value;
 
 	/*
 	 * Finally, resource requests could be caused by a regular allocation,
 	 * which is the most likely case in normal scenarios.
 	 */
 	log("\n-- out-of-memory during RAM allocation --");
-	env.ram().alloc(512*1024);
-	print_quota_stats(env.ram());
-	size_t const used_quota_after_alloc = env.ram().used_ram().value;
+	env.pd().alloc(512*1024);
+	print_quota_stats(env.pd());
+	size_t const used_quota_after_alloc = env.pd().used_ram().value;
 
 	/*
 	 * Validate asserted effect of the individual steps on the used quota.

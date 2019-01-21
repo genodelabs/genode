@@ -37,12 +37,12 @@ class Net::Communication_buffer : public Genode::Ram_dataspace_capability
 {
 	private:
 
-		Genode::Ram_session &_ram;
+		Genode::Ram_allocator &_ram;
 
 	public:
 
-		Communication_buffer(Genode::Ram_session  &ram,
-		                     Genode::size_t const  size);
+		Communication_buffer(Genode::Ram_allocator &ram,
+		                     Genode::size_t const size);
 
 		~Communication_buffer() { _ram.free(*this); }
 };
@@ -59,11 +59,11 @@ class Net::Session_component_base
 
 	public:
 
-		Session_component_base(Genode::Allocator    &guarded_alloc_backing,
-		                       Genode::size_t const  guarded_alloc_amount,
-		                       Genode::Ram_session  &buf_ram,
-		                       Genode::size_t const  tx_buf_size,
-		                       Genode::size_t const  rx_buf_size);
+		Session_component_base(Genode::Allocator     &guarded_alloc_backing,
+		                       Genode::size_t const   guarded_alloc_amount,
+		                       Genode::Ram_allocator &buf_ram,
+		                       Genode::size_t const   tx_buf_size,
+		                       Genode::size_t const   rx_buf_size);
 };
 
 

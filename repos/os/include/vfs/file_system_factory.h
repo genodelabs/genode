@@ -72,11 +72,6 @@ class Vfs::Global_file_system_factory : public Vfs::File_system_factory
 		}
 
 		/**
-		 * Return name of VFS node
-		 */
-		Node_name _node_name(Genode::Xml_node node);
-
-		/**
 		 * Return matching library name for a given vfs node name
 		 */
 		Library_name _library_name(Node_name const &node_name);

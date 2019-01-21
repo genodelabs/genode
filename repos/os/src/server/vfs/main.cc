@@ -853,34 +853,34 @@ class Vfs_server::Root : public Genode::Root_component<Session_component>
 			/* pull in policy changes */
 			_config_rom.update();
 
-			char tmp[MAX_PATH_LEN];
-			try {
-				Session_policy policy(label, _config_rom.xml());
+			typedef String<MAX_PATH_LEN> Root_path;
 
-				/* determine optional session root offset. */
-				try {
-					policy.attribute("root").value(tmp, sizeof(tmp));
-					session_root.import(tmp, "/");
-				} catch (Xml_node::Nonexistent_attribute) { }
+			Session_policy policy(label, _config_rom.xml());
 
-				/*
-				 * Determine if the session is writeable.
-				 * Policy overrides client argument, both default to false.
-				 */
-				if (policy.attribute_value("writeable", false))
-					writeable = Arg_string::find_arg(args, "writeable").bool_value(false);
-
-			} catch (Session_policy::No_policy_defined) {
-				/* missing policy - deny request */
+			/* check and apply session root offset */
+			if (!policy.has_attribute("root")) {
+				error("policy lacks 'root' attribute");
 				throw Service_denied();
 			}
+			Root_path const root_path = policy.attribute_value("root", Root_path());
+			session_root.import(root_path.string(), "/");
+
+			/*
+			 * Determine if the session is writeable.
+			 * Policy overrides client argument, both default to false.
+			 */
+			if (policy.attribute_value("writeable", false))
+				writeable = Arg_string::find_arg(args, "writeable").bool_value(false);
 
 			/* apply client's root offset. */
-			Arg_string::find_arg(args, "root").string(tmp, sizeof(tmp), "/");
-			if (Genode::strcmp("/", tmp, sizeof(tmp))) {
-				session_root.append("/");
-				session_root.append(tmp);
-				session_root.remove_trailing('/');
+			{
+				char tmp[MAX_PATH_LEN] { };
+				Arg_string::find_arg(args, "root").string(tmp, sizeof(tmp), "/");
+				if (Genode::strcmp("/", tmp, sizeof(tmp))) {
+					session_root.append("/");
+					session_root.append(tmp);
+					session_root.remove_trailing('/');
+				}
 			}
 
 			/* check if the session root exists */
@@ -942,7 +942,7 @@ class Vfs_server::Root : public Genode::Root_component<Session_component>
 
 void Component::construct(Genode::Env &env)
 {
-	static Genode::Sliced_heap sliced_heap { &env.ram(), &env.rm() };
+	static Genode::Sliced_heap sliced_heap { env.ram(), env.rm() };
 
 	static Vfs_server::Root root { env, sliced_heap };
 }

@@ -823,13 +823,13 @@ struct Port_driver : Port, Block::Driver
 	Ahci_root &root;
 	unsigned  &sem;
 
-	Port_driver(Genode::Ram_session &ram,
-	            Ahci_root           &root,
-	            unsigned            &sem,
-	            Genode::Region_map  &rm,
-	            Hba                 &hba,
-	            Platform::Hba       &platform_hba,
-	            unsigned             number)
+	Port_driver(Genode::Ram_allocator &ram,
+	            Ahci_root             &root,
+	            unsigned              &sem,
+	            Genode::Region_map    &rm,
+	            Hba                   &hba,
+	            Platform::Hba         &platform_hba,
+	            unsigned               number)
 	: Port(rm, hba, platform_hba, number), Block::Driver(ram), root(root),
 	  sem(sem) { sem++; }
 

@@ -42,7 +42,7 @@ class Nitpicker::Buffer
 		 * \throw Out_of_caps
 		 * \throw Region_map::Region_conflict
 		 */
-		Buffer(Ram_session &ram, Region_map &rm,
+		Buffer(Ram_allocator &ram, Region_map &rm,
 		       Area size, Framebuffer::Mode::Format format, size_t bytes)
 		:
 			_size(size), _format(format), _ram_ds(ram, rm, bytes)

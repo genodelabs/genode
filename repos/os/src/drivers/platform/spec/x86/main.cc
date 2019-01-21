@@ -72,13 +72,13 @@ struct Platform::Main
 
 	void system_update()
 	{
-		if (acpi_ready.is_constructed())
+		if (acpi_ready.constructed())
 			acpi_ready->update();
 
-		if (!root.is_constructed())
+		if (!root.constructed())
 			return;
 
-		if (acpi_ready.is_constructed() && acpi_ready->is_valid()) {
+		if (acpi_ready.constructed() && acpi_ready->valid()) {
 			Genode::Xml_node system(acpi_ready->local_addr<char>(),
 			                        acpi_ready->size());
 

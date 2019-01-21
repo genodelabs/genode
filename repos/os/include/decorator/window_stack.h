@@ -45,7 +45,7 @@ class Decorator::Window_stack : public Window_base::Draw_behind_fn
 		{
 			for (node = node.sub_node("window"); ; node = node.next()) {
 
-				if (node.has_type("window") && attribute(node, "id", 0UL) == id)
+				if (node.has_type("window") && node.attribute_value("id", 0UL) == id)
 					return node;
 
 				if (node.last()) break;

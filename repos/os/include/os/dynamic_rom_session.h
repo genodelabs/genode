@@ -48,7 +48,7 @@ class Genode::Dynamic_rom_session : public Rpc_object<Rom_session>
 		Lock _lock { };
 
 		Rpc_entrypoint            &_ep;
-		Ram_session               &_ram;
+		Ram_allocator             &_ram;
 		Region_map                &_rm;
 		Signal_context_capability  _sigh { };
 		Content_producer          &_content_producer;
@@ -135,7 +135,7 @@ class Genode::Dynamic_rom_session : public Rpc_object<Rom_session>
 		 * Constructor
 		 *
 		 * \param ep                entrypoint serving the ROM session
-		 * \param ram               RAM session used to allocate the backing
+		 * \param ram               Allocator used to allocate the backing
 		 *                          store for the dataspace handed out to the
 		 *                          client
 		 * \param rm                local region map ('env.rm()') required to
@@ -147,7 +147,7 @@ class Genode::Dynamic_rom_session : public Rpc_object<Rom_session>
 		 * The 'Dynamic_rom_session' associates/disassociates itself with 'ep'.
 		 */
 		Dynamic_rom_session(Rpc_entrypoint   &ep,
-		                    Ram_session      &ram,
+		                    Ram_allocator    &ram,
 		                    Region_map       &rm,
 		                    Content_producer &content_producer)
 		:

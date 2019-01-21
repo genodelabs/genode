@@ -42,7 +42,7 @@ class Tar_rom::Rom_session_component : public Rpc_object<Rom_session>
 		Rom_session_component(Rom_session_component const &);
 		Rom_session_component &operator = (Rom_session_component const &);
 
-		Ram_session &_ram;
+		Ram_allocator &_ram;
 
 		char const * const _tar_addr;
 		size_t       const _tar_size;
@@ -76,7 +76,7 @@ class Tar_rom::Rom_session_component : public Rpc_object<Rom_session>
 		/**
 		 * Initialize dataspace containing the content of the archived file
 		 */
-		Ram_dataspace_capability _init_file_ds(Ram_session &ram, Region_map &rm,
+		Ram_dataspace_capability _init_file_ds(Ram_allocator &ram, Region_map &rm,
 		                                       Session_label const &name)
 		{
 			/* measure size of archive in blocks */
@@ -151,7 +151,7 @@ class Tar_rom::Rom_session_component : public Rpc_object<Rom_session>
 		 *
 		 * \throw Service_denied
 		 */
-		Rom_session_component(Ram_session &ram, Region_map &rm,
+		Rom_session_component(Ram_allocator &ram, Region_map &rm,
 		                      char const *tar_addr, unsigned tar_size,
 		                      Session_label const &label)
 		:

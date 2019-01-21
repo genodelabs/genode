@@ -16,6 +16,7 @@
 
 /* Genode includes */
 #include <timer_session/connection.h>
+#include <base/allocator.h>
 #include <net/dhcp.h>
 
 namespace Net {

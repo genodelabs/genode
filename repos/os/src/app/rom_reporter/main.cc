@@ -53,7 +53,8 @@ struct Rom_reporter::Rom_module
 			_reporter->enabled(true);
 		}
 
-		_reporter->report(xml.addr(), content_size);
+		xml.with_raw_node([&] (char const *start, size_t length) {
+			_reporter->report(start, length); });
 	}
 
 	Rom_module(Env &env, Label const &label) : _env(env), _label(label)

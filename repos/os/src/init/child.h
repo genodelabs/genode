@@ -286,15 +286,18 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 				if (config_len + 1 /* null termination */ >= dst_len)
 					throw Buffer_capacity_exceeded();
 
-				/*
-				 * The 'config.size()' method returns the number of bytes of
-				 * the config-node content, which is not null-terminated. Since
-				 * 'Genode::strncpy' always null-terminates the result, the
-				 * last byte of the source string is not copied. Hence, it is
-				 * safe to add '1' to 'config_len' and thereby include the
-				 * last actual config-content character in the result.
-				 */
-				Genode::strncpy(dst, config.addr(), config_len + 1);
+				config.with_raw_node([&] (char const *start, size_t length) {
+
+					/*
+					 * The 'length' is the number of bytes of the config-node
+					 * content, which is not null-terminated. Since
+					 * 'Genode::strncpy' always null-terminates the result, the
+					 * last byte of the source string is not copied. Hence, it
+					 * is safe to add '1' to 'length' and thereby include the
+					 * last actual config-content character in the result.
+					 */
+					Genode::strncpy(dst, start, length + 1);
+				});
 			}
 
 			void trigger_update() { _session.trigger_update(); }
@@ -337,20 +340,27 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 
 		Genode::Child _child { _env.rm(), _env.ep().rpc_ep(), *this };
 
-		struct Ram_pd_accessor : Routed_service::Ram_accessor,
-		                         Routed_service::Pd_accessor
+		struct Pd_accessor : Routed_service::Pd_accessor
 		{
 			Genode::Child &_child;
 
-			Ram_pd_accessor(Genode::Child &child) : _child(child) { }
+			Pd_accessor(Genode::Child &child) : _child(child) { }
 
-			Ram_session           &ram()           override { return _child.ram(); }
-			Ram_session_capability ram_cap() const override { return _child.ram_session_cap(); }
+			Pd_session           &pd()            override { return _child.pd(); }
+			Pd_session_capability pd_cap()  const override { return _child.pd_session_cap(); }
 
-			Pd_session            &pd()            override { return _child.pd(); }
-			Pd_session_capability  pd_cap()  const override { return _child.pd_session_cap(); }
+		} _pd_accessor { _child };
 
-		} _ram_pd_accessor { _child };
+		struct Ram_accessor : Routed_service::Ram_accessor
+		{
+			Genode::Child &_child;
+
+			Ram_accessor(Genode::Child &child) : _child(child) { }
+
+			Pd_session           &ram()            override { return _child.pd(); }
+			Pd_session_capability ram_cap()  const override { return _child.pd_session_cap(); }
+
+		} _ram_accessor { _child };
 
 		/**
 		 * Async_service::Wakeup callback
@@ -418,7 +428,7 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 
 			new (_alloc)
 				Routed_service(_child_services, this->name(),
-				               _ram_pd_accessor, _ram_pd_accessor,
+				               _pd_accessor, _ram_accessor,
 				               _session_requester.id_space(),
 				               _child.session_factory(),
 				               name, *this);
@@ -481,7 +491,7 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 		Ram_quota ram_quota() const { return _resources.assigned_ram_quota; }
 		Cap_quota cap_quota() const { return _resources.assigned_cap_quota; }
 
-		void initiate_env_ram_session()
+		void initiate_env_pd_session()
 		{
 			if (_state == STATE_INITIAL) {
 				_child.initiate_env_ram_session();

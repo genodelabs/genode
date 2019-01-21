@@ -11,9 +11,11 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#pragma once
+#ifndef _X86__IRQ_H_
+#define _X86__IRQ_H_
 
 #include <base/rpc_server.h>
+#include <base/allocator.h>
 #include <util/list.h>
 #include <irq_session/connection.h>
 
@@ -182,3 +184,5 @@ class Platform::Irq_routing : public Genode::List<Platform::Irq_routing>::Elemen
 		static unsigned short rewrite(unsigned char bus, unsigned char dev,
 		                              unsigned char func, unsigned char pin);
 };
+
+#endif /* _X86__IRQ_H_ */

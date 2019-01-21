@@ -16,6 +16,7 @@
 
 /* Genode includes */
 #include <util/xml_node.h>
+#include <base/allocator.h>
 
 namespace Genode { class Buffered_xml; }
 
@@ -33,8 +34,13 @@ class Genode::Buffered_xml
 		 */
 		static char const *_init_ptr(Allocator &alloc, Xml_node node)
 		{
-			char *ptr = (char *)alloc.alloc(node.size());
-			Genode::memcpy(ptr, node.addr(), node.size());
+			char *ptr = nullptr;
+
+			node.with_raw_node([&] (char const *start, size_t length) {
+				ptr = (char *)alloc.alloc(length);
+				Genode::memcpy(ptr, start, length);
+			});
+
 			return ptr;
 		}
 

@@ -547,7 +547,7 @@ void Component::construct(Genode::Env &env)
 	/* populate the directory file system at / */
 	vfs_root.num_dirent("/");
 
-	size_t initial_consumption = env.ram().used_ram().value;
+	size_t initial_consumption = env.pd().used_ram().value;
 
 	/**************************
 	 ** Generate directories **
@@ -572,7 +572,7 @@ void Component::construct(Genode::Env &env)
 		if (count > 0)
 			log("created ",count," empty directories, ",
 			    (elapsed_ms*1000)/count,"μs/op , ",
-			    env.ram().used_ram().value/1024,"KiB consumed");
+			    env.pd().used_ram().value/1024,"KiB consumed");
 	}
 
 
@@ -597,7 +597,7 @@ void Component::construct(Genode::Env &env)
 		if (count > 0)
 			log("created ",count," empty files, ",
 			    (elapsed_ms*1000)/count,"μs/op, ",
-			    env.ram().used_ram().value/1024,"KiB consumed");
+			    env.pd().used_ram().value/1024,"KiB consumed");
 	}
 
 
@@ -607,7 +607,7 @@ void Component::construct(Genode::Env &env)
 
 	if (!config_xml.attribute_value("write", true)) {
 		elapsed_ms = timer.elapsed_ms();
-		log("total: ",elapsed_ms,"ms, ",env.ram().used_ram().value/1024,"K consumed");
+		log("total: ",elapsed_ms,"ms, ",env.pd().used_ram().value/1024,"K consumed");
 		return die(env, 0);
 	}
 	{
@@ -629,10 +629,10 @@ void Component::construct(Genode::Env &env)
 		if (elapsed_ms > 0)
 			log("wrote ",count," bytes, ",
 			    count/elapsed_ms,"kB/s, ",
-			    env.ram().used_ram().value/1024,"KiB consumed");
+			    env.pd().used_ram().value/1024,"KiB consumed");
 		else
 			log("wrote ",count," bytes, ",
-			    env.ram().used_ram().value/1024,"KiB consumed");
+			    env.pd().used_ram().value/1024,"KiB consumed");
 	}
 
 
@@ -643,7 +643,7 @@ void Component::construct(Genode::Env &env)
 	if (!config_xml.attribute_value("read", true)) {
 		elapsed_ms = timer.elapsed_ms();
 
-		log("total: ",elapsed_ms,"ms, ",env.ram().used_ram().value/1024,"KiB consumed");
+		log("total: ",elapsed_ms,"ms, ",env.pd().used_ram().value/1024,"KiB consumed");
 		return die(env, 0);
 	}
 	{
@@ -664,10 +664,10 @@ void Component::construct(Genode::Env &env)
 		if (elapsed_ms > 0)
 			log("read ",count," bytes, ",
 			    count/elapsed_ms,"kB/s, ",
-			    env.ram().used_ram().value/1024,"KiB consumed");
+			    env.pd().used_ram().value/1024,"KiB consumed");
 		else
 			log("read ",count," bytes, ",
-			    env.ram().used_ram().value/1024,"KiB consumed");
+			    env.pd().used_ram().value/1024,"KiB consumed");
 	}
 
 
@@ -677,7 +677,7 @@ void Component::construct(Genode::Env &env)
 
 	if (!config_xml.attribute_value("unlink", true)) {
 		elapsed_ms = timer.elapsed_ms();
-		log("total: ",elapsed_ms,"ms, ",env.ram().used_ram().value/1024,"KiB consumed");
+		log("total: ",elapsed_ms,"ms, ",env.pd().used_ram().value/1024,"KiB consumed");
 		return die(env, 0);
 
 	}
@@ -699,13 +699,13 @@ void Component::construct(Genode::Env &env)
 		vfs_root_sync();
 
 		log("unlinked ",count," files in ",elapsed_ms,"ms, ",
-		    env.ram().used_ram().value/1024,"KiB consumed");
+		    env.pd().used_ram().value/1024,"KiB consumed");
 	}
 
 	log("total: ",timer.elapsed_ms(),"ms, ",
-	    env.ram().used_ram().value/1024,"KiB consumed");
+	    env.pd().used_ram().value/1024,"KiB consumed");
 
-	size_t outstanding = env.ram().used_ram().value - initial_consumption;
+	size_t outstanding = env.pd().used_ram().value - initial_consumption;
 	if (outstanding) {
 		if (outstanding < 1024)
 			error(outstanding, "B not freed after unlink and sync!");

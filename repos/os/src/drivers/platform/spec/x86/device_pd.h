@@ -75,7 +75,7 @@ class Platform::Device_pd
 								enum { UPGRADE_CAP_QUOTA = 2 };
 								Genode::Cap_quota const caps { UPGRADE_CAP_QUOTA };
 								_cap_guard.withdraw(caps);
-								_env.pd().transfer_quota(_pd, caps);
+								_env.pd().transfer_quota(_pd.rpc_cap(), caps);
 							}
 						);
 					},
@@ -83,7 +83,7 @@ class Platform::Device_pd
 						enum { UPGRADE_RAM_QUOTA = 4096 };
 						Genode::Ram_quota const ram { UPGRADE_RAM_QUOTA };
 						_ram_guard.withdraw(ram);
-						_env.pd().transfer_quota(_pd, ram);
+						_env.pd().transfer_quota(_pd.rpc_cap(), ram);
 					}
 				);
 			}

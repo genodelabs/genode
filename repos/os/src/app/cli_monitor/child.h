@@ -31,14 +31,13 @@ struct Cli_monitor::Child : Child_base, private List<Child>::Element
 
 	Argument argument;
 
-	Child(Ram                              &ram,
+	Child(Genode::Env                      &env,
+	      Ram                              &ram,
 	      Genode::Allocator                &alloc,
 	      Name                       const &label,
 	      Binary_name                const &binary,
 	      Genode::Pd_session               &ref_pd,
 	      Genode::Pd_session_capability     ref_pd_cap,
-	      Genode::Ram_session              &ref_ram,
-	      Genode::Ram_session_capability    ref_ram_cap,
 	      Genode::Region_map               &local_rm,
 	      Cap_quota                         cap_quota,
 	      Genode::size_t                    ram_quota,
@@ -46,14 +45,13 @@ struct Cli_monitor::Child : Child_base, private List<Child>::Element
 	      Genode::Signal_context_capability yield_response_sig_cap,
 	      Genode::Signal_context_capability exit_sig_cap)
 	:
-		Child_base(ram,
+		Child_base(env,
+		           ram,
 		           alloc,
 		           label,
 		           binary,
 		           ref_pd,
 		           ref_pd_cap,
-		           ref_ram,
-		           ref_ram_cap,
 		           local_rm,
 		           cap_quota,
 		           ram_quota,

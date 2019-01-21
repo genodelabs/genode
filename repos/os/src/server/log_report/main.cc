@@ -41,7 +41,7 @@ class Report::Session_component : public Genode::Rpc_object<Session>
 
 	public:
 
-		Session_component(Ram_session                 &ram,
+		Session_component(Ram_allocator               &ram,
 		                  Region_map                  &rm,
 		                  Genode::Session_label const &label,
 		                  size_t                       buffer_size)
@@ -75,8 +75,8 @@ class Report::Root : public Genode::Root_component<Session_component>
 {
 	private:
 
-		Ram_session &_ram;
-		Region_map  &_rm;
+		Ram_allocator &_ram;
+		Region_map    &_rm;
 
 	protected:
 
@@ -98,7 +98,7 @@ class Report::Root : public Genode::Root_component<Session_component>
 	public:
 
 		Root(Entrypoint &ep, Genode::Allocator &md_alloc,
-		     Ram_session &ram, Region_map &rm)
+		     Ram_allocator &ram, Region_map &rm)
 		:
 			Genode::Root_component<Session_component>(&ep.rpc_ep(), &md_alloc),
 			_ram(ram), _rm(rm)

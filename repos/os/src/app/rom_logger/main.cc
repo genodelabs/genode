@@ -67,17 +67,17 @@ void Rom_logger::Main::_handle_update()
 	/*
 	 * Query name of ROM module from config
 	 */
-	Rom_name rom_name;
-	try {
-		_config_rom.xml().attribute("rom").value(&rom_name);
-	} catch (...) {
+	Genode::Xml_node const config = _config_rom.xml();
+
+	if (!config.has_attribute("rom")) {
 		Genode::warning("could not determine ROM name from config");
 		return;
 	}
 
+	Rom_name const rom_name = config.attribute_value("rom", Rom_name());
+
 	typedef Genode::String<8> Format_string;
-	Format_string format =
-		_config_rom.xml().attribute_value("format", Format_string("text"));
+	Format_string const format = config.attribute_value("format", Format_string("text"));
 
 	/*
 	 * If ROM name changed, reconstruct '_rom_ds'

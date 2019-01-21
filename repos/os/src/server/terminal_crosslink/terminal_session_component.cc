@@ -14,9 +14,7 @@
 
 /* Genode includes */
 #include <base/env.h>
-#include <base/printf.h>
 #include <base/rpc_server.h>
-#include <base/signal.h>
 #include <util/misc_math.h>
 
 /* local includes */

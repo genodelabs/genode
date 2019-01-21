@@ -341,15 +341,12 @@ class Vfs::Block_file_system : public Single_file_system
 			_env(env),
 			_label(config.attribute_value("label", Label())),
 			_block_buffer(0),
-			_block_buffer_count(1),
+			_block_buffer_count(config.attribute_value("block_buffer_count", 1UL)),
 			_tx_source(_block.tx()),
 			_readable(false),
 			_writeable(false),
 			_source_submit_cap(_signal_receiver.manage(&_signal_context))
 		{
-			try { config.attribute("block_buffer_count").value(&_block_buffer_count); }
-			catch (...) { }
-
 			_block.info(&_block_count, &_block_size, &_block_ops);
 
 			_readable  = _block_ops.supported(Block::Packet_descriptor::READ);

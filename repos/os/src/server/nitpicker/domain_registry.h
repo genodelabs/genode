@@ -183,20 +183,12 @@ class Nitpicker::Domain_registry
 
 		void _insert(Xml_node domain)
 		{
-			char buf[sizeof(Entry::Name)];
-			buf[0] = 0;
-			bool name_defined = false;
-			try {
-				domain.attribute("name").value(buf, sizeof(buf));
-				name_defined = true;
-			} catch (...) { }
+			Entry::Name const name = domain.attribute_value("name", Entry::Name());
 
-			if (!name_defined) {
+			if (!name.valid()) {
 				error("no valid domain name specified");
 				return;
 			}
-
-			Entry::Name const name(buf);
 
 			if (lookup(name)) {
 				error("domain name \"", name, "\" is not unique");

@@ -17,10 +17,10 @@
 /* Genode includes */
 #include <base/log.h>
 #include <base/heap.h>
+#include <base/ram_allocator.h>
 #include <nic/packet_allocator.h>
 #include <nic_session/rpc_object.h>
 #include <nic_session/connection.h>
-#include <os/ram_session_guard.h>
 #include <os/session_policy.h>
 #include <root/component.h>
 #include <util/arg_string.h>
@@ -50,18 +50,24 @@ class Net::Stream_allocator
 {
 	protected:
 
-		Genode::Ram_session_guard _ram;
-		Genode::Heap              _heap;
-		::Nic::Packet_allocator   _range_alloc;
+		Genode::Ram_quota_guard           _ram_guard;
+		Genode::Cap_quota_guard           _cap_guard;
+		Genode::Constrained_ram_allocator _ram;
+		Genode::Heap                      _heap;
+		::Nic::Packet_allocator           _range_alloc;
 
 	public:
 
-		Stream_allocator(Genode::Ram_session &ram,
-		                 Genode::Region_map  &rm,
-		                 Genode::size_t     amount)
-		: _ram(ram, amount),
-		  _heap(ram, rm),
-		  _range_alloc(&_heap) {}
+		Stream_allocator(Genode::Ram_allocator &ram,
+		                 Genode::Region_map    &rm,
+		                 Genode::Ram_quota      ram_quota,
+		                 Genode::Cap_quota      cap_quota)
+		:
+			_ram_guard(ram_quota), _cap_guard(cap_quota),
+			_ram(ram, _ram_guard, _cap_guard),
+			_heap(ram, rm),
+			_range_alloc(&_heap)
+		{ }
 
 		Genode::Range_allocator *range_allocator() {
 			return static_cast<Genode::Range_allocator *>(&_range_alloc); }
@@ -70,9 +76,9 @@ class Net::Stream_allocator
 
 struct Net::Stream_dataspace : Genode::Ram_dataspace_capability
 {
-	Genode::Ram_session &ram;
+	Genode::Ram_allocator &ram;
 
-	Stream_dataspace(Genode::Ram_session &ram, Genode::size_t size)
+	Stream_dataspace(Genode::Ram_allocator &ram, Genode::size_t size)
 	: Genode::Ram_dataspace_capability(ram.alloc(size)), ram(ram) { }
 
 	~Stream_dataspace() { ram.free(*this); }
@@ -83,7 +89,7 @@ struct Net::Stream_dataspaces
 {
 	Stream_dataspace tx_ds, rx_ds;
 
-	Stream_dataspaces(Genode::Ram_session &ram, Genode::size_t tx_size,
+	Stream_dataspaces(Genode::Ram_allocator &ram, Genode::size_t tx_size,
 	                  Genode::size_t rx_size)
 	: tx_ds(ram, tx_size), rx_ds(ram, rx_size) { }
 };
@@ -112,6 +118,8 @@ class Net::Session_component : private Net::Stream_allocator,
 
 	public:
 
+		typedef Genode::String<32> Ip_addr;
+
 		/**
 		 * Constructor
 		 *
@@ -123,17 +131,18 @@ class Net::Session_component : private Net::Stream_allocator,
 		 * \param rx_buf_size  buffer size for rx channel
 		 * \param vmac         virtual mac address
 		 */
-		Session_component(Genode::Ram_session         &ram,
+		Session_component(Genode::Ram_allocator       &ram,
 		                  Genode::Region_map          &rm,
 		                  Genode::Entrypoint          &ep,
-		                  Genode::size_t               amount,
+		                  Genode::Ram_quota            ram_quota,
+		                  Genode::Cap_quota            cap_quota,
 		                  Genode::size_t               tx_buf_size,
 		                  Genode::size_t               rx_buf_size,
 		                  Mac_address                  vmac,
 		                  Net::Nic                    &nic,
 		                  bool                  const &verbose,
 		                  Genode::Session_label const &label,
-		                  char                        *ip_addr = 0);
+		                  Ip_addr               const &ip_addr);
 
 		~Session_component();
 
@@ -200,66 +209,84 @@ class Net::Root : public Genode::Root_component<Net::Session_component>
 		Genode::Xml_node  _config;
 		bool       const &_verbose;
 
+		struct Policy
+		{
+			Session_component::Ip_addr ip_addr;
+
+			Mac_address mac;
+		};
+
+		static Policy _session_policy(Genode::Session_label const &label,
+		                              Genode::Xml_node             config,
+		                              Mac_allocator               &mac_alloc)
+		{
+			using namespace Genode;
+
+			typedef Session_component::Ip_addr Ip_addr;
+
+			Ip_addr ip_addr { };
+
+			try {
+				Session_policy const policy(label, config);
+
+				/* read IP address from policy */
+				if (!policy.has_attribute("ip_addr"))
+					warning("Missing \"ip_addr\" attribute in policy definition");
+
+				ip_addr = policy.attribute_value("ip_addr", Ip_addr());
+
+				/* determine session MAC address */
+				if (policy.has_attribute("mac")) {
+
+					Mac_address const mac = policy.attribute_value("mac", Mac_address());
+
+					if (mac_alloc.mac_managed_by_allocator(mac)) {
+						Genode::warning("Bad MAC address in policy");
+						throw Service_denied();
+					}
+					return Policy { .ip_addr = ip_addr, .mac = mac };
+				}
+
+			} catch (Session_policy::No_policy_defined) { }
+
+			/*
+			 * If no policy is defined or if the policy lacks a 'mac'
+			 * attribute, allocate a MAC from the allocator.
+			 */
+			auto alloc_mac = [&] ()
+			{
+				try { return mac_alloc.alloc(); }
+				catch (Mac_allocator::Alloc_failed) {
+					Genode::warning("MAC address allocation failed!"); }
+
+				throw Service_denied();
+			};
+
+			return Policy { .ip_addr = ip_addr, .mac = alloc_mac() };
+		}
+
 	protected:
 
 		Session_component *_create_session(const char *args)
 		{
 			using namespace Genode;
 
-			enum { MAX_IP_ADDR_LENGTH  = 16, };
-			char ip_addr[MAX_IP_ADDR_LENGTH];
-			memset(ip_addr, 0, MAX_IP_ADDR_LENGTH);
+			Session_label const label = label_from_args(args);
 
-			Session_label label;
-			Mac_address mac;
-			try {
-				label = label_from_args(args);
-				Session_policy policy(label, _config);
+			Policy const policy = _session_policy(label, _config, _mac_alloc);
 
-				/* determine session MAC address */
-				try {
-					policy.attribute("mac").value<Mac_address>(&mac);
-					if (_mac_alloc.mac_managed_by_allocator(mac)) {
-						Genode::warning("Bad MAC address in policy");
-						throw Service_denied();
-					}
-				}
-				catch (Xml_node::Nonexistent_attribute) {
-					mac = _mac_alloc.alloc(); }
-
-				policy.attribute("ip_addr").value(ip_addr, sizeof(ip_addr));
-			}
-			catch (Xml_node::Nonexistent_attribute) {
-				Genode::log("Missing \"ip_addr\" attribute in policy definition"); }
-
-			catch (Session_policy::No_policy_defined) {
-				mac = _mac_alloc.alloc(); }
-
-			catch (Mac_allocator::Alloc_failed) {
-				Genode::warning("Mac address allocation failed!");
-				throw Service_denied();
-			}
-			size_t ram_quota =
-				Arg_string::find_arg(args, "ram_quota"  ).ulong_value(0);
-			size_t tx_buf_size =
+			size_t const tx_buf_size =
 				Arg_string::find_arg(args, "tx_buf_size").ulong_value(0);
-			size_t rx_buf_size =
+			size_t const rx_buf_size =
 				Arg_string::find_arg(args, "rx_buf_size").ulong_value(0);
 
-			try {
-				return new (md_alloc())
-					Session_component(_env.ram(), _env.rm(), _env.ep(),
-					                  ram_quota, tx_buf_size, rx_buf_size,
-					                  mac, _nic, _verbose, label, ip_addr);
-			}
-			catch (Out_of_ram) {
-				Genode::warning("insufficient 'ram_quota'");
-				throw Insufficient_ram_quota();
-			}
-			catch (Out_of_caps) {
-				Genode::warning("insufficient 'cap_quota'");
-				throw Insufficient_cap_quota();
-			}
+			return new (md_alloc())
+				Session_component(_env.ram(), _env.rm(), _env.ep(),
+				                  ram_quota_from_args(args),
+				                  cap_quota_from_args(args),
+				                  tx_buf_size, rx_buf_size,
+				                  policy.mac, _nic, _verbose, label,
+				                  policy.ip_addr);
 		}
 
 	public:

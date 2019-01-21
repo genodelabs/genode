@@ -20,7 +20,7 @@
 using namespace Adma2;
 
 
-Table::Table(Ram_session &ram, Region_map &rm)
+Table::Table(Ram_allocator &ram, Region_map &rm)
 :
 	_ds(ram, rm, _ds_size, UNCACHED),
 	_base_virt(_ds.local_addr<Desc::access_t>()),

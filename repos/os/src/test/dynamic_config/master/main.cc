@@ -29,14 +29,15 @@ namespace Test {
 
 struct Test::Policy
 :
-	private Static_parent_services<Cpu_session, Ram_session, Rom_session,
+	private Static_parent_services<Cpu_session, Rom_session,
 	                               Pd_session, Log_session>,
 	public Slave::Policy
 {
 	Policy(Env &env, Name const &name)
 	:
+		Static_parent_services(env),
 		Slave::Policy(name, name, *this, env.ep().rpc_ep(), env.rm(),
-		              env.pd(),  env.pd_session_cap(),
+		              env.pd(), env.pd_session_cap(),
 		              Cap_quota{100}, Ram_quota{1024*1024})
 	{ }
 };

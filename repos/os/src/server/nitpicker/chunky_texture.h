@@ -44,7 +44,7 @@ class Nitpicker::Chunky_texture : public Buffer, public Texture<PT>
 		/**
 		 * Constructor
 		 */
-		Chunky_texture(Ram_session &ram, Region_map &rm, Area size, bool use_alpha)
+		Chunky_texture(Ram_allocator &ram, Region_map &rm, Area size, bool use_alpha)
 		:
 			Buffer(ram, rm, size, _format(), calc_num_bytes(size, use_alpha)),
 			Texture<PT>((PT *)local_addr(),

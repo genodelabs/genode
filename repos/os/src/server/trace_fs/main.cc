@@ -39,10 +39,42 @@ namespace Trace_fs {
 	using File_system::Path;
 
 	class Trace_file_system;
+	struct Policy;
 	struct Main;
 	struct Session_component;
 	struct Root;
 }
+
+
+/**
+ * Session-specific policy defined by the configuation
+ */
+struct Trace_fs::Policy
+{
+	unsigned                interval;  /* in milliseconds */
+	unsigned                subject_limit;
+	Genode::Number_of_bytes trace_quota;
+	Genode::Number_of_bytes trace_meta_quota;
+	Genode::Number_of_bytes buffer_size;
+	Genode::Number_of_bytes buffer_size_max;
+	unsigned                trace_parent_levels;
+
+	static Number_of_bytes _kib(size_t value) { return value * (1 << 10); }
+	static Number_of_bytes _mib(size_t value) { return value * (1 << 20); }
+
+	static Policy from_xml(Xml_node node)
+	{
+		return Policy {
+			.interval            = node.attribute_value("interval",         1000U),
+			.subject_limit       = node.attribute_value("subject_limit",    128U),
+			.trace_quota         = node.attribute_value("trace_quota",      _mib(32)),
+			.trace_meta_quota    = node.attribute_value("trace_meta_quota", _kib(256)),
+			.buffer_size         = node.attribute_value("buffer_size",      _kib(32)),
+			.buffer_size_max     = node.attribute_value("buffer_size_max",  _mib(1)),
+			.trace_parent_levels = node.attribute_value("parent_levels",    0U)
+		};
+	}
+};
 
 
 /**
@@ -610,7 +642,7 @@ class Trace_fs::Session_component : public Session_rpc_object
 		typedef File_system::Open_node<Node> Open_node;
 
 		Genode::Entrypoint          &_ep;
-		Ram_session                 &_ram;
+		Ram_allocator               &_ram;
 		Allocator                   &_md_alloc;
 		Directory                   &_root_dir;
 		Id_space<File_system::Node>  _open_node_registry;
@@ -624,8 +656,11 @@ class Trace_fs::Session_component : public Session_rpc_object
 		Trace::Connection    *_trace;
 		Trace_file_system    *_trace_fs;
 
-		Signal_handler<Session_component> _process_packet_dispatcher;
-		Signal_handler<Session_component> _fs_update_dispatcher;
+		Signal_handler<Session_component> _process_packet_handler {
+			_ep, *this, &Session_component::_process_packets };
+
+		Signal_handler<Session_component> _fs_update_handler {
+			_ep, *this, &Session_component::_fs_update };
 
 
 		/**************************
@@ -740,7 +775,7 @@ class Trace_fs::Session_component : public Session_rpc_object
 		}
 
 		/**
-		 * Called by signal dispatcher, executed in the context of the main
+		 * Called by signal handler, executed in the context of the main
 		 * thread (not serialized with the RPC functions)
 		 */
 		void _process_packets()
@@ -783,42 +818,40 @@ class Trace_fs::Session_component : public Session_rpc_object
 		/**
 		 * Constructor
 		 */
-		Session_component(size_t              tx_buf_size,
-		                  Genode::Entrypoint  &ep,
-		                  Genode::Ram_session &ram,
-		                  Genode::Region_map  &rm,
-		                  Genode::Env         &env,
-		                  Directory           &root_dir,
-		                  Allocator           &md_alloc,
-		                  unsigned             subject_limit,
-		                  unsigned             poll_interval,
-		                  size_t               trace_quota,
-		                  size_t               trace_meta_quota,
-		                  size_t               trace_parent_levels,
-		                  size_t               buffer_size,
-		                  size_t               buffer_size_max)
+		Session_component(size_t                tx_buf_size,
+		                  Genode::Entrypoint    &ep,
+		                  Genode::Ram_allocator &ram,
+		                  Genode::Region_map    &rm,
+		                  Genode::Env           &env,
+		                  Directory             &root_dir,
+		                  Allocator             &md_alloc,
+		                  Trace_fs::Policy       policy)
 		:
 			Session_rpc_object(ram.alloc(tx_buf_size), rm, ep.rpc_ep()),
 			_ep(ep),
 			_ram(ram),
 			_md_alloc(md_alloc),
 			_root_dir(root_dir),
-			_subject_limit(subject_limit),
-			_poll_interval(poll_interval),
+
+			_subject_limit(policy.subject_limit),
+			_poll_interval(policy.interval),
 			_fs_update_timer(env),
-			_trace(new (&_md_alloc) Genode::Trace::Connection(env, trace_quota, trace_meta_quota, trace_parent_levels)),
-			_trace_fs(new (&_md_alloc) Trace_file_system(rm, _md_alloc, *_trace, _root_dir, buffer_size, buffer_size_max)),
-			_process_packet_dispatcher(_ep, *this, &Session_component::_process_packets),
-			_fs_update_dispatcher(_ep, *this, &Session_component::_fs_update)
+			_trace(new (&_md_alloc)
+			       Genode::Trace::Connection(env, policy.trace_quota,
+			                                      policy.trace_meta_quota,
+			                                      policy.trace_parent_levels)),
+			_trace_fs(new (&_md_alloc)
+				Trace_file_system(rm, _md_alloc, *_trace, _root_dir,
+				                  policy.buffer_size, policy.buffer_size_max))
 		{
-			_tx.sigh_packet_avail(_process_packet_dispatcher);
-			_tx.sigh_ready_to_ack(_process_packet_dispatcher);
+			_tx.sigh_packet_avail(_process_packet_handler);
+			_tx.sigh_ready_to_ack(_process_packet_handler);
 
 			/**
 			 * Register '_fs_update' dispatch function as signal handler
 			 * for polling the trace session.
 			 */
-			_fs_update_timer.sigh(_fs_update_dispatcher);
+			_fs_update_timer.sigh(_fs_update_handler);
 
 			/**
 			 * We need to scale _poll_interval because trigger_periodic()
@@ -1004,12 +1037,12 @@ class Trace_fs::Root : public Root_component<Session_component>
 {
 	private:
 
-		Genode::Entrypoint  &_ep;
-		Genode::Ram_session &_ram;
-		Genode::Region_map  &_rm;
-		Genode::Env         &_env;
+		Genode::Entrypoint    &_ep;
+		Genode::Ram_allocator &_ram;
+		Genode::Region_map    &_rm;
+		Genode::Env           &_env;
 
-		Directory           &_root_dir;
+		Directory             &_root_dir;
 
 		Genode::Attached_rom_dataspace _config { _env, "config" };
 
@@ -1021,73 +1054,17 @@ class Trace_fs::Root : public Root_component<Session_component>
 			 * Determine client-specific policy defined implicitly by
 			 * the client's label.
 			 */
-
-			enum { ROOT_MAX_LEN = 256 };
-			char root[ROOT_MAX_LEN];
-			root[0] = 0;
-
-			/* default settings */
-			unsigned interval                        = 1000; /* 1 sec */
-			unsigned subject_limit                   = 128;
-
-			Genode::Number_of_bytes trace_quota      =  32 * (1 << 20); /*  32 MiB */
-			Genode::Number_of_bytes trace_meta_quota = 256 * (1 << 10); /* 256 KiB */
-			Genode::Number_of_bytes buffer_size      =  32 * (1 << 10); /*  32 KiB */
-			Genode::Number_of_bytes buffer_size_max  =   1 * (1 << 20); /*   1 MiB */
-			unsigned trace_parent_levels             = 0;
-
 			Session_label const label = label_from_args(args);
-			try {
-				Session_policy policy(label, _config.xml());
 
-				/*
-				 * Override default settings with specific session settings by
-				 * evaluating the policy.
-				 */
-				try { policy.attribute("interval").value(&interval); }
-				catch (...) { }
-				try { policy.attribute("subject_limit").value(&subject_limit); }
-				catch (...) { }
-				try { policy.attribute("trace_quota").value(&trace_quota); }
-				catch (...) { }
-				try { policy.attribute("trace_meta_quota").value(&trace_meta_quota); }
-				catch (...) { }
-				try { policy.attribute("parent_levels").value(&trace_parent_levels); } 
-				catch (...) { }
-				try { policy.attribute("buffer_size").value(&buffer_size); }
-				catch (...) { }
-				try { policy.attribute("buffer_size_max").value(&buffer_size_max); }
-				catch (...) { }
+			Session_policy policy(label, _config.xml());
 
-				/*
-				 * Determine directory that is used as root directory of
-				 * the session.
-				 */
-				try {
-					policy.attribute("root").value(root, sizeof(root));
-
-					/*
-					 * Make sure the root path is specified with a
-					 * leading path delimiter. For performing the
-					 * lookup, we skip the first character.
-					 */
-					if (root[0] != '/')
-						throw Lookup_failed();
-				}
-				catch (Xml_node::Nonexistent_attribute) {
-					Genode::error("Missing \"root\" attribute in policy definition");
-					throw Service_denied();
-				}
-				catch (Lookup_failed) {
-					Genode::error("session root directory "
-					              "\"", Genode::Cstring(root), "\" does not exist");
-					throw Service_denied();
-				}
-			}
-			catch (Session_policy::No_policy_defined) {
-				Genode::error("Invalid session request, no matching policy");
+			/* make sure that root directory is defined */
+			if (!policy.has_attribute("root")) {
+				Genode::error("Missing \"root\" attribute in policy definition");
 				throw Service_denied();
 			}
+
+			Trace_fs::Policy const attributes = Trace_fs::Policy::from_xml(policy);
 
 			size_t ram_quota =
 				Arg_string::find_arg(args, "ram_quota"  ).ulong_value(0);
@@ -1111,10 +1088,7 @@ class Trace_fs::Root : public Root_component<Session_component>
 			}
 			return new (md_alloc())
 				Session_component(tx_buf_size, _ep, _ram, _rm, _env, _root_dir,
-				                  *md_alloc(), subject_limit, interval,
-				                  trace_quota, trace_meta_quota,
-				                  trace_parent_levels, buffer_size,
-				                  buffer_size_max);
+				                  *md_alloc(), attributes);
 		}
 
 	public:
@@ -1127,7 +1101,7 @@ class Trace_fs::Root : public Root_component<Session_component>
 		 *                    data-flow signals of packet streams
 		 * \param md_alloc    meta-data allocator
 		 */
-		Root(Genode::Entrypoint &ep, Allocator &md_alloc, Ram_session &ram,
+		Root(Genode::Entrypoint &ep, Allocator &md_alloc, Ram_allocator &ram,
 		     Region_map &rm, Env &env, Directory &root_dir)
 		:
 			Root_component<Session_component>(&ep.rpc_ep(), &md_alloc),

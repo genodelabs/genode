@@ -196,15 +196,9 @@ struct Test::Sequential : Test_base
 
 		_synchronous = _node.attribute_value("synchronous", false);
 
-		_start = _node.attribute_value("start", 0u);
-		try {
-			Genode::Number_of_bytes tmp;
-			_node.attribute("size").value(&tmp);
-			_size = tmp;
-
-			_node.attribute("length").value(&tmp);
-			_length = tmp;
-		} catch (...) { }
+		_start  = _node.attribute_value("start",  0u);
+		_size   = _node.attribute_value("size",   Genode::Number_of_bytes());
+		_length = _node.attribute_value("length", Genode::Number_of_bytes());
 
 		if (_size > sizeof(_scratch_buffer)) {
 			Genode::error("request size exceeds scratch buffer size");

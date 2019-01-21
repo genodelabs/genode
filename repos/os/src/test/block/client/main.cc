@@ -410,7 +410,7 @@ void Component::construct(Genode::Env &env)
 		try {
 			Genode::Number_of_bytes test_size;;
 			Genode::Attached_rom_dataspace config { env, "config" };
-			config.xml().attribute("test_size").value(&test_size);
+			config.xml().attribute("test_size").value(test_size);
 			test_cnt = Genode::min(test_size / blk_sz, blk_cnt);
 		} catch (...) { test_cnt = blk_cnt; }
 

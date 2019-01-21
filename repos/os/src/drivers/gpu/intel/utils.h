@@ -16,7 +16,7 @@
 
 /* Genode includes */
 #include <util/interface.h>
-#include <ram_session/ram_session.h>
+#include <base/ram_allocator.h>
 
 namespace Utils {
 

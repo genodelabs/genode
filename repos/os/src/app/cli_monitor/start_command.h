@@ -31,13 +31,12 @@ class Cli_monitor::Start_command : public Command
 		typedef Genode::Signal_context_capability Signal_context_capability;
 		typedef Genode::Dataspace_capability      Dataspace_capability;
 
+		Genode::Env                   &_env;
 		Ram                           &_ram;
 		Genode::Allocator             &_alloc;
 		Child_registry                &_children;
 		Genode::Pd_session            &_ref_pd;
 		Genode::Pd_session_capability  _ref_pd_cap;
-		Genode::Ram_session           &_ref_ram;
-		Genode::Ram_session_capability _ref_ram_cap;
 		Genode::Region_map            &_local_rm;
 		Subsystem_config_registry     &_subsystem_configs;
 		List<Argument>                 _arguments { };
@@ -58,10 +57,10 @@ class Cli_monitor::Start_command : public Command
 				Xml_node rsc = subsystem_node.sub_node("resource");
 				for (;; rsc = rsc.next("resource")) {
 					if (rsc.attribute("name").has_value("RAM")) {
-						rsc.attribute("quantum").value(&ram);
+						rsc.attribute("quantum").value(ram);
 
 						if (rsc.has_attribute("limit"))
-							rsc.attribute("limit").value(&ram_limit);
+							rsc.attribute("limit").value(ram_limit);
 						break;
 					}
 				}
@@ -85,11 +84,11 @@ class Cli_monitor::Start_command : public Command
 			 *
 			 * Use subsystem name by default, override with '<binary>' declaration.
 			 */
-			char binary_name[128];
-			strncpy(binary_name, name, sizeof(binary_name));
+			typedef Genode::String<128> Binary_name;
+			Binary_name binary_name;
 			try {
 				Xml_node bin = subsystem_node.sub_node("binary");
-				bin.attribute("name").value(binary_name, sizeof(binary_name));
+				binary_name = bin.attribute_value("name", Binary_name());
 			} catch (...) { }
 
 			for (unsigned i = 0; i < count; i++) {
@@ -109,15 +108,14 @@ class Cli_monitor::Start_command : public Command
 						tprint_bytes(terminal, ram_limit);
 						tprintf(terminal,"\n");
 					}
-					tprintf(terminal, "     binary: %s\n", binary_name);
+					tprintf(terminal, "     binary: %s\n", binary_name.string());
 				}
 
 				Child *child = 0;
 				try {
 					child = new (_alloc)
-						Child(_ram, _alloc, label, binary_name,
-						      _ref_pd, _ref_pd_cap, _ref_ram,
-						      _ref_ram_cap, _local_rm,
+						Child(_env, _ram, _alloc, label, binary_name,
+						      _ref_pd, _ref_pd_cap, _local_rm,
 						      Genode::Cap_quota{caps}, ram, ram_limit,
 						      _yield_response_sigh_cap, _exit_sig_cap);
 				}
@@ -142,7 +140,9 @@ class Cli_monitor::Start_command : public Command
 				/* configure child */
 				try {
 					Xml_node config_node = subsystem_node.sub_node("config");
-					child->configure(config_node.addr(), config_node.size());
+					config_node.with_raw_node([&] (char const *start, size_t length) {
+						child->configure(start, length); });
+
 					if (verbose)
 						tprintf(terminal, "     config: inline\n");
 				} catch (...) {
@@ -162,12 +162,11 @@ class Cli_monitor::Start_command : public Command
 
 	public:
 
-		Start_command(Ram                           &ram,
+		Start_command(Genode::Env                   &env,
+		              Ram                           &ram,
 		              Genode::Allocator             &alloc,
 		              Genode::Pd_session            &ref_pd,
 		              Genode::Pd_session_capability  ref_pd_cap,
-		              Genode::Ram_session           &ref_ram,
-		              Genode::Ram_session_capability ref_ram_cap,
 		              Genode::Region_map            &local_rm,
 		              Child_registry                &children,
 		              Subsystem_config_registry     &subsustem_configs,
@@ -175,10 +174,8 @@ class Cli_monitor::Start_command : public Command
 		              Signal_context_capability      exit_sig_cap)
 		:
 			Command("start", "create new subsystem"),
-			_ram(ram), _alloc(alloc), _children(children),
-			_ref_pd(ref_pd), _ref_pd_cap(ref_pd_cap),
-			_ref_ram(ref_ram), _ref_ram_cap(ref_ram_cap),
-			_local_rm(local_rm),
+			_env(env), _ram(ram), _alloc(alloc), _children(children),
+			_ref_pd(ref_pd), _ref_pd_cap(ref_pd_cap), _local_rm(local_rm),
 			_subsystem_configs(subsustem_configs),
 			_yield_response_sigh_cap(yield_response_sigh_cap),
 			_exit_sig_cap(exit_sig_cap)
@@ -194,26 +191,31 @@ class Cli_monitor::Start_command : public Command
 			/* functor for processing a subsystem configuration */
 			auto process_subsystem_config_fn = [&] (Genode::Xml_node node) {
 
-				char name[Parameter::Name::size()];
-				try { node.attribute("name").value(name, sizeof(name)); }
-				catch (Xml_node::Nonexistent_attribute) {
-					PWRN("Missing name in '<subsystem>' configuration");
+				if (!node.has_attribute("name")) {
+					Genode::warning("Missing name in '<subsystem>' configuration");
 					return;
 				}
+
+				typedef Genode::String<64> Name;
+				Name const name = node.attribute_value("name", Name());
 
 				char   const *prefix     = "config: ";
 				size_t const  prefix_len = strlen(prefix);
 
 				char help[Parameter::Short_help::size() + prefix_len];
 				strncpy(help, prefix, ~0);
-				try { node.attribute("help").value(help + prefix_len,
-				                                   sizeof(help) - prefix_len); }
+				try {
+					Genode::Xml_attribute const help_attr = node.attribute("help");
+					help_attr.with_raw_value([&] (char const *start, size_t len) {
+						strncpy(help + prefix_len, start,
+						        Genode::min(len, Parameter::Short_help::size())); });
+				}
 				catch (Xml_node::Nonexistent_attribute) {
-					PWRN("Missing help in '<subsystem>' configuration");
+					Genode::warning("Missing help in '<subsystem>' configuration");
 					return;
 				}
 
-				Argument arg(name, help);
+				Argument arg(name.string(), help);
 				fn(arg);
 			};
 

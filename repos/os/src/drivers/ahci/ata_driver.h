@@ -191,14 +191,14 @@ struct Ata_driver : Port_driver
 
 	Signal_context_capability device_identified;
 
-	Ata_driver(Genode::Allocator   &alloc,
-	           Genode::Ram_session &ram,
-	           Ahci_root           &root,
-	           unsigned            &sem,
-	           Genode::Region_map  &rm,
-	           Hba                 &hba,
-	           Platform::Hba       &platform_hba,
-	           unsigned             number,
+	Ata_driver(Genode::Allocator     &alloc,
+	           Genode::Ram_allocator &ram,
+	           Ahci_root             &root,
+	           unsigned              &sem,
+	           Genode::Region_map    &rm,
+	           Hba                   &hba,
+	           Platform::Hba         &platform_hba,
+	           unsigned               number,
 	           Genode::Signal_context_capability device_identified)
 	: Port_driver(ram, root, sem, rm, hba, platform_hba, number),
 	  alloc(alloc), device_identified(device_identified)

@@ -11,13 +11,14 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#pragma once
+#ifndef _INCLUDE__SPEC__X86__PLATFORM_SESSION__PLATFORM_SESSION_H_
+#define _INCLUDE__SPEC__X86__PLATFORM_SESSION__PLATFORM_SESSION_H_
 
-/* base */
+/* Genode includes */
 #include <session/session.h>
-#include <ram_session/ram_session.h>
+#include <base/ram_allocator.h>
 
-/* os */
+/* os includes */
 #include <platform_device/platform_device.h>
 #include <platform_device/capability.h>
 
@@ -107,3 +108,5 @@ struct Platform::Session : Genode::Session
 	                     Rpc_release_device, Rpc_alloc_dma_buffer,
 	                     Rpc_free_dma_buffer, Rpc_device);
 };
+
+#endif /* _INCLUDE__SPEC__X86__PLATFORM_SESSION__PLATFORM_SESSION_H_ */

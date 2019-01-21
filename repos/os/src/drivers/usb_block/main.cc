@@ -108,7 +108,7 @@ struct Usb::Block_driver : Usb::Completion,
 	{
 		static Genode::String<256> usb_label;
 		try {
-			node.attribute("label").value(&usb_label);
+			node.attribute("label").value(usb_label);
 			return usb_label.string();
 		} catch (...) { }
 

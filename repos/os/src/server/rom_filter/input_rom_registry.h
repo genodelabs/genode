@@ -30,8 +30,6 @@ namespace Rom_filter {
 	typedef Genode::String<80> Node_type_name;
 	typedef Genode::String<80> Attribute_name;
 
-
-	using Genode::env;
 	using Genode::Signal_context_capability;
 	using Genode::Signal_handler;
 	using Genode::Xml_node;
@@ -439,7 +437,8 @@ class Rom_filter::Input_rom_registry
 			if (!e)
 				throw Nonexistent_input_node();
 
-			xml.append(e->node().addr(), e->node().size());
+			e->node().with_raw_node([&] (char const *start, Genode::size_t length) {
+				xml.append(start, length); });
 		}
 };
 

@@ -21,6 +21,7 @@
 #include <base/lock.h>
 #include <base/env.h>
 #include <base/signal.h>
+#include <base/allocator.h>
 #include <dataspace/client.h>
 #include <os/path.h>
 
@@ -31,7 +32,6 @@ namespace Vfs {
 	using Genode::Ram_dataspace_capability;
 	using Genode::Dataspace_capability;
 	using Genode::Dataspace_client;
-	using Genode::env;
 	using Genode::min;
 	using Genode::ascii_to;
 	using Genode::strncpy;
@@ -47,6 +47,7 @@ namespace Vfs {
 	using Genode::Signal_context_capability;
 	using Genode::static_cap_cast;
 	using Genode::Interface;
+	using Genode::String;
 
 	typedef Genode::Path<MAX_PATH_LEN> Absolute_path;
 }

@@ -19,7 +19,6 @@
 #include <base/heap.h>
 #include <base/rpc_server.h>
 #include <base/tslab.h>
-#include <ram_session/capability.h>
 #include <root/component.h>
 
 #include <util/mmio.h>
@@ -279,11 +278,13 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 			return config_space;
 		}
 
+		typedef Genode::String<32> Alias_name;
+
 		/*
 		 * List of aliases for PCI Class/Subclas/Prog I/F triple used
 		 * by xml config for this platform driver
 		 */
-		unsigned class_subclass_prog(const char * name)
+		unsigned class_subclass_prog(Alias_name const &name)
 		{
 			using namespace Genode;
 
@@ -304,7 +305,7 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 			};
 
 			for (unsigned i = 0; i < sizeof(aliases) / sizeof(aliases[0]); i++) {
-				if (strcmp(aliases[i].alias, name))
+				if (name != aliases[i].alias)
 					continue;
 
 				return 0U | aliases[i].pci_class << 16 |
@@ -324,58 +325,81 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 
 			try {
 				_policy.for_each_sub_node("device", [&] (Xml_node dev) {
-					try {
-						/* enforce restriction based on name name */
-						char policy_name[8];
-						dev.attribute("name").value(policy_name,
-						                            sizeof(policy_name));
 
-						if (!strcmp(policy_name, name))
-							/* found identical match - permit access */
-							throw true;
-
-					} catch (Xml_attribute::Nonexistent_attribute) { }
+					/* enforce restriction based on name name */
+					if (dev.attribute_value("name", Genode::String<10>()) == name)
+						/* found identical match - permit access */
+						throw true;
 				});
 			} catch (bool result) { return result; }
 
 			return false;
 		}
 
+		static bool _bdf_exactly_specified(Xml_node node)
+		{
+			return node.has_attribute("bus")
+			    && node.has_attribute("device")
+			    && node.has_attribute("function");
+		}
+
+		struct Bdf
+		{
+			unsigned b, d, f;
+
+			bool equals(Bdf const &other) const
+			{
+				return other.b == b && other.d == d && other.f == f;
+			}
+
+			void print(Genode::Output &out) const
+			{
+				Genode::print(out, Genode::Hex(b), ":", Genode::Hex(d), ".", f);
+			}
+		};
+
+		static Bdf _bdf_from_xml(Xml_node node)
+		{
+			return Bdf { .b = node.attribute_value("bus",      0U),
+			             .d = node.attribute_value("device",   0U),
+			             .f = node.attribute_value("function", 0U) };
+		}
+
+		static bool _bdf_attributes_in_valid_range(Xml_node node)
+		{
+			return _bdf_exactly_specified(node)
+			    && (node.attribute_value("bus",      0U) < Device_config::MAX_BUSES)
+			    && (node.attribute_value("device",   0U) < Device_config::MAX_DEVICES)
+			    && (node.attribute_value("function", 0U) < Device_config::MAX_FUNCTIONS);
+		}
+
+		static bool _bdf_matches(Xml_node node, Bdf bdf)
+		{
+			return _bdf_from_xml(node).equals(bdf);
+		}
+
 		/**
 		 * Check according session policy device usage
 		 */
-		bool permit_device(Genode::uint8_t b, Genode::uint8_t d,
-		                   Genode::uint8_t f, unsigned class_code)
+		bool permit_device(Bdf const bdf, unsigned class_code)
 		{
 			using namespace Genode;
 
 			try {
 				_policy.for_each_sub_node("pci", [&] (Xml_node node) {
-					try {
-						unsigned bus, device, function;
 
-						node.attribute("bus").value(&bus);
-						node.attribute("device").value(&device);
-						node.attribute("function").value(&function);
-
-						if (b == bus && d == device && f == function)
+					if (_bdf_exactly_specified(node)) {
+						if (_bdf_matches(node, bdf))
 							throw true;
+						/* check also for class entry */
+					}
 
+					if (!node.has_attribute("class"))
 						return;
-					} catch (Xml_attribute::Nonexistent_attribute) { }
 
 					/* enforce restriction based upon classes */
-					unsigned class_sub_prog = 0;
-
-					try {
-						char alias_class[32];
-						node.attribute("class").value(alias_class,
-						                              sizeof(alias_class));
-
-						class_sub_prog = class_subclass_prog(alias_class);
-					} catch (Xml_attribute::Nonexistent_attribute) {
-						return;
-					}
+					auto alias = node.attribute_value("class", Alias_name());
+					unsigned const class_sub_prog = class_subclass_prog(alias);
 
 					enum { DONT_CHECK_PROGIF = 8 };
 					/* if class/subclass don't match - deny */
@@ -383,7 +407,7 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 						return;
 
 					/* if this bdf is used by some policy - deny */
-					if (find_dev_in_policy(b, d, f))
+					if (find_dev_in_policy(bdf))
 						return;
 
 					throw true;
@@ -403,17 +427,14 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 			try {
 				_config.xml().for_each_sub_node("policy", [&] (Xml_node policy) {
 					policy.for_each_sub_node("device", [&] (Xml_node device) {
-						try {
-							/* device attribute from policy node */
-							char policy_device[8];
-							device.attribute("name").value(policy_device, sizeof(policy_device));
 
-							if (!strcmp(policy_device, dev_name)) {
-								if (once)
-									throw true;
-								once = true;
-							}
-						} catch (Xml_node::Nonexistent_attribute) { }
+						typedef Genode::String<10> Name;
+						if (device.attribute_value("name", Name()) == dev_name) {
+
+							if (once)
+								throw true;
+							once = true;
+						}
 					});
 				});
 			} catch (bool result) { return result; }
@@ -424,8 +445,7 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 		/**
 		 * Lookup a given device name.
 		 */
-		bool find_dev_in_policy(Genode::uint8_t b, Genode::uint8_t d,
-		                        Genode::uint8_t f, bool once = true)
+		bool find_dev_in_policy(Bdf const bdf, bool once = true)
 		{
 			using namespace Genode;
 
@@ -433,19 +453,16 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 				Xml_node xml = _config.xml();
 				xml.for_each_sub_node("policy", [&] (Xml_node policy) {
 					policy.for_each_sub_node("pci", [&] (Xml_node node) {
-						try {
-							unsigned bus, device, function;
 
-							node.attribute("bus").value(&bus);
-							node.attribute("device").value(&device);
-							node.attribute("function").value(&function);
+						if (_bdf_exactly_specified(node)) {
 
-							if (b == bus && d == device && f == function) {
+							if (_bdf_matches(node, bdf)) {
+
 								if (once)
 									throw true;
 								once = true;
 							}
-						} catch (Xml_node::Nonexistent_attribute) { }
+						}
 					});
 				});
 			} catch (bool result) { return result; }
@@ -478,32 +495,30 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 			/* subtract the RPC session and session dataspace capabilities */
 			_cap_guard.withdraw(Genode::Cap_quota{2});
 
-			/* non-pci devices */
+			/* check policy for non-pci devices */
 			_policy.for_each_sub_node("device", [&] (Genode::Xml_node device_node) {
-				try {
-					char policy_device[8];
-					device_node.attribute("name").value(policy_device,
-					                                    sizeof(policy_device));
 
-					enum { DOUBLET = false };
-					if (!find_dev_in_policy(policy_device, DOUBLET))
-						return;
-
-					Genode::error("'", _label, "' - device "
-					              "'", Genode::Cstring(policy_device), "' "
-					              "is part of more than one policy");
-				}
-				catch (Genode::Xml_node::Nonexistent_attribute) {
+				if (!device_node.has_attribute("name")) {
 					Genode::error("'", _label, "' - device node "
-					              "misses a 'name' attribute");
+					              "misses 'name' attribute");
+					throw Genode::Service_denied();
 				}
-				throw Genode::Service_denied();
+
+				typedef Genode::String<16> Name;
+				Name const name = device_node.attribute_value("name", Name());
+
+				enum { DOUBLET = false };
+				if (find_dev_in_policy(name.string(), DOUBLET)) {
+					Genode::error("'", _label, "' - device '", name, "' "
+					              "is part of more than one policy");
+					throw Genode::Service_denied();
+				}
 			});
 
 			/* pci devices */
 			_policy.for_each_sub_node("pci", [&] (Genode::Xml_node node) {
+
 				enum { INVALID_CLASS = 0x1000000U };
-				unsigned class_sub_prog = INVALID_CLASS;
 
 				using Genode::Xml_attribute;
 
@@ -512,21 +527,16 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 				 * 'function' attributes or a single 'class' attribute.
 				 * All other attribute names are traded as wrong.
 				 */
-				try {
-					char alias_class[32];
-					node.attribute("class").value(alias_class,
-					                              sizeof(alias_class));
+				if (node.has_attribute("class")) {
 
-					class_sub_prog = class_subclass_prog(alias_class);
-					if (class_sub_prog >= INVALID_CLASS) {
+					Alias_name const alias = node.attribute_value("class", Alias_name());
+
+					if (class_subclass_prog(alias) >= INVALID_CLASS) {
 						Genode::error("'", _label, "' - invalid 'class' ",
-						              "attribute '", Genode::Cstring(alias_class), "'");
+						              "attribute '", alias, "'");
 						throw Genode::Service_denied();
 					}
-				} catch (Xml_attribute::Nonexistent_attribute) { }
 
-				/* if we read a class attribute all is fine */
-				if (class_sub_prog < INVALID_CLASS) {
 					/* sanity check that 'class' is the only attribute */
 					try {
 						node.attribute(1);
@@ -548,32 +558,23 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 
 				} catch (Xml_attribute::Nonexistent_attribute) { }
 
-				try {
-					unsigned bus, device, function;
+				if (_bdf_exactly_specified(node)) {
 
-					node.attribute("bus").value(&bus);
-					node.attribute("device").value(&device);
-					node.attribute("function").value(&function);
+					if (!_bdf_attributes_in_valid_range(node)) {
+						Genode::error("'", _label, "' - "
+						              "invalid pci node attributes for bdf");
+						throw Genode::Service_denied();
+					}
 
-					if ((bus >= Device_config::MAX_BUSES) ||
-					    (device >= Device_config::MAX_DEVICES) ||
-					    (function >= Device_config::MAX_FUNCTIONS))
-					throw Xml_attribute::Nonexistent_attribute();
+					Bdf const bdf = _bdf_from_xml(node);
 
 					enum { DOUBLET = false };
-					if (!find_dev_in_policy(bus, device, function, DOUBLET))
-						return;
-
-					Genode::error("'", _label, "' - device '",
-					              Genode::Hex(bus), ":",
-					              Genode::Hex(device), ".", function, "' "
-					              "is part of more than one policy");
-
-				} catch (Xml_attribute::Nonexistent_attribute) {
-					Genode::error("'", _label, "' - "
-					              "invalid pci node attributes for bdf");
+					if (find_dev_in_policy(bdf, DOUBLET)) {
+						Genode::error("'", _label, "' - device '", bdf, "' "
+						                "is part of more than one policy");
+						throw Genode::Service_denied();
+					}
 				}
-				throw Genode::Service_denied();
 			});
 		}
 
@@ -618,14 +619,8 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 		 */
 		bool msi_usage()
 		{
-			try {
-				char mode[8];
-				_policy.attribute("irq_mode").value(mode, sizeof(mode));
-				if (!Genode::strcmp("nomsi", mode))
-					 return false;
-			} catch (Genode::Xml_node::Nonexistent_attribute) { }
-
-			return true;
+			typedef Genode::String<10> Mode;
+			return _policy.attribute_value("irq_mode", Mode()) != "nomsi";
 		}
 
 
@@ -686,8 +681,10 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 						continue;
 
 					/* check that policy permit access to the matched device */
-					if (permit_device(bus, device, function,
-					    config.class_code()))
+					if (permit_device(Bdf { (unsigned)bus,
+					                        (unsigned)device,
+					                        (unsigned)function },
+					                  config.class_code()))
 						break;
 				}
 
@@ -855,13 +852,9 @@ class Platform::Root : public Genode::Root_component<Session_component>
 
 			xml_acpi.for_each_sub_node("bdf", [&] (Xml_node &node) {
 
-				uint32_t bdf_start  = 0;
-				uint32_t func_count = 0;
-				addr_t   base       = 0;
-
-				node.attribute("start").value(&bdf_start);
-				node.attribute("count").value(&func_count);
-				node.attribute("base").value(&base);
+				uint32_t const bdf_start  = node.attribute_value("start", 0U);
+				uint32_t const func_count = node.attribute_value("count", 0U);
+				addr_t   const base       = node.attribute_value("base", 0UL);
 
 				Session_component::add_config_space(bdf_start, func_count,
 				                                    base, _heap);
@@ -897,13 +890,9 @@ class Platform::Root : public Genode::Root_component<Session_component>
 					continue;
 
 				if (node.has_type("irq_override")) {
-					unsigned irq = 0xff;
-					unsigned gsi = 0xff;
-					unsigned flags = 0xff;
-
-					node.attribute("irq").value(&irq);
-					node.attribute("gsi").value(&gsi);
-					node.attribute("flags").value(&flags);
+					unsigned const irq   = node.attribute_value("irq",   0xffU);
+					unsigned const gsi   = node.attribute_value("gsi",   0xffU);
+					unsigned const flags = node.attribute_value("flags", 0xffU);
 
 					if (!acpi_platform) {
 						warning("MADT IRQ ", irq, "-> GSI ", gsi, " flags ",
@@ -924,9 +913,9 @@ class Platform::Root : public Genode::Root_component<Session_component>
 				}
 
 				if (node.has_type("rmrr")) {
-					uint64_t mem_start = 0, mem_end = 0;
-					node.attribute("start").value(&mem_start);
-					node.attribute("end").value(&mem_end);
+					uint64_t const
+						mem_start = node.attribute_value("start", (uint64_t)0),
+						mem_end   = node.attribute_value("end",   (uint64_t)0);
 
 					if (node.num_sub_nodes() == 0)
 						throw 3;
@@ -940,15 +929,15 @@ class Platform::Root : public Genode::Root_component<Session_component>
 							throw 4;
 
 						unsigned bus = 0, dev = 0, func = 0;
-						scope.attribute("bus_start").value(&bus);
+						scope.attribute("bus_start").value(bus);
 
 						for (unsigned p = 0; p < scope.num_sub_nodes(); p++) {
 							Xml_node path = scope.sub_node(p);
 							if (!path.has_type("path"))
 								throw 5;
 
-							path.attribute("dev").value(&dev);
-							path.attribute("func").value(&func);
+							path.attribute("dev") .value(dev);
+							path.attribute("func").value(func);
 
 							Device_config bridge(bus, dev, func,
 							                     &config_access);
@@ -964,7 +953,7 @@ class Platform::Root : public Genode::Root_component<Session_component>
 				}
 
 				if (node.has_type("root_bridge")) {
-					node.attribute("bdf").value(&Platform::Bridge::root_bridge_bdf);
+					node.attribute("bdf").value(Platform::Bridge::root_bridge_bdf);
 					continue;
 				}
 
@@ -973,15 +962,10 @@ class Platform::Root : public Genode::Root_component<Session_component>
 					throw __LINE__;
 				}
 
-				unsigned gsi;
-				unsigned bridge_bdf;
-				unsigned device;
-				unsigned device_pin;
-
-				node.attribute("gsi").value(&gsi);
-				node.attribute("bridge_bdf").value(&bridge_bdf);
-				node.attribute("device").value(&device);
-				node.attribute("device_pin").value(&device_pin);
+				unsigned const gsi        = node.attribute_value("gsi",        0U),
+				               bridge_bdf = node.attribute_value("bridge_bdf", 0U),
+				               device     = node.attribute_value("device",     0U),
+				               device_pin = node.attribute_value("device_pin", 0U);
 
 				/* drop routing information on non ACPI platform */
 				if (!acpi_platform)

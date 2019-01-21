@@ -15,11 +15,10 @@
 #define _TYPES_H_
 
 /* Genode includes */
-#include <ram_session/ram_session.h>
+#include <base/ram_allocator.h>
 
 namespace Igd {
 
-	using Ram_dataspace_capability = Genode::Ram_dataspace_capability;
 	using Ram = Genode::Ram_dataspace_capability;
 
 	using uint8_t  = Genode::uint8_t;

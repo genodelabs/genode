@@ -120,8 +120,9 @@ class Dynamic_rom::Session_component : public Rpc_object<Genode::Rom_session>
 			if (curr_step.has_type("sleep")
 			 && curr_step.has_attribute("milliseconds")) {
 
-				unsigned long milliseconds = 0;
-				curr_step.attribute("milliseconds").value(&milliseconds);
+				unsigned long const milliseconds =
+					curr_step.attribute_value("milliseconds", 0UL);
+
 				_timer.trigger_once(milliseconds*1000);
 				_log("sleep ", milliseconds, " milliseconds");
 
@@ -175,9 +176,8 @@ class Dynamic_rom::Session_component : public Rpc_object<Genode::Rom_session>
 
 			/* fill with content of current step */
 			Xml_node step_node = _rom_node.sub_node(_last_content_idx);
-			memcpy(_ram_ds->local_addr<char>(),
-			       step_node.content_addr(),
-			       step_node.content_size());
+			step_node.with_raw_content([&] (char const *start, size_t size) {
+				memcpy(_ram_ds->local_addr<char>(), start, size); });
 
 			/* cast RAM into ROM dataspace capability */
 			Dataspace_capability ds_cap = static_cap_cast<Dataspace>(_ram_ds->cap());

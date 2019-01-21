@@ -33,8 +33,9 @@ class Vfs::Single_file_system : public File_system
 
 		Node_type const _node_type;
 
-		enum { FILENAME_MAX_LEN = 64 };
-		char _filename[FILENAME_MAX_LEN];
+		typedef String<64> Filename;
+
+		Filename _filename { };
 
 	protected:
 
@@ -76,9 +77,10 @@ class Vfs::Single_file_system : public File_system
 				                      Genode::Allocator &alloc,
 				                      Node_type node_type,
 				                      char const *filename)
-				: Single_vfs_handle(ds, fs, alloc, 0),
-				  _node_type(node_type),
-				  _filename(filename)
+				:
+					Single_vfs_handle(ds, fs, alloc, 0),
+					_node_type(node_type),
+					_filename(filename)
 				{ }
 
 				Read_result read(char *dst, file_size count,
@@ -126,21 +128,17 @@ class Vfs::Single_file_system : public File_system
 
 		bool _single_file(const char *path)
 		{
-			return (strlen(path) == (strlen(_filename) + 1)) &&
-			       (strcmp(&path[1], _filename) == 0);
+			return (strlen(path) == (strlen(_filename.string()) + 1)) &&
+			       (strcmp(&path[1], _filename.string()) == 0);
 		}
 
 	public:
 
 		Single_file_system(Node_type node_type, char const *type_name, Xml_node config)
 		:
-			_node_type(node_type)
-		{
-			strncpy(_filename, type_name, sizeof(_filename));
-
-			try { config.attribute("name").value(_filename, sizeof(_filename)); }
-			catch (...) { }
-		}
+			_node_type(node_type),
+			_filename(config.attribute_value("name", Filename(type_name)))
+		{ }
 
 
 		/*********************************
@@ -210,7 +208,7 @@ class Vfs::Single_file_system : public File_system
 			try {
 				*out_handle = new (alloc)
 					Single_vfs_dir_handle(*this, *this, alloc,
-					                      _node_type, _filename);
+					                      _node_type, _filename.string());
 				return OPENDIR_OK;
 			}
 			catch (Genode::Out_of_ram)  { return OPENDIR_ERR_OUT_OF_RAM; }

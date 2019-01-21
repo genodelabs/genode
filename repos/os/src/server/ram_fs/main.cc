@@ -47,7 +47,7 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 		typedef File_system::Open_node<Node> Open_node;
 
 		Genode::Entrypoint               &_ep;
-		Genode::Ram_session              &_ram;
+		Genode::Ram_allocator            &_ram;
 		Genode::Allocator                &_alloc;
 		Directory                        &_root;
 		Id_space<File_system::Node>       _open_node_registry { };
@@ -194,7 +194,7 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 		 * Constructor
 		 */
 		Session_component(size_t tx_buf_size, Genode::Entrypoint &ep,
-		                  Genode::Ram_session &ram, Genode::Region_map &rm,
+		                  Genode::Ram_allocator &ram, Genode::Region_map &rm,
 		                  Genode::Allocator &alloc,
 		                  Directory &root, bool writable)
 		:
@@ -535,7 +535,7 @@ class Ram_fs::Root : public Root_component<Session_component>
 
 		Genode::Entrypoint    &_ep;
 		Genode::Allocator     &_alloc;
-		Genode::Ram_session   &_ram;
+		Genode::Ram_allocator &_ram;
 		Genode::Region_map    &_rm;
 		Genode::Xml_node const _config;
 		Directory             &_root_dir;
@@ -549,9 +549,7 @@ class Ram_fs::Root : public Root_component<Session_component>
 			 * the client's label.
 			 */
 
-			enum { ROOT_MAX_LEN = 256 };
 			Genode::Path<MAX_PATH_LEN> session_root;
-			char tmp[MAX_PATH_LEN];
 
 			Directory *session_root_dir = nullptr;
 			bool writeable = false;
@@ -564,13 +562,14 @@ class Ram_fs::Root : public Root_component<Session_component>
 				 * Determine directory that is used as root directory of
 				 * the session. Clients without a specified root are denied.
 				 */
-				try {
-					policy.attribute("root").value(tmp, sizeof(tmp));
-					session_root.import(tmp, "/");
-				} catch (Xml_node::Nonexistent_attribute) {
+				if (!policy.has_attribute("root")) {
 					Genode::error("missing \"root\" attribute in policy definition");
 					throw Service_denied();
 				}
+
+				typedef String<MAX_PATH_LEN> Root;
+				Root const root = policy.attribute_value("root", Root());
+				session_root.import(root.string(), "/");
 
 				/*
 				 * Determine if the session is writeable.
@@ -585,10 +584,13 @@ class Ram_fs::Root : public Root_component<Session_component>
 			}
 
 			/* apply client's root offset */
-			Arg_string::find_arg(args, "root").string(tmp, sizeof(tmp), "/");
-			if (Genode::strcmp("/", tmp, sizeof(tmp))) {
-				session_root.append("/");
-				session_root.append(tmp);
+			{
+				char tmp[MAX_PATH_LEN] { };
+				Arg_string::find_arg(args, "root").string(tmp, sizeof(tmp), "/");
+				if (Genode::strcmp("/", tmp, sizeof(tmp))) {
+					session_root.append("/");
+					session_root.append(tmp);
+				}
 			}
 			session_root.remove_trailing('/');
 			if (session_root == "/") {
@@ -641,7 +643,7 @@ class Ram_fs::Root : public Root_component<Session_component>
 		 * \param alloc     general-purpose allocator
 		 * \param root_dir  root-directory handle (anchor for fs)
 		 */
-		Root(Genode::Entrypoint &ep, Genode::Ram_session &ram,
+		Root(Genode::Entrypoint &ep, Genode::Ram_allocator &ram,
 		     Genode::Region_map &rm, Genode::Xml_node config,
 		     Allocator &md_alloc, Allocator &alloc, Directory &root_dir)
 		:
@@ -649,45 +651,6 @@ class Ram_fs::Root : public Root_component<Session_component>
 			_ep(ep), _alloc(alloc), _ram(ram), _rm(rm), _config(config),
 			_root_dir(root_dir)
 		{ }
-};
-
-
-/**
- * Helper for conveniently accessing 'Xml_node' attribute strings
- */
-struct Attribute_string
-{
-	char buf[File_system::MAX_NAME_LEN];
-
-	/**
-	 * Constructor
-	 *
-	 * \param attr      attribute name
-	 * \param fallback  if non-null, this is the string used if the attribute
-	 *                  is not defined. If null, the constructor throws
-	 *                  an 'Nonexistent_attribute' exception'
-	 * \throw Xml_node::Nonexistent_attribute
-	 */
-	Attribute_string(Genode::Xml_node node, char const *attr, char *fallback = 0)
-	{
-		try { node.attribute(attr).value(buf, sizeof(buf)); }
-		catch (Genode::Xml_node::Nonexistent_attribute) {
-
-			if (fallback) {
-				Genode::strncpy(buf, fallback, sizeof(buf));
-			} else {
-				char type_name[16];
-				node.type_name(type_name, sizeof(type_name));
-				Genode::warning("missing \"", attr, "\" attribute in "
-				                "<", Genode::Cstring(type_name), "> node");
-				throw Genode::Xml_node::Nonexistent_attribute();
-			}
-		}
-	}
-
-	operator char * () { return buf; }
-
-	void print(Genode::Output &out) const { Genode::print(out, Genode::Cstring(buf)); }
 };
 
 
@@ -705,14 +668,15 @@ static void preload_content(Genode::Env            &env,
 		 * Lookup name attribtue, let 'Nonexistent_attribute' exception fall
 		 * through because this configuration error is considered fatal.
 		 */
-		Attribute_string name(sub_node, "name");
+		typedef String<MAX_NAME_LEN> Name;
+		Name const name = sub_node.attribute_value("name", Name());
 
 		/*
 		 * Create directory
 		 */
 		if (sub_node.has_type("dir")) {
 
-			Ram_fs::Directory *sub_dir = new (&alloc) Ram_fs::Directory(name);
+			Ram_fs::Directory *sub_dir = new (&alloc) Ram_fs::Directory(name.string());
 
 			/* traverse into the new directory */
 			preload_content(env, alloc, sub_node, *sub_dir);
@@ -726,15 +690,15 @@ static void preload_content(Genode::Env            &env,
 		if (sub_node.has_type("rom")) {
 
 			/* read "as" attribute, use "name" as default */
-			Attribute_string as(sub_node, "as", name);
+			Name const as = sub_node.attribute_value("as", name);
 
 			/* read file content from ROM module */
 			try {
-				Attached_rom_dataspace rom(env, name);
+				Attached_rom_dataspace rom(env, name.string());
 
-				Ram_fs::File *file = new (&alloc) Ram_fs::File(alloc, as);
-				file->write(rom.local_addr<char>(), rom.size(), 0);
-				dir.adopt_unsynchronized(file);
+				Ram_fs::File &file = *new (&alloc) Ram_fs::File(alloc, as.string());
+				file.write(rom.local_addr<char>(), rom.size(), 0);
+				dir.adopt_unsynchronized(&file);
 			}
 			catch (Rom_connection::Rom_connection_failed) {
 				Genode::warning("failed to open ROM module \"", name, "\""); }
@@ -747,9 +711,12 @@ static void preload_content(Genode::Env            &env,
 		 */
 		if (sub_node.has_type("inline")) {
 
-			Ram_fs::File *file = new (&alloc) Ram_fs::File(alloc, name);
-			file->write(sub_node.content_addr(), sub_node.content_size(), 0);
-			dir.adopt_unsynchronized(file);
+			Ram_fs::File &file = *new (&alloc) Ram_fs::File(alloc, name.string());
+
+			sub_node.with_raw_content([&] (char const *start, size_t length) {
+				file.write(start, length, 0); });
+
+			dir.adopt_unsynchronized(&file);
 		}
 	}
 }

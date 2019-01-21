@@ -42,7 +42,7 @@ struct Sequence::Child : Genode::Child_policy
 	{
 		Binary_name name;
 		try {
-			_start_node.sub_node("binary").attribute("name").value(&name);
+			_start_node.sub_node("binary").attribute("name").value(name);
 			return name != "" ? name : _name;
 		}
 		catch (...) { return _name; }
@@ -85,7 +85,8 @@ struct Sequence::Child : Genode::Child_policy
 	{
 		if (_have_config) {
 			Xml_node config_node = start_node.sub_node("config");
-			_config_policy.load(config_node.addr(), config_node.size());
+			config_node.with_raw_node([&] (char const *start, size_t length) {
+				_config_policy.load(start, length); });
 		}
 	}
 
@@ -108,17 +109,25 @@ struct Sequence::Child : Genode::Child_policy
 	 * Provide a "config" ROM if configured to do so,
 	 * otherwise forward directly to the parent.
 	 */
-	Service &resolve_session_request(Service::Name       const &name,
-	                                 Session_state::Args const &args)
+	Route resolve_session_request(Service::Name const &name,
+	                              Session_label const &label) override
 	{
+		auto route = [&] (Service &service) {
+			return Route { .service = service,
+			               .label   = label,
+			               .diag    = Session::Diag() }; };
+
 		if (_have_config) {
-			Service *s = _config_policy.resolve_session_request(
-				name.string(), args.string());
+			Service *s =
+				_config_policy.resolve_session_request(name, label);
 			if (s)
-				return *s;
+				return route(*s);
 		}
 
-		return *new (_services_heap) Parent_service(_parent_services, _env, name);
+		Service &service = *new (_services_heap)
+			Parent_service(_parent_services, _env, name);
+
+		return route(service);
 	}
 
 	/**

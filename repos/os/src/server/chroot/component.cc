@@ -106,7 +106,8 @@ struct Chroot::Main
 	Session_capability request_session(Parent::Client::Id  const &id,
 	                                   Session_state::Args const &args)
 	{
-		char tmp[PATH_MAX_LEN];
+		typedef String<PATH_MAX_LEN> Prefix;
+
 		Path root_path;
 
 		Session_label const label = label_from_args(args.string());
@@ -114,22 +115,24 @@ struct Chroot::Main
 
 		if (policy.has_attribute("path_prefix")) {
 			/* Use a chroot path from policy and label sub-directories */
-			policy.attribute("path_prefix").value(tmp, sizeof(tmp));
-			root_path.import(tmp);
+			Prefix const prefix = policy.attribute_value("path_prefix", Prefix());
+			root_path.import(prefix.string());
 			root_path.append(path_from_label<Path>(label.string()).string());
 		} else if (policy.has_attribute("path")) {
 			/* Use a chroot path from policy */
-			policy.attribute("path").value(tmp, sizeof(tmp));
-			root_path.import(tmp);
+			root_path.import(policy.attribute_value("path", Prefix()).string());
 		} else {
 			/* generate implicit chroot path from the label */
 			root_path = path_from_label<Path>(label.string());
 		}
 
-		/* extract and append the orginal root */
-		Arg_string::find_arg(args.string(), "root").string(
-			tmp, sizeof(tmp), "/");
-		root_path.append_element(tmp);
+		/* extract and append the session argument */
+		{
+			char tmp[PATH_MAX_LEN];
+			Arg_string::find_arg(args.string(), "root").string(tmp, sizeof(tmp), "/");
+			root_path.append_element(tmp);
+		}
+
 		root_path.remove_trailing('/');
 
 		char const *new_root = root_path.base();

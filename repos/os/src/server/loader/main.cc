@@ -22,7 +22,6 @@
 /* local includes */
 #include <child.h>
 #include <nitpicker.h>
-#include <ram_session_client_guard.h>
 #include <rom.h>
 
 
@@ -206,7 +205,9 @@ class Loader::Session_component : public Rpc_object<Session>
 		Xml_node              const _config;
 		Cap_quota             const _cap_quota;
 		Ram_quota             const _ram_quota;
-		Ram_session_client_guard    _local_ram { _env.ram_session_cap(), _ram_quota };
+		Cap_quota_guard             _cap_guard { _cap_quota };
+		Ram_quota_guard             _ram_guard { _ram_quota };
+		Constrained_ram_allocator   _local_ram { _env.ram(), _ram_guard, _cap_guard };
 		Heap                        _md_alloc { _local_ram, _env.rm() };
 		size_t                      _subsystem_cap_quota_limit = 0;
 		size_t                      _subsystem_ram_quota_limit = 0;

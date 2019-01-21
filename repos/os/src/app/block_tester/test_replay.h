@@ -149,24 +149,20 @@ struct Test::Replay : Test_base
 
 		try {
 			config.for_each_sub_node("request", [&](Xml_node request) {
+
+				typedef Genode::String<8> Type;
+
+				Block::sector_t const nr    = request.attribute_value("lba",   (Block::sector_t)0u);
+				Genode::size_t  const count = request.attribute_value("count", 0UL);
+				Type            const type  = request.attribute_value("type",  Type());
+
 				Block::Packet_descriptor::Opcode op;
-				Block::sector_t nr { 0 };
-				Genode::size_t  count { 0 };
+				if      (type == "read")  { op = Block::Packet_descriptor::READ; }
+				else if (type == "write") { op = Block::Packet_descriptor::WRITE; }
+				else { throw -1; }
 
-				try {
-					request.attribute("lba").value(&nr);
-					request.attribute("count").value(&count);
-
-					Genode::String<8> tmp;
-					request.attribute("type").value(&tmp);
-					if      (tmp == "read")  { op = Block::Packet_descriptor::READ; }
-					else if (tmp == "write") { op = Block::Packet_descriptor::WRITE; }
-					else { throw -1; }
-
-					Request *req = new (&alloc) Request(op, nr, count);
-					requests.enqueue(req);
-					++request_num;
-				} catch (...) { return; }
+				requests.enqueue(new (&alloc) Request(op, nr, count));
+				++request_num;
 			});
 		} catch (...) {
 			Genode::error("could not read request list");

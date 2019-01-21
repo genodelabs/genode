@@ -81,14 +81,13 @@ class Bomb_child : public Child_policy
 		Pd_session           &ref_pd()           override { return _env.pd(); }
 		Pd_session_capability ref_pd_cap() const override { return _env.pd_session_cap(); }
 
-		Service &resolve_session_request(Service::Name const &service_name,
-		                                 Session_state::Args const &args) override
+		Service &_matching_service(Service::Name const &service_name,
+		                           Session_label const &label)
 		{
 			Service *service = nullptr;
 
 			/* check for config file request */
-			if ((service = _config_policy.resolve_session_request(service_name.string(),
-			                                                      args.string())))
+			if ((service = _config_policy.resolve_session_request(service_name, label)))
 				return *service;
 
 			_parent_services.for_each([&] (Service &s) {
@@ -99,6 +98,14 @@ class Bomb_child : public Child_policy
 				throw Service_denied();
 
 			return *service;
+		}
+
+		Route resolve_session_request(Service::Name const &service_name,
+		                              Session_label const &label) override
+		{
+			return Route { .service = _matching_service(service_name, label),
+			               .label   = label,
+			               .diag    = Session::Diag() };
 		}
 };
 
@@ -168,13 +175,13 @@ struct Bomb
 
 	Children child_registry { };
 
-	Static_parent_services<Ram_session, Pd_session, Cpu_session,
-	                       Rom_session, Log_session> parent_services { };
+	Static_parent_services<Pd_session, Cpu_session, Rom_session, Log_session>
+		parent_services { env };
 
 	void construct_children()
 	{
 		size_t const preserved_ram = Pd_connection::RAM_QUOTA;
-		size_t const avail_ram     = env.ram().avail_ram().value;
+		size_t const avail_ram     = env.pd().avail_ram().value;
 
 		if (avail_ram < preserved_ram + ram_demand) {
 			error("RAM demand exceeds available RAM");

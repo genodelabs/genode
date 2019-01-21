@@ -34,15 +34,15 @@ class Nic::Communication_buffers
 		Nic::Packet_allocator          _rx_packet_alloc;
 		Genode::Attached_ram_dataspace _tx_ds, _rx_ds;
 
-		Communication_buffers(Genode::Allocator   &rx_block_md_alloc,
-		                      Genode::Ram_session &ram_session,
-		                      Genode::Region_map  &region_map,
-		                      Genode::size_t       tx_size,
-		                      Genode::size_t       rx_size)
+		Communication_buffers(Genode::Allocator     &rx_block_md_alloc,
+		                      Genode::Ram_allocator &ram,
+		                      Genode::Region_map    &region_map,
+		                      Genode::size_t         tx_size,
+		                      Genode::size_t         rx_size)
 		:
 			_rx_packet_alloc(&rx_block_md_alloc),
-			_tx_ds(ram_session, region_map, tx_size),
-			_rx_ds(ram_session, region_map, rx_size)
+			_tx_ds(ram, region_map, tx_size),
+			_rx_ds(ram, region_map, rx_size)
 		{ }
 };
 

@@ -64,7 +64,7 @@ class Genode::Session_requester
 		 * \param ram  backing store for the ROM dataspace
 		 * \param rm   local address space, needed to populate the dataspace
 		 */
-		Session_requester(Rpc_entrypoint &ep, Ram_session &ram, Region_map &rm)
+		Session_requester(Rpc_entrypoint &ep, Ram_allocator &ram, Region_map &rm)
 		:
 			_session(ep, ram, rm, _content_producer)
 		{ }

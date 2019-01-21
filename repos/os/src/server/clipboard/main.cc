@@ -59,7 +59,7 @@ struct Rom::Registry : Rom::Registry_for_reader, Rom::Registry_for_writer
 	/**
 	 * Constructor
 	 */
-	Registry(Genode::Ram_session &ram, Genode::Region_map &rm,
+	Registry(Genode::Ram_allocator &ram, Genode::Region_map &rm,
 	         Module::Read_policy  const &read_policy,
 	         Module::Write_policy const &write_policy)
 	:

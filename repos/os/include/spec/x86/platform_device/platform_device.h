@@ -11,15 +11,16 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#pragma once
+#ifndef _INCLUDE__SPEC__X86__PLATFORM_DEVICE__PLATFORM_DEVICE_H_
+#define _INCLUDE__SPEC__X86__PLATFORM_DEVICE__PLATFORM_DEVICE_H_
 
 #include <base/rpc.h>
 #include <base/signal.h>
 #include <base/exception.h>
+#include <base/ram_allocator.h>
 #include <io_mem_session/io_mem_session.h>
 #include <io_port_session/capability.h>
 #include <irq_session/capability.h>
-#include <ram_session/ram_session.h>
 
 /* os includes */
 #include <platform_device/device.h>
@@ -257,3 +258,5 @@ struct Platform::Device : Platform::Abstract_device
 	                     Rpc_class_code, Rpc_resource, Rpc_config_read,
 	                     Rpc_config_write, Rpc_irq, Rpc_io_port, Rpc_io_mem);
 };
+
+#endif /* _INCLUDE__SPEC__X86__PLATFORM_DEVICE__PLATFORM_DEVICE_H_ */

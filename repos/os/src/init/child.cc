@@ -54,11 +54,11 @@ Init::Child::apply_config(Xml_node start_node)
 
 	Config_update config_update = CONFIG_UNCHANGED;
 
-	/* import new start node if new version differs */
-	if (start_node.size() != _start_node->xml().size() ||
-	    Genode::memcmp(start_node.addr(), _start_node->xml().addr(),
-	                   start_node.size()) != 0)
-	{
+	/*
+	 * Import new start node if new version differs
+	 */
+	if (start_node.differs_from(_start_node->xml())) {
+
 		/*
 		 * Check for a change of the version attribute, force restart
 		 * if the version changed.
@@ -85,11 +85,10 @@ Init::Child::apply_config(Xml_node start_node)
 
 		if (config_was_present && config_is_present) {
 
-			Xml_node old_config = _start_node->xml().sub_node(tag);
-			Xml_node new_config = start_node.sub_node(tag);
+			Xml_node const old_config = _start_node->xml().sub_node(tag);
+			Xml_node const new_config = start_node.sub_node(tag);
 
-			if (Genode::memcmp(old_config.addr(), new_config.addr(),
-			                   min(old_config.size(), new_config.size())))
+			if (new_config.differs_from(old_config))
 				config_update = CONFIG_CHANGED;
 		}
 
@@ -354,14 +353,14 @@ void Init::Child::report_state(Xml_generator &xml, Report_detail const &detail) 
 		if (_heartbeat_enabled && _child.skipped_heartbeats())
 			xml.attribute("skipped_heartbeats", _child.skipped_heartbeats());
 
-		if (detail.child_ram() && _child.ram_session_cap().valid()) {
+		if (detail.child_ram() && _child.pd_session_cap().valid()) {
 			xml.node("ram", [&] () {
 
 				xml.attribute("assigned", String<32> {
 					Number_of_bytes(_resources.assigned_ram_quota.value) });
 
 				if (pd_alive)
-					generate_ram_info(xml, _child.ram());
+					generate_ram_info(xml, _child.pd());
 
 				if (_requested_resources.constructed() && _requested_resources->ram.value)
 					xml.attribute("requested", String<32>(_requested_resources->ram));
@@ -423,7 +422,7 @@ void Init::Child::init(Pd_session &session, Pd_session_capability cap)
 	catch (Out_of_caps) {
 		error(name(), ": unable to initialize cap quota of PD"); }
 
-	try { _env.ram().transfer_quota(cap, ram_quota); }
+	try { _env.pd().transfer_quota(cap, ram_quota); }
 	catch (Out_of_ram) {
 		error(name(), ": unable to initialize RAM quota of PD"); }
 }

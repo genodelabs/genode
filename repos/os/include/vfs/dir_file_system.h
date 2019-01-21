@@ -156,7 +156,8 @@ class Vfs::Dir_file_system : public File_system
 		/**
 		 * Directory name
 		 */
-		char _name[MAX_NAME_LEN];
+		typedef String<MAX_NAME_LEN> Name;
+		Name const _name;
 
 		/**
 		 * Returns if path corresponds to top directory of file system
@@ -244,8 +245,8 @@ class Vfs::Dir_file_system : public File_system
 			if (path[0] == '/')
 				path++;
 
-			Genode::size_t const name_len = strlen(_name);
-			if (strcmp(path, _name, name_len) != 0)
+			Genode::size_t const name_len = strlen(_name.string());
+			if (strcmp(path, _name.string(), name_len) != 0)
 				return 0;
 			path += name_len;
 
@@ -367,15 +368,11 @@ class Vfs::Dir_file_system : public File_system
 		                Genode::Xml_node     node,
 		                File_system_factory &fs_factory)
 		:
-			_env(env), _vfs_root(!node.has_type("dir"))
+			_env(env),
+			_vfs_root(!node.has_type("dir")),
+			_name(_vfs_root ? Name() : node.attribute_value("name", Name()))
 		{
 			using namespace Genode;
-
-			/* remember directory name */
-			if (_vfs_root)
-				_name[0] = 0;
-			else
-				node.attribute("name").value(_name, sizeof(_name));
 
 			for (unsigned i = 0; i < node.num_sub_nodes(); i++) {
 
@@ -398,10 +395,12 @@ class Vfs::Dir_file_system : public File_system
 
 				Genode::error("failed to create <", sub_node.type(), "> VFS node");
 				try {
-					String<64> value;
 					for (unsigned i = 0; i < 16; ++i) {
-						Xml_attribute attr = sub_node.attribute(i);
-						attr.value(&value);
+
+						Xml_attribute const attr = sub_node.attribute(i);
+
+						String<64> value { };
+						attr.value(value);
 
 						Genode::error("\t", attr.name(), "=\"", value, "\"");
 					}
@@ -532,14 +531,6 @@ class Vfs::Dir_file_system : public File_system
 
 			return false;
 		}
-
-		/**
-		 * Return true if specified path is a directory
-		 *
-		 * \noapi
-		 * \deprecated  use 'directory instead
-		 */
-		bool is_directory(char const *path) { return directory(path); }
 
 		char const *leaf_path(char const *path) override
 		{
@@ -911,7 +902,7 @@ class Vfs::Dir_file_system : public File_system
 				file_offset index = vfs_handle->seek() / sizeof(Dirent);
 
 				if (index == 0) {
-					strncpy(dirent->name, _name, sizeof(dirent->name));
+					strncpy(dirent->name, _name.string(), sizeof(dirent->name));
 
 					dirent->type = DIRENT_TYPE_DIRECTORY;
 					dirent->fileno = 1;

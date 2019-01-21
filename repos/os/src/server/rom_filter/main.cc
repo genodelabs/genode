@@ -322,26 +322,27 @@ void Rom_filter::Main::_evaluate_node(Xml_node node, Xml_generator &xml)
 		} else
 
 		if (node.has_type("inline")) {
-			char const *src     = node.content_base();
-			size_t      src_len = node.content_size();
 
-			/*
-			 * The 'Xml_generator::append' method puts the content at a fresh
-			 * line, and also adds a newline before the closing tag. We strip
-			 * eventual newlines from the '<inline>' node content to avoid
-			 * double newlines in the output.
-			 */
+			node.with_raw_content([&] (char const *src, size_t len) {
 
-			/* remove leading newline */
-			if (src_len > 0 && src[0] == '\n') {
-				src++;
-				src_len--;
-			}
+				/*
+				 * The 'Xml_generator::append' method puts the content at a
+				 * fresh line, and also adds a newline before the closing tag.
+				 * We strip eventual newlines from the '<inline>' node content
+				 * to avoid double newlines in the output.
+				 */
 
-			/* remove trailing whilespace including newlines */
-			for (; src_len > 0 && Genode::is_whitespace(src[src_len - 1]); src_len--);
+				/* remove leading newline */
+				if (len > 0 && src[0] == '\n') {
+					src++;
+					len--;
+				}
 
-			xml.append(src, src_len);
+				/* remove trailing whilespace including newlines */
+				for (; len > 0 && Genode::is_whitespace(src[len - 1]); len--);
+
+				xml.append(src, len);
+			});
 		} else
 
 		if (node.has_type("input")) {

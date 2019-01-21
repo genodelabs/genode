@@ -15,7 +15,6 @@
 #define _INCLUDE__USB__TYPES_H_
 
 #include <base/stdint.h>
-#include <base/printf.h>
 
 namespace Usb {
 	struct Device_descriptor;
@@ -112,7 +111,7 @@ struct Usb::String
 	void print()
 	{
 		char buffer[128];
-		Genode::printf("%s\n", to_char(buffer, 128));
+		Genode::log(Genode::Cstring(to_char(buffer, 128)));
 	}
 };
 

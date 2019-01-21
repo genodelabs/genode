@@ -28,9 +28,9 @@ struct Main
 	{
 		config.update();
 		try {
-			long counter = 1;
-			config.xml().sub_node("counter").value(&counter);
-			log("obtained counter value ", counter, " from config");
+			Xml_node const counter = config.xml().sub_node("counter");
+			counter.with_raw_content([&] (char const *start, size_t length) {
+				log("obtained counter value ", Cstring(start, length), " from config"); });
 		}
 		catch (...) { error("could not parse configuration"); }
 	}

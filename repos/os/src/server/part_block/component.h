@@ -273,7 +273,7 @@ class Block::Root :
 				Session_policy policy(label, _config);
 
 				/* read partition attribute */
-				policy.attribute("partition").value(&num);
+				num = policy.attribute_value("partition", -1L);
 
 				/* sessions are not writeable by default */
 				writeable = policy.attribute_value("writeable", false);

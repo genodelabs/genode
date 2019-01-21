@@ -26,28 +26,11 @@ class Vfs::Rom_file_system : public Single_file_system
 
 		enum Rom_type { ROM_TEXT, ROM_BINARY };
 
-		struct Label
-		{
-			enum { LABEL_MAX_LEN = 64 };
-			char string[LABEL_MAX_LEN];
-			bool const binary;
+		typedef String<64> Label;
 
-			Label(Xml_node config)
-			:
-				binary(config.attribute_value("binary", true))
-			{
-				/* obtain label from config */
-				string[0] = 0;
-				try { config.attribute("label").value(string, sizeof(string)); }
-				catch (...)
-				{
-					/* use VFS node name if label was not provided */
-					string[0] = 0;
-					try { config.attribute("name").value(string, sizeof(string)); }
-					catch (...) { }
-				}
-			}
-		} _label;
+		Label const _label;
+
+		bool const _binary;
 
 		Genode::Attached_rom_dataspace _rom;
 
@@ -125,8 +108,14 @@ class Vfs::Rom_file_system : public Single_file_system
 		                Genode::Xml_node config)
 		:
 			Single_file_system(NODE_TYPE_FILE, name(), config),
-			_label(config),
-			_rom(env.env(), _label.string)
+
+			/* use 'label' attribute if present, fall back to 'name' if not */
+			_label(config.attribute_value("label",
+			                              config.attribute_value("name", Label()))),
+
+			_binary(config.attribute_value("binary", true)),
+
+			_rom(env.env(), _label.string())
 		{ }
 
 		static char const *name()   { return "rom"; }
@@ -147,7 +136,7 @@ class Vfs::Rom_file_system : public Single_file_system
 
 			try {
 				*out_handle = new (alloc)
-					Rom_vfs_handle(*this, *this, alloc, _rom, _label.binary ? ROM_BINARY : ROM_TEXT);
+					Rom_vfs_handle(*this, *this, alloc, _rom, _binary ? ROM_BINARY : ROM_TEXT);
 				return OPEN_OK;
 			}
 			catch (Genode::Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }

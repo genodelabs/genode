@@ -16,6 +16,7 @@
 
 /* Genode includes */
 #include <base/env.h>
+#include <base/allocator.h>
 
 
 namespace Acpi

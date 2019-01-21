@@ -119,13 +119,18 @@ class Test_child : public Genode::Child_policy
 			address_space.fault_handler(_sigh);
 		}
 
-		Service &resolve_session_request(Service::Name const &service,
-		                                 Session_state::Args const &) override
+		Route resolve_session_request(Service::Name const &service,
+		                              Session_label const &label) override
 		{
-			if (service == Cpu_session::service_name()) return _cpu_service;
-			if (service ==  Pd_session::service_name()) return  _pd_service;
-			if (service == Log_session::service_name()) return _log_service;
-			if (service == Rom_session::service_name()) return _rom_service;
+			auto route = [&] (Service &service) {
+				return Route { .service = service,
+				               .label   = label,
+				               .diag    = Session::Diag() }; };
+
+			if (service == Cpu_session::service_name()) return route(_cpu_service);
+			if (service ==  Pd_session::service_name()) return route( _pd_service);
+			if (service == Log_session::service_name()) return route(_log_service);
+			if (service == Rom_session::service_name()) return route(_rom_service);
 
 			throw Service_denied();
 		}

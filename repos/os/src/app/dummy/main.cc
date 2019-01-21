@@ -78,13 +78,13 @@ struct Dummy::Log_service
 
 	struct Root : Root_component<Session_component>
 	{
-		Ram_session &_ram;
+		Pd_session &_pd;
 
 		bool const _verbose;
 
-		Root(Entrypoint &ep, Allocator &alloc, Ram_session &ram, bool verbose)
+		Root(Entrypoint &ep, Allocator &alloc, Pd_session &pd, bool verbose)
 		:
-			Root_component(ep, alloc), _ram(ram), _verbose(verbose)
+			Root_component(ep, alloc), _pd(pd), _verbose(verbose)
 		{ }
 
 		Session_component *_create_session(const char *args, Affinity const &) override
@@ -97,12 +97,12 @@ struct Dummy::Log_service
 			size_t const ram_quota =
 				Arg_string::find_arg(args, "ram_quota").ulong_value(0);
 
-			if (_ram.avail_ram().value >= ram_quota)
+			if (_pd.avail_ram().value >= ram_quota)
 				log("received session quota upgrade");
 		}
 	};
 
-	Root _root { _env.ep(), _heap, _env.ram(), _verbose };
+	Root _root { _env.ep(), _heap, _env.pd(), _verbose };
 
 	Log_service(Env &env, bool verbose) : _env(env), _verbose(verbose)
 	{
@@ -162,9 +162,9 @@ struct Dummy::Ram_consumer
 
 	Ram_dataspace_capability _ds_cap { };
 
-	Ram_session &_ram;
+	Ram_allocator &_ram;
 
-	Ram_consumer(Ram_session &ram) : _ram(ram) { }
+	Ram_consumer(Ram_allocator &ram) : _ram(ram) { }
 
 	void release()
 	{
@@ -286,7 +286,7 @@ struct Dummy::Main
 	Signal_handler<Main> _config_handler { _env.ep(), *this, &Main::_handle_config };
 
 	Ram_consumer _ram_consumer { _env.ram() };
-	Cap_consumer _cap_consumer { _env.ep() };
+	Cap_consumer _cap_consumer { _env.ep()  };
 
 	Constructible<Resource_yield_handler> _resource_yield_handler { };
 

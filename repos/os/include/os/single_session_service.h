@@ -42,7 +42,7 @@ class Genode::Single_session_service
 		{
 			Client(Session_capability cap)                 : SESSION::Client(cap) { }
 			Client(Region_map &rm, Session_capability cap) : SESSION::Client(rm, cap) { }
-			Session_capability cap() const { return *this; }
+			Session_capability cap() const { return this->rpc_cap(); }
 		};
 
 		typedef Local_service<Client>            Service;

@@ -35,8 +35,8 @@ class Rom::Session_component : public Genode::Rpc_object<Genode::Rom_session>,
 {
 	private:
 
-		Genode::Ram_session &_ram;
-		Genode::Region_map  &_rm;
+		Genode::Ram_allocator &_ram;
+		Genode::Region_map    &_rm;
 
 		Registry_for_reader &_registry;
 
@@ -71,25 +71,11 @@ class Rom::Session_component : public Genode::Rpc_object<Genode::Rom_session>,
 
 	public:
 
-		Session_component(Genode::Ram_session &ram, Genode::Region_map &rm,
+		Session_component(Genode::Ram_allocator &ram, Genode::Region_map &rm,
 		                  Registry_for_reader &registry,
 		                  Genode::Session_label const &label)
 		:
 			_ram(ram), _rm(rm),
-			_registry(registry), _label(label), _module(_init_module(label))
-		{ }
-
-		/**
-		 * Constructor
-		 *
-		 * \deprecated
-		 * \noapi
-		 */
-		Session_component(Registry_for_reader &registry,
-		                  Genode::Session_label const &label) __attribute__((deprecated))
-		:
-			_ram(*Genode::env_deprecated()->ram_session()),
-			_rm(*Genode::env_deprecated()->rm_session()),
 			_registry(registry), _label(label), _module(_init_module(label))
 		{ }
 

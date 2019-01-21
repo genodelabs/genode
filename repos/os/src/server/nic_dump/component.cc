@@ -26,8 +26,8 @@ using namespace Genode;
  ** Communication_buffer **
  **************************/
 
-Communication_buffer::Communication_buffer(Ram_session          &ram,
-                                           Genode::size_t const  size)
+Communication_buffer::Communication_buffer(Ram_allocator &ram,
+                                           Genode::size_t const size)
 :
 	Ram_dataspace_capability(ram.alloc(size)), _ram(ram)
 { }
@@ -38,11 +38,11 @@ Communication_buffer::Communication_buffer(Ram_session          &ram,
  ****************************/
 
 Session_component_base::
-Session_component_base(Allocator    &guarded_alloc_backing,
-                       size_t const  guarded_alloc_amount,
-                       Ram_session  &buf_ram,
-                       size_t const  tx_buf_size,
-                       size_t const  rx_buf_size)
+Session_component_base(Allocator     &guarded_alloc_backing,
+                       size_t   const guarded_alloc_amount,
+                       Ram_allocator &buf_ram,
+                       size_t   const tx_buf_size,
+                       size_t   const rx_buf_size)
 :
 	_guarded_alloc(&guarded_alloc_backing, guarded_alloc_amount),
 	_range_alloc(&_guarded_alloc), _tx_buf(buf_ram, tx_buf_size),

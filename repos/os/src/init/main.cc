@@ -63,7 +63,7 @@ struct Init::Main : State_reporter::Producer,
 	{
 		Ram_quota const preserved_ram = _preserved_ram_from_config(_config_xml);
 
-		Ram_quota avail_ram = _env.ram().avail_ram();
+		Ram_quota avail_ram = _env.pd().avail_ram();
 
 		if (preserved_ram.value > avail_ram.value) {
 			error("RAM preservation exceeds available memory");
@@ -115,7 +115,7 @@ struct Init::Main : State_reporter::Producer,
 	void produce_state_report(Xml_generator &xml, Report_detail const &detail) const
 	{
 		if (detail.init_ram())
-			xml.node("ram",  [&] () { generate_ram_info (xml, _env.ram()); });
+			xml.node("ram",  [&] () { generate_ram_info (xml, _env.pd()); });
 
 		if (detail.init_caps())
 			xml.node("caps", [&] () { generate_caps_info(xml, _env.pd()); });
@@ -444,7 +444,7 @@ void Init::Main::_handle_config()
 	 */
 	_children.for_each_child([&] (Child &child) {
 		if (!child.abandoned())
-			child.initiate_env_ram_session(); });
+			child.initiate_env_pd_session(); });
 
 	/*
 	 * Initiate remaining environment sessions of all new children

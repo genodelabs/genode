@@ -26,7 +26,7 @@ struct Rom::Registry : Registry_for_reader, Registry_for_writer, Genode::Noncopy
 	private:
 
 		Genode::Allocator              &_md_alloc;
-		Genode::Ram_session            &_ram;
+		Genode::Ram_allocator          &_ram;
 		Genode::Region_map             &_rm;
 		Genode::Attached_rom_dataspace &_config_rom;
 
@@ -119,26 +119,13 @@ struct Rom::Registry : Registry_for_reader, Registry_for_writer, Genode::Noncopy
 		{
 			using namespace Genode;
 
-			String<Rom::Module::Name::capacity()> report;
-
 			_config_rom.update();
+
 			try {
 				Session_policy policy(rom_label, _config_rom.xml());
-				policy.attribute("report").value(&report);
-				return Rom::Module::Name(report.string());
-			} catch (Session_policy::No_policy_defined) {
-				/* FIXME backwards compatibility, remove at next release */
-				try {
-					Xml_node rom_node = _config_rom.xml().sub_node("rom");
-					warning("parsing legacy <rom> policies");
-
-					Session_policy policy(rom_label, rom_node);
-					policy.attribute("report").value(&report);
-					return Rom::Module::Name(report.string());
-				}
-				catch (Xml_node::Nonexistent_sub_node) { /* no <rom> node */ }
-				catch (Session_policy::No_policy_defined) { }
+				return policy.attribute_value("report", Module::Name());
 			}
+			catch (Session_policy::No_policy_defined) { }
 
 			warning("no valid policy for ROM request '", rom_label, "'");
 			throw Service_denied();
@@ -147,7 +134,7 @@ struct Rom::Registry : Registry_for_reader, Registry_for_writer, Genode::Noncopy
 	public:
 
 		Registry(Genode::Allocator &md_alloc,
-		         Genode::Ram_session &ram, Genode::Region_map &rm,
+		         Genode::Ram_allocator &ram, Genode::Region_map &rm,
 		         Genode::Attached_rom_dataspace &config_rom)
 		:
 			_md_alloc(md_alloc), _ram(ram), _rm(rm), _config_rom(config_rom)

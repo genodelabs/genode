@@ -106,7 +106,7 @@ class Cli_monitor::Ram
 		/**
 		 * \throw Transfer_quota_failed
 		 */
-		void withdraw_from(Genode::Ram_session_capability from, size_t amount)
+		void withdraw_from(Genode::Pd_session_capability from, size_t amount)
 		{
 			using namespace Genode;
 
@@ -121,7 +121,7 @@ class Cli_monitor::Ram
 		/**
 		 * \throw Transfer_quota_failed
 		 */
-		void transfer_to(Genode::Ram_session_capability to, size_t amount)
+		void transfer_to(Genode::Pd_session_capability to, size_t amount)
 		{
 			Genode::Lock::Guard guard(_lock);
 

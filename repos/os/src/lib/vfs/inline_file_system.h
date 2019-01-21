@@ -26,14 +26,7 @@ class Vfs::Inline_file_system : public Single_file_system
 {
 	private:
 
-		char const * const _base;
-		file_size    const _size;
-
-		/*
-		 * Noncopyable
-		 */
-		Inline_file_system(Inline_file_system const &);
-		Inline_file_system &operator = (Inline_file_system const &);
+		Xml_node _node;
 
 		class Inline_vfs_handle : public Single_vfs_handle
 		{
@@ -101,11 +94,16 @@ class Vfs::Inline_file_system : public Single_file_system
 
 	public:
 
+		/**
+		 * Constructor
+		 *
+		 * The 'config' XML node (that points to its content) is stored within
+		 * the object after construction time. The underlying backing store
+		 * must be kept in tact during the lifefile of the object.
+		 */
 		Inline_file_system(Vfs::Env&, Genode::Xml_node config)
 		:
-			Single_file_system(NODE_TYPE_FILE, name(), config),
-			_base(config.content_base()),
-			_size(config.content_size())
+			Single_file_system(NODE_TYPE_FILE, name(), config), _node(config)
 		{ }
 
 		static char const *name()   { return "inline"; }
@@ -123,8 +121,10 @@ class Vfs::Inline_file_system : public Single_file_system
 				return OPEN_ERR_UNACCESSIBLE;
 
 			try {
-				*out_handle = new (alloc)
-					Inline_vfs_handle(*this, *this, alloc, _base, _size);
+				_node.with_raw_content([&] (char const *base, Genode::size_t size) {
+					*out_handle = new (alloc)
+						Inline_vfs_handle(*this, *this, alloc, base, size);
+				});
 				return OPEN_OK;
 			}
 			catch (Genode::Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
@@ -134,7 +134,8 @@ class Vfs::Inline_file_system : public Single_file_system
 		Stat_result stat(char const *path, Stat &out) override
 		{
 			Stat_result result = Single_file_system::stat(path, out);
-			out.size = _size;
+			_node.with_raw_content([&] (char const *, Genode::size_t size) {
+				out.size = size; });
 			return result;
 		}
 };

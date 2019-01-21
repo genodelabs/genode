@@ -230,8 +230,8 @@ struct Test_tracing
 
 		try {
 			Xml_node policy = config.xml().sub_node("trace_policy");
-			policy.attribute("label").value(&policy_label);
-			policy.attribute("module").value(&policy_module);
+			policy.attribute("label").value(policy_label);
+			policy.attribute("module").value(policy_module);
 
 			Rom_connection policy_rom(env, policy_module.string());
 			policy_module_rom_ds = policy_rom.dataspace();

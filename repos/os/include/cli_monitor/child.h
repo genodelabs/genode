@@ -49,6 +49,8 @@ class Cli_monitor::Child_base : public Genode::Child_policy
 
 	private:
 
+		Genode::Env &_env;
+
 		Ram &_ram;
 
 		Genode::Allocator &_alloc;
@@ -58,9 +60,6 @@ class Cli_monitor::Child_base : public Genode::Child_policy
 
 		Genode::Pd_session_capability  _ref_pd_cap;
 		Genode::Pd_session            &_ref_pd;
-
-		Genode::Ram_session_capability _ref_ram_cap;
-		Genode::Ram_session           &_ref_ram;
 
 		Cap_quota _cap_quota;
 
@@ -101,6 +100,26 @@ class Cli_monitor::Child_base : public Genode::Child_policy
 
 		Genode::Child _child;
 
+		Genode::Service &_matching_service(Genode::Service::Name const &name,
+		                                   Genode::Session_label const &label)
+		{
+			Genode::Service *service = nullptr;
+
+			/* check for config file request */
+			if ((service = _config_policy.resolve_session_request(name, label)))
+				return *service;
+
+			/* populate session-local parent service registry on demand */
+			_parent_services.for_each([&] (Parent_service &s) {
+				if (s.name() == name)
+					service = &s; });
+
+			if (service)
+				return *service;
+
+			return *new (_alloc) Parent_service(_parent_services, _env, name);
+		}
+
 	public:
 
 		/**
@@ -112,14 +131,13 @@ class Cli_monitor::Child_base : public Genode::Child_policy
 		 * \param alloc    allocator used to fill parent-service registry
 		 *                 on demand
 		 */
-		Child_base(Ram                              &ram,
+		Child_base(Genode::Env                      &env,
+		           Ram                              &ram,
 		           Genode::Allocator                &alloc,
 		           Name                       const &label,
 		           Binary_name                const &binary_name,
 		           Genode::Pd_session               &ref_pd,
 		           Genode::Pd_session_capability     ref_pd_cap,
-		           Genode::Ram_session              &ref_ram,
-		           Genode::Ram_session_capability    ref_ram_cap,
 		           Genode::Region_map               &local_rm,
 		           Cap_quota                         cap_quota,
 		           Genode::size_t                    ram_quota,
@@ -127,13 +145,12 @@ class Cli_monitor::Child_base : public Genode::Child_policy
 		           Genode::Signal_context_capability yield_response_sig_cap,
 		           Genode::Signal_context_capability exit_sig_cap)
 		:
-			_ram(ram), _alloc(alloc),
+			_env(env), _ram(ram), _alloc(alloc),
 			_label(label), _binary_name(binary_name),
-			_ref_pd_cap (ref_pd_cap),  _ref_pd (ref_pd),
-			_ref_ram_cap(ref_ram_cap), _ref_ram(ref_ram),
+			_ref_pd_cap (ref_pd_cap), _ref_pd (ref_pd),
 			_cap_quota(cap_quota), _ram_quota(ram_quota), _ram_limit(ram_limit),
 			_entrypoint(&ref_pd, ENTRYPOINT_STACK_SIZE, _label.string(), false),
-			_config_policy(local_rm, "config", _entrypoint, &ref_ram),
+			_config_policy(local_rm, "config", _entrypoint, &_env.ram()),
 			_yield_response_sigh_cap(yield_response_sig_cap),
 			_exit_sig_cap(exit_sig_cap),
 			_child(local_rm, _entrypoint, *this)
@@ -183,7 +200,7 @@ class Cli_monitor::Child_base : public Genode::Child_policy
 			if (!amount)
 				return;
 
-			_ram.withdraw_from(_child.ram_session_cap(), amount);
+			_ram.withdraw_from(_child.pd_session_cap(), amount);
 			_ram_quota -= amount;
 		}
 
@@ -194,12 +211,12 @@ class Cli_monitor::Child_base : public Genode::Child_policy
 		 */
 		void upgrade_ram_quota(size_t amount)
 		{
-			_ram.transfer_to(_child.ram_session_cap(), amount);
+			_ram.transfer_to(_child.pd_session_cap(), amount);
 			_ram_quota += amount;
 
 			/* wake up child if resource request is in flight */
 			size_t const req = requested_ram_quota();
-			if (req && _child.ram().avail_ram().value >= req) {
+			if (req && _child.pd().avail_ram().value >= req) {
 				_child.notify_resource_avail();
 
 				/* clear request state */
@@ -258,16 +275,16 @@ class Cli_monitor::Child_base : public Genode::Child_policy
 		/**
 		 * Return RAM quota status of the child
 		 *
-		 * XXX should be a const method, but the 'Ram_session' accessors
+		 * XXX should be a const method, but the 'Pd_session' accessors
 		 *     are not const
 		 */
 		Ram_status ram_status()
 		{
 			return Ram_status(_ram_quota,
 			                  _ram_limit,
-			                  _ram_quota - _child.ram().ram_quota().value,
-			                  _child.ram().used_ram().value,
-			                  _child.ram().avail_ram().value,
+			                  _ram_quota - _child.pd().ram_quota().value,
+			                  _child.pd().used_ram().value,
+			                  _child.pd().avail_ram().value,
 			                  requested_ram_quota());
 		}
 
@@ -294,24 +311,12 @@ class Cli_monitor::Child_base : public Genode::Child_policy
 			_ref_pd.transfer_quota(cap, Genode::Ram_quota{_ram_quota});
 		}
 
-		Genode::Service &resolve_session_request(Genode::Service::Name const &name,
-		                                         Genode::Session_state::Args const &args) override
+		Route resolve_session_request(Genode::Service::Name const &name,
+		                              Genode::Session_label const &label) override
 		{
-			Genode::Service *service = nullptr;
-
-			/* check for config file request */
-			if ((service = _config_policy.resolve_session_request(name.string(), args.string())))
-				return *service;
-
-			/* populate session-local parent service registry on demand */
-			_parent_services.for_each([&] (Parent_service &s) {
-				if (s.name() == name)
-					service = &s; });
-
-			if (service)
-				return *service;
-
-			return *new (_alloc) Parent_service(_parent_services, name);
+			return Route { .service = _matching_service(name, label),
+			               .label   = label,
+			               .diag    = Genode::Session::Diag() };
 		}
 
 		void yield_response()
@@ -319,8 +324,8 @@ class Cli_monitor::Child_base : public Genode::Child_policy
 			if (_withdraw_on_yield_response) {
 				enum { RESERVE = 4*1024*1024 };
 
-				size_t amount = _child.ram().avail_ram().value < RESERVE
-				                ? 0 : _child.ram().avail_ram().value - RESERVE;
+				size_t amount = _child.pd().avail_ram().value < RESERVE
+				                ? 0 : _child.pd().avail_ram().value - RESERVE;
 
 				/* try to immediately withdraw freed-up resources */
 				try { withdraw_ram_quota(amount); }

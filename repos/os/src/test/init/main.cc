@@ -202,7 +202,8 @@ struct Test::Main : Log_message_handler
 			if (version.valid())
 				xml.attribute("version", version);
 
-			xml.append(node.content_base(), node.content_size());
+			node.with_raw_content([&] (char const *start, size_t length) {
+				xml.append(start, length); });
 		});
 	}
 

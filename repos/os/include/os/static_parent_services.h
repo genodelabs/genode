@@ -42,8 +42,8 @@ class Genode::Static_parent_services : public Registry<Registered<Parent_service
 			Registered<Parent_service> service;
 			Service_recursive<TAIL...> tail;
 
-			Service_recursive(Registry<Registered<Parent_service> > &registry)
-			: service(registry, HEAD::service_name()), tail(registry) { }
+			Service_recursive(Env &env, Registry<Registered<Parent_service> > &registry)
+			: service(registry, env, HEAD::service_name()), tail(env, registry) { }
 		};
 
 		template <typename LAST>
@@ -51,11 +51,15 @@ class Genode::Static_parent_services : public Registry<Registered<Parent_service
 		{
 			Registered<Parent_service> service;
 
-			Service_recursive(Registry<Registered<Parent_service> > &registry)
-			: service(registry, LAST::service_name()) { }
+			Service_recursive(Env &env, Registry<Registered<Parent_service> > &registry)
+			: service(registry, env, LAST::service_name()) { }
 		};
 
-		Service_recursive<SESSION_TYPES...> _service_recursive { *this };
+		Service_recursive<SESSION_TYPES...> _service_recursive;
+
+	public:
+
+		Static_parent_services(Env &env) : _service_recursive(env, *this) { }
 };
 
 #endif /* _INCLUDE__OS__STATIC_PARENT_SERVICES_H_ */

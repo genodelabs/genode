@@ -80,7 +80,7 @@ class Fs_log::Session_component : public Genode::Rpc_object<Genode::Log_session>
 		{
 			using namespace Genode;
 
-			if (!msg.is_valid_string()) {
+			if (!msg.valid_string()) {
 				Genode::error("received corrupted string");
 				return 0;
 			}

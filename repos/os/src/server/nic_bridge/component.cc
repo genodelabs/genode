@@ -108,18 +108,19 @@ void Session_component::set_ipv4_address(Ipv4_address ip_addr)
 }
 
 
-Session_component::Session_component(Genode::Ram_session         &ram,
+Session_component::Session_component(Genode::Ram_allocator       &ram,
                                      Genode::Region_map          &rm,
                                      Genode::Entrypoint          &ep,
-                                     Genode::size_t               amount,
+                                     Genode::Ram_quota            ram_quota,
+                                     Genode::Cap_quota            cap_quota,
                                      Genode::size_t               tx_buf_size,
                                      Genode::size_t               rx_buf_size,
                                      Mac_address                  vmac,
                                      Net::Nic                    &nic,
                                      bool                  const &verbose,
                                      Genode::Session_label const &label,
-                                     char                        *ip_addr)
-: Stream_allocator(ram, rm, amount),
+                                     Ip_addr               const &ip_addr)
+: Stream_allocator(ram, rm, ram_quota, cap_quota),
   Stream_dataspaces(ram, tx_buf_size, rx_buf_size),
   Session_rpc_object(rm,
                      Stream_dataspaces::tx_ds,
@@ -133,12 +134,12 @@ Session_component::Session_component(Genode::Ram_session         &ram,
 	vlan().mac_tree.insert(&_mac_node);
 	vlan().mac_list.insert(&_mac_node);
 
-	/* static ip parsing */
-	if (ip_addr != 0 && Genode::strlen(ip_addr)) {
-		Ipv4_address ip = Ipv4_packet::ip_from_string(ip_addr);
+	/* static IP parsing */
+	if (ip_addr.valid()) {
+		Ipv4_address ip = Ipv4_packet::ip_from_string(ip_addr.string());
 
 		if (ip == Ipv4_address()) {
-			Genode::warning("Empty or error ip address. Skipped.");
+			Genode::warning("Empty or error IP address. Skipped.");
 		} else {
 			set_ipv4_address(ip);
 			Genode::log("vmac = ", vmac, " ip = ", ip);

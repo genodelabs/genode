@@ -15,7 +15,6 @@
 #define _LINE_EDITOR_H_
 
 /* Genode includes */
-#include <base/printf.h>
 #include <terminal_session/connection.h>
 #include <util/string.h>
 #include <util/list.h>

@@ -120,7 +120,7 @@ struct Ahci
 		log("64-bit support: ", hba.supports_64bit() ? "yes" : "no");
 	}
 
-	void scan_ports(Genode::Region_map &rm, Genode::Ram_session &ram)
+	void scan_ports(Genode::Region_map &rm, Genode::Ram_allocator &ram)
 	{
 		log("number of ports: ", hba.port_count(), " pi: ",
 		    Hex(hba.read<Hba::Pi>()));

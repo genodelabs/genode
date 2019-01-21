@@ -316,14 +316,10 @@ void Session_component::apply_session_policy(Xml_node config,
 			return;
 		}
 
-		typedef Domain_registry::Entry::Name Domain_name;
-		char buf[sizeof(Domain_name)];
-		buf[0] = 0;
-		try {
-			policy.attribute("domain").value(buf, sizeof(buf)); }
-		catch (...) { }
+		typedef Domain_registry::Entry::Name Name;
 
-		Domain_name name(buf);
+		Name const name = policy.attribute_value("domain", Name());
+
 		_domain = domain_registry.lookup(name);
 
 		if (!_domain)
@@ -481,7 +477,7 @@ Buffer *Session_component::realloc_buffer(Framebuffer::Mode mode, bool use_alpha
 	if (texture()) {
 
 		enum { PRESERVED_RAM = 128*1024 };
-		if (_env.ram().avail_ram().value > _buffer_size + PRESERVED_RAM) {
+		if (_env.pd().avail_ram().value > _buffer_size + PRESERVED_RAM) {
 			src_texture = static_cast<Texture<PT> const *>(texture());
 		} else {
 			warning("not enough RAM to preserve buffer content during resize");

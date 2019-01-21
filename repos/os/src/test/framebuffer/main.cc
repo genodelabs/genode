@@ -169,7 +169,7 @@ void Test_environment::_draw()
 void Test_environment::_mode_handle()
 {
 	_mode = _fb.mode();
-	if (_fb_ds.is_constructed())
+	if (_fb_ds.constructed())
 		_fb_ds.destruct();
 
 	_fb_ds.construct(_env.rm(), _fb.dataspace());

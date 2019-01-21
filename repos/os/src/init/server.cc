@@ -162,7 +162,7 @@ void Init::Server::_close_session(Session_state &session,
 	Ram_transfer::Account &service_ram_account = session.service();
 	Cap_transfer::Account &service_cap_account = session.service();
 
-	service_ram_account.try_transfer(_env.ram_session_cap(),
+	service_ram_account.try_transfer(_env.pd_session_cap(),
 	                                 session.donated_ram_quota());
 
 	service_cap_account.try_transfer(_env.pd_session_cap(),
@@ -233,8 +233,8 @@ void Init::Server::_handle_create_session_request(Xml_node request,
 
 		/* transfer session quota */
 		try {
-			Ram_transfer::Remote_account env_ram_account(_env.ram(), _env.ram_session_cap());
-			Cap_transfer::Remote_account env_cap_account(_env.pd(),  _env.pd_session_cap());
+			Ram_transfer::Remote_account env_ram_account(_env.pd(), _env.pd_session_cap());
+			Cap_transfer::Remote_account env_cap_account(_env.pd(), _env.pd_session_cap());
 
 			Ram_transfer ram_transfer(forward_ram_quota, env_ram_account, route.service);
 			Cap_transfer cap_transfer(cap_quota,         env_cap_account, route.service);
@@ -298,8 +298,8 @@ void Init::Server::_handle_upgrade_session_request(Xml_node request,
 		session.phase = Session_state::UPGRADE_REQUESTED;
 
 		try {
-			Ram_transfer::Remote_account env_ram_account(_env.ram(), _env.ram_session_cap());
-			Cap_transfer::Remote_account env_cap_account(_env.pd(),  _env.pd_session_cap());
+			Ram_transfer::Remote_account env_ram_account(_env.pd(), _env.pd_session_cap());
+			Cap_transfer::Remote_account env_cap_account(_env.pd(), _env.pd_session_cap());
 
 			Ram_transfer ram_transfer(ram_quota, env_ram_account, session.service());
 			Cap_transfer cap_transfer(cap_quota, env_cap_account, session.service());

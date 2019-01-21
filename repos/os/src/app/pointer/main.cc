@@ -28,7 +28,6 @@
 #include <pointer/shape_report.h>
 
 /* local includes */
-#include "util.h"
 #include "rom_registry.h"
 #include "big_mouse.h"
 
@@ -59,7 +58,7 @@ class Pointer::Main : public Rom::Reader
 {
 	private:
 
-		typedef Pointer::String String;
+		typedef Genode::String<128> String;
 
 		Genode::Env &_env;
 
@@ -285,8 +284,6 @@ void Pointer::Main::_update_pointer()
 
 void Pointer::Main::_handle_hover()
 {
-	using Pointer::read_string_attribute;
-
 	_hover_ds->update();
 	if (!_hover_ds->valid())
 		return;
@@ -295,9 +292,8 @@ void Pointer::Main::_handle_hover()
 	try {
 		Genode::Xml_node node(_hover_ds->local_addr<char>());
 
-		Genode::Session_label hovered_label { read_string_attribute(node,
-		                                                            "label",
-		                                                            String()) };
+		Genode::Session_label hovered_label {
+			node.attribute_value("label", String()) };
 
 		hovered_label = hovered_label.prefix();
 

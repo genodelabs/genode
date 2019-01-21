@@ -41,21 +41,18 @@ struct Mixer::Channel
 
 	Channel(Genode::Xml_node const &node)
 	{
-		Genode::String<8> tmp;
-		try { node.attribute("type").value(&tmp); }
-		catch (...) { throw Invalid_channel(); }
+		typedef Genode::String<8> Type;
+		Type const type_name = node.attribute_value("type", Type());
 
-		if      (tmp == "input")  type = INPUT;
-		else if (tmp == "output") type = OUTPUT;
-		else                      throw Invalid_channel();
+		if      (type_name == "input")  type = INPUT;
+		else if (type_name == "output") type = OUTPUT;
+		else                            throw Invalid_channel();
 
-		try {
-			node.attribute("label").value(&label);
-			number = (Channel::Number) node.attribute_value<long>("number", 0);
-			volume = node.attribute_value<long>("volume", 0);
-			active = node.attribute_value<bool>("active", true);
-			muted  = node.attribute_value<bool>("muted", true);
-		} catch (...) { throw Invalid_channel(); }
+		label  = node.attribute_value("label", Label());
+		number = (Channel::Number) node.attribute_value("number", 0L);
+		volume = node.attribute_value("volume", 0L);
+		active = node.attribute_value("active", true);
+		muted  = node.attribute_value("muted",  true);
 	}
 };
 

@@ -41,7 +41,7 @@ class Lx_block_driver : public Block::Driver
 		Genode::Env &_env;
 
 		Block::sector_t            _block_count {   0 };
-		Genode::size_t             _block_size  { 512 };
+		Genode::size_t       const _block_size  { 512 };
 		Block::Session::Operations _block_ops   { };
 
 		int _fd { -1 };
@@ -51,26 +51,22 @@ class Lx_block_driver : public Block::Driver
 		struct Could_not_open_file : Genode::Exception { };
 
 		Lx_block_driver(Genode::Env &env, Genode::Xml_node config)
-		: Block::Driver(env.ram()), _env(env)
+		:
+			Block::Driver(env.ram()),
+			_env(env),
+			_block_size(config.attribute_value("block_size", Genode::Number_of_bytes()))
 		{
-			Genode::String<256> file;
-			try {
-				config.attribute("file").value(&file);
-			} catch (...) {
+			if (!config.has_attribute("block_size"))
+				Genode::warning("block size missing, assuming 512b");
+
+			bool const writeable = xml_attr_ok(config, "writeable");
+
+			if (!config.has_attribute("file")) {
 				Genode::error("mandatory file attribute missing");
 				throw Could_not_open_file();
 			}
 
-			try {
-				Genode::Number_of_bytes bytes;
-				config.attribute("block_size").value(&bytes);
-				_block_size = bytes;
-			} catch (...) {
-				Genode::warning("block size missing, assuming 512b");
-			}
-
-			bool const writeable = xml_attr_ok(config, "writeable");
-
+			auto const file = config.attribute_value("file", Genode::String<256>());
 			struct stat st;
 			if (stat(file.string(), &st)) {
 				perror("stat");

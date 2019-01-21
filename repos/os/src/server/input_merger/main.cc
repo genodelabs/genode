@@ -92,8 +92,7 @@ struct Input_merger::Main
 
 		config_rom.xml().for_each_sub_node("input", [&] (Xml_node input_node) {
 			try {
-				Label label;
-				input_node.attribute("label").value(&label);
+				Label label = input_node.attribute_value("label", Label());
 
 				try {
 					Input_source *input_source = new (heap)

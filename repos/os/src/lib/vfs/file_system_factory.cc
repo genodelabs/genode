@@ -112,17 +112,6 @@ Vfs::Global_file_system_factory::_try_create(Vfs::Env &env,
 
 
 /**
- * Return name of VFS node
- */
-Node_name Vfs::Global_file_system_factory::_node_name(Genode::Xml_node node)
-{
-	char node_name [Node_name::capacity()];
-	node.type_name(node_name, sizeof(node_name));
-	return Node_name(node_name);
-}
-
-
-/**
  * Return matching library name for a given vfs node name
  */
 Library_name Vfs::Global_file_system_factory::_library_name(Node_name const &node_name)
@@ -173,15 +162,14 @@ Vfs::File_system_factory &Vfs::Global_file_system_factory::_load_factory(Vfs::En
 /**
  * Try to load external File_system_factory provider
  */
-bool Vfs::Global_file_system_factory::_probe_external_factory(Vfs::Env       &env,
-                                                              Genode::Xml_node   node)
+bool Vfs::Global_file_system_factory::_probe_external_factory(Vfs::Env &env,
+                                                              Genode::Xml_node node)
 {
-	Library_name const lib_name = _library_name(_node_name(node));
+	Library_name const lib_name = _library_name(node.type());
 
 	try {
 		_list.insert(new (env.alloc())
-			External_entry(_node_name(node).string(),
-			               _load_factory(env, lib_name)));
+			External_entry(node.type().string(), _load_factory(env, lib_name)));
 		return true;
 
 	} catch (Factory_not_available) { return false; }

@@ -162,12 +162,12 @@ namespace Init {
 	}
 
 
-	inline void generate_ram_info(Xml_generator &xml, Ram_session const &ram)
+	inline void generate_ram_info(Xml_generator &xml, Pd_session const &pd)
 	{
 		typedef String<32> Value;
-		xml.attribute("quota", Value(ram.ram_quota()));
-		xml.attribute("used",  Value(ram.used_ram()));
-		xml.attribute("avail", Value(ram.avail_ram()));
+		xml.attribute("quota", Value(pd.ram_quota()));
+		xml.attribute("used",  Value(pd.used_ram()));
+		xml.attribute("avail", Value(pd.avail_ram()));
 	}
 
 	inline void generate_caps_info(Xml_generator &xml, Pd_session const &pd)
@@ -196,9 +196,9 @@ namespace Init {
 
 	inline long priority_from_xml(Xml_node start_node, Prio_levels prio_levels)
 	{
-		long priority = Cpu_session::DEFAULT_PRIORITY;
-		try { start_node.attribute("priority").value(&priority); }
-		catch (...) { }
+		long const default_priority = Cpu_session::DEFAULT_PRIORITY;
+
+		long priority = start_node.attribute_value("priority", default_priority);
 
 		/*
 		 * All priority declarations in the config file are
@@ -211,9 +211,9 @@ namespace Init {
 
 		if (priority && (priority >= prio_levels.value)) {
 			long new_prio = prio_levels.value ? prio_levels.value - 1 : 0;
-			char name[Service::Name::capacity()];
-			start_node.attribute("name").value(name, sizeof(name));
-			warning(Cstring(name), ": invalid priority, upgrading "
+
+			Service::Name const name = start_node.attribute_value("name", Service::Name());
+			warning(name, ": invalid priority, upgrading "
 			        "from ", -priority, " to ", -new_prio);
 			return new_prio;
 		}

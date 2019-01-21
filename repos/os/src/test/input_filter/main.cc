@@ -238,7 +238,8 @@ struct Test::Main : Input_from_filter::Event_handler
 	void _publish_report(Reporter &reporter, Xml_node node)
 	{
 		Reporter::Xml_generator xml(reporter, [&] () {
-			xml.append(node.content_base(), node.content_size()); });
+			node.with_raw_content([&] (char const *start, size_t length) {
+				xml.append(start, length); }); });
 	}
 
 	void _gen_chargen_rec(Xml_generator &xml, unsigned depth)
