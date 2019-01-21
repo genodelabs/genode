@@ -20,7 +20,6 @@
 #include "app_child.h"
 #include "cpu_thread_component.h"
 #include "genode_child_resources.h"
-#include "signal_handler_thread.h"
 
 /* libc includes */
 #include <sys/ptrace.h>
@@ -441,16 +440,22 @@ extern "C" int fork()
 
 	/* extract target filename from config file */
 
-	static char filename[32] = "";
+	typedef String<32> Filename;
+	Filename filename { };
 
 	Genode::Attached_rom_dataspace config { *genode_env, "config" };
+
 	try {
-		config.xml().sub_node("target").attribute("name").value(filename, sizeof(filename));
+		Xml_node const target = config.xml().sub_node("target");
+
+		if (!target.has_attribute("name")) {
+			error("missing 'name' attribute of '<target>' sub node");
+			return -1;
+		}
+		filename = target.attribute_value("name", Filename());
+
 	} catch (Xml_node::Nonexistent_sub_node) {
 		error("missing '<target>' sub node");
-		return -1;
-	} catch (Xml_node::Nonexistent_attribute) {
-		error("missing 'name' attribute of '<target>' sub node");
 		return -1;
 	}
 
@@ -465,7 +470,7 @@ extern "C" int fork()
 	try {
 		Xml_node preserve_node = config.xml().sub_node("preserve");
 		if (preserve_node.attribute("name").has_value("RAM"))
-			preserve_node.attribute("quantum").value(&preserved_ram_quota);
+			preserve_node.attribute("quantum").value(preserved_ram_quota);
 		else
 			throw Xml_node::Exception();
 	} catch (...) {
@@ -473,7 +478,7 @@ extern "C" int fork()
 		return -1;
 	}
 
-	Number_of_bytes ram_quota = genode_env->ram().avail_ram().value - preserved_ram_quota;
+	Number_of_bytes ram_quota = genode_env->pd().avail_ram().value - preserved_ram_quota;
 
 	Cap_quota const avail_cap_quota = genode_env->pd().avail_caps();
 
@@ -490,18 +495,16 @@ extern "C" int fork()
 
 	static Heap alloc(genode_env->ram(), genode_env->rm());
 
-	static Signal_receiver signal_receiver;
-
-	static Gdb_monitor::Signal_handler_thread
-		signal_handler_thread(*genode_env, signal_receiver);
-	signal_handler_thread.start();
+	enum { SIGNAL_EP_STACK_SIZE = 2*1024*sizeof(addr_t) };
+	static Entrypoint signal_ep { *genode_env, SIGNAL_EP_STACK_SIZE,
+	                              "sig_handler", Affinity::Location() };
 
 	App_child *child = new (alloc) App_child(*genode_env,
 	                                         alloc,
-	                                         filename,
+	                                         filename.string(),
 	                                         Ram_quota{ram_quota},
 	                                         cap_quota,
-	                                         signal_receiver,
+	                                         signal_ep,
 	                                         target_node);
 
 	_genode_child_resources = child->genode_child_resources();

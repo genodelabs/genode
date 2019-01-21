@@ -5,56 +5,39 @@
  */
 
 /*
- * Copyright (C) 2011-2017 Genode Labs GmbH
+ * Copyright (C) 2011-2019 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* Genode includes */
-#include <base/sleep.h>
-#include <base/thread.h>
-#include <timer_session/connection.h>
-
-/* libc includes */
+#include <pthread.h>
 #include <stdio.h>
+
 
 /* a variable to be modified with GDB */
 int test_var = 1;
 
-/* a thread to test GDB thread switching support */
-class Test_thread : public Genode::Thread_deprecated<2*4096>
+
+void test_thread_step()
 {
-	public:
+	/* nothing */
+}
 
-		Test_thread() : Thread_deprecated("test") { }
 
-		void step_func()
-		{
-			/* nothing */
-		}
+void test_thread_sigsegv()
+{
+	*(int *)0 = 42;
+}
 
-		void sigsegv_func()
-		{
-			/*
-			 * make sure that the main thread is sleeping in
-			 * Genode::sleep_forever() when the segfault happens
-			 */
-			static Timer::Connection timer;
-			timer.msleep(500);
 
-			*(int *)0 = 42;
-		}
+void *test_thread_start(void*)
+{
+	test_thread_step();
+	test_thread_sigsegv();
+	return nullptr;
+}
 
-		void entry() /* set a breakpoint here to test the 'info threads' command */
-		{
-			step_func();
-
-			sigsegv_func();
-
-			Genode::sleep_forever();
-		}
-};
 
 /*
  * This function returns the current value of 'test_var' + 1 and can be called from
@@ -88,16 +71,13 @@ int func1()
 }
 
 
-int main(void)
+int main()
 {
-	Test_thread test_thread;
-
 	func1();
 
-	test_thread.start();
-
-	test_thread.join();
+	pthread_t test_thread;
+	pthread_create(&test_thread, nullptr, test_thread_start, nullptr);
+	pthread_join(test_thread, nullptr);
 
 	return 0;
 }
-

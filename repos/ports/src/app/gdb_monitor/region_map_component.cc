@@ -13,7 +13,6 @@
 
 /* Genode includes */
 #include <base/env.h>
-#include <base/printf.h>
 #include <dataspace/client.h>
 #include <util/retry.h>
 
@@ -59,14 +58,14 @@ Region_map_component::attach(Dataspace_capability ds_cap, size_t size,
 	size_t ds_size = Dataspace_client(ds_cap).size();
 
 	if (offset < 0 || (size_t)offset >= ds_size) {
-		PWRN("offset outside of dataspace");
+		warning("offset outside of dataspace");
 		throw Region_conflict();
 	}
 
 	if (size == 0)
 		size = ds_size - offset;
 	else if (size > ds_size - offset) {
-		PWRN("size bigger than remainder of dataspace");
+		warning("size bigger than remainder of dataspace");
 		throw Region_conflict();
 	}
 
@@ -88,7 +87,7 @@ void Region_map_component::detach(Region_map::Local_addr local_addr)
 	Lock::Guard lock_guard(_region_map_lock);
 	Region *region = _region_map.first()->find_by_addr(local_addr);
 	if (!region) {
-		PERR("address not in region map");
+		warning("address not in region map");
 		return;
 	}
 	_region_map.remove(region);

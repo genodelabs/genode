@@ -20,7 +20,6 @@
 #include <base/rpc_server.h>
 #include <base/service.h>
 #include <base/thread.h>
-#include <base/printf.h>
 #include <cpu_session/client.h>
 #include <parent/parent.h>
 #include <pd_session/capability.h>
@@ -59,7 +58,7 @@ class Gdb_monitor::Cpu_session_component : public Rpc_object<Cpu_session>
 		Pd_session_capability                    _core_pd;
 
 		Cpu_session_client                       _parent_cpu_session;
-		Signal_receiver                         &_exception_signal_receiver;
+		Entrypoint                              &_signal_ep;
 
 		Append_list<Cpu_thread_component>        _thread_list;
 
@@ -80,7 +79,7 @@ class Gdb_monitor::Cpu_session_component : public Rpc_object<Cpu_session>
 		                      Rpc_entrypoint        &ep,
 		                      Allocator             &md_alloc,
 		                      Pd_session_capability  core_pd,
-		                      Signal_receiver       &exception_signal_receiver,
+		                      Entrypoint            &signal_ep,
 		                      const char            *args,
 		                      Affinity const        &affinity);
 
@@ -91,7 +90,7 @@ class Gdb_monitor::Cpu_session_component : public Rpc_object<Cpu_session>
 
 		Cpu_session &parent_cpu_session();
 		Rpc_entrypoint &thread_ep();
-		Signal_receiver &exception_signal_receiver();
+		Entrypoint &signal_ep();
 		Thread_capability thread_cap(unsigned long lwpid);
 		unsigned long lwpid(Thread_capability thread_cap);
 		Cpu_thread_component *lookup_cpu_thread(unsigned long lwpid);
@@ -137,7 +136,7 @@ class Gdb_monitor::Local_cpu_factory : public Cpu_service::Factory
 
 		Allocator               &_md_alloc;
 		Pd_session_capability    _core_pd;
-		Signal_receiver         &_signal_receiver;
+		Entrypoint              &_signal_ep;
 		Genode_child_resources  *_genode_child_resources;
 
 
@@ -147,12 +146,12 @@ class Gdb_monitor::Local_cpu_factory : public Cpu_service::Factory
 		                  Rpc_entrypoint         &ep,
 		                  Allocator              &md_alloc,
 		                  Pd_session_capability   core_pd,
-		                  Signal_receiver        &signal_receiver,
+		                  Entrypoint             &signal_ep,
 		                  Genode_child_resources *genode_child_resources)
 		: _env(env), _ep(ep),
 		  _md_alloc(md_alloc),
 		  _core_pd(core_pd),
-		  _signal_receiver(signal_receiver),
+		  _signal_ep(signal_ep),
 		  _genode_child_resources(genode_child_resources)
 		  { }
 
@@ -168,7 +167,7 @@ class Gdb_monitor::Local_cpu_factory : public Cpu_service::Factory
 					                      _ep,
 					                      _md_alloc,
 					                      _core_pd,
-					                      _signal_receiver,
+					                      _signal_ep,
 					                      args.string(),
 					                      affinity);
 			_genode_child_resources->cpu_session_component(cpu_session_component);

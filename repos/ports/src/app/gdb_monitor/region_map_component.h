@@ -17,6 +17,7 @@
 
 /* Genode includes */
 #include <base/rpc_server.h>
+#include <base/allocator.h>
 #include <pd_session/capability.h>
 #include <region_map/client.h>
 

@@ -55,9 +55,9 @@ class Gdb_monitor::Pd_session_component : public Rpc_object<Pd_session>
 			_ep(ep),
 			_alloc(alloc),
 			_pd(env, binary_name),
-			_address_space(_ep, _alloc, managed_ds_map, _pd, _pd.address_space()),
-			_stack_area   (_ep, _alloc, managed_ds_map, _pd, _pd.stack_area()),
-			_linker_area  (_ep, _alloc, managed_ds_map, _pd, _pd.linker_area())
+			_address_space(_ep, _alloc, managed_ds_map, _pd.rpc_cap(), _pd.address_space()),
+			_stack_area   (_ep, _alloc, managed_ds_map, _pd.rpc_cap(), _pd.stack_area()),
+			_linker_area  (_ep, _alloc, managed_ds_map, _pd.rpc_cap(), _pd.linker_area())
 		{
 			_ep.manage(this);
 		}

@@ -42,13 +42,13 @@ bool Cpu_thread_component::_set_breakpoint_at_first_instruction(addr_t ip)
 
 	if (genode_read_memory(_breakpoint_ip, _original_instructions,
 	                       breakpoint_len) != 0) {
-		PWRN("%s: could not read memory at thread start address", __PRETTY_FUNCTION__);
+		warning(__PRETTY_FUNCTION__, ": could not read memory at thread start address");
 		return false;
 	}
 
 	if (genode_write_memory(_breakpoint_ip, breakpoint_data,
 	                        breakpoint_len) != 0) {
-		PWRN("%s: could not set breakpoint at thread start address", __PRETTY_FUNCTION__);
+		warning(__PRETTY_FUNCTION__, ": could not set breakpoint at thread start address");
 		return false;
 	}
 
@@ -60,23 +60,23 @@ void Cpu_thread_component::_remove_breakpoint_at_first_instruction()
 {
 	if (genode_write_memory(_breakpoint_ip, _original_instructions,
 	                        breakpoint_len) != 0)
-		PWRN("%s: could not remove breakpoint at thread start address", __PRETTY_FUNCTION__);
+		warning(__PRETTY_FUNCTION__, ": could not remove breakpoint at thread start address");
 }
 
 
-void Cpu_thread_component::_dispatch_exception(unsigned)
+void Cpu_thread_component::_handle_exception()
 {
 	deliver_signal(SIGTRAP);
 }
 
 
-void Cpu_thread_component::_dispatch_sigstop(unsigned)
+void Cpu_thread_component::_handle_sigstop()
 {
 	deliver_signal(SIGSTOP);
 }
 
 
-void Cpu_thread_component::_dispatch_sigint(unsigned)
+void Cpu_thread_component::_handle_sigint()
 {
 	deliver_signal(SIGINT);
 }
@@ -88,25 +88,20 @@ Cpu_thread_component::Cpu_thread_component(Cpu_session_component   &cpu_session_
                                            Affinity::Location       affinity,
                                            Cpu_session::Weight      weight,
                                            addr_t                   utcb)
-: _cpu_session_component(cpu_session_component),
-  _parent_cpu_thread(
-	  _cpu_session_component.parent_cpu_session().create_thread(pd,
-		                                                        name,
-		                                                        affinity,
-		                                                        weight,
-		                                                        utcb)),
-  _exception_dispatcher(
-	  _cpu_session_component.exception_signal_receiver(),
-	  *this,
-	  &Cpu_thread_component::_dispatch_exception),
-  _sigstop_dispatcher(
-	  _cpu_session_component.exception_signal_receiver(),
-	  *this,
-	  &Cpu_thread_component::_dispatch_sigstop),
-  _sigint_dispatcher(
-	  _cpu_session_component.exception_signal_receiver(),
-	  *this,
-	  &Cpu_thread_component::_dispatch_sigint)
+:
+	_cpu_session_component(cpu_session_component),
+	_parent_cpu_thread(
+	_cpu_session_component.parent_cpu_session().create_thread(pd,
+	                                                          name,
+	                                                          affinity,
+	                                                          weight,
+	                                                          utcb)),
+	_exception_handler(_cpu_session_component.signal_ep(), *this,
+	                   &Cpu_thread_component::_handle_exception),
+	_sigstop_handler(_cpu_session_component.signal_ep(), *this,
+	                 &Cpu_thread_component::_handle_sigstop),
+	_sigint_handler(_cpu_session_component.signal_ep(), *this,
+	                &Cpu_thread_component::_handle_sigint)
 {
 	_cpu_session_component.thread_ep().manage(this);
 

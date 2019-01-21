@@ -40,8 +40,8 @@ namespace Gdb_monitor {
 class Gdb_monitor::App_child : public Child_policy,
                                public Async_service::Wakeup,
                                public Init::Report_update_trigger,
-                               public Init::Routed_service::Ram_accessor,
-                               public Init::Routed_service::Pd_accessor
+                               public Init::Routed_service::Pd_accessor,
+                               public Init::Routed_service::Ram_accessor
 {
 	private:
 
@@ -62,27 +62,28 @@ class Gdb_monitor::App_child : public Child_policy,
 
 			Local_env(Env &genode_env) : genode_env(genode_env) { }
 
-			Parent &parent()                         { return genode_env.parent(); }
-			Ram_session &ram()                       { return genode_env.ram(); }
-			Cpu_session &cpu()                       { return genode_env.cpu(); }
-			Region_map &rm()                         { return genode_env.rm(); }
-			Pd_session &pd()                         { return genode_env.pd(); }
-			Entrypoint &ep()                         { return local_ep; }
-			Ram_session_capability ram_session_cap() { return genode_env.ram_session_cap(); }
-			Cpu_session_capability cpu_session_cap() { return genode_env.cpu_session_cap(); }
-			Pd_session_capability pd_session_cap()   { return genode_env.pd_session_cap(); }
-			Id_space<Parent::Client> &id_space()     { return genode_env.id_space(); }
+			Parent &parent()                         override { return genode_env.parent(); }
+			Cpu_session &cpu()                       override { return genode_env.cpu(); }
+			Region_map &rm()                         override { return genode_env.rm(); }
+			Pd_session &pd()                         override { return genode_env.pd(); }
+			Entrypoint &ep()                         override { return local_ep; }
+			Cpu_session_capability cpu_session_cap() override { return genode_env.cpu_session_cap(); }
+			Pd_session_capability pd_session_cap()   override { return genode_env.pd_session_cap(); }
+			Id_space<Parent::Client> &id_space()     override { return genode_env.id_space(); }
+
+			Pd_session_capability ram_session_cap() { return pd_session_cap(); }
+			Pd_session           &ram()             { return pd(); }
 
 			Session_capability session(Parent::Service_name const &service_name,
 			                           Parent::Client::Id id,
 			                           Parent::Session_args const &session_args,
-			                           Affinity             const &affinity)
+			                           Affinity             const &affinity) override
 			{ return genode_env.session(service_name, id, session_args, affinity); }
 
-			void upgrade(Parent::Client::Id id, Parent::Upgrade_args const &args)
+			void upgrade(Parent::Client::Id id, Parent::Upgrade_args const &args) override
 			{ return genode_env.upgrade(id, args); }
 
-			void close(Parent::Client::Id id) { return genode_env.close(id); }
+			void close(Parent::Client::Id id) override { return genode_env.close(id); }
 
 			void exec_static_constructors() override { }
 
@@ -120,7 +121,7 @@ class Gdb_monitor::App_child : public Child_policy,
 
 		Genode_child_resources              _genode_child_resources;
 
-		Signal_dispatcher<App_child>        _unresolved_page_fault_dispatcher;
+		Signal_handler<App_child>           _unresolved_page_fault_handler;
 
 		Dataspace_pool                      _managed_ds_map;
 
@@ -147,7 +148,7 @@ class Gdb_monitor::App_child : public Child_policy,
 
 		Child                              *_child;
 
-		void _dispatch_unresolved_page_fault(unsigned)
+		void _handle_unresolved_page_fault()
 		{
 			_genode_child_resources.cpu_session_component().handle_unresolved_page_fault();
 		}
@@ -178,29 +179,62 @@ class Gdb_monitor::App_child : public Child_policy,
 		void trigger_immediate_report_update() override { }
 
 		/**
-		 * Init::Routed_service::Ram_accessor interface
-		 */
-		Ram_session            &ram()           override { return _child->ram(); }
-		Ram_session_capability  ram_cap() const override { return _child->ram_session_cap(); }
-
-		/**
 		 * Init::Routed_service::Pd_accessor interface
 		 */
 		Pd_session            &pd()            override { return _child->pd(); }
 		Pd_session_capability  pd_cap()  const override { return _child->pd_session_cap(); }
+
+		/**
+		 * Init::Routed_service::Ram_accessor interface
+		 */
+		Pd_session           &ram()            override { return _child->pd(); }
+		Pd_session_capability ram_cap()  const override { return _child->pd_session_cap(); }
+
+		Service &_matching_service(Service::Name const &service_name,
+		                           Session_label const &label)
+		{
+			Service *service = nullptr;
+
+			/* check for config file request */
+			if ((service = _config_policy.resolve_session_request_with_label(service_name, label)))
+					return *service;
+
+			/* check for "session_requests" ROM request */
+			if ((service_name == Genode::Rom_session::service_name()) &&
+			    (label.last_element() == Genode::Session_requester::rom_name()))
+				return _session_requester.service();
+
+			if (service_name == "CPU")
+				return _cpu_service;
+
+			if (service_name == "PD")
+				return _pd_service;
+
+			if (service_name == "ROM")
+				return _rom_service;
+
+			service = _find_service(_parent_services, service_name);
+			if (!service)
+				service = new (_alloc) Parent_service(_parent_services, _env, service_name);
+
+			if (!service)
+				throw Service_denied();
+
+			return *service;
+		}
 
 	public:
 
 		/**
 		 * Constructor
 		 */
-		App_child(Env             &env,
-		          Allocator       &alloc,
-		          char const      *unique_name,
-		          Ram_quota        ram_quota,
-		          Cap_quota        cap_quota,
-		          Signal_receiver &signal_receiver,
-		          Xml_node         target_node)
+		App_child(Env        &env,
+		          Allocator  &alloc,
+		          char const *unique_name,
+		          Ram_quota   ram_quota,
+		          Cap_quota   cap_quota,
+		          Entrypoint &signal_ep,
+		          Xml_node    target_node)
 		:
 			_env(env),
 			_alloc(alloc),
@@ -209,15 +243,14 @@ class Gdb_monitor::App_child : public Child_policy,
 			_ram_quota(ram_quota), _cap_quota(cap_quota),
 			_child_config(_env.ram(), _rm, target_node),
 			_config_policy("config", _child_config.dataspace(), &_env.ep().rpc_ep()),
-			_unresolved_page_fault_dispatcher(signal_receiver,
-			                                  *this,
-			                                  &App_child::_dispatch_unresolved_page_fault),
+			_unresolved_page_fault_handler(signal_ep, *this,
+			                               &App_child::_handle_unresolved_page_fault),
 			_cpu_factory(_env, _env.ep().rpc_ep(), _alloc, _pd.core_pd_cap(),
-			             signal_receiver, &_genode_child_resources),
+			             signal_ep, &_genode_child_resources),
 			_rom_factory(_env, _env.ep().rpc_ep(), _alloc)
 		{
 			_genode_child_resources.region_map_component(&_pd.region_map());
-			_pd.region_map().fault_handler(_unresolved_page_fault_dispatcher);
+			_pd.region_map().fault_handler(_unresolved_page_fault_handler);
 		}
 
 		~App_child()
@@ -267,38 +300,12 @@ class Gdb_monitor::App_child : public Child_policy,
 			});
 		}
 
-		Service &resolve_session_request(Service::Name const &service_name,
-		                                 Session_state::Args const &args) override
+		Route resolve_session_request(Service::Name const &service_name,
+		                              Session_label const &label) override
 		{
-			Service *service = nullptr;
-
-			/* check for config file request */
-			if ((service = _config_policy.resolve_session_request(service_name.string(), args.string())))
-					return *service;
-
-			/* check for "session_requests" ROM request */
-			Genode::Session_label const label(Genode::label_from_args(args.string()));
-			if ((service_name == Genode::Rom_session::service_name()) &&
-			    (label.last_element() == Genode::Session_requester::rom_name()))
-				return _session_requester.service();
-
-			if (service_name == "CPU")
-				return _cpu_service;
-
-			if (service_name == "PD")
-				return _pd_service;
-
-			if (service_name == "ROM")
-				return _rom_service;
-
-			service = _find_service(_parent_services, service_name);
-			if (!service)
-				service = new (_alloc) Parent_service(_parent_services, _env, service_name);
-
-			if (!service)
-				throw Service_denied();
-
-			return *service;
+			return Route { .service = _matching_service(service_name, label),
+			               .label   = label,
+			               .diag    = Session::Diag() };
 		}
 
 		void announce_service(Service::Name const &service_name) override
@@ -310,8 +317,7 @@ class Gdb_monitor::App_child : public Child_policy,
 
 			new (_alloc) Init::Routed_service(_child_services,
 			                                  "target",
-			                                  *this,
-			                                  *this,
+			                                  *this, *this,
 			                                  _session_requester.id_space(),
 			                                  _child->session_factory(),
 			                                  service_name,

@@ -43,9 +43,9 @@ Rpc_entrypoint &Cpu_session_component::thread_ep()
 }
 
 
-Signal_receiver &Cpu_session_component::exception_signal_receiver()
+Entrypoint &Cpu_session_component::signal_ep()
 {
-	return _exception_signal_receiver;
+	return _signal_ep;
 }
 
 
@@ -306,7 +306,7 @@ Cpu_session_component::Cpu_session_component(Env &env,
                                              Rpc_entrypoint &ep,
                                              Allocator &md_alloc,
                                              Pd_session_capability core_pd,
-                                             Signal_receiver &exception_signal_receiver,
+                                             Entrypoint &signal_ep,
                                              const char *args,
                                              Affinity const &affinity)
 : _env(env),
@@ -314,7 +314,7 @@ Cpu_session_component::Cpu_session_component(Env &env,
   _md_alloc(md_alloc),
   _core_pd(core_pd),
   _parent_cpu_session(env.session<Cpu_session>(_id_space_element.id(), args, affinity)),
-  _exception_signal_receiver(exception_signal_receiver),
+  _signal_ep(signal_ep),
   _native_cpu_cap(_setup_native_cpu())
 {
 	_ep.manage(this);

@@ -18,7 +18,7 @@
 
 #include <util/xml_node.h>
 #include <base/attached_dataspace.h>
-#include <ram_session/ram_session.h>
+#include <base/ram_allocator.h>
 
 namespace Init { class Child_config; }
 
@@ -27,7 +27,7 @@ class Init::Child_config
 {
 	private:
 
-		Genode::Ram_session &_ram;
+		Genode::Ram_allocator &_ram;
 
 		typedef Genode::String<64> Rom_name;
 		Rom_name const _rom_name;
@@ -51,7 +51,7 @@ class Init::Child_config
 		 */
 		Genode::Ram_dataspace_capability
 		_ram_ds_from_start_node(Genode::Xml_node start,
-		                        Genode::Ram_session &ram, Genode::Region_map &rm)
+		                        Genode::Ram_allocator &ram, Genode::Region_map &rm)
 		{
 			/*
 			 * If the start node contains a 'config' entry, we copy this entry
@@ -75,8 +75,8 @@ class Init::Child_config
 				 */
 				Genode::Attached_dataspace attached(rm, ram_ds);
 
-				Genode::memcpy(attached.local_addr<char>(),
-				               config.addr(), config.size());
+				config.with_raw_node([&] (char const *start, size_t length) {
+					Genode::memcpy(attached.local_addr<char>(), start, length); });
 
 				attached.local_addr<char>()[config.size()] = 0;
 
@@ -105,7 +105,7 @@ class Init::Child_config
 		 * If the start node contains a 'filename' entry, we only keep the
 		 * information about the ROM module name.
 		 */
-		Child_config(Genode::Ram_session &ram, Genode::Region_map &local_rm,
+		Child_config(Genode::Ram_allocator &ram, Genode::Region_map &local_rm,
 		             Genode::Xml_node start)
 		:
 			_ram(ram),

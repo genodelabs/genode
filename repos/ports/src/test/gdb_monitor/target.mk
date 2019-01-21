@@ -1,6 +1,6 @@
 TARGET = test-gdb_monitor
 SRC_CC = main.cc
-LIBS   = posix
+LIBS   = base posix
 
 CC_OLEVEL = -O0
 

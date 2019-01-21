@@ -230,13 +230,13 @@ puts "\n"
 puts "----- test: thread info -----"
 puts ""
 
-send "b Test_thread::entry()\n"
+send "b test_thread_start\n"
 run_genode_until {\(gdb\)} 20 $gdb_id
 
 send "c\n"
 run_genode_until {\(gdb\)} 20 $gdb_id
 
-if {![regexp {Breakpoint 4, Test_thread::entry()} $output]} {
+if {![regexp {Breakpoint 4, test_thread_start} $output]} {
 	puts stderr "*** Error: Breakpoint in test thread did not trigger"
 	exit -1
 }
@@ -245,7 +245,7 @@ send "info threads\n"
 run_genode_until {\(gdb\)} 20 $gdb_id
 
 if {![regexp {  4    Thread 3} $output] ||
-    ![regexp {\* 3    Thread 4          Test_thread::entry} $output] ||
+    ![regexp {\* 3    Thread 4          test_thread_start} $output] ||
     ![regexp {  2    Thread 2} $output] ||
     ![regexp {  1    Thread 1} $output]} {
 	puts stderr "*** Error: Thread info is not as expected"
@@ -262,7 +262,7 @@ run_genode_until {\(gdb\)} 30 $gdb_id
 send "thread 2\n"
 run_genode_until {\(gdb\)} 20 $gdb_id
 
-if {![regexp {Test_thread::step_func} $output]} {
+if {![regexp {test_thread_step} $output]} {
 	puts stderr "*** Error: Step into function didn't result in the expected output"
 	exit -1
 }
@@ -293,8 +293,9 @@ if {![have_spec arm]} {
 	run_genode_until {\(gdb\)} 20 $gdb_id
 
 	if {![regexp {Genode::Cancelable_lock::lock\(\)} $output] ||
-		![regexp {Genode::Thread::join\(\)} $output] ||
-		![regexp {in main \(\)} $output]} {
+		![regexp {Genode::Signal_receiver::block_for_signal\(\)} $output] ||
+		![regexp {Genode::Entrypoint::_wait_and_dispatch_one_io_signal\(bool\)} $output] ||
+		![regexp {Libc::Kernel::run\(Libc::Application_code&\)} $output] } {
 
 		puts stderr "*** Error: Stack trace when in syscall is not as expected"
 		exit -1
