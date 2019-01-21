@@ -92,7 +92,11 @@ proc run_boot_dir {binaries} {
 	# Use seL4 elfloader tool to generate bootable image on ARM
 	#
 	if {[have_spec arm]} {
-		if {![have_spec imx6]} {
+		if {[have_spec imx6]} {
+			set ::env(PLAT) imx6
+		} elseif {[have_spec imx7d_sabre]} {
+			set ::env(PLAT) imx7
+		} else {
 			puts "abort - unknown ARM board"
 			exit 1
 		}
@@ -103,7 +107,6 @@ proc run_boot_dir {binaries} {
 		# call seL4 elfloader tool to generate image.elf bootable by uboot with 'bootelf' command
 		set ::env(COMMON_PATH) [sel4_elfloader_dir]
 		set ::env(CPPFLAGS) -I[sel4_elfloader_dir]/include
-		set ::env(PLAT) imx6
 		set ::env(TOOLPREFIX) [cross_dev_prefix]
 		exec [sel4_elfloader_dir]/gen_boot_image.sh [pwd]/[run_dir]/boot/kernel.elf [pwd]/[run_dir]/boot/genode.elf [pwd]/[run_dir]/boot/image.elf
 	}
