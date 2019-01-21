@@ -222,12 +222,10 @@ struct Formatted_xml_attribute
 
 	void print(Output &output) const
 	{
-		char value[32]; value[0] = 0;
-		_attr.value(value, sizeof(value));
-
-		Genode::print(output, Indentation(_indent),
-		              "attribute name=\"", _attr.name(), "\", "
-		              "value=\"", Cstring(value), "\"");
+		_attr.with_raw_value([&] (char const *start, size_t length) {
+			Genode::print(output, Indentation(_indent),
+			              "attribute name=\"", _attr.name(), "\", "
+			              "value=\"", Cstring(start, length), "\""); });
 	}
 };
 
@@ -265,13 +263,13 @@ struct Formatted_xml_node
 
 		/* print node information */
 		print(output, Indentation(_indent),
-		      "XML node: name = \"", _node.type(), "\", ");
+		      "XML node: name = \"", _node.type(), "\"");
 		if (_node.num_sub_nodes() == 0) {
-			char buf[128];
-			_node.value(buf, sizeof(buf));
-			print(output, "leaf content = \"", Cstring(buf), "\"");
-		} else
-			print(output, "number of subnodes = ", _node.num_sub_nodes());
+			_node.with_raw_content([&] (char const *start, size_t length) {
+				print(output, ", leaf content = \"", Cstring(start, length), "\""); });
+		} else {
+			print(output, ", number of subnodes = ", _node.num_sub_nodes());
+		}
 
 		print(output, "\n");
 
@@ -296,9 +294,8 @@ static void log_key(Xml_node node, char const *key)
 {
 	try {
 		Xml_node sub_node = node.sub_node(key);
-		char buf[32];
-		sub_node.value(buf, sizeof(buf));
-		log("content of sub node \"", key, "\" = \"", Cstring(buf), "\"");
+		sub_node.with_raw_content([&] (char const *start, size_t length) {
+			log("content of sub node \"", key, "\" = \"", Cstring(start, length), "\""); });
 	} catch (Xml_node::Nonexistent_sub_node) {
 		log("sub node \"", key, "\" is not defined\n");
 	} catch (Xml_node::Invalid_syntax) {

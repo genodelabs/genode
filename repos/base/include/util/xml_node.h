@@ -116,32 +116,61 @@ class Genode::Xml_attribute
 
 		/**
 		 * Return size of value
+		 *
+		 * \deprecated use 'with_raw_node' instead
 		 */
-		size_t      value_size() const { return _value.len() - 2; }
 		char const *value_base() const { return _value.start() + 1; }
 
 		/**
-		 * Return attribute value as null-terminated string
+		 * Return size of the value in bytes
 		 */
-		void value(char *dst, size_t max_len) const
+		size_t value_size() const
 		{
 			/*
-			 * The value of 'max_len' denotes the maximum number of
-			 * characters to be written to 'dst' including the null
-			 * termination. From the quoted value string, we strip
-			 * both quote characters and add a null-termination
-			 * character.
+			 * The size of the actual value content excludes both the starting
+			 * and the trailing quote character.
+			 *
+			 * The invariant 'len >= 2' is enforced by the 'Xml_attribute'
+			 * constructor by checking the '_value' type for being a 'STRING'.
 			 */
-			max_len = min(max_len, _value.len() - 2 + 1);
-			strncpy(dst, _value.start() + 1, max_len);
+			return _value.len() - 2;
 		}
 
 		/**
 		 * Return true if attribute has the specified value
 		 */
 		bool has_value(const char *value) const {
-			return strlen(value) == (_value.len() - 2) &&
-			       !strcmp(value, _value.start() + 1, _value.len() - 2); }
+			return strlen(value) == (_value.len() - 2)
+			    && !strcmp(value, _value.start() + 1, _value.len() - 2); }
+
+		/**
+		 * Call functor 'fn' with the data of the attribute value as argument
+		 *
+		 * The functor is called with the start pointer ('char const *') and
+		 * size (size_t) of the attribute value as arguments.
+		 *
+		 * Note that the content of the buffer is not null-terminated but
+		 * delimited by the size argument.
+		 */
+		template <typename FN>
+		void with_raw_value(FN const &fn) const
+		{
+			/*
+			 * Skip leading quote of the '_value' to access the actual value.
+			 */
+			fn(_value.start() + 1, value_size());
+		}
+
+		/**
+		 * Return attribute value as null-terminated string
+		 *
+		 * \deprecated
+		 */
+		void value(char *dst, size_t max_len) const
+		{
+			with_raw_value([&] (char const *start, size_t length) {
+				Genode::strncpy(dst, start, min(max_len, length + 1)); });
+		}
 
 		/**
 		 * Return attribute value as typed value
@@ -154,13 +183,34 @@ class Genode::Xml_attribute
 		template <typename T>
 		bool value(T &out) const
 		{
-			/*
-			 * The '_value' token starts with a quote, which we
-			 * need to skip to access the string. For validating
-			 * the length, we have to consider both the starting
-			 * and the trailing quote character.
-			 */
-			return ascii_to(_value.start() + 1, out) == _value.len() - 2;
+			bool result = false;
+
+			with_raw_value([&] (char const *start, size_t length) {
+				result = (ascii_to(start, out) == length); });
+
+			return result;
+		}
+
+		/**
+		 * Return attribute value as 'Genode::String'
+		 */
+		template <size_t N>
+		void value(String<N> &out) const
+		{
+			with_raw_value([&] (char const *start, size_t length) {
+				out = String<N>(Cstring(start, length)); });
+		}
+
+		/**
+		 * Return attribute value as 'Genode::String'
+		 *
+		 * \deprecated  use 'value(String<N> &out' instead
+		 */
+		template <size_t N>
+		void value(String<N> *out) const
+		{
+			with_raw_value([&] (char const *start, size_t length) {
+				*out = String<N>(Cstring(start, length)); });
 		}
 
 		/**
@@ -169,17 +219,14 @@ class Genode::Xml_attribute
 		 * \deprecated  use 'value(T &out)' instead
 		 */
 		template <typename T>
-		bool value(T *out) const { return value(*out); }
-
-		/**
-		 * Return attribute value as Genode::String
-		 */
-		template <size_t N>
-		void value(String<N> *out) const
+		bool value(T *out) const
 		{
-			char buf[N];
-			value(buf, sizeof(buf));
-			*out = String<N>(Cstring(buf));
+			bool result = false;
+
+			with_raw_value([&] (char const *start, size_t length) {
+				result = (ascii_to(start, *out) == length); });
+
+			return result;
 		}
 
 		/**
@@ -451,36 +498,34 @@ class Genode::Xml_node
 			}
 		};
 
-		const char *_addr;          /* first character of XML data      */
-		size_t      _max_len;       /* length of XML data in characters */
-		int         _num_sub_nodes; /* number of immediate sub nodes    */
-		Tag         _start_tag;
-		Tag         _end_tag;
+		int _num_sub_nodes { 0 }; /* number of immediate sub nodes */
+
+		const char * _addr;       /* first character of XML data */
+		size_t       _max_len;    /* length of XML data in characters */
+		Tag          _start_tag;
+		Tag          _end_tag;
 
 		/**
-		 * Search for end tag of XML node and initialize '_num_sub_nodes'
+		 * Search matching end tag for given start tag and detemine number of
+		 * immediate sub nodes along the way.
 		 *
 		 * \return  end tag or invalid tag
 		 *
-		 * The method searches for a end tag that matches the same
-		 * depth level and the same name as the start tag of the XML
-		 * node. If the XML structure is invalid, the search results
-		 * is an invalid Tag.
-		 *
-		 * During the search, the method also counts the number of
-		 * immediate sub nodes.
+		 * The method searches for a end tag that matches the same depth level
+		 * and the same name as the start tag of the XML node. If the XML
+		 * structure is invalid, the search results is an invalid Tag.
 		 */
-		Tag _init_end_tag()
+		static Tag _search_end_tag(Tag start_tag, int &sub_nodes_count)
 		{
 			/*
 			 * If the start tag is invalid or an empty-element tag,
 			 * we use the same tag as end tag.
 			 */
-			if (_start_tag.type() != Tag::START)
-				return _start_tag;
+			if (start_tag.type() != Tag::START)
+				return start_tag;
 
 			int   depth = 1;
-			Token curr_token = _start_tag.next_token();
+			Token curr_token = start_tag.next_token();
 
 			while (curr_token.type() != Token::END) {
 
@@ -500,7 +545,7 @@ class Genode::Xml_node
 
 				/* count sub nodes at depth 1 */
 				if (depth == 1 && curr_tag.node())
-					_num_sub_nodes++;
+					sub_nodes_count++;
 
 				/* keep track of the current depth */
 				depth += (curr_tag.type() == Tag::START);
@@ -515,10 +560,10 @@ class Genode::Xml_node
 				}
 
 				/* reaching the same depth as the start tag */
-				const char *start_name = _start_tag.name().start();
-				size_t      start_len  = _start_tag.name().len();
-				const char *curr_name  =   curr_tag.name().start();
-				size_t      curr_len   =   curr_tag.name().len();
+				const char *start_name = start_tag.name().start();
+				size_t      start_len  = start_tag.name().len();
+				const char *curr_name  =  curr_tag.name().start();
+				size_t      curr_len   =  curr_tag.name().len();
 
 				/* on mismatch of start tag and end tag, return invalid tag */
 				if (start_len != curr_len
@@ -567,11 +612,16 @@ class Genode::Xml_node
 		 */
 		Xml_node _sub_node(const char *at) const
 		{
-			if (at < addr() || (size_t)(at - addr()) >= _max_len)
+			if (at < _addr || (size_t)(at - _addr) >= _max_len)
 				throw Nonexistent_sub_node();
 
-			return Xml_node(at, _max_len - (at - addr()));
+			return Xml_node(at, _max_len - (at - _addr));
 		}
+
+		/**
+		 * Return pointer to start of content
+		 */
+		char const *_content_base() const { return _start_tag.next_token().start(); }
 
 	public:
 
@@ -583,12 +633,12 @@ class Genode::Xml_node
 		 *
 		 * \throw Invalid_syntax
 		 */
-		Xml_node(const char *addr, size_t max_len = ~0UL) :
+		Xml_node(const char *addr, size_t max_len = ~0UL)
+		:
 			_addr(addr),
 			_max_len(max_len),
-			_num_sub_nodes(0),
 			_start_tag(skip_non_tag_characters(Token(addr, max_len))),
-			_end_tag(_init_end_tag())
+			_end_tag(_search_end_tag(_start_tag, _num_sub_nodes))
 		{
 			/* check validity of XML node */
 			if (_start_tag.type() == Tag::EMPTY) return;
@@ -603,6 +653,32 @@ class Genode::Xml_node
 		void type_name(char *dst, size_t max_len) const {
 			_start_tag.name().string(dst, max_len); }
 
+		/**
+		 * Return size of node including start and end tags in bytes
+		 */
+		size_t size() const { return _end_tag.next_token().start() - _addr; }
+
+		/**
+		 * Return pointer to start of node
+		 *
+		 * \deprecated  use 'with_raw_node' instead
+		 */
+		char const *addr() const { return _addr; }
+
+		/**
+		 * Return size of node content
+		 */
+		size_t content_size() const
+		{
+			if (_start_tag.type() == Tag::EMPTY)
+				return 0;
+
+			return _end_tag.token().start() - _content_base();
+		}
+
+		/**
+		 * Request type name of XML node as null-terminated string
+		 */
 		typedef String<64> Type;
 		Type type() const
 		{
@@ -619,48 +695,35 @@ class Genode::Xml_node
 			      && strlen(type) == _start_tag.name().len()); }
 
 		/**
-		 * Request content of XML node as null-terminated string
+		 * Call functor 'fn' with the node data '(char const *, size_t)'
 		 */
-		void value(char *dst, size_t max_len) const {
-			max_len = min(content_size() + 1, min(max_len, _max_len));
-			strncpy(dst, content_addr(), max_len); }
+		template <typename FN>
+		void with_raw_node(FN const &fn) const
+		{
+			fn(_addr, _end_tag.next_token().start() - _addr);
+		}
 
 		/**
-		 * Read content as typed value from XML node
+		 * Call functor 'fn' with content '(char const *, size_t) as argument'
 		 *
-		 * \param T    type of value to read from XML node
-		 * \param out  resulting value
-		 * \return     true on success
-		 */
-		template <typename T>
-		bool value(T &out) const {
-			return ascii_to(content_addr(), out) == content_size(); }
-
-		/**
-		 * Read content as typed value from XML node
+		 * Note that the content is not null-terminated. It points directly
+		 * into a sub range of the unmodified 'Xml_node' data.
 		 *
-		 * \deprecated  use 'value(T &out)' instead
+		 * If the node has no content, the functor 'fn' is not called.
 		 */
-		template <typename T> bool value(T *out) const { return value(*out); }
+		template <typename FN>
+		void with_raw_content(FN const &fn) const
+		{
+			if (_start_tag.type() == Tag::EMPTY)
+				return;
+
+			fn(_content_base(), content_size());
+		}
 
 		/**
-		 * Return begin of node including the start tag
-		 */
-		const char *addr() const { return _addr; }
-
-		/**
-		 * Return size of node including start and end tags
-		 */
-		size_t size() const { return _end_tag.next_token().start() - addr(); }
-
-		/**
-		 * Return begin of node content as an opaque string
+		 * Return pointer to start of content
 		 *
-		 * Note that the returned string is not null-terminated as it
-		 * points directly into a sub range of the unmodified Xml_node
-		 * address range.
-		 *
-		 * XXX This method is deprecated. Use 'content_base()' instead.
+		 * XXX This method is deprecated. Use 'with_raw_content()' instead.
 		 *
 		 * \noapi
 		 */
@@ -668,19 +731,19 @@ class Genode::Xml_node
 
 		/**
 		 * Return pointer to start of content
+		 *
+		 * XXX This method is deprecated. Use 'with_raw_content()' instead.
+		 *
+		 * \noapi
 		 */
 		char const *content_base() const { return content_addr(); }
 
 		/**
-		 * Return size of node content
+		 * Return content as out value
+		 *
+		 * \deprecated  use with_raw_content instead
 		 */
-		size_t content_size() const
-		{
-			if (_start_tag.type() == Tag::EMPTY)
-				return 0;
-
-			return _end_tag.token().start() - content_addr();
-		}
+		template <typename T> bool value(T *out) const { return value(*out); }
 
 		/**
 		 * Export decoded node content from XML node
@@ -695,8 +758,8 @@ class Genode::Xml_node
 		size_t decoded_content(char *dst, size_t dst_len) const
 		{
 			size_t      result_len = 0;
-			char const *src        = content_base();
-			size_t      src_len    = content_size();
+			char const *src        = _content_base();
+			size_t      src_len    =  content_size();
 
 			for (; dst_len && src_len; dst_len--, result_len++) {
 
@@ -744,8 +807,7 @@ class Genode::Xml_node
 		/**
 		 * Return next XML node of specified type
 		 *
-		 * \param type  type of XML node, or
-		 *              0 for matching any type
+		 * \param type  type of XML node, or nullptr for matching any type
 		 */
 		Xml_node next(const char *type) const
 		{
@@ -776,7 +838,7 @@ class Genode::Xml_node
 
 				/* look up node at specified index */
 				try {
-					Xml_node curr_node = _sub_node(content_addr());
+					Xml_node curr_node = _sub_node(_content_base());
 					for (; idx > 0; idx--)
 						curr_node = curr_node.next();
 					return curr_node;
@@ -797,7 +859,7 @@ class Genode::Xml_node
 
 				/* search for sub node of specified type */
 				try {
-					Xml_node curr_node = _sub_node(content_addr());
+					Xml_node curr_node = _sub_node(_content_base());
 					for ( ; true; curr_node = curr_node.next())
 						if (curr_node.has_type(type))
 							return curr_node;
@@ -805,6 +867,19 @@ class Genode::Xml_node
 			}
 
 			throw Nonexistent_sub_node();
+		}
+
+		/**
+		 * Apply functor 'fn' to first sub node of specified type
+		 *
+		 * The functor is called with the sub node as argument.
+		 * If no matching sub node exists, the functor is not called.
+		 */
+		template <typename FN>
+		void with_sub_node(char const *type, FN const &fn) const
+		{
+			if (has_sub_node(type))
+				fn(sub_node(type));
 		}
 
 		/**
@@ -872,27 +947,21 @@ class Genode::Xml_node
 		}
 
 		/**
-		 * Shortcut for reading an attribute value from XML node
+		 * Read attribute value from XML node
 		 *
 		 * \param type           attribute name
 		 * \param default_value  value returned if no attribute with the
 		 *                       name 'type' is present.
 		 * \return               attribute value or specified default value
 		 *
-		 * Without this shortcut, attribute values can be obtained by
-		 * 'node.attribute(...).value(...)' only. Because the attribute
-		 * lookup may throw a 'Nonexistent_attribute' exception, code that
-		 * reads optional attributes (those with default values) has to
-		 * handle the exception accordingly. Such code tends to become
-		 * clumsy, in particular when many attributes are processed in a
-		 * subsequent fashion. This method template relieves the XML node
-		 * user from implementing the exception handling manually.
+		 * The type of the return value corresponds to the type of the
+		 * default value.
 		 */
 		template <typename T>
-		inline T attribute_value(char const *type, T default_value) const
+		inline T attribute_value(char const *type, T const default_value) const
 		{
 			T result = default_value;
-			try { attribute(type).value(&result); } catch (...) { }
+			try { attribute(type).value(result); } catch (...) { }
 			return result;
 		}
 
@@ -915,7 +984,16 @@ class Genode::Xml_node
 		}
 
 		void print(Output &output) const {
-			output.out_string(addr(), size()); }
+			output.out_string(_addr, size()); }
+
+		/**
+		 * Return true if this node differs from 'another'
+		 */
+		bool differs_from(Xml_node const &another) const
+		{
+			return size() != another.size() ||
+			       memcmp(_addr, another._addr, size()) != 0;
+		}
 };
 
 #endif /* _INCLUDE__UTIL__XML_NODE_H_ */
