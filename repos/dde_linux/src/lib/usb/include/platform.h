@@ -61,8 +61,8 @@ struct Services
 
 			try {
 				Genode::Xml_node node_screen = node_hid.sub_node("touchscreen");
-				node_screen.attribute("width").value(&screen_width);
-				node_screen.attribute("height").value(&screen_height);
+				node_screen.attribute("width").value(screen_width);
+				node_screen.attribute("height").value(screen_height);
 				multitouch = node_screen.attribute_value("multitouch", false);
 			} catch (...) {
 				screen_width = screen_height = 0;
@@ -127,7 +127,7 @@ struct Services
 	}
 };
 
-void backend_alloc_init(Genode::Env &env, Genode::Ram_session &ram, Genode::Allocator &alloc);
+void backend_alloc_init(Genode::Env &env, Genode::Ram_allocator &ram, Genode::Allocator &alloc);
 
 void platform_hcd_init(Services *services);
 Genode::Irq_session_capability platform_irq_activate(int irq);

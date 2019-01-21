@@ -57,7 +57,7 @@ class Bsd::Slab_backend_alloc : public Genode::Allocator,
 		addr_t                            _ds_phys[ELEMENTS]; /* physical bases of dataspaces */
 		int                               _index;             /* current index in ds_cap */
 		Genode::Allocator_avl             _range;             /* manage allocations */
-		Genode::Ram_session              &_ram;               /* ram session to allocate ds from */
+		Genode::Ram_allocator            &_ram;               /* allocator to allocate ds from */
 
 		bool _alloc_block()
 		{
@@ -81,7 +81,7 @@ class Bsd::Slab_backend_alloc : public Genode::Allocator,
 
 	public:
 
-		Slab_backend_alloc(Genode::Env &env, Genode::Ram_session &ram,
+		Slab_backend_alloc(Genode::Env &env, Genode::Ram_allocator &ram,
 		                   Genode::Region_map &rm, Genode::Allocator &md_alloc)
 		:
 			Rm_connection(env),

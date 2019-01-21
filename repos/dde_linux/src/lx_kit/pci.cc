@@ -53,9 +53,9 @@ struct Lx_kit::Memory_object_base : Genode::Object_pool<Memory_object_base>::Ent
 
 struct Lx_kit::Ram_object : Memory_object_base
 {
-	Genode::Ram_session &_ram;
+	Genode::Ram_allocator &_ram;
 
-	Ram_object(Genode::Ram_session &ram,
+	Ram_object(Genode::Ram_allocator &ram,
 	           Genode::Ram_dataspace_capability cap)
 	: Memory_object_base(cap), _ram(ram) {}
 
@@ -80,11 +80,11 @@ struct Lx_kit::Dma_object : Memory_object_base
  ********************/
 
 static Genode::Constructible<Platform::Connection> _global_pci;
-static Genode::Allocator   *_global_md_alloc;
-static Genode::Ram_session *_global_ram;
+static Genode::Allocator     *_global_md_alloc;
+static Genode::Ram_allocator *_global_ram;
 
 
-void Lx::pci_init(Genode::Env &env, Genode::Ram_session &ram,
+void Lx::pci_init(Genode::Env &env, Genode::Ram_allocator &ram,
                   Genode::Allocator &md_alloc)
 {
 	_global_pci.construct(env);

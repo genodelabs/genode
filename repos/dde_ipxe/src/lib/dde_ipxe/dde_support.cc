@@ -22,7 +22,6 @@
 /* Genode includes */
 #include <base/allocator_avl.h>
 #include <base/env.h>
-#include <base/printf.h>
 #include <base/log.h>
 #include <base/slab.h>
 #include <dataspace/client.h>
@@ -72,8 +71,14 @@ extern "C" int dde_support_initialized(void)
  ** printf **
  ************/
 
-extern "C" void dde_vprintf(const char *fmt, va_list va) {
-	Genode::vprintf(fmt, va); }
+extern "C" void dde_vprintf(const char *format, va_list list)
+{
+	using namespace Genode;
+
+	char buf[128] { };
+	String_console(buf, sizeof(buf)).vprintf(format, list);
+	log(Cstring(buf));
+}
 
 
 extern "C" void dde_printf(const char *fmt, ...)
@@ -467,7 +472,7 @@ struct Slab_backend_alloc : public Genode::Allocator,
 	Genode::Ram_dataspace_capability  _ds_cap[ELEMENTS];
 	int                               _index;
 	Genode::Allocator_avl             _range;
-	Genode::Ram_session              &_ram;
+	Genode::Ram_allocator            &_ram;
 
 	bool _alloc_block()
 	{
@@ -492,7 +497,7 @@ struct Slab_backend_alloc : public Genode::Allocator,
 	}
 
 	Slab_backend_alloc(Genode::Env &env, Genode::Region_map &rm,
-	                   Genode::Ram_session &ram,
+	                   Genode::Ram_allocator &ram,
 	                   Genode::Allocator &md_alloc)
 	:
 		Rm_connection(env),

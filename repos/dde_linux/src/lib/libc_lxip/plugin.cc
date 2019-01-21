@@ -195,38 +195,30 @@ Plugin::Plugin()
 
 void Plugin::init(Genode::Env &env)
 {
-	char ip_addr_str[16] = {0};
-	char netmask_str[16] = {0};
-	char gateway_str[16] = {0};
 
 	Genode::Attached_rom_dataspace config { env, "config"} ;
 
 	try {
 		Genode::Xml_node libc_node = config.xml().sub_node("libc");
 
-		try {
-			libc_node.attribute("ip_addr").value(ip_addr_str, sizeof(ip_addr_str));
-		} catch(...) { }
+		typedef Genode::String<20> Ip_addr;
 
-		try {
-			libc_node.attribute("netmask").value(netmask_str, sizeof(netmask_str));
-		} catch(...) { }
-
-		try {
-			libc_node.attribute("gateway").value(gateway_str, sizeof(gateway_str));
-		} catch(...) { }
+		Ip_addr const ip_addr = libc_node.attribute_value("ip_addr", Ip_addr());
+		Ip_addr const netmask = libc_node.attribute_value("netmask", Ip_addr());
+		Ip_addr const gateway = libc_node.attribute_value("gateway", Ip_addr());
 
 		/* either none or all 3 interface attributes must exist */
-		if ((Genode::strlen(ip_addr_str) != 0) ||
-		    (Genode::strlen(netmask_str) != 0) ||
-		    (Genode::strlen(gateway_str) != 0)) {
-			if (Genode::strlen(ip_addr_str) == 0) {
+		if (ip_addr.valid() || netmask.valid() || gateway.valid()) {
+
+			if (!ip_addr.valid()) {
 				Genode::error("missing \"ip_addr\" attribute. Ignoring network interface config.");
 				throw Genode::Xml_node::Nonexistent_attribute();
-			} else if (Genode::strlen(netmask_str) == 0) {
+			}
+			if (!netmask.valid()) {
 				Genode::error("missing \"netmask\" attribute. Ignoring network interface config.");
 				throw Genode::Xml_node::Nonexistent_attribute();
-			} else if (Genode::strlen(gateway_str) == 0) {
+			}
+			if (!gateway.valid()) {
 				Genode::error("missing \"gateway\" attribute. Ignoring network interface config.");
 				throw Genode::Xml_node::Nonexistent_attribute();
 			}
@@ -234,15 +226,19 @@ void Plugin::init(Genode::Env &env)
 			throw -1;
 
 		Genode::log("static network interface: ",
-		            "ip_addr=", Genode::Cstring(ip_addr_str), " "
-		            "netmask=", Genode::Cstring(netmask_str), " "
-		            "gateway=", Genode::Cstring(gateway_str));
+		            "ip_addr=", ip_addr, " "
+		            "netmask=", netmask, " "
+		            "gateway=", gateway);
+
+		socketconstruct.construct(env, ip_addr.string(),
+		                               netmask.string(),
+		                               gateway.string());
 	}
 	catch (...) {
 		Genode::log("Using DHCP for interface configuration.");
 	}
 
-	socketconstruct.construct(env, ip_addr_str, netmask_str, gateway_str);
+	socketconstruct.construct(env, "", "", "");
 };
 
 /* TODO shameful copied from lwip... generalize this */

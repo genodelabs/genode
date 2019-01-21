@@ -198,7 +198,7 @@ int request_irq(unsigned int irq, irq_handler_t handler, unsigned long flags,
  ** Platform backend alloc init **
  *********************************/
 
-void backend_alloc_init(Genode::Env &env, Genode::Ram_session &ram,
+void backend_alloc_init(Genode::Env &env, Genode::Ram_allocator &ram,
                         Genode::Allocator &alloc)
 {
 	Lx::pci_init(env, ram, alloc);

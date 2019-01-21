@@ -18,6 +18,7 @@
 /* Genode includes */
 #include <base/log.h>
 #include <base/sleep.h>
+#include <base/allocator.h>
 
 /* local includes */
 #include <bsd.h>

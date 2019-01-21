@@ -137,7 +137,7 @@ class Storage_device : public Genode::List<Storage_device>::Element,
 
 	public:
 
-		Storage_device(Genode::Ram_session &ram, struct scsi_device *sdev)
+		Storage_device(Genode::Ram_allocator &ram, struct scsi_device *sdev)
 		: Block::Driver(ram), _sdev(sdev)
 		{
 			/* read device capacity */
@@ -185,7 +185,7 @@ struct Factory : Block::Driver_factory
 {
 	Storage_device device;
 
-	Factory(Genode::Ram_session &ram, struct scsi_device *sdev)
+	Factory(Genode::Ram_allocator &ram, struct scsi_device *sdev)
 	: device(ram, sdev) {}
 
 	Block::Driver *create() { return &device; }

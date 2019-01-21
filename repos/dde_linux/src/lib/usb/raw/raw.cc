@@ -932,7 +932,8 @@ class Usb::Root : public Genode::Root_component<Session_component>
 				if (xhci) xml.attribute("xhci", "yes");
 				if (ohci) xml.attribute("ohci", "yes");
 
-				xml.append(config.content_base(), config.content_size());
+				config.with_raw_content([&] (char const *start, size_t length) {
+					xml.append(start, length); });
 			});
 		}
 

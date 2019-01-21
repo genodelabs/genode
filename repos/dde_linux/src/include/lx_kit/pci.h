@@ -16,11 +16,12 @@
 
 /* Genode includes */
 #include <base/env.h>
+#include <base/allocator.h>
 
 
 namespace Lx {
 
-	void pci_init(Genode::Env&, Genode::Ram_session&, Genode::Allocator&);
+	void pci_init(Genode::Env&, Genode::Ram_allocator&, Genode::Allocator&);
 }
 
 #endif /* _LX_KIT__PCI_H_ */

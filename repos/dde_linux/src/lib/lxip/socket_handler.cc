@@ -13,6 +13,7 @@
 
 /* Genode includes */
 #include <base/env.h>
+#include <base/allocator.h>
 #include <base/signal.h>
 #include <base/log.h>
 #include <base/thread.h>

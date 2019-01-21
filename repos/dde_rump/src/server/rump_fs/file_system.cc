@@ -89,7 +89,7 @@ void File_system::init()
 
 	Genode::log("Using ", fs_type, " as file system");
 
-	size_t const avail = Rump::env().env().ram().avail_ram().value;
+	size_t const avail = Rump::env().env().pd().avail_ram().value;
 	rump_set_memlimit(avail);
 
 	/* start rump kernel */

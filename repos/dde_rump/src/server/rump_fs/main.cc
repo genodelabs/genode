@@ -484,30 +484,27 @@ class Rump_fs::Root : public Root_component<Session_component>
 			}
 			ram_quota -= session_size;
 
-			char tmp[MAX_PATH_LEN];
-			try {
-				Session_policy policy(label, _config.xml());
+			Session_policy const policy(label, _config.xml());
 
-				/* determine policy root offset */
-				try {
-					policy.attribute("root").value(tmp, sizeof(tmp));
-					session_root.import(tmp, "/mnt");
-				} catch (Xml_node::Nonexistent_attribute) { }
+			/* determine policy root offset */
+			typedef String<MAX_PATH_LEN> Root;
+			session_root.import(policy.attribute_value("root", Root()).string(), "/mnt");
 
-				/*
-				 * Determine if the session is writeable.
-				 * Policy overrides client argument, both default to false.
-				 */
-				if (policy.attribute_value("writeable", false))
-					writeable = Arg_string::find_arg(args, "writeable").bool_value(false);
-			}
-			catch (Session_policy::No_policy_defined) { throw Service_denied(); }
+			/*
+			 * Determine if the session is writeable.
+			 * Policy overrides client argument, both default to false.
+			 */
+			if (policy.attribute_value("writeable", false))
+				writeable = Arg_string::find_arg(args, "writeable").bool_value(false);
 
 			/* apply client's root offset */
-			Arg_string::find_arg(args, "root").string(tmp, sizeof(tmp), "/");
-			if (Genode::strcmp("/", tmp, sizeof(tmp))) {
-				session_root.append("/");
-				session_root.append(tmp);
+			{
+				char tmp[MAX_PATH_LEN] { };
+				Arg_string::find_arg(args, "root").string(tmp, sizeof(tmp), "/");
+				if (Genode::strcmp("/", tmp, sizeof(tmp))) {
+					session_root.append("/");
+					session_root.append(tmp);
+				}
 			}
 			session_root.remove_trailing('/');
 

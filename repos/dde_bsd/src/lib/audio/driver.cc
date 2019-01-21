@@ -334,17 +334,17 @@ static void configure_mixer(Genode::Env &env, Mixer &mixer, Genode::Xml_node con
 	mixer_reporter.enabled(v);
 
 	config.for_each_sub_node("mixer", [&] (Xml_node node) {
-		char field[32];
-		char value[16];
-		try {
-			node.attribute("field").value(field, sizeof(field));
-			node.attribute("value").value(value, sizeof(value));
 
-			set_mixer_value(mixer, field, value);
-		} catch (Xml_attribute::Nonexistent_attribute) { }
+		typedef String<32> Field;
+		typedef String<16> Value;
+
+		Field const field = node.attribute_value("field", Field());
+		Value const value = node.attribute_value("value", Value());
+
+		set_mixer_value(mixer, field.string(), value.string());
 	});
 
-	if (mixer_reporter.is_enabled()) try {
+	if (mixer_reporter.enabled()) try {
 		Genode::Reporter::Xml_generator xml(mixer_reporter, [&]() {
 
 			for (unsigned i = 0; i < mixer.num; i++) {

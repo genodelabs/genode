@@ -36,7 +36,7 @@ struct Framebuffer_controller
 	Signal_handler<Framebuffer_controller> timer_handler;
 
 	void update_connector_config(Xml_generator & xml, Xml_node & node);
-	void update_fb_config(Xml_node & report);
+	void update_fb_config(Xml_node const &report);
 	void report_changed();
 	void handle_timer();
 
@@ -66,9 +66,8 @@ void Framebuffer_controller::update_connector_config(Xml_generator & xml,
                                                      Xml_node & node)
 {
 	xml.node("connector", [&] {
-		String<64> name;
-		node.attribute("name").value(&name);
-		xml.attribute("name", name.string());
+
+		xml.attribute("name", node.attribute_value("name", String<64>()));
 
 		bool connected = node.attribute_value("connected", false);
 		xml.attribute("enabled", connected ? "true" : "false");
@@ -97,7 +96,7 @@ void Framebuffer_controller::update_connector_config(Xml_generator & xml,
 }
 
 
-void Framebuffer_controller::update_fb_config(Xml_node & report)
+void Framebuffer_controller::update_fb_config(Xml_node const &report)
 {
 	try {
 		static char buf[4096];
@@ -128,21 +127,15 @@ void Framebuffer_controller::update_fb_config(Xml_node & report)
 void Framebuffer_controller::report_changed()
 {
 	rom.update();
-	if (!rom.is_valid()) return;
 
-	Xml_node report(rom.local_addr<char>(), rom.size());
-	update_fb_config(report);
+	update_fb_config(rom.xml());
 }
 
 
 void Framebuffer_controller::handle_timer()
 {
-	if (!rom.is_valid())
-		return;
-
 	/* artificial update */
-	Xml_node report(rom.local_addr<char>(), rom.size());
-	update_fb_config(report);
+	update_fb_config(rom.xml());
 }
 
 

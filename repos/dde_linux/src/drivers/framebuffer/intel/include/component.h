@@ -113,7 +113,7 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 		Genode::Attached_rom_dataspace      &_config;
 		Genode::Signal_context_capability    _mode_sigh;
 		Timer::Connection                    _timer;
-		Genode::Ram_session                 &_ram;
+		Genode::Ram_allocator               &_ram;
 		Genode::Attached_ram_dataspace       _ds;
 		bool                                 _in_mode_change = true;
 

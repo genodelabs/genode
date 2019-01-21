@@ -14,6 +14,9 @@
 #ifndef _LX_H_
 #define _LX_H_
 
+/* Genode includes */
+#include <base/allocator.h>
+
 /* local includes */
 #include <lx_kit/scheduler.h>
 

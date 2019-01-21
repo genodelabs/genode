@@ -18,6 +18,7 @@
 
 /* Genode includes */
 #include <base/entrypoint.h>
+#include <base/allocator.h>
 
 namespace Lx {
 

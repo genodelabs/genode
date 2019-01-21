@@ -124,7 +124,7 @@ class Audio_out::Out
 				/* convert float to S16LE */
 				static short data[Audio_out::PERIOD * Audio_out::MAX_CHANNELS];
 
-				for (int i = 0; i < Audio_out::PERIOD * Audio_out::MAX_CHANNELS; i += 2) {
+				for (unsigned i = 0; i < Audio_out::PERIOD * Audio_out::MAX_CHANNELS; i += 2) {
 					data[i] = p_left->content()[i / 2] * 32767;
 					data[i + 1] = p_right->content()[i / 2] * 32767;
 				}
@@ -494,7 +494,7 @@ struct Main
 	void handle_config_update()
 	{
 		config.update();
-		if (!config.is_valid()) { return; }
+		if (!config.valid()) { return; }
 		Audio::update_config(env, config.xml());
 	}
 

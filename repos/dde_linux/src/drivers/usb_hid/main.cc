@@ -172,8 +172,8 @@ void Driver::main_task_entry(void * arg)
 	try {
 		Genode::Xml_node config_node = Lx_kit::env().config_rom().xml();
 		use_report = config_node.attribute_value("use_report", false);
-		config_node.attribute("width").value(&screen_x);
-		config_node.attribute("height").value(&screen_y);
+		config_node.attribute("width").value(screen_x);
+		config_node.attribute("height").value(screen_y);
 		multi_touch = config_node.attribute_value("multitouch", false);
 	} catch(...) { }
 
@@ -211,11 +211,11 @@ void Driver::scan_report()
 		report_node.for_each_sub_node([&] (Genode::Xml_node & dev_node)
 		{
 			unsigned long c = 0;
-			dev_node.attribute("class").value(&c);
+			dev_node.attribute("class").value(c);
 			if (c != USB_CLASS_HID) return;
 
 			Label label;
-			dev_node.attribute("label").value(&label);
+			dev_node.attribute("label").value(label);
 
 			bool found = false;
 

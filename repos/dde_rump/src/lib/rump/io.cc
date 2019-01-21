@@ -13,7 +13,6 @@
 
 #include "sched.h"
 #include <base/allocator_avl.h>
-#include <base/printf.h>
 #include <block_session/connection.h>
 #include <rump/env.h>
 #include <rump_fs/fs.h>
@@ -176,12 +175,14 @@ void rump_io_backend_init()
 }
 
 
-void rumpuser_dprintf(const char *fmt, ...)
+void rumpuser_dprintf(const char *format, ...)
 {
 	va_list list;
-	va_start(list, fmt);
+	va_start(list, format);
 
-	Genode::vprintf(fmt, list);
+	char buf[128] { };
+	Genode::String_console(buf, sizeof(buf)).vprintf(format, list);
+	Genode::log(Genode::Cstring(buf));
 
 	va_end(list);
 }

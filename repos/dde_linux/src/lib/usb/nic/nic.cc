@@ -708,7 +708,7 @@ void random_ether_addr(u8 *addr)
 	try {
 		Xml_node nic_config = config_node.sub_node("nic");
 		Xml_node::Attribute mac_node = nic_config.attribute("mac");
-		mac_node.value(&mac);
+		mac_node.value(mac);
 	} catch (...) {
 	/* use fallback mac */
 		snprint_mac(str, fallback);

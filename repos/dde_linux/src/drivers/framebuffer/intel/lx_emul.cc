@@ -106,9 +106,9 @@ Framebuffer::Driver::_preferred_mode(drm_connector *connector,
 			if (!xn.has_type("connector"))
 				continue;
 
-			String<64> con_policy;
-			xn.attribute("name").value(&con_policy);
-			if (Genode::strcmp(con_policy.string(), connector->name) != 0)
+			typedef String<64> Name;
+			Name const con_policy = xn.attribute_value("name", Name());
+			if (con_policy != connector->name)
 				continue;
 
 			bool enabled = xn.attribute_value("enabled", true);
@@ -118,11 +118,9 @@ Framebuffer::Driver::_preferred_mode(drm_connector *connector,
 			brightness = xn.attribute_value("brightness",
 			                                (unsigned)MAX_BRIGHTNESS + 1);
 
-			unsigned long width  = 0;
-			unsigned long height = 0;
-			long hz = xn.attribute_value("hz", 0L);
-			xn.attribute("width").value(&width);
-			xn.attribute("height").value(&height);
+			unsigned long const width  = xn.attribute_value("width",  0UL);
+			unsigned long const height = xn.attribute_value("height", 0UL);
+			long          const hz     = xn.attribute_value("hz",     0L);
 
 			struct drm_display_mode *mode;
 			list_for_each_entry(mode, &connector->modes, head) {
@@ -275,7 +273,7 @@ void Framebuffer::Driver::generate_report()
 	} catch (...) {
 		_reporter.enabled(false);
 	}
-	if (!_reporter.is_enabled()) return;
+	if (!_reporter.enabled()) return;
 
 	/* write new report */
 	try {

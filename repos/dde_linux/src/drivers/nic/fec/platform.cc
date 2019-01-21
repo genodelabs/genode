@@ -23,7 +23,7 @@
  ** lx_kit/backend_alloc.h **
  ****************************/
 
-void backend_alloc_init(Genode::Env&, Genode::Ram_session&,
+void backend_alloc_init(Genode::Env&, Genode::Ram_allocator&,
 						Genode::Allocator&)
 {
 	/* intentionally left blank */

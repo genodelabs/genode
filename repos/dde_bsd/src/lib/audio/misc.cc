@@ -12,7 +12,6 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
 #include <base/sleep.h>
 #include <base/snprintf.h>
 #include <util/string.h>
@@ -40,27 +39,36 @@ void mtx_leave(struct mutex *mtx) {
  ** sys/systm.h **
  *****************/
 
-extern "C" void panic(const char *fmt, ...)
+static int _vprintf(char const *format, va_list list)
 {
-	va_list va;
+	char buf[128] { };
+	Genode::String_console sc(buf, sizeof(buf));
+	sc.vprintf(format, list);
+	return sc.len();
+}
 
-	va_start(va, fmt);
-	Genode::vprintf(fmt, va);
-	va_end(va);
+
+extern "C" void panic(char const *format, ...)
+{
+	va_list list;
+
+	va_start(list, format);
+	_vprintf(format, list);
+	va_end(list);
 
 	Genode::sleep_forever();
 }
 
 
-extern "C" int printf(const char *fmt, ...)
+extern "C" int printf(const char *format, ...)
 {
-	va_list va;
+	va_list list;
 
-	va_start(va, fmt);
-	Genode::vprintf(fmt, va);
-	va_end(va);
+	va_start(list, format);
+	int const result = _vprintf(format, list);
+	va_end(list);
 
-	return 0; /* XXX proper return value */
+	return result;
 }
 
 

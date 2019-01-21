@@ -300,7 +300,7 @@ static void random_ether_addr(u8 *addr)
 	/* try using configured mac */
 	try {
 		Xml_node::Attribute mac_node = config_node.attribute("mac");
-		mac_node.value(&mac);
+		mac_node.value(mac);
 	} catch (...) {
 		/* use fallback mac */
 		snprint_mac(str, fallback);
