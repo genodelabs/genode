@@ -1,0 +1,10 @@
+LICENSE   := GPLv2
+VERSION   := git
+DOWNLOADS := sel4_tools.git
+
+URL(sel4_tools) := https://github.com/skalk/seL4_tools.git
+# Rev 9.0.x genode branch
+REV(sel4_tools) := dd8068bfd4acfa2c3142398521c40bea093bbe04
+DIR(sel4_tools) := src/tool/sel4_tools
+
+$(call check_tool,python)

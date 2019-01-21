@@ -98,11 +98,14 @@ proc run_boot_dir {binaries} {
 		}
 		# keep Genode image.elf as genode.elf
 		exec mv [run_dir]/boot/image.elf [run_dir]/boot/genode.elf
+		exec mv [run_dir]/boot/sel4 [run_dir]/boot/kernel.elf
 
 		# call seL4 elfloader tool to generate image.elf bootable by uboot with 'bootelf' command
+		set ::env(COMMON_PATH) [sel4_elfloader_dir]
+		set ::env(CPPFLAGS) -I[sel4_elfloader_dir]/include
 		set ::env(PLAT) imx6
 		set ::env(TOOLPREFIX) [cross_dev_prefix]
-		exec [sel4_elfloader_dir]/gen_boot_image.sh [run_dir]/boot/sel4 [run_dir]/boot/genode.elf [run_dir]/boot/image.elf
+		exec [sel4_elfloader_dir]/gen_boot_image.sh [pwd]/[run_dir]/boot/kernel.elf [pwd]/[run_dir]/boot/genode.elf [pwd]/[run_dir]/boot/image.elf
 	}
 
 	run_image [run_dir]/boot/image.elf
