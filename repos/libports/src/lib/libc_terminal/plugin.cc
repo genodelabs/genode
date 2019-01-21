@@ -14,6 +14,7 @@
 /* libc plugin interface */
 #include <libc-plugin/plugin.h>
 #include <libc-plugin/fd_alloc.h>
+#include <libc/allocator.h>
 
 /* libc includes */
 #include <errno.h>
@@ -108,8 +109,10 @@ namespace {
 
 		public:
 
-			Plugin_context()
-			: _status_flags(0)
+			Plugin_context(Genode::Env &env)
+			:
+				Terminal::Connection(env),
+				_status_flags(0)
 			{
 				read_avail_sigh(read_sigh());
 			}
@@ -132,6 +135,10 @@ namespace {
 	{
 		private:
 
+			Genode::Env *_env_ptr = nullptr;
+
+			Libc::Allocator _alloc { };
+
 			/**
 			 * File name this plugin feels responsible for
 			 */
@@ -149,6 +156,8 @@ namespace {
 			 */
 			Plugin() : Libc::Plugin(PLUGIN_PRIORITY) { }
 
+			void init(Genode::Env &env) override { _env_ptr = &env; }
+
 			bool supports_stat(const char *path)
 			{
 				return (Genode::strcmp(path, "/dev") == 0) ||
@@ -162,14 +171,18 @@ namespace {
 
 			Libc::File_descriptor *open(const char *pathname, int flags)
 			{
-				Plugin_context *context = new (Genode::env()->heap()) Plugin_context;
+				if (!_env_ptr)
+					Genode::error("libc_terminal: missing call of Plugin::init");
+
+				Plugin_context *context = new (_alloc) Plugin_context(*_env_ptr);
+
 				context->status_flags(flags);
 				return Libc::file_descriptor_allocator()->alloc(this, context);
 			}
 
 			int close(Libc::File_descriptor *fd)
 			{
-				Genode::destroy(Genode::env()->heap(), context(fd));
+				Genode::destroy(_alloc, context(fd));
 				Libc::file_descriptor_allocator()->free(fd);
 				return 0;
 			}
