@@ -83,17 +83,9 @@ class Menu_view::Widget : List_model<Widget>::Element
 			bool valid() const { return value != 0; }
 		};
 
-		static Type_name node_type_name(Xml_node node)
-		{
-			char type[NAME_MAX_LEN];
-			node.type_name(type, sizeof(type));
-
-			return Type_name(Cstring(type));
-		}
-
 		static Name node_name(Xml_node node)
 		{
-			return Decorator::string_attribute(node, "name", node_type_name(node));
+			return node.attribute_value("name", Name(node.type()));
 		}
 
 	private:
@@ -204,7 +196,7 @@ class Menu_view::Widget : List_model<Widget>::Element
 
 		Widget(Widget_factory &factory, Xml_node node, Unique_id unique_id)
 		:
-			_type_name(node_type_name(node)),
+			_type_name(node.type()),
 			_name(node_name(node)),
 			_unique_id(unique_id),
 			_factory(factory)

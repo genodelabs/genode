@@ -36,7 +36,7 @@ struct Menu_view::Label_widget : Widget
 	void update(Xml_node node)
 	{
 		font = _factory.styles.font(node);
-		text = Decorator::string_attribute(node, "text", Text(""));
+		text = node.attribute_value("text", Text(""));
 	}
 
 	Area min_size() const override

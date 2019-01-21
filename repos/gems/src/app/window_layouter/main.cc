@@ -554,7 +554,7 @@ void Window_layouter::Main::_handle_hover()
 	try {
 		Xml_node const hover_window_xml = _hover.xml().sub_node("window");
 
-		_user_state.hover(attribute(hover_window_xml, "id", 0UL),
+		_user_state.hover(hover_window_xml.attribute_value("id", 0UL),
 		                  _element_from_hover_model(hover_window_xml));
 	}
 

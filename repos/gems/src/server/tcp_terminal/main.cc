@@ -525,27 +525,22 @@ class Terminal::Root_component : public Genode::Root_component<Session_component
 			 */
 			Genode::size_t io_buffer_size = 4096;
 
-			try {
-				Session_label const label = label_from_args(args);
-				Session_policy policy(label, _config);
+			Session_label  const label = label_from_args(args);
+			Session_policy const policy(label, _config);
 
-				unsigned tcp_port = 0;
-				policy.attribute("port").value(&tcp_port);
-				Session_component *session = nullptr;
-				Libc::with_libc([&] () {
-					session = new (md_alloc())
-						Session_component(_env, io_buffer_size, tcp_port);
-				});
-				return session;
-			}
-			catch (Xml_node::Nonexistent_attribute) {
+			if (!policy.has_attribute("port")) {
 				error("Missing \"port\" attribute in policy definition");
 				throw Service_denied();
 			}
-			catch (Session_policy::No_policy_defined) {
-				error("Invalid session request, no matching policy");
-				throw Service_denied();
-			}
+
+			unsigned const tcp_port = policy.attribute_value("port", 0U);
+
+			Session_component *session = nullptr;
+			Libc::with_libc([&] () {
+				session = new (md_alloc())
+					Session_component(_env, io_buffer_size, tcp_port); });
+
+			return session;
 		}
 
 	public:

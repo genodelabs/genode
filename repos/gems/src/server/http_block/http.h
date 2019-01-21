@@ -56,7 +56,7 @@ class Http
 		/*
 		 * Set URI of remote file
 		 */
-		void parse_uri(::String &uri);
+		void parse_uri(::String const &uri);
 
 		/*
 		 * Resolve host
@@ -83,7 +83,7 @@ class Http
 		/*
 		 * Constructor (default host port is 80
 		 */
-		Http(Genode::Heap &heap, ::String &uri);
+		Http(Genode::Heap &heap, ::String const &uri);
 
 		/*
 		 * Destructor

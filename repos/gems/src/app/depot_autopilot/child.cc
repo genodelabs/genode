@@ -196,7 +196,8 @@ void Child::_gen_routes(Xml_generator          &xml,
 	 */
 	if (_start_xml->xml().has_sub_node("route")) {
 		Xml_node const route = _start_xml->xml().sub_node("route");
-		xml.append(route.content_base(), route.content_size());
+		route.with_raw_content([&] (char const *start, size_t length) {
+			xml.append(start, length); });
 	}
 
 	/*
@@ -204,7 +205,8 @@ void Child::_gen_routes(Xml_generator          &xml,
 	 */
 	if (_launcher_xml.constructed() && _launcher_xml->xml().has_sub_node("route")) {
 		Xml_node const route = _launcher_xml->xml().sub_node("route");
-		xml.append(route.content_base(), route.content_size());
+		route.with_raw_content([&] (char const *start, size_t length) {
+			xml.append(start, length); });
 	}
 
 	/**
@@ -255,7 +257,8 @@ void Child::_gen_routes(Xml_generator          &xml,
 	/*
 	 * Add common routes as defined in our config.
 	 */
-	xml.append(common.content_base(), common.content_size());
+	common.with_raw_content([&] (char const *start, size_t length) {
+		xml.append(start, length); });
 
 	/*
 	 * Add ROM routing rule with the label rewritten to the path within the
@@ -357,7 +360,8 @@ void Child::_gen_copy_of_sub_node(Xml_generator        &xml,
 		return;
 
 	Xml_node const sub_node = from_node.sub_node(sub_node_type.string());
-	xml.append(sub_node.addr(), sub_node.size());
+	sub_node.with_raw_node([&] (char const *start, size_t length) {
+		xml.append(start, length); });
 }
 
 
@@ -592,19 +596,10 @@ void Child::log_session_write(Log_event::Line const &log_line)
 
 void Child::apply_config(Xml_node start_node)
 {
-	if (_skip) {
-		return; }
+	if (_skip)
+		return;
 
-	/*
-	 * String-compare new with current start node to quicky skip
-	 * the start nodes that have not changed.
-	 */
-	bool const start_node_changed =
-		(start_node.size() != _start_xml->xml().size()) ||
-		(strcmp(start_node.addr(), _start_xml->xml().addr(),
-		        start_node.size()) != 0);
-
-	if (!start_node_changed)
+	if (!start_node.differs_from(_start_xml->xml()))
 		return;
 
 	Archive::Path const old_pkg_path = _config_pkg_path();
@@ -657,8 +652,8 @@ void Child::apply_blueprint(Xml_node pkg)
 void Child::apply_launcher(Launcher_name const &name,
                            Xml_node             launcher)
 {
-	if (_skip) {
-		return; }
+	if (_skip)
+		return;
 
 	if (!_defined_by_launcher())
 		return;
@@ -666,15 +661,8 @@ void Child::apply_launcher(Launcher_name const &name,
 	if (_launcher_name() != name)
 		return;
 
-	if (_launcher_xml.constructed()) {
-		bool const launcher_changed =
-			(launcher.size() != _launcher_xml->xml().size()) ||
-			(strcmp(launcher.addr(), _launcher_xml->xml().addr(),
-			        launcher.size()) != 0);
-
-		if (!launcher_changed)
-			return;
-	}
+	if (_launcher_xml.constructed() && !launcher.differs_from(_launcher_xml->xml()))
+		return;
 
 	_launcher_xml.construct(_alloc, launcher);
 
@@ -887,14 +875,30 @@ void Timeout_event::_handle_timeout(Duration)
  ** Log_event **
  ***************/
 
+static char const *xml_content_base(Xml_node node)
+{
+	char const *result = nullptr;
+	node.with_raw_content([&] (char const *start, size_t) { result = start; });
+	return result;
+}
+
+
+static size_t xml_content_size(Xml_node node)
+{
+	size_t result = 0;
+	node.with_raw_content([&] (char const *, size_t length) { result = length; });
+	return result;
+}
+
+
 Log_event::Log_event(Xml_node const &xml)
 :
 	Event           { xml, Type::LOG },
-	_base           { xml.content_base() },
-	_size           { xml.content_size() },
-	_remaining_base { xml.content_base() },
-	_remaining_end  { _remaining_base + xml.content_size() },
-	_reset_to       { xml.content_base() }
+	_base           { xml_content_base(xml) },
+	_size           { xml_content_size(xml) },
+	_remaining_base { xml_content_base(xml) },
+	_remaining_end  { _remaining_base + xml_content_size(xml) },
+	_reset_to       { xml_content_base(xml) }
 { }
 
 

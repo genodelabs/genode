@@ -177,7 +177,7 @@ void Http::do_read(void * buf, size_t size)
 }
 
 
-Http::Http(Genode::Heap &heap, ::String &uri)
+Http::Http(Genode::Heap &heap, ::String const &uri)
 : _heap(heap), _port((char *)"80")
 {
 	_heap.alloc(HTTP_BUF, (void**)&_http_buf);
@@ -205,7 +205,7 @@ Http::~Http()
 }
 
 
-void Http::parse_uri(::String & u)
+void Http::parse_uri(::String const &u)
 {
 	/* strip possible http prefix */
 	const char *http = "http://";

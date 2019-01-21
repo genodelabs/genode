@@ -226,7 +226,8 @@ class Window_layouter::Target_list
 				return;
 
 			_rules->xml().for_each_sub_node("screen", [&] (Xml_node screen) {
-				xml.append(screen.addr(), screen.size());
+				screen.with_raw_node([&] (char const *start, size_t length) {
+					xml.append(start, length); });
 				xml.append("\n");
 			});
 		}

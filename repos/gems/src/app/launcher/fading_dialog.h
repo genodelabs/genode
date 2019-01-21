@@ -187,7 +187,7 @@ class Launcher::Fading_dialog : private Input_event_handler
 			_hover_rom(report_rom_slave.policy(), Slave::Args("label=", hover_name)),
 			_hover_report(report_rom_slave.policy(),
 			              Slave::Args("label=", hover_name, ", buffer_size=4096")),
-			_dialog_reporter(env.rm(), "dialog", _dialog_report),
+			_dialog_reporter(env.rm(), "dialog", _dialog_report.rpc_cap()),
 			_dialog_input_event_handler(input_event_handler),
 			_hover_handler(hover_handler),
 			_dialog_generator(dialog_generator),
@@ -196,12 +196,11 @@ class Launcher::Fading_dialog : private Input_event_handler
 			_fader_slave_ep(&env.pd(), _fader_slave_ep_stack_size, "nit_fader"),
 			_nitpicker_connection(env, "menu"),
 			_nitpicker_session(env, _nitpicker_connection, env.ep(), _fader_slave_ep, *this),
-			_nit_fader_slave(_fader_slave_ep, env.rm(), env.pd(), env.pd_session_cap(),
-			                 _nitpicker_service),
+			_nit_fader_slave(env, _fader_slave_ep, _nitpicker_service),
 			_nit_fader_connection(env.rm(), _nit_fader_slave.policy(), Slave::Args("label=menu")),
-			_menu_view_slave(env.rm(), env.pd(), env.pd_session_cap(),
-			                 _nit_fader_connection,
-			                 _dialog_rom, _hover_report, initial_position)
+			_menu_view_slave(env, _nit_fader_connection.rpc_cap(),
+			                 _dialog_rom.rpc_cap(), _hover_report.rpc_cap(),
+			                 initial_position)
 		{
 			Rom_session_client(_hover_rom).sigh(_hover_update_handler);
 		}

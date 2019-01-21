@@ -669,7 +669,8 @@ void Driver_manager::Main::_generate_usb_drv_config(Reporter &usb_drv_config,
 			xml.node("report", [&] () { xml.attribute("devices", true); });
 
 			/* incorporate user-managed policy */
-			xml.append(policy.content_base(), policy.content_size());
+			policy.with_raw_content([&] (char const *start, size_t length) {
+				xml.append(start, length); });
 
 			devices.for_each_sub_node("device", [&] (Xml_node device) {
 

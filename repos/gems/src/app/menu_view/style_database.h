@@ -48,7 +48,7 @@ class Menu_view::Style_database
 			 *
 			 * \throw Reading_failed
 			 */
-			Texture_entry(Ram_session &ram, Region_map &rm,
+			Texture_entry(Ram_allocator &ram, Region_map &rm,
 			              Allocator &alloc, Path const &path)
 			:
 				path(path),
@@ -82,7 +82,7 @@ class Menu_view::Style_database
 			catch (...) { throw Reading_failed(); }
 		};
 
-		Ram_session     &_ram;
+		Ram_allocator   &_ram;
 		Region_map      &_rm;
 		Allocator       &_alloc;
 		Directory const &_fonts_dir;
@@ -118,7 +118,7 @@ class Menu_view::Style_database
 
 	public:
 
-		Style_database(Ram_session &ram, Region_map &rm, Allocator &alloc,
+		Style_database(Ram_allocator &ram, Region_map &rm, Allocator &alloc,
 		               Directory const &fonts_dir)
 		:
 			_ram(ram), _rm(rm), _alloc(alloc), _fonts_dir(fonts_dir)

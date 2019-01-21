@@ -37,16 +37,20 @@ class Launcher::Menu_view_slave
 
 	private:
 
-		class Policy
-		:
-			private Genode::Static_parent_services<Genode::Cpu_session,
-			                                       Genode::Pd_session,
-			                                       Genode::Ram_session,
-			                                       Genode::Rom_session,
-			                                       Genode::Log_session,
-			                                       File_system::Session,
-			                                       Timer::Session>,
-			public Genode::Slave::Policy
+		struct Policy_base
+		{
+			Genode::Static_parent_services<Genode::Cpu_session,
+			                               Genode::Pd_session,
+			                               Genode::Rom_session,
+			                               Genode::Log_session,
+			                               File_system::Session,
+			                               Timer::Session>
+				_parent_services;
+
+			Policy_base(Env &env) : _parent_services(env) { }
+		};
+
+		class Policy : Policy_base, public Genode::Slave::Policy
 		{
 			private:
 
@@ -80,20 +84,35 @@ class Launcher::Menu_view_slave
 				static Genode::Ram_quota _quota() { return { 6*1024*1024 }; }
 				static Genode::Cap_quota _caps()  { return { 100 }; }
 
+				Service &_matching_service(Genode::Service::Name const &service,
+				                           Genode::Session_label const &label)
+				{
+					if (service == "Nitpicker")
+						return _nitpicker.service();
+
+					if ((service == "ROM") && (label == "menu_view -> dialog"))
+						return _dialog_rom.service();
+
+					if ((service == "Report") && (label == "menu_view -> hover"))
+						return _hover_report.service();
+
+					throw Genode::Service_denied();
+				}
+
 			public:
 
-				Policy(Genode::Rpc_entrypoint        &ep,
-				       Genode::Region_map            &rm,
-				       Genode::Pd_session            &ref_pd,
-				       Genode::Pd_session_capability  ref_pd_cap,
+				Policy(Genode::Env                   &env,
+				       Genode::Rpc_entrypoint        &ep,
 				       Capability<Nitpicker::Session> nitpicker_session,
 				       Capability<Rom_session>        dialog_rom_session,
 				       Capability<Report::Session>    hover_report_session,
 				       Position                       position)
 				:
-					Genode::Slave::Policy(_name(), _name(), *this, ep, rm,
-					                      ref_pd, ref_pd_cap, _caps(), _quota()),
-					_nitpicker(rm, nitpicker_session),
+					Policy_base(env),
+					Genode::Slave::Policy(env, _name(), _name(),
+					                      Policy_base::_parent_services,
+					                      ep, _caps(), _quota()),
+					_nitpicker(env.rm(), nitpicker_session),
 					_dialog_rom(dialog_rom_session),
 					_hover_report(hover_report_session),
 					_position(position)
@@ -103,21 +122,17 @@ class Launcher::Menu_view_slave
 
 				void position(Position pos) { _configure(pos); }
 
-				Genode::Service &resolve_session_request(Genode::Service::Name const &service,
-				                                         Genode::Session_state::Args const &args) override
+				Route resolve_session_request(Genode::Service::Name const &name,
+				                              Genode::Session_label const &label) override
 				{
-					if (service == "Nitpicker")
-						return _nitpicker.service();
+					try {
+						return Route { .service = _matching_service(name, label),
+						               .label   = label,
+						               .diag    = Genode::Session::Diag() };
+					}
+					catch (Genode::Service_denied) { }
 
-					Genode::Session_label const label(label_from_args(args.string()));
-
-					if ((service == "ROM") && (label == "menu_view -> dialog"))
-						return _dialog_rom.service();
-
-					if ((service == "Report") && (label == "menu_view -> hover"))
-						return _hover_report.service();
-
-					return Genode::Slave::Policy::resolve_session_request(service, args);
+					return Genode::Slave::Policy::resolve_session_request(name, label);
 				}
 		};
 
@@ -131,19 +146,17 @@ class Launcher::Menu_view_slave
 		/**
 		 * Constructor
 		 */
-		Menu_view_slave(Genode::Region_map            &rm,
-		                Genode::Pd_session            &ref_pd,
-		                Genode::Pd_session_capability  ref_pd_cap,
+		Menu_view_slave(Genode::Env                   &env,
 		                Capability<Nitpicker::Session> nitpicker_session,
 		                Capability<Rom_session>        dialog_rom_session,
 		                Capability<Report::Session>    hover_report_session,
 		                Position                       initial_position)
 		:
-			_ep(&ref_pd, _ep_stack_size, "nit_fader"),
-			_policy(_ep, rm, ref_pd, ref_pd_cap,
+			_ep(&env.pd(), _ep_stack_size, "nit_fader"),
+			_policy(env, _ep,
 			        nitpicker_session, dialog_rom_session,
 			        hover_report_session, initial_position),
-			_child(rm, _ep, _policy)
+			_child(env.rm(), _ep, _policy)
 		{ }
 
 		void position(Position position) { _policy.position(position); }

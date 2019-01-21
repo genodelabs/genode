@@ -242,11 +242,10 @@ void Backdrop::Main::_apply_image(Xml_node operation)
 		return;
 	}
 
-	char png_file_name[256];
-	png_file_name[0] = 0;
-	operation.attribute("png").value(png_file_name, sizeof(png_file_name));
+	typedef String<256> File_name;
+	File_name const png_file_name = operation.attribute_value("png", File_name());
 
-	File file(png_file_name, _heap);
+	File file(png_file_name.string(), _heap);
 
 	Anchor anchor(operation);
 
@@ -277,7 +276,7 @@ void Backdrop::Main::_apply_image(Xml_node operation)
 
 	bool const tiled = operation.attribute_value("tiled", false);
 
-	unsigned alpha = Decorator::attribute(operation, "alpha", 256U);
+	unsigned alpha = operation.attribute_value("alpha", 256U);
 
 	/* obtain texture containing the pixels of the PNG image */
 	Texture<Pixel_rgb888> *png_texture = png_image.texture<Pixel_rgb888>();
@@ -313,7 +312,7 @@ void Backdrop::Main::_apply_fill(Xml_node operation)
 	/* create texture with down-sampled scaled image */
 	typedef Pixel_rgb565 PT;
 
-	Color const color = Decorator::attribute(operation, "color", Color(0, 0, 0));
+	Color const color = operation.attribute_value("color", Color(0, 0, 0));
 
 	_buffer->apply_to_surface<PT>([&] (Surface<PT> &surface) {
 		Box_painter::paint(surface, Surface_base::Rect(Surface_base::Point(0, 0),

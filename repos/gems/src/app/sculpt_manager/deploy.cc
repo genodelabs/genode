@@ -177,7 +177,8 @@ void Sculpt::Deploy::gen_runtime_start_nodes(Xml_generator &xml) const
 	/* insert content of '<static>' node as is */
 	if (managed_deploy.has_sub_node("static")) {
 		Xml_node static_config = managed_deploy.sub_node("static");
-		xml.append(static_config.content_base(), static_config.content_size());
+		static_config.with_raw_content([&] (char const *start, size_t length) {
+			xml.append(start, length); });
 	}
 
 	/* generate start nodes for deployed packages */

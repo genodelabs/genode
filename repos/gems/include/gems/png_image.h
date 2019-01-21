@@ -45,9 +45,9 @@ class Png_image
 			return arg;
 		};
 
-		Genode::Ram_session &_ram;
-		Genode::Region_map  &_rm;
-		Genode::Allocator   &_alloc;
+		Genode::Ram_allocator &_ram;
+		Genode::Region_map    &_rm;
+		Genode::Allocator     &_alloc;
 
 		class Read_struct
 		{
@@ -173,24 +173,10 @@ class Png_image
 		 * \throw Read_struct_failed
 		 * \throw Info_failed
 		 */
-		Png_image(Genode::Ram_session &ram, Genode::Region_map &rm,
+		Png_image(Genode::Ram_allocator &ram, Genode::Region_map &rm,
 		          Genode::Allocator &alloc, void *data)
 		:
 			_ram(ram), _rm(rm), _alloc(alloc), _read_struct(data)
-		{ }
-
-		/**
-		 * Constructor
-		 *
-		 * \deprecated
-		 * \noapi
-		 */
-		Png_image(void *data) __attribute__((deprecated))
-		:
-			_ram(*Genode::env_deprecated()->ram_session()),
-			_rm(*Genode::env_deprecated()->rm_session()),
-			_alloc(*Genode::env_deprecated()->heap()),
-			_read_struct(data)
 		{ }
 
 		/**

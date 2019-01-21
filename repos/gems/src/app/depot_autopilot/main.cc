@@ -147,7 +147,8 @@ struct Depot_deploy::Main
 			bool finished;
 			_init_config_reporter.generate([&] (Xml_generator &xml) {
 				Xml_node static_config = config.sub_node("static");
-				xml.append(static_config.content_base(), static_config.content_size());
+				static_config.with_raw_content([&] (char const *start, size_t length) {
+					xml.append(start, length); });
 				Child::Depot_rom_server const parent { };
 				finished = _children.gen_start_nodes(xml, config.sub_node("common_routes"),
 				                                     parent, parent);
@@ -189,9 +190,9 @@ struct Depot_deploy::Main
 					log("\n--- Finished after ", time_sec + previous_time_sec, ".", time_ms < 10 ? "00" : time_ms < 100 ? "0" : "", time_ms, " sec ---\n");
 					if (config.has_sub_node("previous-results")) {
 						Xml_node const previous_results = config.sub_node("previous-results");
-						if (previous_results.content_size()) {
-							log(Cstring(previous_results.content_base(), previous_results.content_size()));
-						}
+						previous_results.with_raw_content([&] (char const *start, size_t length) {
+							if (length)
+								log(Cstring(start, length)); });
 					}
 					_children.print_conclusion();
 					log("");

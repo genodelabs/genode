@@ -15,7 +15,7 @@
 #define _INCLUDE__GEMS__NITPICKER_BUFFER_H_
 
 /* Genode includes */
-#include <ram_session/ram_session.h>
+#include <base/ram_allocator.h>
 #include <nitpicker_session/connection.h>
 #include <base/attached_dataspace.h>
 #include <base/attached_ram_dataspace.h>
@@ -43,8 +43,8 @@ struct Nitpicker_buffer
 
 	typedef Genode::Attached_ram_dataspace Ram_ds;
 
-	Genode::Ram_session &ram;
-	Genode::Region_map  &rm;
+	Genode::Ram_allocator &ram;
+	Genode::Region_map    &rm;
 
 	Nitpicker::Connection &nitpicker;
 
@@ -85,7 +85,7 @@ struct Nitpicker_buffer
 	 * Constructor
 	 */
 	Nitpicker_buffer(Nitpicker::Connection &nitpicker, Area size,
-	                 Genode::Ram_session &ram, Genode::Region_map &rm)
+	                 Genode::Ram_allocator &ram, Genode::Region_map &rm)
 	:
 		ram(ram), rm(rm), nitpicker(nitpicker),
 		mode(Genode::max(1UL, size.w()), Genode::max(1UL, size.h()),
@@ -93,20 +93,6 @@ struct Nitpicker_buffer
 	{
 		reset_surface();
 	}
-
-	/**
-	 * Constructor
-	 *
-	 * \deprecated
-	 * \noapi
-	 */
-	Nitpicker_buffer(Nitpicker::Connection &nitpicker, Area size,
-	                 Genode::Ram_session &ram) __attribute__((deprecated))
-	:
-		ram(ram), rm(*Genode::env_deprecated()->rm_session()), nitpicker(nitpicker),
-		mode(Genode::max(1UL, size.w()), Genode::max(1UL, size.h()),
-		     nitpicker.mode().format())
-	{ }
 
 	/**
 	 * Return size of virtual framebuffer

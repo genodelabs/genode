@@ -131,8 +131,8 @@ class Cpu_load_display::Cpu : public Genode::List<Cpu>::Element
 		{
 			unsigned long const subject_id = subject.attribute_value("id", 0UL);
 
-			char label[sizeof(Timeline::Label)];
-			subject.attribute("label").value(label, sizeof(label));
+			Timeline::Label const label =
+				subject.attribute_value("label", Timeline::Label());
 
 			for (Timeline *t = _timelines.first(); t; t = t->next()) {
 				if (t->has_subject_id(subject_id))
@@ -140,7 +140,7 @@ class Cpu_load_display::Cpu : public Genode::List<Cpu>::Element
 			}
 
 			/* add new timeline */
-			Timeline *t = new (_heap) Timeline(subject_id, Genode::Cstring(label));
+			Timeline *t = new (_heap) Timeline(subject_id, label);
 			_timelines.insert(t);
 			return t;
 		}

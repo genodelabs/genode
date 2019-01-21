@@ -216,8 +216,8 @@ bool Decorator::Window::update(Genode::Xml_node window_node)
 	_focused   = window_node.attribute_value(  "focused", false);
 	_has_alpha = window_node.attribute_value("has_alpha", false);
 
-	Window_title title = Decorator::string_attribute(window_node, "title",
-	                                                 Window_title("<untitled>"));
+	Window_title const title =
+		window_node.attribute_value("title", Window_title("<untitled>"));
 	updated |= !(title == _title);
 	_title = title;
 

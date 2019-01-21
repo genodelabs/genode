@@ -87,10 +87,10 @@ class Window_layouter::Window_list
 			void update_element(Window &win, Xml_node node)
 			{
 				win.client_size(area_attribute(node));
-				win.title(string_attribute(node, "title", Window::Title("")));
-				win.has_alpha( node.attribute_value("has_alpha",  false));
-				win.hidden(    node.attribute_value("hidden",     false));
-				win.resizeable(node.attribute_value("resizeable", false));
+				win.title      (node.attribute_value("title", Window::Title("")));
+				win.has_alpha  (node.attribute_value("has_alpha",  false));
+				win.hidden     (node.attribute_value("hidden",     false));
+				win.resizeable (node.attribute_value("resizeable", false));
 			}
 
 			static bool element_matches_xml_node(Window const &elem, Xml_node node)

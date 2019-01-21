@@ -56,8 +56,8 @@ class Launcher::Menu_dialog : Input_event_handler, Dialog_generator,
 
 			Element(Xml_node node)
 			:
-				label(Decorator::string_attribute(node, "name",  Label(""))),
-				title(Decorator::string_attribute(node, "title", Title(label.string())))
+				label(node.attribute_value("name",  Label(""))),
+				title(node.attribute_value("title", Title(label.string())))
 			{ }
 		};
 
@@ -163,8 +163,7 @@ class Launcher::Menu_dialog : Input_event_handler, Dialog_generator,
 
 				for (Element *e = _elements.first(); e; e = e->next()) {
 
-					Label const label =
-						Decorator::string_attribute(button, "name", Label(""));
+					Label const label = button.attribute_value("name", Label(""));
 
 					if (e->label == label) {
 						e->hovered = true;

@@ -28,7 +28,6 @@ namespace Wm {
 	class Main;
 
 	using Genode::size_t;
-	using Genode::env;
 	using Genode::Rom_session_client;
 	using Genode::Rom_connection;
 	using Genode::Xml_node;
@@ -76,7 +75,7 @@ struct Wm::Main
 			unsigned long win_id = 0;
 
 			Xml_node(focus_rom.local_addr<char>()).sub_node("window")
-				.attribute("id").value(&win_id);
+				.attribute("id").value(win_id);
 
 			if (win_id) {
 				Nitpicker::Session_capability session_cap =
@@ -95,32 +94,17 @@ struct Wm::Main
 
 	void handle_resize_request_update()
 	{
-		try {
-			resize_request_rom.update();
-			if (!resize_request_rom.valid())
-				return;
+		resize_request_rom.update();
 
-			char const * const node_type = "window";
+		resize_request_rom.xml().for_each_sub_node("window", [&] (Xml_node window) {
 
-			Xml_node window =
-				Xml_node(resize_request_rom.local_addr<char>()).sub_node(node_type);
+			unsigned long const
+				win_id = window.attribute_value("id",     0UL),
+				width  = window.attribute_value("width",  0UL),
+				height = window.attribute_value("height", 0UL);
 
-			for (;;) {
-				unsigned long win_id = 0, width = 0, height = 0;
-
-				window.attribute("id")    .value(&win_id);
-				window.attribute("width") .value(&width);
-				window.attribute("height").value(&height);
-
-				nitpicker_root.request_resize(win_id, Area(width, height));
-
-				if (window.last(node_type))
-					break;
-
-				window = window.next(node_type);
-			}
-
-		} catch (...) { /* no resize-request model available */ }
+			nitpicker_root.request_resize(win_id, Area(width, height));
+		});
 	}
 
 	Genode::Signal_handler<Main> resize_request_handler =

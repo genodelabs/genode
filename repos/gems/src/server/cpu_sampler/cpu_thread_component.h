@@ -68,7 +68,7 @@ class Cpu_sampler::Cpu_thread_component : public Rpc_object<Cpu_thread>
 		Cpu_session_component const *cpu_session_component() const
 		{ return &_cpu_session_component; }
 
-		Thread_capability parent_thread() { return _parent_cpu_thread; }
+		Thread_capability parent_thread() { return _parent_cpu_thread.rpc_cap(); }
 		Session_label &label() { return _label; }
 
 		void take_sample();

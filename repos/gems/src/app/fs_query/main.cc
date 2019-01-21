@@ -48,7 +48,8 @@ struct Fs_query::Watched_file
 			if (!node.has_type("empty")) {
 				xml.attribute("xml", "yes");
 				xml.append("\n");
-				xml.append(node.addr(), node.size());
+				node.with_raw_node([&] (char const *start, size_t length) {
+					xml.append(start, length); });
 				content_is_xml = true;
 			}
 		});

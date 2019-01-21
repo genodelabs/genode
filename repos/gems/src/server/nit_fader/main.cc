@@ -42,7 +42,6 @@ namespace Nit_fader {
 	typedef Genode::Surface_base::Rect  Rect;
 
 	using Genode::size_t;
-	using Genode::env;
 	using Genode::Xml_node;
 	using Genode::Dataspace_capability;
 	using Genode::Attached_ram_dataspace;
@@ -498,7 +497,7 @@ void Nit_fader::Main::handle_config_update()
 
 	unsigned long new_alpha = alpha;
 	if (config_xml.has_attribute("alpha"))
-		config_xml.attribute("alpha").value(&new_alpha);
+		config_xml.attribute("alpha").value(new_alpha);
 
 	/* respond to state change */
 	if (new_alpha != alpha) {

@@ -294,9 +294,8 @@ class Test::Parent
 			Policy(Parent &parent, Env &env)
 			:
 				Static_parent_services(env),
-				Slave::Policy(Label("child"), "test-resource_yield",
-				              *this, env.ep().rpc_ep(), env.rm(),
-				              env.pd(), env.pd_session_cap(),
+				Slave::Policy(env, Label("child"), "test-resource_yield",
+				              *this, env.ep().rpc_ep(),
 				              Cap_quota{SLAVE_CAPS}, Ram_quota{SLAVE_RAM}),
 				_parent(parent)
 			{

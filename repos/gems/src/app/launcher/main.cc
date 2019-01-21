@@ -42,9 +42,7 @@ struct Launcher::Main
 		"  <policy label=\"context_hover\"  report=\"context_hover\"/>"
 		"</config>";
 
-	Report_rom_slave _report_rom_slave {
-		_env.rm(), _env.pd(), _env.pd_session_cap(), _env.ram(), _env.ram_session_cap(),
-		_report_rom_config };
+	Report_rom_slave _report_rom_slave { _env, _report_rom_config };
 
 	/**
 	 * Nitpicker session used to perform session-control operations on the

@@ -24,7 +24,6 @@
 namespace Launcher {
 
 	class Subsystem_manager;
-	using Decorator::string_attribute;
 	using Cli_monitor::Ram;
 	using namespace Genode;
 }
@@ -107,8 +106,8 @@ class Launcher::Subsystem_manager
 
 		Genode::Signal_context_capability _exited_child_sig_cap;
 
-		Ram _ram { _env.ram(),
-		           _env.ram_session_cap(),
+		Ram _ram { _env.pd(),
+		           _env.pd_session_cap(),
 		           _ram_preservation,
 		           _yield_broadcast_handler,
 		           _resource_avail_handler };
@@ -116,8 +115,8 @@ class Launcher::Subsystem_manager
 		static Child::Binary_name _binary_name(Xml_node subsystem)
 		{
 			try {
-				return string_attribute(subsystem.sub_node("binary"),
-				                        "name", Child::Binary_name(""));
+				return subsystem.sub_node("binary")
+				                .attribute_value("name", Child::Binary_name());
 			} catch (Xml_node::Nonexistent_sub_node) {
 				Genode::error("missing <binary> definition");
 				throw Invalid_config();
@@ -133,10 +132,10 @@ class Launcher::Subsystem_manager
 				subsystem.for_each_sub_node("resource", [&] (Xml_node rsc) {
 					if (rsc.attribute("name").has_value("RAM")) {
 
-						rsc.attribute("quantum").value(&quantum);
+						rsc.attribute("quantum").value(quantum);
 
 						if (rsc.has_attribute("limit"))
-							rsc.attribute("limit").value(&limit);
+							rsc.attribute("limit").value(limit);
 					}
 				});
 			} catch (...) {
@@ -178,7 +177,7 @@ class Launcher::Subsystem_manager
 		{
 			Child::Binary_name const binary_name = _binary_name(subsystem);
 
-			Label const label = string_attribute(subsystem, "name", Label(""));
+			Label const label = subsystem.attribute_value("name", Label(""));
 
 			Ram_config const ram_config = _ram_config(subsystem);
 
@@ -186,33 +185,38 @@ class Launcher::Subsystem_manager
 
 			try {
 				Child *child = new (_heap)
-					Child(_ram, _heap, label, binary_name.string(),
+					Child(_env, _ram, _heap, label, binary_name.string(),
 					      _env.pd(),
 					      _env.pd_session_cap(),
-					      _env.ram(),
-					      _env.ram_session_cap(),
 					      _env.rm(),
 					      _caps_config(subsystem),
 					      ram_config.quantum, ram_config.limit,
 					      _yield_broadcast_handler,
 					      _exited_child_sig_cap);
 
+				auto configure_with_xml = [&] (Xml_node config)
+				{
+					config.with_raw_node([&] (char const *start, size_t length) {
+						child->configure(start, length); });
+				};
+
 				/* configure child */
 				try {
 					if (subsystem.has_sub_node("configfile")) {
-						Genode::String<96> name;
-						Xml_node node = subsystem.sub_node("configfile");
-						Xml_attribute attr = node.attribute("name");
-						attr.value(&name);
+						Xml_node const node = subsystem.sub_node("configfile");
+
+						typedef Genode::String<96> Name;
+						Name const name = node.attribute_value("name", Name());
 
 						Attached_rom_dataspace rom(_env, name.string());
-						Xml_node config_node = rom.xml();
-						child->configure(config_node.addr(), config_node.size());
+						configure_with_xml(rom.xml());
+
+					} else if (subsystem.has_sub_node("config")) {
+						configure_with_xml(subsystem.sub_node("config"));
 					} else {
-						Xml_node config_node = subsystem.sub_node("config");
-						child->configure(config_node.addr(), config_node.size());
+						configure_with_xml(Xml_node("<config/>"));
 					}
-				} catch (...) { }
+				} catch (...) { warning("failed to configure child ", label); }
 
 				_children.insert(child);
 

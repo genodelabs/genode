@@ -53,25 +53,10 @@ class Chunky_texture : Genode::Attached_ram_dataspace, public Genode::Texture<PT
 
 	public:
 
-		Chunky_texture(Genode::Ram_session &ram, Genode::Region_map &rm,
+		Chunky_texture(Genode::Ram_allocator &ram, Genode::Region_map &rm,
 		               Genode::Surface_base::Area size)
 		:
 			Genode::Attached_ram_dataspace(ram, rm, _num_bytes(size)),
-			Genode::Texture<PT>(_pixel(), _alpha(size), size)
-		{ }
-
-		/**
-		 * Constructor
-		 *
-		 * \deprecated
-		 * \noapi
-		 *
-		 * This variant is solely meant to be used by deprecated functions.
-		 * It will be removed if those functions are gone.
-		 */
-		Chunky_texture(Genode::Ram_session &ram, Genode::Surface_base::Area size) __attribute__((deprecated))
-		:
-			Genode::Attached_ram_dataspace(ram, *Genode::env_deprecated()->rm_session(), _num_bytes(size)),
 			Genode::Texture<PT>(_pixel(), _alpha(size), size)
 		{ }
 };

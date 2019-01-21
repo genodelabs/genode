@@ -33,7 +33,7 @@ class Icon_texture : public Chunky_texture<PT>
 		 */
 		enum { WIDTH = 14, HEIGHT = 14 };
 
-		Icon_texture(Ram_session &ram, Region_map &rm,
+		Icon_texture(Ram_allocator &ram, Region_map &rm,
 		             unsigned char rgba_data[])
 		:
 			Chunky_texture<PT>(ram, rm, Surface_base::Area(WIDTH, HEIGHT))
@@ -60,7 +60,7 @@ extern unsigned char _binary_windowed_rgba_start[];
  * Return texture for the specified texture ID
  */
 Texture_base const &
-Decorator::texture_by_id(Texture_id id, Ram_session &ram, Region_map &rm)
+Decorator::texture_by_id(Texture_id id, Ram_allocator &ram, Region_map &rm)
 {
 	static Icon_texture<Pixel_rgb565> const icons[4] {
 		{ ram, rm, _binary_closer_rgba_start },

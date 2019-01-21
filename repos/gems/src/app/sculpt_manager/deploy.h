@@ -81,7 +81,8 @@ struct Sculpt::Deploy
 
 			auto append_xml_node = [&] (Xml_node node) {
 				xml.append("\t");
-				xml.append(node.addr(), node.size());
+				node.with_raw_node([&] (char const *start, size_t length) {
+					xml.append(start, length); });
 				xml.append("\n");
 			};
 

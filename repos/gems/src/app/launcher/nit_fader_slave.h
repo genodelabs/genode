@@ -29,15 +29,19 @@ class Launcher::Nit_fader_slave
 {
 	private:
 
-		class Policy
-		:
-			private Genode::Static_parent_services<Genode::Ram_session,
-			                                       Genode::Cpu_session,
-			                                       Genode::Pd_session,
-			                                       Genode::Rom_session,
-			                                       Genode::Log_session,
-			                                       Timer::Session>,
-			public Slave::Policy
+		struct Policy_base
+		{
+			Genode::Static_parent_services<Genode::Cpu_session,
+			                               Genode::Pd_session,
+			                               Genode::Rom_session,
+			                               Genode::Log_session,
+			                               Timer::Session>
+				_parent_services;
+
+			Policy_base(Env &env) : _parent_services(env) { }
+		};
+
+		class Policy : Policy_base, public Slave::Policy
 		{
 			private:
 
@@ -51,14 +55,14 @@ class Launcher::Nit_fader_slave
 
 			public:
 
-				Policy(Rpc_entrypoint        &ep,
-				       Region_map            &rm,
-				       Pd_session            &ref_pd,
-				       Pd_session_capability  ref_pd_cap,
-				       Genode::Service       &nitpicker_service)
+				Policy(Env             &env,
+				       Rpc_entrypoint  &ep,
+				       Genode::Service &nitpicker_service)
 				:
-					Genode::Slave::Policy(_name(), _name(), *this, ep, rm,
-					                      ref_pd,  ref_pd_cap,  _caps(), _quota()),
+					Policy_base(env),
+					Genode::Slave::Policy(env, _name(), _name(),
+					                      Policy_base::_parent_services,
+					                      ep, _caps(), _quota()),
 					_nitpicker_service(nitpicker_service)
 				{
 					visible(false);
@@ -72,13 +76,15 @@ class Launcher::Nit_fader_slave
 					configure(config, strlen(config) + 1);
 				}
 
-				Genode::Service &resolve_session_request(Genode::Service::Name const &service,
-				                                         Genode::Session_state::Args const &args) override
+				Route resolve_session_request(Genode::Service::Name const &service,
+				                              Genode::Session_label const &label) override
 				{
 					if (service == Nitpicker::Session::service_name())
-						return _nitpicker_service;
+						return Route { .service = _nitpicker_service,
+						               .label   = label,
+						               .diag    = Session::Diag() };
 
-					return Genode::Slave::Policy::resolve_session_request(service, args);
+					return Genode::Slave::Policy::resolve_session_request(service, label);
 				}
 		};
 
@@ -90,18 +96,14 @@ class Launcher::Nit_fader_slave
 		/**
 		 * Constructor
 		 *
-		 * \param ep       entrypoint used for nitpicker child thread
-		 * \param ref_ram  RAM session used to allocate the configuration
-		 *                 dataspace and child memory
+		 * \param ep  entrypoint used for nitpicker child thread
 		 */
-		Nit_fader_slave(Rpc_entrypoint        &ep,
-		                Genode::Region_map    &rm,
-		                Pd_session            &ref_pd,
-		                Pd_session_capability  ref_pd_cap,
-		                Genode::Service       &nitpicker_service)
+		Nit_fader_slave(Env             &env,
+		                Rpc_entrypoint  &ep,
+		                Genode::Service &nitpicker_service)
 		:
-			_policy(ep, rm, ref_pd, ref_pd_cap, nitpicker_service),
-			_child(rm, ep, _policy)
+			_policy(env, ep, nitpicker_service),
+			_child(env.rm(), ep, _policy)
 		{
 			visible(false);
 		}

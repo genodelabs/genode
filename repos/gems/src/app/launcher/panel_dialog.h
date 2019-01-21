@@ -323,8 +323,7 @@ class Launcher::Panel_dialog : Input_event_handler, Dialog_generator,
 
 				for (Element *e = _elements.first(); e; e = e->next()) {
 
-					Label const label =
-						Decorator::string_attribute(button, "name", Label(""));
+					Label const label = button.attribute_value("name", Label(""));
 
 					if (e->label == label) {
 						e->hovered = true;

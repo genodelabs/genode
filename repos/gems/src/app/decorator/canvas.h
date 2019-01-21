@@ -35,7 +35,7 @@ namespace Decorator {
 	};
 
 	Genode::Texture_base const &texture_by_id(Texture_id,
-	                                          Genode::Ram_session &,
+	                                          Genode::Ram_allocator &,
 	                                          Genode::Region_map &);
 
 	class Canvas_base;
@@ -62,13 +62,13 @@ class Decorator::Canvas : public Decorator::Canvas_base
 {
 	private:
 
-		Genode::Ram_session &_ram;
-		Genode::Region_map  &_rm;
-		Genode::Surface<PT>  _surface;
+		Genode::Ram_allocator &_ram;
+		Genode::Region_map    &_rm;
+		Genode::Surface<PT>    _surface;
 
 	public:
 
-		Canvas(PT *base, Area size, Genode::Ram_session &ram, Genode::Region_map &rm)
+		Canvas(PT *base, Area size, Genode::Ram_allocator &ram, Genode::Region_map &rm)
 		: _ram(ram), _rm(rm), _surface(base, size) { }
 
 		Rect clip() const override { return _surface.clip(); }

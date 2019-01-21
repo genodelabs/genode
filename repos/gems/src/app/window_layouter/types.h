@@ -26,8 +26,6 @@ namespace Window_layouter {
 	typedef Decorator::Area  Area;
 	typedef Decorator::Rect  Rect;
 
-	using Decorator::attribute;
-	using Decorator::string_attribute;
 	using Decorator::area_attribute;
 	using Decorator::point_attribute;
 

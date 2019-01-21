@@ -32,8 +32,8 @@ class Driver : public Block::Driver
 
 	public:
 
-		Driver(Heap &heap, Ram_session &ram,
-		       size_t block_size, ::String &uri)
+		Driver(Heap &heap, Ram_allocator &ram,
+		       size_t block_size, ::String const &uri)
 		: Block::Driver(ram),
 		  _block_size(block_size), _http(heap, uri) {}
 
@@ -71,20 +71,17 @@ class Factory : public Block::Driver_factory
 		Env                   &_env;
 		Heap                  &_heap;
 		Attached_rom_dataspace _config { _env, "config" };
-		::String               _uri;
-		size_t                 _blk_sz;
+		::String         const _uri;
+		size_t           const _blk_sz;
 
 	public:
 
 		Factory(Env &env, Heap &heap)
-		: _env(env), _heap(heap), _blk_sz(512)
+		:
+			_env(env), _heap(heap),
+			_uri   (_config.xml().attribute_value("uri", ::String())),
+			_blk_sz(_config.xml().attribute_value("block_size", 512U))
 		{
-			try {
-				_config.xml().attribute("uri").value(&_uri);
-				_config.xml().attribute("block_size").value(&_blk_sz);
-			}
-			catch (...) { }
-
 			log("Using file=", _uri, " as device with block size ",
 			    Hex(_blk_sz, Hex::OMIT_PREFIX), ".");
 		}

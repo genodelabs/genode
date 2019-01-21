@@ -472,7 +472,8 @@ void Depot_query::Main::_query_blueprint(Directory::Path const &pkg_path, Xml_ge
 
 			String<160> comment("\n\n<!-- content of '", pkg_path, "/runtime' -->\n");
 			xml.append(comment.string());
-			xml.append(node.addr(), node.size());
+			node.with_raw_node([&] (char const *start, size_t length) {
+				xml.append(start, length); });
 			xml.append("\n");
 		});
 	});

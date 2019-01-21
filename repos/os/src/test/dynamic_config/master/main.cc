@@ -36,8 +36,7 @@ struct Test::Policy
 	Policy(Env &env, Name const &name)
 	:
 		Static_parent_services(env),
-		Slave::Policy(name, name, *this, env.ep().rpc_ep(), env.rm(),
-		              env.pd(), env.pd_session_cap(),
+		Slave::Policy(env, name, name, *this, env.ep().rpc_ep(),
 		              Cap_quota{100}, Ram_quota{1024*1024})
 	{ }
 };

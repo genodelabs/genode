@@ -42,7 +42,6 @@ namespace Wm {
 	using Genode::Affinity;
 	using Genode::static_cap_cast;
 	using Genode::Signal_handler;
-	using Genode::Ram_session_capability;
 	using Genode::Weak_ptr;
 	using Genode::Locked_ptr;
 	using Genode::Tslab;
@@ -454,7 +453,7 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 		Genode::Env &_env;
 
 		Session_label          _session_label;
-		Genode::Ram_session   &_ram;
+		Genode::Ram_allocator &_ram;
 		Nitpicker::Connection  _session { _env, _session_label.string() };
 
 		Window_registry             &_window_registry;
@@ -730,7 +729,7 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 		 * \param ep  entrypoint used for managing the views
 		 */
 		Session_component(Genode::Env &env,
-		                  Genode::Ram_session   &ram,
+		                  Genode::Ram_allocator &ram,
 		                  Window_registry       &window_registry,
 		                  Allocator             &session_alloc,
 		                  Session_label   const &session_label,
@@ -848,7 +847,7 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 		/**
 		 * Return session capability to real nitpicker session
 		 */
-		Capability<Session> session() { return _session; }
+		Capability<Session> session() { return _session.rpc_cap(); }
 
 
 		/*********************************
@@ -1019,7 +1018,7 @@ class Wm::Nitpicker::Root : public Genode::Rpc_object<Genode::Typed_root<Session
 
 		Allocator &_md_alloc;
 
-		Genode::Ram_session &_ram;
+		Genode::Ram_allocator &_ram;
 
 		enum { STACK_SIZE = 1024*sizeof(long) };
 
@@ -1109,7 +1108,7 @@ class Wm::Nitpicker::Root : public Genode::Rpc_object<Genode::Typed_root<Session
 		 */
 		Root(Genode::Env &env,
 		     Window_registry &window_registry, Allocator &md_alloc,
-		     Genode::Ram_session &ram,
+		     Genode::Ram_allocator &ram,
 		     Reporter &pointer_reporter, Reporter &focus_request_reporter,
 		     Nitpicker::Session &focus_nitpicker_session)
 		:

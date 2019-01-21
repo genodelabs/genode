@@ -39,7 +39,7 @@ struct Texture_from_png_file
 	Png_image  png_image;
 	Texture   &texture { *png_image.texture<Genode::Pixel_rgb888>() };
 
-	Texture_from_png_file(Genode::Ram_session &ram, Genode::Region_map &rm,
+	Texture_from_png_file(Genode::Ram_allocator &ram, Genode::Region_map &rm,
 	                      Genode::Allocator &alloc, char const *path)
 	:
 		png_file(path, alloc), png_image(ram, rm, alloc, png_file.data<void>())
@@ -48,7 +48,7 @@ struct Texture_from_png_file
 
 
 static Genode::Texture<Genode::Pixel_rgb888> const &
-texture_by_id(Genode::Ram_session &ram, Genode::Region_map &rm,
+texture_by_id(Genode::Ram_allocator &ram, Genode::Region_map &rm,
               Genode::Allocator &alloc, Texture_id texture_id)
 {
 	if (texture_id == TEXTURE_ID_DEFAULT) {
@@ -72,7 +72,7 @@ texture_by_id(Genode::Ram_session &ram, Genode::Region_map &rm,
 
 
 static Genode::Texture<Genode::Pixel_rgb888> const &
-texture_by_element_type(Genode::Ram_session &ram, Genode::Region_map &rm,
+texture_by_element_type(Genode::Ram_allocator &ram, Genode::Region_map &rm,
                         Genode::Allocator &alloc, Decorator::Theme::Element_type type)
 {
 	switch (type) {
@@ -157,7 +157,7 @@ Decorator::Rect Decorator::Theme::title_geometry() const
 
 
 static Decorator::Rect
-element_geometry(Genode::Ram_session &ram, Genode::Region_map &rm,
+element_geometry(Genode::Ram_allocator &ram, Genode::Region_map &rm,
                  Genode::Allocator &alloc, char const *sub_node_type,
                  Texture_id texture_id)
 {

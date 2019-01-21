@@ -186,8 +186,8 @@ struct Decorator::Main : Window_factory_base
 		for (unsigned retry = 0 ; retry < 2; retry ++) {
 			try {
 				return new (_heap)
-					Window(attribute(window_node, "id", 0UL), _nitpicker,
-					       _animator, _decorator_config);
+					Window(window_node.attribute_value("id", 0UL),
+					       _nitpicker, _animator, _decorator_config);
 			}
 			catch (Genode::Out_of_ram) {
 				Genode::log("Handle Out_of_ram of nitpicker session - upgrade by 8K");

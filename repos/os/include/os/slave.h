@@ -64,6 +64,34 @@ class Genode::Slave::Policy : public Child_policy
 		Child_policy_dynamic_rom_file _config_policy;
 		Session_requester             _session_requester;
 
+		Service &_matching_service(Service::Name const &service_name,
+		                           Session_label const &label)
+		{
+			/* check for config file request */
+			if (Service *s = _config_policy.resolve_session_request(service_name, label))
+				return *s;
+
+			if (service_name == "ROM") {
+				Session_label const rom_name(label.last_element());
+				if (rom_name == _binary_name)       return _binary_service;
+				if (rom_name == "session_requests") return _session_requester.service();
+			}
+
+			/* fill parent service registry on demand */
+			Parent_service *service = nullptr;
+			_parent_services.for_each([&] (Parent_service &s) {
+				if (!service && s.name() == service_name)
+					service = &s; });
+
+			if (!service) {
+				error(name(), ": illegal session request of "
+				      "service \"", service_name, "\" (", label, ")");
+				throw Service_denied();
+			}
+
+			return *service;
+		}
+
 	public:
 
 		class Connection;
@@ -73,29 +101,25 @@ class Genode::Slave::Policy : public Child_policy
 		 *
 		 * \param ep        entrypoint used to provide local services
 		 *                  such as the config ROM service
-		 * \param local_rm  local address space, needed to populate dataspaces
-		 *                  provided to the child (config, session_requests)
 		 *
 		 * \throw Out_of_ram   by 'Child_policy_dynamic_rom_file'
 		 * \throw Out_of_caps  by 'Child_policy_dynamic_rom_file'
 		 */
-		Policy(Label               const &label,
-		       Name                const &binary_name,
-		       Parent_services           &parent_services,
-		       Rpc_entrypoint            &ep,
-		       Region_map                &rm,
-		       Pd_session                &ref_pd,
-		       Pd_session_capability      ref_pd_cap,
-		       Cap_quota                  cap_quota,
-		       Ram_quota                  ram_quota)
+		Policy(Env                  &env,
+		       Label          const &label,
+		       Name           const &binary_name,
+		       Parent_services      &parent_services,
+		       Rpc_entrypoint       &ep,
+		       Cap_quota             cap_quota,
+		       Ram_quota             ram_quota)
 		:
 			_label(label), _binary_name(binary_name),
-			_ref_pd(ref_pd), _ref_pd_cap(ref_pd_cap),
-			_binary_service(Rom_session::service_name()),
+			_ref_pd(env.pd()), _ref_pd_cap(env.pd_session_cap()),
+			_binary_service(env, Rom_session::service_name()),
 			_cap_quota(cap_quota), _ram_quota(ram_quota),
 			_parent_services(parent_services), _ep(ep),
-			_config_policy(rm, "config", _ep, &_ref_pd),
-			_session_requester(ep, _ref_pd, rm)
+			_config_policy(env.rm(), "config", _ep, &env.pd()),
+			_session_requester(ep, env.pd(), env.rm())
 		{
 			configure("<config/>");
 		}
@@ -139,32 +163,12 @@ class Genode::Slave::Policy : public Child_policy
 			_ref_pd.transfer_quota(cap, _ram_quota);
 		}
 
-		Service &resolve_session_request(Service::Name       const &service_name,
-		                                 Session_state::Args const &args)
+		Route resolve_session_request(Service::Name const &name,
+		                              Session_label const &label) override
 		{
-			/* check for config file request */
-			if (Service *s = _config_policy.resolve_session_request(service_name.string(), args.string()))
-				return *s;
-
-			if (service_name == "ROM") {
-				Session_label const rom_name(label_from_args(args.string()).last_element());
-				if (rom_name == _binary_name)       return _binary_service;
-				if (rom_name == "session_requests") return _session_requester.service();
-			}
-
-			/* fill parent service registry on demand */
-			Parent_service *service = nullptr;
-			_parent_services.for_each([&] (Parent_service &s) {
-				if (!service && s.name() == service_name)
-					service = &s; });
-
-			if (!service) {
-				error(name(), ": illegal session request of "
-				      "service \"", service_name, "\" (", args, ")");
-				throw Service_denied();
-			}
-
-			return *service;
+			return Route { .service = _matching_service(name, label),
+			               .label   = label,
+			               .diag    = Session::Diag() };
 		}
 
 		Id_space<Parent::Server> &server_id_space() override {
@@ -247,7 +251,7 @@ class Genode::Slave::Connection_base
 			/**
 			 * Service ('Ram_transfer::Account') interface
 			 */
-			void transfer(Ram_session_capability to, Ram_quota amount) override
+			void transfer(Pd_session_capability to, Ram_quota amount) override
 			{
 				if (to.valid()) _policy.ref_pd().transfer_quota(to, amount);
 			}

@@ -62,7 +62,8 @@ struct Depot_deploy::Main
 		/* generate init config containing all configured start nodes */
 		_init_config_reporter.generate([&] (Xml_generator &xml) {
 			Xml_node static_config = config.sub_node("static");
-			xml.append(static_config.content_base(), static_config.content_size());
+			static_config.with_raw_content([&] (char const *start, size_t length) {
+				xml.append(start, length); });
 			Child::Depot_rom_server const parent { };
 			_children.gen_start_nodes(xml, config.sub_node("common_routes"),
 			                          parent, parent);

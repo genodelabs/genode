@@ -237,29 +237,25 @@ namespace Terminal {
 
 			Session_component *_create_session(const char *args)
 			{
-				Genode::size_t io_buffer_size = 4096;
+				using namespace Genode;
 
-				try {
-					Genode::Session_label  label = Genode::label_from_args(args);
-					Genode::Session_policy policy(label, _config);
+				Session_label  const label = label_from_args(args);
+				Session_policy const policy(label, _config);
 
-					char filename[256];
-					policy.attribute("filename").value(filename, sizeof(filename));
-
-					if (policy.has_attribute("io_buffer_size"))
-						policy.attribute("io_buffer_size").value(&io_buffer_size);
-
-					return new (md_alloc())
-					       Session_component(_env, io_buffer_size, filename);
+				if (!policy.has_attribute("filename")) {
+					error("missing \"filename\" attribute in policy definition");
+					throw Service_denied();
 				}
-				catch (Genode::Xml_node::Nonexistent_attribute) {
-					Genode::error("missing \"filename\" attribute in policy definition");
-					throw Genode::Service_denied();
-				}
-				catch (Genode::Session_policy::No_policy_defined) {
-					Genode::error("invalid session request, no matching policy");
-					throw Genode::Service_denied();
-				}
+
+				typedef String<256> File_name;
+				File_name const file_name =
+					policy.attribute_value("filename", File_name());
+
+				size_t const io_buffer_size =
+					policy.attribute_value("io_buffer_size", 4096UL);
+
+				return new (md_alloc())
+				       Session_component(_env, io_buffer_size, file_name.string());
 			}
 
 		public:

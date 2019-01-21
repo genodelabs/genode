@@ -166,8 +166,8 @@ struct Decorator::Main : Window_factory_base
 	Window_base *create(Xml_node window_node) override
 	{
 		return new (_heap)
-			Window(_env, attribute(window_node, "id", 0UL), _nitpicker, _animator,
-			       _theme, _decorator_config);
+			Window(_env, window_node.attribute_value("id", 0UL),
+			       _nitpicker, _animator, _theme, _decorator_config);
 	}
 
 	/**
