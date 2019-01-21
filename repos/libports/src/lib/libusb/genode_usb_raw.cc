@@ -18,14 +18,41 @@
 #include <usb_session/connection.h>
 
 #include <time.h>
+#include <libc/allocator.h>
+#include <libc-plugin/plugin.h>
 
 #include "libusbi.h"
 
-static Genode::Signal_receiver &signal_receiver()
+static Genode::Env *_env_ptr = nullptr;
+
+static Genode::Env &genode_env()
 {
-	static Genode::Signal_receiver instance;
+	if (_env_ptr)
+		return *_env_ptr;
+
+	Genode::error("libusb: missing libc plugin initialization");
+	abort();
+}
+
+
+/*
+ * Entrypoint for handling 'ack avail' signals from the USB driver.
+ *
+ * The entrypoint is needed because the main thread of an application
+ * using libusb might be blocking on a pthread locking function, which
+ * currently do not dispatch signals while blocking.
+ */
+static Genode::Entrypoint &ep()
+{
+	static Genode::Entrypoint instance(genode_env(),
+	                                   2*1024*sizeof(Genode::addr_t),
+	                                   "usb_ack_ep",
+	                                   Genode::Affinity::Location());
 	return instance;
 }
+
+
+static Libc::Allocator libc_alloc { };
 
 
 struct Completion : Usb::Completion
@@ -41,161 +68,153 @@ struct Completion : Usb::Completion
 
 struct Usb_device
 {
-	Genode::Allocator_avl   alloc { Genode::env()->heap() };
-	Genode::Signal_context  state_changed_signal_context;
-	Genode::Signal_receiver state_changed_signal_receiver;
-	Usb::Connection         usb_connection { &alloc,
-	                                         "usb_device",
-	                                         512*1024,
-	                                         state_changed_signal_receiver.manage(
-	                                         	&state_changed_signal_context) };
+	private:
 
-	Genode::Signal_dispatcher<Usb_device> ack_avail_signal_dispatcher
-	                                      { signal_receiver(), *this,
-	                                        &Usb_device::ack_avail };
+		Genode::Allocator_avl _alloc { &libc_alloc };
 
-	Usb::Device_descriptor  device_descriptor;
-	Usb::Config_descriptor  config_descriptor;
-	char                   *raw_config_descriptor = nullptr;
+		Genode::Io_signal_handler<Usb_device> _state_changed_handler {
+			genode_env().ep(), *this, &Usb_device::_handle_state_changed };
 
-	Usb_device()
-	{
-		while (!usb_connection.plugged()) {
-			Genode::log("libusb: waiting until device is plugged...");
-			state_changed_signal_receiver.wait_for_signal();
-			Genode::log("libusb: device is plugged");
+		void _handle_state_changed()
+		{
+			/*
+			 * The handler is installed only to receive state-change signals
+			 * from the USB connection using the 'Usb_device' constructor.
+			 */
 		}
 
-		usb_connection.config_descriptor(&device_descriptor, &config_descriptor);
+		Genode::Io_signal_handler<Usb_device> _ack_avail_handler {
+			ep(), *this, &Usb_device::_handle_ack_avail };
 
-		raw_config_descriptor = (char*)malloc(config_descriptor.total_length);
+		void _handle_ack_avail()
+		{
+			while (usb_connection.source()->ack_avail()) {
 
-		Usb::Packet_descriptor p =
-			usb_connection.source()->alloc_packet(config_descriptor.total_length);
+				Usb::Packet_descriptor p =
+					usb_connection.source()->get_acked_packet();
 
-		p.type                 = Usb::Packet_descriptor::CTRL;
-		p.control.request      = LIBUSB_REQUEST_GET_DESCRIPTOR;
-		p.control.request_type = LIBUSB_ENDPOINT_IN;
-		p.control.value        = (LIBUSB_DT_CONFIG << 8) | 0;
-		p.control.index        = 0;
+				Completion *completion = static_cast<Completion*>(p.completion);
+				struct usbi_transfer *itransfer = completion->itransfer;
+				destroy(libc_alloc, completion);
 
-		usb_connection.source()->submit_packet(p);
+				if (!p.succeded) {
+					Genode::error("USB transfer failed");
+					itransfer->transferred = 0;
+					usb_connection.source()->release_packet(p);
+					usbi_signal_transfer_completion(itransfer);
+					continue;
+				}
 
-		p = usb_connection.source()->get_acked_packet();
+				char *packet_content = usb_connection.source()->packet_content(p);
 
-		if (!p.succeded)
-			Genode::error(__PRETTY_FUNCTION__,
-			              ": could not read raw configuration descriptor");
+				struct libusb_transfer *transfer =
+					USBI_TRANSFER_TO_LIBUSB_TRANSFER(itransfer);
 
-		if (p.control.actual_size != config_descriptor.total_length)
-			Genode::error(__PRETTY_FUNCTION__,
-			              ": received configuration descriptor of unexpected size");
+				switch (transfer->type) {
 
-		char *packet_content = usb_connection.source()->packet_content(p);
-		Genode::memcpy(raw_config_descriptor, packet_content,
-		               config_descriptor.total_length);
+					case LIBUSB_TRANSFER_TYPE_CONTROL: {
 
-		usb_connection.tx_channel()->sigh_ack_avail(ack_avail_signal_dispatcher);
-	}
+						itransfer->transferred = p.control.actual_size;
 
-	~Usb_device()
-	{
-		free(raw_config_descriptor);
-	}
+						struct libusb_control_setup *setup =
+							(struct libusb_control_setup*)transfer->buffer;
 
-	void ack_avail(unsigned)
-	{
-		while (usb_connection.source()->ack_avail()) {
+						if ((setup->bmRequestType & LIBUSB_ENDPOINT_DIR_MASK) ==
+						    LIBUSB_ENDPOINT_IN) {
+							Genode::memcpy(transfer->buffer + LIBUSB_CONTROL_SETUP_SIZE,
+							               packet_content, p.control.actual_size);
+						}
 
-			Usb::Packet_descriptor p =
-				usb_connection.source()->get_acked_packet();
-
-			Completion *completion = static_cast<Completion*>(p.completion);
-			struct usbi_transfer *itransfer = completion->itransfer;
-			destroy(Genode::env()->heap(), completion);
-
-			if (!p.succeded) {
-				Genode::error("USB transfer failed");
-				itransfer->transferred = 0;
-				usb_connection.source()->release_packet(p);
-				usbi_signal_transfer_completion(itransfer);
-				continue;
-			}
-
-			char *packet_content = usb_connection.source()->packet_content(p);
-
-			struct libusb_transfer *transfer =
-				USBI_TRANSFER_TO_LIBUSB_TRANSFER(itransfer);
-
-			switch (transfer->type) {
-
-				case LIBUSB_TRANSFER_TYPE_CONTROL: {
-
-					itransfer->transferred = p.control.actual_size;
-
-					struct libusb_control_setup *setup =
-						(struct libusb_control_setup*)transfer->buffer;
-
-					if ((setup->bmRequestType & LIBUSB_ENDPOINT_DIR_MASK) ==
-					    LIBUSB_ENDPOINT_IN) {
-						Genode::memcpy(transfer->buffer + LIBUSB_CONTROL_SETUP_SIZE,
-						               packet_content, p.control.actual_size);
+						break;
 					}
 
-					break;
+					case LIBUSB_TRANSFER_TYPE_BULK:
+					case LIBUSB_TRANSFER_TYPE_BULK_STREAM:
+					case LIBUSB_TRANSFER_TYPE_INTERRUPT: {
+
+						itransfer->transferred = p.transfer.actual_size;
+
+						if (IS_XFERIN(transfer))
+							Genode::memcpy(transfer->buffer, packet_content,
+							               p.transfer.actual_size);
+
+						break;
+					}
+
+					default:
+						Genode::error(__PRETTY_FUNCTION__,
+						              ": unsupported transfer type");
+						usb_connection.source()->release_packet(p);
+						continue;
 				}
 
-				case LIBUSB_TRANSFER_TYPE_BULK:
-				case LIBUSB_TRANSFER_TYPE_BULK_STREAM:
-				case LIBUSB_TRANSFER_TYPE_INTERRUPT: {
+				usb_connection.source()->release_packet(p);
 
-					itransfer->transferred = p.transfer.actual_size;
+				usbi_signal_transfer_completion(itransfer);
+			}
+		}
 
-					if (IS_XFERIN(transfer))
-						Genode::memcpy(transfer->buffer, packet_content,
-						               p.transfer.actual_size);
+	public:
 
-					break;
-				}
+		Usb::Connection usb_connection { genode_env(),
+		                                 &_alloc,
+		                                 "usb_device",
+		                                 512*1024,
+		                                 _state_changed_handler };
 
-				default:
-					Genode::error(__PRETTY_FUNCTION__,
-					              ": unsupported transfer type");
-					usb_connection.source()->release_packet(p);
-					continue;
+		Usb::Device_descriptor  device_descriptor;
+		Usb::Config_descriptor  config_descriptor;
+		char                   *raw_config_descriptor = nullptr;
+
+		Usb_device()
+		{
+			while (!usb_connection.plugged()) {
+				Genode::log("libusb: waiting until device is plugged...");
+				genode_env().ep().wait_and_dispatch_one_io_signal();
+				Genode::log("libusb: device is plugged");
 			}
 
-			usb_connection.source()->release_packet(p);
+			usb_connection.config_descriptor(&device_descriptor, &config_descriptor);
 
-			usbi_signal_transfer_completion(itransfer);
+			raw_config_descriptor = (char*)malloc(config_descriptor.total_length);
+
+			Usb::Packet_descriptor p =
+				usb_connection.source()->alloc_packet(config_descriptor.total_length);
+
+			p.type                 = Usb::Packet_descriptor::CTRL;
+			p.control.request      = LIBUSB_REQUEST_GET_DESCRIPTOR;
+			p.control.request_type = LIBUSB_ENDPOINT_IN;
+			p.control.value        = (LIBUSB_DT_CONFIG << 8) | 0;
+			p.control.index        = 0;
+
+			usb_connection.source()->submit_packet(p);
+
+			p = usb_connection.source()->get_acked_packet();
+
+			if (!p.succeded)
+				Genode::error(__PRETTY_FUNCTION__,
+				              ": could not read raw configuration descriptor");
+
+			if (p.control.actual_size != config_descriptor.total_length)
+				Genode::error(__PRETTY_FUNCTION__,
+				              ": received configuration descriptor of unexpected size");
+
+			char *packet_content = usb_connection.source()->packet_content(p);
+			Genode::memcpy(raw_config_descriptor, packet_content,
+			               config_descriptor.total_length);
+
+			usb_connection.tx_channel()->sigh_ack_avail(_ack_avail_handler);
 		}
-	}
+
+		~Usb_device()
+		{
+			free(raw_config_descriptor);
+		}
 };
-
-
-static void *signal_handler_thread_entry(void *)
-{
-	for (;;) {
-
-		Genode::Signal signal = signal_receiver().wait_for_signal();	
-
-		Genode::Signal_dispatcher_base *dispatcher =
-			static_cast<Genode::Signal_dispatcher_base *>(signal.context());
-
-		dispatcher->dispatch(signal.num());
-	}
-}
 
 
 static int genode_init(struct libusb_context* ctx)
 {
-	pthread_t signal_handler_thread;
-	if (pthread_create(&signal_handler_thread, nullptr,
-	                   signal_handler_thread_entry, nullptr) < 0) {
-	    Genode::error("Could not create signal handler thread");
-		return LIBUSB_ERROR_OTHER;
-	}
-
 	return LIBUSB_SUCCESS;
 }
 
@@ -231,7 +250,7 @@ int genode_get_device_list(struct libusb_context *ctx,
 		dev->device_address = devaddr;
 
 		/* FIXME: find place to free the allocated memory */
-		Usb_device *usb_device = new (Genode::env()->heap()) Usb_device;
+		Usb_device *usb_device = new (libc_alloc) Usb_device;
 		*(Usb_device**)dev->os_priv = usb_device;
 
 		switch (usb_device->device_descriptor.speed) {
@@ -418,7 +437,7 @@ static int genode_submit_transfer(struct usbi_transfer * itransfer)
 				return LIBUSB_ERROR_BUSY;
 			}
 
-			p.completion           = new (Genode::env()->heap()) Completion(itransfer);
+			p.completion           = new (libc_alloc) Completion(itransfer);
 
 			p.type                 = Usb::Packet_descriptor::CTRL;
 			p.control.request      = setup->bRequest;
@@ -453,9 +472,9 @@ static int genode_submit_transfer(struct usbi_transfer * itransfer)
 		case LIBUSB_TRANSFER_TYPE_INTERRUPT: {
 		
 			if (IS_XFEROUT(transfer) &&
-		    	transfer->flags & LIBUSB_TRANSFER_ADD_ZERO_PACKET) {
-		    	Genode::error(__PRETTY_FUNCTION__,
-		    	              ": zero packet not supported");
+				transfer->flags & LIBUSB_TRANSFER_ADD_ZERO_PACKET) {
+				Genode::error(__PRETTY_FUNCTION__,
+				              ": zero packet not supported");
 				return LIBUSB_ERROR_NOT_SUPPORTED;
 			}
 
@@ -476,7 +495,7 @@ static int genode_submit_transfer(struct usbi_transfer * itransfer)
 			} else
 				p.type = Usb::Packet_descriptor::BULK;
 
-			p.completion  = new (Genode::env()->heap()) Completion(itransfer);
+			p.completion  = new (libc_alloc) Completion(itransfer);
 			p.transfer.ep = transfer->endpoint;
 
 			if (IS_XFEROUT(transfer)) {
@@ -533,7 +552,7 @@ static int genode_clock_gettime(int clkid, struct timespec *tp)
 		case USBI_CLOCK_REALTIME:
 			return clock_gettime(CLOCK_REALTIME, tp);
 		default:
-			return 	LIBUSB_ERROR_INVALID_PARAM;
+			return LIBUSB_ERROR_INVALID_PARAM;
 	}
 }
 
@@ -588,3 +607,31 @@ const struct usbi_os_backend genode_usb_raw_backend = {
 	/*.device_handle_priv_size =*/ 0,
 	/*.transfer_priv_size =*/ 0,
 };
+
+
+/*****************
+ ** Libc plugin **
+ *****************/
+
+/*
+ * Even though libusb is not an actual libc plugin, it uses the plugin
+ * interface to get hold of the 'Genode::Env'.
+ */
+
+namespace {
+
+	struct Plugin : Libc::Plugin
+	{
+		enum { PLUGIN_PRIORITY = 1 };
+
+		Plugin() : Libc::Plugin(PLUGIN_PRIORITY) { }
+
+		void init(Genode::Env &env) override { _env_ptr = &env; }
+	};
+}
+
+void __attribute__((constructor)) init_libc_libusb(void)
+{
+	static Plugin plugin;
+}
+
