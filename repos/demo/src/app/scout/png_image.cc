@@ -104,7 +104,7 @@ void Png_image::fill_cache(Canvas_base &canvas)
 	             &interlace_type, int_p_NULL, int_p_NULL);
 
 	_min_size = Scout::Area(w, h);
-	printf("png is %d x %d, depth=%d\n", _min_size.w(), _min_size.h(), bit_depth);
+	log("png is ", _min_size, " depth=", bit_depth);
 
 	if (color_type == PNG_COLOR_TYPE_PALETTE)
 		png_set_palette_to_rgb(png_ptr);

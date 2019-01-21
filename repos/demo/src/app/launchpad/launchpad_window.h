@@ -33,7 +33,6 @@
 #include "section.h"
 
 #include <launchpad/launchpad.h>
-#include <base/printf.h>
 
 template <typename PT>
 class Launchpad_window : public Scout::Scrollbar_listener,
@@ -170,7 +169,7 @@ class Launchpad_window : public Scout::Scrollbar_listener,
 					break;
 
 			if (!ce) {
-				PWRN("child entry lookup failed");
+				Genode::warning("child entry lookup failed");
 				return;
 			}
 

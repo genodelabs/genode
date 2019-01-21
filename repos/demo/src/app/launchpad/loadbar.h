@@ -18,10 +18,6 @@
 #include "styles.h"
 #include "fade_icon.h"
 
-#include <base/printf.h>
-#include <base/snprintf.h>
-
-
 #define LOADBAR_RGBA  _binary_loadbar_rgba_start
 #define REDBAR_RGBA   _binary_redbar_rgba_start
 #define WHITEBAR_RGBA _binary_whitebar_rgba_start
@@ -226,27 +222,31 @@ class Kbyte_loadbar : public Loadbar<PT>
 {
 	private:
 
-		char _label[32];
+		typedef Genode::String<32> Label;
 
-		void _print_kbytes(int kbytes, char *dst, int dst_len)
+		Label _label { };
+
+		struct Kbytes
 		{
-			if (kbytes >= 10*1024)
-				Genode::snprintf(dst, dst_len, "%d MByte", kbytes / 1024);
-			else
-				Genode::snprintf(dst, dst_len, "%d KByte", kbytes);
-		}
+			int const _value;
+
+			Kbytes(int value) : _value(value) { }
+
+			void print(Genode::Output &out) const
+			{
+				if (_value >= 10*1024)
+					Genode::print(out, _value/1024, " MByte");
+				else
+					Genode::print(out, _value, " KByte");
+			}
+		};
 
 		void _update_label()
 		{
-			char value_buf[16];
-			char max_buf[16];
+			_label = Label(Kbytes(Loadbar<PT>::value()), " / ",
+			               Kbytes(Loadbar<PT>::max_value()));
 
-			_print_kbytes(Loadbar<PT>::value(), value_buf, sizeof(value_buf));
-			_print_kbytes(Loadbar<PT>::max_value(), max_buf, sizeof(max_buf));
-
-			Genode::snprintf(_label, sizeof(_label), "%s / %s", value_buf, max_buf);
-
-			Loadbar<PT>::txt(_label);
+			Loadbar<PT>::txt(_label.string());
 		}
 
 	public:
@@ -254,7 +254,6 @@ class Kbyte_loadbar : public Loadbar<PT>
 		Kbyte_loadbar(Loadbar_listener *listener, Scout::Font *font = 0):
 			Loadbar<PT>(listener, font)
 		{
-			_label[0] = 0;
 			_update_label();
 		}
 

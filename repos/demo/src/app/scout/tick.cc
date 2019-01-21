@@ -12,7 +12,6 @@
  */
 
 #include <scout/tick.h>
-#include <scout/printf.h>
 
 using namespace Scout;
 
@@ -24,7 +23,6 @@ void Tick::_enqueue()
 {
 	/* do not enqueue twice */
 	if (++_active > 1) {
-//		printf("enqueue twice? ticks scheduled=%d\n", ticks_scheduled());
 		_active--;
 		return;
 	}
@@ -94,10 +92,7 @@ void Tick::schedule(time period)
 int Tick::ticks_scheduled()
 {
 	int num_ticks = 0;
-	printf("now=%d\n", (int)now);
-	for (Tick *curr = head; curr; curr = curr->_next, num_ticks++)
-		printf("ticks_scheduled:\n %d: curr=%p, deadline=%d\n",
-		       (int)num_ticks, curr, (int)curr->_deadline);
+	for (Tick *curr = head; curr; curr = curr->_next, num_ticks++);
 	return num_ticks;
 }
 

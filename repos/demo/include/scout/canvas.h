@@ -14,6 +14,7 @@
 #ifndef _INCLUDE__SCOUT__CANVAS_H_
 #define _INCLUDE__SCOUT__CANVAS_H_
 
+#include <base/allocator.h>
 #include <scout/texture_allocator.h>
 #include <os/pixel_rgba.h>
 #include <util/color.h>

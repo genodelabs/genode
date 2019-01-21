@@ -44,7 +44,7 @@ Launchpad::Launchpad(Env &env, unsigned long initial_quota)
 		0 /* null-termination */
 	};
 	for (unsigned i = 0; names[i]; i++)
-		new (_heap) Launchpad_child::Parent_service(_parent_services, names[i]);
+		new (_heap) Launchpad_child::Parent_service(_parent_services, env, names[i]);
 }
 
 
@@ -129,13 +129,15 @@ void Launchpad::process_config(Genode::Xml_node config_node)
 
 			Xml_node config_node = node.sub_node("config");
 
-			/* allocate dataspace for config */
-			size_t const size = config_node.size();
-			config_ds = _env.ram().alloc(size);
+			config_node.with_raw_node([&] (char const *start, size_t length) {
 
-			/* copy configuration into new dataspace */
-			Attached_dataspace attached(_env.rm(), config_ds);
-			memcpy(attached.local_addr<char>(), config_node.addr(), size);
+				/* allocate dataspace for config */
+				config_ds = _env.ram().alloc(length);
+
+				/* copy configuration into new dataspace */
+				Attached_dataspace attached(_env.rm(), config_ds);
+				memcpy(attached.local_addr<char>(), start, length);
+			});
 		}
 
 		/* add launchpad entry */
@@ -154,10 +156,10 @@ Launchpad_child *Launchpad::start_child(Launchpad_child::Name const &binary_name
 	Launchpad_child::Name const unique_name = _get_unique_child_name(binary_name);
 	log("using unique child name \"", unique_name, "\"");
 
-	if (ram_quota.value > _env.ram().avail_ram().value) {
+	if (ram_quota.value > _env.pd().avail_ram().value) {
 		warning("child's ram quota is higher than our available quota, using available quota");
 
-		size_t const avail     = _env.ram().avail_ram().value;
+		size_t const avail     = _env.pd().avail_ram().value;
 		size_t const preserved = 256*1024;
 
 		if (avail < preserved) {

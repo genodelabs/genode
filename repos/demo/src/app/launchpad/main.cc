@@ -18,7 +18,6 @@
 #include <scout/platform.h>
 #include <scout/tick.h>
 #include <scout/user_state.h>
-#include <scout/printf.h>
 #include <scout/nitpicker_graphics_backend.h>
 
 #include "config.h"
@@ -42,18 +41,18 @@ class Avail_quota_update : public Scout::Tick
 {
 	private:
 
-		Ram_session &_ram;
-		Launchpad   &_launchpad;
-		size_t       _avail = 0;
+		Pd_session &_pd;
+		Launchpad  &_launchpad;
+		size_t      _avail = 0;
 
 	public:
 
 		/**
 		 * Constructor
 		 */
-		Avail_quota_update(Ram_session &ram, Launchpad &launchpad)
+		Avail_quota_update(Pd_session &pd, Launchpad &launchpad)
 		:
-			_ram(ram), _launchpad(launchpad)
+			_pd(pd), _launchpad(launchpad)
 		{
 			schedule(200);
 		}
@@ -63,7 +62,7 @@ class Avail_quota_update : public Scout::Tick
 		 */
 		int on_tick()
 		{
-			size_t new_avail = _ram.avail_ram().value;
+			size_t new_avail = _pd.avail_ram().value;
 
 			/* update launchpad window if needed */
 			if (new_avail != _avail)
@@ -108,7 +107,7 @@ struct Main : Scout::Event_handler
 
 	Launchpad_window<Pixel_rgb565>
 		_launchpad { _env, _graphics_backend, _initial_position, _initial_size,
-		             _max_size, _env.ram().avail_ram().value };
+		             _max_size, _env.pd().avail_ram().value };
 
 	void _process_config()
 	{
@@ -117,7 +116,7 @@ struct Main : Scout::Event_handler
 
 	bool const _config_processed = (_process_config(), true);
 
-	Avail_quota_update _avail_quota_update { _env.ram(), _launchpad };
+	Avail_quota_update _avail_quota_update { _env.pd(), _launchpad };
 
 	User_state _user_state { &_launchpad, &_launchpad,
 	                         _initial_position.x(), _initial_position.y() };

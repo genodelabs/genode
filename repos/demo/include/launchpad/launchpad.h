@@ -152,25 +152,29 @@ class Launchpad_child : public  Genode::Child_policy,
 		Genode::Id_space<Genode::Parent::Server> &server_id_space() override {
 			return _session_requester.id_space(); }
 
-		Genode::Service &resolve_session_request(Genode::Service::Name const &service_name,
-		                                         Genode::Session_state::Args const &args) override
+		Genode::Child_policy::Route
+		resolve_session_request(Genode::Service::Name const &service_name,
+		                        Genode::Session_label const &label) override
 		{
+			auto route = [&] (Genode::Service &service) {
+				return Genode::Child_policy::Route { .service = service,
+				                                     .label   = label,
+				                                     .diag    = Genode::Session::Diag() }; };
+
 			Genode::Service *service = nullptr;
 
 			/* check for config file request */
-			if ((service = _config_policy
-			               .resolve_session_request(service_name.string(), args.string())))
-				return *service;
+			if ((service = _config_policy.resolve_session_request_with_label(service_name, label)))
+				return route(*service);
 
 			/* check for "session_requests" ROM request */
-			Genode::Session_label const label(Genode::label_from_args(args.string()));
 			if (service_name == Genode::Rom_session::service_name()
 			 && label.last_element() == Genode::Session_requester::rom_name())
-				return _session_requester.service();
+				return route(_session_requester.service());
 
 			/* if service is provided by one of our children, use it */
 			if ((service = _find_service(_child_services, service_name)))
-				return *service;
+				return route(*service);
 
 			/*
 			 * Handle special case of the demo scenario when the user uses
@@ -189,7 +193,7 @@ class Launchpad_child : public  Genode::Child_policy,
 			if (service_name != "Input"
 			 && service_name != "Framebuffer"
 			 && ((service = _find_service(_parent_services, service_name))))
-				return *service;
+				return route(*service);
 
 			Genode::warning(name(), ": service ", service_name, " not available");
 			throw Genode::Service_denied();
@@ -206,7 +210,7 @@ class Launchpad_child : public  Genode::Child_policy,
 				Child_service(_child_services, service_name,
 				              _session_requester.id_space(),
 				              _child.session_factory(), *this,
-				              _child.ram_session_cap(),
+				              _child.pd_session_cap(),
 				              _child.pd_session_cap());
 		}
 };

@@ -69,9 +69,9 @@ struct Scout::Main : Scout::Event_handler
 
 	bool const _event_handler_registered = (_platform.event_handler(*this), true);
 
-	Area  const _max_size { 530, 620 };
-	Point const _initial_position { 256, 80 };
-	Area  const _initial_size { 530, 400 };
+	Area  const _max_size         { 530, 620 };
+	Point const _initial_position { 256, 80  };
+	Area  const _initial_size     { 530, 400 };
 
 	Config const _config { };
 

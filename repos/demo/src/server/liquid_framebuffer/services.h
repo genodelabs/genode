@@ -21,7 +21,7 @@
 #include "elements.h"
 
 extern Scout::Element *window_content();
-extern void init_window_content(Genode::Ram_session &, Genode::Region_map &,
+extern void init_window_content(Genode::Ram_allocator &, Genode::Region_map &,
                                 Genode::Allocator &, Input::Session_component &,
                                 unsigned fb_w, unsigned fb_h, bool config_alpha);
 extern void init_services(Genode::Env &, Input::Session_component &);

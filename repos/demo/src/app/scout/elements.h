@@ -15,7 +15,6 @@
 #define _ELEMENTS_H_
 
 #include <scout/parent_element.h>
-#include <scout/printf.h>
 #include <scout/string.h>
 #include <scout/fader.h>
 #include <scout/platform.h>

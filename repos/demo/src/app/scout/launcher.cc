@@ -12,10 +12,8 @@
  */
 
 #include <base/env.h>
+#include <base/attached_rom_dataspace.h>
 #include <launchpad/launchpad.h>
-#include <dataspace/capability.h>
-#include <rom_session/connection.h>
-#include <base/snprintf.h>
 #include "elements.h"
 
 using namespace Genode;
@@ -54,25 +52,19 @@ class Config_registry
 
 struct Config_registry::Entry : List<Config_registry::Entry>::Element
 {
-	Dataspace_capability _init_dataspace(char const *name)
+	String<128> const name;
+
+	Constructible<Attached_rom_dataspace> dataspace { };
+
+	Dataspace_capability ds_cap { };
+
+	Entry(char const *prg_name) : name(prg_name)
 	{
-		char buf[256];
-		snprintf(buf, sizeof(buf), "%s.config", name);
-		Rom_connection *config = 0;
 		try {
-			config = new (*_alloc_ptr) Rom_connection(*_env_ptr, buf);
-			return config->dataspace();
+			dataspace.construct(*_env_ptr, String<256>(name, ".config").string());
+			ds_cap = dataspace->cap();
 		}
 		catch (...) { }
-		return Dataspace_capability();
-	}
-
-	Dataspace_capability const dataspace;
-	char                       name[128];
-
-	Entry(char const *prg_name) : dataspace(_init_dataspace(prg_name))
-	{
-		strncpy(name, prg_name, sizeof(name));
 	}
 };
 
@@ -81,14 +73,14 @@ Dataspace_capability Config_registry::config(char const *name)
 {
 	/* lookup existing configuration */
 	for (Entry *e = _configs.first(); e; e = e->next())
-		if (strcmp(name, e->name) == 0)
-			return e->dataspace;
+		if (e->name == name)
+			return e->ds_cap;
 
 	/* if lookup failed, create and register new config */
 	Entry *entry = new (*_alloc_ptr) Entry(name);
 	_configs.insert(entry);
 
-	return entry->dataspace;
+	return entry->ds_cap;
 }
 
 
@@ -98,7 +90,7 @@ Dataspace_capability Config_registry::config(char const *name)
 
 void Launcher::init(Genode::Env &env, Allocator &alloc)
 {
-	static Launchpad launchpad(env, env.ram().avail_ram().value);
+	static Launchpad launchpad(env, env.pd().avail_ram().value);
 	_launchpad_ptr = &launchpad;
 	_alloc_ptr     = &alloc;
 	_env_ptr       = &env;

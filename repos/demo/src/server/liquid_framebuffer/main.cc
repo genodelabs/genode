@@ -79,7 +79,8 @@ static long     config_fb_y      = 260;
 /**
  * Window title
  */
-static const char *config_title = "Liquid Framebuffer";
+typedef Genode::String<128> Title;
+static Title config_title { "Liquid Framebuffer" };
 
 /**
  * Resize handle
@@ -94,63 +95,16 @@ static bool config_decoration = true;
 /**
  * Parse configuration
  */
-static void read_config(Genode::Xml_node config_node)
+static void read_config(Genode::Xml_node node)
 {
-	using namespace Genode;
-
-	try {
-		char buf[16];
-		config_node.attribute("animate").value(buf, sizeof(buf));
-
-		if      (!strcmp("off", buf)) config_animate = false;
-		else if (!strcmp("on",  buf)) config_animate = true;
-		else
-			Genode::printf("Warning: invalid value for animate declaration,\n"
-			               "         valid values are 'on', 'off.\n'");
-	} catch (Xml_node::Nonexistent_attribute) { }
-
-	config_alpha = config_animate;
-
-	try { config_node.attribute("xpos").value(&config_fb_x); }
-	catch (Xml_node::Nonexistent_attribute) { }
-
-	try { config_node.attribute("ypos").value(&config_fb_y); }
-	catch (Xml_node::Nonexistent_attribute) { }
-
-	try { config_node.attribute("width").value(&config_fb_width); }
-	catch (Xml_node::Nonexistent_attribute) { }
-
-	try { config_node.attribute("height").value(&config_fb_height); }
-	catch (Xml_node::Nonexistent_attribute) { }
-
-	try {
-		static char buf[64];
-		config_node.attribute("title").value(buf, sizeof(buf));
-		config_title = buf;
-	} catch (Xml_node::Nonexistent_attribute) { }
-
-	try {
-		char buf[16];
-		config_node.attribute("decoration").value(buf, sizeof(buf));
-
-		if      (!strcmp("off", buf)) config_decoration = false;
-		else if (!strcmp("on",  buf)) config_decoration = true;
-		else
-			Genode::printf("Warning: invalid value for decoration declaration,\n"
-			               "         valid values are 'on', 'off.\n'");
-	} catch (Xml_node::Nonexistent_attribute) { }
-
-	try {
-		char buf[16];
-		config_node.attribute("resize_handle").value(buf, sizeof(buf));
-
-		if      (!strcmp("off", buf)) config_resize_handle = false;
-		else if (!strcmp("on",  buf)) config_resize_handle = true;
-		else
-			Genode::printf("Warning: invalid value for resize_handle declaration,\n"
-			               "         valid values are 'on', 'off.\n'");
-	} catch (Xml_node::Nonexistent_attribute) { }
-
+	config_fb_x          = node.attribute_value("xpos",   config_fb_x);
+	config_fb_y          = node.attribute_value("ypos",   config_fb_y);
+	config_fb_width      = node.attribute_value("width",  config_fb_width);
+	config_fb_height     = node.attribute_value("height", config_fb_height);
+	config_title         = node.attribute_value("title",  config_title);
+	config_animate       = node.attribute_value("animate",       true);
+	config_decoration    = node.attribute_value("decoration",    true);
+	config_resize_handle = node.attribute_value("resize_handle", true);
 }
 
 
@@ -218,7 +172,7 @@ class Liquid_fb::Main : public Scout::Event_handler
 		Framebuffer_window<Pixel_rgb565>
 			_fb_win { _graphics_backend, window_content(),
 			          _initial_position, _initial_size, _max_size,
-			          config_title, config_alpha,
+			          config_title.string(), config_alpha,
 			          config_resize_handle, config_decoration };
 
 		/* create background animator if configured */
@@ -260,7 +214,7 @@ class Liquid_fb::Main : public Scout::Event_handler
 
 			try { read_config(_config.xml()); } catch (...) { }
 			
-			_fb_win.name(config_title);
+			_fb_win.name(config_title.string());
 			_fb_win.config_alpha(config_alpha);
 			_fb_win.config_resize_handle(config_resize_handle);
 			_fb_win.config_decoration(config_decoration);
