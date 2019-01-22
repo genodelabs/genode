@@ -15,6 +15,7 @@
 #define _INCLUDE__OS__SESSION_POLICY_H_
 
 #include <base/session_label.h>
+#include <base/log.h>
 #include <session/session.h>
 #include <util/arg_string.h>
 #include <util/xml_node.h>
@@ -199,6 +200,7 @@ class Genode::Session_policy : public Xml_node
 			try { return config.sub_node("default-policy"); }
 			catch (...) { }
 
+			warning("no policy defined for label '", label, "'");
 			throw No_policy_defined();
 		}
 
