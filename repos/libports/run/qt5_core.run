@@ -1,7 +1,5 @@
 create_boot_directory
 
-proc depot_user {} { return [get_cmd_arg --depot-user genodelabs] }
-
 import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/init \
                   [depot_user]/src/libc \

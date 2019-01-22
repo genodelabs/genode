@@ -138,7 +138,6 @@ proc autopilot_run_genode_until {{wait_for_re forever} {timeout_value 0} {runnin
 ## Utility procedures ##
 ########################
 
-proc depot_user {} { return [get_cmd_arg --depot-user genodelabs] }
 
 
 #

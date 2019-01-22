@@ -1,6 +1,4 @@
 
-proc depot_user {} { return [get_cmd_arg --depot-user genodelabs] }
-
 source ${genode_dir}/repos/libports/run/qt5_drivers.inc
 
 set feature(Input) 1

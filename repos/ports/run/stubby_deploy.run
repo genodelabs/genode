@@ -1,7 +1,6 @@
 source ${genode_dir}/repos/base/run/platform_drv.inc
 
 create_boot_directory
-proc depot_user {} { return [get_cmd_arg --depot-user genodelabs] }
 
 proc current_pkg { pkg } { return $pkg/[_current_depot_archive_version pkg $pkg] }
 

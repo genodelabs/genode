@@ -239,6 +239,13 @@ proc _collect_from_depot { archives } {
 
 
 ##
+# Parse depot user from run tool arguments with a fallback to "genodelabs"
+#
+#
+proc depot_user {} { return [get_cmd_arg --depot-user genodelabs] }
+
+
+##
 # Import binary and raw content of the specified depot archives into the run
 # directory of the scenario
 #

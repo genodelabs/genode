@@ -51,8 +51,6 @@ set config {
 
 append_platform_drv_config
 
-proc depot_user { } { return genodelabs }
-
 proc depot_user_download { } {
 	return [exec cat [genode_dir]/depot/[depot_user]/download] }
 
