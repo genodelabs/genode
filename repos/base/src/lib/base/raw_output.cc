@@ -13,10 +13,10 @@
 
 /* Genode includes */
 #include <base/log.h>
+#include <base/buffered_output.h>
 
 /* base-internal includes */
 #include <base/internal/unmanaged_singleton.h>
-#include <base/internal/output.h>
 #include <base/internal/raw_write_string.h>
 
 
