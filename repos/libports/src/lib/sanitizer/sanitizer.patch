@@ -4,7 +4,7 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
 
 
 ---
- sanitizer_common/sanitizer_genode.cc               |  323 ++++++++++++++++++++
+ sanitizer_common/sanitizer_genode.cc               |  332 ++++++++++++++++++++
  sanitizer_common/sanitizer_internal_defs.h         |    6 
  sanitizer_common/sanitizer_platform.h              |    4 
  sanitizer_common/sanitizer_printf.cc               |    2 
@@ -13,15 +13,15 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  .../sanitizer_symbolizer_posix_libcdep.cc          |   20 +
  ubsan/ubsan_diag.cc                                |    4 
  ubsan/ubsan_type_hash_itanium.cc                   |    2 
- 9 files changed, 357 insertions(+), 11 deletions(-)
+ 9 files changed, 366 insertions(+), 11 deletions(-)
  create mode 100644 sanitizer_common/sanitizer_genode.cc
 
 diff --git a/sanitizer_common/sanitizer_genode.cc b/sanitizer_common/sanitizer_genode.cc
 new file mode 100644
-index 0000000..b16dc5d
+index 0000000..1f549e5
 --- /dev/null
 +++ b/sanitizer_common/sanitizer_genode.cc
-@@ -0,0 +1,323 @@
+@@ -0,0 +1,332 @@
 +/*
 + * \brief  Genode-specific functions from sanitizer_common.h
 + *         and sanitizer_libc.h
@@ -39,7 +39,7 @@ index 0000000..b16dc5d
 +#include <base/env.h>
 +#include <base/heap.h>
 +#include <base/log.h>
-+#include <base/printf.h>
++#include <base/buffered_output.h>
 +
 +#include "sanitizer_platform.h"
 +
@@ -298,7 +298,16 @@ index 0000000..b16dc5d
 +void __sanitizer::ReportFile::Write(const char *buffer, uptr length)
 +{
 +	SpinMutexLock l(mu);
-+	Genode::printf("%s", buffer);
++
++	struct Write_fn
++	{
++		void operator () (char const *s) { Genode::log(Genode::Cstring(s)); }
++	} function { };
++
++	static Genode::Buffered_output<512, Write_fn> buffered_output { function };
++
++	for (uptr i = 0; i < length; i++)
++		buffered_output.out_char(buffer[i]);
 +}
 +
 +
