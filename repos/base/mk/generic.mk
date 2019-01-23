@@ -80,7 +80,7 @@ endif
 #
 CUSTOM_ADA_MAKE    ?= $(GNATMAKE)
 CUSTOM_ADA_FLAGS   ?= -q -c --GCC=$(ADA_CC) --RTS=$(ADA_RTS)
-CUSTOM_ADA_OPT     ?= -cargs $(CC_ADA_OPT)
+CUSTOM_ADA_OPT     ?= -cargs $(CC_ADA_OPT) -gnatef
 CUSTOM_ADA_INCLUDE ?= -I- $(INCLUDES)
 
 %.o: %.adb
