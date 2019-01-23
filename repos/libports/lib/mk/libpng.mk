@@ -4,7 +4,9 @@ LIBS       += libc libm zlib
 # find 'config.h'
 INC_DIR += $(REP_DIR)/src/lib/libpng
 
-CC_DEF += -DHAVE_CONFIG_H -DPNG_CONFIGURE_LIBPNG
+INC_DIR += $(call select_from_ports,libpng)/include/libpng
+
+CC_DEF += -DHAVE_CONFIG_H
 
 SRC_C = png.c pngset.c pngget.c pngrutil.c pngtrans.c pngwutil.c \
         pngread.c pngrio.c pngwio.c pngwrite.c pngrtran.c pngwtran.c \
@@ -13,5 +15,3 @@ SRC_C = png.c pngset.c pngget.c pngrutil.c pngtrans.c pngwutil.c \
 vpath %.c $(LIBPNG_DIR)
 
 SHARED_LIB = yes
-
-CC_CXX_WARN_STRICT =
