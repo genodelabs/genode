@@ -43,7 +43,7 @@
 			<provides> <service name="File_system"/> </provides>
 			<config>
 				<vfs> <log/> </vfs>
-				<default-policy writeable="yes"/>
+				<default-policy root="/" writeable="yes"/>
 			</config>
 		</start>
 		<start name="log_2" caps="64">

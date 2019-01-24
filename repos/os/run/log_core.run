@@ -53,7 +53,7 @@ append config {
 				<!-- be careful to avoid endless output loop for core.log -->
 				<dir name="log_core"> <} [log_service] { name="log.log"/> </dir>
 			</vfs>
-			<policy label_prefix="fs_log" writeable="yes"/>
+			<policy label_prefix="fs_log" writeable="yes" root="/"/>
 		</config>
 	</start>
 
