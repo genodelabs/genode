@@ -45,26 +45,26 @@ void Thread::start()
 	using namespace Fiasco;
 
 	/* create and start platform thread */
-	Platform_thread *pt =
-		new(platform()->core_mem_alloc()) Platform_thread(_stack->name().string());
+	Platform_thread &pt = *new (platform().core_mem_alloc())
+		Platform_thread(_stack->name().string());
 
-	platform_specific()->core_pd()->bind_thread(pt);
+	platform_specific().core_pd().bind_thread(pt);
 
-	l4_utcb_t *foc_utcb = (l4_utcb_t *)(pt->utcb());
+	l4_utcb_t *foc_utcb = (l4_utcb_t *)(pt.utcb());
 
-	native_thread() = Native_thread(pt->gate().remote);
+	native_thread() = Native_thread(pt.gate().remote);
 
 	utcb()->foc_utcb = foc_utcb;
 
 	_thread_cap =
-		reinterpret_cap_cast<Cpu_thread>(Native_capability(pt->thread().local));
+		reinterpret_cap_cast<Cpu_thread>(Native_capability(pt.thread().local));
 
-	pt->pager(platform_specific()->core_pager());
+	pt.pager(platform_specific().core_pager());
 
-	l4_utcb_tcr_u(foc_utcb)->user[UTCB_TCR_BADGE] = (unsigned long) pt->gate().local.data();
+	l4_utcb_tcr_u(foc_utcb)->user[UTCB_TCR_BADGE] = (unsigned long) pt.gate().local.data();
 	l4_utcb_tcr_u(foc_utcb)->user[UTCB_TCR_THREAD_OBJ] = (addr_t)this;
 
-	pt->start((void *)_thread_start, stack_top());
+	pt.start((void *)_thread_start, stack_top());
 }
 
 

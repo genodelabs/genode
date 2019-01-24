@@ -18,11 +18,12 @@
 #include <base/allocator_avl.h>
 #include <base/internal/capability_space.h>
 
-#include "synced_range_allocator.h"
-#include "platform_generic.h"
-#include "platform_thread.h"
-#include "platform_pd.h"
-#include "boot_modules.h"
+#include <synced_range_allocator.h>
+#include <platform_generic.h>
+#include <platform_thread.h>
+#include <platform_pd.h>
+#include <boot_modules.h>
+#include <assertion.h>
 
 
 namespace Genode {
@@ -113,7 +114,7 @@ namespace Genode {
 			/**
 			 * Return singleton instance of Sigma0 pager object
 			 */
-			static Sigma0 *sigma0();
+			static Sigma0 &sigma0();
 
 			/**
 			 * Core pager thread that handles core-internal page-faults
@@ -123,7 +124,7 @@ namespace Genode {
 				/**
 				 * Constructor
 				 */
-				Core_pager(Platform_pd *core_pd);
+				Core_pager(Platform_pd &core_pd);
 
 				int pager(Ipc_pager &) { /* never called */ return -1; }
 			};
@@ -131,7 +132,7 @@ namespace Genode {
 			/**
 			 * Return singleton instance of core pager object
 			 */
-			Core_pager *core_pager();
+			Core_pager &core_pager();
 
 			/**
 			 * Constructor
@@ -141,22 +142,28 @@ namespace Genode {
 			/**
 			 * Accessor for core pd object
 			 */
-			Platform_pd *core_pd() { return _core_pd; }
+			Platform_pd &core_pd()
+			{
+				if (_core_pd)
+					return *_core_pd;
+
+				ASSERT_NEVER_CALLED;
+			}
 
 
 			/********************************
 			 ** Generic platform interface **
 			 ********************************/
 
-			Range_allocator *core_mem_alloc() override { return &_ram_alloc; }
-			Range_allocator *ram_alloc()      override { return &_ram_alloc; }
-			Range_allocator *io_mem_alloc()   override { return &_io_mem_alloc; }
-			Range_allocator *io_port_alloc()  override { return &_io_port_alloc; }
-			Range_allocator *irq_alloc()      override { return &_irq_alloc; }
-			Range_allocator *region_alloc()   override { return &_region_alloc; }
+			Range_allocator &core_mem_alloc() override { return _ram_alloc; }
+			Range_allocator &ram_alloc()      override { return _ram_alloc; }
+			Range_allocator &io_mem_alloc()   override { return _io_mem_alloc; }
+			Range_allocator &io_port_alloc()  override { return _io_port_alloc; }
+			Range_allocator &irq_alloc()      override { return _irq_alloc; }
+			Range_allocator &region_alloc()   override { return _region_alloc; }
 			addr_t           vm_start() const override { return _vm_start; }
 			size_t           vm_size()  const override { return _vm_size; }
-			Rom_fs          *rom_fs()         override { return &_rom_fs; }
+			Rom_fs          &rom_fs()         override { return _rom_fs; }
 
 			size_t max_caps() const { return Capability_space::max_caps(); }
 

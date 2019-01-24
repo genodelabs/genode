@@ -24,15 +24,15 @@
 /*
  * Add I/O port service and virtualization specific vm service
  */
-void Genode::platform_add_local_services(Rpc_entrypoint *ep,
-                                         Sliced_heap *sh,
-                                         Registry<Service> *services)
+void Genode::platform_add_local_services(Rpc_entrypoint    &ep,
+                                         Sliced_heap       &sliced_heap,
+                                         Registry<Service> &services)
 {
-	static Vm_root vm_root(ep, sh);
-	static Core_service<Vm_session_component> vm_ls(*services, vm_root);
+	static Vm_root vm_root(ep, sliced_heap);
+	static Core_service<Vm_session_component> vm_ls(services, vm_root);
 
-	static Io_port_root io_port_root(core_env()->pd_session(),
-	                                 platform()->io_port_alloc(), sh);
-	static Core_service<Io_port_session_component> io_port_ls(*services,
+	static Io_port_root io_port_root(*core_env().pd_session(),
+	                                 platform().io_port_alloc(), sliced_heap);
+	static Core_service<Io_port_session_component> io_port_ls(services,
 	                                                          io_port_root);
 }

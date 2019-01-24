@@ -89,11 +89,11 @@ class Genode::Signal_broker
 				return Signal_context_capability();
 			}
 
-			Native_capability si = Capability_space::import(cap_map()->insert());
+			Native_capability si = Capability_space::import(cap_map().insert());
 			Signal_context_capability cap = reinterpret_cap_cast<Signal_context>(si);
 
 			uint8_t res = Nova::create_si(cap.local_name(),
-			                              platform_specific()->core_pd_sel(),
+			                              platform_specific().core_pd_sel(),
 			                              imprint, sm.local_name());
 			if (res != Nova::NOVA_OK) {
 				warning("creating signal failed - error ", res);
@@ -124,7 +124,7 @@ class Genode::Signal_broker
 			destroy(&_context_slab, context);
 
 			Nova::revoke(Nova::Obj_crd(context_cap.local_name(), 0));
-			cap_map()->remove(context_cap.local_name(), 0);
+			cap_map().remove(context_cap.local_name(), 0);
 		}
 
 		void submit(Signal_context_capability, unsigned)

@@ -39,8 +39,8 @@ class Genode::Trace::Session_component
 		Allocator_guard              _md_alloc;
 		Tslab<Trace::Subject, 4096>  _subjects_slab;
 		Tslab<Trace::Policy, 4096>   _policies_slab;
-		unsigned                     _parent_levels;
-		Session_label                _label;
+		unsigned               const _parent_levels;
+		Session_label          const _label;
 		Source_registry             &_sources;
 		Policy_registry             &_policies;
 		Subject_registry             _subjects;

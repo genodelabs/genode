@@ -26,6 +26,7 @@
 #include <platform_generic.h>
 #include <platform_thread.h>
 #include <platform_pd.h>
+#include <assertion.h>
 
 
 namespace Genode {
@@ -123,7 +124,7 @@ namespace Genode {
 				/**
 				 * Constructor
 				 */
-				Core_pager(Platform_pd *core_pd, Sigma0*);
+				Core_pager(Platform_pd &core_pd, Sigma0 &);
 
 				int pager(Ipc_pager &) { /* never called */ return -1; }
 			};
@@ -131,7 +132,7 @@ namespace Genode {
 			/**
 			 * Return singleton instance of core pager object
 			 */
-			Core_pager *core_pager();
+			Core_pager &core_pager();
 
 			/**
 			 * Set interrupt trigger/polarity (e.g., level or edge, high or low)
@@ -147,26 +148,33 @@ namespace Genode {
 			/**
 			 * Accessor for core pd object
 			 */
-			Platform_pd *core_pd() { return _core_pd; }
+			Platform_pd &core_pd()
+			{
+				if (_core_pd)
+					return *_core_pd;
+
+				ASSERT_NEVER_CALLED;
+			}
 
 
 			/********************************
 			 ** Generic platform interface **
 			 ********************************/
 
-			Range_allocator  *core_mem_alloc() { return &_ram_alloc;     }
-			Range_allocator  *ram_alloc()      { return &_ram_alloc;     }
-			Range_allocator  *io_mem_alloc()   { return &_io_mem_alloc;  }
-			Range_allocator  *io_port_alloc()  { return &_io_port_alloc; }
-			Range_allocator  *irq_alloc()      { return &_irq_alloc;     }
-			Range_allocator  *region_alloc()   { return &_region_alloc;  }
-			Cap_id_allocator *cap_id_alloc()   { return &_cap_id_alloc;  }
-			addr_t            vm_start() const { return _vm_start;       }
-			size_t            vm_size()  const { return _vm_size;        }
-			Rom_fs           *rom_fs()         { return &_rom_fs;        }
-			Affinity::Space   affinity_space() const;
+			Range_allocator  &core_mem_alloc()       override { return _ram_alloc;     }
+			Range_allocator  &ram_alloc()            override { return _ram_alloc;     }
+			Range_allocator  &io_mem_alloc()         override { return _io_mem_alloc;  }
+			Range_allocator  &io_port_alloc()        override { return _io_port_alloc; }
+			Range_allocator  &irq_alloc()            override { return _irq_alloc;     }
+			Range_allocator  &region_alloc()         override { return _region_alloc;  }
+			addr_t            vm_start()       const override { return _vm_start;       }
+			size_t            vm_size()        const override { return _vm_size;        }
+			Rom_fs           &rom_fs()               override { return _rom_fs;        }
+			Affinity::Space   affinity_space() const override;
 
-			size_t max_caps() const override { return cap_idx_alloc()->max_caps(); }
+			size_t max_caps() const override { return cap_idx_alloc().max_caps(); }
+
+			Cap_id_allocator &cap_id_alloc() { return _cap_id_alloc; }
 
 			void wait_for_exit();
 	};

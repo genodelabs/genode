@@ -50,7 +50,7 @@ void Pager_entrypoint::entry()
 			continue;
 		}
 
-		_fault = pt->kernel_object()->fault();
+		_fault = pt->fault_info();
 
 		/* try to resolve fault directly via local region managers */
 		if (po->pager(*this)) continue;

@@ -29,14 +29,14 @@ Native_capability::Native_capability()
 
 void Native_capability::_inc()
 {
-	Cap_index idx(cap_map()->find(local_name()));
+	Cap_index idx(cap_map().find(local_name()));
 	idx.inc();
 }
 
 
 void Native_capability::_dec()
 {
-	Cap_index idx(cap_map()->find(local_name()));
+	Cap_index idx(cap_map().find(local_name()));
 	idx.dec();
 }
 

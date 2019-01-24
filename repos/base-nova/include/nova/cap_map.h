@@ -115,7 +115,7 @@ namespace Genode {
 
 			Cap_index find(addr_t local_sel);
 
-			void insert(Cap_range * range) { _tree.insert(range); }
+			void insert(Cap_range &range) { _tree.insert(&range); }
 
 			addr_t insert(size_t num_log_2 = 0, addr_t cap = ~0UL);
 
@@ -126,7 +126,7 @@ namespace Genode {
 	/**
 	 * Get the global Capability_map of the process.
 	 */
-	Capability_map *cap_map();
+	Capability_map &cap_map();
 }
 
 #endif /* _INCLUDE__NOVA__CAP_MAP_H_ */

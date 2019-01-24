@@ -21,8 +21,8 @@ void Cpu_thread_component::_update_exception_sigh()
 {
 	Signal_context_capability sigh = _thread_sigh.valid()
 	                               ? _thread_sigh : _session_sigh;
-	if (_platform_thread.pager())
-		_platform_thread.pager()->exception_handler(sigh);
+
+	_platform_thread.pager().exception_handler(sigh);
 }
 
 

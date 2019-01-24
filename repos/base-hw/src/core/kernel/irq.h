@@ -128,7 +128,7 @@ class Kernel::User_irq : public Kernel::Irq, public Kernel::Object
 		/**
 		 * Get map that provides all user interrupts by their kernel names
 		 */
-		static Irq::Pool * _pool();
+		static Irq::Pool &_pool();
 
 	public:
 
@@ -136,7 +136,7 @@ class Kernel::User_irq : public Kernel::Irq, public Kernel::Object
 		 * Construct object that signals interrupt 'irq' via signal 'context'
 		 */
 		User_irq(unsigned const irq, Signal_context &context)
-		: Irq(irq, *_pool()), _context(context) { disable(); }
+		: Irq(irq, _pool()), _context(context) { disable(); }
 
 		/**
 		 * Destructor
@@ -156,7 +156,7 @@ class Kernel::User_irq : public Kernel::Irq, public Kernel::Object
 		 * Handle occurence of interrupt 'irq'
 		 */
 		static User_irq * object(unsigned const irq) {
-			return dynamic_cast<User_irq*>(_pool()->object(irq)); }
+			return dynamic_cast<User_irq*>(_pool().object(irq)); }
 };
 
 #endif /* _CORE__KERNEL__IRQ_H_ */

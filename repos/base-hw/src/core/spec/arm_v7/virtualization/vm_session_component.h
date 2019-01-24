@@ -67,6 +67,8 @@ class Genode::Vm_session_component : public Genode::Rpc_object<Genode::Vm_sessio
 		                     size_t          ram_quota);
 		~Vm_session_component();
 
+		using Rpc_object<Vm_session>::cap;
+
 
 		/**************************
 		 ** Vm session interface **

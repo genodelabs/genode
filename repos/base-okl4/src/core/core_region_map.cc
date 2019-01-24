@@ -26,15 +26,16 @@ Core_region_map::attach(Dataspace_capability ds_cap, size_t size,
 {
 	using namespace Okl4;
 
-	auto lambda = [&] (Dataspace_component *ds) -> void* {
+	auto lambda = [&] (Dataspace_component *ds) -> void *
+	{
 		if (!ds)
 			throw Invalid_dataspace();
 
 		if (size == 0)
 			size = ds->size();
 
-		size_t page_rounded_size = (size + get_page_size() - 1)
-			& get_page_mask();
+		size_t const page_rounded_size = (size + get_page_size() - 1)
+		                               & get_page_mask();
 
 		if (use_local_addr) {
 			error("parameter 'use_local_addr' not supported within core");
@@ -48,7 +49,7 @@ Core_region_map::attach(Dataspace_capability ds_cap, size_t size,
 
 		/* allocate range in core's virtual address space */
 		void *virt_addr;
-		if (!platform()->region_alloc()->alloc(page_rounded_size, &virt_addr)) {
+		if (!platform().region_alloc().alloc(page_rounded_size, &virt_addr)) {
 			error("could not allocate virtual address range in core of size ",
 			      page_rounded_size);
 			return nullptr;

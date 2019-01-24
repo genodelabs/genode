@@ -63,10 +63,10 @@ void Platform_thread::Registry::submit_exception(unsigned long pid)
 }
 
 
-Platform_thread::Registry *Platform_thread::_registry()
+Platform_thread::Registry &Platform_thread::_registry()
 {
 	static Platform_thread::Registry registry;
-	return &registry;
+	return registry;
 }
 
 
@@ -79,13 +79,13 @@ Platform_thread::Platform_thread(size_t, const char *name, unsigned,
 {
 	strncpy(_name, name, min(sizeof(_name), strlen(name) + 1));
 
-	_registry()->insert(this);
+	_registry().insert(this);
 }
 
 
 Platform_thread::~Platform_thread()
 {
-	ep_sd_registry()->disassociate(_socket_pair.client_sd);
+	ep_sd_registry().disassociate(_socket_pair.client_sd);
 
 	if (_socket_pair.client_sd)
 		lx_close(_socket_pair.client_sd);
@@ -93,7 +93,7 @@ Platform_thread::~Platform_thread()
 	if (_socket_pair.server_sd)
 		lx_close(_socket_pair.server_sd);
 
-	_registry()->remove(this);
+	_registry().remove(this);
 }
 
 

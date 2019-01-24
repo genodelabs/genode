@@ -68,7 +68,7 @@ class Kernel::Cpu_job : private Cpu_share
 		/**
 		 * Return wether we are allowed to help job 'j' with our CPU-share
 		 */
-		bool _helping_possible(Cpu_job * const j) { return j->_cpu == _cpu; }
+		bool _helping_possible(Cpu_job const &j) const { return j._cpu == _cpu; }
 
 	public:
 
@@ -100,7 +100,7 @@ class Kernel::Cpu_job : private Cpu_share
 		/**
 		 * Link job to CPU 'cpu'
 		 */
-		void affinity(Cpu * const cpu);
+		void affinity(Cpu &cpu);
 
 		/**
 		 * Set CPU quota of the job to 'q'
@@ -124,7 +124,7 @@ class Kernel::Cpu_job : private Cpu_share
 		 ** Accessors **
 		 ***************/
 
-		void cpu(Cpu * const cpu) { _cpu = cpu; }
+		void cpu(Cpu &cpu) { _cpu = &cpu; }
 
 		Cpu_share &share() { return *this; }
 };

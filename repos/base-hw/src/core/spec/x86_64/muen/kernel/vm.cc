@@ -27,7 +27,7 @@ Kernel::Vm::Vm(void * const state, Kernel::Signal_context * const context,
   _context(context),
   _table(nullptr)
 {
-	affinity(&cpu_pool()->primary_cpu());
+	affinity(cpu_pool().primary_cpu());
 }
 
 
@@ -44,7 +44,7 @@ void Kernel::Vm::exception(Cpu & cpu)
 
 	if (_state->trapno >= Genode::Cpu_state::INTERRUPTS_START &&
 		_state->trapno <= Genode::Cpu_state::INTERRUPTS_END) {
-		pic()->irq_occurred(_state->trapno);
+		pic().irq_occurred(_state->trapno);
 		_interrupt(cpu.id());
 		_context->submit(1);
 		return;

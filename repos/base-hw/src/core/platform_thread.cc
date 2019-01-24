@@ -47,28 +47,27 @@ Platform_thread::~Platform_thread()
 	}
 
 	/* free UTCB */
-	core_env()->ram_session()->free(_utcb);
+	core_env().ram_session()->free(_utcb);
 }
 
 
 void Platform_thread::quota(size_t const quota) {
-	Kernel::thread_quota(kernel_object(), quota); }
+	Kernel::thread_quota(_kobj.kernel_object(), quota); }
 
 
-Platform_thread::Platform_thread(const char * const label,
-                                 Native_utcb * utcb)
-: Kernel_object<Kernel::Thread>(true, _label),
-  _pd(Kernel::core_pd()->platform_pd()),
-  _pager(nullptr),
-  _utcb_core_addr(utcb),
-  _utcb_pd_addr(utcb),
-  _main_thread(false)
+Platform_thread::Platform_thread(Label const &label, Native_utcb &utcb)
+:
+	_label(label),
+	_pd(&Kernel::core_pd().platform_pd()),
+	_pager(nullptr),
+	_utcb_core_addr(&utcb),
+	_utcb_pd_addr(&utcb),
+	_main_thread(false),
+	_kobj(true, _label.string())
 {
-	strncpy(_label, label, LABEL_MAX_LEN);
-
 	/* create UTCB for a core thread */
 	void *utcb_phys;
-	if (!platform()->ram_alloc()->alloc(sizeof(Native_utcb), &utcb_phys)) {
+	if (!platform().ram_alloc().alloc(sizeof(Native_utcb), &utcb_phys)) {
 		error("failed to allocate UTCB");
 		throw Out_of_ram();
 	}
@@ -77,27 +76,26 @@ Platform_thread::Platform_thread(const char * const label,
 }
 
 
-Platform_thread::Platform_thread(size_t const quota,
-                                 const char * const label,
-                                 unsigned const virt_prio,
-                                 Affinity::Location location,
-                                 addr_t const utcb)
-: Kernel_object<Kernel::Thread>(true, _priority(virt_prio), quota, _label),
-  _pd(nullptr),
-  _pager(nullptr),
-  _utcb_pd_addr((Native_utcb *)utcb),
-  _main_thread(false)
+Platform_thread::Platform_thread(size_t             const  quota,
+                                 Label              const &label,
+                                 unsigned           const  virt_prio,
+                                 Affinity::Location const  location,
+                                 addr_t             const  utcb)
+:
+	_label(label),
+	_pd(nullptr),
+	_pager(nullptr),
+	_utcb_pd_addr((Native_utcb *)utcb),
+	_main_thread(false),
+	_kobj(true, _priority(virt_prio), quota, _label.string())
 {
-	strncpy(_label, label, LABEL_MAX_LEN);
-
 	try {
-		_utcb = core_env()->ram_session()->alloc(sizeof(Native_utcb),
-		                                         CACHED);
+		_utcb = core_env().ram_session()->alloc(sizeof(Native_utcb), CACHED);
 	} catch (...) {
 		error("failed to allocate UTCB");
 		throw Out_of_ram();
 	}
-	_utcb_core_addr = (Native_utcb *)core_env()->rm_session()->attach(_utcb);
+	_utcb_core_addr = (Native_utcb *)core_env().rm_session()->attach(_utcb);
 	affinity(location);
 }
 
@@ -151,12 +149,12 @@ int Platform_thread::start(void * const ip, void * const sp)
 			}
 			return 0;
 		};
-		if (core_env()->entrypoint()->apply(_utcb, lambda)) return -1;
+		if (core_env().entrypoint().apply(_utcb, lambda)) return -1;
 	}
 
 	/* initialize thread registers */
-	kernel_object()->regs->ip = reinterpret_cast<addr_t>(ip);
-	kernel_object()->regs->sp = reinterpret_cast<addr_t>(sp);
+	_kobj.kernel_object()->regs->ip = reinterpret_cast<addr_t>(ip);
+	_kobj.kernel_object()->regs->sp = reinterpret_cast<addr_t>(sp);
 
 	/* start executing new thread */
 	if (!_pd) {
@@ -167,49 +165,54 @@ int Platform_thread::start(void * const ip, void * const sp)
 	unsigned const cpu =
 		_location.valid() ? _location.xpos() : Cpu::primary_id();
 
-	Native_utcb * utcb = Thread::myself()->utcb();
+	Native_utcb &utcb = *Thread::myself()->utcb();
 
 	/* reset capability counter */
-	utcb->cap_cnt(0);
-	utcb->cap_add(Capability_space::capid(_cap));
+	utcb.cap_cnt(0);
+	utcb.cap_add(Capability_space::capid(_kobj.cap()));
 	if (_main_thread) {
-		utcb->cap_add(Capability_space::capid(_pd->parent()));
-		utcb->cap_add(Capability_space::capid(_utcb));
+		utcb.cap_add(Capability_space::capid(_pd->parent()));
+		utcb.cap_add(Capability_space::capid(_utcb));
 	}
-	Kernel::start_thread(kernel_object(), cpu, &_pd->kernel_pd(),
+	Kernel::start_thread(_kobj.kernel_object(), cpu, &_pd->kernel_pd(),
 	                     _utcb_core_addr);
 	return 0;
 }
 
 
-void Platform_thread::pager(Pager_object * const pager)
+void Platform_thread::pager(Pager_object &pager)
 {
 	using namespace Kernel;
 
-	thread_pager(kernel_object(), pager ? Capability_space::capid(pager->cap())
-	                                    : cap_id_invalid());
-	_pager = pager;
+	thread_pager(_kobj.kernel_object(), Capability_space::capid(pager.cap()));
+	_pager = &pager;
 }
 
 
-Genode::Pager_object * Platform_thread::pager() { return _pager; }
+Genode::Pager_object &Platform_thread::pager()
+{
+	if (_pager)
+		return *_pager;
+
+	ASSERT_NEVER_CALLED;
+}
 
 
 Thread_state Platform_thread::state()
 {
-	Thread_state_base bstate(*kernel_object()->regs);
+	Thread_state_base bstate(*_kobj.kernel_object()->regs);
 	return Thread_state(bstate);
 }
 
 
 void Platform_thread::state(Thread_state thread_state)
 {
-	Cpu_state * cstate = static_cast<Cpu_state *>(&*kernel_object()->regs);
+	Cpu_state * cstate = static_cast<Cpu_state *>(&*_kobj.kernel_object()->regs);
 	*cstate = static_cast<Cpu_state>(thread_state);
 }
 
 
 void Platform_thread::restart()
 {
-	Kernel::restart_thread(Capability_space::capid(_cap));
+	Kernel::restart_thread(Capability_space::capid(_kobj.cap()));
 }

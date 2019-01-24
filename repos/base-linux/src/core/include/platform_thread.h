@@ -60,7 +60,7 @@ namespace Genode {
 			/**
 			 * Return singleton instance of 'Platform_thread::Registry'
 			 */
-			static Registry *_registry();
+			static Registry &_registry();
 
 			unsigned long _tid = -1;
 			unsigned long _pid = -1;
@@ -110,8 +110,8 @@ namespace Genode {
 			/**
 			 * Dummy implementation of platform-thread interface
 			 */
-			Pager_object *pager() { return &_pager; }
-			void          pager(Pager_object *) { }
+			Pager_object &pager() { return _pager; }
+			void          pager(Pager_object &) { }
 			int           start(void *, void *) { return 0; }
 
 			Thread_state state()
@@ -164,7 +164,7 @@ namespace Genode {
 			 */
 			static void submit_exception(int pid)
 			{
-				_registry()->submit_exception(pid);
+				_registry().submit_exception(pid);
 			}
 
 			/**

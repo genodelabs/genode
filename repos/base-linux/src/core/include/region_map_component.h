@@ -65,22 +65,16 @@ class Genode::Region_map_component : public Rpc_object<Region_map>,
 
 		Dataspace_capability dataspace() { return Dataspace_capability(); }
 
-		Rm_dataspace_component *dataspace_component() { return 0; }
+		Rm_dataspace_component *dataspace_component() { return nullptr; }
 
 		void address_space(Platform_pd *) { }
 };
 
 
-struct Genode::Rm_member : Interface
+struct Genode::Rm_client : Pager_object
 {
-	Region_map_component *member_rm() { return 0; }
-};
-
-
-struct Genode::Rm_client : Pager_object, Rm_member
-{
-	Rm_client(Cpu_session_capability, Thread_capability, 
-	          Region_map_component *, unsigned long,
+	Rm_client(Cpu_session_capability, Thread_capability,
+	          Region_map_component &, unsigned long,
 	          Affinity::Location, Cpu_session::Name const&,
 	          Session_label const&)
 	{ }

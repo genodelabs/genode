@@ -55,7 +55,7 @@ int Platform_thread::start(void *ip, void *sp)
 		warning("old eflags == ~0 on ex_regs ",
 		        Hex(thread.id.task), ".", Hex(thread.id.lthread));
 
-	fiasco_register_thread_name(thread, _name);
+	fiasco_register_thread_name(thread, _name.string());
 	return 0;
 }
 
@@ -72,11 +72,11 @@ void Platform_thread::resume()
 }
 
 
-void Platform_thread::bind(int thread_id, l4_threadid_t l4_thread_id, Platform_pd *pd)
+void Platform_thread::bind(int thread_id, l4_threadid_t l4_thread_id, Platform_pd &pd)
 {
 	_thread_id    = thread_id;
 	_l4_thread_id = l4_thread_id;
-	_platform_pd  = pd;
+	_platform_pd  = &pd;
 }
 
 
@@ -154,12 +154,12 @@ void Platform_thread::cancel_blocking()
 
 
 Platform_thread::Platform_thread(size_t, const char *name, unsigned,
-                                 Affinity::Location, addr_t,
-                                 int thread_id)
-: _thread_id(thread_id), _l4_thread_id(L4_INVALID_ID), _pager(0)
-{
-	strncpy(_name, name, sizeof(_name));
-}
+                                 Affinity::Location, addr_t)
+: _l4_thread_id(L4_INVALID_ID), _name(name) { }
+
+
+Platform_thread::Platform_thread(const char *name)
+: _l4_thread_id(L4_INVALID_ID), _name(name) { }
 
 
 Platform_thread::~Platform_thread()
@@ -169,5 +169,5 @@ Platform_thread::~Platform_thread()
 	 * Thread::unbind()
 	 */
 	if (_platform_pd)
-		_platform_pd->unbind_thread(this);
+		_platform_pd->unbind_thread(*this);
 }

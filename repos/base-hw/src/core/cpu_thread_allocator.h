@@ -14,8 +14,12 @@
 #ifndef _CORE__CPU_THREAD_ALLOCATOR_H_
 #define _CORE__CPU_THREAD_ALLOCATOR_H_
 
+/* Genode includes */
 #include <base/log.h>
 #include <base/allocator.h>
+
+/* core includes */
+#include <assertion.h>
 
 namespace Genode
 {
@@ -36,7 +40,7 @@ namespace Genode
 			Cpu_thread_allocator(Cpu_thread_allocator const &);
 			Cpu_thread_allocator &operator = (Cpu_thread_allocator const &);
 
-			Allocator * const _alloc;
+			Allocator &_alloc;
 
 		public:
 
@@ -45,34 +49,25 @@ namespace Genode
 			 *
 			 * \param alloc  allocator backend
 			 */
-			Cpu_thread_allocator(Allocator * alloc) : _alloc(alloc) { }
+			Cpu_thread_allocator(Allocator &alloc) : _alloc(alloc) { }
+
 
 			/*************************
 			 ** Allocator interface **
 			 *************************/
 
 			bool alloc(size_t size, void **out_addr) override {
-				return _alloc->alloc(size, out_addr); }
+				return _alloc.alloc(size, out_addr); }
 
 			void free(void *addr, size_t size) override {
-				_alloc->free(addr, size); }
+				_alloc.free(addr, size); }
 
-			size_t consumed() const override
-			{
-				warning(__func__, "unexpectedly called");
-				while (1) ;
-				return 0;
-			}
+			size_t consumed() const override { ASSERT_NEVER_CALLED; }
 
-			size_t overhead(size_t) const override
-			{
-				warning(__func__, "unexpectedly called");
-				while (1) ;
-				return 0;
-			}
+			size_t overhead(size_t) const override { ASSERT_NEVER_CALLED; }
 
 			bool need_size_for_free() const override {
-				return _alloc->need_size_for_free(); }
+				return _alloc.need_size_for_free(); }
 	};
 }
 

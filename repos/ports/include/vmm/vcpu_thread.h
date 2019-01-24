@@ -69,7 +69,7 @@ class Vmm::Vcpu_other_pd : public Vmm::Vcpu_thread
 		              Genode::size_t = 0 /* stack_size */)
 		:
 			_pd_cap(pd_cap), _location(location), _cpu_session(cpu_session),
-			_exc_pt_sel(Genode::cap_map()->insert(Nova::NUM_INITIAL_VCPU_PT_LOG2))
+			_exc_pt_sel(Genode::cap_map().insert(Nova::NUM_INITIAL_VCPU_PT_LOG2))
 		{ }
 
 		void start(Genode::addr_t sel_ec)
@@ -131,10 +131,10 @@ class Vmm::Vcpu_same_pd : public Vmm::Vcpu_thread, Genode::Thread
 			Thread(WEIGHT, "vCPU", stack_size, Type::NORMAL, cpu_session, location)
 		{
 			/* release pre-allocated selectors of Thread */
-			Genode::cap_map()->remove(native_thread().exc_pt_sel, Nova::NUM_INITIAL_PT_LOG2);
+			Genode::cap_map().remove(native_thread().exc_pt_sel, Nova::NUM_INITIAL_PT_LOG2);
 
 			/* allocate correct number of selectors */
-			this->native_thread().exc_pt_sel = cap_map()->insert(Nova::NUM_INITIAL_VCPU_PT_LOG2);
+			this->native_thread().exc_pt_sel = cap_map().insert(Nova::NUM_INITIAL_VCPU_PT_LOG2);
 
 			/* tell generic thread code that this becomes a vCPU */
 			this->native_thread().vcpu = true;
@@ -145,10 +145,10 @@ class Vmm::Vcpu_same_pd : public Vmm::Vcpu_thread, Genode::Thread
 			using namespace Nova;
 
 			revoke(Nova::Obj_crd(this->native_thread().exc_pt_sel, NUM_INITIAL_VCPU_PT_LOG2));
-			cap_map()->remove(this->native_thread().exc_pt_sel, NUM_INITIAL_VCPU_PT_LOG2, false);
+			cap_map().remove(this->native_thread().exc_pt_sel, NUM_INITIAL_VCPU_PT_LOG2, false);
 
 			/* allocate selectors for ~Thread */
-			this->native_thread().exc_pt_sel = cap_map()->insert(Nova::NUM_INITIAL_PT_LOG2);
+			this->native_thread().exc_pt_sel = cap_map().insert(Nova::NUM_INITIAL_PT_LOG2);
 		}
 
 		addr_t exc_base() { return this->native_thread().exc_pt_sel; }

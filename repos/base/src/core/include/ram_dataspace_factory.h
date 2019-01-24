@@ -69,17 +69,17 @@ class Genode::Ram_dataspace_factory : public Ram_allocator,
 		 *
 		 * \throw Core_virtual_memory_exhausted
 		 */
-		void _export_ram_ds(Dataspace_component *ds);
+		void _export_ram_ds(Dataspace_component &ds);
 
 		/**
 		 * Revert export of RAM dataspace
 		 */
-		void _revoke_ram_ds(Dataspace_component *ds);
+		void _revoke_ram_ds(Dataspace_component &ds);
 
 		/**
 		 * Zero-out content of dataspace
 		 */
-		void _clear_ds(Dataspace_component *ds);
+		void _clear_ds(Dataspace_component &ds);
 
 	public:
 

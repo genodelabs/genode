@@ -126,7 +126,7 @@ Irq_object::Irq_object(unsigned irq)
  ***************************/
 
 
-Irq_session_component::Irq_session_component(Range_allocator *irq_alloc,
+Irq_session_component::Irq_session_component(Range_allocator &irq_alloc,
                                              const char      *args)
 :
 	_irq_number(Arg_string::find_arg(args, "irq_number").long_value(-1)),
@@ -137,7 +137,7 @@ Irq_session_component::Irq_session_component(Range_allocator *irq_alloc,
 	if (msi)
 		throw Service_denied();
 
-	if (!irq_alloc || irq_alloc->alloc_addr(1, _irq_number).error()) {
+	if (irq_alloc.alloc_addr(1, _irq_number).error()) {
 		error("unavailable IRQ ", Hex(_irq_number), " requested");
 		throw Service_denied();
 	}

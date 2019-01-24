@@ -38,15 +38,15 @@ namespace Genode {
 	{
 		private:
 
-			Filename _fname    { };        /* filename for mmap          */
-			size_t   _size     { 0 };      /* size of dataspace in bytes */
-			addr_t   _addr     { 0 };      /* meaningless on linux       */
-			int      _fd       { -1 };     /* file descriptor            */
-			bool     _writable { false };  /* false if read-only         */
+			Filename     _fname { }; /* filename for mmap          */
+			size_t const _size;      /* size of dataspace in bytes */
+			addr_t const _addr;      /* meaningless on linux       */
+			int          _fd { -1 }; /* file descriptor            */
+			bool   const _writable;  /* false if read-only         */
 
 			/* Holds the dataspace owner if a distinction between owner and
 			 * others is necessary on the dataspace, otherwise it is 0 */
-			Dataspace_owner * _owner;
+			Dataspace_owner const * const _owner;
 
 			static Filename _file_name(const char *args);
 			size_t _file_size();
@@ -72,7 +72,7 @@ namespace Genode {
 			 * Default constructor returns invalid dataspace
 			 */
 			Dataspace_component()
-			: _size(0), _addr(0), _fd(-1), _writable(false), _owner(0) { }
+			: _size(0), _addr(0), _fd(-1), _writable(false), _owner(nullptr) { }
 
 			/**
 			 * This constructor is only provided for compatibility
@@ -81,7 +81,8 @@ namespace Genode {
 			Dataspace_component(size_t size, addr_t, addr_t phys_addr,
 			                    Cache_attribute, bool, Dataspace_owner *_owner)
 			:
-				_size(size), _addr(phys_addr), _fd(-1), _owner(_owner)
+				_size(size), _addr(phys_addr), _fd(-1), _writable(false),
+				_owner(_owner)
 			{
 				warning("Should only be used for IOMEM and not within Linux.");
 				_fname.buf[0] = 0;
@@ -105,20 +106,21 @@ namespace Genode {
 			/**
 			 * Check if dataspace is owned by a specified object
 			 */
-			bool owner(Dataspace_owner const *o) const { return _owner == o; }
+			bool owner(Dataspace_owner const &o) const { return _owner == &o; }
 
 			/**
 			 * Detach dataspace from all rm sessions.
 			 */
 			void detach_from_rm_sessions() { }
 
+
 			/*************************
 			 ** Dataspace interface **
 			 *************************/
 
-			size_t size()      { return _size; }
-			addr_t phys_addr() { return _addr; }
-			bool   writable()  { return _writable; }
+			size_t size()      override { return _size; }
+			addr_t phys_addr() override { return _addr; }
+			bool   writable()  override { return _writable; }
 
 
 			/****************************************

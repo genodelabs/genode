@@ -42,6 +42,8 @@ class Genode::Vm_session_component
 		Vm_session_component(Rpc_entrypoint*, size_t) : _state() { }
 		~Vm_session_component() { }
 
+		using Genode::Rpc_object<Genode::Vm_session>::cap;
+
 
 		/**************************
 		 ** Vm session interface **

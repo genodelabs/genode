@@ -34,7 +34,7 @@ class Genode::Irq_session_component : public Rpc_object<Irq_session>,
 		/**
 		 * Constructor
 		 */
-		Irq_session_component(Range_allocator *, const char *) { }
+		Irq_session_component(Range_allocator &, const char *) { }
 
 		/**
 		 * Destructor
@@ -49,8 +49,9 @@ class Genode::Irq_session_component : public Rpc_object<Irq_session>,
 		void ack_irq() override { }
 		void sigh(Signal_context_capability) override { }
 		Info info() override {
-			return { .type = Genode::Irq_session::Info::Type::INVALID,
-			         .address = 0, .value = 0 }; }
+			return { .type    = Genode::Irq_session::Info::Type::INVALID,
+			         .address = 0,
+			         .value   = 0 }; }
 };
 
 #endif /* _CORE__INCLUDE__IRQ_SESSION_COMPONENT_H_ */

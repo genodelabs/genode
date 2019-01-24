@@ -47,14 +47,8 @@ class Kernel::Pd : public Kernel::Object
 
 	private:
 
-		/*
-		 * Noncopyable
-		 */
-		Pd(Pd const &);
-		Pd &operator = (Pd const &);
-
-		Hw::Page_table         * const _table;
-		Genode::Platform_pd    * const _platform_pd;
+		Hw::Page_table                &_table;
+		Genode::Platform_pd           &_platform_pd;
 		Capid_allocator                _capid_alloc { };
 		Object_identity_reference_tree _cap_tree    { };
 
@@ -68,10 +62,10 @@ class Kernel::Pd : public Kernel::Object
 		 * \param table        translation table of the PD
 		 * \param platform_pd  core object of the PD
 		 */
-		Pd(Hw::Page_table * const table,
-		   Genode::Platform_pd * const platform_pd)
+		Pd(Hw::Page_table &table,
+		   Genode::Platform_pd &platform_pd)
 		: _table(table), _platform_pd(platform_pd),
-		  mmu_regs((addr_t)table)
+		  mmu_regs((addr_t)&table)
 		{
 			capid_t invalid = _capid_alloc.alloc();
 			assert(invalid == cap_id_invalid());
@@ -84,11 +78,11 @@ class Kernel::Pd : public Kernel::Object
 		}
 
 		static capid_t syscall_create(void * const dst,
-		                              Hw::Page_table * tt,
-		                              Genode::Platform_pd * const pd)
+		                              Hw::Page_table &tt,
+		                              Genode::Platform_pd &pd)
 		{
 			return call(call_id_new_pd(), (Call_arg)dst,
-			            (Call_arg)tt, (Call_arg)pd);
+			            (Call_arg)&tt, (Call_arg)&pd);
 		}
 
 		static void syscall_destroy(Pd * const pd) {
@@ -105,10 +99,10 @@ class Kernel::Pd : public Kernel::Object
 		 ** Accessors **
 		 ***************/
 
-		Genode::Platform_pd * platform_pd()       const { return _platform_pd; }
-		Hw::Page_table      * translation_table() const { return _table;       }
-		Capid_allocator     & capid_alloc()             { return _capid_alloc; }
-		Object_identity_reference_tree & cap_tree()     { return _cap_tree;    }
+		Genode::Platform_pd &platform_pd()         { return _platform_pd; }
+		Hw::Page_table      &translation_table()   { return _table;       }
+		Capid_allocator     &capid_alloc()         { return _capid_alloc; }
+		Object_identity_reference_tree &cap_tree() { return _cap_tree;    }
 };
 
 #endif /* _CORE__KERNEL__PD_H_ */

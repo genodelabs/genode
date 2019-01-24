@@ -11,8 +11,9 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* Core */
+/* core */
 #include <pd_session_component.h>
+#include <assertion.h>
 
 using namespace Genode;
 
@@ -34,10 +35,10 @@ bool Pd_session_component::assign_pci(addr_t pci_config_memory, uint16_t bdf)
 
 void Pd_session_component::map(addr_t virt, addr_t size)
 {
-	Genode::addr_t const  pd_core   = platform_specific()->core_pd_sel();
+	Genode::addr_t const  pd_core   = platform_specific().core_pd_sel();
 	Platform_pd          &target_pd = *_pd;
 	Genode::addr_t const  pd_dst    = target_pd.pd_sel();
-	Nova::Utcb            *utcb     = reinterpret_cast<Nova::Utcb *>(Thread::myself()->utcb());
+	Nova::Utcb           &utcb      = *reinterpret_cast<Nova::Utcb *>(Thread::myself()->utcb());
 
 	auto lambda = [&] (Region_map_component *region_map,
 	                   Rm_region            *region,
@@ -45,26 +46,29 @@ void Pd_session_component::map(addr_t virt, addr_t size)
 	                   addr_t const          region_offset,
 	                   addr_t const          dst_region_size) -> addr_t
 	{
-		Dataspace_component * dsc = region ? region->dataspace() : nullptr;
+		Dataspace_component * dsc = region ? &region->dataspace() : nullptr;
 		if (!dsc) {
 			struct No_dataspace{};
 			throw No_dataspace();
 		}
+		if (!region_map) {
+			ASSERT_NEVER_CALLED;
+		}
 
 		Mapping mapping = Region_map_component::create_map_item(region_map,
-		                                                        region,
+		                                                        *region,
 		                                                        ds_offset,
 		                                                        region_offset,
-		                                                        dsc, virt,
+		                                                        *dsc, virt,
 		                                                        dst_region_size);
 
 		/* asynchronously map memory */
 		uint8_t err = Nova::NOVA_PD_OOM;
 		do {
-			utcb->set_msg_word(0);
-			bool res = utcb->append_item(mapping.mem_crd(), 0, true, false,
-			                             false, mapping.dma(),
-			                             mapping.write_combined());
+			utcb.set_msg_word(0);
+			bool res = utcb.append_item(mapping.mem_crd(), 0, true, false,
+			                            false, mapping.dma(),
+			                            mapping.write_combined());
 			/* one item ever fits on the UTCB */
 			(void)res;
 

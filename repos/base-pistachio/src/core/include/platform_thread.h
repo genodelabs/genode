@@ -21,6 +21,7 @@
 /* core includes */
 #include <pager.h>
 #include <platform_pd.h>
+#include <assertion.h>
 
 /* Pistachio includes */
 namespace Pistachio {
@@ -53,12 +54,14 @@ namespace Genode {
 			Platform_thread(Platform_thread const &);
 			Platform_thread &operator = (Platform_thread const &);
 
-			int                _thread_id;
-			L4_ThreadId_t      _l4_thread_id;
-			char               _name[32];  /* thread name at kernel debugger */
+			typedef String<32> Name;
+
+			int                _thread_id = THREAD_INVALID;
+			L4_ThreadId_t      _l4_thread_id = L4_nilthread;
+			Name         const _name;  /* thread name at kernel debugger */
 			Platform_pd       *_platform_pd = nullptr;
-			unsigned           _priority;
-			Pager_object      *_pager;
+			unsigned           _priority = 0;
+			Pager_object      *_pager = nullptr;
 			Affinity::Location _location { };
 
 		public:
@@ -69,9 +72,16 @@ namespace Genode {
 			/**
 			 * Constructor
 			 */
-			Platform_thread(size_t, const char *name = 0, unsigned priority = 0,
-			                Affinity::Location = Affinity::Location(),
-			                addr_t utcb = 0, int thread_id = THREAD_INVALID);
+			Platform_thread(size_t, char const *name, unsigned priority,
+			                Affinity::Location, addr_t)
+			:
+				_name(name), _priority(priority)
+			{ }
+
+			/**
+			 * Constructor used for core-internal threads
+			 */
+			Platform_thread(char const *name) : _name(name) { }
 
 			/**
 			 * Destructor
@@ -117,7 +127,7 @@ namespace Genode {
 			 * \param pd            platform pd, thread is bound to
 			 */
 			void bind(int thread_id, Pistachio::L4_ThreadId_t l4_thread_id,
-			          Platform_pd *pd);
+			          Platform_pd &pd);
 
 			/**
 			 * Unbind this thread
@@ -144,8 +154,15 @@ namespace Genode {
 			/**
 			 * Return/set pager
 			 */
-			Pager_object *pager() const { return _pager; }
-			void pager(Pager_object *pager) { _pager = pager; }
+			Pager_object &pager() const
+			{
+				if (_pager)
+					return *_pager;
+
+				ASSERT_NEVER_CALLED;
+			}
+
+			void pager(Pager_object &pager) { _pager = &pager; }
 
 			/**
 			 * Return identification of thread when faulting
@@ -180,7 +197,7 @@ namespace Genode {
 
 			int                      thread_id()        const { return _thread_id; }
 			Pistachio::L4_ThreadId_t native_thread_id() const { return _l4_thread_id; }
-			const char              *name()             const { return _name; }
+			Name                     name()             const { return _name; }
 
 			/* use only for core... */
 			void set_l4_thread_id(Pistachio::L4_ThreadId_t id) { _l4_thread_id = id; }

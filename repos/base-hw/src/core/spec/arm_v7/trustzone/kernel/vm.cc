@@ -22,10 +22,13 @@ using namespace Kernel;
 Kernel::Vm::Vm(void                   * const state,
                Kernel::Signal_context * const context,
                void                   * const /* table */)
-:  Cpu_job(Cpu_priority::MIN, 0),
-  _state((Genode::Vm_state * const)state),
-  _context(context), _table(0) {
-	affinity(&cpu_pool()->primary_cpu()); }
+:
+	Cpu_job(Cpu_priority::MIN, 0),
+	_state((Genode::Vm_state * const)state),
+	_context(context), _table(0)
+{
+	affinity(cpu_pool().primary_cpu());
+}
 
 
 Kernel::Vm::~Vm() {}
@@ -58,10 +61,10 @@ void Vm::proceed(Cpu & cpu)
 {
 	unsigned const irq = _state->irq_injection;
 	if (irq) {
-		if (pic()->secure(irq)) {
+		if (pic().secure(irq)) {
 			Genode::warning("Refuse to inject secure IRQ into VM");
 		} else {
-			pic()->trigger(irq);
+			pic().trigger(irq);
 			_state->irq_injection = 0;
 		}
 	}

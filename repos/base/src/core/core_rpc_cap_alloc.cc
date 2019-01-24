@@ -23,7 +23,7 @@ using namespace Genode;
 
 static Rpc_cap_factory &rpc_cap_factory()
 {
-	static Rpc_cap_factory inst(*platform()->core_mem_alloc());
+	static Rpc_cap_factory inst(platform().core_mem_alloc());
 	return inst;
 }
 

@@ -71,13 +71,13 @@ Genode::Cap_index* Genode::Cap_index::find_by_id(Genode::uint16_t id)
 
 
 Genode::addr_t Genode::Cap_index::kcap() const {
-	return cap_idx_alloc()->idx_to_kcap(this); }
+	return cap_idx_alloc().idx_to_kcap(this); }
 
 
 Genode::uint8_t Genode::Cap_index::inc()
 {
 	/* con't ref-count index that are controlled by core */
-	if (cap_idx_alloc()->static_idx(this))
+	if (cap_idx_alloc().static_idx(this))
 		return 1;
 
 	spinlock_lock(&_cap_index_spinlock);
@@ -90,7 +90,7 @@ Genode::uint8_t Genode::Cap_index::inc()
 Genode::uint8_t Genode::Cap_index::dec()
 {
 	/* con't ref-count index that are controlled by core */
-	if (cap_idx_alloc()->static_idx(this))
+	if (cap_idx_alloc().static_idx(this))
 		return 1;
 
 	spinlock_lock(&_cap_index_spinlock);
@@ -121,7 +121,7 @@ Genode::Cap_index* Genode::Capability_map::insert(int id)
 	ASSERT(!_tree.first() || !_tree.first()->find_by_id(id),
 	       "Double insertion in cap_map()!");
 
-	Cap_index *i = cap_idx_alloc()->alloc_range(1);
+	Cap_index * const i = cap_idx_alloc().alloc_range(1);
 	if (i) {
 		i->id(id);
 		_tree.insert(i);
@@ -141,7 +141,7 @@ Genode::Cap_index* Genode::Capability_map::insert(int id, addr_t kcap)
 	if (i)
 		_tree.remove(i);
 
-	i = cap_idx_alloc()->alloc(kcap);
+	i = cap_idx_alloc().alloc(kcap);
 	if (i) {
 		i->id(id);
 		_tree.insert(i);
@@ -180,7 +180,7 @@ Genode::Cap_index* Genode::Capability_map::insert_map(int id, addr_t kcap)
 	}
 
 	/* the capability doesn't exists in the map so allocate a new one */
-	i = cap_idx_alloc()->alloc_range(1);
+	i = cap_idx_alloc().alloc_range(1);
 	if (!i)
 		return 0;
 
@@ -196,10 +196,10 @@ Genode::Cap_index* Genode::Capability_map::insert_map(int id, addr_t kcap)
 }
 
 
-Genode::Capability_map* Genode::cap_map()
+Genode::Capability_map &Genode::cap_map()
 {
 	static Genode::Capability_map map;
-	return &map;
+	return map;
 }
 
 
@@ -209,14 +209,14 @@ Genode::Capability_map* Genode::cap_map()
 
 Fiasco::l4_cap_idx_t Genode::Capability_space::alloc_kcap()
 {
-	return cap_idx_alloc()->alloc_range(1)->kcap();
+	return cap_idx_alloc().alloc_range(1)->kcap();
 }
 
 
 void Genode::Capability_space::free_kcap(Fiasco::l4_cap_idx_t kcap)
 {
-	Genode::Cap_index* idx = Genode::cap_idx_alloc()->kcap_to_idx(kcap);
-	Genode::cap_idx_alloc()->free(idx, 1);
+	Genode::Cap_index *idx = Genode::cap_idx_alloc().kcap_to_idx(kcap);
+	Genode::cap_idx_alloc().free(idx, 1);
 }
 
 

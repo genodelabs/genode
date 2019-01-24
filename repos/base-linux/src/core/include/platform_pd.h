@@ -26,9 +26,9 @@ namespace Genode {
 
 struct Genode::Platform_pd
 {
-	Platform_pd(Allocator *, char const *) { }
+	Platform_pd(Allocator &, char const *) { }
 
-	bool bind_thread(Platform_thread *) { return true; }
+	bool bind_thread(Platform_thread &) { return true; }
 
 	void assign_parent(Capability<Parent>) { }
 };

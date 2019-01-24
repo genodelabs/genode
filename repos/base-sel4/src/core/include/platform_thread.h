@@ -23,6 +23,7 @@
 #include <ipc_pager.h>
 #include <thread_sel4.h>
 #include <install_mapping.h>
+#include <assertion.h>
 
 namespace Genode {
 
@@ -80,8 +81,8 @@ class Genode::Platform_thread : public List<Platform_thread>::Element
 		/**
 		 * Constructor
 		 */
-		Platform_thread(size_t, const char *name = 0, unsigned priority = 0,
-		                Affinity::Location = Affinity::Location(), addr_t utcb = 0);
+		Platform_thread(size_t, const char *name, unsigned priority,
+		                Affinity::Location, addr_t utcb);
 
 		/**
 		 * Destructor
@@ -144,12 +145,15 @@ class Genode::Platform_thread : public List<Platform_thread>::Element
 		 ** Accessor functions **
 		 ************************/
 
-		/**
-		 * Set pager capability
-		 */
-		Pager_object *pager(Pager_object *) const { return _pager; }
-		void pager(Pager_object *pager) { _pager = pager; }
-		Pager_object *pager() { return _pager; }
+		void pager(Pager_object &pager) { _pager = &pager; }
+
+		Pager_object &pager()
+		{
+			if (_pager)
+				return *_pager;
+
+			ASSERT_NEVER_CALLED;
+		}
 
 		/**
 		 * Return identification of thread when faulting

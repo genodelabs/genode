@@ -31,11 +31,11 @@
 namespace Genode {
 
 	class Core_env;
-	extern Core_env *core_env();
+	extern Core_env &core_env();
 }
 
 
-class Genode::Core_env : public Env_deprecated
+class Genode::Core_env : public Env_deprecated, Noncopyable
 {
 	private:
 
@@ -62,26 +62,27 @@ class Genode::Core_env : public Env_deprecated
 			_pd_session(_entrypoint,
 			            _entrypoint,
 			            Session::Resources {
-			                Ram_quota { platform()->ram_alloc()->avail() },
-			                Cap_quota { platform()->max_caps() } },
+			                Ram_quota { platform().ram_alloc().avail() },
+			                Cap_quota { platform().max_caps() } },
 			            Session::Label("core"),
 			            Session::Diag{false},
-			            *platform()->ram_alloc(),
+			            platform().ram_alloc(),
 			            Ram_dataspace_factory::any_phys_range(),
-			            Ram_dataspace_factory::Virt_range { platform()->vm_start(), platform()->vm_size() },
+			            Ram_dataspace_factory::Virt_range { platform().vm_start(),
+			                                                platform().vm_size() },
 			            _region_map,
 			            *((Pager_entrypoint *)nullptr),
 			            "" /* args to native PD */,
-			            *platform_specific()->core_mem_alloc())
+			            platform_specific().core_mem_alloc())
 		{
 			_pd_session.init_cap_and_ram_accounts();
 		}
 
 		~Core_env() { parent()->exit(0); }
 
-		Rpc_entrypoint *entrypoint()    { return &_entrypoint; }
-		Ram_allocator  &ram_allocator() { return  _synced_ram_allocator; }
-		Region_map     &local_rm()      { return  _region_map; }
+		Rpc_entrypoint &entrypoint()    { return _entrypoint; }
+		Ram_allocator  &ram_allocator() { return _synced_ram_allocator; }
+		Region_map     &local_rm()      { return _region_map; }
 
 		Rpc_entrypoint &signal_ep();
 

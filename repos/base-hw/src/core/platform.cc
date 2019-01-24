@@ -97,27 +97,27 @@ addr_t Platform::_rom_module_phys(addr_t virt)
 
 Platform::Platform()
 :
-	_io_mem_alloc(core_mem_alloc()),
-	_io_port_alloc(core_mem_alloc()),
-	_irq_alloc(core_mem_alloc())
+	_io_mem_alloc(&core_mem_alloc()),
+	_io_port_alloc(&core_mem_alloc()),
+	_irq_alloc(&core_mem_alloc())
 {
 	struct Kernel_resource : Exception { };
 
-	_core_mem_alloc.virt_alloc()->add_range(Hw::Mm::core_heap().base,
-	                                        Hw::Mm::core_heap().size);
+	_core_mem_alloc.virt_alloc().add_range(Hw::Mm::core_heap().base,
+	                                       Hw::Mm::core_heap().size);
 	_core_virt_regions().for_each([this] (Hw::Memory_region const & r) {
-		_core_mem_alloc.virt_alloc()->remove_range(r.base, r.size); });
+		_core_mem_alloc.virt_alloc().remove_range(r.base, r.size); });
 	_boot_info().elf_mappings.for_each([this] (Hw::Mapping const & m) {
-		_core_mem_alloc.virt_alloc()->remove_range(m.virt(), m.size()); });
+		_core_mem_alloc.virt_alloc().remove_range(m.virt(), m.size()); });
 	_boot_info().ram_regions.for_each([this] (Hw::Memory_region const & region) {
-		_core_mem_alloc.phys_alloc()->add_range(region.base, region.size); });
+		_core_mem_alloc.phys_alloc().add_range(region.base, region.size); });
 
 	_init_io_port_alloc();
 
 	/* make all non-kernel interrupts available to the interrupt allocator */
 	for (unsigned i = 0; i < Kernel::Pic::NR_OF_IRQ; i++) {
 		bool kernel_resource = false;
-		Kernel::cpu_pool()->for_each_cpu([&] (Kernel::Cpu const &cpu) {
+		Kernel::cpu_pool().for_each_cpu([&] (Kernel::Cpu const &cpu) {
 			if (i == cpu.timer_interrupt_id()) {
 				kernel_resource = true;
 			}
@@ -142,11 +142,11 @@ Platform::Platform()
 		unsigned const pages  = 1;
 		size_t const log_size = pages << get_page_size_log2();
 
-		ram_alloc()->alloc_aligned(log_size, &phys_ptr, get_page_size_log2());
+		ram_alloc().alloc_aligned(log_size, &phys_ptr, get_page_size_log2());
 		addr_t const phys_addr = reinterpret_cast<addr_t>(phys_ptr);
 
 		/* let one page free after the log buffer */
-		region_alloc()->alloc_aligned(log_size, &core_local_ptr, get_page_size_log2());
+		region_alloc().alloc_aligned(log_size, &core_local_ptr, get_page_size_log2());
 		addr_t const core_local_addr = reinterpret_cast<addr_t>(core_local_ptr);
 
 		map_local(phys_addr, core_local_addr, pages);
@@ -169,16 +169,16 @@ Platform::Platform()
 bool Genode::map_local(addr_t from_phys, addr_t to_virt, size_t num_pages,
                        Page_flags flags)
 {
-	Platform_pd * pd = Kernel::core_pd()->platform_pd();
-	return pd->insert_translation(to_virt, from_phys,
-	                              num_pages * get_page_size(), flags);
+	Platform_pd &pd = Kernel::core_pd().platform_pd();
+	return pd.insert_translation(to_virt, from_phys,
+	                             num_pages * get_page_size(), flags);
 }
 
 
 bool Genode::unmap_local(addr_t virt_addr, size_t num_pages)
 {
-	Platform_pd * pd = Kernel::core_pd()->platform_pd();
-	pd->flush(virt_addr, num_pages * get_page_size());
+	Platform_pd &pd = Kernel::core_pd().platform_pd();
+	pd.flush(virt_addr, num_pages * get_page_size());
 	return true;
 }
 

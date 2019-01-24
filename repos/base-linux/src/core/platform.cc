@@ -183,7 +183,7 @@ size_t Region_map_mmap::_dataspace_size(Capability<Dataspace> ds_cap)
 		return Local_capability<Dataspace>::deref(ds_cap)->size();
 
 	/* use local function call if called from the entrypoint */
-	return core_env()->entrypoint()->apply(ds_cap, [] (Dataspace *ds) {
+	return core_env().entrypoint().apply(ds_cap, [] (Dataspace *ds) {
 		return ds ? ds->size() : 0; });
 }
 
@@ -201,13 +201,13 @@ int Region_map_mmap::_dataspace_fd(Capability<Dataspace> ds_cap)
 	 * socket descriptor during the RPC handling). When later destroying the
 	 * dataspace, the descriptor would unexpectedly be closed again.
 	 */
-	return core_env()->entrypoint()->apply(lx_ds_cap, [] (Linux_dataspace *ds) {
+	return core_env().entrypoint().apply(lx_ds_cap, [] (Linux_dataspace *ds) {
 		return ds ? lx_dup(Capability_space::ipc_cap_data(ds->fd()).dst.socket) : -1; });
 }
 
 
 bool Region_map_mmap::_dataspace_writable(Dataspace_capability ds_cap)
 {
-	return core_env()->entrypoint()->apply(ds_cap, [] (Dataspace *ds) {
+	return core_env().entrypoint().apply(ds_cap, [] (Dataspace *ds) {
 		return ds ? ds->writable() : false; });
 }

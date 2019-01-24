@@ -40,7 +40,7 @@ void Thread::_deinit_platform_thread()
 
 	if (native_thread().kcap && _thread_cap.valid()) {
 		Cap_index *i = (Cap_index*)l4_utcb_tcr_u(utcb()->foc_utcb)->user[UTCB_TCR_BADGE];
-		cap_map()->remove(i);
+		cap_map().remove(i);
 		_cpu_session->kill_thread(_thread_cap);
 	}
 }
@@ -93,7 +93,7 @@ void Thread::start()
 
 	native_thread() = Native_thread(state.kcap);
 
-	Cap_index *i = cap_map()->insert(state.id, state.kcap);
+	Cap_index *i = cap_map().insert(state.id, state.kcap);
 	l4_utcb_tcr_u(foc_utcb)->user[UTCB_TCR_BADGE]      = (unsigned long) i;
 	l4_utcb_tcr_u(foc_utcb)->user[UTCB_TCR_THREAD_OBJ] = (addr_t)this;
 

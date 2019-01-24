@@ -58,7 +58,7 @@ namespace Genode {
 		}
 	}
 
-	constexpr addr_t get_page_mask()      { return ~(get_page_size() - 1); }
+	constexpr addr_t get_page_mask() { return ~(get_page_size() - 1); }
 
 	inline size_t get_super_page_size_log2()
 	{

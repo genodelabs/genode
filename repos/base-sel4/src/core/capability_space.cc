@@ -80,7 +80,7 @@ Capability_space::create_rpc_obj_cap(Native_capability ep_cap,
                                      Rpc_obj_key rpc_obj_key)
 {
 	/* allocate core-local selector for RPC object */
-	Cap_sel const rpc_obj_sel = platform_specific()->core_sel_alloc().alloc();
+	Cap_sel const rpc_obj_sel = platform_specific().core_sel_alloc().alloc();
 
 	/* create Genode capability */
 	Native_capability::Data &data =
@@ -170,13 +170,13 @@ Native_capability Capability_space::lookup(Rpc_obj_key rpc_obj_key)
 
 unsigned Capability_space::alloc_rcv_sel()
 {
-	return platform_specific()->alloc_core_rcv_sel();
+	return platform_specific().alloc_core_rcv_sel();
 }
 
 
 void Capability_space::reset_sel(unsigned sel)
 {
-	return platform_specific()->reset_sel(sel);
+	return platform_specific().reset_sel(sel);
 }
 
 

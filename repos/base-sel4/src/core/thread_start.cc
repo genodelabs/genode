@@ -54,7 +54,7 @@ void Thread::_init_platform_thread(size_t, Type type)
 	native_thread().ep_sel   = thread_info.ep_sel.value();
 	native_thread().lock_sel = thread_info.lock_sel.value();
 
-	Platform &platform = *platform_specific();
+	Platform &platform = platform_specific();
 
 	seL4_CNode_CapData guard = seL4_CNode_CapData_new(0, CONFIG_WORD_SIZE - 32);
 	seL4_CNode_CapData no_cap_data = { { 0 } };
@@ -87,8 +87,7 @@ void Thread::_deinit_platform_thread()
 		error(__PRETTY_FUNCTION__, ": seL4_CNode_Delete (",
 		      Hex(native_thread().lock_sel), ") returned ", res);
 
-	Platform &platform = *platform_specific();
-	platform.core_sel_alloc().free(Cap_sel(native_thread().lock_sel));
+	platform_specific().core_sel_alloc().free(Cap_sel(native_thread().lock_sel));
 }
 
 
@@ -110,16 +109,17 @@ void Thread::start()
 	                           private Trace::Control,
 	                           private Trace::Source
 	{
-		Thread        &_thread;
+		Thread &_thread;
 
 		/**
 		 * Trace::Source::Info_accessor interface
 		 */
 		Info trace_source_info() const override
 		{
-			Thread         * const me = Thread::myself();
-			seL4_IPCBuffer * const ipcbuffer = reinterpret_cast<seL4_IPCBuffer *>(me->utcb());
-			uint64_t       const * const buf = reinterpret_cast<uint64_t *>(ipcbuffer->msg);
+			Thread &myself = *Thread::myself();
+
+			seL4_IPCBuffer &ipc_buffer = *reinterpret_cast<seL4_IPCBuffer *>(myself.utcb());
+			uint64_t const * const buf =  reinterpret_cast<uint64_t *>(ipc_buffer.msg);
 
 			seL4_BenchmarkGetThreadUtilisation(_thread.native_thread().tcb_sel);
 			uint64_t const thread_time = buf[BENCHMARK_TCB_UTILISATION];
@@ -138,7 +138,7 @@ void Thread::start()
 		}
 	};
 
-	new (*platform()->core_mem_alloc())
+	new (platform().core_mem_alloc())
 		Core_trace_source(Trace::sources(), *this);
 }
 

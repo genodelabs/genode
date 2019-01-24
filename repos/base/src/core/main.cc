@@ -47,7 +47,7 @@ using namespace Genode;
  ** Core environment/platform support **
  ***************************************/
 
-Core_env * Genode::core_env()
+Core_env &Genode::core_env()
 {
 	/*
 	 * Make sure to initialize the platform before constructing the core
@@ -71,22 +71,22 @@ Core_env * Genode::core_env()
 		signal_transmitter_initialized =
 			(init_core_signal_transmitter(_env.signal_ep()), true);
 
-	return &_env;
+	return _env;
 }
 
 
-Env_deprecated * Genode::env_deprecated() {
-	return core_env(); }
+Env_deprecated *Genode::env_deprecated() {
+	return &core_env(); }
 
 
-Platform *Genode::platform_specific()
+Platform &Genode::platform_specific()
 {
 	static Platform _platform;
-	return &_platform;
+	return _platform;
 }
 
 
-Platform_generic *Genode::platform() { return platform_specific(); }
+Platform_generic &Genode::platform() { return platform_specific(); }
 
 
 Thread_capability Genode::main_thread_cap() { return Thread_capability(); }
@@ -231,11 +231,11 @@ int main()
 
 	static Trace::Policy_registry trace_policies;
 
-	static Rpc_entrypoint &ep              = *core_env()->entrypoint();
-	static Ram_allocator  &core_ram_alloc  =  core_env()->ram_allocator();
-	static Region_map     &local_rm        =  core_env()->local_rm();
-	Pd_session            &core_pd         = *core_env()->pd_session();
-	Capability<Pd_session> core_pd_cap     =  core_env()->pd_session_cap();
+	static Rpc_entrypoint &ep              =  core_env().entrypoint();
+	static Ram_allocator  &core_ram_alloc  =  core_env().ram_allocator();
+	static Region_map     &local_rm        =  core_env().local_rm();
+	Pd_session            &core_pd         = *core_env().pd_session();
+	Capability<Pd_session> core_pd_cap     =  core_env().pd_session_cap();
 
 	static Registry<Service> services;
 
@@ -252,20 +252,20 @@ int main()
 
 	static Pager_entrypoint pager_ep(rpc_cap_factory);
 
-	static Rom_root    rom_root    (&ep, &ep, platform()->rom_fs(), &sliced_heap);
-	static Rm_root     rm_root     (&ep, &sliced_heap, pager_ep);
-	static Cpu_root    cpu_root    (&ep, &ep, &pager_ep, &sliced_heap,
+	static Rom_root    rom_root    (ep, ep, platform().rom_fs(), sliced_heap);
+	static Rm_root     rm_root     (ep, sliced_heap, pager_ep);
+	static Cpu_root    cpu_root    (ep, ep, pager_ep, sliced_heap,
 	                                Trace::sources());
-	static Pd_root     pd_root     (ep, core_env()->signal_ep(), pager_ep,
-	                                *platform()->ram_alloc(),
+	static Pd_root     pd_root     (ep, core_env().signal_ep(), pager_ep,
+	                                platform().ram_alloc(),
 	                                local_rm, sliced_heap,
-	                                *platform_specific()->core_mem_alloc());
-	static Log_root    log_root    (&ep, &sliced_heap);
-	static Io_mem_root io_mem_root (&ep, &ep, platform()->io_mem_alloc(),
-	                                platform()->ram_alloc(), &sliced_heap);
-	static Irq_root    irq_root    (core_env()->pd_session(),
-	                                platform()->irq_alloc(), &sliced_heap);
-	static Trace::Root trace_root  (&ep, &sliced_heap, Trace::sources(), trace_policies);
+	                                platform_specific().core_mem_alloc());
+	static Log_root    log_root    (ep, sliced_heap);
+	static Io_mem_root io_mem_root (ep, ep, platform().io_mem_alloc(),
+	                                platform().ram_alloc(), sliced_heap);
+	static Irq_root    irq_root    (*core_env().pd_session(),
+	                                platform().irq_alloc(), sliced_heap);
+	static Trace::Root trace_root  (ep, sliced_heap, Trace::sources(), trace_policies);
 
 	static Core_service<Rom_session_component>    rom_service    (services, rom_root);
 	static Core_service<Rm_session_component>     rm_service     (services, rm_root);
@@ -277,7 +277,7 @@ int main()
 	static Core_service<Trace::Session_component> trace_service  (services, trace_root);
 
 	/* make platform-specific services known to service pool */
-	platform_add_local_services(&ep, &sliced_heap, &services);
+	platform_add_local_services(ep, sliced_heap, services);
 
 	size_t const avail_ram_quota = core_pd.avail_ram().value;
 	size_t const avail_cap_quota = core_pd.avail_caps().value;
@@ -300,7 +300,7 @@ int main()
 
 	/* CPU session representing core */
 	static Cpu_session_component
-		core_cpu(&ep, &ep, &pager_ep, &sliced_heap, Trace::sources(),
+		core_cpu(ep, ep, pager_ep, sliced_heap, Trace::sources(),
 		         "label=\"core\"", Affinity(), Cpu_session::QUOTA_LIMIT);
 	Cpu_session_capability core_cpu_cap = ep.manage(&core_cpu);
 
@@ -308,10 +308,10 @@ int main()
 	    "assigned to init");
 
 	static Reconstructible<Core_child>
-		init(services, local_rm,  core_pd,  core_pd_cap, core_cpu, core_cpu_cap,
+		init(services, local_rm, core_pd, core_pd_cap, core_cpu, core_cpu_cap,
 		     init_cap_quota, init_ram_quota, ep);
 
-	platform()->wait_for_exit();
+	platform().wait_for_exit();
 
 	init.destruct();
 	return 0;

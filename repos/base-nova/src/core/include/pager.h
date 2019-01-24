@@ -42,15 +42,15 @@ namespace Genode {
 		private:
 
 			template <uint8_t EV>
-			__attribute__((regparm(1))) static void _handler(addr_t);
+			__attribute__((regparm(1))) static void _handler(Pager_object &);
 
 		public:
 
-			Exception_handlers(Pager_object *);
+			Exception_handlers(Pager_object &);
 
 			template <uint8_t EV>
-			void register_handler(Pager_object *, Nova::Mtd,
-			                      void (__attribute__((regparm(1)))*)(addr_t) = nullptr);
+			void register_handler(Pager_object &, Nova::Mtd,
+			                      void (__attribute__((regparm(1)))*)(Pager_object &) = nullptr);
 	};
 
 
@@ -128,8 +128,8 @@ namespace Genode {
 
 			addr_t _pd_target;
 
-			void _copy_state_from_utcb(Nova::Utcb * utcb);
-			void _copy_state_to_utcb(Nova::Utcb * utcb);
+			void _copy_state_from_utcb(Nova::Utcb const &utcb);
+			void _copy_state_to_utcb(Nova::Utcb &utcb) const;
 
 			uint8_t _unsynchronized_client_recall(bool get_state_and_block);
 
@@ -139,16 +139,16 @@ namespace Genode {
 			addr_t sel_oom_portal()     const { return _selectors + 3; }
 
 			__attribute__((regparm(1)))
-			static void _page_fault_handler(addr_t pager_obj);
+			static void _page_fault_handler(Pager_object &);
 
 			__attribute__((regparm(1)))
-			static void _startup_handler(addr_t pager_obj);
+			static void _startup_handler(Pager_object &);
 
 			__attribute__((regparm(1)))
-			static void _invoke_handler(addr_t pager_obj);
+			static void _invoke_handler(Pager_object &);
 
 			__attribute__((regparm(1)))
-			static void _recall_handler(addr_t pager_obj);
+			static void _recall_handler(Pager_object &);
 
 			__attribute__((regparm(3)))
 			static void _oom_handler(addr_t, addr_t, addr_t);
@@ -439,13 +439,13 @@ namespace Genode {
 			/**
 			 * Associate Pager_object with the entry point
 			 */
-			Pager_capability manage(Pager_object *) {
+			Pager_capability manage(Pager_object &) {
 				return Pager_capability(); }
 
 			/**
 			 * Dissolve Pager_object from entry point
 			 */
-			void dissolve(Pager_object *obj);
+			void dissolve(Pager_object &obj);
 	};
 
 

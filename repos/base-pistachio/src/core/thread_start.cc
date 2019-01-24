@@ -37,12 +37,12 @@ void Thread::_thread_start()
 void Thread::start()
 {
 	/* create and start platform thread */
-	native_thread().pt = new(platform()->core_mem_alloc())
-		Platform_thread(0, _stack->name().string());
+	native_thread().pt = new (platform().core_mem_alloc())
+		Platform_thread(_stack->name().string());
 
-	platform_specific()->core_pd()->bind_thread(native_thread().pt);
+	platform_specific().core_pd().bind_thread(*native_thread().pt);
 
-	native_thread().pt->pager(platform_specific()->core_pager());
+	native_thread().pt->pager(platform_specific().core_pager());
 	native_thread().l4id = native_thread().pt->native_thread_id();
 
 	native_thread().pt->start((void *)_thread_start, stack_top());
@@ -60,5 +60,5 @@ void Thread::cancel_blocking()
 void Thread::_deinit_platform_thread()
 {
 	/* destruct platform thread */
-	destroy(platform()->core_mem_alloc(), native_thread().pt);
+	destroy(platform().core_mem_alloc(), native_thread().pt);
 }

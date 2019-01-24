@@ -61,10 +61,10 @@ class Initial_cap_range : public Cap_range
 };
 
 
-Initial_cap_range * initial_cap_range()
+Initial_cap_range &initial_cap_range()
 {
 	static Initial_cap_range s;
-	return &s;
+	return s;
 }
 
 
@@ -76,26 +76,26 @@ void prepare_init_main_thread()
 {
 	using namespace Genode;
 
-	cap_map()->insert(initial_cap_range());
+	cap_map().insert(initial_cap_range());
 
 	/* for Core we can't perform the following code so early */
 	if (!__initial_sp) {
 
 		enum { CAP_RANGES = 32 };
 
-		unsigned index = initial_cap_range()->base() +
-		                 initial_cap_range()->elements();
+		unsigned index = initial_cap_range().base() +
+		                 initial_cap_range().elements();
 
 		static char local[CAP_RANGES][sizeof(Cap_range)];
 
 		for (unsigned i = 0; i < CAP_RANGES; i++) {
 
-			Cap_range * range = reinterpret_cast<Cap_range *>(local[i]);
-			construct_at<Cap_range>(range, index);
+			Cap_range &range = *reinterpret_cast<Cap_range *>(local[i]);
+			construct_at<Cap_range>(&range, index);
 
-			cap_map()->insert(range);
+			cap_map().insert(range);
 
-			index = range->base() + range->elements();
+			index = range.base() + range.elements();
 		}
 	}
 }
@@ -103,8 +103,8 @@ void prepare_init_main_thread()
 void prepare_reinit_main_thread()
 {
 	using namespace Genode;
-	construct_at<Capability_map>(cap_map());
-	construct_at<Initial_cap_range>(initial_cap_range());
+	construct_at<Capability_map>(&cap_map());
+	construct_at<Initial_cap_range>(&initial_cap_range());
 	prepare_init_main_thread();
 }
 

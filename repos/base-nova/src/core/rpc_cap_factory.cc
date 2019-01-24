@@ -23,8 +23,8 @@ using namespace Genode;
 
 Native_capability Rpc_cap_factory::alloc(Native_capability ep, addr_t entry, addr_t mtd)
 {
-	addr_t const pt_sel = cap_map()->insert();
-	addr_t const pd_sel = platform_specific()->core_pd_sel();
+	addr_t const pt_sel = cap_map().insert();
+	addr_t const pd_sel = platform_specific().core_pd_sel();
 	addr_t const ec_sel = ep.local_name();
 
 	using namespace Nova;
@@ -54,7 +54,7 @@ Native_capability Rpc_cap_factory::alloc(Native_capability ep, addr_t entry, add
 	destroy(&_slab, pt_cap);
 
 	/* cleanup unused selectors */
-	cap_map()->remove(pt_sel, 0, false);
+	cap_map().remove(pt_sel, 0, false);
 
 	return Native_capability();
 }
@@ -69,7 +69,7 @@ void Rpc_cap_factory::free(Native_capability cap)
 	for (Cap_object *obj = _list.first(); obj ; obj = obj->next()) {
 		if (cap.local_name() == (long)obj->_cap_sel) {
 			Nova::revoke(Nova::Obj_crd(obj->_cap_sel, 0));
-			cap_map()->remove(obj->_cap_sel, 0, false);
+			cap_map().remove(obj->_cap_sel, 0, false);
 
 			_list.remove(obj);
 			destroy(&_slab, obj);
@@ -90,7 +90,7 @@ Rpc_cap_factory::~Rpc_cap_factory()
 
 	for (Cap_object *obj; (obj = _list.first()); ) {
 		Nova::revoke(Nova::Obj_crd(obj->_cap_sel, 0));
-		cap_map()->remove(obj->_cap_sel, 0, false);
+		cap_map().remove(obj->_cap_sel, 0, false);
 
 		_list.remove(obj);
 		destroy(&_slab, obj);

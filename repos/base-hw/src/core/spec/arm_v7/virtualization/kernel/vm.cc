@@ -58,7 +58,7 @@ struct Kernel::Vm_irq : Kernel::Irq
 {
 	Vm_irq(unsigned const irq)
 	:
-		Kernel::Irq(irq, cpu_pool()->executing_cpu().irq_pool())
+		Kernel::Irq(irq, cpu_pool().executing_cpu().irq_pool())
 	{ }
 
 	/**
@@ -66,7 +66,7 @@ struct Kernel::Vm_irq : Kernel::Irq
 	 */
 	void occurred()
 	{
-		Cpu_job & job = cpu_pool()->executing_cpu().scheduled_job();
+		Cpu_job & job = cpu_pool().executing_cpu().scheduled_job();
 		Vm *vm = dynamic_cast<Vm*>(&job);
 		if (!vm)
 			Genode::error("VM timer interrupt while VM is not runnning!");
@@ -213,7 +213,7 @@ Kernel::Vm::Vm(void                   * const state,
   _context(context),
   _table(table)
 {
-	affinity(&cpu_pool()->primary_cpu());
+	affinity(cpu_pool().primary_cpu());
 	Virtual_pic::pic().irq.enable();
 
 	vt_host_context.sp    = _cpu->stack_start();

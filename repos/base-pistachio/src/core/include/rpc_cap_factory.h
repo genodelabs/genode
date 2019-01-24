@@ -24,7 +24,7 @@ class Genode::Rpc_cap_factory
 {
 	private:
 
-		static Native_capability _alloc(Rpc_cap_factory *owner,
+		static Native_capability _alloc(Rpc_cap_factory &owner,
 		                                Native_capability ep);
 
 	public:

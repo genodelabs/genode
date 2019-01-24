@@ -43,10 +43,10 @@ using namespace Genode;
  **  Cap_index_allocator  **
  ***************************/
 
-Genode::Cap_index_allocator* Genode::cap_idx_alloc()
+Genode::Cap_index_allocator &Genode::cap_idx_alloc()
 {
 	static Genode::Cap_index_allocator_tpl<Core_cap_index,10*1024> alloc;
-	return &alloc;
+	return alloc;
 }
 
 
@@ -54,10 +54,10 @@ Genode::Cap_index_allocator* Genode::cap_idx_alloc()
  **  Cap_mapping  **
  *******************/
 
-Core_cap_index* Cap_mapping::_get_cap()
+Core_cap_index *Cap_mapping::_get_cap()
 {
-	int id = platform_specific()->cap_id_alloc()->alloc();
-	return static_cast<Core_cap_index*>(cap_map()->insert(id));
+	int const id = platform_specific().cap_id_alloc().alloc();
+	return static_cast<Core_cap_index*>(cap_map().insert(id));
 }
 
 
@@ -107,12 +107,12 @@ Native_capability Rpc_cap_factory::alloc(Native_capability ep)
 		/*
 		 * Allocate new id, and ipc-gate and set id as gate-label
 		 */
-		unsigned long id = platform_specific()->cap_id_alloc()->alloc();
-		Core_cap_index* idx = static_cast<Core_cap_index*>(cap_map()->insert(id));
+		unsigned long const id = platform_specific().cap_id_alloc().alloc();
+		Core_cap_index *idx = static_cast<Core_cap_index*>(cap_map().insert(id));
 
 		if (!idx) {
 			warning("Out of capability indices!");
-			platform_specific()->cap_id_alloc()->free(id);
+			platform_specific().cap_id_alloc().free(id);
 			return cap;
 		}
 
@@ -121,12 +121,12 @@ Native_capability Rpc_cap_factory::alloc(Native_capability ep)
 		                                         ref->pt()->thread().local.data()->kcap(), id);
 		if (l4_msgtag_has_error(tag)) {
 			error("l4_factory_create_gate failed!");
-			cap_map()->remove(idx);
-			platform_specific()->cap_id_alloc()->free(id);
+			cap_map().remove(idx);
+			platform_specific().cap_id_alloc().free(id);
 			return cap;
 		} else
 			/* set debugger-name of ipc-gate to thread's name */
-			Fiasco::l4_debugger_set_object_name(idx->kcap(), ref->pt()->name());
+			Fiasco::l4_debugger_set_object_name(idx->kcap(), ref->pt()->name().string());
 
 		// XXX remove cast
 		idx->session((Pd_session_component *)this);
@@ -159,7 +159,7 @@ void Rpc_cap_factory::free(Native_capability cap)
 	if (static_cast<Core_cap_index const *>(cap.data())->session() != (Pd_session_component *)this)
 		return;
 
-	Entry * entry;
+	Entry * entry = nullptr;
 	_pool.apply(cap, [&] (Entry *e) {
 		entry = e;
 		if (e) {
@@ -184,8 +184,8 @@ Rpc_cap_factory::~Rpc_cap_factory()
  **  Capability ID Allocator  **
  *******************************/
 
-Cap_id_allocator::Cap_id_allocator(Allocator* alloc)
-: _id_alloc(alloc)
+Cap_id_allocator::Cap_id_allocator(Allocator &alloc)
+: _id_alloc(&alloc)
 {
 	_id_alloc.add_range(CAP_ID_OFFSET, CAP_ID_RANGE);
 }
@@ -195,7 +195,7 @@ unsigned long Cap_id_allocator::alloc()
 {
 	Lock::Guard lock_guard(_lock);
 
-	void *id;
+	void *id = nullptr;
 	if (_id_alloc.alloc(CAP_ID_OFFSET, &id))
 		return (unsigned long) id;
 	throw Out_of_ids();
@@ -211,7 +211,7 @@ void Cap_id_allocator::free(unsigned long id)
 }
 
 
-void Genode::Capability_map::remove(Genode::Cap_index* i)
+void Genode::Capability_map::remove(Genode::Cap_index *i)
 {
 	using namespace Genode;
 	using namespace Fiasco;
@@ -228,9 +228,9 @@ void Genode::Capability_map::remove(Genode::Cap_index* i)
 				error("destruction of ipc-gate ", i->kcap(), " failed!");
 
 
-			platform_specific()->cap_id_alloc()->free(i->id());
+			platform_specific().cap_id_alloc().free(i->id());
 			_tree.remove(i);
 		}
-		cap_idx_alloc()->free(i, 1);
+		cap_idx_alloc().free(i, 1);
 	}
 }

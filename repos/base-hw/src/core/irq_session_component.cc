@@ -62,14 +62,14 @@ Irq_session_component::~Irq_session_component()
 	using namespace Kernel;
 
 	User_irq * kirq = reinterpret_cast<User_irq*>(&_kernel_object);
-	_irq_alloc->free((void *)(addr_t)_irq_number);
+	_irq_alloc.free((void *)(addr_t)_irq_number);
 	if (_sig_cap.valid())
 		Kernel::delete_irq(kirq);
 }
 
 
-Irq_session_component::Irq_session_component(Range_allocator * const irq_alloc,
-                                             const char      * const      args)
+Irq_session_component::Irq_session_component(Range_allocator &irq_alloc,
+                                             const char * const args)
 :
 	_irq_number(Platform::irq(_find_irq_number(args))), _irq_alloc(irq_alloc),
 	_is_msi(false), _address(0), _value(0)
@@ -85,7 +85,7 @@ Irq_session_component::Irq_session_component(Range_allocator * const irq_alloc,
 	}
 
 	/* allocate interrupt */
-	if (_irq_alloc->alloc_addr(1, _irq_number).error()) {
+	if (_irq_alloc.alloc_addr(1, _irq_number).error()) {
 		error("unavailable interrupt ", _irq_number, " requested");
 		throw Service_denied();
 	}

@@ -103,7 +103,7 @@ void Thread::_init_platform_thread(size_t weight, Type type)
 	addr_t utcb = reinterpret_cast<addr_t>(&_stack->utcb());
 	revoke(Mem_crd(utcb >> 12, 0, rwx));
 
-	native_thread().exc_pt_sel = cap_map()->insert(NUM_INITIAL_PT_LOG2);
+	native_thread().exc_pt_sel = cap_map().insert(NUM_INITIAL_PT_LOG2);
 	if (native_thread().exc_pt_sel == Native_thread::INVALID_INDEX)
 		throw Cpu_session::Thread_creation_failed();
 
@@ -124,14 +124,14 @@ void Thread::_deinit_platform_thread()
 
 	if (native_thread().ec_sel != Native_thread::INVALID_INDEX) {
 		revoke(Obj_crd(native_thread().ec_sel, 0));
-		cap_map()->remove(native_thread().ec_sel, 0, false);
+		cap_map().remove(native_thread().ec_sel, 0, false);
 	}
 
 	/* de-announce thread */
 	if (_thread_cap.valid())
 		_cpu_session->kill_thread(_thread_cap);
 
-	cap_map()->remove(native_thread().exc_pt_sel, NUM_INITIAL_PT_LOG2);
+	cap_map().remove(native_thread().exc_pt_sel, NUM_INITIAL_PT_LOG2);
 }
 
 
@@ -173,7 +173,7 @@ void Thread::start()
 	cpu_thread.start(thread_ip, _stack->top());
 
 	/* request native EC thread cap */ 
-	native_thread().ec_sel = cap_map()->insert();
+	native_thread().ec_sel = cap_map().insert();
 	if (native_thread().ec_sel == Native_thread::INVALID_INDEX)
 		throw Cpu_session::Thread_creation_failed();
 

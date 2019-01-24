@@ -24,6 +24,7 @@
 /* core includes */
 #include <kernel/fifo.h>
 #include <kernel/interface.h>
+#include <assertion.h>
 
 namespace Genode { class Msgbuf_base; };
 
@@ -50,7 +51,7 @@ class Kernel::Ipc_node : private Ipc_node_queue::Element
 			AWAIT_REQUEST = 3,
 		};
 
-		void _init(Genode::Native_utcb * utcb, Ipc_node * callee);
+		void _init(Genode::Native_utcb &utcb, Ipc_node &callee);
 
 	private:
 
@@ -70,22 +71,22 @@ class Kernel::Ipc_node : private Ipc_node_queue::Element
 		/* pre-allocation array for obkject identity references */
 		void * _obj_id_ref_ptr[Genode::Msgbuf_base::MAX_CAPS_PER_MSG];
 
-		inline void copy_msg(Ipc_node * const sender);
+		inline void copy_msg(Ipc_node &sender);
 
 		/**
 		 * Buffer next request from request queue in 'r' to handle it
 		 */
-		void _receive_request(Ipc_node * const caller);
+		void _receive_request(Ipc_node &caller);
 
 		/**
 		 * Receive a given reply if one is expected
 		 */
-		void _receive_reply(Ipc_node * callee);
+		void _receive_reply(Ipc_node &callee);
 
 		/**
 		 * Insert 'r' into request queue, buffer it if we were waiting for it
 		 */
-		void _announce_request(Ipc_node * const node);
+		void _announce_request(Ipc_node &node);
 
 		/**
 		 * Cancel all requests in request queue
@@ -105,7 +106,7 @@ class Kernel::Ipc_node : private Ipc_node_queue::Element
 		/**
 		 * A request 'r' in inbuf or request queue was cancelled by sender
 		 */
-		void _announced_request_cancelled(Ipc_node * const node);
+		void _announced_request_cancelled(Ipc_node &node);
 
 		/**
 		 * The request in the outbuf was cancelled by receiver
@@ -159,7 +160,7 @@ class Kernel::Ipc_node : private Ipc_node_queue::Element
 		 * \param callee    targeted IPC node
 		 * \param help      wether the request implies a helping relationship
 		 */
-		void send_request(Ipc_node * const callee, capid_t capid, bool help,
+		void send_request(Ipc_node &callee, capid_t capid, bool help,
 		                  unsigned rcv_caps);
 
 		/**
@@ -202,8 +203,15 @@ class Kernel::Ipc_node : private Ipc_node_queue::Element
 		 ** Accessors **
 		 ***************/
 
-		Pd                  *pd() const { return _pd; }
-		Genode::Native_utcb *utcb()     { return _utcb; }
+		Pd &pd() const
+		{
+			if (_pd)
+				return *_pd;
+
+			ASSERT_NEVER_CALLED;
+		}
+
+		Genode::Native_utcb *utcb() { return _utcb; }
 };
 
 #endif /* _CORE__KERNEL__IPC_NODE_H_ */

@@ -55,17 +55,17 @@ inline Genode::addr_t boot_cpu()
  * \param kern_pd    Whether to map the items from the kernel or from core
  * \param dma_mem    Whether the memory is usable for DMA or not
  */
-static int map_local(Genode::addr_t const pd, Nova::Utcb * const utcb,
+static int map_local(Genode::addr_t const pd, Nova::Utcb &utcb,
                      Nova::Crd const src_crd, Nova::Crd const dst_crd,
                      bool const kern_pd = false, bool const dma_mem = false,
                      bool const write_combined = false)
 {
 	/* asynchronously map capabilities */
-	utcb->set_msg_word(0);
+	utcb.set_msg_word(0);
 
 	/* ignore return value as one item always fits into the utcb */
-	bool const ok = utcb->append_item(src_crd, 0, kern_pd, false, false,
-	                                  dma_mem, write_combined);
+	bool const ok = utcb.append_item(src_crd, 0, kern_pd, false, false,
+	                                 dma_mem, write_combined);
 	(void)ok;
 
 	Nova::uint8_t res = Nova::delegate(pd, pd, dst_crd);
@@ -76,15 +76,15 @@ static int map_local(Genode::addr_t const pd, Nova::Utcb * const utcb,
 		      Hex(src_crd.addr()), ":", Hex(src_crd.order()), ":", Hex(src_crd.type()), "->",
 		      Hex(dst_crd.addr()), ":", Hex(dst_crd.order()), ":", Hex(dst_crd.type()), " - ",
 		      "result=", Hex(res), " "
-		      "msg=",    Hex(utcb->msg_items()), ":",
-		                 Hex(utcb->msg_words()), ":",
-		                 Hex(utcb->msg()[0]), " !!! "
-		      "utcb=",   utcb, " "
+		      "msg=",    Hex(utcb.msg_items()), ":",
+		                 Hex(utcb.msg_words()), ":",
+		                 Hex(utcb.msg()[0]), " !!! "
+		      "utcb=",   &utcb, " "
 		      "kern=",   kern_pd);
 		return res > 0 ? res : -1;
 	}
 	/* clear receive window */
-	utcb->crd_rcv = 0;
+	utcb.crd_rcv = 0;
 
 	return 0;
 }
@@ -93,13 +93,13 @@ static int map_local(Genode::addr_t const pd, Nova::Utcb * const utcb,
 static inline int unmap_local(Nova::Crd crd, bool self = true) {
 	return Nova::revoke(crd, self); }
 
-inline int map_local_phys_to_virt(Nova::Utcb * const utcb, Nova::Crd const src,
+inline int map_local_phys_to_virt(Nova::Utcb &utcb, Nova::Crd const src,
                                   Nova::Crd const dst, Genode::addr_t const pd)
 {
 	return map_local(pd, utcb, src, dst, true);
 }
 
-inline int map_local_one_to_one(Nova::Utcb * const utcb, Nova::Crd const crd,
+inline int map_local_one_to_one(Nova::Utcb &utcb, Nova::Crd const crd,
                                 Genode::addr_t const pd)
 {
 	return map_local(pd, utcb, crd, crd, true);
@@ -128,7 +128,7 @@ lsb_bit(unsigned long const &value, unsigned char const shift = 0)
  * \param to_start    local virtual destination address
  * \param num_pages   number of pages to map
  */
-inline int map_local(Genode::addr_t const pd, Nova::Utcb *utcb,
+inline int map_local(Genode::addr_t const pd, Nova::Utcb &utcb,
                      Genode::addr_t from_start, Genode::addr_t to_start,
                      Genode::size_t num_pages,
                      Nova::Rights const &permission,
@@ -190,7 +190,7 @@ inline int map_local(Genode::addr_t const pd, Nova::Utcb *utcb,
  * \param self        map from this pd or solely from other pds
  * \param rights      rights to be revoked, default: all rwx
  */
-inline void unmap_local(Nova::Utcb *, Genode::addr_t start,
+inline void unmap_local(Nova::Utcb &, Genode::addr_t start,
                         Genode::size_t num_pages,
                         bool const self = true,
                         Nova::Rights const rwx = Nova::Rights(true, true, true))
@@ -236,13 +236,13 @@ inline Nova::uint8_t async_map(Genode::Pager_object &pager,
                                Genode::addr_t const target_pd,
                                Nova::Obj_crd const &source_initial_caps,
                                Nova::Obj_crd const &target_initial_caps,
-                               Nova::Utcb *utcb)
+                               Nova::Utcb &utcb)
 {
 	/* asynchronously map capabilities */
-	utcb->set_msg_word(0);
+	utcb.set_msg_word(0);
 
 	/* ignore return value as one item always fits into the utcb */
-	bool const ok = utcb->append_item(source_initial_caps, 0);
+	bool const ok = utcb.append_item(source_initial_caps, 0);
 	(void)ok;
 
 	return syscall_retry(pager,
@@ -254,7 +254,7 @@ inline Nova::uint8_t async_map(Genode::Pager_object &pager,
 inline Nova::uint8_t map_vcpu_portals(Genode::Pager_object &pager,
                                       Genode::addr_t const source_exc_base,
                                       Genode::addr_t const target_exc_base,
-                                      Nova::Utcb *utcb,
+                                      Nova::Utcb &utcb,
                                       Genode::addr_t const source_pd)
 {
 	using Nova::Obj_crd;
@@ -271,12 +271,12 @@ inline Nova::uint8_t map_pagefault_portal(Genode::Pager_object &pager,
                                           Genode::addr_t const source_exc_base,
                                           Genode::addr_t const target_exc_base,
                                           Genode::addr_t const target_pd,
-                                          Nova::Utcb *utcb)
+                                          Nova::Utcb &utcb)
 {
 	using Nova::Obj_crd;
 	using Nova::PT_SEL_PAGE_FAULT;
 
-	Genode::addr_t const source_pd = Genode::platform_specific()->core_pd_sel();
+	Genode::addr_t const source_pd = Genode::platform_specific().core_pd_sel();
 
 	Obj_crd const source_initial_caps(source_exc_base + PT_SEL_PAGE_FAULT, 0);
 	Obj_crd const target_initial_caps(target_exc_base + PT_SEL_PAGE_FAULT, 0);

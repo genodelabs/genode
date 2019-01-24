@@ -41,7 +41,7 @@ using namespace Kernel;
 Thread::Pd_update::Pd_update(Thread & caller, Pd & pd, unsigned cnt)
 : caller(caller), pd(pd), cnt(cnt)
 {
-	cpu_pool()->work_list().insert(&_le);
+	cpu_pool().work_list().insert(&_le);
 	caller._become_inactive(AWAITS_RESTART);
 }
 
@@ -57,7 +57,7 @@ Thread::Destroy::Destroy(Thread & caller, Thread & to_delete)
 void Thread::Destroy::execute()
 {
 	thread_to_destroy.~Thread();
-	cpu_pool()->executing_cpu().work_list().remove(&_le);
+	cpu_pool().executing_cpu().work_list().remove(&_le);
 	caller._restart();
 }
 
@@ -224,18 +224,18 @@ void Thread::_call_thread_quota()
 void Thread::_call_start_thread()
 {
 	/* lookup CPU */
-	Cpu & cpu = cpu_pool()->cpu(user_arg_2());
+	Cpu & cpu = cpu_pool().cpu(user_arg_2());
 	user_arg_0(0);
-	Thread * const thread = (Thread*) user_arg_1();
+	Thread &thread = *(Thread *)user_arg_1();
 
-	assert(thread->_state == AWAITS_START);
+	assert(thread._state == AWAITS_START);
 
-	thread->affinity(&cpu);
+	thread.affinity(cpu);
 
 	/* join protection domain */
-	thread->_pd = (Pd *) user_arg_3();
-	thread->Ipc_node::_init((Native_utcb *)user_arg_4(), this);
-	thread->_become_active();
+	thread._pd = (Pd *) user_arg_3();
+	thread.Ipc_node::_init(*(Native_utcb *)user_arg_4(), *this);
+	thread._become_active();
 }
 
 
@@ -268,17 +268,20 @@ void Thread::_call_stop_thread()
 
 void Thread::_call_restart_thread()
 {
-	if (!pd()) {
-		return; }
+	Thread *thread_ptr = pd().cap_tree().find<Thread>(user_arg_1());
 
-	Thread * const thread = pd()->cap_tree().find<Thread>(user_arg_1());
-	if (!thread || (!_core && (pd() != thread->pd()))) {
+	if (!thread_ptr)
+		return;
+
+	Thread &thread = *thread_ptr;
+
+	if (!_core && (&pd() != &thread.pd())) {
 		warning(*this, ": failed to lookup thread ", (unsigned)user_arg_1(),
 		        " to restart it");
 		_die();
 		return;
 	}
-	user_arg_0(thread->_restart());
+	user_arg_0(thread._restart());
 }
 
 
@@ -386,7 +389,7 @@ void Thread::_call_timeout_max_us()
 void Thread::timeout_triggered()
 {
 	Signal_context * const c =
-		pd()->cap_tree().find<Signal_context>(_timeout_sigid);
+		pd().cap_tree().find<Signal_context>(_timeout_sigid);
 	if (!c || c->submit(1))
 		Genode::warning(*this, ": failed to submit timeout signal");
 }
@@ -394,7 +397,7 @@ void Thread::timeout_triggered()
 
 void Thread::_call_send_request_msg()
 {
-	Object_identity_reference * oir = pd()->cap_tree().find(user_arg_1());
+	Object_identity_reference * oir = pd().cap_tree().find(user_arg_1());
 	Thread * const dst = (oir) ? oir->object<Thread>() : nullptr;
 	if (!dst) {
 		Genode::warning(*this, ": cannot send to unknown recipient ",
@@ -402,10 +405,10 @@ void Thread::_call_send_request_msg()
 		_become_inactive(AWAITS_IPC);
 		return;
 	}
-	bool const help = Cpu_job::_helping_possible(dst);
+	bool const help = Cpu_job::_helping_possible(*dst);
 	oir = oir->find(dst->pd());
 
-	Ipc_node::send_request(dst, oir ? oir->capid() : cap_id_invalid(),
+	Ipc_node::send_request(*dst, oir ? oir->capid() : cap_id_invalid(),
 	                       help, user_arg_2());
 	_state = AWAITS_IPC;
 	if (!help || !dst->own_share_active()) { _deactivate_used_shares(); }
@@ -424,8 +427,8 @@ void Thread::_call_send_reply_msg()
 void Thread::_call_pager()
 {
 	/* override event route */
-	Thread * const t = (Thread*) user_arg_1();
-	t->_pager = pd()->cap_tree().find<Signal_context>(user_arg_2());
+	Thread &thread = *(Thread *)user_arg_1();
+	thread._pager = pd().cap_tree().find<Signal_context>(user_arg_2());
 }
 
 
@@ -441,7 +444,7 @@ void Thread::_call_await_signal()
 		return;
 	}
 	/* lookup receiver */
-	Signal_receiver * const r = pd()->cap_tree().find<Signal_receiver>(user_arg_1());
+	Signal_receiver * const r = pd().cap_tree().find<Signal_receiver>(user_arg_1());
 	if (!r) {
 		Genode::warning(*this, ": cannot await, unknown signal receiver ",
 		                (unsigned)user_arg_1());
@@ -460,15 +463,9 @@ void Thread::_call_await_signal()
 
 void Thread::_call_cancel_next_await_signal()
 {
-	/* kill the caller if he has no protection domain */
-	if (!pd()) {
-		error(*this, ": PD not set");
-		_die();
-		return;
-	}
 	/* kill the caller if the capability of the target thread is invalid */
-	Thread * const thread = pd()->cap_tree().find<Thread>(user_arg_1());
-	if (!thread || pd() != thread->pd()) {
+	Thread * const thread = pd().cap_tree().find<Thread>(user_arg_1());
+	if (!thread || (&pd() != &thread->pd())) {
 		error(*this, ": failed to lookup thread ", (unsigned)user_arg_1());
 		_die();
 		return;
@@ -486,7 +483,7 @@ void Thread::_call_cancel_next_await_signal()
 void Thread::_call_submit_signal()
 {
 	/* lookup signal context */
-	Signal_context * const c = pd()->cap_tree().find<Signal_context>(user_arg_1());
+	Signal_context * const c = pd().cap_tree().find<Signal_context>(user_arg_1());
 	if(!c) {
 		Genode::warning(*this, ": cannot submit unknown signal context");
 		user_arg_0(-1);
@@ -506,7 +503,7 @@ void Thread::_call_submit_signal()
 void Thread::_call_ack_signal()
 {
 	/* lookup signal context */
-	Signal_context * const c = pd()->cap_tree().find<Signal_context>(user_arg_1());
+	Signal_context * const c = pd().cap_tree().find<Signal_context>(user_arg_1());
 	if (!c) {
 		Genode::warning(*this, ": cannot ack unknown signal context");
 		return;
@@ -520,7 +517,7 @@ void Thread::_call_ack_signal()
 void Thread::_call_kill_signal_context()
 {
 	/* lookup signal context */
-	Signal_context * const c = pd()->cap_tree().find<Signal_context>(user_arg_1());
+	Signal_context * const c = pd().cap_tree().find<Signal_context>(user_arg_1());
 	if (!c) {
 		Genode::warning(*this, ": cannot kill unknown signal context");
 		user_arg_0(-1);
@@ -538,7 +535,7 @@ void Thread::_call_kill_signal_context()
 
 void Thread::_call_new_irq()
 {
-	Signal_context * const c = pd()->cap_tree().find<Signal_context>(user_arg_3());
+	Signal_context * const c = pd().cap_tree().find<Signal_context>(user_arg_3());
 	if (!c) {
 		Genode::warning(*this, ": invalid signal context for interrupt");
 		user_arg_0(-1);
@@ -557,7 +554,7 @@ void Thread::_call_ack_irq() {
 void Thread::_call_new_obj()
 {
 	/* lookup thread */
-	Object_identity_reference * ref = pd()->cap_tree().find(user_arg_2());
+	Object_identity_reference * ref = pd().cap_tree().find(user_arg_2());
 	Thread * thread = ref ? ref->object<Thread>() : nullptr;
 	if (!thread ||
 		(static_cast<Core_object<Thread>*>(thread)->capid() != ref->capid())) {
@@ -583,19 +580,19 @@ void Thread::_call_delete_obj()
 
 void Thread::_call_ack_cap()
 {
-	Object_identity_reference * oir = pd()->cap_tree().find(user_arg_1());
+	Object_identity_reference * oir = pd().cap_tree().find(user_arg_1());
 	if (oir) oir->remove_from_utcb();
 }
 
 
 void Thread::_call_delete_cap()
 {
-	Object_identity_reference * oir = pd()->cap_tree().find(user_arg_1());
+	Object_identity_reference * oir = pd().cap_tree().find(user_arg_1());
 	if (!oir) return;
 
 	if (oir->in_utcb()) return;
 
-	destroy(pd()->platform_pd()->capability_slab(), oir);
+	destroy(pd().platform_pd().capability_slab(), oir);
 }
 
 
@@ -604,7 +601,7 @@ void Kernel::Thread::_call_update_pd()
 	Pd * const pd = (Pd *) user_arg_1();
 	unsigned cnt = 0;
 
-	cpu_pool()->for_each_cpu([&] (Cpu & cpu) {
+	cpu_pool().for_each_cpu([&] (Cpu & cpu) {
 		/* if a cpu needs to update increase the counter */
 		if (pd->update(cpu)) cnt++; });
 
@@ -660,8 +657,8 @@ void Thread::_call()
 	case call_id_thread_pager():           _call_pager(); return;
 	case call_id_update_pd():              _call_update_pd(); return;
 	case call_id_new_pd():
-		_call_new<Pd>((Hw::Page_table *)      user_arg_2(),
-		              (Genode::Platform_pd *) user_arg_3());
+		_call_new<Pd>(*(Hw::Page_table *)      user_arg_2(),
+		              *(Genode::Platform_pd *) user_arg_3());
 		return;
 	case call_id_delete_pd():              _call_delete<Pd>(); return;
 	case call_id_new_signal_receiver():    _call_new<Signal_receiver>(); return;
@@ -717,7 +714,7 @@ Thread::Thread(unsigned const priority, unsigned const quota,
 
 void Thread::print(Genode::Output &out) const
 {
-	Genode::print(out, (_pd) ? _pd->platform_pd()->label() : "?");
+	Genode::print(out, _pd ? _pd->platform_pd().label() : "?");
 	Genode::print(out, " -> ");
 	Genode::print(out, label());
 }
@@ -751,9 +748,9 @@ Core_thread::Core_thread()
 	regs->sp = (addr_t)&__initial_stack_base[0] + DEFAULT_STACK_SIZE;
 	regs->ip = (addr_t)&_core_start;
 
-	affinity(&cpu_pool()->primary_cpu());
+	affinity(cpu_pool().primary_cpu());
 	_utcb       = utcb;
-	Thread::_pd = core_pd();
+	Thread::_pd = &core_pd();
 	_become_active();
 }
 

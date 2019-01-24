@@ -41,7 +41,7 @@ void Cpu::trigger_ip_interrupt()
 	/* check whether there is still an IPI send */
 	if (_ipi_irq.pending) return;
 
-	pic()->send_ipi(_id);
+	pic().send_ipi(_id);
 	_ipi_irq.pending = true;
 }
 

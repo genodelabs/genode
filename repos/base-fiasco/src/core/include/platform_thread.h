@@ -21,6 +21,7 @@
 /* core includes */
 #include <pager.h>
 #include <platform_pd.h>
+#include <assertion.h>
 
 /* Fiasco includes */
 namespace Fiasco {
@@ -40,14 +41,17 @@ namespace Genode {
 			Platform_thread(Platform_thread const &);
 			Platform_thread &operator = (Platform_thread const &);
 
-			int                   _thread_id;      /* plain thread number */
-			Fiasco::l4_threadid_t _l4_thread_id;   /* L4 thread ID */
-			char                  _name[32];       /* thread name that will be
+			int _thread_id = THREAD_INVALID;       /* plain thread number */
+
+			Fiasco::l4_threadid_t _l4_thread_id;
+
+			typedef String<32> Name;
+			Name const _name;                      /* thread name that will be
 			                                          registered at the kernel
 			                                          debugger */
 			Platform_pd *_platform_pd = nullptr;   /* protection domain thread
 			                                          is bound to */
-			Pager_object *_pager;
+			Pager_object *_pager = nullptr;
 
 		public:
 
@@ -58,9 +62,13 @@ namespace Genode {
 			/**
 			 * Constructor
 			 */
-			Platform_thread(size_t, const char *name = 0, unsigned priority = 0,
-			                Affinity::Location = Affinity::Location(),
-			                addr_t utcb = 0, int thread_id = THREAD_INVALID);
+			Platform_thread(size_t, const char *name, unsigned priority,
+			                Affinity::Location, addr_t utcb);
+
+			/**
+			 * Constructor used for core-internal threads
+			 */
+			Platform_thread(const char *name);
 
 			/**
 			 * Destructor
@@ -106,7 +114,7 @@ namespace Genode {
 			 * \param pd            platform pd, thread is bound to
 			 */
 			void bind(int thread_id, Fiasco::l4_threadid_t l4_thread_id,
-			          Platform_pd *pd);
+			          Platform_pd &pd);
 
 			/**
 			 * Unbind this thread
@@ -146,8 +154,15 @@ namespace Genode {
 			/**
 			 * Return/set pager
 			 */
-			Pager_object *pager() const { return _pager; }
-			void pager(Pager_object *pager) { _pager = pager; }
+			Pager_object &pager() const
+			{
+				if (_pager)
+					return *_pager;
+
+				ASSERT_NEVER_CALLED;
+			}
+
+			void pager(Pager_object &pager) { _pager = &pager; }
 
 			/**
 			 * Return identification of thread when faulting
@@ -172,7 +187,7 @@ namespace Genode {
 
 			int                   thread_id()        const { return _thread_id; }
 			Fiasco::l4_threadid_t native_thread_id() const { return _l4_thread_id; }
-			const char           *name()             const { return _name; }
+			Name                  name()             const { return _name; }
 	};
 }
 

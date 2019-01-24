@@ -80,7 +80,7 @@ class Genode::Ipc_pager
 
 	public:
 
-		Ipc_pager (Nova::Utcb *, addr_t pd_dst, addr_t pd_core);
+		Ipc_pager (Nova::Utcb &, addr_t pd_dst, addr_t pd_core);
 
 		/*
 		 * Intel manual: 6.15 EXCEPTION AND INTERRUPT REFERENCE

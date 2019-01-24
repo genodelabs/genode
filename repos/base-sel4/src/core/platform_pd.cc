@@ -52,30 +52,28 @@ static Pd_id_alloc &pd_id_alloc()
 }
 
 
-bool Platform_pd::bind_thread(Platform_thread *thread)
+bool Platform_pd::bind_thread(Platform_thread &thread)
 {
-	ASSERT(thread);
-
 	try {
 		/* allocate fault handler selector in the PD's CSpace */
-		thread->_fault_handler_sel = alloc_sel();
+		thread._fault_handler_sel = alloc_sel();
 		/* allocate endpoint selector in the PD's CSpace */
-		thread->_ep_sel = alloc_sel();
+		thread._ep_sel = alloc_sel();
 		/* allocate asynchronous selector used for locks in the PD's CSpace */
-		thread->_lock_sel = thread->_utcb ? alloc_sel() : Cap_sel(INITIAL_SEL_LOCK);
+		thread._lock_sel = thread._utcb ? alloc_sel() : Cap_sel(INITIAL_SEL_LOCK);
 	} catch (Platform_pd::Sel_bit_alloc::Out_of_indices) {
-		if (thread->_fault_handler_sel.value()) {
-			free_sel(thread->_fault_handler_sel);
-			thread->_fault_handler_sel = Cap_sel(0);
+		if (thread._fault_handler_sel.value()) {
+			free_sel(thread._fault_handler_sel);
+			thread._fault_handler_sel = Cap_sel(0);
 		}
-		if (thread->_ep_sel.value()) {
-			free_sel(thread->_ep_sel);
-			thread->_ep_sel = Cap_sel(0);
+		if (thread._ep_sel.value()) {
+			free_sel(thread._ep_sel);
+			thread._ep_sel = Cap_sel(0);
 		}
 		return false;
 	}
 
-	thread->_pd = this;
+	thread._pd = this;
 
 	/*
 	 * Map IPC buffer
@@ -87,31 +85,29 @@ bool Platform_pd::bind_thread(Platform_thread *thread)
 	 *     to attach the UTCB as a dataspace to the stack area to make the RM
 	 *     session aware to the mapping. This code is missing.
 	 */
-	addr_t const utcb = (thread->_utcb) ? thread->_utcb
-	                                    : (addr_t)thread->INITIAL_IPC_BUFFER_VIRT;
+	addr_t const utcb = (thread._utcb) ? thread._utcb
+	                                    : (addr_t)thread.INITIAL_IPC_BUFFER_VIRT;
 
 	enum { WRITABLE = true, ONE_PAGE = 1, FLUSHABLE = true, NON_EXECUTABLE = false };
 	_vm_space.alloc_page_tables(utcb, get_page_size());
-	_vm_space.map(thread->_info.ipc_buffer_phys, utcb, ONE_PAGE,
+	_vm_space.map(thread._info.ipc_buffer_phys, utcb, ONE_PAGE,
 	              Cache_attribute::CACHED, WRITABLE, NON_EXECUTABLE, FLUSHABLE);
 	return true;
 }
 
 
-void Platform_pd::unbind_thread(Platform_thread *thread)
+void Platform_pd::unbind_thread(Platform_thread &thread)
 {
-	if (!thread)
-		return;
+	if (thread._utcb)
+		free_sel(thread._lock_sel);
 
-	if (thread->_utcb)
-		free_sel(thread->_lock_sel);
-	free_sel(thread->_fault_handler_sel);
-	free_sel(thread->_ep_sel);
+	free_sel(thread._fault_handler_sel);
+	free_sel(thread._ep_sel);
 
-	if (thread->_utcb)
-		_vm_space.unmap(thread->_utcb, 1);
+	if (thread._utcb)
+		_vm_space.unmap(thread._utcb, 1);
 	else
-		_vm_space.unmap(thread->INITIAL_IPC_BUFFER_VIRT, 1);
+		_vm_space.unmap(thread.INITIAL_IPC_BUFFER_VIRT, 1);
 }
 
 
@@ -126,7 +122,7 @@ void Platform_pd::assign_parent(Native_capability parent)
 	 * Install parent endpoint selector at the predefined position
 	 * INITIAL_SEL_PARENT within the PD's CSpace.
 	 */
-	_cspace_cnode_2nd[0]->copy(platform_specific()->core_cnode(),
+	_cspace_cnode_2nd[0]->copy(platform_specific().core_cnode(),
 	                           Cnode_index(ipc_cap_data.sel),
 	                           Cnode_index(INITIAL_SEL_PARENT));
 }
@@ -205,41 +201,41 @@ void Platform_pd::flush(addr_t virt_addr, size_t size, Core_local_addr)
 }
 
 
-Platform_pd::Platform_pd(Allocator * md_alloc, char const *label, signed, bool)
+Platform_pd::Platform_pd(Allocator &md_alloc, char const *label)
 :
 	_id(pd_id_alloc().alloc()),
-	_page_table_registry(*md_alloc),
-	_page_directory_sel(platform_specific()->core_sel_alloc().alloc()),
+	_page_table_registry(md_alloc),
+	_page_directory_sel(platform_specific().core_sel_alloc().alloc()),
 	_page_directory(_init_page_directory()),
 	_vm_space(_page_directory_sel,
-	          platform_specific()->core_sel_alloc(),
-	          *platform()->ram_alloc(),
-	          platform_specific()->top_cnode(),
-	          platform_specific()->core_cnode(),
-	          platform_specific()->phys_cnode(),
+	          platform_specific().core_sel_alloc(),
+	          platform().ram_alloc(),
+	          platform_specific().top_cnode(),
+	          platform_specific().core_cnode(),
+	          platform_specific().phys_cnode(),
 	          _id,
 	          _page_table_registry,
 	          label),
-	_cspace_cnode_1st(platform_specific()->core_cnode().sel(),
-	                  platform_specific()->core_sel_alloc().alloc(),
+	_cspace_cnode_1st(platform_specific().core_cnode().sel(),
+	                  platform_specific().core_sel_alloc().alloc(),
 	                  CSPACE_SIZE_LOG2_1ST,
-	                  *platform()->ram_alloc())
+	                  platform().ram_alloc())
 {
 	/* add all 2nd level CSpace's to 1st level CSpace */
 	for (unsigned i = 0; i < sizeof(_cspace_cnode_2nd) /
 	                         sizeof(_cspace_cnode_2nd[0]); i++) {
-		_cspace_cnode_2nd[i].construct(platform_specific()->core_cnode().sel(),
-		                               platform_specific()->core_sel_alloc().alloc(),
+		_cspace_cnode_2nd[i].construct(platform_specific().core_cnode().sel(),
+		                               platform_specific().core_sel_alloc().alloc(),
 		                               CSPACE_SIZE_LOG2_2ND,
-		                               *platform()->ram_alloc());
+		                               platform().ram_alloc());
 
-		_cspace_cnode_1st.copy(platform_specific()->core_cnode(),
+		_cspace_cnode_1st.copy(platform_specific().core_cnode(),
 		                       _cspace_cnode_2nd[i]->sel(),
 		                       Cnode_index(i));
 	}
 
 	/* install CSpace selector at predefined position in the PD's CSpace */
-	_cspace_cnode_2nd[0]->copy(platform_specific()->core_cnode(),
+	_cspace_cnode_2nd[0]->copy(platform_specific().core_cnode(),
 	                           _cspace_cnode_1st.sel(),
 	                           Cnode_index(INITIAL_SEL_CNODE));
 }
@@ -250,13 +246,13 @@ Platform_pd::~Platform_pd()
 	for (unsigned i = 0; i < sizeof(_cspace_cnode_2nd) /
 	                         sizeof(_cspace_cnode_2nd[0]); i++) {
 		_cspace_cnode_1st.remove(Cnode_index(i));
-		_cspace_cnode_2nd[i]->destruct(*platform()->ram_alloc(), true);
-		platform_specific()->core_sel_alloc().free(_cspace_cnode_2nd[i]->sel());
+		_cspace_cnode_2nd[i]->destruct(platform().ram_alloc(), true);
+		platform_specific().core_sel_alloc().free(_cspace_cnode_2nd[i]->sel());
 	}
 
-	_cspace_cnode_1st.destruct(*platform()->ram_alloc(), true);
-	platform_specific()->core_sel_alloc().free(_cspace_cnode_1st.sel());
+	_cspace_cnode_1st.destruct(platform().ram_alloc(), true);
+	platform_specific().core_sel_alloc().free(_cspace_cnode_1st.sel());
 
 	_deinit_page_directory(_page_directory);
-	platform_specific()->core_sel_alloc().free(_page_directory_sel);
+	platform_specific().core_sel_alloc().free(_page_directory_sel);
 }

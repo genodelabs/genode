@@ -37,7 +37,7 @@ void Native_cpu_component::thread_type(Thread_capability thread_cap,
 
 Native_cpu_component::Native_cpu_component(Cpu_session_component &cpu_session, char const *)
 :
-	_cpu_session(cpu_session), _thread_ep(*_cpu_session._thread_ep)
+	_cpu_session(cpu_session), _thread_ep(_cpu_session._thread_ep)
 {
 	_thread_ep.manage(this);
 }

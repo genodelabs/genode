@@ -31,14 +31,14 @@ void Platform::_init_additional()
 	void           *virt_ptr = nullptr;
 	const char     *rom_name = "platform_info";
 
-	if (!ram_alloc()->alloc(get_page_size(), &phys_ptr)) {
+	if (!ram_alloc().alloc(get_page_size(), &phys_ptr)) {
 		error("could not setup platform_info ROM - ram allocation error");
 		return;
 	}
 
-	if (!region_alloc()->alloc(rom_size, &virt_ptr)) {
+	if (!region_alloc().alloc(rom_size, &virt_ptr)) {
 		error("could not setup platform_info ROM - region allocation error");
-		ram_alloc()->free(phys_ptr);
+		ram_alloc().free(phys_ptr);
 		return;
 	}
 
@@ -47,8 +47,8 @@ void Platform::_init_additional()
 
 	if (!map_local(phys_addr, virt_addr, pages, Hw::PAGE_FLAGS_KERN_DATA)) {
 		error("could not setup platform_info ROM - map error");
-		region_alloc()->free(virt_ptr);
-		ram_alloc()->free(phys_ptr);
+		region_alloc().free(virt_ptr);
+		ram_alloc().free(phys_ptr);
 		return;
 	}
 
@@ -93,7 +93,7 @@ void Platform::_init_additional()
 		return;
 	}
 
-	region_alloc()->free(virt_ptr);
+	region_alloc().free(virt_ptr);
 
 	_rom_fs.insert(
 		new (core_mem_alloc()) Rom_module(phys_addr, rom_size, rom_name));
@@ -102,7 +102,7 @@ void Platform::_init_additional()
 
 void Platform::setup_irq_mode(unsigned irq_number, unsigned trigger,
                               unsigned polarity) {
-	Kernel::pic()->ioapic.setup_irq_mode(irq_number, trigger, polarity); }
+	Kernel::pic().ioapic.setup_irq_mode(irq_number, trigger, polarity); }
 
 
 bool Platform::get_msi_params(addr_t, addr_t &, addr_t &, unsigned &) {

@@ -75,8 +75,8 @@ void Genode::Thread_info::init_tcb(Platform &platform,
 
 void Genode::Thread_info::init(addr_t const utcb_virt_addr, unsigned const prio)
 {
-	Platform        &platform   = *platform_specific();
-	Range_allocator &phys_alloc = *platform.ram_alloc();
+	Platform        &platform   = platform_specific();
+	Range_allocator &phys_alloc = platform.ram_alloc();
 
 	/* create IPC buffer of one page */
 	ipc_buffer_phys = Untyped_memory::alloc_page(phys_alloc);
@@ -119,20 +119,20 @@ void Genode::Thread_info::destruct()
 {
 	if (lock_sel.value()) {
 		seL4_CNode_Delete(seL4_CapInitThreadCNode, lock_sel.value(), 32);
-		platform_specific()->core_sel_alloc().free(lock_sel);
+		platform_specific().core_sel_alloc().free(lock_sel);
 	}
 	if (ep_sel.value()) {
 		seL4_CNode_Delete(seL4_CapInitThreadCNode, ep_sel.value(), 32);
-		platform_specific()->core_sel_alloc().free(ep_sel);
+		platform_specific().core_sel_alloc().free(ep_sel);
 	}
 	if (tcb_sel.value()) {
 		seL4_CNode_Delete(seL4_CapInitThreadCNode, tcb_sel.value(), 32);
-		platform_specific()->core_sel_alloc().free(tcb_sel);
+		platform_specific().core_sel_alloc().free(tcb_sel);
 	}
 
 	if (ipc_buffer_phys) {
-		Platform &platform = *platform_specific();
-		Range_allocator &phys_alloc = *platform.ram_alloc();
+		Platform        &platform   = platform_specific();
+		Range_allocator &phys_alloc = platform.ram_alloc();
 		Untyped_memory::convert_to_untyped_frames(ipc_buffer_phys, 4096);
 		Untyped_memory::free_page(phys_alloc, ipc_buffer_phys);
 	}

@@ -202,13 +202,13 @@ class Genode::Ipc_pager : public Native_capability
 		 * Copy the exception registers from the last exception
 		 * to the given Thread_state object.
 		 */
-		void get_regs(Foc_thread_state *state);
+		void get_regs(Foc_thread_state &state) const;
 
 		/*
 		 * Copy the exception reply registers from the given
 		 * Thread_state object
 		 */
-		void set_regs(Foc_thread_state state);
+		void set_regs(Foc_thread_state const &state);
 };
 
 #endif /* _CORE__INCLUDE__IPC_PAGER_H_ */

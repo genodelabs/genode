@@ -46,13 +46,13 @@ Object_identity::~Object_identity() { invalidate(); }
  *******************************/
 
 Object_identity_reference *
-Object_identity_reference::find(Pd * pd)
+Object_identity_reference::find(Pd &pd)
 {
 	if (!_identity) return nullptr;
 
 	for (Object_identity_reference * oir = _identity->first();
 	     oir; oir = oir->next())
-		if (pd == &(oir->_pd)) return oir;
+		if (&pd == &(oir->_pd)) return oir;
 	return nullptr;
 }
 

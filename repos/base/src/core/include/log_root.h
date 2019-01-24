@@ -46,8 +46,10 @@ namespace Genode {
 			 * \param session_ep  entry point for managing cpu session objects
 			 * \param md_alloc    meta-data allocator to be used by root component
 			 */
-			Log_root(Rpc_entrypoint *session_ep, Allocator *md_alloc):
-				Root_component<Log_session_component>(session_ep, md_alloc) { }
+			Log_root(Rpc_entrypoint &session_ep, Allocator &md_alloc)
+			:
+				Root_component<Log_session_component>(&session_ep, &md_alloc)
+			{ }
 	};
 }
 

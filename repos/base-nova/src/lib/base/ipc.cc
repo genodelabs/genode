@@ -154,7 +154,7 @@ bool Receive_window::rcv_cleanup(bool keep, unsigned short const new_max)
 
 			/* free rest of indexes if new_max is smaller then last window */
 			if (i >= new_max && _rcv_pt_cap_free[i] == FREE_SEL)
-				cap_map()->remove(_rcv_pt_base + i, 0, false);
+				cap_map().remove(_rcv_pt_base + i, 0, false);
 		}
 
 		return false;
@@ -164,7 +164,7 @@ bool Receive_window::rcv_cleanup(bool keep, unsigned short const new_max)
 	for (unsigned i = 0; i < MAX_CAP_ARGS; i++) {
 		if (_rcv_pt_cap_free[i] == FREE_INVALID)
 			continue;
-		cap_map()->remove(_rcv_pt_base + i, 0, _rcv_pt_cap_free[i] != FREE_SEL);
+		cap_map().remove(_rcv_pt_base + i, 0, _rcv_pt_cap_free[i] != FREE_SEL);
 	}
 
 	return true;
@@ -191,7 +191,7 @@ bool Receive_window::prepare_rcv_window(Nova::Utcb &utcb, addr_t rcv_window)
 	/* allocate receive window if necessary, otherwise use old one */
 	if (rcv_invalid() || rcv_cleanup(true, 1U << _rcv_wnd_log2))
 	{
-		_rcv_pt_base = cap_map()->insert(_rcv_wnd_log2);
+		_rcv_pt_base = cap_map().insert(_rcv_wnd_log2);
 
 		if (_rcv_pt_base == INVALID_INDEX) {
 			/* no mappings can be received */

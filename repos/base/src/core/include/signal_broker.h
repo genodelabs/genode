@@ -44,7 +44,7 @@ class Genode::Signal_broker
 			_md_alloc(md_alloc),
 			_source_ep(source_ep),
 			_context_ep(context_ep),
-			_source(&_context_ep),
+			_source(_context_ep),
 			_source_cap(_source_ep.manage(&_source))
 		{ }
 
@@ -69,10 +69,10 @@ class Genode::Signal_broker
 			 * XXX  For now, we ignore the signal-source argument as we
 			 *      create only a single receiver for each PD.
 			 */
-			Signal_context_component *context = new (&_contexts_slab)
-				Signal_context_component(imprint, &_source);
+			Signal_context_component &context = *new (&_contexts_slab)
+				Signal_context_component(imprint, _source);
 
-			return _context_ep.manage(context);
+			return _context_ep.manage(&context);
 		}
 
 		void free_context(Signal_context_capability context_cap)
@@ -95,9 +95,8 @@ class Genode::Signal_broker
 				return;
 
 			/* release solely in context of context_ep thread */
-			if (context->enqueued() && context->source() &&
-				!_context_ep.is_myself())
-					_delivery_proxy.release(context);
+			if (context->enqueued() && !_context_ep.is_myself())
+					_delivery_proxy.release(*context);
 
 			destroy(&_contexts_slab, context);
 		}

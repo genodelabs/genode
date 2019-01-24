@@ -124,7 +124,7 @@ namespace Genode {
 	/**
 	 * Get the global Cap_index_allocator of the process.
 	 */
-	Cap_index_allocator *cap_idx_alloc();
+	Cap_index_allocator &cap_idx_alloc();
 
 
 	/**
@@ -245,7 +245,7 @@ namespace Genode {
 	/**
 	 * Get the global Capability_map of the process.
 	 */
-	Capability_map *cap_map();
+	Capability_map &cap_map();
 }
 
 #endif /* _INCLUDE__BASE__CAP_MAP_H_ */

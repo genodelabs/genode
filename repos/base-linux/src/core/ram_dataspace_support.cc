@@ -33,7 +33,7 @@ using namespace Genode;
 
 static int ram_ds_cnt = 0;  /* counter for creating unique dataspace IDs */
 
-void Ram_dataspace_factory::_export_ram_ds(Dataspace_component *ds)
+void Ram_dataspace_factory::_export_ram_ds(Dataspace_component &ds)
 {
 	char fname[Linux_dataspace::FNAME_LEN];
 
@@ -41,10 +41,10 @@ void Ram_dataspace_factory::_export_ram_ds(Dataspace_component *ds)
 	snprintf(fname, sizeof(fname), "%s/ds-%d", resource_path(), ram_ds_cnt++);
 	lx_unlink(fname);
 	int const fd = lx_open(fname, O_CREAT|O_RDWR|O_TRUNC|LX_O_CLOEXEC, S_IRWXU);
-	lx_ftruncate(fd, ds->size());
+	lx_ftruncate(fd, ds.size());
 
 	/* remember file descriptor in dataspace component object */
-	ds->fd(fd);
+	ds.fd(fd);
 
 	/*
 	 * Wipe the file from the Linux file system. The kernel will still keep the
@@ -56,12 +56,12 @@ void Ram_dataspace_factory::_export_ram_ds(Dataspace_component *ds)
 }
 
 
-void Ram_dataspace_factory::_revoke_ram_ds(Dataspace_component *ds)
+void Ram_dataspace_factory::_revoke_ram_ds(Dataspace_component &ds)
 {
-	int const fd = Capability_space::ipc_cap_data(ds->fd()).dst.socket;
+	int const fd = Capability_space::ipc_cap_data(ds.fd()).dst.socket;
 	if (fd != -1)
 		lx_close(fd);
 }
 
 
-void Ram_dataspace_factory::_clear_ds(Dataspace_component *) { }
+void Ram_dataspace_factory::_clear_ds(Dataspace_component &) { }

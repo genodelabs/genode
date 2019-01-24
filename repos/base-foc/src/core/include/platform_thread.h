@@ -23,6 +23,7 @@
 #include <pager.h>
 #include <platform_pd.h>
 #include <cap_mapping.h>
+#include <assertion.h>
 
 namespace Genode {
 
@@ -39,8 +40,11 @@ namespace Genode {
 
 			enum State { DEAD, RUNNING };
 
+			typedef String<32> Name;
+
 			friend class Platform_pd;
 
+			Name         const _name;           /* name at kernel debugger */
 			State              _state;
 			bool               _core_thread;
 			Cap_mapping        _thread;
@@ -48,9 +52,6 @@ namespace Genode {
 			Cap_mapping        _pager { };
 			Cap_mapping        _irq;
 			addr_t             _utcb;
-			char               _name[32];       /* thread name that will be
-			                                      registered at the kernel
-			                                      debugger */
 			Platform_pd       *_platform_pd;    /* protection domain thread
 			                                      is bound to */
 			Pager_object      *_pager_obj;
@@ -59,7 +60,7 @@ namespace Genode {
 			Affinity::Location _location { };
 
 			void _create_thread(void);
-			void _finalize_construction(const char *name);
+			void _finalize_construction();
 			bool _in_syscall(Fiasco::l4_umword_t flags);
 
 		public:
@@ -75,8 +76,8 @@ namespace Genode {
 			/**
 			 * Constructor for core main-thread
 			 */
-			Platform_thread(Core_cap_index* thread,
-			                Core_cap_index* irq, const char *name);
+			Platform_thread(Core_cap_index& thread,
+			                Core_cap_index& irq, const char *name);
 
 			/**
 			 * Constructor for core threads
@@ -124,7 +125,7 @@ namespace Genode {
 			 *
 			 * \param pd    platform pd, thread is bound to
 			 */
-			void bind(Platform_pd *pd);
+			void bind(Platform_pd &pd);
 
 			/**
 			 * Unbind this thread
@@ -162,8 +163,15 @@ namespace Genode {
 			/**
 			 * Return/set pager
 			 */
-			Pager_object *pager() const { return _pager_obj; }
-			void pager(Pager_object *pager);
+			Pager_object &pager() const
+			{
+				if (_pager_obj)
+				return *_pager_obj;
+
+				ASSERT_NEVER_CALLED;
+			}
+
+			void pager(Pager_object &pager);
 
 			/**
 			 * Return identification of thread when faulting
@@ -188,7 +196,7 @@ namespace Genode {
 
 			Cap_mapping const & thread()      const { return _thread;      }
 			Cap_mapping       & gate()              { return _gate;        }
-			const char         *name()        const { return _name;        }
+			Name                name()        const { return _name;        }
 			bool                core_thread() const { return _core_thread; }
 			addr_t              utcb()        const { return _utcb;        }
 	};

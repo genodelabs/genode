@@ -25,7 +25,7 @@ void Kernel::Thread::Pd_update::execute()
 
 	/* if this is the last cpu, wake up the caller thread */
 	if (--cnt == 0) {
-		cpu_pool()->work_list().remove(&_le);
+		cpu_pool().work_list().remove(&_le);
 		caller._restart();
 	}
 };
@@ -39,7 +39,7 @@ void Kernel::Thread::_call_update_instr_region() { }
 
 void Kernel::Thread::proceed(Cpu & cpu)
 {
-	cpu.switch_to(*regs, pd()->mmu_regs);
+	cpu.switch_to(*regs, pd().mmu_regs);
 
 	asm volatile("mov  %0, %%rsp  \n"
 	             "popq %%r8       \n"

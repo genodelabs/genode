@@ -40,10 +40,10 @@ class Genode::Cpu_session_component : public  Rpc_object<Cpu_session>,
 {
 	private:
 
-		Session_label    const     _label;
-		Rpc_entrypoint * const     _session_ep;
-		Rpc_entrypoint            *_thread_ep;
-		Pager_entrypoint          *_pager_ep;
+		Session_label        const _label;
+		Rpc_entrypoint            &_session_ep;
+		Rpc_entrypoint            &_thread_ep;
+		Pager_entrypoint          &_pager_ep;
 		Allocator_guard            _md_alloc;               /* guarded meta-data allocator */
 		Cpu_thread_allocator       _thread_alloc;           /* meta-data allocator */
 		Lock                       _thread_alloc_lock { };  /* protect allocator access */
@@ -83,8 +83,7 @@ class Genode::Cpu_session_component : public  Rpc_object<Cpu_session>,
 		void _incr_quota(size_t const quota);
 		void _update_thread_quota(Cpu_thread_component &) const;
 		void _update_each_thread_quota();
-		void _transfer_quota(Cpu_session_component * const dst,
-		                     size_t const quota);
+		void _transfer_quota(Cpu_session_component &dst, size_t const quota);
 
 		void _insert_ref_member(Cpu_session_component * const s)
 		{
@@ -93,13 +92,13 @@ class Genode::Cpu_session_component : public  Rpc_object<Cpu_session>,
 			s->_ref = this;
 		}
 
-		void _unsync_remove_ref_member(Cpu_session_component * const s)
+		void _unsync_remove_ref_member(Cpu_session_component &s)
 		{
-			s->_ref = 0;
-			_ref_members.remove(s);
+			s._ref = 0;
+			_ref_members.remove(&s);
 		}
 
-		void _remove_ref_member(Cpu_session_component * const s)
+		void _remove_ref_member(Cpu_session_component &s)
 		{
 			Lock::Guard lock_guard(_ref_members_lock);
 			_unsync_remove_ref_member(s);
@@ -140,10 +139,10 @@ class Genode::Cpu_session_component : public  Rpc_object<Cpu_session>,
 		/**
 		 * Constructor
 		 */
-		Cpu_session_component(Rpc_entrypoint         *session_ep,
-		                      Rpc_entrypoint         *thread_ep,
-		                      Pager_entrypoint       *pager_ep,
-		                      Allocator              *md_alloc,
+		Cpu_session_component(Rpc_entrypoint         &session_ep,
+		                      Rpc_entrypoint         &thread_ep,
+		                      Pager_entrypoint       &pager_ep,
+		                      Allocator              &md_alloc,
 		                      Trace::Source_registry &trace_sources,
 		                      const char *args, Affinity const &affinity,
 		                      size_t quota);

@@ -21,10 +21,10 @@
 using namespace Genode;
 
 
-Capability_map *Genode::cap_map()
+Capability_map &Genode::cap_map()
 {
 	static Genode::Capability_map map;
-	return &map;
+	return map;
 }
 
 

@@ -20,6 +20,7 @@
 #include <vm_space.h>
 #include <core_cspace.h>
 #include <initial_untyped_pool.h>
+#include <assertion.h>
 
 namespace Genode {
 	class Platform;
@@ -82,12 +83,6 @@ class Genode::Static_allocator : public Allocator
 class Genode::Platform : public Platform_generic
 {
 	private:
-
-		/*
-		 * Noncopyable
-		 */
-		Platform(Platform const &);
-		Platform &operator = (Platform const &);
 
 		Core_mem_allocator _core_mem_alloc { }; /* core-accessible memory */
 		Phys_allocator     _io_mem_alloc;       /* MMIO allocator         */
@@ -215,7 +210,7 @@ class Genode::Platform : public Platform_generic
 		/**
 		 * Shortcut for physical memory allocator
 		 */
-		Range_allocator &_phys_alloc = *_core_mem_alloc.phys_alloc();
+		Range_allocator &_phys_alloc = _core_mem_alloc.phys_alloc();
 
 		/**
 		 * Initialize core allocators
@@ -244,21 +239,23 @@ class Genode::Platform : public Platform_generic
 		 ** Generic platform interface **
 		 ********************************/
 
-		Range_allocator *ram_alloc()      { return  _core_mem_alloc.phys_alloc(); }
-		Range_allocator *io_mem_alloc()   { return &_io_mem_alloc; }
-		Range_allocator *io_port_alloc()  { return &_io_port_alloc; }
-		Range_allocator *irq_alloc()      { return &_irq_alloc; }
-		Range_allocator *region_alloc()   { return  _core_mem_alloc.virt_alloc(); }
-		Range_allocator *core_mem_alloc() { return &_core_mem_alloc; }
+		Range_allocator &ram_alloc()      { return _core_mem_alloc.phys_alloc(); }
+		Range_allocator &io_mem_alloc()   { return _io_mem_alloc; }
+		Range_allocator &io_port_alloc()  { return _io_port_alloc; }
+		Range_allocator &irq_alloc()      { return _irq_alloc; }
+		Range_allocator &region_alloc()   { return _core_mem_alloc.virt_alloc(); }
+		Range_allocator &core_mem_alloc() { return _core_mem_alloc; }
 		addr_t           vm_start() const { return _vm_base; }
 		size_t           vm_size()  const { return _vm_size;  }
-		Rom_fs          *rom_fs()         { return &_rom_fs; }
+		Rom_fs          &rom_fs()         { return _rom_fs; }
 
 		Affinity::Space affinity_space() const override {
 			return sel4_boot_info().numNodes; }
 
 		bool supports_direct_unmap() const override { return true; }
-		Address_space * core_pd() { return nullptr; }
+
+		Address_space &core_pd() { ASSERT_NEVER_CALLED; }
+
 
 		/*******************
 		 ** seL4 specific **
@@ -284,7 +281,7 @@ class Genode::Platform : public Platform_generic
 		 * core_rm_session detach().
 		 */
 		size_t region_alloc_size_at(void * addr) {
-			return (*_core_mem_alloc.virt_alloc())()->size_at(addr); }
+			return (_core_mem_alloc.virt_alloc())()->size_at(addr); }
 
 		size_t max_caps() const override
 		{

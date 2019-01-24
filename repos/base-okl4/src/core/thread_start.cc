@@ -37,10 +37,10 @@ void Thread::_thread_start()
 void Thread::start()
 {
 	/* create and start platform thread */
-	native_thread().pt = new(platform_specific()->thread_slab())
-		Platform_thread(0, _stack->name().string());
+	native_thread().pt = new (platform_specific().thread_slab())
+		Platform_thread(_stack->name().string());
 
-	platform_specific()->core_pd()->bind_thread(native_thread().pt);
+	platform_specific().core_pd().bind_thread(*native_thread().pt);
 
 	native_thread().pt->start((void *)_thread_start, stack_top());
 }
@@ -57,5 +57,5 @@ void Thread::cancel_blocking()
 void Thread::_deinit_platform_thread()
 {
 	/* destruct platform thread */
-	destroy(platform_specific()->thread_slab(), native_thread().pt);
+	destroy(platform_specific().thread_slab(), native_thread().pt);
 }

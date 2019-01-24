@@ -27,7 +27,7 @@ using namespace Genode;
 
 void Io_mem_session_component::_unmap_local(addr_t base, size_t)
 {
-	platform()->region_alloc()->free(reinterpret_cast<void *>(base));
+	platform().region_alloc().free(reinterpret_cast<void *>(base));
 }
 
 
@@ -51,7 +51,7 @@ addr_t Io_mem_session_component::_map_local(addr_t base, size_t size)
 
 	/* find appropriate region for mapping */
 	void *local_base = 0;
-	if (platform()->region_alloc()->alloc_aligned(size, &local_base, alignment).error())
+	if (platform().region_alloc().alloc_aligned(size, &local_base, alignment).error())
 		return 0;
 
 	/* call sigma0 for I/O region */

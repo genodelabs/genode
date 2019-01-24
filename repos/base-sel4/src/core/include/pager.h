@@ -183,12 +183,12 @@ class Genode::Pager_entrypoint : public Object_pool<Pager_object>,
 		/**
 		 * Associate Pager_object with the entry point
 		 */
-		Pager_capability manage(Pager_object *obj);
+		Pager_capability manage(Pager_object &);
 
 		/**
 		 * Dissolve Pager_object from entry point
 		 */
-		void dissolve(Pager_object *obj);
+		void dissolve(Pager_object &);
 
 
 		/**********************

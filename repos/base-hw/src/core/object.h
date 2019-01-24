@@ -65,6 +65,8 @@ class Genode::Kernel_object
 
 		T * kernel_object() { return reinterpret_cast<T*>(_data); }
 
+		Untyped_capability cap() { return _cap; }
+
 		/**
 		 * Create the kernel object explicitely via this function
 		 */

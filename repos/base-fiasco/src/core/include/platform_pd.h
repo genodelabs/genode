@@ -74,7 +74,7 @@ namespace Genode {
 			 *
 			 * Again a special case for Core thread0.
 			 */
-			int _alloc_thread(int thread_id, Platform_thread *thread);
+			int _alloc_thread(int thread_id, Platform_thread &thread);
 
 			/**
 			 * Thread deallocation
@@ -149,8 +149,12 @@ namespace Genode {
 			/**
 			 * Constructor
 			 */
-			Platform_pd(Allocator * md_alloc, char const *,
-			            signed pd_id = PD_INVALID, bool create = true);
+			Platform_pd(Allocator &md_alloc, char const *name);
+
+			/**
+			 * Constructor used for core's PD
+			 */
+			Platform_pd(char const *name, signed pd_id);
 
 			/**
 			 * Destructor
@@ -172,14 +176,14 @@ namespace Genode {
 			 *
 			 * \return true on success
 			 */
-			bool bind_thread(Platform_thread *thread);
+			bool bind_thread(Platform_thread &thread);
 
 			/**
 			 * Unbind thread from protection domain
 			 *
 			 * Free the thread's slot and update thread object.
 			 */
-			void unbind_thread(Platform_thread *thread);
+			void unbind_thread(Platform_thread &thread);
  
 			/**
 			 * Assign parent interface to protection domain

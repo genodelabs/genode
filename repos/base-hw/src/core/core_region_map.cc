@@ -49,9 +49,8 @@ Core_region_map::attach(Dataspace_capability ds_cap, size_t size,
 
 		/* allocate range in core's virtual address space */
 		void *virt_addr;
-		if (!platform()->region_alloc()->alloc_aligned(page_rounded_size,
-			                                           &virt_addr,
-			                                           get_page_size_log2()).ok()) {
+		if (!platform().region_alloc().alloc_aligned(page_rounded_size, &virt_addr,
+			                                         get_page_size_log2()).ok()) {
 			error("could not allocate virtual address range in core of size ",
 			      page_rounded_size);
 			return nullptr;

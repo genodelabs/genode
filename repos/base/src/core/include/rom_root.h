@@ -24,18 +24,12 @@ namespace Genode {
 
 		private:
 
-			Rom_fs         *_rom_fs;  /* rom file system */
-			Rpc_entrypoint *_ds_ep;   /* entry point for managing rom dataspaces */
-
-			/*
-			 * Noncopyable
-			 */
-			Rom_root(Rom_root const &);
-			Rom_root &operator = (Rom_root const &);
+			Rom_fs         &_rom_fs;  /* rom file system */
+			Rpc_entrypoint &_ds_ep;   /* entry point for managing rom dataspaces */
 
 		protected:
 
-			Rom_session_component *_create_session(const char *args) {
+			Rom_session_component *_create_session(const char *args) override {
 				return new (md_alloc()) Rom_session_component(_rom_fs, _ds_ep, args); }
 
 		public:
@@ -48,12 +42,12 @@ namespace Genode {
 			 * \param rom_fs      platform ROM file system
 			 * \param md_alloc    meta-data allocator to be used by root component
 			 */
-			Rom_root(Rpc_entrypoint *session_ep,
-			         Rpc_entrypoint *ds_ep,
-			         Rom_fs         *rom_fs,
-			         Allocator      *md_alloc)
+			Rom_root(Rpc_entrypoint &session_ep,
+			         Rpc_entrypoint &ds_ep,
+			         Rom_fs         &rom_fs,
+			         Allocator      &md_alloc)
 			:
-				Root_component<Rom_session_component>(session_ep, md_alloc),
+				Root_component<Rom_session_component>(&session_ep, &md_alloc),
 				_rom_fs(rom_fs), _ds_ep(ds_ep) { }
 	};
 }

@@ -24,7 +24,7 @@ using namespace Genode;
 
 Io_mem_session_component::Dataspace_attr
 Io_mem_session_component::_prepare_io_mem(const char      *args,
-                                          Range_allocator *ram_alloc)
+                                          Range_allocator &ram_alloc)
 {
 	addr_t req_base = Arg_string::find_arg(args, "base").ulong_value(0);
 	size_t req_size = Arg_string::find_arg(args, "size").ulong_value(0);
@@ -42,14 +42,14 @@ Io_mem_session_component::_prepare_io_mem(const char      *args,
 
 	/* check for RAM collision */
 	int ret;
-	if ((ret = ram_alloc->remove_range(base, size))) {
+	if ((ret = ram_alloc.remove_range(base, size))) {
 		error("I/O memory ", Hex_range<addr_t>(base, size), " "
 		      "used by RAM allocator (", ret, ")");
 		return Dataspace_attr();
 	}
 
 	/* allocate region */
-	switch (_io_mem_alloc->alloc_addr(req_size, req_base).value) {
+	switch (_io_mem_alloc.alloc_addr(req_size, req_base).value) {
 	case Range_allocator::Alloc_return::RANGE_CONFLICT:
 		error("I/O memory ", Hex_range<addr_t>(req_base, req_size), " not available");
 		return Dataspace_attr();
@@ -68,9 +68,9 @@ Io_mem_session_component::_prepare_io_mem(const char      *args,
 }
 
 
-Io_mem_session_component::Io_mem_session_component(Range_allocator *io_mem_alloc,
-                                                   Range_allocator *ram_alloc,
-                                                   Rpc_entrypoint  *ds_ep,
+Io_mem_session_component::Io_mem_session_component(Range_allocator &io_mem_alloc,
+                                                   Range_allocator &ram_alloc,
+                                                   Rpc_entrypoint  &ds_ep,
                                                    const char      *args)
 :
 	_io_mem_alloc(io_mem_alloc),
@@ -84,14 +84,14 @@ Io_mem_session_component::Io_mem_session_component(Range_allocator *io_mem_alloc
 		throw Service_denied();
 	}
 
-	_ds_cap = static_cap_cast<Io_mem_dataspace>(_ds_ep->manage(&_ds));
+	_ds_cap = static_cap_cast<Io_mem_dataspace>(_ds_ep.manage(&_ds));
 }
 
 
 Io_mem_session_component::~Io_mem_session_component()
 {
 	/* dissolve IO_MEM dataspace from service entry point */
-	_ds_ep->dissolve(&_ds);
+	_ds_ep.dissolve(&_ds);
 
 	/* flush local mapping of IO_MEM */
 	_unmap_local(_ds.core_local_addr(), _ds.size());
@@ -103,5 +103,5 @@ Io_mem_session_component::~Io_mem_session_component()
 	 */
 
 	/* free region in IO_MEM allocator */
-	_io_mem_alloc->free(reinterpret_cast<void *>(_ds.req_base));
+	_io_mem_alloc.free(reinterpret_cast<void *>(_ds.req_base));
 }

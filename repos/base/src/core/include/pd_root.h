@@ -53,8 +53,8 @@ class Genode::Pd_root : public Genode::Root_component<Genode::Pd_session_compone
 			if (!constrained)
 				return Ram_dataspace_factory::Virt_range { 0x1000, 0UL - 0x2000 };
 
-			return Ram_dataspace_factory::Virt_range { platform()->vm_start(),
-			                                           platform()->vm_size() };
+			return Ram_dataspace_factory::Virt_range { platform().vm_start(),
+			                                           platform().vm_size() };
 		}
 
 	protected:
@@ -74,7 +74,7 @@ class Genode::Pd_root : public Genode::Root_component<Genode::Pd_session_compone
 				                     _core_mem);
 		}
 
-		void _upgrade_session(Pd_session_component *pd, const char *args)
+		void _upgrade_session(Pd_session_component *pd, const char *args) override
 		{
 			pd->upgrade(ram_quota_from_args(args));
 			pd->upgrade(cap_quota_from_args(args));

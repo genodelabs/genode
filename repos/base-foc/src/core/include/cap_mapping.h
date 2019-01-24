@@ -36,7 +36,7 @@ namespace Genode {
 			 *
 			 * \return pointer to newly constructed Core_cap_index object
 			 */
-			inline Core_cap_index* _get_cap();
+			inline Core_cap_index *_get_cap();
 
 		public:
 

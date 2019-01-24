@@ -73,9 +73,9 @@ class Genode::Irq_args
 			}
 		}
 
-		long irq_number() const { return _irq_number; }
-		Irq_session::Trigger trigger() const { return _irq_trigger; }
-		Irq_session::Polarity polarity() const { return _irq_polarity; }
+		long                  irq_number() const { return _irq_number; }
+		Irq_session::Trigger  trigger()    const { return _irq_trigger; }
+		Irq_session::Polarity polarity()   const { return _irq_polarity; }
 };
 
 #endif /* _CORE__INCLUDE__IRQ_ARGS_H_ */

@@ -162,7 +162,7 @@ Platform_thread* Platform_pd::_next_thread()
 }
 
 
-int Platform_pd::_alloc_thread(int thread_id, Platform_thread *thread)
+int Platform_pd::_alloc_thread(int thread_id, Platform_thread &thread)
 {
 	int i = thread_id;
 
@@ -177,7 +177,7 @@ int Platform_pd::_alloc_thread(int thread_id, Platform_thread *thread)
 		if (_threads[i]) return -2;
 	}
 
-	_threads[i] = thread;
+	_threads[i] = &thread;
 
 	return i;
 }
@@ -196,10 +196,10 @@ void Platform_pd::_free_thread(int thread_id)
  ** Public object members **
  ***************************/
 
-bool Platform_pd::bind_thread(Platform_thread *thread)
+bool Platform_pd::bind_thread(Platform_thread &thread)
 {
 	/* thread_id is THREAD_INVALID by default - only core is the special case */
-	int thread_id = thread->thread_id();
+	int thread_id = thread.thread_id();
 	l4_threadid_t l4_thread_id;
 
 	int t = _alloc_thread(thread_id, thread);
@@ -213,18 +213,18 @@ bool Platform_pd::bind_thread(Platform_thread *thread)
 	l4_thread_id.id.lthread = thread_id;
 
 	/* finally inform thread about binding */
-	thread->bind(thread_id, l4_thread_id, this);
+	thread.bind(thread_id, l4_thread_id, *this);
 
 	return true;
 }
 
 
-void Platform_pd::unbind_thread(Platform_thread *thread)
+void Platform_pd::unbind_thread(Platform_thread &thread)
 {
-	int thread_id = thread->thread_id();
+	int thread_id = thread.thread_id();
 
 	/* unbind thread before proceeding */
-	thread->unbind();
+	thread.unbind();
 
 	_free_thread(thread_id);
 }
@@ -246,7 +246,25 @@ void Platform_pd::flush(addr_t, size_t size, Core_local_addr core_local_base)
 		               L4_FP_FLUSH_PAGE);
 }
 
-Platform_pd::Platform_pd(Allocator *, char const *, signed pd_id, bool create)
+Platform_pd::Platform_pd(Allocator &, char const *)
+{
+	/* check correct init */
+	if (!_init)
+		panic("init pd facility via Platform_pd::init() before using it!");
+
+	/* init threads */
+	_init_threads();
+
+	int ret = _alloc_pd(PD_INVALID);
+	if (ret < 0) {
+		panic("pd alloc failed");
+	}
+
+	_create_pd(true);
+}
+
+
+Platform_pd::Platform_pd(char const *, signed pd_id)
 {
 	/* check correct init */
 	if (!_init)
@@ -260,14 +278,14 @@ Platform_pd::Platform_pd(Allocator *, char const *, signed pd_id, bool create)
 		panic("pd alloc failed");
 	}
 
-	_create_pd(create);
+	_create_pd(false);
 }
 
 
 Platform_pd::~Platform_pd()
 {
 	/* unbind all threads */
-	while (Platform_thread *t = _next_thread()) unbind_thread(t);
+	while (Platform_thread *t = _next_thread()) unbind_thread(*t);
 
 	_destroy_pd();
 	_free_pd();

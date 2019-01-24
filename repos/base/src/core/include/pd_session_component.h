@@ -143,8 +143,8 @@ class Genode::Pd_session_component : public Session_object<Pd_session>
 			_stack_area (ep, _sliced_heap, pager_ep, 0, stack_area_virtual_size(), diag),
 			_linker_area(ep, _sliced_heap, pager_ep, 0, LINKER_AREA_SIZE, diag)
 		{
-			if (platform()->core_needs_platform_pd() || label != "core") {
-				_pd.construct(&_sliced_heap, _label.string());
+			if (platform().core_needs_platform_pd() || label != "core") {
+				_pd.construct(_sliced_heap, _label.string());
 				_address_space.address_space(&*_pd);
 			}
 		}
@@ -172,7 +172,7 @@ class Genode::Pd_session_component : public Session_object<Pd_session>
 		 */
 		bool bind_thread(Platform_thread &thread)
 		{
-			return _pd->bind_thread(&thread);
+			return _pd->bind_thread(thread);
 		}
 
 		Region_map_component &address_space_region_map()

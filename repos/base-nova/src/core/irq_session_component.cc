@@ -70,7 +70,7 @@ static bool msi(Genode::addr_t irq_sel, Genode::addr_t phys_mem,
                 Genode::Signal_context_capability sig_cap)
 {
 	void * virt = 0;
-	if (platform()->region_alloc()->alloc_aligned(4096, &virt, 12).error())
+	if (platform().region_alloc().alloc_aligned(4096, &virt, 12).error())
 		return false;
 
 	Genode::addr_t virt_addr = reinterpret_cast<Genode::addr_t>(virt);
@@ -82,10 +82,10 @@ static bool msi(Genode::addr_t irq_sel, Genode::addr_t phys_mem,
 
 	Nova::Mem_crd phys_crd(phys_mem >> 12,  0, Rights(true, false, false));
 	Nova::Mem_crd virt_crd(virt_addr >> 12, 0, Rights(true, false, false));
-	Utcb * utcb = reinterpret_cast<Utcb *>(Thread::myself()->utcb());
+	Utcb &utcb = *reinterpret_cast<Utcb *>(Thread::myself()->utcb());
 
-	if (map_local_phys_to_virt(utcb, phys_crd, virt_crd, platform_specific()->core_pd_sel())) {
-		platform()->region_alloc()->free(virt, 4096);
+	if (map_local_phys_to_virt(utcb, phys_crd, virt_crd, platform_specific().core_pd_sel())) {
+		platform().region_alloc().free(virt, 4096);
 		return false;
 	}
 
@@ -93,7 +93,7 @@ static bool msi(Genode::addr_t irq_sel, Genode::addr_t phys_mem,
 	bool res = associate(irq_sel, msi_addr, msi_data, sig_cap, virt_addr);
 
 	unmap_local(Nova::Mem_crd(virt_addr >> 12, 0, Rights(true, true, true)));
-	platform()->region_alloc()->free(virt, 4096);
+	platform().region_alloc().free(virt, 4096);
 
 	return res;
 }
@@ -138,12 +138,12 @@ void Irq_object::start(unsigned irq, Genode::addr_t const device_phys)
 	/* map IRQ SM cap from kernel to core at irq_sel selector */
 	using Nova::Obj_crd;
 
-	Obj_crd src(platform_specific()->gsi_base_sel() + irq, 0);
+	Obj_crd src(platform_specific().gsi_base_sel() + irq, 0);
 	Obj_crd dst(irq_sel(), 0);
 	enum { MAP_FROM_KERNEL_TO_CORE = true };
 
-	int ret = map_local(platform_specific()->core_pd_sel(),
-	                    (Nova::Utcb *)Thread::myself()->utcb(),
+	int ret = map_local(platform_specific().core_pd_sel(),
+	                    *(Nova::Utcb *)Thread::myself()->utcb(),
 	                    src, dst, MAP_FROM_KERNEL_TO_CORE);
 	if (ret) {
 		error("getting IRQ from kernel failed - ", irq);
@@ -166,7 +166,7 @@ void Irq_object::start(unsigned irq, Genode::addr_t const device_phys)
 
 Irq_object::Irq_object()
 :
-	_kernel_caps(cap_map()->insert(KERNEL_CAP_COUNT_LOG2)),
+	_kernel_caps(cap_map().insert(KERNEL_CAP_COUNT_LOG2)),
 	_msi_addr(0UL), _msi_data(0UL)
 { }
 
@@ -179,7 +179,7 @@ Irq_object::~Irq_object()
 	/* revoke IRQ SM */
 	Nova::revoke(Nova::Obj_crd(_kernel_caps, KERNEL_CAP_COUNT_LOG2));
 	enum { NO_REVOKE_REQUIRED = false };
-	cap_map()->remove(_kernel_caps, KERNEL_CAP_COUNT_LOG2, NO_REVOKE_REQUIRED);
+	cap_map().remove(_kernel_caps, KERNEL_CAP_COUNT_LOG2, NO_REVOKE_REQUIRED);
 }
 
 
@@ -188,18 +188,18 @@ Irq_object::~Irq_object()
  ***************************/
 
 
-static Nova::Hip * kernel_hip()
+static Nova::Hip const &kernel_hip()
 {
 	/**
 	 * Initial value of esp register, saved by the crt0 startup code.
 	 * This value contains the address of the hypervisor information page.
 	 */
 	extern addr_t __initial_sp;
-	return reinterpret_cast<Nova::Hip *>(__initial_sp);
+	return *reinterpret_cast<Nova::Hip const *>(__initial_sp);
 }
 
 
-Irq_session_component::Irq_session_component(Range_allocator *irq_alloc,
+Irq_session_component::Irq_session_component(Range_allocator &irq_alloc,
                                              const char      *args)
 :
 	_irq_number(~0U), _irq_alloc(irq_alloc), _irq_object()
@@ -208,16 +208,16 @@ Irq_session_component::Irq_session_component(Range_allocator *irq_alloc,
 	long device_phys = Arg_string::find_arg(args, "device_config_phys").long_value(0);
 	if (device_phys) {
 
-		if ((unsigned long)irq_number >= kernel_hip()->sel_gsi)
+		if ((unsigned long)irq_number >= kernel_hip().sel_gsi)
 			throw Service_denied();
 
-		irq_number = kernel_hip()->sel_gsi - 1 - irq_number;
+		irq_number = kernel_hip().sel_gsi - 1 - irq_number;
 		/* XXX last GSI number unknown - assume 40 GSIs (depends on IO-APIC) */
 		if (irq_number < 40)
 			throw Service_denied();
 	}
 
-	if (!irq_alloc || irq_alloc->alloc_addr(1, irq_number).error()) {
+	if (irq_alloc.alloc_addr(1, irq_number).error()) {
 		error("unavailable IRQ ", irq_number, " requested");
 		throw Service_denied();
 	}
@@ -234,7 +234,7 @@ Irq_session_component::~Irq_session_component()
 		return;
 
 	Genode::addr_t free_irq = _irq_number;
-	_irq_alloc->free((void *)free_irq);
+	_irq_alloc.free((void *)free_irq);
 }
 
 

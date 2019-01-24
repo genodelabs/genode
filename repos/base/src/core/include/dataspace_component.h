@@ -134,8 +134,8 @@ namespace Genode {
 
 			void assign_core_local_addr(void *addr) { _core_local_addr = (addr_t)addr; }
 
-			void attached_to(Rm_region *region);
-			void detached_from(Rm_region *region);
+			void attached_to(Rm_region &region);
+			void detached_from(Rm_region &region);
 
 			/**
 			 * Detach dataspace from all rm sessions.
@@ -145,9 +145,9 @@ namespace Genode {
 			/**
 			 * Check if dataspace is owned by a specific owner
 			 */
-			bool owner(Dataspace_owner const *o) const { return _owner == o; }
+			bool owner(Dataspace_owner const &o) const { return _owner == &o; }
 
-			List<Rm_region> *regions() { return &_regions; }
+			List<Rm_region> &regions() { return _regions; }
 
 			/*************************
 			 ** Dataspace interface **

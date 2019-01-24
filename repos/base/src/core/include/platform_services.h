@@ -30,9 +30,9 @@ namespace Genode {
 	 * \param md   metadata allocator for session components
 	 * \param reg  registry where to add platform-specific services
 	 */
-	void platform_add_local_services(Rpc_entrypoint *ep,
-	                                 Sliced_heap *md,
-	                                 Registry<Service> *reg);
+	void platform_add_local_services(Rpc_entrypoint    &ep,
+	                                 Sliced_heap       &md,
+	                                 Registry<Service> &reg);
 }
 
 #endif /* _CORE__INCLUDE__PLATFORM_SERVICES_H_ */

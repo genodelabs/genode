@@ -84,17 +84,29 @@ namespace Genode {
 			/**
 			 * Accessor for core pd object
 			 */
-			Platform_pd *core_pd() { return _core_pd; }
+			Platform_pd &core_pd()
+			{
+				if (_core_pd)
+					return *_core_pd;
+
+				ASSERT_NEVER_CALLED;
+			}
 
 			/**
 			 * Accessor for core pager thread object
 			 */
-			Platform_thread *core_pager() { return _core_pager; }
+			Platform_thread &core_pager()
+			{
+				if (_core_pager)
+					return *_core_pager;
+
+				ASSERT_NEVER_CALLED;
+			}
 
 			/**
 			 * Accessor for platform thread object slab allocator
 			 */
-			Thread_slab *thread_slab() { return &_thread_slab; }
+			Thread_slab &thread_slab() { return _thread_slab; }
 
 			/**********************************************
 			 ** Callbacks used for parsing the boot info **
@@ -116,15 +128,15 @@ namespace Genode {
 			 ** Generic platform interface **
 			 ********************************/
 
-			Range_allocator *ram_alloc()      override { return  _core_mem_alloc.phys_alloc(); }
-			Range_allocator *io_mem_alloc()   override { return &_io_mem_alloc; }
-			Range_allocator *io_port_alloc()  override { return &_io_port_alloc; }
-			Range_allocator *irq_alloc()      override { return &_irq_alloc; }
-			Range_allocator *region_alloc()   override { return  _core_mem_alloc.virt_alloc(); }
-			Range_allocator *core_mem_alloc() override { return &_core_mem_alloc; }
+			Range_allocator &ram_alloc()      override { return _core_mem_alloc.phys_alloc(); }
+			Range_allocator &io_mem_alloc()   override { return _io_mem_alloc; }
+			Range_allocator &io_port_alloc()  override { return _io_port_alloc; }
+			Range_allocator &irq_alloc()      override { return _irq_alloc; }
+			Range_allocator &region_alloc()   override { return _core_mem_alloc.virt_alloc(); }
+			Range_allocator &core_mem_alloc() override { return _core_mem_alloc; }
 			addr_t           vm_start() const override { return _vm_start; }
 			size_t           vm_size()  const override { return _vm_size; }
-			Rom_fs          *rom_fs()         override { return &_rom_fs; }
+			Rom_fs          &rom_fs()         override { return _rom_fs; }
 			size_t           max_caps() const override { return Capability_space::max_caps(); }
 
 			void wait_for_exit();

@@ -18,17 +18,17 @@
 using namespace Genode;
 
 
-void Dataspace_component::attached_to(Rm_region *region)
+void Dataspace_component::attached_to(Rm_region &region)
 {
 	Lock::Guard lock_guard(_lock);
-	_regions.insert(region);
+	_regions.insert(&region);
 }
 
 
-void Dataspace_component::detached_from(Rm_region *region)
+void Dataspace_component::detached_from(Rm_region &region)
 {
 	Lock::Guard lock_guard(_lock);
-	_regions.remove(region);
+	_regions.remove(&region);
 }
 
 void Dataspace_component::detach_from_rm_sessions()
@@ -43,7 +43,7 @@ void Dataspace_component::detach_from_rm_sessions()
 		 * and thereby removes the current region from the '_regions' list.
 		 */
 		_lock.unlock();
-		r->rm()->detach((void *)r->base());
+		r->rm().detach((void *)r->base());
 		_lock.lock();
 	}
 

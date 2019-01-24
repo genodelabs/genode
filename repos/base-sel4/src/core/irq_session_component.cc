@@ -28,8 +28,8 @@ bool Irq_object::associate(Irq_session::Trigger const irq_trigger,
                            Irq_session::Polarity const irq_polarity)
 {
 	/* allocate notification object within core's CNode */
-	Platform &platform = *platform_specific();
-	Range_allocator &phys_alloc = *platform.ram_alloc();
+	Platform &platform = platform_specific();
+	Range_allocator &phys_alloc = platform.ram_alloc();
 
 	{
 		addr_t       const phys_addr = Untyped_memory::alloc_page(phys_alloc);
@@ -82,11 +82,11 @@ void Irq_object::entry()
 	}
 }
 
-void Genode::Irq_object::ack_irq()
+void Irq_object::ack_irq()
 {
 	int res = seL4_IRQHandler_Ack(_kernel_irq_sel.value());
 	if (res != seL4_NoError)
-		Genode::error("ack_irq failed - ", res);
+		error("ack_irq failed - ", res);
 }
 
 Irq_object::Irq_object(unsigned irq)
@@ -94,12 +94,12 @@ Irq_object::Irq_object(unsigned irq)
 	Thread_deprecated<4096>("irq"),
 	_sync_bootup(Lock::LOCKED),
 	_irq(irq),
-	_kernel_irq_sel(platform_specific()->core_sel_alloc().alloc()),
-	_kernel_notify_sel(platform_specific()->core_sel_alloc().alloc())
+	_kernel_irq_sel(platform_specific().core_sel_alloc().alloc()),
+	_kernel_notify_sel(platform_specific().core_sel_alloc().alloc())
 { }
 
 
-Irq_session_component::Irq_session_component(Range_allocator *irq_alloc,
+Irq_session_component::Irq_session_component(Range_allocator &irq_alloc,
                                              const char      *args)
 :
 	_irq_number(Arg_string::find_arg(args, "irq_number").long_value(-1)),
@@ -110,8 +110,8 @@ Irq_session_component::Irq_session_component(Range_allocator *irq_alloc,
 	if (msi)
 		throw Service_denied();
 
-	if (!irq_alloc || irq_alloc->alloc_addr(1, _irq_number).error()) {
-		Genode::error("unavailable IRQ ", _irq_number, " requested");
+	if (irq_alloc.alloc_addr(1, _irq_number).error()) {
+		error("unavailable IRQ ", _irq_number, " requested");
 		throw Service_denied();
 	}
 
@@ -119,7 +119,7 @@ Irq_session_component::Irq_session_component(Range_allocator *irq_alloc,
 	Irq_args const irq_args(args);
 
 	if (!_irq_object.associate(irq_args.trigger(), irq_args.polarity())) {
-		Genode::error("could not associate with IRQ ", irq_args.irq_number());
+		error("could not associate with IRQ ", irq_args.irq_number());
 		throw Service_denied();
 	}
 
@@ -129,7 +129,7 @@ Irq_session_component::Irq_session_component(Range_allocator *irq_alloc,
 
 Irq_session_component::~Irq_session_component()
 {
-	Genode::error(__PRETTY_FUNCTION__, "- not yet implemented.");
+	error(__PRETTY_FUNCTION__, "- not yet implemented.");
 }
 
 
@@ -139,13 +139,13 @@ void Irq_session_component::ack_irq()
 }
 
 
-void Irq_session_component::sigh(Genode::Signal_context_capability cap)
+void Irq_session_component::sigh(Signal_context_capability cap)
 {
 	_irq_object.sigh(cap);
 }
 
 
-Genode::Irq_session::Info Irq_session_component::info()
+Irq_session::Info Irq_session_component::info()
 {
 	/* no MSI support */
 	return { .type = Info::Type::INVALID, .address = 0, .value = 0 };

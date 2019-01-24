@@ -59,7 +59,7 @@ class Stack_area_region_map : public Region_map
 		using Ds_slab = Synced_allocator<Tslab<Dataspace_component,
 		                                       get_page_size()> >;
 
-		Ds_slab _ds_slab { platform()->core_mem_alloc() };
+		Ds_slab _ds_slab { platform().core_mem_alloc() };
 
 	public:
 
@@ -71,31 +71,27 @@ class Stack_area_region_map : public Region_map
 		{
 			/* allocate physical memory */
 			size = round_page(size);
-			void *phys_base;
-			Range_allocator *ra = platform_specific()->ram_alloc();
-			if (ra->alloc_aligned(size, &phys_base,
-				                  get_page_size_log2()).error()) {
+			void *phys_base = nullptr;
+			Range_allocator &ra = platform_specific().ram_alloc();
+			if (ra.alloc_aligned(size, &phys_base,
+				                 get_page_size_log2()).error()) {
 				error("could not allocate backing store for new stack");
 				return (addr_t)0;
 			}
 
-			Dataspace_component *ds = new (&_ds_slab)
+			Dataspace_component &ds = *new (&_ds_slab)
 				Dataspace_component(size, 0, (addr_t)phys_base, CACHED, true, 0);
-			if (!ds) {
-				error("dataspace for core stack does not exist");
-				return (addr_t)0;
-			}
 
-			addr_t core_local_addr = stack_area_virtual_base() + (addr_t)local_addr;
+			addr_t const core_local_addr = stack_area_virtual_base() + (addr_t)local_addr;
 
-			if (!map_local(ds->phys_addr(), core_local_addr,
-			               ds->size() >> get_page_size_log2())) {
-				error("could not map phys ", Hex(ds->phys_addr()),
+			if (!map_local(ds.phys_addr(), core_local_addr,
+			               ds.size() >> get_page_size_log2())) {
+				error("could not map phys ", Hex(ds.phys_addr()),
 				      " at local ", Hex(core_local_addr));
 				return (addr_t)0;
 			}
 
-			ds->assign_core_local_addr((void*)core_local_addr);
+			ds.assign_core_local_addr((void*)core_local_addr);
 
 			return local_addr;
 		}

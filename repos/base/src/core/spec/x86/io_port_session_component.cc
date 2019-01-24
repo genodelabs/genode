@@ -26,7 +26,7 @@ using namespace Genode;
  ** Constructor / destructor **
  ******************************/
 
-Io_port_session_component::Io_port_session_component(Range_allocator *io_port_alloc,
+Io_port_session_component::Io_port_session_component(Range_allocator &io_port_alloc,
                                                      const char      *args)
 : _io_port_alloc(io_port_alloc)
 {
@@ -35,7 +35,7 @@ Io_port_session_component::Io_port_session_component(Range_allocator *io_port_al
 	unsigned size = Arg_string::find_arg(args, "io_port_size").ulong_value(0);
 
 	/* allocate region (also checks out-of-bounds regions) */
-	switch (io_port_alloc->alloc_addr(size, base).value) {
+	switch (io_port_alloc.alloc_addr(size, base).value) {
 
 	case Range_allocator::Alloc_return::RANGE_CONFLICT:
 		error("I/O port ", Hex_range<uint16_t>(base, size), " not available");
@@ -56,5 +56,5 @@ Io_port_session_component::Io_port_session_component(Range_allocator *io_port_al
 
 Io_port_session_component::~Io_port_session_component()
 {
-	_io_port_alloc->free(reinterpret_cast<void *>(_base));
+	_io_port_alloc.free(reinterpret_cast<void *>(_base));
 }

@@ -32,6 +32,7 @@
 #include <core_region_map.h>
 #include <core_mem_alloc.h>
 #include <translation_table.h>
+#include <assertion.h>
 
 namespace Genode {
 	class Address_space;
@@ -48,7 +49,7 @@ class Genode::Platform : public Genode::Platform_generic
 		Phys_allocator     _irq_alloc;          /* IRQ allocator          */
 		Rom_fs             _rom_fs         { }; /* ROM file system        */
 
-		static Hw::Boot_info const &           _boot_info();
+		static Hw::Boot_info           const &_boot_info();
 		static Hw::Memory_region_array const & _core_virt_regions();
 
 		/**
@@ -120,34 +121,23 @@ class Genode::Platform : public Genode::Platform_generic
 		 ** Platform_generic interface **
 		 ********************************/
 
-		Range_allocator * core_mem_alloc() {
-			return &_core_mem_alloc; }
-
-		Range_allocator * ram_alloc() {
-			return _core_mem_alloc.phys_alloc(); }
-
-		Range_allocator * region_alloc() {
-			return _core_mem_alloc.virt_alloc(); }
-
-		Range_allocator * io_mem_alloc() { return &_io_mem_alloc; }
-
-		Range_allocator * io_port_alloc() { return &_io_port_alloc; }
-
-		Range_allocator * irq_alloc() { return &_irq_alloc; }
-
-		addr_t vm_start() const { return Hw::Mm::user().base; }
-
-		size_t vm_size() const { return Hw::Mm::user().size; }
-
-		Rom_fs *rom_fs() { return &_rom_fs; }
+		Range_allocator &core_mem_alloc() override { return _core_mem_alloc; }
+		Range_allocator &ram_alloc()      override { return _core_mem_alloc.phys_alloc(); }
+		Range_allocator &region_alloc()   override { return _core_mem_alloc.virt_alloc(); }
+		Range_allocator &io_mem_alloc()   override { return _io_mem_alloc; }
+		Range_allocator &io_port_alloc()  override { return _io_port_alloc; }
+		Range_allocator &irq_alloc()      override { return _irq_alloc; }
+		addr_t           vm_start() const override { return Hw::Mm::user().base; }
+		size_t           vm_size()  const override { return Hw::Mm::user().size; }
+		Rom_fs          &rom_fs()         override { return _rom_fs; }
 
 		inline void wait_for_exit() {
 			while (1) { Kernel::stop_thread(); } };
 
-		bool supports_direct_unmap() const { return 1; }
-		Address_space * core_pd() { return nullptr; }
+		bool supports_direct_unmap() const override { return true; }
+		Address_space &core_pd() { ASSERT_NEVER_CALLED; }
 
-		Affinity::Space affinity_space() const {
+		Affinity::Space affinity_space() const override {
 			return Affinity::Space(_boot_info().cpus); }
 
 		/*

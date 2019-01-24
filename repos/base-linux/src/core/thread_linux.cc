@@ -30,11 +30,11 @@ static void empty_signal_handler(int) { }
 
 void Thread::_thread_start()
 {
-	Thread * const thread = Thread::myself();
+	Thread * const thread_ptr = Thread::myself();
 
 	/* use primary stack as alternate stack for fatal signals (exceptions) */
-	void   *stack_base = (void *)thread->_stack->base();
-	size_t  stack_size = thread->_stack->top() - thread->_stack->base();
+	void   *stack_base = (void *)thread_ptr->_stack->base();
+	size_t  stack_size = thread_ptr->_stack->top() - thread_ptr->_stack->base();
 
 	lx_sigaltstack(stack_base, stack_size);
 

@@ -95,7 +95,7 @@ static inline Genode::Socket_pair create_server_socket_pair(long id)
 		throw Connect_failed();
 	}
 
-	socket_pair.client_sd = Genode::ep_sd_registry()->try_associate(socket_pair.client_sd, id);
+	socket_pair.client_sd = Genode::ep_sd_registry().try_associate(socket_pair.client_sd, id);
 
 	/*
 	 * Wipe Unix domain socket from the file system. It will live as long as

@@ -22,9 +22,9 @@ void Genode::Capability_map::remove(Genode::Cap_index* i)
 	Lock_guard<Spin_lock> guard(_lock);
 
 	if (i) {
-		Cap_index* e = _tree.first() ? _tree.first()->find_by_id(i->id()) : 0;
+		Cap_index *e = _tree.first() ? _tree.first()->find_by_id(i->id()) : 0;
 		if (e == i)
 			_tree.remove(i);
-		cap_idx_alloc()->free(i, 1);
+		cap_idx_alloc().free(i, 1);
 	}
 }

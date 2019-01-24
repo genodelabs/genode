@@ -153,11 +153,11 @@ void Platform_thread::resume()
 }
 
 
-void Platform_thread::bind(Platform_pd *pd)
+void Platform_thread::bind(Platform_pd &pd)
 {
-	_platform_pd = pd;
-	_gate.map(pd->native_task().data()->kcap());
-	_irq.map(pd->native_task().data()->kcap());
+	_platform_pd = &pd;
+	_gate.map(pd.native_task().data()->kcap());
+	_irq.map(pd.native_task().data()->kcap());
 }
 
 
@@ -180,11 +180,11 @@ void Platform_thread::unbind()
 }
 
 
-void Platform_thread::pager(Pager_object *pager_obj)
+void Platform_thread::pager(Pager_object &pager_obj)
 {
-	_pager_obj   = pager_obj;
+	_pager_obj = &pager_obj;
 	if (_pager_obj)
-		_pager.local = pager_obj->cap();
+		_pager.local = pager_obj.cap();
 	else
 		_pager.local = Native_capability();
 }
@@ -240,7 +240,7 @@ Affinity::Location Platform_thread::affinity() const
 
 static Rpc_cap_factory &thread_cap_factory()
 {
-	static Rpc_cap_factory inst(*platform()->core_mem_alloc());
+	static Rpc_cap_factory inst(platform().core_mem_alloc());
 	return inst;
 }
 
@@ -257,7 +257,7 @@ void Platform_thread::_create_thread()
 }
 
 
-void Platform_thread::_finalize_construction(const char *name)
+void Platform_thread::_finalize_construction()
 {
 	/* create irq for new thread */
 	l4_msgtag_t tag = l4_factory_create_irq(L4_BASE_FACTORY_CAP,
@@ -271,8 +271,7 @@ void Platform_thread::_finalize_construction(const char *name)
 		warning("attaching thread's irq failed");
 
 	/* set human readable name in kernel debugger */
-	strncpy(_name, name, sizeof(_name));
-	Fiasco::l4_debugger_set_object_name(_thread.local.data()->kcap(), name);
+	Fiasco::l4_debugger_set_object_name(_thread.local.data()->kcap(), _name.string());
 
 	/* set priority of thread */
 	l4_sched_param_t params = l4_sched_param(_prio);
@@ -283,7 +282,8 @@ void Platform_thread::_finalize_construction(const char *name)
 
 Platform_thread::Platform_thread(size_t, const char *name, unsigned prio,
                                  Affinity::Location location, addr_t)
-: _state(DEAD),
+: _name(name),
+  _state(DEAD),
   _core_thread(false),
   _thread(true),
   _irq(true),
@@ -295,17 +295,18 @@ Platform_thread::Platform_thread(size_t, const char *name, unsigned prio,
 	/* XXX remove const cast */
 	((Core_cap_index *)_thread.local.data())->pt(this);
 	_create_thread();
-	_finalize_construction(name);
+	_finalize_construction();
 	affinity(location);
 }
 
 
-Platform_thread::Platform_thread(Core_cap_index* thread,
-                                 Core_cap_index* irq, const char *name)
-: _state(RUNNING),
+Platform_thread::Platform_thread(Core_cap_index &thread,
+                                 Core_cap_index &irq, const char *name)
+: _name(name),
+  _state(RUNNING),
   _core_thread(true),
-  _thread(Native_capability(thread), L4_BASE_THREAD_CAP),
-  _irq(Native_capability(irq)),
+  _thread(Native_capability(&thread), L4_BASE_THREAD_CAP),
+  _irq(Native_capability(&irq)),
   _utcb(0),
   _platform_pd(0),
   _pager_obj(0),
@@ -313,12 +314,13 @@ Platform_thread::Platform_thread(Core_cap_index* thread,
 {
 	/* XXX remove const cast */
 	((Core_cap_index *)_thread.local.data())->pt(this);
-	_finalize_construction(name);
+	_finalize_construction();
 }
 
 
 Platform_thread::Platform_thread(const char *name)
-: _state(DEAD),
+: _name(name),
+  _state(DEAD),
   _core_thread(true),
   _thread(true),
   _irq(true),
@@ -330,7 +332,7 @@ Platform_thread::Platform_thread(const char *name)
 	/* XXX remove const cast */
 	((Core_cap_index *)_thread.local.data())->pt(this);
 	_create_thread();
-	_finalize_construction(name);
+	_finalize_construction();
 }
 
 
@@ -343,5 +345,5 @@ Platform_thread::~Platform_thread()
 	 * Thread::unbind()
 	 */
 	if (_platform_pd)
-		_platform_pd->unbind_thread(this);
+		_platform_pd->unbind_thread(*this);
 }

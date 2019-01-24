@@ -33,19 +33,29 @@
 using namespace Genode;
 
 
-Rom_session_component::Rom_session_component(Rom_fs         *,
-                                             Rpc_entrypoint *ds_ep,
-                                             const char     *args)
-: _ds(args), _ds_ep(ds_ep)
+/**
+ * Convert 'Capability<Linux_dataspace>' to 'Capability<Rom_dataspace>'
+ *
+ * The downcast from 'Linux_dataspace' to 'Dataspace' happens implicitly by
+ * passing the argument. To upcast to 'Linux_dataspace' happens explicitly.
+ */
+static Capability<Rom_dataspace> rom_ds_cap(Capability<Dataspace> cap)
 {
-	Dataspace_capability ds_cap = _ds_ep->manage(&_ds);
-	_ds_cap = static_cap_cast<Rom_dataspace>(ds_cap);
+	return static_cap_cast<Rom_dataspace>(cap);
 }
+
+
+Rom_session_component::Rom_session_component(Rom_fs         &,
+                                             Rpc_entrypoint &ds_ep,
+                                             const char     *args)
+:
+	_ds(args), _ds_ep(ds_ep), _ds_cap(rom_ds_cap(_ds_ep.manage(&_ds)))
+{ }
 
 
 Rom_session_component::~Rom_session_component()
 {
-	_ds_ep->dissolve(&_ds);
+	_ds_ep.dissolve(&_ds);
 
 	int const fd = Capability_space::ipc_cap_data(_ds.fd()).dst.socket;
 	if (fd != -1)

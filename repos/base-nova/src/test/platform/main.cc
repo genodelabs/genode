@@ -388,7 +388,7 @@ void test_server_oom(Genode::Env &env)
 		}
 
 		/* be evil and keep this cap by manually incrementing the ref count */
-		Cap_index idx(cap_map()->find(got_cap.local_name()));
+		Cap_index idx(cap_map().find(got_cap.local_name()));
 		idx.inc();
 
 		if (i % 5000 == 4999)
@@ -663,16 +663,16 @@ Main::Main(Env &env) : env(env)
 	static char local[128][sizeof(Cap_range)];
 
 	for (unsigned i = 0; i < sizeof(local) / sizeof (local[0]); i++) {
-		Cap_range * range = construct_at<Cap_range>(local[i], index);
+		Cap_range &range = *construct_at<Cap_range>(local[i], index);
 
-		cap_map()->insert(range);
+		cap_map().insert(range);
 
-		index = range->base() + range->elements();
+		index = range.base() + range.elements();
 	};
 
-	addr_t sel_pd  = cap_map()->insert();
+	addr_t sel_pd  = cap_map().insert();
 	addr_t sel_ec  = myself->native_thread().ec_sel;
-	addr_t sel_cap = cap_map()->insert();
+	addr_t sel_cap = cap_map().insert();
 	addr_t handler = 0UL;
 	uint8_t    res = 0;
 

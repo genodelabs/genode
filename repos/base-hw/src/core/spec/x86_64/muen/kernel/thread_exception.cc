@@ -40,7 +40,7 @@ void Thread::exception(Cpu & cpu)
 	}
 	if (regs->trapno >= Cpu::Context::INTERRUPTS_START &&
 	    regs->trapno <= Cpu::Context::INTERRUPTS_END) {
-		pic()->irq_occurred(regs->trapno);
+		pic().irq_occurred(regs->trapno);
 		_interrupt(cpu.id());
 		return;
 	}

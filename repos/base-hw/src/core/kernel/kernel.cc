@@ -22,7 +22,7 @@ extern "C" void kernel()
 {
 	using namespace Kernel;
 
-	Cpu & cpu = cpu_pool()->cpu(Cpu::executing_id());
+	Cpu &cpu = cpu_pool().cpu(Cpu::executing_id());
 	Cpu_job * new_job;
 
 	{

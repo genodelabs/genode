@@ -21,15 +21,15 @@ namespace Fiasco {
 
 using namespace Genode;
 
-void Ram_dataspace_factory::_export_ram_ds(Dataspace_component *) { }
-void Ram_dataspace_factory::_revoke_ram_ds(Dataspace_component *) { }
+void Ram_dataspace_factory::_export_ram_ds(Dataspace_component &) { }
+void Ram_dataspace_factory::_revoke_ram_ds(Dataspace_component &) { }
 
 
-void Ram_dataspace_factory::_clear_ds(Dataspace_component *ds)
+void Ram_dataspace_factory::_clear_ds(Dataspace_component &ds)
 {
-	memset((void *)ds->phys_addr(), 0, ds->size());
+	memset((void *)ds.phys_addr(), 0, ds.size());
 
-	if (ds->cacheability() != CACHED)
-			Fiasco::l4_cache_dma_coherent(ds->phys_addr(), ds->phys_addr() + ds->size());
+	if (ds.cacheability() != CACHED)
+		Fiasco::l4_cache_dma_coherent(ds.phys_addr(), ds.phys_addr() + ds.size());
 }
 

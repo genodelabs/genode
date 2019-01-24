@@ -40,9 +40,9 @@ namespace Genode {
 			 *                      particular MMIO region base, size and
 			 *                      caching demands
 			 */
-			Io_mem_session_component(Range_allocator *io_mem_alloc,
-			                         Range_allocator *ram_alloc,
-			                         Rpc_entrypoint  *ds_ep,
+			Io_mem_session_component(Range_allocator &io_mem_alloc,
+			                         Range_allocator &ram_alloc,
+			                         Rpc_entrypoint  &ds_ep,
 			                         const char      *args);
 
 			/**

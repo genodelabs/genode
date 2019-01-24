@@ -47,7 +47,7 @@ Core_region_map::attach(Dataspace_capability ds_cap, size_t size, off_t offset,
 
 		/* allocate range in core's virtual address space */
 		void *virt_addr;
-		if (!platform()->region_alloc()->alloc(page_rounded_size, &virt_addr)) {
+		if (!platform().region_alloc().alloc(page_rounded_size, &virt_addr)) {
 			error("could not allocate virtual address range in core of size ",
 			      page_rounded_size);
 			return nullptr;
@@ -66,7 +66,7 @@ Core_region_map::attach(Dataspace_capability ds_cap, size_t size, off_t offset,
 
 void Core_region_map::detach(Local_addr core_local_addr)
 {
-	size_t size = platform_specific()->region_alloc_size_at(core_local_addr);
+	size_t size = platform_specific().region_alloc_size_at(core_local_addr);
 
 	if (!unmap_local(core_local_addr, size >> get_page_size_log2())) {
 		Genode::error("could not unmap core virtual address ",
@@ -74,5 +74,5 @@ void Core_region_map::detach(Local_addr core_local_addr)
 		return;
 	}
 
-	platform()->region_alloc()->free(core_local_addr);
+	platform().region_alloc().free(core_local_addr);
 }

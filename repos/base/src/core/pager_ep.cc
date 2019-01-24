@@ -84,21 +84,21 @@ void Pager_entrypoint::entry()
 }
 
 
-void Pager_entrypoint::dissolve(Pager_object *obj)
+void Pager_entrypoint::dissolve(Pager_object &obj)
 {
 	using Pool = Object_pool<Pager_object>;
 
-	if (obj) Pool::remove(obj);
+	Pool::remove(&obj);
 }
 
 
-Pager_capability Pager_entrypoint::manage(Pager_object *obj)
+Pager_capability Pager_entrypoint::manage(Pager_object &obj)
 {
-	Native_capability cap = _pager_object_cap(obj->badge());
+	Native_capability cap = _pager_object_cap(obj.badge());
 
 	/* add server object to object pool */
-	obj->cap(cap);
-	insert(obj);
+	obj.cap(cap);
+	insert(&obj);
 
 	/* return capability that uses the object id as badge */
 	return reinterpret_cap_cast<Pager_object>(cap);

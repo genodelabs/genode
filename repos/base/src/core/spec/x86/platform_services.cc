@@ -24,13 +24,13 @@
 /*
  * Add x86 specific ioport service
  */
-void Genode::platform_add_local_services(Rpc_entrypoint*,
-                                         Sliced_heap *sliced_heap,
-                                         Registry<Service> *local_services)
+void Genode::platform_add_local_services(Rpc_entrypoint    &,
+                                         Sliced_heap       &sliced_heap,
+                                         Registry<Service> &local_services)
 {
-	static Io_port_root io_port_root(core_env()->pd_session(),
-	                                 platform()->io_port_alloc(), sliced_heap);
+	static Io_port_root io_port_root(*core_env().pd_session(),
+	                                 platform().io_port_alloc(), sliced_heap);
 
 	static Core_service<Io_port_session_component>
-		io_port_ls(*local_services, io_port_root);
+		io_port_ls(local_services, io_port_root);
 }

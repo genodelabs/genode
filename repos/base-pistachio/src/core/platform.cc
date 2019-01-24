@@ -212,23 +212,23 @@ Platform::Sigma0::Sigma0()
 }
 
 
-Platform::Sigma0 *Platform::sigma0()
+Platform::Sigma0 &Platform::sigma0()
 {
 	static Sigma0 _sigma0;
-	return &_sigma0;
+	return _sigma0;
 }
 
 
-Platform::Core_pager::Core_pager(Platform_pd *core_pd)
+Platform::Core_pager::Core_pager(Platform_pd &core_pd)
 :
-	Platform_thread(0, "core.pager"),
+	Platform_thread("core.pager"),
 	Pager_object(Cpu_session_capability(), Thread_capability(),
 	             0, Affinity::Location(),
 	             Session_label(), Cpu_session::Name(name()))
 {
 	Platform_thread::pager(sigma0());
 
-	core_pd->bind_thread(this);
+	core_pd.bind_thread(*this);
 	cap(Capability_space::import(native_thread_id(), Rpc_obj_key()));
 
 	/* stack begins at the top end of the '_core_pager_stack' array */
@@ -240,10 +240,10 @@ Platform::Core_pager::Core_pager(Platform_pd *core_pd)
 }
 
 
-Platform::Core_pager *Platform::core_pager()
+Platform::Core_pager &Platform::core_pager()
 {
 	static Core_pager _core_pager(core_pd());
-	return &_core_pager;
+	return _core_pager;
 }
 
 
@@ -495,8 +495,6 @@ void Platform::_setup_basics()
 	/* add KIP as ROM module */
 	_rom_fs.insert(&_kip_rom);
 
-	// Get virtual bootinfo address.
-
 	L4_Fpage_t bipage = L4_Sigma0_GetPage(get_sigma0(),
 	                                      L4_Fpage(kip->BootInfo,
 	                                      get_page_size()));
@@ -567,18 +565,19 @@ void Platform::_setup_basics()
 }
 
 
-Platform_pd *Platform::core_pd()
+Platform_pd &Platform::core_pd()
 {
 	/* on first call, setup task object for core task */
 	static Platform_pd _core_pd(true);
-	return &_core_pd;
+	return _core_pd;
 }
 
 
-Platform::Platform() :
-	_ram_alloc(nullptr), _io_mem_alloc(core_mem_alloc()),
-	_io_port_alloc(core_mem_alloc()), _irq_alloc(core_mem_alloc()),
-	_region_alloc(core_mem_alloc()),
+Platform::Platform()
+:
+	_ram_alloc(nullptr), _io_mem_alloc(&core_mem_alloc()),
+	_io_port_alloc(&core_mem_alloc()), _irq_alloc(&core_mem_alloc()),
+	_region_alloc(&core_mem_alloc()),
 	_kip_rom((addr_t)Pistachio::get_kip(),
 	         sizeof(Pistachio::L4_KernelInterfacePage_t), "pistachio_kip")
 {
@@ -605,12 +604,12 @@ Platform::Platform() :
 	 * thread_id of first task. But since we do not destroy this
 	 * task, it should be no problem.
 	 */
-	static Platform_thread core_thread(0, "core.main");
+	static Platform_thread core_thread("core.main");
 
 	core_thread.set_l4_thread_id(Pistachio::L4_MyGlobalId());
 	core_thread.pager(sigma0());
 
-	core_pd()->bind_thread(&core_thread);
+	core_pd().bind_thread(core_thread);
 
 	/* core log as ROM module */
 	{
@@ -618,14 +617,14 @@ Platform::Platform() :
 		unsigned const pages  = 1;
 		size_t const log_size = pages << get_page_size_log2();
 
-		ram_alloc()->alloc_aligned(log_size, &phys_ptr, get_page_size_log2());
+		ram_alloc().alloc_aligned(log_size, &phys_ptr, get_page_size_log2());
 		addr_t const phys_addr = reinterpret_cast<addr_t>(phys_ptr);
 
 		void * const core_local_ptr = phys_ptr;
 		addr_t const core_local_addr = phys_addr;
 
 		/* let one page free after the log buffer */
-		region_alloc()->remove_range(core_local_addr, log_size + get_page_size());
+		region_alloc().remove_range(core_local_addr, log_size + get_page_size());
 
 		memset(core_local_ptr, 0, log_size);
 

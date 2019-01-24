@@ -37,7 +37,7 @@ Ram_dataspace_factory::alloc(size_t ds_size, Cache_attribute cached)
 	 * If this does not work, we subsequently weaken the alignment constraint
 	 * until the allocation succeeds.
 	 */
-	void *ds_addr = 0;
+	void *ds_addr = nullptr;
 	bool alloc_succeeded = false;
 
 	/*
@@ -115,16 +115,16 @@ Ram_dataspace_factory::alloc(size_t ds_size, Cache_attribute cached)
 	 * \throw Out_of_ram
 	 * \throw Out_of_caps
 	 */
-	Dataspace_component * const ds = new (_ds_slab)
+	Dataspace_component &ds = *new (_ds_slab)
 		Dataspace_component(ds_size, (addr_t)ds_addr, cached, true, this);
 
 	/* create native shared memory representation of dataspace */
 	try { _export_ram_ds(ds); }
 	catch (Core_virtual_memory_exhausted) {
-		warning("could not export RAM dataspace of size ", ds->size());
+		warning("could not export RAM dataspace of size ", ds.size());
 
 		/* cleanup unneeded resources */
-		destroy(_ds_slab, ds);
+		destroy(_ds_slab, &ds);
 		throw Out_of_ram();
 	}
 
@@ -135,7 +135,7 @@ Ram_dataspace_factory::alloc(size_t ds_size, Cache_attribute cached)
 	 */
 	_clear_ds(ds);
 
-	Dataspace_capability result = _ep.manage(ds);
+	Dataspace_capability result = _ep.manage(&ds);
 
 	phys_alloc_guard.ack = true;
 
@@ -149,7 +149,7 @@ void Ram_dataspace_factory::free(Ram_dataspace_capability ds_cap)
 	_ep.apply(ds_cap, [&] (Dataspace_component *c)
 	{
 		if (!c) return;
-		if (!c->owner(this)) return;
+		if (!c->owner(*this)) return;
 
 		ds = c;
 
@@ -162,7 +162,7 @@ void Ram_dataspace_factory::free(Ram_dataspace_capability ds_cap)
 		ds->detach_from_rm_sessions();
 
 		/* destroy native shared memory representation */
-		_revoke_ram_ds(ds);
+		_revoke_ram_ds(*ds);
 
 		/* free physical memory that was backing the dataspace */
 		_phys_alloc.free((void *)ds->phys_addr(), ds_size);
@@ -178,7 +178,7 @@ size_t Ram_dataspace_factory::dataspace_size(Ram_dataspace_capability ds_cap) co
 {
 	size_t result = 0;
 	_ep.apply(ds_cap, [&] (Dataspace_component *c) {
-		if (c && c->owner(this))
+		if (c && c->owner(*this))
 			result = c->size(); });
 
 	return result;

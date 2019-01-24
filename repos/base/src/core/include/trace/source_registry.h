@@ -73,7 +73,7 @@ class Genode::Trace::Source
 		Control             &_control;
 		Dataspace_capability _policy { };
 		Dataspace_capability _buffer { };
-		Source_owner  const *_owner = nullptr;
+		Source_owner  const *_owner_ptr = nullptr;
 
 		static unsigned _alloc_unique_id();
 
@@ -112,21 +112,21 @@ class Genode::Trace::Source
 		void enable()  { _control.enable(); }
 		void disable() { _control.disable(); }
 
-		bool try_acquire(Source_owner const *new_owner)
+		bool try_acquire(Source_owner const &new_owner)
 		{
-			if (_owner && _owner != new_owner)
+			if (_owner_ptr && _owner_ptr != &new_owner)
 				return false;
 
-			_owner = new_owner;
+			_owner_ptr = &new_owner;
 			return true;
 		}
 
-		bool owned_by(Source_owner const *owner) { return owner == _owner; }
+		bool owned_by(Source_owner const &owner) { return &owner == _owner_ptr; }
 
-		void release_ownership(Source_owner const *owner)
+		void release_ownership(Source_owner const &owner)
 		{
 			if (owned_by(owner))
-				_owner = 0;
+				_owner_ptr = nullptr;
 		}
 
 		bool error()   const { return _control.has_error(); }

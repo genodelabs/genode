@@ -52,7 +52,7 @@ int Platform_thread::start(void *ip, void *sp, unsigned)
 	L4_ThreadId_t exception_handler  = pager;
 	L4_Word_t     resources          = 0;
 	L4_Word_t     utcb_size_per_task = L4_GetUtcbSize()*(1 << Thread_id_bits::THREAD);
-	L4_Word_t     utcb_location      = platform_specific()->utcb_base()
+	L4_Word_t     utcb_location      = platform_specific().utcb_base()
 	                                 + _platform_pd->pd_id()*utcb_size_per_task
 	                                 + _thread_id*L4_GetUtcbSize();
 	/*
@@ -121,11 +121,11 @@ void Platform_thread::resume()
 
 
 void Platform_thread::bind(int thread_id, L4_ThreadId_t l4_thread_id,
-                           Platform_pd *pd)
+                           Platform_pd &pd)
 {
 	_thread_id    = thread_id;
 	_l4_thread_id = l4_thread_id;
-	_platform_pd  = pd;
+	_platform_pd  = &pd;
 }
 
 
@@ -139,7 +139,7 @@ void Platform_thread::unbind()
 
 	_thread_id    = THREAD_INVALID;
 	_l4_thread_id = L4_nilthread;
-	_platform_pd  = 0;
+	_platform_pd  = nullptr;
 }
 
 
@@ -171,9 +171,10 @@ unsigned long Platform_thread::pager_object_badge() const
 
 
 Platform_thread::Platform_thread(size_t, const char *name, unsigned prio,
-                                 Affinity::Location, addr_t, int thread_id)
-: _thread_id(thread_id), _l4_thread_id(L4_nilthread), _platform_pd(0),
-  _priority(prio), _pager(0)
+                                 Affinity::Location, addr_t)
+:
+	_l4_thread_id(L4_nilthread), _platform_pd(0),
+	_priority(prio), _pager(0)
 {
 	strncpy(_name, name, sizeof(_name));
 }
@@ -186,5 +187,5 @@ Platform_thread::~Platform_thread()
 	 * Thread::unbind()
 	 */
 	if (_platform_pd)
-		_platform_pd->unbind_thread(this);
+		_platform_pd->unbind_thread(*this);
 }

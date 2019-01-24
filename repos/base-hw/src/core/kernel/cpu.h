@@ -38,7 +38,7 @@ namespace Kernel
 	/**
 	 * Return singleton of CPU pool
 	 */
-	Cpu_pool * cpu_pool();
+	Cpu_pool &cpu_pool();
 }
 
 
@@ -106,7 +106,7 @@ class Kernel::Cpu : public Genode::Cpu, private Irq::Pool, private Timeout
 			/**
 			 * Construct idle context for CPU 'cpu'
 			 */
-			Idle_thread(Cpu * const cpu);
+			Idle_thread(Cpu &cpu);
 		};
 
 
@@ -175,7 +175,7 @@ class Kernel::Cpu : public Genode::Cpu, private Irq::Pool, private Timeout
 			return *static_cast<Job *>(_scheduler.head())->helping_sink(); }
 
 		unsigned id() const { return _id; }
-		Cpu_scheduler * scheduler() { return &_scheduler; }
+		Cpu_scheduler &scheduler() { return _scheduler; }
 
 		time_t us_to_ticks(time_t const us) const { return _timer.us_to_ticks(us); };
 

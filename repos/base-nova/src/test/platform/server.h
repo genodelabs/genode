@@ -96,7 +96,7 @@ inline bool Test::Component::cap_void(Genode::Native_capability got_cap,
 		return false;
 
 	/* be evil and keep this cap by manually incrementing the ref count */
-	Genode::Cap_index idx(Genode::cap_map()->find(got_cap.local_name()));
+	Genode::Cap_index idx(Genode::cap_map().find(got_cap.local_name()));
 	idx.inc();
 
 	return true;

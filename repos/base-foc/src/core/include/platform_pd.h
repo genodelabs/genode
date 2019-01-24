@@ -65,7 +65,7 @@ namespace Genode {
 			Cap_mapping       _task;
 			Cap_mapping       _parent { };
 			Cap_mapping       _debug  { };
-			Platform_thread  *_threads[THREAD_MAX];
+			Platform_thread  *_threads[THREAD_MAX] { };
 
 		public:
 
@@ -73,14 +73,14 @@ namespace Genode {
 
 
 			/**
-			 * Constructor for core.
+			 * Constructor for core
 			 */
-			Platform_pd(Core_cap_index*);
+			Platform_pd(Core_cap_index &);
 
 			/**
 			 * Constructor for all tasks except core.
 			 */
-			Platform_pd(Allocator *, char const *label);
+			Platform_pd(Allocator &, char const *label);
 
 			/**
 			 * Destructor
@@ -90,14 +90,14 @@ namespace Genode {
 			/**
 			 * Bind thread to protection domain
 			 */
-			bool bind_thread(Platform_thread *thread);
+			bool bind_thread(Platform_thread &);
 
 			/**
 			 * Unbind thread from protection domain
 			 *
 			 * Free the thread's slot and update thread object.
 			 */
-			void unbind_thread(Platform_thread *thread);
+			void unbind_thread(Platform_thread &);
 
 			/**
 			 * Assign parent interface to protection domain

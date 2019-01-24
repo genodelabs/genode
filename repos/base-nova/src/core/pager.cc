@@ -39,14 +39,14 @@ using namespace Genode;
 using namespace Nova;
 
 
-static Nova::Hip * kernel_hip()
+static Nova::Hip const &kernel_hip()
 {
 	/**
 	 * Initial value of esp register, saved by the crt0 startup code.
 	 * This value contains the address of the hypervisor information page.
 	 */
 	extern addr_t __initial_sp;
-	return reinterpret_cast<Hip *>(__initial_sp);
+	return *reinterpret_cast<Hip const *>(__initial_sp);
 }
 
 /* pager activation threads storage and handling - one thread per CPU */
@@ -56,14 +56,14 @@ static char pager_activation_mem[sizeof (Pager_activation<PAGER_STACK_SIZE>) * P
 static Pager_activation_base * pager_threads[PAGER_CPUS];
 
 
-static unsigned which_cpu(Pager_activation_base * pager)
+static unsigned which_cpu(Pager_activation_base &pager)
 {
 	Pager_activation_base * start = reinterpret_cast<Pager_activation_base *>(&pager_activation_mem);
 	Pager_activation_base * end   = start + PAGER_CPUS;
 
-	if (start <= pager && pager < end) {
+	if (start <= &pager && &pager < end) {
 		/* pager of one of the non boot CPUs */
-		unsigned cpu_id = pager - start;
+		unsigned cpu_id = &pager - start;
 		return cpu_id;
 	}
 
@@ -106,40 +106,38 @@ struct Page_fault_info
 };
 
 
-void Pager_object::_page_fault_handler(addr_t pager_obj)
+void Pager_object::_page_fault_handler(Pager_object &obj)
 {
-	Thread       * myself = Thread::myself();
-	Pager_object *    obj = reinterpret_cast<Pager_object *>(pager_obj);
-	Utcb         *   utcb = reinterpret_cast<Utcb *>(myself->utcb());
+	Thread &myself = *Thread::myself();
+	Utcb   &utcb   = *reinterpret_cast<Utcb *>(myself.utcb());
 
-	Ipc_pager ipc_pager(reinterpret_cast<Nova::Utcb *>(utcb), obj->pd_sel(),
-	                    platform_specific()->core_pd_sel());
+	Ipc_pager ipc_pager(utcb, obj.pd_sel(), platform_specific().core_pd_sel());
 
-	Pager_activation_base * pager_thread = static_cast<Pager_activation_base *>(myself);
+	Pager_activation_base &pager_thread = static_cast<Pager_activation_base &>(myself);
 
 	/* potential request to ask for EC cap or signal SM cap */
-	if (utcb->msg_words() == 1)
-		_invoke_handler(pager_obj);
+	if (utcb.msg_words() == 1)
+		_invoke_handler(obj);
 
 	/*
-	 * obj->pager() (pager thread) may issue a signal to the remote region
+	 * obj.pager() (pager thread) may issue a signal to the remote region
 	 * handler thread which may respond via wake_up() (ep thread) before
 	 * we are done here - we have to lock the whole page lookup procedure
 	 */
-	obj->_state_lock.lock();
+	obj._state_lock.lock();
 
-	obj->_state.thread.ip     = ipc_pager.fault_ip();
-	obj->_state.thread.sp     = 0;
-	obj->_state.thread.trapno = PT_SEL_PAGE_FAULT;
+	obj._state.thread.ip     = ipc_pager.fault_ip();
+	obj._state.thread.sp     = 0;
+	obj._state.thread.trapno = PT_SEL_PAGE_FAULT;
 
-	obj->_state.block();
-	obj->_state.block_pause_sm();
+	obj._state.block();
+	obj._state.block_pause_sm();
 
 	/* lookup fault address and decide what to do */
-	int error = obj->pager(ipc_pager);
+	int error = obj.pager(ipc_pager);
 
 	/* don't open receive window for pager threads */
-	if (utcb->crd_rcv.value())
+	if (utcb.crd_rcv.value())
 		nova_die();
 
 	if (!error && ipc_pager.syscall_result() != Nova::NOVA_OK) {
@@ -148,13 +146,14 @@ void Pager_object::_page_fault_handler(addr_t pager_obj)
 
 		/* dst pd has not enough kernel quota ? - try to recover */
 		if (ipc_pager.syscall_result() == Nova::NOVA_PD_OOM) {
-			uint8_t res = obj->handle_oom();
+			uint8_t res = obj.handle_oom();
 			if (res == Nova::NOVA_PD_OOM) {
-				obj->_state.unblock_pause_sm();
-				obj->_state.unblock();
-				obj->_state_lock.unlock();
+				obj._state.unblock_pause_sm();
+				obj._state.unblock();
+				obj._state_lock.unlock();
+
 				/* block until revoke is due */
-				ipc_pager.reply_and_wait_for_fault(obj->sel_sm_block_oom());
+				ipc_pager.reply_and_wait_for_fault(obj.sel_sm_block_oom());
 			} else if (res == Nova::NOVA_OK)
 				/* succeeded to recover - continue normally */
 				error = 0;
@@ -163,14 +162,14 @@ void Pager_object::_page_fault_handler(addr_t pager_obj)
 
 	/* good case - found a valid region which is mappable */
 	if (!error) {
-		obj->_state.unblock_pause_sm();
-		obj->_state.unblock();
-		obj->_state_lock.unlock();
+		obj._state.unblock_pause_sm();
+		obj._state.unblock();
+		obj._state_lock.unlock();
 		ipc_pager.reply_and_wait_for_fault();
 	}
 
-	const char * client_thread = obj->client_thread();
-	const char * client_pd = obj->client_pd();
+	char const * const client_thread = obj.client_thread();
+	char const * const client_pd     = obj.client_pd();
 
 	Page_fault_info const fault_info(client_pd, client_thread,
 	                                 which_cpu(pager_thread),
@@ -182,29 +181,30 @@ void Pager_object::_page_fault_handler(addr_t pager_obj)
 	/* region manager fault - to be handled */
 	log("page fault, ", fault_info, " reason=", error);
 
-	obj->_state_lock.unlock();
+	obj._state_lock.unlock();
 
 	/* block the faulting thread until region manager is done */
-	ipc_pager.reply_and_wait_for_fault(obj->sel_sm_block_pause());
+	ipc_pager.reply_and_wait_for_fault(obj.sel_sm_block_pause());
 }
 
 
 void Pager_object::exception(uint8_t exit_id)
 {
-	Thread       *myself = Thread::myself();
-	Utcb         *  utcb = reinterpret_cast<Utcb *>(myself->utcb());
-	Pager_activation_base * pager_thread = static_cast<Pager_activation_base *>(myself);
+	Thread                &myself       = *Thread::myself();
+	Utcb                  &utcb         = *reinterpret_cast<Utcb *>(myself.utcb());
+	Pager_activation_base &pager_thread = static_cast<Pager_activation_base &>(myself);
 
-	if (exit_id > PT_SEL_PARENT || !pager_thread)
+	if (exit_id > PT_SEL_PARENT)
 		nova_die();
 
-	addr_t fault_ip    = utcb->ip;
-	uint8_t res        = 0xFF;
-	addr_t  mtd        = 0;
+	addr_t const fault_ip = utcb.ip;
+
+	uint8_t res = 0xFF;
+	addr_t  mtd = 0;
 
 	_state_lock.lock();
 
-	/* remember exception type for cpu_session()->state() calls */
+	/* remember exception type for Cpu_session::state() calls */
 	_state.thread.trapno = exit_id;
 
 	if (_exception_sigh.valid()) {
@@ -229,117 +229,113 @@ void Pager_object::exception(uint8_t exit_id)
 		enum { TRAP_BREAKPOINT = 3 };
 
 		if (exit_id == TRAP_BREAKPOINT) {
-			utcb->ip = fault_ip - 1;
-			mtd      = Mtd::EIP;
+			utcb.ip = fault_ip - 1;
+			mtd     = Mtd::EIP;
 		}
 	}
 
 	_state_lock.unlock();
 
-	utcb->set_msg_word(0);
-	utcb->mtd = mtd;
+	utcb.set_msg_word(0);
+	utcb.mtd = mtd;
 
-	reply(myself->stack_top());
+	reply(myself.stack_top());
 }
 
 
-void Pager_object::_recall_handler(addr_t pager_obj)
+void Pager_object::_recall_handler(Pager_object &obj)
 {
-	Thread       * myself = Thread::myself();
-	Pager_object *    obj = reinterpret_cast<Pager_object *>(pager_obj);
-	Utcb         *   utcb = reinterpret_cast<Utcb *>(myself->utcb());
+	Thread &myself = *Thread::myself();
+	Utcb   &utcb   = *reinterpret_cast<Utcb *>(myself.utcb());
 
-	obj->_state_lock.lock();
+	obj._state_lock.lock();
 
-	if (obj->_state.modified) {
-		obj->_copy_state_to_utcb(utcb);
-		obj->_state.modified = false;
+	if (obj._state.modified) {
+		obj._copy_state_to_utcb(utcb);
+		obj._state.modified = false;
 	} else
-		utcb->mtd = 0;
+		utcb.mtd = 0;
 
 	/* switch on/off single step */
-	bool singlestep_state = obj->_state.thread.eflags & 0x100UL;
-	if (obj->_state.singlestep() && !singlestep_state) {
-		utcb->flags |= 0x100UL;
-		utcb->mtd |= Mtd::EFL;
-	} else if (!obj->_state.singlestep() && singlestep_state) {
-		utcb->flags &= ~0x100UL;
-		utcb->mtd |= Mtd::EFL;
+	bool singlestep_state = obj._state.thread.eflags & 0x100UL;
+	if (obj._state.singlestep() && !singlestep_state) {
+		utcb.flags |= 0x100UL;
+		utcb.mtd |= Mtd::EFL;
+	} else if (!obj._state.singlestep() && singlestep_state) {
+		utcb.flags &= ~0x100UL;
+		utcb.mtd |= Mtd::EFL;
 	}
 
 	/* deliver signal if it was requested */
-	if (obj->_state.to_submit())
-		obj->submit_exception_signal();
+	if (obj._state.to_submit())
+		obj.submit_exception_signal();
 
-	/* block until cpu_session()->resume() respectively wake_up() call */
+	/* block until Cpu_session()::resume() respectively wake_up() call */
 
 	unsigned long sm = 0;
 
-	if (obj->_state.blocked()) {
-		sm = obj->sel_sm_block_pause();
-		obj->_state.block_pause_sm();
+	if (obj._state.blocked()) {
+		sm = obj.sel_sm_block_pause();
+		obj._state.block_pause_sm();
 	}
 
-	obj->_state_lock.unlock();
+	obj._state_lock.unlock();
 
-	utcb->set_msg_word(0);
-	reply(myself->stack_top(), sm);
+	utcb.set_msg_word(0);
+	reply(myself.stack_top(), sm);
 }
 
 
-void Pager_object::_startup_handler(addr_t pager_obj)
+void Pager_object::_startup_handler(Pager_object &obj)
 {
-	Thread       *myself = Thread::myself();
-	Pager_object *   obj = reinterpret_cast<Pager_object *>(pager_obj);
-	Utcb         *  utcb = reinterpret_cast<Utcb *>(myself->utcb());
+	Thread &myself = *Thread::myself();
+	Utcb   &utcb   = *reinterpret_cast<Utcb *>(myself.utcb());
 
-	utcb->ip  = obj->_initial_eip;
-	utcb->sp  = obj->_initial_esp;
+	utcb.ip  = obj._initial_eip;
+	utcb.sp  = obj._initial_esp;
+	utcb.mtd = Mtd::EIP | Mtd::ESP;
 
-	utcb->mtd = Mtd::EIP | Mtd::ESP;
-
-	if (obj->_state.singlestep()) {
-		utcb->flags = 0x100UL;
-		utcb->mtd |= Mtd::EFL;
+	if (obj._state.singlestep()) {
+		utcb.flags = 0x100UL;
+		utcb.mtd |= Mtd::EFL;
 	}
 
-	obj->_state.unblock();
+	obj._state.unblock();
 
-	utcb->set_msg_word(0);
+	utcb.set_msg_word(0);
 
-	reply(myself->stack_top());
+	reply(myself.stack_top());
 }
 
 
-void Pager_object::_invoke_handler(addr_t pager_obj)
+void Pager_object::_invoke_handler(Pager_object &obj)
 {
-	Thread       *myself = Thread::myself();
-	Pager_object *   obj = reinterpret_cast<Pager_object *>(pager_obj);
-	Utcb         *  utcb = reinterpret_cast<Utcb *>(myself->utcb());
+	Thread &myself = *Thread::myself();
+	Utcb   &utcb   = *reinterpret_cast<Utcb *>(myself.utcb());
 
 	/* receive window must be closed - otherwise implementation bug */
-	if (utcb->crd_rcv.value())
+	if (utcb.crd_rcv.value())
 		nova_die();
 
 	/* if protocol is violated ignore request */
-	if (utcb->msg_words() != 1) {
-		utcb->mtd = 0;
-		utcb->set_msg_word(0);
-		reply(myself->stack_top());
+	if (utcb.msg_words() != 1) {
+		utcb.mtd = 0;
+		utcb.set_msg_word(0);
+		reply(myself.stack_top());
 	}
 
-	addr_t const event = utcb->msg()[0];
+	addr_t const event = utcb.msg()[0];
 
 	/* check for translated pager portals - required for vCPU in remote PDs */
-	if (utcb->msg_items() == 1 && utcb->msg_words() == 1 && event == 0xaffe) {
+	if (utcb.msg_items() == 1 && utcb.msg_words() == 1 && event == 0xaffe) {
 
-		Nova::Utcb::Item const * const item = utcb->get_item(0);
-		Nova::Crd const cap(item->crd);
+		Nova::Utcb::Item const &item = *utcb.get_item(0);
+		Nova::Crd const cap(item.crd);
 
 		/* valid item which got translated ? */
-		if (!cap.is_null() && !item->is_del()) {
-			Rpc_entrypoint *e = core_env()->entrypoint();
-			e->apply(cap.base(),
+		if (!cap.is_null() && !item.is_del()) {
+			Rpc_entrypoint &e = core_env().entrypoint();
+			e.apply(cap.base(),
 				[&] (Cpu_thread_component *source) {
 					if (!source)
 						return;
@@ -350,22 +346,22 @@ void Pager_object::_invoke_handler(addr_t pager_obj)
 						return;
 
 					/* delegate VM-exit portals */
-					map_vcpu_portals(*p.pager(), sel_exc_base, sel_exc_base,
-					                 utcb, obj->pd_sel());
+					map_vcpu_portals(p.pager(), sel_exc_base, sel_exc_base,
+					                 utcb, obj.pd_sel());
 
 					/* delegate portal to contact pager */
-					map_pagefault_portal(*obj, p.pager()->exc_pt_sel_client(),
-					                     sel_exc_base, obj->pd_sel(), utcb);
+					map_pagefault_portal(obj, p.pager().exc_pt_sel_client(),
+					                     sel_exc_base, obj.pd_sel(), utcb);
 				});
 		}
 
-		utcb->mtd = 0;
-		utcb->set_msg_word(0);
-		reply(myself->stack_top());
+		utcb.mtd = 0;
+		utcb.set_msg_word(0);
+		reply(myself.stack_top());
 	}
 
-	utcb->mtd = 0;
-	utcb->set_msg_word(0);
+	utcb.mtd = 0;
+	utcb.set_msg_word(0);
 
 	/* native ec cap requested */
 	if (event == ~0UL) {
@@ -382,32 +378,32 @@ void Pager_object::_invoke_handler(addr_t pager_obj)
 		 * takes care that the EC cap itself contains
 		 * no usable rights for the clients.
 		 */
-		bool res = utcb->append_item(Obj_crd(obj->_state.sel_client_ec, 0,
-		                                     Obj_crd::RIGHT_EC_RECALL), 0);
+		bool res = utcb.append_item(Obj_crd(obj._state.sel_client_ec, 0,
+		                                    Obj_crd::RIGHT_EC_RECALL), 0);
 		(void)res;
 	}
 
 	/* semaphore for signaling thread is requested, reuse PT_SEL_STARTUP. */
 	if (event == ~0UL - 1) {
 		/* create semaphore only once */
-		if (!obj->_state.has_signal_sm()) {
+		if (!obj._state.has_signal_sm()) {
 
-			revoke(Obj_crd(obj->exc_pt_sel_client() + PT_SEL_STARTUP, 0));
+			revoke(Obj_crd(obj.exc_pt_sel_client() + PT_SEL_STARTUP, 0));
 
-			bool res = Nova::create_sm(obj->exc_pt_sel_client() + PT_SEL_STARTUP,
-			                           platform_specific()->core_pd_sel(), 0);
+			bool res = Nova::create_sm(obj.exc_pt_sel_client() + PT_SEL_STARTUP,
+			                           platform_specific().core_pd_sel(), 0);
 			if (res != Nova::NOVA_OK)
-				reply(myself->stack_top());
+				reply(myself.stack_top());
 
-			obj->_state.mark_signal_sm();
+			obj._state.mark_signal_sm();
 		}
 
-		bool res = utcb->append_item(Obj_crd(obj->exc_pt_sel_client() +
-		                                     PT_SEL_STARTUP, 0), 0);
+		bool res = utcb.append_item(Obj_crd(obj.exc_pt_sel_client() +
+		                                    PT_SEL_STARTUP, 0), 0);
 		(void)res;
 	}
 
-	reply(myself->stack_top());
+	reply(myself.stack_top());
 }
 
 
@@ -467,7 +463,7 @@ uint8_t Pager_object::_unsynchronized_client_recall(bool get_state_and_block)
 		return res;
 
 	if (get_state_and_block) {
-		Utcb *utcb = reinterpret_cast<Utcb *>(Thread::myself()->utcb());
+		Utcb &utcb = *reinterpret_cast<Utcb *>(Thread::myself()->utcb());
 		_copy_state_from_utcb(utcb);
 		_state.block();
 	}
@@ -487,17 +483,17 @@ void Pager_object::cleanup_call()
 	/* revoke all portals handling the client. */
 	revoke(Obj_crd(exc_pt_sel_client(), NUM_INITIAL_PT_LOG2));
 
-	Utcb *utcb = reinterpret_cast<Utcb *>(Thread::myself()->utcb());
-	utcb->set_msg_word(0);
-	utcb->mtd = 0;
+	Utcb &utcb = *reinterpret_cast<Utcb *>(Thread::myself()->utcb());
+	utcb.set_msg_word(0);
+	utcb.mtd = 0;
 	if (uint8_t res = call(sel_pt_cleanup()))
-		error(utcb, " - cleanup call to pager failed res=", res);
+		error(&utcb, " - cleanup call to pager failed res=", res);
 }
 
 
 void Pager_object::print(Output &out) const
 {
-	Platform_thread * faulter = reinterpret_cast<Platform_thread *>(_badge);
+	Platform_thread const * const faulter = reinterpret_cast<Platform_thread *>(_badge);
 	Genode::print(out, "pager_object: pd='",
 			faulter ? faulter->pd_name() : "unknown", "' thread='",
 			faulter ? faulter->name() : "unknown", "'");
@@ -530,13 +526,13 @@ static uint8_t create_portal(addr_t pt, addr_t pd, addr_t ec, Mtd mtd,
  ************************/
 
 template <uint8_t EV>
-void Exception_handlers::register_handler(Pager_object *obj, Mtd mtd,
-                                          void (* __attribute__((regparm(1))) func)(addr_t))
+void Exception_handlers::register_handler(Pager_object &obj, Mtd mtd,
+                                          void (* __attribute__((regparm(1))) func)(Pager_object &))
 {
-	unsigned const genode_cpu_id = obj->location().xpos();
-	unsigned const kernel_cpu_id = platform_specific()->kernel_cpu_id(genode_cpu_id);
+	unsigned const genode_cpu_id = obj.location().xpos();
+	unsigned const kernel_cpu_id = platform_specific().kernel_cpu_id(genode_cpu_id);
 
-	if (!kernel_hip()->is_cpu_enabled(kernel_cpu_id) ||
+	if (!kernel_hip().is_cpu_enabled(kernel_cpu_id) ||
 	    !pager_threads[genode_cpu_id]) {
 		warning("invalid CPU parameter used in pager object");
 		throw Invalid_thread();
@@ -546,22 +542,21 @@ void Exception_handlers::register_handler(Pager_object *obj, Mtd mtd,
 
 	/* compiler generates instance of exception entry if not specified */
 	addr_t entry = func ? (addr_t)func : (addr_t)(&_handler<EV>);
-	uint8_t res = create_portal(obj->exc_pt_sel_client() + EV,
-	                            platform_specific()->core_pd_sel(), ec_sel, mtd, entry, obj);
+	uint8_t res = create_portal(obj.exc_pt_sel_client() + EV,
+	                            platform_specific().core_pd_sel(), ec_sel, mtd, entry, &obj);
 	if (res != Nova::NOVA_OK)
 		throw Invalid_thread();
 }
 
 
 template <uint8_t EV>
-void Exception_handlers::_handler(addr_t obj)
+void Exception_handlers::_handler(Pager_object &obj)
 {
-	Pager_object * pager_obj = reinterpret_cast<Pager_object *>(obj);
-	pager_obj->exception(EV);
+	obj.exception(EV);
 }
 
 
-Exception_handlers::Exception_handlers(Pager_object *obj)
+Exception_handlers::Exception_handlers(Pager_object &obj)
 {
 	register_handler<0>(obj, Mtd(Mtd::EIP));
 	register_handler<1>(obj, Mtd(Mtd::EIP));
@@ -603,16 +598,16 @@ Pager_object::Pager_object(Cpu_session_capability cpu_session_cap,
                            Cpu_session::Name const &)
 :
 	_badge(badge),
-	_selectors(cap_map()->insert(2)),
-	_client_exc_pt_sel(cap_map()->insert(NUM_INITIAL_PT_LOG2)),
+	_selectors(cap_map().insert(2)),
+	_client_exc_pt_sel(cap_map().insert(NUM_INITIAL_PT_LOG2)),
 	_cpu_session_cap(cpu_session_cap), _thread_cap(thread_cap),
 	_location(location),
-	_exceptions(this),
+	_exceptions(*this),
 	_pd_target(Native_thread::INVALID_INDEX)
 {
 	uint8_t res;
 
-	addr_t const pd_sel  = platform_specific()->core_pd_sel();
+	addr_t const pd_sel  = platform_specific().core_pd_sel();
 	_state._status       = 0;
 	_state.modified      = false;
 	_state.sel_client_ec = Native_thread::INVALID_INDEX;
@@ -630,8 +625,8 @@ Pager_object::Pager_object(Cpu_session_capability cpu_session_cap,
 
 	/* place Pager_object on specified CPU by selecting proper pager thread */
 	unsigned const genode_cpu_id = location.xpos();
-	unsigned const kernel_cpu_id = platform_specific()->kernel_cpu_id(genode_cpu_id);
-	if (!kernel_hip()->is_cpu_enabled(kernel_cpu_id) ||
+	unsigned const kernel_cpu_id = platform_specific().kernel_cpu_id(genode_cpu_id);
+	if (!kernel_hip().is_cpu_enabled(kernel_cpu_id) ||
 	    !pager_threads[genode_cpu_id]) {
 		warning("invalid CPU parameter used in pager object");
 		throw Invalid_thread();
@@ -640,18 +635,18 @@ Pager_object::Pager_object(Cpu_session_capability cpu_session_cap,
 	addr_t ec_sel = pager_threads[genode_cpu_id]->native_thread().ec_sel;
 
 	/* create portal for page-fault handler - 14 */
-	_exceptions.register_handler<14>(this, Mtd::QUAL | Mtd::EIP,
+	_exceptions.register_handler<14>(*this, Mtd::QUAL | Mtd::EIP,
 	                                 _page_fault_handler);
 
 	/* create portal for startup handler - 26 */
 	Mtd const mtd_startup(Mtd::ESP | Mtd::EIP);
-	_exceptions.register_handler<PT_SEL_STARTUP>(this, mtd_startup,
+	_exceptions.register_handler<PT_SEL_STARTUP>(*this, mtd_startup,
 	                                             _startup_handler);
 
 	/* create portal for recall handler - 31 */
 	Mtd const mtd_recall(Mtd::ESP | Mtd::EIP | Mtd::ACDB | Mtd::EFL |
 	                     Mtd::EBSD | Mtd::FSGS);
-	_exceptions.register_handler<PT_SEL_RECALL>(this, mtd_recall,
+	_exceptions.register_handler<PT_SEL_RECALL>(*this, mtd_recall,
 	                                            _recall_handler);
 
 	/*
@@ -693,8 +688,8 @@ Pager_object::~Pager_object()
 
 	/* revoke portal used for the cleanup call and sm cap for blocking state */
 	revoke(Obj_crd(_selectors, 2));
-	cap_map()->remove(_selectors, 2, false);
-	cap_map()->remove(exc_pt_sel_client(), NUM_INITIAL_PT_LOG2, false);
+	cap_map().remove(_selectors, 2, false);
+	cap_map().remove(exc_pt_sel_client(), NUM_INITIAL_PT_LOG2, false);
 }
 
 
@@ -711,7 +706,7 @@ uint8_t Pager_object::handle_oom(addr_t pd_from, addr_t pd_to,
                                  Policy policy, addr_t sm_notify,
                                  char const * dst_pd, char const * dst_thread)
 {
-	addr_t const core_pd_sel = platform_specific()->core_pd_sel();
+	addr_t const core_pd_sel = platform_specific().core_pd_sel();
 
 	enum { QUOTA_TRANSFER_PAGES = 2 };
 
@@ -794,10 +789,10 @@ void Pager_object::_oom_handler(addr_t pager_dst, addr_t pager_src,
 		asm volatile ("" : "=S" (reason));
 	}
 
-	Thread       * myself  = Thread::myself();
-	Utcb         * utcb    = reinterpret_cast<Utcb *>(myself->utcb());
-	Pager_object * obj_dst = reinterpret_cast<Pager_object *>(pager_dst);
-	Pager_object * obj_src = reinterpret_cast<Pager_object *>(pager_src);
+	Thread       &myself  = *Thread::myself();
+	Utcb         &utcb    = *reinterpret_cast<Utcb *>(myself.utcb());
+	Pager_object &obj_dst = *reinterpret_cast<Pager_object *>(pager_dst);
+	Pager_object &obj_src = *reinterpret_cast<Pager_object *>(pager_src);
 
 	/* Policy used if the Process of the paged thread runs out of memory */
 	enum Policy policy = Policy::UPGRADE_CORE_TO_DST;
@@ -819,19 +814,19 @@ void Pager_object::_oom_handler(addr_t pager_dst, addr_t pager_src,
 	 * This pager thread should never send words (untyped items) - it just
 	 * answers page faults by typed items (memory mappings).
 	 */
-	assert |= utcb->msg_words();
+	assert |= utcb.msg_words();
 
 	if (assert) {
 		error("unknown OOM case - stop core pager thread");
-		utcb->set_msg_word(0);
-		reply(myself->stack_top(), myself->native_thread().exc_pt_sel + Nova::SM_SEL_EC);
+		utcb.set_msg_word(0);
+		reply(myself.stack_top(), myself.native_thread().exc_pt_sel + Nova::SM_SEL_EC);
 	}
 
 	/* be strict in case of the -strict- STOP policy - stop causing thread */
 	if (policy == STOP) {
 		error("PD has insufficient kernel memory left - stop thread");
-		utcb->set_msg_word(0);
-		reply(myself->stack_top(), obj_dst->sel_sm_block_pause());
+		utcb.set_msg_word(0);
+		reply(myself.stack_top(), obj_dst.sel_sm_block_pause());
 	}
 
 	char const * src_pd     = "core";
@@ -843,8 +838,8 @@ void Pager_object::_oom_handler(addr_t pager_dst, addr_t pager_src,
 	case SRC_PD_UNKNOWN:
 		/* should not happen on Genode - we create and know every PD in core */
 		error("Unknown PD has insufficient kernel memory left - stop thread");
-		utcb->set_msg_word(0);
-		reply(myself->stack_top(), myself->native_thread().exc_pt_sel + Nova::SM_SEL_EC);
+		utcb.set_msg_word(0);
+		reply(myself.stack_top(), myself.native_thread().exc_pt_sel + Nova::SM_SEL_EC);
 
 	case SRC_CORE_PD:
 		/* core PD -> other PD, which has insufficient kernel resources */
@@ -852,33 +847,32 @@ void Pager_object::_oom_handler(addr_t pager_dst, addr_t pager_src,
 		if (!(reason & SELF)) {
 			/* case that src thread != this thread in core */
 			src_thread = "unknown";
-			utcb->set_msg_word(0);
+			utcb.set_msg_word(0);
         }
 
-		transfer_from = platform_specific()->core_pd_sel();
+		transfer_from = platform_specific().core_pd_sel();
 		break;
 	default:
 		/* non core PD -> non core PD */
-		utcb->set_msg_word(0);
+		utcb.set_msg_word(0);
 
 		if (pager_src == pager_dst || policy == UPGRADE_CORE_TO_DST)
-			transfer_from = platform_specific()->core_pd_sel();
+			transfer_from = platform_specific().core_pd_sel();
 		else {
 			/* delegation of items between different PDs */
-			src_pd = obj_src->client_pd();
-			src_thread = obj_src->client_thread();
-			transfer_from = obj_src->pd_sel();
+			src_pd        = obj_src.client_pd();
+			src_thread    = obj_src.client_thread();
+			transfer_from = obj_src.pd_sel();
 		}
 	}
 
-	uint8_t res = obj_dst->handle_oom(transfer_from, src_pd, src_thread,
-	                                  policy);
+	uint8_t res = obj_dst.handle_oom(transfer_from, src_pd, src_thread, policy);
 	if (res == Nova::NOVA_OK)
 		/* handling succeeded - continue with original IPC */
-		reply(myself->stack_top());
+		reply(myself.stack_top());
 
 	/* transfer nothing */
-	utcb->set_msg_word(0);
+	utcb.set_msg_word(0);
 
 	if (res != Nova::NOVA_PD_OOM)
 		error("upgrading kernel memory failed, policy ", (int)policy, ", "
@@ -887,7 +881,7 @@ void Pager_object::_oom_handler(addr_t pager_dst, addr_t pager_src,
 	/* else: caller will get blocked until RCU period is over */
 
 	/* block caller in semaphore */
-	reply(myself->stack_top(), obj_dst->sel_sm_block_oom());
+	reply(myself.stack_top(), obj_dst.sel_sm_block_oom());
 }
 
 
@@ -895,10 +889,10 @@ addr_t Pager_object::get_oom_portal()
 {
 	addr_t   const pt_oom        = sel_oom_portal();
 	unsigned const genode_cpu_id = _location.xpos();
-	unsigned const kernel_cpu_id = platform_specific()->kernel_cpu_id(genode_cpu_id);
-	addr_t   const core_pd_sel   = platform_specific()->core_pd_sel();
+	unsigned const kernel_cpu_id = platform_specific().kernel_cpu_id(genode_cpu_id);
+	addr_t   const core_pd_sel   = platform_specific().core_pd_sel();
 
-	if (kernel_hip()->is_cpu_enabled(kernel_cpu_id) &&
+	if (kernel_hip().is_cpu_enabled(kernel_cpu_id) &&
 	    pager_threads[genode_cpu_id]) {
 
 		addr_t const ec_sel = pager_threads[genode_cpu_id]->native_thread().ec_sel;
@@ -934,7 +928,7 @@ const char * Pager_object::client_pd() const
 Pager_activation_base::Pager_activation_base(const char *name, size_t stack_size)
 :
 	Thread(Cpu_session::Weight::DEFAULT_WEIGHT, name, stack_size,
-	       Affinity::Location(which_cpu(this), 0)),
+	       Affinity::Location(which_cpu(*this), 0)),
 	_cap(Native_capability()), _ep(0), _cap_valid(Lock::LOCKED)
 {
 	/* creates local EC */
@@ -954,8 +948,8 @@ void Pager_activation_base::entry() { }
 Pager_entrypoint::Pager_entrypoint(Rpc_cap_factory &)
 {
 	/* sanity check for pager threads */
-	if (kernel_hip()->cpu_max() > PAGER_CPUS) {
-		error("kernel supports more CPUs (", kernel_hip()->cpu_max(), ") "
+	if (kernel_hip().cpu_max() > PAGER_CPUS) {
+		error("kernel supports more CPUs (", kernel_hip().cpu_max(), ") "
 		      "than Genode (", (unsigned)PAGER_CPUS, ")");
 		nova_die();
 	}
@@ -964,9 +958,9 @@ Pager_entrypoint::Pager_entrypoint(Rpc_cap_factory &)
 	typedef Pager_activation<PAGER_STACK_SIZE> Pager;
 	Pager * pager_of_cpu = reinterpret_cast<Pager *>(&pager_activation_mem);
 
-	for (unsigned i = 0; i < kernel_hip()->cpus(); i++, pager_of_cpu++) {
-		unsigned const kernel_cpu_id = platform_specific()->kernel_cpu_id(i);
-		if (!kernel_hip()->is_cpu_enabled(kernel_cpu_id))
+	for (unsigned i = 0; i < kernel_hip().cpus(); i++, pager_of_cpu++) {
+		unsigned const kernel_cpu_id = platform_specific().kernel_cpu_id(i);
+		if (!kernel_hip().is_cpu_enabled(kernel_cpu_id))
 			continue;
 
 		pager_threads[i] = pager_of_cpu;
@@ -975,8 +969,8 @@ Pager_entrypoint::Pager_entrypoint(Rpc_cap_factory &)
 }
 
 
-void Pager_entrypoint::dissolve(Pager_object *obj)
+void Pager_entrypoint::dissolve(Pager_object &obj)
 {
 	/* take care that no faults are in-flight */
-	obj->cleanup_call();
+	obj.cleanup_call();
 }

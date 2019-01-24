@@ -41,9 +41,9 @@ class Genode::Vm_root : public Root_component<Vm_session_component>
 		 * \param session_ep  entrypoint managing vm_session components
 		 * \param md_alloc    meta-data allocator to be used by root component
 		 */
-		Vm_root(Rpc_entrypoint  *session_ep,
-		        Allocator       *md_alloc)
-		: Root_component<Vm_session_component>(session_ep, md_alloc) { }
+		Vm_root(Rpc_entrypoint  &session_ep,
+		        Allocator       &md_alloc)
+		: Root_component<Vm_session_component>(&session_ep, &md_alloc) { }
 };
 
 #endif /* _CORE__INCLUDE__VM_ROOT_H_ */

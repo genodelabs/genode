@@ -35,13 +35,7 @@ class Genode::Irq_root : public Root_component<Irq_session_component>
 		enum { STACK_SIZE = sizeof(long)*1024 };
 		Rpc_entrypoint _session_ep;
 
-		Range_allocator *_irq_alloc;    /* platform irq allocator */
-
-		/*
-		 * Noncopyable
-		 */
-		Irq_root(Irq_root const &);
-		Irq_root &operator = (Irq_root const &);
+		Range_allocator &_irq_alloc;    /* platform irq allocator */
 
 	protected:
 
@@ -57,11 +51,11 @@ class Genode::Irq_root : public Root_component<Irq_session_component>
 		 * \param irq_alloc    IRQ range that can be assigned to clients
 		 * \param md_alloc     meta-data allocator to be used by root component
 		 */
-		Irq_root(Pd_session *pd_session,
-		         Range_allocator *irq_alloc, Allocator *md_alloc)
+		Irq_root(Pd_session &pd_session,
+		         Range_allocator &irq_alloc, Allocator &md_alloc)
 		:
-			Root_component<Irq_session_component>(&_session_ep, md_alloc),
-			_session_ep(pd_session, STACK_SIZE, "irq"),
+			Root_component<Irq_session_component>(&_session_ep, &md_alloc),
+			_session_ep(&pd_session, STACK_SIZE, "irq"),
 			_irq_alloc(irq_alloc)
 		{ }
 };

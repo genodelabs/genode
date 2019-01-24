@@ -147,7 +147,7 @@ void Genode::Irq_object::ack_irq()
 
 Genode::Irq_object::Irq_object()
 :
-	 _cap(cap_map()->insert(platform_specific()->cap_id_alloc()->alloc())),
+	 _cap(cap_map().insert(platform_specific().cap_id_alloc().alloc())),
 	 _trigger(Irq_session::TRIGGER_UNCHANGED),
 	 _polarity(Irq_session::POLARITY_UNCHANGED),
 	 _irq(~0U), _msi_addr(0), _msi_data(0)
@@ -170,7 +170,7 @@ Genode::Irq_object::~Irq_object()
 	if (l4_error(l4_icu_unbind(L4_BASE_ICU_CAP, irq, _capability())))
 		error("cannot unbind IRQ");
 
-	cap_map()->remove(_cap);
+	cap_map().remove(_cap);
 }
 
 
@@ -179,7 +179,7 @@ Genode::Irq_object::~Irq_object()
  ***************************/
 
 
-Irq_session_component::Irq_session_component(Range_allocator *irq_alloc,
+Irq_session_component::Irq_session_component(Range_allocator &irq_alloc,
                                              const char      *args)
 : _irq_number(Arg_string::find_arg(args, "irq_number").long_value(-1)),
   _irq_alloc(irq_alloc), _irq_object()
@@ -192,7 +192,7 @@ Irq_session_component::Irq_session_component(Range_allocator *irq_alloc,
 		}
 		msi_alloc.set(_irq_number, 1);
 	} else {
-		if (!irq_alloc || irq_alloc->alloc_addr(1, _irq_number).error()) {
+		if (irq_alloc.alloc_addr(1, _irq_number).error()) {
 			error("unavailable IRQ ", _irq_number, " requested");
 			throw Service_denied();
 		}
@@ -208,7 +208,7 @@ Irq_session_component::Irq_session_component(Range_allocator *irq_alloc,
 		msi_alloc.clear(_irq_number, 1);
 	else {
 		addr_t const free_irq = _irq_number;
-		_irq_alloc->free((void *)free_irq);
+		_irq_alloc.free((void *)free_irq);
 	}
 	throw Service_denied();
 }
@@ -223,7 +223,7 @@ Irq_session_component::~Irq_session_component()
 		msi_alloc.clear(_irq_number, 1);
 	} else {
 		Genode::addr_t free_irq = _irq_number;
-		_irq_alloc->free((void *)free_irq);
+		_irq_alloc.free((void *)free_irq);
 	}
 }
 

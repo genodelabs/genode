@@ -71,8 +71,8 @@ class Platform_thread_registry : Noncopyable
 			}
 
 			if (installed != 1) {
-				Genode::error("install mapping is wrong ", installed,
-				              " result=", result);
+				error("install mapping is wrong ", installed,
+				      " result=", result);
 				result = false;
 			}
 
@@ -106,7 +106,7 @@ static void prepopulate_ipc_buffer(addr_t ipc_buffer_phys, Cap_sel ep_sel,
 
 	/* allocate range in core's virtual address space */
 	void *virt_addr;
-	if (!platform()->region_alloc()->alloc(page_rounded_size, &virt_addr)) {
+	if (!platform().region_alloc().alloc(page_rounded_size, &virt_addr)) {
 		error("could not allocate virtual address range in core of size ",
 		      page_rounded_size);
 		return;
@@ -122,13 +122,13 @@ static void prepopulate_ipc_buffer(addr_t ipc_buffer_phys, Cap_sel ep_sel,
 
 	/* unmap IPC buffer from core */
 	if (!unmap_local((addr_t)virt_addr, 1)) {
-		Genode::error("could not unmap core virtual address ",
-		              virt_addr, " in ", __PRETTY_FUNCTION__);
+		error("could not unmap core virtual address ",
+		      virt_addr, " in ", __PRETTY_FUNCTION__);
 		return;
 	}
 
 	/* free core's virtual address space */
-	platform()->region_alloc()->free(virt_addr, page_rounded_size);
+	platform().region_alloc().free(virt_addr, page_rounded_size);
 }
 
 
@@ -145,15 +145,15 @@ int Platform_thread::start(void *ip, void *sp, unsigned int)
 	Cap_sel const pager_sel(Capability_space::ipc_cap_data(_pager->cap()).sel);
 
 	/* install page-fault handler endpoint selector to the PD's CSpace */
-	_pd->cspace_cnode(_fault_handler_sel).copy(platform_specific()->core_cnode(),
+	_pd->cspace_cnode(_fault_handler_sel).copy(platform_specific().core_cnode(),
 	                                           pager_sel, _fault_handler_sel);
 
 	/* install the thread's endpoint selector to the PD's CSpace */
-	_pd->cspace_cnode(_ep_sel).copy(platform_specific()->core_cnode(),
+	_pd->cspace_cnode(_ep_sel).copy(platform_specific().core_cnode(),
 	                                _info.ep_sel, _ep_sel);
 
 	/* install the thread's notification object to the PD's CSpace */
-	_pd->cspace_cnode(_lock_sel).mint(platform_specific()->core_cnode(),
+	_pd->cspace_cnode(_lock_sel).mint(platform_specific().core_cnode(),
 	                                  _info.lock_sel, _lock_sel);
 
 	/*
@@ -222,7 +222,7 @@ Platform_thread::Platform_thread(size_t, const char *name, unsigned priority,
 :
 	_name(name),
 	_utcb(utcb),
-	_pager_obj_sel(platform_specific()->core_sel_alloc().alloc()),
+	_pager_obj_sel(platform_specific().core_sel_alloc().alloc()),
 	_location(location),
 	_priority(Cpu_session::scale_priority(CONFIG_NUM_PRIORITIES, priority))
 
@@ -241,7 +241,7 @@ Platform_thread::~Platform_thread()
 {
 	if (_pd) {
 		seL4_TCB_Suspend(_info.tcb_sel.value());
-		_pd->unbind_thread(this);
+		_pd->unbind_thread(*this);
 	}
 
 	if (_pager) {
@@ -255,20 +255,19 @@ Platform_thread::~Platform_thread()
 	_info.destruct();
 
 	platform_thread_registry().remove(*this);
-	platform_specific()->core_sel_alloc().free(_pager_obj_sel);
+	platform_specific().core_sel_alloc().free(_pager_obj_sel);
 }
 
 unsigned long long Platform_thread::execution_time() const
 {
-	Genode::Thread * me = Genode::Thread::myself();
-
-	if (!me || !me->utcb()) {
-		Genode::error("don't know myself");
+	if (!Thread::myself() || !Thread::myself()->utcb()) {
+		error("don't know myself");
 		return 0;
 	}
+	Thread &myself = *Thread::myself();
 
-	seL4_IPCBuffer * ipcbuffer = reinterpret_cast<seL4_IPCBuffer *>(me->utcb());
-	uint64_t const * values = reinterpret_cast<uint64_t *>(ipcbuffer->msg);
+	seL4_IPCBuffer &ipc_buffer = *reinterpret_cast<seL4_IPCBuffer *>(myself.utcb());
+	uint64_t const * values    =  reinterpret_cast<uint64_t *>(ipc_buffer.msg);
 
 	/* kernel puts execution time on ipc buffer of calling thread */
 	seL4_BenchmarkGetThreadUtilisation(_info.tcb_sel.value());

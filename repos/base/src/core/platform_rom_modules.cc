@@ -29,9 +29,9 @@ void Platform::_init_rom_modules()
 			        Cstring((char const *)header->name), "'");
 			continue;
 		}
-		Rom_module *rom_module = new (core_mem_alloc())
+		Rom_module &rom_module = *new (core_mem_alloc())
 			Rom_module(_rom_module_phys(header->base), header->size,
 			           (char const *)header->name);
-		_rom_fs.insert(rom_module);
+		_rom_fs.insert(&rom_module);
 	}
 }

@@ -42,7 +42,7 @@ namespace Genode {
 			class Out_of_ids : Exception {};
 
 
-			Cap_id_allocator(Allocator*);
+			Cap_id_allocator(Allocator &);
 
 			unsigned long alloc();
 			void free(unsigned long id);

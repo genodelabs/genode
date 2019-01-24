@@ -147,7 +147,7 @@ class Genode::Cpu_thread_component : public  Rpc_object<Cpu_thread>,
 			_trace_control_slot(trace_control_area),
 			_trace_sources(trace_sources),
 			_rm_client(cpu_session_cap, _ep.manage(this),
-			           &_address_space_region_map,
+			           _address_space_region_map,
 			           _platform_thread.pager_object_badge(),
 			           _platform_thread.affinity(),
 			           pd.label(), name)
@@ -161,20 +161,20 @@ class Genode::Cpu_thread_component : public  Rpc_object<Cpu_thread>,
 			 * object from the object pool
 			 */
 			try {
-					_pager_ep.manage(&_rm_client);
+				_pager_ep.manage(_rm_client);
 			} catch (...) {
 				_ep.dissolve(this);
 				throw;
 			}
 
-			_platform_thread.pager(&_rm_client);
+			_platform_thread.pager(_rm_client);
 			_trace_sources.insert(&_trace_source);
 		}
 
 		~Cpu_thread_component()
 		{
 			_trace_sources.remove(&_trace_source);
-			_pager_ep.dissolve(&_rm_client);
+			_pager_ep.dissolve(_rm_client);
 			_ep.dissolve(this);
 
 			_address_space_region_map.remove_client(_rm_client);

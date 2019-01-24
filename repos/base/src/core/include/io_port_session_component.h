@@ -30,7 +30,7 @@ namespace Genode {
 	{
 		private:
 
-			Range_allocator *_io_port_alloc;
+			Range_allocator &_io_port_alloc;
 			unsigned short   _base = 0;
 			unsigned short   _size = 0;
 
@@ -39,12 +39,6 @@ namespace Genode {
              */
 			bool _in_bounds(unsigned short address, unsigned width) {
 				return (address >= _base) && (address + width <= _base + _size); }
-
-			/*
-			 * Noncopyable
-			 */
-			Io_port_session_component(Io_port_session_component const &);
-			Io_port_session_component &operator = (Io_port_session_component const &);
 
 		public:
 
@@ -56,7 +50,7 @@ namespace Genode {
 			 *                       particular port base and size
 			 * \throw                Service_denied
 			 */
-			Io_port_session_component(Range_allocator *io_port_alloc,
+			Io_port_session_component(Range_allocator &io_port_alloc,
 			                          const char      *args);
 
 			/**

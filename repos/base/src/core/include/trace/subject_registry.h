@@ -54,15 +54,15 @@ class Genode::Trace::Subject
 		{
 			private:
 
-				Ram_session             *_ram   { nullptr };
-				size_t                   _size  { 0 };
-				Ram_dataspace_capability _ds    { };
+				Ram_session             *_ram_ptr { nullptr };
+				size_t                   _size    { 0 };
+				Ram_dataspace_capability _ds      { };
 
 				void _reset()
 				{
-					_ram  = 0;
-					_size = 0;
-					_ds   = Ram_dataspace_capability();
+					_ram_ptr = nullptr;
+					_size    = 0;
+					_ds      = Ram_dataspace_capability();
 				}
 
 				/*
@@ -88,9 +88,9 @@ class Genode::Trace::Subject
 					if (_size)
 						return false;
 
-					_ram  = &ram;
-					_size = size;
-					_ds   = ram.alloc(size);
+					_ram_ptr = &ram;
+					_size    = size;
+					_ds      = ram.alloc(size);
 					return true;
 				}
 
@@ -103,9 +103,9 @@ class Genode::Trace::Subject
 					if (!from_ds.valid())
 						return false;
 
-					_ram  = &ram;
-					_size = size;
-					_ds   = ram.alloc(_size);
+					_ram_ptr = &ram;
+					_size    = size;
+					_ds      = ram.alloc(_size);
 
 					/* copy content */
 					void *src = env_deprecated()->rm_session()->attach(from_ds),
@@ -124,8 +124,8 @@ class Genode::Trace::Subject
 				 */
 				size_t flush()
 				{
-					if (_ram)
-						_ram->free(_ds);
+					if (_ram_ptr)
+						_ram_ptr->free(_ds);
 
 					_reset();
 					return 0;
@@ -154,8 +154,8 @@ class Genode::Trace::Subject
 				return Subject_info::DEAD;
 
 			if (source->enabled())
-				return source->owned_by(this) ? Subject_info::TRACED
-				                              : Subject_info::FOREIGN;
+				return source->owned_by(*this) ? Subject_info::TRACED
+				                               : Subject_info::FOREIGN;
 			if (source->error())
 				return Subject_info::ERROR;
 
@@ -210,7 +210,7 @@ class Genode::Trace::Subject
 			if (!source.valid())
 				throw Source_is_dead();
 
-			if (!source->try_acquire(this))
+			if (!source->try_acquire(*this))
 				throw Traced_by_other_session();
 
 			source->trace(_policy.dataspace(), _buffer.dataspace());
@@ -340,13 +340,13 @@ class Genode::Trace::Subject_registry
 		 *
 		 * \return RAM resources released during destruction
 		 */
-		size_t _unsynchronized_destroy(Subject *s)
+		size_t _unsynchronized_destroy(Subject &s)
 		{
-			_entries.remove(s);
+			_entries.remove(&s);
 
-			size_t const released_ram = s->release();
+			size_t const released_ram = s.release();
 
-			destroy(&_md_alloc, s);
+			destroy(&_md_alloc, &s);
 
 			return released_ram;
 		};
@@ -356,11 +356,11 @@ class Genode::Trace::Subject_registry
 		 *
 		 * \throw Nonexistent_subject
 		 */
-		Subject *_unsynchronized_lookup_by_id(Subject_id id)
+		Subject &_unsynchronized_lookup_by_id(Subject_id id)
 		{
 			for (Subject *s = _entries.first(); s; s = s->next())
 				if (s->id() == id)
-					return s;
+					return *s;
 
 			throw Nonexistent_subject();
 		}
@@ -389,7 +389,7 @@ class Genode::Trace::Subject_registry
 			Lock guard(_lock);
 
 			while (Subject *s = _entries.first())
-				_unsynchronized_destroy(s);
+				_unsynchronized_destroy(*s);
 		}
 
 		/**
@@ -427,14 +427,11 @@ class Genode::Trace::Subject_registry
 		{
 			Lock guard(_lock);
 
-			Subject *subject = _unsynchronized_lookup_by_id(subject_id);
-			if (subject)
-				return _unsynchronized_destroy(subject);
-
-			return 0;
+			Subject &subject = _unsynchronized_lookup_by_id(subject_id);
+			return _unsynchronized_destroy(subject);
 		}
 
-		Subject *lookup_by_id(Subject_id id)
+		Subject &lookup_by_id(Subject_id id)
 		{
 			Lock guard(_lock);
 

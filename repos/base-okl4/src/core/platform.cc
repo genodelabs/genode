@@ -57,9 +57,9 @@ int Platform::bi_init_mem(Okl4::uintptr_t virt_base, Okl4::uintptr_t virt_end,
                           Okl4::uintptr_t phys_base, Okl4::uintptr_t phys_end,
                           const Okl4::bi_user_data_t *data)
 {
-	Platform *p = (Platform *)data->user_data;
-	p->_core_mem_alloc.phys_alloc()->add_range(phys_base, phys_end - phys_base + 1);
-	p->_core_mem_alloc.virt_alloc()->add_range(virt_base, virt_end - virt_base + 1);
+	Platform &p = *(Platform *)data->user_data;
+	p._core_mem_alloc.phys_alloc().add_range(phys_base, phys_end - phys_base + 1);
+	p._core_mem_alloc.virt_alloc().add_range(virt_base, virt_end - virt_base + 1);
 	return 0;
 }
 
@@ -71,8 +71,8 @@ int Platform::bi_add_virt_mem(Okl4::bi_name_t, Okl4::uintptr_t base,
 	if (base < get_page_size() || end < get_page_size())
 		return 0;
 
-	Platform *p = (Platform *)data->user_data;
-	p->_core_mem_alloc.virt_alloc()->add_range(base, end - base + 1);
+	Platform &p = *(Platform *)data->user_data;
+	p._core_mem_alloc.virt_alloc().add_range(base, end - base + 1);
 	return 0;
 }
 
@@ -81,8 +81,8 @@ int Platform::bi_add_phys_mem(Okl4::bi_name_t pool, Okl4::uintptr_t base,
                               Okl4::uintptr_t end, const Okl4::bi_user_data_t *data)
 {
 	if (pool == 2) {
-		Platform *p = (Platform *)data->user_data;
-		p->_core_mem_alloc.phys_alloc()->add_range(base, end - base + 1);
+		Platform &p = *(Platform *)data->user_data;
+		p._core_mem_alloc.phys_alloc().add_range(base, end - base + 1);
 	}
 	return 0;
 }
@@ -91,10 +91,11 @@ int Platform::bi_add_phys_mem(Okl4::bi_name_t pool, Okl4::uintptr_t base,
 static char init_slab_block_rom[get_page_size()];
 static char init_slab_block_thread[get_page_size()];
 
-Platform::Platform() :
-	_io_mem_alloc(core_mem_alloc()), _io_port_alloc(core_mem_alloc()),
-	_irq_alloc(core_mem_alloc()),
-	_rom_slab(core_mem_alloc(), (Slab_block *)&init_slab_block_rom),
+Platform::Platform()
+:
+	_io_mem_alloc(&core_mem_alloc()), _io_port_alloc(&core_mem_alloc()),
+	_irq_alloc(&core_mem_alloc()),
+	_rom_slab(&core_mem_alloc(), (Slab_block *)&init_slab_block_rom),
 	_thread_slab(core_mem_alloc(), (Slab_block *)&init_slab_block_thread)
 {
 	/*
@@ -160,8 +161,8 @@ Platform::Platform() :
 	_init_rom_modules();
 
 	/* preserve stack area in core's virtual address space */
-	_core_mem_alloc.virt_alloc()->remove_range(stack_area_virtual_base(),
-	                                           stack_area_virtual_size());
+	_core_mem_alloc.virt_alloc().remove_range(stack_area_virtual_base(),
+	                                          stack_area_virtual_size());
 
 	_vm_start = 0x1000;
 	_vm_size  = 0xc0000000 - _vm_start;
@@ -169,7 +170,7 @@ Platform::Platform() :
 	log(_rom_fs);
 
 	/* setup task object for core task */
-	_core_pd = new(core_mem_alloc()) Platform_pd(true);
+	_core_pd = new (core_mem_alloc()) Platform_pd(true);
 
 	/*
 	 * We setup the thread object for thread0 in core task using a special
@@ -177,10 +178,10 @@ Platform::Platform() :
 	 * the situation that task_id == thread_id of first task. But since we do
 	 * not destroy this task, it should be no problem.
 	 */
-	Platform_thread *core_thread =
-		new(&_thread_slab) Platform_thread(0, "core.main");
+	Platform_thread &core_thread =
+		*new (&_thread_slab) Platform_thread("core.main");
 
-	core_thread->set_l4_thread_id(Okl4::L4_rootserver);
+	core_thread.set_l4_thread_id(Okl4::L4_rootserver);
 
 	_core_pd->bind_thread(core_thread);
 
@@ -191,11 +192,11 @@ Platform::Platform() :
 		unsigned const pages  = 1;
 		size_t const log_size = pages << get_page_size_log2();
 
-		ram_alloc()->alloc_aligned(log_size, &phys_ptr, get_page_size_log2());
+		ram_alloc().alloc_aligned(log_size, &phys_ptr, get_page_size_log2());
 		addr_t const phys_addr = reinterpret_cast<addr_t>(phys_ptr);
 
 		/* let one page free after the log buffer */
-		region_alloc()->alloc_aligned(log_size, &core_local_ptr, get_page_size_log2());
+		region_alloc().alloc_aligned(log_size, &core_local_ptr, get_page_size_log2());
 		addr_t const core_local_addr = reinterpret_cast<addr_t>(core_local_ptr);
 
 		map_local(phys_addr, core_local_addr, pages);

@@ -147,7 +147,7 @@ Platform_thread* Platform_pd::_next_thread()
 }
 
 
-int Platform_pd::_alloc_thread(int thread_id, Platform_thread *thread)
+int Platform_pd::_alloc_thread(int thread_id, Platform_thread &thread)
 {
 	int i = thread_id;
 
@@ -164,7 +164,7 @@ int Platform_pd::_alloc_thread(int thread_id, Platform_thread *thread)
 		if (_threads[i]) return -2;
 	}
 
-	_threads[i] = thread;
+	_threads[i] = &thread;
 
 	return i;
 }
@@ -183,12 +183,12 @@ void Platform_pd::_free_thread(int thread_id)
  ** Public object members **
  ***************************/
 
-bool Platform_pd::bind_thread(Platform_thread *thread)
+bool Platform_pd::bind_thread(Platform_thread &thread)
 {
 	using namespace Pistachio;
 
 	/* thread_id is THREAD_INVALID by default - only core is the special case */
-	int thread_id = thread->thread_id();
+	int thread_id = thread.thread_id();
 	L4_ThreadId_t l4_thread_id;
 
 	int t = _alloc_thread(thread_id, thread);
@@ -200,18 +200,18 @@ bool Platform_pd::bind_thread(Platform_thread *thread)
 	l4_thread_id = make_l4_id(_pd_id, thread_id, _version);
 
 	/* finally inform thread about binding */
-	thread->bind(thread_id, l4_thread_id, this);
+	thread.bind(thread_id, l4_thread_id, *this);
 
 	return true;
 }
 
 
-void Platform_pd::unbind_thread(Platform_thread *thread)
+void Platform_pd::unbind_thread(Platform_thread &thread)
 {
-	int thread_id = thread->thread_id();
+	int thread_id = thread.thread_id();
 
 	/* unbind thread before proceeding */
-	thread->unbind();
+	thread.unbind();
 
 	_free_thread(thread_id);
 
@@ -326,7 +326,7 @@ Platform_pd::Platform_pd(bool) : _l4_task_id(L4_MyGlobalId())
 }
 
 
-Platform_pd::Platform_pd(Allocator *, char const *, signed pd_id, bool create)
+Platform_pd::Platform_pd(Allocator &, char const *, signed pd_id, bool create)
 {
 	if (!create)
 		panic("create must be true.");
@@ -348,7 +348,7 @@ Platform_pd::Platform_pd(Allocator *, char const *, signed pd_id, bool create)
 Platform_pd::~Platform_pd()
 {
 	/* unbind all threads */
-	while (Platform_thread *t = _next_thread()) unbind_thread(t);
+	while (Platform_thread *t = _next_thread()) unbind_thread(*t);
 
 	_destroy_pd();
 	_free_pd();

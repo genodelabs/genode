@@ -44,7 +44,7 @@ namespace Genode {
 	inline static bool map_local(addr_t from_addr, addr_t to_addr, size_t num_pages)
 	{
 
-		Pistachio::L4_ThreadId_t core_pager = platform_specific()->core_pager()->native_thread_id();
+		Pistachio::L4_ThreadId_t core_pager = platform_specific().core_pager().native_thread_id();
 
 		addr_t offset = 0;
 		size_t page_size = get_page_size();

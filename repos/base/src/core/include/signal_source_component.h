@@ -43,20 +43,14 @@ class Genode::Signal_context_component : public Rpc_object<Signal_context>,
 
 		long                     _imprint;
 		int                      _cnt = 0;
-		Signal_source_component *_source;
-
-		/*
-		 * Noncopyable
-		 */
-		Signal_context_component(Signal_context_component const &);
-		Signal_context_component &operator = (Signal_context_component const &);
+		Signal_source_component &_source;
 
 	public:
 
 		/**
 		 * Constructor
 		 */
-		Signal_context_component(long imprint, Signal_source_component *source)
+		Signal_context_component(long imprint, Signal_source_component &source)
 		: _imprint(imprint), _source(source) { }
 
 		/**
@@ -74,9 +68,10 @@ class Genode::Signal_context_component : public Rpc_object<Signal_context>,
 		 */
 		void reset_signal_cnt() { _cnt = 0; }
 
-		long                     imprint()  { return _imprint; }
-		int                      cnt()      { return _cnt; }
-		Signal_source_component *source()   { return _source; }
+		long imprint() const { return _imprint; }
+		int  cnt()     const { return _cnt; }
+
+		Signal_source_component &source() { return _source; }
 
 		using Signal_queue::Element::enqueued;
 };
@@ -87,27 +82,21 @@ class Genode::Signal_source_component : public Signal_source_rpc_object
 	private:
 
 		Signal_queue       _signal_queue { };
-		Rpc_entrypoint    *_entrypoint;
+		Rpc_entrypoint    &_entrypoint;
 		Native_capability  _reply_cap { };
-
-		/*
-		 * Noncopyable
-		 */
-		Signal_source_component(Signal_source_component const &);
-		Signal_source_component &operator = (Signal_source_component const &);
 
 	public:
 
 		/**
 		 * Constructor
 		 */
-		Signal_source_component(Rpc_entrypoint *rpc_entrypoint);
+		Signal_source_component(Rpc_entrypoint &);
 
 		~Signal_source_component();
 
-		void release(Signal_context_component *context);
+		void release(Signal_context_component &context);
 
-		void submit(Signal_context_component *context,
+		void submit(Signal_context_component &context,
 		            unsigned long             cnt);
 
 		/*****************************
@@ -120,8 +109,8 @@ class Genode::Signal_source_component : public Signal_source_rpc_object
 
 Genode::Signal_context_component::~Signal_context_component()
 {
-	if (enqueued() && _source)
-		_source->release(this);
+	if (enqueued())
+		_source.release(*this);
 }
 
 #endif /* _CORE__INCLUDE__SIGNAL_SOURCE_COMPONENT_H_ */

@@ -41,7 +41,7 @@ namespace Genode {
 	/**
 	 * Userland interface for the management of kernel thread-objects
 	 */
-	class Platform_thread : public Kernel_object<Kernel::Thread>
+	class Platform_thread : Noncopyable
 	{
 		/*
 		 * Noncopyable
@@ -49,15 +49,15 @@ namespace Genode {
 		Platform_thread(Platform_thread const &);
 		Platform_thread &operator = (Platform_thread const &);
 
-		enum { LABEL_MAX_LEN = 32 };
+		typedef String<32> Label;
 
+		Label              const _label;
 		Platform_pd *            _pd;
 		Weak_ptr<Address_space>  _address_space  { };
 		Pager_object *           _pager;
 		Native_utcb *            _utcb_core_addr { }; /* UTCB addr in core */
 		Native_utcb *            _utcb_pd_addr;       /* UTCB addr in pd   */
 		Ram_dataspace_capability _utcb           { }; /* UTCB dataspace    */
-		char                     _label[LABEL_MAX_LEN];
 
 		/*
 		 * Wether this thread is the main thread of a program.
@@ -70,6 +70,8 @@ namespace Genode {
 		bool _main_thread;
 
 		Affinity::Location _location { };
+
+		Kernel_object<Kernel::Thread> _kobj;
 
 		/**
 		 * Common construction part
@@ -95,7 +97,7 @@ namespace Genode {
 			 * \param label       debugging label
 			 * \param utcb        virtual address of UTCB within core
 			 */
-			Platform_thread(const char * const label, Native_utcb * utcb);
+			Platform_thread(Label const &label, Native_utcb &utcb);
 
 			/**
 			 * Constructor for threads outside of core
@@ -105,7 +107,7 @@ namespace Genode {
 			 * \param virt_prio  unscaled processor-scheduling priority
 			 * \param utcb       core local pointer to userland stack
 			 */
-			Platform_thread(size_t const quota, const char * const label,
+			Platform_thread(size_t const quota, Label const &label,
 			                unsigned const virt_prio, Affinity::Location,
 			                addr_t const utcb);
 
@@ -113,6 +115,11 @@ namespace Genode {
 			 * Destructor
 			 */
 			~Platform_thread();
+
+			/**
+			 * Return information about current fault
+			 */
+			Kernel::Thread_fault fault_info() { return _kobj.kernel_object()->fault(); }
 
 			/**
 			 * Join a protection domain
@@ -124,7 +131,7 @@ namespace Genode {
 			 * This function has no effect when called more twice for a
 			 * given thread.
 			 */
-			void join_pd(Platform_pd *  const pd, bool const main_thread,
+			void join_pd(Platform_pd *const pd, bool const main_thread,
 			             Weak_ptr<Address_space> address_space);
 
 			/**
@@ -140,7 +147,7 @@ namespace Genode {
 			/**
 			 * Pause this thread
 			 */
-			void pause() { Kernel::pause_thread(kernel_object()); }
+			void pause() { Kernel::pause_thread(_kobj.kernel_object()); }
 
 			/**
 			 * Enable/disable single stepping
@@ -150,13 +157,13 @@ namespace Genode {
 			/**
 			 * Resume this thread
 			 */
-			void resume() { Kernel::resume_thread(kernel_object()); }
+			void resume() { Kernel::resume_thread(_kobj.kernel_object()); }
 
 			/**
 			 * Cancel currently blocking operation
 			 */
 			void cancel_blocking() {
-				Kernel::cancel_thread_blocking(kernel_object()); }
+				Kernel::cancel_thread_blocking(_kobj.kernel_object()); }
 
 			/**
 			 * Set CPU quota of the thread to 'quota'
@@ -205,11 +212,11 @@ namespace Genode {
 			 ** Accessors **
 			 ***************/
 
-			char const * label() const { return _label; };
+			Label label() const { return _label; };
 
-			void pager(Pager_object * const pager);
+			void pager(Pager_object &pager);
 
-			Pager_object * pager();
+			Pager_object &pager();
 
 			Platform_pd * pd() const { return _pd; }
 

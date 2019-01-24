@@ -26,6 +26,7 @@
 
 /* core includes */
 #include <pager.h>
+#include <assertion.h>
 
 namespace Genode {
 
@@ -154,12 +155,18 @@ namespace Genode {
 			/**
 			 * Set pager
 			 */
-			void pager(Pager_object *pager);
+			void pager(Pager_object &pager);
 
 			/**
 			 * Return pager object
 			 */
-			Pager_object *pager() { return _pager; }
+			Pager_object &pager()
+			{
+				if (_pager)
+					return *_pager;
+
+				ASSERT_NEVER_CALLED;
+			}
 
 			/**
 			 * Return identification of thread when faulting

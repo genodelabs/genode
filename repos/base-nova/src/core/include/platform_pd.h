@@ -42,7 +42,7 @@ namespace Genode {
 			/**
 			 * Constructors
 			 */
-			Platform_pd(Allocator * md_alloc, char const *,
+			Platform_pd(Allocator &md_alloc, char const *,
 			            signed pd_id = -1, bool create = true);
 
 			/**
@@ -53,14 +53,14 @@ namespace Genode {
 			/**
 			 * Bind thread to protection domain
 			 */
-			bool bind_thread(Platform_thread *thread);
+			bool bind_thread(Platform_thread &thread);
 
 			/**
 			 * Unbind thread from protection domain
 			 *
 			 * Free the thread's slot and update thread object.
 			 */
-			void unbind_thread(Platform_thread *thread);
+			void unbind_thread(Platform_thread &thread);
 
 			/**
 			 * Assign parent interface to protection domain

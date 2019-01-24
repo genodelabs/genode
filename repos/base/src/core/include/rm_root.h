@@ -40,10 +40,10 @@ class Genode::Rm_root : public Root_component<Rm_session_component>
 			       Rm_session_component(*this->ep(), *md_alloc(), _pager_ep, ram_quota);
 		}
 
-		void _upgrade_session(Rm_session_component *rm, const char *args)
+		void _upgrade_session(Rm_session_component &rm, const char *args)
 		{
 			size_t ram_quota = Arg_string::find_arg(args, "ram_quota").ulong_value(0);
-			rm->upgrade_ram_quota(ram_quota);
+			rm.upgrade_ram_quota(ram_quota);
 		}
 
 	public:
@@ -55,11 +55,11 @@ class Genode::Rm_root : public Root_component<Rm_session_component>
 		 * \param md_alloc     meta data allocator to be used by root component
 		 * \param pager_ep     pager entrypoint
 		 */
-		Rm_root(Rpc_entrypoint   *session_ep,
-		        Allocator        *md_alloc,
+		Rm_root(Rpc_entrypoint   &session_ep,
+		        Allocator        &md_alloc,
 		        Pager_entrypoint &pager_ep)
 		:
-			Root_component<Rm_session_component>(session_ep, md_alloc),
+			Root_component<Rm_session_component>(&session_ep, &md_alloc),
 			_pager_ep(pager_ep)
 		{ }
 };

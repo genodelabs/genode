@@ -18,24 +18,19 @@
 using namespace Genode;
 
 
-Rom_session_component::Rom_session_component(Rom_fs         *rom_fs,
-                                             Rpc_entrypoint *ds_ep,
+Rom_session_component::Rom_session_component(Rom_fs         &rom_fs,
+                                             Rpc_entrypoint &ds_ep,
                                              const char     *args)
 :
-	_rom_module(_find_rom(rom_fs, args)),
+	_rom_module(&_find_rom(rom_fs, args)),
 	_ds(_rom_module ? _rom_module->size : 0,
 	    _rom_module ? _rom_module->addr : 0, CACHED, false, 0),
-	_ds_ep(ds_ep)
-{
-	/* ROM module not found */
-	if (!_rom_module)
-		throw Service_denied();
-
-	_ds_cap = static_cap_cast<Rom_dataspace>(_ds_ep->manage(&_ds));
-}
+	_ds_ep(ds_ep),
+	_ds_cap(static_cap_cast<Rom_dataspace>(_ds_ep.manage(&_ds)))
+{ }
 
 
 Rom_session_component::~Rom_session_component()
 {
-	_ds_ep->dissolve(&_ds);
+	_ds_ep.dissolve(&_ds);
 }

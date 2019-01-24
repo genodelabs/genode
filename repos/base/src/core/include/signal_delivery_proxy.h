@@ -57,7 +57,7 @@ namespace Genode {
 		{
 			_ep.apply(cap, [&] (Signal_context_component *context) {
 				if (context)
-					context->source()->submit(context, cnt);
+					context->source().submit(*context, cnt);
 				else
 					warning("invalid signal-context capability");
 			});
@@ -66,8 +66,8 @@ namespace Genode {
 		void _release_from_ep(addr_t const context_addr)
 		{
 			Signal_context_component * context = reinterpret_cast<Signal_context_component *>(context_addr);
-			if (context && context->source())
-				context->source()->release(context);
+			if (context)
+				context->source().release(*context);
 		}
 
 		/**
@@ -89,8 +89,8 @@ namespace Genode {
 		 *
 		 * Called from threads other than 'ep'.
 		 */
-		void release(Signal_context_component * context) {
-			_proxy_cap.call<Rpc_release>(reinterpret_cast<addr_t>(context)); }
+		void release(Signal_context_component &context) {
+			_proxy_cap.call<Rpc_release>(reinterpret_cast<addr_t>(&context)); }
 	};
 }
 

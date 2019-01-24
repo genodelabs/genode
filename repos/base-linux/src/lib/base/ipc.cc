@@ -91,10 +91,10 @@ static_assert((int)Protocol_header::INVALID_BADGE != (int)Rpc_obj_key::INVALID,
  ** File-descriptor registry **
  ******************************/
 
-Genode::Ep_socket_descriptor_registry *Genode::ep_sd_registry()
+Genode::Ep_socket_descriptor_registry &Genode::ep_sd_registry()
 {
 	static Genode::Ep_socket_descriptor_registry registry;
-	return &registry;
+	return registry;
 }
 
 
@@ -299,7 +299,7 @@ static void extract_sds_from_message(unsigned start_index,
 		int const sd = msg.socket_at_index(start_index + sd_cnt++);
 		int const id = lookup_tid_by_client_socket(sd);
 
-		int const associated_sd = Genode::ep_sd_registry()->try_associate(sd, id);
+		int const associated_sd = Genode::ep_sd_registry().try_associate(sd, id);
 
 		Native_capability arg_cap = Capability_space::lookup(Rpc_obj_key(badge));
 
@@ -556,7 +556,7 @@ Ipc_server::~Ipc_server()
 	 */
 	Native_thread &native_thread = Thread::myself()->native_thread();
 
-	Genode::ep_sd_registry()->disassociate(native_thread.socket_pair.client_sd);
+	Genode::ep_sd_registry().disassociate(native_thread.socket_pair.client_sd);
 	native_thread.is_ipc_server = false;
 
 	destroy_server_socket_pair(native_thread.socket_pair);

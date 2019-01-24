@@ -20,6 +20,7 @@
 /* core includes */
 #include <pager.h>
 #include <platform_pd.h>
+#include <assertion.h>
 
 namespace Genode {
 
@@ -34,15 +35,17 @@ namespace Genode {
 			Platform_thread(Platform_thread const &);
 			Platform_thread &operator = (Platform_thread const &);
 
-			int                 _thread_id;      /* plain thread number */
-			Okl4::L4_ThreadId_t _l4_thread_id;   /* L4 thread ID */
-			char                _name[32];       /* thread name that will be
-			                                     registered at the kernel
-			                                     debugger */
-			Platform_pd        *_platform_pd;    /* protection domain thread
-			                                        is bound to */
-			unsigned            _priority;       /* thread priority */
-			Pager_object       *_pager;
+			int _thread_id = THREAD_INVALID;    /* plain thread number */
+
+			Okl4::L4_ThreadId_t _l4_thread_id;  /* L4 thread ID */
+
+			char          _name[32];            /* thread name that will be
+			                                       registered at the kernel
+			                                       debugger */
+			Platform_pd  *_platform_pd;         /* protection domain thread
+			                                       is bound to */
+			unsigned      _priority;            /* thread priority */
+			Pager_object *_pager;
 
 		public:
 
@@ -52,10 +55,16 @@ namespace Genode {
 			/**
 			 * Constructor
 			 */
-			Platform_thread(size_t, const char *name  = 0,
-			                unsigned priority = 0,
-			                Affinity::Location = Affinity::Location(),
-			                addr_t utcb = 0, int thread_id = THREAD_INVALID);
+			Platform_thread(size_t, const char *name,
+			                unsigned priority,
+			                Affinity::Location,
+			                addr_t utcb);
+
+			/**
+			 * Constructor used for core-internal threads
+			 */
+			Platform_thread(char const *name)
+			: Platform_thread(0, name, 0, Affinity::Location(), 0) { }
 
 			/**
 			 * Destructor
@@ -102,7 +111,7 @@ namespace Genode {
 			 * \param pd            platform pd, thread is bound to
 			 */
 			void bind(int thread_id, Okl4::L4_ThreadId_t l4_thread_id,
-			          Platform_pd *pd);
+			          Platform_pd &pd);
 
 			/**
 			 * Unbind this thread
@@ -128,8 +137,15 @@ namespace Genode {
 			/**
 			 * Return/set pager
 			 */
-			Pager_object *pager() const { return _pager; }
-			void pager(Pager_object *pager) { _pager = pager; }
+			Pager_object &pager() const
+			{
+				if (_pager)
+					return *_pager;
+
+				ASSERT_NEVER_CALLED;
+			}
+
+			void pager(Pager_object &pager) { _pager = &pager; }
 
 			/**
 			 * Get the 'Platform_pd' object this thread belongs to

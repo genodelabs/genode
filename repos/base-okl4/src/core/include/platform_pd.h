@@ -90,7 +90,7 @@ namespace Genode {
 			 *
 			 * Again a special case for Core thread0.
 			 */
-			int _alloc_thread(int thread_id, Platform_thread *thread);
+			int _alloc_thread(int thread_id, Platform_thread &thread);
 
 			/**
 			 * Thread deallocation
@@ -167,7 +167,7 @@ namespace Genode {
 			 * Constructors
 			 */
 			Platform_pd(bool core);
-			Platform_pd(Allocator *, char const *);
+			Platform_pd(Allocator &, char const *);
 
 			/**
 			 * Destructor
@@ -179,14 +179,14 @@ namespace Genode {
 			 *
 			 * This function allocates the physical L4 thread ID.
 			 */
-			bool bind_thread(Platform_thread *thread);
+			bool bind_thread(Platform_thread &thread);
 
 			/**
 			 * Unbind thread from protection domain
 			 *
 			 * Free the thread's slot and update thread object.
 			 */
-			void unbind_thread(Platform_thread *thread);
+			void unbind_thread(Platform_thread &thread);
 
 			/**
 			 * Assign parent interface to protection domain
@@ -195,7 +195,7 @@ namespace Genode {
 
 			Platform_thread* space_pager() const { return _space_pager; }
 
-			void space_pager(Platform_thread *pd);
+			void space_pager(Platform_thread &pd);
 
 			int pd_id() const { return _pd_id; }
 

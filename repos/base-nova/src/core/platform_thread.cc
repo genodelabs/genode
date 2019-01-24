@@ -37,12 +37,12 @@ using namespace Genode;
 
 static uint8_t map_thread_portals(Pager_object &pager,
                                   addr_t const target_exc_base,
-                                  Nova::Utcb *utcb)
+                                  Nova::Utcb &utcb)
 {
 	using Nova::Obj_crd;
 	using Nova::NUM_INITIAL_PT_LOG2;
 
-	addr_t const source_pd = platform_specific()->core_pd_sel();
+	addr_t const source_pd = platform_specific().core_pd_sel();
 	addr_t const source_exc_base = pager.exc_pt_sel_client();
 	addr_t const target_pd = pager.pd_sel();
 
@@ -89,9 +89,9 @@ int Platform_thread::start(void *ip, void *sp)
 		return -2;
 	}
 
-	Utcb * const utcb = reinterpret_cast<Utcb *>(Thread::myself()->utcb());
-	unsigned const kernel_cpu_id = platform_specific()->kernel_cpu_id(_location.xpos());
-	addr_t const source_pd = platform_specific()->core_pd_sel();
+	Utcb &utcb = *reinterpret_cast<Utcb *>(Thread::myself()->utcb());
+	unsigned const kernel_cpu_id = platform_specific().kernel_cpu_id(_location.xpos());
+	addr_t const source_pd = platform_specific().core_pd_sel();
 
 	addr_t const pt_oom = _pager->get_oom_portal();
 	if (!pt_oom || map_local(source_pd, utcb,
@@ -313,9 +313,9 @@ unsigned long long Platform_thread::execution_time() const
 }
 
 
-void Platform_thread::pager(Pager_object *pager)
+void Platform_thread::pager(Pager_object &pager)
 {
-	_pager = pager;
+	_pager = &pager;
 	_pager->assign_pd(_pd->pd_sel());
 }
 
@@ -340,7 +340,7 @@ void Platform_thread::thread_type(Nova_native_cpu::Thread_type thread_type,
 Platform_thread::Platform_thread(size_t, const char *name, unsigned prio,
                                  Affinity::Location affinity, int)
 :
-	_pd(0), _pager(0), _id_base(cap_map()->insert(2)),
+	_pd(0), _pager(0), _id_base(cap_map().insert(2)),
 	_sel_exc_base(Native_thread::INVALID_INDEX), _location(affinity),
 	_features(0),
 	_priority(Cpu_session::scale_priority(Nova::Qpd::DEFAULT_PRIORITY, prio)),
@@ -370,5 +370,5 @@ Platform_thread::~Platform_thread()
 
 	/* free ec and sc caps */
 	revoke(Obj_crd(_id_base, 2));
-	cap_map()->remove(_id_base, 2, false);
+	cap_map().remove(_id_base, 2, false);
 }

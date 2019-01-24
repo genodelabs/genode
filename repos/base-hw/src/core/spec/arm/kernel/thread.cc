@@ -54,7 +54,7 @@ void Thread::exception(Cpu & cpu)
 
 void Kernel::Thread::_call_update_data_region()
 {
-	Cpu & cpu  = cpu_pool()->cpu(Cpu::executing_id());
+	Cpu &cpu = cpu_pool().cpu(Cpu::executing_id());
 
 	/*
 	 * FIXME: If the caller is not a core thread, the kernel operates in a
@@ -78,7 +78,7 @@ void Kernel::Thread::_call_update_data_region()
 
 void Kernel::Thread::_call_update_instr_region()
 {
-	Cpu & cpu  = cpu_pool()->cpu(Cpu::executing_id());
+	Cpu &cpu = cpu_pool().cpu(Cpu::executing_id());
 
 	/*
 	 * FIXME: If the caller is not a core thread, the kernel operates in a
@@ -112,7 +112,7 @@ void Kernel::Thread::Pd_update::execute() { };
 
 void Thread::proceed(Cpu & cpu)
 {
-	cpu.switch_to(*regs, pd()->mmu_regs);
+	cpu.switch_to(*regs, pd().mmu_regs);
 
 	regs->cpu_exception = cpu.stack_start();
 	kernel_to_user_context_switch((static_cast<Cpu::Context*>(&*regs)),

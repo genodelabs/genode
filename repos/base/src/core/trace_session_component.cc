@@ -90,9 +90,9 @@ void Session_component::trace(Subject_id subject_id, Policy_id policy_id,
 		throw Out_of_ram();
 
 	try {
-		Trace::Subject *subject = _subjects.lookup_by_id(subject_id);
-		subject->trace(policy_id, _policies.dataspace(*this, policy_id),
-		               policy_size, _ram, buffer_size);
+		Trace::Subject &subject = _subjects.lookup_by_id(subject_id);
+		subject.trace(policy_id, _policies.dataspace(*this, policy_id),
+		              policy_size, _ram, buffer_size);
 	} catch (...) {
 		/* revert withdrawal or quota */
 		_md_alloc.upgrade(required_ram);
@@ -110,25 +110,25 @@ void Session_component::rule(Session_label const &, Thread_name const &,
 
 void Session_component::pause(Subject_id subject_id)
 {
-	_subjects.lookup_by_id(subject_id)->pause();
+	_subjects.lookup_by_id(subject_id).pause();
 }
 
 
 void Session_component::resume(Subject_id subject_id)
 {
-	_subjects.lookup_by_id(subject_id)->resume();
+	_subjects.lookup_by_id(subject_id).resume();
 }
 
 
 Subject_info Session_component::subject_info(Subject_id subject_id)
 {
-	return _subjects.lookup_by_id(subject_id)->info();
+	return _subjects.lookup_by_id(subject_id).info();
 }
 
 
 Dataspace_capability Session_component::buffer(Subject_id subject_id)
 {
-	return _subjects.lookup_by_id(subject_id)->buffer();
+	return _subjects.lookup_by_id(subject_id).buffer();
 }
 
 

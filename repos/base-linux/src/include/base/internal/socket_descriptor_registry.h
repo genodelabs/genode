@@ -33,7 +33,7 @@ namespace Genode
 	/**
 	 * Return singleton instance of registry for tracking entrypoint sockets
 	 */
-	Ep_socket_descriptor_registry *ep_sd_registry();
+	Ep_socket_descriptor_registry &ep_sd_registry();
 }
 
 

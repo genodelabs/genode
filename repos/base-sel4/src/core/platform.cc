@@ -115,7 +115,7 @@ void Platform::_init_allocators()
 			if (device)
 				_io_mem_alloc.add_range(phys_addr, phys_size);
 			else
-				_core_mem_alloc.phys_alloc()->add_range(phys_addr, phys_size);
+				_core_mem_alloc.phys_alloc().add_range(phys_addr, phys_size);
 
 			_unused_phys_alloc.remove_range(phys_addr, phys_size);
 		});
@@ -135,7 +135,7 @@ void Platform::_init_allocators()
 	addr_t const image_elf_size = core_virt_end - core_virt_beg;
 
 	_unused_virt_alloc.remove_range(core_virt_beg, image_elf_size);
-	_core_mem_alloc.virt_alloc()->add_range(modules_start, core_virt_end - modules_start);
+	_core_mem_alloc.virt_alloc().add_range(modules_start, core_virt_end - modules_start);
 
 	/* remove initial IPC buffer from core's virtual address allocator */
 	seL4_BootInfo const &bi = sel4_boot_info();
@@ -358,20 +358,20 @@ void Platform::_init_rom_modules()
 	void           *virt_ptr = nullptr;
 	const char     *rom_name = "platform_info";
 
-	addr_t   const phys_addr = Untyped_memory::alloc_page(*ram_alloc());
+	addr_t   const phys_addr = Untyped_memory::alloc_page(ram_alloc());
 	Untyped_memory::convert_to_page_frames(phys_addr, pages);
 
-	if (region_alloc()->alloc_aligned(rom_size, &virt_ptr, get_page_size_log2()).error()) {
+	if (region_alloc().alloc_aligned(rom_size, &virt_ptr, get_page_size_log2()).error()) {
 		error("could not setup platform_info ROM - region allocation error");
-		Untyped_memory::free_page(*ram_alloc(), phys_addr);
+		Untyped_memory::free_page(ram_alloc(), phys_addr);
 		return;
 	}
 	addr_t const virt_addr = reinterpret_cast<addr_t>(virt_ptr);
 
 	if (!map_local(phys_addr, virt_addr, pages, this)) {
 		error("could not setup platform_info ROM - map error");
-		region_alloc()->free(virt_ptr);
-		Untyped_memory::free_page(*ram_alloc(), phys_addr);
+		region_alloc().free(virt_ptr);
+		Untyped_memory::free_page(ram_alloc(), phys_addr);
 		return;
 	}
 
@@ -484,7 +484,7 @@ void Platform::_init_rom_modules()
 		error("could not setup platform_info ROM - unmap error");
 		return;
 	}
-	region_alloc()->free(virt_ptr);
+	region_alloc().free(virt_ptr);
 
 	_rom_fs.insert(
 		new (core_mem_alloc()) Rom_module(phys_addr, rom_size, rom_name));
@@ -494,10 +494,10 @@ void Platform::_init_rom_modules()
 Platform::Platform()
 :
 
-	_io_mem_alloc(core_mem_alloc()), _io_port_alloc(core_mem_alloc()),
-	_irq_alloc(core_mem_alloc()),
-	_unused_phys_alloc(core_mem_alloc()),
-	_unused_virt_alloc(core_mem_alloc()),
+	_io_mem_alloc(&core_mem_alloc()), _io_port_alloc(&core_mem_alloc()),
+	_irq_alloc(&core_mem_alloc()),
+	_unused_phys_alloc(&core_mem_alloc()),
+	_unused_virt_alloc(&core_mem_alloc()),
 	_init_unused_phys_alloc_done((_init_unused_phys_alloc(), true)),
 	_vm_base(0x2000), /* 2nd page is used as IPC buffer of main thread */
 	_vm_size(3*1024*1024*1024UL - _vm_base), /* use the lower 3GiB */
@@ -526,7 +526,7 @@ Platform::Platform()
 	Cap_sel core_sel = _core_sel_alloc.alloc();
 
 	{
-		addr_t       const phys_addr = Untyped_memory::alloc_page(*ram_alloc());
+		addr_t       const phys_addr = Untyped_memory::alloc_page(ram_alloc());
 		seL4_Untyped const service   = Untyped_memory::untyped_sel(phys_addr).value();
 		create<Notification_kobj>(service, core_cnode().sel(), core_sel);
 	}
@@ -555,7 +555,7 @@ Platform::Platform()
 		addr_t const virt_addr = (addr_t)virt_ptr;
 
 		/* add to available virtual region of core */
-		_core_mem_alloc.virt_alloc()->add_range(virt_addr, virt_size);
+		_core_mem_alloc.virt_alloc().add_range(virt_addr, virt_size);
 
 		/* back region by page tables */
 		_core_vm_space.unsynchronized_alloc_page_tables(virt_addr, virt_size);
@@ -576,8 +576,8 @@ Platform::Platform()
 			 */
 			Info trace_source_info() const override
 			{
-				Genode::Thread * me = Genode::Thread::myself();
-				addr_t const ipc_buffer = reinterpret_cast<addr_t>(me->utcb());
+				Genode::Thread &myself = *Genode::Thread::myself();
+				addr_t const ipc_buffer = reinterpret_cast<addr_t>(myself.utcb());
 				seL4_IPCBuffer * ipcbuffer = reinterpret_cast<seL4_IPCBuffer *>(ipc_buffer);
 				uint64_t const * buf = reinterpret_cast<uint64_t *>(ipcbuffer->msg);
 
@@ -602,7 +602,7 @@ Platform::Platform()
 
 		new (core_mem_alloc())
 			Idle_trace_source(Trace::sources(), *this,
-			                  *_core_mem_alloc.phys_alloc(),
+			                  _core_mem_alloc.phys_alloc(),
 			                  Affinity::Location(cpu_id, 0,
 			                                     affinity_space().width(),
 			                                     affinity_space().height()));
@@ -617,11 +617,11 @@ Platform::Platform()
 		unsigned const pages  = 1;
 		size_t const log_size = pages << get_page_size_log2();
 
-		addr_t   const phys_addr = Untyped_memory::alloc_page(*ram_alloc());
+		addr_t   const phys_addr = Untyped_memory::alloc_page(ram_alloc());
 		Untyped_memory::convert_to_page_frames(phys_addr, pages);
 
 		/* let one page free after the log buffer */
-		region_alloc()->alloc_aligned(log_size + get_page_size(), &core_local_ptr, get_page_size_log2());
+		region_alloc().alloc_aligned(log_size + get_page_size(), &core_local_ptr, get_page_size_log2());
 		addr_t const core_local_addr = reinterpret_cast<addr_t>(core_local_ptr);
 
 		map_local(phys_addr, core_local_addr, pages, this);

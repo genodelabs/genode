@@ -51,15 +51,15 @@ void Thread::cancel_blocking()
 void Thread::_deinit_platform_thread()
 {
 	/* destruct platform thread */
-	destroy(platform()->core_mem_alloc(), native_thread().platform_thread);
+	destroy(platform().core_mem_alloc(), native_thread().platform_thread);
 }
 
 
 void Thread::_init_platform_thread(size_t, Type type)
 {
 	if (type == NORMAL) {
-		native_thread().platform_thread = new (platform()->core_mem_alloc())
-			Platform_thread(_stack->name().string(), &_stack->utcb());
+		native_thread().platform_thread = new (platform().core_mem_alloc())
+			Platform_thread(_stack->name(), _stack->utcb());
 		return;
 	}
 

@@ -76,11 +76,12 @@ class Hw::Address_space : public Genode::Address_space
 		Table            & _tt;                 /* table virt addr */
 		Genode::addr_t     _tt_phys;            /* table phys addr */
 		Array            * _tt_array = nullptr;
-		Table::Allocator & _tt_alloc;            /* table allocator */
+		Table::Allocator & _tt_alloc;           /* table allocator */
 		Kernel::Pd       & _kernel_pd;
 
-		static inline Genode::Core_mem_allocator * _cma();
-		static inline void * _table_alloc();
+		static inline Genode::Core_mem_allocator &_cma();
+
+		static inline void *_table_alloc();
 
 	protected:
 
@@ -193,7 +194,7 @@ class Genode::Platform_pd : public  Hw::Address_space,
 		 *
 		 * \param label  name of protection domain
 		 */
-		Platform_pd(Allocator * md_alloc, char const *label);
+		Platform_pd(Allocator &md_alloc, char const *label);
 
 		/**
 		 * Destructor
@@ -204,14 +205,14 @@ class Genode::Platform_pd : public  Hw::Address_space,
 		using Cap_space::upgrade_slab;
 
 		/**
-		 * Bind thread 't' to protection domain
+		 * Bind thread to protection domain
 		 */
-		bool bind_thread(Platform_thread * t);
+		bool bind_thread(Platform_thread &);
 
 		/**
-		 * Unbind thread 't' from protection domain
+		 * Unbind thread from protection domain
 		 */
-		void unbind_thread(Platform_thread *t);
+		void unbind_thread(Platform_thread &);
 
 		/**
 		 * Assign parent interface to protection domain

@@ -40,7 +40,7 @@ void Platform_pd::_create_pd(bool syscall)
 	L4_Word_t    control        = L4_SpaceCtrl_new;
 	L4_ClistId_t cap_list       = L4_rootclist;
 	L4_Word_t    utcb_area_size = L4_GetUtcbSize()*(1 << Thread_id_bits::THREAD);
-	L4_Word_t    utcb_location  = platform_specific()->utcb_base()
+	L4_Word_t    utcb_location  = platform_specific().utcb_base()
 	                            + _pd_id*utcb_area_size;
 	L4_Fpage_t   utcb_area      = L4_Fpage(utcb_location, utcb_area_size);
 	L4_Word_t    resources      = 0;
@@ -66,7 +66,7 @@ void Platform_pd::_destroy_pd()
 	L4_Word_t    control        = L4_SpaceCtrl_delete;
 	L4_ClistId_t cap_list       = L4_rootclist;
 	L4_Word_t    utcb_area_size = L4_GetUtcbSize()*(1 << Thread_id_bits::THREAD);
-	L4_Word_t    utcb_location  = platform_specific()->utcb_base()
+	L4_Word_t    utcb_location  = platform_specific().utcb_base()
 	                            + _pd_id*utcb_area_size;
 	L4_Fpage_t   utcb_area      = L4_Fpage(utcb_location, utcb_area_size);
 	L4_Word_t    resources      = 0;
@@ -134,7 +134,7 @@ Platform_thread* Platform_pd::_next_thread()
 }
 
 
-int Platform_pd::_alloc_thread(int thread_id, Platform_thread *thread)
+int Platform_pd::_alloc_thread(int thread_id, Platform_thread &thread)
 {
 	int i = thread_id;
 
@@ -149,7 +149,7 @@ int Platform_pd::_alloc_thread(int thread_id, Platform_thread *thread)
 		if (_threads[i]) return -2;
 	}
 
-	_threads[i] = thread;
+	_threads[i] = &thread;
 
 	return i;
 }
@@ -169,12 +169,12 @@ void Platform_pd::_free_thread(int thread_id)
  ** Public object members **
  ***************************/
 
-bool Platform_pd::bind_thread(Platform_thread *thread)
+bool Platform_pd::bind_thread(Platform_thread &thread)
 {
 	using namespace Okl4;
 
 	/* thread_id is THREAD_INVALID by default - only core is the special case */
-	int thread_id = thread->thread_id();
+	int thread_id = thread.thread_id();
 	L4_ThreadId_t l4_thread_id;
 
 	int t = _alloc_thread(thread_id, thread);
@@ -186,41 +186,42 @@ bool Platform_pd::bind_thread(Platform_thread *thread)
 	l4_thread_id = make_l4_id(_pd_id, thread_id);
 
 	/* finally inform thread about binding */
-	thread->bind(thread_id, l4_thread_id, this);
+	thread.bind(thread_id, l4_thread_id, *this);
 	return true;
 }
 
 
-void Platform_pd::unbind_thread(Platform_thread *thread)
+void Platform_pd::unbind_thread(Platform_thread &thread)
 {
-	int thread_id = thread->thread_id();
+	int thread_id = thread.thread_id();
 
 	/* unbind thread before proceeding */
-	thread->unbind();
+	thread.unbind();
 
 	_free_thread(thread_id);
 }
 
 
-void Platform_pd::space_pager(Platform_thread *thread)
+void Platform_pd::space_pager(Platform_thread &thread)
 {
 	using namespace Okl4;
 
-	L4_Word_t control           = L4_SpaceCtrl_space_pager;
-	L4_SpaceId_t pager_space    = L4_SpaceId(thread->pd()->pd_id());
+	L4_Word_t    control        = L4_SpaceCtrl_space_pager;
+	L4_SpaceId_t pager_space    = L4_SpaceId(thread.pd()->pd_id());
 	L4_ClistId_t cap_list       = L4_rootclist;
 	L4_Word_t    utcb_area_size = L4_GetUtcbSize()*(1 << Thread_id_bits::THREAD);
-	L4_Word_t    utcb_location  = platform_specific()->utcb_base()
+	L4_Word_t    utcb_location  = platform_specific().utcb_base()
 	                            + _pd_id*utcb_area_size;
 	L4_Fpage_t   utcb_area      = L4_Fpage(utcb_location, utcb_area_size);
 	L4_Word_t    resources      = 0;
 	L4_Word_t    old_resources  = 0;
 
 	/* set the space pager */
-	_space_pager = thread;
+	_space_pager = &thread;
 	L4_LoadMR(0,pager_space.raw);
-	int ret = L4_SpaceControl(L4_SpaceId(_pd_id), control, cap_list, utcb_area,
-	                      resources, &old_resources);
+	int ret = L4_SpaceControl(L4_SpaceId(_pd_id),
+	                          control, cap_list, utcb_area,
+	                          resources, &old_resources);
 
 	if (ret != 1)
 		error("L4_SpaceControl(new space_pager...) returned ", ret, ", error=",
@@ -307,7 +308,7 @@ Platform_pd::Platform_pd(bool) : _space_pager(0)
 }
 
 
-Platform_pd::Platform_pd(Allocator *, char const *)
+Platform_pd::Platform_pd(Allocator &, char const *)
 {
 	_init_threads();
 
@@ -323,7 +324,7 @@ Platform_pd::Platform_pd(Allocator *, char const *)
 Platform_pd::~Platform_pd()
 {
 	/* unbind all threads */
-	while (Platform_thread *t = _next_thread()) unbind_thread(t);
+	while (Platform_thread *t = _next_thread()) unbind_thread(*t);
 
 	_destroy_pd();
 	_free_pd();

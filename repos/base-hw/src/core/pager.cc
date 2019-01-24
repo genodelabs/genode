@@ -69,7 +69,7 @@ void Pager_object::unresolved_page_fault_occurred()
 	Platform_thread * const pt = (Platform_thread *)badge();
 	if (pt && pt->pd())
 		warning("page fault, pager_object: pd='", pt->pd()->label(),
-		        "' thread='", pt->label(), "' ", pt->kernel_object()->fault());
+		        "' thread='", pt->label(), "' ", pt->fault_info());
 }
 
 void Pager_object::print(Output &out) const
@@ -94,12 +94,10 @@ Pager_object::Pager_object(Cpu_session_capability cpu_session_cap,
  ** Pager_entrypoint **
  **********************/
 
-void Pager_entrypoint::dissolve(Pager_object * const o)
+void Pager_entrypoint::dissolve(Pager_object &o)
 {
-	if (o) {
-		Kernel::kill_signal_context(Capability_space::capid(o->cap()));
-		remove(o);
-	}
+	Kernel::kill_signal_context(Capability_space::capid(o.cap()));
+	remove(&o);
 }
 
 
@@ -109,9 +107,9 @@ Pager_entrypoint::Pager_entrypoint(Rpc_cap_factory &)
 { start(); }
 
 
-Pager_capability Pager_entrypoint::manage(Pager_object * const o)
+Pager_capability Pager_entrypoint::manage(Pager_object &o)
 {
-	o->start_paging(kernel_object());
-	insert(o);
-	return reinterpret_cap_cast<Pager_object>(o->cap());
+	o.start_paging(kernel_object());
+	insert(&o);
+	return reinterpret_cap_cast<Pager_object>(o.cap());
 }

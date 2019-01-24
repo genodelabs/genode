@@ -160,7 +160,7 @@ class Kernel::Object_identity_reference
 		 ** Lookup functions **
 		 **********************/
 
-		Object_identity_reference * find(Pd * pd);
+		Object_identity_reference * find(Pd &pd);
 		Object_identity_reference * find(capid_t capid);
 };
 
@@ -189,7 +189,7 @@ class Kernel::Core_object_identity : public Object_identity,
 
 		Core_object_identity(T & object)
 		: Object_identity(object),
-		  Object_identity_reference(this, *core_pd()) { }
+		  Object_identity_reference(this, core_pd()) { }
 
 		capid_t core_capid() { return capid(); }
 };

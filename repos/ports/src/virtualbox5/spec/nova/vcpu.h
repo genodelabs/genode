@@ -801,7 +801,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<Genode::Thread>,
 			_start_routine(start_routine),
 			_start_routine_arg(arg),
 			_vcpu(cpu_session, location, pd_vcpu),
-			_ec_sel(Genode::cap_map()->insert()),
+			_ec_sel(Genode::cap_map().insert()),
 			_cpu_id(cpu_id)
 		{ }
 

@@ -72,21 +72,21 @@ namespace Genode {
 			 ** Generic platform interface **
 			 ********************************/
 
-			Range_allocator *ram_alloc()      override { return _core_mem_alloc.phys_alloc(); }
-			Range_allocator *io_mem_alloc()   override { return &_io_mem_alloc; }
-			Range_allocator *io_port_alloc()  override { return &_io_port_alloc; }
-			Range_allocator *irq_alloc()      override { return &_irq_alloc; }
-			Range_allocator *region_alloc()   override { return  _core_mem_alloc.virt_alloc(); }
-			Range_allocator *core_mem_alloc() override { return &_core_mem_alloc; }
+			Range_allocator &ram_alloc()      override { return _core_mem_alloc.phys_alloc(); }
+			Range_allocator &io_mem_alloc()   override { return _io_mem_alloc; }
+			Range_allocator &io_port_alloc()  override { return _io_port_alloc; }
+			Range_allocator &irq_alloc()      override { return _irq_alloc; }
+			Range_allocator &region_alloc()   override { return _core_mem_alloc.virt_alloc(); }
+			Range_allocator &core_mem_alloc() override { return _core_mem_alloc; }
 			addr_t           vm_start() const override { return _vm_base; }
 			size_t           vm_size()  const override { return _vm_size;  }
-			Rom_fs          *rom_fs()         override { return &_rom_fs; }
+			Rom_fs          &rom_fs()         override { return _rom_fs; }
 			size_t           max_caps() const override { return _max_caps; }
+			void             wait_for_exit()  override;
 
-			void wait_for_exit() override;
 			bool supports_direct_unmap() const override { return true; }
-			Address_space * core_pd() { return nullptr; }
 
+			Address_space &core_pd() { ASSERT_NEVER_CALLED; }
 
 			Affinity::Space affinity_space() const override { return _cpus; }
 
@@ -105,7 +105,7 @@ namespace Genode {
 			 * core_rm_session detach().
 			 */
 			size_t region_alloc_size_at(void * addr) {
-				return (*_core_mem_alloc.virt_alloc())()->size_at(addr); }
+				return (_core_mem_alloc.virt_alloc())()->size_at(addr); }
 
 			/**
 			 * Return kernel CPU ID for given Genode CPU

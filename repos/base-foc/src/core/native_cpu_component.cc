@@ -16,7 +16,7 @@
 
 /* core includes */
 #include <native_cpu_component.h>
-#include <cpu_session_irqs.h>
+#include <cpu_session_component.h>
 #include <platform.h>
 
 /* Fiasco.OC includes */
@@ -54,7 +54,7 @@ Genode::Native_cpu_component::thread_state(Genode::Thread_capability cap)
 
 Genode::Native_cpu_component::Native_cpu_component(Cpu_session_component &cpu_session, char const *)
 :
-	_cpu_session(cpu_session), _thread_ep(*_cpu_session._thread_ep)
+	_cpu_session(cpu_session), _thread_ep(_cpu_session._thread_ep)
 {
 	_thread_ep.manage(this);
 }

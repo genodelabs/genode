@@ -38,7 +38,7 @@ namespace Genode {
 	{
 		enum { DONT_FLUSH = false, WRITEABLE = true, NON_EXECUTABLE = false };
 		try {
-			platform = platform ? platform : platform_specific();
+			platform = platform ? platform : &platform_specific();
 			platform->core_vm_space().map(from_phys, to_virt, num_pages,
 			                              Cache_attribute::CACHED,
 			                              WRITEABLE, NON_EXECUTABLE,
@@ -57,7 +57,7 @@ namespace Genode {
 	                        Platform * platform = nullptr,
 	                        bool const invalidate = false)
 	{
-		platform = platform ? platform : platform_specific();
+		platform = platform ? platform : &platform_specific();
 		return platform->core_vm_space().unmap(virt_addr, num_pages, invalidate);
 	}
 }

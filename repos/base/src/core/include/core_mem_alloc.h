@@ -198,9 +198,6 @@ class Genode::Mapped_mem_allocator : public Genode::Core_mem_translator
  */
 class Genode::Core_mem_allocator : public Genode::Core_mem_translator
 {
-	public:
-
-
 	protected:
 
 		/**
@@ -226,16 +223,16 @@ class Genode::Core_mem_allocator : public Genode::Core_mem_translator
 		Synced_mapped_allocator _virt_alloc;
 
 		/**
-		   * Unsynchronized core-mapped memory allocator
-		   *
-		   * This allocator is internally used within this class for
-		   * allocating meta data for the other allocators. It is not
-		   * synchronized to avoid nested locking. The lock-guarded
-		   * access to this allocator from the outer world is
-		   * provided via the 'Allocator' interface implemented by
-		   * 'Core_mem_allocator'. The allocator works at byte
-		   * granularity.
-		   */
+		 * Unsynchronized core-mapped memory allocator
+		 *
+		 * This allocator is internally used within this class for
+		 * allocating meta data for the other allocators. It is not
+		 * synchronized to avoid nested locking. The lock-guarded
+		 * access to this allocator from the outer world is
+		 * provided via the 'Allocator' interface implemented by
+		 * 'Core_mem_allocator'. The allocator works at byte
+		 * granularity.
+		 */
 		Mapped_mem_allocator _mem_alloc;
 
 	public:
@@ -251,12 +248,12 @@ class Genode::Core_mem_allocator : public Genode::Core_mem_translator
 		/**
 		 * Access physical-memory allocator
 		 */
-		Synced_mapped_allocator *phys_alloc() { return &_phys_alloc; }
+		Synced_mapped_allocator &phys_alloc() { return _phys_alloc; }
 
 		/**
 		 * Access core's virtual-memory allocator
 		 */
-		Synced_mapped_allocator *virt_alloc() { return &_virt_alloc; }
+		Synced_mapped_allocator &virt_alloc() { return _virt_alloc; }
 
 
 		/***********************************

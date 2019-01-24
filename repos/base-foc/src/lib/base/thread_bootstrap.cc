@@ -31,7 +31,7 @@ void prepare_init_main_thread()
 {
 	using namespace Genode;
 	enum { THREAD_CAP_ID = 1 };
-	Cap_index * ci(cap_map()->insert(THREAD_CAP_ID, Fiasco::MAIN_THREAD_CAP));
+	Cap_index * ci(cap_map().insert(THREAD_CAP_ID, Fiasco::MAIN_THREAD_CAP));
 	Fiasco::l4_utcb_tcr()->user[Fiasco::UTCB_TCR_BADGE] = (unsigned long)ci;
 	Fiasco::l4_utcb_tcr()->user[Fiasco::UTCB_TCR_THREAD_OBJ] = 0;
 }
@@ -40,8 +40,8 @@ void prepare_init_main_thread()
 void prepare_reinit_main_thread()
 {
 	using namespace Genode;
-	construct_at<Capability_map>(cap_map());
-	cap_idx_alloc()->reinit();
+	construct_at<Capability_map>(&cap_map());
+	cap_idx_alloc().reinit();
 	prepare_init_main_thread();
 }
 

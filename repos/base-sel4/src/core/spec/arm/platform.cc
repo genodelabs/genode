@@ -17,25 +17,34 @@
 /* core includes */
 #include <platform.h>
 #include <platform_pd.h>
+#include <assertion.h>
 
 #include "arch_kernel_object.h"
 
-using Genode::Phys_allocator;
-using Genode::Allocator;
+using namespace Genode;
 
-static Phys_allocator &phys_alloc_16k(Allocator * core_mem_alloc = nullptr)
+static Phys_allocator *_phys_alloc_16k_ptr;
+
+
+static Phys_allocator &phys_alloc_16k()
 {
-	static Genode::Phys_allocator phys_alloc_16k(core_mem_alloc);
-	return phys_alloc_16k;
+	if (_phys_alloc_16k_ptr)
+		return *_phys_alloc_16k_ptr;
+
+	ASSERT_NEVER_CALLED;
 }
+
 
 seL4_Word Genode::Untyped_memory::smallest_page_type() {
 	return seL4_ARM_SmallPageObject; }
 
+
 void Genode::Platform::init_sel4_ipc_buffer() { }
+
 
 long Genode::Platform::_unmap_page_frame(Cap_sel const &sel) {
 	return seL4_ARM_Page_Unmap(sel.value()); }
+
 
 void Genode::Platform::_init_core_page_table_registry()
 {
@@ -58,8 +67,11 @@ void Genode::Platform::_init_core_page_table_registry()
 	}
 
 	/* initialize 16k memory allocator */
-	phys_alloc_16k(core_mem_alloc());
-
+	{
+		static Genode::Phys_allocator inst(&core_mem_alloc());
+		_phys_alloc_16k_ptr = &inst;
+	}
+	
 	/* reserve some memory for page directory construction - must be 16k on ARM */
 	enum { MAX_PROCESS_COUNT = 32 };
 	addr_t const max_pd_mem = MAX_PROCESS_COUNT * (1UL << Page_directory_kobj::SIZE_LOG2);
@@ -74,6 +86,7 @@ void Genode::Platform::_init_core_page_table_registry()
 	log(":phys_mem_16k:     ",  phys_alloc_16k());
 }
 
+
 Genode::addr_t Genode::Platform_pd::_init_page_directory() const
 {
 	/* page directory table contains 4096 elements of 32bits -> 16k required */
@@ -83,10 +96,10 @@ Genode::addr_t Genode::Platform_pd::_init_page_directory() const
 	seL4_Untyped const service = Untyped_memory::_core_local_sel(Core_cspace::TOP_CNODE_UNTYPED_16K, phys_addr, Page_directory_kobj::SIZE_LOG2).value();
 
 	create<Page_directory_kobj>(service,
-	                            platform_specific()->core_cnode().sel(),
+	                            platform_specific().core_cnode().sel(),
 	                            _page_directory_sel);
 
-	long ret = seL4_ARM_ASIDPool_Assign(platform_specific()->asid_pool().value(),
+	long ret = seL4_ARM_ASIDPool_Assign(platform_specific().asid_pool().value(),
 	                                    _page_directory_sel.value());
 
 	if (ret != seL4_NoError)
@@ -94,6 +107,7 @@ Genode::addr_t Genode::Platform_pd::_init_page_directory() const
 
 	return phys_addr;
 }
+
 
 void Genode::Platform_pd::_deinit_page_directory(addr_t phys_addr) const
 {

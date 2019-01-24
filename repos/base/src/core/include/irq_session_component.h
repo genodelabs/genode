@@ -33,14 +33,8 @@ class Genode::Irq_session_component : public  Rpc_object<Irq_session>,
 		friend class List<Irq_session_component>;
 
 		unsigned         _irq_number;
-		Range_allocator *_irq_alloc;
+		Range_allocator &_irq_alloc;
 		Irq_object       _irq_object;
-
-		/*
-		 * Noncopyable
-		 */
-		Irq_session_component(Irq_session_component const &);
-		Irq_session_component &operator = (Irq_session_component const &);
 
 	public:
 
@@ -50,7 +44,7 @@ class Genode::Irq_session_component : public  Rpc_object<Irq_session>,
 		 * \param irq_alloc    platform-dependent IRQ allocator
 		 * \param args         session construction arguments
 		 */
-		Irq_session_component(Range_allocator *irq_alloc, const char *args);
+		Irq_session_component(Range_allocator &irq_alloc, const char *args);
 
 		/**
 		 * Destructor

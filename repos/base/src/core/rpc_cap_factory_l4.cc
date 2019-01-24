@@ -25,7 +25,7 @@ using namespace Genode;
 static unsigned unique_id_cnt;
 
 
-Native_capability Rpc_cap_factory::_alloc(Rpc_cap_factory *,
+Native_capability Rpc_cap_factory::_alloc(Rpc_cap_factory &,
                                           Native_capability ep)
 {
 	if (!ep.valid()) {
@@ -45,7 +45,7 @@ Native_capability Rpc_cap_factory::_alloc(Rpc_cap_factory *,
 
 Native_capability Rpc_cap_factory::alloc(Native_capability ep)
 {
-	return Rpc_cap_factory::_alloc(this, ep);
+	return Rpc_cap_factory::_alloc(*this, ep);
 }
 
 

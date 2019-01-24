@@ -43,7 +43,7 @@ class Genode::Trace::Control_area
 		static Trace::Control *_try_attach(Dataspace_capability ds)
 		{
 			try { return env_deprecated()->rm_session()->attach(ds); }
-			catch (...) { return 0; }
+			catch (...) { return nullptr; }
 		}
 
 		bool _index_valid(int index) const
@@ -97,7 +97,7 @@ class Genode::Trace::Control_area
 
 		Trace::Control *at(unsigned index)
 		{
-			return _index_valid(index) ? &_local_base[index] : 0;
+			return _index_valid(index) ? &_local_base[index] : nullptr;
 		}
 };
 

@@ -60,13 +60,13 @@ Thread_capability Cpu_session_component::create_thread(Capability<Pd_session> pd
 		Lock::Guard slab_lock_guard(_thread_alloc_lock);
 		thread = new (&_thread_alloc)
 			Cpu_thread_component(
-				cap(), *_thread_ep, *_pager_ep, *pd, _trace_control_area,
+				cap(), _thread_ep, _pager_ep, *pd, _trace_control_area,
 				_trace_sources, weight, _weight_to_quota(weight.value),
 				_thread_affinity(affinity), _label, thread_name,
 				_priority, utcb);
 	};
 
-	try { _thread_ep->apply(pd_cap, create_thread_lambda); }
+	try { _thread_ep.apply(pd_cap, create_thread_lambda); }
 	catch (Allocator::Out_of_memory)                    { throw Out_of_ram(); }
 	catch (Native_capability::Reference_count_overflow) { throw Thread_creation_failed(); }
 
@@ -100,7 +100,7 @@ Affinity::Location Cpu_session_component::_thread_affinity(Affinity::Location lo
 void Cpu_session_component::_unsynchronized_kill_thread(Thread_capability thread_cap)
 {
 	Cpu_thread_component *thread = nullptr;
-	_thread_ep->apply(thread_cap, [&] (Cpu_thread_component *t) { thread = t; });
+	_thread_ep.apply(thread_cap, [&] (Cpu_thread_component *t) { thread = t; });
 
 	if (!thread) return;
 
@@ -170,12 +170,12 @@ static size_t remaining_session_ram_quota(char const *args)
 }
 
 
-void Cpu_session_component::_transfer_quota(Cpu_session_component * const dst,
+void Cpu_session_component::_transfer_quota(Cpu_session_component &dst,
                                             size_t const quota)
 {
 	if (!quota) { return; }
 	_decr_quota(quota);
-	dst->_incr_quota(quota);
+	dst._incr_quota(quota);
 }
 
 
@@ -202,10 +202,10 @@ int Cpu_session_component::transfer_quota(Cpu_session_capability dst_cap,
 			return -3;
 		}
 		/* transfer quota */
-		_transfer_quota(dst, quota);
+		_transfer_quota(*dst, quota);
 		return 0;
 	};
-	return _session_ep->apply(dst_cap, lambda);
+	return _session_ep.apply(dst_cap, lambda);
 }
 
 
@@ -235,14 +235,14 @@ int Cpu_session_component::ref_account(Cpu_session_capability ref_cap)
 		_ref->_insert_ref_member(this);
 		return 0;
 	};
-	return _session_ep->apply(ref_cap, lambda);
+	return _session_ep.apply(ref_cap, lambda);
 }
 
 
-Cpu_session_component::Cpu_session_component(Rpc_entrypoint         *session_ep,
-                                             Rpc_entrypoint         *thread_ep,
-                                             Pager_entrypoint       *pager_ep,
-                                             Allocator              *md_alloc,
+Cpu_session_component::Cpu_session_component(Rpc_entrypoint         &session_ep,
+                                             Rpc_entrypoint         &thread_ep,
+                                             Pager_entrypoint       &pager_ep,
+                                             Allocator              &md_alloc,
                                              Trace::Source_registry &trace_sources,
                                              char             const *args,
                                              Affinity         const &affinity,
@@ -251,11 +251,11 @@ Cpu_session_component::Cpu_session_component(Rpc_entrypoint         *session_ep,
 	_label(label_from_args(args)),
 	_session_ep(session_ep),
 	_thread_ep(thread_ep), _pager_ep(pager_ep),
-	_md_alloc(md_alloc, remaining_session_ram_quota(args)),
-	_thread_alloc(&_md_alloc), _priority(0),
+	_md_alloc(&md_alloc, remaining_session_ram_quota(args)),
+	_thread_alloc(_md_alloc), _priority(0),
 
 	/* map affinity to a location within the physical affinity space */
-	_location(affinity.scale_to(platform()->affinity_space())),
+	_location(affinity.scale_to(platform().affinity_space())),
 
 	_trace_sources(trace_sources), _quota(quota), _ref(0),
 	_native_cpu(*this, args)
@@ -283,16 +283,16 @@ void Cpu_session_component::_deinit_ref_account()
 	if (!_ref) { return; }
 
 	/* give back our remaining quota to our ref account */
-	_transfer_quota(_ref, _quota);
+	_transfer_quota(*_ref, _quota);
 
 	/* remove ref-account relation between us and our ref-account */
 	Cpu_session_component * const orig_ref = _ref;
-	_ref->_remove_ref_member(this);
+	_ref->_remove_ref_member(*this);
 
 	/* redirect ref-account relation of ref members to our prior ref account */
 	Lock::Guard lock_guard(_ref_members_lock);
 	for (Cpu_session_component * s; (s = _ref_members.first()); ) {
-		_unsync_remove_ref_member(s);
+		_unsync_remove_ref_member(*s);
 		orig_ref->_insert_ref_member(s);
 	}
 }

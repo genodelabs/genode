@@ -98,7 +98,7 @@ Pager_object::Pager_object(Cpu_session_capability cpu_session,
                            Cpu_session::Name const &name)
 :
 	_badge(badge), _cpu_session_cap(cpu_session), _thread_cap(thread),
-	_reply_cap(platform_specific()->core_sel_alloc().alloc()),
+	_reply_cap(platform_specific().core_sel_alloc().alloc()),
 	_pd_label(pd_label), _name(name)
 { }
 
@@ -106,7 +106,7 @@ Pager_object::Pager_object(Cpu_session_capability cpu_session,
 Pager_object::~Pager_object()
 {
 	seL4_CNode_Delete(seL4_CapInitThreadCNode, _reply_cap.value(), 32);
-	platform_specific()->core_sel_alloc().free(_reply_cap);
+	platform_specific().core_sel_alloc().free(_reply_cap);
 	/* invalidate reply cap for Pager_object::wait_for_fault() _reply_sel */
 	_reply_cap = Cap_sel(0);
 }
@@ -143,21 +143,21 @@ Untyped_capability Pager_entrypoint::_pager_object_cap(unsigned long badge)
 }
 
 
-void Pager_entrypoint::dissolve(Pager_object *obj)
+void Pager_entrypoint::dissolve(Pager_object &obj)
 {
 	using Pool = Object_pool<Pager_object>;
 
-	if (obj) Pool::remove(obj);
+	Pool::remove(&obj);
 }
 
 
-Pager_capability Pager_entrypoint::manage(Pager_object *obj)
+Pager_capability Pager_entrypoint::manage(Pager_object &obj)
 {
-	Native_capability cap = _pager_object_cap(obj->badge());
+	Native_capability cap = _pager_object_cap(obj.badge());
 
 	/* add server object to object pool */
-	obj->cap(cap);
-	insert(obj);
+	obj.cap(cap);
+	insert(&obj);
 
 	/* return capability that uses the object id as badge */
 	return reinterpret_cap_cast<Pager_object>(cap);

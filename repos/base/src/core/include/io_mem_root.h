@@ -25,15 +25,9 @@ namespace Genode {
 
 		private:
 
-			Range_allocator *_io_mem_alloc;  /* MMIO region allocator */
-			Range_allocator *_ram_alloc;     /* RAM allocator */
-			Rpc_entrypoint  *_ds_ep;         /* entry point for managing io_mem dataspaces */
-
-			/*
-			 * Noncopyable
-			 */
-			Io_mem_root(Io_mem_root const &);
-			Io_mem_root &operator = (Io_mem_root const &);
+			Range_allocator &_io_mem_alloc;  /* MMIO region allocator */
+			Range_allocator &_ram_alloc;     /* RAM allocator */
+			Rpc_entrypoint  &_ds_ep;         /* entry point for managing io_mem dataspaces */
 
 		protected:
 
@@ -55,13 +49,13 @@ namespace Genode {
 			 * \param ram_alloc     platform RAM allocator
 			 * \param md_alloc      meta-data allocator to be used by root component
 			 */
-			Io_mem_root(Rpc_entrypoint  *session_ep,
-			            Rpc_entrypoint  *ds_ep,
-			            Range_allocator *io_mem_alloc,
-			            Range_allocator *ram_alloc,
-			            Allocator       *md_alloc)
+			Io_mem_root(Rpc_entrypoint  &session_ep,
+			            Rpc_entrypoint  &ds_ep,
+			            Range_allocator &io_mem_alloc,
+			            Range_allocator &ram_alloc,
+			            Allocator       &md_alloc)
 			:
-				Root_component<Io_mem_session_component>(session_ep, md_alloc),
+				Root_component<Io_mem_session_component>(&session_ep, &md_alloc),
 				_io_mem_alloc(io_mem_alloc), _ram_alloc(ram_alloc), _ds_ep(ds_ep) { }
 	};
 }

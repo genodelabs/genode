@@ -36,7 +36,7 @@ void Native_capability::_inc()
 void Native_capability::_dec()
 {
 	if (_data && !_data->dec())
-		cap_map()->remove(_data);
+		cap_map().remove(_data);
 }
 
 

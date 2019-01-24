@@ -46,7 +46,7 @@ class Genode::Trace::Root : public Genode::Root_component<Session_component>
 			                         parent_levels, label_from_args(args).string(), _sources, _policies);
 		}
 
-		void _upgrade_session(Session_component *s, const char *args)
+		void _upgrade_session(Session_component *s, const char *args) override
 		{
 			size_t ram_quota = Arg_string::find_arg(args, "ram_quota").ulong_value(0);
 			s->upgrade_ram_quota(ram_quota);
@@ -62,10 +62,10 @@ class Genode::Trace::Root : public Genode::Root_component<Session_component>
 		 * \param ram_quota        RAM for tracing purposes of this session
 		 * \param arg_buffer_size  session argument-buffer size
 		 */
-		Root(Rpc_entrypoint *session_ep, Allocator *md_alloc,
+		Root(Rpc_entrypoint &session_ep, Allocator &md_alloc,
 		     Source_registry &sources, Policy_registry &policies)
 		:
-			Root_component<Session_component>(session_ep, md_alloc),
+			Root_component<Session_component>(&session_ep, &md_alloc),
 			_sources(sources), _policies(policies)
 		{ }
 };

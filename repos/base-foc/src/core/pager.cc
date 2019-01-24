@@ -59,7 +59,7 @@ void Pager_entrypoint::entry()
 				{
 					if (_pager.exception()) {
 						Lock::Guard guard(obj->state.lock);
-						_pager.get_regs(&obj->state);
+						_pager.get_regs(obj->state);
 						obj->state.exceptions++;
 						obj->state.in_exception = true;
 						obj->submit_exception_signal();
@@ -115,7 +115,7 @@ void Pager_entrypoint::entry()
 			case Ipc_pager::PAUSE:
 				{
 					Lock::Guard guard(obj->state.lock);
-					_pager.get_regs(&obj->state);
+					_pager.get_regs(obj->state);
 					obj->state.exceptions++;
 					obj->state.in_exception = true;
 
@@ -139,24 +139,24 @@ void Pager_entrypoint::entry()
 }
 
 
-void Pager_entrypoint::dissolve(Pager_object *obj)
+void Pager_entrypoint::dissolve(Pager_object &obj)
 {
 	/* cleanup at cap session */
-	_cap_factory.free(obj->Object_pool<Pager_object>::Entry::cap());
+	_cap_factory.free(obj.Object_pool<Pager_object>::Entry::cap());
 
-	remove(obj);
+	remove(&obj);
 }
 
 
-Pager_capability Pager_entrypoint::manage(Pager_object *obj)
+Pager_capability Pager_entrypoint::manage(Pager_object &obj)
 {
 	using namespace Fiasco;
 
 	Native_capability cap(_cap_factory.alloc(Thread::_thread_cap));
 
 	/* add server object to object pool */
-	obj->cap(cap);
-	insert(obj);
+	obj.cap(cap);
+	insert(&obj);
 
 	/* return capability that uses the object id as badge */
 	return reinterpret_cap_cast<Pager_object>(cap);

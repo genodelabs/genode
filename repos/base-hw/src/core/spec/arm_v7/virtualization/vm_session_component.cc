@@ -22,14 +22,14 @@
 
 using namespace Genode;
 
-static Core_mem_allocator * cma() {
-	return static_cast<Core_mem_allocator*>(platform()->core_mem_alloc()); }
+static Core_mem_allocator & cma() {
+	return static_cast<Core_mem_allocator&>(platform().core_mem_alloc()); }
 
 
 void Vm_session_component::exception_handler(Signal_context_capability handler)
 {
 	if (!create((void*)_ds.core_local_addr(), Capability_space::capid(handler),
-	            cma()->phys_addr(&_table)))
+	            cma().phys_addr(&_table)))
 		Genode::warning("Cannot instantiate vm kernel object, invalid signal context?");
 }
 
@@ -84,8 +84,8 @@ void * Vm_session_component::_alloc_table()
 {
 	void * table;
 	/* get some aligned space for the translation table */
-	if (!cma()->alloc_aligned(sizeof(Table), (void**)&table,
-	                          Table::ALIGNM_LOG2).ok()) {
+	if (!cma().alloc_aligned(sizeof(Table), (void**)&table,
+	                         Table::ALIGNM_LOG2).ok()) {
 		error("failed to allocate kernel object");
 		throw Insufficient_ram_quota();
 	}
@@ -99,9 +99,9 @@ Vm_session_component::Vm_session_component(Rpc_entrypoint  *ds_ep,
   _ds_cap(static_cap_cast<Dataspace>(_ds_ep->manage(&_ds))),
   _table(*construct_at<Table>(_alloc_table())),
   _table_array(*(new (cma()) Array([this] (void * virt) {
-	return (addr_t)cma()->phys_addr(virt);})))
+	return (addr_t)cma().phys_addr(virt);})))
 {
-	_ds.assign_core_local_addr(core_env()->rm_session()->attach(_ds_cap));
+	_ds.assign_core_local_addr(core_env().rm_session()->attach(_ds_cap));
 }
 
 
@@ -111,10 +111,10 @@ Vm_session_component::~Vm_session_component()
 	_ds_ep->dissolve(&_ds);
 
 	/* free region in allocator */
-	core_env()->rm_session()->detach(_ds.core_local_addr());
-	platform()->ram_alloc()->free((void*)_ds.phys_addr());
+	core_env().rm_session()->detach(_ds.core_local_addr());
+	platform().ram_alloc().free((void*)_ds.phys_addr());
 
 	/* free guest-to-host page tables */
-	destroy(platform()->core_mem_alloc(), &_table);
-	destroy(platform()->core_mem_alloc(), &_table_array);
+	destroy(platform().core_mem_alloc(), &_table);
+	destroy(platform().core_mem_alloc(), &_table_array);
 }

@@ -57,7 +57,7 @@ class Genode::Pager_object : public Object_pool<Pager_object>::Entry
 		/**
 		 * Local name for this pager object
 		 */
-		unsigned long _badge;
+		unsigned long const _badge;
 
 		Cpu_session_capability _cpu_session_cap;
 		Thread_capability      _thread_cap;
@@ -157,7 +157,7 @@ class Genode::Pager_object : public Object_pool<Pager_object>::Entry
 		void print(Output &out) const
 		{
 			Genode::print(out, "pager_object: pd='", _pd_label,
-					"' thread='", _name, "'");
+			                   "' thread='", _name, "'");
 		}
 };
 
@@ -190,12 +190,12 @@ class Genode::Pager_entrypoint : public Object_pool<Pager_object>,
 		/**
 		 * Associate Pager_object with the entry point
 		 */
-		Pager_capability manage(Pager_object *obj);
+		Pager_capability manage(Pager_object &obj);
 
 		/**
 		 * Dissolve Pager_object from entry point
 		 */
-		void dissolve(Pager_object *obj);
+		void dissolve(Pager_object &obj);
 
 
 		/**********************

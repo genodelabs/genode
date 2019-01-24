@@ -27,10 +27,7 @@
 
 using namespace Kernel;
 
-namespace Kernel
-{
-	Cpu_pool * cpu_pool() { return unmanaged_singleton<Cpu_pool>(); }
-}
+Kernel::Cpu_pool &Kernel::cpu_pool() { return *unmanaged_singleton<Cpu_pool>(); }
 
 
 /*************
@@ -64,14 +61,14 @@ void Cpu_job::_activate_own_share() { _cpu->schedule(this); }
 void Cpu_job::_deactivate_own_share()
 {
 	assert(_cpu->id() == Cpu::executing_id());
-	_cpu->scheduler()->unready(this);
+	_cpu->scheduler().unready(this);
 }
 
 
 void Cpu_job::_yield()
 {
 	assert(_cpu->id() == Cpu::executing_id());
-	_cpu->scheduler()->yield();
+	_cpu->scheduler().yield();
 }
 
 
@@ -79,7 +76,7 @@ void Cpu_job::_interrupt(unsigned const /* cpu_id */)
 {
 	/* determine handling for specific interrupt */
 	unsigned irq_id;
-	if (pic()->take_request(irq_id))
+	if (pic().take_request(irq_id))
 
 		/* is the interrupt a cpu-local one */
 		if (!_cpu->interrupt(irq_id)) {
@@ -91,20 +88,20 @@ void Cpu_job::_interrupt(unsigned const /* cpu_id */)
 		}
 
 	/* end interrupt request at controller */
-	pic()->finish_request();
+	pic().finish_request();
 }
 
 
-void Cpu_job::affinity(Cpu * const cpu)
+void Cpu_job::affinity(Cpu &cpu)
 {
-	_cpu = cpu;
-	_cpu->scheduler()->insert(this);
+	_cpu = &cpu;
+	_cpu->scheduler().insert(this);
 }
 
 
 void Cpu_job::quota(unsigned const q)
 {
-	if (_cpu) { _cpu->scheduler()->quota(this, q); }
+	if (_cpu) { _cpu->scheduler().quota(this, q); }
 	else { Cpu_share::quota(q); }
 }
 
@@ -117,7 +114,7 @@ Cpu_job::Cpu_job(Cpu_priority const p, unsigned const q)
 Cpu_job::~Cpu_job()
 {
 	if (!_cpu) { return; }
-	_cpu->scheduler()->remove(this);
+	_cpu->scheduler().remove(this);
 }
 
 
@@ -127,13 +124,13 @@ Cpu_job::~Cpu_job()
 
 extern "C" void idle_thread_main(void);
 
-Cpu::Idle_thread::Idle_thread(Cpu * const cpu)
+Cpu::Idle_thread::Idle_thread(Cpu &cpu)
 : Thread("idle")
 {
 	regs->ip = (addr_t)&idle_thread_main;
 
 	affinity(cpu);
-	Thread::_pd = core_pd();
+	Thread::_pd = &core_pd();
 }
 
 
@@ -199,7 +196,7 @@ Cpu::Cpu(unsigned const id, Pic & pic,
          Inter_processor_work_list & global_work_list)
 :
 	_id(id), _pic(pic), _timer(_id),
-	_scheduler(&_idle, _quota(), _fill()), _idle(this),
+	_scheduler(&_idle, _quota(), _fill()), _idle(*this),
 	_ipi_irq(*this), _timer_irq(_timer.interrupt_id(), *this),
 	_global_work_list(global_work_list)
 { _arch_init(); }

@@ -159,8 +159,8 @@ static unsigned long extract_msg_from_utcb(l4_msgtag_t     tag,
 	 */
 	for (unsigned i = 0; i < num_caps; i++) {
 		if (caps[i].valid) {
-			rcv_msg.insert(Native_capability(cap_map()->insert_map(caps[i].badge,
-			                                                       caps[i].sel)));
+			rcv_msg.insert(Native_capability(cap_map().insert_map(caps[i].badge,
+			                                                      caps[i].sel)));
 		} else {
 			rcv_msg.insert(Native_capability());
 		}
@@ -383,13 +383,13 @@ Ipc_server::~Ipc_server() { }
 Receive_window::~Receive_window()
 {
 	if (_rcv_idx_base)
-		cap_idx_alloc()->free(_rcv_idx_base, MAX_CAPS_PER_MSG);
+		cap_idx_alloc().free(_rcv_idx_base, MAX_CAPS_PER_MSG);
 }
 
 
 void Receive_window::init()
 {
-	_rcv_idx_base = cap_idx_alloc()->alloc_range(MAX_CAPS_PER_MSG);
+	_rcv_idx_base = cap_idx_alloc().alloc_range(MAX_CAPS_PER_MSG);
 }
 
 

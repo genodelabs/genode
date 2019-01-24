@@ -27,8 +27,8 @@ namespace Kernel {
 
 	class Pd;
 
-	Pd  * core_pd();
-	Pic * pic();
+	Pd  &core_pd();
+	Pic &pic();
 }
 
 #endif /* _CORE__KERNEL__KERNEL_H_ */
