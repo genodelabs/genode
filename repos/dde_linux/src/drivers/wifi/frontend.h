@@ -609,7 +609,7 @@ struct Wifi::Frontend
 		current = next;
 	}
 
-	using Cmd_str = Genode::String<1024>;
+	using Cmd_str = Genode::String<sizeof(Msg_buffer::send)>;
 
 	void _submit_cmd(Cmd_str const &str)
 	{
@@ -645,19 +645,27 @@ struct Wifi::Frontend
 
 		/* scanning was disabled, ignore current request */
 		if (!_arm_scan_timer(_connected_ap.bssid_valid())) {
+			if (_verbose) { Genode::log("Scanning disabled, ignore current scan request"); }
 			return;
 		}
 
 		/* skip as we will be scheduled some time soon(tm) anyway */
-		if (_state != State::IDLE) { return; }
+		if (_state != State::IDLE) {
+			if (_verbose) {
+				Genode::log("Not idle, ignore scan request, state: ",
+				            Genode::Hex((unsigned)_state));
+			}
+			return;
+		}
 
 		/* left one attempt out */
 		if (_scan_busy) {
+			if (_verbose) { Genode::log("Scan already pending, ignore scan request"); }
 			_scan_busy = false;
 			return;
 		}
 
-		enum { SSID_ARG_LEN = 64 + 5, /* "ssid " + "a5a5a5a5..." */ };
+		enum { SSID_ARG_LEN = 6 + 64, /* " ssid " + "a5a5a5a5..." */ };
 		/* send buffer - 'SCAN ' + stuff */
 		char ssid_buffer[sizeof(Msg_buffer::send)-16] = { };
 		size_t buffer_pos = 0;
@@ -686,7 +694,7 @@ struct Wifi::Frontend
 		_for_each_ap(valid_ssid);
 
 		_state_transition(_state, State::INITIATE_SCAN);
-		_submit_cmd(Cmd_str("SCAN ", (char const*)ssid_buffer));
+		_submit_cmd(Cmd_str("SCAN", (char const*)ssid_buffer));
 	}
 
 	bool _arm_scan_timer(bool connected)
@@ -703,20 +711,22 @@ struct Wifi::Frontend
 		return true;
 	}
 
-	Genode::Constructible<Genode::Reporter> _ap_reporter;
+	Genode::Constructible<Genode::Expanding_reporter> _ap_reporter;
 
 	void _generate_scan_results_report(char const *msg)
 	{
 		unsigned count_lines = 0;
 		for_each_line(msg, [&] (char const*) { count_lines++; });
 
-		if (!count_lines) { return; }
+		if (!count_lines) {
+			if (_verbose) { Genode::log("Scan results empty"); }
+			return;
+		}
 
+		bool connecting_attempt = false;
 		try {
 
-			bool connecting_attempt = false;
-
-			Genode::Reporter::Xml_generator xml(*_ap_reporter, [&]() {
+			_ap_reporter->generate([&] (Genode::Xml_generator &xml) {
 
 				for_each_result_line(msg, [&] (Accesspoint const &ap) {
 
@@ -738,6 +748,9 @@ struct Wifi::Frontend
 				});
 			});
 
+		} catch (...) { /* silently omit report */ }
+
+		try {
 			if (!_connected_ap.bssid_valid() && connecting_attempt) {
 
 				Genode::Reporter::Xml_generator xml(*_state_reporter, [&] () {
@@ -746,7 +759,7 @@ struct Wifi::Frontend
 					});
 				});
 			}
-		} catch (...) { /* silently omit report */ }
+		} catch (...) { /* silently omit state */ }
 	}
 
 	/* network commands */
@@ -1555,10 +1568,8 @@ struct Wifi::Frontend
 		_scan_timer.sigh(_scan_timer_sigh);
 
 		try {
-			_ap_reporter.construct(env, "accesspoints");
-			_ap_reporter->enabled(true);
-
-			Genode::Reporter::Xml_generator xml(*_ap_reporter, [&] () { });
+			_ap_reporter.construct(env, "accesspoints", "accesspoints");
+			_ap_reporter->generate([&] (Genode::Xml_generator &xml) { });
 		} catch (...) {
 			Genode::warning("no Report session available, scan results will "
 			                "not be reported");
