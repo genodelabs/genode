@@ -135,6 +135,7 @@ install_config {
 			<policy label="launcher -> focus"             report="nitpicker -> focus"/>
 			<policy label="global_keys_handler -> hover"  report="nitpicker -> hover"/>
 			<policy label="layouter -> decorator_margins" report="decorator -> decorator_margins"/>
+			<policy label="layouter -> rules"             report="layouter -> rules"/>
 		</config>
 	</start>
 
@@ -148,6 +149,7 @@ install_config {
 			<policy label_prefix="layouter"            role="layouter"/>
 			<policy label_prefix="launcher -> menu"    role="direct"/>
 			<policy label_prefix="launcher -> testnit" role="direct"/>
+			<default-policy/>
 		</config>
 		<route>
 			<service name="ROM" label="focus">          <child name="report_rom"/> </service>
@@ -161,11 +163,20 @@ install_config {
 	<start name="layouter">
 		<binary name="window_layouter"/>
 		<resource name="RAM" quantum="4M"/>
+		<config rules="rom">
+			<report rules="yes"/>
+			<rules>
+				<screen name="screen"/>
+				<assign label_prefix="" target="screen" xpos="any" ypos="any"/>
+			</rules>
+		</config>
 		<route>
 			<service name="ROM" label="window_list">       <child name="report_rom"/> </service>
 			<service name="ROM" label="focus_request">     <child name="report_rom"/> </service>
 			<service name="ROM" label="hover">             <child name="report_rom"/> </service>
 			<service name="ROM" label="decorator_margins"> <child name="report_rom"/> </service>
+			<service name="ROM" label="rules">             <child name="report_rom"/> </service>
+			<service name="Report">                        <child name="report_rom"/> </service>
 			<any-service>
 				<child name="wm"/> <parent/> <any-child/>
 			</any-service>
@@ -175,6 +186,9 @@ install_config {
 	<start name="decorator">
 		<binary name="decorator"/>
 		<resource name="RAM" quantum="8M"/>
+		<config>
+			<default-policy/>
+		</config>
 		<route>
 			<service name="ROM" label="config">
 				<child name="decorator_config"/> </service>
@@ -263,7 +277,7 @@ install_config {
 				<binary name="testnit" />
 			</subsystem>
 			<subsystem name="backdrop" title="Backdrop" caps="100">
-				<resource name="RAM" quantum="4M"/>
+				<resource name="RAM" quantum="8M"/>
 				<binary name="backdrop" />
 				<config>
 					<libc>
