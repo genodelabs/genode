@@ -36,8 +36,8 @@ class Gdb_monitor::Cpu_thread_component : public Rpc_object<Cpu_thread>,
 
 		Cpu_session_component &_cpu_session_component;
 		Cpu_thread_client      _parent_cpu_thread;
-		unsigned long          _lwpid;
-		addr_t                 _initial_ip;
+		unsigned long          _lwpid { 0 };
+		addr_t                 _initial_ip { 0 };
 
 		/*
 		 * SIGTRAP, SIGSTOP and SIGINT must get delivered to the gdbserver code

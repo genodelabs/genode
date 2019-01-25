@@ -267,7 +267,8 @@ void Cpu_session_component::kill_thread(Thread_capability thread_cap)
 	Cpu_thread_component *cpu_thread = lookup_cpu_thread(thread_cap);
 
 	if (cpu_thread) {
-		genode_remove_thread(cpu_thread->lwpid());
+		if (cpu_thread->lwpid())
+			genode_remove_thread(cpu_thread->lwpid());
 		_thread_list.remove(cpu_thread);
 		destroy(_md_alloc, cpu_thread);
 	} else
