@@ -9,11 +9,17 @@ INSTALL_TARGET :=
 
 INSTALL_LIB_DIR := install/lib/tcl8.6
 
+INSTALL_LIB_FILES := \
+	clock.tcl dde/pkgIndex.tcl http/pkgIndex.tcl http1.0/pkgIndex.tcl init.tcl \
+	msgcat/msgcat.tcl msgcat/pkgIndex.tcl opt/pkgIndex.tcl package.tcl \
+	platform/pkgIndex.tcl reg/pkgIndex.tcl tcltest/pkgIndex.tcl tm.tcl \
+	tzdata/Etc/UTC tzdata/UTC tclIndex
+
 installed.tag:
 	@$(MSG_INST)$(TARGET)
 	$(VERBOSE)mkdir -p install/bin $(INSTALL_LIB_DIR)
 	$(VERBOSE)$(STRIP) tclsh -o install/bin/tclsh
-	$(VERBOSE)cp $(PKG_DIR)/library/init.tcl $(INSTALL_LIB_DIR)
+	$(VERBOSE)tar -C $(PKG_DIR)/library -cf - $(INSTALL_LIB_FILES) | tar -C $(INSTALL_LIB_DIR) -xf -
 	@touch $@
 
 include $(call select_from_repositories,mk/noux.mk)

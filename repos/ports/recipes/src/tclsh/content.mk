@@ -4,10 +4,16 @@ PORT_DIR := $(call port_dir,$(REP_DIR)/ports/tcl)
 
 TCL_CONTENT := unix generic compat libtommath
 
+PORT_LIB_FILES := \
+	clock.tcl dde/pkgIndex.tcl http/pkgIndex.tcl http1.0/pkgIndex.tcl init.tcl \
+	msgcat/msgcat.tcl msgcat/pkgIndex.tcl opt/pkgIndex.tcl package.tcl \
+	platform/pkgIndex.tcl reg/pkgIndex.tcl tcltest/pkgIndex.tcl tm.tcl \
+	tzdata/Etc/UTC tzdata/UTC tclIndex
+
 src/noux-pkg/tcl:
 	mkdir -p $@/library
 	cp -a $(addprefix $(PORT_DIR)/src/noux-pkg/tcl/,$(TCL_CONTENT)) $@
-	cp -a $(PORT_DIR)/src/noux-pkg/tcl/library/init.tcl $@/library/
+	$(VERBOSE)tar -C $(PORT_DIR)/src/noux-pkg/tcl/library -cf - $(PORT_LIB_FILES) | tar -C $@/library -xf -
 
 src/noux-pkg/tclsh:
 	mkdir -p $@
