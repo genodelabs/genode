@@ -16,6 +16,7 @@
 #include <base/component.h>
 #include <base/registry.h>
 #include <base/heap.h>
+#include <base/attached_ram_dataspace.h>
 #include <base/attached_rom_dataspace.h>
 #include <file_system_session/rpc_object.h>
 #include <root/component.h>
@@ -33,6 +34,7 @@ namespace Vfs_server {
 	using namespace File_system;
 	using namespace Vfs;
 
+	class Session_resources;
 	class Session_component;
 	class Io_response_handler;
 	class Watch_response_handler;
@@ -54,17 +56,40 @@ namespace Vfs_server {
 };
 
 
-class Vfs_server::Session_component : public ::File_system::Session_rpc_object,
+/**
+ * Base class to manage session quotas and allocations
+ */
+class Vfs_server::Session_resources
+{
+	protected:
+
+		Genode::Ram_quota_guard           _ram_guard;
+		Genode::Cap_quota_guard           _cap_guard;
+		Genode::Constrained_ram_allocator _ram_alloc;
+		Genode::Attached_ram_dataspace    _packet_ds;
+		Genode::Heap                      _alloc;
+
+		Session_resources(Genode::Ram_allocator &ram,
+		                  Genode::Region_map    &region_map,
+		                  Genode::Ram_quota     ram_quota,
+		                  Genode::Cap_quota     cap_quota,
+		                  Genode::size_t        buffer_size)
+		:
+			_ram_guard(ram_quota), _cap_guard(cap_quota),
+			_ram_alloc(ram, _ram_guard, _cap_guard),
+			_packet_ds(_ram_alloc, region_map, buffer_size),
+			_alloc(_ram_alloc, region_map)
+		{ }
+};
+
+
+class Vfs_server::Session_component : private Session_resources,
+                                      public ::File_system::Session_rpc_object,
                                       public Session_io_handler
 {
 	private:
 
 		Node_space _node_space { };
-
-		Genode::Ram_quota_guard           _ram_guard;
-		Genode::Cap_quota_guard           _cap_guard;
-		Genode::Constrained_ram_allocator _ram_alloc;
-		Genode::Heap                      _alloc;
 
 		Genode::Signal_handler<Session_component> _process_packet_handler;
 
@@ -400,11 +425,8 @@ class Vfs_server::Session_component : public ::File_system::Session_rpc_object,
 		                  char           const *root_path,
 		                  bool                  writable)
 		:
-			Session_rpc_object(env.ram().alloc(tx_buf_size), env.rm(), env.ep().rpc_ep()),
-			_ram_guard(ram_quota),
-			_cap_guard(cap_quota),
-			_ram_alloc(env.pd(), _ram_guard, _cap_guard),
-			_alloc(_ram_alloc, env.rm()),
+			Session_resources(env.pd(), env.rm(), ram_quota, cap_quota, tx_buf_size),
+			Session_rpc_object(_packet_ds.cap(), env.rm(), env.ep().rpc_ep()),
 			_process_packet_handler(env.ep(), *this, &Session_component::_process_packets),
 			_vfs(vfs),
 			_root_path(root_path),
