@@ -19,6 +19,7 @@
 #include <base/output.h>
 #include <util/avl_tree.h>
 #include <util/misc_math.h>
+#include <util/construct_at.h>
 
 namespace Genode {
 
@@ -353,8 +354,21 @@ class Genode::Allocator_avl_tpl : public Allocator_avl_base
 		 */
 		void metadata(void *addr, BMDT bmd) const
 		{
-			Block *b = static_cast<Block *>(_find_by_address((addr_t)addr));
+			Block * const b = static_cast<Block *>(_find_by_address((addr_t)addr));
 			if (b) *static_cast<BMDT *>(b) = bmd;
+			else throw Assign_metadata_failed();
+		}
+
+		/**
+		 * Construct meta-data object in place
+		 *
+		 * \param ARGS  arguments passed to the meta-data constuctor
+		 */
+		template <typename... ARGS>
+		void construct_metadata(void *addr, ARGS &&... args)
+		{
+			Block * const b = static_cast<Block *>(_find_by_address((addr_t)addr));
+			if (b) construct_at<BMDT>(static_cast<BMDT *>(b), args...);
 			else throw Assign_metadata_failed();
 		}
 
