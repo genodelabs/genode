@@ -17,7 +17,7 @@ Usage
 -----
 
 !<start name="acpi_drv">
-!  <resource name="RAM" quantum="2M"/>
+!  <resource name="RAM" quantum="3M"/>
 !</start>
 !
 !<start name="report_rom">
