@@ -1,5 +1,3 @@
-assert_spec x86
-
 proc append_socket_fs_build_components { } {
 	global build_components
 	append build_components { lib/vfs/lxip }
