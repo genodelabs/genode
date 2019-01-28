@@ -45,7 +45,14 @@ class Lx::Pci_dev_registry
 
 		void insert(Pci_dev *pci_dev)
 		{
-			_devs.insert(pci_dev);
+			/*
+			 * Keep PCI devices in natural bus order. Otherwise on a Lenovo
+			 * ThinkCentre M57p, the system locks up when the UHCI controller
+			 * BIOS handoff (disabling bit 4 in the LEGSUP register) for the
+			 * controller with PCI BDF 00:1d:2 is attempted before the handoff
+			 * for the controller with BDF 00:1a:0.
+			 */
+			_devs.append(pci_dev);
 		}
 
 		void remove(Pci_dev *pci_dev)

@@ -71,7 +71,15 @@ class Pci_dev_list
 			 */
 			while (cap.valid()) {
 
-				_pci_caps.insert(new (Lx::Malloc::mem()) Element(cap));
+				/*
+				 * Keep PCI devices in natural bus order. Otherwise on a Lenovo
+				 * ThinkCentre M57p, the system locks up when the UHCI
+				 * controller BIOS handoff (disabling bit 4 in the LEGSUP
+				 * register) for the controller with PCI BDF 00:1d:2 is
+				 * attempted before the handoff for the controller with BDF
+				 * 00:1a:0.
+				 */
+				_pci_caps.append(new (Lx::Malloc::mem()) Element(cap));
 
 				/* try next one. Upgrade session quota on demand.*/
 				Lx::pci()->with_upgrade([&] () {
