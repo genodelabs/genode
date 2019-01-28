@@ -154,15 +154,16 @@ class Genode::Capability_space_sel4
 
 			bool higher(Tree_managed_data *data)
 			{
-				return data->rpc_obj_key().value() > rpc_obj_key().value();
+				return data->rpc_obj_key().value() > this->rpc_obj_key().value();
 			}
 
 			Tree_managed_data *find_by_key(Rpc_obj_key key)
 			{
-				if (key.value() == rpc_obj_key().value()) return this;
+				if (key.value() == this->rpc_obj_key().value())
+					return this;
 
 				Tree_managed_data *data =
-					this->child(key.value() > rpc_obj_key().value());
+					this->child(key.value() > this->rpc_obj_key().value());
 
 				return data ? data->find_by_key(key) : nullptr;
 			}

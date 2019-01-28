@@ -41,13 +41,13 @@ void Ram_dataspace_factory::_clear_ds (Dataspace_component &ds)
 {
 	size_t const page_rounded_size = (ds.size() + get_page_size() - 1) & get_page_mask();
 
-	enum { ONE_PAGE = 1 };
-
 	/* allocate one page in core's virtual address space */
 	void *virt_addr_ptr = nullptr;
-	if (!platform().region_alloc().alloc(get_page_size(), &virt_addr_ptr) ||
-	    !virt_addr_ptr)
-		ASSERT(!"could not map 4k inside core");
+	if (!platform().region_alloc().alloc(get_page_size(), &virt_addr_ptr))
+		ASSERT_NEVER_CALLED;
+
+	if (!virt_addr_ptr)
+		ASSERT_NEVER_CALLED;
 
 	addr_t const virt_addr = reinterpret_cast<addr_t const>(virt_addr_ptr);
 
@@ -55,6 +55,7 @@ void Ram_dataspace_factory::_clear_ds (Dataspace_component &ds)
 	for (addr_t offset = 0; offset < page_rounded_size; offset += get_page_size())
 	{
 		addr_t const phys_addr = ds.phys_addr() + offset;
+		enum { ONE_PAGE = 1 };
 
 		/* map one physical page to the core-local address */
 		if (!map_local(phys_addr, virt_addr, ONE_PAGE)) {

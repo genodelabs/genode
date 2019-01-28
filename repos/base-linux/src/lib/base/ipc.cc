@@ -221,11 +221,12 @@ namespace {
 			{
 				*((int *)CMSG_DATA((cmsghdr *)_cmsg_buf) + _num_sds) = sd;
 
-				_num_sds++;
-
 				struct cmsghdr *cmsg = CMSG_FIRSTHDR(&_msg);
-				cmsg->cmsg_len       = CMSG_LEN(_num_sds*sizeof(int));
-				_msg.msg_controllen  = cmsg->cmsg_len;     /* actual cmsg length */
+				if (cmsg) {
+					_num_sds++;
+					cmsg->cmsg_len       = CMSG_LEN(_num_sds*sizeof(int));
+					_msg.msg_controllen  = cmsg->cmsg_len;     /* actual cmsg length */
+				}
 			}
 
 			void accept_sockets(int num_sds)

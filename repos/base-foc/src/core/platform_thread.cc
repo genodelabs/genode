@@ -45,9 +45,18 @@ unsigned long long Platform_thread::execution_time() const
 
 int Platform_thread::start(void *ip, void *sp)
 {
+	if (!_platform_pd) {
+
+		/*
+		 * This can never happen because each 'Platform_thread' is bound
+		 * to its 'Platform_pd' at creation time, before 'start' can be
+		 * called.
+		 */
+		ASSERT_NEVER_CALLED;
+	}
+
 	/* map the pager cap */
-	if (_platform_pd)
-		_pager.map(_platform_pd->native_task().data()->kcap());
+	_pager.map(_platform_pd->native_task().data()->kcap());
 
 	/* reserve utcb area and associate thread with this task */
 	l4_thread_control_start();
