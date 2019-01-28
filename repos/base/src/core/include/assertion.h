@@ -18,8 +18,10 @@
 #include <base/log.h>
 
 #define ASSERT_NEVER_CALLED \
-	Genode::error("Unexpected call of '", __FUNCTION__, "' " \
-	              "(", __FILE__, ":", __LINE__, ")"); \
-	for (;;); throw 0UL;
+	do { \
+		Genode::error("Unexpected call of '", __FUNCTION__, "' " \
+		              "(", __FILE__, ":", __LINE__, ")"); \
+		for (;;); throw 0UL; \
+	} while (false)
 
 #endif /* _CORE__INCLUDE__ASSERTION_H_ */
