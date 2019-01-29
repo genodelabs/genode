@@ -266,7 +266,7 @@ Integration
   example content of this report:
 
   ! <query arch="x86_64">
-  !   <blueprint pkg="genodelabs/pkg/test-ada/2018-11-02"/>
+  !   <blueprint pkg="genodelabs/pkg/test-spark/2018-11-02"/>
   ! </query>
 
   The format is compliant to that of the "query" ROM required by the Depot
@@ -277,8 +277,8 @@ Integration
   like this:
 
   ! <blueprint>
-  !   <pkg name="test-ada" path="genodelabs/pkg/test-ada/2018-11-02">
-  !     <rom label="ada.lib.so" path="genodelabs/bin/x86_64/ada/2018-11-01/ada.lib.so"/>
+  !   <pkg name="test-spark" path="genodelabs/pkg/test-spark/2018-11-02">
+  !     <rom label="spark.lib.so" path="genodelabs/bin/x86_64/spark/2018-11-01/spark.lib.so"/>
   !     <missing_rom label="ld.lib.so"/>
   !     ... # further <rom> and <missing_rom> tags
   !
@@ -298,7 +298,7 @@ Integration
   ! <config>
   !   ... # content of <static> tag in Autopilot configuration
   !
-  !   <start name="test-ada" caps="1000">
+  !   <start name="test-spark" caps="1000">
   !     <binary name="init"/>
   !     <resource name="RAM" quantum="32M"/>
   !
@@ -308,8 +308,8 @@ Integration
   !       ... # content of <common_routes> tag in Autopilot configuration
   !
   !       # routes for each <content><rom> tags in the tests runtime file
-  !       <service name="ROM" label_last="test-ada">
-  !         <parent label="genodelabs/bin/x86_64/test-ada/2018-11-02/test-ada"/>
+  !       <service name="ROM" label_last="test-spark">
+  !         <parent label="genodelabs/bin/x86_64/test-spark/2018-11-02/test-spark"/>
   !       </service>
   !       ...
   !

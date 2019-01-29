@@ -1,0 +1,32 @@
+<runtime ram="32M" caps="1000" binary="init">
+
+	<events>
+		<timeout meaning="failed" sec="20" />
+		<log meaning="succeeded">
+			[init -> test-spark_secondary_stack] secondary stack test successful
+			[init] child "test-spark_secondary_stack" exited with exit value 0
+		</log>
+	</events>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="spark.lib.so"/>
+		<rom label="test-spark_secondary_stack"/>
+	</content>
+
+	<config>
+		<parent-provides>
+			<service name="LOG"/>
+			<service name="PD"/>
+			<service name="CPU"/>
+			<service name="ROM"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> </any-service>
+		</default-route>
+		<default caps="100"/>
+		<start name="test-spark_secondary_stack">
+			<resource name="RAM" quantum="10M"/>
+		</start>
+	</config>
+</runtime>

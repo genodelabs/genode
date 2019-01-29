@@ -646,9 +646,9 @@ if {[expr ![have_spec x86] && \
 # ! find . -type d -wholename *recipes/pkg/test-* -printf '%f\n' | sort
 #
 set default_test_pkgs {
-	test-ada
-	test-ada_exception
-	test-ada_secondary_stack
+	test-spark
+	test-spark_exception
+	test-spark_secondary_stack
 	test-block
 	test-block_cache
 	test-clipboard
