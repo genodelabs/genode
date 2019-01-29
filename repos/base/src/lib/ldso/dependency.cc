@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2015-2017 Genode Labs GmbH
+ * Copyright (C) 2015-2019 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -28,7 +28,7 @@ Linker::Dependency::Dependency(Env &env, Allocator &md_alloc,
 	_root(root),
 	_md_alloc(&md_alloc)
 {
-	deps.enqueue(this);
+	deps.enqueue(*this);
 	load_needed(env, *_md_alloc, deps, keep);
 }
 
@@ -47,11 +47,14 @@ Linker::Dependency::~Dependency()
 
 bool Linker::Dependency::in_dep(char const *file, Fifo<Dependency> const &dep)
 {
-	for (Dependency const *d = dep.head(); d; d = d->next())
-		if (!strcmp(file, d->obj().name()))
-			return true;
+	bool result = false;
 
-	return false;
+	dep.for_each([&] (Dependency const &d) {
+		if (!result && !strcmp(file, d.obj().name()))
+			result = true;
+	});
+
+	return result;
 }
 
 
@@ -95,9 +98,8 @@ Linker::Root_object::Root_object(Env &env, Allocator &md_alloc,
 		Init::list()->initialize(bind, STAGE_SO);
 	} catch (...) {
 		Init::list()->flush();
-		while (Dependency *d = _deps.dequeue())
-			destroy(_md_alloc, d);
-
+		_deps.dequeue_all([&] (Dependency &d) {
+			destroy(_md_alloc, &d); });
 		throw;
 	}
 }

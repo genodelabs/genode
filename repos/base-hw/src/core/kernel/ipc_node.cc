@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2012-2017 Genode Labs GmbH
+ * Copyright (C) 2012-2019 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -110,15 +110,14 @@ void Ipc_node::_announce_request(Ipc_node &node)
 	}
 
 	/* cannot receive yet, so queue request */
-	_request_queue.enqueue(&node);
+	_request_queue.enqueue(node);
 }
 
 
 void Ipc_node::_cancel_request_queue()
 {
-	Ipc_node * node;
-	while ((node = _request_queue.dequeue()))
-		node->_outbuf_request_cancelled();
+	_request_queue.dequeue_all([] (Ipc_node &node) {
+		node._outbuf_request_cancelled(); });
 }
 
 
@@ -143,7 +142,7 @@ void Ipc_node::_cancel_inbuf_request()
 void Ipc_node::_announced_request_cancelled(Ipc_node &node)
 {
 	if (_caller == &node) _caller = nullptr;
-	else _request_queue.remove(&node);
+	else _request_queue.remove(node);
 }
 
 
@@ -211,15 +210,16 @@ bool Ipc_node::await_request(unsigned rcv_caps)
 
 	_rcv_caps = rcv_caps;
 
-	/* if anybody already announced a request receive it */
-	if (!_request_queue.empty()) {
-		_receive_request(*_request_queue.dequeue());
-		return true;
-	}
-
-	/* no request announced, so wait */
+	/* if no request announced then wait */
+	bool announced = false;
 	_state = AWAIT_REQUEST;
-	return false;
+
+	/* if anybody already announced a request receive it */
+	_request_queue.dequeue([&] (Ipc_node &ipc) {
+		_receive_request(ipc);
+		announced = true;
+	});
+	return announced;
 }
 
 

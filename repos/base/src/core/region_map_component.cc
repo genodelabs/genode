@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Genode Labs GmbH
+ * Copyright (C) 2006-2019 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -451,18 +451,12 @@ Region_map_component::attach(Dataspace_capability ds_cap, size_t size,
 		dsc->attached_to(region);
 
 		/* check if attach operation resolves any faulting region-manager clients */
-		for (Rm_faulter *faulter = _faulters.head(); faulter; ) {
-
-			/* remember next pointer before possibly removing current list element */
-			Rm_faulter *next = faulter->next();
-
-			if (faulter->fault_in_addr_range((addr_t)attach_at, size)) {
+		_faulters.for_each([&] (Rm_faulter &faulter) {
+			if (faulter.fault_in_addr_range((addr_t)attach_at, size)) {
 				_faulters.remove(faulter);
-				faulter->continue_after_resolved_fault();
+				faulter.continue_after_resolved_fault();
 			}
-
-			faulter = next;
-		}
+		});
 
 		return attach_at;
 	};
@@ -606,7 +600,7 @@ void Region_map_component::fault(Rm_faulter &faulter, addr_t pf_addr,
 	faulter.fault(*this, Region_map::State(pf_type, pf_addr));
 
 	/* enqueue faulter */
-	_faulters.enqueue(&faulter);
+	_faulters.enqueue(faulter);
 
 	/* issue fault signal */
 	_fault_notifier.submit();
@@ -617,9 +611,9 @@ void Region_map_component::discard_faulter(Rm_faulter &faulter, bool do_lock)
 {
 	if (do_lock) {
 		Lock::Guard lock_guard(_lock);
-		_faulters.remove(&faulter);
+		_faulters.remove(faulter);
 	} else
-		_faulters.remove(&faulter);
+		_faulters.remove(faulter);
 }
 
 
@@ -634,15 +628,13 @@ Region_map::State Region_map_component::state()
 	/* serialize access */
 	Lock::Guard lock_guard(_lock);
 
-	/* pick one of the currently faulted threads */
-	Rm_faulter *faulter_ptr = _faulters.head();
-
 	/* return ready state if there are not current faulters */
-	if (!faulter_ptr)
-		return Region_map::State();
+	Region_map::State result;
 
-	/* return fault information regarding the first faulter of the list */
-	return faulter_ptr->fault_state();
+	/* otherwise return fault information regarding the first faulter */
+	_faulters.head([&] (Rm_faulter &faulter) {
+		result = faulter.fault_state(); });
+	return result;
 }
 
 

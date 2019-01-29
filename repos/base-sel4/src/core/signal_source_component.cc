@@ -32,7 +32,7 @@ using namespace Genode;
 void Signal_source_component::release(Signal_context_component &context)
 {
 	if (context.enqueued())
-		_signal_queue.remove(&context);
+		_signal_queue.remove(context);
 }
 
 
@@ -49,7 +49,7 @@ void Signal_source_component::submit(Signal_context_component &context,
 	if (context.enqueued())
 		return;
 
-	_signal_queue.enqueue(&context);
+	_signal_queue.enqueue(context);
 
 	seL4_Signal(Capability_space::ipc_cap_data(_notify).sel.value());
 }
@@ -57,13 +57,13 @@ void Signal_source_component::submit(Signal_context_component &context,
 
 Signal_source::Signal Signal_source_component::wait_for_signal()
 {
-	if (_signal_queue.empty())
-		return Signal(0, 0);  /* just a dummy */
+	Signal result(0, 0);  /* just a dummy in the case of no signal pending */
 
 	/* dequeue and return pending signal */
-	Signal_context_component &context = *_signal_queue.dequeue();
-	Signal result(context.imprint(), context.cnt());
-	context.reset_signal_cnt();
+	_signal_queue.dequeue([&result] (Signal_context_component &context) {
+		result = Signal(context.imprint(), context.cnt());
+		context.reset_signal_cnt();
+	});
 	return result;
 }
 

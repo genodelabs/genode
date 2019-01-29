@@ -35,7 +35,7 @@ using namespace Genode;
 void Signal_source_component::release(Signal_context_component &context)
 {
 	if (context.enqueued())
-		_signal_queue.remove(&context);
+		_signal_queue.remove(context);
 }
 
 void Signal_source_component::submit(Signal_context_component &context,
@@ -45,7 +45,7 @@ void Signal_source_component::submit(Signal_context_component &context,
 	context.increment_signal_cnt(cnt);
 
 	if (!context.enqueued()) {
-		_signal_queue.enqueue(&context);
+		_signal_queue.enqueue(context);
 
 		/* wake up client */
 		Fiasco::l4_irq_trigger(_blocking_semaphore.data()->kcap());
@@ -61,9 +61,11 @@ Signal_source::Signal Signal_source_component::wait_for_signal()
 	}
 
 	/* dequeue and return pending signal */
-	Signal_context_component &context = *_signal_queue.dequeue();
-	Signal result(context.imprint(), context.cnt());
-	context.reset_signal_cnt();
+	Signal result { };
+	_signal_queue.dequeue([&result] (Signal_context_component &context) {
+		result = Signal(context.imprint(), context.cnt());
+		context.reset_signal_cnt();
+	});
 	return result;
 }
 

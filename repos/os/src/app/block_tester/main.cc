@@ -190,26 +190,25 @@ struct Test::Main
 	{
 		try {
 			Genode::Reporter::Xml_generator xml(_result_reporter, [&] () {
-				for (Test_result *tr = _results.head(); tr;
-				     tr = tr->next()) {
+				_results.for_each([&] (Test_result &tr) {
 					xml.node("result", [&] () {
-						xml.attribute("test",     tr->name);
-						xml.attribute("rx",       tr->result.rx);
-						xml.attribute("tx",       tr->result.tx);
-						xml.attribute("bytes",    tr->result.bytes);
-						xml.attribute("size",     tr->result.request_size);
-						xml.attribute("bsize",    tr->result.block_size);
-						xml.attribute("duration", tr->result.duration);
+						xml.attribute("test",     tr.name);
+						xml.attribute("rx",       tr.result.rx);
+						xml.attribute("tx",       tr.result.tx);
+						xml.attribute("bytes",    tr.result.bytes);
+						xml.attribute("size",     tr.result.request_size);
+						xml.attribute("bsize",    tr.result.block_size);
+						xml.attribute("duration", tr.result.duration);
 
 						if (_calculate) {
 							/* XXX */
-							xml.attribute("mibs", (unsigned)(tr->result.mibs * (1<<20u)));
-							xml.attribute("iops", (unsigned)(tr->result.iops + 0.5f));
+							xml.attribute("mibs", (unsigned)(tr.result.mibs * (1<<20u)));
+							xml.attribute("iops", (unsigned)(tr.result.iops + 0.5f));
 						}
 
-						xml.attribute("result", tr->result.success ? 0 : 1);
+						xml.attribute("result", tr.result.success ? 0 : 1);
 					});
-				}
+				});
 			});
 		} catch (...) { Genode::warning("could generate results report"); }
 	}
@@ -235,7 +234,7 @@ struct Test::Main
 			if (_report) {
 				Test_result *tr = new (&_heap) Test_result(_current->name());
 				tr->result = r;
-				_results.enqueue(tr);
+				_results.enqueue(*tr);
 
 				_generate_report();
 			}
@@ -249,25 +248,22 @@ struct Test::Main
 
 		/* execute next test */
 		if (!_current) {
-			while (true) {
-				_current = _tests.dequeue();
-				if (_current) {
-					if (_verbose) { Genode::log("start ", _current->name()); }
-
-					try {
-						_current->start(_stop_on_error);
-						break;
-					} catch (...) {
-						Genode::log("Could not start ", _current->name());
-						Genode::destroy(&_heap, _current);
-					}
-				} else {
-					/* execution is finished */
-					Genode::log("--- all tests finished ---");
-					_env.parent().exit(_success ? 0 : 1);
-					break;
+			_tests.dequeue([&] (Test_base &head) {
+				if (_verbose) { Genode::log("start ", head.name()); }
+				try {
+					head.start(_stop_on_error);
+					_current = &head;
+				} catch (...) {
+					Genode::log("Could not start ", head.name());
+					Genode::destroy(&_heap, &head);
 				}
-			}
+			});
+		}
+
+		if (!_current) {
+			/* execution is finished */
+			Genode::log("--- all tests finished ---");
+			_env.parent().exit(_success ? 0 : 1);
 		}
 	}
 
@@ -283,25 +279,25 @@ struct Test::Main
 				if (node.has_type("ping_pong")) {
 					Test_base *t = new (&_heap)
 						Ping_pong(_env, _heap, node, _finished_sigh);
-					_tests.enqueue(t);
+					_tests.enqueue(*t);
 				} else
 
 				if (node.has_type("random")) {
 					Test_base *t = new (&_heap)
 						Random(_env, _heap, node, _finished_sigh);
-					_tests.enqueue(t);
+					_tests.enqueue(*t);
 				} else
 
 				if (node.has_type("replay")) {
 					Test_base *t = new (&_heap)
 						Replay(_env, _heap, node, _finished_sigh);
-					_tests.enqueue(t);
+					_tests.enqueue(*t);
 				} else
 
 				if (node.has_type("sequential")) {
 					Test_base *t = new (&_heap)
 						Sequential(_env, _heap, node, _finished_sigh);
-					_tests.enqueue(t);
+					_tests.enqueue(*t);
 				}
 			});
 		} catch (...) { Genode::error("invalid tests"); }
@@ -326,10 +322,8 @@ struct Test::Main
 
 	~Main()
 	{
-		Test_result * tr = nullptr;
-		while ((tr = _results.dequeue())) {
-			Genode::destroy(&_heap, tr);
-		}
+		_results.dequeue_all([&] (Test_result &tr) {
+			Genode::destroy(&_heap, &tr); });
 	}
 
 	private:

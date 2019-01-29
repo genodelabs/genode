@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2012-2017 Genode Labs GmbH
+ * Copyright (C) 2012-2019 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -30,10 +30,6 @@ void Signal_handler::cancel_waiting()
 }
 
 
-Signal_handler::Signal_handler()
-: _handlers_fe(this), _receiver(0) { }
-
-
 Signal_handler::~Signal_handler() { cancel_waiting(); }
 
 
@@ -47,7 +43,7 @@ void Signal_context_killer::cancel_waiting()
 }
 
 
-Signal_context_killer::Signal_context_killer() : _context(0) { }
+Signal_context_killer::Signal_context_killer() : _context(nullptr) { }
 
 
 Signal_context_killer::~Signal_context_killer() { cancel_waiting(); }
@@ -128,14 +124,8 @@ Signal_context::~Signal_context()
 
 Signal_context::Signal_context(Signal_receiver * const r, addr_t const imprint)
 :
-	_deliver_fe(this),
-	_contexts_fe(this),
 	_receiver(r),
-	_imprint(imprint),
-	_submits(0),
-	_ack(1),
-	_killed(0),
-	_killer(0)
+	_imprint(imprint)
 {
 	r->_add_context(this);
 }
@@ -148,7 +138,7 @@ Signal_context::Signal_context(Signal_receiver * const r, addr_t const imprint)
 void Signal_receiver::_add_deliverable(Signal_context * const c)
 {
 	if (!c->_deliver_fe.enqueued()) {
-		_deliver.enqueue(&c->_deliver_fe);
+		_deliver.enqueue(c->_deliver_fe);
 	}
 	_listen();
 }
@@ -163,40 +153,46 @@ void Signal_receiver::_listen()
 
 		/* create a signal data-object */
 		typedef Genode::Signal_context * Signal_imprint;
-		auto const context = _deliver.dequeue()->object();
-		Signal_imprint const imprint =
-			reinterpret_cast<Signal_imprint>(context->_imprint);
-		Signal::Data data(imprint, context->_submits);
 
-		/* communicate signal data to handler */
-		auto const handler = _handlers.dequeue()->object();
-		handler->_receiver = 0;
-		handler->_receive_signal(&data, sizeof(data));
-		context->_delivered();
+		_deliver.dequeue([&] (Signal_context::Fifo_element &elem) {
+			auto const context = &elem.object();
+
+			Signal_imprint const imprint =
+				reinterpret_cast<Signal_imprint>(context->_imprint);
+			Signal::Data data(imprint, context->_submits);
+
+			/* communicate signal data to handler */
+			_handlers.dequeue([&] (Signal_handler::Fifo_element &elem) {
+				auto const handler = &elem.object();
+				handler->_receiver = 0;
+				handler->_receive_signal(&data, sizeof(data));
+			});
+			context->_delivered();
+		});
 	}
 }
 
 
 void Signal_receiver::_context_destructed(Signal_context * const c)
 {
-	_contexts.remove(&c->_contexts_fe);
+	_contexts.remove(c->_contexts_fe);
 	if (!c->_deliver_fe.enqueued()) { return; }
-	_deliver.remove(&c->_deliver_fe);
+	_deliver.remove(c->_deliver_fe);
 }
 
 
 void Signal_receiver::_handler_cancelled(Signal_handler * const h) {
-	_handlers.remove(&h->_handlers_fe); }
+	_handlers.remove(h->_handlers_fe); }
 
 
 void Signal_receiver::_add_context(Signal_context * const c) {
-	_contexts.enqueue(&c->_contexts_fe); }
+	_contexts.enqueue(c->_contexts_fe); }
 
 
 int Signal_receiver::add_handler(Signal_handler * const h)
 {
 	if (h->_receiver) { return -1; }
-	_handlers.enqueue(&h->_handlers_fe);
+	_handlers.enqueue(h->_handlers_fe);
 	h->_receiver = this;
 	h->_await_signal(this);
 	_listen();
@@ -207,7 +203,6 @@ int Signal_receiver::add_handler(Signal_handler * const h)
 Signal_receiver::~Signal_receiver()
 {
 	/* destruct all attached contexts */
-	while (Signal_context * c = _contexts.dequeue()->object()) {
-		c->~Signal_context();
-	}
+	_contexts.dequeue_all([] (Signal_context::Fifo_element &elem) {
+		elem.object().~Signal_context(); });
 }

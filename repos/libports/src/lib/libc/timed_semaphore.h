@@ -109,10 +109,13 @@ class Libc::Timed_semaphore : public Semaphore
 				 * Iterate through the queue and find the thread,
 				 * with the corresponding timeout.
 				 */
-				Element *first = Semaphore::_queue.dequeue();
+
+				Element *first = nullptr;
+				Semaphore::_queue.dequeue([&first] (Element &e) {
+					first = &e; });
 				Element *e     = first;
 
-				while (true) {
+				while (e) {
 
 					/*
 					 * Wakeup the thread.
@@ -125,8 +128,10 @@ class Libc::Timed_semaphore : public Semaphore
 					/*
 					 * Noninvolved threads are enqueued again.
 					 */
-					Semaphore::_queue.enqueue(e);
-					e = Semaphore::_queue.dequeue();
+					Semaphore::_queue.enqueue(*e);
+					e = nullptr;
+					Semaphore::_queue.dequeue([&e] (Element &next) {
+						e = &next; });
 
 					/*
 					 * Maybe, the alarm was triggered just after the corresponding
@@ -211,7 +216,7 @@ class Libc::Timed_semaphore : public Semaphore
 				 * in the wait queue.
 				 */
 				Element queue_element;
-				Semaphore::_queue.enqueue(&queue_element);
+				Semaphore::_queue.enqueue(queue_element);
 				Semaphore::_meta_lock.unlock();
 
 				/* Create the timeout */

@@ -66,27 +66,25 @@ struct Test::Replay : Test_base
 		try {
 			while (_block->tx()->ready_to_submit() && more) {
 				/* peak at head ... */
-				Request *req = requests.head();
-				if (!req) { return; }
+				more = false;
+				requests.dequeue([&] (Request &req) {
+					Block::Packet_descriptor p(
+						_block->tx()->alloc_packet(req.count * _block_size),
+						req.op, req.nr, req.count);
 
-				Block::Packet_descriptor p(
-					_block->tx()->alloc_packet(req->count * _block_size),
-					req->op, req->nr, req->count);
+					bool const write = req.op == Block::Packet_descriptor::WRITE;
 
-				bool const write = req->op == Block::Packet_descriptor::WRITE;
+					/* simulate write */
+					if (write) {
+						char * const content = _block->tx()->packet_content(p);
+						Genode::memcpy(content, _scratch_buffer, p.size());
+					}
 
-				/* simulate write */
-				if (write) {
-					char * const content = _block->tx()->packet_content(p);
-					Genode::memcpy(content, _scratch_buffer, p.size());
-				}
+					_block->tx()->submit_packet(p);
 
-				_block->tx()->submit_packet(p);
-
-				/* ... and only remove it if we could submit it */
-				req = requests.dequeue();
-				Genode::destroy(&alloc, req);
-				more = _bulk;
+					Genode::destroy(&alloc, &req);
+					more = _bulk;
+				});
 			}
 		} catch (...) { }
 	}
@@ -161,7 +159,7 @@ struct Test::Replay : Test_base
 				else if (type == "write") { op = Block::Packet_descriptor::WRITE; }
 				else { throw -1; }
 
-				requests.enqueue(new (&alloc) Request(op, nr, count));
+				requests.enqueue(*(new (&alloc) Request(op, nr, count)));
 				++request_num;
 			});
 		} catch (...) {

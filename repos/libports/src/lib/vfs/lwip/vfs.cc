@@ -702,7 +702,7 @@ class Lwip::Udp_socket_dir final :
 					return n;
 				}
 
-				u16_t peek(void *dst, size_t count)
+				u16_t peek(void *dst, size_t count)  const
 				{
 					count = min((size_t)buf->tot_len, count);
 					return pbuf_copy_partial(buf, dst, count, offset);
@@ -763,7 +763,7 @@ class Lwip::Udp_socket_dir final :
 		{
 			try {
 				Packet *pkt = new (_packet_slab) Packet(addr, port, buf);
-				_packet_queue.enqueue(pkt);
+				_packet_queue.enqueue(*pkt);
 			} catch (...) {
 				Genode::warning("failed to queue UDP packet, dropping");
 				pbuf_free(buf);
@@ -794,25 +794,28 @@ class Lwip::Udp_socket_dir final :
 		                 char *dst, file_size count,
 		                 file_size &out_count) override
 		{
+			Read_result result = Read_result::READ_ERR_INVALID;
+
 			switch(handle.kind) {
 
 			case Lwip_file_handle::DATA: {
-				if (Packet *pkt = _packet_queue.head()) {
-					out_count = pkt->read(dst, count);
-					if (pkt->empty()) {
-						destroy(_packet_slab, _packet_queue.dequeue());
+				result = Read_result::READ_QUEUED;
+				_packet_queue.head([&] (Packet &pkt) {
+					out_count = pkt.read(dst, count);
+					if (pkt.empty()) {
+						_packet_queue.remove(pkt);
+						destroy(_packet_slab, &pkt);
 					}
-					return Read_result::READ_OK;
-				}
-				return Read_result::READ_QUEUED;
+					result = Read_result::READ_OK;
+				});
 			}
 
-			case Lwip_file_handle::PEEK: {
-				if (Packet *pkt = _packet_queue.head()) {
-					out_count = pkt->peek(dst, count);
-				}
-				return Read_result::READ_OK;
-			}
+			case Lwip_file_handle::PEEK:
+				_packet_queue.head([&] (Packet const &pkt) {
+					out_count = pkt.peek(dst, count);
+					result = Read_result::READ_OK;
+				});
+				break;
 
 			case Lwip_file_handle::LOCAL:
 			case Lwip_file_handle::BIND: {
@@ -834,28 +837,27 @@ class Lwip::Udp_socket_dir final :
 				return Read_result::READ_OK;
 			}
 
-			case Lwip_file_handle::REMOTE: {
+			case Lwip_file_handle::REMOTE:
 				if (count < ENDPOINT_STRLEN_MAX) {
 					Genode::error("VFS LwIP: accept file read buffer is too small");
-					return Read_result::READ_ERR_INVALID;
-				}
+					result = Read_result::READ_ERR_INVALID;
+				} else
 				if (ip_addr_isany(&_pcb->remote_ip)) {
-					if (Packet *pkt = _packet_queue.head()) {
-						char const *ip_str = ipaddr_ntoa(&pkt->addr);
+					_packet_queue.head([&] (Packet &pkt) {
+						char const *ip_str = ipaddr_ntoa(&pkt.addr);
 						/* TODO: IPv6 */
 						out_count = Genode::snprintf(dst, count, "%s:%d\n",
-					                                 ip_str, pkt->port);
-						return Read_result::READ_OK;
-					}
+					                                 ip_str, pkt.port);
+						result = Read_result::READ_OK;
+					});
 				} else {
 					char const *ip_str = ipaddr_ntoa(&_pcb->remote_ip);
 					/* TODO: [IPv6]:port */
 					out_count = Genode::snprintf(dst, count, "%s:%d\n",
 					                             ip_str, _pcb->remote_port);
-					return Read_result::READ_OK;
+					result = Read_result::READ_OK;
 				}
 				break;
-			}
 
 			case Lwip_file_handle::LOCATION:
 				/*
@@ -869,7 +871,7 @@ class Lwip::Udp_socket_dir final :
 			default: break;
 			}
 
-			return Read_result::READ_ERR_INVALID;
+			return result;
 		}
 
 		Write_result write(Lwip_file_handle &handle,
