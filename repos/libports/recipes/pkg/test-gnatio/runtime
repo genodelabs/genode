@@ -7,7 +7,7 @@
 
 	<content>
 		<rom label="ld.lib.so"/>
-		<rom label="ada.lib.so"/>
+		<rom label="spark.lib.so"/>
 		<rom label="test-gnatio"/>
 		<rom label="log_terminal"/>
 	</content>
