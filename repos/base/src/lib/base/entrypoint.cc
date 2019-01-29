@@ -209,6 +209,11 @@ bool Entrypoint::_wait_and_dispatch_one_io_signal(bool const dont_block)
 			}
 			_sig_rec->block_for_signal();
 		}
+		catch (...) {
+			error("unexpected exception at '_wait_and_dispatch_one_io_signal'");
+			throw;
+		}
+
 	}
 
 	_execute_post_signal_hook();

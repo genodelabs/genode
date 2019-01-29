@@ -151,6 +151,10 @@ Signal Signal_receiver::wait_for_signal()
 		try {
 			return pending_signal();
 		} catch (Signal_not_pending) { }
+		catch (...) {
+			error("unexpected exception at 'wait_for_signal'");
+			throw;
+		}
 
 		/* block until the receiver has received a signal */
 		block_for_signal();
