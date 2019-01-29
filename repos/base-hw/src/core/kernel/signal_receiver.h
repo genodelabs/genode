@@ -58,8 +58,8 @@ class Kernel::Signal_handler
 
 		typedef Genode::Fifo_element<Signal_handler> Fifo_element;
 
-		Fifo_element      _handlers_fe;
-		Signal_receiver * _receiver;
+		Fifo_element      _handlers_fe { *this };
+		Signal_receiver * _receiver = nullptr;
 
 		/**
 		 * Let the handler block for signal receipt
@@ -86,7 +86,7 @@ class Kernel::Signal_handler
 
 	public:
 
-		Signal_handler();
+		Signal_handler() { }
 		virtual ~Signal_handler();
 
 		/**
@@ -158,14 +158,14 @@ class Kernel::Signal_context : public Kernel::Object
 
 		typedef Genode::Fifo_element<Signal_context> Fifo_element;
 
-		Fifo_element            _deliver_fe;
-		Fifo_element            _contexts_fe;
+		Fifo_element            _deliver_fe  { *this };
+		Fifo_element            _contexts_fe { *this };
 		Signal_receiver * const _receiver;
 		addr_t const            _imprint;
-		unsigned                _submits;
-		bool                    _ack;
-		bool                    _killed;
-		Signal_context_killer * _killer;
+		unsigned                _submits = 0;
+		bool                    _ack     = true;
+		bool                    _killed  = false;
+		Signal_context_killer * _killer  = nullptr;
 
 		/**
 		 * Tell receiver about the submits of the context if any

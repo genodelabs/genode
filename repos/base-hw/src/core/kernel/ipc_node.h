@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2012-2017 Genode Labs GmbH
+ * Copyright (C) 2012-2019 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -22,7 +22,6 @@
 #include <base/internal/native_utcb.h>
 
 /* core includes */
-#include <kernel/fifo.h>
 #include <kernel/interface.h>
 #include <assertion.h>
 
@@ -37,7 +36,7 @@ namespace Kernel
 	 */
 	class Ipc_node;
 
-	using Ipc_node_queue = Kernel::Fifo<Ipc_node>;
+	using Ipc_node_queue = Genode::Fifo<Ipc_node>;
 }
 
 class Kernel::Ipc_node : private Ipc_node_queue::Element
@@ -56,7 +55,6 @@ class Kernel::Ipc_node : private Ipc_node_queue::Element
 	private:
 
 		friend class Core_thread;
-		friend class Kernel::Fifo<Ipc_node>;
 		friend class Genode::Fifo<Ipc_node>;
 
 		State                 _state    = INACTIVE;
@@ -174,11 +172,11 @@ class Kernel::Ipc_node : private Ipc_node_queue::Element
 		template <typename F> void for_each_helper(F f)
 		{
 			/* if we have a helper in the receive buffer, call 'f' for it */
-			if (_caller && _caller->_help) f(_caller);
+			if (_caller && _caller->_help) f(*_caller);
 
 			/* call 'f' for each helper in our request queue */
-			_request_queue.for_each([f] (Ipc_node * const node) {
-				if (node->_help) f(node); });
+			_request_queue.for_each([f] (Ipc_node &node) {
+				if (node._help) f(node); });
 		}
 
 		/**

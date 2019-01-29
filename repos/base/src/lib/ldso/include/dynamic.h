@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2015-2017 Genode Labs GmbH
+ * Copyright (C) 2015-2019 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -135,7 +135,7 @@ class Linker::Dynamic
 				throw Fatal();
 			}
 			Needed *n = new (*_md_alloc) Needed(d->un.ptr);
-			_needed.enqueue(n);
+			_needed.enqueue(*n);
 		}
 
 		template <typename T>
@@ -199,8 +199,8 @@ class Linker::Dynamic
 			if (!_md_alloc)
 				return;
 
-			while (Needed *n = _needed.dequeue())
-				destroy(*_md_alloc, n);
+			_needed.dequeue_all([&] (Needed &n) {
+				destroy(*_md_alloc, &n); });
 		}
 
 		void call_init_function() const
@@ -310,8 +310,8 @@ class Linker::Dynamic
 		template <typename FUNC>
 		void for_each_dependency(FUNC const &fn) const
 		{
-			for (Needed *n = _needed.head(); n; n = n->next())
-				fn(n->path(_strtab));
+			_needed.for_each([&] (Needed &n) {
+				fn(n.path(_strtab)); });
 		}
 
 		void relocate(Bind bind) SELF_RELOC

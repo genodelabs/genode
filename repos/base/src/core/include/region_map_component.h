@@ -131,8 +131,6 @@ class Genode::Rm_faulter : Fifo<Rm_faulter>::Element, Interface
 		 */
 		explicit Rm_faulter(Pager_object &pager_object) : _pager_object(pager_object) { }
 
-		using Fifo<Rm_faulter>::Element::next;
-
 		/**
 		 * Assign fault state
 		 */

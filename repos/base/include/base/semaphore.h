@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Genode Labs GmbH
+ * Copyright (C) 2006-2019 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -73,7 +73,8 @@ class Genode::Semaphore
 				 * Remove element from queue and wake up the corresponding
 				 * blocking thread
 				 */
-				element = _queue.dequeue();
+				_queue.dequeue([&element] (Element &head) {
+					element = &head; });
 			}
 
 			/* do not hold the lock while unblocking a waiting thread */
@@ -94,7 +95,7 @@ class Genode::Semaphore
 				 * in the wait queue.
 				 */
 				Element queue_element;
-				_queue.enqueue(&queue_element);
+				_queue.enqueue(queue_element);
 				_meta_lock.unlock();
 
 				/*

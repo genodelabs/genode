@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2008-2017 Genode Labs GmbH
+ * Copyright (C) 2008-2019 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -37,12 +37,12 @@ class Genode::Fifo
 
 				friend class Fifo;
 
-				QT  *_next;
-				bool _enqueued;
+				QT  *_next = nullptr;
+				bool _enqueued = false;
 
 			public:
 
-				Element(): _next(0), _enqueued(false) { }
+				Element() { }
 
 				/**
 				 * Return true is fifo element is enqueued in a fifo
@@ -50,58 +50,56 @@ class Genode::Fifo
 				bool enqueued() { return _enqueued; }
 
 				/**
-				 * Return true is fifo element is enqueued in a fifo
-				 *
-				 * \noapi
-				 * \deprecated  use 'enqueued' instead
-				 */
-				bool is_enqueued() { return enqueued(); }
-
-				/**
 				 * Return next element in queue
+				 *
+				 * \deprecated  use 'Fifo::for_each' instead
 				 */
 				QT *next() const { return _next; }
 		};
 
 	private:
 
-		QT      *_head;  /* oldest element */
-		Element *_tail;  /* newest element */
+		QT      *_head = nullptr;  /* oldest element */
+		Element *_tail = nullptr;  /* newest element */
 
 	public:
 
 		/**
 		 * Return true if queue is empty
 		 */
-		bool empty() { return _tail == 0; }
+		bool empty() { return _tail == nullptr; }
 
 		/**
 		 * Constructor
 		 */
-		Fifo(): _head(0), _tail(0) { }
+		Fifo() { }
 
 		/**
-		 * Return first queue element
+		 * If queue is not empty then call
+		 * lambda 'func' of type 'void (QT&)'
+		 * with the head element
 		 */
-		QT *head() const { return _head; }
+		template <typename FUNC>
+		void head(FUNC const &func) const {
+			if (_head) func(*_head); }
 
 		/**
 		 * Remove element explicitely from queue
 		 */
-		void remove(QT *qe)
+		void remove(QT &qe)
 		{
 			if (empty()) return;
 
 			/* if specified element is the first of the queue */
-			if (qe == _head) {
-				_head = qe->Fifo::Element::_next;
-				if (!_head) _tail  = 0;
+			if (&qe == _head) {
+				_head = qe.Fifo::Element::_next;
+				if (!_head) _tail  = nullptr;
 			}
 			else {
 
 				/* search specified element in the queue */
 				Element *e = _head;
-				while (e->_next && (e->_next != qe))
+				while (e->_next && (e->_next != &qe))
 					e = e->_next;
 
 				/* element is not member of the queue */
@@ -112,50 +110,78 @@ class Genode::Fifo
 				if (!e->Element::_next) _tail = e;
 			}
 
-			qe->Fifo::Element::_next = 0;
-			qe->Fifo::Element::_enqueued = 0;
+			qe.Fifo::Element::_next = nullptr;
+			qe.Fifo::Element::_enqueued = false;
 		}
 
 		/**
 		 * Attach element at the end of the queue
 		 */
-		void enqueue(QT *e)
+		void enqueue(QT &e)
 		{
-			e->Fifo::Element::_next = 0;
-			e->Fifo::Element::_enqueued = true;
+			e.Fifo::Element::_next = nullptr;
+			e.Fifo::Element::_enqueued = true;
 
 			if (empty()) {
-				_tail = _head = e;
+				_tail = _head = &e;
 				return;
 			}
 
-			_tail->Fifo::Element::_next = e;
-			_tail = e;
+			_tail->Fifo::Element::_next = &e;
+			_tail = &e;
+		}
+
+
+		/**
+		 * Call lambda 'func' of type 'void (QT&)'
+		 * for each queue element in order
+		 */
+		template <typename FUNC>
+		void for_each(FUNC const &func) const
+		{
+			QT *elem = _head;
+			while (elem != nullptr) {
+				/* take the next pointer so 'func' cannot modify it */
+				QT *next = elem->Fifo::Element::_next;;
+				func(*elem);
+				elem = next;
+			}
 		}
 
 		/**
-		 * Remove head element from queue
-		 *
-		 * \return  head element or 0 if queue is empty
+		 * If queue is not empty then remove head and
+		 * call lambda 'func' of type 'void (QT&)'
 		 */
-		QT *dequeue()
+		template <typename FUNC>
+		void dequeue(FUNC const &func)
 		{
 			QT *result = _head;
 
 			/* check if queue has only one last element */
 			if (_head == _tail) {
-				_head = 0;
-				_tail = 0;
+				_head = nullptr;
+				_tail = nullptr;
 			} else
 				_head = _head->Fifo::Element::_next;
 
 			/* mark fifo queue element as free */
 			if (result) {
-				result->Fifo::Element::_next = 0;
+				result->Fifo::Element::_next = nullptr;
 				result->Fifo::Element::_enqueued = false;
-			}
 
-			return result;
+				/* pass to caller */
+				func(*result);
+			}
+		}
+
+		/**
+		 * If queue is not empty then remove elements in order and
+		 * call lambda 'func' of type 'void (QT&)'
+		 */
+		template <typename FUNC>
+		void dequeue_all(FUNC const &func)
+		{
+			while (_head != nullptr) dequeue(func);
 		}
 };
 
@@ -174,26 +200,13 @@ class Genode::Fifo
 template <typename T>
 class Genode::Fifo_element : public Fifo<Fifo_element<T> >::Element
 {
-	T *_object;
+	T &_object;
 
 	public:
 
-		Fifo_element(T *object) : _object(object) { }
+		Fifo_element(T &object) : _object(object) { }
 
-		/**
-		 * Get typed object pointer
-		 *
-		 * Zero-pointer save: Returns 0 if this pointer is 0 to
-		 * cover the case of accessing an empty FIFO.
-		 */
-
-		/* prevent the compiler from optimizing out the 'this' pointer check */
-		__attribute__((optimize("-fno-delete-null-pointer-checks")))
-		inline T *object()
-		{
-			if (this) { return _object; }
-			return 0;
-		}
+		inline T &object() { return _object; }
 };
 
 #endif /* _INCLUDE__UTIL__FIFO_H_ */

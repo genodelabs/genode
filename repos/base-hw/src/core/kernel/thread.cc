@@ -151,15 +151,15 @@ void Thread::_await_request_failed()
 void Thread::_deactivate_used_shares()
 {
 	Cpu_job::_deactivate_own_share();
-	Ipc_node::for_each_helper([&] (Ipc_node * const h) {
-		static_cast<Thread *>(h)->_deactivate_used_shares(); });
+	Ipc_node::for_each_helper([&] (Ipc_node &h) {
+		static_cast<Thread &>(h)._deactivate_used_shares(); });
 }
 
 void Thread::_activate_used_shares()
 {
 	Cpu_job::_activate_own_share();
-	Ipc_node::for_each_helper([&] (Ipc_node * const h) {
-		static_cast<Thread *>(h)->_activate_used_shares(); });
+	Ipc_node::for_each_helper([&] (Ipc_node &h) {
+		static_cast<Thread &>(h)._activate_used_shares(); });
 }
 
 void Thread::_become_active()

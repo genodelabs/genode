@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014-2017 Genode Labs GmbH
+ * Copyright (C) 2014-2019 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -273,18 +273,27 @@ class Linker::Root_object
 
 		~Root_object()
 		{
-			while (Dependency *d = _deps.dequeue())
-				destroy(_md_alloc, d);
+			_deps.dequeue_all([&] (Dependency &d) {
+				destroy(_md_alloc, &d); });
 		}
 
 		Link_map const &link_map() const
 		{
-			return _deps.head()->obj().link_map();
+			Link_map const *map = nullptr;
+			_deps.head([&] (Dependency &d) {
+				map = &d.obj().link_map(); });
+			return *map;
 		}
 
-		Dependency const *first_dep() const { return _deps.head(); }
+		Dependency const *first_dep() const
+		{
+			Dependency const *dep = nullptr;
+			_deps.head([&] (Dependency const &head) {
+				dep = &head; });
+			return dep;
+		}
 
-		void enqueue(Dependency &dep) { _deps.enqueue(&dep); }
+		void enqueue(Dependency &dep) { _deps.enqueue(dep); }
 
 		Fifo<Dependency> &deps() { return _deps; }
 };

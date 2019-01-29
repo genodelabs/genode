@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2014-2017 Genode Labs GmbH
+ * Copyright (C) 2014-2019 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -129,7 +129,7 @@ class Linker::Elf_object : public Object, private Fifo<Elf_object>::Element
 		{
 			/* register for static construction and relocation */
 			Init::list()->insert(this);
-			obj_list()->enqueue(this);
+			obj_list()->enqueue(*this);
 
 			/* add to link map */
 			Debug::state_change(Debug::ADD, nullptr);
@@ -151,7 +151,7 @@ class Linker::Elf_object : public Object, private Fifo<Elf_object>::Element
 			Debug::state_change(Debug::CONSISTENT, nullptr);
 
 			/* remove from loaded objects list */
-			obj_list()->remove(this);
+			obj_list()->remove(*this);
 		}
 
 		/**
@@ -314,7 +314,7 @@ Linker::Ld &Linker::Ld::linker()
 	{
 		Ld_vtable()
 		{
-			Elf_object::obj_list()->enqueue(this);
+			Elf_object::obj_list()->enqueue(*this);
 			plt_setup();
 		}
 	};
@@ -502,24 +502,30 @@ bool Linker::Object::needs_static_construction()
 Object &Linker::load(Env &env, Allocator &md_alloc, char const *path,
                      Dependency &dep, Keep keep)
 {
-	for (Object *e = Elf_object::obj_list()->head(); e; e = e->next_obj()) {
+	Object *result = nullptr;
+	Elf_object::obj_list()->for_each([&] (Object &e) {
+		if (result == nullptr) {
+			if (verbose_loading)
+				log("LOAD: ", Linker::file(path), " == ", e.name());
 
-		if (verbose_loading)
-			log("LOAD: ", Linker::file(path), " == ", e->name());
-
-		if (!strcmp(Linker::file(path), e->name())) {
-			e->load();
-			return *e;
+			if (!strcmp(Linker::file(path), e.name())) {
+				e.load();
+				result = &e;
+			}
 		}
-	}
-
-	return *new (md_alloc) Elf_object(env, md_alloc, path, dep, keep);
+	});
+	if (result == nullptr)
+		result = new (md_alloc) Elf_object(env, md_alloc, path, dep, keep);
+	return *result;
 }
 
 
 Object *Linker::obj_list_head()
 {
-	return Elf_object::obj_list()->head();
+	Object *result = nullptr;
+	Elf_object::obj_list()->head([&result] (Object &obj) {
+		result = &obj; });
+	return result;
 }
 
 
@@ -704,7 +710,8 @@ void Component::construct(Genode::Env &env)
 			    " .. ", Hex(Thread::stack_area_virtual_base() +
 			                Thread::stack_area_virtual_size() - 1),
 			    ": stack area");
-			dump_link_map(*Elf_object::obj_list()->head());
+			Elf_object::obj_list()->head([] (Object const &obj) {
+				dump_link_map(obj); });
 		}
 	} catch (...) {  }
 
