@@ -200,8 +200,11 @@ Signal_receiver::~Signal_receiver()
 	Lock::Guard contexts_lock_guard(_contexts_lock);
 
 	/* disassociate contexts from the receiver */
-	while (_contexts.head())
-		_unsynchronized_dissolve(_contexts.head());
+	while (Signal_context *context = _contexts.head()) {
+		_platform_begin_dissolve(context);
+		_unsynchronized_dissolve(context);
+		_platform_finish_dissolve(context);
+	}
 
 	_platform_destructor();
 }
@@ -209,8 +212,6 @@ Signal_receiver::~Signal_receiver()
 
 void Signal_receiver::_unsynchronized_dissolve(Signal_context * const context)
 {
-	_platform_begin_dissolve(context);
-
 	/* tell core to stop sending signals referring to the context */
 	env_deprecated()->pd_session()->free_context(context->_cap);
 
@@ -220,8 +221,6 @@ void Signal_receiver::_unsynchronized_dissolve(Signal_context * const context)
 
 	/* remove context from context list */
 	_contexts.remove(context);
-
-	_platform_finish_dissolve(context);
 }
 
 
@@ -231,12 +230,25 @@ void Signal_receiver::dissolve(Signal_context *context)
 		throw Context_not_associated();
 
 	{
+		/*
+		 * We must adhere to the following lock-taking order:
+		 *
+		 * 1. Taking the lock for the list of contexts ('_contexts_lock')
+		 * 2. Taking the context-registry lock (this happens inside
+		 *    '_platform_begin_dissolve' on platforms that use such a
+		 *    registry)
+		 * 3. Taking the lock for an individual signal context
+		 */
 		Lock::Guard contexts_lock_guard(_contexts_lock);
+
+		_platform_begin_dissolve(context);
 
 		Lock::Guard context_lock_guard(context->_lock);
 
 		_unsynchronized_dissolve(context);
 	}
+
+	_platform_finish_dissolve(context);
 
 	Lock::Guard context_destroy_lock_guard(context->_destroy_lock);
 }

@@ -82,8 +82,11 @@ void Signal_receiver::_platform_begin_dissolve(Signal_context * const c)
 	 * from taking the lock, and set an invalid context to prevent further
 	 * processing
 	 */
-	c->_pending     = true;
-	c->_curr_signal = Signal::Data(nullptr, 0);
+	{
+		Lock::Guard context_guard(c->_lock);
+		c->_pending     = true;
+		c->_curr_signal = Signal::Data(nullptr, 0);
+	}
 	Kernel::kill_signal_context(Capability_space::capid(c->_cap));
 }
 
