@@ -706,8 +706,9 @@ Main::Main(Env &env) : env(env)
 	/* test translate together with special revoke */
 	test_translate(env);
 
-	/* test SMP delegate/revoke */
-	test_delegate_revoke_smp(env);
+	/* test SMP delegate/revoke - skip it on Qemu which takes too long */
+	if (check_pat)
+		test_delegate_revoke_smp(env);
 
 	/**
 	 * Test to provoke out of memory during capability transfer of
