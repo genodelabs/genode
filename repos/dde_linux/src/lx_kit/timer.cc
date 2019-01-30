@@ -169,6 +169,7 @@ class Lx_kit::Timer : public Lx::Timer
 			_timer_alloc(&alloc)
 		{
 			_timer_conn.sigh(_dispatcher);
+			update_jiffies();
 		}
 
 		Context* first() { return _list.first(); }
@@ -277,8 +278,14 @@ class Lx_kit::Timer : public Lx::Timer
 			return false;
 		}
 
-		void update_jiffies() {
-			_jiffies = usecs_to_jiffies(_timer_conn_modern.curr_time().trunc_to_plain_us().value); }
+		void update_jiffies()
+		{
+			/*
+			 * Do not use lx_emul usecs_to_jiffies(unsigned int) because
+			 * of implicit truncation!
+			 */
+			_jiffies = _timer_conn_modern.curr_time().trunc_to_plain_ms().value / JIFFIES_TICK_MS;
+		}
 
 		void usleep(unsigned us) {
 			_timer_conn.usleep(us); }

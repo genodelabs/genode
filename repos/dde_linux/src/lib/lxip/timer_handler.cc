@@ -188,7 +188,7 @@ class Lx::Timer
 			_tick(tick)
 		{
 			_timer_conn.sigh(_handler);
-			jiffies = 0;
+			update_jiffies();
 		}
 
 		/**
@@ -271,7 +271,11 @@ class Lx::Timer
 		 */
 		void update_jiffies()
 		{
-			jiffies = msecs_to_jiffies(_timer_conn.elapsed_ms());
+			/*
+			 * Do not use lx_emul usecs_to_jiffies(unsigned int) because
+			 * of implicit truncation!
+			 */
+			jiffies = _timer_conn.curr_time().trunc_to_plain_ms().value / JIFFIES_TICK_MS;
 		}
 
 		/**
