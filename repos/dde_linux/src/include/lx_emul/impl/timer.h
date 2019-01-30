@@ -56,7 +56,7 @@ void hrtimer_init(struct hrtimer *timer, clockid_t clock_id, enum hrtimer_mode m
 int hrtimer_start_range_ns(struct hrtimer *timer, ktime_t tim,
                            unsigned long delta_ns, const enum hrtimer_mode mode)
 {
-	unsigned long expires = tim / (NSEC_PER_MSEC * HZ);
+	unsigned long expires = tim / ((1000/HZ) * NSEC_PER_MSEC);
 
 	/*
 	 * Prevent truncation through rounding the values by adding 1 jiffy

@@ -80,7 +80,7 @@ static inline ktime_t ktime_add_ms(const ktime_t kt, const u64 msec)
 
 static inline ktime_t ktime_get(void)
 {
-	return (ktime_t){ (s64)jiffies * HZ * NSEC_PER_MSEC /* ns */ };
+	return (ktime_t){ (s64)jiffies * (1000/HZ) * NSEC_PER_MSEC /* ns */ };
 }
 
 static inline ktime_t ktime_set(const long sec, const unsigned long nsec)
