@@ -102,6 +102,23 @@ FORCE:
 $(SRC_ADA:.adb=.o): FORCE
 
 #
+# Run binder if Ada sources are included in the build
+#
+ifneq ($(SRC_ADS)$(SRC_ADB),)
+
+CUSTOM_BINDER_FLAGS ?= -n -we
+
+OBJECTS += b~$(TARGET).o
+
+ALIS := $(addsuffix .ali, $(basename $(SRC_ADS) $(SRC_ADB)))
+BINDER_SEARCH_DIRS = $(addprefix -I$(BUILD_BASE_DIR)/var/libcache/, $(LIBS))
+BINDER_SRC := b~$(TARGET).ads b~$(TARGET).adb
+
+$(BINDER_SRC): $(ALIS)
+	$(VERBOSE)$(GNATBIND) $(CUSTOM_BINDER_FLAGS) $(BINDER_SEARCH_DIRS) $(INCLUDES) --RTS=$(ADA_RTS) -o $@ $^
+endif
+
+#
 # Use CXX for linking
 #
 LD_CMD ?= $(CXX)
@@ -215,7 +232,7 @@ endif
 
 clean_prg_objects:
 	$(MSG_CLEAN)$(PRG_REL_DIR)
-	$(VERBOSE)$(RM) -f $(OBJECTS) $(OBJECTS:.o=.d) $(TARGET) $(TARGET).stripped
+	$(VERBOSE)$(RM) -f $(OBJECTS) $(OBJECTS:.o=.d) $(TARGET) $(TARGET).stripped $(BINDER_SRC)
 	$(VERBOSE)$(RM) -f *.d *.i *.ii *.s *.ali *.lib.so
 
 clean: clean_prg_objects

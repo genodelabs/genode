@@ -20,7 +20,6 @@ SRC_ADS += system.ads \
 
 SRC_ADB += g-io.adb
 
-CUSTOM_ADA_MAKE    = $(CC)
 CUSTOM_ADA_FLAGS   = -c -gnatg -gnatp -gnatpg -gnatn2
 CUSTOM_ADA_OPT     = $(CC_ADA_OPT)
 CUSTOM_ADA_INCLUDE = -I- -I$(ADA_RUNTIME_DIR) -I$(ADA_RTS_SOURCE) -I$(ADA_RUNTIME_LIB_DIR)

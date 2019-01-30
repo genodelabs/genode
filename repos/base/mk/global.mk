@@ -22,7 +22,7 @@ CUSTOM_NM       ?= $(CROSS_DEV_PREFIX)nm
 CUSTOM_OBJCOPY  ?= $(CROSS_DEV_PREFIX)objcopy
 CUSTOM_RANLIB   ?= $(CROSS_DEV_PREFIX)ranlib
 CUSTOM_STRIP    ?= $(CROSS_DEV_PREFIX)strip
-CUSTOM_GNATMAKE ?= $(CROSS_DEV_PREFIX)gnatmake
+CUSTOM_GNATBIND ?= $(CROSS_DEV_PREFIX)gnatbind
 CUSTOM_HOST_CC  ?= gcc
 CUSTOM_ADA_CC   ?= $(CUSTOM_CC)
 
@@ -50,7 +50,7 @@ NM       = $(CUSTOM_NM)
 OBJCOPY  = $(CUSTOM_OBJCOPY)
 RANLIB   = $(CUSTOM_RANLIB)
 STRIP    = $(CUSTOM_STRIP)
-GNATMAKE = $(CUSTOM_GNATMAKE)
+GNATBIND = $(CUSTOM_GNATBIND)
 HOST_CC  = $(CUSTOM_HOST_CC)
 ADA_CC   = $(CUSTOM_ADA_CC)
 
@@ -166,7 +166,7 @@ CC_OPT     += $(CC_OPT_PIC)
 #
 CC_CXX_OPT += $(CC_OPT) $(CC_CXX_WARN)
 CC_C_OPT   += $(CC_OPT)
-CC_ADA_OPT += $(CC_OPT) -fexceptions
+CC_ADA_OPT += $(filter-out -fno-builtin-cos -fno-builtin-sin -fno-builtin-cosf -fno-builtin-sinf ,$(CC_OPT)) -fexceptions
 
 #
 # Rust-specific arguments
