@@ -36,8 +36,8 @@ Rm_session_client::Rm_session_client(Capability<Rm_session> session)
 
 
 Capability<Region_map> Rm_session_client::create(size_t size) {
-	return _local(*this)->create(size); }
+	return _local(rpc_cap())->create(size); }
 
 
 void Rm_session_client::destroy(Capability<Region_map> cap) {
-	_local(*this)->destroy(cap); }
+	_local(rpc_cap())->destroy(cap); }

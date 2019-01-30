@@ -27,7 +27,7 @@ struct Sync::Connection : public Genode::Connection<Session>,
                           public Genode::Rpc_client<Session>
 {
 		explicit Connection(Genode::Env &env)
-		: Genode::Connection<Session>(env, session("ram_quota=4K")),
+		: Genode::Connection<Session>(env, session(env.parent(), "ram_quota=4K")),
 		  Genode::Rpc_client<Session>(cap()) { }
 
 		void threshold(unsigned threshold)            override { call<Rpc_threshold>(threshold); }

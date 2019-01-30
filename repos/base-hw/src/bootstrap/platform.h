@@ -68,7 +68,7 @@ class Bootstrap::Platform
 
 				Ram_allocator()
 				: Genode::Allocator_avl_base(&_slab, sizeof(Base::Block)),
-				  _slab(this, (Genode::Slab_block*)&_first_slab) {}
+				  _slab(this, (Block *)&_first_slab) {}
 
 				void * alloc_aligned(size_t size, unsigned align);
 				bool   alloc(size_t size, void **out_addr) override;

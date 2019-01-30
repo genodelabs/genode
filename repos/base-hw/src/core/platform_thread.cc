@@ -47,7 +47,7 @@ Platform_thread::~Platform_thread()
 	}
 
 	/* free UTCB */
-	core_env().ram_session()->free(_utcb);
+	core_env().pd_session()->free(_utcb);
 }
 
 
@@ -90,7 +90,7 @@ Platform_thread::Platform_thread(size_t             const  quota,
 	_kobj(true, _priority(virt_prio), quota, _label.string())
 {
 	try {
-		_utcb = core_env().ram_session()->alloc(sizeof(Native_utcb), CACHED);
+		_utcb = core_env().pd_session()->alloc(sizeof(Native_utcb), CACHED);
 	} catch (...) {
 		error("failed to allocate UTCB");
 		throw Out_of_ram();

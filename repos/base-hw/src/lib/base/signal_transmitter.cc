@@ -27,9 +27,6 @@ using namespace Genode;
 void Genode::init_signal_transmitter(Env &) { }
 
 
-void Signal_context::submit(unsigned) { Genode::error("not implemented"); }
-
-
 void Signal_transmitter::submit(unsigned cnt)
 {
 	{

@@ -16,7 +16,7 @@
 #define _CORE__PLATFORM_THREAD_H_
 
 /* Genode includes */
-#include <ram_session/ram_session.h>
+#include <base/ram_allocator.h>
 #include <base/thread.h>
 
 /* base-internal includes */

@@ -22,8 +22,8 @@
 /* Genode includes */
 #include <base/env.h>
 #include <base/sleep.h>
-#include <base/log.h>
 #include <base/component.h>
+#include <deprecated/env.h>
 
 /* platform-specific local helper functions */
 #include <base/internal/parent_cap.h>
@@ -173,6 +173,12 @@ void genode___cxa_finalize(void *dso)
 
 extern "C" void __cxa_finalize(void *dso);
 
+static Genode::Parent *_parent_ptr;
+
+
+namespace Genode { void init_exit(Parent &parent) { _parent_ptr = &parent; } }
+
+
 /**
  * Terminate the process.
  */
@@ -186,7 +192,8 @@ void genode_exit(int status)
 	for (func = &_dtors_start; func != &_dtors_end; (*func++)());
 
 	/* inform parent about the exit status */
-	Genode::env_deprecated()->parent()->exit(status);
+	if (_parent_ptr)
+		_parent_ptr->exit(status);
 
 	/* wait for destruction by the parent */
 	Genode::sleep_forever();

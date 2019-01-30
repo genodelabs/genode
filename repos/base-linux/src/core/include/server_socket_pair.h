@@ -49,6 +49,8 @@ static inline Genode::Socket_pair create_server_socket_pair(long id)
 {
 	Genode::Socket_pair socket_pair;
 
+	using Genode::raw;
+
 	/*
 	 * Main thread uses 'Ipc_server' for 'sleep_forever()' only. No need for
 	 * binding.
@@ -63,7 +65,7 @@ static inline Genode::Socket_pair create_server_socket_pair(long id)
 	 */
 	socket_pair.server_sd = lx_socket(AF_UNIX, SOCK_DGRAM | SOCK_CLOEXEC, 0);
 	if (socket_pair.server_sd < 0) {
-		PRAW("Error: Could not create server-side socket (ret=%d)", socket_pair.server_sd);
+		raw("Error: Could not create server-side socket (ret=", socket_pair.server_sd, ")");
 		class Server_socket_failed { };
 		throw Server_socket_failed();
 	}
@@ -73,7 +75,7 @@ static inline Genode::Socket_pair create_server_socket_pair(long id)
 
 	int const bind_ret = lx_bind(socket_pair.server_sd, (sockaddr *)&addr, sizeof(addr));
 	if (bind_ret < 0) {
-		PRAW("Error: Could not bind server socket (ret=%d)", bind_ret);
+		raw("Error: Could not bind server socket (ret=", bind_ret, ")");
 		class Bind_failed { };
 		throw Bind_failed();
 	}
@@ -83,14 +85,14 @@ static inline Genode::Socket_pair create_server_socket_pair(long id)
 	 */
 	socket_pair.client_sd = lx_socket(AF_UNIX, SOCK_DGRAM | SOCK_CLOEXEC, 0);
 	if (socket_pair.client_sd < 0) {
-		PRAW("Error: Could not create client-side socket (ret=%d)", socket_pair.client_sd);
+		raw("Error: Could not create client-side socket (ret=", socket_pair.client_sd, ")");
 		class Client_socket_failed { };
 		throw Client_socket_failed();
 	}
 
 	int const conn_ret = lx_connect(socket_pair.client_sd, (sockaddr *)&addr, sizeof(addr));
 	if (conn_ret < 0) {
-		PRAW("Error: Could not connect client-side socket (ret=%d)", conn_ret);
+		raw("Error: Could not connect client-side socket (ret=", conn_ret, ")");
 		class Connect_failed { };
 		throw Connect_failed();
 	}

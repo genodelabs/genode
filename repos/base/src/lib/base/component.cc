@@ -18,6 +18,7 @@
 #include <base/connection.h>
 #include <base/service.h>
 #include <base/env.h>
+#include <deprecated/env.h>
 
 /* base-internal includes */
 #include <base/internal/globals.h>
@@ -73,16 +74,10 @@ namespace {
 		Env(Genode::Entrypoint &ep) : _ep(ep) { env_ptr = this; }
 
 		Genode::Parent      &parent() override { return _parent; }
-		Genode::Ram_session &ram()    override { return *Genode::env_deprecated()->ram_session(); }
 		Genode::Cpu_session &cpu()    override { return *Genode::env_deprecated()->cpu_session(); }
 		Genode::Region_map  &rm()     override { return *Genode::env_deprecated()->rm_session(); }
 		Genode::Pd_session  &pd()     override { return *Genode::env_deprecated()->pd_session(); }
 		Genode::Entrypoint  &ep()     override { return _ep; }
-
-		Genode::Ram_session_capability ram_session_cap() override
-		{
-			return Genode::env_deprecated()->ram_session_cap();
-		}
 
 		Genode::Cpu_session_capability cpu_session_cap() override
 		{
@@ -171,7 +166,7 @@ namespace {
 					cap_quota = Cap_quota { cap_quota.value + 4 }; }
 
 				catch (Out_of_ram) {
-					if (ram_quota.value > ram().avail_ram().value) {
+					if (ram_quota.value > pd().avail_ram().value) {
 						Parent::Resource_args args(String<64>("ram_quota=", ram_quota));
 						_parent.resource_request(args);
 					}

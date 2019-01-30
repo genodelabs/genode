@@ -19,6 +19,7 @@
 #include <base/env.h>
 #include <base/sleep.h>
 #include <base/snprintf.h>
+#include <deprecated/env.h>
 
 /* base-internal includes */
 #include <base/internal/stack_allocator.h>

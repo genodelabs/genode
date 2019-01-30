@@ -13,7 +13,7 @@
 
 /* Genode includes */
 #include <rm_session/rm_session.h>
-#include <ram_session/ram_session.h>
+#include <base/ram_allocator.h>
 #include <base/thread.h>
 
 /* base-internal includes */

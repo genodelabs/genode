@@ -75,8 +75,8 @@ struct Genode::Env_deprecated : Interface
 	 * available to the component. This budget can be used to allocate
 	 * RAM dataspaces.
 	 */
-	virtual Ram_session *ram_session() = 0;
-	virtual Ram_session_capability ram_session_cap() = 0;
+	virtual Ram_session *ram_session() { return pd_session(); }
+	virtual Ram_session_capability ram_session_cap() { return pd_session_cap(); }
 
 	/**
 	 * CPU session of the component

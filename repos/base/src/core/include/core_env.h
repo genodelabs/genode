@@ -17,6 +17,7 @@
 
 /* Genode includes */
 #include <base/env.h>
+#include <deprecated/env.h>
 
 /* base-internal includes */
 #include <base/internal/globals.h>
@@ -91,8 +92,6 @@ class Genode::Core_env : public Env_deprecated, Noncopyable
 		 ******************************/
 
 		Parent                 *parent()          override { return nullptr; }
-		Ram_session            *ram_session()     override { return &_pd_session; }
-		Ram_session_capability  ram_session_cap() override { return  _pd_session.cap(); }
 		Region_map             *rm_session()      override { return &_region_map; }
 		Pd_session             *pd_session()      override { return &_pd_session; }
 		Allocator              *heap()            override { ASSERT_NEVER_CALLED; }

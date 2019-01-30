@@ -35,7 +35,9 @@ namespace Genode {
 	void init_ldso_phdr(Env &);
 	void init_signal_thread(Env &);
 	void init_root_proxy(Env &);
-	void init_log();
+	void init_tracing(Env &);
+	void init_log(Parent &);
+	void init_exit(Parent &);
 	void init_parent_resource_requests(Env &);
 	void init_heartbeat_monitoring(Env &);
 	void deinit_heartbeat_monitoring();
@@ -49,5 +51,7 @@ namespace Genode {
 	Id_space<Parent::Client> &env_session_id_space();
 	Env &internal_env();
 }
+
+void genode_exit(int);
 
 #endif /* _INCLUDE__BASE__INTERNAL__GLOBALS_H_ */

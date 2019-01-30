@@ -154,14 +154,15 @@ Local_parent &Platform_env::_parent()
 
 Platform_env::Platform_env()
 :
-	Platform_env_base(static_cap_cast<Cpu_session>(_parent().session_cap(Parent::Env::cpu())),
+	Platform_env_base(_parent(),
+	                  static_cap_cast<Cpu_session>(_parent().session_cap(Parent::Env::cpu())),
 	                  static_cap_cast<Pd_session> (_parent().session_cap(Parent::Env::pd()))),
-	_heap(Platform_env_base::ram_session(), Platform_env_base::rm_session())
+	_heap(Platform_env_base::pd_session(), Platform_env_base::rm_session())
 {
 	_attach_stack_area();
 
 	env_stack_area_region_map    = &_local_pd_session._stack_area;
-	env_stack_area_ram_allocator = ram_session();
+	env_stack_area_ram_allocator = Platform_env_base::pd_session();
 
 	/* register TID and PID of the main thread at core */
 	Linux_native_cpu_client native_cpu(cpu_session()->native_cpu());

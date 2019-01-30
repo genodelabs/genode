@@ -12,9 +12,6 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* Genode includes */
-#include <base/attached_rom_dataspace.h>
-
 /* NOVA includes */
 #include <nova/native_thread.h>
 
@@ -23,17 +20,6 @@
 
 using namespace Genode;
 using namespace Nova;
-
-
-Timer::Time_source::Time_source(Env &env) : Threaded_time_source(env)
-{
-	/* read out the tsc frequency once */
-	Attached_rom_dataspace const platform_info { env, "platform_info" };
-	Xml_node const hardware = platform_info.xml().sub_node("hardware");
-	hardware.sub_node("tsc").attribute("freq_khz").value(&_tsc_khz);
-
-	start();
-}
 
 
 void Timer::Time_source::schedule_timeout(Microseconds     duration,

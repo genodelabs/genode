@@ -33,7 +33,8 @@ struct Genode::Local_pd_session : Expanding_pd_session_client
 	Region_map_mmap _stack_area    { true,  stack_area_virtual_size() };
 	Region_map_mmap _linker_area   { true, Pd_session::LINKER_AREA_SIZE };
 
-	Local_pd_session(Pd_session_capability pd) : Expanding_pd_session_client(pd) { }
+	Local_pd_session(Parent &parent, Pd_session_capability pd)
+	: Expanding_pd_session_client(parent, pd) { }
 
 	Capability<Region_map> address_space()
 	{

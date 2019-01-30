@@ -19,8 +19,8 @@
 
 /* Genode includes */
 #include <base/signal.h>
+#include <cpu_session/cpu_session.h>  /* for 'Thread_capability' type */
 #include <pager/capability.h>
-#include <thread/capability.h>
 
 /* core-local includes */
 #include <rpc_cap_factory.h>

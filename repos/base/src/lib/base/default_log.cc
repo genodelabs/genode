@@ -12,9 +12,11 @@
  */
 
 /* Genode includes */
+#include <util/construct_at.h>
 #include <base/log.h>
-#include <log_session/log_session.h>
 #include <base/buffered_output.h>
+#include <base/sleep.h>
+#include <log_session/client.h>
 
 /* base-internal includes */
 #include <base/internal/globals.h>
@@ -23,32 +25,68 @@
 using namespace Genode;
 
 
-static Log *log_ptr;
+namespace {
 
+	/**
+	 * Singleton back end for writing messages to the component's log session
+	 */
+	struct Back_end : Noncopyable
+	{
+		Log_session_client _client;
+
+		static Session_capability _cap(Parent &parent) {
+			return parent.session_cap(Parent::Env::log()); }
+
+		Back_end(Parent &parent)
+		: _client(reinterpret_cap_cast<Log_session>(_cap(parent))) { }
+
+		void write(char const *string) { (void)_client.write(string); }
+	};
+}
+
+static Back_end *back_end_ptr;
+
+
+/**
+ * Singleton instance of the 'Log' interface
+ */
+static Log *log_ptr;
 
 Log &Log::log()
 {
-	/*
-	 * Ensure the log is initialized before use. This is only needed for
-	 * components that do not initialize the log explicitly in the startup
-	 * code, i.e., Linux hybrid components.
-	 */
-	Genode::init_log();
+	if (log_ptr)
+		return *log_ptr;
 
-	return *log_ptr;
+	raw("Error: Missing call of log_init");
+	sleep_forever();
 }
 
 
-extern "C" int stdout_write(const char *s);
+/**
+ * Hook for support the 'fork' implementation of the noux libc backend
+ */
+extern "C" void stdout_reconnect(Parent &parent)
+{
+	/*
+	 * We cannot use a 'Reconstructible' because we have to skip
+	 * the object destruction inside a freshly forked process.
+	 * Otherwise, the attempt to destruct the capability contained
+	 * in the 'Log' object would result in an inconsistent ref counter
+	 * of the respective capability-space element.
+	 */
+	construct_at<Back_end>(back_end_ptr, parent);
+}
 
 
-void Genode::init_log()
+void Genode::init_log(Parent &parent)
 {
 	/* ignore subsequent calls */
 	if (log_ptr)
 		return;
 
-	struct Write_fn { void operator () (char const *s) { stdout_write(s); } };
+	back_end_ptr = unmanaged_singleton<Back_end>(parent);
+
+	struct Write_fn { void operator () (char const *s) { back_end_ptr->write(s); } };
 
 	typedef Buffered_output<Log_session::MAX_STRING_LEN, Write_fn>
 	        Buffered_log_output;

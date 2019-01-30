@@ -15,14 +15,9 @@
 /* Genode includes */
 #include <base/entrypoint.h>
 #include <base/component.h>
-
 #include <cpu/atomic.h>
-
-#define INCLUDED_BY_ENTRYPOINT_CC  /* prevent "deprecated" warning */
-#include <cap_session/connection.h>
-#undef INCLUDED_BY_ENTRYPOINT_CC
-
 #include <util/retry.h>
+#include <base/rpc_client.h>
 
 /* base-internal includes */
 #include <base/internal/globals.h>
@@ -289,6 +284,7 @@ namespace {
 
 			Genode::call_global_static_constructors();
 			Genode::init_signal_transmitter(env);
+			Genode::init_tracing(env);
 
 			/*
 			 * Now, as signaling is available, initialize the asynchronous
@@ -301,6 +297,11 @@ namespace {
 			Component::construct(env);
 		}
 	};
+
+	void invoke_constructor_at_entrypoint(Capability<Constructor> cap)
+	{
+		cap.call<Constructor::Rpc_construct>();
+	}
 }
 
 
@@ -320,16 +321,15 @@ Entrypoint::Entrypoint(Env &env)
 	 */
 	Constructor_component constructor(env);
 
-	Capability<Constructor> constructor_cap =
-		_rpc_ep->manage(&constructor);
+	_env.ep().manage(constructor);
 
 	try {
-		constructor_cap.call<Constructor::Rpc_construct>();
+		invoke_constructor_at_entrypoint(constructor.cap());
 	} catch (Blocking_canceled) {
 		warning("blocking canceled in entrypoint constructor");
 	}
 
-	_rpc_ep->dissolve(&constructor);
+	_env.ep().dissolve(constructor);
 
 	/*
 	 * The calling initial thread becomes the signal proxy thread for this

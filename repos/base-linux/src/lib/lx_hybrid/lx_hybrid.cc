@@ -86,8 +86,16 @@ namespace Genode {
 	 * This function is normally provided by the cxx library, which is not
 	 * used for lx_hybrid programs. For lx_hybrid programs, the exception
 	 * handling is initialized by the host system's regular startup code.
+	 *
+	 * However, we conveniently use this function to get hold of the
+	 * component's environment and initialize the default log output.
 	 */
-	void init_exception_handling(Env &env) { _env_ptr = &env; }
+	void init_exception_handling(Env &env)
+	{
+		_env_ptr = &env;
+
+		init_log(env.parent());
+	}
 }
 
 /*

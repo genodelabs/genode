@@ -27,6 +27,19 @@ using namespace Genode;
 
 namespace Genode { bool inhibit_tracing = true; /* cleared by '_main' */ }
 
+static Env *_env_ptr;
+
+namespace Genode { void init_tracing(Env &env) { _env_ptr = &env; } }
+
+static Env &_env()
+{
+	if (_env_ptr)
+		return *_env_ptr;
+
+	struct Missing_call_of_init_tracing { };
+	throw  Missing_call_of_init_tracing();
+}
+
 
 /*******************
  ** Trace::Logger **
@@ -47,13 +60,13 @@ bool Trace::Logger::_evaluate_control()
 
 			/* unload policy */
 			if (policy_module) {
-				env_deprecated()->rm_session()->detach(policy_module);
+				_env().rm().detach(policy_module);
 				policy_module = 0;
 			}
 
 			/* unmap trace buffer */
 			if (buffer) {
-				env_deprecated()->rm_session()->detach(buffer);
+				_env().rm().detach(buffer);
 				buffer = 0;
 			}
 
@@ -93,9 +106,8 @@ bool Trace::Logger::_evaluate_control()
 				EXECUTABLE = true
 			};
 
-			Genode::Region_map * const rm = env_deprecated()->rm_session();
-			policy_module = rm->attach(policy_ds, MAX_SIZE, NO_OFFSET,
-			                           ANY_LOCAL_ADDR, nullptr, EXECUTABLE);
+			policy_module = _env().rm().attach(policy_ds, MAX_SIZE, NO_OFFSET,
+			                                   ANY_LOCAL_ADDR, nullptr, EXECUTABLE);
 
 			/* relocate function pointers of policy callback table */
 			for (unsigned i = 0; i < sizeof(Trace::Policy_module)/sizeof(void *); i++) {
@@ -118,7 +130,7 @@ bool Trace::Logger::_evaluate_control()
 		}
 
 		try {
-			buffer = env_deprecated()->rm_session()->attach(buffer_ds);
+			buffer = _env().rm().attach(buffer_ds);
 			buffer->init(Dataspace_client(buffer_ds).size());
 		} catch (...) { }
 
@@ -170,10 +182,10 @@ Trace::Logger::Logger() { }
 /**
  * return logger instance for the main thread **
  */
-static Trace::Logger *main_trace_logger()
+static Trace::Logger &main_trace_logger()
 {
 	static Trace::Logger logger;
-	return &logger;
+	return logger;
 }
 
 
@@ -183,38 +195,36 @@ static Trace::Control *main_trace_control;
 Trace::Logger *Thread::_logger()
 {
 	if (inhibit_tracing)
-		return 0;
+		return nullptr;
 
 	Thread * const myself = Thread::myself();
 
-	Trace::Logger * const logger = myself ? &myself->_trace_logger
-	                                      : main_trace_logger();
+	Trace::Logger &logger = myself ? myself->_trace_logger
+	                               : main_trace_logger();
 
 	/* logger is already being initialized */
-	if (logger->init_pending())
-		return logger;
+	if (logger.init_pending())
+		return &logger;
 
 	/* lazily initialize trace object */
-	if (!logger->initialized()) {
-		logger->init_pending(true);
+	if (!logger.initialized()) {
+		logger.init_pending(true);
 
 		Thread_capability thread_cap = myself ? myself->_thread_cap
-		                                      : env_deprecated()->parent()->main_thread_cap();
+		                                      : _env().parent().main_thread_cap();
 
-		Genode::Cpu_session *cpu = myself ? myself->_cpu_session
-		                                  : env_deprecated()->cpu_session();
-		if (!cpu) cpu = env_deprecated()->cpu_session();
+		Cpu_session &cpu = myself ? *myself->_cpu_session : _env().cpu();
 
 		if (!myself)
 			if (!main_trace_control) {
-				Dataspace_capability ds = env_deprecated()->cpu_session()->trace_control();
+				Dataspace_capability ds = _env().cpu().trace_control();
 				if (ds.valid())
-					main_trace_control = env_deprecated()->rm_session()->attach(ds);
+					main_trace_control = _env().rm().attach(ds);
 			}
 
-		logger->init(thread_cap, cpu,
-		             myself ? myself->_trace_control : main_trace_control);
+		logger.init(thread_cap, &cpu,
+		            myself ? myself->_trace_control : main_trace_control);
 	}
 
-	return logger;
+	return &logger;
 }

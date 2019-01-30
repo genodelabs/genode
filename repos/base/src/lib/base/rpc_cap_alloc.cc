@@ -16,6 +16,7 @@
 #include <util/retry.h>
 #include <base/rpc_server.h>
 #include <pd_session/client.h>
+#include <deprecated/env.h>
 
 using namespace Genode;
 

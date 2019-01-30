@@ -16,7 +16,6 @@
 #define _CORE__INCLUDE__PLATFORM_THREAD_H_
 
 /* Genode includes */
-#include <thread/capability.h>
 #include <base/thread_state.h>
 #include <base/thread.h>
 #include <nova_native_cpu/nova_native_cpu.h>

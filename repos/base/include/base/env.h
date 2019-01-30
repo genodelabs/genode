@@ -38,7 +38,7 @@ struct Genode::Env : Interface
 	 * The RAM allocator is backed with the RAM budget of the component's PD
 	 * session. This budget can be used to allocate RAM dataspaces.
 	 */
-	virtual Ram_session &ram() = 0;
+	virtual Ram_session &ram() { return pd(); }
 
 	/**
 	 * CPU session of the component
@@ -68,7 +68,7 @@ struct Genode::Env : Interface
 	 * \deprecated  the RAM session has become part of the PD session
 	 * \noapi
 	 */
-	virtual Ram_session_capability ram_session_cap() = 0;
+	virtual Ram_session_capability ram_session_cap() { return pd_session_cap(); }
 
 	/**
 	 * Return the CPU-session capability of the component

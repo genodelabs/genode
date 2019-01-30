@@ -27,6 +27,8 @@ class Genode::Trace::Root : public Genode::Root_component<Session_component>
 {
 	private:
 
+		Ram_allocator   &_ram;
+		Region_map      &_local_rm;
 		Source_registry &_sources;
 		Policy_registry &_policies;
 
@@ -42,8 +44,9 @@ class Genode::Trace::Root : public Genode::Root_component<Session_component>
 				throw Service_denied();
 
 			return new (md_alloc())
-			       Session_component(*md_alloc(), ram_quota, arg_buffer_size,
-			                         parent_levels, label_from_args(args).string(), _sources, _policies);
+			       Session_component(_ram, _local_rm, *md_alloc(), ram_quota,
+			                         arg_buffer_size, parent_levels,
+			                         label_from_args(args).string(), _sources, _policies);
 		}
 
 		void _upgrade_session(Session_component *s, const char *args) override
@@ -57,16 +60,14 @@ class Genode::Trace::Root : public Genode::Root_component<Session_component>
 		/**
 		 * Constructor
 		 *
-		 * \param session_ep       entry point for managing session objects
-		 * \param md_alloc         meta data allocator used by root component
-		 * \param ram_quota        RAM for tracing purposes of this session
-		 * \param arg_buffer_size  session argument-buffer size
+		 * \param session_ep  entry point for managing session objects
 		 */
-		Root(Rpc_entrypoint &session_ep, Allocator &md_alloc,
+		Root(Ram_allocator &ram, Region_map &local_rm,
+		     Rpc_entrypoint &session_ep, Allocator &md_alloc,
 		     Source_registry &sources, Policy_registry &policies)
 		:
 			Root_component<Session_component>(&session_ep, &md_alloc),
-			_sources(sources), _policies(policies)
+			_ram(ram), _local_rm(local_rm), _sources(sources), _policies(policies)
 		{ }
 };
 

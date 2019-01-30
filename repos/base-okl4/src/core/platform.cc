@@ -91,12 +91,13 @@ int Platform::bi_add_phys_mem(Okl4::bi_name_t pool, Okl4::uintptr_t base,
 static char init_slab_block_rom[get_page_size()];
 static char init_slab_block_thread[get_page_size()];
 
+
 Platform::Platform()
 :
 	_io_mem_alloc(&core_mem_alloc()), _io_port_alloc(&core_mem_alloc()),
 	_irq_alloc(&core_mem_alloc()),
-	_rom_slab(&core_mem_alloc(), (Slab_block *)&init_slab_block_rom),
-	_thread_slab(core_mem_alloc(), (Slab_block *)&init_slab_block_thread)
+	_rom_slab(&core_mem_alloc(), &init_slab_block_rom),
+	_thread_slab(core_mem_alloc(), &init_slab_block_thread)
 {
 	/*
 	 * We must be single-threaded at this stage and so this is safe.

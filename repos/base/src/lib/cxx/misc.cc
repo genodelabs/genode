@@ -18,7 +18,6 @@
 #include <base/env.h>
 #include <base/log.h>
 #include <base/stdint.h>
-#include <base/sleep.h>
 #include <base/thread.h>
 #include <util/string.h>
 
@@ -119,9 +118,8 @@ extern "C" void *abort(void)
 
 	/* Notify the parent of failure */
 	if (name != "main")
-		Genode::env_deprecated()->parent()->exit(1);
+		genode_exit(1);
 
-	Genode::sleep_forever();
 	return 0;
 }
 

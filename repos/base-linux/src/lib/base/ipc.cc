@@ -160,7 +160,7 @@ static int lookup_tid_by_client_socket(int sd)
 
 	unsigned tid = 0;
 	if (Genode::ascii_to(name.sun_path + prefix_len.len, tid) == 0) {
-		PRAW("Error: could not parse tid number");
+		raw("Error: could not parse tid number");
 		return -1;
 	}
 	return tid;
@@ -354,7 +354,8 @@ static inline void lx_reply(int reply_socket, Rpc_exception_code exception_code,
 	}
 
 	if (ret < 0)
-		PRAW("[%d] lx_sendmsg failed with %d in lx_reply() reply_socket=%d", lx_gettid(), ret, reply_socket);
+		raw("[", lx_gettid, "] lx_sendmsg failed with ", ret, " "
+		    "in lx_reply() reply_socket=", reply_socket);
 }
 
 
@@ -388,7 +389,7 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 
 			int ret = lx_socketpair(AF_UNIX, SOCK_DGRAM | SOCK_CLOEXEC, 0, sd);
 			if (ret < 0) {
-				PRAW("[%d] lx_socketpair failed with %d", lx_getpid(), ret);
+				raw("[", lx_gettid(), "] lx_socketpair failed with ", ret);
 				throw Genode::Ipc_error();
 			}
 		}
@@ -438,7 +439,7 @@ Rpc_exception_code Genode::ipc_call(Native_capability dst,
 		throw Genode::Blocking_canceled();
 
 	if (recv_ret < 0) {
-		PRAW("[%d] lx_recvmsg failed with %d in lx_call()", lx_getpid(), recv_ret);
+		raw("[", lx_getpid(), "] lx_recvmsg failed with ", recv_ret, " in lx_call()");
 		throw Genode::Ipc_error();
 	}
 
@@ -496,8 +497,8 @@ Genode::Rpc_request Genode::ipc_reply_wait(Reply_capability const &last_caller,
 			continue;
 
 		if (ret < 0) {
-			PRAW("lx_recvmsg failed with %d in ipc_reply_wait, sd=%d",
-			     ret, native_thread.socket_pair.server_sd);
+			raw("lx_recvmsg failed with ", ret, " in ipc_reply_wait, sd=",
+			    native_thread.socket_pair.server_sd);
 			continue;
 		}
 
@@ -528,8 +529,8 @@ Ipc_server::Ipc_server()
 	Native_thread &native_thread = Thread::myself()->native_thread();
 
 	if (native_thread.is_ipc_server) {
-		PRAW("[%d] unexpected multiple instantiation of Ipc_server by one thread",
-		     lx_gettid());
+		Genode::raw("[", lx_gettid(), "] "
+		            " unexpected multiple instantiation of Ipc_server by one thread");
 		struct Ipc_server_multiple_instance { };
 		throw Ipc_server_multiple_instance();
 	}

@@ -20,6 +20,7 @@
 #include <cpu_thread/client.h>
 #include <foc/native_capability.h>
 #include <foc_native_cpu/client.h>
+#include <deprecated/env.h>
 
 /* base-internal includes */
 #include <base/internal/stack.h>

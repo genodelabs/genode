@@ -17,6 +17,7 @@
 #include <base/thread.h>
 #include <base/env.h>
 #include <base/log.h>
+#include <deprecated/env.h>
 
 /* base-internal includes */
 #include <base/internal/capability_data.h>
