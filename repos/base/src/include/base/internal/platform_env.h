@@ -24,6 +24,7 @@
 #include <base/log.h>
 #include <base/env.h>
 #include <base/heap.h>
+#include <deprecated/env.h>
 
 /* base-internal includes */
 #include <base/internal/globals.h>
@@ -62,10 +63,10 @@ class Genode::Platform_env : public Platform_env_base
 
 			Resources(Parent &parent)
 			:
-				pd (request<Pd_session> (parent, Parent::Env::pd())),
-				cpu(request<Cpu_session>(parent, Parent::Env::cpu()),
-				                         Parent::Env::cpu()),
-				rm(pd, pd.address_space(), Parent::Env::pd())
+				pd (parent, request<Pd_session> (parent, Parent::Env::pd())),
+				cpu(parent, request<Cpu_session>(parent, Parent::Env::cpu()),
+				                                 Parent::Env::cpu()),
+				rm(parent, pd.rpc_cap(), pd.address_space(), Parent::Env::pd())
 			{ }
 		};
 
@@ -78,7 +79,7 @@ class Genode::Platform_env : public Platform_env_base
 		 * because the 'Local_parent' performs a dynamic memory allocation
 		 * due to the creation of the stack area's sub-RM session.
 		 */
-		Attached_stack_area _stack_area { _parent_client, _resources.pd };
+		Attached_stack_area _stack_area { _parent_client, _resources.pd.rpc_cap() };
 
 	public:
 
@@ -107,13 +108,11 @@ class Genode::Platform_env : public Platform_env_base
 		 ******************************/
 
 		Parent                 *parent()          override { return &_parent_client; }
-		Ram_session            *ram_session()     override { return &_resources.pd; }
-		Ram_session_capability  ram_session_cap() override { return  _resources.pd; }
 		Cpu_session            *cpu_session()     override { return &_resources.cpu; }
-		Cpu_session_capability  cpu_session_cap() override { return  _resources.cpu; }
-		Region_map             *rm_session()      override { return &_resources.rm; }
+		Cpu_session_capability  cpu_session_cap() override { return  _resources.cpu.rpc_cap(); }
 		Pd_session             *pd_session()      override { return &_resources.pd; }
-		Pd_session_capability   pd_session_cap()  override { return  _resources.pd; }
+		Pd_session_capability   pd_session_cap()  override { return  _resources.pd.rpc_cap(); }
+		Region_map             *rm_session()      override { return &_resources.rm; }
 		Allocator              *heap()            override { return &_heap; }
 };
 

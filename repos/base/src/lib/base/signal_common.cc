@@ -17,6 +17,7 @@
 #include <base/env.h>
 #include <base/signal.h>
 #include <base/trace/events.h>
+#include <deprecated/env.h>
 
 using namespace Genode;
 

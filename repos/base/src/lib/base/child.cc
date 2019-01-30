@@ -221,8 +221,8 @@ Session_capability Child::session(Parent::Client::Id id,
 		Ram_transfer::Remote_account ref_ram_account { _policy.ref_pd(), _policy.ref_pd_cap() };
 		Cap_transfer::Remote_account ref_cap_account { _policy.ref_pd(), _policy.ref_pd_cap()  };
 
-		Ram_transfer::Remote_account ram_account { ram(), ram_session_cap() };
-		Cap_transfer::Remote_account cap_account { pd(),  pd_session_cap() };
+		Ram_transfer::Remote_account ram_account { pd(), pd_session_cap() };
+		Cap_transfer::Remote_account cap_account { pd(), pd_session_cap() };
 
 		/* transfer the quota donation from the child's account to ourself */
 		Ram_transfer ram_donation_from_child(ram_quota, ram_account, ref_ram_account);
@@ -364,8 +364,8 @@ Parent::Upgrade_result Child::upgrade(Client::Id id, Parent::Upgrade_args const 
 			Ram_transfer::Remote_account ref_ram_account { _policy.ref_pd(), _policy.ref_pd_cap() };
 			Cap_transfer::Remote_account ref_cap_account { _policy.ref_pd(), _policy.ref_pd_cap()  };
 
-			Ram_transfer::Remote_account ram_account { ram(), pd_session_cap() };
-			Cap_transfer::Remote_account cap_account { pd(),  pd_session_cap() };
+			Ram_transfer::Remote_account ram_account { pd(), pd_session_cap() };
+			Cap_transfer::Remote_account cap_account { pd(), pd_session_cap() };
 
 			/* transfer quota from client to ourself */
 			Ram_transfer ram_donation_from_child(ram_quota, ram_account, ref_ram_account);
@@ -416,7 +416,7 @@ void Child::_revert_quota_and_destroy(Session_state &session)
 {
 	Ram_transfer::Remote_account   ref_ram_account(_policy.ref_pd(), _policy.ref_pd_cap());
 	Ram_transfer::Account     &service_ram_account = session.service();
-	Ram_transfer::Remote_account child_ram_account(ram(), pd_session_cap());
+	Ram_transfer::Remote_account child_ram_account(pd(), pd_session_cap());
 
 	Cap_transfer::Remote_account   ref_cap_account(_policy.ref_pd(), _policy.ref_pd_cap());
 	Cap_transfer::Account     &service_cap_account = session.service();

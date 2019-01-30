@@ -175,6 +175,19 @@ class Test_child_policy : public Child_policy
 		Signal_context_capability const _fault_handler_sigh;
 		Signal_context_capability const _fault_handler_stack_sigh;
 
+		Service &_matching_service(Service::Name const &name)
+		{
+			Service *service = nullptr;
+			_parent_services.for_each([&] (Service &s) {
+				if (!service && name == s.name())
+					service = &s; });
+
+			if (!service)
+				throw Service_denied();
+
+			return *service;
+		}
+
 	public:
 
 		/**
@@ -216,18 +229,12 @@ class Test_child_policy : public Child_policy
 			stack_area.fault_handler(_fault_handler_stack_sigh);
 		}
 
-		Service &resolve_session_request(Service::Name const &service_name,
-		                                 Session_state::Args const &) override
+		Route resolve_session_request(Service::Name const &name,
+		                              Session_label const &label) override
 		{
-			Service *service = nullptr;
-			_parent_services.for_each([&] (Service &s) {
-				if (!service && service_name == s.name())
-					service = &s; });
-
-			if (!service)
-				throw Service_denied();
-
-			return *service;
+			return Route { .service = _matching_service(name),
+			               .label   = label,
+			               .diag    = Session::Diag() };
 		}
 };
 
@@ -252,19 +259,19 @@ struct Main_parent
 	{
 		Allocator &alloc;
 
-		Parent_services(Allocator &alloc) : alloc(alloc)
+		Parent_services(Env &env, Allocator &alloc) : alloc(alloc)
 		{
 			static const char *names[] = {
 				"PD", "CPU", "ROM", "LOG", 0 };
 			for (unsigned i = 0; names[i]; i++)
-				new (alloc) Test_child_policy::Parent_service(*this, names[i]);
+				new (alloc) Test_child_policy::Parent_service(*this, env, names[i]);
 		}
 
 		~Parent_services()
 		{
 			for_each([&] (Test_child_policy::Parent_service &s) { destroy(alloc, &s); });
 		}
-	} _parent_services { _heap };
+	} _parent_services { _env, _heap };
 
 	/* create child */
 	Test_child_policy _child_policy { _env, _parent_services, _fault_handler,

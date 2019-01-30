@@ -12,7 +12,8 @@
  */
 
 /* Genode includes */
-#include <base/printf.h>
+#include <log_session/log_session.h>
+#include <base/snprintf.h>
 #include <base/env.h>
 #include <base/heap.h>
 #include <base/sleep.h>
@@ -27,32 +28,36 @@
 
 enum { verbose_memory_leak = false };
 
-
-Genode::Lock *printf_lock()
+static
+void vprintf(const char *format, va_list &args)
 {
-	static Genode::Lock inst;
-	return &inst;
+	using namespace Genode;
+	typedef Vmm::Utcb_guard::Utcb_backup Utcb_backup;
+
+	static Lock lock;
+	static Utcb_backup utcb_backup;
+	static char buf[Log_session::MAX_STRING_LEN-4];
+
+	Lock::Guard guard(lock);
+	utcb_backup = *(Utcb_backup *)Thread::myself()->utcb();
+
+	String_console sc(buf, sizeof(buf));
+	sc.vprintf(format, args);
+
+	int n = sc.len();
+	if (0 < n && buf[n-1] == '\n') n--;
+
+	log("VMM: ", Cstring(buf, n));
+
+	*(Utcb_backup *)Thread::myself()->utcb() = utcb_backup;
 }
-
-
-typedef Vmm::Utcb_guard::Utcb_backup Utcb_backup;
-
-static Utcb_backup utcb_backup;
-
 
 void Logging::printf(const char *format, ...)
 {
 	va_list list;
 	va_start(list, format);
 
-	Genode::Lock::Guard guard(*printf_lock());
-
-	utcb_backup = *(Utcb_backup *)Genode::Thread::myself()->utcb();
-
-	Genode::printf("VMM: ");
-	Genode::vprintf(format, list);
-
-	*(Utcb_backup *)Genode::Thread::myself()->utcb() = utcb_backup;
+	::vprintf(format, list);
 
 	va_end(list);
 }
@@ -60,15 +65,7 @@ void Logging::printf(const char *format, ...)
 
 void Logging::vprintf(const char *format, va_list &ap)
 {
-	Genode::Lock::Guard guard(*printf_lock());
-
-	utcb_backup = *(Utcb_backup *)Genode::Thread::myself()->utcb();
-
-	Genode::printf("VMM: ");
-	Genode::printf(format);
-	Genode::error("Logging::vprintf not implemented");
-
-	*(Utcb_backup *)Genode::Thread::myself()->utcb() = utcb_backup;
+	::vprintf(format, ap);
 }
 
 
@@ -77,9 +74,8 @@ void Logging::panic(const char *format, ...)
 	va_list list;
 	va_start(list, format);
 
-	Genode::printf("\nVMM PANIC! ");
-	Genode::vprintf(format, list);
-	Genode::printf("\n");
+	Genode::error("VMM PANIC!");
+	::vprintf(format, list);
 
 	va_end(list);
 
@@ -159,9 +155,7 @@ void operator delete (void * ptr)
 
 void do_exit(char const *msg)
 {
-	Genode::printf("*** ");
-	Genode::printf(msg);
-	Genode::printf("\n");
+	Genode::log("*** ", msg);
 	Genode::sleep_forever();
 }
 

@@ -35,7 +35,7 @@ Main::Main(Env &env)
 	enum { COUNT = 1000 };
 
 	Cap_index*           idx = cap_idx_alloc().alloc_range(COUNT);
-	Fiasco::l4_cap_idx_t tid = Capability_space::kcap(env.ram_session_cap());
+	Fiasco::l4_cap_idx_t tid = Capability_space::kcap(env.pd_session_cap());
 
 	/* try the first 1000 local name IDs */
 	for (int local_name = 0; local_name < COUNT; local_name++, idx++) {

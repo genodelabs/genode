@@ -41,13 +41,13 @@ Region_map_client::attach(Dataspace_capability ds, size_t size,
                           Region_map::Local_addr local_addr,
                           bool executable, bool writeable)
 {
-	return _local(*this)->attach(ds, size, offset, use_local_addr,
+	return _local(rpc_cap())->attach(ds, size, offset, use_local_addr,
 	                             local_addr, executable, writeable);
 }
 
 
 void Region_map_client::detach(Local_addr local_addr) {
-	return _local(*this)->detach(local_addr); }
+	return _local(rpc_cap())->detach(local_addr); }
 
 
 void Region_map_client::fault_handler(Signal_context_capability /*handler*/)
@@ -61,9 +61,9 @@ void Region_map_client::fault_handler(Signal_context_capability /*handler*/)
 }
 
 
-Region_map::State Region_map_client::state() { return _local(*this)->state(); }
+Region_map::State Region_map_client::state() { return _local(rpc_cap())->state(); }
 
 
 Dataspace_capability Region_map_client::dataspace() {
-	return _local(*this) ? _local(*this)->dataspace() : Dataspace_capability(); }
+	return _local(rpc_cap()) ? _local(rpc_cap())->dataspace() : Dataspace_capability(); }
 

@@ -20,6 +20,7 @@
 #include <base/log.h>
 #include <linux_native_cpu/client.h>
 #include <cpu_thread/client.h>
+#include <deprecated/env.h>
 
 /* base-internal includes */
 #include <base/internal/stack.h>

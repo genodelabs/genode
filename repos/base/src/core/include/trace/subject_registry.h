@@ -54,7 +54,7 @@ class Genode::Trace::Subject
 		{
 			private:
 
-				Ram_session             *_ram_ptr { nullptr };
+				Ram_allocator           *_ram_ptr { nullptr };
 				size_t                   _size    { 0 };
 				Ram_dataspace_capability _ds      { };
 
@@ -83,7 +83,7 @@ class Genode::Trace::Subject
 				 * \return true on success, false on the attempt to call setup
 				 *         twice.
 				 */
-				bool setup(Ram_session &ram, size_t size)
+				bool setup(Ram_allocator &ram, size_t size)
 				{
 					if (_size)
 						return false;
@@ -97,8 +97,8 @@ class Genode::Trace::Subject
 				/**
 				 * Clone dataspace into newly allocated dataspace
 				 */
-				bool setup(Ram_session &ram, Dataspace_capability &from_ds,
-				           size_t size)
+				bool setup(Ram_allocator &ram, Region_map &local_rm,
+				           Dataspace_capability &from_ds, size_t size)
 				{
 					if (!from_ds.valid())
 						return false;
@@ -108,13 +108,13 @@ class Genode::Trace::Subject
 					_ds      = ram.alloc(_size);
 
 					/* copy content */
-					void *src = env_deprecated()->rm_session()->attach(from_ds),
-					     *dst = env_deprecated()->rm_session()->attach(_ds);
+					void *src = local_rm.attach(from_ds),
+					     *dst = local_rm.attach(_ds);
 
 					memcpy(dst, src, _size);
 
-					env_deprecated()->rm_session()->detach(src);
-					env_deprecated()->rm_session()->detach(dst);
+					local_rm.detach(src);
+					local_rm.detach(dst);
 
 					return true;
 				}
@@ -196,12 +196,13 @@ class Genode::Trace::Subject
 		 * \throw Traced_by_other_session
 		 */
 		void trace(Policy_id policy_id, Dataspace_capability policy_ds,
-		           size_t policy_size, Ram_session &ram, size_t size)
+		           size_t policy_size, Ram_allocator &ram,
+		           Region_map &local_rm, size_t size)
 		{
 			_policy_id = policy_id;
 
 			if (!_buffer.setup(ram, size)
-			 || !_policy.setup(ram, policy_ds, policy_size))
+			 || !_policy.setup(ram, local_rm, policy_ds, policy_size))
 				throw Already_traced();
 
 			/* inform trace source about the new buffer */
@@ -288,7 +289,7 @@ class Genode::Trace::Subject_registry
 		typedef List<Subject> Subjects;
 
 		Allocator       &_md_alloc;
-		Ram_session     &_ram;
+		Ram_allocator   &_ram;
 		Source_registry &_sources;
 		unsigned         _id_cnt  { 0 };
 		Lock             _lock    { };
@@ -372,10 +373,10 @@ class Genode::Trace::Subject_registry
 		 *
 		 * \param md_alloc  meta-data allocator used for allocating 'Subject'
 		 *                  objects.
-		 * \param ram       RAM session used for the allocation of trace
+		 * \param ram       allocator used for the allocation of trace
 		 *                  buffers and policy dataspaces.
 		 */
-		Subject_registry(Allocator &md_alloc, Ram_session &ram,
+		Subject_registry(Allocator &md_alloc, Ram_allocator &ram,
 		                 Source_registry &sources)
 		:
 			_md_alloc(md_alloc), _ram(ram), _sources(sources)

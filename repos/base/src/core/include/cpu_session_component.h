@@ -55,7 +55,7 @@ class Genode::Cpu_session_component : public  Rpc_object<Cpu_session>,
 		Affinity::Location         _location;               /* CPU affinity of this 
 		                                                       session */
 		Trace::Source_registry    &_trace_sources;
-		Trace::Control_area        _trace_control_area { };
+		Trace::Control_area        _trace_control_area;
 
 		/*
 		 * Members for quota accounting
@@ -139,7 +139,9 @@ class Genode::Cpu_session_component : public  Rpc_object<Cpu_session>,
 		/**
 		 * Constructor
 		 */
-		Cpu_session_component(Rpc_entrypoint         &session_ep,
+		Cpu_session_component(Ram_allocator          &ram,
+		                      Region_map             &local_rm,
+		                      Rpc_entrypoint         &session_ep,
 		                      Rpc_entrypoint         &thread_ep,
 		                      Pager_entrypoint       &pager_ep,
 		                      Allocator              &md_alloc,

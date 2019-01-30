@@ -17,6 +17,7 @@
 
 /* Genode includes */
 #include <trace/timestamp.h>
+#include <base/attached_rom_dataspace.h>
 
 /* local includes */
 #include <threaded_time_source.h>
@@ -28,9 +29,24 @@ class Timer::Time_source : public Threaded_time_source
 {
 	private:
 
+		/* read the tsc frequency from platform info */
+		static unsigned long _obtain_tsc_khz(Genode::Env &env)
+		{
+			try {
+				Genode::Attached_rom_dataspace info { env, "platform_info"};
+
+				return info.xml()
+				           .sub_node("hardware")
+				           .sub_node("tsc")
+				           .attribute_value("freq_khz", 0UL);
+			} catch (...) { }
+
+			return 0;
+		}
+
 		Genode::addr_t           _sem        { ~0UL };
 		unsigned long            _timeout_us { 0 };
-		unsigned long            _tsc_khz    { 0 };
+		unsigned long      const _tsc_khz;
 		Duration                 _curr_time  { Microseconds(0) };
 		Genode::Trace::Timestamp _tsc_start  { Genode::Trace::timestamp() };
 		Genode::Trace::Timestamp _tsc_last   { _tsc_start };
@@ -52,8 +68,12 @@ class Timer::Time_source : public Threaded_time_source
 
 	public:
 
-		Time_source(Genode::Env &env);
-
+		Time_source(Genode::Env &env)
+		:
+			Threaded_time_source(env), _tsc_khz(_obtain_tsc_khz(env))
+		{
+			start();
+		}
 
 		/*************************
 		 ** Genode::Time_source **

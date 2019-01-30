@@ -50,7 +50,7 @@ class Vmm::Utcb_guard
 			Genode::memcpy(&_backup_utcb, utcb, len);
 
 			if (utcb->msg_items())
-				PWRN("Error: msg items on UTCB are not saved and restored!");
+				Genode::warning("Error: msg items on UTCB are not saved and restored!");
 		}
 
 		~Utcb_guard()

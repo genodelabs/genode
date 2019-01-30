@@ -239,7 +239,9 @@ int Cpu_session_component::ref_account(Cpu_session_capability ref_cap)
 }
 
 
-Cpu_session_component::Cpu_session_component(Rpc_entrypoint         &session_ep,
+Cpu_session_component::Cpu_session_component(Ram_allocator          &ram,
+                                             Region_map             &local_rm,
+                                             Rpc_entrypoint         &session_ep,
                                              Rpc_entrypoint         &thread_ep,
                                              Pager_entrypoint       &pager_ep,
                                              Allocator              &md_alloc,
@@ -257,7 +259,9 @@ Cpu_session_component::Cpu_session_component(Rpc_entrypoint         &session_ep,
 	/* map affinity to a location within the physical affinity space */
 	_location(affinity.scale_to(platform().affinity_space())),
 
-	_trace_sources(trace_sources), _quota(quota), _ref(0),
+	_trace_sources(trace_sources),
+	_trace_control_area(ram, local_rm),
+	_quota(quota), _ref(0),
 	_native_cpu(*this, args)
 {
 	Arg a = Arg_string::find_arg(args, "priority");

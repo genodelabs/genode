@@ -14,8 +14,6 @@
 #ifndef _CORE__INCLUDE__MAP_LOCAL_H_
 #define _CORE__INCLUDE__MAP_LOCAL_H_
 
-#include <base/printf.h>
-
 /* core includes */
 #include <platform.h>
 #include <util.h>

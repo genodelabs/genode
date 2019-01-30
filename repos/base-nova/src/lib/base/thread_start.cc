@@ -22,6 +22,7 @@
 #include <session/session.h>
 #include <cpu_thread/client.h>
 #include <nova_native_cpu/client.h>
+#include <deprecated/env.h>
 
 /* base-internal includes */
 #include <base/internal/stack.h>

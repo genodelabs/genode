@@ -18,6 +18,7 @@
 #include <base/sleep.h>
 #include <base/env.h>
 #include <cpu_thread/client.h>
+#include <deprecated/env.h>
 
 /* base-internal includes */
 #include <base/internal/stack_allocator.h>

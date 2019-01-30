@@ -19,6 +19,7 @@
 #include <base/env.h>
 #include <region_map/region_map.h>
 #include <dataspace/client.h>
+#include <deprecated/env.h>
 
 /* base-internal includes */
 #include <base/internal/local_capability.h>

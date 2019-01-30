@@ -19,6 +19,7 @@
 #include <base/sleep.h>
 #include <base/trace/events.h>
 #include <util/reconstructible.h>
+#include <deprecated/env.h>
 
 /* base-internal includes */
 #include <base/internal/globals.h>
@@ -179,31 +180,6 @@ Genode::Signal_context_registry *signal_context_registry()
 {
 	static Signal_context_registry inst;
 	return &inst;
-}
-
-
-/********************
- ** Signal context **
- ********************/
-
-void Signal_context::submit(unsigned num)
-{
-	if (!_receiver) {
-		warning("signal context with no receiver");
-		return;
-	}
-
-	if (!signal_context_registry()->test_and_lock(this)) {
-		warning("encountered dead signal context");
-		return;
-	}
-
-	/* construct and locally submit signal object */
-	Signal::Data signal(this, num);
-	_receiver->local_submit(signal);
-
-	/* free context lock that was taken by 'test_and_lock' */
-	_lock.unlock();
 }
 
 

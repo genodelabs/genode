@@ -17,6 +17,7 @@
 #include <util/construct_at.h>
 #include <base/env.h>
 #include <base/thread.h>
+#include <deprecated/env.h>
 
 /* base-internal includes */
 #include <base/internal/globals.h>
@@ -98,7 +99,8 @@ extern "C" void init_main_thread()
 	 * destructor won't be registered for the atexit routine.
 	 */
 	(void*)env_deprecated();
-	init_log();
+	init_log(*env_deprecated()->parent());
+	init_exit(*env_deprecated()->parent());
 
 	/* create a thread object for the main thread */
 	main_thread();

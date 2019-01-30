@@ -41,4 +41,4 @@ Genode::Log &Genode::Log::log()
 }
 
 
-void Genode::init_log() { };
+void Genode::init_log(Parent &) { };

@@ -23,19 +23,20 @@ namespace Genode { class Expanding_pd_session_client; }
 
 struct Genode::Expanding_pd_session_client : Pd_session_client
 {
+	Parent &_parent;
+
 	void _request_ram_from_parent(size_t amount)
 	{
-		Parent &parent = *env_deprecated()->parent();
-		parent.resource_request(String<128>("ram_quota=", amount).string());
+		_parent.resource_request(String<128>("ram_quota=", amount).string());
 	}
 
 	void _request_caps_from_parent(size_t amount)
 	{
-		Parent &parent = *env_deprecated()->parent();
-		parent.resource_request(String<128>("cap_quota=", amount).string());
+		_parent.resource_request(String<128>("cap_quota=", amount).string());
 	}
 
-	Expanding_pd_session_client(Pd_session_capability cap) : Pd_session_client(cap) { }
+	Expanding_pd_session_client(Parent &parent, Pd_session_capability cap)
+	: Pd_session_client(cap), _parent(parent) { }
 
 	Ram_dataspace_capability alloc(size_t size, Cache_attribute cached = UNCACHED) override
 	{

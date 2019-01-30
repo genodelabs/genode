@@ -29,8 +29,6 @@
 
 using namespace Genode;
 
-namespace Genode { Rm_session *env_stack_area_rm_session(); }
-
 namespace Hw { extern Untyped_capability _main_thread_cap; }
 
 

@@ -23,7 +23,7 @@ using namespace Genode::Trace;
 
 Dataspace_capability Session_component::dataspace()
 {
-	return _argument_buffer.ds;
+	return _argument_buffer.cap();
 }
 
 
@@ -31,14 +31,14 @@ size_t Session_component::subjects()
 {
 	_subjects.import_new_sources(_sources);
 
-	return _subjects.subjects((Subject_id *)_argument_buffer.base,
-	                          _argument_buffer.size/sizeof(Subject_id));
+	return _subjects.subjects(_argument_buffer.local_addr<Subject_id>(),
+	                          _argument_buffer.size()/sizeof(Subject_id));
 }
 
 
 Policy_id Session_component::alloc_policy(size_t size)
 {
-	if (size > _argument_buffer.size)
+	if (size > _argument_buffer.size())
 		throw Policy_too_large();
 
 	/*
@@ -92,7 +92,7 @@ void Session_component::trace(Subject_id subject_id, Policy_id policy_id,
 	try {
 		Trace::Subject &subject = _subjects.lookup_by_id(subject_id);
 		subject.trace(policy_id, _policies.dataspace(*this, policy_id),
-		              policy_size, _ram, buffer_size);
+		              policy_size, _ram, _local_rm, buffer_size);
 	} catch (...) {
 		/* revert withdrawal or quota */
 		_md_alloc.upgrade(required_ram);
@@ -139,12 +139,13 @@ void Session_component::free(Subject_id subject_id)
 }
 
 
-Session_component::Session_component(Allocator &md_alloc, size_t ram_quota,
+Session_component::Session_component(Ram_allocator &ram, Region_map &local_rm,
+                                     Allocator &md_alloc, size_t ram_quota,
                                      size_t arg_buffer_size, unsigned parent_levels,
                                      char const *label, Source_registry &sources,
                                      Policy_registry &policies)
 :
-	_ram(*env_deprecated()->ram_session()),
+	_ram(ram), _local_rm(local_rm),
 	_md_alloc(&md_alloc, ram_quota),
 	_subjects_slab(&_md_alloc),
 	_policies_slab(&_md_alloc),
@@ -153,9 +154,9 @@ Session_component::Session_component(Allocator &md_alloc, size_t ram_quota,
 	_sources(sources),
 	_policies(policies),
 	_subjects(_subjects_slab, _ram, _sources),
-	_argument_buffer(_ram, arg_buffer_size)
+	_argument_buffer(_ram, local_rm, arg_buffer_size)
 {
-	_md_alloc.withdraw(_argument_buffer.size);
+	_md_alloc.withdraw(_argument_buffer.size());
 }
 
 

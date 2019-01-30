@@ -28,19 +28,20 @@ struct Genode::Upgradeable_client : CLIENT
 {
 	typedef Genode::Capability<typename CLIENT::Rpc_interface> Capability;
 
+	Parent &_parent;
 	Parent::Client::Id _id;
 
-	Upgradeable_client(Capability cap, Parent::Client::Id id)
-	: CLIENT(cap), _id(id) { }
+	Upgradeable_client(Parent &parent, Capability cap, Parent::Client::Id id)
+	: CLIENT(cap), _parent(parent), _id(id) { }
 
 	void upgrade_ram(size_t quota)
 	{
-		env_deprecated()->parent()->upgrade(_id, String<64>("ram_quota=", quota).string());
+		_parent.upgrade(_id, String<64>("ram_quota=", quota).string());
 	}
 
 	void upgrade_caps(size_t quota)
 	{
-		env_deprecated()->parent()->upgrade(_id, String<64>("cap_quota=", quota).string());
+		_parent.upgrade(_id, String<64>("cap_quota=", quota).string());
 	}
 };
 

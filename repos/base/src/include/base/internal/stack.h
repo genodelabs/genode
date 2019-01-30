@@ -56,7 +56,6 @@
 /* Genode includes */
 #include <base/thread.h>
 #include <cpu/consts.h>
-#include <ram_session/ram_session.h>  /* for 'Ram_dataspace_capability' type */
 #include <cpu_session/cpu_session.h>  /* for 'Cpu_session::Name' type */
 
 /* base-internal includes */

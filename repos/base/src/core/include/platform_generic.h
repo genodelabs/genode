@@ -16,7 +16,6 @@
 #define _CORE__INCLUDE__PLATFORM_GENERIC_H_
 
 /* Genode includes */
-#include <thread/capability.h>
 #include <base/allocator.h>
 #include <base/affinity.h>
 

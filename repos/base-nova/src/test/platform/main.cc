@@ -645,7 +645,7 @@ Main::Main(Env &env) : env(env)
 
 	try {
 		Attached_rom_dataspace config(env, "config");
-		config.xml().attribute("check_pat").value(&check_pat);
+		config.xml().attribute("check_pat").value(check_pat);
 	} catch (...) {
 		Genode::error("no check_pat attribute found");
 		env.parent().exit(-__LINE__);

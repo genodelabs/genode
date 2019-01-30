@@ -13,6 +13,7 @@
 
 #include <base/env.h>
 #include <hw/assert.h>
+#include <deprecated/env.h>
 
 Genode::Env_deprecated * Genode::env_deprecated()
 {

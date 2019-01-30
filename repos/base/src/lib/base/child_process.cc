@@ -26,7 +26,7 @@ using namespace Genode;
 
 Child::Process::Loaded_executable::Loaded_executable(Type type,
                                                      Dataspace_capability ldso_ds,
-                                                     Pd_session &pd,
+                                                     Ram_session &ram,
                                                      Region_map &local_rm,
                                                      Region_map &remote_rm,
                                                      Parent_capability parent_cap)
@@ -84,7 +84,7 @@ Child::Process::Loaded_executable::Loaded_executable(Type type,
 
 			/* alloc dataspace */
 			Dataspace_capability ds_cap;
-			try { ds_cap = pd.alloc(size); }
+			try { ds_cap = ram.alloc(size); }
 			catch (Out_of_ram) {
 				error("allocation of read-write segment failed"); throw; };
 

@@ -26,6 +26,8 @@ namespace Genode {
 	{
 		private:
 
+			Ram_allocator          &_ram;
+			Region_map             &_local_rm;
 			Rpc_entrypoint         &_thread_ep;
 			Pager_entrypoint       &_pager_ep;
 			Allocator              &_md_alloc;
@@ -44,6 +46,7 @@ namespace Genode {
 
 				return new (md_alloc())
 					Cpu_session_component(
+						_ram, _local_rm,
 						*Root_component<Cpu_session_component>::ep(),
 						_thread_ep, _pager_ep, _md_alloc, _trace_sources,
 						args, affinity, 0);
@@ -64,13 +67,16 @@ namespace Genode {
 			 * \param thread_ep    entry point for managing threads
 			 * \param md_alloc     meta data allocator to be used by root component
 			 */
-			Cpu_root(Rpc_entrypoint         &session_ep,
+			Cpu_root(Ram_allocator          &ram,
+			         Region_map             &local_rm,
+			         Rpc_entrypoint         &session_ep,
 			         Rpc_entrypoint         &thread_ep,
 			         Pager_entrypoint       &pager_ep,
 			         Allocator              &md_alloc,
 			         Trace::Source_registry &trace_sources)
 			:
 				Root_component<Cpu_session_component>(&session_ep, &md_alloc),
+				_ram(ram), _local_rm(local_rm),
 				_thread_ep(thread_ep), _pager_ep(pager_ep),
 				_md_alloc(md_alloc), _trace_sources(trace_sources)
 			{ }

@@ -145,8 +145,8 @@ class Core_child : public Child_policy
 
 		Name name() const { return "init"; }
 
-		Service &resolve_session_request(Service::Name const &name,
-		                                 Session_state::Args const &) override
+		Route resolve_session_request(Service::Name const &name,
+		                              Session_label const &label) override
 		{
 			Service *service = nullptr;
 			_services.for_each([&] (Service &s) {
@@ -156,7 +156,9 @@ class Core_child : public Child_policy
 			if (!service)
 				throw Service_denied();
 
-			return *service;
+			return Route { .service = *service,
+			               .label   = label,
+			               .diag    = Session::Diag() };
 		}
 
 		void init(Pd_session &session, Capability<Pd_session> cap) override
@@ -172,11 +174,8 @@ class Core_child : public Child_policy
 			_core_cpu.transfer_quota(cap, Cpu_session::quota_lim_upscale(100, 100));
 		}
 
-		Pd_session           &ref_pd()           { return _core_pd; }
-		Pd_session_capability ref_pd_cap() const { return _core_pd_cap; }
-
-		Ram_session           &ref_ram()           { return _core_pd; }
-		Ram_session_capability ref_ram_cap() const { return _core_pd_cap; }
+		Pd_session           &ref_pd()           override { return _core_pd; }
+		Pd_session_capability ref_pd_cap() const override { return _core_pd_cap; }
 
 		size_t session_alloc_batch_size() const override { return 128; }
 };
@@ -254,8 +253,8 @@ int main()
 
 	static Rom_root    rom_root    (ep, ep, platform().rom_fs(), sliced_heap);
 	static Rm_root     rm_root     (ep, sliced_heap, pager_ep);
-	static Cpu_root    cpu_root    (ep, ep, pager_ep, sliced_heap,
-	                                Trace::sources());
+	static Cpu_root    cpu_root    (core_ram_alloc, local_rm, ep, ep, pager_ep,
+	                                sliced_heap, Trace::sources());
 	static Pd_root     pd_root     (ep, core_env().signal_ep(), pager_ep,
 	                                platform().ram_alloc(),
 	                                local_rm, sliced_heap,
@@ -265,7 +264,8 @@ int main()
 	                                platform().ram_alloc(), sliced_heap);
 	static Irq_root    irq_root    (*core_env().pd_session(),
 	                                platform().irq_alloc(), sliced_heap);
-	static Trace::Root trace_root  (ep, sliced_heap, Trace::sources(), trace_policies);
+	static Trace::Root trace_root  (core_ram_alloc, local_rm, ep, sliced_heap,
+	                                Trace::sources(), trace_policies);
 
 	static Core_service<Rom_session_component>    rom_service    (services, rom_root);
 	static Core_service<Rm_session_component>     rm_service     (services, rm_root);
@@ -300,7 +300,7 @@ int main()
 
 	/* CPU session representing core */
 	static Cpu_session_component
-		core_cpu(ep, ep, pager_ep, sliced_heap, Trace::sources(),
+		core_cpu(core_ram_alloc, local_rm, ep, ep, pager_ep, sliced_heap, Trace::sources(),
 		         "label=\"core\"", Affinity(), Cpu_session::QUOTA_LIMIT);
 	Cpu_session_capability core_cpu_cap = ep.manage(&core_cpu);
 

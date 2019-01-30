@@ -18,6 +18,7 @@
 #include <base/allocator_guard.h>
 #include <base/rpc_server.h>
 #include <base/tslab.h>
+#include <base/attached_ram_dataspace.h>
 #include <trace_session/trace_session.h>
 
 /* core-local includes */
@@ -35,7 +36,8 @@ class Genode::Trace::Session_component
 {
 	private:
 
-		Ram_session                 &_ram;
+		Ram_allocator               &_ram;
+		Region_map                  &_local_rm;
 		Allocator_guard              _md_alloc;
 		Tslab<Trace::Subject, 4096>  _subjects_slab;
 		Tslab<Trace::Policy, 4096>   _policies_slab;
@@ -45,48 +47,18 @@ class Genode::Trace::Session_component
 		Policy_registry             &_policies;
 		Subject_registry             _subjects;
 		unsigned                     _policy_cnt { 0 };
-
-		class Argument_buffer
-		{
-			private:
-
-				/*
-				 * Noncopyable
-				 */
-				Argument_buffer(Argument_buffer const &);
-				Argument_buffer &operator = (Argument_buffer const &);
-
-			public:
-
-				Ram_session             &ram;
-				Ram_dataspace_capability ds;
-				char                    *base;
-				size_t                   size;
-
-				Argument_buffer(Ram_session &ram, size_t size)
-				:
-					ram(ram),
-					ds(ram.alloc(size)),
-					base(env_deprecated()->rm_session()->attach(ds)),
-					size(ram.dataspace_size(ds))
-				{ }
-
-				~Argument_buffer()
-				{
-					env_deprecated()->rm_session()->detach(base);
-					ram.free(ds);
-				}
-		} _argument_buffer;
+		Attached_ram_dataspace       _argument_buffer;
 
 	public:
 
 		/**
 		 * Constructor
 		 */
-		Session_component(Allocator &md_alloc, size_t ram_quota,
-		                 size_t arg_buffer_size, unsigned parent_levels,
-		                 char const *label, Source_registry &sources,
-		                 Policy_registry &policies);
+		Session_component(Ram_allocator &ram, Region_map &local_rm,
+		                  Allocator &md_alloc, size_t ram_quota,
+		                  size_t arg_buffer_size, unsigned parent_levels,
+		                  char const *label, Source_registry &sources,
+		                  Policy_registry &policies);
 
 		~Session_component();
 
