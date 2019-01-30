@@ -835,7 +835,7 @@ void Child::_discard_env_session(Id_space<Parent::Client>::Id id)
 }
 
 
-void Child::initiate_env_ram_session()
+void Child::initiate_env_pd_session()
 {
 	_pd.initiate();
 	_policy.init(_pd.session(), _pd.cap());
@@ -965,7 +965,7 @@ Child::Child(Region_map      &local_rm,
 	_policy(policy), _local_rm(local_rm), _parent_cap_guard(entrypoint, *this)
 {
 	if (_policy.initiate_env_sessions()) {
-		initiate_env_ram_session();
+		initiate_env_pd_session();
 		initiate_env_sessions();
 	}
 }
