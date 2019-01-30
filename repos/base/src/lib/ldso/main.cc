@@ -710,7 +710,7 @@ void Component::construct(Genode::Env &env)
 			    " .. ", Hex(Thread::stack_area_virtual_base() +
 			                Thread::stack_area_virtual_size() - 1),
 			    ": stack area");
-			Elf_object::obj_list()->head([] (Object const &obj) {
+			Elf_object::obj_list()->for_each([] (Object const &obj) {
 				dump_link_map(obj); });
 		}
 	} catch (...) {  }
