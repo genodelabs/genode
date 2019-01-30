@@ -26,7 +26,6 @@
 #include <cpu_session/connection.h>
 #include <log_session/connection.h>
 #include <rom_session/connection.h>
-#include <ram_session/capability.h>
 #include <parent/capability.h>
 
 namespace Genode {
@@ -67,20 +66,6 @@ struct Genode::Child_policy
 	virtual Linker_name linker_name() const { return "ld.lib.so"; }
 
 	/**
-	 * Determine service to provide a session request
-	 *
-	 * \return  service to be contacted for the new session
-	 * \deprecated
-	 *
-	 * \throw Service_denied
-	 */
-	virtual Service &resolve_session_request(Service::Name       const &,
-	                                         Session_state::Args const &)
-	{
-		throw Service_denied();
-	}
-
-	/**
 	 * Routing destination of a session request
 	 */
 	struct Route
@@ -98,11 +83,7 @@ struct Genode::Child_policy
 	 * \throw Service_denied
 	 */
 	virtual Route resolve_session_request(Service::Name const &,
-	                                      Session_label const &)
-	{
-		/* \deprecated  make pure virtual once the old version is gone */
-		throw Service_denied();
-	}
+	                                      Session_label const &) = 0;
 
 	/**
 	 * Apply transformations to session arguments
@@ -336,9 +317,6 @@ class Genode::Child : protected Rpc_object<Parent>,
 
 		typedef Session_state::Args Args;
 
-		static Child_policy::Route _resolve_session_request(Child_policy &,
-                                                            Service::Name const &,
-                                                            char const *);
 		/*
 		 * Members that are initialized not before the child's environment is
 		 * complete.
@@ -381,7 +359,7 @@ class Genode::Child : protected Rpc_object<Parent>,
 				 */
 				Loaded_executable(Type type,
 				                  Dataspace_capability ldso_ds,
-				                  Ram_session &ram,
+				                  Ram_allocator &ram,
 				                  Region_map &local_rm,
 				                  Region_map &remote_rm,
 				                  Parent_capability parent_cap);
@@ -512,7 +490,7 @@ class Genode::Child : protected Rpc_object<Parent>,
 				/**
 				 * Service (Ram_transfer::Account) interface
 				 */
-				void transfer(Ram_session_capability to, Ram_quota amount) override
+				void transfer(Pd_session_capability to, Ram_quota amount) override
 				{
 					Ram_transfer::Account &from = _service;
 					from.transfer(to, amount);
@@ -521,7 +499,7 @@ class Genode::Child : protected Rpc_object<Parent>,
 				/**
 				 * Service (Ram_transfer::Account) interface
 				 */
-				Ram_session_capability cap(Ram_quota) const override
+				Pd_session_capability cap(Ram_quota) const override
 				{
 					Ram_transfer::Account &to = _service;
 					return to.cap(Ram_quota());
@@ -596,9 +574,8 @@ class Genode::Child : protected Rpc_object<Parent>,
 
 				try {
 					Child_policy::Route const route =
-						_child._resolve_session_request(_child._policy,
-						                                _service_name(),
-						                                _args.string());
+						_child._policy.resolve_session_request(_service_name(),
+						                                       label_from_args(_args.string()));
 					_env_service.construct(_child, route.service);
 					_connection.construct(*_env_service, _child._id_space, _client_id,
 					                      _args, _child._policy.filter_session_affinity(Affinity()),
@@ -772,16 +749,15 @@ class Genode::Child : protected Rpc_object<Parent>,
 			return _effective_quota(quota, env_cap_quota());
 		}
 
-		Ram_session_capability ram_session_cap() const { return _pd.cap(); }
-		Pd_session_capability  pd_session_cap()  const { return _pd.cap();  }
+		Pd_session_capability pd_session_cap() const { return _pd.cap();  }
 
 		Parent_capability parent_cap() const { return cap(); }
 
-		Ram_session       &ram()       { return _pd.session(); }
-		Ram_session const &ram() const { return _pd.session(); }
-		Cpu_session       &cpu()       { return _cpu.session(); }
-		Pd_session        &pd()        { return _pd .session(); }
-		Pd_session  const &pd()  const { return _pd .session(); }
+		Ram_allocator       &ram()       { return _pd.session(); }
+		Ram_allocator const &ram() const { return _pd.session(); }
+		Cpu_session         &cpu()       { return _cpu.session(); }
+		Pd_session          &pd()        { return _pd.session(); }
+		Pd_session    const &pd()  const { return _pd.session(); }
 
 		/**
 		 * Request factory for creating session-state objects

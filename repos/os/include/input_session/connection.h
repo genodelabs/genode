@@ -22,36 +22,15 @@ namespace Input { struct Connection; }
 struct Input::Connection : Genode::Connection<Session>, Session_client
 {
 	/**
-	 * Issue session request
-	 *
-	 * \noapi
-	 */
-	Genode::Capability<Input::Session> _session(Genode::Parent &parent, char const *label) {
-		return session(parent, "ram_quota=18K, cap_quota=%u, label=\"%s\"",
-		               CAP_QUOTA, label); }
-
-	/**
 	 * Constructor
 	 */
 	Connection(Genode::Env &env, char const *label = "")
 	:
-		Genode::Connection<Input::Session>(env, _session(env.parent(), label)),
+		Genode::Connection<Input::Session>(env,
+		                                   session(env.parent(),
+		                                   "ram_quota=18K, cap_quota=%u, label=\"%s\"",
+		                                   CAP_QUOTA, label)),
 		Session_client(env.rm(), cap())
-	{ }
-
-	/**
-	 * Constructor
-	 *
-	 * \noapi
-	 * \deprecated  Use the constructor with 'Env &' as first
-	 *              argument instead
-	 */
-	Connection() __attribute__((deprecated))
-	:
-		Genode::Connection<Input::Session>(
-			session(*Genode::env_deprecated()->parent(),
-			        "ram_quota=18K, cap_quota=3")),
-		Session_client(*Genode::env_deprecated()->rm_session(), cap())
 	{ }
 };
 

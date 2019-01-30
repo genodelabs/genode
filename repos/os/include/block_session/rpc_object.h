@@ -42,16 +42,6 @@ class Block::Session_rpc_object : public Genode::Rpc_object<Session, Session_rpc
 		: _tx(tx_ds, local_rm, ep) { }
 
 		/**
-		 * Constructor
-		 *
-		 * \deprecated
-		 * \noapi
-		 */
-		Session_rpc_object(Genode::Dataspace_capability tx_ds,
-		                   Genode::Rpc_entrypoint &ep) __attribute__((deprecated))
-		: _tx(tx_ds, *Genode::env_deprecated()->rm_session(), ep) { }
-
-		/**
 		 * Return capability to packet-stream channel
 		 *
 		 * This method is called by the client via an RPC call at session

@@ -30,17 +30,6 @@ struct Platform::Connection : Genode::Connection<Session>, Client
 	: Genode::Connection<Session>(env, session(env.parent(),
 	                              "ram_quota=6K, cap_quota=%ld", CAP_QUOTA)),
 	  Client(cap()) { }
-
-	/**
-	 * Constructor
-	 *
-	 * \noapi
-	 * \deprecated  Use the constructor with 'Env &' as first
-	 *              argument instead
-	 */
-	Connection() __attribute__((deprecated))
-	: Genode::Connection<Session>(session("ram_quota=6K")),
-	  Client(cap()) { }
 };
 
 #endif /* _INCLUDE__PLATFORM_SESSION__CONNECTION_H_ */

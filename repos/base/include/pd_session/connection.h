@@ -37,19 +37,6 @@ struct Genode::Pd_connection : Connection<Pd_session>, Pd_session_client
 		                                    RAM_QUOTA, CAP_QUOTA, label, space)),
 		Pd_session_client(cap())
 	{ }
-
-	/**
-	 * Constructor
-	 *
-	 * \noapi
-	 * \deprecated  Use the constructor with 'Env &' as first
-	 *              argument instead
-	 */
-	Pd_connection(char const *label = "") __attribute__((deprecated))
-	:
-		Connection<Pd_session>(session("ram_quota=%u, label=\"%s\"", RAM_QUOTA, label)),
-		Pd_session_client(cap())
-	{ }
 };
 
 #endif /* _INCLUDE__PD_SESSION__CONNECTION_H_ */

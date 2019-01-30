@@ -2,9 +2,6 @@
  * \brief  Thread state
  * \author Norman Feske
  * \date   2007-07-30
- *
- * This file provides a generic implementation of the 'Thread state' class.
- * Base platforms can provide their own version of this file.
  */
 
 /*
@@ -17,14 +14,17 @@
 #ifndef _INCLUDE__BASE__THREAD_STATE_H_
 #define _INCLUDE__BASE__THREAD_STATE_H_
 
-#include <base/thread_state_base.h>
+#include <cpu/cpu_state.h>
 
 namespace Genode { struct Thread_state; }
 
-struct Genode::Thread_state : Thread_state_base
+struct Genode::Thread_state : Cpu_state
 {
-	Thread_state() {}
-	Thread_state(Thread_state_base &base) : Thread_state_base(base) {}
+	bool unresolved_page_fault = false;
+	bool exception = false;
+
+	Thread_state() { };
+	Thread_state(Cpu_state &c) : Cpu_state(c) { };
 };
 
 #endif /* _INCLUDE__BASE__THREAD_STATE_H_ */

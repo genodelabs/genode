@@ -34,11 +34,6 @@ class Uart::Session_client : public Genode::Rpc_client<Session>
 			Genode::Rpc_client<Session>(cap), _terminal(local_rm, cap)
 		{ }
 
-		Session_client(Genode::Capability<Session> cap) __attribute__((deprecated))
-		:
-			Genode::Rpc_client<Session>(cap), _terminal(*Genode::env_deprecated()->rm_session(), cap)
-		{ }
-
 
 		/********************
 		 ** UART interface **

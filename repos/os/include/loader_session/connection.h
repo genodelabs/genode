@@ -34,19 +34,6 @@ struct Loader::Connection : Genode::Connection<Session>, Session_client
 		                                         CAP_QUOTA + cap_quota.value)),
 		Session_client(cap())
 	{ }
-
-	/**
-	 * Constructor
-	 *
-	 * \noapi
-	 * \deprecated  Use the constructor with 'Env &' as first
-	 *              argument instead
-	 */
-	Connection(size_t ram_quota) __attribute__((deprecated))
-	:
-		Genode::Connection<Session>(session("ram_quota=%ld", ram_quota)),
-		Session_client(cap())
-	{ }
 };
 
 #endif /* _INCLUDE__LOADER_SESSION__CONNECTION_H_ */

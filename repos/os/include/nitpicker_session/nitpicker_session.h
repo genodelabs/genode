@@ -162,14 +162,6 @@ struct Nitpicker::Session : Genode::Session
 
 			bool full() const { return _num >= MAX_COMMANDS; }
 
-			/**
-			 * Return true if there is no space left in the command buffer
-			 *
-			 * \noapi
-			 * \deprecated  use 'full' instead
-			 */
-			bool is_full() const { return full(); }
-
 			unsigned num() const
 			{
 				/* copy out _num value to avoid use-after-check problems */

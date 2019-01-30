@@ -135,34 +135,6 @@ create_session(Child_policy::Name const &child_name, Service &service,
 }
 
 
-/*
- * \deprecated  Temporary wrapper around 'Child_policy::resolve_session_request'
- *              that tries both overloads.
- *
- * \throw Service_denied
- */
-Child_policy::Route Child::_resolve_session_request(Child_policy &policy,
-                                                    Service::Name const &name,
-                                                    char const *argbuf)
-{
-	Session_label const label = label_from_args(argbuf);
-
-	/*
-	 * \deprecated  Try old interface, remove once all 'Child_policy'
-	 *              implementations are updated.
-	 */
-	try {
-
-		Session_state::Args args(argbuf);
-		return { policy.resolve_session_request(name, args), label,
-		         session_diag_from_args(argbuf) };
-	}
-	catch (Service_denied) { }
-
-	return policy.resolve_session_request(name, label);
-}
-
-
 Session_capability Child::session(Parent::Client::Id id,
                                   Parent::Service_name const &name,
                                   Parent::Session_args const &args,
@@ -176,9 +148,9 @@ Session_capability Child::session(Parent::Client::Id id,
 	strncpy(argbuf, args.string(), sizeof(argbuf));
 
 	/* prefix session label */
-	Session_label const orig_label(label_from_args(argbuf));
-	Arg_string::set_arg_string(argbuf, sizeof(argbuf), "label",
-	                           prefixed_label(_policy.name(), orig_label).string());
+	Session_label const label = prefixed_label(_policy.name(), label_from_args(argbuf));
+
+	Arg_string::set_arg_string(argbuf, sizeof(argbuf), "label", label.string());
 
 	/* filter session arguments according to the child policy */
 	_policy.filter_session_args(name.string(), argbuf, sizeof(argbuf));
@@ -202,7 +174,8 @@ Session_capability Child::session(Parent::Client::Id id,
 	Arg_string::set_arg(argbuf, sizeof(argbuf), "ram_quota", forward_ram_quota.value);
 
 	/* may throw a 'Service_denied' exception */
-	Child_policy::Route route = _resolve_session_request(_policy, name.string(), argbuf);
+	Child_policy::Route route = _policy.resolve_session_request(name.string(), label);
+
 	Service &service = route.service;
 
 	/* propagate diag flag */

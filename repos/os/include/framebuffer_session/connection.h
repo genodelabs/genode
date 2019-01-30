@@ -76,22 +76,6 @@ class Framebuffer::Connection : public Genode::Connection<Session>,
 			                                          mode.format())),
 			Session_client(cap())
 		{ }
-
-		/**
-		 * Constructor
-		 *
-		 * \noapi
-		 * \deprecated  Use the constructor with 'Env &' as first
-		 *              argument instead
-		 */
-		Connection(unsigned     width  = 0,
-		           unsigned     height = 0,
-		           Mode::Format format = Mode::INVALID) __attribute__((deprecated))
-		:
-			Genode::Connection<Session>(_connect(*Genode::env_deprecated()->parent(),
-			                                     width, height, format)),
-			Session_client(cap())
-		{ }
 };
 
 #endif /* _INCLUDE__FRAMEBUFFER_SESSION__CONNECTION_H_ */

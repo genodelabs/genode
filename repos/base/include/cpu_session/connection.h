@@ -25,19 +25,6 @@ struct Genode::Cpu_connection : Connection<Cpu_session>, Cpu_session_client
 	enum { RAM_QUOTA = 36*1024 };
 
 	/**
-	 * Issue session request
-	 *
-	 * \noapi
-	 */
-	Capability<Cpu_session> _session(Parent &parent, char const *label,
-	                                 long priority, Affinity const &affinity)
-	{
-		return session(parent, affinity,
-		               "priority=0x%lx, ram_quota=128K, cap_quota=%u, label=\"%s\"",
-		               priority, CAP_QUOTA, label);
-	}
-
-	/**
 	 * Constructor
 	 *
 	 * \param label     initial session label
@@ -47,21 +34,11 @@ struct Genode::Cpu_connection : Connection<Cpu_session>, Cpu_session_client
 	Cpu_connection(Env &env, const char *label = "", long priority = DEFAULT_PRIORITY,
 	               Affinity const &affinity = Affinity())
 	:
-		Connection<Cpu_session>(env, _session(env.parent(), label, priority, affinity)),
-		Cpu_session_client(cap())
-	{ }
-
-	/**
-	 * Constructor
-	 *
-	 * \noapi
-	 * \deprecated  Use the constructor with 'Env &' as first
-	 *              argument instead
-	 */
-	Cpu_connection(const char *label = "", long priority = DEFAULT_PRIORITY,
-	               Affinity const &affinity = Affinity()) __attribute__((deprecated))
-	:
-		Connection<Cpu_session>(_session(*env_deprecated()->parent(), label, priority, affinity)),
+		Connection<Cpu_session>(env,
+		                        session(env.parent(), affinity,
+		                                "priority=0x%lx, ram_quota=%u, "
+		                                "cap_quota=%u, label=\"%s\"",
+		                                priority, RAM_QUOTA, CAP_QUOTA, label)),
 		Cpu_session_client(cap())
 	{ }
 };

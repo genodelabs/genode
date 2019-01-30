@@ -108,21 +108,6 @@ class Genode::Attached_ram_dataspace
 		}
 
 		/**
-		 * Constructor
-		 *
-		 * \noapi
-		 * \deprecated  Use the constructor with the 'Ram_allocator &' and
-		 *              'Region_map &' arguments instead.
-		 */
-		Attached_ram_dataspace(Ram_allocator *ram, size_t size,
-		                       Cache_attribute cached = CACHED) __attribute__((deprecated))
-		:
-			_size(size), _ram(ram), _rm(env_deprecated()->rm_session()), _cached(cached)
-		{
-			_alloc_and_attach();
-		}
-
-		/**
 		 * Destructor
 		 */
 		~Attached_ram_dataspace() { _detach_and_free_dataspace(); }

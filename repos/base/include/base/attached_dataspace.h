@@ -64,16 +64,6 @@ class Genode::Attached_dataspace : Noncopyable
 		: _ds(_check(ds)), _rm(rm), _local_addr(_rm.attach(_ds)) { }
 
 		/**
-		 * Constructor
-		 *
-		 * \noapi
-		 * \deprecated  Use the constructor with 'Region_map &' as first
-		 *              argument instead
-		 */
-		Attached_dataspace(Dataspace_capability ds) __attribute__((deprecated))
-		: _ds(_check(ds)), _rm(*env_deprecated()->rm_session()), _local_addr(_rm.attach(_ds)) { }
-
-		/**
 		 * Destructor
 		 */
 		~Attached_dataspace()

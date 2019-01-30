@@ -41,18 +41,6 @@ class Input::Session_client : public Genode::Rpc_client<Session>
 			_event_ds(local_rm, call<Rpc_dataspace>())
 		{ }
 
-		/**
-		 * Constructor
-		 *
-		 * \deprecated
-		 * \noapi
-		 */
-		explicit Session_client(Session_capability session) __attribute__((deprecated))
-		:
-			Genode::Rpc_client<Session>(session),
-			_event_ds(*Genode::env_deprecated()->rm_session(), call<Rpc_dataspace>())
-		{ }
-
 		Genode::Dataspace_capability dataspace() override {
 			return call<Rpc_dataspace>(); }
 

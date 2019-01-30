@@ -113,7 +113,6 @@ class Genode::Platform_env : public Platform_env_base
 		Pd_session             *pd_session()      override { return &_resources.pd; }
 		Pd_session_capability   pd_session_cap()  override { return  _resources.pd.rpc_cap(); }
 		Region_map             *rm_session()      override { return &_resources.rm; }
-		Allocator              *heap()            override { return &_heap; }
 };
 
 #endif /* _INCLUDE__BASE__INTERNAL__PLATFORM_ENV_H_ */

@@ -229,20 +229,6 @@ struct File_system::Status
 	 * Return true if node is a symbolic link
 	 */
 	bool symlink() const { return mode & MODE_SYMLINK; }
-
-	/**
-	 * Return true if node is a directory
-	 *
-	 * \deprecated  use 'directory' instead
-	 */
-	bool is_directory() const { return directory(); }
-
-	/**
-	 * Return true if node is a symbolic link
-	 *
-	 * \deprecated  use 'symlink' instead
-	 */
-	bool is_symlink() const { return symlink(); }
 };
 
 

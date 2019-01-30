@@ -198,13 +198,6 @@ class Genode::Rpc_client : public RPC_INTERFACE
 			return _cap.template call<IF>(args...);
 		}
 
-		/**
-		 * Return RPC capablity for client object
-		 *
-		 * \deprecated  use 'rpc_cap' accessor instead
-		 */
-		operator Capability<RPC_INTERFACE>() const { return _cap; }
-
 		Capability<RPC_INTERFACE> rpc_cap() const { return _cap; }
 };
 

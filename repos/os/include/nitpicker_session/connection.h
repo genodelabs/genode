@@ -74,24 +74,6 @@ class Nitpicker::Connection : public Genode::Connection<Session>,
 			_input(env.rm(), input_session())
 		{ }
 
-		/**
-		 * Constructor
-		 *
-		 * \noapi
-		 * \deprecated  Use the constructor with 'Env &' as first
-		 *              argument instead
-		 */
-		Connection(char const *label = "") __attribute__((deprecated))
-		:
-			/* establish nitpicker session */
-			Genode::Connection<Session>(_connect(*Genode::env_deprecated()->parent(), label)),
-			Session_client(*Genode::env_deprecated()->rm_session(), cap()),
-
-			/* request frame-buffer and input sub sessions */
-			_framebuffer(framebuffer_session()),
-			_input(*Genode::env_deprecated()->rm_session(), input_session())
-		{ }
-
 		void buffer(Framebuffer::Mode mode, bool use_alpha) override
 		{
 			Genode::size_t const needed = ram_quota(mode, use_alpha);

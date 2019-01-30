@@ -51,14 +51,6 @@ struct Input::Session : Genode::Session
 	virtual bool pending() const = 0;
 
 	/**
-	 * Request input state
-	 *
-	 * \noapi
-	 * \deprecated  use 'pending' instead
-	 */
-	bool is_pending() const { return pending(); }
-
-	/**
 	 * Flush pending events to event buffer
 	 *
 	 * \return  number of flushed events

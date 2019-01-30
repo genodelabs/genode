@@ -41,19 +41,6 @@ class Nitpicker::Session_client : public Genode::Rpc_client<Session>
 			_command_buffer(*_command_ds.local_addr<Command_buffer>())
 		{ }
 
-		/**
-		 * Constructor
-		 *
-		 * \deprecated
-		 * \noapi
-		 */
-		explicit Session_client(Session_capability session) __attribute__((deprecated))
-		:
-			Rpc_client<Session>(session),
-			_command_ds(*Genode::env_deprecated()->rm_session(), command_dataspace()),
-			_command_buffer(*_command_ds.local_addr<Command_buffer>())
-		{ }
-
 		Framebuffer::Session_capability framebuffer_session() override {
 			return call<Rpc_framebuffer_session>(); }
 

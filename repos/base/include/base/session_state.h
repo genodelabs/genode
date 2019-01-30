@@ -143,7 +143,7 @@ class Genode::Session_state : public Parent::Client, public Parent::Server
 
 		~Session_state()
 		{
-			if (id_at_parent.is_constructed())
+			if (id_at_parent.constructed())
 				error("dangling session in parent-side ID space: ", *this);
 		}
 

@@ -132,15 +132,6 @@ class Genode::Connection : public Connection_base
 		{ }
 
 		/**
-		 * Constructor
-		 *
-		 * \noapi
-		 * \deprecated  Use the constructor with 'Env &' as first
-		 *              argument instead
-		 */
-		Connection(Capability<SESSION_TYPE>) : _cap(_request_cap()) { }
-
-		/**
 		 * Destructor
 		 */
 		~Connection() { _env.close(_id_space_element.id()); }
@@ -173,37 +164,6 @@ class Genode::Connection : public Connection_base
 			va_start(list, format_args);
 
 			_session(parent, affinity, format_args, list);
-			return Capability<SESSION_TYPE>();
-		}
-
-		/**
-		 * Shortcut for env()->parent()->session()
-		 *
-		 * \noapi
-		 * \deprecated  to be removed along with Genode::env()
-		 */
-		Capability<SESSION_TYPE> session(const char *format_args, ...)
-		{
-			va_list list;
-			va_start(list, format_args);
-
-			_session(*env_deprecated()->parent(), Affinity(), format_args, list);
-			return Capability<SESSION_TYPE>();
-		}
-
-		/**
-		 * Shortcut for env()->parent()->session()
-		 *
-		 * \noapi
-		 * \deprecated  to be removed along with Genode::env()
-		 */
-		Capability<SESSION_TYPE> session(Affinity const &affinity,
-		                                 char     const *format_args, ...)
-		{
-			va_list list;
-			va_start(list, format_args);
-
-			_session(affinity, format_args, list);
 			return Capability<SESSION_TYPE>();
 		}
 };

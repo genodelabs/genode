@@ -31,16 +31,15 @@ class Genode::Attached_io_mem_dataspace
 {
 	private:
 
-		/*
-		 * Noncopyable
-		 */
-		Attached_io_mem_dataspace(Attached_io_mem_dataspace const &);
-		Attached_io_mem_dataspace &operator = (Attached_io_mem_dataspace const &);
+		Region_map                 &_env_rm;
+		Io_mem_connection           _mmio;
+		Io_mem_dataspace_capability _ds;
+		Region_map::Local_addr      _local_addr;
 
-		Region_map                  &_env_rm;
-		Io_mem_connection            _mmio;
-		Io_mem_dataspace_capability  _ds;
-		void                        *_local_addr;
+		static void *_with_sub_page_offset(void *local, addr_t io_base)
+		{
+			return (void *)((addr_t)local | (io_base & (addr_t)0xfff));
+		}
 
 	public:
 
@@ -65,30 +64,8 @@ class Genode::Attached_io_mem_dataspace
 			_env_rm(env.rm()),
 			_mmio(env, base, size, write_combined),
 			_ds(_mmio.dataspace()),
-			_local_addr(env.rm().attach(_ds))
-		{
-			/* apply sub-page offset to virtual address */
-			_local_addr = (void *)((addr_t)_local_addr | (base & (addr_t)0xfff));
-		}
-
-		/**
-		 * Constructor
-		 *
-		 * \noapi
-		 * \deprecated  Use the constructor with 'Env &' as first
-		 *              argument instead
-		 */
-		Attached_io_mem_dataspace(Genode::addr_t base, Genode::size_t size,
-		                          bool write_combined = false) __attribute__((deprecated))
-		:
-			_env_rm(*env_deprecated()->rm_session()),
-			_mmio(false, base, size, write_combined),
-			_ds(_mmio.dataspace()),
-			_local_addr(_env_rm.attach(_ds))
-		{
-			/* apply sub-page offset to virtual address */
-			_local_addr = (void *)((addr_t)_local_addr | (base & (addr_t)0xfff));
-		}
+			_local_addr(_with_sub_page_offset(env.rm().attach(_ds), base))
+		{ }
 
 		/**
 		 * Destructor

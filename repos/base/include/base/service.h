@@ -226,7 +226,6 @@ class Genode::Local_service : public Service
 				break;
 			}
 		}
-
 };
 
 
@@ -237,10 +236,6 @@ class Genode::Parent_service : public Service
 {
 	private:
 
-		/*
-		 * \deprecated
-		 */
-		Env &_env_deprecated();
 		Env &_env;
 
 	public:
@@ -250,14 +245,6 @@ class Genode::Parent_service : public Service
 		 */
 		Parent_service(Env &env, Service::Name const &name)
 		: Service(name), _env(env) { }
-
-		/**
-		 * Constructor
-		 *
-		 * \deprecated
-		 */
-		Parent_service(Service::Name const &name)
-		: Service(name), _env(_env_deprecated()) { }
 
 		void initiate_request(Session_state &session) override
 		{
@@ -430,7 +417,7 @@ class Genode::Child_service : public Async_service
 		/**
 		 * Ram_transfer::Account interface
 		 */
-		void transfer(Ram_session_capability to, Ram_quota amount) override
+		void transfer(Pd_session_capability to, Ram_quota amount) override
 		{
 			if (to.valid()) _pd.transfer_quota(to, amount);
 		}
@@ -438,7 +425,7 @@ class Genode::Child_service : public Async_service
 		/**
 		 * Ram_transfer::Account interface
 		 */
-		Pd_session_capability cap(Ram_quota) const override { return _pd; }
+		Pd_session_capability cap(Ram_quota) const override { return _pd.rpc_cap(); }
 
 		/**
 		 * Cap_transfer::Account interface
@@ -451,7 +438,7 @@ class Genode::Child_service : public Async_service
 		/**
 		 * Cap_transfer::Account interface
 		 */
-		Pd_session_capability cap(Cap_quota) const override { return _pd; }
+		Pd_session_capability cap(Cap_quota) const override { return _pd.rpc_cap(); }
 };
 
 #endif /* _INCLUDE__BASE__SERVICE_H_ */

@@ -35,20 +35,6 @@ struct Genode::Log_connection : Connection<Log_session>, Log_session_client
 		                                     RAM_QUOTA, CAP_QUOTA, label.string())),
 		Log_session_client(cap())
 	{ }
-
-	/**
-	 * Constructor
-	 *
-	 * \noapi
-	 * \deprecated  Use the constructor with 'Env &' as first
-	 *              argument instead
-	 */
-	Log_connection(Session_label label = Session_label()) __attribute__((deprecated))
-	:
-		Connection<Log_session>(session("ram_quota=%ld, cap_quota=%ld, label=\"%s\"",
-		                                RAM_QUOTA, CAP_QUOTA, label.string())),
-		Log_session_client(cap())
-	{ }
 };
 
 #endif /* _INCLUDE__LOG_SESSION__CONNECTION_H_ */

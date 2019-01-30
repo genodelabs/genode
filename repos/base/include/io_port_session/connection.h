@@ -42,20 +42,11 @@ struct Genode::Io_port_connection : Connection<Io_port_session>,
 	 */
 	Io_port_connection(Env &env, unsigned base, unsigned size)
 	:
-		Connection<Io_port_session>(env, _session(env.parent(), base, size)),
-		Io_port_session_client(cap())
-	{ }
-
-	/**
-	 * Constructor
-	 *
-	 * \noapi
-	 * \deprecated  Use the constructor with 'Env &' as first
-	 *              argument instead
-	 */
-	Io_port_connection(unsigned base, unsigned size) __attribute__((deprecated))
-	:
-		Connection<Io_port_session>(_session(*env_deprecated()->parent(), base, size)),
+		Connection<Io_port_session>(env,
+		                            session(env.parent(),
+		                                    "ram_quota=6K, cap_quota=%u, "
+		                                    "io_port_base=%u, io_port_size=%u",
+		                                    CAP_QUOTA, base, size)),
 		Io_port_session_client(cap())
 	{ }
 };

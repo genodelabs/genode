@@ -155,11 +155,6 @@ class Genode::Trace::Buffer
 				 * +--------------------------+------------+-------------+---+---------------------+
 				 */
 				bool last() const { return _entry == 0; }
-
-				/*
-				 * \deprecated use 'last' instead
-				 */
-				bool is_last() const { return last(); }
 		};
 
 		Entry first() const

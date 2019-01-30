@@ -140,17 +140,6 @@ Timer::Connection::Connection(Genode::Env &env, char const *label)
 }
 
 
-Timer::Connection::Connection()
-:
-	Genode::Connection<Session>(session("ram_quota=10K")),
-	Session_client(cap()),
-	_signal_handler(internal_env().ep(), *this, &Connection::_handle_timeout)
-{
-	/* register default signal handler */
-	Session_client::sigh(_default_sigh_cap);
-}
-
-
 void Timer::Connection::_schedule_one_shot(Timeout &timeout, Microseconds duration)
 {
 	_enable_modern_mode();

@@ -261,15 +261,6 @@ class Timer::Connection : public  Genode::Connection<Session>,
 		 */
 		Connection(Genode::Env &env, char const *label = "");
 
-		/**
-		 * Constructor
-		 *
-		 * \noapi
-		 * \deprecated  Use the constructor with 'Env &' as first
-		 *              argument instead
-		 */
-		Connection() __attribute__((deprecated));
-
 		~Connection() { _sig_rec.dissolve(&_default_sigh_ctx); }
 
 		/*

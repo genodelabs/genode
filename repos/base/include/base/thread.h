@@ -20,7 +20,6 @@
 #include <base/trace/logger.h>
 #include <cpu/consts.h>
 #include <util/string.h>
-#include <ram_session/ram_session.h>  /* for 'Ram_dataspace_capability' type */
 #include <cpu_session/cpu_session.h>  /* for 'Thread_capability' type */
 
 namespace Genode {

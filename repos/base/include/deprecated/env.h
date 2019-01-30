@@ -20,8 +20,6 @@
 #include <parent/capability.h>
 #include <parent/parent.h>
 #include <region_map/region_map.h>
-#include <rm_session/rm_session.h>  /* deprecated, kept for API compatibility only */
-#include <ram_session/capability.h>
 #include <cpu_session/cpu_session.h>
 #include <cpu_session/capability.h>
 #include <pd_session/capability.h>
@@ -69,16 +67,6 @@ struct Genode::Env_deprecated : Interface
 	virtual Parent *parent() = 0;
 
 	/**
-	 * RAM session of the component
-	 *
-	 * The RAM Session represents a budget of memory (quota) that is
-	 * available to the component. This budget can be used to allocate
-	 * RAM dataspaces.
-	 */
-	virtual Ram_session *ram_session() { return pd_session(); }
-	virtual Ram_session_capability ram_session_cap() { return pd_session_cap(); }
-
-	/**
 	 * CPU session of the component
 	 *
 	 * This session is used to create the threads of the component.
@@ -100,11 +88,6 @@ struct Genode::Env_deprecated : Interface
 	 */
 	virtual Pd_session *pd_session() = 0;
 	virtual Pd_session_capability pd_session_cap() = 0;
-
-	/**
-	 * Heap backed by the RAM session of the environment
-	 */
-	virtual Allocator *heap() = 0;
 
 	/**
 	 * Reload parent capability and reinitialize environment resources

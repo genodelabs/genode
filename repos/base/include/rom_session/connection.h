@@ -21,82 +21,32 @@
 namespace Genode { class Rom_connection; }
 
 
-class Genode::Rom_connection : public Connection<Rom_session>,
-                               public Rom_session_client
+struct Genode::Rom_connection : Connection<Rom_session>,
+                                Rom_session_client
 {
-	public:
+	class Rom_connection_failed : public Service_denied { };
 
-		class Rom_connection_failed : public Service_denied { };
+	enum { RAM_QUOTA = 6*1024UL };
 
-		enum { RAM_QUOTA = 6*1024UL };
-
-	private:
-
-		Rom_session_capability _session(Parent &, char const *label)
-		{
-			return session("ram_quota=%ld, cap_quota=%ld, label=\"%s\"",
-			               RAM_QUOTA, CAP_QUOTA, label);
-		}
-
-	public:
-
-		/**
-		 * Constructor
-		 *
-		 * \param label  request label and name of ROM module
-		 *
-		 * \throw Rom_connection_failed
-		 */
-		Rom_connection(Env &env, const char *label)
-		try :
-			Connection<Rom_session>(env, _session(env.parent(), label)),
-			Rom_session_client(cap())
-		{ }
-		catch (...) {
-			error("Could not open ROM session for \"", label, "\"");
-			throw Rom_connection_failed();
-		}
-
-		/**
-		 * Constructor
-		 *
-		 * \noapi
-		 * \deprecated  Use the constructor with 'Env &' as first
-		 *              argument instead
-		 */
-		Rom_connection(const char *label) __attribute__((deprecated))
-		try :
-			Connection<Rom_session>(_session(*env_deprecated()->parent(), label)),
-			Rom_session_client(cap())
-		{ }
-		catch (...) {
-			error("Could not open ROM session for \"", label, "\"");
-			throw Rom_connection_failed();
-		}
-
-		/**
-		 * Constructor
-		 *
-		 * \noapi
-		 * \deprecated  Use the constructor with 'Env &' as first
-		 *              argument instead
-		 *
-		 * This version is deliberately used by functions that are marked as
-		 * deprecated. If such a function called directly the
-		 * __attribute__((deprecate)) version, we would always get a warning,
-		 * even if the outer deprecated function is not called.
-		 *
-		 * It will be removed as soon as they are gone.
-		 */
-		Rom_connection(bool, const char *label)
-		try :
-			Connection<Rom_session>(_session(*env_deprecated()->parent(), label)),
-			Rom_session_client(cap())
-		{ }
-		catch (...) {
-			error("Could not open ROM session for \"", label, "\"");
-			throw Rom_connection_failed();
-		}
+	/**
+	 * Constructor
+	 *
+	 * \param label  request label and name of ROM module
+	 *
+	 * \throw Rom_connection_failed
+	 */
+	Rom_connection(Env &env, const char *label)
+	try :
+		Connection<Rom_session>(env,
+		                        session(env.parent(),
+		                                "ram_quota=%ld, cap_quota=%ld, label=\"%s\"",
+		                                 RAM_QUOTA, CAP_QUOTA, label)),
+		Rom_session_client(cap())
+	{ }
+	catch (...) {
+		error("Could not open ROM session for \"", label, "\"");
+		throw Rom_connection_failed();
+	}
 };
 
 #endif /* _INCLUDE__ROM_SESSION__CONNECTION_H_ */

@@ -164,12 +164,6 @@ struct Genode::Range_allocator : Allocator
 
 		bool ok()    const { return value == OK; }
 		bool error() const { return !ok(); }
-
-		/*
-		 * \deprecated  use 'ok' and 'error' instead
-		 */
-		bool is_ok()    const { return ok(); }
-		bool is_error() const { return error(); }
 	};
 
 	/**

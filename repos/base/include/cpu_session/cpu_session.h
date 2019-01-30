@@ -18,7 +18,6 @@
 #include <cpu_thread/cpu_thread.h>
 #include <base/stdint.h>
 #include <base/rpc_args.h>
-#include <thread/capability.h>
 #include <session/session.h>
 #include <dataspace/capability.h>
 #include <pd_session/pd_session.h>
@@ -27,6 +26,8 @@ namespace Genode {
 
 	struct Cpu_session;
 	struct Cpu_session_client;
+
+	typedef Capability<Cpu_thread> Thread_capability;
 }
 
 

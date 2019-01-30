@@ -36,19 +36,6 @@ struct Genode::Rm_connection : Connection<Rm_session>, Rm_session_client
 	{ }
 
 	/**
-	 * Constructor
-	 *
-	 * \noapi
-	 * \deprecated  Use the constructor with 'Env &' as first
-	 *              argument instead
-	 */
-	Rm_connection() __attribute__((deprecated))
-	:
-		Connection<Rm_session>(session("ram_quota=%u, cap_quota=%u", RAM_QUOTA, CAP_QUOTA)),
-		Rm_session_client(cap())
-	{ }
-
-	/**
 	 * Wrapper over 'create' that handles resource requests
 	 * from the server.
 	 */

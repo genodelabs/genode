@@ -27,22 +27,9 @@ struct Platform::Connection : Genode::Connection<Session>, Client
 	 */
 	Connection(Genode::Env &env)
 	:
-		Genode::Connection<Session>(env, session("ram_quota=16K, cap_quota=%u",
+		Genode::Connection<Session>(env, session(env.parent(),
+		                                         "ram_quota=16K, cap_quota=%u",
 		                                         CAP_QUOTA)),
-		Client(cap())
-	{ }
-
-	/**
-	 * Constructor
-	 *
-	 * \noapi
-	 * \deprecated  Use the constructor with 'Env &' as first
-	 *              argument instead
-	 */
-	Connection() __attribute__((deprecated))
-	:
-		Genode::Connection<Session>(session("ram_quota=16K, cap_quota=%u",
-		                                    CAP_QUOTA)),
 		Client(cap())
 	{ }
 

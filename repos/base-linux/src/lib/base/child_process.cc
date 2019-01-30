@@ -52,7 +52,7 @@ void Child::Initial_thread::start(addr_t) { }
  */
 Child::Process::Loaded_executable::Loaded_executable(Type,
                                                      Dataspace_capability,
-                                                     Ram_session &,
+                                                     Ram_allocator &,
                                                      Region_map &,
                                                      Region_map &,
                                                      Parent_capability) { }
