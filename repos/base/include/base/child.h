@@ -701,9 +701,9 @@ class Genode::Child : protected Rpc_object<Parent>,
 		bool active() const { return _process.constructed(); }
 
 		/**
-		 * Initialize the child's RAM session
+		 * Initialize the child's PD session
 		 */
-		void initiate_env_ram_session();
+		void initiate_env_pd_session();
 
 		/**
 		 * Trigger the routing and creation of the child's environment session

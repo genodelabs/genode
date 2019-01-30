@@ -494,7 +494,7 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 		void initiate_env_pd_session()
 		{
 			if (_state == STATE_INITIAL) {
-				_child.initiate_env_ram_session();
+				_child.initiate_env_pd_session();
 				_state = STATE_RAM_INITIALIZED;
 			}
 		}
