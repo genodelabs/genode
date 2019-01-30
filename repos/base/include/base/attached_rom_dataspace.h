@@ -75,17 +75,6 @@ class Genode::Attached_rom_dataspace
 		: _rm(env.rm()), _rom(env, name) { _try_attach(); }
 
 		/**
-		 * Constructor
-		 *
-		 * \noapi
-		 * \deprecated  Use the constructor with 'Env &' as first
-		 *              argument instead
-		 */
-		Attached_rom_dataspace(char const *name) __attribute__((deprecated))
-		: _rm(*env_deprecated()->rm_session()), _rom(false /* deprecated */, name)
-		{ _try_attach(); }
-
-		/**
 		 * Return capability of the used dataspace
 		 */
 		Dataspace_capability cap() const { return _ds->cap(); }
@@ -128,14 +117,6 @@ class Genode::Attached_rom_dataspace
 		 * Return true of content is present
 		 */
 		bool valid() const { return _ds.constructed(); }
-
-		/**
-		 * Return true of content is present
-		 *
-		 * \noapi
-		 * \deprecated use 'valid' instead
-		 */
-		bool is_valid() const { return valid(); }
 
 		/**
 		 * Return dataspace content as XML node

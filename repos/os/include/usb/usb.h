@@ -95,12 +95,6 @@ class Usb::Endpoint : public Endpoint_descriptor
 		bool bulk()      const { return (attributes & 0x3) == ENDPOINT_BULK;      }
 		bool interrupt() const { return (attributes & 0x3) == ENDPOINT_INTERRUPT; }
 
-		/*
-		 * \deprecated  use 'bulk' and 'interrupt' instead
-		 */
-		bool is_bulk()      const { return bulk(); }
-		bool is_interrupt() const { return interrupt(); }
-
 		void dump()
 		{
 			if (verbose_descr)
@@ -331,7 +325,7 @@ class Usb::Interface : public Meta_data
 		{
 			_check();
 
-			if (!ep.is_bulk())
+			if (!ep.bulk())
 				throw Session::Invalid_endpoint();
 
 			p.type              = Usb::Packet_descriptor::BULK;
@@ -350,7 +344,7 @@ class Usb::Interface : public Meta_data
 		{
 			_check();
 
-			if (!ep.is_interrupt())
+			if (!ep.interrupt())
 				throw Session::Invalid_endpoint();
 
 			p.type                      = Usb::Packet_descriptor::IRQ;

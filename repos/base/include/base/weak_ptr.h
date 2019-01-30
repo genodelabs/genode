@@ -351,14 +351,6 @@ struct Genode::Locked_ptr : Genode::Locked_ptr_base
 	 * the attempt will result in a null-pointer access.
 	 */
 	bool valid() const { return curr != nullptr; }
-
-	/**
-	 * Returns true if the locked pointer is valid
-	 *
-	 * \noapi
-	 * \deprecated use 'valid' instead
-	 */
-	bool is_valid() const { return valid(); }
 };
 
 

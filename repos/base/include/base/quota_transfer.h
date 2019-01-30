@@ -15,15 +15,14 @@
 #define _INCLUDE__BASE__QUOTA_TRANSFER_H_
 
 #include <base/capability.h>
-#include <ram_session/ram_session.h>
 #include <pd_session/pd_session.h>
 
 namespace Genode {
 
 	template <typename SESSION, typename UNIT> class Quota_transfer;
 
-	typedef Quota_transfer<Ram_session, Ram_quota> Ram_transfer;
-	typedef Quota_transfer<Pd_session,  Cap_quota> Cap_transfer;
+	typedef Quota_transfer<Pd_session, Ram_quota> Ram_transfer;
+	typedef Quota_transfer<Pd_session, Cap_quota> Cap_transfer;
 }
 
 

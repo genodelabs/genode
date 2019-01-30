@@ -133,9 +133,7 @@ class Genode::Platform_env : public Platform_env_base
 		 ** Env_deprecated interface **
 		 ******************************/
 
-		Parent    *parent() override { return &_parent(); }
-		Allocator *heap()   override { return &_heap; }
-
+		Parent *parent() override { return &_parent(); }
 };
 
 #endif /* _INCLUDE__BASE__INTERNAL__PLATFORM_ENV_H_ */

@@ -24,17 +24,6 @@ namespace Audio_out { struct Connection; }
 struct Audio_out::Connection : Genode::Connection<Session>, Audio_out::Session_client
 {
 	/**
-	 * Issue session request
-	 *
-	 * \noapi
-	 */
-	Genode::Capability<Audio_out::Session> _session(Genode::Parent &parent, char const *channel)
-	{
-		return session(parent, "ram_quota=%ld, cap_quota=%ld, channel=\"%s\"",
-		               2*4096 + 2048 + sizeof(Stream), CAP_QUOTA, channel);
-	}
-
-	/**
 	 * Constructor
 	 *
 	 * \param channel          channel identifier (e.g., "front left")
@@ -49,23 +38,11 @@ struct Audio_out::Connection : Genode::Connection<Session>, Audio_out::Session_c
 	           bool         alloc_signal = true,
 	           bool         progress_signal = false)
 	:
-		Genode::Connection<Session>(env, _session(env.parent(), channel)),
+		Genode::Connection<Session>(env,
+			session(env.parent(),
+			        "ram_quota=%ld, cap_quota=%ld, channel=\"%s\"",
+			        2*4096 + 2048 + sizeof(Stream), CAP_QUOTA, channel)),
 		Session_client(env.rm(), cap(), alloc_signal, progress_signal)
-	{ }
-
-	/**
-	 * Constructor
-	 *
-	 * \noapi
-	 * \deprecated  Use the constructor with 'Env &' as first
-	 *              argument instead
-	 */
-	Connection(const char *channel,
-	           bool        alloc_signal = true,
-	           bool        progress_signal = false) __attribute__((deprecated))
-	:
-		Genode::Connection<Session>(_session(*Genode::env_deprecated()->parent(), channel)),
-		Session_client(*Genode::env_deprecated()->rm_session(), cap(), alloc_signal, progress_signal)
 	{ }
 };
 

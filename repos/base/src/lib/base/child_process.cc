@@ -26,7 +26,7 @@ using namespace Genode;
 
 Child::Process::Loaded_executable::Loaded_executable(Type type,
                                                      Dataspace_capability ldso_ds,
-                                                     Ram_session &ram,
+                                                     Ram_allocator &ram,
                                                      Region_map &local_rm,
                                                      Region_map &remote_rm,
                                                      Parent_capability parent_cap)

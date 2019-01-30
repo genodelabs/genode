@@ -22,22 +22,6 @@ namespace Genode { struct Irq_connection; }
 struct Genode::Irq_connection : Connection<Irq_session>, Irq_session_client
 {
 	/**
-	 * Issue session request
-	 *
-	 * \noapi
-	 */
-	Capability<Irq_session> _session(Parent               &,
-	                                 unsigned              irq,
-	                                 Irq_session::Trigger  trigger,
-	                                 Irq_session::Polarity polarity,
-	                                 Genode::addr_t        device_config_phys)
-	{
-		return session("ram_quota=6K, cap_quota=4, irq_number=%u, irq_trigger=%u, "
-		               " irq_polarity=%u, device_config_phys=0x%lx",
-		               irq, trigger, polarity, device_config_phys);
-	}
-
-	/**
 	 * Constructor
 	 *
 	 * \param irq      physical interrupt number
@@ -50,25 +34,11 @@ struct Genode::Irq_connection : Connection<Irq_session>, Irq_session_client
 	               Irq_session::Polarity polarity = Irq_session::POLARITY_UNCHANGED,
 	               Genode::addr_t        device_config_phys = 0)
 	:
-		Connection<Irq_session>(env, _session(env.parent(), irq, trigger,
-		                                      polarity, device_config_phys)),
-		Irq_session_client(cap())
-	{ }
-
-	/**
-	 * Constructor
-	 *
-	 * \noapi
-	 * \deprecated  Use the constructor with 'Env &' as first
-	 *              argument instead
-	 */
-	Irq_connection(unsigned irq,
-	               Irq_session::Trigger  trigger  = Irq_session::TRIGGER_UNCHANGED,
-	               Irq_session::Polarity polarity = Irq_session::POLARITY_UNCHANGED,
-	               Genode::addr_t device_config_phys = 0) __attribute__((deprecated))
-	:
-		Connection<Irq_session>(_session(*Genode::env_deprecated()->parent(), irq,
-		                                 trigger, polarity, device_config_phys)),
+		Connection<Irq_session>(env, session(env.parent(),
+		                                     "ram_quota=6K, cap_quota=4, "
+		                                     "irq_number=%u, irq_trigger=%u, "
+		                                     "irq_polarity=%u, device_config_phys=0x%lx",
+		                                     irq, trigger, polarity, device_config_phys)),
 		Irq_session_client(cap())
 	{ }
 };

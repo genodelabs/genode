@@ -38,8 +38,6 @@ namespace Genode {
 	class Signal;
 	class Signal_dispatcher_base;
 
-	template <typename>           class Signal_dispatcher;
-	template <typename>           class Io_signal_dispatcher;
 	template <typename, typename> class Signal_handler;
 	template <typename, typename> class Io_signal_handler;
 
@@ -151,12 +149,10 @@ class Genode::Signal_transmitter
 		 */
 		void context(Signal_context_capability context);
 
-
 		/**
 		 * Return signal context
 		 */
 		Signal_context_capability context();
-
 
 		/**
 		 * Trigger signal submission to context
@@ -257,18 +253,6 @@ class Genode::Signal_context : Interface, Noncopyable
 		Level level() const { return _level; }
 
 		List_element<Signal_context> *deferred_le() { return &_deferred_le; }
-
-		/**
-		 * Local signal submission (DEPRECATED)
-		 *
-		 * \noapi
-		 *
-		 * Trigger local signal submission (within the same address space), the
-		 * context has to be bound to a sginal receiver beforehand.
-		 *
-		 * \param num  number of pending signals
-		 */
-		void submit(unsigned num);
 
 		/*
 		 * Signal contexts are never invoked but only used as arguments for
@@ -450,67 +434,6 @@ class Genode::Signal_receiver : Noncopyable
 struct Genode::Signal_dispatcher_base : Signal_context
 {
 	virtual void dispatch(unsigned num) = 0;
-};
-
-
-/**
- * Adapter for directing signals to object methods
- *
- * This utility associates object methods with signals. It is intended to
- * be used as a member variable of the class that handles incoming signals
- * of a certain type. The constructor takes a pointer-to-member to the
- * signal handling method as argument. If a signal is received at the
- * common signal reception code, this method will be invoked by calling
- * 'Signal_dispatcher_base::dispatch'.
- *
- * \param T  type of signal-handling class
- */
-template <typename T>
-class Genode::Signal_dispatcher : public  Signal_dispatcher_base
-{
-	private:
-
-		Signal_context_capability _cap;
-		T &obj;
-		void (T::*member) (unsigned);
-		Signal_receiver &sig_rec;
-
-	public:
-
-		/**
-		 * Constructor
-		 *
-		 * \param sig_rec     signal receiver to associate the signal
-		 *                    handler with
-		 * \param obj,member  object and method to call when
-		 *                    the signal occurs
-		 */
-		Signal_dispatcher(Signal_receiver &sig_rec,
-		                  T &obj, void (T::*member)(unsigned))
-		:
-			_cap(sig_rec.manage(this)),
-			obj(obj), member(member),
-			sig_rec(sig_rec)
-		{ }
-
-		~Signal_dispatcher() { sig_rec.dissolve(this); }
-
-		void dispatch(unsigned num) override { (obj.*member)(num); }
-
-		operator Capability<Signal_context>() const { return _cap; }
-};
-
-
-/**
- * Signal dispatcher for I/O-level signals
- */
-template <typename T>
-struct Genode::Io_signal_dispatcher : Signal_dispatcher<T>
-{
-	Io_signal_dispatcher(Signal_receiver &sig_rec,
-	                     T &obj, void (T::*member)(unsigned))
-	: Signal_dispatcher<T>(sig_rec, obj, member)
-	{ Signal_context::_level = Signal_context::Level::Io; }
 };
 
 

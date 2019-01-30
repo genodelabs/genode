@@ -200,7 +200,7 @@ Genode::Pager_object &Platform_thread::pager()
 
 Thread_state Platform_thread::state()
 {
-	Thread_state_base bstate(*_kobj.kernel_object()->regs);
+	Thread_state bstate(*_kobj.kernel_object()->regs);
 	return Thread_state(bstate);
 }
 

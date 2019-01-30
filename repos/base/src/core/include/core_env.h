@@ -94,7 +94,6 @@ class Genode::Core_env : public Env_deprecated, Noncopyable
 		Parent                 *parent()          override { return nullptr; }
 		Region_map             *rm_session()      override { return &_region_map; }
 		Pd_session             *pd_session()      override { return &_pd_session; }
-		Allocator              *heap()            override { ASSERT_NEVER_CALLED; }
 		Cpu_session            *cpu_session()     override { ASSERT_NEVER_CALLED; }
 		Cpu_session_capability  cpu_session_cap() override { ASSERT_NEVER_CALLED; }
 		Pd_session_capability   pd_session_cap()  override { return _pd_session.cap(); }

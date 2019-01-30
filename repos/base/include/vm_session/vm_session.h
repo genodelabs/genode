@@ -17,8 +17,9 @@
 /* Genode includes */
 #include <base/rpc_args.h>
 #include <base/signal.h>
+#include <base/ram_allocator.h>
+#include <cpu_session/cpu_session.h>
 #include <session/session.h>
-#include <ram_session/ram_session.h>
 
 namespace Genode { struct Vm_session; }
 

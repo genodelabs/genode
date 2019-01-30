@@ -19,17 +19,7 @@
 
 namespace Genode { class Slab; }
 
-/**
- * Transitional type definition, for API compatibility only
- *
- * \deprecated  To be removed once all Slab users are updated.
- */
-namespace Genode { typedef void Slab_block; }
 
-
-/**
- * Slab allocator
- */
 class Genode::Slab : public Allocator
 {
 	private:
@@ -52,7 +42,7 @@ class Genode::Slab : public Allocator
 		 */
 		Block *_curr_sb = nullptr;
 
-		Allocator   *_backing_store;
+		Allocator *_backing_store;
 
 		/**
 		 * Allocate and initialize new slab block

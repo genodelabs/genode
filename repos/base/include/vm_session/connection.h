@@ -52,21 +52,6 @@ struct Genode::Vm_connection : Connection<Vm_session>, Vm_session_client
 		Vm_session_client(cap())
 	{ }
 
-	/**
-	 * Constructor
-	 *
-	 * \noapi
-	 * \deprecated  Use the constructor with 'Env &' as first
-	 *              argument instead
-	 */
-	Vm_connection(const char *label = "",
-	              long priority = Cpu_session::DEFAULT_PRIORITY,
-	              unsigned long affinity = 0) __attribute__((deprecated))
-	:
-		Connection<Vm_session>(_session(*env_deprecated()->parent(), label, priority, affinity)),
-		Vm_session_client(cap())
-	{ }
-
 	template <typename FUNC>
 	auto with_upgrade(FUNC func) -> decltype(func())
 	{

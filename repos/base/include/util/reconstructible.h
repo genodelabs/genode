@@ -130,13 +130,6 @@ class Genode::Reconstructible : Noncopyable
 		bool constructed() const { return _constructed; }
 
 		/**
-		 * Return true of volatile object contains a constructed object
-		 *
-		 * \deprecated use 'constructed' instead
-		 */
-		bool is_constructed() const { return constructed(); }
-
-		/**
 		 * Construct or destruct volatile object according to 'condition'
 		 */
 		template <typename... ARGS>

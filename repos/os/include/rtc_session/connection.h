@@ -32,19 +32,6 @@ struct Rtc::Connection : Genode::Connection<Session>, Session_client
 			env, session(env.parent(), "ram_quota=8K, label=\"%s\"", label)),
 		Session_client(cap())
 	{ }
-
-	/**
-	 * Constructor
-	 *
-	 * \noapi
-	 * \deprecated  Use the constructor with 'Env &' as first
-	 *              argument instead
-	 */
-	Connection() __attribute__((deprecated))
-	:
-		Genode::Connection<Rtc::Session>(session("ram_quota=8K")),
-		Session_client(cap())
-	{ }
 };
 
 #endif /* _INCLUDE__RTC_SESSION__CONNECTION_H_ */

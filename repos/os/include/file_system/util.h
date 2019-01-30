@@ -59,17 +59,6 @@ namespace File_system {
 
 
 	/**
-	 * Return true if specified path is a base name (contains no path delimiters)
-	 *
-	 * \deprecated  use !contains_path_delimiter instead
-	 */
-	static inline bool is_basename(char const *path)
-	{
-		return !contains_path_delimiter(path);
-	}
-
-
-	/**
 	 * Return true if 'str' is a valid node name
 	 */
 	static inline bool valid_name(char const *str)

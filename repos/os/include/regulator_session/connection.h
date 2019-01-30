@@ -24,19 +24,6 @@ namespace Regulator { struct Connection; }
 struct Regulator::Connection : Genode::Connection<Session>, Session_client
 {
 	/**
-	 * Issue session request
-	 *
-	 * \noapi
-	 */
-	Genode::Capability<Regulator::Session> _session(Genode::Parent &,
-	                                                char const *label,
-	                                                Regulator_id regulator)
-	{
-		return session("ram_quota=8K, cap_quota=%ld, regulator=\"%s\", label=\"%s\"",
-		               CAP_QUOTA, regulator_name_by_id(regulator), label);
-	}
-
-	/**
 	 * Constructor
 	 *
 	 * \param regulator  identifier for the specific regulator
@@ -44,19 +31,10 @@ struct Regulator::Connection : Genode::Connection<Session>, Session_client
 	 */
 	Connection(Genode::Env &env, Regulator_id regulator, const char * label = "")
 	:
-		Genode::Connection<Session>(env, _session(env.parent(), label, regulator)),
-		Session_client(cap())
-	{ }
-
-	/**
-	 * Constructor
-	 *
-	 * \param regulator  identifier for the specific regulator
-	 * \param label      string identifier of the client
-	 */
-	Connection(Regulator_id regulator, const char * label = "") __attribute__((deprecated))
-	:
-		Genode::Connection<Session>(_session(*Genode::env_deprecated()->parent(), label, regulator)),
+		Genode::Connection<Session>(env,
+			session(env.parent(),
+			        "ram_quota=8K, cap_quota=%ld, regulator=\"%s\", label=\"%s\"",
+			        CAP_QUOTA, regulator_name_by_id(regulator), label)),
 		Session_client(cap())
 	{ }
 };

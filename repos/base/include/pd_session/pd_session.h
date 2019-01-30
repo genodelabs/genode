@@ -16,7 +16,6 @@
 #define _INCLUDE__PD_SESSION__PD_SESSION_H_
 
 #include <base/exception.h>
-#include <thread/capability.h>
 #include <session/session.h>
 #include <region_map/region_map.h>
 #include <base/ram_allocator.h>

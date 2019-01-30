@@ -19,7 +19,6 @@
 #include <base/signal.h>
 #include <base/quota_guard.h>
 #include <dataspace/capability.h>
-#include <thread/capability.h>
 
 namespace Genode { struct Region_map; }
 

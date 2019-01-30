@@ -33,19 +33,6 @@ struct Gpio::Connection : Genode::Connection<Session>, Session_client
 		                                         CAP_QUOTA, gpio_pin)),
 		Session_client(cap())
 	{ }
-
-	/**
-	 * Constructor
-	 *
-	 * \noapi
-	 * \deprecated  Use the constructor with 'Env &' as first
-	 *              argument instead
-	 */
-	Connection(unsigned long gpio_pin) __attribute__((deprecated))
-	:
-		Genode::Connection<Session>(session("ram_quota=8K, gpio=%zd", gpio_pin)),
-		Session_client(cap())
-	{ }
 };
 
 #endif /* _INCLUDE__GPIO_SESSION__CONNECTION_H_ */

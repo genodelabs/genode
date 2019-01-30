@@ -111,14 +111,6 @@ class Genode::Rpc_in_buffer : public Rpc_in_buffer_base
 			return (_size <= MAX_SIZE) && (_size > 0) && (_base[_size - 1] == '\0'); }
 
 		/**
-		 * Return true if buffer contains a valid null-terminated string
-		 *
-		 * \noapi
-		 * \deprecated use valid_string instead
-		 */
-		bool is_valid_string() const { return valid_string(); }
-
-		/**
 		 * Return buffer content as null-terminated string
 		 *
 		 * \return  pointer to null-terminated string

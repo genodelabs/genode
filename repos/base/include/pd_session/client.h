@@ -86,8 +86,8 @@ struct Genode::Pd_session_client : Rpc_client<Pd_session>
 		return ds.valid() ? Dataspace_client(ds).size() : 0;
 	}
 
-	void transfer_quota(Pd_session_capability ram_session, Ram_quota amount) override {
-		call<Rpc_transfer_ram_quota>(ram_session, amount); }
+	void transfer_quota(Pd_session_capability pd_session, Ram_quota amount) override {
+		call<Rpc_transfer_ram_quota>(pd_session, amount); }
 
 	Ram_quota ram_quota() const override { return call<Rpc_ram_quota>(); }
 	Ram_quota used_ram()  const override { return call<Rpc_used_ram>(); }

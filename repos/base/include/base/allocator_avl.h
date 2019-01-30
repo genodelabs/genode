@@ -338,7 +338,7 @@ class Genode::Allocator_avl_tpl : public Allocator_avl_base
 		explicit Allocator_avl_tpl(Allocator *metadata_chunk_alloc) :
 			Allocator_avl_base(&_metadata, sizeof(Block)),
 			_metadata((metadata_chunk_alloc) ? metadata_chunk_alloc : this,
-			          (Slab_block *)&_initial_md_block) { }
+			          (Block *)&_initial_md_block) { }
 
 		~Allocator_avl_tpl() { _revert_allocations_and_ranges(); }
 

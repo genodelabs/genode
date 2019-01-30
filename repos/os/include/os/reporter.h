@@ -35,6 +35,8 @@ class Genode::Reporter
 
 	private:
 
+		Env &_env;
+
 		Name const _xml_name;
 		Name const _label;
 
@@ -45,10 +47,11 @@ class Genode::Reporter
 		struct Connection
 		{
 			Report::Connection report;
-			Attached_dataspace ds = { *env_deprecated()->rm_session(), report.dataspace() };
+			Attached_dataspace ds;
 
-			Connection(char const *name, size_t buffer_size)
-			: report(false, name, buffer_size) { }
+			Connection(Env &env, char const *name, size_t buffer_size)
+			: report(env, name, buffer_size), ds(env.rm(), report.dataspace())
+			{ }
 		};
 
 		Constructible<Connection> _conn { };
@@ -65,23 +68,10 @@ class Genode::Reporter
 
 	public:
 
-		Reporter(Env &, char const *xml_name, char const *label = nullptr,
+		Reporter(Env &env, char const *xml_name, char const *label = nullptr,
 		         size_t buffer_size = 4096)
 		:
-			_xml_name(xml_name), _label(label ? label : xml_name),
-			_buffer_size(buffer_size)
-		{ }
-
-		/**
-		 * Constructor
-		 *
-		 * \deprecated
-		 * \noapi
-		 */
-		Reporter(char const *xml_name, char const *label = nullptr,
-		         size_t buffer_size = 4096) __attribute__((deprecated))
-		:
-			_xml_name(xml_name), _label(label ? label : xml_name),
+			_env(env), _xml_name(xml_name), _label(label ? label : xml_name),
 			_buffer_size(buffer_size)
 		{ }
 
@@ -93,7 +83,7 @@ class Genode::Reporter
 			if (enabled == _enabled) return;
 
 			if (enabled)
-				_conn.construct(_label.string(), _buffer_size);
+				_conn.construct(_env, _label.string(), _buffer_size);
 			else
 				_conn.destruct();
 
@@ -104,14 +94,6 @@ class Genode::Reporter
 		 * Return true if reporter is enabled
 		 */
 		bool enabled() const { return _enabled; }
-
-		/**
-		 * Return true if reporter is enabled
-		 *
-		 * \noapi
-		 * \deprecated  use 'enabled' instead
-		 */
-		bool is_enabled() const { return enabled(); }
 
 		Name name() const { return _label; }
 
@@ -219,7 +201,9 @@ class Genode::Expanding_reporter
 		{
 			retry<Xml_generator::Buffer_exceeded>(
 
-				[&] () { _reporter->report(node.addr(), node.size()); },
+				[&] () {
+					node.with_raw_node([&] (char const *start, size_t length) {
+						_reporter->report(start, length); }); },
 
 				[&] () { _increase_report_buffer(); }
 			);

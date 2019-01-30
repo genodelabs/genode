@@ -38,14 +38,6 @@ class Genode::Path_base
 			return path[0] == '/';
 		}
 
-		/**
-		 * Return true if path starts with a '/'
-		 *
-		 * \noapi
-		 * \deprecated  use 'absolute' instead
-		 */
-		static bool is_absolute(char const *path) { return absolute(path); }
-
 		static bool ends_with(char c, char const *path)
 		{
 			return path[0] && (path[strlen(path) - 1] == c);
@@ -84,13 +76,6 @@ class Genode::Path_base
 		{
 			return strlen(path) == 0;
 		}
-
-		/**
-		 * Return true if path contains no characters
-		 *
-		 * \deprecated  use 'empty' instead
-		 */
-		static bool is_empty(char const *path) { return empty(path); }
 
 		/**
 		 * Remove superfluous single dots followed by a slash from path

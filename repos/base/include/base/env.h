@@ -16,14 +16,8 @@
 
 #include <parent/parent.h>
 #include <base/entrypoint.h>
-#include <ram_session/capability.h>
 #include <cpu_session/capability.h>
 #include <pd_session/capability.h>
-#include <rm_session/rm_session.h>
-
-/* maintain compatibility to deprecated API */
-#include <deprecated/env.h>
-
 
 namespace Genode { struct Env; }
 
@@ -31,14 +25,6 @@ namespace Genode { struct Env; }
 struct Genode::Env : Interface
 {
 	virtual Parent &parent() = 0;
-
-	/**
-	 * RAM allocator of the component
-	 *
-	 * The RAM allocator is backed with the RAM budget of the component's PD
-	 * session. This budget can be used to allocate RAM dataspaces.
-	 */
-	virtual Ram_session &ram() { return pd(); }
 
 	/**
 	 * CPU session of the component
@@ -58,17 +44,14 @@ struct Genode::Env : Interface
 	virtual Pd_session &pd() = 0;
 
 	/**
+	 * Memory allocator
+	 */
+	Ram_allocator &ram() { return pd(); }
+
+	/**
 	 * Entrypoint for handling RPC requests and signals
 	 */
 	virtual Entrypoint &ep() = 0;
-
-	/**
-	 * Deprecated
-	 *
-	 * \deprecated  the RAM session has become part of the PD session
-	 * \noapi
-	 */
-	virtual Ram_session_capability ram_session_cap() { return pd_session_cap(); }
 
 	/**
 	 * Return the CPU-session capability of the component

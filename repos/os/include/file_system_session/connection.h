@@ -26,89 +26,14 @@ namespace File_system {
 
 	/* recommended packet transmission buffer size */
 	enum { DEFAULT_TX_BUF_SIZE = 128*1024 };
-
 }
 
 
 /**
  * The base implementation of a File_system connection
  */
-struct File_system::Connection_base : Genode::Connection<Session>, Session_client
+struct File_system::Connection : Genode::Connection<Session>, Session_client
 {
-	/**
-	 * Issue session request
-	 *
-	 * \noapi
-	 */
-	Genode::Capability<File_system::Session> _session(Genode::Parent &parent,
-	                                                  char     const *label,
-	                                                  char     const *root,
-	                                                  bool            writeable,
-	                                                  size_t          tx_buf_size)
-	{
-		return session(parent,
-		               "ram_quota=%ld, "
-		               "cap_quota=%ld, "
-		               "tx_buf_size=%ld, "
-		               "label=\"%s\", "
-		               "root=\"%s\", "
-		               "writeable=%d",
-		               8*1024*sizeof(long) + tx_buf_size,
-		               CAP_QUOTA,
-		               tx_buf_size,
-		               label, root, writeable);
-	}
-
-	/**
-	 * Constructor
-	 *
-	 * \param tx_buffer_alloc  allocator used for managing the
-	 *                         transmission buffer
-	 * \param label            session label
-	 * \param root             root directory of session
-	 * \param writeable        session is writable
-	 * \param tx_buf_size      size of transmission buffer in bytes
-	 */
-	Connection_base(Genode::Env             &env,
-	                Genode::Range_allocator &tx_block_alloc,
-	                char const              *label       = "",
-	                char const              *root        = "/",
-	                bool                     writeable   = true,
-	                size_t                   tx_buf_size = DEFAULT_TX_BUF_SIZE)
-	:
-		Genode::Connection<Session>(env, _session(env.parent(), label, root,
-		                                          writeable, tx_buf_size)),
-		Session_client(cap(), tx_block_alloc, env.rm())
-	{ }
-
-	/**
-	 * Constructor
-	 *
-	 * \noapi
-	 * \deprecated  Use the constructor with 'Env &' as first
-	 *              argument instead
-	 */
-	Connection_base(Genode::Range_allocator &tx_block_alloc,
-	                size_t                   tx_buf_size = DEFAULT_TX_BUF_SIZE,
-	                char const              *label       = "",
-	                char const              *root        = "/",
-	                bool                     writeable   = true) __attribute__((deprecated))
-	:
-		Genode::Connection<Session>(_session(*Genode::env_deprecated()->parent(), label,
-		                                     root, writeable, tx_buf_size)),
-		Session_client(cap(), tx_block_alloc, *Genode::env_deprecated()->rm_session())
-	{ }
-};
-
-
-/**
- * A File_system connection that upgrades its RAM quota
- */
-struct File_system::Connection : File_system::Connection_base
-{
-	/* reuse constructor */
-	using Connection_base::Connection_base;
-
 	/**
 	 * Extend session quota on demand while calling an RPC function
 	 *
@@ -122,12 +47,44 @@ struct File_system::Connection : File_system::Connection_base
 			[&] () {
 				return Genode::retry<Out_of_caps>(
 					[&] () { return func(); },
-					[&] () { File_system::Connection_base::upgrade_caps(2); },
+					[&] () { File_system::Connection::upgrade_caps(2); },
 					UPGRADE_ATTEMPTS);
 			},
-			[&] () { File_system::Connection_base::upgrade_ram(8*1024); },
+			[&] () { File_system::Connection::upgrade_ram(8*1024); },
 			UPGRADE_ATTEMPTS);
 	}
+
+	/**
+	 * Constructor
+	 *
+	 * \param tx_buffer_alloc  allocator used for managing the
+	 *                         transmission buffer
+	 * \param label            session label
+	 * \param root             root directory of session
+	 * \param writeable        session is writable
+	 * \param tx_buf_size      size of transmission buffer in bytes
+	 */
+	Connection(Genode::Env             &env,
+	           Genode::Range_allocator &tx_block_alloc,
+	           char const              *label       = "",
+	           char const              *root        = "/",
+	           bool                     writeable   = true,
+	           size_t                   tx_buf_size = DEFAULT_TX_BUF_SIZE)
+	:
+		Genode::Connection<Session>(env,
+			session(env.parent(),
+			        "ram_quota=%ld, "
+			        "cap_quota=%ld, "
+			        "tx_buf_size=%ld, "
+			        "label=\"%s\", "
+			        "root=\"%s\", "
+			        "writeable=%d",
+			        8*1024*sizeof(long) + tx_buf_size,
+			        CAP_QUOTA,
+			        tx_buf_size,
+			        label, root, writeable)),
+		Session_client(cap(), tx_block_alloc, env.rm())
+	{ }
 
 	Dir_handle dir(Path const &path, bool create) override
 	{

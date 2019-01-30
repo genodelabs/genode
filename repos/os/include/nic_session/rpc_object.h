@@ -48,21 +48,8 @@ class Nic::Session_rpc_object : public Genode::Rpc_object<Session, Session_rpc_o
 		                   Genode::Rpc_entrypoint       &ep)
 		:
 			_tx(tx_ds, rm, ep),
-			_rx(rx_ds, rm, *rx_buffer_alloc, ep) { }
-
-		/**
-		 * Constructor
-		 *
-		 * \deprecated
-		 * \noapi
-		 */
-		Session_rpc_object(Genode::Dataspace_capability  tx_ds,
-		                   Genode::Dataspace_capability  rx_ds,
-		                   Genode::Range_allocator      *rx_buffer_alloc,
-		                   Genode::Rpc_entrypoint       &ep) __attribute__((deprecated))
-		:
-			_tx(tx_ds, *Genode::env_deprecated()->rm_session(), ep),
-			_rx(rx_ds, *Genode::env_deprecated()->rm_session(), *rx_buffer_alloc, ep) { }
+			_rx(rx_ds, rm, *rx_buffer_alloc, ep)
+		{ }
 
 		Genode::Capability<Tx> _tx_cap() { return _tx.cap(); }
 		Genode::Capability<Rx> _rx_cap() { return _rx.cap(); }

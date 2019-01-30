@@ -22,7 +22,7 @@
 #include <base/lock.h>
 
 namespace Genode {
-	
+
 	class Heap;
 	class Sliced_heap;
 }
@@ -195,15 +195,6 @@ class Genode::Sliced_heap : public Allocator
 		 * Return size of header prepended to each allocated block in bytes
 		 */
 		static constexpr size_t meta_data_size() { return sizeof(Block); }
-
-		/**
-		 * Constructor
-		 *
-		 * \deprecated  Use the other constructor that takes reference
-		 *              arguments
-		 */
-		Sliced_heap(Ram_allocator *ram_alloc, Region_map *region_map)
-		: Sliced_heap(*ram_alloc, *region_map) { }
 
 		/**
 		 * Constructor

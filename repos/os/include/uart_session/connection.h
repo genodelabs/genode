@@ -32,21 +32,6 @@ struct Uart::Connection : Genode::Connection<Session>, Session_client
 	{
 		Terminal::Connection::wait_for_connection(cap());
 	}
-
-	/**
-	 * Constructor
-	 *
-	 * \noapi
-	 * \deprecated  Use the constructor with 'Env &' as first
-	 *              argument instead
-	 */
-	Connection() __attribute__((deprecated))
-	:
-		Genode::Connection<Session>(session("ram_quota=%ld", 2*4096)),
-		Session_client(*Genode::env_deprecated()->rm_session(), cap())
-	{
-		Terminal::Connection::wait_for_connection(cap());
-	}
 };
 
 #endif /* _INCLUDE__UART_SESSION__CONNECTION_H_ */
