@@ -29,7 +29,14 @@ struct timer_list
 	void          (*function)(struct timer_list*);
 	unsigned int  flags;
 
-	unsigned long data; /* keep for compat with 4.4.3 drivers */
+	/*
+	 * For compatibility with 4.4.3 drivers, the 'data' member is kept and
+	 * passed as argument to the callback function. Since the 4.16.3 callback
+	 * function interface has a 'timer_list' pointer as argument, the 'data'
+	 * member points to the 'timer_list' object itself when set up with the
+	 * 'timer_setup()' function.
+	 */
+	unsigned long data;
 };
 
 int  mod_timer(struct timer_list *timer, unsigned long expires);

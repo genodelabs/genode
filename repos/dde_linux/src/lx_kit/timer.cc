@@ -60,8 +60,14 @@ class Lx_kit::Timer : public Lx::Timer
 				case LIST:
 					{
 						timer_list *t = static_cast<timer_list *>(timer);
-						if (t->function)
-							t->function(t);
+						if (t->function) {
+							/*
+							 * Pass 't->data' instead of 't' for compatibility
+							 * with 4.4.3 drivers. When set up with
+							 * 'timer_setup()', 't->data' matches 't'.
+							 */
+							t->function((struct timer_list*)t->data);
+						}
 					}
 					break;
 

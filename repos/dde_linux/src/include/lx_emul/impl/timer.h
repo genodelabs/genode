@@ -30,6 +30,15 @@ void timer_setup(struct timer_list *timer,
 {
 	timer->function = function;
 	timer->flags    = flags;
+
+	/*
+	 * For compatibility with 4.4.3 drivers, the 'data' member is passed as
+	 * argument to the callback function. Since the 4.16.3 callback function
+	 * interface has a 'timer_list' pointer as argument, the 'data' member
+	 * points to the 'timer_list' object  itself when set up with this
+	 * function.
+	 */
+	timer->data     = (unsigned long)timer;
 }
 
 

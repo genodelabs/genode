@@ -728,9 +728,16 @@ void reinit_completion(struct completion *work)
 }
 
 
+/*
+ * For compatibility with 4.4.3 drivers, the argument of this callback function
+ * is the 'data' member of the 'timer_list' object, which normally points to
+ * the 'timer_list' object itself when initialized with 'timer_setup()', but
+ * here it was overridden  in '__wait_completion()' to point to the 'Lx::Task'
+ * object instead.
+ */
 static void _completion_timeout(struct timer_list *t)
 {
-	Lx::Task *task = (Lx::Task *)t->data;
+	Lx::Task *task = (Lx::Task *)t;
 	task->unblock();
 }
 

@@ -987,9 +987,9 @@ signed long schedule_timeout_uninterruptible(signed long timeout)
 #include <lx_emul/impl/completion.h>
 
 
-static void _completion_timeout(struct timer_list *t)
+static void _completion_timeout(unsigned long t)
 {
-	Lx::Task *task = (Lx::Task *)t->data;
+	Lx::Task *task = (Lx::Task *)t;
 	task->unblock();
 }
 
@@ -1000,8 +1000,8 @@ long __wait_completion(struct completion *work, unsigned long timeout)
 	unsigned long j = timeout ? jiffies + timeout : 0;
 
 	if (timeout) {
-		timer_setup(&t, _completion_timeout, 0u);
-		t.data = (unsigned long)Lx::scheduler().current();
+		setup_timer(&t, _completion_timeout,
+		            (unsigned long)Lx::scheduler().current());
 		mod_timer(&t, j);
 	}
 
@@ -1132,9 +1132,16 @@ struct callback_timer {
 	unsigned long data;
 };
 
+/*
+ * For compatibility with 4.4.3 drivers, the argument of this callback function
+ * is the 'data' member of the 'timer_list' object, which normally points to
+ * the 'timer_list' object itself when initialized with 'timer_setup()', but
+ * here it was overridden in 'setup_timer()' to point to the 'callback_timer'
+ * object instead.
+ */
 static void timer_callback(struct timer_list *t)
 {
-	struct callback_timer * tc = (struct callback_timer *)t->data;
+	struct callback_timer * tc = (struct callback_timer *)t;
 	tc->function(tc->data);
 }
 
