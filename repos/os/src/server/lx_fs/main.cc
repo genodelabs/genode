@@ -351,9 +351,32 @@ class Lx_fs::Session_component : public Session_rpc_object
 			}
 		}
 
-		void move(Dir_handle, Name const &, Dir_handle, Name const &) override
+		void move(Dir_handle dir_from, Name const & name_from,
+		          Dir_handle dir_to,   Name const & name_to) override
 		{
-			Genode::error(__func__, " not implemented");
+			typedef File_system::Open_node<Directory> Dir_node;
+
+			Directory *to = 0;
+
+			auto to_fn = [&] (Dir_node &dir_node) {
+				to = &dir_node.node();
+			};
+
+			try {
+				_open_node_registry.apply<Dir_node>(dir_to, to_fn);
+			} catch (Id_space<File_system::Node>::Unknown_id const &) {
+				throw Invalid_handle();
+			}
+
+			auto move_fn = [&] (Dir_node &dir_node) {
+				dir_node.node().rename(*to, name_from.string(), name_to.string());
+			};
+
+			try {
+				_open_node_registry.apply<Dir_node>(dir_from, move_fn);
+			} catch (Id_space<File_system::Node>::Unknown_id const &) {
+				throw Invalid_handle();
+			}
 		}
 };
 

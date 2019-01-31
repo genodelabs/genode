@@ -24,6 +24,7 @@
 #include <file.h>
 
 #include <lx_util.h>
+#include <stdio.h>
 
 
 namespace Lx_fs {
@@ -111,6 +112,14 @@ class Lx_fs::Directory : public Node
 		virtual ~Directory()
 		{
 			closedir(_fd);
+		}
+
+		void rename(Directory &dir_to, char const *name_from, char const *name_to)
+		{
+			int ret = renameat(dirfd(_fd), name_from,
+			                   dirfd(dir_to._fd), name_to);
+			if (ret != 0)
+				throw Unavailable();
 		}
 
 		/* FIXME returned file node must be locked */
