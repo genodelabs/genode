@@ -1501,6 +1501,7 @@ struct Wifi::Frontend
 		char const *msg = reinterpret_cast<char const*>(_msg.recv);
 		unsigned const recv_id = _msg.recv_id;
 
+
 		/* return early */
 		if (_last_recv_id == recv_id) {
 			_notify_lock_unlock();

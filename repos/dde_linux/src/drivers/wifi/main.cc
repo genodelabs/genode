@@ -35,7 +35,7 @@ static Wifi::Frontend *_wifi_frontend = nullptr;
  * Called by the CTRL interface after wpa_supplicant has processed
  * the command.
  */
-void wifi_notify_cmd_result(void)
+void wifi_block_for_processing(void)
 {
 	if (!_wifi_frontend) {
 		Genode::warning("frontend not available, dropping notification");
@@ -50,6 +50,15 @@ void wifi_notify_cmd_result(void)
 
 	/* XXX hack to trick poll() into returning faster */
 	wpa_ctrl_set_fd();
+}
+
+
+void wifi_notify_cmd_result(void)
+{
+	if (!_wifi_frontend) {
+		Genode::warning("frontend not available, dropping notification");
+		return;
+	}
 
 	Genode::Signal_transmitter(_wifi_frontend->result_sigh()).submit();
 }

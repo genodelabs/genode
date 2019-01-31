@@ -115,19 +115,22 @@ static void wpa_supplicant_ctrl_iface_receive(int fd, void *eloop_ctx,
 	                                          &reply_len);
 
 	if (reply) {
-		wifi_notify_cmd_result();
+		wifi_block_for_processing();
 		send_reply(priv, reply, reply_len);
+		wifi_notify_cmd_result();
 		os_free(reply);
 	} else
 
 	if (reply_len == 1) {
-		wifi_notify_cmd_result();
+		wifi_block_for_processing();
 		send_reply(priv, "FAIL", 4);
+		wifi_notify_cmd_result();
 	} else
 
 	if (reply_len == 2) {
-		wifi_notify_cmd_result();
+		wifi_block_for_processing();
 		send_reply(priv, "OK", 2);
+		wifi_notify_cmd_result();
 	}
 }
 

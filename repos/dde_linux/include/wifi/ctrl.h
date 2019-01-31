@@ -35,6 +35,7 @@ void wpa_ctrl_set_fd(void);
 
 void *wifi_get_buffer(void);
 void  wifi_notify_cmd_result(void);
+void  wifi_block_for_processing(void);
 void  wifi_notify_event(void);
 
 
