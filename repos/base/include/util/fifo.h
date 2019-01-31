@@ -37,8 +37,8 @@ class Genode::Fifo
 
 				friend class Fifo;
 
-				QT  *_next = nullptr;
-				bool _enqueued = false;
+				QT  *_next     { nullptr };
+				bool _enqueued { false   };
 
 			public:
 
@@ -59,8 +59,8 @@ class Genode::Fifo
 
 	private:
 
-		QT      *_head = nullptr;  /* oldest element */
-		Element *_tail = nullptr;  /* newest element */
+		QT      *_head { nullptr };  /* oldest element */
+		Element *_tail { nullptr };  /* newest element */
 
 	public:
 
