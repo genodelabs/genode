@@ -113,6 +113,11 @@ class Lx_fs::File : public Node
 			Node::name(basename(path));
 		}
 
+		~File()
+		{
+			close(_fd);
+		}
+
 		size_t read(char *dst, size_t len, seek_off_t seek_offset) override
 		{
 			int ret = pread(_fd, dst, len, seek_offset);
