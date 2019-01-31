@@ -1,9 +1,9 @@
 LICENSE := unknown
-DOWNLOADS := jbig2dec.git
-VERSION := 0.11
+DOWNLOADS := jbig2dec.archive
+VERSION := 0.15
 
-URL(jbig2dec) := http://git.ghostscript.com/jbig2dec.git
-REV(jbig2dec) := 58b513e3ec60feac13ea429c4aff12ea8a8de91d
+URL(jbig2dec) := https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs924/jbig2dec-$(VERSION).tar.gz
+SHA(jbig2dec) := 6bfa1af72de37c7929315933a1ba696540d860936ad98f9de02fc725d7e53854
 DIR(jbig2dec) := src/lib/jbig2dec
 
 DIRS := include/jbig2dec

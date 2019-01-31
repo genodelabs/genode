@@ -3,7 +3,7 @@ LIBS        += libc libpng zlib
 INC_DIR     += $(JBIG2DEC_DIR) $(REP_DIR)/include/jbig2dec
 
 # incorporate all '*.c' files except those that are not part of the library
-FILTER_OUT = jbig2dec.c snprintf.c
+FILTER_OUT = jbig2dec.c snprintf.c pbm2png.c
 SRC_C = $(filter-out $(FILTER_OUT),$(notdir $(wildcard $(JBIG2DEC_DIR)/*.c)))
 
 # definitions normally provided by a config.h file
