@@ -100,8 +100,8 @@ proc autopilot_run_genode_until {{wait_for_re forever} {timeout_value 0} {runnin
 	set retry 3
 	while { $retry != 0 } {
 
-		if {[expr [run_power_on] == false]} {
-			puts "Power on step failed, retry."
+		if {![run_power_cycle]} {
+			puts "Power cycle step failed, retry."
 			sleep 3
 			incr retry -1;
 			continue

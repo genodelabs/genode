@@ -291,8 +291,12 @@ proc run_genode_until {{wait_for_re forever} {timeout_value 0} {running_spawn_id
 	set retry 3
 	while { $retry != 0 } {
 
-		if {[expr [run_power_on] == false]} {
-			puts "Power on step failed, retry."
+		#
+		# Depending an the used run module, a reset can include
+		# shutting the power off and turning it on again.
+		#
+		if (![run_power_cycle]) {
+			puts "Power cycle step failed, retry."
 			sleep 3
 			incr retry -1;
 			continue
@@ -736,6 +740,23 @@ proc run_power_on { } { return true; }
 # Dummy power_off module
 #
 proc run_power_off { } { return true; }
+
+
+##
+# Default power cycle fallback procedure
+#
+proc run_power_cycle { } {
+	#
+	# On targets that are directly connected to a socket,
+	# turn the socket off and on again. On targets that
+	# use a module were that is not required, e.g. softreset,
+	# power_off is a NOP. Note, we give the target some time
+	# to effectively drain energy before switching it on again.
+	#
+	run_power_off
+	sleep 1
+	return [run_power_on]
+}
 
 
 ##
