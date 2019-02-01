@@ -1,0 +1,295 @@
+#
+# Execute a single test defined in a pkg recipe
+#
+# This run script executes a single test case as a static system scenario.
+# It is meant as a handy tool for quickly reproducing, instrumenting, and
+# debugging test cases without the need to create/use any depot archives.
+#
+# The run script combines the information found in the test's runtime
+# definition with the following parameters and heuristics:
+#
+# - The test must be specified via the 'PKG' environment variable.
+#   The specified value is used to find the matching pkg recipe within the
+#   source tree. Therecipe must feature a 'runtime' definition as normally
+#   used by the depot autopilot.
+#
+# - The run script scans the source tree for 'target.mk' files and the target
+#   names defined via the 'TARGET = <name>' definition within those files.
+#   The information is used to determine the correspondence between the
+#   target's binary name and its build path (the location of the 'target.mk'
+#   within the src/ directory). Note that ambiguities are not handled, e.g.,
+#   multiple 'target.mk' files with the same TARGET name will likely cause
+#   problems.
+#
+# - Based on the <content> information found in the test's runtime file,
+#   the build targets and boot modules required by the test are determined
+#   automatically.
+#
+# - The test's configuration is expected to have the form of a <config>
+#   node in the test's runtime file.
+#
+# - The success/failure criterion is taken from the runtime's <events>
+#   definition but only a subset of the depot-autopilot's features is
+#   supported, namely a timeout (indicating a failure) and an expected log
+#   (indicating success). If this information are not present, the test
+#   is executed forever.
+#
+# For an example, issue the following command from your build directory:
+#
+#   make run/test KERNEL=linux PKG=test-fs_report
+#
+
+##
+# Obtain name of the test pkg from the 'PKG' environment variable
+#
+proc pkg_name { } {
+
+	global ::env
+
+	if {![info exists ::env(PKG)]} {
+		puts stderr "Error: environment variable 'PKG' not defined"
+		exit 1
+	}
+	return $::env(PKG)
+}
+
+if {[catch {
+	set pkg_recipe [glob "[genode_dir]/repos/*/recipes/pkg/[pkg_name]"]
+}]} {
+	puts stderr "Error: unable to find 'recipes/pkg/[pkg_name]' in repos"
+	exit 1
+}
+
+set runtime_file $pkg_recipe/runtime
+
+if {![file exists $runtime_file]} {
+	puts stderr "Error: $pkg_recipe lacks 'runtime' definition"
+	exit 1
+}
+
+proc query_attr { node_path attr_name xml_file }  {
+
+	set xpath "$node_path/attribute::$attr_name"
+	set attr_value [exec xmllint --xpath $xpath $xml_file]
+
+	# in the presence of multiple matching xpaths, return only the first
+	regexp {"(.*)"} [lindex $attr_value 0] dummy value
+	return $value;
+}
+
+proc query_node { node_path xml_file }  {
+
+	set xpath "$node_path"
+	set content [exec xmllint --xpath $xpath $xml_file]
+
+	return $content;
+}
+
+proc try_query_attr_from_runtime { attr } {
+
+	global runtime_file
+
+	if {[catch {
+		set result [query_attr /runtime $attr $runtime_file]
+	}]} {
+		puts stderr "Error: missing '$attr' attribute in <runtime> at $runtime_file"
+		exit 1
+	}
+	return $result
+}
+
+set ram  [try_query_attr_from_runtime ram]
+set caps [try_query_attr_from_runtime caps]
+
+if {[catch {
+	set config [query_node /runtime/config $runtime_file]
+}]} {
+	puts stderr "Error: <config> not present <runtime> sub node at $runtime_file"
+	puts stderr "       The use of an separate config ROM is not supported."
+	exit 1
+}
+
+proc desanitize_xml_characters { string } {
+	regsub -all {&gt;} $string {>} string
+	regsub -all {&lt;} $string {<} string
+	return $string
+}
+
+set config [desanitize_xml_characters $config]
+
+
+#
+# Gather the source locations of all targets found in the source tree to
+# define the build targets and boot modules required by the test.
+#
+set target_mks [exec sh -c "cd [genode_dir]/repos; \
+                              grep \"TARGET.*=\" `find -name target.mk`"]
+
+foreach target_mk [split $target_mks "\n"] {
+	regsub {^.*?/src/} $target_mk {} target_mk
+
+	if {[regexp {(.+?)/target.mk.*\s([^\s]+)\s*$} $target_mk dummy target_path target_name]} {
+		set src_sub_dir($target_name) $target_path
+	}
+}
+
+proc content_rom_modules { } {
+
+	global runtime_file
+
+	set attributes [query_node "/runtime/content/rom/attribute::label" $runtime_file]
+
+	set rom_names {}
+	foreach attr $attributes {
+		regexp {"(.*)"} $attr dummy rom_name
+		lappend rom_names $rom_name
+	}
+	return $rom_names
+}
+
+foreach rom [content_rom_modules] {
+
+	lappend boot_modules $rom
+
+	if {[info exists src_sub_dir($rom)]} {
+		lappend build_targets $src_sub_dir($rom)
+	}
+}
+
+
+#
+# Build
+#
+
+lappend build_targets core init timer
+
+# strip duplications
+set sorted_build_targets [lsort -unique $build_targets]
+
+build $sorted_build_targets
+
+
+#
+# Configure and assemble boot image
+#
+
+create_boot_directory
+
+install_config {
+	<config>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="IRQ"/>
+			<service name="IO_MEM"/>
+			<service name="IO_PORT"/>
+			<service name="PD"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="LOG"/>
+		</parent-provides>
+
+		<start name="timer" caps="100">
+			<resource name="RAM" quantum="1M"/>
+			<provides><service name="Timer"/></provides>
+			<route>
+				<service name="PD">      <parent/> </service>
+				<service name="CPU">     <parent/> </service>
+				<service name="LOG">     <parent/> </service>
+				<service name="ROM">     <parent/> </service>
+				<service name="IO_MEM">  <parent/> </service>
+				<service name="IRQ">     <parent/> </service>
+				<service name="IO_PORT"> <parent/> </service>
+			</route>
+		</start>
+
+		<start name="test" caps="} $caps {">
+			<resource name="RAM" quantum="} $ram {"/>
+			<binary name="init"/>
+			<route>
+				<service name="ROM">   <parent/>    </service>
+				<service name="CPU">   <parent/>    </service>
+				<service name="PD">    <parent/>    </service>
+				<service name="LOG">   <parent/>    </service>
+				<service name="Timer"> <child name="timer"/> </service>
+			</route>
+			} $config {
+		</start>
+	</config>
+}
+
+lappend boot_modules core ld.lib.so init timer
+
+build_boot_image [lsort -unique $boot_modules]
+
+
+##
+# Return failure timeout in seconds
+#
+proc query_failure_timeout { } {
+
+	global runtime_file
+
+	set meaning ""
+	catch {
+		set meaning [query_attr /runtime/events/timeout meaning $runtime_file]
+		set sec     [query_attr /runtime/events/timeout sec     $runtime_file]
+	}
+	if {$meaning == "failed"} {
+		return $sec }
+
+	return 0
+}
+
+set failure_timeout [query_failure_timeout]
+
+
+##
+# Return regexp pattern to match the log output for detecting the success
+#
+proc query_expected_log_pattern { } {
+
+	global runtime_file
+
+	set log ""
+	catch {
+		set log [query_node "/runtime/events/log\[@meaning='succeeded'\]/child::text()" $runtime_file]
+	} { return "" }
+
+	# strip leading and trailing whitespace
+	regsub {^\s*} $log {} log
+	regsub {\s*$} $log {} log
+
+	# filter pattern line by line
+	set lines [split $log "\n"]
+
+	set prefixed_lines { }
+	foreach line $lines {
+		regsub {^\s*\[init} $line {[init -> test} line
+
+		set line [desanitize_xml_characters $line]
+
+		# quote regexp characters
+		foreach char [list {[} {]} {(} {)} {.}] {
+			regsub -all "\\$char" $line "\\$char" line }
+
+		lappend prefixed_lines "$line.*?"
+	}
+
+	set joined [join $prefixed_lines "\n"]
+	return ".*?$joined.*?"
+}
+
+set expected_pattern [query_expected_log_pattern]
+
+if {$expected_pattern == ""} {
+	puts stderr "Warning: unable to obtain expected log pattern from $runtime_file"
+	run_genode_until {^this-should=never-match$} $failure_timeout
+}
+
+if {$failure_timeout == 0} {
+	puts stderr "Warning: could not determine failure timeout, discharge timeout"
+	set failure_timeout 1000
+}
+
+run_genode_until $expected_pattern $failure_timeout
+
