@@ -712,8 +712,9 @@ class Vfs_server::Session_component : private Session_resources,
 		void control(Node_handle, Control) override { }
 };
 
+
 /**
- * Global I/O event handler
+ * Global VFS event handler
  */
 struct Vfs_server::Io_response_handler : Vfs::Io_response_handler
 {
@@ -750,6 +751,7 @@ struct Vfs_server::Io_response_handler : Vfs::Io_response_handler
 		_in_progress = false;
 	}
 };
+
 
 /**
  * Global VFS watch handler
@@ -819,6 +821,34 @@ class Vfs_server::Root : public Genode::Root_component<Session_component>
 		}
 
 		Session_registry _session_registry { };
+
+		/**
+		 * Global I/O event handler
+		 *
+		 * This is a safe and slow intermediate implementation
+		 * to be replaced with one that only processes handles
+		 * and sessions that await progress.
+		 */
+		struct Io_progress_handler : Genode::Entrypoint::Io_progress_handler
+		{
+			Session_registry &_session_registry;
+
+			Io_progress_handler(Genode::Entrypoint &ep,
+			                    Session_registry   &session_registry)
+			: _session_registry(session_registry)
+			{
+				ep.register_io_progress_handler(*this);
+			}
+
+			/**
+			 * Entrypoint::Io_progress_handler interface
+			 */
+			void handle_io_progress() override
+			{
+				_session_registry.for_each([ ] (Registered_session &r) {
+					r.handle_general_io(); });
+			}
+		} _io_progress_handler { _env.ep(), _session_registry };
 
 		Vfs_env _vfs_env { _env, vfs_config(), _session_registry };
 

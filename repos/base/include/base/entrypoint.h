@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2015-2017 Genode Labs GmbH
+ * Copyright (C) 2015-2019 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -32,7 +32,27 @@ class Genode::Entrypoint : Noncopyable
 	public:
 
 		/**
+		 * Functor for post I/O signal progress handling
+		 *
+		 * This mechanism is for processing I/O events
+		 * deferred during signal dispatch. This is the
+		 * case when the application is blocked by I/O
+		 * but should not be resumed during signal
+		 * dispatch.
+		 */
+		struct Io_progress_handler : Interface
+		{
+			virtual ~Io_progress_handler() {
+				error("Io_progress_handler subclass cannot be safely destroyed!"); }
+
+			virtual void handle_io_progress() = 0;
+		};
+
+		/**
 		 * Functor for post signal-handler hook
+		 *
+		 * \deprecated
+		 * \noapi
 		 */
 		struct Post_signal_hook : Interface { virtual void function() = 0; };
 
@@ -96,7 +116,15 @@ class Genode::Entrypoint : Noncopyable
 		int               _signal_recipient   { NONE };
 		Genode::Lock      _signal_pending_lock     { };
 		Genode::Lock      _signal_pending_ack_lock { };
-		Post_signal_hook *_post_signal_hook = nullptr;
+
+		Io_progress_handler *_io_progress_handler { nullptr };
+		Post_signal_hook    *_post_signal_hook    { nullptr };
+
+		void _handle_io_progress()
+		{
+			if (_io_progress_handler != nullptr)
+				_io_progress_handler->handle_io_progress();
+		}
 
 		void _execute_post_signal_hook()
 		{
@@ -221,7 +249,22 @@ class Genode::Entrypoint : Noncopyable
 		void schedule_suspend(void (*suspended)(), void (*resumed)());
 
 		/**
+		 * Register hook functor to be called after I/O signals are dispatched
+		 */
+		void register_io_progress_handler(Io_progress_handler &handler)
+		{
+			if (_io_progress_handler != nullptr) {
+				error("cannot call ", __func__, " twice!");
+				throw Exception();
+			}
+			_io_progress_handler = &handler;
+		}
+
+		/**
 		 * Register hook functor to be called after signal was handled
+		 *
+		 * \deprecated
+		 * \noapi
 		 */
 		void schedule_post_signal_hook(Post_signal_hook *hook)
 		{

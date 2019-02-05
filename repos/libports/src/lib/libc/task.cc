@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2016-2018 Genode Labs GmbH
+ * Copyright (C) 2016-2019 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -20,8 +20,7 @@
 #include <base/rpc_client.h>
 #include <base/heap.h>
 #include <base/attached_rom_dataspace.h>
-#include <vfs/file_system_factory.h>
-#include <vfs/dir_file_system.h>
+#include <vfs/simple_env.h>
 #include <timer_session/connection.h>
 
 /* libc includes */
@@ -40,58 +39,15 @@ extern char **environ;
 
 namespace Libc {
 	class Env_implementation;
-	class Vfs_env;
 	class Kernel;
 	class Pthreads;
 	class Timer;
 	class Timer_accessor;
 	class Timeout;
 	class Timeout_handler;
-	class Io_response_handler;
 
 	using Genode::Microseconds;
 }
-
-
-class Libc::Vfs_env : public Vfs::Env
-{
-	private:
-
-		Genode::Env       &_env;
-		Genode::Allocator &_alloc;
-
-		Vfs::Io_response_handler &_io_handler;
-
-		struct Watch_response_stub : Vfs::Watch_response_handler {
-			void handle_watch_response(Vfs::Vfs_watch_handle::Context*) override { };
-		} _watch_stub { };
-
-		Vfs::Global_file_system_factory _global_file_system_factory { _alloc };
-
-		Vfs::Dir_file_system _root_dir;
-
-	public:
-
-		Vfs_env(Genode::Env &env,
-		        Genode::Allocator &alloc,
-		        Genode::Xml_node config,
-		        Vfs::Io_response_handler &io_handler)
-		: _env(env), _alloc(alloc), _io_handler(io_handler),
-		  _root_dir(*this, config, _global_file_system_factory)
-		{ }
-
-		Genode::Env &env() override { return _env; }
-
-		Genode::Allocator &alloc() override { return _alloc; }
-
-		Vfs::File_system &root_dir() override { return _root_dir; }
-
-		Vfs::Io_response_handler &io_handler() override {
-			return _io_handler; }
-
-		Vfs::Watch_response_handler &watch_handler() override {
-			return _watch_stub; }
-};
 
 
 class Libc::Env_implementation : public Libc::Env
@@ -126,20 +82,15 @@ class Libc::Env_implementation : public Libc::Env
 			return Genode::Xml_node("<libc/>");
 		}
 
-		Vfs::Global_file_system_factory _file_system_factory;
-		Vfs_env _vfs_env;
+		Vfs::Simple_env _vfs_env;
 
 		Genode::Xml_node _config_xml() const override {
 			return _config.xml(); };
 
 	public:
 
-		Env_implementation(Genode::Env &env, Genode::Allocator &alloc,
-		                   Vfs::Io_response_handler &io_response_handler)
-		:
-			_env(env), _file_system_factory(alloc),
-			_vfs_env(_env, alloc, _vfs_config(), io_response_handler)
-		{ }
+		Env_implementation(Genode::Env &env, Genode::Allocator &alloc)
+		: _env(env), _vfs_env(_env, alloc, _vfs_config()) { }
 
 
 		/*************************
@@ -371,19 +322,6 @@ struct Libc::Pthreads
 
 extern void (*libc_select_notify)();
 
-struct Libc::Io_response_handler : Vfs::Io_response_handler
-{
-	void handle_io_response(Vfs::Vfs_handle::Context *) override
-	{
-		/* some contexts may have been deblocked from select() */
-		if (libc_select_notify)
-			libc_select_notify();
-
-		/* resume all as any context may have been deblocked from blocking I/O */
-		Libc::resume_all();
-	}
-};
-
 
 /* internal utility */
 static void resumed_callback();
@@ -406,8 +344,37 @@ struct Libc::Kernel
 
 		Genode::Env         &_env;
 		Genode::Allocator   &_heap;
-		Io_response_handler  _io_response_handler;
-		Env_implementation   _libc_env { _env, _heap, _io_response_handler };
+
+		/**
+		 * Handler class for processing I/O events collected during
+		 * signal dispatch. Invoked on the kernel stack of the
+		 * initial entrypoint.
+		 */
+		struct Io_progress_handler : Genode::Entrypoint::Io_progress_handler
+		{
+			Io_progress_handler(Genode::Entrypoint &ep)
+			{
+				ep.register_io_progress_handler(*this);
+			}
+
+			/**
+			 * Entrypoint::Io_progress_handler interface
+			 */
+			void handle_io_progress() override
+			{
+				/* some contexts may have been deblocked from select() */
+				if (libc_select_notify)
+					libc_select_notify();
+
+				/*
+				 * resume all as any VFS context may have
+				 * been deblocked from blocking I/O
+				 */
+				Libc::resume_all();
+			}
+		} _io_progress_handler { _env.ep() };
+
+		Env_implementation   _libc_env { _env, _heap };
 		Vfs_plugin           _vfs { _libc_env, _heap };
 
 		Genode::Reconstructible<Genode::Io_signal_handler<Kernel>> _resume_main_handler {

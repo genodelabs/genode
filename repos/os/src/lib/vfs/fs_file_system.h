@@ -370,8 +370,7 @@ class Vfs::Fs_file_system : public File_system
 			Io_response_handler       &_io_handler;
 			Watch_response_handler    &_watch_handler;
 			List<Vfs_handle::Context>  _context_list { };
-			List<Vfs_watch_handle::Context>
-			                           _watch_context_list { };
+
 			Lock                       _list_lock    { };
 			bool                       _notify_all   { false };
 
@@ -406,27 +405,6 @@ class Vfs::Fs_file_system : public File_system
 				_ep.schedule_post_signal_hook(this);
 			}
 
-			void arm_watch_event(Vfs_watch_handle::Context &context)
-			{
-				{
-					Lock::Guard list_guard(_list_lock);
-
-					for (Vfs_watch_handle::Context *list_context = _watch_context_list.first();
-					     list_context;
-					     list_context = list_context->next())
-					{
-						if (list_context == &context) {
-							/* already in list */
-							return;
-						}
-					}
-
-					_watch_context_list.insert(&context);
-				}
-
-				_ep.schedule_post_signal_hook(this);
-			}
-
 			void function() override
 			{
 				Vfs_handle::Context *context = nullptr;
@@ -451,18 +429,6 @@ class Vfs::Fs_file_system : public File_system
 
 					/* done if no contexts and all notified */
 				} while (context);
-
-				for (;;) {
-					Vfs_watch_handle::Context *context = nullptr;
-					{
-						Lock::Guard list_guard(_list_lock);
-
-						context = _watch_context_list.first();
-						if (!context) break;
-						_watch_context_list.remove(context);
-						_watch_handler.handle_watch_response(context);
-					}
-				}
 			}
 		};
 
@@ -609,9 +575,14 @@ class Vfs::Fs_file_system : public File_system
 
 				try {
 					if (packet.operation() == Packet_descriptor::CONTENT_CHANGED) {
+						/*
+						 * Trigger the watch response during signal dispatch.
+						 * This is incompatible with the Libc I/O handling
+						 * but the Libc does not open watch handles and shall
+						 * not use them before Post_signal_hook is removed.
+						 */
 						_watch_handle_space.apply<Fs_vfs_watch_handle>(id, [&] (Fs_vfs_watch_handle &handle) {
-							if (auto *ctx = handle.context())
-								_post_signal_hook.arm_watch_event(*ctx); });
+							_env.watch_handler().handle_watch_response(handle.context()); });
 					} else {
 						_handle_space.apply<Fs_vfs_handle>(id, handle_read);
 					}
