@@ -83,7 +83,7 @@ append config {
 		<provides><service name="Input"/></provides>
 		<config uhci="no" ohci="no" ehci="no" xhci="yes"
 		        capslock_led="rom" numlock_led="rom" scrlock_led="rom"
-		        bios_handoff="no">
+		        bios_handoff="yes">
 			<hid/>
 		</config>
 		<route>

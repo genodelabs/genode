@@ -73,7 +73,7 @@ append config "<binary name=\"[usb_host_drv_binary]\"/>"
 append config {
 		<resource name="RAM" quantum="10M"/>
 		<provides> <service name="Usb"/> </provides>
-		<config bios_handoff="no">}
+		<config bios_handoff="yes">}
 append_if [have_spec arndale] config {
 			<policy label_prefix="usb_net_drv" vendor_id="0x0b95" product_id="0x772a"/> }
 append_if [expr [have_spec panda] || [have_spec rpi] ] config {
