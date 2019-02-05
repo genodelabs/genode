@@ -1,0 +1,7 @@
+ifneq ($(INSTALL_DIR),)
+all: $(INSTALL_DIR)/acpi
+endif
+
+$(INSTALL_DIR)/acpi:
+	echo "<acpi><bdf start=\"0\" count=\"16384\" base=\"0xf8000000\"/><drhd/></acpi>" > $@
+
