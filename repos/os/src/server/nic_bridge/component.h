@@ -209,84 +209,35 @@ class Net::Root : public Genode::Root_component<Net::Session_component>
 		Genode::Xml_node  _config;
 		bool       const &_verbose;
 
-		struct Policy
-		{
-			Session_component::Ip_addr ip_addr;
-
-			Mac_address mac;
-		};
-
-		static Policy _session_policy(Genode::Session_label const &label,
-		                              Genode::Xml_node             config,
-		                              Mac_allocator               &mac_alloc)
-		{
-			using namespace Genode;
-
-			typedef Session_component::Ip_addr Ip_addr;
-
-			Ip_addr ip_addr { };
-
-			try {
-				Session_policy const policy(label, config);
-
-				/* read IP address from policy */
-				if (!policy.has_attribute("ip_addr"))
-					warning("Missing \"ip_addr\" attribute in policy definition");
-
-				ip_addr = policy.attribute_value("ip_addr", Ip_addr());
-
-				/* determine session MAC address */
-				if (policy.has_attribute("mac")) {
-
-					Mac_address const mac = policy.attribute_value("mac", Mac_address());
-
-					if (mac_alloc.mac_managed_by_allocator(mac)) {
-						Genode::warning("Bad MAC address in policy");
-						throw Service_denied();
-					}
-					return Policy { .ip_addr = ip_addr, .mac = mac };
-				}
-
-			} catch (Session_policy::No_policy_defined) { }
-
-			/*
-			 * If no policy is defined or if the policy lacks a 'mac'
-			 * attribute, allocate a MAC from the allocator.
-			 */
-			auto alloc_mac = [&] ()
-			{
-				try { return mac_alloc.alloc(); }
-				catch (Mac_allocator::Alloc_failed) {
-					Genode::warning("MAC address allocation failed!"); }
-
-				throw Service_denied();
-			};
-
-			return Policy { .ip_addr = ip_addr, .mac = alloc_mac() };
-		}
-
 	protected:
 
 		Session_component *_create_session(const char *args)
 		{
 			using namespace Genode;
 
-			Session_label const label = label_from_args(args);
+			Session_label  const label  { label_from_args(args) };
+			Session_policy const policy { label, _config };
+			Mac_address          mac    { policy.attribute_value("mac", Mac_address()) };
 
-			Policy const policy = _session_policy(label, _config, _mac_alloc);
-
-			size_t const tx_buf_size =
-				Arg_string::find_arg(args, "tx_buf_size").ulong_value(0);
-			size_t const rx_buf_size =
-				Arg_string::find_arg(args, "rx_buf_size").ulong_value(0);
+			if (mac == Mac_address()) {
+				try { mac = _mac_alloc.alloc(); }
+				catch (Mac_allocator::Alloc_failed) {
+					Genode::warning("MAC address allocation failed!");
+					throw Service_denied();
+				}
+			} else if (_mac_alloc.mac_managed_by_allocator(mac)) {
+				Genode::warning("MAC address already in use");
+				throw Service_denied();
+			}
 
 			return new (md_alloc())
 				Session_component(_env.ram(), _env.rm(), _env.ep(),
 				                  ram_quota_from_args(args),
 				                  cap_quota_from_args(args),
-				                  tx_buf_size, rx_buf_size,
-				                  policy.mac, _nic, _verbose, label,
-				                  policy.ip_addr);
+				                  Arg_string::find_arg(args, "tx_buf_size").ulong_value(0),
+				                  Arg_string::find_arg(args, "rx_buf_size").ulong_value(0),
+				                  mac, _nic, _verbose, label,
+				                  policy.attribute_value("ip_addr", Session_component::Ip_addr()));
 		}
 
 	public:

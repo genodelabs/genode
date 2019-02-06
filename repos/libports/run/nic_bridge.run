@@ -62,8 +62,10 @@ append config {
 		<resource name="RAM" quantum="24M"/>
 		<provides><service name="Nic"/></provides>
 		<config verbose="yes" mac="02:02:02:02:42:00">
+			<policy label_prefix="client_1"/>
 			<policy label_prefix="server_1" ip_addr="10.0.2.55"/>
 			<policy label_prefix="server_2" ip_addr="10.0.2.56" mac="02:02:02:02:23:00"/>
+			<policy label_prefix="client_2"                     mac="02:02:02:02:79:00"/>
 		</config>
 		<route>
 			<service name="Nic"> <child name="nic_drv"/> </service>
@@ -138,6 +140,22 @@ append config {
 			<libc stdout="/dev/log" stderr="/dev/log" socket="/socket"/>
 		</config>
 	</start>
+
+	<start name="client_3" caps="120">
+		<binary name="test-http_clnt"/>
+		<resource name="RAM" quantum="32M"/>
+		<route>
+			<service name="Nic"> <child name="nic_bridge"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+		<config server_ip="10.0.2.56" server_port="80">
+			<vfs>
+				<dir name="socket"> <lwip dhcp="yes"/> </dir>
+				<dir name="dev">    <log/>             </dir>
+			</vfs>
+			<libc stdout="/dev/log" stderr="/dev/log" socket="/socket"/>
+		</config>
+	</start>
 </config>}
 
 install_config $config
@@ -173,7 +191,10 @@ append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
 
 append qemu_args " -net user "
 
-append done_string {.*?\[server_1 -> lwip] rcv .\[32mETH.\[0m 02:02:02:02:42:00}
+append done_string {.*?\[init -> client_3] .\[31mError: Nic-session creation failed}
+append done_string {.*?\[client_1 -> lwip] rcv .\[32mETH.\[0m 02:02:02:02:42:0.}
+append done_string {.*?\[client_2 -> lwip] rcv .\[32mETH.\[0m 02:02:02:02:79:00}
+append done_string {.*?\[server_1 -> lwip] rcv .\[32mETH.\[0m 02:02:02:02:42:0.}
 append done_string {.*?\[server_2 -> lwip] rcv .\[32mETH.\[0m 02:02:02:02:23:00}
 append done_string {.*?"client_." exited with exit value 0}
 append done_string {.*?"client_." exited with exit value 0}
