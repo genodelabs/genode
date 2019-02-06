@@ -29,6 +29,7 @@ is
     is
         R : constant Integer := 0;
         B : Buffer := Recursive_Alloc (R);
+        pragma Unreferenced (B);
     begin
         null;
     end Ralloc;
@@ -68,6 +69,7 @@ is
     is
         S : constant Integer := 16;
         B : Buffer := Stage_1 (S);
+        pragma Unreferenced (B);
     begin
         Print_Stage (0);
     end Salloc;
@@ -107,7 +109,7 @@ is
                       Size : Integer
                      ) return Buffer
     is
-        Buf : Buffer (1 .. Size) := (others => '3');
+        Buf : constant Buffer (1 .. Size) := (others => '3');
     begin
         Print_Stage (3);
         return Buf;
