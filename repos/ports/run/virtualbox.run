@@ -137,7 +137,7 @@ append_if [expr $use_bridge] config {
 	<start name="nic_bridge" priority="-1">
 		<resource name="RAM" quantum="6M"/>
 		<provides><service name="Nic"/></provides>
-		<config/>
+		<config> <default-policy/> </config>
 		<route>
 			<service name="Nic"><child name="nic_drv"/></service>
 			<any-service><parent/></any-service>
