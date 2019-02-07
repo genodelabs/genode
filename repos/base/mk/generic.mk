@@ -85,12 +85,12 @@ CUSTOM_ADA_INCLUDE ?= -I- $(INCLUDES)
 %.ali %.o: %.adb
 	$(MSG_COMP)$@
 	$(VERBOSE)$(CC) $(CUSTOM_ADA_FLAGS) $(CUSTOM_ADA_OPT) $(CUSTOM_ADA_INCLUDE) -c $<
-	$(VERBOSE)$(ALI2DEP) $(ALL_INC_DIR) $*.ali
+	$(VERBOSE)$(ALI2DEP) $(dir $<) $(ALL_INC_DIR) $*.ali
 
 %.ali %.o: %.ads
 	$(MSG_COMP)$@
 	$(VERBOSE)$(CC) $(CUSTOM_ADA_FLAGS) $(CUSTOM_ADA_OPT) $(CUSTOM_ADA_INCLUDE) -c $<
-	$(VERBOSE)$(ALI2DEP) $(ALL_INC_DIR) $*.ali
+	$(VERBOSE)$(ALI2DEP) $(dir $<) $(ALL_INC_DIR) $*.ali
 
 #
 # Compiling Rust sources
