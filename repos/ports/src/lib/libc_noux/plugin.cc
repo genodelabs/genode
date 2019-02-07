@@ -2278,7 +2278,7 @@ void Plugin::init(Genode::Env &env)
 	sigemptyset(&signal_mask);
 
 	/* copy command-line arguments from 'args' ROM dataspace */
-	enum { MAX_ARGS = 256, ARG_BUF_SIZE = 4096UL };
+	enum { MAX_ARGS = 256, ARG_BUF_SIZE = sizeof(Noux::Sysio::Args) };
 	static char *argv[MAX_ARGS];
 	static char  arg_buf[ARG_BUF_SIZE];
 	{

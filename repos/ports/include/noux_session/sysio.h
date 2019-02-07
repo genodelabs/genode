@@ -54,7 +54,7 @@ struct Noux::Sysio
 	enum { CHUNK_SIZE = 64*1024 };
 	typedef char Chunk[CHUNK_SIZE];
 
-	enum { ARGS_MAX_LEN = 5*1024 };
+	enum { ARGS_MAX_LEN = 16*1024 };
 	typedef char Args[ARGS_MAX_LEN];
 
 	enum { ENV_MAX_LEN  = 6*1024 };

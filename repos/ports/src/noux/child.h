@@ -146,7 +146,7 @@ class Noux::Child : public Rpc_object<Session>,
 		 * Entrypoint used to serve the RPC interfaces of the
 		 * locally-provided services
 		 */
-		enum { STACK_SIZE = 8*1024*sizeof(long) };
+		enum { STACK_SIZE = 64*1024 };
 		Rpc_entrypoint _ep { &_env.pd(), STACK_SIZE, "noux_process", false };
 
 		Pd_session                  &_ref_pd;
@@ -194,6 +194,8 @@ class Noux::Child : public Rpc_object<Session>,
 		/**
 		 * Command line arguments
 		 */
+		enum { ARGS_DS_SIZE = sizeof(Sysio::Args) };
+
 		Args_dataspace _args;
 
 		/**
@@ -241,8 +243,6 @@ class Noux::Child : public Rpc_object<Session>,
 
 			throw Invalid_fd();
 		}
-
-		enum { ARGS_DS_SIZE = 4096 };
 
 		/**
 		 * Let specified child inherit our file descriptors
