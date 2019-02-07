@@ -33,12 +33,12 @@ MIRROR_FROM_ADA_RT_DIR := \
 content: $(MIRROR_FROM_ADA_RT_DIR)
 
 $(MIRROR_FROM_ADA_RT_DIR):
-	mkdir -p src/noux-pkg/gcc/gcc/ada/
-	cp -r $(ADA_RT_DIR)/$@ src/noux-pkg/gcc/gcc/ada/
+	mkdir -p $(dir $@)
+	cp -r $(ADA_RT_DIR)/$@ $@
 
 MIRROR_FROM_REP_DIR := \
 	lib/import/import-spark.mk \
-	include/spark \
+	include/ada \
 	lib/symbols/spark
 
 content: $(MIRROR_FROM_REP_DIR)

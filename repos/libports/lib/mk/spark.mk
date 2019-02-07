@@ -15,7 +15,7 @@ SRC_ADS += system.ads \
 	   ada_exceptions.ads
 
 SRC_ADB += g-io.adb s-stalib.adb s-secsta.adb s-parame.adb
-CUSTOM_ADA_FLAGS = -c -gnatg -gnatp -gnatpg -gnatn2
+CUSTOM_ADA_FLAGS = --RTS=$(ADA_RTS) -c -gnatg -gnatp -gnatpg -gnatn2
 
 # C runtime glue code
 SRC_CC += genode.cc

@@ -3,6 +3,8 @@ ADA_RT_DIR := $(call port_dir,$(GENODE_DIR)/repos/libports/ports/ada-runtime)
 MIRROR_FROM_ADA_RT_DIR := \
 	$(addprefix ada-runtime/contrib/gcc-6.3.0/,\
 		ada.ads \
+		a-except.ads \
+		a-except.adb \
 		system.ads \
 		interfac.ads \
 		s-unstyp.ads \
@@ -28,7 +30,7 @@ MIRROR_FROM_REP_DIR := \
 	lib/mk/spark.mk \
 	lib/mk/spark.inc \
 	lib/import/import-spark.mk \
-	include/spark/exception.h
+	include/ada/exception.h
 
 content: $(MIRROR_FROM_REP_DIR)
 
