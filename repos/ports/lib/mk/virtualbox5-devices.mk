@@ -96,20 +96,25 @@ Devices/PC/ACPI/VBoxAcpi.o: vboxaml.hex vboxssdt-standard.hex vboxssdt-cpuhotplu
 
 vboxaml.hex: vbox.dsl
 	iasl -tc -vs -p $@ $^
+	mv $@ $@.tmp && \
+	sed "s/vboxaml_aml_code/AmlCode/g" <$@.tmp >$@ && \
+	rm $@.tmp
 
 vboxssdt-standard.hex: vbox-standard.dsl
 	iasl -tc -vs -p $@ $^ && \
 	mv $@ $@.tmp && \
-	sed "s/AmlCode/AmlCodeSsdtStandard/g" <$@.tmp >$@ && \
-	rm $@.tmp
+	sed "s/AmlCode\|vboxssdt-standard_aml_code/AmlCodeSsdtStandard/g" <$@.tmp >$@.tmp2 && \
+	sed "s/__VBOXSSDT-STANDARD_HEX__/__VBOXSSDT_STANDARD_HEX__/g" <$@.tmp2 >$@ && \
+	rm $@.tmp $@.tmp2
 
 vboxssdt-cpuhotplug.hex: vbox-cpuhotplug.dsl
 	gcc -E -P -x c -o $@.pre $< && \
 	sed "s/<NL>/\n/g" <$@.pre >$@.pre1 && \
 	iasl -tc -vs -p $@ $@.pre1 && \
 	mv $@ $@.tmp && \
-	sed "s/AmlCode/AmlCodeSsdtCpuHotPlug/g" <$@.tmp >$@ && \
-	rm $@.tmp $@.pre $@.pre1
+	sed "s/AmlCode\|vboxssdt-cpuhotplug_aml_code/AmlCodeSsdtCpuHotPlug/g" <$@.tmp >$@.tmp2 && \
+	sed "s/__VBOXSSDT-CPUHOTPLUG_HEX__/__VBOXSSDT_CPUHOTPLUG_HEX__/g" <$@.tmp2 >$@ && \
+	rm $@.tmp $@.tmp2 $@.pre $@.pre1
 
 vpath %.dsl $(VBOX_DIR)/Devices/PC
 vpath devxhci.cc $(REP_DIR)/src/virtualbox5
