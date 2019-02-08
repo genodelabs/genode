@@ -18,7 +18,7 @@
 #include <util/interface.h>
 
 namespace Terminal {
-
+	using Genode::Codepoint;
 	struct Character;
 	struct Boundary;
 	struct Offset;
@@ -34,14 +34,13 @@ namespace Terminal {
  */
 struct Terminal::Character
 {
-	unsigned char c;
+	Genode::uint16_t value;
 
-	Character() : c(0) { }
-	Character(unsigned char c) : c(c) { }
+	Character() : value(0) { }
+	Character(Codepoint cp)
+	: value(cp.value < 1<<16 ? cp.value : 0) { }
 
-	bool valid() const { return c != 0; }
-
-	unsigned char ascii() const { return c; }
+	bool valid() const { return value != 0; }
 };
 
 

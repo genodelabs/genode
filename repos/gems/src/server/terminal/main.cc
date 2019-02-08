@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2011-2017 Genode Labs GmbH
+ * Copyright (C) 2011-2019 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -254,29 +254,6 @@ void Terminal::Main::_handle_input()
 
 		event.handle_press([&] (Input::Keycode, Codepoint codepoint) {
 
-			struct Utf8 { char b0, b1, b2, b3, b4; };
-
-			auto utf8_from_codepoint = [] (unsigned c) {
-
-				/* extract 'n' bits 'at' bit position of value 'c' */
-				auto bits = [c] (unsigned at, unsigned n) {
-					return (c >> at) & ((1 << n) - 1); };
-
-				return (c < 2<<7)  ? Utf8 { char(bits( 0, 7)), 0, 0, 0, 0 }
-				     : (c < 2<<11) ? Utf8 { char(bits( 6, 5) | 0xc0),
-				                            char(bits( 0, 6) | 0x80), 0, 0, 0 }
-				     : (c < 2<<16) ? Utf8 { char(bits(12, 4) | 0xe0),
-				                            char(bits( 6, 6) | 0x80),
-				                            char(bits( 0, 6) | 0x80), 0, 0 }
-				     : (c < 2<<21) ? Utf8 { char(bits(18, 3) | 0xf0),
-				                            char(bits(12, 6) | 0x80),
-				                            char(bits( 6, 6) | 0x80),
-				                            char(bits( 0, 6) | 0x80), 0 }
-				     : Utf8 { };
-			};
-
-			Utf8 const sequence = utf8_from_codepoint(codepoint.value);
-
 			/* function-key unicodes */
 			enum {
 				CODEPOINT_UP     = 0xf700, CODEPOINT_DOWN     = 0xf701,
@@ -321,7 +298,7 @@ void Terminal::Main::_handle_input()
 			if (special_sequence)
 				_read_buffer.add(special_sequence);
 			else
-				_read_buffer.add(&sequence.b0);
+				_read_buffer.add(codepoint);
 		});
 	});
 }
