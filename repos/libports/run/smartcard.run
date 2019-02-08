@@ -16,6 +16,12 @@ if { [get_cmd_switch --autopilot] && ![have_spec x86_64] } {
 }
 
 #
+# Please configure your reader's vendor and product IDs here
+#
+proc smartcard_vendor_id {}  { return "0x04e6" }
+proc smartcard_product_id {} { return "0x5116" }
+
+#
 # Build
 #
 
@@ -73,14 +79,28 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
+	<start name="report_rom">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config verbose="no">
+			<default-policy report="usb_drv -> devices"/>
+		</config>
+	</start>
+
 	<start name="usb_drv" caps="120">
 		<resource name="RAM" quantum="16M"/>
 		<provides><service name="Usb"/></provides>
 		<config uhci="yes" ehci="yes" xhci="yes" bios_handoff="yes">
 			<raw>
-				<policy label="test-smartcard -> usb_device" vendor_id="0x04e6" product_id="0x5116"/>
+				<report devices="yes"/>
+				<policy label="test-smartcard -> usb_device"
+				        vendor_id="} [smartcard_vendor_id] {" product_id="} [smartcard_product_id] {"/>
 			</raw>
 		</config>
+		<route>
+			<service name="Report"> <child name="report_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
 	</start>
 	<start name="test-smartcard" caps="130">
 		<resource name="RAM" quantum="4M"/>
@@ -93,7 +113,7 @@ append config {
 					</dir>
 				</dir>
 				<inline name="config.pcsc-lite">
-					<config vendor_id="0x04e6" product_id="0x5116"/>
+					<config vendor_id="} [smartcard_vendor_id] {" product_id="} [smartcard_product_id] {"/>
 				</inline>
 			</vfs>
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
