@@ -47,9 +47,9 @@ static void convert_char_array_to_window(Cell_array<Char_cell> *cell_array,
 		for (unsigned column = 0; column < cell_array->num_cols(); column++) {
 
 			Char_cell      cell  = cell_array->get_cell(column, line);
-			unsigned char  ascii = cell.ascii;
+			unsigned char  ascii = cell.codepoint().value;
 
-			if (ascii == 0) {
+			if (ascii == 0 || ascii & 0x80) {
 				window.print_char(' ', false, false);
 				continue;
 			}
@@ -301,10 +301,12 @@ class Terminal::Session_component : public Genode::Rpc_object<Session, Session_c
 		{
 			unsigned char *src = _io_buffer.local_addr<unsigned char>();
 
+			Terminal::Character character;
 			for (unsigned i = 0; i < num_bytes; i++) {
 
 				/* submit character to sequence decoder */
-				_decoder.insert(src[i]);
+				character.value = src[i];
+				_decoder.insert(character);
 			}
 
 			return num_bytes;

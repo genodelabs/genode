@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2011-2018 Genode Labs GmbH
+ * Copyright (C) 2011-2019 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -198,14 +198,8 @@ class Terminal::Text_screen_surface
 					for (unsigned column = 0; column < _cell_array.num_cols(); column++) {
 
 						Char_cell     cell  = _cell_array.get_cell(column, line);
-						unsigned char ascii = cell.ascii;
 
-						if (ascii == 0)
-							ascii = ' ';
-
-						Text_painter::Codepoint const c { ascii };
-
-						_font.apply_glyph(c, [&] (Glyph_painter::Glyph const &glyph) {
+						_font.apply_glyph(cell.codepoint(), [&] (Glyph_painter::Glyph const &glyph) {
 
 							Color_palette::Highlighted const highlighted { cell.highlight() };
 							Color_palette::Inverse     const inverse     { cell.inverse() };
@@ -274,7 +268,7 @@ class Terminal::Text_screen_surface
 		void apply_character(Character c)
 		{
 			/* submit character to sequence decoder */
-			_decoder.insert(c.c);
+			_decoder.insert(c);
 		}
 
 		void import(Snapshot const &snapshot)

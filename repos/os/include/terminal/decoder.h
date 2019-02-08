@@ -1,11 +1,12 @@
 /*
  * \brief  Escape-sequence decoder
  * \author Norman Feske
+ * \author Emery Hemingway
  * \date   2011-06-06
  */
 
 /*
- * Copyright (C) 2011-2017 Genode Labs GmbH
+ * Copyright (C) 2011-2019 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -452,8 +453,10 @@ class Terminal::Decoder
 
 		Decoder(Character_screen &screen) : _screen(screen) { }
 
-		void insert(unsigned char c)
+		void insert(Character character)
 		{
+			auto const c = character.value;
+
 			switch (_state) {
 
 			case STATE_IDLE:
@@ -467,7 +470,7 @@ class Terminal::Decoder
 				/* handle special characters */
 
 				/* handle normal characters */
-				_screen.output(c);
+				_screen.output(character);
 
 				break;
 

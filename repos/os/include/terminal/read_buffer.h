@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2011-2017 Genode Labs GmbH
+ * Copyright (C) 2011-2019 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -15,6 +15,7 @@
 #define _TERMINAL__READ_BUFFER_H_
 
 #include <os/ring_buffer.h>
+#include <util/utf8.h>
 #include <base/signal.h>
 
 
@@ -45,6 +46,19 @@ class Terminal::Read_buffer : public Genode::Ring_buffer<unsigned char, READ_BUF
 		void add(unsigned char c)
 		{
 			Genode::Ring_buffer<unsigned char, READ_BUFFER_SIZE>::add(c);
+
+			if (_sigh_cap.valid())
+				Genode::Signal_transmitter(_sigh_cap).submit();
+		}
+
+		void add(Codepoint code)
+		{
+			/* send Unicode in a burst of UTF-8 */
+			Genode::String<5> utf8(code);
+			char const *str = utf8.string();
+
+			while (*str)
+				Genode::Ring_buffer<unsigned char, READ_BUFFER_SIZE>::add(*str++);
 
 			if (_sigh_cap.valid())
 				Genode::Signal_transmitter(_sigh_cap).submit();

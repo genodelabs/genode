@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2018 Genode Labs GmbH
+ * Copyright (C) 2018-2019 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -14,6 +14,7 @@
 #ifndef _INCLUDE__OS__UTIL__UTF8_H_
 #define _INCLUDE__OS__UTIL__UTF8_H_
 
+#include <base/output.h>
 #include <base/stdint.h>
 
 namespace Genode {
@@ -29,6 +30,32 @@ struct Genode::Codepoint
 	uint32_t value;
 
 	bool valid() const { return value != INVALID; }
+
+	void print(Output &output) const
+	{
+		/* extract 'n' bits 'at' bit position of value */
+		auto bits = [&] (unsigned at, unsigned n) {
+			return (char)((value >> at) & ((1 << n) - 1)); };
+
+		if (value < 1<<7) {
+			output.out_char(bits( 0, 7));
+		} else
+		if (value < 1<<11) {
+			output.out_char(bits( 6, 5) | 0xc0);
+			output.out_char(bits( 0, 6) | 0x80);
+		} else
+		if (value < 1<<16) {
+			output.out_char(bits(12, 4) | 0xe0);
+			output.out_char(bits( 6, 6) | 0x80);
+			output.out_char(bits( 0, 6) | 0x80);
+		} else
+		if (value < 0x11<<16) {
+			output.out_char(bits(18, 3) | 0xf0);
+			output.out_char(bits(12, 6) | 0x80);
+			output.out_char(bits( 6, 6) | 0x80);
+			output.out_char(bits( 0, 6) | 0x80);
+		}
+	}
 };
 
 

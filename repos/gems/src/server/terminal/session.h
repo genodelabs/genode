@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2018 Genode Labs GmbH
+ * Copyright (C) 2018-2019 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -105,7 +105,8 @@ class Terminal::Session_component : public Rpc_object<Session, Session_component
 			unsigned i = 0;
 			for (Utf8_ptr utf8(src); utf8.complete() && i < max; ) {
 
-				_character_consumer.consume_character(utf8.codepoint().value);
+				_character_consumer.consume_character(
+					Terminal::Character(utf8.codepoint()));
 
 				i += utf8.length();
 				if (i >= max)
