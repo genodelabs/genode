@@ -27,7 +27,7 @@ connection. A matching policy has to be configured at the USB host controller
 driver:
 
 !<start name="usb_drv">
-!  <resource name="RAM" quantum="8M"/>
+!  <resource name="RAM" quantum="12M"/>
 !  <provides><service name="Usb"/></provides>
 !  <config uhci="yes" ehci="yes" xhci="yes">
 !    <raw>

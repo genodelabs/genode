@@ -277,7 +277,7 @@ append config {
 
 append_if $use_usb config {
 	<start name="usb_drv" priority="-1" caps="120">
-		<resource name="RAM" quantum="7M"/>
+		<resource name="RAM" quantum="12M"/>
 		<provides><service name="Input"/></provides>
 		<config uhci="yes" ehci="yes" xhci="yes">
 			<hid/>

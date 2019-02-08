@@ -29,7 +29,7 @@ can be accessed by a client. The following configuration allows 'comp1' to
 access the device 'usb-1-6':
 
 !<start name="usb_drv">
-!  <resource name="RAM" quantum="8M"/>
+!  <resource name="RAM" quantum="12M"/>
 !  <provides><service name="Usb"/></provides>
 !  <config uhci="yes" ohci="yes" ehci="yes" xhci="yes">
 !    <raw>

@@ -38,7 +38,7 @@ Supports keyboard and mouse. A run script can be found under 'run/usb_hid.run'.
 Configuration snippet:
 
 !<start name="usb_drv">
-!  <resource name="RAM" quantum="3M"/>
+!  <resource name="RAM" quantum="12M"/>
 !  <provides><service name="Input"/></provides>
 !  <config uhci="yes" ohci="yes" ehci="yes" xhci="yes">
 !    <hid/>
@@ -77,7 +77,7 @@ run script can be found under 'run/usb_storage.run'.
 Configuration snippet:
 
 !<start name="usb_drv">
-!  <resource name="RAM" quantum="2M"/>
+!  <resource name="RAM" quantum="12M"/>
 !  <provides> <service name="Block"/> </provides>
 !  <config><storage /></config>
 !</start>
@@ -89,7 +89,7 @@ Network (Nic)
 Configuration snippet:
 
 !<start name="usb_drv">
-!  <resource name="RAM" quantum="3M"/>
+!  <resource name="RAM" quantum="12M"/>
 !  <provides>
 !    <service name="Nic"/>
 !    <service name="Input"/>
@@ -117,7 +117,7 @@ Allows raw access to USB devices via the 'Usb' session interface.
 Configuration snippet:
 
 !<start name="usb_drv">
-!  <resource name="RAM" quantum="8M"/>
+!  <resource name="RAM" quantum="12M"/>
 !  <provides><service name="Usb"/></provides>
 !  <config uhci="yes" ohci="yes" ehci="yes" xhci="yes">
 !    <raw>
@@ -148,7 +148,7 @@ can be accessed by a client. The following configuration allows 'comp1' to
 access the device 'usb-1-6':
 
 !<start name="usb_drv">
-!  <resource name="RAM" quantum="8M"/>
+!  <resource name="RAM" quantum="12M"/>
 !  <provides><service name="Usb"/></provides>
 !  <config uhci="yes" ohci="yes" ehci="yes" xhci="yes">
 !    <raw>

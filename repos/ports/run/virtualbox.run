@@ -86,7 +86,7 @@ append_if [expr $use_ps2] config {
 
 append_if [expr $use_usb] config {
 	<start name="usb_drv" priority="-1" caps="120">
-		<resource name="RAM" quantum="7M"/>
+		<resource name="RAM" quantum="12M"/>
 		<provides><service name="Input"/></provides>}
 
 append_if [expr $use_usb && ![have_spec muen]] config {

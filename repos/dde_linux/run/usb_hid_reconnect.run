@@ -79,7 +79,7 @@ append config {
 	</start>
 
 	<start name="usb_drv" caps="120">
-		<resource name="RAM" quantum="10M"/>
+		<resource name="RAM" quantum="12M"/>
 		<provides><service name="Input"/></provides>
 		<config uhci="no" ohci="no" ehci="no" xhci="yes"
 		        capslock_led="rom" numlock_led="rom" scrlock_led="rom"
