@@ -82,16 +82,27 @@ struct Clipboard::Main : Rom::Module::Read_policy, Rom::Module::Write_policy
 		return _config.xml().attribute_value(attr, false);
 	}
 
-	bool verbose = _verbose_config();
+	bool verbose { _verbose_config() };
 
 	typedef Genode::String<100> Domain;
 
 	Genode::Attached_rom_dataspace _focus_ds { _env, "focus" };
 
+	Genode::Signal_handler<Main> _config_handler =
+		{ _env.ep(), *this, &Main::_handle_config };
 	Genode::Signal_handler<Main> _focus_handler =
 		{ _env.ep(), *this, &Main::_handle_focus };
 
 	Domain _focused_domain { };
+
+	/**
+	 * Handle configuration changes
+	 */
+	void _handle_config()
+	{
+		_config_rom.update();
+		verbose = _verbose_config();
+	}
 
 	/**
 	 * Handle the change of the current nitpicker focus
