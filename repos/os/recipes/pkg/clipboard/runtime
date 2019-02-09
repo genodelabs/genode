@@ -1,0 +1,16 @@
+<runtime ram="4M" caps="128" binary="clipboard">
+
+	<requires> <timer/> </requires>
+	<provides>
+		<report/>
+		<rom/>
+	</provides>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="clipboard"/>
+	</content>
+
+	<config verbose="yes"/>
+
+</runtime>
