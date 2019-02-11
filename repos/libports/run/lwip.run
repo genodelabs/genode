@@ -7,7 +7,7 @@
 # the HTTP server is up, a HTTP request to the server is performed using
 # 'lynx'. The response is validated against a known pattern.
 #
-# The test uses qemu's "-net user" option, redirecting Genode's port 80 to the
+# The test uses qemu's "-netdev user" option, redirecting Genode's port 80 to the
 # host's port 5555. Consequently, it cannot be executed on non-qemu test
 # environments (i.e., the test won't work with the Linux version of Genode).
 #
@@ -148,10 +148,10 @@ build_boot_image $boot_modules
 # qemu config
 append qemu_args "  -nographic "
 
-append_if [have_spec x86]     qemu_args " -net nic,model=e1000 "
-append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
+append_if [have_spec x86]     qemu_args " -device e1000,netdev=net0 "
+append_if [have_spec lan9118] qemu_args " -device lan9118,netdev=net0 "
 
-append qemu_args " -net user -redir tcp:5555::80 "
+append qemu_args " -netdev user,id=net0,hostfwd=tcp::5555-:80 "
 
 run_genode_until {.*lwIP Nic interface up.*\n} 30
 

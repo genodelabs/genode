@@ -90,7 +90,7 @@ install_config $config
 set boot_modules {
 	core ld.lib.so init timer
 	nic_drv
-	libc.lib.so vfs.lib.so lwip_legacy.lib.so libc_pipe.lib.so
+	libc.lib.so vfs.lib.so libc_pipe.lib.so
 	tcp_terminal
 	test-terminal_echo
 	vfs_lwip.lib.so
@@ -108,10 +108,10 @@ build_boot_image $boot_modules
 # qemu config
 append qemu_args "  -nographic "
 
-append_if [have_spec x86]     qemu_args " -net nic,model=e1000 "
-append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
+append_if [have_spec x86]     qemu_args " -device e1000,netdev=net0 "
+append_if [have_spec lan9118] qemu_args " -device lan9118,netdev=net0 "
 
-append qemu_args " -net user -redir tcp:5555::8888 "
+append qemu_args " -netdev user,id=net0,hostfwd=tcp::5555-:8888 "
 
 run_genode_until forever
 

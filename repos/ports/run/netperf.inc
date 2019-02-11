@@ -380,10 +380,10 @@ build_boot_image $boot_modules
 # qemu config
 append qemu_args "  -nographic "
 
-append_if [have_spec x86]     qemu_args " -net nic,model=e1000 "
-append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
+append_if [have_spec x86]     qemu_args " -device e1000,netdev=net0 "
+append_if [have_spec lan9118] qemu_args " -device lan9118,netdev=net0 "
 
-append qemu_args " -net user -redir tcp:12865::12865 -redir tcp:49153::49153 "
+append qemu_args " -netdev user,id=net0,hostfwd=tcp::12865-:12865,hostfwd=tcp::49153-:49153 "
 
 set force_ports ""
 if $use_nic_router {
