@@ -165,6 +165,7 @@ set boot_modules {
 	core init timer ld.lib.so
 	libc.lib.so libm.lib.so posix.lib.so
 	vfs.lib.so vfs_lwip.lib.so zlib.lib.so
+	libcrypto.lib.so libssl.lib.so
 	lighttpd genode_org.tar
 }
 
@@ -177,10 +178,14 @@ append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 
-append_if [have_spec x86]     qemu_args " -net nic,model=e1000 "
-append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
+proc qemu_nic_model {} {
+	if [have_spec x86]     { return e1000 }
+	if [have_spec lan9118] { return lan9118 }
+	return nic_model_missing
+}
 
-append qemu_args " -net user -redir tcp:5555::80 "
+append qemu_args " -netdev user,id=net0,hostfwd=tcp::5555-:80 "
+append qemu_args " -net nic,model=[qemu_nic_model],netdev=net0 "
 append qemu_args " -nographic -serial mon:stdio "
 
 run_genode_until forever

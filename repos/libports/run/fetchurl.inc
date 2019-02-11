@@ -126,8 +126,16 @@ lappend_if [have_spec gpio] boot_modules [gpio_drv]
 
 build_boot_image $boot_modules
 
-append_if [have_spec x86]     qemu_args " -net nic,model=e1000 "
-append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
-append                        qemu_args " -nographic -net user"
+append qemu_args " -nographic "
+
+proc qemu_nic_model {} {
+	if [have_spec x86]         { return e1000 }
+	if [have_spec lan9118]     { return lan9118 }
+	if [have_spec cadence_gem] { return cadence_gem }
+	return nic_model_missing
+}
+
+append qemu_args " -netdev user,id=net0 "
+append qemu_args " -net nic,model=[qemu_nic_model],netdev=net0 "
 
 run_genode_until {child "fetchurl" exited with exit value 0} 120

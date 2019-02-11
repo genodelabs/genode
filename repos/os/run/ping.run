@@ -150,10 +150,17 @@ append_platform_drv_boot_modules
 
 build_boot_image $boot_modules
 
-append_if [have_spec x86]     qemu_args " -net nic,model=e1000 "
-append_if [have_spec lan9118] qemu_args " -net nic,model=lan9118 "
+append qemu_args " -nographic "
 
-append qemu_args " -net user -nographic "
+proc qemu_nic_model {} {
+	if [have_spec x86]         { return e1000 }
+	if [have_spec lan9118]     { return lan9118 }
+	if [have_spec cadence_gem] { return cadence_gem }
+	return nic_model_missing
+}
+
+append qemu_args " -netdev user,id=net0 "
+append qemu_args " -net nic,model=[qemu_nic_model],netdev=net0 "
 
 set done_string ".*\"ping_1\" exited with exit value 0.*\n"
 
