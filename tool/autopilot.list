@@ -57,6 +57,7 @@ timeout
 timer_accuracy
 tz_vmm
 usb_hid
+usb_hid_raw
 vbox4_ubuntu_14_04_32
 vbox4_ubuntu_14_04_64
 vbox4_ubuntu_16_04_32
