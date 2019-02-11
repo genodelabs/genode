@@ -16,7 +16,7 @@ proc core_link_address { } {
 	if {[have_spec pbxa9    ]} { return "0x76000000" }
 	if {[have_spec odroid_x2]} { return "0x80100000" }
 	if {[have_spec imx53    ]} { return "0x70140000" }
-	if {[have_spec imx6q_sabrelite ]} { return "0x10140000" }
+	if {[have_spec imx6q_sabrelite ]} { return "0x14000000" }
 
 	puts stderr "Error: platform not supported, core link address unknown"
 	exit 1
