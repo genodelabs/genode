@@ -102,7 +102,7 @@ append config {
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
-	<start name="test-smartcard" caps="130">
+	<start name="test-smartcard" caps="150">
 		<resource name="RAM" quantum="4M"/>
 		<config>
 			<vfs>
