@@ -14,9 +14,7 @@ DIR(virtualbox_sdk) := src/app/virtualbox_sdk
 SHA(virtualbox_sdk) := 038c1d069ecf2886a2a7ca1ad5483bde4169b7bee39d77fbb16943a28ce64341
 
 PATCHES_DIR       := src/virtualbox5/patches
-PATCHES_DIR_VBOX4 := src/virtualbox/patches
 PATCHES := $(addprefix $(PATCHES_DIR)/, $(shell cat $(REP_DIR)/$(PATCHES_DIR)/series))
-PATCHES += $(addprefix $(PATCHES_DIR_VBOX4)/, $(shell cat $(REP_DIR)/$(PATCHES_DIR_VBOX4)/series_common))
 PATCH_OPT := -p1
 
 $(call check_tool,xsltproc)

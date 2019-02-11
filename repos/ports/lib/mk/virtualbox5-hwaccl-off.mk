@@ -11,7 +11,7 @@ INC_DIR += $(VIRTUALBOX_DIR)/VBoxAPIWrap
 INC_DIR += $(VBOX_DIR)/Main/xml
 INC_DIR += $(VBOX_DIR)/Main/include
 INC_DIR += $(VBOX_DIR)/VMM/include
-INC_DIR += $(REP_DIR)/src/virtualbox
+INC_DIR += $(REP_DIR)/src/virtualbox5
 INC_DIR += $(REP_DIR)/src/virtualbox5/frontend
 INC_DIR += $(REP_DIR)/src/virtualbox5/accloff
 

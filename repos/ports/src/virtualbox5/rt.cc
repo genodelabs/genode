@@ -238,21 +238,16 @@ static void *alloc_mem(size_t cb, const char *pszTag, bool executable = false)
 	}
 }
 
-#ifndef RT_NO_THROW
-	/* not defined in vbox5, but this code is used by vbox4 and vbox5 */
-	#define RT_NO_THROW
-#endif
-
 /*
  * Called by the recompiler to allocate executable RAM
  */
-void *RTMemExecAllocTag(size_t cb, const char *pszTag) RT_NO_THROW
+void *RTMemExecAllocTag(size_t cb, const char *pszTag)
 {
 	return alloc_mem(cb, pszTag, true);
 }
 
 
-void *RTMemPageAllocZTag(size_t cb, const char *pszTag) RT_NO_THROW
+void *RTMemPageAllocZTag(size_t cb, const char *pszTag)
 {
 	/*
 	 * The RAM dataspace freshly allocated by 'RTMemExecAllocTag' is zeroed
@@ -265,13 +260,13 @@ void *RTMemPageAllocZTag(size_t cb, const char *pszTag) RT_NO_THROW
 }
 
 
-void *RTMemPageAllocTag(size_t cb, const char *pszTag) RT_NO_THROW
+void *RTMemPageAllocTag(size_t cb, const char *pszTag)
 {
 	return alloc_mem(cb, pszTag);
 }
 
 
-void RTMemPageFree(void *pv, size_t cb) RT_NO_THROW
+void RTMemPageFree(void *pv, size_t cb)
 {
 	Genode::Lock::Guard guard(lock_ds);
 

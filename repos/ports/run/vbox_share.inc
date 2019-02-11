@@ -225,8 +225,6 @@ append config_of_app {
 	</start>
 
 	<start name="vbox1" priority="-2" caps="600">}
-append_if [expr $use_vbox4] config_of_app "
-		<binary name=\"$virtualbox_binary\" />"
 append_if [expr $use_vbox5] config_of_app "
 		<binary name=\"$virtualbox5_binary\" />"
 append config_of_app {
