@@ -58,17 +58,6 @@ timer_accuracy
 tz_vmm
 usb_hid
 usb_hid_raw
-vbox4_ubuntu_14_04_32
-vbox4_ubuntu_14_04_64
-vbox4_ubuntu_16_04_32
-vbox4_ubuntu_16_04_64
-vbox4_win10_64
-vbox4_win7_32
-vbox4_win7_32_share
-vbox4_win7_64
-vbox4_win7_64_multiple
-vbox4_win7_64_raw
-vbox4_win81_64
 vbox5_genode_usb_hid
 vbox5_ubuntu_14_04_32
 vbox5_ubuntu_14_04_64

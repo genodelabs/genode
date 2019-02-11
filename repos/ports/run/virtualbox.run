@@ -3,8 +3,7 @@ set use_ps2 [have_spec ps2]
 set use_usb 0
 set use_serial 1
 
-set use_vbox4 0
-set use_vbox5 [expr !$use_vbox4]
+set use_vbox5 1
 
 # use_gui starts two VMs
 set use_gui 0
@@ -16,12 +15,7 @@ set build_components {
 	drivers/framebuffer
 }
 
-if {$use_vbox4} {
-	append build_components virtualbox
-	set virtualbox_binary "virtualbox-rem"
-	if {[have_spec muen]} { set virtualbox_binary "virtualbox-muen" }
-	if {[have_spec nova]} { set virtualbox_binary "virtualbox-nova" }
-} else {
+if {$use_vbox5} {
 	append build_components virtualbox5
 	set virtualbox_binary "virtualbox5-rem"
 	if {[have_spec nova]} { set virtualbox_binary "virtualbox5-nova" }

@@ -22,7 +22,7 @@ SRC_CC += audio.cc
 
 INC_DIR += $(VBOX_DIR)/Devices/Audio
 
-vpath network.cpp  $(REP_DIR)/src/virtualbox
+vpath network.cpp  $(REP_DIR)/src/virtualbox5
 vpath audio.cc     $(REP_DIR)/src/virtualbox5
 
 CC_CXX_WARN_STRICT =

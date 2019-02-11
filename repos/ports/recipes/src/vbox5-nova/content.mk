@@ -2,18 +2,8 @@ LIB_MK_FILES := $(notdir $(wildcard $(REP_DIR)/lib/mk/virtualbox5-*)) \
                 spec/nova/virtualbox5-nova.mk
 
 MIRROR_FROM_REP_DIR := src/virtualbox5 \
-                       src/virtualbox/include \
-                       src/virtualbox/network.cpp \
-                       src/virtualbox/vmm.h \
-                       src/virtualbox/sup.h \
-                       src/virtualbox/mm.h \
-                       src/virtualbox/util.h \
-                       src/virtualbox/dynlib.cc \
-                       src/virtualbox/libc.cc \
-                       src/virtualbox/logger.cc \
-                       src/virtualbox/pdm.cc \
-                       src/virtualbox/rt.cc \
-                       src/virtualbox/thread.cc \
+                       src/virtualbox5/network.cpp \
+                       src/virtualbox5/include \
                        include/vmm \
                        $(addprefix lib/mk/,$(LIB_MK_FILES))
 

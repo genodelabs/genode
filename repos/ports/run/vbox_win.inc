@@ -244,8 +244,6 @@ append config_of_app {
 for { set i 1} { $i <= $use_vms } { incr i} {
 	append config_of_app "
 	<start name=\"vbox${i}\" priority=\"-2\" caps=\"800\">"
-	append_if [expr $use_vbox4] config_of_app "
-		<binary name=\"$virtualbox_binary\" />"
 	append_if [expr $use_vbox5] config_of_app "
 		<binary name=\"$virtualbox5_binary\" />"
 

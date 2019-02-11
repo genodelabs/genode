@@ -11,14 +11,6 @@ SRC_CC = frontend/main.cc frontend/console.cc \
          logger.cc mm.cc pdm.cc pgm.cc rt.cc sup.cc \
          hm.cc thread.cc dynlib.cc unimpl.cc
 
-# use implementation of VBOX 4
-vpath dynlib.cc  $(REP_DIR)/src/virtualbox
-vpath libc.cc    $(REP_DIR)/src/virtualbox
-vpath logger.cc  $(REP_DIR)/src/virtualbox
-vpath pdm.cc     $(REP_DIR)/src/virtualbox
-vpath rt.cc      $(REP_DIR)/src/virtualbox
-vpath thread.cc  $(REP_DIR)/src/virtualbox
-
 LIBS  += base
 LIBS  += stdcxx
 
@@ -51,8 +43,7 @@ SRC_CC += frontend/dummy/errorinfo.cc frontend/dummy/virtualboxbase.cc
 SRC_CC += frontend/dummy/autostart.cc frontend/dummy/rest.cc
 SRC_CC += frontend/dummy/host.cc
 
-#vbox 4 include
-INC_DIR += $(REP_DIR)/src/virtualbox
+INC_DIR += $(REP_DIR)/src/virtualbox5
 
 INC_DIR += $(VBOX_DIR)/Main/include
 INC_DIR += $(VBOX_DIR)/VMM/include
