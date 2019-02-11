@@ -289,7 +289,7 @@ append_if $use_wifi_driver config {
 append_platform_drv_config
 
 append config {
-	<start name="netserver_genode" caps="220" priority="-1">
+	<start name="netserver_genode" caps="320" priority="-1">
 	<binary name="netserver"/>
 		<resource name="RAM" quantum="32M"/>
 		<config>
