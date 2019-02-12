@@ -78,7 +78,7 @@ struct rumpuser_mtx
 				if (try_enter)
 					return false;
 
-				fifo.enqueue(&applicant);
+				fifo.enqueue(applicant);
 			}
 			applicant.block();
 		}
@@ -99,8 +99,8 @@ struct rumpuser_mtx
 			owner = nullptr;
 		}
 
-		if (Applicant *applicant = fifo.dequeue())
-			applicant->wake_up();
+		fifo.dequeue([] (Applicant &applicant) {
+			applicant.wake_up(); });
 	}
 };
 
