@@ -20,9 +20,6 @@
 #include <fcntl.h>
 #include <string.h>
 
-/* interface to 'log_console' */
-extern "C" int stdout_write(const char *);
-
 
 namespace {
 
@@ -121,7 +118,7 @@ namespace {
 					int curr_count= count > sizeof(tmp) - 1 ? sizeof(tmp) - 1 : count;
 					strncpy(tmp, src, curr_count);
 					tmp[curr_count > 0 ? curr_count : 0] = 0;
-					stdout_write(tmp);
+					Genode::log(Genode::Cstring(tmp));
 					count -= curr_count;
 					src   += curr_count;
 				}

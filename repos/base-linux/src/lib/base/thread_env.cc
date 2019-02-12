@@ -33,20 +33,6 @@ char **lx_environ;
 int main_thread_futex_counter __attribute__((aligned(sizeof(addr_t))));
 
 /**
- * Genode console hook
- */
-extern "C" int stdout_write(char const *);
-
-/*
- * Core lacks the hook, so provide a base-linux specific weak implementation
- */
-extern "C" __attribute__((weak)) int stdout_write(char const *s)
-{
-	raw(s);
-	return Genode::strlen(s);
-}
-
-/**
  * Signal handler for exceptions like segmentation faults
  */
 void exception_signal_handler(int signum)

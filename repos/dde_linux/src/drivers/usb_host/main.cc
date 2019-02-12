@@ -41,7 +41,6 @@ struct workqueue_struct *tasklet_wq;
 
 void breakpoint() { Genode::log("BREAK"); }
 
-extern "C" int stdout_write(const char *);
 
 static void run_linux(void *s)
 {

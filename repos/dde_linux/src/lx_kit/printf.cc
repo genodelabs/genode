@@ -11,6 +11,10 @@
  * version 2.
  */
 
+/* Genode includes */
+#include <base/log.h>
+#include <util/string.h>
+
 /* local includes */
 #include <lx_emul.h>
 
@@ -19,8 +23,6 @@ namespace Lx {
 	class Console;
 	class Format_command;
 }
-
-extern "C" int stdout_write(const char *s);
 
 
 /**
@@ -192,7 +194,7 @@ class Lx::Console
 				return;
 
 			_buf[_idx] = 0;
-			stdout_write(_buf);
+			Genode::log(Genode::Cstring(_buf));
 			_idx = 0;
 		}
 
