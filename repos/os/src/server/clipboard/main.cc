@@ -100,7 +100,7 @@ struct Clipboard::Main : Rom::Module::Read_policy, Rom::Module::Write_policy
 	 */
 	void _handle_config()
 	{
-		_config_rom.update();
+		_config.update();
 		verbose = _verbose_config();
 	}
 
