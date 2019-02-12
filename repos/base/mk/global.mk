@@ -25,7 +25,7 @@ CUSTOM_STRIP    ?= $(CROSS_DEV_PREFIX)strip
 CUSTOM_GNATBIND ?= $(CROSS_DEV_PREFIX)gnatbind
 CUSTOM_HOST_CC  ?= gcc
 CUSTOM_ADA_CC   ?= $(CUSTOM_CC)
-CUSTOM_ALI2DEP  ?= echo "        WARNING: ali2dep not used, get it from https://github.com/Componolit/ali2dep and make CUSTUM_ALI2DEP point to the binary." \#
+CUSTOM_ALI2DEP  ?= echo "        WARNING: ali2dep not used, get it from https://github.com/Componolit/ali2dep and make CUSTOM_ALI2DEP point to the binary." \#
 
 #
 # GNU utilities
