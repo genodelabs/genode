@@ -64,7 +64,7 @@ class Isoc_packet : Fifo<Isoc_packet>::Element
 		{
 			if (!valid()) return false;
 
-			int remaining = _size - _offset;
+			unsigned remaining = _size - _offset;
 			int copy_size = min(usb_packet->iov.size, remaining);
 
 			usb_packet_copy(usb_packet, _content + _offset, copy_size);
@@ -202,19 +202,22 @@ struct Dev_info
 
 struct Usb_host_device : List<Usb_host_device>::Element
 {
+	Usb_host_device(const Usb_host_device&);
+	const Usb_host_device& operator=(const Usb_host_device&);
+
 	struct Could_not_create_device : Exception { };
 
 	bool           deleted = false;
 	char const    *label   = nullptr;
 	Dev_info const info;
 
-	USBHostDevice  *qemu_dev;
+	USBHostDevice  *qemu_dev { nullptr };
 
 	/* submit queue + ack queue + 1 -> max nr of packets in flight */
 	enum { NUM_COMPLETIONS = Usb::Session::TX_QUEUE_SIZE * 2 + 1 };
 	Completion  completion[NUM_COMPLETIONS];
 
-	Fifo<Isoc_packet>             isoc_read_queue;
+	Fifo<Isoc_packet>             isoc_read_queue { };
 	Reconstructible<Isoc_packet>  isoc_write_packet { Usb::Packet_descriptor(), nullptr };
 
 	Signal_receiver  &sig_rec;
@@ -323,7 +326,9 @@ struct Usb_host_device : List<Usb_host_device>::Element
 				/* isochronous in */
 				free_completion(packet);
 				_isoc_in_pending--;
-				isoc_read_queue.enqueue(new (_alloc) Isoc_packet(packet, content));
+				Isoc_packet *new_packet = new (_alloc)
+					Isoc_packet(packet, content);
+				isoc_read_queue.enqueue(*new_packet);
 			}
 		}
 	}
@@ -339,9 +344,12 @@ struct Usb_host_device : List<Usb_host_device>::Element
 			return false;
 		}
 
-		if (isoc_read_queue.head()->copy(packet)) {
-			free_packet(isoc_read_queue.dequeue());
-		}
+		isoc_read_queue.head([&] (Isoc_packet &head) {
+			if (head.copy(packet)) {
+				isoc_read_queue.remove(head);
+				free_packet(&head);
+			}
+		});
 
 		return true;
 	}
@@ -351,9 +359,7 @@ struct Usb_host_device : List<Usb_host_device>::Element
 	bool isoc_new_packet()
 	{
 		unsigned count = 0;
-		for (Isoc_packet *packet = isoc_read_queue.head(); packet;
-		     packet = packet->next(), count++);
-
+		isoc_read_queue.for_each([&count] (Isoc_packet&) { count++; });
 		return (count + _isoc_in_pending) < 3 ? true : false;
 	}
 
@@ -394,18 +400,14 @@ struct Usb_host_device : List<Usb_host_device>::Element
 	void isoc_in_flush(unsigned ep, bool all = false)
 	{
 		/* flush finished and stored data */
-		for (Isoc_packet *packet = isoc_read_queue.head(); packet; )
-		{
-			if (!all && (!packet->valid() || packet->packet().transfer.ep != ep)) {
-				packet = packet->next();
-				continue;
+		isoc_read_queue.for_each([&] (Isoc_packet &packet) {
+			if (!all && (!packet.valid() || packet.packet().transfer.ep != ep)) {
+				return;
 			}
 
-			Isoc_packet *next = packet->next();
 			isoc_read_queue.remove(packet);
-			free_packet(packet);
-			packet = next;
-		}
+			free_packet(&packet);
+		});
 
 		/* flush in flight packets */
 		flush_completion(ep);
