@@ -110,6 +110,7 @@ install_config {
 					<rom name="deploy"        label="manual_deploy.config"/>
 					<rom name="usb"           label="usb.config"/>
 					<rom name="en_us.chargen"/>
+					<rom name="fr.chargen"/>
 					<rom name="de.chargen"/>
 					<rom name="de_ch.chargen"/>
 					<rom name="special.chargen"/>
@@ -469,7 +470,7 @@ file copy -force [genode_dir]/repos/gems/run/sculpt/machine.vbox [run_dir]/genod
 file copy -force [genode_dir]/repos/gems/recipes/raw/drivers_managed-pc/drivers.config \
                  [run_dir]/genode/drivers.config
 
-foreach file { en_us.chargen de.chargen de_ch.chargen special.chargen } {
+foreach file { fr.chargen en_us.chargen de.chargen de_ch.chargen special.chargen } {
 	file copy -force [genode_dir]/repos/os/src/server/input_filter/$file \
 	                 [run_dir]/genode/$file }
 
