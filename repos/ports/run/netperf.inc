@@ -427,7 +427,7 @@ foreach netperf_test $netperf_tests {
 
 	# reset output, so that we get on the second run not the result of the first
 	set output ""
-	run_genode_until "Segment" 60 $spawn_id_list
+	run_genode_until "Segment" 120 $spawn_id_list
 
 	# get throughput from netperf output
 	set throughput [regexp -all -inline {([0-9]+[ ]+){3}[0-9]+\.[0-9]+[ ]+[0-9]+\.[0-9]+} $output]
