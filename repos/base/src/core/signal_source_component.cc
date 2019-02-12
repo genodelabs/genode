@@ -27,7 +27,7 @@ using namespace Genode;
 void Signal_source_component::release(Signal_context_component &context)
 {
 	if (context.enqueued())
-		_signal_queue.remove(&context);
+		_signal_queue.remove(context);
 }
 
 
@@ -59,7 +59,7 @@ void Signal_source_component::submit(Signal_context_component &context,
 	} else {
 
 		if (!context.enqueued())
-			_signal_queue.enqueue(&context);
+			_signal_queue.enqueue(context);
 	}
 }
 
@@ -78,10 +78,13 @@ Signal_source::Signal Signal_source_component::wait_for_signal()
 		return Signal(0, 0);  /* just a dummy */
 	}
 
+
 	/* dequeue and return pending signal */
-	Signal_context_component &context = *_signal_queue.dequeue();
-	Signal result(context.imprint(), context.cnt());
-	context.reset_signal_cnt();
+	Signal result { };
+	_signal_queue.dequeue([&result] (Signal_context_component &context) {
+		result = Signal(context.imprint(), context.cnt());
+		context.reset_signal_cnt();
+	});
 	return result;
 }
 
