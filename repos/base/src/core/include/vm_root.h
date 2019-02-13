@@ -42,7 +42,7 @@ class Genode::Vm_root : public Root_component<Vm_session_component>
 				                     _ram_allocator, _local_rm);
 		}
 
-		void _upgrade_session(Vm_session_component *vm, const char *args)
+		void _upgrade_session(Vm_session_component *vm, const char *args) override
 		{
 			vm->upgrade(ram_quota_from_args(args));
 			vm->upgrade(cap_quota_from_args(args));

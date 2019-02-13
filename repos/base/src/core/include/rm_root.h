@@ -40,10 +40,10 @@ class Genode::Rm_root : public Root_component<Rm_session_component>
 			       Rm_session_component(*this->ep(), *md_alloc(), _pager_ep, ram_quota);
 		}
 
-		void _upgrade_session(Rm_session_component &rm, const char *args)
+		void _upgrade_session(Rm_session_component *rm, const char *args) override
 		{
 			size_t ram_quota = Arg_string::find_arg(args, "ram_quota").ulong_value(0);
-			rm.upgrade_ram_quota(ram_quota);
+			rm->upgrade_ram_quota(ram_quota);
 		}
 
 	public:
