@@ -64,7 +64,7 @@ grep_output {\[init -\> test-lx_hybrid_ctors\]}
 
 compare_output_to {
 	[init -> test-lx_hybrid_ctors] Global static constructor of host library called.
-	[init -> test-lx_hybrid_ctors] Global static constructor of Genode application called
+	[init -> test-lx_hybrid_ctors] Global static constructor of Genode application called.
 	[init -> test-lx_hybrid_ctors] --- lx_hybrid global static constructor test ---
 	[init -> test-lx_hybrid_ctors] --- returning from main ---
 }

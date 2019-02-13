@@ -20,6 +20,7 @@
 
 /* Linux includes */
 #include <stdlib.h>
+#include <stdio.h>
 
 using namespace Genode;
 
@@ -28,7 +29,7 @@ struct Testapp_testclass
 {
 	Testapp_testclass()
 	{
-		Genode::log("Global static constructor of Genode application called");
+		printf("[init -> test-lx_hybrid_ctors] Global static constructor of Genode application called.\n");
 	}
 
 	void dummy() { }
