@@ -1,4 +1,4 @@
-#include <base/printf.h>
+#include <base/log.h>
 extern "C" void print_num(int num) {
-  Genode::printf("Number from rust: %d \n",num);
+  Genode::log("Number from rust: ", num);
 }
