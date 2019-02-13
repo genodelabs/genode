@@ -57,7 +57,7 @@ Log &Log::log()
 	if (log_ptr)
 		return *log_ptr;
 
-	raw("Error: Missing call of log_init");
+	raw("Error: Missing call of init_log");
 	sleep_forever();
 }
 
