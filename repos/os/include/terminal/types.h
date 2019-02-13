@@ -15,6 +15,7 @@
 #define _TERMINAL__TYPES_H_
 
 /* Genode includes */
+#include <util/utf8.h>
 #include <util/interface.h>
 
 namespace Terminal {
