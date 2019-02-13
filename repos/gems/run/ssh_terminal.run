@@ -161,9 +161,14 @@ build_boot_image $boot_modules
 
 append qemu_args " -m 512 -nographic "
 
-append_if [have_spec x86] qemu_args " -device e1000,netdev=net0 "
+proc qemu_nic_model {} {
+	if [have_spec x86]     { return e1000 }
+	if [have_spec lan9118] { return lan9118 }
+	return nic_model_missing
+}
 
 append qemu_args " -netdev user,id=net0,hostfwd=tcp::5555-:22 "
+append qemu_args " -net nic,model=[qemu_nic_model],netdev=net0 "
 
 set lxip_match_string "ipaddr=(\[0-9\]+\.\[0-9\]+\.\[0-9\]+\.\[0-9\]+).*\n"
 

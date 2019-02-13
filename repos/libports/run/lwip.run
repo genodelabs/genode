@@ -148,10 +148,14 @@ build_boot_image $boot_modules
 # qemu config
 append qemu_args "  -nographic "
 
-append_if [have_spec x86]     qemu_args " -device e1000,netdev=net0 "
-append_if [have_spec lan9118] qemu_args " -device lan9118,netdev=net0 "
+proc qemu_nic_model {} {
+	if [have_spec x86]     { return e1000 }
+	if [have_spec lan9118] { return lan9118 }
+	return nic_model_missing
+}
 
 append qemu_args " -netdev user,id=net0,hostfwd=tcp::5555-:80 "
+append qemu_args " -net nic,model=[qemu_nic_model],netdev=net0 "
 
 run_genode_until {.*lwIP Nic interface up.*\n} 30
 
