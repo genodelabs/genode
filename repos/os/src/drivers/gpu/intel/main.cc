@@ -853,10 +853,10 @@ struct Igd::Device
 
 	bool _vgpu_already_scheduled(Vgpu &vgpu) const
 	{
-		for (Vgpu *v = _vgpu_list.head(); v; v = v->next()) {
-			if (v == &vgpu) { return true; }
-		}
-		return false;
+		bool result = false;
+		_vgpu_list.for_each([&] (Vgpu const &v) {
+			result |= (&v == &vgpu); });
+		return result;
 	}
 
 	void _submit_execlist(Engine<Rcs_context> &engine)
@@ -881,11 +881,19 @@ struct Igd::Device
 
 	Vgpu *_unschedule_current_vgpu()
 	{
-		Vgpu *gpu = _vgpu_list.dequeue();
-		return gpu;
+		Vgpu *result = nullptr;
+		_vgpu_list.dequeue([&] (Vgpu &head) {
+			result = &head; });
+		return result;
 	}
 
-	Vgpu *_current_vgpu() { return _vgpu_list.head(); }
+	Vgpu *_current_vgpu()
+	{
+		Vgpu *result = nullptr;
+		_vgpu_list.head([&] (Vgpu &head) {
+			result = &head; });
+		return result;
+	}
 
 	void _schedule_current_vgpu()
 	{
@@ -1189,7 +1197,7 @@ struct Igd::Device
 
 		Vgpu const *pending = _current_vgpu();
 
-		_vgpu_list.enqueue(&vgpu);
+		_vgpu_list.enqueue(vgpu);
 
 		if (pending) { return; }
 
@@ -1211,9 +1219,11 @@ struct Igd::Device
 	 */
 	bool vgpu_active(Vgpu const &vgpu) const
 	{
-		Vgpu const *curr = _vgpu_list.head();
-		if (!curr) { return false; }
-		return &vgpu == curr ? true : false;
+		bool result = false;
+		_vgpu_list.head([&] (Vgpu const &curr) {
+			result = (&vgpu == &curr);
+		});
+		return result;
 	}
 
 	/*********************
