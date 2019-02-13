@@ -20,7 +20,6 @@
 #include <platform_session/connection.h>
 #include <input/component.h>
 #include <input/root.h>
-#include <base/printf.h>
 #include <os/server.h>
 
 /* local includes */
@@ -55,7 +54,7 @@ struct Main
 				Input::Tablet_driver::factory(env, session.event_queue());
 				break;
 			default:
-				PWRN("No input driver available for this board");
+				warning("No input driver available for this board");
 		}
 
 		/* tell parent about the service */
