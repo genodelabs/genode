@@ -137,7 +137,7 @@ CC_WARN   ?= -Wall
 #
 # Additional warnings for C++
 #
-CC_CXX_WARN_STRICT ?= -Wextra -Weffc++ -Werror
+CC_CXX_WARN_STRICT ?= -Wextra -Weffc++ -Werror -Wsuggest-override
 CC_CXX_WARN        ?= $(CC_WARN) $(CC_CXX_WARN_STRICT)
 
 #
