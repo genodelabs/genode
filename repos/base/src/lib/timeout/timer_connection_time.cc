@@ -45,7 +45,7 @@ void Timer::Connection::_update_real_time()
 		unsigned long volatile new_us = elapsed_us();
 
 		/* do not proceed until the time difference is at least 1 us */
-		if (new_us == _us) { continue; }
+		if (new_us == _us || new_ts == _ts) { continue; }
 		remote_time_trials++;
 
 		/*
