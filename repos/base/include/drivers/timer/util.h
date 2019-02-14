@@ -40,8 +40,8 @@ namespace Genode {
 	{
 		enum:RESULT_T {
 			HALF_WIDTH = (sizeof(RESULT_T) << 2),
-			MSB_MASK  = ((RESULT_T)~0UL) << HALF_WIDTH,
-			LSB_MASK  = ((RESULT_T)~0UL) >> HALF_WIDTH,
+			MSB_MASK  = (~(RESULT_T)0) << HALF_WIDTH,
+			LSB_MASK  = (~(RESULT_T)0) >> HALF_WIDTH,
 			MSB_RSHIFT = 10,
 			LSB_LSHIFT = HALF_WIDTH - MSB_RSHIFT,
 		};
