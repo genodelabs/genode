@@ -111,7 +111,9 @@ CUSTOM_BINDER_FLAGS ?= -n -we
 OBJECTS += b~$(TARGET).o
 
 ALIS := $(addsuffix .ali, $(basename $(SRC_ADS) $(SRC_ADB)))
-BINDER_SEARCH_DIRS = $(addprefix -I$(BUILD_BASE_DIR)/var/libcache/, $(LIBS))
+ALI_DIRS := $(foreach LIB,$(LIBS),$(call select_from_repositories,lib/ali/$(LIB)))
+BINDER_SEARCH_DIRS = $(addprefix -I$(BUILD_BASE_DIR)/var/libcache/, $(LIBS)) $(addprefix -aO, $(ALI_DIRS))
+
 BINDER_SRC := b~$(TARGET).ads b~$(TARGET).adb
 
 $(BINDER_SRC): $(ALIS)

@@ -9,7 +9,7 @@ MIRROR_FROM_ADA_RT_DIR := \
 		gnat.ads \
 		g-io.ads \
 	)\
-	$(addprefix ada-runtime/src/,\
+	$(addprefix ada-runtime/src/minimal/,\
 		s-stalib.ads \
 		a-except.ads \
 		s-secsta.ads \
@@ -39,7 +39,8 @@ $(MIRROR_FROM_ADA_RT_DIR):
 MIRROR_FROM_REP_DIR := \
 	lib/import/import-spark.mk \
 	include/ada \
-	lib/symbols/spark
+	lib/symbols/spark \
+	lib/ali/spark
 
 content: $(MIRROR_FROM_REP_DIR)
 
