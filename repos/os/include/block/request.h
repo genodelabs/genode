@@ -22,8 +22,8 @@ namespace Block { struct Request; }
 
 struct Block::Request
 {
-	enum class Operation : Genode::uint32_t { INVALID, READ, WRITE, SYNC };
-	enum class Success   : Genode::uint32_t { FALSE, TRUE };
+	enum class Operation : Genode::uint32_t { INVALID = 0, READ = 1, WRITE = 2, SYNC = 3 };
+	enum class Success   : Genode::uint32_t { FALSE = 0, TRUE = 1 };
 
 	Operation         operation;
 	Success           success;
