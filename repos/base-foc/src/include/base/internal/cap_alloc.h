@@ -70,7 +70,7 @@ namespace Genode {
 			 ** Cap_index_allocator interface **
 			 ***********************************/
 
-			Cap_index* alloc_range(size_t cnt)
+			Cap_index* alloc_range(size_t cnt) override
 			{
 				Lock_guard<Spin_lock> guard(_lock);
 
@@ -93,7 +93,7 @@ namespace Genode {
 				return 0;
 			}
 
-			Cap_index* alloc(addr_t addr)
+			Cap_index* alloc(addr_t addr) override
 			{
 				Lock_guard<Spin_lock> guard(_lock);
 
@@ -111,7 +111,7 @@ namespace Genode {
 				return new (obj) T();
 			}
 
-			void free(Cap_index* idx, size_t cnt)
+			void free(Cap_index* idx, size_t cnt) override
 			{
 				Lock_guard<Spin_lock> guard(_lock);
 
@@ -126,17 +126,17 @@ namespace Genode {
 				}
 			}
 
-			addr_t idx_to_kcap(Cap_index const *idx) const {
+			addr_t idx_to_kcap(Cap_index const *idx) const override {
 				return ((T const *)idx - &_indices[0]) << Fiasco::L4_CAP_SHIFT;
 			}
 
-			Cap_index* kcap_to_idx(addr_t kcap) {
+			Cap_index* kcap_to_idx(addr_t kcap) override {
 				return &_indices[kcap >> Fiasco::L4_CAP_SHIFT]; }
 
-			bool static_idx(Cap_index *idx) {
+			bool static_idx(Cap_index *idx) override {
 				return ((T*)idx) < &_indices[START_IDX]; }
 
-			void reinit()
+			void reinit() override
 			{
 				construct_at<Cap_index_allocator_tpl<T, SZ> >(this);
 			}

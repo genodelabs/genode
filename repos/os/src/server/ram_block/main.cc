@@ -112,10 +112,10 @@ class Ram_block : public Block::Driver
 		 ** Block-driver interface **
 		 ****************************/
 
-		size_t  block_size()  { return _block_size;  }
-		Block::sector_t block_count() { return _block_count; }
+		size_t block_size() override { return _block_size;  }
+		Block::sector_t block_count() override { return _block_count; }
 
-		Block::Session::Operations ops()
+		Block::Session::Operations ops() override
 		{
 			Block::Session::Operations o;
 			o.set_operation(Block::Packet_descriptor::READ);
@@ -126,7 +126,7 @@ class Ram_block : public Block::Driver
 		void read(Block::sector_t    block_number,
 		          size_t             block_count,
 		          char*              buffer,
-		          Block::Packet_descriptor &packet)
+		          Block::Packet_descriptor &packet) override
 		{
 			_io(block_number, block_count, buffer, packet, true);
 		}
@@ -134,7 +134,7 @@ class Ram_block : public Block::Driver
 		void write(Block::sector_t  block_number,
 		           size_t   block_count,
 		           const char *     buffer,
-		           Block::Packet_descriptor &packet)
+		           Block::Packet_descriptor &packet) override
 		{
 			_io(block_number, block_count, const_cast<char *>(buffer), packet, false);
 		}
@@ -180,7 +180,7 @@ struct Main
 			block_size = config.attribute_value("block_size", block_size);
 		}
 
-		Block::Driver *create()
+		Block::Driver *create() override
 		{
 			try {
 				if (use_file) {
@@ -197,7 +197,7 @@ struct Main
 			catch (...) { throw Service_denied(); }
 		}
 
-		void destroy(Block::Driver *driver) {
+		void destroy(Block::Driver *driver) override {
 			Genode::destroy(&alloc, driver); }
 	} factory { env, heap, config_rom.xml() };
 

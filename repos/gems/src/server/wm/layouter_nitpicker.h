@@ -101,7 +101,7 @@ struct Wm::Layouter_nitpicker_session : Genode::Rpc_object<Nitpicker::Session>
 
 	void buffer(Framebuffer::Mode, bool) override { }
 
-	void focus(Genode::Capability<Nitpicker::Session>) { }
+	void focus(Genode::Capability<Nitpicker::Session>) override { }
 };
 
 #endif /* _LAYOUTER_NITPICKER_H_ */

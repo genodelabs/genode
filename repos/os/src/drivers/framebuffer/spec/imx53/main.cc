@@ -115,7 +115,7 @@ class Framebuffer::Session_component :
 				_refresh_buffered(x, y, w, h);
 		}
 
-		void overlay(Genode::addr_t phys_base, int x, int y, int alpha) {
+		void overlay(Genode::addr_t phys_base, int x, int y, int alpha) override {
 			_ipu.overlay(phys_base, x, y, alpha); }
 };
 

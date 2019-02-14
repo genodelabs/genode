@@ -293,7 +293,7 @@ class Timer::Connection : public  Genode::Connection<Session>,
 		 * \noapi
 		 * \deprecated  Use One_shot_timeout (or Periodic_timeout) instead
 		 */
-		void usleep(unsigned us)
+		void usleep(unsigned us) override
 		{
 			if (_mode == MODERN) {
 				throw Cannot_use_both_legacy_and_modern_interface();
@@ -331,7 +331,7 @@ class Timer::Connection : public  Genode::Connection<Session>,
 		 * \noapi
 		 * \deprecated  Use One_shot_timeout (or Periodic_timeout) instead
 		 */
-		void msleep(unsigned ms)
+		void msleep(unsigned ms) override
 		{
 			if (_mode == MODERN) {
 				throw Cannot_use_both_legacy_and_modern_interface();

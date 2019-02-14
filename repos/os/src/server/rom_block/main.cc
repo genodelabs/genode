@@ -44,10 +44,10 @@ class Rom_block : public Block::Driver
 		 ** Block-driver interface **
 		 ****************************/
 
-		size_t          block_size()  { return _blk_sz;  }
-		Block::sector_t block_count() { return _blk_cnt; }
+		size_t          block_size()  override { return _blk_sz;  }
+		Block::sector_t block_count() override { return _blk_cnt; }
 
-		Block::Session::Operations ops()
+		Block::Session::Operations ops() override
 		{
 			Block::Session::Operations o;
 			o.set_operation(Block::Packet_descriptor::READ);
@@ -57,7 +57,7 @@ class Rom_block : public Block::Driver
 		void read(Block::sector_t           block_number,
 		          size_t                    block_count,
 		          char*                     buffer,
-		          Block::Packet_descriptor &packet)
+		          Block::Packet_descriptor &packet) override
 		{
 			/* sanity check block number */
 			if (block_number + block_count > _file_sz / _blk_sz) {
@@ -90,7 +90,7 @@ struct Main
 		Factory(Env &env, Heap &heap)
 		: env(env), heap(heap) {}
 
-		Block::Driver *create()
+		Block::Driver *create() override
 		{
 			Attached_rom_dataspace config(env, "config");
 
@@ -111,7 +111,7 @@ struct Main
 			throw Service_denied();
 		}
 
-		void destroy(Block::Driver *driver) {
+		void destroy(Block::Driver *driver) override {
 			Genode::destroy(&heap, driver); }
 	} factory { env, heap };
 

@@ -50,7 +50,7 @@ class Igd::Ppgtt_allocator : public Genode::Translation_table_allocator
 		 ** Allocator interface **
 		 *************************/
 
-		bool alloc(size_t size, void **out_addr)
+		bool alloc(size_t size, void **out_addr) override
 		{
 			Genode::Ram_dataspace_capability ds = _backend.alloc(_guard, size);
 			if (!ds.valid()) { return false; }
@@ -59,7 +59,7 @@ class Igd::Ppgtt_allocator : public Genode::Translation_table_allocator
 			return _map.add(ds, *out_addr);
 		}
 
-		void free(void *addr, size_t)
+		void free(void *addr, size_t) override
 		{
 			if (addr == nullptr) { return; }
 
@@ -80,14 +80,14 @@ class Igd::Ppgtt_allocator : public Genode::Translation_table_allocator
 		 ** Translation_table_allocator interface **
 		 *******************************************/
 
-		void *phys_addr(void *va)
+		void *phys_addr(void *va) override
 		{
 			if (va == nullptr) { return nullptr; }
 			typename Utils::Address_map<ELEMENTS>::Element *e = _map.phys_addr(va);
 			return e ? (void*)e->pa : nullptr;
 		}
 
-		void *virt_addr(void *pa)
+		void *virt_addr(void *pa) override
 		{
 			if (pa == nullptr) { return nullptr; }
 			typename Utils::Address_map<ELEMENTS>::Element *e = _map.virt_addr(pa);

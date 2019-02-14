@@ -44,7 +44,7 @@ namespace Genode {
 			 ** Log session **
 			 *****************/
 
-			size_t write(String const &string_buf)
+			size_t write(String const &string_buf) override
 			{
 				if (!(string_buf.valid_string())) {
 					error("corrupted string");

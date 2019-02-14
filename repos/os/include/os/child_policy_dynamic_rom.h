@@ -134,7 +134,7 @@ class Genode::Child_policy_dynamic_rom_file : public Rpc_object<Rom_session>,
 		 ** ROM session interface **
 		 ***************************/
 
-		Rom_dataspace_capability dataspace()
+		Rom_dataspace_capability dataspace() override
 		{
 			Lock::Guard guard(_lock);
 
@@ -156,7 +156,7 @@ class Genode::Child_policy_dynamic_rom_file : public Rpc_object<Rom_session>,
 			return static_cap_cast<Rom_dataspace>(ds_cap);
 		}
 
-		void sigh(Signal_context_capability cap) { _sigh_cap = cap; }
+		void sigh(Signal_context_capability cap) override { _sigh_cap = cap; }
 
 
 		/***********************

@@ -989,7 +989,7 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 			_has_alpha = has_alpha;
 		}
 
-		void focus(Genode::Capability<Nitpicker::Session>) { }
+		void focus(Genode::Capability<Nitpicker::Session>) override { }
 
 		void session_control(Label suffix, Session_control operation) override
 		{

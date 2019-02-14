@@ -55,7 +55,7 @@ namespace Genode {
 			 ** Io-mem session interface **
 			 *****************************/
 
-			Io_mem_dataspace_capability dataspace() {
+			Io_mem_dataspace_capability dataspace() override {
 				return Io_mem_dataspace_capability(); }
 	};
 }

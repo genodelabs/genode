@@ -133,7 +133,7 @@ class Rom_filter::Root : public Genode::Root_component<Session_component>
 
 	protected:
 
-		Session_component *_create_session(const char *)
+		Session_component *_create_session(const char *) override
 		{
 			/*
 			 * We ignore the name of the ROM module requested
@@ -233,7 +233,7 @@ struct Rom_filter::Main : Input_rom_registry::Input_rom_changed_fn,
 	/**
 	 * Output_buffer interface
 	 */
-	size_t export_content(char *dst, size_t dst_len) const
+	size_t export_content(char *dst, size_t dst_len) const override
 	{
 		size_t const len = Genode::min(dst_len, _xml_output_len);
 		Genode::memcpy(dst, _xml_ds->local_addr<char>(), len);

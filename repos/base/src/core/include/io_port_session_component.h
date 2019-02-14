@@ -63,13 +63,13 @@ namespace Genode {
 			 ** Io-port session interface **
 			 *******************************/
 
-			unsigned char  inb(unsigned short);
-			unsigned short inw(unsigned short);
-			unsigned       inl(unsigned short);
+			unsigned char  inb(unsigned short) override;
+			unsigned short inw(unsigned short) override;
+			unsigned       inl(unsigned short) override;
 
-			void outb(unsigned short, unsigned char);
-			void outw(unsigned short, unsigned short);
-			void outl(unsigned short, unsigned);
+			void outb(unsigned short, unsigned char)  override;
+			void outw(unsigned short, unsigned short) override;
+			void outl(unsigned short, unsigned)       override;
 	};
 }
 

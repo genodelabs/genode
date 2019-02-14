@@ -33,7 +33,7 @@ struct Menu_view::Label_widget : Widget
 		Widget(factory, node, unique_id)
 	{ }
 
-	void update(Xml_node node)
+	void update(Xml_node node) override
 	{
 		font = _factory.styles.font(node);
 		text = node.attribute_value("text", Text(""));
@@ -50,7 +50,7 @@ struct Menu_view::Label_widget : Widget
 
 	void draw(Surface<Pixel_rgb888> &pixel_surface,
 	          Surface<Pixel_alpha8> &alpha_surface,
-	          Point at) const
+	          Point at) const override
 	{
 		if (!font) return;
 

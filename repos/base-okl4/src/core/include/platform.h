@@ -139,9 +139,9 @@ namespace Genode {
 			Rom_fs          &rom_fs()         override { return _rom_fs; }
 			size_t           max_caps() const override { return Capability_space::max_caps(); }
 
-			void wait_for_exit();
+			void wait_for_exit() override;
 
-			bool supports_direct_unmap() const { return true; }
+			bool supports_direct_unmap() const override { return true; }
 
 
 			/**************************************

@@ -152,10 +152,10 @@ class Genode::Mapped_mem_allocator : public Genode::Core_mem_translator
 		 ** Core_mem_translator interface **
 		 ***********************************/
 
-		void * phys_addr(void * addr) {
+		void * phys_addr(void * addr) override {
 			return _virt_alloc->map_addr(addr); }
 
-		void * virt_addr(void * addr) {
+		void * virt_addr(void * addr) override {
 			return _phys_alloc->map_addr(addr); }
 
 
@@ -260,12 +260,12 @@ class Genode::Core_mem_allocator : public Genode::Core_mem_translator
 		 ** Core_mem_translator interface **
 		 ***********************************/
 
-		void * phys_addr(void * addr)
+		void * phys_addr(void * addr) override
 		{
 			return _virt_alloc()->map_addr(addr);
 		}
 
-		void * virt_addr(void * addr)
+		void * virt_addr(void * addr) override
 		{
 			return _phys_alloc()->map_addr(addr);
 		}

@@ -106,7 +106,7 @@ class Scout::Refracted_icon : public Element
 			_fg_alpha = fg_alpha;
 		}
 
-		void draw(Canvas_base &canvas, Point abs_position)
+		void draw(Canvas_base &canvas, Point abs_position) override
 		{
 			Scout::Refracted_icon_painter::Distmap<short>
 				distmap(_distmap, Area(_distmap_w, _distmap_h));

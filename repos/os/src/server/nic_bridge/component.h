@@ -146,7 +146,7 @@ class Net::Session_component : private Net::Stream_allocator,
 
 		~Session_component();
 
-		::Nic::Mac_address mac_address()
+		::Nic::Mac_address mac_address() override
 		{
 			::Nic::Mac_address m;
 			Mac_address_node::Address mac = _mac_node.addr();
@@ -167,9 +167,9 @@ class Net::Session_component : private Net::Stream_allocator,
 		 ** Nic::Driver notification interface **
 		 ****************************************/
 
-		bool link_state();
+		bool link_state() override;
 
-		void link_state_sigh(Genode::Signal_context_capability sigh) {
+		void link_state_sigh(Genode::Signal_context_capability sigh) override {
 			_link_state_sigh = sigh; }
 
 
@@ -211,7 +211,7 @@ class Net::Root : public Genode::Root_component<Net::Session_component>
 
 	protected:
 
-		Session_component *_create_session(const char *args)
+		Session_component *_create_session(const char *args) override
 		{
 			using namespace Genode;
 

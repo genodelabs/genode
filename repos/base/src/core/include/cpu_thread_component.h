@@ -185,7 +185,7 @@ class Genode::Cpu_thread_component : public  Rpc_object<Cpu_thread>,
 		 ** Trace::Source::Info_accessor interface **
 		 ********************************************/
 
-		Trace::Source::Info trace_source_info() const
+		Trace::Source::Info trace_source_info() const override
 		{
 			return { _session_label, _name,
 			         _platform_thread.execution_time(),

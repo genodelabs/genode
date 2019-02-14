@@ -319,7 +319,7 @@ class Cli_monitor::Child_base : public Genode::Child_policy
 			               .diag    = Genode::Session::Diag() };
 		}
 
-		void yield_response()
+		void yield_response() override
 		{
 			if (_withdraw_on_yield_response) {
 				enum { RESERVE = 4*1024*1024 };
@@ -336,7 +336,7 @@ class Cli_monitor::Child_base : public Genode::Child_policy
 			Genode::Signal_transmitter(_yield_response_sigh_cap).submit();
 		}
 
-		void resource_request(Genode::Parent::Resource_args const &args)
+		void resource_request(Genode::Parent::Resource_args const &args) override
 		{
 			_resource_args = args;
 			try_response_to_resource_request();

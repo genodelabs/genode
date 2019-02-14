@@ -32,7 +32,7 @@ class Genode::Vm_root : public Root_component<Vm_session_component>
 
 	protected:
 
-		Vm_session_component *_create_session(const char *args)
+		Vm_session_component *_create_session(const char *args) override
 		{
 			return new (md_alloc())
 				Vm_session_component(*ep(),

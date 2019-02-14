@@ -55,7 +55,7 @@ struct Sculpt::Storage_dialog : Dialog
 
 	void _gen_ram_fs(Xml_generator &) const;
 
-	void hover(Xml_node hover);
+	void hover(Xml_node hover) override;
 
 	Storage_target const &_used_target;
 

@@ -141,7 +141,7 @@ class Framebuffer_window : public Scout::Window
 		/**
 		 * Move window to new position
 		 */
-		void vpos(int x, int y)
+		void vpos(int x, int y) override
 		{
 			Window::vpos(x, y);
 			format(_size);
@@ -163,7 +163,7 @@ class Framebuffer_window : public Scout::Window
 		/**
 		 * Window interface
 		 */
-		void format(Scout::Area size)
+		void format(Scout::Area size) override
 		{
 			using namespace Scout;
 
@@ -214,7 +214,7 @@ class Framebuffer_window : public Scout::Window
 		/**
 		 * Element interface
 		 */
-		void draw(Scout::Canvas_base &canvas, Scout::Point abs_position)
+		void draw(Scout::Canvas_base &canvas, Scout::Point abs_position) override
 		{
 			using namespace Scout;
 

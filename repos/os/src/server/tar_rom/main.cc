@@ -170,13 +170,13 @@ class Tar_rom::Rom_session_component : public Rpc_object<Rom_session>
 		/**
 		 * Return dataspace with content of file
 		 */
-		Rom_dataspace_capability dataspace()
+		Rom_dataspace_capability dataspace() override
 		{
 			Dataspace_capability ds = _file_ds;
 			return static_cap_cast<Rom_dataspace>(ds);
 		}
 
-		void sigh(Signal_context_capability) { }
+		void sigh(Signal_context_capability) override { }
 };
 
 
@@ -195,7 +195,7 @@ class Tar_rom::Rom_root : public Root_component<Rom_session_component>
 		char const * const _tar_addr;
 		unsigned     const _tar_size;
 
-		Rom_session_component *_create_session(const char *args)
+		Rom_session_component *_create_session(const char *args) override
 		{
 			Session_label const label = label_from_args(args);
 			Session_label const module_name = label.last_element();

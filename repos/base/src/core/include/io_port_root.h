@@ -46,7 +46,7 @@ namespace Genode {
 
 		protected:
 
-			Io_port_session_component *_create_session(const char *args) {
+			Io_port_session_component *_create_session(const char *args) override {
 				return new (md_alloc()) Io_port_session_component(_io_port_alloc, args); }
 
 		public:

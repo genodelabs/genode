@@ -489,7 +489,7 @@ struct Wm::Decorator_nitpicker_session : Genode::Rpc_object<Nitpicker::Session>,
 		Nitpicker::Session_client(_env.rm(), _nitpicker_session.cap()).buffer(mode, use_alpha);
 	}
 
-	void focus(Genode::Capability<Nitpicker::Session>) { }
+	void focus(Genode::Capability<Nitpicker::Session>) override { }
 };
 
 #endif /* _DECORATOR_NITPICKER_H_ */

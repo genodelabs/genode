@@ -400,7 +400,7 @@ namespace Genode {
 			/**
 			 * Thread interface
 			 */
-			void entry();
+			void entry() override;
 
 			/**
 			 * Return capability to this activation

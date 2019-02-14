@@ -129,7 +129,7 @@ class Child_entry : public  Scout::Parent_element,
 		 ** Parent element interface **
 		 ******************************/
 
-		void format_fixed_width(int w)
+		void format_fixed_width(int w) override
 		{
 			using namespace Scout;
 

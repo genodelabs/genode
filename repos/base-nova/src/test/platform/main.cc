@@ -426,7 +426,7 @@ class Pager : private Genode::Thread {
 		Ram_dataspace_capability _ds;
 		static addr_t _ds_mem;
 
-		void entry() { }
+		void entry() override { }
 
 		static void page_fault()
 		{
@@ -510,8 +510,8 @@ class Cause_mapping : public Genode::Thread {
 			_mem_st(mem_st)
 		{ }
 
-		void entry() {
-
+		void entry() override
+		{
 			log("mapper: hello");
 
 			Nova::Utcb * nova_utcb = reinterpret_cast<Nova::Utcb *>(utcb());
@@ -580,7 +580,7 @@ class Greedy : public Genode::Thread {
 			_env(env)
 		{ }
 
-		void entry()
+		void entry() override
 		{
 			log("starting");
 

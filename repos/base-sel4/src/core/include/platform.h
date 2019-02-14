@@ -77,7 +77,7 @@ class Genode::Static_allocator : public Allocator
 			_used.free(index);
 		}
 
-		bool need_size_for_free() const { return false; }
+		bool need_size_for_free() const override { return false; }
 };
 
 class Genode::Platform : public Platform_generic
@@ -239,15 +239,15 @@ class Genode::Platform : public Platform_generic
 		 ** Generic platform interface **
 		 ********************************/
 
-		Range_allocator &ram_alloc()      { return _core_mem_alloc.phys_alloc(); }
-		Range_allocator &io_mem_alloc()   { return _io_mem_alloc; }
-		Range_allocator &io_port_alloc()  { return _io_port_alloc; }
-		Range_allocator &irq_alloc()      { return _irq_alloc; }
-		Range_allocator &region_alloc()   { return _core_mem_alloc.virt_alloc(); }
-		Range_allocator &core_mem_alloc() { return _core_mem_alloc; }
-		addr_t           vm_start() const { return _vm_base; }
-		size_t           vm_size()  const { return _vm_size;  }
-		Rom_fs          &rom_fs()         { return _rom_fs; }
+		Range_allocator &ram_alloc()      override { return _core_mem_alloc.phys_alloc(); }
+		Range_allocator &io_mem_alloc()   override { return _io_mem_alloc; }
+		Range_allocator &io_port_alloc()  override { return _io_port_alloc; }
+		Range_allocator &irq_alloc()      override { return _irq_alloc; }
+		Range_allocator &region_alloc()   override { return _core_mem_alloc.virt_alloc(); }
+		Range_allocator &core_mem_alloc() override { return _core_mem_alloc; }
+		addr_t           vm_start() const override { return _vm_base; }
+		size_t           vm_size()  const override { return _vm_size;  }
+		Rom_fs          &rom_fs()         override { return _rom_fs; }
 
 		Affinity::Space affinity_space() const override {
 			return sel4_boot_info().numNodes; }
@@ -274,7 +274,7 @@ class Genode::Platform : public Platform_generic
 
 		Cap_sel asid_pool() const { return _asid_pool_sel; }
 
-		void wait_for_exit();
+		void wait_for_exit() override;
 
 		/**
 		 * Determine size of a core local mapping required for a

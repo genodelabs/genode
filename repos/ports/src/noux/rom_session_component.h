@@ -250,12 +250,12 @@ class Noux::Rom_session_component : public Rpc_object<Rom_session>
 		 ** ROM session interface **
 		 ***************************/
 
-		Rom_dataspace_capability dataspace()
+		Rom_dataspace_capability dataspace() override
 		{
 			return static_cap_cast<Rom_dataspace>(_ds_cap);
 		}
 
-		void sigh(Signal_context_capability) { }
+		void sigh(Signal_context_capability) override { }
 };
 
 #endif /* _NOUX__ROM_SESSION_COMPONENT_H_ */

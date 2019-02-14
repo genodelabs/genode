@@ -141,7 +141,7 @@ class Nic::Session_component : Communication_buffers, public Session_rpc_object
 			_rx.sigh_ack_avail(_packet_stream_dispatcher);
 		}
 
-		void link_state_sigh(Genode::Signal_context_capability sigh)
+		void link_state_sigh(Genode::Signal_context_capability sigh) override
 		{
 			_link_state_sigh = sigh;
 		}
@@ -149,12 +149,12 @@ class Nic::Session_component : Communication_buffers, public Session_rpc_object
 		/**
 		 * Return the current link state
 		 */
-		virtual bool link_state() = 0;
+		bool link_state() override = 0;
 
 		/**
 		 * Return the MAC address of the device
 		 */
-		virtual Mac_address mac_address() = 0;
+		Mac_address mac_address() override = 0;
 };
 
 

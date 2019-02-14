@@ -103,7 +103,7 @@ class Noux::Family_member : private List<Family_member>::Element,
 		  */
 
 		/* Called by the child on the parent (via Parent_exit) */
-		void exit_child()
+		void exit_child() override
 		{
 			submit_signal(Sysio::Signal::SIG_CHLD);
 		}
@@ -121,7 +121,7 @@ class Noux::Family_member : private List<Family_member>::Element,
 		void execve_child(Family_member &child,
 		                  const char *filename,
 		                  Args const &args,
-		                  Sysio::Env const &env)
+		                  Sysio::Env const &env) override
 		{
 			Lock::Guard guard(_lock);
 			Family_member *new_child = child.do_execve(filename,

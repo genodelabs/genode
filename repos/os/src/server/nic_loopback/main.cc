@@ -144,7 +144,7 @@ class Nic_loopback::Root : public Root_component<Session_component>
 
 	protected:
 
-		Session_component *_create_session(char const *args)
+		Session_component *_create_session(char const *args) override
 		{
 			size_t ram_quota   = Arg_string::find_arg(args, "ram_quota"  ).ulong_value(0);
 			size_t tx_buf_size = Arg_string::find_arg(args, "tx_buf_size").ulong_value(0);

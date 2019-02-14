@@ -213,7 +213,7 @@ class Block::Session_component : public Block::Session_component_base,
 		 *
 		 * \throw Ack_congestion
 		 */
-		void ack_packet(Packet_descriptor &packet, bool success)
+		void ack_packet(Packet_descriptor &packet, bool success) override
 		{
 			packet.succeeded(success);
 			_ack_packet(packet);
@@ -240,7 +240,7 @@ class Block::Session_component : public Block::Session_component_base,
 		 *******************************/
 
 		void info(sector_t *blk_count, size_t *blk_size,
-		          Operations *ops)
+		          Operations *ops) override
 		{
 			Operations driver_ops = _driver.ops();
 
@@ -257,7 +257,7 @@ class Block::Session_component : public Block::Session_component_base,
 
 		}
 
-		void sync() { _driver.sync(); }
+		void sync() override { _driver.sync(); }
 };
 
 
@@ -279,7 +279,7 @@ class Block::Root : public Genode::Root_component<Block::Session_component,
 		/**
 		 * Always returns the singleton block-session component
 		 */
-		Session_component *_create_session(const char *args)
+		Session_component *_create_session(const char *args) override
 		{
 			size_t ram_quota =
 				Arg_string::find_arg(args, "ram_quota"  ).ulong_value(0);

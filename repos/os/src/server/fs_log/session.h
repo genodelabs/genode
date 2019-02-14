@@ -76,7 +76,7 @@ class Fs_log::Session_component : public Genode::Rpc_object<Genode::Log_session>
 		 ** Log session **
 		 *****************/
 
-		Genode::size_t write(Log_session::String const &msg)
+		Genode::size_t write(Log_session::String const &msg) override
 		{
 			using namespace Genode;
 

@@ -72,7 +72,7 @@ class Vmm::Vcpu_other_pd : public Vmm::Vcpu_thread
 			_exc_pt_sel(Genode::cap_map().insert(Nova::NUM_INITIAL_VCPU_PT_LOG2))
 		{ }
 
-		void start(Genode::addr_t sel_ec)
+		void start(Genode::addr_t sel_ec) override
 		{
 			using namespace Genode;
 
@@ -113,7 +113,7 @@ class Vmm::Vcpu_other_pd : public Vmm::Vcpu_thread
 			cpu_thread.resume();
 		}
 
-		Genode::addr_t exc_base() { return _exc_pt_sel; }
+		Genode::addr_t exc_base() override { return _exc_pt_sel; }
 };
 
 
@@ -151,9 +151,9 @@ class Vmm::Vcpu_same_pd : public Vmm::Vcpu_thread, Genode::Thread
 			this->native_thread().exc_pt_sel = cap_map().insert(Nova::NUM_INITIAL_PT_LOG2);
 		}
 
-		addr_t exc_base() { return this->native_thread().exc_pt_sel; }
+		addr_t exc_base() override { return this->native_thread().exc_pt_sel; }
 
-		void start(Genode::addr_t sel_ec)
+		void start(Genode::addr_t sel_ec) override
 		{
 			this->Thread::start();
 
@@ -168,7 +168,7 @@ class Vmm::Vcpu_same_pd : public Vmm::Vcpu_thread, Genode::Thread
 			Nova::revoke(Nova::Obj_crd(pager_pt, 0));
 		}
 
-		void entry() { }
+		void entry() override { }
 };
 
 #endif /* _INCLUDE__VMM__VCPU_THREAD_H_ */

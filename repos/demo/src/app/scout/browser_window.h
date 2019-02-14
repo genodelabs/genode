@@ -95,8 +95,8 @@ class Scout::Browser_window : public Scrollbar_listener,
 		/**
 		 * Browser interface
 		 */
-		void _content(Element *content);
-		Element *_content();
+		void _content(Element *content) override;
+		Element *_content() override;
 
 	public:
 
@@ -132,15 +132,15 @@ class Scout::Browser_window : public Scrollbar_listener,
 		/**
 		 * Browser interface
 		 */
-		void     format(Area);
-		void     ypos(int ypos) { ypos_sb(ypos, 1); }
-		Anchor  *curr_anchor();
+		void     format(Area)   override;
+		void     ypos(int ypos) override { ypos_sb(ypos, 1); }
+		Anchor  *curr_anchor()  override;
 		Browser *browser() { return this; }
 
 		/**
 		 * Element interface
 		 */
-		void draw(Canvas_base &canvas, Point abs_position)
+		void draw(Canvas_base &canvas, Point abs_position) override
 		{
 			Parent_element::draw(canvas, abs_position);
 
@@ -156,7 +156,7 @@ class Scout::Browser_window : public Scrollbar_listener,
 		/**
 		 * Scrollbar listener interface
 		 */
-		void handle_scroll(int view_pos);
+		void handle_scroll(int view_pos) override;
 };
 
 #endif /* _BROWSER_WINDOW_H_ */

@@ -36,12 +36,12 @@ struct Block::Factory : Driver_factory
 {
 	long device_num;
 
-	Block::Driver *create()
+	Block::Driver *create() override
 	{
 		return Ahci_driver::claim_port(device_num);
 	}
 
-	void destroy(Block::Driver *)
+	void destroy(Block::Driver *) override
 	{
 		Ahci_driver::free_port(device_num);
 	}
@@ -76,7 +76,7 @@ class Block::Root_multiple_clients : public Root_component< ::Session_component>
 
 	protected:
 
-		::Session_component *_create_session(const char *args)
+		::Session_component *_create_session(const char *args) override
 		{
 			Session_label const label = label_from_args(args);
 			Session_policy const policy(label, _config);
@@ -136,7 +136,7 @@ class Block::Root_multiple_clients : public Root_component< ::Session_component>
 			return session;
 		}
 
-		void _destroy_session(::Session_component *session)
+		void _destroy_session(::Session_component *session) override
 		{
 			Driver_factory &factory = session->factory();
 			Genode::destroy(&_alloc, session);

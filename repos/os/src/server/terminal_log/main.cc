@@ -52,7 +52,7 @@ namespace Genode {
 			 * The following function's code is a modified variant of the one in:
 			 * 'base/src/core/include/log_session_component.h'
 			 */
-			size_t write(String const &string_buf)
+			size_t write(String const &string_buf) override
 			{
 				if (!(string_buf.valid_string())) {
 					Genode::error("corrupted string");
@@ -102,7 +102,7 @@ namespace Genode {
 			/**
 			 * Root component interface
 			 */
-			Termlog_component *_create_session(const char *args)
+			Termlog_component *_create_session(const char *args) override
 			{
 				size_t ram_quota =
 					Arg_string::find_arg(args, "ram_quota"  ).ulong_value(0);

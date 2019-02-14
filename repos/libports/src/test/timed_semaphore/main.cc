@@ -37,7 +37,7 @@ struct Test : Thread
 	Lock               wakeup_stopped { Lock::LOCKED };
 	bool               got_timeouts   { false };
 
-	void entry()
+	void entry() override
 	{
 		do {
 			wakeup_timer.msleep(wakeup_period);

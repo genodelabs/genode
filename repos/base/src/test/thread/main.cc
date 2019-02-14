@@ -56,7 +56,7 @@ class Helper : Thread
 
 		void *stack() const { return _stack; }
 
-		void entry()
+		void entry() override
 		{
 			Constructible<Helper> helper[CHILDREN];
 
@@ -126,7 +126,7 @@ struct Stack_helper : Thread
 
 	Stack_helper(Env &env) : Thread(env, "stack_helper", STACK_SIZE) { }
 
-	void entry()
+	void entry() override
 	{
 		log_stack_address("helper");
 		test_stack_alignment_varargs("%f\n%g\n", 3.142, 2.718);
@@ -202,7 +202,7 @@ struct Cpu_helper : Thread
 		_env(env)
 	{ }
 
-	void entry()
+	void entry() override
 	{
 		log(Thread::name().string(), " : _cpu_session=", _cpu_session,
 		    " env.cpu()=", &_env.cpu());
@@ -240,7 +240,7 @@ struct Pause_helper : Thread
 	Pause_helper(Env &env, const char * name, Cpu_session &cpu)
 	: Thread(env, name, STACK_SIZE, Thread::Location(), Thread::Weight(), cpu) { }
 
-	void entry()
+	void entry() override
 	{
 		while (1) {
 			/*
@@ -367,7 +367,7 @@ struct Lock_helper : Thread
 		lock(lock), lock_is_free(lock_is_free), unlock(unlock)
 	{ }
 
-	void entry()
+	void entry() override
 	{
 		log(" thread '", name(), "' started");
 
@@ -465,7 +465,7 @@ struct Cxa_helper : Thread
 		in_cxa(cxa), sync_startup(startup), test(test), sync(sync)
 	{ }
 
-	void entry()
+	void entry() override
 	{
 		log(" thread '", name(), "' started");
 
@@ -674,7 +674,7 @@ struct Create_destroy_helper : Thread
 	  result_value(result_value)
 	{ }
 
-	void entry()
+	void entry() override
 	{
 		result = result_value;
 	}

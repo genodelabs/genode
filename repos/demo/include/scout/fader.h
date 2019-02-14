@@ -63,7 +63,7 @@ class Scout::Fader : public Tick
 		/**
 		 * Tick interface
 		 */
-		int on_tick()
+		int on_tick() override
 		{
 			if (_curr_value == _dst_value)
 				return 0;

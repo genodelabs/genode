@@ -40,7 +40,7 @@ class Genode::Core_region_map : public Region_map
 		                  bool executable = false,
 		                  bool writeable = true) override;
 
-		void detach(Local_addr);
+		void detach(Local_addr) override;
 
 		void  fault_handler (Signal_context_capability) override { }
 		State state         ()                          override { return State(); }

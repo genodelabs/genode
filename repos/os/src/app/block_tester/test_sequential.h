@@ -239,7 +239,7 @@ struct Test::Sequential : Test_base
 		              _bytes, _rx, _tx, _size, _block_size);
 	}
 
-	char const *name() const { return "sequential"; }
+	char const *name() const override { return "sequential"; }
 };
 
 #endif /* _TEST_SEQUENTIAL_H_ */

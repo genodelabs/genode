@@ -1018,7 +1018,7 @@ class Platform::Root : public Genode::Root_component<Session_component>
 
 	protected:
 
-		Session_component *_create_session(const char *args)
+		Session_component *_create_session(const char *args) override
 		{
 			try {
 				return  new (md_alloc())

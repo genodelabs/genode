@@ -34,7 +34,7 @@ struct Platform::Client : Genode::Rpc_client<Platform::Session>
 	void power_state(Power power, bool enable) override {
 		call<Rpc_set_power_state>(power, enable); }
 
-	uint32_t clock_rate(Clock clock) {
+	uint32_t clock_rate(Clock clock) override {
 		return call<Rpc_get_clock_rate>(clock); }
 };
 

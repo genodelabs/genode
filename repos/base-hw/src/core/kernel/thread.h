@@ -79,7 +79,7 @@ class Kernel::Thread
 			 ** Inter_processor_work interface **
 			 ************************************/
 
-			void execute();
+			void execute() override;
 		};
 
 		/**
@@ -97,7 +97,7 @@ class Kernel::Thread
 			 ** Inter_processor_work interface **
 			 ************************************/
 
-			void execute();
+			void execute() override;
 		};
 
 		friend void Pd_update::execute();
@@ -257,27 +257,27 @@ class Kernel::Thread
 		 ** Signal_context_killer **
 		 ***************************/
 
-		void _signal_context_kill_pending();
-		void _signal_context_kill_failed();
-		void _signal_context_kill_done();
+		void _signal_context_kill_pending() override;
+		void _signal_context_kill_failed()  override;
+		void _signal_context_kill_done()    override;
 
 
 		/********************
 		 ** Signal_handler **
 		 ********************/
 
-		void _await_signal(Signal_receiver * const receiver);
-		void _receive_signal(void * const base, size_t const size);
+		void _await_signal(Signal_receiver * const receiver) override;
+		void _receive_signal(void * const base, size_t const size) override;
 
 
 		/**************
 		 ** Ipc_node **
 		 **************/
 
-		void _send_request_succeeded();
-		void _send_request_failed();
-		void _await_request_succeeded();
-		void _await_request_failed();
+		void _send_request_succeeded()  override;
+		void _send_request_failed()     override;
+		void _await_request_succeeded() override;
+		void _await_request_failed()    override;
 
 	public:
 
@@ -366,16 +366,16 @@ class Kernel::Thread
 		 ** Cpu_job **
 		 *************/
 
-		void exception(Cpu & cpu);
-		void proceed(Cpu & cpu);
-		Cpu_job * helping_sink();
+		void exception(Cpu & cpu) override;
+		void proceed(Cpu & cpu)   override;
+		Cpu_job * helping_sink()  override;
 
 
 		/*************
 		 ** Timeout **
 		 *************/
 
-		void timeout_triggered();
+		void timeout_triggered() override;
 
 
 		/***************

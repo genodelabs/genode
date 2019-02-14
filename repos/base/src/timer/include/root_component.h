@@ -39,7 +39,7 @@ class Timer::Root_component : public Genode::Root_component<Session_component>
 		 ** Root_component **
 		 ********************/
 
-		Session_component *_create_session(const char *args)
+		Session_component *_create_session(const char *args) override
 		{
 			using namespace Genode;
 			size_t const ram_quota =

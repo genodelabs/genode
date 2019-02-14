@@ -193,9 +193,9 @@ struct Sky_texture_painter
 				         TW, TH, _coltab);
 			}
 
-			PT const *fallback() const { return _fallback[0]; }
+			PT const *fallback() const override { return _fallback[0]; }
 
-			short const *buf(unsigned i) const
+			short const *buf(unsigned i) const override
 			{
 				if (i >= 3)
 					return 0;
@@ -203,7 +203,7 @@ struct Sky_texture_painter
 				return _bufs[i][0];
 			}
 
-			PT const *coltab() const { return _coltab; }
+			PT const *coltab() const override { return _coltab; }
 	};
 
 

@@ -92,7 +92,7 @@ struct Exec_faulter : Thread
 	: Thread(env, "exec_fault", 1024 * sizeof(addr_t)), _fault_test(test)
 	{ }
 
-	void entry()
+	void entry() override
 	{
 		if (_fault_test == FAULT_ON_ADDR) {
 			addr_t volatile * value = (addr_t volatile *)MANAGED_ADDR;

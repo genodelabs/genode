@@ -51,7 +51,7 @@ namespace Genode {
 				 */
 				Sigma0(Cap_index*);
 
-				int pager(Ipc_pager &) { /* never called */ return -1; }
+				int pager(Ipc_pager &) override { /* never called */ return -1; }
 			};
 
 			/*
@@ -126,7 +126,7 @@ namespace Genode {
 				 */
 				Core_pager(Platform_pd &core_pd, Sigma0 &);
 
-				int pager(Ipc_pager &) { /* never called */ return -1; }
+				int pager(Ipc_pager &) override { /* never called */ return -1; }
 			};
 
 			/**
@@ -176,7 +176,7 @@ namespace Genode {
 
 			Cap_id_allocator &cap_id_alloc() { return _cap_id_alloc; }
 
-			void wait_for_exit();
+			void wait_for_exit() override;
 	};
 }
 

@@ -36,7 +36,7 @@ namespace Genode {
 		protected:
 
 			Cpu_session_component *_create_session(char const *args,
-			                                       Affinity const &affinity) {
+			                                       Affinity const &affinity) override {
 
 				size_t ram_quota =
 					Arg_string::find_arg(args, "ram_quota").ulong_value(0);

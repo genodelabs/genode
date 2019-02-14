@@ -39,8 +39,8 @@ class Net::Uplink : public Nic::Packet_allocator,
 		 ** Net::Interface **
 		 ********************/
 
-		Packet_stream_sink   &_sink()   { return *rx(); }
-		Packet_stream_source &_source() { return *tx(); }
+		Packet_stream_sink   &_sink()   override { return *rx(); }
+		Packet_stream_source &_source() override { return *tx(); }
 
 	public:
 

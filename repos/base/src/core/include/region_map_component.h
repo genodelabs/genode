@@ -199,7 +199,7 @@ class Genode::Rm_client : public Pager_object, public Rm_faulter,
 			Rm_faulter(static_cast<Pager_object &>(*this)), _region_map(rm)
 		{ }
 
-		int pager(Ipc_pager &pager);
+		int pager(Ipc_pager &pager) override;
 
 		/**
 		 * Return region map that the RM client is member of

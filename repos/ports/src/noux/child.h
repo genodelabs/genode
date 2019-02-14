@@ -411,19 +411,19 @@ class Noux::Child : public Rpc_object<Session>,
 		 ** Noux session interface **
 		 ****************************/
 
-		Dataspace_capability sysio_dataspace()
+		Dataspace_capability sysio_dataspace() override
 		{
 			return _sysio_ds.cap();
 		}
 
-		Capability<Region_map> lookup_region_map(addr_t const addr)
+		Capability<Region_map> lookup_region_map(addr_t const addr) override
 		{
 			return _pd.lookup_region_map(addr);
 		}
 
-		bool syscall(Syscall sc);
+		bool syscall(Syscall sc) override;
 
-		int next_open_fd(int start_fd)
+		int next_open_fd(int start_fd) override
 		{
 			if (start_fd >= 0)
 				for (int fd = start_fd; fd < MAX_FILE_DESCRIPTORS; fd++)
@@ -454,7 +454,7 @@ class Noux::Child : public Rpc_object<Session>,
 			return true;
 		}
 
-		int add_io_channel(Shared_pointer<Io_channel> io_channel, int fd = -1)
+		int add_io_channel(Shared_pointer<Io_channel> io_channel, int fd = -1) override
 		{
 			fd = File_descriptor_registry::add_io_channel(io_channel, fd);
 
@@ -467,7 +467,7 @@ class Noux::Child : public Rpc_object<Session>,
 			return fd;
 		}
 
-		void remove_io_channel(int fd)
+		void remove_io_channel(int fd) override
 		{
 			Shared_pointer<Io_channel> io_channel = _lookup_channel(fd);
 
@@ -484,7 +484,7 @@ class Noux::Child : public Rpc_object<Session>,
 			File_descriptor_registry::remove_io_channel(fd);
 		}
 
-		void flush()
+		void flush() override
 		{
 			for (int fd = 0; fd < MAX_FILE_DESCRIPTORS; fd++)
 				try {
@@ -497,7 +497,7 @@ class Noux::Child : public Rpc_object<Session>,
 		 ** Family_member interface **
 		 *****************************/
 
-		void submit_signal(Noux::Sysio::Signal sig)
+		void submit_signal(Noux::Sysio::Signal sig) override
 		{
 			try {
 				_pending_signals.add(sig);
@@ -567,7 +567,7 @@ class Noux::Child : public Rpc_object<Session>,
 		 ** Interrupt_handler interface **
 		 *********************************/
 
-		void handle_interrupt(Sysio::Signal signal)
+		void handle_interrupt(Sysio::Signal signal) override
 		{
 			submit_signal(signal);
 		}

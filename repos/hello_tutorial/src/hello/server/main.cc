@@ -28,10 +28,10 @@ namespace Hello {
 
 struct Hello::Session_component : Genode::Rpc_object<Session>
 {
-	void say_hello() {
+	void say_hello() override {
 		Genode::log("I am here... Hello."); }
 
-	int add(int a, int b) {
+	int add(int a, int b) override {
 		return a + b; }
 };
 
@@ -42,7 +42,7 @@ class Hello::Root_component
 {
 	protected:
 
-		Session_component *_create_session(const char *)
+		Session_component *_create_session(const char *) override
 		{
 			Genode::log("creating hello session");
 			return new (md_alloc()) Session_component();

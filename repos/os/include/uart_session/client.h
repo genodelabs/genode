@@ -44,7 +44,7 @@ class Uart::Session_client : public Genode::Rpc_client<Session>
 		 ** UART interface **
 		 ********************/
 
-		void baud_rate(Genode::size_t bits_per_second)
+		void baud_rate(Genode::size_t bits_per_second) override
 		{
 			call<Rpc_baud_rate>(bits_per_second);
 		}
@@ -54,31 +54,31 @@ class Uart::Session_client : public Genode::Rpc_client<Session>
 		 ** Terminal interface **
 		 ************************/
 
-		Size size() { return _terminal.size(); }
+		Size size() override { return _terminal.size(); }
 
-		bool avail() { return _terminal.avail(); }
+		bool avail() override { return _terminal.avail(); }
 
-		Genode::size_t read(void *buf, Genode::size_t buf_size)
+		Genode::size_t read(void *buf, Genode::size_t buf_size) override
 		{
 			return _terminal.read(buf, buf_size);
 		}
 
-		Genode::size_t write(void const *buf, Genode::size_t num_bytes)
+		Genode::size_t write(void const *buf, Genode::size_t num_bytes) override
 		{
 			return _terminal.write(buf, num_bytes);
 		}
 
-		void connected_sigh(Genode::Signal_context_capability cap)
+		void connected_sigh(Genode::Signal_context_capability cap) override
 		{
 			_terminal.connected_sigh(cap);
 		}
 
-		void read_avail_sigh(Genode::Signal_context_capability cap)
+		void read_avail_sigh(Genode::Signal_context_capability cap) override
 		{
 			_terminal.read_avail_sigh(cap);
 		}
 
-		void size_changed_sigh(Genode::Signal_context_capability cap)
+		void size_changed_sigh(Genode::Signal_context_capability cap) override
 		{
 			_terminal.size_changed_sigh(cap);
 		}

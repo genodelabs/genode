@@ -26,7 +26,7 @@ struct Genode::Nova_native_cpu_client : Rpc_client<Nova_native_cpu>
 	: Rpc_client<Nova_native_cpu>(static_cap_cast<Nova_native_cpu>(cap)) { }
 
 	void thread_type(Thread_capability thread_cap, Thread_type thread_type,
-	                 Exception_base exception_base) {
+	                 Exception_base exception_base) override {
 		call<Rpc_thread_type>(thread_cap, thread_type, exception_base); }
 };
 

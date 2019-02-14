@@ -100,10 +100,10 @@ class Packet_stream_rx::Rpc_object : public Genode::Rpc_object<CHANNEL, Rpc_obje
 
 		Genode::Dataspace_capability dataspace() { return _source.dataspace(); }
 
-		void sigh_ready_to_ack(Genode::Signal_context_capability sigh) {
+		void sigh_ready_to_ack(Genode::Signal_context_capability sigh) override {
 			_source.register_sigh_ready_to_ack(sigh); }
 
-		void sigh_packet_avail(Genode::Signal_context_capability sigh) {
+		void sigh_packet_avail(Genode::Signal_context_capability sigh) override {
 			_source.register_sigh_packet_avail(sigh); }
 
 		virtual Genode::Signal_context_capability sigh_ready_to_submit() {

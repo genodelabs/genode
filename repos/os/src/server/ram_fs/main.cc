@@ -229,7 +229,7 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 		 ***************************/
 
 		File_handle file(Dir_handle dir_handle, Name const &name,
-		                 Mode mode, bool create)
+		                 Mode mode, bool create) override
 		{
 			if (!valid_name(name.string()))
 				throw Invalid_name();
@@ -279,7 +279,7 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 			}
 		}
 
-		Symlink_handle symlink(Dir_handle dir_handle, Name const &name, bool create)
+		Symlink_handle symlink(Dir_handle dir_handle, Name const &name, bool create) override
 		{
 			if (!valid_name(name.string()))
 				throw Invalid_name();
@@ -325,7 +325,7 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 			}
 		}
 
-		Dir_handle dir(Path const &path, bool create)
+		Dir_handle dir(Path const &path, bool create) override
 		{
 			char const *path_str = path.string();
 
@@ -364,7 +364,7 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 			return Dir_handle { open_dir->id().value };
 		}
 
-		Node_handle node(Path const &path)
+		Node_handle node(Path const &path) override
 		{
 			_assert_valid_path(path.string());
 
@@ -394,7 +394,7 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 			return Watch_handle { watcher->id().value };
 		}
 
-		void close(Node_handle handle)
+		void close(Node_handle handle) override
 		{
 			auto close_fn = [&] (Open_node &open_node) {
 				destroy(_alloc, &open_node);
@@ -407,7 +407,7 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 			}
 		}
 
-		Status status(Node_handle node_handle)
+		Status status(Node_handle node_handle) override
 		{
 			auto status_fn = [&] (Open_node &open_node) {
 				Locked_ptr<Node> node { open_node.node() };
@@ -423,9 +423,9 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 			}
 		}
 
-		void control(Node_handle, Control) { }
+		void control(Node_handle, Control) override { }
 
-		void unlink(Dir_handle dir_handle, Name const &name)
+		void unlink(Dir_handle dir_handle, Name const &name) override
 		{
 			if (!valid_name(name.string()))
 				throw Invalid_name();
@@ -454,7 +454,7 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 			}
 		}
 
-		void truncate(File_handle file_handle, file_size_t size)
+		void truncate(File_handle file_handle, file_size_t size) override
 		{
 			if (!_writable)
 				throw Permission_denied();
@@ -475,7 +475,7 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 		}
 
 		void move(Dir_handle from_dir_handle, Name const &from_name,
-		          Dir_handle to_dir_handle,   Name const &to_name)
+		          Dir_handle to_dir_handle,   Name const &to_name) override
 		{
 			if (!_writable)
 				throw Permission_denied();
@@ -542,7 +542,7 @@ class Ram_fs::Root : public Root_component<Session_component>
 
 	protected:
 
-		Session_component *_create_session(const char *args)
+		Session_component *_create_session(const char *args) override
 		{
 			/*
 			 * Determine client-specific policy defined implicitly by

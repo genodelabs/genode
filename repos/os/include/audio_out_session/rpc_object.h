@@ -54,16 +54,16 @@ class Audio_out::Session_rpc_object : public Genode::Rpc_object<Audio_out::Sessi
 		 ** Signals  **
 		 **************/
 
-		void progress_sigh(Genode::Signal_context_capability sigh)
+		void progress_sigh(Genode::Signal_context_capability sigh) override
 		{
 			_progress.context(sigh);
 			_progress_sigh = true;
 		}
 
-		Genode::Signal_context_capability data_avail_sigh() {
+		Genode::Signal_context_capability data_avail_sigh() override {
 			return _data_cap; }
 
-		void alloc_sigh(Genode::Signal_context_capability sigh)
+		void alloc_sigh(Genode::Signal_context_capability sigh) override
 		{
 			_alloc.context(sigh);
 			_alloc_sigh = true;
@@ -74,8 +74,8 @@ class Audio_out::Session_rpc_object : public Genode::Rpc_object<Audio_out::Sessi
 		 ** Session interface **
 		 ***********************/
 
-		void start() { _stopped = false; }
-		void stop()  { _stopped = true; }
+		void start() override { _stopped = false; }
+		void stop()  override { _stopped = true; }
 
 		Genode::Dataspace_capability dataspace() { return _ds.cap(); }
 

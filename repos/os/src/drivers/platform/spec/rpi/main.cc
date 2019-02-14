@@ -48,14 +48,14 @@ class Platform::Session_component : public Genode::Rpc_object<Platform::Session>
 		 **  Platform session interface  **
 		 **********************************/
 
-		void setup_framebuffer(Framebuffer_info &info)
+		void setup_framebuffer(Framebuffer_info &info) override
 		{
 			auto const &msg = _mbox.message<Framebuffer_message>(info);
 			_mbox.call<Framebuffer_message>();
 			info = msg;
 		}
 
-		bool power_state(Power id)
+		bool power_state(Power id) override
 		{
 			auto &msg = _mbox.message<Property_message>();
 			auto const &res = msg.append<Property_command::Get_power_state>(id);
@@ -63,14 +63,14 @@ class Platform::Session_component : public Genode::Rpc_object<Platform::Session>
 			return res.state;
 		}
 
-		void power_state(Power id, bool enable)
+		void power_state(Power id, bool enable) override
 		{
 			auto &msg = _mbox.message<Property_message>();
 			msg.append_no_response<Property_command::Set_power_state>(id, enable, true);
 			_mbox.call<Property_message>();
 		}
 
-		uint32_t clock_rate(Clock id)
+		uint32_t clock_rate(Clock id) override
 		{
 			auto &msg = _mbox.message<Property_message>();
 			auto const &res = msg.append<Property_command::Get_clock_rate>(id);
@@ -88,7 +88,7 @@ class Platform::Root : public Genode::Root_component<Platform::Session_component
 
 	protected:
 
-		Session_component *_create_session(const char *) {
+		Session_component *_create_session(const char *) override {
 			return new (md_alloc()) Session_component(_mbox); }
 
 	public:

@@ -276,32 +276,32 @@ namespace Genode {
 			Thread_meta_data_created(Thread *thread)
 			: Native_thread::Meta_data(thread) { }
 
-			void wait_for_construction()
+			void wait_for_construction() override
 			{
 				_construct_lock.lock();
 			}
 
-			void constructed()
+			void constructed() override
 			{
 				_construct_lock.unlock();
 			}
 
-			void wait_for_start()
+			void wait_for_start() override
 			{
 				_start_lock.lock();
 			}
 
-			void started()
+			void started() override
 			{
 				_start_lock.unlock();
 			}
 
-			void wait_for_join()
+			void wait_for_join() override
 			{
 				_join_lock.lock();
 			}
 
-			void joined()
+			void joined() override
 			{
 				_join_lock.unlock();
 			}
@@ -317,32 +317,32 @@ namespace Genode {
 			Thread_meta_data_adopted(Thread *thread)
 			: Native_thread::Meta_data(thread) { }
 
-			void wait_for_construction()
+			void wait_for_construction() override
 			{
 				error("wait_for_construction() called for an adopted thread");
 			}
 
-			void constructed()
+			void constructed() override
 			{
 				error("constructed() called for an adopted thread");
 			}
 
-			void wait_for_start()
+			void wait_for_start() override
 			{
 				error("wait_for_start() called for an adopted thread");
 			}
 
-			void started()
+			void started() override
 			{
 				error("started() called for an adopted thread");
 			}
 
-			void wait_for_join()
+			void wait_for_join() override
 			{
 				error("wait_for_join() called for an adopted thread");
 			}
 
-			void joined()
+			void joined() override
 			{
 				error("joined() called for an adopted thread");
 			}

@@ -1376,7 +1376,8 @@ class Driver : public Block::Driver
 			Timer_delayer(Genode::Env &env)
 			: Timer::Connection(env) { }
 
-			void usleep(unsigned us) { Timer::Connection::usleep(us); }
+			void usleep(unsigned us) override { Timer::Connection::usleep(us); }
+
 		} _delayer { _env };
 
 		Genode::Constructible<Nvme::Controller> _nvme_ctrlr { };
@@ -1738,8 +1739,8 @@ struct Main
 
 		~Factory() { _driver.destruct(); }
 
-		Block::Driver *create() { return &*_driver; }
-		void destroy(Block::Driver *) { }
+		Block::Driver *create() override { return &*_driver; }
+		void destroy(Block::Driver *) override { }
 	};
 
 	Factory     _factory { _env, _heap, _announce_sigh };

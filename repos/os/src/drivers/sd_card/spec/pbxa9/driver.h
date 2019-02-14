@@ -120,18 +120,18 @@ class Sd_card::Driver : public  Block::Driver, private Attached_mmio
 		 ** Block-driver **
 		 ******************/
 
-		Genode::size_t             block_size() override { return 512; }
+		Genode::size_t block_size() override { return 512; }
 		Block::Session::Operations ops() override;
 
 		void read(Block::sector_t           block_number,
 		          size_t                    block_count,
 		          char                     *buffer,
-		          Block::Packet_descriptor &packet);
+		          Block::Packet_descriptor &packet) override;
 
 		void write(Block::sector_t           block_number,
 		           size_t                    block_count,
 		           char const               *buffer,
-		           Block::Packet_descriptor &packet);
+		           Block::Packet_descriptor &packet) override;
 
 		/*
 		 * TODO report (and support) real capacity not just 512M

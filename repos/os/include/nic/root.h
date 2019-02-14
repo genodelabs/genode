@@ -35,7 +35,7 @@ class Nic::Root : public Genode::Root_component<SESSION_COMPONENT,
 
 	protected:
 
-		SESSION_COMPONENT *_create_session(const char *args)
+		SESSION_COMPONENT *_create_session(const char *args) override
 		{
 			using namespace Genode;
 

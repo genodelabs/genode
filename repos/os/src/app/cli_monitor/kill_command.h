@@ -52,7 +52,7 @@ struct Cli_monitor::Kill_command : Command
 		_children.for_each_child_name(child_name_fn);
 	}
 
-	void execute(Command_line &cmd, Terminal::Session &terminal)
+	void execute(Command_line &cmd, Terminal::Session &terminal) override
 	{
 		bool const kill_all = cmd.parameter_exists("--all");
 

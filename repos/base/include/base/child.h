@@ -294,7 +294,7 @@ class Genode::Child : protected Rpc_object<Parent>,
 
 				void start(addr_t) override;
 
-				Capability<Cpu_thread> cap() const { return _cap; }
+				Capability<Cpu_thread> cap() const override { return _cap; }
 		};
 
 		/* child policy */

@@ -312,7 +312,7 @@ class Vfs_ram::File : public Vfs_ram::Node
 			return len;
 		}
 
-		file_size length() { return _length; }
+		file_size length() override { return _length; }
 
 		void truncate(file_size size) override
 		{
@@ -335,7 +335,7 @@ class Vfs_ram::Symlink : public Vfs_ram::Node
 
 		Symlink(char const *name) : Node(name) { }
 
-		file_size length() { return _len; }
+		file_size length() override { return _len; }
 
 		void set(char const *target, size_t len)
 		{
@@ -576,7 +576,7 @@ class Vfs::Ram_file_system : public Vfs::File_system
 				: false;
 		}
 
-		char const *leaf_path(char const *path) {
+		char const *leaf_path(char const *path) override {
 			return lookup(path) ? path : nullptr; }
 
 		Open_result open(char const  *path, unsigned mode,

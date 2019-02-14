@@ -393,10 +393,10 @@ class Gpt : public Block::Partition_table
 
 		using Partition_table::Partition_table;
 
-		Block::Partition *partition(int num) {
+		Block::Partition *partition(int num) override {
 			return (num <= MAX_PARTITIONS && num > 0) ? _part_list[num-1] : 0; }
 
-		bool parse()
+		bool parse() override
 		{
 			Sector s(driver, Gpt_hdr::HEADER_LBA, 1);
 			_parse_gpt(s.addr<Gpt_hdr *>());

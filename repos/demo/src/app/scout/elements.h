@@ -104,7 +104,7 @@ class Scout::Token : public Element
 		/**
 		 * Element interface
 		 */
-		void draw(Canvas_base &, Point);
+		void draw(Canvas_base &, Point) override;
 		void refresh() { redraw_area(-1, 0, _size.w() + 1, _size.h()); }
 };
 
@@ -165,7 +165,7 @@ class Scout::Link_token : public Token, private Link, public Event_handler,
 		/**
 		 * Element interface
 		 */
-		void draw(Canvas_base &canvas, Point abs_position)
+		void draw(Canvas_base &canvas, Point abs_position) override
 		{
 			_outline = Color(_style->color.r,
 			                 _style->color.g,
@@ -178,7 +178,7 @@ class Scout::Link_token : public Token, private Link, public Event_handler,
 			                _size.w(), 1, Color(0,0,255));
 		}
 
-		void mfocus(int flag)
+		void mfocus(int flag) override
 		{
 			/*
 			 * highlight link of all siblings that point to the same link.
@@ -214,7 +214,7 @@ class Scout::Link_token : public Token, private Link, public Event_handler,
 		/**
 		 * Tick interface
 		 */
-		int on_tick()
+		int on_tick() override
 		{
 			/* call on_tick function of the fader */
 			if (Fader::on_tick() == 0) return 0;
@@ -383,7 +383,7 @@ class Scout::Block : public Parent_element
 		/**
 		 * Element interface
 		 */
-		void format_fixed_width(int w);
+		void format_fixed_width(int w) override;
 };
 
 
@@ -405,7 +405,7 @@ class Scout::Center : public Parent_element
 		/**
 		 * Element interface
 		 */
-		void format_fixed_width(int w);
+		void format_fixed_width(int w) override;
 };
 
 
@@ -442,9 +442,9 @@ class Scout::Png_image : public Element
 		/**
 		 * Element interface
 		 */
-		void fill_cache(Canvas_base &);
-		void flush_cache(Canvas_base &);
-		void draw(Canvas_base &, Point);
+		void fill_cache(Canvas_base &) override;
+		void flush_cache(Canvas_base &) override;
+		void draw(Canvas_base &, Point) override;
 };
 
 
@@ -474,7 +474,7 @@ class Scout::Document : public Parent_element
 		/**
 		 * Element interface
 		 */
-		void format_fixed_width(int w)
+		void format_fixed_width(int w) override
 		{
 			_min_size = Area(w, _format_children(0, w));
 		}
@@ -528,8 +528,8 @@ class Scout::Verbatim : public Parent_element
 		/**
 		 * Element interface
 		 */
-		void draw(Canvas_base &, Point);
-		void format_fixed_width(int);
+		void draw(Canvas_base &, Point) override;
+		void format_fixed_width(int) override;
 };
 
 
@@ -561,12 +561,12 @@ class Scout::Item : public Parent_element
 		/**
 		 * Element interface
 		 */
-		void format_fixed_width(int w)
+		void format_fixed_width(int w) override
 		{
 			_min_size = Area(w, _format_children(_tag_ident, w - _tag_ident));
 		}
 
-		void draw(Canvas_base &canvas, Point abs_position)
+		void draw(Canvas_base &canvas, Point abs_position) override
 		{
 			canvas.draw_string(_position.x() + abs_position.x(),
 			                   _position.y() + abs_position.y(),
@@ -621,14 +621,14 @@ class Scout::Navbar : public Parent_element, public Fader
 		/**
 		 * Element interface
 		 */
-		void format_fixed_width(int);
-		void draw(Canvas_base &, Point);
-		Element *find(Point);
+		void format_fixed_width(int)    override;
+		void draw(Canvas_base &, Point) override;
+		Element *find(Point)            override;
 
 		/**
 		 * Tick interface
 		 */
-		int on_tick();
+		int on_tick() override;
 };
 
 #endif /* _ELEMENTS_H_ */

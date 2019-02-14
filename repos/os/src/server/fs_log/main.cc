@@ -63,7 +63,7 @@ class Fs_log::Root_component :
 
 	protected:
 
-		Session_component *_create_session(const char *args)
+		Session_component *_create_session(const char *args) override
 		{
 			using namespace File_system;
 

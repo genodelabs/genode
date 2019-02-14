@@ -70,8 +70,8 @@ struct Genode::Pd_session_client : Rpc_client<Pd_session>
 	void transfer_quota(Capability<Pd_session> pd, Cap_quota amount) override {
 		call<Rpc_transfer_cap_quota>(pd, amount); }
 
-	Cap_quota cap_quota() const { return call<Rpc_cap_quota>(); }
-	Cap_quota used_caps() const { return call<Rpc_used_caps>(); }
+	Cap_quota cap_quota() const override { return call<Rpc_cap_quota>(); }
+	Cap_quota used_caps() const override { return call<Rpc_used_caps>(); }
 
 	Ram_dataspace_capability alloc(size_t size,
 	                               Cache_attribute cached = CACHED) override

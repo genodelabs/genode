@@ -142,7 +142,7 @@ class Uart::Session_component : public Rpc_object<Uart::Session,
 		 ** Uart session interface **
 		 ****************************/
 
-		void baud_rate(Genode::size_t bits_per_second)
+		void baud_rate(Genode::size_t bits_per_second) override
 		{
 			_driver.baud_rate(bits_per_second);
 		}
@@ -217,7 +217,7 @@ class Uart::Root : public Uart::Root_component
 
 	protected:
 
-		Session_component *_create_session(const char *args)
+		Session_component *_create_session(const char *args) override
 		{
 			Session_label  const label = label_from_args(args);
 			Session_policy const policy(label, _config.xml());

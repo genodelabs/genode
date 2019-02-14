@@ -60,7 +60,7 @@ class Avail_quota_update : public Scout::Tick
 		/**
 		 * Tick interface
 		 */
-		int on_tick()
+		int on_tick() override
 		{
 			size_t new_avail = _pd.avail_ram().value;
 

@@ -26,14 +26,14 @@ struct Hello::Session_client : Genode::Rpc_client<Session>
 	Session_client(Genode::Capability<Session> cap)
 	: Genode::Rpc_client<Session>(cap) { }
 
-	void say_hello()
+	void say_hello() override
 	{
 		Genode::log("issue RPC for saying hello");
 		call<Rpc_say_hello>();
 		Genode::log("returned from 'say_hello' RPC call");
 	}
 
-	int add(int a, int b)
+	int add(int a, int b) override
 	{
 		return call<Rpc_add>(a, b);
 	}

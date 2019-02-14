@@ -85,7 +85,7 @@ class Nitpicker::Root : public Root_component<Session_component>,
 
 	protected:
 
-		Session_component *_create_session(const char *args)
+		Session_component *_create_session(const char *args) override
 		{
 			size_t const ram_quota = Arg_string::find_arg(args, "ram_quota").ulong_value(0);
 
@@ -117,13 +117,13 @@ class Nitpicker::Root : public Root_component<Session_component>,
 			return session;
 		}
 
-		void _upgrade_session(Session_component *s, const char *args)
+		void _upgrade_session(Session_component *s, const char *args) override
 		{
 			size_t ram_quota = Arg_string::find_arg(args, "ram_quota").ulong_value(0);
 			s->upgrade_ram_quota(ram_quota);
 		}
 
-		void _destroy_session(Session_component *session)
+		void _destroy_session(Session_component *session) override
 		{
 			/* invalidate pointers held by other sessions to the destroyed session */
 			for (Session_component *s = _session_list.first(); s; s = s->next())

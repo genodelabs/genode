@@ -74,11 +74,11 @@ class Gpio::Session_component : public Genode::Rpc_object<Gpio::Session>
 		 ** Gpio::Session interface **
 		 *****************************/
 
-		void direction(Direction d)  { _driver.direction(_pin, (d == IN)); }
-		void write(bool level)       { _driver.write(_pin, level);         }
-		bool read()                  { return _driver.read(_pin);          }
+		void direction(Direction d) override { _driver.direction(_pin, (d == IN)); }
+		void write(bool level)      override { _driver.write(_pin, level);         }
+		bool read()                 override { return _driver.read(_pin);          }
 
-		void debouncing(unsigned int us)
+		void debouncing(unsigned int us) override
 		{
 			if (us) {
 				_driver.debounce_time(_pin, us);
@@ -87,7 +87,7 @@ class Gpio::Session_component : public Genode::Rpc_object<Gpio::Session>
 				_driver.debounce_enable(_pin, false);
 		}
 
-		Genode::Irq_session_capability irq_session(Irq_type type)
+		Genode::Irq_session_capability irq_session(Irq_type type) override
 		{
 			switch (type) {
 			case HIGH_LEVEL:
@@ -119,7 +119,7 @@ class Gpio::Root : public Genode::Root_component<Gpio::Session_component>
 
 	protected:
 
-		Session_component *_create_session(const char *args)
+		Session_component *_create_session(const char *args) override
 		{
 			unsigned long pin =
 				Genode::Arg_string::find_arg(args, "gpio").ulong_value(0);

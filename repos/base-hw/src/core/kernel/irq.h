@@ -146,7 +146,7 @@ class Kernel::User_irq : public Kernel::Irq, public Kernel::Object
 		/**
 		 * Handle occurence of the interrupt
 		 */
-		void occurred()
+		void occurred() override
 		{
 			_context.submit(1);
 			disable();

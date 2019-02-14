@@ -63,7 +63,7 @@ class Launch_entry : public Scout::Parent_element, public Loadbar_listener
 		 ** Loadbar listener interface **
 		 ********************************/
 
-		void loadbar_changed(int mx)
+		void loadbar_changed(int mx) override
 		{
 			int value = _loadbar.value_by_xpos(mx - _loadbar.abs_position().x());
 			_loadbar.value(value);
@@ -76,7 +76,7 @@ class Launch_entry : public Scout::Parent_element, public Loadbar_listener
 		 ** Parent element interface **
 		 ******************************/
 
-		void format_fixed_width(int w)
+		void format_fixed_width(int w) override
 		{
 			using namespace Scout;
 

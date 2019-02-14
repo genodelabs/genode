@@ -81,7 +81,7 @@ class Vfs::Rtc_file_system : public Single_file_system
 					return WRITE_ERR_IO;
 				}
 
-				bool read_ready() { return true; }
+				bool read_ready() override { return true; }
 		};
 
 	public:

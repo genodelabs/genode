@@ -32,7 +32,7 @@ class Genode::Rm_root : public Root_component<Rm_session_component>
 
 	protected:
 
-		Rm_session_component *_create_session(const char *args)
+		Rm_session_component *_create_session(const char *args) override
 		{
 			size_t ram_quota = Arg_string::find_arg(args, "ram_quota").ulong_value(0);
 

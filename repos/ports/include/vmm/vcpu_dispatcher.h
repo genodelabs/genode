@@ -127,7 +127,7 @@ class Vmm::Vcpu_dispatcher : public T
 		 * associated with several portals, each for handling a specific
 		 * virtualization event.
 		 */
-		void entry() { }
+		void entry() override { }
 
 		/**
 		 * Return capability selector of the VCPU's SM and EC

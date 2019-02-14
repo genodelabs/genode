@@ -28,7 +28,7 @@ namespace Genode {
 			/**
 			 * Root component interface
 			 */
-			Log_session_component *_create_session(const char *args)
+			Log_session_component *_create_session(const char *args) override
 			{
 				char label_buf[Log_session_component::LABEL_LEN];
 

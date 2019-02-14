@@ -94,7 +94,7 @@ class Pl050
 			/**
 			 * Read input or wait busily until input becomes available
 			 */
-			unsigned char read()
+			unsigned char read() override
 			{
 				Genode::Lock::Guard guard(_lock);
 
@@ -105,18 +105,18 @@ class Pl050
 				return get();
 			}
 
-			void write(unsigned char value)
+			void write(unsigned char value) override
 			{
 				while (!(_reg_base[PL050_REG_STATUS] & PL050_STATUS_TX_EMPTY));
 				_reg_base[PL050_REG_DATA] = value;
 			}
 
-			bool data_read_ready()
+			bool data_read_ready() override
 			{
 				return !empty() || _input_pending();
 			}
 
-			void enable_irq()
+			void enable_irq() override
 			{
 				_reg_base[PL050_REG_CONTROL] = PL050_CONTROL_RX_IRQ | PL050_CONTROL_ENABLE;
 			}

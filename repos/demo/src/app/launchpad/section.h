@@ -54,7 +54,7 @@ class Section : public Scout::Parent_element
 		/**
 		 * Element interface
 		 */
-		void format_fixed_width(int w)
+		void format_fixed_width(int w) override
 		{
 			using namespace Scout;
 
@@ -68,7 +68,7 @@ class Section : public Scout::Parent_element
 			                           _shadow.size().h())));
 		}
 
-		void draw(Scout::Canvas_base &canvas, Scout::Point abs_position)
+		void draw(Scout::Canvas_base &canvas, Scout::Point abs_position) override
 		{
 			using namespace Scout;
 

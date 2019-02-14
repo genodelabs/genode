@@ -106,10 +106,10 @@ class Iso::Rom_component : public Genode::Rpc_object<Rom_session>
 
 	public:
 
-		Rom_dataspace_capability dataspace() {
+		Rom_dataspace_capability dataspace() override {
 			return static_cap_cast<Rom_dataspace>(_file->dataspace()); }
 
-		void sigh(Signal_context_capability) { }
+		void sigh(Signal_context_capability) override { }
 
 		Rom_component(Genode::Env &env, Genode::Allocator &alloc,
 		              File_cache &cache, Block::Connection &block,
@@ -148,7 +148,7 @@ class Iso::Root : public Iso::Root_component
 
 	protected:
 
-		Rom_component *_create_session(const char *args)
+		Rom_component *_create_session(const char *args) override
 		{
 			size_t ram_quota =
 				Arg_string::find_arg(args, "ram_quota").ulong_value(0);

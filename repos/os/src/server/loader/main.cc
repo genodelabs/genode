@@ -384,7 +384,7 @@ class Loader::Root : public Root_component<Session_component>
 
 	protected:
 
-		Session_component *_create_session(const char *args)
+		Session_component *_create_session(const char *args) override
 		{
 			Xml_node session_config("<policy/>");
 

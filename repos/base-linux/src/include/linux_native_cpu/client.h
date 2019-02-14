@@ -24,13 +24,13 @@ struct Genode::Linux_native_cpu_client : Rpc_client<Linux_native_cpu>
 	explicit Linux_native_cpu_client(Capability<Native_cpu> cap)
 	: Rpc_client<Linux_native_cpu>(static_cap_cast<Linux_native_cpu>(cap)) { }
 
-	void thread_id(Thread_capability thread, int pid, int tid) {
+	void thread_id(Thread_capability thread, int pid, int tid) override {
 		call<Rpc_thread_id>(thread, pid, tid); }
 
-	Untyped_capability server_sd(Thread_capability thread) {
+	Untyped_capability server_sd(Thread_capability thread) override {
 		return call<Rpc_server_sd>(thread); }
 
-	Untyped_capability client_sd(Thread_capability thread) {
+	Untyped_capability client_sd(Thread_capability thread) override {
 		return call<Rpc_client_sd>(thread); }
 };
 

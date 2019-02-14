@@ -236,7 +236,7 @@ class Ps2::Mouse : public Input_driver
 		 ** Input driver interface **
 		 ****************************/
 
-		void handle_event()
+		void handle_event() override
 		{
 			_packet[_packet_idx++] = _aux.read();
 			if (_packet_idx < _packet_len)
@@ -306,7 +306,7 @@ class Ps2::Mouse : public Input_driver
 			_packet_idx = 0;
 		}
 
-		bool event_pending() const { return _aux.data_read_ready(); }
+		bool event_pending() const override { return _aux.data_read_ready(); }
 };
 
 #endif /* _DRIVERS__INPUT__SPEC__PS2__PS2_MOUSE_H_ */

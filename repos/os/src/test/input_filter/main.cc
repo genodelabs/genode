@@ -111,7 +111,7 @@ class Test::Input_root : public Root_component<Input::Session_component>
 		{ }
 
 		Input::Session_component *_create_session(const char *args,
-		                                          Affinity const &)
+		                                          Affinity const &) override
 		{
 			Session_label const label = label_from_args(args);
 

@@ -279,7 +279,7 @@ class Vfs::Single_file_system : public File_system
 			return FTRUNCATE_ERR_NO_PERM;
 		}
 
-		Sync_result complete_sync(Vfs_handle *vfs_handle)
+		Sync_result complete_sync(Vfs_handle *vfs_handle) override
 		{
 			Single_vfs_handle *handle =
 				static_cast<Single_vfs_handle*>(vfs_handle);

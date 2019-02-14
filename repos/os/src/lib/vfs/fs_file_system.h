@@ -923,7 +923,7 @@ class Vfs::Fs_file_system : public File_system
 
 		Watch_result watch(char const      *path,
 		                   Vfs_watch_handle **handle,
-		                   Allocator        &alloc)
+		                   Allocator        &alloc) override
 		{
 			using namespace ::File_system;
 

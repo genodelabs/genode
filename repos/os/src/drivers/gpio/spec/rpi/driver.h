@@ -85,9 +85,9 @@ class Gpio::Rpi_driver : public Driver
 		 **  Driver interface  **
 		 ******************************/
 
-		bool gpio_valid(unsigned gpio) { return gpio < MAX_PINS; }
+		bool gpio_valid(unsigned gpio) override { return gpio < MAX_PINS; }
 
-		void direction(unsigned gpio, bool input)
+		void direction(unsigned gpio, bool input) override
 		{
 			if (!gpio_valid(gpio)) { _invalid_gpio(gpio); return; }
 
@@ -98,7 +98,7 @@ class Gpio::Rpi_driver : public Driver
 			_reg.set_gpio_function(gpio, f);
 		}
 
-		void write(unsigned gpio, bool level)
+		void write(unsigned gpio, bool level) override
 		{
 			if (!gpio_valid(gpio)) { _invalid_gpio(gpio); return; }
 
@@ -114,7 +114,7 @@ class Gpio::Rpi_driver : public Driver
 				_reg.clear_gpio_level(gpio);
 		}
 
-		bool read(unsigned gpio)
+		bool read(unsigned gpio) override
 		{
 			if (!gpio_valid(gpio)) { _invalid_gpio(gpio); return 0; }
 			if(_reg.get_gpio_function(gpio) != Reg::FSEL_INPUT)
@@ -123,13 +123,13 @@ class Gpio::Rpi_driver : public Driver
 			return _reg.get_gpio_level(gpio);
 		}
 
-		void debounce_enable(unsigned, bool) {
+		void debounce_enable(unsigned, bool) override {
 			Genode::warning("debounce_enable not supported!"); }
 
-		void debounce_time(unsigned, unsigned long) {
+		void debounce_time(unsigned, unsigned long) override {
 			Genode::warning("debounce_time not supported!"); }
 
-		void falling_detect(unsigned gpio)
+		void falling_detect(unsigned gpio) override
 		{
 			if (!gpio_valid(gpio)) { _invalid_gpio(gpio); return; }
 
@@ -141,7 +141,7 @@ class Gpio::Rpi_driver : public Driver
 				_reg.set_gpio_falling_detect(gpio);
 		}
 
-		void rising_detect(unsigned gpio)
+		void rising_detect(unsigned gpio) override
 		{
 			if (!gpio_valid(gpio)) { _invalid_gpio(gpio); return; }
 
@@ -153,7 +153,7 @@ class Gpio::Rpi_driver : public Driver
 				_reg.set_gpio_rising_detect(gpio);
 		}
 
-		void high_detect(unsigned gpio)
+		void high_detect(unsigned gpio) override
 		{
 			if (!gpio_valid(gpio)) { _invalid_gpio(gpio); return; }
 			if (verbose) Genode::log("high_detect: gpio=", gpio);
@@ -161,7 +161,7 @@ class Gpio::Rpi_driver : public Driver
 			_reg.set_gpio_high_detect(gpio);
 		}
 
-		void low_detect(unsigned gpio)
+		void low_detect(unsigned gpio) override
 		{
 			if (!gpio_valid(gpio)) { _invalid_gpio(gpio); return; }
 			if (verbose) Genode::log("low_detect: gpio=", gpio);
@@ -169,7 +169,7 @@ class Gpio::Rpi_driver : public Driver
 			_reg.set_gpio_low_detect(gpio);
 		}
 
-		void irq_enable(unsigned gpio, bool enable)
+		void irq_enable(unsigned gpio, bool enable) override
 		{
 			if (!gpio_valid(gpio)) { _invalid_gpio(gpio); return; }
 			if (verbose) Genode::log("irq_enable: gpio=", gpio, " enable=", enable);
@@ -177,7 +177,7 @@ class Gpio::Rpi_driver : public Driver
 			_irq_enabled[gpio] = enable;
 		}
 
-		void ack_irq(unsigned gpio)
+		void ack_irq(unsigned gpio) override
 		{
 			if (!gpio_valid(gpio)) { _invalid_gpio(gpio); return; }
 			if (verbose) Genode::log("ack_irq: gpio=", gpio);
@@ -187,7 +187,7 @@ class Gpio::Rpi_driver : public Driver
 		}
 
 		void register_signal(unsigned gpio,
-		                     Genode::Signal_context_capability cap)
+		                     Genode::Signal_context_capability cap) override
 		{
 			if (!gpio_valid(gpio)) { _invalid_gpio(gpio); return; }
 			if (verbose) Genode::log("register_signal: gpio=", gpio);
@@ -195,7 +195,7 @@ class Gpio::Rpi_driver : public Driver
 			_sig_cap[gpio] = cap;
 		}
 
-		void unregister_signal(unsigned gpio)
+		void unregister_signal(unsigned gpio) override
 		{
 			if (!gpio_valid(gpio)) { _invalid_gpio(gpio); return; }
 			if (verbose) Genode::log("unregister_signal: gpio=", gpio);

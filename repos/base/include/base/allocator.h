@@ -203,7 +203,7 @@ struct Genode::Range_allocator : Allocator
 	 * overload resolution would not find 'Allocator::free(void *)'.
 	 */
 	virtual void free(void *addr) = 0;
-	virtual void free(void *addr, size_t size) = 0;
+	virtual void free(void *addr, size_t size) override = 0;
 
 	/**
 	 * Return the sum of available memory

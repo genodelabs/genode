@@ -68,7 +68,7 @@ class Main_thread : public Thread_deprecated<MAIN_THREAD_STACK_SIZE>
 		 ** Thread interface **
 		 **********************/
 
-		void entry() { }
+		void entry() override { }
 };
 
 

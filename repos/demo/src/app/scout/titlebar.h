@@ -69,13 +69,13 @@ class Scout::Titlebar : public Parent_element
 		 * Element interface
 		 */
 
-		void format_fixed_width(int w)
+		void format_fixed_width(int w) override
 		{
 			_min_size = Area(w, 32);
 			_fg.geometry(Rect(Point(0, 0), _min_size));
 		}
 
-		void draw(Canvas_base &canvas, Point abs_position)
+		void draw(Canvas_base &canvas, Point abs_position) override
 		{
 			const int b = 180, a = 200;
 			canvas.draw_box(abs_position.x() + _position.x(),

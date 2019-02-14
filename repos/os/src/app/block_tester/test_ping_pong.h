@@ -218,7 +218,7 @@ struct Test::Ping_pong : Test_base
 		              _bytes, _rx, _tx, _size, _block_size);
 	}
 
-	char const *name() const { return "ping_pong"; }
+	char const *name() const override { return "ping_pong"; }
 };
 
 

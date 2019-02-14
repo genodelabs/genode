@@ -136,10 +136,10 @@ struct Mbr_partition_table : public Block::Partition_table
 
 		using Partition_table::Partition_table;
 
-		Block::Partition *partition(int num) {
+		Block::Partition *partition(int num) override {
 			return (num < MAX_PARTITIONS) ? _part_list[num] : 0; }
 
-		bool parse()
+		bool parse() override
 		{
 			Sector s(driver, 0, 1);
 			Mbr *mbr = s.addr<Mbr *>();

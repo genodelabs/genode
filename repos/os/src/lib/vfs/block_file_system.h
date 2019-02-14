@@ -330,7 +330,7 @@ class Vfs::Block_file_system : public Single_file_system
 
 				}
 
-				bool read_ready() { return true; }
+				bool read_ready() override { return true; }
 		};
 
 	public:

@@ -55,9 +55,9 @@ class Block::Session_client : public Genode::Rpc_client<Session>
 			call<Rpc_info>(blk_count, blk_size, ops);
 		}
 
-		Tx *tx_channel() { return &_tx; }
+		Tx *tx_channel() override { return &_tx; }
 
-		Tx::Source *tx() { return _tx.source(); }
+		Tx::Source *tx() override { return _tx.source(); }
 
 		void sync() override { call<Rpc_sync>(); }
 

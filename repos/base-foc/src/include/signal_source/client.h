@@ -60,7 +60,7 @@ class Genode::Signal_source_client : public Rpc_client<Foc_signal_source>
 		 * Build with frame pointer to make GDB backtraces work. See issue #1061.
 		 */
 		__attribute__((optimize("-fno-omit-frame-pointer")))
-		Signal wait_for_signal();
+		Signal wait_for_signal() override;
 };
 
 #endif /* _INCLUDE__SIGNAL_SOURCE__CLIENT_H_ */

@@ -86,13 +86,13 @@ class Canvas : public Canvas_base
 		void clip(Rect rect) { _surface.clip(rect); }
 
 		void draw_string(Point p, Font const &font, Color color,
-		                 char const *sstr)
+		                 char const *sstr) override
 		{
 			Text_painter::paint(_surface, Text_painter::Position(p.x(), p.y()),
 			                    font, color, sstr);
 		}
 
-		void draw_box(Rect rect, Color color)
+		void draw_box(Rect rect, Color color) override
 		{
 			Box_painter::paint(_surface, rect, color);
 		}
@@ -302,7 +302,7 @@ class Nitlog::Session_component : public Rpc_object<Log_session>
 		 ** Log session interface **
 		 ***************************/
 
-		size_t write(String const &log_text)
+		size_t write(String const &log_text) override
 		{
 			if (!log_text.valid_string()) {
 				error("corrupted string");
@@ -326,7 +326,7 @@ class Nitlog::Root : public Root_component<Session_component>
 
 	protected:
 
-		Session_component *_create_session(const char *args)
+		Session_component *_create_session(const char *args) override
 		{
 			log("create log session args: ", args);
 

@@ -107,7 +107,7 @@ class Scout::Window : public Parent_element
 		 * does not perform any immediate drawing operation. The actual drawing
 		 * must be initiated by calling the process_redraw function.
 		 */
-		void redraw_area(int x, int y, int w, int h)
+		void redraw_area(int x, int y, int w, int h) override
 		{
 			/*
 			 * Scout redraw quirk
@@ -253,13 +253,13 @@ class Scout::Sizer_event_handler : public Drag_event_handler
 		/**
 		 * Event handler interface
 		 */
-		void start_drag()
+		void start_drag() override
 		{
 			_obw = _window->view_w();
 			_obh = _window->view_h();
 		}
 
-		void do_drag()
+		void do_drag() override
 		{
 			/* calculate new window size */
 			int nbw = _obw + _current_mouse_position.x() - _old_mouse_position.x();
@@ -292,14 +292,14 @@ class Scout::Mover_event_handler : public Drag_event_handler
 		Window *_window;
 		int     _obx = 0, _oby = 0;    /* original launchpad position */
 
-		void start_drag()
+		void start_drag() override
 		{
 			_obx = _window->view_x();
 			_oby = _window->view_y();
 			_window->top();
 		}
 
-		void do_drag()
+		void do_drag() override
 		{
 			int nbx = _obx + _current_mouse_position.x() - _old_mouse_position.x();
 			int nby = _oby + _current_mouse_position.y() - _old_mouse_position.y();

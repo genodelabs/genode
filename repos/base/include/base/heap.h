@@ -220,11 +220,11 @@ class Genode::Sliced_heap : public Allocator
 		 ** Allocator interface **
 		 *************************/
 
-		bool   alloc(size_t, void **);
-		void   free(void *, size_t);
-		size_t consumed() const { return _consumed; }
-		size_t overhead(size_t size) const;
-		bool   need_size_for_free() const override { return false; }
+		bool   alloc(size_t, void **)      override;
+		void   free(void *, size_t)        override;
+		size_t consumed()            const override { return _consumed; }
+		size_t overhead(size_t size) const override;
+		bool   need_size_for_free()  const override { return false; }
 };
 
 #endif /* _INCLUDE__BASE__HEAP_H_ */

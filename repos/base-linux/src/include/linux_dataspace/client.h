@@ -31,17 +31,17 @@ namespace Genode {
 		 ** Generic dataspace interface **
 		 *********************************/
 
-		size_t size()      { return call<Rpc_size>();      }
-		addr_t phys_addr() { return call<Rpc_phys_addr>(); }
-		bool   writable()  { return call<Rpc_writable>();  }
+		size_t size()      override { return call<Rpc_size>();      }
+		addr_t phys_addr() override { return call<Rpc_phys_addr>(); }
+		bool   writable()  override { return call<Rpc_writable>();  }
 
 
 		/****************************************
 		 ** Linux-specific dataspace interface **
 		 ****************************************/
 
-		Filename           fname() { return call<Rpc_fname>(); }
-		Untyped_capability fd()    { return call<Rpc_fd>(); }
+		Filename           fname() override { return call<Rpc_fname>(); }
+		Untyped_capability fd()    override { return call<Rpc_fd>(); }
 	};
 }
 

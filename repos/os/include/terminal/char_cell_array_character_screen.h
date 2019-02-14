@@ -183,7 +183,7 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 			_cursor_pos.y = Genode::min(_boundary.height - 1, pos.y);
 		}
 
-		void output(Terminal::Character c)
+		void output(Terminal::Character c) override
 		{
 			if (_irm == INSERT)
 				_missing("insert mode");
@@ -346,7 +346,7 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 		/**
 		 * Erase character
 		 */
-		void ech(int pn)
+		void ech(int pn) override
 		{
 			int y = _cursor_pos.y;
 			int x = _cursor_pos.x;
@@ -562,13 +562,13 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 			 */
 		}
 
-		void vpa(int pn)
+		void vpa(int pn) override
 		{
 			Cursor_guard guard(*this);
 			_cursor_pos.x = pn;
 		}
 
-		void vpb(int pn)
+		void vpb(int pn) override
 		{
 			Cursor_guard guard(*this);
 			_cursor_pos.x = Genode::min(0, _cursor_pos.x - pn);
@@ -621,7 +621,7 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 
 		void scs_g1(int charset) override { _missing(__func__, charset); }
 
-		void reverse_index()
+		void reverse_index() override
 		{
 			Cursor_guard guard(*this);
 			if (_cursor_pos.y) {

@@ -95,7 +95,8 @@ struct Igd::Device
 		Timer::Connection &_timer;
 		Timer_delayer(Timer::Connection &timer) : _timer(timer) { }
 
-		void usleep(unsigned us) { _timer.usleep(us); }
+		void usleep(unsigned us) override { _timer.usleep(us); }
+
 	} _delayer { _timer };
 
 	/*********
@@ -158,7 +159,7 @@ struct Igd::Device
 		Pci_backend_alloc(Platform::Connection &pci) : _pci(pci) { }
 
 		Genode::Ram_dataspace_capability alloc(Genode::Allocator_guard &guard,
-		                                       Genode::size_t size)
+		                                       Genode::size_t size) override
 		{
 			if (!guard.withdraw(size)) { throw Out_of_ram(); }
 
@@ -175,7 +176,7 @@ struct Igd::Device
 				throw Out_of_ram(); }
 		}
 
-		void free(Genode::Allocator_guard &guard, Genode::Ram_dataspace_capability cap)
+		void free(Genode::Allocator_guard &guard, Genode::Ram_dataspace_capability cap) override
 		{
 			if (!cap.valid()) {
 				Genode::error("could not free, capability invalid");
@@ -1704,7 +1705,7 @@ class Gpu::Root : public Gpu::Root_component
 
 	protected:
 
-		Session_component *_create_session(char const *args)
+		Session_component *_create_session(char const *args) override
 		{
 			if (!_device || !_device->vgpu_avail()) {
 				throw Genode::Service_denied();
@@ -1735,7 +1736,7 @@ class Gpu::Root : public Gpu::Root_component
 			} catch (...) { throw Genode::Service_denied(); }
 		}
 
-		void _upgrade_session(Session_component *s, char const *args)
+		void _upgrade_session(Session_component *s, char const *args) override
 		{
 			s->upgrade_ram_quota(_ram_quota(args));
 
@@ -1745,7 +1746,7 @@ class Gpu::Root : public Gpu::Root_component
 			 */
 		}
 
-		void _destroy_session(Session_component *s)
+		void _destroy_session(Session_component *s) override
 		{
 			if (s->vgpu_active()) {
 				Genode::warning("vGPU active, reset device and hope for the best");

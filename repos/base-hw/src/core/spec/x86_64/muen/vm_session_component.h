@@ -81,10 +81,10 @@ class Genode::Vm_session_component
 				Kernel::pause_vm(kernel_object());
 		}
 
-		void attach(Dataspace_capability, addr_t) {}
-		void attach_pic(addr_t) {}
-		void detach(addr_t, size_t) {}
-		void _create_vcpu(Thread_capability) {}
+		void attach(Dataspace_capability, addr_t) override { }
+		void attach_pic(addr_t)                   override { }
+		void detach(addr_t, size_t)               override { }
+		void _create_vcpu(Thread_capability) { }
 };
 
 #endif /* _CORE__SPEC__X86_64__MUEN__VM_SESSION_COMPONENT_H_ */

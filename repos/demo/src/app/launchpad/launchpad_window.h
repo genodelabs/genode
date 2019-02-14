@@ -97,13 +97,13 @@ class Launchpad_window : public Scout::Scrollbar_listener,
 		/**
 		 * Window interface
 		 */
-		void format(Scout::Area);
-		void ypos(int ypos) { ypos_sb(ypos, 1); }
+		void format(Scout::Area) override;
+		void ypos(int ypos) override { ypos_sb(ypos, 1); }
 
 		/**
 		 * Element interface
 		 */
-		void draw(Scout::Canvas_base &canvas, Scout::Point abs_position)
+		void draw(Scout::Canvas_base &canvas, Scout::Point abs_position) override
 		{
 			using namespace Scout;
 
@@ -120,12 +120,12 @@ class Launchpad_window : public Scout::Scrollbar_listener,
 		/**
 		 * Scrollbar listener interface
 		 */
-		void handle_scroll(int view_pos);
+		void handle_scroll(int view_pos) override;
 
 		/**
 		 * Launchpad interface
 		 */
-		void quota(unsigned long quota)
+		void quota(unsigned long quota) override
 		{
 			_status_entry.max_value(initial_quota() / 1024);
 			_status_entry.value(quota / 1024);

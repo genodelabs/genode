@@ -180,7 +180,7 @@ struct Usb::Block_driver : Usb::Completion,
 		Init_completion(Usb::Device &device, uint8_t interface)
 		: device(device), interface(interface) { }
 
-		void complete(Packet_descriptor &p)
+		void complete(Packet_descriptor &p) override
 		{
 			Usb::Interface iface = device.interface(interface);
 
@@ -614,7 +614,7 @@ struct Usb::Block_driver : Usb::Completion,
 	 * the CWB is sent, than the payload read or written. At the end, the CSW
 	 * is requested.
 	 */
-	void complete(Packet_descriptor &p)
+	void complete(Packet_descriptor &p) override
 	{
 		Usb::Interface iface = device.interface(active_interface);
 

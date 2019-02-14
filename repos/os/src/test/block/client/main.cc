@@ -45,7 +45,7 @@ class Test : Genode::Interface
 				                bool write)
 				: _nr(nr), _cnt(cnt), _write(write) {}
 
-				virtual void print_error()
+				void print_error() override
 				{
 					Genode::error("couldn't ", _write ? "write" : "read", " "
 					              "block ", _nr, " - ", _nr+_cnt);
@@ -53,11 +53,11 @@ class Test : Genode::Interface
 		};
 
 		struct Submit_queue_full : Exception {
-			void print_error() {
+			void print_error() override {
 				Genode::error("submit queue is full!"); } };
 
 		struct Timeout : Exception {
-			void print_error() {
+			void print_error() override {
 				Genode::error("test timed out!"); } };
 
 		virtual void perform()         = 0;
@@ -125,7 +125,7 @@ struct Read_test : Test
 	Read_test(Genode::Env &env, Genode::Heap &heap, unsigned timeo_ms)
 	: Test(env, heap, BULK_BLK_NR*blk_sz, timeo_ms), done(false) { }
 
-	void perform()
+	void perform() override
 	{
 		Genode::log("reading block 0 - ", test_cnt - 1, ", ", NR_PER_REQ,
 		            " per request");
@@ -153,7 +153,7 @@ struct Read_test : Test
 			_handle_signal();
 	}
 
-	void ack_avail()
+	void ack_avail() override
 	{
 		 _handle = false;
 
@@ -177,7 +177,7 @@ template <unsigned BULK_BLK_NR, unsigned NR_PER_REQ, unsigned BATCH>
 struct Write_test : Test
 {
 	struct Invalid_dimensions : Exception {
-		void print_error() {
+		void print_error() override {
 			Genode::error("invalid bulk buffer, or batch size!"); } };
 
 	struct Integrity_exception : Block_exception
@@ -185,7 +185,7 @@ struct Write_test : Test
 		Integrity_exception(Block::sector_t nr, Genode::size_t cnt)
 		: Block_exception(nr, cnt, false) {}
 
-		void print_error()
+		void print_error() override
 		{
 			Genode::error("integrity check failed: block ", _nr, " - ",
 			              _nr+_cnt);
@@ -279,7 +279,7 @@ struct Write_test : Test
 		compare();
 	}
 
-	void perform()
+	void perform() override
 	{
 		if (!blk_ops.supported(Block::Packet_descriptor::WRITE))
 			return;
@@ -295,7 +295,7 @@ struct Write_test : Test
 		}
 	}
 
-	void ack_avail()
+	void ack_avail() override
 	{
 		 _handle = false;
 
@@ -316,7 +316,7 @@ struct Write_test : Test
 struct Violation_test : Test
 {
 	struct Write_on_read_only : Exception {
-		void print_error() {
+		void print_error() override {
 			Genode::error("write on read-only device succeeded!"); } };
 
 	struct Range_check_failed : Block_exception
@@ -324,7 +324,7 @@ struct Violation_test : Test
 		Range_check_failed(Block::sector_t nr, Genode::size_t cnt)
 		: Block_exception(nr, cnt, false) {}
 
-		void print_error()
+		void print_error() override
 		{
 			Genode::error("range check failed: access to block ", _nr,
 			              " - ", _nr+_cnt, " succeeded");
@@ -346,7 +346,7 @@ struct Violation_test : Test
 		p_in_fly++;
 	}
 
-	void perform()
+	void perform() override
 	{
 		if (!blk_ops.supported(Block::Packet_descriptor::WRITE))
 			req(0, 1, true);
@@ -358,7 +358,7 @@ struct Violation_test : Test
 			_handle_signal();
 	}
 
-	void ack_avail()
+	void ack_avail() override
 	{
 		 _handle = false;
 

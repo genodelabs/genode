@@ -127,7 +127,7 @@ class Scout::Nitpicker_graphics_backend : public Graphics_backend
 		Canvas_base &front() override { return *_canvas[_front_idx()]; }
 		Canvas_base &back()  override { return *_canvas[ _back_idx()]; }
 
-		void copy_back_to_front(Rect rect)
+		void copy_back_to_front(Rect rect) override
 		{
 
 			typedef Genode::Pixel_rgb565 PT;
@@ -146,19 +146,19 @@ class Scout::Nitpicker_graphics_backend : public Graphics_backend
 			_refresh_view(rect);
 		}
 
-		void swap_back_and_front()
+		void swap_back_and_front() override
 		{
 			_flip_state = !_flip_state;
 			_update_viewport();
 		}
 
-		void position(Point p)
+		void position(Point p) override
 		{
 			_position = p;
 			_update_viewport();
 		}
 
-		void bring_to_front()
+		void bring_to_front() override
 		{
 			typedef Nitpicker::Session::Command     Command;
 			typedef Nitpicker::Session::View_handle View_handle;
@@ -166,7 +166,7 @@ class Scout::Nitpicker_graphics_backend : public Graphics_backend
 			_nitpicker.execute();
 		}
 
-		void view_area(Area area)
+		void view_area(Area area) override
 		{
 			_view_size = area;
 		}

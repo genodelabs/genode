@@ -148,7 +148,7 @@ class Scout::User_state : public Parent_element
 		 ** Parent element **
 		 ********************/
 
-		void forget(Element const *e)
+		void forget(Element const *e) override
 		{
 			if (_mfocus == e) _mfocus = 0;
 			if (_active == e) _active = 0;

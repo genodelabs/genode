@@ -223,7 +223,7 @@ class Cli_monitor::Start_command : public Command
 			_subsystem_configs.for_each_config(process_subsystem_config_fn);
 		}
 
-		void execute(Command_line &cmd, Terminal::Session &terminal)
+		void execute(Command_line &cmd, Terminal::Session &terminal) override
 		{
 			char name[128];
 			name[0] = 0;

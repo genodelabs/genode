@@ -265,8 +265,8 @@ class Noux::Pd_session_component : public Rpc_object<Pd_session>
 
 		void transfer_quota(Capability<Pd_session>, Cap_quota) override { }
 
-		Cap_quota cap_quota() const { return _pd.cap_quota(); }
-		Cap_quota used_caps() const { return _pd.used_caps(); }
+		Cap_quota cap_quota() const override { return _pd.cap_quota(); }
+		Cap_quota used_caps() const override { return _pd.used_caps(); }
 
 		Ram_dataspace_capability alloc(size_t size, Cache_attribute cached) override
 		{

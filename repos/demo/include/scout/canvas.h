@@ -93,30 +93,30 @@ class Scout::Canvas : public Canvas_base
 		Canvas(PT *base, Area size, Genode::Allocator &alloc)
 		: _alloc(alloc), _surface(base, size) { }
 
-		Area size() const { return _surface.size(); }
+		Area size() const override { return _surface.size(); }
 
-		Rect clip() const { return _surface.clip(); }
+		Rect clip() const override { return _surface.clip(); }
 
-		void clip(Rect rect) { _surface.clip(rect); }
+		void clip(Rect rect) override { _surface.clip(rect); }
 
-		void draw_string(int x, int y, Font *font, Color color, char const *str, int len)
+		void draw_string(int x, int y, Font *font, Color color, char const *str, int len) override
 		{
 			char buf[len + 1];
 			Genode::strncpy(buf, str, len + 1);
 			Text_painter::paint(_surface, Text_painter::Position(x, y), *font, color, buf);
 		}
 
-		void draw_box(int x, int y, int w, int h, Color c)
+		void draw_box(int x, int y, int w, int h, Color c) override
 		{
 			Box_painter::paint(_surface, Rect(Point(x, y), Area(w, h)), c);
 		}
 
-		void draw_horizontal_shadow(Rect rect, int intensity)
+		void draw_horizontal_shadow(Rect rect, int intensity) override
 		{
 			Horizontal_shadow_painter::paint(_surface, rect, intensity);
 		}
 
-		void draw_icon(Rect rect, Texture_base const &icon, unsigned alpha)
+		void draw_icon(Rect rect, Texture_base const &icon, unsigned alpha) override
 		{
 			Icon_painter::paint(_surface, rect,
 			                    static_cast<Texture<PT> const &>(icon), alpha);
@@ -124,7 +124,7 @@ class Scout::Canvas : public Canvas_base
 
 		void draw_sky_texture(int py,
 		                      Sky_texture_painter::Sky_texture_base const &texture,
-		                      bool detail)
+		                      bool detail) override
 		{
 			Sky_texture_painter::paint(_surface, py, texture, detail);
 		}
@@ -132,7 +132,7 @@ class Scout::Canvas : public Canvas_base
 		void draw_refracted_icon(Point pos,
 		                         Scout::Refracted_icon_painter::Distmap<short> const &distmap,
 		                         Texture_base &tmp, Texture_base const &foreground,
-		                         bool detail, bool filter_backbuf)
+		                         bool detail, bool filter_backbuf) override
 		{
 			using namespace Scout;
 			Refracted_icon_painter::paint(_surface, pos, distmap,
@@ -141,7 +141,7 @@ class Scout::Canvas : public Canvas_base
 			                              detail, filter_backbuf);
 		}
 
-		void draw_texture(Point pos, Texture_base const &texture_base)
+		void draw_texture(Point pos, Texture_base const &texture_base) override
 		{
 			Texture<PT> const &texture = static_cast<Texture<PT> const &>(texture_base);
 
@@ -149,7 +149,7 @@ class Scout::Canvas : public Canvas_base
 			                       Texture_painter::SOLID, true);
 		}
 
-		Texture_base *alloc_texture(Area size, bool has_alpha)
+		Texture_base *alloc_texture(Area size, bool has_alpha) override
 		{
 			using namespace Genode;
 
@@ -163,7 +163,7 @@ class Scout::Canvas : public Canvas_base
 			return new (_alloc) Genode::Texture<PT>(pixel, alpha, size);
 		}
 
-		virtual void free_texture(Texture_base *texture_base)
+		void free_texture(Texture_base *texture_base) override
 		{
 			using namespace Genode;
 
@@ -179,9 +179,9 @@ class Scout::Canvas : public Canvas_base
 			destroy(_alloc, texture);
 		}
 
-		virtual void set_rgba_texture(Texture_base *texture_base,
-		                              unsigned char const *rgba,
-		                              unsigned len, int y)
+		void set_rgba_texture(Texture_base *texture_base,
+		                      unsigned char const *rgba,
+		                      unsigned len, int y) override
 		{
 			Texture<PT> *texture = static_cast<Texture<PT> *>(texture_base);
 

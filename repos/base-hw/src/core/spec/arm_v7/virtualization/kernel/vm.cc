@@ -64,7 +64,7 @@ struct Kernel::Vm_irq : Kernel::Irq
 	/**
 	 * A VM interrupt gets injected into the VM scheduled on the current CPU
 	 */
-	void occurred()
+	void occurred() override
 	{
 		Cpu_job & job = cpu_pool().executing_cpu().scheduled_job();
 		Vm *vm = dynamic_cast<Vm*>(&job);

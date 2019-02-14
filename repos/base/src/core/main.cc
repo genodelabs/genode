@@ -143,7 +143,7 @@ class Core_child : public Child_policy
 		 ** Child-policy interface **
 		 ****************************/
 
-		Name name() const { return "init"; }
+		Name name() const override { return "init"; }
 
 		Route resolve_session_request(Service::Name const &name,
 		                              Session_label const &label) override

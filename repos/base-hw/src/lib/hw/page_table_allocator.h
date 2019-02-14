@@ -110,7 +110,7 @@ class Hw::Page_table_allocator<TABLE_SIZE>::Array<COUNT>::Allocator
 
 		Bit_allocator _free_tables { };
 
-		unsigned _alloc()
+		unsigned _alloc() override
 		{
 			try {
 				return _free_tables.alloc();
@@ -118,7 +118,7 @@ class Hw::Page_table_allocator<TABLE_SIZE>::Array<COUNT>::Allocator
 			throw Out_of_tables();
 		}
 
-		void _free(unsigned idx) { _free_tables.free(idx); }
+		void _free(unsigned idx) override { _free_tables.free(idx); }
 
 	public:
 

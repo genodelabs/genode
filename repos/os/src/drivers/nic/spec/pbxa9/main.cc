@@ -55,7 +55,7 @@ class Root : public Genode::Root_component<Lan9118, Genode::Single_client>
 
 	protected:
 
-		Lan9118 *_create_session(const char *args)
+		Lan9118 *_create_session(const char *args) override
 		{
 			using namespace Genode;
 

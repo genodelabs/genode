@@ -202,12 +202,12 @@ class Window_content : public Scout::Element
 		/**
 		 * Element interface
 		 */
-		void draw(Scout::Canvas_base &canvas, Scout::Point abs_position)
+		void draw(Scout::Canvas_base &canvas, Scout::Point abs_position) override
 		{
 			canvas.draw_texture(abs_position + _position, _fb->texture);
 		}
 
-		void format_fixed_size(Scout::Area size)
+		void format_fixed_size(Scout::Area size) override
 		{
 			_designated_size = size;
 

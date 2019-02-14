@@ -659,14 +659,14 @@ class Audio_out::Session_component : public Audio_out::Session_elem
 			_mixer.remove_session(Session_elem::number, *this);
 		}
 
-		void start()
+		void start() override
 		{
 			Session_rpc_object::start();
 			stream()->pos(_mixer.pos(Session_elem::number));
 			_mixer.report_channels();
 		}
 
-		void stop()
+		void stop() override
 		{
 			Session_rpc_object::stop();
 			_mixer.report_channels();
@@ -687,7 +687,7 @@ class Audio_out::Root : public Audio_out::Root_component
 		Mixer       &_mixer;
 		int          _sessions = { 0 };
 
-		Session_component *_create_session(const char *args)
+		Session_component *_create_session(const char *args) override
 		{
 			using namespace Genode;
 
@@ -727,7 +727,7 @@ class Audio_out::Root : public Audio_out::Root_component
 
 		}
 
-		void _destroy_session(Session_component *session)
+		void _destroy_session(Session_component *session) override
 		{
 			if (--_sessions == 0) _mixer.stop();
 			Genode::destroy(md_alloc(), session);

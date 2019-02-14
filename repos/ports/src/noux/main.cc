@@ -288,7 +288,7 @@ struct Noux::Main
 	{
 		Family_member *init_process = nullptr;
 
-		bool kill(int pid, Noux::Sysio::Signal sig)
+		bool kill(int pid, Noux::Sysio::Signal sig) override
 		{
 			return init_process->deliver_kill(pid, sig);
 		}

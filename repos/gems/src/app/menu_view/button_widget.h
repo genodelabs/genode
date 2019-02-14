@@ -55,7 +55,7 @@ struct Menu_view::Button_widget : Widget, Animator::Item
 		margin = { 4, 4, 4, 4 };
 	}
 
-	void update(Xml_node node)
+	void update(Xml_node node) override
 	{
 		bool const new_hovered  = _enabled(node, "hovered");
 		bool const new_selected = _enabled(node, "selected");
@@ -105,7 +105,7 @@ struct Menu_view::Button_widget : Widget, Animator::Item
 
 	void draw(Surface<Pixel_rgb888> &pixel_surface,
 	          Surface<Pixel_alpha8> &alpha_surface,
-	          Point at) const
+	          Point at) const override
 	{
 		static Scratch_surface<Pixel_rgb888> scratch(_factory.alloc);
 

@@ -118,7 +118,7 @@ class Gpio::Reg : Attached_io_mem_dataspace, Mmio
 			/**
 			 * Implementation of 'Delayer' interface
 			 */
-			void usleep(unsigned us) { Timer::Connection::usleep(us); }
+			void usleep(unsigned us) override { Timer::Connection::usleep(us); }
 
 		} _delayer;
 

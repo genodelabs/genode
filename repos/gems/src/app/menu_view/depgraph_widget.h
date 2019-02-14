@@ -642,7 +642,7 @@ struct Menu_view::Depgraph_widget : Widget
 
 	void draw(Surface<Pixel_rgb888> &pixel_surface,
 	          Surface<Pixel_alpha8> &alpha_surface,
-	          Point at) const
+	          Point at) const override
 	{
 		/* draw connections twice, for the shadow and actual color */
 		_draw_connections(pixel_surface, alpha_surface, at + Point(0, 1), true);

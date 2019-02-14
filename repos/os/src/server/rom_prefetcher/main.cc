@@ -70,9 +70,9 @@ class Rom_prefetcher::Rom_session_component : public Genode::Rpc_object<Genode::
 		 ** ROM session interface **
 		 ***************************/
 
-		Genode::Rom_dataspace_capability dataspace() { return _rom.dataspace(); }
+		Genode::Rom_dataspace_capability dataspace() override { return _rom.dataspace(); }
 
-		void sigh(Genode::Signal_context_capability) { }
+		void sigh(Genode::Signal_context_capability) override { }
 };
 
 
@@ -82,7 +82,7 @@ class Rom_prefetcher::Rom_root : public Genode::Root_component<Rom_session_compo
 
 		Genode::Env &_env;
 
-		Rom_session_component *_create_session(const char *args)
+		Rom_session_component *_create_session(const char *args) override
 		{
 			Genode::Session_label const label = Genode::label_from_args(args);
 

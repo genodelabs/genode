@@ -53,10 +53,10 @@ class Nic::Session_client : public Genode::Rpc_client<Session>
 
 		Mac_address mac_address() override { return call<Rpc_mac_address>(); }
 
-		Tx *tx_channel() { return &_tx; }
-		Rx *rx_channel() { return &_rx; }
-		Tx::Source *tx() { return _tx.source(); }
-		Rx::Sink   *rx() { return _rx.sink(); }
+		Tx *tx_channel() override { return &_tx; }
+		Rx *rx_channel() override { return &_rx; }
+		Tx::Source *tx() override { return _tx.source(); }
+		Rx::Sink   *rx() override { return _rx.sink(); }
 
 		void link_state_sigh(Genode::Signal_context_capability sigh) override
 		{

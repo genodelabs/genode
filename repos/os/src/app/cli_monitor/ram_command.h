@@ -97,7 +97,7 @@ struct Cli_monitor::Ram_command : Command
 		_children.for_each_child_name(child_name_fn);
 	}
 
-	void execute(Command_line &cmd, Terminal::Session &terminal)
+	void execute(Command_line &cmd, Terminal::Session &terminal) override
 	{
 		char label[128];
 		label[0] = 0;

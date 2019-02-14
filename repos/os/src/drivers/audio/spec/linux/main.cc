@@ -245,7 +245,7 @@ class Audio_out::Root : public Audio_out::Root_component
 
 	protected:
 
-		Session_component *_create_session(const char *args)
+		Session_component *_create_session(const char *args) override
 		{
 			char channel_name[16];
 			Channel_number channel_number = INVALID;

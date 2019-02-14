@@ -209,13 +209,13 @@ class Browser_sizer_event_handler : public Scout::Sizer_event_handler
 		/**
 		 * Event handler interface
 		 */
-		void start_drag()
+		void start_drag() override
 		{
 			Sizer_event_handler::start_drag();
 			_ca = _browser_win->curr_anchor();
 		}
 
-		void do_drag()
+		void do_drag() override
 		{
 			Sizer_event_handler::do_drag();
 			_browser_win->go_to(_ca, 0);

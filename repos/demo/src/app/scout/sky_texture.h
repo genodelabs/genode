@@ -40,7 +40,7 @@ class Scout::Sky_texture : public Element
 
 		Sky_texture(bool detailed = true) : _detailed(detailed) { }
 
-		void draw(Canvas_base &canvas, Point abs_position)
+		void draw(Canvas_base &canvas, Point abs_position) override
 		{
 			canvas.draw_sky_texture(abs_position.y(), _sky_texture,
 			                        _detailed);

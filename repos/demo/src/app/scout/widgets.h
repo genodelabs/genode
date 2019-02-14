@@ -78,10 +78,10 @@ class Scout::Docview : public Parent_element
 		/**
 		 * Element interface
 		 */
-		void     format_fixed_width(int);
-		void     draw(Canvas_base &, Point);
-		Element *find(Point);
-		void     geometry(Rect);
+		void     format_fixed_width(int)    override;
+		void     draw(Canvas_base &, Point) override;
+		Element *find(Point)                override;
+		void     geometry(Rect)             override;
 };
 
 
@@ -96,9 +96,9 @@ struct Scout::Horizontal_shadow : Element
 	/**
 	 * Element interface
 	 */
-	void draw(Canvas_base &, Point);
-	Element *find(Point) { return 0; }
-	void format_fixed_width(int w) { _min_size = Area(w, _min_size.h()); }
+	void draw(Canvas_base &, Point) override;
+	Element *find(Point) override { return 0; }
+	void format_fixed_width(int w) override { _min_size = Area(w, _min_size.h()); }
 };
 
 
@@ -158,8 +158,9 @@ class Scout::Icon : public Generic_icon
 		/**
 		 * Generic_icon interface
 		 */
-		int alpha() { return _icon_alpha; }
-		virtual void alpha(int alpha)
+		int alpha() override { return _icon_alpha; }
+
+		void alpha(int alpha) override
 		{
 			_icon_alpha = alpha;
 			refresh();
@@ -168,8 +169,8 @@ class Scout::Icon : public Generic_icon
 		/**
 		 * Element interface
 		 */
-		void draw(Canvas_base &, Point);
-		Element *find(Point);
+		void draw(Canvas_base &, Point) override;
+		Element *find(Point) override;
 };
 
 

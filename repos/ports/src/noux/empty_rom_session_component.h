@@ -47,12 +47,12 @@ class Noux::Empty_rom_session_component : public Rpc_object<Rom_session>
 		 ** ROM session interface **
 		 ***************************/
 
-		Rom_dataspace_capability dataspace()
+		Rom_dataspace_capability dataspace() override
 		{
 			return Rom_dataspace_capability();
 		}
 
-		void sigh(Signal_context_capability) { }
+		void sigh(Signal_context_capability) override { }
 };
 
 #endif /* _NOUX__EMPTY_ROM_SESSION_COMPONENT_H_ */

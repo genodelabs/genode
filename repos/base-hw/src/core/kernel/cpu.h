@@ -96,7 +96,7 @@ class Kernel::Cpu : public Genode::Cpu, private Irq::Pool, private Timeout
 			 **  Irq interface  **
 			 *********************/
 
-			void occurred();
+			void occurred() override;
 		};
 
 		friend void Ipi::occurred(void);

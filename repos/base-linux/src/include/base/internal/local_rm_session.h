@@ -36,13 +36,13 @@ struct Genode::Local_rm_session : Rm_session, Local_session
 		Local_session(id_space, id, *this), md_alloc(md_alloc)
 	{ }
 
-	Capability<Region_map> create(size_t size)
+	Capability<Region_map> create(size_t size) override
 	{
 		Region_map *rm = new (md_alloc) Region_map_mmap(true, size);
 		return Local_capability<Region_map>::local_cap(rm);
 	}
 
-	void destroy(Capability<Region_map> cap)
+	void destroy(Capability<Region_map> cap) override
 	{
 		Region_map *rm = Local_capability<Region_map>::deref(cap);
 		Genode::destroy(md_alloc, rm);

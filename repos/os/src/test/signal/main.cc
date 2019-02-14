@@ -36,7 +36,7 @@ class Sender : Thread
 		unsigned           _submit_cnt { 0 };
 		bool     volatile  _idle       { false };
 
-		void entry()
+		void entry() override
 		{
 			while (!_stop) {
 				if (!_idle) {
@@ -98,7 +98,7 @@ class Handler : Thread
 		unsigned           _activation_cnt { 0 };
 		bool               _idle           { false };
 
-		void entry()
+		void entry() override
 		{
 			while (!_stop) {
 				if (!_idle) {
@@ -320,7 +320,7 @@ struct Synchronized_destruction_test : private Signal_test, Thread
 	Signal_transmitter  transmitter { receiver.manage(&context) };
 	bool                destroyed   { false };
 
-	void entry()
+	void entry() override
 	{
 		receiver.dissolve(&context);
 		log("dissolve finished");
@@ -440,7 +440,7 @@ struct Nested_test : Signal_test
 			test(test), timer(env)
 		{ }
 
-		void entry()
+		void entry() override
 		{
 			timer.msleep(1000);
 
@@ -537,7 +537,7 @@ struct Nested_stress_test : Signal_test
 		Sender(Env &env, char const *name, Signal_context_capability cap)
 		: Thread(env, name, 8*1024), transmitter(cap) { }
 
-		void entry()
+		void entry() override
 		{
 			/* send signals as fast as possible */
 			while (!destruct) { transmitter.submit(); }

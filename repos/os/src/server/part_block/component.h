@@ -174,7 +174,7 @@ class Block::Session_component : public  Block::Session_rpc_object,
 		Ram_dataspace_capability const rq_ds() const { return _rq_ds; }
 		Partition *partition() { return _partition; }
 
-		void dispatch(Packet_descriptor &request, Packet_descriptor &reply)
+		void dispatch(Packet_descriptor &request, Packet_descriptor &reply) override
 		{
 			request.succeeded(reply.succeeded());
 
@@ -217,7 +217,7 @@ class Block::Session_component : public  Block::Session_rpc_object,
 		 *******************************/
 
 		void info(sector_t *blk_count, size_t *blk_size,
-		          Operations *ops)
+		          Operations *ops) override
 		{
 			Operations driver_ops = _driver.ops();
 
@@ -233,7 +233,7 @@ class Block::Session_component : public  Block::Session_rpc_object,
 				ops->set_operation(Opcode::WRITE);
 		}
 
-		void sync() { _driver.session().sync(); }
+		void sync() override { _driver.session().sync(); }
 };
 
 

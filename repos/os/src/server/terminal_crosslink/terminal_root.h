@@ -41,7 +41,7 @@ namespace Terminal_crosslink {
 		public:
 
 			Session_capability session(Root::Session_args const &,
-			                           Genode::Affinity   const &)
+			                           Genode::Affinity   const &) override
 			{
 				if (!(_session_state & FIRST_SESSION_OPEN)) {
 					_session_state |= FIRST_SESSION_OPEN;
@@ -54,9 +54,9 @@ namespace Terminal_crosslink {
 				return Session_capability();
 			}
 
-			void upgrade(Genode::Session_capability, Root::Upgrade_args const &) { }
+			void upgrade(Genode::Session_capability, Root::Upgrade_args const &) override { }
 
-			void close(Genode::Session_capability session)
+			void close(Genode::Session_capability session) override
 			{
 				if (_session_component1.belongs_to(session))
 					_session_state &= ~FIRST_SESSION_OPEN;

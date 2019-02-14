@@ -62,13 +62,13 @@ class Packet_stream_tx::Client : public Genode::Rpc_client<CHANNEL>
 			sigh_ack_avail(_source.sigh_ack_avail());
 		}
 
-		void sigh_ready_to_submit(Genode::Signal_context_capability sigh) {
+		void sigh_ready_to_submit(Genode::Signal_context_capability sigh) override {
 			Base::template call<Rpc_ready_to_submit>(sigh); }
 
-		void sigh_ack_avail(Genode::Signal_context_capability sigh) {
+		void sigh_ack_avail(Genode::Signal_context_capability sigh) override {
 			Base::template call<Rpc_ack_avail>(sigh); }
 
-		typename CHANNEL::Source *source() { return &_source; }
+		typename CHANNEL::Source *source() override { return &_source; }
 };
 
 #endif /* _INCLUDE__PACKET_STREAM_TX__CLIENT_H_ */

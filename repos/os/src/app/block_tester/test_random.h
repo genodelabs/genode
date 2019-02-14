@@ -310,7 +310,7 @@ struct Test::Random : Test_base
 		              _bytes, _rx, _tx, _size, _block_size);
 	}
 
-	char const *name() const { return "random"; }
+	char const *name() const override { return "random"; }
 };
 
 #endif /* _TEST_RANDOM_H_ */

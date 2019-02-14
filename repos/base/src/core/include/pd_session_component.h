@@ -283,12 +283,12 @@ class Genode::Pd_session_component : public Session_object<Pd_session>
 		void transfer_quota(Capability<Pd_session>, Cap_quota) override;
 		void transfer_quota(Capability<Pd_session>, Ram_quota) override;
 
-		Cap_quota cap_quota() const
+		Cap_quota cap_quota() const override
 		{
 			return _cap_account.constructed() ? _cap_account->limit() : Cap_quota { 0 };
 		}
 
-		Cap_quota used_caps() const
+		Cap_quota used_caps() const override
 		{
 			return _cap_account.constructed() ? _cap_account->used() : Cap_quota { 0 };
 		}
@@ -319,7 +319,7 @@ class Genode::Pd_session_component : public Session_object<Pd_session>
 		 ** Platform-specific interface extension **
 		 *******************************************/
 
-		Capability<Native_pd> native_pd() { return _native_pd.cap(); }
+		Capability<Native_pd> native_pd() override { return _native_pd.cap(); }
 };
 
 #endif /* _CORE__INCLUDE__PD_SESSION_COMPONENT_H_ */

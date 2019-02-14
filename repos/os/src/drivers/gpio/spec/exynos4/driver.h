@@ -93,7 +93,7 @@ class Gpio::Odroid_x2_driver : public Driver
 		 **  Gpio::Driver interface  **
 		 ******************************/
 
-		void direction(unsigned gpio_pin, bool input)
+		void direction(unsigned gpio_pin, bool input) override
 		{
 			int           pos_gpio = gpio_bank_index(gpio_pin, true);
 			int           sum_gpio = gpio_bank_index(gpio_pin, false);
@@ -104,7 +104,7 @@ class Gpio::Odroid_x2_driver : public Driver
 			reg->set_direction(gpio, input, offset);
 		}
 
-		void write(unsigned gpio_pin, bool level)
+		void write(unsigned gpio_pin, bool level) override
 		{
 			int           pos_gpio = gpio_bank_index(gpio_pin, true);
 			int           sum_gpio = gpio_bank_index(gpio_pin, false);
@@ -115,7 +115,7 @@ class Gpio::Odroid_x2_driver : public Driver
 			reg->write_pin(gpio, level, offset);
 		}
 
-		bool read(unsigned gpio_pin)
+		bool read(unsigned gpio_pin) override
 		{
 			int           pos_gpio = gpio_bank_index(gpio_pin, true);
 			int           sum_gpio = gpio_bank_index(gpio_pin, false);
@@ -127,13 +127,13 @@ class Gpio::Odroid_x2_driver : public Driver
 
 		}
 
-		void debounce_enable(unsigned /* gpio */, bool /* enable */) {
+		void debounce_enable(unsigned /* gpio */, bool /* enable */) override {
 			Genode::warning("debounce_enable not supported!"); }
 
-		void debounce_time(unsigned /* gpio */, unsigned long /* us */) {
+		void debounce_time(unsigned /* gpio */, unsigned long /* us */) override {
 			Genode::warning("debounce_time not supported!"); }
 
-		void falling_detect(unsigned gpio_pin)
+		void falling_detect(unsigned gpio_pin) override
 		{
 			int           pos_gpio = gpio_bank_index(gpio_pin, true);
 			int           sum_gpio = gpio_bank_index(gpio_pin, false);
@@ -144,7 +144,7 @@ class Gpio::Odroid_x2_driver : public Driver
 			reg->set_enable_triggers(gpio, offset, FALLING);
 		}
 
-		void rising_detect(unsigned gpio_pin)
+		void rising_detect(unsigned gpio_pin) override
 		{
 			int           pos_gpio = gpio_bank_index(gpio_pin, true);
 			int           sum_gpio = gpio_bank_index(gpio_pin, false);
@@ -156,7 +156,7 @@ class Gpio::Odroid_x2_driver : public Driver
 
 		}
 
-		void high_detect(unsigned gpio_pin)
+		void high_detect(unsigned gpio_pin) override
 		{
 			int           pos_gpio = gpio_bank_index(gpio_pin, true);
 			int           sum_gpio = gpio_bank_index(gpio_pin, false);
@@ -168,7 +168,7 @@ class Gpio::Odroid_x2_driver : public Driver
 
 		}
 
-		void low_detect(unsigned gpio_pin)
+		void low_detect(unsigned gpio_pin) override
 		{
 			int           pos_gpio = gpio_bank_index(gpio_pin, true);
 			int           sum_gpio = gpio_bank_index(gpio_pin, false);
@@ -180,24 +180,24 @@ class Gpio::Odroid_x2_driver : public Driver
 
 		}
 
-		void irq_enable(unsigned gpio_pin, bool enable)
+		void irq_enable(unsigned gpio_pin, bool enable) override
 		{
 			_irq_enabled[gpio_pin] = enable;
 		}
 
-		void ack_irq(unsigned /* gpio_pin */)
+		void ack_irq(unsigned /* gpio_pin */) override
 		{
 			_irq.ack_irq();
 		}
 
 		void register_signal(unsigned gpio_pin,
-		                     Genode::Signal_context_capability cap)
+		                     Genode::Signal_context_capability cap) override
 		{
 			_sig_cap[gpio_pin] = cap;
 
 		}
 
-		void unregister_signal(unsigned gpio_pin)
+		void unregister_signal(unsigned gpio_pin) override
 		{
 			Genode::Signal_context_capability cap;
 			_sig_cap[gpio_pin] = cap;
@@ -214,7 +214,7 @@ class Gpio::Odroid_x2_driver : public Driver
 			return pos ? i : sum;
 		}
 
-		bool gpio_valid(unsigned gpio) { return gpio < (MAX_PINS); }
+		bool gpio_valid(unsigned gpio) override { return gpio < (MAX_PINS); }
 };
 
 #endif /* _DRIVER_H_ */

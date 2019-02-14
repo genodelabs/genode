@@ -172,7 +172,7 @@ class Loadbar : public Scout::Parent_element
 		/**
 		 * Element interface
 		 */
-		void format_fixed_width(int w)
+		void format_fixed_width(int w) override
 		{
 			using namespace Scout;
 			_cover.geometry(Rect(Point(0, 0), Area(w, _LH)));
@@ -180,7 +180,7 @@ class Loadbar : public Scout::Parent_element
 			_min_size = Scout::Area(w, _min_size.h());
 		}
 
-		void draw(Scout::Canvas_base &canvas, Scout::Point abs_position)
+		void draw(Scout::Canvas_base &canvas, Scout::Point abs_position) override
 		{
 			Parent_element::draw(canvas, abs_position);
 
@@ -207,7 +207,7 @@ class Loadbar : public Scout::Parent_element
 			canvas.clip(Rect(Point(cx1, cy1), Area(cx2 - cx1 + 1, cy2 - cy1 + 1)));
 		}
 
-		void mfocus(int flag)
+		void mfocus(int flag) override
 		{
 			if (!_active) return;
 

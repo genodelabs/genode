@@ -60,7 +60,7 @@ class Noux::Destruct_queue
 
 				virtual ~Element() { };
 
-				void destroy()
+				void destroy() override
 				{
 					Genode::destroy(_alloc, static_cast<T*>(this));
 				}

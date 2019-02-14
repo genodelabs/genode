@@ -39,7 +39,7 @@ struct Main
 
 		Driver_session(Signal_context_capability sig) : sig(sig) { }
 
-		void ack_packet(Packet_descriptor &, bool success)
+		void ack_packet(Packet_descriptor &, bool success) override
 		{
 			if (!success) {
 				throw Block_operation_failed(); }

@@ -108,7 +108,7 @@ namespace Genode {
 				 */
 				Sigma0();
 
-				int pager(Ipc_pager &) { /* never called */ return -1; }
+				int pager(Ipc_pager &) override { /* never called */ return -1; }
 			};
 
 			/**
@@ -126,7 +126,7 @@ namespace Genode {
 				 */
 				Core_pager(Platform_pd &core_pd);
 
-				int pager(Ipc_pager &) { /* never called */ return -1; }
+				int pager(Ipc_pager &) override { /* never called */ return -1; }
 			};
 
 			/**
@@ -165,9 +165,9 @@ namespace Genode {
 			size_t           vm_size()  const override { return _vm_size; }
 			Rom_fs          &rom_fs()         override { return _rom_fs; }
 
-			size_t max_caps() const { return Capability_space::max_caps(); }
+			size_t max_caps() const override { return Capability_space::max_caps(); }
 
-			void wait_for_exit();
+			void wait_for_exit() override;
 	};
 }
 

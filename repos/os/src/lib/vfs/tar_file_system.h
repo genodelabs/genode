@@ -689,7 +689,7 @@ class Vfs::Tar_file_system : public File_system
 		}
 
 		Openlink_result openlink(char const *path, bool /* create */,
-		                         Vfs_handle **out_handle, Allocator &alloc)
+		                         Vfs_handle **out_handle, Allocator &alloc) override
 		{
 			Node const *node = dereference(path);
 			if (!node || !node->record ||

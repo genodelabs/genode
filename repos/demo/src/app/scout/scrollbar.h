@@ -105,12 +105,12 @@ class Scout::Scrollbar : public Parent_element
 		/**
 		 * Set geometry of scrollbar and layout scrollbar elements
 		 */
-		void geometry(Rect);
+		void geometry(Rect) override;
 
 		/**
 		 * Element interface
 		 */
-		Element *find(Point);
+		Element *find(Point) override;
 };
 
 

@@ -48,7 +48,7 @@ class Status_entry : public Scout::Parent_element
 			_min_size = Scout::Area(_PTW + 100, _min_size.h());
 		}
 
-		void format_fixed_width(int w)
+		void format_fixed_width(int w) override
 		{
 			using namespace Scout;
 

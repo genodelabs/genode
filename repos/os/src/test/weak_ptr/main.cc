@@ -165,7 +165,7 @@ struct Destruct_thread : Genode::Thread
 	O &obj;
 	Genode::Heap & heap;
 
-	void entry()
+	void entry() override
 	{
 		using namespace Genode;
 		log("thread: going to destroy object");

@@ -199,7 +199,7 @@ struct Test::Replay : Test_base
 		              _bytes, _rx, _tx, 0u, _block_size);
 	}
 
-	char const *name() const { return "replay"; }
+	char const *name() const override { return "replay"; }
 };
 
 

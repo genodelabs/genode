@@ -1810,7 +1810,7 @@ class Lwip::File_system final : public Vfs::File_system
 			return Read_result::READ_ERR_INVALID;
 		}
 
-		bool queue_read(Vfs_handle *, file_size) {
+		bool queue_read(Vfs_handle *, file_size) override {
 			return _netif.ready(); }
 
 		bool read_ready(Vfs_handle *vfs_handle) override
@@ -1837,7 +1837,7 @@ class Lwip::File_system final : public Vfs::File_system
 			return false;
 		}
 
-		bool check_unblock(Vfs_handle*, bool, bool, bool)
+		bool check_unblock(Vfs_handle*, bool, bool, bool) override
 		{
 			Genode::error("VFS lwIP: ",__func__," not implemented");
 			return true;

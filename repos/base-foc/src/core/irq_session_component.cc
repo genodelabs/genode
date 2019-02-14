@@ -52,7 +52,7 @@ class Genode::Interrupt_handler : public Thread_deprecated<2048*sizeof(long)>
 
 	public:
 
-		void entry();
+		void entry() override;
 
 		static Fiasco::l4_cap_idx_t handler_cap()
 		{

@@ -32,7 +32,7 @@ struct Cli_monitor::Status_command : Command
 		_children(children), _ram(ram)
 	{ }
 
-	void execute(Command_line &, Terminal::Session &terminal)
+	void execute(Command_line &, Terminal::Session &terminal) override
 	{
 		using Terminal::tprintf;
 

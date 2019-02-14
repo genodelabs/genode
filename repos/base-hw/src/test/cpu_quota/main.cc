@@ -69,7 +69,7 @@ class Counter : public Thread
 		Single_signal                _start_destruction { };
 		Synchronizer                 _synchronizer;
 
-		void entry()
+		void entry() override
 		{
 			unsigned long long volatile value = 0;
 			while (_stage == PAUSE) {

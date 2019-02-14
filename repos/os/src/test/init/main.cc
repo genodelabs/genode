@@ -138,7 +138,7 @@ class Test::Log_session_component : public Rpc_object<Log_session>
 			_label(label), _handler(handler)
 		{ }
 
-		size_t write(String const &string)
+		size_t write(String const &string) override
 		{
 			/* strip known line delimiter from incoming message */
 			unsigned n = 0;
@@ -171,7 +171,7 @@ class Test::Log_root : public Root_component<Log_session_component>
 			Root_component(ep, md_alloc), _handler(handler)
 		{ }
 
-		Log_session_component *_create_session(const char *args, Affinity const &)
+		Log_session_component *_create_session(const char *args, Affinity const &) override
 		{
 			Session_label const label = label_from_args(args);
 

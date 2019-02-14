@@ -79,13 +79,13 @@ class Genode::Vm_session_component
 		void _run(Vcpu_id);
 		void _pause(Vcpu_id);
 
-		void attach(Dataspace_capability, addr_t /* vm_addr */) {
+		void attach(Dataspace_capability, addr_t /* vm_addr */) override {
 			warning("Not implemented for TrustZone case"); }
 
-		void attach_pic(addr_t /* vm_addr */) {
+		void attach_pic(addr_t /* vm_addr */) override {
 			warning("Not implemented for TrustZone case"); }
 
-		void detach(addr_t /* vm_addr */, size_t /* size */) {
+		void detach(addr_t /* vm_addr */, size_t /* size */) override {
 			warning("Not implemented for TrustZone case"); }
 		void _create_vcpu(Thread_capability) {}
 };

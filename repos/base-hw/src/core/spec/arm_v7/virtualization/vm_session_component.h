@@ -88,9 +88,9 @@ class Genode::Vm_session_component
 		void _exception_handler(Signal_context_capability, Vcpu_id);
 		void _run(Vcpu_id);
 		void _pause(Vcpu_id);
-		void attach(Dataspace_capability ds_cap, addr_t vm_addr);
-		void attach_pic(addr_t vm_addr);
-		void detach(addr_t vm_addr, size_t size);
+		void attach(Dataspace_capability, addr_t) override;
+		void attach_pic(addr_t) override;
+		void detach(addr_t, size_t) override;
 		void _create_vcpu(Thread_capability) {}
 };
 

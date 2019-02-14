@@ -89,7 +89,7 @@ class Test_terminal_crosslink::Client : public Partner
 
 		Client(Env &env) : Partner(env, "client") { }
 
-		void entry()
+		void entry() override
 		{
 			log("Short message test");
 
@@ -124,7 +124,7 @@ class Test_terminal_crosslink::Server : public Partner
 
 		Server(Env &env) : Partner(env, "server") { }
 
-		void entry()
+		void entry() override
 		{
 			/* read client text */
 

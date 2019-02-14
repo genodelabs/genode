@@ -147,7 +147,7 @@ class Lx_block_driver : public Block::Driver
 			ack_packet(packet);
 		}
 
-		void sync() { }
+		void sync() override { }
 };
 
 
@@ -173,8 +173,8 @@ struct Main
 		 ** Factory interface **
 		 ***********************/
 
-		Block::Driver *create() { return &*_driver; }
-		void destroy(Block::Driver *) { }
+		Block::Driver *create() override { return &*_driver; }
+		void destroy(Block::Driver *) override { }
 	} factory { _env, _config_rom.xml() };
 
 	Block::Root root { _env.ep(), _heap, _env.rm(), factory,

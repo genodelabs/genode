@@ -109,7 +109,7 @@ struct Depot_download_manager::Main : Import::Download_progress
 	/**
 	 * Download_progress interface
 	 */
-	Info download_progress(Archive::Path const &path) const
+	Info download_progress(Archive::Path const &path) const override
 	{
 		Info result { Info::Bytes(), Info::Bytes() };
 		try {

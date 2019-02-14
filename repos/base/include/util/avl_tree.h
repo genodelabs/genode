@@ -195,12 +195,12 @@ class Genode::Avl_tree : Avl_node<NT>
 		 */
 		class Policy : public Avl_node_base::Policy
 		{
-			bool higher(Avl_node_base *n1, Avl_node_base *n2) const
+			bool higher(Avl_node_base *n1, Avl_node_base *n2) const override
 			{
 				return static_cast<NT *>(n1)->higher(static_cast<NT *>(n2));
 			}
 
-			void recompute(Avl_node_base *node)
+			void recompute(Avl_node_base *node) override
 			{
 				static_cast<NT *>(node)->recompute();
 			}

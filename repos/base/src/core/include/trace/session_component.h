@@ -75,16 +75,16 @@ class Genode::Trace::Session_component
 		Dataspace_capability dataspace();
 		size_t subjects();
 
-		Policy_id alloc_policy(size_t);
-		Dataspace_capability policy(Policy_id);
-		void unload_policy(Policy_id);
-		void trace(Subject_id, Policy_id, size_t);
-		void rule(Session_label const &, Thread_name const &, Policy_id, size_t);
-		void pause(Subject_id);
-		void resume(Subject_id);
-		Subject_info subject_info(Subject_id);
-		Dataspace_capability buffer(Subject_id);
-		void free(Subject_id);
+		Policy_id alloc_policy(size_t) override;
+		Dataspace_capability policy(Policy_id) override;
+		void unload_policy(Policy_id) override;
+		void trace(Subject_id, Policy_id, size_t) override;
+		void rule(Session_label const &, Thread_name const &, Policy_id, size_t) override;
+		void pause(Subject_id) override;
+		void resume(Subject_id) override;
+		Subject_info subject_info(Subject_id) override;
+		Dataspace_capability buffer(Subject_id) override;
+		void free(Subject_id) override;
 };
 
 #endif /* _CORE__INCLUDE__TRACE__SESSION_COMPONENT_H_ */

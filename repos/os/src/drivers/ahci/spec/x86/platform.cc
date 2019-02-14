@@ -142,7 +142,7 @@ struct X86_hba : Platform::Hba
 			});
 	}
 
-	void free_dma_buffer(Genode::Ram_dataspace_capability ds)
+	void free_dma_buffer(Genode::Ram_dataspace_capability ds) override
 	{
 		pci.free_dma_buffer(ds);
 	}

@@ -127,9 +127,9 @@ namespace Genode {
 			 ** Linux-specific dataspace interface **
 			 ****************************************/
 
-			Filename fname() { return _fname; }
+			Filename fname() override { return _fname; }
 
-			Untyped_capability fd()
+			Untyped_capability fd() override
 			{
 				Untyped_capability fd_cap =
 					Capability_space::import(Rpc_destination(_fd), Rpc_obj_key());

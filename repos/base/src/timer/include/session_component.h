@@ -46,7 +46,7 @@ class Timer::Session_component : public  Genode::Rpc_object<Session>,
 		unsigned long const _init_time_us =
 			_timeout_scheduler.curr_time().trunc_to_plain_us().value;
 
-		void handle_timeout(Duration) {
+		void handle_timeout(Duration) override {
 			Genode::Signal_transmitter(_sigh).submit(); }
 
 	public:

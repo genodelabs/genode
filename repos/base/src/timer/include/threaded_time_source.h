@@ -82,7 +82,7 @@ class Timer::Threaded_time_source : public Genode::Time_source,
 		 ** Thread_deprecated **
 		 ***********************/
 
-		void entry()
+		void entry() override
 		{
 			while (true) {
 				_wait_for_irq();

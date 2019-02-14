@@ -138,7 +138,7 @@ class Terminal::Session_component : public Rpc_object<Session, Session_component
 
 		void size_changed_sigh(Signal_context_capability) override { }
 
-		void connected_sigh(Signal_context_capability sigh)
+		void connected_sigh(Signal_context_capability sigh) override
 		{
 			/*
 			 * Immediately reflect connection-established signal to the
@@ -162,7 +162,7 @@ class Terminal::Root_component : public Genode::Root_component<Session_component
 
 	protected:
 
-		Session_component *_create_session(const char *)
+		Session_component *_create_session(const char *) override
 		{
 			size_t const io_buffer_size = 4096;
 			return new (md_alloc()) Session_component(_ram, _rm, io_buffer_size);

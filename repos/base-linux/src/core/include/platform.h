@@ -65,20 +65,20 @@ namespace Genode {
 			 */
 			struct Pseudo_ram_allocator : Range_allocator
 			{
-				bool alloc(size_t, void **out_addr)
+				bool alloc(size_t, void **out_addr) override
 				{
 					*out_addr = 0;
 					return true;
 				}
 
 				Alloc_return alloc_aligned(size_t, void **out_addr, int,
-				                           addr_t, addr_t)
+				                           addr_t, addr_t) override
 				{
 					*out_addr = 0;
 					return Alloc_return::OK;
 				}
 
-				Alloc_return alloc_addr(size_t, addr_t)
+				Alloc_return alloc_addr(size_t, addr_t) override
 				{
 					return Alloc_return::OK;
 				}
@@ -129,7 +129,7 @@ namespace Genode {
 			 */
 			size_t max_caps() const override { return 10000; }
 
-			void wait_for_exit();
+			void wait_for_exit() override;
 	};
 }
 

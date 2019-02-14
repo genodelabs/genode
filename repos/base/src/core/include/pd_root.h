@@ -59,7 +59,7 @@ class Genode::Pd_root : public Genode::Root_component<Genode::Pd_session_compone
 
 	protected:
 
-		Pd_session_component *_create_session(const char *args)
+		Pd_session_component *_create_session(const char *args) override
 		{
 			return new (md_alloc())
 				Pd_session_component(_ep,

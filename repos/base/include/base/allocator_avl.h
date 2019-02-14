@@ -381,7 +381,7 @@ class Genode::Allocator_avl_tpl : public Allocator_avl_base
 			return b && b->used() ? b : 0;
 		}
 
-		int add_range(addr_t base, size_t size)
+		int add_range(addr_t base, size_t size) override
 		{
 			/*
 			 * We disable the slab block allocation while

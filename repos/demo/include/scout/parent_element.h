@@ -71,12 +71,12 @@ class Scout::Parent_element : public Element
 		/**
 		 * Element interface
 		 */
-		void     draw(Canvas_base &, Point);
-		Element *find(Point);
-		Element *find_by_y(int);
-		void     fill_cache(Canvas_base &);
-		void     flush_cache(Canvas_base &);
-		void     geometry(Rect);
+		void     draw(Canvas_base &, Point) override;
+		Element *find(Point)                override;
+		Element *find_by_y(int)             override;
+		void     fill_cache(Canvas_base &)  override;
+		void     flush_cache(Canvas_base &) override;
+		void     geometry(Rect)             override;
 
 		/**
 		 * Execute function on each child

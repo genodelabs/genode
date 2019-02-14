@@ -65,7 +65,7 @@ class Linux_session_component : public Nic::Session_component
 			Rx_signal_thread(Genode::Env &env, int fd, Genode::Signal_context_capability sigh)
 			: Genode::Thread(env, "rx_signal", 0x1000), fd(fd), sigh(sigh) { }
 
-			void entry()
+			void entry() override
 			{
 				while (true) {
 					/* wait for packet arrival on fd */

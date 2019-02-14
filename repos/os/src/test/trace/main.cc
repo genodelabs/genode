@@ -29,7 +29,7 @@ struct Test_thread : Thread
 	Env               &env;
 	Timer::Connection  timer { env };
 
-	void entry()
+	void entry() override
 	{
 		for (unsigned i = 0; ; i++) {
 			if (i & 0x3) {
@@ -123,7 +123,7 @@ struct Test_out_of_metadata
 
 		~Test_thread() { join(); }
 
-		void entry() { }
+		void entry() override { }
 	};
 
 	Test_out_of_metadata(Env &env) : env(env)

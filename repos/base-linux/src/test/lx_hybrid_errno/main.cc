@@ -24,7 +24,7 @@ struct Thread : Genode::Thread_deprecated<STACK_SIZE>
 	Thread(Genode::Lock &barrier)
 	: Genode::Thread_deprecated<STACK_SIZE>("stat"), _barrier(barrier) { start(); }
 
-	void entry()
+	void entry() override
 	{
 		/*
 		 * Stat syscall should return with errno ENOENT

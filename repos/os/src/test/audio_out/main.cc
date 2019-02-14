@@ -69,7 +69,7 @@ class Track : public Thread
 			start();
 		}
 
-		void entry()
+		void entry() override
 		{
 			if (verbose)
 				log(_name, " size is ", _size, " bytes "

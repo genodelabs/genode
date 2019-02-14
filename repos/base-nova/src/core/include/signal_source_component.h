@@ -52,7 +52,7 @@ class Genode::Signal_source_component : public Rpc_object<Nova_signal_source,
 
 		Native_capability blocking_semaphore() const { return _blocking_semaphore; }
 
-		Signal wait_for_signal() { /* unused on NOVA */ return Signal(0, 0); }
+		Signal wait_for_signal() override { /* unused on NOVA */ return Signal(0, 0); }
 
 		void submit(Signal_context_component *, unsigned long) { /* unused on NOVA */ }
 };

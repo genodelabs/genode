@@ -386,7 +386,7 @@ struct Exynos5_hba : Platform::Hba
 		return env.ram().alloc(size, UNCACHED);
 	}
 
-	void free_dma_buffer(Ram_dataspace_capability ds)
+	void free_dma_buffer(Ram_dataspace_capability ds) override
 	{
 		env.ram().free(ds);
 	}

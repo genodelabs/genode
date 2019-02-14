@@ -60,13 +60,13 @@ class Driver : public Block::Driver
 		 **  Block::Driver interface  **
 		 *******************************/
 
-		void session_invalidated() {
+		void session_invalidated() override {
 			while (!_packets.empty()) _packets.get(); }
 
-		Genode::size_t  block_size()  { return _size;   }
-		Block::sector_t block_count() { return _number; }
+		Genode::size_t  block_size()  override { return _size;   }
+		Block::sector_t block_count() override { return _number; }
 
-		Block::Session::Operations ops()
+		Block::Session::Operations ops() override
 		{
 			Block::Session::Operations ops;
 			ops.set_operation(Block::Packet_descriptor::READ);
@@ -77,7 +77,7 @@ class Driver : public Block::Driver
 		void read(Block::sector_t           block_number,
 		          Genode::size_t            block_count,
 		          char                     *buffer,
-		          Block::Packet_descriptor &packet)
+		          Block::Packet_descriptor &packet) override
 		{
 			if (!_packets.avail_capacity())
 				throw Block::Driver::Request_congestion();
@@ -90,7 +90,7 @@ class Driver : public Block::Driver
 		void write(Block::sector_t           block_number,
 		           Genode::size_t            block_count,
 		           const char               *buffer,
-		           Block::Packet_descriptor &packet)
+		           Block::Packet_descriptor &packet) override
 		{
 			if (!_packets.avail_capacity())
 				throw Block::Driver::Request_congestion();

@@ -51,10 +51,10 @@ class Regulator::Session_component : public Regulator::Session_rpc_object
 		 **  Regulator session interface  **
 		 ***********************************/
 
-		void level(unsigned long level) { _driver.level(_id, level);  }
-		unsigned long level()           { return _driver.level(_id);  }
-		void state(bool enable)         { _driver.state(_id, enable); }
-		bool state()                    { return _driver.state(_id);  }
+		void level(unsigned long level) override { _driver.level(_id, level);  }
+		unsigned long level()           override { return _driver.level(_id);  }
+		void state(bool enable)         override { _driver.state(_id, enable); }
+		bool state()                    override { return _driver.state(_id);  }
 };
 
 
@@ -67,7 +67,7 @@ class Regulator::Root :
 
 	protected:
 
-		Session_component *_create_session(const char *args)
+		Session_component *_create_session(const char *args) override
 		{
 			using namespace Genode;
 

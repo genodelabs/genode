@@ -52,11 +52,11 @@ class Terminal::Session_client : public Genode::Rpc_client<Session>
 			_io_buffer(*Genode::env_deprecated()->rm_session(), call<Rpc_dataspace>())
 		{ }
 
-		Size size() { return call<Rpc_size>(); }
+		Size size() override { return call<Rpc_size>(); }
 
-		bool avail() { return call<Rpc_avail>(); }
+		bool avail() override { return call<Rpc_avail>(); }
 
-		Genode::size_t read(void *buf, Genode::size_t buf_size)
+		Genode::size_t read(void *buf, Genode::size_t buf_size) override
 		{
 			Genode::Lock::Guard _guard(_lock);
 
@@ -70,7 +70,7 @@ class Terminal::Session_client : public Genode::Rpc_client<Session>
 			return num_bytes;
 		}
 
-		Genode::size_t write(void const *buf, Genode::size_t num_bytes)
+		Genode::size_t write(void const *buf, Genode::size_t num_bytes) override
 		{
 			Genode::Lock::Guard _guard(_lock);
 
@@ -97,17 +97,17 @@ class Terminal::Session_client : public Genode::Rpc_client<Session>
 			return written_bytes;
 		}
 
-		void connected_sigh(Genode::Signal_context_capability cap)
+		void connected_sigh(Genode::Signal_context_capability cap) override
 		{
 			call<Rpc_connected_sigh>(cap);
 		}
 
-		void read_avail_sigh(Genode::Signal_context_capability cap)
+		void read_avail_sigh(Genode::Signal_context_capability cap) override
 		{
 			call<Rpc_read_avail_sigh>(cap);
 		}
 
-		void size_changed_sigh(Genode::Signal_context_capability cap)
+		void size_changed_sigh(Genode::Signal_context_capability cap) override
 		{
 			call<Rpc_size_changed_sigh>(cap);
 		}

@@ -378,7 +378,7 @@ struct Vfs_server::Symlink : Io_node
 	 ** Node interface **
 	 ********************/
 
-	size_t read(char *dst, size_t len, seek_off_t seek_offset)
+	size_t read(char *dst, size_t len, seek_off_t seek_offset) override
 	{
 		if (seek_offset != 0) {
 			/* partial read is not supported */
@@ -388,7 +388,7 @@ struct Vfs_server::Symlink : Io_node
 		return _read(dst, len, 0);
 	}
 
-	size_t write(char const *src, size_t const len, seek_off_t)
+	size_t write(char const *src, size_t const len, seek_off_t) override
 	{
 		/*
 		 * if the symlink target is too long return a short result

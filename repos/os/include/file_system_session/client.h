@@ -49,7 +49,7 @@ class File_system::Session_client : public Genode::Rpc_client<Session>
 		 ** File-system session interface **
 		 ***********************************/
 
-		Tx::Source *tx() { return _tx.source(); }
+		Tx::Source *tx() override { return _tx.source(); }
 
 		void sigh_ready_to_submit(Genode::Signal_context_capability sigh)
 		{

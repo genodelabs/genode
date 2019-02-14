@@ -35,10 +35,10 @@ struct Main
 
 		Factory(Env &env, Heap &heap) : env(env), heap(heap) { }
 
-		Block::Driver *create() {
+		Block::Driver *create() override {
 			return new (&heap) Sd_card::Driver(env); }
 
-		void destroy(Block::Driver *driver) {
+		void destroy(Block::Driver *driver) override {
 			Genode::destroy(&heap, static_cast<Sd_card::Driver*>(driver)); }
 
 	} factory { env, heap };

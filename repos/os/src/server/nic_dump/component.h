@@ -85,8 +85,8 @@ class Net::Session_component : private Session_component_base,
 		 ** Net::Interface **
 		 ********************/
 
-		Packet_stream_sink   &_sink()   { return *_tx.sink(); }
-		Packet_stream_source &_source() { return *_rx.source(); }
+		Packet_stream_sink   &_sink()   override { return *_tx.sink(); }
+		Packet_stream_source &_source() override { return *_rx.source(); }
 
 	public:
 
@@ -104,9 +104,9 @@ class Net::Session_component : private Session_component_base,
 		 ** Nic::Session **
 		 ******************/
 
-		Mac_address mac_address() { return _uplink.mac_address(); }
-		bool link_state() { return _uplink.link_state(); }
-		void link_state_sigh(Genode::Signal_context_capability sigh) {
+		Mac_address mac_address() override { return _uplink.mac_address(); }
+		bool link_state() override { return _uplink.link_state(); }
+		void link_state_sigh(Genode::Signal_context_capability sigh) override {
 			_link_state_sigh = sigh; }
 };
 
@@ -126,7 +126,7 @@ class Net::Root : public Genode::Root_component<Session_component,
 		 ** Root_component **
 		 ********************/
 
-		Session_component *_create_session(char const *args);
+		Session_component *_create_session(char const *args) override;
 
 	public:
 

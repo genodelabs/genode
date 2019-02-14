@@ -220,7 +220,7 @@ class Genode::Pager_entrypoint : public  Object_pool<Pager_object>,
 		 ** Thread interface **
 		 **********************/
 
-		void entry();
+		void entry() override;
 };
 
 #endif /* _CORE__PAGER_H_ */

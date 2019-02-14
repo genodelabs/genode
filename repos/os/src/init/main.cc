@@ -112,7 +112,7 @@ struct Init::Main : State_reporter::Producer,
 
 	void _handle_resource_avail() { }
 
-	void produce_state_report(Xml_generator &xml, Report_detail const &detail) const
+	void produce_state_report(Xml_generator &xml, Report_detail const &detail) const override
 	{
 		if (detail.init_ram())
 			xml.node("ram",  [&] () { generate_ram_info (xml, _env.pd()); });

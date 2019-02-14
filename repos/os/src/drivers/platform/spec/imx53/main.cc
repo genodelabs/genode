@@ -51,7 +51,7 @@ class Platform::Session_component : public Genode::Rpc_object<Platform::Session>
 		 **  Platform session interface  **
 		 **********************************/
 
-		void enable(Device dev)
+		void enable(Device dev) override
 		{
 			switch (dev) {
 			case Session::IPU:
@@ -78,7 +78,7 @@ class Platform::Session_component : public Genode::Rpc_object<Platform::Session>
 			};
 		}
 
-		void disable(Device dev)
+		void disable(Device dev) override
 		{
 			switch (dev) {
 			case Session::IPU:
@@ -89,7 +89,7 @@ class Platform::Session_component : public Genode::Rpc_object<Platform::Session>
 			};
 		}
 
-		void clock_rate(Device dev, unsigned long /* rate */)
+		void clock_rate(Device dev, unsigned long /* rate */) override
 		{
 			switch (dev) {
 			default:
@@ -97,7 +97,7 @@ class Platform::Session_component : public Genode::Rpc_object<Platform::Session>
 			};
 		}
 
-		Board_revision revision()
+		Board_revision revision() override
 		{
 			switch (_iim.revision()) {
 			case QSB: return QSB;
@@ -121,7 +121,7 @@ class Platform::Root : public Genode::Root_component<Platform::Session_component
 
 	protected:
 
-		Session_component *_create_session(const char *) {
+		Session_component *_create_session(const char *) override {
 			return new (md_alloc()) Session_component(_iim, _iomux, _ccm, _src); }
 
 	public:

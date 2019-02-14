@@ -110,7 +110,7 @@ class Wm::Direct_nitpicker_session : public Genode::Rpc_object<Nitpicker::Sessio
 			_session.buffer(mode, use_alpha);
 		}
 
-		void focus(Genode::Capability<Nitpicker::Session> session)
+		void focus(Genode::Capability<Nitpicker::Session> session) override
 		{
 			_session.focus(session);
 		}

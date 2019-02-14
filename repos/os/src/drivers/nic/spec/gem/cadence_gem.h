@@ -606,13 +606,13 @@ namespace Genode
 			using Nic::Session_component::cap;
 
 
-			void phy_write(const uint8_t phyaddr, const uint8_t regnum, const uint16_t data)
+			void phy_write(const uint8_t phyaddr, const uint8_t regnum, const uint16_t data) override
 			{
 				_phy_setup_op(phyaddr, regnum, data, Phy_maintenance::Operation::WRITE);
 			}
 
 
-			void phy_read(const uint8_t phyaddr, const uint8_t regnum, uint16_t& data)
+			void phy_read(const uint8_t phyaddr, const uint8_t regnum, uint16_t& data) override
 			{
 				_phy_setup_op(phyaddr, regnum, 0, Phy_maintenance::Operation::READ);
 
@@ -664,7 +664,7 @@ namespace Genode
 			 ** Nic::Session_component interface **
 			 **************************************/
 
-			virtual Nic::Mac_address mac_address()
+			virtual Nic::Mac_address mac_address() override
 			{
 				Nic::Mac_address mac;
 				uint32_t* const low_addr_pointer = reinterpret_cast<uint32_t*>(&mac.addr[0]);
@@ -676,7 +676,7 @@ namespace Genode
 				return mac;
 			}
 
-			virtual bool link_state()
+			virtual bool link_state() override
 			{
 				/* XXX return always true for now */
 				return true;

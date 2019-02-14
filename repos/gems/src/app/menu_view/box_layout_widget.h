@@ -128,7 +128,7 @@ struct Menu_view::Box_layout_widget : Widget
 
 	void draw(Surface<Pixel_rgb888> &pixel_surface,
 	          Surface<Pixel_alpha8> &alpha_surface,
-	          Point at) const
+	          Point at) const override
 	{
 		_draw_children(pixel_surface, alpha_surface, at);
 	}

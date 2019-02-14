@@ -224,7 +224,7 @@ class Lx_fs::Session_component : public Session_rpc_object
 		 ** File_system interface **
 		 ***************************/
 
-		File_handle file(Dir_handle dir_handle, Name const &name, Mode mode, bool create)
+		File_handle file(Dir_handle dir_handle, Name const &name, Mode mode, bool create) override
 		{
 			if (!valid_name(name.string()))
 				throw Invalid_name();
@@ -254,13 +254,13 @@ class Lx_fs::Session_component : public Session_rpc_object
 			}
 		}
 
-		Symlink_handle symlink(Dir_handle, Name const &, bool /* create */)
+		Symlink_handle symlink(Dir_handle, Name const &, bool /* create */) override
 		{
 			Genode::error(__func__, " not implemented");
 			throw Permission_denied();
 		}
 
-		Dir_handle dir(Path const &path, bool create)
+		Dir_handle dir(Path const &path, bool create) override
 		{
 			char const *path_str = path.string();
 
@@ -283,7 +283,7 @@ class Lx_fs::Session_component : public Session_rpc_object
 			return Dir_handle { open_dir->id().value };
 		}
 
-		Node_handle node(Path const &path)
+		Node_handle node(Path const &path) override
 		{
 			char const *path_str = path.string();
 
@@ -297,7 +297,7 @@ class Lx_fs::Session_component : public Session_rpc_object
 			return open_node->id();
 		}
 
-		void close(Node_handle handle)
+		void close(Node_handle handle) override
 		{
 			auto close_fn = [&] (Open_node &open_node) {
 				Node &node = open_node.node();
@@ -312,7 +312,7 @@ class Lx_fs::Session_component : public Session_rpc_object
 			}
 		}
 
-		Status status(Node_handle node_handle)
+		Status status(Node_handle node_handle) override
 		{
 			auto status_fn = [&] (Open_node &open_node) {
 				return open_node.node().status();
@@ -325,17 +325,17 @@ class Lx_fs::Session_component : public Session_rpc_object
 			}
 		}
 
-		void control(Node_handle, Control)
+		void control(Node_handle, Control) override
 		{
 			Genode::error(__func__, " not implemented");
 		}
 
-		void unlink(Dir_handle, Name const &)
+		void unlink(Dir_handle, Name const &) override
 		{
 			Genode::error(__func__, " not implemented");
 		}
 
-		void truncate(File_handle file_handle, file_size_t size)
+		void truncate(File_handle file_handle, file_size_t size) override
 		{
 			if (!_writable)
 				throw Permission_denied();
@@ -351,7 +351,7 @@ class Lx_fs::Session_component : public Session_rpc_object
 			}
 		}
 
-		void move(Dir_handle, Name const &, Dir_handle, Name const &)
+		void move(Dir_handle, Name const &, Dir_handle, Name const &) override
 		{
 			Genode::error(__func__, " not implemented");
 		}
@@ -368,7 +368,7 @@ class Lx_fs::Root : public Root_component<Session_component>
 
 	protected:
 
-		Session_component *_create_session(const char *args)
+		Session_component *_create_session(const char *args) override
 		{
 			/*
 			 * Determine client-specific policy defined implicitly by

@@ -40,7 +40,7 @@ class Signal_handler_thread : Thread, Lock
 		 */
 		Constructible<Signal_source_client> _signal_source { };
 
-		void entry()
+		void entry() override
 		{
 			_signal_source.construct(env_deprecated()->pd_session()->alloc_signal_source());
 			unlock();

@@ -72,22 +72,22 @@ class Nitpicker::Canvas : public Canvas_base, public Surface_base::Flusher
 		/**
 		 * Default implementation of Surface_base::Flusher interface
 		 */
-		void flush_pixels(Rect) { }
+		void flush_pixels(Rect) override { }
 
-		Area size() const { return _surface.size(); }
+		Area size() const override { return _surface.size(); }
 
-		Rect clip() const { return _surface.clip(); }
+		Rect clip() const override { return _surface.clip(); }
 
-		void clip(Rect rect) { _surface.clip(rect); }
+		void clip(Rect rect) override { _surface.clip(rect); }
 
-		void draw_box(Rect rect, Color color)
+		void draw_box(Rect rect, Color color) override
 		{
 			Box_painter::paint(_surface, rect, color);
 		}
 
 		void draw_texture(Point pos, Texture_base const &texture_base,
 		                  Texture_painter::Mode mode, Color mix_color,
-		                  bool allow_alpha)
+		                  bool allow_alpha) override
 		{
 			Texture<PT> const &texture = static_cast<Texture<PT> const &>(texture_base);
 			Texture_painter::paint(_surface, texture, mix_color, pos, mode,
@@ -95,7 +95,7 @@ class Nitpicker::Canvas : public Canvas_base, public Surface_base::Flusher
 		}
 
 		void draw_text(Point pos, Font const &font,
-		               Color color, char const *string)
+		               Color color, char const *string) override
 		{
 			Text_painter::paint(_surface, Text_painter::Position(pos.x(), pos.y()),
 			                    font, color, string);

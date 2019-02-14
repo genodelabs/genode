@@ -191,14 +191,14 @@ class Imx_driver : public Gpio::Driver
 		 **  Gpio::Driver interface  **
 		 ******************************/
 
-		void direction(unsigned gpio, bool input)
+		void direction(unsigned gpio, bool input) override
 		{
 			Gpio_reg *gpio_reg = _gpio_bank(gpio)->regs();
 			gpio_reg->write<Gpio_reg::Dir>(input ? 0 : 1,
 			                               _gpio_index(gpio));
 		}
 
-		void write(unsigned gpio, bool level)
+		void write(unsigned gpio, bool level) override
 		{
 			Gpio_reg *gpio_reg = _gpio_bank(gpio)->regs();
 
@@ -206,72 +206,72 @@ class Imx_driver : public Gpio::Driver
 			                                _gpio_index(gpio));
 		}
 
-		bool read(unsigned gpio)
+		bool read(unsigned gpio) override
 		{
 			Gpio_reg *gpio_reg = _gpio_bank(gpio)->regs();
 			return gpio_reg->read<Gpio_reg::Pad_stat>(_gpio_index(gpio));
 		}
 
-		void debounce_enable(unsigned /* gpio */, bool /* enable */)
+		void debounce_enable(unsigned /* gpio */, bool /* enable */) override
 		{
 			Genode::warning("debounce enable not supported");
 		}
 
-		void debounce_time(unsigned /* gpio */, unsigned long /* us */)
+		void debounce_time(unsigned /* gpio */, unsigned long /* us */) override
 		{
 			Genode::warning("debounce time not supported");
 		}
 
-		void falling_detect(unsigned gpio)
+		void falling_detect(unsigned gpio) override
 		{
 			Gpio_reg *gpio_reg = _gpio_bank(gpio)->regs();
 			gpio_reg->write<Gpio_reg::Int_conf>(Gpio_reg::Int_conf::FAL_EDGE,
 			                                    _gpio_index(gpio));
 		}
 
-		void rising_detect(unsigned gpio)
+		void rising_detect(unsigned gpio) override
 		{
 			Gpio_reg *gpio_reg = _gpio_bank(gpio)->regs();
 			gpio_reg->write<Gpio_reg::Int_conf>(Gpio_reg::Int_conf::RIS_EDGE,
 			                                    _gpio_index(gpio));
 		}
 
-		void high_detect(unsigned gpio)
+		void high_detect(unsigned gpio) override
 		{
 			Gpio_reg *gpio_reg = _gpio_bank(gpio)->regs();
 			gpio_reg->write<Gpio_reg::Int_conf>(Gpio_reg::Int_conf::HIGH_LEVEL,
 			                                    _gpio_index(gpio));
 		}
 
-		void low_detect(unsigned gpio)
+		void low_detect(unsigned gpio) override
 		{
 			Gpio_reg *gpio_reg = _gpio_bank(gpio)->regs();
 			gpio_reg->write<Gpio_reg::Int_conf>(Gpio_reg::Int_conf::LOW_LEVEL,
 			                                    _gpio_index(gpio));
 		}
 
-		void irq_enable(unsigned gpio, bool enable)
+		void irq_enable(unsigned gpio, bool enable) override
 		{
 			_gpio_bank(gpio)->irq(_gpio_index(gpio), enable);
 		}
 
-		void ack_irq(unsigned gpio)
+		void ack_irq(unsigned gpio) override
 		{
 			_gpio_bank(gpio)->ack_irq(_gpio_index(gpio));
 		}
 
 		void register_signal(unsigned gpio,
-		                     Genode::Signal_context_capability cap)
+		                     Genode::Signal_context_capability cap) override
 		{
 			_gpio_bank(gpio)->sigh(_gpio_index(gpio), cap); }
 
-		void unregister_signal(unsigned gpio)
+		void unregister_signal(unsigned gpio) override
 		{
 			Genode::Signal_context_capability cap;
 			_gpio_bank(gpio)->sigh(_gpio_index(gpio), cap);
 		}
 
-		bool gpio_valid(unsigned gpio) { return gpio < (MAX_PINS*MAX_BANKS); }
+		bool gpio_valid(unsigned gpio) override { return gpio < (MAX_PINS*MAX_BANKS); }
 };
 
 #endif /* _DRIVERS__GPIO__SPEC__IMX53__DRIVER_H_ */

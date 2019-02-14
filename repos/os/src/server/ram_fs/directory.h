@@ -160,7 +160,7 @@ class Ram_fs::Directory : public Node
 			throw File_system::Lookup_failed();
 		}
 
-		Symlink *lookup_symlink(char const *path)
+		Symlink *lookup_symlink(char const *path) override
 		{
 			Node *node = lookup(path);
 

@@ -34,7 +34,7 @@ class Genode::Trace::Root : public Genode::Root_component<Session_component>
 
 	protected:
 
-		Session_component *_create_session(const char *args)
+		Session_component *_create_session(const char *args) override
 		{
 			size_t ram_quota       = Arg_string::find_arg(args, "ram_quota").ulong_value(0);
 			size_t arg_buffer_size = Arg_string::find_arg(args, "arg_buffer_size").ulong_value(0);

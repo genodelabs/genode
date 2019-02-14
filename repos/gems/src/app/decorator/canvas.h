@@ -87,7 +87,7 @@ class Decorator::Canvas : public Decorator::Canvas_base
 			                    font, color, string);
 		}
 
-		void draw_texture(Point pos, Texture_id id)
+		void draw_texture(Point pos, Texture_id id) override
 		{
 			Genode::Texture<PT> const &texture =
 				static_cast<Genode::Texture<PT> const &>(texture_by_id(id, _ram, _rm));

@@ -120,7 +120,7 @@ class Ps2::Keyboard : public Input_driver
 				 ** Interface of Scan-code state machine **
 				 ******************************************/
 
-				void reset()
+				void reset() override
 				{
 					_state    = READ_FIRST;
 					_ready    = false;
@@ -128,7 +128,7 @@ class Ps2::Keyboard : public Input_driver
 					_key_code = 0;
 				}
 
-				void process(unsigned char v, bool verbose)
+				void process(unsigned char v, bool verbose) override
 				{
 					if (verbose)
 						Genode::log("process ", Genode::Hex(v), " scan code set 1");
@@ -209,10 +209,10 @@ class Ps2::Keyboard : public Input_driver
 					_ready = true;
 				}
 
-				bool ready() const { return _ready; }
-				bool press() const { return _press; }
+				bool ready() const override { return _ready; }
+				bool press() const override { return _press; }
 
-				unsigned int key_code() const
+				unsigned int key_code() const override
 				{
 					return ready() ? _key_code : (unsigned)Input::KEY_UNKNOWN;
 				}
@@ -253,7 +253,7 @@ class Ps2::Keyboard : public Input_driver
 				 ** Interface of Scan-code state machine **
 				 ******************************************/
 
-				void reset()
+				void reset() override
 				{
 					_state    = READ_FIRST;
 					_press    = true;
@@ -263,7 +263,7 @@ class Ps2::Keyboard : public Input_driver
 					_key_code = 0;
 				}
 
-				void process(unsigned char v, bool verbose)
+				void process(unsigned char v, bool verbose) override
 				{
 					if (verbose)
 						Genode::log("process ", Genode::Hex(v), " scan code set 2");
@@ -347,10 +347,10 @@ class Ps2::Keyboard : public Input_driver
 					_key_code = (_extended ? scan_code_set_2_ext : scan_code_set_2)[v];
 				}
 
-				bool ready() const { return _ready; }
-				bool press() const { return _press; }
+				bool ready() const override { return _ready; }
+				bool press() const override { return _press; }
 
-				unsigned int key_code() const
+				unsigned int key_code() const override
 				{
 					return ready() ? _key_code : (unsigned)Input::KEY_UNKNOWN;
 				}
@@ -478,7 +478,7 @@ class Ps2::Keyboard : public Input_driver
 		 ** Input driver interface **
 		 ****************************/
 
-		void handle_event()
+		void handle_event() override
 		{
 			_state_machine->process(_kbd.read(), _verbose.scancodes);
 
@@ -521,7 +521,7 @@ class Ps2::Keyboard : public Input_driver
 			_update_leds();
 		}
 
-		bool event_pending() const { return _kbd.data_read_ready(); }
+		bool event_pending() const override { return _kbd.data_read_ready(); }
 };
 
 #endif /* _DRIVERS__INPUT__SPEC__PS2__PS2_KEYBOARD_H_ */

@@ -64,7 +64,7 @@ class Timer::Time_source : public Threaded_time_source
 		 ** Threaded_time_source **
 		 **************************/
 
-		void _wait_for_irq();
+		void _wait_for_irq() override;
 
 	public:
 

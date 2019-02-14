@@ -31,7 +31,7 @@ namespace Genode {
 
 		protected:
 
-			Io_mem_session_component *_create_session(const char *args)
+			Io_mem_session_component *_create_session(const char *args) override
 			{
 				return new (md_alloc())
 					Io_mem_session_component(_io_mem_alloc, _ram_alloc,

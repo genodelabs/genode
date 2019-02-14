@@ -106,7 +106,7 @@ class Arrow_event_handler : public Event_handler, public Tick
 		/**
 		 * Tick interface
 		 */
-		int on_tick()
+		int on_tick() override
 		{
 			/* accelerate */
 			if (_curr_speed < _dst_speed)

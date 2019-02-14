@@ -371,7 +371,7 @@ struct Ata_driver : Port_driver
 	 ** Block::Driver interface **
 	 *****************************/
 
-	bool dma_enabled() { return true; };
+	bool dma_enabled() override { return true; };
 
 	Block::Session::Operations ops() override
 	{

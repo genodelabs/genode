@@ -120,7 +120,7 @@ class I8042
 					_i8042._read_and_route();
 			}
 
-			unsigned char read()
+			unsigned char read() override
 			{
 				unsigned attempts = MAX_ATTEMPTS;
 				while (empty() && attempts > 0) {
@@ -141,7 +141,7 @@ class I8042
 				return get();
 			}
 
-			void write(unsigned char value)
+			void write(unsigned char value) override
 			{
 				Genode::Lock::Guard guard(_i8042._lock);
 
@@ -151,7 +151,7 @@ class I8042
 				_i8042._data(value);
 			}
 
-			bool data_read_ready()
+			bool data_read_ready() override
 			{
 				flush_read();
 				return !empty();

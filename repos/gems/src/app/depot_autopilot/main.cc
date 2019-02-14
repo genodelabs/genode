@@ -75,7 +75,7 @@ class Depot_deploy::Log_root : public Root_component<Log_session_component>
 			_children_label_prefix { children_label_prefix }
 		{ }
 
-		Log_session_component *_create_session(const char *args, Affinity const &)
+		Log_session_component *_create_session(const char *args, Affinity const &) override
 		{
 			using Name_delimiter = String<5>;
 

@@ -284,13 +284,13 @@ namespace Genode {
 
 			~Rom_session_component() { _ep.dissolve(*this); }
 
-			Rom_dataspace_capability dataspace()
+			Rom_dataspace_capability dataspace() override
 			{
 				Rom_module_lock_guard guard(_rom_module);
 				return _rom_module.fg_dataspace();
 			}
 
-			void sigh(Signal_context_capability sigh)
+			void sigh(Signal_context_capability sigh) override
 			{
 				Rom_module_lock_guard guard(_rom_module);
 				_rom_module.sigh(sigh);

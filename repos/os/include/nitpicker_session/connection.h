@@ -92,7 +92,7 @@ class Nitpicker::Connection : public Genode::Connection<Session>,
 			_input(*Genode::env_deprecated()->rm_session(), input_session())
 		{ }
 
-		void buffer(Framebuffer::Mode mode, bool use_alpha)
+		void buffer(Framebuffer::Mode mode, bool use_alpha) override
 		{
 			Genode::size_t const needed = ram_quota(mode, use_alpha);
 			Genode::size_t const upgrade = needed > _session_quota

@@ -86,7 +86,7 @@ struct Net::Permit_any_rule : Permit_rule
 		 ** log **
 		 *********/
 
-		void print(Genode::Output &output) const;
+		void print(Genode::Output &output) const override;
 };
 
 
@@ -119,7 +119,7 @@ class Net::Permit_single_rule : public  Permit_rule,
 		 ** log **
 		 *********/
 
-		void print(Genode::Output &output) const;
+		void print(Genode::Output &output) const override;
 
 
 		/**************

@@ -50,7 +50,7 @@ class Background_animator : public Scout::Tick
 		/**
 		 * Tick interface
 		 */
-		int on_tick()
+		int on_tick() override
 		{
 			_fb_win.bg_offset(_bg_offset);
 			_bg_offset += 2;

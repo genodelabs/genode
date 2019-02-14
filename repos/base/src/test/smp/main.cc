@@ -158,7 +158,7 @@ namespace Affinity_test {
 		Genode::uint64_t volatile        cnt;
 		Genode::Lock                     barrier;
 
-		void entry()
+		void entry() override
 		{
 			barrier.unlock();
 			Genode::log("Affinity: thread started on CPU ",
@@ -254,7 +254,7 @@ namespace Tlb_shootdown_test {
 		volatile unsigned * values;
 		Genode::Lock        barrier;
 
-		void entry()
+		void entry() override
 		{
 			Genode::log("TLB: thread started on CPU ", cpu_idx);
 			values[cpu_idx] = 1;
