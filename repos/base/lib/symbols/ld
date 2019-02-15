@@ -66,6 +66,8 @@ _ZN6Genode10EntrypointC1ERNS_3EnvE T
 _ZN6Genode10EntrypointC1ERNS_3EnvEmPKc T
 _ZN6Genode10EntrypointC1ERNS_3EnvEmPKcNS_8Affinity8LocationE T
 _ZN6Genode10EntrypointC2ERNS_3EnvEmPKcNS_8Affinity8LocationE T
+_ZN6Genode10EntrypointD1Ev T
+_ZN6Genode10EntrypointD2Ev T
 _ZN6Genode10Ipc_serverC1Ev T
 _ZN6Genode10Ipc_serverC2Ev T
 _ZN6Genode10Ipc_serverD1Ev T

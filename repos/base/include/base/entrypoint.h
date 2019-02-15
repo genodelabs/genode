@@ -122,6 +122,10 @@ class Genode::Entrypoint : Noncopyable
 		bool _wait_and_dispatch_one_io_signal(bool dont_block);
 
 		Constructible<Signal_proxy_thread> _signal_proxy_thread { };
+		bool                               _stop_signal_proxy { false };
+
+		void _handle_stop_signal_proxy() { _stop_signal_proxy = true; }
+		Constructible<Genode::Signal_handler<Entrypoint>> _stop_signal_proxy_handler { };
 
 		friend class Startup;
 
@@ -141,10 +145,7 @@ class Genode::Entrypoint : Noncopyable
 		Entrypoint(Env &env, size_t stack_size, char const *name,
 		           Affinity::Location);
 
-		~Entrypoint()
-		{
-			_rpc_ep->dissolve(&_signal_proxy);
-		}
+		~Entrypoint();
 
 		/**
 		 * Associate RPC object with the entry point

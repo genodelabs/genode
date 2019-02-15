@@ -135,6 +135,11 @@ void Entrypoint::_process_incoming_signals()
 				 */
 				_signal_pending_ack_lock.lock();
 			}
+
+			/* entrypoint destructor requested to stop signal handling */
+			if (_stop_signal_proxy) {
+				 return;
+			}
 		} while (!_suspended);
 
 		_deferred_signal_handler.destruct();
@@ -333,6 +338,7 @@ Entrypoint::Entrypoint(Env &env)
 	_process_incoming_signals();
 }
 
+
 Entrypoint::Entrypoint(Env &env, size_t stack_size, char const *name,
                        Affinity::Location location)
 :
@@ -344,3 +350,14 @@ Entrypoint::Entrypoint(Env &env, size_t stack_size, char const *name,
 	                               Thread::Weight(), env.cpu());
 }
 
+Entrypoint::~Entrypoint()
+{
+	/* stop the signal proxy before destruction */
+	_stop_signal_proxy_handler.construct(
+		*this, *this, &Entrypoint::_handle_stop_signal_proxy);
+	Signal_transmitter(*_stop_signal_proxy_handler).submit();
+	_signal_proxy_thread->join();
+	_stop_signal_proxy_handler.destruct();
+
+	_rpc_ep->dissolve(&_signal_proxy);
+}
