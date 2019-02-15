@@ -20,21 +20,11 @@ MIRROR_FROM_ADA_RT_DIR := \
 		ss_utils.ads \
 	)
 
-#	$(addprefix ada-runtime/src/,\
-		s-stache.ads \
-		s-conca2.ads \
-		s-arit64.ads \
-	)\
-	$(addprefix ada-runtime/contrib/gcc-6.3.0/,\
-		interfac.ads \
-		system.ads \
-	)
-
 content: $(MIRROR_FROM_ADA_RT_DIR)
 
 $(MIRROR_FROM_ADA_RT_DIR):
-	mkdir -p $(dir $@)
-	cp -r $(ADA_RT_DIR)/$@ $@
+	mkdir -p include
+	cp $(ADA_RT_DIR)/$@ include/
 
 MIRROR_FROM_REP_DIR := \
 	lib/import/import-spark.mk \
