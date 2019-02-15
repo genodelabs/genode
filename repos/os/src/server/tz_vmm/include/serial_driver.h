@@ -40,7 +40,8 @@ class Genode::Serial_driver
 
 		void handle_smc(Vm_base &vm);
 
-		Serial_driver(Ram_allocator &ram) : _buf(&ram, BUF_SIZE) { }
+		Serial_driver(Ram_allocator &ram, Region_map &local_rm)
+		: _buf(ram, local_rm, BUF_SIZE) { }
 };
 
 #endif /* _SERIAL_DRIVER_H_ */

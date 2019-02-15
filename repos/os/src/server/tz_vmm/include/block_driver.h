@@ -97,7 +97,7 @@ class Genode::Block_driver
 
 				struct Invalid : Exception { };
 
-				Device(Entrypoint       &ep,
+				Device(Env              &env,
 				       Xml_node          node,
 				       Range_allocator  &alloc,
 				       Id_space<Device> &id_space,
@@ -151,10 +151,10 @@ class Genode::Block_driver
 
 		void handle_smc(Vm_base &vm);
 
-		Block_driver(Entrypoint &ep,
-		             Xml_node    config,
-		             Allocator  &alloc,
-		             Vm_base    &vm);
+		Block_driver(Env       &env,
+		             Xml_node   config,
+		             Allocator &alloc,
+		             Vm_base   &vm);
 };
 
 #endif /* _BLOCK_DRIVER_H_ */

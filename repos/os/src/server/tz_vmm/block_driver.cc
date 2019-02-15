@@ -57,7 +57,7 @@ void Block_driver::Request_cache::remove(void *pkt, void **req)
  ** Block_driver::Device **
  **************************/
 
-Block_driver::Device::Device(Entrypoint       &ep,
+Block_driver::Device::Device(Env              &env,
                              Xml_node          node,
                              Range_allocator  &alloc,
                              Id_space<Device> &id_space,
@@ -66,8 +66,8 @@ Block_driver::Device::Device(Entrypoint       &ep,
 :
 	_vm(vm), _name(node.attribute_value("name", Name())),
 	_irq(node.attribute_value("irq", ~(unsigned)0)),
-	_irq_handler(ep, *this, &Device::_handle_irq),
-	_session(&alloc, TX_BUF_SIZE, _name.string()),
+	_irq_handler(env.ep(), *this, &Device::_handle_irq),
+	_session(env, &alloc, TX_BUF_SIZE, _name.string()),
 	_id_space_elem(*this, id_space, id)
 {
 	if (_name == Name() || _irq == ~(unsigned)0) {
@@ -89,13 +89,13 @@ void Block_driver::Device::start_irq_handling()
  ** Block_driver **
  ******************/
 
-Block_driver::Block_driver(Entrypoint &ep,
-                           Xml_node    config,
-                           Allocator  &alloc,
-                           Vm_base    &vm) : _dev_alloc(&alloc)
+Block_driver::Block_driver(Env       &env,
+                           Xml_node   config,
+                           Allocator &alloc,
+                           Vm_base   &vm) : _dev_alloc(&alloc)
 {
 	config.for_each_sub_node("block", [&] (Xml_node node) {
-		try { new (alloc) Device(ep, node, _dev_alloc, _devs,
+		try { new (alloc) Device(env, node, _dev_alloc, _devs,
 		                         Device::Id { _dev_count++ }, vm); }
 		catch (Device::Invalid) { error("invalid block device"); }
 	});
