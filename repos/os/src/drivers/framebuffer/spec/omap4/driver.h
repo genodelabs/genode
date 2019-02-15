@@ -250,11 +250,13 @@ bool Framebuffer::Driver::_init_hdmi(Framebuffer::addr_t phys_base)
 	_dispc.write<Dispc::Control1::Tv_enable>(1);
 	_dispc.write<Dispc::Control1::Go_tv>(1);
 
-	if (!_dispc.wait_for<Dispc::Control1::Go_tv>(Dispc::Control1::Go_tv::HW_UPDATE_DONE, _delayer)) {
+	try {
+		_dispc.wait_for(_delayer, Dispc::Control1::Go_tv::Equal(Dispc::Control1::Go_tv::HW_UPDATE_DONE));
+	}
+	catch (Dispc::Polling_timeout) {
 		error("Go_tv timed out");
 		return false;
 	}
-
 	return true;
 }
 

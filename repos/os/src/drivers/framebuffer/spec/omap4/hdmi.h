@@ -77,14 +77,28 @@ struct Hdmi : Genode::Mmio
 	{
 		write<Pwr_ctrl::Pll_cmd>(cmd);
 
-		return wait_for<Pwr_ctrl::Pll_status>(cmd, delayer);
+		try {
+			wait_for(delayer, Pwr_ctrl::Pll_status::Equal(cmd));
+		}
+		catch (Polling_timeout) {
+			Genode::error("Pwr_ctrl::Pll_cmd failed");
+			return false;
+		}
+		return true;
 	}
 
 	bool issue_pwr_phy_command(Pwr_ctrl::Phy_cmd_type cmd, Delayer &delayer)
 	{
 		write<Pwr_ctrl::Phy_cmd>(cmd);
 
-		return wait_for<Pwr_ctrl::Phy_status>(cmd, delayer);
+		try {
+			wait_for(delayer, Pwr_ctrl::Phy_status::Equal(cmd));
+		}
+		catch (Polling_timeout) {
+			Genode::error("unexpected Pwr_ctrl::Phy_status");
+			return false;
+		}
+		return true;
 	}
 
 	struct Pll_control : Register<0x200, 32>
@@ -105,8 +119,15 @@ struct Hdmi : Genode::Mmio
 
 	bool wait_until_pll_locked(Delayer &delayer)
 	{
-		return wait_for<Pll_status::Pll_locked>(1, delayer);
-	};
+		try {
+			wait_for(delayer, Pll_status::Pll_locked::Equal(1));
+		}
+		catch (Polling_timeout) {
+			Genode::error("Pll_locked::Pll_locked unexpectedly not set");
+			return false;
+		}
+		return true;
+	}
 
 	struct Pll_go : Register<0x208, 32>
 	{
@@ -118,8 +139,14 @@ struct Hdmi : Genode::Mmio
 		write<Pll_go::Go>(1);
 
 		/* wait for PLL_GO bit change and the PLL reaching locked state */
-		return wait_for<Pll_go::Go>(1, delayer)
-		    && wait_until_pll_locked(delayer);
+		try {
+			wait_for(delayer, Pll_go::Go::Equal(1));
+		}
+		catch (Polling_timeout) {
+			Genode::error("Pll_go::Go unexpectedly not set");
+			return false;
+		}
+		return wait_until_pll_locked(delayer);
 	}
 
 	struct Cfg1 : Register<0x20c, 32>
@@ -147,7 +174,14 @@ struct Hdmi : Genode::Mmio
 	{
 		write<Pll_control::Reset>(0);
 
-		return wait_for<Pll_status::Reset_done>(1, delayer);
+		try {
+			wait_for(delayer, Pll_status::Reset_done::Equal(1));
+		}
+		catch (Polling_timeout) {
+			Genode::error("Pll_status::Reset_done unexpectedly not set");
+			return false;
+		}
+		return true;
 	};
 
 	struct Txphy_tx_ctrl : Register<0x300, 32>
