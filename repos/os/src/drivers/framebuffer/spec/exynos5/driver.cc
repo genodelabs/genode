@@ -102,8 +102,13 @@ class I2c_interface : public Attached_mmio
 			 * Instead of using the signal from the IRQ session we
 			 * busy wait and poll at max 2048 times.
 			 */
-			if (wait_for<Con::Irq_pending>(1, _delayer, 2048, 500)) {
+			try {
+				wait_for(Attempts(2048), Microseconds(500), _delayer,
+				         Con::Irq_pending::Equal(1));
 				_irq.ack_irq();
+			}
+			catch (Polling_timeout) {
+				error("Con::Irq_pending unexpectedly not set");
 			}
 		}
 
@@ -136,10 +141,13 @@ class I2c_interface : public Attached_mmio
 			Start_msg::access_t start = 0;
 			Start_msg::Addr::set(start, slave);
 			Start_msg::Rx::set(start, !tx);
-			if (!wait_for<Stat::Busy>(0, _delayer)) {
-				error("I2C to busy to do transfer");
+
+			try { wait_for(_delayer, Stat::Busy::Equal(0)); }
+			catch (Polling_timeout) {
+				error("I2C too busy to do transfer");
 				return -1;
 			}
+
 			/* enable signal receipt */
 			Con::access_t con = read<Con>();
 			Con::Irq_en::set(con, 1);
@@ -1033,11 +1041,17 @@ class Hdmi : public Attached_mmio
 				error("mode not supported");
 				return -1;
 			}
+
 			/* wait for PHY PLLs to get steady */
-			if (!wait_for<Phy_status_0::Phy_ready>(1, _delayer, 10)) {
+			try {
+				wait_for(Attempts(10), Microseconds(500), _delayer,
+				         Phy_status_0::Phy_ready::Equal(1));
+			}
+			catch (Polling_timeout) {
 				error("HDMI PHY not ready");
 				return -1;
 			}
+
 			/* turn on core and timing generator */
 			write<Con_0::System_en>(1);
 			write<Cmd::Tg_en>(1);
