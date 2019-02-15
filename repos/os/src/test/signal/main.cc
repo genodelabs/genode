@@ -131,6 +131,17 @@ class Handler : Thread
 			Thread::start();
 		}
 
+		~Handler()
+		{
+			Signal_context            context;
+			Signal_context_capability context_cap { _receiver.manage(&context) };
+
+			_stop = true;
+			Signal_transmitter(context_cap).submit();
+			Thread::join();
+			_receiver.dissolve(&context);
+		}
+
 		void print(Output &output) const { Genode::print(output, "handler ", _id); }
 
 		/***************
