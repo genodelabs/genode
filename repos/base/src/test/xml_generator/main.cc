@@ -226,6 +226,22 @@ void Component::construct(Genode::Env &env)
 		}
 	}
 
+	/*
+	 * Test arbitrary content
+	 */
+	{
+		Xml_generator xml(dst, sizeof(dst), "data", [&] () {
+			xml.append_content(" ", 2 + 2, " == 2 + 2 == ", 4.0, " ");
+		});
+
+		Xml_node node(dst);
+		auto s = node.decoded_content<String<32>>();
+		if (s != " 4 == 2 + 2 == 4.0 ") {
+			error("decoded content does not match expect content");
+			return;
+		}
+	}
+
 	log("--- XML generator test finished ---");
 	genode_exit(0);
 }

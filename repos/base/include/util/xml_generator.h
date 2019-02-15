@@ -248,6 +248,16 @@ class Genode::Xml_generator
 					_commit_content(content_buffer);
 				}
 
+				/**
+				 * Append character, sanitize it if needed
+				 */
+				void append_sanitized(char const c)
+				{
+					Out_buffer content_buffer = _content_buffer(false);
+					content_buffer.append_sanitized(c);
+					_commit_content(content_buffer);
+				}
+
 				void append_sanitized(char const *src, size_t src_len)
 				{
 					Out_buffer content_buffer = _content_buffer(false);
@@ -415,6 +425,33 @@ class Genode::Xml_generator
 		void append_sanitized(char const *str, size_t str_len = ~0UL)
 		{
 			_curr_node->append_sanitized(str, str_len == ~0UL ? strlen(str) : str_len);
+		}
+
+		/**
+		 * Append printable objects to XML node as sanitized content
+		 *
+		 * This method must not be followed by calls of 'attribute'.
+		 */
+		template <typename... ARGS>
+		void append_content(ARGS &&... args)
+		{
+			struct Node_output : Genode::Output
+			{
+				Node &node; Node_output(Node &n) : node(n) { }
+
+				/******************************
+				 ** Genode::Output interface **
+				 ******************************/
+
+				void out_char(char c) override {
+					node.append_sanitized(c); }
+
+				void out_string(char const *str, size_t n) override {
+					node.append_sanitized(str, n); }
+
+			} output { *_curr_node };
+
+			Output::out_args(output, args...);
 		}
 
 		size_t used() const { return _out_buffer.used(); }
