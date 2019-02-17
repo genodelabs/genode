@@ -798,13 +798,13 @@ bool create_emt_vcpu(pthread_t * pthread, ::size_t stack,
 		vcpu_handler = new (0x10) Vcpu_handler_vmx(genode_env(),
 		                                           stack, start_routine,
 		                                           arg, cpu_session, location,
-		                                           cpu_id, name, pd_vcpus);
+		                                           cpu_id, name, pd_vcpus.rpc_cap());
 
 	if (svm)
 		vcpu_handler = new (0x10) Vcpu_handler_svm(genode_env(),
 		                                           stack, start_routine,
 		                                           arg, cpu_session, location,
-		                                           cpu_id, name, pd_vcpus);
+		                                           cpu_id, name, pd_vcpus.rpc_cap());
 
 	Assert(!(reinterpret_cast<unsigned long>(vcpu_handler) & 0xf));
 

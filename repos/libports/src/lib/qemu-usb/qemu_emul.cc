@@ -14,7 +14,6 @@
 
 /* Genode includes */
 #include <base/env.h>
-#include <base/printf.h>
 #include <base/log.h>
 #include <util/misc_math.h>
 
@@ -36,7 +35,7 @@ static bool const verbose_iov  = false;
 static bool const verbose_mmio = false;
 
 extern "C" void _type_init_usb_register_types();
-extern "C" void _type_init_usb_host_register_types(Genode::Signal_receiver*,
+extern "C" void _type_init_usb_host_register_types(Genode::Entrypoint*,
                                                    Genode::Allocator*,
                                                    Genode::Env *);
 extern "C" void _type_init_xhci_register_types();
@@ -52,7 +51,7 @@ static Qemu::Pci_device*  _pci_device;
 static Genode::Allocator *_heap = nullptr;
 
 Qemu::Controller *Qemu::usb_init(Timer_queue &tq, Pci_device &pci,
-                                 Genode::Signal_receiver &sig_rec,
+                                 Genode::Entrypoint &ep,
                                  Genode::Allocator &alloc, Genode::Env &env)
 {
 	_heap = &alloc;
@@ -61,7 +60,7 @@ Qemu::Controller *Qemu::usb_init(Timer_queue &tq, Pci_device &pci,
 
 	_type_init_usb_register_types();
 	_type_init_xhci_register_types();
-	_type_init_usb_host_register_types(&sig_rec, &alloc, &env);
+	_type_init_usb_host_register_types(&ep, &alloc, &env);
 
 	return qemu_controller();
 }
@@ -108,10 +107,14 @@ void *memset(void *s, int c, size_t n) {
 
 void q_printf(char const *fmt, ...)
 {
-	va_list va;
-	va_start(va, fmt);
-	Genode::vprintf(fmt, va);
-	va_end(va);
+	enum { BUF_SIZE = 128 };
+	char buf[BUF_SIZE] { };
+	va_list args;
+	va_start(args, fmt);
+	Genode::String_console sc(buf, BUF_SIZE);
+	sc.vprintf(fmt, args);
+	Genode::log(Genode::Cstring(buf));
+	va_end(args);
 }
 
 

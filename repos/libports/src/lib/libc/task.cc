@@ -185,15 +185,6 @@ class Libc::Env_implementation : public Libc::Env
 		void close(Parent::Client::Id id) override {
 			return _env.close(id); }
 
-		/*
-		 * \deprecated
-		 *
-		 * Emulation of deprecated part of the 'Env' interface. To be
-		 * removed once they are removed from 'Genode::Env'.
-		 */
-		Pd_session           &ram()             override { return pd(); }
-		Pd_session_capability ram_session_cap() override { return pd_session_cap(); }
-
 		/* already done by the libc */
 		void exec_static_constructors() override { }
 

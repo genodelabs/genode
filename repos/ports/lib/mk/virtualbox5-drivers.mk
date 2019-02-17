@@ -21,6 +21,7 @@ SRC_CC += network.cpp
 SRC_CC += audio.cc
 
 INC_DIR += $(VBOX_DIR)/Devices/Audio
+INC_DIR += $(call select_from_repositories,src/lib/libc)
 
 vpath network.cpp  $(REP_DIR)/src/virtualbox5
 vpath audio.cc     $(REP_DIR)/src/virtualbox5

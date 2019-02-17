@@ -20,7 +20,6 @@
 #include <platform_session/connection.h>
 #include <input/component.h>
 #include <input/root.h>
-#include <os/server.h>
 
 /* local includes */
 #include <driver.h>

@@ -387,7 +387,7 @@ HRESULT genode_check_memory_config(ComObjPtr<Machine> machine)
 		return rc;
 
 	/* Request max available memory */
-	size_t memory_genode = genode_env().ram().avail_ram().value >> 20;
+	size_t memory_genode = genode_env().pd().avail_ram().value >> 20;
 	size_t memory_vmm    = 28;
 
 	if (memory_vbox + memory_vmm > memory_genode) {

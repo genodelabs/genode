@@ -994,7 +994,7 @@ class Machine : public StaticReceiver<Machine>
 						if (!_pd_vcpus)
 							_pd_vcpus = new Genode::Pd_connection(_env, "VM");
 
-						vcpu_thread = new Vmm::Vcpu_other_pd(&_cpu_session, location, *_pd_vcpus);
+						vcpu_thread = new Vmm::Vcpu_other_pd(&_cpu_session, location, _pd_vcpus->rpc_cap());
 					}
 
 					Vcpu_dispatcher *vcpu_dispatcher =
@@ -1418,7 +1418,7 @@ void Component::construct(Genode::Env &env)
 		Genode::log("--- Vancouver VMM starting ---");
 
 		/* request max available memory */
-		vm_size = env.ram().avail_ram().value;
+		vm_size = env.pd().avail_ram().value;
 		/* reserve some memory for the VMM */
 		vm_size -= 10 * 1024 * 1024;
 		/* calculate max memory for the VM */

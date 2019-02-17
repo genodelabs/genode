@@ -20,7 +20,6 @@
 #include <base/heap.h>
 #include <gpio/component.h>
 #include <gpio/config.h>
-#include <os/server.h>
 
 /* local includes */
 #include <driver.h>

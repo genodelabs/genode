@@ -16,7 +16,6 @@
 #define _INCLUDE__DRIVERS__NIC__GEM__MARVELL_PHY_H_
 
 /* Genode includes */
-#include <base/printf.h>
 #include <os/attached_mmio.h>
 #include <nic_session/nic_session.h>
 #include <timer_session/connection.h>
@@ -483,7 +482,7 @@ namespace Genode
 						}
 
 						if ((i++ % 500) == 0)
-							Genode::printf(".");
+							Genode::log(".");
 						_timer.msleep(1);
 
 						mii_reg = phy_read<Bmsr>();
@@ -525,7 +524,7 @@ namespace Genode
 						}
 
 						if ((i++ % 1000) == 0)
-							Genode::printf(".");
+							Genode::log(".");
 						_timer.msleep(1);
 					}
 					log(" done");

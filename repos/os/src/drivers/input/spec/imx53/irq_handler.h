@@ -21,25 +21,31 @@ class Irq_handler
 {
 	private:
 
-		Genode::Irq_connection                  _irq;
-		Genode::Signal_receiver                 _sig_rec { };
-		Genode::Signal_dispatcher<Irq_handler>  _dispatcher;
+		Genode::Env                        &_env;
+		Genode::Irq_connection              _irq;
+		Genode::Signal_handler<Irq_handler> _handler;
 
-		void _handle(unsigned) { }
+		unsigned _sem_cnt = 1;
 
+		void _handle() { _sem_cnt = 0; }
 
 	public:
 
 		Irq_handler(Genode::Env &env, int irq_number)
 		:
-			_irq(env, irq_number),
-			_dispatcher(_sig_rec, *this, &Irq_handler::_handle)
+			_env(env), _irq(env, irq_number),
+			_handler(env.ep(), *this, &Irq_handler::_handle)
 		{
-			_irq.sigh(_dispatcher);
+			_irq.sigh(_handler);
 			_irq.ack_irq();
 		}
 
-		void wait() { _sig_rec.wait_for_signal(); }
+		void wait()
+		{
+			_sem_cnt++;
+			while (_sem_cnt > 0)
+				_env.ep().wait_and_dispatch_one_io_signal();
+		}
 
 		void ack() { _irq.ack_irq(); }
 };

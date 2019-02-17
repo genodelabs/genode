@@ -41,6 +41,8 @@
 #include <nic/packet_allocator.h>
 #include <base/snprintf.h>
 
+#include <thread_create.h>
+
 /* VBox Genode specific */
 #include "vmm.h"
 
@@ -74,6 +76,17 @@ typedef struct DRVNIC
 } DRVNIC, *PDRVNIC;
 
 
+/**
+ * Return lock to synchronize the destruction of the
+ * PDRVNIC, i.e., the Nic_client.
+ */
+static Genode::Lock *destruct_lock()
+{
+	static Genode::Lock lock(Genode::Lock::LOCKED);
+	return &lock;
+}
+
+
 class Nic_client
 {
 	private:
@@ -85,12 +98,15 @@ class Nic_client
 
 		Nic::Packet_allocator  *_tx_block_alloc;
 		Nic::Connection         _nic;
-		Genode::Signal_receiver _sig_rec;
 
-		Genode::Signal_dispatcher<Nic_client> _link_state_dispatcher;
-		Genode::Signal_dispatcher<Nic_client> _rx_packet_avail_dispatcher;
-		Genode::Signal_dispatcher<Nic_client> _rx_ready_to_ack_dispatcher;
-		Genode::Signal_dispatcher<Nic_client> _destruct_dispatcher;
+		enum { NIC_EP_STACK = 32u << 10, };
+		Genode::Entrypoint      _ep;
+		pthread_t               _pthread;
+
+		Genode::Signal_handler<Nic_client> _link_state_dispatcher;
+		Genode::Signal_handler<Nic_client> _rx_packet_avail_dispatcher;
+		Genode::Signal_handler<Nic_client> _rx_ready_to_ack_dispatcher;
+		Genode::Signal_handler<Nic_client> _destruct_dispatcher;
 
 		bool _link_up = false;
 
@@ -98,7 +114,7 @@ class Nic_client
 		PPDMINETWORKDOWN   _down_rx;
 		PPDMINETWORKCONFIG _down_rx_config;
 
-		void _handle_rx_packet_avail(unsigned)
+		void _handle_rx_packet_avail()
 		{
 			while (_nic.rx()->packet_avail() && _nic.rx()->ready_to_ack()) {
 				Nic::Packet_descriptor rx_packet = _nic.rx()->get_packet();
@@ -116,9 +132,9 @@ class Nic_client
 			}
 		}
 
-		void _handle_rx_ready_to_ack(unsigned) { _handle_rx_packet_avail(0); }
+		void _handle_rx_ready_to_ack() { _handle_rx_packet_avail(); }
 
-		void _handle_link_state(unsigned)
+		void _handle_link_state()
 		{
 			_link_up = _nic.link_state();
 
@@ -127,12 +143,14 @@ class Nic_client
 			                                          : PDMNETWORKLINKSTATE_DOWN);
 		}
 
-		/**
-		 * By handling this signal the I/O thread gets unblocked
-		 * and will leave its loop when the DRVNIC instance is
-		 * being destructed.
-		 */
-		void _handle_destruct(unsigned) { }
+		void _handle_destruct()
+		{
+			_nic.link_state_sigh(Genode::Signal_context_capability());
+			_nic.rx_channel()->sigh_packet_avail(Genode::Signal_context_capability());
+			_nic.rx_channel()->sigh_ready_to_ack(Genode::Signal_context_capability());
+
+			destruct_lock()->unlock();
+		}
 
 		void _tx_ack(bool block = false)
 		{
@@ -161,22 +179,39 @@ class Nic_client
 			return new (vmm_heap()) Nic::Packet_allocator(&vmm_heap());
 		}
 
+		void _handle_pthread_registration()
+		{
+			Genode::Thread *myself = Genode::Thread::myself();
+			if (!myself || Libc::pthread_create(&_pthread, *myself)) {
+				Genode::error("network will not work - thread for pthread "
+				              "registration invalid");
+				return;
+			}
+		}
+
+		Genode::Signal_handler<Nic_client> _pthread_reg_sigh {
+			_ep, *this, &Nic_client::_handle_pthread_registration };
+
 	public:
 
 		Nic_client(Genode::Env &env, PDRVNIC drvtap, char const *label)
 		:
 			_tx_block_alloc(_packet_allocator()),
 			_nic(env, _tx_block_alloc, BUF_SIZE, BUF_SIZE, label),
-			_link_state_dispatcher(_sig_rec, *this, &Nic_client::_handle_link_state),
-			_rx_packet_avail_dispatcher(_sig_rec, *this, &Nic_client::_handle_rx_packet_avail),
-			_rx_ready_to_ack_dispatcher(_sig_rec, *this, &Nic_client::_handle_rx_ready_to_ack),
-			_destruct_dispatcher(_sig_rec, *this, &Nic_client::_handle_destruct),
+			_ep(env, NIC_EP_STACK, "nic_ep", Genode::Affinity::Location()),
+			_link_state_dispatcher(_ep, *this, &Nic_client::_handle_link_state),
+			_rx_packet_avail_dispatcher(_ep, *this, &Nic_client::_handle_rx_packet_avail),
+			_rx_ready_to_ack_dispatcher(_ep, *this, &Nic_client::_handle_rx_ready_to_ack),
+			_destruct_dispatcher(_ep, *this, &Nic_client::_handle_destruct),
 			_down_rx(drvtap->pIAboveNet),
 			_down_rx_config(drvtap->pIAboveConfig)
-		{ }
+		{
+			Genode::Signal_transmitter(_pthread_reg_sigh).submit();
+		}
 
 		~Nic_client()
 		{
+			/* XXX Libc::pthread_free(&_pthread); */
 			destroy(vmm_heap(), _tx_block_alloc);
 		}
 
@@ -187,11 +222,10 @@ class Nic_client
 			_nic.rx_channel()->sigh_ready_to_ack(_rx_ready_to_ack_dispatcher);
 
 			/* set initial link-state */
-			_handle_link_state(1);
+			_handle_link_state();
 		}
 
 		Genode::Signal_context_capability dispatcher()   { return _destruct_dispatcher; }
-		Genode::Signal_receiver           &sig_rec()     { return _sig_rec; }
 		Nic::Mac_address                   mac_address() { return _nic.mac_address(); }
 
 		int send_packet(void *packet, uint32_t packet_len)
@@ -209,17 +243,6 @@ class Nic_client
 			return VINF_SUCCESS;
 		}
 };
-
-
-/**
- * Return lock to synchronize the destruction of the
- * PDRVNIC, i.e., the Nic_client.
- */
-static Genode::Lock *destruct_lock()
-{
-	static Genode::Lock lock(Genode::Lock::LOCKED);
-	return &lock;
-}
 
 
 /** Converts a pointer to Nic::INetworkUp to a PRDVNic. */
@@ -393,58 +416,6 @@ static DECLCALLBACK(int) drvGetMac(PPDMINETWORKCONFIG pInterface, PRTMAC pMac)
 }
 
 
-/**
- * Asynchronous I/O thread for handling receive.
- *
- * @returns VINF_SUCCESS (ignored).
- * @param   Thread          Thread handle.
- * @param   pvUser          Pointer to a DRVNIC structure.
- */
-static DECLCALLBACK(int) drvNicAsyncIoThread(PPDMDRVINS pDrvIns, PPDMTHREAD pThread)
-{
-	PDRVNIC pThis = PDMINS_2_DATA(pDrvIns, PDRVNIC);
-	LogFlow(("drvNicAsyncIoThread: pThis=%p\n", pThis));
-
-	if (pThread->enmState == PDMTHREADSTATE_INITIALIZING)
-		return VINF_SUCCESS;
-
-	Genode::Signal_receiver &sig_rec = pThis->nic_client->sig_rec();
-
-	while (pThread->enmState == PDMTHREADSTATE_RUNNING)
-	{
-		Genode::Signal sig = sig_rec.wait_for_signal();
-		int num            = sig.num();
-
-		Genode::Signal_dispatcher_base *dispatcher;
-		dispatcher = dynamic_cast<Genode::Signal_dispatcher_base *>(sig.context());
-		dispatcher->dispatch(num);
-	}
-
-	destruct_lock()->unlock();
-
-	return VINF_SUCCESS;
-}
-
-
-/**
- * Unblock the asynchronous I/O thread.
- *
- * @returns VBox status code.
- * @param   pDevIns     The pcnet device instance.
- * @param   pThread     The asynchronous I/O thread.
- */
-static DECLCALLBACK(int) drvNicAsyncIoWakeup(PPDMDRVINS pDrvIns, PPDMTHREAD pThread)
-{
-	PDRVNIC pThis = PDMINS_2_DATA(pDrvIns, PDRVNIC);
-	Nic_client *nic_client = pThis->nic_client;
-
-	if (nic_client)
-		Genode::Signal_transmitter(nic_client->dispatcher()).submit();
-
-	return VINF_SUCCESS;
-}
-
-
 /* -=-=-=-=- PDMIBASE -=-=-=-=- */
 
 /**
@@ -549,15 +520,7 @@ static DECLCALLBACK(int) drvNicConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pCfg, uin
 		return VERR_HOSTIF_INIT_FAILED;
 	}
 
-	/*
-	 * Create the asynchronous I/O thread.
-	 */
-	rc = PDMDrvHlpThreadCreate(pDrvIns, &pThis->pThread, pThis,
-	                           drvNicAsyncIoThread, drvNicAsyncIoWakeup,
-	                           128 * _1K, RTTHREADTYPE_IO, "nic_thread");
-	AssertRCReturn(rc, rc);
-
-	return rc;
+	return 0;
 }
 
 

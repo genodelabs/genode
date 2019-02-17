@@ -16,7 +16,7 @@
 
 /* Genode includes */
 #include <util/misc_math.h>
-#include <base/printf.h>
+#include <base/log.h>
 
 /* board-specific includes */
 #include <drivers/defs/rpi.h>
@@ -42,19 +42,19 @@ struct Platform::Framebuffer_message : Framebuffer_info
 
 	void dump(char const *label)
 	{
-		using Genode::printf;
+		using Genode::log;
 
-		printf("%s message:\n", label);
-		printf(" phys_width:  %u\n",     phys_width);
-		printf(" phys_height: %u\n",     phys_height);
-		printf(" virt_width:  %u\n",     virt_width);
-		printf(" virt_height: %u\n",     virt_height);
-		printf(" pitch:       %u\n",     pitch);
-		printf(" depth:       %d\n",     depth);
-		printf(" x_offset:    %d\n",     x_offset);
-		printf(" y_offset:    %d\n",     y_offset);
-		printf(" addr:        0x%08x\n", addr);
-		printf(" size:        0x%08x\n", size);
+		log(label, " message:");
+		log(" phys_width:  ", phys_width);
+		log(" phys_height: ", phys_height);
+		log(" virt_width:  ", virt_width);
+		log(" virt_height: ", virt_height);
+		log(" pitch:       ", pitch);
+		log(" depth:       ", depth);
+		log(" x_offset:    ", x_offset);
+		log(" y_offset:    ", y_offset);
+		log(" addr:        ", Genode::Hex(addr));
+		log(" size:        ", Genode::Hex(size));
 	}
 
 	inline void *operator new (__SIZE_TYPE__, void *ptr) { return ptr; }

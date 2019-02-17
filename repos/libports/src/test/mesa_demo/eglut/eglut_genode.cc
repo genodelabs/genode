@@ -27,7 +27,6 @@
  */
 
 #include <base/heap.h>
-#include <base/printf.h>
 #include <base/debug.h>
 #include <framebuffer_session/connection.h>
 #include <libc/component.h>
@@ -155,7 +154,7 @@ void _eglutNativeEventLoop()
 		if (win->display_cb)
 			win->display_cb();
 
-		if (eglut_win.is_constructed()) {
+		if (eglut_win.constructed()) {
 			eglWaitClient();
 			eglSwapBuffers(_eglut->dpy, win->surface);
 			eglut_win->refresh();

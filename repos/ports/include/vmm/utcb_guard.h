@@ -15,7 +15,6 @@
 #define _INCLUDE__VMM__UTCB_GUARD_H_
 
 /* Genode includes */
-#include <base/printf.h>
 #include <util/string.h>
 
 /* NOVA syscalls */

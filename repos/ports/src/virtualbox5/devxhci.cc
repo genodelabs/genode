@@ -20,6 +20,9 @@
 /* qemu-usb includes */
 #include <qemu/usb.h>
 
+/* libc internal includes */
+#include <thread_create.h>
+
 /* Virtualbox includes */
 #define LOG_GROUP LOG_GROUP_DEV_EHCI
 #include <VBox/pci.h>
@@ -54,7 +57,6 @@ static bool const verbose_timer = false;
  ************************/
 
 struct Timer_queue;
-struct Destruction_helper;
 
 
 struct XHCI
@@ -74,15 +76,11 @@ struct XHCI
 	/** Address of the MMIO region assigned by PCI. */
 	RTGCPHYS32   MMIOBase;
 
-	/** Receiver thread that handles all USB signals. */
-	PPDMTHREAD   pThread;
-
 	PTMTIMERR3        controller_timer;
 	Timer_queue      *timer_queue;
 	Qemu::Controller *ctl;
 
-	Genode::Signal_receiver *usb_sig_rec;
-	Destruction_helper      *destruction_helper;
+	Genode::Entrypoint *usb_ep;
 };
 
 
@@ -317,56 +315,6 @@ struct Pci_device : public Qemu::Pci_device
 };
 
 
-/*************************************
- ** Qemu::Usb signal thread backend **
- *************************************/
-
-struct Destruction_helper
-{
-	Genode::Signal_receiver &sig_rec;
-
-	Genode::Signal_dispatcher<Destruction_helper> dispatcher {
-		sig_rec, *this, &Destruction_helper::handle };
-
-	void handle(unsigned) { }
-
-	Destruction_helper(Genode::Signal_receiver &sig_rec)
-	: sig_rec(sig_rec) { }
-};
-
-
-static DECLCALLBACK(int) usb_signal_thread(PPDMDEVINS pDevIns, PPDMTHREAD pThread)
-{
-	PXHCI pThis = PDMINS_2_DATA(pDevIns, PXHCI);
-	if (pThread->enmState == PDMTHREADSTATE_INITIALIZING)
-		return VINF_SUCCESS;
-
-	while (pThread->enmState == PDMTHREADSTATE_RUNNING)
-	{
-		Genode::Signal sig = pThis->usb_sig_rec->wait_for_signal();
-		int num            = sig.num();
-
-		Genode::Signal_dispatcher_base *dispatcher;
-		dispatcher = dynamic_cast<Genode::Signal_dispatcher_base *>(sig.context());
-		if (dispatcher) {
-			dispatcher->dispatch(num);
-		}
-	}
-
-	return VINF_SUCCESS;
-}
-
-
-static DECLCALLBACK(int) usb_signal_thread_wakeup(PPDMDEVINS pDevIns, PPDMTHREAD pThread)
-{
-	PXHCI pThis = PDMINS_2_DATA(pDevIns, PXHCI);
-
-	Genode::Signal_transmitter(pThis->destruction_helper->dispatcher).submit();
-
-	return VINF_SUCCESS;
-}
-
-
 /***********************************************
  ** Virtualbox Device function implementation **
  ***********************************************/
@@ -451,6 +399,33 @@ static DECLCALLBACK(int) xhciDestruct(PPDMDEVINS pDevIns)
 }
 
 
+struct Usb_ep : Genode::Entrypoint
+{
+	pthread_t _pthread;
+
+	void _handle_pthread_registration()
+	{
+		Genode::Thread *myself = Genode::Thread::myself();
+		if (!myself || Libc::pthread_create(&_pthread, *myself)) {
+			Genode::error("USB passthough will not work - thread for "
+			              "pthread registration invalid");
+		}
+	}
+
+	Genode::Signal_handler<Usb_ep> _pthread_reg_sigh;
+
+	enum { USB_EP_STACK = 32u << 10, };
+
+	Usb_ep(Genode::Env &env)
+	:
+		Entrypoint(env, USB_EP_STACK, "usb_ep", Genode::Affinity::Location()),
+		_pthread_reg_sigh(*this, *this, &Usb_ep::_handle_pthread_registration)
+	{
+		Genode::Signal_transmitter(_pthread_reg_sigh).submit();
+	}
+};
+
+
 /**
  * @interface_method_impl{PDMDEVREG,pfnConstruct,XHCI constructor}
  */
@@ -459,9 +434,7 @@ static DECLCALLBACK(int) xhciR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFG
 	PXHCI pThis = PDMINS_2_DATA(pDevIns, PXHCI);
 	PDMDEV_CHECK_VERSIONS_RETURN(pDevIns);
 
-	pThis->usb_sig_rec        = new (vmm_heap()) Genode::Signal_receiver();
-	pThis->destruction_helper = new (vmm_heap())
-	                                Destruction_helper(*(pThis->usb_sig_rec));
+	pThis->usb_ep = new Usb_ep(genode_env());
 
 	int rc = PDMDevHlpTMTimerCreate(pDevIns, TMCLOCK_VIRTUAL, Timer_queue::tm_timer_cb,
 	                                pThis, TMTIMER_FLAGS_NO_CRIT_SECT,
@@ -471,11 +444,7 @@ static DECLCALLBACK(int) xhciR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFG
 	pThis->timer_queue = &timer_queue;
 	static Pci_device pci_device(pDevIns);
 
-	rc = PDMDevHlpThreadCreate(pDevIns, &pThis->pThread, pThis,
-	                           usb_signal_thread, usb_signal_thread_wakeup,
-	                           32 * 1024 , RTTHREADTYPE_IO, "usb_signal");
-
-	pThis->ctl = Qemu::usb_init(timer_queue, pci_device, *pThis->usb_sig_rec,
+	pThis->ctl = Qemu::usb_init(timer_queue, pci_device, *pThis->usb_ep,
 	                            vmm_heap(), genode_env());
 
 	/*

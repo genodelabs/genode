@@ -21,8 +21,6 @@
 #include <base/attached_io_mem_dataspace.h>
 #include <util/mmio.h>
 
-#include <base/printf.h>
-
 namespace Gpio {
 	class Reg;
 
@@ -72,7 +70,7 @@ struct Gpio::Reg : Attached_io_mem_dataspace, Mmio
 				case 5: write<Int_con::Con5>(value); break;
 				case 6: write<Int_con::Con6>(value); break;
 				case 7: write<Int_con::Con7>(value); break;
-				default: PWRN("Not is valid irq con!");
+				default: warning("Not is valid irq con!");
 			}
 		}
 	};

@@ -95,6 +95,6 @@ void Component::construct(Genode::Env &env)
 	typedef Vcpu_dispatcher<Vmm::Vcpu_other_pd> Vcpu_o;
 
 	static Genode::Pd_connection remote_pd(env, "VM");
-	static Vcpu_o vcpu_o_1(env, Vcpu_o::SVM, "vcpu_o_1", remote_pd);
-	static Vcpu_o vcpu_o_2(env, Vcpu_o::SVM, "vcpu_o_2", remote_pd);
+	static Vcpu_o vcpu_o_1(env, Vcpu_o::SVM, "vcpu_o_1", remote_pd.rpc_cap());
+	static Vcpu_o vcpu_o_2(env, Vcpu_o::SVM, "vcpu_o_2", remote_pd.rpc_cap());
 }

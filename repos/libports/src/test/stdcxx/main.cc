@@ -12,8 +12,6 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#include <base/printf.h>
-
 #include <iostream>
 #include <iomanip>
 #include <sstream>

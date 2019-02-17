@@ -72,6 +72,7 @@ SRC_CC += GuestHost/HGSMI/HGSMICommon.cpp
 SRC_CC += GuestHost/HGSMI/HGSMIMemAlloc.cpp
 
 SRC_CC += devxhci.cc
+INC_DIR += $(call select_from_repositories,src/lib/libc)
 
 INC_DIR += $(VBOX_DIR)/Devices/build
 INC_DIR += $(VBOX_DIR)/Devices/Bus

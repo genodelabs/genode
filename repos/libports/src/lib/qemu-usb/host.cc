@@ -220,14 +220,14 @@ struct Usb_host_device : List<Usb_host_device>::Element
 	Fifo<Isoc_packet>             isoc_read_queue { };
 	Reconstructible<Isoc_packet>  isoc_write_packet { Usb::Packet_descriptor(), nullptr };
 
-	Signal_receiver  &sig_rec;
-	Signal_dispatcher<Usb_host_device> state_dispatcher { sig_rec, *this, &Usb_host_device::state_change };
+	Entrypoint  &_ep;
+	Signal_handler<Usb_host_device> state_dispatcher { _ep, *this, &Usb_host_device::state_change };
 
 	Allocator       &_alloc;
 	Allocator_avl    _usb_alloc { &_alloc };
 	Usb::Connection   usb_raw; //{ &_usb_alloc, label, 1024*1024, state_dispatcher };
 
-	Signal_dispatcher<Usb_host_device> ack_avail_dispatcher { sig_rec, *this, &Usb_host_device::ack_avail };
+	Signal_handler<Usb_host_device> ack_avail_dispatcher { _ep, *this, &Usb_host_device::ack_avail };
 
 	void _release_interfaces()
 	{
@@ -265,13 +265,13 @@ struct Usb_host_device : List<Usb_host_device>::Element
 		return result;
 	}
 
-	Usb_host_device(Signal_receiver &sig_rec, Allocator &alloc,
+	Usb_host_device(Entrypoint &ep, Allocator &alloc,
 	                Env &env, char const *label,
 	                Dev_info info)
 	:
 		label(label), _alloc(alloc),
 		usb_raw(env, &_usb_alloc, label, 6*1024*1024, state_dispatcher),
-		info(info), sig_rec(sig_rec)
+		info(info), _ep(ep)
 	{
 		usb_raw.tx_channel()->sigh_ack_avail(ack_avail_dispatcher);
 
@@ -300,7 +300,7 @@ struct Usb_host_device : List<Usb_host_device>::Element
 		}
 	}
 
-	void ack_avail(unsigned)
+	void ack_avail()
 	{
 		Lock::Guard g(_lock);
 
@@ -461,7 +461,7 @@ struct Usb_host_device : List<Usb_host_device>::Element
 		qemu_dev = nullptr;
 	}
 
-	void state_change(unsigned)
+	void state_change()
 	{
 		Lock::Guard g(_lock);
 		if (usb_raw.plugged())
@@ -876,10 +876,10 @@ static void usb_host_register_types(void)
 
 struct Usb_devices : List<Usb_host_device>
 {
-	Signal_receiver               &_sig_rec;
+	Entrypoint                    &_ep;
 	Env                           &_env;
 	Allocator                     &_alloc;
-	Signal_dispatcher<Usb_devices> _device_dispatcher { _sig_rec, *this, &Usb_devices::_devices_update };
+	Signal_handler<Usb_devices>    _device_dispatcher { _ep, *this, &Usb_devices::_devices_update };
 	Attached_rom_dataspace         _devices_rom = { _env, "usb_devices" };
 
 	void _garbage_collect()
@@ -903,7 +903,7 @@ struct Usb_devices : List<Usb_host_device>
 			fn(*d);
 	}
 
-	void _devices_update(unsigned)
+	void _devices_update()
 	{
 		Lock::Guard g(_lock);
 
@@ -953,7 +953,7 @@ struct Usb_devices : List<Usb_host_device>
 
 			try {
 				Usb_host_device *new_device = new (_alloc)
-					Usb_host_device(_sig_rec, _alloc, _env, label.string(),
+					Usb_host_device(_ep, _alloc, _env, label.string(),
 					                dev_info);
 
 				insert(new_device);
@@ -974,8 +974,8 @@ struct Usb_devices : List<Usb_host_device>
 		_garbage_collect();
 	}
 
-	Usb_devices(Signal_receiver *sig_rec, Allocator &alloc, Env &env)
-	: _sig_rec(*sig_rec), _env(env), _alloc(alloc)
+	Usb_devices(Entrypoint &ep, Allocator &alloc, Env &env)
+	: _ep(ep), _env(env), _alloc(alloc)
 	{
 		_devices_rom.sigh(_device_dispatcher);
 	}
@@ -1005,19 +1005,19 @@ extern "C" void usb_host_update_devices()
 {
 	if (_devices == nullptr) return;
 
-	_devices->_devices_update(0);
+	_devices->_devices_update();
 }
 
 
 /*
  * Do not use type_init macro because of name mangling
  */
-extern "C" void _type_init_usb_host_register_types(Signal_receiver *sig_rec,
+extern "C" void _type_init_usb_host_register_types(Entrypoint *ep,
                                                    Allocator *alloc,
                                                    Env *env)
 {
 	usb_host_register_types();
 
-	static Usb_devices devices(sig_rec, *alloc, *env);
+	static Usb_devices devices(*ep, *alloc, *env);
 	_devices = &devices;
 }

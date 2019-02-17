@@ -21,7 +21,6 @@
 #include <gpio/driver.h>
 #include <irq_session/connection.h>
 #include <timer_session/connection.h>
-#include <os/server.h>
 
 /* local includes */
 #include <board.h>

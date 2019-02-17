@@ -448,7 +448,7 @@ namespace Genode
 				/* Wait till MDIO interface is ready to accept a new transaction. */
 				while (!read<Status::Phy_mgmt_idle>()) {
 					if (timeout <= 0) {
-						PWRN("%s: Timeout\n", __func__);
+						warning(__func__, ": Timeout");
 						throw Phy_timeout_for_idle();
 					}
 
@@ -644,7 +644,7 @@ namespace Genode
 
 				Genode::Packet_descriptor packet = _tx.sink()->get_packet();
 				if (!packet.size()) {
-					PWRN("Invalid tx packet");
+					Genode::warning("Invalid tx packet");
 					return true;
 				}
 

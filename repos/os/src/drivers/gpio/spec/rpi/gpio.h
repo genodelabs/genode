@@ -18,7 +18,6 @@
 #define _DRIVERS__GPIO__SPEC__RPI__GPIO_H_
 
 /* Genode includes */
-#include <base/printf.h>
 #include <base/attached_io_mem_dataspace.h>
 #include <util/mmio.h>
 #include <timer_session/connection.h>

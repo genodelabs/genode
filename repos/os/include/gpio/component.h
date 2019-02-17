@@ -14,7 +14,6 @@
 #ifndef _INCLUDE__GPIO__COMPONENT_H_
 #define _INCLUDE__GPIO__COMPONENT_H_
 
-#include <base/printf.h>
 #include <root/component.h>
 #include <gpio_session/gpio_session.h>
 #include <gpio/driver.h>

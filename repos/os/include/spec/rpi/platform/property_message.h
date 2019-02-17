@@ -16,7 +16,7 @@
 
 /* Genode includes */
 #include <util/misc_math.h>
-#include <base/printf.h>
+#include <base/log.h>
 
 /* board-specific includes */
 #include <drivers/defs/rpi.h>
@@ -207,14 +207,13 @@ struct Platform::Property_message
 	void dump(char const *label)
 	{
 		unsigned const *buf = (unsigned *)this;
-		printf("%s message:\n", label);
+		log(label, " message:");
 		for (unsigned i = 0;; i++) {
 			for (unsigned j = 0; j < 8; j++) {
 				unsigned const msg_word_idx = i*8 + j;
-				printf(" %08x", buf[msg_word_idx]);
+				log(" ", Hex(buf[msg_word_idx]));
 				if (msg_word_idx*sizeof(unsigned) < buf_size)
 					continue;
-				printf("\n");
 				return;
 			}
 		}
