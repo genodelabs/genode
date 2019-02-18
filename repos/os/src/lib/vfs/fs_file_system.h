@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2012-2017 Genode Labs GmbH
+ * Copyright (C) 2012-2019 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -628,6 +628,13 @@ class Vfs::Fs_file_system : public File_system
 		Genode::Io_signal_handler<Fs_file_system> _ready_handler {
 			_env.env().ep(), *this, &Fs_file_system::_ready_to_submit };
 
+		static
+		Genode::size_t buffer_size(Genode::Xml_node const &config)
+		{
+			Genode::Number_of_bytes fs_default { ::File_system::DEFAULT_TX_BUF_SIZE };
+			return config.attribute_value("buffer_size", fs_default);
+		}
+
 	public:
 
 		Fs_file_system(Vfs::Env &env, Genode::Xml_node config)
@@ -638,7 +645,7 @@ class Vfs::Fs_file_system : public File_system
 			_fs(_env.env(), _fs_packet_alloc,
 			    _label.string(), _root.string(),
 			    config.attribute_value("writeable", true),
-			    ::File_system::DEFAULT_TX_BUF_SIZE)
+			    buffer_size(config))
 		{
 			_fs.sigh_ack_avail(_ack_handler);
 			_fs.sigh_ready_to_submit(_ready_handler);
