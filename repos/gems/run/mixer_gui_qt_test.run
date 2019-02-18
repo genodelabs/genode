@@ -79,9 +79,7 @@ append config {
 		</config>
 		<route>
 			<service name="Nitpicker"> <child name="wm"/> </service>
-			<service name="Report" label="shape">
-				<child name="pointer" label="wm -> mixer_gui_qt -> shape"/>
-			</service>
+			<service name="Report" label="shape"> <child name="wm"/> </service>
 			<service name="ROM" label="channel_list"> <child name="dynamic_rom" /> </service>
 			<service name="ROM" label="egl_drv.lib.so"> <parent label="egl_swrast.lib.so" /> </service>
 			<any-service> <parent/> <any-child/> </any-service>

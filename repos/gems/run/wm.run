@@ -74,7 +74,7 @@ install_config {
 	<start name="wm" caps="1000">
 		<resource name="RAM" quantum="32M"/>
 		<binary name="init"/>
-		<provides> <service name="Nitpicker"/> </provides>
+		<provides> <service name="Nitpicker"/> <service name="Report"/> </provides>
 		<route>
 			<service name="ROM" label="config"> <parent label="wm.config"/> </service>
 			<service name="Nitpicker"> <child name="nitpicker"/> </service>

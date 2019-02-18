@@ -156,7 +156,7 @@ proc qt5_start_nodes { feature_arg } {
 		<start name="wm" caps="250">
 			<resource name="RAM" quantum="8M"/>
 			<provides>
-				<service name="Nitpicker"/>
+				<service name="Nitpicker"/> <service name="Report"/>
 			</provides>
 			<config>
 				<policy label_prefix="decorator" role="decorator"/>
@@ -166,6 +166,7 @@ proc qt5_start_nodes { feature_arg } {
 			<route>
 				<service name="ROM" label="focus">          <child name="wm_report_rom"/> </service>
 				<service name="ROM" label="resize_request"> <child name="wm_report_rom"/> </service>
+				<service name="Report" label_last="shape">  <child name="pointer"/>       </service>
 				<service name="Report">                     <child name="wm_report_rom"/> </service>
 				<any-service>
 					<child name="nitpicker"/> <parent/> <any-child/>
