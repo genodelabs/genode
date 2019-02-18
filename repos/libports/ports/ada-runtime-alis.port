@@ -1,0 +1,7 @@
+LICENSE   := CC0 1.0
+VERSION   := 0
+DOWNLOADS := ada-runtime-alis.git
+
+URL(ada-runtime-alis) := https://github.com/Componolit/ada-runtime-alis.git
+REV(ada-runtime-alis) := cf9d8b99c783c080f8be9b39761f80469622b5c6
+DIR(ada-runtime-alis) := ada-runtime-alis
