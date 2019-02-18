@@ -21,4 +21,6 @@ namespace Libc {
 	                   void *(*start_routine) (void *), void *arg,
 	                   size_t stack_size, char const * name,
 	                   Genode::Cpu_session * cpu, Genode::Affinity::Location location);
+
+	int pthread_create(pthread_t *, Genode::Thread &);
 }

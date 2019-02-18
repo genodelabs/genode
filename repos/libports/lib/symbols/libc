@@ -948,6 +948,7 @@ _ZN16Pthread_registry6insertEP7pthread T
 _ZN16Pthread_registry6removeEP7pthread T
 _ZN16Pthread_registry8containsEP7pthread T
 _ZN4Libc14pthread_createEPP7pthreadPFPvS3_ES3_mPKcPN6Genode11Cpu_sessionENS8_8Affinity8LocationE T
+_ZN4Libc14pthread_createEPP7pthreadRN6Genode6ThreadE T
 
 #
 # Libc plugin interface

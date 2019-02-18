@@ -37,6 +37,18 @@ int Libc::pthread_create(pthread_t *thread,
 }
 
 
+int Libc::pthread_create(pthread_t *thread, Genode::Thread &t)
+{
+		pthread_t thread_obj = new pthread(t);
+
+		if (!thread_obj)
+			return EAGAIN;
+
+		*thread = thread_obj;
+		return 0;
+}
+
+
 extern "C"
 {
 	int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
