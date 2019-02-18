@@ -130,15 +130,17 @@ append config {
 			<service name="ROM" label="capslock"> <child name="dynamic_rom"/> </service>
 			<service name="ROM" label="numlock">  <child name="dynamic_rom"/> </service>
 			<service name="ROM" label="scrlock">  <child name="dynamic_rom"/> </service>
-			<service name="ROM">      <parent/>    </service>
-			<service name="CPU">      <parent/>    </service>
-			<service name="PD">       <parent/>    </service>
-			<service name="IO_PORT">  <parent/>    </service>
-			<service name="IO_MEM">   <parent/>    </service>
-			<service name="LOG">      <parent/>    </service>
-			<service name="RM">      <parent/>    </service>
-			<service name="Platform"> <any-child/> </service>
-			<service name="Timer"> <child name="timer"/> </service>
+			<service name="ROM">       <parent/>    </service>
+			<service name="CPU">       <parent/>    </service>
+			<service name="PD">        <parent/>    </service>
+			<service name="IO_PORT">   <parent/>    </service>
+			<service name="IO_MEM">    <parent/>    </service>
+			<service name="IRQ">       <parent/>    </service>
+			<service name="LOG">       <parent/>    </service>
+			<service name="RM">        <parent/>    </service>
+			<service name="Platform">  <any-child/> </service>
+			<service name="Regulator"> <child name="platform_drv"/> </service>
+			<service name="Timer">     <child name="timer"/> </service>
 		</route>
 	</start>
 
@@ -215,7 +217,7 @@ run_genode_until {\[init -\> test-input\] Input event #11.*\n} 40 [output_spawn_
 grep_output {^\[init }
 
 unify_output { number [0-9]+} ""
-unify_output {(?n)on usb-dummy.*$} ""
+unify_output {(?n)on usb-.*$} ""
 unify_output {(?n)using .*$} ""
 unify_output {(?n)^.*__wait_event.*$} ""
 unify_output {(?n)^.*Failed to submit URB.*$} ""
