@@ -26,8 +26,8 @@ namespace Wand_quad {
 
 	enum {
 		/* normal RAM */
-		RAM0_BASE = 0x10000000,
-		RAM0_SIZE = 0x80000000,
+		RAM_BASE = 0x10000000,
+		RAM_SIZE = 0x80000000,
 	};
 };
 
