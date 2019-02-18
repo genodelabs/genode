@@ -40,7 +40,11 @@ QPlatformIntegration *QNitpickerIntegrationPlugin::create(const QString& system,
 	Q_UNUSED(paramList);
 	if (system.toLower() == "nitpicker") {
 		assert(_env != nullptr);
-		return new QNitpickerIntegration(*_env);
+		Genode::Entrypoint *signal_ep =
+			new Genode::Entrypoint(*_env, 2*1024*sizeof(Genode::addr_t),
+			                       "QPA signal handler",
+			                       Genode::Affinity::Location());
+		return new QNitpickerIntegration(*_env, *signal_ep);
 	}
 
 	return 0;

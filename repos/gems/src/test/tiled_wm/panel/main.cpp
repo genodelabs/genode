@@ -21,11 +21,12 @@ struct Main
 {
 	Libc::Env &env;
 
-	Genode_signal_dispatcher dispatcher { env };
+	Genode::Entrypoint signal_ep { env, 0x4000, "signal ep",
+	                               Genode::Affinity::Location() };
 
 	QApplication &app { qt5_initialization(env) };
 
-	QMember<Panel> widget { env, dispatcher.signal_receiver() };
+	QMember<Panel> widget { env, signal_ep };
 
 	Main(Libc::Env &env) : env(env)
 	{

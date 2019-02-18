@@ -33,7 +33,7 @@ class QGenodeClipboard : public QPlatformClipboard
 	private:
 
 		Genode::Attached_rom_dataspace              *_clipboard_ds = nullptr;
-		Genode::Signal_dispatcher<QGenodeClipboard>  _clipboard_signal_dispatcher;
+		Genode::Signal_handler<QGenodeClipboard>     _clipboard_signal_handler;
 
 		Genode::Reporter *_clipboard_reporter = nullptr;
 
@@ -41,11 +41,11 @@ class QGenodeClipboard : public QPlatformClipboard
 
 		QMember<QMimeData> _mimedata;
 
-		void _handle_clipboard(unsigned int);
+		void _handle_clipboard();
 
 	public:
 
-		QGenodeClipboard(Genode::Env &env, Genode::Signal_receiver &sig_rcv);
+		QGenodeClipboard(Genode::Env &env, Genode::Entrypoint &sig_ep);
 		~QGenodeClipboard();
 		QMimeData *mimeData(QClipboard::Mode mode = QClipboard::Clipboard);
 		void setMimeData(QMimeData *data, QClipboard::Mode mode = QClipboard::Clipboard);

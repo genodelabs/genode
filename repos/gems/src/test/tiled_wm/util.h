@@ -41,25 +41,25 @@ typedef Genode::String<32> Name;
  * Genode signal to queued Qt signal proxy
  */
 class Genode_signal_proxy : public QObject,
-                            public Genode::Signal_dispatcher<Genode_signal_proxy>
+                            public Genode::Signal_handler<Genode_signal_proxy>
 {
 	Q_OBJECT
 
 	public:
 
-		Genode_signal_proxy(Genode::Signal_receiver &sig_rec)
+		Genode_signal_proxy(Genode::Entrypoint &sig_ep)
 		:
-			Genode::Signal_dispatcher<Genode_signal_proxy>(
-				sig_rec, *this, &Genode_signal_proxy::handle_genode_signal)
+			Genode::Signal_handler<Genode_signal_proxy>(
+				sig_ep, *this, &Genode_signal_proxy::handle_genode_signal)
 		{
 			connect(this, SIGNAL(internal_signal()),
 			        this, SIGNAL(signal()),
 			        Qt::QueuedConnection);
 		}
 
-	/* called by signal dispatcher / emits internal signal in context of
-	 * signal-dispatcher thread */
-	void handle_genode_signal(unsigned = 0) { Q_EMIT internal_signal(); }
+	/* called by signal handler / emits internal signal in context of
+	 * signal-entrypoint thread */
+	void handle_genode_signal() { Q_EMIT internal_signal(); }
 
 	Q_SIGNALS:
 
@@ -68,41 +68,6 @@ class Genode_signal_proxy : public QObject,
 
 		/* finally signal() is emitted in the context of the Qt main thread */
 		void signal();
-};
-
-
-/*
- * Genode signal dispatcher thread
- */
-class Genode_signal_dispatcher : public Genode::Thread
-{
-	private:
-
-		Genode::Signal_receiver _sig_rec;
-
-		void entry()
-		{
-			/* dispatch signals */
-			while (true) {
-				Genode::Signal sig = _sig_rec.wait_for_signal();
-				Genode::Signal_dispatcher_base *dispatcher {
-					dynamic_cast<Genode::Signal_dispatcher_base *>(sig.context()) };
-
-				if (dispatcher)
-					dispatcher->dispatch(sig.num());
-			}
-		}
-
-	public:
-
-		Genode_signal_dispatcher(Genode::Env &env)
-		:
-			Genode::Thread(env, "signal_dispatcher", 0x4000)
-		{
-			start();
-		}
-
-		Genode::Signal_receiver &signal_receiver() { return _sig_rec; }
 };
 
 

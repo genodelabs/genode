@@ -40,15 +40,6 @@ struct Qt_launchpad_namespace::Local_env : Genode::Env
 	Pd_session_capability pd_session_cap()   override { return genode_env.pd_session_cap(); }
 	Id_space<Parent::Client> &id_space()     override { return genode_env.id_space(); }
 
-	/*
-	 * \deprecated
-	 *
-	 * Emulation of deprecated part of the 'Env' interface. To be
-	 * removed once they are removed from 'Genode::Env'.
-	 */
-	Pd_session           &ram()             override { return pd(); }
-	Pd_session_capability ram_session_cap() override { return pd_session_cap(); }
-
 	Session_capability session(Parent::Service_name const &service_name,
 	                           Parent::Client::Id id,
 	                           Parent::Session_args const &session_args,
@@ -88,7 +79,7 @@ void Libc::Component::construct(Libc::Env &env)
 
 		QApplication a(argc, (char**)argv);
 
-		Qt_launchpad launchpad(local_env, env.ram().avail_ram().value);
+		Qt_launchpad launchpad(local_env, env.pd().avail_ram().value);
 
 		Genode::Attached_rom_dataspace config(env, "config");
 

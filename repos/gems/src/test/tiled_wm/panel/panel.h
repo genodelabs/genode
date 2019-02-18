@@ -77,7 +77,7 @@ class App_bar : public Compound_widget<QWidget, QHBoxLayout>
 
 	public:
 
-		App_bar(Genode::Env &, Genode::Signal_receiver &);
+		App_bar(Genode::Env &, Genode::Entrypoint &);
 		~App_bar();
 };
 
@@ -102,7 +102,7 @@ class Panel : public Compound_widget<QWidget, QHBoxLayout>
 
 	public:
 
-		Panel(Genode::Env &, Genode::Signal_receiver &);
+		Panel(Genode::Env &, Genode::Entrypoint &);
 		~Panel();
 };
 
