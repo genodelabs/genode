@@ -28,19 +28,12 @@ QT_BEGIN_NAMESPACE
 
 static const bool verbose = false;
 
-Genode::Signal_receiver &QNitpickerIntegration::_signal_receiver()
-{
-	static Genode::Signal_receiver _inst;
-	return _inst;
-}
 
-QNitpickerIntegration::QNitpickerIntegration(Genode::Env &env)
+QNitpickerIntegration::QNitpickerIntegration(Genode::Env &env,
+                                             Genode::Entrypoint &signal_ep)
 : _env(env),
-  _signal_handler_thread(_signal_receiver()),
-  _nitpicker_screen(new QNitpickerScreen(env))
-{
-    _signal_handler_thread.start();
-}
+  _signal_ep(signal_ep),
+  _nitpicker_screen(new QNitpickerScreen(env)) { }
 
 
 bool QNitpickerIntegration::hasCapability(QPlatformIntegration::Capability cap) const
@@ -59,7 +52,7 @@ QPlatformWindow *QNitpickerIntegration::createPlatformWindow(QWindow *window) co
 
     QRect screen_geometry = _nitpicker_screen->geometry();
     return new QNitpickerPlatformWindow(_env, window,
-                                        _signal_receiver(),
+                                        _signal_ep,
                                         screen_geometry.width(),
                                         screen_geometry.height());
 }
@@ -102,7 +95,7 @@ QPlatformFontDatabase *QNitpickerIntegration::fontDatabase() const
 #ifndef QT_NO_CLIPBOARD
 QPlatformClipboard *QNitpickerIntegration::clipboard() const
 {
-	static QGenodeClipboard cb(_env, _signal_receiver());
+	static QGenodeClipboard cb(_env, _signal_ep);
 	return &cb;
 }
 #endif

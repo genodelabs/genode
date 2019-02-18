@@ -27,8 +27,8 @@ QT_BEGIN_NAMESPACE
 static constexpr bool verbose = false;
 
 
-QGenodeClipboard::QGenodeClipboard(Genode::Env &env, Genode::Signal_receiver &sig_rcv)
-: _clipboard_signal_dispatcher(sig_rcv, *this, &QGenodeClipboard::_handle_clipboard)
+QGenodeClipboard::QGenodeClipboard(Genode::Env &env, Genode::Entrypoint &sig_ep)
+: _clipboard_signal_handler(sig_ep, *this, &QGenodeClipboard::_handle_clipboard)
 {
 	try {
 
@@ -40,7 +40,7 @@ QGenodeClipboard::QGenodeClipboard(Genode::Env &env, Genode::Signal_receiver &si
 
 				_clipboard_ds = new Genode::Attached_rom_dataspace(env, "clipboard");
 
-				_clipboard_ds->sigh(_clipboard_signal_dispatcher);
+				_clipboard_ds->sigh(_clipboard_signal_handler);
 				_clipboard_ds->update();
 
 			} catch (...) { }
@@ -63,7 +63,7 @@ QGenodeClipboard::~QGenodeClipboard()
 }
 
 
-void QGenodeClipboard::_handle_clipboard(unsigned int)
+void QGenodeClipboard::_handle_clipboard()
 {
 	emitChanged(QClipboard::Clipboard);
 }

@@ -16,11 +16,9 @@ SRC_CC += main.cpp \
           qnitpickerintegration.cpp \
           qnitpickerplatformwindow.cpp \
           qnitpickerwindowsurface.cpp \
-          qsignalhandlerthread.cpp \
           moc_qnitpickerplatformwindow.cpp \
           moc_qnitpickerwindowsurface.cpp \
-          moc_qnitpickerintegrationplugin.cpp \
-          moc_qsignalhandlerthread.cpp
+          moc_qnitpickerintegrationplugin.cpp
 
 ifeq ($(CONTRIB_DIR),)
 

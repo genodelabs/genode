@@ -127,7 +127,7 @@ void PluginStarter::_start_plugin(QString &file_name, QByteArray const &file_buf
 		                                                "ram_quota").ulong_value(0) +
 		                                                file_size;
 
-		if (((long)_env->ram().avail_ram().value - (long)ram_quota) <
+		if (((long)_env->pd().avail_ram().value - (long)ram_quota) <
 		    QPluginWidget::PRESERVED_RAM_QUOTA) {
 			Genode::error("Cannot donate ", ram_quota, " bytes of RAM to the plugin (quota exceeded).");
 			_plugin_loading_state = RAM_QUOTA_EXCEEDED_ERROR;
@@ -180,7 +180,7 @@ void PluginStarter::_start_plugin(QString &file_name, QByteArray const &file_buf
 	} else {
 		Genode::size_t ram_quota = Arg_string::find_arg(_args.constData(), "ram_quota").ulong_value(0);
 
-		if (((long)_env->ram().avail_ram().value - (long)ram_quota) <
+		if (((long)_env->pd().avail_ram().value - (long)ram_quota) <
 		    QPluginWidget::PRESERVED_RAM_QUOTA) {
 			_plugin_loading_state = RAM_QUOTA_EXCEEDED_ERROR;
 			return;
@@ -235,7 +235,7 @@ void PluginStarter::run()
 		QString file_name = _plugin_url.path().remove("/");
 
 		try {
-			Rom_connection rc(_env, file_name.toLatin1().constData());
+			Rom_connection rc(*_env, file_name.toLatin1().constData());
 
 			Dataspace_capability rom_ds = rc.dataspace();
 

@@ -232,5 +232,5 @@ void QNitpickerViewWidget::focusInEvent(QFocusEvent *)
 	QNitpickerPlatformWindow *platform_window =
 		dynamic_cast<QNitpickerPlatformWindow*>(window()->windowHandle()->handle());
 
-	platform_window->nitpicker().focus(*nitpicker);
+	platform_window->nitpicker().focus(nitpicker->rpc_cap());
 }

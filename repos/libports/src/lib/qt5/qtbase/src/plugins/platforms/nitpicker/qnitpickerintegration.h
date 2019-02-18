@@ -22,7 +22,6 @@
 #include <qpa/qplatforminputcontext.h>
 
 #include "qnitpickerscreen.h"
-#include "qsignalhandlerthread.h"
 
 QT_BEGIN_NAMESPACE
 
@@ -30,11 +29,11 @@ class QNitpickerIntegration : public QPlatformIntegration
 {
 	private:
 
-		Genode::Env              &_env;
+		Genode::Env        &_env;
 
-		QSignalHandlerThread      _signal_handler_thread;
+		Genode::Entrypoint &_signal_ep;
 
-		QNitpickerScreen         *_nitpicker_screen;
+		QNitpickerScreen   *_nitpicker_screen;
 
 		/*
 		 * A reference to the signal receiver gets passed to newly created
@@ -47,7 +46,8 @@ class QNitpickerIntegration : public QPlatformIntegration
 
 	public:
 
-		QNitpickerIntegration(Genode::Env &env);
+		QNitpickerIntegration(Genode::Env &env,
+		                      Genode::Entrypoint &signal_ep);
 
 		void initialize() Q_DECL_OVERRIDE;
 		bool hasCapability(QPlatformIntegration::Capability cap) const Q_DECL_OVERRIDE;
