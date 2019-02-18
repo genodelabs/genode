@@ -22,6 +22,7 @@
 
 /* local includes */
 #include <nitpicker.h>
+#include <report_forwarder.h>
 
 namespace Wm {
 
@@ -109,6 +110,8 @@ struct Wm::Main
 
 	Genode::Signal_handler<Main> resize_request_handler =
 		{ env.ep(), *this, &Main::handle_resize_request_update };
+
+	Report_forwarder _report_forwarder { env, heap };
 
 	Main(Genode::Env &env) : env(env)
 	{
