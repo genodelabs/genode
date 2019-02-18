@@ -115,7 +115,6 @@ QT_BEGIN_NAMESPACE
 #ifdef Q_OS_GENODE
 
 #include <base/env.h>
-#include <timer_session/connection.h>
 
 #include <assert.h>
 
@@ -573,32 +572,17 @@ static timespec makeTimespec(time_t secs, long nsecs)
 
 void QThread::sleep(unsigned long secs)
 {
-#ifdef Q_OS_GENODE
-	static Timer::Connection timer;
-	timer.msleep(secs * 1000);
-#else
     qt_nanosleep(makeTimespec(secs, 0));
-#endif /* Q_OS_GENODE */
 }
 
 void QThread::msleep(unsigned long msecs)
 {
-#ifdef Q_OS_GENODE
-	static Timer::Connection timer;
-	timer.msleep(msecs);
-#else
     qt_nanosleep(makeTimespec(msecs / 1000, msecs % 1000 * 1000 * 1000));
-#endif /* Q_OS_GENODE */
 }
 
 void QThread::usleep(unsigned long usecs)
 {
-#ifdef Q_OS_GENODE
-	static Timer::Connection timer;
-	timer.msleep(usecs / 1000);
-#else
     qt_nanosleep(makeTimespec(usecs / 1000 / 1000, usecs % (1000*1000) * 1000));
-#endif /* Q_OS_GENODE */
 }
 
 #ifndef Q_OS_GENODE
