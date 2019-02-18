@@ -19,19 +19,21 @@
 #include "main_window.h"
 
 
-enum { THREAD_STACK_SIZE = 2 * 1024 * sizeof(long) };
+enum { SIGNAL_EP_STACK_SIZE = 16*1024 };
 
 
-struct Report_thread : Genode::Thread
+struct Report_handler
 {
 	QMember<Report_proxy> proxy;
 
 	Genode::Attached_rom_dataspace channels_rom;
 
-	Genode::Signal_receiver                  sig_rec;
-	Genode::Signal_dispatcher<Report_thread> channels_dispatcher;
+	Genode::Entrypoint                     sig_ep;
+	Genode::Signal_handler<Report_handler> channels_handler;
 
 	Genode::Lock _report_lock { Genode::Lock::LOCKED };
+
+	bool window_connected { false };
 
 	void _report(char const *data, size_t size)
 	{
@@ -42,34 +44,25 @@ struct Report_thread : Genode::Thread
 		_report_lock.lock();
 	}
 
-	void _handle_channels(unsigned)
+	void _handle_channels()
 	{
+		if (!window_connected)
+			return;
+
 		channels_rom.update();
 
 		if (channels_rom.valid())
 			_report(channels_rom.local_addr<char>(), channels_rom.size());
 	}
 
-	Report_thread(Genode::Env &env)
+	Report_handler(Genode::Env &env)
 	:
-		Genode::Thread(env, "report_thread", THREAD_STACK_SIZE),
 		channels_rom(env, "channel_list"),
-		channels_dispatcher(sig_rec, *this, &Report_thread::_handle_channels)
+		sig_ep(env, SIGNAL_EP_STACK_SIZE, "signal ep",
+		       Genode::Affinity::Location()),
+		channels_handler(sig_ep, *this, &Report_handler::_handle_channels)
 	{
-		channels_rom.sigh(channels_dispatcher);
-	}
-
-	void entry() override
-	{
-		using namespace Genode;
-		while (true) {
-			Signal sig = sig_rec.wait_for_signal();
-			int num    = sig.num();
-
-			Signal_dispatcher_base *dispatcher;
-			dispatcher = dynamic_cast<Signal_dispatcher_base *>(sig.context());
-			dispatcher->dispatch(num);
-		}
+		channels_rom.sigh(channels_handler);
 	}
 
 	void connect_window(Main_window *win)
@@ -77,6 +70,8 @@ struct Report_thread : Genode::Thread
 		QObject::connect(proxy, SIGNAL(report_changed(void *,void const*)),
 		                 win,   SLOT(report_changed(void *, void const*)),
 		                 Qt::QueuedConnection);
+
+		window_connected = true;
 	}
 };
 
@@ -107,10 +102,10 @@ void Libc::Component::construct(Libc::Env &env)
 		int argc = 1;
 		char const *argv[] = { "mixer_gui_qt", 0 };
 
-		Report_thread *report_thread;
-		try { report_thread = new Report_thread(env); }
+		Report_handler *report_handler;
+		try { report_handler = new Report_handler(env); }
 		catch (...) {
-		Genode::error("Could not create Report_thread");
+		Genode::error("Could not create Report_handler");
 		return -1;
 		}
 
@@ -121,8 +116,7 @@ void Libc::Component::construct(Libc::Env &env)
 		QMember<Main_window> main_window(env);
 		main_window->show();
 
-		report_thread->connect_window(main_window);
-		report_thread->start();
+		report_handler->connect_window(main_window);
 
 		app.connect(&app, SIGNAL(lastWindowClosed()), SLOT(quit()));
 
