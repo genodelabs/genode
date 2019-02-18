@@ -8,3 +8,6 @@ ADA_RUNTIME_PLATFORM_DIR = $(call select_from_ports,ada-runtime)/ada-runtime/pla
 INC_DIR += $(ADA_RUNTIME_DIR)
 INC_DIR += $(ADA_RUNTIME_LIB_DIR)
 INC_DIR += $(ADA_RTS_SOURCE)
+
+# Disable inline concatenation as this requires additinal runtime support
+CC_ADA_OPT += -gnatd.c
