@@ -4,6 +4,7 @@
 
 	<config>
 		<controls> <maximizer/> <title/> <closer/> </controls>
+		<default-policy/>
 	</config>
 
 	<content>

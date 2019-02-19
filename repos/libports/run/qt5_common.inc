@@ -72,6 +72,7 @@ proc qt5_decorator_config { } {
 			</vfs>
 			<libc/>
 			-->
+			<default-policy/>
 		</config>}
 }
 
@@ -160,6 +161,7 @@ proc qt5_start_nodes { feature_arg } {
 			<config>
 				<policy label_prefix="decorator" role="decorator"/>
 				<policy label_prefix="layouter"  role="layouter"/>
+				<default-policy/>
 			</config>
 			<route>
 				<service name="ROM" label="focus">          <child name="wm_report_rom"/> </service>
