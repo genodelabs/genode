@@ -888,8 +888,6 @@ class Lwip::Udp_socket_dir final :
 					pbuf *buf = pbuf_alloc(PBUF_RAW, remain, PBUF_RAM);
 					pbuf_take(buf, src, buf->tot_len);
 
-					char shit[ENDPOINT_STRLEN_MAX];
-					ipaddr_aton(shit, &_to_addr);
 					err_t err = udp_sendto(_pcb, buf, &_to_addr, _to_port);
 					pbuf_free(buf);
 					if (err != ERR_OK)
@@ -1207,9 +1205,9 @@ class Lwip::Tcp_socket_dir final :
 						u16_t new_off;
 						pbuf *new_head = pbuf_skip(_recv_pbuf, _recv_off, &new_off);
 						if (new_head != NULL && new_head != _recv_pbuf) {
-							/* move down the buffer and deref the head */
+							/* increment the references on the new head */
 							pbuf_ref(new_head);
-							pbuf_realloc(new_head, _recv_pbuf->tot_len+_recv_off);
+							/* free the buffers chained to the old head */
 							pbuf_free(_recv_pbuf);
 						}
 
