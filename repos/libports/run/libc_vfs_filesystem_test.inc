@@ -54,11 +54,11 @@ build $build_components
 
 create_boot_directory
 
-set depot_pkgs "genodelabs/src/[base_src] genodelabs/src/init"
+set depot_pkgs "[depot_user]/src/[base_src] [depot_user]/src/init"
 
-lappend_if $use_ahci       depot_pkgs genodelabs/src/ahci_drv
-lappend_if $use_ram_block  depot_pkgs genodelabs/src/ram_block
-lappend_if $use_vfs_server depot_pkgs genodelabs/src/vfs
+lappend_if $use_ahci       depot_pkgs [depot_user]/src/ahci_drv
+lappend_if $use_ram_block  depot_pkgs [depot_user]/src/ram_block
+lappend_if $use_vfs_server depot_pkgs [depot_user]/src/vfs
 
 import_from_depot {*}$depot_pkgs
 

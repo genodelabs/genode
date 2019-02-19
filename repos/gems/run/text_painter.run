@@ -1,11 +1,11 @@
 create_boot_directory
 
-import_from_depot genodelabs/src/[base_src] \
-                  genodelabs/pkg/[drivers_interactive_pkg] \
-                  genodelabs/src/init \
-                  genodelabs/src/libc \
-                  genodelabs/src/vfs \
-                  genodelabs/raw/ttf-bitstream-vera-minimal
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/pkg/[drivers_interactive_pkg] \
+                  [depot_user]/src/init \
+                  [depot_user]/src/libc \
+                  [depot_user]/src/vfs \
+                  [depot_user]/raw/ttf-bitstream-vera-minimal
 
 install_config {
 <config>

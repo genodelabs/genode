@@ -4,19 +4,19 @@ create_boot_directory
 
 proc current_pkg { pkg } { return $pkg/[_current_depot_archive_version pkg $pkg] }
 
-import_from_depot genodelabs/src/[base_src] \
-                  genodelabs/src/report_rom \
-                  genodelabs/src/fs_rom \
-                  genodelabs/src/ram_fs \
-                  genodelabs/src/vfs \
-                  genodelabs/src/init \
-                  genodelabs/src/ipxe_nic_drv \
-                  genodelabs/src/acpi_drv \
-                  genodelabs/src/platform_drv \
-                  genodelabs/src/rtc_drv \
-                  genodelabs/src/posix \
-                  genodelabs/src/libc \
-                  genodelabs/src/vfs_lxip \
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/src/report_rom \
+                  [depot_user]/src/fs_rom \
+                  [depot_user]/src/ram_fs \
+                  [depot_user]/src/vfs \
+                  [depot_user]/src/init \
+                  [depot_user]/src/ipxe_nic_drv \
+                  [depot_user]/src/acpi_drv \
+                  [depot_user]/src/platform_drv \
+                  [depot_user]/src/rtc_drv \
+                  [depot_user]/src/posix \
+                  [depot_user]/src/libc \
+                  [depot_user]/src/vfs_lxip \
 
 create_tar_from_depot_binaries [run_dir]/genode/depot.tar \
 	[depot_user]/pkg/nic_router-nat-dns \

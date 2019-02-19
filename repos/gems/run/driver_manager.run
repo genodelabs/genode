@@ -7,11 +7,11 @@ build { app/driver_manager test/driver_manager lib/ld }
 
 create_boot_directory
 
-import_from_depot genodelabs/src/[base_src] \
-                  genodelabs/pkg/drivers_managed-pc \
-                  genodelabs/src/report_rom \
-                  genodelabs/src/dynamic_rom \
-                  genodelabs/src/init
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/pkg/drivers_managed-pc \
+                  [depot_user]/src/report_rom \
+                  [depot_user]/src/dynamic_rom \
+                  [depot_user]/src/init
 
 install_config {
 <config prio_levels="2">

@@ -1,12 +1,12 @@
 create_boot_directory
 
-import_from_depot genodelabs/src/[base_src] \
-                  genodelabs/pkg/[drivers_interactive_pkg] \
-                  genodelabs/raw/genode_bg \
-                  genodelabs/pkg/backdrop \
-                  genodelabs/src/init \
-                  genodelabs/src/dynamic_rom \
-                  genodelabs/src/nitpicker
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/pkg/[drivers_interactive_pkg] \
+                  [depot_user]/raw/genode_bg \
+                  [depot_user]/pkg/backdrop \
+                  [depot_user]/src/init \
+                  [depot_user]/src/dynamic_rom \
+                  [depot_user]/src/nitpicker
 
 append config {
 <config>

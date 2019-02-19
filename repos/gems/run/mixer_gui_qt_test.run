@@ -1,8 +1,8 @@
 source ${genode_dir}/repos/libports/run/qt5_common.inc
 
-import_from_depot genodelabs/src/dynamic_rom \
-                  genodelabs/src/mixer_gui_qt \
-                  genodelabs/src/qt5_widgets
+import_from_depot [depot_user]/src/dynamic_rom \
+                  [depot_user]/src/mixer_gui_qt \
+                  [depot_user]/src/qt5_widgets
 
 #
 # Build

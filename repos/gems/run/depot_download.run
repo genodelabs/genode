@@ -6,27 +6,27 @@ if {![have_spec x86] || [have_spec linux]} {
 	exit 0
 }
 
-import_from_depot genodelabs/src/[base_src] \
-                  genodelabs/src/report_rom \
-                  genodelabs/src/fs_rom \
-                  genodelabs/src/vfs \
-                  genodelabs/src/vfs_lxip \
-                  genodelabs/src/fetchurl \
-                  genodelabs/src/libc \
-                  genodelabs/src/libssh \
-                  genodelabs/src/libssl \
-                  genodelabs/src/libcrypto \
-                  genodelabs/src/zlib \
-                  genodelabs/src/curl \
-                  genodelabs/src/init \
-                  genodelabs/src/chroot \
-                  genodelabs/src/acpi_drv \
-                  genodelabs/src/ipxe_nic_drv \
-                  genodelabs/src/platform_drv \
-                  genodelabs/src/extract \
-                  genodelabs/src/libarchive \
-                  genodelabs/src/liblzma \
-                  genodelabs/src/verify
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/src/report_rom \
+                  [depot_user]/src/fs_rom \
+                  [depot_user]/src/vfs \
+                  [depot_user]/src/vfs_lxip \
+                  [depot_user]/src/fetchurl \
+                  [depot_user]/src/libc \
+                  [depot_user]/src/libssh \
+                  [depot_user]/src/libssl \
+                  [depot_user]/src/libcrypto \
+                  [depot_user]/src/zlib \
+                  [depot_user]/src/curl \
+                  [depot_user]/src/init \
+                  [depot_user]/src/chroot \
+                  [depot_user]/src/acpi_drv \
+                  [depot_user]/src/ipxe_nic_drv \
+                  [depot_user]/src/platform_drv \
+                  [depot_user]/src/extract \
+                  [depot_user]/src/libarchive \
+                  [depot_user]/src/liblzma \
+                  [depot_user]/src/verify
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
 

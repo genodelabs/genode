@@ -1,18 +1,18 @@
 create_boot_directory
 
-import_from_depot genodelabs/src/[base_src] \
-                  genodelabs/pkg/[drivers_interactive_pkg] \
-                  genodelabs/pkg/motif_wm \
-                  genodelabs/raw/genode_bg \
-                  genodelabs/pkg/fonts_fs \
-                  genodelabs/pkg/backdrop \
-                  genodelabs/src/demo \
-                  genodelabs/src/init \
-                  genodelabs/src/nitpicker \
-                  genodelabs/src/nit_fb \
-                  genodelabs/src/nit_fader \
-                  genodelabs/src/rom_filter \
-                  genodelabs/src/menu_view
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/pkg/[drivers_interactive_pkg] \
+                  [depot_user]/pkg/motif_wm \
+                  [depot_user]/raw/genode_bg \
+                  [depot_user]/pkg/fonts_fs \
+                  [depot_user]/pkg/backdrop \
+                  [depot_user]/src/demo \
+                  [depot_user]/src/init \
+                  [depot_user]/src/nitpicker \
+                  [depot_user]/src/nit_fb \
+                  [depot_user]/src/nit_fader \
+                  [depot_user]/src/rom_filter \
+                  [depot_user]/src/menu_view
 
 install_config {
 <config>
