@@ -79,7 +79,7 @@ append config {
 		<provides><service name="Nic"/></provides>
 	</start>
 
-	<start name="wifi_drv" caps="200" priority="-1">
+	<start name="wifi_drv" caps="300" priority="-1">
 		<resource name="RAM" quantum="24M"/>
 		<provides> <service name="Nic"/> </provides>
 		<config ld_verbose="no">
