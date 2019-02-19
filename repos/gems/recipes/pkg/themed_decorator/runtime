@@ -5,6 +5,7 @@
 	<config>
 		<libc/>
 		<vfs> <tar name="plain_decorator_theme.tar"/> </vfs>
+		<default-policy/>
 	</config>
 
 	<content>
