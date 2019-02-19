@@ -43,11 +43,23 @@ extern "C" void kernel_init();
  */
 extern "C" void kernel_init()
 {
+	static volatile bool lock_ready   = false;
 	static volatile bool pool_ready   = false;
 	static volatile bool kernel_ready = false;
 
+	/**
+	 * It is essential to guard the initialization of the data_lock object
+	 * in the SMP case, because otherwise the __cxa_guard_aquire of the cxx
+	 * library contention path might get called, which ends up in
+	 * calling a Semaphore, which will call Kernel::stop_thread() or
+	 * Kernel::yield() system-calls in this code
+	 */
+	while (Cpu::executing_id() != Cpu::primary_id() && !lock_ready) { ; }
+
 	{
 		Lock::Guard guard(data_lock());
+
+		lock_ready = true;
 
 		/* initialize current cpu */
 		pool_ready = cpu_pool().initialize(pic());
