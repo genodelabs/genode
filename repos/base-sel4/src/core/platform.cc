@@ -500,7 +500,7 @@ Platform::Platform()
 	_unused_virt_alloc(&core_mem_alloc()),
 	_init_unused_phys_alloc_done((_init_unused_phys_alloc(), true)),
 	_vm_base(0x2000), /* 2nd page is used as IPC buffer of main thread */
-	_vm_size(3*1024*1024*1024UL - _vm_base), /* use the lower 3GiB */
+	_vm_size((CONFIG_WORD_SIZE == 32 ? 3 : 8 )*1024*1024*1024UL - _vm_base),
 	_init_sel4_ipc_buffer_done((init_sel4_ipc_buffer(), true)),
 	_switch_to_core_cspace_done((_switch_to_core_cspace(), true)),
 	_core_page_table_registry(_core_page_table_registry_alloc),
