@@ -94,7 +94,7 @@ install_config {
 				<service name="LOG">   <parent/> </service>
 				<service name="Timer"> <parent/> </service>
 			</common_routes>
-			<start name="test" pkg="[depot_user]/pkg/} [query_pkg] {"/>
+			<start name="test" pkg="} [depot_user] {/pkg/} [query_pkg] {"/>
 		</config>
 		<route>
 			<service name="ROM" label="blueprint"> <child name="report_rom"/> </service>
