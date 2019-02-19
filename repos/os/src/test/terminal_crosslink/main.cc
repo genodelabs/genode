@@ -34,6 +34,9 @@ namespace Test_terminal_crosslink {
 	static const char *client_text = "Hello from client.";
 	static const char *server_text = "Hello from server, too.";
 
+	static const char *bye_text = "пока.";
+
+
 	static char test_data[TEST_DATA_SIZE];
 }
 
@@ -114,6 +117,15 @@ class Test_terminal_crosslink::Client : public Partner
 
 			memset(test_data, 5, sizeof(test_data));
 			_write_all(test_data, sizeof(test_data));
+
+			_read_all(_read_buffer, strlen(bye_text) + 1);
+			log("Client received: ", Cstring(_read_buffer));
+			if (strcmp(_read_buffer, bye_text) != 0) {
+				error("Received data is not as expected");
+				sleep_forever();
+			}
+
+			log("Test succeeded");
 		}
 };
 
@@ -151,7 +163,7 @@ class Test_terminal_crosslink::Server : public Partner
 					sleep_forever();
 				}
 
-			log("Test succeeded");
+			_write_all(bye_text, strlen(bye_text) + 1);
 		}
 };
 
