@@ -86,10 +86,10 @@ void App_bar::_handle_apps()
 }
 
 
-App_bar::App_bar(Genode::Env &env, Genode::Signal_receiver &sig_rec)
+App_bar::App_bar(Genode::Env &env, Genode::Entrypoint &sig_ep)
 :
 	_apps(env, "apps"), _content_request(env, "content_request"),
-	_apps_proxy(sig_rec)
+	_apps_proxy(sig_ep)
 {
 	_content_request.enabled(true);
 
@@ -116,10 +116,10 @@ void Panel::_wifi_toggled(bool checked)
 }
 
 
-Panel::Panel(Genode::Env &env, Genode::Signal_receiver &sig_rec)
+Panel::Panel(Genode::Env &env, Genode::Entrypoint &sig_ep)
 :
 	_overlay(env, "overlay"), _overlay_request(env, "overlay_request"),
-	_panel_button("Panel"), _app_bar(env, sig_rec)
+	_panel_button("Panel"), _app_bar(env, sig_ep)
 {
 	_layout->addWidget(_panel_button);
 	_layout->addWidget(new Spacer(), 1);
