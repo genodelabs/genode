@@ -2,14 +2,14 @@ build { init app/depot_query app/depot_deploy }
 
 create_boot_directory
 
-import_from_depot genodelabs/src/[base_src] \
-                  genodelabs/src/report_rom \
-                  genodelabs/src/fs_rom \
-                  genodelabs/src/vfs \
-                  genodelabs/src/init
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/src/report_rom \
+                  [depot_user]/src/fs_rom \
+                  [depot_user]/src/vfs \
+                  [depot_user]/src/init
 
 create_tar_from_depot_binaries [run_dir]/genode/depot.tar \
-                               genodelabs/pkg/test-fs_report
+                               [depot_user]/pkg/test-fs_report
 
 proc query_pkg {} {
 	return test-fs_report/[_current_depot_archive_version pkg test-fs_report] }
@@ -94,7 +94,7 @@ install_config {
 				<service name="LOG">   <parent/> </service>
 				<service name="Timer"> <parent/> </service>
 			</common_routes>
-			<start name="test" pkg="genodelabs/pkg/} [query_pkg] {"/>
+			<start name="test" pkg="[depot_user]/pkg/} [query_pkg] {"/>
 		</config>
 		<route>
 			<service name="ROM" label="blueprint"> <child name="report_rom"/> </service>
