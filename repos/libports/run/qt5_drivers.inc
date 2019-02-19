@@ -144,9 +144,7 @@ proc drivers_start_nodes { feature_arg } {
 
 	set start_nodes { }
 
-	# This function appends to the global 'config' variable, not to the
-	# 'start_nodes' variable defined above.
-	append_platform_drv_config
+	append start_nodes [platform_drv_config]
 
 	append_if [use_audio_drv feature] start_nodes {
 		<start name="audio_drv">
