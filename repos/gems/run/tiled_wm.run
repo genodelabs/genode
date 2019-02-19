@@ -36,6 +36,7 @@ proc qt5_decorator_config { } {
 				</dir>
 			</vfs>
 			<libc/>
+			<default-policy/>
 		</config>}
 }
 
