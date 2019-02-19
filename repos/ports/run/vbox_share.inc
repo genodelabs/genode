@@ -272,14 +272,15 @@ exec cp ${genode_dir}/repos/ports/run/$vbox_file bin/.
 
 build_boot_image $boot_modules
 
+set ip_match_string "address=(\[0-9\]+\.\[0-9\]+\.\[0-9\]+\.\[0-9\]+).*\n"
+
 #
 # Step 2: Read out TCP/IP address of tcp_terminal running on Genode target
 #
-run_genode_until {\[init -> tcp_terminal\] got IP address [0-9]+\.[0-9]+\.[0-9]+\.[0-9]+} 20
+run_genode_until $ip_match_string 20
 set serial_id [output_spawn_id]
 
-regexp {\[init -> tcp_terminal\] got IP address [0-9]+\.[0-9]+\.[0-9]+\.[0-9]+} $output serial_ip_addr
-regexp {[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+} $serial_ip_addr serial_ip_addr
+regexp $ip_match_string $output -> serial_ip_addr
 
 #
 # Step 3: Wait until Windows is up for sure
