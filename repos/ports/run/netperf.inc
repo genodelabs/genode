@@ -188,6 +188,7 @@ append_if $use_nic_bridge config {
 append_if [expr $use_nic_bridge && [have_spec linux]] config "
 			<policy label_prefix=\"netserver_genode\" ip_addr=\"$lx_ip_addr\"/>"
 append_if $use_nic_bridge config {
+			<default-policy/>
 		</config>
 		<route>
 			<service name="Nic"> }
