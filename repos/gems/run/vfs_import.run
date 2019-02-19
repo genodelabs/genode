@@ -3,12 +3,12 @@ build { app/sequence server/vfs lib/vfs/import test/libc }
 create_boot_directory
 
 import_from_depot \
-	genodelabs/src/[base_src] \
-	genodelabs/src/coreutils \
-	genodelabs/src/init \
-	genodelabs/src/libc \
-	genodelabs/src/noux \
-	genodelabs/src/posix \
+	[depot_user]/src/[base_src] \
+	[depot_user]/src/coreutils \
+	[depot_user]/src/init \
+	[depot_user]/src/libc \
+	[depot_user]/src/noux \
+	[depot_user]/src/posix \
 
 install_config {
 	<config verbose="yes">

@@ -1,17 +1,17 @@
 create_boot_directory
 
-import_from_depot genodelabs/src/[base_src] \
-                  genodelabs/pkg/[drivers_interactive_pkg] \
-                  genodelabs/pkg/terminal \
-                  genodelabs/src/init \
-                  genodelabs/src/libc \
-                  genodelabs/src/noux \
-                  genodelabs/src/posix \
-                  genodelabs/src/ncurses \
-                  genodelabs/src/vim \
-                  genodelabs/src/bash \
-                  genodelabs/src/coreutils \
-                  genodelabs/src/ram_fs
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/pkg/[drivers_interactive_pkg] \
+                  [depot_user]/pkg/terminal \
+                  [depot_user]/src/init \
+                  [depot_user]/src/libc \
+                  [depot_user]/src/noux \
+                  [depot_user]/src/posix \
+                  [depot_user]/src/ncurses \
+                  [depot_user]/src/vim \
+                  [depot_user]/src/bash \
+                  [depot_user]/src/coreutils \
+                  [depot_user]/src/ram_fs
 
 # write default vimrc file
 set vimrc_fd [open [run_dir]/genode/vimrc w]

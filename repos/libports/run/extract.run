@@ -1,7 +1,7 @@
 create_boot_directory
 
-import_from_depot genodelabs/src/[base_src] \
-                  genodelabs/src/init
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/src/init
 
 install_config {
 <config>

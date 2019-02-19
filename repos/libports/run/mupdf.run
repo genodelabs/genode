@@ -7,11 +7,11 @@ build $build_components
 create_boot_directory
 
 import_from_depot \
-	genodelabs/pkg/[drivers_interactive_pkg] \
-	genodelabs/pkg/motif_wm \
-	genodelabs/src/[base_src] \
-	genodelabs/src/init \
-	genodelabs/src/nitpicker \
+	[depot_user]/pkg/[drivers_interactive_pkg] \
+	[depot_user]/pkg/motif_wm \
+	[depot_user]/src/[base_src] \
+	[depot_user]/src/init \
+	[depot_user]/src/nitpicker \
 
 set config {
 <config>

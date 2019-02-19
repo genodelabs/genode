@@ -1,16 +1,16 @@
 create_boot_directory
 
 import_from_depot \
-	genodelabs/src/[base_src] \
-	genodelabs/src/coreutils \
-	genodelabs/src/bash \
-	genodelabs/src/init \
-	genodelabs/src/libc \
-	genodelabs/src/noux \
-	genodelabs/src/posix \
-	genodelabs/src/report_rom \
-	genodelabs/src/vfs \
-	genodelabs/src/vfs_import
+	[depot_user]/src/[base_src] \
+	[depot_user]/src/coreutils \
+	[depot_user]/src/bash \
+	[depot_user]/src/init \
+	[depot_user]/src/libc \
+	[depot_user]/src/noux \
+	[depot_user]/src/posix \
+	[depot_user]/src/report_rom \
+	[depot_user]/src/vfs \
+	[depot_user]/src/vfs_import
 
 install_config {
 	<config>

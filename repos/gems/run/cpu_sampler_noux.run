@@ -12,18 +12,18 @@ if { ![have_spec pbxa9] && ![have_spec x86] } {
 
 create_boot_directory
 
-import_from_depot genodelabs/src/[base_src] \
-                  genodelabs/pkg/[drivers_interactive_pkg] \
-                  genodelabs/pkg/terminal \
-                  genodelabs/src/init \
-                  genodelabs/src/noux \
-                  genodelabs/src/posix \
-                  genodelabs/src/ram_fs \
-                  genodelabs/src/log_terminal \
-                  genodelabs/src/ncurses \
-                  genodelabs/src/bash-minimal \
-                  genodelabs/src/vim-minimal \
-                  genodelabs/src/coreutils-minimal
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/pkg/[drivers_interactive_pkg] \
+                  [depot_user]/pkg/terminal \
+                  [depot_user]/src/init \
+                  [depot_user]/src/noux \
+                  [depot_user]/src/posix \
+                  [depot_user]/src/ram_fs \
+                  [depot_user]/src/log_terminal \
+                  [depot_user]/src/ncurses \
+                  [depot_user]/src/bash-minimal \
+                  [depot_user]/src/vim-minimal \
+                  [depot_user]/src/coreutils-minimal
 
 
 set build_components { server/fs_log server/cpu_sampler test/cpu_sampler }

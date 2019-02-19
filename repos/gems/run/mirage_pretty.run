@@ -20,10 +20,10 @@ if {[have_spec linux]} {
 create_boot_directory
 
 import_from_depot \
-	genodelabs/src/[base_src] \
-	genodelabs/src/init \
-	genodelabs/src/rtc_drv \
-	genodelabs/pkg/terminal \
+	[depot_user]/src/[base_src] \
+	[depot_user]/src/init \
+	[depot_user]/src/rtc_drv \
+	[depot_user]/pkg/terminal \
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
 

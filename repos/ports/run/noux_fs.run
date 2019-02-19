@@ -3,20 +3,20 @@ set e2fsck [installed_command e2fsck]
 
 create_boot_directory
 
-import_from_depot genodelabs/src/[base_src] \
-                  genodelabs/src/init \
-                  genodelabs/src/platform_drv \
-                  genodelabs/src/report_rom \
-                  genodelabs/src/acpi_drv \
-                  genodelabs/src/ahci_drv \
-                  genodelabs/src/vfs \
-                  genodelabs/src/rump \
-                  genodelabs/src/log_terminal \
-                  genodelabs/src/noux \
-                  genodelabs/src/libc \
-                  genodelabs/src/posix \
-                  genodelabs/src/bash \
-                  genodelabs/src/coreutils
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/src/init \
+                  [depot_user]/src/platform_drv \
+                  [depot_user]/src/report_rom \
+                  [depot_user]/src/acpi_drv \
+                  [depot_user]/src/ahci_drv \
+                  [depot_user]/src/vfs \
+                  [depot_user]/src/rump \
+                  [depot_user]/src/log_terminal \
+                  [depot_user]/src/noux \
+                  [depot_user]/src/libc \
+                  [depot_user]/src/posix \
+                  [depot_user]/src/bash \
+                  [depot_user]/src/coreutils
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
 set config {
