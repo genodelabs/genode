@@ -33,7 +33,8 @@ set config  {
 		</parent-provides>
 		<default-route>
 			<any-service> <parent/> <any-child/> </any-service>
-		</default-route> }
+		</default-route>
+		<default caps="100"/> }
 
 append_if [expr [have_spec arndale] || [have_spec rpi]] config {
 		<start name="platform_drv">

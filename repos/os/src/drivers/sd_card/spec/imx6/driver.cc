@@ -64,10 +64,13 @@ bool Driver::_issue_cmd_finish_xfertyp(Xfertyp::access_t &,
 }
 
 
-bool Driver::_supported_host_version(Hostver::access_t hostver)
+bool Driver::_supported_host_version(Hostver::access_t)
 {
-	return Hostver::Vvn::get(hostver) == 0 &&
-	       Hostver::Svn::get(hostver) == 3;
+	/*
+	 * on i.MX6 there exist board-specific (tested) drivers only,
+	 * therefore we do not need to differentiate in between controller versions
+	 */
+	return true;
 }
 
 
