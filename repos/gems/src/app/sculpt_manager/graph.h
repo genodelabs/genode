@@ -153,14 +153,16 @@ struct Sculpt::Graph
 
 			xml.node("depgraph", [&] () {
 
-				gen_named_node(xml, "button", "global+", [&] () {
-					_add_button_item.gen_button_attr(xml, "global+");
+				if (_sculpt_partition.valid()) {
+					gen_named_node(xml, "button", "global+", [&] () {
+						_add_button_item.gen_button_attr(xml, "global+");
 
-					if (_popup_state == Popup::VISIBLE)
-						xml.attribute("selected", "yes");
+						if (_popup_state == Popup::VISIBLE)
+							xml.attribute("selected", "yes");
 
-					xml.node("label", [&] () {
-						xml.attribute("text", "+"); }); });
+						xml.node("label", [&] () {
+							xml.attribute("text", "+"); }); });
+				}
 
 				config.for_each_sub_node("start", [&] (Xml_node start) {
 
