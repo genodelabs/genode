@@ -1,0 +1,27 @@
+<index>
+
+  <index name="GUI">
+    <pkg path="sticks_blue_backdrop" info="default desktop background"/>
+    <pkg path="themed_wm"            info="ready-to-use window manager"/>
+    <pkg path="fonts_fs"             info="font provider"/>
+    <pkg path="wm"                   info="window manager"/>
+    <pkg path="motif_decorator"      info="Motif-style window decorator"/>
+    <pkg path="themed_decorator"     info="modern-looking window decorator"/>
+    <pkg path="window_layouter"      info="default window layouter"/>
+  </index>
+
+  <index name="Tools">
+    <pkg path="noux-system"  info="command-line interface to the system"/>
+    <pkg path="qt5_textedit" info="Qt5-based text editor"/>
+    <pkg path="report_dump"  info="save periodic snapshots of the report fs"/>
+  </index>
+
+  <index name="Demos">
+    <pkg path="nano3d" info="simple software-rendering demo"/>
+  </index>
+
+  <index name="Virtual machines">
+    <pkg path="vbox5-nova-sculpt" info="VBox5 for running Linux"/>
+  </index>
+
+</index>

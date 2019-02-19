@@ -56,9 +56,31 @@ endif
 dependencies_error:
 	@$(DEPENDENCIES_CMD)
 
+TARGETS += $(addsuffix .tar.xz.sig,$(addprefix $(PUBLIC_DIR)/,$(ARCHIVES)))
+
 
 #
-# Generate compressed and signed archives
+# Determine to-be-published index files from MAKECMDGOALS
+#
+
+INDEX_FILES := $(foreach A,$(MAKECMDGOALS),\
+  $(if $(call archive_has_type,$A,index),$A,))
+
+INDEX_FILES_MISSING := $(sort $(foreach I, $(INDEX_FILES),\
+                          $(if $(wildcard $(DEPOT_DIR)/$I),,$I)))
+
+ifneq ($(INDEX_FILES_MISSING),)
+$(MAKECMDGOALS): index_missing_error
+else
+TARGETS += $(addsuffix .xz.sig,$(addprefix $(PUBLIC_DIR)/,$(INDEX_FILES)))
+endif
+
+index_missing_error:
+	@echo "Error: missing depot content: $(INDEX_FILES_MISSING)"; false
+
+
+#
+# Generate compressed and signed archives and index files
 #
 
 include $(GENODE_DIR)/tool/depot/mk/gpg.inc
@@ -68,19 +90,24 @@ MISSING_PUBKEY_FILES := $(sort \
                               $(if $(call pubkey_path,$A),,\
                                  $(DEPOT_DIR)/$(call pubkey_filename,$A))))
 
-TARGETS := $(addsuffix .tar.xz.sig,$(addprefix $(PUBLIC_DIR)/,$(ARCHIVES)))
-
-$(PUBLIC_DIR)/%.tar.xz.sig : $(PUBLIC_DIR)/%.tar.xz
+$(PUBLIC_DIR)/%.xz.sig : $(PUBLIC_DIR)/%.xz
 	$(VERBOSE)rm -f $@;
 	$(VERBOSE)$(GPG) --detach-sign --digest-algo SHA256 --no-tty --use-agent \
 	              --local-user $(call pubkey_id,$*) - < $< > $@
 
-.PRECIOUS: $(TARGETS:.tar.xz.sig=.tar.xz)
+.PRECIOUS: $(TARGETS:.xz.sig=.xz)
 
+# archive
 $(PUBLIC_DIR)/%.tar.xz: $(DEPOT_DIR)/%
 	@$(ECHO) "$(DARK_COL)publish$(DEFAULT_COL) $@"
 	$(VERBOSE)test -e $(dir $@) || mkdir -p $(dir $@)
 	$(VERBOSE)tar cJf $@ -C $(dir $<) $(notdir $<)
+
+# index file
+$(PUBLIC_DIR)/%.xz: $(DEPOT_DIR)/%
+	@$(ECHO) "$(DARK_COL)publish$(DEFAULT_COL) $@"
+	$(VERBOSE)test -e $(dir $@) || mkdir -p $(dir $@)
+	$(VERBOSE)xz <$< >$@
 
 ifneq ($(MISSING_PUBKEY_FILES),)
 $(MAKECMDGOALS) $(TARGETS): missing_pubkey_files
