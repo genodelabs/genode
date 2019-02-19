@@ -12,6 +12,16 @@ if {[have_spec odroid_xu]} {
 	exit 0
 }
 
+if {[have_spec linux]} {
+	set max_fds [exec bash -c "ulimit -n"]
+	if {$max_fds < 4096} {
+		puts stderr "\nMaximum number of file descriptors is too low for this run script."
+		puts stderr "You may use the following command to increase the limit:\n"
+		puts stderr "  ulimit -n 4096\n"
+		exit 1
+	}
+}
+
 #
 # Generate config
 #
