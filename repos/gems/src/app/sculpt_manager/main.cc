@@ -173,10 +173,16 @@ struct Sculpt::Main : Input_event_handler,
 	Signal_handler<Main> _update_state_handler {
 		_env.ep(), *this, &Main::_handle_update_state };
 
-	bool _update_running() const { return _storage._sculpt_partition.valid()
-	                                   && !_prepare_in_progress()
-	                                   && _network.ready()
-	                                   && _deploy.update_needed(); };
+	/**
+	 * Condition for spawning the update subsystem
+	 */
+	bool _update_running() const
+	{
+		return _storage._sculpt_partition.valid()
+		    && !_prepare_in_progress()
+		    && _network.ready()
+		    && _deploy.update_needed();
+	}
 
 
 	/************
@@ -281,7 +287,7 @@ struct Sculpt::Main : Input_event_handler,
 						_deploy.gen_child_diagnostics(xml);
 
 						Xml_node const state = _update_state_rom.xml();
-						if (_update_running() && state.has_sub_node("archive"))
+						if (_update_running() && state.attribute_value("progress", false))
 							gen_download_status(xml, state);
 					});
 				});
@@ -809,7 +815,7 @@ void Sculpt::Main::_handle_update_state()
 	generate_dialog();
 
 	bool const installation_complete =
-		!_update_state_rom.xml().has_sub_node("archive");
+		!_update_state_rom.xml().attribute_value("progress", false);
 
 	if (installation_complete)
 		_deploy.reattempt_after_installation();

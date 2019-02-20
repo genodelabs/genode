@@ -41,6 +41,15 @@ class Depot_download_manager::Import
 			{
 				typedef String<32> Bytes;
 				Bytes total, now;
+
+				bool complete() const
+				{
+					/* fetchurl has not yet determined the file size */
+					if (total == "0.0")
+						return false;
+
+					return now == total;
+				}
 			};
 
 			virtual Info download_progress(Archive::Path const &) const = 0;
@@ -57,6 +66,7 @@ class Depot_download_manager::Import
 			enum State { DOWNLOAD_IN_PROGRESS,
 			             DOWNLOAD_COMPLETE,
 			             DOWNLOAD_UNAVAILABLE,
+			             VERIFICATION_IN_PROGRESS,
 			             VERIFIED,
 			             VERIFICATION_FAILED,
 			             UNPACKED };
@@ -71,12 +81,13 @@ class Depot_download_manager::Import
 			char const *state_text() const
 			{
 				switch (state) {
-				case DOWNLOAD_IN_PROGRESS: return "download";
-				case DOWNLOAD_COMPLETE:    return "verify";
-				case DOWNLOAD_UNAVAILABLE: return "unavailable";
-				case VERIFIED:             return "extract";
-				case VERIFICATION_FAILED:  return "verification failed";
-				case UNPACKED:             return "done";
+				case DOWNLOAD_IN_PROGRESS:     return "download";
+				case DOWNLOAD_COMPLETE:        return "fetched";
+				case DOWNLOAD_UNAVAILABLE:     return "unavailable";
+				case VERIFICATION_IN_PROGRESS: return "verify";
+				case VERIFIED:                 return "extract";
+				case VERIFICATION_FAILED:      return "corrupted";
+				case UNPACKED:                 return "done";
 				};
 				return "";
 			}
@@ -111,19 +122,32 @@ class Depot_download_manager::Import
 		/**
 		 * Constructor
 		 *
-		 * \param user  depot origin to use for the import
-		 * \param node  XML node containing any number of '<missing>' sub nodes
+		 * \param user          depot origin to use for the import
+		 * \param dependencies  information about '<missing>' archives
+		 * \param index         information about '<missing>' index files
 		 *
 		 * The import constructor considers only those '<missing>' sub nodes as
 		 * items that match the 'user'. The remaining sub nodes are imported in
 		 * a future iteration.
 		 */
-		Import(Allocator &alloc, Archive::User const &user, Xml_node node)
+		Import(Allocator &alloc, Archive::User const &user,
+		       Xml_node dependencies, Xml_node index)
 		:
 			_alloc(alloc)
 		{
-			node.for_each_sub_node("missing", [&] (Xml_node item) {
+			dependencies.for_each_sub_node("missing", [&] (Xml_node item) {
 				Archive::Path const path = item.attribute_value("path", Archive::Path());
+				if (Archive::user(path) == user)
+					new (alloc) Item(_items, path);
+			});
+
+			index.for_each_sub_node("missing", [&] (Xml_node item) {
+
+				Archive::Path const
+					path(item.attribute_value("user", Archive::User()),
+					     "/index/",
+					     item.attribute_value("version", Archive::Version()));
+
 				if (Archive::user(path) == user)
 					new (alloc) Item(_items, path);
 			});
@@ -139,9 +163,14 @@ class Depot_download_manager::Import
 			return _item_state_exists(Item::DOWNLOAD_IN_PROGRESS);
 		}
 
-		bool unverified_archives_available() const
+		bool completed_downloads_available() const
 		{
 			return _item_state_exists(Item::DOWNLOAD_COMPLETE);
+		}
+
+		bool unverified_archives_available() const
+		{
+			return _item_state_exists(Item::VERIFICATION_IN_PROGRESS);
 		}
 
 		bool verified_archives_available() const
@@ -158,7 +187,7 @@ class Depot_download_manager::Import
 		template <typename FN>
 		void for_each_unverified_archive(FN const &fn) const
 		{
-			_for_each_item(Item::DOWNLOAD_COMPLETE, fn);
+			_for_each_item(Item::VERIFICATION_IN_PROGRESS, fn);
 		}
 
 		template <typename FN>
@@ -173,6 +202,13 @@ class Depot_download_manager::Import
 			_for_each_item(Item::UNPACKED, fn);
 		}
 
+		template <typename FN>
+		void for_each_failed_archive(FN const &fn) const
+		{
+			_for_each_item(Item::DOWNLOAD_UNAVAILABLE, fn);
+			_for_each_item(Item::VERIFICATION_FAILED, fn);
+		}
+
 		void all_downloads_completed()
 		{
 			_items.for_each([&] (Item &item) {
@@ -180,7 +216,26 @@ class Depot_download_manager::Import
 					item.state =  Item::DOWNLOAD_COMPLETE; });
 		}
 
-		void all_downloads_unavailable()
+		void verify_all_downloaded_archives()
+		{
+			_items.for_each([&] (Item &item) {
+				if (item.state == Item::DOWNLOAD_COMPLETE)
+					item.state =  Item::VERIFICATION_IN_PROGRESS; });
+		}
+
+		void apply_download_progress(Download_progress const &progress)
+		{
+			_items.for_each([&] (Item &item) {
+
+				if (item.state == Item::DOWNLOAD_IN_PROGRESS
+				 && progress.download_progress(item.path).complete()) {
+
+					item.state = Item::DOWNLOAD_COMPLETE;
+				}
+			});
+		}
+
+		void all_remaining_downloads_unavailable()
 		{
 			_items.for_each([&] (Item &item) {
 				if (item.state == Item::DOWNLOAD_IN_PROGRESS)
@@ -190,7 +245,7 @@ class Depot_download_manager::Import
 		void archive_verified(Archive::Path const &archive)
 		{
 			_items.for_each([&] (Item &item) {
-				if (item.state == Item::DOWNLOAD_COMPLETE)
+				if (item.state == Item::VERIFICATION_IN_PROGRESS)
 					if (item.path == archive)
 						item.state = Item::VERIFIED; });
 		}
@@ -198,7 +253,7 @@ class Depot_download_manager::Import
 		void archive_verification_failed(Archive::Path const &archive)
 		{
 			_items.for_each([&] (Item &item) {
-				if (item.state == Item::DOWNLOAD_COMPLETE)
+				if (item.state == Item::VERIFICATION_IN_PROGRESS)
 					if (item.path == archive)
 						item.state = Item::VERIFICATION_FAILED; });
 		}

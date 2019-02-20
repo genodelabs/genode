@@ -88,8 +88,30 @@ struct Depot::Archive
 		throw Unknown_archive_type();
 	}
 
-	static Name    name   (Path const &path) { return _path_element<Name>(path, 2); }
-	static Version version(Path const &path) { return _path_element<Name>(path, 3); }
+	/**
+	 * Return true if 'path' refers to an index file
+	 */
+	static bool index(Path const &path)
+	{
+		return _path_element<Name>(path, 1) == "index";
+	}
+
+	static Name    name         (Path const &path) { return _path_element<Name>(path, 2); }
+	static Version version      (Path const &path) { return _path_element<Version>(path, 3); }
+	static Version index_version(Path const &path) { return _path_element<Version>(path, 2); }
+
+	/**
+	 * Return name of compressed file to download for the given depot path
+	 *
+	 * Archives are shipped as tar.xz files whereas index files are shipped
+	 * as xz-compressed files.
+	 */
+	static Archive::Path download_file_path(Archive::Path path)
+	{
+		return Archive::index(path) ? Archive::Path(path, ".xz")
+		                            : Archive::Path(path, ".tar.xz");
+	}
+
 };
 
 #endif /* _INCLUDE__DEPOT__ARCHIVE_H_ */

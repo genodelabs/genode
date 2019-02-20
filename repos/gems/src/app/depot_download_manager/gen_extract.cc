@@ -54,15 +54,13 @@ void Depot_download_manager::gen_extract_start_content(Xml_generator       &xml,
 		import.for_each_verified_archive([&] (Archive::Path const &path) {
 
 			typedef String<160> Path;
-			typedef String<16>  Ext;
-
-			Ext  const ext      (".tar.xz");
-			Path const tar_path ("/public/", path, ext);
-			Path const dst_path ("/depot/", without_last_path_element(path));
 
 			xml.node("extract", [&] () {
-				xml.attribute("archive", tar_path);
-				xml.attribute("to", dst_path);
+				xml.attribute("archive", Path("/public/", Archive::download_file_path(path)));
+				xml.attribute("to",      Path("/depot/",  without_last_path_element(path)));
+
+				if (Archive::index(path))
+					xml.attribute("name", Archive::index_version(path));
 			});
 		});
 	});

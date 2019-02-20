@@ -48,14 +48,12 @@ void Depot_download_manager::gen_verify_start_content(Xml_generator &xml,
 		import.for_each_unverified_archive([&] (Archive::Path const &path) {
 
 			typedef String<160> Path;
-			typedef String<16>  Ext;
 
-			Ext  const ext         (".tar.xz");
-			Path const tar_path    ("/public/", path, ext);
+			Path const file_path   ("/public/", Archive::download_file_path(path));
 			Path const pubkey_path (user_path, "/pubkey");
 
 			xml.node("verify", [&] () {
-				xml.attribute("path",   tar_path);
+				xml.attribute("path",   file_path);
 				xml.attribute("pubkey", pubkey_path);
 			});
 		});

@@ -27,6 +27,7 @@
 
 /* local includes */
 #include "import.h"
+#include "job.h"
 
 namespace Depot_download_manager {
 
@@ -84,7 +85,8 @@ namespace Depot_download_manager {
 	void gen_depot_query_start_content(Xml_generator &,
 	                                   Xml_node installation,
 	                                   Archive::User const &,
-	                                   Depot_query_version);
+	                                   Depot_query_version,
+	                                   List_model<Job> const &);
 
 	void gen_fetchurl_start_content(Xml_generator &, Import const &, Url const &,
 	                                Fetchurl_version);

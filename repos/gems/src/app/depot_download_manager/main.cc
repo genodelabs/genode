@@ -58,6 +58,7 @@ struct Depot_download_manager::Main : Import::Download_progress
 
 	Attached_rom_dataspace _installation      { _env, "installation"      };
 	Attached_rom_dataspace _dependencies      { _env, "dependencies"      };
+	Attached_rom_dataspace _index             { _env, "index"             };
 	Attached_rom_dataspace _init_state        { _env, "init_state"        };
 	Attached_rom_dataspace _fetchurl_progress { _env, "fetchurl_progress" };
 
@@ -104,6 +105,8 @@ struct Depot_download_manager::Main : Import::Download_progress
 
 	Archive::User _next_user { };
 
+	List_model<Job> _jobs { };
+
 	Constructible<Import> _import { };
 
 	/**
@@ -113,7 +116,7 @@ struct Depot_download_manager::Main : Import::Download_progress
 	{
 		Info result { Info::Bytes(), Info::Bytes() };
 		try {
-			Url const url_path(_current_user_url(), "/", path, ".tar.xz");
+			Url const url_path(_current_user_url(), "/", Archive::download_file_path(path));
 
 			/* search fetchurl progress report for matching 'url_path' */
 			_fetchurl_progress.xml().for_each_sub_node("fetch", [&] (Xml_node fetch) {
@@ -128,8 +131,32 @@ struct Depot_download_manager::Main : Import::Download_progress
 	void _update_state_report()
 	{
 		_state_reporter.generate([&] (Xml_generator &xml) {
-			if (_import.constructed())
-				_import->report(xml, *this); });
+
+			/* produce detailed reports while the installation is in progress */
+			if (_import.constructed()) {
+				xml.attribute("progress", "yes");
+				_import->report(xml, *this);
+			}
+
+			/* once all imports have settled, present the final results */
+			else {
+				_jobs.for_each([&] (Job const &job) {
+
+					if (!job.started)
+						return;
+
+					/*
+					 * If a job has been started and has not failed, it must
+					 * have succeeded at the time when the import is finished.
+					 */
+					char const *type = Archive::index(job.path) ? "index" : "archive";
+					xml.node(type, [&] () {
+						xml.attribute("path",  job.path);
+						xml.attribute("state", job.failed ? "failed" : "done");
+					});
+				});
+			}
+		});
 	}
 
 	void _generate_init_config(Xml_generator &);
@@ -143,6 +170,10 @@ struct Depot_download_manager::Main : Import::Download_progress
 	void _handle_installation()
 	{
 		_installation.update();
+
+		Job::Update_policy policy(_heap);
+		_jobs.update_from_xml(policy, _installation.xml());
+
 		_generate_init_config();
 	}
 
@@ -165,18 +196,29 @@ struct Depot_download_manager::Main : Import::Download_progress
 	void _handle_fetchurl_progress()
 	{
 		_fetchurl_progress.update();
+
+		if (_import.constructed()) {
+			_import->apply_download_progress(*this);
+
+			/* proceed with next import step if all downloads are done or failed */
+			if (!_import->downloads_in_progress())
+				_generate_init_config();
+		}
+
 		_update_state_report();
 	}
 
 	Main(Env &env) : _env(env)
 	{
 		_dependencies     .sigh(_query_result_handler);
+		_index            .sigh(_query_result_handler);
 		_current_user     .sigh(_query_result_handler);
 		_init_state       .sigh(_init_state_handler);
 		_verified         .sigh(_init_state_handler);
 		_installation     .sigh(_installation_handler);
 		_fetchurl_progress.sigh(_fetchurl_progress_handler);
 
+		_handle_installation();
 		_generate_init_config();
 	}
 };
@@ -223,7 +265,7 @@ void Depot_download_manager::Main::_generate_init_config(Xml_generator &xml)
 
 	xml.node("start", [&] () {
 		gen_depot_query_start_content(xml, _installation.xml(),
-		                              _next_user, _depot_query_count); });
+		                              _next_user, _depot_query_count, _jobs); });
 
 	if (_import.constructed() && _import->downloads_in_progress()) {
 		try {
@@ -259,23 +301,54 @@ void Depot_download_manager::Main::_handle_query_result()
 		return;
 
 	_dependencies.update();
+	_index.update();
 	_current_user.update();
 
 	Xml_node const dependencies = _dependencies.xml();
-	if (dependencies.num_sub_nodes() == 0)
+	Xml_node const index        = _index.xml();
+
+	if (dependencies.num_sub_nodes() == 0 && index.num_sub_nodes() == 0)
 		return;
 
-	if (!dependencies.has_sub_node("missing")) {
+	bool const missing_dependencies = dependencies.has_sub_node("missing");
+	bool const missing_index_files  = index.has_sub_node("missing");
+
+	if (!missing_dependencies && !missing_index_files) {
 		log("installation complete.");
 		_update_state_report();
 		return;
 	}
 
-	Archive::Path const path =
-		dependencies.sub_node("missing").attribute_value("path", Archive::Path());
+	/**
+	 * Select depot user for next import
+	 *
+	 * Prefer the downloading of index files over archives because index files
+	 * are quick to download and important for interactivity.
+	 */
+	auto select_next_user = [&] ()
+	{
+		Archive::User user { };
 
-	if (Archive::user(path) != _current_user_name()) {
-		_next_user = Archive::user(path);
+		if (missing_index_files)
+			index.with_sub_node("missing", [&] (Xml_node missing) {
+				user = missing.attribute_value("user", Archive::User()); });
+
+		if (user.valid())
+			return user;
+
+		dependencies.with_sub_node("missing", [&] (Xml_node missing) {
+			user = Archive::user(missing.attribute_value("path", Archive::Path())); });
+
+		if (!user.valid())
+			warning("unable to select depot user for next import");
+
+		return user;
+	};
+
+	Archive::User const next_user = select_next_user();
+
+	if (next_user != _current_user_name()) {
+		_next_user = next_user;
 
 		/* query user info from 'depot_query' */
 		_generate_init_config();
@@ -283,7 +356,14 @@ void Depot_download_manager::Main::_handle_query_result()
 	}
 
 	/* start new import */
-	_import.construct(_heap, _current_user_name(), _dependencies.xml());
+	_import.construct(_heap, _current_user_name(), dependencies, index);
+
+	/* mark imported jobs as started */
+	_import->for_each_download([&] (Archive::Path const &path) {
+		_jobs.for_each([&] (Job &job) {
+			if (job.path == path)
+				job.started = true; }); });
+
 	_fetchurl_attempt = 0;
 	_update_state_report();
 
@@ -316,7 +396,7 @@ void Depot_download_manager::Main::_handle_init_state()
 			_fetchurl_count.value++;
 
 			if (_fetchurl_attempt++ >= _fetchurl_max_attempts) {
-				import.all_downloads_unavailable();
+				import.all_remaining_downloads_unavailable();
 				_fetchurl_attempt = 0;
 			}
 
@@ -326,9 +406,14 @@ void Depot_download_manager::Main::_handle_init_state()
 		if (fetchurl_state.exited && fetchurl_state.code == 0) {
 			import.all_downloads_completed();
 
-			/* kill fetchurl, start untar */
+			/* kill fetchurl, start verify */
 			reconfigure_init = true;
 		}
+	}
+
+	if (!import.downloads_in_progress() && import.completed_downloads_available()) {
+		import.verify_all_downloaded_archives();
+		reconfigure_init = true;
 	}
 
 	if (import.unverified_archives_available()) {
@@ -341,7 +426,7 @@ void Depot_download_manager::Main::_handle_init_state()
 			/* determine matching archive path */
 			Path path;
 			import.for_each_unverified_archive([&] (Archive::Path const &archive) {
-				if (abs_path == Path("/public/", archive, ".tar.xz"))
+				if (abs_path == Path("/public/", Archive::download_file_path(archive)))
 					path = archive; });
 
 			if (path.valid()) {
@@ -374,6 +459,12 @@ void Depot_download_manager::Main::_handle_init_state()
 			reconfigure_init = true;
 		}
 	}
+
+	/* flag failed jobs to prevent re-attempts in subsequent import iterations */
+	import.for_each_failed_archive([&] (Archive::Path const &path) {
+		_jobs.for_each([&] (Job &job) {
+			if (job.path == path)
+				job.failed = true; }); });
 
 	/* report before destructing '_import' to avoid empty intermediate reports */
 	if (reconfigure_init)

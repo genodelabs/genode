@@ -58,11 +58,11 @@ void Depot_download_manager::gen_fetchurl_start_content(Xml_generator &xml,
 		import.for_each_download([&] (Archive::Path const &path) {
 			typedef String<160> Remote;
 			typedef String<160> Local;
-			typedef String<16>  Ext;
+			typedef String<100> File_path;
 
-			Ext    const ext    (".tar.xz");
-			Remote const remote (current_user_url, "/", path, ext);
-			Local  const local  ("/download/", path, ext);
+			File_path const file_path = Archive::download_file_path(path);
+			Remote    const remote (current_user_url, "/", file_path);
+			Local     const local  ("/download/", file_path);
 
 			xml.node("fetch", [&] () {
 				xml.attribute("url", remote);
