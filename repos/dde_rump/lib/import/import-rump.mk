@@ -5,6 +5,15 @@ ifeq ($(filter-out $(SPECS),arm),)
 	# rump include shadows some parts of 'machine' on ARM only,
 	# Therefore, it must be included before RUMP_BASE/include/machine
 	INC_DIR := $(RUMP_PORT_DIR)/src/sys/rump/include $(INC_DIR)
+	INC_DIR += $(RUMP_PORT_DIR)/src/sys/arch/arm/include
+endif
+
+ifeq ($(filter-out $(SPECS),x86_32),)
+	INC_DIR += $(RUMP_PORT_DIR)/src/sys/arch/i386/include
+endif
+
+ifeq ($(filter-out $(SPECS),x86_64),)
+	INC_DIR += $(RUMP_PORT_DIR)/src/sys/arch/amd64/include
 endif
 
 INC_DIR += $(LIBGCC_INC_DIR) \

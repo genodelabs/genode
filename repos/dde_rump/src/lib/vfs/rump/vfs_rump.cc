@@ -29,6 +29,7 @@ extern "C" {
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/param.h>
+#include <sys/mount.h>
 #include <sys/resource.h>
 #include <sys/event.h>
 #include <sys/time.h>
@@ -413,6 +414,17 @@ class Vfs::Rump_file_system : public File_system
 			}
 
 			Genode::log(fs_type," file system mounted");
+
+			struct statvfs stats;
+			int err = rump_sys_statvfs1("/", &stats, ST_WAIT);
+			if (err == 0) {
+				double factor = 1.0 / (1<<30);
+				double available = factor * stats.f_bsize * stats.f_bavail;
+				double total = factor * stats.f_bsize * stats.f_blocks;
+
+				Genode::log("Space available: ", available, " GiB / ", total, " GiB");
+				Genode::log("Nodes available: ", stats.f_favail, "/", stats.f_files);
+			}
 		}
 
 		/***************************
