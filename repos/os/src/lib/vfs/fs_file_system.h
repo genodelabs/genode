@@ -677,10 +677,9 @@ class Vfs::Fs_file_system : public File_system
 				                           _fs, _env.io_handler());
 				status = _fs.status(node);
 			}
-			catch (::File_system::Invalid_handle) { return STAT_ERR_NO_ENTRY; }
-			catch (::File_system::Unavailable)    { return STAT_ERR_NO_ENTRY; }
 			catch (Genode::Out_of_ram)  { return STAT_ERR_NO_PERM; }
 			catch (Genode::Out_of_caps) { return STAT_ERR_NO_PERM; }
+			catch (...) { return STAT_ERR_NO_ENTRY; }
 
 			out = Stat();
 
@@ -776,10 +775,7 @@ class Vfs::Fs_file_system : public File_system
 				::File_system::Status status = _fs.status(node);
 				return status.size / sizeof(::File_system::Directory_entry);
 			}
-			catch (::File_system::Invalid_handle) { }
-			catch (::File_system::Unavailable)    { }
-			catch (Genode::Out_of_ram)  { }
-			catch (Genode::Out_of_caps) { }
+			catch (...) { }
 			return 0;
 		}
 
@@ -794,10 +790,7 @@ class Vfs::Fs_file_system : public File_system
 
 				return status.directory();
 			}
-			catch (::File_system::Invalid_handle) { }
-			catch (::File_system::Unavailable)    { }
-			catch (Genode::Out_of_ram)  { }
-			catch (Genode::Out_of_caps) { }
+			catch (...) { }
 			return false;
 		}
 
