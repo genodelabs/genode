@@ -21,12 +21,15 @@ using namespace Kernel;
 void Thread::Pd_update::execute() {}
 
 
-void Thread::exception(Cpu&)
+void Thread::exception(Cpu & cpu)
 {
 	using Context = Genode::Cpu::Context;
 
-	if (regs->is_irq())
+	if (regs->is_irq()) {
+		/* there are only cpu-local timer interrupts right now */
+		cpu.interrupt(5);
 		return;
+	}
 
 	switch(regs->cpu_exception) {
 	case Context::ECALL_FROM_USER:

@@ -12,11 +12,19 @@
  */
 
 /* Core includes */
+#include <kernel/cpu.h>
 #include <kernel/timer.h>
 #include <kernel/configuration.h>
 #include <hw/assert.h>
 
 using namespace Kernel;
+
+
+void Timer::Irq::occurred() { _cpu.scheduler().timeout(); }
+
+
+Timer::Irq::Irq(unsigned id, Cpu &cpu)
+: Kernel::Irq(id, cpu.irq_pool()), _cpu(cpu) {}
 
 
 time_t Timer::timeout_age_us(Timeout const * const timeout) const
@@ -131,7 +139,8 @@ void Timer::process_timeouts()
 }
 
 
-Timer::Timer(unsigned cpu_id) : _cpu_id(cpu_id), _driver(cpu_id)
+Timer::Timer(Cpu & cpu)
+: _driver(cpu.id()), _irq(interrupt_id(), cpu)
 {
 	/*
 	 * The timer frequency should allow a good accuracy on the smallest
