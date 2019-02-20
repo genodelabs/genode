@@ -242,8 +242,6 @@ append boot_modules [qt5_boot_modules feature]
 
 build_boot_image $boot_modules
 
-append qemu_args "  -usbdevice tablet "
-
 run_genode_until forever
 
 # vi: set ft=tcl :
