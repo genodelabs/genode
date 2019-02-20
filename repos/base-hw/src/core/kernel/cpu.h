@@ -116,7 +116,6 @@ class Kernel::Cpu : public Genode::Cpu, private Irq::Pool, private Timeout
 		Cpu_scheduler  _scheduler;
 		Idle_thread    _idle;
 		Ipi            _ipi_irq;
-		Irq            _timer_irq; /* timer IRQ implemented as empty event */
 
 		Inter_processor_work_list &_global_work_list;
 		Inter_processor_work_list  _local_work_list {};
