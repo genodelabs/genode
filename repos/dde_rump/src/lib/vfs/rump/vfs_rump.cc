@@ -418,9 +418,11 @@ class Vfs::Rump_file_system : public File_system
 			struct statvfs stats;
 			int err = rump_sys_statvfs1("/", &stats, ST_WAIT);
 			if (err == 0) {
-				Genode::Number_of_bytes available(stats.f_bsize * stats.f_bavail);
-				Genode::Number_of_bytes total(stats.f_bsize * stats.f_blocks);
-				Genode::log("Space available: ", available, "/", total);
+				double factor = 1.0 / (1<<30);
+				double available = factor * stats.f_bsize * stats.f_bavail;
+				double total = factor * stats.f_bsize * stats.f_blocks;
+
+				Genode::log("Space available: ", available, " GiB / ", total, " GiB");
 				Genode::log("Nodes available: ", stats.f_favail, "/", stats.f_files);
 			}
 		}
