@@ -97,7 +97,7 @@ static void run_linux(void *s)
 		module_usb_storage_driver_init();
 
 	/* host controller */
-	platform_hcd_init(services);
+	platform_hcd_init(Lx_kit::env().env(), services);
 
 	while (true)
 		Lx::scheduler().current()->block_and_schedule();

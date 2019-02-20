@@ -160,10 +160,10 @@ extern "C" void module_dwc_otg_driver_init();
 extern "C" int  module_usbnet_init();
 extern "C" int  module_smsc95xx_driver_init();
 
-void platform_hcd_init(Services *services)
+void platform_hcd_init(Env &env, Services *services)
 {
 	/* enable USB power */
-	Platform::Connection platform;
+	Platform::Connection platform(env);
 	platform.power_state(Platform::Session::POWER_USB_HCD, true);
 
 	/* register network */
