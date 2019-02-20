@@ -183,7 +183,7 @@ extern "C" int  module_usbnet_init();
 extern "C" int  module_smsc95xx_driver_init();
 
 
-void platform_hcd_init(Services *services)
+void platform_hcd_init(Genode::Env &, Services *services)
 {
 	/* register EHCI controller */
 	module_ehci_exynos_init();

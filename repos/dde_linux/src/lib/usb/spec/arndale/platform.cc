@@ -120,10 +120,10 @@ static void arndale_ehci_init(Genode::Env &env)
 	enum Gpio_offset { D1 = 0x180, X3 = 0xc60 };
 
 	/* enable USB3 clock and power up */
-	static Regulator::Connection reg_clk(Regulator::CLK_USB20);
+	static Regulator::Connection reg_clk(env, Regulator::CLK_USB20);
 	reg_clk.state(true);
 
-	static Regulator::Connection reg_pwr(Regulator::PWR_USB20);
+	static Regulator::Connection reg_pwr(env, Regulator::PWR_USB20);
 	reg_pwr.state(true);
 
 	/* reset hub via GPIO */
@@ -200,9 +200,9 @@ struct Phy_usb3 : Genode::Mmio
 
 	struct Phy_resume : Register<0x34, 32> { };
 
-	Phy_usb3 (addr_t const base) : Mmio(base)
+	Phy_usb3 (Genode::Env &env, addr_t const base) : Mmio(base)
 	{
-		Timer::Connection timer;
+		Timer::Connection timer(env);
 
 		/* reset */
 		write<Phy_reg0>(0);
@@ -269,15 +269,15 @@ struct Phy_usb3 : Genode::Mmio
 static void arndale_xhci_init(Genode::Env &env)
 {
 	/* enable USB3 clock and power up */
-	static Regulator::Connection reg_clk(Regulator::CLK_USB30);
+	static Regulator::Connection reg_clk(env, Regulator::CLK_USB30);
 	reg_clk.state(true);
 
-	static Regulator::Connection reg_pwr(Regulator::PWR_USB30);
+	static Regulator::Connection reg_pwr(env, Regulator::PWR_USB30);
 	reg_pwr.state(true);
 
 	/* setup PHY */
 	Attached_io_mem_dataspace io_phy(env, DWC3_PHY_BASE, 0x1000);
-	Phy_usb3 phy((addr_t)io_phy.local_addr<addr_t>());
+	Phy_usb3 phy(env, (addr_t)io_phy.local_addr<addr_t>());
 }
 
 
@@ -343,7 +343,7 @@ void xhci_setup(Services *services)
 }
 
 
-void platform_hcd_init(Services *services)
+void platform_hcd_init(Genode::Env &, Services *services)
 {
 	/* register network */
 	if (services->nic)

@@ -22,7 +22,7 @@ extern "C" int  postcore_mxs_phy_module_init();
 extern "C" void module_ehci_hcd_init();
 extern "C" void module_xhci_hcd_init();
 
-void platform_hcd_init(Services *services)
+void platform_hcd_init(Genode::Env &, Services *services)
 {
 	module_ehci_hcd_init();
 	module_ci_hdrc_platform_register();

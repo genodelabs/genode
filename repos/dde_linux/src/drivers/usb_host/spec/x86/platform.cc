@@ -221,7 +221,7 @@ extern "C" void module_uhci_hcd_init();
 extern "C" void module_xhci_hcd_init();
 extern "C" void module_xhci_pci_init();
 
-void platform_hcd_init(Services *s)
+void platform_hcd_init(Genode::Env &, Services *s)
 {
 	module_xhci_hcd_init();
 	module_xhci_pci_init();
