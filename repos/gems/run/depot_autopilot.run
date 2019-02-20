@@ -652,6 +652,7 @@ set default_test_pkgs {
 	test-block
 	test-block_cache
 	test-clipboard
+	test-depot_query_index
 	test-ds_ownership
 	test-dynamic_config
 	test-dynamic_config_loader

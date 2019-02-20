@@ -170,6 +170,7 @@ struct Depot_query::Main
 	Constructible_reporter _blueprint_reporter    { };
 	Constructible_reporter _dependencies_reporter { };
 	Constructible_reporter _user_reporter         { };
+	Constructible_reporter _index_reporter        { };
 
 	template <typename T, typename... ARGS>
 	static void _construct_if(bool condition, Constructible<T> &obj, ARGS &&... args)
@@ -226,6 +227,7 @@ struct Depot_query::Main
 	void _collect_source_dependencies(Archive::Path const &, Dependencies &, Recursion_limit);
 	void _collect_binary_dependencies(Archive::Path const &, Dependencies &, Recursion_limit);
 	void _query_user(Archive::User const &, Xml_generator &);
+	void _query_index(Archive::User const &, Archive::Version const &, bool, Xml_generator &);
 
 	void _handle_config()
 	{
@@ -265,6 +267,9 @@ struct Depot_query::Main
 
 		_construct_if(query.has_sub_node("user"),
 		              _user_reporter, _env, "user", "user");
+
+		_construct_if(query.has_sub_node("index"),
+		              _index_reporter, _env, "index", "index");
 
 		_root.apply_config(config.sub_node("vfs"));
 
@@ -324,6 +329,13 @@ struct Depot_query::Main
 				first = false;
 				_query_user(node.attribute_value("name", Archive::User()), xml); });
 		});
+
+		_gen_versioned_report(_index_reporter, version, [&] (Xml_generator &xml) {
+			query.for_each_sub_node("index", [&] (Xml_node node) {
+				_query_index(node.attribute_value("user",    Archive::User()),
+				             node.attribute_value("version", Archive::Version()),
+				             node.attribute_value("content", false),
+				             xml); }); });
 	}
 
 	Main(Env &env) : _env(env)
@@ -586,6 +598,38 @@ void Depot_query::Main::_query_user(Archive::User const &user, Xml_generator &xm
 	}
 	catch (Directory::Nonexistent_file) {
 		warning("incomplete or missing depot-user info for '", user, "'"); }
+}
+
+
+void Depot_query::Main::_query_index(Archive::User    const &user,
+                                     Archive::Version const &version,
+                                     bool const content, Xml_generator &xml)
+{
+	Directory::Path const index_path("depot/", user, "/index/", version);
+	if (!_root.file_exists(index_path)) {
+		xml.node("missing", [&] () {
+			xml.attribute("user",    user);
+			xml.attribute("version", version);
+		});
+		return;
+	}
+
+	xml.node("index", [&] () {
+		xml.attribute("user",    user);
+		xml.attribute("version", version);
+
+		if (content) {
+			try {
+				File_content const
+					file(_heap, _root, index_path, File_content::Limit{16*1024});
+
+				file.xml([&] (Xml_node node) {
+					node.with_raw_content([&] (char const *start, size_t lenght) {
+						xml.append(start, lenght); }); });
+
+			} catch (Directory::Nonexistent_file) { }
+		}
+	});
 }
 
 

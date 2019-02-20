@@ -1,0 +1,67 @@
+<runtime ram="32M" caps="1000" binary="init">
+
+	<events>
+		<timeout meaning="failed" sec="10" />
+		<log meaning="succeeded">
+			[init -> report_rom] report 'depot_query -> index'
+			[init -> report_rom] *&lt;index>
+			[init -> report_rom]   	&lt;index user="genodelabs" version="19.02">
+			[init -> report_rom]   								&lt;index name="Demos">
+			[init -> report_rom]   									&lt;pkg path="nano3d" info="simple software-rendering demo"/>
+			[init -> report_rom]   								&lt;/index>
+			[init -> report_rom]   							&lt;/index>
+			[init -> report_rom]   	&lt;missing user="genodelabs" version="19.03"/>
+			[init -> report_rom]   &lt;/index>
+		</log>
+	</events>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="report_rom"/>
+		<rom label="vfs.lib.so"/>
+		<rom label="depot_query"/>
+	</content>
+
+	<config>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="PD"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="LOG"/>
+		</parent-provides>
+
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+		<default caps="100"/>
+
+		<start name="report_rom">
+			<resource name="RAM" quantum="1M"/>
+			<provides> <service name="Report"/> <service name="ROM"/> </provides>
+			<config verbose="yes"/>
+		</start>
+
+		<start name="depot_query">
+			<resource name="RAM" quantum="2M"/>
+			<config arch="x86_64">
+
+				<!-- test queries -->
+				<index user="genodelabs" version="19.02" content="yes"/>
+				<index user="genodelabs" version="19.03"/> <!-- does not exist -->
+
+				<vfs>
+					<dir name="depot"> <dir name="genodelabs"> <dir name="index">
+						<inline name="19.02">
+							<index>
+								<index name="Demos">
+									<pkg path="nano3d" info="simple software-rendering demo"/>
+								</index>
+							</index>
+						</inline>
+					</dir> </dir> </dir>
+				</vfs>
+			</config>
+		</start>
+	</config>
+</runtime>
