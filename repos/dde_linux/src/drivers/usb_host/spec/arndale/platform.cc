@@ -333,7 +333,7 @@ void xhci_setup(Services *services)
 }
 
 
-void platform_hcd_init(Services *services)
+void platform_hcd_init(Genode::Env &, Services *services)
 {
 	ehci_setup(services);
 	xhci_setup(services);

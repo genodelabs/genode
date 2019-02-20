@@ -15,6 +15,7 @@
 #include <lx_emul.h>
 
 #include <lx_kit/malloc.h>
+#include <lx_kit/env.h>
 
 #define to_platform_driver(drv) (container_of((drv), struct platform_driver, \
                                  driver))
@@ -199,7 +200,7 @@ void *_ioremap(phys_addr_t phys_addr, unsigned long size, int wc)
 {
 	try {
 		Genode::Attached_io_mem_dataspace *ds = new(Lx::Malloc::mem())
-		                                        Genode::Attached_io_mem_dataspace(phys_addr, size, !!wc);
+			Genode::Attached_io_mem_dataspace(Lx_kit::env().env(), phys_addr, size, !!wc);
 		return ds->local_addr<void>();
 	} catch (...) {
 		panic("Failed to request I/O memory: [%lx,%lx)", phys_addr, phys_addr + size);

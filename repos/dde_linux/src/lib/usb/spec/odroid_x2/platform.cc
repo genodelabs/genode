@@ -74,9 +74,9 @@ struct Ehci : Genode::Mmio
  */
 struct Usb_Otg : Genode::Mmio
 {
-	Usb_Otg(Genode::addr_t base):Genode::Mmio (base)
+	Usb_Otg(Genode::Env &env, Genode::addr_t base):Genode::Mmio (base)
 	{
-		Timer::Connection timer;
+		Timer::Connection timer(env);
 		unsigned int rstcon_mask = 0;
 		unsigned int phyclk_mask = 5;
 		unsigned int phypwr_mask = 0;
@@ -119,13 +119,13 @@ struct Usb_Otg : Genode::Mmio
 	struct Rstcon : Register <0x8,32>{};
 };
 
-static void clock_pwr_init()
+static void clock_pwr_init(Env &env)
 {
 	/* enable USB2 clock and power up */
-	static Regulator::Connection reg_clk(Regulator::CLK_USB20);
+	static Regulator::Connection reg_clk(env, Regulator::CLK_USB20);
 	reg_clk.state(true);
 
-	static Regulator::Connection reg_pwr(Regulator::PWR_USB20);
+	static Regulator::Connection reg_pwr(env, Regulator::PWR_USB20);
 	reg_pwr.state(true);
 }
 
@@ -133,21 +133,21 @@ static void usb_phy_init(Genode::Env &env)
 {
 	Io_mem_connection io_usbotg(env, USBOTG, 0x1000);
 	addr_t usbotg_base = (addr_t)env.rm().attach(io_usbotg.dataspace());
-	Usb_Otg usbotg(usbotg_base);
+	Usb_Otg usbotg(env, usbotg_base);
 	env.rm().detach(usbotg_base);
 }
 
 static void odroidx2_ehci_init(Genode::Env &env)
 {
-	clock_pwr_init();
+	clock_pwr_init(env);
 	usb_phy_init(env);
 
 	/* reset hub via GPIO */
 	enum { X30 = 294, X34 = 298, X35 = 299 };
 
-	Gpio::Connection gpio_x30(X30);
-	Gpio::Connection gpio_x34(X34);
-	Gpio::Connection gpio_x35(X35);
+	Gpio::Connection gpio_x30(env, X30);
+	Gpio::Connection gpio_x34(env, X34);
+	Gpio::Connection gpio_x35(env, X35);
 
 	/* Set Ref freq 0 => 24MHz, 1 => 26MHz*/
 	/* Odroid Us have it at 24MHz, Odroid Xs at 26MHz */
@@ -203,7 +203,7 @@ void ehci_setup(Services *services)
 	platform_device_register(pdev);
 }
 
-void platform_hcd_init(Services *services)
+void platform_hcd_init(Genode::Env &, Services *services)
 {
 	/* register network */
 	if (services->nic){

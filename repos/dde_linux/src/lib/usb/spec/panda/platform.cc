@@ -236,8 +236,8 @@ static void omap_ehci_init(Genode::Env &env)
 	Aux3 aux3(scrm_base);
 
 	/* init GPIO */
-	Gpio::Connection gpio_power(HUB_POWER);
-	Gpio::Connection gpio_reset(HUB_NRESET);
+	Gpio::Connection gpio_power(env, HUB_POWER);
+	Gpio::Connection gpio_reset(env, HUB_NRESET);
 
 	/* disable the hub power and reset before init */
 	gpio_power.direction(Gpio::Session::OUT);
@@ -277,7 +277,7 @@ extern "C" void module_ehci_omap_init();
 extern "C" int  module_usbnet_init();
 extern "C" int  module_smsc95xx_driver_init();
 
-void platform_hcd_init(Services *services)
+void platform_hcd_init(Genode::Env &, Services *services)
 {
 	if (!services->ehci)
 		return;
