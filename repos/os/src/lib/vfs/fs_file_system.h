@@ -503,9 +503,13 @@ class Vfs::Fs_file_system : public File_system
 
 			if (!packet_out.succeeded()) {
 				/* could be EOF or a real error */
-				::File_system::Status status = _fs.status(handle.file_handle());
-				if (seek_offset < status.size)
-					Genode::warning("unexpected failure on file-system read");
+				try {
+					::File_system::Status status = _fs.status(handle.file_handle());
+					if (seek_offset < status.size)
+						Genode::warning("unexpected failure on file-system read");
+				}
+				catch (::File_system::Invalid_handle) { }
+				catch (::File_system::Unavailable)    { }
 			}
 
 			file_size const read_num_bytes = min(packet_out.length(), count);
@@ -673,9 +677,10 @@ class Vfs::Fs_file_system : public File_system
 				                           _fs, _env.io_handler());
 				status = _fs.status(node);
 			}
-			catch (::File_system::Lookup_failed) { return STAT_ERR_NO_ENTRY; }
-			catch (Genode::Out_of_ram)           { return STAT_ERR_NO_PERM;  }
-			catch (Genode::Out_of_caps)          { return STAT_ERR_NO_PERM;  }
+			catch (::File_system::Invalid_handle) { return STAT_ERR_NO_ENTRY; }
+			catch (::File_system::Unavailable)    { return STAT_ERR_NO_ENTRY; }
+			catch (Genode::Out_of_ram)  { return STAT_ERR_NO_PERM; }
+			catch (Genode::Out_of_caps) { return STAT_ERR_NO_PERM; }
 
 			out = Stat();
 
@@ -763,14 +768,19 @@ class Vfs::Fs_file_system : public File_system
 			if (strcmp(path, "") == 0)
 				path = "/";
 
-			::File_system::Node_handle node;
-			try { node = _fs.node(path); } catch (...) { return 0; }
-			Fs_handle_guard node_guard(*this, _fs, node, _handle_space, _fs,
-			                           _env.io_handler());
-
-			::File_system::Status status = _fs.status(node);
-
-			return status.size / sizeof(::File_system::Directory_entry);
+			try {
+				::File_system::Node_handle node = _fs.node(path);
+				Fs_handle_guard node_guard(*this, _fs, node,
+				                           _handle_space, _fs,
+				                           _env.io_handler());
+				::File_system::Status status = _fs.status(node);
+				return status.size / sizeof(::File_system::Directory_entry);
+			}
+			catch (::File_system::Invalid_handle) { }
+			catch (::File_system::Unavailable)    { }
+			catch (Genode::Out_of_ram)  { }
+			catch (Genode::Out_of_caps) { }
+			return 0;
 		}
 
 		bool directory(char const *path) override
@@ -784,7 +794,11 @@ class Vfs::Fs_file_system : public File_system
 
 				return status.directory();
 			}
-			catch (...) { return false; }
+			catch (::File_system::Invalid_handle) { }
+			catch (::File_system::Unavailable)    { }
+			catch (Genode::Out_of_ram)  { }
+			catch (Genode::Out_of_caps) { }
+			return false;
 		}
 
 		char const *leaf_path(char const *path) override
