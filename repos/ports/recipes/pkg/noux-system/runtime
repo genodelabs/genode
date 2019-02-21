@@ -1,4 +1,4 @@
-<runtime ram="72M" caps="1000" binary="init" config="init.config">
+<runtime ram="72M" caps="1000" binary="init" config="noux-system.config">
 
 	<requires>
 		<nitpicker/>
@@ -11,7 +11,7 @@
 	</requires>
 
 	<content>
-		<rom label="init.config"/>
+		<rom label="noux-system.config"/>
 		<rom label="ld.lib.so"/>
 		<rom label="libc.lib.so"/>
 		<rom label="libm.lib.so"/>

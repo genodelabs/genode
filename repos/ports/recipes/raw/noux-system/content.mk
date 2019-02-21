@@ -1,4 +1,4 @@
-content: init.config
+content: noux-system.config
 
-init.config:
+noux-system.config:
 	cp $(REP_DIR)/recipes/raw/noux-system/$@ $@
