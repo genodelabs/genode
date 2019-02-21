@@ -157,13 +157,7 @@ class Kernel::Cpu : public Genode::Cpu, private Irq::Pool, private Timeout
 		 */
 		Cpu_job& schedule();
 
-		void set_timeout(Timeout * const timeout, time_t const duration_us);
-
-		time_t timeout_age_us(Timeout const * const timeout) const;
-
-		time_t timeout_max_us() const;
-
-		time_t time() const { return _timer.time(); }
+		Timer & timer() { return _timer; }
 
 		addr_t stack_start();
 
@@ -175,10 +169,6 @@ class Kernel::Cpu : public Genode::Cpu, private Irq::Pool, private Timeout
 
 		unsigned id() const { return _id; }
 		Cpu_scheduler &scheduler() { return _scheduler; }
-
-		time_t us_to_ticks(time_t const us) const { return _timer.us_to_ticks(us); };
-
-		unsigned timer_interrupt_id() const { return _timer.interrupt_id(); }
 
 		Irq::Pool &irq_pool() { return *this; }
 

@@ -17,6 +17,9 @@
 /* Genode includes */
 #include <base/duration.h>
 
+/* base-hw includes */
+#include <kernel/interface.h>
+
 /* local includes */
 #include <signalled_time_source.h>
 
@@ -32,10 +35,7 @@ class Timer::Time_source : public Genode::Signalled_time_source
 {
 	private:
 
-
-		Duration      mutable _curr_time { Microseconds(0) };
-		unsigned long mutable _last_timeout_age_us = 0;
-		unsigned long const   _max_timeout_us;
+		Kernel::time_t const _max_timeout_us;
 
 	public:
 

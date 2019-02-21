@@ -68,6 +68,14 @@ Call_ret Kernel::call(Call_arg arg_0)
 }
 
 
+Call_ret_64 Kernel::call64(Call_arg arg_0)
+{
+	CALL_1_FILL_ARG_REGS
+	asm volatile(CALL_1_SYSCALL);
+	return arg_0_reg;
+}
+
+
 Call_ret Kernel::call(Call_arg arg_0,
                       Call_arg arg_1)
 {

@@ -133,6 +133,7 @@ class Kernel::Cpu_scheduler
 		unsigned       _residual;
 		unsigned const _fill;
 		bool           _need_to_schedule { true };
+		time_t         _last_time { 0 };
 
 		template <typename F> void _for_each_prio(F f) {
 			for (signed p = Prio::MAX; p > Prio::MIN - 1; p--) { f(p); } }
@@ -184,9 +185,9 @@ class Kernel::Cpu_scheduler
 		void timeout()          { _need_to_schedule = true; }
 
 		/**
-		 * Update head according to the consumption of quota 'q'
+		 * Update head according to the consumed time
 		 */
-		void update(unsigned q);
+		void update(time_t time);
 
 		/**
 		 * Set 's1' ready and return wether this outdates current head

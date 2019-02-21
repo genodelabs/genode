@@ -29,12 +29,12 @@ void Timer::_start_one_shot(time_t const ticks)
 {
 	_driver.write<Driver::Cs::M1>(1);
 	_driver.read<Driver::Cs>();
-	_driver.write<Driver::Clo>(0);
-	_driver.write<Driver::Cmp>(_driver.read<Driver::Clo>() + ticks);
+	_driver.write<Driver::Cmp>(_driver.read<Driver::Clo>()
+	                           + (ticks < 2 ? 2 : ticks));
 }
 
 
-time_t Timer::_ticks_to_us(time_t const ticks) const {
+time_t Timer::ticks_to_us(time_t const ticks) const {
 	return ticks / Driver::TICS_PER_US; }
 
 
@@ -43,14 +43,17 @@ time_t Timer::us_to_ticks(time_t const us) const {
 
 
 time_t Timer::_max_value() const {
-	return (Driver::Clo::access_t)~0; }
+	return 0xffffffff; }
 
 
-time_t Timer::_value()
+time_t Timer::_duration() const
 {
-	Driver::Cmp::access_t const cmp = _driver.read<Driver::Cmp>();
 	Driver::Clo::access_t const clo = _driver.read<Driver::Clo>();
-	return cmp > clo ? cmp - clo : 0;
+	Driver::Cmp::access_t const cmp = _driver.read<Driver::Cmp>();
+	Driver::Cs::access_t  const irq = _driver.read<Driver::Cs::M1>();
+	uint32_t d = (irq) ? (uint32_t)_last_timeout_duration + (clo - cmp)
+	                   : clo - (cmp - _last_timeout_duration);
+	return d;
 }
 
 

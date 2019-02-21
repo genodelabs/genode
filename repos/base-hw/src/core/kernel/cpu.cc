@@ -34,27 +34,6 @@ Kernel::Cpu_pool &Kernel::cpu_pool() { return *unmanaged_singleton<Cpu_pool>(); 
  ** Cpu_job **
  *************/
 
-time_t Cpu_job::timeout_age_us(Timeout const * const timeout) const
-{
-	return _cpu->timeout_age_us(timeout);
-}
-
-
-time_t Cpu_job::time() const { return _cpu->time(); }
-
-
-time_t Cpu_job::timeout_max_us() const
-{
-	return _cpu->timeout_max_us();
-}
-
-
-void Cpu_job::timeout(Timeout * const timeout, time_t const us)
-{
-	_cpu->set_timeout(timeout, us);
-}
-
-
 void Cpu_job::_activate_own_share() { _cpu->schedule(this); }
 
 
@@ -134,17 +113,6 @@ Cpu::Idle_thread::Idle_thread(Cpu &cpu)
 }
 
 
-void Cpu::set_timeout(Timeout * const timeout, time_t const duration_us) {
-	_timer.set_timeout(timeout, _timer.us_to_ticks(duration_us)); }
-
-
-time_t Cpu::timeout_age_us(Timeout const * const timeout) const {
-	return _timer.timeout_age_us(timeout); }
-
-
-time_t Cpu::timeout_max_us() const { return _timer.timeout_max_us(); }
-
-
 void Cpu::schedule(Job * const job)
 {
 	if (_id == executing_id()) { _scheduler.ready(&job->share()); }
@@ -168,11 +136,10 @@ Cpu_job & Cpu::schedule()
 	old_job.exception(*this);
 
 	if (_scheduler.need_to_schedule()) {
-		time_t quota = _timer.update_time();
 		_timer.process_timeouts();
-		_scheduler.update(quota);
-		quota = _scheduler.head_quota();
-		_timer.set_timeout(this, quota);
+		_scheduler.update(_timer.time());
+		time_t t = _scheduler.head_quota();
+		_timer.set_timeout(this, t);
 		_timer.schedule_timeout();
 	}
 

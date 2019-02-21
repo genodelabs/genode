@@ -21,6 +21,7 @@ namespace Kernel
 {
 	typedef Genode::uint64_t Call_arg;
 	typedef Genode::uint64_t Call_ret;
+	typedef Genode::uint64_t Call_ret_64;
 }
 
 #endif /* _KERNEL__INTERFACE_SUPPORT_H_ */

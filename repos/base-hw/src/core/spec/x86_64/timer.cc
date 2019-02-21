@@ -94,7 +94,7 @@ void Timer::_start_one_shot(time_t const ticks) {
 	_driver.write<Driver::Tmr_initial>(ticks); }
 
 
-time_t Timer::_ticks_to_us(time_t const ticks) const {
+time_t Timer::ticks_to_us(time_t const ticks) const {
 	return timer_ticks_to_us(ticks, _driver.ticks_per_ms); }
 
 
@@ -106,8 +106,8 @@ time_t Timer::_max_value() const {
 	return (Driver::Tmr_initial::access_t)~0; }
 
 
-time_t Timer::_value() {
-	return _driver.read<Driver::Tmr_current>(); }
+time_t Timer::_duration() const {
+	return _last_timeout_duration - _driver.read<Driver::Tmr_current>(); }
 
 
 unsigned Timer::interrupt_id() const {

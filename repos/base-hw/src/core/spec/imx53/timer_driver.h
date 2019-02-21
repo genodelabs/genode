@@ -52,40 +52,11 @@ struct Kernel::Timer_driver : Genode::Mmio
 
 		struct Swr     : Bitfield<16, 1> { }; /* software reset bit */
 		struct Iovw    : Bitfield<17, 1> { }; /* enable overwrite */
-		struct Dbg_en  : Bitfield<18, 1> { }; /* enable in debug mode */
-		struct Wait_en : Bitfield<19, 1> { }; /* enable in wait mode */
-		struct Doz_en  : Bitfield<20, 1> { }; /* enable in doze mode */
-		struct Stop_en : Bitfield<21, 1> { }; /* enable in stop mode */
-
-		struct Om : Bitfield<22, 2>           /* mode of the output pin */
-		{
-			enum { DISCONNECTED = 0 };
-		};
 
 		struct Clk_src : Bitfield<24, 2>      /* select clock input */
 		{
 			enum { HIGH_FREQ_REF_CLK = 2 };
 		};
-
-		/**
-		 * Register value that configures the timer for a one-shot run
-		 */
-		static access_t prepare_one_shot()
-		{
-			return En::bits(0) |
-			       En_mod::bits(En_mod::RELOAD) |
-			       Oci_en::bits(1) |
-			       Rld::bits(Rld::RELOAD_FROM_LR) |
-			       Prescaler::bits(Prescaler::DIVIDE_BY_1) |
-			       Swr::bits(0) |
-			       Iovw::bits(0) |
-			       Dbg_en::bits(0) |
-			       Wait_en::bits(0) |
-			       Doz_en::bits(0) |
-			       Stop_en::bits(0) |
-			       Om::bits(Om::DISCONNECTED) |
-			       Clk_src::bits(Clk_src::HIGH_FREQ_REF_CLK);
-		}
 	};
 
 	/**

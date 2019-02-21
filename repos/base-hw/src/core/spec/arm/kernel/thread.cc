@@ -120,6 +120,12 @@ void Thread::proceed(Cpu & cpu)
 }
 
 
+void Thread::user_ret_time(Kernel::time_t const t)
+{
+	regs->r0 = t >> 32UL;
+	regs->r1 = t & ~0UL;
+}
+
 void Thread::user_arg_0(Kernel::Call_arg const arg) { regs->r0 = arg; }
 void Thread::user_arg_1(Kernel::Call_arg const arg) { regs->r1 = arg; }
 void Thread::user_arg_2(Kernel::Call_arg const arg) { regs->r2 = arg; }

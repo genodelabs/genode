@@ -56,6 +56,15 @@ using namespace Kernel;
  ** Kernel calls **
  ******************/
 
+Call_ret_64 Kernel::call64(Call_arg arg_0)
+{
+	register Call_arg arg_0_reg asm("r0") = arg_0;
+	register Call_arg arg_1_reg asm("r1");
+	asm volatile(CALL_1_SWI);
+	return ((Call_ret_64)arg_0_reg) << 32 | (Call_ret_64)arg_1_reg;
+}
+
+
 Call_ret Kernel::call(Call_arg arg_0)
 {
 	CALL_1_FILL_ARG_REGS
