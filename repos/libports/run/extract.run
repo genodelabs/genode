@@ -20,17 +20,22 @@ install_config {
 		<config verbose="yes">
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/null"/>
 			<vfs>
-				<dir name="archived"> <rom name="test.tar.xz"/> </dir>
+				<dir name="archived">
+					<rom name="test.tar.xz"/>
+					<rom name="LICENSE.xz"/>
+				</dir>
 				<dir name="extracted"> <ram/> </dir>
 				<dir name="dev"> <log/> <null/> </dir>
 			</vfs>
 			<extract archive="/archived/test.tar.xz" to="/extracted"/>
+			<extract archive="/archived/LICENSE.xz"  to="/extracted" name="LICENSE"/>
 		</config>
 	</start>
 </config>
 }
 
 exec tar cJf [run_dir]/genode/test.tar.xz -C [genode_dir] tool/depot
+exec xz < [genode_dir]/LICENSE > [run_dir]/genode/LICENSE.xz
 
 build { app/extract }
 

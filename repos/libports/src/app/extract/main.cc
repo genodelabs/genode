@@ -97,6 +97,7 @@ struct Extract::Extracted_archive : Noncopyable
 	} dst { };
 
 	typedef String<256> Path;
+	typedef String<80>  Raw_name;
 
 	struct Exception    : Genode::Exception { };
 	struct Open_failed  : Exception { };
@@ -108,15 +109,21 @@ struct Extract::Extracted_archive : Noncopyable
 	/**
 	 * Constructor
 	 *
-	 * \param strip  number of leading path elements to strip
+	 * \param strip     number of leading path elements to strip
+	 * \param raw_name  destination file name when uncompressing raw file
 	 *
 	 * \throw Open_failed
 	 * \throw Read_failed
 	 * \throw Write_failed
+	 *
+	 * The 'raw_name' is unused when extracting an archive.
 	 */
-	explicit Extracted_archive(Path const &path, Strip const strip)
+	explicit Extracted_archive(Path     const &path,
+	                           Strip    const strip,
+	                           Raw_name const &raw_name)
 	{
 		archive_read_support_format_all(src.ptr);
+		archive_read_support_format_raw(src.ptr);
 		archive_read_support_filter_all(src.ptr);
 
 		size_t const block_size = 10240;
@@ -138,8 +145,20 @@ struct Extract::Extracted_archive : Noncopyable
 					throw Read_failed();
 			}
 
-			/* strip leading path elements */
-			{
+			bool const raw = archive_format(src.ptr) == ARCHIVE_FORMAT_RAW;
+
+			/* set destination file name when uncompressing a raw file */
+			if (raw) {
+				if (!raw_name.valid()) {
+					error("name of uncompressed file for ", path, " not specified");
+					throw Write_failed();
+				}
+
+				archive_entry_copy_pathname(entry, raw_name.string());
+			}
+
+			/* strip leading path elements when extracting an archive */
+			if (!raw) {
 				auto stripped = [] (char const *name, unsigned const n)
 				{
 					char const *s = name;
@@ -204,7 +223,8 @@ struct Extract::Main
 {
 	Env &_env;
 
-	typedef Extracted_archive::Path Path;
+	typedef Extracted_archive::Path     Path;
+	typedef Extracted_archive::Raw_name Raw_name;
 
 	Attached_rom_dataspace _config { _env, "config" };
 
@@ -218,8 +238,9 @@ struct Extract::Main
 
 		config.for_each_sub_node("extract", [&] (Xml_node node) {
 
-			Path const src_path = node.attribute_value("archive", Path());
-			Path const dst_path = node.attribute_value("to",      Path());
+			Path     const src_path = node.attribute_value("archive", Path());
+			Path     const dst_path = node.attribute_value("to",      Path());
+			Raw_name const raw_name = node.attribute_value("name", Raw_name());
 
 			Extracted_archive::Strip const strip { node.attribute_value("strip", 0U) };
 
@@ -234,7 +255,7 @@ struct Extract::Main
 				chdir("/");
 				chdir(dst_path.string());
 
-				Extracted_archive extracted_archive(src_path, strip);
+				Extracted_archive extracted_archive(src_path, strip, raw_name);
 
 				success = true;
 			}
