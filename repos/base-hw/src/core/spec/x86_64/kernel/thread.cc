@@ -62,6 +62,7 @@ void Kernel::Thread::proceed(Cpu & cpu)
 }
 
 
+void Kernel::Thread::user_ret_time(Kernel::time_t const t)  { regs->rdi = t;   }
 void Kernel::Thread::user_arg_0(Kernel::Call_arg const arg) { regs->rdi = arg; }
 void Kernel::Thread::user_arg_1(Kernel::Call_arg const arg) { regs->rsi = arg; }
 void Kernel::Thread::user_arg_2(Kernel::Call_arg const arg) { regs->rdx = arg; }

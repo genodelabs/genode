@@ -187,7 +187,7 @@ size_t Thread::_core_to_kernel_quota(size_t const quota) const
 {
 	using Genode::Cpu_session;
 	using Genode::sizet_arithm_t;
-	size_t const ticks = _cpu->us_to_ticks(Kernel::cpu_quota_us);
+	size_t const ticks = _cpu->timer().us_to_ticks(Kernel::cpu_quota_us);
 	return Cpu_session::quota_lim_downscale<sizet_arithm_t>(quota, ticks);
 }
 
@@ -370,19 +370,22 @@ void Thread::_call_await_request_msg()
 
 void Thread::_call_timeout()
 {
+	Timer & t = _cpu->timer();
 	_timeout_sigid = user_arg_2();
-	Cpu_job::timeout(this, user_arg_1());
+	t.set_timeout(this, t.us_to_ticks(user_arg_1()));
 }
 
-
-void Thread::_call_timeout_age_us()
-{
-	user_arg_0(Cpu_job::timeout_age_us(this));
-}
 
 void Thread::_call_timeout_max_us()
 {
-	user_arg_0(Cpu_job::timeout_max_us());
+	user_ret_time(_cpu->timer().timeout_max_us());
+}
+
+
+void Thread::_call_time()
+{
+	Timer & t = _cpu->timer();
+	user_ret_time(t.ticks_to_us(t.time()));
 }
 
 
@@ -634,9 +637,8 @@ void Thread::_call()
 	case call_id_ack_cap():                  _call_ack_cap(); return;
 	case call_id_delete_cap():               _call_delete_cap(); return;
 	case call_id_timeout():                  _call_timeout(); return;
-	case call_id_timeout_age_us():           _call_timeout_age_us(); return;
 	case call_id_timeout_max_us():           _call_timeout_max_us(); return;
-	case call_id_time():                     user_arg_0(Cpu_job::time()); return;
+	case call_id_time():                     _call_time(); return;
 	default:
 		/* check wether this is a core thread */
 		if (!_core) {

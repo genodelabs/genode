@@ -17,6 +17,8 @@
 #include <board.h>
 #include <platform.h>
 
+#include <drivers/timer/util.h>
+
 using namespace Genode;
 using namespace Kernel;
 
@@ -25,26 +27,38 @@ unsigned Timer::interrupt_id() const { return Board::EPIT_1_IRQ; }
 
 
 Timer_driver::Timer_driver(unsigned)
-: Mmio(Platform::mmio_to_virt(Board::EPIT_1_MMIO_BASE)) { }
+: Mmio(Platform::mmio_to_virt(Board::EPIT_1_MMIO_BASE))
+{
+	reset();
+
+	Cr::access_t cr = read<Cr>();
+	Cr::En_mod::set(cr, Cr::En_mod::RELOAD);
+	Cr::Oci_en::set(cr, 1);
+	Cr::Prescaler::set(cr, Cr::Prescaler::DIVIDE_BY_1);
+	Cr::Clk_src::set(cr, Cr::Clk_src::HIGH_FREQ_REF_CLK);
+	Cr::Iovw::set(cr, 1);
+	write<Cr>(cr);
+
+	write<Cmpr>(0xffffffff);
+	write<Cr::En>(1);
+
+	write<Lr>(0xffffffff);
+}
 
 
 void Timer::_start_one_shot(time_t const ticks)
 {
-	/* stop timer */
-	_driver.reset();
-
-	/* configure timer for a one-shot */
-	_driver.write<Driver::Cr>(Driver::Cr::prepare_one_shot());
-	_driver.write<Driver::Lr>(ticks);
-	_driver.write<Driver::Cmpr>(0);
-
-	/* start timer */
-	_driver.write<Driver::Cr::En>(1);
+	/*
+	 * First unset the interrupt flag,
+	 * otherwise if the tick is small enough, we loose an interrupt
+	 */
+	_driver.write<Driver::Sr::Ocif>(1);
+	_driver.write<Driver::Lr>(ticks - 1);
 }
 
 
-time_t Timer::_ticks_to_us(time_t const ticks) const {
-	return (ticks / Driver::TICS_PER_MS) * 1000UL; }
+time_t Timer::ticks_to_us(time_t const ticks) const {
+	return timer_ticks_to_us(ticks, Driver::TICS_PER_MS); }
 
 
 time_t Timer::us_to_ticks(time_t const us) const {
@@ -52,8 +66,14 @@ time_t Timer::us_to_ticks(time_t const us) const {
 
 
 time_t Timer::_max_value() const {
-	return (Driver::Cnt::access_t)~0; }
+	return 0xffffffff; }
 
 
-time_t Timer::_value() {
-	return _driver.read<Driver::Sr::Ocif>() ? 0 : _driver.read<Driver::Cnt>(); }
+time_t Timer::_duration() const
+{
+	Driver::Cnt::access_t last = _last_timeout_duration;
+	Driver::Cnt::access_t cnt  = _driver.read<Driver::Cnt>();
+	Driver::Cnt::access_t ret  = (_driver.read<Driver::Sr::Ocif>())
+		? _max_value() - cnt + last : last - cnt;
+	return ret;
+}

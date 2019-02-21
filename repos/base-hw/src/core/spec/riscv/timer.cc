@@ -26,7 +26,7 @@ Timer_driver::Timer_driver(unsigned)
 	asm volatile ("csrs sie, %0" : : "r"(STIE));
 }
 
-addr_t Timer_driver::stime() { return Hw::get_sys_timer(); }
+time_t Timer_driver::stime() const { return Hw::get_sys_timer(); }
 
 void Timer::_start_one_shot(time_t const ticks)
 {
@@ -35,22 +35,23 @@ void Timer::_start_one_shot(time_t const ticks)
 }
 
 
-time_t Timer::_ticks_to_us(time_t const ticks) const {
-	return (ticks / Driver::TICS_PER_MS) * 1000; }
+time_t Timer::ticks_to_us(time_t const ticks) const {
+	return ticks / Driver::TICS_PER_US; }
 
 
 time_t Timer::us_to_ticks(time_t const us) const {
-	return (us / 1000) * Driver::TICS_PER_MS; }
+	return us * Driver::TICS_PER_MS; }
 
 
 time_t Timer::_max_value() const {
-	return (addr_t)~0; }
+	return 0xffffffff; }
 
 
-time_t Timer::_value()
+time_t Timer::_duration() const
 {
 	addr_t time = _driver.stime();
-	return time < _driver.timeout ? _driver.timeout - time : 0;
+	return time < _driver.timeout ? _driver.timeout - time
+	                              : _last_timeout_duration + (time - _driver.timeout);
 }
 
 

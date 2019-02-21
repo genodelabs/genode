@@ -40,7 +40,6 @@ namespace Kernel
 	constexpr Call_arg call_id_ack_cap()                  { return 14; }
 	constexpr Call_arg call_id_delete_cap()               { return 15; }
 	constexpr Call_arg call_id_timeout()                  { return 16; }
-	constexpr Call_arg call_id_timeout_age_us()           { return 17; }
 	constexpr Call_arg call_id_timeout_max_us()           { return 18; }
 	constexpr Call_arg call_id_time()                     { return 19; }
 
@@ -80,6 +79,8 @@ namespace Kernel
 	              Call_arg arg_4,
 	              Call_arg arg_5);
 
+	Call_ret_64 call64(Call_arg arg_0);
+
 
 	/**
 	 * Install timeout for calling thread
@@ -90,20 +91,9 @@ namespace Kernel
 	 * This call always overwrites the last timeout installed by the thread
 	 * if any.
 	 */
-	inline int timeout(time_t const duration_us, capid_t const sigid)
+	inline int timeout(timeout_t const duration_us, capid_t const sigid)
 	{
 		return call(call_id_timeout(), duration_us, sigid);
-	}
-
-
-	/**
-	 * Return time in microseconds since the caller installed its last timeout
-	 *
-	 * Must not be called if the installation is older than 'timeout_max_us'.
-	 */
-	inline time_t timeout_age_us()
-	{
-		return call(call_id_timeout_age_us());
 	}
 
 
@@ -115,7 +105,7 @@ namespace Kernel
 	 */
 	inline time_t time()
 	{
-		return call(call_id_time());
+		return call64(call_id_time());
 	}
 
 
@@ -127,7 +117,7 @@ namespace Kernel
 	 */
 	inline time_t timeout_max_us()
 	{
-		return call(call_id_timeout_max_us());
+		return call64(call_id_timeout_max_us());
 	}
 
 

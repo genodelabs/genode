@@ -28,11 +28,12 @@ struct Kernel::Timer_driver
 	enum {
 		SPIKE_TIMER_HZ = 1000000,
 		TICS_PER_MS    = SPIKE_TIMER_HZ / 1000,
+		TICS_PER_US    = TICS_PER_MS / 1000,
 	};
 
-	addr_t timeout = 0;
+	time_t timeout = 0;
 
-	addr_t stime();
+	time_t stime() const;
 
 	Timer_driver(unsigned);
 };

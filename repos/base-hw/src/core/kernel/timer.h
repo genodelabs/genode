@@ -42,9 +42,7 @@ class Kernel::Timeout : Genode::List<Timeout>::Element
 	private:
 
 		bool   _listed     = false;
-		time_t _start      = 0;
 		time_t _end        = 0;
-		bool   _end_period = false;
 
 	public:
 
@@ -81,19 +79,16 @@ class Kernel::Timer
 		Driver                _driver;
 		Irq                   _irq;
 		time_t                _time = 0;
-		bool                  _time_period = false;
-		Genode::List<Timeout> _timeout_list[2];
-		time_t                _last_timeout_duration = 0;
-
-		bool _time_overflow(time_t const duration) const;
+		time_t                _last_timeout_duration;
+		Genode::List<Timeout> _timeout_list {};
 
 		void _start_one_shot(time_t const ticks);
-
-		time_t _ticks_to_us(time_t const ticks) const;
 
 		time_t _value();
 
 		time_t _max_value() const;
+
+		time_t _duration() const;
 
 	public:
 
@@ -101,15 +96,13 @@ class Kernel::Timer
 
 		void schedule_timeout();
 
-		time_t update_time();
-
 		void process_timeouts();
 
 		void set_timeout(Timeout * const timeout, time_t const duration);
 
 		time_t us_to_ticks(time_t const us) const;
 
-		time_t timeout_age_us(Timeout const * const timeout) const;
+		time_t ticks_to_us(time_t const ticks) const;
 
 		time_t timeout_max_us() const;
 
@@ -117,7 +110,7 @@ class Kernel::Timer
 
 		static void init_cpu_local();
 
-		time_t time() const { return _time; }
+		time_t time() const { return _time + _duration(); }
 };
 
 #endif /* _CORE__KERNEL__TIMER_H_ */

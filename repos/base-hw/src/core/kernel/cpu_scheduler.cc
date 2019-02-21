@@ -127,16 +127,18 @@ void Cpu_scheduler::_quota_adaption(Share * const s, unsigned const q)
 }
 
 
-void Cpu_scheduler::update(unsigned q)
+void Cpu_scheduler::update(time_t time)
 {
+	unsigned duration = (unsigned) (time - _last_time);
+	_last_time        = time;
 	_need_to_schedule = false;
 
 	/* do not detract the quota if the head context was removed even now */
 	if (_head) {
-		unsigned const r = _trim_consumption(q);
+		unsigned const r = _trim_consumption(duration);
 		if (_head_claims) { _head_claimed(r); }
 		else              { _head_filled(r);  }
-		_consumed(q);
+		_consumed(duration);
 	}
 
 	if (_claim_for_head()) { return; }

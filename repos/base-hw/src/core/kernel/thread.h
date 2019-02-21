@@ -232,8 +232,8 @@ class Kernel::Thread
 		void _call_ack_cap();
 		void _call_delete_cap();
 		void _call_timeout();
-		void _call_timeout_age_us();
 		void _call_timeout_max_us();
+		void _call_time();
 
 		template <typename T, typename... ARGS>
 		void _call_new(ARGS &&... args)
@@ -306,6 +306,8 @@ class Kernel::Thread
 		/**************************
 		 ** Support for syscalls **
 		 **************************/
+
+		void user_ret_time(Kernel::time_t const t);
 
 		void user_arg_0(Kernel::Call_arg const arg);
 		void user_arg_1(Kernel::Call_arg const arg);

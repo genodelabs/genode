@@ -49,6 +49,7 @@ struct Kernel::Timer_driver : Genode::Mmio
 	struct Control : Register<0x8, 32>
 	{
 		struct Timer_enable : Bitfield<0,1> { }; /* enable counting */
+		struct Auto_reload  : Bitfield<1,1> { };
 		struct Irq_enable   : Bitfield<2,1> { }; /* unmask interrupt */
 		struct Prescaler    : Bitfield<8,8> { };
 	};

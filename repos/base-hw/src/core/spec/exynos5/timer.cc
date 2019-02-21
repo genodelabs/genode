@@ -17,6 +17,8 @@
 #include <board.h>
 #include <platform.h>
 
+#include <drivers/timer/util.h>
+
 using namespace Genode;
 using namespace Kernel;
 
@@ -34,50 +36,55 @@ unsigned Timer::interrupt_id() const
 Timer_driver::Timer_driver(unsigned cpu_id)
 :
 	Mmio(Platform::mmio_to_virt(Board::MCT_MMIO_BASE)),
+	local(Platform::mmio_to_virt(Board::MCT_MMIO_BASE)
+	      + (cpu_id ? L1 : L0)),
 	ticks_per_ms(calc_ticks_per_ms(Board::MCT_CLOCK)),
 	cpu_id(cpu_id)
 {
+	static unsigned initialized = 0;
+	if (initialized++) return;
+
 	Mct_cfg::access_t mct_cfg = 0;
 	Mct_cfg::Prescaler::set(mct_cfg, PRESCALER);
 	Mct_cfg::Div_mux::set(mct_cfg, DIV_MUX);
 	write<Mct_cfg>(mct_cfg);
-	write<L0_int_enb>(L0_int_enb::Frceie::bits(1));
-	write<L1_int_enb>(L1_int_enb::Frceie::bits(1));
+}
+
+
+Timer_driver::Local::Local(Genode::addr_t base)
+: Mmio(base)
+{
+	write<Int_enb>(Int_enb::Frceie::bits(1));
+
+	acked_write<Tcntb, Wstat::Tcntb>(0xffffffff);
+	acked_write<Frcntb, Wstat::Frcntb>(0xffffffff);
+
+	Tcon::access_t tcon = 0;
+	Tcon::Frc_start::set(tcon, 1);
+	Tcon::Timer_start::set(tcon, 1);
+	acked_write<Tcon, Wstat::Tcon>(tcon);
 }
 
 
 void Timer::_start_one_shot(time_t const ticks)
 {
-	switch (_driver.cpu_id) {
-	case 0:
-		_driver.write<Driver::L0_int_cstat::Frcnt>(1);
-		_driver.run_0(0);
-		_driver.acked_write<Driver::L0_frcntb, Driver::L0_wstat::Frcntb>(ticks);
-		_driver.run_0(1);
-		return;
-	case 1:
-		_driver.write<Driver::L1_int_cstat::Frcnt>(1);
-		_driver.run_1(0);
-		_driver.acked_write<Driver::L1_frcntb, Driver::L1_wstat::Frcntb>(ticks);
-		_driver.run_1(1);
-		return;
-	default: return;
-	}
+	_driver.local.cnt = _driver.local.read<Driver::Local::Tcnto>();
+	_driver.local.write<Driver::Local::Int_cstat::Frccnt>(1);
+	_driver.local.acked_write<Driver::Local::Frcntb,
+	                          Driver::Local::Wstat::Frcntb>(ticks);
 }
 
 
-time_t Timer::_value()
+time_t Timer::_duration() const
 {
-	switch (_driver.cpu_id) {
-	case 0: return _driver.read<Driver::L0_int_cstat::Frcnt>() ? 0 : _driver.read<Driver::L0_frcnto>();
-	case 1: return _driver.read<Driver::L1_int_cstat::Frcnt>() ? 0 : _driver.read<Driver::L1_frcnto>();
-	default: return 0;
-	}
+	unsigned long ret =  _driver.local.cnt - _driver.local.read<Driver::Local::Tcnto>();
+	return ret;
 }
 
 
-time_t Timer::_ticks_to_us(time_t const ticks) const {
-	return (ticks / _driver.ticks_per_ms) * 1000; }
+
+time_t Timer::ticks_to_us(time_t const ticks) const {
+	return timer_ticks_to_us(ticks, _driver.ticks_per_ms); }
 
 
 time_t Timer::us_to_ticks(time_t const us) const {
@@ -85,4 +92,4 @@ time_t Timer::us_to_ticks(time_t const us) const {
 
 
 time_t Timer::_max_value() const {
-	return (Driver::L0_frcnto::access_t)~0; }
+	return 0xffffffff; }

@@ -112,13 +112,6 @@ class Kernel::Cpu_job : private Cpu_share
 		 */
 		bool own_share_active() { return Cpu_share::ready(); }
 
-		void timeout(Timeout * const timeout, time_t const duration_us);
-
-		time_t timeout_age_us(Timeout const * const timeout) const;
-
-		time_t timeout_max_us() const;
-
-		time_t time() const;
 
 		/***************
 		 ** Accessors **

@@ -20,10 +20,11 @@
 
 namespace Kernel
 {
-	using addr_t  = Genode::addr_t;
-	using size_t  = Genode::size_t;
-	using capid_t = Genode::uint16_t;
-	using time_t  = unsigned long;
+	using addr_t    = Genode::addr_t;
+	using size_t    = Genode::size_t;
+	using capid_t   = Genode::uint16_t;
+	using time_t    = Genode::uint64_t;
+	using timeout_t = Genode::uint32_t;
 
 	constexpr capid_t cap_id_invalid() { return 0; }
 }

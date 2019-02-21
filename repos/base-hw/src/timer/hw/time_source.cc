@@ -19,9 +19,6 @@
 /* local includes */
 #include <time_source.h>
 
-/* base-hw includes */
-#include <kernel/interface.h>
-
 using namespace Genode;
 
 enum { MIN_TIMEOUT_US = 1000 };
@@ -42,15 +39,14 @@ Timer::Time_source::Time_source(Env &env)
 void Timer::Time_source::schedule_timeout(Microseconds     duration,
                                           Timeout_handler &handler)
 {
-	unsigned long duration_us = duration.value;
+	Kernel::timeout_t duration_us = duration.value;
 	if (duration_us < MIN_TIMEOUT_US) {
 		duration_us = MIN_TIMEOUT_US; }
 
-	if (duration_us > max_timeout().value) {
-		duration_us = max_timeout().value; }
+	if (duration_us > _max_timeout_us) {
+		duration_us = _max_timeout_us; }
 
 	_handler = &handler;
-	_last_timeout_age_us = 0;
 	Signal_context_capability cap = _signal_handler;
 	Kernel::timeout(duration_us, (addr_t)cap.data());
 }
@@ -58,12 +54,11 @@ void Timer::Time_source::schedule_timeout(Microseconds     duration,
 
 Duration Timer::Time_source::curr_time()
 {
-	unsigned long const timeout_age_us = Kernel::timeout_age_us();
-	if (timeout_age_us > _last_timeout_age_us) {
-
-		/* increment time by the difference since the last update */
-		_curr_time.add(Microseconds(timeout_age_us - _last_timeout_age_us));
-		_last_timeout_age_us = timeout_age_us;
-	}
-	return _curr_time;
+	/*
+	 * FIXME: the `Microseconds` constructor takes a machine-word as value
+	 * thereby limiting the possible value to something ~1.19 hours.
+	 * must be changed when the timeout framework internally does not use
+	 * machine-word wide microseconds values anymore.
+	 */
+	return Duration(Microseconds(Kernel::time()));
 }

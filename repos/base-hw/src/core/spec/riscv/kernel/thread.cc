@@ -27,7 +27,7 @@ void Thread::exception(Cpu & cpu)
 
 	if (regs->is_irq()) {
 		/* there are only cpu-local timer interrupts right now */
-		cpu.interrupt(5);
+		cpu.interrupt(cpu.timer().interrupt_id());
 		return;
 	}
 
@@ -78,6 +78,7 @@ void Kernel::Thread::proceed(Cpu & cpu)
 }
 
 
+void Thread::user_ret_time(Kernel::time_t const t)  { regs->a0  = t;   }
 void Thread::user_arg_0(Kernel::Call_arg const arg) { regs->a0  = arg; }
 void Thread::user_arg_1(Kernel::Call_arg const arg) { regs->a1  = arg; }
 void Thread::user_arg_2(Kernel::Call_arg const arg) { regs->a2  = arg; }

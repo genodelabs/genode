@@ -40,130 +40,68 @@ struct Kernel::Timer_driver : Genode::Mmio
 	};
 
 
-	/*******************
-	 ** Local timer 0 **
-	 *******************/
+	/*****************
+	 ** Local timer **
+	 *****************/
 
-	/**
-	 * Free running counter buffer
-	 */
-	struct L0_frcntb : Register<0x310, 32> { };
+	enum Local_timer_offset { L0 = 0x300, L1 = 0x400 };
 
-	/**
-	 * Configuration
-	 */
-	struct L0_tcon : Register<0x320, 32>
-	{
-		struct Frc_start : Bitfield<3, 1> { };
+	struct Local : Genode::Mmio {
+
+		struct Tcntb  : Register<0x0, 32> { };
+		struct Tcnto  : Register<0x4, 32> { };
+		struct Icntb  : Register<0x8, 32> { };
+		struct Icnto  : Register<0xc, 32> { };
+		struct Frcntb : Register<0x10, 32> { };
+		struct Frcnto : Register<0x14, 32> { };
+
+		struct Tcon : Register<0x20, 32>
+		{
+			struct Timer_start : Bitfield<0, 1> { };
+			struct Irq_start   : Bitfield<1, 1> { };
+			struct Irq_type    : Bitfield<2, 1> { };
+			struct Frc_start   : Bitfield<3, 1> { };
+		};
+
+		struct Int_cstat : Register<0x30, 32, true>
+		{
+			struct Intcnt : Bitfield<0, 1> { };
+			struct Frccnt : Bitfield<1, 1> { };
+		};
+
+		struct Int_enb : Register<0x34, 32>
+		{
+			struct Inteie : Bitfield<0, 1> { };
+			struct Frceie : Bitfield<1, 1> { };
+		};
+
+		struct Wstat : Register<0x40, 32, true>
+		{
+			struct Tcntb  : Bitfield<0, 1> { };
+			struct Icntb  : Bitfield<1, 1> { };
+			struct Frcntb : Bitfield<2, 1> { };
+			struct Tcon   : Bitfield<3, 1> { };
+		};
+
+		Tcnto::access_t cnt = { 0 };
+
+		/**
+		 * Write to reg that replies via ack bit and clear ack bit
+		 */
+		template <typename DEST, typename ACK>
+		void acked_write(typename DEST::Register_base::access_t const v)
+		{
+			typedef typename DEST::Register_base Dest;
+			typedef typename ACK::Bitfield_base  Ack;
+			write<Dest>(v);
+			while (!read<Ack>());
+			write<Ack>(1);
+		}
+
+		void update_cnt() { cnt = read<Tcnto>(); }
+
+		Local(Genode::addr_t base);
 	};
-
-	/**
-	 * Expired status
-	 */
-	struct L0_int_cstat : Register<0x330, 32, true>
-	{
-		struct Frcnt : Bitfield<1, 1> { };
-	};
-
-	/**
-	 * Interrupt enable
-	 */
-	struct L0_int_enb : Register<0x334, 32>
-	{
-		struct Frceie : Bitfield<1, 1> { };
-	};
-
-	/**
-	 * Write status
-	 */
-	struct L0_wstat : Register<0x340, 32, true>
-	{
-		struct Frcntb : Bitfield<2, 1> { };
-		struct Tcon   : Bitfield<3, 1> { };
-	};
-
-	struct L0_frcnto : Register<0x314, 32> { };
-
-	/**
-	 * Start and stop counting
-	 */
-	void run_0(bool const run)
-	{
-		acked_write<L0_tcon, L0_wstat::Tcon>
-			(L0_tcon::Frc_start::bits(run));
-	}
-
-
-	/*******************
-	 ** Local timer 1 **
-	 *******************/
-
-	/**
-	 * Free running counter buffer
-	 */
-	struct L1_frcntb : Register<0x410, 32> { };
-
-	/**
-	 * Configuration
-	 */
-	struct L1_tcon : Register<0x420, 32>
-	{
-		struct Frc_start : Bitfield<3, 1> { };
-	};
-
-	/**
-	 * Expired status
-	 */
-	struct L1_int_cstat : Register<0x430, 32, true>
-	{
-		struct Frcnt : Bitfield<1, 1> { };
-	};
-
-	/**
-	 * Interrupt enable
-	 */
-	struct L1_int_enb : Register<0x434, 32>
-	{
-		struct Frceie : Bitfield<1, 1> { };
-	};
-
-	/**
-	 * Write status
-	 */
-	struct L1_wstat : Register<0x440, 32, true>
-	{
-		struct Frcntb : Bitfield<2, 1> { };
-		struct Tcon   : Bitfield<3, 1> { };
-	};
-
-	struct L1_frcnto : Register<0x414, 32> { };
-
-	/**
-	 * Start and stop counting
-	 */
-	void run_1(bool const run)
-	{
-		acked_write<L1_tcon, L1_wstat::Tcon>
-			(L1_tcon::Frc_start::bits(run));
-	}
-
-
-	/********************
-	 ** Helper methods **
-	 ********************/
-
-	/**
-	 * Write to reg that replies via ack bit and clear ack bit
-	 */
-	template <typename DEST, typename ACK>
-	void acked_write(typename DEST::Register_base::access_t const v)
-	{
-		typedef typename DEST::Register_base Dest;
-		typedef typename ACK::Bitfield_base  Ack;
-		write<Dest>(v);
-		while (!read<Ack>());
-		write<Ack>(1);
-	}
 
 	/**
 	 * Calculate amount of ticks per ms for specific input clock
@@ -173,6 +111,7 @@ struct Kernel::Timer_driver : Genode::Mmio
 	time_t static calc_ticks_per_ms(unsigned const clock) {
 		return clock / (PRESCALER + 1) / (1 << DIV_MUX) / 1000; }
 
+	Local          local;
 	unsigned const ticks_per_ms;
 	unsigned const cpu_id;
 
