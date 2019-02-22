@@ -202,6 +202,8 @@ class Lx_fs::Directory : public Node
 				return 0;
 			}
 
+			e->inode = dent->d_ino;
+
 			strncpy(e->name, dent->d_name, sizeof(e->name));
 
 			return sizeof(Directory_entry);
