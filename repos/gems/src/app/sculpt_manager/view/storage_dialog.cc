@@ -147,9 +147,9 @@ void Sculpt::Storage_dialog::_gen_partition_operations(Xml_generator        &xml
 				xml.attribute("selected", "yes");
 
 			if (whole_device) {
-				xml.node("label", [&] () { xml.attribute("text", "Format device"); });
+				xml.node("label", [&] () { xml.attribute("text", "Format device ..."); });
 			} else {
-				xml.node("label", [&] () { xml.attribute("text", "Format partition"); });
+				xml.node("label", [&] () { xml.attribute("text", "Format partition ..."); });
 			}
 		});
 	}
@@ -162,7 +162,7 @@ void Sculpt::Storage_dialog::_gen_partition_operations(Xml_generator        &xml
 			if (partition.expand_in_progress())
 				xml.attribute("selected", "yes");
 
-			xml.node("label", [&] () { xml.attribute("text", "Expand"); });
+			xml.node("label", [&] () { xml.attribute("text", "Expand ..."); });
 		});
 	}
 
@@ -390,7 +390,7 @@ void Sculpt::Storage_dialog::_gen_ram_fs(Xml_generator &xml) const
 					xml.node("button", [&] () {
 						_operation_item.gen_button_attr(xml, "reset");
 
-						xml.node("label", [&] () { xml.attribute("text", "Reset"); });
+						xml.node("label", [&] () { xml.attribute("text", "Reset ..."); });
 					});
 
 					if (_operation_item.selected("reset")) {
