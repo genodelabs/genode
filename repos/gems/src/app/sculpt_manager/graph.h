@@ -25,6 +25,7 @@
 #include <xml.h>
 #include <model/capacity.h>
 #include <model/popup.h>
+#include <model/runtime_config.h>
 
 namespace Sculpt { struct Graph; }
 
@@ -33,7 +34,8 @@ struct Sculpt::Graph
 {
 	Env &_env;
 
-	Runtime_state &_runtime_state;
+	Runtime_state        &_runtime_state;
+	Runtime_config const &_runtime_config;
 
 	Storage_target const &_sculpt_partition;
 
@@ -43,17 +45,7 @@ struct Sculpt::Graph
 
 	Expanding_reporter _graph_dialog_reporter { _env, "dialog", "runtime_view_dialog" };
 
-	/*
-	 * Even though the runtime configuration is generate by the sculpt
-	 * manager, we still obtain it as a separate ROM session to keep both
-	 * parts decoupled.
-	 */
-	Attached_rom_dataspace _runtime_config_rom { _env, "config -> managed/runtime" };
-
 	Attached_rom_dataspace _hover_rom { _env, "runtime_view_hover" };
-
-	Signal_handler<Graph> _runtime_config_handler {
-		_env.ep(), *this, &Graph::_handle_runtime_config };
 
 	Signal_handler<Graph> _hover_handler {
 		_env.ep(), *this, &Graph::_handle_hover };
@@ -68,51 +60,6 @@ struct Sculpt::Graph
 	Rect _popup_anchor { };
 
 	bool _hovered = false;
-
-	typedef Start_name Node_name;
-
-	/**
-	 * Return component name targeted by the first route of the start node
-	 */
-	static Node_name _primary_dependency(Xml_node const start)
-	{
-		if (!start.has_sub_node("route"))
-			return Node_name();
-
-		Xml_node const route = start.sub_node("route");
-
-		if (!route.has_sub_node("service"))
-			return Node_name();
-
-		Xml_node const service = route.sub_node("service");
-
-		if (service.has_sub_node("child")) {
-			Xml_node const child = service.sub_node("child");
-			return child.attribute_value("name", Node_name());
-		}
-
-		return Node_name();
-	}
-
-	template <typename FN>
-	static void _for_each_secondary_dep(Xml_node const start, FN const &fn)
-	{
-		if (!start.has_sub_node("route"))
-			return;
-
-		Xml_node const route = start.sub_node("route");
-
-		bool first_route = true;
-		route.for_each_sub_node("service", [&] (Xml_node service) {
-
-			if (!first_route && service.has_sub_node("child")) {
-				Xml_node const child = service.sub_node("child");
-				fn(child.attribute_value("name", Start_name()));
-			}
-
-			first_route = false;
-		});
-	}
 
 	void _gen_selected_node_content(Xml_generator &xml, Start_name const &name,
 	                                Runtime_state::Info const &info) const
@@ -147,8 +94,6 @@ struct Sculpt::Graph
 
 	void _gen_graph_dialog()
 	{
-		Xml_node const config = _runtime_config_rom.xml();
-
 		_graph_dialog_reporter.generate([&] (Xml_generator &xml) {
 
 			xml.node("depgraph", [&] () {
@@ -164,9 +109,11 @@ struct Sculpt::Graph
 							xml.attribute("text", "+"); }); });
 				}
 
-				config.for_each_sub_node("start", [&] (Xml_node start) {
+				typedef Runtime_config::Component Component;
 
-					Start_name const name = start.attribute_value("name", Start_name());
+				_runtime_config.for_each_component([&] (Component const &component) {
+
+					Start_name const name = component.name;
 
 					/* omit sculpt's helpers from the graph */
 					bool const blacklisted = (name == "runtime_view"
@@ -179,7 +126,7 @@ struct Sculpt::Graph
 
 					gen_named_node(xml, "frame", name, [&] () {
 
-						Node_name primary_dep = _primary_dependency(start);
+						Start_name primary_dep = component.primary_dependency;
 
 						if (primary_dep == "default_fs_rw")
 							primary_dep = _sculpt_partition.fs();
@@ -206,32 +153,25 @@ struct Sculpt::Graph
 					});
 				});
 
-				config.for_each_sub_node("start", [&] (Xml_node start) {
+				_runtime_config.for_each_component([&] (Component const &component) {
 
-					Start_name const name = start.attribute_value("name", Start_name());
+					Start_name const name = component.name;
 
 					Runtime_state::Info const info = _runtime_state.info(name);
 
 					bool const show_details = info.selected;
 
 					if (show_details) {
-						_for_each_secondary_dep(start, [&] (Start_name const &dep) {
+						component.for_each_secondary_dep([&] (Start_name const &dep) {
 							xml.node("dep", [&] () {
 								xml.attribute("node", name);
-								xml.attribute("on", dep);
+								xml.attribute("on",   dep);
 							});
 						});
 					}
 				});
 			});
 		});
-	}
-
-	void _handle_runtime_config()
-	{
-		_runtime_config_rom.update();
-
-		_gen_graph_dialog();
 	}
 
 	void _handle_hover()
@@ -284,15 +224,15 @@ struct Sculpt::Graph
 
 	Graph(Env                          &env,
 	      Runtime_state                &runtime_state,
+	      Runtime_config         const &runtime_config,
 	      Storage_target         const &sculpt_partition,
 	      Popup::State           const &popup_state,
 	      Depot_deploy::Children const &deploy_children)
 	:
-		_env(env), _runtime_state(runtime_state),
+		_env(env), _runtime_state(runtime_state), _runtime_config(runtime_config),
 		_sculpt_partition(sculpt_partition),
 		_popup_state(popup_state), _deploy_children(deploy_children)
 	{
-		_runtime_config_rom.sigh(_runtime_config_handler);
 		_hover_rom.sigh(_hover_handler);
 	}
 
@@ -339,6 +279,8 @@ struct Sculpt::Graph
 
 		_gen_graph_dialog();
 	}
+
+	void gen_dialog() { _gen_graph_dialog(); }
 };
 
 #endif /* _GRAPH_H_ */
