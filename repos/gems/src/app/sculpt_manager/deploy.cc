@@ -51,30 +51,11 @@ void Sculpt::Deploy::_gen_missing_dependencies(Xml_generator &xml, Start_name co
 
 void Sculpt::Deploy::gen_child_diagnostics(Xml_generator &xml) const
 {
-	bool all_children_ok = true;
-	_children.for_each_unsatisfied_child([&] (Xml_node, Xml_node) {
-		all_children_ok = false; });
-
-	if (all_children_ok)
-		return;
-
 	int count = 0;
-	gen_named_node(xml, "frame", "diagnostics", [&] () {
-		xml.node("vbox", [&] () {
-
-			xml.node("label", [&] () {
-				xml.attribute("text", "Diagnostics"); });
-
-			xml.node("float", [&] () {
-				xml.node("vbox", [&] () {
-					_children.for_each_unsatisfied_child([&] (Xml_node start, Xml_node launcher) {
-						Start_name const name = start.attribute_value("name", Start_name());
-						_gen_missing_dependencies(xml, name, start,    count);
-						_gen_missing_dependencies(xml, name, launcher, count);
-					});
-				});
-			});
-		});
+	_children.for_each_unsatisfied_child([&] (Xml_node start, Xml_node launcher) {
+		Start_name const name = start.attribute_value("name", Start_name());
+		_gen_missing_dependencies(xml, name, start,    count);
+		_gen_missing_dependencies(xml, name, launcher, count);
 	});
 }
 

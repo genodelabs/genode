@@ -284,7 +284,43 @@ struct Sculpt::Main : Input_event_handler,
 							xml.attribute("font", "title/regular");
 						});
 
-						_deploy.gen_child_diagnostics(xml);
+						bool const network_missing = _deploy.update_needed()
+						                         && !_network._nic_state.ready();
+						bool const show_diagnostics =
+							_deploy.any_unsatisfied_child() || network_missing;
+
+						auto gen_network_diagnostics = [&] (Xml_generator &xml)
+						{
+							if (!network_missing)
+								return;
+
+							gen_named_node(xml, "hbox", "network", [&] () {
+								gen_named_node(xml, "float", "left", [&] () {
+									xml.attribute("west", "yes");
+									xml.node("label", [&] () {
+										xml.attribute("text", "network needed for installation");
+										xml.attribute("font", "annotation/regular");
+									});
+								});
+							});
+						};
+
+						if (show_diagnostics) {
+							gen_named_node(xml, "frame", "diagnostics", [&] () {
+								xml.node("vbox", [&] () {
+
+									xml.node("label", [&] () {
+										xml.attribute("text", "Diagnostics"); });
+
+									xml.node("float", [&] () {
+										xml.node("vbox", [&] () {
+											gen_network_diagnostics(xml);
+											_deploy.gen_child_diagnostics(xml);
+										});
+									});
+								});
+							});
+						}
 
 						Xml_node const state = _update_state_rom.xml();
 						if (_update_running() && state.attribute_value("progress", false))
