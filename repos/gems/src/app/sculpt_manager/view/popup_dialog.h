@@ -76,9 +76,10 @@ struct Sculpt::Popup_dialog
 
 								xml.node("hbox", [&] () {
 									gen_named_node(xml, "button", "button", [&] () {
+										xml.attribute("style", "radio");
 										_item.gen_button_attr(xml, info.path);
-										xml.node("label", [&] () {
-											xml.attribute("text", " "); }); });
+										xml.node("hbox", [&] () { });
+									});
 									gen_named_node(xml, "label", "name", [&] () {
 										xml.attribute("text", Path(" ", info.path)); });
 								});

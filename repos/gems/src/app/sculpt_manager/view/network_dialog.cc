@@ -27,14 +27,15 @@ void Sculpt::Network_dialog::_gen_access_point(Xml_generator &xml,
 
 			xml.node("hbox", [&] () {
 				gen_named_node(xml, "button", "button", [&] () {
+					xml.attribute("style", "radio");
 
 					if (_wifi_connection.connected())
 						xml.attribute("selected", "yes");
 					else
 						_ap_item.gen_button_attr(xml, ap.bssid);
 
-					xml.node("label", [&] () {
-						xml.attribute("text", " "); }); });
+					xml.node("hbox", [&] () { });
+				});
 
 				gen_named_node(xml, "label", "ssid", [&] () {
 					xml.attribute("text", String<20>(" ", ap.ssid)); });
