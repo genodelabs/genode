@@ -168,6 +168,13 @@ struct Sculpt::Graph
 
 					Start_name const name = start.attribute_value("name", Start_name());
 
+					/* omit sculpt's helpers from the graph */
+					bool const blacklisted = (name == "runtime_view"
+					                       || name == "launcher_query"
+					                       || name == "depot_query");
+					if (blacklisted)
+						return;
+
 					Runtime_state::Info const info = _runtime_state.info(name);
 
 					gen_named_node(xml, "frame", name, [&] () {
