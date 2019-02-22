@@ -41,7 +41,7 @@ proc use_input_filter { feature_arg } {
 proc use_nic_drv { feature_arg } {
 	upvar $feature_arg feature
 	return [expr {[info exists feature(Nic)] &&
-	              ([have_spec cadence_gem] ||
+	              ([have_spec zynq] ||
 	               [have_spec lan9118] ||
 	               [have_spec linux] ||
 	               [have_spec x86])}]
