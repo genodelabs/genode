@@ -2,9 +2,8 @@ include $(call select_from_repositories,lib/import/import-qt5_qnitpickerviewwidg
 
 SHARED_LIB = yes
 
-SRC_CC   = qnitpickerviewwidget.cpp
-
-HEADERS += qnitpickerviewwidget.h
+SRC_CC = qnitpickerviewwidget.cpp \
+         moc_qnitpickerviewwidget.cpp
 
 vpath %.h $(call select_from_repositories,include/qt5/qnitpickerviewwidget)
 vpath %.cpp $(REP_DIR)/src/lib/qt5/qnitpickerviewwidget

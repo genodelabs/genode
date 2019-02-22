@@ -2,9 +2,8 @@ include $(call select_from_repositories,lib/import/import-qt5_qpluginwidget.mk)
 
 SHARED_LIB = yes
 
-SRC_CC   = qpluginwidget.cpp
-
-HEADERS += qpluginwidget.h
+SRC_CC = qpluginwidget.cpp \
+         moc_qpluginwidget.cpp
 
 vpath %.h $(call select_from_repositories,include/qt5/qpluginwidget)
 vpath %.cpp $(REP_DIR)/src/lib/qt5/qpluginwidget
