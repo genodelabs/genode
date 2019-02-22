@@ -1,7 +1,7 @@
 #
 # Pull in CPU specifics
 #
-SPECS += zynq cadence_gem
+SPECS += zynq
 
 REP_INC_DIR += include/spec/zynq_qemu
 

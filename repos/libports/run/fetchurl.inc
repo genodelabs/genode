@@ -131,7 +131,7 @@ append qemu_args " -nographic "
 proc qemu_nic_model {} {
 	if [have_spec x86]         { return e1000 }
 	if [have_spec lan9118]     { return lan9118 }
-	if [have_spec cadence_gem] { return cadence_gem }
+	if [have_spec zynq]        { return cadence_gem }
 	return nic_model_missing
 }
 
