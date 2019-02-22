@@ -193,8 +193,14 @@ _check_hash: $(DEPOT_ARCHIVE_DIR).hash checked_recipe_hash_value_exists
 #
 # The command is invoked from within the archive directory within the depot.
 #
+# The hash value depends on both the file names (the first 'find' command)
+# found in the archive as well as the content of the files (the second 'find'
+# command).
+#
 HASH_CMD := cd $(DEPOT_ARCHIVE_DIR); \
-            find . -type f | sort | xargs -d '\n' cat | $(HASHSUM) | sed "s/ .*//"
+            (find . -type f | sort; \
+             find . -type f | sort | xargs -d '\n' cat) \
+            | $(HASHSUM) | sed "s/ .*//"
 
 #
 # Generate the hash from the archive content
