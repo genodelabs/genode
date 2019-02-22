@@ -1056,9 +1056,12 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 			xml.node("start", [&] () {
 				gen_chroot_start_content(xml, name, path, w); }); };
 
-		chroot("depot_rw",  "/depot",  WRITEABLE);
-		chroot("depot",     "/depot",  READ_ONLY);
-		chroot("public_rw", "/public", WRITEABLE);
+		if (_update_running()) {
+			chroot("depot_rw",  "/depot",  WRITEABLE);
+			chroot("public_rw", "/public", WRITEABLE);
+		}
+
+		chroot("depot", "/depot",  READ_ONLY);
 	}
 
 	_network.gen_runtime_start_nodes(xml);
