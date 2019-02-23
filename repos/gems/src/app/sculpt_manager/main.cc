@@ -704,12 +704,17 @@ void Sculpt::Main::_handle_window_layout()
 		};
 
 		auto win_size = [&] (Xml_node win) {
+			return Area(win.attribute_value("width",  0UL),
+			            win.attribute_value("height", 0UL)); };
+
+		/* window size limited to space unobstructed by the menu and log */
+		auto constrained_win_size = [&] (Xml_node win) {
 
 			unsigned const inspect_w = inspect_p2.x() - inspect_p1.x(),
 			               inspect_h = inspect_p2.y() - inspect_p1.y();
 
-			return Area(min(inspect_w, win.attribute_value("width",  0UL)),
-			            min(inspect_h, win.attribute_value("height", 0UL)));
+			Area const size = win_size(win);
+			return Area(min(inspect_w, size.w()), min(inspect_h, size.h()));
 		};
 
 		_with_window(window_list, Label("gui -> menu -> "), [&] (Xml_node win) {
@@ -718,7 +723,7 @@ void Sculpt::Main::_handle_window_layout()
 		/* calculate centered runtime view within the available main (inspect) area */
 		Rect runtime_view;
 		_with_window(window_list, runtime_view_label, [&] (Xml_node win) {
-			Area  const size = win_size(win);
+			Area  const size = constrained_win_size(win);
 			Point const pos  = Rect(inspect_p1, inspect_p2).center(size);
 			runtime_view = Rect(pos, size);
 		});
@@ -747,7 +752,7 @@ void Sculpt::Main::_handle_window_layout()
 		_with_window(window_list, runtime_view_label, [&] (Xml_node win) {
 
 			/* center runtime view within the available main (inspect) area */
-			Area  const size = win_size(win);
+			Area  const size = constrained_win_size(win);
 			Point const pos  = Rect(inspect_p1, inspect_p2).center(size);
 
 			gen_window(win, Rect(pos, size));
