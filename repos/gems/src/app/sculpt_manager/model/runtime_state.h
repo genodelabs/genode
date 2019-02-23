@@ -21,6 +21,7 @@
 /* local includes */
 #include <types.h>
 #include <runtime.h>
+#include <model/runtime_config.h>
 
 namespace Sculpt { class Runtime_state; }
 
@@ -31,6 +32,12 @@ class Sculpt::Runtime_state : public Runtime_info
 		struct Info
 		{
 			bool selected;
+
+			/* true if component is in the TCB of the selected one */
+			bool tcb;
+
+			/* true if 'tcb' is updated for the immediate dependencies */
+			bool tcb_updated;
 
 			unsigned long assigned_ram;
 			unsigned long avail_ram;
@@ -47,7 +54,11 @@ class Sculpt::Runtime_state : public Runtime_info
 		{
 			Start_name const name;
 
-			Info info { false, 0, 0, 0, 0 };
+			Info info { .selected    = false,
+			            .tcb         = false,
+			            .tcb_updated = false,
+			            .assigned_ram  = 0, .avail_ram  = 0,
+			            .assigned_caps = 0, .avail_caps = 0 };
 
 			bool abandoned_by_user = false;
 
@@ -118,6 +129,8 @@ class Sculpt::Runtime_state : public Runtime_info
 			{
 				return node.attribute_value("name", Start_name()) == elem.name;
 			}
+
+			static bool node_is_element(Xml_node node) { return node.has_type("child"); }
 		};
 
 	public:
@@ -169,7 +182,7 @@ class Sculpt::Runtime_state : public Runtime_info
 
 		Info info(Start_name const &name) const
 		{
-			Info result { .selected = false, 0, 0, 0, 0 };
+			Info result { };
 			_children.for_each([&] (Child const &child) {
 				if (child.name == name)
 					result = child.info; });
@@ -185,10 +198,42 @@ class Sculpt::Runtime_state : public Runtime_info
 			return result;
 		}
 
-		void toggle_selection(Start_name const &name)
+		void toggle_selection(Start_name const &name, Runtime_config const &config)
 		{
 			_children.for_each([&] (Child &child) {
-				child.info.selected = (child.name == name) && !child.info.selected; });
+				child.info.selected    = (child.name == name) && !child.info.selected;
+				child.info.tcb         = child.info.selected;
+				child.info.tcb_updated = false;
+			});
+
+			/*
+			 * Update the TCB flag of the selected child's transitive
+			 * dependencies.
+			 */
+			for (;;) {
+
+				Start_name name_of_updated { };
+
+				/*
+				 * Search child that belongs to TCB but its dependencies
+				 * have not been added to the TCB yet.
+				 */
+				_children.for_each([&] (Child &child) {
+					if (!name_of_updated.valid() && child.info.tcb && !child.info.tcb_updated) {
+						name_of_updated = child.name;
+						child.info.tcb_updated = true; /* skip in next iteration */
+					}
+				});
+
+				if (!name_of_updated.valid())
+					break;
+
+				/* tag all dependencies as part of the TCB */
+				config.for_each_dependency(name_of_updated, [&] (Start_name const &dep) {
+					_children.for_each([&] (Child &child) {
+						if (child.name == dep)
+							child.info.tcb = true; }); });
+			}
 		}
 
 		void abandon(Start_name const &name)

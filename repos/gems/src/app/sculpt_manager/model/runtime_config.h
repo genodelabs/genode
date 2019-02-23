@@ -149,7 +149,6 @@ class Sculpt::Runtime_config
 
 					Dep &create_element(Xml_node node)
 					{
-						log("to_name -> ", _to_name(node), " for ", node);
 						return *new (_alloc) Dep(_to_name(node));
 					}
 
@@ -186,10 +185,13 @@ class Sculpt::Runtime_config
 
 				Allocator &_alloc;
 
+				Dep::Update_policy _dep_update_policy { _alloc };
+
 				Update_policy(Allocator &alloc) : _alloc(alloc) { }
 
 				void destroy_element(Component &elem)
 				{
+					elem.deps.update_from_xml(_dep_update_policy, Xml_node("<route/>"));
 					destroy(_alloc, &elem);
 				}
 
@@ -201,12 +203,10 @@ class Sculpt::Runtime_config
 
 				void update_element(Component &elem, Xml_node node)
 				{
-					log("update component ", elem.name);
 					elem.primary_dependency = _primary_dependency(node);
 
-					Dep::Update_policy policy(_alloc);
 					node.with_sub_node("route", [&] (Xml_node route) {
-						elem.deps.update_from_xml(policy, route); });
+						elem.deps.update_from_xml(_dep_update_policy, route); });
 				}
 
 				static bool element_matches_xml_node(Component const &elem, Xml_node node)
@@ -234,6 +234,18 @@ class Sculpt::Runtime_config
 
 		template <typename FN>
 		void for_each_component(FN const &fn) const { _components.for_each(fn); }
+
+		/**
+		 * Call 'fn' with the name of each dependency of component 'name'
+		 */
+		template <typename FN>
+		void for_each_dependency(Start_name const &name, FN const &fn) const
+		{
+			_components.for_each([&] (Component const &component) {
+				if (component.name == name) {
+					component.deps.for_each([&] (Component::Dep const &dep) {
+						fn(dep.to_name); }); } });
+		}
 };
 
 #endif /* _MODEL__RUNTIME_CONFIG_H_ */

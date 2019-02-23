@@ -172,7 +172,7 @@ struct Sculpt::Graph
 
 					Runtime_state::Info const info = _runtime_state.info(name);
 
-					bool const show_details = info.selected;
+					bool const show_details = info.tcb;
 
 					if (show_details) {
 						component.for_each_secondary_dep([&] (Start_name const &dep) {
@@ -266,7 +266,8 @@ struct Sculpt::Graph
 		}
 
 		if (_node_button_item._hovered.valid()) {
-			_runtime_state.toggle_selection(_node_button_item._hovered);
+			_runtime_state.toggle_selection(_node_button_item._hovered,
+			                                _runtime_config);
 			_remove_item.reset();
 			_gen_graph_dialog();
 		}
