@@ -92,6 +92,13 @@ struct Sculpt::Graph
 			xml.attribute("text", caps); });
 	}
 
+	void _gen_parent_node(Xml_generator &xml, Start_name const &name) const
+	{
+		gen_named_node(xml, "frame", name, [&] () {
+			xml.node("label", [&] () {
+				xml.attribute("text", name); }); });
+	}
+
 	void _gen_graph_dialog()
 	{
 		_graph_dialog_reporter.generate([&] (Xml_generator &xml) {
@@ -108,6 +115,12 @@ struct Sculpt::Graph
 						xml.node("label", [&] () {
 							xml.attribute("text", "+"); }); });
 				}
+
+				/* parent roles */
+				_gen_parent_node(xml, "hardware");
+				_gen_parent_node(xml, "config");
+				_gen_parent_node(xml, "info");
+				_gen_parent_node(xml, "GUI");
 
 				typedef Runtime_config::Component Component;
 
