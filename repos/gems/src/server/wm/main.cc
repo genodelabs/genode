@@ -85,9 +85,7 @@ struct Wm::Main
 				focus_nitpicker_session.focus(session_cap);
 			}
 
-		} catch (...) {
-			Genode::warning("no focus model available");
-		}
+		} catch (...) { }
 	}
 
 	Genode::Signal_handler<Main> focus_handler = {
