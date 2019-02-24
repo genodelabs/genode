@@ -46,6 +46,7 @@ struct Menu_view::Main
 	Point _position { };
 
 	Area _configured_size { };
+	Area _visible_size { };
 
 	Area _root_widget_size() const
 	{
@@ -56,17 +57,17 @@ struct Menu_view::Main
 
 	Rect _view_geometry { };
 
-	void _update_view()
+	void _update_view(Rect geometry)
 	{
-		if (_view_geometry.p1() == _position
-		 && _view_geometry.area() == _buffer->size())
+		if (_view_geometry.p1()   == geometry.p1()
+		 && _view_geometry.area() == geometry.area())
 			return;
 
 		/* display view behind all others */
 		typedef Nitpicker::Session::Command     Command;
 		typedef Nitpicker::Session::View_handle View_handle;
 
-		_view_geometry = Rect(_position, _buffer->size());
+		_view_geometry = geometry;
 		_nitpicker.enqueue<Command::Geometry>(_view_handle, _view_geometry);
 		_nitpicker.enqueue<Command::To_front>(_view_handle, View_handle());
 		_nitpicker.execute();
@@ -306,11 +307,18 @@ void Menu_view::Main::_handle_frame_timer()
 
 		_frame_cnt = 0;
 
-		Area const old_size = _buffer.constructed() ? _buffer->size() : Area();
-		Area const size     = _root_widget_size();
+		Area const size = _root_widget_size();
 
-		if (!_buffer.constructed() || size.w() > old_size.w() || size.h() > old_size.h())
-			_buffer.construct(_nitpicker, size, _env.ram(), _env.rm());
+		unsigned const buffer_w = _buffer.constructed() ? _buffer->size().w() : 0,
+		               buffer_h = _buffer.constructed() ? _buffer->size().h() : 0;
+
+		Area const max_size(max(buffer_w, size.w()), max(buffer_h, size.h()));
+
+		bool const size_increased = (max_size.w() > buffer_w)
+		                         || (max_size.h() > buffer_h);
+
+		if (!_buffer.constructed() || size_increased)
+			_buffer.construct(_nitpicker, max_size, _env.ram(), _env.rm());
 		else
 			_buffer->reset_surface();
 
@@ -326,7 +334,7 @@ void Menu_view::Main::_handle_frame_timer()
 
 		_buffer->flush_surface();
 		_nitpicker.framebuffer()->refresh(0, 0, _buffer->size().w(), _buffer->size().h());
-		_update_view();
+		_update_view(Rect(_position, size));
 
 		_schedule_redraw = false;
 	}
