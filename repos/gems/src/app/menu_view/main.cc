@@ -203,15 +203,12 @@ void Menu_view::Main::_handle_dialog_update()
 
 	_dialog_rom.update();
 
-	try {
-		Xml_node dialog_xml(_dialog_rom.local_addr<char>());
+	Xml_node dialog = _dialog_rom.xml();
+	if (dialog.has_type("empty"))
+		return;
 
-		_root_widget.update(dialog_xml);
-
-		_root_widget.size(_root_widget_size());
-	} catch (...) {
-		Genode::error("failed to construct widget tree");
-	}
+	_root_widget.update(dialog);
+	_root_widget.size(_root_widget_size());
 
 	_schedule_redraw = true;
 
