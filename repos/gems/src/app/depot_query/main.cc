@@ -166,7 +166,7 @@ struct Depot_query::Main
 
 	typedef Constructible<Expanding_reporter> Constructible_reporter;
 
-	Constructible_reporter _directory_reporter    { };
+	Constructible_reporter _scan_reporter         { };
 	Constructible_reporter _blueprint_reporter    { };
 	Constructible_reporter _dependencies_reporter { };
 	Constructible_reporter _user_reporter         { };
@@ -222,7 +222,6 @@ struct Depot_query::Main
 	                               Rom_label       const &rom_label,
 	                               Recursion_limit        recursion_limit);
 
-	void _scan_depot_user_pkg(Archive::User const &, Directory const &, Xml_generator &);
 	void _query_blueprint(Directory::Path const &, Xml_generator &);
 	void _collect_source_dependencies(Archive::Path const &, Dependencies &, Recursion_limit);
 	void _collect_binary_dependencies(Archive::Path const &, Dependencies &, Recursion_limit);
@@ -257,7 +256,7 @@ struct Depot_query::Main
 		Xml_node const query = (query_from_rom ? _query_rom->xml() : config);
 
 		_construct_if(query.has_sub_node("scan"),
-		              _directory_reporter, _env, "directory", "directory");
+		              _scan_reporter, _env, "scan", "scan");
 
 		_construct_if(query.has_sub_node("blueprint"),
 		              _blueprint_reporter, _env, "blueprint", "blueprint");
@@ -284,14 +283,12 @@ struct Depot_query::Main
 
 		Version const version = query.attribute_value("version", Version());
 
-		_gen_versioned_report(_directory_reporter, version, [&] (Xml_generator &xml) {
+		_gen_versioned_report(_scan_reporter, version, [&] (Xml_generator &xml) {
 			query.for_each_sub_node("scan", [&] (Xml_node node) {
-				Archive::User const user = node.attribute_value("user", Archive::User());
-				Directory::Path path("depot/", user, "/pkg");
-				Directory pkg_dir(_root, path);
-				_scan_depot_user_pkg(user, pkg_dir, xml);
-			});
-		});
+				if (node.attribute_value("users", false)) {
+					_depot_dir.for_each_entry([&] (Directory::Entry const &entry) {
+						xml.node("user", [&] () {
+							xml.attribute("name", entry.name()); }); }); } }); });
 
 		_gen_versioned_report(_blueprint_reporter, version, [&] (Xml_generator &xml) {
 			query.for_each_sub_node("blueprint", [&] (Xml_node node) {
@@ -344,21 +341,6 @@ struct Depot_query::Main
 		_handle_config();
 	}
 };
-
-
-void Depot_query::Main::_scan_depot_user_pkg(Archive::User const &user,
-                                             Directory const &dir, Xml_generator &xml)
-{
-	dir.for_each_entry([&] (Directory::Entry const &entry) {
-
-		if (!dir.file_exists(Directory::Path(entry.name(), "/runtime")))
-			return;
-
-		Archive::Path const path(user, "/pkg/", entry.name());
-
-		xml.node("pkg", [&] () { xml.attribute("path", path); });
-	});
-}
 
 
 Depot_query::Archive::Path
