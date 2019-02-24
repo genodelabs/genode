@@ -174,6 +174,8 @@ struct Depot_download_manager::Main : Import::Download_progress
 		Job::Update_policy policy(_heap);
 		_jobs.update_from_xml(policy, _installation.xml());
 
+		_depot_query_count.value++;
+
 		_generate_init_config();
 	}
 
@@ -378,7 +380,6 @@ void Depot_download_manager::Main::_handle_init_state()
 	_verified.update();
 
 	bool reconfigure_init = false;
-	bool import_finished  = false;
 
 	if (!_import.constructed())
 		return;
@@ -450,14 +451,8 @@ void Depot_download_manager::Main::_handle_init_state()
 		if (extract_state.exited && extract_state.code != 0)
 			error("extract failed with exit code ", extract_state.code);
 
-		if (extract_state.exited && extract_state.code == 0) {
+		if (extract_state.exited && extract_state.code == 0)
 			import.all_verified_archives_extracted();
-			import_finished = true;
-
-			/* kill extract, re-issue new depot query to start next iteration */
-			_depot_query_count.value++;
-			reconfigure_init = true;
-		}
 	}
 
 	/* flag failed jobs to prevent re-attempts in subsequent import iterations */
@@ -470,8 +465,13 @@ void Depot_download_manager::Main::_handle_init_state()
 	if (reconfigure_init)
 		_update_state_report();
 
-	if (import_finished)
+	if (!import.in_progress()) {
 		_import.destruct();
+
+		/* re-issue new depot query to start next iteration */
+		_depot_query_count.value++;
+		reconfigure_init = true;
+	}
 
 	if (reconfigure_init)
 		_generate_init_config();

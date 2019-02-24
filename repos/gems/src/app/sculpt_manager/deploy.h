@@ -23,10 +23,12 @@
 
 /* local includes */
 #include <model/launchers.h>
+#include <model/download_queue.h>
 #include <types.h>
 #include <runtime.h>
 #include <managed_config.h>
 #include <view/dialog.h>
+#include <depot_query.h>
 
 namespace Sculpt { struct Deploy; }
 
@@ -43,22 +45,21 @@ struct Sculpt::Deploy
 
 	Runtime_config_generator &_runtime_config_generator;
 
+	Depot_query &_depot_query;
+
 	Attached_rom_dataspace const &_launcher_listing_rom;
+	Attached_rom_dataspace const &_blueprint_rom;
+
+	Download_queue const &_download_queue;
 
 	typedef String<16> Arch;
 	Arch _arch { };
-
-	struct Query_version { unsigned value; } _query_version { 0 };
 
 	Child_state cached_depot_rom_state {
 		"depot_rom", Ram_quota{24*1024*1024}, Cap_quota{200} };
 
 	Child_state uncached_depot_rom_state {
 		"dynamic_depot_rom", Ram_quota{8*1024*1024}, Cap_quota{200} };
-
-	Attached_rom_dataspace _blueprint_rom { _env, "report -> runtime/depot_query/blueprint" };
-
-	Expanding_reporter _depot_query_reporter { _env, "query", "depot_query"};
 
 	/*
 	 * Report written to '/config/managed/deploy'
@@ -122,7 +123,9 @@ struct Sculpt::Deploy
 
 	bool update_needed() const
 	{
-		return _manual_installation_scheduled || _children.any_incomplete();
+		return _manual_installation_scheduled
+		    || _children.any_incomplete()
+		    || _download_queue.any_active_download();
 	}
 
 	void handle_deploy();
@@ -130,14 +133,8 @@ struct Sculpt::Deploy
 	void _handle_managed_deploy()
 	{
 		_managed_deploy_rom.update();
-		_query_version.value++;
 		handle_deploy();
-	}
-
-	void _handle_blueprint()
-	{
-		_blueprint_rom.update();
-		handle_deploy();
+		_depot_query.trigger_depot_query();
 	}
 
 	/**
@@ -191,13 +188,10 @@ struct Sculpt::Deploy
 	Signal_handler<Deploy> _managed_deploy_handler {
 		_env.ep(), *this, &Deploy::_handle_managed_deploy };
 
-	Signal_handler<Deploy> _blueprint_handler {
-		_env.ep(), *this, &Deploy::_handle_blueprint };
-
 	void restart()
 	{
 		/* ignore stale query results */
-		_query_version.value++;
+		_depot_query.trigger_depot_query();
 
 		_children.apply_config(Xml_node("<config/>"));
 	}
@@ -208,18 +202,41 @@ struct Sculpt::Deploy
 		handle_deploy();
 	}
 
+	void gen_depot_query(Xml_generator &xml) const
+	{
+		_children.gen_queries(xml);
+	}
+
+	void update_installation()
+	{
+		/* feed missing packages to installation queue */
+		if (_installation.try_generate_manually_managed())
+			return;
+
+		_installation.generate([&] (Xml_generator &xml) {
+			xml.attribute("arch", _arch);
+			_children.gen_installation_entries(xml);
+			_download_queue.gen_installation_entries(xml);
+		});
+	}
+
 	Deploy(Env &env, Allocator &alloc, Runtime_info const &runtime_info,
 	       Dialog::Generator &dialog_generator,
 	       Runtime_config_generator &runtime_config_generator,
-	       Attached_rom_dataspace const &launcher_listing_rom)
+	       Depot_query &depot_query,
+	       Attached_rom_dataspace const &launcher_listing_rom,
+	       Attached_rom_dataspace const &blueprint_rom,
+	       Download_queue const &download_queue)
 	:
 		_env(env), _alloc(alloc), _runtime_info(runtime_info),
 		_dialog_generator(dialog_generator),
 		_runtime_config_generator(runtime_config_generator),
-		_launcher_listing_rom(launcher_listing_rom)
+		_depot_query(depot_query),
+		_launcher_listing_rom(launcher_listing_rom),
+		_blueprint_rom(blueprint_rom),
+		_download_queue(download_queue)
 	{
 		_managed_deploy_rom.sigh(_managed_deploy_handler);
-		_blueprint_rom.sigh(_blueprint_handler);
 	}
 };
 

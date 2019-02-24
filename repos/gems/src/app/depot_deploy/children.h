@@ -141,6 +141,14 @@ class Depot_deploy::Children
 			return result;
 		}
 
+		bool any_blueprint_needed() const
+		{
+			bool result = false;
+			_children.for_each([&] (Child const &child) {
+				result |= child.blueprint_needed(); });
+			return result;
+		}
+
 		bool exists(Child::Name const &name) const
 		{
 			bool result = false;

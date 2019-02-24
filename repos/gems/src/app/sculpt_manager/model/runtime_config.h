@@ -17,11 +17,14 @@
 /* Genode includes */
 #include <util/xml_node.h>
 #include <util/list_model.h>
+#include <base/registry.h>
 
 /* local includes */
 #include <types.h>
+#include <model/service.h>
 
 namespace Sculpt { class Runtime_config; }
+
 
 class Sculpt::Runtime_config
 {
@@ -52,9 +55,8 @@ class Sculpt::Runtime_config
 
 			node.with_sub_node("parent", [&] (Xml_node parent) {
 
-				typedef String<16> Service;
-				Service const service =
-					node.attribute_value("name", Service());
+				Service::Type_name const service =
+					node.attribute_value("name", Service::Type_name());
 
 				Label const dst_label =
 					parent.attribute_value("label", Label());
@@ -123,6 +125,54 @@ class Sculpt::Runtime_config
 			return result;
 		}
 
+		struct Child_service : Service, List_model<Child_service>::Element
+		{
+			static Service::Type type_from_xml(Xml_node service)
+			{
+				auto const name = service.attribute_value("name", Service::Type_name());
+				for (unsigned i = 0; i < (unsigned)Type::UNDEFINED; i++) {
+					Type const t = (Type)i;
+					if (name == Service::name_attr(t))
+						return t;
+				}
+
+				return Type::UNDEFINED;
+			}
+
+			Child_service(Start_name server, Xml_node provides)
+			: Service(server, type_from_xml(provides), Label()) { }
+
+			struct Update_policy
+			{
+				typedef Child_service Element;
+
+				Start_name _server;
+				Allocator &_alloc;
+
+				Update_policy(Start_name const &server, Allocator &alloc)
+				: _server(server), _alloc(alloc) { }
+
+				void destroy_element(Element &elem) { destroy(_alloc, &elem); }
+
+				Element &create_element(Xml_node node)
+				{
+					return *new (_alloc) Child_service(_server, node);
+				}
+
+				void update_element(Element &, Xml_node) { }
+
+				static bool element_matches_xml_node(Element const &elem, Xml_node node)
+				{
+					return type_from_xml(node) == elem.type;
+				}
+
+				static bool node_is_element(Xml_node node)
+				{
+					return type_from_xml(node) != Service::Type::UNDEFINED;
+				}
+			};
+		};
+
 	public:
 
 		struct Component : List_model<Component>::Element
@@ -177,7 +227,15 @@ class Sculpt::Runtime_config
 						fn(dep.to_name); });
 			}
 
+			List_model<Child_service> _child_services { };
+
 			Component(Start_name const &name) : name(name) { }
+
+			template <typename FN>
+			void for_each_service(FN const &fn) const
+			{
+				_child_services.for_each(fn);
+			}
 
 			struct Update_policy
 			{
@@ -185,13 +243,13 @@ class Sculpt::Runtime_config
 
 				Allocator &_alloc;
 
-				Dep::Update_policy _dep_update_policy { _alloc };
-
 				Update_policy(Allocator &alloc) : _alloc(alloc) { }
 
 				void destroy_element(Component &elem)
 				{
-					elem.deps.update_from_xml(_dep_update_policy, Xml_node("<route/>"));
+					/* flush list models */
+					update_element(elem, Xml_node("<start> <route/> <provides/> </start>"));
+
 					destroy(_alloc, &elem);
 				}
 
@@ -205,8 +263,20 @@ class Sculpt::Runtime_config
 				{
 					elem.primary_dependency = _primary_dependency(node);
 
-					node.with_sub_node("route", [&] (Xml_node route) {
-						elem.deps.update_from_xml(_dep_update_policy, route); });
+					{
+						Dep::Update_policy policy { _alloc };
+
+						node.with_sub_node("route", [&] (Xml_node route) {
+							elem.deps.update_from_xml(policy, route); });
+					}
+
+					{
+						Child_service::Update_policy policy { elem.name, _alloc };
+
+						node.with_sub_node("provides", [&] (Xml_node provides) {
+							elem._child_services.update_from_xml(policy,
+							                                     provides); });
+					}
 				}
 
 				static bool element_matches_xml_node(Component const &elem, Xml_node node)
@@ -221,6 +291,43 @@ class Sculpt::Runtime_config
 	private:
 
 		List_model<Component> _components { };
+
+		struct Parent_services
+		{
+			typedef Registered_no_delete<Service> Parent_service;
+			typedef Service::Type Type;
+
+			Registry<Parent_service> _r { };
+
+			Parent_service const
+				_focus     { _r, Type::NITPICKER,   "keyboard focus",                 "focus" },
+				_backdrop  { _r, Type::NITPICKER,   "desktop background",             "backdrop" },
+				_nitpicker { _r, Type::NITPICKER,   "system GUI server" },
+				_config_fs { _r, Type::FILE_SYSTEM, "writeable system configuration", "config" },
+				_report_fs { _r, Type::FILE_SYSTEM, "read-only system reports",       "report" },
+				_capslock  { _r, Type::ROM,         "global capslock state",          "capslock" },
+				_vimrc     { _r, Type::ROM,         "default vim configuration",      "config -> vimrc" },
+				_fonts     { _r, Type::ROM,         "system font configuration",      "config -> managed/fonts" },
+				_pf_info   { _r, Type::ROM,         "platform information",           "platform_info" },
+				_report    { _r, Type::REPORT,      "system reports" },
+				_rm        { _r, Type::RM,          "custom virtual memory objects" },
+				_io_mem    { _r, Type::IO_MEM,      "raw hardware access" },
+				_io_port   { _r, Type::IO_PORT,     "raw hardware access" },
+				_irq       { _r, Type::IRQ,         "raw hardware access" },
+				_rtc       { _r, Type::RTC,         "system clock" },
+				_block     { _r, Type::BLOCK,       "direct block-device access" },
+				_usb       { _r, Type::USB,         "direct USB-device access" },
+				_pci_wifi  { _r, Type::PLATFORM,    "wifi hardware",    "wifi" },
+				_pci_net   { _r, Type::PLATFORM,    "network hardware", "nic" },
+				_pci_audio { _r, Type::PLATFORM,    "audio hardware",   "audio" },
+				_pci_acpi  { _r, Type::PLATFORM,    "ACPI",             "acpica" },
+				_trace     { _r, Type::TRACE,       "system-global tracing" },
+				_vm        { _r, Type::VM,          "virtualization hardware" };
+
+			template <typename FN>
+			void for_each(FN const &fn) const { _r.for_each(fn); }
+
+		} _parent_services { };
 
 	public:
 
@@ -245,6 +352,15 @@ class Sculpt::Runtime_config
 				if (component.name == name) {
 					component.deps.for_each([&] (Component::Dep const &dep) {
 						fn(dep.to_name); }); } });
+		}
+
+		template <typename FN>
+		void for_each_service(FN const &fn) const
+		{
+			_components.for_each([&] (Component const &component) {
+				component.for_each_service(fn); });
+
+			_parent_services.for_each(fn);
 		}
 };
 

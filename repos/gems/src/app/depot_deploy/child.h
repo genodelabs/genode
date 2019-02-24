@@ -261,16 +261,22 @@ class Depot_deploy::Child : public List_model<Child>::Element
 			}
 		}
 
-		void gen_query(Xml_generator &xml) const
+		bool blueprint_needed() const
 		{
 			if (_configured() || _pkg_incomplete)
-				return;
+				return false;
 
 			if (_defined_by_launcher() && !_launcher_xml.constructed())
-				return;
+				return false;
 
-			xml.node("blueprint", [&] () {
-				xml.attribute("pkg", _blueprint_pkg_path); });
+			return true;
+		}
+
+		void gen_query(Xml_generator &xml) const
+		{
+			if (blueprint_needed())
+				xml.node("blueprint", [&] () {
+					xml.attribute("pkg", _blueprint_pkg_path); });
 		}
 
 		/**

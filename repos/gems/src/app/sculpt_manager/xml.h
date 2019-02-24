@@ -121,7 +121,7 @@ namespace Sculpt {
 	}
 
 	/**
-	 * Query attribute value from XML sub nodd
+	 * Query attribute value from XML sub node
 	 *
 	 * The list of arguments except for the last one refer to XML path into the
 	 * XML structure. The last argument denotes the queried attribute name.

@@ -73,6 +73,14 @@ class Depot_download_manager::Import
 
 			State state = DOWNLOAD_IN_PROGRESS;
 
+			bool in_progress() const
+			{
+				return state == DOWNLOAD_IN_PROGRESS
+				    || state == DOWNLOAD_COMPLETE
+				    || state == VERIFICATION_IN_PROGRESS
+				    || state == VERIFIED;
+			}
+
 			Item(Registry<Item> &registry, Archive::Path const &path)
 			:
 				_element(registry, *this), path(path)
@@ -280,6 +288,15 @@ class Depot_download_manager::Import
 					}
 				});
 			});
+		}
+
+		bool in_progress() const
+		{
+			bool result = false;
+			_items.for_each([&] (Item const &item) {
+				result |= item.in_progress(); });
+
+			return result;
 		}
 };
 

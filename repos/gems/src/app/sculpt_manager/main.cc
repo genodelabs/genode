@@ -42,7 +42,9 @@ struct Sculpt::Main : Input_event_handler,
                       Runtime_config_generator,
                       Storage::Target_user,
                       Graph::Action,
-                      Popup_dialog::Action
+                      Popup_dialog::Action,
+                      Popup_dialog::Construction_info,
+                      Depot_query
 {
 	Env &_env;
 
@@ -184,6 +186,67 @@ struct Sculpt::Main : Input_event_handler,
 		    && _deploy.update_needed();
 	}
 
+	Download_queue _download_queue { _heap };
+
+
+	/*****************
+	 ** Depot query **
+	 *****************/
+
+	Depot_query::Version _query_version { 0 };
+
+	Expanding_reporter _depot_query_reporter { _env, "query", "depot_query"};
+
+	/**
+	 * Depot_query interface
+	 */
+	Depot_query::Version depot_query_version() const override
+	{
+		return _query_version;
+	}
+
+	/**
+	 * Depot_query interface
+	 */
+	void trigger_depot_query() override
+	{
+		_query_version.value++;
+
+		if (_deploy._arch.valid()) {
+			_depot_query_reporter.generate([&] (Xml_generator &xml) {
+				xml.attribute("arch",    _deploy._arch);
+				xml.attribute("version", _query_version.value);
+
+				_popup_dialog.gen_depot_query(xml);
+
+				/* update query for blueprints of all unconfigured start nodes */
+				_deploy.gen_depot_query(xml);
+			});
+		}
+	}
+
+
+	/*********************
+	 ** Blueprint query **
+	 *********************/
+
+	Attached_rom_dataspace _blueprint_rom { _env, "report -> runtime/depot_query/blueprint" };
+
+	Signal_handler<Main> _blueprint_handler {
+		_env.ep(), *this, &Main::_handle_blueprint };
+
+	void _handle_blueprint()
+	{
+		_blueprint_rom.update();
+
+		Xml_node const blueprint = _blueprint_rom.xml();
+
+		_runtime_state.apply_to_construction([&] (Component &component) {
+			_popup_dialog.apply_blueprint(component, blueprint); });
+
+		_deploy.handle_deploy();
+	}
+
 
 	/************
 	 ** Deploy **
@@ -214,7 +277,8 @@ struct Sculpt::Main : Input_event_handler,
 	}
 
 
-	Deploy _deploy { _env, _heap, _runtime_state, *this, *this, _launcher_listing_rom };
+	Deploy _deploy { _env, _heap, _runtime_state, *this, *this, *this,
+	                 _launcher_listing_rom, _blueprint_rom, _download_queue };
 
 	Attached_rom_dataspace _manual_deploy_rom { _env, "config -> deploy" };
 
@@ -418,7 +482,8 @@ struct Sculpt::Main : Input_event_handler,
 			 && !_graph.add_button_hovered()) {
 
 				_popup.state = Popup::OFF;
-				_popup_dialog.reset_hover();
+				_popup_dialog.reset();
+				discard_construction();
 
 				/* de-select '+' button */
 				_graph._gen_graph_dialog();
@@ -427,15 +492,15 @@ struct Sculpt::Main : Input_event_handler,
 				_handle_window_layout();
 			}
 
-			if (_graph.hovered()) _graph.click(*this);
-
+			if (_graph.hovered())        _graph.click(*this);
 			if (_popup_dialog.hovered()) _popup_dialog.click(*this);
 		}
 
 		if (ev.key_release(Input::BTN_LEFT)) {
 			if (_hovered_dialog == Hovered::STORAGE) _storage.dialog.clack(_storage);
 
-			if (_graph.hovered()) _graph.clack(*this);
+			if (_graph.hovered())        _graph.clack(*this);
+			if (_popup_dialog.hovered()) _popup_dialog.clack(*this);
 		}
 
 		if (_keyboard_focus.target == Keyboard_focus::WPA_PASSPHRASE)
@@ -469,6 +534,17 @@ struct Sculpt::Main : Input_event_handler,
 		_handle_window_layout();
 	}
 
+	void _close_popup_dialog()
+	{
+		/* close popup menu */
+		_popup.state = Popup::OFF;
+		_popup_dialog.reset();
+		_handle_window_layout();
+
+		/* reset state of the '+' button */
+		_graph._gen_graph_dialog();
+	}
+
 	/*
 	 * Popup_dialog::Action interface
 	 */
@@ -476,19 +552,57 @@ struct Sculpt::Main : Input_event_handler,
 	{
 		_runtime_state.launch(launcher, launcher);
 
-		/* close popup menu */
-		_popup.state = Popup::OFF;
-		_popup_dialog.reset_hover();
-		_handle_window_layout();
-
-		/* reset state of the '+' button */
-		_graph._gen_graph_dialog();
+		_close_popup_dialog();
 
 		/* trigger change of the deployment */
 		_deploy.update_managed_deploy_config(_manual_deploy_rom.xml());
 	}
 
-	Popup_dialog _popup_dialog { _env, _launchers, _runtime_state };
+	Start_name new_construction(Component::Path const &pkg,
+	                            Component::Info const &info) override
+	{
+		return _runtime_state.new_construction(pkg, info);
+	}
+
+	void _apply_to_construction(Popup_dialog::Action::Apply_to &fn) override
+	{
+		_runtime_state.apply_to_construction([&] (Component &c) { fn.apply_to(c); });
+	}
+
+	void discard_construction() override { _runtime_state.discard_construction(); }
+
+	void launch_construction()  override
+	{
+		_runtime_state.launch_construction();
+
+		_close_popup_dialog();
+
+		/* trigger change of the deployment */
+		_deploy.update_managed_deploy_config(_manual_deploy_rom.xml());
+	}
+
+	void trigger_download(Path const &path) override
+	{
+		_download_queue.add(path);
+
+		/* incorporate new download-queue content into update */
+		_deploy.update_installation();
+
+		generate_runtime_config();
+	}
+
+	/**
+	 * Popup_dialog::Construction_info interface
+	 */
+	void _with_construction(Popup_dialog::Construction_info::With const &fn) const override
+	{
+		_runtime_state.with_construction([&] (Component const &c) { fn.with(c); });
+	}
+
+	Popup_dialog _popup_dialog { _env, _heap, _launchers,
+	                             _network._nic_state, _network._nic_target,
+	                             _runtime_state, _cached_runtime_config,
+	                             _download_queue, *this, *this };
 
 	Managed_config<Main> _fb_drv_config {
 		_env, "config", "fb_drv", *this, &Main::_handle_fb_drv_config };
@@ -591,6 +705,7 @@ struct Sculpt::Main : Input_event_handler,
 		_window_list         .sigh(_window_list_handler);
 		_decorator_margins   .sigh(_decorator_margins_handler);
 		_launcher_listing_rom.sigh(_launcher_listing_handler);
+		_blueprint_rom       .sigh(_blueprint_handler);
 
 		/*
 		 * Generate initial configurations
@@ -886,11 +1001,33 @@ void Sculpt::Main::_handle_update_state()
 	_update_state_rom.update();
 	generate_dialog();
 
-	bool const installation_complete =
-		!_update_state_rom.xml().attribute_value("progress", false);
+	Xml_node const update_state = _update_state_rom.xml();
 
-	if (installation_complete)
+	if (update_state.num_sub_nodes() == 0)
+		return;
+
+	bool const popup_watches_downloads =
+		_popup_dialog.interested_in_download();
+
+	_download_queue.apply_update_state(update_state);
+	_download_queue.remove_inactive_downloads();
+
+	Xml_node const blueprint = _blueprint_rom.xml();
+	bool const new_depot_query_needed = popup_watches_downloads
+	                                 || blueprint_any_missing(blueprint)
+	                                 || blueprint_any_rom_missing(blueprint);
+	if (new_depot_query_needed)
+		trigger_depot_query();
+
+	if (popup_watches_downloads)
+		_deploy.update_installation();
+
+	bool const installation_complete =
+		!update_state.attribute_value("progress", false);
+
+	if (installation_complete) {
 		_deploy.reattempt_after_installation();
+	}
 }
 
 

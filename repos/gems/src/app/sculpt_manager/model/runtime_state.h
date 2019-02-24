@@ -22,6 +22,7 @@
 #include <types.h>
 #include <runtime.h>
 #include <model/runtime_config.h>
+#include <model/component.h>
 
 namespace Sculpt { class Runtime_state; }
 
@@ -85,11 +86,63 @@ class Sculpt::Runtime_state : public Runtime_info
 		{
 			Start_name const name;
 			Path       const launcher;
+
+			Constructible<Component> construction { };
+
+			bool launched;
+
+			/**
+			 * Constructor used for child started via launcher
+			 */
 			Launched_child(Start_name const &name, Path const &launcher)
-			: name(name), launcher(launcher) { };
+			: name(name), launcher(launcher), launched(true) { };
+
+			/**
+			 * Constructor used for interactively configured child
+			 */
+			Launched_child(Allocator &alloc, Start_name const &name,
+			               Component::Path const &pkg_path,
+			               Component::Info const &info)
+			:
+				name(name), launcher(), launched(false)
+			{
+				construction.construct(alloc, pkg_path, info);
+			}
+
+			void gen_deploy_start_node(Xml_generator &xml) const
+			{
+				if (!launched)
+					return;
+
+				gen_named_node(xml, "start", name, [&] () {
+
+					/* interactively constructed */
+					if (construction.constructed()) {
+						xml.attribute("pkg", construction->path);
+
+						xml.node("route", [&] () {
+							construction->routes.for_each([&] (Route const &route) {
+								route.gen_xml(xml); }); });
+					}
+
+					/* created via launcher */
+					else {
+						if (name != launcher)
+							xml.attribute("launcher", launcher);
+					}
+				});
+			}
 		};
 
 		Registry<Registered<Launched_child> > _launched_children { };
+
+		Registered<Launched_child> *_currently_constructed = nullptr;
+
+		bool _construction_in_progress() const
+		{
+			return _currently_constructed
+			    && _currently_constructed->construction.constructed();
+		}
 
 		struct Update_policy : List_model<Child>::Update_policy
 		{
@@ -133,6 +186,12 @@ class Sculpt::Runtime_state : public Runtime_info
 			static bool node_is_element(Xml_node node) { return node.has_type("child"); }
 		};
 
+		/*
+		 * Noncopyable
+		 */
+		Runtime_state(Runtime_state const &);
+		Runtime_state &operator = (Runtime_state const &);
+
 	public:
 
 		Runtime_state(Allocator &alloc) : _alloc(alloc) { }
@@ -151,9 +210,15 @@ class Sculpt::Runtime_state : public Runtime_info
 		bool present_in_runtime(Start_name const &name) const override
 		{
 			bool result = false;
+
 			_children.for_each([&] (Child const &child) {
 				if (!result && child.name == name)
 					result = true; });
+
+			_launched_children.for_each([&] (Launched_child const &child) {
+				if (!result && child.name == name)
+					result = true; });
+
 			return result;
 		}
 
@@ -175,9 +240,7 @@ class Sculpt::Runtime_state : public Runtime_info
 		void gen_launched_deploy_start_nodes(Xml_generator &xml) const override
 		{
 			_launched_children.for_each([&] (Launched_child const &child) {
-				gen_named_node(xml, "start", child.name, [&] () {
-					if (child.name != child.launcher)
-						xml.attribute("launcher", child.launcher); }); });
+				child.gen_deploy_start_node(xml); });
 		}
 
 		Info info(Start_name const &name) const
@@ -243,7 +306,7 @@ class Sculpt::Runtime_state : public Runtime_info
 			 * entry from '_launched_children'.
 			 */
 			bool was_interactively_launched = false;
-			_launched_children.for_each([&] (Launched_child &child) {
+			_launched_children.for_each([&] (Registered<Launched_child> &child) {
 				if (child.name == name) {
 					was_interactively_launched = true;
 					destroy(_alloc, &child);
@@ -262,6 +325,55 @@ class Sculpt::Runtime_state : public Runtime_info
 		void launch(Start_name const &name, Path const &launcher)
 		{
 			new (_alloc) Registered<Launched_child>(_launched_children, name, launcher);
+		}
+
+		Start_name new_construction(Component::Path const pkg,
+		                                      Component::Info const &info)
+		{
+			/* allow only one construction at a time */
+			discard_construction();
+
+			/* determine unique name for new child */
+			Depot::Archive::Name const archive_name = Depot::Archive::name(pkg);
+			Start_name unique_name = archive_name;
+			unsigned cnt = 1;
+			while (present_in_runtime(unique_name))
+				unique_name = Start_name(archive_name, ".", ++cnt);
+
+			_currently_constructed = new (_alloc)
+				Registered<Launched_child>(_launched_children, _alloc,
+				                           unique_name, pkg, info);
+			return unique_name;
+		}
+
+		void discard_construction()
+		{
+			if (_currently_constructed) {
+				destroy(_alloc, _currently_constructed);
+				_currently_constructed = nullptr;
+			}
+		}
+
+		template <typename FN>
+		void apply_to_construction(FN const &fn)
+		{
+			if (_construction_in_progress())
+				fn(*_currently_constructed->construction);
+		}
+
+		template <typename FN>
+		void with_construction(FN const &fn) const
+		{
+			if (_construction_in_progress())
+				fn(*_currently_constructed->construction);
+		}
+
+		void launch_construction()
+		{
+			if (_currently_constructed)
+				_currently_constructed->launched = true;
+
+			_currently_constructed = nullptr;
 		}
 
 		void reset_abandoned_and_launched_children()

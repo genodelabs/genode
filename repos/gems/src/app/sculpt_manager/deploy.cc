@@ -98,37 +98,24 @@ void Sculpt::Deploy::handle_deploy()
 		});
 	});
 
-	/* update query for blueprints of all unconfigured start nodes */
-	if (_arch.valid()) {
-		_depot_query_reporter.generate([&] (Xml_generator &xml) {
-			xml.attribute("arch",    _arch);
-			xml.attribute("version", _query_version.value);
-			_children.gen_queries(xml);
-		});
-	}
-
-	/*
-	 * Apply blueprint after 'gen_queries'. Otherwise the application of a
-	 * stale blueprint may flag children whose pkgs have been installed in the
-	 * meanwhile as incomplete, suppressing their respective queries.
-	 */
 	try {
 		Xml_node const blueprint = _blueprint_rom.xml();
 
 		/* apply blueprint, except when stale */
 		typedef String<32> Version;
 		Version const version = blueprint.attribute_value("version", Version());
-		if (version == Version(_query_version.value))
+		if (version == Version(_depot_query.depot_query_version().value))
 			_children.apply_blueprint(_blueprint_rom.xml());
 	}
 	catch (...) {
 		error("spurious exception during deploy update (apply_blueprint)"); }
 
+	/* update query for blueprints of all unconfigured start nodes */
+	if (_children.any_blueprint_needed())
+		_depot_query.trigger_depot_query();
+
 	/* feed missing packages to installation queue */
-	if (!_installation.try_generate_manually_managed())
-		_installation.generate([&] (Xml_generator &xml) {
-			xml.attribute("arch", _arch);
-			_children.gen_installation_entries(xml); });
+	update_installation();
 
 	/* apply runtime condition checks */
 	update_child_conditions();
