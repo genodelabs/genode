@@ -263,6 +263,7 @@ install_config {
 			<service name="RM"/>
 			<service name="CPU"/>
 			<service name="LOG"/>
+			<service name="TRACE"/>
 		</parent-provides>
 
 		<start name="timer" caps="100">
@@ -288,6 +289,7 @@ install_config {
 				<service name="RM">    <parent/>    </service>
 				<service name="CPU">   <parent/>    </service>
 				<service name="LOG">   <parent/>    </service>
+				<service name="TRACE"> <parent/>    </service>
 				<service name="Timer"> <child name="timer"/> </service>
 			</route>
 			} $config {
