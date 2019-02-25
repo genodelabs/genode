@@ -1,9 +1,0 @@
-<launcher pkg="cproc/pkg/arora/18.11">
-	<route>
-		<service name="Nic">                  <child name="nic_router"/> </service>
-		<service name="Nitpicker">            <child name="wm"/> </service>
-		<service name="Report" label="shape"> <child name="wm"/> </service>
-		<service name="RM">                   <parent/> </service>
-		<service name="Rtc">                  <parent/> </service>
-	</route>
-</launcher>

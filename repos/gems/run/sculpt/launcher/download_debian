@@ -1,9 +1,0 @@
-<launcher pkg="cnuke/pkg/download_debian/18.11">
-	<route>
-		<service name="File_system" label="target"> <child name="vm_fs"/> </service>
-		<service name="File_system" label="fonts">  <child name="fonts_fs"/> </service>
-		<service name="Nic">       <child name="nic_router"/> </service>
-		<service name="Nitpicker"> <child name="wm"/> </service>
-		<service name="RM">        <parent/> </service>
-	</route>
-</launcher>

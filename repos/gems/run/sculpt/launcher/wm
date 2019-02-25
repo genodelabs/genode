@@ -1,7 +1,0 @@
-<launcher pkg="wm">
-	<route>
-		<service name="Nitpicker" label="wm -> "> <parent label="focus"/> </service>
-		<service name="Nitpicker"> <parent/> </service>
-		<service name="Report" label_last="shape"> <parent/> </service>
-	</route>
-</launcher>

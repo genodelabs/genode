@@ -1,9 +1,0 @@
-<launcher pkg="alex-ab/pkg/top_view/18.11">
-	<route>
-		<service name="Nitpicker"> <child name="wm"/> </service>
-		<service name="TRACE"> <parent/> </service>
-		<service name="Timer"> <parent/> </service>
-		<service name="File_system" label="fonts">
-			<child name="fonts_fs"/> </service>
-	</route>
-</launcher>

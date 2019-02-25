@@ -1,5 +1,0 @@
-<launcher pkg="sticks_blue_backdrop">
-	<route>
-		<service name="Nitpicker"> <parent label="backdrop"/> </service>
-	</route>
-</launcher>
