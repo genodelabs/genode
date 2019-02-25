@@ -11,6 +11,8 @@ MIRROR_FROM_ADA_RT_DIR := \
 		s-imgint.ads \
 		s-imgint.adb \
 		a-unccon.ads \
+		s-arit64.ads \
+		s-arit64.adb \
 		gnat.ads \
 		g-io.ads \
 		g-io.adb \
