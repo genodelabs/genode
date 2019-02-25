@@ -5,6 +5,8 @@
 extern "C" void stack__calloc(int);
 extern "C" void stack__ralloc();
 extern "C" void stack__salloc();
+extern "C" void adainit();
+extern "C" void adafinal();
 
 extern "C" void print_stack(char* data)
 {
@@ -28,6 +30,7 @@ extern "C" void __gnat_rcheck_CE_Overflow_Check()
 
 void Component::construct(Genode::Env &env)
 {
+    adainit();
     Genode::log("running iteration test");
     stack__calloc(32);
     stack__calloc(128);
@@ -41,6 +44,7 @@ void Component::construct(Genode::Env &env)
     stack__salloc();
 
     Genode::log("secondary stack test successful");
+    adafinal();
 
     env.parent().exit(0);
 }

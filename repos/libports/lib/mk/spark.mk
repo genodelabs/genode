@@ -19,9 +19,10 @@ CUSTOM_ADA_FLAGS = --RTS=$(ADA_RTS) -c -gnatg -gnatp -gnatpg -gnatn2
 
 # C runtime glue code
 SRC_CC += genode.cc
+SRC_C += init.c
 
 # Ada packages that implement runtime functionality
-SRC_ADB += ss_utils.adb string_utils.adb platform.adb
+SRC_ADB += ss_utils.adb string_utils.adb platform.adb s-init.adb
 
 vpath %.cc  $(ADA_RUNTIME_PLATFORM_DIR)
 
@@ -41,5 +42,7 @@ vpath platform.% $(ADA_RUNTIME_LIB_DIR)
 vpath string_utils.% $(ADA_RUNTIME_LIB_DIR)
 vpath ss_utils.% $(ADA_RUNTIME_LIB_DIR)
 vpath ada_exceptions.ads $(ADA_RUNTIME_LIB_DIR)
+vpath init.c $(ADA_RUNTIME_LIB_DIR)
+vpath s-init.adb $(ADA_RUNTIME_COMMON_DIR)
 
 SHARED_LIB = yes
