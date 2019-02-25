@@ -3,7 +3,16 @@
 	<requires>
 		<file_system label="vm"/>
 		<file_system label="shared"/>
+		<nitpicker/>
 		<nic/>
+		<rom label="capslock"/>
+		<rom label="platform_info"/>
+		<rom label="usb_devices"/>
+		<report label="shape"/>
+		<report/>
+		<rm/>
+		<rtc/>
+		<usb/>
 	</requires>
 
 	<content>

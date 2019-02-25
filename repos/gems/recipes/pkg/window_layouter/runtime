@@ -1,6 +1,15 @@
 <runtime ram="7M" caps="400" binary="init">
 
-	<requires> <nitpicker/> <file_system/> <timer/> </requires>
+	<requires>
+		<nitpicker/>
+		<rom label="window_list"/>
+		<rom label="focus_request"/>
+		<rom label="hover"/>
+		<rom label="decorator_margins"/>
+		<report/>
+		<file_system label="recall"/>
+		<timer/>
+	</requires>
 
 	<config>
 		<parent-provides>

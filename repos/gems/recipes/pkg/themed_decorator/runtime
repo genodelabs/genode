@@ -1,6 +1,12 @@
 <runtime ram="8M" caps="400" binary="themed_decorator">
 
-	<requires> <nitpicker/> <timer/> </requires>
+	<requires>
+		<rom label="window_layout"/>
+		<rom label="pointer"/>
+		<report/>
+		<nitpicker/>
+		<timer/>
+	</requires>
 
 	<config>
 		<libc/>

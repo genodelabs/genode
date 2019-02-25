@@ -1,9 +1,9 @@
 <runtime ram="50M" caps="1000" binary="noux">
 
 	<requires>
-		<timer/>
 		<file_system label="report" writeable="no"/>
 		<file_system label="target" writeable="yes"/>
+		<timer/>
 	</requires>
 
 	<config stdin="/dev/null" stdout="/dev/log" stderr="/dev/log">

@@ -3,6 +3,9 @@
 	<requires>
 		<nic/>
 		<nitpicker/>
+		<report label="shape"/>
+		<rm/>
+		<rtc/>
 		<timer/>
 	</requires>
 

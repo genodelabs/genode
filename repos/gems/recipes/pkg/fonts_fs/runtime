@@ -1,5 +1,7 @@
 <runtime ram="4M" caps="150" binary="vfs" config="fonts.config">
 
+	<requires> <rom label="config"/> </requires>
+
 	<provides> <file_system/> </provides>
 
 	<content>
