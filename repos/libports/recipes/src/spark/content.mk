@@ -14,6 +14,7 @@ MIRROR_FROM_ADA_RT_DIR := \
 		gnat.ads \
 		g-io.ads \
 		g-io.adb \
+		i-cexten.ads \
 	) \
 	ada-runtime/src \
 	ada-runtime/platform/genode.cc
