@@ -30,6 +30,9 @@ extern "C" void __gnat_rcheck_CE_Overflow_Check()
     Genode::warning(__func__, " not implemented");
 }
 
+extern "C" void adainit();
+extern "C" void adafinal();
+
 /**
  * Wrapper for the Ada main program
  *
@@ -39,9 +42,11 @@ extern "C" void __gnat_rcheck_CE_Overflow_Check()
  */
 void Component::construct(Genode::Env &env)
 {
+	adainit();
 	_ada_main();
 
 	test_spark_object_construction();
+	adafinal();
 
 	env.parent().exit(0);
 }

@@ -18,9 +18,11 @@
 #include <ada/exception.h>
 
 extern "C" void except__raise_task();
+extern "C" void adainit();
 
 void Component::construct(Genode::Env &env)
 {
+   adainit();
 	Genode::log("Ada exception test");
 
 	try { except__raise_task(); }

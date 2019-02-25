@@ -1,3 +1,19 @@
+__gl_default_stack_size D 4
+__gl_detect_blocking B 4
+__gl_exception_tracebacks B 4
+__gl_interrupt_states B 8
+__gl_leap_seconds_support B 4
+__gl_locking_policy D 1
+__gl_main_cpu D 4
+__gl_main_priority D 4
+__gl_num_interrupt_states B 4
+__gl_num_specific_dispatching B 4
+__gl_priority_specific_dispatching B 8
+__gl_queuing_policy D 1
+__gl_task_dispatching_policy D 1
+__gl_time_slice_val D 4
+__gl_unreserve_all_interrupts B 4
+__gl_wc_encoding D 1
 __gnat_mulv64 T
 __gnat_raise_exception T
 __gnat_rcheck_CE_Discriminant_Check T
@@ -10,6 +26,8 @@ __gnat_rcheck_CE_Overflow_Check T
 __gnat_rcheck_CE_Range_Check T
 __gnat_rcheck_PE_Explicit_Raise T
 __gnat_rcheck_SE_Explicit_Raise T
+__gnat_runtime_finalize T
+__gnat_runtime_initialize T
 ada__exceptions_E D 2
 ada__exceptions__exception_dataIP T
 ada__exceptions__exception_occurrenceIP T
