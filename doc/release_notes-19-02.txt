@@ -1,0 +1,836 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 19.02
+              ===============================================
+
+                               Genode Labs
+
+
+
+In our [https://genode.org/about/road-map - road map] for 2019, we stated
+our goal to make Genode more relevant and appealing for a broader community.
+The current release takes a big leap towards that goal: It opens up Sculpt
+OS for 3rd-party software providers, introduces a federated blogging
+platform about Genode-related topics, and makes the world's
+[https://www.tiobe.com/tiobe-index/ - most popular] programming language
+(Java) available to Genode users.
+
+With the 4th stage of the evolution of Sculpt OS - themed as "community
+experience" (CE) - Genode's custom general-purpose OS introduces a novel and
+simple way for users to discover software, and for software providers to
+announce software. There is no middle man like an app store or a distribution!
+We hope that this federated model of software provisioning and deployment will
+have a vitalizing effect on the community around Genode. On a practical level,
+the interactivity of the new version is a playful and fun experience. Section
+[Sculpt OS as a community experience (CE)] gives a rough overview about
+*Sculpt CE*. A ready-to-use disk image will be released mid of March.
+
+When speaking of "software providers", we don't think of anonymous
+repositories. Software - and Free Software in particular - is developed and
+provided by individuals after all. So in our federated way of software
+distribution, we want to highlight this individuality. For this reason, we
+launched a new blogging platform for Genode-related stories called
+[https://genodians.org - Genodians.org], which gives everyone who is
+enthusiastic about Genode - users and developers alike - a platform to express
+ideas, announce software, or share practical tips and tricks. As explained in
+the [https://genodians.org/nfeske/2019-01-07-welcome - initial posting],
+*Genodians.org* is - in the spirit of Sculpt's software distribution model -
+also organized in a federated way. The content is hosted and remains
+completely under control by the respective authors. The website merely
+aggregates and presents the content. It goes without saying that Genodians.org
+is based on Genode. The system image that contains the entire web appliance -
+from the kernel over the content management to the web server - is contained
+in a 8 MiB disk image.
+Section [Genodians.org as a showcase of a Genode-based web appliance] goes
+into more detail.
+
+We identified the support of popular programming languages as one key aspect
+to attract a broader community. With the current release, our port of
+*OpenJDK* (Section [Java]) for both 64-bit x86 and 32-bit ARM has reached a
+mature state suitable for the creation of web services. This paves the way
+towards quite exciting new system creations, like the *Boot2Java* system
+presented in Section [Showcase of a Java-based network appliance].
+On the account of programming-language support, we are happy to announce
+a vastly improved runtime support for *Ada* and *SPARK* (Section
+[Ada and SPARK] as well as the initial support for OCaml (Section [OCaml]).
+
+Besides the work on shiny features, the current release cycle included a
+profound *spring cleanup* described in Section
+[Base framework and OS-level infrastructure].
+It thereby finalizes the huge API modernization initiated almost three years
+ago.
+
+
+Sculpt OS as a community experience (CE)
+########################################
+
+When we laid out the road map for Sculpt OS a little more than one year ago,
+we envisioned four stages of development. Sculpt EA was geared towards
+die-hard early adopters facilitating the live editing of the system using a
+text editor. Sculpt TC was targeted at "the curious" and included a graphical
+user interface for common administrative tasks. Sculpt VC introduced the
+visual composition of the system using an interactive graph. Even though
+Sculpt already allowed for the installation of components from different
+software providers at this stage, it offered no simple means to discover
+software and the installation still required the manual editing of "launcher"
+text files.
+
+The final - community experience - stage of the plan ought to foster the
+federated provisioning of software. Software providers should have the ability
+to announce new packages. Conversely, users should be able to "subscribe" to
+such announcements, similar how one would subscribe to an RSS feed. Once
+software is discovered in this way, it should take only a few clicks to
+install and integrate it into the running Sculpt system. No command-line
+interface should stand in the way of discovery.
+
+Sculpt CE is the realization of this idea.
+
+For Sculpt users, the discovery starts at the '+' menu. In contrast to Sculpt
+VC where the menu offered a rather long list of components to choose from, the
+menu now offers nothing to be excited about.
+
+[image sculpt_ce_menu]
+
+However, at the very bottom, there is a new menu entry "Depot ...", which
+leads to a sub menu with a list of enabled software providers. If connected to
+the network, it also shows an entry named "Selection ...".
+
+[image sculpt_ce_menu_depot]
+
+The "Selection" sub menu allows the user to enable software providers.
+
+[image sculpt_ce_selection]
+
+When clicking on one of the checkboxes, the package index of the provider is
+downloaded and the checkbox is highlighted. In the example, "nfeske" is
+already enabled.
+
+By clicking on the top-left triangle, one can always go one menu up. Back in
+the depot menu, selecting a software provider will now display the index of
+available packages. When selecting a new package, it can be installed via a
+single click:
+
+[image sculpt_ce_install]
+
+Once the package is installed, the menu takes the user to a dialog for
+integrating the package as a new component into the running Sculpt system. For
+each resource required by the package, the user can decide how to connect it.
+For example, the file system to be mounted at _/config/_ of a fresh
+noux-system instance can be routed to any file system service the user wishes.
+The noux-system won't know which file system is selected. It will just work
+with it.
+
+[image sculpt_ce_routes]
+
+As soon as all routes are defined, the dialog presents a button for adding the
+component to the system.
+
+Using this interactive work flow, the discovery of software and its
+integration becomes a rather playful process.
+
+To make a once composed system permanent, one can use the inspect window to
+copy the _/config/managed/deploy_ file to the _config/19.02/ directory of your
+Genode partition. This way, the deployment configuration will take effect
+immediately at boot time.
+
+Genode 19.02 comes with Sculpt CE included. As usual, we will take a bit
+of time following the release for thorough testing and refining before
+announcing an updated disk image mid March. We would greatly appreciate
+your feedback during this phase! For baking a fresh Sculpt image, please
+refer to the
+[https://genode.org/documentation/articles/sculpt-vc - documentation]
+of Sculpt VC, but using the Git tag '19.02' instead of 'sculpt_vc'.
+
+
+Announcing software packages
+----------------------------
+
+The community experience of Sculpt CE will ultimately depend on the
+participation of software providers. To become listed in the selection dialog
+mentioned above, you may consider including your public key and download
+location at the Genode repository
+[https://github.com/genodelabs/genode/tree/master/depot - at /depot/].
+
+For the announcement of packages, a software provider can publish so-called
+"index" files for a particular Sculpt version in the software provider's
+depot. E.g., the index of packages supported on Sculpt 19.02 would be located
+at _index/19.02_ within the depot. Like any other depot content, index files
+are digitally signed. An example index for the software provider "nfeske"
+would look as follows:
+
+! <index>
+!   <index name="GUI">
+!     <pkg path="nfeske/pkg/sticks_blue_backdrop/2019-02-22"
+!          info="default desktop background"/>
+!     <pkg path="nfeske/pkg/themed_wm/2019-02-26"
+!          info="ready-to-use window manager"/>
+!   </index>
+!   <pkg path="nfeske/pkg/nano3d/2019-02-22"
+!        info="simple software-rendering demo"/>
+! </index>
+
+Each '<pkg>' node refers to a package with a concrete version and a short
+description. By nesting '<index>' nodes, software categories can be defined.
+
+Index files can be published like any other depot content using the
+_depot/publish_ tool, which takes care about compressing and digitally signing
+the published information:
+
+| ./tool/depot/publish nfeske/index/19.02
+
+To ease the updating of the index with current package versions, the
+_sculpt.run_ script creates the _depot/index/<version>_ file from the input
+found in _repos/gems/run/sculpt/index_. The latter file is void of any version
+numbers.
+
+For any questions about the process, please consult the Genode
+[https://genode.org/community/mailing-lists - mailing list].
+
+
+Showcase of a Java-based network appliance
+##########################################
+
+With OpenJDK in good shape (Section [Java]), we have created a Genode scenario
+that demonstrates JVM's ability to execute well on embedded hardware. As
+target platform, we choose an ARM (i.MX 6) based SoC with two integrated
+network interface controllers. In the scenario, the Genode system boots
+directly into a Java application, which in turn spawns two HTTP server
+instances where each instance communicates through a dedicated NIC. Both
+server instances run as one Java program.
+
+[image java_nic_filter]
+
+The Java application (a JAR file) is loaded from the board's SD card, and
+therefore, can easily be replaced. If you are interested in Java and ARM SoC,
+the full details and a step by step instruction can be found at our
+[https://genodians.org/ssumpf/2019-02-27-java-19-02 - Genodians.org] site.
+
+
+Genodians.org as a showcase of a Genode-based web appliance
+###########################################################
+
+[https://genodians.org - Genodians.org] is our take on a federated blogging
+platform about Genode-related topics. It does not host the actual content
+but rather aggregates content hosted elsewhere.
+
+[image genodians]
+
+The site periodically fetches content in the form of zip archives containing
+raw text and PNG images, extracts the archives, and transforms the text into
+HTML using a custom static site generator. The result of the transformation
+process is served by the lighttpd web server.
+
+This system is based on Genode and can be found here:
+
+:Genodians.org repository:
+
+  [https://github.com/genodelabs/genodians.org]
+
+A few noteworthy technical points about the site:
+
+* The periodic process of downloading, extracting, and transforming content
+  is realized via the 'fetchurl', 'extract', and 'sequence' components.
+
+* The textual content uses the markup of the
+  [https://github.com/nfeske/gosh - GOSH]
+  text processing tool, which is similar to
+  [https://daringfireball.net/projects/markdown/ - Markdown].
+
+* The custom static site generator consists of a plain makefile and a few GOSH
+  style files. The makefile is executed within a noux instance, which is
+  Genode's custom Unix runtime environment. It is re-spawned for each
+  iteration. As GOSH is written in Tcl, the tclsh is used within the noux
+  environment.
+
+* The lighttpd web server uses a statically supplied SSL certificate.
+
+* The most time-consuming part of creating Genodians.org was the CSS
+  definition.
+
+* The entire system image is about *8 MiB* in size. It includes the following
+  ingredients:
+  * Kernel (e.g., NOVA),
+  * Basic Genode components such as init, NIC router, the VFS server,
+  * Network driver (based on iPXE),
+  * Linux TCP/IP stack as a library,
+  * Curl, libssh, libssl, libcrypto, lighttpd
+    (for downloading and serving content),
+  * libarchive, zlib, liblzma (for extracting the downloaded content)
+  * Noux, coreutils (stripped down), bash, GNU make, and tclsh (for
+    transforming text into HTML)
+
+More information about the site's inner working will be posted in a series
+of articles - guess where? - at Genodians.org!
+
+
+Base framework and OS-level infrastructure
+##########################################
+
+Removal of deprecated APIs
+==========================
+
+Almost three years ago -
+with [https://genode.org/documentation/release-notes/16.05 - version 16.05] -
+we started the transition to Genode's modern API. One year later - in
+[https://genode.org/documentation/release-notes/17.05#Completed_component_transition_to_the_modern_API - version 17.05],
+we announced the completion of this transition but we retained the deprecated
+APIs to accommodate Genode users that picked up the new API only gradually.
+With the current release, we finally drop the deprecated APIs along with a
+couple of other legacies:
+
+* The _base/timed_semaphore.h_ has been removed. In hindsight, officially
+  providing this utility was a big mistake because it lured developers into
+  a wrong direction. In fact, we found that there is no legitimate use of it
+  when a component is designed in a clean way. If a component relies on a
+  timed semaphore, it should better be redesigned. There are two noteworthy
+  places where a timed semaphore is still used as a band-aid solution:
+  the 'pthread_cond_wait' implementation of the libc, and DDE for rump
+  kernels. Those places now host a private copy of the timed semaphore, but
+  should ultimately be reworked.
+
+* The header _base/printf.h_ has been removed along with the log back end
+  for 'printf'. The 'Console' with the format-string parser is still there
+  along with 'snprintf.h' because the latter is still used at a few places,
+  most prominently the 'Connection' classes.
+
+* The notion of a 'Ram_session' exists no more since the former RAM-session
+  interface was merged into the PD-session interface in
+  [https://genode.org/documentation/release-notes/16.05#Consolidation_of_core_s_SIGNAL__CAP__RM__and_PD_services - version 16.05].
+  Still, the types were preserved (by typedefs to 'Pd_session') to keep up
+  API compatibility. Those last traces of 'Ram_session' are gone now. The
+  'Env::ram()' accessor returns the 'Ram_allocator' interface, which is a
+  subset of the 'Pd_session' interface.
+
+* The use of the global 'Genode::env()' accessor function is not possible
+  anymore.
+
+* The old 'Child_policy::resolve_session_request' interface that returned
+  a 'Service' instead of a 'Route' has been removed.
+
+* Boolean accessor methods are no longer prefixed with 'is_'. E.g., instead
+  of 'is_valid()', use 'valid()'.
+
+* All connection constructors need the 'Env' as argument.
+
+* The 'Reporter' constructor needs an 'Env' argument now because the
+  reporter creates a report connection.
+
+* The old notion of 'Signal_dispatcher' is gone. For receiving
+  asynchronous notifications, the 'Signal_handler' interface must be used.
+
+* Transitional headers like _os/server.h_, _cap_session/_,
+  _volatile_object.h_, _os/attached*_dataspace.h_, and
+  _signal_rpc_dispatcher.h_ have been removed.
+
+* The distinction between 'Thread_state' and 'Thread_state_base' does
+  not exist anymore. Only 'Thread_state' prevails.
+
+* The header _cpu_thread/capability.h_ along with the type definition of
+  'Cpu_thread_capability' has been removed. Use the type
+  'Thread_capability' defined in cpu_session/cpu_session.h instead.
+
+* The _os/ram_session_guard.h_ has been removed.
+  Use 'Constrained_ram_allocator' provided by _base/ram_allocator.h_ instead.
+
+
+Source-tree reorganization
+==========================
+
+Timer moved from os to base repository
+--------------------------------------
+
+Traditionally, the user-level timer was hosted at the os repository at
+_drivers/timer/_. However, since the timer and timeout handling have become
+part of the base library (the dynamic linker), the component naturally belongs
+to the base repository. It is now located at _base/src/timer/_ and
+_base-<kernel>/src/timer/_ respectively.
+
+Note that this change affects include paths for the former
+_include/os/timer/_, _include/os/alarm.h_, and _include/os/duration.h_
+headers. Those can now be found in _include/base/_.
+
+
+Consistent naming of block components
+-------------------------------------
+
+Regarding the naming of files and APIs, Genode follows the convention of
+avoiding abbreviations. Most components follow this convention, with the block
+servers being the exception to the rule. Those were named "part_blk" or
+"rom_blk". With the current release, we removed this inconsistency by renaming
+those offenders, changing "blk" to "block". Closely related, abbreviations
+like "cli" and "srv" have been replaced by "client" and "server".
+
+
+Improved API safety
+===================
+
+XML-parsing API
+---------------
+
+Genode consistently uses XML for component configurations and for reports
+generated by components. The latter are often consumed by other components.
+This puts the XML parser into a prominent position. Genode's XML parser
+comes in the form of the 'Xml_node' class. Since it was introduced before the
+age of modern C++, it offers several risky "C-ish" methods, in particular
+accessors that return pointers, raising memory-safety concerns. To promote a
+safe programming style, the following parts of the interface are subject to
+change now:
+
+* The 'Xml_node::addr', 'Xml_node::content_addr', and 'Xml_node::content_base'
+  accessors will be removed because it is all too easy to store the returned
+  pointers and forget about the lifetime of the originating 'Xml_node' object.
+
+  Fortunately, in practice, those methods are rarely used because information
+  is typically represented in attributes, not as node content. However, to
+  still support the access to the raw content, the new
+  'Xml_node::with_raw_node', 'Xml_node::with_raw_content', and
+  'Xml_attribute::with_raw_value' methods call a functor taking the raw byte
+  buffer and size as arguments. This way, the lifetime of the pointer is
+  naturally bound to the scope of the functor.
+
+* The new 'with_sub_node' method calls a functor with the specified
+  sub node as argument and thereby reduces the need for the traditional
+  'Xml_node::sub_node' method, which returns an 'Xml_node'.
+  The latter is risky because an 'Xml_node' contains a pointer to the actual
+  data. In contrast, the lifetime of the 'Xml_node' processed via the new
+  'Xml_node::with_sub_node' is naturally bound to the scope of the passed
+  functor.
+
+* The 'Xml_attribute::value' and 'Xml_node::value' methods now take an
+  argument of type 'T &out' instead of 'T *out', which eliminates the
+  uncertainty of a possible nullptr argument.
+
+The original interface will still be available for a while but it will
+eventually be removed.
+
+
+Simplified session-policy handling
+----------------------------------
+
+Most server components make use of the 'Session_policy' utility for selecting
+a client policy depending on the session label. However, the pattern of its
+use remained a bit inconsistent across components, in particular the handling
+of the case where no policy could be found. Some components outright
+denied the session where others implemented a fallback to a built-in default
+policy. This inconsistency is now removed.
+
+Following the principle of deny-by-default the absence of a matching policy
+denies the session request. Since the 'Session_policy::No_policy_defined'
+exception is a typedef to the 'Genode::Service_denied' exception, a server
+does not need to explicitly handle it, which simplifies the implementation.
+With this change, the 'No_policy_defined' case is always an error case. Hence,
+the new version of 'Session_policy' prints a error message, which relieves the
+server developer from implementing diagnostics in the server code.
+
+As a consequence of this change, scenarios that used to rely on the
+policy-fallback approach of some servers - notably the NIC bridge, window
+manager, the window decorators - need a slight adaption: To enable the
+fallback to a default policy, a '<default-policy>' node must be explicitly
+specified in the server's configuration.
+
+
+Removed pointers from Genode::Fifo interface
+--------------------------------------------
+
+To make the use of the 'Genode::Fifo' data structure more safe, all methods
+that return pointers have been replaced by methods that call a functor with
+a reference as argument.
+
+
+New server-side block-request stream API
+----------------------------------------
+
+The current block-component API (_os/include/block/_) was designed at a time
+long before Genode's modern component API was introduced. Back then, the use
+of blocking calls was prevalent. Today, we design components to work
+asynchronously. The original block-server API was successively enhanced to
+allow the implementation of asynchronous block servers but it remained "upside
+down" while growing more complicated than it should be.
+
+To simplify the implementation and verification of block servers, the current
+release introduces a modern API that will eventually replace the original
+block-component API. The new API is called *block-request stream* and can be
+found at
+[https://github.com/genodelabs/genode/blob/master/repos/os/include/block/request_stream.h - os/include/block/request_stream.h].
+It is designed with the following considerations:
+
+* It anticipates the asynchronous operation of block servers by default.
+  Using the new API, such servers - in particular block-device drivers - can
+  be implemented as state machines triggered by client requests and device
+  interrupts.
+
+* It reinforces the memory safety of the server code by not returning any
+  pointers or references.
+
+* It relieves the server developers from handling special cases (like a
+  congested acknowledgement queue) while being flexible enough to accommodate
+  different categories of components like drivers, resource multiplexers
+  (part_block), and bump-in-the-wire components in a natural way.
+
+* It naturally supports the batching of requests as well as zero-copy
+  (device DMA directly into the client's communication buffer).
+
+The use of the new API is illustrated by the artificial test at
+[https://github.com/genodelabs/genode/blob/master/repos/os/src/test/block_request_stream/main.cc - os/src/test/block_request_stream/].
+We plan to successively migrate all existing block servers to this new API
+and will remove the traditional block-component API eventually.
+
+
+GUI stack
+=========
+
+Motivated by our work on Sculpt as described in Section
+[Sculpt OS as a community experience (CE)], Genode's GUI stack received
+the following improvements:
+
+
+Window management
+~~~~~~~~~~~~~~~~~
+
+To improve the visual appearance of Sculpt's administrative GUI, the *themed*
+*decorator* was enhanced with an option to disable decorations based on the
+window label. By setting the 'decoration' attribute of a '<policy>' node to
+"no", matching windows appear without any border, which is desirable for
+Sculpt's component graph.
+
+Furthermore, the themed decorator accepts the '<policy>' attribute
+'motion=<number>'. The default value is 0. If a value higher than 0 is
+specified, window-geometry changes are applied as an animation where the
+<number> denotes the number of animation steps. This feature is used for
+smoothing the placement of Sculpt's component graph.
+
+The *motif* *decorator* - which is a nice alternative to the themed decorator -
+is now giving visual feedback to mouse clicks. For example, while the user
+drags a window by clicking on the window title, the title bar appears as
+pressed, which creates an improved sense of responsiveness.
+
+
+Unified shape-report routing
+----------------------------
+
+Applications propagate custom mouse-cursor shapes by issuing "shape" reports
+towards the pointer component. The pointer component correlates the session
+labels of the incoming shape reports with the label of nitpicker's currently
+hovered client. Hence, an application's shape report session should take the
+same route as its nitpicker session.
+
+The presence of the window manager as an intermediary of the nitpicker session
+breaks this rule. Consequently, rather awkward label-rewriting magic was
+required when routing shape reports originating from windowed applications. To
+make the shape reporting more natural, the window manager has become able to
+proxy shape reports on behalf of its clients. When routing a shape through the
+window manager, the labels of both the nitpicker sessions as well as the shape
+report sessions contain the intermediary "wm ->" part.
+
+
+Unicode support for the graphical terminal
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The terminal has been changed to represent characters as 16-bit codepoints
+internally. It thereby became able to display a much larger variety of
+international characters when using a suitable font. Unicodes are sent through
+the terminal session via bursts of UTF-8 bytes now.
+
+As a collateral change, the generic 'Codepoint' class became printable via
+Genode's 'Output' interface. This way, a codepoint can easily be serialized
+into UTF-8 bytes.
+
+
+Programming languages
+#####################
+
+Ada and SPARK
+=============
+
+_The work described within this section was contributed by_
+_[https://componolit.com - Componolit]. Thanks to Alexander Senier_
+_and Johannes Kliemann for the fantastic collaboration!_
+
+The integration of SPARK/Ada programs was improved greatly and the Ada runtime
+was renamed to 'spark'. This emphasizes its main purpose: trusted components
+that can be formally verified. A more feature-rich runtime based on 'libc' was
+added to genode-world under the name 'ada'.
+
+Build system integration
+------------------------
+
+Up until now, the (deprecated) 'gnatmake' tool was used to build Ada object
+files. This was unfavorable for two reasons: First, multiple invocations of
+gnatmake would sporadically corrupt the compiler-generated Ada linker files
+('.ali') and break parallel builds. Second, Ada dependency information did not
+get propagated into Genode's build system such that certain source changes
+failed to trigger a rebuild.
+
+For these reasons the 'gnatmake' tool has been dropped in favor of regular
+compiler calls as done for all other languages. To facilitate consistent
+rebuilds on source-code changes, the
+[https://github.com/Componolit/ali2dep - ali2dep] tool was created. From an
+'.ali' file, it produces '.d' files suitable for direct inclusion into
+Genode's build system.
+
+Until the integration into the toolchain, 'ali2dep' support needs to be
+enabled through the 'CUSTOM_ALI2DEP' variable (absolute path or command name
+if the command is in 'PATH'). By default, a warning about the absence of the
+tool is emitted and dependency information is not generated. You can add this
+variable to the 'etc/tools.conf' of your build directory as follows:
+
+! CUSTOM_ALI2DEP = /path/to/ali2dep
+
+Elaboration code
+----------------
+
+Previously, Ada programs that required elaboration code to be run were
+unsupported on Genode. With this release, Ada programs are bound using
+'gnatbind', which results in elaboration code being generated. An additional
+benefit comes in the form of proper error messages at compile time if, for
+example, source code is missing or outdated.
+
+To run an Ada main program with elaboration, calls to 'adainit()' and
+'adafinal()', generated by the binder, need to be added to your
+component-construction code:
+
+! extern "C" void _ada_main(void);
+! extern "C" void adainit();
+! extern "C" void adafinal();
+!
+! void Component::construct(Genode::Env &env)
+! {
+!    adainit();
+!    _ada_main();
+!    adafinal();
+!    env.parent().exit(0);
+! }
+
+Note, that the name of the Ada main program ('_ada_main()') in this example
+depends on the name of your main procedure.
+
+Debug output
+------------
+
+Support for 'GNAT.IO' was added to the runtime. 'GNAT.IO' is a stripped-down
+text I/O facility, which we map to a terminal session on Genode. Only output
+is supported at the moment. A pointer to a terminal session has to be provided
+to the ADA runtime in order to use 'GNAT.IO'. Please refer to
+_repos/libports/src/test/gnatio/_ as an example.
+
+Unit testing
+------------
+
+To facilitate test-driven development of Ada components, the
+[https://www.adacore.com/documentation/aunit-cookbook - AUnit] unit testing
+framework was ported to Genode. It is located in the genode-world repository
+whereas a usage example can be found at 'src/test/aunit'. Note that the full
+Ada runtime ('ada') is required as the framework uses features not present in
+the SPARK runtime.
+
+
+Java
+====
+
+Since Genode release
+[https://genode.org/documentation/release-notes/18.11#Java_language_runtime - 18.11],
+we continued our effort to enable the just-in-time (JIT) compiler for OpenJDK.
+We are happy to announce that we were able to achieve this goal. The JIT
+compiler is now enabled as default for both x86 (64 bit) and ARM (32 bit),
+which significantly improves the performance of the Java virtual machine for
+these architectures.
+
+Additionally, we even further improved JVM's performance by taking advantage
+of more aggressive compiler optimizations. This triggered some unidentified
+bugs and led to a greatly enhanced stability of OpenJDK.
+
+For a small hello world example we offer a simple run script:
+
+! make run/java
+
+For a more complex scenario please refer to Section
+[Showcase of a Java-based network appliance].
+
+
+Nim
+===
+
+Support for Nim has been removed from the Genode build system to encourage
+building Nim components out-of-tree using the Nimble package manager.
+The compatibility of the base system with the Nim runtime will be monitored
+and improved regardless of this change.
+
+
+OCaml
+=====
+
+A proof-of-concept port of the OCaml bytecode interpreter has been placed
+in the world repository. This allows simple programs that are compiled to the
+bytecode instructions to be executed and is a first step in supporting the
+OCaml language. This interpreter does not yet include the standard library.
+Therefore only language primitives are available. Porting the standard library
+appears to simply be a matter of defining a build process. The greatest
+hurdle to porting existing OCaml applications would seem to be finding a path
+into the workflow of the OPAM package tooling.
+
+
+Libraries and applications
+##########################
+
+New utility for taking screenshots
+==================================
+
+The flif_caputure screenshot utility has been added to the world repository.
+This utility implements a framebuffer and input service which it proxies to
+its parent. When the utility observes the *PrtSc* key, it captures the content
+of the framebuffer and writes it to the file system in the FLIF image format,
+FLIF being chosen primarily for its uncomplicated API. To use the utility in
+practice, the common case would be to run it as a client of the default window
+manager with a second window manager stack running as a client of the capture
+utility. This allows capture behavior and scope to remain simple and explicit.
+
+The background story behind the tool is covered by a dedicated
+[https://genodians.org/ehmry/2019-01-31-flif_capture - posting] at Genodians.org.
+
+
+Growing use of the Genode-World repository
+==========================================
+
+The [https://github.com/genodelabs/genode-world - Genode-World] repository
+contains software that is not strictly part of the official Genode OS
+framework but rather supplemental. In particular, it contains ports of
+3rd-party software to Genode. The pool of ported software is steadily growing,
+which moves the world repository more and more into the spotlight of Genode
+users. For example, among a variety of games and experimental components, our
+port of [Java - OpenJDK] is also hosted there. To acknowledge the growing
+importance of the world repository, we added the building of all world depot
+archives to our nightly build tests.
+
+With this baseline of quality assurance in place, it was a good time to move
+supplemental software such as Dosbox, FUSE, libav, libSDL, and its companion
+libraries from the Genode repository to the Genode-World repository. Speaking
+of libSDL, as part of the curation of the world content, the library back end
+of libSDL has been changed to the direct use of the nitpicker session
+interface instead of the lower-level framebuffer and input interfaces. Thanks
+to this change, many scenarios could be greatly simplified, in particular
+packages designated for the use in Sculpt OS.
+
+
+Updated or removed 3rd-party software
+=====================================
+
+The following 3rd-party software received an update:
+
+* OpenSSL updated to version 1.0.2q with 'SSL_CONF_*' enabled,
+  as needed by lighttpd's mod_openssl.
+
+* Lighttpd updated to version 1.4.52, with TLS enabled.
+
+* libpng updated to version 1.6.36
+
+* jbig2dec updated to version 0.15
+
+
+Removal of VirtualBox 4
+-----------------------
+
+All regular users of Genode's VirtualBox port migrated to version 5 a long
+time ago. Version 4 was still maintained because this is the only version
+supported on the Muen separation kernel. However, since the focus of the Muen
+developers recently moved towards the use of nested virtualization, our
+version of VirtualBox 4 is no longer vital for Muen. So we could remove it.
+
+
+Platforms
+#########
+
+Board support for i.MX6 Quad Sabrelite and Nitrogen6 SoloX
+==========================================================
+
+In 2018, we extended our device-driver support for NXP i.MX 5 and 6 based ARM
+platforms. This year, we continue our commitment to this platform with
+additional support for the NXP reference board i.MX6 Quad Sabrelite and the
+Nitrogen6 SoloX, which features dual Gigabit Ethernet.
+
+
+Resizeable virtual framebuffer on Linux
+=======================================
+
+When executing Genode on Linux, we use a libSDL-based pseudo driver for
+running graphical scenarios. This *fb_sdl* server has now been enhanced with
+the ability to resize the SDL window. Such a resize event is translated into
+Genode's framebuffer resize protocol. Thereby, the resizing of the host window
+looks like a mode change to Genode's GUI stack. This greatly eases the testing
+of the mode-change handling of components like the nitpicker GUI server.
+
+
+Tooling and build system
+########################
+
+Enforced 'override' annotations
+-------------------------------
+
+The '-Wsuggest-override' warning complains about implementations of virtual
+functions that lack the override keyword. If the implementation of a virtual
+method is marked as 'override' the compiler checks for a matching virtual
+method in the base class. If there is no such method, the implementation
+unexpectedly diverged from the interface.
+
+An interface may change over time, which is especially troublesome when it
+contains a default implementation of a virtual method. Without 'override'
+annotations, the compiler will silently add the outdated implementation of the
+derived class as an overload of the interface's default implementation, which
+introduces a subtle but potentially serious bug.
+
+To rule out such bugs in the future, we made 'override' annotations mandatory
+when using the default strict warning level.
+
+
+Generalized use of the depot by run scripts
+-------------------------------------------
+
+With more and more run scripts using archives out of Genode's depot, we gained
+experience with typical usage patterns. In particular, we found the universal
+use of the configurable depot user preferable over the hard-wiring of
+'genodelabs'. Hence the 'depot_user' function has become a built-in function
+of the run tool.
+
+
+Repeat mode for the depot-autopilot test environment
+----------------------------------------------------
+
+The _depot_autopilot.run_ script now supports the environment variable
+'TEST_REPEAT' with the possible values 'until_forever' and 'until_failed'.
+When specified, the tests are run in a loop. The latter argument is
+particularly useful for reproducing sporadic errors.
+
+
+New run script to execute a single test w/o the depot
+-----------------------------------------------------
+
+The new _os/run/test.run_ script allows for the quick execution of an
+individual test from the build directory while side-stepping the depot.
+It expects a 'PKG' variable specifying the test package. E.g.,
+
+! make run/test KERNEL=nova PKG=test-xml_node
+
+Note that it does not cover all test packages right now.
+The tool and its limitations are explained in more detail by a dedicated
+[https://genodians.org/nfeske/2019-02-05-shortcut-for-testing - posting]
+at Genodians.org.
+
+
+Support for undefined-behavior sanitizer
+----------------------------------------
+
+The
+[https://developers.redhat.com/blog/2014/10/16/gcc-undefined-behavior-sanitizer-ubsan/ - UndefinedBehaviorSanitizer]
+(UBSan), also described in the
+[https://gcc.gnu.org/onlinedocs/gcc/Instrumentation-Options.html - GCC documentation],
+can detect undefined behavior while a program is running.
+
+With the current release, this diagnostic feature of GCC becomes available for
+analyzing Genode components. By specifying 'SANITIZE_UNDEFINED = yes' in a
+'target.mk' file, the '-fsanitize=undefined' compiler flag is enabled and the
+program is linked with libubsan and libsanitizer_common. The program has to
+call 'env.exec_static_constructors()' and 'sanitizer_init(env)' upon startup
+to initialize the sanitizer libraries. Whenever undefined behavior is detected
+while the program is running, a "runtime error:" message including the source
+code location of the error is printed to the log.
+
