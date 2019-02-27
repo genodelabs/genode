@@ -17,6 +17,9 @@ proc run_boot_dir {binaries} {
 	# check syntax of all boot modules named *.config
 	foreach file [glob -nocomplain [run_dir]/genode/*.config] {
 		check_xml_syntax $file }
+
+	# Save config part of the image.elf for easy inspection
+	exec cp -f [run_dir]/genode/config [run_dir].config
 }
 
 

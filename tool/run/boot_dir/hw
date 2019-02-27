@@ -96,6 +96,10 @@ proc run_boot_dir {binaries} {
 	build_core [run_dir]/genode/$core_obj $modules [run_dir]/genode/core.elf [core_link_address]
 	exec [cross_dev_prefix]strip [run_dir]/genode/core.elf
 	build_core [run_dir]/genode/$bootstrap_obj { core.elf } [run_dir]/image.elf [bootstrap_link_address]
+
+	# Save config part of the image.elf for easy inspection
+	exec cp -f [run_dir]/genode/config [run_dir].config
+
 	remove_genode_dir
 	exec [cross_dev_prefix]strip [run_dir]/image.elf
 
