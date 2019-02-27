@@ -66,11 +66,11 @@ class Block::Packet_descriptor : public Genode::Packet_descriptor
 		 * Constructor
 		 */
 		Packet_descriptor(Packet_descriptor p, Opcode op,
-		                  sector_t blk_nr, Genode::size_t blk_count = 1)
+		                  sector_t block_number, Genode::size_t block_count = 1)
 		:
 			Genode::Packet_descriptor(p.offset(), p.size()),
-			_op(op), _block_number(blk_nr),
-			_block_count(blk_count), _success(false)
+			_op(op), _block_number(block_number),
+			_block_count(block_count), _success(false)
 		{ }
 
 		Opcode         operation()    const { return _op;           }
@@ -139,12 +139,12 @@ struct Block::Session : public Genode::Session
 	/**
 	 * Request information about the metrics of the block device
 	 *
-	 * \param blk_count will contain total number of blocks
-	 * \param blk_size  will contain total size in bytes
+	 * \param block_count will contain the total number of blocks
+	 * \param block_size  will contain the size of one block in bytes
 	 * \param ops       supported operations
 	 */
-	virtual void info(sector_t       *blk_count,
-	                  Genode::size_t *blk_size,
+	virtual void info(sector_t       *block_count,
+	                  Genode::size_t *block_size,
 	                  Operations     *ops) = 0;
 
 	/**
