@@ -131,6 +131,8 @@ struct Sculpt::Graph
 					/* omit sculpt's helpers from the graph */
 					bool const blacklisted = (name == "runtime_view"
 					                       || name == "launcher_query"
+					                       || name == "depot_rom"
+					                       || name == "dynamic_depot_rom"
 					                       || name == "depot_query");
 					if (blacklisted)
 						return;
@@ -176,6 +178,17 @@ struct Sculpt::Graph
 
 					if (show_details) {
 						component.for_each_secondary_dep([&] (Start_name const &dep) {
+
+							/*
+							 * Connections to depot_rom do not reveal any
+							 * interesting information but create a lot of
+							 * noise.
+							 */
+							bool const blacklisted = (dep == "depot_rom")
+							                      || (dep == "dynamic_depot_rom");
+							if (blacklisted)
+								return;
+
 							xml.node("dep", [&] () {
 								xml.attribute("node", name);
 								xml.attribute("on",   dep);
@@ -284,8 +297,16 @@ struct Sculpt::Graph
 
 			_remove_item.confirm_activation_on_clack();
 
-			if (_remove_item.activated("remove"))
+			if (_remove_item.activated("remove")) {
 				action.remove_deployed_component(_runtime_state.selected());
+
+				/*
+				 * Unselect the removed component to bring graph into
+				 * default state.
+				 */
+				_runtime_state.toggle_selection(_runtime_state.selected(),
+				                                _runtime_config);
+			}
 
 		} else {
 			_remove_item.reset();
