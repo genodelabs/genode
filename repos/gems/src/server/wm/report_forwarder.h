@@ -33,8 +33,9 @@ struct Wm::Report_forwarder
 		Genode::Env &_env;
 		Report::Connection _connection;
 
-		Session(Genode::Env &env, Genode::Session_label const &label)
-		: _env(env), _connection(env, label.string())
+		Session(Genode::Env &env, Genode::Session_label const &label,
+		        size_t buffer_size)
+		: _env(env), _connection(env, label.string(), buffer_size)
 		{ _env.ep().manage(*this); }
 
 		~Session() { _env.ep().dissolve(*this); }
@@ -77,7 +78,9 @@ struct Wm::Report_forwarder
 
 		Session *_create_session(char const *args) override
 		{
-			return new (md_alloc()) Session(_env, Genode::label_from_args(args));
+			return new (md_alloc())
+				Session(_env, Genode::label_from_args(args),
+			            Arg_string::find_arg(args, "buffer_size").ulong_value(0));
 		}
 
 		void _upgrade_session(Session *session, const char *args) override
