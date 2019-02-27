@@ -40,6 +40,10 @@ void Sculpt::gen_wifi_drv_start_content(Xml_generator &xml)
 	});
 
 	xml.node("route", [&] () {
+		gen_service_node<Platform::Session>(xml, [&] () {
+			xml.node("parent", [&] () {
+				xml.attribute("label", "wifi"); }); });
+
 		gen_parent_rom_route(xml, "wifi_drv");
 		gen_parent_rom_route(xml, "ld.lib.so");
 		gen_parent_rom_route(xml, "libcrypto.lib.so");
@@ -75,9 +79,5 @@ void Sculpt::gen_wifi_drv_start_content(Xml_generator &xml)
 			xml.attribute("label", "wifi_config");
 			xml.node("parent", [&] () {
 				xml.attribute("label", "config -> managed/wifi"); }); });
-
-		gen_service_node<Platform::Session>(xml, [&] () {
-			xml.node("parent", [&] () {
-				xml.attribute("label", "wifi"); }); });
 	});
 }

@@ -22,6 +22,10 @@ void Sculpt::gen_nic_drv_start_content(Xml_generator &xml)
 	xml.node("config", [&] () { });
 
 	xml.node("route", [&] () {
+		gen_service_node<Platform::Session>(xml, [&] () {
+			xml.node("parent", [&] () {
+				xml.attribute("label", "nic"); }); });
+
 		gen_parent_rom_route(xml, "nic_drv");
 		gen_parent_rom_route(xml, "ld.lib.so");
 		gen_parent_route<Cpu_session>    (xml);
@@ -29,9 +33,5 @@ void Sculpt::gen_nic_drv_start_content(Xml_generator &xml)
 		gen_parent_route<Rm_session>     (xml);
 		gen_parent_route<Log_session>    (xml);
 		gen_parent_route<Timer::Session> (xml);
-
-		gen_service_node<Platform::Session>(xml, [&] () {
-			xml.node("parent", [&] () {
-				xml.attribute("label", "nic"); }); });
 	});
 }
