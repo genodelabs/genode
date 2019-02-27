@@ -44,11 +44,11 @@ content: $(MIRROR_FROM_ADA_RT_DIR) $(MIRROR_FROM_ADA_ALI_DIR)
 
 $(MIRROR_FROM_ADA_RT_DIR):
 	mkdir -p include
-	cp $(ADA_RT_DIR)/$@ include/
+	cp -a $(ADA_RT_DIR)/$@ include/
 
 $(MIRROR_FROM_ADA_ALI_DIR):
 	mkdir -p lib/ali/spark
-	cp $(ADA_ALI_DIR)/$@ lib/ali/spark/
+	cp -a $(ADA_ALI_DIR)/$@ lib/ali/spark/
 
 MIRROR_FROM_REP_DIR := \
 	lib/import/import-spark.mk \
@@ -64,4 +64,4 @@ content: lib/mk/spark.mk
 
 lib/mk/spark.mk:
 	mkdir -p $(dir $@)
-	cp -r $(REP_DIR)/lib/mk/spark.inc $@
+	cp -a $(REP_DIR)/lib/mk/spark.inc $@
