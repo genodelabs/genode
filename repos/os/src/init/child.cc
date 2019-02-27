@@ -239,6 +239,10 @@ void Init::Child::_apply_resource_upgrade(QUOTA &assigned, QUOTA const configure
 
 void Init::Child::apply_upgrade()
 {
+	/* pd_session_cap of exited child is invalid and unusable for transfers */
+	if (_exited)
+		return;
+
 	if (_resources.effective_ram_quota().value == 0)
 		warning(name(), ": no valid RAM quota defined");
 
