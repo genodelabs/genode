@@ -1,4 +1,4 @@
-<runtime ram="8300M" caps="1500" binary="init" config="init.config">
+<runtime ram="4300M" caps="1500" binary="init" config="init.config">
 
 	<requires>
 		<file_system label="vm"/>
