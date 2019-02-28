@@ -2,13 +2,11 @@
 
 	<requires>
 		<audio_out/>
-		<audio_in/>
 		<report/>
 	</requires>
 
 	<provides>
 		<audio_out/>
-		<audio_in/>
 	</provides>
 
 	<config/>
