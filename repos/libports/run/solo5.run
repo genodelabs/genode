@@ -15,7 +15,7 @@ import_from_depot \
 	[depot_user]/src/init \
 	[depot_user]/src/rtc_drv \
 
-install_config {
+append config {
 <config>
 	<parent-provides>
 		<service name="CPU"/>
@@ -66,14 +66,22 @@ install_config {
 			<start name="solo5-test_quiet"/>
 			<start name="solo5-test_blk">
 				<config> <blk/> </config>
-			</start>
+			</start>}
+
+if { ![get_cmd_switch --autopilot] || ![have_include "power_on/qemu"] } {
+	append config {
 			<start name="solo5-test_time">
 				<config> <rtc/> </config>
-			</start>
+			</start>}
+}
+
+append config {
 		</config>
 	</start>
 </config>
 }
+
+install_config $config
 
 build {
 	app/sequence
