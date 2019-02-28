@@ -4,6 +4,43 @@
                                ===========
 
 
+Genode OS Framework release 19.02 | 2019-02-28
+##############################################
+
+| Version 19.02 enhances Sculpt OS with a federated software provisioning
+| model, showcases the use of Java for an IoT network appliance and the
+| creation of a component-based web service, improves the runtime support
+| for Ada and SPARK, and adds board support for i.MX6 Quad Sabrelite and
+| Nitrogen6 SoloX.
+
+Our first release of 2019 pays tribute to this year's
+[https://genode.org/about/road-map - road map] topic
+of making Genode relevant and attractive for a broader community.
+
+First, it enhances Sculpt OS with an easy-to-use way to discover, install,
+and integrate software originating from different providers into a running
+Sculpt system. Conversely, software providers get a distribution channel
+directly to the user, secured by cryptographic signatures. Unlike commodity
+OSes that rely on app stores or distributions, there is no middleman between
+software providers and users in Sculpt OS.
+
+Second, it makes the world's most popular programming language - Java -
+available. Our port of OpenJDK facilitates just-in-time compilation on both
+32-bit ARM and 64-bit x86 architectures. The use of Java within a Genode
+system is nicely showcased by an exemplary IoT network appliance.
+
+Third, to foster a strong sense of community, the release introduces a
+Genode-based federated blogging platform, which enables users and
+developers alike to share ideas, practical tips and tricks, and announcements.
+[https://genodians.org - Genodians.org] is open for everyone to participate.
+
+Other highlights of Genode 19.02 are the improved runtimes for the
+Ada/SPARK and OCaml programming languages, and the added support for the i.MX6
+Quad Sabrelite and Nitrogen6 SoloX boards.
+For more details, please refer to the
+[https:/documentation/release-notes/19.02 - release documentation of version 19.02...]
+
+
 Road Map for 2019 | 2019-01-15
 ##############################
 
