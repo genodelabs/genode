@@ -619,8 +619,7 @@ set depot_users_files [exec sh -c "cd [genode_dir]; \
                                    find depot -maxdepth 3 -name pubkey \
                                                       -or -name download"]
 exec sh -c "tar cf [run_dir]/genode/depot_users.tar -C [genode_dir] \
-                   [join $depot_users_files] \
-                   depot/[depot_user]/index/[sculpt_version]"
+                   [join $depot_users_files]"
 
 
 #
