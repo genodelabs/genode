@@ -25,9 +25,7 @@ void Sculpt::gen_prepare_start_content(Xml_generator &xml, Prepare_version versi
 		"export VERSION=`cat /VERSION`\n"
 		"cp -r /rw/config/$VERSION/*  /config/\n"
 		"mkdir -p /rw/depot\n"
-		"cp -r depot/genodelabs depot/alex-ab depot/chelmuth depot/cproc"
-		"      depot/cnuke depot/ehmry depot/nfeske depot/skalk"
-		"      /rw/depot\n";
+		"cp -r depot/* /rw/depot\n";
 
 	xml.node("config", [&] () {
 		xml.attribute("stdout", "/dev/null");
