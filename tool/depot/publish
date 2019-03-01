@@ -91,9 +91,9 @@ MISSING_PUBKEY_FILES := $(sort \
                                  $(DEPOT_DIR)/$(call pubkey_filename,$A))))
 
 $(PUBLIC_DIR)/%.xz.sig : $(PUBLIC_DIR)/%.xz
-	$(VERBOSE)rm -f $@;
 	$(VERBOSE)$(GPG) --detach-sign --digest-algo SHA256 --no-tty --use-agent \
-	              --local-user $(call pubkey_id,$*) - < $< > $@
+	              --local-user $(call pubkey_id,$*) - < $< > $@ || \
+	              ( rm -f $@; false )
 
 .PRECIOUS: $(TARGETS:.xz.sig=.xz)
 
