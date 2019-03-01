@@ -130,7 +130,7 @@ Using this interactive work flow, the discovery of software and its
 integration becomes a rather playful process.
 
 To make a once composed system permanent, one can use the inspect window to
-copy the _/config/managed/deploy_ file to the _config/19.02/ directory of your
+copy the _/config/managed/deploy_ file to the _config/19.02/_ directory of your
 Genode partition. This way, the deployment configuration will take effect
 immediately at boot time.
 
@@ -149,8 +149,8 @@ Announcing software packages
 The community experience of Sculpt CE will ultimately depend on the
 participation of software providers. To become listed in the selection dialog
 mentioned above, you may consider including your public key and download
-location at the Genode repository
-[https://github.com/genodelabs/genode/tree/master/depot - at /depot/].
+location at the Genode repository at
+[https://github.com/genodelabs/genode/tree/master/depot - /depot/].
 
 For the announcement of packages, a software provider can publish so-called
 "index" files for a particular Sculpt version in the software provider's
@@ -177,7 +177,7 @@ Index files can be published like any other depot content using the
 _depot/publish_ tool, which takes care about compressing and digitally signing
 the published information:
 
-| ./tool/depot/publish nfeske/index/19.02
+! ./tool/depot/publish nfeske/index/19.02
 
 To ease the updating of the index with current package versions, the
 _sculpt.run_ script creates the _depot/index/<version>_ file from the input
@@ -698,7 +698,7 @@ framework but rather supplemental. In particular, it contains ports of
 3rd-party software to Genode. The pool of ported software is steadily growing,
 which moves the world repository more and more into the spotlight of Genode
 users. For example, among a variety of games and experimental components, our
-port of [Java - OpenJDK] is also hosted there. To acknowledge the growing
+port of OpenJDK ([Java]) is also hosted there. To acknowledge the growing
 importance of the world repository, we added the building of all world depot
 archives to our nightly build tests.
 
