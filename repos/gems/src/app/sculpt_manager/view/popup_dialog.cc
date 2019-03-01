@@ -20,10 +20,12 @@ using namespace Sculpt;
 void Popup_dialog::_gen_pkg_info(Xml_generator &xml,
                                  Component const &component) const
 {
-	gen_named_node(xml, "label", "info", [&] () {
-		xml.attribute("text", Component::Info(" ", component.info, " ")); });
+	if (component.info.length() > 1) {
+		gen_named_node(xml, "label", "info", [&] () {
+			xml.attribute("text", Component::Info(" ", component.info, " ")); });
 
-	_gen_info_label(xml, "pad1", "");
+		_gen_info_label(xml, "pad1", "");
+	}
 	_gen_info_label(xml, "path", component.path);
 }
 
