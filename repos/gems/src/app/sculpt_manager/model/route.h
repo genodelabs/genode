@@ -110,7 +110,7 @@ struct Sculpt::Route : List_model<Route>::Element
 	{
 		Genode::print(out, _pretty_name(required));
 		if (required_label.valid())
-			Genode::print(out, " (", required_label, ") ");
+			Genode::print(out, " (", Pretty(required_label), ") ");
 	}
 
 	void gen_xml(Xml_generator &xml) const

@@ -26,6 +26,7 @@
 #include <model/capacity.h>
 #include <model/popup.h>
 #include <model/runtime_config.h>
+#include <string.h>
 
 namespace Sculpt { struct Graph; }
 
@@ -127,6 +128,7 @@ struct Sculpt::Graph
 				_runtime_config.for_each_component([&] (Component const &component) {
 
 					Start_name const name = component.name;
+					Start_name const pretty_name { Pretty(name) };
 
 					/* omit sculpt's helpers from the graph */
 					bool const blacklisted = (name == "runtime_view"
@@ -158,7 +160,7 @@ struct Sculpt::Graph
 									xml.attribute("selected", "yes");
 
 								xml.node("label", [&] () {
-									xml.attribute("text", name);
+									xml.attribute("text", pretty_name);
 								});
 							});
 

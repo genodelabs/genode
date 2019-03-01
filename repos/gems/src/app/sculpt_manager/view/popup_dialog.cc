@@ -12,6 +12,7 @@
  */
 
 #include <view/popup_dialog.h>
+#include <string.h>
 
 using namespace Sculpt;
 
@@ -32,7 +33,7 @@ void Popup_dialog::_gen_pkg_elements(Xml_generator &xml,
 {
 	typedef Component::Info Info;
 
-	_gen_sub_menu_title(xml, "back", Menu::Name("Add ", _construction_name));
+	_gen_sub_menu_title(xml, "back", Menu::Name("Add ", Pretty(_construction_name)));
 
 	_gen_pkg_info(xml, component);
 
@@ -107,7 +108,7 @@ void Popup_dialog::_gen_menu_elements(Xml_generator &xml) const
 			if (_runtime_info.present_in_runtime(info.path))
 				return;
 
-			_gen_menu_entry(xml, info.path, info.path, false);
+			_gen_menu_entry(xml, info.path, Pretty(info.path), false);
 		});
 
 		_gen_menu_entry(xml, "depot", "Depot ...", false);
@@ -197,7 +198,7 @@ void Popup_dialog::_gen_menu_elements(Xml_generator &xml) const
 						selected = true;
 				});
 
-				String<100> const text(name, " " "(", version, ")",
+				String<100> const text(Pretty(name), " " "(", version, ")",
 				                       installing ? " installing... " : "...");
 
 				_gen_menu_entry(xml, id, text, selected);

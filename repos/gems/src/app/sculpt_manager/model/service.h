@@ -14,7 +14,7 @@
 #ifndef _MODEL__SERVICE_H_
 #define _MODEL__SERVICE_H_
 
-#include "types.h"
+#include <string.h>
 
 namespace Sculpt { struct Service; }
 
@@ -67,7 +67,7 @@ struct Sculpt::Service
 	 * Constructor for child service
 	 */
 	Service(Start_name const &server, Type type, Label const &label)
-	: server(server), type(type), label(label), info(server) { }
+	: server(server), type(type), label(label), info(Subst("_", " ", server)) { }
 
 	/**
 	 * Constructor for parent service
