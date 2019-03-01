@@ -1,6 +1,6 @@
 <runtime ram="16M" caps="256" binary="audio_drv">
 
-	<requires> <timer/> </requires>
+	<requires> <platform/> <rm/> <timer/> </requires>
 
 	<provides>
 		<audio_out/>
