@@ -61,7 +61,6 @@ struct Genode::Register_set_plain_access
 	 * \param IMPLEMENTATION  implementation of access on the plain integer level
 	 * \param impl            instance of the access implementation
 	 * \param offset          register offset
-	 * \param value           value to be written to the register
 	 */
 	template <typename ACCESS_T, typename IMPLEMENTATION>
 	static inline ACCESS_T read(IMPLEMENTATION &impl, off_t const offset) {
