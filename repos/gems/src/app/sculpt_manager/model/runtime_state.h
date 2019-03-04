@@ -216,7 +216,7 @@ class Sculpt::Runtime_state : public Runtime_info
 					result = true; });
 
 			_launched_children.for_each([&] (Launched_child const &child) {
-				if (!result && child.name == name)
+				if (!result && child.name == name && child.launched)
 					result = true; });
 
 			return result;
