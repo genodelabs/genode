@@ -585,11 +585,20 @@ CMS_ReceiptRequest_it D 56
 CMS_ReceiptRequest_new T
 CMS_Receipt_it D 56
 CMS_ReceiptsFrom_it D 56
+CMS_RecipientEncryptedKey_cert_cmp T
+CMS_RecipientEncryptedKey_get0_id T
 CMS_RecipientEncryptedKey_it D 56
 CMS_RecipientInfo_decrypt T
 CMS_RecipientInfo_encrypt T
 CMS_RecipientInfo_get0_pkey_ctx T
 CMS_RecipientInfo_it D 56
+CMS_RecipientInfo_kari_decrypt T
+CMS_RecipientInfo_kari_get0_alg T
+CMS_RecipientInfo_kari_get0_ctx T
+CMS_RecipientInfo_kari_get0_orig_id T
+CMS_RecipientInfo_kari_get0_reks T
+CMS_RecipientInfo_kari_orig_id_cmp T
+CMS_RecipientInfo_kari_set0_pkey T
 CMS_RecipientInfo_kekri_get0_id T
 CMS_RecipientInfo_kekri_id_cmp T
 CMS_RecipientInfo_ktri_cert_cmp T
@@ -888,6 +897,7 @@ DES_set_odd_parity T
 DES_string_to_2keys T
 DES_string_to_key T
 DES_xcbc_encrypt T
+DH_KDF_X9_42 T
 DH_OpenSSL T
 DH_check T
 DH_check_pub_key T
@@ -897,6 +907,9 @@ DH_free T
 DH_generate_key T
 DH_generate_parameters T
 DH_generate_parameters_ex T
+DH_get_1024_160 T
+DH_get_2048_224 T
+DH_get_2048_256 T
 DH_get_default_method T
 DH_get_ex_data T
 DH_get_ex_new_index T
@@ -985,6 +998,7 @@ DSO_set_filename T
 DSO_set_method T
 DSO_set_name_converter T
 DSO_up_ref T
+ECDH_KDF_X9_62 T
 ECDH_OpenSSL T
 ECDH_compute_key T
 ECDH_get_default_method T
@@ -3287,10 +3301,13 @@ bn_cmp_words T
 bn_div_words T
 bn_dup_expand T
 bn_expand2 T
+bn_from_mont_fixed_top T
 bn_mod_add_fixed_top T
+bn_mod_sub_fixed_top T
 bn_mul_add_words T
 bn_mul_comba4 T
 bn_mul_comba8 T
+bn_mul_fixed_top T
 bn_mul_high T
 bn_mul_low_normal T
 bn_mul_low_recursive T
@@ -3302,6 +3319,7 @@ bn_mul_recursive T
 bn_mul_words T
 bn_sqr_comba4 T
 bn_sqr_comba8 T
+bn_sqr_fixed_top T
 bn_sqr_normal T
 bn_sqr_recursive T
 bn_sqr_words T
@@ -3326,6 +3344,8 @@ cms_EncryptedContent_init_bio T
 cms_EncryptedData_init_bio T
 cms_EnvelopedData_init_bio T
 cms_Receipt_verify T
+cms_RecipientInfo_kari_encrypt T
+cms_RecipientInfo_kari_init T
 cms_RecipientInfo_pwri_crypt T
 cms_SignedData_final T
 cms_SignedData_init_bio T
@@ -3652,7 +3672,6 @@ ec_GFp_simple_points_make_affine T
 ec_GFp_simple_set_Jprojective_coordinates_GFp T
 ec_GFp_simple_set_compressed_coordinates T
 ec_pkey_meth D 208
-ec_precompute_mont_data T
 ec_wNAF_have_precompute_mult T
 ec_wNAF_mul T
 ec_wNAF_precompute_mult T
