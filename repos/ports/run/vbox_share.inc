@@ -196,6 +196,8 @@ set config_of_app {
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Report"/> <service name="ROM"/> </provides>
 		<config>
+			<policy label="pointer -> hover"                    report="nitpicker -> hover"/>
+			<policy label="pointer -> xray"                     report="nitpicker -> xray"/>
 			<policy label="usb_report_filter -> devices"        report="usb_drv -> devices"/>
 			<policy label="usb_report_filter -> usb_drv_config" report="usb_drv -> config"/>
 			<policy label="vbox1 -> usb_devices"                report="usb_report_filter -> usb_devices"/>
@@ -221,6 +223,40 @@ append_if [expr $use_usb] config_of_app {
 			<service name="Input" label="usb_hid"> <child name="usb_drv" /> </service> }
 append config_of_app {
 			<any-service> <parent /> <any-child /> </any-service>
+		</route>
+	</start>
+
+	<start name="nitpicker" priority="-1">
+		<resource name="RAM" quantum="12M"/>
+		<provides><service name="Nitpicker"/></provides>
+		<route>
+			<service name="Framebuffer"> <child name="fb_drv" /> </service>
+			<service name="Input"> <child name="input_merger" /> </service>
+			<service name="Report"> <child name="report_rom" /> </service>
+			<any-service> <parent/> <any-child /> </any-service>
+		</route>
+		<config>
+			<report focus="yes" hover="yes" />
+
+			<domain name="pointer"  layer="1" content="client" label="no" origin="pointer" />
+			<domain name="cpu_load" layer="2" content="client" label="no" />
+			<domain name=""         layer="3" content="client" label="no" focus="click" hover="always" />
+
+			<policy label_prefix="pointer"          domain="pointer"/>
+			<policy label_prefix="cpu_load_display" domain="cpu_load"/>
+			<default-policy domain=""/>
+		</config>
+	</start>
+
+	<start name="pointer" priority="-1">
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="Report"/> </provides>
+		<config shapes="yes"/>
+		<route>
+			<service name="Nitpicker"> <child name="nitpicker"/>  </service>
+			<service name="ROM" label="hover"> <child name="report_rom"/> </service>
+			<service name="ROM" label="xray"> <child name="report_rom"/> </service>
+			<any-service> <parent/> </any-service>
 		</route>
 	</start>
 

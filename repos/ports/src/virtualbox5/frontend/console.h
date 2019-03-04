@@ -14,11 +14,14 @@
 
 /* Genode includes */
 #include <base/log.h>
+#include <base/attached_dataspace.h>
+#include <base/attached_rom_dataspace.h>
 #include <input/event.h>
 #include <input/keycodes.h>
 #include <input_session/connection.h>
-#include <base/attached_dataspace.h>
-#include <base/attached_rom_dataspace.h>
+#define Framebuffer Fb_Genode
+#include <nitpicker_session/connection.h>
+#undef Framebuffer
 #include <os/reporter.h>
 #include <report_session/connection.h>
 #include <timer_session/connection.h>
@@ -111,7 +114,8 @@ class GenodeConsole : public Console {
 
 	private:
 
-		Input::Connection                      _input;
+		Nitpicker::Connection                  _nitpicker;
+		Input::Session_client                 &_input;
 		unsigned                               _ax, _ay;
 		bool                                   _last_received_motion_event_was_absolute;
 		Report::Connection                     _shape_report_connection;
@@ -141,7 +145,8 @@ class GenodeConsole : public Console {
 		GenodeConsole()
 		:
 			Console(),
-			_input(genode_env()),
+			_nitpicker(genode_env()),
+			_input(*_nitpicker.input()),
 			_ax(0), _ay(0),
 			_last_received_motion_event_was_absolute(false),
 			_shape_report_connection(genode_env(), "shape",
@@ -171,6 +176,8 @@ class GenodeConsole : public Console {
 				_caps_lock->sigh(_input_sticky_keys_dispatcher);
 			}
 		}
+
+		Nitpicker::Connection &nitpicker() { return _nitpicker; }
 
 		void init_clipboard();
 

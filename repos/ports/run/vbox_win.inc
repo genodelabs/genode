@@ -27,9 +27,6 @@ set build_components {
 	server/input_merger
 	drivers/nic
 	drivers/audio
-	server/nitpicker
-	app/pointer
-	server/nit_fb
 	server/report_rom
 	server/dynamic_rom
 }
@@ -38,19 +35,13 @@ set boot_modules {
 	input_merger
 	nic_drv
 	audio_drv
-	nitpicker
-	pointer
-	nit_fb
 	report_rom
 	dynamic_rom
 }
 
-set virtualbox_binary  "virtualbox-rem"
 set virtualbox5_binary "virtualbox5-rem"
 
-if {[have_spec muen]} { set virtualbox_binary "virtualbox-muen" }
 if {[have_spec nova]} {
-	set virtualbox_binary  "virtualbox-nova"
 	set virtualbox5_binary "virtualbox5-nova"
 }
 
@@ -124,26 +115,17 @@ append config_of_app {
 		</config>
 	</start>
 
-	<start name="nitpicker" priority="-1">
+	<start name="nitpicker" priority="-1" caps="150">
 		<resource name="RAM" quantum="12M"/>
 		<provides><service name="Nitpicker"/></provides>
+		<configfile name="nitpicker.config"/>
 		<route>
 			<service name="Framebuffer"> <child name="fb_drv" /> </service>
 			<service name="Input"> <child name="input_merger" /> </service>
 			<service name="Report"> <child name="report_rom" /> </service>
+			<service name="ROM" label="nitpicker.config"> <child name="dynamic-config"/> </service>
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
-		<config>
-			<report focus="yes" hover="yes" xray="yes" />
-
-			<domain name="pointer"  layer="1" content="client" label="no" origin="pointer" />
-			<domain name="cpu_load" layer="2" content="client" label="no" />
-			<domain name=""         layer="3" content="client" focus="click" hover="always" />
-
-			<policy label_prefix="pointer"          domain="pointer"/>
-			<policy label_prefix="cpu_load_display" domain="cpu_load"/>
-			<default-policy domain=""/>
-		</config>
 	</start>
 
 	<start name="pointer" priority="-1">
@@ -151,79 +133,33 @@ append config_of_app {
 		<provides> <service name="Report"/> </provides>
 		<config shapes="yes"/>
 		<route>
-			<service name="Nitpicker"> <child name="nitpicker"/>  </service>}
-
-append config_of_app {
+			<service name="Nitpicker"> <child name="nitpicker"/>  </service>
 			<service name="ROM" label="hover"> <child name="report_rom"/> </service>
 			<service name="ROM" label="xray"> <child name="report_rom"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
 	</start>}
 
-for { set i 1} { $i <= $use_vms } { incr i} {
-	append config_of_app "
-	<start name=\"nit_fb${i}\" priority=\"-1\">"
+if { $use_vms > 1 } {
 	append config_of_app {
-		<binary name="nit_fb"/>
-		<resource name="RAM" quantum="8M" />
-		<provides>
-			<service name="Framebuffer" />
-			<service name="Input" />
-		</provides>}
-
-	append config_of_app "
-		<configfile name=\"nit_fb${i}.config\"/>"
-
-	append config_of_app {
-		<route>}
-
-	append config_of_app "
-			<service name=\"ROM\" label=\"nit_fb${i}.config\"> <child name=\"nit_fb-config\"/> </service>"
-
-	append config_of_app {
+	<start name="wm" caps="1000">
+		<resource name="RAM" quantum="32M"/>
+		<binary name="init"/>
+		<provides> <service name="Nitpicker"/> <service name="Report"/> </provides>
+		<route>
+			<service name="ROM" label="config"> <parent label="wm.config"/> </service>
 			<service name="Nitpicker"> <child name="nitpicker"/> </service>
-			<any-service> <parent /> </any-service>
+			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>}
 }
 
 append config_of_app {
-	<start name="nit_fb-config" priority="-1">
+	<start name="dynamic-config" priority="-1">
 		<binary name="dynamic_rom"/>
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="ROM"/> </provides>
-		<config>}
-
-for { set i 1} { $i <= $use_vms } { incr i} {
-	append config_of_app "
-			<rom name=\"nit_fb${i}.config\">"
-
-	append config_of_app {
-				<inline description="standard">}
-
-	if { $use_vms > 1 } {
-		append config_of_app "
-		<config xpos=\"[expr ${i} * 50]\" ypos=\"[expr (${i} - 1) * 5 + 2]\" width=\"1024\" height=\"768\"/>"
-	} else {
-		append config_of_app {
-		<config/>}
-	}
-
-	append config_of_app {
-				</inline>
-				<sleep milliseconds="50000" />}
-
-	append_if [expr !$use_rumpfs] config_of_app {
-				<inline description="shutdown">
-					<config width="0" height="0"/>
-				</inline>
-				<sleep milliseconds="500000" />}
-
-	append config_of_app {
-			</rom>}
-}
-
-append config_of_app {
+		<config verbose="yes">
 			<rom name="capslock">
 				<inline>
 					<capslock enabled="yes"/>
@@ -233,6 +169,40 @@ append config_of_app {
 					<capslock enabled="no"/>
 				</inline>
 				<sleep milliseconds="5000"/>
+			</rom>
+			<rom name="nitpicker.config">
+				<inline description="standard_mode">
+					<config>
+						<report focus="yes" hover="yes" />
+
+						<domain name="pointer"  layer="1" content="client" label="no" origin="pointer" />
+						<domain name="cpu_load" layer="2" content="client" label="no" />
+						<domain name=""         layer="3" content="client" label="no" focus="click" hover="always"/>
+
+						<policy label_prefix="pointer"          domain="pointer"/>
+						<policy label_prefix="cpu_load_display" domain="cpu_load"/>
+						<default-policy domain=""/>
+					</config>
+				</inline>
+				<sleep milliseconds="50000"/>}
+
+append_if [expr !$use_rumpfs] config_of_app {
+				<inline description="shutdown">
+					<config>
+						<report focus="yes" hover="yes" />
+
+						<domain name="pointer"  layer="1" content="client" label="no" origin="pointer" />
+						<domain name="cpu_load" layer="2" content="client" label="no" />
+						<domain name=""         layer="3" content="client" label="no" focus="click" hover="always" width="1" height="1" />
+
+						<policy label_prefix="pointer"          domain="pointer"/>
+						<policy label_prefix="cpu_load_display" domain="cpu_load"/>
+						<default-policy domain=""/>
+					</config>
+				</inline>
+				<sleep milliseconds="500000"/>}
+
+append config_of_app {
 			</rom>
 		</config>
 		<route>
@@ -284,6 +254,9 @@ for { set i 1} { $i <= $use_vms } { incr i} {
 		</config>
 		<route>}
 
+	append_if [expr ($use_vms > 1)] config_of_app {
+			<service name="Nitpicker"> <child name="wm"/></service>}
+
 	append_if [expr $use_ram_fs] config_of_app {
 			<service name="File_system" label="from_ram_fs"> <child name="ram_fs"/> </service>}
 
@@ -291,16 +264,11 @@ for { set i 1} { $i <= $use_vms } { incr i} {
 				<service name="File_system"> <child name="rump_fs"/> </service>}
 	append_if [expr !$use_rumpfs] config_of_app {
 				<service name="Block"> <child name="part_block"/> </service>}
-	append config_of_app "
-			<service name=\"Framebuffer\"> <child name=\"nit_fb${i}\" /> </service>
-			<service name=\"Input\"> <child name=\"nit_fb${i}\" /> </service>
-			<service name=\"Report\" label=\"shape\">
-				<child name=\"pointer\" label=\"nit_fb${i} -> shape\"/>
-			</service>"
 	append config_of_app {
+			<service name="Report" label="shape"> <child name="pointer"/></service>
 			<service name="Report"><child name="report_rom" /></service>
 			<service name="ROM" label="usb_devices"> <child name="report_rom" /> </service>
-			<service name="ROM" label="capslock"> <child name="nit_fb-config"/> </service>
+			<service name="ROM" label="capslock"> <child name="dynamic-config"/> </service>
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
 	</start>}

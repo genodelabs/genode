@@ -19,7 +19,6 @@
 		<rom label="init.config"/>
 		<rom label="ld.lib.so"/>
 		<rom label="init"/>
-		<rom label="nit_fb"/>
 		<rom label="timer"/>
 		<rom label="virtualbox5-nova"/>
 		<rom label="libc.lib.so"/>

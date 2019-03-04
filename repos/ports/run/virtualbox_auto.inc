@@ -27,8 +27,17 @@ if {[have_spec nova]} {
 	proc kernel_output { } { return "novga logmem" }
 }
 
+create_boot_directory
+
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/src/init \
+                  [depot_user]/src/nitpicker
+
+if {$use_vms > 1} {
+	import_from_depot [depot_user]/pkg/themed_wm
+}
+
 append build_components {
-	core init timer
 	server/part_block
 	server/fs_rom
 	drivers/ahci
@@ -54,8 +63,6 @@ proc platform_drv_priority {} { return { priority="-1"} }
 append_platform_drv_build_components
 
 build $build_components
-
-create_boot_directory
 
 set config {
 <config verbose="yes" prio_levels="4">}
@@ -363,9 +370,8 @@ append config {
 install_config $config
 
 append boot_modules {
-	core init timer
 	part_block ahci_drv fs_rom
-	ld.lib.so libc.lib.so vfs.lib.so libm.lib.so
+	libc.lib.so vfs.lib.so libm.lib.so
 	libc_pipe.lib.so libc_terminal.lib.so
 	libiconv.lib.so stdcxx.lib.so
 	qemu-usb.lib.so

@@ -3,11 +3,8 @@ _/src/vbox5-nova
 _/src/base-nova
 _/src/libc
 _/src/init
-_/src/nit_fb
-_/src/libc
 _/src/posix
 _/src/zlib
-_/src/nit_fb
 _/src/libiconv
 _/src/stdcxx
 _/src/vfs
