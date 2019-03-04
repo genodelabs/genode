@@ -666,7 +666,7 @@ struct sk_buff *skb_dequeue(struct sk_buff_head *list)
  ** linux/inerrupt.h **
  **********************/
 
-static void snprint_mac(u8 *buf, u8 *mac)
+static void snprint_mac(char *buf, u8 *mac)
 {
 	for (int i = 0; i < ETH_ALEN; i++)
 	{
@@ -698,7 +698,7 @@ void eth_random_addr(u8 *addr)
 void random_ether_addr(u8 *addr)
 {
 	using namespace Genode;
-	u8 str[MAC_LEN + 1];
+	char str[MAC_LEN + 1];
 	u8 fallback[] = { 0x2e, 0x60, 0x90, 0x0c, 0x4e, 0x01 };
 	Nic::Mac_address mac;
 
@@ -712,7 +712,7 @@ void random_ether_addr(u8 *addr)
 	} catch (...) {
 	/* use fallback mac */
 		snprint_mac(str, fallback);
-		Genode::warning("No mac address or wrong format attribute in <nic> - using fallback (", str, ")");
+		Genode::warning("No mac address or wrong format attribute in <nic> - using fallback (", Genode::Cstring(str), ")");
 
 		Genode::memcpy(addr, fallback, ETH_ALEN);
 		return;
@@ -721,7 +721,7 @@ void random_ether_addr(u8 *addr)
 	/* use configured mac*/
 	Genode::memcpy(addr, mac.addr, ETH_ALEN);
 	snprint_mac(str, (u8 *)mac.addr);
-	Genode::log("Using configured mac: ", str);
+	Genode::log("Using configured mac: ", Genode::Cstring(str));
 
 #ifdef GENODE_NET_STAT
 	_stat.set_mac(mac.addr);
