@@ -145,7 +145,7 @@ Makefile reconfigure: $(MAKEFILE_LIST)
 #
 Makefile reconfigure: env.sh $(SHARED_LIBS)
 	@$(MSG_CONFIG)$(TARGET)
-	$(VERBOSE)source env.sh && $(CONFIGURE_SCRIPT) $(ENV) $(CONFIGURE_ARGS) $(CONFIGURE_OUTPUT_FILTER)
+	$(VERBOSE)source env.sh && $(CONFIGURE_SCRIPT) $(MKENV) $(CONFIGURE_ARGS) $(CONFIGURE_OUTPUT_FILTER)
 
 env.sh:
 	$(VERBOSE)rm -f $@
