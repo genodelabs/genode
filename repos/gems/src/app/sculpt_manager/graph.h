@@ -97,7 +97,7 @@ struct Sculpt::Graph
 	{
 		gen_named_node(xml, "frame", name, [&] () {
 			xml.node("label", [&] () {
-				xml.attribute("text", name); }); });
+				xml.attribute("text", Start_name(" ", name, " ")); }); });
 	}
 
 	void _gen_graph_dialog()
