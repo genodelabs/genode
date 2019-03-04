@@ -22,17 +22,17 @@ CONFIGURE_ARGS = --program-prefix=$(PROGRAM_PREFIX) \
                  --disable-sjlj-exceptions \
                  --disable-nls
 
-ENV += host_configargs="$(HOST_CONFIG_ARGS)" \
+MKENV += host_configargs="$(HOST_CONFIG_ARGS)" \
        target_configargs="$(TARGET_CONFIG_ARGS)"
 
-ENV += CC_FOR_TARGET=$(CC) CXX_FOR_TARGET=$(CXX) GCC_FOR_TARGET=$(CC) CPP_FOR_TARGET="$(CC) -E" \
+MKENV += CC_FOR_TARGET=$(CC) CXX_FOR_TARGET=$(CXX) GCC_FOR_TARGET=$(CC) CPP_FOR_TARGET="$(CC) -E" \
        LD_FOR_TARGET=$(LD) AS_FOR_TARGET=$(AS) AR_FOR_TARGET=$(AR)
 
 # libgcc does not evaluate CPPFLAGS_FOR_TARGET, so everything is put into CFLAGS_FOR_TARGET here
-ENV += CFLAGS_FOR_TARGET='-I$(BASE_DIR)/../../tool -DUSE_PT_GNU_EH_FRAME -Dinhibit_libc -fPIC'
+MKENV += CFLAGS_FOR_TARGET='-I$(BASE_DIR)/../../tool -DUSE_PT_GNU_EH_FRAME -Dinhibit_libc -fPIC'
 
 # libsupc++
-ENV += CXXFLAGS_FOR_TARGET='-fPIC'
+MKENV += CXXFLAGS_FOR_TARGET='-fPIC'
 
 MAKE_ENV += GENODE="yes"
 
