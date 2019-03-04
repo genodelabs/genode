@@ -181,14 +181,7 @@ struct Sculpt::Graph
 					if (show_details) {
 						component.for_each_secondary_dep([&] (Start_name const &dep) {
 
-							/*
-							 * Connections to depot_rom do not reveal any
-							 * interesting information but create a lot of
-							 * noise.
-							 */
-							bool const blacklisted = (dep == "depot_rom")
-							                      || (dep == "dynamic_depot_rom");
-							if (blacklisted)
+							if (Runtime_state::blacklisted_from_graph(dep))
 								return;
 
 							xml.node("dep", [&] () {

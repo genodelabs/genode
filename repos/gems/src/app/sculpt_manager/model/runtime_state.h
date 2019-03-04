@@ -261,6 +261,15 @@ class Sculpt::Runtime_state : public Runtime_info
 			return result;
 		}
 
+		static bool blacklisted_from_graph(Start_name const &name)
+		{
+			/*
+			 * Connections to depot_rom do not reveal any interesting
+			 * information but create a lot of noise.
+			 */
+			return name == "depot_rom" || name == "dynamic_depot_rom";
+		}
+
 		void toggle_selection(Start_name const &name, Runtime_config const &config)
 		{
 			_children.for_each([&] (Child &child) {
@@ -293,9 +302,10 @@ class Sculpt::Runtime_state : public Runtime_info
 
 				/* tag all dependencies as part of the TCB */
 				config.for_each_dependency(name_of_updated, [&] (Start_name const &dep) {
-					_children.for_each([&] (Child &child) {
-						if (child.name == dep)
-							child.info.tcb = true; }); });
+					if (!blacklisted_from_graph(dep))
+						_children.for_each([&] (Child &child) {
+							if (child.name == dep)
+								child.info.tcb = true; }); });
 			}
 		}
 

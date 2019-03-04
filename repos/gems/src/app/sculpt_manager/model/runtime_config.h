@@ -83,7 +83,20 @@ class Sculpt::Runtime_config
 				}
 
 				if (service == "ROM") {
-					bool const interesting_rom = !dst_label.valid();
+
+					/*
+					 * ROM sessions for plain binaries (e.g, as requested by
+					 * the sculpt-managed inspect or part_block instances) are
+					 * not interesting for the graph. Non-sculpt-managed
+					 * subsystems can only be connected to the few ROMs
+					 * whitelisted in the 'Parent_services' definition below.
+					 */
+					bool const interesting_rom =
+						dst_label.valid() &&
+						(strcmp("config", dst_label.string(), 5) == 0 ||
+						 dst_label == "platform_info" ||
+						 dst_label == "capslock");
+
 					if (interesting_rom) {
 						result = "info";
 						return;
