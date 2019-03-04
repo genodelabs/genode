@@ -46,15 +46,16 @@ void Sculpt::gen_nit_fb_start(Xml_generator &xml, Rom_name const &name)
 	xml.node("config", [&] () { });
 
 	xml.node("route", [&] () {
+
+		gen_service_node<Nitpicker::Session>(xml, [&] () {
+			xml.node("parent", [&] () {
+				xml.attribute("label", String<64>("leitzentrale -> ", name)); }); });
+
 		gen_parent_rom_route(xml, "nit_fb");
 		gen_parent_rom_route(xml, "ld.lib.so");
 		gen_parent_route<Cpu_session> (xml);
 		gen_parent_route<Pd_session>  (xml);
 		gen_parent_route<Log_session> (xml);
-
-		gen_service_node<Nitpicker::Session>(xml, [&] () {
-			xml.node("parent", [&] () {
-				xml.attribute("label", String<64>("leitzentrale -> ", name)); }); });
 	});
 }
 
@@ -159,6 +160,11 @@ void Sculpt::gen_noux_start(Xml_generator &xml, Rom_name const &name,
 
 	xml.node("route", [&] () {
 
+		gen_service_node<::File_system::Session>(xml, [&] () {
+			xml.attribute("label", "config");
+			xml.node("parent", [&] () { xml.attribute("label", "config"); });
+		});
+
 		gen_service_node<Terminal::Session>(xml, [&] () {
 			gen_named_node(xml, "child", terminal_name); });
 
@@ -180,11 +186,6 @@ void Sculpt::gen_noux_start(Xml_generator &xml, Rom_name const &name,
 		gen_parent_route<Pd_session>     (xml);
 		gen_parent_route<Log_session>    (xml);
 		gen_parent_route<Timer::Session> (xml);
-
-		gen_service_node<::File_system::Session>(xml, [&] () {
-			xml.attribute("label", "config");
-			xml.node("parent", [&] () { xml.attribute("label", "config"); });
-		});
 
 		gen_service_node<::File_system::Session>(xml, [&] () {
 			xml.attribute("label", "report");
