@@ -125,6 +125,8 @@ struct Sculpt::Graph
 
 				typedef Runtime_config::Component Component;
 
+				bool const any_selected = _runtime_state.selected().valid();
+
 				_runtime_config.for_each_component([&] (Component const &component) {
 
 					Start_name const name = component.name;
@@ -141,19 +143,31 @@ struct Sculpt::Graph
 
 					Runtime_state::Info const info = _runtime_state.info(name);
 
+					bool const unimportant = any_selected && !info.tcb;
+
 					gen_named_node(xml, "frame", name, [&] () {
+
+						if (unimportant)
+							xml.attribute("style", "unimportant");
 
 						Start_name primary_dep = component.primary_dependency;
 
 						if (primary_dep == "default_fs_rw")
 							primary_dep = _sculpt_partition.fs();
 
-						if (primary_dep.valid())
+						if (primary_dep.valid()) {
 							xml.attribute("dep", primary_dep);
+							if (unimportant)
+								xml.attribute("dep_visible", false);
+						}
 
 						xml.node("vbox", [&] () {
 
 							gen_named_node(xml, "button", name, [&] () {
+
+								if (unimportant)
+									xml.attribute("style", "unimportant");
+
 								_node_button_item.gen_button_attr(xml, name);
 
 								if (info.selected)

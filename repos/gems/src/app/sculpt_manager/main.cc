@@ -397,7 +397,7 @@ struct Sculpt::Main : Input_event_handler,
 
 	Attached_rom_dataspace _runtime_state_rom { _env, "report -> runtime/state" };
 
-	Runtime_state _runtime_state { _heap };
+	Runtime_state _runtime_state { _heap, _storage._sculpt_partition };
 
 	Managed_config<Main> _runtime_config {
 		_env, "config", "runtime", *this, &Main::_handle_runtime };

@@ -51,6 +51,8 @@ class Sculpt::Runtime_state : public Runtime_info
 
 		Allocator &_alloc;
 
+		Storage_target const &_storage_target;
+
 		struct Child : List_model<Child>::Element
 		{
 			Start_name const name;
@@ -194,7 +196,8 @@ class Sculpt::Runtime_state : public Runtime_info
 
 	public:
 
-		Runtime_state(Allocator &alloc) : _alloc(alloc) { }
+		Runtime_state(Allocator &alloc, Storage_target const &storage_target)
+		: _alloc(alloc), _storage_target(storage_target) { }
 
 		~Runtime_state() { reset_abandoned_and_launched_children(); }
 
@@ -301,11 +304,16 @@ class Sculpt::Runtime_state : public Runtime_info
 					break;
 
 				/* tag all dependencies as part of the TCB */
-				config.for_each_dependency(name_of_updated, [&] (Start_name const &dep) {
+				config.for_each_dependency(name_of_updated, [&] (Start_name dep) {
+
+					if (dep == "default_fs_rw")
+						dep = _storage_target.fs();
+
 					if (!blacklisted_from_graph(dep))
 						_children.for_each([&] (Child &child) {
 							if (child.name == dep)
-								child.info.tcb = true; }); });
+								child.info.tcb = true; });
+				});
 			}
 		}
 
