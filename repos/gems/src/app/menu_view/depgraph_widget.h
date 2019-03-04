@@ -81,6 +81,8 @@ struct Menu_view::Depgraph_widget : Widget
 		{
 			Anchor::Type const _type;
 
+			enum Visible { VISIBLE, HIDDEN } visible;
+
 			/*
 			 * Dependencies are marked as out of date at the beginning of the
 			 * update procedure. Each dependency visited during the update is
@@ -97,9 +99,10 @@ struct Menu_view::Depgraph_widget : Widget
 			Registered<Anchor> _anchor_at_server;
 			Registered<Anchor> _anchor_at_client;
 
-			Dependency(Node &client, Node &server, Anchor::Type type)
+			Dependency(Node &client, Node &server, Anchor::Type type,
+			           Visible visible)
 			:
-				_type(type), _server(server),
+				_type(type), visible(visible), _server(server),
 				_anchor_at_server(server._server_anchors, client, type),
 				_anchor_at_client(client._client_anchors, server, type)
 			{ }
@@ -253,18 +256,20 @@ struct Menu_view::Depgraph_widget : Widget
 			_deps.for_each([&] (Dependency &dep) { dep.up_to_date = false; });
 		}
 
-		void depends_on(Node &node, Anchor::Type type)
+		void depends_on(Node &node, Anchor::Type type, Dependency::Visible visible)
 		{
 			bool dependency_exists = false;
 			_deps.for_each([&] (Dependency &dep) {
 				if (dep.depends_on(node)) {
+					dep.visible = visible;
 					dep.up_to_date = true; /* skip in 'destroy_stale_deps' */
 					dependency_exists = true;
 				}
 			});
 
 			if (!dependency_exists)
-				new (_alloc) Registered<Dependency>(_deps, *this, node, type);
+				new (_alloc)
+					Registered<Dependency>(_deps, *this, node, type, visible);
 		}
 
 		void destroy_stale_deps()
@@ -470,12 +475,15 @@ struct Menu_view::Depgraph_widget : Widget
 
 			typedef String<64> Node_name;
 			Node_name client_name, server_name;
+			bool dep_visible = true;
 			if (primary) {
 				client_name = node.attribute_value("name", Node_name());
 				server_name = node.attribute_value("dep",  Node_name());
+				dep_visible = node.attribute_value("dep_visible", true);
 			} else {
 				client_name = node.attribute_value("node", Node_name());
 				server_name = node.attribute_value("on",   Node_name());
+				dep_visible = node.attribute_value("visible", true);
 			}
 
 			if (!server_name.valid())
@@ -488,8 +496,11 @@ struct Menu_view::Depgraph_widget : Widget
 			});
 
 			if (client && server && client != server)
-				client->depends_on(*server, primary ? Node::Anchor::PRIMARY
-				                                    : Node::Anchor::SECONDARY);
+				client->depends_on(*server,
+				                   primary ? Node::Anchor::PRIMARY
+				                           : Node::Anchor::SECONDARY,
+				                   dep_visible ? Node::Dependency::VISIBLE
+				                               : Node::Dependency::HIDDEN);
 			if (client && !server) {
 				warning("node '", client_name, "' depends on "
 				        "non-existing node '", server_name, "'");
@@ -617,6 +628,9 @@ struct Menu_view::Depgraph_widget : Widget
 		_nodes.for_each([&] (Node const &client) {
 
 			client._deps.for_each([&] (Node::Dependency const &dep) {
+
+				if (dep.visible == Node::Dependency::HIDDEN)
+					return;
 
 				Color color;
 
