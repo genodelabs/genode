@@ -61,7 +61,7 @@ SRC_C_cast     = c_skey.c c_ecb.c c_enc.c c_cfb64.c c_ofb64.c
 SRC_C_cmac     = cm_ameth.c cm_pmeth.c cmac.c
 SRC_C_cms      = cms_lib.c cms_asn1.c cms_att.c cms_io.c cms_smime.c \
                  cms_err.c cms_sd.c cms_dd.c cms_cd.c cms_env.c \
-                 cms_enc.c cms_ess.c cms_pwri.c
+                 cms_enc.c cms_ess.c cms_pwri.c cms_kari.c
 SRC_C_comp     = comp_lib.c comp_err.c c_rle.c c_zlib.c
 SRC_C_conf     = conf_err.c conf_lib.c conf_api.c conf_def.c conf_mod.c \
                  conf_mall.c conf_sap.c
@@ -72,7 +72,8 @@ SRC_C_des      = cbc_cksm.c cbc_enc.c  cfb64enc.c cfb_enc.c \
                  str2key.c  cfb64ede.c ofb64ede.c ede_cbcm_enc.c \
                  des_old.c des_old2.c read2pwd.c
 SRC_C_dh       = dh_asn1.c dh_gen.c dh_key.c dh_lib.c dh_check.c \
-                 dh_err.c dh_depr.c dh_ameth.c dh_pmeth.c dh_prn.c
+                 dh_err.c dh_depr.c dh_ameth.c dh_pmeth.c dh_prn.c \
+                 dh_rfc5114.c dh_kdf.c
 SRC_C_dsa      = dsa_gen.c dsa_key.c dsa_lib.c dsa_asn1.c dsa_vrf.c \
                  dsa_sign.c dsa_err.c dsa_ossl.c dsa_depr.c \
                  dsa_ameth.c dsa_pmeth.c dsa_prn.c
@@ -84,7 +85,7 @@ SRC_C_ec       = ec_lib.c ecp_smpl.c ecp_mont.c ecp_nist.c ec_cvt.c \
                  ec_pmeth.c eck_prn.c ecp_nistp224.c ecp_nistp256.c \
                  ecp_nistp521.c ecp_nistputil.c ecp_oct.c ec2_oct.c \
                  ec_oct.c
-SRC_C_ecdh     = ech_lib.c ech_ossl.c ech_key.c ech_err.c
+SRC_C_ecdh     = ech_lib.c ech_ossl.c ech_key.c ech_err.c ech_kdf.c
 SRC_C_ecdsa    = ecs_lib.c ecs_asn1.c ecs_ossl.c ecs_sign.c \
                  ecs_vrf.c ecs_err.c
 SRC_C_engine   = eng_err.c eng_lib.c eng_list.c eng_init.c \
