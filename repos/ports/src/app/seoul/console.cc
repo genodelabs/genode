@@ -373,13 +373,14 @@ bool Seoul::Console::receive(MessageTimeout &msg) {
 
 Seoul::Console::Console(Genode::Env &env, Synced_motherboard &mb,
                         Motherboard &unsynchronized_motherboard,
-                        Framebuffer::Connection &framebuffer,
+                        Nitpicker::Connection &nitpicker,
                         Genode::Dataspace_capability guest_fb_ds)
 :
 	_env(env),
 	_unsynchronized_motherboard(unsynchronized_motherboard),
 	_motherboard(mb),
-	_framebuffer(framebuffer),
+	_framebuffer(*nitpicker.framebuffer()),
+	_input(*nitpicker.input()),
 	_guest_fb_ds(guest_fb_ds),
 	_fb_mode(_framebuffer.mode()),
 	_fb_size(Genode::Dataspace_client(_framebuffer.dataspace()).size()),

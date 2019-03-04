@@ -44,7 +44,6 @@
 #include <util/misc_math.h>
 
 /* os includes */
-#include <framebuffer_session/connection.h>
 #include <nic_session/connection.h>
 #include <nic/packet_allocator.h>
 #include <rtc_session/connection.h>
@@ -1435,11 +1434,31 @@ void Component::construct(Genode::Env &env)
 		static Vmm::Virtual_reservation reservation(env, vm_size);
 
 	/* setup framebuffer memory for guest */
-	static Framebuffer::Connection framebuffer(env, Framebuffer::Mode(0, 0, Framebuffer::Mode::INVALID));
-	Framebuffer::Mode const fb_mode = framebuffer.mode();
+	static Nitpicker::Connection    nitpicker { env };
+
+	unsigned width  = config.xml().attribute_value("width", 1024U);
+	unsigned height = config.xml().attribute_value("height", 768U);
+
+	nitpicker.buffer(Framebuffer::Mode(width, height,
+	                                   Framebuffer::Mode::RGB565), false);
+
+	static Framebuffer::Session  &framebuffer { *nitpicker.framebuffer() };
+	Framebuffer::Mode           const fb_mode { framebuffer.mode() };
+
 	size_t const fb_size = Genode::align_addr(fb_mode.width() *
 	                                          fb_mode.height() *
 	                                          fb_mode.bytes_per_pixel(), 12);
+
+	typedef Nitpicker::Session::View_handle View_handle;
+	typedef Nitpicker::Session::Command Command;
+
+	View_handle view = nitpicker.create_view();
+	Nitpicker::Rect rect(Nitpicker::Point(0, 0),
+	                     Nitpicker::Area(fb_mode.width(), fb_mode.height()));
+
+	nitpicker.enqueue<Command::Geometry>(view, rect);
+	nitpicker.enqueue<Command::To_front>(view, View_handle());
+	nitpicker.execute();
 
 	/* setup guest memory */
 	static Guest_memory guest_memory(env, vm_size, fb_size);
@@ -1496,7 +1515,7 @@ void Component::construct(Genode::Env &env)
 	/* create console thread */
 	static Seoul::Console vcon(env, machine.motherboard(),
 	                           machine.unsynchronized_motherboard(),
-	                           framebuffer,
+	                           nitpicker,
 	                           guest_memory.fb_ds());
 
 	vcon.register_host_operations(machine.unsynchronized_motherboard());

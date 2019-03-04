@@ -30,6 +30,7 @@
 #include <framebuffer_session/connection.h>
 #include <input/event.h>
 #include <input_session/connection.h>
+#include <nitpicker_session/connection.h>
 #include <timer_session/connection.h>
 
 #include <os/pixel_rgb565.h>
@@ -47,23 +48,23 @@ class Seoul::Console : public StaticReceiver<Seoul::Console>
 {
 	private:
 
-		Genode::Env                 &_env;
-		Motherboard                 &_unsynchronized_motherboard;
-		Synced_motherboard          &_motherboard;
-		Framebuffer::Connection     &_framebuffer;
-		Genode::Dataspace_capability _guest_fb_ds;
-		Framebuffer::Mode            _fb_mode; 
-		size_t                       _fb_size; 
-		short                       *_pixels; 
-		Genode::Surface<Pixel_rgb565> _surface; 
-		Input::Connection            _input    { _env };
-		Keyboard                     _vkeyb    { _motherboard };
-		char                        *_guest_fb { nullptr };
-		VgaRegs                     *_regs     { nullptr };
-		bool                         _left     { false };
-		bool                         _middle   { false };
-		bool                         _right    { false };
-		unsigned                     _timer    { 0 };
+		Genode::Env                  &_env;
+		Motherboard                  &_unsynchronized_motherboard;
+		Synced_motherboard           &_motherboard;
+		Framebuffer::Session         &_framebuffer;
+		Input::Session_client        &_input;
+		Genode::Dataspace_capability  _guest_fb_ds;
+		Framebuffer::Mode             _fb_mode;
+		size_t                        _fb_size;
+		short                        *_pixels;
+		Genode::Surface<Pixel_rgb565> _surface;
+		Keyboard                      _vkeyb    { _motherboard };
+		char                         *_guest_fb { nullptr };
+		VgaRegs                      *_regs     { nullptr };
+		bool                          _left     { false };
+		bool                          _middle   { false };
+		bool                          _right    { false };
+		unsigned                      _timer    { 0 };
 
 		unsigned _input_to_ps2mouse(Input::Event const &);
 		unsigned _input_to_ps2wheel(Input::Event const &);
@@ -93,7 +94,7 @@ class Seoul::Console : public StaticReceiver<Seoul::Console>
 		 * Constructor
 		 */
 		Console(Genode::Env &env, Synced_motherboard &, Motherboard &,
-		        Framebuffer::Connection &, Genode::Dataspace_capability fb_ds);
+		        Nitpicker::Connection &, Genode::Dataspace_capability fb_ds);
 };
 
 #endif /* _CONSOLE_H_ */
