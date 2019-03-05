@@ -2,7 +2,7 @@ PCSC_LITE_DIR := $(call select_from_ports,pcsc-lite)/src/lib/pcsc-lite
 
 include $(call select_from_repositories,lib/import/import-pcsc-lite.mk)
 
-LIBS += ccid libc
+LIBS += ccid libc libusb
 
 # find 'config.h'
 INC_DIR += $(REP_DIR)/src/lib/pcsc-lite
