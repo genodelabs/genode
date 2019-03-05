@@ -822,6 +822,8 @@ class Vfs_server::Root : public Genode::Root_component<Session_component>
 
 		Session_registry _session_registry { };
 
+		Vfs_env _vfs_env { _env, vfs_config(), _session_registry };
+
 		/**
 		 * Global I/O event handler
 		 *
@@ -849,8 +851,6 @@ class Vfs_server::Root : public Genode::Root_component<Session_component>
 					r.handle_general_io(); });
 			}
 		} _io_progress_handler { _env.ep(), _session_registry };
-
-		Vfs_env _vfs_env { _env, vfs_config(), _session_registry };
 
 		Genode::Signal_handler<Root> _config_handler {
 			_env.ep(), *this, &Root::_config_update };

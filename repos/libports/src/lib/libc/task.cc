@@ -338,41 +338,12 @@ static void suspended_callback();
  * secondary stack for the application task. Context switching uses
  * setjmp/longjmp.
  */
-struct Libc::Kernel
+struct Libc::Kernel final : Genode::Entrypoint::Io_progress_handler
 {
 	private:
 
 		Genode::Env         &_env;
 		Genode::Allocator   &_heap;
-
-		/**
-		 * Handler class for processing I/O events collected during
-		 * signal dispatch. Invoked on the kernel stack of the
-		 * initial entrypoint.
-		 */
-		struct Io_progress_handler : Genode::Entrypoint::Io_progress_handler
-		{
-			Io_progress_handler(Genode::Entrypoint &ep)
-			{
-				ep.register_io_progress_handler(*this);
-			}
-
-			/**
-			 * Entrypoint::Io_progress_handler interface
-			 */
-			void handle_io_progress() override
-			{
-				/* some contexts may have been deblocked from select() */
-				if (libc_select_notify)
-					libc_select_notify();
-
-				/*
-				 * resume all as any VFS context may have
-				 * been deblocked from blocking I/O
-				 */
-				Libc::resume_all();
-			}
-		} _io_progress_handler { _env.ep() };
 
 		Env_implementation   _libc_env { _env, _heap };
 		Vfs_plugin           _vfs { _libc_env, _heap };
@@ -586,7 +557,10 @@ struct Libc::Kernel
 	public:
 
 		Kernel(Genode::Env &env, Genode::Allocator &heap)
-		: _env(env), _heap(heap) { }
+		: _env(env), _heap(heap)
+		{
+			_env.ep().register_io_progress_handler(*this);
+		}
 
 		~Kernel() { Genode::error(__PRETTY_FUNCTION__, " should not be executed!"); }
 
@@ -787,6 +761,22 @@ struct Libc::Kernel
 			if (!_setjmp(_kernel_context)) {
 				_switch_to_user();
 			}
+		}
+
+		/**
+		 * Entrypoint::Io_progress_handler interface
+		 */
+		void handle_io_progress() override
+		{
+			/* some contexts may have been deblocked from select() */
+			if (libc_select_notify)
+					libc_select_notify();
+
+			/*
+			 * resume all as any VFS context may have
+			 * been deblocked from blocking I/O
+			 */
+			Kernel::resume_all();
 		}
 };
 
