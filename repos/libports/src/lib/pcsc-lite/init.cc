@@ -21,6 +21,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+/* libusb includes */
+#include <libusb.h>
+
 /* pcsc-lite includes */
 extern "C" {
 #include <debuglog.h>
@@ -42,39 +45,38 @@ struct Pcsc_lite_initializer
 			(void)DebugLogSetCategory(DEBUG_CATEGORY_APDU);
 		}
 
-		unsigned int vendor_id = 0x0000;
-		unsigned int product_id = 0x0000;
+		/*
+		 * Find out vendor id and product id of the connected USB device
+		 * and add it as reader.
+		 */
 
-		int fd = open("/config.pcsc-lite", O_RDONLY);
+		libusb_context *ctx = nullptr;
 
-		if (fd < 0) {
-			Genode::error("Could not open 'config.pcsc-lite'");
-			exit(1);
-		}
-		
-		char config[128];
-		if (read(fd, config, sizeof(config)) < 0) {
-			Genode::error("Could not read 'config.pcsc-lite'");
-			exit(1);
-		}
+		libusb_init(&ctx);
 
-		try {
+		libusb_device **devs = nullptr;
 
-			Genode::Xml_node config_node(config);
-
-			vendor_id = config_node.attribute_value("vendor_id", 0U);
-			product_id = config_node.attribute_value("product_id", 0U);
-
-		} catch (...) {
-			Genode::error("Error parsing 'config.pcsc-lite'");
+		if (libusb_get_device_list(ctx, &devs) < 1) {
+			Genode::error("Could not find a USB device.");
 			exit(1);
 		}
 
-		close(fd);
+		struct libusb_device_descriptor device_descriptor;
+
+		if (libusb_get_device_descriptor(devs[0], &device_descriptor) < 0) {
+			Genode::error("Could not read the device descriptor of the "
+			              "USB device.");
+			exit(1);
+		}
+
+		libusb_free_device_list(devs, 1);
+
+		libusb_exit(ctx);
 
 		char device[14];
 
-		snprintf(device, sizeof(device), "usb:%04x/%04x", vendor_id, product_id);
+		snprintf(device, sizeof(device), "usb:%04x/%04x",
+		         device_descriptor.idVendor, device_descriptor.idProduct);
 
 		RFAllocateReaderSpace(0);
 		(void)RFAddReader("CCID", 0, "/", device);

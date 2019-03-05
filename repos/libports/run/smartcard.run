@@ -112,9 +112,6 @@ append config {
 						<rom name="Info.plist"/>
 					</dir>
 				</dir>
-				<inline name="config.pcsc-lite">
-					<config vendor_id="} [smartcard_vendor_id] {" product_id="} [smartcard_product_id] {"/>
-				</inline>
 			</vfs>
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
 		</config>
