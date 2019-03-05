@@ -101,7 +101,7 @@ unsigned Cpu_scheduler::_trim_consumption(unsigned & q)
 {
 	q = Genode::min(Genode::min(q, _head_quota), _residual);
 	if (!_head_yields) { return _head_quota - q; }
-	_head_yields = 0;
+	_head_yields = false;
 	return 0;
 }
 
@@ -200,8 +200,8 @@ void Cpu_scheduler::unready(Share * const s)
 
 void Cpu_scheduler::yield()
 {
-	_head_yields = 1;
-	_need_to_schedule = 1;
+	_head_yields = true;
+	_need_to_schedule = true;
 }
 
 
@@ -239,5 +239,5 @@ void Cpu_scheduler::quota(Share * const s, unsigned const q)
 
 Cpu_scheduler::Cpu_scheduler(Share * const i, unsigned const q,
                              unsigned const f)
-: _idle(i), _head_yields(0), _quota(q), _residual(q), _fill(f)
+: _idle(i), _quota(q), _residual(q), _fill(f)
 { _set_head(i, f, 0); }

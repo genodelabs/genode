@@ -128,7 +128,7 @@ class Kernel::Cpu_scheduler
 		Share *        _head = nullptr;
 		unsigned       _head_quota  = 0;
 		bool           _head_claims = false;
-		bool           _head_yields;
+		bool           _head_yields = false;
 		unsigned const _quota;
 		unsigned       _residual;
 		unsigned const _fill;
