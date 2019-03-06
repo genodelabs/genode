@@ -43,7 +43,18 @@ struct Menu_view::Main
 
 	Nitpicker::Session::View_handle _view_handle = _nitpicker.create_view();
 
+	/**
+	 * Dialog position in screen coordinate space
+	 */
 	Point _position { };
+
+	/**
+	 * Last pointer position at the time of the most recent hovering report,
+	 * in screen coordinate space.
+	 */
+	Point _hovered_position { };
+
+	bool _dialog_hovered = false;
 
 	Area _configured_size { };
 	Area _visible_size { };
@@ -120,7 +131,7 @@ struct Menu_view::Main
 
 	Attached_dataspace _input_ds { _env.rm(), _nitpicker.input()->dataspace() };
 
-	Widget::Unique_id _hovered { };
+	Widget::Unique_id _last_reported_hovered { };
 
 	void _handle_config();
 
@@ -153,6 +164,8 @@ struct Menu_view::Main
 		_env.ep(), *this, &Main::_handle_frame_timer};
 
 	Genode::Reporter _hover_reporter = { _env, "hover" };
+
+	void _update_hover_report();
 
 	bool _schedule_redraw = false;
 
@@ -190,6 +203,28 @@ struct Menu_view::Main
 };
 
 
+void Menu_view::Main::_update_hover_report()
+{
+	if (!_hover_reporter.enabled())
+		return;
+
+	if (!_dialog_hovered) {
+		Genode::Reporter::Xml_generator xml(_hover_reporter, [&] () { });
+		return;
+	}
+
+	Widget::Unique_id const new_hovered = _root_widget.hovered(_hovered_position);
+
+	if (_last_reported_hovered != new_hovered) {
+
+		Genode::Reporter::Xml_generator xml(_hover_reporter, [&] () {
+			_root_widget.gen_hover_model(xml, _hovered_position); });
+
+		_last_reported_hovered = new_hovered;
+	}
+}
+
+
 void Menu_view::Main::_handle_dialog_update()
 {
 	try {
@@ -204,11 +239,14 @@ void Menu_view::Main::_handle_dialog_update()
 	_dialog_rom.update();
 
 	Xml_node dialog = _dialog_rom.xml();
+
 	if (dialog.has_type("empty"))
 		return;
 
 	_root_widget.update(dialog);
 	_root_widget.size(_root_widget_size());
+
+	_update_hover_report();
 
 	_schedule_redraw = true;
 
@@ -247,35 +285,29 @@ void Menu_view::Main::_handle_config()
 
 void Menu_view::Main::_handle_input()
 {
+	Point const orig_hovered_position = _hovered_position;
+	bool  const orig_dialog_hovered   = _dialog_hovered;
+
 	_nitpicker.input()->for_each_event([&] (Input::Event const &ev) {
 		ev.handle_absolute_motion([&] (int x, int y) {
-
-			Point const at = Point(x, y) - _position;
-			Widget::Unique_id const new_hovered = _root_widget.hovered(at);
-
-			if (_hovered != new_hovered) {
-
-				if (_hover_reporter.enabled()) {
-					Genode::Reporter::Xml_generator xml(_hover_reporter, [&] () {
-						_root_widget.gen_hover_model(xml, at);
-					});
-				}
-
-				_hovered = new_hovered;
-			}
+			_dialog_hovered   = true;
+			_hovered_position = Point(x, y) - _position;
 		});
 
 		/*
 		 * Reset hover model when losing the focus
 		 */
-		if (ev.focus_leave() || ev.hover_leave()) {
-			_hovered = Widget::Unique_id();
-
-			if (_hover_reporter.enabled()) {
-				Genode::Reporter::Xml_generator xml(_hover_reporter, [&] () { });
-			}
+		if (ev.hover_leave()) {
+			_dialog_hovered   = false;
+			_hovered_position = Point();
 		}
 	});
+
+	bool const hover_changed = orig_dialog_hovered   != _dialog_hovered
+	                        || orig_hovered_position != _hovered_position;
+
+	if (hover_changed)
+		_update_hover_report();
 }
 
 
@@ -319,7 +351,6 @@ void Menu_view::Main::_handle_frame_timer()
 		else
 			_buffer->reset_surface();
 
-		_root_widget.size(size);
 		_root_widget.position(Point(0, 0));
 
 		// XXX restrict redraw to dirty regions
