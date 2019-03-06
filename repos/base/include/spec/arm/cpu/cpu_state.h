@@ -49,13 +49,25 @@ struct Genode::Cpu_state
 	 */
 	struct
 	{
-		addr_t r0, r1, r2, r3, r4, r5, r6,
-		       r7, r8, r9, r10, r11, r12; /* general purpose register 0..12 */
-		addr_t sp;                        /* stack pointer */
-		addr_t lr;                        /* link register */
-		addr_t ip;                        /* instruction pointer */
-		addr_t cpsr;                      /* current program status register */
-		addr_t cpu_exception;             /* last hardware exception */
+		/* general purpose register 0..12 */
+		addr_t r0   = 0;
+		addr_t r1   = 0;
+		addr_t r2   = 0;
+		addr_t r3   = 0;
+		addr_t r4   = 0;
+		addr_t r5   = 0;
+		addr_t r6   = 0;
+		addr_t r7   = 0;
+		addr_t r8   = 0;
+		addr_t r9   = 0;
+		addr_t r10  = 0;
+		addr_t r11  = 0;
+		addr_t r12  = 0;
+		addr_t sp   = 0;          /* stack pointer */
+		addr_t lr   = 0;          /* link register */
+		addr_t ip   = 0;          /* instruction pointer */
+		addr_t cpsr = 0;          /* current program status register */
+		addr_t cpu_exception = 0; /* last hardware exception */
 	};
 };
 
@@ -84,8 +96,8 @@ struct Genode::Cpu_state_modes : Cpu_state
 		addr_t lr;   /* banked link register */
 	};
 
-	Mode_state mode[Mode_state::MAX]; /* exception mode registers   */
-	addr_t     fiq_r[5];              /* fast-interrupt mode r8-r12 */
+	Mode_state mode[Mode_state::MAX];      /* exception mode registers   */
+	addr_t     fiq_r[5] { 0, 0, 0, 0, 0 }; /* fast-interrupt mode r8-r12 */
 };
 
 #endif /* _INCLUDE__SPEC__ARM__CPU__CPU_STATE_H_ */
