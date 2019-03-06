@@ -56,7 +56,7 @@ class Bomb_child : public Child_policy
 			_ram_quota(Child::effective_quota(ram_quota)),
 			_parent_services(parent_services)
 		{
-			String<64> config("<config generations=\"", generation, "\"/>");
+			String<64> config("<config generations=\"", generation, "\" master=\"no\"/>");
 			_config_policy.load(config.string(), config.length());
 		}
 
@@ -170,12 +170,13 @@ struct Bomb
 	unsigned const children   = config.xml().attribute_value("children", 2U);
 	unsigned const sleeptime  = config.xml().attribute_value("sleep", 2000U);
 	size_t   const ram_demand = config.xml().attribute_value("demand", 1024UL * 1024);
+	bool     const master     = config.xml().attribute_value("master", true);
 
 	Heap heap { env.ram(), env.rm() };
 
 	Children child_registry { };
 
-	Static_parent_services<Pd_session, Cpu_session, Rom_session, Log_session>
+	Static_parent_services<Pd_session, Cpu_session, Rom_session, Log_session, Timer::Session>
 		parent_services { env };
 
 	void construct_children()
@@ -226,7 +227,7 @@ struct Bomb
 		}
 
 		/* master if we have a timer connection */
-		if (timer.constructed())
+		if (master)
 			timer->trigger_once(sleeptime * 1000);
 	}
 
@@ -242,7 +243,7 @@ struct Bomb
 		++round;
 
 		/* master if we have a timer connection */
-		if (round == rounds && timer.constructed()) {
+		if (round == rounds && master) {
 			log("Done. Going to sleep");
 			return;
 		}
@@ -265,10 +266,9 @@ struct Bomb
 
 		log("--- bomb started ---");
 
-		/* try to create timer session, if it fails, bomb is our parent */
-		try { timer.construct(env); } catch (Service_denied) { }
+		if (master) {
+			timer.construct(env);
 
-		if (timer.constructed()) {
 			timer->sigh(signal_timeout);
 
 			log("rounds=", rounds, " generations=", generation, " children=",
