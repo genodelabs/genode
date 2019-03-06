@@ -3,13 +3,38 @@ A small frontend to the libcURL library.
 Configuration
 -------------
 
+Load the socket plugin in to the fetchurl binary (print output to log):
 !<config>
-! <libc stdout="/dev/log" stderr="/dev/log">
-!  <vfs>
-!   <dir name="dev"> <jitterentropy name="random"/> <log/> </dir>
-!  </vfs>
-! </libc>
-! <fetch url="http://genode.org/about/LICENSE" path="LICENSE" retry="3"/>
+! <libc stdout="/dev/log" stderr="/dev/log"
+!       rtc="/dev/rtc" socket="/socket"/>
+! <vfs>
+!  <dir name="dev">
+!   <log/> <null/>
+!   <inline name="rtc">2000-01-01 00:00</inline>
+!   <inline name="random">01234567890123456789</inline>
+!  </dir>
+!  <dir name="socket"> <lwip dhcp="yes"/> </dir>
+! </vfs>
+! <fetch url="http://genode.org/about/LICENSE"
+!        path="/dev/log" retry="3"/>
+! <report progress="yes"/>
+!</config>
+
+Use the socket plugin of an other vfs (store file in a directory):
+!<config>
+! <libc stdout="/dev/log" stderr="/dev/log"
+!       rtc="/dev/rtc" socket="/socket"/>
+! <vfs>
+!  <dir name="dev">
+!   <log/> <null/>
+!   <inline name="rtc">2000-01-01 00:00</inline>
+!   <inline name="random">01234567890123456789</inline>
+!  </dir>
+!  <fs name="tcpip"/>
+!  <dir name="download"> <fs label="download"/> </dir>
+! </vfs>
+! <fetch url="http://genode.org/about/LICENSE"
+!        path="/download/LICENSE" retry="3"/>
 ! <report progress="yes"/>
 !</config>
 
