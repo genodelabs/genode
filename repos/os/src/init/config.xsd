@@ -122,6 +122,7 @@
       <xs:attribute name="init_caps"    type="Boolean" />
       <xs:attribute name="init_ram"     type="Boolean" />
       <xs:attribute name="delay_ms"     type="xs:int" />
+      <xs:attribute name="buffer"       type="Number_of_bytes" />
      </xs:complexType>
     </xs:element> <!-- "report" -->
 
