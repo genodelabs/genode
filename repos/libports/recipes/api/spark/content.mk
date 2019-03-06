@@ -7,6 +7,7 @@ MIRROR_FROM_ADA_RT_DIR := \
 		system.ads \
 		s-stoele.ads \
 		a-unccon.ads \
+		a-comlin.ads \
 		gnat.ads \
 		g-io.ads \
 	)\
@@ -39,6 +40,7 @@ MIRROR_FROM_ADA_ALI_DIR := \
 	string_utils.ali \
 	s-unstyp.ali \
 	system.ali \
+	a-comlin.ali \
 
 content: $(MIRROR_FROM_ADA_RT_DIR) $(MIRROR_FROM_ADA_ALI_DIR)
 
@@ -54,6 +56,7 @@ MIRROR_FROM_REP_DIR := \
 	lib/import/import-spark.mk \
 	include/ada \
 	lib/symbols/spark \
+	include/spark/component.h
 
 content: $(MIRROR_FROM_REP_DIR)
 

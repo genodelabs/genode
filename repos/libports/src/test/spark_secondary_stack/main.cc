@@ -2,6 +2,8 @@
 #include <base/log.h>
 #include <base/component.h>
 
+Genode::Env *__genode_env;
+
 extern "C" void stack__calloc(int);
 extern "C" void stack__ralloc();
 extern "C" void stack__salloc();
@@ -30,6 +32,8 @@ extern "C" void __gnat_rcheck_CE_Overflow_Check()
 
 void Component::construct(Genode::Env &env)
 {
+    __genode_env = &env;
+    env.exec_static_constructors();
     adainit();
     Genode::log("running iteration test");
     stack__calloc(32);

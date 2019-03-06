@@ -5,19 +5,13 @@
  */
 
 /* Genode includes */
-#include <base/component.h>
-#include <terminal_session/connection.h>
+#include <spark/component.h>
 
 extern "C" void _ada_main(void);
 
-/* Required in runtime */
-Terminal::Connection *__genode_terminal;
-
-void Component::construct(Genode::Env &env)
-{
-   Terminal::Connection _terminal (env, "Ada");
-   __genode_terminal = &_terminal;
-
-	_ada_main();
-	env.parent().exit(0);
+namespace Spark {
+	Component::Result Component::construct() {
+		_ada_main();
+		return Component::EXIT;
+	};
 }

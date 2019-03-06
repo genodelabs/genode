@@ -20,8 +20,12 @@
 extern "C" void except__raise_task();
 extern "C" void adainit();
 
+Genode::Env *__genode_env;
+
 void Component::construct(Genode::Env &env)
 {
+   __genode_env = &env;
+   env.exec_static_constructors();
    adainit();
 	Genode::log("Ada exception test");
 
