@@ -25,6 +25,7 @@ struct Kernel::Timer_driver
 	enum { TIMER_DISABLED = ~0ULL };
 
 	Genode::uint64_t ticks_per_ms;
+	Genode::uint64_t start;
 
 	struct Subject_timed_event
 	{
@@ -35,7 +36,7 @@ struct Kernel::Timer_driver
 	struct Subject_timed_event * event_page = 0;
 	struct Subject_timed_event * guest_event_page = 0;
 
-	inline Genode::uint64_t rdtsc()
+	inline Genode::uint64_t rdtsc() const
 	{
 		Genode::uint32_t lo, hi;
 		asm volatile("rdtsc" : "=a" (lo), "=d" (hi));
