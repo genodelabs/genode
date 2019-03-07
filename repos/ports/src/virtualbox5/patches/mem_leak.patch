@@ -1,0 +1,43 @@
+--- a/src/app/virtualbox/src/VBox/Main/include/DisplayImpl.h
++++ b/src/app/virtualbox/src/VBox/Main/include/DisplayImpl.h
+@@ -35,6 +35,7 @@
+ 
+ #define NEW_RESIZE
+ 
++class DisplaySourceBitmap;
+ class Console;
+ struct VIDEORECCONTEXT;
+ 
+@@ -50,7 +51,7 @@
+ 
+     ComPtr<IFramebuffer> pFramebuffer;
+     com::Guid framebufferId;
+-    ComPtr<IDisplaySourceBitmap> pSourceBitmap;
++    ComPtr<DisplaySourceBitmap> pSourceBitmap;
+     bool fDisabled;
+ 
+     uint32_t u32Caps;
+--- a/src/app/virtualbox/src/VBox/Main/include/TokenImpl.h
++++ b/src/app/virtualbox/src/VBox/Main/include/TokenImpl.h
+@@ -22,6 +22,7 @@
+ 
+ #include "TokenWrap.h"
+ #include "MachineImpl.h"
++#include "MediumImpl.h"
+ 
+ 
+ /**
+--- a/src/app/virtualbox/src/VBox/Main/src-client/DisplayImpl.cpp
++++ b/src/app/virtualbox/src/VBox/Main/src-client/DisplayImpl.cpp
+@@ -1071,6 +1073,11 @@
+     pFBInfo->updateImage.cbLine = 0;
+ 
+     /* Release the current source bitmap. */
++    DisplaySourceBitmap *source_bitmap = *pFBInfo->pSourceBitmap.asOutParam();
++    if (source_bitmap) {
++        source_bitmap->FinalRelease();
++        delete source_bitmap;
++    }
+     pFBInfo->pSourceBitmap.setNull();
+ 
+     /* Update the video mode information. */
