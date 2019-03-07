@@ -2,9 +2,16 @@ package Machinery is
 
    pragma Pure;
 
+   type Number_Of_Bits_Type is mod 2**32 with Size => 32;
+
    type Temperature_Type is mod 2**32 with Size => 32;
 
    type Machinery_Type is private;
+
+   function Number_of_bits (Machinery : Machinery_Type) return Number_Of_Bits_Type
+     with Export,
+          Convention    => C,
+          External_Name => "_ZN5Spark14number_of_bitsERKNS_9MachineryE";
 
    procedure Initialize (Machinery : out Machinery_Type)
      with Export,
