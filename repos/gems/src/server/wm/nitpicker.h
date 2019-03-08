@@ -58,6 +58,7 @@ namespace Wm { namespace Nitpicker {
 	using namespace ::Nitpicker;
 
 	class Click_handler;
+	class Input_origin_changed_handler;
 	class View_handle_ctx;
 	class View;
 	class Top_level_view;
@@ -85,6 +86,16 @@ struct Wm::Nitpicker::Click_handler : Interface
 {
 	virtual void handle_click(Point pos) = 0;
 	virtual void handle_enter(Point pos) = 0;
+};
+
+
+/**
+ * Called by a top-level view to propagate the need to update the virtual
+ * pointer position of a client when the client's window moved.
+ */
+struct Wm::Nitpicker::Input_origin_changed_handler : Interface
+{
+	virtual void input_origin_changed() = 0;
 };
 
 
@@ -236,6 +247,8 @@ class Wm::Nitpicker::Top_level_view : public View,
 
 		Window_registry &_window_registry;
 
+		Input_origin_changed_handler &_input_origin_changed_handler;
+
 		/*
 		 * Geometry of window-content view, which corresponds to the location
 		 * of the window content as known by the decorator.
@@ -251,13 +264,15 @@ class Wm::Nitpicker::Top_level_view : public View,
 
 	public:
 
-		Top_level_view(Nitpicker::Session_client &real_nitpicker,
-		               Session_label       const &session_label,
-		               bool                       has_alpha,
-		               Window_registry           &window_registry)
+		Top_level_view(Nitpicker::Session_client    &real_nitpicker,
+		               Session_label          const &session_label,
+		               bool                          has_alpha,
+		               Window_registry              &window_registry,
+		               Input_origin_changed_handler &input_origin_changed_handler)
 		:
 			View(real_nitpicker, session_label, has_alpha),
 			_window_registry(window_registry),
+			_input_origin_changed_handler(input_origin_changed_handler),
 			_session_label(session_label)
 		{ }
 
@@ -317,7 +332,15 @@ class Wm::Nitpicker::Top_level_view : public View,
 			return _content_geometry.p1();
 		}
 
-		void content_geometry(Rect rect) { _content_geometry = rect; }
+		void content_geometry(Rect rect)
+		{
+			bool const position_changed = _content_geometry.p1() != rect.p1();
+
+			_content_geometry = rect;
+
+			if (position_changed)
+				_input_origin_changed_handler.input_origin_changed();
+		}
 
 		View_capability content_view()
 		{
@@ -442,7 +465,8 @@ struct Wm::Nitpicker::Session_control_fn : Interface
 
 
 class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
-                                         private List<Session_component>::Element
+                                         private List<Session_component>::Element,
+                                         private Input_origin_changed_handler
 {
 	private:
 
@@ -471,6 +495,7 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 		bool                         _has_alpha = false;
 		Point                  const _initial_pointer_pos { -1, -1 };
 		Point                        _pointer_pos = _initial_pointer_pos;
+		Point                        _virtual_pointer_pos { };
 		unsigned                     _key_cnt = 0;
 
 		/*
@@ -516,7 +541,7 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 		Input::Event _translate_event(Input::Event ev, Point const origin)
 		{
 			ev.handle_absolute_motion([&] (int x, int y) {
-				Point p = Point(x, y) + origin;
+				Point const p = Point(x, y) + origin;
 				ev = Input::Absolute_motion{p.x(), p.y()};
 			});
 
@@ -596,6 +621,16 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 			}
 		}
 
+		/**
+		 * Input_origin_changed_handler interface
+		 */
+		void input_origin_changed() override
+		{
+			Point const pos = _pointer_pos + _input_origin();
+
+			_input_session.submit(Input::Absolute_motion { pos.x(), pos.y() });
+		}
+
 		View &_create_view_object(View_handle parent_handle)
 		{
 			/*
@@ -617,7 +652,8 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 			 */
 			else {
 				Top_level_view *view = new (_top_level_view_alloc)
-					Top_level_view(_session, _session_label, _has_alpha, _window_registry);
+					Top_level_view(_session, _session_label, _has_alpha,
+					               _window_registry, *this);
 
 				view->resizeable(_mode_sigh.valid());
 
