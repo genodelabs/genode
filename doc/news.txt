@@ -4,6 +4,33 @@
                                ===========
 
 
+Genodians.org | 2019-03-08
+##########################
+
+| Genodians.org is the new place to be for getting the latest news and stories
+| around Genode. It is a federated blog by and for developers and users
+| alike.
+
+With [https://genodians.org - Genodians.org], the Genode community has gained
+a new place for exchanging ideas, announcing current developments, giving
+tutorials, and sharing experience stories. In contrast to the formal character
+of Genode's regular release notes, the articles at Genodians.org are raw and
+personal, authored by individuals with no editorial process. For feedback
+about the articles, readers are invited to the new
+[https://reddit.com/r/genode - /r/genode] subreddit.
+
+As written in the
+[http://genodians.org/nfeske/2019-01-07-welcome - initial posting],
+Genode users and developers are warmly invited to join the authors at
+Genodians.org!
+
+As a side note, the blogging platform is based on the Genode OS framework and
+is of course open source
+([https://github.com/genodelabs/genodians.org - GitHub repository]).
+
+[https://genodians.org - Visit Genodians.org...]
+
+
 Genode OS Framework release 19.02 | 2019-02-28
 ##############################################
 
