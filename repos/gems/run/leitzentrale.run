@@ -221,7 +221,7 @@ install_config {
 
 	<start name="leitzentrale" caps="4000">
 		<binary name="init"/>
-		<resource name="RAM" quantum="136M"/>
+		<resource name="RAM" quantum="140M"/>
 		<provides> <service name="Nitpicker"/> </provides>
 		<route>
 			<service name="ROM" label="config">
