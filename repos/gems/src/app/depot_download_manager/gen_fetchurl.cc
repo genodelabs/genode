@@ -29,7 +29,10 @@ void Depot_download_manager::gen_fetchurl_start_content(Xml_generator &xml,
 			xml.attribute("rtc",    "/dev/rtc");
 			xml.attribute("socket", "/socket");
 		});
-		xml.node("report", [&] () { xml.attribute("progress", "yes"); });
+		xml.node("report", [&] () {
+			xml.attribute("progress", "yes");
+			xml.attribute("delay_ms", 250);
+		});
 		xml.node("vfs", [&] () {
 			xml.node("dir", [&] () {
 				xml.attribute("name", "download");
