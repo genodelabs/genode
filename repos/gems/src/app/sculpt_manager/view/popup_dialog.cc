@@ -257,7 +257,6 @@ void Popup_dialog::_gen_menu_elements(Xml_generator &xml) const
 void Popup_dialog::click(Action &action)
 {
 	Hoverable_item::Id const clicked = _item._hovered;
-	_item._hovered = Hoverable_item::Id();
 
 	_action_item .propose_activation_on_click();
 	_install_item.propose_activation_on_click();
