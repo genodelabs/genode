@@ -36,7 +36,7 @@ namespace Spark {
 
 		void heat_up();
 
-		Genode::size_t temperature() const;
+		Genode::uint32_t temperature() const;
 	};
 
 	Genode::size_t number_of_bits(Machinery const &);
