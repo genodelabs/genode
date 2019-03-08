@@ -27,20 +27,20 @@ namespace Menu_view { struct Button_widget; }
 
 struct Menu_view::Button_widget : Widget, Animator::Item
 {
-	bool hovered  = false;
-	bool selected = false;
+	bool _hovered  = false;
+	bool _selected = false;
 
-	Texture<Pixel_rgb888> const * default_texture = nullptr;
-	Texture<Pixel_rgb888> const * hovered_texture = nullptr;
+	Texture<Pixel_rgb888> const * _prev_texture = nullptr;
+	Texture<Pixel_rgb888> const * _curr_texture = nullptr;
 
-	Lazy_value<int> blend { };
+	Lazy_value<int> _blend { };
 
-	Padding padding { 9, 9, 2, 1 };
+	Padding _padding { 9, 9, 2, 1 };
 
 	Area _space() const
 	{
-		return Area(margin.horizontal() + padding.horizontal(),
-		            margin.vertical()   + padding.vertical());
+		return Area(margin.horizontal() + _padding.horizontal(),
+		            margin.vertical()   + _padding.vertical());
 	}
 
 	static bool _enabled(Xml_node node, char const *attr)
@@ -60,32 +60,51 @@ struct Menu_view::Button_widget : Widget, Animator::Item
 		bool const new_hovered  = _enabled(node, "hovered");
 		bool const new_selected = _enabled(node, "selected");
 
-		if (new_selected) {
-			default_texture = _factory.styles.texture(node, "selected");
-			hovered_texture = _factory.styles.texture(node, "hselected");
-		} else {
-			default_texture = _factory.styles.texture(node, "default");
-			hovered_texture = _factory.styles.texture(node, "hovered");
-		}
+		char const * const next_texture_name =
+			new_selected ? (new_hovered ? "hselected" : "selected")
+			             : (new_hovered ? "hovered"   : "default");
 
-		if (new_hovered != hovered) {
+		Texture<Pixel_rgb888> const * next_texture =
+			_factory.styles.texture(node, next_texture_name);
 
-			if (new_hovered) {
-				blend.dst(255 << 8, 3);
-			} else {
-				blend.dst(0, 20);
+		if (next_texture != _curr_texture) {
+			_prev_texture = _curr_texture;
+			_curr_texture = next_texture;
+
+			/* don't attempt to fade between different texture sizes */
+			bool const texture_size_changed = _prev_texture && _curr_texture
+			                               && _prev_texture->size() != _curr_texture->size();
+			if (texture_size_changed)
+				_prev_texture = nullptr;
+
+			if (_prev_texture) {
+				/*
+				 * The number of blending animation steps depends on the
+				 * transition. By default, for style changes, a slow animation
+				 * is used. Unhovering happens a bit quicker. But when hovering
+				 * or changing the selection state of a button, the transition
+				 * must be quick to provide a responsive feel.
+				 */
+				enum { SLOW = 80, MEDIUM = 40, FAST = 3 };
+				int steps = SLOW;
+				if (_hovered && !new_hovered)  steps = MEDIUM;
+				if (!_hovered && new_hovered)  steps = FAST;
+				if (_selected != new_selected) steps = FAST;
+
+				_blend.assign(255 << 8);
+				_blend.dst(0, steps);
+				animated(true);
 			}
-			animated(blend != blend.dst());
 		}
 
-		hovered  = new_hovered;
-		selected = new_selected;
+		_hovered  = new_hovered;
+		_selected = new_selected;
 
 		_update_children(node);
 
 		_children.for_each([&] (Widget &child) {
-			child.geometry(Rect(Point(margin.left + padding.left,
-			                          margin.top  + padding.top),
+			child.geometry(Rect(Point(margin.left + _padding.left,
+			                          margin.top  + _padding.top),
 			                    child.min_size())); });
 	}
 
@@ -97,7 +116,7 @@ struct Menu_view::Button_widget : Widget, Animator::Item
 			child_min_size = child.min_size(); });
 
 		/* don't get smaller than the background texture */
-		Area const texture_size = default_texture->size();
+		Area const texture_size = _curr_texture->size();
 
 		return Area(max(_space().w() + child_min_size.w(), texture_size.w()),
 		            max(_space().h() + child_min_size.h(), texture_size.h()));
@@ -107,9 +126,9 @@ struct Menu_view::Button_widget : Widget, Animator::Item
 	          Surface<Pixel_alpha8> &alpha_surface,
 	          Point at) const override
 	{
-		static Scratch_surface<Pixel_rgb888> scratch(_factory.alloc);
+		static Scratch_surface scratch(_factory.alloc);
 
-		Area const texture_size = default_texture->size();
+		Area const texture_size = _curr_texture->size();
 		Rect const texture_rect(Point(0, 0), texture_size);
 
 		/*
@@ -117,12 +136,27 @@ struct Menu_view::Button_widget : Widget, Animator::Item
 		 */
 		scratch.reset(texture_size);
 
-		scratch.apply([&] (Surface<Pixel_rgb888> &pixel, Surface<Pixel_alpha8> &alpha) {
-			Icon_painter::paint(pixel, texture_rect, *default_texture, 255);
-			Icon_painter::paint(alpha, texture_rect, *default_texture, 255);
+		scratch.apply([&] (Surface<Opaque_pixel> &pixel, Surface<Additive_alpha> &alpha) {
 
-			Icon_painter::paint(pixel, texture_rect, *hovered_texture, blend >> 8);
-			Icon_painter::paint(alpha, texture_rect, *hovered_texture, blend >> 8);
+			if (_prev_texture && animated()) {
+
+				int const blend = _blend >> 8;
+
+				Icon_painter::paint(pixel, texture_rect, *_curr_texture, 255);
+				Icon_painter::paint(pixel, texture_rect, *_prev_texture, blend);
+
+				Icon_painter::paint(alpha, texture_rect, *_curr_texture, 255 - blend);
+				Icon_painter::paint(alpha, texture_rect, *_prev_texture, blend);
+			}
+
+			/*
+			 * If no fading is possible or needed, paint only _curr_texture at
+			 * full opacity.
+			 */
+			else {
+				Icon_painter::paint(pixel, texture_rect, *_curr_texture, 255);
+				Icon_painter::paint(alpha, texture_rect, *_curr_texture, 255);
+			}
 		});
 
 		/*
@@ -134,7 +168,7 @@ struct Menu_view::Button_widget : Widget, Animator::Item
 		Icon_painter::paint(alpha_surface, Rect(at, _animated_geometry.area()),
 		                    scratch.texture(), 255);
 
-		if (selected)
+		if (_selected)
 			at = at + Point(0, 1);
 
 		_draw_children(pixel_surface, alpha_surface, at);
@@ -154,9 +188,9 @@ struct Menu_view::Button_widget : Widget, Animator::Item
 
 	void animate() override
 	{
-		blend.animate();
+		_blend.animate();
 
-		animated(blend != blend.dst());
+		animated(_blend != _blend.dst());
 	}
 
 	private:

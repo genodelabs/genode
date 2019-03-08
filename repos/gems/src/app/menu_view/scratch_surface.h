@@ -17,10 +17,57 @@
 /* local includes */
 #include <types.h>
 
-namespace Menu_view { template <typename PT> class Scratch_surface; }
+namespace Menu_view {
+
+	struct Additive_alpha;
+	struct Opaque_pixel;
+
+	class Scratch_surface;
+}
 
 
-template <typename PT>
+/**
+ * Custom pixel type for applying painters to an alpha channel
+ *
+ * The 'transfer' function of this pixel type applies alpha channel values
+ * from textures to it's 'pixel' in an additive way. It is designated for
+ * blending alpha channels from different textures together.
+ */
+struct Menu_view::Additive_alpha
+{
+	uint8_t pixel;
+
+	template <typename TPT, typename PT>
+	static void transfer(TPT const &, int src_a, int alpha, PT &dst)
+	{
+		dst.pixel += (alpha*src_a) >> 8;
+	}
+
+	static Surface_base::Pixel_format format() { return Surface_base::UNKNOWN; }
+
+} __attribute__((packed));
+
+
+/**
+ * Custom pixel type to apply painters w/o the texture's alpha channel
+ *
+ * This pixel type is useful for limiting the application of painters to color
+ * values only. It allows for the blending of a texture's color channels
+ * independent from the texture's alpha channel.
+ */
+struct Menu_view::Opaque_pixel : Pixel_rgb888
+{
+	template <typename TPT, typename PT>
+	static void transfer(TPT const &src, int, int alpha, PT &dst)
+	{
+		if (alpha) dst.pixel = PT::mix(dst, src, alpha).pixel;
+	}
+
+	static Surface_base::Pixel_format format() { return Surface_base::UNKNOWN; }
+
+} __attribute__((packed));
+
+
 class Menu_view::Scratch_surface
 {
 	private:
@@ -39,7 +86,8 @@ class Menu_view::Scratch_surface
 		size_t _needed_bytes(Area size)
 		{
 			/* account for pixel buffer and alpha channel */
-			return size.count()*sizeof(PT) + size.count();
+			return size.count()*sizeof(Opaque_pixel)
+			     + size.count()*sizeof(Additive_alpha);
 		}
 
 		void _release()
@@ -54,7 +102,7 @@ class Menu_view::Scratch_surface
 
 		unsigned char *_alpha_base() const
 		{
-			return _base + _size.count()*sizeof(PT);
+			return _base + _size.count()*sizeof(Opaque_pixel);
 		}
 
 	public:
@@ -82,14 +130,14 @@ class Menu_view::Scratch_surface
 		template <typename FN>
 		void apply(FN const &fn)
 		{
-			Surface<PT>           pixel((PT *)_pixel_base(), _size);
-			Surface<Pixel_alpha8> alpha((Pixel_alpha8 *)_alpha_base(), _size);
+			Surface<Opaque_pixel>   pixel((Opaque_pixel   *)_pixel_base(), _size);
+			Surface<Additive_alpha> alpha((Additive_alpha *)_alpha_base(), _size);
 			fn(pixel, alpha);
 		}
 
-		Texture<PT> texture() const
+		Texture<Pixel_rgb888> texture() const
 		{
-			return Texture<PT>((PT *)_pixel_base(), _alpha_base(), _size);
+			return Texture<Pixel_rgb888>((Pixel_rgb888 *)_pixel_base(), _alpha_base(), _size);
 		}
 };
 
