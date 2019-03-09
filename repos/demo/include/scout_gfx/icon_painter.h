@@ -38,20 +38,6 @@ class Icon_painter
 		 * vs ... vertical slice
 		 */
 
-
-		/**
-		 * Copy pixel with alpha
-		 */
-		template <typename SPT, typename TPT>
-		static inline void _transfer_pixel(TPT const &src, int src_a, int alpha, SPT *dst)
-		{
-			if (src_a) {
-				int register a = (src_a * alpha)>>8;
-				if (a) *dst = SPT::mix(*dst, src, a);
-			}
-		}
-
-
 		/**
 		 * Draw corner slice
 		 */
@@ -67,7 +53,7 @@ class Icon_painter
 				SPT                 *d  = dst;
 
 				for (int i = 0; i < w; i++, s++, sa++, d++)
-					_transfer_pixel(*s, *sa, alpha, d);
+					SPT::transfer(*s, *sa, alpha, *d);
 
 				src += src_pitch, src_a += src_pitch, dst += dst_pitch;
 			}
@@ -89,7 +75,7 @@ class Icon_painter
 				SPT *d =  dst;
 
 				for (int i = 0; i < w; i++, d++)
-					_transfer_pixel(s, sa, alpha, d);
+					SPT::transfer(s, sa, alpha, *d);
 
 				src += src_pitch, src_a += src_pitch, dst += dst_pitch;
 			}
@@ -111,7 +97,7 @@ class Icon_painter
 				SPT *d =  dst;
 
 				for (int j = 0; j < h; j++, d += dst_pitch)
-					_transfer_pixel(s, sa, alpha, d);
+					SPT::transfer(s, sa, alpha, *d);
 
 				src += 1, src_a += 1, dst += 1;
 			}
@@ -134,7 +120,7 @@ class Icon_painter
 				SPT *d = dst;
 
 				for (int i = 0; i < w; i++, d++)
-					_transfer_pixel(s, sa, alpha, d);
+					SPT::transfer(s, sa, alpha, *d);
 			}
 		}
 
