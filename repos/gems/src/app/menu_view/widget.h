@@ -155,7 +155,7 @@ class Menu_view::Widget : List_model<Widget>::Element
 		 * Position relative to the parent widget and actual size, defined by
 		 * the parent
 		 */
-		Rect _geometry { };
+		Rect _geometry { Point(0, 0), Area(0, 0) };
 
 		Animated_rect _animated_geometry { _factory.animator };
 
