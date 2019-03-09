@@ -117,6 +117,23 @@ class Genode::Pixel_rgba
 			return avr(avr(p1, p2), avr(p3, p4)); }
 
 		/**
+		 * Copy pixel with alpha
+		 *
+		 * \param src    source color value (e.g., obtained from a texture)
+		 * \param src_a  alpha value corresponding to the 'src' pixel
+		 * \param alpha  alpha value
+		 * \param dst    destination pixel
+		 */
+		template <typename TPT, typename PT>
+		static void transfer(TPT const &src, int src_a, int alpha, PT &dst)
+		{
+			if (src_a) {
+				int register a = (src_a * alpha)>>8;
+				if (a) dst = PT::mix(dst, src, a);
+			}
+		}
+
+		/**
 		 * Return alpha value of pixel
 		 */
 		int alpha();
