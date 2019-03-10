@@ -74,8 +74,8 @@ struct Menu_view::Root_widget : Widget
 	void _layout() override
 	{
 		_children.for_each([&] (Widget &child) {
-			child.size(geometry().area());
 			child.position(Point(0, 0));
+			child.size(_geometry.area());
 		});
 	}
 };

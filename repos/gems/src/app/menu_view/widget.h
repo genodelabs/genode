@@ -176,12 +176,6 @@ class Menu_view::Widget : List_model<Widget>::Element
 
 		Margin margin { 0, 0, 0, 0 };
 
-		void geometry(Rect geometry)
-		{
-			_geometry = geometry;
-			_trigger_geometry_animation();
-		}
-
 		Rect geometry() const { return _geometry; }
 
 		Rect animated_geometry() const { return _animated_geometry.rect(); }
@@ -220,6 +214,9 @@ class Menu_view::Widget : List_model<Widget>::Element
 		                  Surface<Pixel_alpha8> &alpha_surface,
 		                  Point at) const = 0;
 
+		/**
+		 * Set widget size and update the widget tree's layout accordingly
+		 */
 		void size(Area size)
 		{
 			_geometry = Rect(_geometry.p1(), size);
