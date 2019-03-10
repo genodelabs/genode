@@ -466,11 +466,14 @@ struct Sculpt::Main : Input_event_handler,
 	 */
 	void handle_input_event(Input::Event const &ev) override
 	{
+		bool need_generate_dialog = false;
+
 		if (ev.key_press(Input::BTN_LEFT)) {
 
 			if (_hovered_dialog != _last_clicked && _hovered_dialog != Hovered::NONE) {
 				_last_clicked = _hovered_dialog;
 				_handle_window_layout();
+				need_generate_dialog = true;
 			}
 
 			if (_hovered_dialog == Hovered::STORAGE) _storage.dialog.click(_storage);
@@ -509,6 +512,9 @@ struct Sculpt::Main : Input_event_handler,
 
 		if (ev.press())
 			_keyboard_focus.update();
+
+		if (need_generate_dialog)
+			generate_dialog();
 	}
 
 	/*
