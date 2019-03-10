@@ -35,6 +35,12 @@ struct Rtc::Timestamp
 	unsigned day;
 	unsigned month;
 	unsigned year;
+
+	void print(Genode::Output &out) const
+	{
+		Genode::print(out, year, "-", month, "-", day, " ",
+		              hour, ":", minute, ":", second);
+	}
 };
 
 
