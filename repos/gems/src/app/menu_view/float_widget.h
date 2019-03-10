@@ -43,7 +43,8 @@ struct Menu_view::Float_widget : Widget
 		int const x = _west  ? 0 : _east  ? w_space : w_space / 2;
 		int const y = _north ? 0 : _south ? h_space : h_space / 2;
 
-		child.geometry(Rect(Point(x, y), Area(w, h)));
+		child.position(Point(x, y));
+		child.size(Area(w, h));
 	}
 
 	void update(Xml_node node) override

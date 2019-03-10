@@ -28,8 +28,6 @@ namespace Menu_view { struct Depgraph_widget; }
 
 struct Menu_view::Depgraph_widget : Widget
 {
-	Area _min_size { }; /* value cached from layout computation */
-
 	struct Depth_direction
 	{
 		enum Value { EAST, WEST, NORTH, SOUTH };
@@ -77,6 +75,24 @@ struct Menu_view::Depgraph_widget : Widget
 
 		Registry<Registered<Anchor> > _server_anchors { };
 		Registry<Registered<Anchor> > _client_anchors { };
+
+		Rect _widget_geometry { Point(0, 0), Area(0, 0) };
+
+		/**
+		 * Set cached widget geometry, calculated during 'update'
+		 */
+		void widget_geometry(Rect geometry) { _widget_geometry = geometry; }
+
+		/**
+		 * Propagate cached geometry to widget, called during '_layout'
+		 *
+		 * Calling this method may trigger the widget's geometry animation.
+		 */
+		void apply_layout_to_widget()
+		{
+			_widget.position(_widget_geometry.p1());
+			_widget.size(_widget_geometry.area());
+		}
 
 		struct Dependency : Animator::Item
 		{
@@ -556,7 +572,8 @@ struct Menu_view::Depgraph_widget : Widget
 			if (client && !server) {
 				warning("node '", client_name, "' depends on "
 				        "non-existing node '", server_name, "'");
-				client->_widget.geometry(Rect(Point(0, 0), Area(0, 0)));
+				client->_widget.position(Point(0, 0));
+				client->_widget.size(Area(0, 0));
 			}
 		});
 
@@ -588,9 +605,17 @@ struct Menu_view::Depgraph_widget : Widget
 		});
 
 		/*
-		 * Apply layout to the children, determine _min_size
+		 * Calculate the bounding box and the designated geometries of all
+		 * widgets.
+		 *
+		 * The bounding box dictates the 'min_size' of the depgraph widget.
+		 *
+		 * The computed widget geometries are stored in their corresponding
+		 * 'Node' objects but are not immediately propagated to the widgets.
+		 * The computed geometries are applied to the widgets in '_layout'
+		 * phase.
 		 */
-		Rect bounding_box(Point(0, 0), Area(0, 0));
+		_bounding_box = Rect(Point(0, 0), Area(0, 0));
 		_children.for_each([&] (Widget &w) {
 			_nodes.for_each([&] (Registered_node &node) {
 				if (!node.belongs_to(w))
@@ -607,35 +632,16 @@ struct Menu_view::Depgraph_widget : Widget
 				                     : Rect(Point(breadth_pos, depth_pos),
 				                            Area(breadth_size, depth_size));
 
-				w.geometry(Rect(node_rect.center(w.min_size()), w.min_size()));
+				Rect geometry(node_rect.center(w.min_size()), w.min_size());
 
-				bounding_box = Rect::compound(bounding_box, w.geometry());
+				node.widget_geometry(geometry);
+
+				_bounding_box = Rect::compound(_bounding_box, geometry);
 			});
 		});
-
-		/*
-		 * Mirror coordinates if graph grows towards north or west
-		 */
-		if (_depth_direction.value == Depth_direction::NORTH
-		 || _depth_direction.value == Depth_direction::WEST) {
-
-			_children.for_each([&] (Widget &w) {
-
-				int x = w.geometry().x1(), y = w.geometry().y1();
-
-				if (_depth_direction.value == Depth_direction::NORTH)
-					y = (int)bounding_box.h() - y - w.geometry().h();
-
-				if (_depth_direction.value == Depth_direction::WEST)
-					x = (int)bounding_box.w() - x - w.geometry().w();
-
-				w.geometry(Rect(Point(x, y), w.geometry().area()));
-			});
-		}
-		_min_size = bounding_box.area();
 	}
 
-	Area min_size() const override { return _min_size; }
+	Area min_size() const override { return _bounding_box.area(); }
 
 	void _draw_connect(Surface<Pixel_rgb888> &pixel_surface,
 	                   Surface<Pixel_alpha8> &alpha_surface,
@@ -720,6 +726,36 @@ struct Menu_view::Depgraph_widget : Widget
 
 	void _layout() override
 	{
+		/*
+		 * Apply layout to the children
+		 */
+		_nodes.for_each([&] (Registered_node &node) {
+			if (&node != &_root_node)
+				node.apply_layout_to_widget(); });
+
+		/*
+		 * Mirror coordinates if graph grows towards north or west
+		 */
+		if (_depth_direction.value == Depth_direction::NORTH
+		 || _depth_direction.value == Depth_direction::WEST) {
+
+			_children.for_each([&] (Widget &w) {
+
+				int x = w.geometry().x1(), y = w.geometry().y1();
+
+				if (_depth_direction.value == Depth_direction::NORTH)
+					y = (int)_bounding_box.h() - y - w.geometry().h();
+
+				if (_depth_direction.value == Depth_direction::WEST)
+					x = (int)_bounding_box.w() - x - w.geometry().w();
+
+				w.position(Point(x, y));
+			});
+		}
+
+		/*
+		 * Prompt each child to update its layout
+		 */
 		_children.for_each([&] (Widget &w) {
 			w.size(w.geometry().area()); });
 	}

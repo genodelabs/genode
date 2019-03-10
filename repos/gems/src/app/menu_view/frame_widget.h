@@ -44,13 +44,6 @@ struct Menu_view::Frame_widget : Widget
 
 		_update_children(node);
 
-		/*
-		 * layout
-		 */
-		_children.for_each([&] (Widget &child) {
-			child.geometry(Rect(Point(margin.left + padding.left,
-			                          margin.top  + padding.top),
-			                    child.min_size())); });
 	}
 
 	Area min_size() const override
@@ -83,8 +76,19 @@ struct Menu_view::Frame_widget : Widget
 	void _layout() override
 	{
 		_children.for_each([&] (Widget &child) {
-			child.size(Area(geometry().w() - _space().w(),
-			                geometry().h() - _space().h())); });
+
+			child.position(Point(margin.left + padding.left,
+			                     margin.top  + padding.top));
+
+			Area const avail = geometry().area();
+
+			unsigned const
+				w = avail.w() >= _space().w() ? avail.w() - _space().w() : 0,
+				h = avail.h() >= _space().h() ? avail.h() - _space().w() : 0;
+
+			child.size(Area(max(w, child.min_size().w()),
+			                max(h, child.min_size().h())));
+		});
 	}
 
 	private:

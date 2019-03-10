@@ -101,11 +101,6 @@ struct Menu_view::Button_widget : Widget, Animator::Item
 		_selected = new_selected;
 
 		_update_children(node);
-
-		_children.for_each([&] (Widget &child) {
-			child.geometry(Rect(Point(margin.left + _padding.left,
-			                          margin.top  + _padding.top),
-			                    child.min_size())); });
 	}
 
 	Area min_size() const override
@@ -176,9 +171,20 @@ struct Menu_view::Button_widget : Widget, Animator::Item
 
 	void _layout() override
 	{
-		_children.for_each([&] (Widget &w) {
-			w.size(Area(geometry().w() - _space().w(),
-			            geometry().h() - _space().h())); });
+		_children.for_each([&] (Widget &child) {
+
+			child.position(Point(margin.left + _padding.left,
+			                     margin.top  + _padding.top));
+
+			Area const avail = geometry().area();
+
+			unsigned const
+				w = avail.w() >= _space().w() ? avail.w() - _space().w() : 0,
+				h = avail.h() >= _space().h() ? avail.h() - _space().w() : 0;
+
+			child.size(Area(max(w, child.min_size().w()),
+			                max(h, child.min_size().h())));
+		});
 	}
 
 
