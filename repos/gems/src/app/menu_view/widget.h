@@ -88,6 +88,8 @@ class Menu_view::Widget : List_model<Widget>::Element
 			return node.attribute_value("name", Name(node.type()));
 		}
 
+		static Animated_rect::Steps motion_steps() { return { 60 }; };
+
 	private:
 
 		Type_name const _type_name;
@@ -164,9 +166,10 @@ class Menu_view::Widget : List_model<Widget>::Element
 			if (_animated_geometry.animated())
 				return;
 
-			if (_geometry.p1() != _animated_geometry.p1()
-			 || _geometry.p2() != _animated_geometry.p2())
-				_animated_geometry.move_to(_geometry, Animated_rect::Steps{60});
+			bool const changed = (_geometry.p1() != _animated_geometry.p1()
+			                   || _geometry.p2() != _animated_geometry.p2());
+			if (changed)
+				_animated_geometry.move_to(_geometry, motion_steps());
 		}
 
 	public:

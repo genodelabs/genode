@@ -42,6 +42,7 @@ struct Menu_view::Depgraph_widget : Widget
 	{
 		Allocator &_alloc;
 		Widget    &_widget;
+		Animator  &_animator;
 
 		struct Anchor
 		{
@@ -77,11 +78,11 @@ struct Menu_view::Depgraph_widget : Widget
 		Registry<Registered<Anchor> > _server_anchors { };
 		Registry<Registered<Anchor> > _client_anchors { };
 
-		struct Dependency
+		struct Dependency : Animator::Item
 		{
 			Anchor::Type const _type;
 
-			enum Visible { VISIBLE, HIDDEN } visible;
+			enum Visible { VISIBLE, HIDDEN } _visible;
 
 			/*
 			 * Dependencies are marked as out of date at the beginning of the
@@ -90,6 +91,14 @@ struct Menu_view::Depgraph_widget : Widget
 			 * are stale and must be destroyed.
 			 */
 			bool up_to_date = true;
+
+			int _dst_alpha() const { return _visible == VISIBLE ? 255 << 8 : 0; }
+
+			/*
+			 * Alpha value used for drawing, animated when 'visible' is
+			 * toggled.
+			 */
+			Lazy_value<int> _alpha { 0 };
 
 			Node &_server;
 
@@ -100,12 +109,19 @@ struct Menu_view::Depgraph_widget : Widget
 			Registered<Anchor> _anchor_at_client;
 
 			Dependency(Node &client, Node &server, Anchor::Type type,
-			           Visible visible)
+			           Visible visible, Animator &animator)
 			:
-				_type(type), visible(visible), _server(server),
+				Animator::Item(animator),
+				_type(type), _visible(visible), _server(server),
 				_anchor_at_server(server._server_anchors, client, type),
 				_anchor_at_client(client._client_anchors, server, type)
-			{ }
+			{
+				/* trigger fade-in if initially visible */
+				if (_dst_alpha()) {
+					_alpha.dst(_dst_alpha(), Widget::motion_steps().value);
+					animate();
+				}
+			}
 
 			virtual ~Dependency() { }
 
@@ -136,6 +152,31 @@ struct Menu_view::Depgraph_widget : Widget
 
 			template <typename FN>
 			void apply_to_server(FN const &fn) const { fn(_server); }
+
+			void visible(Visible const visible)
+			{
+				if (visible == _visible)
+					return;
+
+				_visible = visible;
+
+				_alpha.dst(_dst_alpha(), Widget::motion_steps().value);
+				animate();
+			}
+
+			int alpha() const { return _alpha >> 8; }
+
+
+			/******************************
+			 ** Animator::Item interface **
+			 ******************************/
+
+			void animate() override
+			{
+				_alpha.animate();
+
+				animated(_alpha != _alpha.dst());
+			}
 		};
 
 		Registry<Registered<Dependency> > _deps { };
@@ -159,7 +200,8 @@ struct Menu_view::Depgraph_widget : Widget
 		 */
 		unsigned layout_breadth_offset = 0;
 
-		Node(Allocator &alloc, Widget &widget) : _alloc(alloc), _widget(widget) { }
+		Node(Allocator &alloc, Widget &widget, Animator &animator)
+		: _alloc(alloc), _widget(widget), _animator(animator) { }
 
 		template <typename FN>
 		void for_each_dependent_node(FN const &fn)
@@ -261,7 +303,7 @@ struct Menu_view::Depgraph_widget : Widget
 			bool dependency_exists = false;
 			_deps.for_each([&] (Dependency &dep) {
 				if (dep.depends_on(node)) {
-					dep.visible = visible;
+					dep.visible(visible);
 					dep.up_to_date = true; /* skip in 'destroy_stale_deps' */
 					dependency_exists = true;
 				}
@@ -269,7 +311,8 @@ struct Menu_view::Depgraph_widget : Widget
 
 			if (!dependency_exists)
 				new (_alloc)
-					Registered<Dependency>(_deps, *this, node, type, visible);
+					Registered<Dependency>(_deps, *this, node, type, visible,
+					                       _animator);
 		}
 
 		void destroy_stale_deps()
@@ -366,7 +409,12 @@ struct Menu_view::Depgraph_widget : Widget
 
 	Node_registry _nodes { };
 
-	Registered_node _root_node { _nodes, _factory.alloc, *this };
+	Registered_node _root_node { _nodes, _factory.alloc, *this, _factory.animator };
+
+	/*
+	 * Defined by 'update', used by '_layout'
+	 */
+	Rect _bounding_box { Point(0, 0), Area(0, 0) };
 
 	template <typename FN>
 	void apply_to_primary_dependency(Node &node, FN const &fn)
@@ -386,12 +434,15 @@ struct Menu_view::Depgraph_widget : Widget
 	{
 		Widget::Model_update_policy &_generic_model_update_policy;
 		Allocator                   &_alloc;
+		Animator                    &_animator;
 		Node_registry               &_nodes;
 
 		Model_update_policy(Widget::Model_update_policy &policy,
-		                    Allocator &alloc, Node_registry &nodes)
+		                    Allocator &alloc, Animator &animator,
+		                    Node_registry &nodes)
 		:
-			_generic_model_update_policy(policy), _alloc(alloc), _nodes(nodes)
+			_generic_model_update_policy(policy),
+			_alloc(alloc), _animator(animator), _nodes(nodes)
 		{ }
 
 		void _destroy_node(Registered_node &node)
@@ -422,7 +473,7 @@ struct Menu_view::Depgraph_widget : Widget
 		Widget &create_element(Xml_node elem_node)
 		{
 			Widget &w = _generic_model_update_policy.create_element(elem_node);
-			new (_alloc) Registered_node(_nodes, _alloc, w);
+			new (_alloc) Registered_node(_nodes, _alloc, w, _animator);
 			return w;
 		}
 
@@ -436,7 +487,8 @@ struct Menu_view::Depgraph_widget : Widget
 			return Widget::Model_update_policy::element_matches_xml_node(w, node);
 		}
 
-	} _model_update_policy { Widget::_model_update_policy, _factory.alloc, _nodes };
+	} _model_update_policy { Widget::_model_update_policy,
+	                         _factory.alloc, _factory.animator, _nodes };
 
 	Depgraph_widget(Widget_factory &factory, Xml_node node, Unique_id unique_id)
 	:
@@ -629,17 +681,18 @@ struct Menu_view::Depgraph_widget : Widget
 
 			client._deps.for_each([&] (Node::Dependency const &dep) {
 
-				if (dep.visible == Node::Dependency::HIDDEN)
+				int const alpha = dep.alpha();
+				if (!alpha)
 					return;
 
 				Color color;
 
 				if (shadow) {
-					color = dep.primary() ? Color(0, 0, 0, 150)
-					                      : Color(0, 0, 0, 50);
+					color = dep.primary() ? Color(0, 0, 0, (150*alpha)>>8)
+					                      : Color(0, 0, 0,  (50*alpha)>>8);
 				} else {
-					color = dep.primary() ? Color(255, 255, 255, 190)
-					                      : Color(255, 255, 255, 120);
+					color = dep.primary() ? Color(255, 255, 255, (190*alpha)>>8)
+					                      : Color(255, 255, 255, (120*alpha)>>8);
 				}
 
 				dep.apply_to_server([&] (Node const &server) {
