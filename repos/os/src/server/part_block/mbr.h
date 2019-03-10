@@ -95,21 +95,21 @@ struct Mbr_partition_table : public Block::Partition_table
 				if (!(ebr->valid()))
 					return;
 
-			/* The first record is the actual logical partition. The lba of this
-			 * partition is relative to the lba of the current EBR */
-			Partition_record *logical = &(ebr->_records[0]);
-			if (logical->valid() && nr < MAX_PARTITIONS) {
-				f(nr++, logical, lba);
-			}
+				/* The first record is the actual logical partition. The lba of this
+				 * partition is relative to the lba of the current EBR */
+				Partition_record *logical = &(ebr->_records[0]);
+				if (logical->valid() && nr < MAX_PARTITIONS) {
+					f(nr++, logical, lba);
+				}
 
-			/*
-			 * the second record points to the next EBR
-			 * (relative form this EBR)
-			 */
-			r = &(ebr->_records[1]);
-			lba += ebr->_records[1]._lba - last_lba;
+				/*
+				 * the second record points to the next EBR
+				 * (relative form this EBR)
+				 */
+				r = &(ebr->_records[1]);
+				lba += ebr->_records[1]._lba - last_lba;
 
-			last_lba = ebr->_records[1]._lba;
+				last_lba = ebr->_records[1]._lba;
 
 			} while (r->valid());
 		}
