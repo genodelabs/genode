@@ -84,6 +84,7 @@ struct Mbr_partition_table : public Block::Partition_table
 		{
 			Partition_record *r = record;
 			unsigned lba = r->_lba;
+			unsigned last_lba = 0;
 
 			/* first logical partition number */
 			int nr = 5;
@@ -106,7 +107,9 @@ struct Mbr_partition_table : public Block::Partition_table
 			 * (relative form this EBR)
 			 */
 			r = &(ebr->_records[1]);
-			lba += ebr->_records[1]._lba;
+			lba += ebr->_records[1]._lba - last_lba;
+
+			last_lba = ebr->_records[1]._lba;
 
 			} while (r->valid());
 		}

@@ -6,6 +6,7 @@
 		<timeout meaning="failed" sec="60" />
 		<log meaning="succeeded">
 			Tests finished successfully!*
+			Tests finished successfully!*
 			Tests finished successfully!
 		</log>
 		<log meaning="failed">Error: </log>
@@ -51,6 +52,7 @@
 				<report partitions="yes"/>
 				<policy label_prefix="test-part1" partition="6"/>
 				<policy label_prefix="test-part2" partition="1"/>
+				<policy label_prefix="test-part3" partition="9"/>
 			</config>
 		</start>
 		<start name="report_rom">
@@ -69,6 +71,13 @@
 			</route>
 		</start>
 		<start name="test-part2">
+			<binary name="test-block-client"/>
+			<resource name="RAM" quantum="5M" />
+			<route>
+				<any-service> <child name="part_block" /> <parent/> <any-child/> </any-service>
+			</route>
+		</start>
+		<start name="test-part3">
 			<binary name="test-block-client"/>
 			<resource name="RAM" quantum="5M" />
 			<route>
