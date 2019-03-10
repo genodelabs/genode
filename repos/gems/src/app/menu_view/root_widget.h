@@ -75,7 +75,7 @@ struct Menu_view::Root_widget : Widget
 	{
 		_children.for_each([&] (Widget &child) {
 			child.position(Point(0, 0));
-			child.size(child.min_size());
+			child.size(_geometry.area());
 		});
 	}
 };
