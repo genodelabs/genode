@@ -920,7 +920,7 @@ class Vfs::Lxip_accept_file : public Vfs::Lxip_file
 				Genode::strncpy(dst, "1\n", len);
 				return Genode::strlen(dst);
 			}
-			return 0;
+			throw Would_block();
 		}
 };
 
