@@ -129,9 +129,10 @@ void Signal_receiver::block_for_signal()
 		/* canceled */
 		return;
 	}
+
 	/* read signal data */
-	const void * const     utcb    = Thread::myself()->utcb()->data();
-	Signal::Data * const   data    = (Signal::Data *)utcb;
+	Signal::Data * const data =
+		(Signal::Data *)Thread::myself()->utcb()->data();
 	Signal_context * const context = data->context;
 
 	/**
@@ -145,8 +146,57 @@ void Signal_receiver::block_for_signal()
 		context->_pending     = true;
 		context->_curr_signal = Signal::Data(context, num);
 	}
+
 	/* end kernel-aided life-time management */
 	Kernel::ack_signal(Capability_space::capid(data->context->_cap));
+}
+
+
+Signal Signal_receiver::pending_signal()
+{
+	Lock::Guard contexts_lock_guard(_contexts_lock);
+	Signal::Data result;
+	_contexts.for_each_locked([&] (Signal_context &context) {
+
+		if (!context._pending) return;
+
+		_contexts.head(context._next);
+		context._pending     = false;
+		result               = context._curr_signal;
+		context._curr_signal = Signal::Data(0, 0);
+
+		Trace::Signal_received trace_event(context, result.num);
+		throw Context_ring::Break_for_each();
+	});
+	if (result.context) {
+		Lock::Guard lock_guard(result.context->_lock);
+		if (result.num == 0)
+			warning("returning signal with num == 0");
+
+		return result;
+	}
+
+	/* look for pending signals */
+	if (Kernel::pending_signal(Capability_space::capid(_cap)) != 0) {
+		throw Signal_not_pending();
+	}
+
+	/* read signal data */
+	Signal::Data * const data =
+		(Signal::Data *)Thread::myself()->utcb()->data();
+	Signal_context * const context = data->context;
+
+	{
+		/* update signal context */
+		Lock::Guard lock_guard(context->_lock);
+		context->_pending     = false;
+		context->_curr_signal = Signal::Data(context, data->num);
+		result                = context->_curr_signal;
+	}
+
+	/* end kernel-aided life-time management */
+	Kernel::ack_signal(Capability_space::capid(data->context->_cap));
+	return result;
 }
 
 

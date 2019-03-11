@@ -235,6 +235,42 @@ void Signal_receiver::block_for_signal()
 	_signal_available.down();
 }
 
+Signal Signal_receiver::pending_signal()
+{
+	Lock::Guard contexts_lock_guard(_contexts_lock);
+	Signal::Data result;
+	_contexts.for_each_locked([&] (Signal_context &context) {
+
+		if (!context._pending) return;
+
+		_contexts.head(context._next);
+		context._pending     = false;
+		result               = context._curr_signal;
+		context._curr_signal = Signal::Data(0, 0);
+
+		Trace::Signal_received trace_event(context, result.num);
+		throw Context_ring::Break_for_each();
+	});
+	if (result.context) {
+		Lock::Guard lock_guard(result.context->_lock);
+		if (result.num == 0)
+			warning("returning signal with num == 0");
+
+		return result;
+	}
+
+	/*
+	 * Normally, we should never arrive at this point because that would
+	 * mean, the '_signal_available' semaphore was increased without
+	 * registering the signal in any context associated to the receiver.
+	 *
+	 * However, if a context gets dissolved right after submitting a
+	 * signal, we may have increased the semaphore already. In this case
+	 * the signal-causing context is absent from the list.
+	 */
+	throw Signal_not_pending();
+}
+
 
 void Signal_receiver::unblock_signal_waiter(Rpc_entrypoint &)
 {

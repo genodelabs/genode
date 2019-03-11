@@ -49,4 +49,7 @@ void Signal_receiver::block_for_signal()
 	sleep_forever();
 }
 
+Signal Signal_receiver::pending_signal() {
+	throw Signal_not_pending(); }
+
 void Signal_receiver::local_submit(Signal::Data) { ASSERT_NEVER_CALLED; }

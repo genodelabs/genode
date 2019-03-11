@@ -464,6 +464,33 @@ void Thread::_call_await_signal()
 }
 
 
+void Thread::_call_pending_signal()
+{
+	/* lookup receiver */
+	Signal_receiver * const r = pd().cap_tree().find<Signal_receiver>(user_arg_1());
+	if (!r) {
+		Genode::warning(*this, ": cannot await, unknown signal receiver ",
+		                (unsigned)user_arg_1());
+		user_arg_0(-1);
+		return;
+	}
+
+	/* register handler at the receiver */
+	if (r->add_handler(this)) {
+		user_arg_0(-1);
+		return;
+	}
+
+	if (_state == AWAITS_SIGNAL) {
+		_cancel_blocking();
+		user_arg_0(-1);
+		return;
+	}
+
+	user_arg_0(0);
+}
+
+
 void Thread::_call_cancel_next_await_signal()
 {
 	/* kill the caller if the capability of the target thread is invalid */
@@ -631,6 +658,7 @@ void Thread::_call()
 	case call_id_kill_signal_context():      _call_kill_signal_context(); return;
 	case call_id_submit_signal():            _call_submit_signal(); return;
 	case call_id_await_signal():             _call_await_signal(); return;
+	case call_id_pending_signal():           _call_pending_signal(); return;
 	case call_id_cancel_next_await_signal(): _call_cancel_next_await_signal(); return;
 	case call_id_ack_signal():               _call_ack_signal(); return;
 	case call_id_print_char():               _call_print_char(); return;

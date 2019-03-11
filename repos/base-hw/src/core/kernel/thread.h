@@ -216,6 +216,7 @@ class Kernel::Thread
 		void _call_update_instr_region();
 		void _call_print_char();
 		void _call_await_signal();
+		void _call_pending_signal();
 		void _call_cancel_next_await_signal();
 		void _call_submit_signal();
 		void _call_ack_signal();

@@ -32,14 +32,15 @@ namespace Kernel
 	constexpr Call_arg call_id_kill_signal_context()      { return  6; }
 	constexpr Call_arg call_id_submit_signal()            { return  7; }
 	constexpr Call_arg call_id_await_signal()             { return  8; }
-	constexpr Call_arg call_id_cancel_next_await_signal() { return  9; }
-	constexpr Call_arg call_id_ack_signal()               { return 10; }
-	constexpr Call_arg call_id_print_char()               { return 11; }
-	constexpr Call_arg call_id_update_data_region()       { return 12; }
-	constexpr Call_arg call_id_update_instr_region()      { return 13; }
-	constexpr Call_arg call_id_ack_cap()                  { return 14; }
-	constexpr Call_arg call_id_delete_cap()               { return 15; }
-	constexpr Call_arg call_id_timeout()                  { return 16; }
+	constexpr Call_arg call_id_pending_signal()           { return  9; }
+	constexpr Call_arg call_id_cancel_next_await_signal() { return 10; }
+	constexpr Call_arg call_id_ack_signal()               { return 11; }
+	constexpr Call_arg call_id_print_char()               { return 12; }
+	constexpr Call_arg call_id_update_data_region()       { return 13; }
+	constexpr Call_arg call_id_update_instr_region()      { return 14; }
+	constexpr Call_arg call_id_ack_cap()                  { return 15; }
+	constexpr Call_arg call_id_delete_cap()               { return 16; }
+	constexpr Call_arg call_id_timeout()                  { return 17; }
 	constexpr Call_arg call_id_timeout_max_us()           { return 18; }
 	constexpr Call_arg call_id_time()                     { return 19; }
 
@@ -284,6 +285,25 @@ namespace Kernel
 	{
 		return call(call_id_await_signal(), receiver_id);
 	}
+
+
+	/**
+	 * Check for any pending signal of a context of a receiver the calling
+	 * thread relates to
+	 *
+	 * \param receiver_id  capability id of the targeted signal receiver
+	 *
+	 * \retval  0  suceeded
+	 * \retval -1  failed
+	 *
+	 * If this call returns 0, an instance of 'Signal::Data' is located at the
+	 * base of the callers UTCB.
+	 */
+	inline int pending_signal(capid_t const receiver_id)
+	{
+		return call(call_id_pending_signal(), receiver_id);
+	}
+
 
 	/**
 	 * Request to cancel the next signal blocking of a local thread
