@@ -579,7 +579,10 @@ void Depot_query::Main::_query_user(Archive::User const &user, Xml_generator &xm
 		});
 	}
 	catch (Directory::Nonexistent_file) {
-		warning("incomplete or missing depot-user info for '", user, "'"); }
+		warning("incomplete depot-user info for '", user, "'"); }
+
+	catch (Directory::Nonexistent_directory) {
+		warning("missing depot-user info for '", user, "'"); }
 }
 
 
