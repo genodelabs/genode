@@ -13,6 +13,7 @@
 
 /* local includes */
 #include <deploy.h>
+#include <string.h>
 
 
 bool Sculpt::Deploy::update_child_conditions()
@@ -32,30 +33,53 @@ bool Sculpt::Deploy::update_child_conditions()
 }
 
 
-void Sculpt::Deploy::_gen_missing_dependencies(Xml_generator &xml, Start_name const &name,
-                                               Xml_node start, int &count) const
+void Sculpt::Deploy::gen_child_diagnostics(Xml_generator &xml) const
 {
-	_for_each_missing_server(start, [&] (Start_name const &server) {
+	/*
+	 * Collect messages in registry, avoiding duplicates
+	 */
+	typedef String<64> Message;
+	typedef Registered_no_delete<Message> Registered_message;
+	Registry<Registered_message> messages { };
+
+	auto gen_missing_dependencies = [&] (Xml_node start)
+	{
+		Start_name const name = start.attribute_value("name", Start_name());
+
+		_for_each_missing_server(start, [&] (Start_name const &server) {
+
+			Message const new_message(Pretty(name), " requires ", Pretty(server));
+
+			bool already_exists = false;
+			messages.for_each([&] (Registered_message const &message) {
+				if (message == new_message)
+					already_exists = true; });
+
+			if (!already_exists)
+				new (_alloc) Registered_message(messages, new_message);
+		});
+	};
+
+	_children.for_each_unsatisfied_child([&] (Xml_node start, Xml_node launcher) {
+		gen_missing_dependencies(start);
+		gen_missing_dependencies(launcher);
+	});
+
+	/*
+	 * Generate dialog elements, drop consumed messages from the registry
+	 */
+	int count = 0;
+	messages.for_each([&] (Registered_message &message) {
 		gen_named_node(xml, "hbox", String<20>(count++), [&] () {
 			gen_named_node(xml, "float", "left", [&] () {
 				xml.attribute("west", "yes");
 				xml.node("label", [&] () {
-					xml.attribute("text", String<64>(name, " requires ", server));
+					xml.attribute("text", message);
 					xml.attribute("font", "annotation/regular");
 				});
 			});
 		});
-	});
-}
-
-
-void Sculpt::Deploy::gen_child_diagnostics(Xml_generator &xml) const
-{
-	int count = 0;
-	_children.for_each_unsatisfied_child([&] (Xml_node start, Xml_node launcher) {
-		Start_name const name = start.attribute_value("name", Start_name());
-		_gen_missing_dependencies(xml, name, start,    count);
-		_gen_missing_dependencies(xml, name, launcher, count);
+		destroy(_alloc, &message);
 	});
 }
 

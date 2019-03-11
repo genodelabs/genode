@@ -179,8 +179,6 @@ struct Sculpt::Deploy
 		return !all_satisfied;
 	}
 
-	void _gen_missing_dependencies(Xml_generator &, Start_name const &, Xml_node, int &) const;
-
 	void gen_child_diagnostics(Xml_generator &xml) const;
 
 	void gen_runtime_start_nodes(Xml_generator &) const;
