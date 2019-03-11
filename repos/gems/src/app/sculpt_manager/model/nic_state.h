@@ -35,7 +35,7 @@ struct Sculpt::Nic_state
 		return Nic_state { result };
 	}
 
-	bool ready() const { return ipv4.valid(); }
+	bool ready() const { return ipv4.valid() && ipv4 != "0.0.0.0/32"; }
 };
 
 #endif /* _MODEL__NIC_STATE_H_ */
