@@ -306,6 +306,34 @@ void Depot_download_manager::Main::_handle_query_result()
 	_index.update();
 	_current_user.update();
 
+	/* validate completeness of depot-user info */
+	{
+		Xml_node const user = _current_user.xml();
+
+		Archive::User const name = user.attribute_value("name", Archive::User());
+
+		bool const user_info_complete = user.has_sub_node("url")
+		                             && user.has_sub_node("pubkey");
+
+		if (name.valid() && !user_info_complete) {
+
+			/* discard jobs that lack proper depot-user info */
+			_jobs.for_each([&] (Job &job) {
+				if (Archive::user(job.path) == name)
+					job.failed = true; });
+
+			/*
+			 * Don't attempt importing content for an unknown user.
+			 * Instead, trigger the depot query for the next pending job.
+			 */
+			if (name == _next_user) {
+				_next_user = Archive::User();
+				_generate_init_config();
+				return;
+			}
+		}
+	}
+
 	Xml_node const dependencies = _dependencies.xml();
 	Xml_node const index        = _index.xml();
 
