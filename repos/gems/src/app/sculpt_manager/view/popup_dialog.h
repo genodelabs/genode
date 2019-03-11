@@ -468,7 +468,7 @@ struct Sculpt::Popup_dialog
 		            || blueprint_any_rom_missing(blueprint);
 
 		construction.try_apply_blueprint(blueprint);
-		if (construction.blueprint_known)
+		if (construction.blueprint_known && !_pkg_missing)
 			_state = PKG_SHOWN;
 
 		generate();
