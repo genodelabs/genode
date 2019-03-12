@@ -7,5 +7,5 @@ REV(ada-runtime) := c51bba3e8abd118ce0c6dd7ad1379c5033b78c68
 DIR(ada-runtime) := ada-runtime
 
 URL(ada-runtime-alis) := https://github.com/Componolit/ada-runtime-alis.git
-REV(ada-runtime-alis) := 3083fc4687a273f25fb08170bbc36b36a8bbee68
+REV(ada-runtime-alis) := 8a5e0e6f1d2bc5fcbe655e66703f3026b9d32668
 DIR(ada-runtime-alis) := ada-runtime-alis
