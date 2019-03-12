@@ -55,18 +55,9 @@ Init::Child::apply_config(Xml_node start_node)
 	Config_update config_update = CONFIG_UNCHANGED;
 
 	/*
-	 * Import new start node if new version differs
+	 * Import new start node if it differs
 	 */
 	if (start_node.differs_from(_start_node->xml())) {
-
-		/*
-		 * Check for a change of the version attribute, force restart
-		 * if the version changed.
-		 */
-		if (_version != start_node.attribute_value("version", Version())) {
-			abandon();
-			return MAY_HAVE_SIDE_EFFECTS;
-		}
 
 		/*
 		 * Start node changed

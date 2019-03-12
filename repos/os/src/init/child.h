@@ -35,6 +35,8 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 {
 	public:
 
+		typedef String<80> Version;
+
 		/**
 		 * Exception types
 		 */
@@ -87,7 +89,6 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 		/*
 		 * Version attribute of the start node, used to force child restarts.
 		 */
-		typedef String<80> Version;
 		Version _version { _start_node->xml().attribute_value("version", Version()) };
 
 		/*
@@ -487,6 +488,8 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 		 * Return true if the child has the specified name
 		 */
 		bool has_name(Child_policy::Name const &str) const { return str == name(); }
+
+		bool has_version(Version const &version) const { return version == _version; }
 
 		Ram_quota ram_quota() const { return _resources.assigned_ram_quota; }
 		Cap_quota cap_quota() const { return _resources.assigned_cap_quota; }

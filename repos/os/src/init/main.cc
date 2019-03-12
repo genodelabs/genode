@@ -249,11 +249,10 @@ void Init::Main::_abandon_obsolete_children()
 {
 	_children.for_each_child([&] (Child &child) {
 
-		Child_policy::Name const name = child.name();
-
 		bool obsolete = true;
 		_config_xml.for_each_sub_node("start", [&] (Xml_node node) {
-			if (node.attribute_value("name", Child_policy::Name()) == name)
+			if (child.has_name   (node.attribute_value("name", Child_policy::Name()))
+			 && child.has_version(node.attribute_value("version", Child::Version())))
 				obsolete = false; });
 
 		if (obsolete)
