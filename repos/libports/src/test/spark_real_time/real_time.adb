@@ -22,11 +22,11 @@ begin
 
    if Diff > Microseconds (5050000)
    then
-      GNAT.IO.Put_Line ("Slept too long");
+      GNAT.IO.Put_Line ("Error: Slept too long");
       Ada.Command_Line.Set_Exit_Status (1);
    elsif Diff < Microseconds (4950000)
    then
-      GNAT.IO.Put_Line ("Slept too short");
+      GNAT.IO.Put_Line ("Error: Slept too short");
       Ada.Command_Line.Set_Exit_Status (2);
    else
       GNAT.IO.Put_Line ("Slept OK");

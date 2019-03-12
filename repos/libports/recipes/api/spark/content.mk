@@ -20,10 +20,15 @@ MIRROR_FROM_ADA_RT_DIR := \
 	)\
 	$(addprefix ada-runtime/src/lib/,\
 		ss_utils.ads \
+	)\
+	$(addprefix ada-runtime/src/common/,\
+		a-reatim.ads \
 	)
 
 MIRROR_FROM_ADA_ALI_DIR := \
 	ada.ali \
+	a-reatim.ali \
+	s-arit64.ali \
 	ada_exceptions.ali \
 	a-except.ali \
 	g-io.ali \

@@ -1,26 +1,35 @@
-set build_components {
-	core init timer
-	server/log_terminal
-	test/spark_real_time
-}
+<runtime ram="32M" caps="1000" binary="init">
 
-set config {
+	<requires> <timer/> </requires>
+
+	<events>
+		<timeout meaning="failed" sec="20" />
+		<log meaning="succeeded">
+			[init -> terminal] Slept OK*
+			[init] child "test-spark_real_time" exited with exit value 0
+		</log>
+		<log meaning="failed">[init -> terminal] Error:</log>
+	</events>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="spark.lib.so"/>
+		<rom label="test-spark_real_time"/>
+		<rom label="log_terminal"/>
+	</content>
+
 	<config>
 		<parent-provides>
 			<service name="LOG"/>
 			<service name="PD"/>
 			<service name="CPU"/>
 			<service name="ROM"/>
+			<service name="Timer"/>
 		</parent-provides>
 		<default-route>
 			<any-service> <parent/> </any-service>
 		</default-route>
 		<default caps="100"/>
-
-		<start name="timer">
-			<resource name="RAM" quantum="1M"/>
-			<provides><service name="Timer"/></provides>
-		</start>
 
 		<start name="terminal">
 			<binary name="log_terminal"/>
@@ -33,25 +42,8 @@ set config {
 			<config ld_verbose="yes"/>
 			<route>
 				<service name="Terminal"> <child name="terminal"/> </service>
-				<service name="Timer"> <child name="timer"/> </service>
 				<any-service> <parent/> <any-child/> </any-service>
 			</route>
 		</start>
 	</config>
-}
-
-set boot_modules {
-	core init log_terminal timer
-	ld.lib.so spark.lib.so
-	test-spark_real_time
-}
-
-build $build_components
-create_boot_directory
-install_config $config
-
-#append_platform_drv_boot_modules
-build_boot_image $boot_modules
-append qemu_args " -nographic  "
-
-run_genode_until "child \"test-spark_real_time\" exited with exit value 0" 20
+</runtime>

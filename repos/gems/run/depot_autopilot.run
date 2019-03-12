@@ -649,6 +649,7 @@ set default_test_pkgs {
 	test-spark
 	test-spark_exception
 	test-spark_secondary_stack
+	test-spark_real_time
 	test-block
 	test-block_cache
 	test-clipboard
