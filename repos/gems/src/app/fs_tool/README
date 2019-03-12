@@ -1,0 +1,13 @@
+The fs_tool component performs a sequence of file operations on a locally
+configured VFS. The file operations are given the configuration as follows:
+
+! <config exit="yes">
+!   <vfs>
+!     ...
+!   </vfs>
+!   <remove-file path="/path/to/file" />
+! </config>
+
+The 'exit="yes"' attribute instructs the component to exit after completing
+the sequence. Otherwise, the component keeps responding to configuration
+changes by executing the operations found in the updated configurations.

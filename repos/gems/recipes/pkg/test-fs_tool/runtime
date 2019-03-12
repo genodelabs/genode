@@ -1,0 +1,123 @@
+<runtime ram="32M" caps="1000" binary="init">
+
+	<events>
+		<timeout meaning="failed" sec="10" />
+		<log meaning="succeeded">
+			[init -> report_rom] report 'fs_query -> listing'*
+			[init -> report_rom]   &lt;listing>*
+			[init -> report_rom]   	&lt;dir path="/fs/items">*
+			[init -> report_rom]   		&lt;file name="1">first&lt;/file>*
+			[init -> report_rom]   		&lt;file name="2">second&lt;/file>*
+			[init -> report_rom]   	&lt;/dir>*
+			[init -> report_rom]   &lt;/listing>*
+			[init -> test -> remove] Warning: file/items cannot be removed because it is a directory*
+			[init -> test -> remove] remove file /items/2*
+			[init -> test -> remove] Warning: file/3 cannot be removed because there is no such file*
+			[init -> test -> remove] remove file /4*
+			[init -> report_rom] report 'fs_query -> listing'*
+			[init -> report_rom]   &lt;listing>*
+			[init -> report_rom]   	&lt;dir path="/fs/items">*
+			[init -> report_rom]   		&lt;file name="1">first&lt;/file>*
+			[init -> report_rom]   	&lt;/dir>*
+			[init -> report_rom]   &lt;/listing>*
+		</log>
+	</events>
+
+	<content>
+		<rom label="ld.lib.so"/>
+		<rom label="report_rom"/>
+		<rom label="sequence"/>
+		<rom label="vfs"/>
+		<rom label="vfs.lib.so"/>
+		<rom label="vfs_import.lib.so"/>
+		<rom label="fs_query"/>
+		<rom label="fs_tool"/>
+		<rom label="dummy"/>
+	</content>
+
+	<config>
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="LOG"/>
+			<service name="RM"/>
+			<service name="CPU"/>
+			<service name="PD"/>
+			<service name="Timer"/>
+		</parent-provides>
+
+		<default-route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</default-route>
+
+		<default caps="100"/>
+
+		<start name="report_rom">
+			<resource name="RAM" quantum="1M"/>
+			<provides> <service name="Report"/> <service name="ROM"/> </provides>
+			<config verbose="yes"/>
+		</start>
+
+		<start name="vfs">
+			<resource name="RAM" quantum="4M"/>
+			<provides><service name="File_system"/></provides>
+			<config>
+				<vfs>
+					<ram/>
+					<import>
+						<dir name="items">
+							<inline name="1">first</inline>
+							<inline name="2">second</inline>
+						</dir>
+						<inline name="4">fourth</inline>
+					</import>
+				</vfs>
+				<default-policy root="/" writeable="yes"/>
+			</config>
+		</start>
+
+		<start name="fs_query">
+			<resource name="RAM" quantum="1M"/>
+			<config>
+				<vfs> <dir name="fs"> <fs writeable="yes"/> </dir> </vfs>
+				<query path="/fs/items" content="yes"/>
+			</config>
+		</start>
+
+		<start name="test" caps="700">
+			<binary name="sequence"/>
+			<resource name="RAM" quantum="16M"/>
+			<config>
+				<start name="sleep" caps="100">
+					<resource name="RAM" quantum="4M"/>
+					<binary name="dummy"/>
+					<config>
+						<sleep ms="500"/>
+						<exit/>
+					</config>
+				</start>
+
+				<start name="remove" caps="500">
+					<binary name="fs_tool"/>
+					<config verbose="yes" exit="yes">
+						<vfs>
+							<fs writeable="yes"/>
+						</vfs>
+						<remove-file path="/items"/>   <!-- is no file -->
+						<remove-file path="/items/2"/> <!-- should succeed -->
+						<remove-file path="/3"/>       <!-- does not exist -->
+						<remove-file path="/4"/>       <!-- should succeed -->
+					</config>
+				</start>
+
+				<start name="sleep" caps="100">
+					<resource name="RAM" quantum="4M"/>
+					<binary name="dummy"/>
+					<config>
+						<log string="sleep forever..."/>
+					</config>
+				</start>
+
+			</config>
+		</start>
+	</config>
+</runtime>
