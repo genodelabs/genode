@@ -29,12 +29,16 @@ struct Sculpt::Child_exit_state
 	int  code   = 0;
 
 	typedef String<64> Name;
+	typedef String<16> Version;
+
+	Version version { };
 
 	Child_exit_state(Xml_node init_state, Name const &name)
 	{
 		init_state.for_each_sub_node("child", [&] (Xml_node child) {
 			if (child.attribute_value("name", Name()) == name) {
 				exists = true;
+				version = child.attribute_value("version", Version());
 				if (child.has_attribute("exited")) {
 					exited = true;
 					code = child.attribute_value("exited", 0L);

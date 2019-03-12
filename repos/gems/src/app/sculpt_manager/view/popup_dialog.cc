@@ -307,6 +307,8 @@ void Popup_dialog::click(Action &action)
 
 			if (!_index_avail(clicked))
 				action.trigger_download(_index_path(clicked));
+			else
+				action.remove_index(clicked);
 		}
 	}
 

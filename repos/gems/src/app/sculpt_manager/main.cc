@@ -24,6 +24,7 @@
 /* local includes */
 #include <model/runtime_state.h>
 #include <model/child_exit_state.h>
+#include <model/file_operation_queue.h>
 #include <view/download_status.h>
 #include <view/popup_dialog.h>
 #include <gui.h>
@@ -49,6 +50,8 @@ struct Sculpt::Main : Input_event_handler,
 	Env &_env;
 
 	Heap _heap { _env.ram(), _env.rm() };
+
+	Sculpt_version const _sculpt_version { _env };
 
 	Constructible<Nitpicker::Connection> _nitpicker { };
 
@@ -187,6 +190,10 @@ struct Sculpt::Main : Input_event_handler,
 	}
 
 	Download_queue _download_queue { _heap };
+
+	File_operation_queue _file_operation_queue { _heap };
+
+	Fs_tool_version _fs_tool_version { 0 };
 
 
 	/*****************
@@ -593,6 +600,21 @@ struct Sculpt::Main : Input_event_handler,
 
 		/* incorporate new download-queue content into update */
 		_deploy.update_installation();
+
+		generate_runtime_config();
+	}
+
+	void remove_index(Depot::Archive::User const &user) override
+	{
+		auto remove = [&] (Path const &path) {
+			_file_operation_queue.remove_file(path); };
+
+		remove(Path("/rw/depot/",  user, "/index/", _sculpt_version));
+		remove(Path("/rw/public/", user, "/index/", _sculpt_version, ".xz"));
+		remove(Path("/rw/public/", user, "/index/", _sculpt_version, ".xz.sig"));
+
+		if (!_file_operation_queue.any_operation_in_progress())
+			_file_operation_queue.schedule_next_operations();
 
 		generate_runtime_config();
 	}
@@ -1146,6 +1168,30 @@ void Sculpt::Main::_handle_runtime_state()
 		}
 	}
 
+	/* schedule pending file operations to new fs_tool instance */
+	{
+		Child_exit_state exit_state(state, "fs_tool");
+
+		if (exit_state.exited) {
+
+			Child_exit_state::Version const expected_version(_fs_tool_version.value);
+
+			if (exit_state.version == expected_version) {
+
+				_file_operation_queue.schedule_next_operations();
+				_fs_tool_version.value++;
+				reconfigure_runtime = true;
+
+				/*
+				 * The removal of an index file may have completed, re-query index
+				 * files to reflect this change at the depot selection menu.
+				 */
+				if (_popup_dialog.interested_in_file_operations())
+					trigger_depot_query();
+			}
+		}
+	}
+
 	/* upgrade RAM and cap quota on demand */
 	state.for_each_sub_node("child", [&] (Xml_node child) {
 
@@ -1242,6 +1288,13 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 
 		chroot("depot", "/depot",  READ_ONLY);
 	}
+
+	/* execute file operations */
+	if (_storage._sculpt_partition.valid())
+		if (_file_operation_queue.any_operation_in_progress())
+			xml.node("start", [&] () {
+				gen_fs_tool_start_content(xml, _fs_tool_version,
+				                          _file_operation_queue); });
 
 	_network.gen_runtime_start_nodes(xml);
 

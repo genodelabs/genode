@@ -73,6 +73,11 @@ namespace Sculpt {
 	struct Prepare_version { unsigned value; };
 	void gen_prepare_start_content(Xml_generator &, Prepare_version);
 
+	struct Fs_tool_version { unsigned value; };
+	struct File_operation_queue;
+	void gen_fs_tool_start_content(Xml_generator &, Fs_tool_version,
+                                   File_operation_queue const &);
+
 	void gen_ram_fs_start_content(Xml_generator &, Ram_fs_state const &);
 
 	void gen_update_start_content(Xml_generator &);

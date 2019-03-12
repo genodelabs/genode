@@ -98,6 +98,7 @@ struct Sculpt::Popup_dialog
 		virtual void launch_construction() = 0;
 
 		virtual void trigger_download(Path const &) = 0;
+		virtual void remove_index(Depot::Archive::User const &) = 0;
 	};
 
 	Construction_info const &_construction_info;
@@ -480,6 +481,11 @@ struct Sculpt::Popup_dialog
 			return true;
 
 		return _state >= PKG_REQUESTED && _pkg_missing;
+	}
+
+	bool interested_in_file_operations() const
+	{
+		return _state == DEPOT_SELECTION;
 	}
 };
 

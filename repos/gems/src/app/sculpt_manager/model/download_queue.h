@@ -122,4 +122,4 @@ struct Sculpt::Download_queue : Noncopyable
 	}
 };
 
-#endif /* _MODEL__ROUTE_H_ */
+#endif /* _MODEL__DOWNLOAD_QUEUE_H_ */

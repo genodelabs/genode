@@ -135,6 +135,10 @@ struct Sculpt::Graph
 					/* omit sculpt's helpers from the graph */
 					bool const blacklisted = (name == "runtime_view"
 					                       || name == "launcher_query"
+					                       || name == "update"
+					                       || name == "fs_tool"
+					                       || name == "depot_rw"
+					                       || name == "public_rw"
 					                       || name == "depot_rom"
 					                       || name == "dynamic_depot_rom"
 					                       || name == "depot_query");
