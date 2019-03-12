@@ -283,6 +283,11 @@ struct Genode::Directory : Noncopyable, Interface
 
 			return Path(Genode::Cstring(buf, out_count));
 		}
+
+		void unlink(Path const &rel_path)
+		{
+			_fs.unlink(join(_path, rel_path).string());
+		}
 };
 
 
