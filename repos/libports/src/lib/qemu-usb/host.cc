@@ -190,10 +190,10 @@ struct Dev_info
 	bool operator != (Dev_info const &other) const
 	{
 		if (bus && dev)
-			return bus != other.bus && dev != other.dev;
+			return bus != other.bus || dev != other.dev;
 
 		if (vendor && product)
-			return vendor != other.vendor && product != other.product;
+			return vendor != other.vendor || product != other.product;
 
 		return true;
 	}
