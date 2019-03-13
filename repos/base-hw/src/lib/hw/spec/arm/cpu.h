@@ -265,6 +265,36 @@ struct Hw::Arm_cpu
 		asm volatile("dsb\n"
 		             "isb\n");
 	}
+
+	static inline void wait_for_xchg(volatile void * addr,
+	                                 unsigned long new_value,
+	                                 unsigned long expected_value)
+	{
+		asm volatile(
+			/* check if load value of 'addr' is as expected */
+			"1: ldrex r7, [%0]    \n"
+			"cmp r7, %2           \n"
+
+			/* if not, wait for other CPU to send us an event */
+			"wfene                \n"
+
+			/* if yes, attempt to write 'new_value' to 'addr' */
+			"strexeq r7, %1, [%0] \n"
+
+			/* if write failed, restart */
+			"cmpeq r7, #0         \n"
+			"bne 1b               \n"
+			"dmb                  \n"
+		:: "r"(addr), "r"(new_value), "r"(expected_value) : "cc", "r7");
+	}
+
+	static inline void wakeup_waiting_cpus()
+	{
+		asm volatile(
+			"dsb \n"
+			"sev \n"
+		);
+	}
 };
 
 #endif /* _SRC__LIB__HW__SPEC__ARM__CPU_H_ */

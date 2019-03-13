@@ -20,6 +20,7 @@ SRC_S += spec/x86_64/exception_vector.s
 # add C++ sources
 SRC_CC += kernel/cpu_up.cc
 SRC_CC += kernel/vm_thread_on.cc
+SRC_CC += kernel/lock.cc
 SRC_CC += spec/x86/io_port_session_component.cc
 SRC_CC += spec/x86/io_port_session_support.cc
 SRC_CC += spec/x86_64/bios_data_area.cc

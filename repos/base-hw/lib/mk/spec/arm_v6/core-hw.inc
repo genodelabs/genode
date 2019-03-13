@@ -12,6 +12,7 @@ INC_DIR += $(BASE_DIR)/../base-hw/src/core/spec/arm_v6
 SRC_CC += spec/arm_v6/perf_counter.cc
 SRC_CC += kernel/vm_thread_off.cc
 SRC_CC += kernel/cpu_up.cc
+SRC_CC += kernel/lock.cc
 
 SRC_S  += spec/arm/vfpv2.s
 

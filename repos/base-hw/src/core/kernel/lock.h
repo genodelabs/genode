@@ -15,8 +15,6 @@
 #ifndef _CORE__SPEC__SMP__KERNEL__LOCK_H_
 #define _CORE__SPEC__SMP__KERNEL__LOCK_H_
 
-#include <hw/spin_lock.h>
-
 namespace Kernel
 {
 	class Lock;
@@ -31,8 +29,10 @@ class Kernel::Lock
 
 		enum { INVALID = ~0U };
 
-		Hw::Spin_lock     _lock { };
-		volatile unsigned _current_cpu { INVALID };
+		enum State { UNLOCKED, LOCKED };
+
+		State volatile    _locked      { UNLOCKED };
+		unsigned volatile _current_cpu { INVALID  };
 
 	public:
 

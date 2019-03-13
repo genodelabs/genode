@@ -35,8 +35,7 @@ void Kernel::Lock::lock()
 		            " error: re-entered lock. Kernel exception?!");
 	}
 
-	while (!Genode::cmpxchg((volatile int*)&_locked, UNLOCKED, LOCKED)) { ; }
-
+	Cpu::wait_for_xchg(&_locked, LOCKED, UNLOCKED);
 	_current_cpu = Cpu::executing_id();
 }
 
@@ -47,4 +46,5 @@ void Kernel::Lock::unlock()
 
 	Genode::memory_barrier();
 	_locked = UNLOCKED;
+	Cpu::wakeup_waiting_cpus();
 }
