@@ -167,8 +167,7 @@ HRESULT setupmachine(Genode::Env &env)
 
 	static Bstr gaFramebufferId[64];
 
-	unsigned uScreenId;
-	for (uScreenId = 0; uScreenId < cMonitors; uScreenId++)
+	for (unsigned uScreenId = 0; uScreenId < cMonitors; uScreenId++)
 	{
 		Genodefb *fb = new Genodefb(env);
 		HRESULT rc = display->AttachFramebuffer(uScreenId, fb, gaFramebufferId[uScreenId].asOutParam());
@@ -179,6 +178,12 @@ HRESULT setupmachine(Genode::Env &env)
 	/* Power up the VMM */
 	ComPtr <IProgress> progress;
 	rc = gConsole->PowerUp(progress.asOutParam());
+	if (FAILED(rc))
+		return rc;
+
+	/* check whether enough memory is available for VM + VMM */
+	ULONG const required_memory_vm = (13 * 1024 + 6 * memory_vbox) << 10;
+	rc = genode_check_memory_config(machine, required_memory_vm);
 	if (FAILED(rc))
 		return rc;
 
@@ -208,6 +213,25 @@ HRESULT setupmachine(Genode::Env &env)
 	Assert (&*gKeyboard);
 
 	genodeConsole->init_backends(gKeyboard, gMouse);
+
+	/* check whether enough memory for the fb is available */
+	ULONG required_memory_fb = 0;
+	for (unsigned uScreenId = 0; uScreenId < cMonitors; uScreenId++)
+	{
+		IFramebuffer * aFramebuffer = nullptr;
+		HRESULT rc = display->QueryFramebuffer(uScreenId, &aFramebuffer);
+		Genodefb * fb = dynamic_cast<Genodefb *>(aFramebuffer);
+		if (FAILED(rc) || !fb)
+			continue;
+
+		required_memory_fb += fb->w() * fb->h() * 4;
+	}
+	if (!required_memory_fb)
+		required_memory_fb = 4096 * 2160 * 4;
+
+	rc = genode_check_memory_config(machine, required_memory_fb);
+	if (FAILED(rc))
+		return rc;
 
 	return rc;
 }

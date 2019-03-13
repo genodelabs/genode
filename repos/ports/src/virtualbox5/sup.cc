@@ -376,30 +376,16 @@ void genode_VMMR0_DO_GVMM_REGISTER_VMCPU(PVMR0 pVMR0, VMCPUID idCpu)
 }
 
 
-HRESULT genode_check_memory_config(ComObjPtr<Machine> machine)
+HRESULT genode_check_memory_config(ComObjPtr<Machine>,
+                                   size_t const memory_vmm)
 {
-	HRESULT rc;
-
-	/* Validate configured memory of vbox file and Genode config */
-	ULONG memory_vbox;
-	rc = machine->COMGETTER(MemorySize)(&memory_vbox);
-	if (FAILED(rc))
-		return rc;
-
 	/* Request max available memory */
-	size_t memory_genode = genode_env().pd().avail_ram().value >> 20;
-	size_t memory_vmm    = 28;
+	size_t const memory_available = genode_env().pd().avail_ram().value;
 
-	if (memory_vbox + memory_vmm > memory_genode) {
-		using Genode::error;
-		error("Configured memory ", memory_vbox, " MB (vbox file) is insufficient.");
-		error(memory_genode,              " MB (1) - ",
-		      memory_vmm,                 " MB (2) = ",
-		      memory_genode - memory_vmm, " MB (3)");
-		error("(1) available memory based defined by Genode config");
-		error("(2) minimum memory required for VBox VMM");
-		error("(3) maximal available memory to VM");
-		return E_FAIL;
-	}
-	return S_OK;
+	if (memory_vmm <= memory_available)
+		return S_OK;
+
+	Genode::error("Available memory too low to start the VM - available: ",
+	              memory_vmm, "MB < ", memory_available, "MB requested");
+	return E_FAIL;
 }

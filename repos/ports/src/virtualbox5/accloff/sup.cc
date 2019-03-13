@@ -127,7 +127,14 @@ void genode_update_tsc(void (*update_func)(void), unsigned long update_us)
 
 HRESULT genode_setup_machine(ComObjPtr<Machine> machine)
 {
-	return genode_check_memory_config(machine);
+	ULONG memory_vbox;
+	HRESULT rc = machine->COMGETTER(MemorySize)(&memory_vbox);
+	if (FAILED(rc))
+		return rc;
+
+	size_t const vmm_memory = 1024ULL * 1024 * (memory_vbox + 16);
+
+	return genode_check_memory_config(machine, vmm_memory);
 }
 
 

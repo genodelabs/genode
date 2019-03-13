@@ -26,7 +26,7 @@
 #include "MachineImpl.h"
 HRESULT genode_setup_machine(ComObjPtr<Machine> machine);
 
-HRESULT genode_check_memory_config(ComObjPtr<Machine> machine);
+HRESULT genode_check_memory_config(ComObjPtr<Machine> machine, size_t);
 
 /**
  * Returns true if a vCPU could be started. If false we run without

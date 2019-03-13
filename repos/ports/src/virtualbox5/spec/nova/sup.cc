@@ -170,10 +170,11 @@ HRESULT genode_setup_machine(ComObjPtr<Machine> machine)
 	 * - second chunkid (1..2) is reserved for handy pages allocation
 	 * - another chunkid is used additional for handy pages but as large page
 	 */
-	HRESULT ret = genode_check_memory_config(machine);
-
+	size_t const vmm_memory = 1024ULL * 1024 * (memory_vbox + 16) +
+	                          (CHUNKID_START + 1) * GMM_CHUNK_SIZE;
+	HRESULT ret = genode_check_memory_config(machine, vmm_memory);
 	if (ret == VINF_SUCCESS)
-		vm_memory(1024ULL * 1024 * memory_vbox + (CHUNKID_START + 1) * GMM_CHUNK_SIZE);
+		vm_memory(vmm_memory);
 
 	return ret;
 };
