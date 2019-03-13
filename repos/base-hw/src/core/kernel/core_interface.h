@@ -68,7 +68,8 @@ namespace Kernel
 	 *
 	 * Kernel and/or hardware may cache parts of a domain configuration. This
 	 * function ensures that the in-memory state of the targeted domain gets
-	 * CPU-locally effective.
+	 * CPU-locally effective. The calling thread must not be destroyed while
+	 * in this syscall.
 	 */
 	inline void update_pd(Pd * const pd)
 	{
