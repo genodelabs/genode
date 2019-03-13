@@ -2,6 +2,14 @@
 # Build components
 #
 
+proc test_timeout { } {
+	if {[have_spec foc] && [have_spec x86_64] && [have_include power_on/qemu]} {
+		return 150
+	} else {
+		return 60
+	}
+}
+
 proc enable_test_1 { } { return 1 }
 proc enable_test_2 { } { return 1 }
 proc enable_test_3 { } { return 1 }
@@ -368,4 +376,4 @@ for {set i 0} {$i < $nr_of_clients} {incr i 1} {
 	append done_string {.*Test done.*\n}
 }
 
-run_genode_until $done_string 60
+run_genode_until $done_string [test_timeout]
