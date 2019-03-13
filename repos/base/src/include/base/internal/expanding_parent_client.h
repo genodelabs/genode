@@ -93,6 +93,20 @@ class Genode::Expanding_parent_client : public Parent_client
 		 ** Parent interface **
 		 **********************/
 
+		void exit(int exit_value) override
+		{
+			try {
+				Parent_client::exit(exit_value);
+			} catch (Genode::Ipc_error) {
+				/*
+				 * This can happen if the child is being destroyed before
+				 * calling 'exit()'. Catching the exception avoids an
+				 * 'abort()' loop with repeated error messages, because
+				 * 'abort()' calls 'exit()' too.
+				 */
+			}
+		}
+
 		Session_capability session(Client::Id          id,
 		                           Service_name const &name,
 		                           Session_args const &args,
