@@ -12,7 +12,7 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#include <hw/spec/arm/cpu.h>
+#include <spec/arm/cpu.h>
 
 /**
  * Helpers that increase readability of MCR and MRC commands
@@ -128,7 +128,7 @@
 	::: "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8", "r9"
 
 
-void Hw::Arm_cpu::invalidate_data_cache()
+void Bootstrap::Cpu::invalidate_data_cache()
 {
 	/**
 	 * Data Cache Invalidate by Set/Way for all Set/Way
@@ -139,7 +139,7 @@ void Hw::Arm_cpu::invalidate_data_cache()
 }
 
 
-void Hw::Arm_cpu::clean_invalidate_data_cache()
+void Bootstrap::Cpu::clean_invalidate_data_cache()
 {
 	/**
 	 * Data Cache Clean by Set/Way for all Set/Way

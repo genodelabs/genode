@@ -8,7 +8,6 @@
 INC_DIR += $(BASE_DIR)/../base-hw/src/core/spec/arm_v7
 
 # add C++ sources
-SRC_CC += spec/arm_v7/cpu.cc
 SRC_CC += spec/arm_v7/perf_counter.cc
 
 SRC_S  += spec/arm/vfpv3-d32.cc

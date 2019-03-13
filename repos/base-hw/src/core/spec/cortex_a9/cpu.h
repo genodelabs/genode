@@ -24,24 +24,6 @@ namespace Genode { struct Cpu; }
 struct Genode::Cpu : Arm_v7_cpu
 {
 	/**
-	 * Write back dirty cache lines and invalidate whole data cache
-	 */
-	void clean_invalidate_data_cache()
-	{
-		clean_invalidate_inner_data_cache();
-		Board::l2_cache().clean_invalidate();
-	}
-
-	/**
-	 * Invalidate whole data cache
-	 */
-	void invalidate_data_cache()
-	{
-		invalidate_inner_data_cache();
-		Board::l2_cache().invalidate();
-	}
-
-	/**
 	 * Clean and invalidate data-cache for virtual region
 	 * 'base' - 'base + size'
 	 */

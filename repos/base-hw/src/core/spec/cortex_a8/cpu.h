@@ -24,18 +24,6 @@ namespace Genode { struct Cpu; }
 struct Genode::Cpu : Arm_v7_cpu
 {
 	/**
-	 * Write back dirty cache lines and invalidate the whole cache
-	 */
-	static void clean_invalidate_data_cache() {
-		clean_invalidate_inner_data_cache(); }
-
-	/**
-	 * Invalidate all cache lines
-	 */
-	static void invalidate_data_cache() {
-		invalidate_inner_data_cache(); }
-
-	/**
 	 * Post processing after a translation was added to a translation table
 	 *
 	 * \param addr  virtual address of the translation

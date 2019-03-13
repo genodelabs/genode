@@ -260,9 +260,6 @@ struct Hw::Arm_cpu
 	 ** Cache maintainance functions **
 	 **********************************/
 
-	static void clean_invalidate_data_cache();
-	static void invalidate_data_cache();
-
 	static inline void synchronization_barrier()
 	{
 		asm volatile("dsb\n"

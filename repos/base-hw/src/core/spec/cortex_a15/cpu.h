@@ -118,18 +118,6 @@ class Genode::Cpu : public Arm_v7_cpu
 		 */
 		static unsigned primary_id();
 
-		/**
-		 * Write back dirty cache lines and invalidate all cache lines
-		 */
-		void clean_invalidate_data_cache() {
-			clean_invalidate_inner_data_cache(); }
-
-		/**
-		 * Invalidate all cache lines
-		 */
-		void invalidate_data_cache() {
-			invalidate_inner_data_cache(); }
-
 		void switch_to(Context &, Mmu_context & mmu_context)
 		{
 			if (mmu_context.id() && (Ttbr0_64bit::read() != mmu_context.ttbr0))

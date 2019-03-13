@@ -32,16 +32,6 @@ struct Genode::Arm_v7_cpu : Arm_cpu
 	}
 
 	/**
-	 * Write back dirty lines of inner data cache and invalidate all
-	 */
-	static void clean_invalidate_inner_data_cache();
-
-	/**
-	 * Invalidate all lines of the inner data cache
-	 */
-	static void invalidate_inner_data_cache();
-
-	/**
 	 * Invalidate TLB for given address space id
 	 */
 	static void invalidate_tlb(unsigned asid)

@@ -84,20 +84,10 @@ struct Genode::Arm_cpu : public Hw::Arm_cpu
 	};
 
 	/**
-	 * Returns true if current execution context is running in user mode
-	 */
-	static bool is_user() { return Psr::M::get(Cpsr::read()) == Psr::M::USR; }
-
-	/**
 	 * Invalidate all entries of all instruction caches
 	 */
 	static void invalidate_instr_cache() {
 		asm volatile ("mcr p15, 0, %0, c7, c5, 0" :: "r" (0) : ); }
-
-	/**
-	 * Flush all entries of all data caches
-	 */
-	static void clean_invalidate_data_cache();
 
 	/**
 	 * Invalidate all branch predictions
@@ -112,8 +102,8 @@ struct Genode::Arm_cpu : public Hw::Arm_cpu
 	 * Clean and invalidate data-cache for virtual region
 	 * 'base' - 'base + size'
 	 */
-	void clean_invalidate_data_cache_by_virt_region(addr_t base,
-	                                                size_t const size)
+	static void clean_invalidate_data_cache_by_virt_region(addr_t base,
+	                                                       size_t const size)
 	{
 		addr_t const top = base + size;
 		base &= line_align_mask;

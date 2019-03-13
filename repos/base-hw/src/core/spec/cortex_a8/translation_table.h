@@ -34,8 +34,7 @@ void Hw::Page_table::_translation_added(unsigned long addr, unsigned long size)
 	 * page table entry is added. We only do this as core as the kernel
 	 * adds translations solely before MMU and caches are enabled.
 	 */
-	if (Genode::Cpu::is_user()) Kernel::update_data_region(addr, size);
-	else Genode::Cpu::clean_invalidate_data_cache();
+	Genode::Cpu::clean_invalidate_data_cache_by_virt_region(addr, size);
 }
 
 #endif /* _CORE__SPEC__CORTEX_A8__TRANSLATION_TABLE_H_ */

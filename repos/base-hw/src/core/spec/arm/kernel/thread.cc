@@ -56,19 +56,6 @@ void Kernel::Thread::_call_update_data_region()
 {
 	Cpu &cpu = cpu_pool().cpu(Cpu::executing_id());
 
-	/*
-	 * FIXME: If the caller is not a core thread, the kernel operates in a
-	 *        different address space than the caller. Combined with the fact
-	 *        that at least ARMv7 doesn't provide cache operations by physical
-	 *        address, this prevents us from selectively maintaining caches.
-	 *        The future solution will be a kernel that is mapped to every
-	 *        address space so we can use virtual addresses of the caller. Up
-	 *        until then we apply operations to caches as a whole instead.
-	 */
-	if (!_core) {
-		cpu.clean_invalidate_data_cache();
-		return;
-	}
 	auto base = (addr_t)user_arg_1();
 	auto const size = (size_t)user_arg_2();
 	cpu.clean_invalidate_data_cache_by_virt_region(base, size);
@@ -80,20 +67,6 @@ void Kernel::Thread::_call_update_instr_region()
 {
 	Cpu &cpu = cpu_pool().cpu(Cpu::executing_id());
 
-	/*
-	 * FIXME: If the caller is not a core thread, the kernel operates in a
-	 *        different address space than the caller. Combined with the fact
-	 *        that at least ARMv7 doesn't provide cache operations by physical
-	 *        address, this prevents us from selectively maintaining caches.
-	 *        The future solution will be a kernel that is mapped to every
-	 *        address space so we can use virtual addresses of the caller. Up
-	 *        until then we apply operations to caches as a whole instead.
-	 */
-	if (!_core) {
-		cpu.clean_invalidate_data_cache();
-		cpu.invalidate_instr_cache();
-		return;
-	}
 	auto base = (addr_t)user_arg_1();
 	auto const size = (size_t)user_arg_2();
 	cpu.clean_invalidate_data_cache_by_virt_region(base, size);
