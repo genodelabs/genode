@@ -30,6 +30,7 @@ struct Block::Request
 	Genode::uint64_t  block_number;
 	Genode::uint64_t  offset;
 	Genode::uint32_t  count;
+	Genode::uint32_t  tag;
 
 	bool operation_defined() const
 	{

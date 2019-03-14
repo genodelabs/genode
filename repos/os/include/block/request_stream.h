@@ -196,7 +196,8 @@ class Block::Request_stream : Genode::Noncopyable
 				                  .success      = Request::Success::FALSE,
 				                  .block_number = (uint64_t)packet.block_number(),
 				                  .offset       = (uint64_t)packet.offset(),
-				                  .count        = (uint32_t)packet.block_count() };
+				                  .count        = (uint32_t)packet.block_count(),
+				                  .tag          = 0};
 
 				Response const response = packet_valid
 				                        ? fn(request)
