@@ -1,4 +1,10 @@
-INC_DIR += $(REP_DIR)/src/core/spec/riscv
+#
+# evaluate bbl_dir immediately, otherwise it won't recognize
+# missing ports when checking library dependencies
+#
+BBL_DIR := $(call select_from_ports,bbl)/src/lib/bbl
+
+INC_DIR += $(REP_DIR)/src/core/spec/riscv $(BBL_DIR)
 
 CC_OPT += -fno-delete-null-pointer-checks
 

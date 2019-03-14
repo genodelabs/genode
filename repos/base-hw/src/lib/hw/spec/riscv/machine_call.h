@@ -16,41 +16,33 @@
 #ifndef _SRC__LIB__HW__SPEC__RISCV__MACHINE_CALL_H_
 #define _SRC__LIB__HW__SPEC__RISCV__MACHINE_CALL_H_
 
-#include <kernel/interface.h>
+using uintptr_t = unsigned long;
+#include <bbl/mcall.h>
 
 namespace Hw {
-	using Kernel::addr_t;
-	using Kernel::Call_arg;
-	using Genode::uint64_t;
 
-	/**
-	 * SBI calls to machine mode.
-	 *
-	 * Keep in sync with exception_vector.s.
-	 */
-	constexpr Call_arg call_id_set_sys_timer() { return 200; }
-	constexpr Call_arg call_id_get_sys_timer() { return 201; }
-
-	inline addr_t ecall(addr_t call, addr_t arg)
+	inline unsigned long ecall(unsigned long id, unsigned long a0,
+	                           unsigned long a1)
 	{
 		asm volatile ("mv a0, %0\n"
 		              "mv a1, %1\n"
+		              "mv a2, %2\n"
 		              "ecall    \n"
 		              "mv %0, a0\n"
-		              :  "+r"(call) : "r"(arg)
-		              : "a0", "a1");
-		return call;
+		              :  "+r"(id) : "r"(a0), "r"(a1)
+		              : "a0", "a1", "a2");
+		return id;
 	}
 
-	inline void put_char(addr_t c) {
-		ecall(Kernel::call_id_print_char(), c);
+	inline void put_char(unsigned long c) {
+		ecall(MCALL_CONSOLE_PUTCHAR, c, /* unused arg */ 0);
 	}
 
-	inline void set_sys_timer(addr_t t) {
-		Kernel::call(call_id_set_sys_timer(), (Call_arg)t); }
+	inline void set_sys_timer(unsigned long t) {
+		ecall(MCALL_SET_TIMER, t, /* unused arg */ 0); }
 
-	inline addr_t get_sys_timer() {
-		return Kernel::call(call_id_get_sys_timer()); }
+	inline unsigned long get_sys_timer() {
+		return ecall(MCALL_GET_TIMER, /* unused args */ 0, 0); }
 }
 
 #endif /* _SRC__LIB__HW__SPEC__RISCV__MACHINE_CALL_H_ */
