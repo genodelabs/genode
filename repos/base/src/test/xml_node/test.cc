@@ -413,6 +413,13 @@ void Component::construct(Genode::Env &env)
 	test_decoded_content<0   >(env, 5, xml_test_comments, 8, 119);
 	log("");
 
+	log("-- Test iterating over invalid node --");
+	{
+		/* this must not raise a 'Nonexistent_sub_node' exception */
+		Xml_node("<a><b></c></a>").for_each_sub_node("c", [&] (Xml_node) { });
+	}
+	log("");
+
 	log("--- End of XML-parser test ---");
 	env.parent().exit(0);
 }

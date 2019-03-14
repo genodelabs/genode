@@ -891,15 +891,17 @@ class Genode::Xml_node
 			if (_num_sub_nodes == 0)
 				return;
 
-			Xml_node node = sub_node();
-			for (int i = 0; ; node = node.next()) {
+			try {
+				Xml_node node = sub_node();
+				for (int i = 0; ; node = node.next()) {
 
-				if (!type || node.has_type(type))
-					fn(node);
+					if (!type || node.has_type(type))
+						fn(node);
 
-				if (++i == _num_sub_nodes)
-					break;
-			}
+					if (++i == _num_sub_nodes)
+						break;
+				}
+			} catch (Nonexistent_sub_node) { }
 		}
 
 		/**
