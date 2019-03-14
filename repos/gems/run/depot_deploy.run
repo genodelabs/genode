@@ -255,7 +255,7 @@ file copy -force [genode_dir]/repos/gems/run/sculpt/fonts.config [run_dir]/genod
 # Pin the nitpicker focus to the window manager by providing a static focus ROM
 #
 set fd [open [run_dir]/genode/focus w]
-puts $fd "<focus label=\"dynamic -> wm -> wm -> \"/>"
+puts $fd "<focus label=\"dynamic -> wm -> focus\"/>"
 close $fd
 
 build_boot_image { depot_query depot_deploy }

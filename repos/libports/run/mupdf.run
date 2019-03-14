@@ -110,7 +110,7 @@ if {![file exist bin/test.pdf]} {
 # Pin the nitpicker focus to the window manager by providing a static focus ROM
 #
 set fd [open [run_dir]/genode/focus w]
-puts $fd "<focus label=\"wm -> wm -> \"/>"
+puts $fd "<focus label=\"wm -> focus\"/>"
 close $fd
 
 append boot_modules {

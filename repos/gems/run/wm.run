@@ -146,7 +146,7 @@ install_config {
 # Pin the nitpicker focus to the window manager by providing a static focus ROM
 #
 set fd [open [run_dir]/genode/focus w]
-puts $fd "<focus label=\"wm -> wm -> \"/>"
+puts $fd "<focus label=\"wm -> focus\"/>"
 close $fd
 
 file copy -force [genode_dir]/repos/gems/recipes/raw/motif_wm/wm.config [run_dir]/genode/
