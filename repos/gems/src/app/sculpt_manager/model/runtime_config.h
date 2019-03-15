@@ -322,6 +322,7 @@ class Sculpt::Runtime_config
 				_vimrc     { _r, Type::ROM,         "default vim configuration",      "config -> vimrc" },
 				_fonts     { _r, Type::ROM,         "system font configuration",      "config -> managed/fonts" },
 				_pf_info   { _r, Type::ROM,         "platform information",           "platform_info" },
+				_system    { _r, Type::ROM,         "system status",                  "config -> system" },
 				_report    { _r, Type::REPORT,      "system reports" },
 				_rm        { _r, Type::RM,          "custom virtual memory objects" },
 				_io_mem    { _r, Type::IO_MEM,      "raw hardware access" },
