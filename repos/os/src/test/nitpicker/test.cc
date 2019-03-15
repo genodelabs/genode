@@ -161,6 +161,14 @@ void Component::construct(Genode::Env &env)
 		return;
 	}
 
+	/* bad-case test */
+	{
+		/* issue #3232 */
+		Nitpicker::Session::View_handle handle { nitpicker.create_view() };
+		nitpicker.destroy_view(handle);
+		nitpicker.destroy_view(handle);
+	}
+
 	Genode::Attached_dataspace fb_ds(
 		env.rm(), nitpicker.framebuffer()->dataspace());
 
@@ -169,7 +177,7 @@ void Component::construct(Genode::Env &env)
 	unsigned char *input_mask = CONFIG_ALPHA ? alpha + scr_w*scr_h : 0;
 
 	/*
-	 * Paint some crap into pixel buffer, fill alpha channel and input-mask buffer
+	 * Paint into pixel buffer, fill alpha channel and input-mask buffer
 	 *
 	 * Input should refer to the view if the alpha value is more than 50%.
 	 */

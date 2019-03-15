@@ -345,16 +345,22 @@ void Session_component::destroy_view(View_handle handle)
 	 */
 	for (Session_view_list_elem *v = _view_list.first(); v; v = v->next()) {
 
-		try {
-			View_component &view = *static_cast<View_component *>(v);
-			if (_view_handle_registry.has_handle(view, handle)) {
-				_destroy_view(view);
-				break;
-			}
-		} catch (View_handle_registry::Lookup_failed) { }
-	}
+		auto handle_matches = [&] (View_component const &view)
+		{
+			try { return _view_handle_registry.has_handle(view, handle); }
 
-	_view_handle_registry.free(handle);
+			/* 'Handle_registry::has_handle' may throw */
+			catch (...) { return false; };
+		};
+
+		View_component &view = *static_cast<View_component *>(v);
+
+		if (handle_matches(view)) {
+			_destroy_view(view);
+			_view_handle_registry.free(handle);
+			break;
+		}
+	}
 }
 
 
