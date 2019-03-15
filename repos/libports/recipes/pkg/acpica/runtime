@@ -5,6 +5,9 @@
 		<io_port/>
 		<irq/>
 		<platform/>
+		<rom label="platform_info"/>
+		<rom label="system"/>
+		<report/>
 		<timer/>
 	</requires>
 
@@ -13,6 +16,6 @@
 		<rom label="acpica"/>
 	</content>
 
-	<config/>
+	<config reset="yes" poweroff="yes" report="yes"/>
 
 </runtime>
