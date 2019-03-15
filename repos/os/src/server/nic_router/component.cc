@@ -223,6 +223,8 @@ Session_component *Net::Root::_create_session(char const *args)
 
 void Net::Root::_destroy_session(Session_component *session)
 {
+	Mac_address const mac = session->mac_address();
+
 	/* read out initial dataspace and session env and destruct session */
 	Ram_dataspace_capability  ram_ds        { session->ram_ds() };
 	Session_env        const &session_env   { session->session_env() };
@@ -234,6 +236,8 @@ void Net::Root::_destroy_session(Session_component *session)
 	session_env_stack.detach(session);
 	session_env_stack.detach(&session_env);
 	session_env_stack.free(ram_ds);
+
+	_mac_alloc.free(mac);
 
 	/* check for leaked quota */
 	if (session_env_stack.ram_guard().used().value) {

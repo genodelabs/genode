@@ -68,7 +68,7 @@ class Net::Address_node : public Genode::Avl_node<Address_node<ADDRESS> >,
 		 ***************/
 
 		void               addr(Address addr) { _addr = addr;      }
-		Address            addr()             { return _addr;      }
+		Address            addr()       const { return _addr;      }
 		Session_component &component()        { return _component; }
 
 

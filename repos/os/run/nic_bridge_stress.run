@@ -1,0 +1,2 @@
+set type "nic_bridge"
+source ${genode_dir}/repos/os/run/nic_stress.inc

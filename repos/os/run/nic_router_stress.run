@@ -1,0 +1,2 @@
+set type "nic_router"
+source ${genode_dir}/repos/os/run/nic_stress.inc

@@ -191,6 +191,8 @@ class Net::Session_component : private Net::Stream_allocator,
 		               Size_guard     &size_guard) override;
 
 		void finalize_packet(Ethernet_frame *, Genode::size_t) override;
+
+		Mac_address vmac() const { return _mac_node.addr(); }
 };
 
 
@@ -238,6 +240,13 @@ class Net::Root : public Genode::Root_component<Net::Session_component>
 				                  Arg_string::find_arg(args, "rx_buf_size").ulong_value(0),
 				                  mac, _nic, _verbose, label,
 				                  policy.attribute_value("ip_addr", Session_component::Ip_addr()));
+		}
+
+		
+		void _destroy_session(Session_component *session) override
+		{
+			_mac_alloc.free(session->vmac());
+			Genode::destroy(md_alloc(), session);
 		}
 
 	public:
