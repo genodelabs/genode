@@ -65,6 +65,15 @@ class Window_layouter::Window : public List_model<Window>::Element
 
 			bool operator != (Element const &other) const { return other.type != type; }
 			bool operator == (Element const &other) const { return other.type == type; }
+
+			bool resize_handle() const
+			{
+				return type == LEFT        || type == RIGHT
+				    || type == TOP         || type == BOTTOM
+				    || type == TOP_LEFT    || type == TOP_RIGHT
+				    || type == BOTTOM_LEFT || type == BOTTOM_RIGHT
+				    || type == MAXIMIZER;
+			}
 		};
 
 	private:
@@ -94,15 +103,30 @@ class Window_layouter::Window : public List_model<Window>::Element
 		/**
 		 * Size as desired by the user during resize drag operations
 		 */
-		Area _requested_size;
+		Area _dragged_size;
+
+		/**
+		 * Target geometry the window is assigned to, used while maximized
+		 */
+		Rect _target_geometry { };
+
+		/**
+		 * Desired size to be requested to the client
+		 */
+		Area _requested_size() const
+		{
+			return (_maximized || !_floating)
+			       ? _decorator_margins.inner_geometry(_target_geometry).area()
+			       : _dragged_size;
+		}
 
 		/**
 		 * Most recent resize request propagated to the window manager
 		 *
 		 * Initially, no resize request must be generated because the
-		 * '_requested_size' corresponds to the window size.
+		 * '_dragged_size' corresponds to the window size.
 		 */
-		Area _reported_resize_request = _requested_size;
+		Area _reported_resize_request = _dragged_size;
 
 		/**
 		 * Window may be partially transparent
@@ -116,7 +140,17 @@ class Window_layouter::Window : public List_model<Window>::Element
 
 		bool _resizeable = false;
 
+		/**
+		 * Toggled interactively
+		 */
 		bool _maximized = false;
+
+		/**
+		 * Set when position is defined in the window's assign rule
+		 */
+		bool _floating = false;
+
+		bool _use_target_area() const { return _maximized || !_floating; }
 
 		bool _dragged = false;
 
@@ -172,7 +206,7 @@ class Window_layouter::Window : public List_model<Window>::Element
 			_orig_geometry = _geometry;
 			_drag_geometry = _geometry;
 
-			_requested_size = _geometry.area();
+			_dragged_size = _geometry.area();
 
 			_dragged = true;
 		}
@@ -200,7 +234,7 @@ class Window_layouter::Window : public List_model<Window>::Element
 
 			_drag_geometry = Rect(Point(x1, y1), Point(x2, y2));
 
-			_requested_size = _drag_geometry.area();
+			_dragged_size = _drag_geometry.area();
 		}
 
 		/**
@@ -223,7 +257,7 @@ class Window_layouter::Window : public List_model<Window>::Element
 			_id(id), _label(label),
 			_decorator_margins(decorator_margins),
 			_client_size(initial_size),
-			_requested_size(initial_size),
+			_dragged_size(initial_size),
 			_focus_history_entry(focus_history, _id)
 		{ }
 
@@ -271,7 +305,7 @@ class Window_layouter::Window : public List_model<Window>::Element
 
 			_geometry = _decorator_margins.inner_geometry(outer);
 
-			_requested_size = _geometry.area();
+			_dragged_size = _geometry.area();
 		}
 
 		Rect outer_geometry() const
@@ -302,49 +336,35 @@ class Window_layouter::Window : public List_model<Window>::Element
 		 */
 		void client_size(Area size) { _client_size = size; }
 
-		/*
-		 * Called for generating the 'rules' report
-		 */
-		void gen_inner_geometry(Xml_generator &xml) const
-		{
-			Rect const inner = effective_inner_geometry();
-
-			xml.attribute("xpos",   inner.x1());
-			xml.attribute("ypos",   inner.y1());
-			xml.attribute("width",  inner.w());
-			xml.attribute("height", inner.h());
-
-			if (_maximized)
-				xml.attribute("maximized", true);
-		}
-
 		/**
 		 * Return true if a request request to the window manager is due
 		 */
 		bool resize_request_needed() const
 		{
 			/* a resize request for the current size is already in flight */
-			if (_requested_size == _reported_resize_request)
+			if (_requested_size() == _reported_resize_request)
 				return false;
 
-			return (_requested_size != _client_size);
+			return (_requested_size() != _client_size);
 		}
 
 		/**
 		 * Mark the currently requested size as processed so that no further
 		 * resize requests for the same size are generated
 		 */
-		void resize_request_updated() { _reported_resize_request = _requested_size; }
+		void resize_request_updated() { _reported_resize_request = _requested_size(); }
 
 		void gen_resize_request(Xml_generator &xml) const
 		{
-			if (_requested_size == _client_size)
+			Area const size = _requested_size();
+
+			if (size == _client_size)
 				return;
 
 			xml.node("window", [&] () {
 				xml.attribute("id",     _id.value);
-				xml.attribute("width",  _requested_size.w());
-				xml.attribute("height", _requested_size.h());
+				xml.attribute("width",  size.w());
+				xml.attribute("height", size.h());
 			});
 		}
 
@@ -368,12 +388,38 @@ class Window_layouter::Window : public List_model<Window>::Element
 					xml.attribute("title",  title);
 				}
 
-				Rect const rect = effective_inner_geometry();
+				Rect const rect = _use_target_area()
+				                ? _decorator_margins.inner_geometry(_target_geometry)
+				                : effective_inner_geometry();
 
-				xml.attribute("xpos",   rect.x1());
-				xml.attribute("ypos",   rect.y1());
-				xml.attribute("width",  min(rect.w(), _client_size.w()));
-				xml.attribute("height", min(rect.h(), _client_size.h()));
+				xml.attribute("xpos", rect.x1());
+				xml.attribute("ypos", rect.y1());
+
+				/*
+				 * Constrain size of non-floating windows
+				 *
+				 * In contrast to a tiled or maximized window that is hard
+				 * constrained by the size of the target geometry even if the
+				 * client requests a larger size, floating windows respect the
+				 * size defined by the client.
+				 *
+				 * This way, while floating, applications are able to resize
+				 * their window according to the application's state. For
+				 * example, a bottom-right resize corner of a Qt application is
+				 * handled by the application, not the window manager, but it
+				 * should still work as expected by the user. Note that the
+				 * ability of the application to influence the layout is
+				 * restricted to its window size. The window position cannot be
+				 * influenced. This limits the ability of an application to
+				 * impersonate other applications.
+				 */
+				Area const size = _use_target_area()
+				                ? Area(min(rect.w(), _client_size.w()),
+				                       min(rect.h(), _client_size.h()))
+				                : _client_size;
+
+				xml.attribute("width",  size.w());
+				xml.attribute("height", size.h());
 
 				if (_focused)
 					xml.attribute("focused", "yes");
@@ -386,7 +432,9 @@ class Window_layouter::Window : public List_model<Window>::Element
 
 				} else {
 
-					if (_hovered.type != Element::UNDEFINED)
+					bool const passive = (!_resizeable && _hovered.resize_handle())
+					                  || (_hovered.type == Element::UNDEFINED);
+					if (!passive)
 						xml.node("highlight", [&] () {
 							xml.node(_hovered.name()); });
 				}
@@ -420,19 +468,22 @@ class Window_layouter::Window : public List_model<Window>::Element
 			_drag_right_border  = false;
 			_drag_top_border    = false;
 			_drag_bottom_border = false;
-			_requested_size     = effective_inner_geometry().area();
-
+			_dragged_size       = effective_inner_geometry().area();
 		}
 
 		void to_front_cnt(unsigned to_front_cnt) { _to_front_cnt = to_front_cnt; }
 
 		unsigned to_front_cnt() const { return _to_front_cnt; }
 
-		void close() { _requested_size = Area(0, 0); }
+		void close() { _dragged_size = Area(0, 0); }
+
+		void target_geometry(Rect rect) { _target_geometry = rect; }
 
 		bool maximized() const { return _maximized; }
 
 		void maximized(bool maximized) { _maximized = maximized; }
+
+		void floating(bool floating) { _floating = floating; }
 
 		void dissolve_from_assignment() { _assign_member.destruct(); }
 

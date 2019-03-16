@@ -108,9 +108,10 @@ struct Window_layouter::Main : Operations,
 
 				assign.for_each_member([&] (Assign::Member &member) {
 
-					Rect const rect = member.window.maximized()
-					                ? target.geometry()
-					                : assign.window_geometry(member.window.id().value,
+					member.window.floating(assign.floating());
+					member.window.target_geometry(target.geometry());
+
+					Rect const rect = assign.window_geometry(member.window.id().value,
 					                                         member.window.client_size(),
 					                                         target.geometry(),
 					                                         _decorator_margins);
@@ -212,7 +213,7 @@ struct Window_layouter::Main : Operations,
 		_window_list.with_window(id, [&] (Window &window) {
 			window.maximized(!window.maximized()); });
 
-		_update_window_layout();
+		_gen_rules();
 		_gen_resize_request();
 	}
 
@@ -422,9 +423,10 @@ void Window_layouter::Main::_gen_resize_request()
 		return;
 
 	bool resize_needed = false;
-	_window_list.for_each_window([&] (Window const &window) {
-		if (window.resize_request_needed())
-			resize_needed = true; });
+	_assign_list.for_each([&] (Assign const &assign) {
+		assign.for_each_member([&] (Assign::Member const &member) {
+			if (member.window.resize_request_needed())
+				resize_needed = true; }); });
 
 	if (!resize_needed)
 		return;
@@ -455,10 +457,8 @@ void Window_layouter::Main::_gen_rules_assignments(Xml_generator &xml, FN const 
 		if (!assign.floating())
 			return;
 
-		if (window.maximized())
-			assign.gen_geometry_attr(xml);
-		else
-			window.gen_inner_geometry(xml);
+		assign.gen_geometry_attr(xml, { .geometry  = window.effective_inner_geometry(),
+		                                .maximized = window.maximized() });
 	};
 
 	/* turn wildcard assignments into exact assignments */
