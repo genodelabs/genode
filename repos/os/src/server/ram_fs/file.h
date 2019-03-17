@@ -20,6 +20,7 @@
 
 /* local includes */
 #include <ram_fs/chunk.h>
+#include <ram_fs/param.h>
 #include "node.h"
 
 namespace Ram_fs
@@ -36,10 +37,10 @@ class Ram_fs::File : public Node
 {
 	private:
 
-		typedef Chunk<4096>                     Chunk_level_3;
-		typedef Chunk_index<128, Chunk_level_3> Chunk_level_2;
-		typedef Chunk_index<64,  Chunk_level_2> Chunk_level_1;
-		typedef Chunk_index<64,  Chunk_level_1> Chunk_level_0;
+		typedef Chunk      <num_level_3_entries()>                Chunk_level_3;
+		typedef Chunk_index<num_level_2_entries(), Chunk_level_3> Chunk_level_2;
+		typedef Chunk_index<num_level_1_entries(), Chunk_level_2> Chunk_level_1;
+		typedef Chunk_index<num_level_0_entries(), Chunk_level_1> Chunk_level_0;
 
 		Chunk_level_0 _chunk;
 

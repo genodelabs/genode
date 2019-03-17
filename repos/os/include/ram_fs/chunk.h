@@ -28,8 +28,8 @@ namespace File_system {
 
 	class Chunk_base;
 
-	template <unsigned>           class Chunk;
-	template <unsigned, typename> class Chunk_index;
+	template <size_t>           class Chunk;
+	template <size_t, typename> class Chunk_index;
 }
 
 
@@ -97,7 +97,7 @@ class File_system::Chunk_base : Noncopyable
 /**
  * Chunk of bytes used as leaf in hierarchy of chunk indices
  */
-template <unsigned CHUNK_SIZE>
+template <Genode::size_t CHUNK_SIZE>
 class File_system::Chunk : public Chunk_base
 {
 	private:
@@ -177,7 +177,7 @@ class File_system::Chunk : public Chunk_base
 };
 
 
-template <unsigned NUM_ENTRIES, typename ENTRY_TYPE>
+template <Genode::size_t NUM_ENTRIES, typename ENTRY_TYPE>
 class File_system::Chunk_index : public Chunk_base
 {
 	public:

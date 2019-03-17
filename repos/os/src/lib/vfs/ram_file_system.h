@@ -15,6 +15,7 @@
 #define _INCLUDE__VFS__RAM_FILE_SYSTEM_H_
 
 #include <ram_fs/chunk.h>
+#include <ram_fs/param.h>
 #include <vfs/file_system.h>
 #include <dataspace/client.h>
 #include <util/avl_tree.h>
@@ -25,6 +26,9 @@ namespace Vfs_ram {
 
 	using namespace Genode;
 	using namespace Vfs;
+	using namespace Ram_fs;
+	using File_system::Chunk;
+	using File_system::Chunk_index;
 
 	struct Io_handle;
 	struct Watch_handle;
@@ -235,10 +239,10 @@ class Vfs_ram::File : public Vfs_ram::Node
 {
 	private:
 
-		typedef ::File_system::Chunk<4096>      Chunk_level_3;
-		typedef ::File_system::Chunk_index<128, Chunk_level_3> Chunk_level_2;
-		typedef ::File_system::Chunk_index<64,  Chunk_level_2> Chunk_level_1;
-		typedef ::File_system::Chunk_index<64,  Chunk_level_1> Chunk_level_0;
+		typedef Chunk      <num_level_3_entries()>                Chunk_level_3;
+		typedef Chunk_index<num_level_2_entries(), Chunk_level_3> Chunk_level_2;
+		typedef Chunk_index<num_level_1_entries(), Chunk_level_2> Chunk_level_1;
+		typedef Chunk_index<num_level_0_entries(), Chunk_level_1> Chunk_level_0;
 
 		Chunk_level_0 _chunk;
 		file_size     _length = 0;
