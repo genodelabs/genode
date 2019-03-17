@@ -863,12 +863,14 @@ void Sculpt::Main::_handle_window_layout()
 		_with_window(window_list, Label("gui -> menu -> "), [&] (Xml_node win) {
 			gen_window(win, menu); });
 
-		/* calculate centered runtime view within the available main (inspect) area */
-		Rect runtime_view;
+		/*
+		 * Calculate centered runtime view within the available main (inspect)
+		 * area.
+		 */
+		Point runtime_view_pos { };
 		_with_window(window_list, runtime_view_label, [&] (Xml_node win) {
-			Area  const size = constrained_win_size(win);
-			Point const pos  = Rect(inspect_p1, inspect_p2).center(size);
-			runtime_view = Rect(pos, size);
+			Area const size  = constrained_win_size(win);
+			runtime_view_pos = Rect(inspect_p1, inspect_p2).center(size);
 		});
 
 		if (_popup.state == Popup::VISIBLE) {
@@ -877,29 +879,26 @@ void Sculpt::Main::_handle_window_layout()
 
 				int const anchor_y_center = (_popup.anchor.y1() + _popup.anchor.y2())/2;
 
-				int const x = runtime_view.x1() + _popup.anchor.x2();
-				int const y = max(0, runtime_view.y1() + anchor_y_center - (int)size.h()/2);
+				int const x = runtime_view_pos.x() + _popup.anchor.x2();
+				int const y = max(0, runtime_view_pos.y() + anchor_y_center - (int)size.h()/2);
 
 				gen_window(win, Rect(Point(x, y), size));
 			});
 		}
 
-		_with_window(window_list, Label("log"), [&] (Xml_node win) {
-			gen_window(win, Rect(log_p1, log_p2)); });
-
-		if (_last_clicked == Hovered::STORAGE) {
+		if (_last_clicked == Hovered::STORAGE)
 			_with_window(window_list, inspect_label, [&] (Xml_node win) {
 				gen_window(win, Rect(inspect_p1, inspect_p2)); });
-		}
 
+		/*
+		 * Position runtime view centered within the inspect area, but allow
+		 * the overlapping of the log area. (use the menu view's 'win_size').
+		 */
 		_with_window(window_list, runtime_view_label, [&] (Xml_node win) {
+			gen_window(win, Rect(runtime_view_pos, win_size(win))); });
 
-			/* center runtime view within the available main (inspect) area */
-			Area  const size = constrained_win_size(win);
-			Point const pos  = Rect(inspect_p1, inspect_p2).center(size);
-
-			gen_window(win, Rect(pos, size));
-		});
+		_with_window(window_list, Label("log"), [&] (Xml_node win) {
+			gen_window(win, Rect(log_p1, log_p2)); });
 	});
 
 	/* define window-manager focus */
