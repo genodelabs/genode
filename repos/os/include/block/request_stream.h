@@ -33,7 +33,7 @@ class Block::Request_stream : Genode::Noncopyable
 		 * as argument without exposing the entirely of the 'Request_stream'
 		 * to the called code.
 		 */
-		class Payload
+		class Payload : Noncopyable
 		{
 			private:
 
@@ -237,7 +237,7 @@ class Block::Request_stream : Genode::Noncopyable
 			}
 		}
 
-		class Ack
+		class Ack : Noncopyable
 		{
 			private:
 
