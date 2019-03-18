@@ -1148,8 +1148,11 @@ void Interface::_handle_ip(Ethernet_frame          &eth,
 					    l3_protocol_name(prot), " ", rule);
 				}
 				Domain &remote_domain = rule.domain();
-				_adapt_eth(eth, rule.to(), pkt, remote_domain);
-				ip.dst(rule.to());
+				_adapt_eth(eth, rule.to_ip(), pkt, remote_domain);
+				ip.dst(rule.to_ip());
+				if (!(rule.to_port() == Port(0))) {
+					_dst_port(prot, prot_base, rule.to_port());
+				}
 				_nat_link_and_pass(eth, size_guard, ip, prot, prot_base,
 				                   prot_size, local_id, local_domain, remote_domain);
 				return;
@@ -1704,9 +1707,31 @@ void Interface::_update_udp_tcp_links(L3_protocol  prot,
 					find_by_port(link.client().dst_port());
 
 			/* if destination IP of forwarding changed, dismiss link */
-			if (rule.to() != link.server().src_ip()) {
+			if (rule.to_ip() != link.server().src_ip()) {
 				_dismiss_link_log(link, "other forward-rule to");
 				throw Dismiss_link();
+			}
+			/*
+			 * If destination port of forwarding was set and then was
+			 * modified or unset, dismiss link
+			 */
+			if (!(link.server().src_port() == link.client().dst_port())) {
+				if (!(rule.to_port() == link.server().src_port())) {
+					_dismiss_link_log(link, "other forward-rule to_port");
+					throw Dismiss_link();
+				}
+			}
+			/*
+			 * If destination port of forwarding was not set and then was
+			 * set, dismiss link
+			 */
+			else {
+				if (!(rule.to_port() == link.server().src_port()) &&
+				    !(rule.to_port() == Port(0)))
+				{
+					_dismiss_link_log(link, "new forward-rule to_port");
+					throw Dismiss_link();
+				}
 			}
 			_update_link_check_nat(link, rule.domain(), prot, cln_dom);
 			return;

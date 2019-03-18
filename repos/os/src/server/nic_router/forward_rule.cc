@@ -40,17 +40,19 @@ Domain &Forward_rule::_find_domain(Domain_tree    &domains,
 
 void Forward_rule::print(Output &output) const
 {
-	Genode::print(output, "port ", _port, " domain ", _domain, " to ", _to);
+	Genode::print(output, "port ", _port, " domain ", _domain, " to ip ",
+	              _to_ip, " to port ", _to_port);
 }
 
 
 Forward_rule::Forward_rule(Domain_tree &domains, Xml_node const node)
 :
-	_port(node.attribute_value("port", Port(0))),
-	_to(node.attribute_value("to", Ipv4_address())),
-	_domain(_find_domain(domains, node))
+	_port    { node.attribute_value("port", Port(0)) },
+	_to_ip   { node.attribute_value("to", Ipv4_address()) },
+	_to_port { node.attribute_value("to_port", Port(0)) },
+	_domain  { _find_domain(domains, node) }
 {
-	if (_port == Port(0) || !_to.valid() || dynamic_port(_port)) {
+	if (_port == Port(0) || !_to_ip.valid() || dynamic_port(_port)) {
 		throw Invalid(); }
 }
 

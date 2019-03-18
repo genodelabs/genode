@@ -41,7 +41,8 @@ class Net::Forward_rule : public Genode::Avl_node<Forward_rule>
 	private:
 
 		Port         const  _port;
-		Ipv4_address const  _to;
+		Ipv4_address const  _to_ip;
+		Port         const  _to_port;
 		Domain             &_domain;
 
 		static Domain &_find_domain(Domain_tree            &domains,
@@ -75,8 +76,9 @@ class Net::Forward_rule : public Genode::Avl_node<Forward_rule>
 		 ** Accessors **
 		 ***************/
 
-		Ipv4_address const &to()     const { return _to; }
-		Domain             &domain() const { return _domain; }
+		Ipv4_address const &to_ip()   const { return _to_ip; }
+		Port         const &to_port() const { return _to_port; }
+		Domain             &domain()  const { return _domain; }
 };
 
 

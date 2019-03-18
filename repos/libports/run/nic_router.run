@@ -34,8 +34,8 @@ create_boot_directory
 proc test_1_config { } {
 	if {[enable_test_1]} { return "
 		[client_config t1_d1_c1_udp udp 10.0.98.55 10.0.98.33 255.255.255.0 nic_router 1337 10.0.98.33]
-		[client_config t1_d2_c1_udp udp 10.0.99.56 10.0.99.33 255.255.255.0 nic_router 1337 10.0.99.55]
-		[server_config t1_d2_s1_udp udp 10.0.99.55 10.0.99.33 255.255.255.0 nic_router 1337 ]" }
+		[client_config t1_d2_c1_udp udp 10.0.99.56 10.0.99.33 255.255.255.0 nic_router  999 10.0.99.55]
+		[server_config t1_d2_s1_udp udp 10.0.99.55 10.0.99.33 255.255.255.0 nic_router  999 ]" }
 }
 
 proc test_1_router_config { } {
@@ -44,7 +44,7 @@ proc test_1_router_config { } {
 		<policy label_prefix="t1_d2" domain="t1_d2" />
 
 		<domain name="t1_d1" interface="10.0.98.33/24">
-			<udp-forward port="1337" domain="t1_d2" to="10.0.99.55" />
+			<udp-forward port="1337" domain="t1_d2" to="10.0.99.55" to_port="999" />
 		</domain>
 
 		<domain name="t1_d2" interface="10.0.99.33/24" />} }
@@ -106,8 +106,8 @@ proc test_3_router_uplink_config { } {
 
 proc test_4_config { } {
 	if {[enable_test_4]} { return "
-		[client_config t4_d0_c1_tcp http 10.0.2.201   10.0.2.1    255.255.255.0 nic_bridge 80 10.0.2.55]
-		[server_config t4_d1_s1_tcp http 192.168.1.18 192.168.1.1 255.255.255.0 nic_router 80 ]" }
+		[client_config t4_d0_c1_tcp http 10.0.2.201   10.0.2.1    255.255.255.0 nic_bridge 80   10.0.2.55]
+		[server_config t4_d1_s1_tcp http 192.168.1.18 192.168.1.1 255.255.255.0 nic_router 2048 ]" }
 }
 
 proc test_4_router_config { } {
@@ -118,7 +118,7 @@ proc test_4_router_config { } {
 
 proc test_4_router_uplink_config { } {
 	if {[enable_test_4]} { return {
-		<tcp-forward port="80" domain="t4_d1" to="192.168.1.18" />} }
+		<tcp-forward port="80" domain="t4_d1" to="192.168.1.18" to_port="2048" />} }
 }
 
 #

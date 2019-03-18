@@ -239,18 +239,19 @@ Port-forwarding rules
 
 These are examples for port-forwarding rules:
 
-! <tcp-forward port="80" domain="http_servers" to="192.168.1.18" />
+! <tcp-forward port="80" domain="http_servers" to="192.168.1.18" to_port="1234" />
 ! <udp-forward port="69" domain="tftp_servers" to="192.168.2.23" />
 
 Port-forwarding rules only apply to packets that come from the session of the
-surrounding domain and are addressed to the router's IP identity at this
-domain (Section [Basics]). Amongst those, 'tcp-forward' rules only apply to
-the TCP packets and 'udp-forward' rules only to the UDP packets. The 'port'
-attribute is compared with the packet's destination port. If a matching rule
-is found, the IP destination of the packet is changed to the value of the 'to'
-attribute. Then, the packet is routed to the domain given in the rule. Note
-that the router accepts only system and registered ports (0 to 49151) for port
-forwarding.
+surrounding domain and are addressed to the router's IP identity at this domain
+(Section [Basics]). Amongst those, 'tcp-forward' rules only apply to the TCP
+packets and 'udp-forward' rules only to the UDP packets. The 'port' attribute
+is compared with the packet's destination port. If a matching rule is found,
+the IP destination of the packet is changed to the value of the 'to' attribute.
+If the 'to_port' attribute is set and not zero, the packet's destination port
+is changed to the attribute value. Then, the packet is routed to the domain
+given in the rule. Note that the router accepts only system and registered
+ports other than zero (1 to 49151) for port forwarding.
 
 For bidirectional traffic, you'll need only one port-forwarding rule
 describing the client-to-server direction. The server-sided domain doesn't
@@ -628,7 +629,7 @@ following configuration:
 ! <domain name="uplink" interface="10.0.2.55/24" gateway="10.0.2.1">
 !    <tcp-forward port="80" domain="virtnet_a" to="192.168.1.2" />
 !    <tcp-forward port="70" domain="virtnet_a" to="192.168.1.3" />
-!    <udp-forward port="69" domain="virtnet_a" to="192.168.1.4" />
+!    <udp-forward port="69" domain="virtnet_a" to="192.168.1.4" to_port="2048"/>
 ! </domain>
 !
 ! <domain name="virtnet_a" interface="192.168.1.1/24" />
@@ -638,7 +639,8 @@ Amongst the packets that come from the uplink, only those that are addressed
 to 10.0.2.55 and TCP port 80, TCP port 70, or UDP port 69 are forwarded.
 All these packets are forwarded to Virtnet A. But beforehand, their IP
 destination is adapted. TCP-port-80 packets are redirected to 192.168.1.2,
-TCP-port-70 packets to 192.168.1.3, and UDP-port-69 packets to 192.168.1.4.
+TCP-port-70 packets to 192.168.1.3, and UDP-port-69 packets to
+192.168.1.4:2048.
 
 Amongst the packets that come from Virtnet A, only those that match a link
 state at the uplink are forwarded, because the Virtnet-A domain contains no
