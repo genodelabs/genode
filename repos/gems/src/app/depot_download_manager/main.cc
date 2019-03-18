@@ -16,6 +16,7 @@
 #include <base/heap.h>
 #include <base/attached_rom_dataspace.h>
 #include <os/reporter.h>
+#include <timer_session/connection.h>
 
 /* local includes */
 #include "xml.h"
@@ -195,9 +196,17 @@ struct Depot_download_manager::Main : Import::Download_progress
 	Signal_handler<Main> _fetchurl_progress_handler {
 		_env.ep(), *this, &Main::_handle_fetchurl_progress };
 
+	/* number of bytes downloaded by current fetchurl instance */
+	uint64_t _downloaded_bytes { };
+
 	void _handle_fetchurl_progress()
 	{
 		_fetchurl_progress.update();
+
+		/* count sum of bytes downloaded by current fetchurl instance */
+		_downloaded_bytes = 0;
+		_fetchurl_progress.xml().for_each_sub_node("fetch", [&] (Xml_node fetch) {
+			_downloaded_bytes += fetch.attribute_value("now", 0ULL); });
 
 		if (_import.constructed()) {
 			_import->apply_download_progress(*this);
@@ -209,6 +218,42 @@ struct Depot_download_manager::Main : Import::Download_progress
 
 		_update_state_report();
 	}
+
+	struct Fetchurl_watchdog
+	{
+		Main &_main;
+
+		Timer::Connection _timer { _main._env };
+
+		Signal_handler<Fetchurl_watchdog> _handler {
+			_main._env.ep(), *this, &Fetchurl_watchdog::_handle };
+
+		uint64_t _observed_downloaded_bytes = _main._downloaded_bytes;
+
+		void _handle()
+		{
+			if (_main._downloaded_bytes != _observed_downloaded_bytes) {
+				_observed_downloaded_bytes = _main._downloaded_bytes;
+				return;
+			}
+
+			warning("fetchurl got stuck, respawning");
+
+			/* downloads got stuck, try replacing fetchurl with new instance */
+			_main._fetchurl_count.value++;
+			_main._generate_init_config();
+		}
+
+		enum { PERIOD_SECONDS = 5UL };
+
+		Fetchurl_watchdog(Main &main) : _main(main)
+		{
+			_timer.sigh(_handler);
+			_timer.trigger_periodic(PERIOD_SECONDS*1000*1000);
+		}
+	};
+
+	Constructible<Fetchurl_watchdog> _fetchurl_watchdog { };
 
 	Main(Env &env) : _env(env)
 	{
@@ -269,7 +314,9 @@ void Depot_download_manager::Main::_generate_init_config(Xml_generator &xml)
 		gen_depot_query_start_content(xml, _installation.xml(),
 		                              _next_user, _depot_query_count, _jobs); });
 
-	if (_import.constructed() && _import->downloads_in_progress()) {
+	bool const fetchurl_running = _import.constructed()
+	                           && _import->downloads_in_progress();
+	if (fetchurl_running) {
 		try {
 			xml.node("start", [&] () {
 				gen_fetchurl_start_content(xml, *_import, _current_user_url(),
@@ -293,6 +340,8 @@ void Depot_download_manager::Main::_generate_init_config(Xml_generator &xml)
 			gen_extract_start_content(xml, *_import, _current_user_path(),
 			                          _current_user_name()); });
 	}
+
+	_fetchurl_watchdog.conditional(fetchurl_running, *this);
 }
 
 
