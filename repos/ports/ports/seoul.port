@@ -2,9 +2,9 @@ LICENSE   := GPLv2
 VERSION   := git
 DOWNLOADS := seoul.git
 
-URL(seoul) := https://github.com/ehmry/seoul.git
+URL(seoul) := https://github.com/alex-ab/seoul.git
 # branch PARAM
-REV(seoul) := f9b1d0a699971cf55d9e974a3caf77ef86cd6c0b
+REV(seoul) := ca77327faaed6f15c8660f24dd9f7b805dae107e
 DIR(seoul) := src/app/seoul
 
 #

@@ -80,6 +80,7 @@ static bool mouse_event(Input::Event const &ev)
 		result |= mouse_button(key); });
 
 	result |= ev.absolute_motion() || ev.relative_motion();
+	result |= ev.wheel();
 
 	return result;
 }
@@ -113,6 +114,7 @@ unsigned Seoul::Console::_input_to_ps2mouse(Input::Event const &ev)
 
 	ev.handle_relative_motion([&] (int x, int y) { rx = x; ry = y; });
 
+
 	/* clamp relative motion vector to bounds */
 	int const boundary = 200;
 	rx =  Genode::min(boundary, Genode::max(-boundary, rx));
@@ -130,6 +132,15 @@ unsigned Seoul::Console::_input_to_ps2mouse(Input::Event const &ev)
 	Ps2_mouse_packet::Ry_low::set       (packet, ry & 0xff);
 
 	return packet;
+}
+
+
+unsigned Seoul::Console::_input_to_ps2wheel(Input::Event const &ev)
+{
+	int rz = 0;
+	ev.handle_wheel([&](int x, int y) { rz = y; });
+
+	return (unsigned)rz;
 }
 
 
@@ -316,7 +327,7 @@ void Seoul::Console::_handle_input()
 
 		/* update mouse model (PS2) */
 		if (mouse_event(ev)) {
-			MessageInput msg(0x10001, _input_to_ps2mouse(ev));
+			MessageInput msg(0x10001, _input_to_ps2mouse(ev), _input_to_ps2wheel(ev));
 			_motherboard()->bus_input.send(msg);
 		}
 

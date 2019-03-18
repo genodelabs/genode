@@ -66,6 +66,7 @@ class Seoul::Console : public StaticReceiver<Seoul::Console>
 		unsigned                     _timer    { 0 };
 
 		unsigned _input_to_ps2mouse(Input::Event const &);
+		unsigned _input_to_ps2wheel(Input::Event const &);
 
 		Genode::Signal_handler<Console> _signal_input
 			= { _env.ep(), *this, &Console::_handle_input };
