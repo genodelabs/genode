@@ -4,6 +4,9 @@
 # \date   2014-05-27
 #
 
+# compound directory where all 3rd-party source codes are installed
+CONTRIB_DIR ?= $(GENODE_DIR)/contrib
+
 SHELL   := bash
 VERBOSE ?= @
 ECHO    := echo -e

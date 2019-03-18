@@ -12,6 +12,8 @@ endif
 
 export GENODE_DIR := $(realpath $(dir $(MAKEFILE_LIST))/../..)
 
+include $(GENODE_DIR)/tool/ports/mk/common.inc
+
 usage:
 	@echo
 	@echo "Tool for preparing and updating ports"
@@ -29,5 +31,17 @@ TARGETS = $(sort $(MAKECMDGOALS))
 
 .PHONY: $(TARGETS)
 
-$(TARGETS):
+#
+# Protect the GENODE_DIR Git repository by creating an
+# empty Git repository in CONTRIB_DIR. This is to catch
+# Git tools called by port recipes from falling through
+# the parent directories of PORT_DIR and affecting other
+# Git repositories.
+#
+$(PORT_DIR): $(CONTRIB_DIR)/.git/HEAD
+$(CONTRIB_DIR)/.git/HEAD:
+	@$(VERBOSE)mkdir -p $(CONTRIB_DIR)
+	@$(VERBOSE)git init --quiet $(CONTRIB_DIR)
+
+$(TARGETS): $(CONTRIB_DIR)/.git/HEAD
 	@$(MAKE) -f $(GENODE_DIR)/tool/ports/mk/prepare_single_port.mk $@
