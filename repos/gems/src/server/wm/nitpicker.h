@@ -917,10 +917,9 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 				Locked_ptr<View> view(_view_handle_registry.lookup(handle));
 				if (view.valid())
 					_destroy_view_object(*view);
-			}
-			catch (View_handle_registry::Lookup_failed) { }
 
-			_view_handle_registry.free(handle);
+				_view_handle_registry.free(handle);
+			} catch (View_handle_registry::Lookup_failed) { }
 		}
 
 		View_handle view_handle(View_capability view_cap, View_handle handle) override
