@@ -8,7 +8,7 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  1 file changed, 6 insertions(+)
 
 diff --git a/libstdc++-v3/configure.ac b/libstdc++-v3/configure.ac
-index fdc4622..ed8a338 100644
+index 60152a5..7d7279b 100644
 --- a/libstdc++-v3/configure.ac
 +++ b/libstdc++-v3/configure.ac
 @@ -89,9 +89,11 @@ CXXFLAGS="$save_CXXFLAGS"
@@ -33,7 +33,7 @@ index fdc4622..ed8a338 100644
  
  # For gettimeofday support.
  GLIBCXX_CHECK_GETTIMEOFDAY
-@@ -362,7 +366,9 @@ GCC_CHECK_UNWIND_GETIPINFO
+@@ -370,7 +374,9 @@ GCC_CHECK_UNWIND_GETIPINFO
  
  GCC_LINUX_FUTEX([AC_DEFINE(HAVE_LINUX_FUTEX, 1, [Define if futex syscall is available.])])
  

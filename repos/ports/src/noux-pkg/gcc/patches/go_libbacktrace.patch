@@ -8,7 +8,7 @@ Remove the dependency on libbacktrace, which needs a libc.
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/gcc/go/config-lang.in b/gcc/go/config-lang.in
-index 8e27ade..b326557 100644
+index 79ee2e2..22eed3f 100644
 --- a/gcc/go/config-lang.in
 +++ b/gcc/go/config-lang.in
 @@ -28,7 +28,7 @@ language="go"
@@ -19,4 +19,4 @@ index 8e27ade..b326557 100644
 +target_libs="target-libgo target-libffi"
  lang_dirs="gotools"
  
- # The Go frontend is written in C++, so we need to build the C++
+ gtfiles="\$(srcdir)/go/go-lang.c \$(srcdir)/go/go-c.h"

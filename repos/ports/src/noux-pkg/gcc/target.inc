@@ -6,9 +6,11 @@ CONFIGURE_ARGS = --program-prefix=$(PROGRAM_PREFIX) \
                  --target=$(GCC_TARGET) \
                  --enable-languages=c,c++ \
                  --disable-libgo \
+                 --disable-gotools \
                  --disable-libssp \
                  --disable-libquadmath \
                  --disable-libffi \
+                 --disable-libada \
                  --enable-targets=all \
                  --with-gnu-as \
                  --with-gnu-ld \
@@ -17,7 +19,8 @@ CONFIGURE_ARGS = --program-prefix=$(PROGRAM_PREFIX) \
                  --disable-hosted-libstdcxx \
                  --enable-shared \
                  --enable-multiarch \
-                 --disable-sjlj-exceptions
+                 --disable-sjlj-exceptions \
+                 --disable-nls
 
 ENV += host_configargs="$(HOST_CONFIG_ARGS)" \
        target_configargs="$(TARGET_CONFIG_ARGS)"
