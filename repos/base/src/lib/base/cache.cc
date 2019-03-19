@@ -17,5 +17,5 @@
  * This function needs to be implemented only for base platforms with ARM
  * support right now, so the default implementation does nothing.
  */
-void cache_coherent(Genode::addr_t, Genode::size_t) { }
+void Genode::cache_coherent(Genode::addr_t, Genode::size_t) { }
 
