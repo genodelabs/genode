@@ -20,7 +20,9 @@ help:
 	$(ECHO) "cleanall    - clean everything including downloaded archives"
 	$(ECHO)
 	$(ECHO) "--- available command line options ---"
-	$(ECHO) "MAKE_JOBS=4 - number of parallel make jobs (default: 4)"
+	$(ECHO) "MAKE_JOBS=...        - number of parallel make jobs (default: 4)"
+	$(ECHO) "INSTALL_LOCATION=... - install location (default: $(INSTALL_LOCATION))"
+	$(ECHO) "SUDO=...             - name of sudo command, leave empty to not use sudo (default: sudo)"
 	$(ECHO)
 
 #
@@ -52,7 +54,7 @@ GENODE_DIR ?= $(realpath $(dir $(firstword $(MAKEFILE_LIST)))/..)
 
 GCC_VERSION       = 6.3.0
 BINUTILS_VERSION  = 2.28
-INSTALL_LOCATION  = /usr/local/genode-gcc
+INSTALL_LOCATION ?= /usr/local/genode-gcc
 
 #
 # Utilities
@@ -69,11 +71,12 @@ check_nonempty_f = $(if $(1),,$(info $(2))$(2))
 check_equal_f = $(if $(filter $(1),$(2)),,$(info $(3))$(3))
 
 
-SHELL       = bash
-BRIGHT_COL  = \033[01;33m
-DEFAULT_COL = \033[0m
-ECHO        = @echo -e
-VERBOSE     = @
+SHELL        = bash
+BRIGHT_COL   = \033[01;33m
+DEFAULT_COL  = \033[0m
+ECHO         = @echo -e
+VERBOSE     ?= @
+SUDO        ?= sudo
 
 #
 # Check if 'autoconf' is installed
@@ -198,13 +201,13 @@ ifeq ($(PLATFORM),riscv)
 LANGUAGES              = c,c++
 GDB_INSTALLED_BINARIES =
 LIB_GCC                = cd $(INSTALL_LOCATION)/lib/gcc/riscv64-unknown-elf/$(GCC_VERSION)/rv64imac/lp64 && \
-                         sudo ln -sf ../../include include
+                         $(SUDO) ln -sf ../../include include
 INSTALL_ADA            =
 else
 LANGUAGES              = c,c++,ada
 GDB_INSTALLED_BINARIES = $(LOCAL_INSTALL_LOCATION)/bin/genode-$(PLATFORM)-gdb
 LIB_GCC                =
-INSTALL_ADA            = sudo cp $(LOCAL_BOOTSTRAP_INSTALL_LOCATION)/bin/gnatmake $(INSTALL_LOCATION)/bin/genode-$(PLATFORM)-gnatmake
+INSTALL_ADA            = $(SUDO) cp $(LOCAL_BOOTSTRAP_INSTALL_LOCATION)/bin/gnatmake $(INSTALL_LOCATION)/bin/genode-$(PLATFORM)-gnatmake
 endif
 
 GCC_BOOTSTRAP_CONFIG += $(COMMON_BOOTSTRAP_CONFIG) \
@@ -504,6 +507,6 @@ cleanall: clean
 
 install: build_all
 	$(ECHO) "$(BRIGHT_COL)installing tool chain to '$(INSTALL_LOCATION)'...$(DEFAULT_COL)"
-	$(VERBOSE)sudo cp -a --remove-destination --no-target-directory $(LOCAL_INSTALL_LOCATION) $(INSTALL_LOCATION)
+	$(VERBOSE)$(SUDO) cp -a --remove-destination --no-target-directory $(LOCAL_INSTALL_LOCATION) $(INSTALL_LOCATION)
 	$(VERBOSE)$(INSTALL_ADA)
 	$(VERBOSE)$(LIB_GCC)
