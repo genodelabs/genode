@@ -1,12 +1,21 @@
-commit 3f0b1ef2e5aebf896033ee5f78635d349807fc08
-Author: Sebastian Sumpf <sebastian.sumpf@genode-labs.com>
-Date:   Wed May 3 14:15:07 2017 +0200
+config.patch
+
+From: Sebastian Sumpf <sebastian.sumpf@genode-labs.com>
+
+
+---
+ gcc/config.gcc               |    2 +-
+ gcc/config/arm/arm.h         |    4 ++--
+ gcc/config/arm/unknown-elf.h |   16 ++++++++++++++++
+ gcc/config/i386/x86-64.h     |   23 +++++++++++++++++++++--
+ libgcc/config.host           |   16 ++++++++++++----
+ 5 files changed, 52 insertions(+), 9 deletions(-)
 
 diff --git a/gcc/config.gcc b/gcc/config.gcc
-index 263739c..2bc831e 100644
+index 7af8e02..3c87dfb 100644
 --- a/gcc/config.gcc
 +++ b/gcc/config.gcc
-@@ -1123,7 +1123,7 @@ arm*-*-eabi* | arm*-*-symbianelf* | arm*-*-rtems*)
+@@ -1184,7 +1184,7 @@ arm*-*-eabi* | arm*-*-symbianelf* | arm*-*-rtems* | arm*-*-fuchsia*)
  	case ${target} in
  	arm*-*-eabi*)
  	  tm_file="$tm_file newlib-stdint.h"
@@ -14,11 +23,12 @@ index 263739c..2bc831e 100644
 +	  tmake_file="${tmake_file} arm/t-bpabi t-slibgcc"
  	  use_gcc_stdint=wrap
  	  ;;
- 	arm*-*-rtems*)
-
+ 	arm*-*-fuchsia*)
+diff --git a/gcc/config/arm/arm.h b/gcc/config/arm/arm.h
+index 2809112..2476cb3 100644
 --- a/gcc/config/arm/arm.h
 +++ b/gcc/config/arm/arm.h
-@@ -671,11 +671,11 @@
+@@ -668,11 +668,11 @@ extern int arm_arch_cmse;
  #define MAX_FIXED_MODE_SIZE 64
  
  #ifndef SIZE_TYPE
@@ -32,22 +42,11 @@ index 263739c..2bc831e 100644
  #endif
  
  /* AAPCS requires that structure alignment is affected by bitfields.  */
-
-@@ -2064,7 +2064,7 @@ riscv*-*-elf*)
- 	xyes) tmake_file="${tmake_file} riscv/t-elf-multilib" ;;
- 	*) echo "Unknown value for enable_multilib"; exit 1
- 	esac
--	tmake_file="${tmake_file} riscv/t-riscv"
-+	tmake_file="${tmake_file} riscv/t-riscv t-slibgcc"
- 	gnu_ld=yes
- 	gas=yes
- 	# Force .init_array support.  The configure script cannot always
-
 diff --git a/gcc/config/arm/unknown-elf.h b/gcc/config/arm/unknown-elf.h
-index fafe057..8bd23e0 100644
+index 12dd093..ec0a72e 100644
 --- a/gcc/config/arm/unknown-elf.h
 +++ b/gcc/config/arm/unknown-elf.h
-@@ -98,3 +98,19 @@
+@@ -94,3 +94,19 @@
     which will depend on abort, which is defined in libc.  */ 
  #undef LINK_GCC_C_SEQUENCE_SPEC
  #define LINK_GCC_C_SEQUENCE_SPEC "--start-group %G %L --end-group"
@@ -68,7 +67,7 @@ index fafe057..8bd23e0 100644
 +/* https://gcc.gnu.org/bugzilla/show_bug.cgi?id=57699 */
 +#define NO_IMPLICIT_EXTERN_C
 diff --git a/gcc/config/i386/x86-64.h b/gcc/config/i386/x86-64.h
-index 204f128..8f590fe 100644
+index e2a8306..1c5e2e1 100644
 --- a/gcc/config/i386/x86-64.h
 +++ b/gcc/config/i386/x86-64.h
 @@ -37,10 +37,10 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
@@ -107,22 +106,8 @@ index 204f128..8f590fe 100644
 +/* Don't assume anything about the header files.  */
 +/* https://gcc.gnu.org/bugzilla/show_bug.cgi?id=57699 */
 +#define NO_IMPLICIT_EXTERN_C
-diff --git a/gcc/config/riscv/elf.h b/gcc/config/riscv/elf.h
-index 391e59f..9271e17 100644
---- a/gcc/config/riscv/elf.h
-+++ b/gcc/config/riscv/elf.h
-@@ -19,7 +19,8 @@ along with GCC; see the file COPYING3.  If not see
- 
- #define LINK_SPEC "\
- -melf" XLEN_SPEC "lriscv \
--%{shared}"
-+%{shared:-shared} \
-+%{!static:--eh-frame-hdr}"
- 
- /* Link against Newlib libraries, because the ELF backend assumes Newlib.
-    Handle the circular dependence between libc and libgloss. */
 diff --git a/libgcc/config.host b/libgcc/config.host
-index 40e3038..fd206a4 100644
+index 11b4aca..5e9cfa8 100644
 --- a/libgcc/config.host
 +++ b/libgcc/config.host
 @@ -312,7 +312,7 @@ case ${host} in
@@ -134,7 +119,7 @@ index 40e3038..fd206a4 100644
    ;;
  esac
  
-@@ -417,8 +417,12 @@ arm*-*-eabi* | arm*-*-symbianelf* | arm*-*-rtems*)
+@@ -449,8 +449,12 @@ arm*-*-eabi* | arm*-*-symbianelf* | arm*-*-rtems*)
  	tm_file="$tm_file arm/bpabi-lib.h"
  	case ${host} in
  	arm*-*-eabi* | arm*-*-rtems*)
@@ -148,7 +133,7 @@ index 40e3038..fd206a4 100644
  	  ;;
  	arm*-*-symbianelf*)
  	  tmake_file="${tmake_file} arm/t-symbian t-slibgcc-nolc-override"
-@@ -588,6 +592,10 @@ i[34567]86-*-elf*)
+@@ -610,6 +614,10 @@ i[34567]86-*-elf*)
  	tmake_file="$tmake_file i386/t-crtstuff t-crtstuff-pic t-libgcc-pic"
  	;;
  x86_64-*-elf* | x86_64-*-rtems*)
@@ -158,9 +143,9 @@ index 40e3038..fd206a4 100644
 +	tmake_file="$tmake_file t-eh-dw2-dip t-slibgcc t-slibgcc-gld t-slibgcc-elf-ver"
  	tmake_file="$tmake_file i386/t-crtstuff t-crtstuff-pic t-libgcc-pic"
  	;;
- i[34567]86-*-dragonfly*)
-@@ -1104,8 +1112,8 @@ riscv*-*-linux*)
- 	md_unwind_header=riscv/linux-unwind.h
+ x86_64-*-fuchsia*)
+@@ -1133,8 +1141,8 @@ riscv*-*-freebsd*)
+ 	extra_parts="$extra_parts crtbegin.o crtend.o crti.o crtn.o crtendS.o crtbeginT.o"
  	;;
  riscv*-*-*)
 -	tmake_file="${tmake_file} riscv/t-softfp${host_address} t-softfp riscv/t-elf riscv/t-elf${host_address}"

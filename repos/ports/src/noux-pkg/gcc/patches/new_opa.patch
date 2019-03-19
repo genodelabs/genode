@@ -1,0 +1,31 @@
+new_opa.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ libstdc++-v3/libsupc++/new_opa.cc |    4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/libstdc++-v3/libsupc++/new_opa.cc b/libstdc++-v3/libsupc++/new_opa.cc
+index 68eac5b..5e647ff 100644
+--- a/libstdc++-v3/libsupc++/new_opa.cc
++++ b/libstdc++-v3/libsupc++/new_opa.cc
+@@ -25,7 +25,7 @@
+ 
+ #include <bits/c++config.h>
+ #include <stdlib.h>
+-#include <stdint.h>
++#include <stdint-gcc.h> /* stdint.h would call 'include_next' */
+ #include <bits/exception_defines.h>
+ #include "new"
+ 
+@@ -39,6 +39,8 @@ extern "C" void *memalign(std::size_t boundary, std::size_t size);
+ # endif
+ #endif
+ 
++extern "C" void *malloc (std::size_t);
++
+ using std::new_handler;
+ using std::bad_alloc;
+ 

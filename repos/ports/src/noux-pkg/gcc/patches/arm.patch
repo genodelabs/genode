@@ -4,15 +4,15 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
 
 
 ---
- gcc/config/arm/arm.h           |    3 +--
+ gcc/config/arm/arm.h           |    7 ++-----
  libgcc/config/arm/unwind-arm.h |    2 +-
- 2 files changed, 2 insertions(+), 3 deletions(-)
+ 2 files changed, 3 insertions(+), 6 deletions(-)
 
 diff --git a/gcc/config/arm/arm.h b/gcc/config/arm/arm.h
-index ad123dd..31ccb95 100644
+index da8196f..c36b8ee 100644
 --- a/gcc/config/arm/arm.h
 +++ b/gcc/config/arm/arm.h
-@@ -865,7 +865,7 @@ extern int arm_arch_crc;
+@@ -862,7 +862,7 @@ extern int arm_arch_cmse;
  #define EH_RETURN_STACKADJ_RTX	gen_rtx_REG (SImode, ARM_EH_STACKADJ_REGNUM)
  
  #ifndef ARM_TARGET2_DWARF_FORMAT
@@ -21,24 +21,28 @@ index ad123dd..31ccb95 100644
  #endif
  
  /* ttype entries (the only interesting data references used)
-@@ -2250,7 +2250,6 @@ extern const char *arm_rewrite_mcpu (int argc, const char **argv);
+@@ -2196,10 +2196,7 @@ extern const char *arm_target_thumb_only (int argc, const char **argv);
+ /* -mcpu=native handling only makes sense with compiler running on
+    an ARM chip.  */
  #if defined(__arm__)
- extern const char *host_detect_local_cpu (int argc, const char **argv);
- # define EXTRA_SPEC_FUNCTIONS						\
--  { "local_cpu_detect", host_detect_local_cpu },			\
-   BIG_LITTLE_CPU_SPEC_FUNCTIONS
- 
- # define MCPU_MTUNE_NATIVE_SPECS					\
+-extern const char *host_detect_local_cpu (int argc, const char **argv);
+-#define HAVE_LOCAL_CPU_DETECT
+-# define MCPU_MTUNE_NATIVE_FUNCTIONS			\
+-  { "local_cpu_detect", host_detect_local_cpu },
++# define MCPU_MTUNE_NATIVE_FUNCTIONS
+ # define MCPU_MTUNE_NATIVE_SPECS				\
+    " %{march=native:%<march=native %:local_cpu_detect(arch)}"	\
+    " %{mcpu=native:%<mcpu=native %:local_cpu_detect(cpu)}"	\
 diff --git a/libgcc/config/arm/unwind-arm.h b/libgcc/config/arm/unwind-arm.h
-index d67383f..9812a47 100644
+index 9f7d3f2..a576367 100644
 --- a/libgcc/config/arm/unwind-arm.h
 +++ b/libgcc/config/arm/unwind-arm.h
 @@ -49,7 +49,7 @@ extern "C" {
  	return 0;
  
  #if (defined(linux) && !defined(__uClinux__)) || defined(__NetBSD__) \
--    || defined(__FreeBSD__)
-+    || defined(__FreeBSD__) || 1
+-    || defined(__FreeBSD__) || defined(__fuchsia__)
++    || defined(__FreeBSD__) || defined(__fuchsia__) || 1
        /* Pc-relative indirect.  */
  #define _GLIBCXX_OVERRIDE_TTYPE_ENCODING (DW_EH_PE_pcrel | DW_EH_PE_indirect)
        tmp += ptr;
