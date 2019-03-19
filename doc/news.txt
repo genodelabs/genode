@@ -4,6 +4,39 @@
                                ===========
 
 
+Sculpt as a Community Experience | 2019-03-19
+#############################################
+
+| The fourth stage of Sculpt OS introduces a new federated software
+| provisioning model while giving the user full control over the
+| component deployment via a novel graphical user interface.
+
+With Sculpt CE, we enter the final stage of the evolution of Sculpt OS as
+envisioned roughly one year ago. Initially geared towards die-hard enthusiasts
+only, each revision became more and more user friendly. The previous version
+Sculpt VC already offered a glimpse of Sculpt's unique user interface in the
+form of an interactive component graph.
+
+The just released Sculpt OS "as a community experience" (CE) combines this
+tangible notion of component compositions with a completely federated software
+provisioning model that cuts out middlemen like an app store or a
+distribution. With Sculpt CE, components can be offered by a federation of
+independent software providers selectable by the user. The software
+installation is sandboxed and protected via digital signatures. The
+integration of components with the rest of the system is completely under
+control by the user. With the principle of least privilege at the heart
+of Sculpt's architecture, you - the user - can fearlessly install and run
+software without the need to ultimately trust the software providers.
+
+Sculpt CE is intended to work in tandem with the new community blog
+[https://genodians.org - Genodians.org] where developers and users exchange
+experiences and announce new software. The best way to watch how the
+Sculpt story continues is the RSS feed of Genodians.org.
+
+To dive into the new world of Sculpt CE,
+[https://genode.org/download/sculpt - download Sculpt OS...]
+
+
 Genodians.org | 2019-03-08
 ##########################
 
