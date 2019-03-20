@@ -71,6 +71,7 @@ class Ram_fs::Symlink : public Node
 			s.inode = inode();
 			s.size = _len;
 			s.mode = File_system::Status::MODE_SYMLINK;
+			s.modification_time = modification_time();
 			return s;
 		}
 };

@@ -108,6 +108,18 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 				open_node.mark_as_written();
 				break;
 
+			case Packet_descriptor::WRITE_TIMESTAMP: {
+				Locked_ptr<Node> node { open_node.node() };
+				if (!node.valid())
+					break;
+
+				packet.with_timestamp([&] (File_system::Timestamp const time) {
+					node->update_modification_time(time);
+					succeeded = true;
+				});
+				break;
+			}
+
 			case Packet_descriptor::CONTENT_CHANGED:
 				Genode::error("CONTENT_CHANGED packets from clients have no effect");
 				return;
