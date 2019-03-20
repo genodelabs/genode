@@ -119,6 +119,8 @@ class Vfs_ram::Node : private Genode::Avl_node<Node>, private Genode::Lock
 			return ++inode_count;
 		}
 
+		Vfs::Timestamp _modification_time { Vfs::Timestamp::INVALID };
+
 	public:
 
 		using Lock::lock;
@@ -127,7 +129,10 @@ class Vfs_ram::Node : private Genode::Avl_node<Node>, private Genode::Lock
 		unsigned inode;
 
 		Node(char const *node_name)
-		: inode(_unique_inode()) { name(node_name); }
+		: inode(_unique_inode())
+		{
+			name(node_name);
+		}
 
 		virtual ~Node() { }
 
@@ -155,6 +160,14 @@ class Vfs_ram::Node : private Genode::Avl_node<Node>, private Genode::Lock
 
 		void unlink() { inode = 0; }
 		bool unlinked() const { return inode == 0; }
+
+		bool update_modification_timestamp(Vfs::Timestamp time)
+		{
+			_modification_time = time;
+			return true;
+		}
+
+		Vfs::Timestamp modification_time() const { return _modification_time; }
 
 		virtual size_t read(char*, size_t, file_size)
 		{
@@ -774,6 +787,7 @@ class Vfs::Ram_file_system : public Vfs::File_system
 			stat.size  = node->length();
 			stat.inode  = node->inode;
 			stat.device = (Genode::addr_t)this;
+			stat.modification_time = node->modification_time();
 
 			File *file = dynamic_cast<File *>(node);
 			if (file) {
@@ -1002,6 +1016,19 @@ class Vfs::Ram_file_system : public Vfs::File_system
 				handle->node.open(*handle);
 			}
 			return SYNC_OK;
+		}
+
+		bool update_modification_timestamp(Vfs_handle *vfs_handle, Vfs::Timestamp time) override
+		{
+			if ((vfs_handle->status_flags() & OPEN_MODE_ACCMODE) ==  OPEN_MODE_RDONLY)
+				return false;
+
+			Vfs_ram::Io_handle *handle =
+				static_cast<Vfs_ram::Io_handle *>(vfs_handle);
+			handle->modifying = true;
+
+			Vfs_ram::Node::Guard guard(&handle->node);
+			return handle->node.update_modification_timestamp(time);
 		}
 
 		/***************************

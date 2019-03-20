@@ -462,6 +462,7 @@ class Vfs::Dir_file_system : public File_system
 				out.gid    = 0;
 				out.inode  = 1;
 				out.device = (Genode::addr_t)this;
+				out.modification_time = { Vfs::Timestamp::INVALID };
 				return STAT_OK;
 			}
 

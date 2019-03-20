@@ -160,6 +160,7 @@ struct Vfs::Directory_service : Interface
 		unsigned      gid    = 0;
 		unsigned long inode  = 0;
 		unsigned long device = 0;
+		Timestamp     modification_time { Timestamp::INVALID };
 	};
 
 	enum Stat_result { STAT_ERR_NO_ENTRY = NUM_GENERAL_ERRORS,

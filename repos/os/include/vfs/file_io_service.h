@@ -172,6 +172,20 @@ struct Vfs::File_io_service : Interface
 	virtual bool queue_sync(Vfs_handle *) { return true; }
 
 	virtual Sync_result complete_sync(Vfs_handle *) { return SYNC_OK; }
+
+	/***********************
+	 ** Modification time **
+	 ***********************/
+
+	/**
+	 * Update the modification time of a file
+	 *
+	 * \return true if update attempt was successful
+	 */
+	virtual bool update_modification_timestamp(Vfs_handle *, Vfs::Timestamp)
+	{
+		return true;
+	}
 };
 
 #endif /* _INCLUDE__VFS__FILE_IO_SERVICE_H_ */
