@@ -47,6 +47,11 @@ class Rump_fs::Symlink : public Node
 			Node::name(basename(path));
 		}
 
+		void update_modification_time(Timestamp const time) override
+		{
+			/* XXX not handled for now: either dirfd or fd to _path is required */
+		}
+
 		size_t write(char const *src, size_t const len, seek_off_t seek_offset) override
 		{
 			/* Ideal symlink operations are atomic. */
@@ -68,10 +73,16 @@ class Rump_fs::Symlink : public Node
 
 		Status status() override
 		{
+			struct stat st;
+			if (rump_sys_lstat(_path.base(), &st) < 0) {
+				st.st_mtime = 0;
+			}
+
 			Status s;
 			s.inode = inode();
 			s.size  = length();
 			s.mode  = File_system::Status::MODE_SYMLINK;
+			s.modification_time = { (int64_t)st.st_mtime };
 
 			return s;
 		}

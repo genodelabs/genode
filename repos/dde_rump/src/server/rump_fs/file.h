@@ -114,6 +114,17 @@ class Rump_fs::File : public Node
 
 		virtual ~File() { rump_sys_close(_fd); }
 
+		void update_modification_time(Timestamp const time) override
+		{
+			struct timespec ts[2] = {
+				{ .tv_sec = 0,          .tv_nsec = 0 },
+				{ .tv_sec = time.value, .tv_nsec = 0 }
+			};
+
+			/* silently igore error */
+			rump_sys_futimens(_fd, (const timespec*)&ts);
+		}
+
 		size_t read(char *dst, size_t len, seek_off_t seek_offset) override
 		{
 			ssize_t ret;
@@ -142,23 +153,20 @@ class Rump_fs::File : public Node
 
 		virtual Status status() override
 		{
+			struct stat st;
+			if (rump_sys_fstat(_fd, &st) < 0) {
+				st.st_size = 0;
+				st.st_mtime = 0;
+			}
+
 			Status s;
 
 			s.inode = inode();
-			s.size  = length();
+			s.size  = st.st_size;
 			s.mode  = File_system::Status::MODE_FILE;
+			s.modification_time = { (int64_t)st.st_mtime };
 
 			return s;
-		}
-
-		file_size_t length() const
-		{
-			struct stat s;
-
-			if(rump_sys_fstat(_fd, &s) < 0)
-				return 0;
-
-			return s.st_size;
 		}
 
 		void truncate(file_size_t size) override
