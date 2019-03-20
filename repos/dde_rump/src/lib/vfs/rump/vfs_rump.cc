@@ -91,6 +91,8 @@ class Vfs::Rump_file_system : public File_system
 				Genode::error("Rump_vfs_handle::write() called");
 				return WRITE_ERR_INVALID;
 			}
+
+			virtual void update_modification_timestamp(Vfs::Timestamp) { }
 		};
 
 		class Rump_vfs_file_handle :
@@ -162,6 +164,17 @@ class Vfs::Rump_file_system : public File_system
 					_modifying = true;
 					out_count = n;
 					return WRITE_OK;
+				}
+
+				void update_modification_timestamp(Vfs::Timestamp time) override
+				{
+					struct timespec ts[2] = {
+						{ .tv_sec = 0,          .tv_nsec = 0 },
+						{ .tv_sec = time.value, .tv_nsec = 0 }
+					};
+
+					/* silently igore error */
+					rump_sys_futimens(_fd, (const timespec*)&ts);
 				}
 		};
 
@@ -805,6 +818,12 @@ class Vfs::Rump_file_system : public File_system
 			if (handle && handle->modifying())
 				_notify_files();
 			return SYNC_OK;
+		}
+
+		bool update_modification_timestamp(Vfs_handle *vfs_handle,
+		                                   Vfs::Timestamp ts)
+		{
+			return true;
 		}
 };
 

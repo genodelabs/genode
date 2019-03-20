@@ -225,6 +225,35 @@ class Vfs::Fs_file_system : public File_system
 
 				return result;
 			}
+
+			bool update_modification_timestamp(Vfs::Timestamp time)
+			{
+				::File_system::Session::Tx::Source &source = *_fs.tx();
+				using ::File_system::Packet_descriptor;
+
+				if (!source.ready_to_submit()) {
+					Genode::error(__func__, ":", __LINE__, " Insufficient_buffer");
+					return false;
+				}
+
+				try {
+					Packet_descriptor p(source.alloc_packet(0),
+					                    file_handle(),
+					                    Packet_descriptor::WRITE_TIMESTAMP,
+					                    ::File_system::Timestamp { .value = time.value });
+
+					/* pass packet to server side */
+					source.submit_packet(p);
+				} catch (::File_system::Session::Tx::Source::Packet_alloc_failed) {
+					Genode::error(__func__, ":", __LINE__, " Insufficient_buffer");
+					return false;
+				} catch (...) {
+					Genode::error("unhandled exception");
+					return false;
+				}
+
+				return true;
+			}
 		};
 
 		struct Fs_vfs_file_handle : Fs_vfs_handle
@@ -517,6 +546,10 @@ class Vfs::Fs_file_system : public File_system
 					case Packet_descriptor::CONTENT_CHANGED:
 						/* previously handled */
 						break;
+
+					case Packet_descriptor::WRITE_TIMESTAMP:
+						/* previously handled */
+						break;
 					}
 				};
 
@@ -532,6 +565,11 @@ class Vfs::Fs_file_system : public File_system
 					Genode::warning("ack for unknown File_system handle ", id); }
 
 				if (packet.operation() == Packet_descriptor::WRITE) {
+					Lock::Guard guard(_lock);
+					source.release_packet(packet);
+				}
+
+				if (packet.operation() == Packet_descriptor::WRITE_TIMESTAMP) {
 					Lock::Guard guard(_lock);
 					source.release_packet(packet);
 				}
@@ -621,6 +659,7 @@ class Vfs::Fs_file_system : public File_system
 			out.gid = 0;
 			out.inode = status.inode;
 			out.device = (Genode::addr_t)this;
+			out.modification_time.value = status.modification_time.value;
 			return STAT_OK;
 		}
 
@@ -1010,6 +1049,15 @@ class Vfs::Fs_file_system : public File_system
 			Fs_vfs_handle *handle = static_cast<Fs_vfs_handle *>(vfs_handle);
 
 			return handle->complete_sync();
+		}
+
+		bool update_modification_timestamp(Vfs_handle *vfs_handle, Vfs::Timestamp time) override
+		{
+			Lock::Guard guard(_lock);
+
+			Fs_vfs_handle *handle = static_cast<Fs_vfs_handle *>(vfs_handle);
+
+			return handle->update_modification_timestamp(time);
 		}
 };
 

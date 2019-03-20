@@ -49,6 +49,12 @@ namespace Vfs {
 	using Genode::Interface;
 	using Genode::String;
 
+	struct Timestamp
+	{
+		static constexpr long long INVALID = (1LL << 63) + 1;
+		long long value;
+	};
+
 	typedef Genode::Path<MAX_PATH_LEN> Absolute_path;
 }
 
