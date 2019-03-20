@@ -48,6 +48,8 @@ class Lx_fs::Node : public File_system::Node_base
 		 */
 		void name(char const *name) { Genode::strncpy(_name, name, sizeof(_name)); }
 
+		virtual void update_modification_time(Timestamp const) = 0;
+
 		virtual size_t read(char *dst, size_t len, seek_off_t) = 0;
 		virtual size_t write(char const *src, size_t len, seek_off_t) = 0;
 
