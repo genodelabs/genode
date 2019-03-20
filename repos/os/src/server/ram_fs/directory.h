@@ -228,6 +228,7 @@ class Ram_fs::Directory : public Node
 			s.inode = inode();
 			s.size = _num_entries * sizeof(File_system::Directory_entry);
 			s.mode = File_system::Status::MODE_DIRECTORY;
+			s.modification_time = modification_time();
 			return s;
 		}
 };

@@ -112,10 +112,11 @@ class Ram_fs::File : public Node
 
 		Status status() override
 		{
-			Status s;
+			Status s { };
 			s.inode = inode();
 			s.size = _length;
 			s.mode = File_system::Status::MODE_FILE;
+			s.modification_time = modification_time();
 			return s;
 		}
 
