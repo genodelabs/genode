@@ -114,6 +114,17 @@ class Lx_fs::Directory : public Node
 			closedir(_fd);
 		}
 
+		void update_modification_time(Timestamp const time) override
+		{
+			struct timespec ts[2] = {
+				{ .tv_sec = 0,          .tv_nsec = 0 },
+				{ .tv_sec = time.value, .tv_nsec = 0 }
+			};
+
+			/* silently ignore errors */
+			futimens(dirfd(_fd), (const timespec*)&ts);
+		}
+
 		void rename(Directory &dir_to, char const *name_from, char const *name_to)
 		{
 			int ret = renameat(dirfd(_fd), name_from,
@@ -217,10 +228,17 @@ class Lx_fs::Directory : public Node
 
 		Status status() override
 		{
+			struct stat st;
+
+			int fd = dirfd(_fd);
+			if (fd == -1 || fstat(fd, &st) < 0)
+				st.st_mtime = 0;
+
 			Status s;
 			s.inode = inode();
 			s.size = _num_entries() * sizeof(File_system::Directory_entry);
 			s.mode = File_system::Status::MODE_DIRECTORY;
+			s.modification_time = { st.st_mtime };
 			return s;
 		}
 };

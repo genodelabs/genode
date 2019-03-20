@@ -82,16 +82,6 @@ class Lx_fs::File : public Node
 			return fd;
 		}
 
-		file_size_t _length() const
-		{
-			struct stat s;
-
-			if (fstat(_fd, &s) < 0)
-				return 0;
-
-			return s.st_size;
-		}
-
 	public:
 
 		File(int         dir,
@@ -118,6 +108,17 @@ class Lx_fs::File : public Node
 			close(_fd);
 		}
 
+		void update_modification_time(Timestamp const time) override
+		{
+			struct timespec ts[2] = {
+				{ .tv_sec = 0,          .tv_nsec = 0 },
+				{ .tv_sec = time.value, .tv_nsec = 0 }
+			};
+
+			/* silently ignore errors */
+			futimens(_fd, (const timespec*)&ts);
+		}
+
 		size_t read(char *dst, size_t len, seek_off_t seek_offset) override
 		{
 			int ret = pread(_fd, dst, len, seek_offset);
@@ -142,10 +143,18 @@ class Lx_fs::File : public Node
 
 		Status status() override
 		{
+			struct stat st;
+
+			if (fstat(_fd, &st) < 0) {
+				st.st_size  = 0;
+				st.st_mtime = 0;
+			}
+
 			Status s;
 			s.inode = inode();
-			s.size = _length();
+			s.size = st.st_size;
 			s.mode = File_system::Status::MODE_FILE;
+			s.modification_time = { st.st_mtime };
 			return s;
 		}
 

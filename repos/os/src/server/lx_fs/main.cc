@@ -97,6 +97,16 @@ class Lx_fs::Session_component : public Session_rpc_object
 				}
 				break;
 
+			case Packet_descriptor::WRITE_TIMESTAMP:
+				if (tx_sink()->packet_valid(packet) && (packet.length() <= packet.size())) {
+
+					packet.with_timestamp([&] (File_system::Timestamp const time) {
+						open_node.node().update_modification_time(time);
+						succeeded = true;
+					});
+				}
+				break;
+
 			case Packet_descriptor::CONTENT_CHANGED:
 				open_node.register_notify(*tx_sink());
 				/* notify_listeners may bounce the packet back*/
