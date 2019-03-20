@@ -9,9 +9,9 @@ ifeq ($(filter-out $(SPECS),x86),)
   endif # 64bit
 endif # x86
 
-ifeq ($(filter-out $(SPECS),rpi),)
+ifeq ($(filter-out $(SPECS),arm_v6),)
   CC_RUSTC_OPT += --target $(call select_from_repositories,$(TARGET_DIR)/armv6/target.json)
-else ifeq ($(filter-out $(SPECS),arm),)
+else ifeq ($(filter-out $(SPECS),arm_v7),)
   CC_RUSTC_OPT += --target $(call select_from_repositories,$(TARGET_DIR)/armv7/target.json)
 endif # ARM
 
