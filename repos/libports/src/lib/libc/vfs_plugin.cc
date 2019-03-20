@@ -108,6 +108,8 @@ static void vfs_stat_to_libc_stat_struct(Vfs::Directory_service::Stat const &src
 	dst->st_blocks  = (dst->st_size + FS_BLOCK_SIZE - 1) / FS_BLOCK_SIZE;
 	dst->st_ino     = src.inode;
 	dst->st_dev     = src.device;
+	long long mtime = src.modification_time.value;
+	dst->st_mtime   = mtime != Vfs::Timestamp::INVALID ? mtime : 0;
 }
 
 
@@ -343,8 +345,44 @@ Libc::File_descriptor *Libc::Vfs_plugin::open(char const *path, int flags,
 }
 
 
+void Libc::Vfs_plugin::_vfs_write_mtime(Vfs::Vfs_handle &handle)
+{
+	struct timespec ts;
+
+	/* XXX using  clock_gettime directly is probably not the best idea */
+	if (clock_gettime(CLOCK_REALTIME, &ts) < 0) {
+		ts.tv_sec = 0;
+	}
+
+	Vfs::Timestamp time { .value = (long long)ts.tv_sec };
+
+	struct Check : Libc::Suspend_functor
+	{
+		bool retry { false };
+
+		Vfs::Vfs_handle &vfs_handle;
+		Vfs::Timestamp &time;
+
+		Check(Vfs::Vfs_handle &vfs_handle, Vfs::Timestamp &time)
+		: vfs_handle(vfs_handle), time(time) { }
+
+		bool suspend() override
+		{
+			retry = !vfs_handle.fs().update_modification_timestamp(&vfs_handle, time);
+			return retry;
+		}
+	} check(handle, time);
+
+	do {
+		_suspend_ptr->suspend(check);
+	} while (check.retry);
+}
+
+
 int Libc::Vfs_plugin::_vfs_sync(Vfs::Vfs_handle &vfs_handle)
 {
+	_vfs_write_mtime(vfs_handle);
+
 	typedef Vfs::File_io_service::Sync_result Result;
 	Result result = Result::SYNC_QUEUED;
 
