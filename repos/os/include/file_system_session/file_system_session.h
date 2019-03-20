@@ -71,6 +71,12 @@ namespace File_system {
 	typedef Genode::uint64_t seek_off_t;
 	typedef Genode::uint64_t file_size_t;
 
+	struct Timestamp
+	{
+		static constexpr Genode::int64_t INVALID = (1LL << 63) + 1;
+		Genode::int64_t value;
+	};
+
 	typedef Genode::Out_of_ram  Out_of_ram;
 	typedef Genode::Out_of_caps Out_of_caps;
 
@@ -127,6 +133,7 @@ class File_system::Packet_descriptor : public Genode::Packet_descriptor
 		enum Opcode {
 			READ,
 			WRITE,
+			WRITE_TIMESTAMP,
 			CONTENT_CHANGED,
 			READ_READY,
 
@@ -143,9 +150,16 @@ class File_system::Packet_descriptor : public Genode::Packet_descriptor
 
 		Node_handle _handle { 0 };   /* node handle */
 		Opcode      _op;             /* requested operation */
-		seek_off_t  _position;       /* file seek offset in bytes */
-		size_t      _length;         /* transaction length in bytes */
 		bool        _success;        /* indicates success of operation */
+		union
+		{
+			struct
+			{
+				seek_off_t  _position;       /* file seek offset in bytes */
+				size_t      _length;         /* transaction length in bytes */
+			};
+			Timestamp _modification_time;    /* seconds since the Unix epoch */
+		};
 
 	public:
 
@@ -156,7 +170,7 @@ class File_system::Packet_descriptor : public Genode::Packet_descriptor
 		                  Genode::size_t buf_size   = 0)
 		:
 			Genode::Packet_descriptor(buf_offset, buf_size),
-			_op(READ), _position(0), _length(0), _success(false) { }
+			_op(READ), _success(false), _position(0), _length(0) { }
 
 		/**
 		 * Constructor
@@ -172,8 +186,8 @@ class File_system::Packet_descriptor : public Genode::Packet_descriptor
 		                  seek_off_t position = SEEK_TAIL)
 		:
 			Genode::Packet_descriptor(p.offset(), p.size()),
-			_handle(handle), _op(op),
-			_position(position), _length(length), _success(false)
+			_handle(handle), _op(op), _success(false),
+			_position(position), _length(length)
 		{ }
 
 		/**
@@ -185,15 +199,32 @@ class File_system::Packet_descriptor : public Genode::Packet_descriptor
 		Packet_descriptor(Node_handle handle, Opcode op)
 		:
 			Genode::Packet_descriptor(0, 0),
-			_handle(handle), _op(op),
-			_position(0), _length(0), _success(true)
+			_handle(handle), _op(op), _success(true),
+			_position(0), _length(0)
+		{ }
+
+		/**
+		 * Constructor
+		 */
+		Packet_descriptor(Packet_descriptor p, Node_handle handle, Opcode op, Timestamp const &mtime)
+		:
+			Genode::Packet_descriptor(p.offset(), p.size()),
+			_handle(handle), _op(op), _success(false),
+			_modification_time(mtime)
 		{ }
 
 		Node_handle handle()    const { return _handle;   }
 		Opcode      operation() const { return _op;       }
-		seek_off_t  position()  const { return _position; }
-		size_t      length()    const { return _length;   }
+		seek_off_t  position()  const { return _op != Opcode::WRITE_TIMESTAMP ? _position : 0; }
+		size_t      length()    const { return _op != Opcode::WRITE_TIMESTAMP ? _length : 0;   }
 		bool        succeeded() const { return _success;  }
+
+		template <typename FN>
+		void with_timestamp(FN const &fn) const
+		{
+			if (_op == Opcode::WRITE_TIMESTAMP)
+				fn(_modification_time);
+		}
 
 		/*
 		 * Accessors called at the server side
@@ -212,13 +243,13 @@ struct File_system::Status
 	};
 
 	/*
-	 * XXX  add access time
 	 * XXX  add executable bit
 	 */
 
 	file_size_t   size;
 	unsigned      mode;
 	unsigned long inode;
+	Timestamp     modification_time;
 
 	/**
 	 * Return true if node is a directory
