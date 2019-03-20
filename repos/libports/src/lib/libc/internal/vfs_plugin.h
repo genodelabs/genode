@@ -48,6 +48,11 @@ class Libc::Vfs_plugin : public Plugin
 		 */
 		int _vfs_sync(Vfs::Vfs_handle&);
 
+		/**
+		 * Update modification time
+		 */
+		void _vfs_write_mtime(Vfs::Vfs_handle&);
+
 	public:
 
 		Vfs_plugin(Libc::Env                &env,
