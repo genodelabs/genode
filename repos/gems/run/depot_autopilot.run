@@ -359,7 +359,7 @@ proc prepare_to_run_genode { } {
 		</start>
 
 		<start name="depot_autopilot" priority="-1">
-			<resource name="RAM" quantum="2M"/>
+			<resource name="RAM" quantum="10M"/>
 			<provides> <service name="LOG"/> </provides>
 			<config repeat="} $test_repeat {" arch="} [depot_spec] {" children_label_prefix="dynamic -> ">
 				<static>
