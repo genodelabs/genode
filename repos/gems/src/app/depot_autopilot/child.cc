@@ -17,6 +17,12 @@
 
 using namespace Depot_deploy;
 
+enum { GLOBAL_LOG_BUF_SZ = 1024 * 1024 };
+static char   global_log_buf[GLOBAL_LOG_BUF_SZ];
+static char  *global_log_buf_base { global_log_buf };
+static size_t global_log_buf_sz   { GLOBAL_LOG_BUF_SZ };
+
+
 static void forward_to_log(Genode::uint64_t const sec,
                            Genode::uint64_t const ms,
                            char      const *const base,
@@ -437,7 +443,14 @@ void Child::log_session_write(Log_event::Line const &log_line)
 	time_ms = time_ms - time_sec * 1000UL;
 
 	char const *const log_base { log_line.string() };
-	char const *const log_end  { log_base + strlen(log_base) };
+	size_t      const log_sz   { strlen(log_base) };
+	char const *const log_end  { log_base + log_sz };
+
+	size_t const memcpy_sz { Genode::min(log_sz, global_log_buf_sz) };
+	Genode::memcpy(global_log_buf_base, log_base, memcpy_sz);
+	global_log_buf_base += memcpy_sz;
+	global_log_buf_sz   -= memcpy_sz;
+
 	try {
 		char const *log_print { log_base };
 		_log_events.for_each([&] (Log_event &log_event) {
@@ -775,7 +788,38 @@ void Child::event_occured(Event            const &event,
 		return; }
 
 	if      (event.meaning() == "succeeded") { _finished(SUCCEEDED, event, time_us); }
-	else if (event.meaning() == "failed"   ) { _finished(FAILED,    event, time_us); }
+	else if (event.meaning() == "failed"   ) {
+
+log("");
+log("----- captured log -----");
+		unsigned idx = 0;
+		for (char * curr = global_log_buf; curr < global_log_buf_base; ) {
+			addr_t const remains { (addr_t)global_log_buf_base - (addr_t)curr };
+
+			if      (remains >  16) { log(Hex(idx, Hex::OMIT_PREFIX, Hex::PAD), ":  ", Hex(curr[0], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[1], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[2], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[3], Hex::OMIT_PREFIX, Hex::PAD), "  ", Hex(curr[4], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[5], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[6], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[7], Hex::OMIT_PREFIX, Hex::PAD), "  ", Hex(curr[8], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[9], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[10], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[11], Hex::OMIT_PREFIX, Hex::PAD), "  ", Hex(curr[12], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[13], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[14], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[15], Hex::OMIT_PREFIX, Hex::PAD)); curr += 16; }
+			else if (remains == 15) { log(Hex(idx, Hex::OMIT_PREFIX, Hex::PAD), ":  ", Hex(curr[0], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[1], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[2], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[3], Hex::OMIT_PREFIX, Hex::PAD), "  ", Hex(curr[4], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[5], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[6], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[7], Hex::OMIT_PREFIX, Hex::PAD), "  ", Hex(curr[8], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[9], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[10], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[11], Hex::OMIT_PREFIX, Hex::PAD), "  ", Hex(curr[12], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[13], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[14], Hex::OMIT_PREFIX, Hex::PAD)                    ); curr += 15; }
+			else if (remains == 14) { log(Hex(idx, Hex::OMIT_PREFIX, Hex::PAD), ":  ", Hex(curr[0], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[1], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[2], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[3], Hex::OMIT_PREFIX, Hex::PAD), "  ", Hex(curr[4], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[5], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[6], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[7], Hex::OMIT_PREFIX, Hex::PAD), "  ", Hex(curr[8], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[9], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[10], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[11], Hex::OMIT_PREFIX, Hex::PAD), "  ", Hex(curr[12], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[13], Hex::OMIT_PREFIX, Hex::PAD)                                        ); curr += 14; }
+			else if (remains == 13) { log(Hex(idx, Hex::OMIT_PREFIX, Hex::PAD), ":  ", Hex(curr[0], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[1], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[2], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[3], Hex::OMIT_PREFIX, Hex::PAD), "  ", Hex(curr[4], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[5], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[6], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[7], Hex::OMIT_PREFIX, Hex::PAD), "  ", Hex(curr[8], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[9], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[10], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[11], Hex::OMIT_PREFIX, Hex::PAD), "  ", Hex(curr[12], Hex::OMIT_PREFIX, Hex::PAD)                                                            ); curr += 13; }
+			else if (remains == 12) { log(Hex(idx, Hex::OMIT_PREFIX, Hex::PAD), ":  ", Hex(curr[0], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[1], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[2], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[3], Hex::OMIT_PREFIX, Hex::PAD), "  ", Hex(curr[4], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[5], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[6], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[7], Hex::OMIT_PREFIX, Hex::PAD), "  ", Hex(curr[8], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[9], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[10], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[11], Hex::OMIT_PREFIX, Hex::PAD)                                                                                ); curr += 12; }
+			else if (remains == 11) { log(Hex(idx, Hex::OMIT_PREFIX, Hex::PAD), ":  ", Hex(curr[0], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[1], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[2], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[3], Hex::OMIT_PREFIX, Hex::PAD), "  ", Hex(curr[4], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[5], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[6], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[7], Hex::OMIT_PREFIX, Hex::PAD), "  ", Hex(curr[8], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[9], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[10], Hex::OMIT_PREFIX, Hex::PAD)                                                                                                    ); curr += 11; }
+			else if (remains == 10) { log(Hex(idx, Hex::OMIT_PREFIX, Hex::PAD), ":  ", Hex(curr[0], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[1], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[2], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[3], Hex::OMIT_PREFIX, Hex::PAD), "  ", Hex(curr[4], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[5], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[6], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[7], Hex::OMIT_PREFIX, Hex::PAD), "  ", Hex(curr[8], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[9], Hex::OMIT_PREFIX, Hex::PAD)                                                                                                                        ); curr += 10; }
+			else if (remains ==  9) { log(Hex(idx, Hex::OMIT_PREFIX, Hex::PAD), ":  ", Hex(curr[0], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[1], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[2], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[3], Hex::OMIT_PREFIX, Hex::PAD), "  ", Hex(curr[4], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[5], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[6], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[7], Hex::OMIT_PREFIX, Hex::PAD), "  ", Hex(curr[8], Hex::OMIT_PREFIX, Hex::PAD)                                                                                                                                           ); curr += 9; }
+			else if (remains ==  8) { log(Hex(idx, Hex::OMIT_PREFIX, Hex::PAD), ":  ", Hex(curr[0], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[1], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[2], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[3], Hex::OMIT_PREFIX, Hex::PAD), "  ", Hex(curr[4], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[5], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[6], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[7], Hex::OMIT_PREFIX, Hex::PAD)); curr += 8; }
+			else if (remains ==  7) { log(Hex(idx, Hex::OMIT_PREFIX, Hex::PAD), ":  ", Hex(curr[0], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[1], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[2], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[3], Hex::OMIT_PREFIX, Hex::PAD), "  ", Hex(curr[4], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[5], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[6], Hex::OMIT_PREFIX, Hex::PAD)                   ); curr += 7; }
+			else if (remains ==  6) { log(Hex(idx, Hex::OMIT_PREFIX, Hex::PAD), ":  ", Hex(curr[0], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[1], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[2], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[3], Hex::OMIT_PREFIX, Hex::PAD), "  ", Hex(curr[4], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[5], Hex::OMIT_PREFIX, Hex::PAD)                                      ); curr += 6; }
+			else if (remains ==  5) { log(Hex(idx, Hex::OMIT_PREFIX, Hex::PAD), ":  ", Hex(curr[0], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[1], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[2], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[3], Hex::OMIT_PREFIX, Hex::PAD), "  ", Hex(curr[4], Hex::OMIT_PREFIX, Hex::PAD)                                                         ); curr += 5; }
+			else if (remains ==  4) { log(Hex(idx, Hex::OMIT_PREFIX, Hex::PAD), ":  ", Hex(curr[0], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[1], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[2], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[3], Hex::OMIT_PREFIX, Hex::PAD)                                                                            ); curr += 4; }
+			else if (remains ==  3) { log(Hex(idx, Hex::OMIT_PREFIX, Hex::PAD), ":  ", Hex(curr[0], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[1], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[2], Hex::OMIT_PREFIX, Hex::PAD)                                                                                               ); curr += 3; }
+			else if (remains ==  2) { log(Hex(idx, Hex::OMIT_PREFIX, Hex::PAD), ":  ", Hex(curr[0], Hex::OMIT_PREFIX, Hex::PAD), " ", Hex(curr[1], Hex::OMIT_PREFIX, Hex::PAD)                                                                                                                  ); curr += 2; }
+			else if (remains ==  1) { log(Hex(idx, Hex::OMIT_PREFIX, Hex::PAD), ":  ", Hex(curr[0], Hex::OMIT_PREFIX, Hex::PAD)                                                                                                                                     ); curr += 1; }
+			idx += 16;
+		}
+log("------------------------");
+
+		_finished(FAILED,    event, time_us);
+	}
+global_log_buf_base = global_log_buf;
+global_log_buf_sz   = GLOBAL_LOG_BUF_SZ;
 }
 
 
