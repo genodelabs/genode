@@ -24,6 +24,7 @@
 #include <dataspace_component.h>
 #include <object.h>
 #include <kernel/vm.h>
+#include <kernel/vm_state.h>
 
 namespace Genode {
 	class Vm_session_component;

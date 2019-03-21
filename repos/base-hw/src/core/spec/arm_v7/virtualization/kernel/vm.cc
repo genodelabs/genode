@@ -13,6 +13,7 @@
 
 #include <base/log.h>
 #include <hw/assert.h>
+#include <cpu/vm_state_virtualization.h>
 
 #include <platform_pd.h>
 #include <kernel/cpu.h>

@@ -14,7 +14,7 @@
 #ifndef _CORE__KERNEL__VM_H_
 #define _CORE__KERNEL__VM_H_
 
-#include <cpu/vm_state.h>
+namespace Genode { class Vm_state; }
 
 /* core includes */
 #include <kernel/cpu_context.h>

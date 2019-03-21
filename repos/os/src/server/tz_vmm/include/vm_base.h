@@ -20,7 +20,7 @@
 #include <rom_session/connection.h>
 #include <vm_session/connection.h>
 #include <util/noncopyable.h>
-#include <cpu/vm_state.h>
+#include <cpu/vm_state_trustzone.h>
 
 /* local includes */
 #include <ram.h>

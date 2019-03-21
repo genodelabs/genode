@@ -16,8 +16,7 @@
 
 namespace Genode
 {
-	using Cpu_state_modes = Cpu_state;
-	using Vm_state = Cpu_state;
+	struct Vm_state : Cpu_state {};
 }
 
 #endif /* _CORE__SPEC__X86_64__MUEN__VM_STATE_H_ */

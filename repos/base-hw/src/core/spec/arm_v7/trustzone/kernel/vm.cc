@@ -15,6 +15,7 @@
 /* core includes */
 #include <kernel/cpu.h>
 #include <kernel/vm.h>
+#include <cpu/vm_state_trustzone.h>
 
 using namespace Kernel;
 

@@ -27,7 +27,7 @@
 #include <util/mmio.h>
 #include <vm_session/connection.h>
 
-#include <cpu/vm_state.h>
+#include <cpu/vm_state_virtualization.h>
 #include <board.h>
 
 

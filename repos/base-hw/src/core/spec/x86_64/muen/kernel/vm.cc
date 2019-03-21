@@ -17,7 +17,7 @@
 #include <platform_pd.h>
 #include <kernel/cpu.h>
 #include <kernel/vm.h>
-#include <cpu/cpu_state.h>
+#include <kernel/vm_state.h>
 #include <pic.h>
 
 Kernel::Vm::Vm(void * const state, Kernel::Signal_context * const context,

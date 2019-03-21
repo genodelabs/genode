@@ -15,7 +15,7 @@
 #define _SRC__SERVER__VMM__INCLUDE__MMU_H_
 
 /* base includes */
-#include <cpu/vm_state.h>
+#include <cpu/vm_state_trustzone.h>
 
 /* local includes */
 #include <ram.h>
