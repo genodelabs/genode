@@ -126,7 +126,8 @@ struct Sculpt::Popup_dialog
 	typedef Depot::Archive::User User;
 	User _selected_user { };
 
-	bool _pkg_missing = false;
+	bool _pkg_missing     = false;
+	bool _pkg_rom_missing = false;
 
 	Component::Name _construction_name { };
 
@@ -465,11 +466,11 @@ struct Sculpt::Popup_dialog
 		if (_state < PKG_REQUESTED)
 			return;
 
-		_pkg_missing = blueprint_missing(blueprint, construction.path)
-		            || blueprint_any_rom_missing(blueprint);
+		_pkg_rom_missing = blueprint_rom_missing(blueprint, construction.path);
+		_pkg_missing     = blueprint_missing    (blueprint, construction.path);
 
 		construction.try_apply_blueprint(blueprint);
-		if (construction.blueprint_known && !_pkg_missing)
+		if (construction.blueprint_known && !_pkg_missing && !_pkg_rom_missing)
 			_state = PKG_SHOWN;
 
 		generate();
@@ -480,7 +481,7 @@ struct Sculpt::Popup_dialog
 		if (_state == DEPOT_SELECTION)
 			return true;
 
-		return _state >= PKG_REQUESTED && _pkg_missing;
+		return _state >= PKG_REQUESTED && (_pkg_missing || _pkg_rom_missing);
 	}
 
 	bool interested_in_file_operations() const

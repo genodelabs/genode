@@ -22,6 +22,7 @@ namespace Sculpt {
 
 	static inline bool blueprint_missing        (Xml_node, Path const &);
 	static inline bool blueprint_any_missing    (Xml_node);
+	static inline bool blueprint_rom_missing    (Xml_node, Path const &);
 	static inline bool blueprint_any_rom_missing(Xml_node);
 }
 
@@ -53,10 +54,21 @@ static inline bool Sculpt::blueprint_any_missing(Xml_node blueprint)
 }
 
 
-static inline bool Sculpt::blueprint_any_rom_missing(Xml_node blueprint)
+/**
+ * Return true if one or more ROMs of the pkg 'path' are missing from the
+ * blueprint
+ *
+ * If 'path' is an invalid string, all pkgs of the blueprint are checked.
+ */
+static inline bool Sculpt::blueprint_rom_missing(Xml_node blueprint, Path const &path)
 {
 	bool result = false;
 	blueprint.for_each_sub_node("pkg", [&] (Xml_node pkg) {
+
+		/* skip pkgs that we are not interested in */
+		if (path.valid() && pkg.attribute_value("path", Path()) != path)
+			return;
+
 		pkg.for_each_sub_node("missing_rom", [&] (Xml_node missing_rom) {
 
 			/* ld.lib.so is always taken from the base system */
@@ -69,6 +81,12 @@ static inline bool Sculpt::blueprint_any_rom_missing(Xml_node blueprint)
 		});
 	});
 	return result;
+}
+
+
+static inline bool Sculpt::blueprint_any_rom_missing(Xml_node blueprint)
+{
+	return blueprint_rom_missing(blueprint, Path());
 }
 
 #endif /* _DEPOT_QUERY_H_ */

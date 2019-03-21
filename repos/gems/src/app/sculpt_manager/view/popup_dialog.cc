@@ -201,11 +201,11 @@ void Popup_dialog::_gen_menu_elements(Xml_generator &xml) const
 				});
 
 				String<100> const text(Pretty(name), " " "(", version, ")",
-				                       installing ? " installing... " : "...");
+				                       installing ? " installing... " : "... ");
 
 				_gen_menu_entry(xml, id, text, selected);
 
-				if (selected && _pkg_missing && !installing) {
+				if (selected && !installing) {
 
 					_construction_info.with_construction([&] (Component const &component) {
 
@@ -213,7 +213,25 @@ void Popup_dialog::_gen_menu_elements(Xml_generator &xml) const
 
 							gen_named_node(xml, "vbox", "vbox", [&] () {
 
-								if (_nic_ready()) {
+								/*
+								 * Package is installed but content is missing
+								 *
+								 * This can happen when the pkg's runtime is
+								 * inconsistent with the content contained in
+								 * the pkg's archives.
+								 */
+								if (!_pkg_missing && _pkg_rom_missing) {
+									_gen_info_label(xml, "pad2", "");
+									_gen_info_label(xml, "path", component.path);
+									_gen_info_label(xml, "pad3", "");
+									xml.node("label", [&] () {
+										xml.attribute("text", "installed but incomplete"); });
+								}
+
+								/*
+								 * Package is missing but can be installed
+								 */
+								else if (_pkg_missing && _nic_ready()) {
 
 									_gen_pkg_info(xml, component);
 									_gen_info_label(xml, "pad2", "");
@@ -226,8 +244,13 @@ void Popup_dialog::_gen_menu_elements(Xml_generator &xml) const
 											});
 										});
 									});
+								}
 
-								} else {
+								/*
+								 * Package is missing and we cannot do anything
+								 * about it
+								 */
+								else if (_pkg_missing) {
 									_gen_info_label(xml, "pad2", "");
 									_gen_info_label(xml, "path", component.path);
 									_gen_info_label(xml, "pad3", "");
