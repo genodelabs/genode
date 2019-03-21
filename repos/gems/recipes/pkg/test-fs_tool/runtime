@@ -1,25 +1,18 @@
 <runtime ram="32M" caps="1000" binary="init">
 
 	<events>
-		<timeout meaning="failed" sec="10" />
+		<timeout meaning="failed" sec="20" />
 		<log meaning="succeeded">
-			[init -> report_rom] report 'fs_query -> listing'*
-			[init -> report_rom]   &lt;listing>*
-			[init -> report_rom]   	&lt;dir path="/fs/items">*
-			[init -> report_rom]   		&lt;file name="1">first&lt;/file>*
-			[init -> report_rom]   		&lt;file name="2">second&lt;/file>*
-			[init -> report_rom]   	&lt;/dir>*
-			[init -> report_rom]   &lt;/listing>*
-			[init -> test -> remove] Warning: file/items cannot be removed because it is a directory*
+			[init -> test -> remove] *file/items cannot be removed because it is a directory*
 			[init -> test -> remove] remove file /items/2*
-			[init -> test -> remove] Warning: file/3 cannot be removed because there is no such file*
+			[init -> test -> remove] *file/3 cannot be removed because there is no such file*
 			[init -> test -> remove] remove file /4*
-			[init -> report_rom] report 'fs_query -> listing'*
-			[init -> report_rom]   &lt;listing>*
-			[init -> report_rom]   	&lt;dir path="/fs/items">*
-			[init -> report_rom]   		&lt;file name="1">first&lt;/file>*
-			[init -> report_rom]   	&lt;/dir>*
-			[init -> report_rom]   &lt;/listing>*
+			[init -> report_rom] report 'test -> fs_query -> listing'
+			[init -> report_rom]   &lt;listing>
+			[init -> report_rom]   	&lt;dir path="/fs/items">
+			[init -> report_rom]   		&lt;file name="1">first&lt;/file>
+			[init -> report_rom]   	&lt;/dir>
+			[init -> report_rom]   &lt;/listing>
 		</log>
 	</events>
 
@@ -75,14 +68,6 @@
 			</config>
 		</start>
 
-		<start name="fs_query">
-			<resource name="RAM" quantum="1M"/>
-			<config>
-				<vfs> <dir name="fs"> <fs writeable="yes"/> </dir> </vfs>
-				<query path="/fs/items" content="yes"/>
-			</config>
-		</start>
-
 		<start name="test" caps="700">
 			<binary name="sequence"/>
 			<resource name="RAM" quantum="16M"/>
@@ -106,6 +91,14 @@
 						<remove-file path="/items/2"/> <!-- should succeed -->
 						<remove-file path="/3"/>       <!-- does not exist -->
 						<remove-file path="/4"/>       <!-- should succeed -->
+					</config>
+				</start>
+
+				<start name="fs_query">
+					<resource name="RAM" quantum="1M"/>
+					<config>
+						<vfs> <dir name="fs"> <fs/> </dir> </vfs>
+						<query path="/fs/items" content="yes"/>
 					</config>
 				</start>
 
