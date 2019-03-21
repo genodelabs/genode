@@ -23,7 +23,6 @@ SRC_CC  += lib/base/sliced_heap.cc
 SRC_CC  += lib/startup/_main.cc
 
 INC_DIR += $(HW_DIR)/src/bootstrap
-INC_DIR += $(HW_DIR)/src/lib
 INC_DIR += $(HW_DIR)/src/include
 INC_DIR += $(BASE_DIR)/src/include
 INC_DIR += $(BASE_DIR)/src/core/include # for boot_modules.h only
