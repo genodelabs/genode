@@ -96,6 +96,18 @@ class Depot_deploy::Log_event : public Event,
 
 	public:
 
+		struct Match : Genode::List<Match>::Element
+		{
+			unsigned from;
+			unsigned to;
+
+			Match(unsigned from, unsigned to) : from(from), to(to) { }
+		};
+
+		size_t              log_curr_idx { 0 };
+		size_t              match_sz     { 0 };
+		Genode::List<Match> matches      { };
+
 		Log_event(Genode::Xml_node const &xml);
 
 

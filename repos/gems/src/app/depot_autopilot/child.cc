@@ -455,6 +455,8 @@ void Child::log_session_write(Log_event::Line const &log_line)
 		char const *log_print { log_base };
 		_log_events.for_each([&] (Log_event &log_event) {
 
+			bool const log_matches { log_event.meaning() == "succeeded" };
+
 			bool        match        { false };
 			char const *pattern_end  { log_event.remaining_end() };
 			char const *pattern_curr { log_event.remaining_base() };
@@ -495,10 +497,18 @@ void Child::log_session_write(Log_event::Line const &log_line)
 						log_print = log_curr + 1;
 					}
 					log_curr++;
+if (log_matches) {
+					log_event.match_sz++;
+					log_event.log_curr_idx++;
+}
 					continue;
 				}
 				if (*log_curr == ASCII_TAB) {
 					log_curr++;
+if (log_matches) {
+					log_event.match_sz++;
+					log_event.log_curr_idx++;
+}
 					continue;
 				}
 				/* skip irrelevant escape sequences in the log line */
@@ -516,6 +526,10 @@ void Child::log_session_write(Log_event::Line const &log_line)
 							if (seq_curr == seq_end) {
 								seq_match = true;
 								log_curr  = log_seq_curr;
+if (log_matches) {
+								log_event.match_sz     += skip_esc_seq[i].size+1;
+								log_event.log_curr_idx += skip_esc_seq[i].size+1;
+}
 								break;
 							}
 							if (log_seq_curr == log_end) {
@@ -564,15 +578,37 @@ void Child::log_session_write(Log_event::Line const &log_line)
 				}
 				/* check if log keeps matching pattern */
 				if (*log_curr != pattern_curr_san) {
+
+if (log_matches) {
+					if (log_event.match_sz) {
+						Log_event::Match *match = new (_alloc)
+							Log_event::Match { (unsigned)(log_event.log_curr_idx-log_event.match_sz),
+							                   (unsigned)(log_event.log_curr_idx-1) };
+
+						log_event.matches.insert(match);
+						log_event.match_sz = 0;
+					}
+}
+
 					pattern_curr = log_event.reset_to();
 					if (!log_event.reset_retry()) {
 
-						log_curr++; }
+						log_curr++;
+
+if (log_matches) {
+						log_event.log_curr_idx++;
+}
+					}
 					else {
 						log_event.reset_retry() = false; }
 				} else {
 					pattern_curr += pattern_curr_san_sz;
 					log_curr++;
+
+if (log_matches) {
+					log_event.match_sz++;
+					log_event.log_curr_idx++;
+}
 					log_event.reset_retry() = true;
 				}
 			}
@@ -791,7 +827,7 @@ void Child::event_occured(Event            const &event,
 	else if (event.meaning() == "failed"   ) {
 
 log("");
-log("----- captured log -----");
+log("------- captured log ---------");
 		unsigned idx = 0;
 		for (char * curr = global_log_buf; curr < global_log_buf_base; ) {
 			addr_t const remains { (addr_t)global_log_buf_base - (addr_t)curr };
@@ -814,7 +850,23 @@ log("----- captured log -----");
 			else if (remains ==  1) { log(Hex(idx, Hex::OMIT_PREFIX, Hex::PAD), ":  ", Hex(curr[0], Hex::OMIT_PREFIX, Hex::PAD)                                                                                                                                     ); curr += 1; }
 			idx += 16;
 		}
-log("------------------------");
+unsigned log_event_idx { 0 };
+_log_events.for_each([&] (Log_event &log_event) {
+	bool log_matches = (log_event.meaning() == "succeeded");
+	if (log_matches) {
+		log("");
+		log("--- matches of log event ",log_event_idx++," ---");
+	}
+	while (Log_event::Match *match = log_event.matches.first()) {
+		if (log_matches) {
+			log("[", Hex(match->from, Hex::OMIT_PREFIX, Hex::PAD) , "..",
+			    Hex(match->to, Hex::OMIT_PREFIX, Hex::PAD), "]");
+		}
+		log_event.matches.remove(match);
+		destroy(_alloc, match);
+	}
+});
+log("------------------------------");
 
 		_finished(FAILED,    event, time_us);
 	}
