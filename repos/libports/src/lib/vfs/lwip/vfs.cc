@@ -343,13 +343,9 @@ struct Lwip::Socket_dir : Lwip::Directory
 			return Open_result::OPEN_OK;
 		}
 
-		Read_result readdir(char *dst, file_size count,
-		                    file_size &out_count) override
+		Read_result readdir(char *, file_size, file_size &) override
 		{
 			Genode::warning(__func__, " NOT_IMPLEMENTED");
-			(void)dst;
-			(void)count;
-			(void)out_count;
 			return Read_result::READ_ERR_INVALID;
 		}
 
@@ -579,13 +575,9 @@ class Lwip::Protocol_dir_impl final : public Protocol_dir
 			return Directory_service::STAT_ERR_NO_ENTRY;
 		}
 
-		Read_result readdir(char *dst, file_size count,
-		                    file_size &out_count) override
+		Read_result readdir(char *, file_size, file_size &) override
 		{
 			Genode::warning(__func__, " NOT_IMPLEMENTED");
-			(void)dst;
-			(void)count;
-			(void)out_count;
 			return Read_result::READ_ERR_INVALID;
 		};
 
@@ -1602,7 +1594,7 @@ void tcp_err_callback(void *arg, err_t)
  ** VFS file-system **
  *********************/
 
-class Lwip::File_system final : public Vfs::File_system
+class Lwip::File_system final : public Vfs::File_system, public Lwip::Directory
 {
 	private:
 
@@ -1678,8 +1670,6 @@ class Lwip::File_system final : public Vfs::File_system
 		template <typename PROC>
 		void apply_walk(char const *path, PROC const proc)
 		{
-			if (*path == '/') ++path;
-
 			if (Genode::strcmp(path, "tcp", 3) == 0)
 				proc(path+3, _netif.tcp_dir);
 			else
@@ -1702,6 +1692,16 @@ class Lwip::File_system final : public Vfs::File_system
 		void apply_config(Genode::Xml_node const &node) override {
 			_netif.configure(node); }
 
+
+		/*********************
+		 ** Lwip::Directory **
+		 *********************/
+
+		Read_result readdir(char *, file_size, file_size &) override
+		{
+			Genode::warning(__func__, " NOT_IMPLEMENTED");
+			return Read_result::READ_ERR_INVALID;
+		};
 
 		/***********************
 		 ** Directory_service **
@@ -1786,11 +1786,22 @@ class Lwip::File_system final : public Vfs::File_system
 			 */
 			if (create) return OPENDIR_ERR_PERMISSION_DENIED;
 
-			Opendir_result r = OPENDIR_ERR_LOOKUP_FAILED;
-			apply_walk(path, [&] (char const *subpath, Protocol_dir &dir) {
-				r = dir.opendir(*this, subpath, out_handle, alloc);
-			});
-			return r;
+			if (*path == '/') ++path;
+
+			try {
+				if (*path == '\0') {
+					*out_handle = new (alloc) Lwip_dir_handle(*this, alloc, *this);
+					return OPENDIR_OK;
+				}
+
+				Opendir_result r = OPENDIR_ERR_LOOKUP_FAILED;
+				apply_walk(path, [&] (char const *subpath, Protocol_dir &dir) {
+					r = dir.opendir(*this, subpath, out_handle, alloc);
+				});
+				return r;
+			}
+			catch (Genode::Out_of_ram)  { return OPENDIR_ERR_OUT_OF_RAM; }
+			catch (Genode::Out_of_caps) { return OPENDIR_ERR_OUT_OF_CAPS; }
 		}
 
 		void close(Vfs_handle *vfs_handle) override
