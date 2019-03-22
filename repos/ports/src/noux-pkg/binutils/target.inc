@@ -1,7 +1,8 @@
 CFLAGS += -std=c99
 CONFIGURE_ARGS = --disable-werror \
                  --program-prefix=$(PROGRAM_PREFIX) \
-                 --target=$(BINUTILS_TARGET)
+                 --target=$(BINUTILS_TARGET) \
+                 --disable-nls
 
 #
 # Pass CFLAGS and friends to the invokation of 'make' because
