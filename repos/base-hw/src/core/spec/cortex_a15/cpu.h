@@ -113,10 +113,6 @@ class Genode::Cpu : public Arm_v7_cpu
 		 */
 		static unsigned executing_id() { return Mpidr::Aff_0::get(Mpidr::read()); }
 
-		/**
-		 * Return kernel name of the primary CPU
-		 */
-		static unsigned primary_id();
 
 		void switch_to(Context &, Mmu_context & mmu_context)
 		{

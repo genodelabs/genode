@@ -70,8 +70,8 @@ void Vm_session_component::attach(Dataspace_capability ds_cap, addr_t vm_addr)
 
 void Vm_session_component::attach_pic(addr_t vm_addr)
 {
-	_attach(Board::IRQ_CONTROLLER_VT_CPU_BASE, vm_addr,
-	        Board::IRQ_CONTROLLER_VT_CPU_SIZE);
+	_attach(Board::Cpu_mmio::IRQ_CONTROLLER_VT_CPU_BASE, vm_addr,
+	        Board::Cpu_mmio::IRQ_CONTROLLER_VT_CPU_SIZE);
 }
 
 

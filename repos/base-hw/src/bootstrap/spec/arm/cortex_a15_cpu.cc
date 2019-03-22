@@ -54,6 +54,10 @@ void Bootstrap::Cpu::enable_mmu_and_caches(Genode::addr_t table)
 	Ttbcr::Eae::set(ttbcr, 1);
 	Ttbcr::write(ttbcr);
 
+	/* toggle smp bit */
+	Actlr::access_t actlr = Actlr::read();
+	Actlr::write(actlr | (1 << 6));
+
 	Sctlr::access_t sctlr = Sctlr::read();
 	Sctlr::C::set(sctlr, 1);
 	Sctlr::I::set(sctlr, 1);

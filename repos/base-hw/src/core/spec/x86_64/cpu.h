@@ -122,11 +122,6 @@ class Genode::Cpu : public Hw::X86_64_cpu
 		static unsigned executing_id();
 
 		/**
-		 * Return kernel name of the primary CPU
-		 */
-		static unsigned primary_id() { return 0; }
-
-		/**
 		 * Switch to new context
 		 *
 		 * \param context  next CPU context

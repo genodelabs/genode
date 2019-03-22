@@ -81,7 +81,6 @@ class Genode::Cpu : public Hw::Riscv_cpu
 		static void mmu_fault(Context & c, Kernel::Thread_fault & f);
 
 		static unsigned executing_id() { return 0; }
-		static unsigned primary_id()   { return 0; }
 };
 
 #endif /* _CORE__SPEC__RISCV__CPU_H_ */

@@ -134,6 +134,8 @@ class Kernel::Cpu : public Genode::Cpu, private Irq::Pool, private Timeout
 		Cpu(unsigned const id, Pic & pic,
 		    Inter_processor_work_list & global_work_list);
 
+		static inline unsigned primary_id() { return 0; }
+
 		/**
 		 * Raise the IPI of the CPU
 		 */

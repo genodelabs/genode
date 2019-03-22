@@ -60,9 +60,6 @@ namespace Exynos5 {
 		/* IRAM */
 		IRAM_BASE = 0x02020000,
 
-		/* hardware name of the primary processor */
-		PRIMARY_MPIDR_AFF_0 = 0,
-
 		/* SATA/AHCI */
 		SATA_IRQ = 147,
 

@@ -92,7 +92,7 @@ struct Kernel::Virtual_pic : Genode::Mmio
 	Vm_irq irq { Board::VT_MAINTAINANCE_IRQ };
 
 	Virtual_pic()
-	: Genode::Mmio(Genode::Platform::mmio_to_virt(Board::IRQ_CONTROLLER_VT_CTRL_BASE)) { }
+	: Genode::Mmio(Genode::Platform::mmio_to_virt(Board::Cpu_mmio::IRQ_CONTROLLER_VT_CTRL_BASE)) { }
 
 	static Virtual_pic& pic()
 	{

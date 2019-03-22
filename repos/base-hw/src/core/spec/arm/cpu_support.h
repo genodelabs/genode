@@ -155,11 +155,6 @@ struct Genode::Arm_cpu : public Hw::Arm_cpu
 	 * Return kernel name of the executing CPU
 	 */
 	static unsigned executing_id() { return 0; }
-
-	/**
-	 * Return kernel name of the primary CPU
-	 */
-	static unsigned primary_id() { return 0; }
 };
 
 #endif /* _CORE__SPEC__ARM__CPU_SUPPORT_H_ */
