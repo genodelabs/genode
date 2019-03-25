@@ -273,6 +273,9 @@ proc query_expected_log_pattern { } {
 		foreach char [list {[} {]} {(} {)} {.}] {
 			regsub -all "\\$char" $line "\\$char" line }
 
+		# replace wildcards by non-greedy regexp wildcards
+		regsub -all {\*} $line {.*?} line
+
 		lappend prefixed_lines "$line.*?"
 	}
 
