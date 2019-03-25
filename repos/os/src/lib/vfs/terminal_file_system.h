@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2012-2017 Genode Labs GmbH
+ * Copyright (C) 2012-2019 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -18,7 +18,6 @@
 
 #include <terminal_session/connection.h>
 #include <vfs/single_file_system.h>
-#include <base/signal.h>
 #include <base/registry.h>
 
 
@@ -33,52 +32,50 @@ class Vfs::Terminal_file_system : public Single_file_system
 		Label _label;
 
 		Genode::Env         &_env;
-		Io_response_handler &_io_handler;
 
 		Terminal::Connection _terminal { _env, _label.string() };
 
-		typedef Genode::Registered<Vfs_handle>      Registered_handle;
-		typedef Genode::Registry<Registered_handle> Handle_registry;
-
-		struct Post_signal_hook : Genode::Entrypoint::Post_signal_hook
+		struct Terminal_vfs_handle : Single_vfs_handle
 		{
-			Genode::Entrypoint  &_ep;
-			Io_response_handler &_io_handler;
-			Vfs_handle          *_handle = nullptr;
+			Terminal::Connection &terminal;
+			bool notifying { false };
+			bool blocked   { false };
 
-			Post_signal_hook(Genode::Entrypoint &ep,
-			                 Io_response_handler &io_handler)
-			: _ep(ep), _io_handler(io_handler) { }
+			Terminal_vfs_handle(Terminal::Connection &term,
+			                    Directory_service    &ds,
+			                    File_io_service      &fs,
+			                    Genode::Allocator    &alloc,
+			                    int                   flags)
+			:
+				Single_vfs_handle(ds, fs, alloc, flags),
+				terminal(term)
+			{ }
 
-			void arm(Vfs_handle &handle)
+			bool read_ready() override {
+				return terminal.avail(); }
+
+			Read_result read(char *dst, file_size count,
+			                 file_size &out_count) override
 			{
-				_handle = &handle;
-				_ep.schedule_post_signal_hook(this);
+				if (!terminal.avail()) {
+					blocked = true;
+					return READ_QUEUED;
+				}
+
+				out_count = terminal.read(dst, count);
+				return READ_OK;
 			}
 
-			void function() override
+			Write_result write(char const *src, file_size count,
+			                   file_size &out_count) override
 			{
-				/*
-				 * XXX The current implementation executes the post signal hook
-				 *     for the last armed context only. When changing this,
-				 *     beware that the called handle_io_response() may change
-				 *     this object in a signal handler.
-				 */
-
-				_io_handler.handle_io_response(_handle ? _handle->context() : nullptr);
-				_handle = nullptr;
+				out_count = terminal.write(src, count);
+				return WRITE_OK;
 			}
-
-			private:
-
-				/*
-				 * Noncopyable
-				 */
-				Post_signal_hook(Post_signal_hook const &);
-				Post_signal_hook &operator = (Post_signal_hook const &);
 		};
 
-		Post_signal_hook _post_signal_hook { _env.ep(), _io_handler };
+		typedef Genode::Registered<Terminal_vfs_handle> Registered_handle;
+		typedef Genode::Registry<Registered_handle>     Handle_registry;
 
 		Handle_registry _handle_registry { };
 
@@ -87,20 +84,17 @@ class Vfs::Terminal_file_system : public Single_file_system
 
 		void _handle_read_avail()
 		{
-			_handle_registry.for_each([this] (Registered_handle &h) {
-				_post_signal_hook.arm(h);
-			});
-		}
+			_handle_registry.for_each([this] (Registered_handle &handle) {
+				if (handle.blocked) {
+					handle.blocked = false;
+					handle.io_progress_response();
+				}
 
-		Read_result _read(Vfs_handle *, char *dst, file_size count,
-		                  file_size &out_count)
-		{
-			if (_terminal.avail()) {
-				out_count = _terminal.read(dst, count);
-				return READ_OK;
-			} else {
-				return READ_QUEUED;
-			}
+				if (handle.notifying) {
+					handle.notifying = false;
+					handle.read_ready_response();
+				}
+			});
 		}
 
 	public:
@@ -109,7 +103,7 @@ class Vfs::Terminal_file_system : public Single_file_system
 		:
 			Single_file_system(NODE_TYPE_CHAR_DEVICE, name(), config),
 			_label(config.attribute_value("label", Label())),
-			_env(env.env()), _io_handler(env.io_handler())
+			_env(env.env())
 		{
 			/* register for read-avail notification */
 			_terminal.read_avail_sigh(_read_avail_handler);
@@ -118,7 +112,7 @@ class Vfs::Terminal_file_system : public Single_file_system
 		static const char *name()   { return "terminal"; }
 		char const *type() override { return "terminal"; }
 
-		Open_result open(char const  *path, unsigned,
+		Open_result open(char const  *path, unsigned flags,
 		                 Vfs_handle **out_handle,
 		                 Allocator   &alloc) override
 		{
@@ -127,33 +121,27 @@ class Vfs::Terminal_file_system : public Single_file_system
 
 			try {
 				*out_handle = new (alloc)
-					Registered_handle(_handle_registry, *this, *this, alloc, 0);
+					Registered_handle(_handle_registry, _terminal, *this, *this, alloc, flags);
 				return OPEN_OK;
 			}
 			catch (Genode::Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
 			catch (Genode::Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
 		}
 
+
 		/********************************
 		 ** File I/O service interface **
 		 ********************************/
 
-		Write_result write(Vfs_handle *, char const *buf, file_size buf_size,
-		                   file_size &out_count) override
+		bool notify_read_ready(Vfs_handle *vfs_handle) override
 		{
-			out_count = _terminal.write(buf, buf_size);
-			return WRITE_OK;
-		}
+			Terminal_vfs_handle *handle =
+				static_cast<Terminal_vfs_handle*>(vfs_handle);
+			if (!handle)
+				return false;
 
-		Read_result complete_read(Vfs_handle *vfs_handle, char *dst, file_size count,
-		                          file_size &out_count) override
-		{
-			return _read(vfs_handle, dst, count, out_count);
-		}
-
-		bool read_ready(Vfs_handle *) override
-		{
-			return _terminal.avail();
+			handle->notifying = true;
+			return true;
 		}
 
 		Ftruncate_result ftruncate(Vfs_handle *, file_size) override
@@ -163,19 +151,7 @@ class Vfs::Terminal_file_system : public Single_file_system
 
 		bool check_unblock(Vfs_handle *, bool rd, bool wr, bool) override
 		{
-			if (rd && (_terminal.avail() > 0))
-				return true;
-
-			if (wr)
-				return true;
-
-			return false;
-		}
-
-		void register_read_ready_sigh(Vfs_handle *,
-		                              Signal_context_capability sigh) override
-		{
-			_terminal.read_avail_sigh(sigh);
+			return ((rd && _terminal.avail()) || wr);
 		}
 };
 

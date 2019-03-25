@@ -648,7 +648,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 			Vfs_handle_context read_context;
 			Vfs::Vfs_handle::Guard guard(symlink_handle);
 
-			symlink_handle->context(&read_context);
+			symlink_handle->handler(&read_context);
 
 			Vfs::file_size out_count = 0;
 			Vfs::File_io_service::Read_result read_result;
@@ -782,7 +782,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 			Vfs_handle_context sync_context;
 			Vfs::Vfs_handle::Guard guard(symlink_handle);
 
-			symlink_handle->context(&sync_context);
+			symlink_handle->handler(&sync_context);
 
 			while (symlink_handle->fs().complete_sync(symlink_handle) ==
 				   Vfs::File_io_service::SYNC_QUEUED)
@@ -913,7 +913,7 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				Vfs_handle_context sync_context;
 				Vfs::Vfs_handle::Guard guard(sync_handle);
 
-				sync_handle->context(&sync_context);
+				sync_handle->handler(&sync_context);
 
 				while (sync_handle->fs().complete_sync(sync_handle) ==
 				   Vfs::File_io_service::SYNC_QUEUED)

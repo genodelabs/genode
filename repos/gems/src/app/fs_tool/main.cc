@@ -38,21 +38,11 @@ struct Fs_tool::Main
 	{
 		Main &_main;
 
-		struct Io_response_dummy : Vfs::Io_response_handler {
-			void handle_io_response(Vfs::Vfs_handle::Context*) override { }
-		} _io_dummy { };
-
-		struct Watch_response_dummy: Vfs::Watch_response_handler {
-			void handle_watch_response(Vfs::Vfs_watch_handle::Context*) override { }
-		} _watch_dummy { };
-
 		Vfs_env(Main &main) : _main(main) { }
 
 		Genode::Env                 &env()           override { return _main._env; }
 		Allocator                   &alloc()         override { return _main._heap; }
 		Vfs::File_system            &root_dir()      override { return _main._root_dir_fs; }
-		Vfs::Io_response_handler    &io_handler()    override { return _io_dummy; }
-		Vfs::Watch_response_handler &watch_handler() override { return _watch_dummy; }
 
 	} _vfs_env { *this };
 

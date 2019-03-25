@@ -222,10 +222,12 @@ Libc::File_descriptor *Libc::Vfs_plugin::open(char const *path, int flags,
 		/* FIXME error cleanup code leaks resources! */
 
 		if (!fd) {
+			handle->close();
 			errno = EMFILE;
 			return nullptr;
 		}
 
+		handle->handler(&_response_handler);
 		fd->flags = flags & O_ACCMODE;
 
 		return fd;
@@ -301,13 +303,16 @@ Libc::File_descriptor *Libc::Vfs_plugin::open(char const *path, int flags,
 	/* FIXME error cleanup code leaks resources! */
 
 	if (!fd) {
+		handle->close();
 		errno = EMFILE;
 		return nullptr;
 	}
 
+	handle->handler(&_response_handler);
 	fd->flags = flags & (O_ACCMODE|O_NONBLOCK|O_APPEND);
 
 	if ((flags & O_TRUNC) && (ftruncate(fd, 0) == -1)) {
+		handle->close();
 		errno = EINVAL; /* XXX which error code fits best ? */
 		return nullptr;
 	}
@@ -319,6 +324,7 @@ Libc::File_descriptor *Libc::Vfs_plugin::open(char const *path, int flags,
 int Libc::Vfs_plugin::close(Libc::File_descriptor *fd)
 {
 	Vfs::Vfs_handle *handle = vfs_handle(fd);
+	/* XXX: mark the handle as requiring sync or not */
 	_vfs_sync(handle);
 	VFS_THREAD_SAFE(handle->close());
 	Libc::file_descriptor_allocator()->free(fd);
@@ -963,6 +969,8 @@ int Libc::Vfs_plugin::symlink(const char *oldpath, const char *newpath)
 	Vfs::file_size count = ::strlen(oldpath) + 1;
 	Vfs::file_size out_count  = 0;
 
+	handle->handler(&_response_handler);
+
 	struct Check : Libc::Suspend_functor
 	{
 		bool             retry { false };
@@ -1030,6 +1038,8 @@ ssize_t Libc::Vfs_plugin::readlink(const char *path, char *buf, ::size_t buf_siz
 	case Vfs::Directory_service::OPENLINK_ERR_PERMISSION_DENIED:
 		return Errno(EACCES);
 	}
+
+	symlink_handle->handler(&_response_handler);
 
 	{
 		struct Check : Libc::Suspend_functor

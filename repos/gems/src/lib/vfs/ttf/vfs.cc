@@ -32,11 +32,6 @@ namespace Vfs_ttf {
 	class Local_factory;
 	class File_system;
 
-	struct Dummy_io_response_handler : Vfs::Io_response_handler
-	{
-		void handle_io_response(Vfs::Vfs_handle::Context *) override { };
-	};
-
 	typedef Text_painter::Font Font;
 }
 
@@ -137,7 +132,6 @@ struct Vfs_ttf::Local_factory : File_system_factory
 
 
 class Vfs_ttf::File_system : private Local_factory,
-                             private Dummy_io_response_handler,
                              public  Vfs::Dir_file_system
 {
 	private:

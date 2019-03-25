@@ -18,24 +18,8 @@
 
 #include <vfs/vfs_handle.h>
 
-namespace Vfs {
-	class Vfs_handle;
-	struct Io_response_handler;
-	struct Watch_response_handler;
-	struct File_io_service;
-}
+namespace Vfs { struct File_io_service; }
 
-
-struct Vfs::Io_response_handler : Interface
-{
-	virtual void handle_io_response(Vfs_handle::Context *context) = 0;
-};
-
-
-struct Vfs::Watch_response_handler : Interface
-{
-	virtual void handle_watch_response(Vfs_watch_handle::Context*) = 0;
-};
 
 struct Vfs::File_io_service : Interface
 {

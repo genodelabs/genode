@@ -79,7 +79,7 @@ struct Noux::Vfs_dataspace
 
 			Vfs_handle_context read_context;
 			Vfs::Vfs_handle::Guard guard(file);
-			file->context(&read_context);
+			file->handler(&read_context);
 
 			ds = ram.alloc(stat_out.size);
 

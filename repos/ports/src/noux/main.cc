@@ -213,50 +213,25 @@ struct Noux::Main
 	/* initialize virtual file system */
 	Vfs::Global_file_system_factory _global_file_system_factory { _heap };
 
-	struct Io_response_handler : Vfs::Io_response_handler
+	struct Io_progress_handler : Genode::Entrypoint::Io_progress_handler
 	{
 		Vfs_io_waiter_registry io_waiter_registry { };
 
-		void handle_io_response(Vfs::Vfs_handle::Context *context) override
+		Io_progress_handler(Genode::Entrypoint &ep)
 		{
-			if (context) {
-				Vfs_handle_context *vfs_handle_context = static_cast<Vfs_handle_context*>(context);
-				vfs_handle_context->vfs_io_waiter.wakeup();
-				return;
-			}
+			ep.register_io_progress_handler(*this);
+		}
 
+		void handle_io_progress() override
+		{
 			io_waiter_registry.for_each([] (Vfs_io_waiter &r) {
 				r.wakeup();
 			});
 		}
 
-	} _io_response_handler { };
+	} _io_response_handler { _env.ep() };
 
-	struct Vfs_env : Vfs::Env, Vfs::Watch_response_handler
-	{
-		Main &_main;
-
-		Vfs::Global_file_system_factory _fs_factory { _main._heap };
-		Vfs::Dir_file_system            _root_dir;
-
-		Vfs_env(Main &main, Xml_node config)
-		: _main(main), _root_dir(*this, config, _fs_factory) { }
-
-		/**
-		 * Vfs::Watch_response_handler interface
-		 */
-		void handle_watch_response(Vfs::Vfs_watch_handle::Context*) override { }
-
-		/**
-		 * Vfs::Env interface
-		 */
-		Genode::Env                 &env()           override { return _main._env; }
-		Allocator                   &alloc()         override { return _main._heap; }
-		Vfs::File_system            &root_dir()      override { return _root_dir; }
-		Vfs::Io_response_handler    &io_handler()    override { return _main._io_response_handler; }
-		Vfs::Watch_response_handler &watch_handler() override { return *this; }
-
-	} _vfs_env { *this, _config.xml().sub_node("fstab") };
+	Vfs::Simple_env _vfs_env { _env, _heap, _config.xml().sub_node("fstab") };
 
 	Vfs::File_system &_root_dir = _vfs_env.root_dir();
 

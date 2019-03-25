@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2018 Genode Labs GmbH
+ * Copyright (C) 2018-2019 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -34,10 +34,6 @@ struct Vfs::Env : Interface
 	 * VFS root file-system
 	 */
 	virtual File_system &root_dir() = 0;
-
-	virtual Io_response_handler &io_handler() = 0;
-
-	virtual Watch_response_handler &watch_handler() = 0;
 };
 
 #endif /* _INCLUDE__VFS__ENV_H_ */

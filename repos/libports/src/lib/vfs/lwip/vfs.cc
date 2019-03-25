@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2016-2018 Genode Labs GmbH
+ * Copyright (C) 2016-2019 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -239,11 +239,14 @@ struct Lwip::Lwip_file_handle final : Lwip_handle, private Lwip_handle_list::Ele
 
 	Socket_dir *socket;
 
+	typedef Genode::Fifo_element<Lwip_file_handle> Fifo_element;
+	typedef Genode::Fifo<Lwip_file_handle::Fifo_element> Fifo;
+	Fifo_element  _read_ready_waiter { *this };
+	Fifo_element _io_progress_waiter { *this };
+
 	int in_transit = 0;
 
 	Kind kind;
-
-	bool notify = false;
 
 	void print(Genode::Output &output) const;
 
@@ -257,6 +260,8 @@ struct Lwip::Lwip_file_handle final : Lwip_handle, private Lwip_handle_list::Ele
 
 	Write_result write(char const *src, file_size count,
 	                   file_size &out_count) override;
+
+	bool notify_read_ready();
 };
 
 
@@ -275,13 +280,14 @@ struct Lwip::Socket_dir : Lwip::Directory
 
 		Genode::Allocator &alloc;
 
-		Vfs::Io_response_handler &io_handler;
-
 		unsigned    const _num;
 		Socket_name const _name { name_from_num(_num) };
 
 		/* lists of handles opened at this socket */
 		Lwip_handle_list handles { };
+
+		Lwip_file_handle::Fifo  read_ready_queue { };
+		Lwip_file_handle::Fifo io_progress_queue { };
 
 		enum State {
 			NEW,
@@ -293,8 +299,8 @@ struct Lwip::Socket_dir : Lwip::Directory
 			CLOSED
 		};
 
-		Socket_dir(unsigned num, Genode::Allocator &alloc, Vfs::Io_response_handler &io_handler)
-		: alloc(alloc), io_handler(io_handler), _num(num) { };
+		Socket_dir(unsigned num, Genode::Allocator &alloc)
+		: alloc(alloc), _num(num) { };
 
 
 		~Socket_dir()
@@ -363,18 +369,25 @@ struct Lwip::Socket_dir : Lwip::Directory
 
 		virtual bool read_ready(Lwip_file_handle&) = 0;
 
-		void handle_io(int mask)
+		/**
+		 * Notify handles waiting for this PCB / socket to be ready
+		 */
+		void process_read_ready()
 		{
-			for (Lwip::Lwip_file_handle *h = handles.first();
-			     h; h = h->next())
-			{
-				if (h->kind & mask) {
-					io_handler.handle_io_response(h->context());
-				}
-			}
+			/* invoke all handles waiting for read_ready */
+			read_ready_queue.dequeue_all([] (Lwip_file_handle::Fifo_element &elem) {
+				elem.object().read_ready_response(); });
 		}
 
-		virtual Sync_result complete_sync() = 0;
+		/**
+		 * Notify handles blocked by operations on this PCB / socket
+		 */
+		void process_io()
+		{
+			/* invoke all handles waiting for IO progress */
+			io_progress_queue.dequeue_all([] (Lwip_file_handle::Fifo_element &elem) {
+				elem.object().io_progress_response(); });
+		}
 };
 
 
@@ -388,16 +401,27 @@ Lwip::Lwip_file_handle::Lwip_file_handle(Vfs::File_system &fs, Allocator &alloc,
 
 Lwip::Lwip_file_handle::~Lwip_file_handle()
 {
-	if (socket)
+	if (socket) {
 		socket->handles.remove(this);
+		if (_read_ready_waiter.enqueued()) {
+			socket->read_ready_queue.remove(_read_ready_waiter);
+		}
+		if (_io_progress_waiter.enqueued()) {
+			socket->io_progress_queue.remove(_io_progress_waiter);
+		}
+	}
 }
 
 Lwip::Read_result Lwip::Lwip_file_handle::read(char *dst, file_size count,
                                                file_size &out_count)
 {
-	return (socket)
-		? socket->read(*this, dst, count, out_count)
-		: Read_result::READ_ERR_INVALID;
+	Lwip::Read_result result = Read_result::READ_ERR_INVALID;
+	if (socket) {
+		result = socket->read(*this, dst, count, out_count);
+		if (result == Read_result::READ_QUEUED && !_io_progress_waiter.enqueued())
+			socket->io_progress_queue.enqueue(_io_progress_waiter);
+	}
+	return result;
 }
 
 Lwip::Write_result Lwip::Lwip_file_handle::write(char const *src, file_size count,
@@ -408,6 +432,16 @@ Lwip::Write_result Lwip::Lwip_file_handle::write(char const *src, file_size coun
 		: Write_result::WRITE_ERR_INVALID;
 }
 
+bool Lwip::Lwip_file_handle::notify_read_ready()
+{
+	if (socket) {
+		if (!_read_ready_waiter.enqueued())
+			socket->read_ready_queue.enqueue(_read_ready_waiter);
+		return true;
+	}
+
+	return false;
+}
 
 void Lwip::Lwip_file_handle::print(Genode::Output &output) const
 {
@@ -457,9 +491,8 @@ class Lwip::Protocol_dir_impl final : public Protocol_dir
 {
 	private:
 
-		Genode::Allocator        &_alloc;
-		Vfs::Io_response_handler &_io_handler;
-		Genode::Entrypoint       &_ep;
+		Genode::Allocator  &_alloc;
+		Genode::Entrypoint &_ep;
 
 		Genode::List<SOCKET_DIR> _socket_dirs { };
 
@@ -472,7 +505,7 @@ class Lwip::Protocol_dir_impl final : public Protocol_dir
 		friend class Udp_socket_dir;
 
 		Protocol_dir_impl(Vfs::Env &vfs_env)
-		: _alloc(vfs_env.alloc()), _io_handler(vfs_env.io_handler()), _ep(vfs_env.env().ep()) { }
+		: _alloc(vfs_env.alloc()), _ep(vfs_env.env().ep()) { }
 
 		SOCKET_DIR *lookup(char const *name)
 		{
@@ -581,7 +614,7 @@ class Lwip::Protocol_dir_impl final : public Protocol_dir
 			}
 
 			SOCKET_DIR *new_socket = new (alloc)
-				SOCKET_DIR(id, *this, alloc, _io_handler, _ep, pcb);
+				SOCKET_DIR(id, *this, alloc, _ep, pcb);
 			_socket_dirs.insert(new_socket);
 			return *new_socket;
 		}
@@ -638,7 +671,7 @@ class Lwip::Protocol_dir_impl final : public Protocol_dir
 		void notify()
 		{
 			for (SOCKET_DIR *sd = _socket_dirs.first(); sd; sd = sd->next()) {
-				sd->handle_io(~0U);
+				sd->process_io();
 			}
 		}
 };
@@ -736,10 +769,9 @@ class Lwip::Udp_socket_dir final :
 
 		Udp_socket_dir(unsigned num, Udp_proto_dir &proto_dir,
 		               Genode::Allocator &alloc,
-		               Vfs::Io_response_handler &io_handler,
 		               Genode::Entrypoint &,
 		               udp_pcb *pcb)
-		: Socket_dir(num, alloc, io_handler),
+		: Socket_dir(num, alloc),
 		  _proto_dir(proto_dir), _pcb(pcb ? pcb : udp_new())
 		{
 			ip_addr_set_zero(&_to_addr);
@@ -769,7 +801,8 @@ class Lwip::Udp_socket_dir final :
 				pbuf_free(buf);
 			}
 
-			handle_io(Lwip_file_handle::REMOTE|Lwip_file_handle::DATA_READY);
+			process_io();
+			process_read_ready();
 		}
 
 
@@ -964,8 +997,6 @@ class Lwip::Udp_socket_dir final :
 
 			return Write_result::WRITE_ERR_INVALID;
 		}
-
-		Sync_result complete_sync() override { return Sync_result::SYNC_OK; };
 };
 
 
@@ -1027,10 +1058,9 @@ class Lwip::Tcp_socket_dir final :
 
 		Tcp_socket_dir(unsigned num, Tcp_proto_dir &proto_dir,
 		               Genode::Allocator &alloc,
-		               Vfs::Io_response_handler &io_handler,
 		               Genode::Entrypoint &ep,
 		               tcp_pcb *pcb)
-		: Socket_dir(num, alloc, io_handler), _proto_dir(proto_dir),
+		: Socket_dir(num, alloc), _proto_dir(proto_dir),
 		  _ep(ep), _pcb(pcb ? pcb : tcp_new()), state(pcb ? READY : NEW)
 		{
 			/* 'this' will be the argument to LwIP callbacks */
@@ -1073,7 +1103,8 @@ class Lwip::Tcp_socket_dir final :
 			tcp_arg(newpcb, elem);
 			tcp_recv(newpcb, tcp_delayed_recv_callback);
 
-			handle_io(Lwip_file_handle::ACCEPT|Lwip_file_handle::PENDING);
+			process_io();
+			process_read_ready();
 			return ERR_OK;
 		}
 
@@ -1103,7 +1134,8 @@ class Lwip::Tcp_socket_dir final :
 			_pcb = NULL;
 
 			/* churn the application */
-			handle_io(~0U);
+			process_io();
+			process_read_ready();
 		}
 
 		/**
@@ -1435,20 +1467,6 @@ class Lwip::Tcp_socket_dir final :
 
 			return Write_result::WRITE_ERR_INVALID;
 		}
-
-		Sync_result complete_sync() override
-		{
-			switch (state) {
-			case CONNECT:
-				/* sync will queue until the socket is connected and ready */
-				return Sync_result::SYNC_QUEUED;
-			case CLOSED:
-				/* assumed to be caused by error */
-				return Sync_result::SYNC_ERR_INVALID;
-			default:
-				return Sync_result::SYNC_OK;
-			}
-		}
 };
 
 
@@ -1483,9 +1501,8 @@ err_t tcp_connect_callback(void *arg, struct tcp_pcb *pcb, err_t)
 	Lwip::Tcp_socket_dir *socket_dir = static_cast<Lwip::Tcp_socket_dir *>(arg);
 	socket_dir->state = Lwip::Tcp_socket_dir::READY;
 
-	socket_dir->handle_io(
-		Lwip_file_handle::CONNECT |
-		Lwip_file_handle::DATA_READY);
+	socket_dir->process_io();
+	socket_dir->process_read_ready();
 	return ERR_OK;
 }
 
@@ -1518,7 +1535,9 @@ err_t tcp_recv_callback(void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t)
 	} else {
 		socket_dir->recv(p);
 	}
-	socket_dir->handle_io(Lwip_file_handle::DATA_READY);
+
+	socket_dir->process_io();
+	socket_dir->process_read_ready();
 	return ERR_OK;
 }
 
@@ -1558,7 +1577,8 @@ err_t tcp_sent_callback(void *arg, struct tcp_pcb*, u16_t len)
 
 	Lwip::Tcp_socket_dir *socket_dir = static_cast<Lwip::Tcp_socket_dir *>(arg);
 	socket_dir->pending_ack -= len;
-	socket_dir->handle_io(Lwip_file_handle::DATA);
+	socket_dir->process_io();
+	socket_dir->process_write_ready();
 	return ERR_OK;
 }
 */
@@ -1593,12 +1613,34 @@ class Lwip::File_system final : public Vfs::File_system
 		 */
 		struct Vfs_netif : Lwip::Nic_netif
 		{
-			Vfs::Io_response_handler &io_handler;
-
 			Tcp_proto_dir tcp_dir;
 			Udp_proto_dir udp_dir;
 
 			Nameserver_registry nameserver_handles { };
+
+			typedef Genode::Fifo_element<Vfs_handle> Handle_element;
+			typedef Genode::Fifo<Vfs_netif::Handle_element> Handle_queue;
+
+			Handle_queue blocked_handles { };
+
+			Vfs_netif(Vfs::Env &vfs_env,
+			          Genode::Xml_node config)
+			: Lwip::Nic_netif(vfs_env.env(), vfs_env.alloc(), config),
+			  tcp_dir(vfs_env), udp_dir(vfs_env)
+			{ }
+
+			~Vfs_netif()
+			{
+				/* free the allocated qeueue elements */
+				status_callback();
+			}
+
+			void enqueue(Vfs_handle &handle)
+			{
+				Handle_element *elem = new (handle.alloc())
+					Handle_element(handle);
+				blocked_handles.enqueue(*elem);
+			}
 
 			/**
 			 * Wake the application when the interface changes.
@@ -1609,15 +1651,25 @@ class Lwip::File_system final : public Vfs::File_system
 				udp_dir.notify();
 
 				nameserver_handles.for_each([&] (Lwip_nameserver_handle &h) {
-					io_handler.handle_io_response(h.context()); });
+					h.io_progress_response(); });
+
+				blocked_handles.dequeue_all([] (Handle_element &elem) {
+					Vfs_handle &handle = elem.object();
+					destroy(elem.object().alloc(), &elem);
+					handle.io_progress_response();
+				});
 			}
 
-			Vfs_netif(Vfs::Env &vfs_env,
-			          Genode::Xml_node config,
-			          Vfs::Io_response_handler &io)
-			: Lwip::Nic_netif(vfs_env.env(), vfs_env.alloc(), config),
-			  io_handler(io), tcp_dir(vfs_env), udp_dir(vfs_env)
-			{ }
+			void drop(Vfs_handle &handle)
+			{
+				blocked_handles.for_each([&] (Handle_element &elem) {
+					if (&elem.object() == &handle) {
+						blocked_handles.remove(elem);
+						destroy(elem.object().alloc(), &elem);
+					}
+				});
+			}
+
 		} _netif;
 
 		/**
@@ -1641,7 +1693,7 @@ class Lwip::File_system final : public Vfs::File_system
 	public:
 
 		File_system(Vfs::Env &vfs_env, Genode::Xml_node config)
-		: _ep(vfs_env.env().ep()), _netif(vfs_env, config, vfs_env.io_handler())
+		: _ep(vfs_env.env().ep()), _netif(vfs_env, config)
 		{ }
 
 		/**
@@ -1744,6 +1796,10 @@ class Lwip::File_system final : public Vfs::File_system
 		void close(Vfs_handle *vfs_handle) override
 		{
 			Socket_dir *socket = nullptr;
+
+			/* if the inteface is down this handle may be queued */
+			_netif.drop(*vfs_handle);
+
 			if (Lwip_handle *handle = dynamic_cast<Lwip_handle*>(vfs_handle)) {
 				if (Lwip_file_handle *file_handle = dynamic_cast<Lwip_file_handle*>(handle)) {
 					socket = file_handle->socket;
@@ -1779,7 +1835,13 @@ class Lwip::File_system final : public Vfs::File_system
 			if (Lwip_handle *handle = dynamic_cast<Lwip_handle*>(vfs_handle)) {
 				while (true) {
 					res = handle->write(src, count, out_count);
-					if (res != WRITE_ERR_WOULD_BLOCK) break;
+					if (res != WRITE_ERR_WOULD_BLOCK || out_count) break;
+
+					/*
+					 * XXX: block for signals until the write completes
+					 * or fails, this is not how it should be done, but
+					 * it's how lxip does it
+					 */
 					_ep.wait_and_dispatch_one_io_signal();
 				}
 			}
@@ -1808,8 +1870,17 @@ class Lwip::File_system final : public Vfs::File_system
 			return Read_result::READ_ERR_INVALID;
 		}
 
-		bool queue_read(Vfs_handle *, file_size) override {
-			return _netif.ready(); }
+		/**
+		 * All reads are unavailable while the network is down
+		 */
+		bool queue_read(Vfs_handle *vfs_handle, file_size) override
+		{
+			if (_netif.ready()) return true;
+
+			/* handle must be woken when the interface comes up */
+			_netif.enqueue(*vfs_handle);
+			return false;
+		}
 
 		bool read_ready(Vfs_handle *vfs_handle) override
 		{
@@ -1827,11 +1898,8 @@ class Lwip::File_system final : public Vfs::File_system
 
 		bool notify_read_ready(Vfs_handle *vfs_handle) override
 		{
-			if (Lwip_file_handle *handle = dynamic_cast<Lwip_file_handle*>(vfs_handle)) {
-				if (handle->socket) {
-					return true;
-				}
-			}
+			if (Lwip_file_handle *handle = dynamic_cast<Lwip_file_handle*>(vfs_handle))
+				return handle->notify_read_ready();
 			return false;
 		}
 
@@ -1843,15 +1911,8 @@ class Lwip::File_system final : public Vfs::File_system
 
 		Sync_result complete_sync(Vfs_handle *vfs_handle) override
 		{
-			Lwip_file_handle *h = dynamic_cast<Lwip_file_handle*>(vfs_handle);
-			if (h) {
-				if (h->socket) {
-					return h->socket->complete_sync();
-				} else {
-					return SYNC_QUEUED;
-				}
-			}
-			return SYNC_OK;
+			return (dynamic_cast<Lwip_file_handle*>(vfs_handle))
+				? SYNC_OK : SYNC_ERR_INVALID;
 		}
 
 		/***********************

@@ -27,14 +27,6 @@ class Vfs::Simple_env : public Vfs::Env
 		Genode::Env       &_env;
 		Genode::Allocator &_alloc;
 
-		struct Io_response_dummy : Vfs::Io_response_handler {
-			void handle_io_response(Vfs::Vfs_handle::Context*) override { }
-		} _io_dummy { };
-
-		struct Watch_response_dummy : Vfs::Watch_response_handler {
-			void handle_watch_response(Vfs::Vfs_watch_handle::Context*) override { }
-		} _watch_dummy { };
-
 		Vfs::Global_file_system_factory _fs_factory { _alloc };
 
 		Vfs::Dir_file_system _root_dir;
@@ -56,9 +48,6 @@ class Vfs::Simple_env : public Vfs::Env
 		Genode::Env       &env()       override { return _env; }
 		Genode::Allocator &alloc()     override { return _alloc; }
 		Vfs::File_system  &root_dir()  override { return _root_dir; }
-
-		Vfs::Io_response_handler    &io_handler()    override { return    _io_dummy; }
-		Vfs::Watch_response_handler &watch_handler() override { return _watch_dummy; }
 };
 
 #endif /* _INCLUDE__VFS__SIMPLE_ENV_H_ */

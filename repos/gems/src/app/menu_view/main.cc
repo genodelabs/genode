@@ -96,7 +96,7 @@ struct Menu_view::Main
 
 	Heap _heap { _env.ram(), _env.rm() };
 
-	struct Vfs_env : Vfs::Env, Vfs::Io_response_handler, Vfs::Watch_response_handler
+	struct Vfs_env : Vfs::Env
 	{
 		Genode::Env      &_env;
 		Allocator        &_alloc;
@@ -105,14 +105,9 @@ struct Menu_view::Main
 		Vfs_env(Genode::Env &env, Allocator &alloc, Vfs::File_system &vfs)
 		: _env(env), _alloc(alloc), _vfs(vfs) { }
 
-		void handle_io_response   (Vfs::Vfs_handle::Context      *) override { }
-		void handle_watch_response(Vfs::Vfs_watch_handle::Context*) override { }
-
 		Genode::Env            &env()           override { return _env;   }
 		Allocator              &alloc()         override { return _alloc; }
 		Vfs::File_system       &root_dir()      override { return _vfs;   }
-		Io_response_handler    &io_handler()    override { return *this;  }
-		Watch_response_handler &watch_handler() override { return *this;  }
 
 	} _vfs_env;
 

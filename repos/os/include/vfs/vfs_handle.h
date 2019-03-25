@@ -17,30 +17,59 @@
 #include <vfs/directory_service.h>
 
 namespace Vfs{
+	struct Io_response_handler;
+	struct Watch_response_handler;
 	class Vfs_handle;
+	class Vfs_watch_handle;
 	class File_io_service;
 	class File_system;
-	class Vfs_watch_handle;
 }
+
+
+/**
+ * Object for encapsulating application-level
+ * response to VFS I/O
+ *
+ * These responses should be assumed to be called
+ * during I/O signal dispatch.
+ */
+struct Vfs::Io_response_handler : Genode::Interface
+{
+	/**
+	 * Respond to a resource becoming readable
+	 */
+	virtual void read_ready_response() = 0;
+
+	/**
+	 * Respond to complete pending I/O
+	 */
+	virtual void io_progress_response() = 0;
+};
+
+
+/**
+ * Object for encapsulating application-level
+ * handlers of VFS responses.
+ *
+ * This response should be assumed to be called
+ * during I/O signal dispatch.
+ */
+struct Vfs::Watch_response_handler : Genode::Interface
+{
+	virtual void watch_response() = 0;
+};
 
 
 class Vfs::Vfs_handle
 {
-	public:
-
-		/**
-		 * Opaque handle context
-		 */
-		struct Context { };
-
 	private:
 
-		Directory_service &_ds;
-		File_io_service   &_fs;
-		Genode::Allocator &_alloc;
-		int                _status_flags;
-		file_size          _seek = 0;
-		Context           *_context = nullptr;
+		Directory_service   &_ds;
+		File_io_service     &_fs;
+		Genode::Allocator   &_alloc;
+		Io_response_handler *_handler = nullptr;
+		file_size            _seek = 0;
+		int                  _status_flags;
 
 		/*
 		 * Noncopyable
@@ -90,11 +119,8 @@ class Vfs::Vfs_handle
 		Directory_service &ds() { return _ds; }
 		File_io_service   &fs() { return _fs; }
 		Allocator      &alloc() { return _alloc; }
-		void context(Context *context) { _context = context; }
-		Context *context() const { return _context; }
 
 		int status_flags() const { return _status_flags; }
-
 		void status_flags(int flags) { _status_flags = flags; }
 
 		/**
@@ -113,6 +139,35 @@ class Vfs::Vfs_handle
 		void advance_seek(file_size incr) { _seek += incr; }
 
 		/**
+		 * Set response handler, unset with nullptr
+		 */
+		virtual void handler(Io_response_handler *handler)
+		{
+			_handler = handler;
+		}
+
+		/**
+		 * Apply to response handler if present
+		 *
+		 * XXX: may not be necesarry if the method above is virtual.
+		 */
+		template <typename FUNC>
+		void apply_handler(FUNC const &func) const {
+			if (_handler) func(*_handler); }
+
+		/**
+		 * Notify application through response handler
+		 */
+		void read_ready_response() {
+			if (_handler) _handler->read_ready_response(); }
+
+		/**
+		 * Notify application through response handler
+		 */
+		void io_progress_response() {
+			if (_handler) _handler->io_progress_response(); }
+
+		/**
 		 * Close handle at backing file-system.
 		 *
 		 * This leaves the handle pointer in an invalid and unsafe state.
@@ -123,18 +178,11 @@ class Vfs::Vfs_handle
 
 class Vfs::Vfs_watch_handle
 {
-	public:
-
-		/**
-		 * Opaque handle context
-		 */
-		struct Context { };
-
 	private:
 
-		Directory_service &_fs;
-		Genode::Allocator &_alloc;
-		Context           *_context = nullptr;
+		Directory_service      &_fs;
+		Genode::Allocator      &_alloc;
+		Watch_response_handler *_handler = nullptr;
 
 		/*
 		 * Noncopyable
@@ -154,8 +202,21 @@ class Vfs::Vfs_watch_handle
 
 		Directory_service &fs() { return _fs; }
 		Allocator &alloc() { return _alloc; }
-		virtual void context(Context *context) { _context = context; }
-		Context *context() const { return _context; }
+
+		/**
+		 * Set response handler, unset with nullptr
+		 */
+		virtual void handler(Watch_response_handler *handler) {
+			_handler = handler; }
+
+		/**
+		 * Notify application through response handler
+		 */
+		void watch_response()
+		{
+			if (_handler)
+				_handler->watch_response();
+		}
 
 		/**
 		 * Close handle at backing file-system.

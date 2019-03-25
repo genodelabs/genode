@@ -147,13 +147,10 @@ class Vfs_ram::Node : private Genode::Avl_node<Node>, private Genode::Lock
 		void close(Io_handle &handle)    {    _io_handles.remove(&handle); }
 		void close(Watch_handle &handle) { _watch_handles.remove(&handle); }
 
-		void notify(Watch_response_handler &handler)
+		void notify()
 		{
-			for (Watch_handle *h = _watch_handles.first(); h; h = h->next()) {
-				if (auto *ctx = h->context()) {
-					handler.handle_watch_response(ctx);
-				}
-			}
+			for (Watch_handle *h = _watch_handles.first(); h; h = h->next())
+				h->watch_response();
 		}
 
 		void unlink() { inode = 0; }
@@ -606,7 +603,7 @@ class Vfs::Ram_file_system : public Vfs::File_system
 				try { file = new (_env.alloc()) File(name, _env.alloc()); }
 				catch (Out_of_memory) { return OPEN_ERR_NO_SPACE; }
 				parent->adopt(file);
-				parent->notify(_env.watch_handler());
+				parent->notify();
 			} else {
 				Node *node = lookup(path);
 				if (!node) return OPEN_ERR_UNACCESSIBLE;
@@ -661,7 +658,7 @@ class Vfs::Ram_file_system : public Vfs::File_system
 				catch (Out_of_memory) { return OPENDIR_ERR_NO_SPACE; }
 
 				parent->adopt(dir);
-				parent->notify(_env.watch_handler());
+				parent->notify();
 			} else {
 
 				Node *node = lookup(path);
@@ -719,7 +716,7 @@ class Vfs::Ram_file_system : public Vfs::File_system
 				link->lock();
 				parent->adopt(link);
 				link->unlock();
-				parent->notify(_env.watch_handler());
+				parent->notify();
 			} else {
 
 				if (!node) return OPENLINK_ERR_LOOKUP_FAILED;
@@ -762,7 +759,7 @@ class Vfs::Ram_file_system : public Vfs::File_system
 			if (ram_handle->node.unlinked() && !ram_handle->node.opened()) {
 				destroy(_env.alloc(), &ram_handle->node);
 			} else if (node_modified) {
-				node.notify(_env.watch_handler());
+				node.notify();
 			}
 		}
 
@@ -840,7 +837,7 @@ class Vfs::Ram_file_system : public Vfs::File_system
 				to_dir->release(to_node);
 
 				/* notify the node being replaced */
-				to_node->notify(_env.watch_handler());
+				to_node->notify();
 
 				/* free the node that is replaced */
 				remove(to_node);
@@ -850,8 +847,8 @@ class Vfs::Ram_file_system : public Vfs::File_system
 			from_node->name(new_name);
 			to_dir->adopt(from_node);
 
-			from_dir->notify(_env.watch_handler());
-			to_dir->notify(_env.watch_handler());
+			from_dir->notify();
+			to_dir->notify();
 
 			return RENAME_OK;
 		}
@@ -869,8 +866,8 @@ class Vfs::Ram_file_system : public Vfs::File_system
 
 			node->lock();
 			parent->release(node);
-			node->notify(_env.watch_handler());
-			parent->notify(_env.watch_handler());
+			node->notify();
+			parent->notify();
 			remove(node);
 			return UNLINK_OK;
 		}
@@ -1001,7 +998,7 @@ class Vfs::Ram_file_system : public Vfs::File_system
 			if (handle->modifying) {
 				handle->modifying = false;
 				handle->node.close(*handle);
-				handle->node.notify(_env.watch_handler());
+				handle->node.notify();
 				handle->node.open(*handle);
 			}
 			return SYNC_OK;

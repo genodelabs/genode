@@ -33,8 +33,9 @@ struct Fs_query::Watched_file
 
 	Watcher _watcher;
 
-	Watched_file(Directory const &dir, File_content::Path name)
-	: _name(name), _watcher(dir, name) { }
+	Watched_file(Directory const &dir, File_content::Path name,
+	             Vfs::Watch_response_handler &handler)
+	: _name(name), _watcher(dir, name, handler) { }
 
 	virtual ~Watched_file() { }
 
@@ -92,19 +93,20 @@ struct Fs_query::Watched_directory
 
 	Directory const _dir;
 
-	Registry<Registered<Watched_file> > _files { };
-
 	Watcher _watcher;
 
-	Watched_directory(Allocator &alloc, Directory &other, Directory::Path const &rel_path)
+	Registry<Registered<Watched_file> > _files { };
+
+	Watched_directory(Allocator &alloc, Directory &other, Directory::Path const &rel_path,
+	                  Vfs::Watch_response_handler &handler)
 	:
 		_alloc(alloc), _rel_path(rel_path),
-		_dir(other, rel_path), _watcher(other, rel_path)
+		_dir(other, rel_path), _watcher(other, rel_path, handler)
 	{
 		_dir.for_each_entry([&] (Directory::Entry const &entry) {
 			if (entry.type() == Vfs::Directory_service::DIRENT_TYPE_FILE) {
 				try {
-					new (_alloc) Registered<Watched_file>(_files, _dir, entry.name());
+					new (_alloc) Registered<Watched_file>(_files, _dir, entry.name(), handler);
 				} catch (...) { }
 			}
 		});
@@ -142,7 +144,7 @@ struct Fs_query::Main : Vfs::Watch_response_handler
 	/**
 	 * Vfs::Watch_response_handler interface
 	 */
-	void handle_watch_response(Vfs::Vfs_watch_handle::Context*) override
+	void watch_response() override
 	{
 		Signal_transmitter(_config_handler).submit();
 	}
@@ -151,17 +153,11 @@ struct Fs_query::Main : Vfs::Watch_response_handler
 	{
 		Main &_main;
 
-		struct Io_response_dummy : Vfs::Io_response_handler {
-			void handle_io_response(Vfs::Vfs_handle::Context*) override { }
-		} _io_dummy { };
-
 		Vfs_env(Main &main) : _main(main) { }
 
 		Genode::Env                 &env()           override { return _main._env; }
 		Allocator                   &alloc()         override { return _main._heap; }
 		Vfs::File_system            &root_dir()      override { return _main._root_dir_fs; }
-		Vfs::Io_response_handler    &io_handler()    override { return _io_dummy; }
-		Vfs::Watch_response_handler &watch_handler() override { return _main; }
 
 	} _vfs_env { *this };
 
@@ -201,7 +197,7 @@ struct Fs_query::Main : Vfs::Watch_response_handler
 
 		config.for_each_sub_node("query", [&] (Xml_node query) {
 			Directory::Path const path = query.attribute_value("path", Directory::Path());
-			new (_heap) Registered<Watched_directory>(_dirs, _heap, _root_dir, path);
+			new (_heap) Registered<Watched_directory>(_dirs, _heap, _root_dir, path, *this);
 		});
 
 		_reporter.generate([&] (Xml_generator &xml) {

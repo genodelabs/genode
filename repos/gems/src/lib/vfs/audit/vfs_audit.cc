@@ -86,8 +86,8 @@ class Vfs_audit::File_system : public Vfs::File_system
 
 			void sync_state()
 			{
-				audit->seek(Vfs_handle::seek());
-				audit->context(context());
+				if (audit)
+					audit->seek(Vfs_handle::seek());
 			}
 
 			Handle(Vfs_audit::File_system &fs,
@@ -95,6 +95,12 @@ class Vfs_audit::File_system : public Vfs::File_system
 			       int flags,
 			       char const *path)
 			: Vfs_handle(fs, fs, alloc, flags), path(path) { };
+
+			void handler(Io_response_handler *rh) override
+			{
+				Vfs_handle::handler(rh);
+				if (audit) audit->handler(rh);
+			}
 		};
 
 	public:
