@@ -9,7 +9,7 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  2 files changed, 10 insertions(+), 3 deletions(-)
 
 diff --git a/gcc/diagnostic-show-locus.c b/gcc/diagnostic-show-locus.c
-index bf95666..b68b700 100644
+index 9c567bd..c307120 100644
 --- a/gcc/diagnostic-show-locus.c
 +++ b/gcc/diagnostic-show-locus.c
 @@ -24,7 +24,9 @@ along with GCC; see the file COPYING3.  If not see
@@ -21,9 +21,9 @@ index bf95666..b68b700 100644
 +#endif
  #include "diagnostic.h"
  #include "diagnostic-color.h"
- 
+ #include "gcc-rich-location.h"
 diff --git a/gcc/diagnostic.c b/gcc/diagnostic.c
-index 8106172..85d5eb0 100644
+index c61e0c4..fea960f 100644
 --- a/gcc/diagnostic.c
 +++ b/gcc/diagnostic.c
 @@ -28,7 +28,9 @@ along with GCC; see the file COPYING3.  If not see
@@ -35,8 +35,8 @@ index 8106172..85d5eb0 100644
 +#endif
  #include "diagnostic.h"
  #include "diagnostic-color.h"
- 
-@@ -345,7 +347,7 @@ static const char * const bt_stop[] =
+ #include "edit-context.h"
+@@ -376,7 +378,7 @@ static const char * const bt_stop[] =
  };
  
  /* A callback function passed to the backtrace_full function.  */
@@ -45,16 +45,16 @@ index 8106172..85d5eb0 100644
  static int
  bt_callback (void *data, uintptr_t pc, const char *filename, int lineno,
  	     const char *function)
-@@ -425,7 +427,7 @@ bt_err_callback (void *data ATTRIBUTE_UNUSED, const char *msg, int errnum)
+@@ -456,7 +458,7 @@ bt_err_callback (void *data ATTRIBUTE_UNUSED, const char *msg, int errnum)
    fprintf (stderr, "%s%s%s\n", msg, errnum == 0 ? "" : ": ",
  	   errnum == 0 ? "" : xstrerror (errnum));
  }
 -
 +#endif
- /* Take any action which is expected to happen after the diagnostic
-    is written out.  This function does not always return.  */
- void
-@@ -467,14 +469,17 @@ diagnostic_action_after_output (diagnostic_context *context,
+ /* Check if we've met the maximum error limit, and if so fatally exit
+    with a message.  CONTEXT is the context to check, and FLUSH
+    indicates whether a diagnostic_finish call is needed.  */
+@@ -511,14 +513,17 @@ diagnostic_action_after_output (diagnostic_context *context,
      case DK_ICE:
      case DK_ICE_NOBT:
        {

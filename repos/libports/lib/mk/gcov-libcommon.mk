@@ -5,6 +5,7 @@ GCOV_DIR := $(GCOV_PORT_DIR)/src/gcov
 SRC_CC = diagnostic.cc \
          diagnostic-color.cc \
          diagnostic-show-locus.cc \
+         edit-context.cc \
          ggc-none.cc \
          hash-table.cc \
          input.cc \

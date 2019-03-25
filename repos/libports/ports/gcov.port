@@ -1,18 +1,19 @@
 LICENSE   := GPLv2
-VERSION   := 6.3.0
+VERSION   := 8.3.0
 DOWNLOADS := gcov.archive generated.git
 
-URL(gcov) := ftp://ftp.fu-berlin.de/gnu/gcc/gcc-$(VERSION)/gcc-$(VERSION).tar.bz2
-SHA(gcov) := f06ae7f3f790fbf0f018f6d40e844451e6bc3b7bc96e128e63b09825c1f8b29f
+URL(gcov) := ftp://ftp.fu-berlin.de/gnu/gcc/gcc-$(VERSION)/gcc-$(VERSION).tar.xz
+SHA(gcov) := 64baadfe6cc0f4947a84cb12d7f0dfaf45bb58b7e92461639596c21e02d97d2c
 DIR(gcov) := src/gcov
 SIG(gcov) := ${URL(gcov)}
 KEY(gcov) := GNU
 
 URL(generated) := https://github.com/cproc/genode-generated.git
-REV(generated) := c0b4333a7df8de45036506b9542b57349796775d
+REV(generated) := 21d621a326ac3f074647c0555144d1638ee495a8
 DIR(generated) := include
 
-TAR_OPT(gcov) := gcc-$(VERSION)/gcc/coretypes.h \
+TAR_OPT(gcov) := gcc-$(VERSION)/gcc/color-macros.h \
+                 gcc-$(VERSION)/gcc/coretypes.h \
                  gcc-$(VERSION)/gcc/defaults.h \
                  gcc-$(VERSION)/gcc/diagnostic.c \
                  gcc-$(VERSION)/gcc/diagnostic-color.c \
@@ -22,8 +23,12 @@ TAR_OPT(gcov) := gcc-$(VERSION)/gcc/coretypes.h \
                  gcc-$(VERSION)/gcc/diagnostic.h \
                  gcc-$(VERSION)/gcc/diagnostic-show-locus.c \
                  gcc-$(VERSION)/gcc/double-int.h \
+                 gcc-$(VERSION)/gcc/dumpfile.h \
+                 gcc-$(VERSION)/gcc/edit-context.h \
+                 gcc-$(VERSION)/gcc/edit-context.c \
                  gcc-$(VERSION)/gcc/fixed-value.h \
                  gcc-$(VERSION)/gcc/flag-types.h \
+                 gcc-$(VERSION)/gcc/gcc-rich-location.h \
                  gcc-$(VERSION)/gcc/gcov.c \
                  gcc-$(VERSION)/gcc/gcov-counter.def \
                  gcc-$(VERSION)/gcc/gcov-io.c \
@@ -49,13 +54,18 @@ TAR_OPT(gcov) := gcc-$(VERSION)/gcc/coretypes.h \
                  gcc-$(VERSION)/gcc/mem-stats.h \
                  gcc-$(VERSION)/gcc/mem-stats-traits.h \
                  gcc-$(VERSION)/gcc/mode-classes.def \
+                 gcc-$(VERSION)/gcc/poly-int.h \
+                 gcc-$(VERSION)/gcc/poly-int-types.h \
                  gcc-$(VERSION)/gcc/pretty-print.c \
                  gcc-$(VERSION)/gcc/pretty-print.h \
                  gcc-$(VERSION)/gcc/real.h \
+                 gcc-$(VERSION)/gcc/selftest.h \
+                 gcc-$(VERSION)/gcc/selftest-diagnostic.h \
                  gcc-$(VERSION)/gcc/signop.h \
                  gcc-$(VERSION)/gcc/statistics.h \
                  gcc-$(VERSION)/gcc/system.h \
                  gcc-$(VERSION)/gcc/tsystem.h \
+                 gcc-$(VERSION)/gcc/typed-splay-tree.h \
                  gcc-$(VERSION)/gcc/vec.c \
                  gcc-$(VERSION)/gcc/vec.h \
                  gcc-$(VERSION)/gcc/version.c \
@@ -68,8 +78,8 @@ TAR_OPT(gcov) := gcc-$(VERSION)/gcc/coretypes.h \
                  gcc-$(VERSION)/gcc/config/newlib-stdint.h \
                  gcc-$(VERSION)/gcc/config/vxworks-dummy.h \
                  gcc-$(VERSION)/gcc/config/arm/aout.h \
-                 gcc-$(VERSION)/gcc/config/arm/arm-cores.def \
                  gcc-$(VERSION)/gcc/config/arm/arm.h \
+                 gcc-$(VERSION)/gcc/config/arm/arm-flags.h \
                  gcc-$(VERSION)/gcc/config/arm/arm-opts.h \
                  gcc-$(VERSION)/gcc/config/arm/bpabi.h \
                  gcc-$(VERSION)/gcc/config/arm/elf.h \
@@ -89,8 +99,10 @@ TAR_OPT(gcov) := gcc-$(VERSION)/gcc/coretypes.h \
                  gcc-$(VERSION)/include/filenames.h \
                  gcc-$(VERSION)/include/hashtab.h \
                  gcc-$(VERSION)/include/libiberty.h \
+                 gcc-$(VERSION)/include/md5.h \
                  gcc-$(VERSION)/include/obstack.h \
                  gcc-$(VERSION)/include/safe-ctype.h \
+                 gcc-$(VERSION)/include/splay-tree.h \
                  gcc-$(VERSION)/libcpp/internal.h \
                  gcc-$(VERSION)/libcpp/line-map.c \
                  gcc-$(VERSION)/libcpp/system.h \
@@ -115,14 +127,19 @@ TAR_OPT(gcov) := gcc-$(VERSION)/gcc/coretypes.h \
                  gcc-$(VERSION)/libiberty/fopen_unlocked.c \
                  gcc-$(VERSION)/libiberty/hashtab.c \
                  gcc-$(VERSION)/libiberty/lbasename.c \
+                 gcc-$(VERSION)/libiberty/md5.c \
                  gcc-$(VERSION)/libiberty/obstack.c \
+                 gcc-$(VERSION)/libiberty/rust-demangle.c \
                  gcc-$(VERSION)/libiberty/safe-ctype.c \
+                 gcc-$(VERSION)/libiberty/splay-tree.c \
                  gcc-$(VERSION)/libiberty/vprintf-support.c \
                  gcc-$(VERSION)/libiberty/vprintf-support.h \
                  gcc-$(VERSION)/libiberty/xexit.c \
                  gcc-$(VERSION)/libiberty/xmalloc.c \
+                 gcc-$(VERSION)/libiberty/xmemdup.c \
                  gcc-$(VERSION)/libiberty/xstrdup.c \
                  gcc-$(VERSION)/libiberty/xstrerror.c \
+                 gcc-$(VERSION)/libiberty/xstrndup.c \
                  gcc-$(VERSION)/libiberty/xvasprintf.c \
                  gcc-$(VERSION)/COPYING \
                 --strip-components=1
@@ -140,6 +157,7 @@ symlinks: $(DOWNLOADS)
 	$(VERBOSE)ln -s diagnostic-color.c       ${DIR(gcov)}/gcc/diagnostic-color.cc
 	$(VERBOSE)ln -s diagnostic-show-locus.c  ${DIR(gcov)}/gcc/diagnostic-show-locus.cc
 	$(VERBOSE)ln -s diagnostic.c             ${DIR(gcov)}/gcc/diagnostic.cc
+	$(VERBOSE)ln -s edit-context.c           ${DIR(gcov)}/gcc/edit-context.cc
 	$(VERBOSE)ln -s gcov.c                   ${DIR(gcov)}/gcc/gcov.cc
 	$(VERBOSE)ln -s ggc-none.c               ${DIR(gcov)}/gcc/ggc-none.cc
 	$(VERBOSE)ln -s hash-table.c             ${DIR(gcov)}/gcc/hash-table.cc
