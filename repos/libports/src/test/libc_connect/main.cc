@@ -31,6 +31,8 @@ static int const port_connected          = 80;
 static int const port_connection_refused = 81;
 static int const port_timeout            = 80;
 
+#define DIE() \
+	{ printf("Error: '%s' failed - %s:%d\n", __func__, __FILE__, __LINE__); exit(-1); }
 
 static void test_blocking_connect_connected()
 {
@@ -61,19 +63,13 @@ static void test_blocking_connect_connected()
 			char receive_buf = 0;
 			write(s, &send_buf, sizeof(send_buf));
 			read(s, &receive_buf, sizeof(receive_buf));
-			if (receive_buf != send_buf) {
-				printf("Error: '%s' failed\n", __func__);
-				exit (-1);
-			}
+			if (receive_buf != send_buf) DIE();
 
 			close(s);
 			break;
 		}
 
-		if (errno != ECONNREFUSED) {
-			printf("Error: '%s' failed\n", __func__);
-			exit(-1);
-		}
+		if (errno != ECONNREFUSED) DIE();
 
 		close(s);
 
@@ -99,10 +95,7 @@ static void test_blocking_connect_connection_refused()
 
 	int res = connect(s, paddr, sizeof(addr));
 
-	if (!((res == -1) && (errno == ECONNREFUSED))) {
-		printf("Error: '%s' failed\n", __func__);
-		exit(-1);
-	}
+	if (!((res == -1) && (errno == ECONNREFUSED))) DIE();
 
 	close(s);
 }
@@ -124,10 +117,7 @@ static void test_blocking_connect_timeout()
 
 	int res = connect(s, paddr, sizeof(addr));
 
-	if (!((res == -1) && (errno == ETIMEDOUT))) {
-		printf("Error: '%s' failed\n", __func__);
-		exit(-1);
-	}
+	if (!((res == -1) && (errno == ETIMEDOUT))) DIE();
 
 	close(s);
 }
@@ -151,10 +141,7 @@ static void test_nonblocking_connect_connected()
 
 	int res = connect(s, paddr, sizeof(addr));
 
-	if (!((res == -1) && (errno == EINPROGRESS))) {
-		printf("Error: '%s' failed\n", __func__);
-		exit(-1);
-	}
+	if (!((res == -1) && (errno == EINPROGRESS))) DIE();
 
 	/* wait until socket is ready for writing */
 
@@ -165,41 +152,26 @@ static void test_nonblocking_connect_connected()
 	struct timeval timeout {10, 0};
 	res = select(s + 1, NULL, &writefds, NULL, &timeout);
 
-	if (res != 1) {
-		printf("Error: '%s' failed\n", __func__);
-		exit(-1);
-	}
+	if (res != 1) DIE();
 
 	int so_error = 0;
 	socklen_t opt_len = sizeof(so_error);
 
 	res = getsockopt(s, SOL_SOCKET, SO_ERROR, &so_error, &opt_len);
 
-	if (!((res == 0) && (so_error == 0))) {
-		printf("Error: '%s' failed\n", __func__);
-		exit(-1);
-	}
+	if (!((res == 0) && (so_error == 0))) DIE();
 
 	res = getsockopt(s, SOL_SOCKET, SO_ERROR, &so_error, &opt_len);
 
-	if (!((res == 0) && (so_error == 0))) {
-		printf("Error: '%s' failed\n", __func__);
-		exit(-1);
-	}
+	if (!((res == 0) && (so_error == 0))) DIE();
 
 	res = connect(s, paddr, sizeof(addr));
 
-	if (!((res == 0) || ((res == -1) && (errno == EISCONN)))) {
-		printf("Error: '%s' failed\n", __func__);
-		exit(-1);
-	}
+	if (!((res == 0) || ((res == -1) && (errno == EISCONN)))) DIE();
 
 	res = connect(s, paddr, sizeof(addr));
 
-	if (!((res == -1) && (errno == EISCONN))) {
-		printf("Error: '%s' failed\n", __func__);
-		exit(-1);
-	}
+	if (!((res == -1) && (errno == EISCONN))) DIE();
 
 	/* keep the netty server alive */
 	
@@ -213,18 +185,13 @@ static void test_nonblocking_connect_connected()
 	FD_SET(s, &readfds);
 
 	res = select(s + 1, &readfds, NULL, NULL, &timeout);
+	printf("select returned %d\n", res);
 
-	if (res != 1) {
-		printf("Error: '%s' failed\n", __func__);
-		exit(-1);
-	}
+	if (res != 1) DIE();
 
 	read(s, &receive_buf, sizeof(receive_buf));
 
-	if (receive_buf != send_buf) {
-		printf("Error: '%s' failed\n", __func__);
-		exit (-1);
-	}
+	if (receive_buf != send_buf) DIE();
 
 	close(s);
 }
@@ -248,10 +215,7 @@ static void test_nonblocking_connect_connection_refused()
 
 	int res = connect(s, paddr, sizeof(addr));
 
-	if (!((res == -1) && (errno == EINPROGRESS))) {
-		printf("Error: '%s' failed\n", __func__);
-		exit(-1);
-	}
+	if (!((res == -1) && (errno == EINPROGRESS))) DIE();
 
 	/* wait until socket is ready for writing */
 
@@ -262,34 +226,22 @@ static void test_nonblocking_connect_connection_refused()
 	struct timeval timeout {10, 0};
 	res = select(s + 1, NULL, &writefds, NULL, &timeout);
 
-	if (res != 1) {
-		printf("Error: '%s' failed\n", __func__);
-		exit(-1);
-	}
+	if (res != 1) DIE();
 
 	int so_error = 0;
 	socklen_t opt_len = sizeof(so_error);
 
 	res = getsockopt(s, SOL_SOCKET, SO_ERROR, &so_error, &opt_len);
 
-	if (!((res == 0) && (so_error == ECONNREFUSED))) {
-		printf("Error: '%s' failed\n", __func__);
-		exit(-1);
-	}
+	if (!((res == 0) && (so_error == ECONNREFUSED))) DIE();
 
 	res = getsockopt(s, SOL_SOCKET, SO_ERROR, &so_error, &opt_len);
 
-	if (!((res == 0) && (so_error == 0))) {
-		printf("Error: '%s' failed\n", __func__);
-		exit(-1);
-	}
+	if (!((res == 0) && (so_error == 0))) DIE();
 
 	res = connect(s, paddr, sizeof(addr));
 
-	if (!((res == -1) && (errno == ECONNABORTED))) {
-		printf("Error: '%s' failed\n", __func__);
-		exit(-1);
-	}
+	if (!((res == -1) && (errno == ECONNABORTED))) DIE();
 
 	close(s);
 }
@@ -313,10 +265,7 @@ static void test_nonblocking_connect_timeout()
 
 	int res = connect(s, paddr, sizeof(addr));
 
-	if (!((res == -1) && (errno == EINPROGRESS))) {
-		printf("Error: '%s' failed\n", __func__);
-		exit(-1);
-	}
+	if (!((res == -1) && (errno == EINPROGRESS))) DIE();
 
 	/* wait until socket is ready for writing */
 
@@ -327,10 +276,7 @@ static void test_nonblocking_connect_timeout()
 	struct timeval timeout {10, 0};
 	res = select(s + 1, NULL, &writefds, NULL, &timeout);
 
-	if (res != 0) {
-		printf("Error: '%s' failed\n", __func__);
-		exit(-1);
-	}
+	if (res != 0) DIE();
 
 	close(s);
 }
