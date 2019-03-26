@@ -11,3 +11,4 @@ target_libbacktrace.patch
 noux_build.patch
 arm.patch
 new_opa.patch
+aarch64.patch

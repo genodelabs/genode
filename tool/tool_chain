@@ -30,7 +30,7 @@ help:
 # User interface
 #
 
-SUPPORTED_PLATFORMS := x86 arm riscv
+SUPPORTED_PLATFORMS := x86 arm riscv aarch64
 
 PLATFORM := $(firstword $(filter $(SUPPORTED_PLATFORMS),$(MAKECMDGOALS)))
 
@@ -193,6 +193,7 @@ LOCAL_LIB_INSTALL_LOCATION = $(BUILD_LOCATION)/lib-install
 TARGET_NAME_x86        = x86_64-pc-elf
 TARGET_NAME_arm        = arm-none-eabi
 TARGET_NAME_riscv      = riscv64-unknown-elf
+TARGET_NAME_aarch64    = aarch64-none-elf
 
 GCC_CONFIG_riscv       = --with-arch=rv64imac --with-abi=lp64
 
