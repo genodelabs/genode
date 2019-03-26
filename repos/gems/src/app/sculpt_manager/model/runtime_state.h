@@ -396,6 +396,12 @@ class Sculpt::Runtime_state : public Runtime_info
 
 		void reset_abandoned_and_launched_children()
 		{
+			/*
+			 * Invalidate '_currently_constructed' pointer, which may point
+			 * to a to-be-destructed 'Launched_child'.
+			 */
+			discard_construction();
+
 			_abandoned_children.for_each([&] (Abandoned_child &child) {
 				destroy(_alloc, &child); });
 
