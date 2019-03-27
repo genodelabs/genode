@@ -60,6 +60,78 @@ if {[catch {
 	exit 1
 }
 
+
+##
+# Collect content of the raw archives as used by the test
+#
+# This function returns a list of file paths that must be added as ROM modules
+# to the boot image.
+#
+# Note that it does not evaluate the 'content.mk' file of the raw recipes but
+# relies on the convention that the content of raw archives is hosted at the
+# raw archive's recipe location.
+#
+# The function does not traverse nested pkg archives because no test uses this
+# feature of pkg archives.
+#
+proc _files_from_raw_archives { archives_file } {
+
+	if {![file exists $archives_file]} {
+		puts stderr "Warning: $archives_file does not exist"
+		return { }
+	}
+
+	set fh [open $archives_file "r"]
+	set archives [split [read $fh] "\n"]
+	close $fh
+
+	set result { }
+
+	foreach archive $archives {
+
+		if {![regexp [_depot_archive_path_pattern] $archive dummy user type name]} {
+			continue }
+
+		if {$type != "raw"} {
+			continue }
+
+		if {[catch {
+			set raw_recipe [glob "[genode_dir]/repos/*/recipes/raw/$name"]
+			set files [glob "$raw_recipe/*"]
+			foreach file $files {
+				if {[string match "*/content.mk" $file]} { continue }
+				if {[string match "*/hash"       $file]} { continue }
+				lappend result $file
+			}
+		}]} {
+			puts stderr "Warning: cannot obtain content of raw archive $name"
+		}
+	}
+	return $result
+}
+
+set files_from_raw_archives [_files_from_raw_archives $pkg_recipe/archives]
+
+
+##
+# Return true if ROM module is provided by a raw archive
+#
+proc rom_module_from_raw_archive { rom } {
+
+	global files_from_raw_archives
+
+	foreach file $files_from_raw_archives {
+		if {[string match "*/$rom" $file]} {
+			return 1; } }
+
+	return 0;
+}
+
+
+#
+# Extract information from the test's runtime file
+#
+
 set runtime_file $pkg_recipe/runtime
 
 if {![file exists $runtime_file]} {
@@ -149,7 +221,9 @@ proc content_rom_modules { } {
 
 foreach rom [content_rom_modules] {
 
-	lappend boot_modules $rom
+	# raw-archive content is installed directly into [run_dir]/genode
+	if {![rom_module_from_raw_archive $rom]} {
+		lappend boot_modules $rom }
 
 	if {[info exists src_sub_dir($rom)]} {
 		lappend build_targets $src_sub_dir($rom)
@@ -174,6 +248,9 @@ build $sorted_build_targets
 #
 
 create_boot_directory
+
+foreach file $files_from_raw_archives {
+	file copy -force $file [run_dir]/genode/ }
 
 install_config {
 	<config>
