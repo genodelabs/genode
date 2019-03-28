@@ -560,8 +560,10 @@ void Nitpicker::Main::_handle_config()
 	try { _domain_registry.construct(_domain_registry_heap, config); }
 	catch (...) { }
 
-	for (Session_component *s = _session_list.first(); s; s = s->next())
+	for (Session_component *s = _session_list.first(); s; s = s->next()) {
 		s->apply_session_policy(config, *_domain_registry);
+		s->notify_mode_change();
+	}
 
 	_view_stack.apply_origin_policy(_pointer_origin);
 
