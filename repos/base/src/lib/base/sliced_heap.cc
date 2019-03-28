@@ -61,7 +61,6 @@ bool Sliced_heap::alloc(size_t size, void **out_addr)
 		return false;
 	}
 	catch (Out_of_ram) {
-		error("could not allocate dataspace with size ", size);
 		return false;
 	}
 
