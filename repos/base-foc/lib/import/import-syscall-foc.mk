@@ -13,6 +13,12 @@ ifeq ($(filter-out $(SPECS),arm),)
   CC_OPT  += -DARCH_arm
 endif # ARM
 
+ifeq ($(filter-out $(SPECS),arm_64),)
+  INC_DIR += $(L4_INCLUDE_DIR)/arm64/l4f $(L4_INCLUDE_DIR)/arm64
+  CC_OPT  += -DARCH_arm64
+endif # ARM
+
+
 INC_DIR += $(L4_INCLUDE_DIR)/l4f $(L4_INCLUDE_DIR)
 CC_OPT += -DCONFIG_L4_CALL_SYSCALLS
 

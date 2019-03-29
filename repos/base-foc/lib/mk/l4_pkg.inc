@@ -24,6 +24,11 @@ ifeq ($(filter-out $(SPECS),arm_v6),)
 	L4_BUILD_ARCH := arm_armv6
 endif
 
+ifeq ($(filter-out $(SPECS),arm_v8),)
+	L4_BUILD_ARCH := arm_armv8a
+endif
+
+
 ifeq ($(L4_BUILD_ARCH),)
 $(error L4_BUILD_ARCH undefined, architecture not supported)
 endif
