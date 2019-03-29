@@ -12,6 +12,7 @@ proc core_link_address { } {
 	if {[have_spec x86      ]} { return "0x01100000" }
 	if {[have_spec arndale  ]} { return "0x80100000" }
 	if {[have_spec rpi      ]} { return "0x00800000" }
+	if {[have_spec rpi3     ]} { return "0x00800000" }
 	if {[have_spec panda    ]} { return "0xa0000000" }
 	if {[have_spec pbxa9    ]} { return "0x76000000" }
 	if {[have_spec odroid_x2]} { return "0x80100000" }
@@ -51,6 +52,7 @@ proc l4_bin_dir { } {
 	if {[have_spec x86_64]}  { return "[l4_build_dir]/bin/amd64_K8" }
 	if {[have_spec arm_v7a]} { return "[l4_build_dir]/bin/arm_armv7a" }
 	if {[have_spec arm_v6]}  { return "[l4_build_dir]/bin/arm_armv6" }
+	if {[have_spec arm_v8]}  { return "[l4_build_dir]/bin/arm64_armv8a" }
 
 	puts stderr "Error: Cannot determine bin directory"
 	exit 1
@@ -211,8 +213,9 @@ proc run_boot_dir_arm { binaries } {
 #
 proc run_boot_dir {binaries} {
 
-	if {[have_spec x86]} { return [run_boot_dir_x86 $binaries] }
-	if {[have_spec arm]} { return [run_boot_dir_arm $binaries] }
+	if {[have_spec x86]}    { return [run_boot_dir_x86 $binaries] }
+	if {[have_spec arm]}    { return [run_boot_dir_arm $binaries] }
+	if {[have_spec arm_64]} { return [run_boot_dir_arm $binaries] }
 }
 
 

@@ -39,9 +39,12 @@ proc run_image {elf_img} {
 		set compress_type gzip
 	}
 
+	set arch "arm"
+	if {[have_spec arm_64]} { set arch "arm64" }
+
 	# create uImage
 	set uboot_img [run_dir]/uImage
-	exec mkimage -A arm -O linux -T kernel -C $compress_type -a $load_addr \
+	exec mkimage -A $arch -O linux -T kernel -C $compress_type -a $load_addr \
 	             -e $entrypoint -d $bin_img$bin_ext $uboot_img
 	exec rm -rf $bin_img$bin_ext
 }

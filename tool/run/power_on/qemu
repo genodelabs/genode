@@ -53,6 +53,7 @@ proc run_power_on { } {
 	if {[have_spec x86_32]} { set qemu "qemu-system-i386" }
 	if {[have_spec x86_64]} { set qemu "qemu-system-x86_64" }
 	if {[have_spec arm]}    { set qemu "qemu-system-arm" }
+	if {[have_spec arm_64]} { set qemu "qemu-system-aarch64" }
 
 	#
 	# Only the x86_64 variant of Qemu provides the emulation of hardware
@@ -62,13 +63,19 @@ proc run_power_on { } {
 	if {[have_spec nova]} { set qemu "qemu-system-x86_64" }
 
 	#
-	# Redirect serial output to stdio, but only in graphics mode and no
-	# explicit configuration of serial interfaces is specified in the run
-	# script. The 'mon' prefix enables the access to the qemu console.
+	# Redirect serial output to stdio, but only when no explicit configuration
+	# of serial interfaces is specified in the run script.
+	# The 'mon' prefix enables the access to the qemu console.
 	#
-	if {![regexp -- {-nographic} $qemu_args dummy] &&
-	    ![regexp -- {-serial}    $qemu_args dummy]} {
-	    append qemu_args " -serial mon:stdio " }
+	if {![regexp -- {-serial} $qemu_args dummy]} {
+
+		#
+		# In the raspi3 model the first UART is never used as
+		# log output, but the second
+		#
+		if {[have_spec rpi3]} { append qemu_args " -serial null " }
+		append qemu_args " -serial mon:stdio "
+	}
 
 	# SVM virtualization is broken after $qemu_good_old and until before $qemu_good_new
 	# We use "-cpu phenom" when using VMs in Qemu
@@ -100,6 +107,7 @@ proc run_power_on { } {
 	}
 	if {[have_spec vpb926]} { append qemu_args " -M versatilepb     -m 128 " }
 	if {[have_spec zynq_qemu]}   { append qemu_args " -M xilinx-zynq-a9 -cpu cortex-a9 -m 256 " }
+	if {[have_spec rpi3]}   { append qemu_args " -M raspi3 -m 512 " }
 
 	# on x86, we support booting via pxe or iso/disk image
 	if {[have_spec x86]} {
@@ -131,7 +139,7 @@ proc run_power_on { } {
 	}
 
 	# on ARM, we supply the boot image as kernel
-	if {[have_spec arm]} { append qemu_args " -kernel [run_dir]/boot/image.elf " }
+	if {[have_spec arm] || [have_spec arm_v8]} { append qemu_args " -kernel [run_dir]/boot/image.elf " }
 
 	eval spawn $qemu $qemu_args
 	set qemu_spawn_id $spawn_id
