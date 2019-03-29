@@ -1,0 +1,27 @@
+# local variable for run-tool arguments used for running scenarios in Qemu
+QEMU_RUN_OPT := --include power_on/qemu  --include log/qemu
+
+# kernel to use (hw, foc, or sel4)
+#KERNEL ?= hw
+
+# board to use (rpi3)
+#BOARD ?= rpi3
+
+# local varible for run-tool arguments that depend on the used kernel
+KERNEL_RUN_OPT(hw)   := $(QEMU_RUN_OPT)
+KERNEL_RUN_OPT(foc)  := $(QEMU_RUN_OPT)
+KERNEL_RUN_OPT(sel4) := $(QEMU_RUN_OPT)
+
+##
+## Qemu arguments, effective when using the run tool's 'power_on/qemu' back end
+##
+
+# enable GDB stub
+#QEMU_OPT += -s
+
+# use time-tested graphics backend
+QEMU_OPT += -display sdl
+
+# add kernel-specific Qemu arguments
+QEMU_OPT += $(QEMU_OPT(${KERNEL}))
+
