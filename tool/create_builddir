@@ -10,7 +10,7 @@ MAKEOVERRIDES =
 
 PLATFORM = $(MAKECMDGOALS)
 
-PLATFORMS = arm_v6 arm_v7 riscv x86_32 x86_64 linux
+PLATFORMS = arm_v6 arm_v7 arm_v8 riscv x86_32 x86_64 linux
 
 PLATFORMS_DEPR = arndale imx53_qsb imx53_qsb_tz imx6q_sabrelite imx7d_sabre \
                  nit6_solox odroid_x2 odroid_xu panda pbxa9 riscv_spike rpi \
@@ -114,10 +114,11 @@ $(BUILD_DIR)/etc:
 	@mkdir -p $@
 
 BUILD_CONF_X86      := run_x86 run_boot_dir repos repos_x86
-BUILD_CONF_ARM_V7   := run_arm_v7 run_boot_dir repos
 BUILD_CONF_ARM_V6   := run_arm_v6 run_boot_dir repos
+BUILD_CONF_ARM_V7   := run_arm_v7 run_boot_dir repos
 BUILD_CONF(arm_v6)  := $(BUILD_CONF_ARM_V6)
 BUILD_CONF(arm_v7)  := $(BUILD_CONF_ARM_V7)
+BUILD_CONF(arm_v8)  := run_arm_v8 run_boot_dir repos
 BUILD_CONF(riscv)   := run_riscv run_boot_dir repos
 BUILD_CONF(x86_32)  := run_x86_32 $(BUILD_CONF_X86)
 BUILD_CONF(x86_64)  := run_x86_64 $(BUILD_CONF_X86)
@@ -186,6 +187,7 @@ HOST_SPEC_ARCH := ${SPEC_ARCH(${UNAME_MACHINE})}
 
 SPECS(arm_v6)          := arm_v6
 SPECS(arm_v7)          := arm_v7a
+SPECS(arm_v8)          := arm_v8a
 SPECS(riscv)           := riscv
 SPECS(x86_32)          := x86_32
 SPECS(x86_64)          := x86_64
