@@ -183,9 +183,56 @@ proc _depot_contains_archive { user type name version } {
 }
 
 
+proc _depot_auto_update { archives } {
+
+	set archives_to_create { }
+	foreach archive $archives {
+
+		if {[regexp [_depot_archive_path_pattern] $archive dummy user type name]} {
+
+			if {$type == "pkg"} {
+				lappend archives_to_create "$user/pkg/[depot_spec]/$name" }
+
+			if {$type == "src"} {
+				lappend archives_to_create "$user/bin/[depot_spec]/$name" }
+
+			if {$type == "raw"} {
+				lappend archives_to_create "$user/raw/$name" }
+		}
+	}
+
+	# remove duplicates
+	set archives_to_create [lsort -unique $archives_to_create]
+
+	set    cmd "[genode_dir]/tool/depot/create $archives_to_create "
+	append cmd "CROSS_DEV_PREFIX=[cross_dev_prefix] "
+	append cmd "UPDATE_VERSIONS=1 FORCE=1 REBUILD= "
+
+	set make_j_arg ""
+	regexp {.*(-j\d*)} [get_cmd_arg_first --make ""] dummy make_j_arg
+	append cmd "$make_j_arg "
+
+	puts "update depot: $cmd"
+
+	exec {*}$cmd >@ stdout 2>@ stderr
+}
+
+
+# keep track of recursion to perform '_depot_auto_update' only at the top level
+set _collect_from_depot_nesting_level 0
+
+
 proc _collect_from_depot { archives } {
 
 	global _missing_depot_archives
+	global _collect_from_depot_nesting_level
+
+	incr _collect_from_depot_nesting_level
+
+	# fill depot with up-to-date content if --depot-auto-update is enabled
+	if {[get_cmd_switch --depot-auto-update]} {
+		if {$_collect_from_depot_nesting_level == 1} {
+			_depot_auto_update $archives } }
 
 	set all_content {}
 
@@ -234,6 +281,8 @@ proc _collect_from_depot { archives } {
 		}
 		set all_content [concat $all_content $content]
 	}
+
+	incr _collect_from_depot_nesting_level -1
 	return $all_content
 }
 

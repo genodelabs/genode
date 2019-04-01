@@ -323,6 +323,7 @@ run/%: $(call select_from_repositories,run/%.run) $(RUN_ENV)
 	                                     --repositories "$(REPOSITORIES)" \
 	                                     --cross-dev-prefix "$(CROSS_DEV_PREFIX)" \
 	                                     --qemu-args "$(QEMU_OPT)" \
+	                                     --make "$(MAKE)" \
 	                                     $(RUN_OPT) \
 	                                     --include $(RUN_SCRIPT)
 

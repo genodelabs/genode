@@ -26,6 +26,19 @@ include $(GENODE_DIR)/tool/depot/mk/front_end.inc
 
 
 #
+# Provide Genode build system with clean environment
+#
+unexport BASE_DIR
+unexport SPECS
+unexport SPEC_FILES
+unexport LIB_CACHE_DIR
+unexport LIB_DEP_FILE
+unexport LIB_PROGRESS_LOG
+unexport CONTRIB_DIR
+unexport REPOSITORIES
+
+
+#
 # The target is the name of the archive
 #
 ARCHIVE := $(TARGET)
