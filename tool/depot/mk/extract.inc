@@ -104,6 +104,19 @@ $(DEPOT_ARCHIVE_DIR)/$(TAG_FILE): reset_stale_temporary_archive_dir
 #
 $(ARCHIVE): _rename_to_final_archive
 
+
+#
+# Hook for executing a command whenever an archive version is automatically
+# updated. It is used by 'extract_src_archive' to wipe stale binary archives
+# that may already exist with the name of the new version. Such a version
+# collision can happen when switching between topic branches. If it happens,
+# the depot/create tool (called with 'FORCE=1 REBUILD=') would miss rebuilding
+# the binary archive for the new version because an archive with the name
+# already exists.
+#
+VERSION_UPDATED_CMD ?= true
+
+
 #
 # Rename archive name from the temporary name to the hashed name. However,
 # if the hashed archive name already exists, keep the existing one and
@@ -114,8 +127,10 @@ _rename_to_final_archive: _check_hash
 	          rm -rf $(DEPOT_SUB_DIR)/$$final_name; \
 	          mv $(DEPOT_ARCHIVE_DIR) $(DEPOT_SUB_DIR)/$$final_name; \
 	          hash=$$(< $(DEPOT_ARCHIVE_DIR).hash); hint=""; \
-	          test $$hash = $(ORIG_RECIPE_HASH_VALUE) ||\
-	            hint=" $(BRIGHT_COL)(new version)$(DEFAULT_COL)"; \
+	          test $$hash = $(ORIG_RECIPE_HASH_VALUE) || \
+	             hint=" $(BRIGHT_COL)(new version)$(DEFAULT_COL)"; \
+	          test $$hash = $(ORIG_RECIPE_HASH_VALUE) || \
+	             $(VERSION_UPDATED_CMD); \
 	          rm -f $(DEPOT_ARCHIVE_DIR).hash; \
 	          $(ECHO) "$(DARK_COL)created$(DEFAULT_COL)" \
 	                  "$(USER)/$(notdir $(DEPOT_SUB_DIR))/$$final_name$$hint"; \
@@ -175,7 +190,8 @@ endef
 ifeq ($(UPDATE_VERSIONS),)
 HASH_MISMATCH_CMD = $(ECHO) "$(subst $(NEWLINE),\n,$(HASH_OUT_OF_DATE_MESSAGE))"; false
 else
-HASH_MISMATCH_CMD = echo "$(next_version) $$hash" > $(RECIPE_HASH_FILE);
+HASH_MISMATCH_CMD = version=$(next_version); \
+                    echo "$$version $$hash" > $(RECIPE_HASH_FILE);
 endif
 
 #
