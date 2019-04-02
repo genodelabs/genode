@@ -16,6 +16,7 @@
 
 /* Genode includes */
 #include <base/allocator.h>
+#include <base/allocator_avl.h>
 #include <base/session_object.h>
 #include <vm_session/vm_session.h>
 #include <dataspace/capability.h>
@@ -23,6 +24,7 @@
 
 /* Core includes */
 #include <object.h>
+#include <region_map_component.h>
 #include <translation_table.h>
 #include <kernel/vm.h>
 
@@ -35,9 +37,12 @@ class Genode::Vm_session_component
 	private Ram_quota_guard,
 	private Cap_quota_guard,
 	public Rpc_object<Vm_session, Vm_session_component>,
+	public Region_map_detach,
 	private Kernel_object<Kernel::Vm>
 {
 	private:
+
+		typedef Allocator_avl_tpl<Rm_region> Avl_region;
 
 		/*
 		 * Noncopyable
@@ -48,8 +53,10 @@ class Genode::Vm_session_component
 		using Table = Hw::Level_1_stage_2_translation_table;
 		using Array = Table::Allocator::Array<Kernel::DEFAULT_TRANSLATION_TABLE_MAX>;
 
-		Rpc_entrypoint            *_ds_ep;
+		Rpc_entrypoint            &_ep;
 		Constrained_ram_allocator  _constrained_md_ram_alloc;
+		Sliced_heap                _sliced_heap;
+		Avl_region                 _map { &_sliced_heap };
 		Region_map                &_region_map;
 		Ram_dataspace_capability   _ds_cap  { };
 		Region_map::Local_addr     _ds_addr { 0 };
@@ -63,6 +70,9 @@ class Genode::Vm_session_component
 		addr_t _alloc_ds();
 		void * _alloc_table();
 		void   _attach(addr_t phys_addr, addr_t vm_addr, size_t size);
+
+		void _attach_vm_memory(Dataspace_component &, addr_t, bool, bool);
+		void _detach_vm_memory(addr_t, size_t);
 
 	protected:
 
@@ -79,6 +89,12 @@ class Genode::Vm_session_component
 		                     Diag, Ram_allocator &ram, Region_map &);
 		~Vm_session_component();
 
+		/*********************************
+		 ** Region_map_detach interface **
+		 *********************************/
+
+		void detach(Region_map::Local_addr) override;
+		void unmap_region(addr_t, size_t) override;
 
 		/**************************
 		 ** Vm session interface **

@@ -11,12 +11,16 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+/* base includes */
+#include <util/flex_iterator.h>
+
 /* core includes */
 #include <core_env.h>
 #include <vm_session_component.h>
 #include <pd_session_component.h>
 #include <cpu_thread_component.h>
 #include <arch_kernel_object.h>
+
 
 using namespace Genode;
 
@@ -73,6 +77,7 @@ try
 	_ep(ep),
 	_constrained_md_ram_alloc(ram, _ram_quota_guard(), _cap_quota_guard()),
 	_sliced_heap(_constrained_md_ram_alloc, local_rm),
+	_heap(_constrained_md_ram_alloc, local_rm),
 	_pd_id(Platform_pd::pd_id_alloc().alloc()),
 	_vm_page_table(platform_specific().core_sel_alloc().alloc()),
 	_vm_space(_vm_page_table,
@@ -114,6 +119,10 @@ try
 		throw Service_denied();
 	}
 
+	/* configure managed VM area */
+	_map.add_range(0, 0UL - 0x1000);
+	_map.add_range(0UL - 0x1000, 0x1000);
+
 	caps.acknowledge();
 	ram.acknowledge();
 } catch (...) {
@@ -145,7 +154,17 @@ Vm_session_component::~Vm_session_component()
 {
 	for (;Vcpu * vcpu = _vcpus.first();) {
 		_vcpus.remove(vcpu);
-		destroy(_sliced_heap, vcpu);
+		destroy(_heap, vcpu);
+	}
+
+	/* detach all regions */
+	while (true) {
+		addr_t out_addr = 0;
+
+		if (!_map.any_block_addr(&out_addr))
+			break;
+
+		detach(out_addr);
 	}
 
 	if (_vm_page_table.value())
@@ -168,10 +187,10 @@ void Vm_session_component::_create_vcpu(Thread_capability cap)
 		Vcpu * vcpu = nullptr;
 
 		/* code to revert partial allocations in case of Out_of_ram/_quota */
-		auto free_up = [&] () { if (vcpu) destroy(_sliced_heap, vcpu); };
+		auto free_up = [&] () { if (vcpu) destroy(_heap, vcpu); };
 
 		try {
-			vcpu = new (_sliced_heap) Vcpu(_constrained_md_ram_alloc,
+			vcpu = new (_heap) Vcpu(_constrained_md_ram_alloc,
 			                               _cap_quota_guard(),
 			                               Vcpu_id{_id_alloc},
 			                               _notifications._service);
@@ -211,32 +230,6 @@ Dataspace_capability Vm_session_component::_cpu_state(Vcpu_id const vcpu_id)
 	return vcpu->ds_cap();
 }
 
-void Vm_session_component::attach(Dataspace_capability cap, addr_t guest_phys)
-{
-	if (!cap.valid())
-		throw Invalid_dataspace();
-
-	/* check dataspace validity */
-	_ep.apply(cap, [&] (Dataspace_component *ptr) {
-		if (!ptr)
-			throw Invalid_dataspace();
-
-		Dataspace_component &dsc = *ptr;
-
-		/* unsupported - deny otherwise arbitrary physical memory can be mapped to a VM */
-		if (dsc.managed())
-			throw Invalid_dataspace();
-
-		_vm_space.alloc_guest_page_tables(guest_phys, dsc.size());
-
-		enum { FLUSHABLE = true, EXECUTABLE = true };
-		_vm_space.map_guest(dsc.phys_addr(), guest_phys, dsc.size() >> 12,
-		                    dsc.cacheability(),
-		                    dsc.writable(), EXECUTABLE, FLUSHABLE);
-
-	});
-}
-
 void Vm_session_component::_pause(Vcpu_id const vcpu_id)
 {
 	Vcpu * vcpu = _lookup(vcpu_id);
@@ -244,4 +237,30 @@ void Vm_session_component::_pause(Vcpu_id const vcpu_id)
 		return;
 
 	vcpu->signal();
+}
+
+void Vm_session_component::_attach_vm_memory(Dataspace_component &dsc,
+                                             addr_t const guest_phys,
+                                             bool const executable,
+                                             bool const writeable)
+{
+	_vm_space.alloc_guest_page_tables(guest_phys, dsc.size());
+
+	enum { FLUSHABLE = true };
+	_vm_space.map_guest(dsc.phys_addr(), guest_phys, dsc.size() >> 12,
+	                    dsc.cacheability(),
+	                    dsc.writable() && writeable,
+	                    executable, FLUSHABLE);
+}
+
+void Vm_session_component::_detach_vm_memory(addr_t guest_phys, size_t size)
+{
+	Flexpage_iterator flex(guest_phys, size, guest_phys, size, 0);
+	Flexpage page = flex.page();
+
+	while (page.valid()) {
+		_vm_space.unmap(page.addr, (1 << page.log2_order) / 4096);
+
+		page = flex.page();
+	}
 }

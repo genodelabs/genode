@@ -25,9 +25,13 @@ class Genode::Vm_session_component
 :
 	private Ram_quota_guard,
 	private Cap_quota_guard,
-	public Rpc_object<Vm_session, Vm_session_component>
+	public Rpc_object<Vm_session, Vm_session_component>,
+	public Region_map_detach
 {
 	private:
+
+		typedef Constrained_ram_allocator Con_ram_allocator;
+		typedef Allocator_avl_tpl<Rm_region> Avl_region;
 
 		class Vcpu : public List<Vcpu>::Element {
 
@@ -68,12 +72,16 @@ class Genode::Vm_session_component
 				static addr_t invalid() { return ~0UL; }
 		};
 
-		Rpc_entrypoint            &_ep;
-		Constrained_ram_allocator  _constrained_md_ram_alloc;
-		Sliced_heap                _sliced_heap;
-		addr_t                     _pd_sel   { 0 };
-		unsigned                   _id_alloc { 0 };
-		unsigned                   _priority;
+		Rpc_entrypoint    &_ep;
+		Con_ram_allocator  _constrained_md_ram_alloc;
+		Sliced_heap        _sliced_heap;
+		Slab               _slab { max(sizeof(Vcpu), sizeof(Rm_region)),
+		                           4096 - Sliced_heap::meta_data_size(),
+		                           nullptr, &_sliced_heap };
+		Avl_region         _map { &_slab };
+		addr_t             _pd_sel { 0 };
+		unsigned           _id_alloc { 0 };
+		unsigned           _priority;
 
 		List<Vcpu>         _vcpus { };
 
@@ -84,6 +92,9 @@ class Genode::Vm_session_component
 
 			return nullptr;
 		}
+
+		void _attach_vm_memory(Dataspace_component &, addr_t, bool, bool);
+		void _detach_vm_memory(addr_t, size_t);
 
 	protected:
 
@@ -99,6 +110,13 @@ class Genode::Vm_session_component
 		                     Diag, Ram_allocator &ram, Region_map &);
 		~Vm_session_component();
 
+		/*********************************
+		 ** Region_map_detach interface **
+		 *********************************/
+
+		void detach(Region_map::Local_addr) override;
+		void unmap_region(addr_t, size_t) override;
+
 		/**************************
 		 ** Vm session interface **
 		 **************************/
@@ -110,7 +128,7 @@ class Genode::Vm_session_component
 		void _pause(Vcpu_id) { }
 		void attach(Dataspace_capability, addr_t) override;
 		void attach_pic(addr_t) override {}
-		void detach(addr_t, size_t) override { }
+		void detach(addr_t, size_t) override;
 		void _create_vcpu(Thread_capability);
 };
 

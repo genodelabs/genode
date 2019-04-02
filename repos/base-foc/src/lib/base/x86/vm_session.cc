@@ -191,6 +191,7 @@ struct Vcpu : Genode::Thread
 		Signal_context_capability   _signal;
 		Semaphore                   _wake_up { 0 };
 		Semaphore                  &_handler_ready;
+		Allocator                  &_alloc;
 		Vm_session_client::Vcpu_id  _id;
 		addr_t                      _state { 0 };
 		addr_t                      _task { 0 };
@@ -1137,11 +1138,15 @@ struct Vcpu : Genode::Thread
 
 		Vcpu(Env &env, Signal_context_capability &cap,
 		     Semaphore &handler_ready,
-		     Vm_session_client::Vcpu_id &id, enum Virt type)
+		     Vm_session_client::Vcpu_id &id, enum Virt type,
+		     Allocator &alloc)
 		:
 			Thread(env, "vcpu_thread", STACK_SIZE), _signal(cap),
-			_handler_ready(handler_ready), _id(id), _vm_type(type)
+			_handler_ready(handler_ready), _alloc(alloc),
+			_id(id), _vm_type(type)
 		{ }
+
+		Allocator &allocator() const { return _alloc; }
 
 		bool match(Vm_session_client::Vcpu_id id) { return id.id == _id.id; }
 
@@ -1218,7 +1223,8 @@ Vm_session_client::create_vcpu(Allocator &alloc, Env &env,
 
 	/* create thread that switches modes between thread/cpu */
 	Vcpu * vcpu = new (alloc) Registered<Vcpu>(vcpus, env, handler._cap,
-	                                           handler._done, id, vm_type);
+	                                           handler._done, id, vm_type,
+	                                           alloc);
 
 	try {
 		/* now it gets actually valid - vcpu->cap() becomes valid */
@@ -1270,4 +1276,12 @@ Dataspace_capability Vm_session_client::cpu_state(Vcpu_id vcpu_id)
 	});
 
 	return cap;
+}
+
+Vm_session::~Vm_session()
+{
+	vcpus.for_each([&] (Vcpu &vc) {
+		Allocator &alloc = vc.allocator();
+		destroy(alloc, &vc);
+	});
 }

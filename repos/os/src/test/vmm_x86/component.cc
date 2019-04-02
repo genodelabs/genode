@@ -18,6 +18,7 @@
 #include <base/heap.h>
 #include <base/signal.h>
 #include <timer_session/connection.h>
+#include <util/reconstructible.h>
 #include <vm_session/connection.h>
 #include <vm_session/vm_session.h>
 
@@ -198,8 +199,8 @@ class Vm {
 
 		enum { STACK_SIZE = 2*1024*sizeof(long) };
 
-		Genode::Vm_connection        _vm_con;
 		Genode::Heap                 _heap;
+		Genode::Vm_connection        _vm_con;
 		bool                         _svm;
 		bool                         _vmx;
 		Genode::Entrypoint          &_ep_first;  /* running on first CPU */
@@ -213,6 +214,9 @@ class Vm {
 		/* just to trigger some events after some time */
 		Timer::Connection            _timer;
 		Genode::Signal_handler<Vm>   _timer_handler;
+
+		/* trigger destruction of _vm session to test this case also */
+		Genode::Signal_context_capability _signal_destruction;
 
 		void _handle_timer();
 
@@ -245,10 +249,10 @@ class Vm {
 
 	public:
 
-		Vm(Genode::Env &env)
+		Vm(Genode::Env &env, Genode::Signal_context_capability destruct_cap)
 		:
-			_vm_con(env),
 			_heap(env.ram(), env.rm()),
+			_vm_con(env),
 			_svm(_amd() && _vm_feature(env, "svm")),
 			_vmx(_intel() && _vm_feature(env, "vmx")),
 			_ep_first(env.ep()),
@@ -260,7 +264,8 @@ class Vm {
 			_vcpu3(_ep_second, _vm_con, _heap, env, *this, _svm, _vmx),
 			_memory(env.ram().alloc(4096)),
 			_timer(env),
-			_timer_handler(_ep_first, *this, &Vm::_handle_timer)
+			_timer_handler(_ep_first, *this, &Vm::_handle_timer),
+			_signal_destruction(destruct_cap)
 		{
 			if (!_svm && !_vmx) {
 				Genode::error("no SVM nor VMX support detected");
@@ -384,7 +389,11 @@ void Vm::_handle_timer()
 		_vcpu1.skip_instruction(1*2 /* 1x jmp endless loop size */);
 		_vm_con.run(_vcpu1.id());
 	} else if (_vcpu1.paused_4th()) {
-		Genode::log("vmm test finished");
+		Genode::log("vcpu test finished - de-arm timer");
+		_timer.trigger_periodic(0);
+
+		/* trigger destruction of VM session */
+		Genode::Signal_transmitter(_signal_destruction).submit();
 	}
 }
 
@@ -479,18 +488,30 @@ void Vcpu::_handle_vm_exception()
 	_vm_con.run(_vcpu);
 }
 
-
 class Vmm {
 
 	private:
 
-		Vm _vm;
+		Genode::Signal_handler<Vmm> _destruct_handler;
+		Genode::Reconstructible<Vm> _vm;
+
+		void _destruct()
+		{
+			Genode::log("destruct vm session");
+
+			_vm.destruct();
+
+			Genode::log("vmm test finished");
+		}
 
 	public:
 
 		Vmm(Genode::Env &env)
-		: _vm(env)
-		{ }
+		:
+			_destruct_handler(env.ep(), *this, &Vmm::_destruct),
+			_vm(env, _destruct_handler)
+		{
+		}
 };
 
 void Component::construct(Genode::Env & env) { static Vmm vmm(env); }

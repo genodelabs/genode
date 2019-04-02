@@ -42,6 +42,7 @@ SRC_CC      += stack_area.cc \
                signal_transmitter_noinit.cc \
                signal_receiver.cc \
                vm_session_component.cc \
+               vm_session_common.cc \
                heartbeat.cc
 
 INC_DIR      = $(REP_DIR)/src/core/include \
@@ -75,4 +76,5 @@ vpath dump_alloc.cc                $(GEN_CORE_DIR)
 vpath platform_rom_modules.cc      $(GEN_CORE_DIR)
 vpath stack_area.cc                $(GEN_CORE_DIR)
 vpath heartbeat.cc                 $(GEN_CORE_DIR)
+vpath vm_session_common.cc         $(GEN_CORE_DIR)
 vpath %.cc                         $(REP_DIR)/src/core

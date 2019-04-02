@@ -150,9 +150,9 @@ void Vm_session_component::_create_vcpu(Thread_capability cap)
 		return;
 
 	/* allocate vCPU object */
-	Vcpu &vcpu = *new (_sliced_heap) Vcpu(_constrained_md_ram_alloc,
-	                                      _cap_quota_guard(),
-	                                      Vcpu_id {_id_alloc});
+	Vcpu &vcpu = *new (_slab) Vcpu(_constrained_md_ram_alloc,
+	                               _cap_quota_guard(),
+	                               Vcpu_id {_id_alloc});
 
 	/* we ran out of caps in core */
 	if (!vcpu.ds_cap().valid())
@@ -168,7 +168,7 @@ void Vm_session_component::_create_vcpu(Thread_capability cap)
 
 	if (res != Nova::NOVA_OK) {
 		error("create_sm = ", res);
-		destroy(_sliced_heap, &vcpu);
+		destroy(_slab, &vcpu);
 		return;
 	}
 
@@ -181,7 +181,7 @@ void Vm_session_component::_create_vcpu(Thread_capability cap)
 
 	if (res != Nova::NOVA_OK) {
 		error("create_ec = ", res);
-		destroy(_sliced_heap, &vcpu);
+		destroy(_slab, &vcpu);
 		return;
 	}
 
@@ -203,7 +203,7 @@ void Vm_session_component::_create_vcpu(Thread_capability cap)
 	if (res != Nova::NOVA_OK)
 	{
 		error("map sm ", res, " ", _id_alloc);
-		destroy(_sliced_heap, &vcpu);
+		destroy(_slab, &vcpu);
 		return;
 	}
 
@@ -288,10 +288,8 @@ Vm_session_component::Vm_session_component(Rpc_entrypoint &ep,
 	_cap_quota_guard().withdraw(Cap_quota{1});
 
 	_pd_sel = cap_map().insert();
-	if (!_pd_sel || _pd_sel == Vcpu::invalid()) {
-		_cap_quota_guard().replenish(Cap_quota{1});
+	if (!_pd_sel || _pd_sel == Vcpu::invalid())
 		throw Service_denied();
-	}
 
 	addr_t const core_pd = platform_specific().core_pd_sel();
 	enum { KEEP_FREE_PAGES_NOT_AVAILABLE_FOR_UPGRADE = 2, UPPER_LIMIT_PAGES = 32 };
@@ -301,70 +299,85 @@ Vm_session_component::Vm_session_component(Rpc_entrypoint &ep,
 	if (res != Nova::NOVA_OK) {
 		error("create_pd = ", res);
 		cap_map().remove(_pd_sel, 0, true);
-		_cap_quota_guard().replenish(Cap_quota{1});
 		throw Service_denied();
 	}
+
+	/* configure managed VM area */
+	_map.add_range(0, 0UL - 0x1000);
+	_map.add_range(0UL - 0x1000, 0x1000);
 }
 
 Vm_session_component::~Vm_session_component()
 {
 	for (;Vcpu * vcpu = _vcpus.first();) {
 		_vcpus.remove(vcpu);
-		destroy(_sliced_heap, vcpu);
+		destroy(_slab, vcpu);
 	}
 
-	if (_pd_sel && _pd_sel != Vcpu::invalid()) {
+	/* detach all regions */
+	while (true) {
+		addr_t out_addr = 0;
+
+		if (!_map.any_block_addr(&out_addr))
+			break;
+
+		detach(out_addr);
+	}
+
+	if (_pd_sel && _pd_sel != Vcpu::invalid())
 		cap_map().remove(_pd_sel, 0, true);
-		_cap_quota_guard().replenish(Cap_quota{1});
+}
+
+void Vm_session_component::_attach_vm_memory(Dataspace_component &dsc,
+                                             addr_t const guest_phys,
+                                             bool const executable,
+                                             bool const writeable)
+{
+	using Nova::Utcb;
+	Utcb & utcb = *reinterpret_cast<Utcb *>(Thread::myself()->utcb());
+	addr_t const src_pd = platform_specific().core_pd_sel();
+
+	Flexpage_iterator flex(dsc.phys_addr(), dsc.size(),
+	                       guest_phys, dsc.size(), guest_phys);
+
+	Flexpage page = flex.page();
+	while (page.valid()) {
+		Nova::Rights const map_rights (true, dsc.writable() && writeable,
+		                               executable);
+		Nova::Mem_crd const mem(page.addr >> 12, page.log2_order - 12,
+		                        map_rights);
+
+		utcb.set_msg_word(0);
+		/* ignore return value as one item always fits into the utcb */
+		bool const ok = utcb.append_item(mem, 0, true, true);
+		(void)ok;
+
+		/* receive window in destination pd */
+		Nova::Mem_crd crd_mem(page.hotspot >> 12, page.log2_order - 12,
+		                      map_rights);
+
+		/* asynchronously map memory */
+		uint8_t res = _with_kernel_quota_upgrade(_pd_sel, [&] {
+			return Nova::delegate(src_pd, _pd_sel, crd_mem); });
+
+		if (res != Nova::NOVA_OK)
+			error("could not map VM memory ", res);
+
+		page = flex.page();
 	}
 }
 
-void Vm_session_component::attach(Dataspace_capability cap, addr_t guest_phys)
+void Vm_session_component::_detach_vm_memory(addr_t guest_phys, size_t size)
 {
-	if (!cap.valid())
-		throw Invalid_dataspace();
+	Nova::Rights const revoke_rwx(true, true, true);
 
-	/* check dataspace validity */
-	_ep.apply(cap, [&] (Dataspace_component *ptr) {
-		if (!ptr)
-			throw Invalid_dataspace();
+	Flexpage_iterator flex(guest_phys, size, guest_phys, size, 0);
+	Flexpage page = flex.page();
 
-		Dataspace_component &dsc = *ptr;
+	while (page.valid()) {
+		Nova::Mem_crd mem(page.addr >> 12, page.log2_order - 12, revoke_rwx);
+		Nova::revoke(mem, true, true, _pd_sel);
 
-		/* unsupported - deny otherwise arbitrary physical memory can be mapped to a VM */
-		if (dsc.managed())
-			throw Invalid_dataspace();
-
-		using Nova::Utcb;
-		Utcb & utcb = *reinterpret_cast<Utcb *>(Thread::myself()->utcb());
-		addr_t const src_pd = platform_specific().core_pd_sel();
-
-		Flexpage_iterator flex(dsc.phys_addr(), dsc.size(),
-		                       guest_phys, dsc.size(), guest_phys);
-
-		Flexpage page = flex.page();
-		while (page.valid()) {
-			Nova::Rights const map_rights (true, dsc.writable(), true);
-			Nova::Mem_crd const mem(page.addr >> 12, page.log2_order - 12,
-			                        map_rights);
-
-			utcb.set_msg_word(0);
-			/* ignore return value as one item always fits into the utcb */
-			bool const ok = utcb.append_item(mem, 0, true, true);
-			(void)ok;
-
-			/* receive window in destination pd */
-			Nova::Mem_crd crd_mem(page.hotspot >> 12, page.log2_order - 12,
-			                      map_rights);
-
-			/* asynchronously map memory */
-			uint8_t res = _with_kernel_quota_upgrade(_pd_sel, [&] {
-				return Nova::delegate(src_pd, _pd_sel, crd_mem); });
-
-			if (res != Nova::NOVA_OK)
-				error("could not map VM memory ", res);
-
-			page = flex.page();
-		}
-	});
+		page = flex.page();
+	}
 }

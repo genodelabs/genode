@@ -140,7 +140,7 @@ unify_output "vcpu 3 : XX. vm exit - resume vcpu" ""
 trim_lines
 set output_3 $output
 
-puts "comparing output ..."
+puts "\ncomparing output ..."
 
 puts $output_0
 set output $output_0

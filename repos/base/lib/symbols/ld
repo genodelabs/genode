@@ -69,6 +69,8 @@ _ZN6Genode10Ipc_serverC1Ev T
 _ZN6Genode10Ipc_serverC2Ev T
 _ZN6Genode10Ipc_serverD1Ev T
 _ZN6Genode10Ipc_serverD2Ev T
+_ZN6Genode10Vm_sessionD0Ev T
+_ZN6Genode10Vm_sessionD2Ev T
 _ZN6Genode11Sliced_heap4freeEPvm T
 _ZN6Genode11Sliced_heap5allocEmPPv T
 _ZN6Genode11Sliced_heapC1ERNS_13Ram_allocatorERNS_10Region_mapE T
@@ -380,6 +382,7 @@ _ZTIN10__cxxabiv120__si_class_type_infoE D 24
 _ZTIN10__cxxabiv121__vmi_class_type_infoE D 24
 _ZTIN10__cxxabiv123__fundamental_type_infoE D 24
 _ZTIN5Timer10ConnectionE D 88
+_ZTIN6Genode10Vm_sessionE D 24
 _ZTIN6Genode11Sliced_heapE D 24
 _ZTIN6Genode14Rpc_entrypointE D 56
 _ZTIN6Genode14Signal_contextE D 56
@@ -537,6 +540,7 @@ _ZTVN10__cxxabiv120__si_class_type_infoE D 88
 _ZTVN10__cxxabiv121__vmi_class_type_infoE D 88
 _ZTVN10__cxxabiv123__fundamental_type_infoE D 64
 _ZTVN5Timer10ConnectionE D 320
+_ZTVN6Genode10Vm_sessionE D 56
 _ZTVN6Genode11Sliced_heapE D 72
 _ZTVN6Genode14Rpc_entrypointE D 80
 _ZTVN6Genode14Signal_contextE D 32

@@ -36,6 +36,7 @@ struct Vcpu {
 	private:
 
 		Signal_dispatcher_base      &_obj;
+		Allocator                   &_alloc;
 		Vm_session_client::Vcpu_id   _id;
 		addr_t                       _state { 0 };
 		void                        *_ep_handler { nullptr };
@@ -412,9 +413,12 @@ struct Vcpu {
 
 	public:
 
-		Vcpu(Vm_handler_base &o, unsigned id) : _obj(o), _id({id}) { }
+		Vcpu(Vm_handler_base &o, unsigned id, Allocator &alloc)
+		: _obj(o), _alloc(alloc), _id({id}) { }
 
 		virtual ~Vcpu() { }
+
+		Allocator &allocator() { return _alloc; }
 
 		addr_t badge(uint16_t exit) const {
 			return ((0UL + _id.id) << (sizeof(exit) * 8)) | exit; }
@@ -684,7 +688,7 @@ Vm_session_client::create_vcpu(Allocator &alloc, Env &env,
 	Thread * ep = reinterpret_cast<Thread *>(&handler._rpc_ep);
 	call<Rpc_create_vcpu>(ep->cap());
 
-	Vcpu * vcpu = new (alloc) Registered<Vcpu> (vcpus, handler, vcpu_id++);
+	Vcpu * vcpu = new (alloc) Registered<Vcpu> (vcpus, handler, vcpu_id++, alloc);
 	vcpu->assign_ds_state(env.rm(), call<Rpc_cpu_state>(vcpu->id()));
 
 	Signal_context_capability dontcare_exit;
@@ -743,4 +747,12 @@ Dataspace_capability Vm_session_client::cpu_state(Vcpu_id vcpu_id)
 	});
 
 	return cap;
+}
+
+Vm_session::~Vm_session()
+{
+	vcpus.for_each([&] (Vcpu &vc) {
+		Allocator &alloc = vc.allocator();
+		destroy(alloc, &vc);
+	});
 }

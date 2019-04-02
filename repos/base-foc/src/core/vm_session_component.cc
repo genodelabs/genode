@@ -47,19 +47,30 @@ Vm_session_component::Vm_session_component(Rpc_entrypoint &ep,
 	l4_msgtag_t msg = l4_factory_create_vm(L4_BASE_FACTORY_CAP,
 	                                       _task_vcpu.local.data()->kcap());
 	if (l4_error(msg)) {
-		_cap_quota_guard().replenish(Cap_quota{1});
 		Genode::error("create_vm failed ", l4_error(msg));
-		throw 1;
+		throw Service_denied();
 	}
+
+	/* configure managed VM area */
+	_map.add_range(0, 0UL - 0x1000);
+	_map.add_range(0UL - 0x1000, 0x1000);
 }
 
 Vm_session_component::~Vm_session_component()
 {
-	_cap_quota_guard().replenish(Cap_quota{1});
-
 	for (;Vcpu * vcpu = _vcpus.first();) {
 		_vcpus.remove(vcpu);
-		destroy(_sliced_heap, vcpu);
+		destroy(_slab, vcpu);
+	}
+
+	/* detach all regions */
+	while (true) {
+		addr_t out_addr = 0;
+
+		if (!_map.any_block_addr(&out_addr))
+			break;
+
+		detach(out_addr);
 	}
 }
 
@@ -106,7 +117,7 @@ void Vm_session_component::_create_vcpu(Thread_capability cap)
 		/* allocate vCPU object */
 		Vcpu * vcpu = nullptr;
 		try {
-			vcpu = new (_sliced_heap) Vcpu(_constrained_md_ram_alloc,
+			vcpu = new (_slab) Vcpu(_constrained_md_ram_alloc,
 	                                       _cap_quota_guard(),
 	                                       Vcpu_id {_id_alloc});
 
@@ -122,12 +133,12 @@ void Vm_session_component::_create_vcpu(Thread_capability cap)
 			});
 		} catch (int) {
 			if (vcpu)
-				destroy(_sliced_heap, vcpu);
+				destroy(_slab, vcpu);
 
 			return;
 		} catch (...) {
 			if (vcpu)
-				destroy(_sliced_heap, vcpu);
+				destroy(_slab, vcpu);
 
 			throw;
 		}
@@ -151,41 +162,53 @@ Dataspace_capability Vm_session_component::_cpu_state(Vcpu_id const vcpu_id)
 	return Dataspace_capability();
 }
 
-void Vm_session_component::attach(Dataspace_capability cap, addr_t guest_phys)
+void Vm_session_component::_attach_vm_memory(Dataspace_component &dsc,
+                                             addr_t const guest_phys,
+                                             bool const executable,
+                                             bool const writeable)
 {
-	if (!cap.valid())
-		throw Invalid_dataspace();
+	Flexpage_iterator flex(dsc.phys_addr(), dsc.size(),
+	                       guest_phys, dsc.size(), guest_phys);
 
-	/* check dataspace validity */
-	_ep.apply(cap, [&] (Dataspace_component *ptr) {
-		if (!ptr)
-			throw Invalid_dataspace();
+	using namespace Fiasco;
 
-		Dataspace_component &dsc = *ptr;
+	uint8_t flags = L4_FPAGE_RO;
+	if (dsc.writable() && writeable)
+		if (executable)
+			flags = L4_FPAGE_RWX;
+		else
+			flags = L4_FPAGE_RW;
+	else
+		if (executable)
+			flags = L4_FPAGE_RX;
 
-		/* unsupported - deny otherwise arbitrary physical memory can be mapped to a VM */
-		if (dsc.managed())
-			throw Invalid_dataspace();
+	Flexpage page = flex.page();
+	while (page.valid()) {
+		l4_fpage_t fp = l4_fpage(page.addr, page.log2_order, flags);
+		l4_msgtag_t msg = l4_task_map(_task_vcpu.local.data()->kcap(),
+		                              L4_BASE_TASK_CAP, fp,
+		                              l4_map_obj_control(page.hotspot,
+		                                                 L4_MAP_ITEM_MAP));
 
-		Flexpage_iterator flex(dsc.phys_addr(), dsc.size(),
-		                       guest_phys, dsc.size(), guest_phys);
+		if (l4_error(msg))
+			Genode::error("task map failed ", l4_error(msg));
 
+		page = flex.page();
+	}
+}
+
+void Vm_session_component::_detach_vm_memory(addr_t guest_phys, size_t size)
+{
+	Flexpage_iterator flex(guest_phys, size, guest_phys, size, 0);
+	Flexpage page = flex.page();
+
+	while (page.valid()) {
 		using namespace Fiasco;
 
-		uint8_t const flags = dsc.writable() ? L4_FPAGE_RWX : L4_FPAGE_RX;
+		l4_task_unmap(_task_vcpu.local.data()->kcap(),
+		              l4_fpage(page.addr, page.log2_order, L4_FPAGE_RWX),
+		              L4_FP_ALL_SPACES);
 
-		Flexpage page = flex.page();
-		while (page.valid()) {
-			l4_fpage_t fp = l4_fpage(page.addr, page.log2_order, flags);
-			l4_msgtag_t msg = l4_task_map(_task_vcpu.local.data()->kcap(),
-			                              L4_BASE_TASK_CAP, fp,
-			                              l4_map_obj_control(page.hotspot,
-			                                                 L4_MAP_ITEM_MAP));
-
-			if (l4_error(msg))
-				Genode::error("task map failed ", l4_error(msg));
-
-			page = flex.page();
-		}
-	});
+		page = flex.page();
+	}
 }

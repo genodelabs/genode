@@ -32,11 +32,12 @@ struct Genode::Vm_session : Session
 	enum { CAP_QUOTA = 3 };
 
 	class Invalid_dataspace : Exception { };
+	class Region_conflict   : Exception { };
 
 	/**
 	 * Destructor
 	 */
-	virtual ~Vm_session() { }
+	virtual ~Vm_session();
 
 	/**
 	 * Attach dataspace to the guest-physical memory address space
@@ -75,8 +76,9 @@ struct Genode::Vm_session : Session
 	GENODE_RPC(Rpc_run, void, _run, Vcpu_id);
 	GENODE_RPC(Rpc_pause, void, _pause, Vcpu_id);
 	GENODE_RPC_THROW(Rpc_attach, void, attach,
-	                 GENODE_TYPE_LIST(Invalid_dataspace),
-                     Dataspace_capability, addr_t);
+	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps, Region_conflict,
+	                                  Invalid_dataspace),
+	                 Dataspace_capability, addr_t);
 	GENODE_RPC(Rpc_detach, void, detach, addr_t, size_t);
 	GENODE_RPC(Rpc_attach_pic, void, attach_pic, addr_t);
 	GENODE_RPC_THROW(Rpc_create_vcpu, void, _create_vcpu,

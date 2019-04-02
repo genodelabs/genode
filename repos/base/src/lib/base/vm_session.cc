@@ -39,3 +39,6 @@ Dataspace_capability Vm_session_client::cpu_state(Vcpu_id const vcpu_id)
 {
 	return call<Rpc_cpu_state>(vcpu_id);
 }
+
+Vm_session::~Vm_session()
+{ }

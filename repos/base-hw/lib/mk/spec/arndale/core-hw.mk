@@ -15,6 +15,7 @@ SRC_CC += kernel/vm_thread_on.cc
 SRC_CC += spec/arm_v7/virtualization/kernel/vm.cc
 SRC_CC += spec/arm_v7/vm_session_component.cc
 SRC_CC += spec/arm_v7/virtualization/vm_session_component.cc
+SRC_CC += vm_session_common.cc
 
 # add assembly sources
 SRC_S += spec/arm_v7/virtualization/exception_vector.s

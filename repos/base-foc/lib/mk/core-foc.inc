@@ -39,6 +39,7 @@ SRC_CC      += stack_area.cc \
                thread_start.cc \
                trace_session_component.cc \
                vm_session_component.cc \
+               vm_session_common.cc \
                heartbeat.cc
 
 INC_DIR     += $(REP_DIR)/src/core/include \
@@ -72,5 +73,6 @@ vpath core_rpc_cap_alloc.cc       $(GEN_CORE_DIR)
 vpath core_region_map.cc          $(GEN_CORE_DIR)
 vpath platform_rom_modules.cc     $(GEN_CORE_DIR)
 vpath heartbeat.cc                $(GEN_CORE_DIR)
+vpath vm_session_common.cc        $(GEN_CORE_DIR)
 vpath %.cc                        $(REP_DIR)/src/core
 vpath %.cc                        $(REP_DIR)/src/lib/base
