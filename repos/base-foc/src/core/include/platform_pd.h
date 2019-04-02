@@ -52,20 +52,19 @@ namespace Genode {
 			Platform_pd &operator = (Platform_pd const &);
 
 			enum {
-				THREAD_MAX      = (1 << 7),
-				UTCB_AREA_SIZE  = (THREAD_MAX * Fiasco::L4_UTCB_OFFSET),
+				UTCB_AREA_SIZE  = (Fiasco::THREAD_MAX * Fiasco::L4_UTCB_OFFSET),
 			};
 
 			addr_t utcb_area_start()
 			{
 				return NON_CORE_STACK_AREA_ADDR +
-				       THREAD_MAX*stack_virtual_size();
+				       Fiasco::THREAD_MAX*stack_virtual_size();
 			}
 
 			Cap_mapping       _task;
 			Cap_mapping       _parent { };
 			Cap_mapping       _debug  { };
-			Platform_thread  *_threads[THREAD_MAX] { };
+			Platform_thread  *_threads[Fiasco::THREAD_MAX] { };
 
 		public:
 

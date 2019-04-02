@@ -71,10 +71,14 @@ namespace Fiasco {
 
 
 	/*********************************************************
-	 ** Capability seclectors controlled by the task itself **
+	 ** Capability selectors controlled by the task itself **
 	 *********************************************************/
 
-	static constexpr l4_cap_idx_t USER_BASE_CAP = 0x200UL << L4_CAP_SHIFT;
+	static constexpr unsigned THREAD_MAX        = (1 << 7);
+	static constexpr l4_cap_idx_t USER_BASE_CAP = 0x300 << L4_CAP_SHIFT;
+
+	static_assert(USER_BASE_CAP > THREAD_MAX * THREAD_AREA_SLOT,
+	              "USER_BASE_CAP too small for supported maximal threads");
 
 	struct Capability
 	{
