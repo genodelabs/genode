@@ -27,16 +27,21 @@ _jmp_slot:
 	pushq %r9
 	pushq %r10
 	pushq %r11
+	subq $0x200, %rsp
+	fxsave (%rsp)
 
 	/* obj pointer */
-	movq 0x58(%rsp), %rdi
+	movq 0x258(%rsp), %rdi
 	/* relocation index */
-	movq 0x60(%rsp), %rsi
+	movq 0x260(%rsp), %rsi
 
 	call jmp_slot@PLT
-	/* rax now contains target symbol address */
-	movq %rax, 0x60(%rsp)
 
+	/* rax now contains target symbol address */
+	movq %rax, 0x260(%rsp)
+
+	fxrstor (%rsp)
+	addq $0x200, %rsp
 	popq %r11
 	popq %r10
 	popq %r9
