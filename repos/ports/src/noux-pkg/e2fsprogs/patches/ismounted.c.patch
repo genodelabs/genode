@@ -1,9 +1,10 @@
 +++ src/noux-pkg/e2fsprogs/lib/ext2fs/ismounted.c
-@@ -352,6 +352,9 @@
+@@ -352,6 +352,10 @@
  {
  	errcode_t	retval = 0;
  
 +	/* disarm the mount-point check as Genode has no notion of mount points */
++	*mount_flags = 0;
 +	return 0;
 +
  	if (is_swap_device(device)) {
