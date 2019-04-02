@@ -490,7 +490,7 @@ addr_t Region_map_component::_core_local_addr(Rm_region & region)
 }
 
 
-void Region_map_component::_unmap_region(addr_t base, size_t size)
+void Region_map_component::unmap_region(addr_t base, size_t size)
 {
 	if (address_space()) address_space()->flush(base, size, { 0 });
 
@@ -511,7 +511,7 @@ void Region_map_component::_unmap_region(addr_t base, size_t size)
 
 		/* if size is not zero, there is an overlap */
 		if (ds_size)
-			r->rm()._unmap_region(r->base() + ds_base - r->offset(), ds_size);
+			r->rm().unmap_region(r->base() + ds_base - r->offset(), ds_size);
 	}
 }
 
@@ -571,7 +571,7 @@ void Region_map_component::detach(Local_addr local_addr)
 		/*
 		 * Unmap this memory region from all region maps referencing it.
 		 */
-		_unmap_region(region.base(), region.size());
+		unmap_region(region.base(), region.size());
 	}
 }
 

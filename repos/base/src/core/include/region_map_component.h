@@ -43,12 +43,21 @@ namespace Genode {
 	class Cpu_thread_component;
 	class Dataspace_component;
 	class Region_map_component;
+	class Region_map_detach;
 	class Rm_client;
 	class Rm_region;
 	class Rm_faulter;
 	class Rm_session_component;
 }
 
+class Genode::Region_map_detach : Genode::Interface
+{
+	public:
+
+		virtual void detach(Region_map::Local_addr) = 0;
+		virtual void unmap_region(addr_t base, size_t size) = 0;
+
+};
 
 /**
  * Representation of a single entry of a region map
@@ -70,13 +79,13 @@ class Genode::Rm_region : public List<Rm_region>::Element
 		off_t  const _off;
 
 		Dataspace_component  &_dsc;
-		Region_map_component &_rm;
+		Region_map_detach    &_rm;
 
 	public:
 
 		Rm_region(addr_t base, size_t size, bool write,
 		          Dataspace_component &dsc, off_t offset,
-		          Region_map_component &rm, bool exec)
+		          Region_map_detach &rm, bool exec)
 		:
 			_base(base), _size(size), _write(write), _exec(exec), _off(offset),
 			_dsc(dsc), _rm(rm)
@@ -93,7 +102,7 @@ class Genode::Rm_region : public List<Rm_region>::Element
 		bool                executable() const { return _exec;  }
 		Dataspace_component &dataspace() const { return _dsc;   }
 		off_t                   offset() const { return _off;   }
-		Region_map_component       &rm() const { return _rm;    }
+		Region_map_detach          &rm() const { return _rm;    }
 };
 
 
@@ -210,7 +219,8 @@ class Genode::Rm_client : public Pager_object, public Rm_faulter,
 
 class Genode::Region_map_component : private Weak_object<Region_map_component>,
                                      public  Rpc_object<Region_map>,
-                                     private List<Region_map_component>::Element
+                                     private List<Region_map_component>::Element,
+                                     public  Region_map_detach
 {
 	private:
 
@@ -348,15 +358,15 @@ class Genode::Region_map_component : private Weak_object<Region_map_component>,
 		 */
 		addr_t _core_local_addr(Rm_region & r);
 
+	public:
+
 		/*
 		 * Unmaps a memory area from all address spaces referencing it.
 		 *
 		 * \param base base address of region to unmap
 		 * \param size size of region to unmap
 		 */
-		void _unmap_region(addr_t base, size_t size);
-
-	public:
+		void unmap_region(addr_t base, size_t size) override;
 
 		/**
 		 * Constructor
