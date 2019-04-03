@@ -33,7 +33,7 @@ namespace Genode { extern Region_map * env_stack_area_region_map; }
 
 void prepare_init_main_thread();
 
-enum { MAIN_THREAD_STACK_SIZE = 1024*sizeof(Genode::addr_t) };
+enum { MAIN_THREAD_STACK_SIZE = 2048*sizeof(Genode::addr_t) };
 
 /**
  * Satisfy crt0.s in static programs, LDSO overrides this symbol
