@@ -47,18 +47,16 @@ struct Main
 		log("--- ROM Block test ---");
 
 		Block::Session::Tx::Source &src = *block.tx();
-		size_t                      blk_sz;
-		Block::sector_t             blk_cnt;
-		Block::Session::Operations  ops;
+		Block::Session::Info const info = block.info();
 
-		block.info(&blk_cnt, &blk_sz, &ops);
-		if (!ops.supported(Packet_descriptor::READ)) {
-			throw Device_not_readable(); }
+		log("We have ", info.block_count, " blocks with a "
+		    "size of ", info.block_size, " bytes");
+		for (size_t i = 0; i < info.block_count; i += REQ_PARALLEL) {
 
-		log("We have ", blk_cnt, " blocks with a size of ", blk_sz, " bytes");
-		for (size_t i = 0; i < blk_cnt; i += REQ_PARALLEL) {
-			size_t cnt = (blk_cnt - i > REQ_PARALLEL) ? REQ_PARALLEL : blk_cnt - i;
-			Packet_descriptor pkt(src.alloc_packet(cnt * blk_sz),
+			size_t const cnt = (info.block_count - i > REQ_PARALLEL)
+			                 ? REQ_PARALLEL : info.block_count - i;
+
+			Packet_descriptor pkt(src.alloc_packet(cnt * info.block_size),
 			                      Packet_descriptor::READ, i, cnt);
 
 			log("Check blocks ", i, "..", i + cnt - 1);
@@ -67,7 +65,7 @@ struct Main
 			if (!pkt.succeeded()) {
 				throw Read_request_failed(); }
 
-			char const *rom_src = rom.local_addr<char>() + i * blk_sz;
+			char const *rom_src = rom.local_addr<char>() + i * info.block_size;
 			if (strcmp(rom_src, src.packet_content(pkt), rom.size())) {
 				throw Files_differ(); }
 

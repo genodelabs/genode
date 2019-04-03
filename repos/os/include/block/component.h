@@ -76,7 +76,8 @@ class Block::Session_component : public Block::Session_component_base,
 		bool                              _ack_queue_full = false;
 		Packet_descriptor                 _p_to_handle { };
 		unsigned                          _p_in_fly;
-		bool                              _writeable;
+		Info                        const _info { _driver.info() };
+		bool                        const _writeable;
 
 		/**
 		 * Acknowledge a packet already handled
@@ -95,7 +96,7 @@ class Block::Session_component : public Block::Session_component_base,
 		 */
 		inline bool _range_check(Packet_descriptor &p) {
 			return p.block_number() + p.block_count() - 1
-			       < _driver.block_count(); }
+			       < _info.block_count; }
 
 		/**
 		 * Handle a single request
@@ -106,7 +107,9 @@ class Block::Session_component : public Block::Session_component_base,
 			_p_to_handle.succeeded(false);
 
 			/* ignore invalid packets */
-			if (!packet.size() || !_range_check(_p_to_handle) || !tx_sink()->packet_valid(packet)) {
+			bool const valid = packet.size() && _range_check(_p_to_handle)
+			                && tx_sink()->packet_valid(packet);
+			if (!valid) {
 				_ack_packet(_p_to_handle);
 				return;
 			}
@@ -195,7 +198,7 @@ class Block::Session_component : public Block::Session_component_base,
 		  _sink_submit(ep, *this, &Session_component::_signal),
 		  _req_queue_full(false),
 		  _p_in_fly(0),
-		  _writeable(writeable)
+		  _writeable(writeable && _info.writeable)
 		{
 			_tx.sigh_ready_to_ack(_sink_ack);
 			_tx.sigh_packet_avail(_sink_submit);
@@ -239,23 +242,7 @@ class Block::Session_component : public Block::Session_component_base,
 		 **  Block session interface  **
 		 *******************************/
 
-		void info(sector_t *blk_count, size_t *blk_size,
-		          Operations *ops) override
-		{
-			Operations driver_ops = _driver.ops();
-
-			*blk_count = _driver.block_count();
-			*blk_size  = _driver.block_size();
-			*ops       = Operations();
-
-			typedef Block::Packet_descriptor::Opcode Opcode;
-
-			if (driver_ops.supported(Opcode::READ))
-				ops->set_operation(Opcode::READ);
-			if (_writeable && driver_ops.supported(Opcode::WRITE))
-				ops->set_operation(Opcode::WRITE);
-
-		}
+		Info info() const override { return _driver.info(); }
 
 		void sync() override { _driver.sync(); }
 };

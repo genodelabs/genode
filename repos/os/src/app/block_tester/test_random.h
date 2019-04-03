@@ -115,8 +115,8 @@ struct Test::Random : Test_base
 	{
 		uint64_t r = 0;
 		do {
-			r = _random.get() % _block_count;
-		} while (r + _size_in_blocks > _block_count);
+			r = _random.get() % _info.block_count;
+		} while (r + _size_in_blocks > _info.block_count);
 
 		return r;
 	}
@@ -178,7 +178,7 @@ struct Test::Random : Test_base
 			}
 
 			size_t                           const psize = p.size();
-			size_t                           const count = psize / _block_size;
+			size_t                           const count = psize / _info.block_size;
 			Block::Packet_descriptor::Opcode const op    = p.operation();
 
 			bool const read = op == Block::Packet_descriptor::READ;
@@ -255,8 +255,7 @@ struct Test::Random : Test_base
 		_block->tx_channel()->sigh_ack_avail(_ack_sigh);
 		_block->tx_channel()->sigh_ready_to_submit(_submit_sigh);
 
-		_block->info(&_block_count, &_block_size, &_block_ops);
-
+		_info   = _block->info();
 		_size   = _node.attribute_value("size",   Number_of_bytes());
 		_length = _node.attribute_value("length", Number_of_bytes());
 
@@ -270,8 +269,8 @@ struct Test::Random : Test_base
 			throw Constructing_test_failed();
 		}
 
-		if (_block_size > _size || (_size % _block_size) != 0) {
-			Genode::error("request size invalid ", _block_size, " ", _size);
+		if (_info.block_size > _size || (_size % _info.block_size) != 0) {
+			Genode::error("request size invalid ", _info.block_size, " ", _size);
 			throw Constructing_test_failed();
 		}
 
@@ -285,8 +284,8 @@ struct Test::Random : Test_base
 
 		_alternate_access = w && r;
 
-		_size_in_blocks   = _size   / _block_size;
-		_length_in_blocks = _length / _block_size;
+		_size_in_blocks   = _size   / _info.block_size;
+		_length_in_blocks = _length / _info.block_size;
 
 		_timer.construct(_env);
 
@@ -307,7 +306,7 @@ struct Test::Random : Test_base
 		_block.destruct();
 
 		return Result(_success, _end_time - _start_time,
-		              _bytes, _rx, _tx, _size, _block_size);
+		              _bytes, _rx, _tx, _size, _info.block_size);
 	}
 
 	char const *name() const override { return "random"; }

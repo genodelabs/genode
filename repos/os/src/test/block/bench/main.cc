@@ -53,8 +53,9 @@ class Throughput
 		size_t          _bytes   = 0;
 		Block::sector_t _current = 0;
 
-		size_t          _blk_size  = 0;
-		Block::sector_t _blk_count = 0;
+		Block::Session::Info const _info      { _session.info() };
+		size_t               const _blk_size  { _info.block_size };
+		Block::sector_t      const _blk_count { _info.block_count };
 
 		void _submit()
 		{
@@ -137,9 +138,6 @@ class Throughput
 		{
 			_session.tx_channel()->sigh_ack_avail(_disp_ack);
 			_session.tx_channel()->sigh_ready_to_submit(_disp_submit);
-
-			Block::Session::Operations blk_ops;
-			_session.info(&_blk_count, &_blk_size, &blk_ops);
 
 			warning("block count ", _blk_count, " size ", _blk_size);
 			log("read/write ", TEST_SIZE / 1024, " KiB ...");

@@ -28,6 +28,13 @@ namespace Sd_card { class Driver_base; }
 class Sd_card::Driver_base : public    Block::Driver,
                              protected Host_controller
 {
+	protected:
+
+		Genode::size_t _block_size() const { return 512; }
+
+		Block::sector_t _block_count() const {
+			return card_info().capacity_mb() * 1024 * 2; }
+
 	public:
 
 		Driver_base(Genode::Ram_allocator &ram)
@@ -37,17 +44,11 @@ class Sd_card::Driver_base : public    Block::Driver,
 		 ** Block::Driver **
 		 *******************/
 
-		Genode::size_t block_size() override { return 512; }
-
-		Block::sector_t block_count() override {
-			return card_info().capacity_mb() * 1024 * 2; }
-
-		Block::Session::Operations ops() override
+		Block::Session::Info info() const override
 		{
-			Block::Session::Operations ops;
-			ops.set_operation(Block::Packet_descriptor::READ);
-			ops.set_operation(Block::Packet_descriptor::WRITE);
-			return ops;
+			return { .block_size  = _block_size(),
+			         .block_count = _block_count(),
+			         .writeable   = true };
 		}
 };
 

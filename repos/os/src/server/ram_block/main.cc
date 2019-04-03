@@ -112,15 +112,11 @@ class Ram_block : public Block::Driver
 		 ** Block-driver interface **
 		 ****************************/
 
-		size_t block_size() override { return _block_size;  }
-		Block::sector_t block_count() override { return _block_count; }
-
-		Block::Session::Operations ops() override
+		Block::Session::Info info() const override
 		{
-			Block::Session::Operations o;
-			o.set_operation(Block::Packet_descriptor::READ);
-			o.set_operation(Block::Packet_descriptor::WRITE);
-			return o;
+			return { .block_size  = _block_size,
+			         .block_count = _block_count,
+			         .writeable   = true };
 		}
 
 		void read(Block::sector_t    block_number,

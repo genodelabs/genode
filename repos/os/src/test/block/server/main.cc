@@ -63,15 +63,11 @@ class Driver : public Block::Driver
 		void session_invalidated() override {
 			while (!_packets.empty()) _packets.get(); }
 
-		Genode::size_t  block_size()  override { return _size;   }
-		Block::sector_t block_count() override { return _number; }
-
-		Block::Session::Operations ops() override
+		Block::Session::Info info() const override
 		{
-			Block::Session::Operations ops;
-			ops.set_operation(Block::Packet_descriptor::READ);
-			ops.set_operation(Block::Packet_descriptor::WRITE);
-			return ops;
+			return { .block_size  = _size,
+			         .block_count = _number,
+			         .writeable   = true };
 		}
 
 		void read(Block::sector_t           block_number,

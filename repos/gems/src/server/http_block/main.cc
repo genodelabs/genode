@@ -42,14 +42,11 @@ class Driver : public Block::Driver
 		 **  Block::Driver interface  **
 		 *******************************/
 
-		Genode::size_t  block_size()  { return _block_size; }
-		Block::sector_t block_count() { return _http.file_size() / _block_size; }
-
-		Block::Session::Operations ops()
+		Block::Session::Info info() const override
 		{
-			Block::Session::Operations o;
-			o.set_operation(Block::Packet_descriptor::READ);
-			return o;
+			return { .block_size  = _block_size,
+			         .block_count = _http.file_size() / _block_size,
+			         .writeable   = false };
 		}
 
 		void read(Block::sector_t           block_nr,

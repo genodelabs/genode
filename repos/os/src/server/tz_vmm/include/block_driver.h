@@ -84,10 +84,7 @@ class Genode::Block_driver
 				Signal_handler<Device>      _irq_handler;
 				Block::Connection           _session;
 				Id_space<Device>::Element   _id_space_elem;
-				size_t                      _blk_size;
-				Block::sector_t             _blk_cnt;
-				Block::Session::Operations  _blk_ops;
-				bool                        _writeable;
+				Block::Session::Info  const _info { _session.info() };
 
 			public:
 
@@ -108,9 +105,9 @@ class Genode::Block_driver
 
 				Request_cache     &cache()             { return _cache;     }
 				Block::Connection &session()           { return _session;   }
-				size_t             block_size()  const { return _blk_size;  }
-				size_t             block_count() const { return _blk_cnt;   }
-				bool               writeable()   const { return _writeable; }
+				size_t             block_size()  const { return _info.block_size;  }
+				size_t             block_count() const { return _info.block_count; }
+				bool               writeable()   const { return _info.writeable; }
 				Name const        &name()        const { return _name;      }
 				unsigned           irq()         const { return _irq;       }
 		};

@@ -39,9 +39,9 @@ class Block::Request_stream : Genode::Noncopyable
 
 				friend class Request_stream;
 
-				Genode::addr_t   const _base;
-				Genode::size_t   const _size;
-				Genode::uint32_t const _block_size;
+				Genode::addr_t       const _base;
+				Genode::size_t       const _size;
+				Block::Session::Info const _info;
 
 				/**
 				 * Return pointer to the first byte of the request content
@@ -56,7 +56,7 @@ class Block::Request_stream : Genode::Noncopyable
 				 */
 				Genode::size_t _request_size(Block::Request const &request) const
 				{
-					return request.count * _block_size;
+					return request.count * _info.block_size;
 				}
 
 				bool _valid_range(Block::Request const &request) const
@@ -77,9 +77,9 @@ class Block::Request_stream : Genode::Noncopyable
 				}
 
 				Payload(Genode::addr_t base, Genode::size_t size,
-				        Genode::uint32_t block_size)
+				        Block::Session::Info info)
 				:
-					_base(base), _size(size), _block_size(block_size)
+					_base(base), _size(size), _info(info)
 				{ }
 
 			public:
@@ -101,6 +101,8 @@ class Block::Request_stream : Genode::Noncopyable
 
 	private:
 
+		Block::Session::Info const _info;
+
 		Packet_stream_tx::Rpc_object<Block::Session::Tx> _tx;
 
 		typedef Genode::Packet_stream_sink<Block::Session::Tx_policy> Tx_sink;
@@ -113,10 +115,11 @@ class Block::Request_stream : Genode::Noncopyable
 		               Genode::Dataspace_capability      ds,
 		               Genode::Entrypoint               &ep,
 		               Genode::Signal_context_capability sigh,
-		               Genode::uint32_t                  block_size)
+		               Block::Session::Info        const info)
 		:
+			_info(info),
 			_tx(ds, rm, ep.rpc_ep()),
-			_payload(_tx.sink()->ds_local_base(), _tx.sink()->ds_size(), block_size)
+			_payload(_tx.sink()->ds_local_base(), _tx.sink()->ds_size(), info)
 		{
 			_tx.sigh_ready_to_ack(sigh);
 			_tx.sigh_packet_avail(sigh);
@@ -129,6 +132,8 @@ class Block::Request_stream : Genode::Noncopyable
 		}
 
 		Genode::Capability<Block::Session::Tx> tx_cap() { return _tx.cap(); }
+
+		Block::Session::Info info() const { return _info; }
 
 		/**
 		 * Call functor 'fn' with 'Payload' interface as argument
@@ -302,7 +307,7 @@ class Block::Request_stream : Genode::Noncopyable
 
 			while (tx_sink.ack_slots_free()) {
 
-				Ack ack(tx_sink, _payload._block_size);
+				Ack ack(tx_sink, _payload._info.block_size);
 
 				fn(ack);
 

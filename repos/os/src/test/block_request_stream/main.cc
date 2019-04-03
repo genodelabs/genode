@@ -41,22 +41,18 @@ struct Test::Block_session_component : Rpc_object<Block::Session>,
 	                        Entrypoint               &ep,
 	                        Signal_context_capability sigh)
 	:
-		Request_stream(rm, ds, ep, sigh, BLOCK_SIZE), _ep(ep)
+		Request_stream(rm, ds, ep, sigh,
+		               Info { .block_size  = BLOCK_SIZE,
+		                      .block_count = NUM_BLOCKS,
+		                      .writeable   = true }),
+		_ep(ep)
 	{
 		_ep.manage(*this);
 	}
 
 	~Block_session_component() { _ep.dissolve(*this); }
 
-	void info(Block::sector_t *count, size_t *block_size, Operations *ops) override
-	{
-		*count      = NUM_BLOCKS;
-		*block_size = BLOCK_SIZE;
-		*ops        = Operations();
-
-		ops->set_operation(Block::Packet_descriptor::Opcode::READ);
-		ops->set_operation(Block::Packet_descriptor::Opcode::WRITE);
-	}
+	Info info() const override { return Request_stream::info(); }
 
 	void sync() override { }
 

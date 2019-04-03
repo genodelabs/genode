@@ -102,19 +102,9 @@ class Block::Driver : Genode::Interface
 		virtual ~Driver() { }
 
 		/**
-		 * Request block size for driver and medium
+		 * Request block-device information
 		 */
-		virtual Genode::size_t block_size() = 0;
-
-		/**
-		 * Request capacity of medium in blocks
-		 */
-		virtual Block::sector_t block_count() = 0;
-
-		/**
-		 * Request operations supported by the device
-		 */
-		virtual Session::Operations ops() = 0;
+		virtual Session::Info info() const = 0;
 
 		/**
 		 * Read from medium

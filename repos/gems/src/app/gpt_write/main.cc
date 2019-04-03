@@ -32,12 +32,13 @@ struct Gpt::Writer
 	struct Io_error    : Genode::Exception { };
 	struct Gpt_invalid : Genode::Exception { };
 
-	using sector_t    = Block::sector_t;
+	using sector_t = Block::sector_t;
 
-	Block::Connection          &_block;
-	Block::Session::Operations  _block_ops   {   };
-	Block::sector_t             _block_count { 0 };
-	size_t                      _block_size  { 0 };
+	Block::Connection &_block;
+
+	Block::Session::Info const _info        { _block.info() };
+	size_t               const _block_size  { _info.block_size };
+	sector_t             const _block_count { _info.block_count };
 
 	/*
 	 * Blocks available is a crude approximation that _does not_ take
@@ -653,9 +654,7 @@ struct Gpt::Writer
 	 */
 	Writer(Block::Connection &block, Genode::Xml_node config) : _block(block)
 	{
-		_block.info(&_block_count, &_block_size, &_block_ops);
-
-		if (!_block_ops.supported(Block::Packet_descriptor::WRITE)) {
+		if (!_info.writeable) {
 			Genode::error("cannot write to Block session");
 			throw Io_error();
 		}

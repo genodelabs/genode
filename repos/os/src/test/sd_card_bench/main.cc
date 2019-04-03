@@ -115,11 +115,12 @@ struct Main
 		}
 		/* issue as many requests for the current request size as possible */
 		try {
-			size_t const cnt = req_size() / drv.block_size();
+			size_t const block_size = drv.info().block_size;
+			size_t const cnt = req_size() / block_size;
 			for (; buf_off_pend < buf_size; buf_off_pend += req_size()) {
 
 				/* calculate block offset */
-				addr_t const nr  = buf_off_pend / drv.block_size();
+				addr_t const nr  = buf_off_pend / block_size;
 
 				if (drv.dma_enabled()) {
 

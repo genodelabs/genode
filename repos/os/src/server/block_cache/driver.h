@@ -119,9 +119,7 @@ class Driver : public Block::Driver
 		Genode::List<Request>             _r_list;    /* list of requests   */
 		Genode::Packet_allocator          _alloc;     /* packet allocator   */
 		Block::Connection                 _blk;       /* backend device     */
-		Block::Session::Operations        _ops;       /* allowed operations */
-		Genode::size_t                    _blk_sz;    /* block size         */
-		Block::sector_t                   _blk_cnt;   /* block count        */
+		Block::Session::Info        const _info;      /* block-device info  */
 		Chunk_level_0                     _cache;     /* chunk hierarchy    */
 		Genode::Io_signal_handler<Driver> _source_ack;
 		Genode::Io_signal_handler<Driver> _source_submit;
@@ -133,7 +131,7 @@ class Driver : public Block::Driver
 		/*
 		 * Return modulus of cache's versus backend device's block size
 		 */
-		inline int _cache_blk_mod() { return CACHE_BLK_SIZE / _blk_sz; }
+		inline int _cache_blk_mod() { return CACHE_BLK_SIZE / _info.block_size; }
 
 		/*
 		 * Round off given block number to cache block size granularity
@@ -183,8 +181,8 @@ class Driver : public Block::Driver
 				/* when reading, write result into cache */
 				if (p.operation() == Block::Packet_descriptor::READ)
 					_cache.write(_blk.tx()->packet_content(p),
-					             p.block_count() * _blk_sz,
-					             p.block_number() * _blk_sz);
+					             p.block_count() * _info.block_size,
+					             p.block_number() * _info.block_size);
 
 				/* loop through the list of requests, and ack all related */
 				for (Request *r = _r_list.first(), *r_to_handle = r; r;
@@ -242,11 +240,11 @@ class Driver : public Block::Driver
 				                                         (block_number - nr));
 
 				/* ensure all memory is available before sending the request */
-				_cache.alloc(cnt * _blk_sz, nr * _blk_sz);
+				_cache.alloc(cnt * _info.block_size, nr * _info.block_size);
 
 				/* construct and send the packet */
 				p_to_dev =
-					Block::Packet_descriptor(_blk.dma_alloc_packet(_blk_sz*cnt),
+					Block::Packet_descriptor(_blk.dma_alloc_packet(_info.block_size*cnt),
 					                         Block::Packet_descriptor::READ,
 					                         nr, cnt);
 				_r_list.insert(new (&_r_slab) Request(p_to_dev, packet, buffer));
@@ -266,7 +264,7 @@ class Driver : public Block::Driver
 		void _sync()
 		{
 			Cache::offset_t off = 0;
-			Cache::size_t len   = _blk_sz * _blk_cnt;
+			Cache::size_t len   = _info.block_size * _info.block_count;
 
 			while (len > 0) {
 				try {
@@ -278,7 +276,7 @@ class Driver : public Block::Driver
 					 * to proceed, so handle signals, until it's ready again
 					 */
 					off = e.off;
-					len = _blk_sz * _blk_cnt - off;
+					len = _info.block_size * _info.block_count - off;
 					_env.ep().wait_and_dispatch_one_io_signal();
 				}
 			}
@@ -294,8 +292,8 @@ class Driver : public Block::Driver
 		bool _stat(Block::sector_t nr, Genode::size_t cnt,
 		           char * const buffer, Block::Packet_descriptor &p)
 		{
-			Cache::offset_t off   = nr  * _blk_sz;
-			Cache::size_t   size  = cnt * _blk_sz;
+			Cache::offset_t off   = nr  * _info.block_size;
+			Cache::size_t   size  = cnt * _info.block_size;
 			Cache::offset_t end   = off + size;
 
 			try {
@@ -304,7 +302,7 @@ class Driver : public Block::Driver
 			} catch(Cache::Chunk_base::Range_incomplete &e) {
 				off  = Genode::max(off, e.off);
 				size = Genode::min(end - off, e.size);
-				_request(off / _blk_sz, size / _blk_sz, buffer, p);
+				_request(off / _info.block_size, size / _info.block_size, buffer, p);
 			}
 			return false;
 		}
@@ -338,8 +336,7 @@ class Driver : public Block::Driver
 		  _r_slab(&heap),
 		  _alloc(&heap, CACHE_BLK_SIZE),
 		  _blk(_env, &_alloc, Block::Session::TX_QUEUE_SIZE*CACHE_BLK_SIZE),
-		  _blk_sz(0),
-		  _blk_cnt(0),
+		  _info(_blk.info()),
 		  _cache(heap, 0),
 		  _source_ack(env.ep(), *this, &Driver::_ack_avail),
 		  _source_submit(env.ep(), *this, &Driver::_ready_to_submit),
@@ -347,19 +344,18 @@ class Driver : public Block::Driver
 		{
 			using namespace Genode;
 
-			_blk.info(&_blk_cnt, &_blk_sz, &_ops);
 			_blk.tx_channel()->sigh_ack_avail(_source_ack);
 			_blk.tx_channel()->sigh_ready_to_submit(_source_submit);
 			env.parent().yield_sigh(_yield);
 
-			if (CACHE_BLK_SIZE % _blk_sz) {
+			if (CACHE_BLK_SIZE % _info.block_size) {
 				error("only devices that block size is divider of ",
 				      Hex(CACHE_BLK_SIZE, Hex::OMIT_PREFIX) ," supported");
 				throw Io_error();
 			}
 
 			/* truncate chunk structure to real size of the device */
-			_cache.truncate(_blk_sz*_blk_cnt);
+			_cache.truncate(_info.block_size * _info.block_count);
 		}
 
 		~Driver()
@@ -370,29 +366,27 @@ class Driver : public Block::Driver
 		}
 
 		Block::Session_client* blk()    { return &_blk;   }
-		Genode::size_t         blk_sz() { return _blk_sz; }
+		Genode::size_t         blk_sz() { return _info.block_size; }
 
 
 		/****************************
 		 ** Block-driver interface **
 		 ****************************/
 
-		Genode::size_t  block_size()     { return _blk_sz;  }
-		Block::sector_t block_count()    { return _blk_cnt; }
-		Block::Session::Operations ops() { return _ops;     }
+		Block::Session::Info info() const override { return _info; }
 
 		void read(Block::sector_t           block_number,
 		          Genode::size_t            block_count,
 		          char*                     buffer,
 		          Block::Packet_descriptor &packet)
 		{
-			if (!_ops.supported(Block::Packet_descriptor::READ))
-				throw Io_error();
-
 			if (!_stat(block_number, block_count, buffer, packet))
 				return;
 
-			_cache.read(buffer, block_count*_blk_sz, block_number*_blk_sz);
+			_cache.read(buffer,
+			            block_count *_info.block_size,
+			            block_number*_info.block_size);
+
 			ack_packet(packet);
 		}
 
@@ -401,10 +395,11 @@ class Driver : public Block::Driver
 		           const char *              buffer,
 		           Block::Packet_descriptor &packet)
 		{
-			if (!_ops.supported(Block::Packet_descriptor::WRITE))
+			if (!_info.writeable)
 				throw Io_error();
 
-			_cache.alloc(block_count * _blk_sz, block_number * _blk_sz);
+			_cache.alloc(block_count  * _info.block_size,
+			             block_number * _info.block_size);
 
 			if ((block_number % _cache_blk_mod()) &&
 			    !_stat(block_number, 1, const_cast<char* const>(buffer), packet))
@@ -415,8 +410,10 @@ class Driver : public Block::Driver
 				          const_cast<char* const>(buffer), packet))
 				return;
 
-			_cache.write(buffer, block_count * _blk_sz,
-			             block_number * _blk_sz);
+			_cache.write(buffer,
+			             block_count  * _info.block_size,
+			             block_number * _info.block_size);
+
 			ack_packet(packet);
 		}
 

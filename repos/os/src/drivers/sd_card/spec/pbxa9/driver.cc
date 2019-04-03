@@ -191,7 +191,7 @@ void Driver::read(Block::sector_t           block_number,
                   Block::Packet_descriptor &packet)
 {
 	unsigned resp;
-	unsigned length = block_size();
+	unsigned length = _block_size;
 
 	for (size_t i = 0; i < block_count; ++i) {
 		/*
@@ -200,9 +200,9 @@ void Driver::read(Block::sector_t           block_number,
 		 * SDSC cards use a byte address as argument while SDHC/SDSC uses a
 		 * block address here.
 		 */
-		_read_request(17, (block_number + i) * block_size(),
+		_read_request(17, (block_number + i) * _block_size,
 		              length, &resp);
-		_read_data(length, buffer + (i * block_size()));
+		_read_data(length, buffer + (i * _block_size));
 	}
 	ack_packet(packet);
 }
@@ -214,7 +214,7 @@ void Driver::write(Block::sector_t           block_number,
                    Block::Packet_descriptor &packet)
 {
 	unsigned resp;
-	unsigned length = block_size();
+	unsigned length = _block_size;
 
 	for (size_t i = 0; i < block_count; ++i) {
 		/*
@@ -223,18 +223,10 @@ void Driver::write(Block::sector_t           block_number,
 		 * SDSC cards use a byte address as argument while SDHC/SDSC uses a
 		 * block address here.
 		 */
-		_write_request(24, (block_number + i) * block_size(),
+		_write_request(24, (block_number + i) * _block_size,
 		               length, &resp);
-		_write_data(length, buffer + (i * block_size()));
+		_write_data(length, buffer + (i * _block_size));
 	}
 	ack_packet(packet);
 }
 
-
-Block::Session::Operations Driver::ops()
-{
-	Block::Session::Operations ops;
-	ops.set_operation(Block::Packet_descriptor::READ);
-	ops.set_operation(Block::Packet_descriptor::WRITE);
-	return ops;
-}

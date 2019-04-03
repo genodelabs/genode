@@ -158,6 +158,13 @@ struct Atapi_driver : Port_driver
 		}
 	}
 
+	Block::Session::Info info() const override
+	{
+		return { .block_size  = block_size(),
+		         .block_count = block_count(),
+		         .writeable   = false };
+	}
+
 
 	/*****************************
 	 ** Block::Driver interface **
@@ -165,19 +172,12 @@ struct Atapi_driver : Port_driver
 
 	bool dma_enabled() override { return true; };
 
-	Block::Session::Operations ops() override
-	{
-		Block::Session::Operations o;
-		o.set_operation(Block::Packet_descriptor::READ);
-		return o;
-	}
-
-	Genode::size_t block_size() override
+	Genode::size_t block_size() const override
 	{
 		return host_to_big_endian(((unsigned *)device_info)[1]);
 	}
 
-	Block::sector_t block_count() override
+	Block::sector_t block_count() const override
 	{
 		return host_to_big_endian(((unsigned *)device_info)[0]) + 1;
 	}

@@ -72,9 +72,6 @@ Block_driver::Device::Device(Env              &env,
 {
 	if (_name == Name() || _irq == ~(unsigned)0) {
 		throw Invalid(); }
-
-	_session.info(&_blk_cnt, &_blk_size, &_blk_ops);
-	_writeable = _blk_ops.supported(Packet_descriptor::WRITE);
 }
 
 

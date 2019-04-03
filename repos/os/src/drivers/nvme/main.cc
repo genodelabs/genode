@@ -1408,7 +1408,7 @@ class Driver : public Block::Driver
 				Io_buffer *iob = r->iob;
 
 				if (succeeded && pd.operation() == Packet_descriptor::READ) {
-					size_t const len = pd.block_count() * _block_size;
+					size_t const len = pd.block_count() * _info.block_size;
 					Genode::memcpy(r->buffer, (void*)iob->va, len);
 				}
 				_io_mapper->free(iob);
@@ -1438,9 +1438,7 @@ class Driver : public Block::Driver
 		 ** Block **
 		 ***********/
 
-		size_t                     _block_size  { 0 };
-		Block::sector_t            _block_count { 0 };
-		Block::Session::Operations _block_ops   {   };
+		Block::Session::Info _info { };
 
 	public:
 
@@ -1541,22 +1539,20 @@ class Driver : public Block::Driver
 				throw Nvme::Controller::Initialization_failed();
 			}
 
-			_block_count = nsinfo.count;
-			_block_size  = nsinfo.size;
-
-			_block_ops.set_operation(Packet_descriptor::READ);
-			_block_ops.set_operation(Packet_descriptor::WRITE);
+			_info = { .block_size  = nsinfo.size,
+			          .block_count = nsinfo.count,
+			          .writeable   = true };
 
 			Nvme::Controller::Info const &info = _nvme_ctrlr->info();
 
-			Genode::log("NVMe:",  info.version.string(),   " "
+			Genode::log("NVMe:",    info.version.string(),   " "
 			            "serial:'", info.sn.string(), "'", " "
 			            "model:'",  info.mn.string(), "'", " "
 			            "frev:'",   info.fr.string(), "'");
 
 			Genode::log("Block",                " "
-			            "size:",  _block_size,  " "
-			            "count:", _block_count);
+			            "size:",  _info.block_size,  " "
+			            "count:", _info.block_count);
 
 			/* generate Report if requested */
 			try {
@@ -1577,16 +1573,14 @@ class Driver : public Block::Driver
 		 **  Block::Driver interface  **
 		 *******************************/
 
-		size_t              block_size() override { return _block_size;  }
-		Block::sector_t    block_count() override { return _block_count; }
-		Block::Session::Operations ops() override { return _block_ops;   }
+		Block::Session::Info info() const override { return _info; }
 
 		void _io(bool write, Block::sector_t lba, size_t count,
 		         char *buffer, Packet_descriptor &pd)
 		{
 			using namespace Genode;
 
-			size_t const len = count * _block_size;
+			size_t const len = count * _info.block_size;
 
 			if (_verbose_io) {
 				Genode::error(write ? "write" : "read", " "
@@ -1686,16 +1680,13 @@ class Driver : public Block::Driver
 		void read(Block::sector_t lba, size_t count,
 		          char *buffer, Packet_descriptor &pd) override
 		{
-			if (!_block_ops.supported(Packet_descriptor::READ)) {
-				throw Io_error();
-			}
 			_io(false, lba, count, buffer, pd);
 		}
 
 		void write(Block::sector_t lba, size_t count,
 		           char const *buffer, Packet_descriptor &pd) override
 		{
-			if (!_block_ops.supported(Packet_descriptor::WRITE)) {
+			if (!_info.writeable) {
 				throw Io_error();
 			}
 			_io(true, lba, count, const_cast<char*>(buffer), pd);

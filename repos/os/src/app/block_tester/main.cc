@@ -99,9 +99,7 @@ namespace Test {
 
 			bool _verbose { false };
 
-			Block::Session::Operations _block_ops   {   };
-			Block::sector_t            _block_count { 0 };
-			size_t                     _block_size  { 0 };
+			Block::Session::Info _info { };
 
 			size_t _length_in_blocks { 0 };
 			size_t _size_in_blocks   { 0 };

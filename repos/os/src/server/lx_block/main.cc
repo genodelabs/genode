@@ -40,9 +40,42 @@ class Lx_block_driver : public Block::Driver
 
 		Genode::Env &_env;
 
-		Block::sector_t            _block_count {   0 };
-		Genode::size_t       const _block_size  { 512 };
-		Block::Session::Operations _block_ops   { };
+		Block::Session::Info const _info;
+
+		typedef Genode::String<256> File_name;
+
+		static File_name _file_name(Genode::Xml_node const &config)
+		{
+			return config.attribute_value("file", File_name());
+		}
+
+		static Block::Session::Info _init_info(Genode::Xml_node const &config)
+		{
+			Genode::Number_of_bytes const default_block_size(512);
+
+			if (!config.has_attribute("file")) {
+				Genode::error("mandatory file attribute missing");
+				throw Could_not_open_file();
+			}
+
+			struct stat st;
+			if (stat(_file_name(config).string(), &st)) {
+				perror("stat");
+				throw Could_not_open_file();
+			}
+
+			if (!config.has_attribute("block_size"))
+				Genode::warning("block size missing, assuming ", default_block_size);
+
+			Genode::size_t const block_size =
+				config.attribute_value("block_size", default_block_size);
+
+			return {
+				.block_size  = block_size,
+				.block_count = st.st_size / block_size,
+				.writeable   = xml_attr_ok(config, "writeable")
+			};
+		}
 
 		int _fd { -1 };
 
@@ -54,42 +87,20 @@ class Lx_block_driver : public Block::Driver
 		:
 			Block::Driver(env.ram()),
 			_env(env),
-			_block_size(config.attribute_value("block_size", Genode::Number_of_bytes()))
+			_info(_init_info(config))
 		{
-			if (!config.has_attribute("block_size"))
-				Genode::warning("block size missing, assuming 512b");
-
-			bool const writeable = xml_attr_ok(config, "writeable");
-
-			if (!config.has_attribute("file")) {
-				Genode::error("mandatory file attribute missing");
-				throw Could_not_open_file();
-			}
-
-			auto const file = config.attribute_value("file", Genode::String<256>());
-			struct stat st;
-			if (stat(file.string(), &st)) {
-				perror("stat");
-				throw Could_not_open_file();
-			}
-
-			_block_count = st.st_size / _block_size;
-
 			/* open file */
-			_fd = open(file.string(), writeable ? O_RDWR : O_RDONLY);
+			File_name const file_name = _file_name(config);
+			_fd = open(file_name.string(), _info.writeable ? O_RDWR : O_RDONLY);
 			if (_fd == -1) {
-				perror("open");
+				Genode::error("open ", file_name.string());
 				throw Could_not_open_file();
 			}
 
-			_block_ops.set_operation(Block::Packet_descriptor::READ);
-			if (writeable) {
-				_block_ops.set_operation(Block::Packet_descriptor::WRITE);
-			}
-
-			Genode::log("Provide '", file.string(), "' as block device "
-			            "block_size: ", _block_size, " block_count: ",
-			            _block_count, " writeable: ", writeable ? "yes" : "no");
+			Genode::log("Provide '", file_name, "' as block device "
+			            "block_size:  ", _info.block_size, " "
+			            "block_count: ", _info.block_count, " "
+			            "writeable:   ", _info.writeable ? "yes" : "no");
 		}
 
 		~Lx_block_driver() { close(_fd); }
@@ -99,22 +110,15 @@ class Lx_block_driver : public Block::Driver
 		 ** Block::Driver interface **
 		 *****************************/
 
-		Genode::size_t      block_size() override { return _block_size;  }
-		Block::sector_t    block_count() override { return _block_count; }
-		Block::Session::Operations ops() override { return _block_ops;   }
+		Block::Session::Info info() const override { return _info; }
 
 		void read(Block::sector_t           block_number,
 		          Genode::size_t            block_count,
 		          char                     *buffer,
 		          Block::Packet_descriptor &packet) override
 		{
-			/* range check is done by Block::Driver */
-			if (!_block_ops.supported(Block::Packet_descriptor::READ)) {
-				throw Io_error();
-			}
-
-			off_t const offset = block_number * _block_size;
-			size_t const count = block_count * _block_size;
+			off_t  const offset = block_number * _info.block_size;
+			size_t const count  = block_count  * _info.block_size;
 
 			ssize_t const n = pread(_fd, buffer, count, offset);
 			if (n == -1) {
@@ -131,12 +135,12 @@ class Lx_block_driver : public Block::Driver
 		           Block::Packet_descriptor &packet) override
 		{
 			/* range check is done by Block::Driver */
-			if (!_block_ops.supported(Block::Packet_descriptor::WRITE)) {
+			if (!_info.writeable) {
 				throw Io_error();
 			}
 
-			off_t const offset = block_number * _block_size;
-			size_t const count = block_count * _block_size;
+			off_t  const offset = block_number * _info.block_size;
+			size_t const count  = block_count  * _info.block_size;
 
 			ssize_t const n = pwrite(_fd, buffer, count, offset);
 			if (n == -1) {

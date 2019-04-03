@@ -110,8 +110,13 @@ class Sd_card::Driver : public  Block::Driver, private Attached_mmio
 		void _write_data(unsigned length, char const *buffer);
 		void _write_command(unsigned cmd_index, bool resp);
 
-	public:
+		/*
+		 * TODO report (and support) real capacity not just 512M
+		 */
+		size_t          const _block_size  = 512;
+		Block::sector_t const _block_count = 0x20000000 / _block_size;
 
+	public:
 
 		Driver(Env &env);
 
@@ -120,8 +125,12 @@ class Sd_card::Driver : public  Block::Driver, private Attached_mmio
 		 ** Block-driver **
 		 ******************/
 
-		Genode::size_t block_size() override { return 512; }
-		Block::Session::Operations ops() override;
+		Block::Session::Info info() const override
+		{
+			return { .block_size  = _block_size,
+			         .block_count = _block_count,
+			         .writeable   = true };
+		}
 
 		void read(Block::sector_t           block_number,
 		          size_t                    block_count,
@@ -133,11 +142,6 @@ class Sd_card::Driver : public  Block::Driver, private Attached_mmio
 		           char const               *buffer,
 		           Block::Packet_descriptor &packet) override;
 
-		/*
-		 * TODO report (and support) real capacity not just 512M
-		 */
-		Block::sector_t block_count() override {
-			return 0x20000000 /  block_size(); }
 };
 
 #endif /* _DRIVER_H_ */

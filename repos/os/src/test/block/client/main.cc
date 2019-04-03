@@ -13,10 +13,10 @@
 #include <timer_session/connection.h>
 #include <os/ring_buffer.h>
 
-static Genode::size_t             blk_sz;   /* block size of the device   */
-static Block::sector_t            test_cnt; /* number test blocks         */
-static Block::sector_t            blk_cnt;  /* number of blocks of device */
-static Block::Session::Operations blk_ops;  /* supported operations       */
+static Genode::size_t  blk_sz;     /* block size of the device   */
+static Block::sector_t test_cnt;   /* number test blocks         */
+static Block::sector_t blk_cnt;    /* number of blocks of device */
+static bool            writeable;
 
 
 /**
@@ -281,7 +281,7 @@ struct Write_test : Test
 
 	void perform() override
 	{
-		if (!blk_ops.supported(Block::Packet_descriptor::WRITE))
+		if (!writeable)
 			return;
 
 		Genode::log("read/write/compare block 0 - ", test_cnt - 1,
@@ -348,7 +348,7 @@ struct Violation_test : Test
 
 	void perform() override
 	{
-		if (!blk_ops.supported(Block::Packet_descriptor::WRITE))
+		if (!writeable)
 			req(0, 1, true);
 
 		req(blk_cnt,   1, false);
@@ -404,7 +404,12 @@ void Component::construct(Genode::Env &env)
 		{
 			Allocator_avl     alloc(&heap);
 			Block::Connection blk(env, &alloc);
-			blk.info(&blk_cnt, &blk_sz, &blk_ops);
+
+			Block::Session::Info const info { blk.info() };
+
+			blk_sz    = info.block_size;
+			blk_cnt   = info.block_count;
+			writeable = info.writeable;
 		}
 
 		try {

@@ -63,7 +63,7 @@ struct Test::Ping_pong : Test_base
 			while (_blocks < _length_in_blocks && _block->tx()->ready_to_submit()) {
 
 				Block::Packet_descriptor tmp =
-					_block->tx()->alloc_packet(_size_in_blocks * _block_size);
+					_block->tx()->alloc_packet(_size_in_blocks * _info.block_size);
 
 				Block::sector_t const lba = _ping ? _start + _blocks
 				                                  : _end   - _blocks;
@@ -101,7 +101,7 @@ struct Test::Ping_pong : Test_base
 			}
 
 			size_t                           const psize = p.size();
-			size_t                           const count = psize / _block_size;
+			size_t                           const count = psize / _info.block_size;
 			Block::Packet_descriptor::Opcode const op    = p.operation();
 
 			/* simulate read */
@@ -166,8 +166,7 @@ struct Test::Ping_pong : Test_base
 		_block->tx_channel()->sigh_ack_avail(_ack_sigh);
 		_block->tx_channel()->sigh_ready_to_submit(_submit_sigh);
 
-		_block->info(&_block_count, &_block_size, &_block_ops);
-
+		_info   = _block->info();
 		_start  = _node.attribute_value("start",  0u);
 		_size   = _node.attribute_value("size",   Number_of_bytes());
 		_length = _node.attribute_value("length", Number_of_bytes());
@@ -177,13 +176,13 @@ struct Test::Ping_pong : Test_base
 			throw Constructing_test_failed();
 		}
 
-		size_t const total_bytes = _block_count * _block_size;
-		if (_length > total_bytes - (_start * _block_size)) {
+		size_t const total_bytes = _info.block_count * _info.block_size;
+		if (_length > total_bytes - (_start * _info.block_size)) {
 			Genode::error("length too large invalid");
 			throw Constructing_test_failed();
 		}
 
-		if (_block_size > _size || (_size % _block_size) != 0) {
+		if (_info.block_size > _size || (_size % _info.block_size) != 0) {
 			Genode::error("request size invalid");
 			throw Constructing_test_failed();
 		}
@@ -192,8 +191,8 @@ struct Test::Ping_pong : Test_base
 			_op = Block::Packet_descriptor::WRITE;
 		}
 
-		_size_in_blocks   = _size   / _block_size;
-		_length_in_blocks = _length / _block_size;
+		_size_in_blocks   = _size   / _info.block_size;
+		_length_in_blocks = _length / _info.block_size;
 		_end              = _start  + _length_in_blocks;
 
 		_timer.construct(_env);
@@ -215,7 +214,7 @@ struct Test::Ping_pong : Test_base
 		_block.destruct();
 
 		return Result(_success, _end_time - _start_time,
-		              _bytes, _rx, _tx, _size, _block_size);
+		              _bytes, _rx, _tx, _size, _info.block_size);
 	}
 
 	char const *name() const override { return "ping_pong"; }

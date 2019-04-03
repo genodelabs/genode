@@ -182,9 +182,9 @@ struct Ata_driver : Port_driver
 	typedef ::String<Identity::Serial_number> Serial_string;
 	typedef ::String<Identity::Model_number>  Model_string;
 
-	Genode::Constructible<Identity>      info   { };
-	Genode::Constructible<Serial_string> serial { };
-	Genode::Constructible<Model_string>  model  { };
+	Genode::Constructible<Identity>      identity { };
+	Genode::Constructible<Serial_string> serial   { };
+	Genode::Constructible<Model_string>  model    { };
 
 	Io_command               *io_cmd = nullptr;
 	Block::Packet_descriptor  pending[32];
@@ -304,14 +304,14 @@ struct Ata_driver : Port_driver
 			if (Port::Is::Dss::get(status)
 			    || Port::Is::Pss::get(status)
 			    || Port::Is::Dhrs::get(status)) {
-				info.construct(device_info);
-				serial.construct(*info);
-				model.construct(*info);
+				identity.construct(device_info);
+				serial.construct(*identity);
+				model.construct(*identity);
 
 				if (verbose) {
 					Genode::log("  model number: ",  Genode::Cstring(model->buf));
 					Genode::log("  serial number: ", Genode::Cstring(serial->buf));
-					info->info();
+					identity->info();
 				}
 
 				check_device();
@@ -340,13 +340,13 @@ struct Ata_driver : Port_driver
 
 	bool ncq_support()
 	{
-		return info->read<Identity::Sata_caps::Ncq_support>() && hba.ncq();
+		return identity->read<Identity::Sata_caps::Ncq_support>() && hba.ncq();
 	}
 
 	void check_device()
 	{
 		cmd_slots = min((int)cmd_slots,
-		                info->read<Identity::Queue_depth::Max_depth >() + 1);
+		                identity->read<Identity::Queue_depth::Max_depth >() + 1);
 
 		/* no native command queueing */
 		if (!ncq_support())
@@ -373,12 +373,11 @@ struct Ata_driver : Port_driver
 
 	bool dma_enabled() override { return true; };
 
-	Block::Session::Operations ops() override
+	Block::Session::Info info() const override
 	{
-		Block::Session::Operations o;
-		o.set_operation(Block::Packet_descriptor::READ);
-		o.set_operation(Block::Packet_descriptor::WRITE);
-		return o;
+		return { .block_size  = block_size(),
+		         .block_count = block_count(),
+		         .writeable   = true };
 	}
 
 	void read_dma(Block::sector_t           block_number,
@@ -397,19 +396,19 @@ struct Ata_driver : Port_driver
 		io(false, block_number, block_count, phys, packet);
 	}
 
-	Genode::size_t block_size() override
+	Genode::size_t block_size() const override
 	{
 		Genode::size_t size = 512;
 
-		if (info->read<Identity::Logical_block::Longer_512>())
-			size = info->read<Identity::Logical_words>() / 2;
+		if (identity->read<Identity::Logical_block::Longer_512>())
+			size = identity->read<Identity::Logical_words>() / 2;
 
 		return size;
 	}
 
-	Block::sector_t block_count() override
+	Block::sector_t block_count() const override
 	{
-		return info->read<Identity::Sector_count>();
+		return identity->read<Identity::Sector_count>();
 	}
 
 	private:

@@ -105,11 +105,9 @@ class Seoul::Disk : public StaticReceiver<Seoul::Disk>
 		/* block session used by disk models of VMM */
 		enum { MAX_DISKS = 4 };
 		struct disk_session {
-			Block::Connection          *blk_con;
-			Block::Session::Operations  ops;
-			Genode::size_t              blk_size;
-			Block::sector_t             blk_cnt;
-			Disk_signal                *signal;
+			Block::Connection   *blk_con;
+			Block::Session::Info info;
+			Disk_signal         *signal;
 		} _diskcon[MAX_DISKS] { };
 
 		Synced_motherboard &_motherboard;

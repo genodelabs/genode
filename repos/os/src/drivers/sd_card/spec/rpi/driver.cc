@@ -163,7 +163,7 @@ void Driver::_set_block_count(size_t block_count)
 	 */
 	Blksizecnt::access_t v = Mmio::read<Blksizecnt>();
 	Blksizecnt::Blkcnt::set(v, block_count);
-	Blksizecnt::Blksize::set(v, block_size());
+	Blksizecnt::Blksize::set(v, _block_size());
 	Mmio::write<Blksizecnt>(v);
 }
 
@@ -172,7 +172,7 @@ size_t Driver::_block_to_command_address(const size_t block_number)
 {
 	/* use byte position for addressing with standard cards */
 	if (_card_info.version() == Csd3::Version::STANDARD_CAPACITY) {
-		return block_number * block_size();
+		return block_number * _block_size();
 	}
 	return block_number;
 }
@@ -276,7 +276,7 @@ void Driver::read(Block::sector_t           block_number,
 			throw Io_error(); }
 
 		/* read data from sdhci buffer */
-		for (size_t j = 0; j < block_size() / sizeof(Data::access_t); j++)
+		for (size_t j = 0; j < _block_size() / sizeof(Data::access_t); j++)
 			*dst++ = Mmio::read<Data>();
 	}
 	if (!_poll_and_wait_for<Interrupt::Data_done>(1)) {
@@ -309,7 +309,7 @@ void Driver::write(Block::sector_t           block_number,
 			throw Io_error(); }
 
 		/* write data into sdhci buffer */
-		for (size_t j = 0; j < block_size() / sizeof(Data::access_t); j++)
+		for (size_t j = 0; j < _block_size() / sizeof(Data::access_t); j++)
 			Mmio::write<Data>(*src++);
 	}
 	if (!_poll_and_wait_for<Interrupt::Data_done>(1)) {

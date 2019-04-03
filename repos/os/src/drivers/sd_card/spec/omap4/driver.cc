@@ -404,7 +404,7 @@ void Driver::read(Block::sector_t           block_number,
 	if (_block_transfer.pending) {
 		throw Request_congestion(); }
 
-	Mmio::write<Blk::Blen>(block_size());
+	Mmio::write<Blk::Blen>(_block_size());
 	Mmio::write<Blk::Nblk>(block_count);
 
 	_block_transfer.packet  = pkt;
@@ -414,7 +414,7 @@ void Driver::read(Block::sector_t           block_number,
 		error("Read_multiple_block failed");
 		throw Io_error();
 	}
-	size_t const num_accesses = block_count * block_size() /
+	size_t const num_accesses = block_count * _block_size() /
 	                            sizeof(Data::access_t);
 	Data::access_t *dst = (Data::access_t *)(buffer);
 
@@ -435,7 +435,7 @@ void Driver::write(Block::sector_t           block_number,
 	if (_block_transfer.pending) {
 		throw Request_congestion(); }
 
-	Mmio::write<Blk::Blen>(block_size());
+	Mmio::write<Blk::Blen>(_block_size());
 	Mmio::write<Blk::Nblk>(block_count);
 
 	_block_transfer.packet  = pkt;
@@ -445,7 +445,7 @@ void Driver::write(Block::sector_t           block_number,
 		error("Write_multiple_block failed");
 		throw Io_error();
 	}
-	size_t const num_accesses = block_count * block_size() /
+	size_t const num_accesses = block_count * _block_size() /
 	                            sizeof(Data::access_t);
 	Data::access_t const *src = (Data::access_t const *)(buffer);
 

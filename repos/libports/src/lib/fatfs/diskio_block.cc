@@ -56,17 +56,16 @@ extern "C" {
 	void block_init(Genode::Env &env, Genode::Allocator &alloc) {
 		_platform.construct(env, alloc); }
 
-	struct Drive : Block::Connection
+	struct Drive : private Block::Connection
 	{
-		Block::sector_t block_count;
-		Genode::size_t  block_size;
-		Block::Session::Operations ops;
+		Info const info = Block::Connection::info();
+
+		using Block::Connection::tx;
+		using Block::Connection::sync;
 
 		Drive(Platform &platform, char const *label)
 		: Block::Connection(platform.env, &platform.tx_alloc, 128*1024, label)
-		{
-			info(&block_count, &block_size, &ops);
-		}
+		{ }
 	};
 }
 
@@ -96,15 +95,8 @@ extern "C" Fatfs::DSTATUS disk_initialize (BYTE drv)
 
 	Drive &drive = *_platform->drives[drv];
 
-	/* check for read- and write-capability */
-	if (!drive.ops.supported(Block::Packet_descriptor::READ)) {
-		Genode::error("drive ", drv, " not readable!");
-		destroy(_platform->alloc, _platform->drives[drv]);
-		_platform->drives[drv] = nullptr;
-		return STA_NOINIT;
-	}
-
-	if (!drive.ops.supported(Block::Packet_descriptor::WRITE))
+	/* check for write-capability */
+	if (!drive.info.writeable)
 		return STA_PROTECT;
 
 	return 0;
@@ -114,7 +106,7 @@ extern "C" Fatfs::DSTATUS disk_initialize (BYTE drv)
 extern "C" DSTATUS disk_status (BYTE drv)
 {
 	if (_platform->drives[drv]) {
-		if (_platform->drives[drv]->ops.supported(Block::Packet_descriptor::WRITE))
+		if (_platform->drives[drv]->info.writeable)
 			return 0;
 		return STA_PROTECT;
 	}
@@ -130,7 +122,7 @@ extern "C" DRESULT disk_read (BYTE pdrv, BYTE* buff, DWORD sector, UINT count)
 
 	Drive &drive = *_platform->drives[pdrv];
 
-	Genode::size_t const op_len = drive.block_size*count;
+	Genode::size_t const op_len = drive.info.block_size*count;
 
 	/* allocate packet-descriptor for reading */
 	Block::Packet_descriptor p(drive.tx()->alloc_packet(op_len),
@@ -160,7 +152,7 @@ extern "C" DRESULT disk_write (BYTE pdrv, const BYTE* buff, DWORD sector, UINT c
 
 	Drive &drive = *_platform->drives[pdrv];
 
-	Genode::size_t const op_len = drive.block_size*count;
+	Genode::size_t const op_len = drive.info.block_size*count;
 
 	/* allocate packet-descriptor for writing */
 	Block::Packet_descriptor p(drive.tx()->alloc_packet(op_len),
@@ -198,11 +190,11 @@ extern "C" DRESULT disk_ioctl (BYTE pdrv, BYTE cmd, void* buff)
 		return RES_OK;
 
 	case GET_SECTOR_COUNT:
-		*((DWORD*)buff) = drive.block_count;
+		*((DWORD*)buff) = drive.info.block_count;
 		return RES_OK;
 
 	case GET_SECTOR_SIZE:
-		*((WORD*)buff) = drive.block_size;
+		*((WORD*)buff) = drive.info.block_size;
 		return RES_OK;
 
 	case GET_BLOCK_SIZE	:

@@ -28,7 +28,7 @@ class Http
 	private:
 
 		Genode::Heap   &_heap;
-		size_t          _size;      /* number of bytes in file */
+		size_t           _size;      /* number of bytes in file */
 		char            *_host;      /* host name */
 		char            *_port;      /* host port */
 		char            *_path;      /* absolute file path on host */
@@ -95,7 +95,7 @@ class Http
 		 *
 		 * \return Remote file size in bytes
 		 */
-		size_t file_size() { return _size; }
+		size_t file_size() const { return _size; }
 
 		/**
 		 * Set base address of I/O dataspace

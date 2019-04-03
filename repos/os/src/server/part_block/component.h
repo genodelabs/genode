@@ -216,21 +216,11 @@ class Block::Session_component : public  Block::Session_rpc_object,
 		 **  Block session interface  **
 		 *******************************/
 
-		void info(sector_t *blk_count, size_t *blk_size,
-		          Operations *ops) override
+		Info info() const override
 		{
-			Operations driver_ops = _driver.ops();
-
-			*blk_count = _partition->sectors;
-			*blk_size  = _driver.blk_size();
-			*ops       = Operations();
-
-			typedef Block::Packet_descriptor::Opcode Opcode;
-
-			if (driver_ops.supported(Opcode::READ))
-				ops->set_operation(Opcode::READ);
-			if (_writeable && driver_ops.supported(Opcode::WRITE))
-				ops->set_operation(Opcode::WRITE);
+			return Info { .block_size  = _driver.blk_size(),
+			              .block_count = _partition->sectors,
+			              .writeable   = _writeable && _driver.writeable() };
 		}
 
 		void sync() override { _driver.session().sync(); }

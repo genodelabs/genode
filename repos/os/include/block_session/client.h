@@ -49,11 +49,7 @@ class Block::Session_client : public Genode::Rpc_client<Session>
 		 ** Block session interface **
 		 *****************************/
 
-		void info(sector_t *blk_count, Genode::size_t *blk_size,
-		          Operations *ops) override
-		{
-			call<Rpc_info>(blk_count, blk_size, ops);
-		}
+		Info info() const override { return call<Rpc_info>(); }
 
 		Tx *tx_channel() override { return &_tx; }
 

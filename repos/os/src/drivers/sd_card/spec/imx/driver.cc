@@ -246,12 +246,12 @@ int Driver::_prepare_dma_mb(Block::Packet_descriptor packet,
 
 
 	/* write ADMA2 table to DMA */
-	size_t const req_size = blk_cnt * block_size();
+	size_t const req_size = blk_cnt * _block_size();
 	if (_adma2_table.setup_request(req_size, buf_phys)) { return -1; }
 
 	/* configure DMA at host */
 	Mmio::write<Adsaddr>(_adma2_table.base_phys());
-	Mmio::write<Blkattr::Blksize>(block_size());
+	Mmio::write<Blkattr::Blksize>(_block_size());
 	Mmio::write<Blkattr::Blkcnt>(blk_cnt);
 
 	_block_transfer.read    = reading;
@@ -396,7 +396,7 @@ Card_info Driver::_init()
 	_delayer.usleep(10000);
 
 	/* configure card to use given block size */
-	if (!issue_command(Set_blocklen(block_size()))) {
+	if (!issue_command(Set_blocklen(_block_size()))) {
 		_detect_err("Set_blocklen command failed"); }
 
 	/* configure host buffer */

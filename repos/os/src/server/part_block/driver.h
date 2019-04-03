@@ -81,11 +81,9 @@ class Block::Driver
 		Genode::List<Request>          _r_list { };
 		Genode::Allocator_avl          _block_alloc;
 		Block::Connection              _session;
-		Block::sector_t                _blk_cnt  = 0;
-		Genode::size_t                 _blk_size = 0;
+		Block::Session::Info     const _info { _session.info() };
 		Genode::Signal_handler<Driver> _source_ack;
 		Genode::Signal_handler<Driver> _source_submit;
-		Block::Session::Operations     _ops { };
 
 		void _ready_to_submit();
 
@@ -115,13 +113,12 @@ class Block::Driver
 		  _session(env, &_block_alloc, 4 * 1024 * 1024),
 		  _source_ack(env.ep(), *this, &Driver::_ack_avail),
 		  _source_submit(env.ep(), *this, &Driver::_ready_to_submit)
-		{
-			_session.info(&_blk_cnt, &_blk_size, &_ops);
-		}
+		{ }
 
-		Genode::size_t blk_size() { return _blk_size; }
-		Genode::size_t blk_cnt()  { return _blk_cnt;  }
-		Session::Operations ops() { return _ops; }
+		Genode::size_t blk_size()  const { return _info.block_size; }
+		Genode::size_t blk_cnt()   const { return _info.block_count; }
+		bool           writeable() const { return _info.writeable; }
+
 		Session_client& session() { return _session;  }
 
 		void work_asynchronously()
@@ -141,7 +138,7 @@ class Block::Driver
 			Block::Packet_descriptor::Opcode op = write
 			    ? Block::Packet_descriptor::WRITE
 			    : Block::Packet_descriptor::READ;
-			Genode::size_t size = _blk_size * cnt;
+			Genode::size_t const size = _info.block_size * cnt;
 			Packet_descriptor p(_session.dma_alloc_packet(size),
 			                    op,  nr, cnt);
 			Request *r = new (&_r_slab) Request(dispatcher, cli, p);

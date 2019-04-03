@@ -69,7 +69,7 @@ struct Test::Replay : Test_base
 				more = false;
 				requests.dequeue([&] (Request &req) {
 					Block::Packet_descriptor p(
-						_block->tx()->alloc_packet(req.count * _block_size),
+						_block->tx()->alloc_packet(req.count * _info.block_size),
 						req.op, req.nr, req.count);
 
 					bool const write = req.op == Block::Packet_descriptor::WRITE;
@@ -118,7 +118,7 @@ struct Test::Replay : Test_base
 				}
 
 				size_t const psize = p.size();
-				size_t const count = psize / _block_size;
+				size_t const count = psize / _info.block_size;
 
 				_rx += (p.operation() == Block::Packet_descriptor::READ)  * count;
 				_tx += (p.operation() == Block::Packet_descriptor::WRITE) * count;
@@ -181,7 +181,7 @@ struct Test::Replay : Test_base
 		_block->tx_channel()->sigh_ack_avail(_ack_sigh);
 		_block->tx_channel()->sigh_ready_to_submit(_submit_sigh);
 
-		_block->info(&_block_count, &_block_size, &_block_ops);
+		_info = _block->info();
 
 		_timer.construct(env);
 
@@ -196,7 +196,7 @@ struct Test::Replay : Test_base
 		_block.destruct();
 
 		return Result(_success, _end_time - _start_time,
-		              _bytes, _rx, _tx, 0u, _block_size);
+		              _bytes, _rx, _tx, 0u, _info.block_size);
 	}
 
 	char const *name() const override { return "replay"; }

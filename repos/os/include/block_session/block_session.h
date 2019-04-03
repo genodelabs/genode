@@ -48,8 +48,8 @@ class Block::Packet_descriptor : public Genode::Packet_descriptor
 
 		Opcode          _op;           /* requested operation */
 		sector_t        _block_number; /* requested block number */
-		Genode::size_t  _block_count;  /* number of blocks to transfer */
-		unsigned        _success :1;   /* indicates success of operation */
+		Genode::size_t  _block_count;  /* number of blocks of operation */
+		bool            _success;      /* indicates success of operation */
 
 	public:
 
@@ -78,7 +78,7 @@ class Block::Packet_descriptor : public Genode::Packet_descriptor
 		Genode::size_t block_count()  const { return _block_count;  }
 		bool           succeeded()    const { return _success;      }
 
-		void succeeded(bool b) { _success = b ? 1 : 0; }
+		void succeeded(bool b) { _success = b; }
 };
 
 
@@ -99,33 +99,18 @@ struct Block::Session : public Genode::Session
 {
 	enum { TX_QUEUE_SIZE = 256 };
 
-
-	/**
-	 * This class represents supported operations on a block device
-	 */
-	class Operations
-	{
-		private:
-
-			unsigned _ops :Packet_descriptor::END; /* bitfield of ops */
-
-		public:
-
-			Operations() : _ops(0) { }
-
-			bool supported(Packet_descriptor::Opcode op) {
-				return (_ops & (1 << op)); }
-
-			void set_operation(Packet_descriptor::Opcode op) {
-				_ops |= (1 << op); }
-	};
-
-
 	typedef Genode::Packet_stream_policy<Block::Packet_descriptor,
 	                                     TX_QUEUE_SIZE, TX_QUEUE_SIZE,
 	                                     char> Tx_policy;
 
 	typedef Packet_stream_tx::Channel<Tx_policy> Tx;
+
+	struct Info
+	{
+		Genode::size_t block_size;   /* size of one block in bytes */
+		sector_t       block_count;  /* number of blocks */
+		bool           writeable;
+	};
 
 	/**
 	 * \noapi
@@ -138,14 +123,8 @@ struct Block::Session : public Genode::Session
 
 	/**
 	 * Request information about the metrics of the block device
-	 *
-	 * \param block_count will contain the total number of blocks
-	 * \param block_size  will contain the size of one block in bytes
-	 * \param ops       supported operations
 	 */
-	virtual void info(sector_t       *block_count,
-	                  Genode::size_t *block_size,
-	                  Operations     *ops) = 0;
+	virtual Info info() const = 0;
 
 	/**
 	 * Synchronize with block device, like ensuring data to be written
@@ -172,8 +151,7 @@ struct Block::Session : public Genode::Session
 	 ** RPC interface **
 	 *******************/
 
-	GENODE_RPC(Rpc_info, void, info, Block::sector_t *,
-	           Genode::size_t *, Operations *);
+	GENODE_RPC(Rpc_info, Info, info);
 	GENODE_RPC(Rpc_tx_cap, Genode::Capability<Tx>, tx_cap);
 	GENODE_RPC(Rpc_sync, void, sync);
 	GENODE_RPC_INTERFACE(Rpc_info, Rpc_tx_cap, Rpc_sync);

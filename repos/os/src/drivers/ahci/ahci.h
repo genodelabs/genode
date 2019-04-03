@@ -835,6 +835,9 @@ struct Port_driver : Port, Block::Driver
 
 	virtual void handle_irq() = 0;
 
+	virtual Genode::size_t  block_size()  const = 0;
+	virtual Block::sector_t block_count() const = 0;
+
 	void state_change()
 	{
 		if (--sem) return;

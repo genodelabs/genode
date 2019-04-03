@@ -246,7 +246,7 @@ bool Driver::_setup_idmac_descriptor_table(size_t block_count,
 	size_t b = block_count;
 	int index = 0;
 	for (index = 0; b; index++, phys_addr += 0x1000, flags = Idmac_desc::NONE) {
-		b = _idmac_desc[index].set(b, block_size(), phys_addr, flags);
+		b = _idmac_desc[index].set(b, _block_size(), phys_addr, flags);
 		_idmac_desc[index].next =
 			_idmac_desc_phys + ((index + 1) * sizeof(Idmac_desc));
 	}
@@ -260,8 +260,8 @@ bool Driver::_setup_idmac_descriptor_table(size_t block_count,
 	Mmio::write<Bmod::Fixed_burst>(1);
 	Mmio::write<Bmod::Idmac_enable>(1);
 
-	Mmio::write<Blksize>(block_size());
-	Mmio::write<Bytcnt>(block_size() * block_count);
+	Mmio::write<Blksize>(_block_size());
+	Mmio::write<Bytcnt>(_block_size() * block_count);
 
 	Mmio::write<Pldmnd>(1);
 
@@ -419,7 +419,7 @@ size_t Driver::_read_ext_csd()
 	}
 
 	/* return sector count */
-	uint64_t capacity =  csd.Mmio::read<Ext_csd::Sector_count>() * block_size();
+	uint64_t capacity =  csd.Mmio::read<Ext_csd::Sector_count>() * _block_size();
 
 	/* to MB */
 	return capacity / (1024 * 1024);

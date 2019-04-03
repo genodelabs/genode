@@ -131,9 +131,8 @@ struct Usb::Block_driver : Usb::Completion,
 	/*
 	 * Block session
 	 */
-	Block::Session::Operations _block_ops   { };
-	Block::sector_t            _block_count { 0 };
-	size_t                     _block_size  { 0 };
+	Block::sector_t _block_count { 0 };
+	size_t          _block_size  { 0 };
 
 	bool _writeable = false;
 
@@ -723,20 +722,12 @@ struct Usb::Block_driver : Usb::Completion,
 	 */
 	void parse_config(Xml_node node)
 	{
-		_block_ops.set_operation(Block::Packet_descriptor::READ);
-
-		_writeable = node.attribute_value<bool>("writeable", false);
-		if (_writeable)
-			_block_ops.set_operation(Block::Packet_descriptor::WRITE);
-
-		_report_device = node.attribute_value<bool>("report", false);
-
-		active_interface = node.attribute_value<unsigned long>("interface", 0);
-		active_lun       = node.attribute_value<unsigned long>("lun", 0);
-
-		reset_device = node.attribute_value<bool>("reset_device", false);
-
-		verbose_scsi = node.attribute_value<bool>("verbose_scsi", false);
+		_writeable       = node.attribute_value("writeable",    false);
+		_report_device   = node.attribute_value("report",       false);
+		active_interface = node.attribute_value("interface",    0UL);
+		active_lun       = node.attribute_value("lun",          0UL);
+		reset_device     = node.attribute_value("reset_device", false);
+		verbose_scsi     = node.attribute_value("verbose_scsi", false);
 	}
 
 	/**
@@ -813,9 +804,12 @@ struct Usb::Block_driver : Usb::Completion,
 	 **  Block::Driver interface  **
 	 *******************************/
 
-	size_t              block_size() override { return _block_size;  }
-	Block::sector_t    block_count() override { return _block_count; }
-	Block::Session::Operations ops() override { return _block_ops;   }
+	Block::Session::Info info() const override
+	{
+		return { .block_size  = _block_size,
+		         .block_count = _block_count,
+		         .writeable   = _writeable };
+	}
 
 	void read(Block::sector_t lba, size_t count,
 	          char *buffer, Block::Packet_descriptor &p) override {
