@@ -77,4 +77,4 @@ vpath %.adb $(LSC_DIR)/shared/generic
 vpath %.ads $(LSC_DIR)/shared/generic
 
 SHARED_LIB = yes
-CUSTOM_ADA_OPT += -gnatec=$(LSC_DIR)/../build/pragmas.adc -fPIC
+CC_ADA_OPT += -gnatec=$(LSC_DIR)/../build/pragmas.adc -fPIC
