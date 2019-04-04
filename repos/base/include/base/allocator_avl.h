@@ -48,7 +48,7 @@ class Genode::Allocator_avl_base : public Range_allocator
 	private:
 
 		static bool _sum_in_range(addr_t addr, addr_t offset) {
-			return (~0UL - addr > offset); }
+			return (addr + offset - 1) >= addr; }
 
 		/*
 		 * Noncopyable
