@@ -225,10 +225,8 @@ Slab::Slab(size_t slab_size, size_t block_size, void *initial_sb,
 	if (!_curr_sb && _backing_store)
 		_curr_sb = _new_slab_block();
 
-	if (!_curr_sb) {
-		error("failed to obtain initial slab block");
+	if (!_curr_sb)
 		throw Out_of_memory();
-	}
 
 	/* init first slab block */
 	construct_at<Block>(_curr_sb, *this);
