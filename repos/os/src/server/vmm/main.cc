@@ -1185,9 +1185,11 @@ class Vmm
 				{
 					if (!_terminal.avail()) return;
 
-					unsigned char c = 0;
-					_terminal.read(&c, 1);
-					_rx_buf.add(c);
+					while (_terminal.avail()) {
+						unsigned char c = 0;
+						_terminal.read(&c, 1);
+						_rx_buf.add(c);
+					}
 
 					_gic.inject_irq(Board::PL011_0_IRQ);
 					_ris |= 1 << 4;
