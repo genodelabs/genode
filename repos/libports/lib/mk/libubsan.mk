@@ -11,7 +11,7 @@ SRC_CC = ubsan_diag.cc \
          ubsan_type_hash_itanium.cc \
          ubsan_value.cc
 
-CC_OPT += -DCAN_SANITIZE_UB=1
+CC_OPT += -DCAN_SANITIZE_UB=1 -DUBSAN_CAN_USE_CXXABI=1
 
 LIBS += libsanitizer_common
 

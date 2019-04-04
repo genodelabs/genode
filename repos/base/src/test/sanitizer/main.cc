@@ -18,7 +18,6 @@ extern void sanitizer_init(Genode::Env &);
 
 void Component::construct(Genode::Env &env)
 {
-	env.exec_static_constructors();
 	sanitizer_init(env);
 
 	/* test array out-of-bounds access detection */

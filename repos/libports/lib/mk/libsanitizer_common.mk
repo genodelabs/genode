@@ -5,8 +5,8 @@ SANITIZER_DIR := $(SANITIZER_PORT_DIR)/src/lib/sanitizer
 SRC_CC = sanitizer_allocator.cc \
          sanitizer_common.cc \
          sanitizer_common_libcdep.cc \
-         sanitizer_coverage_libcdep.cc \
-         sanitizer_coverage_mapping_libcdep.cc \
+         sanitizer_coverage_libcdep_new.cc \
+         sanitizer_file.cc \
          sanitizer_flag_parser.cc \
          sanitizer_flags.cc \
          sanitizer_genode.cc \
@@ -21,7 +21,8 @@ SRC_CC = sanitizer_allocator.cc \
          sanitizer_symbolizer.cc \
          sanitizer_symbolizer_libbacktrace.cc \
          sanitizer_symbolizer_libcdep.cc \
-         sanitizer_symbolizer_posix_libcdep.cc
+         sanitizer_symbolizer_posix_libcdep.cc \
+         sanitizer_termination.cc
 
 INC_DIR += $(SANITIZER_DIR)
 
