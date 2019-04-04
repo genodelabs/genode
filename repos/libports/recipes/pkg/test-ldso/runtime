@@ -36,13 +36,13 @@
 			[init -> test-ldso] lib_1_local_3 0x12345676*
 			[init -> test-ldso] lib_1_pod_1 0x8070604d*
 			[init -> test-ldso] Libc::read:*
-			[init -> test-ldso] Error: no plugin found for read(3)*
+			[init -> test-ldso] *Error: no plugin found for read(3)*
 			[init -> test-ldso] Libc::abs(-10): 10*
 			[init -> test-ldso] *
 			[init -> test-ldso] Catch exceptions in program*
 			[init -> test-ldso] ---------------------------*
-			[init -> test-ldso] Error: ROM-session creation failed (ram_quota=*, cap_quota=*, label="unknown_rom")*
-			[init -> test-ldso] Error: Could not open ROM session for "unknown_rom"*
+			[init -> test-ldso] *Error: ROM-session creation failed (ram_quota=*, cap_quota=*, label="unknown_rom")*
+			[init -> test-ldso] *Error: Could not open ROM session for "unknown_rom"*
 			[init -> test-ldso] exception in remote procedure call: caught*
 			[init -> test-ldso] exception in program: caught*
 			[init -> test-ldso] exception in shared lib: caught*
