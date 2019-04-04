@@ -10,7 +10,8 @@ assert_spec arndale
 set build_components {
 	core init timer
 	drivers/platform
-	drivers/uart
+	server/terminal_crosslink
+	test/terminal_expect_send
 	server/vmm
 }
 build $build_components
@@ -41,18 +42,17 @@ install_config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
-	<start name="uart_drv">
-		<resource name="RAM" quantum="2M"/>
-		<provides>
-			<service name="Terminal"/>
-			<service name="Uart"/>
-		</provides>
-		<config>
-			<policy label_prefix="vmm" uart="1"/>
-		</config>
+	<start name="terminal_crosslink">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Terminal"/> </provides>
 	</start>
 	<start name="vmm">
 		<resource name="RAM" quantum="256M"/>
+	</start>
+	<start name="vm">
+		<binary name="test-terminal_expect_send"/>
+		<resource name="RAM" quantum="1M"/>
+		<config expect="/ #" send="ls" verbose="yes"/>
 	</start>
 </config>
 }
@@ -92,8 +92,9 @@ if {![file exists bin/dtb]} {
 set boot_modules {
 	core ld.lib.so init
 	platform_drv
-	uart_drv
 	timer
+	terminal_crosslink
+	test-terminal_expect_send
 	vmm
 	linux
 	dtb
@@ -103,8 +104,5 @@ build_boot_image $boot_modules
 #
 # Execute test case
 #
-run_genode_until {.*\/ #.*} 220
-set serial_id [output_spawn_id]
-send -i $serial_id "ls\n"
-run_genode_until "var" 30 $serial_id
+run_genode_until "\[init -> vm\] .*sbin.*" 220
 exec rm bin/linux bin/dtb
