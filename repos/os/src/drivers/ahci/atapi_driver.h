@@ -162,6 +162,7 @@ struct Atapi_driver : Port_driver
 	{
 		return { .block_size  = block_size(),
 		         .block_count = block_count(),
+		         .align_log2  = 11,
 		         .writeable   = false };
 	}
 

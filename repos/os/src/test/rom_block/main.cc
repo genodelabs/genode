@@ -56,7 +56,7 @@ struct Main
 			size_t const cnt = (info.block_count - i > REQ_PARALLEL)
 			                 ? REQ_PARALLEL : info.block_count - i;
 
-			Packet_descriptor pkt(src.alloc_packet(cnt * info.block_size),
+			Packet_descriptor pkt(block.alloc_packet(cnt * info.block_size),
 			                      Packet_descriptor::READ, i, cnt);
 
 			log("Check blocks ", i, "..", i + cnt - 1);

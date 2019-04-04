@@ -129,6 +129,7 @@ class Sd_card::Driver : public  Block::Driver, private Attached_mmio
 		{
 			return { .block_size  = _block_size,
 			         .block_count = _block_count,
+			         .align_log2  = log2(_block_size),
 			         .writeable   = true };
 		}
 

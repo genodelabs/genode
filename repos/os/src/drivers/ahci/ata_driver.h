@@ -377,6 +377,7 @@ struct Ata_driver : Port_driver
 	{
 		return { .block_size  = block_size(),
 		         .block_count = block_count(),
+		         .align_log2  = log2(block_size()),
 		         .writeable   = true };
 	}
 

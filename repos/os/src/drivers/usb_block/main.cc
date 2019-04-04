@@ -808,6 +808,7 @@ struct Usb::Block_driver : Usb::Completion,
 	{
 		return { .block_size  = _block_size,
 		         .block_count = _block_count,
+		         .align_log2  = Genode::log2(_block_size),
 		         .writeable   = _writeable };
 	}
 

@@ -67,6 +67,7 @@ class Driver : public Block::Driver
 		{
 			return { .block_size  = _size,
 			         .block_count = _number,
+			         .align_log2  = Genode::log2(_size),
 			         .writeable   = true };
 		}
 

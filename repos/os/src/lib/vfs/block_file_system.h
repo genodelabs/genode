@@ -106,7 +106,7 @@ class Vfs::Block_file_system : public Single_file_system
 						try {
 							Lock::Guard guard(_lock);
 
-							packet = _tx_source->alloc_packet(packet_size);
+							packet = _block.alloc_packet(packet_size);
 							break;
 						} catch (Block::Session::Tx::Source::Packet_alloc_failed) {
 							if (!_tx_source->ready_to_submit())

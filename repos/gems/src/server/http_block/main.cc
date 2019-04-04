@@ -46,6 +46,7 @@ class Driver : public Block::Driver
 		{
 			return { .block_size  = _block_size,
 			         .block_count = _http.file_size() / _block_size,
+			         .align_log2  = log2(_block_size),
 			         .writeable   = false };
 		}
 

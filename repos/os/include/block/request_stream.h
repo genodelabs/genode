@@ -26,6 +26,9 @@ class Block::Request_stream : Genode::Noncopyable
 {
 	public:
 
+		struct Block_size { Genode::uint32_t value; };
+		struct Align_log2 { Genode::size_t   value; };
+
 		/**
 		 * Interface for accessing the content of a 'Request'
 		 *
@@ -59,7 +62,7 @@ class Block::Request_stream : Genode::Noncopyable
 					return request.count * _info.block_size;
 				}
 
-				bool _valid_range(Block::Request const &request) const
+				bool _valid_range_and_alignment(Block::Request const &request) const
 				{
 					/* local address of the last byte of the request */
 					Genode::addr_t const request_end = _base + request.offset
@@ -71,6 +74,10 @@ class Block::Request_stream : Genode::Noncopyable
 
 					/* check for upper bound */
 					if (request_end > _base + _size - 1)
+						return false;
+
+					/* check for proper alignment */
+					if (!Genode::aligned(request.offset, _info.align_log2))
 						return false;
 
 					return true;
@@ -94,7 +101,7 @@ class Block::Request_stream : Genode::Noncopyable
 				template <typename FN>
 				void with_content(Block::Request request, FN const &fn) const
 				{
-					if (_valid_range(request))
+					if (_valid_range_and_alignment(request))
 						fn(_request_ptr(request), _request_size(request));
 				}
 		};

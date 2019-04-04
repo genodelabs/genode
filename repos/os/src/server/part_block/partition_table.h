@@ -54,7 +54,7 @@ struct Block::Partition_table : Genode::Interface
 				       unsigned long count,
 				       bool          write = false)
 				: _session(driver.session()),
-				  _p(_session.dma_alloc_packet(driver.blk_size() * count),
+				  _p(_session.alloc_packet(driver.blk_size() * count),
 				     write ? Packet_descriptor::WRITE : Packet_descriptor::READ,
 				     blk_nr, count)
 				{

@@ -57,7 +57,7 @@ class Backend
 			                                   Packet_descriptor::READ;
 			/* allocate packet */
 			try {
-				Packet_descriptor packet( _session.dma_alloc_packet(length),
+				Packet_descriptor packet( _session.alloc_packet(length),
 				                         opcode, offset / _info.block_size,
 				                         length / _info.block_size);
 

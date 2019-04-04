@@ -27,6 +27,8 @@ class Block::Session_client : public Genode::Rpc_client<Session>
 
 		Packet_stream_tx::Client<Tx> _tx;
 
+		Info const _info = info();
+
 	public:
 
 		/**
@@ -59,12 +61,12 @@ class Block::Session_client : public Genode::Rpc_client<Session>
 
 		Genode::Capability<Tx> tx_cap() override { return call<Rpc_tx_cap>(); }
 
-		/*
-		 * Wrapper for alloc_packet, allocates 2KB aligned packets
+		/**
+		 * Allocate packet respecting the server's alignment constraints
 		 */
-		Packet_descriptor dma_alloc_packet(Genode::size_t size)
+		Packet_descriptor alloc_packet(Genode::size_t size)
 		{
-			return tx()->alloc_packet(size, 11);
+			return tx()->alloc_packet(size, _info.align_log2);
 		}
 };
 

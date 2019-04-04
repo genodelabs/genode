@@ -73,6 +73,7 @@ class Lx_block_driver : public Block::Driver
 			return {
 				.block_size  = block_size,
 				.block_count = st.st_size / block_size,
+				.align_log2  = Genode::log2(block_size),
 				.writeable   = xml_attr_ok(config, "writeable")
 			};
 		}

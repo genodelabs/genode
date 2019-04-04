@@ -48,6 +48,7 @@ class Sd_card::Driver_base : public    Block::Driver,
 		{
 			return { .block_size  = _block_size(),
 			         .block_count = _block_count(),
+			         .align_log2  = Genode::log2(_block_size()),
 			         .writeable   = true };
 		}
 };

@@ -175,7 +175,7 @@ void Block_driver::_new_request(Vm_base &vm)
 			size_t  const size = vm.smc_arg_3();
 			void   *const req  = (void*)vm.smc_arg_4();
 
-			Packet_descriptor pkt  = dev.session().tx()->alloc_packet(size);
+			Packet_descriptor pkt  = dev.session().alloc_packet(size);
 			void             *addr = dev.session().tx()->packet_content(pkt);
 			dev.cache().insert(addr, req);
 			vm.smc_ret((long)addr, pkt.offset());

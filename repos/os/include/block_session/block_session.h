@@ -31,7 +31,7 @@ namespace Block {
 
 
 /**
- * Represents an block-operation request
+ * Representation of an block-operation request
  *
  * The data associated with the 'Packet_descriptor' is either
  * the data read from or written to the block indicated by
@@ -42,6 +42,14 @@ class Block::Packet_descriptor : public Genode::Packet_descriptor
 	public:
 
 		enum Opcode    { READ, WRITE, END };
+
+		/*
+		 * Alignment used when allocating a packet directly via the 'tx'
+		 * packet stream. This is not recommended because it does not
+		 * apply the server's alignment constraints. Instead, the
+		 * 'Block::Session_client::alloc_packet' should be used for
+		 * allocating properly aligned block-request packets.
+		 */
 		enum Alignment { PACKET_ALIGNMENT = 11 };
 
 	private:
@@ -82,7 +90,7 @@ class Block::Packet_descriptor : public Genode::Packet_descriptor
 };
 
 
-/*
+/**
  * Block session interface
  *
  * A block session corresponds to a block device that can be used to read
@@ -109,6 +117,7 @@ struct Block::Session : public Genode::Session
 	{
 		Genode::size_t block_size;   /* size of one block in bytes */
 		sector_t       block_count;  /* number of blocks */
+		Genode::size_t align_log2;   /* packet alignment within payload buffer */
 		bool           writeable;
 	};
 

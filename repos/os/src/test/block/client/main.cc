@@ -140,7 +140,7 @@ struct Read_test : Test
 
 			try {
 				Block::Packet_descriptor p(
-					_session.dma_alloc_packet(cnt*blk_sz),
+					_session.alloc_packet(cnt*blk_sz),
 					Block::Packet_descriptor::READ, nr, cnt);
 				_session.tx()->submit_packet(p);
 			} catch(Block::Session::Tx::Source::Packet_alloc_failed) {
@@ -241,8 +241,7 @@ struct Write_test : Test
 	{
 		while (!read_packets.empty()) {
 			Block::Packet_descriptor r = read_packets.get();
-			Block::Packet_descriptor w(_session.dma_alloc_packet(r.block_count()
-			                                                     *blk_sz),
+			Block::Packet_descriptor w(_session.alloc_packet(r.block_count()*blk_sz),
 			                    Block::Packet_descriptor::WRITE,
 			                    r.block_number(), r.block_count());
 			signed char *dst = (signed char*)_session.tx()->packet_content(w),
@@ -263,7 +262,7 @@ struct Write_test : Test
 		for (sector_t nr = start, cnt = Genode::min(NR_PER_REQ, end - start); nr < end;
 		     nr += cnt,
 		     cnt = Genode::min<sector_t>(NR_PER_REQ, end-nr)) {
-			Block::Packet_descriptor p(_session.dma_alloc_packet(cnt*blk_sz),
+			Block::Packet_descriptor p(_session.alloc_packet(cnt*blk_sz),
 			                           Block::Packet_descriptor::READ, nr, cnt);
 			_session.tx()->submit_packet(p);
 		}
@@ -338,10 +337,10 @@ struct Violation_test : Test
 
 	void req(Block::sector_t nr, Genode::size_t cnt, bool write)
 	{
-		Block::Packet_descriptor p(_session.dma_alloc_packet(blk_sz),
-		                            write ? Block::Packet_descriptor::WRITE
-		                                  : Block::Packet_descriptor::READ,
-		                            nr, cnt);
+		Block::Packet_descriptor p(_session.alloc_packet(blk_sz),
+		                           write ? Block::Packet_descriptor::WRITE
+		                                 : Block::Packet_descriptor::READ,
+		                           nr, cnt);
 		_session.tx()->submit_packet(p);
 		p_in_fly++;
 	}

@@ -69,7 +69,7 @@ struct Test::Replay : Test_base
 				more = false;
 				requests.dequeue([&] (Request &req) {
 					Block::Packet_descriptor p(
-						_block->tx()->alloc_packet(req.count * _info.block_size),
+						_block->alloc_packet(req.count * _info.block_size),
 						req.op, req.nr, req.count);
 
 					bool const write = req.op == Block::Packet_descriptor::WRITE;

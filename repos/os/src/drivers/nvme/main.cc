@@ -1541,6 +1541,7 @@ class Driver : public Block::Driver
 
 			_info = { .block_size  = nsinfo.size,
 			          .block_count = nsinfo.count,
+			          .align_log2  = Genode::log2(nsinfo.size),
 			          .writeable   = true };
 
 			Nvme::Controller::Info const &info = _nvme_ctrlr->info();

@@ -67,7 +67,7 @@ class Throughput
 			try {
 				while (_session.tx()->ready_to_submit()) {
 					Block::Packet_descriptor p(
-						_session.tx()->alloc_packet(REQUEST_SIZE),
+						_session.alloc_packet(REQUEST_SIZE),
 						!_read_done ? Block::Packet_descriptor::READ : Block::Packet_descriptor::WRITE,
 						_current, count);
 

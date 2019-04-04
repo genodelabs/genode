@@ -148,6 +148,7 @@ class Storage_device : public Genode::List<Storage_device>::Element,
 		{
 			return { .block_size  = _block_size,
 			         .block_count = _block_count,
+			         .align_log2  = Genode::log2(_block_size),
 			         .writeable   = true };
 		}
 

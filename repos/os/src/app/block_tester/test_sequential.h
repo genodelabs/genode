@@ -66,8 +66,7 @@ struct Test::Sequential : Test_base
 			bool next = true;
 			while (_blocks < _length_in_blocks && _block->tx()->ready_to_submit() && next) {
 
-				Block::Packet_descriptor tmp =
-					_block->tx()->alloc_packet(_size);
+				Block::Packet_descriptor tmp = _block->alloc_packet(_size);
 
 				Block::Packet_descriptor p(tmp,
 					_op, _start, _size_in_blocks);

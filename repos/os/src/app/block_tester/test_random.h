@@ -127,8 +127,7 @@ struct Test::Random : Test_base
 			bool next = true;
 			while (_blocks < _length_in_blocks && _block->tx()->ready_to_submit() && next) {
 
-				Block::Packet_descriptor tmp =
-					_block->tx()->alloc_packet(_size);
+				Block::Packet_descriptor tmp = _block->alloc_packet(_size);
 
 				Block::sector_t lba = _next_block();
 

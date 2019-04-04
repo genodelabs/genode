@@ -35,7 +35,7 @@ void Driver<POLICY>::Policy::sync(const typename POLICY::Element *e, char *dst)
 		throw Write_failed(off);
 	try {
 		Block::Packet_descriptor
-			p(driver->blk()->dma_alloc_packet(Driver::CACHE_BLK_SIZE),
+			p(driver->blk()->alloc_packet(Driver::CACHE_BLK_SIZE),
 		      Block::Packet_descriptor::WRITE, off / driver->blk_sz(),
 		      Driver::CACHE_BLK_SIZE / driver->blk_sz());
 		driver->blk()->tx()->submit_packet(p);

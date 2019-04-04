@@ -220,6 +220,7 @@ class Block::Session_component : public  Block::Session_rpc_object,
 		{
 			return Info { .block_size  = _driver.blk_size(),
 			              .block_count = _partition->sectors,
+			              .align_log2  = Genode::log2(_driver.blk_size()),
 			              .writeable   = _writeable && _driver.writeable() };
 		}
 

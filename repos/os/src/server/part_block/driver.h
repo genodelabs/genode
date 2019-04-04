@@ -139,7 +139,7 @@ class Block::Driver
 			    ? Block::Packet_descriptor::WRITE
 			    : Block::Packet_descriptor::READ;
 			Genode::size_t const size = _info.block_size * cnt;
-			Packet_descriptor p(_session.dma_alloc_packet(size),
+			Packet_descriptor p(_session.alloc_packet(size),
 			                    op,  nr, cnt);
 			Request *r = new (&_r_slab) Request(dispatcher, cli, p);
 			_r_list.insert(r);

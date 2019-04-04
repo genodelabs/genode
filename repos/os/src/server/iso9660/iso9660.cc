@@ -56,7 +56,7 @@ class Iso::Sector {
 		{
 			try {
 				_p = Block::Packet_descriptor(
-					block.dma_alloc_packet(blk_size() * count),
+					block.alloc_packet(blk_size() * count),
 					Block::Packet_descriptor::READ,
 					blk_nr * ((float)blk_size() / BLOCK_SIZE),
 					count * ((float)blk_size() / BLOCK_SIZE));

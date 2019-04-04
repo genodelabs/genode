@@ -244,7 +244,7 @@ class Driver : public Block::Driver
 
 				/* construct and send the packet */
 				p_to_dev =
-					Block::Packet_descriptor(_blk.dma_alloc_packet(_info.block_size*cnt),
+					Block::Packet_descriptor(_blk.alloc_packet(_info.block_size*cnt),
 					                         Block::Packet_descriptor::READ,
 					                         nr, cnt);
 				_r_list.insert(new (&_r_slab) Request(p_to_dev, packet, buffer));

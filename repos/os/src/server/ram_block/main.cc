@@ -116,6 +116,7 @@ class Ram_block : public Block::Driver
 		{
 			return { .block_size  = _block_size,
 			         .block_count = _block_count,
+			         .align_log2  = log2(_block_size),
 			         .writeable   = true };
 		}
 

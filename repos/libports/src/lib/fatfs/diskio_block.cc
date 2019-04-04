@@ -62,6 +62,7 @@ extern "C" {
 
 		using Block::Connection::tx;
 		using Block::Connection::sync;
+		using Block::Connection::alloc_packet;
 
 		Drive(Platform &platform, char const *label)
 		: Block::Connection(platform.env, &platform.tx_alloc, 128*1024, label)
@@ -125,7 +126,7 @@ extern "C" DRESULT disk_read (BYTE pdrv, BYTE* buff, DWORD sector, UINT count)
 	Genode::size_t const op_len = drive.info.block_size*count;
 
 	/* allocate packet-descriptor for reading */
-	Block::Packet_descriptor p(drive.tx()->alloc_packet(op_len),
+	Block::Packet_descriptor p(drive.alloc_packet(op_len),
 	                           Block::Packet_descriptor::READ, sector, count);
 	drive.tx()->submit_packet(p);
 	p = drive.tx()->get_acked_packet();
@@ -155,7 +156,7 @@ extern "C" DRESULT disk_write (BYTE pdrv, const BYTE* buff, DWORD sector, UINT c
 	Genode::size_t const op_len = drive.info.block_size*count;
 
 	/* allocate packet-descriptor for writing */
-	Block::Packet_descriptor p(drive.tx()->alloc_packet(op_len),
+	Block::Packet_descriptor p(drive.alloc_packet(op_len),
 	                           Block::Packet_descriptor::WRITE, sector, count);
 
 	Genode::memcpy(drive.tx()->packet_content(p), buff, op_len);

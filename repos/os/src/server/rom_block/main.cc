@@ -48,6 +48,7 @@ class Rom_block : public Block::Driver
 		{
 			return { .block_size  = _blk_sz,
 			         .block_count = _blk_cnt,
+			         .align_log2  = log2(_blk_sz),
 			         .writeable   = false };
 		}
 

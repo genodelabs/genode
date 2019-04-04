@@ -63,7 +63,7 @@ struct Test::Ping_pong : Test_base
 			while (_blocks < _length_in_blocks && _block->tx()->ready_to_submit()) {
 
 				Block::Packet_descriptor tmp =
-					_block->tx()->alloc_packet(_size_in_blocks * _info.block_size);
+					_block->alloc_packet(_size_in_blocks * _info.block_size);
 
 				Block::sector_t const lba = _ping ? _start + _blocks
 				                                  : _end   - _blocks;

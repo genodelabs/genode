@@ -108,7 +108,8 @@ class Block::Session_component : public Block::Session_component_base,
 
 			/* ignore invalid packets */
 			bool const valid = packet.size() && _range_check(_p_to_handle)
-			                && tx_sink()->packet_valid(packet);
+			                && tx_sink()->packet_valid(packet)
+			                && aligned(packet.offset(), _info.align_log2);
 			if (!valid) {
 				_ack_packet(_p_to_handle);
 				return;

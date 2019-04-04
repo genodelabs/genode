@@ -260,7 +260,7 @@ bool Seoul::Disk::restart(struct disk_session const &disk,
 		Genode::Lock::Guard lock_guard(_alloc_lock);
 
 		packet = Block::Packet_descriptor(
-			source->alloc_packet(blocks * blk_size),
+			disk.blk_con->alloc_packet(blocks * blk_size),
 			(write) ? Block::Packet_descriptor::WRITE
 			        : Block::Packet_descriptor::READ,
 			msg->sector, blocks);
@@ -317,7 +317,7 @@ bool Seoul::Disk::execute(bool const write, struct disk_session const &disk,
 		Genode::Lock::Guard lock_guard(_alloc_lock);
 
 		packet = Block::Packet_descriptor(
-			source->alloc_packet(blocks * blk_size),
+			disk.blk_con->alloc_packet(blocks * blk_size),
 			(write) ? Block::Packet_descriptor::WRITE
 			        : Block::Packet_descriptor::READ,
 			sector, blocks);

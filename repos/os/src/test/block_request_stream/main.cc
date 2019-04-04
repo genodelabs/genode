@@ -44,6 +44,7 @@ struct Test::Block_session_component : Rpc_object<Block::Session>,
 		Request_stream(rm, ds, ep, sigh,
 		               Info { .block_size  = BLOCK_SIZE,
 		                      .block_count = NUM_BLOCKS,
+		                      .align_log2  = log2(BLOCK_SIZE),
 		                      .writeable   = true }),
 		_ep(ep)
 	{
