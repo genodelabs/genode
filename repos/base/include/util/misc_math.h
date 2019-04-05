@@ -26,7 +26,7 @@ namespace Genode {
 	static constexpr T abs(T value) { return value >= 0 ? value : -value; }
 
 
-	/**
+	/*
 	 * Alignment to the power of two
 	 */
 	template <typename T>
@@ -40,6 +40,10 @@ namespace Genode {
 	template <typename T>
 	static constexpr T align_addr(T addr, int align) {
 		return (addr + _align_offset((T)align)) & _align_mask((T)align); }
+
+	template <typename T>
+	static constexpr bool aligned(T value, unsigned align_log2) {
+		return (_align_offset(align_log2) & value) == 0; }
 
 
 	/**

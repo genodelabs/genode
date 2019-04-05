@@ -40,15 +40,6 @@ namespace Genode
 		return (addr >> alignm_log2) << alignm_log2; }
 
 	/**
-	 * Return wether a pointer fullfills an alignment
-	 *
-	 * \param p            pointer
-	 * \param alignm_log2  log2 of the required alignment
-	 */
-	inline bool aligned(void * const p, addr_t const alignm_log2) {
-		return (addr_t)p == trunc((addr_t)p, alignm_log2); }
-
-	/**
 	 * Translation table allocator interface
 	 */
 	class Translation_table_allocator : public Genode::Allocator
@@ -344,7 +335,7 @@ class Genode::Level_4_translation_table
 		 */
 		Level_4_translation_table(Scratch::Page *scratch)
 		{
-			if (!aligned(this, ALIGNM_LOG2)) { throw Misaligned(); }
+			if (!aligned((addr_t)this, ALIGNM_LOG2)) { throw Misaligned(); }
 
 			for (size_t i = 0; i < MAX_ENTRIES; i++) {
 				_entries[i] = scratch->addr;
@@ -592,7 +583,7 @@ class Genode::Page_directory
 
 		Page_directory(Scratch::Page *scratch)
 		{
-			if (!aligned(this, ALIGNM_LOG2)) { throw Misaligned(); }
+			if (!aligned((addr_t)this, ALIGNM_LOG2)) { throw Misaligned(); }
 
 			for (size_t i = 0; i < MAX_ENTRIES; i++) {
 				_entries[i] = scratch->addr;
@@ -778,7 +769,7 @@ class Genode::Pml4_table
 
 		Pml4_table(Scratch::Page *scratch)
 		{
-			if (!aligned(this, ALIGNM_LOG2)) { throw Misaligned(); }
+			if (!aligned((addr_t)this, ALIGNM_LOG2)) { throw Misaligned(); }
 
 			for (size_t i = 0; i < MAX_ENTRIES; i++) {
 				_entries[i] = scratch->addr;
