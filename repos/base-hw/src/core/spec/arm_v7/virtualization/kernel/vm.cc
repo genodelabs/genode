@@ -70,7 +70,7 @@ struct Kernel::Vm_irq : Kernel::Irq
 		Cpu_job & job = cpu_pool().executing_cpu().scheduled_job();
 		Vm *vm = dynamic_cast<Vm*>(&job);
 		if (!vm)
-			Genode::error("VM timer interrupt while VM is not runnning!");
+			Genode::raw("VM timer interrupt while VM is not runnning!");
 		else
 			vm->inject_irq(_irq_nr);
 	}

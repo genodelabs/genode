@@ -49,8 +49,8 @@ void Kernel::Vm::exception(Cpu & cpu)
 		_context->submit(1);
 		return;
 	}
-	Genode::warning("VM: triggered unknown exception ", _state->trapno,
-	                " with error code ", _state->errcode);
+	Genode::raw("VM: triggered unknown exception ", _state->trapno,
+	            " with error code ", _state->errcode);
 
 	ASSERT_NEVER_CALLED;
 }

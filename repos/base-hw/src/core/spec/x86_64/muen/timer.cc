@@ -34,20 +34,20 @@ Timer_driver::Timer_driver(unsigned) : ticks_per_ms(sinfo()->get_tsc_khz()), sta
 	const struct Sinfo::Resource_type *
 		region = sinfo()->get_resource("timed_event", Sinfo::RES_MEMORY);
 	if (!region) {
-		error("muen-timer: Unable to retrieve timed event region");
+		raw("muen-timer: Unable to retrieve timed event region");
 		throw Invalid_region();
 	}
 
 	event_page = (Subject_timed_event *)
 		Platform::mmio_to_virt(region->data.mem.address);
 	event_page->event_nr = Board::TIMER_EVENT_KERNEL;
-	log("muen-timer: Page @", Hex(region->data.mem.address), ", "
+	raw("muen-timer: Page @", Hex(region->data.mem.address), ", "
 	    "frequency ", ticks_per_ms, " kHz, "
 	    "event ", (unsigned)event_page->event_nr);
 
 	region = sinfo()->get_resource("monitor_timed_event", Sinfo::RES_MEMORY);
 	if (region) {
-		log("muen-timer: Found guest timed event page @", Hex(region->data.mem.address),
+		raw("muen-timer: Found guest timed event page @", Hex(region->data.mem.address),
 		    " -> enabling preemption");
 		guest_event_page = (Subject_timed_event *)
 			Platform::mmio_to_virt(region->data.mem.address);

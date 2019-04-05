@@ -37,15 +37,15 @@ void Thread::exception(Cpu & cpu)
 		_interrupt(cpu.id());
 		return;
 	case Cpu::Context::UNDEFINED_INSTRUCTION:
-		Genode::warning(*this, ": undefined instruction at ip=",
-		                Genode::Hex(regs->ip));
+		Genode::raw(*this, ": undefined instruction at ip=",
+		            Genode::Hex(regs->ip));
 		_die();
 		return;
 	case Cpu::Context::RESET:
 		return;
 	default:
-		Genode::warning(*this, ": triggered an unknown exception ",
-		                regs->cpu_exception);
+		Genode::raw(*this, ": triggered an unknown exception ",
+		            regs->cpu_exception);
 		_die();
 		return;
 	}

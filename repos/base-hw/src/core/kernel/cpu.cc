@@ -63,7 +63,7 @@ void Cpu_job::_interrupt(unsigned const /* cpu_id */)
 			/* it needs to be a user interrupt */
 			User_irq * irq = User_irq::object(irq_id);
 			if (irq) irq->occurred();
-			else Genode::warning("Unknown interrupt ", irq_id);
+			else Genode::raw("Unknown interrupt ", irq_id);
 		}
 
 	/* end interrupt request at controller */

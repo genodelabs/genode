@@ -67,7 +67,7 @@ Timer_driver::Timer_driver(unsigned)
 	     div && ticks_per_ms < TIMER_MIN_TICKS_PER_MS; div--)
 	{
 		if (!div){
-			error("Failed to calibrate timer frequency");
+			raw("Failed to calibrate timer frequency");
 			throw Calibration_failed();
 		}
 		write<Divide_configuration::Divide_value>(div);

@@ -43,9 +43,9 @@ void Thread::exception(Cpu & cpu)
 		_mmu_exception();
 		break;
 	default:
-		Genode::error(*this, ": unhandled exception ", regs->cpu_exception,
-		              " at ip=", (void*)regs->ip,
-		              " addr=", Genode::Hex(Genode::Cpu::Sbadaddr::read()));
+		Genode::raw(*this, ": unhandled exception ", regs->cpu_exception,
+		            " at ip=", (void*)regs->ip,
+		            " addr=", Genode::Hex(Genode::Cpu::Sbadaddr::read()));
 		_die();
 	}
 }

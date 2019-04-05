@@ -27,11 +27,11 @@ void Thread::exception(Cpu & cpu)
 		return;
 	case Cpu::Context::NO_MATH_COPROC:
 		if (_cpu->fpu().fault(*regs)) { return; }
-		Genode::warning(*this, ": FPU error");
+		Genode::raw(*this, ": FPU error");
 		_die();
 		return;
 	case Cpu::Context::UNDEFINED_INSTRUCTION:
-		Genode::warning(*this, ": undefined instruction at ip=", (void*)regs->ip);
+		Genode::raw(*this, ": undefined instruction at ip=", (void*)regs->ip);
 		_die();
 		return;
 	case Cpu::Context::SUPERVISOR_CALL:
@@ -44,7 +44,7 @@ void Thread::exception(Cpu & cpu)
 		_interrupt(cpu.id());
 		return;
 	}
-	Genode::warning(*this, ": triggered unknown exception ", regs->trapno,
-	                " with error code ", regs->errcode, " at ip=", (void*)regs->ip);
+	Genode::raw(*this, ": triggered unknown exception ", regs->trapno,
+	            " with error code ", regs->errcode, " at ip=", (void*)regs->ip);
 	_die();
 }

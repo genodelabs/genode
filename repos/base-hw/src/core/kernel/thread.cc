@@ -276,7 +276,7 @@ void Thread::_call_restart_thread()
 	Thread &thread = *thread_ptr;
 
 	if (!_core && (&pd() != &thread.pd())) {
-		warning(*this, ": failed to lookup thread ", (unsigned)user_arg_1(),
+		raw(*this, ": failed to lookup thread ", (unsigned)user_arg_1(),
 		        " to restart it");
 		_die();
 		return;
@@ -320,10 +320,10 @@ void Thread::_cancel_blocking()
 	case ACTIVE:
 		return;
 	case DEAD:
-		Genode::error("can't cancel blocking of dead thread");
+		Genode::raw("can't cancel blocking of dead thread");
 		return;
 	case AWAITS_START:
-		Genode::error("can't cancel blocking of not yet started thread");
+		Genode::raw("can't cancel blocking of not yet started thread");
 		return;
 	}
 }
@@ -394,7 +394,7 @@ void Thread::timeout_triggered()
 	Signal_context * const c =
 		pd().cap_tree().find<Signal_context>(_timeout_sigid);
 	if (!c || c->submit(1))
-		Genode::warning(*this, ": failed to submit timeout signal");
+		Genode::raw(*this, ": failed to submit timeout signal");
 }
 
 
@@ -403,7 +403,7 @@ void Thread::_call_send_request_msg()
 	Object_identity_reference * oir = pd().cap_tree().find(user_arg_1());
 	Thread * const dst = (oir) ? oir->object<Thread>() : nullptr;
 	if (!dst) {
-		Genode::warning(*this, ": cannot send to unknown recipient ",
+		Genode::raw(*this, ": cannot send to unknown recipient ",
 		                 (unsigned)user_arg_1());
 		_become_inactive(AWAITS_IPC);
 		return;
@@ -449,14 +449,14 @@ void Thread::_call_await_signal()
 	/* lookup receiver */
 	Signal_receiver * const r = pd().cap_tree().find<Signal_receiver>(user_arg_1());
 	if (!r) {
-		Genode::warning(*this, ": cannot await, unknown signal receiver ",
+		Genode::raw(*this, ": cannot await, unknown signal receiver ",
 		                (unsigned)user_arg_1());
 		user_arg_0(-1);
 		return;
 	}
 	/* register handler at the receiver */
 	if (r->add_handler(this)) {
-		Genode::warning("failed to register handler at signal receiver");
+		Genode::raw("failed to register handler at signal receiver");
 		user_arg_0(-1);
 		return;
 	}
@@ -469,7 +469,7 @@ void Thread::_call_pending_signal()
 	/* lookup receiver */
 	Signal_receiver * const r = pd().cap_tree().find<Signal_receiver>(user_arg_1());
 	if (!r) {
-		Genode::warning(*this, ": cannot await, unknown signal receiver ",
+		Genode::raw(*this, ": cannot await, unknown signal receiver ",
 		                (unsigned)user_arg_1());
 		user_arg_0(-1);
 		return;
@@ -496,7 +496,7 @@ void Thread::_call_cancel_next_await_signal()
 	/* kill the caller if the capability of the target thread is invalid */
 	Thread * const thread = pd().cap_tree().find<Thread>(user_arg_1());
 	if (!thread || (&pd() != &thread->pd())) {
-		error(*this, ": failed to lookup thread ", (unsigned)user_arg_1());
+		raw(*this, ": failed to lookup thread ", (unsigned)user_arg_1());
 		_die();
 		return;
 	}
@@ -515,14 +515,14 @@ void Thread::_call_submit_signal()
 	/* lookup signal context */
 	Signal_context * const c = pd().cap_tree().find<Signal_context>(user_arg_1());
 	if(!c) {
-		Genode::warning(*this, ": cannot submit unknown signal context");
+		Genode::raw(*this, ": cannot submit unknown signal context");
 		user_arg_0(-1);
 		return;
 	}
 
 	/* trigger signal context */
 	if (c->submit(user_arg_2())) {
-		Genode::warning("failed to submit signal context");
+		Genode::raw("failed to submit signal context");
 		user_arg_0(-1);
 		return;
 	}
@@ -535,7 +535,7 @@ void Thread::_call_ack_signal()
 	/* lookup signal context */
 	Signal_context * const c = pd().cap_tree().find<Signal_context>(user_arg_1());
 	if (!c) {
-		Genode::warning(*this, ": cannot ack unknown signal context");
+		Genode::raw(*this, ": cannot ack unknown signal context");
 		return;
 	}
 
@@ -549,14 +549,14 @@ void Thread::_call_kill_signal_context()
 	/* lookup signal context */
 	Signal_context * const c = pd().cap_tree().find<Signal_context>(user_arg_1());
 	if (!c) {
-		Genode::warning(*this, ": cannot kill unknown signal context");
+		Genode::raw(*this, ": cannot kill unknown signal context");
 		user_arg_0(-1);
 		return;
 	}
 
 	/* kill signal context */
 	if (c->kill(this)) {
-		Genode::warning("failed to kill signal context");
+		Genode::raw("failed to kill signal context");
 		user_arg_0(-1);
 		return;
 	}
@@ -567,7 +567,7 @@ void Thread::_call_new_irq()
 {
 	Signal_context * const c = pd().cap_tree().find<Signal_context>(user_arg_3());
 	if (!c) {
-		Genode::warning(*this, ": invalid signal context for interrupt");
+		Genode::raw(*this, ": invalid signal context for interrupt");
 		user_arg_0(-1);
 		return;
 	}
@@ -589,7 +589,7 @@ void Thread::_call_new_obj()
 	if (!thread ||
 		(static_cast<Core_object<Thread>*>(thread)->capid() != ref->capid())) {
 		if (thread)
-			Genode::warning("faked thread", thread);
+			Genode::raw("faked thread", thread);
 		user_arg_0(cap_id_invalid());
 		return;
 	}
@@ -670,7 +670,7 @@ void Thread::_call()
 	default:
 		/* check wether this is a core thread */
 		if (!_core) {
-			Genode::warning(*this, ": not entitled to do kernel call");
+			Genode::raw(*this, ": not entitled to do kernel call");
 			_die();
 			return;
 		}
@@ -708,7 +708,7 @@ void Thread::_call()
 	case call_id_new_obj():                _call_new_obj(); return;
 	case call_id_delete_obj():             _call_delete_obj(); return;
 	default:
-		Genode::warning(*this, ": unknown kernel call");
+		Genode::raw(*this, ": unknown kernel call");
 		_die();
 		return;
 	}
@@ -723,12 +723,12 @@ void Thread::_mmu_exception()
 	_fault.ip = regs->ip;
 
 	if (_fault.type == Thread_fault::UNKNOWN) {
-		Genode::error(*this, " raised unhandled MMU fault ", _fault);
+		Genode::raw(*this, " raised unhandled MMU fault ", _fault);
 		return;
 	}
 
 	if (_core)
-		Genode::error(*this, " raised a fault, which should never happen ",
+		Genode::raw(*this, " raised a fault, which should never happen ",
 	                  _fault);
 
 	if (_pager) _pager->submit(1);

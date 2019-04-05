@@ -117,7 +117,7 @@ Sinfo::Sinfo(const addr_t base_addr)
 	sched_info = ((Scheduling_info_type *)(base_addr + sinfo_page_size));
 
 	if (!check_magic()) {
-		Genode::error("muen-sinfo: Subject information MAGIC mismatch");
+		Genode::warning("muen-sinfo: Subject information MAGIC mismatch");
 		return;
 	}
 }
