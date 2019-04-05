@@ -39,7 +39,7 @@ struct Test::Block_session_component : Rpc_object<Block::Session>,
 	using Block::Request_stream::with_requests;
 	using Block::Request_stream::with_content;
 	using Block::Request_stream::try_acknowledge;
-	using Block::Request_stream::wakeup_client;
+	using Block::Request_stream::wakeup_client_if_needed;
 
 	Block_session_component(Region_map               &rm,
 	                        Dataspace_capability      ds,
@@ -201,7 +201,7 @@ struct Test::Main : Rpc_object<Typed_root<Block::Session> >
 				break;
 		}
 
-		block_session.wakeup_client();
+		block_session.wakeup_client_if_needed();
 	}
 
 

@@ -323,7 +323,7 @@ class Block::Request_stream : Genode::Noncopyable
 			}
 		}
 
-		void wakeup_client() { _tx.sink()->wakeup(); }
+		void wakeup_client_if_needed() { _tx.sink()->wakeup(); }
 };
 
 
