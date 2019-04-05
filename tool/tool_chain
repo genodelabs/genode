@@ -21,7 +21,8 @@ help:
 	$(ECHO)
 	$(ECHO) "--- available command line options ---"
 	$(ECHO) "MAKE_JOBS=...        - number of parallel make jobs (default: 4)"
-	$(ECHO) "INSTALL_LOCATION=... - install location (default: $(INSTALL_LOCATION))"
+	$(ECHO) "BUILD_LOCATION=...   - build location (default: $(DEFAULT_BUILD_LOCATION))"
+	$(ECHO) "INSTALL_LOCATION=... - install location (default: $(DEFAULT_INSTALL_LOCATION))"
 	$(ECHO) "SUDO=...             - name of sudo command, leave empty to not use sudo (default: sudo)"
 	$(ECHO)
 
@@ -43,18 +44,28 @@ MAKE_JOBS ?= 4
 
 #
 # Determine Genode base directory based on the known location of the
-# 'create_builddir' tool within the Genode source tree
+# 'tool_chain' tool within the Genode source tree
 #
 
 GENODE_DIR ?= $(realpath $(dir $(firstword $(MAKEFILE_LIST)))/..)
 
 #
-# Tool versions and install location
+# version numbers
 #
 
-GCC_VERSION       = 6.3.0
-BINUTILS_VERSION  = 2.28
-INSTALL_LOCATION ?= /usr/local/genode-gcc
+TOOL_CHAIN_VERSION = 17.05
+GCC_VERSION        = 6.3.0
+BINUTILS_VERSION   = 2.28
+
+#
+# locations
+#
+
+DEFAULT_BUILD_LOCATION   = $(GENODE_DIR)/build/tool_chain-$(TOOL_CHAIN_VERSION)
+DEFAULT_INSTALL_LOCATION = /usr/local/genode-gcc
+
+BUILD_LOCATION   ?= $(DEFAULT_BUILD_LOCATION)
+INSTALL_LOCATION ?= $(DEFAULT_INSTALL_LOCATION)
 
 #
 # Utilities
@@ -165,10 +176,10 @@ endif
 # 'configure' parameters for binutils, gcc and gdb
 #
 
-LOCAL_BOOTSTRAP_INSTALL_LOCATION = $(shell pwd)/build/bootstrap/install
+LOCAL_BOOTSTRAP_INSTALL_LOCATION = $(BUILD_LOCATION)/bootstrap/install
 export PATH := $(LOCAL_BOOTSTRAP_INSTALL_LOCATION)/bin:$(PATH)
 
-LOCAL_INSTALL_LOCATION = $(shell pwd)/build/install
+LOCAL_INSTALL_LOCATION = $(BUILD_LOCATION)/install
 
 #
 # Local install location for gmp, mpfr, and mpc libraries. These libraries are
@@ -177,7 +188,7 @@ LOCAL_INSTALL_LOCATION = $(shell pwd)/build/install
 # package (they are statically linked against gcc), we install them to a
 # different install location as gcc.
 #
-LOCAL_LIB_INSTALL_LOCATION = $(shell pwd)/build/lib-install
+LOCAL_LIB_INSTALL_LOCATION = $(BUILD_LOCATION)/lib-install
 
 TARGET_NAME_x86        = x86_64-pc-elf
 TARGET_NAME_arm        = arm-none-eabi
@@ -310,16 +321,16 @@ GCC_MAKE_OPT += $(MAKE_OPT) $(GCC_MAKE_OPT_$(PLATFORM))
 # dependencies. All other programs will be generated as side effect.
 #
 
-BINUTILS_BOOTSTRAP_BINARIES           = build/bootstrap/binutils/binutils/objdump
+BINUTILS_BOOTSTRAP_BINARIES           = $(BUILD_LOCATION)/bootstrap/binutils/binutils/objdump
 BINUTILS_BOOTSTRAP_INSTALLED_BINARIES = $(LOCAL_BOOTSTRAP_INSTALL_LOCATION)/bin/objdump
-GCC_BOOTSTRAP_BINARIES                = build/bootstrap/gcc/gcc/xg++
+GCC_BOOTSTRAP_BINARIES                = $(BUILD_LOCATION)/bootstrap/gcc/gcc/xg++
 GCC_BOOTSTRAP_INSTALLED_BINARIES      = $(LOCAL_BOOTSTRAP_INSTALL_LOCATION)/bin/g++
 
-BINUTILS_BINARIES           = build/$(PLATFORM)/binutils/binutils/objdump
+BINUTILS_BINARIES           = $(BUILD_LOCATION)/$(PLATFORM)/binutils/binutils/objdump
 BINUTILS_INSTALLED_BINARIES = $(LOCAL_INSTALL_LOCATION)/bin/genode-$(PLATFORM)-objdump
-GCC_BINARIES                = build/$(PLATFORM)/gcc/gcc/g++-cross
+GCC_BINARIES                = $(BUILD_LOCATION)/$(PLATFORM)/gcc/gcc/g++-cross
 GCC_INSTALLED_BINARIES      = $(LOCAL_INSTALL_LOCATION)/bin/genode-$(PLATFORM)-g++
-GDB_BINARIES                = build/$(PLATFORM)/gdb/gdb/gdb
+GDB_BINARIES                = $(BUILD_LOCATION)/$(PLATFORM)/gdb/gdb/gdb
 
 
 build_all: $(GCC_INSTALLED_BINARIES) $(GDB_INSTALLED_BINARIES)
@@ -354,36 +365,36 @@ $(BINUTILS_CONTRIB_DIR)/configure:
 	$(ECHO) "$(BRIGHT_COL)preparing binutils...$(DEFAULT_COL)"
 	$(VERBOSE)$(GENODE_DIR)/tool/ports/prepare_port binutils
 
-build/bootstrap/binutils/Makefile: $(BINUTILS_CONTRIB_DIR)/configure
+$(BUILD_LOCATION)/bootstrap/binutils/Makefile: $(BINUTILS_CONTRIB_DIR)/configure
 	$(ECHO) "$(BRIGHT_COL)configuring bootstrap binutils...$(DEFAULT_COL)"
 	$(VERBOSE)mkdir -p $(dir $@)
 	$(VERBOSE)cd $(dir $@); $(BINUTILS_CONTRIB_DIR)/configure $(BINUTILS_BOOTSTRAP_CONFIG)
 
-$(BINUTILS_BOOTSTRAP_BINARIES): build/bootstrap/binutils/Makefile
+$(BINUTILS_BOOTSTRAP_BINARIES): $(BUILD_LOCATION)/bootstrap/binutils/Makefile
 	$(ECHO) "$(BRIGHT_COL)building bootstrap binutils...$(DEFAULT_COL)"
 	$(VERBOSE)$(MAKE) -C $(dir $<) -j$(MAKE_JOBS)
 
 $(BINUTILS_BOOTSTRAP_INSTALLED_BINARIES): $(BINUTILS_BOOTSTRAP_BINARIES)
 	$(ECHO) "$(BRIGHT_COL)installing bootstrap binutils...$(DEFAULT_COL)"
 	$(VERBOSE)for i in binutils gas ld intl opcodes; do \
-		$(MAKE) -C build/bootstrap/binutils/$$i install-strip; done
-	$(VERBOSE)$(MAKE) -C build/bootstrap/binutils/libiberty install
+		$(MAKE) -C $(BUILD_LOCATION)/bootstrap/binutils/$$i install-strip; done
+	$(VERBOSE)$(MAKE) -C $(BUILD_LOCATION)/bootstrap/binutils/libiberty install
 
-build/$(PLATFORM)/binutils/Makefile: $(BINUTILS_CONTRIB_DIR)/configure \
+$(BUILD_LOCATION)/$(PLATFORM)/binutils/Makefile: $(BINUTILS_CONTRIB_DIR)/configure \
                                      $(GCC_BOOTSTRAP_INSTALLED_BINARIES)
 	$(ECHO) "$(BRIGHT_COL)configuring binutils...$(DEFAULT_COL)"
 	$(VERBOSE)mkdir -p $(dir $@)
 	$(VERBOSE)cd $(dir $@); $(BINUTILS_CONTRIB_DIR)/configure $(BINUTILS_CONFIG)
 
-$(BINUTILS_BINARIES): build/$(PLATFORM)/binutils/Makefile
+$(BINUTILS_BINARIES): $(BUILD_LOCATION)/$(PLATFORM)/binutils/Makefile
 	$(ECHO) "$(BRIGHT_COL)building binutils...$(DEFAULT_COL)"
 	$(VERBOSE)$(MAKE) -C $(dir $<) $(MAKE_OPT) -j$(MAKE_JOBS)
 
 $(BINUTILS_INSTALLED_BINARIES): $(BINUTILS_BINARIES)
 	$(ECHO) "$(BRIGHT_COL)installing binutils...$(DEFAULT_COL)"
 	$(VERBOSE)for i in binutils gas ld intl opcodes; do \
-		$(MAKE) -C build/$(PLATFORM)/binutils/$$i install-strip $(MAKE_OPT); done
-	$(VERBOSE)$(MAKE) -C build/$(PLATFORM)/binutils/libiberty install $(MAKE_OPT)
+		$(MAKE) -C $(BUILD_LOCATION)/$(PLATFORM)/binutils/$$i install-strip $(MAKE_OPT); done
+	$(VERBOSE)$(MAKE) -C $(BUILD_LOCATION)/$(PLATFORM)/binutils/libiberty install $(MAKE_OPT)
 
 COMMON_LIB_CONFIG = --prefix=$(LOCAL_LIB_INSTALL_LOCATION) \
                     --disable-shared --enable-static
@@ -393,68 +404,68 @@ MPFR_CONFIG = $(COMMON_LIB_CONFIG) --with-gmp=$(LOCAL_LIB_INSTALL_LOCATION)
 MPC_CONFIG  = $(COMMON_LIB_CONFIG) --with-gmp=$(LOCAL_LIB_INSTALL_LOCATION) \
                                    --with-mpfr=$(LOCAL_LIB_INSTALL_LOCATION)
 
-$(LOCAL_LIB_INSTALL_LOCATION)/lib/libgmp.a:  build/gmp/Makefile
-$(LOCAL_LIB_INSTALL_LOCATION)/lib/libmpfr.a: build/mpfr/Makefile
-$(LOCAL_LIB_INSTALL_LOCATION)/lib/libmpc.a:  build/mpc/Makefile
+$(LOCAL_LIB_INSTALL_LOCATION)/lib/libgmp.a:  $(BUILD_LOCATION)/gmp/Makefile
+$(LOCAL_LIB_INSTALL_LOCATION)/lib/libmpfr.a: $(BUILD_LOCATION)/mpfr/Makefile
+$(LOCAL_LIB_INSTALL_LOCATION)/lib/libmpc.a:  $(BUILD_LOCATION)/mpc/Makefile
 
 # rule to build libgmp, libmpfr, and libmpc
 $(LOCAL_LIB_INSTALL_LOCATION)/lib/lib%.a:
 	$(ECHO) "$(BRIGHT_COL)building lib$*...$(DEFAULT_COL)"
-	$(VERBOSE)make -C build/$* all install
+	$(VERBOSE)make -C $(BUILD_LOCATION)/$* all install
 
-build/gmp/Makefile: $(GMP_CONTRIB_DIR)/configure
+$(BUILD_LOCATION)/gmp/Makefile: $(GMP_CONTRIB_DIR)/configure
 
-build/gmp/Makefile:
+$(BUILD_LOCATION)/gmp/Makefile:
 	$(ECHO) "$(BRIGHT_COL)configuring libgmp...$(DEFAULT_COL)"
 	$(VERBOSE)mkdir -p $(dir $@)
 	$(VERBOSE)cd $(dir $@); \
 		$(GMP_CONTRIB_DIR)/configure $(GMP_CONFIG)
 
-build/mpfr/Makefile: $(MPFR_CONTRIB_DIR)/configure \
-                     $(LOCAL_LIB_INSTALL_LOCATION)/lib/libgmp.a
+$(BUILD_LOCATION)/mpfr/Makefile: $(MPFR_CONTRIB_DIR)/configure \
+                                 $(LOCAL_LIB_INSTALL_LOCATION)/lib/libgmp.a
 
-build/mpfr/Makefile:
+$(BUILD_LOCATION)/mpfr/Makefile:
 	$(ECHO) "$(BRIGHT_COL)configuring libmpfr...$(DEFAULT_COL)"
 	$(VERBOSE)mkdir -p $(dir $@)
 	$(VERBOSE)cd $(dir $@); \
 		$(MPFR_CONTRIB_DIR)/configure $(MPFR_CONFIG)
 
-build/mpc/Makefile: $(MPC_CONTRIB_DIR)/configure \
-                    $(LOCAL_LIB_INSTALL_LOCATION)/lib/libgmp.a \
-                    $(LOCAL_LIB_INSTALL_LOCATION)/lib/libmpfr.a
+$(BUILD_LOCATION)/mpc/Makefile: $(MPC_CONTRIB_DIR)/configure \
+                                $(LOCAL_LIB_INSTALL_LOCATION)/lib/libgmp.a \
+                                $(LOCAL_LIB_INSTALL_LOCATION)/lib/libmpfr.a
 
-build/mpc/Makefile:
+$(BUILD_LOCATION)/mpc/Makefile:
 	$(ECHO) "$(BRIGHT_COL)configuring libmpc...$(DEFAULT_COL)"
 	$(VERBOSE)mkdir -p $(dir $@)
 	$(VERBOSE)cd $(dir $@); \
 		$(MPC_CONTRIB_DIR)/configure $(MPC_CONFIG)
 
-build/bootstrap/gcc/Makefile: $(GCC_CONTRIB_DIR)/configure \
-                              $(BINUTILS_BOOTSTRAP_INSTALLED_BINARIES) \
-                              $(LOCAL_LIB_INSTALL_LOCATION)/lib/libgmp.a \
-                              $(LOCAL_LIB_INSTALL_LOCATION)/lib/libmpfr.a \
-                              $(LOCAL_LIB_INSTALL_LOCATION)/lib/libmpc.a
+$(BUILD_LOCATION)/bootstrap/gcc/Makefile: $(GCC_CONTRIB_DIR)/configure \
+                                          $(BINUTILS_BOOTSTRAP_INSTALLED_BINARIES) \
+                                          $(LOCAL_LIB_INSTALL_LOCATION)/lib/libgmp.a \
+                                          $(LOCAL_LIB_INSTALL_LOCATION)/lib/libmpfr.a \
+                                          $(LOCAL_LIB_INSTALL_LOCATION)/lib/libmpc.a
 
-build/bootstrap/gcc/Makefile:
+$(BUILD_LOCATION)/bootstrap/gcc/Makefile:
 	$(ECHO) "$(BRIGHT_COL)configuring bootstrap gcc...$(DEFAULT_COL)"
 	$(VERBOSE)mkdir -p $(dir $@)
 	$(VERBOSE)cd $(dir $@); $(GCC_CONTRIB_DIR)/configure $(GCC_BOOTSTRAP_CONFIG)
 
-$(GCC_BOOTSTRAP_BINARIES): build/bootstrap/gcc/Makefile
+$(GCC_BOOTSTRAP_BINARIES): $(BUILD_LOCATION)/bootstrap/gcc/Makefile
 	$(ECHO) "$(BRIGHT_COL)building bootstrap gcc...$(DEFAULT_COL)"
 	$(VERBOSE)$(MAKE) -C $(dir $<) -j$(MAKE_JOBS)
 
 $(GCC_BOOTSTRAP_INSTALLED_BINARIES): $(GCC_BOOTSTRAP_BINARIES)
 	$(ECHO) "$(BRIGHT_COL)installing bootstrap gcc...$(DEFAULT_COL)"
-	$(VERBOSE)$(MAKE) -C build/bootstrap/gcc $(GCC_INSTALL_RULE)
+	$(VERBOSE)$(MAKE) -C $(BUILD_LOCATION)/bootstrap/gcc $(GCC_INSTALL_RULE)
 
-build/$(PLATFORM)/gcc/Makefile: $(GCC_CONTRIB_DIR)/configure \
-                                $(BINUTILS_INSTALLED_BINARIES) \
-                                $(LOCAL_LIB_INSTALL_LOCATION)/lib/libgmp.a \
-                                $(LOCAL_LIB_INSTALL_LOCATION)/lib/libmpfr.a \
-                                $(LOCAL_LIB_INSTALL_LOCATION)/lib/libmpc.a
+$(BUILD_LOCATION)/$(PLATFORM)/gcc/Makefile: $(GCC_CONTRIB_DIR)/configure \
+                                            $(BINUTILS_INSTALLED_BINARIES) \
+                                            $(LOCAL_LIB_INSTALL_LOCATION)/lib/libgmp.a \
+                                            $(LOCAL_LIB_INSTALL_LOCATION)/lib/libmpfr.a \
+                                            $(LOCAL_LIB_INSTALL_LOCATION)/lib/libmpc.a
 
-build/$(PLATFORM)/gcc/Makefile:
+$(BUILD_LOCATION)/$(PLATFORM)/gcc/Makefile:
 	$(ECHO) "$(BRIGHT_COL)configuring gcc...$(DEFAULT_COL)"
 	$(VERBOSE)mkdir -p $(dir $@)
 	$(VERBOSE)cd $(dir $@); \
@@ -462,7 +473,7 @@ build/$(PLATFORM)/gcc/Makefile:
 		target_configargs="$(TARGET_CONFIG_ARGS)" \
 		$(GCC_CONTRIB_DIR)/configure $(GCC_CONFIG)
 
-$(GCC_BINARIES): build/$(PLATFORM)/gcc/Makefile
+$(GCC_BINARIES): $(BUILD_LOCATION)/$(PLATFORM)/gcc/Makefile
 
 $(GCC_BINARIES):
 	$(ECHO) "$(BRIGHT_COL)building gcc...$(DEFAULT_COL)"
@@ -470,7 +481,7 @@ $(GCC_BINARIES):
 
 $(GCC_INSTALLED_BINARIES): $(GCC_BINARIES)
 	$(ECHO) "$(BRIGHT_COL)installing gcc...$(DEFAULT_COL)"
-	$(VERBOSE)$(MAKE) -C build/$(PLATFORM)/gcc $(GCC_INSTALL_RULE) $(GCC_MAKE_OPT)
+	$(VERBOSE)$(MAKE) -C $(BUILD_LOCATION)/$(PLATFORM)/gcc $(GCC_INSTALL_RULE) $(GCC_MAKE_OPT)
 
 GDB_CONTRIB_DIR = $(shell $(GENODE_DIR)/tool/ports/current gdb)/src/noux-pkg/gdb
 
@@ -478,26 +489,26 @@ $(GDB_CONTRIB_DIR)/configure:
 	$(ECHO) "$(BRIGHT_COL)preparing gdb...$(DEFAULT_COL)"
 	$(VERBOSE)$(GENODE_DIR)/tool/ports/prepare_port gdb
 
-build/$(PLATFORM)/gdb/Makefile: $(GDB_CONTRIB_DIR)/configure
+$(BUILD_LOCATION)/$(PLATFORM)/gdb/Makefile: $(GDB_CONTRIB_DIR)/configure
 	$(ECHO) "$(BRIGHT_COL)configuring gdb...$(DEFAULT_COL)"
 	$(VERBOSE)mkdir -p $(dir $@)
 	$(VERBOSE)cd $(dir $@); \
 		$(GDB_CONTRIB_DIR)/configure $(GDB_CONFIG)
 
-$(GDB_BINARIES): build/$(PLATFORM)/gdb/Makefile
+$(GDB_BINARIES): $(BUILD_LOCATION)/$(PLATFORM)/gdb/Makefile
 	$(ECHO) "$(BRIGHT_COL)building gdb...$(DEFAULT_COL)"
 	$(VERBOSE)$(MAKE) -C $(dir $<) $(MAKE_OPT) -j$(MAKE_JOBS)
 
 $(GDB_INSTALLED_BINARIES): $(GDB_BINARIES)
 	$(ECHO) "$(BRIGHT_COL)installing gdb...$(DEFAULT_COL)"
-	$(VERBOSE)$(MAKE) -C build/$(PLATFORM)/gdb install $(MAKE_OPT) MAKEINFO=true
+	$(VERBOSE)$(MAKE) -C $(BUILD_LOCATION)/$(PLATFORM)/gdb install $(MAKE_OPT) MAKEINFO=true
 
 #
 # Clean rules
 #
 
 clean:
-	rm -rf build
+	rm -rf $(BUILD_LOCATION)
 
 cleanall: clean
 
