@@ -515,7 +515,7 @@ void Thread::_call_submit_signal()
 	/* lookup signal context */
 	Signal_context * const c = pd().cap_tree().find<Signal_context>(user_arg_1());
 	if(!c) {
-		Genode::raw(*this, ": cannot submit unknown signal context");
+		/* cannot submit unknown signal context */
 		user_arg_0(-1);
 		return;
 	}
