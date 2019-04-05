@@ -2,10 +2,10 @@ pragma Ada_2012;
 
 package body Machinery is
 
-   function Number_Of_Bits (Machinery : Machinery_Type) return Number_Of_Bits_Type is
+   function Object_Size (Machinery : Machinery_Type) return Object_Size_Type is
    begin
-      return Machinery'Size;
-   end Number_Of_Bits;
+      return Machinery'Size / 8;
+   end Object_Size;
 
    procedure Initialize (Machinery : out Machinery_Type) is
    begin
