@@ -29,12 +29,17 @@ namespace Test {
 
 
 struct Test::Block_session_component : Rpc_object<Block::Session>,
-                                       Block::Request_stream
+                                       private Block::Request_stream
 {
 	Entrypoint &_ep;
 
 	static constexpr size_t BLOCK_SIZE = 4096;
 	static constexpr size_t NUM_BLOCKS = 16;
+
+	using Block::Request_stream::with_requests;
+	using Block::Request_stream::with_content;
+	using Block::Request_stream::try_acknowledge;
+	using Block::Request_stream::wakeup_client;
 
 	Block_session_component(Region_map               &rm,
 	                        Dataspace_capability      ds,
@@ -165,7 +170,7 @@ struct Test::Main : Rpc_object<Typed_root<Block::Session> >
 			block_session.with_requests([&] (Block::Request request) {
 
 				if (!_jobs.acceptable(request))
-					return Block_session_component::Response::RETRY;
+					return Block::Request_stream::Response::RETRY;
 
 				/* access content of the request */
 				block_session.with_content(request, [&] (void *ptr, size_t size) {
@@ -177,14 +182,14 @@ struct Test::Main : Rpc_object<Typed_root<Block::Session> >
 
 				progress = true;
 
-				return Block_session_component::Response::ACCEPTED;
+				return Block::Request_stream::Response::ACCEPTED;
 			});
 
 			/* process I/O */
 			progress |= _jobs.execute();
 
 			/* acknowledge finished jobs */
-			block_session.try_acknowledge([&] (Block_session_component::Ack &ack) {
+			block_session.try_acknowledge([&] (Block::Request_stream::Ack &ack) {
 
 				_jobs.with_any_completed_job([&] (Block::Request request) {
 					progress |= true;
