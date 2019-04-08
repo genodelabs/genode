@@ -44,9 +44,11 @@ DEPOT_SUB_DIR := $(DEPOT_DIR)/$(USER)/src
 # Customize command executed whenever an archive version is automatically
 # updated. Whenever the version of a src archive is automatically increased,
 # make sure that the depot is void of any binary archives matching the new
-# version number.
+# version number. Note, nullglob is needed in case no matching binary archive
+# exists.
 #
-VERSION_UPDATED_CMD = ( cd $(DEPOT_DIR); \
+VERSION_UPDATED_CMD = ( shopt -s nullglob; \
+                        cd $(DEPOT_DIR); \
                         for stale in $(USER)/bin/*/$(ARCHIVE)/$(RECIPE_VERSION); do \
                           echo "removing stale binary archive $$stale"; \
                           rm -rf $$stale; \
