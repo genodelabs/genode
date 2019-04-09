@@ -50,7 +50,7 @@ struct Main
 
 	Env                    &env;
 	Packet_descriptor       pkt          { };
-	unsigned long           time_before_ms { };
+	uint64_t                time_before_ms { };
 	Timer::Connection       timer        { env };
 	Operation               operation    { READ };
 	Signal_handler<Main>    ack_handler  { env.ep(), *this, &Main::update_state };
@@ -81,9 +81,9 @@ struct Main
 		if (buf_off_done == buf_size) {
 
 			/* print stats for the current request size */
-			unsigned long const time_after_ms = timer.elapsed_ms();
-			unsigned long const duration_ms   = time_after_ms - time_before_ms;
-			size_t        const kib_per_sec   = (1000 * buf_size_kib) /
+			uint64_t const time_after_ms = timer.elapsed_ms();
+			uint64_t const duration_ms   = time_after_ms - time_before_ms;
+			size_t   const kib_per_sec   = (1000 * buf_size_kib) /
 			                                    duration_ms;
 			log("      duration:   ", duration_ms,  " ms");
 			log("      amount:     ", buf_size_kib, " KiB");

@@ -173,7 +173,7 @@ class Libc::Timed_semaphore : public Semaphore
 
 			protected:
 
-				bool on_alarm(unsigned) override
+				bool on_alarm(uint64_t) override
 				{
 					_triggered = _sem._abort(_element);
 					return false;

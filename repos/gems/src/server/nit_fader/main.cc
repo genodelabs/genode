@@ -443,9 +443,9 @@ struct Nit_fader::Main
 
 	unsigned long alpha = 0;
 
-	unsigned long curr_frame() const { return timer.elapsed_ms() / PERIOD; }
+	Genode::uint64_t curr_frame() const { return timer.elapsed_ms() / PERIOD; }
 
-	unsigned long last_frame = 0;
+	Genode::uint64_t last_frame = 0;
 
 	void handle_config_update();
 
@@ -463,7 +463,7 @@ struct Nit_fader::Main
 
 	void handle_timer()
 	{
-		unsigned long frame = curr_frame();
+		Genode::uint64_t frame = curr_frame();
 		if (nitpicker_session.animate(frame - last_frame))
 			timer.trigger_once(PERIOD);
 

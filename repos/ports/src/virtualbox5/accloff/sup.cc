@@ -104,7 +104,7 @@ uint64_t genode_cpu_hz() {
 }
 
 
-void genode_update_tsc(void (*update_func)(void), unsigned long update_us)
+void genode_update_tsc(void (*update_func)(void), Genode::uint64_t update_us)
 {
 	using namespace Genode;
 

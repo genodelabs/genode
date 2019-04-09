@@ -26,7 +26,7 @@ class Genode::Alarm
 {
 	public:
 
-		typedef unsigned long Time;
+		typedef uint64_t Time;
 
 	private:
 
@@ -38,7 +38,7 @@ class Genode::Alarm
 			bool deadline_period;
 			Time period;         /* duration between alarms      */
 
-			bool is_pending_at(unsigned long time, bool time_period) const;
+			bool is_pending_at(uint64_t time, bool time_period) const;
 		};
 
 		Lock             _dispatch_lock { };          /* taken during handle method   */
@@ -76,7 +76,7 @@ class Genode::Alarm
 		 * return value is 'true' and the alarm is periodically scheduled,
 		 * the alarm is scheduled again.
 		 */
-		virtual bool on_alarm(unsigned) { return false; }
+		virtual bool on_alarm(uint64_t) { return false; }
 
 	public:
 

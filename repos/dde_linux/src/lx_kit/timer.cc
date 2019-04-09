@@ -114,8 +114,8 @@ class Lx_kit::Timer : public Lx::Timer
 				return;
 
 			/* calculate relative microseconds for trigger */
-			unsigned long us = ctx->timeout > _jiffies ?
-			                   jiffies_to_msecs(ctx->timeout - _jiffies) * 1000 : 0;
+			Genode::uint64_t us = ctx->timeout > _jiffies ?
+			                      (Genode::uint64_t)jiffies_to_msecs(ctx->timeout - _jiffies) * 1000 : 0;
 			_timer_conn.trigger_once(us);
 		}
 
@@ -290,10 +290,10 @@ class Lx_kit::Timer : public Lx::Timer
 			 * Do not use lx_emul usecs_to_jiffies(unsigned int) because
 			 * of implicit truncation!
 			 */
-			_jiffies = _timer_conn_modern.curr_time().trunc_to_plain_ms().value / JIFFIES_TICK_MS;
+			_jiffies = (Genode::uint64_t)_timer_conn_modern.curr_time().trunc_to_plain_ms().value / JIFFIES_TICK_MS;
 		}
 
-		void usleep(unsigned us) {
+		void usleep(Genode::uint64_t us) {
 			_timer_conn.usleep(us); }
 };
 

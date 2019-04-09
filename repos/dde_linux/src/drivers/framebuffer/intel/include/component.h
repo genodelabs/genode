@@ -51,7 +51,7 @@ class Framebuffer::Driver
 		Timer::Connection              _timer;
 		Genode::Reporter               _reporter;
 		Genode::Signal_handler<Driver> _poll_handler;
-		unsigned long                  _poll_ms = 0;
+		Genode::uint64_t               _poll_ms = 0;
 
 		Genode::Signal_context_capability _config_sigh;
 
@@ -74,7 +74,7 @@ class Framebuffer::Driver
 		unsigned pitch()   const { return _config._lx.pitch;  }
 
 		void finish_initialization();
-		void set_polling(unsigned long poll);
+		void set_polling(Genode::uint64_t poll);
 		void update_mode();
 		void generate_report();
 
@@ -117,8 +117,8 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 		Genode::Attached_ram_dataspace       _ds;
 		bool                                 _in_mode_change = true;
 
-		unsigned long _polling_from_config() {
-			return _config.xml().attribute_value<unsigned long>("poll", 0); }
+		Genode::uint64_t _polling_from_config() {
+			return _config.xml().attribute_value<Genode::uint64_t>("poll", 0); }
 
 	public:
 

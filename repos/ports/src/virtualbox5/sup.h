@@ -41,7 +41,7 @@ bool create_emt_vcpu(pthread_t * pthread, size_t stack,
 
 
 uint64_t genode_cpu_hz();
-void genode_update_tsc(void (*update_func)(void), unsigned long update_us);
+void genode_update_tsc(void (*update_func)(void), Genode::uint64_t update_us);
 
 Genode::Cpu_session * get_vcpu_cpu_session();
 

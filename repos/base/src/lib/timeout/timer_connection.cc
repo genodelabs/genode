@@ -19,8 +19,8 @@ using namespace Genode;
 using namespace Genode::Trace;
 
 
-void Timer::Connection::_update_interpolation_quality(unsigned long min_factor,
-                                                      unsigned long max_factor)
+void Timer::Connection::_update_interpolation_quality(uint64_t min_factor,
+                                                      uint64_t max_factor)
 {
 	/*
 	 * If the factor gets adapted less than 12.5%, we raise the
@@ -35,9 +35,9 @@ void Timer::Connection::_update_interpolation_quality(unsigned long min_factor,
 }
 
 
-unsigned long Timer::Connection::_ts_to_us_ratio(Timestamp     ts,
-                                                 unsigned long us,
-                                                 unsigned      shift)
+uint64_t Timer::Connection::_ts_to_us_ratio(Timestamp ts,
+                                            uint64_t  us,
+                                            unsigned  shift)
 {
 	/*
 	 * If the timestamp difference is to big to do the following
@@ -59,8 +59,8 @@ unsigned long Timer::Connection::_ts_to_us_ratio(Timestamp     ts,
 	 * the calculation. This upscaling must be considered when using
 	 * the result.
 	 */
-	Timestamp     const result    = (ts << shift) / us;
-	unsigned long const result_ul = (unsigned long)result;
+	Timestamp const result    = (ts << shift) / us;
+	uint64_t  const result_ul = (uint64_t)result;
 	if (result != result_ul) {
 		warning("Timestamp-to-time ratio too big");
 		return ~0UL;
@@ -87,7 +87,7 @@ Duration Timer::Connection::_update_interpolated_time(Duration &interpolated_tim
 
 void Timer::Connection::_handle_timeout()
 {
-	unsigned long const us = elapsed_us();
+	uint64_t const us = elapsed_us();
 	if (us - _us > REAL_TIME_UPDATE_PERIOD_US) {
 		_update_real_time();
 	}

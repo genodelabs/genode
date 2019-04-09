@@ -1035,7 +1035,7 @@ class Vmm
 						*reg = 0;
 						return;
 					case SYS_24MHZ: /* 24 MHz counter */
-						*reg = _timer.elapsed_ms() * 24000;
+						*reg = (Genode::uint32_t)_timer.elapsed_ms() * 24000;
 						return;
 					case SYS_MISC:
 						*reg = 1 << 12;

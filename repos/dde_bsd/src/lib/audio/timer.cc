@@ -25,7 +25,7 @@
 #include <bsd_emul.h>
 
 
-static unsigned long millisecs;
+static Genode::uint64_t millisecs;
 
 
 namespace Bsd {
@@ -71,7 +71,7 @@ class Bsd::Timer
 			millisecs = _timer_conn.elapsed_ms();
 		}
 
-		void delay(unsigned ms)
+		void delay(Genode::uint64_t ms)
 		{
 			_timer_conn.msleep(ms);
 		}
@@ -88,7 +88,7 @@ void Bsd::timer_init(Genode::Env &env)
 	_bsd_timer = &bsd_timer;
 
 	/* initialize value explicitly */
-	millisecs = 0UL;
+	millisecs = 0;
 }
 
 

@@ -63,7 +63,7 @@ class Scout::Platform
 
 		Timer::Connection _timer { _env };
 
-		unsigned long _ticks = 0;
+		Genode::uint64_t _ticks = 0;
 
 		void _handle_timer()
 		{
@@ -128,7 +128,7 @@ class Scout::Platform
 		/**
 		 * Get timer ticks in miilliseconds
 		 */
-		unsigned long timer_ticks() const { return _ticks; }
+		Genode::uint64_t timer_ticks() const { return _ticks; }
 
 		/**
 		 * Register event handler

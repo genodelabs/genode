@@ -329,7 +329,7 @@ struct Dummy::Main
 				if (!_timer.constructed())
 					_timer.construct(_env);
 
-				_timer->msleep(node.attribute_value("ms", 100UL));
+				_timer->msleep(node.attribute_value("ms", (uint64_t)100));
 			}
 
 			if (node.type() == "sleep_forever")

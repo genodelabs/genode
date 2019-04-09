@@ -119,7 +119,7 @@ class Depot_deploy::Timeout_event : public Event,
 
 		Child                                  &_child;
 		Timer::Connection                      &_timer;
-		unsigned long const                     _sec;
+		Genode::uint64_t const                  _sec;
 		Timer::One_shot_timeout<Timeout_event>  _timeout;
 
 		void _handle_timeout(Duration);
@@ -136,7 +136,7 @@ class Depot_deploy::Timeout_event : public Event,
 		 ** Accessors **
 		 ***************/
 
-		unsigned long sec() const { return _sec; }
+		Genode::uint64_t sec() const { return _sec; }
 };
 
 
@@ -206,15 +206,15 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		                                  Xml_node              from_node,
 		                                  Xml_node::Type const &sub_node_type);
 
-		void _finished(State                state,
-		               Event         const &event,
-		               unsigned long const  time_us);
+		void _finished(State                   state,
+		               Event            const &event,
+		               Genode::uint64_t const  time_us);
 
 		State_name _padded_state_name() const;
 
 	public:
 
-		unsigned long init_time_us { 0 };
+		Genode::uint64_t init_time_us { 0 };
 
 		Child(Genode::Allocator                       &alloc,
 		      Genode::Xml_node                         start_node,
@@ -229,8 +229,8 @@ class Depot_deploy::Child : public List_model<Child>::Element
 
 		void conclusion(Result &result);
 
-		void event_occured(Event         const &event,
-		                   unsigned long const  time_us);
+		void event_occured(Event            const &event,
+		                   Genode::uint64_t const  time_us);
 
 		void apply_config(Xml_node start_node);
 

@@ -127,8 +127,8 @@ class Lx::Timer
 				return;
 
 			/* calculate relative microseconds for trigger */
-			unsigned long us = ctx->timeout > jiffies ?
-			                   jiffies_to_msecs(ctx->timeout - jiffies) * 1000 : 0;
+			Genode::uint64_t us = ctx->timeout > jiffies ?
+			                      (Genode::uint64_t)jiffies_to_msecs(ctx->timeout - jiffies) * 1000 : 0;
 			_timers_one_shot.schedule(Genode::Microseconds{us});
 		}
 

@@ -95,7 +95,7 @@ struct Igd::Device
 		Timer::Connection &_timer;
 		Timer_delayer(Timer::Connection &timer) : _timer(timer) { }
 
-		void usleep(unsigned us) override { _timer.usleep(us); }
+		void usleep(uint64_t us) override { _timer.usleep(us); }
 
 	} _delayer { _timer };
 

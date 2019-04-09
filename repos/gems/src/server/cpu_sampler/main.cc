@@ -50,7 +50,7 @@ struct Cpu_sampler::Main : Thread_list_change_handler
 
 	unsigned int            sample_index;
 	unsigned int            max_sample_index;
-	unsigned int            timeout_us;
+	Genode::uint64_t        timeout_us;
 
 
 	void handle_timeout()
@@ -87,11 +87,11 @@ struct Cpu_sampler::Main : Thread_list_change_handler
 
 		sample_index = 0;
 
-		unsigned int sample_interval_ms =
-			config.xml().attribute_value<unsigned int>("sample_interval_ms", 1000);
+		Genode::uint64_t sample_interval_ms =
+			config.xml().attribute_value<Genode::uint64_t>("sample_interval_ms", 1000);
 
-		unsigned int sample_duration_s =
-			config.xml().attribute_value<unsigned int>("sample_duration_s", 10);
+		Genode::uint64_t sample_duration_s =
+			config.xml().attribute_value<Genode::uint64_t>("sample_duration_s", 10);
 
 		max_sample_index = ((sample_duration_s * 1000) / sample_interval_ms) - 1;
 

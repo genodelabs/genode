@@ -202,7 +202,7 @@ class Sd_card::Driver : public  Driver_base,
 		{
 			Timer_delayer(Genode::Env &env) : Timer::Connection(env) { }
 
-			void usleep(unsigned us) override { Timer::Connection::usleep(us); }
+			void usleep(uint64_t us) override { Timer::Connection::usleep(us); }
 		};
 
 		struct Block_transfer

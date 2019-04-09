@@ -53,7 +53,7 @@ void Timer::Time_source::schedule_timeout(Microseconds     duration,
                                           Timeout_handler &handler)
 {
 	_handler = &handler;
-	unsigned long duration_us = duration.value;
+	uint64_t duration_us = duration.value;
 
 	/* timeout '0' is trigger to cancel the current pending, if required */
 	if (!duration.value) {
@@ -62,8 +62,8 @@ void Timer::Time_source::schedule_timeout(Microseconds     duration,
 	} else {
 		/* limit timer-interrupt rate */
 		enum { MAX_TIMER_IRQS_PER_SECOND = 4*1000 };
-		if (duration_us < 1000 * 1000 / MAX_TIMER_IRQS_PER_SECOND)
-			duration_us = 1000 * 1000 / MAX_TIMER_IRQS_PER_SECOND;
+		if (duration_us < (uint64_t)1000 * 1000 / MAX_TIMER_IRQS_PER_SECOND)
+			duration_us = (uint64_t)1000 * 1000 / MAX_TIMER_IRQS_PER_SECOND;
 
 		if (duration_us > max_timeout().value)
 			duration_us = max_timeout().value;

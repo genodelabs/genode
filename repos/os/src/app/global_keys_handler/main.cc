@@ -175,7 +175,7 @@ struct Global_keys_handler::Main
 		 */
 		Constructible<Timer::Connection> _timer { };
 
-		unsigned long const _delay_ms;
+		uint64_t const _delay_ms;
 
 		Signal_handler<Report> _timer_handler;
 
@@ -189,7 +189,7 @@ struct Global_keys_handler::Main
 			_element(reports, *this),
 			_bool_states(bool_states),
 			_reporter(env, _name.string()),
-			_delay_ms(node.attribute_value("delay_ms", 0UL)),
+			_delay_ms(node.attribute_value("delay_ms", (uint64_t)0)),
 			_timer_handler(env.ep(), *this, &Report::_generate_report)
 		{
 			_reporter.enabled(true);

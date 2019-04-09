@@ -45,10 +45,10 @@ class Init::State_reporter : public Report_update_trigger
 
 		Reconstructible<Report_detail> _report_detail { };
 
-		unsigned _report_delay_ms = 0;
+		uint64_t _report_delay_ms = 0;
 
 		/* interval used when child-ram reporting is enabled */
-		unsigned _report_period_ms = 0;
+		uint64_t _report_period_ms = 0;
 
 		/* version string from config, to be reflected in the report */
 		typedef String<64> Version;
@@ -158,7 +158,7 @@ class Init::State_reporter : public Report_update_trigger
 			 * the user intends to limit the rate of state reports. If so, we
 			 * use the value of 'delay_ms' as interval.
 			 */
-			unsigned const period_ms           = max(1000U, _report_delay_ms);
+			uint64_t const period_ms           = max(1000U, _report_delay_ms);
 			bool     const period_changed      = (_report_period_ms != period_ms);
 			bool     const report_periodically = _report_detail->child_ram()
 			                                  || _report_detail->child_caps();

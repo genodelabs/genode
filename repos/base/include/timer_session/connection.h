@@ -205,22 +205,22 @@ class Timer::Connection : public  Genode::Connection<Session>,
 
 		Timeout_handler *_handler               { nullptr };
 		Lock             _real_time_lock        { Lock::UNLOCKED };
-		unsigned long    _us                    { elapsed_us() };
+		uint64_t         _us                    { elapsed_us() };
 		Timestamp        _ts                    { _timestamp() };
 		Duration         _real_time             { Microseconds(_us) };
 		Duration         _interpolated_time     { _real_time };
 		unsigned         _interpolation_quality { 0 };
-		unsigned long    _us_to_ts_factor       { 1UL };
+		uint64_t         _us_to_ts_factor       { 1UL };
 		unsigned         _us_to_ts_factor_shift { 0 };
 
 		Timestamp _timestamp();
 
-		void _update_interpolation_quality(unsigned long min_factor,
-		                                   unsigned long max_factor);
+		void _update_interpolation_quality(uint64_t min_factor,
+		                                   uint64_t max_factor);
 
-		unsigned long _ts_to_us_ratio(Timestamp     ts,
-		                              unsigned long us,
-		                              unsigned      shift);
+		uint64_t _ts_to_us_ratio(Timestamp ts,
+		                         uint64_t  us,
+		                         unsigned  shift);
 
 		void _update_real_time();
 
@@ -284,7 +284,7 @@ class Timer::Connection : public  Genode::Connection<Session>,
 		 * \noapi
 		 * \deprecated  Use One_shot_timeout (or Periodic_timeout) instead
 		 */
-		void usleep(unsigned us) override
+		void usleep(uint64_t us) override
 		{
 			if (_mode == MODERN) {
 				throw Cannot_use_both_legacy_and_modern_interface();
@@ -322,7 +322,7 @@ class Timer::Connection : public  Genode::Connection<Session>,
 		 * \noapi
 		 * \deprecated  Use One_shot_timeout (or Periodic_timeout) instead
 		 */
-		void msleep(unsigned ms) override
+		void msleep(uint64_t ms) override
 		{
 			if (_mode == MODERN) {
 				throw Cannot_use_both_legacy_and_modern_interface();

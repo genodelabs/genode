@@ -541,7 +541,7 @@ void Component::construct(Genode::Env &env)
 
 	MAX_DEPTH = config_xml.attribute_value("depth", 16U);
 
-	unsigned long elapsed_ms;
+	uint64_t elapsed_ms;
 	Timer::Connection timer(env);
 
 	/* populate the directory file system at / */

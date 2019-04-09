@@ -685,7 +685,7 @@ struct Nvme::Controller : public Genode::Attached_mmio
 	{
 		enum { MAX = 50u, TO_UNIT = 500u, };
 		Attempts     const a(MAX);
-		Microseconds const t((read<Cap::To>() * TO_UNIT) * (1000 / MAX));
+		Microseconds const t(((uint64_t)read<Cap::To>() * TO_UNIT) * (1000 / MAX));
 		try {
 			wait_for(a, t, _delayer, Csts::Rdy::Equal(val));
 		} catch (Mmio::Polling_timeout) {
@@ -1376,7 +1376,7 @@ class Driver : public Block::Driver
 			Timer_delayer(Genode::Env &env)
 			: Timer::Connection(env) { }
 
-			void usleep(unsigned us) override { Timer::Connection::usleep(us); }
+			void usleep(uint64_t us) override { Timer::Connection::usleep(us); }
 
 		} _delayer { _env };
 

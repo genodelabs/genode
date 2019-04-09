@@ -307,8 +307,8 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				int _rd_array[in_fds_total];
 				int _wr_array[in_fds_total];
 
-				unsigned long timeout_sec  = _sysio.select_in.timeout.sec;
-				unsigned long timeout_usec = _sysio.select_in.timeout.usec;
+				Genode::uint64_t timeout_sec  = _sysio.select_in.timeout.sec;
+				Genode::uint64_t timeout_usec = _sysio.select_in.timeout.usec;
 
 				bool timeout_reached = false;
 

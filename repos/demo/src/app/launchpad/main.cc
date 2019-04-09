@@ -130,7 +130,7 @@ struct Main : Scout::Event_handler
 
 	bool const _launchpad_initialized = (_init_launchpad(), true);
 
-	unsigned long _old_time = _platform.timer_ticks();
+	Genode::uint64_t _old_time = _platform.timer_ticks();
 
 	void handle_event(Scout::Event const &event) override
 	{
@@ -147,7 +147,7 @@ struct Main : Scout::Event_handler
 			Tick::handle(_platform.timer_ticks());
 
 		/* perform periodic redraw */
-		unsigned long const curr_time = _platform.timer_ticks();
+		Genode::uint64_t const curr_time = _platform.timer_ticks();
 		if (!_platform.event_pending() && ((curr_time - _old_time > 20)
 		                               || (curr_time < _old_time))) {
 			_old_time = curr_time;

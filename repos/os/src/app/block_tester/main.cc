@@ -262,7 +262,7 @@ struct Test::Test_base : private Genode::Fifo<Test_base>::Element
 			_verbose(node.attribute_value("verbose", false)),
 			_io_buffer(_node.attribute_value("io_buffer",
 			                                 Number_of_bytes(4*1024*1024))),
-			_progress_interval(_node.attribute_value("progress", 0ul)),
+			_progress_interval(_node.attribute_value("progress", (uint64_t)0)),
 			_copy(_node.attribute_value("copy", true)),
 			_batch(_node.attribute_value("batch", 1u)),
 			_finished_sig(finished_sig)

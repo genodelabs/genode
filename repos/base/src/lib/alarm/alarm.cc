@@ -83,7 +83,7 @@ void Alarm_scheduler::_unsynchronized_dequeue(Alarm *alarm)
 }
 
 
-bool Alarm::Raw::is_pending_at(unsigned long time, bool time_period) const
+bool Alarm::Raw::is_pending_at(uint64_t time, bool time_period) const
 {
 	return (time_period == deadline_period &&
 	        time        >= deadline) ||
@@ -139,7 +139,7 @@ void Alarm_scheduler::handle(Alarm::Time curr_time)
 	Alarm *curr;
 	while ((curr = _get_pending_alarm())) {
 
-		unsigned long triggered = 1;
+		uint64_t triggered = 1;
 
 		if (curr->_raw.period) {
 			Alarm::Time deadline = curr->_raw.deadline;

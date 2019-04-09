@@ -11,7 +11,6 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#include "file_system.h"
 
 #include <rump/env.h>
 #include <rump_fs/fs.h>
@@ -19,6 +18,8 @@
 #include <util/hard_context.h>
 #include <base/log.h>
 #include <base/attached_rom_dataspace.h>
+
+#include "file_system.h"
 
 /**
  * We define our own fs arg structure to fit all sizes used by the different

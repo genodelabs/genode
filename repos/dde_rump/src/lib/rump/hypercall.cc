@@ -311,7 +311,7 @@ void rumpuser_free(void *mem, size_t len)
 int rumpuser_clock_gettime(int enum_rumpclock, int64_t *sec, long *nsec)
 {
 	Hard_context *h = myself();
-	unsigned long t = h->timer().elapsed_ms();
+	Genode::uint64_t t = h->timer().elapsed_ms();
 	*sec = (int64_t)t / 1000;
 	*nsec = (t % 1000) * 1000;
 	return 0;
@@ -321,18 +321,18 @@ int rumpuser_clock_gettime(int enum_rumpclock, int64_t *sec, long *nsec)
 int rumpuser_clock_sleep(int enum_rumpclock, int64_t sec, long nsec)
 {
 	int nlocks;
-	unsigned int msec = 0;
+	Genode::uint64_t msec = 0;
 
 	Timer::Connection &timer  = myself()->timer();
 
 	rumpkern_unsched(&nlocks, 0);
 	switch (enum_rumpclock) {
 		case RUMPUSER_CLOCK_RELWALL:
-			msec = sec * 1000 + nsec / (1000*1000UL);
+			msec = (Genode::uint64_t)sec * 1000 + nsec / (1000*1000UL);
 			break;
 		case RUMPUSER_CLOCK_ABSMONO:
 			msec = timer.elapsed_ms();
-			msec = ((sec * 1000) + (nsec / (1000 * 1000))) - msec;
+			msec = (((Genode::uint64_t)sec * 1000) + ((Genode::uint64_t)nsec / (1000 * 1000))) - msec;
 			break;
 	}
 

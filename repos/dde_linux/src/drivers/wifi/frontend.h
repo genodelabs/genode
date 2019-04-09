@@ -368,8 +368,8 @@ struct Wifi::Frontend
 	bool _deferred_config_update { false };
 	bool _single_autoconnect     { false };
 
-	unsigned _connected_scan_interval { 30 };
-	unsigned _scan_interval           {  5 };
+	Genode::uint64_t _connected_scan_interval { 30 };
+	Genode::uint64_t _scan_interval           {  5 };
 
 	void _config_update(bool signal)
 	{
@@ -385,12 +385,12 @@ struct Wifi::Frontend
 		/* only evaluated at start-up */
 		_use_11n = config.attribute_value("use_11n", _use_11n);
 
-		unsigned connected_scan_interval =
+		Genode::uint64_t connected_scan_interval =
 			Util::check_time(config.attribute_value("connected_scan_interval",
 			                                        _connected_scan_interval),
 			                 0, 15*60);
 
-		unsigned scan_interval =
+		Genode::uint64_t scan_interval =
 			Util::check_time(config.attribute_value("scan_interval",
 			                                        _scan_interval),
 			                 5, 15*60);
@@ -699,7 +699,7 @@ struct Wifi::Frontend
 
 	bool _arm_scan_timer(bool connected)
 	{
-		unsigned const sec = connected ? _connected_scan_interval : _scan_interval;
+		Genode::uint64_t const sec = connected ? _connected_scan_interval : _scan_interval;
 		if (!sec) { return false; }
 
 		if (_verbose) {

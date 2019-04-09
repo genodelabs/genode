@@ -89,7 +89,7 @@ Microseconds Dhcp_client::_rerequest_timeout(unsigned lease_time_div_log2)
 {
 	/* FIXME limit the time because of shortcomings in timeout framework */
 	enum { MAX_TIMEOUT_SEC = 3600 };
-	unsigned long timeout_sec = _lease_time_sec >> lease_time_div_log2;
+	uint64_t timeout_sec = _lease_time_sec >> lease_time_div_log2;
 
 	if (timeout_sec > MAX_TIMEOUT_SEC) {
 		timeout_sec = MAX_TIMEOUT_SEC;
@@ -102,7 +102,7 @@ Microseconds Dhcp_client::_rerequest_timeout(unsigned lease_time_div_log2)
 				log("[?] prune re-request timeout of DHCP client"); }
 		}
 	}
-	return Microseconds(timeout_sec * 1000UL * 1000UL);
+	return Microseconds(timeout_sec * 1000 * 1000);
 }
 
 

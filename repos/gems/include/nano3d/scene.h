@@ -280,7 +280,7 @@ class Nano3d::Scene
 
 	public:
 
-		Scene(Genode::Env &env, unsigned update_rate_ms,
+		Scene(Genode::Env &env, Genode::uint64_t update_rate_ms,
 		      Nitpicker::Point pos, Nitpicker::Area size)
 		:
 			_env(env), _pos(pos), _size(size)
@@ -302,7 +302,7 @@ class Nano3d::Scene
 
 		virtual ~Scene() { }
 
-		unsigned long elapsed_ms() const { return _timer.elapsed_ms(); }
+		Genode::uint64_t elapsed_ms() const { return _timer.elapsed_ms(); }
 
 		void input_handler(Input_handler *input_handler)
 		{

@@ -120,8 +120,8 @@ class Dynamic_rom::Session_component : public Rpc_object<Genode::Rom_session>
 			if (curr_step.has_type("sleep")
 			 && curr_step.has_attribute("milliseconds")) {
 
-				unsigned long const milliseconds =
-					curr_step.attribute_value("milliseconds", 0UL);
+				Genode::uint64_t const milliseconds =
+					curr_step.attribute_value("milliseconds", (Genode::uint64_t)0);
 
 				_timer.trigger_once(milliseconds*1000);
 				_log("sleep ", milliseconds, " milliseconds");

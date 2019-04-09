@@ -86,7 +86,7 @@ class Lx::Timer
 		/**
 		 * Suspend calling thread
 		 */
-		virtual void usleep(unsigned us) = 0;
+		virtual void usleep(Genode::uint64_t us) = 0;
 };
 
 

@@ -31,7 +31,7 @@ struct Test : Thread
 	Timeout_entrypoint timeout_ep;
 	unsigned           id;
 	Timer::Connection  wakeup_timer;
-	unsigned const     wakeup_period;
+	uint64_t const     wakeup_period;
 	Timed_semaphore    sem            { timeout_ep };
 	bool               stop_wakeup    { false };
 	Lock               wakeup_stopped { Lock::LOCKED };

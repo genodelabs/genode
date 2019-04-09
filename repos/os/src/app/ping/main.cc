@@ -31,11 +31,11 @@ using namespace Net;
 using namespace Genode;
 
 
-Microseconds read_sec_attr(Xml_node      const  node,
-                           char          const *name,
-                           unsigned long const  default_sec)
+Microseconds read_sec_attr(Xml_node const  node,
+                           char     const *name,
+                           uint64_t const  default_sec)
 {
-	unsigned long sec = node.attribute_value(name, 0UL);
+	uint64_t sec = node.attribute_value(name, (uint64_t)0);
 	if (!sec) {
 		sec = default_sec;
 	}
@@ -63,7 +63,7 @@ class Main : public Nic_handler,
 		Xml_node                        _config        { _config_rom.xml() };
 		Timer::Connection               _timer         { _env };
 		Microseconds                    _send_time     { 0 };
-		Microseconds                    _period_us     { read_sec_attr(_config, "period_sec", DEFAULT_PERIOD_SEC) };
+		Microseconds                    _period_us     { read_sec_attr(_config, "period_sec", (uint64_t)DEFAULT_PERIOD_SEC) };
 		Constructible<Periodic_timeout> _period        { };
 		Heap                            _heap          { &_env.ram(), &_env.rm() };
 		bool                     const  _verbose       { _config.attribute_value("verbose", false) };
@@ -271,13 +271,13 @@ void Main::_handle_icmp_echo_reply(Ipv4_packet &ip,
 		chr = chr < 'z' ? chr + 1 : 'a';
 	}
 	/* calculate time since the request was sent */
-	unsigned long time_us = _timer.curr_time().trunc_to_plain_us().value - _send_time.value;
-	unsigned long const time_ms = time_us / 1000UL;
+	uint64_t time_us = _timer.curr_time().trunc_to_plain_us().value - _send_time.value;
+	uint64_t const time_ms = time_us / 1000UL;
 	time_us = time_us - time_ms * 1000UL;
 
 	/* print success message */
 	log(ICMP_DATA_SIZE + sizeof(Icmp_packet), " bytes from ", ip.src(),
-	    ": icmp_seq=", icmp_seq, " ttl=", (unsigned long)IPV4_TIME_TO_LIVE,
+	    ": icmp_seq=", icmp_seq, " ttl=", (uint64_t)IPV4_TIME_TO_LIVE,
 	    " time=", time_ms, ".", time_us ," ms");
 
 	/* raise ICMP sequence number and check exit condition */
@@ -405,12 +405,12 @@ void Main::_handle_udp(Ipv4_packet &ip,
 		return;
 	}
 	/* calculate time since the request was sent */
-	unsigned long time_us = _timer.curr_time().trunc_to_plain_us().value - _send_time.value;
-	unsigned long const time_ms = time_us / 1000UL;
+	uint64_t time_us = _timer.curr_time().trunc_to_plain_us().value - _send_time.value;
+	uint64_t const time_ms = time_us / 1000UL;
 	time_us = time_us - time_ms * 1000UL;
 
 	/* print success message */
-	log(udp.length(), " bytes from ", ip.src(), " ttl=", (unsigned long)IPV4_TIME_TO_LIVE,
+	log(udp.length(), " bytes from ", ip.src(), " ttl=", (uint64_t)IPV4_TIME_TO_LIVE,
 	    " time=", time_ms, ".", time_us ," ms");
 
 	/* check exit condition */

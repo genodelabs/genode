@@ -130,7 +130,7 @@ struct Main
 		log("start measurement ...");
 		timer.sigh(timer_signal.cap);
 
-		auto measure = [&] (unsigned duration_sec) {
+		auto measure = [&] (uint64_t duration_sec) {
 			timer.trigger_once(duration_sec * 1000 * 1000);
 			synchronizer.synchronize();
 			timer_signal.receive();

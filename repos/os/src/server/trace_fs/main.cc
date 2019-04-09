@@ -51,7 +51,7 @@ namespace Trace_fs {
  */
 struct Trace_fs::Policy
 {
-	unsigned                interval;  /* in milliseconds */
+	uint64_t                interval;  /* in milliseconds */
 	unsigned                subject_limit;
 	Genode::Number_of_bytes trace_quota;
 	Genode::Number_of_bytes trace_meta_quota;
@@ -65,7 +65,7 @@ struct Trace_fs::Policy
 	static Policy from_xml(Xml_node node)
 	{
 		return Policy {
-			.interval            = node.attribute_value("interval",         1000U),
+			.interval            = node.attribute_value("interval",         (uint64_t)1000),
 			.subject_limit       = node.attribute_value("subject_limit",    128U),
 			.trace_quota         = node.attribute_value("trace_quota",      _mib(32)),
 			.trace_meta_quota    = node.attribute_value("trace_meta_quota", _kib(256)),
@@ -649,7 +649,7 @@ class Trace_fs::Session_component : public Session_rpc_object
 		bool                         _writeable;
 
 		unsigned              _subject_limit;
-		unsigned              _poll_interval;
+		uint64_t              _poll_interval;
 
 		Timer::Connection    _fs_update_timer;
 

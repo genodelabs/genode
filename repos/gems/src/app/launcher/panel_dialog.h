@@ -403,7 +403,7 @@ class Launcher::Panel_dialog : Input_event_handler, Dialog_generator,
 				 * button for a while.
 				 */
 				enum { CONTEXT_DELAY = 500 };
-				_timer.trigger_once(CONTEXT_DELAY*1000);
+				_timer.trigger_once((Genode::uint64_t)CONTEXT_DELAY*1000);
 			}
 
 			/*

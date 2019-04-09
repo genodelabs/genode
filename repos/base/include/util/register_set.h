@@ -666,8 +666,8 @@ class Genode::Register_set : Noncopyable
 
 		struct Microseconds
 		{
-			unsigned value;
-			explicit Microseconds(unsigned value) : value(value) { }
+			uint64_t value;
+			explicit Microseconds(uint64_t value) : value(value) { }
 		};
 
 		/**
@@ -678,7 +678,7 @@ class Genode::Register_set : Noncopyable
 			/**
 			 * Delay execution of the caller for 'us' microseconds
 			 */
-			virtual void usleep(unsigned us) = 0;
+			virtual void usleep(uint64_t us) = 0;
 		};
 
 

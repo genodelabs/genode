@@ -37,11 +37,11 @@ Duration Timer::Time_source::curr_time()
 {
 	struct timeval tv;
 	lx_gettimeofday(&tv, 0);
-	return Duration(Microseconds(tv.tv_sec * 1000 * 1000 + tv.tv_usec));
+	return Duration(Microseconds((uint64_t)tv.tv_sec * 1000 * 1000 + tv.tv_usec));
 }
 
 
-void Timer::Time_source::_usleep(unsigned long us)
+void Timer::Time_source::_usleep(uint64_t us)
 {
 	struct timespec ts;
 	ts.tv_sec  =  us / (1000 * 1000);

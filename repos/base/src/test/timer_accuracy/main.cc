@@ -23,7 +23,7 @@ struct Main
 {
 	Timer::Connection    timer;
 	Signal_handler<Main> timer_handler;
-	unsigned             duration_us { 0 };
+	uint64_t             duration_us { 0 };
 
 	void handle_timer()
 	{

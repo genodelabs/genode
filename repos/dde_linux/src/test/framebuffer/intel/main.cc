@@ -50,7 +50,7 @@ struct Framebuffer_controller
 	  timer_handler(env.ep(), *this, &Framebuffer_controller::handle_timer)
 	{
 		Attached_rom_dataspace config(env, "config");
-		unsigned long const period_ms = config.xml().attribute_value("artifical_update_ms", 0UL);
+		Genode::uint64_t const period_ms = config.xml().attribute_value("artifical_update_ms", (Genode::uint64_t)0);
 
 		rom.sigh(rom_sigh);
 

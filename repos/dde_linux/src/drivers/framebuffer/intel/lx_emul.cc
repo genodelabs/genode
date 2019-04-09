@@ -170,7 +170,7 @@ void Framebuffer::Driver::_poll()
 }
 
 
-void Framebuffer::Driver::set_polling(unsigned long poll)
+void Framebuffer::Driver::set_polling(Genode::uint64_t poll)
 {
 	if (poll == _poll_ms) return;
 

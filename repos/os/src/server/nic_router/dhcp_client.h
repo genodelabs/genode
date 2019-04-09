@@ -41,7 +41,7 @@ class Net::Dhcp_client
 		Interface                            &_interface;
 		State                                 _state { State::INIT };
 		Timer::One_shot_timeout<Dhcp_client>  _timeout;
-		unsigned long                         _lease_time_sec = 0;
+		Genode::uint64_t                      _lease_time_sec = 0;
 
 		void _handle_dhcp_reply(Dhcp_packet &dhcp);
 

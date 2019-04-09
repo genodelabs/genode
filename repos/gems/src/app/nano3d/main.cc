@@ -103,7 +103,7 @@ class Scene : public Nano3d::Scene<PT>
 
 	public:
 
-		Scene(Genode::Env &env, unsigned update_rate_ms,
+		Scene(Genode::Env &env, Genode::uint64_t update_rate_ms,
 		      Nitpicker::Point pos, Nitpicker::Area size)
 		:
 			Nano3d::Scene<PT>(env, update_rate_ms, pos, size),

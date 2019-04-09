@@ -41,16 +41,17 @@ namespace Fiasco {
 using namespace Fiasco;
 using Microseconds = Genode::Microseconds;
 using Duration     = Genode::Duration;
+using Genode::uint64_t;
 
 
-static l4_timeout_s mus_to_timeout(unsigned long mus)
+static l4_timeout_s mus_to_timeout(uint64_t mus)
 {
 	if (mus == 0)
 		return L4_IPC_TIMEOUT_0;
-	else if (mus == ~0UL)
+	else if (mus == ~(uint64_t)0)
 		return L4_IPC_TIMEOUT_NEVER;
 
-	long e = Genode::log2(mus) - 7;
+	long e = Genode::log2((unsigned long)mus) - 7;
 	unsigned long m;
 	if (e < 0) e = 0;
 	m = mus / (1UL << e);
@@ -89,5 +90,5 @@ Duration Timer::Time_source::curr_time()
 }
 
 
-void Timer::Time_source::_usleep(unsigned long usecs) {
+void Timer::Time_source::_usleep(uint64_t usecs) {
 	l4_ipc_sleep(l4_timeout(L4_IPC_TIMEOUT_NEVER, mus_to_timeout(usecs))); }

@@ -19,7 +19,7 @@
 extern "C" __attribute__((weak))
 int _nanosleep(const struct timespec *req, struct timespec *rem)
 {
-	unsigned long sleep_ms = req->tv_sec*1000 + req->tv_nsec/1000000;
+	Genode::uint64_t sleep_ms = (uint64_t)req->tv_sec*1000 + req->tv_nsec/1000000;
 
 	if (!sleep_ms) return 0;
 

@@ -69,12 +69,12 @@ class Lx_kit::Scheduler : public Lx::Scheduler
 
 		struct Logger : Genode::Thread
 		{
-			Timer::Connection  _timer;
-			Lx::Scheduler     &_scheduler;
-			unsigned     const _interval;
+			Timer::Connection       _timer;
+			Lx::Scheduler          &_scheduler;
+			Genode::uint64_t const  _interval;
 
 			Logger(Genode::Env &env, Lx::Scheduler &scheduler,
-			       unsigned interval_seconds)
+			       Genode::uint64_t interval_seconds)
 			:
 				Genode::Thread(env, "logger", 0x4000),
 				_timer(env), _scheduler(scheduler),

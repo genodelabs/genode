@@ -19,6 +19,8 @@
  ** linux/jiffies.h **
  *********************/
 
+#include <base/fixed_stdint.h>
+
 #define MAX_JIFFY_OFFSET ((LONG_MAX >> 1)-1)
 
 extern unsigned long jiffies;
@@ -29,11 +31,11 @@ enum {
 	JIFFIES_TICK_NS = 1000ULL*1000*1000/HZ,
 };
 
-static inline unsigned long msecs_to_jiffies(const unsigned int m) { return m / JIFFIES_TICK_MS; }
-static inline unsigned long usecs_to_jiffies(const unsigned int u) { return u / JIFFIES_TICK_US; }
+static inline unsigned long msecs_to_jiffies(const genode_uint64_t m) { return m / JIFFIES_TICK_MS; }
+static inline unsigned long usecs_to_jiffies(const genode_uint64_t u) { return u / JIFFIES_TICK_US; }
 
-static inline unsigned int jiffies_to_msecs(const unsigned long j) { return      j * JIFFIES_TICK_MS; }
-static inline u64          jiffies_to_nsecs(const unsigned long j) { return (u64)j * JIFFIES_TICK_NS; }
+static inline genode_uint64_t jiffies_to_msecs(const unsigned long j) { return      j * JIFFIES_TICK_MS; }
+static inline genode_uint64_t jiffies_to_nsecs(const unsigned long j) { return (u64)j * JIFFIES_TICK_NS; }
 
 clock_t jiffies_to_clock_t(unsigned long x);
 static inline clock_t jiffies_delta_to_clock_t(long delta)

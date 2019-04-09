@@ -22,7 +22,11 @@
 /* local includes */
 #include <threaded_time_source.h>
 
-namespace Timer { class Time_source; }
+namespace Timer {
+
+	using Genode::uint64_t;
+	class Time_source;
+}
 
 
 class Timer::Time_source : public Threaded_time_source
@@ -45,7 +49,7 @@ class Timer::Time_source : public Threaded_time_source
 		}
 
 		Genode::addr_t           _sem        { ~0UL };
-		unsigned long            _timeout_us { 0 };
+		uint64_t                 _timeout_us { 0 };
 		unsigned long      const _tsc_khz;
 		Duration                 _curr_time  { Microseconds(0) };
 		Genode::Trace::Timestamp _tsc_start  { Genode::Trace::timestamp() };
@@ -54,7 +58,7 @@ class Timer::Time_source : public Threaded_time_source
 		/* 1 / ((us / (1000 * 1000)) * (tsc_khz * 1000)) */
 		enum { TSC_FACTOR = 1000ULL };
 
-		inline Genode::uint64_t _tsc_to_us(Genode::uint64_t tsc) const
+		inline uint64_t _tsc_to_us(uint64_t tsc) const
 		{
 			return (tsc) / (_tsc_khz / TSC_FACTOR);
 		}
@@ -84,8 +88,8 @@ class Timer::Time_source : public Threaded_time_source
 
 		Microseconds max_timeout() const override
 		{
-			unsigned long long const max_us_ull = _tsc_to_us(~0ULL);
-			return max_us_ull > ~0UL ? Microseconds(~0UL) : Microseconds(max_us_ull);
+			uint64_t const max_us = _tsc_to_us(~(uint64_t)0);
+			return max_us > ~(uint64_t)0 ? Microseconds(~(uint64_t)0) : Microseconds(max_us);
 		}
 
 		Duration curr_time() override

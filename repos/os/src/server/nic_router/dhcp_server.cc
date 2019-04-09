@@ -63,13 +63,13 @@ Dhcp_server::Dhcp_server(Xml_node            const  node,
 
 Microseconds Dhcp_server::_init_ip_lease_time(Xml_node const node)
 {
-	unsigned long ip_lease_time_sec =
-		node.attribute_value("ip_lease_time_sec", 0UL);
+	uint64_t ip_lease_time_sec =
+		node.attribute_value("ip_lease_time_sec", (uint64_t)0);
 
 	if (!ip_lease_time_sec) {
 		ip_lease_time_sec = DEFAULT_IP_LEASE_TIME_SEC;
 	}
-	return Microseconds((unsigned long)ip_lease_time_sec * 1000 * 1000);
+	return Microseconds((uint64_t)ip_lease_time_sec * 1000 * 1000);
 }
 
 

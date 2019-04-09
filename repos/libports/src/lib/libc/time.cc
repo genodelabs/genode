@@ -39,9 +39,9 @@ int clock_gettime(clockid_t clk_id, struct timespec *ts)
 	case CLOCK_REALTIME:
 	case CLOCK_SECOND: /* FreeBSD specific */
 	{
-		static bool   initial_rtc_requested = false;
-		static time_t initial_rtc = 0;
-		static unsigned long t0_ms = 0;
+		static bool             initial_rtc_requested = false;
+		static time_t           initial_rtc = 0;
+		static Genode::uint64_t t0_ms = 0;
 
 		/* try to read rtc once */
 		if (!initial_rtc_requested) {
@@ -54,7 +54,7 @@ int clock_gettime(clockid_t clk_id, struct timespec *ts)
 
 		if (!initial_rtc) return Libc::Errno(EINVAL);
 
-		unsigned long time = Libc::current_time().trunc_to_plain_ms().value - t0_ms;
+		Genode::uint64_t time = Libc::current_time().trunc_to_plain_ms().value - t0_ms;
 
 		ts->tv_sec  = initial_rtc + time/1000;
 		ts->tv_nsec = (time % 1000) * (1000*1000);
@@ -65,7 +65,7 @@ int clock_gettime(clockid_t clk_id, struct timespec *ts)
 	case CLOCK_MONOTONIC:
 	case CLOCK_UPTIME:
 	{
-		unsigned long us = Libc::current_time().trunc_to_plain_us().value;
+		Genode::uint64_t us = Libc::current_time().trunc_to_plain_us().value;
 
 		ts->tv_sec  = us / (1000*1000);
 		ts->tv_nsec = (us % (1000*1000)) * 1000;

@@ -249,7 +249,7 @@ struct Depot_download_manager::Main : Import::Download_progress
 		Fetchurl_watchdog(Main &main) : _main(main)
 		{
 			_timer.sigh(_handler);
-			_timer.trigger_periodic(PERIOD_SECONDS*1000*1000);
+			_timer.trigger_periodic((Genode::uint64_t)PERIOD_SECONDS*1000*1000);
 		}
 	};
 

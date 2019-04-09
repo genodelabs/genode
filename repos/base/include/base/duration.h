@@ -32,9 +32,9 @@ namespace Genode {
  */
 struct Genode::Microseconds
 {
-	unsigned long value;
+	uint64_t value;
 
-	explicit Microseconds(unsigned long value) : value(value) { }
+	explicit Microseconds(uint64_t value) : value(value) { }
 
 	void print(Output &out) const
 	{
@@ -49,9 +49,9 @@ struct Genode::Microseconds
  */
 struct Genode::Milliseconds
 {
-	unsigned long value;
+	uint64_t value;
 
-	explicit Milliseconds(unsigned long value) : value(value) { }
+	explicit Milliseconds(uint64_t value) : value(value) { }
 
 	void print(Output &out) const
 	{
@@ -76,11 +76,7 @@ struct Genode::Duration
 		enum { MS_PER_HOUR  = 1000UL * 60 * 60        };
 		enum { US_PER_HOUR  = 1000UL * 1000 * 60 * 60 };
 
-		unsigned long _microseconds { 0 };
-		unsigned long _hours        { 0 };
-
-		void _add_us_less_than_an_hour(unsigned long us);
-		void _raise_hours(unsigned long hours);
+		uint64_t _microseconds { 0 };
 
 	public:
 

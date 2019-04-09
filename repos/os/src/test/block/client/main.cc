@@ -91,7 +91,7 @@ class Test : Genode::Interface
 		Test(Genode::Env  &env,
 		     Genode::Heap &heap,
 		     Genode::size_t bulk_buffer_size,
-		     unsigned       timeout_ms)
+		     Genode::uint64_t timeout_ms)
 		: _ep(env.ep()),
 		  _alloc(&heap),
 		  _session(env, &_alloc, _shared_buffer_size(bulk_buffer_size)),
@@ -122,7 +122,7 @@ struct Read_test : Test
 {
 	bool done;
 
-	Read_test(Genode::Env &env, Genode::Heap &heap, unsigned timeo_ms)
+	Read_test(Genode::Env &env, Genode::Heap &heap, Genode::uint64_t timeo_ms)
 	: Test(env, heap, BULK_BLK_NR*blk_sz, timeo_ms), done(false) { }
 
 	void perform() override
@@ -198,7 +198,7 @@ struct Write_test : Test
 	Req_buffer read_packets  { };
 	Req_buffer write_packets { };
 
-	Write_test(Genode::Env &env, Genode::Heap &heap, unsigned timeo_ms)
+	Write_test(Genode::Env &env, Genode::Heap &heap, Genode::uint64_t timeo_ms)
 	: Test(env, heap, BULK_BLK_NR*blk_sz, timeo_ms)
 	{
 		if (BULK_BLK_NR < BATCH*NR_PER_REQ ||
@@ -332,7 +332,7 @@ struct Violation_test : Test
 
 	int p_in_fly;
 
-	Violation_test(Genode::Env &env, Genode::Heap &heap, unsigned timeo)
+	Violation_test(Genode::Env &env, Genode::Heap &heap, Genode::uint64_t timeo)
 	: Test(env, heap, 20*blk_sz, timeo), p_in_fly(0) {}
 
 	void req(Block::sector_t nr, Genode::size_t cnt, bool write)

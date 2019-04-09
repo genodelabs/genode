@@ -47,7 +47,7 @@ namespace Libc {
 	 * resumed the user context execution.
 	 */
 	struct Suspend_functor { virtual bool suspend() = 0; };
-	unsigned long suspend(Suspend_functor &, unsigned long timeout_ms = 0UL);
+	Genode::uint64_t suspend(Suspend_functor &, Genode::uint64_t timeout_ms = 0);
 
 	void dispatch_pending_io_signals();
 

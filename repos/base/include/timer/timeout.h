@@ -158,7 +158,7 @@ class Genode::Timeout : private Noncopyable
 
 			private:
 
-				typedef unsigned long Time;
+				typedef uint64_t Time;
 
 				struct Raw
 				{
@@ -166,7 +166,7 @@ class Genode::Timeout : private Noncopyable
 					bool deadline_period;
 					Time period;
 
-					bool is_pending_at(unsigned long time, bool time_period) const;
+					bool is_pending_at(uint64_t time, bool time_period) const;
 				};
 
 				Lock                     _dispatch_lock { };
@@ -188,7 +188,7 @@ class Genode::Timeout : private Noncopyable
 
 				void _alarm_reset() { _alarm_assign(0, 0, false, 0), _active = 0, _next = 0; }
 
-				bool _on_alarm(unsigned);
+				bool _on_alarm(uint64_t);
 
 				Alarm(Alarm const &);
 				Alarm &operator = (Alarm const &);

@@ -99,10 +99,10 @@ struct Stress_test
 
 		Signal_handler<Slave> timer_handler;
 		Timer::Connection     timer;
-		unsigned long         us;
+		uint64_t              us;
 		unsigned              count { 0 };
 
-		Slave(Env &env, unsigned us)
+		Slave(Env &env, uint64_t us)
 		: timer_handler(env.ep(), *this, &Slave::handle_timer),
 		  timer(env), us(us) { timer.sigh(timer_handler); }
 
@@ -119,7 +119,7 @@ struct Stress_test
 			log("timer (period ", us, " us) triggered ", count,
 			    " times (min ", (unsigned)MIN_CNT,
 			           " max ", (unsigned)MAX_CNT, ") -> slept ",
-			    ((unsigned long)us * count) / 1000, " ms");
+			    ((uint64_t)us * count) / 1000, " ms");
 
 			/* detect starvation of timeouts */
 			if (count < MIN_CNT) {
@@ -151,8 +151,8 @@ struct Stress_test
 	{
 		if (count < DURATION_SEC) {
 			count++;
-			log("wait ", count, "/", (unsigned)DURATION_SEC);
-			timer.trigger_once(1000UL * 1000);
+			log("wait ", count, "/", (uint64_t)DURATION_SEC);
+			timer.trigger_once((uint64_t)1000 * 1000);
 		} else {
 			unsigned starvation = 0;
 			unsigned rate_violation = 0;
@@ -175,13 +175,13 @@ struct Stress_test
 	{
 		timer.sigh(handler);
 
-		for (unsigned long us_1 = 1; us_1 < MAX_SLV_PERIOD_US; us_1 *= 2) {
+		for (uint64_t us_1 = 1; us_1 < MAX_SLV_PERIOD_US; us_1 *= 2) {
 			new (heap) Registered<Slave>(slaves, env, us_1 - us_1 / 3);
 			new (heap) Registered<Slave>(slaves, env, us_1);
 		}
 
 		slaves.for_each([&] (Slave &slv) { slv.start(); });
-		timer.trigger_once(1000 * 1000);
+		timer.trigger_once((uint64_t)1000 * 1000);
 	}
 
 	~Stress_test() {

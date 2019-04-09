@@ -164,9 +164,9 @@ struct App::Main
 
 	Reporter _reporter { _env, "trace_subjects", "trace_subjects", 64*1024 };
 
-	static unsigned long _default_period_ms() { return 5000; }
+	static uint64_t _default_period_ms() { return 5000; }
 
-	unsigned long _period_ms = _default_period_ms();
+	uint64_t _period_ms = _default_period_ms();
 
 	bool _report_affinity = false;
 	bool _report_activity = false;

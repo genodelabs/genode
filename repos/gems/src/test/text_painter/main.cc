@@ -158,7 +158,7 @@ struct Test::Main
 		{
 			Timer::Connection timer(_env);
 
-			unsigned long const start_us = timer.elapsed_us();
+			Genode::uint64_t const start_us = timer.elapsed_us();
 
 			enum { ITERATIONS = 40 };
 			for (int i = 0; i < ITERATIONS; i++)
@@ -168,7 +168,7 @@ struct Test::Main
 				                    _font_4, Color(150 + i*73, 0, 200),
 				                    "Glyphs obtained from VFS");
 
-			unsigned long const end_us = timer.elapsed_us();
+			Genode::uint64_t const end_us = timer.elapsed_us();
 			unsigned long num_glyphs = strlen(vfs_text_string)*ITERATIONS;
 
 			log("uncached painting: ", (float)(end_us - start_us)/num_glyphs, " us/glyph");
@@ -181,7 +181,7 @@ struct Test::Main
 
 			Timer::Connection timer(_env);
 
-			unsigned long const start_us = timer.elapsed_us();
+			Genode::uint64_t const start_us = timer.elapsed_us();
 
 			/* use less iterations for small cache sizes */
 			int const iterations = (limit_kib < 100) ? 200 : 2000;
@@ -192,7 +192,7 @@ struct Test::Main
 				                    cached_font, Color(30, limit_kib, 150 + i*73),
 				                    "Glyphs obtained from VFS");
 
-			unsigned long const end_us = timer.elapsed_us();
+			Genode::uint64_t const end_us = timer.elapsed_us();
 			unsigned long num_glyphs = strlen(vfs_text_string)*iterations;
 
 			log("cached painting:   ", (float)(end_us - start_us)/num_glyphs, " us/glyph"

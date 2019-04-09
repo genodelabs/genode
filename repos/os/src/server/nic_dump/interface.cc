@@ -33,8 +33,8 @@ void Net::Interface::_handle_eth(void              *const  eth_base,
 
 		if (_log_time) {
 			Genode::Duration const new_time    = _timer.curr_time();
-			unsigned long    const new_time_ms = new_time.trunc_to_plain_us().value / 1000;
-			unsigned long    const old_time_ms = _curr_time.trunc_to_plain_us().value / 1000;
+			uint64_t         const new_time_ms = new_time.trunc_to_plain_us().value / 1000;
+			uint64_t         const old_time_ms = _curr_time.trunc_to_plain_us().value / 1000;
 
 			log("\033[33m(", remote._label, " <- ", _label, ")\033[0m ",
 			    packet_log(eth, _log_cfg), " \033[33mtime ", new_time_ms,

@@ -30,7 +30,7 @@ class Sender : Thread
 
 		Timer::Connection  _timer;
 		Signal_transmitter _transmitter;
-		unsigned const     _interval_ms;
+		uint64_t const     _interval_ms;
 		bool     const     _verbose;
 		bool     volatile  _stop       { false };
 		unsigned           _submit_cnt { 0 };
@@ -56,7 +56,7 @@ class Sender : Thread
 
 		Sender(Env                       &env,
 		       Signal_context_capability  context,
-		       unsigned                   interval_ms,
+		       uint64_t                   interval_ms,
 		       bool                       verbose)
 		:
 			Thread(env, "sender", 16*1024), _timer(env),
@@ -89,7 +89,7 @@ class Handler : Thread
 	private:
 
 		Timer::Connection  _timer;
-		unsigned const     _dispatch_ms;
+		uint64_t const     _dispatch_ms;
 		unsigned const     _id;
 		bool     const     _verbose;
 		Signal_receiver   &_receiver;
@@ -120,7 +120,7 @@ class Handler : Thread
 
 		Handler(Env             &env,
 		        Signal_receiver &receiver,
-		        unsigned         dispatch_ms,
+		        uint64_t         dispatch_ms,
 		        bool             verbose,
 		        unsigned         id)
 		:

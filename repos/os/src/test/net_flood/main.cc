@@ -66,8 +66,8 @@ class Main : public Nic_handler,
 		Port                            _dst_port    { FIRST_DST_PORT };
 		size_t                          _ping_sz     { _init_ping_sz() };
 		unsigned long                   _ping_cnt    { 0 };
-		unsigned long                   _sec         { _config.attribute_value("sec",  10UL) };
-		unsigned long                   _time_us     { 0 };
+		uint64_t                        _sec         { _config.attribute_value("sec",  (uint64_t)10) };
+		uint64_t                        _time_us     { 0 };
 
 		size_t _init_ping_sz() const;
 
@@ -370,7 +370,7 @@ void Main::_send_ping(Duration time)
 		}
 	}
 	catch (Net::Packet_stream_source::Packet_alloc_failed) { }
-	unsigned long const new_time_us = time.trunc_to_plain_us().value;
+	uint64_t const new_time_us = time.trunc_to_plain_us().value;
 	if (new_time_us - _time_us > 1000000) {
 		if (!_ping_cnt) {
 			error("test failed (could not send packet for a second)");

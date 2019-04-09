@@ -13,9 +13,9 @@
  */
 
 /* Genode includes */
+#include <timer_session/connection.h>
 #include <file_system_session/rpc_object.h>
 #include <base/attached_rom_dataspace.h>
-#include <timer_session/connection.h>
 #include <os/session_policy.h>
 #include <root/component.h>
 #include <base/component.h>
@@ -29,6 +29,7 @@
 #include "file_system.h"
 #include "directory.h"
 #include "open_node.h"
+
 
 namespace Rump_fs {
 

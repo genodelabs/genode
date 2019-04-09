@@ -156,18 +156,18 @@ struct Depot_deploy::Main
 			if (finished) {
 
 				Result result;
-				unsigned long previous_time_sec { 0UL };
+				Genode::uint64_t previous_time_sec { 0 };
 				if (config.has_sub_node("previous-results")) {
 					Xml_node const previous_results = config.sub_node("previous-results");
-					previous_time_sec += previous_results.attribute_value("time_sec", 0UL);
+					previous_time_sec += previous_results.attribute_value("time_sec", (Genode::uint64_t)0);
 					result.succeeded  += previous_results.attribute_value("succeeded", 0UL);
 					result.failed     += previous_results.attribute_value("failed", 0UL);
 					result.skipped    += previous_results.attribute_value("skipped", 0UL);
 				}
-				unsigned long const time_us  { _timer.curr_time().trunc_to_plain_us().value };
-				unsigned long       time_ms  { time_us / 1000UL };
-				unsigned long const time_sec { time_ms / 1000UL };
-				time_ms = time_ms - time_sec * 1000UL;
+				Genode::uint64_t const time_us  { _timer.curr_time().trunc_to_plain_us().value };
+				Genode::uint64_t       time_ms  { time_us / 1000 };
+				Genode::uint64_t const time_sec { time_ms / 1000 };
+				time_ms = time_ms - time_sec * 1000;
 
 				_children.conclusion(result);
 				int exit_code = result.failed ? -1 : 0;

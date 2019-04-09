@@ -37,7 +37,7 @@ struct Ahci
 		Timer_delayer(Genode::Env &env)
 		: Timer::Connection(env) { }
 
-		void usleep(unsigned us) override { Timer::Connection::usleep(us); }
+		void usleep(uint64_t us) override { Timer::Connection::usleep(us); }
 	} _delayer { env };
 
 	Ahci_root     &root;

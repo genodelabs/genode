@@ -111,7 +111,7 @@ struct Monitor
 			period_ms = config.xml().attribute_value("period_ms", 1000UL);
 		} catch (...) { }
 
-		timer.trigger_periodic(1000UL * period_ms);
+		timer.trigger_periodic((Genode::uint64_t)1000 * period_ms);
 	}
 
 	void check()

@@ -28,9 +28,9 @@ void Timer::Connection::_update_real_time()
 	 * Update timestamp, time, and real-time value
 	 */
 
-	Timestamp     ts         = 0UL;
-	unsigned long us         = 0UL;
-	unsigned long latency_us = ~0UL;
+	Timestamp ts         = 0UL;
+	uint64_t  us         = 0UL;
+	uint64_t  latency_us = ~0UL;
 
 	/*
 	 * We retry reading out timestamp plus remote time until the result
@@ -41,8 +41,8 @@ void Timer::Connection::_update_real_time()
 	     remote_time_trials < MAX_REMOTE_TIME_TRIALS; )
 	{
 		/* read out the two time values close in succession */
-		Timestamp     volatile new_ts = _timestamp();
-		unsigned long volatile new_us = elapsed_us();
+		Timestamp volatile new_ts = _timestamp();
+		uint64_t  volatile new_us = elapsed_us();
 
 		/* do not proceed until the time difference is at least 1 us */
 		if (new_us == _us || new_ts == _ts) { continue; }
@@ -58,8 +58,8 @@ void Timer::Connection::_update_real_time()
 			break;
 		}
 		/* determine latency between reading out timestamp and time value */
-		Timestamp     const ts_diff        = _timestamp() - new_ts;
-		unsigned long const new_latency_us =
+		Timestamp const ts_diff        = _timestamp() - new_ts;
+		uint64_t  const new_latency_us =
 			_ts_to_us_ratio(ts_diff, _us_to_ts_factor, _us_to_ts_factor_shift);
 
 		/* remember results if the latency was better than on the last trial */
@@ -75,8 +75,8 @@ void Timer::Connection::_update_real_time()
 	}
 
 	/* determine timestamp and time difference */
-	unsigned long const us_diff = us - _us;
-	Timestamp           ts_diff = ts - _ts;
+	uint64_t const us_diff = us - _us;
+	Timestamp      ts_diff = ts - _ts;
 
 	/* overwrite timestamp, time, and real time member */
 	_us = us;
@@ -88,16 +88,16 @@ void Timer::Connection::_update_real_time()
 	 * Update timestamp-to-time factor and its shift
 	 */
 
-	unsigned      factor_shift        = _us_to_ts_factor_shift;
-	unsigned long old_factor          = _us_to_ts_factor;
-	Timestamp     max_ts_diff         = ~(Timestamp)0ULL >> factor_shift;
-	Timestamp     min_ts_diff_shifted = ~(Timestamp)0ULL >> 1;
+	unsigned  factor_shift        = _us_to_ts_factor_shift;
+	uint64_t  old_factor          = _us_to_ts_factor;
+	Timestamp max_ts_diff         = ~(Timestamp)0ULL >> factor_shift;
+	Timestamp min_ts_diff_shifted = ~(Timestamp)0ULL >> 1;
 
 	/*
 	 * If the calculation type is bigger than the resulting factor type,
 	 * we have to apply further limitations to avoid a loss at the final cast.
 	 */
-	if (sizeof(Timestamp) > sizeof(unsigned long)) {
+	if (sizeof(Timestamp) > sizeof(uint64_t)) {
 
 		Timestamp       limit_ts_diff_shifted = (Timestamp)~0UL * us_diff;
 		Timestamp const limit_ts_diff         = limit_ts_diff_shifted >>
@@ -146,12 +146,12 @@ void Timer::Connection::_update_real_time()
 			old_factor <<= 1;
 		}
 		/*
-		 * The cast to unsigned long does not cause a loss because of the
-		 * limitations we applied to the timestamp difference. We also took
-		 * care that the time difference cannot become null.
+		 * The cast to uint64_t does not cause a loss because the timestamp
+		 * type cannot be bigger as the factor type. We also took care that
+		 * the time difference cannot become null.
 		 */
-		unsigned long const new_factor =
-			(unsigned long)((Timestamp)ts_diff_shifted / us_diff);
+		uint64_t const new_factor =
+			(uint64_t)((Timestamp)ts_diff_shifted / us_diff);
 
 		/* update interpolation-quality value */
 		if (old_factor > new_factor) { _update_interpolation_quality(new_factor, old_factor); }
@@ -187,15 +187,15 @@ Duration Timer::Connection::curr_time()
 	if (_interpolation_quality == MAX_INTERPOLATION_QUALITY)
 	{
 		/* buffer interpolation related members and free the lock */
-		Timestamp     const ts                    = _ts;
-		unsigned long const us_to_ts_factor       = _us_to_ts_factor;
-		unsigned      const us_to_ts_factor_shift = _us_to_ts_factor_shift;
+		Timestamp const ts                    = _ts;
+		uint64_t  const us_to_ts_factor       = _us_to_ts_factor;
+		unsigned  const us_to_ts_factor_shift = _us_to_ts_factor_shift;
 
 		lock_guard.destruct();
 
 		/* interpolate time difference since the last real time update */
-		Timestamp     const ts_diff = _timestamp() - ts;
-		unsigned long const us_diff = _ts_to_us_ratio(ts_diff, us_to_ts_factor,
+		Timestamp  const ts_diff = _timestamp() - ts;
+		uint64_t   const us_diff = _ts_to_us_ratio(ts_diff, us_to_ts_factor,
 		                                              us_to_ts_factor_shift);
 
 		interpolated_time.add(Microseconds(us_diff));

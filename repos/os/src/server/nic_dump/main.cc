@@ -30,7 +30,7 @@ class Main
 
 		Attached_rom_dataspace _config;
 		Timer::Connection      _timer;
-		Duration               _curr_time { Microseconds(0UL) };
+		Duration               _curr_time { Microseconds(0) };
 		Heap                   _heap;
 		Net::Root              _root;
 

@@ -199,8 +199,8 @@ class Liquid_fb::Main : public Scout::Event_handler
 
 		bool _services_initialized = (init_services(_env, _input_session_component), true);
 
-		unsigned long _curr_time = _platform.timer_ticks();
-		unsigned long _old_time  = _curr_time;
+		Genode::uint64_t _curr_time = _platform.timer_ticks();
+		Genode::uint64_t _old_time  = _curr_time;
 
 		void _handle_config()
 		{

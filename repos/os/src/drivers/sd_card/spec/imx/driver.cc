@@ -27,7 +27,7 @@ int Driver::_wait_for_card_ready_mbw()
 	 * freely chosen.
 	 */
 	unsigned           attempts          = 5;
-	unsigned constexpr attempts_delay_us = 100000;
+	uint64_t constexpr attempts_delay_us = 100000;
 	while (1) {
 		if (!attempts) {
 			error("Reading card status after multiblock write failed");

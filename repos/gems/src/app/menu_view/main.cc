@@ -145,9 +145,9 @@ struct Menu_view::Main
 	{
 		enum { PERIOD = 10 };
 
-		unsigned curr_frame() const { return elapsed_ms() / PERIOD; }
+		Genode::uint64_t curr_frame() const { return elapsed_ms() / PERIOD; }
 
-		void schedule() { trigger_once(Frame_timer::PERIOD*1000); }
+		void schedule() { trigger_once((Genode::uint64_t)Frame_timer::PERIOD*1000); }
 
 		Frame_timer(Env &env) : Timer::Connection(env) { }
 
@@ -167,7 +167,7 @@ struct Menu_view::Main
 	/**
 	 * Frame of last call of 'handle_frame_timer'
 	 */
-	unsigned _last_frame = 0;
+	Genode::uint64_t _last_frame = 0;
 
 	/**
 	 * Number of frames between two redraws
@@ -250,7 +250,7 @@ void Menu_view::Main::_handle_dialog_update()
 	 * processing immediately. This way, we avoid latencies when the dialog
 	 * model is updated sporadically.
 	 */
-	unsigned const curr_frame = _timer.curr_frame();
+	Genode::uint64_t const curr_frame = _timer.curr_frame();
 	if (curr_frame != _last_frame) {
 
 		if (curr_frame - _last_frame > 10)
@@ -310,15 +310,15 @@ void Menu_view::Main::_handle_frame_timer()
 {
 	_frame_cnt++;
 
-	unsigned const curr_frame = _timer.curr_frame();
+	Genode::uint64_t const curr_frame = _timer.curr_frame();
 
 	if (_animator.active()) {
 
-		unsigned const passed_frames = max(curr_frame - _last_frame, 4U);
+		Genode::uint64_t const passed_frames = max(curr_frame - _last_frame, 4U);
 
 		if (passed_frames > 0) {
 
-			for (unsigned i = 0; i < passed_frames; i++)
+			for (Genode::uint64_t i = 0; i < passed_frames; i++)
 				_animator.animate();
 
 			_schedule_redraw = true;

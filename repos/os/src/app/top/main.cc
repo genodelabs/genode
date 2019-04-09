@@ -311,9 +311,9 @@ struct App::Main
 	Reconstructible<Trace::Connection> _trace { _env, TRACE_RAM_QUOTA,
 	                                            ARG_BUFFER_RAM, PARENT_LEVELS };
 
-	static unsigned long _default_period_ms() { return 5000; }
+	static uint64_t _default_period_ms() { return 5000; }
 
-	unsigned long _period_ms = _default_period_ms();
+	uint64_t _period_ms = _default_period_ms();
 
 	SORT_TIME _sort { EC_TIME };
 

@@ -48,8 +48,8 @@ class Throughput
 		bool                          _read_done  = false;
 		bool                          _write_done = false;
 
-		unsigned long   _start   = 0;
-		unsigned long   _stop    = 0;
+		uint64_t        _start   = 0;
+		uint64_t        _stop    = 0;
 		size_t          _bytes   = 0;
 		Block::sector_t _current = 0;
 

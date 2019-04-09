@@ -78,7 +78,7 @@ namespace Util {
 		return 2 * (level + 100);
 	}
 
-	inline unsigned check_time(unsigned value, unsigned min, unsigned max)
+	inline Genode::uint64_t check_time(Genode::uint64_t value, Genode::uint64_t min, Genode::uint64_t max)
 	{
 		if      (value < min) { return min; }
 		else if (value > max) { return max; }

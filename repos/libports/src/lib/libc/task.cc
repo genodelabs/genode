@@ -158,12 +158,12 @@ struct Libc::Timer
 		return _timer.curr_time();
 	}
 
-	static Microseconds microseconds(unsigned long timeout_ms)
+	static Microseconds microseconds(Genode::uint64_t timeout_ms)
 	{
 		return Microseconds(1000*timeout_ms);
 	}
 
-	static unsigned long max_timeout()
+	static Genode::uint64_t max_timeout()
 	{
 		return ~0UL/1000;
 	}
@@ -198,8 +198,8 @@ struct Libc::Timeout
 	Timeout_handler                    &_handler;
 	::Timer::One_shot_timeout<Timeout>  _timeout;
 
-	bool          _expired             = true;
-	unsigned long _absolute_timeout_ms = 0;
+	bool             _expired             = true;
+	Genode::uint64_t _absolute_timeout_ms = 0;
 
 	void _handle(Duration now)
 	{
@@ -215,7 +215,7 @@ struct Libc::Timeout
 		_timeout(_timer_accessor.timer()._timer, *this, &Timeout::_handle)
 	{ }
 
-	void start(unsigned long timeout_ms)
+	void start(Genode::uint64_t timeout_ms)
 	{
 		Milliseconds const now = _timer_accessor.timer().curr_time().trunc_to_plain_ms();
 
@@ -225,7 +225,7 @@ struct Libc::Timeout
 		_timeout.schedule(_timer_accessor.timer().microseconds(timeout_ms));
 	}
 
-	unsigned long duration_left() const
+	Genode::uint64_t duration_left() const
 	{
 		Milliseconds const now = _timer_accessor.timer().curr_time().trunc_to_plain_ms();
 
@@ -253,7 +253,7 @@ struct Libc::Pthreads
 				_timeout.construct(_timer_accessor, *this);
 		}
 
-		Pthread(Timer_accessor &timer_accessor, unsigned long timeout_ms)
+		Pthread(Timer_accessor &timer_accessor, Genode::uint64_t timeout_ms)
 		: _timer_accessor(timer_accessor)
 		{
 			if (timeout_ms > 0) {
@@ -262,7 +262,7 @@ struct Libc::Pthreads
 			}
 		}
 
-		unsigned long duration_left()
+		Genode::uint64_t duration_left()
 		{
 			_construct_timeout_once();
 			return _timeout->duration_left();
@@ -290,7 +290,7 @@ struct Libc::Pthreads
 			p->lock.unlock();
 	}
 
-	unsigned long suspend_myself(Suspend_functor & check, unsigned long timeout_ms)
+	Genode::uint64_t suspend_myself(Suspend_functor & check, Genode::uint64_t timeout_ms)
 	{
 		Pthread myself { timer_accessor, timeout_ms };
 		{
@@ -430,13 +430,13 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 			: _timer_accessor(timer_accessor), _kernel(kernel)
 			{ }
 
-			void timeout(unsigned long timeout_ms)
+			void timeout(Genode::uint64_t timeout_ms)
 			{
 				_construct_timeout_once();
 				_timeout->start(timeout_ms);
 			}
 
-			unsigned long duration_left()
+			Genode::uint64_t duration_left()
 			{
 				_construct_timeout_once();
 				return _timeout->duration_left();
@@ -513,8 +513,8 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 			_longjmp(_user_context, 1);
 		}
 
-		unsigned long _suspend_main(Suspend_functor &check,
-		                            unsigned long timeout_ms)
+		Genode::uint64_t _suspend_main(Suspend_functor &check,
+		                               Genode::uint64_t timeout_ms)
 		{
 			/* check that we're not running on libc kernel context */
 			if (Thread::mystack().top == _kernel_stack) {
@@ -651,7 +651,7 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 		/**
 		 * Suspend this context (main or pthread)
 		 */
-		unsigned long suspend(Suspend_functor &check, unsigned long timeout_ms)
+		Genode::uint64_t suspend(Suspend_functor &check, Genode::uint64_t timeout_ms)
 		{
 			if (timeout_ms > 0
 			 && timeout_ms > _timer_accessor.timer().max_timeout()) {
@@ -841,7 +841,7 @@ static void resumed_callback() { kernel->entrypoint_resumed(); }
 void Libc::resume_all() { kernel->resume_all(); }
 
 
-unsigned long Libc::suspend(Suspend_functor &s, unsigned long timeout_ms)
+Genode::uint64_t Libc::suspend(Suspend_functor &s, Genode::uint64_t timeout_ms)
 {
 	if (!kernel) {
 		error("libc kernel not initialized, needed for suspend()");

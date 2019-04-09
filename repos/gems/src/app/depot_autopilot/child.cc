@@ -17,10 +17,10 @@
 
 using namespace Depot_deploy;
 
-static void forward_to_log(unsigned long const sec,
-                           unsigned long const ms,
-                           char   const *const base,
-                           char   const *const end)
+static void forward_to_log(Genode::uint64_t const sec,
+                           Genode::uint64_t const ms,
+                           char      const *const base,
+                           char      const *const end)
 {
 	log(sec, ".", ms < 10 ? "00" : ms < 100 ? "0" : "", ms, " ",
 	    Cstring(base, end - base));
@@ -152,7 +152,7 @@ void Child::gen_start_node(Xml_generator          &xml,
 	if (_running) {
 		return; }
 
-	unsigned long max_timeout_sec = 0;
+	Genode::uint64_t max_timeout_sec = 0;
 	try {
 		Xml_node const events = _pkg_xml->xml().sub_node("runtime").sub_node("events");
 		events.for_each_sub_node("timeout", [&] (Xml_node const &event) {
@@ -431,9 +431,9 @@ void Child::log_session_write(Log_event::Line const &log_line)
 	};
 
 	/* calculate timestamp that prefixes*/
-	unsigned long const time_us  { _timer.curr_time().trunc_to_plain_us().value - init_time_us };
-	unsigned long       time_ms  { time_us / 1000UL };
-	unsigned long const time_sec { time_ms / 1000UL };
+	Genode::uint64_t const time_us  { _timer.curr_time().trunc_to_plain_us().value - init_time_us };
+	Genode::uint64_t       time_ms  { time_us / 1000UL };
+	Genode::uint64_t const time_sec { time_ms / 1000UL };
 	time_ms = time_ms - time_sec * 1000UL;
 
 	char const *const log_base { log_line.string() };
@@ -765,8 +765,8 @@ void Child::gen_installation_entry(Xml_generator &xml) const
 }
 
 
-void Child::event_occured(Event         const &event,
-                          unsigned long const  time_us)
+void Child::event_occured(Event            const &event,
+                          Genode::uint64_t const  time_us)
 {
 	if (_skip) {
 		return; }
@@ -779,9 +779,9 @@ void Child::event_occured(Event         const &event,
 }
 
 
-void Child::_finished(State                state,
-                      Event         const &event,
-                      unsigned long const  time_us)
+void Child::_finished(State                   state,
+                      Event            const &event,
+                      Genode::uint64_t const  time_us)
 {
 	if (_skip) {
 		return; }
@@ -789,8 +789,8 @@ void Child::_finished(State                state,
 	_running = false;
 	_state = state;
 
-	unsigned long       time_ms  { time_us / 1000UL };
-	unsigned long const time_sec { time_ms / 1000UL };
+	Genode::uint64_t       time_ms  { time_us / 1000UL };
+	Genode::uint64_t const time_sec { time_ms / 1000UL };
 	time_ms = time_ms - time_sec * 1000UL;
 
 	char name_padded[32];
@@ -855,7 +855,7 @@ Timeout_event::Timeout_event(Timer::Connection &timer,
 	Event    { event, Type::TIMEOUT },
 	_child   { child },
 	_timer   { timer },
-	_sec     { event.attribute_value("sec", 0UL) },
+	_sec     { event.attribute_value("sec", (Genode::uint64_t)0) },
 	_timeout { timer, *this, &Timeout_event::_handle_timeout }
 {
 	if (!_sec) {
