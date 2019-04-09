@@ -512,6 +512,7 @@ class Vfs_server::Session_component : private Session_resources,
 				}
 
 				fs_stat.size = vfs_stat.size;
+				fs_stat.modification_time.value = vfs_stat.modification_time.value;
 			});
 			return fs_stat;
 		}
