@@ -146,8 +146,14 @@ void Allocator_avl_base::_destroy_block(Block *b)
 void Allocator_avl_base::_cut_from_block(Block *b, addr_t addr, size_t size,
                                          Block *dst1, Block *dst2)
 {
-	size_t   padding = addr > b->addr() ? addr - b->addr() : 0;
-	size_t remaining = b->size() > (size + padding) ? b->size() - size - padding : 0;
+	size_t const padding   = addr > b->addr() ? addr - b->addr() : 0;
+	size_t const b_size    = b->size() > padding ? b->size() - padding : 0;
+	size_t       remaining = b_size > size ? b_size - size : 0;
+
+	/* case that a block contains the whole addressable range */
+	if (!b->addr() && !b->size())
+		remaining = b->size() - size - padding;
+
 	addr_t orig_addr = b->addr();
 
 	_destroy_block(b);
