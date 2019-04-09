@@ -210,7 +210,7 @@ class Block::Request_stream : Genode::Noncopyable
 				Request request { .operation = operation,
 				                  .success   = false,
 				                  .offset    = packet.offset(),
-				                  .tag       = { 0 } };
+				                  .tag       = { packet.tag().value } };
 
 				Response const response = packet_valid
 				                        ? fn(request)
@@ -294,7 +294,8 @@ class Block::Request_stream : Genode::Noncopyable
 					packet = Packet_descriptor(packet,
 					                           opcode(request.operation.type),
 					                           request.operation.block_number,
-					                           request.operation.count);
+					                           request.operation.count,
+					                           Session::Tag{request.tag.value});
 
 					packet.succeeded(request.success);
 

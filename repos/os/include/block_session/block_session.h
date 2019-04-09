@@ -52,9 +52,15 @@ class Block::Packet_descriptor : public Genode::Packet_descriptor
 		 */
 		enum Alignment { PACKET_ALIGNMENT = 11 };
 
+		/**
+		 * Client-defined value for correlating acknowledgements with requests
+		 */
+		struct Tag { unsigned long value; };
+
 	private:
 
 		Opcode          _op;           /* requested operation */
+		Tag             _tag;          /* client-defined request identifier */
 		sector_t        _block_number; /* requested block number */
 		Genode::size_t  _block_count;  /* number of blocks of operation */
 		bool            _success;      /* indicates success of operation */
@@ -67,17 +73,18 @@ class Block::Packet_descriptor : public Genode::Packet_descriptor
 		Packet_descriptor(Genode::off_t offset=0, Genode::size_t size = 0)
 		:
 			Genode::Packet_descriptor(offset, size),
-			_op(READ), _block_number(0), _block_count(0), _success(false)
+			_op(READ), _tag(), _block_number(0), _block_count(0), _success(false)
 		{ }
 
 		/**
 		 * Constructor
 		 */
 		Packet_descriptor(Packet_descriptor p, Opcode op,
-		                  sector_t block_number, Genode::size_t block_count = 1)
+		                  sector_t block_number, Genode::size_t block_count = 1,
+		                  Tag tag = { ~0U })
 		:
 			Genode::Packet_descriptor(p.offset(), p.size()),
-			_op(op), _block_number(block_number),
+			_op(op), _tag(tag), _block_number(block_number),
 			_block_count(block_count), _success(false)
 		{ }
 
@@ -85,6 +92,7 @@ class Block::Packet_descriptor : public Genode::Packet_descriptor
 		sector_t       block_number() const { return _block_number; }
 		Genode::size_t block_count()  const { return _block_count;  }
 		bool           succeeded()    const { return _success;      }
+		Tag            tag()          const { return _tag;          }
 
 		void succeeded(bool b) { _success = b; }
 };
@@ -112,6 +120,8 @@ struct Block::Session : public Genode::Session
 	                                     char> Tx_policy;
 
 	typedef Packet_stream_tx::Channel<Tx_policy> Tx;
+
+	typedef Packet_descriptor::Tag Tag;
 
 	struct Info
 	{
