@@ -61,8 +61,18 @@ extern "C" {
 		Info const info = Block::Connection::info();
 
 		using Block::Connection::tx;
-		using Block::Connection::sync;
 		using Block::Connection::alloc_packet;
+
+		void sync()
+		{
+			/*
+			 * We don't need to distinguish tags because there can only be one
+			 * outstanding request.
+			 */
+			Block::Session::Tag const tag { 0 };
+			tx()->submit_packet(sync_all_packet_descriptor(info, tag));
+			tx()->get_acked_packet();
+		}
 
 		Drive(Platform &platform, char const *label)
 		: Block::Connection(platform.env, &platform.tx_alloc, 128*1024, label)

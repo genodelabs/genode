@@ -148,6 +148,24 @@ class Block::Session_component : public Block::Session_component_base,
 						              _p_to_handle);
 					break;
 
+				case Block::Packet_descriptor::SYNC:
+
+					/* perform (blocking) sync */
+					_driver.sync();
+
+					_p_to_handle.succeeded(true);
+					_ack_packet(_p_to_handle);
+					_p_to_handle = Packet_descriptor();
+					break;
+
+				case Block::Packet_descriptor::TRIM:
+
+					/* trim is a nop */
+					_p_to_handle.succeeded(true);
+					_ack_packet(_p_to_handle);
+					_p_to_handle = Packet_descriptor();
+					break;
+
 				default:
 					throw Driver::Io_error();
 				}
@@ -244,8 +262,6 @@ class Block::Session_component : public Block::Session_component_base,
 		 *******************************/
 
 		Info info() const override { return _driver.info(); }
-
-		void sync() override { _driver.sync(); }
 };
 
 

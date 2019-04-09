@@ -37,9 +37,7 @@ struct Block::Block_dispatcher : Genode::Interface
 bool operator== (const Block::Packet_descriptor& p1,
                  const Block::Packet_descriptor& p2)
 {
-	return p1.operation()    == p2.operation()    &&
-	       p1.block_number() == p2.block_number() &&
-	       p1.block_count()  == p2.block_count();
+	return p1.tag().value == p2.tag().value;
 }
 
 
@@ -58,13 +56,13 @@ class Block::Driver
 		public:
 
 			Request(Block_dispatcher &d,
-			        Packet_descriptor &cli,
-			        Packet_descriptor &srv)
+			        Packet_descriptor const &cli,
+			        Packet_descriptor const &srv)
 			: _dispatcher(d), _cli(cli), _srv(srv) {}
 
 			bool handle(Packet_descriptor& reply)
 			{
-				bool ret =  reply == _srv;
+				bool ret = (reply == _srv);
 				if (ret) _dispatcher.dispatch(_cli, reply);
 				return ret;
 			}
@@ -84,6 +82,7 @@ class Block::Driver
 		Block::Session::Info     const _info { _session.info() };
 		Genode::Signal_handler<Driver> _source_ack;
 		Genode::Signal_handler<Driver> _source_submit;
+		unsigned long                  _tag_cnt { 0 };
 
 		void _ready_to_submit();
 
@@ -103,6 +102,17 @@ class Block::Driver
 			}
 
 			_ready_to_submit();
+		}
+
+		Block::Session::Tag _alloc_tag()
+		{
+			/*
+			 * The wrapping of '_tag_cnt' is no problem because the number
+			 * of consecutive outstanding requests is much lower than the
+			 * value range of tags.
+			 */
+			_tag_cnt++;
+			return Block::Session::Tag { _tag_cnt };
 		}
 
 	public:
@@ -140,13 +150,26 @@ class Block::Driver
 			    : Block::Packet_descriptor::READ;
 			Genode::size_t const size = _info.block_size * cnt;
 			Packet_descriptor p(_session.alloc_packet(size),
-			                    op,  nr, cnt);
+			                    op,  nr, cnt, _alloc_tag());
 			Request *r = new (&_r_slab) Request(dispatcher, cli, p);
 			_r_list.insert(r);
 
 			if (write)
 				Genode::memcpy(_session.tx()->packet_content(p),
 				               addr, size);
+
+			_session.tx()->submit_packet(p);
+		}
+
+		void sync_all(Block_dispatcher &dispatcher, Packet_descriptor &cli)
+		{
+			if (!_session.tx()->ready_to_submit())
+				throw Block::Session::Tx::Source::Packet_alloc_failed();
+
+			Packet_descriptor const p =
+				Block::Session::sync_all_packet_descriptor(_info, _alloc_tag());
+
+			_r_list.insert(new (&_r_slab) Request(dispatcher, cli, p));
 
 			_session.tx()->submit_packet(p);
 		}

@@ -195,6 +195,8 @@ class Block::Request_stream : Genode::Noncopyable
 					switch (op) {
 					case Packet_descriptor::READ:  return Operation::Type::READ;
 					case Packet_descriptor::WRITE: return Operation::Type::WRITE;
+					case Packet_descriptor::SYNC:  return Operation::Type::SYNC;
+					case Packet_descriptor::TRIM:  return Operation::Type::TRIM;
 					case Packet_descriptor::END:   return Operation::Type::INVALID;
 					};
 					return Operation::Type::INVALID;
@@ -286,6 +288,7 @@ class Block::Request_stream : Genode::Noncopyable
 						case Operation::Type::READ:    return Packet_descriptor::READ;
 						case Operation::Type::WRITE:   return Packet_descriptor::WRITE;
 						case Operation::Type::SYNC:    return Packet_descriptor::END;
+						case Operation::Type::TRIM:    return Packet_descriptor::TRIM;
 						case Operation::Type::INVALID: return Packet_descriptor::END;
 						};
 						return Packet_descriptor::END;

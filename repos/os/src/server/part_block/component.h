@@ -89,27 +89,55 @@ class Block::Session_component : public  Block::Session_rpc_object,
 				return;
 			}
 
-			bool write   = _p_to_handle.operation() == Packet_descriptor::WRITE;
-			sector_t off = _p_to_handle.block_number() + _partition->lba;
-			size_t cnt   = _p_to_handle.block_count();
+			sector_t const off = _p_to_handle.block_number() + _partition->lba;
+			size_t   const cnt = _p_to_handle.block_count();
 
-			if (write && !_writeable) {
-				_ack_packet(_p_to_handle);
-				return;
-			}
+			auto perform_io = [&] ()
+			{
+				bool const write =
+					(_p_to_handle.operation() == Packet_descriptor::WRITE);
 
-			try {
-				_driver.io(write, off, cnt,
-				           tx_sink()->packet_content(_p_to_handle),
-				           *this, _p_to_handle);
-			} catch (Block::Session::Tx::Source::Packet_alloc_failed) {
-				if (!_req_queue_full) {
-					_req_queue_full = true;
-					Session_component::wait_queue().insert(this);
+				try {
+					_driver.io(write, off, cnt,
+					           tx_sink()->packet_content(_p_to_handle),
+					           *this, _p_to_handle);
+				} catch (Block::Session::Tx::Source::Packet_alloc_failed) {
+					if (!_req_queue_full) {
+						_req_queue_full = true;
+						Session_component::wait_queue().insert(this);
+					}
+				} catch (Genode::Packet_descriptor::Invalid_packet) {
+					Genode::error("dropping invalid Block packet");
+					_p_to_handle = Packet_descriptor();
 				}
-			} catch (Genode::Packet_descriptor::Invalid_packet) {
-				Genode::error("dropping invalid Block packet");
-				_p_to_handle = Packet_descriptor();
+			};
+
+			switch (_p_to_handle.operation()) {
+
+			case Packet_descriptor::READ:
+				perform_io();
+				break;
+
+			case Packet_descriptor::WRITE:
+
+				if (!_writeable) {
+					_ack_packet(_p_to_handle);
+					return;
+				}
+
+				perform_io();
+				break;
+
+			case Packet_descriptor::SYNC:
+				_driver.sync_all(*this, _p_to_handle);
+				break;
+
+			case Packet_descriptor::TRIM:
+			case Packet_descriptor::END:
+
+				_p_to_handle.succeeded(true);
+				_ack_packet(_p_to_handle);
+				break;
 			}
 		}
 
@@ -223,8 +251,6 @@ class Block::Session_component : public  Block::Session_rpc_object,
 			              .align_log2  = Genode::log2(_driver.blk_size()),
 			              .writeable   = _writeable && _driver.writeable() };
 		}
-
-		void sync() override { _driver.session().sync(); }
 };
 
 

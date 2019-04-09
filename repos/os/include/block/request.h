@@ -30,7 +30,7 @@ namespace Block {
 
 struct Block::Operation
 {
-	enum class Type { INVALID = 0, READ = 1, WRITE = 2, SYNC = 3 };
+	enum class Type { INVALID = 0, READ = 1, WRITE = 2, SYNC = 3, TRIM = 4 };
 
 	Type           type;
 	block_number_t block_number;
@@ -38,7 +38,8 @@ struct Block::Operation
 
 	bool valid() const
 	{
-		return type == Type::READ || type == Type::WRITE || type == Type::SYNC;
+		return type == Type::READ || type == Type::WRITE
+		    || type == Type::SYNC || type == Type::TRIM;
 	}
 };
 

@@ -34,6 +34,15 @@ class Backend
 		Block::Session::Info  _info { _session.info() };
 		Genode::Lock          _session_lock;
 
+		void _sync()
+		{
+			using Block::Session;
+
+			Session::Tag const tag { 0 };
+			_session.tx()->submit_packet(Session::sync_all_packet_descriptor(_info, tag));
+			_session.tx()->get_acked_packet();
+		}
+
 	public:
 
 		uint64_t block_count() const { return _info.block_count; }
@@ -43,7 +52,7 @@ class Backend
 		void sync()
 		{
 			Genode::Lock::Guard guard(_session_lock);
-			_session.sync();
+			_sync();
 		}
 
 		bool submit(int op, int64_t offset, size_t length, void *data)
@@ -83,7 +92,7 @@ class Backend
 
 			/* sync request */
 			if (op & RUMPUSER_BIO_SYNC) {
-				_session.sync();
+				_sync();
 			}
 
 			return succeeded;

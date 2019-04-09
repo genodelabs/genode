@@ -31,7 +31,7 @@ namespace Block {
 
 
 /**
- * Representation of an block-operation request
+ * Representation of a block-operation request
  *
  * The data associated with the 'Packet_descriptor' is either
  * the data read from or written to the block indicated by
@@ -41,7 +41,7 @@ class Block::Packet_descriptor : public Genode::Packet_descriptor
 {
 	public:
 
-		enum Opcode    { READ, WRITE, END };
+		enum Opcode { READ, WRITE, SYNC, TRIM, END };
 
 		/*
 		 * Alignment used when allocating a packet directly via the 'tx'
@@ -146,11 +146,6 @@ struct Block::Session : public Genode::Session
 	virtual Info info() const = 0;
 
 	/**
-	 * Synchronize with block device, like ensuring data to be written
-	 */
-	virtual void sync() = 0;
-
-	/**
 	 * Request packet-transmission channel
 	 */
 	virtual Tx *tx_channel() { return 0; }
@@ -165,6 +160,16 @@ struct Block::Session : public Genode::Session
 	 */
 	virtual Genode::Capability<Tx> tx_cap() = 0;
 
+	/**
+	 * Return packet descriptor for syncing the entire block session
+	 */
+	static Packet_descriptor sync_all_packet_descriptor(Info const &info, Tag tag)
+	{
+		return Packet_descriptor(Packet_descriptor(0UL, 0UL),
+		                         Packet_descriptor::SYNC,
+		                         0UL, info.block_count, tag);
+	}
+
 
 	/*******************
 	 ** RPC interface **
@@ -172,8 +177,7 @@ struct Block::Session : public Genode::Session
 
 	GENODE_RPC(Rpc_info, Info, info);
 	GENODE_RPC(Rpc_tx_cap, Genode::Capability<Tx>, tx_cap);
-	GENODE_RPC(Rpc_sync, void, sync);
-	GENODE_RPC_INTERFACE(Rpc_info, Rpc_tx_cap, Rpc_sync);
+	GENODE_RPC_INTERFACE(Rpc_info, Rpc_tx_cap);
 };
 
 #endif /* _INCLUDE__BLOCK_SESSION__BLOCK_SESSION_H_ */

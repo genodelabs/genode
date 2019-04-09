@@ -57,8 +57,6 @@ class Block::Session_client : public Genode::Rpc_client<Session>
 
 		Tx::Source *tx() override { return _tx.source(); }
 
-		void sync() override { call<Rpc_sync>(); }
-
 		Genode::Capability<Tx> tx_cap() override { return call<Rpc_tx_cap>(); }
 
 		/**

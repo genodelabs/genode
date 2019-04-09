@@ -60,8 +60,6 @@ struct Test::Block_session_component : Rpc_object<Block::Session>,
 
 	Info info() const override { return Request_stream::info(); }
 
-	void sync() override { }
-
 	Capability<Tx> tx_cap() override { return Request_stream::tx_cap(); }
 };
 
