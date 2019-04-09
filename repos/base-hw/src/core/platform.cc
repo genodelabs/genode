@@ -12,8 +12,6 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* Genode includes */
-#include <base/log.h>
 
 /* core includes */
 #include <boot_modules.h>
@@ -31,6 +29,10 @@
 /* base-internal includes */
 #include <base/internal/crt0.h>
 #include <base/internal/stack_area.h>
+
+/* Genode includes */
+#include <base/log.h>
+#include <trace/source_registry.h>
 
 using namespace Genode;
 
@@ -204,6 +206,40 @@ Platform::Platform()
 
 		init_core_log(Core_log_range { core_local_addr, log_size } );
 	}
+
+	struct Trace_source : public  Trace::Source::Info_accessor,
+	                      private Trace::Control,
+	                      private Trace::Source
+	{
+		Kernel::Thread          &thread;
+		Affinity::Location const affinity;
+
+		/**
+		 * Trace::Source::Info_accessor interface
+		 */
+		Info trace_source_info() const override
+		{
+			Trace::Execution_time execution_time { thread.execution_time(), 0 };
+			return { Session_label("kernel"), thread.label(), execution_time,
+			         affinity };
+		}
+
+		Trace_source(Trace::Source_registry &registry,
+		             Kernel::Thread &thread, Affinity::Location affinity)
+		:
+			Trace::Control(),
+			Trace::Source(*this, *this),
+			thread(thread), affinity(affinity)
+		{
+			registry.insert(this);
+		}
+	};
+
+	/* create trace sources for idle threads */
+	Kernel::cpu_pool().for_each_cpu([&] (Kernel::Cpu & cpu) {
+		new (core_mem_alloc()) Trace_source(Trace::sources(), cpu.idle_thread(),
+		                                    Affinity::Location(cpu.id(), 0));
+	});
 
 	log(_rom_fs);
 }

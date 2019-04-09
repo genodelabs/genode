@@ -178,6 +178,11 @@ class Kernel::Cpu : public Genode::Cpu, private Irq::Pool, private Timeout
 
 		Inter_processor_work_list & work_list() {
 			return _local_work_list; }
+
+		/**
+		 * Return CPU's idle thread object
+		 */
+		Kernel::Thread &idle_thread() { return _idle; }
 };
 
 

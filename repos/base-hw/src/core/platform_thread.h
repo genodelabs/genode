@@ -208,8 +208,11 @@ namespace Genode {
 			/**
 			 * Return execution time consumed by the thread
 			 */
-			Trace::Execution_time execution_time() const {
-				return { 0, 0, _quota, _priority }; }
+			Trace::Execution_time execution_time() const
+			{
+				Genode::uint64_t execution_time =
+					const_cast<Platform_thread *>(this)->_kobj->execution_time();
+				return { execution_time, 0, _quota, _priority }; }
 
 
 			/***************

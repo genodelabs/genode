@@ -60,16 +60,19 @@ void Timer::set_timeout(Timeout * const timeout, time_t const duration)
 }
 
 
-void Timer::schedule_timeout()
+time_t Timer::schedule_timeout()
 {
 	/* get the timeout with the nearest end time */
 	Timeout * timeout = _timeout_list.first();
 	assert(timeout);
 
 	/* install timeout at timer hardware */
-	_time += _duration();
+	time_t duration = _duration();
+	_time          += duration;
 	_last_timeout_duration = (timeout->_end > _time) ? timeout->_end - _time : 1;
 	_start_one_shot(_last_timeout_duration);
+
+	return duration;
 }
 
 

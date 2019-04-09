@@ -35,6 +35,8 @@ class Kernel::Cpu_job : private Cpu_share
 
 		friend class Cpu; /* static_cast from 'Cpu_share' to 'Cpu_job' */
 
+		time_t _execution_time { 0 };
+
 		/*
 		 * Noncopyable
 		 */
@@ -111,6 +113,16 @@ class Kernel::Cpu_job : private Cpu_share
 		 * Return wether our CPU-share is currently active
 		 */
 		bool own_share_active() { return Cpu_share::ready(); }
+
+		/**
+		 * Update total execution time
+		 */
+		void update_execution_time(time_t duration) { _execution_time += duration; }
+
+		/**
+		 * Return total execution time
+		 */
+		time_t execution_time() const { return _execution_time; }
 
 
 		/***************

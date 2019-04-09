@@ -91,7 +91,10 @@ class Kernel::Timer
 
 		Timer(Cpu & cpu);
 
-		void schedule_timeout();
+		/**
+		 * Return duration from last call of this function
+		 */
+		time_t schedule_timeout();
 
 		void process_timeouts();
 
