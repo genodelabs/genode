@@ -397,6 +397,9 @@ static void _sysio_to_stat_struct(Noux::Sysio const *sysio, struct stat *buf)
 	buf->st_blocks  = (buf->st_size + FS_BLOCK_SIZE - 1) / FS_BLOCK_SIZE;
 	buf->st_ino     = sysio->stat_out.st.inode;
 	buf->st_dev     = sysio->stat_out.st.device;
+
+	if (sysio->stat_out.st.mtime >= 0)
+		buf->st_mtime = sysio->stat_out.st.mtime;
 }
 
 
@@ -934,6 +937,13 @@ extern "C" int gettimeofday(struct timeval *tv, struct timezone *tz)
 
 extern "C" int utimes(const char* path, const struct timeval *times)
 {
+	char * const dst     = sysio()->utimes_in.path;
+	size_t const max_len = sizeof(sysio()->utimes_in.path);
+	Genode::strncpy(dst, path, max_len);
+
+	sysio()->utimes_in.sec  = times ? times->tv_sec  : 0;
+	sysio()->utimes_in.usec = times ? times->tv_usec : 0;
+
 	if (!noux_syscall(Noux::Session::SYSCALL_UTIMES)) {
 		errno = EINVAL;
 		return -1;

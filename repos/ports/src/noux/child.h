@@ -37,6 +37,7 @@
 #include <verbose.h>
 #include <user_info.h>
 #include <armed_timeout.h>
+#include <time_info.h>
 
 namespace Noux {
 
@@ -123,6 +124,8 @@ class Noux::Child : public Rpc_object<Session>,
 		Verbose const &_verbose;
 
 		User_info const &_user_info;
+
+		Time_info const &_time_info;
 
 		Parent_exit       *_parent_exit;
 		Kill_broadcaster  &_kill_broadcaster;
@@ -319,6 +322,7 @@ class Noux::Child : public Rpc_object<Session>,
 		Child(Child_policy::Name const &name,
 		      Verbose            const &verbose,
 		      User_info          const &user_info,
+		      Time_info          const &time_info,
 		      Parent_exit              *parent_exit,
 		      Kill_broadcaster         &kill_broadcaster,
 		      Timer::Connection        &timer_connection,
@@ -342,6 +346,7 @@ class Noux::Child : public Rpc_object<Session>,
 			_name(name),
 			_verbose(verbose),
 			_user_info(user_info),
+			_time_info(time_info),
 			_parent_exit(parent_exit),
 			_kill_broadcaster(kill_broadcaster),
 			_timer_connection(timer_connection),
@@ -521,6 +526,7 @@ class Noux::Child : public Rpc_object<Session>,
 			Child *child = new (_heap) Child(filename,
 			                                 _verbose,
 			                                 _user_info,
+			                                 _time_info,
 			                                 _parent_exit,
 			                                 _kill_broadcaster,
 			                                 _timer_connection,

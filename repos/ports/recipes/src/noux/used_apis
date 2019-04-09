@@ -7,3 +7,4 @@ noux_session
 terminal_session
 timer_session
 posix
+rtc_session
