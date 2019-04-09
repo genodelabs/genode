@@ -190,29 +190,17 @@ class Block::Request_stream : Genode::Noncopyable
 
 				Packet_descriptor const packet = tx_sink.peek_packet();
 
-				auto type = [] (Packet_descriptor::Opcode op)
-				{
-					switch (op) {
-					case Packet_descriptor::READ:  return Operation::Type::READ;
-					case Packet_descriptor::WRITE: return Operation::Type::WRITE;
-					case Packet_descriptor::SYNC:  return Operation::Type::SYNC;
-					case Packet_descriptor::TRIM:  return Operation::Type::TRIM;
-					case Packet_descriptor::END:   return Operation::Type::INVALID;
-					};
-					return Operation::Type::INVALID;
-				};
-
 				bool const packet_valid = tx_sink.packet_valid(packet)
 				                       && (packet.offset() >= 0);
 
-				Operation operation { .type         = type(packet.operation()),
+				Operation operation { .type         = packet.operation_type(),
 				                      .block_number = packet.block_number(),
 				                      .count        = packet.block_count() };
 
 				Request request { .operation = operation,
 				                  .success   = false,
 				                  .offset    = packet.offset(),
-				                  .tag       = { packet.tag().value } };
+				                  .tag       = packet.tag() };
 
 				Response const response = packet_valid
 				                        ? fn(request)
@@ -278,27 +266,11 @@ class Block::Request_stream : Genode::Noncopyable
 					}
 
 					typedef Block::Packet_descriptor Packet_descriptor;
-					Packet_descriptor
-						packet { (Genode::off_t)request.offset,
-						         request.operation.count * _block_size };
+					Packet_descriptor::Payload
+						payload { .offset = request.offset,
+						          .bytes  = request.operation.count * _block_size };
 
-					auto opcode = [] (Operation::Type type)
-					{
-						switch (type) {
-						case Operation::Type::READ:    return Packet_descriptor::READ;
-						case Operation::Type::WRITE:   return Packet_descriptor::WRITE;
-						case Operation::Type::SYNC:    return Packet_descriptor::END;
-						case Operation::Type::TRIM:    return Packet_descriptor::TRIM;
-						case Operation::Type::INVALID: return Packet_descriptor::END;
-						};
-						return Packet_descriptor::END;
-					};
-
-					packet = Packet_descriptor(packet,
-					                           opcode(request.operation.type),
-					                           request.operation.block_number,
-					                           request.operation.count,
-					                           Session::Tag{request.tag.value});
+					Packet_descriptor packet(request.operation, payload, request.tag);
 
 					packet.succeeded(request.success);
 

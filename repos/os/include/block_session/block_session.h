@@ -17,11 +17,14 @@
 #include <os/packet_stream.h>
 #include <packet_stream_tx/packet_stream_tx.h>
 #include <session/session.h>
+#include <block/request.h>
 
 namespace Block {
 
-	/**
+	/*
 	 * Sector type for block session
+	 *
+	 * \deprecated  use block_number_t instead
 	 */
 	typedef Genode::uint64_t sector_t;
 
@@ -52,18 +55,36 @@ class Block::Packet_descriptor : public Genode::Packet_descriptor
 		 */
 		enum Alignment { PACKET_ALIGNMENT = 11 };
 
+		typedef Request::Tag Tag;
+
 		/**
-		 * Client-defined value for correlating acknowledgements with requests
+		 * Payload location within the packet stream
 		 */
-		struct Tag { unsigned long value; };
+		struct Payload
+		{
+			Genode::off_t  offset;
+			Genode::size_t bytes;
+		};
 
 	private:
 
-		Opcode          _op;           /* requested operation */
-		Tag             _tag;          /* client-defined request identifier */
-		sector_t        _block_number; /* requested block number */
-		Genode::size_t  _block_count;  /* number of blocks of operation */
-		bool            _success;      /* indicates success of operation */
+		Opcode         _op;           /* requested operation */
+		Tag            _tag;          /* client-defined request identifier */
+		block_number_t _block_number; /* requested block number */
+		block_count_t  _block_count;  /* number of blocks of operation */
+		bool           _success;      /* indicates success of operation */
+
+		static Opcode _opcode(Operation::Type type)
+		{
+			switch (type) {
+			case Operation::Type::READ:    return READ;
+			case Operation::Type::WRITE:   return WRITE;
+			case Operation::Type::SYNC:    return SYNC;
+			case Operation::Type::TRIM:    return TRIM;
+			case Operation::Type::INVALID: return END;
+			};
+			return END;
+		}
 
 	public:
 
@@ -80,7 +101,8 @@ class Block::Packet_descriptor : public Genode::Packet_descriptor
 		 * Constructor
 		 */
 		Packet_descriptor(Packet_descriptor p, Opcode op,
-		                  sector_t block_number, Genode::size_t block_count = 1,
+		                  block_number_t block_number,
+		                  block_count_t  block_count = 1,
 		                  Tag tag = { ~0U })
 		:
 			Genode::Packet_descriptor(p.offset(), p.size()),
@@ -88,13 +110,37 @@ class Block::Packet_descriptor : public Genode::Packet_descriptor
 			_block_count(block_count), _success(false)
 		{ }
 
+		/**
+		 * Constructor
+		 */
+		Packet_descriptor(Operation operation, Payload payload, Tag tag)
+		:
+			Genode::Packet_descriptor(payload.offset, payload.bytes),
+			_op(_opcode(operation.type)), _tag(tag),
+			_block_number(operation.block_number),
+			_block_count(operation.count),
+			_success(false)
+		{ }
+
 		Opcode         operation()    const { return _op;           }
-		sector_t       block_number() const { return _block_number; }
-		Genode::size_t block_count()  const { return _block_count;  }
+		block_number_t block_number() const { return _block_number; }
+		block_count_t  block_count()  const { return _block_count;  }
 		bool           succeeded()    const { return _success;      }
 		Tag            tag()          const { return _tag;          }
 
 		void succeeded(bool b) { _success = b; }
+
+		Operation::Type operation_type() const
+		{
+			switch (_op) {
+			case READ:  return Operation::Type::READ;
+			case WRITE: return Operation::Type::WRITE;
+			case SYNC:  return Operation::Type::SYNC;
+			case TRIM:  return Operation::Type::TRIM;
+			case END:   return Operation::Type::INVALID;
+			};
+			return Operation::Type::INVALID;
+		}
 };
 
 
@@ -121,12 +167,12 @@ struct Block::Session : public Genode::Session
 
 	typedef Packet_stream_tx::Channel<Tx_policy> Tx;
 
-	typedef Packet_descriptor::Tag Tag;
+	typedef Request::Tag Tag;
 
 	struct Info
 	{
 		Genode::size_t block_size;   /* size of one block in bytes */
-		sector_t       block_count;  /* number of blocks */
+		block_number_t block_count;  /* number of blocks */
 		Genode::size_t align_log2;   /* packet alignment within payload buffer */
 		bool           writeable;
 	};
