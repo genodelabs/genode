@@ -96,6 +96,7 @@ struct Noux::Sysio
 		unsigned       gid;
 		unsigned long  inode;
 		unsigned long  device;
+		long long      mtime;
 
 		Stat & operator= (Vfs::Directory_service::Stat const &stat)
 		{
@@ -105,6 +106,7 @@ struct Noux::Sysio
 			gid    = stat.gid;
 			inode  = stat.inode;
 			device = stat.device;
+			mtime  = stat.modification_time.value;
 
 			return *this;
 		}

@@ -14,9 +14,13 @@
 #ifndef _NOUX__VFS_IO_CHANNEL_H_
 #define _NOUX__VFS_IO_CHANNEL_H_
 
+/* Genode includes */
+#include <timer_session/connection.h>
+
 /* Noux includes */
 #include <io_channel.h>
 #include <vfs/dir_file_system.h>
+#include <time_info.h>
 
 namespace Noux {
 	class Vfs_io_waiter;
@@ -69,10 +73,29 @@ struct Noux::Vfs_io_channel : Io_channel
 
 	bool const _dir = _fh.ds().directory(_leaf_path.base());
 
+	Time_info   const &_time_info;
+	Timer::Connection &_timer;
+
 	void _sync()
 	{
+		Milliseconds const ms =
+			_timer.curr_time().trunc_to_plain_ms();
+		uint64_t sec   = _time_info.initial_time();
+		         sec  += (ms.value / 1000);
+
+		Vfs::Timestamp ts { .value = (long long)sec };
+
 		Registered_no_delete<Vfs_io_waiter>
 			vfs_io_waiter(_vfs_io_waiter_registry);
+
+		for (;;) {
+			if (_fh.fs().update_modification_timestamp(&_fh, ts)) {
+				break;
+			} else {
+				Genode::error("_sync: update_modification_timestamp failed");
+				vfs_io_waiter.wait_for_io();
+			}
+		}
 
 		while (!_fh.fs().queue_sync(&_fh))
 			vfs_io_waiter.wait_for_io();
@@ -89,11 +112,13 @@ struct Noux::Vfs_io_channel : Io_channel
 	Vfs_io_channel(char const *path, char const *leaf_path,
 	               Vfs::Vfs_handle *vfs_handle,
 	               Vfs_io_waiter_registry &vfs_io_waiter_registry,
-	               Entrypoint &ep)
+	               Entrypoint &ep,
+	               Time_info const &time_info,
+	               Timer::Connection &timer)
 	:
 		_read_avail_handler(ep, *this, &Vfs_io_channel::_handle_read_avail),
 		_fh(*vfs_handle), _vfs_io_waiter_registry(vfs_io_waiter_registry),
-		_path(path), _leaf_path(leaf_path)
+		_path(path), _leaf_path(leaf_path), _time_info(time_info), _timer(timer)
 	{
 		_fh.fs().register_read_ready_sigh(&_fh, _read_avail_handler);
 	}
