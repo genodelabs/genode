@@ -26,8 +26,8 @@ class Block::Request_stream : Genode::Noncopyable
 {
 	public:
 
-		struct Block_size { Genode::uint32_t value; };
-		struct Align_log2 { Genode::size_t   value; };
+		struct Block_size { Genode::size_t value; };
+		struct Align_log2 { Genode::size_t value; };
 
 		/**
 		 * Interface for accessing the content of a 'Request'
@@ -59,7 +59,7 @@ class Block::Request_stream : Genode::Noncopyable
 				 */
 				Genode::size_t _request_size(Block::Request const &request) const
 				{
-					return request.count * _info.block_size;
+					return request.operation.count * _info.block_size;
 				}
 
 				bool _valid_range_and_alignment(Block::Request const &request) const
@@ -190,26 +190,27 @@ class Block::Request_stream : Genode::Noncopyable
 
 				Packet_descriptor const packet = tx_sink.peek_packet();
 
-				auto operation = [] (Packet_descriptor::Opcode op)
+				auto type = [] (Packet_descriptor::Opcode op)
 				{
 					switch (op) {
-					case Packet_descriptor::READ:  return Request::Operation::READ;
-					case Packet_descriptor::WRITE: return Request::Operation::WRITE;
-					case Packet_descriptor::END:   return Request::Operation::INVALID;
+					case Packet_descriptor::READ:  return Operation::Type::READ;
+					case Packet_descriptor::WRITE: return Operation::Type::WRITE;
+					case Packet_descriptor::END:   return Operation::Type::INVALID;
 					};
-					return Request::Operation::INVALID;
+					return Operation::Type::INVALID;
 				};
 
-				bool const packet_valid = (tx_sink.packet_valid(packet)
-				                       && (packet.offset() >= 0)
-				                       && (packet.size() <= (size_t)((uint32_t)~0UL)));
+				bool const packet_valid = tx_sink.packet_valid(packet)
+				                       && (packet.offset() >= 0);
 
-				Request request { .operation    = operation(packet.operation()),
-				                  .success      = Request::Success::FALSE,
-				                  .block_number = (uint64_t)packet.block_number(),
-				                  .offset       = (uint64_t)packet.offset(),
-				                  .count        = (uint32_t)packet.block_count(),
-				                  .tag          = 0};
+				Operation operation { .type         = type(packet.operation()),
+				                      .block_number = packet.block_number(),
+				                      .count        = packet.block_count() };
+
+				Request request { .operation = operation,
+				                  .success   = false,
+				                  .offset    = packet.offset(),
+				                  .tag       = { 0 } };
 
 				Response const response = packet_valid
 				                        ? fn(request)
@@ -260,9 +261,9 @@ class Block::Request_stream : Genode::Noncopyable
 
 				bool _submitted = false;
 
-				Genode::uint32_t const _block_size;
+				Genode::size_t const _block_size;
 
-				Ack(Tx_sink &tx_sink, Genode::uint32_t block_size)
+				Ack(Tx_sink &tx_sink, Genode::size_t block_size)
 				: _tx_sink(tx_sink), _block_size(block_size) { }
 
 			public:
@@ -275,24 +276,27 @@ class Block::Request_stream : Genode::Noncopyable
 					}
 
 					typedef Block::Packet_descriptor Packet_descriptor;
-					Packet_descriptor packet { (Genode::off_t)request.offset,
-					                           request.count * _block_size };
+					Packet_descriptor
+						packet { (Genode::off_t)request.offset,
+						         request.operation.count * _block_size };
 
-					auto opcode = [] (Request::Operation operation)
+					auto opcode = [] (Operation::Type type)
 					{
-						switch (operation) {
-						case Request::Operation::READ:    return Packet_descriptor::READ;
-						case Request::Operation::WRITE:   return Packet_descriptor::WRITE;
-						case Request::Operation::SYNC:    return Packet_descriptor::END;
-						case Request::Operation::INVALID: return Packet_descriptor::END;
+						switch (type) {
+						case Operation::Type::READ:    return Packet_descriptor::READ;
+						case Operation::Type::WRITE:   return Packet_descriptor::WRITE;
+						case Operation::Type::SYNC:    return Packet_descriptor::END;
+						case Operation::Type::INVALID: return Packet_descriptor::END;
 						};
 						return Packet_descriptor::END;
 					};
 
-					packet = Packet_descriptor(packet, opcode(request.operation),
-					                           request.block_number, request.count);
+					packet = Packet_descriptor(packet,
+					                           opcode(request.operation.type),
+					                           request.operation.block_number,
+					                           request.operation.count);
 
-					packet.succeeded(request.success == Request::Success::TRUE);
+					packet.succeeded(request.success);
 
 					_tx_sink.try_ack_packet(packet);
 					_submitted = true;
@@ -325,6 +329,5 @@ class Block::Request_stream : Genode::Noncopyable
 
 		void wakeup_client_if_needed() { _tx.sink()->wakeup(); }
 };
-
 
 #endif /* _INCLUDE__BLOCK__REQUEST_STREAM_H_ */

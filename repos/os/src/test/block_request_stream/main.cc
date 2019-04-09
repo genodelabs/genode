@@ -106,7 +106,7 @@ struct Test::Jobs : Noncopyable
 		for (unsigned i = 0; i < N; i++) {
 			if (_entries[i].state == Entry::IN_PROGRESS) {
 				_entries[i].state = Entry::COMPLETE;
-				_entries[i].request.success = Block::Request::Success::TRUE;
+				_entries[i].request.success = true;
 				progress = true;
 			}
 		}
@@ -137,7 +137,7 @@ struct Test::Jobs : Noncopyable
 
 		completed_job(request);
 
-		if (request.operation_defined())
+		if (request.operation.valid())
 			fn(request);
 	}
 };
