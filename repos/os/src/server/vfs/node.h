@@ -379,6 +379,20 @@ class Vfs_server::Io_node : public Vfs_server::Node,
 				/* discard this packet */
 				_drop_packet();
 				break;
+
+			case Packet_descriptor::WRITE_TIMESTAMP:
+				try {
+					_packet.with_timestamp([&] (File_system::Timestamp const time) {
+						Vfs::Timestamp ts { .value = time.value };
+						_handle.fs().update_modification_timestamp(&_handle, ts);
+					});
+					_packet.succeeded(true);
+					_ack_packet(0);
+				} catch (Vfs::File_io_service::Insufficient_buffer) {
+					/* packet is pending */
+					result = false;
+				}
+				break;
 			}
 
 			return result;
