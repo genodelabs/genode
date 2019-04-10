@@ -157,7 +157,14 @@ _vm_to_host:
 	mcr  p15, 0, r9,  c2,  c0, 2  /* write TTBRC            */
 	mcr  p15, 0, r10, c10, c2, 0  /* write MAIR0            */
 	mcr  p15, 0, r11, c3,  c0, 0  /* write DACR             */
-	cps #SVC_MODE
+	mov r10, #7
+	lsl r10, #6
+	add r10, r10, #SVC_MODE
+	msr spsr_cxsf, r10
+	adr r10, _svc_mode_ret
+	msr ELR_hyp, r10
+	eret
+_svc_mode_ret:
 	stmia r0, {r13-r14}^          /* save user regs sp,lr   */
 	add r0, r0, #2*4
 	stmia r0!, {r1-r2}            /* save ip, cpsr          */
