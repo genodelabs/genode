@@ -23,7 +23,7 @@ namespace Block { class Session_client; }
 
 class Block::Session_client : public Genode::Rpc_client<Session>
 {
-	private:
+	protected:
 
 		Packet_stream_tx::Client<Tx> _tx;
 

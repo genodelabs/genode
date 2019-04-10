@@ -43,6 +43,11 @@ struct Block::Operation
 		    || type == Type::SYNC || type == Type::TRIM;
 	}
 
+	static bool has_payload(Type type)
+	{
+		return type == Type::READ || type == Type::WRITE;
+	}
+
 	static char const *type_name(Type type)
 	{
 		switch (type) {
