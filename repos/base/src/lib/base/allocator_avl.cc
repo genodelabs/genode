@@ -183,9 +183,13 @@ void Allocator_avl_base::_revert_allocations_and_ranges()
 		        (dangling_allocations > 1) ? "s" : "",
 		        " at allocator destruction time");
 
-	/* remove ranges */
-	while (Block *block = _addr_tree.first())
-		remove_range(block->addr(), block->size());
+	/* destroy all remaining blocks */
+	while (Block *block = _addr_tree.first()) {
+		if (remove_range(block->addr(), block->size())) {
+			/* if the invocation fails, release the block to break endless loop  */
+			_destroy_block(block);
+		}
+	}
 }
 
 
