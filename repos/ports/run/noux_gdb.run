@@ -31,6 +31,9 @@ set build_components {
 }
 
 lappend build_components "lib/gdbserver_platform-$::env(KERNEL)"
+lappend_if [have_spec nova] build_components lib/ld/nova
+lappend_if [have_spec foc]  build_components lib/ld/foc
+lappend build_components noux-pkg/[noux_gdb_pkg_name]
 
 # the application to be debugged with GDB
 lappend build_components test/gdb_monitor
@@ -57,8 +60,6 @@ set gdb_target_binaries {
 lappend gdb_target_binaries ${gdb_target_binary_name}
 
 create_binary_and_source_tars ${gdb_target_binary_name} ${gdb_target_binaries}
-
-create_boot_directory
 
 append config {
 	<config verbose="yes">
