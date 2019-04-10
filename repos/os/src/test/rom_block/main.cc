@@ -39,7 +39,7 @@ struct Main
 	File_name               file_name   { config.xml().attribute_value("file", File_name()) };
 	Heap                    heap        { env.ram(), env.rm() };
 	Allocator_avl           block_alloc { &heap };
-	Block::Connection       block       { env, &block_alloc };
+	Block::Connection<>     block       { env, &block_alloc };
 	Attached_rom_dataspace  rom         { env, file_name.string() };
 
 	Main(Env &env) : env(env)

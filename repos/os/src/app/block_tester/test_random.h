@@ -89,7 +89,7 @@ struct Test::Random : Test_base
 	/* block session infos */
 	enum { TX_BUF_SIZE = 4 * 1024 * 1024, };
 	Genode::Allocator_avl _block_alloc { &_alloc };
-	Genode::Constructible<Block::Connection> _block { };
+	Genode::Constructible<Block::Connection<>> _block { };
 
 	Genode::Constructible<Timer::Connection> _timer { };
 

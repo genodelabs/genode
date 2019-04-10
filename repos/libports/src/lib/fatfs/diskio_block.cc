@@ -56,12 +56,12 @@ extern "C" {
 	void block_init(Genode::Env &env, Genode::Allocator &alloc) {
 		_platform.construct(env, alloc); }
 
-	struct Drive : private Block::Connection
+	struct Drive : private Block::Connection<>
 	{
-		Info const info = Block::Connection::info();
+		Info const info = Block::Connection<>::info();
 
-		using Block::Connection::tx;
-		using Block::Connection::alloc_packet;
+		using Block::Connection<>::tx;
+		using Block::Connection<>::alloc_packet;
 
 		void sync()
 		{
@@ -75,7 +75,7 @@ extern "C" {
 		}
 
 		Drive(Platform &platform, char const *label)
-		: Block::Connection(platform.env, &platform.tx_alloc, 128*1024, label)
+		: Block::Connection<>(platform.env, &platform.tx_alloc, 128*1024, label)
 		{ }
 	};
 }

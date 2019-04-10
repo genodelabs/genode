@@ -82,7 +82,7 @@ class Genode::Block_driver
 				Name     const              _name;
 				unsigned const              _irq;
 				Signal_handler<Device>      _irq_handler;
-				Block::Connection           _session;
+				Block::Connection<>         _session;
 				Id_space<Device>::Element   _id_space_elem;
 				Block::Session::Info  const _info { _session.info() };
 
@@ -103,13 +103,13 @@ class Genode::Block_driver
 
 				void start_irq_handling();
 
-				Request_cache     &cache()             { return _cache;     }
-				Block::Connection &session()           { return _session;   }
-				size_t             block_size()  const { return _info.block_size;  }
-				size_t             block_count() const { return _info.block_count; }
-				bool               writeable()   const { return _info.writeable; }
-				Name const        &name()        const { return _name;      }
-				unsigned           irq()         const { return _irq;       }
+				Request_cache       &cache()             { return _cache;     }
+				Block::Connection<> &session()           { return _session;   }
+				size_t               block_size()  const { return _info.block_size;  }
+				size_t               block_count() const { return _info.block_count; }
+				bool                 writeable()   const { return _info.writeable; }
+				Name const          &name()        const { return _name;      }
+				unsigned             irq()         const { return _irq;       }
 		};
 
 		void             *_buf       = nullptr;

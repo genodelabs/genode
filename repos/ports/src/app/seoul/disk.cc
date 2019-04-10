@@ -175,9 +175,9 @@ bool Seoul::Disk::receive(MessageDisk &msg)
 				new (disk_heap()) Genode::Allocator_avl(disk_heap());
 
 			disk.blk_con =
-				new (disk_heap()) Block::Connection(_env, block_alloc,
-				                                    4*512*1024,
-				                                    label.string());
+				new (disk_heap()) Block::Connection<>(_env, block_alloc,
+				                                      4*512*1024,
+				                                      label.string());
 			disk.signal =
 				new (disk_heap()) Seoul::Disk_signal(_env.ep(), *this,
 				                                     *disk.blk_con, msg.disknr);

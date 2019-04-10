@@ -18,8 +18,10 @@
 #include <base/connection.h>
 #include <base/allocator.h>
 
-namespace Block { struct Connection; }
+namespace Block { template <typename> struct Connection; }
 
+
+template <typename JOB = void>
 struct Block::Connection : Genode::Connection<Session>, Session_client
 {
 	/**

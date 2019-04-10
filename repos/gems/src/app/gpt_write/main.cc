@@ -34,7 +34,7 @@ struct Gpt::Writer
 
 	using sector_t = Block::sector_t;
 
-	Block::Connection &_block;
+	Block::Connection<> &_block;
 
 	Block::Session::Info const _info        { _block.info() };
 	size_t               const _block_size  { _info.block_size };
@@ -652,7 +652,7 @@ struct Gpt::Writer
 	 *
 	 * \throw Io_error
 	 */
-	Writer(Block::Connection &block, Genode::Xml_node config) : _block(block)
+	Writer(Block::Connection<> &block, Genode::Xml_node config) : _block(block)
 	{
 		if (!_info.writeable) {
 			Genode::error("cannot write to Block session");
@@ -736,7 +736,7 @@ struct Main
 
 	enum { TX_BUF_SIZE = 128u << 10, };
 	Genode::Allocator_avl _block_alloc { &_heap };
-	Block::Connection     _block       { _env, &_block_alloc, TX_BUF_SIZE };
+	Block::Connection<>   _block       { _env, &_block_alloc, TX_BUF_SIZE };
 
 	Genode::Constructible<Gpt::Writer> _writer { };
 

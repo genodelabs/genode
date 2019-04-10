@@ -78,7 +78,7 @@ class Block::Driver
 		Genode::Tslab<Request, BLK_SZ> _r_slab;
 		Genode::List<Request>          _r_list { };
 		Genode::Allocator_avl          _block_alloc;
-		Block::Connection              _session;
+		Block::Connection<>            _session;
 		Block::Session::Info     const _info { _session.info() };
 		Genode::Signal_handler<Driver> _source_ack;
 		Genode::Signal_handler<Driver> _source_submit;

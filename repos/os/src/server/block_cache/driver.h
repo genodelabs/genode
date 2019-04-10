@@ -118,7 +118,7 @@ class Driver : public Block::Driver
 		Genode::Tslab<Request, SLAB_SZ>   _r_slab;    /* slab for requests  */
 		Genode::List<Request>             _r_list;    /* list of requests   */
 		Genode::Packet_allocator          _alloc;     /* packet allocator   */
-		Block::Connection                 _blk;       /* backend device     */
+		Block::Connection<>               _blk;       /* backend device     */
 		Block::Session::Info        const _info;      /* block-device info  */
 		Chunk_level_0                     _cache;     /* chunk hierarchy    */
 		Genode::Io_signal_handler<Driver> _source_ack;

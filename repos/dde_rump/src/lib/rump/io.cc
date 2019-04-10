@@ -30,7 +30,7 @@ class Backend
 	private:
 
 		Genode::Allocator_avl _alloc { &Rump::env().heap() };
-		Block::Connection     _session { Rump::env().env(), &_alloc };
+		Block::Connection<>   _session { Rump::env().env(), &_alloc };
 		Block::Session::Info  _info { _session.info() };
 		Genode::Lock          _session_lock;
 

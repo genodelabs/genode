@@ -50,7 +50,7 @@ class Iso::Sector {
 
 	public:
 
-		Sector(Block::Connection &block,
+		Sector(Block::Connection<> &block,
 		       unsigned long blk_nr, unsigned long count)
 		: _source(*block.tx())
 		{
@@ -327,7 +327,7 @@ class Volume_descriptor : public Iso::Iso_base
  * Locate the root-directory record in the primary volume descriptor
  */
 static Directory_record *locate_root(Genode::Allocator &alloc,
-                                     Block::Connection &block)
+                                     Block::Connection<> &block)
 {
 	/* volume descriptors in ISO9660 start at block 16 */
 	for (unsigned long blk_nr = 16;; blk_nr++) {
@@ -347,7 +347,7 @@ static Directory_record *locate_root(Genode::Allocator &alloc,
  * Return root directory record
  */
 static Directory_record *root_dir(Genode::Allocator &alloc,
-                                  Block::Connection &block)
+                                  Block::Connection<> &block)
 {
 	Directory_record *root = locate_root(alloc, block);
 
@@ -364,8 +364,8 @@ static Directory_record *root_dir(Genode::Allocator &alloc,
 static Directory_record *_root_dir;
 
 
-Iso::File_info *Iso::file_info(Genode::Allocator &alloc, Block::Connection &block,
-                               char const *path)
+Iso::File_info *Iso::file_info(Genode::Allocator &alloc,
+                               Block::Connection<> &block, char const *path)
 {
 	char level[PATH_LENGTH];
 
@@ -441,7 +441,7 @@ Iso::File_info *Iso::file_info(Genode::Allocator &alloc, Block::Connection &bloc
 }
 
 
-unsigned long Iso::read_file(Block::Connection &block, File_info *info,
+unsigned long Iso::read_file(Block::Connection<> &block, File_info *info,
                              off_t file_offset, uint32_t length, void *buf_ptr)
 {
 	uint8_t *buf = (uint8_t *)buf_ptr;

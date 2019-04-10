@@ -65,9 +65,9 @@ class Test : Genode::Interface
 
 	protected:
 
-		Genode::Entrypoint    &_ep;
-		Genode::Allocator_avl  _alloc;
-		Block::Connection      _session;
+		Genode::Entrypoint   &_ep;
+		Genode::Allocator_avl _alloc;
+		Block::Connection<>   _session;
 
 		Genode::Io_signal_handler<Test> _disp_ack;
 		Genode::Io_signal_handler<Test> _disp_submit;
@@ -401,8 +401,8 @@ void Component::construct(Genode::Env &env)
 		 * whether closing and opening again works for the driver
 		 */
 		{
-			Allocator_avl     alloc(&heap);
-			Block::Connection blk(env, &alloc);
+			Allocator_avl       alloc(&heap);
+			Block::Connection<> blk(env, &alloc);
 
 			Block::Session::Info const info { blk.info() };
 

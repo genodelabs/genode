@@ -110,7 +110,7 @@ struct Test::Main
 
 			Heap heap(_env.ram(), _env.rm());
 			Allocator_avl packet_alloc(&heap);
-			Block::Connection block(_env, &packet_alloc, 128*1024, label.string());
+			Block::Connection<> block(_env, &packet_alloc, 128*1024, label.string());
 		});
 
 		log("all expected devices present and accessible");

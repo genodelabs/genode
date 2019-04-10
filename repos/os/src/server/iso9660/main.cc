@@ -70,7 +70,7 @@ class Iso::File : public File_base
 	public:
 
 		File(Genode::Env &env, Genode::Allocator &alloc,
-		     Block::Connection &block, char const *path)
+		     Block::Connection<> &block, char const *path)
 		:
 			File_base(path), _alloc(alloc),
 			_info(Iso::file_info(_alloc, block, path)),
@@ -112,7 +112,7 @@ class Iso::Rom_component : public Genode::Rpc_object<Rom_session>
 		void sigh(Signal_context_capability) override { }
 
 		Rom_component(Genode::Env &env, Genode::Allocator &alloc,
-		              File_cache &cache, Block::Connection &block,
+		              File_cache &cache, Block::Connection<> &block,
 		              char const *path)
 		{
 			if ((_file = _lookup(cache, path))) {
@@ -135,8 +135,8 @@ class Iso::Root : public Iso::Root_component
 		Genode::Env       &_env;
 		Genode::Allocator &_alloc;
 
-		Allocator_avl     _block_alloc { &_alloc };
-		Block::Connection _block       { _env, &_block_alloc };
+		Allocator_avl       _block_alloc { &_alloc };
+		Block::Connection<> _block       { _env, &_block_alloc };
 
 		/*
 		 * Entries in the cache are never freed, even if the ROM session

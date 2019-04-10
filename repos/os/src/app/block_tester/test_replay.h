@@ -51,7 +51,7 @@ struct Test::Replay : Test_base
 
 	enum { TX_BUF_SIZE = 4 * 1024 * 1024, };
 	Genode::Allocator_avl _block_alloc { &alloc };
-	Genode::Constructible<Block::Connection> _block { };
+	Genode::Constructible<Block::Connection<>> _block { };
 
 	Genode::Signal_handler<Replay> _ack_sigh {
 		env.ep(), *this, &Replay::_handle_ack };

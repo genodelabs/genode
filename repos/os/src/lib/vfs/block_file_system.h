@@ -41,7 +41,7 @@ class Vfs::Block_file_system : public Single_file_system
 
 		Genode::Allocator_avl _tx_block_alloc { &_env.alloc() };
 
-		Block::Connection _block {
+		Block::Connection<> _block {
 			_env.env(), &_tx_block_alloc, 128*1024, _label.string() };
 
 		Block::Session::Info const _info { _block.info() };
@@ -70,7 +70,7 @@ class Vfs::Block_file_system : public Single_file_system
 				char                              *_block_buffer;
 				unsigned                          &_block_buffer_count;
 				Genode::Allocator_avl             &_tx_block_alloc;
-				Block::Connection                 &_block;
+				Block::Connection<>               &_block;
 				Genode::size_t               const _block_size;
 				Block::sector_t              const _block_count;
 				Block::Session::Tx::Source        *_tx_source;
@@ -152,7 +152,7 @@ class Vfs::Block_file_system : public Single_file_system
 				                 char                              *block_buffer,
 				                 unsigned                          &block_buffer_count,
 				                 Genode::Allocator_avl             &tx_block_alloc,
-				                 Block::Connection                 &block,
+				                 Block::Connection<>               &block,
 				                 Genode::size_t                     block_size,
 				                 Block::sector_t                    block_count,
 				                 Block::Session::Tx::Source        *tx_source,

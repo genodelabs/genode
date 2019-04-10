@@ -35,11 +35,11 @@ class Throughput
 
 		typedef Genode::size_t size_t;
 
-		Env &             _env;
-		Heap              _heap    { _env.ram(), _env.rm() };
-		Allocator_avl     _alloc   { &_heap };
-		Block::Connection _session { _env, &_alloc, TX_BUFFER };
-		Timer::Connection _timer   { _env };
+		Env &               _env;
+		Heap                _heap    { _env.ram(), _env.rm() };
+		Allocator_avl       _alloc   { &_heap };
+		Block::Connection<> _session { _env, &_alloc, TX_BUFFER };
+		Timer::Connection   _timer   { _env };
 
 		Signal_handler<Throughput> _disp_ack    { _env.ep(), *this,
 		                                          &Throughput::_ack };
