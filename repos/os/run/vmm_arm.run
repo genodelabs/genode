@@ -5,11 +5,14 @@
 #
 
 assert_spec hw
-assert_spec arndale
+
+if { ![have_spec imx7d_sabre] && ![have_spec arndale] } {
+	puts "Run script is not supported on this platform"
+	exit 0
+}
 
 set build_components {
 	core init timer
-	drivers/platform
 	server/terminal_crosslink
 	test/terminal_expect_send
 	server/vmm
@@ -33,11 +36,6 @@ install_config {
 		<any-service><parent/><any-child/></any-service>
 	</default-route>
 	<default caps="100"/>
-	<start name="platform_drv">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Regulator"/></provides>
-		<config/>
-	</start>
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
@@ -91,7 +89,6 @@ if {![file exists bin/dtb]} {
 
 set boot_modules {
 	core ld.lib.so init
-	platform_drv
 	timer
 	terminal_crosslink
 	test-terminal_expect_send

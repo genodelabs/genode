@@ -11,10 +11,15 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+#include <drivers/defs/arm_v7.h>
+
 #ifndef _INCLUDE__DRIVERS__DEFS__EXYNOS5_H_
 #define _INCLUDE__DRIVERS__DEFS__EXYNOS5_H_
 
 namespace Exynos5 {
+
+	using namespace Arm_v7;
+
 	enum {
 		/* normal RAM */
 		RAM_0_BASE = 0x40000000,
@@ -31,10 +36,6 @@ namespace Exynos5 {
 		IRQ_CONTROLLER_VT_CTRL_SIZE = 0x1000,
 		IRQ_CONTROLLER_VT_CPU_BASE  = 0x10486000,
 		IRQ_CONTROLLER_VT_CPU_SIZE  = 0x1000,
-
-		/* virtual interrupts */
-		VT_MAINTAINANCE_IRQ = 25,
-		VT_TIMER_IRQ        = 27,
 
 		/* UART */
 		UART_2_MMIO_BASE = 0x12C20000,

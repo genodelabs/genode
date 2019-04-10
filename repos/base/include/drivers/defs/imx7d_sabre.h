@@ -14,7 +14,11 @@
 #ifndef _INCLUDE__DRIVERS__DEFS__IMX7D_SABRE_H_
 #define _INCLUDE__DRIVERS__DEFS__IMX7D_SABRE_H_
 
+#include <drivers/defs/arm_v7.h>
+
 namespace Imx7d_sabre {
+
+	using namespace Arm_v7;
 
 	enum {
 		RAM_0_BASE                  = 0x80000000UL,
@@ -35,9 +39,6 @@ namespace Imx7d_sabre {
 		TIMER_CLOCK                 = 1000000000UL,
 
 		CACHE_LINE_SIZE_LOG2        = 6,
-
-		VT_MAINTAINANCE_IRQ,
-		VT_TIMER_IRQ,
 	};
 }
 
