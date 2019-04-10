@@ -12,5 +12,4 @@ INC_DIR += $(SOLO5_PORT_DIR)/src/lib/solo5/bindings
 INC_DIR += $(SOLO5_PORT_DIR)/include/solo5
 INC_DIR += $(REP_DIR)/include/solo5
 
-vpath %.cc $(SOLO5_PORT_DIR)/src/lib/solo5/bindings/genode
-vpath %.cc $(REP_DIR)/src/lib/solo5/bindings/genode
+vpath bindings.cc $(SOLO5_PORT_DIR)/src/lib/solo5/bindings/genode

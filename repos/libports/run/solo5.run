@@ -13,7 +13,10 @@ create_boot_directory
 import_from_depot \
 	[depot_user]/src/[base_src] \
 	[depot_user]/src/init \
+	[depot_user]/src/nic_loopback \
+	[depot_user]/src/ram_block \
 	[depot_user]/src/rtc_drv \
+	[depot_user]/src/sequence \
 
 append config {
 <config>
@@ -58,14 +61,14 @@ append config {
 			<start name="solo5-test_hello">
 				<config>
 					<solo5 cmdline="Hello_Solo5"/>
-					<rtc/> <nic/> <blk/>
+					<rtc/> <nic/> <block/>
 				</config>
 			</start>
 			<start name="solo5-test_fpu"/>
 			<start name="solo5-test_globals"/>
 			<start name="solo5-test_quiet"/>
 			<start name="solo5-test_blk">
-				<config> <blk/> </config>
+				<config> <block/> </config>
 			</start>}
 
 if { ![get_cmd_switch --autopilot] || ![have_include "power_on/qemu"] } {
@@ -84,16 +87,10 @@ append config {
 install_config $config
 
 build {
-	app/sequence
-	server/nic_loopback
-	server/ram_block
 	test/solo5
 }
 
 build_boot_image {
-	nic_loopback
-	ram_block
-	sequence
 	solo5.lib.so
 	solo5-test_blk
 	solo5-test_fpu

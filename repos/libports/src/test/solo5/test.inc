@@ -1,7 +1,9 @@
 TEST_NAME := test_$(subst $(REP_DIR)/src/test/solo5/,,$(PRG_DIR))
 TARGET = solo5-$(TEST_NAME)
 
-LIBS += solo5
+LIBS += base solo5
+
+CC_OPT += -fstack-protector-strong
 
 SRC_C += $(TEST_NAME).c
 

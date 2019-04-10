@@ -59,7 +59,7 @@
 				<start name="solo5-test_globals"/>
 				<start name="solo5-test_quiet"/>
 				<start name="solo5-test_blk">
-					<config> <blk/> </config>
+					<config> <block/> </config>
 				</start>
 			</config>
 		</start>

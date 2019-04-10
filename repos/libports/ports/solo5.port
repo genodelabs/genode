@@ -2,11 +2,11 @@ LICENSE   := ISC
 VERSION   := HEAD
 DOWNLOADS := solo5.archive
 
-OWNER := Solo5
+OWNER := ehmry
 REPO  := solo5
-REV   := 58e855e149b069174b97176dcc0cba077e8a7440
+REV   := 7dca1a677f548ea0bc911a209f34ceb55d8f10fd
 URL(solo5) := https://github.com/$(OWNER)/$(REPO)/archive/$(REV).tar.gz
-SHA(solo5) := b90e727a75b447caa5668c4babf306e1d34c0d1534665900f09d559ef47366a9
+SHA(solo5) := 87a8e8e047bc6fffe0384f1cbb2bfde1e4c88c545287899be29444ec9a4d6b95
 DIR(solo5) := src/lib/solo5
 
 DIRS := include/solo5
