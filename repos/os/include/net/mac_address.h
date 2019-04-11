@@ -17,6 +17,12 @@
 /* OS includes */
 #include <net/netaddress.h>
 
-namespace Net { using Mac_address = Net::Network_address<6, ':', true>; }
+namespace Net { struct Mac_address; }
+
+struct Net::Mac_address : Net::Network_address<6, ':', true>
+{
+	using Net::Network_address<6, ':', true>::Network_address;
+	bool multicast() const { return addr[0] & 1; }
+};
 
 #endif /* _NET__MAC_ADDRESS_H_ */

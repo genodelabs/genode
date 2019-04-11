@@ -61,8 +61,12 @@ void Packet_handler::_link_state()
 
 void Packet_handler::broadcast_to_clients(Ethernet_frame *eth, Genode::size_t size)
 {
-	/* check whether it's really a broadcast packet */
-	if (eth->dst() == Ethernet_frame::broadcast()) {
+	/*
+	 * For simplicity reasons, we broadcast all multicast packets not only the
+	 * special multicast case "broadcast". (The broadcast address also has the
+	 * multicast bit set on Ethernet).
+	 */
+	if (eth->dst().multicast()) {
 		/* iterate through the list of clients */
 		Mac_address_node *node =
 			_vlan.mac_list.first();
