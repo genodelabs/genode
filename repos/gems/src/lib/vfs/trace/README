@@ -1,0 +1,34 @@
+The VFS trace plugin offers access to Genode's trace session by providing a
+file-system that can be mounted at arbitrary location within the VFS of a
+component. The file system forms a directory structure that recursively
+represents the parent-child relationship of running component. The leave
+directories represent the threads within a component. Currently there are three
+files for each thread that can be accessed:
+
+:'enable': Start or stops tracing of a thread by write "true" or "false" into
+           file.
+
+:'buffer_size': Allows the configuration of the trace-buffer size for the
+                thread in the usual Genode format (e.g. 5M, 512K, 1024).
+
+:'trace_buffer': This read only file contains the current content of the trace
+                 buffer. Every trace entry can only be read once, after that
+                 only new entries appear. "tail -f" can also be used in order to
+                 display continuous output.
+
+In order to mount the file system configure the <vfs> of your component as
+follow:
+
+! <vfs>
+!   <trace ram="16M"/>
+! </vfs>
+
+The "ram" attribute is mandatory and configures the quota of the trace-session
+in the plugin. It limits the number of thread that can be traced at once.
+
+Limitations:
+
+The plugin retrieves up to 128 running components at load time. There is
+currently no support to add or remove components once the plugin has been
+started. This implies that components that are started at a later stage will not
+appear within the file system.
