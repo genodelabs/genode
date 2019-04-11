@@ -59,13 +59,11 @@ if {[have_spec arm]} {
 
 	set noux_boot_timeout   350
 
-	if {[have_spec panda]}   {
-		set platform "panda"
-	}
-	if {[have_spec arndale]} {
-		set platform "arndale"
-	}
-	if {[have_spec pbxa9]}   { set platform "pbxa9" }
+	if {[have_spec panda]}           { set platform "panda" }
+	if {[have_spec arndale]}         { set platform "arndale" }
+	if {[have_spec pbxa9]}           { set platform "pbxa9" }
+	if {[have_spec imx6q_sabrelite]} { set platform "imx6q_sabrelite" }
+	if {[have_spec imx7d_sabre]}     { set platform "imx7d_sabre" }
 
 	if {![info exists platform]} {
 		puts "\n Run script is not supported on this platform. \n"
