@@ -40,7 +40,7 @@ Vm_session_component::Vm_session_component(Rpc_entrypoint &ep,
 	Cap_quota_guard(resources.cap_quota),
 	_ep(ep),
 	_constrained_md_ram_alloc(ram, _ram_quota_guard(), _cap_quota_guard()),
-	_sliced_heap(_constrained_md_ram_alloc, local_rm)
+	_heap(_constrained_md_ram_alloc, local_rm)
 {
 	_cap_quota_guard().withdraw(Cap_quota{1});
 
@@ -61,7 +61,7 @@ Vm_session_component::~Vm_session_component()
 {
 	for (;Vcpu * vcpu = _vcpus.first();) {
 		_vcpus.remove(vcpu);
-		destroy(_slab, vcpu);
+		destroy(_heap, vcpu);
 	}
 
 	/* detach all regions */
@@ -118,7 +118,7 @@ void Vm_session_component::_create_vcpu(Thread_capability cap)
 		/* allocate vCPU object */
 		Vcpu * vcpu = nullptr;
 		try {
-			vcpu = new (_slab) Vcpu(_constrained_md_ram_alloc,
+			vcpu = new (_heap) Vcpu(_constrained_md_ram_alloc,
 	                                       _cap_quota_guard(),
 	                                       Vcpu_id {_id_alloc});
 
@@ -134,12 +134,12 @@ void Vm_session_component::_create_vcpu(Thread_capability cap)
 			});
 		} catch (int) {
 			if (vcpu)
-				destroy(_slab, vcpu);
+				destroy(_heap, vcpu);
 
 			return;
 		} catch (...) {
 			if (vcpu)
-				destroy(_slab, vcpu);
+				destroy(_heap, vcpu);
 
 			throw;
 		}

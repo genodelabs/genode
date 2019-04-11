@@ -57,14 +57,13 @@ class Genode::Vm_session_component
 
 		Rpc_entrypoint            &_ep;
 		Constrained_ram_allocator  _constrained_md_ram_alloc;
-		Sliced_heap                _sliced_heap;
 		Heap                       _heap;
 		Avl_region                 _map { &_heap };
 		List<Vcpu>                 _vcpus { };
 		unsigned                   _id_alloc { 0 };
 		unsigned                   _pd_id    { 0 };
 		Cap_sel                    _vm_page_table;
-		Page_table_registry        _page_table_registry { _sliced_heap };
+		Page_table_registry        _page_table_registry { _heap };
 		Vm_space                   _vm_space;
 		struct {
 			addr_t       _phys;

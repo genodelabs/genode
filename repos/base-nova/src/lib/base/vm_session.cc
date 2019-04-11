@@ -227,6 +227,7 @@ struct Vcpu {
 			if (state.ip.valid()) {
 				utcb.mtd |= Nova::Mtd::EIP;
 				utcb.ip = state.ip.value();
+				utcb.instr_len = state.ip_len.value();
 			}
 
 			if (state.dr7.valid()) {

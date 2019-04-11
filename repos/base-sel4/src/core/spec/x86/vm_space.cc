@@ -114,26 +114,43 @@ void Genode::Vm_space::unsynchronized_alloc_guest_page_tables(addr_t const start
 	addr_t constexpr PAGE_TABLE_AREA = 1UL << EPT_PAGE_TABLE_LOG2_SIZE;
 	addr_t virt = start & ~(PAGE_TABLE_AREA - 1);
 	for (; size != 0; size -= min(size, PAGE_TABLE_AREA), virt += PAGE_TABLE_AREA) {
-		addr_t phys = 0;
-
 		if (!_page_table_registry.page_level3_at(virt, EPT_PAGE_PDPT_LOG2_SIZE)) {
 			/* 512 GB range - page directory pointer table */
+			addr_t phys = 0;
 			Cap_sel const pd = _alloc_and_map<Ept_page_pointer_table_kobj>(virt, map_pdpt, phys);
-			_page_table_registry.insert_page_level3(virt, pd, phys, EPT_PAGE_PDPT_LOG2_SIZE);
+			try {
+				_page_table_registry.insert_page_level3(virt, pd, phys, EPT_PAGE_PDPT_LOG2_SIZE);
+			} catch (...) {
+				_unmap_and_free(pd, phys);
+				throw;
+			}
 		}
 
 		if (!_page_table_registry.page_directory_at(virt, EPT_PAGE_DIR_LOG2_SIZE)) {
 			/*   1 GB range - page directory */
+			addr_t phys = 0;
 			Cap_sel const pd = _alloc_and_map<Ept_page_directory_kobj>(virt, map_directory, phys);
-			_page_table_registry.insert_page_directory(virt, pd, phys,
-			                                           EPT_PAGE_DIR_LOG2_SIZE);
+			try {
+				_page_table_registry.insert_page_directory(virt, pd, phys,
+				                                           EPT_PAGE_DIR_LOG2_SIZE);
+			} catch (...) {
+				_unmap_and_free(pd, phys);
+				throw;
+			}
 		}
 
 		if (!_page_table_registry.page_table_at(virt, EPT_PAGE_TABLE_LOG2_SIZE)) {
 			/*   2 MB range - page table */
+			addr_t phys = 0;
 			Cap_sel const pt = _alloc_and_map<Ept_page_table_kobj>(virt, map_page_table, phys);
-			_page_table_registry.insert_page_table(virt, pt, phys,
-		                                           EPT_PAGE_TABLE_LOG2_SIZE);
+
+			try {
+				_page_table_registry.insert_page_table(virt, pt, phys,
+			                                           EPT_PAGE_TABLE_LOG2_SIZE);
+			} catch (...) {
+				_unmap_and_free(pt, phys);
+				throw;
+			}
 		}
 	}
 }

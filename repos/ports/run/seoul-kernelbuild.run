@@ -27,7 +27,7 @@ set use_nic_bridge    0
 
 set use_usb           0
 
-set use_framebuffer   0
+set use_framebuffer   1
 set use_fancy_stuff   0
 set use_top           0
 
@@ -68,6 +68,13 @@ append qemu_args " -m 1536 "
 append qemu_args " -cpu phenom "
 append qemu_args " -nographic "
 
-run_genode_until {\[init -\> seoul\] VMM: #   ! PERF: kbuild [ 0-9]+ s ok} 2000 
+run_genode_until {\[init -\> seoul\] VM is starting with } 400
+set serial_id [output_spawn_id]
+
+set time_start [ clock seconds ]
+run_genode_until {\[init -\> seoul\] VMM: #   ! PERF: kbuild [ 0-9]+ s ok} 2000 $serial_id
+set time_end [ clock seconds ]
+
+puts "\n! PERF: runtime [expr $time_end - $time_start ] seconds ok"
 
 puts "Test succeeded"

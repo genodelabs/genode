@@ -151,7 +151,7 @@ void Vm_session_component::_create_vcpu(Thread_capability cap)
 		return;
 
 	/* allocate vCPU object */
-	Vcpu &vcpu = *new (_slab) Vcpu(_constrained_md_ram_alloc,
+	Vcpu &vcpu = *new (_heap) Vcpu(_constrained_md_ram_alloc,
 	                               _cap_quota_guard(),
 	                               Vcpu_id {_id_alloc});
 
@@ -169,7 +169,7 @@ void Vm_session_component::_create_vcpu(Thread_capability cap)
 
 	if (res != Nova::NOVA_OK) {
 		error("create_sm = ", res);
-		destroy(_slab, &vcpu);
+		destroy(_heap, &vcpu);
 		return;
 	}
 
@@ -182,7 +182,7 @@ void Vm_session_component::_create_vcpu(Thread_capability cap)
 
 	if (res != Nova::NOVA_OK) {
 		error("create_ec = ", res);
-		destroy(_slab, &vcpu);
+		destroy(_heap, &vcpu);
 		return;
 	}
 
@@ -204,7 +204,7 @@ void Vm_session_component::_create_vcpu(Thread_capability cap)
 	if (res != Nova::NOVA_OK)
 	{
 		error("map sm ", res, " ", _id_alloc);
-		destroy(_slab, &vcpu);
+		destroy(_heap, &vcpu);
 		return;
 	}
 
@@ -283,8 +283,8 @@ Vm_session_component::Vm_session_component(Rpc_entrypoint &ep,
 	Cap_quota_guard(resources.cap_quota),
 	_ep(ep),
 	_constrained_md_ram_alloc(ram, _ram_quota_guard(), _cap_quota_guard()),
-	_sliced_heap(_constrained_md_ram_alloc, local_rm),
-	_priority(scale_priority(priority, "VM sesssion"))
+	_heap(_constrained_md_ram_alloc, local_rm),
+	_priority(scale_priority(priority, "VM session"))
 {
 	_cap_quota_guard().withdraw(Cap_quota{1});
 
@@ -312,7 +312,7 @@ Vm_session_component::~Vm_session_component()
 {
 	for (;Vcpu * vcpu = _vcpus.first();) {
 		_vcpus.remove(vcpu);
-		destroy(_slab, vcpu);
+		destroy(_heap, vcpu);
 	}
 
 	/* detach all regions */

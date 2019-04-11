@@ -74,11 +74,8 @@ class Genode::Vm_session_component
 
 		Rpc_entrypoint    &_ep;
 		Con_ram_allocator  _constrained_md_ram_alloc;
-		Sliced_heap        _sliced_heap;
-		Slab               _slab { max(sizeof(Vcpu), sizeof(Rm_region)),
-		                           4096 - Sliced_heap::meta_data_size(),
-		                           nullptr, &_sliced_heap };
-		Avl_region         _map { &_slab };
+		Sliced_heap        _heap;
+		Avl_region         _map { &_heap };
 		addr_t             _pd_sel { 0 };
 		unsigned           _id_alloc { 0 };
 		unsigned           _priority;

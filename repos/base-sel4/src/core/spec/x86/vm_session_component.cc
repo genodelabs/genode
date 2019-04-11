@@ -77,7 +77,6 @@ try
 	Cap_quota_guard(resources.cap_quota),
 	_ep(ep),
 	_constrained_md_ram_alloc(ram, _ram_quota_guard(), _cap_quota_guard()),
-	_sliced_heap(_constrained_md_ram_alloc, local_rm),
 	_heap(_constrained_md_ram_alloc, local_rm),
 	_pd_id(Platform_pd::pd_id_alloc().alloc()),
 	_vm_page_table(platform_specific().core_sel_alloc().alloc()),
@@ -249,34 +248,53 @@ void Vm_session_component::_attach_vm_memory(Dataspace_component &dsc,
 
 	Flexpage page = flex.page();
 	while (page.valid()) {
-		try {
-			_vm_space.alloc_guest_page_tables(page.hotspot, 1 << page.log2_order);
-		} catch (...) {
-			// Alloc_page_table_failed
-			Genode::error("alloc_guest_page_table exception");
-			return;
-		}
-
 		enum { NO_FLUSH = false, FLUSH = true };
 		try {
+			_vm_space.alloc_guest_page_tables(page.hotspot, 1 << page.log2_order);
 			_vm_space.map_guest(page.addr, page.hotspot,
 			                    (1 << page.log2_order) / 4096,
 			                    dsc.cacheability(),
 			                    dsc.writable() && attribute.writeable,
 			                    attribute.executable, NO_FLUSH);
 		} catch (Page_table_registry::Mapping_cache_full full) {
-			if (full.reason == Page_table_registry::Mapping_cache_full::MEMORY)
+			if (full.reason == Page_table_registry::Mapping_cache_full::MEMORY) {
+				if (_ram_quota_guard().limit().value > 4 * 1024 * 1024)
+					/* we get in trouble in core if we use too much memory */
+					throw Vm_space::Selector_allocator::Out_of_indices();
 				throw Out_of_ram();
+			}
 			if (full.reason == Page_table_registry::Mapping_cache_full::CAPS)
 				throw Out_of_caps();
 			return;
-		} catch (Genode::Bit_allocator<4096u>::Out_of_indices) {
-			Genode::warning("run out of indices - flush all");
+		} catch (Vm_space::Selector_allocator::Out_of_indices) {
+			Genode::warning("run out of indices - flush all - cap=",
+			                _cap_quota_guard().used(), "/",
+			                _cap_quota_guard().avail(), "/",
+			                _cap_quota_guard().limit(), " ram=",
+			                _ram_quota_guard().used(), "/",
+			                _ram_quota_guard().avail(), "/",
+			                _ram_quota_guard().limit(), " guest=",
+			                Genode::Hex(0UL - _map.avail()));
+
 			_vm_space.map_guest(page.addr, page.hotspot,
 			                    (1 << page.log2_order) / 4096,
 			                    dsc.cacheability(),
 			                    dsc.writable() && attribute.writeable,
 			                    attribute.executable, FLUSH);
+
+			/* drop all attachment to limit ram usage of this session */
+			while (true) {
+				addr_t out_addr = 0;
+
+				if (!_map.any_block_addr(&out_addr))
+					break;
+
+				detach(out_addr);
+			}
+		} catch (...) {
+			// Alloc_page_table_failed
+			Genode::error("alloc_guest_page_table exception");
+			return;
 		}
 
 		page = flex.page();

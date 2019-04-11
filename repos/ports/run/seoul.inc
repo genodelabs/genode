@@ -16,12 +16,11 @@ import_from_depot [depot_user]/src/[base_src] \
 
 assert_spec x86
 
-set rdtsc_exit "no"
-set map_small  "no"
+set map_small         "no"
+set vmm_vcpu_same_cpu "no"
 
 if {[have_spec sel4]} {
 	set map_small  "yes"
-	set rdtsc_exit "yes"
 
 	# seL4 has no AMD SVM support
 	if {[have_include "power_on/qemu"]} {
@@ -31,7 +30,9 @@ if {[have_spec sel4]} {
 }
 
 if {[have_spec foc]} {
-	set rdtsc_exit yes
+	# The performance is considerable bad when
+	# vmm and vcpu is not on same physical CPU
+	set vmm_vcpu_same_cpu  "yes"
 
 	# Qemu SVM has no EPT support
 	if {[have_include "power_on/qemu"]} {
@@ -71,7 +72,7 @@ build $build_components
 
 # write Seoul config file
 set vm_cfg_fd [open "bin/vm_seoul.cfg" w]
-puts $vm_cfg_fd "<config map_small=\"$map_small\" exit_on_rdtsc=\"$rdtsc_exit\">"
+puts $vm_cfg_fd "<config map_small=\"$map_small\" vmm_vcpu_same_cpu=\"$vmm_vcpu_same_cpu\">"
 puts $vm_cfg_fd {	 <machine>
 		<mem start="0x0" end="0x9a000"/>
 		<mem start="0x100000" end="0xfffff000"/>

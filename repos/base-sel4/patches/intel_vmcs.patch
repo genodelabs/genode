@@ -1,0 +1,19 @@
+--- src/kernel/sel4/src/arch/x86/object/vcpu.c
++++ src/kernel/sel4/src/arch/x86/object/vcpu.c
+@@ -760,6 +774,8 @@ decodeWriteVMCS(cap_t cap, word_t length, word_t* buffer)
+     case VMX_GUEST_CR3:
+     case VMX_CONTROL_EXCEPTION_BITMAP:
+     case VMX_CONTROL_ENTRY_INTERRUPTION_INFO:
++    case VMX_CONTROL_ENTRY_EXCEPTION_ERROR_CODE:
++    case VMX_CONTROL_ENTRY_INSTRUCTION_LENGTH:
+         break;
+     case VMX_CONTROL_PIN_EXECUTION_CONTROLS:
+         value = applyFixedBits(value, pin_control_high, pin_control_low);
+@@ -909,6 +925,7 @@ decodeReadVMCS(cap_t cap, word_t length, word_t* buffer)
+     case VMX_GUEST_CR0:
+     case VMX_GUEST_CR3:
+     case VMX_GUEST_CR4:
++    case VMX_CONTROL_ENTRY_EXCEPTION_ERROR_CODE:
+         break;
+     default:
+         userError("VCPU ReadVMCS: Invalid field %lx.", (long)field);
