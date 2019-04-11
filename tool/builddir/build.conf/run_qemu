@@ -1,3 +1,0 @@
-# local variable for run-tool arguments used for running scenarios in Qemu
-QEMU_RUN_OPT := --include power_on/qemu  --include log/qemu
-

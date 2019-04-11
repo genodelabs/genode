@@ -10,45 +10,29 @@ MAKEOVERRIDES =
 
 PLATFORM = $(MAKECMDGOALS)
 
-PLATFORMS = x86_32  x86_64  panda  pbxa9  rpi arndale imx53_qsb imx53_qsb_tz \
-            usb_armory wand_quad odroid_xu odroid_x2 zynq_qemu muen \
-            imx6q_sabrelite imx7d_sabre riscv_spike linux nit6_solox
+PLATFORMS = arm_v6 arm_v7a riscv x86_32 x86_64 linux
 
-PLATFORMS_DEPR = linux_x86 linux_arm fiasco_x86 okl4_x86 pistachio_x86 \
-                 nova_x86_32 nova_x86_64 hw_x86_64 foc_x86_32 foc_x86_64 \
-                 sel4_x86_32 hw_panda foc_panda hw_pbxa9 foc_pbxa9 hw_rpi \
-                 foc_rpi hw_arndale foc_arndale hw_imx53_qsb \
-                 hw_imx53_qsb_tz hw_usb_armory hw_wand_quad hw_odroid_xu \
-                 hw_zynq hw_x86_64_muen hw_riscv foc_odroid_x2
+PLATFORMS_DEPR = arndale imx53_qsb imx53_qsb_tz imx6q_sabrelite imx7d_sabre \
+                 nit6_solox odroid_x2 odroid_xu panda pbxa9 riscv_spike rpi \
+                 usb_armory wand_quad zynq_qemu muen
 
-PLATFORM_ALT(linux_x86)       = linux
-PLATFORM_ALT(linux_arm)       = linux
-PLATFORM_ALT(fiasco_x86)      = x86_32
-PLATFORM_ALT(okl4_x86)        = x86_32
-PLATFORM_ALT(pistachio_x86)   = x86_32
-PLATFORM_ALT(nova_x86_32)     = x86_32
-PLATFORM_ALT(nova_x86_64)     = x86_64
-PLATFORM_ALT(hw_x86_64)       = x86_64
-PLATFORM_ALT(foc_x86_32)      = x86_32
-PLATFORM_ALT(foc_x86_64)      = x86_64
-PLATFORM_ALT(sel4_x86_32)     = x86_32
-PLATFORM_ALT(hw_panda)        = panda
-PLATFORM_ALT(foc_panda)       = panda
-PLATFORM_ALT(hw_pbxa9)        = pbxa9
-PLATFORM_ALT(foc_pbxa9)       = pbxa9
-PLATFORM_ALT(hw_rpi)          = rpi
-PLATFORM_ALT(foc_rpi)         = rpi
-PLATFORM_ALT(hw_arndale)      = arndale
-PLATFORM_ALT(foc_arndale)     = arndale
-PLATFORM_ALT(hw_imx53_qsb)    = imx53_qsb
-PLATFORM_ALT(hw_imx53_qsb_tz) = imx53_qsb_tz
-PLATFORM_ALT(hw_usb_armory)   = usb_armory
-PLATFORM_ALT(hw_wand_quad)    = wand_quad
-PLATFORM_ALT(hw_odroid_xu)    = odroid_xu
-PLATFORM_ALT(hw_zynq)         = zynq_qemu
-PLATFORM_ALT(hw_x86_64_muen)  = muen
-PLATFORM_ALT(hw_riscv)        = riscv_spike
-PLATFORM_ALT(foc_odroid_x2)   = odroid_x2
+PLATFORM_ALT(arndale)         = arm_v7a
+PLATFORM_ALT(imx53_qsb)       = arm_v7a
+PLATFORM_ALT(imx53_qsb_tz)    = arm_v7a
+PLATFORM_ALT(imx6q_sabrelite) = arm_v7a
+PLATFORM_ALT(imx7d_sabre)     = arm_v7a
+PLATFORM_ALT(muen)            = x86_64
+PLATFORM_ALT(nit6_solox)      = arm_v7a
+PLATFORM_ALT(odroid_x2)       = arm_v7a
+PLATFORM_ALT(odroid_xu)       = arm_v7a
+PLATFORM_ALT(panda)           = arm_v7a
+PLATFORM_ALT(pbxa9)           = arm_v7a
+PLATFORM_ALT(riscv_spike)     = riscv
+PLATFORM_ALT(rpi)             = arm_v6
+PLATFORM_ALT(usb_armory)      = arm_v7a
+PLATFORM_ALT(wand_quad)       = arm_v7a
+PLATFORM_ALT(zynq_qemu)       = arm_v7a
+
 
 usage:
 	@echo
@@ -91,7 +75,7 @@ ifneq ($(PLATFORM),)
    # Check if platform is deprecated or unknown
    #
    ifneq ($(filter $(PLATFORM),$(PLATFORMS_DEPR)),)
-      $(warning Platform '$(PLATFORM)' is deprecated, use '$(PLATFORM_ALT($(PLATFORM)))' instead)
+      $(info Platform '$(PLATFORM)' is deprecated, use '$(PLATFORM_ALT($(PLATFORM)))' instead)
    else ifeq ($(filter $(PLATFORM),$(PLATFORMS)),)
       $(error Bad platform argument '$(PLATFORM)')
    endif
@@ -129,66 +113,47 @@ endif
 $(BUILD_DIR)/etc:
 	@mkdir -p $@
 
-BUILD_CONF_X86_32 := run_qemu_iso run_opt_x86_32 run_boot_dir qemu_opt_x86 repos repos_x86
-BUILD_CONF_X86_64 := run_qemu_iso run_opt_x86_64 run_boot_dir qemu_opt_x86 repos repos_x86
-BUILD_CONF_PBXA9  := run_qemu run_opt_arm_hw_foc run_boot_dir qemu_opt_arm repos
-
-BUILD_CONF(x86_32) := run_kernel_x86_32 $(BUILD_CONF_X86_32)
-BUILD_CONF(x86_64) := run_kernel_x86_64 $(BUILD_CONF_X86_64)
-BUILD_CONF(pbxa9)  := run_kernel_hw_foc $(BUILD_CONF_PBXA9)
-BUILD_CONF(panda)        := run_kernel_hw_foc run_boot_dir repos
-BUILD_CONF(rpi)          := run_kernel_hw_foc run_boot_dir repos
-BUILD_CONF(arndale)      := run_kernel_hw_foc run_boot_dir repos
-BUILD_CONF(imx53_qsb)    := run_kernel_hw     run_boot_dir repos
-BUILD_CONF(imx53_qsb_tz) := run_kernel_hw     run_boot_dir repos
-BUILD_CONF(usb_armory)   := run_kernel_hw     run_boot_dir repos
-BUILD_CONF(wand_quad)    := run_kernel_wand_quad run_boot_dir repos
-BUILD_CONF(imx6q_sabrelite) := run_kernel_hw_foc_sel4 run_boot_dir repos
-BUILD_CONF(imx7d_sabre)     := run_kernel_hw_foc_sel4 run_boot_dir repos
-BUILD_CONF(odroid_xu)    := run_kernel_hw     run_boot_dir repos
-BUILD_CONF(odroid_x2)    := run_kernel_foc    run_boot_dir repos
-BUILD_CONF(zynq_qemu)    := run_kernel_hw run_qemu run_opt_hw run_boot_dir qemu_opt_arm repos
-BUILD_CONF(muen)         := run_kernel_hw run_opt_muen        run_boot_dir repos repos_x86
-BUILD_CONF(riscv_spike)  := run_kernel_hw run_opt_spike       run_boot_dir repos
-BUILD_CONF(linux)        := run_kernel_linux repos
-BUILD_CONF(nit6_solox)   := run_kernel_hw     run_boot_dir repos
+BUILD_CONF_X86      := run_x86 run_boot_dir repos repos_x86
+BUILD_CONF_ARM_V6   := run_arm_v6 run_boot_dir repos
+BUILD_CONF_ARM_V7   := run_arm_v7 run_boot_dir repos
+BUILD_CONF(arm_v6)  := $(BUILD_CONF_ARM_V6)
+BUILD_CONF(arm_v7a) := $(BUILD_CONF_ARM_V7)
+BUILD_CONF(riscv)   := run_riscv run_boot_dir repos
+BUILD_CONF(x86_32)  := run_x86_32 $(BUILD_CONF_X86)
+BUILD_CONF(x86_64)  := run_x86_64 $(BUILD_CONF_X86)
+BUILD_CONF(linux)   := run_kernel_linux repos
 
 # deprecated platforms, to be removed
-BUILD_CONF(linux_x86)       := run_kernel_linux repos
-BUILD_CONF(linux_arm)       := run_kernel_linux repos
-BUILD_CONF(fiasco_x86)      := run_kernel_fiasco    $(BUILD_CONF_X86_32)
-BUILD_CONF(okl4_x86)        := run_kernel_okl4      $(BUILD_CONF_X86_32)
-BUILD_CONF(pistachio_x86)   := run_kernel_pistachio $(BUILD_CONF_X86_32)
-BUILD_CONF(nova_x86_32)     := run_kernel_nova      $(BUILD_CONF_X86_32)
-BUILD_CONF(nova_x86_64)     := run_kernel_nova      $(BUILD_CONF_X86_64)
-BUILD_CONF(hw_x86_64)       := run_kernel_hw        $(BUILD_CONF_X86_64)
-BUILD_CONF(foc_x86_32)      := run_kernel_foc       $(BUILD_CONF_X86_32)
-BUILD_CONF(foc_x86_64)      := run_kernel_foc       $(BUILD_CONF_X86_64)
-BUILD_CONF(sel4_x86_32)     := run_kernel_sel4      $(BUILD_CONF_X86_32)
-BUILD_CONF(sel4_x86_64)     := run_kernel_sel4      $(BUILD_CONF_X86_64)
-BUILD_CONF(hw_panda)        := ${BUILD_CONF(panda)}
-BUILD_CONF(foc_panda)       := run_kernel_foc run_boot_dir repos
-BUILD_CONF(hw_pbxa9)        := ${BUILD_CONF(pbxa9)}
-BUILD_CONF(foc_pbxa9)       := run_kernel_foc $(BUILD_CONF_PBXA9)
-BUILD_CONF(hw_rpi)          := ${BUILD_CONF(rpi)}
-BUILD_CONF(foc_rpi)         := run_kernel_foc run_boot_dir repos
-BUILD_CONF(hw_arndale)      := ${BUILD_CONF(arndale)}
-BUILD_CONF(foc_arndale)     := run_kernel_foc run_boot_dir repos
-BUILD_CONF(hw_imx53_qsb)    := ${BUILD_CONF(imx53_qsb)}
-BUILD_CONF(hw_imx53_qsb_tz) := ${BUILD_CONF(imx53_qsb_tz)}
-BUILD_CONF(hw_usb_armory)   := ${BUILD_CONF(usb_armory)}
-BUILD_CONF(hw_wand_quad)    := ${BUILD_CONF(wand_quad)}
-BUILD_CONF(hw_odroid_xu)    := ${BUILD_CONF(odroid_xu)}
-BUILD_CONF(hw_zynq)         := ${BUILD_CONF(zynq_qemu)}
-BUILD_CONF(hw_x86_64_muen)  := ${BUILD_CONF(muen)}
-BUILD_CONF(hw_riscv)        := ${BUILD_CONF(riscv_spike)}
-BUILD_CONF(foc_odroid_x2)   := ${BUILD_CONF(odroid_x2)}
+BUILD_CONF(arndale)         := $(BUILD_CONF_ARM_V7)
+BUILD_CONF(imx53_qsb)       := $(BUILD_CONF_ARM_V7)
+BUILD_CONF(imx53_qsb_tz)    := $(BUILD_CONF_ARM_V7)
+BUILD_CONF(imx6q_sabrelite) := $(BUILD_CONF_ARM_V7)
+BUILD_CONF(imx7d_sabre)     := $(BUILD_CONF_ARM_V7)
+BUILD_CONF(nit6_solox)      := $(BUILD_CONF_ARM_V7)
+BUILD_CONF(odroid_x2)       := $(BUILD_CONF_ARM_V7)
+BUILD_CONF(odroid_xu)       := $(BUILD_CONF_ARM_V7)
+BUILD_CONF(panda)           := $(BUILD_CONF_ARM_V7)
+BUILD_CONF(pbxa9)           := $(BUILD_CONF_ARM_V7)
+BUILD_CONF(rpi)             := $(BUILD_CONF_ARM_V6)
+BUILD_CONF(usb_armory)      := $(BUILD_CONF_ARM_V7)
+BUILD_CONF(wand_quad)       := $(BUILD_CONF_ARM_V7)
+BUILD_CONF(zynq_qemu)       := $(BUILD_CONF_ARM_V7)
+BUILD_CONF(muen)            := run_x86_64 $(BUILD_CONF_X86)
+BUILD_CONF(riscv_spike)     := ${BUILD_CONF(riscv)}
 
 message: $(BUILD_DIR)/etc/build.conf
 $(BUILD_DIR)/etc/build.conf:
 	@echo "GENODE_DIR  := $(GENODE_ABS_DIR)" > $@
 	@echo 'BASE_DIR    := $$(GENODE_DIR)/repos/base' >> $@
 	@echo 'CONTRIB_DIR := $(CONTRIB_ABS_DIR)' >> $@
+ifeq ($(PLATFORM),riscv_spike)
+	@echo "BOARD       := spike" >> $@
+else ifeq ($(PLATFORM),muen)
+	@echo "BOARD       := muen" >> $@
+	@echo "KERNEL      := hw" >> $@
+else ifneq ($(filter $(PLATFORM),$(PLATFORMS_DEPR)),)
+	@echo "BOARD       := $(PLATFORM)" >> $@
+endif
 	@echo >> $@
 	@for i in make_j run; do \
 		cat $(GENODE_DIR)/tool/builddir/build.conf/$$i; done >> $@
@@ -219,56 +184,30 @@ HOST_SPEC_ARCH := ${SPEC_ARCH(${UNAME_MACHINE})}
 # SPECS definitions
 #
 
+SPECS(arm_v6)          := arm_v6
+SPECS(arm_v7a)         := arm_v7a
+SPECS(riscv)           := riscv
 SPECS(x86_32)          := x86_32
 SPECS(x86_64)          := x86_64
-SPECS(pbxa9)           := pbxa9
-SPECS(panda)           := panda
-SPECS(rpi)             := rpi
-SPECS(arndale)         := arndale
-SPECS(imx53_qsb)       := imx53_qsb
-SPECS(imx53_qsb_tz)    := imx53_qsb trustzone
-SPECS(usb_armory)      := usb_armory trustzone
-SPECS(wand_quad)       := wand_quad
-SPECS(imx6q_sabrelite) := imx6q_sabrelite
-SPECS(imx7d_sabre)     := imx7d_sabre
-SPECS(odroid_xu)       := odroid_xu
-SPECS(odroid_x2)       := odroid_x2
-SPECS(zynq_qemu)       := zynq_qemu
-SPECS(muen)            := muen x86_64
-SPECS(riscv_spike)     := riscv
 SPECS(linux)           := $(HOST_SPEC_ARCH)
-SPECS(nit6_solox)      := nit6_solox
 
 # deprecated platforms
-SPECS(linux_x86)       := $(HOST_SPEC_ARCH)
-SPECS(linux_arm)       := $(HOST_SPEC_ARCH)
-SPECS(fiasco_x86)      :=
-SPECS(okl4_x86)        :=
-SPECS(pistachio_x86)   :=
-SPECS(nova_x86_32)     := nova_x86_32 x86_32 acpi
-SPECS(nova_x86_64)     := nova_x86_64 x86_64 acpi
-SPECS(hw_x86_64)       := ${SPECS(x86_64)}
-SPECS(foc_x86_32)      := foc_x86_32 x86_32 acpi
-SPECS(foc_x86_64)      := foc_x86_64 x86_64 acpi
-SPECS(sel4_x86_32)     := sel4_x86_32 x86_32 acpi
-SPECS(sel4_x86_64)     := sel4_x86_64 x86_64 acpi
-SPECS(hw_panda)        := ${SPECS(panda)}
-SPECS(foc_panda)       := foc_panda panda
-SPECS(hw_pbxa9)        := ${SPECS(pbxa9)}
-SPECS(foc_pbxa9)       := foc_pbxa9 pbxa9
-SPECS(hw_rpi)          := ${SPECS(rpi)}
-SPECS(foc_rpi)         := foc_rpi rpi
-SPECS(hw_arndale)      := ${SPECS(arndale)}
-SPECS(foc_arndale)     := foc_arndale arndale
-SPECS(hw_imx53_qsb)    := ${SPECS(imx53_qsb)}
-SPECS(hw_imx53_qsb_tz) := ${SPECS(imx53_qsb_tz)}
-SPECS(hw_usb_armory)   := ${SPECS(usb_armory)}
-SPECS(hw_wand_quad)    := ${SPECS(wand_quad)}
-SPECS(hw_odroid_xu)    := ${SPECS(odroid_xu)}
-SPECS(hw_zynq)         := ${SPECS(zynq_qemu)}
-SPECS(hw_x86_64_muen)  := ${SPECS(muen)}
-SPECS(hw_riscv)        := ${SPECS(riscv_spike)}
-SPECS(foc_odroid_x2)   := foc_odroid_x2 odroid_x2
+SPECS(rpi)             := arm_v6
+SPECS(arndale)         := arm_v7a
+SPECS(imx53_qsb)       := arm_v7a
+SPECS(imx53_qsb_tz)    := arm_v7a
+SPECS(imx6q_sabrelite) := arm_v7a
+SPECS(imx7d_sabre)     := arm_v7a
+SPECS(nit6_solox)      := arm_v7a
+SPECS(odroid_x2)       := arm_v7a
+SPECS(odroid_xu)       := arm_v7a
+SPECS(panda)           := arm_v7a
+SPECS(pbxa9)           := arm_v7a
+SPECS(usb_armory)      := arm_v7a
+SPECS(wand_quad)       := arm_v7a
+SPECS(zynq_qemu)       := arm_v7a
+SPECS(riscv_spike)     := riscv
+SPECS(muen)            := x86_64
 
 ifneq (${SPECS(${PLATFORM})},)
 message: $(BUILD_DIR)/etc/specs.conf

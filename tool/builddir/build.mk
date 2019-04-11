@@ -55,6 +55,7 @@ export LIB_PROGRESS_LOG ?= $(BUILD_BASE_DIR)/progress.log
 export LIB_DEP_FILE     ?= var/libdeps
 export ECHO             ?= echo -e
 export CONTRIB_DIR
+export BOARD
 
 # Force stable sorting order
 export LC_COLLATE=C
@@ -79,6 +80,9 @@ export SHELL := $(shell which bash)
 # Fetch SPECS configuration from all source repositories and the build directory
 #
 SPECS :=
+ifneq ($(BOARD),)
+SPECS += $(BOARD)
+endif
 -include $(foreach REP,$(REPOSITORIES),$(wildcard $(REP)/etc/specs.conf))
 -include $(BUILD_BASE_DIR)/etc/specs.conf
 

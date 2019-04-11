@@ -1,3 +1,6 @@
+# local variable for run-tool arguments used for running scenarios in Qemu
+QEMU_RUN_OPT := --include power_on/qemu  --include log/qemu --include image/iso
+
 
 ##
 ## Qemu arguments, effective when using the run tool's 'power_on/qemu' back end
