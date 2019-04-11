@@ -1,4 +1,8 @@
+ifdef BOARD
+RUN_OPT += ${BOARD_RUN_OPT(${BOARD})}
+endif
+
 ifdef KERNEL
-RUN_OPT += ${KERNEL_RUN_OPT(${KERNEL})} --include boot_dir/$(KERNEL)
+RUN_OPT += --include boot_dir/$(KERNEL)
 endif
 

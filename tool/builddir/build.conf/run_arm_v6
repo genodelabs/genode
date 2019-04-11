@@ -1,0 +1,6 @@
+# kernel to use (hw, or foc)
+KERNEL ?= hw
+
+# board to use
+BOARD ?= rpi
+

@@ -1,3 +1,0 @@
-# kernel to use (nova, hw, sel4, linux, or foc)
-#KERNEL ?= nova
-
