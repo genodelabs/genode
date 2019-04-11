@@ -16,6 +16,7 @@
 
 /* Genode includes */
 #include <base/stdint.h>
+#include <base/output.h>
 
 namespace Block {
 
@@ -40,6 +41,23 @@ struct Block::Operation
 	{
 		return type == Type::READ || type == Type::WRITE
 		    || type == Type::SYNC || type == Type::TRIM;
+	}
+
+	static char const *type_name(Type type)
+	{
+		switch (type) {
+		case Type::INVALID: return "INVALID";
+		case Type::READ:    return "READ";
+		case Type::WRITE:   return "WRITE";
+		case Type::SYNC:    return "SYNC";
+		case Type::TRIM:    return "TRIM";
+		}
+		return "INVALID";
+	}
+
+	void print(Genode::Output &out) const
+	{
+		Genode::print(out, type_name(type), " block=", block_number, " count=", count);
 	}
 };
 
