@@ -37,13 +37,18 @@ install_config {
 		<resource name="RAM" quantum="32M"/>
 		<config verbose="yes" report="no" log="yes" stop_on_error="no">
 			<tests>
-				<sequential length="1M" size="4K" synchronous="yes"/>
-				<sequential length="1M" size="8K" synchronous="yes"/>
-				<sequential length="1M" size="16K"/>
-				<sequential length="1M" size="64K"/>
-				<sequential length="1M" size="128K"/>
-				<sequential length="1M" size="4K" synchronous="yes" write="yes"/>
-				<sequential length="1M" size="64K" write="yes" synchronous="yes"/>
+				<sequential copy="no" length="16M" size="4K"/>
+				<sequential copy="no" length="16M" size="8K"/>
+
+				<sequential copy="no" length="3G"  size="16K"  batch="32"/>
+				<sequential copy="no" length="15"  size="64K"  batch="32"/>
+				<sequential copy="no" length="30G" size="128K" batch="32"/>
+
+				<sequential copy="no" length="16M" size="4K"  write="yes"/>
+				<sequential copy="no" length="16M" size="64K" write="yes"/>
+
+				<!-- test client-side request splitting -->
+				<sequential copy="no" length="16M" size="512K" io_buffer="64K"/>
 			</tests>
 		</config>
 		<route>

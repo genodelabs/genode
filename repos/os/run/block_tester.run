@@ -81,21 +81,27 @@ append config {
 		<resource name="RAM" quantum="32M"/>
 		<config verbose="yes" report="no" log="yes" stop_on_error="no">
 			<tests>
-				<!-- synchronous="no" 4K/8K currently leads to deadlocking ahci_drv
-				<sequential length="1G" size="4K"/>
-				<sequential length="1G" size="8K"/>
-				-->
-				<sequential length="1G" size="4K" synchronous="yes"/>
-				<sequential length="1G" size="8K" synchronous="yes"/>
-				<sequential length="1G" size="16K"/>
-				<sequential length="1G" size="64K"/>
-				<sequential length="1G" size="128K"/>
-				<sequential length="1G" size="4K" synchronous="yes" write="yes"/>
-				<sequential length="1G" size="64K" write="yes" synchronous="yes"/>
-				<random length="1G" size="16K" seed="0xdeadbeef" synchronous="yes"/>
-				<random length="8G" size="512K" seed="0xc0ffee" synchronous="yes"/>
-				<ping_pong length="1G" size="16K"/>
-				<replay bulk="no">
+				<!-- synchronous="no" 4K/8K currently leads to deadlocking ahci_drv -->
+
+				<sequential copy="no" length="128M" size="4K"/>
+				<sequential copy="no" length="128M" size="4K"   batch="32"/>
+				<sequential copy="no" length="128M" size="4K"   batch="1000"/>
+
+				<sequential copy="no" length="128M" size="8K"/>
+				<sequential copy="no" length="128M" size="8K"   batch="32"/>
+				<sequential copy="no" length="1G"   size="16K"  batch="32"/>
+				<sequential copy="no" length="1G"   size="64K"  batch="32"/>
+				<sequential copy="no" length="1G"   size="128K" batch="32"/>
+
+				<sequential copy="no" length="128M" size="4K"  write="yes"/>
+				<sequential copy="no" length="1G"   size="64K" write="yes"/>
+
+				<random length="128M" size="16K" seed="0xdeadbeef" batch="32"/>
+				<random length="512M" size="512K" seed="0xc0ffee" />
+
+				<ping_pong length="128M" size="16K"/>
+
+				<replay batch="10">
 					<request type="read" lba="0" count="1"/>
 					<request type="read" lba="0" count="1"/>
 					<request type="read" lba="0" count="1"/>

@@ -20,9 +20,6 @@ The following list contains all available tests:
 
 * 'replay' executes a previously recorded Block session operation sequence.
 
-    - If the 'bulk' attribute is specified, the test will try to fill up
-      the packet stream with request until it is full.
-
     Each request is specified by a 'request' node which has the following
     attributes:
 
@@ -50,15 +47,8 @@ The following list contains all available tests:
    - The 'write' attribute specifies whether the tests writes or reads, if
      it is missing it defaults to reading.
 
-   - The 'skip' attribute specifies how many bytes should be skipped between
-     each request.
-
-   - The 'synchronous' attribute specifies if each request is done in a
-     synchronous fashion or if the component tries to fill up the transfer
-     buffer as much as possible.
-
  * 'ping_pong' reads or writes Blocks from the beginning and the end of the
-   specfied part of the Block session in an alternating fashion
+    specified part of the Block session in an alternating fashion
 
    - The 'start' attribute specifies the logical block address where the test
      begins, if it is missing the first block is used.
@@ -90,6 +80,18 @@ which are supported by every test:
   - If the 'verbose' attribute is specified, the test will print each
     request to the LOG session before it will be executed.
 
+  - The 'copy' attribute specifies whether the content should be copied
+    in memory, which a typical client would do. The default is "yes".
+    If set to "no", the payload data remains untouched, exposing the raw
+    I/O and protocol overhead.
+
+  - The 'batch' attribute specifies how many block-operation jobs are
+    issued at once. The default value is 1, which corresponds to a
+    sequential mode of operation.
+
+  - The 'io_buffer' attribute defines the size of the I/O communication
+    buffer for the block session. The default value is "4M".
+
 Note: all tests use a fixed sized scratch buffer of 1 (replay 4) MiB, plan the
 quota and request size accordingly.
 
@@ -115,9 +117,6 @@ The following config snippet illustrates the use of the component:
 !
 !     <!-- write 1200MiB in 8KiB requests -->
 !     <sequential write="yes" length="1200M" size="8K"/>
-!
-!     <!-- read first 32GiB in 128K chunks skipping 1MiB inbetween -->
-!     <sequential start="0" length="32G" size="128K" skip="1M"/>
 !
 !     <!-- replay the beginning Ext2 mount operations -->
 !     <replay>
@@ -166,13 +165,14 @@ value tuples:
   * rx:<int>        number of blocks read
   * size:<int>      size of one request in bytes
   * test:<string>   name of the test
+  * triggered<int>  number of handled I/O signals
   * tx:<int>        number of blocks written
 
 Since the LOG output is mainly intended for automated testing and analyzing all
 size values are given in bytes. The following examplary output illustrates the
 structure:
 
-! test:sequential rx:1048576 tx:0 bytes:536870912 size:65536 bsize:512 duration:302 mibs:1695.364 iops:27125.828 result:0
+! finished sequential rx:32768 tx:0 bytes:134217728 size:131072 bsize:4096 duration:27 mibs:4740.740 iops:37925.925 triggered:35 result:ok
 
 
 Report

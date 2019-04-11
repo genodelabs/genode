@@ -14,194 +14,68 @@
 #ifndef _TEST_REPLAY_H_
 #define _TEST_REPLAY_H_
 
-namespace Test {
-	struct Replay;
-}
+namespace Test { struct Replay; }
 
 /*
  * Replay test
  *
- * This test replays a recorded sequence of Block session
- * requests.
+ * This test replays a recorded sequence of Block session requests.
  */
 struct Test::Replay : Test_base
 {
-	Genode::Env       &env;
-	Genode::Allocator &alloc;
+	using Test_base::Test_base;
 
-	struct Request : Genode::Fifo<Request>::Element
+	void _init() override
 	{
-		Block::Packet_descriptor::Opcode op;
-		Block::sector_t nr;
-		Genode::size_t  count;
-
-		Request(Block::Packet_descriptor::Opcode op,
-		        Block::sector_t nr, Genode::size_t count)
-		: op(op), nr(nr), count(count) { }
-	};
-
-	unsigned              request_num { 0 };
-	Genode::Fifo<Request> requests { };
-
-	char   _scratch_buffer[4u<<20] { };
-
-	bool _bulk { false };
-
-	Genode::Constructible<Timer::Connection> _timer { };
-
-	enum { TX_BUF_SIZE = 4 * 1024 * 1024, };
-	Genode::Allocator_avl _block_alloc { &alloc };
-	Genode::Constructible<Block::Connection<>> _block { };
-
-	Genode::Signal_handler<Replay> _ack_sigh {
-		env.ep(), *this, &Replay::_handle_ack };
-
-	Genode::Signal_handler<Replay> _submit_sigh {
-		env.ep(), *this, &Replay::_handle_submit };
-
-	void _handle_submit()
-	{
-		bool more = true;
-
 		try {
-			while (_block->tx()->ready_to_submit() && more) {
-				/* peak at head ... */
-				more = false;
-				requests.dequeue([&] (Request &req) {
-					Block::Packet_descriptor p(
-						_block->alloc_packet(req.count * _info.block_size),
-						req.op, req.nr, req.count);
+			_node.for_each_sub_node("request", [&](Xml_node request) {
 
-					bool const write = req.op == Block::Packet_descriptor::WRITE;
+				auto op_type = [&] ()
+				{
+					typedef String<8> Type;
 
-					/* simulate write */
-					if (write) {
-						char * const content = _block->tx()->packet_content(p);
-						Genode::memcpy(content, _scratch_buffer, p.size());
-					}
+					if (request.attribute_value("type", Type()) == "read")
+						return Block::Operation::Type::READ;
 
-					_block->tx()->submit_packet(p);
+					if (request.attribute_value("type", Type()) == "write")
+						return Block::Operation::Type::WRITE;
 
-					Genode::destroy(&alloc, &req);
-					more = _bulk;
-				});
-			}
-		} catch (...) { }
-	}
+					error("operation type not defined: ", request);
+					throw 1;
+				};
 
-	void _finish()
-	{
-		_end_time = _timer->elapsed_ms();
+				Block::Operation const operation
+				{
+					.type         = op_type(),
+					.block_number = request.attribute_value("lba", (block_number_t)0),
+					.count        = request.attribute_value("count", 0UL)
+				};
 
-		Test_base::_finish();
-	}
-
-	void _handle_ack()
-	{
-		if (_finished) { return; }
-
-		while (_block->tx()->ack_avail()) {
-
-			Block::Packet_descriptor p = _block->tx()->get_acked_packet();
-			if (!p.succeeded()) {
-				Genode::error("packet failed lba: ", p.block_number(),
-				              " count: ", p.block_count());
-
-				if (_stop_on_error) { throw Test_failed(); }
-				else                { _finish(); }
-			} else {
-
-				/* simulate read */
-				if (p.operation() == Block::Packet_descriptor::READ) {
-					char * const content = _block->tx()->packet_content(p);
-					Genode::memcpy(_scratch_buffer, content, p.size());
-				}
-
-				size_t const psize = p.size();
-				size_t const count = psize / _info.block_size;
-
-				_rx += (p.operation() == Block::Packet_descriptor::READ)  * count;
-				_tx += (p.operation() == Block::Packet_descriptor::WRITE) * count;
-
-				_bytes += psize;
-
-				if (--request_num == 0) {
-					_success = true;
-					_finish();
-				}
-			}
-
-			_block->tx()->release_packet(p);
-		}
-
-		_handle_submit();
-	}
-
-	Replay(Genode::Env &env, Genode::Allocator &alloc,
-	       Genode::Xml_node config,
-	       Genode::Signal_context_capability finished_sig)
-	: Test_base(finished_sig), env(env), alloc(alloc)
-	{
-		_verbose = config.attribute_value<bool>("verbose", false);
-		_bulk    = config.attribute_value<bool>("bulk", false);
-
-		try {
-			config.for_each_sub_node("request", [&](Xml_node request) {
-
-				typedef Genode::String<8> Type;
-
-				Block::sector_t const nr    = request.attribute_value("lba",   (Block::sector_t)0u);
-				Genode::size_t  const count = request.attribute_value("count", 0UL);
-				Type            const type  = request.attribute_value("type",  Type());
-
-				Block::Packet_descriptor::Opcode op;
-				if      (type == "read")  { op = Block::Packet_descriptor::READ; }
-				else if (type == "write") { op = Block::Packet_descriptor::WRITE; }
-				else { throw -1; }
-
-				requests.enqueue(*(new (&alloc) Request(op, nr, count)));
-				++request_num;
+				_job_cnt++;
+				new (&_alloc) Job(*_block, operation, _job_cnt);
 			});
 		} catch (...) {
-			Genode::error("could not read request list");
+			error("could not read request list");
+
+			_block->dissolve_all_jobs([&] (Job &job) { destroy(_alloc, &job); });
 			return;
 		}
 	}
 
-	/********************
-	 ** Test interface **
-	 ********************/
+	void _spawn_job() override { }
 
-	void start(bool stop_on_error)  override
+	Result result() override
 	{
-		_stop_on_error = stop_on_error;
-
-		_block.construct(env, &_block_alloc, TX_BUF_SIZE);
-
-		_block->tx_channel()->sigh_ack_avail(_ack_sigh);
-		_block->tx_channel()->sigh_ready_to_submit(_submit_sigh);
-
-		_info = _block->info();
-
-		_timer.construct(env);
-
-		_start_time = _timer->elapsed_ms();
-
-		_handle_submit();
-	}
-
-	Result finish() override
-	{
-		_timer.destruct();
-		_block.destruct();
-
 		return Result(_success, _end_time - _start_time,
-		              _bytes, _rx, _tx, 0u, _info.block_size);
+		              _bytes, _rx, _tx, 0u, _info.block_size, _triggered);
 	}
 
 	char const *name() const override { return "replay"; }
+
+	void print(Output &out) const override
+	{
+		Genode::print(out, name());
+	}
 };
-
-
 
 #endif /* _TEST_REPLAY_H_ */
