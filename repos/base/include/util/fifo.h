@@ -206,7 +206,9 @@ class Genode::Fifo_element : public Fifo<Fifo_element<T> >::Element
 
 		Fifo_element(T &object) : _object(object) { }
 
-		inline T &object() { return _object; }
+		T       &object()       { return _object; }
+		T const &object() const { return _object; }
+
 };
 
 #endif /* _INCLUDE__UTIL__FIFO_H_ */
