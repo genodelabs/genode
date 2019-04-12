@@ -138,8 +138,8 @@ set gdb_cmds ""
 append gdb_cmds {-ex "target remote localhost:$local_port" }
 append gdb_cmds [gdb_initial_breakpoint_cmds $gdb_target_binary]
 
-# run GDB and redirect stderr to stdio to get the relevant output into the expect buffer
-eval spawn [gdb] debug/ld.lib.so -n $gdb_cmds 2&>1
+# run GDB
+eval spawn [gdb] debug/ld.lib.so -n $gdb_cmds
 set gdb_id [list $spawn_id $genode_id]
 
 puts ""
