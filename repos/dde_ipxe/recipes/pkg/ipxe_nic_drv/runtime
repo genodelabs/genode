@@ -1,4 +1,4 @@
-<runtime ram="16M" caps="300" binary="nic_drv">
+<runtime ram="16M" caps="300" binary="ipxe_nic_drv">
 
 	<provides> <nic/> </provides>
 
@@ -6,7 +6,7 @@
 
 	<content>
 		<rom label="ld.lib.so"/>
-		<rom label="nic_drv"/>
+		<rom label="ipxe_nic_drv"/>
 	</content>
 
 </runtime>
