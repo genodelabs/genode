@@ -71,9 +71,6 @@ namespace Pbxa9 {
 		KMI_0_IRQ = 52,
 		KMI_1_IRQ = 53,
 
-		/* LAN */
-		ETHERNET_IRQ = 60,
-
 		/* SD card */
 		PL180_IRQ_0 = 49,
 		PL180_IRQ_1 = 50,

@@ -16,12 +16,12 @@
  */
 
 /* Genode includes */
+#include <base/attached_rom_dataspace.h>
 #include <base/component.h>
 #include <base/env.h>
 #include <base/heap.h>
 #include <nic/component.h>
 #include <root/component.h>
-#include <drivers/defs/pbxa9.h>
 
 /* driver code */
 #include <lan9118.h>
@@ -33,25 +33,25 @@ class Root : public Genode::Root_component<Lan9118, Genode::Single_client>
 		enum {
 
 			/**
-			 * Base address of MMIO resource
+			 * If no resource addresses are given, we take these Realview
+			 * platform addresses as default ones.
 			 */
-			LAN9118_PHYS = 0x4e000000,
+			REALVIEW_MMIO_BASE = 0x4e000000,
+			REALVIEW_IRQ       = 60,
 
 			/**
 			 * Size of MMIO resource
 			 *
-			 * On the RealView platform, the device spans actually a much larger
-			 * resource. However, only the first page is used.
+			 * The device spans actually a much larger
+			 * resource. However, only the first page is needed.
 			 */
-			LAN9118_SIZE = 0x1000,
-
-			/**
-			 * Interrupt line
-			 */
-			LAN9118_IRQ = Pbxa9::ETHERNET_IRQ,
+			LAN9118_MMIO_SIZE = 0x1000,
 		};
 
-		Genode::Env &_env;
+		Genode::Env                   &_env;
+		Genode::Attached_rom_dataspace _config    { _env, "config"     };
+		Genode::addr_t                 _mmio_base { REALVIEW_MMIO_BASE };
+		unsigned                       _irq       { REALVIEW_IRQ       };
 
 	protected:
 
@@ -80,7 +80,7 @@ class Root : public Genode::Root_component<Lan9118, Genode::Single_client>
 			}
 
 			return new (Root::md_alloc())
-			            Lan9118(LAN9118_PHYS, LAN9118_SIZE, LAN9118_IRQ,
+			            Lan9118(_mmio_base, LAN9118_MMIO_SIZE, _irq,
 			            tx_buf_size, rx_buf_size, *md_alloc(), _env);
 		}
 
@@ -89,7 +89,13 @@ class Root : public Genode::Root_component<Lan9118, Genode::Single_client>
 		Root(Genode::Env &env, Genode::Allocator &md_alloc)
 		: Genode::Root_component<Lan9118,
 		                         Genode::Single_client>(env.ep(), md_alloc),
-		  _env(env) { }
+		  _env(env)
+		{
+			_mmio_base =
+				_config.xml().attribute_value("mmio_base",
+			                                  (Genode::addr_t)REALVIEW_MMIO_BASE);
+			_irq = _config.xml().attribute_value<unsigned>("irq", REALVIEW_IRQ);
+		}
 };
 
 
