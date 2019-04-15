@@ -28,8 +28,6 @@
 #include "rx_buffer_descriptor.h"
 #include "marvell_phy.h"
 
-#include <kernel/interface.h>
-
 namespace Genode
 {
 	/**
@@ -486,24 +484,12 @@ namespace Genode
 				}
 			}
 
-			void _invalidate_rx_buffers()
-			{
-				Kernel::update_data_region(_rx_buf_region, _rx_buf_size);
-			}
-
-			void _clean_tx_buffers()
-			{
-				Kernel::update_data_region(_tx_buf_region, _tx_buf_size);
-			}
-
 			virtual void _handle_irq()
 			{
 				/* 16.3.9 Receiving Frames */
 				/* read interrupt status, to detect the interrupt reasone */
 				const Interrupt_status::access_t status = read<Interrupt_status>();
 				const Rx_status::access_t rxStatus = read<Rx_status>();
-
-				_invalidate_rx_buffers();
 
 				if ( Interrupt_status::Rx_complete::get(status) ) {
 
@@ -598,7 +584,7 @@ namespace Genode
 			            addr_t const base, size_t const size, const int irq)
 			:
 				Genode::Attached_mmio(env, base, size),
-				Session_component(tx_buf_size, rx_buf_size, Genode::CACHED,
+				Session_component(tx_buf_size, rx_buf_size, Genode::UNCACHED,
 				                  rx_block_md_alloc, env),
 				_timer(env),
 				_sys_ctrl(env, _timer),
@@ -706,8 +692,6 @@ namespace Genode
 			void _handle_packet_stream() override
 			{
 				_handle_acks();
-
-				_clean_tx_buffers();
 
 				while (_send());
 			}
