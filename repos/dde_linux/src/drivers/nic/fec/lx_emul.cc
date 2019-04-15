@@ -21,10 +21,13 @@
 #include <base/snprintf.h>
 #include <gpio_session/connection.h>
 #include <irq_session/client.h>
-#include <os/backtrace.h>
 
 #include <component.h>
 #include <lx_emul.h>
+
+#if DEBUG
+#include <os/backtrace.h>
+#endif
 
 #include <lx_emul/impl/kernel.h>
 #include <lx_emul/impl/delay.h>
@@ -307,7 +310,12 @@ net_device * Session_component::_register_session_component(Session_component & 
 
 extern "C" {
 
-void lx_backtrace() { Genode::backtrace(); }
+void lx_backtrace()
+{
+#if DEBUG
+	Genode::backtrace();
+#endif
+}
 
 int platform_driver_register(struct platform_driver * drv)
 {
