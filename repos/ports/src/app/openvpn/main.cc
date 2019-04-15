@@ -134,7 +134,8 @@ class Openvpn_component : public Tuntap_device,
 		                  Genode::size_t const rx_buf_size,
 		                  Genode::Allocator   &rx_block_md_alloc,
 		                  Genode::Env         &env)
-		: Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc, env)
+		: Session_component(tx_buf_size, rx_buf_size, Genode::CACHED,
+		                    rx_block_md_alloc, env)
 		{
 			char buf[] = { 0x02, 0x00, 0x00, 0x00, 0x00, 0x01 };
 			_mac_addr = Nic::Mac_address((void*)buf);

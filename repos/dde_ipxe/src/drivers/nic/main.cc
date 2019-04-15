@@ -104,7 +104,8 @@ class Ipxe_session_component  : public Nic::Session_component
 		                       Genode::size_t const rx_buf_size,
 		                       Genode::Allocator   &rx_block_md_alloc,
 		                       Genode::Env         &env)
-		: Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc, env)
+		: Session_component(tx_buf_size, rx_buf_size, Genode::CACHED,
+		                    rx_block_md_alloc, env)
 		{
 			instance = this;
 

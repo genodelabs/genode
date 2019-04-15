@@ -598,7 +598,8 @@ namespace Genode
 			            addr_t const base, size_t const size, const int irq)
 			:
 				Genode::Attached_mmio(env, base, size),
-				Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc, env),
+				Session_component(tx_buf_size, rx_buf_size, Genode::CACHED,
+				                  rx_block_md_alloc, env),
 				_timer(env),
 				_sys_ctrl(env, _timer),
 				_tx_buffer(env, *_tx.sink(), _timer),

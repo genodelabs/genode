@@ -188,7 +188,8 @@ class Usb_nic::Session_component : public Nic::Session_component
 		                  Genode::Allocator   &rx_block_md_alloc,
 		                  Genode::Env         &env,
 		                  Device *device)
-		: Nic::Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc, env),
+		: Nic::Session_component(tx_buf_size, rx_buf_size, Genode::CACHED,
+		                         rx_block_md_alloc, env),
 			_device(device)
 			{ _device->session(this); }
 

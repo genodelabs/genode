@@ -47,8 +47,8 @@ class Nic_loopback::Session_component : public Nic::Session_component
 		                  Allocator   &rx_block_md_alloc,
 		                  Env         &env)
 		:
-			Nic::Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc,
-			                       env)
+			Nic::Session_component(tx_buf_size, rx_buf_size, CACHED,
+			                       rx_block_md_alloc, env)
 		{ }
 
 		Nic::Mac_address mac_address() override

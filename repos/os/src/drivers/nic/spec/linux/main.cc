@@ -208,7 +208,7 @@ class Linux_session_component : public Nic::Session_component
 		                        Genode::Allocator   &rx_block_md_alloc,
 		                        Server::Env         &env)
 		:
-			Session_component(tx_buf_size, rx_buf_size, rx_block_md_alloc, env),
+			Session_component(tx_buf_size, rx_buf_size, Genode::CACHED, rx_block_md_alloc, env),
 			_config_rom(env, "config"),
 			_tap_fd(_setup_tap_fd()), _rx_thread(env, _tap_fd, _packet_stream_dispatcher)
 		{
