@@ -217,6 +217,7 @@ proc base_src { } {
 	if {[have_spec pbxa9]}                               { return base-hw-pbxa9 }
 	if {[have_spec rpi]}                                 { return base-hw-rpi }
 	if {[have_spec imx6q_sabrelite]}                     { return base-hw-imx6q_sabrelite }
+	if {[have_spec imx7d_sabre]}                         { return base-hw-imx7d_sabre }
 	if {[have_spec nit6_solox]}                          { return base-hw-nit6_solox }
 	if {[have_spec odroid_xu]}                           { return base-hw-odroid_xu }
 	if {[have_spec imx53_qsb] && ![have_spec trustzone]} { return base-hw-imx53_qsb }
