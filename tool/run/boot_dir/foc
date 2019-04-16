@@ -225,6 +225,7 @@ proc base_src { } {
 	if {[have_spec pbxa9]}   { return base-foc-pbxa9 }
 	if {[have_spec arndale]} { return base-foc-arndale }
 	if {[have_spec imx6q_sabrelite]} { return base-foc-imx6q_sabrelite }
+	if {[have_spec imx7d_sabre]}     { return base-foc-imx7d_sabre }
 
 	global specs
 
