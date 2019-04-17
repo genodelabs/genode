@@ -16,11 +16,4 @@ CC_C_OPT += -Wno-pointer-sign -Wno-unused-but-set-variable \
             -Wno-nonnull-compare -Wno-misleading-indentation \
             -Wno-format -Wno-incompatible-pointer-types
 
-#
-# rump.ld is an additional linker script which is required during
-# initialization
-#
-LD_SCRIPT_SO = $(BASE_DIR)/src/ld/genode_rel.ld \
-               -T$(REP_DIR)/src/ld/rump.ld
-
 # vi:set ft=make :
