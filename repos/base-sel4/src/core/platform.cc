@@ -404,6 +404,7 @@ void Platform::_init_rom_modules()
 
 				tsc_freq const * boot_freq = reinterpret_cast<tsc_freq const *>(reinterpret_cast<addr_t>(element) + sizeof(* element));
 
+				xml.node("kernel", [&] () { xml.attribute("name", "sel4"); });
 				xml.node("hardware", [&] () {
 					xml.node("features", [&] () {
 						#ifdef CONFIG_VTX

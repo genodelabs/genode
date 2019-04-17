@@ -91,7 +91,7 @@ bool Platform::get_msi_params(const addr_t mmconf, addr_t &address,
 }
 
 
-void Platform::_init_additional()
+void Platform::_init_additional_platform_info(Xml_generator &)
 {
 	/* export subject info page as ROM module */
 	_rom_fs.insert(new (core_mem_alloc())

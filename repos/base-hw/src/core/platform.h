@@ -19,6 +19,7 @@
 #include <base/synced_allocator.h>
 #include <base/allocator_avl.h>
 #include <irq_session/irq_session.h>
+#include <util/xml_generator.h>
 
 /* base-hw includes */
 #include <hw/boot_info.h>
@@ -67,10 +68,15 @@ class Genode::Platform : public Genode::Platform_generic
 		 */
 		void _init_io_mem_alloc();
 
+		/**
+		 * Initialize platform_info ROM module
+		 */
+		void _init_platform_info();
+
 		 /**
-		  * Perform additional platform-specific initialization.
+		  * Add additional platform-specific information.
 		  */
-		void _init_additional();
+		void _init_additional_platform_info(Genode::Xml_generator &);
 
 		void _init_rom_modules();
 

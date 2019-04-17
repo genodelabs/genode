@@ -684,6 +684,7 @@ Platform::Platform()
 				                          pages << get_page_size_log2(),
 				                          "platform_info", [&] ()
 				{
+					xml.node("kernel", [&] () { xml.attribute("name", "nova"); });
 					xml.node("acpi", [&] () {
 
 						xml.attribute("revision", 2); /* XXX */

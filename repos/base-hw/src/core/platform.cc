@@ -95,6 +95,54 @@ addr_t Platform::_rom_module_phys(addr_t virt)
 }
 
 
+void Platform::_init_platform_info()
+{
+	unsigned const  pages    = 1;
+	size_t   const  rom_size = pages << get_page_size_log2();
+	void           *phys_ptr = nullptr;
+	void           *virt_ptr = nullptr;
+	const char     *rom_name = "platform_info";
+
+	if (!ram_alloc().alloc(get_page_size(), &phys_ptr)) {
+		error("could not setup platform_info ROM - ram allocation error");
+		return;
+	}
+
+	if (!region_alloc().alloc(rom_size, &virt_ptr)) {
+		error("could not setup platform_info ROM - region allocation error");
+		ram_alloc().free(phys_ptr);
+		return;
+	}
+
+	addr_t const phys_addr = reinterpret_cast<addr_t>(phys_ptr);
+	addr_t const virt_addr = reinterpret_cast<addr_t>(virt_ptr);
+
+	if (!map_local(phys_addr, virt_addr, pages, Hw::PAGE_FLAGS_KERN_DATA)) {
+		error("could not setup platform_info ROM - map error");
+		region_alloc().free(virt_ptr);
+		ram_alloc().free(phys_ptr);
+		return;
+	}
+
+	Genode::Xml_generator xml(reinterpret_cast<char *>(virt_addr),
+	                          rom_size, rom_name, [&] ()
+	{
+		xml.node("kernel", [&] () { xml.attribute("name", "hw"); });
+		_init_additional_platform_info(xml);
+	});
+
+	if (!unmap_local(virt_addr, pages)) {
+		error("could not setup platform_info ROM - unmap error");
+		return;
+	}
+
+	region_alloc().free(virt_ptr);
+
+	_rom_fs.insert(
+		new (core_mem_alloc()) Rom_module(phys_addr, rom_size, rom_name));
+}
+
+
 Platform::Platform()
 :
 	_io_mem_alloc(&core_mem_alloc()),
@@ -133,7 +181,7 @@ Platform::Platform()
 
 	_init_io_mem_alloc();
 	_init_rom_modules();
-	_init_additional();
+	_init_platform_info();
 
 	/* core log as ROM module */
 	{
