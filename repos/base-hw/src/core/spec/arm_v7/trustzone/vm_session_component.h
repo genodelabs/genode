@@ -19,6 +19,7 @@
 #include <base/session_object.h>
 #include <vm_session/vm_session.h>
 #include <dataspace/capability.h>
+#include <trace/source_registry.h>
 
 /* Core includes */
 #include <object.h>
@@ -68,7 +69,7 @@ class Genode::Vm_session_component
 
 		Vm_session_component(Rpc_entrypoint &, Resources, Label const &,
 		                     Diag, Ram_allocator &ram, Region_map &,
-		                     unsigned priority);
+		                     unsigned priority, Trace::Source_registry &);
 		~Vm_session_component();
 
 		/**************************

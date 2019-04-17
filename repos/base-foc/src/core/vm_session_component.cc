@@ -34,7 +34,8 @@ Vm_session_component::Vm_session_component(Rpc_entrypoint &ep,
                                            Diag,
                                            Ram_allocator &ram,
                                            Region_map &local_rm,
-                                           unsigned)
+                                           unsigned,
+                                           Trace::Source_registry &)
 :
 	Ram_quota_guard(resources.ram_quota),
 	Cap_quota_guard(resources.cap_quota),

@@ -19,6 +19,8 @@
 #include <base/rpc_server.h>
 #include <vm_session/vm_session.h>
 
+#include <trace/source_registry.h>
+
 namespace Genode { class Vm_session_component; }
 
 class Genode::Vm_session_component
@@ -96,7 +98,8 @@ class Genode::Vm_session_component
 		using Cap_quota_guard::upgrade;
 
 		Vm_session_component(Rpc_entrypoint &, Resources, Label const &,
-		                     Diag, Ram_allocator &ram, Region_map &, unsigned);
+		                     Diag, Ram_allocator &ram, Region_map &, unsigned,
+		                     Trace::Source_registry &);
 		~Vm_session_component();
 
 		/*********************************

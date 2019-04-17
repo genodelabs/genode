@@ -25,6 +25,8 @@
 #include <dataspace_component.h>
 #include <region_map_component.h>
 
+#include <trace/source_registry.h>
+
 namespace Genode { class Vm_session_component; struct Vcpu; }
 
 struct Genode::Vcpu : Genode::List<Vcpu>::Element
@@ -83,7 +85,8 @@ class Genode::Vm_session_component
 		using Cap_quota_guard::upgrade;
 
 		Vm_session_component(Rpc_entrypoint &, Resources, Label const &,
-		                     Diag, Ram_allocator &ram, Region_map &, unsigned);
+		                     Diag, Ram_allocator &ram, Region_map &, unsigned,
+		                     Trace::Source_registry &);
 		~Vm_session_component();
 
 		/*********************************

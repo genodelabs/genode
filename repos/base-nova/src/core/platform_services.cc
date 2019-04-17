@@ -20,12 +20,13 @@
 /*
  * Add x86 specific services 
  */
-void Genode::platform_add_local_services(Rpc_entrypoint    &ep,
-                                         Sliced_heap       &heap,
-                                         Registry<Service> &services)
+void Genode::platform_add_local_services(Rpc_entrypoint         &ep,
+                                         Sliced_heap            &heap,
+                                         Registry<Service>      &services,
+                                         Trace::Source_registry &trace_sources)
 {
 	static Vm_root vm_root(ep, heap, core_env().ram_allocator(),
-	                       core_env().local_rm());
+	                       core_env().local_rm(), trace_sources);
 	static Core_service<Vm_session_component> vm(services, vm_root);
 
 	static Io_port_root io_root(*core_env().pd_session(),

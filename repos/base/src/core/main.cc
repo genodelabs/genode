@@ -277,7 +277,7 @@ int main()
 	static Core_service<Trace::Session_component> trace_service  (services, trace_root);
 
 	/* make platform-specific services known to service pool */
-	platform_add_local_services(ep, sliced_heap, services);
+	platform_add_local_services(ep, sliced_heap, services, Trace::sources());
 
 	size_t const avail_ram_quota = core_pd.avail_ram().value;
 	size_t const avail_cap_quota = core_pd.avail_caps().value;

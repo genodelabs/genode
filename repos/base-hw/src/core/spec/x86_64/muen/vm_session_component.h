@@ -19,6 +19,7 @@
 #include <base/rpc_server.h>
 #include <vm_session/vm_session.h>
 #include <dataspace/capability.h>
+#include <trace/source_registry.h>
 
 /* Core includes */
 #include <dataspace_component.h>
@@ -45,7 +46,8 @@ class Genode::Vm_session_component
 
 		Vm_session_component(Rpc_entrypoint &, Resources resources,
 		                     Label const &, Diag, Ram_allocator &,
-		                     Region_map &, unsigned)
+		                     Region_map &, unsigned,
+		                     Trace::Source_registry &)
 		:
 			Ram_quota_guard(resources.ram_quota),
 			Cap_quota_guard(resources.cap_quota),

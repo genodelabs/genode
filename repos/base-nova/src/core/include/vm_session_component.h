@@ -17,7 +17,11 @@
 /* Genode includes */
 #include <base/allocator_guard.h>
 #include <base/rpc_server.h>
+
 #include <vm_session/vm_session.h>
+
+#include <trace/control_area.h>
+#include <trace/source_registry.h>
 
 namespace Genode { class Vm_session_component; }
 
@@ -33,7 +37,12 @@ class Genode::Vm_session_component
 		typedef Constrained_ram_allocator Con_ram_allocator;
 		typedef Allocator_avl_tpl<Rm_region> Avl_region;
 
-		class Vcpu : public List<Vcpu>::Element {
+		class Vcpu : private List<Vcpu>::Element,
+		             public  Trace::Source::Info_accessor
+		{
+
+			friend class List<Vcpu>;
+			friend class Vm_session_component;
 
 			public:
 
@@ -43,17 +52,23 @@ class Genode::Vm_session_component
 
 				Constrained_ram_allocator    &_ram_alloc;
 				Cap_quota_guard              &_cap_alloc;
+				Trace::Source_registry       &_trace_sources;
 				Ram_dataspace_capability      _ds_cap { };
 				addr_t                        _sel_sm_ec_sc;
 				addr_t                        _vm_pt_cnt { 0 };
 				Vcpu_id const                 _id;
 				State                         _state { INIT };
+				Affinity::Location const      _location;
+				Session_label      const     &_label;
 
 			public:
 
 				Vcpu(Constrained_ram_allocator &ram_alloc,
 				     Cap_quota_guard &cap_alloc,
-				     Vcpu_id const id);
+				     Vcpu_id const id, Affinity::Location const,
+				     Session_label const &,
+				     Trace::Control_area &,
+				     Trace::Source_registry &);
 
 				~Vcpu();
 
@@ -70,17 +85,55 @@ class Genode::Vm_session_component
 				void alive() { _state = ALIVE; };
 
 				static addr_t invalid() { return ~0UL; }
+
+				/********************************************
+				 ** Trace::Source::Info_accessor interface **
+				 ********************************************/
+
+				Trace::Source::Info trace_source_info() const override;
+
+			private:
+
+				struct Trace_control_slot
+				{
+					unsigned index = 0;
+					Trace::Control_area &_trace_control_area;
+
+					Trace_control_slot(Trace::Control_area &trace_control_area)
+					: _trace_control_area(trace_control_area)
+					{
+						if (!_trace_control_area.alloc(index))
+							throw Out_of_ram();
+					}
+
+					~Trace_control_slot()
+					{
+						_trace_control_area.free(index);
+					}
+
+					Trace::Control &control()
+					{
+						return *_trace_control_area.at(index);
+					}
+				};
+
+				Trace_control_slot _trace_control_slot;
+
+				Trace::Source _trace_source { *this, _trace_control_slot.control() };
 		};
 
-		Rpc_entrypoint    &_ep;
-		Con_ram_allocator  _constrained_md_ram_alloc;
-		Sliced_heap        _heap;
-		Avl_region         _map { &_heap };
-		addr_t             _pd_sel { 0 };
-		unsigned           _id_alloc { 0 };
-		unsigned           _priority;
+		Rpc_entrypoint         &_ep;
+		Trace::Control_area     _trace_control_area;
+		Trace::Source_registry &_trace_sources;
+		Con_ram_allocator       _constrained_md_ram_alloc;
+		Sliced_heap             _heap;
+		Avl_region              _map { &_heap };
+		addr_t                  _pd_sel { 0 };
+		unsigned                _id_alloc { 0 };
+		unsigned                _priority;
+		Session_label const     _session_label;
 
-		List<Vcpu>         _vcpus { };
+		List<Vcpu>              _vcpus { };
 
 		Vcpu * _lookup(Vcpu_id const vcpu_id)
 		{
@@ -104,7 +157,8 @@ class Genode::Vm_session_component
 		using Cap_quota_guard::upgrade;
 
 		Vm_session_component(Rpc_entrypoint &, Resources, Label const &,
-		                     Diag, Ram_allocator &ram, Region_map &, unsigned);
+		                     Diag, Ram_allocator &ram, Region_map &, unsigned,
+		                     Trace::Source_registry &);
 		~Vm_session_component();
 
 		/*********************************

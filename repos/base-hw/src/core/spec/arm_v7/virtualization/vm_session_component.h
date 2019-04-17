@@ -28,6 +28,8 @@
 #include <translation_table.h>
 #include <kernel/vm.h>
 
+#include <trace/source_registry.h>
+
 namespace Genode {
 	class Vm_session_component;
 }
@@ -86,7 +88,8 @@ class Genode::Vm_session_component
 		using Rpc_object<Vm_session, Vm_session_component>::cap;
 
 		Vm_session_component(Rpc_entrypoint &, Resources, Label const &,
-		                     Diag, Ram_allocator &ram, Region_map &, unsigned);
+		                     Diag, Ram_allocator &ram, Region_map &, unsigned,
+		                     Trace::Source_registry &);
 		~Vm_session_component();
 
 		/*********************************

@@ -37,12 +37,20 @@ enum { CAP_RANGE_LOG2 = 2, CAP_RANGE = 1 << CAP_RANGE_LOG2 };
 
 Vm_session_component::Vcpu::Vcpu(Constrained_ram_allocator &ram_alloc,
                                  Cap_quota_guard &cap_alloc,
-                                 Vcpu_id const id)
+                                 Vcpu_id const id,
+                                 Affinity::Location const location,
+                                 Session_label const &label,
+                                 Trace::Control_area &trace_control_area,
+                                 Trace::Source_registry &trace_sources)
 :
 	_ram_alloc(ram_alloc),
 	_cap_alloc(cap_alloc),
+	_trace_sources(trace_sources),
 	_sel_sm_ec_sc(invalid()),
-	_id(id)
+	_id(id),
+	_location(location),
+	_label(label),
+	_trace_control_slot(trace_control_area)
 {
 	/* account caps required to setup vCPU */
 	_cap_alloc.withdraw(Cap_quota{CAP_RANGE});
@@ -63,10 +71,14 @@ Vm_session_component::Vcpu::Vcpu(Constrained_ram_allocator &ram_alloc,
 		cap_map().remove(_sel_sm_ec_sc, CAP_RANGE_LOG2);
 		throw;
 	}
+
+	_trace_sources.insert(&_trace_source);
 }
 
 Vm_session_component::Vcpu::~Vcpu()
 {
+	_trace_sources.remove(&_trace_source);
+
 	if (_ds_cap.valid())
 		_ram_alloc.free(_ds_cap);
 
@@ -83,6 +95,19 @@ addr_t Vm_session_component::Vcpu::new_pt_id()
 		return invalid();
 
 	return MAX_VM_EXITS * _id.id + _vm_pt_cnt ++;
+}
+
+Genode::Trace::Source::Info Vm_session_component::Vcpu::trace_source_info() const
+{
+	Genode::uint64_t sc_time = 0;
+
+	uint8_t res = Nova::sc_ctrl(sc_sel(), sc_time);
+	if (res != Nova::NOVA_OK)
+		warning("sc_ctrl failed res=", res);
+
+	return { _label, String<5>("vCPU"),
+	         Trace::Execution_time(sc_time, sc_time),
+	         _location };
 }
 
 
@@ -132,13 +157,16 @@ void Vm_session_component::_create_vcpu(Thread_capability cap)
 		return;
 
 	/* lookup vmm pd and cpu location of handler thread in VMM */
-	addr_t kernel_cpu_id = 0;
+	addr_t             kernel_cpu_id = 0;
+	Affinity::Location vcpu_location;
+
 	auto lambda = [&] (Cpu_thread_component *ptr) {
 		if (!ptr)
 			return Vcpu::invalid();
 
 		Cpu_thread_component &thread = *ptr;
 
+		vcpu_location = thread.platform_thread().affinity();
 		addr_t genode_cpu_id = thread.platform_thread().affinity().xpos();
 		kernel_cpu_id = platform_specific().kernel_cpu_id(genode_cpu_id);
 
@@ -153,7 +181,11 @@ void Vm_session_component::_create_vcpu(Thread_capability cap)
 	/* allocate vCPU object */
 	Vcpu &vcpu = *new (_heap) Vcpu(_constrained_md_ram_alloc,
 	                               _cap_quota_guard(),
-	                               Vcpu_id {_id_alloc});
+	                               Vcpu_id {_id_alloc},
+	                               vcpu_location,
+	                               _session_label,
+	                               _trace_control_area,
+	                               _trace_sources);
 
 	/* we ran out of caps in core */
 	if (!vcpu.ds_cap().valid())
@@ -273,18 +305,21 @@ Genode::Dataspace_capability Vm_session_component::_cpu_state(Vcpu_id const vcpu
 
 Vm_session_component::Vm_session_component(Rpc_entrypoint &ep,
                                            Resources resources,
-                                           Label const &,
+                                           Label const &label,
                                            Diag,
                                            Ram_allocator &ram,
                                            Region_map &local_rm,
-                                           unsigned const priority)
+                                           unsigned const priority,
+                                           Trace::Source_registry &trace_sources)
 :
 	Ram_quota_guard(resources.ram_quota),
 	Cap_quota_guard(resources.cap_quota),
 	_ep(ep),
+	_trace_control_area(ram, local_rm), _trace_sources(trace_sources),
 	_constrained_md_ram_alloc(ram, _ram_quota_guard(), _cap_quota_guard()),
 	_heap(_constrained_md_ram_alloc, local_rm),
-	_priority(scale_priority(priority, "VM session"))
+	_priority(scale_priority(priority, "VM session")),
+	_session_label(label)
 {
 	_cap_quota_guard().withdraw(Cap_quota{1});
 
