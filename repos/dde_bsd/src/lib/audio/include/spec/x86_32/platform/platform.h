@@ -36,6 +36,7 @@ void platform_execute(void *sp, void *func, void *arg)
 	asm volatile ("movl %2, 0(%0);"
 	              "movl %1, -0x4(%0);"
 	              "movl %0, %%esp;"
+	              "xorl %%ebp, %%ebp;"  /* clear frame pointer */
 	              "call *-4(%%esp);"
 	              : : "r" (sp), "r" (func), "r" (arg));
 }
