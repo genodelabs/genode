@@ -24,7 +24,6 @@
 #include <irq_session/connection.h>
 
 /* local includes */
-#include <irq.h>
 #include <gpio.h>
 
 static int verbose = 1;
@@ -35,7 +34,10 @@ class Gpio::Rpi_driver : public Driver
 {
 	private:
 
-		enum { MAX_PINS = 54 };
+		enum {
+			IRQ      = 49,
+			MAX_PINS = 54,
+		};
 
 		Reg                                    _reg;
 		Genode::Irq_connection                 _irq;
@@ -52,10 +54,10 @@ class Gpio::Rpi_driver : public Driver
 			});
 		}
 
-		Rpi_driver(Genode::Env &env)
+		Rpi_driver(Genode::Env &env, unsigned irq_offset)
 		:
 			_reg(env, Rpi::GPIO_CONTROLLER_BASE, 0, Rpi::GPIO_CONTROLLER_SIZE),
-			_irq(env, IRQ),
+			_irq(env, IRQ + irq_offset),
 			_dispatcher(env.ep(), *this, &Rpi_driver::_handle),
 			_async(false)
 		{

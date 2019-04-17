@@ -108,10 +108,6 @@ proc drivers_build_components { feature_arg } {
 	return $build_components
 }
 
-proc gpio_drv { } { if {[have_spec rpi] && [have_spec hw]}  { return hw_gpio_drv }
-                    if {[have_spec rpi] && [have_spec foc]} { return foc_gpio_drv }
-                    return gpio_drv }
-
 #
 # Configuration
 #

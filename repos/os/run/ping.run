@@ -11,11 +11,6 @@ set build_components {
 	app/ping
 }
 
-proc gpio_drv { } { if {[have_spec rpi] && [have_spec hw]}  { return hw_gpio_drv }
-                    if {[have_spec rpi] && [have_spec foc]} { return foc_gpio_drv }
-                    return gpio_drv }
-
-
 lappend_if [have_spec gpio] build_components drivers/gpio
 
 if {[have_spec foc] || [have_spec odroid_xu] || [have_spec linux] ||

@@ -18,6 +18,7 @@
 #include <base/component.h>
 #include <base/log.h>
 #include <base/heap.h>
+#include <drivers/defs/rpi.h>
 #include <gpio/component.h>
 #include <gpio/config.h>
 
@@ -27,7 +28,14 @@
 
 Gpio::Rpi_driver& Gpio::Rpi_driver::factory(Genode::Env &env)
 {
-	static Rpi_driver driver(env);
+	unsigned irq_offset = 0;
+	static Genode::Attached_rom_dataspace rom { env, "platform_info" };
+	try {
+		String<32> kernel_name =
+			rom.xml().sub_node("kernel").attribute_value("name", String<32>());
+		if (kernel_name == "hw") irq_offset += Rpi::GPU_IRQ_BASE;
+	} catch (...) { }
+	static Rpi_driver driver(env, irq_offset);
 	return driver;
 }
 

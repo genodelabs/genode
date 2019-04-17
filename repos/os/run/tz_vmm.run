@@ -137,7 +137,7 @@ set config {
 	<default caps="100"/>}
 
 append_if $trusted_led config {
-	<start name="gpio_drv">
+	<start name="imx53_gpio_drv">
 		<resource name="RAM" quantum="3M"/>
 		<provides><service name="Gpio"/></provides>
 		<config/>
@@ -258,7 +258,7 @@ if { $mmc_rootfs } {
 }
 cd ..
 
-lappend_if $trusted_led boot_modules gpio_drv
+lappend_if $trusted_led boot_modules imx53_gpio_drv
 
 build_boot_image [join $boot_modules " "]
 

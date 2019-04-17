@@ -27,10 +27,6 @@ create_boot_directory
 # Generate config
 #
 
-proc gpio_drv { } { if {[have_spec rpi] && [have_spec hw]}  { return hw_gpio_drv }
-                    if {[have_spec rpi] && [have_spec foc]} { return foc_gpio_drv }
-                    return gpio_drv }
-
 append config {
 <config>
 	<parent-provides>

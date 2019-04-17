@@ -20,10 +20,6 @@ set build_components {
 	server/report_rom server/rom_filter
 }
 
-proc gpio_drv { } { if {[have_spec rpi] && [have_spec hw]}  { return hw_gpio_drv }
-                    if {[have_spec rpi] && [have_spec foc]} { return foc_gpio_drv }
-                    return gpio_drv }
-
 source ${genode_dir}/repos/base/run/platform_drv.inc
 
 lappend_if [need_usb_hid]   build_components drivers/usb

@@ -37,10 +37,6 @@ append_platform_drv_build_components
 lappend_if [expr {[nic_drv_binary] == "nic_drv"}] build_components drivers/nic
 lappend_if [expr {[nic_drv_binary] == "usb_drv"}] build_components drivers/usb
 
-proc gpio_drv { } { if {[have_spec rpi] && [have_spec hw]}  { return hw_gpio_drv }
-                    if {[have_spec rpi] && [have_spec foc]} { return foc_gpio_drv }
-                    return gpio_drv }
-
 lappend_if [have_spec gpio] build_components drivers/gpio
 
 build $build_components

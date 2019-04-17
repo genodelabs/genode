@@ -17,10 +17,6 @@ set build_components {
 	server/report_rom
 }
 
-proc gpio_drv { } { if {[have_spec rpi] && [have_spec hw]}  { return hw_gpio_drv }
-                    if {[have_spec rpi] && [have_spec foc]} { return foc_gpio_drv }
-                    return gpio_drv }
-
 lappend_if [have_spec gpio] build_components drivers/gpio
 
 source ${genode_dir}/repos/base/run/platform_drv.inc

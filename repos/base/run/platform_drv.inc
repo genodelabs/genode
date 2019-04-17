@@ -87,6 +87,18 @@ proc acpi_drv_name { } {
 	return acpi_drv
 }
 
+##
+# Return name of the gpio driver
+#
+proc gpio_drv { } {
+	if {[have_spec rpi]}     { return rpi_gpio_drv     }
+	if {[have_spec omap4]}   { return omap4_gpio_drv   }
+	if {[have_spec imx53]}   { return imx53_gpio_drv   }
+	if {[have_spec imx6]}    { return imx6_gpio_drv    }
+	if {[have_spec exynos4]} { return exynos4_gpio_drv }
+	return no_gpio_drv_available
+}
+
 proc platform_drv_build_components {} {
 	set drv_build_components ""
 	lappend_if [have_platform_drv] drv_build_components drivers/platform

@@ -5,10 +5,6 @@
 # \date   2013-04-18
 #
 
-proc gpio_drv { } { if {[have_spec rpi] && [have_spec hw]}  { return hw_gpio_drv }
-                    if {[have_spec rpi] && [have_spec foc]} { return foc_gpio_drv }
-                    return gpio_drv }
-
 if {[expr $use_nic_bridge && $use_nic_router]} {
 	puts "Cannot test with both NIC bridge and NIC router.";
 	exit 0

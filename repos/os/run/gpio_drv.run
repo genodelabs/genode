@@ -12,10 +12,6 @@ set build_components {
 	test/gpio_drv
 }
 
-proc gpio_drv { } { if {[have_spec rpi] && [have_spec hw]}  { return hw_gpio_drv }
-                    if {[have_spec rpi] && [have_spec foc]} { return foc_gpio_drv }
-                    return gpio_drv }
-
 build $build_components
 
 create_boot_directory

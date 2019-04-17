@@ -11,10 +11,6 @@ if {[have_include power_on/qemu]} {
 	set usb_raw_device $::env(USB_RAW_DEVICE)
 }
 
-proc gpio_drv { } { if {[have_spec rpi] && [have_spec hw]}  { return hw_gpio_drv }
-                    if {[have_spec rpi] && [have_spec foc]} { return foc_gpio_drv }
-                    return gpio_drv }
-
 #
 # Build
 #
