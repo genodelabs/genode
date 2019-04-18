@@ -53,8 +53,9 @@ namespace Libc {
 		Plugin         *plugin;
 		Plugin_context *context;
 
-		int  flags   = 0;  /* for 'fcntl' */
-		bool cloexec = 0;  /* for 'fcntl' */
+		int  flags    = 0;  /* for 'fcntl' */
+		bool cloexec  = 0;  /* for 'fcntl' */
+		bool modified = false;
 
 		File_descriptor(Id_space &id_space, Plugin &plugin, Plugin_context &context)
 		: _elem(*this, id_space), plugin(&plugin), context(&context) { }
