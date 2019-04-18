@@ -28,7 +28,7 @@
 
 using namespace Genode;
 
-unsigned dwc_irq();
+unsigned dwc_irq(Genode::Env&);
 
 
 /************************************************
@@ -41,13 +41,6 @@ enum {
 };
 
 
-static resource _dwc_otg_resource[] =
-{
-	{ DWC_BASE, DWC_BASE + DWC_SIZE - 1, "dwc_otg", IORESOURCE_MEM },
-	{ dwc_irq(), dwc_irq(), "dwc_otg-irq" /* name unused */, IORESOURCE_IRQ }
-};
-
-
 /*******************
  ** Init function **
  *******************/
@@ -55,8 +48,15 @@ static resource _dwc_otg_resource[] =
 extern "C" void module_dwc_otg_driver_init();
 extern bool fiq_enable, fiq_fsm_enable;
 
-void platform_hcd_init(Genode::Env &, Services *services)
+void platform_hcd_init(Genode::Env &env, Services *services)
 {
+	unsigned irq = dwc_irq(env);
+	static resource _dwc_otg_resource[] =
+	{
+		{ DWC_BASE, DWC_BASE + DWC_SIZE - 1, "dwc_otg", IORESOURCE_MEM },
+		{ irq, irq, "dwc_otg-irq" /* name unused */, IORESOURCE_IRQ }
+	};
+
 	/* enable USB power */
 	Platform::Connection platform(services->env);
 	platform.power_state(Platform::Session::POWER_USB_HCD, true);
