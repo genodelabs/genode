@@ -1,5 +1,6 @@
 INCLUDE_SUB_DIRS := platform_session \
                     spec/imx53/platform_session \
+                    spec/rpi/platform \
                     spec/rpi/platform_session \
                     spec/x86/platform_session \
                     platform_device \
