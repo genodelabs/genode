@@ -17,6 +17,7 @@
 
 /* Genode includes */
 #include <base/log.h>
+#include <cpu/consts.h>
 #include <util/flex_iterator.h>
 #include <util/touch.h>
 #include <rom_session/connection.h>
@@ -167,7 +168,8 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<Genode::Thread>,
 			unsigned long value;
 
 			if (!setjmp(_env)) {
-				_stack_reply = reinterpret_cast<void *>(&value - 1);
+				_stack_reply = reinterpret_cast<void *>(
+					Abi::stack_align(reinterpret_cast<Genode::addr_t>(&value)));
 				Nova::reply(_stack_reply);
 			}
 		}
