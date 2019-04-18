@@ -64,6 +64,8 @@ class Genode::Animated_rect : private Animator::Item, Noncopyable
 
 		Animated_point _p1 { }, _p2 { };
 
+		Steps _remaining { 0 };
+
 	public:
 
 		Animated_rect(Animator &animator) : Animator::Item(animator) { }
@@ -76,6 +78,9 @@ class Genode::Animated_rect : private Animator::Item, Noncopyable
 			_p1.animate(); _p2.animate();
 
 			_rect = Rect(Point(_p1.x(), _p1.y()), Point(_p2.x(), _p2.y()));
+
+			if (_remaining.value > 1)
+				_remaining.value--;
 
 			/* schedule / de-schedule animation */
 			Animator::Item::animated(_p1.animated() || _p2.animated());
@@ -90,6 +95,12 @@ class Genode::Animated_rect : private Animator::Item, Noncopyable
 		 */
 		void move_to(Rect rect, Steps steps)
 		{
+			/* retarget animation while already in progress */
+			if (animated())
+				steps.value = max(_remaining.value, 1U);
+
+			_remaining = steps;
+
 			_p1.move_to(rect.p1(), steps);
 			_p2.move_to(rect.p2(), steps);
 			animate();

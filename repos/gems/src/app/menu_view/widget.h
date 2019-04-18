@@ -163,9 +163,6 @@ class Menu_view::Widget : List_model<Widget>::Element
 
 		void _trigger_geometry_animation()
 		{
-			if (_animated_geometry.animated())
-				return;
-
 			bool const changed = (_geometry.p1() != _animated_geometry.p1()
 			                   || _geometry.p2() != _animated_geometry.p2());
 			if (changed)
