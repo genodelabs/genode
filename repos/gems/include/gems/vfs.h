@@ -570,6 +570,12 @@ class Genode::Watcher
 			       Directory::join(dir._path, rel_path), handler);
 		}
 
+		Watcher(Vfs::File_system &fs, Directory::Path const &rel_path,
+		        Genode::Allocator &alloc, Vfs::Watch_response_handler &handler)
+		{
+			_watch(fs, alloc, rel_path, handler);
+		}
+
 		~Watcher() { _handle->fs().close(_handle); }
 };
 
@@ -590,6 +596,12 @@ class Genode::Watch_handler : public Vfs::Watch_response_handler,
 		              T &obj, void (T::*member)())
 		:
 			Watcher(dir, rel_path, *this), _obj(obj), _member(member)
+		{ }
+
+		Watch_handler(Vfs::File_system &fs, Directory::Path const &rel_path,
+		              Genode::Allocator &alloc, T &obj, void (T::*member)())
+		:
+			Watcher(fs,rel_path, alloc, *this), _obj(obj), _member(member)
 		{ }
 
 		void watch_response() override { (_obj.*_member)(); }
