@@ -270,7 +270,7 @@ struct Sculpt::Popup_dialog
 					gen_named_node(xml, "button", "back", [&] () {
 						xml.attribute("selected", "yes");
 						xml.attribute("style", "back");
-						_item.gen_button_attr(xml, name);
+						_item.gen_hovered_attr(xml, name);
 						xml.node("hbox", [&] () { });
 					});
 					gen_named_node(xml, "label", "label", [&] () {
@@ -299,7 +299,7 @@ struct Sculpt::Popup_dialog
 							xml.attribute("selected", "yes");
 
 						xml.attribute("style", style);
-						_item.gen_button_attr(xml, name);
+						_item.gen_hovered_attr(xml, name);
 						xml.node("hbox", [&] () { });
 					});
 					gen_named_node(xml, "label", "name", [&] () {
@@ -328,7 +328,7 @@ struct Sculpt::Popup_dialog
 							xml.attribute("selected", "yes");
 
 						xml.attribute("style", style);
-						_route_item.gen_button_attr(xml, name);
+						_route_item.gen_hovered_attr(xml, name);
 						xml.node("hbox", [&] () { });
 					});
 					gen_named_node(xml, "label", "name", [&] () {

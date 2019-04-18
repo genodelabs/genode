@@ -45,13 +45,20 @@ struct Sculpt::Hoverable_item
 	bool hovered(Id const &id) const { return id == _hovered; }
 
 	/**
+	 * Generate hovered attribute depending on the item state
+	 */
+	void gen_hovered_attr(Xml_generator &xml, Id const &id) const
+	{
+		if (hovered(id))  xml.attribute("hovered", "yes");
+	}
+
+	/**
 	 * Generate button attributes depending on the item state
 	 */
 	void gen_button_attr(Xml_generator &xml, Id const &id) const
 	{
 		xml.attribute("name", id);
-
-		if (hovered(id))  xml.attribute("hovered", "yes");
+		gen_hovered_attr(xml, id);
 	}
 };
 
