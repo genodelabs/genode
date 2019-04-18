@@ -452,8 +452,11 @@ int Libc::Vfs_plugin::_vfs_sync(Vfs::Vfs_handle &vfs_handle)
 int Libc::Vfs_plugin::close(File_descriptor *fd)
 {
 	Vfs::Vfs_handle *handle = vfs_handle(fd);
-	/* XXX: mark the handle as requiring sync or not */
-	_vfs_sync(*handle);
+
+	if ((fd->modified) || (fd->flags & O_CREAT)) {
+		_vfs_sync(*handle);
+	}
+
 	VFS_THREAD_SAFE(handle->close());
 	file_descriptor_allocator()->free(fd);
 	return 0;
@@ -515,7 +518,10 @@ Libc::File_descriptor *Libc::Vfs_plugin::dup(File_descriptor *fd)
 int Libc::Vfs_plugin::fstat(File_descriptor *fd, struct stat *buf)
 {
 	Vfs::Vfs_handle *handle = vfs_handle(fd);
-	_vfs_sync(*handle);
+	if (fd->modified) {
+		_vfs_sync(*handle);
+		fd->modified = false;
+	}
 	return stat(fd->fd_path, buf);
 }
 
@@ -587,6 +593,10 @@ ssize_t Libc::Vfs_plugin::write(File_descriptor *fd, const void *buf,
 {
 	typedef Vfs::File_io_service::Write_result Result;
 
+	if ((fd->flags & O_ACCMODE) == O_RDONLY) {
+		return Errno(EBADF);
+	}
+
 	Vfs::Vfs_handle *handle = vfs_handle(fd);
 
 	Vfs::file_size out_count  = 0;
@@ -651,6 +661,7 @@ ssize_t Libc::Vfs_plugin::write(File_descriptor *fd, const void *buf,
 	}
 
 	VFS_THREAD_SAFE(handle->advance_seek(out_count));
+	fd->modified = true;
 
 	return out_count;
 }
@@ -660,6 +671,10 @@ ssize_t Libc::Vfs_plugin::read(File_descriptor *fd, void *buf,
                                ::size_t count)
 {
 	dispatch_pending_io_signals();
+
+	if ((fd->flags & O_ACCMODE) == O_WRONLY) {
+		return Errno(EBADF);
+	}
 
 	typedef Vfs::File_io_service::Read_result Result;
 
@@ -1045,7 +1060,10 @@ int Libc::Vfs_plugin::ioctl(File_descriptor *fd, int request, char *argp)
 int Libc::Vfs_plugin::ftruncate(File_descriptor *fd, ::off_t length)
 {
 	Vfs::Vfs_handle *handle = vfs_handle(fd);
-	_vfs_sync(*handle);
+	if (fd->modified) {
+		_vfs_sync(*handle);
+		fd->modified = false;
+	}
 
 	typedef Vfs::File_io_service::Ftruncate_result Result;
 
@@ -1101,7 +1119,15 @@ int Libc::Vfs_plugin::fcntl(File_descriptor *fd, int cmd, long arg)
 int Libc::Vfs_plugin::fsync(File_descriptor *fd)
 {
 	Vfs::Vfs_handle *handle = vfs_handle(fd);
-	return _vfs_sync(*handle);
+	if (!fd->modified) { return 0; }
+
+	/*
+	 * XXX checking the return value of _vfs_sync amd returning -1
+	 * in the EIO case will break the lighttpd or rather the socket_fs
+	 */
+	fd->modified = !!_vfs_sync(*handle);
+
+	return 0;
 }
 
 
