@@ -15,18 +15,14 @@
 #ifndef _CORE__KERNEL__IPC_NODE_H_
 #define _CORE__KERNEL__IPC_NODE_H_
 
-/* base-local includes */
-#include <base/internal/native_utcb.h>
-
-/* core includes */
-#include <kernel/interface.h>
-#include <assertion.h>
+/* Genode includes */
+#include <util/fifo.h>
 
 namespace Genode { class Msgbuf_base; };
 
 namespace Kernel
 {
-	class Pd;
+	class Thread;
 
 	/**
 	 * Backend for end points of synchronous interprocess communication
@@ -47,26 +43,18 @@ class Kernel::Ipc_node : private Ipc_node_queue::Element
 			AWAIT_REQUEST = 3,
 		};
 
-		void _init(Genode::Native_utcb &utcb, Ipc_node &callee);
 
 	private:
 
 		friend class Core_thread;
 		friend class Genode::Fifo<Ipc_node>;
 
-		State                 _state    = INACTIVE;
-		capid_t               _capid    = cap_id_invalid();
-		Ipc_node *            _caller   = nullptr;
-		Ipc_node *            _callee   = nullptr;
-		bool                  _help     = false;
-		size_t                _rcv_caps = 0; /* max capability num to receive */
-		Genode::Native_utcb * _utcb     = nullptr;
+		Thread               &_thread;
+		State                 _state         { INACTIVE };
+		Ipc_node *            _caller        { nullptr };
+		Ipc_node *            _callee        { nullptr };
+		bool                  _help          { false };
 		Ipc_node_queue        _request_queue { };
-
-		/* pre-allocation array for obkject identity references */
-		void * _obj_id_ref_ptr[Genode::Msgbuf_base::MAX_CAPS_PER_MSG];
-
-		inline void copy_msg(Ipc_node &sender);
 
 		/**
 		 * Buffer next request from request queue in 'r' to handle it
@@ -114,40 +102,26 @@ class Kernel::Ipc_node : private Ipc_node_queue::Element
 		bool _helps_outbuf_dst();
 
 		/**
-		 * IPC node returned from waiting due to reply receipt
+		 * Make the class noncopyable because it has pointer members
 		 */
-		virtual void _send_request_succeeded() = 0;
+		Ipc_node(const Ipc_node&) = delete;
 
 		/**
-		 * IPC node returned from waiting due to reply cancellation
+		 * Make the class noncopyable because it has pointer members
 		 */
-		virtual void _send_request_failed() = 0;
-
-		/**
-		 * IPC node returned from waiting due to request receipt
-		 */
-		virtual void _await_request_succeeded() = 0;
-
-		/**
-		 * IPC node returned from waiting due to request cancellation
-		 */
-		virtual void _await_request_failed() = 0;
-
-	protected:
-
-		Pd * _pd = nullptr; /* pointer to PD this IPC node is part of */
-
-
-		/***************
-		 ** Accessors **
-		 ***************/
-
-		Ipc_node * callee() { return _callee; }
-		State      state()  { return _state;  }
+		const Ipc_node& operator=(const Ipc_node&) = delete;
 
 	public:
 
-		virtual ~Ipc_node();
+		/**
+		 * Destructor
+		 */
+		~Ipc_node();
+
+		/**
+		 * Constructor
+		 */
+		Ipc_node(Thread &thread);
 
 		/**
 		 * Send a request and wait for the according reply
@@ -155,8 +129,8 @@ class Kernel::Ipc_node : private Ipc_node_queue::Element
 		 * \param callee    targeted IPC node
 		 * \param help      wether the request implies a helping relationship
 		 */
-		void send_request(Ipc_node &callee, capid_t capid, bool help,
-		                  unsigned rcv_caps);
+		bool can_send_request();
+		void send_request(Ipc_node &callee, bool help);
 
 		/**
 		 * Return root destination of the helping-relation tree we are in
@@ -181,7 +155,8 @@ class Kernel::Ipc_node : private Ipc_node_queue::Element
 		 *
 		 * \return  wether a request could be received already
 		 */
-		bool await_request(unsigned rcv_caps);
+		bool can_await_request();
+		bool await_request();
 
 		/**
 		 * Reply to last request if there's any
@@ -198,15 +173,9 @@ class Kernel::Ipc_node : private Ipc_node_queue::Element
 		 ** Accessors **
 		 ***************/
 
-		Pd &pd() const
-		{
-			if (_pd)
-				return *_pd;
-
-			ASSERT_NEVER_CALLED;
-		}
-
-		Genode::Native_utcb *utcb() { return _utcb; }
+		Ipc_node * callee() { return _callee; }
+		State      state()  { return _state;  }
+		Thread    &thread() { return _thread; }
 };
 
 #endif /* _CORE__KERNEL__IPC_NODE_H_ */

@@ -35,6 +35,72 @@ extern "C" void _core_start(void);
 
 using namespace Kernel;
 
+static inline void free_obj_id_ref(Pd &pd, void *ptr)
+{
+	pd.platform_pd().capability_slab().free(ptr, sizeof(Object_identity_reference));
+}
+
+
+void Thread::_ipc_init(Genode::Native_utcb &utcb, Thread &starter)
+{
+	_utcb = &utcb;
+	_ipc_rcv_caps = starter._utcb->cap_cnt();
+	Genode::Allocator &slab = pd().platform_pd().capability_slab();
+	for (unsigned i = 0; i < _ipc_rcv_caps; i++)
+		_obj_id_ref_ptr[i] = slab.alloc(sizeof(Object_identity_reference));
+	ipc_copy_msg(starter);
+}
+
+
+void Thread::ipc_copy_msg(Thread &sender)
+{
+	using namespace Genode;
+	using Reference = Object_identity_reference;
+
+	/* copy payload and set destination capability id */
+	*_utcb = *sender._utcb;
+	_utcb->destination(sender._ipc_capid);
+
+	/* translate capabilities */
+	for (unsigned i = 0; i < _ipc_rcv_caps; i++) {
+
+		capid_t id = sender._utcb->cap_get(i);
+
+		/* if there is no capability to send, just free the pre-allocation */
+		if (i >= sender._utcb->cap_cnt()) {
+			free_obj_id_ref(pd(), _obj_id_ref_ptr[i]);
+			continue;
+		}
+
+		/* lookup the capability id within the caller's cap space */
+		Reference *oir = (id == cap_id_invalid())
+			? nullptr : sender.pd().cap_tree().find(id);
+
+		/* if the caller's capability is invalid, free the pre-allocation */
+		if (!oir) {
+			_utcb->cap_add(cap_id_invalid());
+			free_obj_id_ref(pd(), _obj_id_ref_ptr[i]);
+			continue;
+		}
+
+		/* lookup the capability id within the callee's cap space */
+		Reference *dst_oir = oir->find(pd());
+
+		/* if it is not found, and the target is not core, create a reference */
+		if (!dst_oir && (&pd() != &core_pd())) {
+			dst_oir = oir->factory(_obj_id_ref_ptr[i], pd());
+			if (!dst_oir)
+				free_obj_id_ref(pd(), _obj_id_ref_ptr[i]);
+		} else /* otherwise free the pre-allocation */
+			free_obj_id_ref(pd(), _obj_id_ref_ptr[i]);
+
+		if (dst_oir) dst_oir->add_to_utcb();
+
+		/* add the translated capability id to the target buffer */
+		_utcb->cap_add(dst_oir ? dst_oir->capid() : cap_id_invalid());
+	}
+}
+
 
 Thread::Tlb_invalidation::Tlb_invalidation(Thread & caller, Pd & pd,
                                            addr_t addr, size_t size,
@@ -114,7 +180,7 @@ void Thread::_receive_signal(void * const base, size_t const size)
 }
 
 
-void Thread::_send_request_succeeded()
+void Thread::ipc_send_request_succeeded()
 {
 	assert(_state == AWAITS_IPC);
 	user_arg_0(0);
@@ -123,7 +189,7 @@ void Thread::_send_request_succeeded()
 }
 
 
-void Thread::_send_request_failed()
+void Thread::ipc_send_request_failed()
 {
 	assert(_state == AWAITS_IPC);
 	user_arg_0(-1);
@@ -132,7 +198,7 @@ void Thread::_send_request_failed()
 }
 
 
-void Thread::_await_request_succeeded()
+void Thread::ipc_await_request_succeeded()
 {
 	assert(_state == AWAITS_IPC);
 	user_arg_0(0);
@@ -140,7 +206,7 @@ void Thread::_await_request_succeeded()
 }
 
 
-void Thread::_await_request_failed()
+void Thread::ipc_await_request_failed()
 {
 	assert(_state == AWAITS_IPC);
 	user_arg_0(-1);
@@ -151,15 +217,15 @@ void Thread::_await_request_failed()
 void Thread::_deactivate_used_shares()
 {
 	Cpu_job::_deactivate_own_share();
-	Ipc_node::for_each_helper([&] (Ipc_node &h) {
-		static_cast<Thread &>(h)._deactivate_used_shares(); });
+	_ipc_node.for_each_helper([&] (Ipc_node &ipc_node) {
+		ipc_node.thread()._deactivate_used_shares(); });
 }
 
 void Thread::_activate_used_shares()
 {
 	Cpu_job::_activate_own_share();
-	Ipc_node::for_each_helper([&] (Ipc_node &h) {
-		static_cast<Thread &>(h)._activate_used_shares(); });
+	_ipc_node.for_each_helper([&] (Ipc_node &ipc_node) {
+		ipc_node.thread()._activate_used_shares(); });
 }
 
 void Thread::_become_active()
@@ -180,7 +246,7 @@ void Thread::_die() { _become_inactive(DEAD); }
 
 
 Cpu_job * Thread::helping_sink() {
-	return static_cast<Thread *>(Ipc_node::helping_sink()); }
+	return &_ipc_node.helping_sink()->thread(); }
 
 
 size_t Thread::_core_to_kernel_quota(size_t const quota) const
@@ -212,7 +278,7 @@ void Thread::_call_start_thread()
 
 	/* join protection domain */
 	thread._pd = (Pd *) user_arg_3();
-	thread.Ipc_node::_init(*(Native_utcb *)user_arg_4(), *this);
+	thread._ipc_init(*(Native_utcb *)user_arg_4(), *this);
 	thread._become_active();
 }
 
@@ -285,7 +351,7 @@ void Thread::_cancel_blocking()
 		_become_active();
 		return;
 	case AWAITS_IPC:
-		Ipc_node::cancel_waiting();
+		_ipc_node.cancel_waiting();
 		return;
 	case AWAITS_SIGNAL:
 		Signal_handler::cancel_waiting();
@@ -339,7 +405,18 @@ void Thread::_call_delete_thread()
 
 void Thread::_call_await_request_msg()
 {
-	if (Ipc_node::await_request(user_arg_1())) {
+	if (!_ipc_node.can_await_request()) {
+		Genode::raw("IPC await request: bad state");
+		user_arg_0(0);
+		return;
+	}
+	unsigned const rcv_caps = user_arg_1();
+	Genode::Allocator &slab = pd().platform_pd().capability_slab();
+	for (unsigned i = 0; i < rcv_caps; i++)
+		_obj_id_ref_ptr[i] = slab.alloc(sizeof(Object_identity_reference));
+
+	_ipc_rcv_caps = rcv_caps;
+	if (_ipc_node.await_request()) {
 		user_arg_0(0);
 		return;
 	}
@@ -390,8 +467,19 @@ void Thread::_call_send_request_msg()
 	bool const help = Cpu_job::_helping_possible(*dst);
 	oir = oir->find(dst->pd());
 
-	Ipc_node::send_request(*dst, oir ? oir->capid() : cap_id_invalid(),
-	                       help, user_arg_2());
+	if (!_ipc_node.can_send_request()) {
+		Genode::raw("IPC send request: bad state");
+	} else {
+		unsigned const rcv_caps = user_arg_2();
+		Genode::Allocator &slab = pd().platform_pd().capability_slab();
+		for (unsigned i = 0; i < rcv_caps; i++)
+			_obj_id_ref_ptr[i] = slab.alloc(sizeof(Object_identity_reference));
+
+		_ipc_capid    = oir ? oir->capid() : cap_id_invalid();
+		_ipc_rcv_caps = rcv_caps;
+		_ipc_node.send_request(dst->_ipc_node, help);
+	}
+
 	_state = AWAITS_IPC;
 	if (!help || !dst->own_share_active()) { _deactivate_used_shares(); }
 }
@@ -399,7 +487,7 @@ void Thread::_call_send_request_msg()
 
 void Thread::_call_send_reply_msg()
 {
-	Ipc_node::send_reply();
+	_ipc_node.send_reply();
 	bool const await_request_msg = user_arg_2();
 	if (await_request_msg) { _call_await_request_msg(); }
 	else { user_arg_0(0); }
@@ -730,7 +818,7 @@ void Thread::_mmu_exception()
 Thread::Thread(unsigned const priority, unsigned const quota,
                char const * const label, bool core)
 :
-	Cpu_job(priority, quota), _state(AWAITS_START),
+	Cpu_job(priority, quota), _ipc_node(*this), _state(AWAITS_START),
 	_signal_receiver(0), _label(label), _core(core), regs(core) { }
 
 

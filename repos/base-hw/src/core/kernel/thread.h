@@ -14,6 +14,8 @@
 #ifndef _CORE__KERNEL__THREAD_H_
 #define _CORE__KERNEL__THREAD_H_
 
+
+/* Genode includes */
 #include <base/signal.h>
 #include <util/reconstructible.h>
 
@@ -24,6 +26,12 @@
 #include <kernel/signal_receiver.h>
 #include <kernel/ipc_node.h>
 #include <object.h>
+#include <kernel/interface.h>
+#include <assertion.h>
+
+/* base-local includes */
+#include <base/internal/native_utcb.h>
+
 
 namespace Kernel
 {
@@ -50,9 +58,8 @@ struct Kernel::Thread_fault
  */
 class Kernel::Thread
 :
-	public Kernel::Object, public Cpu_job,
-	public Ipc_node, public Signal_context_killer, public Signal_handler,
-	private Timeout
+	public Kernel::Object, public Cpu_job, public Signal_context_killer,
+	public Signal_handler, private Timeout
 {
 	private:
 
@@ -121,15 +128,21 @@ class Kernel::Thread
 			DEAD                        = 7,
 		};
 
-		Signal_context *   _pager = nullptr;
-		Thread_fault       _fault { };
-		State              _state;
-		Signal_receiver *  _signal_receiver;
-		char const * const _label;
-		capid_t            _timeout_sigid = 0;
-		bool               _paused = false;
-		bool               _cancel_next_await_signal = false;
-		bool const         _core = false;
+		void                *_obj_id_ref_ptr[Genode::Msgbuf_base::MAX_CAPS_PER_MSG];
+		Ipc_node             _ipc_node;
+		capid_t              _ipc_capid                { cap_id_invalid() };
+		size_t               _ipc_rcv_caps             { 0 };
+		Genode::Native_utcb *_utcb                     { nullptr };
+		Pd                  *_pd                       { nullptr };
+		Signal_context      *_pager                    { nullptr };
+		Thread_fault         _fault                    { };
+		State                _state;
+		Signal_receiver     *_signal_receiver;
+		char   const *const  _label;
+		capid_t              _timeout_sigid            { 0 };
+		bool                 _paused                   { false };
+		bool                 _cancel_next_await_signal { false };
+		bool const           _core                     { false };
 
 		Genode::Constructible<Tlb_invalidation> _tlb_invalidation {};
 		Genode::Constructible<Destroy>          _destroy {};
@@ -258,6 +271,8 @@ class Kernel::Thread
 			kobj.destruct();
 		}
 
+		void _ipc_init(Genode::Native_utcb &utcb, Thread &callee);
+
 
 		/***************************
 		 ** Signal_context_killer **
@@ -275,15 +290,6 @@ class Kernel::Thread
 		void _await_signal(Signal_receiver * const receiver) override;
 		void _receive_signal(void * const base, size_t const size) override;
 
-
-		/**************
-		 ** Ipc_node **
-		 **************/
-
-		void _send_request_succeeded()  override;
-		void _send_request_failed()     override;
-		void _await_request_succeeded() override;
-		void _await_request_failed()    override;
 
 	public:
 
@@ -373,6 +379,16 @@ class Kernel::Thread
 
 		void print(Genode::Output &out) const;
 
+		/**************
+		 ** Ipc_node **
+		 **************/
+
+		void ipc_send_request_succeeded() ;
+		void ipc_send_request_failed()    ;
+		void ipc_await_request_succeeded();
+		void ipc_await_request_failed()   ;
+		void ipc_copy_msg(Thread &sender) ;
+
 
 		/*************
 		 ** Cpu_job **
@@ -396,6 +412,15 @@ class Kernel::Thread
 
 		char const * label() const { return _label; }
 		Thread_fault fault() const { return _fault; }
+		Genode::Native_utcb *utcb() { return _utcb; }
+
+		Pd &pd() const
+		{
+			if (_pd)
+				return *_pd;
+
+			ASSERT_NEVER_CALLED;
+		}
 };
 
 
