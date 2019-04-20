@@ -18,8 +18,6 @@
 /* Genode includes */
 #include <util/fifo.h>
 
-namespace Genode { class Msgbuf_base; };
-
 namespace Kernel
 {
 	class Thread;
@@ -28,13 +26,14 @@ namespace Kernel
 	 * Backend for end points of synchronous interprocess communication
 	 */
 	class Ipc_node;
-
-	using Ipc_node_queue = Genode::Fifo<Ipc_node>;
 }
 
-class Kernel::Ipc_node : private Ipc_node_queue::Element
+class Kernel::Ipc_node
 {
-	protected:
+	private:
+
+		using Queue_item = Genode::Fifo_element<Ipc_node>;
+		using Queue      = Genode::Fifo<Queue_item>;
 
 		enum State
 		{
@@ -43,18 +42,13 @@ class Kernel::Ipc_node : private Ipc_node_queue::Element
 			AWAIT_REQUEST = 3,
 		};
 
-
-	private:
-
-		friend class Core_thread;
-		friend class Genode::Fifo<Ipc_node>;
-
-		Thread               &_thread;
-		State                 _state         { INACTIVE };
-		Ipc_node *            _caller        { nullptr };
-		Ipc_node *            _callee        { nullptr };
-		bool                  _help          { false };
-		Ipc_node_queue        _request_queue { };
+		Thread     &_thread;
+		Queue_item  _request_queue_item { *this };
+		State       _state              { INACTIVE };
+		Ipc_node   *_caller             { nullptr };
+		Ipc_node   *_callee             { nullptr };
+		bool        _help               { false };
+		Queue       _request_queue      { };
 
 		/**
 		 * Buffer next request from request queue in 'r' to handle it
@@ -146,8 +140,10 @@ class Kernel::Ipc_node : private Ipc_node_queue::Element
 			if (_caller && _caller->_help) f(*_caller);
 
 			/* call 'f' for each helper in our request queue */
-			_request_queue.for_each([f] (Ipc_node &node) {
-				if (node._help) f(node); });
+			_request_queue.for_each([f] (Queue_item &item) {
+				Ipc_node &node { item.object() };
+				if (node._help) f(node);
+			});
 		}
 
 		/**

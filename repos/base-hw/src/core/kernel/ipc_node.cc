@@ -52,14 +52,16 @@ void Ipc_node::_announce_request(Ipc_node &node)
 	}
 
 	/* cannot receive yet, so queue request */
-	_request_queue.enqueue(node);
+	_request_queue.enqueue(node._request_queue_item);
 }
 
 
 void Ipc_node::_cancel_request_queue()
 {
-	_request_queue.dequeue_all([] (Ipc_node &node) {
-		node._outbuf_request_cancelled(); });
+	_request_queue.dequeue_all([] (Queue_item &item) {
+		Ipc_node &node { item.object() };
+		node._outbuf_request_cancelled();
+	});
 }
 
 
@@ -84,7 +86,7 @@ void Ipc_node::_cancel_inbuf_request()
 void Ipc_node::_announced_request_cancelled(Ipc_node &node)
 {
 	if (_caller == &node) _caller = nullptr;
-	else _request_queue.remove(node);
+	else _request_queue.remove(node._request_queue_item);
 }
 
 
@@ -137,8 +139,8 @@ bool Ipc_node::await_request()
 	_state = AWAIT_REQUEST;
 
 	/* if anybody already announced a request receive it */
-	_request_queue.dequeue([&] (Ipc_node &ipc) {
-		_receive_request(ipc);
+	_request_queue.dequeue([&] (Queue_item &item) {
+		_receive_request(item.object());
 		announced = true;
 	});
 	return announced;
