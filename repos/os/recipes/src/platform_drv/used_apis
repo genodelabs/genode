@@ -1,4 +1,5 @@
 base
 os
 platform_session
+regulator_session
 report_session

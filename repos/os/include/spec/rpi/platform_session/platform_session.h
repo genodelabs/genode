@@ -17,7 +17,7 @@
 #include <base/capability.h>
 #include <base/rpc.h>
 #include <dataspace/capability.h>
-#include <platform/framebuffer_info.h>
+#include <spec/rpi/platform/framebuffer_info.h>
 
 namespace Platform {
 	using namespace Genode;

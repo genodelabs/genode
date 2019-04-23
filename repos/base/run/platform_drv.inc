@@ -108,9 +108,18 @@ proc append_platform_drv_build_components {} {
 	append build_components { } [platform_drv_build_components]
 }
 
+proc platform_drv_binary {} {
+	if {[have_spec arndale]  } { return arndale_platform_drv   }
+	if {[have_spec imx53]    } { return imx53_platform_drv     }
+	if {[have_spec odroid_x2]} { return odroid_x2_platform_drv }
+	if {[have_spec rpi]      } { return rpi_platform_drv       }
+	if {[have_spec x86]      } { return platform_drv           }
+	return no_platform_drv_available
+}
+
 proc platform_drv_boot_modules {} {
 	set drv_boot_modules ""
-	lappend_if [have_platform_drv] drv_boot_modules platform_drv
+	lappend_if [have_platform_drv] drv_boot_modules [platform_drv_binary]
 	lappend_if [have_spec x86]     drv_boot_modules report_rom
 
 	if {[have_spec x86]} {
@@ -262,6 +271,7 @@ proc platform_drv_config {} {
 
 		append drv_config {
 	<start name="platform_drv" } [platform_drv_priority] { caps="800">
+		<binary name="} [platform_drv_binary] {"/>
 		<resource name="RAM" quantum="4M" constrain_phys="yes"/>
 		<provides>
 			<service name="Platform"/>}

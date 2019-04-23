@@ -9,8 +9,9 @@ set build_components {
 	drivers/sd_card
 	test/block/client
 }
-lappend_if [have_spec arndale] build_components drivers/platform
-lappend_if [have_spec rpi]     build_components drivers/platform
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
 
 build $build_components
 create_boot_directory
@@ -36,12 +37,7 @@ set config  {
 		</default-route>
 		<default caps="100"/> }
 
-append_if [expr [have_spec arndale] || [have_spec rpi]] config {
-		<start name="platform_drv">
-			<resource name="RAM" quantum="1M"/>
-			<provides> <service name="Regulator"/>
-			           <service name="Platform"/> </provides>
-		</start>}
+append_platform_drv_config
 
 append config {
 		<start name="timer">
@@ -70,9 +66,8 @@ set boot_modules {
 	sd_card_drv
 	test-block-client
 }
-lappend_if [have_spec arndale] boot_modules platform_drv
-lappend_if [have_spec rpi]     boot_modules platform_drv
 
+append_platform_drv_boot_modules
 set disk_image "bin/sd_card.img"
 
 build_boot_image $boot_modules
