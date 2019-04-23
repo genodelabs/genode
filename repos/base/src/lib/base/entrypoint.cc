@@ -59,9 +59,6 @@ void Entrypoint::Signal_proxy_component::signal()
 		if (sig.context()->level() == Signal_context::Level::Io) {
 			/* trigger the progress handler */
 			io_progress = true;
-
-			/* execute deprecated per-signal hook */
-			ep._execute_post_signal_hook();
 		}
 	} catch (Signal_receiver::Signal_not_pending) { }
 
@@ -214,7 +211,6 @@ bool Entrypoint::_wait_and_dispatch_one_io_signal(bool const dont_block)
 			}
 
 			_dispatch_signal(sig);
-			_execute_post_signal_hook();
 			break;
 
 		} catch (Signal_receiver::Signal_not_pending) {

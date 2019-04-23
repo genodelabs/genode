@@ -48,14 +48,6 @@ class Genode::Entrypoint : Noncopyable
 			virtual void handle_io_progress() = 0;
 		};
 
-		/**
-		 * Functor for post signal-handler hook
-		 *
-		 * \deprecated
-		 * \noapi
-		 */
-		struct Post_signal_hook : Interface { virtual void function() = 0; };
-
 	private:
 
 		struct Signal_proxy : Interface
@@ -118,20 +110,11 @@ class Genode::Entrypoint : Noncopyable
 		Genode::Lock      _signal_pending_ack_lock { };
 
 		Io_progress_handler *_io_progress_handler { nullptr };
-		Post_signal_hook    *_post_signal_hook    { nullptr };
 
 		void _handle_io_progress()
 		{
 			if (_io_progress_handler != nullptr)
 				_io_progress_handler->handle_io_progress();
-		}
-
-		void _execute_post_signal_hook()
-		{
-			if (_post_signal_hook != nullptr)
-				_post_signal_hook->function();
-
-			_post_signal_hook = nullptr;
 		}
 
 		/*
@@ -258,17 +241,6 @@ class Genode::Entrypoint : Noncopyable
 				throw Exception();
 			}
 			_io_progress_handler = &handler;
-		}
-
-		/**
-		 * Register hook functor to be called after signal was handled
-		 *
-		 * \deprecated
-		 * \noapi
-		 */
-		void schedule_post_signal_hook(Post_signal_hook *hook)
-		{
-			_post_signal_hook = hook;
 		}
 };
 
