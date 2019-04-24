@@ -1,33 +1,21 @@
-#
-# Build
-#
-
 if {![have_include power_on/qemu]} {
 	puts "Run script is only supported on Qemu"
 	exit 0
 }
 
-set build_components {
-	core init timer
-	drivers/nic
-	server/nic_bridge
-	test/lwip/http_srv
-	test/lwip/http_clnt
-	lib/vfs/lwip
-}
-
-source ${genode_dir}/repos/base/run/platform_drv.inc
-append_platform_drv_build_components
-
-build $build_components
-
 create_boot_directory
 
-#
-# Generate config
-#
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/pkg/[drivers_nic_pkg] \
+                  [depot_user]/src/init \
+                  [depot_user]/src/libc \
+                  [depot_user]/src/nic_bridge \
+                  [depot_user]/src/vfs_lwip \
+                  [depot_user]/src/vfs
 
-append config {
+build { test/lwip }
+
+install_config {
 <config>
 	<parent-provides>
 		<service name="ROM"/>
@@ -42,20 +30,22 @@ append config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>}
+	<default caps="100"/>
 
-append_platform_drv_config
-
-append config {
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="nic_drv">
-		<binary name="} [nic_drv_binary] {"/>
-		<resource name="RAM" quantum="4M"/>
-		<provides><service name="Nic"/></provides>
+	<start name="drivers" caps="1000">
+		<resource name="RAM" quantum="32M" constrain_phys="yes"/>
+		<binary name="init"/>
+		<route>
+			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+		<provides> <service name="Nic"/> </provides>
 	</start>
 
 	<start name="nic_bridge" caps="200">
@@ -68,7 +58,7 @@ append config {
 			<policy label_prefix="client_2"                     mac="02:02:02:02:79:00"/>
 		</config>
 		<route>
-			<service name="Nic"> <child name="nic_drv"/> </service>
+			<service name="Nic"> <child name="drivers"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
@@ -158,33 +148,10 @@ append config {
 	</start>
 </config>}
 
-install_config $config
-
-#
-# Boot modules
-#
-
-# generic modules
-append boot_modules {
-	core init
-	timer } [nic_drv_binary] {
-	nic_bridge
-	ld.lib.so
-	libc.lib.so vfs.lib.so
+build_boot_image {
 	test-http_clnt
 	test-lwip_httpsrv
-	vfs_lwip.lib.so
 }
-
-
-# platform-specific modules
-lappend_if [have_spec       linux] boot_modules fb_sdl
-
-append_platform_drv_boot_modules
-
-build_boot_image $boot_modules
-
-append qemu_args "  -nographic "
 
 proc qemu_nic_model {} {
 	if [have_spec x86]         { return e1000 }
@@ -193,6 +160,7 @@ proc qemu_nic_model {} {
 	return nic_model_missing
 }
 
+append qemu_args "  -nographic "
 append qemu_args " -netdev user,id=net0 "
 append qemu_args " -net nic,model=[qemu_nic_model],netdev=net0 "
 

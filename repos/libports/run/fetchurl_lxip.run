@@ -1,2 +1,2 @@
-source ${genode_dir}/repos/dde_linux/run/vfs_lxip.inc
+set use_lxip 1
 source ${genode_dir}/repos/libports/run/fetchurl.inc

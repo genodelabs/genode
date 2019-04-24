@@ -33,7 +33,7 @@ set build_components {
 
 set boot_modules {
 	input_merger
-	nic_drv
+	ipxe_nic_drv
 	audio_drv
 	report_rom
 	dynamic_rom
@@ -74,6 +74,7 @@ append config_of_app {
 		      needs to be enabled in the .vbox file (disabled by default)
 	-->
 	<start name="nic_drv" priority="-1">
+		<binary name="ipxe_nic_drv"/>
 		<resource name="RAM" quantum="8M" />
 		<provides>
 			<service name="Nic" />

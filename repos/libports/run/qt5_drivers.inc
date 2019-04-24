@@ -43,8 +43,20 @@ proc use_nic_drv { feature_arg } {
 	return [expr {[info exists feature(Nic)] &&
 	              ([have_spec zynq] ||
 	               [have_spec lan9118] ||
+	               [have_spec imx53] ||
+	               [have_spec imx6] ||
 	               [have_spec linux] ||
 	               [have_spec x86])}]
+}
+
+proc nic_drv_binary { } {
+	if {[have_spec linux]}   { return linux_nic_drv   }
+	if {[have_spec zynq]}    { return zynq_nic_drv    }
+	if {[have_spec lan9118]} { return lan9118_nic_drv }
+	if {[have_spec x86]}     { return ipxe_nic_drv    }
+	if {[have_spec imx53]}   { return fec_nic_drv     }
+	if {[have_spec imx6]}    { return fec_nic_drv     }
+	return no_nic_drv_available
 }
 
 proc use_ps2_drv { feature_arg } {

@@ -1,2 +1,2 @@
-source ${genode_dir}/repos/libports/run/vfs_lwip.inc
+set use_lxip 0
 source ${genode_dir}/repos/libports/run/fetchurl.inc

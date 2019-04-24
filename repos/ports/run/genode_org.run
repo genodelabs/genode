@@ -9,35 +9,21 @@
 # browser to http://localhost:5555
 #
 
-if {[have_spec odroid_xu]} {
-	puts "Run script does not support this platform."
-	exit 0
-}
-
-set build_components {
-	core init timer
-	app/lighttpd
-	lib/vfs/lwip
-}
-
-set use_usb_driver      [expr [have_spec omap4] || [have_spec arndale] || [have_spec rpi]]
-set use_nic_driver      [expr !$use_usb_driver]
-
-if {$use_usb_driver}    { set network_driver "usb_drv" }
-if {$use_nic_driver}    { set network_driver "nic_drv" }
-
-lappend_if $use_usb_driver      build_components drivers/usb
-lappend_if $use_nic_driver      build_components drivers/nic
-lappend_if [have_spec gpio]     build_components drivers/gpio
-
-source ${genode_dir}/repos/base/run/platform_drv.inc
-append_platform_drv_build_components
-
-build $build_components
-
 create_boot_directory
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/pkg/[drivers_nic_pkg] \
+                  [depot_user]/src/init \
+                  [depot_user]/src/libc \
+                  [depot_user]/src/libcrypto \
+                  [depot_user]/src/libssh \
+                  [depot_user]/src/libssl \
+                  [depot_user]/src/lighttpd \
+                  [depot_user]/src/posix \
+                  [depot_user]/src/vfs \
+                  [depot_user]/src/vfs_lwip \
+                  [depot_user]/src/zlib
 
-append config {
+install_config {
 <config>
 	<parent-provides>
 		<service name="ROM"/>
@@ -53,39 +39,23 @@ append config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 	<default caps="100"/>
+
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
-	</start>}
+	</start>
 
-append_if [have_spec gpio] config "
-	<start name=\"[gpio_drv]\">
-		<resource name=\"RAM\" quantum=\"4M\"/>
-		<provides><service name=\"Gpio\"/></provides>
-		<config/>
-	</start>"
+	<start name="nic_drv" caps="1000">
+		<resource name="RAM" quantum="32M" constrain_phys="yes"/>
+		<binary name="init"/>
+		<route>
+			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+		<provides> <service name="Nic"/> </provides>
+	</start>
 
-append_if $use_usb_driver config {
-	<start name="usb_drv">
-		<resource name="RAM" quantum="12M"/>
-		<provides>
-			<service name="Nic"/>
-		</provides>
-		<config ehci="yes">
-			<nic mac="02:00:00:00:01:01" />
-		</config>
-	</start>}
-
-append_if $use_nic_driver config {
-	<start name="nic_drv">
-		<binary name="} [nic_drv_binary] {"/>
-		<resource name="RAM" quantum="4M"/>
-		<provides><service name="Nic"/></provides>
-	</start>}
-
-append_platform_drv_config
-
-append config {
 	<start name="lighttpd" caps="1000">
 		<resource name="RAM" quantum="1G" />
 		<config>
@@ -105,12 +75,8 @@ append config {
 			<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log"
 			      socket="/socket" />
 		</config>
-	</start>}
-
-append config {
+	</start>
 </config>}
-
-install_config $config
 
 #
 # Create TAR archive containting the web-server configuration and the
@@ -152,31 +118,12 @@ if {![file exists bin/genode_org/website/index]} {
 
 exec tar cfv bin/genode_org.tar -h -C bin/genode_org .
 
-#
-# Boot modules
-#
-
-# generic modules
-set boot_modules {
-	core init timer ld.lib.so
-	libc.lib.so libm.lib.so posix.lib.so
-	vfs.lib.so vfs_lwip.lib.so zlib.lib.so
-	libcrypto.lib.so libssl.lib.so
-	lighttpd genode_org.tar
-}
-
-# platform-specific modules
-lappend_if $use_usb_driver           boot_modules usb_drv
-lappend_if $use_nic_driver           boot_modules [nic_drv_binary]
-lappend_if [have_spec gpio]          boot_modules [gpio_drv]
-
-append_platform_drv_boot_modules
-
-build_boot_image $boot_modules
+build_boot_image { genode_org.tar }
 
 proc qemu_nic_model {} {
 	if [have_spec x86]     { return e1000 }
 	if [have_spec lan9118] { return lan9118 }
+	if [have_spec zynq]    { return cadence_gem }
 	return nic_model_missing
 }
 

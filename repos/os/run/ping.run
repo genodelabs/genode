@@ -1,23 +1,19 @@
-#
-# Build
-#
-
-set on_hardware [expr ![have_include power_on/qemu]]
-
-set build_components {
-	core init timer
-	drivers/nic
-	server/nic_bridge
-	app/ping
-}
-
-lappend_if [have_spec gpio] build_components drivers/gpio
-
-if {[have_spec foc] || [have_spec odroid_xu] || [have_spec linux] ||
+if {[have_spec foc] || [have_spec linux] ||
     [expr [have_spec imx53] && [have_spec trustzone]]} {
 	puts "Run script is not supported on this platform."
 	exit 0
 }
+
+set on_hardware [expr ![have_include power_on/qemu]]
+
+create_boot_directory
+
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/pkg/[drivers_nic_pkg] \
+                  [depot_user]/src/init \
+                  [depot_user]/src/nic_bridge
+
+build { app/ping }
 
 proc dst_ip { } {
 	if {![have_include power_on/qemu]} {
@@ -26,17 +22,6 @@ proc dst_ip { } {
 		return "10.0.2.2"
 	}
 }
-
-source ${genode_dir}/repos/base/run/platform_drv.inc
-append_platform_drv_build_components
-
-build $build_components
-
-create_boot_directory
-
-#
-# Generate config
-#
 
 append config {
 <config>
@@ -53,28 +38,22 @@ append config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>}
+	<default caps="100"/>
 
-append_platform_drv_config
-
-append_if [have_spec gpio] config "
-	<start name=\"[gpio_drv]\" caps=\"150\">
-		<resource name=\"RAM\" quantum=\"4M\"/>
-		<provides><service name=\"Gpio\"/></provides>
-		<config/>
-	</start>"
-
-append config {
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="nic_drv" caps="150">
-		<binary name="} [nic_drv_binary] {"/>
-		<resource name="RAM" quantum="20M"/>
-		<provides><service name="Nic"/></provides>
-		} [nic_drv_config] {
+	<start name="drivers" caps="1000">
+		<resource name="RAM" quantum="32M" constrain_phys="yes"/>
+		<binary name="init"/>
+		<route>
+			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+		<provides> <service name="Nic"/> </provides>
 	</start>
 
 	<start name="nic_bridge" caps="200">
@@ -85,7 +64,7 @@ append config {
 			<policy label_prefix="ping_2"/>
 		</config>
 		<route>
-		<service name="Nic"> <child name="nic_drv"/> </service>
+		<service name="Nic"> <child name="drivers"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>}
@@ -122,30 +101,7 @@ append config {
 </config>}
 
 install_config $config
-
-#
-# Boot modules
-#
-
-# generic modules
-append boot_modules {
-	core init
-	timer
-	} [nic_drv_binary] {
-	ping
-	ld.lib.so
-	nic_bridge
-}
-
-# platform-specific modules
-lappend_if [have_spec linux] boot_modules fb_sdl
-lappend_if [have_spec gpio]  boot_modules [gpio_drv]
-
-append_platform_drv_boot_modules
-
-build_boot_image $boot_modules
-
-append qemu_args " -nographic "
+build_boot_image { ping }
 
 proc qemu_nic_model {} {
 	if [have_spec x86]         { return e1000 }
@@ -154,6 +110,7 @@ proc qemu_nic_model {} {
 	return nic_model_missing
 }
 
+append qemu_args " -nographic "
 append qemu_args " -netdev user,id=net0 "
 append qemu_args " -net nic,model=[qemu_nic_model],netdev=net0 "
 

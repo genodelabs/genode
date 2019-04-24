@@ -64,6 +64,7 @@ set config {
 		<config verbose="yes"/>
 	</start>
 	<start name="nic_drv">
+		<binary name="ipxe_nic_drv"/>
 		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="Nic"/> </provides>
 	</start>
@@ -139,7 +140,7 @@ if {![file exists bin/ed25519_key]} {
 
 # generic modules
 set boot_modules {
-	core ld.lib.so init timer nic_drv rtc_drv report_rom
+	core ld.lib.so init timer ipxe_nic_drv rtc_drv report_rom
 	noux test-terminal_echo
 
 	libc.lib.so libm.lib.so vfs.lib.so

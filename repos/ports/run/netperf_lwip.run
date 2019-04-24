@@ -9,11 +9,7 @@
 set use_nic_bridge      0
 set use_nic_router      0
 set use_wifi_driver     0
-set use_usb_11          "no"
-set use_usb_20          "yes"
-set use_usb_30          "no"
+set use_usb_driver      0
+set use_lxip            0
 
-set ip_match_string "address=(\[0-9\]+\.\[0-9\]+\.\[0-9\]+\.\[0-9\]+).*\n"
-
-source ${genode_dir}/repos/libports/run/vfs_lwip.inc
 source ${genode_dir}/repos/ports/run/netperf.inc

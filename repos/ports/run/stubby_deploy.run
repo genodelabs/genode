@@ -1,18 +1,16 @@
-source ${genode_dir}/repos/base/run/platform_drv.inc
+assert_spec x86
 
 create_boot_directory
 
 proc current_pkg { pkg } { return $pkg/[_current_depot_archive_version pkg $pkg] }
 
 import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/pkg/[drivers_nic_pkg] \
                   [depot_user]/src/report_rom \
                   [depot_user]/src/fs_rom \
                   [depot_user]/src/ram_fs \
                   [depot_user]/src/vfs \
                   [depot_user]/src/init \
-                  [depot_user]/src/ipxe_nic_drv \
-                  [depot_user]/src/acpi_drv \
-                  [depot_user]/src/platform_drv \
                   [depot_user]/src/rtc_drv \
                   [depot_user]/src/posix \
                   [depot_user]/src/libc \
@@ -21,7 +19,7 @@ import_from_depot [depot_user]/src/[base_src] \
 create_tar_from_depot_binaries [run_dir]/genode/depot.tar \
 	[depot_user]/pkg/nic_router-nat-dns \
 
-append config {
+install_config {
 <config>
 	<parent-provides>
 		<service name="ROM"/>
@@ -39,24 +37,27 @@ append config {
 		<service name="Report"> <child name="report_rom"/> </service>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>}
+	<default caps="100"/>
 
-append_platform_drv_config
-
-append config {
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
 
+	<start name="nic_drv" caps="1000">
+		<resource name="RAM" quantum="32M" constrain_phys="yes"/>
+		<binary name="init"/>
+		<route>
+			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+		<provides> <service name="Nic"/> </provides>
+	</start>
+
 	<start name="rtc_drv">
 		<resource name="RAM" quantum="6M"/>
 		<provides> <service name="Rtc"/> </provides>
-	</start>
-
-	<start name="nic_drv">
-		<resource name="RAM" quantum="6M"/>
-		<provides> <service name="Nic"/> </provides>
 	</start>
 
 	<start name="report_rom">
@@ -186,8 +187,6 @@ append config {
 	</start>
 
 </config>}
-
-install_config $config
 
 append qemu_args -nographic
 

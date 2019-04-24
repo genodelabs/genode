@@ -237,6 +237,7 @@ append_platform_drv_config
 
 append_if $use_nic_session config {
 	<start name="nic_drv" priority="-2">
+		<binary name="ipxe_nic_drv"/>
 		<resource name="RAM" quantum="8M"/>
 		<provides><service name="Nic"/></provides>
 	</start>
@@ -438,7 +439,7 @@ lappend_if [expr !$use_usb]   boot_modules ps2_drv
 lappend_if $use_usb           boot_modules usb_drv
 lappend_if $use_block_ram     boot_modules ram_block
 lappend_if $use_block_sata    boot_modules ahci_drv
-lappend_if $use_nic_session   boot_modules nic_drv
+lappend_if $use_nic_session   boot_modules ipxe_nic_drv
 lappend_if $use_nic_bridge    boot_modules nic_bridge
 lappend_if $use_framebuffer   boot_modules fb_drv
 

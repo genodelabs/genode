@@ -75,6 +75,7 @@ append config {
 	</start>
 
 	<start name="nic_drv" priority="-1">
+		<binary name="ipxe_nic_drv"/>
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Nic"/></provides>
 	</start>
@@ -379,7 +380,7 @@ append boot_modules { libc.lib.so }
 append boot_modules { dynamic_rom }
 append boot_modules { rtc_drv }
 append boot_modules { vfs.lib.so }
-append boot_modules { nic_drv }
+append boot_modules { ipxe_nic_drv }
 append_platform_drv_boot_modules
 
 build_boot_image $boot_modules

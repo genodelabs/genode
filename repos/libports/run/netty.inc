@@ -1,16 +1,14 @@
-assert_spec x86
-
 proc use_dynamic_rom { } { return true }
 
-set build_components {
-	core init timer drivers/nic server/vfs
-	lib/vfs/lxip
-}
-
-lappend_if [use_dynamic_rom] build_components server/dynamic_rom
-
-source ${genode_dir}/repos/base/run/platform_drv.inc
-append_platform_drv_build_components
+create_boot_directory
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/pkg/[drivers_nic_pkg] \
+                  [depot_user]/src/dynamic_rom \
+                  [depot_user]/src/init \
+                  [depot_user]/src/libc \
+                  [depot_user]/src/vfs_audit \
+                  [depot_user]/src/vfs_lxip \
+                  [depot_user]/src/vfs
 
 append config {
 <config verbose="yes">
@@ -33,16 +31,17 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
-}
 
-append_platform_drv_config
-
-append config {
-	<start name="nic_drv">
-		<binary name="} [nic_drv_binary] {"/>
-		<resource name="RAM" quantum="4M"/>
+	<start name="drivers" caps="1000">
+		<resource name="RAM" quantum="32M" constrain_phys="yes"/>
+		<binary name="init"/>
+		<route>
+			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
 		<provides> <service name="Nic"/> </provides>
-	</start>}
+	</start> }
 
 append_if [use_dynamic_rom] config {
 	<start name="dynamic_rom">
@@ -102,15 +101,14 @@ append config {
 	</start>
 }
 
-append boot_modules {
-	core init timer } [nic_drv_binary] { vfs
-	ld.lib.so libc.lib.so vfs.lib.so vfs_lxip.lib.so lxip.lib.so
+proc qemu_nic_model {} {
+	if [have_spec x86]         { return e1000 }
+	if [have_spec lan9118]     { return lan9118 }
+	if [have_spec zynq]        { return cadence_gem }
+	return nic_model_missing
 }
-
-lappend_if [use_dynamic_rom] boot_modules dynamic_rom
-
-append_platform_drv_boot_modules
-
-append qemu_args " -nographic -net nic,model=e1000 -net tap,ifname=tap0,downscript=no,script=no "
+append qemu_args " -nographic "
+append qemu_args " -net nic,model=[qemu_nic_model] "
+append qemu_args " -net tap,ifname=tap0,downscript=no,script=no "
 
 # vi: set ft=tcl :

@@ -1,10 +1,6 @@
 source ${genode_dir}/repos/libports/run/netty_lwip.inc
 
-append build_components { test/netty/udp }
-
-build $build_components
-
-create_boot_directory
+build { test/netty/udp }
 
 append config {
 	<start name="netty-server-7">
@@ -35,11 +31,7 @@ append config {
 }
 
 install_config $config
-
-append boot_modules { test-netty_udp }
-
-build_boot_image $boot_modules
-
+build_boot_image { test-netty_udp }
 run_genode_until forever
 
 # vi: set ft=tcl :

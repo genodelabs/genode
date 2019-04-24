@@ -49,10 +49,9 @@ append config {
 	</start>
 
 	<start name="nic_drv" caps="150">
-		<binary name="} [nic_drv_binary] {"/>
+		<binary name="ipxe_nic_drv"/>
 		<resource name="RAM" quantum="20M"/>
 		<provides><service name="Nic"/></provides>
-		} [nic_drv_config] {
 	</start>
 
 	<start name="nic_bridge" caps="200">
@@ -110,7 +109,7 @@ build $build_components
 append boot_modules {
 	nic_bridge
 	ping
-	} [nic_drv_binary] {
+	ipxe_nic_drv
 	solo5-test_ping_serve
 	solo5.lib.so
 }

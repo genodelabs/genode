@@ -119,7 +119,7 @@ foreach pkg {bash coreutils} {
 set boot_modules {
 	ram_fs
 	noux libc_noux.lib.so posix.lib.so bash.tar coreutils.tar
-	tcp_terminal vfs_lwip.lib.so nic_drv report_rom
+	tcp_terminal vfs_lwip.lib.so ipxe_nic_drv report_rom
 	input_merger
 	test.bin template.bat
 }
@@ -128,6 +128,7 @@ append boot_modules $vbox_file
 
 set config_of_app {
 	<start name="nic_drv" priority="-1">
+		<binary name="ipxe_nic_drv"/>
 		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="Nic"/> </provides>
 	</start>

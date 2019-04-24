@@ -119,6 +119,7 @@ append_if [have_spec x86] config {
 
 append_if [expr $use_net] config {
 	<start name="nic_drv" priority="-1">
+		<binary name="ipxe_nic_drv"/>
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Nic"/></provides>
 	</start>
@@ -276,7 +277,7 @@ append boot_modules {
 	qemu-usb.lib.so
 }
 
-append_if [expr $use_net]          boot_modules { nic_drv }
+append_if [expr $use_net]          boot_modules { ipxe_nic_drv }
 append_if [expr $use_bridge]       boot_modules { nic_bridge }
 append_if [expr $use_serial]       boot_modules { log_terminal }
 

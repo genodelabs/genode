@@ -34,11 +34,6 @@ set build_components {
 
 append_platform_drv_build_components
 
-lappend_if [expr {[nic_drv_binary] == "nic_drv"}] build_components drivers/nic
-lappend_if [expr {[nic_drv_binary] == "usb_drv"}] build_components drivers/usb
-
-lappend_if [have_spec gpio] build_components drivers/gpio
-
 build $build_components
 
 append config {
@@ -60,20 +55,13 @@ append config {
 
 append_platform_drv_config
 
-append_if [have_spec gpio] config "
-	<start name=\"[gpio_drv]\" caps=\"140\">
-		<resource name=\"RAM\" quantum=\"4M\"/>
-		<provides><service name=\"Gpio\"/></provides>
-		<config/>
-	</start>"
-
 append config {
 	<start name="timer" caps="96">
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
 	<start name="nic_drv">
-		<binary name="} [nic_drv_binary] {"/>
+		<binary name="ipxe_nic_drv"/>
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Nic"/></provides>
 	</start>
@@ -93,15 +81,12 @@ install_config $config
 set boot_modules {
 	mirage
 	rtc_drv
+	ipxe_nic_drv
 	solo5.lib.so
 }
 
 # platform-specific modules
 append_platform_drv_boot_modules
-
-lappend boot_modules [nic_drv_binary]
-
-lappend_if [have_spec gpio] boot_modules [gpio_drv]
 
 build_boot_image $boot_modules
 

@@ -4,34 +4,35 @@
 # \date   2016-06-05
 #
 
-if {[have_spec odroid_xu] || [have_spec linux] ||
+if {[have_spec linux] ||
     [expr [have_spec imx53] && [have_spec trustzone]]} {
 	puts "Run script does not support this platform."
 	exit 0
 }
 
-set build_components {
-	app/fetchurl
-	core init timer
-	drivers/nic
-	server/report_rom
+proc socket_fs_plugin {} {
+	global use_lxip
+	if { $use_lxip } { return lxip }
+	return lwip
 }
-
-lappend_if [have_spec gpio] build_components drivers/gpio
-
-source ${genode_dir}/repos/base/run/platform_drv.inc
-
-append_platform_drv_build_components
-append_socket_fs_build_components
-
-lappend_if [expr {[nic_drv_binary] == "nic_drv"}] build_components drivers/nic
-lappend_if [expr {[nic_drv_binary] == "usb_drv"}] build_components drivers/usb
-
-build $build_components
 
 create_boot_directory
 
-append config {
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/pkg/[drivers_nic_pkg] \
+                  [depot_user]/src/curl \
+                  [depot_user]/src/fetchurl \
+                  [depot_user]/src/init \
+                  [depot_user]/src/libc \
+                  [depot_user]/src/libcrypto \
+                  [depot_user]/src/libssh \
+                  [depot_user]/src/libssl \
+                  [depot_user]/src/report_rom \
+                  [depot_user]/src/vfs \
+                  [depot_user]/src/vfs_[socket_fs_plugin] \
+                  [depot_user]/src/zlib
+
+install_config {
 <config>
 	<parent-provides>
 		<service name="CPU"/>
@@ -48,28 +49,24 @@ append config {
 	<default-route>
 		<service name="Report"> <child name="report_rom"/> </service>
 		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>}
+	</default-route>
 
-append_platform_drv_config
-
-append_if [have_spec gpio] config "
-	<start name=\"[gpio_drv]\" caps=\"140\">
-		<resource name=\"RAM\" quantum=\"4M\"/>
-		<provides><service name=\"Gpio\"/></provides>
-		<config/>
-	</start>"
-
-append config {
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
-	<start name="nic_drv" caps="120">
-		<binary name="} [nic_drv_binary] {"/>
-		<resource name="RAM" quantum="16M"/>
+
+	<start name="drivers" caps="1000">
+		<resource name="RAM" quantum="32M" constrain_phys="yes"/>
+		<binary name="init"/>
+		<route>
+			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
 		<provides> <service name="Nic"/> </provides>
-		} [nic_drv_config] {
 	</start>
+
 	<start name="report_rom">
 		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="ROM"/> <service name="Report"/> </provides>
@@ -94,35 +91,7 @@ append config {
 </config>
 }
 
-install_config $config
-
-# generic modules
-set boot_modules {
-	core init ld.lib.so
-	curl.lib.so
-	fetchurl
-	libc.lib.so vfs.lib.so
-	libcrypto.lib.so
-	libssh.lib.so
-	libssl.lib.so
-	timer
-	zlib.lib.so
-	report_rom
-}
-
-# platform-specific modules
-append_platform_drv_boot_modules
-
-# vfs plugin modules
-append_socket_fs_boot_modules
-
-lappend boot_modules [nic_drv_binary]
-
-lappend_if [have_spec gpio] boot_modules [gpio_drv]
-
-build_boot_image $boot_modules
-
-append qemu_args " -nographic "
+build_boot_image {}
 
 proc qemu_nic_model {} {
 	if [have_spec x86]         { return e1000 }
@@ -131,6 +100,7 @@ proc qemu_nic_model {} {
 	return nic_model_missing
 }
 
+append qemu_args " -nographic "
 append qemu_args " -netdev user,id=net0 "
 append qemu_args " -net nic,model=[qemu_nic_model],netdev=net0 "
 

@@ -4,20 +4,21 @@
 # \date   2012-08-16
 #
 
-set build_components {
-	core init timer
-	drivers/nic
-	app/lighttpd
-}
-
-source ${genode_dir}/repos/base/run/platform_drv.inc
-append_platform_drv_build_components
-
-build $build_components
-
 create_boot_directory
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/pkg/[drivers_nic_pkg] \
+                  [depot_user]/src/init \
+                  [depot_user]/src/libc \
+                  [depot_user]/src/libcrypto \
+                  [depot_user]/src/libssh \
+                  [depot_user]/src/libssl \
+                  [depot_user]/src/lighttpd \
+                  [depot_user]/src/posix \
+                  [depot_user]/src/vfs \
+                  [depot_user]/src/vfs_lwip \
+                  [depot_user]/src/zlib
 
-append config {
+install_config {
 <config>
 	<parent-provides>
 		<service name="ROM"/>
@@ -33,19 +34,23 @@ append config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 	<default caps="100"/>
+
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
-	</start>}
-
-append_platform_drv_config
-
-append config {
-	<start name="nic_drv">
-		<binary name="} [nic_drv_binary] {"/>
-		<resource name="RAM" quantum="4M"/>
-		<provides><service name="Nic"/></provides>
 	</start>
+
+	<start name="nic_drv" caps="1000">
+		<resource name="RAM" quantum="32M" constrain_phys="yes"/>
+		<binary name="init"/>
+		<route>
+			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+		<provides> <service name="Nic"/> </provides>
+	</start>
+
 	<start name="lighttpd" caps="200">
 		<resource name="RAM" quantum="1G" />
 		<config>
@@ -95,35 +100,15 @@ mimetype.assign      = (
 			<libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log"
 			      socket="/socket" />
 		</config>
-	</start>}
-
-append config {
+	</start>
 </config>}
 
-install_config $config
-
-
-#
-# Boot modules
-#
-
-# generic modules
-append boot_modules {
-	core init timer ld.lib.so } [nic_drv_binary] {
-	libc.lib.so libm.lib.so posix.lib.so
-	vfs.lib.so vfs_lwip.lib.so zlib.lib.so
-	libcrypto.lib.so libssl.lib.so
-	lighttpd
-}
-
-# platform-specific modules
-append_platform_drv_boot_modules
-
-build_boot_image $boot_modules
+build_boot_image {}
 
 proc qemu_nic_model {} {
 	if [have_spec x86]     { return e1000 }
 	if [have_spec lan9118] { return lan9118 }
+	if [have_spec zynq]    { return cadence_gem }
 	return nic_model_missing
 }
 

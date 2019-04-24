@@ -20,41 +20,25 @@
 #       tun/tap proxy driver at os/src/drivers/nic/linux)
 #
 
-set use_usb_driver [expr [have_spec omap4] || [have_spec arndale] || [have_spec rpi]]
-set use_nic_driver [expr !$use_usb_driver && ![have_spec odroid_xu] && ![have_spec linux]]
-
-if {[expr !$use_usb_driver && !$use_nic_driver] ||
-    [expr [have_spec imx53] && [have_spec trustzone]]} {
+if {[expr [have_spec linux]] ||
+    [expr [have_spec imx53] && [have_spec trustzone]] ||
+    [expr [have_spec riscv]]} {
 	puts "\n Run script is not supported on this platform. \n"; exit 0 }
 
 set lynx [installed_command lynx]
 
-#
-# Build
-#
-
-set build_components {
-	core init timer
-	drivers/nic
-	test/lwip/http_srv
-	lib/vfs/lwip
-}
-
-lappend_if $use_usb_driver              build_components drivers/usb
-lappend_if [have_spec gpio]             build_components drivers/gpio
-
-source ${genode_dir}/repos/base/run/platform_drv.inc
-append_platform_drv_build_components
-
-build $build_components
-
 create_boot_directory
 
-#
-# Generate config
-#
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/pkg/[drivers_nic_pkg] \
+                  [depot_user]/src/init \
+                  [depot_user]/src/libc \
+                  [depot_user]/src/vfs_lwip \
+                  [depot_user]/src/vfs
 
-set config {
+build { test/lwip/http_srv }
+
+install_config {
 <config verbose="yes">
 	<parent-provides>
 		<service name="ROM"/>
@@ -70,10 +54,23 @@ set config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 	<default caps="100"/>
+
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
+
+	<start name="drivers" caps="1000">
+		<resource name="RAM" quantum="32M" constrain_phys="yes"/>
+		<binary name="init"/>
+		<route>
+			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+		<provides> <service name="Nic"/> </provides>
+	</start>
+
 	<start name="test-lwip_httpsrv" caps="120">
 		<resource name="RAM" quantum="4M"/>
 		<config>
@@ -83,75 +80,22 @@ set config {
 			</vfs>
 			<libc stdout="/dev/log" stderr="/dev/log" socket="/socket"/>
 		</config>
-	</start>}
-
-append_if [have_spec gpio] config "
-	<start name=\"[gpio_drv]\" caps=\"140\">
-		<resource name=\"RAM\" quantum=\"4M\"/>
-		<provides><service name=\"Gpio\"/></provides>
-		<config/>
-	</start>"
-
-append_if $use_usb_driver config {
-	<start name="usb_drv" caps="120">
-		<resource name="RAM" quantum="14M"/>
-		<provides>
-			<service name="Nic"/>
-		</provides>
-		<config ehci="yes">
-			<nic mac="02:00:00:00:01:01" />
-		</config>
-	</start>}
-
-append_platform_drv_config
-
-append_if $use_nic_driver config {
-	<start name="nic_drv" caps="130">
-		<binary name="} [nic_drv_binary] {"/>
-		<resource name="RAM" quantum="20M"/>
-		<provides><service name="Nic"/></provides>
-		} [nic_drv_config] {
-	</start>}
-
-append config {
+	</start>
 </config>
 }
 
-install_config $config
+build_boot_image { test-lwip_httpsrv }
 
 #
-# Boot modules
+# Qemu config
 #
-
-# generic modules
-set boot_modules {
-	core init timer
-	ld.lib.so libc.lib.so vfs.lib.so vfs_lwip.lib.so test-lwip_httpsrv
-}
-
-# platform-specific modules
-lappend_if $use_usb_driver              boot_modules usb_drv
-lappend_if $use_nic_driver              boot_modules [nic_drv_binary]
-lappend_if [have_spec gpio]             boot_modules [gpio_drv]
-
-append_platform_drv_boot_modules
-
-build_boot_image $boot_modules
-
-#
-# Execute test case
-#
-
-# qemu config
-append qemu_args "  -nographic "
-
 proc qemu_nic_model {} {
 	if [have_spec x86]         { return e1000 }
 	if [have_spec lan9118]     { return lan9118 }
 	if [have_spec zynq]        { return cadence_gem }
 	return nic_model_missing
 }
-
+append qemu_args "  -nographic "
 append qemu_args " -netdev user,id=net0,hostfwd=tcp::5555-:80 "
 append qemu_args " -net nic,model=[qemu_nic_model],netdev=net0 "
 

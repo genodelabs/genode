@@ -468,7 +468,14 @@ proc drivers_interactive_pkg { } {
 
 proc drivers_nic_pkg { } {
 
-	if {[have_spec x86] && ![have_spec linux]} { return drivers_nic-pc }
+	if {[have_spec x86] &&
+	    ![have_spec linux]}          { return drivers_nic-pc              }
+	if {[have_spec linux]}           { return drivers_nic-linux           }
+	if {[have_spec pbxa9]}           { return drivers_nic-pbxa9           }
+	if {[have_spec rpi]}             { return drivers_nic-rpi             }
+	if {[have_spec zynq_qemu]}       { return drivers_nic-zynq            }
+	if {[have_spec imx53_qsb]}       { return drivers_nic-imx53_qsb       }
+	if {[have_spec imx6q_sabrelite]} { return drivers_nic-imx6q_sabrelite }
 
 	puts stderr "drivers_nic package undefined for this build configuration"
 	exit 1

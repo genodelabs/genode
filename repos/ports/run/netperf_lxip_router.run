@@ -5,25 +5,11 @@
 # \date   2017-12-19
 #
 
-if {[have_include "power_on/qemu"]} {
-	puts "\nNetperf running on Qemu with a router is not supported.\n"
-	exit
-}
-
-if {[have_spec omap4]} {
-	puts stderr "\nTest requires 1 Gbit network interface - not supported for omap4\n"
-	exit 0
-}
-
 # network configuration
 set use_nic_bridge      0
 set use_nic_router      1
 set use_wifi_driver     0
-set use_usb_11          "no"
-set use_usb_20          "no"
-set use_usb_30          "yes"
+set use_usb_driver      0
+set use_lxip            1
 
-set ip_match_string "ipaddr=(\[0-9\]+\.\[0-9\]+\.\[0-9\]+\.\[0-9\]+).*\n"
-
-source ${genode_dir}/repos/dde_linux/run/vfs_lxip.inc
 source ${genode_dir}/repos/ports/run/netperf.inc

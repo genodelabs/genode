@@ -1,3 +1,5 @@
+assert_spec x86
+
 if {[have_spec linux]} {
 	puts "The [run_name] scenario requires QEMU networking."
 	exit 1
@@ -55,7 +57,7 @@ append config {
 		<provides> <service name="Rtc"/> </provides>
 	</start>
 	<start name="nic_drv">
-		<binary name="} [nic_drv_binary] {"/>
+		<binary name="ipxe_nic_drv"/>
 		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="Nic"/> </provides>
 	</start>
@@ -174,6 +176,7 @@ set boot_modules {
 	libssl.lib.so
 	lxip.lib.so vfs_lxip.lib.so
 	nic_router
+	ipxe_nic_drv
 	rtc_drv
 	sequence
 	stubby
@@ -185,7 +188,6 @@ set boot_modules {
 
 # platform-specific modules
 append_platform_drv_boot_modules
-lappend boot_modules [nic_drv_binary]
 
 build_boot_image $boot_modules
 
