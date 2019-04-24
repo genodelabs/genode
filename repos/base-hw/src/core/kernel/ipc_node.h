@@ -169,9 +169,7 @@ class Kernel::Ipc_node
 		 ** Accessors **
 		 ***************/
 
-		Ipc_node * callee() { return _callee; }
-		State      state()  { return _state;  }
-		Thread    &thread() { return _thread; }
+		Thread &thread() { return _thread; }
 };
 
 #endif /* _CORE__KERNEL__IPC_NODE_H_ */
