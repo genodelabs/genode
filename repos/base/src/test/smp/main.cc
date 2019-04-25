@@ -304,7 +304,17 @@ namespace Tlb_shootdown_test {
 
 		log("TLB: all threads are up and running...");
 		destroy(heap, ram_ds);
-		log("TLB: ram dataspace destroyed, all will fault...");
+		log("TLB: ram dataspace destroyed, all have to fail...");
+
+		/**
+		 * The more cores are existing the more threads have to fail.
+		 * The bottleneck is core's page-fault messages all printed
+		 * over a lazy serial line from core 0.
+		 * We have to wait here, for some time so that all fault
+		 * messages are received before the test finishes.
+		 */
+		for (volatile unsigned i = 0; i < (0x2000000 * cpus.total()); i++) ;
+
 		for (unsigned i = 1; i < cpus.total(); i++) destroy(heap, threads[i]);
 		destroy(heap, threads);
 
