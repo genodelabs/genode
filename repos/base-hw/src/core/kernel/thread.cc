@@ -217,15 +217,15 @@ void Thread::ipc_await_request_failed()
 void Thread::_deactivate_used_shares()
 {
 	Cpu_job::_deactivate_own_share();
-	_ipc_node.for_each_helper([&] (Ipc_node &ipc_node) {
-		ipc_node.thread()._deactivate_used_shares(); });
+	_ipc_node.for_each_helper([&] (Thread &thread) {
+		thread._deactivate_used_shares(); });
 }
 
 void Thread::_activate_used_shares()
 {
 	Cpu_job::_activate_own_share();
-	_ipc_node.for_each_helper([&] (Ipc_node &ipc_node) {
-		ipc_node.thread()._activate_used_shares(); });
+	_ipc_node.for_each_helper([&] (Thread &thread) {
+		thread._activate_used_shares(); });
 }
 
 void Thread::_become_active()
@@ -246,7 +246,7 @@ void Thread::_die() { _become_inactive(DEAD); }
 
 
 Cpu_job * Thread::helping_sink() {
-	return &_ipc_node.helping_sink()->thread(); }
+	return &_ipc_node.helping_sink(); }
 
 
 size_t Thread::_core_to_kernel_quota(size_t const quota) const
@@ -405,22 +405,23 @@ void Thread::_call_delete_thread()
 
 void Thread::_call_await_request_msg()
 {
-	if (!_ipc_node.can_await_request()) {
+	if (_ipc_node.can_await_request()) {
+		unsigned const rcv_caps = user_arg_1();
+		Genode::Allocator &slab = pd().platform_pd().capability_slab();
+		for (unsigned i = 0; i < rcv_caps; i++)
+			_obj_id_ref_ptr[i] = slab.alloc(sizeof(Object_identity_reference));
+
+		_ipc_rcv_caps = rcv_caps;
+		_ipc_node.await_request();
+		if (_ipc_node.awaits_request()) {
+			_become_inactive(AWAITS_IPC);
+		} else {
+			user_arg_0(0);
+		}
+	} else {
 		Genode::raw("IPC await request: bad state");
 		user_arg_0(0);
-		return;
 	}
-	unsigned const rcv_caps = user_arg_1();
-	Genode::Allocator &slab = pd().platform_pd().capability_slab();
-	for (unsigned i = 0; i < rcv_caps; i++)
-		_obj_id_ref_ptr[i] = slab.alloc(sizeof(Object_identity_reference));
-
-	_ipc_rcv_caps = rcv_caps;
-	if (_ipc_node.await_request()) {
-		user_arg_0(0);
-		return;
-	}
-	_become_inactive(AWAITS_IPC);
 }
 
 

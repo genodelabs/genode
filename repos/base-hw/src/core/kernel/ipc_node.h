@@ -124,12 +124,13 @@ class Kernel::Ipc_node
 		 * \param help      wether the request implies a helping relationship
 		 */
 		bool can_send_request();
-		void send_request(Ipc_node &callee, bool help);
+		void send_request(Ipc_node &callee,
+		                  bool      help);
 
 		/**
 		 * Return root destination of the helping-relation tree we are in
 		 */
-		Ipc_node * helping_sink();
+		Thread &helping_sink();
 
 		/**
 		 * Call function 'f' of type 'void (Ipc_node *)' for each helper
@@ -137,12 +138,12 @@ class Kernel::Ipc_node
 		template <typename F> void for_each_helper(F f)
 		{
 			/* if we have a helper in the receive buffer, call 'f' for it */
-			if (_caller && _caller->_help) f(*_caller);
+			if (_caller && _caller->_help) f(_caller->_thread);
 
 			/* call 'f' for each helper in our request queue */
 			_request_queue.for_each([f] (Queue_item &item) {
 				Ipc_node &node { item.object() };
-				if (node._help) f(node);
+				if (node._help) f(node._thread);
 			});
 		}
 
@@ -152,7 +153,7 @@ class Kernel::Ipc_node
 		 * \return  wether a request could be received already
 		 */
 		bool can_await_request();
-		bool await_request();
+		void await_request();
 
 		/**
 		 * Reply to last request if there's any
@@ -164,12 +165,7 @@ class Kernel::Ipc_node
 		 */
 		void cancel_waiting();
 
-
-		/***************
-		 ** Accessors **
-		 ***************/
-
-		Thread &thread() { return _thread; }
+		bool awaits_request() const { return _state == AWAIT_REQUEST; }
 };
 
 #endif /* _CORE__KERNEL__IPC_NODE_H_ */

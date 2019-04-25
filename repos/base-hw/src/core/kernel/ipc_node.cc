@@ -122,8 +122,8 @@ void Ipc_node::send_request(Ipc_node &callee, bool help)
 }
 
 
-Ipc_node * Ipc_node::helping_sink() {
-	return _helps_outbuf_dst() ? _callee->helping_sink() : this; }
+Thread &Ipc_node::helping_sink() {
+	return _helps_outbuf_dst() ? _callee->helping_sink() : _thread; }
 
 
 bool Ipc_node::can_await_request()
@@ -132,18 +132,12 @@ bool Ipc_node::can_await_request()
 }
 
 
-bool Ipc_node::await_request()
+void Ipc_node::await_request()
 {
-	/* if no request announced then wait */
-	bool announced = false;
 	_state = AWAIT_REQUEST;
-
-	/* if anybody already announced a request receive it */
 	_request_queue.dequeue([&] (Queue_item &item) {
 		_receive_request(item.object());
-		announced = true;
 	});
-	return announced;
 }
 
 
