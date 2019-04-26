@@ -54,7 +54,9 @@ include $(REP_DIR)/lib/mk/seoul_libc_support.mk
 
 MIRROR_FROM_LIBC := $(addprefix src/lib/libc/lib/libc/,$(SRC_C)) \
                     src/lib/libc/lib/libc/locale/mblocal.h \
-                    src/lib/libc/lib/libc/string/index.c
+                    src/lib/libc/lib/libc/locale/xlocale_private.h \
+                    src/lib/libc/lib/libc/locale/setlocale.h \
+                    src/lib/libc/lib/libc/include/libc_private.h \
 
 content: $(MIRROR_FROM_LIBC)
 

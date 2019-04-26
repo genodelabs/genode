@@ -19,8 +19,17 @@
 #include <libc-plugin/plugin_registry.h>
 #include <libc-plugin/plugin.h>
 
+/* local includes */
+#include "task.h"
+
 using namespace Genode;
 using namespace Libc;
+
+
+void Plugin::resume_all()
+{
+	Libc::resume_all();
+}
 
 
 Plugin::Plugin(int priority)
@@ -68,6 +77,12 @@ bool Plugin::supports_open(const char *, int)
 
 
 bool Plugin::supports_pipe()
+{
+	return false;
+}
+
+
+bool Plugin::supports_poll()
 {
 	return false;
 }
@@ -189,6 +204,7 @@ DUMMY(void *, (void *)(-1), mmap, (void *addr, ::size_t length, int prot, int fl
 DUMMY(int, -1, munmap,       (void *, ::size_t));
 DUMMY(int, -1, msync,        (void *addr, ::size_t len, int flags));
 DUMMY(int, -1, pipe,         (File_descriptor*[2]));
+DUMMY(bool, 0, poll,         (File_descriptor &, struct pollfd &));
 DUMMY(ssize_t, -1, readlink, (const char *, char *, ::size_t));
 DUMMY(int, -1, rename,       (const char *, const char *));
 DUMMY(int, -1, rmdir,        (const char*));

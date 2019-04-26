@@ -80,6 +80,10 @@ int clock_gettime(clockid_t clk_id, struct timespec *ts)
 }
 
 
+extern "C" __attribute__((weak, alias("clock_gettime")))
+int __sys_clock_gettime(clockid_t clk_id, struct timespec *ts);
+
+
 extern "C" __attribute__((weak))
 int gettimeofday(struct timeval *tv, struct timezone *)
 {
@@ -94,6 +98,10 @@ int gettimeofday(struct timeval *tv, struct timezone *)
 	tv->tv_usec = ts.tv_nsec / 1000;
 	return 0;
 }
+
+
+extern "C" __attribute__((weak, alias("gettimeofday")))
+int __sys_gettimeofday(struct timeval *tv, struct timezone *);
 
 
 extern "C"

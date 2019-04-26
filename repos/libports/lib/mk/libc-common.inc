@@ -31,6 +31,11 @@ CC_CXX_OPT += -Wall
 CC_OPT += -DPIC
 
 #
+# Disable thread local locales
+#
+CC_OPT += -D__NO_TLS
+
+#
 # Use libc import rules also for building the libc itself
 #
 include $(call select_from_repositories,lib/import/import-libc.mk)

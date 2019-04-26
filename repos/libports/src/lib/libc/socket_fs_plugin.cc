@@ -1,3 +1,5 @@
+#include <base/debug.h>
+
 /*
  * \brief  Libc pseudo plugin for socket fs
  * \author Christian Helmuth
@@ -8,7 +10,7 @@
  */
 
 /*
- * Copyright (C) 2015-2017 Genode Labs GmbH
+ * Copyright (C) 2015-2019 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -295,12 +297,14 @@ struct Socket_fs::Local_functor : Socket_fs::Sockaddr_functor
 
 struct Socket_fs::Plugin : Libc::Plugin
 {
+	bool supports_poll() override { return true; }
 	bool supports_select(int, fd_set *, fd_set *, fd_set *, timeval *) override;
 
 	ssize_t read(Libc::File_descriptor *, void *, ::size_t) override;
 	ssize_t write(Libc::File_descriptor *, const void *, ::size_t) override;
 	int fcntl(Libc::File_descriptor *, int, long) override;
 	int close(Libc::File_descriptor *) override;
+	bool poll(Libc::File_descriptor &fd, struct pollfd &pfd) override;
 	int select(int, fd_set *, fd_set *, fd_set *, timeval *) override;
 	int ioctl(Libc::File_descriptor *, int, char *) override;
 };
@@ -604,8 +608,11 @@ extern "C" int socket_fs_connect(int libc_fd, sockaddr const *addr, socklen_t ad
 
 	if (!addr) return Errno(EFAULT);
 
-	if (addr->sa_family != AF_INET) {
-		Genode::error(__func__, ": family not supported");
+	switch (addr->sa_family) {
+	case AF_UNSPEC:
+	case AF_INET:
+		break;
+	default:
 		return Errno(EAFNOSUPPORT);
 	}
 
@@ -931,11 +938,11 @@ extern "C" int socket_fs_socket(int domain, int type, int protocol)
 		return Errno(EACCES);
 	}
 
-	if ((type != SOCK_STREAM || (protocol != 0 && protocol != IPPROTO_TCP))
-	 && (type != SOCK_DGRAM  || (protocol != 0 && protocol != IPPROTO_UDP))) {
+	if (((type&7) != SOCK_STREAM || (protocol != 0 && protocol != IPPROTO_TCP))
+	 && ((type&7) != SOCK_DGRAM  || (protocol != 0 && protocol != IPPROTO_UDP))) {
 		Genode::error(__func__,
-		              ": socket with type=", type,
-		              " protocol=", protocol, " not supported");
+		              ": socket with type=", (Genode::Hex)type,
+		              " protocol=", (Genode::Hex)protocol, " not supported");
 		return Errno(EAFNOSUPPORT);
 	}
 
@@ -1009,6 +1016,42 @@ ssize_t Socket_fs::Plugin::write(Libc::File_descriptor *fd, const void *buf, ::s
 	switch (errno) {
 	default: return Errno(errno);
 	}
+}
+
+
+bool Socket_fs::Plugin::poll(Libc::File_descriptor &fdo,
+                             struct pollfd &pfd)
+{
+	if (fdo.plugin != this) return false;
+	Socket_fs::Context *context { nullptr };
+
+	try {
+		context = dynamic_cast<Socket_fs::Context *>(fdo.context);
+	} catch (Socket_fs::Context::Inaccessible) {
+		pfd.revents |= POLLNVAL;
+		return true;
+	}
+
+	enum {
+		POLLIN_MASK = POLLIN | POLLRDNORM | POLLRDBAND | POLLPRI,
+		POLLOUT_MASK = POLLOUT | POLLWRNORM | POLLWRBAND,
+	};
+
+	bool res { false };
+
+	if ((pfd.events & POLLIN_MASK) && context->read_ready())
+	{
+		pfd.revents |= pfd.events & POLLIN_MASK;
+		res = true;
+	}
+
+	if ((pfd.events & POLLOUT_MASK) && context->write_ready())
+	{
+		pfd.revents |= pfd.events & POLLOUT_MASK;
+		res = true;
+	}
+
+	return res;
 }
 
 

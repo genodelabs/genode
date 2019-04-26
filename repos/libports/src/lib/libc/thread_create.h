@@ -13,6 +13,9 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+#ifndef _LIBC__THREAD_CREATE_H_
+#define _LIBC__THREAD_CREATE_H_
+
 #include <pthread.h>
 #include <base/thread.h>
 
@@ -24,3 +27,5 @@ namespace Libc {
 
 	int pthread_create(pthread_t *, Genode::Thread &);
 }
+
+#endif /* _LIBC__THREAD_CREATE_H_ */

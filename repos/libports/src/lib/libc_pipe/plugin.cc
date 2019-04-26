@@ -101,6 +101,7 @@ namespace Libc_pipe {
 			void init(Genode::Env &env) override;
 
 			bool supports_pipe() override;
+			bool supports_poll() override;
 			bool supports_select(int nfds,
 			                     fd_set *readfds,
 			                     fd_set *writefds,
@@ -110,6 +111,7 @@ namespace Libc_pipe {
 			int close(Libc::File_descriptor *pipefdo) override;
 			int fcntl(Libc::File_descriptor *pipefdo, int cmd, long arg) override;
 			int pipe(Libc::File_descriptor *pipefdo[2]) override;
+			bool poll(Libc::File_descriptor &, struct pollfd &) override;
 			ssize_t read(Libc::File_descriptor *pipefdo, void *buf,
 			             ::size_t count) override;
 			int select(int nfds, fd_set *readfds, fd_set *writefds,
@@ -199,6 +201,12 @@ namespace Libc_pipe {
 
 
 	bool Plugin::supports_pipe()
+	{
+		return true;
+	}
+
+
+	bool Plugin::supports_poll()
 	{
 		return true;
 	}
@@ -308,6 +316,37 @@ namespace Libc_pipe {
 	}
 
 
+	bool Plugin::poll(Libc::File_descriptor &fdo, struct pollfd &pfd)
+	{
+		if (fdo.plugin != this) return false;
+
+		enum {
+			POLLIN_MASK = POLLIN | POLLRDNORM | POLLRDBAND | POLLPRI,
+			POLLOUT_MASK = POLLOUT | POLLWRNORM | POLLWRBAND,
+		};
+
+		bool res { false };
+
+		if ((pfd.events & POLLIN_MASK)
+		 && read_end(&fdo)
+		 && !context(&fdo)->buffer()->empty())
+		{
+			pfd.revents |= pfd.events & POLLIN_MASK;
+			res = true;
+		}
+
+		if ((pfd.events & POLLOUT_MASK)
+		 && write_end(&fdo)
+		 && (context(&fdo)->buffer()->avail_capacity() > 0))
+		{
+			pfd.revents |= pfd.events & POLLOUT_MASK;
+			res = true;
+		}
+
+		return res;
+	}
+
+
 	ssize_t Plugin::read(Libc::File_descriptor *fdo, void *buf, ::size_t count)
 	{
 		if (!read_end(fdo)) {
@@ -413,6 +452,7 @@ namespace Libc_pipe {
 
 				if (libc_select_notify)
 					libc_select_notify();
+				Plugin::resume_all();
 			}
 
 			context(fdo)->write_avail_sem()->down();
@@ -423,6 +463,7 @@ namespace Libc_pipe {
 
 		if (libc_select_notify)
 			libc_select_notify();
+		Plugin::resume_all();
 
 		return num_bytes_written;
 	}

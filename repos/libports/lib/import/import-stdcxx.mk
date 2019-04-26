@@ -17,3 +17,6 @@ CC_OPT += -D_GLIBCXX_HAVE_MBSTATE_T
 
 # use compiler-builtin atomic operations
 CC_OPT += -D_GLIBCXX_ATOMIC_BUILTINS_4
+
+# No isinf isnan
+CC_OPT += -D_GLIBCXX_NO_OBSOLETE_ISINF_ISNAN_DYNAMIC

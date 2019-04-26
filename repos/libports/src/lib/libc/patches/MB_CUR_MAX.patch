@@ -1,0 +1,23 @@
+--- src/lib/libc/include/stdlib.h.orig	2019-04-18 13:26:58.781188866 +0200
++++ src/lib/libc/include/stdlib.h	2019-04-18 13:27:46.100594001 +0200
+@@ -81,7 +81,8 @@
+ #endif
+ extern int __mb_cur_max;
+ extern int ___mb_cur_max(void);
+-#define	MB_CUR_MAX	((size_t)___mb_cur_max())
++/* ASCII only */
++#define	MB_CUR_MAX	1
+ 
+ _Noreturn void	 abort(void);
+ int	 abs(int) __pure2;
+
+--- src/lib/libc/include/xlocale/_stdlib.h.orig	2019-04-18 13:28:52.691756865 +0200
++++ src/lib/libc/include/xlocale/_stdlib.h	2019-04-18 13:29:13.079500565 +0200
+@@ -57,5 +57,6 @@
+ int			 wctomb_l(char *, wchar_t, locale_t);
+ 
+ int			 ___mb_cur_max_l(locale_t);
+-#define MB_CUR_MAX_L(x) ((size_t)___mb_cur_max_l(x))
++/* ASCII only */
++#define MB_CUR_MAX_L(x) 1
+ 

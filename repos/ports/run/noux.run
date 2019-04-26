@@ -1,7 +1,10 @@
-build { core init timer noux server/log_terminal
-        lib/libc_noux noux-pkg/coreutils }
+build { noux lib/libc_noux }
 
 create_boot_directory
+
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/src/init \
+                  [depot_user]/src/coreutils \
 
 install_config {
 	<config verbose="yes">
@@ -23,15 +26,10 @@ install_config {
 			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Timer"/></provides>
 		</start>
-		<start name="terminal">
-			<binary name="log_terminal" />
-			<resource name="RAM" quantum="1M"/>
-			<provides><service name="Terminal"/></provides>
-		</start>
 		<start name="noux" caps="500">
 			<resource name="RAM" quantum="1G"/>
-			<config verbose="yes">
-				<fstab> <tar name="coreutils.tar" /> </fstab>
+			<config verbose="yes" stdin="/null" stdout="/log" stderr="/log">
+				<fstab> <null/> <log/> <tar name="coreutils.tar" /> </fstab>
 				<start name="/bin/ls"> <arg value="-Rla"/> </start>
 			</config>
 		</start>
@@ -39,14 +37,10 @@ install_config {
 }
 
 build_boot_image {
-	core init timer log_terminal ld.lib.so noux libc.lib.so vfs.lib.so libm.lib.so
-	libc_noux.lib.so coreutils.tar posix.lib.so
+	noux libc.lib.so vfs.lib.so libm.lib.so
+	libc_noux.lib.so posix.lib.so
 }
 
 append qemu_args " -nographic -serial mon:stdio "
-
-if {[have_spec x86_64]} {
-	# coreutils.tar is really huge when built for x86_64
-}
 
 run_genode_until {child "noux" exited with exit value 0.*\n} 30

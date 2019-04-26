@@ -1,0 +1,12 @@
+--- src/lib/libc/lib/libc/stdio/xprintf_float.c.orig	2019-04-16 12:34:20.167688219 +0200
++++ src/lib/libc/lib/libc/stdio/xprintf_float.c	2019-04-16 12:34:01.986830677 +0200
+@@ -42,9 +42,6 @@
+ #include <locale.h>
+ #include <limits.h>
+ 
+-#define	dtoa		__dtoa
+-#define	freedtoa	__freedtoa
+-
+ #include <float.h>
+ #include <math.h>
+ #include "gdtoa.h"

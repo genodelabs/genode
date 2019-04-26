@@ -2,6 +2,7 @@ LIBICONV_PORT_DIR := $(call select_from_ports,libiconv)
 
 LIBS += libc
 
+INC_DIR += $(REP_DIR)/include/iconv
 INC_DIR += $(LIBICONV_PORT_DIR)/include/iconv
 
 # find 'config.h'

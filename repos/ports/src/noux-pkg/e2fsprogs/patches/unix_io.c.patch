@@ -1,0 +1,13 @@
+Remove io->align check because it is not needed in our case
+and rather leads to an memory allocation error (we cannot satisfy
+the alignment).
++++ src/noux-pkg/e2fsprogs/lib/ext2fs/unix_io.c
+@@ -558,7 +558,7 @@ static errcode_t unix_open(const char *name, int flags, io_channel *channel)
+ 	}
+ #endif
+ 
+-#if defined(__CYGWIN__) || defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
++#if 0
+ 	/*
+ 	 * Some operating systems require that the buffers be aligned,
+ 	 * regardless of O_DIRECT

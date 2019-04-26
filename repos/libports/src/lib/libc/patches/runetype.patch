@@ -1,0 +1,15 @@
+--- src/lib/libc/lib/libc/locale/runetype.c.orig	2019-04-18 15:12:08.961502991 +0200
++++ src/lib/libc/lib/libc/locale/runetype.c	2019-04-18 15:13:44.287945177 +0200
+@@ -82,10 +82,9 @@
+ 
+ int ___mb_cur_max(void)
+ {
+-	return XLOCALE_CTYPE(__get_locale())->__mb_cur_max;
++	return MB_CUR_MAX;
+ }
+ int ___mb_cur_max_l(locale_t locale)
+ {
+-	FIX_LOCALE(locale);
+-	return XLOCALE_CTYPE(locale)->__mb_cur_max;
++	return MB_CUR_MAX;
+ }

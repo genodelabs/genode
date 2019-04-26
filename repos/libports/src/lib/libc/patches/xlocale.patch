@@ -1,0 +1,35 @@
+--- src/lib/libc/lib/libc/locale/setrunelocale.c
++++ src/lib/libc/lib/libc/locale/setrunelocale.c
+@@ -60,7 +60,7 @@ extern _RuneLocale const *_CurrentRuneLocale;
+ /*
+  * A cached version of the runes for this thread.  Used by ctype.h
+  */
+-_Thread_local const _RuneLocale *_ThreadRuneLocale;
++const _RuneLocale *_ThreadRuneLocale;
+ #endif
+ 
+ extern int __mb_sb_limit;
+
+--- src/lib/libc/lib/libc/locale/xlocale.c
++++ src/lib/libc/lib/libc/locale/xlocale.c
+@@ -59,7 +59,7 @@ extern struct xlocale_component __xlocale_C_ctype;
+ /*
+  * The locale for this thread.
+  */
+-_Thread_local locale_t __thread_locale;
++locale_t __thread_locale;
+ #endif
+ /*
+  * Flag indicating that one or more per-thread locales exist.
+
+--- src/lib/libc/lib/libc/locale/xlocale_private.h
++++ src/lib/libc/lib/libc/locale/xlocale_private.h
+@@ -213,7 +213,7 @@ extern int __has_thread_locale;
+  * The per-thread locale.  Avoids the need to use pthread lookup functions when
+  * getting the per-thread locale.
+  */
+-extern _Thread_local locale_t __thread_locale;
++extern locale_t __thread_locale;
+ 
+ /**
+  * Returns the current locale for this thread, or the global locale if none is

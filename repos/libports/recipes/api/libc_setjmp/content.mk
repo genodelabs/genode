@@ -22,7 +22,7 @@ content: $(MIRROR_FROM_PORT_DIR)
 
 $(MIRROR_FROM_PORT_DIR):
 	mkdir -p $(dir $@)
-	cp $(PORT_DIR)/$@ $@
+	cp -r $(PORT_DIR)/$@ $@
 
 content: LICENSE
 

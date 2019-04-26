@@ -1,4 +1,4 @@
-PORT_DIR := $(call select_from_ports,openlibm)
+PORT_DIR := $(call select_from_ports,libc)
 
 # Depot hack
 ifneq ($(PORT_DIR),)

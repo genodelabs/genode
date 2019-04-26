@@ -131,6 +131,13 @@ namespace Libc {
 		return rtc.string();
 	}
 
+	char const *config_rng() __attribute__((weak));
+	char const *config_rng()
+	{
+		static Config_attr rng("rng", "");
+		return rng.string();
+	}
+
 	char const *config_socket() __attribute__((weak));
 	char const *config_socket()
 	{
@@ -894,6 +901,7 @@ int Libc::Vfs_plugin::ftruncate(Libc::File_descriptor *fd, ::off_t length)
 int Libc::Vfs_plugin::fcntl(Libc::File_descriptor *fd, int cmd, long arg)
 {
 	switch (cmd) {
+	case F_DUPFD_CLOEXEC:
 	case F_DUPFD:
 		{
 			/*
@@ -1232,6 +1240,40 @@ int Libc::Vfs_plugin::munmap(void *addr, ::size_t)
 {
 	Libc::mem_alloc()->free(addr);
 	return 0;
+}
+
+
+bool Libc::Vfs_plugin::poll(File_descriptor &fd, struct pollfd &pfd)
+{
+	if (fd.plugin != this) return false;
+
+	Vfs::Vfs_handle *handle = vfs_handle(&fd);
+	if (!handle) {
+		pfd.revents |= POLLNVAL;
+		return true;
+	}
+
+	enum {
+		POLLIN_MASK = POLLIN | POLLRDNORM | POLLRDBAND | POLLPRI,
+		POLLOUT_MASK = POLLOUT | POLLWRNORM | POLLWRBAND,
+	};
+
+	bool res { false };
+
+	if ((pfd.events & POLLIN_MASK)
+	 && VFS_THREAD_SAFE(handle->fs().read_ready(handle)))
+	{
+		pfd.revents |= pfd.events & POLLIN_MASK;
+		res = true;
+	}
+
+	if ((pfd.events & POLLOUT_MASK) /* XXX always writeable */)
+	{
+		pfd.revents |= pfd.events & POLLOUT_MASK;
+		res = true;
+	}
+
+	return res;
 }
 
 

@@ -21,14 +21,16 @@
 #include <base/env.h>
 
 /* libC includes */
+extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
 #include <time.h>
+#include <sys/random.h>
 #include <sys/syscall.h>
-
+}
 
 int main(int argc, char **argv)
 {
@@ -155,6 +157,18 @@ int main(int argc, char **argv)
 		ts.tv_sec = ts.tv_nsec = 0;
 		clock_gettime(CLOCK_MONOTONIC, &ts);
 		printf("sleep/gettime: %.09f\n", ts.tv_sec + ts.tv_nsec / 1000000000.0);
+	}
+
+	{
+		unsigned long long buf = 0;
+		getrandom(&buf, sizeof(buf), 0);
+		printf("getrandom %llx\n", buf);
+	}
+
+	{
+		unsigned long long buf = 0;
+		getentropy(&buf, sizeof(buf));
+		printf("getentropy %llx\n", buf);
 	}
 
 	exit(error_count);

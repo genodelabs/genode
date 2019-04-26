@@ -93,25 +93,25 @@ static ssize_t readv_writev_impl(Rw_func rw_func, int fd, const struct iovec *io
 }
 
 
-extern "C" ssize_t _readv(int fd, const struct iovec *iov, int iovcnt)
+extern "C" ssize_t readv(int fd, const struct iovec *iov, int iovcnt)
 {
 	return readv_writev_impl(Read(), fd, iov, iovcnt);
 }
 
+extern "C" __attribute__((alias("readv")))
+ssize_t __sys_readv(int fd, const struct iovec *iov, int iovcnt);
 
-extern "C" ssize_t readv(int fd, const struct iovec *iov, int iovcnt)
-{
-	return _readv(fd, iov, iovcnt);
-}
-
-
-extern "C" ssize_t _writev(int fd, const struct iovec *iov, int iovcnt)
-{
-	return readv_writev_impl(Write(), fd, iov, iovcnt);
-}
+extern "C" __attribute__((alias("readv")))
+ssize_t _readv(int fd, const struct iovec *iov, int iovcnt);
 
 
 extern "C" ssize_t writev(int fd, const struct iovec *iov, int iovcnt)
 {
-	return _writev(fd, iov, iovcnt);
+	return readv_writev_impl(Write(), fd, iov, iovcnt);
 }
+
+extern "C" __attribute__((alias("writev")))
+ssize_t __sys_writev(int fd, const struct iovec *iov, int iovcnt);
+
+extern "C" __attribute__((alias("writev")))
+ssize_t _writev(int fd, const struct iovec *iov, int iovcnt);
