@@ -1,5 +1,7 @@
 LIBC_COMPAT_DIR = $(LIBC_DIR)/lib/libc/compat-43
 
+FILTER_OUT += creat.c sigcompat.c
+
 SRC_C = $(filter-out $(FILTER_OUT),$(notdir $(wildcard $(LIBC_COMPAT_DIR)/*.c)))
 
 include $(REP_DIR)/lib/mk/libc-common.inc

@@ -7,6 +7,7 @@ __error T
 __flt_rounds T
 __fpclassifyd T
 __fpclassifyf T
+__has_sse D 4
 __h_errno T
 __h_errno_set T
 __inet_addr T
@@ -17,6 +18,7 @@ __inet_ntop T
 __inet_pton T
 __isthreaded B 4
 __mb_cur_max D 8
+___mb_cur_max D 50
 __res_init T
 __res_query T
 __res_state T
@@ -25,6 +27,7 @@ __stderrp D 8
 __stdinp D 8
 __stdoutp D 8
 __swbuf T
+__test_sse T
 __xuname T
 _exit T
 _getlong T
@@ -145,6 +148,7 @@ fchown W
 fclose T
 fcloseall W
 fcntl T
+fdatasync W
 fdevname T
 fdevname_r T
 fdopen T
@@ -230,6 +234,7 @@ getchar_unlocked T
 getcontext W
 getcwd T
 getdelim T
+getdirentries T
 getdiskbyname T
 getdomainname T
 getdtablesize W
@@ -283,6 +288,7 @@ getpwnam W
 getpwnam_r W
 getpwuid W
 getpwuid_r W
+getrandom W
 getrlimit W
 getrusage W
 gets T
@@ -445,6 +451,7 @@ mrand48 T
 msync T
 munmap T
 nanosleep W
+clock_nanosleep W
 nextwctype T
 nftw T
 nice T
@@ -453,6 +460,7 @@ nlist T
 nrand48 T
 offtime T
 open T
+openat T
 opendir T
 openlog T
 optarg B 8
@@ -466,8 +474,10 @@ pclose T
 perror T
 pipe T
 poll W
+ppoll W
 popen T
 posix2time T
+posix_fadvise T
 posix_madvise T
 posix_spawn T
 posix_spawn_file_actions_addclose T
@@ -627,6 +637,7 @@ sem_trywait T
 sem_unlink T
 sem_wait T
 send T
+sendmsg W
 sendto T
 setbuf T
 setbuffer T
@@ -769,7 +780,7 @@ swprintf T
 swscanf T
 symlink T
 sync W
-sys_errlist D 752
+sys_errlist D 776
 sys_nerr R 4
 sys_nsig R 4
 sys_siglist D 256
@@ -831,8 +842,8 @@ unsetenv T
 unvis T
 user_from_uid T
 usleep W
-utime T
 utimes W
+utime W
 vasprintf T
 vdprintf T
 verr T
@@ -927,8 +938,8 @@ xsi_sigpause T
 __mb_sb_limit D 4
 _DefaultRuneLocale D 4224
 _CurrentRuneLocale D 8
-__isinff T
-__isinfl T
+__isinf T
+
 
 #
 # Public interface between Genode-component code and the libc runtime
@@ -967,6 +978,7 @@ _ZN4Libc6Plugin13getdirentriesEPNS_15File_descriptorEPcmPl T
 _ZN4Libc6Plugin13supports_mmapEv T
 _ZN4Libc6Plugin13supports_openEPKci T
 _ZN4Libc6Plugin13supports_pipeEv T
+_ZN4Libc6Plugin13supports_pollEv T
 _ZN4Libc6Plugin13supports_statEPKc T
 _ZN4Libc6Plugin14supports_mkdirEPKct T
 _ZN4Libc6Plugin14supports_rmdirEPKc T
@@ -986,6 +998,7 @@ _ZN4Libc6Plugin4mmapEPvmiiPNS_15File_descriptorEx T
 _ZN4Libc6Plugin4mmapEPvmiiPNS_15File_descriptorEl T
 _ZN4Libc6Plugin4openEPKci T
 _ZN4Libc6Plugin4pipeEPPNS_15File_descriptorE T
+_ZN4Libc6Plugin4pollERNS_15File_descriptorER6pollfd T
 _ZN4Libc6Plugin4readEPNS_15File_descriptorEPvj T
 _ZN4Libc6Plugin4readEPNS_15File_descriptorEPvm T
 _ZN4Libc6Plugin4recvEPNS_15File_descriptorEPvji T

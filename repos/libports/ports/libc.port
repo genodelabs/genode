@@ -1,5 +1,36 @@
-LICENSE := BSD
-VERSION := 8.2.0
+LICENSE   = BSD
+DOWNLOADS = libc.archive
+VERSION   = 12.0.0
+
+D = src/lib/libc
+
+URL(libc) = http://ftp.freebsd.org/pub/FreeBSD/releases/amd64/12.0-RELEASE/src.txz
+SHA(libc) = 0da393ac2174168a71c1c527d1453e07372295187d05c288250800cb152a889b
+DIR(libc) = $(D)
+
+TAR_OPT(libc) = --strip-components=2
+
+TAR_OPT(libc) += usr/src/contrib/gdtoa
+TAR_OPT(libc) += usr/src/contrib/libc-vis
+TAR_OPT(libc) += usr/src/contrib/tzcode/stdtime
+TAR_OPT(libc) += usr/src/include
+TAR_OPT(libc) += usr/src/lib/libc
+TAR_OPT(libc) += usr/src/lib/libmd
+TAR_OPT(libc) += usr/src/lib/msun
+TAR_OPT(libc) += usr/src/sys/amd64
+TAR_OPT(libc) += usr/src/sys/arm
+TAR_OPT(libc) += usr/src/sys/arm64
+TAR_OPT(libc) += usr/src/sys/bsm
+TAR_OPT(libc) += usr/src/sys/i386
+TAR_OPT(libc) += usr/src/sys/libkern
+TAR_OPT(libc) += usr/src/sys/net
+TAR_OPT(libc) += usr/src/sys/netinet
+TAR_OPT(libc) += usr/src/sys/netinet6
+TAR_OPT(libc) += usr/src/sys/riscv
+TAR_OPT(libc) += usr/src/sys/rpc
+TAR_OPT(libc) += usr/src/sys/sys
+TAR_OPT(libc) += usr/src/sys/vm
+TAR_OPT(libc) += usr/src/sys/x86
 
 #
 # Check for tools
@@ -9,41 +40,7 @@ $(call check_tool,flex)
 $(call check_tool,bison)
 $(call check_tool,rpcgen)
 
-svn_exports := libc libutil include sys_sys sys_netinet \
-               sys_netinet6 sys_net sys_bsm sys_rpc sys_vm \
-               sys_arm sys_i386 sys_amd64 msun gdtoa gen
-
-DOWNLOADS := $(addsuffix .svn,$(svn_exports))
-
-svn_base_url := http://svn.freebsd.org/base/release/8.2.0
-
-sub_dir(libc)         := lib/libc
-sub_dir(gen)          := lib/libc/gen
-sub_dir(libutil)      := lib/libutil
-sub_dir(include)      := include
-sub_dir(sys_sys)      := sys/sys
-sub_dir(sys_netinet)  := sys/rpc
-sub_dir(sys_netinet6) := sys/net
-sub_dir(sys_net)      := sys/netinet
-sub_dir(sys_bsm)      := sys/netinet6
-sub_dir(sys_rpc)      := sys/bsm
-sub_dir(sys_vm)       := sys/vm
-sub_dir(sys_arm)      := sys/arm/include
-sub_dir(sys_i386)     := sys/i386/include
-sub_dir(sys_amd64)    := sys/amd64/include
-sub_dir(msun)         := lib/msun
-sub_dir(gdtoa)        := contrib/gdtoa
-
-$(foreach svn_export,$(svn_exports),\
-          $(eval URL($(svn_export)) := $(svn_base_url)/$(sub_dir($(svn_export)))))
-
-$(foreach svn_export,$(svn_exports),\
-          $(eval DIR($(svn_export)) := src/lib/libc/$(sub_dir($(svn_export)))))
-
-$(foreach svn_export,$(svn_exports),\
-          $(eval REV($(svn_export)) := HEAD))
-
-PATCHES := $(sort $(wildcard $(REP_DIR)/src/lib/libc/patches/*.patch))
+PATCHES := $(sort $(wildcard $(REP_DIR)/$(D)/patches/*.patch))
 
 
 #
@@ -52,73 +49,75 @@ PATCHES := $(sort $(wildcard $(REP_DIR)/src/lib/libc/patches/*.patch))
 
 DIRS := include/libc
 DIR_CONTENT(include/libc) := \
-    $(addprefix src/lib/libc/include/,\
-                strings.h limits.h string.h ctype.h _ctype.h runetype.h \
+    $(addprefix $(D)/include/,\
+                strings.h limits.h string.h ctype.h _ctype.h \
                 stdlib.h stdio.h signal.h unistd.h wchar.h time.h sysexits.h \
                 resolv.h wctype.h locale.h langinfo.h regex.h paths.h ieeefp.h \
                 inttypes.h fstab.h netdb.h ar.h memory.h res_update.h \
                 netconfig.h ifaddrs.h pthread.h err.h getopt.h search.h \
-                varargs.h stddef.h stdbool.h assert.h monetary.h printf.h vis.h \
+                varargs.h stddef.h stdbool.h assert.h monetary.h printf.h \
                 libgen.h dirent.h dlfcn.h link.h fmtmsg.h fnmatch.h fts.h ftw.h \
-                db.h grp.h nsswitch.h pthread_np.h pwd.h utmp.h ttyent.h \
+                db.h grp.h nsswitch.h pthread_np.h pwd.h ttyent.h \
                 stringlist.h glob.h a.out.h elf-hints.h nlist.h spawn.h \
                 readpassphrase.h setjmp.h elf.h ulimit.h utime.h wordexp.h \
-                complex.h)  \
-    $(addprefix src/lib/libc/sys/sys/,\
-                syslog.h fcntl.h stdint.h sched.h ktrace.h termios.h \
-                semaphore.h _semaphore.h) \
-    src/lib/libc/sys/sys/errno.h \
-    src/lib/libc/lib/msun/src/math.h
+                complex.h semaphore.h uchar.h iconv.h termios.h \
+                xlocale.h runetype.h)  \
+    $(addprefix $(D)/sys/sys/,\
+                syslog.h fcntl.h stdint.h sched.h ktrace.h \
+                _semaphore.h ucontext.h) \
+    $(D)/sys/sys/errno.h \
+    $(D)/lib/msun/src/math.h \
+    $(D)/contrib/libc-vis/vis.h
 
 DIRS += include/libc/rpc
 DIR_CONTENT(include/libc/rpc) := \
-    $(addprefix src/lib/libc/include/rpc/,\
+    $(addprefix $(D)/include/rpc/,\
                 rpc.h xdr.h auth.h clnt_stat.h clnt.h clnt_soc.h rpc_msg.h \
                 auth_unix.h auth_des.h svc.h svc_soc.h svc_auth.h pmap_clnt.h \
                 pmap_prot.h rpcb_clnt.h rpcent.h des_crypt.h des.h nettype.h \
                 rpcsec_gss.h raw.h rpc_com.h) \
-    src/lib/libc/include/rpc/rpcb_prot.h
+    $(D)/include/rpc/rpcb_prot.h
 
 DIRS += include/libc/rpcsvc
 DIR_CONTENT(include/libc/rpcsvc) := \
-    $(addprefix src/lib/libc/include/rpcsvc/,\
-                yp_prot.h nis.h ypclnt.h nis_tags.h nislib.h crypt.h)
+    $(addprefix $(D)/include/rpcsvc/,\
+                yp_prot.h nis.h ypclnt.h nis_tags.h nislib.h)
 
 DIRS += include/libc/gssapi
-DIR_CONTENT(include/libc/gssapi) := src/lib/libc/include/gssapi/gssapi.h
+DIR_CONTENT(include/libc/gssapi) := $(D)/include/gssapi/gssapi.h
 
 DIRS += include/libc/arpa
 DIR_CONTENT(include/libc/arpa) := \
-    $(addprefix src/lib/libc/include/arpa/,\
+    $(addprefix $(D)/include/arpa/,\
                 inet.h ftp.h nameser.h nameser_compat.h telnet.h tftp.h)
 
 DIRS += include/libc/vm
 DIR_CONTENT(include/libc/vm) := \
-    $(addprefix src/lib/libc/sys/vm/, vm_param.h vm.h pmap.h)
+    $(addprefix $(D)/sys/vm/, vm_param.h vm.h pmap.h)
 
 DIRS += include/libc/net
 DIR_CONTENT(include/libc/net) := \
-    $(addprefix src/lib/libc/sys/net/, if.h if_dl.h if_tun.h if_types.h \
+    $(addprefix $(D)/sys/net/, if.h if_dl.h if_tun.h if_types.h \
                 radix.h route.h \
                 ethernet.h if_arp.h)
 
 DIRS += include/libc/netinet
 DIR_CONTENT(include/libc/netinet) := \
-    $(addprefix src/lib/libc/sys/netinet/, in.h in_systm.h ip.h tcp.h \
+    $(addprefix $(D)/sys/netinet/, in.h in_systm.h ip.h tcp.h \
                 udp.h ip_icmp.h if_ether.h tcp_fsm.h)
 
 DIRS += include/libc/netinet6
-DIR_CONTENT(include/libc/netinet6) := src/lib/libc/sys/netinet6/in6.h
+DIR_CONTENT(include/libc/netinet6) := $(D)/sys/netinet6/in6.h
 
 DIRS += include/libc/bsm
-DIR_CONTENT(include/libc/bsm) := src/lib/libc/sys/bsm/audit.h
+DIR_CONTENT(include/libc/bsm) := $(D)/sys/bsm/audit.h
 
 DIRS += include/libc/sys/rpc
-DIR_CONTENT(include/libc/sys/rpc) := src/lib/libc/sys/rpc/types.h
+DIR_CONTENT(include/libc/sys/rpc) := $(D)/sys/rpc/types.h
 
 DIRS += include/libc/sys
 DIR_CONTENT(include/libc/sys) := \
-    $(addprefix src/lib/libc/sys/sys/,\
+    $(addprefix $(D)/sys/sys/,\
                 _types.h limits.h cdefs.h _null.h types.h _pthreadtypes.h \
                 syslimits.h select.h _sigset.h _timeval.h timespec.h \
                 _timespec.h stat.h signal.h unistd.h time.h param.h stdint.h \
@@ -129,8 +128,16 @@ DIR_CONTENT(include/libc/sys) := \
                 cpuset.h socket.h un.h ttydefaults.h imgact_aout.h elf32.h \
                 elf64.h elf_generic.h elf_common.h nlist_aout.h ipc.h sem.h \
                 exec.h _lock.h _mutex.h statvfs.h ucontext.h syslog.h times.h \
-                utsname.h elf.h mtio.h)
+                utsname.h elf.h mtio.h _stdint.h atomic_common.h _ucontext.h \
+                _cpuset.h _bitset.h bitset.h _stdarg.h _uio.h auxv.h random.h \
+                _sockaddr_storage.h termios.h _termios.h _umtx.h kerneldump.h \
+                conf.h disk_zone.h counter.h)
 
+DIRS += include/libc/sys/disk
+DIR_CONTENT(include/libc/sys/disk) := $(D)/sys/sys/disk/*h
+
+DIRS += include/libc/xlocale
+DIR_CONTENT(include/libc/xlocale) := $(D)/include/xlocale/*.h
 
 #
 # CPU-architecture-specific headers
@@ -140,29 +147,39 @@ DIR_CONTENT(include/libc/sys) := \
 #
 
 common_include_libc_arch_content = \
-    $(addprefix src/lib/libc/sys/$1/include/, stdarg.h float.h) \
-    $(addprefix src/lib/libc/lib/libc/$1/, arith.h _fpmath.h SYS.h gd_qnan.h)
+    $(addprefix $(D)/sys/$1/include/, stdarg.h float.h) \
+    $(addprefix $(D)/lib/libc/$2/, arith.h _fpmath.h SYS.h gd_qnan.h)
 
 common_include_libc_arch_machine_content = \
-    $(addprefix src/lib/libc/sys/$1/include/,\
+    $(addprefix $(D)/sys/$1/include/,\
                 _types.h endian.h _limits.h signal.h trap.h _stdint.h \
-                sysarch.h ieeefp.h frame.h sigframe.h vm.h \
+                sysarch.h ieeefp.h frame.h vm.h \
                 cpufunc.h vmparam.h atomic.h elf.h exec.h reloc.h pmap.h \
-                ucontext.h setjmp.h asm.h param.h _inttypes.h)
+                ucontext.h setjmp.h asm.h param.h _inttypes.h _align.h \
+                float.h)
 
+#
+# x86-specific headers
+#
+DIRS += include/spec/x86/libc
+DIR_CONTENT(include/spec/x86/libc) := \
+    $(D)/lib/msun/x86/fenv.h
+
+DIRS += include/libc/x86
+DIR_CONTENT(include/libc/x86) := \
+	$(D)/sys/x86/include/*.h
 
 #
 # i386-specific headers
 #
 DIRS += include/spec/x86_32/libc
 DIR_CONTENT(include/spec/x86_32/libc) := \
-    $(call common_include_libc_arch_content,i386) \
-    src/lib/libc/lib/msun/i387/fenv.h
+    $(call common_include_libc_arch_content,i386,i386)
 
 DIRS += include/spec/x86_32/libc/machine
 DIR_CONTENT(include/spec/x86_32/libc/machine) := \
     $(call common_include_libc_arch_machine_content,i386) \
-    $(addprefix src/lib/libc/sys/i386/include/, specialreg.h npx.h)
+    $(addprefix $(D)/sys/i386/include/, specialreg.h npx.h sigframe.h)
 
 
 #
@@ -170,13 +187,12 @@ DIR_CONTENT(include/spec/x86_32/libc/machine) := \
 #
 DIRS += include/spec/x86_64/libc
 DIR_CONTENT(include/spec/x86_64/libc) := \
-    $(call common_include_libc_arch_content,amd64) \
-    src/lib/libc/lib/msun/amd64/fenv.h
+    $(call common_include_libc_arch_content,amd64,amd64)
 
 DIRS += include/spec/x86_64/libc/machine
 DIR_CONTENT(include/spec/x86_64/libc/machine) := \
     $(call common_include_libc_arch_machine_content,amd64) \
-    $(addprefix src/lib/libc/sys/amd64/include/, specialreg.h fpu.h)
+    $(addprefix $(D)/sys/amd64/include/, specialreg.h fpu.h sigframe.h)
 
 
 #
@@ -184,37 +200,43 @@ DIR_CONTENT(include/spec/x86_64/libc/machine) := \
 #
 DIRS += include/spec/arm/libc
 DIR_CONTENT(include/spec/arm/libc) := \
-    $(call common_include_libc_arch_content,arm) \
-    src/lib/libc/lib/msun/arm/fenv.h
+    $(call common_include_libc_arch_content,arm,arm) \
+    $(D)/lib/msun/arm/fenv.h
 
 DIRS += include/spec/arm/libc/machine
 DIR_CONTENT(include/spec/arm/libc/machine) := \
     $(call common_include_libc_arch_machine_content,arm) \
-    $(addprefix src/lib/libc/sys/arm/include/, pte.h cpuconf.h armreg.h ieee.h)
+    $(addprefix $(D)/sys/arm/include/, armreg.h atomic-v6.h ieee.h sysreg.h sigframe.h)
+
+
+#
+# ARM64-specific headers
+#
+DIRS += include/spec/arm_64/libc
+DIR_CONTENT(include/spec/arm_64/libc) := \
+    $(call common_include_libc_arch_content,arm64,aarch64) \
+    $(D)/lib/msun/aarch64/fenv.h
+
+DIRS += include/spec/arm_64/libc/machine
+DIR_CONTENT(include/spec/arm_64/libc/machine) := \
+    $(call common_include_libc_arch_machine_content,arm64) \
+    $(addprefix $(D)/sys/arm64/include/, armreg.h)
 
 
 #
 # Rules for generating files
 #
 
-src/lib/libc/include/rpcsvc/nis.h: src/lib/libc/include/rpcsvc/nis_object.x
-	@$(MSG_GENERATE)$(notdir $@)
-	$(VERBOSE)rpcgen -C -h -DWANT_NFS3 $< -o $@
-
-src/lib/libc/include/rpcsvc/nis_object.x : $(DOWNLOADS)
+$(D)/include/rpcsvc/nis_object.x : $(DOWNLOADS)
 
 %.h: %.x
 	@$(MSG_GENERATE)$(notdir $@)
 	$(VERBOSE)rpcgen -C -h -DWANT_NFS3 $< -o $@
 
 generated_rpcsvc_files := \
-    $(addprefix src/lib/libc/include/rpcsvc/,\
-                bootparam_prot.h nfs_prot.h nlm_prot.h rstat.h ypupdate_prot.h \
-                crypt.h nis_cache.h pmap_prot.h rwall.h yp.h \
-                key_prot.h nis_callback.h rex.h sm_inter.h ypxfrd.h \
-                klm_prot.h nis_object.h rnusers.h spray.h \
-                mount.h nis.h rquota.h yppasswd.h) \
-    src/lib/libc/include/rpc/rpcb_prot.h
+    $(D)/include/rpc/rpcb_prot.h \
+    $(addprefix $(D)/include/rpcsvc/,\
+                nis.h)
 
 $(generated_rpcsvc_files:.h=.x): $(DOWNLOADS)
 

@@ -30,6 +30,9 @@ INC_DIR += $(LIBC_PORT_DIR)/include/libc/sys
 # needed for name6.c, contains res_private.h
 INC_DIR += $(LIBC_DIR)/lib/libc/resolv
 
+# needed for net/firewire.h
+INC_DIR += $(LIBC_DIR)/sys
+
 vpath %.c $(LIBC_NET_DIR)
 
 nslexer.o: nsparser.c nsparser.c

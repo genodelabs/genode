@@ -73,6 +73,12 @@ bool Plugin::supports_pipe()
 }
 
 
+bool Plugin::supports_poll()
+{
+	return false;
+}
+
+
 bool Plugin::supports_readlink(const char *path, char *buf, ::size_t bufsiz)
 {
 	return false;
@@ -189,6 +195,7 @@ DUMMY(void *, (void *)(-1), mmap, (void *addr, ::size_t length, int prot, int fl
 DUMMY(int, -1, munmap,       (void *, ::size_t));
 DUMMY(int, -1, msync,        (void *addr, ::size_t len, int flags));
 DUMMY(int, -1, pipe,         (File_descriptor*[2]));
+DUMMY(bool, 0, poll,         (File_descriptor &, struct pollfd &));
 DUMMY(ssize_t, -1, readlink, (const char *, char *, ::size_t));
 DUMMY(int, -1, rename,       (const char *, const char *));
 DUMMY(int, -1, rmdir,        (const char*));

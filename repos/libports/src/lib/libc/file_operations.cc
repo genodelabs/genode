@@ -8,7 +8,7 @@
  */
 
 /*
- * Copyright (C) 2010-2017 Genode Labs GmbH
+ * Copyright (C) 2010-2019 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -23,6 +23,7 @@
 #include <libc-plugin/plugin_registry.h>
 #include <libc-plugin/plugin.h>
 
+extern "C" {
 /* libc includes */
 #include <dirent.h>
 #include <errno.h>
@@ -31,7 +32,11 @@
 #include <string.h>
 #include <sys/mman.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <unistd.h>
+#include <libc_private.h>
+#include <sys/cdefs.h>
+}
 
 /* libc-internal includes */
 #include "libc_file.h"
@@ -41,6 +46,13 @@
 
 using namespace Libc;
 
+#define __SYS_(ret_type, name, args, body) \
+	extern "C" {\
+	ret_type  __sys_##name args body \
+	ret_type __libc_##name args __attribute__((alias("__sys_" #name))); \
+	ret_type       _##name args __attribute__((alias("__sys_" #name))); \
+	ret_type          name args __attribute__((alias("__sys_" #name))); \
+	} \
 
 Libc::Mmap_registry *Libc::mmap_registry()
 {
@@ -223,20 +235,17 @@ extern "C" int chdir(const char *path)
 /**
  * Close is called incorrectly enough to justify a silent failure
  */
-extern "C" int _close(int libc_fd)
+__SYS_(int, close, (int libc_fd),
 {
 	Libc::File_descriptor *fd =
 		Libc::file_descriptor_allocator()->find_by_libc_fd(libc_fd);
 	return (!fd || !fd->plugin)
 		? Libc::Errno(EBADF)
 		: fd->plugin->close(fd);
-}
+})
 
 
-extern "C" int close(int libc_fd) { return _close(libc_fd); }
-
-
-extern "C" int _dup(int libc_fd)
+extern "C" int dup(int libc_fd)
 {
 	File_descriptor *ret_fd;
 	FD_FUNC_WRAPPER_GENERIC(ret_fd =, 0, dup, libc_fd);
@@ -244,13 +253,7 @@ extern "C" int _dup(int libc_fd)
 }
 
 
-extern "C" int dup(int libc_fd)
-{
-	return _dup(libc_fd);
-}
-
-
-extern "C" int _dup2(int libc_fd, int new_libc_fd)
+extern "C" int dup2(int libc_fd, int new_libc_fd)
 {
 	File_descriptor *fd = libc_fd_to_fd(libc_fd, "dup2");
 	if (!fd || !fd->plugin) {
@@ -276,13 +279,7 @@ extern "C" int _dup2(int libc_fd, int new_libc_fd)
 }
 
 
-extern "C" int dup2(int libc_fd, int new_libc_fd)
-{
-	return _dup2(libc_fd, new_libc_fd);
-}
-
-
-extern "C" int _execve(char const *filename, char *const argv[],
+extern "C" int execve(char const *filename, char *const argv[],
                        char *const envp[])
 {
 	try {
@@ -292,13 +289,6 @@ extern "C" int _execve(char const *filename, char *const argv[],
 	} catch (Symlink_resolve_error) {
 		return -1;
 	}
-}
-
-
-extern "C" int execve(char const *filename, char *const argv[],
-                      char *const envp[])
-{
-	return _execve(filename, argv, envp);
 }
 
 
@@ -315,7 +305,7 @@ extern "C" int fchdir(int libc_fd)
 }
 
 
-extern "C" int fcntl(int libc_fd, int cmd, ...)
+__SYS_(int, fcntl, (int libc_fd, int cmd, ...),
 {
 	va_list ap;
 	int res;
@@ -323,24 +313,16 @@ extern "C" int fcntl(int libc_fd, int cmd, ...)
 	FD_FUNC_WRAPPER_GENERIC(res =, INVALID_FD, fcntl, libc_fd, cmd, va_arg(ap, long));
 	va_end(ap);
 	return res;
-}
+})
 
 
-extern "C" int _fcntl(int libc_fd, int cmd, long arg) {
-	return fcntl(libc_fd, cmd, arg); }
-
-
-extern "C" int _fstat(int libc_fd, struct stat *buf) {
-	FD_FUNC_WRAPPER(fstat, libc_fd, buf); }
-
-
-extern "C" int fstat(int libc_fd, struct stat *buf)
+__SYS_(int, fstat, (int libc_fd, struct stat *buf),
 {
-	return _fstat(libc_fd, buf);
-}
+	FD_FUNC_WRAPPER(fstat, libc_fd, buf);
+})
 
 
-extern "C" int fstatat(int libc_fd, char const *path, struct stat *buf, int flags)
+__SYS_(int, fstatat, (int libc_fd, char const *path, struct stat *buf, int flags),
 {
 	if (*path == '/') {
 		if (flags & AT_SYMLINK_NOFOLLOW)
@@ -366,36 +348,35 @@ extern "C" int fstatat(int libc_fd, char const *path, struct stat *buf, int flag
 	return (flags & AT_SYMLINK_NOFOLLOW)
 		? lstat(abs_path.base(), buf)
 		:  stat(abs_path.base(), buf);
-}
+})
 
 
-extern "C" int _fstatfs(int libc_fd, struct statfs *buf) {
-	FD_FUNC_WRAPPER(fstatfs, libc_fd, buf); }
+__SYS_(int, fstatfs, (int libc_fd, struct statfs *buf), {
+	FD_FUNC_WRAPPER(fstatfs, libc_fd, buf); })
 
 
-extern "C" int fsync(int libc_fd) {
-	FD_FUNC_WRAPPER(fsync, libc_fd); }
+__SYS_(int, fsync, (int libc_fd), {
+	FD_FUNC_WRAPPER(fsync, libc_fd); })
 
 
-extern "C" int ftruncate(int libc_fd, ::off_t length) {
-	FD_FUNC_WRAPPER(ftruncate, libc_fd, length); }
+__SYS_(int, fdatasync, (int libc_fd), {
+	FD_FUNC_WRAPPER(fsync, libc_fd); })
 
 
-extern "C" ssize_t _getdirentries(int libc_fd, char *buf, ::size_t nbytes, ::off_t *basep) {
-	FD_FUNC_WRAPPER(getdirentries, libc_fd, buf, nbytes, basep); }
+__SYS_(int, ftruncate, (int libc_fd, ::off_t length), {
+	FD_FUNC_WRAPPER(ftruncate, libc_fd, length); })
 
 
-
-extern "C" int ioctl(int libc_fd, int request, char *argp) {
-	FD_FUNC_WRAPPER(ioctl, libc_fd, request, argp); }
-
-
-extern "C" int _ioctl(int libc_fd, int request, char *argp) {
-	FD_FUNC_WRAPPER(ioctl, libc_fd, request, argp); }
+__SYS_(ssize_t, getdirentries, (int libc_fd, char *buf, ::size_t nbytes, ::off_t *basep), {
+	FD_FUNC_WRAPPER(getdirentries, libc_fd, buf, nbytes, basep); })
 
 
-extern "C" ::off_t lseek(int libc_fd, ::off_t offset, int whence) {
-	FD_FUNC_WRAPPER(lseek, libc_fd, offset, whence); }
+__SYS_(int, ioctl, (int libc_fd, int request, char *argp), {
+	FD_FUNC_WRAPPER(ioctl, libc_fd, request, argp); })
+
+
+__SYS_(::off_t, lseek, (int libc_fd, ::off_t offset, int whence), {
+	FD_FUNC_WRAPPER(lseek, libc_fd, offset, whence); })
 
 
 extern "C" int lstat(const char *path, struct stat *buf)
@@ -422,8 +403,9 @@ extern "C" int mkdir(const char *path, mode_t mode)
 }
 
 
-extern "C" void *mmap(void *addr, ::size_t length, int prot, int flags,
-                      int libc_fd, ::off_t offset)
+__SYS_(void *, mmap, (void *addr, ::size_t length,
+                      int prot, int flags,
+                      int libc_fd, ::off_t offset),
 {
 
 	/* handle requests for anonymous memory */
@@ -449,7 +431,7 @@ extern "C" void *mmap(void *addr, ::size_t length, int prot, int flags,
 	void *start = fd->plugin->mmap(addr, length, prot, flags, fd, offset);
 	mmap_registry()->insert(start, length, fd->plugin);
 	return start;
-}
+})
 
 
 extern "C" int munmap(void *start, ::size_t length)
@@ -482,7 +464,7 @@ extern "C" int munmap(void *start, ::size_t length)
 }
 
 
-extern "C" int msync(void *start, ::size_t len, int flags)
+__SYS_(int, msync, (void *start, ::size_t len, int flags),
 {
 	if (!mmap_registry()->registered(start)) {
 		Genode::warning("munmap: could not lookup plugin for address ", start);
@@ -502,11 +484,10 @@ extern "C" int msync(void *start, ::size_t len, int flags)
 		ret = plugin->msync(start, len, flags);
 
 	return ret;
-}
+})
 
 
-
-extern "C" int _open(const char *pathname, int flags, ::mode_t mode)
+__SYS_(int, open, (const char *pathname, int flags, ...),
 {
 	Absolute_path resolved_path;
 
@@ -547,17 +528,38 @@ extern "C" int _open(const char *pathname, int flags, ::mode_t mode)
 	new_fdo->path(resolved_path.base());
 
 	return new_fdo->libc_fd;
-}
+})
 
 
-extern "C" int open(const char *pathname, int flags, ...)
+__SYS_(int, openat, (int libc_fd, const char *path, int flags, ...),
 {
 	va_list ap;
 	va_start(ap, flags);
-	int res = _open(pathname, flags, va_arg(ap, unsigned));
+	mode_t mode = va_arg(ap, unsigned);
 	va_end(ap);
-	return res;
-}
+
+
+	if (*path == '/') {
+		return open(path, flags, mode);
+	}
+
+	Libc::Absolute_path abs_path;
+
+	if (libc_fd == AT_FDCWD) {
+		abs_path = cwd();
+		abs_path.append_element(path);
+	} else {
+		Libc::File_descriptor *fd =
+			Libc::file_descriptor_allocator()->find_by_libc_fd(libc_fd);
+		if (!fd) {
+			errno = EBADF;
+			return -1;
+		}
+		abs_path.import(path, fd->fd_path);
+	}
+
+	return open(abs_path.base(), flags, mode);
+})
 
 
 extern "C" int pipe(int pipefd[2])
@@ -584,16 +586,8 @@ extern "C" int pipe(int pipefd[2])
 }
 
 
-extern "C" ssize_t _read(int libc_fd, void *buf, ::size_t count)
-{
-	FD_FUNC_WRAPPER(read, libc_fd, buf, count);
-}
-
-
-extern "C" ssize_t read(int libc_fd, void *buf, ::size_t count)
-{
-	return _read(libc_fd, buf, count);
-}
+__SYS_(ssize_t, read, (int libc_fd, void *buf, ::size_t count), {
+	FD_FUNC_WRAPPER(read, libc_fd, buf, count); })
 
 
 extern "C" ssize_t readlink(const char *path, char *buf, ::size_t bufsiz)
@@ -679,7 +673,7 @@ extern "C" int unlink(const char *path)
 }
 
 
-extern "C" ssize_t _write(int libc_fd, const void *buf, ::size_t count)
+__SYS_(ssize_t, write, (int libc_fd, const void *buf, ::size_t count),
 {
 	int flags = fcntl(libc_fd, F_GETFL);
 
@@ -687,11 +681,7 @@ extern "C" ssize_t _write(int libc_fd, const void *buf, ::size_t count)
 		lseek(libc_fd, 0, SEEK_END);
 
 	FD_FUNC_WRAPPER(write, libc_fd, buf, count);
-}
-
-
-extern "C" ssize_t write(int libc_fd, const void *buf, ::size_t count) {
-	return _write(libc_fd, buf, count); }
+})
 
 
 extern "C" int __getcwd(char *dst, ::size_t dst_size)

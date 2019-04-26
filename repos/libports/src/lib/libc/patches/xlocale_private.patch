@@ -1,0 +1,59 @@
+--- src/lib/libc/lib/libc/locale/xlocale_private.h.orig	2019-04-18 14:31:34.331373088 +0200
++++ src/lib/libc/lib/libc/locale/xlocale_private.h	2019-04-18 14:31:57.418620988 +0200
+@@ -166,24 +166,16 @@
+ __attribute__((unused)) static void*
+ xlocale_retain(void *val)
+ {
+-	struct xlocale_refcounted *obj = val;
+-	atomic_add_long(&(obj->retain_count), 1);
+ 	return (val);
+ }
++
+ /**
+  * Decrements the reference count of a reference-counted structure, freeing it
+  * if this is the last reference, calling its destructor if it has one.
+  */
+ __attribute__((unused)) static void
+ xlocale_release(void *val)
+-{
+-	struct xlocale_refcounted *obj = val;
+-	long count;
+-
+-	count = atomic_fetchadd_long(&(obj->retain_count), -1) - 1;
+-	if (count < 0 && obj->destructor != NULL)
+-		obj->destructor(obj);
+-}
++{ }
+ 
+ /**
+  * Load functions.  Each takes the name of a locale and a pointer to the data
+@@ -223,27 +215,15 @@
+  */
+ static inline locale_t __get_locale(void)
+ {
+-
+-	if (!__has_thread_locale) {
+-		return (&__xlocale_global_locale);
+-	}
+-	return (__thread_locale ? __thread_locale : &__xlocale_global_locale);
++	return (&__xlocale_global_locale);
+ }
+ #else
+ locale_t __get_locale(void);
+ #endif
+ 
+-/**
+- * Two magic values are allowed for locale_t objects.  NULL and -1.  This
+- * function maps those to the real locales that they represent.
+- */
+ static inline locale_t get_real_locale(locale_t locale)
+ {
+-	switch ((intptr_t)locale) {
+-		case 0: return (&__xlocale_C_locale);
+-		case -1: return (&__xlocale_global_locale);
+-		default: return (locale);
+-	}
++	return &__xlocale_global_locale;
+ }
+ 
+ /**

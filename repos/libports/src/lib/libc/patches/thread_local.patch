@@ -1,0 +1,23 @@
+--- src/lib/libc/sys/sys/cdefs.h.orig	2019-04-16 10:50:14.382883576 +0200
++++ src/lib/libc/sys/sys/cdefs.h	2019-04-16 10:50:34.008444965 +0200
+@@ -298,20 +298,6 @@
+ #endif
+ #endif
+ 
+-#if !__has_extension(c_thread_local)
+-/*
+- * XXX: Some compilers (Clang 3.3, GCC 4.7) falsely announce C++11 mode
+- * without actually supporting the thread_local keyword. Don't check for
+- * the presence of C++11 when defining _Thread_local.
+- */
+-#if /* (defined(__cplusplus) && __cplusplus >= 201103L) || */ \
+-    __has_extension(cxx_thread_local)
+-#define	_Thread_local		thread_local
+-#else
+-#define	_Thread_local		__thread
+-#endif
+-#endif
+-
+ #endif /* __STDC_VERSION__ || __STDC_VERSION__ < 201112L */
+ 
+ /*

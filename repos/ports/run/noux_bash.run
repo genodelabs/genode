@@ -4,14 +4,14 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/pkg/[drivers_interactive_pkg] \
                   [depot_user]/pkg/terminal \
                   [depot_user]/src/init \
-                  [depot_user]/src/libc \
-                  [depot_user]/src/noux \
                   [depot_user]/src/posix \
                   [depot_user]/src/ncurses \
                   [depot_user]/src/vim \
                   [depot_user]/src/bash \
                   [depot_user]/src/coreutils \
                   [depot_user]/src/ram_fs
+
+build { noux lib/libc_noux }
 
 # write default vimrc file
 set vimrc_fd [open [run_dir]/genode/vimrc w]
@@ -131,6 +131,9 @@ Hello world !!
 	</start>
 </config>}
 
-build_boot_image { }
+build_boot_image {
+	noux libc_noux.lib.so
+	libc.lib.so libm.lib.so vfs.lib.so
+}
 
 run_genode_until forever

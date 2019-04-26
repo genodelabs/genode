@@ -22,6 +22,7 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/mount.h>  /* for 'struct statfs' */
+#include <sys/poll.h>   /* for 'struct pollfd' */
 
 namespace Genode { class Env; }
 
@@ -55,6 +56,7 @@ namespace Libc {
 			virtual bool supports_mkdir(const char *path, mode_t mode);
 			virtual bool supports_open(const char *pathname, int flags);
 			virtual bool supports_pipe();
+			virtual bool supports_poll();
 			virtual bool supports_readlink(const char *path, char *buf, ::size_t bufsiz);
 			virtual bool supports_rename(const char *oldpath, const char *newpath);
 			virtual bool supports_rmdir(const char *path);
@@ -115,6 +117,7 @@ namespace Libc {
 			virtual int msync(void *addr, ::size_t len, int flags);
 			virtual File_descriptor *open(const char *pathname, int flags);
 			virtual int pipe(File_descriptor *pipefd[2]);
+			virtual bool poll(File_descriptor&, struct pollfd &pfd);
 			virtual ssize_t read(File_descriptor *, void *buf, ::size_t count);
 			virtual ssize_t readlink(const char *path, char *buf, ::size_t bufsiz);
 			virtual ssize_t recv(File_descriptor *, void *buf, ::size_t len, int flags);

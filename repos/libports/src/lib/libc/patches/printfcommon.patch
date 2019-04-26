@@ -1,0 +1,12 @@
+--- src/lib/libc/lib/libc/stdio/printfcommon.h.orig	2019-04-16 12:35:21.549592905 +0200
++++ src/lib/libc/lib/libc/stdio/printfcommon.h	2019-04-16 12:35:34.163738398 +0200
+@@ -47,9 +47,6 @@
+ 
+ #ifndef NO_FLOATING_POINT
+ 
+-#define	dtoa		__dtoa
+-#define	freedtoa	__freedtoa
+-
+ #include <float.h>
+ #include <math.h>
+ #include "floatio.h"

@@ -1,11 +1,16 @@
-content: include/libc-plugin src/lib/libc/target.mk lib/mk LICENSE
+content: include/libc-plugin src/lib/libc/target.mk lib/mk LICENSE src/lib/openlibm
 
-PORT_DIR := $(call port_dir,$(REP_DIR)/ports/libc)
+LIBC_PORT_DIR := $(call port_dir,$(REP_DIR)/ports/libc)
+LIBM_PORT_DIR := $(call port_dir,$(REP_DIR)/ports/openlibm)
 
 src/lib/libc:
 	mkdir -p $@
-	cp -r $(PORT_DIR)/src/lib/libc/* $@
+	cp -r $(LIBC_PORT_DIR)/src/lib/libc/* $@
 	cp -r $(REP_DIR)/src/lib/libc/* $@
+
+src/lib/openlibm:
+	mkdir -p $@
+	cp -r $(LIBM_PORT_DIR)/$@/* $@
 
 # target.mk for triggering the build of both libraries libc and libm
 src/lib/libc/target.mk: src/lib/libc
@@ -16,7 +21,7 @@ include/libc-plugin include/libc/sys/ucontext.h:
 
 lib/mk:
 	mkdir -p $@
-	cp $(addprefix $(REP_DIR)/$@/,libc_* libc.mk libc-* libm.mk) $@
+	cp $(addprefix $(REP_DIR)/$@/,libc_* libc.mk libc-* libm.inc) $@
 	for spec in x86_32 x86_64 arm; do \
 	  mkdir -p $@/spec/$$spec; \
 	  cp $(addprefix $(REP_DIR)/$@/spec/$$spec/,libc-* libc.mk libm.mk) $@/spec/$$spec/; done

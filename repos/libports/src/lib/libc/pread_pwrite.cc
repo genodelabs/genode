@@ -70,8 +70,14 @@ extern "C" ssize_t pread(int fd, void *buf, ::size_t count, ::off_t offset)
 	return pread_pwrite_impl(Read(), fd, buf, count, offset);
 }
 
+extern "C" __attribute__((alias("pread")))
+ssize_t __sys_pread(int fd, void *buf, ::size_t count, ::off_t offset);
+
 
 extern "C" ssize_t pwrite(int fd, const void *buf, ::size_t count, ::off_t offset)
 {
 	return pread_pwrite_impl(Write(), fd, buf, count, offset);
 }
+
+extern "C" __attribute__((alias("pwrite")))
+ssize_t __sys_pwrite(int fd, const void *buf, ::size_t count, ::off_t offset);

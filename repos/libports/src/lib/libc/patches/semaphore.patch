@@ -1,0 +1,11 @@
+--- src/lib/libc/include/semaphore.h	2019-04-09 14:12:29.619185765 +0200
++++ src/lib/libc/include/semaphore.h.new	2019-04-09 14:31:35.913650094 +0200
+@@ -46,7 +46,7 @@
+ 	__uint32_t	_padding;	/* Preserve structure size */
+ };
+ 
+-typedef	struct _sem	sem_t;
++typedef	struct sem*	sem_t;
+ 
+ #define	SEM_FAILED	((sem_t *)0)
+ #define	SEM_VALUE_MAX	__INT_MAX

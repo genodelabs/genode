@@ -511,7 +511,7 @@
 /* #undef HAVE_PK11_CREATEGENERICOBJECT */
 
 /* Define to 1 if you have a working poll function. */
-/* #undef HAVE_POLL */
+#define HAVE_POLL 1
 
 /* If you have a fine poll */
 /* #undef HAVE_POLL_FINE */

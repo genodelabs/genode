@@ -1235,6 +1235,40 @@ int Libc::Vfs_plugin::munmap(void *addr, ::size_t)
 }
 
 
+bool Libc::Vfs_plugin::poll(File_descriptor &fd, struct pollfd &pfd)
+{
+	if (fd.plugin != this) return false;
+
+	Vfs::Vfs_handle *handle = vfs_handle(&fd);
+	if (!handle) {
+		pfd.revents |= POLLNVAL;
+		return true;
+	}
+
+	enum {
+		POLLIN_MASK = POLLIN | POLLRDNORM | POLLRDBAND | POLLPRI,
+		POLLOUT_MASK = POLLOUT | POLLWRNORM | POLLWRBAND,
+	};
+
+	bool res { false };
+
+	if ((pfd.events & POLLIN_MASK)
+	 && VFS_THREAD_SAFE(handle->fs().read_ready(handle)))
+	{
+		pfd.revents |= pfd.events & POLLIN_MASK;
+		res = true;
+	}
+
+	if ((pfd.events & POLLOUT_MASK) /* XXX always writeable */)
+	{
+		pfd.revents |= pfd.events & POLLOUT_MASK;
+		res = true;
+	}
+
+	return res;
+}
+
+
 bool Libc::Vfs_plugin::supports_select(int nfds,
                                        fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
                                        struct timeval *timeout)

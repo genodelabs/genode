@@ -19,7 +19,8 @@ extern "C" {
 }
 
 
-extern "C" int __attribute__((weak)) sigprocmask(int how, const sigset_t *set, sigset_t *old_set)
+extern "C" __attribute__((weak))
+int sigprocmask(int how, const sigset_t *set, sigset_t *old_set)
 {
 	/* no signals should be expected, so report all signals blocked */
 	if (old_set != NULL)
@@ -37,7 +38,10 @@ extern "C" int __attribute__((weak)) sigprocmask(int how, const sigset_t *set, s
 	return -1;
 }
 
-extern "C" int __attribute__((weak)) _sigprocmask(int how, const sigset_t *set, sigset_t *old_set)
-{
-	return sigprocmask(how, set, old_set);
-}
+
+extern "C" __attribute__((weak, alias("sigprocmask")))
+int __sys_sigprocmask(int how, const sigset_t *set, sigset_t *old_set);
+
+
+extern "C" __attribute__((weak, alias("sigprocmask")))
+int __libc_sigprocmask(int how, const sigset_t *set, sigset_t *old_set);

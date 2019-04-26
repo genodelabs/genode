@@ -256,6 +256,12 @@ extern "C" {
 	}
 
 
+	pthread_t thr_self(void) { return pthread_self(); }
+
+	__attribute__((alias("thr_self")))
+	pthread_t __sys_thr_self(void);
+
+
 	int pthread_attr_setstacksize(pthread_attr_t *attr, size_t stacksize)
 	{
 		if (!attr || !*attr)

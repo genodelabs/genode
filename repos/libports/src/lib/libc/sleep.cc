@@ -1,0 +1,95 @@
+/*
+ * \brief  C-library back end
+ * \author Christian Prochaska
+ * \author Emery Hemingway
+ * \date   2012-03-20
+ */
+
+/*
+ * Copyright (C) 2008-2019 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU Affero General Public License version 3.
+ */
+
+/* Libc includes */
+#include <sys/time.h>
+
+#include "task.h"
+
+
+/* Genode includes */
+#include <base/log.h>
+
+static Genode::uint64_t millisleep(Genode::uint64_t timeout_ms)
+{
+	Genode::uint64_t remaining_ms = timeout_ms;
+
+	struct Check : Libc::Suspend_functor
+	{
+		bool suspend() override { return true; }
+
+	} check;
+
+	while (remaining_ms > 0)
+		remaining_ms = Libc::suspend(check, remaining_ms);
+
+	return remaining_ms;
+}
+
+
+extern "C" __attribute__((weak))
+int nanosleep(const struct timespec *req, struct timespec *rem)
+{
+	Genode::uint64_t sleep_ms = (uint64_t)req->tv_sec*1000 + req->tv_nsec/1000000;
+	Genode::uint64_t remain_ms = millisleep(sleep_ms);
+
+	if (rem) {
+		rem->tv_sec  = remain_ms / 1000;
+		rem->tv_nsec = (remain_ms % 1000) / 1000;
+	}
+
+	return 0;
+}
+
+extern "C" __attribute__((alias("nanosleep")))
+int __sys_nanosleep(const struct timespec *req, struct timespec *rem);
+
+
+extern "C" __attribute__((weak))
+int clock_nanosleep(clockid_t clock_id, int flags,
+                    const struct timespec *rqt,
+                    struct timespec *rmt)
+{
+	if (flags & TIMER_ABSTIME) {
+		struct timespec now_ts { 0 };
+		if (clock_gettime(clock_id, &now_ts) != 0) {
+			Genode::error(__func__, ": RTC device not configured");
+			return -1;
+		}
+
+		if (now_ts.tv_sec <= rqt->tv_sec && now_ts.tv_nsec < rqt->tv_nsec) {
+			struct timespec new_ts = {
+				.tv_sec  = rqt->tv_sec  - now_ts.tv_sec,
+				.tv_nsec = rqt->tv_nsec - now_ts.tv_nsec,
+			};
+			return nanosleep(&new_ts, rmt);
+		}
+		return 0;
+	}
+	return nanosleep(rqt, rmt);
+}
+
+extern "C" __attribute__((alias("clock_nanosleep")))
+int __sys_clock_nanosleep(clockid_t clock_id, int flags,
+                          const struct timespec *rqt,
+                          struct timespec *rmt);
+
+
+extern "C" __attribute__((weak))
+unsigned int sleep(unsigned int seconds)
+{
+	Genode::uint64_t sleep_ms = 1000 * (Genode::uint64_t)seconds;
+	millisleep(sleep_ms);
+	return 0;
+}

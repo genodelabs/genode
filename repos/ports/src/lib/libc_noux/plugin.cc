@@ -698,6 +698,12 @@ extern "C" pid_t _wait4(pid_t pid, int *status, int options,
 }
 
 
+extern "C" pid_t waitpid(pid_t pid, int *istat, int options)
+{
+	return _wait4(pid, istat, options, NULL);
+}
+
+
 int getrusage(int who, struct rusage *usage)
 {
 	if (verbose)
@@ -737,6 +743,12 @@ extern "C" int kill(__pid_t pid, int sig)
 	}
 
 	return 0;
+}
+
+
+extern "C" int raise(int sig)
+{
+	return kill(getpid(), sig);
 }
 
 
@@ -893,10 +905,7 @@ extern "C" int sigprocmask(int how, const sigset_t *set, sigset_t *oldset)
 }
 
 
-extern "C" int _sigprocmask(int how, const sigset_t *set, sigset_t *oldset)
-{
-	return sigprocmask(how, set, oldset);
-}
+extern "C" int _sigprocmask(int how, const sigset_t *set, sigset_t *oldset) __attribute__((alias("sigprocmask")));
 
 
 extern "C" int _sigaction(int signum, const struct sigaction *act, struct sigaction *oldact)
@@ -919,11 +928,7 @@ extern "C" int _sigaction(int signum, const struct sigaction *act, struct sigact
 }
 
 
-extern "C" int sigaction(int signum, const struct sigaction *act,
-                         struct sigaction *oldact)
-{
-	return _sigaction(signum, act, oldact);
-}
+extern "C" int sigaction(int signum, const struct sigaction *act, struct sigaction *oldact) __attribute__((alias("_sigaction")));
 
 
 /*********************
