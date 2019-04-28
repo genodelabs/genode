@@ -139,7 +139,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="noux" caps="300">
+	<start name="noux" caps="500">
 		<resource name="RAM" quantum="1G" />
 		<route>
 			<service name="Terminal" label="">
