@@ -13,6 +13,7 @@
 
 /* core includes */
 #include <kernel/signal_receiver.h>
+#include <kernel/thread.h>
 
 using namespace Kernel;
 
@@ -30,6 +31,8 @@ void Signal_handler::cancel_waiting()
 }
 
 
+Signal_handler::Signal_handler(Thread &thread) : _thread { thread } { }
+
 Signal_handler::~Signal_handler() { cancel_waiting(); }
 
 
@@ -43,7 +46,10 @@ void Signal_context_killer::cancel_waiting()
 }
 
 
-Signal_context_killer::Signal_context_killer() : _context(nullptr) { }
+Signal_context_killer::Signal_context_killer(Thread &thread)
+:
+	_thread { thread }
+{ }
 
 
 Signal_context_killer::~Signal_context_killer() { cancel_waiting(); }
@@ -88,7 +94,7 @@ void Signal_context::ack()
 	}
 	if (_killer) {
 		_killer->_context = 0;
-		_killer->_signal_context_kill_done();
+		_killer->_thread.signal_context_kill_done();
 		_killer = 0;
 	}
 }
@@ -110,14 +116,14 @@ int Signal_context::kill(Signal_context_killer * const k)
 	_killer = k;
 	_killed = 1;
 	_killer->_context = this;
-	_killer->_signal_context_kill_pending();
+	_killer->_thread.signal_context_kill_pending();
 	return 0;
 }
 
 
 Signal_context::~Signal_context()
 {
-	if (_killer) { _killer->_signal_context_kill_failed(); }
+	if (_killer) { _killer->_thread.signal_context_kill_failed(); }
 	_receiver._context_destructed(this);
 }
 
@@ -164,7 +170,7 @@ void Signal_receiver::_listen()
 			_handlers.dequeue([&] (Signal_handler::Fifo_element &elem) {
 				auto const handler = &elem.object();
 				handler->_receiver = nullptr;
-				handler->_receive_signal(&data, sizeof(data));
+				handler->_thread.signal_receive_signal(&data, sizeof(data));
 			});
 			context->_delivered();
 		});
@@ -193,7 +199,7 @@ int Signal_receiver::add_handler(Signal_handler * const h)
 	if (h->_receiver) { return -1; }
 	_handlers.enqueue(h->_handlers_fe);
 	h->_receiver = this;
-	h->_await_signal(this);
+	h->_thread.signal_wait_for_signal(this);
 	_listen();
 	return 0;
 }

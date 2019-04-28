@@ -142,14 +142,14 @@ void Thread_fault::print(Genode::Output &out) const
 }
 
 
-void Thread::_signal_context_kill_pending()
+void Thread::signal_context_kill_pending()
 {
 	assert(_state == ACTIVE);
 	_become_inactive(AWAITS_SIGNAL_CONTEXT_KILL);
 }
 
 
-void Thread::_signal_context_kill_done()
+void Thread::signal_context_kill_done()
 {
 	assert(_state == AWAITS_SIGNAL_CONTEXT_KILL);
 	user_arg_0(0);
@@ -157,7 +157,7 @@ void Thread::_signal_context_kill_done()
 }
 
 
-void Thread::_signal_context_kill_failed()
+void Thread::signal_context_kill_failed()
 {
 	assert(_state == AWAITS_SIGNAL_CONTEXT_KILL);
 	user_arg_0(-1);
@@ -165,14 +165,14 @@ void Thread::_signal_context_kill_failed()
 }
 
 
-void Thread::_await_signal(Signal_receiver * const receiver)
+void Thread::signal_wait_for_signal(Signal_receiver * const receiver)
 {
 	_become_inactive(AWAITS_SIGNAL);
 	_signal_receiver = receiver;
 }
 
 
-void Thread::_receive_signal(void * const base, size_t const size)
+void Thread::signal_receive_signal(void * const base, size_t const size)
 {
 	assert(_state == AWAITS_SIGNAL);
 	Genode::memcpy(utcb()->data(), base, size);
@@ -354,12 +354,12 @@ void Thread::_cancel_blocking()
 		_ipc_node.cancel_waiting();
 		return;
 	case AWAITS_SIGNAL:
-		Signal_handler::cancel_waiting();
+		_signal_handler.cancel_waiting();
 		user_arg_0(-1);
 		_become_active();
 		return;
 	case AWAITS_SIGNAL_CONTEXT_KILL:
-		Signal_context_killer::cancel_waiting();
+		_signal_context_killer.cancel_waiting();
 		return;
 	case ACTIVE:
 		return;
@@ -523,7 +523,7 @@ void Thread::_call_await_signal()
 		return;
 	}
 	/* register handler at the receiver */
-	if (r->add_handler(this)) {
+	if (r->add_handler(&_signal_handler)) {
 		Genode::raw("failed to register handler at signal receiver");
 		user_arg_0(-1);
 		return;
@@ -544,7 +544,7 @@ void Thread::_call_pending_signal()
 	}
 
 	/* register handler at the receiver */
-	if (r->add_handler(this)) {
+	if (r->add_handler(&_signal_handler)) {
 		user_arg_0(-1);
 		return;
 	}
@@ -623,7 +623,7 @@ void Thread::_call_kill_signal_context()
 	}
 
 	/* kill signal context */
-	if (c->kill(this)) {
+	if (c->kill(&_signal_context_killer)) {
 		Genode::raw("failed to kill signal context");
 		user_arg_0(-1);
 		return;

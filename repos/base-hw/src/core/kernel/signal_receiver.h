@@ -23,6 +23,8 @@
 
 namespace Kernel
 {
+	class Thread;
+
 	/**
 	 * Ability to receive signals from signal receivers
 	 */
@@ -59,36 +61,15 @@ class Kernel::Signal_handler
 
 		typedef Genode::Fifo_element<Signal_handler> Fifo_element;
 
-		Fifo_element      _handlers_fe { *this   };
-		Signal_receiver * _receiver    { nullptr };
-
-		/**
-		 * Let the handler block for signal receipt
-		 *
-		 * \param receiver  the signal pool that the thread blocks for
-		 */
-		virtual void _await_signal(Signal_receiver * const receiver) = 0;
-
-		/**
-		 * Signal delivery backend
-		 *
-		 * \param base  signal-data base
-		 * \param size  signal-data size
-		 */
-		virtual void _receive_signal(void * const base, size_t const size) = 0;
-
-	protected:
-
-		/***************
-		 ** Accessors **
-		 ***************/
-
-		Signal_receiver * receiver() const { return _receiver; }
+		Thread          &_thread;
+		Fifo_element     _handlers_fe { *this   };
+		Signal_receiver *_receiver    { nullptr };
 
 	public:
 
-		Signal_handler() { }
-		virtual ~Signal_handler();
+		Signal_handler(Thread &thread);
+
+		~Signal_handler();
 
 		/**
 		 * Stop waiting for a signal receiver
@@ -108,35 +89,14 @@ class Kernel::Signal_context_killer
 		Signal_context_killer(Signal_context_killer const &);
 		Signal_context_killer &operator = (Signal_context_killer const &);
 
-		Signal_context * _context;
-
-		/**
-		 * Notice that the kill operation is pending
-		 */
-		virtual void _signal_context_kill_pending() = 0;
-
-		/**
-		 * Notice that pending kill operation is done
-		 */
-		virtual void _signal_context_kill_done() = 0;
-
-		/**
-		 * Notice that pending kill operation failed
-		 */
-		virtual void _signal_context_kill_failed() = 0;
-
-	protected:
-
-		/***************
-		 ** Accessors **
-		 ***************/
-
-		Signal_context * context() const { return _context; }
+		Thread         &_thread;
+		Signal_context *_context { nullptr };
 
 	public:
 
-		Signal_context_killer();
-		virtual ~Signal_context_killer();
+		Signal_context_killer(Thread &thread);
+
+		~Signal_context_killer();
 
 		/**
 		 * Stop waiting for a signal context
