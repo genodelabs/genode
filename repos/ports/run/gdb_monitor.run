@@ -97,7 +97,7 @@ proc binary_name_gdbserver_platform_lib_so { } {
 set boot_modules {
 	core init timer
 	ld.lib.so libc.lib.so vfs.lib.so libm.lib.so libc_pipe.lib.so
-	pc_uart_drv posix.lib.so
+	pc_uart_drv posix.lib.so stdcxx.lib.so
 	gdb_monitor gdbserver_platform.lib.so test-gdb_monitor
 }
 
@@ -244,8 +244,8 @@ if {![regexp {Breakpoint 4, test_thread_start} $output]} {
 send "info threads\n"
 run_genode_until {\(gdb\)} 20 $gdb_id
 
-if {![regexp {  4    Thread 3} $output] ||
-    ![regexp {\* 3    Thread 4          test_thread_start} $output] ||
+if {![regexp {\* 4    Thread 4          test_thread_start} $output] ||
+    ![regexp {  3    Thread 3} $output] ||
     ![regexp {  2    Thread 2} $output] ||
     ![regexp {  1    Thread 1} $output]} {
 	puts stderr "*** Error: Thread info is not as expected"
@@ -274,7 +274,7 @@ puts ""
 send "c\n"
 run_genode_until {\(gdb\)} 20 $gdb_id
 
-if {![regexp {Program received signal SIGSEGV, Segmentation fault.} $output]} {
+if {![regexp {Thread 4 received signal SIGSEGV, Segmentation fault.} $output]} {
 	puts stderr "*** Error: Segmentation fault exception was not caught"
 	exit -1
 }
@@ -289,13 +289,16 @@ if {![have_spec arm]} {
 	send "thread 2\n"
 	run_genode_until {\(gdb\)} 20 $gdb_id
 
+	send "set pagination off\n"
+	run_genode_until {\(gdb\)} 20 $gdb_id
+
 	send "bt\n"
 	run_genode_until {\(gdb\)} 20 $gdb_id
 
-	if {![regexp {Genode::Cancelable_lock::lock\(\)} $output] ||
-		![regexp {Genode::Signal_receiver::block_for_signal\(\)} $output] ||
-		![regexp {Genode::Entrypoint::_wait_and_dispatch_one_io_signal\(bool\)} $output] ||
-		![regexp {Libc::Kernel::run\(Libc::Application_code&\)} $output] } {
+	if {![regexp {Genode::Cancelable_lock::lock} $output] ||
+		![regexp {Genode::Signal_receiver::block_for_signal} $output] ||
+		![regexp {Genode::Entrypoint::_wait_and_dispatch_one_io_signal} $output] ||
+		![regexp {Libc::Kernel::run} $output] } {
 
 		puts stderr "*** Error: Stack trace when in syscall is not as expected"
 		exit -1

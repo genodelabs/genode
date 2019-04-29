@@ -8,7 +8,7 @@ CONFIGURE_ARGS += --without-expat
 CPPFLAGS += -DHAVE_LIBEXPAT=1
 CFLAGS += -Wno-error=sizeof-pointer-memaccess -Wno-error=unused-value
 
-LIBS += ncurses expat
+LIBS += stdcxx ncurses expat
 
 # workaround for problems with makeinfo version 5
 MAKE_ENV += "MAKEINFO=true"

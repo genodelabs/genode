@@ -18,7 +18,7 @@
 
 using namespace Genode;
 
-extern "C" int genode_fetch_register(int regno, unsigned long *value)
+int genode_fetch_register(int regno, unsigned long *value)
 {
 	Thread_state ts;
 
@@ -53,7 +53,7 @@ extern "C" int genode_fetch_register(int regno, unsigned long *value)
 }
 
 
-extern "C" void genode_store_register(int regno, unsigned long value)
+void genode_store_register(int regno, unsigned long value)
 {
 	Thread_state ts;
 

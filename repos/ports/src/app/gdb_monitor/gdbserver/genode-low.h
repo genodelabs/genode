@@ -43,4 +43,7 @@ int genode_fetch_register(int regno, unsigned long *reg_content);
 void genode_store_register(int regno, unsigned long reg_content);
 unsigned char genode_read_memory_byte(void *addr);
 
+/* interface for cpu_thread_component.cc */
+void genode_set_initial_breakpoint_at(unsigned long addr);
+
 #endif /* GENODE_LOW_H */

@@ -27,28 +27,32 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-extern "C" {
-#define private _private
 #include "genode-low.h"
 #include "server.h"
 #include "linux-low.h"
-#define _private private
 
-int linux_detach_one_lwp (struct inferior_list_entry *entry, void *args);
-}
+void linux_detach_one_lwp (struct lwp_info *lwp);
 
 static bool verbose = false;
 
 Genode::Env *genode_env;
 
+/*
+ * 'waitpid()' is implemented using 'select()'. When a new thread is created,
+ * 'select()' needs to unblock, so there is a dedicated pipe for that. The
+ * lwpid of the new thread needs to be read from the pipe in 'waitpid()', so
+ * that the next 'select()' call can block again. The lwpid needs to be stored
+ * in a variable until it is inquired later.
+ */
 static int _new_thread_pipe[2];
+static unsigned long _new_thread_lwpid;
 
 /*
  * When 'waitpid()' reports a SIGTRAP, this variable stores the lwpid of the
  * corresponding thread. This information is used in the initial breakpoint
  * handler to let the correct thread handle the event.
  */
-static unsigned long sigtrap_lwpid;
+static unsigned long _sigtrap_lwpid;
 
 using namespace Genode;
 using namespace Gdb_monitor;
@@ -248,7 +252,7 @@ static void genode_stop_thread(unsigned long lwpid)
 }
 
 
-extern "C" pid_t waitpid(pid_t pid, int *status, int flags)
+pid_t my_waitpid(pid_t pid, int *status, int flags)
 {
 	extern int remote_desc;
 
@@ -296,7 +300,7 @@ extern "C" pid_t waitpid(pid_t pid, int *status, int flags)
 
 				cc = read (remote_desc, &c, 1);
 
-				if (cc == 1 && c == '\003' && current_inferior != NULL) {
+				if (cc == 1 && c == '\003' && current_thread != NULL) {
 					/* this causes a SIGINT to be delivered to one of the threads */
 					(*the_target->request_interrupt)();
 					continue;
@@ -308,13 +312,39 @@ extern "C" pid_t waitpid(pid_t pid, int *status, int flags)
 
 			} else if (FD_ISSET(_new_thread_pipe[0], &readset)) {
 
-				unsigned long lwpid = GENODE_MAIN_LWPID;
+				/*
+				 * Linux 'ptrace(2)' manual text related to the main thread:
+				 *
+				 * "If the PTRACE_O_TRACEEXEC option is not in effect, all
+				 *  successful calls to execve(2) by the traced process will
+				 *  cause it to be sent a SIGTRAP signal, giving the parent a
+				 *  chance to gain control before the new program begins
+				 *  execution."
+				 *
+                 * Linux 'ptrace' manual text related to other threads:
+                 *
+                 * "PTRACE_O_CLONE
+                 *  ...
+                 *  A waitpid(2) by the tracer will return a status value such
+                 *  that
+                 *
+                 *  status>>8 == (SIGTRAP | (PTRACE_EVENT_CLONE<<8))
+                 *
+                 *  The PID of the new process can be retrieved with
+                 *  PTRACE_GETEVENTMSG."
+                 */
 
-				genode_stop_thread(lwpid);
+				*status = W_STOPCODE(SIGTRAP);
 
-				*status = W_STOPCODE(SIGTRAP) | (PTRACE_EVENT_CLONE << 16);
+				read(_new_thread_pipe[0], &_new_thread_lwpid,
+				     sizeof(_new_thread_lwpid));
 
-				return lwpid;
+				if (_new_thread_lwpid != GENODE_MAIN_LWPID) {
+					*status |= (PTRACE_EVENT_CLONE << 16);
+					genode_stop_thread(GENODE_MAIN_LWPID);
+				}
+
+				return GENODE_MAIN_LWPID;
 
 			} else {
 
@@ -341,7 +371,7 @@ extern "C" pid_t waitpid(pid_t pid, int *status, int flags)
 
 				if (signal == SIGTRAP) {
 
-					sigtrap_lwpid = lwpid;
+					_sigtrap_lwpid = lwpid;
 
 				} else if (signal == SIGSTOP) {
 
@@ -368,9 +398,6 @@ extern "C" pid_t waitpid(pid_t pid, int *status, int flags)
 
 					if (verbose)
 						log("received SIGINFO for new lwpid ", lwpid);
-
-					if (lwpid != GENODE_MAIN_LWPID)
-						write(_new_thread_pipe[1], &lwpid, sizeof(lwpid));
 
 					/*
 					 * First signal of a new thread. On Genode originally a
@@ -411,13 +438,12 @@ extern "C" long ptrace(enum __ptrace_request request, pid_t pid, void *addr, voi
 		case PTRACE_SETREGS:    request_str = "PTRACE_SETREGS";    break;
 		case PTRACE_ATTACH:     request_str = "PTRACE_ATTACH";     break;
 		case PTRACE_DETACH:     request_str = "PTRACE_DETACH";     break;
+		case PTRACE_GETSIGINFO: request_str = "PTRACE_GETSIGINFO"; break;
 		case PTRACE_GETEVENTMSG:
 			/*
 			 * Only PTRACE_EVENT_CLONE is currently supported.
-			 *
-			 * Read the lwpid of the new thread from the pipe.
 			 */
-			read(_new_thread_pipe[0], data, sizeof(unsigned long));
+			*(unsigned long*)data = _new_thread_lwpid;
 			return 0;
 		case PTRACE_GETREGSET: request_str = "PTRACE_GETREGSET";  break;
 	}
@@ -429,7 +455,7 @@ extern "C" long ptrace(enum __ptrace_request request, pid_t pid, void *addr, voi
 }
 
 
-extern "C" int fork()
+extern "C" int vfork()
 {
 	/* create the thread announcement pipe */
 
@@ -499,13 +525,20 @@ extern "C" int fork()
 	static Entrypoint signal_ep { *genode_env, SIGNAL_EP_STACK_SIZE,
 	                              "sig_handler", Affinity::Location() };
 
+	int breakpoint_len = 0;
+	unsigned char const *breakpoint_data =
+		the_target->sw_breakpoint_from_kind(0, &breakpoint_len);
+
 	App_child *child = new (alloc) App_child(*genode_env,
 	                                         alloc,
 	                                         filename.string(),
 	                                         Ram_quota{ram_quota},
 	                                         cap_quota,
 	                                         signal_ep,
-	                                         target_node);
+	                                         target_node,
+	                                         _new_thread_pipe[1],
+	                                         breakpoint_len,
+	                                         breakpoint_data);
 
 	_genode_child_resources = child->genode_child_resources();
 
@@ -527,6 +560,8 @@ extern "C" int kill(pid_t pid, int sig)
 {
 	Cpu_session_component &csc = genode_child_resources().cpu_session_component();
 
+	if (pid <= 0) pid = GENODE_MAIN_LWPID;
+
 	Thread_capability thread_cap = csc.thread_cap(pid);
 
 	if (!thread_cap.valid()) {
@@ -542,11 +577,11 @@ extern "C" int kill(pid_t pid, int sig)
 extern "C" int initial_breakpoint_handler(CORE_ADDR addr)
 {
 	Cpu_session_component &csc = genode_child_resources().cpu_session_component();
-	return csc.handle_initial_breakpoint(sigtrap_lwpid);
+	return csc.handle_initial_breakpoint(_sigtrap_lwpid);
 }
 
 
-void genode_set_initial_breakpoint_at(CORE_ADDR addr)
+void genode_set_initial_breakpoint_at(unsigned long addr)
 {
 	set_breakpoint_at(addr, initial_breakpoint_handler);
 }
@@ -554,13 +589,14 @@ void genode_set_initial_breakpoint_at(CORE_ADDR addr)
 
 void genode_remove_thread(unsigned long lwpid)
 {
-	int pid = GENODE_MAIN_LWPID;
-	linux_detach_one_lwp((struct inferior_list_entry *)
-		find_thread_ptid(ptid_build(GENODE_MAIN_LWPID, lwpid, 0)), &pid);
+	struct thread_info *thread_info =
+		find_thread_ptid(ptid_t(GENODE_MAIN_LWPID, lwpid, 0));
+	struct lwp_info *lwp = get_thread_lwp(thread_info);
+	linux_detach_one_lwp(lwp);
 }
 
 
-extern "C" void genode_stop_all_threads()
+void genode_stop_all_threads()
 {
 	Cpu_session_component &csc = genode_child_resources().cpu_session_component();
 	csc.pause_all_threads();
@@ -609,10 +645,12 @@ void genode_continue_thread(unsigned long lwpid, int single_step)
 
 void genode_fetch_registers(struct regcache *regcache, int regno)
 {
+	const struct regs_info *regs_info = (*the_low_target.regs_info) ();
+
 	unsigned long reg_content = 0;
 
 	if (regno == -1) {
-		for (regno = 0; regno < the_low_target.num_regs; regno++) {
+		for (regno = 0; regno < regs_info->usrregs->num_regs; regno++) {
 			if (genode_fetch_register(regno, &reg_content) == 0)
 				supply_register(regcache, regno, &reg_content);
 			else
@@ -631,17 +669,21 @@ void genode_store_registers(struct regcache *regcache, int regno)
 {
 	if (verbose) log(__func__, ": regno=", regno);
 
+	const struct regs_info *regs_info = (*the_low_target.regs_info) ();
+
 	unsigned long reg_content = 0;
 
 	if (regno == -1) {
-		for (regno = 0; regno < the_low_target.num_regs; regno++) {
-			if ((Genode::size_t)register_size(regno) <= sizeof(reg_content)) {
+		for (regno = 0; regno < regs_info->usrregs->num_regs; regno++) {
+			if ((Genode::size_t)register_size(regcache->tdesc, regno) <=
+			    sizeof(reg_content)) {
 				collect_register(regcache, regno, &reg_content);
 				genode_store_register(regno, reg_content);
 			}
 		}
 	} else {
-		if ((Genode::size_t)register_size(regno) <= sizeof(reg_content)) {
+		if ((Genode::size_t)register_size(regcache->tdesc, regno) <=
+		    sizeof(reg_content)) {
 			collect_register(regcache, regno, &reg_content);
 			genode_store_register(regno, reg_content);
 		}

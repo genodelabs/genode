@@ -14,20 +14,11 @@
 
 /* GDB monitor includes */
 #include "cpu_thread_component.h"
+#include "genode-low.h"
 
 /* libc includes */
 #include <signal.h>
 #include <unistd.h>
-
-/* mem-break.c */
-extern "C" int breakpoint_len;
-extern "C" const unsigned char *breakpoint_data;
-extern "C" int set_gdb_breakpoint_at(long long where);
-
-/* genode-low.cc */
-extern "C" int genode_read_memory(long long memaddr, unsigned char *myaddr, int len);
-extern "C" int genode_write_memory (long long memaddr, const unsigned char *myaddr, int len);
-extern void genode_set_initial_breakpoint_at(long long addr);
 
 
 static unsigned long new_lwpid = GENODE_MAIN_LWPID;
@@ -41,13 +32,13 @@ bool Cpu_thread_component::_set_breakpoint_at_first_instruction(addr_t ip)
 	_breakpoint_ip = ip;
 
 	if (genode_read_memory(_breakpoint_ip, _original_instructions,
-	                       breakpoint_len) != 0) {
+	                       _breakpoint_len) != 0) {
 		warning(__PRETTY_FUNCTION__, ": could not read memory at thread start address");
 		return false;
 	}
 
-	if (genode_write_memory(_breakpoint_ip, breakpoint_data,
-	                        breakpoint_len) != 0) {
+	if (genode_write_memory(_breakpoint_ip, _breakpoint_data,
+	                        _breakpoint_len) != 0) {
 		warning(__PRETTY_FUNCTION__, ": could not set breakpoint at thread start address");
 		return false;
 	}
@@ -59,7 +50,7 @@ bool Cpu_thread_component::_set_breakpoint_at_first_instruction(addr_t ip)
 void Cpu_thread_component::_remove_breakpoint_at_first_instruction()
 {
 	if (genode_write_memory(_breakpoint_ip, _original_instructions,
-	                        breakpoint_len) != 0)
+	                        _breakpoint_len) != 0)
 		warning(__PRETTY_FUNCTION__, ": could not remove breakpoint at thread start address");
 }
 
@@ -87,15 +78,21 @@ Cpu_thread_component::Cpu_thread_component(Cpu_session_component   &cpu_session_
                                            Cpu_session::Name const &name,
                                            Affinity::Location       affinity,
                                            Cpu_session::Weight      weight,
-                                           addr_t                   utcb)
+                                           addr_t                   utcb,
+                                           int const                new_thread_pipe_write_end,
+                                           int const                breakpoint_len,
+                                           unsigned char const     *breakpoint_data)
 :
 	_cpu_session_component(cpu_session_component),
 	_parent_cpu_thread(
-	_cpu_session_component.parent_cpu_session().create_thread(pd,
-	                                                          name,
-	                                                          affinity,
-	                                                          weight,
-	                                                          utcb)),
+		_cpu_session_component.parent_cpu_session().create_thread(pd,
+		                                                          name,
+		                                                          affinity,
+		                                                          weight,
+		                                                          utcb)),
+	_new_thread_pipe_write_end(new_thread_pipe_write_end),
+	_breakpoint_len(breakpoint_len),
+	_breakpoint_data(breakpoint_data),
 	_exception_handler(_cpu_session_component.signal_ep(), *this,
 	                   &Cpu_thread_component::_handle_exception),
 	_sigstop_handler(_cpu_session_component.signal_ep(), *this,
@@ -192,13 +189,24 @@ int Cpu_thread_component::deliver_signal(int signo)
 			break;
 		case SIGINFO:
 			if (_verbose)
-				log("delivering initial SIGSTOP to thread ", _lwpid);
+				if (_lwpid != GENODE_MAIN_LWPID)
+					log("delivering initial SIGSTOP to thread ", _lwpid);
 			break;
 		default:
 			error("unexpected signal ", signo);
 	}
 
-	write(_pipefd[1], &signo, sizeof(signo));
+	if (!((signo == SIGINFO) && (_lwpid == GENODE_MAIN_LWPID)))
+		write(_pipefd[1], &signo, sizeof(signo));
+
+	/*
+	 * gdbserver might be blocking in 'waitpid()' without having
+	 * the new thread's pipe fd in its 'select' fd set yet. Writing
+	 * into the 'new thread pipe' here will unblock 'select' in this
+	 * case.
+	 */
+	if (signo == SIGINFO)
+		write(_new_thread_pipe_write_end, &_lwpid, sizeof(_lwpid));
 
 	return 0;
 }

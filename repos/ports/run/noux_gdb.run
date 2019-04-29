@@ -10,9 +10,10 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/pkg/terminal \
                   [depot_user]/src/init \
                   [depot_user]/src/libc \
+                  [depot_user]/src/ncurses \
                   [depot_user]/src/noux \
                   [depot_user]/src/posix \
-                  [depot_user]/src/ncurses
+                  [depot_user]/src/stdcxx
 
 source ${genode_dir}/repos/ports/run/noux_gdb.inc
 

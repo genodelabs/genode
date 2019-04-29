@@ -1,9 +1,11 @@
 INC_DIR += $(REP_DIR)/src/lib/gdbserver_platform/spec/x86_32
 
-SRC_C   = i386.c \
-          i386-avx.c \
-          linux-x86-low.c
+SRC_CC += arch/i386.cc \
+          gdbserver/linux-x86-low.cc \
+          gdbserver/linux-x86-tdesc.cc \
+          nat/x86-linux.cc \
+          nat/x86-linux-dregs.cc
 
-CC_OPT_linux-x86-low += -Wno-unused-function
+CC_OPT += -fpermissive -Wno-unused-function
 
 include $(REP_DIR)/lib/mk/gdbserver_platform.inc
