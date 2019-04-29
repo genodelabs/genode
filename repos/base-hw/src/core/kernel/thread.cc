@@ -819,6 +819,7 @@ void Thread::_mmu_exception()
 Thread::Thread(unsigned const priority, unsigned const quota,
                char const * const label, bool core)
 :
+	Kernel::Object { *this },
 	Cpu_job(priority, quota), _ipc_node(*this), _state(AWAITS_START),
 	_signal_receiver(0), _label(label), _core(core), regs(core) { }
 

@@ -27,7 +27,16 @@
 
 namespace Kernel
 {
-	class Pd; /* forward declaration */
+	/*
+	 * Forward declarations
+	 */
+
+	class Pd;
+	class Irq;
+	class Thread;
+	class Signal_context;
+	class Signal_receiver;
+	class Vm;
 
 	/**
 	 * Base class of all Kernel objects
@@ -73,12 +82,39 @@ namespace Kernel
 }
 
 
-struct Kernel::Object : private Object_identity_list
+class Kernel::Object : private Object_identity_list
 {
-	using Object_identity_list::remove;
-	using Object_identity_list::insert;
+	private:
 
-	virtual ~Object();
+		enum Type { THREAD, PD, SIGNAL_RECEIVER, SIGNAL_CONTEXT, IRQ, VM };
+
+		/*
+		 * Noncopyable
+		 */
+		Object(Object const &)              = delete;
+		Object &operator = (Object const &) = delete;
+
+		Type  const _type;
+		void *const _obj;
+
+	public:
+
+		struct Cannot_cast_to_type : Genode::Exception { };
+
+		using Object_identity_list::remove;
+		using Object_identity_list::insert;
+
+		Object(Thread &obj);
+		Object(Irq &obj);
+		Object(Signal_receiver &obj);
+		Object(Signal_context &obj);
+		Object(Pd &obj);
+		Object(Vm &obj);
+
+		~Object();
+
+		template <typename T>
+		T *obj() const;
 };
 
 
@@ -102,7 +138,7 @@ class Kernel::Object_identity
 		~Object_identity();
 
 		template <typename KOBJECT>
-		KOBJECT * object() { return dynamic_cast<KOBJECT*>(_object); }
+		KOBJECT * object() { return _object->obj<KOBJECT>(); }
 
 		void invalidate();
 };
@@ -190,7 +226,7 @@ class Kernel::Core_object_identity : public Object_identity,
 	public:
 
 		Core_object_identity(T & object)
-		: Object_identity(object),
+		: Object_identity(object.kernel_object()),
 		  Object_identity_reference(this, core_pd()) { }
 
 		capid_t core_capid() { return capid(); }

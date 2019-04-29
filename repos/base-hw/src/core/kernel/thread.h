@@ -56,9 +56,7 @@ struct Kernel::Thread_fault
 /**
  * Kernel back-end for userland execution-contexts
  */
-class Kernel::Thread
-:
-	public Kernel::Object, public Cpu_job, private Timeout
+class Kernel::Thread : private Kernel::Object, public Cpu_job, private Timeout
 {
 	private:
 
@@ -404,6 +402,7 @@ class Kernel::Thread
 		 ** Accessors **
 		 ***************/
 
+		Object &kernel_object() { return *this; }
 		char const * label() const { return _label; }
 		Thread_fault fault() const { return _fault; }
 		Genode::Native_utcb *utcb() { return _utcb; }

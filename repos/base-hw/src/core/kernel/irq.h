@@ -119,10 +119,11 @@ class Kernel::Irq : Genode::Avl_node<Irq>
 };
 
 
-class Kernel::User_irq : public Kernel::Irq, public Kernel::Object
+class Kernel::User_irq : public Kernel::Irq
 {
 	private:
 
+		Kernel::Object  _kernel_object { *this };
 		Signal_context &_context;
 
 		/**
@@ -186,6 +187,8 @@ class Kernel::User_irq : public Kernel::Irq, public Kernel::Object
 		 */
 		static void syscall_destroy(Genode::Kernel_object<User_irq> &irq) {
 			call(call_id_delete_irq(), (Call_arg) &irq); }
+
+		Object &kernel_object() { return _kernel_object; }
 };
 
 #endif /* _CORE__KERNEL__IRQ_H_ */

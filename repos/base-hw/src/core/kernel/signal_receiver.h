@@ -104,7 +104,7 @@ class Kernel::Signal_context_killer
 		void cancel_waiting();
 };
 
-class Kernel::Signal_context : public Kernel::Object
+class Kernel::Signal_context
 {
 	friend class Signal_receiver;
 	friend class Signal_context_killer;
@@ -119,14 +119,15 @@ class Kernel::Signal_context : public Kernel::Object
 
 		typedef Genode::Fifo_element<Signal_context> Fifo_element;
 
-		Fifo_element            _deliver_fe  { *this   };
-		Fifo_element            _contexts_fe { *this   };
+		Kernel::Object          _kernel_object { *this };
+		Fifo_element            _deliver_fe    { *this };
+		Fifo_element            _contexts_fe   { *this };
 		Signal_receiver &       _receiver;
 		addr_t const            _imprint;
-		Signal_context_killer * _killer      { nullptr };
-		unsigned                _submits     { 0       };
-		bool                    _ack         { true    };
-		bool                    _killed      { false   };
+		Signal_context_killer * _killer        { nullptr };
+		unsigned                _submits       { 0       };
+		bool                    _ack           { true    };
+		bool                    _killed        { false   };
 
 		/**
 		 * Tell receiver about the submits of the context if any
@@ -209,9 +210,11 @@ class Kernel::Signal_context : public Kernel::Object
 		 */
 		static void syscall_destroy(Genode::Kernel_object<Signal_context> &c) {
 			call(call_id_delete_signal_context(), (Call_arg)&c); }
+
+		Object &kernel_object() { return _kernel_object; }
 };
 
-class Kernel::Signal_receiver : public Kernel::Object
+class Kernel::Signal_receiver
 {
 	friend class Signal_context;
 	friend class Signal_handler;
@@ -222,9 +225,10 @@ class Kernel::Signal_receiver : public Kernel::Object
 
 		template <typename T> class Fifo : public Genode::Fifo<T> { };
 
-		Fifo<Signal_handler::Fifo_element> _handlers { };
-		Fifo<Signal_context::Fifo_element> _deliver  { };
-		Fifo<Signal_context::Fifo_element> _contexts { };
+		Kernel::Object                     _kernel_object { *this };
+		Fifo<Signal_handler::Fifo_element> _handlers      { };
+		Fifo<Signal_context::Fifo_element> _deliver       { };
+		Fifo<Signal_context::Fifo_element> _contexts      { };
 
 		/**
 		 * Recognize that context 'c' has submits to deliver
@@ -282,6 +286,8 @@ class Kernel::Signal_receiver : public Kernel::Object
 		 */
 		static void syscall_destroy(Genode::Kernel_object<Signal_receiver> &r) {
 			call(call_id_delete_signal_receiver(), (Call_arg)&r); }
+
+		Object &kernel_object() { return _kernel_object; }
 };
 
 #endif /* _CORE__KERNEL__SIGNAL_RECEIVER_H_ */

@@ -33,8 +33,7 @@ namespace Kernel
 }
 
 
-class Kernel::Vm : public Cpu_job,
-                   public Kernel::Object
+class Kernel::Vm : public Cpu_job
 {
 	private:
 
@@ -48,6 +47,7 @@ class Kernel::Vm : public Cpu_job,
 
 		enum Scheduler_state { ACTIVE, INACTIVE };
 
+		Object                      _kernel_object { *this };
 		unsigned                    _id = 0;
 		State                     & _state;
 		Signal_context            & _context;
@@ -110,6 +110,7 @@ class Kernel::Vm : public Cpu_job,
 		static void syscall_destroy(Genode::Kernel_object<Vm> & vm) {
 			call(call_id_delete_vm(), (Call_arg) &vm); }
 
+		Object &kernel_object() { return _kernel_object; }
 
 		/****************
 		 ** Vm_session **

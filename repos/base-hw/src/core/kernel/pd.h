@@ -39,7 +39,7 @@ namespace Kernel
 }
 
 
-class Kernel::Pd : public Kernel::Object
+class Kernel::Pd
 {
 	public:
 
@@ -49,6 +49,7 @@ class Kernel::Pd : public Kernel::Object
 
 	private:
 
+		Kernel::Object                 _kernel_object { *this };
 		Hw::Page_table                &_table;
 		Genode::Platform_pd           &_platform_pd;
 		Capid_allocator                _capid_alloc { };
@@ -108,6 +109,7 @@ class Kernel::Pd : public Kernel::Object
 		 ** Accessors **
 		 ***************/
 
+		Object              &kernel_object()       { return _kernel_object; }
 		Genode::Platform_pd &platform_pd()         { return _platform_pd; }
 		Hw::Page_table      &translation_table()   { return _table;       }
 		Capid_allocator     &capid_alloc()         { return _capid_alloc; }
@@ -118,7 +120,7 @@ class Kernel::Pd : public Kernel::Object
 
 template<>
 inline Kernel::Core_object_identity<Kernel::Pd>::Core_object_identity(Kernel::Pd & pd)
-: Object_identity(pd),
+: Object_identity(pd.kernel_object()),
   Object_identity_reference(this, pd.core_pd() ? pd : core_pd()) { }
 
 #endif /* _CORE__KERNEL__PD_H_ */
