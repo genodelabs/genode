@@ -1,8 +1,13 @@
-LIB_DIR     = $(REP_DIR)/src/lib/usb
+SRC_CC  += main.cc
+LIBS     = base
+
+CC_CXX_WARN_STRICT =
+
+LIB_DIR     = $(REP_DIR)/src/drivers/usb
 LIB_INC_DIR = $(LIB_DIR)/include
 
 LIBS     += usb_include lx_kit_setjmp
-SRC_CC   += main.cc lx_emul.cc storage.cc \
+SRC_CC   += lx_emul.cc storage.cc \
             input_component.cc evdev.cc nic.cc raw.cc
 SRC_C    += dummies.c scsi.c raw_driver.c
 
@@ -14,6 +19,7 @@ USB_DIR        := $(DRIVERS_DIR)/usb
 # The order of include-search directories is important, we need to look into
 # 'contrib' before falling back to our custom 'lx_emul.h' header.
 #
+INC_DIR += $(PRG_DIR)
 INC_DIR += $(LIB_INC_DIR) $(REP_DIR)/src/include
 INC_DIR += $(LX_CONTRIB_DIR)/include $(LX_CONTRIB_DIR)/include/uapi $(LX_CONTRIB_DIR)
 

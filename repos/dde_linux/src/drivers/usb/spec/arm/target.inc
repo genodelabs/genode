@@ -1,4 +1,4 @@
-include $(REP_DIR)/lib/mk/usb.inc
+include $(REP_DIR)/src/drivers/usb/target.inc
 
 SRC_CC  += platform_device.cc platform_generic.cc
 

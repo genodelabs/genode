@@ -1,7 +1,7 @@
 ifeq ($(called_from_lib_mk),yes)
 
 USB_CONTRIB_DIR := $(call select_from_ports,dde_linux)/src/lib/usb
-LX_EMUL_H       := $(REP_DIR)/src/lib/usb/include/lx_emul.h
+LX_EMUL_H       := $(REP_DIR)/src/drivers/usb/include/lx_emul.h
 
 #
 # Determine the header files included by the contrib code. For each

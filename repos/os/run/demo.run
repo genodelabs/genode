@@ -1,41 +1,25 @@
-#
-# Build
-#
-
-if {[have_spec odroid_xu] ||
-    [have_spec imx6q_sabrelite] ||
+if {[have_spec imx6q_sabrelite] ||
+    [have_spec imx7d_sabre] ||
     ([get_cmd_switch --autopilot] && [have_spec linux]) ||
     ([get_cmd_switch --autopilot] && [have_include "power_on/qemu"])} {
 	puts "Run script does not support this platform."
 	exit 0
 }
 
-set build_components {
-	core init timer
-	server/nitpicker app/pointer app/status_bar app/global_keys_handler
-	app/nit_focus
-	server/liquid_framebuffer app/launchpad app/scout
-	test/nitpicker server/nitlog
-	drivers/framebuffer drivers/input
-	server/report_rom server/rom_filter
-}
-
-source ${genode_dir}/repos/base/run/platform_drv.inc
-
-lappend_if [need_usb_hid]   build_components drivers/usb
-lappend_if [have_spec gpio] build_components drivers/gpio
-
-append_platform_drv_build_components
-
-build $build_components
-
 create_boot_directory
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/pkg/[drivers_interactive_pkg] \
+                  [depot_user]/src/rom_filter \
+                  [depot_user]/src/report_rom \
+                  [depot_user]/src/global_keys_handler \
+                  [depot_user]/src/nitpicker \
+                  [depot_user]/src/nit_focus \
+                  [depot_user]/src/demo \
+                  [depot_user]/src/init
 
-#
-# Generate config
-#
+build { app/status_bar test/nitpicker }
 
-append config {
+install_config {
 <config>
 	<parent-provides>
 		<service name="ROM"/>
@@ -50,62 +34,24 @@ append config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>}
+	<default caps="100"/>
 
-append_if [have_spec sdl] config {
-	<start name="fb_sdl" ld="no">
-		<resource name="RAM" quantum="4M"/>
-		<provides>
-			<service name="Input"/>
-			<service name="Framebuffer"/>
-		</provides>
-	</start>}
-
-append_platform_drv_config
-
-append_if [have_spec framebuffer] config {
-	<start name="fb_drv" caps="130">
-		<provides><service name="Framebuffer"/></provides>}
-append_if [expr [have_spec framebuffer] && [have_spec x86]] config {
-		<resource name="RAM" quantum="4M"/>
-		<config width="1024" height="768"/>
-	</start>}
-append_if [expr [have_spec framebuffer] && ![have_spec x86]] config {
-		<resource name="RAM" quantum="5M"/>
-		<config/>
-	</start>}
-
-append_if [have_spec gpio] config "
-	<start name=\"[gpio_drv]\" caps=\"140\">
-		<resource name=\"RAM\" quantum=\"4M\"/>
-		<provides><service name=\"Gpio\"/></provides>
-		<config/>
-	</start>"
-
-append_if [have_spec imx53] config {
-	<start name="input_drv">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Input"/></provides>
-		<config/>
-	</start> }
-
-append_if [have_spec ps2] config {
-	<start name="ps2_drv">
-		<resource name="RAM" quantum="1096K"/>
-		<provides><service name="Input"/></provides>
-	</start>}
-
-append_if [need_usb_hid] config {
-	<start name="usb_drv" caps="120">
-		<resource name="RAM" quantum="12M"/>
-		<provides><service name="Input"/></provides>
-		<config ehci="yes" uhci="yes" xhci="no"> <hid/> </config>
-	</start> }
-
-append config {
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
+	</start>
+
+	<start name="drivers" caps="1000">
+		<resource name="RAM" quantum="32M" constrain_phys="yes"/>
+		<binary name="init"/>
+		<route>
+			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+		<provides>
+			<service name="Input"/> <service name="Framebuffer"/>
+		</provides>
 	</start>
 
 	<start name="report_rom">
@@ -244,8 +190,6 @@ append config {
 	</start>
 </config>}
 
-install_config $config
-
 #
 # Create launchpad configuration
 #
@@ -269,33 +213,7 @@ puts $launchpad_config_fd {<config>
 </config>}
 close $launchpad_config_fd
 
-
-#
-# Boot modules
-#
-
-# generic modules
-set boot_modules {
-	core ld.lib.so init
-	timer
-	nitpicker pointer status_bar report_rom rom_filter global_keys_handler
-	nit_focus
-	liquid_fb launchpad scout testnit nitlog
-	launchpad.config
-}
-
-# platform-specific modules
-lappend_if [have_spec linux]       boot_modules fb_sdl
-lappend_if [have_spec ps2]         boot_modules ps2_drv
-lappend_if [have_spec framebuffer] boot_modules fb_drv
-lappend_if [need_usb_hid]          boot_modules usb_drv
-lappend_if [have_spec gpio]        boot_modules [gpio_drv]
-lappend_if [have_spec imx53]       boot_modules input_drv
-
-append_platform_drv_boot_modules
-
-build_boot_image $boot_modules
-
+build_boot_image { status_bar testnit launchpad.config }
 
 if {[get_cmd_switch --autopilot]} {
 	run_genode_until {\[init -> scout\] png is.*\n} 40

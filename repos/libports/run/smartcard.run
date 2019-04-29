@@ -10,10 +10,7 @@ if { [have_include "power_on/qemu"] || [have_spec linux] || [have_spec muen] } {
 	exit 0
 }
 
-if { [get_cmd_switch --autopilot] && ![have_spec x86_64] } {
-	puts "Run script does not support autopilot mode on this platform"
-	exit 0
-}
+assert_spec x86_64
 
 #
 # Please configure your reader's vendor and product IDs here
@@ -30,8 +27,6 @@ set build_components {
 	drivers/usb
 	test/smartcard
 }
-
-lappend_if [have_spec gpio] build_components drivers/gpio
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
 append_platform_drv_build_components
@@ -60,13 +55,6 @@ append config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 	<default caps="100"/>}
-
-append_if [have_spec gpio] config "
-	<start name=\"[gpio_drv]\">
-		<resource name=\"RAM\" quantum=\"4M\"/>
-		<provides><service name=\"Gpio\"/></provides>
-		<config/>
-	</start>"
 
 append_platform_drv_config
 
@@ -98,6 +86,7 @@ append config {
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
+
 	<start name="test-smartcard" caps="150">
 		<resource name="RAM" quantum="4M"/>
 		<config>
@@ -127,8 +116,6 @@ set boot_modules {
 	libc.lib.so vfs.lib.so libm.lib.so libc_pipe.lib.so posix.lib.so
 	Info.plist
 }
-
-lappend_if [have_spec gpio] boot_modules [gpio_drv]
 
 append_platform_drv_boot_modules
 

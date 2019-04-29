@@ -16,8 +16,8 @@ SRC_CC  += pci_driver.cc platform.cc
 SRC_CC  += pci.cc mapped_io_mem_range.cc
 
 
-include $(REP_DIR)/lib/mk/xhci.inc
-include $(REP_DIR)/lib/mk/usb.inc
+include $(REP_DIR)/src/drivers/usb/xhci.inc
+include $(REP_DIR)/src/drivers/usb/target.inc
 
 CC_OPT  += -DCONFIG_PCI -DCONFIG_USB_EHCI_PCI=1 -DCONFIG_USB_XHCI_HCD=1
 

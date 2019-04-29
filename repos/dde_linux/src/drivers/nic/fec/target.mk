@@ -11,7 +11,7 @@ SRC_CC  += env.cc irq.cc malloc.cc scheduler.cc timer.cc work.cc printf.cc
 INC_DIR += $(REP_DIR)/src/include
 INC_DIR += $(REP_DIR)/src/include/spec/arm
 INC_DIR += $(REP_DIR)/src/include/spec/arm_v7
-INC_DIR += $(REP_DIR)/src/lib/usb/include/spec/arm
+INC_DIR += $(REP_DIR)/src/drivers/usb/include/spec/arm
 
 # contrib code
 LX_CONTRIB_DIR := $(call select_from_ports,dde_linux)/src/drivers/nic/fec

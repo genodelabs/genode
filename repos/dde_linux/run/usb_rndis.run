@@ -4,6 +4,8 @@
 # \date   2017-10-19
 #
 
+assert_spec x86
+
 #
 # Build
 #
@@ -18,8 +20,6 @@ set build_components {
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
 append_platform_drv_build_components
-
-lappend_if [have_spec gpio]             build_components drivers/gpio
 
 build $build_components
 
@@ -80,13 +80,6 @@ set config {
 
 append_platform_drv_config
 
-append_if [have_spec gpio] config "
-	<start name=\"[gpio_drv]\">
-		<resource name=\"RAM\" quantum=\"4M\"/>
-		<provides><service name=\"Gpio\"/></provides>
-		<config/>
-	</start>"
-
 append config {
 </config>
 }
@@ -107,7 +100,6 @@ set boot_modules {
 }
 
 append_platform_drv_boot_modules
-lappend_if [have_spec gpio] boot_modules [gpio_drv]
 
 build_boot_image $boot_modules
 

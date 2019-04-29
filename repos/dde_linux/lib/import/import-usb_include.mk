@@ -1,6 +1,6 @@
 USB_CONTRIB_DIR := $(call select_from_ports,dde_linux)/src/lib/usb
 
-LIB_DIR          := $(REP_DIR)/src/lib/usb
+LIB_DIR          := $(REP_DIR)/src/drivers/usb
 LIB_INC_DIR      := $(LIB_DIR)/include
 
 # architecture-dependent includes

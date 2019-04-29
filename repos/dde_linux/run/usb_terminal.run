@@ -1,3 +1,4 @@
+assert_spec x86
 set usb_raw_device ""
 
 #
@@ -20,8 +21,6 @@ set build_components {
 	server/usb_terminal
 	test/terminal_echo
 }
-
-lappend_if [have_spec gpio]             build_components drivers/gpio
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
 append_platform_drv_build_components
@@ -50,13 +49,6 @@ append config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 	<default caps="100"/>}
-
-append_if [have_spec gpio] config "
-	<start name=\"[gpio_drv]\">
-		<resource name=\"RAM\" quantum=\"4M\"/>
-		<provides><service name=\"Gpio\"/></provides>
-		<config/>
-	</start>"
 
 append_platform_drv_config
 

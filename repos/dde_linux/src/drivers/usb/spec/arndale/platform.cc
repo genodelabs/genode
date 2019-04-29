@@ -15,7 +15,6 @@
 #include <drivers/defs/arndale.h>
 #include <base/attached_io_mem_dataspace.h>
 #include <io_mem_session/connection.h>
-#include <regulator/consts.h>
 #include <regulator_session/connection.h>
 #include <timer_session/connection.h>
 #include <util/mmio.h>

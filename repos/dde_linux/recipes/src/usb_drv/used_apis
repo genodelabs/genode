@@ -2,6 +2,8 @@ base
 os
 nic_session
 usb_session
+gpio_session
+regulator_session
 input_session
 block_session
 platform_session

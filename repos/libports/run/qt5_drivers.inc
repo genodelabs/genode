@@ -89,6 +89,12 @@ proc use_usb_drv { feature_arg } {
 	return [expr {[use_usb_input feature] || [use_usb_nic feature]}]
 }
 
+proc usb_drv_binary { } {
+	if {[have_spec x86]}     { return usb_drv  }
+	if {[have_spec rpi]}     { return rpi_usb_drv }
+	return no_nic_drv_available
+}
+
 #
 # Keyboard layout - this function can be overridden in a run script
 # 
@@ -281,6 +287,7 @@ proc drivers_start_nodes { feature_arg } {
 	if { [use_usb_drv feature] } {
 		append start_nodes {
 			<start name="usb_drv" caps="120">
+				<binary name="} [usb_drv_binary] {"/>
 				<resource name="RAM" quantum="12M"/>
 				<provides>}
 		append_if [use_usb_input feature] start_nodes {
@@ -326,7 +333,7 @@ proc drivers_boot_modules { feature_arg } {
 	lappend_if [use_input_filter feature] boot_modules special.chargen
 	lappend_if [use_nic_drv feature]      boot_modules [nic_drv_binary]
 	lappend_if [use_ps2_drv feature]      boot_modules ps2_drv
-	lappend_if [use_usb_drv feature]      boot_modules usb_drv
+	lappend_if [use_usb_drv feature]      boot_modules [usb_drv_binary]
 
 	return $boot_modules
 }
