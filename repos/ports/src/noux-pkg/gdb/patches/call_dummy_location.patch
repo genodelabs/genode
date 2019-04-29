@@ -1,0 +1,23 @@
+call_dummy_location.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ gdb/i386-tdep.c |    2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/gdb/i386-tdep.c b/gdb/i386-tdep.c
+index fe2453c..6c9fdf8 100644
+--- a/gdb/i386-tdep.c
++++ b/gdb/i386-tdep.c
+@@ -8479,7 +8479,9 @@ i386_gdbarch_init (struct gdbarch_info info, struct gdbarch_list *arches)
+   set_gdbarch_get_longjmp_target (gdbarch, i386_get_longjmp_target);
+ 
+   /* Call dummy code.  */
++#if 0 /* the stack is not executable on a Genode target */
+   set_gdbarch_call_dummy_location (gdbarch, ON_STACK);
++#endif
+   set_gdbarch_push_dummy_code (gdbarch, i386_push_dummy_code);
+   set_gdbarch_push_dummy_call (gdbarch, i386_push_dummy_call);
+   set_gdbarch_frame_align (gdbarch, i386_frame_align);

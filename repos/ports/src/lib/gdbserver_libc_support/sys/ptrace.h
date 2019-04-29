@@ -39,7 +39,7 @@ enum __ptrace_request {
 	PTRACE_GETREGSET   = 0x4204,
 };
 
-extern long ptrace(enum __ptrace_request request, ...);
+extern "C" long ptrace (enum __ptrace_request, pid_t, void*, void*);
 
 
 #endif /* SYS_PTRACE_H */

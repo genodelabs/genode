@@ -25,11 +25,11 @@ extern "C" int  sigsuspend()  { return -1; }
 /*
  * version.c
  */
-extern "C" const char version[] = "7.3.1";
+extern "C" const char version[] = "8.1.1";
 extern "C" const char host_name[] = "";
 
 
-extern "C" int gdbserver_main(int argc, const char *argv[]);
+extern int gdbserver_main(int argc, char *argv[]);
 
 extern Genode::Env *genode_env;
 
@@ -38,7 +38,7 @@ void Libc::Component::construct(Libc::Env &env)
 	genode_env = &env;
 
 	int argc = 3;
-	const char *argv[] = { "gdbserver", "/dev/terminal", "target", 0 };
+	char *argv[] = { "gdbserver", "/dev/terminal", "target", 0 };
 
 	Libc::with_libc([&] () {
 		gdbserver_main(argc, argv);

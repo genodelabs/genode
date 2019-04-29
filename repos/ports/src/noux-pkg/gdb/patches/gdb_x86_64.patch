@@ -1,0 +1,102 @@
+gdb_x86_64.patch
+
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+
+
+---
+ gdb/amd64-tdep.c |   13 +++++++++++++
+ gdb/defs.h       |    1 +
+ gdb/i386-tdep.c  |    5 +++++
+ gdb/osabi.c      |    6 ++++++
+ 4 files changed, 25 insertions(+)
+
+diff --git a/gdb/amd64-tdep.c b/gdb/amd64-tdep.c
+index e1f8862..314bf77 100644
+--- a/gdb/amd64-tdep.c
++++ b/gdb/amd64-tdep.c
+@@ -50,6 +50,7 @@
+ #include "osabi.h"
+ #include "x86-tdep.h"
+ 
++#include "osabi.h"
+ #include "solib-svr4.h"
+ 
+ /* Note that the AMD64 architecture was previously known as x86-64.
+@@ -3296,6 +3297,13 @@ amd64_target_description (uint64_t xcr0, bool segments)
+   return *tdesc;
+ }
+ 
++static void
++amd64_genode_init_abi (struct gdbarch_info info, struct gdbarch *gdbarch)
++{
++  amd64_init_abi (info, gdbarch,
++		  amd64_target_description (X86_XSTATE_SSE_MASK, false));
++}
++
+ void
+ _initialize_amd64_tdep (void)
+ {
+@@ -3326,6 +3334,11 @@ _initialize_amd64_tdep (void)
+       selftests::record_xml_tdesc (a.xml, tdesc);
+     }
+ #endif /* GDB_SELF_TEST */
++
++  /* Genode */
++  gdbarch_register_osabi(bfd_arch_i386, bfd_mach_x86_64,
++                         GDB_OSABI_GENODE, amd64_genode_init_abi);
++  /* /Genode */
+ }
+ 
+ 
+diff --git a/gdb/defs.h b/gdb/defs.h
+index fc42170..6a43bf4 100644
+--- a/gdb/defs.h
++++ b/gdb/defs.h
+@@ -495,6 +495,7 @@ enum gdb_osabi
+   GDB_OSABI_LYNXOS178,
+   GDB_OSABI_NEWLIB,
+   GDB_OSABI_SDE,
++  GDB_OSABI_GENODE,
+ 
+   GDB_OSABI_INVALID		/* keep this last */
+ };
+diff --git a/gdb/i386-tdep.c b/gdb/i386-tdep.c
+index 18e6e77..fe2453c 100644
+--- a/gdb/i386-tdep.c
++++ b/gdb/i386-tdep.c
+@@ -9051,6 +9051,11 @@ Show Intel Memory Protection Extensions specific variables."),
+   gdbarch_register_osabi (bfd_arch_i386, 0, GDB_OSABI_SVR4,
+ 			  i386_svr4_init_abi);
+ 
++  /* Genode */
++  gdbarch_register_osabi(bfd_arch_i386, 0,  GDB_OSABI_GENODE,
++                         i386_elf_init_abi);
++  /* /Genode */
++
+   /* Initialize the i386-specific register groups.  */
+   i386_init_reggroups ();
+ 
+diff --git a/gdb/osabi.c b/gdb/osabi.c
+index 7d0540b..a68eea6 100644
+--- a/gdb/osabi.c
++++ b/gdb/osabi.c
+@@ -80,6 +80,7 @@ static const struct osabi_names gdb_osabi_names[] =
+   { "LynxOS178", NULL },
+   { "Newlib", NULL },
+   { "SDE", NULL },
++  { "Genode", NULL },
+ 
+   { "<invalid>", NULL }
+ };
+@@ -562,6 +563,11 @@ generic_elf_osabi_sniffer (bfd *abfd)
+       bfd_map_over_sections (abfd,
+ 			     generic_elf_osabi_sniff_abi_tag_sections,
+ 			     &osabi);
++/* Genode */
++      if (osabi == GDB_OSABI_UNKNOWN)
++        osabi = GDB_OSABI_GENODE;
++/* /Genode */
++
+       break;
+ 
+     case ELFOSABI_FREEBSD:

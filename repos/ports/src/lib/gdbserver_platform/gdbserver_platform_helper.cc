@@ -16,13 +16,9 @@
 #include "cpu_session_component.h"
 #include "genode_child_resources.h"
 
-extern "C" {
-#define private _private
 #include "server.h"
 #include "linux-low.h"
 #include "genode-low.h"
-#define _private private
-}
 
 using namespace Genode;
 using namespace Gdb_monitor;
@@ -37,9 +33,9 @@ Thread_state get_current_thread_state()
 {
 	Cpu_session_component &csc = genode_child_resources()->cpu_session_component();
 
-	ptid_t ptid = ((struct inferior_list_entry*)current_inferior)->id;
+	ptid_t ptid = current_thread->id;
 
-	Cpu_thread_client cpu_thread(csc.thread_cap(ptid.lwp));
+	Cpu_thread_client cpu_thread(csc.thread_cap(ptid.lwp()));
 
 	return cpu_thread.state();
 }
@@ -49,9 +45,9 @@ void set_current_thread_state(Thread_state thread_state)
 {
 	Cpu_session_component &csc = genode_child_resources()->cpu_session_component();
 
-	ptid_t ptid = ((struct inferior_list_entry*)current_inferior)->id;
+	ptid_t ptid = current_thread->id;
 
-	Cpu_thread_client cpu_thread(csc.thread_cap(ptid.lwp));
+	Cpu_thread_client cpu_thread(csc.thread_cap(ptid.lwp()));
 
 	cpu_thread.state(thread_state);
 }

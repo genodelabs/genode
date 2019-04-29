@@ -228,13 +228,16 @@ class Gdb_monitor::App_child : public Child_policy,
 		/**
 		 * Constructor
 		 */
-		App_child(Env        &env,
-		          Allocator  &alloc,
-		          char const *unique_name,
-		          Ram_quota   ram_quota,
-		          Cap_quota   cap_quota,
-		          Entrypoint &signal_ep,
-		          Xml_node    target_node)
+		App_child(Env                 &env,
+		          Allocator           &alloc,
+		          char const          *unique_name,
+		          Ram_quota            ram_quota,
+		          Cap_quota            cap_quota,
+		          Entrypoint          &signal_ep,
+		          Xml_node             target_node,
+		          int const            new_thread_pipe_write_end,
+		          int const            breakpoint_len,
+		          unsigned char const *breakpoint_data)
 		:
 			_env(env),
 			_alloc(alloc),
@@ -246,7 +249,9 @@ class Gdb_monitor::App_child : public Child_policy,
 			_unresolved_page_fault_handler(signal_ep, *this,
 			                               &App_child::_handle_unresolved_page_fault),
 			_cpu_factory(_env, _env.ep().rpc_ep(), _alloc, _pd.core_pd_cap(),
-			             signal_ep, &_genode_child_resources),
+			             signal_ep, new_thread_pipe_write_end,
+			             breakpoint_len, breakpoint_data,
+			             &_genode_child_resources),
 			_rom_factory(_env, _env.ep().rpc_ep(), _alloc)
 		{
 			_genode_child_resources.region_map_component(&_pd.region_map());
