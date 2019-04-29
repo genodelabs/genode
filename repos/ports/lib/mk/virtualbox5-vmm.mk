@@ -47,6 +47,8 @@ SRC_CC += VMM/VMMAll/CPUMAllRegs.cpp
 SRC_CC += VMM/VMMR3/VMEmt.cpp
 SRC_CC += VMM/VMMR3/VMReq.cpp
 
+CC_OPT_VMM/VMMR3/VMReq = -fpermissive
+
 SRC_CC += VMM/VMMAll/DBGFAll.cpp
 SRC_CC += VMM/VMMR3/DBGFInfo.cpp
 
