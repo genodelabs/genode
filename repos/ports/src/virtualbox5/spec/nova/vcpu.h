@@ -124,21 +124,36 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<Genode::Thread>,
 			INTERRUPT_STATE_NONE  = 0U,
 		};
 
+	protected:
+
+		void _fpu_save()
+		{
+			fpu_save(reinterpret_cast<char *>(&_guest_fpu_state));
+		}
+
+		void _fpu_load()
+		{
+			fpu_load(reinterpret_cast<char *>(&_guest_fpu_state));
+		}
+
+		__attribute__((noreturn)) void _longjmp()
+		{
+			longjmp(_env, 1);
+		}
+
 		/*
 		 * 'longjmp()' restores some FPU registers saved by 'setjmp()',
 		 * so we need to save the guest FPU state before calling 'longjmp()'
 		 */
 		__attribute__((noreturn)) void _fpu_save_and_longjmp()
 		{
-			fpu_save(reinterpret_cast<char *>(&_guest_fpu_state));
-			longjmp(_env, 1);
+			_fpu_save();
+			_longjmp();
 		}
 
 		int map_memory(RTGCPHYS GCPhys,
 		               size_t cbWrite, RTGCUINT vbox_fault_reason,
 		               Genode::Flexpage_iterator &fli, bool &writeable);
-
-	protected:
 
 		Genode::addr_t     _vm_exits    = 0;
 		Genode::addr_t     _recall_skip = 0;
@@ -170,6 +185,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<Genode::Thread>,
 			if (!setjmp(_env)) {
 				_stack_reply = reinterpret_cast<void *>(
 					Abi::stack_align(reinterpret_cast<Genode::addr_t>(&value)));
+				_fpu_load();
 				Nova::reply(_stack_reply);
 			}
 		}
@@ -211,19 +227,21 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<Genode::Thread>,
 
 				/* got recall during irq injection and the guest is ready for
 				 * delivery of IRQ - just continue */
+				_fpu_load();
 				Nova::reply(_stack_reply);
 			}
 
 			/* are we forced to go back to emulation mode ? */
 			if (!continue_hw_accelerated(utcb)) {
 				/* go back to emulation mode */
-				_fpu_save_and_longjmp();
+				_longjmp();
 			}
 
 			/* check whether we have to request irq injection window */
 			utcb->mtd = Nova::Mtd::FPU;
 			if (check_to_request_irq_window(utcb, _current_vcpu)) {
 				_irq_win = true;
+				_fpu_load();
 				Nova::reply(_stack_reply);
 			}
 
@@ -239,8 +257,10 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<Genode::Thread>,
 
 				utcb->mtd = Nova::Mtd::FPU;
 				_irq_win = check_to_request_irq_window(utcb, _current_vcpu);
-				if (_irq_win)
+				if (_irq_win) {
+					_fpu_load();
 					Nova::reply(_stack_reply);
+				}
 			}
 
 			/* nothing to do at all - continue hardware accelerated */
@@ -262,6 +282,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<Genode::Thread>,
 				utcb->mtd      |= Nova::Mtd::INJ;
 			}
 
+			_fpu_load();
 			Nova::reply(_stack_reply);
 		}
 
@@ -281,6 +302,8 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<Genode::Thread>,
 				Nova::reply(_stack_reply);
 			}
 
+			_fpu_save();
+
 			enum { MAP_SIZE = 0x1000UL };
 
 			bool writeable = true;
@@ -298,7 +321,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<Genode::Thread>,
 
 				/* event re-injection is not handled yet for this case */
 				Assert(!(utcb->inj_info & IRQ_INJ_VALID_MASK));
-				_fpu_save_and_longjmp();
+				_longjmp();
 			}
 
 			/* fault region can be mapped - prepare utcb */
@@ -346,6 +369,8 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<Genode::Thread>,
 					         Genode::Hex(flexpage.hotspot), " ",
 					         "guestf fault at ", Genode::Hex(guest_fault));
 			} while (res);
+
+			_fpu_load();
 
 			Nova::reply(_stack_reply);
 		}
@@ -656,6 +681,8 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<Genode::Thread>,
 					/* happens if PDMApicSetTPR (see above) mask IRQ */
 					utcb->inj_info = IRQ_INJ_NONE;
 					utcb->mtd      = Nova::Mtd::INJ | Nova::Mtd::FPU;
+
+					_fpu_load();
 					Nova::reply(_stack_reply);
 				}
 			}
@@ -707,6 +734,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<Genode::Thread>,
 			         Genode::Hex(utcb->mtd));
 */
 			utcb->mtd = Nova::Mtd::INJ | Nova::Mtd::FPU;
+			_fpu_load();
 			Nova::reply(_stack_reply);
 		}
 
@@ -911,7 +939,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<Genode::Thread>,
 			/* save current FPU state */
 			fpu_save(reinterpret_cast<char *>(&_emt_fpu_state));
 			/* write FPU state from pCtx to FPU registers */
-			fpu_load(reinterpret_cast<char *>(pCtx->pXStateR3));
+			memcpy(&_guest_fpu_state, pCtx->pXStateR3, sizeof(_guest_fpu_state));
 			/* tell kernel to transfer current fpu registers to vCPU */
 			utcb->mtd |= Mtd::FPU;
 

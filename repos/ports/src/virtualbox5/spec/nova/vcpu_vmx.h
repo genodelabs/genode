@@ -105,10 +105,15 @@ class Vcpu_handler_vmx : public Vcpu_handler
 			exit(-1);
 		}
 
-		__attribute__((noreturn)) void _vmx_irqwin() { _irq_window(); }
+		__attribute__((noreturn)) void _vmx_irqwin()
+		{
+			_fpu_save();
+			_irq_window();
+		}
 
 		__attribute__((noreturn)) void _vmx_recall()
 		{
+			_fpu_save();
 			Vcpu_handler::_recall_handler();
 		}
 
@@ -140,8 +145,7 @@ class Vcpu_handler_vmx : public Vcpu_handler
 		 */
 		__attribute__((noreturn)) void _vmx_mov_crx()
 		{
-			unsigned long value;
-			void *stack_reply = reinterpret_cast<void *>(&value - 1);
+			_fpu_save();
 
 			Genode::Thread *myself = Genode::Thread::myself();
 			Nova::Utcb *utcb = reinterpret_cast<Nova::Utcb *>(myself->utcb());
@@ -149,7 +153,7 @@ class Vcpu_handler_vmx : public Vcpu_handler
 			unsigned int cr = utcb->qual[0] & 0xf;
 
 			if (cr == 8)
-				_default_handler();
+				_longjmp();
 
 			_vm_exits ++;
 
@@ -164,7 +168,9 @@ class Vcpu_handler_vmx : public Vcpu_handler
 
 			utcb->mtd = Nova::Mtd::PDPTE | Nova::Mtd::FPU;
 
-			Nova::reply(stack_reply);
+			_fpu_load();
+
+			Nova::reply(_stack_reply);
 		}
 
 	public:
