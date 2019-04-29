@@ -4,7 +4,7 @@ DOWNLOADS := sel4_tools.git
 
 URL(sel4_tools) := https://github.com/skalk/seL4_tools.git
 # Rev 9.0.x genode branch
-REV(sel4_tools) := dd8068bfd4acfa2c3142398521c40bea093bbe04
+REV(sel4_tools) := 3839bb9740f8f13266de4273774004634388a2f7
 DIR(sel4_tools) := src/tool/sel4_tools
 
 $(call check_tool,python)
