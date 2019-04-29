@@ -160,6 +160,10 @@ struct Noux::Sysio
 		FCNTL_CMD_GET_FD_FLAGS
 	};
 
+	enum {
+		FCNTL_FILE_STATUS_FLAG_NONBLOCK = 4
+	};
+
 	/**
 	 * Input and output argument type of select syscall
 	 */

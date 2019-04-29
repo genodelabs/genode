@@ -58,8 +58,12 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				if (io->check_unblock(false, true, false)) {
 					/* 'io->write' is expected to update '_sysio.write_out.count' */
 					result = io->write(_sysio);
-				} else
-					_sysio.error.write = Vfs::File_io_service::WRITE_ERR_INTERRUPT;
+				} else {
+					if (io->nonblocking())
+						_sysio.error.write = Vfs::File_io_service::WRITE_ERR_WOULD_BLOCK;
+					else
+						_sysio.error.write = Vfs::File_io_service::WRITE_ERR_INTERRUPT;
+				}
 
 				break;
 			}
@@ -73,8 +77,12 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 
 				if (io->check_unblock(true, false, false))
 					result = io->read(_sysio);
-				else
-					_sysio.error.read = Vfs::File_io_service::READ_ERR_INTERRUPT;
+				else {
+					if (io->nonblocking())
+						_sysio.error.read = Vfs::File_io_service::READ_ERR_WOULD_BLOCK;
+					else
+						_sysio.error.read = Vfs::File_io_service::READ_ERR_INTERRUPT;
+				}
 
 				break;
 			}

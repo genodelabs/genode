@@ -222,6 +222,8 @@ class Noux::Pipe_sink_io_channel : public Io_channel
 
 		Shared_pointer<Pipe> _pipe;
 
+		bool _nonblocking { false };
+
 	public:
 
 		Pipe_sink_io_channel(Shared_pointer<Pipe> pipe, Entrypoint &ep)
@@ -239,6 +241,8 @@ class Noux::Pipe_sink_io_channel : public Io_channel
 			return wr && _pipe->any_space_avail_for_writing();
 		}
 
+		bool nonblocking() override { return _nonblocking; }
+
 		bool write(Sysio &sysio) override
 		{
 			sysio.write_out.count = _pipe->write(sysio.write_in.chunk,
@@ -252,6 +256,12 @@ class Noux::Pipe_sink_io_channel : public Io_channel
 
 				case Sysio::FCNTL_CMD_GET_FILE_STATUS_FLAGS:
 					sysio.fcntl_out.result = Sysio::OPEN_MODE_WRONLY;
+					return true;
+
+				case Sysio::FCNTL_CMD_SET_FILE_STATUS_FLAGS:
+					_nonblocking = (sysio.fcntl_in.long_arg &
+					                Sysio::FCNTL_FILE_STATUS_FLAG_NONBLOCK);
+					sysio.fcntl_out.result = 0;
 					return true;
 
 				default:
@@ -277,6 +287,8 @@ class Noux::Pipe_source_io_channel : public Io_channel
 
 		Shared_pointer<Pipe> _pipe;
 
+		bool _nonblocking { false };
+
 	public:
 
 		Pipe_source_io_channel(Shared_pointer<Pipe> pipe, Entrypoint &ep)
@@ -298,6 +310,8 @@ class Noux::Pipe_source_io_channel : public Io_channel
 			return (rd && _pipe->data_avail_for_reading());
 		}
 
+		bool nonblocking() override { return _nonblocking; }
+
 		bool read(Sysio &sysio) override
 		{
 			size_t const max_count =
@@ -316,6 +330,12 @@ class Noux::Pipe_source_io_channel : public Io_channel
 
 				case Sysio::FCNTL_CMD_GET_FILE_STATUS_FLAGS:
 					sysio.fcntl_out.result = Sysio::OPEN_MODE_RDONLY;
+					return true;
+
+				case Sysio::FCNTL_CMD_SET_FILE_STATUS_FLAGS:
+					_nonblocking = (sysio.fcntl_in.long_arg &
+					                Sysio::FCNTL_FILE_STATUS_FLAG_NONBLOCK);
+					sysio.fcntl_out.result = 0;
 					return true;
 
 				default:
