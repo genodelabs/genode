@@ -248,21 +248,23 @@ struct Trace_subject_registry
 						if (!load[x][y][i] || !total_first[x][y])
 							continue;
 
-						unsigned ec_percent = load[x][y][i]->recent_time[first] * 100   / total_first[x][y];
-						unsigned ec_rest    = load[x][y][i]->recent_time[first] * 10000 / total_first[x][y] - (ec_percent * 100);
+						Entry const &entry = *load[x][y][i];
+
+						unsigned ec_percent = entry.recent_time[first] * 100   / total_first[x][y];
+						unsigned ec_rest    = entry.recent_time[first] * 10000 / total_first[x][y] - (ec_percent * 100);
 
 						unsigned sc_percent = 0;
 						unsigned sc_rest    = 0;
 						if (total_second[x][y]) {
-							sc_percent = load[x][y][i]->recent_time[second] * 100   / total_second[x][y];
-							sc_rest    = load[x][y][i]->recent_time[second] * 10000 / total_second[x][y] - (sc_percent * 100);
+							sc_percent = entry.recent_time[second] * 100   / total_second[x][y];
+							sc_rest    = entry.recent_time[second] * 10000 / total_second[x][y] - (sc_percent * 100);
 						}
 
 						enum { NAME_SPACE = 24 };
 						static char space[NAME_SPACE];
 						Genode::memset(space, ' ', NAME_SPACE - 1);
 
-						unsigned thread_name_len = load[x][y][i]->info.thread_name().length();
+						unsigned thread_name_len = entry.info.thread_name().length();
 						if (!thread_name_len)
 							space[NAME_SPACE - 1] = 0;
 						else
@@ -274,19 +276,34 @@ struct Trace_subject_registry
 						Genode::String<NAME_SPACE> space_string(space);
 
 						using Genode::log;
-						log("cpu=", load[x][y][i]->info.affinity().xpos(), ".",
-						    load[x][y][i]->info.affinity().ypos(), " ",
-						    ec_percent < 10 ? "  " : (ec_percent < 100 ? " " : ""),
-						    ec_percent, ".", ec_rest < 10 ? "0" : "", ec_rest, "% ",
-						    sc_percent < 10 ? "  " : (sc_percent < 100 ? " " : ""),
-						    sc_percent, ".", sc_rest < 10 ? "0" : "", sc_rest, "% "
-						    "thread='", load[x][y][i]->info.thread_name(), "' ", space_string,
-						    "label='", load[x][y][i]->info.session_label(), "'");
+						log("cpu=", entry.info.affinity().xpos(),
+						    ".", entry.info.affinity().ypos(),
+						    " ", _align_right<4>(entry.info.execution_time().priority),
+						    " ", _align_right<6>(entry.info.execution_time().quantum),
+						    " ", _align_right<4>(ec_percent),
+						    ".", _align_right<3>(ec_rest, true), "%"
+						    " ", _align_right<4>(sc_percent),
+						    ".", _align_right<3>(sc_rest, true), "% "
+						    "thread='", entry.info.thread_name(), "' ", space_string,
+						    "label='", entry.info.session_label(), "'");
 					}
 				}
 			}
 			if (load[0][0][0] && load[0][0][0]->recent_time[first])
 				Genode::log("");
+		}
+
+		template <int T>
+		Genode::String<T> _align_right(Genode::uint64_t value, bool zero = false)
+		{
+			Genode::String<T> result(value);
+
+			for (Genode::uint64_t i = 1, pow = 10; i < (T - 1); i++, pow *= 10) {
+				if (value < pow)
+					result = Genode::String<T>(zero ? "0" : " ", result);
+			}
+
+			return result;
 		}
 };
 
