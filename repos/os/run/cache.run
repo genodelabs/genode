@@ -1,0 +1,49 @@
+#
+# \brief  Simple cache benchmark
+# \author Johannes Schlatow
+#
+
+
+set build_components { core init test/cache }
+
+lappend_if [have_spec arndale] build_components drivers/platform
+
+build $build_components
+
+create_boot_directory
+
+set config {
+	<config>
+		<parent-provides>
+			<service name="LOG"/>
+			<service name="CPU"/>
+			<service name="PD"/>
+			<service name="ROM"/>
+			<service name="IO_MEM"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> </any-service>
+		</default-route>
+		<default caps="100"/>}
+
+append_if [have_spec arndale] config {
+	<start name="platform_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Regulator"/></provides>
+	</start> }
+
+append config {
+		<start name="test-cache">
+			<resource name="RAM" quantum="64M"/>
+		</start>
+	</config> }
+
+install_config $config
+
+set boot_modules { core ld.lib.so init test-cache }
+
+lappend_if [have_spec arndale] boot_modules platform_drv
+
+build_boot_image $boot_modules
+
+run_genode_until "done.*\n" 300
