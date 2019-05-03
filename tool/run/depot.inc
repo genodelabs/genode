@@ -457,9 +457,10 @@ proc check_for_missing_depot_archives { } {
 
 proc drivers_interactive_pkg { } {
 
-	if {[have_spec linux]} { return drivers_interactive-linux }
-	if {[have_spec x86]}   { return drivers_interactive-pc }
-	if {[have_spec pbxa9]} { return drivers_interactive-pbxa9 }
+	if {[have_spec linux]}     { return drivers_interactive-linux }
+	if {[have_spec x86]}       { return drivers_interactive-pc }
+	if {[have_spec pbxa9]}     { return drivers_interactive-pbxa9 }
+	if {[have_spec imx53_qsb]} { return drivers_interactive-imx53_qsb }
 
 	puts stderr "drivers_interactive package undefined for this build configuration"
 	exit 1
