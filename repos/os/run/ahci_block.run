@@ -1,3 +1,4 @@
+assert_spec x86
 
 set mke2fs [installed_command mke2fs]
 set dd     [installed_command dd]
