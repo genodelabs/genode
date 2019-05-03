@@ -16,10 +16,8 @@ if {[have_spec odroid_xu]} {
 
 append build_components [qt5_build_components feature]
 
-set use_sd_card_driver [expr [have_spec omap4] || [have_spec arndale]]
 set use_ahci_driver    [expr [have_spec x86] && ![have_spec linux]]
 
-lappend_if $use_sd_card_driver       build_components drivers/sd_card
 lappend_if $use_ahci_driver          build_components drivers/ahci
 lappend_if [have_spec    acpi]       build_components drivers/acpi
 lappend_if [have_spec   linux]       build_components server/ram_fs
@@ -51,12 +49,6 @@ append_if $use_ahci_driver config {
 		<config>
 			<policy label_prefix="fatfs_fs" device="0" />
 		</config>
-	</start>}
-
-append_if $use_sd_card_driver config {
-	<start name="sd_card_drv">
-		<resource name="RAM" quantum="1M" />
-		<provides><service name="Block"/></provides>
 	</start>}
 
 append_if [have_spec linux] config {
@@ -136,7 +128,6 @@ append boot_modules [qt5_boot_modules feature]
 # platform-specific modules
 lappend_if [have_spec linux]         boot_modules ram_fs
 lappend_if [expr ![have_spec linux]] boot_modules fatfs_fs
-lappend_if $use_sd_card_driver       boot_modules sd_card_drv
 lappend_if $use_ahci_driver          boot_modules ahci_drv
 
 build_boot_image $boot_modules

@@ -2,6 +2,8 @@
 # Build
 #
 
+assert_spec pbxa9
+
 # generic components
 set build_components {
 	core init
@@ -44,7 +46,7 @@ append config {
 			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Timer"/></provides>
 		</start>
-		<start name="sd_card_drv">
+		<start name="pbxa9_sd_card_drv">
 			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Block"/></provides>
 		</start>
@@ -63,7 +65,7 @@ install_config $config
 # generic modules
 set boot_modules {
 	core ld.lib.so init timer
-	sd_card_drv
+	pbxa9_sd_card_drv
 	test-block-client
 }
 

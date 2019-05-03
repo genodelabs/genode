@@ -19,6 +19,7 @@
 #include <block/component.h>
 
 /* local includes */
+#include <benchmark.h>
 #include <driver.h>
 
 using namespace Genode;
@@ -53,4 +54,14 @@ struct Main
 };
 
 
-void Component::construct(Genode::Env &env) { static Main main(env); }
+void Component::construct(Genode::Env &env)
+{
+	bool benchmark = false;
+	try {
+		Attached_rom_dataspace config { env, "config" };
+		benchmark = config.xml().attribute_value("benchmark", false);
+	} catch(...) {}
+
+	if (benchmark) static Benchmark bench(env);
+	else           static Main      main(env);
+}

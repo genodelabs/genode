@@ -10,7 +10,7 @@ if {[have_spec odroid_xu] || [have_spec zynq]} {
 }
 
 # use SD on ARM
-set use_sd_card_drv [expr [have_spec omap4] || [have_spec arndale] || [have_spec pl180]]
+set use_sd_card_drv [expr [have_spec pbxa9]]
 
 # use AHCI on x86
 set use_ahci        [expr [have_spec x86] && ![have_spec linux]]
@@ -110,7 +110,7 @@ append_if $use_ahci config {
 	</start>}
 
 append_if $use_sd_card_drv config {
-	<start name="sd_card_drv">
+	<start name="pbxa9_sd_card_drv">
 		<resource name="RAM" quantum="1M" />
 		<provides><service name="Block"/></provides>
 	</start>
@@ -144,7 +144,7 @@ append boot_modules " "
 append boot_modules libc_$filesystem.lib.so
 
 lappend_if $use_ahci         boot_modules ahci_drv
-lappend_if $use_sd_card_drv  boot_modules sd_card_drv
+lappend_if $use_sd_card_drv  boot_modules pbxa9_sd_card_drv
 lappend_if $use_ram_block    boot_modules ram_block
 lappend_if $use_ram_block    boot_modules test.hda
 

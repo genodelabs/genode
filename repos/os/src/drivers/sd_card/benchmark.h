@@ -13,7 +13,6 @@
  */
 
 /* Genode includes */
-#include <base/component.h>
 #include <timer_session/connection.h>
 #include <base/attached_ram_dataspace.h>
 #include <base/attached_rom_dataspace.h>
@@ -24,7 +23,7 @@
 using namespace Genode;
 
 
-struct Main
+struct Benchmark
 {
 	using Packet_descriptor = Block::Packet_descriptor;
 
@@ -48,28 +47,28 @@ struct Main
 		}
 	};
 
-	Env                    &env;
-	Packet_descriptor       pkt          { };
-	uint64_t                time_before_ms { };
-	Timer::Connection       timer        { env };
-	Operation               operation    { READ };
-	Signal_handler<Main>    ack_handler  { env.ep(), *this, &Main::update_state };
-	Driver_session          drv_session  { ack_handler };
-	Sd_card::Driver         drv          { env };
-	size_t const            buf_size_kib { Attached_rom_dataspace(env, "config")
-	                                       .xml().attribute_value("buffer_size_kib",
-	                                                              (size_t)0) };
-	size_t const            buf_size     { buf_size_kib * 1024 };
-	Attached_ram_dataspace  buf          { env.ram(), env.rm(), buf_size, UNCACHED };
-	char                   *buf_virt     { buf.local_addr<char>() };
-	addr_t                  buf_phys     { Dataspace_client(buf.cap())
-	                                       .phys_addr() };
-	size_t                  buf_off_done { 0 };
-	size_t                  buf_off_pend { 0 };
-	unsigned                req_size_id  { 0 };
-	size_t                  req_sizes[9] { 512, 1024, 1024 * 2,  1024 * 4,
-	                                       1024 * 8,  1024 * 16, 1024 * 32,
-	                                       1024 * 64, 1024 * 128 };
+	Env                      &env;
+	Attached_rom_dataspace    config       { env, "config" };
+	Packet_descriptor         pkt          { };
+	uint64_t                  time_before_ms { };
+	Timer::Connection         timer        { env };
+	Operation                 operation    { READ };
+	Signal_handler<Benchmark> ack_handler  { env.ep(), *this, &Benchmark::update_state };
+	Driver_session            drv_session  { ack_handler };
+	Sd_card::Driver           drv          { env };
+	size_t const              buf_size_kib { config.xml().attribute_value("buffer_size_kib",
+	                                                                      (size_t)0) };
+	size_t const              buf_size     { buf_size_kib * 1024 };
+	Attached_ram_dataspace    buf          { env.ram(), env.rm(), buf_size, UNCACHED };
+	char                     *buf_virt     { buf.local_addr<char>() };
+	addr_t                    buf_phys     { Dataspace_client(buf.cap())
+	                                         .phys_addr() };
+	size_t                    buf_off_done { 0 };
+	size_t                    buf_off_pend { 0 };
+	unsigned                  req_size_id  { 0 };
+	size_t                    req_sizes[9] { 512, 1024, 1024 * 2,  1024 * 4,
+	                                         1024 * 8,  1024 * 16, 1024 * 32,
+	                                         1024 * 64, 1024 * 128 };
 
 	size_t req_size() const { return req_sizes[req_size_id]; }
 
@@ -142,7 +141,7 @@ struct Main
 		} catch (Block::Driver::Request_congestion) { }
 	}
 
-	Main(Env &env) : env(env)
+	Benchmark(Env &env) : env(env)
 	{
 		log("");
 		log("--- SD card benchmark (", drv.dma_enabled() ? "with" : "no", " DMA) ---");
@@ -162,9 +161,6 @@ struct Main
 		/*
 		 * Noncopyable
 		 */
-		Main(Main const &);
-		Main &operator = (Main const &);
+		Benchmark(Benchmark const &);
+		Benchmark &operator = (Benchmark const &);
 };
-
-
-void Component::construct(Genode::Env &env) { static Main main(env); }

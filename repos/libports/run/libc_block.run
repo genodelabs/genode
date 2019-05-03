@@ -1,9 +1,6 @@
-set use_sd_card_drv [expr [have_spec omap4] || [have_spec arndale] || [have_spec pl180]]
+set use_sd_card_drv [expr [have_spec pbxa9]]
 set use_ahci_drv    [expr [have_spec x86] && ![have_spec linux]]
 set use_ram_block   [have_spec linux]
-
-if {[have_spec odroid_xu]} {
-	puts "Run script does not support this platform"; exit }
 
 if {[expr ![have_include "power_on/qemu"] && !$use_ram_block]} {
 	puts "\nPlease setup your native sd or hard drive. Remove this fail stop";
@@ -81,7 +78,7 @@ append_if $use_ahci_drv config {
 }
 
 append_if $use_sd_card_drv config {
-	<start name="sd_card_drv">
+	<start name="pbxa9_sd_card_drv">
 		<resource name="RAM" quantum="1M" />
 		<provides><service name="Block"/></provides>
 	</start>
@@ -112,7 +109,7 @@ set boot_modules {
 }
 
 lappend_if $use_ahci_drv     boot_modules ahci_drv
-lappend_if $use_sd_card_drv  boot_modules sd_card_drv
+lappend_if $use_sd_card_drv  boot_modules pbxa9_sd_card_drv
 lappend_if $use_ram_block    boot_modules ram_block
 lappend_if $use_ram_block    boot_modules test.hda
 

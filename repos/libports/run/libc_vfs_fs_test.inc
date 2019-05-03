@@ -4,12 +4,12 @@
 # \date   2017-06-13
 #
 
-set use_sd_card_drv [expr [have_spec omap4] || [have_spec arndale] || [have_spec pl180]]
+set use_sd_card_drv [expr [have_spec pbxa9]]
 set use_ahci_drv    [expr [have_spec x86] && ![have_spec linux]]
 set use_ram_block   [have_spec linux]
 set mkfs [installed_command $mkfs_cmd]
 
-if {[have_spec odroid_xu]} {
+if {[expr ![have_spec pbxa9] && ![have_spec x86]]} {
         puts "Run script does not support this platform"; exit }
 
 #
@@ -99,7 +99,7 @@ append_if $use_ahci_drv config {
 }
 
 append_if $use_sd_card_drv config {
-	<start name="sd_card_drv">
+	<start name="pbxa9_sd_card_drv">
 		<resource name="RAM" quantum="1M" />
 		<provides><service name="Block"/></provides>
 	</start>
@@ -132,7 +132,7 @@ set boot_modules {
 lappend boot_modules $binary
 
 lappend_if $use_ahci_drv     boot_modules ahci_drv
-lappend_if $use_sd_card_drv  boot_modules sd_card_drv
+lappend_if $use_sd_card_drv  boot_modules pbxa9_sd_card_drv
 lappend_if $use_ram_block    boot_modules ram_block
 lappend_if $use_ram_block    boot_modules test.hda
 

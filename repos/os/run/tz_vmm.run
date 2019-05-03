@@ -155,7 +155,7 @@ append_if $mmc_rootfs config {
 			<service name="Platform"/>
 		</provides>
 	</start>
-	<start name="sd_card_drv">
+	<start name="imx53_sd_card_drv">
 		<resource name="RAM" quantum="3M"/>
 		<provides><service name="Block"/></provides>
 	</start>
@@ -163,7 +163,7 @@ append_if $mmc_rootfs config {
 		<resource name="RAM" quantum="10M" />
 		<provides><service name="Block" /></provides>
 		<route>
-			<service name="Block"><child name="sd_card_drv" /></service>
+			<service name="Block"><child name="imx53_sd_card_drv" /></service>
 			<any-service><parent/><any-child/></any-service>
 		</route>
 		<config>
@@ -229,7 +229,7 @@ if { $mmc_rootfs } {
 	# add components that enable MMC access via parvirtualized block
 	lappend boot_modules timer
 	lappend boot_modules imx53_platform_drv
-	lappend boot_modules sd_card_drv
+	lappend boot_modules imx53_sd_card_drv
 	lappend boot_modules part_block
 
 	# download and add rootfs

@@ -2,27 +2,34 @@
 # Check for platform support
 #
 
-      if {[have_spec pl180]}   { set buffer_size_kib [expr 12 * 1024]
-} elseif {[have_spec imx6]}    { set buffer_size_kib [expr      1024]
-} elseif {[have_spec imx53] &&
-          ![have_spec foc]}    { set buffer_size_kib [expr      1024]
-} elseif {[have_spec rpi]}     { set buffer_size_kib [expr  4 * 1024]
-} elseif {[have_spec omap4]}   { set buffer_size_kib [expr  4 * 1024]
-} elseif {[have_spec arndale]} { set buffer_size_kib [expr      1024]
-} else   {
+proc buffer_size_kib {} {
+	if {[have_spec pl180]}   { return [expr 12 * 1024] }
+	if {[have_spec imx6]}    { return [expr      1024] }
+	if {[have_spec imx53] &&
+	    ![have_spec foc]}    { return [expr      1024] }
+	if {[have_spec rpi]}     { return [expr  4 * 1024] }
+	if {[have_spec omap4]}   { return [expr  4 * 1024] }
+	if {[have_spec arndale]} { return [expr      1024] }
 	puts "\n Run script is not supported on this platform. \n";
 	exit 0;
 }
 
+proc sd_card_drv {} {
+	if {[have_spec pbxa9]}           { return pbxa9_sd_card_drv }
+	if {[have_spec imx6q_sabrelite]} { return imx6q_sabrelite_sd_card_drv }
+	if {[have_spec imx53]}           { return imx53_sd_card_drv }
+	if {[have_spec rpi]}             { return rpi_sd_card_drv }
+	if {[have_spec omap4]}           { return omap4_sd_card_drv }
+	if {[have_spec arndale]}         { return arndale_sd_card_drv }
+	puts "\n Run script is not supported on this platform. \n";
+	exit 0;
+}
 
 #
 # Build the boot modules
 #
 
-set build_components {
-	core init timer
-	test/sd_card_bench
-}
+set build_components { core init timer drivers/sd_card }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
 append_platform_drv_build_components
@@ -57,13 +64,10 @@ append config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
-	<start name="sd_card_bench">
+	<start name="} [sd_card_drv] {">
 		<resource name="RAM" quantum="16M"/>
-		<provides><service name="Block"/></provides>}
-
-append config "<config buffer_size_kib=\"$buffer_size_kib\"/>"
-
-append config {
+		<provides><service name="Block"/></provides>
+		<config benchmark="yes" buffer_size_kib="} [buffer_size_kib] {"/>
 	</start>
 </config>}
 
@@ -77,9 +81,9 @@ install_config $config
 set boot_modules {
 	core ld.lib.so init
 	timer
-	sd_card_bench
 }
 
+append boot_modules [sd_card_drv]
 append_platform_drv_boot_modules
 build_boot_image $boot_modules
 
