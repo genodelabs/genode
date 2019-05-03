@@ -348,6 +348,7 @@ append_if [expr $use_usb] config {
 
 append_if [have_spec framebuffer] config {
 	<start name="fb_drv" priority="-1" caps="150">
+		<binary name="vesa_fb_drv"/>
 		<resource name="RAM" quantum="8M"/>
 		<provides><service name="Framebuffer"/></provides>
 		<config buffered="yes"/>
@@ -392,7 +393,7 @@ lappend_if [have_spec nova] boot_modules log_core
 lappend_if [expr         $use_ps2] boot_modules ps2_drv
 lappend_if [expr         $use_usb] boot_modules usb_drv
 lappend_if [expr         $use_usb] boot_modules usb_report_filter
-lappend_if [have_spec framebuffer] boot_modules fb_drv
+lappend_if [have_spec framebuffer] boot_modules vesa_fb_drv
 lappend_if [have_spec         x86] boot_modules rtc_drv
 
 append_platform_drv_boot_modules

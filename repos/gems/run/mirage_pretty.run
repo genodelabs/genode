@@ -40,7 +40,7 @@ append_platform_drv_build_components
 
 build $build_components
 
-set fb_drv "fb_drv"
+set fb_drv "vesa_fb_drv"
 
 if {[have_include "image/uefi"]} {
 	set fb_drv "fb_boot_drv"

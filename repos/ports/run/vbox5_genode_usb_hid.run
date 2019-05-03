@@ -142,6 +142,7 @@ append config {
 	</start>
 
 	<start name="fb_drv" priority="-1">
+		<binary name="vesa_fb_drv"/>
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Framebuffer"/></provides>
 	</start>
@@ -244,7 +245,7 @@ set boot_modules {
 	core
 	init
 	timer
-	fb_drv
+	vesa_fb_drv
 	ps2_drv
 	log_terminal
 	usb_drv

@@ -4,8 +4,8 @@
 # \date   2012-05-02
 #
 
-TARGET   = fb_drv
-REQUIRES = omap4
+TARGET   = omap4_fb_drv
+REQUIRES = arm_v7
 SRC_CC   = main.cc
 LIBS     = base blit
 INC_DIR += $(PRG_DIR)

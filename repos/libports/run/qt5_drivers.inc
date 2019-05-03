@@ -22,6 +22,16 @@ proc use_fb_drv { feature_arg } {
 	return [have_spec framebuffer]
 }
 
+proc fb_drv_binary { } {
+	if {[have_spec exynos5]} { return exynos5_fb_drv }
+	if {[have_spec omap4]}   { return omap4_fb_drv   }
+	if {[have_spec pbxa9]}   { return pbxa9_fb_drv   }
+	if {[have_spec x86]}     { return vesa_fb_drv    }
+	if {[have_spec imx53]}   { return imx53_fb_drv   }
+	if {[have_spec rpi]}     { return rpi_fb_drv     }
+	return no_fb_drv_available
+}
+
 proc use_fb_sdl { feature_arg } {
 	upvar $feature_arg feature
 	return [have_spec linux]
@@ -171,6 +181,7 @@ proc drivers_start_nodes { feature_arg } {
 
 	append_if [use_fb_drv feature] start_nodes {
 		<start name="fb_drv">
+			<binary name="} [fb_drv_binary] {"/>
 			<resource name="RAM" quantum="4M"/>
 			<provides><service name="Framebuffer"/></provides>
 		</start>
@@ -325,7 +336,7 @@ proc drivers_boot_modules { feature_arg } {
 	append_platform_drv_boot_modules
 
 	lappend_if [use_audio_drv feature]    boot_modules [audio_drv_binary]
-	lappend_if [use_fb_drv feature]       boot_modules fb_drv
+	lappend_if [use_fb_drv feature]       boot_modules [fb_drv_binary]
 	lappend_if [use_fb_sdl feature]       boot_modules fb_sdl
 	lappend_if [use_gpio_drv feature]     boot_modules [gpio_drv]
 	lappend_if [use_input_filter feature] boot_modules input_filter

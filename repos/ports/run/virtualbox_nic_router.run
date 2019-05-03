@@ -65,6 +65,7 @@ append config {
 	</start>
 
 	<start name="fb_drv" priority="-1" caps="150">
+		<binary name="vesa_fb_drv"/>
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Framebuffer"/></provides>
 	</start>
@@ -384,7 +385,7 @@ append boot_modules { stdcxx.lib.so }
 append boot_modules { qemu-usb.lib.so }
 append boot_modules { dynamic_rom }
 append boot_modules { ps2_drv }
-append boot_modules { fb_drv }
+append boot_modules { vesa_fb_drv }
 append boot_modules { rtc_drv }
 append boot_modules { usb_drv }
 append boot_modules { vfs.lib.so }

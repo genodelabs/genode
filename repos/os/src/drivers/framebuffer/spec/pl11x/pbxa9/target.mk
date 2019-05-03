@@ -1,5 +1,5 @@
-TARGET   = fb_drv
-REQUIRES = pl11x pbxa9
+TARGET   = pbxa9_fb_drv
+REQUIRES = arm_v7
 SRC_CC   = main.cc
 LIBS     = base
 INC_DIR += $(PRG_DIR)

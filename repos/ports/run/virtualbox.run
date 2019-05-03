@@ -95,6 +95,7 @@ append_if [expr $use_usb] config {
 
 append_if [have_spec framebuffer] config {
 	<start name="fb_drv" priority="-1" caps="150">
+		<binary name="vesa_fb_drv"/>
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Framebuffer"/></provides>
 		<config width="1280" height="1024" depth="16" buffered="yes"/>
@@ -265,7 +266,7 @@ append boot_modules $virtualbox_binary
 # platform-specific modules
 lappend_if [expr         $use_usb] boot_modules usb_drv
 lappend_if [expr         $use_ps2] boot_modules ps2_drv
-lappend_if [have_spec framebuffer] boot_modules fb_drv
+lappend_if [have_spec framebuffer] boot_modules vesa_fb_drv
 lappend_if [have_spec       linux] boot_modules fb_sdl
 lappend_if [have_spec         x86] boot_modules rtc_drv
 

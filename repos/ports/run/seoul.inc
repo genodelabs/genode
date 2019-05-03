@@ -257,6 +257,7 @@ append_if [expr $use_nic_session && $use_nic_bridge] config {
 
 append_if $use_framebuffer config {
 	<start name="fb_drv" priority="-1" caps="130">
+		<binary name="vesa_fb_drv"/>
 		<resource name="RAM" quantum="8M"/>
 		<provides><service name="Framebuffer"/></provides>
 		<route>
@@ -441,7 +442,7 @@ lappend_if $use_block_ram     boot_modules ram_block
 lappend_if $use_block_sata    boot_modules ahci_drv
 lappend_if $use_nic_session   boot_modules ipxe_nic_drv
 lappend_if $use_nic_bridge    boot_modules nic_bridge
-lappend_if $use_framebuffer   boot_modules fb_drv
+lappend_if $use_framebuffer   boot_modules vesa_fb_drv
 
 lappend_if $use_fancy_stuff   boot_modules status_bar
 lappend_if $use_fancy_stuff   boot_modules launchpad
