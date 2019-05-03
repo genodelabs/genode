@@ -430,6 +430,11 @@ class Genode::Thread
 		 */
 		template <typename EVENT>
 		static void trace(EVENT const *event) { _logger()->log(event); }
+
+		/**
+		 * Thread affinity
+		 */
+		Affinity::Location affinity() const { return _affinity; }
 };
 
 

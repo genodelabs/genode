@@ -742,9 +742,11 @@ struct Vcpu : Genode::Thread
 	public:
 
 		Vcpu(Genode::Env &env, Genode::Signal_context_capability &cap,
-		     Semaphore &handler_ready, unsigned id, Allocator &alloc)
+		     Semaphore &handler_ready, unsigned id, Allocator &alloc,
+		     Affinity::Location &location)
 		:
-			Thread(env, "vcpu_thread", STACK_SIZE), _signal(cap),
+			Thread(env, "vcpu_thread", STACK_SIZE, location, Weight(), env.cpu()),
+			_signal(cap),
 			_handler_ready(handler_ready), _alloc(alloc), _id({id})
 		{ }
 
@@ -795,11 +797,15 @@ Genode::Vm_session_client::Vcpu_id
 Genode::Vm_session_client::create_vcpu(Allocator &alloc, Env &env,
                                        Vm_handler_base &handler)
 {
+	Thread * ep = reinterpret_cast<Thread *>(&handler._rpc_ep);
+	Affinity::Location location = ep->affinity();
+
 	/* create thread that switches modes between thread/cpu */
 	Vcpu * vcpu = new (alloc) Genode::Registered<Vcpu> (vcpus, env,
 	                                                    handler._cap,
 	                                                    handler._done,
-	                                                    vcpu_id, alloc);
+	                                                    vcpu_id, alloc,
+	                                                    location);
 
 	try {
 		/* now it gets actually valid - vcpu->cap() becomes valid */
