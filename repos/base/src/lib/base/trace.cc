@@ -60,6 +60,11 @@ bool Trace::Logger::_evaluate_control()
 
 			/* unload policy */
 			if (policy_module) {
+
+				/* revoke relocations */
+				for (unsigned i = 0; i < sizeof(Trace::Policy_module)/sizeof(void *); i++) {
+					((addr_t *)policy_module)[i] -= (addr_t)(policy_module);
+				}
 				_env().rm().detach(policy_module);
 				policy_module = 0;
 			}
@@ -82,7 +87,8 @@ bool Trace::Logger::_evaluate_control()
 		}
 	}
 
-	if (enabled && (policy_version != control->policy_version())) {
+	bool const new_policy = policy_version != control->policy_version();
+	if (enabled && (new_policy || policy_module == 0)) {
 
 		/* suppress tracing during policy change */
 		Control::Inhibit_guard guard(*control);
