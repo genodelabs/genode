@@ -9,29 +9,22 @@ if {[have_include power_on/qemu] && $use_i965} {
 	exit 1
 }
 
+create_boot_directory
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/pkg/[drivers_interactive_pkg] \
+                  [depot_user]/src/nitpicker \
+                  [depot_user]/src/demo \
+                  [depot_user]/src/init
+
 
 set build_components {
-	core init timer
-	drivers/input
-	drivers/framebuffer
 	drivers/gpu/intel
-	server/liquid_framebuffer
-	server/nitpicker
 	lib/mesa/swrast
-	app/launchpad
-	app/pointer
 }
 
 lappend_if $use_i965 build_components lib/mesa/i965
-
 lappend build_components $demo_component 
-
-source ${genode_dir}/repos/base/run/platform_drv.inc
-append_platform_drv_build_components
-
 build $build_components
-
-create_boot_directory
 
 set config {
 <config prio_levels="2">
@@ -49,39 +42,25 @@ set config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-}
 
-append_if [have_spec linux] config {
-	<start name="fb_sdl" caps="200" ld="no">
-		<resource name="RAM" quantum="4M"/>
-		<provides>
-			<service name="Input"/>
-			<service name="Framebuffer"/>
-		</provides>
-	</start>}
-
-append_platform_drv_config
-
-append_if [expr ![have_spec linux]] config {
-	<start name="fb_drv">
-		<resource name="RAM" quantum="10M"/>
-		<provides>
-			<service name="Framebuffer"/>
-		</provides>
-		<route><any-service> <parent /> <any-child/> </any-service> </route>
-	</start>}
-
-append_if [have_spec ps2] config {
-	<start name="ps2_drv">
-		<resource name="RAM" quantum="2M"/>
-		<provides> <service name="Input"/> </provides>
-	</start> }
-
-append config {
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
+
+	<start name="drivers" caps="1000">
+		<resource name="RAM" quantum="32M" constrain_phys="yes"/>
+		<binary name="init"/>
+		<route>
+			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+		<provides>
+			<service name="Input"/> <service name="Framebuffer"/>
+		</provides>
+	</start>
+
 	<start name="nitpicker" caps="200">
 		<resource name="RAM" quantum="2M"/>
 		<provides><service name="Nitpicker"/></provides>
@@ -96,10 +75,6 @@ append config {
 	<start name="pointer">
 		<resource name="RAM" quantum="1M"/>
 	</start>}
-
-#
-#
-#
 
 set backend_library egl_swrast.lib.so
 if {$use_i965} {
@@ -191,13 +166,6 @@ append_if $use_i965 boot_modules {
 }
 
 append boot_modules $demo_modules
-
-lappend_if [have_spec         linux]  boot_modules fb_sdl
-lappend_if [expr ![have_spec  linux]] boot_modules fb_drv
-lappend_if [have_spec           ps2]  boot_modules ps2_drv
-
-append_platform_drv_boot_modules
-
 build_boot_image $boot_modules
 
 append qemu_args " -m 768"

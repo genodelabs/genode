@@ -12,33 +12,22 @@
 # 'tcp_terminal' could be used (to attach GDB via a network connection).
 #
 
-#
-# Build
-#
+create_boot_directory
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/pkg/[drivers_interactive_pkg] \
+                  [depot_user]/src/nitpicker \
+                  [depot_user]/src/demo \
+                  [depot_user]/src/init
 
 set build_components {
-	core init timer
 	drivers/uart
 	app/gdb_monitor
 	test/gdb_monitor
-	server/nitpicker app/pointer app/scout
-	drivers/framebuffer drivers/input
 }
-
 lappend build_components "lib/gdbserver_platform-$::env(KERNEL)"
-
-source ${genode_dir}/repos/base/run/platform_drv.inc
-append_platform_drv_build_components
-
 build $build_components
 
-create_boot_directory
-
-#
-# Generate config
-#
-
-set config {
+install_config {
 <config verbose="yes">
 	<parent-provides>
 		<service name="ROM"/>
@@ -54,17 +43,36 @@ set config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 	<default caps="100"/>
+
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
+
 	<start name="uart_drv">
 		<resource name="RAM" quantum="1M"/>
-		<provides> <service name="Terminal"/> </provides>
+		<provides>
+			<service name="Uart"/>
+			<service name="Terminal"/>
+		</provides>
 		<config>
 			<policy label_prefix="gdb_monitor" uart="1"/>
 		</config>
 	</start>
+
+	<start name="drivers" caps="1000">
+		<resource name="RAM" quantum="32M" constrain_phys="yes"/>
+		<binary name="init"/>
+		<route>
+			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+		<provides>
+			<service name="Input"/> <service name="Framebuffer"/>
+		</provides>
+	</start>
+
 	<start name="gdb_monitor" caps="200">
 		<resource name="RAM" quantum="10M"/>
 		<provides><service name="Nitpicker"/></provides>
@@ -84,36 +92,16 @@ set config {
 			<libc stdout="/dev/log" stderr="/dev/log"/>
 		</config>
 	</start>
+
 	<start name="pointer">
 		<resource name="RAM" quantum="1M"/>
 	</start>
+
 	<start name="scout">
 		<resource name="RAM" quantum="32M"/>
-	</start>}
-
-append_platform_drv_config
-
-append_if [have_spec framebuffer] config {
-	<start name="fb_drv">
-		<resource name="RAM" quantum="4M"/>
-		<provides><service name="Framebuffer"/></provides>
-	</start>}
-
-append_if [have_spec ps2] config {
-	<start name="ps2_drv">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Input"/></provides>
-	</start> }
-
-append config {
+	</start>
 </config>
 }
-
-install_config $config
-
-#
-# Boot modules
-#
 
 # evaluated by the run tool
 proc binary_name_gdbserver_platform_lib_so { } {
@@ -121,21 +109,11 @@ proc binary_name_gdbserver_platform_lib_so { } {
 }
 
 # generic modules
-set boot_modules {
-	core init timer
-	ld.lib.so libc.lib.so vfs.lib.so libc_pipe.lib.so
+build_boot_image {
+	libc.lib.so vfs.lib.so libc_pipe.lib.so
 	uart_drv
 	gdb_monitor gdbserver_platform.lib.so
-	nitpicker pointer scout
 }
-
-# platform-specific modules
-lappend_if [have_spec framebuffer] boot_modules fb_drv
-lappend_if [have_spec         ps2] boot_modules ps2_drv
-
-append_platform_drv_boot_modules
-
-build_boot_image $boot_modules
 
 #
 # Execute test case

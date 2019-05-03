@@ -1,30 +1,11 @@
-#
-# Build
-#
-
-if {[have_spec odroid_xu]} {
-	puts "Run script not supported for this platform."; exit 0 }
-
-set fb_drv "fb_drv"
-
-if {[have_include "image/uefi"]} {
-	set fb_drv "fb_boot_drv"
-}
-
-set build_components { core init test/framebuffer drivers/framebuffer timer }
-
-source ${genode_dir}/repos/base/run/platform_drv.inc
-append_platform_drv_build_components
-
-build $build_components
-
 create_boot_directory
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/pkg/[drivers_interactive_pkg] \
+                  [depot_user]/src/init
 
-#
-# Generate config
-#
+build { test/framebuffer }
 
-append config {
+install_config {
 <config>
 	<parent-provides>
 		<service name="ROM"/>
@@ -40,53 +21,29 @@ append config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 	<default caps="100"/>
+
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
-	</start>}
+	</start>
 
-append_if [have_spec sdl] config {
-	<start name="fb_sdl" ld="no">
-		<resource name="RAM" quantum="4M"/>
+	<start name="drivers" caps="1000">
+		<resource name="RAM" quantum="32M" constrain_phys="yes"/>
+		<binary name="init"/>
+		<route>
+			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
 		<provides>
-			<service name="Input"/>
-			<service name="Framebuffer"/>
+			<service name="Input"/> <service name="Framebuffer"/>
 		</provides>
-	</start>}
+	</start>
 
-append_platform_drv_config
-
-append_if [have_spec framebuffer] config {
-	<start name="} $fb_drv {" caps="200">
-		<resource name="RAM" quantum="32M"/>
-		<provides><service name="Framebuffer"/></provides>
-	</start>}
-
-append config {
 	<start name="test-framebuffer">
 		<resource name="RAM" quantum="10M"/>
 	</start>
 </config>}
 
-install_config $config
-
-#
-# Boot modules
-#
-
-# generic modules
-set boot_modules {
-	core ld.lib.so init timer
-	test-framebuffer
-}
-
-# platform-specific modules
-append_platform_drv_boot_modules
-
-lappend_if [have_spec sdl]              boot_modules fb_sdl
-lappend_if [have_spec framebuffer]      boot_modules $fb_drv
-
-build_boot_image $boot_modules
-
+build_boot_image { test-framebuffer }
 run_genode_until forever
-

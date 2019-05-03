@@ -1,7 +1,3 @@
-#
-# Build
-#
-
 if {[have_spec odroid_xu] || [have_spec imx6q_sabrelite] || [have_spec zynq] || [have_spec imx53] && [have_spec foc]} {
 	puts "\n Run script is not supported on this platform. \n";
 	exit 0
@@ -12,22 +8,13 @@ if {[get_cmd_switch --autopilot] && [have_spec linux]} {
 	exit 0
 }
 
-set build_components { core init test/fb_bench drivers/framebuffer timer }
-
-source ${genode_dir}/repos/base/run/platform_drv.inc
-append_platform_drv_build_components
-
-lappend_if [have_spec gpio] build_components drivers/gpio
-
-build $build_components
-
 create_boot_directory
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/pkg/[drivers_interactive_pkg] \
+                  [depot_user]/src/init
+build { test/fb_bench }
 
-#
-# Generate config
-#
-
-append config {
+install_config {
 <config>
 	<parent-provides>
 		<service name="ROM"/>
@@ -47,33 +34,21 @@ append config {
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
-	</start>}
+	</start>
 
-append_if [have_spec gpio] config "
-	<start name=\"[gpio_drv]\" caps=\"140\">
-		<resource name=\"RAM\" quantum=\"4M\"/>
-		<provides><service name=\"Gpio\"/></provides>
-		<config/>
-	</start>"
-
-append_if [have_spec sdl] config {
-	<start name="fb_sdl" ld="no">
-		<resource name="RAM" quantum="4M"/>
+	<start name="drivers" caps="1000">
+		<resource name="RAM" quantum="32M" constrain_phys="yes"/>
+		<binary name="init"/>
+		<route>
+			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
 		<provides>
-			<service name="Input"/>
-			<service name="Framebuffer"/>
+			<service name="Input"/> <service name="Framebuffer"/>
 		</provides>
-	</start>}
+	</start>
 
-append_platform_drv_config
-
-append_if [have_spec framebuffer] config {
-	<start name="fb_drv" caps="150">
-		<resource name="RAM" quantum="20M"/>
-		<provides><service name="Framebuffer"/></provides>
-	</start>}
-
-append config {
 	<start name="test-fb_bench">
 		<!--
 		  - We need this big amount of RAM because the VESA driver reports a
@@ -84,21 +59,7 @@ append config {
 	</start>
 </config>}
 
-install_config $config
-
-#
-# Boot modules
-#
-
-set boot_modules { core ld.lib.so init timer test-fb_bench }
-
-append_platform_drv_boot_modules
-
-lappend_if [have_spec sdl]         boot_modules fb_sdl
-lappend_if [have_spec framebuffer] boot_modules fb_drv
-lappend_if [have_spec gpio]        boot_modules [gpio_drv]
-
-build_boot_image $boot_modules
+build_boot_image { test-fb_bench }
 
 # disable QEMU graphic to enable testing on our machines without SDL and X
 append qemu_args "-nographic "
