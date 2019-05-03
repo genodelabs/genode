@@ -2,6 +2,8 @@
 # Build
 #
 
+assert_spec pbxa9
+
 # generic components
 set build_components {
 	core init timer
@@ -37,7 +39,7 @@ set config  {
 			<resource name="RAM" quantum="1M"/>
 			<provides><service name="Timer"/></provides>
 		</start>
-		<start name="uart_drv">
+		<start name="pbxa9_uart_drv">
 			<resource name="RAM" quantum="1M"/>
 			<provides>
 				<service name="Uart"/>
@@ -69,7 +71,7 @@ install_config $config
 # generic modules
 set boot_modules {
 	core ld.lib.so init
-	timer uart_drv test-uart
+	timer pbxa9_uart_drv test-uart
 }
 
 build_boot_image $boot_modules

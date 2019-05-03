@@ -4,6 +4,8 @@
 # \date   2013-02-20
 #
 
+assert_spec x86
+
 #
 # On Linux, we don't have a UART driver, on which this run script depends.
 #
@@ -40,7 +42,7 @@ append config {
 			<provides><service name="Timer"/></provides>
 			<route> <any-service> <parent/> </any-service> </route>
 		</start>
-		<start name="uart_drv">
+		<start name="pc_uart_drv">
 			<resource name="RAM" quantum="1M"/>
 			<provides>
 				<service name="Uart"/>
@@ -57,7 +59,8 @@ append config {
 				<service name="Terminal"/>
 			</provides>
 			<route>
-				<any-service> <child name="uart_drv" /> <parent/> <any-child /> </any-service>
+				<service name="Terminal"> <child name="pc_uart_drv" /> </service>
+				<any-service> <parent/> <any-child /> </any-service>
 			</route>
 		</start>
 		<start name="terminal_log">
@@ -66,7 +69,8 @@ append config {
 				<service name="LOG"/>
 			</provides>
 			<route>
-				<any-service> <child name="terminal_mux" /> <parent/> <any-child/> </any-service>
+				<service name="Terminal"> <child name="terminal_mux" /> </service>
+				<any-service> <parent/> <any-child/> </any-service>
 			</route>
 		</start>
 		<start name="cli_monitor">
@@ -141,7 +145,7 @@ set boot_modules {
 	core init timer ld.lib.so noux terminal_mux terminal_log
 	test-signal cli_monitor test-resource_yield posix.lib.so
 	libc.lib.so vfs.lib.so libm.lib.so libc_noux.lib.so libc_terminal.lib.so ncurses.lib.so
-	vim.tar uart_drv
+	vim.tar pc_uart_drv
 }
 
 set fiasco_serial_esc_arg ""

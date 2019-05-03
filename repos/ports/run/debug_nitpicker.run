@@ -12,6 +12,8 @@
 # 'tcp_terminal' could be used (to attach GDB via a network connection).
 #
 
+assert_spec x86
+
 create_boot_directory
 import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/pkg/[drivers_interactive_pkg] \
@@ -49,7 +51,7 @@ install_config {
 		<provides> <service name="Timer"/> </provides>
 	</start>
 
-	<start name="uart_drv">
+	<start name="pc_uart_drv">
 		<resource name="RAM" quantum="1M"/>
 		<provides>
 			<service name="Uart"/>
@@ -111,7 +113,7 @@ proc binary_name_gdbserver_platform_lib_so { } {
 # generic modules
 build_boot_image {
 	libc.lib.so vfs.lib.so libc_pipe.lib.so
-	uart_drv
+	pc_uart_drv
 	gdb_monitor gdbserver_platform.lib.so
 }
 

@@ -5,6 +5,8 @@
 # \date   2011-05-24
 #
 
+assert_spec x86
+
 #
 # Build
 #
@@ -46,7 +48,7 @@ set config {
 		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
-	<start name="uart_drv">
+	<start name="pc_uart_drv">
 		<resource name="RAM" quantum="2M"/>
 		<provides> <service name="Terminal"/> </provides>
 		<config>
@@ -83,10 +85,8 @@ proc binary_name_gdbserver_platform_lib_so { } {
 
 # generic modules
 set boot_modules {
-	core init timer
-	ld.lib.so libc.lib.so vfs.lib.so libm.lib.so posix.lib.so
 	libc_pipe.lib.so
-	uart_drv
+	pc_uart_drv
 	gdb_monitor gdbserver_platform.lib.so test-gdb_monitor
 }
 
