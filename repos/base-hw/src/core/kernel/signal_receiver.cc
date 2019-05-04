@@ -199,7 +199,7 @@ int Signal_receiver::add_handler(Signal_handler &h)
 	if (h._receiver) { return -1; }
 	_handlers.enqueue(h._handlers_fe);
 	h._receiver = this;
-	h._thread.signal_wait_for_signal(*this);
+	h._thread.signal_wait_for_signal();
 	_listen();
 	return 0;
 }

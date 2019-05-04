@@ -136,7 +136,6 @@ class Kernel::Thread : private Kernel::Object, public Cpu_job, private Timeout
 		State                  _state;
 		Signal_handler         _signal_handler           { *this };
 		Signal_context_killer  _signal_context_killer    { *this };
-		Signal_receiver       *_signal_receiver;
 		char   const *const    _label;
 		capid_t                _timeout_sigid            { 0 };
 		bool                   _paused                   { false };
@@ -378,7 +377,7 @@ class Kernel::Thread : private Kernel::Object, public Cpu_job, private Timeout
 		void signal_context_kill_pending();
 		void signal_context_kill_failed();
 		void signal_context_kill_done();
-		void signal_wait_for_signal(Signal_receiver &receiver);
+		void signal_wait_for_signal();
 		void signal_receive_signal(void * const base, size_t const size);
 
 
