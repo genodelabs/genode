@@ -324,7 +324,8 @@ class Vcpu : public StaticReceiver<Vcpu>
 
 			switch (exit) {
 			case 0x00 ... 0x1f: /* _svm_cr */
-				mtd = MTD_RIP_LEN | MTD_CS_SS | MTD_GPR_ACDB | MTD_GPR_BSD | MTD_CR;
+				mtd = MTD_RIP_LEN | MTD_CS_SS | MTD_GPR_ACDB | MTD_GPR_BSD |
+				      MTD_CR | MTD_IRQ;
 				break;
 			case 0x72: /* _svm_cpuid */
 				mtd = MTD_RIP_LEN | MTD_GPR_ACDB | MTD_IRQ;
