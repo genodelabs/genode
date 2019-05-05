@@ -173,13 +173,13 @@ struct Vcpu : Genode::Thread
 			CR0_PG = 0 /* 1U << 31 - not needed in case of UG */
 		};
 
-		addr_t const _cr0_mask       { CR0_CP | CR0_NM | CR0_NE | CR0_CD };
+		addr_t const _cr0_mask       { CR0_NM | CR0_CD };
 		addr_t const vmcb_ctrl0      { CTRL0_IO | CTRL0_MSR };
 		addr_t const vmcb_ctrl1      { 0 };
 
 		addr_t       vmcb_cr0_shadow { 0 };
 		addr_t       vmcb_cr4_shadow { 0 };
-		addr_t const vmcb_cr0_mask   { _cr0_mask | CR0_TS };
+		addr_t const vmcb_cr0_mask   { _cr0_mask };
 		addr_t const vmcb_cr0_set    { 0 };
 		addr_t const vmcb_cr4_mask   { 0 };
 		addr_t const vmcb_cr4_set    { 0 };
@@ -187,7 +187,7 @@ struct Vcpu : Genode::Thread
 		enum { EXIT_ON_HLT = 1U << 7 };
 		addr_t const _vmcs_ctrl0     { EXIT_ON_HLT };
 
-		addr_t const vmcs_cr0_mask   { _cr0_mask | CR0_PE | CR0_PG };
+		addr_t const vmcs_cr0_mask   { _cr0_mask | CR0_CP | CR0_NE | CR0_PE | CR0_PG };
 		addr_t const vmcs_cr0_set    { 0 };
 
 		addr_t const vmcs_cr4_mask   { CR4_VMX };
@@ -273,14 +273,17 @@ struct Vcpu : Genode::Thread
 				state.efer.value(state.efer.value() | AMD_SVM_ENABLE);
 			}
 			if (_vm_type == Virt::SVM) {
+				vmcb->control_area.intercept_instruction0 = vmcb_ctrl0;
+				vmcb->control_area.intercept_instruction1 = vmcb_ctrl1;
+
 				/* special handling on missing NPT support */
 				vmcb->control_area.np_enable = svm_np();
-				if (!vmcb->control_area.np_enable)
+				if (!vmcb->control_area.np_enable) {
 					vmcb->control_area.intercept_exceptions |= 1 << 14;
-
-				vmcb->control_area.intercept_instruction0 = vmcb_ctrl0;
-				vmcb->control_area.intercept_rd_crX = 0x0001; /* cr0 */
-				vmcb->control_area.intercept_wr_crX = 0x0001; /* cr0 */
+					vmcb->control_area.intercept_rd_crX = 0x0001; /* cr0 */
+					vmcb->control_area.intercept_wr_crX = 0x0001; /* cr0 */
+				} else
+					vmcb->state_save_area.g_pat = 0x7040600070406ull;
 			}
 			if (_vm_type == Virt::VMX) {
 				Fiasco::l4_vm_vmx_write(vmcs, Vmcs::CR0_MASK, vmcs_cr0_mask);
