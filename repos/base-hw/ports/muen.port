@@ -3,10 +3,8 @@ VERSION   := git
 DOWNLOADS := muen.git
 
 URL(muen) := https://git.codelabs.ch/git/muen.git
-REV(muen) := 807cb0381e12329d84cb7e6b2f778b1e1559a2e8
+REV(muen) := 76b75b5f859f14397d146c16e5411142a6af11d0
 DIR(muen) := src/kernel/muen
-
-PATCHES := ports/muen.patch
 
 $(call check_tool,git)
 $(call check_tool,iasl)

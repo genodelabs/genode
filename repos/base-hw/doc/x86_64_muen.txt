@@ -147,7 +147,7 @@ within your build Genode directory like so:
 After this change you can build the Genode 'base-hw' image and export it to the
 Muen working directory using the following command:
 
-! objcopy -O binary var/run/log/image.elf <muen_workdir>/policy/obj/base_hw
+! objcopy -O binary var/run/log/boot/image.elf <muen_workdir>/policy/obj/base_hw
 
 Change back to the Muen working directory to package the system image and
 restart emulation:
