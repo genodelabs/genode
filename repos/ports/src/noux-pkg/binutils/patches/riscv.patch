@@ -1,0 +1,21 @@
+commit 55b4054cf95835fef2896e884cfc0069a0a14401
+Author: Sebastian Sumpf <sebastian.sumpf@genode-labs.com>
+Date:   Thu Apr 25 11:02:51 2019 +0200
+
+    riscv: always enable shared library support
+
+diff --git a/ld/emulparams/elf32lriscv-defs.sh b/ld/emulparams/elf32lriscv-defs.sh
+index 5ac3b602..32b50682 100644
+--- a/ld/emulparams/elf32lriscv-defs.sh
++++ b/ld/emulparams/elf32lriscv-defs.sh
+@@ -26,6 +26,10 @@ case "$target" in
+     ;;
+ esac
+ 
++# always enable shared library support
++GENERATE_SHLIB_SCRIPT=yes
++GENERATE_PIE_SCRIPT=yes
++
+ TEXT_START_ADDR=0x10000
+ MAXPAGESIZE="CONSTANT (MAXPAGESIZE)"
+ COMMONPAGESIZE="CONSTANT (COMMONPAGESIZE)"
