@@ -22,14 +22,14 @@ namespace Hw {
 
 struct Hw::Acpi_rsdp
 {
-	Genode::uint64_t signature;
-	Genode::uint8_t  checksum;
-	char             oem[6];
-	Genode::uint8_t  revision;
-	Genode::uint32_t rsdt;
-	Genode::uint32_t length;
-	Genode::uint64_t xsdt;
-	Genode::uint32_t reserved;
+	Genode::uint64_t signature { 0 };
+	Genode::uint8_t  checksum  { 0 };
+	char             oem[6]    { 0 };
+	Genode::uint8_t  revision  { 0 };
+	Genode::uint32_t rsdt      { 0 };
+	Genode::uint32_t length    { 0 };
+	Genode::uint64_t xsdt      { 0 };
+	Genode::uint32_t reserved  { 0 };
 
 	bool valid() {
 		const char sign[] = "RSD PTR ";

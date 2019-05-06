@@ -210,7 +210,7 @@ Kernel::Vm::Vm(void                   * const state,
                void                   * const table)
 :  Cpu_job(Cpu_priority::MIN, 0),
   _id(alloc().alloc()),
-  _state((Genode::Vm_state * const)state),
+  _state((Genode::Vm_state *)state),
   _context(context),
   _table(table)
 {
