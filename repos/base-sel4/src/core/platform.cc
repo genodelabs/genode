@@ -386,7 +386,7 @@ void Platform::_init_rom_modules()
 		addr_t const boot_info_extra = boot_info_page + 4096;
 
 		seL4_BootInfoHeader const * element   = reinterpret_cast<seL4_BootInfoHeader *>(boot_info_extra);
-		seL4_BootInfoHeader const * const last = reinterpret_cast<seL4_BootInfoHeader const * const>(boot_info_extra + bi.extraLen);
+		seL4_BootInfoHeader const * const last = reinterpret_cast<seL4_BootInfoHeader const *>(boot_info_extra + bi.extraLen);
 
 		for (seL4_BootInfoHeader const *next = nullptr;
 		     (next = reinterpret_cast<seL4_BootInfoHeader const *>(reinterpret_cast<addr_t>(element) + element->len)) &&

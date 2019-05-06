@@ -49,7 +49,7 @@ void Ram_dataspace_factory::_clear_ds (Dataspace_component &ds)
 	if (!virt_addr_ptr)
 		ASSERT_NEVER_CALLED;
 
-	addr_t const virt_addr = reinterpret_cast<addr_t const>(virt_addr_ptr);
+	addr_t const virt_addr = reinterpret_cast<addr_t>(virt_addr_ptr);
 
 	/* map each page of dataspace one at a time and clear it */
 	for (addr_t offset = 0; offset < page_rounded_size; offset += get_page_size())
