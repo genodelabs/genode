@@ -16,6 +16,13 @@ SPARK_PATH      = $(shell sed -n "/^SPARK_PATH/s/^.*=\\s*//p" ${MUEN_CONF_FILE})
 BUILD_ENV       = PATH=$(GNAT_PATH)/bin:$(SPARK_PATH)/bin:$$PATH
 BUILD_OPTS      = SYSTEM=$(MUEN_SYSTEM) HARDWARE=$(MUEN_HARDWARE) PLATFORM=$(MUEN_PLATFORM) NO_PROOF=true
 
+ifeq ($(VERBOSE),)
+BUILD_OPTS     += BUILD_OUTPUT_VERBOSE=true
+else
+BUILD_OPTS     += BUILD_OUTPUT_NOCOLOR=true
+endif
+
+
 ifneq ($(filter muen, $(SPECS)),)
 $(TARGET): $(MUEN_DST_DIR)
 	$(MSG_BUILD)Muen policy
