@@ -37,7 +37,7 @@ bool create_emt_vcpu(pthread_t * pthread, size_t stack,
                      Genode::Cpu_session * cpu_session,
                      Genode::Affinity::Location location,
                      unsigned int cpu_id,
-                     const char * name);
+                     const char * name, long prio);
 
 
 uint64_t genode_cpu_hz();

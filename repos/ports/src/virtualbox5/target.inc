@@ -8,7 +8,7 @@ CC_WARN += -Wall
 SRC_CC = frontend/main.cc frontend/console.cc \
          frontend/VirtualBoxErrorInfoImpl.cpp \
          devices.cc drivers.cc dummies.cc libc.cc \
-         logger.cc mm.cc pdm.cc pgm.cc rt.cc sup.cc \
+         logger.cc mm.cc pdm.cc pgm.cc rt.cc \
          hm.cc thread.cc dynlib.cc unimpl.cc
 
 LIBS  += base

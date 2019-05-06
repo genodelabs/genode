@@ -60,7 +60,8 @@ int PGMR3MapPT(PVM, RTGCPTR GCPtr, uint32_t cb, uint32_t fFlags,
 
 int PGMR3MappingsSize(PVM pVM, uint32_t *pcb)
 {
-	Genode::log(__func__, ": not implemented ", __builtin_return_address(0));
+	if (verbose)
+		Genode::log(__func__, ": not implemented ", __builtin_return_address(0));
 
 	*pcb = 0;
 

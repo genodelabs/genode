@@ -39,11 +39,8 @@ set boot_modules {
 	dynamic_rom
 }
 
-set virtualbox5_binary "virtualbox5-rem"
-
-if {[have_spec nova]} {
-	set virtualbox5_binary "virtualbox5-nova"
-}
+set virtualbox5_binary "virtualbox5"
+if {$use_vbox5_nova} { set virtualbox5_binary "virtualbox5-nova" }
 
 set config_of_app {
 

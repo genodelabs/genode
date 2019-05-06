@@ -386,6 +386,6 @@ HRESULT genode_check_memory_config(ComObjPtr<Machine>,
 		return S_OK;
 
 	Genode::error("Available memory too low to start the VM - available: ",
-	              memory_vmm, "MB < ", memory_available, "MB requested");
+	              memory_available, " MB < ", memory_vmm, " MB requested");
 	return E_FAIL;
 }

@@ -2,8 +2,9 @@ set use_net 0
 set use_ps2 [have_spec ps2]
 set use_usb 0
 set use_serial 1
+set use_top 1
 
-set use_vbox5 1
+set use_vbox5_nova 0
 
 # use_gui starts two VMs
 set use_gui 0
@@ -15,10 +16,12 @@ set build_components {
 	server/report_rom
 }
 
-if {$use_vbox5} {
-	append build_components virtualbox5
-	set virtualbox_binary "virtualbox5-rem"
-	if {[have_spec nova]} { set virtualbox_binary "virtualbox5-nova" }
+append build_components virtualbox5
+
+set virtualbox_binary "virtualbox5"
+
+if {$use_vbox5_nova} {
+	set virtualbox_binary "virtualbox5-nova"
 }
 
 create_boot_directory
@@ -31,6 +34,7 @@ source ${genode_dir}/repos/base/run/platform_drv.inc
 # override defaults of platform_drv.inc
 proc platform_drv_priority {} { return { priority="-1"} }
 
+lappend_if [expr $use_top]    build_components app/top
 lappend_if [expr $use_ps2]    build_components drivers/input
 lappend_if [expr $use_usb]    build_components drivers/usb
 lappend_if [expr $use_serial] build_components server/log_terminal
@@ -53,10 +57,11 @@ set config {
 		<service name="PD"/>
 		<service name="RM"/>
 		<service name="CPU"/>
-		<service name="LOG"/>}
-
-append_if [have_spec muen] config {
+		<service name="LOG"/>
 		<service name="VM"/>}
+
+append_if [expr $use_top] config {
+		<service name="TRACE"/>}
 
 append config {
 	</parent-provides>
@@ -69,11 +74,17 @@ append config {
 		<provides><service name="Timer"/></provides>
 	</start>}
 
+append_if [expr $use_top] config {
+	<start name="top">
+		<resource name="RAM" quantum="2M"/>
+		<config period_ms="15000"/>
+	</start>}
+
 append_platform_drv_config
 
 append_if [expr $use_ps2] config {
 	<start name="ps2_drv" priority="-1">
-		<resource name="RAM" quantum="1M"/>
+		<resource name="RAM" quantum="2M"/>
 		<provides><service name="Input"/></provides>
 	</start>}
 
@@ -82,13 +93,8 @@ append_if [expr $use_usb] config {
 		<resource name="RAM" quantum="12M"/>
 		<provides><service name="Input"/></provides>}
 
-append_if [expr $use_usb && ![have_spec muen]] config {
-		<config uhci="yes" ehci="yes" xhci="yes">}
-
-append_if [expr $use_usb && [have_spec muen]] config {
-		<config uhci="no" ehci="no" xhci="yes">}
-
 append_if [expr $use_usb] config {
+		<config uhci="yes" ehci="yes" xhci="yes">
 			<hid/>
 		</config>
 	</start>}
@@ -97,8 +103,12 @@ append_if [have_spec framebuffer] config {
 	<start name="fb_drv" priority="-1" caps="150">
 		<binary name="vesa_fb_drv"/>
 		<resource name="RAM" quantum="4M"/>
-		<provides><service name="Framebuffer"/></provides>
-		<config width="1280" height="1024" depth="16" buffered="yes"/>
+		<provides><service name="Framebuffer"/></provides>}
+append_if [expr [have_spec framebuffer] && [have_include power_on/qemu]] config {
+		<config width="1280" height="1024" depth="16" buffered="yes"/>}
+append_if [expr [have_spec framebuffer] && [have_include power_on/qemu]] config {
+		<config buffered="yes"/>}
+append_if [have_spec framebuffer] config {
 	</start>}
 
 append_if [have_spec sdl] config {
@@ -196,11 +206,8 @@ append config {
 	</start>}
 
 append_if [expr $use_gui] config {
-	<start name="vbox2" priority="-2" caps="500">}
-
-append_if [expr $use_gui] config "
-		<binary name=\"$virtualbox_binary\"/>"
-append_if [expr $use_gui] config {
+	<start name="vbox2" priority="-2" caps="800">
+		<binary name="} $virtualbox_binary {"/>
 		<resource name="RAM" quantum="448M"/>
 		<config vbox_file="test.vbox" vm_name="TestVM">
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
@@ -221,10 +228,8 @@ append_if [expr $use_gui] config {
 	</start>}
 
 append config {
-	<start name="vbox1" priority="-2" caps="500">}
-append config "
-		<binary name=\"$virtualbox_binary\"/>"
-append config {
+	<start name="vbox1" priority="-2" caps="800">
+		<binary name="} $virtualbox_binary {"/>
 		<resource name="RAM" quantum="448M"/>
 		<config vbox_file="test.vbox" vm_name="TestVM">
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
@@ -269,7 +274,7 @@ lappend_if [expr         $use_ps2] boot_modules ps2_drv
 lappend_if [have_spec framebuffer] boot_modules vesa_fb_drv
 lappend_if [have_spec       linux] boot_modules fb_sdl
 lappend_if [have_spec         x86] boot_modules rtc_drv
-
+lappend_if [expr         $use_top] boot_modules top
 lappend_if [expr         $use_gui] boot_modules report_rom
 
 append boot_modules {

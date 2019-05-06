@@ -1,5 +1,5 @@
 /*
- * \brief  Genode/Nova specific VirtualBox SUPLib supplements
+ * \brief  Genode specific VirtualBox SUPLib supplements
  * \author Alexander Boettcher
  * \author Norman Feske
  * \author Christian Helmuth
@@ -7,29 +7,23 @@
 
 /*
  * Copyright (C) 2006-2013 Oracle Corporation
- * Copyright (C) 2013-2017 Genode Labs GmbH
+ * Copyright (C) 2013-2019 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
  * version 2.
  */
 
 /* Genode includes */
+#include <base/heap.h>
 #include <base/log.h>
 #include <base/semaphore.h>
 #include <util/flex_iterator.h>
 #include <rom_session/connection.h>
-#include <timer_session/connection.h>
 #include <base/attached_rom_dataspace.h>
 #include <base/attached_ram_dataspace.h>
 #include <trace/timestamp.h>
 #include <util/bit_allocator.h>
 #include <util/retry.h>
-
-#include <vmm/vcpu_thread.h>
-#include <vmm/vcpu_dispatcher.h>
-
-/* NOVA includes that come with Genode */
-#include <nova/syscalls.h>
 
 /* Genode's VirtualBox includes */
 #include "EMInternal.h" /* enable access to em.s.* */
@@ -41,15 +35,23 @@
 /* libc memory allocator */
 #include <libc_mem_alloc.h>
 
+/* Genode libc pthread binding */
+#include <thread_create.h>
+
 /* libc */
+#include <pthread.h>
 #include <sched.h> /* sched_yield */
 
 #include "mm.h"
 
+/* VirtualBox includes */
+#include <iprt/uint128.h>
+#include <iprt/timer.h>
 
-extern "C" bool PGMUnmapMemoryGenode(void *, RTGCPHYS, ::size_t);
+extern "C" void PGMUnmapMemoryGenode(void *, RTGCPHYS, ::size_t);
 extern "C" void PGMFlushVMMemory();
 
+enum { VERBOSE_PGM = false };
 
 /*
  * Tracking required to fulfill VMM allocation requests of VM memory
@@ -81,6 +83,28 @@ class Chunk_ids: public Genode::Bit_allocator<MAX_CHUNK_IDS>
 static Page_ids  page_ids;
 static Chunk_ids chunk_ids;
 
+struct Region : Genode::List<Region>::Element
+{
+	Genode::uint64_t vmm_local;
+	Genode::uint64_t size;
+	Genode::Ram_dataspace_capability cap;
+
+	Region(uint64_t gp, uint64_t gs, Genode::Ram_dataspace_capability c)
+	: vmm_local(gp), size(gs), cap(c) { }
+
+	bool contains(Genode::uint64_t p)
+	{
+		return (vmm_local <= p) && (p < vmm_local + size);
+	}
+};
+
+static Genode::List<Region> regions;
+
+static Genode::Allocator & heap()
+{
+	static Genode::Heap heap(genode_env().ram(), genode_env().rm());
+	return heap;
+}
 
 
 static Sub_rm_connection &vm_memory(Genode::uint64_t vm_size = 0)
@@ -116,6 +140,8 @@ static Sub_rm_connection &vm_memory(Genode::uint64_t vm_size = 0)
 			Assert(to == vm_memory.local_addr(memory.addr + allocated - vmm_local));
 			allocated += alloc_size;
 
+			regions.insert(new (heap()) Region(to, alloc_size, ds));
+
 			if (memory_size - allocated < alloc_size)
 				alloc_size = memory_size - allocated;
 		}
@@ -131,6 +157,13 @@ static Sub_rm_connection &vm_memory(Genode::uint64_t vm_size = 0)
 	chunk_ids.reserve(unused_id, unused_count);
 
 	return vm_memory;
+}
+
+
+static Genode::Vm_connection &vm_connection(long prio = 0)
+{
+	static Genode::Vm_connection vm_session(genode_env(), "VBox vCPUs", prio);
+	return vm_session;
 }
 
 
@@ -230,11 +263,13 @@ int SUPR3PageAllocEx(::size_t cPages, uint32_t fFlags, void **ppvPages,
 	Assert(!fFlags);
 
 	using Genode::Attached_ram_dataspace;
-	Attached_ram_dataspace * ds = new Attached_ram_dataspace(genode_env().ram(),
-	                                                         genode_env().rm(),
-	                                                         cPages * ONE_PAGE_SIZE);
+	Attached_ram_dataspace * ds = new (heap()) Attached_ram_dataspace(genode_env().ram(),
+	                                                                  genode_env().rm(),
+	                                                                  cPages * ONE_PAGE_SIZE);
 
 	Genode::addr_t const vmm_local = reinterpret_cast<Genode::addr_t>(ds->local_addr<void>());
+
+	regions.insert(new (heap()) Region(vmm_local, cPages * ONE_PAGE_SIZE, ds->cap()));
 
 	*ppvPages = ds->local_addr<void>();
 	if (pR0Ptr)
@@ -334,14 +369,11 @@ int SUPR3CallVMMR0Ex(PVMR0 pVMR0, VMCPUID idCpu, unsigned uOperation,
 
 	case VMMR0_DO_GVMM_SCHED_HALT:
 	{
-		const uint64_t u64NowGip = RTTimeNanoTS();
-		const uint64_t ns_diff = u64Arg > u64NowGip ? u64Arg - u64NowGip : 0;
+		uint64_t const u64NowGip = RTTimeNanoTS();
+		uint64_t const ns_diff = u64Arg > u64NowGip ? u64Arg - u64NowGip : 0;
 
 		if (!ns_diff)
 			return VINF_SUCCESS;
-
-		uint64_t const tsc_offset = genode_cpu_hz() * ns_diff / (1000*1000*1000);
-		uint64_t const tsc_abs    = Genode::Trace::timestamp() + tsc_offset;
 
 		using namespace Genode;
 
@@ -350,7 +382,7 @@ int SUPR3CallVMMR0Ex(PVMR0 pVMR0, VMCPUID idCpu, unsigned uOperation,
 
 		Vcpu_handler *vcpu_handler = lookup_vcpu_handler(idCpu);
 		Assert(vcpu_handler);
-		vcpu_handler->halt(tsc_abs);
+		vcpu_handler->halt(u64NowGip + ns_diff);
 
 		return VINF_SUCCESS;
 	}
@@ -359,10 +391,6 @@ int SUPR3CallVMMR0Ex(PVMR0 pVMR0, VMCPUID idCpu, unsigned uOperation,
 	{
 		Vcpu_handler *vcpu_handler = lookup_vcpu_handler(idCpu);
 		Assert(vcpu_handler);
-
-		/* don't wake the currently running thread again */
-		if (vcpu_handler->utcb() == Genode::Thread::myself()->utcb())
-			return VINF_SUCCESS;
 
 		vcpu_handler->wake_up();
 		return VINF_SUCCESS;
@@ -385,10 +413,11 @@ int SUPR3CallVMMR0Ex(PVMR0 pVMR0, VMCPUID idCpu, unsigned uOperation,
 
 	case VMMR0_DO_GVMM_SCHED_POKE:
 	{
+		PVM pVM = reinterpret_cast<PVM>(pVMR0);
 		Vcpu_handler *vcpu_handler = lookup_vcpu_handler(idCpu);
 		Assert(vcpu_handler);
 		if (vcpu_handler)
-			vcpu_handler->recall(vcpu_handler_list().first());
+			vcpu_handler->recall(pVM);
 		return VINF_SUCCESS;
 	}
 	case VMMR0_DO_GMM_ALLOCATE_PAGES:
@@ -519,10 +548,10 @@ int SUPR3CallVMMR0Ex(PVMR0 pVMR0, VMCPUID idCpu, unsigned uOperation,
 		}
 
 		if (cPagesToAlloc != GMM_CHUNK_SIZE / ONE_PAGE_SIZE)
-			Vmm::log("special chunkid=", chunkid, " "
-			         "toupdate=", cPagesToUpdate, " "
-			         "toalloc=", cPagesToAlloc, " "
-			         "virt=", Genode::Hex(vm_memory().local_addr(chunkid << GMM_CHUNK_SHIFT)));
+			Genode::log("special chunkid=", chunkid, " "
+			            "toupdate=", cPagesToUpdate, " "
+			            "toalloc=", cPagesToAlloc, " "
+			            "virt=", Genode::Hex(vm_memory().local_addr(chunkid << GMM_CHUNK_SHIFT)));
 
 		for (unsigned i = 0; i < cPagesToUpdate; i++) {
 			if (pVM->pgm.s.aHandyPages[iFirst + i].idPage != NIL_GMM_PAGEID)
@@ -649,8 +678,7 @@ int SUPR3CallVMMR0Ex(PVMR0 pVMR0, VMCPUID idCpu, unsigned uOperation,
 
 			if (last_chunk != chunkid) {
 				/* revoke mapping from guest VM */
-				void * vmm_local = reinterpret_cast<void *>(vm_memory().local_addr(chunkid << GMM_CHUNK_SHIFT));
-				PGMUnmapMemoryGenode(vmm_local, 0, GMM_CHUNK_SIZE);
+				PGMUnmapMemoryGenode(nullptr, (0UL + chunkid) << GMM_CHUNK_SHIFT, GMM_CHUNK_SIZE);
 
 				last_chunk = chunkid;
 			}
@@ -685,7 +713,7 @@ int SUPR3CallVMMR0Ex(PVMR0 pVMR0, VMCPUID idCpu, unsigned uOperation,
 
 
 /**
- * Various support stuff - base-nova specific.
+ * Various support stuff.
  */
 uint64_t genode_cpu_hz()
 {
@@ -706,83 +734,34 @@ uint64_t genode_cpu_hz()
 }
 
 
-void genode_update_tsc(void (*update_func)(void), Genode::uint64_t update_us)
+void PGMUnmapMemoryGenode(void *, RTGCPHYS guest_phys, ::size_t size)
 {
-	using namespace Genode;
-	using namespace Nova;
-
-	enum { TSC_FACTOR = 1000ULL };
-
-	Genode::addr_t sem = Thread::myself()->native_thread().exc_pt_sel + Nova::SM_SEL_EC;
-	unsigned long tsc_khz = (genode_cpu_hz() / 1000) / TSC_FACTOR;
-
-	Trace::Timestamp us_64 = update_us;
-
-	for (;;) {
-		update_func();
-
-		Trace::Timestamp now = Trace::timestamp();
-
-		/* block until timeout fires or it gets canceled */
-		unsigned long long tsc_absolute = now + us_64 * tsc_khz;
-		Genode::uint8_t res = sm_ctrl(sem, SEMAPHORE_DOWN, tsc_absolute);
-		if (res != Nova::NOVA_OK && res != Nova::NOVA_TIMEOUT)
-			nova_die();
-	}
-}
-
-
-bool PGMUnmapMemoryGenode(void * vmm_local, RTGCPHYS, ::size_t size)
-{
-	Assert(vmm_local);
-
-	using namespace Genode;
-
-	Flexpage_iterator fli(reinterpret_cast<addr_t>(vmm_local), size, 0, ~0UL, 0);
-
-	Flexpage revoke_page = fli.page();
-	while (revoke_page.valid()) {
-		Assert(revoke_page.log2_order >= 12);
-		Assert(!(((1UL << revoke_page.log2_order) - 1) & revoke_page.addr));
-
-		using namespace Nova;
-
-		Rights const revoke_rwx(true, true, true);
-		Crd crd = Mem_crd(revoke_page.addr >> 12, revoke_page.log2_order - 12,
-		                  revoke_rwx);
-		revoke(crd, false);
-
-		/* request next page(s) to be revoked */
-		revoke_page = fli.page();
-	}
-
-	return true;
+	vm_connection().detach(guest_phys, size);
 }
 
 extern "C" void PGMFlushVMMemory()
 {
-	PGMUnmapMemoryGenode((void *)vm_memory().local_addr(0), 0, MAX_VM_MEMORY);
+	/* XXX PGMUnmapMemoryGenode on vm_session does not flush all caps */
+	PGMUnmapMemoryGenode(nullptr, 0, MAX_VM_MEMORY);
 }
 
 
 extern "C" int sched_yield(void)
 {
-	return (Nova::ec_ctrl(Nova::EC_YIELD) == Nova::NOVA_OK) ? 0 : -1;
+	static unsigned long counter = 0;
+
+	if (++counter % 50000 == 0)
+		Genode::warning(__func__, " called ", counter, " times");
+
+	return -1;
 }
 
 
-void *operator new (__SIZE_TYPE__ size, int log2_align)
-{
-	static Libc::Mem_alloc_impl heap(genode_env().rm(), genode_env().ram());
-	return heap.alloc(size, log2_align);
-}
-
-
-bool create_emt_vcpu(pthread_t * pthread, ::size_t stack,
+bool create_emt_vcpu(pthread_t * thread, ::size_t stack_size,
                      void *(*start_routine)(void *), void *arg,
                      Genode::Cpu_session * cpu_session,
                      Genode::Affinity::Location location,
-                     unsigned int cpu_id, const char * name, long)
+                     unsigned int cpu_id, const char * name, long prio)
 {
 	Genode::Xml_node const features = platform_rom().sub_node("features");
 	bool const svm = features.attribute_value("svm", false);
@@ -791,26 +770,497 @@ bool create_emt_vcpu(pthread_t * pthread, ::size_t stack,
 	if (!svm && !vmx)
 		return false;
 
-	static Genode::Pd_connection pd_vcpus(genode_env(), "VM");
-
 	Vcpu_handler *vcpu_handler = 0;
 
 	if (vmx)
-		vcpu_handler = new (0x10) Vcpu_handler_vmx(genode_env(),
-		                                           stack, start_routine,
-		                                           arg, cpu_session, location,
-		                                           cpu_id, name, pd_vcpus.rpc_cap());
+		vcpu_handler = new (heap()) Vcpu_handler_vmx(genode_env(),
+		                                           stack_size,
+		                                           location,
+		                                           cpu_id,
+		                                           vm_connection(prio),
+		                                           heap());
 
 	if (svm)
-		vcpu_handler = new (0x10) Vcpu_handler_svm(genode_env(),
-		                                           stack, start_routine,
-		                                           arg, cpu_session, location,
-		                                           cpu_id, name, pd_vcpus.rpc_cap());
-
-	Assert(!(reinterpret_cast<unsigned long>(vcpu_handler) & 0xf));
+		vcpu_handler = new (heap()) Vcpu_handler_svm(genode_env(),
+		                                           stack_size,
+		                                           location,
+		                                           cpu_id,
+		                                           vm_connection(prio),
+		                                           heap());
 
 	vcpu_handler_list().insert(vcpu_handler);
 
-	*pthread = &vcpu_handler->pthread_obj();
+	Libc::pthread_create(thread, start_routine, arg,
+	                     stack_size, name, cpu_session, location);
+
 	return true;
+}
+
+static int _map_memory(Genode::Vm_connection &vm_session,
+                       RTGCPHYS const GCPhys,
+                       RTHCPHYS const vmm_local,
+                       size_t const mapping_size,
+                       bool writeable)
+{
+	for (Region *region = regions.first(); region; region = region->next())
+	{
+		if (!region->contains(vmm_local))
+			continue;
+
+		bool retry = false;
+
+		do {
+			Genode::addr_t const offset = vmm_local - region->vmm_local;
+
+			try {
+				vm_session.with_upgrade([&]() {
+					vm_session.attach(region->cap, GCPhys,
+					                  { .offset     = offset,
+					                    .size       = mapping_size,
+					                    .executable = true,
+					                    .writeable  = writeable });
+				});
+			} catch (Genode::Vm_session::Region_conflict) {
+				/* XXX PGMUnmapMemoryGenode on vm_session does not flush caps */
+				vm_session.detach(GCPhys, mapping_size);
+
+				if (retry) {
+					Genode::error("region conflict - ", Genode::Hex(GCPhys),
+					              " ", Genode::Hex(mapping_size), " vmm_local=",
+					              Genode::Hex(vmm_local), " ", region->cap,
+					              " region=", Genode::Hex(region->vmm_local),
+					              "+", Genode::Hex(region->size));
+
+					return VERR_PGM_DYNMAP_FAILED;
+				}
+
+				if (!retry) {
+					retry = true;
+					continue;
+				}
+			}
+			retry = false;
+		} while (retry);
+
+		return VINF_SUCCESS;
+	}
+	Genode::error(" no mapping ?");
+	return VERR_PGM_DYNMAP_FAILED;
+}
+
+class Pgm_guard
+{
+	private:
+		VM &_vm;
+
+	public:
+		Pgm_guard(VM &vm) : _vm(vm) { pgmLock(&_vm); }
+		~Pgm_guard() { pgmUnlock(&_vm); }
+};
+
+#include "PGMInline.h"
+
+int Vcpu_handler::map_memory(Genode::Vm_connection &vm_session,
+                             RTGCPHYS const GCPhys, RTGCUINT vbox_fault_reason)
+{
+	Pgm_guard guard(*_vm);
+
+	_ept_fault_addr_type = PGMPAGETYPE_INVALID;
+
+	PPGMRAMRANGE const pRam = pgmPhysGetRangeAtOrAbove(_vm, GCPhys);
+	if (!pRam)
+		return VERR_PGM_DYNMAP_FAILED;
+
+	RTGCPHYS off = GCPhys - pRam->GCPhys;
+	if (off >= pRam->cb)
+		return VERR_PGM_DYNMAP_FAILED;
+
+	unsigned iPage = off >> PAGE_SHIFT;
+	PPGMPAGE pPage = &pRam->aPages[iPage];
+
+	_ept_fault_addr_type = PGM_PAGE_GET_TYPE(pPage);
+
+	/*
+	 * If page is not allocated (== zero page) and no MMIO or active page, allocate and map it
+	 * immediately. Important do not do this if A20 gate is disabled, A20 gate
+	 * is handled by IEM/REM in this case.
+	 */
+	if (PGM_PAGE_IS_ZERO(pPage)
+	    && !PGM_PAGE_IS_ALLOCATED(pPage)
+	    && !PGM_PAGE_HAS_ACTIVE_ALL_HANDLERS(pPage)
+	    && !PGM_PAGE_IS_SPECIAL_ALIAS_MMIO(pPage)
+	    && PGM_A20_IS_ENABLED(_vcpu))
+	{
+		pgmPhysPageMakeWritable(_vm, pPage, GCPhys);
+	}
+
+	if (PGM_PAGE_HAS_ACTIVE_ALL_HANDLERS(pPage) ||
+	    PGM_PAGE_IS_SPECIAL_ALIAS_MMIO(pPage) ||
+	    PGM_PAGE_IS_ZERO(pPage)) {
+
+		if (PGM_PAGE_GET_TYPE(pPage) != PGMPAGETYPE_MMIO &&
+		    !PGM_PAGE_IS_ZERO(pPage)) {
+
+			Genode::log(__LINE__, " GCPhys=", Genode::Hex(GCPhys), " ",
+			            PGM_PAGE_HAS_ACTIVE_ALL_HANDLERS(pPage), " ",
+			            PGM_PAGE_IS_SPECIAL_ALIAS_MMIO(pPage), " ",
+			            PGM_PAGE_IS_ZERO(pPage), " "
+			            " vbox_fault_reason=", Genode::Hex(vbox_fault_reason));
+			Genode::log(__LINE__, " GCPhys=", Genode::Hex(GCPhys), " "
+			            "host=", Genode::Hex(PGM_PAGE_GET_HCPHYS(pPage)), " "
+			            "type=", Genode::Hex(PGM_PAGE_GET_TYPE(pPage)), " "
+			            "writeable=true "
+			            "state=", Genode::Hex(PGM_PAGE_GET_STATE(pPage)));
+		}
+		return VERR_PGM_DYNMAP_FAILED;
+	}
+
+	if (!PGM_PAGE_IS_ALLOCATED(pPage))
+		Genode::log("unknown page state ", Genode::Hex(PGM_PAGE_GET_STATE(pPage)),
+		            " GCPhys=", Genode::Hex(GCPhys));
+	Assert(PGM_PAGE_IS_ALLOCATED(pPage));
+
+	if (PGM_PAGE_GET_TYPE(pPage) != PGMPAGETYPE_RAM   &&
+	    PGM_PAGE_GET_TYPE(pPage) != PGMPAGETYPE_MMIO2 &&
+	    PGM_PAGE_GET_TYPE(pPage) != PGMPAGETYPE_ROM)
+	{
+		if (VERBOSE_PGM)
+			Genode::log(__LINE__, " GCPhys=", Genode::Hex(GCPhys), " "
+			            "vbox_fault_reason=", Genode::Hex(vbox_fault_reason), " "
+			            "host=", Genode::Hex(PGM_PAGE_GET_HCPHYS(pPage)), " "
+			            "type=", Genode::Hex(PGM_PAGE_GET_TYPE(pPage)), " "
+			            "state=", Genode::Hex(PGM_PAGE_GET_STATE(pPage)));
+		return VERR_PGM_DYNMAP_FAILED;
+	}
+
+	Assert(!PGM_PAGE_IS_ZERO(pPage));
+
+	/* write fault on a ROM region */
+	if (PGM_PAGE_GET_TYPE(pPage) == PGMPAGETYPE_ROM &&
+	    vbox_fault_reason & VMX_EXIT_QUALIFICATION_EPT_DATA_WRITE) {
+		Genode::warning(__func__, " - write fault on ROM region!? gp=",
+		                Genode::Hex(GCPhys));
+		return VERR_PGM_DYNMAP_FAILED;
+	}
+
+	/* nothing should be mapped - otherwise we get endless overmap loops */
+	Assert(!(vbox_fault_reason & VMX_EXIT_QUALIFICATION_EPT_ENTRY_PRESENT));
+
+	bool const writeable = PGM_PAGE_GET_TYPE(pPage) != PGMPAGETYPE_ROM;
+
+	PPGMPHYSHANDLER handler = pgmHandlerPhysicalLookup(_vm, GCPhys);
+
+	if (VERBOSE_PGM && PGM_PAGE_GET_TYPE(pPage) == PGMPAGETYPE_MMIO2 &&
+	    !handler)
+		Genode::log(__LINE__, " GCPhys=", Genode::Hex(GCPhys), " ",
+		            "type=", Genode::Hex(PGM_PAGE_GET_TYPE(pPage)), " "
+		            "state=", Genode::Hex(PGM_PAGE_GET_STATE(pPage)), " "
+		            "- MMIO2 w/o handler");
+
+	if (PGM_PAGE_GET_TYPE(pPage) == PGMPAGETYPE_MMIO2 && handler) {
+		PFNPGMPHYSHANDLER pfnHandler = PGMPHYSHANDLER_GET_TYPE(_vm, handler)->CTX_SUFF(pfnHandler);
+		if (!pfnHandler) {
+			Genode::log(__LINE__, " GCPhys=", Genode::Hex(GCPhys), " "
+			            "type=", Genode::Hex(PGM_PAGE_GET_TYPE(pPage)));
+			return VERR_PGM_DYNMAP_FAILED;
+		}
+		void *pvUser = handler->CTX_SUFF(pvUser);
+		if (!pvUser) {
+			Genode::log(__LINE__, " GCPhys=", Genode::Hex(GCPhys), " "
+			         "type=", Genode::Hex(PGM_PAGE_GET_TYPE(pPage)));
+			return VERR_PGM_DYNMAP_FAILED;
+		}
+
+		PGMACCESSTYPE access_type = (vbox_fault_reason & VMX_EXIT_QUALIFICATION_EPT_DATA_WRITE) ? PGMACCESSTYPE_WRITE : PGMACCESSTYPE_READ;
+
+		VBOXSTRICTRC rcStrict = pfnHandler(_vm, _vcpu, GCPhys, nullptr, nullptr, 0, access_type, PGMACCESSORIGIN_HM, pvUser);
+		if (rcStrict != VINF_PGM_HANDLER_DO_DEFAULT) {
+			Genode::log(__LINE__, " nodefault GCPhys=", Genode::Hex(GCPhys), " "
+			         "type=", Genode::Hex(PGM_PAGE_GET_TYPE(pPage)), " "
+			         "pfnHandler=", pfnHandler);
+			return VERR_PGM_DYNMAP_FAILED;
+		}
+	}
+
+/*
+	if (VERBOSE_PGM)
+		Genode::log(Genode::Hex(PGM_PAGE_GET_HCPHYS(pPage)),
+		            "->", Genode::Hex(GCPhys),
+		            " type=", PGM_PAGE_GET_TYPE(pPage),
+		            " state=", PGM_PAGE_GET_STATE(pPage),
+		            " pde_type=", PGM_PAGE_GET_PDE_TYPE(pPage),
+		            PGM_PAGE_GET_PDE_TYPE(pPage) == PGM_PAGE_PDE_TYPE_PDE ? "(is pde)" : "(not pde)",
+		            " iPage=", iPage,
+		         " range_start=", Genode::Hex(pRam->GCPhys),
+		         " range_size=", Genode::Hex(pRam->cb),
+		         " pages=", pRam->cb >> PAGE_SHIFT
+		);
+*/
+
+	if (PGM_PAGE_GET_PDE_TYPE(pPage) != PGM_PAGE_PDE_TYPE_PDE)
+		return _map_memory(vm_session, GCPhys, PGM_PAGE_GET_HCPHYS(pPage), 4096, writeable); /* one page mapping */
+
+	Genode::addr_t const superpage_log2 = 21;
+	Genode::addr_t const max_pages = pRam->cb >> PAGE_SHIFT;
+	Genode::addr_t const superpage_pages = (1UL << superpage_log2) / 4096;
+	Genode::addr_t const mask  = (1UL << superpage_log2) - 1;
+	Genode::addr_t const super_gcphys = GCPhys & ~mask;
+
+	RTGCPHYS max_off = super_gcphys - pRam->GCPhys;
+	if (max_off > pRam->cb)
+		return _map_memory(vm_session, GCPhys, PGM_PAGE_GET_HCPHYS(pPage), 4096, writeable); /* one page mapping */
+
+	Genode::addr_t const super_hcphys = PGM_PAGE_GET_HCPHYS(pPage) & ~mask;
+
+	unsigned const i_s = max_off >> PAGE_SHIFT;
+
+	if (i_s + superpage_pages > max_pages)
+		return _map_memory(vm_session, GCPhys, PGM_PAGE_GET_HCPHYS(pPage), 4096, writeable); /* one page mapping */
+
+	if (VERBOSE_PGM)
+		Genode::log(Genode::Hex(PGM_PAGE_GET_HCPHYS(pPage)), "->",
+		            Genode::Hex(GCPhys), " - iPage ", iPage, " [",
+		            i_s, ",", i_s + superpage_pages, ")", " "
+		            "range_size=", Genode::Hex(pRam->cb));
+
+	/* paranoia sanity checks */
+	for (Genode::addr_t i = i_s; i < i_s + superpage_pages; i++) {
+		PPGMPAGE page = &pRam->aPages[i];
+
+		Genode::addr_t const gcpage = pRam->GCPhys + (i << PAGE_SHIFT);
+
+		if (!(super_hcphys == (PGM_PAGE_GET_HCPHYS(page) & ~mask)) ||
+		    !(super_gcphys == (gcpage & ~mask)) ||
+		    !(PGM_PAGE_GET_PDE_TYPE(page) == PGM_PAGE_PDE_TYPE_PDE) ||
+		    !(PGM_PAGE_GET_TYPE(page) == PGM_PAGE_GET_TYPE(pPage)) ||
+		    !(PGM_PAGE_GET_STATE(page) == PGM_PAGE_GET_STATE(pPage)))
+		{
+			if (VERBOSE_PGM)
+				Genode::error(Genode::Hex(PGM_PAGE_GET_HCPHYS(pPage)), "->",
+				              Genode::Hex(GCPhys), " - iPage ", iPage, " i ", i, " [",
+				              i_s, ",", i_s + superpage_pages, ")", " "
+				              "range_size=", Genode::Hex(pRam->cb), " "
+				              "super_hcphys=", Genode::Hex(super_hcphys), "?=", Genode::Hex((PGM_PAGE_GET_HCPHYS(page) & ~mask)), " "
+				              "super_gcphys=", Genode::Hex(super_gcphys), "?=", Genode::Hex((gcpage & ~mask)), " ",
+				              (int)(PGM_PAGE_GET_PDE_TYPE(page)), "?=", (int)PGM_PAGE_PDE_TYPE_PDE, " ",
+				              (int)(PGM_PAGE_GET_TYPE(page)), "?=", (int)PGM_PAGE_GET_TYPE(pPage), " ",
+				              (int)(PGM_PAGE_GET_STATE(page)), "?=", (int)PGM_PAGE_GET_STATE(pPage));
+			return _map_memory(vm_session, GCPhys, PGM_PAGE_GET_HCPHYS(pPage), 4096, writeable); /* one page mapping */
+		}
+	}
+
+	/* XXX revoke of old mappings required ? */
+	/* super page mapping */
+	return _map_memory(vm_session, super_gcphys, super_hcphys, 1UL << superpage_log2, writeable);
+}
+
+
+Genode::uint64_t * Vcpu_handler::pdpte_map(VM *pVM, RTGCPHYS cr3)
+{
+	Pgm_guard guard(*_vm);
+
+	PPGMRAMRANGE pRam = pgmPhysGetRangeAtOrAbove(pVM, cr3);
+	Assert (pRam);
+
+	RTGCPHYS off = cr3 - pRam->GCPhys;
+	Assert (off < pRam->cb);
+
+	unsigned iPage = off >> PAGE_SHIFT;
+	PPGMPAGE pPage = &pRam->aPages[iPage];
+
+/*
+	if (VERBOSE_PGM)
+		Genode::log(__LINE__, " gcphys=", Genode::Hex(cr3),
+		         " host=", Genode::Hex(PGM_PAGE_GET_HCPHYS(pPage)),
+		         " type=", Genode::Hex(PGM_PAGE_GET_TYPE(pPage)),
+		         " state=",Genode::Hex(PGM_PAGE_GET_STATE(pPage)));
+*/
+
+	Genode::uint64_t *pdpte = reinterpret_cast<Genode::uint64_t*>(PGM_PAGE_GET_HCPHYS(pPage) + (cr3 & PAGE_OFFSET_MASK));
+
+	Assert(pdpte != 0);
+
+	return pdpte;
+}
+
+static PFNRTTIMER rttimer_func = nullptr;
+static void *     rttimer_obj  = nullptr;
+
+enum {
+	UPDATE_HZ  = 1000,
+	UPDATE_US  = 1000 * 1000 / UPDATE_HZ,
+	UPDATE_NS  = UPDATE_US * 1000,
+};
+
+
+PSUPGLOBALINFOPAGE g_pSUPGlobalInfoPage;
+
+
+class Periodic_gip
+{
+	private :
+
+		void update()
+		{
+			/**
+			 * We're using rdtsc here since timer_session->elapsed_ms produces
+			 * instable results when the timer service is using the Genode PIC
+			 * driver.
+			 */
+
+			Genode::uint64_t tsc_current = Genode::Trace::timestamp();
+
+			/*
+			 * Convert tsc to nanoseconds.
+			 *
+			 * There is no 'uint128_t' type on x86_32, so we use the 128-bit type
+			 * and functions provided by VirtualBox.
+			 *
+			 * nanots128 = tsc_current * 1000*1000*1000 / genode_cpu_hz()
+			 *
+			 */
+
+			RTUINT128U nanots128;
+			RTUInt128AssignU64(&nanots128, tsc_current);
+
+			RTUINT128U multiplier;
+			RTUInt128AssignU32(&multiplier, 1000*1000*1000);
+			RTUInt128AssignMul(&nanots128, &multiplier);
+
+			RTUINT128U divisor;
+			RTUInt128AssignU64(&divisor, genode_cpu_hz());
+			RTUInt128AssignDiv(&nanots128, &divisor);
+
+			SUPGIPCPU *cpu = &g_pSUPGlobalInfoPage->aCPUs[0];
+
+			/*
+			 * Transaction id must be incremented before and after update,
+			 * read struct SUPGIPCPU description for more details.
+			 */
+			ASMAtomicIncU32(&cpu->u32TransactionId);
+
+			cpu->u64TSC    = tsc_current;
+			cpu->u64NanoTS = nanots128.s.Lo;
+
+			/*
+			 * Transaction id must be incremented before and after update,
+			 * read struct SUPGIPCPU description for more details.
+			 */
+			ASMAtomicIncU32(&cpu->u32TransactionId);
+
+			/* call the timer function of the RTTimerCreate call */
+			if (rttimer_func)
+				rttimer_func(nullptr, rttimer_obj, 0);
+
+			for (Vcpu_handler *vcpu_handler = vcpu_handler_list().first();
+			     vcpu_handler;
+			     vcpu_handler = vcpu_handler->next())
+			{
+				vcpu_handler->check_time();
+			}
+		}
+
+	public:
+
+		Timer::Connection               _timer;
+		Genode::Signal_handler<Periodic_gip>   _timer_handler;
+
+		Periodic_gip(Genode::Env &env)
+		:
+			_timer(env),
+			_timer_handler(env.ep(), *this, &Periodic_gip::update)
+		{
+			_timer.sigh(_timer_handler);
+			_timer.trigger_periodic(UPDATE_US);
+		}
+};
+
+
+struct Attached_gip : Genode::Attached_ram_dataspace
+{
+	Attached_gip()
+	: Attached_ram_dataspace(genode_env().ram(), genode_env().rm(), PAGE_SIZE)
+	{
+		g_pSUPGlobalInfoPage = local_addr<SUPGLOBALINFOPAGE>();
+
+		/* checked by TMR3Init */
+		g_pSUPGlobalInfoPage->u32Version            = SUPGLOBALINFOPAGE_VERSION;
+		g_pSUPGlobalInfoPage->u32Magic              = SUPGLOBALINFOPAGE_MAGIC;
+		g_pSUPGlobalInfoPage->u32Mode               = SUPGIPMODE_SYNC_TSC;
+		g_pSUPGlobalInfoPage->cCpus                 = 1;
+		g_pSUPGlobalInfoPage->cPages                = 1;
+		g_pSUPGlobalInfoPage->u32UpdateHz           = UPDATE_HZ;
+		g_pSUPGlobalInfoPage->u32UpdateIntervalNS   = UPDATE_NS;
+		g_pSUPGlobalInfoPage->cOnlineCpus           = 0;
+		g_pSUPGlobalInfoPage->cPresentCpus          = 0;
+		g_pSUPGlobalInfoPage->cPossibleCpus         = 0;
+		g_pSUPGlobalInfoPage->idCpuMax              = 0;
+		g_pSUPGlobalInfoPage->u64CpuHz              = genode_cpu_hz();
+		/* evaluated by rtTimeNanoTSInternalRediscover in Runtime/common/time/timesup.cpp */
+		g_pSUPGlobalInfoPage->fGetGipCpu            = SUPGIPGETCPU_APIC_ID;
+
+		SUPGIPCPU *cpu = &g_pSUPGlobalInfoPage->aCPUs[0];
+
+		cpu->u32TransactionId        = 0;
+		cpu->u32UpdateIntervalTSC    = genode_cpu_hz() / UPDATE_HZ;
+		cpu->u64NanoTS               = 0ULL;
+		cpu->u64TSC                  = 0ULL;
+		cpu->u64CpuHz                = genode_cpu_hz();
+		cpu->cErrors                 = 0;
+		cpu->iTSCHistoryHead         = 0;
+		cpu->u32PrevUpdateIntervalNS = UPDATE_NS;
+		cpu->enmState                = SUPGIPCPUSTATE_ONLINE;
+		cpu->idCpu                   = 0;
+		cpu->iCpuSet                 = 0;
+		cpu->idApic                  = 0;
+
+		/* schedule periodic call of GIP update function */
+		static Periodic_gip periodic_gip(genode_env());
+	}
+};
+
+
+int RTTimerCreate(PRTTIMER *pptimer, unsigned ms, PFNRTTIMER func, void *obj)
+{
+	if (pptimer)
+		*pptimer = NULL;
+
+	/* used solely at one place in TM.cpp */
+	Assert(!rttimer_func);
+
+	/*
+	 * Ignore (10) ms which is too high for audio. Instead the callback
+	 * handler will run at UPDATE_HZ rate.
+	 */
+	rttimer_func = func;
+	rttimer_obj  = obj;
+
+	return VINF_SUCCESS;
+}
+
+
+int RTTimerDestroy(PRTTIMER)
+{
+	rttimer_obj  = nullptr;
+	rttimer_func = nullptr;
+	return VINF_SUCCESS;
+}
+
+
+int SUPR3Init(PSUPDRVSESSION *ppSession)
+{
+	static Attached_gip gip;
+
+	return VINF_SUCCESS;
+}
+
+int SUPR3GipGetPhys(PRTHCPHYS pHCPhys)
+{
+	/*
+	 * Return VMM-local address as physical address. This address is
+	 * then fed to MMR3HyperMapHCPhys. (TMR3Init)
+	 */
+	*pHCPhys = (RTHCPHYS)g_pSUPGlobalInfoPage;
+
+	return VINF_SUCCESS;
 }

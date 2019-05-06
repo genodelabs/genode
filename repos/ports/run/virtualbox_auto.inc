@@ -81,9 +81,7 @@ append config {
 		<service name="PD"/>
 		<service name="RM"/>
 		<service name="CPU"/>
-		<service name="LOG"/>}
-
-append_if [have_spec muen] config {
+		<service name="LOG"/>
 		<service name="VM"/>}
 
 append_if [expr $use_cpu_load] config {

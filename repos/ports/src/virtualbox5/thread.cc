@@ -31,7 +31,18 @@
 /* vbox */
 #include <internal/thread.h>
 
-static Genode::Cpu_connection * cpu_connection(RTTHREADTYPE type) {
+static long prio_class(RTTHREADTYPE const type)
+{
+	unsigned const VIRTUAL_GENODE_VBOX_LEVELS = 16;
+	static_assert (RTTHREADTYPE_END < VIRTUAL_GENODE_VBOX_LEVELS,
+	               "prio levels exceeds VIRTUAL_GENODE_VBOX_LEVELS");
+
+	return (VIRTUAL_GENODE_VBOX_LEVELS - type) *
+	        Genode::Cpu_session::PRIORITY_LIMIT / VIRTUAL_GENODE_VBOX_LEVELS;
+}
+
+static Genode::Cpu_connection * cpu_connection(RTTHREADTYPE type)
+{
 	using namespace Genode;
 
 	static Cpu_connection * con[RTTHREADTYPE_END - 1];
@@ -44,18 +55,12 @@ static Genode::Cpu_connection * cpu_connection(RTTHREADTYPE type) {
 	if (con[type - 1])
 		return con[type - 1];
 
-	unsigned const VIRTUAL_GENODE_VBOX_LEVELS = 16;
-	static_assert (RTTHREADTYPE_END < VIRTUAL_GENODE_VBOX_LEVELS,
-	               "prio levels exceeds VIRTUAL_GENODE_VBOX_LEVELS");
-
-	long const prio = (VIRTUAL_GENODE_VBOX_LEVELS - type) *
-	                  Cpu_session::PRIORITY_LIMIT / VIRTUAL_GENODE_VBOX_LEVELS;
-
 	char * data = new (vmm_heap()) char[16];
 
 	Genode::snprintf(data, 16, "vbox %u", type);
 
-	con[type - 1] = new (vmm_heap()) Cpu_connection(genode_env(), data, prio);
+	con[type - 1] = new (vmm_heap()) Cpu_connection(genode_env(), data,
+	                                                prio_class(type));
 
 	return con[type - 1];
 }
@@ -90,7 +95,8 @@ static int create_thread(pthread_t *thread, const pthread_attr_t *attr,
 		Genode::Affinity::Location location(space.location_of_index(cpu_id));
 
 		if (create_emt_vcpu(thread, stack_size, start_routine, arg,
-		                    cpu_session, location, cpu_id, rtthread->szName))
+		                    cpu_session, location, cpu_id, rtthread->szName,
+		                    prio_class(rtthread->enmType)))
 			return 0;
 		/*
 		 * The virtualization layer had no need to setup the EMT

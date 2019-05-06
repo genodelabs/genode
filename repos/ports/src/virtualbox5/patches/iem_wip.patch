@@ -51,7 +51,7 @@
   * @param   pRam    The RAM range.
   */
 +#include <base/log.h>
-+extern "C" bool PGMUnmapMemoryGenode(void *, size_t size);
++extern "C" bool PGMUnmapMemoryGenode(void *, RTGCPHYS, size_t size);
 +
  static int pgmHandlerPhysicalSetRamFlagsAndFlushShadowPTs(PVM pVM, PPGMPHYSHANDLER pCur, PPGMRAMRANGE pRam)
  {
@@ -64,7 +64,7 @@
 +        if (pCur->cPages != pRam->cb / 4096)
 +            Genode::warning("dubious ? phys=", Genode::Hex(pRam->GCPhys));
 +
-+        PGMUnmapMemoryGenode(pRam->pvR3, pRam->cb);
++        PGMUnmapMemoryGenode(pRam->pvR3, pRam->GCPhys, pRam->cb);
 +    }
 +
      if (fFlushTLBs)

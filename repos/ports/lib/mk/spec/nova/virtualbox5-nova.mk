@@ -2,7 +2,7 @@ include $(REP_DIR)/lib/mk/virtualbox5-common.inc
 
 LIBS  += stdcxx
 
-SRC_CC = sup.cc pgm.cc
+SRC_CC = sup.cc pgm.cc sup_old.cc
 
 INC_DIR += $(call select_from_repositories,src/lib/libc)
 
@@ -16,5 +16,6 @@ INC_DIR += $(REP_DIR)/src/virtualbox5/frontend
 
 vpath sup.cc $(REP_DIR)/src/virtualbox5/spec/nova/
 vpath pgm.cc $(REP_DIR)/src/virtualbox5/spec/nova/
+vpath sup_old.cc $(REP_DIR)/src/virtualbox5/spec/nova/
 
 CC_CXX_WARN_STRICT =
