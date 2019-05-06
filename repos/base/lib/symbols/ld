@@ -32,7 +32,7 @@
 #
 
 #
-# Copyright (C) 2016-2017 Genode Labs GmbH
+# Copyright (C) 2016-2019 Genode Labs GmbH
 #
 # This file is part of the Genode OS framework, which is distributed
 # under the terms of the GNU Affero General Public License version 3.
@@ -329,6 +329,10 @@ _ZN6Genode8Duration3addENS_12MicrosecondsE T
 _ZN6Genode8Duration3addENS_12MillisecondsE T
 _ZN6Genode8ipc_callENS_17Native_capabilityERNS_11Msgbuf_baseES2_m T
 _ZN6Genode9ipc_replyENS_17Native_capabilityENS_18Rpc_exception_codeERNS_11Msgbuf_baseE T
+_ZNK10__cxxabiv117__class_type_info10__do_catchEPKSt9type_infoPPvj T
+_ZNK10__cxxabiv120__si_class_type_info11__do_upcastEPKNS_17__class_type_infoEPKvRNS1_15__upcast_resultE T
+_ZNK10__cxxabiv120__si_class_type_info12__do_dyncastElNS_17__class_type_info10__sub_kindEPKS1_PKvS4_S6_RNS1_16__dyncast_resultE T
+_ZNK10__cxxabiv120__si_class_type_info20__do_find_public_srcElPKvPKNS_17__class_type_infoES2_ T
 _ZNK6Genode11Sliced_heap8overheadEm T
 _ZNK6Genode13Session_state24generate_session_requestERNS_13Xml_generatorE T
 _ZNK6Genode13Session_state25generate_client_side_infoERNS_13Xml_generatorENS0_6DetailE T
