@@ -184,7 +184,7 @@ CC_RUSTC_OPT += $(foreach lib,$(LIBS),-L$(LIB_CACHE_DIR)/$(lib))
 # We substitute '.' characters by '_' to allow a source-file-specific
 # C++ standard option for files with more than one dot in their name.
 #
-CC_CXX_OPT_STD ?= -std=gnu++11
+CC_CXX_OPT_STD ?= -std=gnu++17
 CC_CXX_OPT += $(lastword $(CC_CXX_OPT_STD) $(CC_CXX_OPT_STD_$(subst .,_,$*)))
 
 #
