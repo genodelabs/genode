@@ -45,6 +45,11 @@ struct Sculpt::Nic_target : Noncopyable
 	Type manual_type { UNDEFINED };
 
 	/**
+	  * Constructor
+	  */
+	Nic_target() { }
+
+	/**
 	 * Return currently active NIC target type
 	 *
 	 * This method never returns 'UNDEFINED'.
