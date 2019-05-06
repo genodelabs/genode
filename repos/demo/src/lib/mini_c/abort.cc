@@ -14,9 +14,8 @@
 #include <base/log.h>
 #include <base/sleep.h>
 
-extern "C" void *abort(void)
+extern "C" void abort(void)
 {
 	Genode::warning("abort called");
 	Genode::sleep_forever();
-	return 0;
 }

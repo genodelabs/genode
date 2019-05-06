@@ -17,7 +17,7 @@
 #include <stdarg.h>
 #include <stddef.h>
 
-#define FILE int
+#define FILE void
 
 #define EOF (-1)
 

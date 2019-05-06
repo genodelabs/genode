@@ -32,7 +32,7 @@ static Allocator &alloc()
 void mini_c_init(Allocator &alloc) { _alloc_ptr = &alloc; }
 
 
-extern "C" void *malloc(unsigned size)
+extern "C" void *malloc(size_t size)
 {
 	/*
 	 * We store the size of the allocation at the very
@@ -50,7 +50,7 @@ extern "C" void *malloc(unsigned size)
 }
 
 
-extern "C" void *calloc(unsigned nmemb, unsigned size)
+extern "C" void *calloc(size_t nmemb, size_t size)
 {
 	void *addr = malloc(nmemb*size);
 	memset(addr, 0, nmemb*size);
