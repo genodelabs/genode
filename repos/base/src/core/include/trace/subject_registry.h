@@ -79,19 +79,18 @@ class Genode::Trace::Subject
 
 				/**
 				 * Allocate new dataspace
-				 *
-				 * \return true on success, false on the attempt to call setup
-				 *         twice.
 				 */
-				bool setup(Ram_allocator &ram, size_t size)
+				void setup(Ram_allocator &ram, size_t size)
 				{
+					if (_size && _size == size)
+						return;
+
 					if (_size)
-						return false;
+						_ram_ptr->free(_ds);
 
 					_ram_ptr = &ram;
 					_size    = size;
 					_ds      = ram.alloc(size);
-					return true;
 				}
 
 				/**
@@ -102,6 +101,9 @@ class Genode::Trace::Subject
 				{
 					if (!from_ds.valid())
 						return false;
+
+					if (_size)
+						flush();
 
 					_ram_ptr = &ram;
 					_size    = size;
@@ -144,6 +146,7 @@ class Genode::Trace::Subject
 		Ram_dataspace       _buffer { };
 		Ram_dataspace       _policy { };
 		Policy_id           _policy_id { };
+		size_t              _allocated_memory { 0 };
 
 		Subject_info::State _state()
 		{
@@ -160,6 +163,18 @@ class Genode::Trace::Subject
 				return Subject_info::ERROR;
 
 			return Subject_info::UNTRACED;
+		}
+
+		void _traceable_or_throw()
+		{
+			switch(_state()) {
+				case Subject_info::DEAD    : throw Source_is_dead();
+				case Subject_info::FOREIGN : throw Traced_by_other_session();
+				case Subject_info::ERROR   : throw Source_is_dead();
+				case Subject_info::INVALID : throw Nonexistent_subject();
+				case Subject_info::UNTRACED: return;
+				case Subject_info::TRACED  : return;
+			}
 		}
 
 	public:
@@ -184,6 +199,9 @@ class Genode::Trace::Subject
 		 */
 		bool has_source_id(unsigned id) const { return id == _source_id; }
 
+		size_t allocated_memory() const { return _allocated_memory; }
+		void   reset_allocated_memory() { _allocated_memory = 0; }
+
 		/**
 		 * Start tracing
 		 *
@@ -199,20 +217,22 @@ class Genode::Trace::Subject
 		           size_t policy_size, Ram_allocator &ram,
 		           Region_map &local_rm, size_t size)
 		{
+			/* check state and throw error in case subject is not traceable */
+			_traceable_or_throw();
+
 			_policy_id = policy_id;
 
-			if (!_buffer.setup(ram, size)
-			 || !_policy.setup(ram, local_rm, policy_ds, policy_size))
-				throw Already_traced();
+			_buffer.setup(ram, size);
+			if(!_policy.setup(ram, local_rm, policy_ds, policy_size))
+					throw Already_traced();
 
 			/* inform trace source about the new buffer */
 			Locked_ptr<Source> source(_source);
 
-			if (!source.valid())
-				throw Source_is_dead();
-
 			if (!source->try_acquire(*this))
 				throw Traced_by_other_session();
+
+			_allocated_memory = policy_size + size;
 
 			source->trace(_policy.dataspace(), _buffer.dataspace());
 		}
