@@ -34,7 +34,11 @@ class Tx_buffer_descriptor : public Buffer_descriptor
 			struct Last_buffer  : Bitfield<15, 1> {};
 			struct Wrap  : Bitfield<30, 1> {};
 			struct Used  : Bitfield<31, 1> {};
-			struct Chksum_err : Bitfield<20, 2> {};
+			struct Chksum_err : Bitfield<20, 3> {};
+			struct Crc_present: Bitfield<16, 1> {};
+			struct Late_collision: Bitfield<26, 1> {};
+			struct Corrupt: Bitfield<27, 1> {};
+			struct Retry_limit: Bitfield<29, 1> {};
 		};
 
 		Timer::Connection &_timer;
@@ -74,29 +78,51 @@ class Tx_buffer_descriptor : public Buffer_descriptor
 			}
 		}
 
-		void submit_acks(Nic::Session::Rx::Sink &sink)
+		void reset(Nic::Session::Rx::Sink &sink)
+		{
+			/* ack all packets that are still queued */
+			submit_acks(sink, true);
+
+			/* reset head and tail */
+			_reset_head();
+			_reset_tail();
+		}
+
+		void submit_acks(Nic::Session::Rx::Sink &sink, bool force=false)
 		{
 			/* the tail marks the descriptor for which we wait to
 			 * be handed over to software */
-			for (size_t i=0; i <= _queued(); i++) {
+			for (size_t i=0; i < _queued(); i++) {
 				/* stop if still in use by hardware */
-				if (!Status::Used::get(_tail().status))
+				if (!Status::Used::get(_tail().status) && !force)
 					break;
 
 				/* if descriptor has been configured properly */
 				if (_tail().addr != 0) {
-
 					/* build packet descriptor from buffer descriptor
 					 * and acknowledge packet */
 					const size_t length = Status::Length::get(_tail().status);
 					Nic::Packet_descriptor p((addr_t)_tail().addr - _phys_base, length);
 					if (sink.packet_valid(p))
 						sink.acknowledge_packet(p);
+					else
+						warning("Invalid packet descriptor");
 
 					/* erase address so that we don't send an ack again */
 					_tail().addr = 0;
 
-					/* TODO optionally, we may evaluate the Tx status here */
+					/* evaluate Tx status */
+					if (Status::Retry_limit::get(_tail().status))
+						warning("Retry limit exceeded");
+
+					if (Status::Corrupt::get(_tail().status))
+						warning("Transmit frame corruption");
+
+					if (Status::Late_collision::get(_tail().status))
+						warning("Late collision error");
+
+					if (Status::Crc_present::get(_tail().status))
+						warning("CRC already present - this impedes checksum offloading");
 				}
 
 				_advance_tail();

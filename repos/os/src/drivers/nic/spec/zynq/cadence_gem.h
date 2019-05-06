@@ -145,8 +145,11 @@ namespace Genode
 			*/
 			struct Tx_status : Register<0x14, 32>
 			{
-				struct Tx_complete  : Bitfield<5, 1> {};
-				struct Tx_go  : Bitfield<3, 1> {};
+				struct Tx_hresp_nok    : Bitfield<8, 1> {};
+				struct Tx_err_underrun : Bitfield<6, 1> {};
+				struct Tx_complete     : Bitfield<5, 1> {};
+				struct Tx_err_bufexh   : Bitfield<4, 1> {};
+				struct Tx_go           : Bitfield<3, 1> {};
 			};
 
 			/**
@@ -170,6 +173,7 @@ namespace Genode
 			*/
 			struct Rx_status : Register<0x20, 32>
 			{
+				struct Rx_hresp_nok   : Bitfield<3, 1> {};
 				struct Rx_overrun     : Bitfield<2, 1> {};
 				struct Frame_received : Bitfield<1, 1> {};
 				struct Buffer_not_available : Bitfield<0, 1> {};
@@ -259,6 +263,22 @@ namespace Genode
 			struct Pause_transmitted : Register<0x114, 32>
 			{
 				struct Counter : Bitfield<0, 16> { };
+			};
+
+			/**
+			* Counter for tx underrun errors
+			*/
+			struct Tx_underrun : Register<0x134, 32>
+			{
+				struct Counter : Bitfield<0, 10> { };
+			};
+
+			/**
+			* Counter for deferred transmission frames
+			*/
+			struct Tx_deferred: Register<0x148, 32>
+			{
+				struct Counter : Bitfield<0, 18> { };
 			};
 
 			/**
@@ -487,12 +507,12 @@ namespace Genode
 			virtual void _handle_irq()
 			{
 				/* 16.3.9 Receiving Frames */
-				/* read interrupt status, to detect the interrupt reasone */
+				/* read interrupt status, to detect the interrupt reason */
 				const Interrupt_status::access_t status = read<Interrupt_status>();
 				const Rx_status::access_t rxStatus = read<Rx_status>();
+				const Tx_status::access_t txStatus = read<Tx_status>();
 
 				if ( Interrupt_status::Rx_complete::get(status) ) {
-
 					while (_rx_buffer.next_packet()) {
 
 						_handle_acks();
@@ -512,14 +532,50 @@ namespace Genode
 				else {
 					_handle_acks();
 				}
-				
+
+				/* handle Rx/Tx errors */
+				if ( Tx_status::Tx_hresp_nok::get(txStatus)
+				  || Rx_status::Rx_hresp_nok::get(rxStatus)) {
+
+					write<Control::Tx_en>(0);
+					write<Control::Rx_en>(0);
+
+					_tx_buffer.reset(*_tx.sink());
+					_rx_buffer.reset();
+
+					write<Control::Tx_en>(1);
+					write<Control::Rx_en>(1);
+
+					write<Tx_status>(Tx_status::Tx_hresp_nok::bits(1));
+					write<Rx_status>(Rx_status::Rx_hresp_nok::bits(1));
+					Genode::error("Rx/Tx error: resetting both");
+				}
+
+				/* handle Tx errors */
+				if ( Tx_status::Tx_err_underrun::get(txStatus)
+				  || Tx_status::Tx_err_bufexh::get(txStatus)) {
+
+					write<Control::Tx_en>(0);
+					_tx_buffer.reset(*_tx.sink());
+					write<Control::Tx_en>(1);
+
+					Genode::error("Tx error: resetting transceiver");
+				}
+
+				/* handle Rx error */
 				bool print_stats = false;
 				if (Interrupt_status::Rx_overrun::get(status)) {
 					write<Control::Tx_pause>(1);
 					write<Interrupt_status>(Interrupt_status::Rx_overrun::bits(1));
 					write<Rx_status>(Rx_status::Rx_overrun::bits(1));
+
+					/* reset the receiver because this may lead to a deadlock */
+					write<Control::Rx_en>(0);
+					_rx_buffer.reset();
+					write<Control::Rx_en>(1);
+
 					print_stats = true;
-					Genode::error("Rx overrun");
+					Genode::error("Rx overrun - packet buffer overflow");
 				}
 				if (Interrupt_status::Rx_used_read::get(status)) {
 					/* tried to use buffer descriptor with used bit set */
@@ -529,8 +585,9 @@ namespace Genode
 					write<Control::Tx_pause>(1);
 					write<Interrupt_status>(Interrupt_status::Rx_used_read::bits(1));
 					write<Rx_status>(Rx_status::Buffer_not_available::bits(1));
+
 					print_stats = true;
-					Genode::error("Rx used");
+					Genode::error("Rx used - the Nic client is not fast enough");
 				}
 				if (Interrupt_status::Pause_zero::get(status)) {
 					Genode::warning("Pause ended.");
@@ -555,6 +612,8 @@ namespace Genode
 					const uint32_t tcp_chk   = read<Rx_tcp_chksum_errors::Counter>();
 					const uint32_t transmit  = read<Frames_transmitted>();
 					const uint32_t pause_tx  = read<Pause_transmitted::Counter>();
+					const uint32_t underrun  = read<Tx_underrun::Counter>();
+					const uint32_t deferred  = read<Tx_deferred::Counter>();
 
 					Genode::warning("Received:          ", received);
 					Genode::warning("  pause frames:    ", pause_rx);
@@ -566,6 +625,8 @@ namespace Genode
 					Genode::warning("  TCP chk failed:  ", tcp_chk);
 					Genode::warning("Transmitted:       ", transmit);
 					Genode::warning("  pause frames:    ", pause_tx);
+					Genode::warning("  underrun:        ", underrun);
+					Genode::warning("  deferred:        ", deferred);
 				}
 
 				_irq.ack_irq();

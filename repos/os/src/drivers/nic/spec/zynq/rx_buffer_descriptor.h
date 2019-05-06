@@ -96,17 +96,22 @@ class Rx_buffer_descriptor : public Buffer_descriptor
 			return false;
 		}
 
+		void reset()
+		{
+			for (size_t i=0; i <= _max_index(); i++) {
+				_descriptors[i].status = 0;
+				Addr::Used::set(_descriptors[i].addr, 0);
+			}
+			_reset_head();
+		}
+
 		bool next_packet()
 		{
-			/* Find next available descriptor (head) holding a packet. */
-			for (unsigned int i=0; i < _max_index(); i++) {
-				if (_head_available())
-					return true;
+			if (_head_available())
+				return true;
 
-				_advance_head();
-			}
-
-			return false;
+			_advance_head();
+			return _head_available();
 		}
 
 		Nic::Packet_descriptor get_packet_descriptor()

@@ -84,6 +84,9 @@ class Buffer_descriptor : protected Attached_ram_dataspace, protected Mmio
 		size_t _head_index() const { return _head_idx; }
 		size_t _tail_index() const { return _tail_idx; }
 
+		void _reset_head() { _head_idx = 0; }
+		void _reset_tail() { _tail_idx = 0; }
+
 	private:
 
 		/*
