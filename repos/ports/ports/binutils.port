@@ -12,6 +12,8 @@ PATCHES   := $(addprefix ${DIR(binutils)}/patches/, \
                          $(shell cat $(REP_DIR)/${DIR(binutils)}/patches/series))
 PATCH_OPT := -p1 -d ${DIR(binutils)}
 
+HASH_INPUT += $(REP_DIR)/${DIR(binutils)}/patches/series
+
 AUTOCONF := autoconf
 
 $(call check_tool,$(AUTOCONF))

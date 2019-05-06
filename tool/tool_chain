@@ -194,7 +194,7 @@ TARGET_NAME_x86        = x86_64-pc-elf
 TARGET_NAME_arm        = arm-none-eabi
 TARGET_NAME_riscv      = riscv64-unknown-elf
 
-GCC_CONFIG_riscv       = --with-arch=rv64imac
+GCC_CONFIG_riscv       = --with-arch=rv64imac --with-abi=lp64
 
 ifneq ($(VERBOSE),)
 CONFIG_QUIET = --quiet
@@ -210,13 +210,11 @@ BINUTILS_BOOTSTRAP_CONFIG += $(COMMON_BOOTSTRAP_CONFIG)
 
 ifeq ($(PLATFORM),riscv)
 LANGUAGES              = c,c++
-GDB_INSTALLED_BINARIES =
 LIB_GCC                = cd $(INSTALL_LOCATION)/lib/gcc/riscv64-unknown-elf/$(GCC_VERSION)/rv64imac/lp64 && \
                          $(SUDO) ln -sf ../../include include
 INSTALL_ADA            =
 else
 LANGUAGES              = c,c++,ada
-GDB_INSTALLED_BINARIES = $(LOCAL_INSTALL_LOCATION)/bin/genode-$(PLATFORM)-gdb
 LIB_GCC                =
 INSTALL_ADA            = $(SUDO) cp $(LOCAL_BOOTSTRAP_INSTALL_LOCATION)/bin/gnatmake $(INSTALL_LOCATION)/bin/genode-$(PLATFORM)-gnatmake
 endif
@@ -331,7 +329,7 @@ BINUTILS_INSTALLED_BINARIES = $(LOCAL_INSTALL_LOCATION)/bin/genode-$(PLATFORM)-o
 GCC_BINARIES                = $(BUILD_LOCATION)/$(PLATFORM)/gcc/gcc/g++-cross
 GCC_INSTALLED_BINARIES      = $(LOCAL_INSTALL_LOCATION)/bin/genode-$(PLATFORM)-g++
 GDB_BINARIES                = $(BUILD_LOCATION)/$(PLATFORM)/gdb/gdb/gdb
-
+GDB_INSTALLED_BINARIES      = $(LOCAL_INSTALL_LOCATION)/bin/genode-$(PLATFORM)-gdb
 
 build_all: $(GCC_INSTALLED_BINARIES) $(GDB_INSTALLED_BINARIES)
 

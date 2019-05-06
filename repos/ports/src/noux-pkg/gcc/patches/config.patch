@@ -1,18 +1,9 @@
 config.patch
 
 From: Sebastian Sumpf <sebastian.sumpf@genode-labs.com>
-
-
 ---
- gcc/config.gcc               |    2 +-
- gcc/config/arm/arm.h         |    4 ++--
- gcc/config/arm/unknown-elf.h |   16 ++++++++++++++++
- gcc/config/i386/x86-64.h     |   23 +++++++++++++++++++++--
- libgcc/config.host           |   16 ++++++++++++----
- 5 files changed, 52 insertions(+), 9 deletions(-)
-
 diff --git a/gcc/config.gcc b/gcc/config.gcc
-index 7af8e02..3c87dfb 100644
+index 7af8e028..3c87dfb0 100644
 --- a/gcc/config.gcc
 +++ b/gcc/config.gcc
 @@ -1184,7 +1184,7 @@ arm*-*-eabi* | arm*-*-symbianelf* | arm*-*-rtems* | arm*-*-fuchsia*)
@@ -25,7 +16,7 @@ index 7af8e02..3c87dfb 100644
  	  ;;
  	arm*-*-fuchsia*)
 diff --git a/gcc/config/arm/arm.h b/gcc/config/arm/arm.h
-index 2809112..2476cb3 100644
+index 942bb4ca..c36b8eea 100644
 --- a/gcc/config/arm/arm.h
 +++ b/gcc/config/arm/arm.h
 @@ -668,11 +668,11 @@ extern int arm_arch_cmse;
@@ -43,7 +34,7 @@ index 2809112..2476cb3 100644
  
  /* AAPCS requires that structure alignment is affected by bitfields.  */
 diff --git a/gcc/config/arm/unknown-elf.h b/gcc/config/arm/unknown-elf.h
-index 12dd093..ec0a72e 100644
+index 12dd0931..ec0a72e7 100644
 --- a/gcc/config/arm/unknown-elf.h
 +++ b/gcc/config/arm/unknown-elf.h
 @@ -94,3 +94,19 @@
@@ -67,7 +58,7 @@ index 12dd093..ec0a72e 100644
 +/* https://gcc.gnu.org/bugzilla/show_bug.cgi?id=57699 */
 +#define NO_IMPLICIT_EXTERN_C
 diff --git a/gcc/config/i386/x86-64.h b/gcc/config/i386/x86-64.h
-index e2a8306..1c5e2e1 100644
+index e2a8306c..1c5e2e15 100644
 --- a/gcc/config/i386/x86-64.h
 +++ b/gcc/config/i386/x86-64.h
 @@ -37,10 +37,10 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
@@ -106,8 +97,60 @@ index e2a8306..1c5e2e1 100644
 +/* Don't assume anything about the header files.  */
 +/* https://gcc.gnu.org/bugzilla/show_bug.cgi?id=57699 */
 +#define NO_IMPLICIT_EXTERN_C
+diff --git a/gcc/config/riscv/elf.h b/gcc/config/riscv/elf.h
+index a8357bb6..cd33bb28 100644
+--- a/gcc/config/riscv/elf.h
++++ b/gcc/config/riscv/elf.h
+@@ -17,10 +17,12 @@ You should have received a copy of the GNU General Public License
+ along with GCC; see the file COPYING3.  If not see
+ <http://www.gnu.org/licenses/>.  */
+ 
++#ifndef LINK_SPEC
+ #define LINK_SPEC "\
+ -melf" XLEN_SPEC "lriscv \
+ %{mno-relax:--no-relax} \
+ %{shared}"
++#endif
+ 
+ /* Link against Newlib libraries, because the ELF backend assumes Newlib.
+    Handle the circular dependence between libc and libgloss. */
+diff --git a/gcc/config/riscv/riscv.h b/gcc/config/riscv/riscv.h
+index 62279ff2..fdf77645 100644
+--- a/gcc/config/riscv/riscv.h
++++ b/gcc/config/riscv/riscv.h
+@@ -819,10 +819,10 @@ while (0)
+ #define ASM_COMMENT_START "#"
+ 
+ #undef SIZE_TYPE
+-#define SIZE_TYPE (POINTER_SIZE == 64 ? "long unsigned int" : "unsigned int")
++#define SIZE_TYPE (POINTER_SIZE == 64 ? "long unsigned int" : "long unsigned int")
+ 
+ #undef PTRDIFF_TYPE
+-#define PTRDIFF_TYPE (POINTER_SIZE == 64 ? "long int" : "int")
++#define PTRDIFF_TYPE (POINTER_SIZE == 64 ? "long int" : "long int")
+ 
+ /* The maximum number of bytes copied by one iteration of a movmemsi loop.  */
+ 
+@@ -902,4 +902,17 @@ extern unsigned riscv_stack_boundary;
+ #define SWSP_REACH (4LL << C_SxSP_BITS)
+ #define SDSP_REACH (8LL << C_SxSP_BITS)
+ 
++ /* genode.h */
++
++/*
++ * The 'LINK_SPEC' define comprises the rules of how the GCC frontend invokes
++ * the linker
++ */
++#undef LINK_SPEC
++#define LINK_SPEC " \
++-melf" XLEN_SPEC "lriscv \
++  %{mno-relax:--no-relax} \
++  %(shared:-shared) \
++     %{!static:--eh-frame-hdr}"
++
+ #endif /* ! GCC_RISCV_H */
 diff --git a/libgcc/config.host b/libgcc/config.host
-index 11b4aca..5e9cfa8 100644
+index 11b4acaf..5e9cfa86 100644
 --- a/libgcc/config.host
 +++ b/libgcc/config.host
 @@ -312,7 +312,7 @@ case ${host} in
