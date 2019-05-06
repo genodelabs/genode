@@ -78,6 +78,8 @@ struct Extract::Extracted_archive : Noncopyable
 	{
 		archive * const ptr = archive_read_new();
 
+		using Noncopyable::Noncopyable;
+
 		~Source()
 		{
 			archive_read_close(ptr);
@@ -88,6 +90,8 @@ struct Extract::Extracted_archive : Noncopyable
 	struct Destination : Noncopyable
 	{
 		archive * const ptr = archive_write_disk_new();
+
+		using Noncopyable::Noncopyable;
 
 		~Destination()
 		{
