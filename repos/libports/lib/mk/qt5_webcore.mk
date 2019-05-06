@@ -2,6 +2,9 @@ include $(call select_from_repositories,lib/import/import-qt5_webcore.mk)
 
 SHARED_LIB = yes
 
+# gnu++17 causes compile errors
+CC_CXX_OPT_STD += -std=gnu++11
+
 # additional defines for the Genode version
 CC_OPT += -DSQLITE_NO_SYNC=1 -DSQLITE_THREADSAFE=0
 
