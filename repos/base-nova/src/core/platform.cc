@@ -961,7 +961,7 @@ bool Mapped_mem_allocator::_map_local(addr_t virt_addr, addr_t phys_addr,
                                       unsigned size)
 {
 	/* platform_specific()->core_pd_sel() deadlocks if called from platform constructor */
-	Hip const &hip  = *(Hip const * const)__initial_sp;
+	Hip const &hip  = *(Hip const *)__initial_sp;
 	Genode::addr_t const core_pd_sel = hip.sel_exc;
 
 	map_local(core_pd_sel,
