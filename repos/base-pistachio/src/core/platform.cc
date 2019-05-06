@@ -66,7 +66,7 @@ static unsigned long _core_pager_stack[PAGER_STACK_ELEMENTS];
 
 
 static inline bool write_fault(Pistachio::L4_Word_t flags) {
-	return (flags & 2) == 1; }
+	return (flags & 2); }
 
 
 static bool wait_for_page_fault(Pistachio::L4_ThreadId_t &from,
