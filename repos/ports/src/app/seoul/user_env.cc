@@ -135,7 +135,21 @@ void operator delete[](void *ptr)
 		Genode::warning("delete[] not implemented ", ptr);
 }
 
+
+void operator delete[](void *ptr, long unsigned int)
+{
+	if (verbose_memory_leak)
+		Genode::warning("delete[] not implemented ", ptr);
+}
+
+
 void operator delete (void * ptr)
+{
+	heap_free(ptr);
+}
+
+
+void operator delete(void *ptr, long unsigned int)
 {
 	heap_free(ptr);
 }
