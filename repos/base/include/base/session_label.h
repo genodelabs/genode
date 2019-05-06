@@ -33,6 +33,16 @@ struct Genode::Session_label : String<160>
 		using String = String<capacity()>;
 		using String::String;
 
+		/**
+		 * Copy constructor
+		 *
+		 * This constructor is needed because GCC 8 disregards derived
+		 * copy constructors as candidate.
+		 */
+		template <size_t N>
+		Session_label(Genode::String<N> const &other)
+		: Genode::String<160>(other) { }
+
 		Session_label last_element() const
 		{
 			char const * const full = string();
