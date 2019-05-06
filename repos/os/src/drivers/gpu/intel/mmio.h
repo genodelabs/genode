@@ -1221,7 +1221,6 @@ class Igd::Mmio : public Genode::Mmio
 
 		void update_context_status_pointer()
 		{
-			RCS_RING_CONTEXT_STATUS_PTR::access_t const rp = read<RCS_RING_CONTEXT_STATUS_PTR::Read_pointer>();
 			RCS_RING_CONTEXT_STATUS_PTR::access_t const wp = read<RCS_RING_CONTEXT_STATUS_PTR::Write_pointer>();
 			if (wp > 0x05) {
 				Genode::warning("ring context status write-pointer invalid");
