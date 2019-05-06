@@ -128,7 +128,7 @@ class Genode::Pixel_rgba
 		static void transfer(TPT const &src, int src_a, int alpha, PT &dst)
 		{
 			if (src_a) {
-				int register a = (src_a * alpha)>>8;
+				int a = (src_a * alpha)>>8;
 				if (a) dst = PT::mix(dst, src, a);
 			}
 		}
