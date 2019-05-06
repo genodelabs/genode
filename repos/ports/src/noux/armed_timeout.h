@@ -23,7 +23,11 @@ class Noux::Armed_timeout : Noncopyable
 {
 	public:
 
-		struct State : Noncopyable { bool timed_out { }; };
+		struct State : Noncopyable
+		{
+			State() { }
+			bool timed_out { };
+		};
 
 	private:
 
