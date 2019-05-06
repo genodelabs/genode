@@ -67,6 +67,8 @@ struct Test::Block_session_component : Rpc_object<Block::Session>,
 template <unsigned N>
 struct Test::Jobs : Noncopyable
 {
+	Jobs() { }
+
 	struct Entry
 	{
 		Block::Request request;
