@@ -23,6 +23,8 @@ struct Sculpt::Popup : Noncopyable
 {
 	enum State { OFF, VISIBLE } state { OFF };
 
+	Popup() { }
+
 	Rect anchor { };
 
 	void toggle() { state = (state == OFF) ? VISIBLE : OFF; }
