@@ -354,8 +354,8 @@ static void test_decoded_content(Env        &env,
 	 * Test Xml_node::decoded_content<String<N> >
 	 */
 
-	enum { MAX_OUT_STRING_SZ = 256 };
-	using Out_string = String<min(max_content_sz + 1, (size_t)MAX_OUT_STRING_SZ)>;
+	enum { MAX_OUT_STRING_CONTENT_SZ = 255 };
+	using Out_string = String<min(max_content_sz, (size_t)MAX_OUT_STRING_CONTENT_SZ) + 1>;
 	Out_string str = xml.decoded_content<Out_string>();
 
 	if (memcmp(str.string(), buf2, min(str.size(), buf_sz))) {
