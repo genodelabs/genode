@@ -97,21 +97,21 @@ append config {
 			<tests>}
 
 append_if $small_test config {
-				<sequential length="256M" size="64K" synchronous="yes"/>
+				<sequential length="256M" size="64K"/>
 				<random     length="256M" size="64K" seed="0xdeadbeef"/>}
 
 append_if [expr !$small_test] config {
-				<sequential length="1G" size="4K"   synchronous="no"/>
-				<sequential length="1G" size="8K"   synchronous="no"/>
-				<sequential length="1G" size="64K"  synchronous="yes"/>
-				<sequential length="3G" size="1M"   synchronous="no"/>
-				<random     length="1G" size="16K"  seed="0xdeadbeef" synchronous="yes"/>
-				<random     length="3G" size="512K" seed="0xc0ffee"   synchronous="yes"/>
+				<sequential length="1G" size="4K"   batch="128"/>
+				<sequential length="1G" size="8K"   batch="128"/>
+				<sequential length="1G" size="64K"/>
+				<sequential length="3G" size="1M"   batch="128"/>
+				<random     length="1G" size="16K"  seed="0xdeadbeef"/>
+				<random     length="3G" size="512K" seed="0xc0ffee"/>
 				<ping_pong  length="1G" size="16K"/>}
 
 append_if $test_write config {
-				<sequential length="256M" size="64K"  synchronous="no" write="yes"/>
-				<replay bulk="yes">
+				<sequential length="256M" size="64K" batch="128" write="yes"/>
+				<replay batch="128">
 					<request type="read" lba="0" count="1"/>
 					<request type="read" lba="0" count="1"/>
 					<request type="read" lba="0" count="1"/>
