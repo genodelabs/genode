@@ -47,7 +47,8 @@ struct Platform::Main
 
 	Genode::Capability<Genode::Typed_root<Platform::Session_component> > root_cap { };
 
-	bool _acpi_ready = false;
+	bool const _acpi_platform;
+	bool _acpi_ready    = false;
 
 	void acpi_update()
 	{
@@ -57,9 +58,8 @@ struct Platform::Main
 			return;
 
 		const char * report_addr = acpi_rom->local_addr<const char>();
-		bool const acpi_platform = _config.xml().attribute_value("acpi", true);
 
-		root.construct(_env, sliced_heap, _config, report_addr, acpi_platform);
+		root.construct(_env, sliced_heap, _config, report_addr, _acpi_platform);
 
 		root_cap = _env.ep().manage(*root);
 
@@ -92,11 +92,27 @@ struct Platform::Main
 		}
 	}
 
+	static bool acpi_platform(Genode::Env & env)
+	{
+		using Name = String<32>;
+		try {
+			Genode::Attached_rom_dataspace info { env, "platform_info" };
+			Name kernel =
+				info.xml().sub_node("kernel").attribute_value("name", Name());
+			if (kernel == "hw"   ||
+			    kernel == "nova" ||
+			    kernel == "foc"  ||
+			    kernel == "sel4") { return true; }
+		} catch (...) {}
+		return false;
+	}
+
 	Main(Genode::Env &env)
 	:
 		_env(env),
 		_acpi_report(_env.ep(), *this, &Main::acpi_update),
-		_system_report(_env.ep(), *this, &Main::system_update)
+		_system_report(_env.ep(), *this, &Main::system_update),
+		_acpi_platform(acpi_platform(env))
 	{
 		const Genode::Xml_node config = _config.xml();
 

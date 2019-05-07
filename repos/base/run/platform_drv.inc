@@ -175,13 +175,7 @@ proc platform_drv_config_config {} {
 		<config acpi_ready="yes">}
 	}
 
-	if {[have_spec acpi] || [have_spec arm] || [have_spec muen]} {
-		return {
-		<config>}
-	}
-
-	return {
-		<config acpi="no">}
+	return {<config>}
 }
 
 
