@@ -470,8 +470,9 @@ proc drivers_interactive_pkg { } {
 
 proc drivers_nic_pkg { } {
 
-	if {[have_spec x86] &&
+	if {[have_spec x86] && ![have_spec muen] &&
 	    ![have_spec linux]}          { return drivers_nic-pc              }
+	if {[have_spec muen]}            { return drivers_nic-muen            }
 	if {[have_spec linux]}           { return drivers_nic-linux           }
 	if {[have_spec pbxa9]}           { return drivers_nic-pbxa9           }
 	if {[have_spec rpi]}             { return drivers_nic-rpi             }
