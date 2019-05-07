@@ -1,7 +1,7 @@
 This directory contains a simple utility to serialize the execution of
-multiple components. It is configured with "start" XML nodes much like
-_init_ however this component relies on its parent to manage all routing
-and resources, with the exception of a "config" ROM. No services are
+multiple components. It is configured with '<start>' XML nodes much like
+_init_. However, this component relies on its parent to manage all routing
+and resources, with the exception of a 'config' ROM. No services are
 propagated from children to the parent.
 
 A sample configuration to start a consumer after a producer has exited:
@@ -24,3 +24,17 @@ A sample configuration to start a consumer after a producer has exited:
 !     </start>
 !   </config>
 ! </start>
+
+There are a few optional '<config>' attributes that control the way the
+component operates:
+
+* 'repeat' will instruct the component to repeat the sequence again
+  starting from the first '<start>' node when it has reached the end.
+  The default is 'false'.
+
+* 'keep_going' will instruct the component to start the next child
+  in case the previous one exited with an error. The default is 'false'.
+
+* 'restart' instructs the component to start from the top of the
+  sequence. It is only evaluted when 'keep_going' is enabled. The
+  default is 'false'.

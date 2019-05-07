@@ -75,6 +75,8 @@ struct Sequence::Child : Genode::Child_policy
 
 	Genode::Child _child { _env.rm(), _env.ep().rpc_ep(), *this };
 
+	int _exit_value = -1;
+
 	Child(Genode::Env &env,
 	      Xml_node const &start_node,
 	      Signal_context_capability exit_handler)
@@ -95,6 +97,8 @@ struct Sequence::Child : Genode::Child_policy
 		_parent_services.for_each([&] (Parent_service &service) {
 			destroy(_services_heap, &service); });
 	}
+
+	int exit_value() const { return _exit_value; }
 
 
 	/****************************
@@ -138,18 +142,14 @@ struct Sequence::Child : Genode::Child_policy
 	Pd_session_capability ref_pd_cap() const override { return _env.pd_session_cap(); }
 
 	/**
-	 * If the exit is successful then queue a child reload via a signal,
-	 * otherwise exit this parent component.
+	 * Always queue a reload signal and store the exit value. The
+	 * parent will then determine which action to take by looking
+	 * at the exit value.
 	 */
 	void exit(int exit_value) override
 	{
-		if (exit_value == 0)
-			_exit_transmitter.submit();
-		else {
-			error("child \"", name(), "\" exited with exit value ", exit_value);
-			_env.parent().exit(exit_value);
-			sleep_forever();
-		}
+		_exit_value = exit_value;
+		_exit_transmitter.submit();
 	}
 
 	/**
@@ -230,7 +230,31 @@ struct Sequence::Main
 
 void Sequence::Main::start_next_child()
 {
-	if (child.constructed())
+	bool const constructed = child.constructed();
+
+	/*
+	 * In case the child exited with an error check if we
+	 * still should keep-going and when doing so if the
+	 * sequence should be restarted.
+	 */
+	if (constructed && child->exit_value()) {
+		bool const keep_going = config_xml.attribute_value("keep_going", false);
+		bool const restart    = config_xml.attribute_value("restart", false);
+
+		warning("child \"", child->name(), "\" exited with exit value ",
+		        child->exit_value());
+
+		if (!keep_going) {
+			env.parent().exit(child->exit_value());
+			sleep_forever();
+		}
+
+		warning("keep-going", restart ? " starting from the beginning" : "");
+		if (restart)
+			next_xml_index = 0;
+	}
+
+	if (constructed)
 		child.destruct();
 
 	try { while (true) {
