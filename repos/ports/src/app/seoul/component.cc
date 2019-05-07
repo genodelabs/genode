@@ -59,6 +59,7 @@
 #include "disk.h"
 #include "state.h"
 #include "guest_memory.h"
+#include "timeout_late.h"
 
 
 enum { verbose_debug = false };
@@ -74,31 +75,45 @@ class Timeouts
 {
 	private:
 
-		Timer::Connection    _timer;
+		Timer::Connection                 _timer;
+		Synced_motherboard               &_motherboard;
+		Synced_timeout_list              &_timeouts;
+		Genode::Signal_handler<Timeouts>  _timeout_sigh;
+		Late_timeout                      _late { };
 
-		Synced_motherboard  &_motherboard;
-		Synced_timeout_list &_timeouts;
-
-		Genode::Signal_handler<Timeouts> _timeout_sigh;
-
-		void check_timeouts()
+		Genode::uint64_t _check_and_wakeup()
 		{
+			Late_timeout::Remote const timeout_remote = _late.reset();
+
 			timevalue const now = _motherboard()->clock()->time();
 
-			unsigned nr;
+			unsigned timer_nr;
+			unsigned timeout_count = 0;
 
-			while ((nr = _timeouts()->trigger(now))) {
+			while ((timer_nr = _timeouts()->trigger(now))) {
 
-				MessageTimeout msg(nr, _timeouts()->timeout());
+				if (timeout_count == 0 && _late.apply(timeout_remote,
+				                                      timer_nr, now))
+				{
+					return _motherboard()->clock()->abstime(1, 1000);
+				}
 
-				if (_timeouts()->cancel(nr) < 0)
+				MessageTimeout msg(timer_nr, _timeouts()->timeout());
+
+				if (_timeouts()->cancel(timer_nr) < 0)
 					Logging::printf("Timeout not cancelled.\n");
 
 				_motherboard()->bus_timeout.send(msg);
+
+				timeout_count++;
 			}
 
+			return _timeouts()->timeout();
+		}
 
-			unsigned long long next = _timeouts()->timeout();
+		void check_timeouts()
+		{
+			Genode::uint64_t const next = _check_and_wakeup();
 
 			if (next == ~0ULL)
 				return;
@@ -112,8 +127,9 @@ class Timeouts
 
 	public:
 
-		void reprogram()
+		void reprogram(Clock &clock, MessageTimer const &msg)
 		{
+			_late.timeout(clock, msg);
 			Genode::Signal_transmitter(_timeout_sigh).submit();
 		}
 
@@ -1069,8 +1085,9 @@ class Machine : public StaticReceiver<Machine>
 			case MessageTimer::TIMER_REQUEST_TIMEOUT:
 			{
 				int res = _timeouts()->request(msg.nr, msg.abstime);
+
 				if (res == 0)
-					_alarm_thread.reprogram();
+					_alarm_thread.reprogram(_clock, msg);
 				else
 				if (res < 0)
 					Logging::printf("Could not program timeout.\n");
