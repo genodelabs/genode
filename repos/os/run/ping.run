@@ -1,4 +1,4 @@
-if {[have_spec foc] || [have_spec linux] ||
+if {[have_spec foc] || [have_spec linux] || [have_spec imx7d_sabre] ||
     [expr [have_spec imx53] && [have_spec trustzone]]} {
 	puts "Run script is not supported on this platform."
 	exit 0

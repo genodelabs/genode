@@ -21,7 +21,7 @@ if {[have_include "power_on/qemu"] &&
 	exit 0
 }
 
-if {[expr [have_spec imx53] && [have_spec trustzone]]} {
+if {[expr [have_spec imx53] && [have_spec trustzone]] || [have_spec imx7d_sabre]} {
 	puts "Run script is not supported on this platform."
 	exit 0
 }
