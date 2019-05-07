@@ -98,6 +98,12 @@ proc run_boot_string { } {
 proc core_link_address { } { return "0x03000000" }
 
 
+proc elfweaver {} {
+	if { ![file exists tool/okl4/elfweaver] } { build LIB=tools }
+	return tool/okl4/elfweaver
+}
+
+
 ##
 # Populate directory with binaries on OKL4
 #
@@ -135,7 +141,7 @@ proc run_boot_dir {binaries} {
 	#
 	# Run ELF Weaver to create a boot image
 	#
-	set ret [exec "./tool/okl4/elfweaver" merge --output "[run_dir]/image.elf" "[run_dir].weaver.xml"]
+	set ret [exec [elfweaver] merge --output "[run_dir]/image.elf" "[run_dir].weaver.xml"]
 	if {[regexp "error" $ret dummy]} {
 		puts stderr "Elfweaver failed: $ret"
 		exit -6
