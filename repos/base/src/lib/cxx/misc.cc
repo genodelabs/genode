@@ -13,10 +13,12 @@
 
 /* libsupc++ includes */
 #include <cxxabi.h>
+#include <exception>
 
 /* Genode includes */
 #include <base/env.h>
 #include <base/log.h>
+#include <base/sleep.h>
 #include <base/stdint.h>
 #include <base/thread.h>
 #include <util/string.h>
@@ -106,7 +108,7 @@ extern "C" __attribute__((weak)) void raise()
  ** Support for libsupc++ **
  ***************************/
 
-extern "C" void *abort(void)
+extern "C" void abort(void)
 {
 	Genode::Thread const * const myself = Genode::Thread::myself();
 	Genode::Thread::Name name = "unknown";
@@ -120,22 +122,22 @@ extern "C" void *abort(void)
 	if (name != "main")
 		genode_exit(1);
 
+	Genode::sleep_forever();
+}
+
+
+extern "C" int fputc(int, void*) {
 	return 0;
 }
 
 
-extern "C" void *fputc(void) {
-	return 0;
-}
-
-
-extern "C" void *fputs(const char *s, void *) {
+extern "C" int fputs(const char *s, void *) {
 	Genode::warning("C++ runtime: ", s);
 	return 0;
 }
 
 
-extern "C" void *fwrite(void) {
+extern "C" size_t fwrite(const void*, size_t, size_t, void*) {
 	return 0;
 }
 
@@ -147,14 +149,14 @@ extern "C" int memcmp(const void *p0, const void *p1, size_t size)
 
 
 extern "C" __attribute__((weak))
-void *memcpy(void *dst, void *src, size_t n)
+void *memcpy(void *dst, const void *src, size_t n)
 {
 	return Genode::memcpy(dst, src, n);
 }
 
 
 extern "C" __attribute__((weak))
-void *memmove(void *dst, void *src, size_t n)
+void *memmove(void *dst, const void *src, size_t n)
 {
 	return Genode::memmove(dst, src, n);
 }
@@ -180,7 +182,7 @@ struct FILE;
 FILE *__stderrp;
 
 
-extern "C" void *strcat(void)
+extern "C" char *strcat(char *, const char *)
 {
 	Genode::warning("strcat - not yet implemented");
 	return 0;

@@ -64,7 +64,7 @@ void Genode::init_cxx_heap(Env &env)
 typedef unsigned long Block_header;
 
 
-extern "C" void *malloc(unsigned size)
+extern "C" void *malloc(size_t size)
 {
 	/* enforce size to be a multiple of 4 bytes */
 	size = (size + 3) & ~3;
@@ -85,7 +85,7 @@ extern "C" void *malloc(unsigned size)
 }
 
 
-extern "C" void *calloc(unsigned nmemb, unsigned size)
+extern "C" void *calloc(size_t nmemb, size_t size)
 {
 	void *addr = malloc(nmemb*size);
 	Genode::memset(addr, 0, nmemb*size);

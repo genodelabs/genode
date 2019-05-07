@@ -582,6 +582,7 @@ _ZThn8_N6Genode23Alarm_timeout_scheduler14handle_timeoutENS_8DurationE T
 _ZThn8_N6Genode23Alarm_timeout_schedulerD0Ev T
 _ZThn8_N6Genode23Alarm_timeout_schedulerD1Ev T
 _ZdlPv W
+_ZdlPvm W
 _ZdlPvPN6Genode11DeallocatorE T
 _ZdlPvPN6Genode9AllocatorE W
 _ZdlPvRN6Genode11DeallocatorE T
