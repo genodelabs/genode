@@ -12,7 +12,7 @@
  */
 
 #include <platform.h>
-#include <spec/imx53/drivers/trustzone.h>
+#include <drivers/defs/imx53_trustzone.h>
 #include <spec/arm/imx_aipstz.h>
 #include <spec/arm/imx_csu.h>
 

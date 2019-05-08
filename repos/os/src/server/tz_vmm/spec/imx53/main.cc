@@ -17,7 +17,7 @@
 #include <base/heap.h>
 #include <base/component.h>
 #include <drivers/defs/imx53.h>
-#include <drivers/trustzone.h>
+#include <drivers/defs/imx53_trustzone.h>
 
 /* local includes */
 #include <vm.h>
