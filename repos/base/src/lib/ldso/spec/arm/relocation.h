@@ -29,6 +29,7 @@ namespace Linker {
 
 	class Reloc_non_plt;
 
+	typedef Plt_got_generic<2>                             Plt_got;
 	typedef Reloc_plt_generic<Elf::Rel, DT_REL, R_JMPSLOT> Reloc_plt;
 	typedef Reloc_jmpslot_generic<Elf::Rel, DT_REL, false> Reloc_jmpslot;
 	typedef Reloc_bind_now_generic<Elf::Rel, DT_REL>       Reloc_bind_now;

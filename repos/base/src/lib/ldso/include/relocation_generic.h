@@ -31,7 +31,7 @@ extern "C" void _jmp_slot(void);
 
 namespace Linker
 {
-	struct Plt_got;
+	template <unsigned JUMP_INDEX = 2> struct Plt_got_generic;
 	template <typename REL, unsigned TYPE, bool DIV> class Reloc_jmpslot_generic;
 	template <typename REL, unsigned TYPE, unsigned JMPSLOT> struct Reloc_plt_generic;
 	template <typename REL, unsigned TYPE> struct Reloc_bind_now_generic;
@@ -43,15 +43,15 @@ namespace Linker
  * Set 2nd and 3rd GOT entry (see: SYSTEM V APPLICATION BINARY INTERFACE
  * Intel386 Architecture Processor Supplement - 5.9
  */
-struct Linker::Plt_got
+template <unsigned JUMP_INDEX> struct Linker::Plt_got_generic
 {
-	Plt_got(Dependency const &dep, Elf::Addr *pltgot)
+	Plt_got_generic(Dependency const &dep, Elf::Addr *pltgot)
 	{
 		if (verbose_relocation)
 			log("OBJ: ", dep.obj().name(), " (", &dep, ")");
 
-		pltgot[1] = (Elf::Addr) &dep;       /* ELF object */
-		pltgot[2] = (Elf::Addr) &_jmp_slot; /* Linker entry */
+		pltgot[1]          = (Elf::Addr) &dep;       /* ELF object */
+		pltgot[JUMP_INDEX] = (Elf::Addr) &_jmp_slot; /* Linker entry */
 	}
 };
 

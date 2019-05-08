@@ -38,6 +38,7 @@ namespace Linker {
 
 	class Reloc_non_plt;
 
+	typedef Plt_got_generic<0>                               Plt_got;
 	typedef Reloc_plt_generic<Elf::Rela, DT_RELA, R_JMPSLOT> Reloc_plt;
 	typedef Reloc_jmpslot_generic<Elf::Rela, DT_RELA, false> Reloc_jmpslot;
 	typedef Reloc_bind_now_generic<Elf::Rela, DT_RELA>       Reloc_bind_now;
@@ -87,9 +88,9 @@ class Linker::Reloc_non_plt : public Reloc_non_plt_generic
 					log("LD: reloc: ", rel, " type: ", (int)rel->type());
 
 				switch(rel->type()) {
-					case R_JMPSLOT:  _glob_dat_64(rel, addr, false); break;
 					case R_64:       _glob_dat_64(rel, addr, true);  break;
 					case R_RELATIVE: _relative(rel, addr);           break;
+					case R_JMPSLOT:                                  break;
 
 					default:
 						if (!_dep.obj().is_linker()) {
