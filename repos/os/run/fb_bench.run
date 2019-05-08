@@ -1,4 +1,8 @@
-if {[have_spec odroid_xu] || [have_spec imx6q_sabrelite] || [have_spec zynq] || [have_spec imx53] && [have_spec foc]} {
+if {[have_spec odroid_xu] ||
+    [have_spec imx7d_sabre] ||
+    [have_spec imx6q_sabrelite] ||
+    [have_spec zynq] ||
+    [have_spec imx53] && [have_spec foc]} {
 	puts "\n Run script is not supported on this platform. \n";
 	exit 0
 }
