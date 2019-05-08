@@ -3,7 +3,6 @@
 
 	<xs:include schemaLocation="base_types.xsd"/>
 	<xs:include schemaLocation="net_types.xsd"/>
-	<xs:include schemaLocation="timeout_types.xsd"/>
 
 	<xs:simpleType name="Protocol">
 		<xs:restriction base="xs:string">
@@ -20,7 +19,6 @@
 			<xs:attribute name="protocol"  type="Protocol" />
 			<xs:attribute name="interface" type="Ipv4_address_prefix" />
 			<xs:attribute name="gateway"   type="Ipv4_address" />
-			<xs:attribute name="sec"       type="Seconds" />
 		</xs:complexType>
 	</xs:element><!-- config -->
 

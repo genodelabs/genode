@@ -65,9 +65,6 @@ class Main : public Nic_handler,
 		Protocol                 const  _protocol    { _config.attribute_value("protocol", Protocol::ICMP) };
 		Port                            _dst_port    { FIRST_DST_PORT };
 		size_t                          _ping_sz     { _init_ping_sz() };
-		unsigned long                   _ping_cnt    { 0 };
-		uint64_t                        _sec         { _config.attribute_value("sec",  (uint64_t)10) };
-		uint64_t                        _time_us     { 0 };
 
 		size_t _init_ping_sz() const;
 
@@ -267,7 +264,7 @@ void Main::_broadcast_arp_request(Ipv4_address const &dst_ip)
 }
 
 
-void Main::_send_ping(Duration time)
+void Main::_send_ping(Duration)
 {
 	/* if we do not yet know the Ethernet destination, request it via ARP */
 	if (_dst_mac == Mac_address()) {
@@ -366,23 +363,9 @@ void Main::_send_ping(Duration time)
 				ip.total_length(size_guard.head_size() - ip_off);
 				ip.update_checksum();
 			});
-			_ping_cnt++;
 		}
 	}
 	catch (Net::Packet_stream_source::Packet_alloc_failed) { }
-	uint64_t const new_time_us = time.trunc_to_plain_us().value;
-	if (new_time_us - _time_us > 1000000) {
-		if (!_ping_cnt) {
-			error("test failed (could not send packet for a second)");
-			_env.parent().exit(-1);
-		}
-		log("alive (", _ping_cnt, " pkt/sec)");
-		if (!--_sec) {
-			_env.parent().exit(0); }
-
-		_ping_cnt = 0;
-		_time_us = new_time_us;
-	}
 }
 
 
