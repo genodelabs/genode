@@ -198,6 +198,8 @@ void Pager_object::exception(uint8_t exit_id)
 		nova_die();
 
 	addr_t const fault_ip = utcb.ip;
+	addr_t const fault_sp = utcb.sp;
+	addr_t const fault_bp = utcb.bp;
 
 	uint8_t res = 0xFF;
 	addr_t  mtd = 0;
@@ -220,7 +222,9 @@ void Pager_object::exception(uint8_t exit_id)
 		        "pd '",     client_pd(),            "', "
 		        "thread '", client_thread(),        "', "
 		        "cpu ",     which_cpu(pager_thread), ", "
-		        "ip=",      Hex(fault_ip),            " ",
+		        "ip=",      Hex(fault_ip),            " "
+		        "sp=",      Hex(fault_sp),            " "
+		        "bp=",      Hex(fault_bp),            " ",
 		        res == 0xFF ? "no signal handler"
 		                    : (res == NOVA_OK ? "" : "recall failed"));
 
@@ -558,32 +562,34 @@ void Exception_handlers::_handler(Pager_object &obj)
 
 Exception_handlers::Exception_handlers(Pager_object &obj)
 {
-	register_handler<0>(obj, Mtd(Mtd::EIP));
-	register_handler<1>(obj, Mtd(Mtd::EIP));
-	register_handler<2>(obj, Mtd(Mtd::EIP));
-	register_handler<3>(obj, Mtd(Mtd::EIP));
-	register_handler<4>(obj, Mtd(Mtd::EIP));
-	register_handler<5>(obj, Mtd(Mtd::EIP));
-	register_handler<6>(obj, Mtd(Mtd::EIP));
-	register_handler<7>(obj, Mtd(Mtd::EIP));
-	register_handler<8>(obj, Mtd(Mtd::EIP));
-	register_handler<9>(obj, Mtd(Mtd::EIP));
-	register_handler<10>(obj, Mtd(Mtd::EIP));
-	register_handler<11>(obj, Mtd(Mtd::EIP));
-	register_handler<12>(obj, Mtd(Mtd::EIP));
-	register_handler<13>(obj, Mtd(Mtd::EIP));
+	Mtd const mtd (Mtd::EBSD | Mtd::ESP | Mtd::EIP);
 
-	register_handler<15>(obj, Mtd(Mtd::EIP));
-	register_handler<16>(obj, Mtd(Mtd::EIP));
-	register_handler<17>(obj, Mtd(Mtd::EIP));
-	register_handler<18>(obj, Mtd(Mtd::EIP));
-	register_handler<19>(obj, Mtd(Mtd::EIP));
-	register_handler<20>(obj, Mtd(Mtd::EIP));
-	register_handler<21>(obj, Mtd(Mtd::EIP));
-	register_handler<22>(obj, Mtd(Mtd::EIP));
-	register_handler<23>(obj, Mtd(Mtd::EIP));
-	register_handler<24>(obj, Mtd(Mtd::EIP));
-	register_handler<25>(obj, Mtd(Mtd::EIP));
+	register_handler<0>(obj, mtd);
+	register_handler<1>(obj, mtd);
+	register_handler<2>(obj, mtd);
+	register_handler<3>(obj, mtd);
+	register_handler<4>(obj, mtd);
+	register_handler<5>(obj, mtd);
+	register_handler<6>(obj, mtd);
+	register_handler<7>(obj, mtd);
+	register_handler<8>(obj, mtd);
+	register_handler<9>(obj, mtd);
+	register_handler<10>(obj, mtd);
+	register_handler<11>(obj, mtd);
+	register_handler<12>(obj, mtd);
+	register_handler<13>(obj, mtd);
+
+	register_handler<15>(obj, mtd);
+	register_handler<16>(obj, mtd);
+	register_handler<17>(obj, mtd);
+	register_handler<18>(obj, mtd);
+	register_handler<19>(obj, mtd);
+	register_handler<20>(obj, mtd);
+	register_handler<21>(obj, mtd);
+	register_handler<22>(obj, mtd);
+	register_handler<23>(obj, mtd);
+	register_handler<24>(obj, mtd);
+	register_handler<25>(obj, mtd);
 }
 
 
