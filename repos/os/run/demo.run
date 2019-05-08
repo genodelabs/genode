@@ -41,7 +41,7 @@ install_config {
 		<provides><service name="Timer"/></provides>
 	</start>
 
-	<start name="drivers" caps="1000">
+	<start name="drivers" caps="1500">
 		<resource name="RAM" quantum="32M" constrain_phys="yes"/>
 		<binary name="init"/>
 		<route>
@@ -218,14 +218,17 @@ build_boot_image { status_bar testnit launchpad.config }
 if {[get_cmd_switch --autopilot]} {
 	run_genode_until {\[init -> scout\] png is.*\n} 40
 
-	grep_output {(requests resources: ram_quota)|(Error)}
+	grep_output {(requests resources: )|(Error)}
 
 	# remove Error messages which are not fatal, mostly
 	unify_output {(?n)^.*platform_drv] Error:.*ACPI table information is wrong.*$} ""
 	unify_output {(?n)^.*platform_drv] Error:  adjust size from.*$} ""
+	unify_output {(?n)^.*platform_drv] Error: IRQ-session creation failed.*$} ""
+	unify_output {(?n)^.*platform_drv] Error:.*platform_info.*$} ""
 	unify_output {(?n)^.*acpi_drv] Error:.*platform_info.*$} ""
 	unify_output {(?n)^.*ps2_drv] Error: no data available.*$} ""
 	unify_output {(?n)^.*ps2_drv] Error: failed to read from port.*$} ""
+	unify_output {(?n)^.*] Error: RAM preservation exceeds available memory.*$} ""
 
 	compare_output_to {}
 
