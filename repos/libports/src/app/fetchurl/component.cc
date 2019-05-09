@@ -30,6 +30,7 @@
 
 namespace Fetchurl {
 	class Fetch;
+	struct User_data;
 	struct Main;
 
 	typedef Genode::String<256> Url;
@@ -64,6 +65,8 @@ class Fetchurl::Fetch : Genode::List<Fetch>::Element
 		double dltotal = 0;
 		double dlnow = 0;
 
+		bool timeout = false;
+
 		int fd = -1;
 
 		Fetch(Main &main, Url const &url, Path const &path,
@@ -72,6 +75,16 @@ class Fetchurl::Fetch : Genode::List<Fetch>::Element
 			main(main), url(url), path(path),
 			proxy(proxy), retry(retry+1)
 		{ }
+};
+
+
+struct Fetchurl::User_data
+{
+	Timer::Connection &timer;
+	Genode::Milliseconds last_ms;
+	Genode::Milliseconds const max_timeout;
+	Genode::Milliseconds curr_timeout;
+	Fetchurl::Fetch &fetch;
 };
 
 
@@ -95,6 +108,8 @@ struct Fetchurl::Main
 
 	Genode::Duration _report_delay { Genode::Milliseconds { 0 } };
 
+	Genode::Milliseconds _progress_timeout { 10u * 1000 };
+
 	void _schedule_report()
 	{
 		using namespace Genode;
@@ -117,6 +132,9 @@ struct Fetchurl::Main
 					xml.attribute("url",   f->url);
 					xml.attribute("total", f->dltotal);
 					xml.attribute("now",   f->dlnow);
+					if (f->timeout) {
+						xml.attribute("timeout", true);
+					}
 				});
 			}
 		});
@@ -145,6 +163,9 @@ struct Fetchurl::Main
 			}
 		}
 		catch (...) { }
+
+		_progress_timeout.value = config_node.attribute_value("progress_timeout",
+		                                                      _progress_timeout.value);
 
 		auto const parse_fn = [&] (Genode::Xml_node node) {
 
@@ -238,7 +259,14 @@ struct Fetchurl::Main
 
 		curl_easy_setopt(_curl, CURLOPT_NOPROGRESS, 0L);
 		curl_easy_setopt(_curl, CURLOPT_PROGRESSFUNCTION, progress_callback);
-		curl_easy_setopt(_curl, CURLOPT_PROGRESSDATA, &_fetch);
+		User_data ud {
+			.timer        = _timer,
+			.last_ms      = _timer.curr_time().trunc_to_plain_ms(),
+			.max_timeout  = _progress_timeout,
+			.curr_timeout = Genode::Milliseconds { .value = 0 },
+			.fetch        = _fetch,
+		};
+		curl_easy_setopt(_curl, CURLOPT_PROGRESSDATA, &ud);
 
 		curl_easy_setopt(_curl, CURLOPT_SSL_VERIFYPEER, 0L);
 		curl_easy_setopt(_curl, CURLOPT_SSL_VERIFYHOST, 0L);
@@ -312,11 +340,38 @@ static int progress_callback(void *userdata,
 	(void)ultotal;
 	(void)ulnow;
 
-	Fetchurl::Fetch &fetch = *((Fetchurl::Fetch *)userdata);
+	using namespace Fetchurl;
+	using namespace Genode;
+
+	User_data         &ud    = *reinterpret_cast<User_data*>(userdata);
+	Timer::Connection &timer = ud.timer;
+	Fetch             &fetch = ud.fetch;
+
+	Milliseconds curr { timer.curr_time().trunc_to_plain_ms() };
+	Milliseconds diff { .value = curr.value - ud.last_ms.value };
+	ud.last_ms = curr;
+
+	/*
+	 * To catch stuck downloads we increase the timeout time whenever
+	 * the current download rate is same as the last one. When we hit
+	 * the max timeout value, we will abort the download attempt.
+	 */
+
+	if (dlnow == fetch.dlnow) {
+		ud.curr_timeout.value += diff.value;
+	}
+	else {
+		ud.curr_timeout.value = 0;
+	}
+	bool const timeout = ud.curr_timeout.value >= ud.max_timeout.value;
+
 	fetch.dltotal = dltotal;
-	fetch.dlnow = dlnow;
+	fetch.dlnow   = dlnow;
+	fetch.timeout = timeout;
 	fetch.main._schedule_report();
-	return CURLE_OK;
+
+	/* non-zero return is enough to trigger an abort */
+	return timeout ? CURLE_GOT_NOTHING : CURLE_OK;
 }
 
 
