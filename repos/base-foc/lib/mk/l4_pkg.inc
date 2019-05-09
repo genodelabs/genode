@@ -30,7 +30,7 @@ endif
 
 L4_BUILD_OPT = CROSS_COMPILE=$(CROSS_DEV_PREFIX)
 L4_PKG_DIR  := $(call select_from_ports,foc)/src/kernel/foc/l4/pkg
-PKG_TAGS     = $(addsuffix .tag,$(PKGS))
+PKG_TAGS     = $(addsuffix .tag,$(addsuffix .$(BOARD),$(PKGS)))
 
 BUILD_OUTPUT_FILTER = 2>&1 | sed "s~^~      [$*]  ~"
 
@@ -49,7 +49,7 @@ endif
 #
 .NOTPARALLEL: $(PKG_TAGS)
 
-%.tag:
+%.$(BOARD).tag:
 	$(VERBOSE_MK) set -o pipefail; \
 	              $(MAKE) $(VERBOSE_DIR) O=$(L4_BUILD_DIR) -C $(L4_PKG_DIR)/$* \
 	                      "$(L4_BUILD_OPT)" WARNINGS=$(WARNINGS) $(BUILD_OUTPUT_FILTER)

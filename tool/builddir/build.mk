@@ -324,6 +324,7 @@ run/%: $(call select_from_repositories,run/%.run) $(RUN_ENV)
 	$(VERBOSE)$(GENODE_DIR)/tool/run/run --genode-dir $(GENODE_DIR) \
 	                                     --name $* \
 	                                     --specs "$(SPECS)" \
+	                                     --board "$(BOARD)" \
 	                                     --repositories "$(REPOSITORIES)" \
 	                                     --cross-dev-prefix "$(CROSS_DEV_PREFIX)" \
 	                                     --qemu-args "$(QEMU_OPT)" \

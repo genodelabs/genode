@@ -1,5 +1,6 @@
 include $(GENODE_DIR)/repos/base/recipes/src/base_content.inc
 
+RECIPE_DIR := $(REP_DIR)/recipes/src/base-foc-$(BOARD)
 FROM_BASE_FOC := include/foc include/foc_native_cpu
 
 content: $(FROM_BASE_FOC)
@@ -30,4 +31,11 @@ content:
 	  done;
 	sed -i "s/ld-foc/ld/"           src/lib/ld/foc/target.mk
 	sed -i "s/foc_timer_drv/timer/" src/timer/foc/target.mk
+	sed -i "s/BOARD.*unknown/BOARD = $(BOARD)/" src/core/foc/target.mk
+	sed -i "s/BOARD.*unknown/BOARD = $(BOARD)/" src/kernel/foc/target.mk
+	sed -i "s/BOARD.*unknown/BOARD = $(BOARD)/" lib/mk/syscall-foc.inc
+	sed -i "s/BOARD.*unknown/BOARD = $(BOARD)/" lib/mk/kernel-foc.inc
 
+content: enable_board_spec
+enable_board_spec: etc/specs.conf
+	echo "SPECS += $(BOARD)" >> etc/specs.conf

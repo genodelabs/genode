@@ -61,8 +61,8 @@ proc run_boot_dir {binaries} {
 	if {[llength $build_args]} { build $build_args }
 
 	if {$ld_arg        != ""} { file copy -force bin/ld-hw.lib.so   [run_dir]/genode/ld.lib.so }
-	if {$core_arg      != ""} { file copy -force bin/core-hw.o      [run_dir]/genode/core-hw.o }
-	if {$bootstrap_arg != ""} { file copy -force bin/bootstrap-hw.o [run_dir]/genode/bootstrap-hw.o }
+	if {$core_arg      != ""} { file copy -force bin/core-hw-[board].o      [run_dir]/genode/core-hw.o }
+	if {$bootstrap_arg != ""} { file copy -force bin/bootstrap-hw-[board].o [run_dir]/genode/bootstrap-hw.o }
 
 	#
 	# Copy specified modules to the run directory, excluding core.

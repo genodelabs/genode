@@ -6,8 +6,9 @@
 # userland (L4re) that comes with Fiasco.OC.
 #
 
+BOARD        ?= unknown
 L4_SRC_DIR   := $(call select_from_ports,foc)/src/kernel/foc
-L4_BUILD_DIR := $(shell pwd)/build
+L4_BUILD_DIR := $(shell pwd)/$(BOARD)-build
 
 #
 # Create mirror for architecture-specific L4sys header files
@@ -67,14 +68,14 @@ $(SRC_S) $(SRC_C) : $(PKG_TAGS)
 # included in the depot's base-foc binary archives.
 #
 ifneq ($(INSTALL_DIR),)
-all: $(INSTALL_DIR)/sigma0-foc $(INSTALL_DIR)/bootstrap-foc
+all: $(INSTALL_DIR)/sigma0-foc-$(BOARD) $(INSTALL_DIR)/bootstrap-foc-$(BOARD)
 
-$(INSTALL_DIR)/sigma0-foc $(INSTALL_DIR)/bootstrap-foc: $(PKG_TAGS)
+$(INSTALL_DIR)/sigma0-foc-$(BOARD) $(INSTALL_DIR)/bootstrap-foc-$(BOARD): $(PKG_TAGS)
 
-$(INSTALL_DIR)/sigma0-foc:
+$(INSTALL_DIR)/sigma0-foc-$(BOARD):
 	$(VERBOSE)ln -sf $(L4_BIN_DIR)/l4f/sigma0 $@
 
-$(INSTALL_DIR)/bootstrap-foc:
+$(INSTALL_DIR)/bootstrap-foc-$(BOARD):
 	$(VERBOSE)ln -sf $(L4_BIN_DIR)/bootstrap $@
 endif
 

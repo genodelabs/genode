@@ -1,6 +1,7 @@
-TARGET        = bootstrap
-LIBS          = bootstrap-hw
-BOOTSTRAP_OBJ = bootstrap-hw.o
+BOARD        ?= unknown
+TARGET        = bootstrap_hw_$(BOARD)
+LIBS          = bootstrap-hw-$(BOARD)
+BOOTSTRAP_OBJ = bootstrap-hw-$(BOARD).o
 
 $(TARGET):
 	$(VERBOSE)true
