@@ -1,5 +1,5 @@
 proc binary_name_ld_lib_so { } { return "ld-foc.lib.so" }
-proc binary_name_core_o    { } { return "core-foc.o"    }
+proc binary_name_core_o    { } { return "core-foc-[board].o" }
 proc binary_name_timer     { } { return "foc_timer_drv" }
 
 proc kernel_files { } { return { foc sigma0-foc bootstrap-foc } }
@@ -39,10 +39,10 @@ proc reset_target { {spawn_id_arg -1} } {
 }
 
 
-proc l4_build_dir { } { return "[pwd]/var/libcache/syscall-foc/build" }
+proc l4_build_dir { } { return "[pwd]/var/libcache/syscall-foc/[board]-build" }
 
 
-proc kernel_binary { } { return "[pwd]/bin/foc" }
+proc kernel_binary { } { return "[pwd]/bin/foc-[board]" }
 
 
 proc l4_bin_dir { } {
@@ -72,9 +72,9 @@ proc run_boot_dir_x86 {binaries} {
 	if {[llength $targets]} { build $targets }
 
 	if {$kernel_arg != ""} {
-		file copy -force [pwd]/bin/foc           [run_dir]/genode/foc
-		file copy -force [pwd]/bin/sigma0-foc    [run_dir]/genode/sigma0-foc
-		file copy -force [pwd]/bin/bootstrap-foc [run_dir]/genode/bootstrap-foc
+		file copy -force [pwd]/bin/foc-[board]           [run_dir]/genode/foc
+		file copy -force [pwd]/bin/sigma0-foc-[board]    [run_dir]/genode/sigma0-foc
+		file copy -force [pwd]/bin/bootstrap-foc-[board] [run_dir]/genode/bootstrap-foc
 	}
 
 	build_core_image $binaries

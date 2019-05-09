@@ -1,4 +1,4 @@
-TARGET    = core
+TARGET   ?= core
 CORE_OBJ ?= core.o
 
 $(TARGET):

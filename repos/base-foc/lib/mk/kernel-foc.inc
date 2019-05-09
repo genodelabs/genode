@@ -1,4 +1,5 @@
-FOC_BUILD_DIR = $(shell pwd)/build
+BOARD        ?= unknown
+FOC_BUILD_DIR = $(shell pwd)/$(BOARD)-build
 FOC           = $(FOC_BUILD_DIR)/foc
 FOC_SRC      := $(call select_from_ports,foc)/src/kernel/foc/kernel/fiasco
 
@@ -41,7 +42,7 @@ PKGS := l4re-core/crtn \
         drivers-frst/include drivers-frst/of drivers-frst/uart \
         bootstrap
 
-L4_BUILD_DIR := $(LIB_CACHE_DIR)/syscall-foc/build
+L4_BUILD_DIR := $(LIB_CACHE_DIR)/syscall-foc/$(BOARD)-build
 
 #
 # Supress several warnings especially of the uclibc-minimal

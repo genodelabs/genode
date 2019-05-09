@@ -499,6 +499,7 @@ set run_name         [get_cmd_arg --name       "noname"]
 set genode_dir       [get_cmd_arg --genode-dir       ""]
 set cross_dev_prefix [get_cmd_arg --cross-dev-prefix ""]
 set specs            [get_cmd_arg --specs            ""]
+set board_var        [get_cmd_arg --board            ""]
 set repositories     [get_cmd_arg --repositories     ""]
 
 
@@ -812,6 +813,19 @@ proc terminal { } {
 		return $env(COLORTERM)
 	}
 	return $env(TERM)
+}
+
+
+##
+# Return the board to build for
+#
+proc board { } {
+	global board_var
+	if {$board_var eq ""} {
+		puts "Unknown platform no BOARD variable set"
+		exit 0
+	}
+	return $board_var
 }
 
 
