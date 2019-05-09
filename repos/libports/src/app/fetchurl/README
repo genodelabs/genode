@@ -3,6 +3,13 @@ A small frontend to the libcURL library.
 Configuration
 -------------
 
+The component will try to fetch the given resource. If this operation stalls
+for a given amount of time, the transfer will be aborted. The duration can be
+set by setting the 'progress_timeout' attribute in the '<config>' node. It is
+specified in milliseconds and the default value is 10 seconds.
+
+The following config snippets illustrate its usage.
+
 Load the socket plugin in to the fetchurl binary (print output to log):
 !<config>
 ! <libc stdout="/dev/log" stderr="/dev/log"
