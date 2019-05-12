@@ -1,11 +1,12 @@
 /*
  * \brief  Terminal color palette
  * \author Norman Feske
+ * \author Christian Helmuth
  * \date   2018-02-06
  */
 
 /*
- * Copyright (C) 2018 Genode Labs GmbH
+ * Copyright (C) 2018-2019 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -16,6 +17,7 @@
 
 /* Genode includes */
 #include <util/color.h>
+#include <util/xml_node.h>
 
 /* local includes */
 #include "types.h"
@@ -33,44 +35,61 @@ class Terminal::Color_palette
 
 		struct Highlighted { bool value; };
 
-		struct Inverse { bool value; };
-
 	private:
 
 		enum { NUM_COLORS = 16U };
 
 		Color _colors[NUM_COLORS];
 
+		static constexpr char const * _default_palette {
+			"<palette>"
+			" <color index=\"0\"  value=\"#000000\"/>" /* black */
+			" <color index=\"1\"  value=\"#AC4142\"/>" /* red */
+			" <color index=\"2\"  value=\"#90A959\"/>" /* green */
+			" <color index=\"3\"  value=\"#F4BF75\"/>" /* yellow */
+			" <color index=\"4\"  value=\"#6A9FB5\"/>" /* blue */
+			" <color index=\"5\"  value=\"#AA759F\"/>" /* magenta */
+			" <color index=\"6\"  value=\"#75B5AA\"/>" /* cyan */
+			" <color index=\"7\"  value=\"#D0D0D0\"/>" /* white */
+			" <color index=\"8\"  value=\"#101010\"/>" /* bright black */
+			" <color index=\"9\"  value=\"#AC4142\"/>" /* bright red */
+			" <color index=\"10\" value=\"#90A959\"/>" /* bright green */
+			" <color index=\"11\" value=\"#F4BF75\"/>" /* bright yellow */
+			" <color index=\"12\" value=\"#6A9FB5\"/>" /* bright blue */
+			" <color index=\"13\" value=\"#AA759F\"/>" /* bright magenta */
+			" <color index=\"14\" value=\"#75B5AA\"/>" /* bright cyan */
+			" <color index=\"15\" value=\"#F5F5F5\"/>" /* bright white */
+			"</palette>" };
+
+		Genode::Xml_node const _default { _default_palette };
+
+		void _apply_palette(Xml_node palette)
+		{
+			palette.for_each_sub_node("color", [&] (Xml_node node) {
+				if (!node.has_attribute("index")) return;
+				if (!node.has_attribute("value")) return;
+
+				unsigned const index = node.attribute_value("index", 0U);
+				if (!(index <= NUM_COLORS)) return;
+				_colors[index] = node.attribute_value("value", Color());
+			});
+		}
+
 	public:
 
 		Color_palette()
 		{
-			_colors[0] = Color(  0,   0,   0);  /* black */
-			_colors[1] = Color(255, 128, 128);  /* red */
-			_colors[2] = Color(128, 255, 128);  /* green */
-			_colors[3] = Color(255, 255,   0);  /* yellow */
-			_colors[4] = Color(128, 128, 255);  /* blue */
-			_colors[5] = Color(255,   0, 255);  /* magenta */
-			_colors[6] = Color(  0, 255, 255);  /* cyan */
-			_colors[7] = Color(255, 255, 255);  /* white */
-
-			/* the upper portion of the palette contains highlight colors */
-			for (unsigned i = 0; i < NUM_COLORS/2; i++) {
-				Color const col = _colors[i];
-				_colors[i + NUM_COLORS/2] = Color((col.r*2)/3, (col.g*2)/3, (col.b*2)/3);
-			}
+			_apply_palette(_default);
 		}
 
 		void apply_config(Xml_node config)
 		{
-			config.for_each_sub_node("color", [&] (Xml_node color) {
-				unsigned const index = min(color.attribute_value("index", 0U), 15U);
-				Color const bg = color.attribute_value("bg", Color());
-				_colors[index] = bg;
-			});
+			_apply_palette(_default);
+			if (config.has_sub_node("palette"))
+				_apply_palette(config.sub_node("palette"));
 		}
 
-		Color foreground(Index index, Highlighted highlighted, Inverse inverse) const
+		Color foreground(Index index, Highlighted highlighted) const
 		{
 			if (index.value >= NUM_COLORS/2)
 				return Color(0, 0, 0);
@@ -78,18 +97,15 @@ class Terminal::Color_palette
 			Color const col =
 				_colors[index.value + (highlighted.value ? NUM_COLORS/2 : 0)];
 
-			return (inverse.value) ? Color(col.r/2, col.g/2, col.b/2) : col;
+			return col;
 		}
 
-		Color background(Index index, Highlighted highlighted, Inverse inverse) const
+		Color background(Index index, Highlighted highlighted) const
 		{
-			Color const color =
-				_colors[index.value + (highlighted.value ? NUM_COLORS/2 : 0)];
+			Color const color = foreground(index, highlighted);
 
-			return (inverse.value) ? Color((color.r + 255)/2,
-			                               (color.g + 255)/2,
-			                               (color.b + 255)/2)
-			                       : color;
+			/* reduce the intensity of background colors */
+			return Color(color.r*3/4, color.g*3/4, color.b*3/4);
 		}
 };
 

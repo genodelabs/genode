@@ -1,0 +1,19 @@
+This is a graphical terminal implementation. It provides the Terminal
+service and uses a nitpicker session for screen representation.
+
+Configuration
+~~~~~~~~~~~~~
+
+The default color palette can be configured via the <palette> XML
+configuration node like follows. There are 16 colors configurable -
+index 0-7 normal color and index 8-15 bright (bold) colors.
+
+
+! <config>
+!   <palette>
+!     <color index="0" value="#000000"/> <!-- black is real black -->
+!     <color index="8" value="#101010"/> <!-- bright black stands out a bit -->
+!   </palette>
+! ...
+! </config>
+

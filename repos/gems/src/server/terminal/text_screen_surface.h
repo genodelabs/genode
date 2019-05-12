@@ -1,6 +1,7 @@
 /*
  * \brief  Terminal graphics backend for textual screen
  * \author Norman Feske
+ * \author Christian Helmuth
  * \date   2018-02-06
  */
 
@@ -177,8 +178,7 @@ class Terminal::Text_screen_surface
 			{
 				Color const bg_color =
 					_palette.background(Color_palette::Index{0},
-					                    Color_palette::Highlighted{false},
-					                    Color_palette::Inverse{false});
+					                    Color_palette::Highlighted{false});
 				Rect r[4] { };
 				Rect const all(Point(0, 0), _geometry.fb_size);
 				_geometry.fb_rect().cut(_geometry.used_rect(), &r[0], &r[1], &r[2], &r[3]);
@@ -197,20 +197,24 @@ class Terminal::Text_screen_surface
 					Fixpoint_number x { (int)_geometry.start().x() };
 					for (unsigned column = 0; column < _cell_array.num_cols(); column++) {
 
-						Char_cell     cell  = _cell_array.get_cell(column, line);
+						Char_cell const cell = _cell_array.get_cell(column, line);
 
 						_font.apply_glyph(cell.codepoint(), [&] (Glyph_painter::Glyph const &glyph) {
 
 							Color_palette::Highlighted const highlighted { cell.highlight() };
-							Color_palette::Inverse     const inverse     { cell.inverse() };
 
-							Color fg_color =
-								_palette.foreground(Color_palette::Index{cell.colidx_fg()},
-								                    highlighted, inverse);
+							Color_palette::Index fg_idx { cell.colidx_fg() };
+							Color_palette::Index bg_idx { cell.colidx_bg() };
 
-							Color bg_color =
-								_palette.background(Color_palette::Index{cell.colidx_bg()},
-								                    highlighted, inverse);
+							/* swap color index for inverse cells */
+							if (cell.inverse()) {
+								Color_palette::Index tmp { fg_idx };
+								fg_idx = bg_idx;
+								bg_idx = tmp;
+							}
+
+							Color fg_color = _palette.foreground(fg_idx, highlighted);
+							Color bg_color = _palette.background(bg_idx, highlighted);
 
 							if (cell.has_cursor()) {
 								fg_color = Color( 63,  63,  63);

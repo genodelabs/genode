@@ -956,9 +956,11 @@ void Sculpt::Main::_handle_nitpicker_mode()
 			xml.node("default-policy", [&] () { xml.attribute("root", "/fonts"); });
 
 			auto gen_color = [&] (unsigned index, Color color) {
-				xml.node("color", [&] () {
-					xml.attribute("index", index);
-					xml.attribute("bg", String<16>(color));
+				xml.node("palette", [&] () {
+					xml.node("color", [&] () {
+						xml.attribute("index", index);
+						xml.attribute("value", String<16>(color));
+					});
 				});
 			};
 
