@@ -1,0 +1,52 @@
+#!/usr/bin/make -f
+
+#
+# \brief  Print a list of missing ports for given API/source/raw archives
+# \author Martin Stein
+# \date   2019-05-15
+#
+
+define HELP_MESSAGE
+
+  Print a list of missing ports for given API/source/raw archives
+
+  usage:
+
+    $(firstword $(MAKEFILE_LIST)) <archive-path>...
+
+  The <archive-path> argument denotes the archive to process in the
+  form of a path. The first path element corresponds to the identity
+  of the archive creator, the second element corresponds to the type
+  of the archive, and the third element refers to the recipe of
+  the archive description.
+
+  E.g., the user 'alan' may have the following archives:
+
+    alan/api/libc - an API archive for the libc
+    alan/src/zlib - a source archive for the zlib library
+
+  The following arguments tweak the operation of the tool:
+
+    VERBOSE=           Show individual operations.
+
+    -j<N>              Enable the parallel processing of packages where
+                       <N> denotes the level of parallelism.
+
+endef
+
+export GENODE_DIR := $(realpath $(dir $(MAKEFILE_LIST))/../..)
+
+# the missing-ports tool expects archive paths given without the version element
+BIN_PKG_PATH_ELEMS := 4
+
+include $(GENODE_DIR)/tool/depot/mk/front_end.inc
+include $(GENODE_DIR)/tool/depot/mk/categorize_args.inc
+include $(GENODE_DIR)/tool/depot/mk/extract_pre_dependencies.inc
+include $(GENODE_DIR)/tool/depot/mk/dependencies.inc
+include $(GENODE_DIR)/tool/depot/mk/extract_post_dependencies.inc
+
+$(MAKECMDGOALS): dump_missing_ports_file
+	$(VERBOSE)true
+
+dump_missing_ports_file: update_missing_ports_file
+	$(VERBOSE)echo $(call sorted_file_content,$(MISSING_PORTS_FILE))
