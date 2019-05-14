@@ -87,6 +87,8 @@ struct Vcpu : Genode::Thread
 		addr_t const cr4_mask = CR4_VMX;
 		addr_t const cr4_set  = CR4_VMX;
 
+		seL4_VCPUContext _recent_gpr { };
+
 		void entry() override
 		{
 			/* trigger that thread is up */
@@ -113,7 +115,7 @@ struct Vcpu : Genode::Thread
 
 			/* initial startup VM exit to get valid VM state */
 			state.exit_reason = VMEXIT_STARTUP;
-			_read_sel4_state_async(service, state);
+			_read_sel4_state(service, state);
 
 			Genode::Signal_transmitter(_signal).submit();
 
@@ -155,12 +157,9 @@ struct Vcpu : Genode::Thread
 
 					state = Vm_state {};
 
-					state.ip.value(seL4_GetMR(SEL4_VMENTER_CALL_EIP_MR));
-					state.ctrl_primary.value(seL4_GetMR(SEL4_VMENTER_CALL_CONTROL_PPC_MR));
-					state.inj_info.value(seL4_GetMR(SEL4_VMENTER_CALL_CONTROL_ENTRY_MR));
-
 					state.exit_reason = VMEXIT_RECALL;
-					_read_sel4_state_async(service, state);
+
+					_read_sel4_state(service, state);
 
 					/* notify VM handler */
 					Genode::Signal_transmitter(_signal).submit();
@@ -189,36 +188,14 @@ struct Vcpu : Genode::Thread
 
 				state = Vm_state {};
 
-				if (res == SEL4_VMENTER_RESULT_FAULT) {
-					state.ip.value(seL4_GetMR(SEL4_VMENTER_CALL_EIP_MR));
-					state.ctrl_primary.value(seL4_GetMR(SEL4_VMENTER_CALL_CONTROL_PPC_MR));
+				if (res != SEL4_VMENTER_RESULT_FAULT)
+					state.exit_reason = VMEXIT_RECALL;
+				else
 					state.exit_reason = seL4_GetMR(SEL4_VMENTER_FAULT_REASON_MR);
 
-				    state.ip_len.value(seL4_GetMR(SEL4_VMENTER_FAULT_INSTRUCTION_LEN_MR));
-					state.qual_primary.value(seL4_GetMR(SEL4_VMENTER_FAULT_QUALIFICATION_MR));
-					state.qual_secondary.value(seL4_GetMR(SEL4_VMENTER_FAULT_GUEST_PHYSICAL_MR));
+				_read_sel4_state(service, state);
 
-					state.flags.value(seL4_GetMR(SEL4_VMENTER_FAULT_RFLAGS_MR));
-					state.intr_state.value(seL4_GetMR(SEL4_VMENTER_FAULT_GUEST_INT_MR));
-					state.cr3.value(seL4_GetMR(SEL4_VMENTER_FAULT_CR3_MR));
-
-					state.ax.value(seL4_GetMR(SEL4_VMENTER_FAULT_EAX));
-					state.bx.value(seL4_GetMR(SEL4_VMENTER_FAULT_EBX));
-					state.cx.value(seL4_GetMR(SEL4_VMENTER_FAULT_ECX));
-					state.dx.value(seL4_GetMR(SEL4_VMENTER_FAULT_EDX));
-					state.si.value(seL4_GetMR(SEL4_VMENTER_FAULT_ESI));
-					state.di.value(seL4_GetMR(SEL4_VMENTER_FAULT_EDI));
-					state.bp.value(seL4_GetMR(SEL4_VMENTER_FAULT_EBP));
-
-					_read_sel4_state(service, state);
-				} else {
-					state.ip.value(seL4_GetMR(SEL4_VMENTER_CALL_EIP_MR));
-					state.ctrl_primary.value(seL4_GetMR(SEL4_VMENTER_CALL_CONTROL_PPC_MR));
-					/* what about the other GPR stuff ? XXX */
-
-					state.exit_reason = VMEXIT_RECALL;
-					_read_sel4_state_async(service, state);
-
+				if (res != SEL4_VMENTER_RESULT_FAULT) {
 					Lock::Guard guard(_remote_lock);
 					if (_remote == PAUSE) {
 						_remote = NONE;
@@ -342,23 +319,6 @@ struct Vcpu : Genode::Thread
 				              " ", res.written);
 		}
 
-		void _write_gpr(seL4_X86_VCPU const service, Vm_state &state)
-		{
-			seL4_VCPUContext regs;
-			regs.eax = state.ax.value();
-			regs.ebx = state.bx.value();
-			regs.ecx = state.cx.value();
-			regs.edx = state.dx.value();
-			regs.esi = state.si.value();
-			regs.edi = state.di.value();
-			regs.ebp = state.bp.value();
-
-			seL4_Error res = seL4_X86_VCPU_WriteRegisters(service, &regs);
-			if (res != seL4_NoError)
-				Genode::error("setting general purpose register failed ",
-				              (int)res);
-		}
-
 		/*
 		 * Convert to Intel format comprising 32 bits.
 		 */
@@ -373,12 +333,24 @@ struct Vcpu : Genode::Thread
 
 		void _write_sel4_state(seL4_X86_VCPU const service, Vm_state &state)
 		{
+			if (state.ax.valid()) _recent_gpr.eax = state.ax.value();
+			if (state.bx.valid()) _recent_gpr.ebx = state.bx.value();
+			if (state.cx.valid()) _recent_gpr.ecx = state.cx.value();
+			if (state.dx.valid()) _recent_gpr.edx = state.dx.value();
+			if (state.si.valid()) _recent_gpr.esi = state.si.value();
+			if (state.di.valid()) _recent_gpr.edi = state.di.value();
+			if (state.bp.valid()) _recent_gpr.ebp = state.bp.value();
+
 			if (state.ax.valid() || state.cx.valid() ||
 			    state.dx.valid() || state.bx.valid() ||
 			    state.bp.valid() || state.di.valid() ||
-			    state.si.valid()) {
-				/* XXX read first all values and write back only the changed ones ... */
-				_write_gpr(service, state);
+			    state.si.valid())
+			{
+				seL4_Error res = seL4_X86_VCPU_WriteRegisters(service,
+				                                              &_recent_gpr);
+				if (res != seL4_NoError)
+					Genode::error("setting general purpose registers failed ",
+					              (int)res);
 			}
 
 			if (state.r8.valid()  || state.r9.valid() ||
@@ -597,36 +569,35 @@ struct Vcpu : Genode::Thread
 		uint32_t _read_vmcs_32(seL4_X86_VCPU const service, enum Vmcs const field) {
 			return _read_vmcsX<uint32_t>(service, field); }
 
-		void _read_sel4_state_async(seL4_X86_VCPU const service, Vm_state &state)
-		{
-#if 0
-			state.ax.value(state.ax.value()); /* XXX ? */
-			state.cx.value(state.cx.value());
-			state.dx.value(state.dx.value());
-			state.bx.value(state.bx.value());
-
-			state.di.value(state.di.value()); /* XXX ? */
-			state.si.value(state.si.value());
-			state.bp.value(state.bp.value());
-#endif
-
-			state.flags.value(_read_vmcs(service, Vmcs::RFLAGS));
-
-			state.ip.value(_read_vmcs(service, Vmcs::RIP));
-			state.ip_len.value(_read_vmcs(service, Vmcs::EXIT_INST_LEN));
-
-			state.cr3.value(_read_vmcs(service, Vmcs::CR3));
-
-			state.qual_primary.value(state.qual_primary.value()); /* XXX ? */
-			state.qual_secondary.value(state.qual_secondary.value()); /* XXX ? */
-
-			state.ctrl_primary.value(_read_vmcs(service, Vmcs::CTRL_0));
-
-			_read_sel4_state(service, state);
-		}
-
 		void _read_sel4_state(seL4_X86_VCPU const service, Vm_state &state)
 		{
+			state.ip.value(seL4_GetMR(SEL4_VMENTER_CALL_EIP_MR));
+			state.ctrl_primary.value(seL4_GetMR(SEL4_VMENTER_CALL_CONTROL_PPC_MR));
+
+			state.ip_len.value(seL4_GetMR(SEL4_VMENTER_FAULT_INSTRUCTION_LEN_MR));
+			state.qual_primary.value(seL4_GetMR(SEL4_VMENTER_FAULT_QUALIFICATION_MR));
+			state.qual_secondary.value(seL4_GetMR(SEL4_VMENTER_FAULT_GUEST_PHYSICAL_MR));
+
+			state.flags.value(seL4_GetMR(SEL4_VMENTER_FAULT_RFLAGS_MR));
+			state.intr_state.value(seL4_GetMR(SEL4_VMENTER_FAULT_GUEST_INT_MR));
+			state.cr3.value(seL4_GetMR(SEL4_VMENTER_FAULT_CR3_MR));
+
+			state.ax.value(seL4_GetMR(SEL4_VMENTER_FAULT_EAX));
+			state.bx.value(seL4_GetMR(SEL4_VMENTER_FAULT_EBX));
+			state.cx.value(seL4_GetMR(SEL4_VMENTER_FAULT_ECX));
+			state.dx.value(seL4_GetMR(SEL4_VMENTER_FAULT_EDX));
+			state.si.value(seL4_GetMR(SEL4_VMENTER_FAULT_ESI));
+			state.di.value(seL4_GetMR(SEL4_VMENTER_FAULT_EDI));
+			state.bp.value(seL4_GetMR(SEL4_VMENTER_FAULT_EBP));
+
+			_recent_gpr.eax = state.ax.value();
+			_recent_gpr.ebx = state.bx.value();
+			_recent_gpr.ecx = state.cx.value();
+			_recent_gpr.edx = state.dx.value();
+			_recent_gpr.esi = state.si.value();
+			_recent_gpr.edi = state.di.value();
+			_recent_gpr.ebp = state.bp.value();
+
 			state.sp.value(_read_vmcs(service, Vmcs::RSP));
 			state.dr7.value(_read_vmcs(service, Vmcs::DR7));
 

@@ -134,6 +134,8 @@ class Genode::Vm_space
 		 */
 		using Selector_allocator = Bit_allocator<1UL << NUM_VM_SEL_LOG2>;
 
+		class Alloc_page_table_failed : Exception { };
+
 	private:
 
 		Selector_allocator _sel_alloc { };
@@ -246,8 +248,6 @@ class Genode::Vm_space
 		long _unmap_page(Genode::Cap_sel const &idx);
 		long _invalidate_page(Genode::Cap_sel const &, seL4_Word const,
 		                      seL4_Word const);
-
-		class Alloc_page_table_failed : Exception { };
 
 		/**
 		 * Allocate and install page structures for the protection domain.

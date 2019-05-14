@@ -1,0 +1,87 @@
+--- src/kernel/sel4/src/arch/x86/object/vcpu.c
++++ src/kernel/sel4/src/arch/x86/object/vcpu.c
+@@ -88,6 +88,9 @@ static bool_t vmx_feature_ack_on_exit;
+ static vcpu_t *x86KSVPIDTable[VPID_LAST + 1];
+ static vpid_t x86KSNextVPID = VPID_FIRST;
+ 
++static void
++setMRs_vmexit(uint32_t reason, word_t qualification, tcb_t *tcb);
++
+ static inline bool_t
+ vmxon(paddr_t vmxon_region)
+ {
+@@ -967,10 +987,8 @@ vcpu_update_state_sysvmenter(vcpu_t *vcpu)
+ void
+ vcpu_sysvmenter_reply_to_user(tcb_t *tcb)
+ {
+-    word_t *buffer;
+     vcpu_t *vcpu;
+ 
+-    buffer = lookupIPCBuffer(true, tcb);
+     vcpu = tcb->tcbArch.tcbVCPU;
+ 
+     assert(vcpu);
+@@ -979,11 +997,9 @@ vcpu_sysvmenter_reply_to_user(tcb_t *tcb)
+         switchVCPU(vcpu);
+     }
+ 
+-    setMR(tcb, buffer, SEL4_VMENTER_CALL_EIP_MR, vmread(VMX_GUEST_RIP));
+-    setMR(tcb, buffer, SEL4_VMENTER_CALL_CONTROL_PPC_MR, vmread(VMX_CONTROL_PRIMARY_PROCESSOR_CONTROLS));
++    setMRs_vmexit(/* unused */ -1, /* unused */ -1, tcb);
+ 
+-    setMR(tcb, buffer, SEL4_VMENTER_CALL_CONTROL_ENTRY_MR, vmread(VMX_CONTROL_ENTRY_INTERRUPTION_INFO));
+-    setRegister(tcb, msgInfoRegister, 0);
++    setRegister(tcb, msgInfoRegister, 0 /* notification that this is no VM exit */);
+ }
+ 
+ exception_t
+@@ -1113,27 +1141,27 @@ vtx_init(void)
+ }
+ 
+ static void
+-setMRs_vmexit(uint32_t reason, word_t qualification)
++setMRs_vmexit(uint32_t reason, word_t qualification, tcb_t *tcb)
+ {
+     word_t *buffer;
+     int i;
+ 
+-    buffer = lookupIPCBuffer(true, NODE_STATE(ksCurThread));
++    buffer = lookupIPCBuffer(true, tcb);
+ 
+-    setMR(NODE_STATE(ksCurThread), buffer, SEL4_VMENTER_CALL_EIP_MR, vmread(VMX_GUEST_RIP));
+-    setMR(NODE_STATE(ksCurThread), buffer, SEL4_VMENTER_CALL_CONTROL_PPC_MR, vmread(VMX_CONTROL_PRIMARY_PROCESSOR_CONTROLS));
+-    setMR(NODE_STATE(ksCurThread), buffer, SEL4_VMENTER_CALL_CONTROL_ENTRY_MR, vmread(VMX_CONTROL_ENTRY_INTERRUPTION_INFO));
+-    setMR(NODE_STATE(ksCurThread), buffer, SEL4_VMENTER_FAULT_REASON_MR, reason);
+-    setMR(NODE_STATE(ksCurThread), buffer, SEL4_VMENTER_FAULT_QUALIFICATION_MR, qualification);
++    setMR(tcb, buffer, SEL4_VMENTER_CALL_EIP_MR, vmread(VMX_GUEST_RIP));
++    setMR(tcb, buffer, SEL4_VMENTER_CALL_CONTROL_PPC_MR, vmread(VMX_CONTROL_PRIMARY_PROCESSOR_CONTROLS));
++    setMR(tcb, buffer, SEL4_VMENTER_CALL_CONTROL_ENTRY_MR, vmread(VMX_CONTROL_ENTRY_INTERRUPTION_INFO));
++    setMR(tcb, buffer, SEL4_VMENTER_FAULT_REASON_MR, reason);
++    setMR(tcb, buffer, SEL4_VMENTER_FAULT_QUALIFICATION_MR, qualification);
+ 
+-    setMR(NODE_STATE(ksCurThread), buffer, SEL4_VMENTER_FAULT_INSTRUCTION_LEN_MR, vmread(VMX_DATA_EXIT_INSTRUCTION_LENGTH));
+-    setMR(NODE_STATE(ksCurThread), buffer, SEL4_VMENTER_FAULT_GUEST_PHYSICAL_MR, vmread(VMX_DATA_GUEST_PHYSICAL));
+-    setMR(NODE_STATE(ksCurThread), buffer, SEL4_VMENTER_FAULT_RFLAGS_MR, vmread(VMX_GUEST_RFLAGS));
+-    setMR(NODE_STATE(ksCurThread), buffer, SEL4_VMENTER_FAULT_GUEST_INT_MR, vmread(VMX_GUEST_INTERRUPTABILITY));
+-    setMR(NODE_STATE(ksCurThread), buffer, SEL4_VMENTER_FAULT_CR3_MR, vmread(VMX_GUEST_CR3));
++    setMR(tcb, buffer, SEL4_VMENTER_FAULT_INSTRUCTION_LEN_MR, vmread(VMX_DATA_EXIT_INSTRUCTION_LENGTH));
++    setMR(tcb, buffer, SEL4_VMENTER_FAULT_GUEST_PHYSICAL_MR, vmread(VMX_DATA_GUEST_PHYSICAL));
++    setMR(tcb, buffer, SEL4_VMENTER_FAULT_RFLAGS_MR, vmread(VMX_GUEST_RFLAGS));
++    setMR(tcb, buffer, SEL4_VMENTER_FAULT_GUEST_INT_MR, vmread(VMX_GUEST_INTERRUPTABILITY));
++    setMR(tcb, buffer, SEL4_VMENTER_FAULT_CR3_MR, vmread(VMX_GUEST_CR3));
+ 
+     for (i = 0; i < n_vcpu_gp_register; i++) {
+-        setMR(NODE_STATE(ksCurThread), buffer, SEL4_VMENTER_FAULT_EAX + i, NODE_STATE(ksCurThread)->tcbArch.tcbVCPU->gp_registers[i]);
++        setMR(tcb, buffer, SEL4_VMENTER_FAULT_EAX + i, tcb->tcbArch.tcbVCPU->gp_registers[i]);
+     }
+ }
+ 
+@@ -1143,7 +1171,7 @@ handleVmxFault(uint32_t reason, word_t qualification)
+     /* Indicate that we are returning the from VMEnter with a fault */
+     setRegister(NODE_STATE(ksCurThread), msgInfoRegister, SEL4_VMENTER_RESULT_FAULT);
+ 
+-    setMRs_vmexit(reason, qualification);
++    setMRs_vmexit(reason, qualification, NODE_STATE(ksCurThread));
+ 
+     /* Set the thread back to running */
+     setThreadState(NODE_STATE(ksCurThread), ThreadState_Running);
