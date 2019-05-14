@@ -12,7 +12,7 @@ CC_WARN          = -Wall -Wextra -Waggregate-return -Wcast-align -Wcast-qual \
                    -Wconversion -Wdisabled-optimization -Wformat=2 \
                    -Wmissing-format-attribute -Wmissing-noreturn -Wpacked \
                    -Wpointer-arith -Wredundant-decls -Wshadow -Wwrite-strings \
-                   -Wabi -Wctor-dtor-privacy -Wno-non-virtual-dtor \
+                   -Wctor-dtor-privacy -Wno-non-virtual-dtor \
                    -Wold-style-cast -Woverloaded-virtual -Wsign-promo \
                    -Wlogical-op -Wstrict-null-sentinel \
                    -Wstrict-overflow=5 -Wvolatile-register-var
