@@ -99,6 +99,12 @@ set dtb               $inversepath_linux
 
 set targets { core init server/tz_vmm }
 
+proc tz_vmm_binary {} {
+	if {[have_spec usb_armory]} { return usb_armory_tz_vmm }
+	if {[have_spec imx53_qsb]}  { return imx53_qsb_tz_vmm }
+	return no_tz_vmm_binary
+}
+
 if { $mmc_rootfs } {
 
 	# choose interrupt for paravirtualized block
@@ -173,6 +179,7 @@ append_if $mmc_rootfs config {
 
 append config {
 	<start name="tz_vmm">
+		<binary name="} [tz_vmm_binary] {"/>
 		<resource name="RAM" quantum="10M"/> }
 
 if { $mmc_rootfs } {
@@ -209,7 +216,8 @@ if {![file exists linux]} {
 exec >& /dev/null wget -O linux.md5 $linux_uri.md5
 exec md5sum -c linux.md5
 
-set boot_modules { core ld.lib.so init tz_vmm linux }
+set boot_modules { core ld.lib.so init linux }
+lappend boot_modules [tz_vmm_binary]
 
 if { $dtb } {
 
