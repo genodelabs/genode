@@ -1,0 +1,21 @@
+--- src/kernel/sel4/src/arch/x86/object/vcpu.c
++++ src/kernel/sel4/src/arch/x86/object/vcpu.c
+@@ -285,13 +288,13 @@ init_vtx_fixed_values(bool_t useTrueMsrs)
+     cr4_low = x86_rdmsr_low(IA32_VMX_CR4_FIXED1_MSR);
+ 
+     /* Check for VPID support */
+-    if (!(secondary_control_low & BIT(5))) {
++//    if (!(secondary_control_low & BIT(5))) {
+         vmx_feature_vpid = 0;
+         printf("vt-x: VPIDs are not supported. Expect performance degredation\n");
+-    } else {
+-        vmx_feature_vpid = 1;
+-        secondary_control_mask |= BIT(5);
+-    }
++//    } else {
++//        vmx_feature_vpid = 1;
++//        secondary_control_mask |= BIT(5);
++//    }
+ 
+     /* Check for load perf global control */
+     if (!(exit_control_low & BIT(12))) {

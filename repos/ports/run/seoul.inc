@@ -21,6 +21,7 @@ set vmm_vcpu_same_cpu "no"
 
 if {[have_spec sel4]} {
 	set map_small  "yes"
+	set vmm_vcpu_same_cpu  "yes"
 
 	# seL4 has no AMD SVM support
 	if {[have_include "power_on/qemu"]} {
@@ -274,7 +275,7 @@ append_if $use_framebuffer config {
 
 if {!$use_fancy_stuff} {
 append config {
-	<start name="seoul" priority="-3" caps="400">
+	<start name="seoul" priority="-3" caps="800">
 		<binary name="seoul"/>}
 append config "
 		<resource name=\"RAM\" quantum=\"$memory_vmm_vm\"/>"
