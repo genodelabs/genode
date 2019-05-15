@@ -3,6 +3,17 @@
 #
 
 #
+# The size of the result buffers in the fast-time-polling test
+#
+proc fast_polling_buf_size  { } {
+
+	if {[expr [have_spec pbxa9]        && [have_spec foc]]} { return 40000000 }
+	if {[expr [have_spec imx53_qsb_tz] && [have_spec hw]]}  { return 40000000 }
+	if {[expr [have_spec rpi]          && [have_spec hw]]}  { return 40000000 }
+	return 80000000
+}
+
+#
 # Wether the platform allows for timeouts that trigger with a precision < 50 milliseconds
 #
 proc precise_timeouts { } {
@@ -99,7 +110,8 @@ append config {
 			<resource name="RAM" quantum="250M"/>
 			<config precise_time="} [precise_time] {"
 			        precise_ref_time="} [precise_ref_time] {"
-			        precise_timeouts="} [precise_timeouts] {"/>
+			        precise_timeouts="} [precise_timeouts] {"
+			        fast_polling_buf_size="} [fast_polling_buf_size] {"/>
 		</start>
 	</config>
 }
