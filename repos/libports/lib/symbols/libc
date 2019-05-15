@@ -36,6 +36,7 @@ a64l T
 abort T
 abs T
 accept T
+accept4 T
 access T
 alarm T
 alphasort T
