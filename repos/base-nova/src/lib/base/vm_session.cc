@@ -459,16 +459,15 @@ struct Vcpu {
 
 			Vm_state &state = *reinterpret_cast<Vm_state *>(vcpu->_state);
 			/* transform state from NOVA to Genode */
-			if (exit_reason != VM_EXIT_RECALL)
+			if (exit_reason != VM_EXIT_RECALL || !previous_blocked)
 				_read_nova_state(utcb, state, exit_reason);
-			else {
-				/* consume potential multiple sem ups */
-				Nova::sm_ctrl(vcpu->_sm_sel(), Nova::SEMAPHORE_UP);
-				Nova::sm_ctrl(vcpu->_sm_sel(), Nova::SEMAPHORE_DOWNZERO);
 
-				if (!previous_blocked)
-					_read_nova_state(utcb, state, exit_reason);
-				else
+			/* consume potential multiple sem ups */
+			Nova::sm_ctrl(vcpu->_sm_sel(), Nova::SEMAPHORE_UP);
+			Nova::sm_ctrl(vcpu->_sm_sel(), Nova::SEMAPHORE_DOWNZERO);
+
+			if (exit_reason == VM_EXIT_RECALL) {
+				if (previous_blocked)
 					state.exit_reason = exit_reason;
 
 				if (vcpu->_remote == PAUSE) {
