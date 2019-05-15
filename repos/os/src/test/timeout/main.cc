@@ -389,7 +389,6 @@ struct Fast_polling : Test
 
 	enum { NR_OF_ROUNDS          = 4 };
 	enum { MIN_ROUND_DURATION_MS = 2500 };
-	enum { MAX_NR_OF_POLLS       = 10000000 };
 	enum { MIN_NR_OF_POLLS       = 1000 };
 	enum { STACK_SIZE            = 4 * 1024 * sizeof(addr_t) };
 	enum { MIN_TIME_COMPARISONS  = 100 };
@@ -397,15 +396,17 @@ struct Fast_polling : Test
 	enum { MAX_DELAY_ERR_US      = 2000 };
 	enum { MAX_AVG_DELAY_ERR_US  = 20 };
 	enum { MAX_POLL_LATENCY_US   = 1000 };
-	enum { BUF_SIZE              = MAX_NR_OF_POLLS * sizeof(uint64_t) };
 
 	struct Result_buffer
 	{
-		Env                    &env;
-		Attached_ram_dataspace  ram   { env.ram(), env.rm(), BUF_SIZE };
+		Attached_ram_dataspace  ram;
 		uint64_t volatile      *value { ram.local_addr<uint64_t>() };
 
-		Result_buffer(Env &env) : env(env) { }
+		Result_buffer(Env    &env,
+		              size_t  size)
+		:
+			ram { env.ram(), env.rm(), size }
+		{ }
 
 		private:
 
@@ -426,9 +427,12 @@ struct Fast_polling : Test
 	uint64_t const    timer_diff_us   { timer_2_delayed ?
 	                                    timer_2_us - timer_us :
 	                                    timer_us - timer_2_us };
-	Result_buffer     local_us_1_buf  { env };
-	Result_buffer     local_us_2_buf  { env };
-	Result_buffer     remote_us_buf   { env };
+
+	size_t const  buf_size        { config.xml().attribute_value("fast_polling_buf_size", (size_t)80000000) };
+	size_t const  max_nr_of_polls { buf_size / sizeof(uint64_t) };
+	Result_buffer local_us_1_buf  { env, buf_size };
+	Result_buffer local_us_2_buf  { env, buf_size };
+	Result_buffer remote_us_buf   { env, buf_size };
 
 	uint64_t max_avg_time_err_us { config.xml().attribute_value("precise_ref_time", true) ?
 	                               (uint64_t)1000 : (uint64_t)2000 };
@@ -542,7 +546,7 @@ struct Fast_polling : Test
 
 			unsigned long volatile delay_loops = 0;
 
-			unsigned long nr_of_polls           = MAX_NR_OF_POLLS;
+			unsigned long nr_of_polls           = max_nr_of_polls;
 			unsigned long delay_loops_per_poll_ = delay_loops_per_poll[round];
 			uint64_t end_remote_us              = timer_2.elapsed_us() +
 			                                      MIN_ROUND_DURATION_MS * 1000;
