@@ -14,21 +14,14 @@
 #ifndef _SRC__BOOTSTRAP__SPEC__IMX53_QSB__BOARD_H_
 #define _SRC__BOOTSTRAP__SPEC__IMX53_QSB__BOARD_H_
 
-#include <drivers/defs/imx53_qsb.h>
-#include <drivers/uart/imx.h>
+#include <hw/spec/arm/imx53_qsb_board.h>
 #include <hw/spec/arm/imx_tzic.h>
 
 #include <spec/arm/cortex_a8_page_table.h>
 #include <spec/arm/cpu.h>
 
 namespace Board {
-	using namespace Imx53_qsb;
-	using Serial = Genode::Imx_uart;
-
-	enum {
-		UART_BASE  = UART_1_MMIO_BASE,
-		UART_CLOCK = 0, /* ignored value */
-	};
+	using namespace Hw::Imx53_qsb_board;
 
 	bool secure_irq(unsigned irq);
 }

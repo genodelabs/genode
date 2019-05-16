@@ -15,17 +15,10 @@
 #ifndef _CORE__SPEC__USB_ARMORY__BOARD_H_
 #define _CORE__SPEC__USB_ARMORY__BOARD_H_
 
-#include <drivers/defs/usb_armory.h>
-#include <drivers/uart/imx.h>
+#include <hw/spec/arm/usb_armory_board.h>
 
 namespace Board {
-	using namespace Usb_armory;
-	using Serial   = Genode::Imx_uart;
-
-	enum {
-		UART_BASE  = UART_1_MMIO_BASE,
-		UART_CLOCK = 0, /* dummy value, not used */
-	};
+	using namespace Hw::Usb_armory_board;
 
 	static constexpr bool SMP = false;
 }

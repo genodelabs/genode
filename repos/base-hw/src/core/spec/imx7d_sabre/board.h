@@ -14,22 +14,11 @@
 #ifndef _CORE__SPEC__IMX7D_SABRE__BOARD_H_
 #define _CORE__SPEC__IMX7D_SABRE__BOARD_H_
 
-/* base includes */
-#include <drivers/defs/imx7d_sabre.h>
-#include <drivers/uart/imx.h>
-
-#include <hw/spec/arm/cortex_a15.h>
+#include <hw/spec/arm/imx7d_sabre_board.h>
 
 namespace Board {
-	using namespace Imx7d_sabre;
-	using Cpu_mmio = Hw::Cortex_a15_mmio<IRQ_CONTROLLER_BASE>;
-	using Serial = Genode::Imx_uart;
-
-	enum {
-		UART_BASE  = UART_1_MMIO_BASE,
-		UART_CLOCK = 0, /* unused value */
-	};
-
+	using namespace Hw::Imx7d_sabre_board;
+	
 	static constexpr bool SMP = true;
 }
 

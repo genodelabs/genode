@@ -1,5 +1,5 @@
 /*
- * \brief   Pbxa9 specific board definitions
+ * \brief   Pandaboard specific definitions
  * \author  Stefan Kalkowski
  * \date    2017-02-20
  */
@@ -14,27 +14,15 @@
 #ifndef _SRC__BOOTSTRAP__SPEC__PANDA__BOARD_H_
 #define _SRC__BOOTSTRAP__SPEC__PANDA__BOARD_H_
 
-#include <drivers/defs/panda.h>
-#include <drivers/uart/tl16c750.h>
-#include <hw/spec/arm/cortex_a9.h>
-#include <hw/spec/arm/pl310.h>
-#include <hw/spec/arm/panda_trustzone_firmware.h>
-
+#include <hw/spec/arm/panda_board.h>
 #include <spec/arm/cortex_a9_page_table.h>
 #include <spec/arm/cpu.h>
 #include <spec/arm/pic.h>
 
 namespace Board {
+	using namespace Hw::Panda_board;
+
 	class L2_cache;
-
-	using namespace Panda;
-	using Cpu_mmio = Hw::Cortex_a9_mmio<CORTEX_A9_PRIVATE_MEM_BASE>;
-	using Serial   = Genode::Tl16c750_uart;
-
-	enum {
-		UART_BASE  = TL16C750_3_MMIO_BASE,
-		UART_CLOCK = TL16C750_CLOCK,
-	};
 }
 
 namespace Bootstrap { struct Actlr; }
@@ -42,8 +30,11 @@ namespace Bootstrap { struct Actlr; }
 
 struct Bootstrap::Actlr
 {
-	static void enable_smp() {
-		Hw::call_panda_firmware(Hw::CPU_ACTLR_SMP_BIT_RAISE, 0); }
+	static void enable_smp()
+	{
+		using namespace Board;
+		call_panda_firmware(CPU_ACTLR_SMP_BIT_RAISE, 0);
+	}
 
 	static void disable_smp() { /* not implemented */ }
 };
@@ -71,18 +62,18 @@ class Board::L2_cache : Hw::Pl310
 	public:
 
 		L2_cache(Genode::addr_t mmio) : Hw::Pl310(mmio) {
-			Hw::call_panda_firmware(Hw::L2_CACHE_AUX_REG, _init_value()); }
+			call_panda_firmware(L2_CACHE_AUX_REG, _init_value()); }
 
 		using Hw::Pl310::invalidate;
 
 		void enable()
 		{
-			Hw::call_panda_firmware(Hw::L2_CACHE_ENABLE_REG, 1);
+			call_panda_firmware(L2_CACHE_ENABLE_REG, 1);
 			Pl310::mask_interrupts();
 		}
 
 		void disable() {
-			Hw::call_panda_firmware(Hw::L2_CACHE_ENABLE_REG, 0); }
+			call_panda_firmware(L2_CACHE_ENABLE_REG, 0); }
 };
 
 #endif /* _SRC__BOOTSTRAP__SPEC__PANDA__BOARD_H_ */
