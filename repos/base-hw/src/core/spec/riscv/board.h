@@ -14,12 +14,10 @@
 #ifndef _CORE__SPEC__RISCV__BOARD_H_
 #define _CORE__SPEC__RISCV__BOARD_H_
 
-#include <hw/spec/riscv/uart.h>
+#include <hw/spec/riscv/board.h>
 
 namespace Board {
-	enum { UART_BASE, UART_CLOCK };
-	struct Serial : Hw::Riscv_uart {
-		Serial(Genode::addr_t, Genode::size_t, unsigned) {} };
+	using namespace Hw::Riscv_board;
 }
 
 #endif /* _CORE__SPEC__RISCV__BOARD_H_ */

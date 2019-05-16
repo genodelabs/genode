@@ -14,24 +14,13 @@
 #ifndef _SRC__BOOTSTRAP__SPEC__ODROID_XU__BOARD_H_
 #define _SRC__BOOTSTRAP__SPEC__ODROID_XU__BOARD_H_
 
-#include <drivers/defs/odroid_xu.h>
-#include <drivers/uart/exynos.h>
-
-#include <hw/spec/arm/cortex_a15.h>
+#include <hw/spec/arm/odroid_xu_board.h>
 #include <hw/spec/arm/lpae.h>
 #include <spec/arm/cpu.h>
 #include <spec/arm/pic.h>
 
 namespace Board {
-
-	using namespace Odroid_xu;
-	using Cpu_mmio = Hw::Cortex_a15_mmio<IRQ_CONTROLLER_BASE>;
-	using Serial   = Genode::Exynos_uart;
-
-	enum {
-		UART_BASE  = UART_2_MMIO_BASE,
-		UART_CLOCK = UART_2_CLOCK,
-	};
+	using namespace Hw::Odroid_xu_board;
 }
 
 #endif /* _SRC__BOOTSTRAP__SPEC__ODROID_XU__BOARD_H_ */

@@ -14,8 +14,7 @@
 #ifndef _SRC__BOOTSTRAP__SPEC__USB_ARMORY__BOARD_H_
 #define _SRC__BOOTSTRAP__SPEC__USB_ARMORY__BOARD_H_
 
-#include <drivers/defs/usb_armory.h>
-#include <drivers/uart/imx.h>
+#include <hw/spec/arm/usb_armory_board.h>
 #include <hw/spec/arm/imx_tzic.h>
 
 #include <spec/arm/cortex_a8_page_table.h>
@@ -24,13 +23,7 @@
 namespace Bootstrap { using Hw::Pic; }
 
 namespace Board {
-	using namespace Usb_armory;
-	using Serial = Genode::Imx_uart;
-
-	enum {
-		UART_BASE  = UART_1_MMIO_BASE,
-		UART_CLOCK = 0, /* ignored value */
-	};
+	using namespace Hw::Usb_armory_board;
 
 	bool secure_irq(unsigned irq);
 }
