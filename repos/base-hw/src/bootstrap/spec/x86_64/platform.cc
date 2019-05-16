@@ -69,6 +69,7 @@ Bootstrap::Platform::Board::Board()
             Memory_region { __initial_bx & ~0xFFFUL,
                             get_page_size() })
 {
+	Hw::Acpi_rsdp & acpi_rsdp = info.acpi_rsdp;
 	static constexpr size_t initial_map_max = 1024 * 1024 * 1024;
 
 	auto lambda = [&] (addr_t base, addr_t size) {
@@ -117,7 +118,7 @@ Bootstrap::Platform::Board::Board()
 				acpi_rsdp = rsdp;
 		},
 		[&] (Hw::Framebuffer const &fb) {
-			framebuffer = fb;
+			info.framebuffer = fb;
 		});
 	} else if (__initial_ax == Multiboot_info::MAGIC) {
 		for (unsigned i = 0; true; i++) {

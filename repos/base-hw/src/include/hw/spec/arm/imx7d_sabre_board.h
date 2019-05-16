@@ -16,7 +16,7 @@
 
 #include <drivers/defs/imx7d_sabre.h>
 #include <drivers/uart/imx.h>
-
+#include <hw/spec/arm/boot_info.h>
 #include <hw/spec/arm/cortex_a15.h>
 
 namespace Hw::Imx7d_sabre_board {

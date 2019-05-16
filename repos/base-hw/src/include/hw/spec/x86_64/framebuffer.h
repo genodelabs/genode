@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _SRC__LIB__HW__FRAMEBUFFER_H
-#define _SRC__LIB__HW__FRAMEBUFFER_H
+#ifndef _SRC__LIB__HW__SPEC__X86_64__FRAMEBUFFER_H
+#define _SRC__LIB__HW__SPEC__X86_64__FRAMEBUFFER_H
 
 #include <base/fixed_stdint.h>
 
@@ -30,4 +30,4 @@ struct Hw::Framebuffer
     Genode::uint8_t  type;
 } __attribute__((packed));
 
-#endif /* _SRC__LIB__HW__FRAMEBUFFER_H */
+#endif /* _SRC__LIB__HW__SPEC__X86_64__FRAMEBUFFER_H */

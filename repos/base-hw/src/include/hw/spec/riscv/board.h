@@ -14,6 +14,7 @@
 #ifndef _SRC__INCLUDE__HW__SPEC__RISCV__BOARD_H_
 #define _SRC__INCLUDE__HW__SPEC__RISCV__BOARD_H_
 
+#include <hw/spec/riscv/boot_info.h>
 #include <hw/spec/riscv/page_table.h>
 #include <hw/spec/riscv/uart.h>
 #include <drivers/defs/riscv.h>

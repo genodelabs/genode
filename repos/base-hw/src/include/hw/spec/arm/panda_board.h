@@ -17,6 +17,7 @@
 #include <base/stdint.h>
 #include <drivers/defs/panda.h>
 #include <drivers/uart/tl16c750.h>
+#include <hw/spec/arm/boot_info.h>
 #include <hw/spec/arm/cortex_a9.h>
 #include <hw/spec/arm/pl310.h>
 

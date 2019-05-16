@@ -19,6 +19,7 @@
 #include <kernel/irq.h>
 #include <kernel/pd.h>
 #include <pic.h>
+#include <board.h>
 #include <hw/assert.h>
 #include <hw/boot_info.h>
 
@@ -186,5 +187,6 @@ Cpu & Cpu_pool::cpu(unsigned const id)
 }
 
 
+using Boot_info = Hw::Boot_info<Board::Boot_info>;
 Cpu_pool::Cpu_pool()
-: _count(reinterpret_cast<Hw::Boot_info*>(Hw::Mm::boot_info().base)->cpus) { }
+: _count(reinterpret_cast<Boot_info*>(Hw::Mm::boot_info().base)->cpus) { }
