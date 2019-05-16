@@ -21,9 +21,9 @@ using namespace Genode;
 void Platform::_init_additional_platform_info(Xml_generator &xml)
 {
 	xml.node("acpi", [&] () {
-		uint32_t const revision = _boot_info().acpi_rsdp.revision;
-		uint32_t const rsdt     = _boot_info().acpi_rsdp.rsdt;
-		uint64_t const xsdt     = _boot_info().acpi_rsdp.xsdt;
+		uint32_t const revision = _boot_info().plat_info.acpi_rsdp.revision;
+		uint32_t const rsdt     = _boot_info().plat_info.acpi_rsdp.rsdt;
+		uint64_t const xsdt     = _boot_info().plat_info.acpi_rsdp.xsdt;
 
 		if (revision && (rsdt || xsdt)) {
 			xml.attribute("revision", revision);
@@ -36,7 +36,7 @@ void Platform::_init_additional_platform_info(Xml_generator &xml)
 	});
 	xml.node("boot", [&] () {
 		xml.node("framebuffer", [&] () {
-			Hw::Framebuffer const &boot_fb = _boot_info().framebuffer;
+			Hw::Framebuffer const &boot_fb = _boot_info().plat_info.framebuffer;
 			xml.attribute("phys",   String<32>(Hex(boot_fb.addr)));
 			xml.attribute("width",  boot_fb.width);
 			xml.attribute("height", boot_fb.height);

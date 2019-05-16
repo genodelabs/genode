@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _SRC__LIB__HW__ACPI_RSDP_H
-#define _SRC__LIB__HW__ACPI_RSDP_H
+#ifndef _SRC__LIB__HW__SPEC__X86_64__ACPI_RSDP_H
+#define _SRC__LIB__HW__SPEC__X86_64__ACPI_RSDP_H
 
 #include <base/fixed_stdint.h>
 
@@ -37,4 +37,4 @@ struct Hw::Acpi_rsdp
 	}
 } __attribute__((packed));
 
-#endif /* _SRC__LIB__HW__ACPI_RSDP_H */
+#endif /* _SRC__LIB__HW__SPEC__X86_64__ACPI_RSDP_H */

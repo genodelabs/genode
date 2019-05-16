@@ -16,6 +16,7 @@
 
 #include <drivers/defs/nit6_solox.h>
 #include <drivers/uart/imx.h>
+#include <hw/spec/arm/boot_info.h>
 #include <hw/spec/arm/cortex_a9.h>
 #include <hw/spec/arm/pl310.h>
 

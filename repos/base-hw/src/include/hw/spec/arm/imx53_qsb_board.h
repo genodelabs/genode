@@ -16,6 +16,7 @@
 
 #include <drivers/defs/imx53_qsb.h>
 #include <drivers/uart/imx.h>
+#include <hw/spec/arm/boot_info.h>
 
 namespace Hw::Imx53_qsb_board {
 	using namespace Imx53_qsb;

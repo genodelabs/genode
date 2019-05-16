@@ -40,8 +40,8 @@ using namespace Genode;
  ** Platform **
  **************/
 
-Hw::Boot_info const & Platform::_boot_info() {
-	return *reinterpret_cast<Hw::Boot_info*>(Hw::Mm::boot_info().base); }
+Hw::Boot_info<Board::Boot_info> const & Platform::_boot_info() {
+	return *reinterpret_cast<Hw::Boot_info<Board::Boot_info>*>(Hw::Mm::boot_info().base); }
 
 addr_t Platform::mmio_to_virt(addr_t mmio) {
 	return _boot_info().mmio_space.virt_addr(mmio); }

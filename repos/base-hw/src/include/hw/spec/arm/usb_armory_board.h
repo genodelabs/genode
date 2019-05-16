@@ -16,6 +16,7 @@
 
 #include <drivers/defs/usb_armory.h>
 #include <drivers/uart/imx.h>
+#include <hw/spec/arm/boot_info.h>
 
 namespace Hw::Usb_armory_board {
 	using namespace Usb_armory;

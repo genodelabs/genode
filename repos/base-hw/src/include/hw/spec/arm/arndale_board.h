@@ -16,6 +16,7 @@
 
 #include <drivers/defs/arndale.h>
 #include <drivers/uart/exynos.h>
+#include <hw/spec/arm/boot_info.h>
 #include <hw/spec/arm/cortex_a15.h>
 
 namespace Hw::Arndale_board {

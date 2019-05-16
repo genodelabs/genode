@@ -18,6 +18,7 @@
 #include <drivers/uart/imx.h>
 #include <hw/spec/arm/cortex_a9.h>
 #include <hw/spec/arm/pl310.h>
+#include <hw/spec/arm/boot_info.h>
 
 namespace Hw::Wand_quad_board {
 

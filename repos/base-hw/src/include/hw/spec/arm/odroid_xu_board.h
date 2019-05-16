@@ -16,7 +16,7 @@
 
 #include <drivers/defs/odroid_xu.h>
 #include <drivers/uart/exynos.h>
-
+#include <hw/spec/arm/boot_info.h>
 #include <hw/spec/arm/cortex_a15.h>
 
 namespace Hw::Odroid_xu_board {

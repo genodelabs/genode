@@ -18,6 +18,7 @@
 #include <drivers/uart/xilinx.h>
 #include <hw/spec/arm/cortex_a9.h>
 #include <hw/spec/arm/pl310.h>
+#include <hw/spec/arm/boot_info.h>
 
 namespace Hw::Zynq_qemu_board {
 	using namespace Zynq_qemu;

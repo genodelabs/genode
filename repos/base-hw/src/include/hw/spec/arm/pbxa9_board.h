@@ -16,6 +16,7 @@
 
 #include <drivers/defs/pbxa9.h>
 #include <drivers/uart/pl011.h>
+#include <hw/spec/arm/boot_info.h>
 #include <hw/spec/arm/cortex_a9.h>
 #include <hw/spec/arm/pl310.h>
 

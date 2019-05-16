@@ -34,6 +34,7 @@
 #include <core_mem_alloc.h>
 #include <translation_table.h>
 #include <assertion.h>
+#include <board.h>
 
 namespace Genode {
 	class Address_space;
@@ -50,7 +51,7 @@ class Genode::Platform : public Genode::Platform_generic
 		Phys_allocator     _irq_alloc;          /* IRQ allocator          */
 		Rom_fs             _rom_fs         { }; /* ROM file system        */
 
-		static Hw::Boot_info           const &_boot_info();
+		static Hw::Boot_info<Board::Boot_info> const &_boot_info();
 		static Hw::Memory_region_array const & _core_virt_regions();
 
 		/**

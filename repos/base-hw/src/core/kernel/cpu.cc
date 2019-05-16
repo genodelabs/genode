@@ -186,5 +186,6 @@ Cpu & Cpu_pool::cpu(unsigned const id)
 }
 
 
+using Boot_info = Hw::Boot_info<Board::Boot_info>;
 Cpu_pool::Cpu_pool()
-: _count(reinterpret_cast<Hw::Boot_info*>(Hw::Mm::boot_info().base)->cpus) { }
+: _count(reinterpret_cast<Boot_info*>(Hw::Mm::boot_info().base)->cpus) { }
