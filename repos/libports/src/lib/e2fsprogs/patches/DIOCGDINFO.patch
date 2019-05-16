@@ -1,0 +1,14 @@
+--- src/lib/e2fsprogs/lib/blkid/getsize.c.old	2019-05-16 13:06:14.874236710 +0200
++++ src/lib/e2fsprogs/lib/blkid/getsize.c	2019-05-16 13:00:38.790499736 +0200
+@@ -152,11 +152,6 @@
+ 		    (S_ISBLK(st.st_mode) || S_ISCHR(st.st_mode)))
+ 			part = st.st_rdev & 7;
+ 
+-		if (part >= 0 && (ioctl(fd, DIOCGDINFO, (char *)&lab) >= 0)) {
+-			pp = &lab.d_partitions[part];
+-			if (pp->p_size)
+-				return pp->p_size << 9;
+-		}
+ 	}
+ #endif /* HAVE_SYS_DISKLABEL_H */
+ 	{
