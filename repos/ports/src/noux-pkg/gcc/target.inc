@@ -33,6 +33,9 @@ ENV += CXXFLAGS_FOR_TARGET='-fPIC'
 
 MAKE_ENV += GENODE="yes"
 
+# prevent "converting to ‘bool’ from ‘std::nullptr_t’" error
+CXXFLAGS += -fpermissive
+
 #
 # We link libraries to the final binaries using the 'LIBS' variable.  But
 # unfortunately, the gcc build system has hardcoded some libs such as '-lc'.
