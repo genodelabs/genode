@@ -21,7 +21,7 @@
 /* Genode includes */
 #include <base/log.h>
 
-static Genode::uint64_t millisleep(Genode::uint64_t timeout_ms)
+static void millisleep(Genode::uint64_t timeout_ms)
 {
 	Genode::uint64_t remaining_ms = timeout_ms;
 
@@ -33,21 +33,19 @@ static Genode::uint64_t millisleep(Genode::uint64_t timeout_ms)
 
 	while (remaining_ms > 0)
 		remaining_ms = Libc::suspend(check, remaining_ms);
-
-	return remaining_ms;
 }
 
 
 extern "C" __attribute__((weak))
 int nanosleep(const struct timespec *req, struct timespec *rem)
 {
-	Genode::uint64_t sleep_ms = (uint64_t)req->tv_sec*1000 + req->tv_nsec/1000000;
-	Genode::uint64_t remain_ms = millisleep(sleep_ms);
+	Genode::uint64_t sleep_ms = (uint64_t)req->tv_sec*1000;
+	if (req->tv_nsec)
+		sleep_ms += req->tv_nsec / 1000000;
+	millisleep(sleep_ms);
 
-	if (rem) {
-		rem->tv_sec  = remain_ms / 1000;
-		rem->tv_nsec = (remain_ms % 1000) / 1000;
-	}
+	if (rem)
+		*rem = { 0, 0 };
 
 	return 0;
 }
@@ -91,5 +89,14 @@ unsigned int sleep(unsigned int seconds)
 {
 	Genode::uint64_t sleep_ms = 1000 * (Genode::uint64_t)seconds;
 	millisleep(sleep_ms);
+	return 0;
+}
+
+
+extern "C" __attribute__((weak))
+int usleep(useconds_t useconds)
+{
+	if (useconds)
+		millisleep(useconds / 1000);
 	return 0;
 }
