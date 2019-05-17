@@ -15,7 +15,6 @@ TAR_OPT(libc) += usr/src/contrib/libc-vis
 TAR_OPT(libc) += usr/src/contrib/tzcode/stdtime
 TAR_OPT(libc) += usr/src/include
 TAR_OPT(libc) += usr/src/lib/libc
-TAR_OPT(libc) += usr/src/lib/libmd
 TAR_OPT(libc) += usr/src/lib/msun
 TAR_OPT(libc) += usr/src/sys/amd64
 TAR_OPT(libc) += usr/src/sys/arm
