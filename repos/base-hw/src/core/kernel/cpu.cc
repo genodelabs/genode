@@ -19,6 +19,7 @@
 #include <kernel/irq.h>
 #include <kernel/pd.h>
 #include <pic.h>
+#include <board.h>
 #include <hw/assert.h>
 #include <hw/boot_info.h>
 
