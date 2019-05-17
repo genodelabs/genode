@@ -164,9 +164,15 @@ HOST_GCC_VERSION := $(shell gcc -dumpfullversion -dumpversion)
 GNAT_OK = $(call check_equal_f,$(shell gnatmake --version | sed -n -e 's/GNATMAKE //p'),$(HOST_GCC_VERSION),\
             Need to have GNAT installed and the GNAT version must match the GCC version (found GCC $(HOST_GCC_VERSION)).)
 
+#
+# Check if 'gprbuild' is installed
+#
+GPRBUILD_OK = $(call check_nonempty_f,$(shell which gprbuild),\
+                Need to have 'gprbuild' installed.)
+
 TOOLS_OK = $(AUTOCONF_OK) $(AUTOCONFINST_OK) $(PKG_CONFIG_OK) $(CURSES_OK) \
            $(TEXINFO_OK) $(WGET_OK) $(AUTOGEN_OK) $(GPG_OK) $(EXPAT_OK) \
-           $(GNAT_OK)
+           $(GNAT_OK) $(GPRBUILD_OK)
 
 ifneq ($(strip $(TOOLS_OK)),)
 $(error Please install missing tools.)
@@ -213,11 +219,9 @@ ifeq ($(PLATFORM),riscv)
 LANGUAGES              = c,c++
 LIB_GCC                = cd $(INSTALL_LOCATION)/lib/gcc/riscv64-unknown-elf/$(GCC_VERSION)/rv64imac/lp64 && \
                          $(SUDO) ln -sf ../../include include
-INSTALL_ADA            =
 else
 LANGUAGES              = c,c++,ada
 LIB_GCC                =
-INSTALL_ADA            = $(SUDO) cp $(LOCAL_BOOTSTRAP_INSTALL_LOCATION)/bin/gnatmake $(INSTALL_LOCATION)/bin/genode-$(PLATFORM)-gnatmake
 endif
 
 GCC_BOOTSTRAP_CONFIG += $(COMMON_BOOTSTRAP_CONFIG) \
@@ -331,8 +335,10 @@ GCC_BINARIES                = $(BUILD_LOCATION)/$(PLATFORM)/gcc/gcc/g++-cross
 GCC_INSTALLED_BINARIES      = $(LOCAL_INSTALL_LOCATION)/bin/genode-$(PLATFORM)-g++
 GDB_BINARIES                = $(BUILD_LOCATION)/$(PLATFORM)/gdb/gdb/gdb
 GDB_INSTALLED_BINARIES      = $(LOCAL_INSTALL_LOCATION)/bin/genode-$(PLATFORM)-gdb
+ALI2DEP_BINARY              = $(BUILD_LOCATION)/ali2dep/ali2dep
+ALI2DEP_INSTALLED_BINARY    = $(LOCAL_INSTALL_LOCATION)/bin/genode-$(PLATFORM)-ali2dep
 
-build_all: $(GCC_INSTALLED_BINARIES) $(GDB_INSTALLED_BINARIES)
+build_all: $(GCC_INSTALLED_BINARIES) $(GDB_INSTALLED_BINARIES) $(ALI2DEP_INSTALLED_BINARY)
 
 GMP_CONTRIB_DIR = $(shell $(GENODE_DIR)/tool/ports/current gmp)/src/lib/gmp
 
@@ -502,6 +508,27 @@ $(GDB_INSTALLED_BINARIES): $(GDB_BINARIES)
 	$(ECHO) "$(BRIGHT_COL)installing gdb...$(DEFAULT_COL)"
 	$(VERBOSE)$(MAKE) -C $(BUILD_LOCATION)/$(PLATFORM)/gdb install $(MAKE_OPT) MAKEINFO=true
 
+$(BUILD_LOCATION)/ali2dep/build/build.gpr:
+	$(ECHO) "$(BRIGHT_COL)preparing ali2dep...$(DEFAULT_COL)"
+	$(VERBOSE)git clone https://github.com/Componolit/ali2dep.git $(BUILD_LOCATION)/ali2dep
+	$(VERBOSE)sed -i -e '/Create_Missing_Dirs/d' $@
+
+#
+# Ubuntu 16.04 'gprconfig' looks for 'gnatgcc', so we create a symlink to 'gcc'
+#
+$(ALI2DEP_BINARY): $(GCC_BOOTSTRAP_INSTALLED_BINARIES) $(BUILD_LOCATION)/ali2dep/build/build.gpr
+	$(ECHO) "$(BRIGHT_COL)building ali2dep...$(DEFAULT_COL)"
+	$(VERBOSE)ln -sf gcc $(LOCAL_BOOTSTRAP_INSTALL_LOCATION)/bin/gnatgcc
+	$(VERBOSE)gprconfig --batch \
+	          --config=Ada,,default,$(LOCAL_BOOTSTRAP_INSTALL_LOCATION)/bin,GNAT \
+	          --config=C,,,$(LOCAL_BOOTSTRAP_INSTALL_LOCATION)/bin/,GCC \
+	          -o $(BUILD_LOCATION)/ali2dep/genode_bootstrap_tool_chain.cgpr
+	$(VERBOSE)GPRBUILD_ARGS="--config=genode_bootstrap_tool_chain.cgpr" $(MAKE) -C $(BUILD_LOCATION)/ali2dep
+
+$(ALI2DEP_INSTALLED_BINARY): $(ALI2DEP_BINARY)
+	$(ECHO) "$(BRIGHT_COL)installing ali2dep...$(DEFAULT_COL)"
+	$(VERBOSE)cp $< $@
+
 #
 # Clean rules
 #
@@ -518,5 +545,4 @@ cleanall: clean
 install: build_all
 	$(ECHO) "$(BRIGHT_COL)installing tool chain to '$(INSTALL_LOCATION)'...$(DEFAULT_COL)"
 	$(VERBOSE)$(SUDO) cp -a --remove-destination --no-target-directory $(LOCAL_INSTALL_LOCATION) $(INSTALL_LOCATION)
-	$(VERBOSE)$(INSTALL_ADA)
 	$(VERBOSE)$(LIB_GCC)
