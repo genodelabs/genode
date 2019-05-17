@@ -135,6 +135,11 @@ CC_OLEVEL ?= -O2
 CC_WARN   ?= -Wall
 
 #
+# XXX fix the warnings and remove this option
+#
+CC_WARN += -Wno-error=implicit-fallthrough
+
+#
 # Additional warnings for C++
 #
 CC_CXX_WARN_STRICT ?= -Wextra -Weffc++ -Werror -Wsuggest-override

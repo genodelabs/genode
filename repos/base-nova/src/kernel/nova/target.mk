@@ -16,6 +16,10 @@ CC_WARN          = -Wall -Wextra -Waggregate-return -Wcast-align -Wcast-qual \
                    -Wold-style-cast -Woverloaded-virtual -Wsign-promo \
                    -Wlogical-op -Wstrict-null-sentinel \
                    -Wstrict-overflow=5 -Wvolatile-register-var
+
+# XXX fix the warnings and remove this option
+CC_WARN         += -Wno-error=implicit-fallthrough
+
 CC_OPT          += -pipe \
                    -fdata-sections -fomit-frame-pointer -freg-struct-return \
                    -freorder-blocks -funit-at-a-time -fno-exceptions -fno-rtti \
