@@ -45,3 +45,10 @@ int __sys_sigprocmask(int how, const sigset_t *set, sigset_t *old_set);
 
 extern "C" __attribute__((weak, alias("sigprocmask")))
 int __libc_sigprocmask(int how, const sigset_t *set, sigset_t *old_set);
+
+
+extern "C" __attribute__((weak))
+sig_t signal(int, sig_t)
+{
+	return (SIG_ERR);
+}
