@@ -4,12 +4,26 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
 
 
 ---
+ include/bits/std_abs.h   |    2 +-
  include/c_global/cmath   |    7 ++++++-
  include/c_global/cstdlib |    7 ++++++-
- 2 files changed, 12 insertions(+), 2 deletions(-)
+ 3 files changed, 13 insertions(+), 3 deletions(-)
 
+diff --git a/include/bits/std_abs.h b/include/bits/std_abs.h
+index 6e4551d..65d50b5 100644
+--- a/include/bits/std_abs.h
++++ b/include/bits/std_abs.h
+@@ -35,7 +35,7 @@
+ #include <bits/c++config.h>
+ 
+ #define _GLIBCXX_INCLUDE_NEXT_C_HEADERS
+-#include_next <stdlib.h>
++#include <stdlib.h>
+ #ifdef __CORRECT_ISO_CPP_MATH_H_PROTO
+ # include_next <math.h>
+ #endif
 diff --git a/include/c_global/cmath b/include/c_global/cmath
-index 560632a..7a1c651 100644
+index 4489e17..83f4937 100644
 --- a/include/c_global/cmath
 +++ b/include/c_global/cmath
 @@ -42,7 +42,12 @@
@@ -24,10 +38,10 @@ index 560632a..7a1c651 100644
 +// previous GCC versions.
 +#include <math.h>
  #undef _GLIBCXX_INCLUDE_NEXT_C_HEADERS
+ #include <bits/std_abs.h>
  
- #ifndef _GLIBCXX_CMATH
 diff --git a/include/c_global/cstdlib b/include/c_global/cstdlib
-index 1ba5fb7..8ca65a1 100644
+index 1033501..e39ed31 100644
 --- a/include/c_global/cstdlib
 +++ b/include/c_global/cstdlib
 @@ -72,7 +72,12 @@ namespace std
@@ -42,5 +56,5 @@ index 1ba5fb7..8ca65a1 100644
 +// previous GCC versions.
 +#include <stdlib.h>
  #undef _GLIBCXX_INCLUDE_NEXT_C_HEADERS
+ #include <bits/std_abs.h>
  
- // Get rid of those macros defined in <stdlib.h> in lieu of real functions.

@@ -3,8 +3,9 @@ file origins
 
 - bits/gstdint.h:   manually created
 - bits/c++config.h:
-  - apply https://github.com/cproc/genode_stuff/blob/stdcxx/stdcxx_update_genode.patch
-    (update the gcc port hash if it conflicts)
+  - gathered from Noux-gcc built with the previous stdcxx version
+  - apply https://raw.githubusercontent.com/cproc/genode_stuff/stdcxx/stdcxx_update_genode.patch
+  - update the gcc port hash
   - prepare the modified gcc port
   - run 'make noux-pkg/gcc_x86' for the 'x86_32' platform
   - find 'build/x86_32/noux-pkg/gcc_x86/x86_64-pc-elf/32/libstdc++-v3/include/x86_64-pc-elf/bits/c++config.h'
