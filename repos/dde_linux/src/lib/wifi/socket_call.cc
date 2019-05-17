@@ -440,7 +440,7 @@ Wifi::Socket *Socket_call::socket(int domain, int type, int protocol)
 	/* FIXME domain, type, protocol values */
 	_call.opcode          = Call::SOCKET;
 	_call.socket.domain   = domain;
-	_call.socket.type     = type;
+	_call.socket.type     = type & 0xff;
 	_call.socket.protocol = protocol;
 
 	_socket->submit_and_block();
