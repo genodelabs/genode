@@ -5,9 +5,13 @@ content: $(MIRROR_FROM_REP_DIR)
 $(MIRROR_FROM_REP_DIR):
 	$(mirror_from_rep_dir)
 
-content: src/lib/libiconv
+content: src/lib/libiconv include/iconv
 
 PORT_DIR := $(call port_dir,$(REP_DIR)/ports/libiconv)
+
+include/iconv:
+	mkdir -p $@
+	cp -r $(PORT_DIR)/$@/* $@/
 
 src/lib/libiconv:
 	mkdir -p $@
