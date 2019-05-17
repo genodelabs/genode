@@ -1,0 +1,175 @@
+Update version numbers to v8
+
+This is a workaround to be able to use the 6.3.0 version of the runtime
+with the Genode 19.05 tool chain.
+
+diff --git a/alis/a-except.ali b/alis/a-except.ali
+index 8f99a7d..4b80d0d 100644
+--- a/alis/a-except.ali
++++ b/alis/a-except.ali
+@@ -1,4 +1,4 @@
+-V "GNAT Lib v6"
++V "GNAT Lib v8"
+ P SS FX
+ 
+ RN
+diff --git a/alis/ada.ali b/alis/ada.ali
+index b7dd2b2..9d97693 100644
+--- a/alis/ada.ali
++++ b/alis/ada.ali
+@@ -1,4 +1,4 @@
+-V "GNAT Lib v6"
++V "GNAT Lib v8"
+ P FX
+ 
+ RN
+diff --git a/alis/ada_exceptions.ali b/alis/ada_exceptions.ali
+index 51c2c45..4670070 100644
+--- a/alis/ada_exceptions.ali
++++ b/alis/ada_exceptions.ali
+@@ -1,4 +1,4 @@
+-V "GNAT Lib v6"
++V "GNAT Lib v8"
+ P FX
+ 
+ RN
+diff --git a/alis/g-io.ali b/alis/g-io.ali
+index 69aa3dc..7e47157 100644
+--- a/alis/g-io.ali
++++ b/alis/g-io.ali
+@@ -1,4 +1,4 @@
+-V "GNAT Lib v6"
++V "GNAT Lib v8"
+ P FX
+ 
+ RN
+diff --git a/alis/gnat.ali b/alis/gnat.ali
+index 9894db2..3575d72 100644
+--- a/alis/gnat.ali
++++ b/alis/gnat.ali
+@@ -1,4 +1,4 @@
+-V "GNAT Lib v6"
++V "GNAT Lib v8"
+ P FX
+ 
+ RN
+diff --git a/alis/interfac.ali b/alis/interfac.ali
+index 564a2a0..77e6c61 100644
+--- a/alis/interfac.ali
++++ b/alis/interfac.ali
+@@ -1,4 +1,4 @@
+-V "GNAT Lib v6"
++V "GNAT Lib v8"
+ P FX
+ 
+ RN
+diff --git a/alis/platform.ali b/alis/platform.ali
+index 6e899c5..7585a73 100644
+--- a/alis/platform.ali
++++ b/alis/platform.ali
+@@ -1,4 +1,4 @@
+-V "GNAT Lib v6"
++V "GNAT Lib v8"
+ P FX
+ 
+ RN
+diff --git a/alis/s-imgint.ali b/alis/s-imgint.ali
+index e71a5ee..0317b9f 100644
+--- a/alis/s-imgint.ali
++++ b/alis/s-imgint.ali
+@@ -1,4 +1,4 @@
+-V "GNAT Lib v6"
++V "GNAT Lib v8"
+ P FX
+ 
+ RN
+diff --git a/alis/s-parame.ali b/alis/s-parame.ali
+index 87c2992..e68ae28 100644
+--- a/alis/s-parame.ali
++++ b/alis/s-parame.ali
+@@ -1,4 +1,4 @@
+-V "GNAT Lib v6"
++V "GNAT Lib v8"
+ P FX
+ 
+ RN
+diff --git a/alis/s-secsta.ali b/alis/s-secsta.ali
+index 8f08e65..7dee1c2 100644
+--- a/alis/s-secsta.ali
++++ b/alis/s-secsta.ali
+@@ -1,4 +1,4 @@
+-V "GNAT Lib v6"
++V "GNAT Lib v8"
+ P FX
+ 
+ RN
+diff --git a/alis/s-soflin.ali b/alis/s-soflin.ali
+index f6f5cac..e134688 100644
+--- a/alis/s-soflin.ali
++++ b/alis/s-soflin.ali
+@@ -1,4 +1,4 @@
+-V "GNAT Lib v6"
++V "GNAT Lib v8"
+ P SS FX
+ 
+ RN
+diff --git a/alis/s-stalib.ali b/alis/s-stalib.ali
+index b9e6d3b..66f1a74 100644
+--- a/alis/s-stalib.ali
++++ b/alis/s-stalib.ali
+@@ -1,4 +1,4 @@
+-V "GNAT Lib v6"
++V "GNAT Lib v8"
+ P SS FX
+ 
+ RN
+diff --git a/alis/s-stoele.ali b/alis/s-stoele.ali
+index 9974a14..79c8c9d 100644
+--- a/alis/s-stoele.ali
++++ b/alis/s-stoele.ali
+@@ -1,4 +1,4 @@
+-V "GNAT Lib v6"
++V "GNAT Lib v8"
+ P FX
+ 
+ RN
+diff --git a/alis/s-unstyp.ali b/alis/s-unstyp.ali
+index 65cdc8e..a6eefe7 100644
+--- a/alis/s-unstyp.ali
++++ b/alis/s-unstyp.ali
+@@ -1,4 +1,4 @@
+-V "GNAT Lib v6"
++V "GNAT Lib v8"
+ P FX
+ 
+ RN
+diff --git a/alis/ss_utils.ali b/alis/ss_utils.ali
+index e1a5e7a..6f44c93 100644
+--- a/alis/ss_utils.ali
++++ b/alis/ss_utils.ali
+@@ -1,4 +1,4 @@
+-V "GNAT Lib v6"
++V "GNAT Lib v8"
+ P FX
+ 
+ RN
+diff --git a/alis/string_utils.ali b/alis/string_utils.ali
+index 0f48c58..18b8e2f 100644
+--- a/alis/string_utils.ali
++++ b/alis/string_utils.ali
+@@ -1,4 +1,4 @@
+-V "GNAT Lib v6"
++V "GNAT Lib v8"
+ P SS FX
+ 
+ RN
+diff --git a/alis/system.ali b/alis/system.ali
+index 0f6557b..d28fcc7 100644
+--- a/alis/system.ali
++++ b/alis/system.ali
+@@ -1,4 +1,4 @@
+-V "GNAT Lib v6"
++V "GNAT Lib v8"
+ P FX
+ 
+ RN

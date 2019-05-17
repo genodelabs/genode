@@ -1,3 +1,4 @@
+__genode_terminal V
 __gl_default_stack_size D 4
 __gl_detect_blocking B 4
 __gl_exception_tracebacks B 4
@@ -14,6 +15,13 @@ __gl_task_dispatching_policy D 1
 __gl_time_slice_val D 4
 __gl_unreserve_all_interrupts B 4
 __gl_wc_encoding D 1
+__gnat_binder_ss_count B 4
+__gnat_default_ss_pool B 4
+__gnat_default_ss_size B 4
+__gnat_finalize T
+__gnat_finalize_library_objects D 8
+__gnat_initialize T
+__gnat_last_chance_handler T
 __gnat_mulv64 T
 __gnat_raise_exception T
 __gnat_rcheck_CE_Access_Check T
@@ -55,16 +63,30 @@ __gnat_rcheck_SE_Infinite_Recursion T
 __gnat_rcheck_SE_Object_Too_Large T
 __gnat_runtime_finalize T
 __gnat_runtime_initialize T
+__gnat_unhandled_terminate T
+ada_E D 2
 ada__exceptions_E D 2
-ada__exceptions__exception_dataIP T
 ada__exceptions__exception_occurrenceIP T
+ada__exceptions__null_exception_id R 8
 ada__exceptions__raise_exception T
 ada__exceptions__reraise_occurrence_no_defer T
 ada__exceptions__save_occurrence T
-ada__exceptions__warn_not_implemented T
+ada_exceptions_E D 2
+ada_exceptions__exception_typeA R 76
+ada_exceptions__exception_typeN R 78
+ada_exceptions__exception_typeRP T
+ada_exceptions__exception_typeS R 820
 allocate_secondary_stack T
-constraint_error T
+constraint_error D 40
 get_thread T
+gnat_E D 2
+gnat__io_E D 2
+gnat__io__current_out D 1
+gnat__io__file_typeN R 4
+gnat__io__file_typeS R 16
+gnat__io__get T
+gnat__io__get__2 T
+gnat__io__get_line T
 gnat__io__new_line T
 gnat__io__new_line__2 T
 gnat__io__put T
@@ -78,7 +100,33 @@ gnat__io__put_line__2 T
 gnat__io__set_output T
 gnat__io__standard_error T
 gnat__io__standard_output T
-memcmp T
+interfaces_E D 2
+interfaces__c_E D 2
+interfaces__c__char16_arrayIP T
+interfaces__c__char16_nul R 2
+interfaces__c__char32_arrayIP T
+interfaces__c__char32_nul R 4
+interfaces__c__char_arrayIP T
+interfaces__c__extensions_E D 2
+interfaces__c__extensions__signed_128IP T
+interfaces__c__nul R 1
+interfaces__c__wchar_arrayIP T
+interfaces__c__wide_nul R 4
+log_debug T
+log_error T
+log_warning T
+platform_E D 2
+platform__log_debug T
+platform__log_debug_private T
+platform__log_error T
+platform__log_error_private T
+platform__log_warning T
+platform__log_warning_private T
+platform__raise_ada_exception T
+put_char T
+put_char_stderr T
+put_int T
+put_int_stderr T
 raise_ada_exception T
 ss_utils_E D 2
 ss_utils__TregistryBIP T
@@ -95,40 +143,31 @@ ss_utils__s_mark T
 ss_utils__s_release T
 ss_utils__secondary_stack_size R 8
 ss_utils__set_mark T
+string_utils_E D 2
+string_utils__convert_to_ada T
+string_utils__get_char T
+string_utils__incr T
+string_utils__length T
+string_utils__null_pointer R 8
+string_utils__to_address T
+string_utils__to_pointer T
 system__aamp R 1
 system__always_compatible_rep R 1
-system__arith_64__Oabs T
-system__arith_64__Oadd T
-system__arith_64__Oadd__2 T
-system__arith_64__Oconcat T
-system__arith_64__Odivide T
-system__arith_64__Omultiply T
-system__arith_64__Orem T
 system__arith_64__add_with_ovflo_check T
 system__arith_64__double_divide T
-system__arith_64__hi T
-system__arith_64__le3 T
-system__arith_64__lo T
 system__arith_64__raise_error T
 system__arith_64__scaled_divide T
-system__arith_64__sub3 T
 system__arith_64__subtract_with_ovflo_check T
-system__arith_64__to_neg_int T
-system__arith_64__to_pos_int T
 system__backend_divide_checks R 1
 system__backend_overflow_checks R 1
 system__bit_orderN R 4
 system__bit_orderS R 31
 system__command_line_args R 1
-system__concat_2_E D 2
-system__concat_2__str_concat_2 T
-system__concat_2__str_concat_bounds_2 T
 system__configurable_run_time R 1
 system__default_bit_order R 1
 system__default_priority R 4
 system__denorm R 1
 system__duration_32_bits R 1
-system__exception_table__register T
 system__exit_status_supported R 1
 system__fractional_fixed_ops R 1
 system__front_end_zcx_support R 1
@@ -137,6 +176,10 @@ system__frontend_layout R 1
 system__functions_return_by_dsp R 1
 system__gcc_zcx_support R 1
 system__high_integrity_mode R 1
+system__img_int_E D 2
+system__img_int__image_integer T
+system__img_int__set_image_integer T
+system__init_E D 2
 system__long_shifts_inlined R 1
 system__machine_overflows R 1
 system__machine_rounds R 1
@@ -145,25 +188,35 @@ system__max_priority R 4
 system__nameN R 2
 system__nameS R 16
 system__null_address R 8
+system__parameters_E D 2
+system__parameters__c_malloc_linkname R 16
+system__parameters__runtime_default_sec_stack_size R 4
 system__preallocated_stacks R 1
 system__secondary_stack_E D 2
 system__secondary_stack___elabs T
 system__secondary_stack__mark_idIP T
+system__secondary_stack__memoryIP T
 system__secondary_stack__ss_allocate T
 system__secondary_stack__ss_mark T
 system__secondary_stack__ss_pool B 4
 system__secondary_stack__ss_release T
+system__secondary_stack__ss_stackIP T
 system__secondary_stack__thread_registry B 3072
 system__signed_zeros R 1
-system__soft_links__get_current_excep T
+system__soft_links_E D 2
+system__soft_links__get_current_excep D 8
+system__soft_links__get_current_excep_nt T
 system__soft_links__get_gnat_exception T
 system__soft_links__get_jmpbuf_address_soft T
-system__soft_links__lock_task T
 system__soft_links__set_jmpbuf_address_soft T
-system__soft_links__unlock_task T
 system__stack_check_default R 1
 system__stack_check_limits R 1
 system__stack_check_probes R 1
+system__standard_library_E D 2
+system__standard_library__adafinal T
+system__standard_library__constraint_error_name R 17
+system__standard_library__dummy T
+system__standard_library__exception_dataIP T
 system__storage_elements_E D 2
 system__storage_elements__storage_arrayIP T
 system__support_64_bit_divides R 1
@@ -173,6 +226,7 @@ system__support_composite_compare R 1
 system__support_long_shifts R 1
 system__suppress_standard_library R 1
 system__system_name R 1
+system__unsigned_types_E D 2
+system__unsigned_types__packed_bytes1IP T
 system__use_ada_main_program_name R 1
 system__zcx_by_default R 1
-warn_unimplemented_function T
