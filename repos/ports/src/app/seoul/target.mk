@@ -26,6 +26,10 @@ include $(call select_from_repositories,lib/mk/libc-common.inc)
 
 CC_CXX_WARN_STRICT = -Wextra -Weffc++ -Werror
 CC_WARN += -Wno-parentheses -Wall -Wno-unused
+
+# XXX fix the warnings and remove this option
+CC_WARN += -Wno-error=implicit-fallthrough
+
 CC_CXX_OPT += -march=core2
 CC_OPT_model/intel82576vf := -mssse3
 CC_OPT_PIC :=
