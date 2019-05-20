@@ -25,7 +25,7 @@ using namespace Kernel;
 void Signal_handler::cancel_waiting()
 {
 	if (_receiver) {
-		_receiver->_handler_cancelled(this);
+		_receiver->_handler_cancelled(*this);
 		_receiver = 0;
 	}
 }
@@ -61,7 +61,7 @@ Signal_context_killer::~Signal_context_killer() { cancel_waiting(); }
 
 void Signal_context::_deliverable()
 {
-	if (_submits) { _receiver._add_deliverable(this); }
+	if (_submits) { _receiver._add_deliverable(*this); }
 }
 
 
@@ -100,7 +100,7 @@ void Signal_context::ack()
 }
 
 
-int Signal_context::kill(Signal_context_killer * const k)
+int Signal_context::kill(Signal_context_killer &k)
 {
 	/* check if in a kill operation or already killed */
 	if (_killed) {
@@ -113,7 +113,7 @@ int Signal_context::kill(Signal_context_killer * const k)
 		return 0;
 	}
 	/* wait for delivery acknowledgement */
-	_killer = k;
+	_killer = &k;
 	_killed = 1;
 	_killer->_context = this;
 	_killer->_thread.signal_context_kill_pending();
@@ -124,7 +124,7 @@ int Signal_context::kill(Signal_context_killer * const k)
 Signal_context::~Signal_context()
 {
 	if (_killer) { _killer->_thread.signal_context_kill_failed(); }
-	_receiver._context_destructed(this);
+	_receiver._context_destructed(*this);
 }
 
 
@@ -132,7 +132,7 @@ Signal_context::Signal_context(Signal_receiver & r, addr_t const imprint)
 : _receiver(r),
   _imprint(imprint)
 {
-	r._add_context(this);
+	r._add_context(*this);
 }
 
 
@@ -140,10 +140,10 @@ Signal_context::Signal_context(Signal_receiver & r, addr_t const imprint)
  ** Signal_receiver **
  *********************/
 
-void Signal_receiver::_add_deliverable(Signal_context * const c)
+void Signal_receiver::_add_deliverable(Signal_context &c)
 {
-	if (!c->_deliver_fe.enqueued()) {
-		_deliver.enqueue(c->_deliver_fe);
+	if (!c._deliver_fe.enqueued()) {
+		_deliver.enqueue(c._deliver_fe);
 	}
 	_listen();
 }
@@ -178,28 +178,28 @@ void Signal_receiver::_listen()
 }
 
 
-void Signal_receiver::_context_destructed(Signal_context * const c)
+void Signal_receiver::_context_destructed(Signal_context &c)
 {
-	_contexts.remove(c->_contexts_fe);
-	if (!c->_deliver_fe.enqueued()) { return; }
-	_deliver.remove(c->_deliver_fe);
+	_contexts.remove(c._contexts_fe);
+	if (!c._deliver_fe.enqueued()) { return; }
+	_deliver.remove(c._deliver_fe);
 }
 
 
-void Signal_receiver::_handler_cancelled(Signal_handler * const h) {
-	_handlers.remove(h->_handlers_fe); }
+void Signal_receiver::_handler_cancelled(Signal_handler &h) {
+	_handlers.remove(h._handlers_fe); }
 
 
-void Signal_receiver::_add_context(Signal_context * const c) {
-	_contexts.enqueue(c->_contexts_fe); }
+void Signal_receiver::_add_context(Signal_context &c) {
+	_contexts.enqueue(c._contexts_fe); }
 
 
-int Signal_receiver::add_handler(Signal_handler * const h)
+int Signal_receiver::add_handler(Signal_handler &h)
 {
-	if (h->_receiver) { return -1; }
-	_handlers.enqueue(h->_handlers_fe);
-	h->_receiver = this;
-	h->_thread.signal_wait_for_signal(this);
+	if (h._receiver) { return -1; }
+	_handlers.enqueue(h._handlers_fe);
+	h._receiver = this;
+	h._thread.signal_wait_for_signal(*this);
 	_listen();
 	return 0;
 }

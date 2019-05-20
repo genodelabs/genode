@@ -165,10 +165,10 @@ void Thread::signal_context_kill_failed()
 }
 
 
-void Thread::signal_wait_for_signal(Signal_receiver * const receiver)
+void Thread::signal_wait_for_signal(Signal_receiver &receiver)
 {
 	_become_inactive(AWAITS_SIGNAL);
-	_signal_receiver = receiver;
+	_signal_receiver = &receiver;
 }
 
 
@@ -523,7 +523,7 @@ void Thread::_call_await_signal()
 		return;
 	}
 	/* register handler at the receiver */
-	if (r->add_handler(&_signal_handler)) {
+	if (r->add_handler(_signal_handler)) {
 		Genode::raw("failed to register handler at signal receiver");
 		user_arg_0(-1);
 		return;
@@ -544,7 +544,7 @@ void Thread::_call_pending_signal()
 	}
 
 	/* register handler at the receiver */
-	if (r->add_handler(&_signal_handler)) {
+	if (r->add_handler(_signal_handler)) {
 		user_arg_0(-1);
 		return;
 	}
@@ -623,7 +623,7 @@ void Thread::_call_kill_signal_context()
 	}
 
 	/* kill signal context */
-	if (c->kill(&_signal_context_killer)) {
+	if (c->kill(_signal_context_killer)) {
 		Genode::raw("failed to kill signal context");
 		user_arg_0(-1);
 		return;

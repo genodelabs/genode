@@ -184,7 +184,7 @@ class Kernel::Signal_context
 		 * \retval  0 succeeded
 		 * \retval -1 failed
 		 */
-		int kill(Signal_context_killer * const k);
+		int kill(Signal_context_killer &k);
 
 		/**
 		 * Create a signal context and assign it to a signal receiver
@@ -233,7 +233,7 @@ class Kernel::Signal_receiver
 		/**
 		 * Recognize that context 'c' has submits to deliver
 		 */
-		void _add_deliverable(Signal_context * const c);
+		void _add_deliverable(Signal_context &c);
 
 		/**
 		 * Deliver as much submits as possible
@@ -245,17 +245,17 @@ class Kernel::Signal_receiver
 		 *
 		 * \param c  destructed context
 		 */
-		void _context_destructed(Signal_context * const c);
+		void _context_destructed(Signal_context &c);
 
 		/**
 		 * Notice that handler 'h' has cancelled waiting
 		 */
-		void _handler_cancelled(Signal_handler * const h);
+		void _handler_cancelled(Signal_handler &h);
 
 		/**
 		 * Assign context 'c' to the receiver
 		 */
-		void _add_context(Signal_context * const c);
+		void _add_context(Signal_context &c);
 
 	public:
 
@@ -267,7 +267,7 @@ class Kernel::Signal_receiver
 		 * \retval  0 succeeded
 		 * \retval -1 failed
 		 */
-		int add_handler(Signal_handler * const h);
+		int add_handler(Signal_handler &h);
 
 		/**
 		 * Syscall to create a signal receiver
