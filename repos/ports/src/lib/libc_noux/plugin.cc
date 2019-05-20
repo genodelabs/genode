@@ -674,8 +674,8 @@ extern "C" int chmod(char const *path, mode_t mode)
 }
 
 
-extern "C" pid_t _wait4(pid_t pid, int *status, int options,
-                        struct rusage *rusage)
+extern "C" pid_t wait4(pid_t pid, int *status, int options,
+                       struct rusage *rusage)
 {
 	sysio()->wait4_in.pid    = pid;
 	sysio()->wait4_in.nohang = !!(options & WNOHANG);
@@ -698,9 +698,17 @@ extern "C" pid_t _wait4(pid_t pid, int *status, int options,
 }
 
 
+extern "C" __attribute__((alias("wait4")))
+pid_t _wait4(pid_t, int *, int, struct rusage *);
+
+
+extern "C" __attribute__((alias("wait4")))
+pid_t __sys_wait4(pid_t, int *, int, struct rusage *);
+
+
 extern "C" pid_t waitpid(pid_t pid, int *istat, int options)
 {
-	return _wait4(pid, istat, options, NULL);
+	return wait4(pid, istat, options, NULL);
 }
 
 

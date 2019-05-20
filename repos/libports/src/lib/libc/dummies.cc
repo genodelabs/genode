@@ -116,6 +116,7 @@ DUMMY(int   , -1, sched_setparam, (pid_t, const sched_param *))
 DUMMY(int   , -1, sched_setscheduler, (pid_t, int, const sched_param *))
 DUMMY(int   , -1, sched_yield, (void))
 DUMMY(int   , -1, __semctl, (void))
+DUMMY(sig_t, SIG_ERR, signal, (int, sig_t));
 DUMMY(int   , -1, setegid, (uid_t))
 DUMMY(int   , -1, seteuid, (uid_t))
 DUMMY(int   , -1, setgid, (gid_t))
@@ -133,7 +134,6 @@ DUMMY_SILENT(mode_t,  0, umask, (mode_t))
 DUMMY(int   ,  0, utimes, (const char *, const timeval *))
 DUMMY(int, -1, semget, (key_t, int, int))
 DUMMY(int, -1, semop, (key_t, int, int))
-DUMMY(pid_t, -1, waitpid, (pid_t, int *, int));
 __SYS_DUMMY(int,    -1, aio_suspend, (const struct aiocb * const[], int, const struct timespec *));
 __SYS_DUMMY(pid_t , -1,  fork, (void))
 __SYS_DUMMY(int   , -1, getfsstat, (struct statfs *, long, int))
@@ -148,8 +148,6 @@ __SYS_DUMMY(void	,   , spinunlock, (spinlock_t *));
 __SYS_DUMMY(void	,   , spinunlock_stub, (spinlock_t *));
 __SYS_DUMMY(int, -1, swapcontext, (ucontext_t *, const ucontext_t *));
 __SYS_DUMMY(int, -1, system, (const char *string));
-__SYS_DUMMY(pid_t, -1, wait4,   (pid_t, int *, int, struct rusage *));
-__SYS_DUMMY(pid_t, -1, wait6,   (idtype_t, id_t, int *, int, struct __wrusage *, siginfo_t *));
 
 
 /*****************
