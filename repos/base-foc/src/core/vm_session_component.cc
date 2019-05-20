@@ -87,7 +87,7 @@ Vcpu::Vcpu(Constrained_ram_allocator &ram_alloc,
 {
 	try {
 		/* create ds for vCPU state */
-		_ds_cap = _ram_alloc.alloc(4096, Cache_attribute::CACHED);
+		_ds_cap = _ram_alloc.alloc(0x1000, Cache_attribute::CACHED);
 	} catch (...) {
 		throw;
 	}

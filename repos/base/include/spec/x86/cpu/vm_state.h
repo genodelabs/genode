@@ -141,6 +141,30 @@ struct Genode::Vm_state
 	Register<uint32_t> tpr_threshold;
 
 	unsigned exit_reason;
+
+	class Fpu {
+		private :
+
+			uint8_t _value[512] { };
+			bool    _valid      { false };
+
+		public:
+
+			bool valid() const { return _valid; }
+			void invalid() { _valid = false; }
+
+			template <typename FUNC>
+			void value(FUNC const &fn) {
+				_valid = true;
+				fn(_value, sizeof(_value));
+			};
+
+			Fpu &operator = (Fpu const &)
+			{
+				_valid = false;
+				return *this;
+			}
+	} fpu __attribute__((aligned(16)));
 };
 
 #endif /* _INCLUDE__SPEC__X86__CPU__VM_STATE_H_ */

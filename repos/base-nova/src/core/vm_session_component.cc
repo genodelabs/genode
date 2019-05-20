@@ -13,6 +13,7 @@
 
 /* Base includes */
 #include <base/cache.h>
+#include <cpu/vm_state.h>
 #include <util/list.h>
 #include <util/flex_iterator.h>
 
@@ -65,7 +66,8 @@ Vm_session_component::Vcpu::Vcpu(Constrained_ram_allocator &ram_alloc,
 
 	try {
 		/* create ds for vCPU state */
-		_ds_cap = _ram_alloc.alloc(4096, Cache_attribute::CACHED);
+		_ds_cap = _ram_alloc.alloc(align_addr(sizeof(Genode::Vm_state), 12),
+		                           Cache_attribute::CACHED);
 	} catch (...) {
 		_cap_alloc.replenish(Cap_quota{CAP_RANGE});
 		cap_map().remove(_sel_sm_ec_sc, CAP_RANGE_LOG2);

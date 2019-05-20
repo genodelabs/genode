@@ -58,6 +58,12 @@ struct Vcpu {
 			state = Vm_state {};
 			state.exit_reason = exit_reason;
 
+			if (utcb.mtd & Nova::Mtd::FPU) {
+				state.fpu.value([&] (uint8_t *fpu, size_t const) {
+					asm volatile ("fxsave %0" : "=m" (*fpu));
+				});
+			}
+
 			if (utcb.mtd & Nova::Mtd::ACDB) {
 				state.ax.value(utcb.ax);
 				state.cx.value(utcb.cx);
@@ -190,7 +196,6 @@ struct Vcpu {
 				state.tpr_threshold.value(utcb.read_tpr_threshold());
 			}
 
-			/* XXX FPU state missing */
 		}
 
 		static void _write_nova_state(Nova::Utcb &utcb, Vm_state &state)
@@ -388,6 +393,12 @@ struct Vcpu {
 				utcb.mtd |= Nova::Mtd::TPR;
 				utcb.write_tpr(state.tpr.value());
 				utcb.write_tpr_threshold(state.tpr_threshold.value());
+			}
+
+			if (state.fpu.valid()) {
+				state.fpu.value([&] (uint8_t *fpu, size_t const) {
+					asm volatile ("fxrstor %0" : : "m" (*fpu));
+				});
 			}
 		}
 
@@ -655,7 +666,8 @@ struct Vcpu {
 			if (state.qual_primary.valid() || state.qual_secondary.valid())
 				mtd |= Nova::Mtd::QUAL;
 
-			/* XXX FPU missing */
+			if (state.fpu.valid())
+				mtd |= Nova::Mtd::FPU;
 
 			state = Vm_state {};
 

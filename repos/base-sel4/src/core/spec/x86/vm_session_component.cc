@@ -13,6 +13,7 @@
 
 /* base includes */
 #include <util/flex_iterator.h>
+#include <cpu/vm_state.h>
 
 /* core includes */
 #include <core_env.h>
@@ -45,7 +46,8 @@ Vm_session_component::Vcpu::Vcpu(Constrained_ram_allocator &ram_alloc,
                                  seL4_Untyped const service)
 :
 	_ram_alloc(ram_alloc),
-	_ds_cap (_ram_alloc.alloc(4096, Cache_attribute::CACHED)),
+	_ds_cap (_ram_alloc.alloc(align_addr(sizeof(Genode::Vm_state), 12),
+	                          Cache_attribute::CACHED)),
 	_vcpu_id(vcpu_id)
 {
 	try {
