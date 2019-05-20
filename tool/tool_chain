@@ -15,6 +15,7 @@ help:
 	$(ECHO) "--- available commands ---"
 	$(ECHO) "x86         - create tool chain for x86"
 	$(ECHO) "arm         - create tool chain for arm"
+	$(ECHO) "aarch64     - create tool chain for aarch64/arm64"
 	$(ECHO) "riscv       - create tool chain for riscv"
 	$(ECHO) "clean       - clean everything except downloaded archives"
 	$(ECHO) "cleanall    - clean everything including downloaded archives"
