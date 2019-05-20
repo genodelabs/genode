@@ -56,6 +56,10 @@ extern "C" int getpeername(int libc_fd, sockaddr *addr, socklen_t *addrlen)
 }
 
 
+extern "C" __attribute__((alias("getpeername")))
+int _getpeername(int libc_fd, sockaddr *addr, socklen_t *addrlen);
+
+
 extern "C" int getsockname(int libc_fd, sockaddr *addr, socklen_t *addrlen)
 {
 	if (*Libc::config_socket())
@@ -63,6 +67,10 @@ extern "C" int getsockname(int libc_fd, sockaddr *addr, socklen_t *addrlen)
 
 	FD_FUNC_WRAPPER(getsockname, libc_fd, addr, addrlen);
 }
+
+
+extern "C" __attribute__((alias("getsockname")))
+int _getsockname(int libc_fd, sockaddr *addr, socklen_t *addrlen);
 
 
 /**************************
@@ -93,6 +101,10 @@ extern "C" int bind(int libc_fd, sockaddr const *addr, socklen_t addrlen)
 
 	FD_FUNC_WRAPPER(bind, libc_fd, addr, addrlen);
 }
+
+
+extern "C" __attribute__((alias("bind")))
+int _bind(int libc_fd, sockaddr const *addr, socklen_t addrlen);
 
 
 __SYS_(int, connect, (int libc_fd, sockaddr const *addr, socklen_t addrlen),
@@ -168,6 +180,11 @@ extern "C" int getsockopt(int libc_fd, int level, int optname,
 
 	FD_FUNC_WRAPPER(getsockopt, libc_fd, level, optname, optval, optlen);
 }
+
+
+extern "C" __attribute__((alias("getsockopt")))
+int _getsockopt(int libc_fd, int level, int optname,
+                void *optval, socklen_t *optlen);
 
 
 extern "C" int setsockopt(int libc_fd, int level, int optname,
