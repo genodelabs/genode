@@ -279,6 +279,10 @@ extern "C" int dup2(int libc_fd, int new_libc_fd)
 }
 
 
+extern "C" __attribute__((alias("dup2")))
+int _dup2(int libc_fd, int new_libc_fd);
+
+
 extern "C" int execve(char const *filename, char *const argv[],
                        char *const envp[])
 {
@@ -290,6 +294,10 @@ extern "C" int execve(char const *filename, char *const argv[],
 		return -1;
 	}
 }
+
+
+extern "C" __attribute__((alias("execve")))
+int _execve(char const *, char *const [], char *const []);
 
 
 extern "C" int fchdir(int libc_fd)
@@ -562,7 +570,11 @@ __SYS_(int, openat, (int libc_fd, const char *path, int flags, ...),
 })
 
 
-extern "C" int pipe(int pipefd[2])
+extern "C" int pipe(int pipefd[2]) {
+	return pipe2(pipefd, 0); }
+
+
+extern "C" int pipe2(int pipefd[2], int flags)
 {
 	Plugin *plugin;
 	File_descriptor *pipefdo[2];
@@ -577,6 +589,13 @@ extern "C" int pipe(int pipefd[2])
 	if (plugin->pipe(pipefdo) == -1) {
 		Genode::error("plugin()->pipe() failed");
 		return -1;
+	}
+
+	if (flags & O_NONBLOCK) {
+		int err = plugin->fcntl(pipefdo[0], F_SETFL, O_NONBLOCK)
+		        | plugin->fcntl(pipefdo[1], F_SETFL, O_NONBLOCK);
+		if (err != 0)
+			Genode::warning("pipe plugin does not support O_NONBLOCK");
 	}
 
 	pipefd[0] = pipefdo[0]->libc_fd;
