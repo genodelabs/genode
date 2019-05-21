@@ -529,7 +529,7 @@ $(ALI2DEP_BINARY): $(GCC_BOOTSTRAP_INSTALLED_BINARIES) $(BUILD_LOCATION)/ali2dep
 
 $(ALI2DEP_INSTALLED_BINARY): $(ALI2DEP_BINARY)
 	$(ECHO) "$(BRIGHT_COL)installing ali2dep...$(DEFAULT_COL)"
-	$(VERBOSE)cp $< $@
+	$(VERBOSE)strip -o $@ $<
 
 #
 # Clean rules
