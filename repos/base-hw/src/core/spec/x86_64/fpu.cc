@@ -21,7 +21,12 @@ void Genode::Fpu::init()
 
 	Cpu::Cr0::Mp::set(cr0_value);
 	Cpu::Cr0::Em::clear(cr0_value);
-	Cpu::Cr0::Ts::set(cr0_value);
+
+	/*
+	 * Clear task switched so we do not gnerate FPU faults during kernel
+	 * initialisation, it will be turned on by Fpu::disable
+	 */
+	Cpu::Cr0::Ts::clear(cr0_value);
 	Cpu::Cr0::Ne::set(cr0_value);
 	Cpu::Cr0::write(cr0_value);
 
