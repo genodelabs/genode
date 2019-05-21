@@ -112,8 +112,6 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element,
 
 	private:
 
-		X86FXSTATE _guest_fpu_state __attribute__((aligned(0x10)));
-
 		bool               _irq_win = false;
 
 		unsigned const     _cpu_id;
@@ -122,16 +120,6 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element,
 
 		unsigned int       _last_inj_info  = 0;
 		unsigned int       _last_inj_error = 0;
-
-		void fpu_save(char * data) {
-			Assert(!(reinterpret_cast<Genode::addr_t>(data) & 0xF));
-			asm volatile ("fxsave %0" : "=m" (*data));
-		}
-
-		void fpu_load(char * data) {
-			Assert(!(reinterpret_cast<Genode::addr_t>(data) & 0xF));
-			asm volatile ("fxrstor %0" : : "m" (*data));
-		}
 
 		enum {
 			REQ_IRQWIN_EXIT      = 0x1000U,
@@ -148,15 +136,6 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element,
 			ACTIVITY_STATE_ACTIVE = 0U,
 			INTERRUPT_STATE_NONE  = 0U,
 		};
-
-		/*
-		 * 'longjmp()' restores some FPU registers saved by 'setjmp()',
-		 * so we need to save the guest FPU state before calling 'longjmp()'
-		 */
-		__attribute__((noreturn)) void _fpu_save_and_longjmp()
-		{
-			fpu_save(reinterpret_cast<char *>(&_guest_fpu_state));
-		}
 
 	protected:
 
@@ -181,14 +160,28 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element,
 
 		Genode::uint64_t * pdpte_map(VM *pVM, RTGCPHYS cr3);
 
-		void switch_to_hw()
+		void switch_to_hw(PCPUMCTX pCtx)
 		{
 			again:
+
+			/* write FPU state */
+			_state->fpu.value([&] (uint8_t *fpu, size_t const size) {
+				if (size < sizeof(X86FXSTATE))
+					Genode::error("fpu state too small");
+				Genode::memcpy(fpu, pCtx->pXStateR3, sizeof(X86FXSTATE));
+			});
 
 			_ep_emt.resume();
 
 			/* wait for next exit */
 			_lock.lock();
+
+			/* write FPU state of vCPU to pCtx */
+			_state->fpu.value([&] (uint8_t *fpu, size_t const size) {
+				if (size < sizeof(X86FXSTATE))
+					Genode::error("fpu state too small");
+				Genode::memcpy(pCtx->pXStateR3, fpu, sizeof(X86FXSTATE));
+			});
 
 			if (_vm_state == IRQ_WIN) {
 				*_state = Genode::Vm_state {}; /* reset */
@@ -711,9 +704,6 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element,
 		{
 			PCPUMCTX pCtx  = CPUMQueryGuestCtxPtr(_vcpu);
 
-			/* write FPU state from pCtx to FPU registers */
-//			fpu_load(reinterpret_cast<char *>(pCtx->pXStateR3));
-
 			Assert(_vm_state == IRQ_WIN || _vm_state == PAUSED || _vm_state == NPT_EPT);
 
 			_vm_state = RUNNING;
@@ -829,7 +819,7 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element,
 				Genode::error("loading vCPU state failed");
 				return VERR_INTERNAL_ERROR;
 			}
-			
+
 			/* check whether to request interrupt window for injection */
 			_irq_win = check_to_request_irq_window(pVCpu);
 
@@ -843,12 +833,9 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element,
 			VMCPU_SET_STATE(pVCpu, VMCPUSTATE_STARTED_EXEC);
 
 			/* switch to hardware accelerated mode */
-			switch_to_hw();
+			switch_to_hw(pCtx);
 
 			Assert(_state->actv_state.value() == ACTIVITY_STATE_ACTIVE);
-
-			/* write FPU state of vCPU (in current FPU registers) to pCtx */
-			Genode::memcpy(pCtx->pXStateR3, &_guest_fpu_state, sizeof(X86FXSTATE));
 
 			/* see hmR0VmxExitToRing3 - sync recompiler state */
 			CPUMSetChangedFlags(pVCpu, CPUM_CHANGED_SYSENTER_MSR |
