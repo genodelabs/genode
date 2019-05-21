@@ -39,7 +39,7 @@ struct Main
 	{
 		int old_state = old_st & key;
 		int new_state = new_st & key;
-		int key_code;
+		int key_code = Input::KEY_UNKNOWN;
 
 		if (old_state == new_state){
 			return;
