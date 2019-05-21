@@ -77,8 +77,8 @@ proc run_boot_dir {binaries} {
 	set bootstrap_obj bootstrap-hw.o
 
 	# create core and bootstrap binary without modules for debugging
-	if {[file exists debug/$core_obj]} {
-		build_core debug/$core_obj                 {} [run_dir].core      [core_link_address]
+	if {[file exists debug/core-hw-[board].o]} {
+		build_core debug/core-hw-[board].o         {} [run_dir].core      [core_link_address]
 		build_core [run_dir]/genode/$bootstrap_obj {} [run_dir].bootstrap [bootstrap_link_address]
 	}
 
