@@ -19,6 +19,7 @@ proc bootstrap_link_address { } {
 	if {[have_spec "zynq"]}            { return "0x00100000" }
 	if {[have_spec "riscv"]}           { return "0x81000000" }
 	if {[have_spec "rpi"]}             { return "0x00800000" }
+	if {[have_spec "rpi3"]}            { return "0x00800000" }
 	if {[have_spec "nit6_solox"]}      { return "0x88000000" }
 
 	puts "unknown platform no linker address known"
@@ -154,7 +155,7 @@ proc run_boot_dir {binaries} {
 	run_image [run_dir]/boot/image.elf
 
 	# set symbolic link to image.elf file in TFTP directory for PXE boot
-	if {[have_spec arm] && [have_include "load/tftp"]} {
+	if {[expr [have_spec arm] || [have_spec arm_64]] && [have_include "load/tftp"]} {
 		exec ln -sf [run_dir]/boot/image.elf [load_tftp_base_dir][load_tftp_offset_dir]
 
 		if {[have_include "image/uboot"]} {
