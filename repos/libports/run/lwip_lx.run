@@ -8,6 +8,7 @@ build {
 	core init timer
 	drivers/nic
 	test/lwip/http_srv
+	lib/vfs/lwip
 }
 
 create_boot_directory
@@ -36,15 +37,18 @@ set config {
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
-	<start name="linux_nic_drv">
+	<start name="linux_nic_drv" ld="no">
 		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="Nic"/> </provides>
 	</start>
 	<start name="test-lwip_httpsrv">
 		<resource name="RAM" quantum="5M"/>
-		<config>
-			<vfs> <dir name="dev"> <log/> </dir> </vfs>
-			<libc stdout="/dev/log" stderr="/dev/log"/>
+		<config ld_verbose="true">
+			<vfs>
+				<dir name="dev"> <log/> </dir>
+				<dir name="socket"> <lwip ip_addr="10.0.2.55" netmask="255.255.255.0"/> </dir>
+			</vfs>
+			<libc stdout="/dev/log" stderr="/dev/log" socket="/socket"/>
 		</config>
 	</start>
 </config>
@@ -58,7 +62,7 @@ install_config $config
 
 set boot_modules {
 	core init timer linux_nic_drv
-	ld.lib.so libc.lib.so vfs.lib.so libm.lib.so posix.lib.so lwip_legacy.lib.so test-lwip_httpsrv
+	ld.lib.so libc.lib.so vfs.lib.so libm.lib.so posix.lib.so vfs_lwip.lib.so test-lwip_httpsrv
 }
 
 build_boot_image $boot_modules
