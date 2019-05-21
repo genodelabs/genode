@@ -24,7 +24,7 @@ CC_OPT          += -pipe \
                    -fdata-sections -fomit-frame-pointer -freg-struct-return \
                    -freorder-blocks -funit-at-a-time -fno-exceptions -fno-rtti \
                    -fno-stack-protector -fvisibility-inlines-hidden \
-                   -fno-asynchronous-unwind-tables -std=gnu++0x
+                   -fno-asynchronous-unwind-tables -std=gnu++0x -mno-sse
 # kernel memory: 28M minimum dynamic or 10 pro mill of the system memory
 CC_OPT          += -DCONFIG_MEMORY_DYN_MIN=0x1c00000 \
                    -DCONFIG_MEMORY_DYN_PER_MILL=10
