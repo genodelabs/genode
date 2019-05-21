@@ -449,8 +449,11 @@ void Thread::timeout_triggered()
 {
 	Signal_context * const c =
 		pd().cap_tree().find<Signal_context>(_timeout_sigid);
-	if (!c || c->submit(1))
+	if (!c || !c->can_submit(1)) {
 		Genode::raw(*this, ": failed to submit timeout signal");
+		return;
+	}
+	c->submit(1);
 }
 
 
@@ -522,11 +525,12 @@ void Thread::_call_await_signal()
 		return;
 	}
 	/* register handler at the receiver */
-	if (r->add_handler(_signal_handler)) {
+	if (!r->can_add_handler(_signal_handler)) {
 		Genode::raw("failed to register handler at signal receiver");
 		user_arg_0(-1);
 		return;
 	}
+	r->add_handler(_signal_handler);
 	user_arg_0(0);
 }
 
@@ -543,10 +547,11 @@ void Thread::_call_pending_signal()
 	}
 
 	/* register handler at the receiver */
-	if (r->add_handler(_signal_handler)) {
+	if (!r->can_add_handler(_signal_handler)) {
 		user_arg_0(-1);
 		return;
 	}
+	r->add_handler(_signal_handler);
 
 	if (_state == AWAITS_SIGNAL) {
 		_cancel_blocking();
@@ -588,11 +593,12 @@ void Thread::_call_submit_signal()
 	}
 
 	/* trigger signal context */
-	if (c->submit(user_arg_2())) {
+	if (!c->can_submit(user_arg_2())) {
 		Genode::raw("failed to submit signal context");
 		user_arg_0(-1);
 		return;
 	}
+	c->submit(user_arg_2());
 	user_arg_0(0);
 }
 
@@ -622,11 +628,12 @@ void Thread::_call_kill_signal_context()
 	}
 
 	/* kill signal context */
-	if (c->kill(_signal_context_killer)) {
+	if (!c->can_kill()) {
 		Genode::raw("failed to kill signal context");
 		user_arg_0(-1);
 		return;
 	}
+	c->kill(_signal_context_killer);
 }
 
 
@@ -809,9 +816,11 @@ void Thread::_mmu_exception()
 
 	if (_core)
 		Genode::raw(*this, " raised a fault, which should never happen ",
-	                  _fault);
+		            _fault);
 
-	if (_pager) _pager->submit(1);
+	if (_pager && _pager->can_submit(1)) {
+		_pager->submit(1);
+	}
 }
 
 

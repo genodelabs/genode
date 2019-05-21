@@ -169,7 +169,8 @@ class Kernel::Signal_context
 		 * \retval  0 succeeded
 		 * \retval -1 failed
 		 */
-		int submit(unsigned const n);
+		bool can_submit(unsigned const n) const;
+		void submit(unsigned const n);
 
 		/**
 		 * Acknowledge delivery of signal
@@ -184,7 +185,8 @@ class Kernel::Signal_context
 		 * \retval  0 succeeded
 		 * \retval -1 failed
 		 */
-		int kill(Signal_context_killer &k);
+		bool can_kill() const;
+		void kill(Signal_context_killer &k);
 
 		/**
 		 * Create a signal context and assign it to a signal receiver
@@ -267,7 +269,8 @@ class Kernel::Signal_receiver
 		 * \retval  0 succeeded
 		 * \retval -1 failed
 		 */
-		int add_handler(Signal_handler &h);
+		bool can_add_handler(Signal_handler const &h) const;
+		void add_handler(Signal_handler &h);
 
 		/**
 		 * Syscall to create a signal receiver
