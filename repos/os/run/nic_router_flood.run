@@ -6,6 +6,12 @@ if {![have_include power_on/qemu] ||
 	exit 0
 }
 
+proc test_timeout { } {
+	if {[have_include power_on/qemu] && [have_spec sel4] && [have_spec x86_64]} {
+		return 240
+	}
+	return 120
+}
 
 proc good_dst_ip { } { return "10.0.2.2" }
 proc bad_dst_ip  { } { return "10.0.0.123" }
@@ -152,4 +158,4 @@ append qemu_args " -nographic "
 append qemu_args " -netdev user,id=net0 "
 append qemu_args " -net nic,model=[qemu_nic_model],netdev=net0 "
 
-run_genode_until {.*ping\] 64 bytes from 10\.0\.2\.2: icmp_seq=30 .*\n} 120
+run_genode_until {.*ping\] 64 bytes from 10\.0\.2\.2: icmp_seq=30 .*\n} [test_timeout]
