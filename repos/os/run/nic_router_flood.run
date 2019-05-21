@@ -7,7 +7,10 @@ if {![have_include power_on/qemu] ||
 }
 
 proc test_timeout { } {
-	if {[have_include power_on/qemu] && [have_spec sel4] && [have_spec x86_64]} {
+	if {[have_spec sel4] && [have_spec x86]} {
+		return 240
+	}
+	if {[have_spec okl4] || [have_spec pistachio]} {
 		return 240
 	}
 	return 120
