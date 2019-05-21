@@ -61,7 +61,7 @@ extern "C" {
 		return 0;
 	}
 
-	Genode::size_t strlen(char *str)
+	Genode::size_t strlen(const char *str)
 	{
 		Genode::size_t len = 0;
 		while (str[++len] != '\0');
