@@ -508,6 +508,7 @@ $(GDB_BINARIES): $(BUILD_LOCATION)/$(PLATFORM)/gdb/Makefile
 $(GDB_INSTALLED_BINARIES): $(GDB_BINARIES)
 	$(ECHO) "$(BRIGHT_COL)installing gdb...$(DEFAULT_COL)"
 	$(VERBOSE)$(MAKE) -C $(BUILD_LOCATION)/$(PLATFORM)/gdb install $(MAKE_OPT) MAKEINFO=true
+	$(VEBOSE)strip $@
 
 $(BUILD_LOCATION)/ali2dep/build/build.gpr:
 	$(ECHO) "$(BRIGHT_COL)preparing ali2dep...$(DEFAULT_COL)"
