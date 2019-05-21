@@ -206,6 +206,9 @@ bool Seoul::Disk::receive(MessageDisk &msg)
 			_motherboard()->bus_diskcommit.send(ro);
 			return true;
 		}
+
+		[[fallthrough]];
+
 	case MessageDisk::DISK_READ:
 		/* read and write handling */
 		return execute(msg.type == MessageDisk::DISK_WRITE, disk, msg);

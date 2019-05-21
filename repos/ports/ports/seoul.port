@@ -4,7 +4,7 @@ DOWNLOADS := seoul.git
 
 URL(seoul) := https://github.com/alex-ab/seoul.git
 # branch PARAM
-REV(seoul) := 34574b73e5fb9f72642a161cb83fdcb83684d404
+REV(seoul) := 9150c6a129438feef80983e91e0a349da8bda25f
 DIR(seoul) := src/app/seoul
 
 #
