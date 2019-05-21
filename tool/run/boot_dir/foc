@@ -12,7 +12,7 @@ proc core_link_address { } {
 	if {[have_spec x86      ]} { return "0x01100000" }
 	if {[have_spec arndale  ]} { return "0x80100000" }
 	if {[have_spec rpi      ]} { return "0x00800000" }
-	if {[have_spec rpi3     ]} { return "0x00800000" }
+	if {[have_spec rpi3     ]} { return "0x02000000" }
 	if {[have_spec panda    ]} { return "0xa0000000" }
 	if {[have_spec pbxa9    ]} { return "0x76000000" }
 	if {[have_spec odroid_x2]} { return "0x80100000" }
@@ -227,6 +227,7 @@ proc base_src { } {
 	if {[have_spec x86]}     { return base-foc-pc }
 	if {[have_spec pbxa9]}   { return base-foc-pbxa9 }
 	if {[have_spec arndale]} { return base-foc-arndale }
+	if {[have_spec rpi3]}    { return base-foc-rpi3 }
 	if {[have_spec imx6q_sabrelite]} { return base-foc-imx6q_sabrelite }
 	if {[have_spec imx7d_sabre]}     { return base-foc-imx7d_sabre }
 

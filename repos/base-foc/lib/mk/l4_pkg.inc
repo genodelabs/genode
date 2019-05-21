@@ -25,7 +25,7 @@ ifeq ($(filter-out $(SPECS),arm_v6),)
 endif
 
 ifeq ($(filter-out $(SPECS),arm_v8),)
-	L4_BUILD_ARCH := arm_armv8a
+	L4_BUILD_ARCH := arm64_armv8a
 endif
 
 

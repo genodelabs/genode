@@ -26,7 +26,7 @@ src/kernel/foc: src/kernel
 	cp -r $(KERNEL_PORT_DIR)/src/kernel/foc/* $@
 
 content:
-	for spec in x86_32 x86_64 arm; do \
+	for spec in x86_32 x86_64 arm arm_64; do \
 	  mv lib/mk/spec/$$spec/ld-foc.mk lib/mk/spec/$$spec/ld.mk; \
 	  done;
 	sed -i "s/ld-foc/ld/"           src/lib/ld/foc/target.mk

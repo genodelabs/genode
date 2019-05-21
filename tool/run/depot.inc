@@ -23,6 +23,7 @@ proc depot_spec { } {
 	if {[have_spec x86_64]}  { return "x86_64" }
 	if {[have_spec arm_v6]}  { return "arm_v6" }
 	if {[have_spec arm_v7a]} { return "arm_v7a" }
+	if {[have_spec arm_v8a]} { return "arm_v8a" }
 }
 
 
