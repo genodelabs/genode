@@ -368,6 +368,7 @@ _ZNSt9exceptionD0Ev T
 _ZNSt9exceptionD1Ev T
 _ZNSt9exceptionD2Ev T
 _ZSt18uncaught_exceptionv T
+_ZSt19uncaught_exceptionsv T
 _ZSt9terminatev T
 _ZTIDd D 16
 _ZTIDe D 16
