@@ -18,6 +18,7 @@
 			<xs:enumeration value="x86_32" />
 			<xs:enumeration value="arm_v6" />
 			<xs:enumeration value="arm_v7a" />
+			<xs:enumeration value="arm_v8a" />
 		</xs:restriction>
 	</xs:simpleType><!-- Architecture -->
 
