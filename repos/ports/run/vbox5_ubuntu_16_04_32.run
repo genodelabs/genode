@@ -2,6 +2,9 @@
 # Ubuntu 16.04 32bit in VBox 5
 #
 
+assert_spec x86
+assert_spec nova
+
 set flavor   "ubuntu_16_04_32"
 set vm_ram   "1280M"
 

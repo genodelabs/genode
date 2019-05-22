@@ -2,7 +2,18 @@
 # Ubuntu 16.04 32bit in VBox 5
 #
 
-set flavor   "ubuntu_16_04_32"
+assert_spec x86
+
+if {(![have_spec nova] && ![have_spec foc])} {
+	puts "Platform is unsupported."
+}
+
+if {[have_spec nova]} {
+	set flavor   "ubuntu_16_04_32"
+} else {
+	set flavor   "ubuntu_16_04_32_1vcpu"
+}
+
 set vm_ram   "1280M"
 
 set use_vbox5 1
@@ -17,7 +28,7 @@ set use_usb 1
 set use_ps2 [have_spec ps2]
 
 set use_vms 1
-set use_cpu_load 1
+set use_cpu_load 0
 
 # use generic vbox5 VMM version
 set use_vbox5_nova 0

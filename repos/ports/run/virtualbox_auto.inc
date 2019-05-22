@@ -1,4 +1,6 @@
-if {(![have_spec nova] && ![have_spec muen])} {
+assert_spec x86
+
+if {(![have_spec nova] && ![have_spec foc])} {
 	puts "Platform is unsupported."
 	exit 0
 }
@@ -6,16 +8,6 @@ if {(![have_spec nova] && ![have_spec muen])} {
 if {[have_include "power_on/qemu"]} {
 	puts "\nRun script does not support Qemu.\n"
 	exit
-}
-
-if {([have_spec muen] && [expr $use_vbox5])} {
-	puts "Run script does not support vbox5 on Muen."
-	exit 0
-}
-
-if {([have_spec muen] && $flavor != "win7")} {
-	puts "Run script does not support $flavor on Muen."
-	exit 0
 }
 
 if { [get_cmd_switch --autopilot] && [have_spec x86_32] } {
@@ -252,15 +244,8 @@ append_if [expr $use_usb] config {
 		<provides><service name="File_system"/></provides>
 		<config verbose="yes">
 			<content>
-				<inline name="usb_drv.config">}
-
-append_if [expr $use_usb && ![have_spec muen]] config {
-<config uhci="yes" ohci="yes" ehci="yes" xhci="yes">}
-
-append_if [expr $use_usb && [have_spec muen]] config {
-<config uhci="no" ehci="no" xhci="yes">}
-
-append_if [expr $use_usb] config {
+				<inline name="usb_drv.config">
+<config uhci="yes" ohci="yes" ehci="yes" xhci="yes">
 	<hid/>
 	<raw>
 		<report devices="yes"/>

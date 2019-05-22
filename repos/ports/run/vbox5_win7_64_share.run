@@ -1,4 +1,5 @@
-assert_spec 64bit
+assert_spec x86_64
+assert_spec nova
 
 set flavor   "win7_64"
 set vm_ram   "1280M"

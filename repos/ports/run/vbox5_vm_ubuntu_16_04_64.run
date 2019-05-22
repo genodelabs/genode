@@ -2,7 +2,8 @@
 # Ubuntu 16.04 64bit in VBox 5
 #
 
-assert_spec 64bit
+assert_spec x86_64
+assert_spec nova
 
 set flavor   "ubuntu_16_04_64"
 set vm_ram   "9460M"

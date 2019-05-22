@@ -2,6 +2,7 @@
 # Windows 7 in VirtualBox 5
 #
 
+assert_spec x86
 assert_spec nova
 
 set flavor   "win7"

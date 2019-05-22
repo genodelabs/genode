@@ -3,6 +3,7 @@
 #
 
 assert_spec nova
+assert_spec x86
 
 set flavor   "win7"
 set vm_ram   "1280M"
