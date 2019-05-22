@@ -140,16 +140,18 @@ class Genode::Arg
 		bool bool_value(bool default_value) const
 		{
 			bool result = default_value;
-			switch(_value.type()) {
+			switch (_value.type()) {
 
 			/* result is passed to 'ascii_to' by reference */
 			case Token::IDENT:;
 				if (ascii_to(_value.start(), result) ==  _value.len())
 					return result;
+				return default_value;
 
 			case Token::STRING:
 				if (ascii_to(_value.start()+1, result) == _value.len()-2)
 					return result;
+				return default_value;
 
 			default:
 				/* read values 0 (false) / !0 (true) */
