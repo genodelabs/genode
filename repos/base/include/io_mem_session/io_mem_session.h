@@ -1,5 +1,5 @@
 /*
- * \brief  I/O-memory session interface
+ * \brief  Memory-mapped I/O session interface
  * \author Christian Helmuth
  * \date   2006-08-01
  */

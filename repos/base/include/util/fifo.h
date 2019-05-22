@@ -22,7 +22,7 @@ namespace Genode {
 
 
 /**
- * Fifo queue
+ * First-in first-out (FIFO) queue
  *
  * \param QT  queue element type
  */
@@ -75,16 +75,13 @@ class Genode::Fifo
 		Fifo() { }
 
 		/**
-		 * If queue is not empty then call
-		 * lambda 'func' of type 'void (QT&)'
-		 * with the head element
+		 * Call 'func' of type 'void (QT&)' the head element
 		 */
 		template <typename FUNC>
-		void head(FUNC const &func) const {
-			if (_head) func(*_head); }
+		void head(FUNC const &func) const { if (_head) func(*_head); }
 
 		/**
-		 * Remove element explicitely from queue
+		 * Remove element explicitly from queue
 		 */
 		void remove(QT &qe)
 		{
@@ -93,9 +90,10 @@ class Genode::Fifo
 			/* if specified element is the first of the queue */
 			if (&qe == _head) {
 				_head = qe.Fifo::Element::_next;
-				if (!_head) _tail  = nullptr;
-			}
-			else {
+				if (!_head)
+					_tail = nullptr;
+
+			} else {
 
 				/* search specified element in the queue */
 				Element *e = _head;
@@ -131,10 +129,8 @@ class Genode::Fifo
 			_tail = &e;
 		}
 
-
 		/**
-		 * Call lambda 'func' of type 'void (QT&)'
-		 * for each queue element in order
+		 * Call 'func' of type 'void (QT&)' for each element in order
 		 */
 		template <typename FUNC>
 		void for_each(FUNC const &func) const
@@ -149,8 +145,7 @@ class Genode::Fifo
 		}
 
 		/**
-		 * If queue is not empty then remove head and
-		 * call lambda 'func' of type 'void (QT&)'
+		 * Remove head and call 'func' of type 'void (QT&)'
 		 */
 		template <typename FUNC>
 		void dequeue(FUNC const &func)
@@ -175,8 +170,11 @@ class Genode::Fifo
 		}
 
 		/**
-		 * If queue is not empty then remove elements in order and
-		 * call lambda 'func' of type 'void (QT&)'
+		 * Remove all fifo elements
+		 *
+		 * This method removes all elements in order and calls the lambda
+		 * 'func' of type 'void (QT&)' for each element. It is intended to be
+		 * used prior the destruction of the FIFO.
 		 */
 		template <typename FUNC>
 		void dequeue_all(FUNC const &func)
@@ -191,9 +189,9 @@ class Genode::Fifo
  *
  * \param T  type of compound object to be organized in a FIFO
  *
- * This helper allow the creation of FIFOs that use member variables to
+ * This helper allows the creation of FIFOs that use member variables to
  * connect their elements. This way, the organized type does not need to
- * publicly inherit 'Fifo<QT>::Element'. Furthermore objects can easily
+ * publicly inherit 'Fifo<QT>::Element'. Furthermore, objects can easily
  * be organized in multiple FIFOs by embedding multiple 'Fifo_element'
  * member variables.
  */

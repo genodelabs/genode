@@ -210,7 +210,7 @@ class Genode::Allocator_avl_base : public Range_allocator
 		/**
 		 * Clean up the allocator and detect dangling allocations
 		 *
-		 * This function is called at the destruction time of the allocator. It
+		 * This method is called at the destruction time of the allocator. It
 		 * makes sure that the allocator instance releases all memory obtained
 		 * from the meta-data allocator.
 		 */

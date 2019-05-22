@@ -91,11 +91,11 @@ class Genode::Entrypoint : Noncopyable
 
 		Reconstructible<Signal_receiver> _sig_rec { };
 
-		Lock                               _deferred_signals_mutex { };
-		List<List_element<Signal_context>> _deferred_signals { };
+		Lock                                _deferred_signals_mutex { };
+		List<List_element<Signal_context> > _deferred_signals { };
 
 		void _handle_deferred_signals() { }
-		Constructible<Signal_handler<Entrypoint>> _deferred_signal_handler { };
+		Constructible<Signal_handler<Entrypoint> > _deferred_signal_handler { };
 
 		bool _suspended                = false;
 		void (*_suspended_callback) () = nullptr;
@@ -124,7 +124,7 @@ class Genode::Entrypoint : Noncopyable
 		 * resume mechanism.
 		 */
 		void _handle_suspend() { _suspended = true; }
-		Constructible<Genode::Signal_handler<Entrypoint>> _suspend_dispatcher { };
+		Constructible<Genode::Signal_handler<Entrypoint> > _suspend_dispatcher { };
 
 		void _dispatch_signal(Signal &sig);
 		void _defer_signal(Signal &sig);
@@ -136,7 +136,7 @@ class Genode::Entrypoint : Noncopyable
 		bool                               _stop_signal_proxy { false };
 
 		void _handle_stop_signal_proxy() { _stop_signal_proxy = true; }
-		Constructible<Genode::Signal_handler<Entrypoint>> _stop_signal_proxy_handler { };
+		Constructible<Genode::Signal_handler<Entrypoint> > _stop_signal_proxy_handler { };
 
 		friend class Startup;
 

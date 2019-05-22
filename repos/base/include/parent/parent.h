@@ -101,12 +101,12 @@ class Genode::Parent
 		/**
 		 * Emulation of the original synchronous root interface
 		 *
-		 * This function transparently spawns a proxy "root" entrypoint that
+		 * This method transparently spawns a proxy "root" entrypoint that
 		 * dispatches asynchronous session-management operations (as issued
 		 * by the parent) to the local root interfaces via component-local
 		 * RPC calls.
 		 *
-		 * The function solely exists for API compatibility.
+		 * The method solely exists for API compatibility.
 		 */
 		static void announce(Service_name const &service_name,
 		                     Root_capability service_root);

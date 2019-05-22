@@ -189,7 +189,7 @@ struct Block::Connection : Genode::Connection<Session>, Session_client
 		/**
 		 * Jobs that are pending for submission
 		 */
-		Genode::Fifo<Genode::Fifo_element<_JOB>> _pending { };
+		Genode::Fifo<Genode::Fifo_element<_JOB> > _pending { };
 
 		/**
 		 * Process a single acknowledgement
