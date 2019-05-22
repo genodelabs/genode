@@ -5,8 +5,6 @@ ADAINCLUDE = $(ADA_RTS)/adainclude
 
 SRC_ADS += system.ads \
 	   s-soflin.ads \
-	   s-imgint.ads \
-	   s-stoele.ads \
 	   s-unstyp.ads \
 	   interfac.ads \
 	   i-cexten.ads \
@@ -15,7 +13,7 @@ SRC_ADS += system.ads \
 	   ada.ads \
 	   ada_exceptions.ads
 
-SRC_ADB += g-io.adb s-stalib.adb s-secsta.adb s-parame.adb i-c.adb s-arit64.adb
+SRC_ADB += g-io.adb s-stalib.adb s-secsta.adb s-parame.adb i-c.adb s-arit64.adb s-stoele.adb
 CUSTOM_ADA_FLAGS = --RTS=$(ADA_RTS) -c -gnatg -gnatp -gnatpg -gnatn2
 
 # C runtime glue code
