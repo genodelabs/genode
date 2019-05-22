@@ -40,7 +40,6 @@ void Bootstrap::Cpu::enable_mmu_and_caches(Genode::addr_t table)
 	Sctlr::C::set(sctlr, 1);
 	Sctlr::I::set(sctlr, 1);
 	Sctlr::V::set(sctlr, 1);
-	Sctlr::A::set(sctlr, 0);
 	Sctlr::M::set(sctlr, 1);
 	Sctlr::Z::set(sctlr, 1);
 	Sctlr::write(sctlr);

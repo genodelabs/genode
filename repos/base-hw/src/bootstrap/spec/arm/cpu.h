@@ -25,11 +25,9 @@ struct Bootstrap::Cpu : Hw::Arm_cpu
 		static void init()
 		{
 			/*
-			 * disable alignment checks and
 			 * set exception vector to 0xffff0000
 			 */
 			access_t v = read();
-			A::set(v, 0);
 			V::set(v, 1);
 			write(v);
 		}

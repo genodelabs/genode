@@ -123,7 +123,6 @@ static inline void prepare_hypervisor(Genode::addr_t table)
 	Cpu::Sctlr::C::set(sctlr, 1);
 	Cpu::Sctlr::I::set(sctlr, 1);
 	Cpu::Sctlr::V::set(sctlr, 1);
-	Cpu::Sctlr::A::set(sctlr, 0);
 	Cpu::Sctlr::M::set(sctlr, 1);
 	Cpu::Sctlr::Z::set(sctlr, 1);
 	Cpu::Hsctlr::write(sctlr);
