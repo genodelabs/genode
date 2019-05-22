@@ -1,4 +1,3 @@
-__genode_terminal V
 __gl_default_stack_size D 4
 __gl_detect_blocking B 4
 __gl_exception_tracebacks B 4
@@ -23,6 +22,7 @@ __gnat_finalize_library_objects D 8
 __gnat_initialize T
 __gnat_last_chance_handler T
 __gnat_mulv64 T
+__gnat_personality_v0 T
 __gnat_raise_exception T
 __gnat_rcheck_CE_Access_Check T
 __gnat_rcheck_CE_Discriminant_Check T
@@ -78,7 +78,6 @@ ada_exceptions__exception_typeRP T
 ada_exceptions__exception_typeS R 820
 allocate_secondary_stack T
 constraint_error D 40
-get_thread T
 gnat_E D 2
 gnat__io_E D 2
 gnat__io__current_out D 1
@@ -176,9 +175,6 @@ system__frontend_layout R 1
 system__functions_return_by_dsp R 1
 system__gcc_zcx_support R 1
 system__high_integrity_mode R 1
-system__img_int_E D 2
-system__img_int__image_integer T
-system__img_int__set_image_integer T
 system__init_E D 2
 system__long_shifts_inlined R 1
 system__machine_overflows R 1

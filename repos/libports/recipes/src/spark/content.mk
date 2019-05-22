@@ -1,15 +1,13 @@
 ADA_RT_DIR := $(call port_dir,$(GENODE_DIR)/repos/libports/ports/ada-runtime)
 
 MIRROR_FROM_ADA_RT_DIR := \
-	$(addprefix ada-runtime/contrib/gcc-6.3.0/,\
+	$(addprefix ada-runtime/contrib/gcc-8.3.0/,\
 		ada.ads \
 		system.ads \
 		interfac.ads \
 		s-unstyp.ads \
 		s-stoele.ads \
 		s-stoele.adb \
-		s-imgint.ads \
-		s-imgint.adb \
 		a-unccon.ads \
 		s-arit64.ads \
 		s-arit64.adb \
@@ -18,8 +16,23 @@ MIRROR_FROM_ADA_RT_DIR := \
 		g-io.adb \
 		i-cexten.ads \
 	) \
-	ada-runtime/src \
-	ada-runtime/platform/genode.cc
+	$(addprefix ada-runtime/src/lib/,\
+		ada_exceptions.ads \
+		ada_exceptions.h \
+		argv.c \
+		exit.c \
+		init.c \
+		platform.ads \
+		platform.adb \
+		ss_utils.ads \
+		ss_utils.adb \
+		string_utils.ads \
+		string_utils.adb \
+	) \
+	ada-runtime/src/common \
+	ada-runtime/src/minimal \
+	ada-runtime/platform/genode.cc \
+	ada-runtime/platform/unwind.h
 
 content: $(MIRROR_FROM_ADA_RT_DIR)
 
