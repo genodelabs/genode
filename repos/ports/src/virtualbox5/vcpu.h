@@ -17,8 +17,6 @@
 
 /* Genode includes */
 #include <base/log.h>
-#include <util/flex_iterator.h>
-#include <util/touch.h>
 #include <rom_session/connection.h>
 #include <timer_session/connection.h>
 #include <vm_session/connection.h>
@@ -45,12 +43,7 @@
 /* Genode libc pthread binding */
 #include "thread.h"
 
-/* LibC includes */
-#include <setjmp.h>
-
 #include <VBox/vmm/rem.h>
-
-static bool debug_map_memory = false;
 
 /*
  * VirtualBox stores segment attributes in Intel format using a 32-bit
@@ -68,31 +61,13 @@ static inline Genode::uint32_t sel_ar_conv_from_genode(Genode::uint16_t v)
 	return (v & 0xff) | (((uint32_t )v << 4) & 0x1f000);
 }
 
-namespace Vcpu_sync
-{
-		struct Session : Genode::Session
-		{
-			GENODE_RPC(Rpc_resume, void, resume);
-			GENODE_RPC(Rpc_request_pause, void, request_pause);
-			GENODE_RPC_INTERFACE(Rpc_resume, Rpc_request_pause);
-		};
-
-		struct Client : Genode::Rpc_client<Session>
-		{
-			Client(Genode::Capability<Session> cap) : Rpc_client<Session>(cap) { }
-
-			void resume() { call<Rpc_resume>(); }
-			void request_pause() { call<Rpc_request_pause>(); }
-		};
-};
-
-class Vcpu_handler : public Genode::List<Vcpu_handler>::Element,
-                     public Genode::Rpc_object<Vcpu_sync::Session, Vcpu_handler>
+class Vcpu_handler : public Genode::List<Vcpu_handler>::Element
 {
 	protected:
 
 		Genode::Entrypoint             _ep;
-		Genode::Lock                   _lock;
+		Genode::Lock                   _lock_emt;
+		Genode::Semaphore              _sem_handler;
 		Genode::Vm_state              *_state { nullptr };
 
 		/* halt / wakeup handling with timeout support */
@@ -106,9 +81,8 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element,
 		bool           npt_ept_unmap     { false };
 
 		/* state machine between EMT and EP thread of a vCPU */
-		enum State { RUNNING, PAUSED, IRQ_WIN, NPT_EPT } _vm_state { PAUSED };
-
-		Vcpu_sync::Client _ep_emt;
+		enum { RUNNING, PAUSED, IRQ_WIN, NPT_EPT } _vm_state { PAUSED };
+		enum { PAUSE_EXIT, RUN } _next_state { RUN };
 
 	private:
 
@@ -171,10 +145,17 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element,
 				Genode::memcpy(fpu, pCtx->pXStateR3, sizeof(X86FXSTATE));
 			});
 
-			_ep_emt.resume();
+			Assert(_vm_state == IRQ_WIN || _vm_state == PAUSED || _vm_state == NPT_EPT);
+			Assert(_next_state == PAUSE_EXIT || _next_state == RUN);
+
+			/* wake up vcpu ep handler */
+			_sem_handler.up();
 
 			/* wait for next exit */
-			_lock.lock();
+			_lock_emt.lock();
+
+			/* next time run - recall() may change this */
+			_next_state = RUN;
 
 			/* write FPU state of vCPU to pCtx */
 			_state->fpu.value([&] (uint8_t *fpu, size_t const size) {
@@ -192,7 +173,7 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element,
 				if (npt_ept_unmap) {
 					Genode::error("NPT/EPT unmap not supported - stop");
 					while (true) {
-						_lock.lock();
+						_lock_emt.lock();
 					}
 				}
 
@@ -223,10 +204,10 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element,
 
 			_vm_state = PAUSED;
 
-			_lock.unlock();
+			_lock_emt.unlock();
 		}
 
-		void _recall_handler()
+		bool _recall_handler()
 		{
 			if (_vm_state != RUNNING)
 				Genode::error(__func__, " _vm_state=", (int)_vm_state, " exit_reason=", Genode::Hex(_state->exit_reason));
@@ -252,15 +233,14 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element,
 
 				/* got recall during irq injection and the guest is ready for
 				 * delivery of IRQ - just continue */
-				run_vm();
-				return;
+				return /* no-wait */ false;
 			}
 
 			/* are we forced to go back to emulation mode ? */
 			if (!continue_hw_accelerated()) {
 				/* go back to emulation mode */
 				_default_handler();
-				return;
+				return /* wait */ true;
 			}
 
 			/* check whether we have to request irq injection window */
@@ -268,12 +248,11 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element,
 				*_state = Genode::Vm_state {}; /* reset */
 				_state->inj_info.value(_state->inj_info.value());
 				_irq_win = true;
-				run_vm();
-				return;
+				return /* no-wait */ false;
 			}
 
 			_default_handler();
-			return;
+			return /* wait */ true;
 		}
 
 		inline bool vbox_to_state(VM *pVM, PVMCPU pVCpu)
@@ -500,7 +479,7 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element,
 			_vm_exits ++;
 
 			_vm_state = IRQ_WIN;
-			_lock.unlock();
+			_lock_emt.unlock();
 		}
 
 		void _npt_ept()
@@ -512,7 +491,7 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element,
 			_vm_exits ++;
 
 			_vm_state = NPT_EPT;
-			_lock.unlock();
+			_lock_emt.unlock();
 		}
 
 		void _irq_window_pthread()
@@ -672,7 +651,6 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element,
 		virtual bool hw_save_state(Genode::Vm_state *, VM *, PVMCPU) = 0;
 		virtual int vm_exit_requires_instruction_emulation(PCPUMCTX) = 0;
 
-		virtual void run_vm() = 0;
 		virtual void pause_vm() = 0;
 		virtual int attach_memory_to_vm(RTGCPHYS const,
 		                                RTGCUINT vbox_fault_reason) = 0;
@@ -696,34 +674,8 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element,
 		:
 			_ep(env, stack_size,
 			    Genode::String<12>("EP-EMT-", cpu_id).string(), location),
-			_ep_emt(_ep.rpc_ep().manage(this)),
 			_cpu_id(cpu_id)
 		{ }
-
-		void resume()
-		{
-			PCPUMCTX pCtx  = CPUMQueryGuestCtxPtr(_vcpu);
-
-			Assert(_vm_state == IRQ_WIN || _vm_state == PAUSED || _vm_state == NPT_EPT);
-
-			_vm_state = RUNNING;
-			run_vm();
-		}
-
-		void request_pause()
-		{
-			_recall_req ++;
-
-			if (_irq_win) {
-				_recall_skip ++;
-				return;
-			}
-
-			if (_vm_state != RUNNING)
-				return;
-
-			pause_vm();
-		}
 
 		unsigned int cpu_id() { return _cpu_id; }
 
@@ -738,7 +690,19 @@ class Vcpu_handler : public Genode::List<Vcpu_handler>::Element,
 			if (_vm != vm || _vcpu != &vm->aCpus[_cpu_id])
 				Genode::error("wrong CPU !?");
 
-			_ep_emt.request_pause();
+			_recall_req ++;
+
+			if (_irq_win) {
+				_recall_skip ++;
+				return;
+			}
+
+			asm volatile ("":::"memory");
+
+			if (_vm_state != PAUSED)
+				pause_vm();
+
+			_next_state = PAUSE_EXIT;
 
 #if 0
 			if (_recall_req % 1000 == 0) {

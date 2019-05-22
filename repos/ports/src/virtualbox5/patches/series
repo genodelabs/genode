@@ -33,3 +33,5 @@ tm_4s.patch
 rem_tss.patch
 mem_leak.patch
 rem_mem.patch
+vga.patch
+register.patch

@@ -473,13 +473,13 @@ struct Vcpu {
 			if (exit_reason != VM_EXIT_RECALL || !previous_blocked)
 				_read_nova_state(utcb, state, exit_reason);
 
-			/* consume potential multiple sem ups */
-			Nova::sm_ctrl(vcpu->_sm_sel(), Nova::SEMAPHORE_UP);
-			Nova::sm_ctrl(vcpu->_sm_sel(), Nova::SEMAPHORE_DOWNZERO);
-
 			if (exit_reason == VM_EXIT_RECALL) {
 				if (previous_blocked)
 					state.exit_reason = exit_reason;
+
+				/* consume potential multiple sem ups */
+				Nova::sm_ctrl(vcpu->_sm_sel(), Nova::SEMAPHORE_UP);
+				Nova::sm_ctrl(vcpu->_sm_sel(), Nova::SEMAPHORE_DOWNZERO);
 
 				if (vcpu->_remote == PAUSE) {
 					vcpu->_remote = NONE;
@@ -550,8 +550,13 @@ struct Vcpu {
 
 			if (_dispatching == current) {
 				/* current thread is already dispatching */
-				_block = true;
-				return;
+				if (_block)
+					/* issue pause exit next time - fall through */
+					_block = false;
+				else {
+					_block = true;
+					return;
+				}
 			}
 
 			if ((_ep_handler == current) && _block) {

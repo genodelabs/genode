@@ -1,12 +1,12 @@
 /*
- * \brief  Genode/Nova specific VirtualBox SUPLib supplements
+ * \brief  Genode specific VirtualBox SUPLib supplements
  * \author Alexander Boettcher
  * \author Norman Feske
  * \author Christian Helmuth
  */
 
 /*
- * Copyright (C) 2013-2017 Genode Labs GmbH
+ * Copyright (C) 2013-2019 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
  * version 2.
@@ -106,8 +106,6 @@ class Vcpu_handler_vmx : public Vcpu_handler
 
 		void _vmx_irqwin() { _irq_window(); }
 
-		void _vmx_recall() { Vcpu_handler::_recall_handler(); }
-
 		__attribute__((noreturn)) void _vmx_invalid()
 		{
 			unsigned const dubious = _state->inj_info.value() |
@@ -124,19 +122,12 @@ class Vcpu_handler_vmx : public Vcpu_handler
 			exit(-1);
 		}
 
-		/*
-		 * This VM exit is in part handled by the NOVA kernel (writing the CR
-		 * register) and in part by VirtualBox (updating the PDPTE registers,
-		 * which requires access to the guest physical memory).
-		 * Intel manual sections 4.4.1 of Vol. 3A and 26.3.2.4 of Vol. 3C
-		 * indicate the conditions when the PDPTE registers need to get
-		 * updated.
-		 */
 		void _vmx_mov_crx() { _default_handler(); return; }
 
 		void _handle_vm_exception()
 		{
 			unsigned const exit = _state->exit_reason;
+			bool recall_wait = true;
 
 			switch (exit) {
 			case VMX_EXIT_TRIPLE_FAULT: _vmx_triple(); break;
@@ -157,20 +148,39 @@ class Vcpu_handler_vmx : public Vcpu_handler
 			case VMX_EXIT_WBINVD:  _vmx_default(); break;
 			case VMX_EXIT_MOV_CRX: _vmx_mov_crx(); break;
 			case VMX_EXIT_MOV_DRX: _vmx_default(); break;
+			case VMX_EXIT_XSETBV: _vmx_default(); break;
 			case VMX_EXIT_TPR_BELOW_THRESHOLD: _vmx_default(); break;
 			case VMX_EXIT_EPT_VIOLATION: _vmx_ept<VMX_EXIT_EPT_VIOLATION>(); break;
-			case RECALL: _vmx_recall(); break;
+			case RECALL:
+				recall_wait = Vcpu_handler::_recall_handler();
+				break;
 			case VCPU_STARTUP:
 				_vmx_startup();
-				_lock.unlock();
+				_lock_emt.unlock();
 				/* pause - no resume */
-				return;
+				break;
 			default:
 				Genode::error(__func__, " unknown exit - stop - ",
 				              Genode::Hex(exit));
 				_vm_state = PAUSED;
 				return;
 			}
+
+			if (exit == RECALL && !recall_wait) {
+				_vm_state = RUNNING;
+				run_vm();
+				return;
+			}
+
+			/* wait until EMT thread wake's us up */
+			_sem_handler.down();
+
+			/* resume vCPU */
+			_vm_state = RUNNING;
+			if (_next_state == RUN)
+				run_vm();
+			else
+				pause_vm(); /* cause pause exit */
 		}
 
 		void run_vm()   { _vm_session.run(_vcpu); }
@@ -204,6 +214,7 @@ class Vcpu_handler_vmx : public Vcpu_handler
 			case VMX_EXIT_MOV_DRX:
 			case VMX_EXIT_TPR_BELOW_THRESHOLD:
 			case VMX_EXIT_EPT_VIOLATION:
+			case VMX_EXIT_XSETBV:
 			case VCPU_STARTUP:
 			case RECALL:
 				/* todo - touch all members */
@@ -235,13 +246,12 @@ class Vcpu_handler_vmx : public Vcpu_handler
 			_state = _state_ds.local_addr<Genode::Vm_state>();
 
 			/* sync with initial startup exception */
-			_lock.lock();
+			_lock_emt.lock();
 
 			_vm_session.run(_vcpu);
 
 			/* sync with initial startup exception */
-			_lock.lock();
-//			_lock.unlock();
+			_lock_emt.lock();
 		}
 
 		bool hw_save_state(Genode::Vm_state *state, VM * pVM, PVMCPU pVCpu) {

@@ -1,0 +1,159 @@
+--- a/src/app/virtualbox/src/VBox/VMM/VMMAll/PGMAllGst.h
++++ b/src/app/virtualbox/src/VBox/VMM/VMMAll/PGMAllGst.h
+@@ -101,9 +101,9 @@
+         if (RT_FAILURE(rc))
+             return PGM_GST_NAME(WalkReturnBadPhysAddr)(pVCpu, pWalk, 4, rc);
+ 
+-        PX86PML4  register  pPml4 = pWalk->pPml4;
+-        X86PML4E  register  Pml4e;
+-        PX86PML4E register  pPml4e;
++        PX86PML4  pPml4 = pWalk->pPml4;
++        X86PML4E  Pml4e;
++        PX86PML4E pPml4e;
+ 
+         pWalk->pPml4e  = pPml4e  = &pPml4->a[(GCPtr >> X86_PML4_SHIFT) & X86_PML4_MASK];
+         pWalk->Pml4e.u = Pml4e.u = pPml4e->u;
+@@ -127,9 +127,9 @@
+     }
+     {
+ # if PGM_GST_TYPE == PGM_TYPE_AMD64 || PGM_GST_TYPE == PGM_TYPE_PAE
+-        PX86PDPT register   pPdpt = pWalk->pPdpt;
+-        PX86PDPE register   pPdpe;
+-        X86PDPE  register   Pdpe;
++        PX86PDPT pPdpt = pWalk->pPdpt;
++        PX86PDPE pPdpe;
++        X86PDPE  Pdpe;
+ 
+         pWalk->pPdpe  = pPdpe  = &pPdpt->a[(GCPtr >> GST_PDPT_SHIFT) & GST_PDPT_MASK];
+         pWalk->Pdpe.u = Pdpe.u = pPdpe->u;
+@@ -151,8 +151,8 @@
+ # endif
+     }
+     {
+-        PGSTPD  register    pPd = pWalk->pPd;
+-        PGSTPDE register    pPde;
++        PGSTPD  pPd = pWalk->pPd;
++        PGSTPDE pPde;
+         GSTPDE              Pde;
+ 
+         pWalk->pPde  = pPde  = &pPd->a[(GCPtr >> GST_PD_SHIFT) & GST_PD_MASK];
+@@ -201,9 +201,9 @@
+             return PGM_GST_NAME(WalkReturnBadPhysAddr)(pVCpu, pWalk, 1, rc);
+     }
+     {
+-        PGSTPT  register    pPt = pWalk->pPt;
+-        PGSTPTE register    pPte;
+-        GSTPTE  register    Pte;
++        PGSTPT  pPt = pWalk->pPt;
++        PGSTPTE pPte;
++        GSTPTE  Pte;
+ 
+         pWalk->pPte  = pPte  = &pPt->a[(GCPtr >> GST_PT_SHIFT) & GST_PT_MASK];
+         pWalk->Pte.u = Pte.u = pPte->u;
+--- a/src/app/virtualbox/include/iprt/log.h
++++ b/src/app/virtualbox/include/iprt/log.h
+@@ -607,7 +607,7 @@
+ #  define _LogIt(a_fFlags, a_iGroup, ...) \
+    do \
+    { \
+-        register PRTLOGGER LogIt_pLogger = RTLogDefaultInstanceEx(RT_MAKE_U32(a_fFlags, a_iGroup)); \
++        PRTLOGGER LogIt_pLogger = RTLogDefaultInstanceEx(RT_MAKE_U32(a_fFlags, a_iGroup)); \
+         if (RT_LIKELY(!LogIt_pLogger)) \
+         {   /* likely */ } \
+         else \
+@@ -621,7 +621,7 @@
+ #  define LogIt(a_fFlags, a_iGroup, fmtargs) \
+     do \
+     { \
+-        register PRTLOGGER LogIt_pLogger = RTLogDefaultInstanceEx(RT_MAKE_U32(a_fFlags, a_iGroup)); \
++        PRTLOGGER LogIt_pLogger = RTLogDefaultInstanceEx(RT_MAKE_U32(a_fFlags, a_iGroup)); \
+         if (RT_LIKELY(!LogIt_pLogger)) \
+         {   /* likely */ } \
+         else \
+@@ -632,7 +632,7 @@
+ #  define LogItAlways(a_fFlags, a_iGroup, fmtargs) \
+     do \
+     { \
+-        register PRTLOGGER LogIt_pLogger = RTLogDefaultInstanceEx(RT_MAKE_U32(0, UINT16_MAX)); \
++        PRTLOGGER LogIt_pLogger = RTLogDefaultInstanceEx(RT_MAKE_U32(0, UINT16_MAX)); \
+         if (LogIt_pLogger) \
+             LogIt_pLogger->pfnLogger fmtargs; \
+     } while (0)
+--- a/src/app/virtualbox/src/VBox/Devices/Network/DevPCNet.cpp
++++ b/src/app/virtualbox/src/VBox/Devices/Network/DevPCNet.cpp
+@@ -1244,8 +1244,8 @@
+  */
+ static void pcnetUpdateIrq(PPCNETSTATE pThis)
+ {
+-    register int      iISR = 0;
+-    register uint16_t csr0 = pThis->aCSR[0];
++    int      iISR = 0;
++    uint16_t csr0 = pThis->aCSR[0];
+ 
+     csr0 &= ~0x0080; /* clear INTR */
+ 
+--- a/src/app/virtualbox/src/VBox/Runtime/common/table/avl_Base.cpp.h
++++ b/src/app/virtualbox/src/VBox/Runtime/common/table/avl_Base.cpp.h
+@@ -266,7 +266,7 @@
+         }
+         else
+         {
+-            register unsigned char uchHeight = (unsigned char)(KMAX(uchLeftHeight, uchRightHeight) + 1);
++            unsigned char uchHeight = (unsigned char)(KMAX(uchLeftHeight, uchRightHeight) + 1);
+             if (uchHeight == pNode->uchHeight)
+                 break;
+             pNode->uchHeight = uchHeight;
+@@ -300,10 +300,10 @@
+ {
+     KAVLSTACK               AVLStack;
+     PPKAVLNODECORE          ppCurNode = ppTree;
+-    register PKAVLNODECORE  pCurNode;
+-    register KAVLKEY        Key = pNode->Key; NOREF(Key);
++    PKAVLNODECORE  pCurNode;
++    KAVLKEY        Key = pNode->Key; NOREF(Key);
+ #ifdef KAVL_RANGE
+-    register KAVLKEY        KeyLast = pNode->KeyLast; NOREF(KeyLast);
++    KAVLKEY        KeyLast = pNode->KeyLast; NOREF(KeyLast);
+ #endif
+ 
+     AVLStack.cEntries = 0;
+@@ -400,7 +400,7 @@
+ {
+     KAVLSTACK                AVLStack;
+     PPKAVLNODECORE           ppDeleteNode = ppTree;
+-    register PKAVLNODECORE   pDeleteNode;
++    PKAVLNODECORE   pDeleteNode;
+ 
+     AVLStack.cEntries = 0;
+ 
+@@ -427,7 +427,7 @@
+         /* find the rightmost node in the left tree. */
+         const unsigned          iStackEntry = AVLStack.cEntries;
+         PPKAVLNODECORE          ppLeftLeast = &pDeleteNode->pLeft;
+-        register PKAVLNODECORE  pLeftLeast = KAVL_GET_POINTER(ppLeftLeast);
++        PKAVLNODECORE  pLeftLeast = KAVL_GET_POINTER(ppLeftLeast);
+ 
+         while (pLeftLeast->pRight != KAVL_NULL)
+         {
+--- a/src/app/virtualbox/src/VBox/Runtime/common/string/utf-16.cpp
++++ b/src/app/virtualbox/src/VBox/Runtime/common/string/utf-16.cpp
+@@ -193,7 +193,7 @@
+ RT_EXPORT_SYMBOL(RTUtf16Len);
+ 
+ 
+-RTDECL(int) RTUtf16Cmp(register PCRTUTF16 pwsz1, register PCRTUTF16 pwsz2)
++RTDECL(int) RTUtf16Cmp(PCRTUTF16 pwsz1, PCRTUTF16 pwsz2)
+ {
+     if (pwsz1 == pwsz2)
+         return 0;
+@@ -204,8 +204,8 @@
+ 
+     for (;;)
+     {
+-        register RTUTF16  wcs = *pwsz1;
+-        register int     iDiff = wcs - *pwsz2;
++        RTUTF16  wcs = *pwsz1;
++        int     iDiff = wcs - *pwsz2;
+         if (iDiff || !wcs)
+             return iDiff;
+         pwsz1++;

@@ -1,0 +1,26 @@
+--- a/src/app/virtualbox/src/VBox/Devices/Graphics/DevVGA_VBVA.cpp
++++ b/src/app/virtualbox/src/VBox/Devices/Graphics/DevVGA_VBVA.cpp
+@@ -2249,12 +2249,23 @@
+ 
+     const uint64_t u64ScreenSize = (uint64_t)screen.u32LineSize * screen.u32Height;
+ 
++    if (!(   screen.u32StartOffset <= pView->u32ViewSize
++          && u64ScreenSize         <= pView->u32MaxScreenSize
++          && screen.u32StartOffset <= pView->u32ViewSize - (uint32_t)u64ScreenSize))
++    {
++        RTLogPrintf("%s - assertion failed - u32StartOffset=%#x u32ViewSize=%#x u64ScreenSize=%#RX64 u32MaxScreenSize=%#x",
++                    __func__, screen.u32StartOffset, pView->u32ViewSize, u64ScreenSize, pView->u32MaxScreenSize);
++#if 0
+     ASSERT_GUEST_LOGREL_MSG_RETURN(   screen.u32StartOffset <= pView->u32ViewSize
+                                    && u64ScreenSize         <= pView->u32MaxScreenSize
+                                    && screen.u32StartOffset <= pView->u32ViewSize - (uint32_t)u64ScreenSize,
+                                    ("u32StartOffset=%#x u32ViewSize=%#x u64ScreenSize=%#RX64 u32MaxScreenSize=%#x\n",
+                                     screen.u32StartOffset, pView->u32ViewSize, u64ScreenSize, pView->u32MaxScreenSize),
+                                    VERR_INVALID_PARAMETER);
++#endif
++        return VERR_INVALID_PARAMETER;
++    }
++
+     RT_UNTRUSTED_VALIDATED_FENCE();
+ 
+     /*

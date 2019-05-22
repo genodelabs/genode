@@ -1,11 +1,11 @@
 /*
- * \brief  Genode/Nova specific VirtualBox SUPLib supplements
+ * \brief  Genode specific VirtualBox SUPLib supplements
  * \author Alexander Boettcher
  * \date   2013-11-18
  */
 
 /*
- * Copyright (C) 2013-2017 Genode Labs GmbH
+ * Copyright (C) 2013-2019 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
  * version 2.
@@ -76,14 +76,12 @@ class Vcpu_handler_svm : public Vcpu_handler
 			next_utcb.ctrl[1] = 0;
 		}
 
-		void _svm_recall() { Vcpu_handler::_recall_handler(); }
-
 		void _handle_vm_exception()
 		{
 			unsigned const exit = _state->exit_reason;
-//			Genode::warning(__func__, " ", Genode::Hex(exit), " _irq_win=", _irq_win);
+			bool recall_wait = true;
+
 			switch (exit) {
-			case RECALL:         _svm_recall(); break;
 			case SVM_EXIT_IOIO:  _svm_ioio(); break;
 			case SVM_EXIT_VINTR: _svm_vintr(); break;
 //			case SVM_EXIT_RDTSC: _svm_default(); break;
@@ -91,17 +89,36 @@ class Vcpu_handler_svm : public Vcpu_handler
 			case SVM_NPT:        _svm_npt<SVM_NPT>(); break;
 			case SVM_EXIT_HLT:   _svm_default(); break;
 			case SVM_EXIT_CPUID: _svm_default(); break;
+			case RECALL:
+				recall_wait = Vcpu_handler::_recall_handler();
+				break;
 			case VCPU_STARTUP:
 				_svm_startup();
-				_lock.unlock();
+				_lock_emt.unlock();
 				/* pause - no resume */
-				return;
+				break;
 			default:
 				Genode::error(__func__, " unknown exit - stop - ",
 				              Genode::Hex(exit));
 				_vm_state = PAUSED;
 				return;
 			}
+
+			if (exit == RECALL && !recall_wait) {
+				_vm_state = RUNNING;
+				run_vm();
+				return;
+			}
+
+			/* wait until EMT thread wake's us up */
+			_sem_handler.down();
+
+			/* resume vCPU */
+			_vm_state = RUNNING;
+			if (_next_state == RUN)
+				run_vm();
+			else
+				pause_vm(); /* cause pause exit */
 		}
 
 		void run_vm()   { _vm_session.run(_vcpu); }
@@ -154,13 +171,12 @@ class Vcpu_handler_svm : public Vcpu_handler
 			_state = _state_ds.local_addr<Genode::Vm_state>();
 
 			/* sync with initial startup exception */
-			_lock.lock();
+			_lock_emt.lock();
 
 			_vm_session.run(_vcpu);
 
 			/* sync with initial startup exception */
-			_lock.lock();
-//			_lock.unlock();
+			_lock_emt.lock();
 		}
 
 		bool hw_save_state(Genode::Vm_state *state, VM * pVM, PVMCPU pVCpu) {

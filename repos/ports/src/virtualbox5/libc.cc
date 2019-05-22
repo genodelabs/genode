@@ -296,3 +296,10 @@ extern "C" long pathconf(char const *path, int name)
 	errno = EINVAL;
 	return -1;
 }
+
+extern "C" int siginterrupt(int, int)
+{
+	Genode::Thread * thread = Genode::Thread::myself();
+	Genode::warning(__func__, " called, caller=", thread ? thread->name() : "");
+	return 0;
+}

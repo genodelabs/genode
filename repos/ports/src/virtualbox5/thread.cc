@@ -12,6 +12,7 @@
  */
 
 /* Genode */
+#include <base/attached_rom_dataspace.h>
 #include <base/log.h>
 #include <base/thread.h>
 #include <cpu_session/connection.h>
@@ -31,11 +32,24 @@
 /* vbox */
 #include <internal/thread.h>
 
+static bool use_priorities()
+{
+	Genode::Attached_rom_dataspace const platform(genode_env(), "platform_info");
+	Genode::Xml_node const kernel = platform.xml().sub_node("kernel");
+	return kernel.attribute_value("name", Genode::String<16>("unknown")) == "nova";
+}
+
 static long prio_class(RTTHREADTYPE const type)
 {
 	unsigned const VIRTUAL_GENODE_VBOX_LEVELS = 16;
 	static_assert (RTTHREADTYPE_END < VIRTUAL_GENODE_VBOX_LEVELS,
 	               "prio levels exceeds VIRTUAL_GENODE_VBOX_LEVELS");
+
+	/* evaluate once */
+	static bool const priorities = use_priorities();
+
+	if (!priorities)
+		return Genode::Cpu_session::DEFAULT_PRIORITY;
 
 	return (VIRTUAL_GENODE_VBOX_LEVELS - type) *
 	        Genode::Cpu_session::PRIORITY_LIMIT / VIRTUAL_GENODE_VBOX_LEVELS;
@@ -124,6 +138,10 @@ extern "C" int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
 			log("Upgrading memory for creation of "
 			    "thread '", Cstring(rtthread->szName), "'");
 			cpu_connection(rtthread->enmType)->upgrade_ram(4096);
+		} catch (Genode::Signal_receiver::Signal_not_pending) {
+			error("signal not pending ?");
+		} catch (Out_of_caps) {
+			error("out of caps ...");
 		}
 		catch (...) { break; }
 	}
