@@ -111,8 +111,6 @@ extern Genode::size_t const kernel_stack_size;
 
 void Genode::Cpu::switch_to(Context & context, Mmu_context &mmu_context)
 {
-	_fpu.switch_to(context);
-
 	if ((context.cs != 0x8) && (mmu_context.cr3 != Cr3::read()))
 		Cr3::write(mmu_context.cr3);
 

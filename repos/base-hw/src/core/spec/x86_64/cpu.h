@@ -43,8 +43,6 @@ class Genode::Cpu : public Hw::X86_64_cpu
 {
 	protected:
 
-		Fpu _fpu { };
-
 	public:
 
 		/**
@@ -95,7 +93,7 @@ class Genode::Cpu : public Hw::X86_64_cpu
 		struct Kernel_stack { unsigned long kernel_stack { }; };
 
 		/* exception_vector.s depends on the position of the Kernel_stack */
-		struct alignas(16) Context : Cpu_state, Kernel_stack, Fpu::Context
+		struct alignas(16) Context : Cpu_state, Kernel_stack, Fpu_context
 		{
 			enum Eflags {
 				EFLAGS_IF_SET = 1 << 9,
@@ -112,9 +110,6 @@ class Genode::Cpu : public Hw::X86_64_cpu
 
 			Mmu_context(addr_t page_table_base);
 		};
-
-
-		Fpu & fpu() { return _fpu; }
 
 		/**
 		 * Return kernel name of the executing CPU

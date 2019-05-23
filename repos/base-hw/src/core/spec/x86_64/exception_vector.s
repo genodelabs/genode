@@ -119,7 +119,14 @@
 	.set REGISTER_SIZE, 8
 	.set SIZEOF_CPU_STATE, REGISTER_COUNT * REGISTER_SIZE /* sizeof (Cpu_state) */
 	.set KERNEL_STACK_OFFSET, SIZEOF_CPU_STATE
+	.set FPU_CONTEXT_OFFSET, KERNEL_STACK_OFFSET + 8
 	/* rsp contains pointer to Cpu::Context */
+
+	/* save FPU context */
+	movq %rsp, %rax
+	addq $FPU_CONTEXT_OFFSET, %rax
+	movq (%rax), %rax
+	fxsave (%rax)
 
 	/* Restore kernel stack and continue kernel execution */
 	movq %rsp, %rax

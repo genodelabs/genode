@@ -27,11 +27,6 @@ void Thread::exception(Cpu & cpu)
 	case Cpu_state::PAGE_FAULT:
 		_mmu_exception();
 		return;
-	case Cpu_state::NO_MATH_COPROC:
-		if (_cpu->fpu().fault(*regs)) { return; }
-		Genode::raw(*this, ": FPU error");
-		_die();
-		return;
 	case Cpu_state::UNDEFINED_INSTRUCTION:
 		Genode::raw(*this, ": undefined instruction at ip=", (void*)regs->ip);
 		_die();

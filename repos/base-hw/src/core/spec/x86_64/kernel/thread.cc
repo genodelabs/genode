@@ -41,7 +41,8 @@ void Kernel::Thread::proceed(Cpu & cpu)
 {
 	cpu.switch_to(*regs, pd().mmu_regs);
 
-	asm volatile("mov  %0, %%rsp  \n"
+	asm volatile("fxrstor (%1)    \n"
+	             "mov  %0, %%rsp  \n"
 	             "popq %%r8       \n"
 	             "popq %%r9       \n"
 	             "popq %%r10      \n"
@@ -58,7 +59,8 @@ void Kernel::Thread::proceed(Cpu & cpu)
 	             "popq %%rsi      \n"
 	             "popq %%rbp      \n"
 	             "add  $16, %%rsp \n"
-	             "iretq           \n" :: "r" (&regs->r8));
+	             "iretq           \n"
+	             :: "r" (&regs->r8), "r" (regs->fpu_context()));
 }
 
 

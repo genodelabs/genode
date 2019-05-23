@@ -25,7 +25,6 @@ SRC_CC += spec/x86/io_port_session_component.cc
 SRC_CC += spec/x86/io_port_session_support.cc
 SRC_CC += spec/x86_64/bios_data_area.cc
 SRC_CC += spec/x86_64/cpu.cc
-SRC_CC += spec/x86_64/fpu.cc
 SRC_CC += spec/x86_64/kernel/cpu.cc
 SRC_CC += spec/x86_64/kernel/pd.cc
 SRC_CC += spec/x86_64/kernel/thread.cc
