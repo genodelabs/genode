@@ -111,10 +111,12 @@ void Platform::Device_component::config_write(unsigned char address,
 		case Device_config::PCI_CMD_REG: /* COMMAND register - first byte */
 			if (size == Access_size::ACCESS_16BIT)
 				break;
+			[[fallthrough]];
 		case Device_config::PCI_CMD_REG + 1: /* COMMAND register - second byte */
 		case 0xd: /* Latency timer */
 			if (size == Access_size::ACCESS_8BIT)
 				break;
+			[[fallthrough]];
 		default:
 			Genode::warning(_device_config, " write access to "
 			                "address=", Genode::Hex(address), " "
