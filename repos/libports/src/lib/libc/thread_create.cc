@@ -14,9 +14,14 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+#include <libc/allocator.h>
+
 #include "thread_create.h"
 #include "thread.h"
 #include <errno.h>
+
+
+static Libc::Allocator object_alloc;
 
 
 int Libc::pthread_create(pthread_t *thread,
@@ -24,8 +29,9 @@ int Libc::pthread_create(pthread_t *thread,
                          size_t stack_size, char const * name,
                          Genode::Cpu_session * cpu, Genode::Affinity::Location location)
 {
-		pthread_t thread_obj = new pthread(start_routine, arg,
-		                                   stack_size, name, cpu, location);
+		pthread_t thread_obj = new (object_alloc)
+		                       pthread(start_routine, arg,
+		                               stack_size, name, cpu, location);
 		if (!thread_obj)
 			return EAGAIN;
 
@@ -39,7 +45,7 @@ int Libc::pthread_create(pthread_t *thread,
 
 int Libc::pthread_create(pthread_t *thread, Genode::Thread &t)
 {
-		pthread_t thread_obj = new pthread(t);
+		pthread_t thread_obj = new (object_alloc) pthread(t);
 
 		if (!thread_obj)
 			return EAGAIN;

@@ -16,6 +16,7 @@
 #include <base/sleep.h>
 #include <base/thread.h>
 #include <util/list.h>
+#include <libc/allocator.h>
 
 #include <errno.h>
 #include <pthread.h>
@@ -28,8 +29,7 @@
 using namespace Genode;
 
 
-void * operator new(__SIZE_TYPE__ size) { return malloc(size); }
-void operator delete (void * p) { return free(p); }
+static Libc::Allocator object_alloc;
 
 
 static Env *_env_ptr;  /* solely needed to spawn the timeout thread for the
@@ -172,7 +172,7 @@ extern "C" {
 	{
 		thread->join(retval);
 
-		delete thread;
+		destroy(object_alloc, thread);
 
 		return 0;
 	}
@@ -183,7 +183,7 @@ extern "C" {
 		if (!attr)
 			return EINVAL;
 
-		*attr = new pthread_attr;
+		*attr = new (object_alloc) pthread_attr;
 
 		return 0;
 	}
@@ -194,7 +194,7 @@ extern "C" {
 		if (!attr || !*attr)
 			return EINVAL;
 
-		delete *attr;
+		destroy(object_alloc, *attr);
 		*attr = 0;
 
 		return 0;
@@ -251,7 +251,7 @@ extern "C" {
 		 * of the pthread object would also destruct the 'Thread' of the main
 		 * thread.
 		 */
-		static pthread *main = new pthread(*Thread::myself());
+		static pthread *main = new (object_alloc) pthread(*Thread::myself());
 		return main;
 	}
 
@@ -498,7 +498,7 @@ extern "C" {
 		if (!attr)
 			return EINVAL;
 
-		*attr = new pthread_mutex_attr;
+		*attr = new (object_alloc) pthread_mutex_attr;
 
 		return 0;
 	}
@@ -509,7 +509,7 @@ extern "C" {
 		if (!attr || !*attr)
 			return EINVAL;
 
-		delete *attr;
+		destroy(object_alloc, *attr);
 		*attr = 0;
 
 		return 0;
@@ -533,7 +533,7 @@ extern "C" {
 		if (!mutex)
 			return EINVAL;
 
-		*mutex = new pthread_mutex(attr);
+		*mutex = new (object_alloc) pthread_mutex(attr);
 
 		return 0;
 	}
@@ -544,7 +544,7 @@ extern "C" {
 		if ((!mutex) || (*mutex == PTHREAD_MUTEX_INITIALIZER))
 			return EINVAL;
 
-		delete *mutex;
+		destroy(object_alloc, *mutex);
 		*mutex = PTHREAD_MUTEX_INITIALIZER;
 
 		return 0;
@@ -655,7 +655,7 @@ extern "C" {
 
 		try {
 			Genode::Lock::Guard g(cond_init_lock);
-			*cond = new pthread_cond;
+			*cond = new (object_alloc) pthread_cond;
 			return 0;
 		} catch (...) { return ENOMEM; }
 	}
@@ -673,7 +673,7 @@ extern "C" {
 		if (!cond || !*cond)
 			return EINVAL;
 
-		delete *cond;
+		destroy(object_alloc, *cond);
 		*cond = 0;
 
 		return 0;
@@ -854,7 +854,7 @@ extern "C" {
 			 * thread to mark the key slot as used.
 			 */
 			if (!key_list[k].first()) {
-				Key_element *key_element = new Key_element(Thread::myself(), 0);
+				Key_element *key_element = new (object_alloc) Key_element(Thread::myself(), 0);
 				key_list[k].insert(key_element);
 				*key = k;
 				return 0;
@@ -874,7 +874,7 @@ extern "C" {
 
 		while (Key_element * element = key_list[key].first()) {
 			key_list[key].remove(element);
-			delete element;
+			destroy(object_alloc, element);
 		}
 
 		return 0;
@@ -898,7 +898,7 @@ extern "C" {
 			}
 
 		/* key element does not exist yet - create a new one */
-		Key_element *key_element = new Key_element(Thread::myself(), value);
+		Key_element *key_element = new (object_alloc) Key_element(Thread::myself(), value);
 		key_list[key].insert(key_element);
 		return 0;
 	}
@@ -929,7 +929,7 @@ extern "C" {
 			return EINTR;
 
 		if (!once->mutex) {
-			pthread_mutex_t p = new pthread_mutex(0);
+			pthread_mutex_t p = new (object_alloc) pthread_mutex(0);
 			/* be paranoid */
 			if (!p)
 				return EINTR;
@@ -948,7 +948,7 @@ extern "C" {
 			 * free our mutex since it is not used.
 			 */
 			if (p)
-				delete p;
+				destroy(object_alloc, p);
 		}
 
 		once->mutex->lock();

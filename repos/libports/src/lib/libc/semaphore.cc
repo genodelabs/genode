@@ -15,8 +15,12 @@
 #include <base/log.h>
 #include <base/semaphore.h>
 #include <semaphore.h>
+#include <libc/allocator.h>
 
 using namespace Genode;
+
+
+static Libc::Allocator object_alloc;
 
 extern "C" {
 
@@ -39,7 +43,7 @@ extern "C" {
 
 	int sem_destroy(sem_t *sem)
 	{
-		delete *sem;
+		destroy(object_alloc, *sem);
 		return 0;
 	}
 
@@ -53,7 +57,7 @@ extern "C" {
 
 	int sem_init(sem_t *sem, int pshared, unsigned int value)
 	{
-		*sem = new struct sem(value);
+		*sem = new (object_alloc) struct sem(value);
 		return 0;
 	}
 

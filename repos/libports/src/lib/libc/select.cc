@@ -201,7 +201,7 @@ static void select_notify()
 }
 
 
-static void print(Genode::Output &output, timeval *tv)
+static inline void print(Genode::Output &output, timeval *tv)
 {
 	if (!tv) {
 		print(output, "nullptr");

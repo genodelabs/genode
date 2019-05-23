@@ -17,10 +17,15 @@
 #include <base/lock.h>
 #include <base/lock_guard.h>
 #include <base/thread.h>
+#include <libc/allocator.h>
 
 /* Libc includes */
 #include <errno.h>
 #include <pthread.h>
+
+
+static Libc::Allocator object_alloc;
+
 
 /*
  * A reader-preferring implementation of a readers-writer lock as described
@@ -100,7 +105,7 @@ extern "C" {
 
 		try {
 			Genode::Lock::Guard g(rwlock_init_lock);
-			*rwlock = new struct pthread_rwlock();
+			*rwlock = new (object_alloc) struct pthread_rwlock();
 			return 0;
 		} catch (...) { return ENOMEM; }
 	}
@@ -112,7 +117,7 @@ extern "C" {
 
 	int pthread_rwlock_destroy(pthread_rwlock_t *rwlock)
 	{
-		delete *rwlock;
+		destroy(object_alloc, *rwlock);
 		return 0;
 	}
 
@@ -149,7 +154,7 @@ extern "C" {
 
 	int pthread_rwlockattr_init(pthread_rwlockattr_t *attr)
 	{
-		*attr = new struct pthread_rwlockattr();
+		*attr = new (object_alloc) struct pthread_rwlockattr();
 		return 0;
 	}
 
@@ -170,7 +175,7 @@ extern "C" {
 
 	int pthread_rwlockattr_destroy(pthread_rwlockattr_t *attr)
 	{
-		delete *attr;
+		destroy(object_alloc, *attr);
 		return 0;
 	}
 
