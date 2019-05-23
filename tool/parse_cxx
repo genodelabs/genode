@@ -592,7 +592,7 @@ extract argname {§identifier\d+°\s*$} {argdecl}
 extract argtype {^(§(argmodifier|keyunsigned)\d+°\s*)*(§(identifier|keytypename|varargs|keyunsigned)\d+°)(\s*|(§(amper|and|argmodifier)\d+°)|(§star\d+°))*(§argmodifier\d+°\s*)*(§varargs\d+°)?} argdecl
 
 # extract typedefs
-extract typedef {(§mlcomment\d+° *\n[ \t]*)?§keytypedef\d+°(\s*§(identifier|keyunsigned)\d+°)+\s*;} {content classblock block}
+extract typedef {(§mlcomment\d+° *\n[ \t]*)?§keytypedef\d+°(\s*§(identifier|keyunsigned|keytypename)\d+°)+\s*;} {content classblock block}
 extract typename {§identifier\d+°(?=;)} typedef
 extract identifier {(\s*§(identifier|keyunsigned)\d+°){2,}} typedef
 extract identifier {\s*§keyunsigned\d+°} typedef
@@ -601,7 +601,7 @@ extract identifier {\s*§keyunsigned\d+°} typedef
 extract vardecl {(§(modifier|keyunsigned)\d+°\s*)*(§(identifier|keyunsigned)\d+°)((\s|(§amper\d+°)|(§star\d+°))*(§modifier\d+°\s*)*(§funcptr\d+°)\s*(:\s*§identifier\d+°)?\s*(§assign\d+°[^;]*?)?\s*(§comma\d+°)?\s*)+;} {content classblock block}
 
 # extract variable declarations (type + any number of comma-separated variables + optional tailing comment)
-extract vardecl {(§(modifier|keyunsigned)\d+°\s*)*(§(identifier|keyunsigned)\d+°)((\s|(§amper\d+°)|(§star\d+°))*(§modifier\d+°\s*)*(§(identifier|array)\d+°)\s*(:\s*§identifier\d+°)?\s*(§assign\d+°[^;]*?)?\s*(§comma\d+°)?\s*)+;} {content classblock block}
+extract vardecl {(§(modifier|keyunsigned)\d+°\s*)*(§(identifier|keyunsigned)\d+°)((\s|(§amper\d+°)|(§star\d+°))*(§(modifier|keyconst)\d+°\s*)*(§(identifier|array)\d+°)\s*(:\s*§identifier\d+°)?\s*(§assign\d+°[^;]*?)?(§block\d+°)?\s*(§comma\d+°)?\s*)+;} {content classblock block}
 
 # extract commented variable declaration
 extract commentedvardecl {§vardecl\d+°\s*§m?lcomment\d+°(\s*§lcomment\d°)*} {content classblock block}
