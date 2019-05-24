@@ -59,7 +59,7 @@ endif
 
 UBOOT_MAKE := \
 	$(VERBOSE)make ARCH=$(ARCH) \
-	               CROSS_COMPILE=/usr/local/genode-gcc/bin/genode-$(ARCH)- \
+	               CROSS_COMPILE=/usr/local/genode/tool/current/bin/genode-$(ARCH)- \
 	               O=$(UBOOT_BUILD_DIR) \
 	               -j4
 

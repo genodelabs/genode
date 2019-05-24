@@ -46,7 +46,7 @@ sdk_usage:
 SDK_DIR ?= $(DEFAULT_SDK_DIR_PREFIX)-$(PLATFORM)-$(VERSION)
 DEPOT_USER ?= $(DEFAULT_DEPOT_USER)
 
-TOOLCHAIN_DIR ?= /usr/local/genode-gcc
+TOOLCHAIN_DIR ?= /usr/local/genode/tool/current
 
 #
 # Sanity checks

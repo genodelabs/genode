@@ -63,7 +63,7 @@ BINUTILS_VERSION   = 2.32
 #
 
 DEFAULT_BUILD_LOCATION   = $(GENODE_DIR)/build/tool_chain-$(TOOL_CHAIN_VERSION)
-DEFAULT_INSTALL_LOCATION = /usr/local/genode-gcc
+DEFAULT_INSTALL_LOCATION = /usr/local/genode/tool/$(TOOL_CHAIN_VERSION)
 
 BUILD_LOCATION   ?= $(DEFAULT_BUILD_LOCATION)
 INSTALL_LOCATION ?= $(DEFAULT_INSTALL_LOCATION)
@@ -546,5 +546,9 @@ cleanall: clean
 
 install: build_all
 	$(ECHO) "$(BRIGHT_COL)installing tool chain to '$(INSTALL_LOCATION)'...$(DEFAULT_COL)"
+	$(VERBOSE)$(SUDO) mkdir -p $(INSTALL_LOCATION)
 	$(VERBOSE)$(SUDO) cp -a --remove-destination --no-target-directory $(LOCAL_INSTALL_LOCATION) $(INSTALL_LOCATION)
 	$(VERBOSE)$(LIB_GCC)
+ifeq ($(INSTALL_LOCATION),$(DEFAULT_INSTALL_LOCATION))
+	$(VERBOSE)$(SUDO) ln -snf $(TOOL_CHAIN_VERSION) $(dir $(INSTALL_LOCATION))/current
+endif
