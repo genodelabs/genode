@@ -17,6 +17,8 @@ void Sculpt::gen_nic_drv_start_content(Xml_generator &xml)
 {
 	gen_common_start_content(xml, "nic_drv", Cap_quota{300}, Ram_quota{16*1024*1024});
 
+	xml.node("binary", [&] () { xml.attribute("name", "ipxe_nic_drv"); });
+
 	gen_provides<Nic::Session>(xml);
 
 	xml.node("config", [&] () { });
@@ -26,7 +28,7 @@ void Sculpt::gen_nic_drv_start_content(Xml_generator &xml)
 			xml.node("parent", [&] () {
 				xml.attribute("label", "nic"); }); });
 
-		gen_parent_rom_route(xml, "nic_drv");
+		gen_parent_rom_route(xml, "ipxe_nic_drv");
 		gen_parent_rom_route(xml, "ld.lib.so");
 		gen_parent_route<Cpu_session>    (xml);
 		gen_parent_route<Pd_session>     (xml);
