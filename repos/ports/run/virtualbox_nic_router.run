@@ -379,7 +379,6 @@ append boot_modules { ld.lib.so }
 append boot_modules { libc.lib.so }
 append boot_modules { libm.lib.so }
 append boot_modules { libc_pipe.lib.so }
-append boot_modules { libc_terminal.lib.so }
 append boot_modules { libiconv.lib.so }
 append boot_modules { stdcxx.lib.so }
 append boot_modules { qemu-usb.lib.so }

@@ -371,7 +371,7 @@ install_config $config
 append boot_modules {
 	part_block ahci_drv fs_rom
 	libc.lib.so vfs.lib.so libm.lib.so
-	libc_pipe.lib.so libc_terminal.lib.so
+	libc_pipe.lib.so
 	libiconv.lib.so stdcxx.lib.so
 	qemu-usb.lib.so
 }

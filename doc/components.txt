@@ -482,13 +482,7 @@ Libraries:
 :'libports/lib/mk/libc':
   C runtime ported from FreeBSD.
 
-:'libports/lib/mk/libc_lwip_nic_dhcp':
-  Translates the BSD socket API to a NIC session using the lwIP stack.
-
-:'dde_linux/lib/mk/libc_lxip':
-  Translates the BSD socket API to a NIC session using the Linux TCP/IP stack.
-
-:'libports/lib/mk/libc_ffat':
+:'libports/lib/mk/libc_fatfs':
   Accesses files on a block device that contains a FAT32 file system.
 
 :'libports/lib/mk/libc_fuse_exfat':
@@ -496,10 +490,6 @@ Libraries:
 
 :'libports/lib/mk/libc_fuse_ext2':
   Accesses files on a block device that contains an ext2 file system.
-
-:'libports/lib/mk/libc_terminal':
-  Connects the standard input and output from/to Genode's terminal session
-  interface.
 
 :'libports/lib/mk/stdcxx':
   Standard C++ library

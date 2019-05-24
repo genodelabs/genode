@@ -36,8 +36,6 @@ $(MIRROR_FROM_PORT_DIR):
 
 MIRROR_FROM_LIBPORTS := lib/mk/libc_pipe.mk \
                         src/lib/libc_pipe \
-                        lib/mk/libc_terminal.mk \
-                        src/lib/libc_terminal \
                         lib/mk/libc-mem.mk \
                         lib/mk/libc-common.inc \
                         src/lib/libc/libc_mem_alloc.cc \
