@@ -65,9 +65,11 @@ struct Hw::Apic_madt
 
 	struct Lapic : Genode::Mmio {
 
-		struct Flags    : Register <0x04, 32> { enum { ENABLED = 1 }; };
+		struct Flags    : Register <0x04, 32> { enum { VALID = 1 }; };
 
 		Lapic(Apic_madt const * a) : Mmio(reinterpret_cast<Genode::addr_t>(a)) { }
+
+		bool valid() { return read<Flags>() & Flags::VALID; };
 	};
 
 } __attribute__((packed));

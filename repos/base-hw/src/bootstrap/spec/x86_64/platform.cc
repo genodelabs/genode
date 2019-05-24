@@ -175,7 +175,10 @@ Bootstrap::Platform::Board::Board()
 					Hw::for_each_apic_struct(*table,[&](Hw::Apic_madt const *e){
 						if (e->type == Hw::Apic_madt::LAPIC) {
 							Hw::Apic_madt::Lapic lapic(e);
-							cpus ++;
+
+							/* check if APIC is enabled in hardware */
+							if (lapic.valid())
+								cpus ++;
 						}
 					});
 				});
@@ -190,7 +193,10 @@ Bootstrap::Platform::Board::Board()
 					Hw::for_each_apic_struct(*table,[&](Hw::Apic_madt const *e){
 						if (e->type == Hw::Apic_madt::LAPIC) {
 							Hw::Apic_madt::Lapic lapic(e);
-							cpus ++;
+
+							/* check if APIC is enabled in hardware */
+							if (lapic.valid())
+								cpus ++;
 						}
 					});
 				});
