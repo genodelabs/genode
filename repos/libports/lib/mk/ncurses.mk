@@ -15,6 +15,10 @@ vpath %.c $(NCURSES_SRC_DIR)/tinfo
 ALL_TTY_SRC_C = $(notdir $(wildcard $(NCURSES_SRC_DIR)/tty/*.c))
 SRC_C += $(ALL_TTY_SRC_C)
 vpath %.c $(NCURSES_SRC_DIR)/tty
+# prevent the use of '\n' for 'cursor down' movement, because the terminal adds
+# CR by default and ncurses' clearing of 'ONLCR' from 'c_oflag' currently has
+# no effect
+CC_OPT_lib_mvcur = -DNO_OPTIMIZE
 
 # files from the 'ncurses/trace/' subdirectory
 SRC_C += $(notdir $(addprefix $(NCURSES_SRC_DIR)/trace/,lib_trace.c varargs.c visbuf.c))
