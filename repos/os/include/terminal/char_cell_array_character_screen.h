@@ -318,7 +318,7 @@ class Char_cell_array_character_screen : public Terminal::Character_screen
 		{
 			Cursor_guard guard(*this);
 
-			_cursor_pos.x += dy;
+			_cursor_pos.y -= dy;
 			_cursor_pos.y = Genode::max(0, _cursor_pos.y);
 		}
 
