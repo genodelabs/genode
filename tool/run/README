@@ -88,8 +88,8 @@ for output while loading the files via TFTP:
 
 !RUN_OPT = --include boot_dir/foc \
 !          --include power_on/amt --amt-host 10.23.42.13 --amt-password 'foo!' \
-!          --include load/tftp --tftp-base-dir /var/lib/tftpboot \
-!                              --tftp-offset-dir /x86 \
+!          --include load/tftp --load-tftp-base-dir /var/lib/tftpboot \
+!                              --load-tftp-offset-dir /x86 \
 !          --include log/serial --log-serial-cmd 'picocom -b 115200 /dev/ttyUSB0'
 
 Executing hw on a rpi using NETIO powerplug to reset the hardware, JTAG to load
