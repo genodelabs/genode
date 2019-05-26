@@ -1039,8 +1039,8 @@ it is possible to mark one file system as default. At boot time - when the
 Sculpt manager discovers the attached storage devices - it automatically
 selects a file system for use according to the following order of preference:
 
-# Partition labeled as "GENODE*" on a USB device,
-# Partition labeled as "GENODE*" on a SATA or NVMe storage device,
+# Partition named "GENODE*" on a USB device in a GPT (GUID Partition Table),
+# Partition named "GENODE*" on a SATA or NVMe storage device in a GPT,
 # An entire SATA or NVMe device used as a single EXT2 file system (as devised
   by Sculpt EA).
 
