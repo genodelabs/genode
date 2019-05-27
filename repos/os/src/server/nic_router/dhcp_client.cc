@@ -109,9 +109,9 @@ Microseconds Dhcp_client::_rerequest_timeout(unsigned lease_time_div_log2)
 void Dhcp_client::_handle_timeout(Duration)
 {
 	switch (_state) {
-	case State::BOUND:  _rerequest(State::RENEW);  break;
-	case State::RENEW:  _rerequest(State::REBIND); break;
-	case State::REBIND: _domain().discard_ip_config();
+	case State::BOUND:  _rerequest(State::RENEW);      break;
+	case State::RENEW:  _rerequest(State::REBIND);     break;
+	case State::REBIND: _domain().discard_ip_config(); [[fallthrough]];
 	default:            discover();
 	}
 }
