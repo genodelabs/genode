@@ -64,7 +64,7 @@ class Hw::Page_table
 						T::Tex::set(v, _device_tex());
 					} else {
 						switch (f.cacheable) {
-							case         CACHED: T::Tex::set(v, 5);
+							case         CACHED: T::Tex::set(v, 5); [[fallthrough]];
 							case WRITE_COMBINED: T::B::set(v, 1);   break;
 							case       UNCACHED: T::Tex::set(v, 1); break;
 						}
@@ -434,6 +434,7 @@ class Hw::Page_table
 					_entries[i] = Ptd::create(alloc.phys_addr(pt));
 					_translation_added((addr_t)&_entries[i], sizeof(Ptd));
 				}
+				[[fallthrough]];
 
 			case Descriptor::PAGE_TABLE:
 				{

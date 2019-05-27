@@ -210,7 +210,7 @@ class Hw::Long_translation_table
 
 					switch (f.cacheable) {
 					case Genode::CACHED:         return Attribute_index::bits(CACHED);
-					case Genode::WRITE_COMBINED:
+					case Genode::WRITE_COMBINED: [[fallthrough]];
 					case Genode::UNCACHED:       return Attribute_index::bits(UNCACHED);
 					}
 					return 0;
@@ -434,7 +434,7 @@ class Hw::Level_x_translation_table :
 						E & table = alloc.construct<E>();
 						desc = Table_descriptor::create((void*)alloc.phys_addr(table));
 					}
-
+					[[fallthrough]];
 				case Descriptor::TABLE: /* table already available */
 					{
 						/* use allocator to retrieve virt address of table */
@@ -476,8 +476,8 @@ class Hw::Level_x_translation_table :
 						                         size, alloc);
 						if (!table.empty()) break;
 						alloc.destruct<E>(table);
-					}
-				case Descriptor::BLOCK:
+					} [[fallthrough]];
+				case Descriptor::BLOCK: [[fallthrough]];
 				case Descriptor::INVALID:
 					desc = 0;
 				}
