@@ -1,0 +1,26 @@
+##
+# Reset the target machine via executing external command
+#
+# \param --power-on-command-cmd    external command
+# \param --power-on-command-param  command parameter (allows to specify device)
+#
+
+
+proc power_on_command_cmd { } {
+	return [get_cmd_arg_first --power-on-command-cmd 1]
+}
+
+
+proc power_on_command_param { } {
+	return [get_cmd_arg_first --power-on-command-param 1]
+}
+
+
+proc run_power_on { } {
+	set command [power_on_command_cmd]
+	set param [power_on_command_param]
+
+	exec $command $param
+
+	return true
+}
