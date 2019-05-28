@@ -28,7 +28,7 @@
 		</default-route>
 		<default caps="100"/>
 		<start name="nic_loopback">
-			<resource name="RAM" quantum="1M"/>
+			<resource name="RAM" quantum="2M"/>
 			<provides><service name="Nic"/></provides>
 		</start>
 		<start name="test-nic_loopback">
