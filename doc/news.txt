@@ -4,6 +4,38 @@
                                ===========
 
 
+Genode OS Framework release 19.05 | 2019-05-29
+##############################################
+
+| The highlights of version 19.05 are a new kernel-agnostic virtualization
+| interface, initial support for the 64-bit ARM architecture, the use of
+| C++17 by default, a new tool chain based on GCC 8.3, updated C and SPARK
+| runtimes, and the consolidation of build directories across boards.
+
+We dedicated the release cycle of Genode 19.05 to platform topics at various
+levels. The flagship feature is certainly the introduction of our
+kernel-agnostic virtualization interface. It has been in the works for more
+than a half year and gives us the prospect of running virtual machine monitors
+like Seoul and VirtualBox seamlessly across Genode's supported kernels.
+
+The second major theme is the extension of Genode's CPU-architecture support
+to 64-bit ARM (AARCH64). This step motivated the update of many parts of the
+framework's fundamental infrastructure, ranging from the tool chain (updated
+to GCC 8.3), over the C runtime (updated to FreeBSD 12 libc), to the dynamic
+linker. The new tool chain, in turn, paved the ground for enabling C++17 by
+default.
+
+With the diversity of kernels, CPU architectures, and boards growing, we are
+constantly striving to remove friction and redundancies between Genode's
+underlying platforms. The current release eventually consolidates the build
+directories not only across kernels but also across all boards of a given
+CPU architecture. This vastly increases the velocity of Genode-based system
+scenarios when targeting multiple boards or emulators at the same time.
+
+Further details about these and many more improvements are given in the
+[https:/documentation/release-notes/19.05 - release documentation of version 19.05...]
+
+
 Sculpt as a Community Experience | 2019-03-19
 #############################################
 
