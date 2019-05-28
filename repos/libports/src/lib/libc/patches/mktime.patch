@@ -1,0 +1,44 @@
+diff --git a/src/lib/libc/contrib/tzcode/stdtime/localtime.c b/src/lib/libc/contrib/tzcode/stdtime/localtime.c
+index 3c66924..05c01ae 100644
+--- src/lib/libc/contrib/tzcode/stdtime/localtime.c
++++ src/lib/libc/contrib/tzcode/stdtime/localtime.c
+@@ -1935,6 +1935,10 @@ time2sub(struct tm *const tmp,
+ 			lo *= 2;
+ 		hi = -(lo + 1);
+ 	}
++
++	lo = TIME_T_MIN;
++	hi = TIME_T_MAX;
++
+ 	for ( ; ; ) {
+ 		t = lo / 2 + hi / 2;
+ 		if (t < lo)
+diff --git a/src/lib/libc/contrib/tzcode/stdtime/private.h b/src/lib/libc/contrib/tzcode/stdtime/private.h
+index 354a78b..8300ba0 100644
+--- src/lib/libc/contrib/tzcode/stdtime/private.h
++++ src/lib/libc/contrib/tzcode/stdtime/private.h
+@@ -251,6 +251,24 @@ const char *	scheck(const char * string, const char * format);
+ 	1 + TYPE_SIGNED(type))
+ #endif /* !defined INT_STRLEN_MAXIMUM */
+ 
++#define TWOS_COMPLEMENT(t) ((t) ~ (t) 0 < 0)
++
++/* Max and min values of the integer type T, of which only the bottom
++   B bits are used, and where the highest-order used bit is considered
++   to be a sign bit if T is signed.  */
++#define MAXVAL(t, b) \
++  ((t) (((t) 1 << ((b) - 1 - TYPE_SIGNED(t))) \
++  - 1 + ((t) 1 << ((b) - 1 - TYPE_SIGNED(t)))))
++#define MINVAL(t, b) \
++  ((t) (TYPE_SIGNED(t) ? - TWOS_COMPLEMENT(t) - MAXVAL(t, b) : 0))
++
++/* The extreme time values, assuming no padding.  */
++#define TIME_T_MIN_NO_PADDING MINVAL(time_t, TYPE_BIT(time_t))
++#define TIME_T_MAX_NO_PADDING MAXVAL(time_t, TYPE_BIT(time_t))
++
++# define TIME_T_MIN TIME_T_MIN_NO_PADDING
++# define TIME_T_MAX TIME_T_MAX_NO_PADDING
++
+ /*
+ ** INITIALIZE(x)
+ */

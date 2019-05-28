@@ -30,6 +30,9 @@ extern "C" {
 #include <time.h>
 #include <sys/random.h>
 #include <sys/syscall.h>
+#include <sys/limits.h>
+#include <time.h>
+#include <inttypes.h>
 }
 
 int main(int argc, char **argv)
@@ -170,6 +173,35 @@ int main(int argc, char **argv)
 		getentropy(&buf, sizeof(buf));
 		printf("getentropy %llx\n", buf);
 	}
+
+	do {
+		struct tm tm { };
+		/* 2019-05-27 12:30 */
+		tm.tm_sec  = 0;
+		tm.tm_min  = 30;
+		tm.tm_hour = 12;
+		tm.tm_mday = 27;
+		tm.tm_mon  = 4;
+		tm.tm_year = 119;
+
+		time_t t1 = mktime(&tm);
+		if (t1 == (time_t) -1) {
+			++error_count;
+			long long v1 = t1;
+			printf("Check mktime failed: %lld\n", v1);
+			break;
+		}
+		struct tm *tm_gmt = gmtime(&t1);
+		time_t t2 = mktime(tm_gmt);
+		if (t1 != t2) {
+			++error_count;
+			long long v1 = t1, v2 = t2;
+			printf("Check mktime failed: %lld != %lld\n", v1, v2);
+			break;
+		}
+
+		puts("Check mktime: success");
+	} while (0);
 
 	exit(error_count);
 }
