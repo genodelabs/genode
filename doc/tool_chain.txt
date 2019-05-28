@@ -23,20 +23,22 @@ Unified tool chain
 ##################
 
 Starting with Genode version 11.11, there is a unified tool chain for all base
-platforms and supported CPU architectures (x86_32, x86_64, ARM, and RISC-V). For
-Genode development, we highly recommend the use of the official Genode tool
-chain. It can be obtained in two ways: as pre-compiled binaries or manually
-compiled:
+platforms and supported CPU architectures (x86_32, x86_64, ARM, AARCH64, and
+RISC-V).
+For Genode development, we highly recommend the use of the official Genode
+tool chain. It can be obtained in two ways: as pre-compiled binaries or
+manually compiled:
 
 :Pre-compiled:
   Our pre-compiled tool chain is runnable on Linux x86_32 and x86_64. The
-  archives for both versions will be extracted to '/usr/local/genode-gcc'. To
-  extract the archive, use the following command:
+  archives for both versions will be extracted to
+  _/usr/local/genode/tool/<version>_.
+  To extract the archive, use the following command:
   ! sudo tar xPf genode-toolchain-<version>-<arch>.tar.xz
   The use of the 'P' option ensures that the tool chain will be installed at
-  the correct absolute path '/usr/local/genode-gcc' where the build system
-  expects it to reside by default. Please note, Genode OS Framework releases
-  require a Genode tool chain with an equal or next smaller version number.
+  the correct absolute path where the build system expects it to reside by
+  default. Please note, Genode OS Framework releases require a Genode tool
+  chain with an equal or next smaller version number.
   [https://sourceforge.net/projects/genode/files/genode-toolchain/ - Download the pre-compiled tool chain...]
 
 :Compile from source:
@@ -45,82 +47,16 @@ compiled:
   find the tool in Genode's source tree at 'tool/tool_chain'. For usage
   instructions, just start the tool without arguments.
 
-In both cases, the Genode tool chain will be installed to '/usr/local/genode-gcc'.
-All tools are prefixed with 'genode-x86-', 'genode-arm-', or 'genode-riscv-'
-respectively such that it is safe to add the installation directory to our
-'PATH' variable (optional). The Genode tool chain will be used by the Genode
-build system by default. If you desire to use a different tool chain, create a
-file called 'tools.conf' in the 'etc/' subdirectory of your build directory
-where you can define the tool-chain prefix to be used:
+In both cases, the tool chain is installed to _/usr/local/genode/tool/<version>_.
+This install location is expected by the build system by default.
+The tools are prefixed with 'genode-x86-', 'genode-arm-', 'genode-riscv-', or
+'genode-aarch64-' respectively so that it is safe to add the
+_/usr/local/genode/tool/<version>/bin/_ path to our 'PATH' environment
+variable (optional).
+
+Should you desire to use a different tool chain, create a file called
+_tools.conf_ in the _etc/_ subdirectory of your build directory where you can
+define the tool-chain prefix to be used:
 
 ! CROSS_DEV_PREFIX = /path/to/your/custom/tool_chain/your-x86-
 
-However, we recommend you to stick with the official Genode tool chain. If you
-see a valid reason not to use it, please contact us (e.g., via the mailing
-list).
-
-
-Background information - Why do we need a special tool chain?
-#############################################################
-
-Early on in the genesis of Genode, we introduced a custom tool chain to
-overcome several problems inherent to the use of standard tool chains installed
-on Linux host platforms.
-
-First, GCC and binutils versions vary a lot between different Linux systems.
-Testing the Genode code with all those different tool chains and constantly
-adapting the code to the peculiarities of certain tool-chain versions is
-infeasible and annoying. Second, Linux tool chains use certain features that
-stand in the way when building low-level system components. For example, the
-'-fstack-protector' option is enabled by default on some Linux distributions.
-Hence, we have to turn it off when building Genode. However, some tool chains
-lack this option. So the attempt to turn it off produces an error. The most
-important problem with Linux tool chains is the dependency of their respective
-GCC support libraries on the glibc. When not using a Linux glibc, as the case
-with Genode, this leads to manifold problems, most of them subtle and extremely
-hard to debug. For example, the support libraries expect the Linux way of
-implementing thread-local storage (using segment registers on x86_32). This
-code will simply crash on other kernels. Another example is the use of certain
-C-library functions, which are not available on Genode. Hence, Genode provides
-custom implementations of those functions (in the 'cxx' library).
-Unfortunately, the set of functions used varies across tool-chain versions. For
-these reasons, we introduced a custom configured tool chain where we mitigated
-those problems by pinning the tools to certain versions and tweaking the
-compiler configuration to our needs (i.e., preventing the use of Linux TLS).
-
-That said, the use a our custom configured tool chain was not free from
-problems either. In particular, the script for creating the tool chain relied
-on a libc being present on the host system. The header files of the libc would
-be used to build the GCC support libraries. This introduced two problems. When
-adding Genode's libc to the picture, which is based on FreeBSD's C library, the
-expectations of the GCC support libraries did not match 100% with the semantics
-implemented by Genode's libc (e.g., the handling of 'errno' differs). The
-second problem is the limitation that the tool chain could only be built for
-the platform that corresponds to the host. For example, on a Linux-x86_32
-system, it was not possible to build a x86_64 or ARM tool chain. For this
-reason we used the ARM tool chains provided by CodeSourcery.
-
-With Genode 11.11, we addressed the root of the tool-chain problem by
-completely decoupling the Genode tool chain from the host system that is used
-to build it. The most important step was the removal of GCC's dependency on
-a C library, which is normally needed to build the GCC support libraries. We
-were able to remove the libc dependency by sneaking-in a small custom libc stub
-into the GCC build process. This stub comes in the form of the single header
-file 'tool/libgcc_libc_stub.h' and brings along all type definitions and
-function declarations expected by the support-library code. Furthermore, we
-removed all GNU-specific heuristics from the tool chain. Technically, the
-Genode tool chain is a bare-metal tool chain. But in contrast to existing
-bare-metal tool chains, C++ is fully supported.
-
-With the libc dependency out of the way, we are now free to build the tool
-chain for arbitrary architectures, which brings us two immediate benefits. We
-do no longer have to rely on the CodeSourcery tool chain for ARM. There is now
-a 'genode-arm' tool chain using the same compiler configuration as used on x86.
-The second benefit is the use of multiarch libs on the x86 platform. The
-genode-x86 tool chain can be used for both x86_32 and x86_64 as build target,
-the latter being the default.
-
-Since we introduced GDB support into Genode, we added GDB in addition to GCC
-and binutils to the Genode tool chain. The version is supposed to match the one
-expected by Genode's GDB facility, avoiding potential problems with mismatching
-protocols between GDB monitor and GDB.
