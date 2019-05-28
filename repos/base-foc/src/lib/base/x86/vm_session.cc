@@ -147,6 +147,11 @@ struct Vcpu : Genode::Thread
 			TSC_OFF_LO = 0x2010,
 			TSC_OFF_HI = 0x2011,
 
+			MSR_FMASK  = 0x2842,
+			MSR_LSTAR  = 0x2844,
+			MSR_STAR   = 0x284a,
+			KERNEL_GS_BASE = 0x284c,
+
 			CR4_VMX        = 1 << 13,
 			INTEL_EXIT_INVALID = 0x21,
 
@@ -202,6 +207,9 @@ struct Vcpu : Genode::Thread
 		addr_t                      _task { 0 };
 		enum Virt const             _vm_type;
 		uint64_t                    _tsc_offset { 0 };
+		bool                        _show_error_unsupported_pdpte { true };
+		bool                        _show_error_unsupported_tpr   { true };
+		bool                        _show_error_unsupported_fpu   { true };
 
 		enum
 		{
@@ -216,8 +224,11 @@ struct Vcpu : Genode::Thread
 			PAUSE = 1,
 			RUN = 2,
 			TERMINATE = 3,
-		}                                  _remote      { NONE };
-		Lock                               _remote_lock { Lock::UNLOCKED };
+		};
+
+		State _state_request { NONE };
+		State _state_current { NONE };
+		Lock  _remote_lock   { Lock::UNLOCKED };
 
 		void entry() override
 		{
@@ -227,10 +238,10 @@ struct Vcpu : Genode::Thread
 				Lock::Guard guard(_remote_lock);
 
 				/* leave scope for Thread::join() - vCPU setup failed */
-				if (_remote == TERMINATE)
+				if (_state_request == TERMINATE)
 					return;
 
-				_remote = NONE;
+				_state_request = NONE;
 			}
 
 			/* reserved ranged for state of vCPUs - see platform.cc */
@@ -306,56 +317,21 @@ struct Vcpu : Genode::Thread
 
 			vcpu->saved_state = L4_VCPU_F_USER_MODE | L4_VCPU_F_FPU_ENABLED;
 
-			State local_state { NONE };
-
 			while (true) {
 				/* read in requested state from remote threads */
 				{
 					Lock::Guard guard(_remote_lock);
-					local_state      = _remote;
-					_remote          = NONE;
-
-					if (local_state == PAUSE) {
-						while (vcpu->sticky_flags) {
-							/* consume spurious notifications */
-							Fiasco::l4_cap_idx_t tid = native_thread().kcap;
-							Fiasco::l4_cap_idx_t irq = tid + Fiasco::TASK_VCPU_IRQ_CAP;
-							l4_irq_receive(irq, L4_IPC_RECV_TIMEOUT_0);
-						}
-					}
+					_state_current = _state_request;
+					_state_request = NONE;
 				}
 
-				if (local_state == NONE) {
+				if (_state_current == NONE) {
 					_wake_up.down();
 					continue;
 				}
-				if (local_state == PAUSE) {
 
-					if (_vm_type == Virt::SVM)
-						_write_amd_state(state, vmcb, vcpu);
-					if (_vm_type == Virt::VMX)
-						_write_intel_state(state, vmcs, vcpu);
-
-					state.exit_reason = VMEXIT_PAUSED;
-
-					if (_vm_type == Virt::SVM)
-						_read_amd_state(state, vmcb, vcpu);
-					if (_vm_type == Virt::VMX)
-						_read_intel_state(state, vmcs, vcpu);
-
-					/* notify VM handler */
-					Genode::Signal_transmitter(_signal).submit();
-
-					/*
-					 * Wait until VM handler is really really done,
-					 * otherwise we lose state.
-					 */
-					_handler_ready.down();
-					continue;
-				}
-
-				if (local_state != RUN) {
-					Genode::error("unknown vcpu state ", (int)local_state);
+				if (_state_current != RUN && _state_current != PAUSE) {
+					Genode::error("unknown vcpu state ", (int)_state_current);
 					while (true) { _remote_lock.lock(); }
 				}
 
@@ -379,21 +355,21 @@ struct Vcpu : Genode::Thread
 					if (reason == 0x400) /* no NPT support */
 						reason = 0xfc; 
 
-					/* remotely PAUSE was called */
-					if (l4_error(tag) && reason == 0x60) {
-						reason = VMEXIT_PAUSED;
-
+					{
 						Lock::Guard guard(_remote_lock);
-						if (_remote == PAUSE) {
-							_remote = NONE;
-							_wake_up.down();
-						}
+						_state_request = NONE;
+						_state_current = PAUSE;
 
-						/* consume notification */
-						while (vcpu->sticky_flags) {
-							Fiasco::l4_cap_idx_t tid = native_thread().kcap;
-							Fiasco::l4_cap_idx_t irq = tid + Fiasco::TASK_VCPU_IRQ_CAP;
-							l4_irq_receive(irq, L4_IPC_RECV_TIMEOUT_0);
+						/* remotely PAUSE was called */
+						if (l4_error(tag) && reason == 0x60) {
+							reason = VMEXIT_PAUSED;
+
+							/* consume notification */
+							while (vcpu->sticky_flags) {
+								Fiasco::l4_cap_idx_t tid = native_thread().kcap;
+								Fiasco::l4_cap_idx_t irq = tid + Fiasco::TASK_VCPU_IRQ_CAP;
+								l4_irq_receive(irq, L4_IPC_RECV_TIMEOUT_0);
+							}
 						}
 					}
 
@@ -404,21 +380,21 @@ struct Vcpu : Genode::Thread
 				if (_vm_type == Virt::VMX) {
 					reason = Fiasco::l4_vm_vmx_read_32(vmcs, Vmcs::EXI_REASON);
 
-					/* remotely PAUSE was called */
-					if (l4_error(tag) && reason == 0x1) {
-						reason = VMEXIT_PAUSED;
-
+					{
 						Lock::Guard guard(_remote_lock);
-						if (_remote == PAUSE) {
-							_remote = NONE;
-							_wake_up.down();
-						}
+						_state_request = NONE;
+						_state_current = PAUSE;
 
-						/* consume notification */
-						while (vcpu->sticky_flags) {
-							Fiasco::l4_cap_idx_t tid = native_thread().kcap;
-							Fiasco::l4_cap_idx_t irq = tid + Fiasco::TASK_VCPU_IRQ_CAP;
-							l4_irq_receive(irq, L4_IPC_RECV_TIMEOUT_0);
+						/* remotely PAUSE was called */
+						if (l4_error(tag) && reason == 0x1) {
+							reason = VMEXIT_PAUSED;
+
+							/* consume notification */
+							while (vcpu->sticky_flags) {
+								Fiasco::l4_cap_idx_t tid = native_thread().kcap;
+								Fiasco::l4_cap_idx_t irq = tid + Fiasco::TASK_VCPU_IRQ_CAP;
+								l4_irq_receive(irq, L4_IPC_RECV_TIMEOUT_0);
+							}
 						}
 					}
 
@@ -615,11 +591,14 @@ struct Vcpu : Genode::Thread
 
 			state.efer.value(l4_vm_vmx_read(vmcs, Vmcs::EFER));
 
+			state.star.value(l4_vm_vmx_read(vmcs, Vmcs::MSR_STAR));
+			state.lstar.value(l4_vm_vmx_read(vmcs, Vmcs::MSR_LSTAR));
+			state.fmask.value(l4_vm_vmx_read(vmcs, Vmcs::MSR_FMASK));
+			state.kernel_gs_base.value(l4_vm_vmx_read(vmcs, Vmcs::KERNEL_GS_BASE));
+
 			/* XXX missing */
 #if 0
 			if (state.pdpte_0_updated() || state.pdpte_1_updated() ||
-			if (state.star_updated() || state.lstar_updated() ||
-			    state.fmask_updated() || state.kernel_gs_base_updated()) {
 			if (state.tpr_updated() || state.tpr_threshold_updated()) {
 #endif
 		}
@@ -807,12 +786,24 @@ struct Vcpu : Genode::Thread
 				l4_vm_vmx_write(vmcs, Vmcs::TSC_OFF_HI, (_tsc_offset >> 32) & 0xffffffffu);
 			}
 
-			if (state.star.valid() || state.lstar.valid() ||
-			    state.fmask.valid() || state.kernel_gs_base.valid())
-				Genode::error(__LINE__, " not implemented");
+			if (state.star.valid())
+				l4_vm_vmx_write(vmcs, Vmcs::MSR_STAR, state.star.value());
 
-			if (state.tpr.valid() || state.tpr_threshold.valid())
-				Genode::error(__LINE__, " not implemented");
+			if (state.lstar.valid())
+				l4_vm_vmx_write(vmcs, Vmcs::MSR_LSTAR, state.lstar.value());
+
+			if (state.fmask.valid())
+				l4_vm_vmx_write(vmcs, Vmcs::MSR_FMASK, state.fmask.value());
+
+			if (state.kernel_gs_base.valid())
+				l4_vm_vmx_write(vmcs, Vmcs::KERNEL_GS_BASE, state.kernel_gs_base.value());
+
+			if (state.tpr.valid() || state.tpr_threshold.valid()) {
+				if (_show_error_unsupported_tpr) {
+					_show_error_unsupported_tpr = false;
+					Genode::error("TPR & TPR_THRESHOLD not supported on Fiasco.OC");
+				}
+			}
 
 			if (state.dr7.valid())
 				l4_vm_vmx_write(vmcs, Vmcs::DR7, state.dr7.value());
@@ -958,14 +949,14 @@ struct Vcpu : Genode::Thread
 				l4_vm_vmx_write(vmcs, Vmcs::GDTR_LIMIT, state.gdtr.value().limit);
 			}
 
-			if (state.pdpte_0.valid())
-				Genode::error(__LINE__, " not implemented");
-			if (state.pdpte_1.valid())
-				Genode::error(__LINE__, " not implemented");
-			if (state.pdpte_2.valid())
-				Genode::error(__LINE__, " not implemented");
-			if (state.pdpte_3.valid())
-				Genode::error(__LINE__, " not implemented");
+			if (state.pdpte_0.valid() || state.pdpte_1.valid() ||
+			    state.pdpte_2.valid() || state.pdpte_3.valid())
+			{
+				if (_show_error_unsupported_pdpte) {
+					_show_error_unsupported_pdpte = false;
+					Genode::error("PDPTE 0/1/2/3 not supported on Fiasco.OC");
+				}
+			}
 
 			if (state.sysenter_cs.valid())
 				l4_vm_vmx_write(vmcs, Vmcs::SYSENTER_CS,
@@ -976,6 +967,13 @@ struct Vcpu : Genode::Thread
 			if (state.sysenter_ip.valid())
 				l4_vm_vmx_write(vmcs, Vmcs::SYSENTER_IP,
 				                state.sysenter_ip.value());
+
+			if (state.fpu.valid()) {
+				if (_show_error_unsupported_fpu) {
+					_show_error_unsupported_fpu = false;
+					Genode::error("FPU guest state not supported on Fiasco.OC");
+				}
+			}
 		}
 
 		void _write_amd_state(Vm_state &state, Fiasco::l4_vm_svm_vmcb_t *vmcb,
@@ -1021,8 +1019,12 @@ struct Vcpu : Genode::Thread
 			    state.fmask.value() || state.kernel_gs_base.value())
 				Genode::error(__LINE__, " not implemented");
 
-			if (state.tpr.valid() || state.tpr_threshold.valid())
-				Genode::error(__LINE__, " not implemented");
+			if (state.tpr.valid() || state.tpr_threshold.valid()) {
+				if (_show_error_unsupported_tpr) {
+					_show_error_unsupported_tpr = false;
+					Genode::error("TPR & TPR_THRESHOLD not supported on Fiasco.OC");
+				}
+			}
 
 			if (state.dr7.valid())
 				vmcb->state_save_area.dr7 = state.dr7.value();
@@ -1155,14 +1157,14 @@ struct Vcpu : Genode::Thread
 				vmcb->state_save_area.gdtr.limit = state.gdtr.value().limit;
 			}
 
-			if (state.pdpte_0.valid())
-				Genode::error(__LINE__, " not implemented");
-			if (state.pdpte_1.valid())
-				Genode::error(__LINE__, " not implemented");
-			if (state.pdpte_2.valid())
-				Genode::error(__LINE__, " not implemented");
-			if (state.pdpte_3.valid())
-				Genode::error(__LINE__, " not implemented");
+			if (state.pdpte_0.valid() || state.pdpte_1.valid() ||
+			    state.pdpte_2.valid() || state.pdpte_3.valid())
+			{
+				if (_show_error_unsupported_pdpte) {
+					_show_error_unsupported_pdpte = false;
+					Genode::error("PDPTE 0/1/2/3 not supported on Fiasco.OC");
+				}
+			}
 
 			if (state.sysenter_cs.valid())
 				vmcb->state_save_area.sysenter_cs = state.sysenter_cs.value();
@@ -1170,6 +1172,13 @@ struct Vcpu : Genode::Thread
 				vmcb->state_save_area.sysenter_esp = state.sysenter_sp.value();
 			if (state.sysenter_ip.valid())
 				vmcb->state_save_area.sysenter_eip = state.sysenter_ip.value();
+
+			if (state.fpu.valid()) {
+				if (_show_error_unsupported_fpu) {
+					_show_error_unsupported_fpu = false;
+					Genode::error("FPU guest state not supported on Fiasco.OC");
+				}
+			}
 		}
 
 	public:
@@ -1197,34 +1206,40 @@ struct Vcpu : Genode::Thread
 			*reinterpret_cast<Fiasco::l4_cap_idx_t *>(_state) = 0UL;
 		}
 
-		void resume() {
+		void resume()
+		{
 			Lock::Guard guard(_remote_lock);
 
-			if (_remote == RUN || _remote == PAUSE)
+			if (_state_request == RUN || _state_request == PAUSE)
 				return;
 
-			_remote = RUN;
-			_wake_up.up();
+			_state_request = RUN;
+
+			if (_state_current == NONE)
+				_wake_up.up();
 		}
 
-		void pause() {
+		void pause()
+		{
 			Lock::Guard guard(_remote_lock);
 
-			if (_remote == PAUSE)
+			if (_state_request == PAUSE)
 				return;
 
-			_remote = PAUSE;
+			_state_request = PAUSE;
 
 			/* recall vCPU */
 			Fiasco::l4_cap_idx_t tid = native_thread().kcap;
 			Fiasco::l4_cap_idx_t irq = tid + Fiasco::TASK_VCPU_IRQ_CAP;
 			Fiasco::l4_irq_trigger(irq);
 
-			_wake_up.up();
+			if (_state_current == NONE)
+				_wake_up.up();
 		}
 
-		void terminate() {
-			_remote = TERMINATE;
+		void terminate()
+		{
+			_state_request = TERMINATE;
 			_wake_up.up();
 		}
 };
