@@ -6,6 +6,8 @@ else ifeq ($(filter-out $(SPECS),arm_v6),)
 	TARGET_CPUARCH=arm_v6
 else ifeq ($(filter-out $(SPECS),arm_v7),)
 	TARGET_CPUARCH=arm_v7
+else ifeq ($(filter-out $(SPECS),arm_v8),)
+	TARGET_CPUARCH=arm_v8
 endif
 
 ifeq ($(CONTRIB_DIR),)

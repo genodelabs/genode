@@ -1,6 +1,6 @@
 MIRROR_FROM_REP_DIR := lib/mk/jitterentropy.inc \
                        lib/import/import-jitterentropy.mk \
-                       $(foreach SPEC,arm_v6 arm_v7 x86_32 x86_64,\
+                       $(foreach SPEC,arm_v6 arm_v7 arm_v8 x86_32 x86_64,\
                          lib/mk/spec/$(SPEC)/jitterentropy.mk) \
                        src/lib/jitterentropy
 
