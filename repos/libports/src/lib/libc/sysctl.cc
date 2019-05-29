@@ -100,6 +100,14 @@ extern "C" int __sysctl(const int *name, u_int namelen,
 				*(int*)oldp = (int)PAGESIZE;
 				*oldlenp = sizeof(int);
 				return 0;
+			/*
+			 * Used on ARM platforms to check HW fp support. Since the
+			 * FP is enabled on all our ARM platforms we return true.
+			 */
+			case HW_FLOATINGPT:
+				*(int*)oldp = 1;
+				*oldlenp = sizeof(int);
+				return 0;
 
 			} break;
 

@@ -55,6 +55,7 @@ ret_type name args \
 	return ret_val; \
 }
 
+
 #define __SYS_DUMMY(ret_type, ret_val, name, args)\
 	extern "C" __attribute__((weak)) \
 	ret_type __sys_##name args \
@@ -67,6 +68,23 @@ ret_type name args \
 	ret_type __libc_##name args \
 	{ \
 		Genode::warning(__func__, ": " #name " not implemented"); \
+		errno = ENOSYS;						\
+		return ret_val; \
+	} \
+	ret_type      _##name args __attribute__((weak, alias("__sys_" #name))); \
+	ret_type         name args __attribute__((weak, alias("__sys_" #name))); \
+
+
+#define __SYS_DUMMY_SILENT(ret_type, ret_val, name, args)\
+	extern "C" __attribute__((weak)) \
+	ret_type __sys_##name args \
+	{ \
+		errno = ENOSYS;						\
+		return ret_val; \
+	} \
+	extern "C" __attribute__((weak)) \
+	ret_type __libc_##name args \
+	{ \
 		errno = ENOSYS;						\
 		return ret_val; \
 	} \
@@ -100,7 +118,7 @@ DUMMY(pid_t , -1, getpgrp, (void))
 DUMMY(int   , -1, getpriority, (int, int))
 DUMMY(int   , -1, getrusage, (int, rusage *))
 DUMMY(uid_t ,  0, getuid, (void))
-DUMMY(int   ,  1, isatty, (int))
+DUMMY_SILENT(int   ,  1, isatty, (int))
 DUMMY(int   , -1, kill, (pid_t, int))
 DUMMY(int   , -1, link, (const char *, const char *))
 DUMMY(int   ,  0, minherit, (void *, size_t, int))
@@ -117,7 +135,7 @@ DUMMY(int   , -1, sched_setparam, (pid_t, const sched_param *))
 DUMMY(int   , -1, sched_setscheduler, (pid_t, int, const sched_param *))
 DUMMY(int   , -1, sched_yield, (void))
 DUMMY(int   , -1, __semctl, (void))
-DUMMY(sig_t, SIG_ERR, signal, (int, sig_t));
+DUMMY_SILENT(sig_t, SIG_ERR, signal, (int, sig_t));
 DUMMY(int   , -1, setegid, (uid_t))
 DUMMY(int   , -1, seteuid, (uid_t))
 DUMMY(int   , -1, setgid, (gid_t))
@@ -181,7 +199,7 @@ __SYS_DUMMY(int, -1, truncate, (const char *, off_t))
 DUMMY(int, -1, sigblock, (int))
 DUMMY(int, -1, thr_kill2, (pid_t pid, long id, int sig));
 
-__SYS_DUMMY(int, -1, sigaction, (int, const struct sigaction *, struct sigaction *));
+__SYS_DUMMY_SILENT(int, -1, sigaction, (int, const struct sigaction *, struct sigaction *));
 __SYS_DUMMY(int, -1, sigsuspend, (const sigset_t *))
 __SYS_DUMMY(int, -1, sigtimedwait, (const sigset_t *, siginfo_t *, const struct timespec *));
 __SYS_DUMMY(int, -1, sigwaitinfo, (const sigset_t *, siginfo_t *));

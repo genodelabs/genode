@@ -79,8 +79,6 @@ while {true} {
 }
 
 set reference_output_arm {
-Warning: missing sysctl for [6][10]
-Warning: isatty: isatty not implemented
 FLT_RADIX = 2
 FLT_MANT_DIG = 24
 DBL_MANT_DIG = 53
@@ -772,7 +770,6 @@ pow(-2, -2) = 0.25
 }
 
 set reference_output_x86_64 {
-Warning: isatty: isatty not implemented
 FLT_RADIX = 2
 FLT_MANT_DIG = 24
 DBL_MANT_DIG = 53
@@ -1464,7 +1461,6 @@ pow(-2, -2) = 0.25
 }
 
 set reference_output_x86_32 {
-Warning: isatty: isatty not implemented
 FLT_RADIX = 2
 FLT_MANT_DIG = 24
 DBL_MANT_DIG = 53
