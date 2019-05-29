@@ -1,7 +1,7 @@
 content: include mk/spec lib LICENSE
 
 # architectures, for which a 'trace/timestamp.h' header is available
-ARCHS := riscv arm_v6 arm_v7 x86_32 x86_64
+ARCHS := riscv arm_v6 arm_v7 arm_64 x86_32 x86_64
 
 include:
 	mkdir -p include
