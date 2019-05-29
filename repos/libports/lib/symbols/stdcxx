@@ -629,7 +629,7 @@ _ZTISo V
 _ZTISt11regex_error V
 _ZTISt13runtime_error V
 _ZTISt15basic_streambufIcSt11char_traitsIcEE V
-_ZTISt16invalid_argument V
+_ZTISt16invalid_argument W
 _ZTISt5ctypeIcE V
 _ZTISt7codecvtIcc11__mbstate_tE V
 _ZTISt8ios_base V
