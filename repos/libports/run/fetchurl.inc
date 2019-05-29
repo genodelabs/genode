@@ -104,4 +104,7 @@ append qemu_args " -nographic "
 append qemu_args " -netdev user,id=net0 "
 append qemu_args " -net nic,model=[qemu_nic_model],netdev=net0 "
 
+## Uncomment to dump network traffic to file
+# append qemu_args " -object filter-dump,id=net0,netdev=net0,file=[run_dir].pcap"
+
 run_genode_until {child "fetchurl" exited with exit value 0} 120
