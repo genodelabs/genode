@@ -206,6 +206,7 @@ namespace Genode {
 			Name                name()        const { return _name;        }
 			bool                core_thread() const { return _core_thread; }
 			addr_t              utcb()        const { return _utcb;        }
+			unsigned            prio()        const { return _prio;        }
 	};
 }
 

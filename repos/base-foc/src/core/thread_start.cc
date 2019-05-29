@@ -15,6 +15,7 @@
 /* Genode includes */
 #include <base/thread.h>
 #include <base/sleep.h>
+#include <trace/source_registry.h>
 
 /* base-internal includes */
 #include <base/internal/stack.h>
@@ -26,6 +27,8 @@
 namespace Fiasco {
 #include <l4/sys/debugger.h>
 #include <l4/sys/factory.h>
+#include <l4/sys/scheduler.h>
+#include <l4/sys/thread.h>
 }
 
 using namespace Genode;
@@ -65,6 +68,47 @@ void Thread::start()
 	l4_utcb_tcr_u(foc_utcb)->user[UTCB_TCR_THREAD_OBJ] = (addr_t)this;
 
 	pt.start((void *)_thread_start, stack_top());
+
+	struct Core_trace_source : public  Trace::Source::Info_accessor,
+	                           private Trace::Control,
+	                           private Trace::Source
+	{
+		Thread &thread;
+		Platform_thread &platform_thread;
+
+		/**
+		 * Trace::Source::Info_accessor interface
+		 */
+		Info trace_source_info() const override
+		{
+			uint64_t const sc_time = 0;
+			addr_t const kcap = (addr_t) platform_thread.pager_object_badge();
+
+			using namespace Fiasco;
+			l4_kernel_clock_t ec_time = 0;
+			l4_msgtag_t res = l4_thread_stats_time(kcap, &ec_time);
+			if (l4_error(res))
+				Genode::error("cpu time for ", thread.name(),
+				              " is not available ", l4_error(res));
+
+			return { Session_label("core"), thread.name(),
+			         Trace::Execution_time(ec_time, sc_time, 10000,
+			                               platform_thread.prio()),
+			         thread._affinity };
+		}
+
+		Core_trace_source(Trace::Source_registry &registry, Thread &t,
+		                  Platform_thread &pt)
+		:
+			Trace::Control(),
+			Trace::Source(*this, *this), thread(t), platform_thread(pt)
+		{
+			registry.insert(this);
+		}
+	};
+
+	new (platform().core_mem_alloc()) Core_trace_source(Trace::sources(),
+	                                                    *this, pt);
 }
 
 
