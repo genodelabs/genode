@@ -21,6 +21,9 @@ ifeq ($(filter-out $(SPECS),arm),)
     ARCH_SRC_INC_DIR += $(REP_DIR)/src/include/spec/arm_v7
   endif # arm_v7
 endif # arm
+ifeq ($(filter-out $(SPECS),arm_64),)
+  ARCH_SRC_INC_DIR += $(REP_DIR)/src/include/spec/arm_64
+endif # arm_v7
 
 #
 # The order of include-search directories is important, we need to look into
