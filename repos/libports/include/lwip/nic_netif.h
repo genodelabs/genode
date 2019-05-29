@@ -41,6 +41,7 @@ extern "C" {
 #endif
 #include <lwip/init.h>
 #include <lwip/dhcp.h>
+#include <lwip/dns.h>
 }
 
 	class Nic_netif;
@@ -94,6 +95,8 @@ class Lwip::Nic_netif
 		Genode::Io_signal_handler<Nic_netif> _link_state_handler;
 		Genode::Io_signal_handler<Nic_netif> _rx_packet_handler;
 
+		bool _dhcp { false };
+
 	public:
 
 		void free_pbuf(Nic_netif_pbuf &pbuf)
@@ -114,15 +117,24 @@ class Lwip::Nic_netif
 		void handle_link_state()
 		{
 			/*
-			 * if the application wants to know what is going
-			 * on then it should use 'set_link_callback'
+			 * if the application wants to be informed of the
+			 * link state then it should use 'set_link_callback'
 			 */
-
 			if (_nic.link_state()) {
 				netif_set_link_up(&_netif);
-				/* XXX: DHCP? */
+				if (_dhcp) {
+					err_t err = dhcp_start(&_netif);
+					if (err != ERR_OK) {
+						Genode::error("failed to configure lwIP interface with DHCP, error ", -err);
+					}
+				} else {
+					dhcp_inform(&_netif);
+				}
 			} else {
 				netif_set_link_down(&_netif);
+				if (_dhcp) {
+					dhcp_release_and_stop(&_netif);
+				}
 			}
 		}
 
@@ -155,51 +167,58 @@ class Lwip::Nic_netif
 
 		void configure(Genode::Xml_node const &config)
 		{
-			if (config.attribute_value("dhcp", false)) {
+			_dhcp = config.attribute_value("dhcp", false);
 
-				err_t err = dhcp_start(&_netif);
-				if (err == ERR_OK)
-					Genode::log("configuring lwIP interface with DHCP");
-				else
-					Genode::error("failed to configure lwIP interface with DHCP, error ", -err);
+			typedef Genode::String<IPADDR_STRLEN_MAX> Str;
+			Str ip_str = config.attribute_value("ip_addr", Str());
 
-			} else /* get addressing from config */ {
-				typedef Genode::String<IPADDR_STRLEN_MAX> Str;
-				Str ip_str = config.attribute_value("ip_addr", Str());
+			if (_dhcp && ip_str != "") {
+				_dhcp = false;
+				netif_set_down(&_netif);
+				Genode::error("refusing to configure lwIP interface with both DHCP and a static IPv4 address");
+				return;
+			}
+
+			netif_set_up(&_netif);
+
+			if (ip_str != "") {
 				ip_addr_t ipaddr;
 				if (!ipaddr_aton(ip_str.string(), &ipaddr)) {
 					Genode::error("lwIP configured with invalid IP address '",ip_str,"'");
 					throw ip_str;
 				}
 
-				if (IP_IS_V6_VAL(ipaddr)) {
-					netif_create_ip6_linklocal_address(&_netif, 1);
-					err_t err = netif_add_ip6_address(&_netif, ip_2_ip6(&ipaddr), NULL);
-					if (err != ERR_OK) {
-						Genode::error("failed to set lwIP IPv6 address to '",ip_str,"'");
-						throw err;
-					}
-				} else {
-					netif_set_ipaddr(&_netif, ip_2_ip4(&ipaddr));
+				netif_set_ipaddr(&_netif, ip_2_ip4(&ipaddr));
 
-					if (config.has_attribute("netmask")) {
-						Str str = config.attribute_value("netmask", Str());
-						ip_addr_t ip;
-						ipaddr_aton(str.string(), &ip);
-						netif_set_netmask(&_netif, ip_2_ip4(&ip));
-					}
-
-					if (config.has_attribute("gateway")) {
-						Str str = config.attribute_value("gateway", Str());
-						ip_addr_t ip;
-						ipaddr_aton(str.string(), &ip);
-						netif_set_gw(&_netif, ip_2_ip4(&ip));
-					}
-
-					/* inform DHCP servers of our fixed IP address */
-					dhcp_inform(&_netif);
+				if (config.has_attribute("netmask")) {
+					Str str = config.attribute_value("netmask", Str());
+					ip_addr_t ip;
+					ipaddr_aton(str.string(), &ip);
+					netif_set_netmask(&_netif, ip_2_ip4(&ip));
 				}
+
+				if (config.has_attribute("gateway")) {
+					Str str = config.attribute_value("gateway", Str());
+					ip_addr_t ip;
+					ipaddr_aton(str.string(), &ip);
+					netif_set_gw(&_netif, ip_2_ip4(&ip));
+				}
+
 			}
+
+			if (config.has_attribute("nameserver")) {
+				/*
+				 * LwIP does not use DNS internally, but the application
+				 * should expect "dns_getserver" to work regardless of
+				 * how the netif configures itself.
+				 */
+				Str str = config.attribute_value("nameserver", Str());
+				ip_addr_t ip;
+				ipaddr_aton(str.string(), &ip);
+				dns_setserver(0, &ip);
+			}
+
+			handle_link_state();
 		}
 
 		Nic_netif(Genode::Env &env,
@@ -228,11 +247,11 @@ class Lwip::Nic_netif
 			}
 
 			netif_set_default(&_netif);
-			netif_set_up(&_netif);
-			configure(config);
 			netif_set_status_callback(
 				&_netif, nic_netif_status_callback);
 			nic_netif_status_callback(&_netif);
+
+			configure(config);
 		}
 
 		virtual ~Nic_netif() { }
