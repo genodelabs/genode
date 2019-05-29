@@ -16,6 +16,8 @@
 #include <base/log.h>
 #include <base/allocator_avl.h>
 #include <base/sleep.h>
+#include <dataspace/capability.h>
+#include <trace/source_registry.h>
 #include <util/misc_math.h>
 #include <util/xml_generator.h>
 
@@ -524,6 +526,54 @@ Platform::Platform() :
 		                                                 "core_log"));
 
 		init_core_log(Core_log_range { core_local_addr, size } );
+	}
+
+	Affinity::Space const cpus = affinity_space();
+	for (unsigned cpu_id = 0; cpu_id < cpus.width(); cpu_id++)
+	{
+		struct Trace_source : public  Trace::Source::Info_accessor,
+		                      private Trace::Control,
+		                      private Trace::Source
+		{
+			Affinity::Location const affinity;
+			Genode::String<8>  const name;
+
+			/**
+			 * Trace::Source::Info_accessor interface
+			 */
+			Info trace_source_info() const override
+			{
+				uint64_t       ec_time = 0;
+				uint64_t const sc_time = 0;
+
+				using namespace Fiasco;
+				l4_sched_cpu_set_t const cpu = l4_sched_cpu_set(affinity.xpos(), 0);
+				l4_msgtag_t const res = l4_scheduler_idle_time(L4_BASE_SCHEDULER_CAP,
+				                                               &cpu, &ec_time);
+				if (l4_error(res))
+					Genode::error("idle times for cpu ", affinity.xpos(),
+					              " are not available");
+
+				return { Session_label("kernel"), Trace::Thread_name(name),
+				         Trace::Execution_time(ec_time, sc_time), affinity };
+			}
+
+			Trace_source(Trace::Source_registry &registry,
+			             Affinity::Location const affinity,
+			             char const * type_name)
+			:
+				Trace::Control(),
+				Trace::Source(*this, *this), affinity(affinity),
+				name(type_name)
+			{
+				registry.insert(this);
+			}
+		};
+
+		new (core_mem_alloc()) Trace_source(Trace::sources(),
+		                                    Affinity::Location(cpu_id, 0,
+		                                                       cpus.width(), 1),
+		                                    "idle");
 	}
 }
 
