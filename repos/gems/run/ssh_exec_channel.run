@@ -1,0 +1,320 @@
+#
+# \brief  Test for the SSH terminal
+#
+
+assert_spec x86
+
+if {[have_spec linux]} {
+	puts "Run script is not supported on this platform."
+	exit 0
+}
+
+# Build
+#
+
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
+
+build $build_components
+
+create_boot_directory
+
+import_from_depot [depot_user]/src/[base_src]
+import_from_depot [depot_user]/src/bash
+import_from_depot [depot_user]/src/coreutils-minimal
+import_from_depot [depot_user]/src/exec_terminal
+import_from_depot [depot_user]/src/init
+import_from_depot [depot_user]/src/ipxe_nic_drv
+import_from_depot [depot_user]/src/libc
+import_from_depot [depot_user]/src/libcrypto
+import_from_depot [depot_user]/src/libssh
+import_from_depot [depot_user]/src/noux
+import_from_depot [depot_user]/src/platform_drv
+import_from_depot [depot_user]/src/posix
+import_from_depot [depot_user]/src/ram_fs
+import_from_depot [depot_user]/src/rtc_drv
+import_from_depot [depot_user]/src/ssh_terminal
+import_from_depot [depot_user]/src/vfs
+import_from_depot [depot_user]/src/vfs_jitterentropy
+import_from_depot [depot_user]/src/vfs_lxip
+import_from_depot [depot_user]/src/vim-minimal
+import_from_depot [depot_user]/src/zlib
+
+#
+# Generate config
+#
+
+set config {
+<config verbose="no">
+	<parent-provides>
+		<service name="CPU"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="IRQ"/>
+		<service name="LOG"/>
+		<service name="PD"/>
+		<service name="RAM"/>
+		<service name="RM"/>
+		<service name="ROM"/>
+	</parent-provides>
+
+	<default caps="100"/>
+
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+		<route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="nic_drv">
+		<binary name="ipxe_nic_drv"/>
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="Nic"/> </provides>
+		<route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="rtc_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Rtc"/> </provides>
+		<route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="ram_fs">
+		<resource name="RAM" quantum="8M"/>
+		<provides> <service name="File_system"/> </provides>
+		<config>
+			<default-policy root="/" writeable="yes"/>
+		</config>
+		<route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="ssh_terminal" caps="250">
+		<resource name="RAM" quantum="32M"/>
+		<provides> <service name="Terminal"/> </provides>
+
+		<config port="22" allow_password="yes" show_password="yes" ed25519_key="/etc/ssh/ed25519_key">
+
+			<policy label="dynamic -> noux -> " user="noux" password="xuon" multi_login="yes" request_terminal="yes"/>
+			<policy label_prefix="always-running-noux" user="charlie" password="xuon"/>
+
+			<libc stdout="/dev/log" stderr="/dev/log" socket="/socket" rtc="/dev/rtc"/>
+
+			<vfs>
+				<dir name="dev">
+					<log/>
+					<jitterentropy name="random"/>
+					<jitterentropy name="urandom"/>
+					<inline name="rtc">2000-01-01 00:00</inline>
+				</dir>
+				<dir name="etc">
+					<dir name="ssh">
+						<rom name="ed25519_key"/>
+					</dir>
+				</dir>
+				<dir name="socket"> <lxip dhcp="yes"/> </dir>
+			</vfs>
+		</config>
+		<route>
+			<service name="Nic"> <child name="nic_drv"/> </service>
+			<service name="Report"> <child name="report_rom"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<service name="CPU"> <parent/> </service>
+			<service name="LOG"> <parent/> </service>
+			<service name="PD"> <parent/> </service>
+			<service name="RM"> <parent/> </service>
+			<service name="ROM"> <parent/> </service>
+		</route>
+	</start>
+
+	<start name="report_rom" caps="100">
+		<resource name="RAM" quantum="4M"/>
+		<provides>
+			<service name="Report"/>
+			<service name="ROM"/>
+		</provides>
+		<config>
+			<policy label="exec_terminal -> exec_terminal.config" report="ssh_terminal -> request_terminal"/>
+			<policy label="dynamic -> config" report="exec_terminal -> config"/>
+		</config>
+		<route>
+			<service name="CPU"> <parent/> </service>
+			<service name="LOG"> <parent/> </service>
+			<service name="PD"> <parent/> </service>
+			<service name="RM"> <parent/> </service>
+			<service name="ROM"> <parent/> </service>
+		</route>
+	</start>
+
+	<start name="exec_terminal" caps="100">
+		<resource name="RAM" quantum="4M"/>
+		<route>
+			<service name="ROM" label="exec_terminal.config"> <child name="report_rom"/> </service>
+			<service name="Report" label="config"> <child name="report_rom"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<service name="CPU"> <parent/> </service>
+			<service name="LOG"> <parent/> </service>
+			<service name="PD"> <parent/> </service>
+			<service name="RM"> <parent/> </service>
+			<service name="ROM"> <parent/> </service>
+		</route>
+	</start>
+
+	<start name="dynamic" caps="1000">
+		<binary name="init"/>
+		<resource name="RAM" quantum="32M"/>
+		<route>
+			<service name="File_system"> <child name="ram_fs"/> </service>
+			<service name="ROM" label="config"> <child name="report_rom"/> </service>
+			<service name="ROM" label_last="coreutils-minimal.tar"> <parent label="coreutils-minimal.tar"/> </service>
+			<service name="ROM" label_last="vim-minimal.tar"> <parent label="vim-minimal.tar"/> </service>
+			<service name="Terminal"> <child name="ssh_terminal"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<service name="CPU"> <parent/> </service>
+			<service name="LOG"> <parent/> </service>
+			<service name="PD"> <parent/> </service>
+			<service name="RM"> <parent/> </service>
+			<service name="ROM"> <parent/> </service>
+		</route>
+	</start>
+
+	<start name="always-running-noux" caps="500">
+		<binary name="noux"/>
+		<resource name="RAM" quantum="64M"/>
+		<config>
+			<fstab>
+				<tar name="bash.tar" />
+				<tar name="coreutils-minimal.tar" />
+				<tar name="vim-minimal.tar" />
+			</fstab>
+			<start name="/bin/bash">
+				<env name="TERM" value="screen"/>
+				<env name="HOME" value="/"/>
+				<env name="IGNOREEOF" value="3"/>
+			</start>
+		</config>
+		<route>
+			<service name="File_system"> <child name="ram_fs"/> </service>
+			<service name="ROM" label="config"> <child name="report_rom"/> </service>
+			<service name="ROM" label_last="coreutils-minimal.tar"> <parent label="coreutils-minimal.tar"/> </service>
+			<service name="ROM" label_last="vim-minimal.tar"> <parent label="vim-minimal.tar"/> </service>
+			<service name="Terminal"> <child name="ssh_terminal"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<service name="CPU"> <parent/> </service>
+			<service name="LOG"> <parent/> </service>
+			<service name="PD"> <parent/> </service>
+			<service name="RM"> <parent/> </service>
+			<service name="ROM"> <parent/> </service>
+		</route>
+	</start>
+}
+
+append_platform_drv_config
+
+append config {
+</config>}
+
+install_config $config
+
+#
+# Generate a new host key
+#
+if {![file exists bin/ed25519_key]} {
+	exec ssh-keygen -t ed25519 -f bin/ed25519_key -q -N ""
+}
+
+#
+# Boot modules
+#
+
+# generic modules
+set boot_modules {
+	ed25519_key
+}
+
+# platform-specific modules
+append_platform_drv_boot_modules
+
+build_boot_image $boot_modules
+
+#
+# Execute test
+#
+
+append qemu_args " -m 512 -nographic "
+
+proc qemu_nic_model {} {
+	if [have_spec x86]     { return e1000 }
+	if [have_spec lan9118] { return lan9118 }
+	return nic_model_missing
+}
+
+append qemu_args " -netdev user,id=net0,hostfwd=tcp::5555-:22 "
+append qemu_args " -net nic,model=[qemu_nic_model],netdev=net0 "
+
+set lxip_match_string "ipaddr=(\[0-9\]+\.\[0-9\]+\.\[0-9\]+\.\[0-9\]+).*\n"
+
+if {[get_cmd_switch --autopilot]} {
+	run_genode_until $lxip_match_string 60
+	set serial_id [output_spawn_id]
+
+	if {[have_include "power_on/qemu"]} {
+		set host "localhost"
+		set port "5555"
+	} else {
+		regexp $lxip_match_string $output all host
+		puts ""
+		set port "22"
+	}
+	# wait for ssh_terminal to come up
+	run_genode_until "--- SSH terminal started ---" 15 $serial_id
+
+	for {set index 0} {$index < 10} {incr index} {
+		puts "test interactive channel"
+		spawn sshpass -p xuon ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -l noux $host -p $port
+		set ssh_id $spawn_id
+		run_genode_until "--- noux started ---" 15 $serial_id
+		send -i $ssh_id "ls\r"
+		run_genode_until "bin" 5 $ssh_id
+		send -i $ssh_id "exit\r"
+		run_genode_until "child \"noux\" exited with exit value 0" 15 $serial_id
+
+		puts "test exec channel echo"
+		set echo_text "The quick brown fox jumps over the lazy dog"
+		spawn sshpass -p xuon ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -l noux $host -p $port "echo $echo_text"
+		set ssh_id $spawn_id
+		run_genode_until "--- noux started ---" 15 $serial_id
+		run_genode_until $echo_text 5 $ssh_id
+		run_genode_until "child \"noux\" exited with exit value 0" 15 $serial_id
+
+		puts "test exec channel ls"
+		spawn sshpass -p xuon ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -l noux $host -p $port "ls"
+		set ssh_id $spawn_id
+		run_genode_until "--- noux started ---" 15 $serial_id
+		run_genode_until "bin" 5 $ssh_id
+		run_genode_until "child \"noux\" exited with exit value 0" 15 $serial_id
+
+		puts "test exec channel with empty command will not hang"
+		spawn sshpass -p xuon ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -l noux $host -p $port " "
+		set ssh_id $spawn_id
+		run_genode_until "--- noux started ---" 15 $serial_id
+		run_genode_until "child \"noux\" exited with exit value" 15 $serial_id
+	}
+
+	puts ""
+	puts ""
+} else {
+	run_genode_until forever
+}
+
+exec rm bin/ed25519_key bin/ed25519_key.pub
+
+# vi: set ft=tcl :
