@@ -702,7 +702,7 @@ struct Nvme::Controller : public Genode::Attached_mmio
 	void _reset()
 	{
 		/* disable intr and ctrlr */
-		write<Intms>(~0u);
+		write<Intms>(1);
 		write<Cc>(0);
 
 		try { _wait_for_rdy(0); }
