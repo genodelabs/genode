@@ -817,6 +817,7 @@ struct Nvme::Controller : public Genode::Attached_mmio
 			success = true;
 
 			write<Admin_cdb::Cqh>(_admin_cq.head);
+			break;
 		}
 
 		return success;
