@@ -144,7 +144,7 @@ struct Driver_manager::Vesa_fb_driver : Device_driver
 	void generate_start_node(Xml_generator &xml) const override
 	{
 		xml.node("start", [&] () {
-			_gen_common_start_node_content(xml, "vesa_fb_drv", "fb_drv",
+			_gen_common_start_node_content(xml, "vesa_fb_drv", "vesa_fb_drv",
 			                               Ram_quota{8*1024*1024}, Cap_quota{100},
 			                               Priority{-1});
 			_gen_provides_node<Framebuffer::Session>(xml);
