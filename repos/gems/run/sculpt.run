@@ -30,6 +30,7 @@ install_config {
 		<service name="CPU"/>
 		<service name="LOG"/>
 		<service name="TRACE"/>
+		<service name="VM"/>
 	</parent-provides>
 
 	<default-route>

@@ -17,6 +17,7 @@
 #include <base/attached_rom_dataspace.h>
 #include <os/reporter.h>
 #include <nitpicker_session/connection.h>
+#include <vm_session/vm_session.h>
 
 /* included from depot_deploy tool */
 #include <children.h>
@@ -1240,6 +1241,7 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 		gen_parent_service<Pd_session>(xml);
 		gen_parent_service<Rm_session>(xml);
 		gen_parent_service<Log_session>(xml);
+		gen_parent_service<Vm_session>(xml);
 		gen_parent_service<Timer::Session>(xml);
 		gen_parent_service<Report::Session>(xml);
 		gen_parent_service<Platform::Session>(xml);
