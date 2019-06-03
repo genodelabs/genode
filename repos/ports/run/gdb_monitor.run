@@ -142,9 +142,6 @@ append gdb_cmds [gdb_initial_breakpoint_cmds $gdb_target_binary]
 eval spawn [gdb] debug/ld.lib.so -n $gdb_cmds
 set gdb_id [list $spawn_id $genode_id]
 
-send "set pagination off\n"
-run_genode_until {\(gdb\)} 20 $gdb_id
-
 puts ""
 puts "----- test: breakpoint in 'main()' -----"
 puts ""

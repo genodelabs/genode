@@ -17,6 +17,9 @@ proc gdb_initial_breakpoint_cmds { target_binary_name } {
 	# don't ask for y/n when loading a new symbol file
 	append gdb_cmds {-ex "set interactive-mode off" }
 
+	# avoid pagination prompts in autopilot test
+	append gdb_cmds {-ex "set pagination off" }
+
 	# set a breakpoint in the 'binary_ready_hook_for_gdb' function
 	append gdb_cmds {-ex "b binary_ready_hook_for_gdb" }
 
