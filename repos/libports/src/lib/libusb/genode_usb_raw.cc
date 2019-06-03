@@ -168,11 +168,10 @@ struct Usb_device
 
 		Usb_device()
 		{
-			while (!usb_connection.plugged()) {
-				Genode::log("libusb: waiting until device is plugged...");
+			Genode::log("libusb: waiting until device is plugged...");
+			while (!usb_connection.plugged())
 				genode_env().ep().wait_and_dispatch_one_io_signal();
-				Genode::log("libusb: device is plugged");
-			}
+			Genode::log("libusb: device is plugged");
 
 			usb_connection.config_descriptor(&device_descriptor, &config_descriptor);
 
