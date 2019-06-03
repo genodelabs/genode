@@ -1332,44 +1332,42 @@ extern void heap_init_env(Genode::Heap *);
 void Component::construct(Genode::Env &env)
 {
 	static Genode::Heap          heap(env.ram(), env.rm());
-	static Genode::Vm_connection vm_con(env, "Seoul vCPUs", Genode::Cpu_session::PRIORITY_LIMIT / 16);
-
-	Genode::addr_t vm_size           = 0;
-	bool           map_small         = false;
-	bool           rdtsc_exit        = false;
-	bool           vmm_vcpu_same_cpu = false;
+	static Genode::Vm_connection vm_con(env, "Seoul vCPUs",
+	                                    Genode::Cpu_session::PRIORITY_LIMIT / 16);
 
 	static Attached_rom_dataspace config(env, "config");
 
-	{
-		Genode::log("--- Seoul VMM starting ---");
+	Genode::log("--- Seoul VMM starting ---");
 
-		/* request max available memory */
-		vm_size = env.pd().avail_ram().value;
-		/* reserve some memory for the VMM */
-		vm_size -= 10 * 1024 * 1024;
-		/* calculate max memory for the VM */
-		vm_size = vm_size & ~((1UL << Vmm::PAGE_SIZE_LOG2) - 1);
+	Genode::Xml_node const node     = config.xml();
+	Genode::uint64_t const vmm_size = node.attribute_value("vmm_memory",
+	                                                       Genode::Number_of_bytes(12 * 1024 * 1024));
 
-		/* read out whether VM and VMM should be colocated or not */
-		try {
-			map_small = config.xml().attribute_value("map_small", false);
-			rdtsc_exit  = config.xml().attribute_value("exit_on_rdtsc", false);
-			vmm_vcpu_same_cpu = config.xml().attribute_value("vmm_vcpu_same_cpu", false);
-		} catch (...) { }
+	bool const map_small         = node.attribute_value("map_small", false);
+	bool const rdtsc_exit        = node.attribute_value("exit_on_rdtsc", false);
+	bool const vmm_vcpu_same_cpu = node.attribute_value("vmm_vcpu_same_cpu",
+	                                                    false);
 
-		Genode::log(" using ", map_small ? "small": "large",
-		            " memory attachments for guest VM.");
-		if (rdtsc_exit)
-			Genode::log(" enabling VM exit on RDTSC.");
-	}
+	/* request max available memory */
+	Genode::uint64_t vm_size = env.pd().avail_ram().value;
+	/* reserve some memory for the VMM */
+	vm_size -= vmm_size;
+	/* calculate max memory for the VM */
+	vm_size = vm_size & ~((1ULL << Vmm::PAGE_SIZE_LOG2) - 1);
+
+	Genode::log(" VMM memory ", Genode::Number_of_bytes(vmm_size));
+	Genode::log(" using ", map_small ? "small": "large",
+	            " memory attachments for guest VM.");
+	if (rdtsc_exit)
+		Genode::log(" enabling VM exit on RDTSC.");
+
+	unsigned const width  = node.attribute_value("width", 1024U);
+	unsigned const height = node.attribute_value("height", 768U);
+
+	Genode::log(" framebuffer ", width, "x", height);
 
 	/* setup framebuffer memory for guest */
-	static Nitpicker::Connection    nitpicker { env };
-
-	unsigned width  = config.xml().attribute_value("width", 1024U);
-	unsigned height = config.xml().attribute_value("height", 768U);
-
+	static Nitpicker::Connection nitpicker { env };
 	nitpicker.buffer(Framebuffer::Mode(width, height,
 	                                   Framebuffer::Mode::RGB565), false);
 
@@ -1423,8 +1421,7 @@ void Component::construct(Genode::Env &env)
 
 	heap_init_env(&heap);
 
-	static Boot_module_provider
-		boot_modules(config.xml().sub_node("multiboot"));
+	static Boot_module_provider boot_modules(node.sub_node("multiboot"));
 
 	/* create the PC machine based on the configuration given */
 	static Machine machine(env, heap, vm_con, boot_modules, guest_memory,
@@ -1444,7 +1441,7 @@ void Component::construct(Genode::Env &env)
 
 	vdisk.register_host_operations(machine.unsynchronized_motherboard());
 
-	machine.setup_devices(config.xml().sub_node("machine"), vcon);
+	machine.setup_devices(node.sub_node("machine"), vcon);
 
 	Genode::log("\n--- Booting VM ---");
 

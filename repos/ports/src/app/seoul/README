@@ -1,9 +1,32 @@
-Vancouver is a virtual machine monitor specifically developed for the use with
-the NOVA hypervisor. It virtualizes 32bit x86 PC hardware including various
-peripherals. The combination of NOVA and Vancouver is described in the
-following paper by Udo Steinberg and Bernhard Kauer:
+Seoul (formerly Vancouver) is a virtual machine monitor originally developed
+for the use with the NOVA hypervisor. Nowadays it is also available for seL4,
+for Fiasco.OC and for NOVA on Genode. Seoul virtualizes 32bit x86 PC hardware
+including various peripherals. The combination of NOVA and Vancouver (later
+Seoul) is described in the following paper by Udo Steinberg and Bernhard Kauer:
 
 [http://os.inf.tu-dresden.de/papers_ps/steinberg_eurosys2010.pdf - NOVA: A Microhypervisor-Based Secure Virtualization Architecture]
 
-The official project website is [http://hypervisor.org].
+The NOVA project website is [http://hypervisor.org]
+The latest <outdated> Seoul home is [https://github.com/TUD-OS/seoul]
+The Seoul version as used by Genode is [https://github.com/alex-ab/seoul], branch
+genode_<release>.
 
+Usage
+-----
+
+<config width="1024" height="768" vmm_memory="10M" map_small="no"
+        rdtsc_exit="no" vmm_vcpu_same_cpu="no">
+	...
+</config>
+
+* The width/height specify the maximum area announced to the guest for the
+  framebuffer. The values are read once during boot of the VMM. The
+  values shown above are the default values.
+* The vmm_memory value specify the amount of memory reserved for the Seoul VMM
+  (so it is not available to the VM). The rest of the memory as specified in
+  the Genode config is assigned to the VM.
+* map_small specifies whether just 4k pages should be used.  Default is shown.
+* rdtsc_exit specifies whether the VM should exit on each rdtsc instruction.
+  Default is shown.
+* vmm_vcpu_same_cpu specifies whether the main entrypoint should run on the
+  same CPU as the first virtual CPU. Default is shown.
