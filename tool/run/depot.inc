@@ -165,7 +165,7 @@ proc _current_depot_archive_version { type name } {
 	set repo [repository_contains $hash_rel_path]
 
 	if {$repo == ""} {
-		puts stderr "Error: unable to guess version of '$name' archive"
+		puts stderr "Error: recipe for '$type/$name' not found - unable to guess version"
 		exit 1
 	}
 
