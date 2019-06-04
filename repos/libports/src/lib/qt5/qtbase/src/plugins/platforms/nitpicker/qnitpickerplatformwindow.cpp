@@ -107,6 +107,7 @@ static Qt::Key translate_keycode(Input::Keycode key)
 {
 	switch (key) {
 	case Input::KEY_ENTER:     return Qt::Key_Return;
+	case Input::KEY_KPENTER:   return Qt::Key_Enter;
 	case Input::KEY_ESC:       return Qt::Key_Escape;
 	case Input::KEY_TAB:       return Qt::Key_Tab;
 	case Input::KEY_BACKSPACE: return Qt::Key_Backspace;
