@@ -1,6 +1,7 @@
 /*
  * \brief  Trace timestamp
  * \author Stefan Kalkowski
+ * \author Sebastian Sumpf
  * \date   2019-03-25
  */
 
@@ -22,7 +23,10 @@ namespace Genode { namespace Trace {
 
 	inline Timestamp timestamp()
 	{
-		return 0;
+		uint64_t t;
+		/* cycle counter */
+		asm volatile("mrs %0, pmccntr_el0" : "=r" (t));
+		return t;
 	}
 } }
 
