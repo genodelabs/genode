@@ -1,0 +1,42 @@
+From 1b5b4c951c4f5d5495ab6acb98c586b85d123295 Mon Sep 17 00:00:00 2001
+From: Sebastian Sumpf <sebastian.sumpf@genode-labs.com>
+Date: Fri, 11 Jan 2013 17:14:26 +0100
+Subject: [PATCH 02/15] FOC: change l4_task_cap_equal semantic
+
+The syscall l4_task_cap_equal almost returns false although the referenced
+kernel-objects are equal. This patch changes the semantic of the syscall so that
+whenever two capabilities refering the same kernel-object are compared it will
+return true. Please refer to the discussion of the following mail thread:
+http://www.mail-archive.com/l4-hackers@os.inf.tu-dresden.de/msg05162.html
+
+Was 'foc_caps_equal.patch'
+---
+ kernel/fiasco/src/kern/task.cpp | 11 ++++++++---
+ 1 file changed, 8 insertions(+), 3 deletions(-)
+
+diff --git a/kernel/fiasco/src/kern/task.cpp b/kernel/fiasco/src/kern/task.cpp
+index 693da581..e30867e2 100644
+--- a/kernel/fiasco/src/kern/task.cpp
++++ b/kernel/fiasco/src/kern/task.cpp
+@@ -518,10 +518,15 @@ Task::sys_caps_equal(Syscall_frame *, Utcb *utcb)
+   if (obj_a.special() || obj_b.special())
+     return commit_result(obj_a.special_cap() == obj_b.special_cap());
+ 
+-  Obj_space::Capability c_a = lookup(obj_a.cap());
+-  Obj_space::Capability c_b = lookup(obj_b.cap());
++  Kobject_iface* ki_a = lookup(obj_a.cap()).obj();
++  Kobject_iface* ki_b = lookup(obj_b.cap()).obj();
+ 
+-  return commit_result(c_a == c_b);
++  if (!ki_b || !ki_a) return commit_result(0);
++
++  Mword o_a = ki_a->obj_id();
++  Mword o_b = ki_b->obj_id();
++
++  return commit_result(o_a == o_b);
+ }
+ 
+ PRIVATE inline NOEXPORT
+-- 
+2.11.0
+

@@ -1,0 +1,43 @@
+From a7c9b9eaf75f9574c2ae80094df15942bf54c4ca Mon Sep 17 00:00:00 2001
+From: Sebastian Sumpf <sebastian.sumpf@genode-labs.com>
+Date: Fri, 11 Jan 2013 17:38:28 +0100
+Subject: [PATCH 03/15] Sigma0: raise sigma0's priority to maximum.
+
+When sigma0 runs on a lower priority than the rest of the threads in the system
+it might come to the point that while answering a page fault or I/O memory area
+request the timeslice of the caller (core-pager) gets fully consumed. As long as
+other threads are still executable and don't block sigma0 won't do progress
+anymore, because it runs at the lowest priority.  This commit simply sets
+sigma0's priority to the highest in the system.
+
+Was: 'sigma0_prio.patch'
+---
+ l4/pkg/l4re-core/sigma0/server/src/init.cc | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/l4/pkg/l4re-core/sigma0/server/src/init.cc b/l4/pkg/l4re-core/sigma0/server/src/init.cc
+index c2608ceb..ebd8d479 100644
+--- a/l4/pkg/l4re-core/sigma0/server/src/init.cc
++++ b/l4/pkg/l4re-core/sigma0/server/src/init.cc
+@@ -27,6 +27,7 @@
+ #include "ioports.h"
+ #include "mem_man_test.h"
+ #include <l4/sys/debugger.h>
++#include <l4/sys/scheduler.h>
+ 
+ /* started as the L4 sigma0 task from crt0.S */
+ 
+@@ -61,6 +62,10 @@ init(l4_kernel_info_t *info)
+   l4_debugger_set_object_name(L4_BASE_FACTORY_CAP, "root factory");
+   l4_debugger_set_object_name(L4_BASE_THREAD_CAP,  "sigma0");
+ 
++  l4_sched_param_t params = l4_sched_param(255);
++  l4_scheduler_run_thread(L4_BASE_SCHEDULER_CAP, L4_BASE_THREAD_CAP, &params);
++
++
+   Page_alloc_base::init();
+ 
+   init_memory(info);
+-- 
+2.11.0
+

@@ -1,0 +1,28 @@
+From 266d89b9a54653bfe5cae2744ab72cf83ec13d6d Mon Sep 17 00:00:00 2001
+From: Stefan Kalkowski <stefan.kalkowski@genode-labs.com>
+Date: Wed, 3 May 2017 15:01:31 +0200
+Subject: [PATCH 07/15] L4RE: fix x86 syscall bindings to use in C++ namespace
+
+---
+ l4/pkg/l4re-core/l4sys/include/ARCH-x86/ipc-invoke.h | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/l4/pkg/l4re-core/l4sys/include/ARCH-x86/ipc-invoke.h b/l4/pkg/l4re-core/l4sys/include/ARCH-x86/ipc-invoke.h
+index 6e635697..18ef1f6d 100644
+--- a/l4/pkg/l4re-core/l4sys/include/ARCH-x86/ipc-invoke.h
++++ b/l4/pkg/l4re-core/l4sys/include/ARCH-x86/ipc-invoke.h
+@@ -48,7 +48,11 @@
+ #if 1
+ 
+ #ifdef __PIC__
++#ifndef __cplusplus
+ extern void (*__l4sys_invoke_indirect)(void);
++#else
++extern "C" void (*__l4sys_invoke_indirect)(void);
++#endif
+ #endif
+ #  define IPC_SYSENTER      "# indirect sys invoke \n\t" \
+                             "call *%[func]    \n\t"
+-- 
+2.11.0
+

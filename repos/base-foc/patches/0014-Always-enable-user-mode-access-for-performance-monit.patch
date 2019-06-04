@@ -1,0 +1,35 @@
+From b74e427801f045578c401a140a8e66404bb3ff19 Mon Sep 17 00:00:00 2001
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+Date: Tue, 12 Feb 2019 19:54:06 +0100
+Subject: [PATCH 14/15] Always enable user mode access for performance monitors
+
+QEMU implements the cycle count register read by
+'Genode::Trace::timestamp()', but does not report a supported debug model
+version for Cortex-A9.
+---
+ kernel/fiasco/src/kern/arm/perf_cnt-arm.cpp | 9 +++++++--
+ 1 file changed, 7 insertions(+), 2 deletions(-)
+
+diff --git a/kernel/fiasco/src/kern/arm/perf_cnt-arm.cpp b/kernel/fiasco/src/kern/arm/perf_cnt-arm.cpp
+index b7d6a935..bff54286 100644
+--- a/kernel/fiasco/src/kern/arm/perf_cnt-arm.cpp
++++ b/kernel/fiasco/src/kern/arm/perf_cnt-arm.cpp
+@@ -190,8 +190,13 @@ PUBLIC static FIASCO_INIT_CPU
+ void
+ Perf_cnt::init_cpu()
+ {
+-  if (!is_avail())
+-    return;
++  /*
++   * QEMU implements the cycle count register read by
++   * 'Genode::Trace::timestamp()', but does not report a supported debug model
++   * version for Cortex-A9.
++   */
++  //if (!is_avail())
++    //return;
+ 
+   _nr_counters = (pmcr() >> 11) & 0x1f;
+ 
+-- 
+2.11.0
+

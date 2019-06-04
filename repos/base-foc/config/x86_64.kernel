@@ -2,6 +2,7 @@
 # Automatically generated file; DO NOT EDIT.
 # Fiasco configuration
 #
+CONFIG_HAS_LAZY_FPU=y
 CONFIG_HAS_VIRT_OBJ_SPACE_OPTION=y
 CONFIG_HAS_SERIAL_OPTION=y
 CONFIG_HAS_WATCHDOG_OPTION=y
@@ -23,6 +24,8 @@ CONFIG_ABI_VF=y
 CONFIG_CPU_VIRT=y
 CONFIG_SCHED_APIC=y
 # CONFIG_WORKAROUND_AMD_FPU_LEAK is not set
+CONFIG_FPU=y
+# CONFIG_LAZY_FPU is not set
 
 #
 # Kernel options

@@ -1,0 +1,24 @@
+From 518f0ab153ab528fb78c3643d490c2cbefe0dd80 Mon Sep 17 00:00:00 2001
+From: Alexander Boettcher <alexander.boettcher@genode-labs.com>
+Date: Sat, 4 May 2019 19:19:22 +0200
+Subject: [PATCH 16/17] svm: provide cr0 to guest if np enabled
+
+---
+ kernel/fiasco/src/kern/ia32/vm_svm.cpp | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/kernel/fiasco/src/kern/ia32/vm_svm.cpp b/kernel/fiasco/src/kern/ia32/vm_svm.cpp
+index 9960a830..1330e36a 100644
+--- a/kernel/fiasco/src/kern/ia32/vm_svm.cpp
++++ b/kernel/fiasco/src/kern/ia32/vm_svm.cpp
+@@ -656,6 +656,7 @@ Vm_svm::do_resume_vcpu(Context *ctxt, Vcpu_state *vcpu, Vmcb *vmcb_s)
+ 
+   if (EXPECT_TRUE(kernel_vmcb_s->np_enabled()))
+     {
++      vmcb_s->state_save_area.cr0 = kernel_vmcb_s->state_save_area.cr0;
+       vmcb_s->state_save_area.cr3 = kernel_vmcb_s->state_save_area.cr3;
+       vmcb_s->state_save_area.cr4 = kernel_vmcb_s->state_save_area.cr4;
+     }
+-- 
+2.11.0
+

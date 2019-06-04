@@ -1,0 +1,34 @@
+From 8ce1c02d02fa8a9e50124e3237c2e01ae73c248c Mon Sep 17 00:00:00 2001
+From: Sebastian Sumpf <sebastian.sumpf@genode-labs.com>
+Date: Wed, 8 Mar 2017 16:58:27 +0100
+Subject: [PATCH 06/15] FOC: adjust panda timer to version A6
+
+A6 runs at 800 not 700 MHz (as the ES2 does) when bootstrapped by U-boot
+
+(thanks to mstein)
+---
+ .../fiasco/src/kern/arm/bsp/omap/timer-arm-mptimer-omap4.cpp   | 10 +++++++++-
+ 1 file changed, 9 insertions(+), 1 deletion(-)
+
+diff --git a/kernel/fiasco/src/kern/arm/bsp/omap/timer-arm-mptimer-omap4.cpp b/kernel/fiasco/src/kern/arm/bsp/omap/timer-arm-mptimer-omap4.cpp
+index 72ef9b90..c0aef990 100644
+--- a/kernel/fiasco/src/kern/arm/bsp/omap/timer-arm-mptimer-omap4.cpp
++++ b/kernel/fiasco/src/kern/arm/bsp/omap/timer-arm-mptimer-omap4.cpp
+@@ -4,5 +4,13 @@ INTERFACE [arm && mptimer && pf_omap4_pandaboard]:
+ EXTENSION class Timer
+ {
+ private:
+-  static Mword interval() { return 499999; }
++  static Mword interval()
++  {
++    /*
++     * This is only valid for Panda A6, as we run it at our offices. For A6
++     * U-Boot will clock the board at 800 MHz leading to a 400 MHz private timer
++     * tick.
++     */
++    return 399999;
++  }
+ };
+-- 
+2.11.0
+

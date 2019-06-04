@@ -43,25 +43,23 @@ CONFIG_PLATFORM_TYPE_exynos4=y
 # CONFIG_PLATFORM_TYPE_parallella is not set
 # CONFIG_PLATFORM_TYPE_rpi_b is not set
 # CONFIG_PLATFORM_TYPE_imx21 is not set
-# CONFIG_PLATFORM_TYPE_imx51 is not set
+# CONFIG_PLATFORM_TYPE_rcar3 is not set
 # CONFIG_PLATFORM_TYPE_ls1021atwr is not set
 # CONFIG_PLATFORM_TYPE_tegra3 is not set
 # CONFIG_PLATFORM_TYPE_imx7 is not set
 # CONFIG_PLATFORM_TYPE_imx28 is not set
 # CONFIG_PLATFORM_TYPE_omap3evm is not set
-# CONFIG_PLATFORM_TYPE_rcar3_m3 is not set
 # CONFIG_PLATFORM_TYPE_zynqmp is not set
 # CONFIG_PLATFORM_TYPE_imx6 is not set
 # CONFIG_PLATFORM_TYPE_imx6ul is not set
 # CONFIG_PLATFORM_TYPE_armada38x is not set
 # CONFIG_PLATFORM_TYPE_omap5 is not set
 # CONFIG_PLATFORM_TYPE_rv_vexpress is not set
+# CONFIG_PLATFORM_TYPE_imx51 is not set
 # CONFIG_PLATFORM_TYPE_rpi_a is not set
 # CONFIG_PLATFORM_TYPE_integrator is not set
 # CONFIG_PLATFORM_TYPE_custom is not set
 CONFIG_PLATFORM_TYPE="exynos4"
-# CONFIG_USE_DROPS_STDDIR is not set
-# CONFIG_USE_DICE is not set
 CONFIG_DROPS_STDDIR="/path/to/l4re"
 CONFIG_DROPS_INSTDIR="/path/to/l4re"
 CONFIG_BID_COLORED_PHASES=y

@@ -1,6 +1,40 @@
-LICENSE   := GPLv2
-VERSION   := git
-DOWNLOADS := foc.git
-URL(foc)  := https://github.com/alex-ab/foc.git
-REV(foc)  := 45bf2c699552d1e2891d322bea479d95f8c93d02
-DIR(foc)  := src/kernel/foc
+LICENSE           := GPLv2
+VERSION           := git
+DOWNLOADS         := mk.git foc.git l4re-core.git drivers-frst.git bootstrap.git
+
+URL(mk)           := https://github.com/kernkonzept/mk.git
+REV(mk)           := dc4501f9cc3910c2038e0703ffdcd9062d2610e1
+DIR(mk)           := src/kernel/foc/l4
+
+URL(foc)          := https://github.com/kernkonzept/fiasco.git
+REV(foc)          := 4367c50b1df878604b9833d4b41ae311d6e12e03
+DIR(foc)          := src/kernel/foc/kernel/fiasco
+
+URL(l4re-core)    := https://github.com/kernkonzept/l4re-core.git
+REV(l4re-core)    := fe794038e477e5a54762126689483c0e91a177a8
+DIR(l4re-core)    := src/kernel/foc/l4/pkg/l4re-core
+
+URL(drivers-frst) := https://github.com/kernkonzept/drivers-frst.git
+REV(drivers-frst) := ce2d7d33294cb7034a4226912463b24f6ffe1bc7
+DIR(drivers-frst) := src/kernel/foc/l4/pkg/drivers-frst
+
+URL(bootstrap)    := https://github.com/kernkonzept/bootstrap.git
+REV(bootstrap)    := 36500c1253f46f527098febd4da7cbc9d0e2c218
+DIR(bootstrap)    := src/kernel/foc/l4/pkg/bootstrap
+
+PATCHES           := $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/*.patch)))
+
+PATCH_OPT(patches/0001-L4RE-Remove-moe-from-switch_ram_base-target.patch)         := -p2 -d${DIR(mk)}
+PATCH_OPT(patches/0002-FOC-change-l4_task_cap_equal-semantic.patch)               := -p3 -d${DIR(foc)}
+PATCH_OPT(patches/0003-Sigma0-raise-sigma0-s-priority-to-maximum.patch)           := -p4 -d${DIR(l4re-core)}
+PATCH_OPT(patches/0005-FOC-Increase-name-buffer-of-JDB-to-32K.patch)              := -p3 -d${DIR(foc)}
+PATCH_OPT(patches/0006-FOC-adjust-panda-timer-to-version-A6.patch)                := -p3 -d${DIR(foc)}
+PATCH_OPT(patches/0007-L4RE-fix-x86-syscall-bindings-to-use-in-C-namespace.patch) := -p4 -d${DIR(l4re-core)}
+PATCH_OPT(patches/0009-Bootstrap-read-out-comport-on-x86-from-BDA-area.patch)     := -p4 -d${DIR(bootstrap)}
+PATCH_OPT(patches/0010-L4RE-get-rid-of-__builtin_strlen-usage.patch)              := -p4 -d${DIR(l4re-core)}
+PATCH_OPT(patches/0011-Ex_regs-Change-user_flags.patch)                           := -p3 -d${DIR(foc)}
+PATCH_OPT(patches/0012-Flush-the-TLB-after-idle-operation.patch)                  := -p3 -d${DIR(foc)}
+PATCH_OPT(patches/0014-Always-enable-user-mode-access-for-performance-monit.patch):= -p3 -d${DIR(foc)}
+PATCH_OPT(patches/0015-VMX-disable-event-injection-if-requested-by-VMM.patch)     := -p3 -d${DIR(foc)}
+PATCH_OPT(patches/0016-svm-provide-cr0-to-guest-if-np-enabled.patch)              := -p3 -d${DIR(foc)}
+PATCH_OPT(patches/0017-svm-avoid-forceful-exit-on-task-switch.patch)              := -p3 -d${DIR(foc)}

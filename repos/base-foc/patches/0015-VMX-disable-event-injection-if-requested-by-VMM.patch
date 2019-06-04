@@ -1,0 +1,29 @@
+From a8411389dffc3c55dc5809d2e849b3afac94ee5d Mon Sep 17 00:00:00 2001
+From: Alexander Boettcher <alexander.boettcher@genode-labs.com>
+Date: Fri, 12 Apr 2019 13:53:24 +0200
+Subject: [PATCH 15/15] VMX: disable event injection if requested by VMM
+
+---
+ kernel/fiasco/src/kern/ia32/vm_vmx.cpp | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/kernel/fiasco/src/kern/ia32/vm_vmx.cpp b/kernel/fiasco/src/kern/ia32/vm_vmx.cpp
+index 7de4110f..44483b48 100644
+--- a/kernel/fiasco/src/kern/ia32/vm_vmx.cpp
++++ b/kernel/fiasco/src/kern/ia32/vm_vmx.cpp
+@@ -306,6 +306,12 @@ Vm_vmx_t<X>::load_guest_state(Cpu_number cpu, void *src)
+ 
+       Vmx::vmwrite(Vmx::F_entry_int_info, irq_info);
+     }
++  else
++    {
++      // switch off event injection if requested but still pending in hw
++      if (Vmx::vmread<Mword>(Vmx::F_entry_int_info) & (1UL << 31))
++        Vmx::vmwrite(Vmx::F_entry_int_info, irq_info);
++    }
+ 
+   // hm, we have to check for sanitizing the cr0 and cr4 shadow stuff
+   load(0x6000, 0x6006, src);
+-- 
+2.11.0
+

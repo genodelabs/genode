@@ -1,0 +1,47 @@
+From f3d44f2a42763bbcba7085f3005ee8a36dbf23e9 Mon Sep 17 00:00:00 2001
+From: Stefan Kalkowski <stefan.kalkowski@genode-labs.com>
+Date: Tue, 30 May 2017 09:03:57 +0200
+Subject: [PATCH 10/15] L4RE: get rid of __builtin_strlen usage
+
+---
+ l4/pkg/l4re-core/l4sys/include/kdebug.h | 11 +++++++++--
+ 1 file changed, 9 insertions(+), 2 deletions(-)
+
+diff --git a/l4/pkg/l4re-core/l4sys/include/kdebug.h b/l4/pkg/l4re-core/l4sys/include/kdebug.h
+index cfb17464..64ee9900 100644
+--- a/l4/pkg/l4re-core/l4sys/include/kdebug.h
++++ b/l4/pkg/l4re-core/l4sys/include/kdebug.h
+@@ -133,6 +133,13 @@ __kdebug_op_1(unsigned op, l4_mword_t val) L4_NOTHROW
+   return res;
+ }
+ 
++L4_INLINE unsigned __kdebug_strlen(char const * s)
++{
++	unsigned r = 0;
++	for (; s && *s; s++, r++);
++	return r;
++}
++
+ L4_INLINE void enter_kdebug(char const *text) L4_NOTHROW
+ {
+   /* special case, enter without any text and use of the UTCB */
+@@ -144,14 +151,14 @@ L4_INLINE void enter_kdebug(char const *text) L4_NOTHROW
+       return;
+     }
+ 
+-  __kdebug_text(L4_KDEBUG_ENTER, text, __builtin_strlen(text));
++  __kdebug_text(L4_KDEBUG_ENTER, text, __kdebug_strlen(text));
+ }
+ 
+ L4_INLINE void outnstring(char const *text, unsigned len)
+ { __kdebug_text(L4_KDEBUG_OUTNSTRING, text, len); }
+ 
+ L4_INLINE void outstring(char const *text)
+-{ outnstring(text, __builtin_strlen(text)); }
++{ outnstring(text, __kdebug_strlen(text)); }
+ 
+ 
+ L4_INLINE void outchar(char c)
+-- 
+2.11.0
+

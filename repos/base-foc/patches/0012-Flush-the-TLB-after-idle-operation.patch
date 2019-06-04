@@ -1,0 +1,29 @@
+From 43cd446fe9bcba67a7d7312b14004e9063343a89 Mon Sep 17 00:00:00 2001
+From: Christian Prochaska <christian.prochaska@genode-labs.com>
+Date: Wed, 28 Aug 2013 19:53:23 +0200
+Subject: [PATCH 12/15] Flush the TLB after idle operation
+
+While a CPU executes the idle thread, it receives no cross-CPU TLB flush
+requests. Therefore, the TLB needs to get flushed when leaving the idle
+thread to compensate for any missed flush requests.
+
+Fixes ssumpf/foc#9.
+---
+ kernel/fiasco/src/kern/kernel_thread.cpp | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/kernel/fiasco/src/kern/kernel_thread.cpp b/kernel/fiasco/src/kern/kernel_thread.cpp
+index 348fde9c..7e4a0d31 100644
+--- a/kernel/fiasco/src/kern/kernel_thread.cpp
++++ b/kernel/fiasco/src/kern/kernel_thread.cpp
+@@ -182,6 +182,7 @@ Kernel_thread::idle_op()
+       arch_tickless_idle(cpu);
+ 
+       Mem_space::enable_tlb(cpu);
++      Mem_unit::tlb_flush();
+       Rcu::leave_idle(cpu);
+       Timer_tick::enable(cpu);
+     }
+-- 
+2.11.0
+

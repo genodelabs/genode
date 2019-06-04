@@ -1,0 +1,45 @@
+From b9323143eead13223b658c92010c923c959e2159 Mon Sep 17 00:00:00 2001
+From: Sebastian Sumpf <sebastian.sumpf@genode-labs.com>
+Date: Fri, 11 Jan 2013 17:27:42 +0100
+Subject: [PATCH 11/15] Ex_regs: Change 'user_flags'
+
+Return true if thread is ready.
+
+Was: 'foc_exregs_ret_state.patch'
+---
+ kernel/fiasco/src/kern/arm/thread-arm.cpp   | 2 +-
+ kernel/fiasco/src/kern/ia32/thread-ia32.cpp | 5 ++++-
+ 2 files changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/kernel/fiasco/src/kern/arm/thread-arm.cpp b/kernel/fiasco/src/kern/arm/thread-arm.cpp
+index 82b62998..7bce193b 100644
+--- a/kernel/fiasco/src/kern/arm/thread-arm.cpp
++++ b/kernel/fiasco/src/kern/arm/thread-arm.cpp
+@@ -325,7 +325,7 @@ Thread::user_sp(Mword sp)
+ IMPLEMENT inline
+ Mword
+ Thread::user_flags() const
+-{ return 0; }
++{ return state() & Thread_ready; }
+ 
+ PUBLIC inline NEEDS ["trap_state.h"]
+ int
+diff --git a/kernel/fiasco/src/kern/ia32/thread-ia32.cpp b/kernel/fiasco/src/kern/ia32/thread-ia32.cpp
+index 3777821d..62a561a9 100644
+--- a/kernel/fiasco/src/kern/ia32/thread-ia32.cpp
++++ b/kernel/fiasco/src/kern/ia32/thread-ia32.cpp
+@@ -80,7 +80,10 @@ Thread::user_ip() const
+ IMPLEMENT inline
+ Mword
+ Thread::user_flags() const
+-{ return regs()->flags(); }
++{
++    // pass thread-ready state in carry flag (Thread_ready is bit 0)
++    return (regs()->flags() & ~Thread_ready) | (state() & Thread_ready);
++}
+ 
+ PRIVATE static inline
+ Mword
+-- 
+2.11.0
+

@@ -19,12 +19,10 @@ CONFIG_CPU_ARM_ARMV8A=y
 # CONFIG_PLATFORM_TYPE_arm_virt is not set
 # CONFIG_PLATFORM_TYPE_rv_vexpress_a15 is not set
 CONFIG_PLATFORM_TYPE_rpi_b=y
-# CONFIG_PLATFORM_TYPE_rcar3_m3 is not set
+# CONFIG_PLATFORM_TYPE_rcar3 is not set
 # CONFIG_PLATFORM_TYPE_zynqmp is not set
 # CONFIG_PLATFORM_TYPE_custom is not set
 CONFIG_PLATFORM_TYPE="rpi_b"
-# CONFIG_USE_DROPS_STDDIR is not set
-# CONFIG_USE_DICE is not set
 CONFIG_DROPS_STDDIR="/path/to/l4re"
 CONFIG_DROPS_INSTDIR="/path/to/l4re"
 CONFIG_BID_COLORED_PHASES=y

@@ -1,0 +1,30 @@
+From 09f403d2eb2c7dc089796f58c9a1f359fdea2c35 Mon Sep 17 00:00:00 2001
+From: Sebastian Sumpf <sebastian.sumpf@genode-labs.com>
+Date: Fri, 11 Jan 2013 17:34:06 +0100
+Subject: [PATCH 05/15] FOC: Increase name buffer of JDB to 32K
+
+Increase the size of the JDB kernel object names buffer. The original size was
+too small for some Genode scenarios and caused missing thread names in the
+kernel debugger thread list.
+
+Was: 'jdb_kobject_names.patch'
+---
+ kernel/fiasco/src/jdb/jdb_kobject_names.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/kernel/fiasco/src/jdb/jdb_kobject_names.cpp b/kernel/fiasco/src/jdb/jdb_kobject_names.cpp
+index 5b5adbad..d65fbd56 100644
+--- a/kernel/fiasco/src/jdb/jdb_kobject_names.cpp
++++ b/kernel/fiasco/src/jdb/jdb_kobject_names.cpp
+@@ -43,7 +43,7 @@ IMPLEMENTATION:
+ 
+ enum
+ {
+-  Name_buffer_size = 8192,
++  Name_buffer_size = 4*8192,
+   Name_entries = Name_buffer_size / sizeof(Jdb_kobject_name),
+ };
+ 
+-- 
+2.11.0
+

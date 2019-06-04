@@ -1,0 +1,35 @@
+From 2cf8f6f608aa4ade16402c10751aaa7d90b994f8 Mon Sep 17 00:00:00 2001
+From: Alexander Boettcher <alexander.boettcher@genode-labs.com>
+Date: Mon, 10 Jun 2013 10:30:49 +0200
+Subject: [PATCH 09/15] Bootstrap: read out comport on x86 from BDA area
+
+With this patch the comport are tried to read out from the BIOS Data Area
+on x86 machines. The BDA Area are part of the first physical page and may
+contain the non-default io ports of the comport.
+
+When used together with 'bender' from the 'morbo' toolchain, even serial PCI
+cards (also Intel's AMT Serial Over Line adapter) are detected automatically.
+---
+ l4/pkg/bootstrap/server/src/platform/x86_pc-base.h | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/l4/pkg/bootstrap/server/src/platform/x86_pc-base.h b/l4/pkg/bootstrap/server/src/platform/x86_pc-base.h
+index c3e8c12f..95579c09 100644
+--- a/l4/pkg/bootstrap/server/src/platform/x86_pc-base.h
++++ b/l4/pkg/bootstrap/server/src/platform/x86_pc-base.h
+@@ -957,7 +957,11 @@ public:
+           }
+         else if (comport == -1)
+           {
+-            legacy_uart(1, comirq, &board);
++            /* try to read Bios Data Area (BDA) to get comport information */
++            unsigned short comport_count = (*((unsigned short *)0x410) >> 9) & 0x7;
++            if (comport_count) comport = *((unsigned short *)0x400), comirq, &board;
++            else comport = 1;
++            legacy_uart(comport, comirq, &board);
+             comport = 0;
+           }
+         else
+-- 
+2.11.0
+
