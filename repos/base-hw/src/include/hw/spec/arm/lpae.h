@@ -28,6 +28,7 @@ namespace Hw {
 		SIZE_LOG2_1GB   = 30,
 		SIZE_LOG2_4GB   = 32,
 		SIZE_LOG2_256GB = 38,
+		SIZE_LOG2_512GB = 39,
 	};
 
 	/**
@@ -93,7 +94,7 @@ namespace Hw {
 		STAGE1, SIZE_LOG2_1GB>;
 	using Level_1_stage_1_translation_table =
 		Level_x_translation_table<Level_2_stage_1_translation_table,
-		STAGE1, SIZE_LOG2_4GB>;
+		STAGE1, SIZE_LOG2_512GB>;
 
 	using Level_3_stage_2_translation_table = Level_3_translation_table<STAGE2>;
 	using Level_2_stage_2_translation_table =
@@ -162,7 +163,7 @@ class Hw::Long_translation_table
 
 			struct Output_address :
 				Descriptor::template Bitfield<BLOCK_SIZE_LOG2,
-				                              39 - BLOCK_SIZE_LOG2> { };
+				                              47 - BLOCK_SIZE_LOG2> { };
 
 			/**
 			 * Indicates that 16 adjacent entries point to contiguous
@@ -176,7 +177,7 @@ class Hw::Long_translation_table
 
 		struct Table_descriptor : Descriptor
 		{
-			struct Next_table : Descriptor::template Bitfield<12, 27> { };
+			struct Next_table : Descriptor::template Bitfield<12, 36> { };
 
 			static typename Descriptor::access_t create(void * const pa)
 			{
@@ -293,8 +294,10 @@ class Hw::Long_translation_table
 		template <typename FUNC>
 		void _range_op(addr_t vo, addr_t pa, size_t size, FUNC &&func)
 		{
-			for (size_t i = vo >> BLOCK_SIZE_LOG2; size > 0;
-			     i = vo >> BLOCK_SIZE_LOG2) {
+			auto idx = [] (addr_t v) -> addr_t {
+				return (v >> BLOCK_SIZE_LOG2) & (MAX_ENTRIES-1); };
+
+			for (size_t i = idx(vo); size > 0; i = idx(vo)) {
 				addr_t end = (vo + BLOCK_SIZE) & BLOCK_MASK;
 				size_t sz  = Genode::min(size, end-vo);
 
