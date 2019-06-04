@@ -101,7 +101,9 @@ struct Ttf_font::Glyph_buffer
 		 */
 		size_t const capacity;
 
-		size_t _num_bytes() const { return capacity*sizeof(Opacity); }
+		size_t const _headroom = 5;
+
+		size_t _num_bytes() const { return (capacity + _headroom)*sizeof(Opacity); }
 
 		Opacity * const _values = (Opacity *)alloc.alloc(_num_bytes());
 
@@ -162,19 +164,22 @@ Ttf_font::Glyph_buffer::render_shifted(Codepoint      const c,
 	if (y0 < -(int)baseline)
 		y0 = -(int)baseline;
 
+	/* x0 may be negative, clamp its lower bound to headroom of the buffer */
+	x0 = Genode::max(-(int)_headroom, x0);
+
 	unsigned const dx = x1 - x0;
 	unsigned const dy = y1 - y0;
 
 	unsigned const width  = dx + 1 + PAD_X;
 	unsigned const height = dy + 1 + PAD_Y;
 
-	unsigned const dst_width = filter_x*width;
+	unsigned        const dst_width = filter_x*width;
+	unsigned char * const dst_ptr   = (unsigned char *)_values + _headroom + x0;
 
-	::memset(_values, 0, dst_width*height);
+	::memset(dst_ptr, 0, dst_width*height);
 
 	float sub_x = 0, sub_y = 0;
-	stbtt_MakeCodepointBitmapSubpixelPrefilter(&font,
-	                                           (unsigned char *)_values + x0,
+	stbtt_MakeCodepointBitmapSubpixelPrefilter(&font, dst_ptr,
 	                                           dst_width, dy + 1, dst_width,
 	                                           scale*4, scale,
 	                                           shift_x, shift_y,
@@ -194,7 +199,7 @@ Ttf_font::Glyph_buffer::render_shifted(Codepoint      const c,
 	               .height  = height,
 	               .vpos    = (unsigned)((int)baseline + y0),
 	               .advance = scale*advance,
-	               .values  = _values };
+	               .values  = _values + _headroom };
 }
 
 
