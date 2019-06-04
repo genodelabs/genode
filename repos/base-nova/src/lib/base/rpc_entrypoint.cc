@@ -205,6 +205,12 @@ void Rpc_entrypoint::activate()
 }
 
 
+bool Rpc_entrypoint::is_myself() const
+{
+	return (Thread::myself() == this);
+}
+
+
 Rpc_entrypoint::Rpc_entrypoint(Pd_session *pd_session, size_t stack_size,
                                const char  *name, bool start_on_construction,
                                Affinity::Location location)
