@@ -1513,7 +1513,7 @@ class Terminal::Root_component : public Genode::Root_component<Session_component
 				});
 
 				try {
-					_server.attach_terminal(*s);
+					Libc::with_libc([&] () { _server.attach_terminal(*s); });
 					return s;
 				} catch (...) {
 					Genode::destroy(md_alloc(), s);
