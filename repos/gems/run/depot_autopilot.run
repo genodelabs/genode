@@ -412,7 +412,7 @@ proc prepare_to_run_genode { } {
 		</start>
 
 		<start name="dynamic" caps="8000" priority="-1">
-			<resource name="RAM" quantum="420M"/>
+			<resource name="RAM" quantum="286M"/>
 			<binary name="init"/>
 			<route>
 

@@ -1,4 +1,4 @@
-<runtime ram="410M" caps="1000" binary="init">
+<runtime ram="266M" caps="1000" binary="init">
 
 	<requires> <timer/> </requires>
 
@@ -34,7 +34,7 @@
 		</default-route>
 		<default caps="200"/>
 		<start name="test-libc">
-			<resource name="RAM" quantum="400M"/>
+			<resource name="RAM" quantum="256M"/>
 			<config>
 				<vfs> <dir name="dev"> <log/> </dir> </vfs>
 				<libc stdout="/dev/log" stderr="/dev/log"/>
