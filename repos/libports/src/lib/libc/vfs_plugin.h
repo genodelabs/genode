@@ -81,72 +81,7 @@ class Libc::Vfs_plugin : public Libc::Plugin
 		/**
 		 * Sync a handle and propagate errors
 		 */
-		int _vfs_sync(Vfs::Vfs_handle *vfs_handle)
-		{
-			typedef Vfs::File_io_service::Sync_result Result;
-			Result result = Result::SYNC_QUEUED;
-
-			{
-				struct Check : Libc::Suspend_functor
-				{
-					bool retry { false };
-
-					Vfs::Vfs_handle *vfs_handle;
-
-					Check(Vfs::Vfs_handle *vfs_handle)
-					: vfs_handle(vfs_handle) { }
-
-					bool suspend() override
-					{
-						retry = !vfs_handle->fs().queue_sync(vfs_handle);
-						return retry;
-					}
-				} check(vfs_handle);
-
-				/*
-				 * Cannot call Libc::suspend() immediately, because the Libc kernel
-				 * might not be running yet.
-				 */
-				if (!vfs_handle->fs().queue_sync(vfs_handle)) {
-					do {
-						Libc::suspend(check);
-					} while (check.retry);
-				}
-			}
-
-			{
-				struct Check : Libc::Suspend_functor
-				{
-					bool retry { false };
-
-					Vfs::Vfs_handle *vfs_handle;
-					Result          &result;
-
-					Check(Vfs::Vfs_handle *vfs_handle, Result &result)
-					: vfs_handle(vfs_handle), result(result) { }
-
-					bool suspend() override
-					{
-						result = vfs_handle->fs().complete_sync(vfs_handle);
-						retry = result == Vfs::File_io_service::SYNC_QUEUED;
-						return retry;
-					}
-				} check(vfs_handle, result);
-
-				/*
-				 * Cannot call Libc::suspend() immediately, because the Libc kernel
-				 * might not be running yet.
-				 */
-				result = vfs_handle->fs().complete_sync(vfs_handle);
-				if (result == Result::SYNC_QUEUED) {
-					do {
-						Libc::suspend(check);
-					} while (check.retry);
-				}
-			}
-
-			return result == Result::SYNC_OK ? 0 : Libc::Errno(EIO);
-		}
+		int _vfs_sync(Vfs::Vfs_handle&);
 
 	public:
 
