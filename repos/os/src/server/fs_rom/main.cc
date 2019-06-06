@@ -113,6 +113,72 @@ class Fs_rom::Rom_session_component : public  Rpc_object<Rom_session>
 		struct Watch_failed { };
 
 		/**
+		 * Watch a path or some parent directory
+		 *
+		 * If the given path or a parent directory could be watched, the
+		 * corresponding watch handle is returned and 'path_watched' returns if
+		 * the watch handle refers to the given path (true) or to a parent
+		 * directory (false). Otherwise, 'Watch_failed' is thrown.
+		 */
+		File_system::Watch_handle _open_watch_handle_helper(Path watch_path,
+		                                                    bool &path_watched)
+		{
+			try {
+				File_system::Watch_handle watch_handle = _fs.watch(watch_path.base());
+				path_watched = true;
+				return watch_handle;
+			}
+			catch (File_system::Lookup_failed) { }
+			catch (File_system::Unavailable) { }
+
+			/* watching the given path failed, try to watch a parent directory */
+
+			if (watch_path == "/")
+				throw Watch_failed();
+
+			try {
+
+				Path immediate_parent_watch_path { watch_path };
+				immediate_parent_watch_path.strip_last_element();
+
+				bool immediate_parent_watched = false;
+
+				File_system::Watch_handle some_parent_watch_handle =
+					_open_watch_handle_helper(immediate_parent_watch_path,
+					                          immediate_parent_watched);
+
+				if (immediate_parent_watched) {
+
+					/*
+					 * Watching the immediate parent directory succeeded, now
+					 * try to watch the original path again, in case it has
+					 * been created in the meantime.
+					 */
+
+					try {
+						File_system::Watch_handle watch_handle = _fs.watch(watch_path.base());
+						_fs.close(some_parent_watch_handle);
+						path_watched = true;
+						return watch_handle;
+					}
+					catch (File_system::Lookup_failed) { }
+					catch (File_system::Unavailable) { }
+				}
+
+				/*
+				 * Watching the immediate parent directory or the original path
+				 * again failed, so pass on the received parent watch handle.
+				 */
+				path_watched = false;
+				return some_parent_watch_handle;
+
+			} catch (Watch_failed) {
+				/* None of the parent directories could be watched */
+				throw;
+			}
+		}
+
+		/**
 		 * Watch the session ROM file or some parent directory
 		 */
 		void _open_watch_handle()
@@ -123,28 +189,15 @@ class Fs_rom::Rom_session_component : public  Rpc_object<Rom_session>
 
 			Path watch_path(_file_path);
 
-			/* track if we can open the file or resort to a parent */
-			bool at_the_file = true;
+			_watching_file = false;
 
 			try {
-				while (true) {
-					try {
-						_watch_handle.construct(_fs.watch(watch_path.base()));
-						_watch_elem.construct(
-							*this, _sessions, Sessions::Id{_watch_handle->value});
-						_watching_file = at_the_file;
-						return;
-					}
-					catch (File_system::Lookup_failed) { }
-					catch (File_system::Unavailable) { }
-
-					if (watch_path == "/")
-						throw Watch_failed();
-					watch_path.strip_last_element();
-
-					/* keep looping, but only directories will be opened */
-					at_the_file = false;
-				}
+				Watch_handle watch_handle = _open_watch_handle_helper(watch_path.base(),
+					                                                  _watching_file);
+				_watch_handle.construct(watch_handle);
+				_watch_elem.construct(
+					*this, _sessions, Sessions::Id{_watch_handle->value});
+				return;
 			} catch (File_system::Out_of_ram) {
 				error("not enough RAM to watch '", watch_path, "'");
 			} catch (File_system::Out_of_caps) {
