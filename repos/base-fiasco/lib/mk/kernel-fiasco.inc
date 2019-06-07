@@ -20,8 +20,8 @@ $(FIASCO_BUILD_DIR):
 
 $(FIASCO): $(FIASCO_BUILD_DIR)
 	$(VERBOSE_MK) set -o pipefail; \
-	              MAKEFLAGS= CFLAGS="-std=gnu89" \
-	              CXXFLAGS="-std=gnu++98 -fno-delete-null-pointer-checks" \
+	              MAKEFLAGS= CFLAGS="-std=gnu89 $(CWARN)" \
+	              CXXFLAGS="-std=gnu++98 -fno-delete-null-pointer-checks $(CXXWARN)" \
 	              $(MAKE) SYSTEM_TARGET="$(CROSS_DEV_PREFIX)" \
 	                                 $(VERBOSE_DIR) -C $(FIASCO_BUILD_DIR) \
 	                                 $(KERNEL_BUILD_OUTPUT_FILTER)

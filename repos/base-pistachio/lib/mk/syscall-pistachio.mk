@@ -4,7 +4,8 @@ PISTACHIO_USER_SRC    := $(PISTACHIO_CONTRIB_DIR)/user/lib/l4
 LD_PREFIX := "-Wl,"
 
 CC_WARN += -Wno-array-bounds -Wno-unused-but-set-variable \
-           -Wno-parentheses -Wno-format
+           -Wno-parentheses -Wno-format -Wno-builtin-declaration-mismatch \
+           -Wno-unused-function -Wno-pointer-compare
 
 user_build.tag:
 	LIBGCCFLAGS="$(CC_MARCH)" \

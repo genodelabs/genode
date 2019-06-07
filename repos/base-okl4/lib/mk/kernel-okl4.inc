@@ -44,7 +44,8 @@ CC_OPT          += -DCONFIG_MAX_THREAD_BITS=10
 
 CC_OPT_PIC       =
 
-CC_CXX_WARN := -Wall -Wno-unused-but-set-variable -Wno-uninitialized
+CC_CXX_WARN := -Wall -Wno-unused-but-set-variable -Wno-uninitialized \
+               -Wno-register -Wno-unused-variable -Wno-tautological-compare
 
 #
 # Enforce building the kernel with -O3. Otherwise, the kernel build would fail

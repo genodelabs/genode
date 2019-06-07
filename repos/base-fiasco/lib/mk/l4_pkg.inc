@@ -48,6 +48,14 @@ endif
 #
 .NOTPARALLEL: $(PKG_TAGS)
 
+WARN    = -Wno-attributes -Wno-cast-function-type -Wno-format-truncation \
+          -Wno-frame-address -Wno-ignored-qualifiers -Wno-implicit-fallthrough \
+          -Wno-maybe-uninitialized -Wno-misleading-indentation \
+          -Wno-nonnull-compare -Wno-nonnull-compare -Wno-restrict \
+          -Wno-tautological-compare -Wno-unused-but-set-variable -Wno-unused-result
+CWARN   = $(WARN) -Wno-int-conversion -Wno-pointer-sign -Wno-pointer-to-int-cast
+CXXWARN = $(WARN) -Wno-bool-compare -Wno-c++11-compat -Wno-class-memaccess
+
 #
 # The '_GNU_SOURCE' definition is needed to convince uClibc to define the
 # 'off64_t' type, which is used by bootstrap.
@@ -55,8 +63,8 @@ endif
 %.tag:
 	$(VERBOSE_MK) set -o pipefail; \
 	              MAKEFLAGS= CPPFLAGS="$(CC_MARCH)" \
-	              CFLAGS="$(CC_MARCH) -std=gnu89" \
-	              CXXFLAGS="$(CC_MARCH) -D_GNU_SOURCE -std=gnu++98" \
+	              CFLAGS="$(CC_MARCH) -std=gnu89 $(CWARN)" \
+	              CXXFLAGS="$(CC_MARCH) -D_GNU_SOURCE -std=gnu++98 $(CXXWARN)" \
 	              ASFLAGS="$(CC_MARCH)" LDFLAGS="$(LD_MARCH)" \
 	              $(MAKE) $(VERBOSE_DIR) O=$(L4_BUILD_DIR) $(L4_VERBOSE) \
 	                      -C $(L4_PKG_DIR)/$* \
