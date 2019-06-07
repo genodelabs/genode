@@ -37,7 +37,7 @@ struct Lazy_test
 	Signal_handler<Lazy_test> faster_handler { env.ep(), *this,
 	                                           &Lazy_test::handle_faster_timer };
 
-	enum { RUN_TIME_US = 2 * 1000 * 1000, TIMEOUT_US = 50*1000, FACTOR = 2 };
+	enum { RUN_TIME_US = 4*1000*1000, TIMEOUT_US = 200*1000, FACTOR = 8 };
 	unsigned fast = 0;
 	unsigned faster = 0;
 
@@ -52,7 +52,8 @@ struct Lazy_test
 		done.submit();
 	}
 
-	void handle_fast_timer()   {
+	void handle_fast_timer()
+	{
 		fast ++;
 		if (faster <= fast)
 			throw Faster_timer_too_slow();
@@ -73,7 +74,7 @@ struct Lazy_test
 		fast_timer.sigh(fast_handler);
 		faster_timer.sigh(faster_handler);
 
-		log("register two-seconds timeout...");
+		log("register ", RUN_TIME_US/1000/1000, "-seconds timeout...");
 		slow_timer.trigger_once(RUN_TIME_US);
 		set_fast_timers();
 	}
