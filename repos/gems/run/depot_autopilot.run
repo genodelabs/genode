@@ -789,21 +789,35 @@ if {[info exists qemu_args]} {
 init_test_setting
 init_previous_results
 
+#
+# Some platforms have a problem with executing all tests in a single boot.
+# Thus, we have to re-boot them periodically.
+#
+set max_nr_of_tests_per_boot 0
+if {[have_spec sel4]} {
+	set max_nr_of_tests_per_boot 20
+}
+
 # generic preparation for each system boot
 prepare_to_run_genode
 
 while {1} {
 
-	# wait for the next autopilot event
+	# check whether the system is already running
 	if {$serial_id == -1} {
+
+		# boot the system and wait for the depot autopilot to come up
 		autopilot_run_genode_until {depot_autopilot\] --- .*?\n} $timeout
 		set serial_id [output_spawn_id]
+		set nr_of_tests_this_boot 0
 
 		# if the system didn't even boot, exit (prints previous results)
 		if {$run_genode_failed} {
 			exit -1
 		}
 	} else {
+
+		# wait for the next step of the depot autopilot
 		set init_time_ms [clock clicks -millisec]
 		autopilot_run_genode_until {depot_autopilot\] --- .*?\n} $timeout $serial_id
 		set previous_time_ms [expr $previous_time_ms + [expr ([clock clicks -millisec] - $init_time_ms)] ]
@@ -841,6 +855,7 @@ while {1} {
 	# if the autopilot started a new test, set a new timeout
 	if {[regexp {depot_autopilot\] --- Run} $output]} {
 
+		# if we ran and finished another test beforehand, parse its result
 		if {$last_test_pkg != ""} {
 
 			# remember result of last test in case the system must be restartet
@@ -867,6 +882,7 @@ while {1} {
 				append previous_results \012
 			}
 			append previous_results $last_test_result
+			incr nr_of_tests_this_boot
 		}
 		# if the Autopilot is currently repeating, reset repeat-influenced variables
 		if {[llength $test_pkgs] == 0} {
@@ -878,6 +894,19 @@ while {1} {
 		regexp {depot_autopilot\] --- Run "(.*?)" \(max ([0-9]*?) } $output] ignore last_test_pkg min_timeout
 		set timeout [expr $min_timeout + 20]
 
+		# re-boot if the maximum number of tests per boot is set and reached
+		if { [expr $max_nr_of_tests_per_boot && \
+		           $nr_of_tests_this_boot >= $max_nr_of_tests_per_boot] } \
+		{
+			# shut-down running system
+			puts "Re-booting to meet maximum number of tests per boot for this platform"
+			exec kill -9 [exp_pid -i $serial_id]
+			run_power_off
+
+			# prepare system re-boot
+			prepare_to_run_genode
+			continue
+		}
 		set output ""
 	}
 }
