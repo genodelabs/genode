@@ -27,10 +27,13 @@ proc run_image { {unused ""} } {
 	set size_header [expr [regsub {\s.*} [exec du -b  [run_dir].header] {}]]
 	set size_run    [expr [regsub {\s.*} [exec du -skL [run_dir]] {}]]
 
+	# try to compensate ext2 overhead in disk size
+	set ext2_overhead 768
+
 	if {[image_disk_size] > 0} {
 		set disk_size_kb [expr [image_disk_size] * 1024]
 	} else {
-		set disk_size_kb [expr ($size_run + 512) / 32 * 32]
+		set disk_size_kb [expr ($size_run + $ext2_overhead) / 32 * 32]
 	}
 
 	# setup partition with content
