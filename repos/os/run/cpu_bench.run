@@ -5,7 +5,7 @@ if { [get_cmd_switch --autopilot] } {
 	}
 }
 
-build "core init test/cpu_bench"
+build "core init timer test/cpu_bench"
 
 create_boot_directory
 
@@ -49,7 +49,7 @@ proc run_test {name serial_id} {
 	return [expr {$t2 - $t1}]
 }
 
-run_genode_until "Cpu testsuite started.*\n" 60
+run_genode_until "Cpu testsuite started" 60
 set serial_id       [output_spawn_id]
 set bogomips        [run_test "bogomips" $serial_id]
 puts "bogomips: 2G Bogus instructions in $bogomips milliseconds ([expr {2000000.0 / $bogomips}] BogoMIPS)"
