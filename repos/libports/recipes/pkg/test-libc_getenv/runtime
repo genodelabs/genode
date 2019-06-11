@@ -1,7 +1,7 @@
 <runtime ram="32M" caps="1000" binary="init">
 
 	<events>
-		<timeout meaning="failed" sec="20" />
+		<timeout meaning="failed" sec="30" />
 		<log meaning="succeeded">
 			[init -> test-libc_getenv] foo="bar"
 			[init -> test-libc_getenv] bar="foo"

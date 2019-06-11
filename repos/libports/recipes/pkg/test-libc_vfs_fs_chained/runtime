@@ -1,7 +1,7 @@
 <runtime ram="32M" caps="1000" binary="init">
 
 	<events>
-		<timeout meaning="failed" sec="20" />
+		<timeout meaning="failed" sec="30" />
 		<log meaning="succeeded">child "test-libc_vfs" exited with exit value 0</log>
 		<log meaning="failed">[init -> test-libc_vfs] Error: </log>
 	</events>

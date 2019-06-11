@@ -1,7 +1,7 @@
 <runtime ram="32M" caps="1000" binary="init">
 
 	<events>
-		<timeout meaning="failed" sec="40" />
+		<timeout meaning="failed" sec="60" />
 		<log     meaning="succeeded">--- finished fault_detection test ---</log>
 	</events>
 
