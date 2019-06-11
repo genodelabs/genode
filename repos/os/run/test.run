@@ -320,7 +320,7 @@ proc query_failure_timeout { } {
 	return 0
 }
 
-set failure_timeout [query_failure_timeout]
+set failure_timeout [expr [query_failure_timeout] + 10]
 
 
 ##
