@@ -120,6 +120,13 @@ class Vfs::Inline_file_system : public Single_file_system
 			if (!_single_file(path))
 				return OPEN_ERR_UNACCESSIBLE;
 
+			/* empty node */
+			if (_node.content_size() == 0) {
+				*out_handle = new (alloc)
+					Inline_vfs_handle(*this, *this, alloc, nullptr, 0);
+				return OPEN_OK;
+			}
+
 			try {
 				_node.with_raw_content([&] (char const *base, Genode::size_t size) {
 					*out_handle = new (alloc)

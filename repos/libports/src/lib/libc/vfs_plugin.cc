@@ -249,7 +249,7 @@ Libc::File_descriptor *Libc::Vfs_plugin::open(char const *path, int flags,
 
 	Vfs::Vfs_handle *handle = 0;
 
-	while (handle == 0) {
+	while (handle == nullptr) {
 
 		switch (VFS_THREAD_SAFE(_root_dir.open(path, flags, &handle, _alloc))) {
 
