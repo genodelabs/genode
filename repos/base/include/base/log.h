@@ -16,11 +16,13 @@
 
 #include <base/output.h>
 #include <base/lock.h>
+#include <trace/timestamp.h>
 
 namespace Genode {
 
 	class Log;
 	class Raw;
+	class Trace_output;
 }
 
 
@@ -101,6 +103,36 @@ class Genode::Raw
 };
 
 
+class Genode::Trace_output
+{
+	private:
+
+		Lock _lock { };
+
+		Output &_output;
+
+		void _acquire();
+		void _release();
+
+	public:
+
+		Trace_output(Output &output) : _output(output) { }
+
+		template <typename... ARGS>
+		void output(ARGS &&... args)
+		{
+			_acquire();
+			Output::out_args(_output, args...);
+			_release();
+		}
+
+		/**
+		 * Return component-global singleton instance of the 'Trace_output'
+		 */
+		static Trace_output &trace_output();
+};
+
+
 namespace Genode {
 
 	/**
@@ -140,6 +172,16 @@ namespace Genode {
 	 */
 	template <typename... ARGS>
 	void raw(ARGS &&... args) { Raw::output(args...); }
+
+
+  /**
+   * Write 'args' to the trace buffer if tracing is enabled
+   *
+   * The message is prefixed with a timestamp value
+   */
+	template <typename... ARGS>
+	void trace(ARGS && ... args) {
+		Trace_output::trace_output().output(Trace::timestamp(), ": ", args...); }
 }
 
 #endif /* _INCLUDE__BASE__LOG_H_ */

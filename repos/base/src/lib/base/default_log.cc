@@ -62,6 +62,18 @@ Log &Log::log()
 }
 
 
+static Trace_output *trace_ptr;
+
+Trace_output &Trace_output::trace_output()
+{
+	if (trace_ptr)
+		return *trace_ptr;
+
+	raw("Error: Missing call of init_log");
+	sleep_forever();
+}
+
+
 /**
  * Hook for support the 'fork' implementation of the noux libc backend
  */
@@ -95,5 +107,16 @@ void Genode::init_log(Parent &parent)
 		unmanaged_singleton<Buffered_log_output>(Write_fn());
 
 	log_ptr = unmanaged_singleton<Log>(*buffered_log_output);
+
+	/* enable trace back end */
+	struct Write_trace_fn { void operator () (char const *s) { Thread::trace(s); } };
+
+	typedef Buffered_output<Log_session::MAX_STRING_LEN, Write_trace_fn>
+	        Buffered_trace_output;
+
+	static Buffered_trace_output *buffered_trace_output =
+		unmanaged_singleton<Buffered_trace_output>(Write_trace_fn());
+
+	trace_ptr = unmanaged_singleton<Trace_output>(*buffered_trace_output);
 }
 

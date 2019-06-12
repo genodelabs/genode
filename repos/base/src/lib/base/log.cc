@@ -59,3 +59,20 @@ void Raw::_release()
 	 */
 	_output().out_string("\033[0m\n");
 }
+
+
+void Trace_output::_acquire()
+{
+	_lock.lock();
+}
+
+
+void Trace_output::_release()
+{
+	/*
+	 * Add newline
+	 */
+	_output.out_string("\n");
+
+	_lock.unlock();
+}
