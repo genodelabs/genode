@@ -18,7 +18,7 @@
 
 using namespace Kernel;
 
-void Thread::Pd_update::execute() {}
+void Thread::Tlb_invalidation::execute() {}
 
 
 void Thread::exception(Cpu & cpu)

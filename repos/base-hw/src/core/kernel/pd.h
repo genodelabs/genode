@@ -92,7 +92,7 @@ class Kernel::Pd : public Kernel::Object
 		 * Check whether the given 'cpu' needs to do some maintainance
 		 * work, after this pd has had changes in its page-tables
 		 */
-		bool update(Cpu & cpu);
+		bool invalidate_tlb(Cpu & cpu, addr_t addr, size_t size);
 
 
 		/***************

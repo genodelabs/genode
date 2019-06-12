@@ -42,7 +42,7 @@ namespace Kernel
 	constexpr Call_arg call_id_resume_thread()          { return 104; }
 	constexpr Call_arg call_id_thread_pager()           { return 105; }
 	constexpr Call_arg call_id_thread_quota()           { return 106; }
-	constexpr Call_arg call_id_update_pd()              { return 107; }
+	constexpr Call_arg call_id_invalidate_tlb()         { return 107; }
 	constexpr Call_arg call_id_new_pd()                 { return 108; }
 	constexpr Call_arg call_id_delete_pd()              { return 109; }
 	constexpr Call_arg call_id_new_signal_receiver()    { return 110; }
@@ -62,18 +62,13 @@ namespace Kernel
 	constexpr Call_arg call_id_new_core_thread()        { return 124; }
 
 	/**
-	 * Update locally effective domain configuration to in-memory state
-	 *
-	 * \param pd  pointer to pd kernel object
-	 *
-	 * Kernel and/or hardware may cache parts of a domain configuration. This
-	 * function ensures that the in-memory state of the targeted domain gets
-	 * CPU-locally effective. The calling thread must not be destroyed while
-	 * in this syscall.
+	 * Invalidate TLB entries for the `pd` in region `addr`, `sz`
 	 */
-	inline void update_pd(Pd * const pd)
+	inline void invalidate_tlb(Pd * const pd, addr_t const addr,
+	                           size_t const sz)
 	{
-		call(call_id_update_pd(), (Call_arg)pd);
+		call(call_id_invalidate_tlb(), (Call_arg)pd, (Call_arg)addr,
+		     (Call_arg)sz);
 	}
 
 

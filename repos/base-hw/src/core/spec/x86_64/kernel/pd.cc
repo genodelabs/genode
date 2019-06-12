@@ -15,7 +15,7 @@
 #include <kernel/pd.h>
 
 
-bool Kernel::Pd::update(Cpu & cpu)
+bool Kernel::Pd::invalidate_tlb(Cpu & cpu, addr_t, size_t)
 {
 	/* on the current CPU invalidate the TLB */
 	if (cpu.id() == Cpu::executing_id()) {

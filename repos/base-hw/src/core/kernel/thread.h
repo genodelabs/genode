@@ -63,17 +63,18 @@ class Kernel::Thread
 		Thread &operator = (Thread const &);
 
 		/**
-		 * An update of page-table entries that requires architecture-wise
-		 * maintainance operations, e.g., a TLB invalidation needs
-		 * cross-cpu synchronization
+		 * A TLB invalidation may need cross-cpu synchronization
 		 */
-		struct Pd_update : Inter_processor_work
+		struct Tlb_invalidation : Inter_processor_work
 		{
 			Thread & caller; /* the caller gets blocked until all finished */
 			Pd     & pd;     /* the corresponding pd */
+			addr_t   addr;
+			size_t   size;
 			unsigned cnt;    /* count of cpus left */
 
-			Pd_update(Thread & caller, Pd & pd, unsigned cnt);
+			Tlb_invalidation(Thread & caller, Pd & pd, addr_t addr, size_t size,
+			                 unsigned cnt);
 
 			/************************************
 			 ** Inter_processor_work interface **
@@ -100,7 +101,7 @@ class Kernel::Thread
 			void execute() override;
 		};
 
-		friend void Pd_update::execute();
+		friend void Tlb_invalidation::execute();
 		friend void Destroy::execute();
 
 	protected:
@@ -128,8 +129,8 @@ class Kernel::Thread
 		bool               _cancel_next_await_signal = false;
 		bool const         _core = false;
 
-		Genode::Constructible<Pd_update> _pd_update {};
-		Genode::Constructible<Destroy>   _destroy {};
+		Genode::Constructible<Tlb_invalidation> _tlb_invalidation {};
+		Genode::Constructible<Destroy>          _destroy {};
 
 		/**
 		 * Notice that another thread yielded the CPU to this thread
@@ -211,7 +212,7 @@ class Kernel::Thread
 		void _call_await_request_msg();
 		void _call_send_request_msg();
 		void _call_send_reply_msg();
-		void _call_update_pd();
+		void _call_invalidate_tlb();
 		void _call_update_data_region();
 		void _call_update_instr_region();
 		void _call_print_char();

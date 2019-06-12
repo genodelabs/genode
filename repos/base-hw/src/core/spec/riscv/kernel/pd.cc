@@ -13,7 +13,7 @@
 
 #include <kernel/pd.h>
 
-bool Kernel::Pd::update(Kernel::Cpu&)
+bool Kernel::Pd::invalidate_tlb(Kernel::Cpu&, addr_t, size_t)
 {
 	Genode::Cpu::sfence();
 	return false;

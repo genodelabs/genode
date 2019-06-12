@@ -18,7 +18,7 @@
 #include <kernel/thread.h>
 #include <kernel/pd.h>
 
-void Kernel::Thread::Pd_update::execute()
+void Kernel::Thread::Tlb_invalidation::execute()
 {
 	/* invalidate cpu-local TLB */
 	Cpu::invalidate_tlb();

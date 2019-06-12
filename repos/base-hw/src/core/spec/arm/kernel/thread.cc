@@ -80,7 +80,7 @@ void Kernel::Thread::_call_update_instr_region()
  * coprocessor registers (there might be ARM SoCs where this is not valid,
  * with several shareability domains, but until now we do not support them)
  */
-void Kernel::Thread::Pd_update::execute() { };
+void Kernel::Thread::Tlb_invalidation::execute() { };
 
 
 void Thread::proceed(Cpu & cpu)

@@ -38,8 +38,10 @@ extern "C" void _core_start(void);
 using namespace Kernel;
 
 
-Thread::Pd_update::Pd_update(Thread & caller, Pd & pd, unsigned cnt)
-: caller(caller), pd(pd), cnt(cnt)
+Thread::Tlb_invalidation::Tlb_invalidation(Thread & caller, Pd & pd,
+                                           addr_t addr, size_t size,
+                                           unsigned cnt)
+: caller(caller), pd(pd), addr(addr), size(size), cnt(cnt)
 {
 	cpu_pool().work_list().insert(&_le);
 	caller._become_inactive(AWAITS_RESTART);
@@ -626,17 +628,19 @@ void Thread::_call_delete_cap()
 }
 
 
-void Kernel::Thread::_call_update_pd()
+void Kernel::Thread::_call_invalidate_tlb()
 {
 	Pd * const pd = (Pd *) user_arg_1();
+	addr_t addr   = (addr_t) user_arg_2();
+	size_t size   = (size_t) user_arg_3();
 	unsigned cnt = 0;
 
 	cpu_pool().for_each_cpu([&] (Cpu & cpu) {
 		/* if a cpu needs to update increase the counter */
-		if (pd->update(cpu)) cnt++; });
+		if (pd->invalidate_tlb(cpu, addr, size)) cnt++; });
 
 	/* insert the work item in the list if there are outstanding cpus */
-	if (cnt) _pd_update.construct(*this, *pd, cnt);
+	if (cnt) _tlb_invalidation.construct(*this, *pd, addr, size, cnt);
 }
 
 
@@ -685,7 +689,7 @@ void Thread::_call()
 	case call_id_resume_thread():          _call_resume_thread(); return;
 	case call_id_cancel_thread_blocking(): _call_cancel_thread_blocking(); return;
 	case call_id_thread_pager():           _call_pager(); return;
-	case call_id_update_pd():              _call_update_pd(); return;
+	case call_id_invalidate_tlb():         _call_invalidate_tlb(); return;
 	case call_id_new_pd():
 		_call_new<Pd>(*(Hw::Page_table *)      user_arg_2(),
 		              *(Genode::Platform_pd *) user_arg_3());

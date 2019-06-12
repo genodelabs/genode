@@ -69,9 +69,7 @@ void Hw::Address_space::flush(addr_t virt, size_t size, Core_local_addr)
 
 	try {
 		_tt.remove_translation(virt, size, _tt_alloc);
-
-		/* update translation caches */
-		Kernel::update_pd(&_kernel_pd);
+		Kernel::invalidate_tlb(&_kernel_pd, virt, size);
 	} catch(...) {
 		error("tried to remove invalid region!");
 	}
