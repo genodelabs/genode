@@ -4,7 +4,7 @@
 # board to use (pc, linux, or muen)
 BOARD ?= pc
 
-# local varible for run-tool arguments that depend on the used board
+# local variable for run-tool arguments that depend on the used board
 BOARD_RUN_OPT(muen)   = --include image/muen
 BOARD_RUN_OPT(muen)  += --image-muen-hardware hardware/lenovo-t430s.xml
 BOARD_RUN_OPT(muen)  += --image-muen-platform platform/lenovo-t430s.xml

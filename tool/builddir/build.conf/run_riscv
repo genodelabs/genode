@@ -4,6 +4,6 @@ KERNEL ?= hw
 # board to use
 BOARD  ?= spike
 
-# local varible for run-tool arguments that depend on the used board
+# local variable for run-tool arguments that depend on the used board
 BOARD_RUN_OPT(spike) = --include image/bbl --include power_on/spike --include log/spike
 

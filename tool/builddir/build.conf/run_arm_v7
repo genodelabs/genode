@@ -9,7 +9,7 @@ QEMU_RUN_OPT := --include power_on/qemu  --include log/qemu
 #               wand_quad, or zynq_qemu)
 #BOARD ?= pbxa9
 
-# local varible for run-tool arguments that depend on the used board
+# local variable for run-tool arguments that depend on the used board
 BOARD_RUN_OPT(pbxa9)     = $(QEMU_RUN_OPT)
 BOARD_RUN_OPT(zynq_qemu) = $(QEMU_RUN_OPT)
 
