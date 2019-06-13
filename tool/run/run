@@ -823,7 +823,7 @@ proc board { } {
 	global board_var
 	if {$board_var eq ""} {
 		puts "Unknown platform no BOARD variable set"
-		exit 0
+		exit 1
 	}
 	return $board_var
 }
