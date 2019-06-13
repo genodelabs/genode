@@ -217,13 +217,17 @@ struct Bomb
 		Bomb_child::Name const binary_name("bomb");
 
 		for (unsigned i = children; i; --i) {
-			new (heap)
-				Registered<Bomb_child>(child_registry, env, binary_name,
-				                       unique_child_name(child_registry,
-				                                         binary_name,
-				                                         generation - 1),
-				                       cap_quota, ram_amount,
-				                       parent_services, generation - 1);
+			try {
+				new (heap)
+					Registered<Bomb_child>(child_registry, env, binary_name,
+					                       unique_child_name(child_registry,
+					                                         binary_name,
+					                                         generation - 1),
+					                       cap_quota, ram_amount,
+					                       parent_services, generation - 1);
+			} catch (...) {
+				Genode::error("creation of child ", i, " failed");
+			}
 		}
 
 		/* master if we have a timer connection */
