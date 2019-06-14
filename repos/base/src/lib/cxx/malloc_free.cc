@@ -30,7 +30,7 @@ using namespace Genode;
 static Heap *cxx_heap_ptr;
 
 
-static Heap &cxx_heap()
+Heap &cxx_heap()
 {
 	class Cxx_heap_uninitialized : Exception { };
 	if (!cxx_heap_ptr)

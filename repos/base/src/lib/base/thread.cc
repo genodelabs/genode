@@ -251,6 +251,8 @@ Thread::~Thread()
 	_deinit_platform_thread();
 	_free_stack(_stack);
 
+	cxx_free_tls(this);
+
 	/*
 	 * We have to detach the trace control dataspace last because
 	 * we cannot invalidate the pointer used by the Trace::Logger

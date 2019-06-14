@@ -12,3 +12,4 @@ noux_build.patch
 arm.patch
 new_opa.patch
 aarch64.patch
+emutls.patch

@@ -1,0 +1,1 @@
+Scenario that tests thread-local storage using the 'thread_local' keyword

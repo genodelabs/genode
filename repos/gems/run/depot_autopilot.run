@@ -722,6 +722,7 @@ set default_test_pkgs {
 	test-terminal_crosslink
 	test-timed_semaphore
 	test-timer
+	test-tls
 	test-trace
 	test-trace_logger
 	test-utf8
