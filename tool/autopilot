@@ -5,9 +5,10 @@
 # \author Norman Feske
 # \date   2011-07-2
 #
-# The autopilot utility automates the process of executing multiple run
-# scripts on different platforms. For each executed run script, the exit
-# value is checked and the result gets logged to a file.
+# The autopilot utility automates the process of executing multiple run scripts
+# on different test targets. Each target is a combination of CPU architecture,
+# hardware board, and kernel. For each executed run script, the exit value is
+# checked and the result gets logged to a file.
 #
 
 ##
@@ -43,10 +44,10 @@ proc default_test_dir { } { global env; return "/tmp/autopilot.$env(USER)" }
 proc help { } {
 
 	set help_text {
-		Automatically execute test cases on different platforms
+		Automatically execute test cases on different test targets
 
-		  usage: autopilot [-p <platform> ...]
-		                   [-k <kernel> ...]
+		  usage: autopilot [-t <target> ...]
+		                   [-p <platform> -k <kernel> ...]
 		                   [-r <run-script> ...]
 		                   [-d <test-dir>] [-j <make-jobs>]
 		                   [-i <info-file-name>]
@@ -54,12 +55,20 @@ proc help { } {
 		                   [--stdout] [--skip-clean-rules]
 		                   [--enable-ccache]
 
+		  -t <target>         test target as triple of architecture-board-kernel,
+		                      e.g., arm_v7a-pbxa9-hw
+		  -p <platform>       platform as pair of architecture-board, e.g.,
+		                      x86_64-pc or arm_v8a-rpi3 (must specify -k too)
+		  -k <kernel>         kernel to use on all platforms configured via -p
+		  -r <run-script>     run scenario to test on all configured targets resp.
+		                      platform-kernel pairs
+
+		  --cleanup           remove test directory at exit
+		  --enable-ccache     use ccache instead of plain gcc
 		  --force             replace test directory if it already exists
 		  --keep              keep test directroy if it already exists
-		  --cleanup           remove test directory at exit
-		  --stdout            print test output instead of writing log files
 		  --skip-clean-rules  skip cleanall tests, keep build-directory content
-		  --enable-ccache     use ccache instead of plain gcc
+		  --stdout            print test output instead of writing log files
 		  --time-stamp        prepend log output lines with time stamps (requires ts utility)
 		}
 
@@ -111,83 +120,90 @@ proc fail { message error_code } {
 
 
 ##
-# Return build directory used for the specified platform
+# Return build directory used for the specified architecture
 #
-proc build_dir { platform } {
+proc build_dir { arch } {
 	global test_dir
-	return [file join $test_dir $platform]
-}
-
-
-##
-# Return name of log file for test of 'run_script' on 'platform'
-#
-proc log_file_name { platform kernel run_script } {
-	return $platform.$kernel.$run_script.log
+	return [file join $test_dir $arch]
 }
 
 ##
-# Return path to log file for test of 'run_script' on 'platform'
+# Return specific parts of target (arch-board-kernel)
 #
-proc log_file { platform kernel run_script } {
+proc get_arch   { target } { return [lindex [split $target "-"] 0] }
+proc get_board  { target } { return [lindex [split $target "-"] 1] }
+proc get_kernel { target } { return [lindex [split $target "-"] 2] }
+
+
+##
+# Return name of log file for test of 'run_script' on target
+#
+proc log_file_name { arch board kernel run_script } {
+	return $arch.$board.$kernel.$run_script.log
+}
+
+##
+# Return path to log file for test of 'run_script' on target
+#
+proc log_file { arch board kernel run_script } {
 	global test_dir
-	return [file join $test_dir [log_file_name $platform $kernel $run_script]]
+	return [file join $test_dir [log_file_name $arch $board $kernel $run_script]]
 }
 
 
 ##
 # Return file descriptor for writing the log output of test case
 #
-proc log_fd { platform kernel run_script } {
+proc log_fd { arch board kernel run_script } {
 
 	# if '--stdout' was specified, don't write log output to files
 	if {[get_cmd_switch --stdout]} { return stdout }
 
 	# create file descriptor of log file on demand
 	global _log_fds
-	if {![info exists _log_fds($platform,$kernel,$run_script)]} {
-		set new_fd [open [log_file $platform $kernel $run_script] "WRONLY CREAT TRUNC"]
-		set _log_fds($platform,$kernel,$run_script) $new_fd
+	if {![info exists _log_fds($arch,$board,$kernel,$run_script)]} {
+		set new_fd [open [log_file $arch $board $kernel $run_script] "WRONLY CREAT TRUNC"]
+		set _log_fds($arch,$board,$kernel,$run_script) $new_fd
 	}
-	return $_log_fds($platform,$kernel,$run_script)
+	return $_log_fds($arch,$board,$kernel,$run_script)
 }
 
 
 ##
 # Close file descriptor used for log output of test case
 #
-proc close_log_fd { platform kernel run_script } {
+proc close_log_fd { arch board kernel run_script } {
 	global _log_fds
-	if {[info exists _log_fds($platform,$kernel,$run_script)]} {
-		close $_log_fds($platform,$kernel,$run_script)
-		unset _log_fds($platform,$kernel,$run_script)
+	if {[info exists _log_fds($arch,$board,$kernel,$run_script)]} {
+		close $_log_fds($arch,$board,$kernel,$run_script)
+		unset _log_fds($arch,$board,$kernel,$run_script)
 	}
 }
 
 
 ##
-# Execute single run script for specified platform
+# Execute single run script for specified target
 #
 # \return true if run script succeeded
 #
-proc execute_run_script { platform kernel run_script } {
+proc execute_run_script { arch board kernel run_script } {
 
 	set return_value true
-	set fd [log_fd $platform $kernel $run_script]
+	set fd [log_fd $arch $board $kernel $run_script]
 
 	if {[catch {
 		if {[get_cmd_switch --time-stamp]} {
-			exec make -C [build_dir $platform] [file join run $run_script] KERNEL=$kernel \
+			exec make -C [build_dir $arch] [file join run $run_script] BOARD=$board KERNEL=$kernel \
 			  |& ts "\[%F %H:%M:%S\]" >&@ $fd
 		} else {
-			exec make -C [build_dir $platform] [file join run $run_script] KERNEL=$kernel \
+			exec make -C [build_dir $arch] [file join run $run_script] BOARD=$board KERNEL=$kernel \
 			  >&@ $fd
 		}
 	}]} {
 		set return_value false
 	}
 
-	close_log_fd $platform $kernel $run_script
+	close_log_fd $arch $board $kernel $run_script
 	return $return_value
 }
 
@@ -197,27 +213,27 @@ proc execute_run_script { platform kernel run_script } {
 #
 # \return list of unexpected files remaining after 'make cleanall'
 #
-proc clean_build_dir { platform kernel } {
+proc clean_build_dir { arch board kernel } {
 
-	set fd [log_fd $platform $kernel cleanall]
+	set fd [log_fd $arch $board $kernel cleanall]
 
 	# make returns the exit code 2 on error
 	if {[catch {
-		exec make -C [build_dir $platform] cleanall KERNEL=$kernel >@ $fd
+		exec make -C [build_dir $arch] cleanall BOARD=$board KERNEL=$kernel >@ $fd
 	}] == 2} {
-		close_log_fd $platform $kernel cleanall
+		close_log_fd $arch $board $kernel cleanall
 		return [list "clean rule terminated abnormally"]
 	}
-	close_log_fd $platform $kernel cleanall
+	close_log_fd $arch $board $kernel cleanall
 }
 
 
 ##
 # Obtain information about residual files in the build directory
 #
-proc build_dir_remainings { platform } {
+proc build_dir_remainings { arch } {
 
-	set remainings [split [exec sh -c "cd [build_dir $platform]; find . -mindepth 1"] "\n"]
+	set remainings [split [exec sh -c "cd [build_dir $arch]; find . -mindepth 1"] "\n"]
 
 	set unexpected { }
 	foreach r $remainings {
@@ -230,14 +246,14 @@ proc build_dir_remainings { platform } {
 }
 
 
-proc build_failed_because_of_missing_run_script { platform kernel run_script } {
+proc build_failed_because_of_missing_run_script { arch board kernel run_script } {
 
 	# we cannot inspect any logfile when --stdout was used
 	if {[get_cmd_switch --stdout]} { return 0 }
 
 	# grep log output for the respective error message of the build system
 	if {[catch {
-		exec grep {^\(\[....-..-.. ..:..:..] \)*Error: No run script for} [log_file $platform $kernel $run_script]
+		exec grep {^\(\[....-..-.. ..:..:..] \)*Error: No run script for} [log_file $arch $board $kernel $run_script]
 	}]} { return 0 }
 	return 1
 }
@@ -247,11 +263,8 @@ proc build_failed_because_of_missing_run_script { platform kernel run_script } {
 # Collect command-line arguments
 #
 
-set platforms { }
-foreach_cmdline_arg p { global platforms; lappend platforms $p }
-
-set kernels { }
-foreach_cmdline_arg k { global kernels; lappend kernels $k }
+set targets { }
+foreach_cmdline_arg t { global targets; lappend targets $t }
 
 set run_scripts { }
 foreach_cmdline_arg r { global run_scripts; lappend run_scripts $r }
@@ -265,25 +278,61 @@ foreach_cmdline_arg j { global make_jobs; set make_jobs $j }
 # present help if explicitly requested
 if {[get_cmd_switch --help]} { help; exit 0 }
 
+#
+# Handle platform-kernel combinations by adding to targets
+#
+set platforms { }
+foreach_cmdline_arg p { global platforms; lappend platforms $p }
+set kernels { }
+foreach_cmdline_arg k { global kernels; lappend kernels $k }
+
+if {![llength $platforms] != ![llength $kernels]} {
+	puts stderr "Error: -p and -k arguments only valid in combination"
+	help
+	exit -1
+} elseif { [llength $platforms] } {
+	foreach p $platforms {
+		foreach k $kernels {
+			lappend targets $p-$k
+		}
+	}
+}
+
+unset platforms kernels
+
+
 # present help if arguments do not suffice
-if {![llength $platforms]} {
-	puts stderr "Error: invalid arguments"
+if {![llength $run_scripts]} {
+	puts stderr "Error: no run script specified"
 	help
 	exit -1
 }
+if {![llength $targets]} {
+	puts stderr "Error: no test targets specified"
+	help
+	exit -1
+}
+set targets [lsort -unique $targets]
+
+# extract unique architectures from targets (for build-directory creation)
+set architectures { }
+foreach target $targets {
+	lappend architectures [get_arch $target]
+}
+set architectures [lsort -unique $architectures]
 
 # print information about the parameters
-puts "genode dir  : [genode_dir]"
-puts "platforms   : $platforms"
-puts "run scripts : $run_scripts"
-puts "kernels     : $kernels"
-puts "test dir    : $test_dir"
-puts "make -j     : $make_jobs"
+puts "genode dir    : [genode_dir]"
+puts "targets       : $targets"
+puts "architectures : $architectures"
+puts "run scripts   : $run_scripts"
+puts "test dir      : $test_dir"
+puts "make -j       : $make_jobs"
 
 
 #
-# We first create all build directory for all platforms to back out early if
-# any error occurs during the creation of build directories due to wrong
+# We first create all build directory for all architectures to back out early
+# if any error occurs during the creation of build directories due to wrong
 # command-line arguments.
 #
 
@@ -298,21 +347,21 @@ if {[get_cmd_switch --force]} { wipe_test_dir }
 
 
 # create build directories
-foreach platform $platforms {
+foreach arch $architectures {
 
-	set build_dir [build_dir $platform]
+	set build_dir [build_dir $arch]
 
 	if {[get_cmd_switch --keep] && [file exists $build_dir]} { continue }
 
 	if {[catch {
-		exec [genode_dir]/tool/create_builddir $platform BUILD_DIR=$build_dir
+		exec [genode_dir]/tool/create_builddir $arch BUILD_DIR=$build_dir
 	}]} {
-		fail "create_builddir for platform $platform failed" -1
+		fail "create_builddir for architecture $arch failed" -1
 	}
 
 	set build_conf [file join $build_dir etc build.conf]
 	if {![file exists $build_conf]} {
-		fail "build dir for $platform lacks 'etc/build.conf' file" -2
+		fail "build dir for $arch lacks 'etc/build.conf' file" -2
 	}
 
 	# enable all repositories
@@ -345,26 +394,25 @@ set info_file "autopilot.log"
 foreach_cmdline_arg i { global info_file; set info_file $i }
 
 set info_fd [open [file join $test_dir $info_file] "WRONLY CREAT TRUNC"]
-foreach platform $platforms {
-	foreach kernel $kernels {
-		foreach run_script $run_scripts {
-			puts $info_fd "[log_file_name $platform $kernel $run_script]"
-		}
+foreach t $targets {
+	foreach run_script $run_scripts {
+		puts $info_fd "[log_file_name [get_arch $t] [get_board $t] [get_kernel $t] $run_script]"
 	}
 }
 close $info_fd
 
 
 #
-# Revisit each platform's build directory and execute all test cases
+# Revisit each architecture's build directory and execute all test cases for
+# all specified targets
 #
 
 
 ##
 # Print label identifying the specified test case to stderr
 #
-proc print_step_label { platform kernel step } {
-	puts -nonewline stderr "[format {%-30s} "$platform $kernel:"] [format {%-22s} $step] "
+proc print_step_label { board kernel step } {
+	puts -nonewline stderr "[format {%-30s} "$board $kernel:"] [format {%-22s} $step] "
 }
 
 
@@ -385,24 +433,29 @@ set exit_value 0
 
 
 # execute run scripts
-foreach platform $platforms {
+foreach arch $architectures {
 
-	puts stderr "\n--- platform $platform ---"
+	puts stderr "\n--- architecture $arch ---"
 
 	foreach run_script $run_scripts {
 
-		foreach kernel $kernels {
-			print_step_label $platform $kernel $run_script
+		foreach target $targets {
+			if { [get_arch $target] ne $arch } { continue }
+
+			set board  [get_board $target]
+			set kernel [get_kernel $target]
+
+			print_step_label $board $kernel $run_script
 
 			set time_start [clock seconds]
-			set result [execute_run_script $platform $kernel $run_script]
+			set result [execute_run_script $arch $board $kernel $run_script]
 			set elapsed [elapsed_time $time_start [clock seconds]]
 
 			if {$result} {
 				puts stderr "-> OK ($elapsed)"
 			} else {
 
-				if {[build_failed_because_of_missing_run_script $platform $kernel $run_script]} {
+				if {[build_failed_because_of_missing_run_script $arch $board $kernel $run_script]} {
 					puts stderr "-> UNAVAILABLE"
 				} else {
 					puts stderr "-> ERROR ($elapsed)"
@@ -415,13 +468,18 @@ foreach platform $platforms {
 	if {[get_cmd_switch --skip-clean-rules]} continue
 
 	# execute and validate cleanall rule
-	foreach kernel $kernels {
-		print_step_label $platform $kernel cleanall
-		clean_build_dir $platform $kernel
+	foreach target $targets {
+		if { [get_arch $target] ne $arch } { continue }
+
+		set board  [get_board $target]
+		set kernel [get_kernel $target]
+
+		print_step_label $board $kernel cleanall
+		clean_build_dir $arch $board $kernel
 		puts stderr "-> DONE"
 	}
 
-	set pollution [build_dir_remainings $platform]
+	set pollution [build_dir_remainings $arch]
 	if {[llength $pollution] == 0} {
 		puts stderr "-> OK"
 	} else {
