@@ -23,6 +23,10 @@ Decorator::Window_base::Hover Decorator::Window::hover(Point abs_pos) const
 
 	hover.window_id = id();
 
+	/* omit the decoration checks below whenever the content is hovered */
+	if (geometry().contains(abs_pos))
+		return hover;
+
 	Rect const closer_geometry =
 		_theme.absolute(_theme.element_geometry(Theme::ELEMENT_TYPE_CLOSER),
 	                                            outer_geometry());
