@@ -115,6 +115,8 @@ class Window_layouter::Assign : public List_model<Assign>::Element
 			return Rect(outer.p1() + target_geometry.p1(), outer.area());
 		}
 
+		bool maximized() const { return _maximized; }
+
 		/**
 		 * Call 'fn' with 'Registry<Member>' if label matches assignment
 		 *

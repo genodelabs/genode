@@ -116,6 +116,7 @@ struct Window_layouter::Main : Operations,
 					                                         target.geometry(),
 					                                         _decorator_margins);
 					member.window.outer_geometry(rect);
+					member.window.maximized(assign.maximized());
 				});
 			});
 		});
