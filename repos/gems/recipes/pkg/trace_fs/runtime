@@ -1,0 +1,19 @@
+<runtime ram="48M" caps="150" binary="vfs">
+
+	<provides> <file_system/> </provides>
+	<requires> <trace/> </requires>
+
+	<content>
+		<rom label="vfs"/>
+		<rom label="ld.lib.so"/>
+		<rom label="vfs_trace.lib.so"/>
+		<rom label="vfs.lib.so"/>
+		<rom label="null"/>
+	</content>
+
+	<config>
+		<vfs> <trace ram="32M"/> </vfs>
+		<default-policy root="/" writeable="yes"/>
+	</config>
+
+</runtime>
