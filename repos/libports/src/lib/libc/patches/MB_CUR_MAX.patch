@@ -21,3 +21,4 @@
 +/* ASCII only */
 +#define MB_CUR_MAX_L(x) 1
  
+
