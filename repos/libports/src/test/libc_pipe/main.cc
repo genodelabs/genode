@@ -80,8 +80,7 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	/* pthread_join() is not implemented at this time */
-	while (!reader_finished) { }
+	pthread_join(tid, NULL);
 
 	printf("--- test finished ---\n");
 
