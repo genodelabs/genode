@@ -466,12 +466,13 @@ class Window_layouter::Window : public List_model<Window>::Element
 
 		void finalize_drag_operation()
 		{
-			_dragged            = false;
 			_drag_left_border   = false;
 			_drag_right_border  = false;
 			_drag_top_border    = false;
 			_drag_bottom_border = false;
-			_dragged_size       = effective_inner_geometry().area();
+			_geometry           = effective_inner_geometry();
+			_dragged_size       = _geometry.area();
+			_dragged            = false;
 		}
 
 		void to_front_cnt(unsigned to_front_cnt) { _to_front_cnt = to_front_cnt; }
