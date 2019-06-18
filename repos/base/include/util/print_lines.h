@@ -66,30 +66,33 @@ void Genode::print_lines(char const *string, size_t len, FUNC const &func)
 		if (Genode::strcmp(first_line, string, num_indent_chars) == 0)
 			string += num_indent_chars;
 
-		size_t const line_len =
-			({
-				size_t i = 0;
-				for (; i < len; i++) {
-					if (string[i] == '\0' || string[i] == '\n') {
+		size_t line_len  = 0;
+		size_t skip_char = 1;
 
-						/* the line length is the offset of the last real character + 1 */
-						i++;
-						break;
-					}
-				}
-				i;
-			});
+		for (; line_len < len; line_len++) {
+			if (string[line_len] == '\0' || string[line_len] == '\n') {
+				line_len++;
+				break;
+			}
+			if (line_len == MAX_LINE_LEN) {
+				skip_char = 0;
+				break;
+			}
+		}
 
 		if (!line_len)
 			break;
 
-		/*
-		 * Copy line from (untrusted) caller to local line buffer
-		 */
-		char line_buf[MAX_LINE_LEN];
-		Genode::strncpy(line_buf, string, Genode::min(line_len, sizeof(line_buf)));
+		/* buffer for sub-string of the input string plus null-termination */
+		char line_buf[MAX_LINE_LEN + 1];
+
+		 /* give strncpy one more as it will add the null termination */
+		Genode::strncpy(line_buf, string, line_len - skip_char + 1);
+
+		/* process null-terminated string in buffer */
 		func(line_buf);
 
+		/* move forward to the next sub-string to process */
 		string += line_len;
 		len    -= line_len;
 	}
