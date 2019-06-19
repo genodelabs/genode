@@ -70,6 +70,12 @@ proc help { } {
 		  --skip-clean-rules  skip cleanall tests, keep build-directory content
 		  --stdout            print test output instead of writing log files
 		  --time-stamp        prepend log output lines with time stamps (requires ts utility)
+
+		  The environment variable RUN_OPT_AUTOPILOT may be set to propagate
+		  custom RUN_OPTs to the run tool executed. In any case autopilot
+		  appends RUN_OPT like follows.
+
+		    RUN_OPT += --autopilot
 		}
 
 	append help_text "\ndefault test directory is [default_test_dir]\n"
@@ -346,12 +352,26 @@ if {[file exists $test_dir] && ![get_cmd_switch --force] &&
 if {[get_cmd_switch --force]} { wipe_test_dir }
 
 
+proc append_run_opt { build_conf } {
+	if {[info exists ::env(RUN_OPT_AUTOPILOT)]} {
+		exec echo "RUN_OPT  =  --include boot_dir/\$(KERNEL)" >> $build_conf
+		exec echo "RUN_OPT += $::env(RUN_OPT_AUTOPILOT)" >> $build_conf
+	}
+
+	exec echo "RUN_OPT += --autopilot" >> $build_conf
+}
+
+
 # create build directories
 foreach arch $architectures {
 
 	set build_dir [build_dir $arch]
+	set build_conf [file join $build_dir etc build.conf]
 
-	if {[get_cmd_switch --keep] && [file exists $build_dir]} { continue }
+	if {[get_cmd_switch --keep] && [file exists $build_dir]} {
+		append_run_opt $build_conf
+		continue
+	}
 
 	if {[catch {
 		exec [genode_dir]/tool/create_builddir $arch BUILD_DIR=$build_dir
@@ -359,7 +379,6 @@ foreach arch $architectures {
 		fail "create_builddir for architecture $arch failed" -1
 	}
 
-	set build_conf [file join $build_dir etc build.conf]
 	if {![file exists $build_conf]} {
 		fail "build dir for $arch lacks 'etc/build.conf' file" -2
 	}
@@ -377,12 +396,7 @@ foreach arch $architectures {
 		exec echo "CUSTOM_CXX = ccache \$(CROSS_DEV_PREFIX)g++" >> $tools_conf
 	}
 
-	if {[info exists ::env(RUN_OPT_AUTOPILOT)]} {
-		exec echo "RUN_OPT  =  --include boot_dir/\$(KERNEL)" >> $build_conf
-		exec echo "RUN_OPT += $::env(RUN_OPT_AUTOPILOT)" >> $build_conf
-	}
-
-	exec echo "RUN_OPT += --autopilot" >> $build_conf
+	append_run_opt $build_conf
 }
 
 
