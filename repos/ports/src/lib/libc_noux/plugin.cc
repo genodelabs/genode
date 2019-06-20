@@ -936,7 +936,8 @@ extern "C" int _sigaction(int signum, const struct sigaction *act, struct sigact
 }
 
 
-extern "C" int sigaction(int signum, const struct sigaction *act, struct sigaction *oldact) __attribute__((alias("_sigaction")));
+extern "C" int        sigaction(int, const struct sigaction *, struct sigaction *) __attribute__((alias("_sigaction")));
+extern "C" int __libc_sigaction(int, const struct sigaction *, struct sigaction *) __attribute__((alias("_sigaction")));
 
 
 /*********************
