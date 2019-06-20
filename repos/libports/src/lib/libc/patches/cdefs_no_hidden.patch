@@ -1,0 +1,63 @@
+Prevent the use of the hidden attribute for symbols. In particular,
+the attribute must not be applied to '__libc'-prefixed symbols to allow
+overwriting the dummies defined in dummies.cc by other non-weak
+implementations such as those in 'libc_noux.lib.so'.
+
+This attribute is applied inconsistently in
+libc/lib/libc/include/libc_private.h anyway.
+
+Also, force i386 to call __libc_sigprocmask via PLT to prevent
+R_386_PC32 relocations, which had to change the text segment. Other
+architectures do this automatically.
+
+--- src/lib/libc/sys/sys/cdefs.h
++++ src/lib/libc/sys/sys/cdefs.h
+@@ -447,7 +447,7 @@
+ #if __GNUC_PREREQ__(4, 0)
+ #define	__null_sentinel	__attribute__((__sentinel__))
+ #define	__exported	__attribute__((__visibility__("default")))
+-#define	__hidden	__attribute__((__visibility__("hidden")))
++#define	__hidden
+ #else
+ #define	__null_sentinel
+ #define	__exported
+--- src/lib/libc/lib/libc/i386/gen/setjmp.S
++++ src/lib/libc/lib/libc/i386/gen/setjmp.S
+@@ -54,7 +54,7 @@
+ 	pushl	%eax			/* (sigset_t*)oset */
+ 	pushl	$0			/* (sigset_t*)set  */
+ 	pushl	$1			/* SIG_BLOCK       */
+-	call	__libc_sigprocmask
++	call	__i386_libc_sigprocmask
+ 	addl	$12,%esp
+ 	movl	4(%esp),%ecx
+ 	movl	0(%esp),%edx
+@@ -76,7 +76,7 @@
+ 	leal	28(%edx), %eax
+ 	pushl	%eax			/* (sigset_t*)set  */
+ 	pushl	$3			/* SIG_SETMASK     */
+-	call	__libc_sigprocmask
++	call	__i386_libc_sigprocmask
+ 	addl	$12,%esp
+ 	movl	4(%esp),%edx
+ 	movl	8(%esp),%eax
+--- src/lib/libc/lib/libc/i386/gen/sigsetjmp.S
++++ src/lib/libc/lib/libc/i386/gen/sigsetjmp.S
+@@ -63,7 +63,7 @@
+ 	pushl	%eax			/* (sigset_t*)oset */
+ 	pushl	$0			/* (sigset_t*)set  */
+ 	pushl	$1			/* SIG_BLOCK       */
+-	call	__libc_sigprocmask
++	call	__i386_libc_sigprocmask
+ 	addl	$12,%esp
+ 	movl	4(%esp),%ecx
+ 2:	movl	0(%esp),%edx
+@@ -87,7 +87,7 @@
+ 	leal	28(%edx), %eax
+ 	pushl	%eax			/* (sigset_t*)set  */
+ 	pushl	$3			/* SIG_SETMASK     */
+-	call	__libc_sigprocmask
++	call	__i386_libc_sigprocmask
+ 	addl	$12,%esp
+ 	movl	4(%esp),%edx
+ 2:	movl	8(%esp),%eax

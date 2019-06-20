@@ -55,6 +55,14 @@ int __libc_sigprocmask(int how, const sigset_t *set, sigset_t *old) {
 	return sigprocmask(how, set, old); }
 
 
+/* wrapper from text-relocated i386-assembler call to PLT call */
+extern "C" int __i386_libc_sigprocmask(int how, const sigset_t *set, sigset_t *old) __attribute__((visibility("hidden")));
+extern "C" int __i386_libc_sigprocmask(int how, const sigset_t *set, sigset_t *old)
+{
+	return __libc_sigprocmask(how, set, old);
+}
+
+
 extern "C" __attribute__((weak))
 pid_t wait4(pid_t, int *, int, struct rusage *)
 {
