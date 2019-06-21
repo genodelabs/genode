@@ -26,6 +26,7 @@
 #define __is_defined(x)    ___is_defined(x)
 #define IS_BUILTIN(option) __is_defined(option)
 #define IS_ENABLED(option) IS_BUILTIN(option)
+#define IS_REACHABLE(option) IS_BUILTIN(option)
 
 /********************
  ** linux/kernel.h **

@@ -436,6 +436,7 @@ const struct of_device_id *of_match_device(const struct of_device_id *matches,
 	return nullptr;
 }
 
+
 void * devm_ioremap_resource(struct device *dev, struct resource *res)
 {
 	Fec * fec = (Fec*) dev->plat_dev->dev.of_node;
@@ -674,15 +675,15 @@ struct page *alloc_pages(gfp_t gfp_mask, unsigned int order)
 }
 
 
-void *__alloc_page_frag(struct page_frag_cache *, unsigned int const fragsz,
-                        gfp_t const gfp_mask)
+void *page_frag_alloc(struct page_frag_cache *, unsigned int const fragsz,
+                      gfp_t const gfp_mask)
 {
 	struct page *page = allocate_pages(gfp_mask, fragsz);
 	return page ? page->addr : page;
 }
 
 
-void __free_page_frag(void *addr)
+void page_frag_free(void *addr)
 {
 	struct page *page = Addr_to_page_mapping::remove((unsigned long)addr);
 
@@ -692,6 +693,7 @@ void __free_page_frag(void *addr)
 	Lx::Malloc::dma().free_large(page->addr);
 	kfree(page);
 }
+
 
 int driver_register(struct device_driver *drv)
 {
@@ -899,9 +901,10 @@ bool napi_schedule_prep(struct napi_struct *n)
 }
 
 
-void napi_complete(struct napi_struct *n)
+bool napi_complete_done(struct napi_struct *n, int work_done)
 {
 	clear_bit(NAPI_STATE_SCHED, &n->state);
+	return true;
 }
 
 
@@ -982,7 +985,7 @@ static int of_mdiobus_register_phy(Fec::Mdio::Phy & ph, struct mii_bus *mdio)
 	if (!phy || IS_ERR(phy)) return 1;
 
 	phy->irq         = ph.gpio_irq;
-	phy->dev.of_node = (device_node*) &ph;
+	phy->mdio.dev.of_node = (device_node*) &ph;
 
 	/* All data is now stored in the phy struct;
 	 * register it */
@@ -1129,9 +1132,22 @@ u64 timecounter_read(struct timecounter *tc)
 	return nsec;
 }
 
+
 /*********************
  ** DUMMY FUNCTIONS **
  *********************/
+
+int bus_register(struct bus_type *bus)
+{
+	TRACE;
+	return 0;
+}
+
+int class_register(struct class_ *cls)
+{
+	TRACE;
+	return 0;
+}
 
 void clk_disable_unprepare(struct clk * c)
 {
@@ -1139,6 +1155,12 @@ void clk_disable_unprepare(struct clk * c)
 }
 
 int clk_prepare_enable(struct clk * c)
+{
+	TRACE;
+	return 0;
+}
+
+int device_bind_driver(struct device *dev)
 {
 	TRACE;
 	return 0;
@@ -1155,90 +1177,28 @@ int device_init_wakeup(struct device *dev, bool val)
 	return 0;
 }
 
+int device_set_wakeup_enable(struct device *dev, bool enable)
+{
+	TRACE;
+	return 0;
+}
+
 struct regulator *__must_check devm_regulator_get(struct device *dev, const char *id)
 {
 	TRACE;
 	return nullptr;
 }
 
-struct netdev_queue *netdev_get_tx_queue(const struct net_device *dev, unsigned int index)
-{
-	TRACE;
-	return nullptr;
-}
-
-bool of_phy_is_fixed_link(struct device_node *np)
-{
-	TRACE;
-	return 0;
-}
-
-int pinctrl_pm_select_default_state(struct device *dev)
-{
-	TRACE;
-	return -1;
-}
-
-int pinctrl_pm_select_sleep_state(struct device *dev)
-{
-	TRACE;
-	return -1;
-}
-
-struct resource *platform_get_resource(struct platform_device * d, unsigned r1, unsigned r2)
-{
-	TRACE;
-	return nullptr;
-}
-
-void pm_runtime_enable(struct device *dev)
+void dma_sync_single_for_cpu(struct device *dev, dma_addr_t addr, size_t size,
+                             enum dma_data_direction dir)
 {
 	TRACE;
 }
 
-void pm_runtime_get_noresume(struct device *dev)
+void dma_sync_single_for_device(struct device *dev, dma_addr_t addr,
+                                size_t size, enum dma_data_direction dir)
 {
 	TRACE;
-}
-
-int  pm_runtime_set_active(struct device *dev)
-{
-	TRACE;
-	return 0;
-}
-
-void pm_runtime_set_autosuspend_delay(struct device *dev, int delay)
-{
-	TRACE;
-}
-
-void pm_runtime_use_autosuspend(struct device *dev)
-{
-	TRACE;
-}
-
-struct ptp_clock *ptp_clock_register(struct ptp_clock_info *info, struct device *parent)
-{
-	TRACE;
-	return (ptp_clock*)0xdeadbeef;
-}
-
-int regulator_enable(struct regulator * d)
-{
-	TRACE;
-	return 0;
-}
-
-int class_register(struct class_ *cls)
-{
-	TRACE;
-	return 0;
-}
-
-int try_module_get(struct module *mod)
-{
-	TRACE;
-	return -1;
 }
 
 struct device *get_device(struct device *dev)
@@ -1247,15 +1207,16 @@ struct device *get_device(struct device *dev)
 	return dev;
 }
 
-int device_bind_driver(struct device *dev)
+struct netdev_queue *netdev_get_tx_queue(const struct net_device *dev, unsigned int index)
 {
 	TRACE;
-	return 0;
+	return nullptr;
 }
 
-void netif_tx_start_all_queues(struct net_device *dev)
+bool netdev_uses_dsa(struct net_device *dev)
 {
 	TRACE;
+	return false;
 }
 
 void netif_tx_lock_bh(struct net_device *dev)
@@ -1263,18 +1224,7 @@ void netif_tx_lock_bh(struct net_device *dev)
 	TRACE;
 }
 
-int  device_set_wakeup_enable(struct device *dev, bool enable)
-{
-	TRACE;
-	return 0;
-}
-
-void trace_consume_skb(struct sk_buff * sb)
-{
-	TRACE;
-}
-
-void trace_kfree_skb(struct sk_buff * sb, void * p)
+void netif_tx_start_all_queues(struct net_device *dev)
 {
 	TRACE;
 }
@@ -1289,22 +1239,17 @@ void netif_wake_queue(struct net_device * d)
 	TRACE;
 }
 
-bool netdev_uses_dsa(struct net_device *dev)
+const void *of_get_mac_address(struct device_node *np)
 {
 	TRACE;
-	return false;
+	return nullptr;
 }
 
-void dma_sync_single_for_device(struct device *dev, dma_addr_t addr,
-                                size_t size, enum dma_data_direction dir)
-{
-	TRACE;
-}
+int of_machine_is_compatible(const char *compat)
 
-void dma_sync_single_for_cpu(struct device *dev, dma_addr_t addr, size_t size,
-                             enum dma_data_direction dir)
 {
 	TRACE;
+	return 0;
 }
 
 void of_node_put(struct device_node *node)
@@ -1312,10 +1257,100 @@ void of_node_put(struct device_node *node)
 	TRACE;
 }
 
-const void *of_get_mac_address(struct device_node *np)
+bool of_phy_is_fixed_link(struct device_node *np)
+{
+	TRACE;
+	return 0;
+}
+
+void phy_led_trigger_change_speed(struct phy_device *phy)
+{
+	TRACE;
+}
+
+int phy_led_triggers_register(struct phy_device *phy)
+{
+	TRACE;
+	return -1;
+}
+
+int pinctrl_pm_select_default_state(struct device *dev)
+{
+	TRACE;
+	return -1;
+}
+
+int pinctrl_pm_select_sleep_state(struct device *dev)
+{
+	TRACE;
+	return -1;
+}
+
+int platform_get_irq_byname(struct platform_device *dev, const char *name)
+{
+	TRACE;
+	return -1;
+}
+
+struct resource *platform_get_resource(struct platform_device * d, unsigned r1, unsigned r2)
 {
 	TRACE;
 	return nullptr;
+}
+
+int platform_irq_count(struct platform_device *dev)
+{
+	TRACE;
+	return 0;
+}
+
+void pm_runtime_enable(struct device *dev)
+{
+	TRACE;
+}
+
+void pm_runtime_get_noresume(struct device *dev)
+{
+	TRACE;
+}
+
+int pm_runtime_set_active(struct device *dev)
+{
+	TRACE;
+	return 0;
+}
+
+void pm_runtime_use_autosuspend(struct device *dev)
+{
+	TRACE;
+}
+
+void pm_runtime_set_autosuspend_delay(struct device *dev, int delay)
+{
+	TRACE;
+}
+
+struct ptp_clock *ptp_clock_register(struct ptp_clock_info *info, struct device *parent)
+{
+	TRACE;
+	return (ptp_clock*)0xdeadbeef;
+}
+
+void put_device(struct device *dev)
+{
+	TRACE;
+}
+
+int regulator_enable(struct regulator * d)
+{
+	TRACE;
+	return 0;
+}
+
+int request_module(const char *fmt, ...)
+{
+	TRACE;
+	return 0;
 }
 
 void rtnl_lock(void)
@@ -1328,16 +1363,36 @@ void rtnl_unlock(void)
 	TRACE;
 }
 
-int request_module(const char *fmt, ...)
+void secpath_reset(struct sk_buff *skb)
 {
 	TRACE;
-	return 0;
 }
 
-int  bus_register(struct bus_type *bus)
+int sysfs_create_link(struct kobject *kobj, struct kobject *target, const char *name)
 {
 	TRACE;
-	return 0;
+	return -1;
+}
+
+void trace_consume_skb(struct sk_buff * sb)
+{
+	TRACE;
+}
+
+void trace_kfree_skb(struct sk_buff * sb, void * p)
+{
+	TRACE;
+}
+
+void trace_mdio_access(void *dummy, ...)
+{
+	TRACE;
+}
+
+int try_module_get(struct module *mod)
+{
+	TRACE;
+	return -1;
 }
 
 }

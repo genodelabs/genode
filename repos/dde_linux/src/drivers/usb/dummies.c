@@ -258,7 +258,7 @@ int atomic_notifier_chain_unregister(struct atomic_notifier_head *nh,
  *********************/
 
 int   add_uevent_var(struct kobj_uevent_env *env, const char *format, ...) { TRACE; return 0; }
-char *kobject_name(const struct kobject *kobj) { TRACE; return 0; }
+const char *kobject_name(const struct kobject *kobj) { TRACE; return 0; }
 char *kobject_get_path(struct kobject *kobj, gfp_t gfp_mask) { TRACE; return 0; }
 
 

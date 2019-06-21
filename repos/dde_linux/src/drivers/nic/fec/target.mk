@@ -29,16 +29,17 @@ CC_C_OPT += -std=gnu89
 #
 # Reduce build noise of compiling contrib code
 #
-CC_OPT_fec_ptp  = -Wno-unused-but-set-variable -Wno-unused-variable \
-                  -Wno-maybe-uninitialized -Wno-uninitialized
-CC_OPT_fec_main = -Wno-unused-but-set-variable -Wno-unused-variable \
-                  -Wno-pointer-sign -Wno-int-conversion -Wno-unused-function \
-                  -Wno-uninitialized
-CC_OPT_skbuff   = -Wno-pointer-sign -Wno-int-conversion -Wno-uninitialized
-CC_OPT_mdio_bus = -Wno-implicit-int -Wno-unused-function -Wno-pointer-sign
-CC_OPT_eth      = -Wno-pointer-sign -Wno-unused-function
-CC_OPT_phy      = -Wno-unused-function -Wno-unused-but-set-variable
-CC_OPT_at803x   = -Wno-unused-variable
+CC_OPT_fec_ptp    = -Wno-unused-but-set-variable -Wno-unused-variable \
+                    -Wno-maybe-uninitialized -Wno-uninitialized
+CC_OPT_fec_main   = -Wno-unused-but-set-variable -Wno-unused-variable \
+                    -Wno-pointer-sign -Wno-int-conversion -Wno-unused-function \
+                    -Wno-uninitialized
+CC_OPT_skbuff     = -Wno-pointer-sign -Wno-int-conversion -Wno-uninitialized
+CC_OPT_mdio_bus   = -Wno-implicit-int -Wno-unused-function -Wno-pointer-sign
+CC_OPT_eth        = -Wno-pointer-sign -Wno-unused-function
+CC_OPT_phy        = -Wno-unused-function -Wno-unused-but-set-variable
+CC_OPT_phy_device = -Wno-unused-function
+CC_OPT_at803x     = -Wno-unused-variable
 
 vpath %.c  $(LX_CONTRIB_DIR)/drivers/net/ethernet/freescale
 vpath %.c  $(LX_CONTRIB_DIR)/drivers/net/phy

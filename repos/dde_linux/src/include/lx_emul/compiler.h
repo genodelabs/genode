@@ -70,6 +70,10 @@
 #define smp_read_barrier_depends() do { } while (0)
 #define smp_store_mb(var, value)  do { WRITE_ONCE(var, value); barrier(); } while (0)
 
+#ifndef __compiletime_object_size
+# define __compiletime_object_size(obj) -1
+#endif
+
 /**************************
  ** linux/compiler-gcc.h **
  **************************/
@@ -77,6 +81,8 @@
 #ifndef __packed
 #define __packed __attribute__((packed))
 #endif
+
+#define __weak __attribute__((weak))
 
 #define __aligned(x)  __attribute__((aligned(x)))
 
