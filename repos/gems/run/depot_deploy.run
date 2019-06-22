@@ -153,6 +153,13 @@ install_config {
 				<service name="Timer"> <parent/> </service>
 			</common_routes>
 
+			<start name="recall_fs" pkg="} [depot_user]/pkg/[current_pkg chroot] {">
+				<route>
+					<service name="File_system"> <parent/> </service>
+				</route>
+				<config> <default-policy path_prefix="/recall" writeable="yes"/> </config>
+			</start>
+
 			<start name="wm" pkg="} [depot_user]/pkg/[current_pkg wm] {">
 				<route>
 					<service name="Nitpicker"> <parent/> </service>
@@ -168,6 +175,7 @@ install_config {
 					<service name="ROM" label="rules">             <child name="wm"/> </service>
 					<service name="Report">                        <child name="wm"/> </service>
 					<service name="Nitpicker">                     <child name="wm"/> </service>
+					<service name="File_system" label="recall">    <child name="recall_fs"/> </service>
 				</route>
 			</start>
 
@@ -179,7 +187,6 @@ install_config {
 					<service name="Nitpicker">                        <child name="wm"/> </service>
 				</route>
 			</start>
-
 
 			<start name="backdrop" pkg="} [depot_user]/pkg/[current_pkg sticks_blue_backdrop] {">
 				<route>
