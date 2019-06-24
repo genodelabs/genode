@@ -61,8 +61,6 @@ struct Gpt::Writer
 
 	Util::Number_of_bytes _entry_alignment { 4096u };
 
-	Genode::Xml_node *_config { nullptr };
-
 	void _handle_config(Genode::Xml_node config)
 	{
 		_verbose         = config.attribute_value("verbose",         false);
@@ -83,8 +81,6 @@ struct Gpt::Writer
 		if (_wipe && (_initialize || commands)) {
 			Genode::warning("will exit after wiping");
 		}
-
-		_config = &config;
 	}
 
 	/************
@@ -692,15 +688,13 @@ struct Gpt::Writer
 	 * \return  true if actions were executed successfully, otherwise
 	 *          false
 	 */
-	bool execute_actions()
+	bool execute_actions(Genode::Xml_node actions)
 	{
 		if (_wipe) { return _wipe_tables(); }
 
 		if (_initialize) { _initialize_tables(); }
 
 		try {
-			Genode::Xml_node actions = _config->sub_node("actions");
-
 			actions.for_each_sub_node([&] (Genode::Xml_node node) {
 				bool result = false;
 
@@ -750,14 +744,19 @@ struct Main
 
 		Util::init_random(_heap);
 
+		Genode::Xml_node const config = _config_rom.xml();
+
 		try {
-			_writer.construct(_block, _config_rom.xml());
+			_writer.construct(_block, config);
 		} catch (...) {
 			_env.parent().exit(1);
 			return;
 		}
 
-		bool const success = _writer->execute_actions();
+		bool success = false;
+		config.with_sub_node("actions", [&] (Genode::Xml_node actions) {
+			success = _writer->execute_actions(actions); });
+
 		_env.parent().exit(success ? 0 : 1);
 	}
 };
