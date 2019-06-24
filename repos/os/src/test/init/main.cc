@@ -142,7 +142,8 @@ class Test::Log_session_component : public Rpc_object<Log_session>
 		{
 			/* strip known line delimiter from incoming message */
 			unsigned n = 0;
-			Genode::String<16> const pattern("\033[0m\n");
+			static char const delim[] = "\033[0m\n";
+			static Genode::String<sizeof(delim)> const pattern(delim);
 			for (char const *s = string.string(); s[n] && pattern != s + n; n++);
 
 			Log_message_handler::Message const
@@ -244,8 +245,11 @@ struct Test::Main : Log_message_handler
 
 			log("step ", _curr_step, " (", step.type(), ")");
 
-			if (step.type() == "expect_log")
+			if (step.type() == "expect_log") {
+				_expect_log_msg = _curr_step_xml().attribute_value("string", Log_message_handler::Message());
+				_expect_log     = true;
 				return;
+			}
 
 			if (step.type() == "expect_init_state") {
 				if (xml_matches(step, _init_state.xml())) {
@@ -296,16 +300,13 @@ struct Test::Main : Log_message_handler
 	 */
 	Result handle_log_message(Log_message_handler::Message const &message) override
 	{
-		typedef Log_message_handler::Message Message;
-
-		if (_curr_step_xml().type() != "expect_log")
+		if (!_expect_log)
 			return IGNORED;
 
-		Message const expected = _curr_step_xml().attribute_value("string", Message());
-
-		if (message != expected)
+		if (message != _expect_log_msg)
 			return IGNORED;
 
+		_expect_log = false;
 		_advance_step();
 		_execute_curr_step();
 		return EXPECTED;
@@ -335,6 +336,9 @@ struct Test::Main : Log_message_handler
 	Sliced_heap _sliced_heap { _env.ram(), _env.rm() };
 
 	Log_root _log_root { _env.ep(), _sliced_heap, *this };
+
+	bool                         _expect_log = false;
+	Log_message_handler::Message _expect_log_msg { };
 
 
 	Main(Env &env) : _env(env)
