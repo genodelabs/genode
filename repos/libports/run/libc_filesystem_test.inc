@@ -9,14 +9,14 @@ if {[have_spec odroid_xu] || [have_spec zynq]} {
 	exit 0
 }
 
-# use SD on ARM
-set use_sd_card_drv [expr [have_spec pbxa9]]
+# use SD on Qemu/pbxa9
+set use_sd_card_drv [expr [have_include "power_on/qemu"] && [have_spec pbxa9]]
 
 # use AHCI on x86
 set use_ahci        [expr [have_spec x86] && ![have_spec linux]]
 
-# use ram_block on Linux
-set use_ram_block   [have_spec linux]
+# use ram_block on Linux and Qemu/rpi3
+set use_ram_block   [expr [have_spec linux] || [expr [have_include "power_on/qemu"] && [have_spec rpi3]]]
 
 if {[catch { exec which $mkfs_cmd } ]} {
 	puts stderr "Error: $mkfs_cmd not installed, aborting test"; exit }

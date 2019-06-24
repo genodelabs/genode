@@ -1,6 +1,6 @@
 create_boot_directory
 
-if {[have_spec linux] || [have_spec imx7d_sabre] ||
+if {[have_spec linux] || [have_spec imx7d_sabre] || [have_spec rpi3] ||
     [expr [have_spec imx53] && [have_spec trustzone]]} {
 	puts "Run script does not support this platform."
 	exit 0

@@ -3,6 +3,11 @@ if {![have_include power_on/qemu]} {
 	exit 0
 }
 
+if {[have_spec rpi3]} {
+	puts "\n Run script is not supported on this platform. \n";
+	exit 0
+}
+
 create_boot_directory
 
 import_from_depot [depot_user]/src/[base_src] \
