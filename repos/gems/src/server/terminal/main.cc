@@ -21,6 +21,7 @@
 #include <base/attached_rom_dataspace.h>
 #include <base/attached_ram_dataspace.h>
 #include <input/event.h>
+#include <os/reporter.h>
 #include <gems/vfs.h>
 #include <gems/vfs_font.h>
 #include <gems/cached_font.h>
@@ -72,6 +73,9 @@ struct Terminal::Main : Character_consumer
 
 	Color_palette _color_palette { };
 
+	Constructible<Attached_rom_dataspace> _clipboard_rom      { };
+	Constructible<Expanding_reporter>     _clipboard_reporter { };
+
 	void _handle_config();
 
 	Signal_handler<Main> _config_handler {
@@ -81,6 +85,14 @@ struct Terminal::Main : Character_consumer
 	Timer::Connection _timer { _env };
 
 	Framebuffer _framebuffer { _env, _config_handler };
+
+	Point _pointer { }; /* pointer positon in pixels */
+
+	bool _shift_pressed = false;
+
+	bool _selecting = false;
+
+	struct Paste_buffer { char buffer[READ_BUFFER_SIZE]; } _paste_buffer { };
 
 	typedef Pixel_rgb565 PT;
 
@@ -139,6 +151,9 @@ struct Terminal::Main : Character_consumer
 	Signal_handler<Main> _input_handler {
 		_env.ep(), *this, &Main::_handle_input };
 
+	void _report_clipboard_selection();
+	void _paste_clipboard_content();
+
 	Main(Env &env) : _env(env)
 	{
 		_timer .sigh(_flush_handler);
@@ -169,6 +184,12 @@ void Terminal::Main::_handle_config()
 		config.attribute_value("cache", Number_of_bytes(256*1024)) };
 
 	_font.construct(_heap, _root_dir, cache_limit);
+
+	_clipboard_reporter.conditional(config.attribute_value("copy", false),
+	                                _env, "clipboard", "clipboard");
+
+	_clipboard_rom.conditional(config.attribute_value("paste", false),
+	                           _env, "clipboard");
 
 	/*
 	 * Adapt terminal to font or framebuffer mode changes
@@ -252,6 +273,56 @@ void Terminal::Main::_handle_input()
 {
 	_input.for_each_event([&] (Input::Event const &event) {
 
+		event.handle_absolute_motion([&] (int x, int y) {
+
+			_pointer = Point(x, y);
+
+			if (_shift_pressed) {
+				_text_screen_surface->pointer(_pointer);
+				_schedule_flush();
+			}
+
+			if (_selecting) {
+				_text_screen_surface->define_selection(_pointer);
+				_schedule_flush();
+			}
+		});
+
+		if (event.key_press(Input::KEY_LEFTSHIFT)) {
+			if (_clipboard_reporter.constructed()) {
+				_shift_pressed = true;
+				_text_screen_surface->clear_selection();
+				_text_screen_surface->pointer(_pointer);
+				_schedule_flush();
+			}
+		}
+
+		if (event.key_release(Input::KEY_LEFTSHIFT)) {
+			_shift_pressed = false;
+			_text_screen_surface->pointer(Point(-1, -1));
+			_schedule_flush();
+		}
+
+		if (event.key_press(Input::BTN_LEFT)) {
+			if (_shift_pressed) {
+				_selecting = true;
+				_text_screen_surface->start_selection(_pointer);
+			} else {
+				_text_screen_surface->clear_selection();
+			}
+			_schedule_flush();
+		}
+
+		if (event.key_release(Input::BTN_LEFT)) {
+			if (_selecting) {
+				_selecting = false;
+				_report_clipboard_selection();
+			}
+		}
+
+		if (event.key_press(Input::BTN_MIDDLE))
+			_paste_clipboard_content();
+
 		event.handle_press([&] (Input::Keycode, Codepoint codepoint) {
 
 			/* function-key unicodes */
@@ -301,6 +372,58 @@ void Terminal::Main::_handle_input()
 				_read_buffer.add(codepoint);
 		});
 	});
+}
+
+
+void Terminal::Main::_report_clipboard_selection()
+{
+	if (!_clipboard_reporter.constructed())
+		return;
+
+	_clipboard_reporter->generate([&] (Xml_generator &xml) {
+		_text_screen_surface->for_each_selected_character([&] (Codepoint c) {
+			String<10> const utf8(c);
+			if (utf8.valid())
+				xml.append_sanitized(utf8.string(), utf8.length() - 1);
+		});
+	});
+}
+
+
+void Terminal::Main::_paste_clipboard_content()
+{
+	if (!_clipboard_rom.constructed())
+		return;
+
+	_clipboard_rom->update();
+
+	_paste_buffer = { };
+
+	/* leave last byte as zero-termination in tact */
+	size_t const max_len = sizeof(_paste_buffer.buffer) - 1;
+	size_t const len =
+		_clipboard_rom->xml().decoded_content(_paste_buffer.buffer, max_len);
+
+	if (len == max_len) {
+		warning("clipboard content exceeds paste buffer");
+		return;
+	}
+
+	if (len >= (size_t)_read_buffer.avail_capacity()) {
+		warning("clipboard content exceeds read-buffer capacity");
+		return;
+	}
+
+	for (Utf8_ptr utf8(_paste_buffer.buffer); utf8.complete(); utf8 = utf8.next()) {
+
+		Codepoint const c = utf8.codepoint();
+
+		/* filter out control characters */
+		if (c.value < 32 && c.value != 10)
+			continue;
+
+		_read_buffer.add(c);
+	}
 }
 
 

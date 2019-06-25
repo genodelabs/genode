@@ -20,7 +20,7 @@
 
 struct Char_cell
 {
-	Genode::uint16_t value { ' ' };
+	Genode::uint16_t value { 0 };
 
 	unsigned char attr;
 	unsigned char color;

@@ -76,6 +76,23 @@ struct Terminal::Position
 	bool operator != (Position const &pos) const {
 		return (pos.x != x) || (pos.y != y); }
 
+	bool operator >= (Position const &other) const
+	{
+		if (y > other.y)
+			return true;
+
+		if (y == other.y && x >= other.x)
+			return true;
+
+		return false;
+	}
+
+	bool in_range(Position start, Position end) const
+	{
+		return (end >= start) ? *this >= start &&   end >= *this
+		                      : *this >= end   && start >= *this;
+	}
+
 	/**
 	 * Return true if position lies within the specified boundaries
 	 */

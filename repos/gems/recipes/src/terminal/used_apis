@@ -5,5 +5,6 @@ input_session
 nitpicker_gfx
 terminal_session
 timer_session
+report_session
 vfs
 gems

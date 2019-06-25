@@ -1,13 +1,13 @@
 This is a graphical terminal implementation. It provides the Terminal
 service and uses a nitpicker session for screen representation.
 
-Configuration
-~~~~~~~~~~~~~
+
+Color configuration
+~~~~~~~~~~~~~~~~~~~
 
 The default color palette can be configured via the <palette> XML
 configuration node like follows. There are 16 colors configurable -
 index 0-7 normal color and index 8-15 bright (bold) colors.
-
 
 ! <config>
 !   <palette>
@@ -17,3 +17,17 @@ index 0-7 normal color and index 8-15 bright (bold) colors.
 ! ...
 ! </config>
 
+
+Clipboard support
+~~~~~~~~~~~~~~~~~
+
+With the '<config>' attribute 'copy="yes"' specified, the terminal allows
+the user to select text to be reported to a "clipboard" report. The selection
+mode is activated by holding the left shift key. While the selection mode
+is active, the text position under mouse pointer is highlighted and the
+user can select text via the left mouse button. Upon release of the mouse
+button, the selection is reported.
+
+Vice versa, with the '<config>' attribute 'paste="yes"' specified, the
+terminal allows the user to paste the content of a "clipboard" ROM session
+to the terminal client by pressing the middle mouse button.
