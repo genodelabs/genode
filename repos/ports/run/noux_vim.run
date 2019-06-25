@@ -3,11 +3,17 @@ create_boot_directory
 import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/pkg/[drivers_interactive_pkg] \
                   [depot_user]/pkg/terminal \
+                  [depot_user]/pkg/motif_wm \
                   [depot_user]/src/init \
+                  [depot_user]/src/nitpicker \
+                  [depot_user]/src/nit_fb \
+                  [depot_user]/src/clipboard \
+                  [depot_user]/src/report_rom \
                   [depot_user]/src/libc \
                   [depot_user]/src/noux \
                   [depot_user]/src/posix \
                   [depot_user]/src/ncurses \
+                  [depot_user]/src/clipboard \
                   [depot_user]/src/vim
 
 install_config {
@@ -47,11 +53,101 @@ install_config {
 		</provides>
 	</start>
 
+	<start name="report_rom">
+		<resource name="RAM" quantum="1M"/>
+		<provides>
+			<service name="Report"/> <service name="ROM"/>
+		</provides>
+		<config verbose="no">
+			<policy label="clipboard -> focus" report="nitpicker -> focus"/>
+		</config>
+	</start>
+
+	<start name="nitpicker">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Nitpicker"/></provides>
+		<config focus="rom">
+
+			<report focus="yes" /> <!-- interpreted by clipboard -->
+			<domain name="pointer" layer="1" content="client" label="no" origin="pointer" />
+			<domain name="default" layer="2" content="client" label="no" hover="always"/>
+
+			<policy label_prefix="pointer" domain="pointer"/>
+			<default-policy domain="default"/>
+		</config>
+		<route>
+			<service name="Report">      <child name="report_rom"/> </service>
+			<service name="Framebuffer"> <child name="drivers"/> </service>
+			<service name="Input">       <child name="drivers"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="pointer">
+		<resource name="RAM" quantum="1M"/>
+		<route>
+			<service name="Nitpicker"> <child name="nitpicker"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="clipboard">
+		<resource name="RAM" quantum="2M"/>
+		<provides>
+			<service name="ROM"/> <service name="Report"/>
+		</provides>
+		<config verbose="yes" match_labels="yes">
+			<default-policy domain="default"/>
+		</config>
+		<route>
+			<service name="ROM" label="focus"> <child name="report_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="wm" caps="1000">
+		<resource name="RAM" quantum="32M"/>
+		<binary name="init"/>
+		<provides>
+			<service name="Nitpicker"/> <service name="Report"/> <service name="ROM"/>
+		</provides>
+		<route>
+			<service name="ROM" label="config"> <parent label="wm.config"/> </service>
+			<service name="ROM"    label_last="clipboard"> <child name="clipboard"/> </service>
+			<service name="Report" label_last="clipboard"> <child name="clipboard"/> </service>
+			<service name="Nitpicker"> <child name="nitpicker"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="nit_fb">
+		<resource name="RAM" quantum="4M"/>
+		<provides> <service name="Framebuffer"/> <service name="Input"/> </provides>
+		<config xpos="10" ypos="10" initial_width="800" initial_height="600"/>
+		<route>
+			<service name="Nitpicker"> <child name="wm" label="terminal"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
 	<start name="terminal">
 		<resource name="RAM" quantum="2M"/>
 		<provides><service name="Terminal"/></provides>
+		<config copy="yes" paste="yes">
+			<vfs>
+				<rom name="VeraMono.ttf"/>
+				<dir name="fonts">
+					<dir name="monospace">
+						<ttf name="regular" path="/VeraMono.ttf" size_px="16"/>
+					</dir>
+				</dir>
+			</vfs>
+		</config>
 		<route>
-			<service name="ROM" label="config"> <parent label="terminal.config"/> </service>
+			<service name="ROM"    label="clipboard"> <child name="wm"/> </service>
+			<service name="Report" label="clipboard"> <child name="wm"/> </service>
+			<service name="Framebuffer"> <child name="nit_fb"/> </service>
+			<service name="Input">       <child name="nit_fb"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>
@@ -85,9 +181,20 @@ install_config {
 
 			</start>
 		</config>
+		<route>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
 	</start>
 </config>}
 
-build_boot_image { }
+set fd [open [run_dir]/genode/focus w]
+puts $fd "<focus label=\"wm -> focus\" domain=\"default\"/>"
+close $fd
+
+file copy -force [genode_dir]/repos/gems/recipes/raw/motif_wm/wm.config [run_dir]/genode/
+
+build { server/wm server/clipboard server/terminal }
+
+build_boot_image { wm clipboard terminal }
 
 run_genode_until forever
