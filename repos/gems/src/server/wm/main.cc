@@ -23,6 +23,7 @@
 /* local includes */
 #include <nitpicker.h>
 #include <report_forwarder.h>
+#include <rom_forwarder.h>
 
 namespace Wm {
 
@@ -110,6 +111,7 @@ struct Wm::Main
 		{ env.ep(), *this, &Main::handle_resize_request_update };
 
 	Report_forwarder _report_forwarder { env, heap };
+	Rom_forwarder    _rom_forwarder    { env, heap };
 
 	Main(Genode::Env &env) : env(env)
 	{

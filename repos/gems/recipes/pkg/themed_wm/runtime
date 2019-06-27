@@ -3,11 +3,13 @@
 	<requires>
 		<nitpicker label="focus"/>
 		<nitpicker/>
-		<report/>
+		<report label="shape"/>
+		<report label="clipboard"/>
+		<rom    label="clipboard"/>
 		<timer/>
 	</requires>
 
-	<provides> <nitpicker/> <report/> </provides>
+	<provides> <nitpicker/> <report/> <rom/> </provides>
 
 	<content>
 		<rom label="ld.lib.so"/>

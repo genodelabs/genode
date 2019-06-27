@@ -187,7 +187,7 @@ proc qt5_start_nodes { feature_arg } {
 		<start name="wm" caps="250">
 			<resource name="RAM" quantum="8M"/>
 			<provides>
-				<service name="Nitpicker"/> <service name="Report"/>
+				<service name="Nitpicker"/> <service name="Report"/> <service name="ROM"/>
 			</provides>
 			<config>
 				<policy label_prefix="decorator" role="decorator"/>

@@ -3,7 +3,9 @@
 	<requires>
 		<nitpicker label="focus"/>
 		<nitpicker/>
-		<report/>
+		<report label="shape"/>
+		<report label="clipboard"/>
+		<rom    label="clipboard"/>
 		<timer/>
 	</requires>
 

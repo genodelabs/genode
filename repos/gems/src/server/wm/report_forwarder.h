@@ -1,5 +1,5 @@
 /*
- * \brief  Report service for intercepting shape reports
+ * \brief  Report service for intercepting shape and clipboard reports
  * \author Norman Feske
  * \date   2019-02-18
  *
@@ -7,6 +7,9 @@
  * policy to an application's shape report as done for the application's
  * 'Nitpicker' session. This consistency is needed by the pointer to correlate
  * the currently hovered nitpicker session with the reported shapes.
+ * Analogously, clipboard reports can be routed through the window
+ * manager to support the clipboard component with associating its clients
+ * with nitpicker's reported focus.
  */
 
 /*
