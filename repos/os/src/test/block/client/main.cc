@@ -386,9 +386,6 @@ void perform(Genode::Env &env, Genode::Heap &heap, unsigned timeo_ms = 0)
 
 void Component::construct(Genode::Env &env)
 {
-	/* XXX execute constructors of global statics */
-	env.exec_static_constructors();
-
 	using namespace Genode;
 
 	try {

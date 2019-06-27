@@ -391,7 +391,7 @@ struct Linker::Binary : private Root_object, public Elf_object
 	{
 		Init::list()->exec_static_constructors();
 
-		/* call static construtors and register destructors */
+		/* call static constructors and register destructors */
 		Func * const ctors_start = (Func *)lookup_symbol("_ctors_start");
 		Func * const ctors_end   = (Func *)lookup_symbol("_ctors_end");
 		for (Func * ctor = ctors_end; ctor != ctors_start; (*--ctor)());
@@ -677,10 +677,6 @@ void Genode::init_ldso_phdr(Env &env)
 
 void Genode::exec_static_constructors()
 {
-	if (!binary_ptr->static_construction_pending())
-		warning("Don't call Genode::Env::exec_static_constructors() "
-		        "in components without static globals");
-
 	binary_ptr->finish_static_construction();
 }
 
