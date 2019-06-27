@@ -3,6 +3,7 @@ _/pkg/wifi
 _/pkg/depot_download
 _/pkg/terminal
 _/src/report_rom
+_/src/clipboard
 _/src/init
 _/src/ram_fs
 _/src/fs_rom

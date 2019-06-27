@@ -29,10 +29,13 @@ struct Sculpt::Service
 		RM, IO_MEM, IO_PORT, IRQ, REPORT, ROM, TERMINAL, TRACE,
 		USB, RTC, PLATFORM, VM, UNDEFINED };
 
-	Start_name server { }; /* invalid for parent service */
-	Type       type;
-	Label      label;
-	Info       info;
+	enum class Match_label { EXACT, LAST };
+
+	Start_name  server { }; /* invalid for parent service */
+	Type        type;
+	Label       label;
+	Info        info;
+	Match_label match_label { Match_label::EXACT };
 
 	/**
 	 * Return name attribute value of <service name="..."> node
@@ -72,8 +75,11 @@ struct Sculpt::Service
 	/**
 	 * Constructor for parent service
 	 */
-	Service(Type type, Info const &info, Label const &label = Label())
-	: type(type), label(label), info(info) { }
+	Service(Type type, Info const &info, Label const &label = Label(),
+	        Match_label match_label = Match_label::EXACT)
+	:
+		type(type), label(label), info(info), match_label(match_label)
+	{ }
 
 	void gen_xml(Xml_generator &xml) const
 	{
@@ -84,7 +90,7 @@ struct Sculpt::Service
 			if (!parent)
 				xml.attribute("name", server);
 
-			if (label.valid())
+			if (label.valid() && match_label == Match_label::EXACT)
 				xml.attribute("label", label);
 		});
 	}

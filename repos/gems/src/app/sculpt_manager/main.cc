@@ -930,6 +930,8 @@ void Sculpt::Main::_handle_nitpicker_mode()
 		_gui.font_size(text_size);
 
 		_fonts_config.generate([&] (Xml_generator &xml) {
+			xml.attribute("copy",  true);
+			xml.attribute("paste", true);
 			xml.node("vfs", [&] () {
 				gen_named_node(xml, "rom", "Vera.ttf");
 				gen_named_node(xml, "rom", "VeraMono.ttf");

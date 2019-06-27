@@ -61,6 +61,7 @@ install_config {
 			<policy label="pointer -> xray"
 			        report="global_keys_handler -> leitzentrale"/>
 			<policy label="pointer -> shape"    report="shape"/>
+			<policy label="clipboard -> focus"  report="nitpicker -> focus"/>
 			<policy label="drivers -> capslock" report="global_keys_handler -> capslock"/>
 			<policy label="runtime -> capslock" report="global_keys_handler -> capslock"/>
 			<policy label="drivers -> numlock"  report="global_keys_handler -> numlock"/>
@@ -112,6 +113,7 @@ install_config {
 					<rom name="drivers"       label="drivers.config"/>
 					<rom name="deploy"        label="manual_deploy.config"/>
 					<rom name="usb"           label="usb.config"/>
+					<rom name="clipboard"     label="clipboard.config"/>
 					<rom name="en_us.chargen"/>
 					<rom name="fr.chargen"/>
 					<rom name="de.chargen"/>
@@ -369,6 +371,19 @@ install_config {
 		</route>
 	</start>
 
+	<start name="clipboard" priority="-2">
+		<resource name="RAM" quantum="2M"/>
+		<provides>
+			<service name="ROM"/> <service name="Report"/>
+		</provides>
+		<route>
+			<service name="ROM" label="config">
+				<child name="config_fs_rom" label="clipboard"/> </service>
+			<service name="ROM" label="focus"> <child name="report_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
 	<start name="leitzentrale" caps="4000" priority="-2">
 		<binary name="init"/>
 		<resource name="RAM" quantum="164M"/>
@@ -442,6 +457,12 @@ install_config {
 			<service name="Nitpicker"> <child name="nitpicker"/> </service>
 			<service name="Timer"> <child name="timer"/> </service>
 			<service name="Report" label_suffix="-> shape"> <child name="pointer"/> </service>
+			<service name="Report" label="inspect terminal -> clipboard">
+				<child name="clipboard" label="leitzentrale -> manager -> fader ->  -> clipboard"/> </service>
+			<service name="ROM" label="inspect terminal -> clipboard">
+				<child name="clipboard" label="leitzentrale -> manager -> fader ->  -> clipboard"/> </service>
+			<service name="Report" label_suffix="-> clipboard"> <child name="clipboard"/> </service>
+			<service name="ROM"    label_suffix="-> clipboard"> <child name="clipboard"/> </service>
 			<service name="Report" label="runtime_view -> hover">
 				<child name="report_rom"/> </service>
 			<service name="Report"> <child name="fs_report"/> </service>

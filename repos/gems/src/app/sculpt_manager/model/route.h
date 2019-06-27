@@ -122,8 +122,13 @@ struct Sculpt::Route : List_model<Route>::Element
 
 		gen_named_node(xml, "service", Service::name_attr(required), [&] () {
 
-			if (required_label.valid())
-				xml.attribute("label", required_label);
+			if (required_label.valid()) {
+
+				if (selected_service->match_label == Service::Match_label::LAST)
+					xml.attribute("label_last", required_label);
+				else
+					xml.attribute("label", required_label);
+			}
 
 			selected_service->gen_xml(xml);
 		});
