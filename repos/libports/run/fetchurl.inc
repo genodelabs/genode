@@ -4,7 +4,7 @@
 # \date   2016-06-05
 #
 
-if {[have_spec linux] || [have_spec imx7d_sabre] || [have_spec rpi3] ||
+if {[have_spec linux] || [have_spec rpi3] ||
     [expr [have_spec imx53] && [have_spec trustzone]]} {
 	puts "Run script does not support this platform."
 	exit 0

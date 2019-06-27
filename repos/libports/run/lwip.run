@@ -22,7 +22,6 @@
 
 if {[expr [have_spec linux]] ||
     [expr [have_spec imx53] && [have_spec trustzone]] ||
-    [expr [have_spec imx7d_sabre]] ||
     [have_spec rpi3] ||
     [expr [have_spec riscv]]} {
 	puts "\n Run script is not supported on this platform. \n"; exit 0 }
