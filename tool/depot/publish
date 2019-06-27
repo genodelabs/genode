@@ -30,6 +30,8 @@ export GENODE_DIR := $(realpath $(dir $(MAKEFILE_LIST))/../..)
 
 PUBLIC_DIR ?= $(GENODE_DIR)/public
 
+XZ_THREADS ?= 1
+
 include $(GENODE_DIR)/tool/depot/mk/front_end.inc
 
 
@@ -101,13 +103,14 @@ $(PUBLIC_DIR)/%.xz.sig : $(PUBLIC_DIR)/%.xz
 $(PUBLIC_DIR)/%.tar.xz: $(DEPOT_DIR)/%
 	@$(ECHO) "$(DARK_COL)publish$(DEFAULT_COL) $@"
 	$(VERBOSE)test -e $(dir $@) || mkdir -p $(dir $@)
-	$(VERBOSE)tar cJf $@ -C $(dir $<) $(notdir $<)
+	$(VERBOSE)tar cf - -C $(dir $<) $(notdir $<) | \
+	          xz --threads=$(XZ_THREADS) > $@
 
 # index file
 $(PUBLIC_DIR)/%.xz: $(DEPOT_DIR)/%
 	@$(ECHO) "$(DARK_COL)publish$(DEFAULT_COL) $@"
 	$(VERBOSE)test -e $(dir $@) || mkdir -p $(dir $@)
-	$(VERBOSE)xz <$< >$@
+	$(VERBOSE)xz --threads=$(XZ_THREADS) <$< >$@
 
 ifneq ($(MISSING_PUBKEY_FILES),)
 $(MAKECMDGOALS) $(TARGETS): missing_pubkey_files
