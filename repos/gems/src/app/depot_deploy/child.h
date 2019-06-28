@@ -232,7 +232,7 @@ class Depot_deploy::Child : public List_model<Child>::Element
 			                      : Xml_node("<empty/>");
 
 			if (_condition == UNSATISFIED && _start_xml.constructed())
-				fn(_start_xml->xml(), launcher_xml);
+				fn(_start_xml->xml(), launcher_xml, _name);
 		}
 
 		void mark_as_incomplete(Xml_node missing)

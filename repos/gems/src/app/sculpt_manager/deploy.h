@@ -174,7 +174,7 @@ struct Sculpt::Deploy
 	bool any_unsatisfied_child() const
 	{
 		bool all_satisfied = true;
-		_children.for_each_unsatisfied_child([&] (Xml_node, Xml_node) {
+		_children.for_each_unsatisfied_child([&] (Xml_node, Xml_node, Start_name const &) {
 			all_satisfied = false; });
 		return !all_satisfied;
 	}

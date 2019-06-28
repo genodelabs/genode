@@ -42,10 +42,8 @@ void Sculpt::Deploy::gen_child_diagnostics(Xml_generator &xml) const
 	typedef Registered_no_delete<Message> Registered_message;
 	Registry<Registered_message> messages { };
 
-	auto gen_missing_dependencies = [&] (Xml_node start)
+	auto gen_missing_dependencies = [&] (Xml_node start, Start_name const &name)
 	{
-		Start_name const name = start.attribute_value("name", Start_name());
-
 		_for_each_missing_server(start, [&] (Start_name const &server) {
 
 			Message const new_message(Pretty(name), " requires ", Pretty(server));
@@ -60,9 +58,10 @@ void Sculpt::Deploy::gen_child_diagnostics(Xml_generator &xml) const
 		});
 	};
 
-	_children.for_each_unsatisfied_child([&] (Xml_node start, Xml_node launcher) {
-		gen_missing_dependencies(start);
-		gen_missing_dependencies(launcher);
+	_children.for_each_unsatisfied_child([&] (Xml_node start, Xml_node launcher,
+	                                          Start_name const &name) {
+		gen_missing_dependencies(start,    name);
+		gen_missing_dependencies(launcher, name);
 	});
 
 	/*
