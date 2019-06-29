@@ -18,6 +18,7 @@
 #include <os/reporter.h>
 #include <nitpicker_session/connection.h>
 #include <vm_session/vm_session.h>
+#include <timer_session/connection.h>
 
 /* included from depot_deploy tool */
 #include <children.h>
@@ -213,14 +214,15 @@ struct Sculpt::Main : Input_event_handler,
 		return _query_version;
 	}
 
-	/**
-	 * Depot_query interface
-	 */
-	void trigger_depot_query() override
-	{
-		_query_version.value++;
+	Timer::Connection _timer { _env };
 
+	Timer::One_shot_timeout<Main> _deferred_depot_query_handler {
+		_timer, *this, &Main::_handle_deferred_depot_query };
+
+	void _handle_deferred_depot_query(Duration)
+	{
 		if (_deploy._arch.valid()) {
+			_query_version.value++;
 			_depot_query_reporter.generate([&] (Xml_generator &xml) {
 				xml.attribute("arch",    _deploy._arch);
 				xml.attribute("version", _query_version.value);
@@ -231,6 +233,21 @@ struct Sculpt::Main : Input_event_handler,
 				_deploy.gen_depot_query(xml);
 			});
 		}
+	}
+
+	/**
+	 * Depot_query interface
+	 */
+	void trigger_depot_query() override
+	{
+		/*
+		 * Defer the submission of the query for a few milliseconds because
+		 * 'trigger_depot_query' may be consecutively called several times
+		 * while evaluating different conditions. Without deferring, the depot
+		 * query component would produce intermediate results that take time
+		 * but are ultimately discarded.
+		 */
+		_deferred_depot_query_handler.schedule(Microseconds{5000});
 	}
 
 
