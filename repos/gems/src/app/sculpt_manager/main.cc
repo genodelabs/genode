@@ -249,6 +249,16 @@ struct Sculpt::Main : Input_event_handler,
 
 		Xml_node const blueprint = _blueprint_rom.xml();
 
+		/*
+		 * Drop intermediate results that will be superseded by a newer query.
+		 * This is important because an outdated blueprint would be disregarded
+		 * by 'handle_deploy' anyway while at the same time a new query is
+		 * issued. This can result a feedback loop where blueprints are
+		 * requested but never applied.
+		 */
+		if (blueprint.attribute_value("version", 0U) != _query_version.value)
+			return;
+
 		_runtime_state.apply_to_construction([&] (Component &component) {
 			_popup_dialog.apply_blueprint(component, blueprint); });
 
