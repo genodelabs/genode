@@ -7,7 +7,9 @@
 		<file_system label="report" writeable="no"/>
 		<file_system label="target" writeable="yes"/>
 		<file_system label="fonts"  writeable="no"/>
-		<rom label="vimrc"/>
+		<rom    label="vimrc"/>
+		<rom    label="clipboard"/>
+		<report label="clipboard"/>
 	</requires>
 
 	<content>
