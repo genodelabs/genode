@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2015-2017 Genode Labs GmbH
+ * Copyright (C) 2015-2019 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -22,6 +22,7 @@ namespace Rtc {
 	using namespace Genode;
 
 	Timestamp get_time(Env &env);
+	void      set_time(Env &env, Timestamp ts);
 }
 
 #endif /* _DRIVERS__RTC__SPEC__X86__RTC_H_ */

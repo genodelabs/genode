@@ -5,13 +5,14 @@
  */
 
 /*
- * Copyright (C) 2015-2017 Genode Labs GmbH
+ * Copyright (C) 2015-2019 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
  */
 
 /* Genode */
+#include <base/attached_rom_dataspace.h>
 #include <base/component.h>
 #include <base/heap.h>
 #include <root/component.h>
@@ -77,8 +78,85 @@ struct Rtc::Main
 
 	Root root { env, sliced_heap };
 
-	Main(Env &env) : env(env) { env.parent().announce(env.ep().manage(root)); }
+	Attached_rom_dataspace _config_rom { env, "config" };
+	bool const _set_rtc {
+		_config_rom.xml().attribute_value("allow_setting_rtc", false) };
+
+	Constructible<Attached_rom_dataspace> _update_rom { };
+
+	void _handle_update();
+
+	Signal_handler<Main> _update_sigh {
+		env.ep(), *this, &Main::_handle_update };
+
+	Main(Env &env) : env(env)
+	{
+		if (_set_rtc) {
+			_update_rom.construct(env, "set_rtc");
+			_update_rom->sigh(_update_sigh);
+		}
+
+		env.parent().announce(env.ep().manage(root));
+	}
 };
+
+
+void Rtc::Main::_handle_update()
+{
+	_update_rom->update();
+
+	if (!_update_rom->valid()) { return; }
+
+	Genode::Xml_node node = _update_rom->xml();
+
+	bool const complete = node.has_attribute("year")
+	                   && node.has_attribute("month")
+	                   && node.has_attribute("day")
+	                   && node.has_attribute("hour")
+	                   && node.has_attribute("minute")
+	                   && node.has_attribute("second");
+
+	if (!complete) {
+		Genode::warning("set_rtc: ignoring incomplete RTC update");
+		return;
+	}
+
+	Timestamp ts { };
+
+	ts.second = node.attribute_value("second", 0u);
+	if (ts.second > 59) {
+		Genode::error("set_rtc: second invalid");
+		return;
+	}
+
+	ts.minute = node.attribute_value("minute", 0u);
+	if (ts.minute > 59) {
+		Genode::error("set_rtc: minute invalid");
+		return;
+	}
+
+	ts.hour = node.attribute_value("hour", 0u);
+	if (ts.hour > 23) {
+		Genode::error("set_rtc: hour invalid");
+		return;
+	}
+
+	ts.day = node.attribute_value("day", 1u);
+	if (ts.day > 31 || ts.day == 0) {
+		Genode::error("set_rtc: day invalid");
+		return;
+	}
+
+	ts.month = node.attribute_value("month", 1u);
+	if (ts.month > 12 || ts.month == 0) {
+		Genode::error("set_rtc: month invalid");
+		return;
+	}
+
+	ts.year = node.attribute_value("year", 2019u);
+
+	Rtc::set_time(env, ts);
+}
 
 
 void Component::construct(Genode::Env &env) { static Rtc::Main main(env); }

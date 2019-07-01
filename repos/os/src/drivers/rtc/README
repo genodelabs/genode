@@ -1,0 +1,17 @@
+The RTC driver component provides access to the CMOS RTC on x86 via
+the Rtc session. On base-linux 'gettimeofday' is used.
+
+The component will use the content of the 'set_rtc' ROM if the
+'allow_setting_rtc' attribute in the 'config' node is set to 'yes'
+to allow setting the RTC. A valid ROM must contain a top node with
+the following attributes:
+
+* 'year' (e.g. 2019)
+* 'month'  (1 - 12)
+* 'day'    (1 - 31)
+* 'hour'   (0 - 23)
+* 'minute' (0 - 59)
+* 'second' (0 - 59)
+
+The component will always use 24H mode and relies on the BIOS/firmware
+to do the right thing regarding the year.

@@ -1,15 +1,17 @@
 # RTC test
 
-if {(![have_spec x86] || [have_spec linux])} {
-	puts "Platform is unsupported."
-	exit 0
-}
+assert_spec x86
 
-build { core init drivers/rtc timer test/rtc }
+set test_update [have_include power_on/qemu]
+
+set build_components { core init drivers/rtc timer test/rtc }
+append_if $test_update build_components { server/report_rom }
+
+build $build_components
 
 create_boot_directory
 
-install_config {
+set config {
 <config prio_levels="2" verbose="yes">
 	<parent-provides>
 		<service name="ROM"/>
@@ -28,17 +30,52 @@ install_config {
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
-	</start>
-	<start name="rtc_drv" priority="-1">
+	</start>}
+append_if $test_update config {
+	<start name="report_rom">
 		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Rtc"/></provides>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config verbose="yes">
+			<policy label_suffix="set_rtc" report="test-rtc -> set_rtc"/>
+		</config>
+	</start>}
+append_if [have_spec linux] config {
+		<start name="linux_rtc_drv" priority="-1" ld="no">}
+append_if [expr ![have_spec linux]] config {
+		<start name="rtc_drv" priority="-1">}
+append config {
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Rtc"/></provides>}
+append_if $test_update config {
+		<config allow_setting_rtc="true"/>
+		<route>
+			<service name="ROM" label="set_rtc">
+				<child name="report_rom"/>
+			</service>
+			<any-service> <parent/> </any-service>
+		</route>}
+append config {
 	</start>
 	<start name="test-rtc" priority="-1">
-		<resource name="RAM" quantum="1M"/>
+		<resource name="RAM" quantum="1M"/>}
+append_if $test_update config {
+		<config set_rtc="yes"/>}
+append config {
 	</start>
 </config>}
 
-build_boot_image { core ld.lib.so init timer rtc_drv test-rtc }
+install_config $config
+
+set boot_components {
+	core ld.lib.so init timer test-rtc
+}
+
+append_if $test_update boot_components { report_rom }
+
+append_if [have_spec linux]         boot_components { linux_rtc_drv }
+append_if [expr ![have_spec linux]] boot_components { rtc_drv }
+
+build_boot_image $boot_components
 
 append qemu_args " -nographic  "
 

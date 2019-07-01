@@ -1,4 +1,5 @@
 base
 os
 timer_session
+report_session
 rtc_session

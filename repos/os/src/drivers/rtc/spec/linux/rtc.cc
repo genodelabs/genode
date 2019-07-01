@@ -34,3 +34,9 @@ Rtc::Timestamp Rtc::get_time(Env &)
 
 	return ts;
 }
+
+
+void Rtc::set_time(Env &, Timestamp)
+{
+	Genode::warning("setting RTC not implemented on Linux");
+}
