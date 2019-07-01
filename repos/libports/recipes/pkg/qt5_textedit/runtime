@@ -4,6 +4,8 @@
 		<file_system/>
 		<nitpicker/>
 		<report label="shape"/>
+		<report label="clipboard"/>
+		<rom    label="clipboard"/>
 		<timer/>
 	</requires>
 
