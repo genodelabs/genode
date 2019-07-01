@@ -47,7 +47,7 @@ class Terminal::Color_palette
 			" <color index=\"1\"  value=\"#AC4142\"/>" /* red */
 			" <color index=\"2\"  value=\"#90A959\"/>" /* green */
 			" <color index=\"3\"  value=\"#F4BF75\"/>" /* yellow */
-			" <color index=\"4\"  value=\"#6A9FB5\"/>" /* blue */
+			" <color index=\"4\"  value=\"#7686BD\"/>" /* blue */
 			" <color index=\"5\"  value=\"#AA759F\"/>" /* magenta */
 			" <color index=\"6\"  value=\"#75B5AA\"/>" /* cyan */
 			" <color index=\"7\"  value=\"#D0D0D0\"/>" /* white */
