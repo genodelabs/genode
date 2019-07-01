@@ -263,6 +263,7 @@ struct Clipboard::Main : Rom::Module::Read_policy, Rom::Module::Write_policy
 
 	Main(Genode::Env &env) : _env(env)
 	{
+		_config.sigh(_config_handler);
 		_handle_config();
 		_focus_ds.sigh(_focus_handler);
 
