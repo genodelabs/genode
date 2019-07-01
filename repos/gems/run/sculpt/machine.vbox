@@ -45,6 +45,7 @@
       <SharedFolders>
         <SharedFolder name="shared" hostPath="/shared" writable="true" autoMount="true"/>
       </SharedFolders>
+      <Clipboard mode="Bidirectional"/>
     </Hardware>
     <StorageControllers>
       <StorageController name="SATA" type="AHCI" PortCount="4" useHostIOCache="true" Bootable="true" IDE0MasterEmulationPort="0" IDE0SlaveEmulationPort="1" IDE1MasterEmulationPort="2" IDE1SlaveEmulationPort="3">

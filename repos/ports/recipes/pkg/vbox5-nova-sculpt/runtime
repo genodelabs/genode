@@ -7,11 +7,12 @@
 		<nic/>
 		<rom label="capslock"/>
 		<rom label="platform_info"/>
-		<rom label="usb_devices"/>
 		<report label="shape"/>
-		<report/>
+		<report label="clipboard"/>
+		<rom    label="clipboard"/>
 		<rm/>
 		<rtc/>
+		<rom label="usb_devices"/>
 		<usb/>
 	</requires>
 
