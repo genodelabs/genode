@@ -483,6 +483,8 @@ proc drivers_nic_pkg { } {
 	if {[have_spec imx53_qsb]}       { return drivers_nic-imx53_qsb       }
 	if {[have_spec imx6q_sabrelite]} { return drivers_nic-imx6q_sabrelite }
 	if {[have_spec imx7d_sabre]}     { return drivers_nic-imx7d_sabre     }
+	if {[have_spec imx8q_evk]}       { return drivers_nic-imx8q_evk       }
+
 
 	puts stderr "drivers_nic package undefined for this build configuration"
 	exit 1
