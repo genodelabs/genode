@@ -1,17 +1,12 @@
-REQUIRES = arm_v7
-
 TARGET   = fec_nic_drv
 LIBS     = base lx_kit_setjmp fec_nic_include
 SRC_CC   = main.cc platform.cc lx_emul.cc component.cc
 SRC_C   += dummy.c lxc.c
-INC_DIR += $(PRG_DIR)
+INC_DIR += $(PRG_DIR)/../..
 
 # lx_kit
 SRC_CC  += env.cc irq.cc malloc.cc scheduler.cc timer.cc work.cc printf.cc
 INC_DIR += $(REP_DIR)/src/include
-INC_DIR += $(REP_DIR)/src/include/spec/arm
-INC_DIR += $(REP_DIR)/src/include/spec/arm_v7
-INC_DIR += $(REP_DIR)/src/drivers/usb/include/spec/arm
 
 # contrib code
 LX_CONTRIB_DIR := $(call select_from_ports,dde_linux)/src/drivers/nic/fec
@@ -45,7 +40,8 @@ vpath %.c  $(LX_CONTRIB_DIR)/drivers/net/ethernet/freescale
 vpath %.c  $(LX_CONTRIB_DIR)/drivers/net/phy
 vpath %.c  $(LX_CONTRIB_DIR)/net/core
 vpath %.c  $(LX_CONTRIB_DIR)/net/ethernet
-vpath %.cc $(PRG_DIR)
+vpath %.c  $(PRG_DIR)/../..
+vpath %.cc $(PRG_DIR)/../..
 vpath %.cc $(REP_DIR)/src/lx_kit
 
 CC_CXX_WARN_STRICT =
