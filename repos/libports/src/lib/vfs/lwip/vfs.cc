@@ -84,6 +84,8 @@ extern "C" {
 	};
 	struct Lwip_handle;
 	struct Lwip_nameserver_handle;
+	struct Lwip_address_handle;
+	struct Lwip_netmask_handle;
 	struct Lwip_file_handle;
 	struct Lwip_dir_handle;
 
@@ -113,7 +115,8 @@ extern "C" {
 
 	enum {
 		PORT_STRLEN_MAX = 6, /* :65536 */
-		ENDPOINT_STRLEN_MAX = IPADDR_STRLEN_MAX+PORT_STRLEN_MAX
+		ENDPOINT_STRLEN_MAX = IPADDR_STRLEN_MAX+PORT_STRLEN_MAX,
+		ADDRESS_FILE_SIZE = IPADDR_STRLEN_MAX+2,
 	};
 
 	struct Directory;
@@ -190,6 +193,66 @@ struct Lwip::Lwip_nameserver_handle final : Lwip_handle, private Nameserver_regi
 			dst[n] = '\n';
 
 		out_count = n+1;
+		return Read_result::READ_OK;
+	}
+};
+
+
+struct Lwip::Lwip_address_handle final : Lwip_handle
+{
+	Lwip::netif const &netif;
+
+	Lwip_address_handle(Vfs::File_system &fs, Allocator &alloc,
+	                    Lwip::netif &netif)
+	: Lwip_handle(fs, alloc, Vfs::Directory_service::OPEN_MODE_RDONLY)
+	, netif(netif)
+	{ }
+
+	Read_result read(char *dst, file_size count,
+	                 file_size &out_count) override
+	{
+		using namespace Genode;
+
+		char address[IPADDR_STRLEN_MAX] { '\0' };
+
+		ipaddr_ntoa_r(&netif.ip_addr, address, IPADDR_STRLEN_MAX);
+
+		Genode::String<ADDRESS_FILE_SIZE>
+			line((char const *)address, "\n");
+
+		size_t n = min(line.length(), count);
+		memcpy(dst, line.string(), n);
+		out_count = n;
+		return Read_result::READ_OK;
+	}
+};
+
+
+struct Lwip::Lwip_netmask_handle final : Lwip_handle
+{
+	Lwip::netif const &netif;
+
+	Lwip_netmask_handle(Vfs::File_system &fs, Allocator &alloc,
+	                    Lwip::netif &netif)
+	: Lwip_handle(fs, alloc, Vfs::Directory_service::OPEN_MODE_RDONLY)
+	, netif(netif)
+	{ }
+
+	Read_result read(char *dst, file_size count,
+	                 file_size &out_count) override
+	{
+		using namespace Genode;
+
+		char netmask[IPADDR_STRLEN_MAX] { '\0' };
+
+		ipaddr_ntoa_r(&netif.netmask, netmask, IPADDR_STRLEN_MAX);
+
+		Genode::String<ADDRESS_FILE_SIZE>
+			line((char const *)netmask, "\n");
+
+		size_t n = min(line.length(), count);
+		memcpy(dst, line.string(), n);
+		out_count = n;
 		return Read_result::READ_OK;
 	}
 };
@@ -1677,6 +1740,12 @@ class Lwip::File_system final : public Vfs::File_system, public Lwip::Directory
 				proc(path+3, _netif.udp_dir);
 		}
 
+		static bool match_address(char const *name) {
+			return (!strcmp(name, "address")); }
+
+		static bool match_netmask(char const *name) {
+			return (!strcmp(name, "netmask")); }
+
 		static bool match_nameserver(char const *name) {
 			return (!strcmp(name, "nameserver")); }
 
@@ -1710,7 +1779,9 @@ class Lwip::File_system final : public Vfs::File_system, public Lwip::Directory
 		char const *leaf_path(char const *path) override
 		{
 			if (*path == '/') ++path;
-			if (match_nameserver(path))
+			if (match_address(path)
+			 || match_netmask(path)
+			 || match_nameserver(path))
 				return path;
 
 			char const *r = nullptr;
@@ -1725,6 +1796,12 @@ class Lwip::File_system final : public Vfs::File_system, public Lwip::Directory
 			if (*path == '/') ++path;
 			st = Stat();
 			st.device = (Genode::addr_t)this;
+
+			if (match_address(path) || match_netmask(path)) {
+				st.size = ADDRESS_FILE_SIZE;
+				st.mode = STAT_MODE_FILE;
+				return STAT_OK;
+			}
 
 			if (match_nameserver(path)) {
 				st.size = IPADDR_STRLEN_MAX;
@@ -1763,6 +1840,18 @@ class Lwip::File_system final : public Vfs::File_system, public Lwip::Directory
 			 * No files may be created here
 			 */
 			if (mode & OPEN_MODE_CREATE) return OPEN_ERR_NO_PERM;
+
+			if (match_address(path)) {
+				*out_handle = new (alloc)
+					Lwip_address_handle(*this, alloc, _netif.lwip_netif());
+				return OPEN_OK;
+			}
+
+			if (match_netmask(path)) {
+				*out_handle = new (alloc)
+					Lwip_netmask_handle(*this, alloc, _netif.lwip_netif());
+				return OPEN_OK;
+			}
 
 			if (match_nameserver(path)) {
 				*out_handle = new (alloc)

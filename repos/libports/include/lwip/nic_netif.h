@@ -256,6 +256,8 @@ class Lwip::Nic_netif
 
 		virtual ~Nic_netif() { }
 
+		Lwip::netif& lwip_netif() { return _netif; }
+
 		/**
 		* Status callback to override in subclass
 		 */

@@ -1,5 +1,3 @@
-#include <base/debug.h>
-
 /*
  * \brief  Libc pseudo plugin for socket fs
  * \author Christian Helmuth
@@ -34,6 +32,8 @@
 #include <netinet/tcp.h>
 #include <stdio.h>
 #include <sys/ioctl.h>
+#include <ifaddrs.h>
+#include <net/if.h>
 
 /* libc-internal includes */
 #include "socket_fs_plugin.h"
@@ -971,6 +971,61 @@ extern "C" int socket_fs_socket(int domain, int type, int protocol)
 
 	return fd->libc_fd;
 }
+
+
+static int read_ifaddr_file(sockaddr_in &sockaddr, Absolute_path const &path)
+{
+	Host_string address;
+	Port_string service;
+	*service.base() = '0';
+
+	{
+		FILE *fp = ::fopen(path.base(), "r");
+		if (!fp) return -1;
+
+		::fscanf(fp, "%s\n", address.base());
+		::fclose(fp);
+	}
+
+	try { sockaddr = sockaddr_in_struct(address, service); }
+	catch (...) { return -1; }
+
+	return 0;
+}
+
+
+extern "C" int getifaddrs(struct ifaddrs **ifap)
+{
+	static Genode::Lock lock;
+	Genode::Lock::Guard guard(lock);
+
+	// TODO: dual-stack / multi-homing
+
+	static sockaddr_in address;
+	static sockaddr_in netmask   { 0 };
+	static sockaddr_in broadcast { 0 };
+
+	static ifaddrs ifaddr {
+		.ifa_name      = "",
+		.ifa_flags     = IFF_UP,
+		.ifa_addr      = (sockaddr*)&address,
+		.ifa_netmask   = (sockaddr*)&netmask,
+		.ifa_broadaddr = (sockaddr*)&broadcast,
+	};
+
+	*ifap = &ifaddr;
+
+	Absolute_path const root(Libc::config_socket());
+
+	if (read_ifaddr_file(address, Absolute_path("address", root.base())))
+		return -1;
+
+	read_ifaddr_file(netmask, Absolute_path("netmask", root.base()));
+	return 0;
+}
+
+
+extern "C" void freeifaddrs(struct ifaddrs *) { }
 
 
 /****************************

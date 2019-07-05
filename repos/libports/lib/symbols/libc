@@ -263,6 +263,8 @@ gethostbyaddr_r T
 gethostbyname W
 gethostid T
 gethostname T
+getifaddrs T
+freeifaddrs T
 getline T
 getloadavg T
 getlogin T
