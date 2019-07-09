@@ -2,40 +2,71 @@
 
 	<events>
 		<timeout meaning="failed" sec="30" />
-		<log meaning="succeeded">child "test-libc_pipe" exited with exit value 0</log>
+		<log meaning="succeeded">child "sequence" exited with exit value 0</log>
 		<log meaning="failed">Error: </log>
 	</events>
 
 	<content>
 		<rom label="ld.lib.so"/>
 		<rom label="libc.lib.so"/>
-		<rom label="vfs.lib.so"/>
 		<rom label="libm.lib.so"/>
-		<rom label="libc_pipe.lib.so"/>
 		<rom label="posix.lib.so"/>
+		<rom label="sequence"/>
 		<rom label="test-libc_pipe"/>
+		<rom label="vfs"/>
+		<rom label="vfs.lib.so"/>
+		<rom label="vfs_pipe.lib.so"/>
 	</content>
 
 	<config>
 		<parent-provides>
 			<service name="ROM"/>
-			<service name="IRQ"/>
-			<service name="IO_MEM"/>
-			<service name="IO_PORT"/>
 			<service name="PD"/>
 			<service name="RM"/>
 			<service name="CPU"/>
 			<service name="LOG"/>
+			<service name="Timer"/>
 		</parent-provides>
 		<default-route>
 			<any-service> <parent/> <any-child/> </any-service>
 		</default-route>
-		<default caps="100"/>
-		<start name="test-libc_pipe">
+		<default caps="256"/>
+		<start name="pipes_fs">
+			<binary name="vfs"/>
+			<provides> <service name="File_system"/> </provides>
 			<resource name="RAM" quantum="4M"/>
 			<config>
-				<vfs> <dir name="dev"> <log/> </dir> </vfs>
-				<libc stdout="/dev/log" stderr="/dev/log"/>
+				<vfs> <pipe/> </vfs>
+				<default-policy root="/" writeable="yes"/>
+			</config>
+		</start>
+		<start name="sequence">
+			<resource name="RAM" quantum="4M"/>
+			<config>
+				<start name="libc_pipe_local">
+					<binary name="test-libc_pipe"/>
+					<config>
+						<vfs>
+							<dir name="dev">
+								<dir name="pipe"> <pipe/> </dir>
+								<log/>
+							</dir>
+						</vfs>
+						<libc stdout="/dev/log" stderr="/dev/log" pipe="/dev/pipe"/>
+					</config>
+				</start>
+				<start name="libc_pipe_remote">
+					<binary name="test-libc_pipe"/>
+					<config>
+						<vfs>
+							<dir name="dev">
+								<dir name="pipe"> <fs/> </dir>
+								<log/>
+							</dir>
+						</vfs>
+						<libc stdout="/dev/log" stderr="/dev/log" pipe="/dev/pipe"/>
+					</config>
+				</start>
 			</config>
 		</start>
 	</config>

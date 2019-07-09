@@ -1,0 +1,12 @@
+The VFS pipe plugin exposes a control file for creating pipes and a set of pipe
+directories. Opening and reading the "/new" returns a relative path to a
+directory. That directory represents a pipe and contains an "in" and "out" file
+for writing and reading respectively to the pipe.
+
+Reads and writes are non-blocking and will complete short operations without
+error, with the exception of reads on an empty pipe, which return READ_QUEUED.
+The read and write capacity of a pipe may be queried by stat'ing the size of
+"out" and "in" files.
+
+When all "in" and "out" handles on a pipe as well as the initial handle on "new"
+are closed, the pipe is destroyed.
