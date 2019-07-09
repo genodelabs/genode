@@ -165,6 +165,19 @@ class Ps2::Mouse : public Input_driver
 			return id == 4;
 		}
 
+		bool _wait_for_data_ready()
+		{
+			/* poll TIMEOUT_MS for reset results each SLEEP_MS */
+			enum { TIMEOUT_MS = 700, SLEEP_MS = 10 };
+			unsigned timeout_ms = 0;
+			do {
+				_timer.msleep(SLEEP_MS);
+				timeout_ms += SLEEP_MS;
+			} while (!_aux.data_read_ready() && timeout_ms < TIMEOUT_MS);
+
+			return _aux.data_read_ready();
+		}
+
 	public:
 
 		Mouse(Serial_interface &aux, Input::Event_queue &ev_queue,
@@ -180,18 +193,18 @@ class Ps2::Mouse : public Input_driver
 		void reset()
 		{
 			_aux.write(CMD_RESET);
-			if (_aux.read() != RET_ACK)
+
+			if (!_wait_for_data_ready()) {
+				Genode::warning("could not reset mouse (no response)");
+				return;
+			}
+
+			if (_aux.read() != RET_ACK) {
 				Genode::warning("could not reset mouse (missing ack)");
+				return;
+			}
 
-			/* poll TIMEOUT_MS for reset results each SLEEP_MS */
-			enum { TIMEOUT_MS = 700, SLEEP_MS = 10 };
-			unsigned timeout_ms = 0;
-			do {
-				_timer.msleep(SLEEP_MS);
-				timeout_ms += SLEEP_MS;
-			} while (!_aux.data_read_ready() && timeout_ms < TIMEOUT_MS);
-
-			if (!_aux.data_read_ready()) {
+			if (!_wait_for_data_ready()) {
 				Genode::warning("could not reset mouse (no response)");
 				return;
 			}
