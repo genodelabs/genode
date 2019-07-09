@@ -194,7 +194,7 @@ proc platform_drv_config {} {
 		<config acpi_ready="yes" act_as_acpi_drv="yes" report="yes"/>}
 		} else {
 			append drv_config {
-		<resource name="RAM" quantum="3M"/>}
+		<resource name="RAM" quantum="4M"/>}
 		}
 
 		append drv_config {
