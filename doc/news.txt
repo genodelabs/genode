@@ -3,6 +3,28 @@
                                Genode News
                                ===========
 
+Sculpt OS release 19.07 | 2019-07-09
+####################################
+
+| Version 19.07 of the Sculpt operating system improves overall performance
+| and introduces copy and paste between terminals, virtual machines, and
+| graphical applications.
+
+The most prominent user-visible feature of Sculpt OS 19.07 is the ability
+of copy and paste text between terminals, graphical applications, and
+virtual machines. Our unique take on this feature is described in
+a [https://genodians.org/nfeske/2019-07-03-copy-paste - dedicated article].
+
+Under the hood, Sculpt 19.07 benefits from the massive infrastructure
+improvements that came with
+[https://genode.org/documentation/release-notes/19.05 - Genode 19.05],
+yielding a smoother user experience compared to earlier versions.
+
+The new release can be obtained from the
+[https://genode.org/download/sculpt - Sculpt download page] and is
+accompanied by updated
+[https://genode.org/documentation/articles/sculpt-19-07 - documentation].
+
 
 Genode OS Framework release 19.05 | 2019-05-29
 ##############################################
