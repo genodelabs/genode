@@ -1,8 +1,8 @@
 
 
-                  =====================================
-                  Sculpt as a community experience (CE)
-                  =====================================
+                      =============================
+                      Sculpt Operating System 19.07
+                      =============================
 
 
                                Norman Feske
@@ -58,13 +58,13 @@ Your feedback is appreciated!
   [https://www.genode-labs.com]
 
 A printable PDF version of this document is available at
-[https://genode.org/documentation/sculpt-ce.pdf].
+[https://genode.org/documentation/sculpt-19-07.pdf].
 
 
 Hardware requirements and preparations
 ######################################
 
-Sculpt CE should be compatible with recent Intel-based PC hardware featuring
+Sculpt should be compatible with recent Intel-based PC hardware featuring
 Intel graphics, E1000 networking, Intel wireless, and AHCI/NVMe.
 
 It is tested best on laptops of the Lenovo X and T series (X220, X250, X260,
@@ -185,16 +185,21 @@ information along with the option to remove it from the system.
 
 As a next step, let us add a window system. In the '+' menu, you can find
 a readily packaged window system at _genodelabs_ -> _GUI_ -> _themed wm_.
-After installing the package, you are asked to take three decisions:
+After installing the package, you are asked to take five decisions:
 
 The _GUI (focus)_ should be assigned to "keyboard focus" to put the
 window manager in charge of controlling the keyboard focus, which is part
 of its job after all.
 The _GUI_ should be assigned to "system GUI server" as the basic mechanism
 to be used for graphical output and user input for the windowed applications.
-Finally, by assigning _Report_ to _system reports_, we allow the window
+By assigning _Report (shape)_ to _pointer shape_, we allow the window
 manager to report information about mouse-pointer shapes.
-By adding the component, the "themed wm" will appear in the runtime view.
+By assigning _Report (clipboard)_ to _global clipboard_, we grant the
+window manager the right to change the content of the global clipboard.
+Vice versa, by assigning _ROM (clipboard)_, we permit the window manager
+to obtain clipboard content.
+
+After adding the component, the "themed wm" will appear in the runtime view.
 To give the window system a quick try, add the small demo you can find at
 _genodelabs_ -> _Demos_ -> _nano3d_ and assign its _GUI_ to our "themed wm".
 
@@ -238,6 +243,14 @@ dialog is a bit more elaborate this time.
   within the instance. Select "default vim configuration" to grant
   read-only access to this information.
 
+:ROM (clipboard): defines the service to obtain clipboard content from.
+  Select "themed wm" (not "global clipboard").
+
+:Report (clipboard): defines the service for reporting new clipboard content.
+  Select "themed wm". More information about the integration and use of the
+  clipboard can be found in
+  [https://genodians.org/nfeske/2019-07-03-copy-paste - a dedicated article].
+
 With those decisions taken, a fresh noux runtime can be started, which appears
 in a window.
 
@@ -260,6 +273,13 @@ Further exploration
 Of course, there are many more components to explore and to combine.
 For inspiration, please follow the postings at
 [https://genodians.org], for example:
+
+:Copy and paste mechanism:
+
+  Sculpt provides a built-in mechanism for exchanging data between
+  virtual machines, terminals, and Qt applications:
+
+  [https://genodians.org/nfeske/2019-07-03-copy-paste]
 
 :Use GNU/Linux inside a virtual machine on top of Sculpt:
 
@@ -440,9 +460,9 @@ the running system using a command-line interface and the Vim text editor.
 Vim skills recommended
 ----------------------
 
-Sculpt CE leverages (a subset of) GNU coreutils, bash, and Vim as the user
+Sculpt leverages (a subset of) GNU coreutils, bash, and Vim as the user
 interface for sculpting the system. If you are not yet familiar with using
-Vim, you may take Sculpt CE as a welcome chance to get your toes wet. To
+Vim, you may take Sculpt as a welcome chance to get your toes wet. To
 enjoy the experience, you should be comfortable with the following
 operations:
 
@@ -587,7 +607,13 @@ as options.
   ----------------------------------------------------------------------------
                             |                | system status
   ----------------------------------------------------------------------------
+                            |                | global clipboard
+  ----------------------------------------------------------------------------
    Report                   | 'Report'       | system reports
+  ----------------------------------------------------------------------------
+                            |                | pointer shape
+  ----------------------------------------------------------------------------
+                            |                | global clipboard
   ----------------------------------------------------------------------------
    File system              | 'File_system'  | writeable system configuration
   ----------------------------------------------------------------------------
@@ -708,6 +734,11 @@ the following built-in ROM resources:
   optional ACPICA driver to respond to requests for a system reset or
   power-down.
 
+:global clipboard: provides the current content of the global clipboard.
+  The content can be accessed by a component only when the user interacts
+  with the component. This prevents overly nosey components from snooping the
+  clipboard content.
+
 
 Report
 ~~~~~~
@@ -723,10 +754,16 @@ keep in mind that Sculpt's built-in report file system is limited in size.
 A misbehaving component may put the system in jeopardy by producing overly
 sized reports.
 
-Reports labeled with 'shape' play a special role. They are routed to the mouse
-pointer and thereby enable graphical applications to suggest context-specific
-pointer shapes. The application-provided shape is shown whenever the
-corresponding application is hovered.
+:pointer shape: Reports labeled with 'shape' play a special role.
+  They are routed to the mouse pointer and thereby enable graphical
+  applications to suggest context-specific pointer shapes. The
+  application-provided shape is shown whenever the corresponding application
+  is hovered.
+
+:global clipboard: enables components to write new content to the
+  system-global clipboard. This operation, however, is restricted to the
+  single component that the user currently interacts with. This prevents
+  rogue components from spamming the global clipboard.
 
 
 File system
@@ -1123,26 +1160,26 @@ a free download at [https://genode.org].
 
 # Download the support for the NOVA microkernel
 
-  ! ./tool/depot/download genodelabs/bin/x86_64/base-nova/2019-03-17
+  ! ./tool/depot/download genodelabs/bin/x86_64/base-nova/2019-07-08
 
   The content is downloaded to the _public/_ directory and extracted to
   the _depot/_ directory.
 
 # Download all ingredients for the Sculpt boot image
 
-  ! ./tool/depot/download genodelabs/pkg/x86_64/sculpt/2019-03-19
+  ! ./tool/depot/download genodelabs/pkg/x86_64/sculpt/2019-07-08
 
 # Create a build directory
 
   ! ./tool/create_builddir x86_64
 
 # Configure the build directory by editing _build/x86_64/etc/build.conf_.
-  Most importantly, enable the 'gems' source-code repository where the
-  Sculpt scenario resides. In addition, the 'ports', 'dde_linux' and 'dde_ipxe'
-  repository are needed as well. Second, change the default configuration
-  of the 'QEMU_RUN_OPT' variable to 'image/disk' instead of 'image/iso'.
-  This way, the build process will produce a valid disk image with a GPT
-  partition table instead of a legacy ISO image.
+  Most importantly, enable the 'gems' source-code repository where the Sculpt
+  scenario resides. In addition, the 'libports', 'ports', 'dde_linux' and
+  'dde_ipxe' repository are needed as well. Second, change the default
+  configuration of the 'QEMU_RUN_OPT' variable to 'image/disk' instead of
+  'image/iso'. This way, the build process will produce a valid disk image
+  with a GPT partition table instead of a legacy ISO image.
 
 # Create the Sculpt boot image (defined by the run script at
   _repos/gems/run/sculpt.run_)
@@ -1170,12 +1207,13 @@ Before building the packages, various ports of 3rd-party software need to
 be prepared. The following command prepares all of them at once:
 
 ! <GENODE-DIR>/tool/ports/prepare_port \
-!      bash coreutils curl dde_ipxe dde_linux \
-!      dde_rump e2fsprogs gnupg grub2 jitterentropy \
-!      libarchive libc libgcrypt libiconv libssh \
-!      lwip_legacy ncurses nova openssl qemu-usb \
-!      stdcxx vim virtualbox5 x86emu xz zlib libpng \
-!      ttf-bitstream-vera stb
+!      acpica bash coreutils curl dde_ipxe dde_linux \
+!      dde_rump drm e2fsprogs expat freetype gnupg \
+!      jitterentropy jpeg libarchive libc libgcrypt \
+!      libiconv libpng libssh mesa ncurses nova openssl \
+!      pcre qemu-usb qoost qt5 stb stdcxx \
+!      ttf-bitstream-vera vim virtualbox5 x86emu xz \
+!      zlib
 
 The ingredients of the boot image are subsumed by the 'pkg/sculpt' package.
 The default set of software installed by the update runtime is defined by
@@ -1207,6 +1245,14 @@ files. The empty 'REBUILD=' argument limits the creation of binary packages
 to those that do not yet exist in binary form. If not specified, the
 command would recompile all packages each time. You may further add '-j<N>'
 to parallelize the build process where '<N>' is the level of parallelism.
+
+Alternatively to managing the depot manually, you may choose to let the build
+system manage the versioning and updating of the depot content automatically
+by enabling the following line in your _build.conf_ file. This slows down
+the build time a bit but ensures that the depot content is consistent with
+your source tree at all times.
+
+! RUN_OPT += --depot-auto-update
 
 Building the 'sculpt-installation' package works analogously to the 'sculpt'
 package.
