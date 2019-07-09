@@ -91,6 +91,7 @@ namespace Nova {
 		struct Mem_desc
 		{
 			enum Type {
+				EFI_SYSTEM_TABLE    = -7,
 				HYPERVISOR_LOG      = -6,
 				FRAMEBUFFER         = -5,
 				ACPI_XSDT           = -4,
