@@ -20,6 +20,11 @@ using namespace Genode;
 
 void Platform::_init_additional_platform_info(Xml_generator &xml)
 {
+	if (_boot_info().plat_info.efi_system_table != 0) {
+		xml.node("efi-system-table", [&] () {
+			xml.attribute("address", String<32>(Hex(_boot_info().plat_info.efi_system_table)));
+		});
+	}
 	xml.node("acpi", [&] () {
 		uint32_t const revision = _boot_info().plat_info.acpi_rsdp.revision;
 		uint32_t const rsdt     = _boot_info().plat_info.acpi_rsdp.rsdt;

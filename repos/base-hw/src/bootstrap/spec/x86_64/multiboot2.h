@@ -31,13 +31,24 @@ class Genode::Multiboot2_info : Mmio
 			struct Type : Register <0x00, 32>
 			{
 				enum {
-					END = 0, MEMORY = 6, FRAMEBUFFER = 8,
-					ACPI_RSDP_V1 = 14, ACPI_RSDP_V2 = 15
+					END                 = 0,
+					MEMORY              = 6,
+					FRAMEBUFFER         = 8,
+					EFI_SYSTEM_TABLE_64 = 12,
+					ACPI_RSDP_V1        = 14,
+					ACPI_RSDP_V2        = 15,
 				};
 			};
 			struct Size : Register <0x04, 32> { };
 
 			Tag(addr_t addr) : Mmio(addr) { }
+		};
+
+		struct Efi_system_table_64 : Tag
+		{
+			struct Pointer : Register <0x08, 64> { };
+
+			Efi_system_table_64(addr_t addr) : Tag(addr) { }
 		};
 
 	public:
@@ -56,8 +67,14 @@ class Genode::Multiboot2_info : Mmio
 
 		Multiboot2_info(addr_t mbi) : Mmio(mbi) { }
 
-        template <typename FUNC_MEM, typename FUNC_ACPI, typename FUNC_FB>
-		void for_each_tag(FUNC_MEM mem_fn, FUNC_ACPI acpi_fn, FUNC_FB fb_fn)
+		template <typename FUNC_MEM,
+		          typename FUNC_ACPI,
+		          typename FUNC_FB,
+		          typename FUNC_SYSTAB64>
+		void for_each_tag(FUNC_MEM      mem_fn,
+		                  FUNC_ACPI     acpi_fn,
+		                  FUNC_FB       fb_fn,
+		                  FUNC_SYSTAB64 systab64_fn)
 		{
 			addr_t const size = read<Multiboot2_info::Size>();
 
@@ -69,6 +86,10 @@ class Genode::Multiboot2_info : Mmio
 				if (tag.read<Tag::Type>() == Tag::Type::END)
 					return;
 
+				if (tag.read<Tag::Type>() == Tag::Type::EFI_SYSTEM_TABLE_64) {
+					Efi_system_table_64 const est(tag_addr);
+					systab64_fn(est.read<Efi_system_table_64::Pointer>());
+				}
 				if (tag.read<Tag::Type>() == Tag::Type::MEMORY) {
 					addr_t mem_start = tag_addr + (1UL << Tag::LOG2_SIZE) + 8;
 					addr_t const mem_end = tag_addr + tag.read<Tag::Size>();

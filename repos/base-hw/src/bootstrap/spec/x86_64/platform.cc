@@ -119,6 +119,9 @@ Bootstrap::Platform::Board::Board()
 		},
 		[&] (Hw::Framebuffer const &fb) {
 			info.framebuffer = fb;
+		},
+		[&] (uint64_t const efi_sys_tab) {
+			info.efi_system_table = efi_sys_tab;
 		});
 	} else if (__initial_ax == Multiboot_info::MAGIC) {
 		for (unsigned i = 0; true; i++) {
