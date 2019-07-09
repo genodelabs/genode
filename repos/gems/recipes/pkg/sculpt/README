@@ -1156,7 +1156,7 @@ a free download at [https://genode.org].
 
   ! git clone https://github.com/genodelabs/genode.git
   ! cd genode
-  ! git checkout -b sculpt_ce sculpt_ce
+  ! git checkout -b sculpt-19.07 sculpt-19.07
 
 # Download the support for the NOVA microkernel
 
