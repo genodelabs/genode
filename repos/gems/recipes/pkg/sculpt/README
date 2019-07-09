@@ -1184,7 +1184,7 @@ a free download at [https://genode.org].
 # Create the Sculpt boot image (defined by the run script at
   _repos/gems/run/sculpt.run_)
 
-  ! make -C build/x86_64 run/sculpt KERNEL=nova
+  ! make -C build/x86_64 run/sculpt KERNEL=nova BOARD=pc
 
   The boot image is created at _build/x86_64/var/run/sculpt.img_.
 
