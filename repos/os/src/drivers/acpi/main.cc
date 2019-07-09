@@ -19,6 +19,7 @@
 
 /* local includes */
 #include <acpi.h>
+#include <smbios_table_reporter.h>
 
 
 namespace Acpi {
@@ -29,8 +30,9 @@ namespace Acpi {
 
 struct Acpi::Main
 {
-	Genode::Env  &env;
-	Genode::Heap  heap { env.ram(), env.rm() };
+	Genode::Env           &env;
+	Genode::Heap           heap          { env.ram(), env.rm() };
+	Smbios_table_reporter  smbt_reporter { env, heap };
 
 	Main(Env &env) : env(env)
 	{
