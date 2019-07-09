@@ -78,6 +78,7 @@ class Libc::Vfs_plugin : public Plugin
 		Constructible<Genode::Directory> _root_dir { };
 		Vfs::Io_response_handler        &_response_handler;
 		Update_mtime               const _update_mtime;
+		bool                       const _pipe_configured;
 
 		/**
 		 * Sync a handle and propagate errors
@@ -102,6 +103,14 @@ class Libc::Vfs_plugin : public Plugin
 		template <typename FN>
 		void _with_info(File_descriptor &fd, FN const &fn);
 
+		static bool _init_pipe_configured(Xml_node config)
+		{
+			bool result = false;
+			config.with_sub_node("libc", [&] (Xml_node libc_node) {
+				result = libc_node.has_attribute("pipe"); });
+			return result;
+		}
+
 	public:
 
 		Vfs_plugin(Libc::Env                &env,
@@ -114,7 +123,8 @@ class Libc::Vfs_plugin : public Plugin
 			_alloc(alloc),
 			_root_fs(env.vfs()),
 			_response_handler(handler),
-			_update_mtime(update_mtime)
+			_update_mtime(update_mtime),
+			_pipe_configured(_init_pipe_configured(config))
 		{
 			if (config.has_sub_node("libc"))
 				_root_dir.construct(vfs_env);
@@ -134,6 +144,7 @@ class Libc::Vfs_plugin : public Plugin
 		bool supports_access(const char *, int)                override { return true; }
 		bool supports_mkdir(const char *, mode_t)              override { return true; }
 		bool supports_open(const char *, int)                  override { return true; }
+		bool supports_pipe()                                   override { return _pipe_configured; }
 		bool supports_poll()                                   override { return true; }
 		bool supports_readlink(const char *, char *, ::size_t) override { return true; }
 		bool supports_rename(const char *, const char *)       override { return true; }
@@ -167,6 +178,7 @@ class Libc::Vfs_plugin : public Plugin
 		int     ioctl(File_descriptor *, int , char *) override;
 		::off_t lseek(File_descriptor *fd, ::off_t offset, int whence) override;
 		int     mkdir(const char *, mode_t) override;
+		int     pipe(File_descriptor *pipefdo[2]) override;
 		bool    poll(File_descriptor &fdo, struct pollfd &pfd) override;
 		ssize_t read(File_descriptor *, void *, ::size_t) override;
 		ssize_t readlink(const char *, char *, ::size_t) override;

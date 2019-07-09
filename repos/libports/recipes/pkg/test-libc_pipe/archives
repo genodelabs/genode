@@ -2,4 +2,6 @@ _/src/init
 _/src/test-libc_pipe
 _/src/libc
 _/src/vfs
+_/src/vfs_pipe
 _/src/posix
+_/src/sequence
