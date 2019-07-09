@@ -97,6 +97,8 @@ struct Hw::Arm_64_cpu
 		struct Attr3 : Bitfield<24, 8> {};
 	);
 
+	SYSTEM_REGISTER(32, Pmuserenr_el0, pmuserenr_el0);
+
 	SYSTEM_REGISTER(64, Scr, scr_el3,
 		struct Ns  : Bitfield<0,  1> {};
 		struct Smd : Bitfield<7,  1> {};

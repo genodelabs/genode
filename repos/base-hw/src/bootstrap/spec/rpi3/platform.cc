@@ -104,6 +104,9 @@ unsigned Bootstrap::Platform::enable_mmu()
 			prepare_hypervisor();
 	}
 
+	/* enable performance counter for user-land */
+	Cpu::Pmuserenr_el0::write(0b1111);
+
 	Cpu::Vbar_el1::write(Hw::Mm::supervisor_exception_vector().base);
 
 	/* set memory attributes in indirection register */
