@@ -380,24 +380,30 @@ class Ps2::Keyboard : public Input_driver
 		Led_state _led_state      { };
 		Led_state _next_led_state { };
 
-		void _update_leds()
+		void _set_leds(bool capslock, bool numlock, bool scrlock)
 		{
-			/* don't interfere with pending events when applying next led state */
-			if (event_pending() || _led_state == _next_led_state)
-				return;
-
 			_kbd.write(0xed);
 			if (_kbd.read() != ACK) {
 				Genode::warning("setting of mode indicators failed (0xed)");
 				return;
 			}
 
-			_kbd.write((_next_led_state.capslock ? 4:0) | (_next_led_state.numlock ? 2:0)
-			                                            | (_next_led_state.scrlock ? 1:0));
+			_kbd.write((capslock ? 4:0) | (numlock ? 2:0) | (scrlock ? 1:0));
 			if (_kbd.read() != ACK) {
 				Genode::warning("setting of mode indicators failed");
 				return;
 			}
+		}
+
+		void _update_leds()
+		{
+			/* don't interfere with pending events when applying next led state */
+			if (event_pending() || _led_state == _next_led_state)
+				return;
+
+			_set_leds(_next_led_state.capslock,
+			          _next_led_state.numlock,
+			          _next_led_state.scrlock);
 
 			_led_state = _next_led_state;
 		}
@@ -447,6 +453,14 @@ class Ps2::Keyboard : public Input_driver
 
 		void reset()
 		{
+			/*
+			 * We enforce an initial LED state with all indicators switched
+			 * off. This also informs notebook keyboards (which use normal keys
+			 * as numeric pad if numlock is enabled) about our initial
+			 * assumption.
+			 */
+			_set_leds(false, false, false);
+
 			/* scan-code request/config commands */
 			enum { SCAN_CODE_REQUEST = 0, SCAN_CODE_SET_1 = 1, SCAN_CODE_SET_2 = 2 };
 
