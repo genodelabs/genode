@@ -50,6 +50,7 @@ rump_ext2
 sd_card_bench
 seoul-auto
 smartcard
+smbios_decoder
 smp
 solo5
 sub_rm

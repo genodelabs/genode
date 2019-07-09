@@ -1,0 +1,74 @@
+assert_spec x86_64
+
+if { "[board]" ne "pc" || [expr ![have_spec nova] && ![have_spec hw]] } {
+	puts "Run script is only supported on hw/pc and nova/pc"
+	exit 0
+}
+
+set build_components { app/smbios_decoder core init timer server/report_rom }
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+
+append_platform_drv_build_components
+
+build $build_components
+
+create_boot_directory
+
+append config {
+<config>
+	<parent-provides>
+		<service name="CPU"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="IRQ"/>
+		<service name="LOG"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="ROM"/>
+	</parent-provides>
+	<default-route>
+		<service name="Report"> <child name="report_rom"/> </service>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<default caps="200"/>}
+
+append_platform_drv_config
+
+append config {
+
+	<start name="report_rom">
+		<resource name="RAM" quantum="1M"/>
+		<provides>
+			<service name="Report"/>
+			<service name="ROM"/>
+		</provides>
+		<config verbose="yes"/>
+	</start>
+
+	<start name="smbios_decoder">
+		<resource name="RAM" quantum="10M"/>
+		<route>
+			<service name="Report"> <child name="report_rom"/> </service>
+			<service name="ROM" label="smbios_table"> <child name="acpi_report_rom"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+</config>
+}
+
+install_config $config
+
+set boot_modules {
+	report_rom
+	core init ld.lib.so
+	smbios_decoder
+}
+
+append_platform_drv_boot_modules
+
+build_boot_image $boot_modules
+
+append qemu_args " -nographic"
+
+run_genode_until "report_rom]   		<structure type=\"0\" .*?description=\"BIOS Information\">.*?report_rom]   </result>.*?\n" 20
