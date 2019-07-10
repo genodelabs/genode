@@ -86,6 +86,15 @@ void Genode::Cpu::clean_data_cache_by_virt_region(addr_t base, size_t sz)
 }
 
 
+void Genode::Cpu::clean_invalidate_data_cache_by_virt_region(addr_t base, size_t sz)
+{
+	addr_t const top = base + sz;
+	base &= line_align_mask;
+	for (; base < top; base += line_size) {
+		asm volatile("dc civac, %0" :: "r" (base)); }
+}
+
+
 void Genode::Cpu::invalidate_instr_cache_by_virt_region(addr_t base,
                                                         size_t size)
 {

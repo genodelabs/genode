@@ -106,7 +106,10 @@ bool Kernel::Pd::invalidate_tlb(Cpu &, addr_t addr, size_t size)
 
 void Kernel::Thread::_call_update_data_region()
 {
-	Genode::raw(__func__, " not implemented yet!");
+	addr_t const base = (addr_t)user_arg_1();
+	size_t const size = (size_t)user_arg_2();
+	Cpu::clean_invalidate_data_cache_by_virt_region(base, size);
+	Cpu::invalidate_instr_cache_by_virt_region(base, size);
 }
 
 
