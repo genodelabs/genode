@@ -20,9 +20,9 @@
 
 namespace Board {
 	using namespace Hw::Rpi_board;
-}
 
-namespace Bootstrap { struct Pic {}; }
+	struct Pic {};
+}
 
 
 constexpr unsigned Hw::Page_table::Descriptor_base::_device_tex() {

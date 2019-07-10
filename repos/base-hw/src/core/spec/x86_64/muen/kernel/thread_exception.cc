@@ -15,7 +15,6 @@
 /* core includes */
 #include <kernel/cpu.h>
 #include <kernel/thread.h>
-#include <pic.h>
 
 using namespace Kernel;
 
@@ -35,7 +34,7 @@ void Thread::exception(Cpu & cpu)
 	}
 	if (regs->trapno >= Cpu::Context::INTERRUPTS_START &&
 	    regs->trapno <= Cpu::Context::INTERRUPTS_END) {
-		pic().irq_occurred(regs->trapno);
+		cpu.pic().irq_occurred(regs->trapno);
 		_interrupt(cpu.id());
 		return;
 	}

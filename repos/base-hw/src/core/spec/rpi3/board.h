@@ -15,6 +15,7 @@
 #define _CORE__SPEC__RPI3__BOARD_H_
 
 #include <hw/spec/arm_64/rpi3_board.h>
+#include <spec/arm/bcm2837_pic.h>
 
 namespace Board {
 	using namespace Hw::Rpi3_board;

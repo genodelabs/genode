@@ -16,10 +16,13 @@
 #ifndef _CORE__SPEC__ZYNQ_QEMU__BOARD_H_
 #define _CORE__SPEC__ZYNQ_QEMU__BOARD_H_
 
+#include <hw/spec/arm/gicv2.h>
 #include <hw/spec/arm/zynq_qemu_board.h>
 
 namespace Board {
 	using namespace Hw::Zynq_qemu_board;
+
+	using Pic = Hw::Gicv2;
 
 	static constexpr bool SMP = true;
 

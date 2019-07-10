@@ -16,6 +16,7 @@
 #define _CORE__SPEC__RPI__BOARD_H_
 
 #include <hw/spec/arm/rpi_board.h>
+#include <spec/arm/bcm2835_pic.h>
 
 namespace Board {
 	using namespace Hw::Rpi_board;

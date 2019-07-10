@@ -85,6 +85,8 @@ class Hw::Pic : public Genode::Mmio
 
 	public:
 
+		enum { IPI = 0xffff };
+
 		Pic();
 
 		/**
@@ -113,6 +115,17 @@ class Hw::Pic : public Genode::Mmio
 		 */
 		void mask(unsigned const i) {
 			if (_valid(i)) { write<Enclear::Clear_enable>(1, i); } }
+
+		/*
+		 * Trigger interrupt 'i' from software if possible
+		 */
+		void trigger(unsigned const i) {
+			write<Swint>(Swint::Intid::bits(i)); }
+
+		bool secure(unsigned i) {
+			return !read<Intsec::Nonsecure>(i); }
+
+		static constexpr bool fast_interrupts() { return true; }
 };
 
 #endif /* _SRC__LIB__HW__SPEC__ARM__IMX_TZIC_H_ */

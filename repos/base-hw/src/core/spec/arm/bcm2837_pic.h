@@ -11,16 +11,14 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _CORE__SPEC__RPI3__PIC_H_
-#define _CORE__SPEC__RPI3__PIC_H_
+#ifndef _CORE__SPEC__ARM__BCM2837_PIC_H_
+#define _CORE__SPEC__ARM__BCM2837_PIC_H_
 
 #include <util/mmio.h>
-#include <board.h>
 
-namespace Genode { class Pic; }
-namespace Kernel { using Pic = Genode::Pic; }
+namespace Board { class Pic; }
 
-class Genode::Pic : Mmio
+class Board::Pic : Genode::Mmio
 {
 	public:
 
@@ -66,4 +64,4 @@ class Genode::Pic : Mmio
 		static constexpr bool fast_interrupts() { return false; }
 };
 
-#endif /* _CORE__SPEC__RPI3__PIC_H_ */
+#endif /* _CORE__SPEC__ARM__BCM2837_PIC_H_ */

@@ -20,11 +20,11 @@
 
 namespace Bootstrap {
 	using Cpu = Hw::Arm_64_cpu;
-	struct Pic {};
 };
 
 namespace Board {
 	using namespace Hw::Rpi3_board;
+	struct Pic {};
 };
 
 #endif /* _BOOTSTRAP__SPEC__RPI3__BOARD_H_ */

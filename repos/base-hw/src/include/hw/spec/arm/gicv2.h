@@ -1,25 +1,25 @@
 /*
- * \brief  Programmable interrupt controller for core
+ * \brief  ARM generic interrupt controller v2
  * \author Martin stein
  * \author Stefan Kalkowski
  * \date   2011-10-26
  */
 
 /*
- * Copyright (C) 2011-2013 Genode Labs GmbH
+ * Copyright (C) 2011-2019 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _SRC__LIB__HW__SPEC__ARM__PIC_H_
-#define _SRC__LIB__HW__SPEC__ARM__PIC_H_
+#ifndef _SRC__LIB__HW__SPEC__ARM__GICv2_H_
+#define _SRC__LIB__HW__SPEC__ARM__GICv2_H_
 
 #include <util/mmio.h>
 
-namespace Hw { class Pic; }
+namespace Hw { class Gicv2; }
 
-class Hw::Pic
+class Hw::Gicv2
 {
 	protected:
 
@@ -168,7 +168,7 @@ class Hw::Pic
 		Distributor                  _distr;
 		Cpu_interface                _cpui;
 		Cpu_interface::Iar::access_t _last_iar;
-		unsigned const               _max_irq;
+		unsigned const                        _max_irq;
 
 		void _init();
 
@@ -176,9 +176,9 @@ class Hw::Pic
 
 	public:
 
-		enum { NR_OF_IRQ = Distributor::nr_of_irq };
+		enum { IPI = 1, NR_OF_IRQ = Distributor::nr_of_irq };
 
-		Pic();
+		Gicv2();
 
 		/**
 		 * Try to take an IRQ and return wether it was successful
@@ -219,6 +219,20 @@ class Hw::Pic
 		 */
 		void mask(unsigned const irq_id) {
 			_distr.write<Distributor::Icenabler::Clear_enable>(1, irq_id); }
+
+		/**
+		 * Raise inter-processor IRQ of the CPU with kernel name 'cpu_id'
+		 */
+		void send_ipi(unsigned const cpu_id)
+		{
+			using Sgir = Distributor::Sgir;
+			Sgir::access_t sgir = 0;
+			Sgir::Sgi_int_id::set(sgir, IPI);
+			Sgir::Cpu_target_list::set(sgir, 1 << cpu_id);
+			_distr.write<Sgir>(sgir);
+		}
+
+		static constexpr bool fast_interrupts() { return false; }
 };
 
-#endif /* _SRC__LIB__HW__SPEC__ARM__PIC_H_ */
+#endif /* _SRC__LIB__HW__SPEC__ARM__GICv2_H_ */

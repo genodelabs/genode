@@ -17,8 +17,12 @@
 #include <hw/spec/arm/arndale_board.h>
 #include <hw/spec/arm/lpae.h>
 #include <spec/arm/cpu.h>
-#include <spec/arm/pic.h>
+#include <spec/arm/gicv2.h>
 
-namespace Board { using namespace Hw::Arndale_board; }
+namespace Board {
+	using namespace Hw::Arndale_board;
+
+	static constexpr bool NON_SECURE = true;
+}
 
 #endif /* _SRC__BOOTSTRAP__SPEC__ARNDALE__BOARD_H_ */

@@ -13,7 +13,7 @@
 
 #include <bios_data_area.h>
 #include <platform.h>
-#include <kernel/kernel.h>
+#include <kernel/cpu.h>
 #include <map_local.h>
 
 using namespace Genode;
@@ -60,8 +60,12 @@ void Platform::_init_additional_platform_info(Xml_generator &xml)
 
 
 void Platform::setup_irq_mode(unsigned irq_number, unsigned trigger,
-                              unsigned polarity) {
-	Kernel::pic().ioapic.setup_irq_mode(irq_number, trigger, polarity); }
+                              unsigned polarity)
+{
+	Kernel::cpu_pool().executing_cpu().pic().ioapic.setup_irq_mode(irq_number,
+	                                                               trigger,
+	                                                               polarity);
+}
 
 
 bool Platform::get_msi_params(addr_t, addr_t &, addr_t &, unsigned &) {

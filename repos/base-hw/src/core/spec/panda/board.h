@@ -15,11 +15,14 @@
 #ifndef _CORE__SPEC__PANDA__BOARD_H_
 #define _CORE__SPEC__PANDA__BOARD_H_
 
+#include <hw/spec/arm/gicv2.h>
 #include <hw/spec/arm/panda_board.h>
 
 namespace Board {
 	using namespace Hw::Panda_board;
 	
+	using Pic = Hw::Gicv2;
+
 	static constexpr bool SMP = true;
 
 	class L2_cache : public Hw::Pl310

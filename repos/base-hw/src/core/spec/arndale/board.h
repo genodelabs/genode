@@ -14,10 +14,13 @@
 #ifndef _CORE__SPEC__ARNDALE__BOARD_H_
 #define _CORE__SPEC__ARNDALE__BOARD_H_
 
+#include <hw/spec/arm/gicv2.h>
 #include <hw/spec/arm/arndale_board.h>
 
 namespace Board {
 	using namespace Hw::Arndale_board;
+
+	using Pic = Hw::Gicv2;
 
 	static constexpr bool SMP = true;
 }

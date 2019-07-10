@@ -14,7 +14,7 @@
 #ifndef _CORE__SPEC__X86_64__MUEN__PIC_H_
 #define _CORE__SPEC__X86_64__MUEN__PIC_H_
 
-namespace Genode
+namespace Board
 {
 	/**
 	 * Programmable interrupt controller for core
@@ -22,7 +22,7 @@ namespace Genode
 	class Pic;
 }
 
-class Genode::Pic
+class Board::Pic
 {
 	public:
 
@@ -67,7 +67,5 @@ class Genode::Pic
 
 		bool isr[NR_OF_IRQ] = {false};
 };
-
-namespace Kernel { class Pic : public Genode::Pic { }; }
 
 #endif /* _CORE__SPEC__X86_64__MUEN__PIC_H_ */

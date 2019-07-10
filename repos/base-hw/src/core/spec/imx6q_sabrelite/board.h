@@ -14,12 +14,14 @@
 #ifndef _CORE__SPEC__IMX6Q_SABRELITE__BOARD_H_
 #define _CORE__SPEC__IMX6Q_SABRELITE__BOARD_H_
 
+#include <hw/spec/arm/gicv2.h>
 #include <hw/spec/arm/imx6q_sabrelite_board.h>
 
 namespace Board {
 
 	using namespace Hw::Imx6q_sabrelite_board;
 
+	using Pic      = Hw::Gicv2;
 	using L2_cache = Hw::Pl310;
 
 	static constexpr bool SMP = true;

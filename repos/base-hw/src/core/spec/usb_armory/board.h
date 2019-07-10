@@ -15,10 +15,13 @@
 #ifndef _CORE__SPEC__USB_ARMORY__BOARD_H_
 #define _CORE__SPEC__USB_ARMORY__BOARD_H_
 
+#include <hw/spec/arm/imx_tzic.h>
 #include <hw/spec/arm/usb_armory_board.h>
 
 namespace Board {
 	using namespace Hw::Usb_armory_board;
+
+	using Hw::Pic;
 
 	static constexpr bool SMP = false;
 }

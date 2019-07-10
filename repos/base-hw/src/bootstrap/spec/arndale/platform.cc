@@ -153,7 +153,7 @@ static inline void switch_to_supervisor_mode()
 unsigned Bootstrap::Platform::enable_mmu()
 {
 	static volatile bool primary_cpu = true;
-	pic.init_cpu_local();
+	board.pic.init_cpu_local();
 
 	prepare_nonsecure_world();
 	prepare_hypervisor((addr_t)core_pd->table_base);

@@ -14,11 +14,13 @@
 #ifndef _CORE__SPEC__NIT6_SOLOX__BOARD_H_
 #define _CORE__SPEC__NIT6_SOLOX__BOARD_H_
 
+#include <hw/spec/arm/gicv2.h>
 #include <hw/spec/arm/nit6_solox_board.h>
 
 namespace Board {
 	using namespace Hw::Nit6_solox_board;
 
+	using Pic      = Hw::Gicv2;
 	using L2_cache = Hw::Pl310;
 
 	static constexpr bool SMP = true;

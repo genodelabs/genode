@@ -24,7 +24,6 @@
 #include <platform_pd.h>
 #include <hw/page_flags.h>
 #include <hw/util.h>
-#include <pic.h>
 #include <kernel/kernel.h>
 #include <translation_table.h>
 #include <kernel/cpu.h>
@@ -163,14 +162,14 @@ Platform::Platform()
 	_init_io_port_alloc();
 
 	/* make all non-kernel interrupts available to the interrupt allocator */
-	for (unsigned i = 0; i < Kernel::Pic::NR_OF_IRQ; i++) {
+	for (unsigned i = 0; i < Board::Pic::NR_OF_IRQ; i++) {
 		bool kernel_resource = false;
 		Kernel::cpu_pool().for_each_cpu([&] (Kernel::Cpu & cpu) {
 			if (i == cpu.timer().interrupt_id()) {
 				kernel_resource = true;
 			}
 		});
-		if (i == Pic::IPI) {
+		if (i == Board::Pic::IPI) {
 			kernel_resource = true;
 		}
 		if (kernel_resource) {

@@ -11,16 +11,16 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _SRC__BOOTSTRAP__SPEC__ARM__PIC_H_
-#define _SRC__BOOTSTRAP__SPEC__ARM__PIC_H_
+#ifndef _SRC__BOOTSTRAP__SPEC__ARM__GICV2_H_
+#define _SRC__BOOTSTRAP__SPEC__ARM__GICV2_H_
 
-#include <hw/spec/arm/pic.h>
+#include <hw/spec/arm/gicv2.h>
 
-namespace Bootstrap { struct Pic; }
+namespace Board { struct Pic; }
 
-struct Bootstrap::Pic : Hw::Pic
+struct Board::Pic : Hw::Gicv2
 {
 	void init_cpu_local();
 };
 
-#endif /* _SRC__BOOTSTRAP__SPEC__ARM__PIC_H_ */
+#endif /* _SRC__BOOTSTRAP__SPEC__ARM__GICV2_H_ */

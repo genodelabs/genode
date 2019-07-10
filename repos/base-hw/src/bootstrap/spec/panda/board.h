@@ -17,10 +17,12 @@
 #include <hw/spec/arm/panda_board.h>
 #include <spec/arm/cortex_a9_page_table.h>
 #include <spec/arm/cpu.h>
-#include <spec/arm/pic.h>
+#include <spec/arm/gicv2.h>
 
 namespace Board {
 	using namespace Hw::Panda_board;
+
+	static constexpr bool NON_SECURE = false;
 
 	class L2_cache;
 }

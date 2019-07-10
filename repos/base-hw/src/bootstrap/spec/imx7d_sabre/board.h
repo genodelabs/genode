@@ -17,10 +17,12 @@
 #include <hw/spec/arm/imx7d_sabre_board.h>
 #include <hw/spec/arm/lpae.h>
 #include <spec/arm/cpu.h>
-#include <spec/arm/pic.h>
+#include <spec/arm/gicv2.h>
 
 namespace Board {
 	using namespace Hw::Imx7d_sabre_board;
+
+	static constexpr bool NON_SECURE = true;
 }
 
 #endif /* _SRC__BOOTSTRAP__SPEC__IMX&_SABRELITE__BOARD_H_ */

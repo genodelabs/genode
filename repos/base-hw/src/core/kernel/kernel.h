@@ -15,8 +15,6 @@
 #ifndef _CORE__KERNEL__KERNEL_H_
 #define _CORE__KERNEL__KERNEL_H_
 
-#include <pic.h>
-
 /**
  * Main routine of every kernel pass
  */
@@ -28,7 +26,6 @@ namespace Kernel {
 	class Pd;
 
 	Pd  &core_pd();
-	Pic &pic();
 }
 
 #endif /* _CORE__KERNEL__KERNEL_H_ */

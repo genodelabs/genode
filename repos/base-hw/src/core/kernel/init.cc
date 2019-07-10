@@ -18,7 +18,6 @@
 #include <kernel/kernel.h>
 #include <kernel/lock.h>
 #include <platform_pd.h>
-#include <pic.h>
 #include <board.h>
 #include <platform_thread.h>
 
@@ -33,8 +32,6 @@ static_assert(sizeof(Genode::sizet_arithm_t) >= 2 * sizeof(size_t),
 Pd &Kernel::core_pd() {
 	return unmanaged_singleton<Genode::Core_platform_pd>()->kernel_pd(); }
 
-
-Pic &Kernel::pic() { return *unmanaged_singleton<Pic>(); }
 
 extern "C" void kernel_init();
 
@@ -62,7 +59,7 @@ extern "C" void kernel_init()
 		lock_ready = true;
 
 		/* initialize current cpu */
-		pool_ready = cpu_pool().initialize(pic());
+		pool_ready = cpu_pool().initialize();
 	};
 
 	/* wait until all cpus have initialized their corresponding cpu object */

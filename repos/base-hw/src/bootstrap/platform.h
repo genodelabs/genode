@@ -47,6 +47,7 @@ class Bootstrap::Platform
 			Mmio_space const    core_mmio;
 			unsigned            cpus              { NR_OF_CPUS };
 			::Board::Boot_info  info              { };
+			::Board::Pic        pic               { };
 
 			Board();
 		};
@@ -123,7 +124,6 @@ class Bootstrap::Platform
 
 		Board                     board     { };
 		Bootstrap::Cpu            cpu       { };
-		Bootstrap::Pic            pic       { };
 		Ram_allocator             ram_alloc { };
 		Memory_region const       bootstrap_region;
 		Genode::Constructible<Pd> core_pd { };

@@ -18,7 +18,7 @@
 using namespace Kernel;
 
 
-unsigned Timer::interrupt_id() const { return Genode::Pic::TIMER_IRQ; }
+unsigned Timer::interrupt_id() const { return Board::Pic::TIMER_IRQ; }
 
 
 unsigned long Timer_driver::_freq() { return Genode::Cpu::Cntfrq_el0::read(); }

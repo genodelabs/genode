@@ -18,6 +18,7 @@
 #include <util/reconstructible.h>
 
 /* core includes */
+#include <board.h>
 #include <kernel/cpu_context.h>
 #include <kernel/irq.h>
 #include <kernel/inter_processor_work.h>
@@ -111,7 +112,7 @@ class Kernel::Cpu : public Genode::Cpu, private Irq::Pool, private Timeout
 
 
 		unsigned const _id;
-		Pic           &_pic;
+		Board::Pic    &_pic;
 		Timer          _timer;
 		Cpu_scheduler  _scheduler;
 		Idle_thread    _idle;
@@ -131,7 +132,7 @@ class Kernel::Cpu : public Genode::Cpu, private Irq::Pool, private Timeout
 		/**
 		 * Construct object for CPU 'id'
 		 */
-		Cpu(unsigned const id, Pic & pic,
+		Cpu(unsigned const id, Board::Pic & pic,
 		    Inter_processor_work_list & global_work_list);
 
 		static inline unsigned primary_id() { return 0; }
@@ -159,7 +160,8 @@ class Kernel::Cpu : public Genode::Cpu, private Irq::Pool, private Timeout
 		 */
 		Cpu_job& schedule();
 
-		Timer & timer() { return _timer; }
+		Board::Pic & pic()   { return _pic; }
+		Timer      & timer() { return _timer; }
 
 		addr_t stack_start();
 
@@ -189,6 +191,7 @@ class Kernel::Cpu_pool
 {
 	private:
 
+		Board::Pic                 _pic {};
 		Inter_processor_work_list  _global_work_list {};
 		unsigned                   _count;
 		unsigned                   _initialized { _count };
@@ -198,7 +201,7 @@ class Kernel::Cpu_pool
 
 		Cpu_pool();
 
-		bool initialize(Pic & pic);
+		bool initialize();
 
 		/**
 		 * Return object of CPU 'id'

@@ -15,13 +15,14 @@
 #include <kernel/kernel.h>
 #include <kernel/cpu.h>
 #include <kernel/irq.h>
-#include <pic.h>
 
 
-void Kernel::Irq::disable() const { pic().mask(_irq_nr); }
+void Kernel::Irq::disable() const {
+	cpu_pool().executing_cpu().pic().mask(_irq_nr); }
 
 
-void Kernel::Irq::enable() const { pic().unmask(_irq_nr, Cpu::executing_id()); }
+void Kernel::Irq::enable() const {
+	cpu_pool().executing_cpu().pic().unmask(_irq_nr, Cpu::executing_id()); }
 
 
 Kernel::Irq::Pool &Kernel::User_irq::_pool()

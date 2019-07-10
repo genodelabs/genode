@@ -31,7 +31,6 @@
 #include <kernel/log.h>
 #include <map_local.h>
 #include <platform_pd.h>
-#include <pic.h>
 
 extern "C" void _core_start(void);
 

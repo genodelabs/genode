@@ -15,9 +15,8 @@
 #define _CORE__SPEC__RISCV__BOARD_H_
 
 #include <hw/spec/riscv/board.h>
+#include <spec/riscv/pic.h>
 
-namespace Board {
-	using namespace Hw::Riscv_board;
-}
+namespace Board { using namespace Hw::Riscv_board; }
 
 #endif /* _CORE__SPEC__RISCV__BOARD_H_ */

@@ -20,10 +20,10 @@
 #include <spec/arm/cortex_a8_page_table.h>
 #include <spec/arm/cpu.h>
 
-namespace Bootstrap { using Hw::Pic; }
-
 namespace Board {
 	using namespace Hw::Usb_armory_board;
+
+	using Hw::Pic;
 
 	bool secure_irq(unsigned irq);
 }

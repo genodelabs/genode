@@ -20,12 +20,12 @@
 #include <hw/spec/x86_64/x86_64.h>
 
 namespace Bootstrap {
-	struct Pic {};
 	using Cpu = Hw::X86_64_cpu;
 }
 
 namespace Board {
 	using namespace Hw::Pc_board;
+	struct Pic {};
 }
 
 #endif /* _SRC__BOOTSTRAP__SPEC__X86_64__BOARD_H_ */

@@ -15,12 +15,14 @@
 #ifndef _CORE__SPEC__WAND_QUAD__BOARD_H_
 #define _CORE__SPEC__WAND_QUAD__BOARD_H_
 
+#include <hw/spec/arm/gicv2.h>
 #include <hw/spec/arm/wand_quad_board.h>
 
 namespace Board {
 	using namespace Hw::Wand_quad_board;
 
 	using L2_cache = Hw::Pl310;
+	using Pic      = Hw::Gicv2;
 	
 	static constexpr bool SMP = true;
 

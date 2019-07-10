@@ -19,11 +19,6 @@
 #include <hw/spec/riscv/uart.h>
 #include <drivers/defs/riscv.h>
 
-namespace Bootstrap {
-	struct Cpu {};
-	struct Pic {};
-}
-
 namespace Hw::Riscv_board {
 
 	using namespace Riscv;

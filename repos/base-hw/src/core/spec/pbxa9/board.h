@@ -14,10 +14,13 @@
 #ifndef _CORE__SPEC__PBXA9__BOARD_H_
 #define _CORE__SPEC__PBXA9__BOARD_H_
 
+#include <hw/spec/arm/gicv2.h>
 #include <hw/spec/arm/pbxa9_board.h>
 
 namespace Board {
 	using namespace Hw::Pbxa9_board;
+
+	using Pic = Hw::Gicv2;
 
 	static constexpr bool SMP = true;
 

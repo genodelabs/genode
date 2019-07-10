@@ -17,10 +17,11 @@
 #include <hw/spec/arm/odroid_xu_board.h>
 #include <hw/spec/arm/lpae.h>
 #include <spec/arm/cpu.h>
-#include <spec/arm/pic.h>
+#include <spec/arm/gicv2.h>
 
 namespace Board {
 	using namespace Hw::Odroid_xu_board;
+	static constexpr bool NON_SECURE = false;
 }
 
 #endif /* _SRC__BOOTSTRAP__SPEC__ODROID_XU__BOARD_H_ */

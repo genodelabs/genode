@@ -23,9 +23,9 @@
 namespace Board {
 	using namespace Hw::Imx53_qsb_board;
 
+	using Hw::Pic;
+
 	bool secure_irq(unsigned irq);
 }
-
-namespace Bootstrap { using Hw::Pic; }
 
 #endif /* _SRC__BOOTSTRAP__SPEC__IMX53_QSB__BOARD_H_ */

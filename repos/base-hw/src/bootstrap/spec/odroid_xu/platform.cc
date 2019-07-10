@@ -25,7 +25,7 @@ Bootstrap::Platform::Board::Board()
 
 unsigned Bootstrap::Platform::enable_mmu()
 {
-	pic.init_cpu_local();
+	board.pic.init_cpu_local();
 	Cpu::Sctlr::init();
 	Cpu::Cpsr::init();
 	cpu.invalidate_data_cache();

@@ -11,15 +11,15 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#include <pic.h>
+#include <board.h>
 #include <platform.h>
 
 
-Genode::Pic::Pic()
-: Mmio(Platform::mmio_to_virt(Board::LOCAL_IRQ_CONTROLLER_BASE)) { }
+Board::Pic::Pic()
+: Genode::Mmio(Genode::Platform::mmio_to_virt(Board::LOCAL_IRQ_CONTROLLER_BASE)) { }
 
 
-bool Genode::Pic::take_request(unsigned & irq)
+bool Board::Pic::take_request(unsigned & irq)
 {
 	Core0_irq_source::access_t src = read<Core0_irq_source>();
 	if ((1 << TIMER_IRQ) & src) {
@@ -30,10 +30,10 @@ bool Genode::Pic::take_request(unsigned & irq)
 }
 
 
-void Genode::Pic::mask() { }
+void Board::Pic::mask() { }
 
 
-void Genode::Pic::unmask(unsigned const i, unsigned cpu)
+void Board::Pic::unmask(unsigned const i, unsigned cpu)
 {
 	if (cpu > 0)
 		Genode::raw("multi-core irq controller not implemented yet");
@@ -47,7 +47,7 @@ void Genode::Pic::unmask(unsigned const i, unsigned cpu)
 }
 
 
-void Genode::Pic::mask(unsigned const i)
+void Board::Pic::mask(unsigned const i)
 {
 	if (i == TIMER_IRQ) {
 		write<Core0_timer_irq_control::Cnt_p_ns_irq>(0);

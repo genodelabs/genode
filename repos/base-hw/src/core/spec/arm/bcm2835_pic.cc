@@ -1,5 +1,5 @@
 /*
- * \brief   Pic implementation specific to Rpi
+ * \brief   Pic implementation specific to Rpi 1
  * \author  Norman Feske
  * \author  Stefan Kalkowski
  * \date    2016-01-07
@@ -12,12 +12,13 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#include <pic.h>
+#include <board.h>
 #include <platform.h>
 
+using namespace Genode;
 
-bool Genode::Usb_dwc_otg::_need_trigger_sof(uint32_t host_frame,
-                                            uint32_t scheduled_frame)
+bool Board::Pic::Usb_dwc_otg::_need_trigger_sof(uint32_t host_frame,
+                                                uint32_t scheduled_frame)
 {
 	uint32_t const max_frame = 0x3fff;
 
@@ -35,7 +36,8 @@ bool Genode::Usb_dwc_otg::_need_trigger_sof(uint32_t host_frame,
 }
 
 
-Genode::Usb_dwc_otg::Usb_dwc_otg() : Mmio(Platform::mmio_to_virt(Board::USB_DWC_OTG_BASE))
+Board::Pic::Usb_dwc_otg::Usb_dwc_otg()
+: Mmio(Platform::mmio_to_virt(Board::USB_DWC_OTG_BASE))
 {
 	write<Guid::Num>(0);
 	write<Guid::Num_valid>(false);
@@ -43,7 +45,7 @@ Genode::Usb_dwc_otg::Usb_dwc_otg() : Mmio(Platform::mmio_to_virt(Board::USB_DWC_
 }
 
 
-bool Genode::Usb_dwc_otg::handle_sof()
+bool Board::Pic::Usb_dwc_otg::handle_sof()
 {
 	if (!_is_sof())
 		return false;
@@ -68,11 +70,11 @@ bool Genode::Usb_dwc_otg::handle_sof()
 }
 
 
-Genode::Pic::Pic()
+Board::Pic::Pic()
 : Mmio(Platform::mmio_to_virt(Board::IRQ_CONTROLLER_BASE)) { mask(); }
 
 
-bool Genode::Pic::take_request(unsigned &irq)
+bool Board::Pic::take_request(unsigned &irq)
 {
 	/* read basic IRQ status mask */
 	uint32_t const p = read<Irq_pending_basic>();
@@ -106,7 +108,7 @@ bool Genode::Pic::take_request(unsigned &irq)
 }
 
 
-void Genode::Pic::mask()
+void Board::Pic::mask()
 {
 	write<Irq_disable_basic>(~0);
 	write<Irq_disable_gpu_1>(~0);
@@ -114,7 +116,7 @@ void Genode::Pic::mask()
 }
 
 
-void Genode::Pic::unmask(unsigned const i, unsigned)
+void Board::Pic::unmask(unsigned const i, unsigned)
 {
 	if (i < 8)
 		write<Irq_enable_basic>(1 << i);
@@ -125,7 +127,7 @@ void Genode::Pic::unmask(unsigned const i, unsigned)
 }
 
 
-void Genode::Pic::mask(unsigned const i)
+void Board::Pic::mask(unsigned const i)
 {
 	if (i < 8)
 		write<Irq_disable_basic>(1 << i);

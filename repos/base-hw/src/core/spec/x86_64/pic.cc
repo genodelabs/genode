@@ -19,10 +19,10 @@
 
 /* core includes */
 #include <port_io.h>
-#include <pic.h>
 #include <platform.h>
 
 using namespace Genode;
+using namespace Board;
 
 uint8_t Pic::lapic_ids[NR_OF_CPUS];
 
@@ -122,6 +122,8 @@ void Pic::send_ipi(unsigned const cpu_id) {
 }
 
 Ioapic::Irq_mode Ioapic::_irq_mode[IRQ_COUNT];
+
+enum { REMAP_BASE = Board::VECTOR_REMAP_BASE };
 
 void Ioapic::setup_irq_mode(unsigned irq_number, unsigned trigger,
                             unsigned polarity)

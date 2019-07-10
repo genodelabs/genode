@@ -15,6 +15,7 @@
 #define _CORE__SPEC__X86_64__MUEN__BOARD_H_
 
 #include <hw/spec/x86_64/pc_board.h>
+#include <spec/x86_64/muen/pic.h>
 
 namespace Board {
 	using namespace Hw::Pc_board;

@@ -11,72 +11,16 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _CORE__SPEC__RPI__PIC_H_
-#define _CORE__SPEC__RPI__PIC_H_
+#ifndef _CORE__SPEC__ARM__BCM2835_PIC_H_
+#define _CORE__SPEC__ARM__BCM2835_PIC_H_
 
 /* Genode includes */
 #include <util/mmio.h>
 
-/* core includes */
-#include <board.h>
-
-namespace Genode
-{
-	/**
-	 * Programmable interrupt controller for core
-	 */
-	class Pic;
-
-	class Usb_dwc_otg;
-}
+namespace Board { class Pic; }
 
 
-class Genode::Usb_dwc_otg : Mmio
-{
-	private:
-
-		struct Core_irq_status : Register<0x14, 32>
-		{
-			struct Sof : Bitfield<3, 1> { };
-		};
-
-		struct Guid : Register<0x3c, 32>
-		{
-			struct Num : Bitfield<0, 14> { };
-
-			/*
-			 * The USB driver set 'Num' to a defined value
-			 */
-			struct Num_valid : Bitfield<31, 1> { };
-
-			/*
-			 * Filter is not used, overridden by the USB driver
-			 */
-			struct Kick : Bitfield<30, 1> { };
-		};
-
-		struct Host_frame_number : Register<0x408, 32>
-		{
-			struct Num : Bitfield<0, 14> { };
-		};
-
-		bool _is_sof() const
-		{
-			return read<Core_irq_status::Sof>();
-		}
-
-		static bool _need_trigger_sof(uint32_t host_frame,
-		                              uint32_t scheduled_frame);
-
-	public:
-
-		Usb_dwc_otg();
-
-		bool handle_sof();
-};
-
-
-class Genode::Pic : Mmio
+class Board::Pic : Genode::Mmio
 {
 	public:
 
@@ -107,12 +51,57 @@ class Genode::Pic : Mmio
 		struct Irq_disable_gpu_2  : Register<0x20, 32> { };
 		struct Irq_disable_basic  : Register<0x24, 32> { };
 
+		class Usb_dwc_otg : Genode::Mmio
+		{
+			private:
+
+				struct Core_irq_status : Register<0x14, 32>
+				{
+					struct Sof : Bitfield<3, 1> { };
+				};
+
+				struct Guid : Register<0x3c, 32>
+				{
+					struct Num : Bitfield<0, 14> { };
+
+					/*
+					 * The USB driver set 'Num' to a defined value
+					 */
+					struct Num_valid : Bitfield<31, 1> { };
+
+					/*
+					 * Filter is not used, overridden by the USB driver
+					 */
+					struct Kick : Bitfield<30, 1> { };
+				};
+
+				struct Host_frame_number : Register<0x408, 32>
+				{
+					struct Num : Bitfield<0, 14> { };
+				};
+
+				bool _is_sof() const
+				{
+					return read<Core_irq_status::Sof>();
+				}
+
+				static bool _need_trigger_sof(Genode::uint32_t host_frame,
+				                              Genode::uint32_t scheduled_frame);
+
+			public:
+
+				Usb_dwc_otg();
+
+				bool handle_sof();
+		};
+
 		Usb_dwc_otg _usb { };
 
 		/**
 		 * Return true if specified interrupt is pending
 		 */
-		static bool _is_pending(unsigned i, uint32_t p1, uint32_t p2)
+		static bool _is_pending(unsigned i, Genode::uint32_t p1,
+		                        Genode::uint32_t p2)
 		{
 			return i < 32 ? (p1 & (1 << i)) : (p2 & (1 << (i - 32)));
 		}
@@ -121,7 +110,6 @@ class Genode::Pic : Mmio
 
 		Pic();
 
-		void init_cpu_local() { }
 		bool take_request(unsigned &irq);
 		void finish_request() { }
 		void mask();
@@ -131,6 +119,4 @@ class Genode::Pic : Mmio
 		static constexpr bool fast_interrupts() { return false; }
 };
 
-namespace Kernel { using Genode::Pic; }
-
-#endif /* _CORE__SPEC__RPI__PIC_H_ */
+#endif /* _CORE__SPEC__ARM__BCM2835_PIC_H_ */
