@@ -11,7 +11,7 @@ SRC_CC += spec/arm_v8/kernel/thread.cc
 SRC_CC += spec/arm_v8/kernel/cpu.cc
 SRC_CC += spec/arm/platform_support.cc
 SRC_CC += spec/arm/bcm2837_pic.cc
-SRC_CC += spec/rpi3/timer.cc
+SRC_CC += spec/arm/generic_timer.cc
 SRC_CC += spec/64bit/memory_map.cc
 
 #add assembly sources

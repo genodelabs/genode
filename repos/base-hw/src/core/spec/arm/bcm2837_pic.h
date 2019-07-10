@@ -23,7 +23,6 @@ class Board::Pic : Genode::Mmio
 	public:
 
 		enum {
-			TIMER_IRQ = 1,
 			NR_OF_IRQ = 64,
 
 			/*

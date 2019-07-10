@@ -12,8 +12,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _TIMER_DRIVER_H_
-#define _TIMER_DRIVER_H_
+#ifndef _SRC__CORE__SPEC__ARM__PIT_H_
+#define _SRC__CORE__SPEC__ARM__PIT_H_
 
 /* Genode includes */
 #include <util/mmio.h>
@@ -23,12 +23,12 @@
 #include <port_io.h>
 #include <board.h>
 
-namespace Kernel { class Timer_driver; }
+namespace Board { class Timer; }
 
 /**
  * LAPIC-based timer driver for core
  */
-struct Kernel::Timer_driver : Genode::Mmio
+struct Board::Timer: Genode::Mmio
 {
 	enum {
 		/* PIT constants */
@@ -70,7 +70,7 @@ struct Kernel::Timer_driver : Genode::Mmio
 	/* Measure LAPIC timer frequency using PIT channel 2 */
 	Genode::uint32_t pit_calc_timer_freq(void);
 
-	Timer_driver(unsigned);
+	Timer(unsigned);
 };
 
-#endif /* _TIMER_DRIVER_H_ */
+#endif /* _SRC__CORE__SPEC__ARM__PIT_H_ */

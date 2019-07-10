@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _TIMER_DRIVER_H_
-#define _TIMER_DRIVER_H_
+#ifndef _SRC__CORE__SPEC__ARM__EXYNOS_MCT_H_
+#define _SRC__CORE__SPEC__ARM__EXYNOS_MCT_H_
 
 /* Kernel includes */
 #include <util/mmio.h>
@@ -20,10 +20,10 @@
 /* base-hw includes */
 #include <kernel/types.h>
 
-namespace Kernel { class Timer_driver; }
+namespace Board { class Timer; }
 
 
-struct Kernel::Timer_driver : Genode::Mmio
+struct Board::Timer : Genode::Mmio
 {
 	enum {
 		PRESCALER = 1,
@@ -108,14 +108,14 @@ struct Kernel::Timer_driver : Genode::Mmio
 	 *
 	 * \param clock  input clock
 	 */
-	time_t static calc_ticks_per_ms(unsigned const clock) {
+	Kernel::time_t static calc_ticks_per_ms(unsigned const clock) {
 		return clock / (PRESCALER + 1) / (1 << DIV_MUX) / 1000; }
 
 	Local          local;
 	unsigned const ticks_per_ms;
 	unsigned const cpu_id;
 
-	Timer_driver(unsigned cpu_id);
+	Timer(unsigned cpu_id);
 };
 
-#endif /* _TIMER_DRIVER_H_ */
+#endif /* _SRC__CORE__SPEC__ARM__EXYNOS_MCT_H_ */

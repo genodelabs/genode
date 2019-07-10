@@ -16,11 +16,14 @@
 
 #include <hw/spec/arm/gicv2.h>
 #include <hw/spec/arm/imx7d_sabre_board.h>
+#include <spec/arm/generic_timer.h>
 
 namespace Board {
 	using namespace Hw::Imx7d_sabre_board;
 
 	using Pic = Hw::Gicv2;
+
+	enum { TIMER_IRQ = 30 };
 }
 
 #endif /* _CORE__SPEC__IMX7_SABRELITE__BOARD_H_ */

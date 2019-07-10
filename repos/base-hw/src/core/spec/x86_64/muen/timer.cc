@@ -26,7 +26,7 @@ using namespace Genode;
 using namespace Kernel;
 
 
-Timer_driver::Timer_driver(unsigned) : ticks_per_ms(sinfo()->get_tsc_khz()), start(0)
+Board::Timer::Timer(unsigned) : ticks_per_ms(sinfo()->get_tsc_khz()), start(0)
 {
 	/* first sinfo instance, output status */
 	sinfo()->log_status();
@@ -67,21 +67,21 @@ void Timer::_start_one_shot(time_t const ticks)
 {
 	static const time_t MIN_TICKS = 10UL;
 
-	_driver.start = _driver.rdtsc();
-	uint64_t t    = _driver.start + ((ticks > MIN_TICKS) ? ticks : MIN_TICKS);
-	_driver.event_page->tsc_trigger = t;
+	_device.start = _device.rdtsc();
+	uint64_t t    = _device.start + ((ticks > MIN_TICKS) ? ticks : MIN_TICKS);
+	_device.event_page->tsc_trigger = t;
 
-	if (_driver.guest_event_page)
-		_driver.guest_event_page->tsc_trigger = t;
+	if (_device.guest_event_page)
+		_device.guest_event_page->tsc_trigger = t;
 }
 
 
 time_t Timer::ticks_to_us(time_t const ticks) const {
-	return timer_ticks_to_us(ticks, _driver.ticks_per_ms); }
+	return timer_ticks_to_us(ticks, _device.ticks_per_ms); }
 
 
 time_t Timer::us_to_ticks(time_t const us) const {
-	return us * (_driver.ticks_per_ms / 1000); }
+	return us * (_device.ticks_per_ms / 1000); }
 
 
 time_t Timer::_max_value() const { return ~0UL; }
@@ -89,5 +89,5 @@ time_t Timer::_max_value() const { return ~0UL; }
 
 time_t Timer::_duration() const
 {
-	return _driver.rdtsc() - _driver.start;
+	return _device.rdtsc() - _device.start;
 }

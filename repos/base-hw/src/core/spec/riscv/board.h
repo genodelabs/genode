@@ -16,6 +16,7 @@
 
 #include <hw/spec/riscv/board.h>
 #include <spec/riscv/pic.h>
+#include <spec/riscv/timer.h>
 
 namespace Board { using namespace Hw::Riscv_board; }
 

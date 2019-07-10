@@ -17,10 +17,10 @@
 /* Genode includes */
 #include <base/stdint.h>
 
-namespace Kernel { class Timer_driver; }
+namespace Board { class Timer; }
 
 
-struct Kernel::Timer_driver
+struct Board::Timer
 {
 	enum { TIMER_DISABLED = ~0ULL };
 
@@ -45,7 +45,7 @@ struct Kernel::Timer_driver
 
 	class Invalid_region { };
 
-	Timer_driver(unsigned);
+	Timer(unsigned);
 };
 
 #endif /* _TIMER_DRIVER_H_ */

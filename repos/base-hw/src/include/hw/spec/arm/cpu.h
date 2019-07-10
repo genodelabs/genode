@@ -237,6 +237,18 @@ struct Hw::Arm_cpu
 	/* Counter Frequency register */
 	ARM_CP15_REGISTER_32BIT(Cntfrq, c14, c0, 0, 0);
 
+	/* Physical Timer Value register */
+	ARM_CP15_REGISTER_32BIT(Cntp_tval, c14, c2, 0, 0);
+
+	/* Physical Timer Control register */
+	ARM_CP15_REGISTER_32BIT(Cntp_ctl, c14, c2, 0, 1,
+		struct Enable  : Bitfield<0, 1> {};
+		struct Istatus : Bitfield<2, 1> {};
+	);
+
+	/* Physical Count register */
+	ARM_CP15_REGISTER_64BIT(Cntpct, c14, 0);
+
 	/******************************
 	 ** Program status registers **
 	 ******************************/
@@ -266,7 +278,6 @@ struct Hw::Arm_cpu
 	};
 
 	ARM_BANKED_REGISTER(Cpsr, cpsr);
-
 
 	/**********************************
 	 ** Cache maintainance functions **

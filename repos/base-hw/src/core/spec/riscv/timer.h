@@ -11,19 +11,20 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _TIMER_H_
-#define _TIMER_H_
+#ifndef _SRC__CORE__SPEC__RISCV__TIMER_H_
+#define _SRC__CORE__SPEC__RISCV__TIMER_H_
 
 /* Genode includes */
 #include <base/stdint.h>
+#include <kernel/types.h>
 
-namespace Kernel { class Timer_driver; }
+namespace Board { class Timer; }
 
 
 /**
  * Timer driver for core
  */
-struct Kernel::Timer_driver
+struct Board::Timer
 {
 	enum {
 		SPIKE_TIMER_HZ = 1000000,
@@ -31,11 +32,11 @@ struct Kernel::Timer_driver
 		TICS_PER_US    = TICS_PER_MS / 1000,
 	};
 
-	time_t timeout = 0;
+	Kernel::time_t timeout = 0;
 
-	time_t stime() const;
+	Kernel::time_t stime() const;
 
-	Timer_driver(unsigned);
+	Timer(unsigned);
 };
 
-#endif /* _TIMER_H_ */
+#endif /* _SRC__CORE__SPEC__RISCV__TIMER_H_ */

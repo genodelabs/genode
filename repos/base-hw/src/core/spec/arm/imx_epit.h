@@ -11,18 +11,18 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _TIMER_DRIVER_H_
-#define _TIMER_DRIVER_H_
+#ifndef _SRC__CORE__SPEC__ARM__IMX_EPIT_H_
+#define _SRC__CORE__SPEC__ARM__IMX_EPIT_H_
 
 /* Kernel includes */
 #include <util/mmio.h>
 
-namespace Kernel { class Timer_driver; }
+namespace Board { class Timer; }
 
 /**
  * Timer driver for core
  */
-struct Kernel::Timer_driver : Genode::Mmio
+struct Board::Timer : Genode::Mmio
 {
 	enum { TICS_PER_MS = 33333 };
 
@@ -86,7 +86,7 @@ struct Kernel::Timer_driver : Genode::Mmio
 		write<Sr::Ocif>(1);
 	}
 
-	Timer_driver(unsigned);
+	Timer(unsigned);
 };
 
-#endif /* _TIMER_DRIVER_H_ */
+#endif /* _SRC__CORE__SPEC__ARM__IMX_EPIT_H_ */

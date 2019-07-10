@@ -8,7 +8,7 @@
 INC_DIR += $(BASE_DIR)/../base-hw/src/core/spec/exynos5
 
 # add C++ sources
-SRC_CC += spec/exynos5/timer.cc
+SRC_CC += spec/arm/exynos_mct.cc
 
 # include less specific configuration
 include $(BASE_DIR)/../base-hw/lib/mk/spec/cortex_a15/core-hw.inc

@@ -17,6 +17,7 @@
 
 #include <hw/spec/arm/gicv2.h>
 #include <hw/spec/arm/panda_board.h>
+#include <spec/arm/cortex_a9_private_timer.h>
 
 namespace Board {
 	using namespace Hw::Panda_board;

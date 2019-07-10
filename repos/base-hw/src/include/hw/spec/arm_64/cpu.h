@@ -40,8 +40,6 @@ struct Hw::Arm_64_cpu
 		struct El3 : Bitfield<8, 4> {};
 	);
 
-	SYSTEM_REGISTER(64, Cntfrq_el0, cntfrq_el0);
-
 	SYSTEM_REGISTER(64, Current_el, currentel,
 		enum Level { EL0, EL1, EL2, EL3 };
 		struct El : Bitfield<2, 2> {};
@@ -164,6 +162,8 @@ struct Hw::Arm_64_cpu
 	 ** Generic timer interface **
 	 *****************************/
 
+	SYSTEM_REGISTER(64, Cntfrq_el0, cntfrq_el0);
+
 	SYSTEM_REGISTER(32, Cntp_ctl_el0, cntp_ctl_el0,
 		struct Enable  : Bitfield<0, 1> {};
 		struct Istatus : Bitfield<2, 1> {};
@@ -171,6 +171,11 @@ struct Hw::Arm_64_cpu
 
 	SYSTEM_REGISTER(64, Cntpct_el0, cntpct_el0);
 	SYSTEM_REGISTER(32, Cntp_tval_el0, cntp_tval_el0);
+
+	using Cntfrq    = Cntfrq_el0;
+	using Cntp_ctl  = Cntp_ctl_el0;
+	using Cntpct    = Cntpct_el0;
+	using Cntp_tval = Cntp_tval_el0;
 };
 
 

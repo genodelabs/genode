@@ -17,6 +17,7 @@
 
 #include <hw/spec/arm/imx_tzic.h>
 #include <hw/spec/arm/imx53_qsb_board.h>
+#include <spec/arm/imx_epit.h>
 
 namespace Board {
 	using namespace Hw::Imx53_qsb_board;

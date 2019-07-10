@@ -21,8 +21,7 @@
 /* Genode includes */
 #include <util/list.h>
 
-/* Core includes */
-#include <timer_driver.h>
+#include <board.h>
 
 namespace Kernel
 {
@@ -74,9 +73,7 @@ class Kernel::Timer
 				void occurred() override;
 		};
 
-		using Driver = Timer_driver;
-
-		Driver                _driver;
+		Board::Timer          _device;
 		Irq                   _irq;
 		time_t                _time = 0;
 		time_t                _last_timeout_duration;

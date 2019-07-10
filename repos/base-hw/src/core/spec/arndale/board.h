@@ -16,6 +16,7 @@
 
 #include <hw/spec/arm/gicv2.h>
 #include <hw/spec/arm/arndale_board.h>
+#include <spec/arm/exynos_mct.h>
 
 namespace Board {
 	using namespace Hw::Arndale_board;

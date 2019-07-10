@@ -16,9 +16,12 @@
 
 #include <hw/spec/arm_64/rpi3_board.h>
 #include <spec/arm/bcm2837_pic.h>
+#include <spec/arm/generic_timer.h>
 
 namespace Board {
 	using namespace Hw::Rpi3_board;
+
+	enum { TIMER_IRQ = 1 };
 };
 
 #endif /* _CORE__SPEC__RPI3__BOARD_H_ */

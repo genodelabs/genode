@@ -19,28 +19,28 @@ using namespace Genode;
 using namespace Kernel;
 
 
-Timer_driver::Timer_driver(unsigned)
+Board::Timer::Timer(unsigned)
 {
 	/* enable timer interrupt */
 	enum { STIE = 0x20 };
 	asm volatile ("csrs sie, %0" : : "r"(STIE));
 }
 
-time_t Timer_driver::stime() const { return Hw::get_sys_timer(); }
+time_t Board::Timer::stime() const { return Hw::get_sys_timer(); }
 
 void Timer::_start_one_shot(time_t const ticks)
 {
-	_driver.timeout = _driver.stime() + ticks;
-	Hw::set_sys_timer(_driver.timeout);
+	_device.timeout = _device.stime() + ticks;
+	Hw::set_sys_timer(_device.timeout);
 }
 
 
 time_t Timer::ticks_to_us(time_t const ticks) const {
-	return ticks / Driver::TICS_PER_US; }
+	return ticks / Board::Timer::TICS_PER_US; }
 
 
 time_t Timer::us_to_ticks(time_t const us) const {
-	return us * Driver::TICS_PER_MS; }
+	return us * Board::Timer::TICS_PER_MS; }
 
 
 time_t Timer::_max_value() const {
@@ -49,11 +49,10 @@ time_t Timer::_max_value() const {
 
 time_t Timer::_duration() const
 {
-	addr_t time = _driver.stime();
-	return time < _driver.timeout ? _driver.timeout - time
-	                              : _last_timeout_duration + (time - _driver.timeout);
+	addr_t time = _device.stime();
+	return time < _device.timeout ? _device.timeout - time
+	                              : _last_timeout_duration + (time - _device.timeout);
 }
 
 
-unsigned Timer::interrupt_id() const {
-	return 5; }
+unsigned Timer::interrupt_id() const { return 5; }

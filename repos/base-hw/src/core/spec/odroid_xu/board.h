@@ -16,6 +16,7 @@
 
 #include <hw/spec/arm/gicv2.h>
 #include <hw/spec/arm/odroid_xu_board.h>
+#include <spec/arm/exynos_mct.h>
 
 namespace Board {
 	using namespace Hw::Odroid_xu_board;

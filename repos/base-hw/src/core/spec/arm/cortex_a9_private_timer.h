@@ -1,5 +1,5 @@
 /*
- * \brief  Timer implementation specific to Cortex A9
+ * \brief  Private Timer implementation specific to Cortex A9
  * \author Martin stein
  * \date   2011-12-13
  */
@@ -11,28 +11,19 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _TIMER_DRIVER_H_
-#define _TIMER_DRIVER_H_
+#ifndef _SRC__CORE__SPEC__ARM__CORTEX_A9_PRIVATE_TIMER_H_
+#define _SRC__CORE__SPEC__ARM__CORTEX_A9_PRIVATE_TIMER_H_
 
 /* Genode includes */
 #include <util/mmio.h>
 
-/* core includes */
-#include <board.h>
-
-namespace Kernel { class Timer_driver; }
+namespace Board { class Timer; }
 
 /**
  * Timer driver for core
  */
-struct Kernel::Timer_driver : Genode::Mmio
+struct Board::Timer : Genode::Mmio
 {
-	enum {
-		TICS_PER_MS =
-			Board::CORTEX_A9_PRIVATE_TIMER_CLK /
-			Board::CORTEX_A9_PRIVATE_TIMER_DIV / 1000
-	};
-
 	/**
 	 * Load value register
 	 */
@@ -62,7 +53,7 @@ struct Kernel::Timer_driver : Genode::Mmio
 		struct Event : Bitfield<0,1> { }; /* if counter hit zero */
 	};
 
-	Timer_driver(unsigned);
+	Timer(unsigned);
 };
 
-#endif /* _TIMER_DRIVER_H_ */
+#endif /* _SRC__CORE__SPEC__ARM__CORTEX_A9_PRIVATE_TIMER_H_ */

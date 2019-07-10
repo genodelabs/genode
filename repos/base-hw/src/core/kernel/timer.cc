@@ -91,7 +91,7 @@ void Timer::process_timeouts()
 
 
 Timer::Timer(Cpu & cpu)
-: _driver(cpu.id()), _irq(interrupt_id(), cpu),
+: _device(cpu.id()), _irq(interrupt_id(), cpu),
   _last_timeout_duration(_max_value())
 {
 	/*

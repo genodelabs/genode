@@ -16,6 +16,7 @@
 
 #include <hw/spec/x86_64/pc_board.h>
 #include <spec/x86_64/pic.h>
+#include <spec/x86_64/pit.h>
 
 namespace Board {
 	using namespace Hw::Pc_board;

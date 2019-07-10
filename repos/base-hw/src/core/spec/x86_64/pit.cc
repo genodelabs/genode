@@ -26,7 +26,7 @@ using namespace Genode;
 using namespace Kernel;
 
 
-uint32_t Timer_driver::pit_calc_timer_freq(void)
+uint32_t Board::Timer::pit_calc_timer_freq(void)
 {
 	uint32_t t_start, t_end;
 
@@ -53,7 +53,7 @@ uint32_t Timer_driver::pit_calc_timer_freq(void)
 }
 
 
-Timer_driver::Timer_driver(unsigned)
+Board::Timer::Timer(unsigned)
 : Mmio(Platform::mmio_to_virt(Hw::Cpu_memory_map::lapic_phys_base()))
 {
 	/* Enable LAPIC timer in one-shot mode */
@@ -84,30 +84,30 @@ void Timer::init_cpu_local()
 	 * Disable PIT timer channel. This is necessary since BIOS sets up
 	 * channel 0 to fire periodically.
 	 */
-	outb(Driver::PIT_MODE, 0x30);
-	outb(Driver::PIT_CH0_DATA, 0);
-	outb(Driver::PIT_CH0_DATA, 0);
+	outb(Board::Timer::PIT_MODE, 0x30);
+	outb(Board::Timer::PIT_CH0_DATA, 0);
+	outb(Board::Timer::PIT_CH0_DATA, 0);
 }
 
 
 void Timer::_start_one_shot(time_t const ticks) {
-	_driver.write<Driver::Tmr_initial>(ticks); }
+	_device.write<Board::Timer::Tmr_initial>(ticks); }
 
 
 time_t Timer::ticks_to_us(time_t const ticks) const {
-	return timer_ticks_to_us(ticks, _driver.ticks_per_ms); }
+	return timer_ticks_to_us(ticks, _device.ticks_per_ms); }
 
 
 time_t Timer::us_to_ticks(time_t const us) const {
-	return (us / 1000) * _driver.ticks_per_ms; }
+	return (us / 1000) * _device.ticks_per_ms; }
 
 
 time_t Timer::_max_value() const {
-	return (Driver::Tmr_initial::access_t)~0; }
+	return (Board::Timer::Tmr_initial::access_t)~0; }
 
 
 time_t Timer::_duration() const {
-	return _last_timeout_duration - _driver.read<Driver::Tmr_current>(); }
+	return _last_timeout_duration - _device.read<Board::Timer::Tmr_current>(); }
 
 
 unsigned Timer::interrupt_id() const {

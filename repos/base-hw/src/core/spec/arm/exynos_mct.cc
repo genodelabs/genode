@@ -25,7 +25,7 @@ using namespace Kernel;
 
 unsigned Timer::interrupt_id() const
 {
-	switch (_driver.cpu_id) {
+	switch (_device.cpu_id) {
 	case 0:  return Board::MCT_IRQ_L0;
 	case 1:  return Board::MCT_IRQ_L1;
 	default: return 0;
@@ -33,7 +33,7 @@ unsigned Timer::interrupt_id() const
 }
 
 
-Timer_driver::Timer_driver(unsigned cpu_id)
+Board::Timer::Timer(unsigned cpu_id)
 :
 	Mmio(Platform::mmio_to_virt(Board::MCT_MMIO_BASE)),
 	local(Platform::mmio_to_virt(Board::MCT_MMIO_BASE)
@@ -51,7 +51,7 @@ Timer_driver::Timer_driver(unsigned cpu_id)
 }
 
 
-Timer_driver::Local::Local(Genode::addr_t base)
+Board::Timer::Local::Local(Genode::addr_t base)
 : Mmio(base)
 {
 	write<Int_enb>(Int_enb::Frceie::bits(1));
@@ -68,27 +68,29 @@ Timer_driver::Local::Local(Genode::addr_t base)
 
 void Timer::_start_one_shot(time_t const ticks)
 {
-	_driver.local.cnt = _driver.local.read<Driver::Local::Tcnto>();
-	_driver.local.write<Driver::Local::Int_cstat::Frccnt>(1);
-	_driver.local.acked_write<Driver::Local::Frcntb,
-	                          Driver::Local::Wstat::Frcntb>(ticks);
+	using Device = Board::Timer;
+	_device.local.cnt = _device.local.read<Device::Local::Tcnto>();
+	_device.local.write<Device::Local::Int_cstat::Frccnt>(1);
+	_device.local.acked_write<Device::Local::Frcntb,
+	                          Device::Local::Wstat::Frcntb>(ticks);
 }
 
 
 time_t Timer::_duration() const
 {
-	unsigned long ret =  _driver.local.cnt - _driver.local.read<Driver::Local::Tcnto>();
+	using Tcnto = Board::Timer::Local::Tcnto;
+	unsigned long ret = _device.local.cnt - _device.local.read<Tcnto>();
 	return ret;
 }
 
 
 
 time_t Timer::ticks_to_us(time_t const ticks) const {
-	return timer_ticks_to_us(ticks, _driver.ticks_per_ms); }
+	return timer_ticks_to_us(ticks, _device.ticks_per_ms); }
 
 
 time_t Timer::us_to_ticks(time_t const us) const {
-	return (us / 1000) * _driver.ticks_per_ms; }
+	return (us / 1000) * _device.ticks_per_ms; }
 
 
 time_t Timer::_max_value() const {
