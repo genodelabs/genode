@@ -277,6 +277,8 @@ static inline void ipi_to_all(Lapic &lapic, unsigned const boot_frame,
 
 unsigned Bootstrap::Platform::enable_mmu()
 {
+	using ::Board::Cpu;
+
 	Cpu::Cr3::write(Cpu::Cr3::Pdb::masked((addr_t)core_pd->table_base));
 
 	addr_t const stack_base = reinterpret_cast<addr_t>(&__bootstrap_stack);

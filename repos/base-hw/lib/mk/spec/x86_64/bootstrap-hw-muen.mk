@@ -1,3 +1,5 @@
+REQUIRES = muen
+
 INC_DIR += $(BASE_DIR)/../base-hw/src/bootstrap/spec/x86_64
 
 SRC_CC  += bootstrap/spec/x86_64/platform_muen.cc

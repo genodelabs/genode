@@ -37,6 +37,8 @@ Bootstrap::Platform::Board::Board()
 
 unsigned Bootstrap::Platform::enable_mmu()
 {
+	using ::Board::Cpu;
+
 	struct Sctlr : Cpu::Sctlr
 	{
 		struct W  : Bitfield<3,1>  { }; /* enable write buffer */

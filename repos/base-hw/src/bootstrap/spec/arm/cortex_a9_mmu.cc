@@ -103,7 +103,7 @@ struct Scu : Genode::Mmio
  */
 unsigned Bootstrap::Platform::enable_mmu()
 {
-	using namespace Bootstrap;
+	using namespace Board;
 
 	static volatile bool primary_cpu = true;
 	static Cpu_counter   data_cache_invalidated;

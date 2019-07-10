@@ -28,7 +28,7 @@ unsigned Bootstrap::Platform::enable_mmu()
 	board.pic.init_cpu_local();
 	Cpu::Sctlr::init();
 	Cpu::Cpsr::init();
-	cpu.invalidate_data_cache();
-	cpu.enable_mmu_and_caches((Genode::addr_t)core_pd->table_base);
+	Cpu::invalidate_data_cache();
+	Cpu::enable_mmu_and_caches((Genode::addr_t)core_pd->table_base);
 	return 0;
 }

@@ -18,12 +18,9 @@
 #include <hw/spec/arm_64/cpu.h>
 #include <hw/spec/arm/lpae.h>
 
-namespace Bootstrap {
-	using Cpu = Hw::Arm_64_cpu;
-};
-
 namespace Board {
 	using namespace Hw::Rpi3_board;
+	using Cpu = Hw::Arm_64_cpu;
 	struct Pic {};
 };
 

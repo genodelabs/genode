@@ -298,18 +298,18 @@ unsigned Bootstrap::Platform::enable_mmu()
 
 	/* primary cpu wakes up all others */
 	if (primary_cpu && NR_OF_CPUS > 1) {
-		cpu.invalidate_data_cache();
+		Cpu::invalidate_data_cache();
 		primary_cpu = false;
-		cpu.wake_up_all_cpus(&_start_setup_stack);
+		Cpu::wake_up_all_cpus(&_start_setup_stack);
 	}
 
-	cpu.enable_mmu_and_caches((Genode::addr_t)core_pd->table_base);
+	Cpu::enable_mmu_and_caches((Genode::addr_t)core_pd->table_base);
 
 	return Cpu::Mpidr::Aff_0::get(Cpu::Mpidr::read());
 }
 
 
-void Bootstrap::Cpu::wake_up_all_cpus(void * const ip)
+void Board::Cpu::wake_up_all_cpus(void * const ip)
 {
 	struct Src : Genode::Mmio
 	{

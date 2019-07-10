@@ -36,11 +36,11 @@ Bootstrap::Platform::Board::Board()
 }
 
 
-bool Bootstrap::Cpu::errata(Bootstrap::Cpu::Errata err) {
+bool Board::Cpu::errata(Board::Cpu::Errata err) {
 	return (err == ARM_764369) ? true : false; }
 
 
-void Bootstrap::Cpu::wake_up_all_cpus(void * const entry)
+void Board::Cpu::wake_up_all_cpus(void * const entry)
 {
 	struct Src : Genode::Mmio
 	{

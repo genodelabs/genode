@@ -25,10 +25,10 @@ Bootstrap::Platform::Board::Board()
                             PL310_MMIO_SIZE }) { }
 
 
-bool Bootstrap::Cpu::errata(Bootstrap::Cpu::Errata) { return false; }
+bool Board::Cpu::errata(Board::Cpu::Errata) { return false; }
 
 
-void Bootstrap::Cpu::wake_up_all_cpus(void * const ip)
+void Board::Cpu::wake_up_all_cpus(void * const ip)
 {
 	struct Wakeup_generator : Genode::Mmio
 	{
@@ -39,7 +39,7 @@ void Bootstrap::Cpu::wake_up_all_cpus(void * const ip)
 
 		Wakeup_generator(void * const ip) : Mmio(CORTEX_A9_WUGEN_MMIO_BASE)
 		{
-			write<Aux_core_boot_1>((addr_t)ip);
+			write<Aux_core_boot_1>((Genode::addr_t)ip);
 			write<Aux_core_boot_0::Cpu1_status>(1);
 		}
 	};

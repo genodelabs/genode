@@ -18,7 +18,7 @@
 
 namespace Bootstrap { struct Actlr; }
 
-struct Bootstrap::Actlr : Bootstrap::Cpu::Actlr
+struct Bootstrap::Actlr : Board::Cpu::Actlr
 {
 	struct Fw                 : Bitfield<0, 1> { };
 	struct L2_prefetch_enable : Bitfield<1, 1> { };

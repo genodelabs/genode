@@ -33,6 +33,6 @@ constexpr bool Hw::Page_table::Descriptor_base::_smp() { return false; }
 
 
 void Hw::Page_table::_translation_added(unsigned long, unsigned long) {
-	Bootstrap::Cpu::clean_invalidate_data_cache(); }
+	Board::Cpu::clean_invalidate_data_cache(); }
 
 #endif /* _SRC__BOOTSTRAP__SPEC__RPI__BOARD_H_ */

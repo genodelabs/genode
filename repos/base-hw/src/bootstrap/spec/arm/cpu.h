@@ -16,9 +16,9 @@
 
 #include <hw/spec/arm/cpu.h>
 
-namespace Bootstrap { struct Cpu; }
+namespace Board { struct Cpu; }
 
-struct Bootstrap::Cpu : Hw::Arm_cpu
+struct Board::Cpu : Hw::Arm_cpu
 {
 	struct Sctlr : Hw::Arm_cpu::Sctlr
 	{

@@ -128,7 +128,7 @@
 	::: "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8", "r9"
 
 
-void Bootstrap::Cpu::invalidate_data_cache()
+void Board::Cpu::invalidate_data_cache()
 {
 	/**
 	 * Data Cache Invalidate by Set/Way for all Set/Way
@@ -139,7 +139,7 @@ void Bootstrap::Cpu::invalidate_data_cache()
 }
 
 
-void Bootstrap::Cpu::clean_invalidate_data_cache()
+void Board::Cpu::clean_invalidate_data_cache()
 {
 	/**
 	 * Data Cache Clean by Set/Way for all Set/Way

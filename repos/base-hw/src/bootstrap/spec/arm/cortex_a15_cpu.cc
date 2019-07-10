@@ -14,7 +14,7 @@
 
 #include <spec/arm/cpu.h>
 
-void Bootstrap::Cpu::enable_mmu_and_caches(Genode::addr_t table)
+void Board::Cpu::enable_mmu_and_caches(Genode::addr_t table)
 {
 	/* invalidate TLB */
 	Tlbiall::write(0);

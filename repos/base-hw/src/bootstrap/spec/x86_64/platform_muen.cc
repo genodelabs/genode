@@ -46,6 +46,8 @@ Bootstrap::Platform::Board::Board()
 
 unsigned Bootstrap::Platform::enable_mmu()
 {
+	using ::Board::Cpu;
+
 	Cpu::Cr3::write(Cpu::Cr3::Pdb::masked((addr_t)core_pd->table_base));
 	return 0;
 }

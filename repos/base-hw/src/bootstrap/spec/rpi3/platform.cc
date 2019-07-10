@@ -13,7 +13,7 @@
 
 #include <platform.h>
 
-using Bootstrap::Cpu;
+using Board::Cpu;
 
 
 /**

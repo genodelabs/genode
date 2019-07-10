@@ -29,17 +29,17 @@ Bootstrap::Platform::Board::Board()
                             PL310_MMIO_SIZE }) { }
 
 
-bool Bootstrap::Cpu::errata(Bootstrap::Cpu::Errata) {
+bool Cpu::errata(Board::Cpu::Errata) {
 	return false; }
 
-void Bootstrap::Cpu::wake_up_all_cpus(void* ip) {
+void Cpu::wake_up_all_cpus(void* ip) {
 	struct Wakeup_generator : Genode::Mmio
 	{
 		struct Core1_boot_addr : Register<0x0, 32> { };
 
 		Wakeup_generator(void * const ip) : Mmio(CORE1_ENTRY)
 		{
-			write<Core1_boot_addr>((addr_t)ip);
+			write<Core1_boot_addr>((Genode::addr_t)ip);
 		}
 	};
 

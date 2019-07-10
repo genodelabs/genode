@@ -19,12 +19,9 @@
 #include <hw/spec/x86_64/cpu.h>
 #include <hw/spec/x86_64/x86_64.h>
 
-namespace Bootstrap {
-	using Cpu = Hw::X86_64_cpu;
-}
-
 namespace Board {
 	using namespace Hw::Pc_board;
+	using Cpu = Hw::X86_64_cpu;
 	struct Pic {};
 }
 
