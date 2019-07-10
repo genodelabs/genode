@@ -19,8 +19,6 @@
 
 namespace Board {
 	using namespace Hw::Rpi3_board;
-
-	static constexpr bool SMP = true;
 };
 
 #endif /* _CORE__SPEC__RPI3__BOARD_H_ */

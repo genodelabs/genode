@@ -41,7 +41,7 @@ static Asid_allocator &alloc() {
 
 
 Arm_cpu::Mmu_context::Mmu_context(addr_t table)
-: cidr((uint8_t)alloc().alloc()), ttbr0(Ttbr0::init(table)) { }
+: cidr((uint8_t)alloc().alloc()), ttbr0(Ttbr::init(table)) { }
 
 
 Genode::Arm_cpu::Mmu_context::~Mmu_context()

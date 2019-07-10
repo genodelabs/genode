@@ -20,10 +20,7 @@
 
 namespace Board {
 	using namespace Hw::Usb_armory_board;
-
 	using Hw::Pic;
-
-	static constexpr bool SMP = false;
 }
 
 #endif /* _CORE__SPEC__USB_ARMORY__BOARD_H_ */

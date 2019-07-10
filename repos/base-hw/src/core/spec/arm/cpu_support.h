@@ -37,27 +37,6 @@ namespace Genode {
 
 struct Genode::Arm_cpu : public Hw::Arm_cpu
 {
-	/**
-	 * Translation table base register 0
-	 */
-	struct Ttbr0 : Hw::Arm_cpu::Ttbr0
-	{
-		/**
-		 * Return initialized value
-		 *
-		 * \param table  base of targeted translation table
-		 */
-		static access_t init(addr_t const table)
-		{
-			access_t v = Ttbr::Ba::masked((addr_t)table);
-			Ttbr::Rgn::set(v, Ttbr::CACHEABLE);
-			Ttbr::S::set(v, Board::SMP ? 1 : 0);
-			if (Board::SMP) Ttbr::Irgn::set(v, Ttbr::CACHEABLE);
-			else Ttbr::C::set(v, 1);
-			return v;
-		}
-	};
-
 	struct Fpu_context
 	{
 		uint32_t fpscr { 1UL << 24 }; /* VFP/SIMD - status/control register     */

@@ -107,6 +107,18 @@ struct Hw::Arm_cpu
 		struct Irgn_1 : Bitfield<0,1> { };
 		struct Irgn_0 : Bitfield<6,1> { };
 		struct Irgn : Genode::Bitset_2<Irgn_0, Irgn_1> { }; /* inner cache mode */
+
+		static access_t init(Genode::addr_t table)
+		{
+			access_t v = Ttbr::Ba::masked(table);
+			Ttbr::Rgn::set(v, Ttbr::CACHEABLE);
+			if (Mpidr::Me::get(Mpidr::read())) { /* check for SMP system */
+				Ttbr::Irgn::set(v, Ttbr::CACHEABLE);
+				Ttbr::S::set(v, 1);
+			} else
+				Ttbr::C::set(v, 1);
+			return v;
+		};
 	};
 
 	struct Ttbr_64bit : Genode::Register<64>

@@ -78,9 +78,7 @@ unsigned Bootstrap::Platform::enable_mmu()
 	Cpu::Ttbcr::write(1);
 
 	Genode::addr_t table = (Genode::addr_t)core_pd->table_base;
-	Cpu::Ttbr::access_t ttbr = Cpu::Ttbr::Ba::masked(table);
-	Cpu::Ttbr::Rgn::set(ttbr, Cpu::Ttbr::CACHEABLE);
-	Cpu::Ttbr::C::set(ttbr, 1);
+	Cpu::Ttbr::access_t ttbr = Cpu::Ttbr::init(table);
 	Cpu::Ttbr0::write(ttbr);
 	Cpu::Ttbr1::write(ttbr);
 

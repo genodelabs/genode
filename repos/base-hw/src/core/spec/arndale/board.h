@@ -21,8 +21,6 @@ namespace Board {
 	using namespace Hw::Arndale_board;
 
 	using Pic = Hw::Gicv2;
-
-	static constexpr bool SMP = true;
 }
 
 #endif /* _CORE__SPEC__ARNDALE__BOARD_H_ */

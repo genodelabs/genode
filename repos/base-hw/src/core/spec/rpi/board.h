@@ -20,8 +20,6 @@
 
 namespace Board {
 	using namespace Hw::Rpi_board;
-
-	static constexpr bool SMP = false;
 };
 
 #endif /* _CORE__SPEC__RPI__BOARD_H_ */

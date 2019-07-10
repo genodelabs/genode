@@ -21,8 +21,6 @@ namespace Board {
 	using namespace Hw::Odroid_xu_board;
 
 	using Pic = Hw::Gicv2;
-
-	static constexpr bool SMP = true;
 }
 
 #endif /* _CORE__SPEC__ODROID_XU__BOARD_H_ */

@@ -23,8 +23,6 @@ namespace Board {
 	
 	using Pic = Hw::Gicv2;
 
-	static constexpr bool SMP = true;
-
 	class L2_cache : public Hw::Pl310
 	{
 		private:

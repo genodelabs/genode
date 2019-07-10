@@ -24,8 +24,6 @@ namespace Board {
 	using L2_cache = Hw::Pl310;
 	using Pic      = Hw::Gicv2;
 	
-	static constexpr bool SMP = true;
-
 	L2_cache & l2_cache();
 }
 
