@@ -23,7 +23,9 @@ src/kernel:
 KERNEL_PORT_DIR := $(call port_dir,$(REP_DIR)/ports/foc)
 
 src/kernel/foc: src/kernel
-	cp -r $(KERNEL_PORT_DIR)/src/kernel/foc/* $@
+	tar -C $(KERNEL_PORT_DIR)/src/kernel/foc --exclude=.git -cf - . |\
+		tar -C $@ -xf -
+
 
 content:
 	for spec in x86_32 x86_64 arm arm_64; do \
