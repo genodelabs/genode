@@ -14,6 +14,7 @@ proc bootstrap_link_address { } {
 	if {[have_spec "imx6q_sabrelite"]} { return "0x10001000" }
 	if {[have_spec "imx53_qsb"]}       { return "0x70010000" }
 	if {[have_spec "imx7d_sabre"]}     { return "0x88000000" }
+	if {[have_spec "imx8q_evk"]}       { return "0x40010000" }
 	if {[have_spec "arndale"]}         { return "0x88000000" }
 	if {[have_spec "panda"]}           { return "0x88000000" }
 	if {[have_spec "zynq"]}            { return "0x00100000" }

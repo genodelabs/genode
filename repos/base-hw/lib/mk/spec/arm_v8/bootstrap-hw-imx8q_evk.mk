@@ -1,7 +1,8 @@
-INC_DIR += $(BASE_DIR)/../base-hw/src/bootstrap/spec/rpi3
+INC_DIR += $(BASE_DIR)/../base-hw/src/bootstrap/spec/imx8q_evk
 
+SRC_CC  += bootstrap/spec/arm/gicv3.cc
 SRC_CC  += bootstrap/spec/arm_64/cortex_a53_mmu.cc
-SRC_CC  += bootstrap/spec/rpi3/platform.cc
+SRC_CC  += bootstrap/spec/imx8q_evk/platform.cc
 SRC_CC  += lib/base/arm_64/kernel/interface.cc
 SRC_CC  += spec/64bit/memory_map.cc
 SRC_S   += bootstrap/spec/arm_64/crt0.s
