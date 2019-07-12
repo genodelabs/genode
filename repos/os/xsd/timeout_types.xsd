@@ -8,4 +8,11 @@
 		</xs:restriction>
 	</xs:simpleType><!-- Seconds -->
 
+	<xs:simpleType name="Minutes">
+		<xs:restriction base="xs:integer">
+			<xs:minInclusive value="0"/>
+			<xs:maxInclusive value="307445734561"/>
+		</xs:restriction>
+	</xs:simpleType><!-- Minutes -->
+
 </xs:schema>
