@@ -1,0 +1,76 @@
+assert_spec x86
+
+if { [have_spec linux] } {
+	puts "Run script is not supported on this platform."
+	exit 0
+}
+
+create_boot_directory
+
+import_from_depot [depot_user]/pkg/[drivers_nic_pkg]
+
+build { core init timer app/sntp_client server/report_rom }
+
+append config {
+<config>
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+		<service name="IO_PORT"/>
+		<service name="PD"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<default caps="100"/>
+
+	<start name="report_rom">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config verbose="yes">
+			<policy label_suffix="set_rtc" report="sntp_client -> set_rtc"/>
+		</config>
+	</start>
+
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+
+	<start name="drivers" caps="1000">
+		<resource name="RAM" quantum="32M" constrain_phys="yes"/>
+		<binary name="init"/>
+		<route>
+			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+		<provides> <service name="Nic"/> </provides>
+	</start>
+
+	<start name="sntp_client">
+		<resource name="RAM" quantum="8M"/>
+		<config verbose="no" dst_ip="193.175.73.151" period_min="1"/>
+	</start>
+</config>}
+
+install_config $config
+build_boot_image { core ld.lib.so init timer sntp_client report_rom }
+
+proc qemu_nic_model {} {
+	if [have_spec x86]         { return e1000 }
+	if [have_spec lan9118]     { return lan9118 }
+	if [have_spec zynq]        { return cadence_gem }
+	return nic_model_missing
+}
+append qemu_args "  -nographic "
+append qemu_args " -netdev user,id=net0 "
+append qemu_args " -net nic,model=[qemu_nic_model],netdev=net0 "
+
+set done_string "report_rom]   <set_rtc year.*?report_rom]   <set_rtc year.*?\n"
+
+run_genode_until $done_string 90

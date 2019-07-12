@@ -1,0 +1,62 @@
+The 'ping' component continuously sends ICMP Echo or UDP requests to a given
+IP host and waits for the corresponding ICMP Echo or UDP replies. For each
+successfull ICMP Echo or UDP handshake it prints a short statistic. The ICMP
+data field gets filled with the letters of the alphabet ('a' to 'z') repeatedly.
+
+
+Configuration
+~~~~~~~~~~~~~
+
+This is an example configuration of the component which shows the default
+value for each attribute except 'config.dst_ip' and 'config.interface':
+
+! <config interface="10.0.0.72/24"
+!         dst_ip="10.0.0.24"
+!         dst_port="50000"
+!         protocol="icmp"
+!         period_sec="5"
+!         verbose="no"
+!         count="5" />
+
+This is a short description of the tags and attributes:
+
+:config.interface:
+  Optional. IP address and subnet of the component. If not set, the component
+  requests and maintains the IP configuration via DHCP.
+
+:config.gateway:
+  Optional. IP address of the gateway of the IP subnet.
+
+:config.dst_ip:
+  Mandatory. IP address of the target host.
+
+:config.period_sec:
+  Optional. Length of send interval in seconds.
+
+:config.verbose:
+  Optional. Toggles wether the component shall log debugging information.
+
+:config.count:
+  Optional. After how many successful pings the component exits successfully.
+
+:config.dst_port:
+  Optional. Destination port resp. ICMP query ID to use.
+
+:config.protocol:
+  Optional. Protocol to ping with. Can be one of 'icmp', 'udp'.
+
+
+Sessions
+~~~~~~~~
+
+This is an overview of the sessions required and provided by the
+component apart from the environment sessions:
+
+* Requires one Timer session.
+
+
+Examples
+~~~~~~~~
+
+Examples of how to use the ping component can be found in the test scripts
+'os/run/ping.run' and 'os/run/ping_nic_router.run'.

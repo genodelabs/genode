@@ -52,6 +52,7 @@ seoul-auto
 smartcard
 smbios_decoder
 smp
+sntp_client
 solo5
 sub_rm
 tar_rom
