@@ -15,6 +15,7 @@
 #include <base/attached_rom_dataspace.h>
 #include <base/component.h>
 #include <base/heap.h>
+#include <base/registry.h>
 #include <root/component.h>
 
 #include "rtc.h"
@@ -35,6 +36,10 @@ struct Rtc::Session_component : public Genode::Rpc_object<Session>
 
 	Signal_context_capability _set_sig_cap { };
 
+	Session_component(Env &env) : _env(env) { }
+
+	virtual ~Session_component() { }
+
 	void set_sigh(Signal_context_capability sigh) override
 	{
 		_set_sig_cap = sigh;
@@ -47,7 +52,12 @@ struct Rtc::Session_component : public Genode::Rpc_object<Session>
 		return ret;
 	}
 
-	Session_component(Env &env) : _env(env) { }
+	void notify_client()
+	{
+		if (_set_sig_cap.valid()) {
+			Signal_transmitter(_set_sig_cap).submit();
+		}
+	}
 };
 
 
@@ -57,11 +67,14 @@ class Rtc::Root : public Genode::Root_component<Session_component>
 
 		Env &_env;
 
+		Registry<Registered<Session_component> > _sessions { };
+
 	protected:
 
 		Session_component *_create_session(const char *) override
 		{
-			return new (md_alloc()) Session_component(_env);
+			return new (md_alloc())
+				Registered<Session_component>(_sessions, _env);
 		}
 
 	public:
@@ -73,6 +86,13 @@ class Rtc::Root : public Genode::Root_component<Session_component>
 		{
 			/* trigger initial RTC read */
 			Rtc::get_time(_env);
+		}
+
+		void notify_clients()
+		{
+			_sessions.for_each([&] (Session_component &session) {
+				session.notify_client();
+			});
 		}
 };
 
@@ -163,6 +183,8 @@ void Rtc::Main::_handle_update()
 	ts.year = node.attribute_value("year", 2019u);
 
 	Rtc::set_time(env, ts);
+
+	root.notify_clients();
 }
 
 

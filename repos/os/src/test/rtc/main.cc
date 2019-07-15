@@ -25,20 +25,88 @@ using namespace Genode;
 
 struct Main
 {
-	Main(Genode::Env &env)
-	{
-		int exit_code = 0;
+	Env &_env;
 
+	Rtc::Connection rtc1 { _env };
+	Rtc::Connection rtc2 { _env, "with_label" };
+
+	Signal_handler<Main> _set_sigh {
+		_env.ep(), *this, &Main::_handle_set_signal };
+
+	Rtc::Timestamp _ts { };
+
+	void _handle_set_signal()
+	{
+		Rtc::Timestamp got = rtc1.current_time();
+
+		Genode::log("Set RTC to: '", _ts, "' got: '", got,
+		            "' (ignoring seconds)");
+
+		int exit_code = 0;
+		if (   _ts.year   != got.year
+		    || _ts.month  != got.month
+		    || _ts.day    != got.day
+		    || _ts.hour   != got.hour
+		    || _ts.minute != got.minute) {
+			error("updating RTC failed");
+			exit_code = 1;
+		}
+
+		_parent_exit(exit_code);
+	}
+
+	Constructible<Reporter> _reporter { };
+
+	void _test_update()
+	{
+		try {
+			_reporter.construct(_env, "set_rtc");
+			_reporter->enabled(true);
+
+			rtc1.set_sigh(_set_sigh);
+
+			Rtc::Timestamp ts = rtc1.current_time();
+			ts.year   = 2069;
+			ts.month  = 12;
+			ts.day    = 31;
+			ts.hour   = 23;
+			ts.minute = 55;
+			ts.second =  0;
+
+			_ts = ts;
+
+			Reporter::Xml_generator xml(*_reporter, [&] () {
+				xml.attribute("year",   ts.year);
+				xml.attribute("month",  ts.month);
+				xml.attribute("day",    ts.day);
+				xml.attribute("hour",   ts.hour);
+				xml.attribute("minute", ts.minute);
+				xml.attribute("second", ts.second);
+			});
+
+		} catch (...) {
+			error("could not test RTC update");
+			_parent_exit(1);
+		}
+	}
+
+	void _parent_exit(int exit_code)
+	{
+		Genode::log("--- RTC test finished ---");
+		_env.parent().exit(exit_code);
+	}
+
+	Main(Genode::Env &env) : _env(env)
+	{
 		Genode::log("--- RTC test started ---");
 
 		/* open sessions */
-		Rtc::Connection   rtc[] = { { env }, { env, "with_label" } };
 		Timer::Connection timer(env);
 
 		for (unsigned i = 0; i < 4; ++i) {
-			Rtc::Timestamp now[] = { rtc[0].current_time(), rtc[1].current_time() };
+			Rtc::Timestamp now[] = { rtc1.current_time(), rtc2.current_time() };
 
-			for (unsigned j = 0; j < sizeof(rtc)/sizeof(*rtc); ++j)
+			for (unsigned j = 0; j < sizeof(now)/sizeof(now[0]); ++j)
 				log("RTC[", j, "]: ", now[j]);
 
 			timer.msleep(1000);
@@ -48,56 +116,11 @@ struct Main
 		Attached_rom_dataspace config_rom { env, "config" };
 		bool const test_update = config_rom.xml().attribute_value("set_rtc", false);
 		if (test_update) {
-			try {
-				Reporter reporter { env, "set_rtc" };
-				reporter.enabled(true);
-
-				Rtc::Timestamp ts = rtc[0].current_time();
-				ts.year   = 2069;
-				ts.month  = 12;
-				ts.day    = 31;
-				ts.hour   = 23;
-				ts.minute = 55;
-				ts.second =  0;
-
-				Reporter::Xml_generator xml(reporter, [&] () {
-					xml.attribute("year",   ts.year);
-					xml.attribute("month",  ts.month);
-					xml.attribute("day",    ts.day);
-					xml.attribute("hour",   ts.hour);
-					xml.attribute("minute", ts.minute);
-					xml.attribute("second", ts.second);
-				});
-
-				/*
-				 * Wait a reasonable amount of time for the RTC update
-				 * to go through.
-				 */
-				timer.msleep(3000);
-
-				Rtc::Timestamp got = rtc[0].current_time();
-
-				Genode::log("Set RTC to: '", ts, "' got: '", got,
-				            "' (ignoring seconds)");
-
-				if (   ts.year   != got.year
-				    || ts.month  != got.month
-				    || ts.day    != got.day
-				    || ts.hour   != got.hour
-				    || ts.minute != got.minute) {
-					error("updating RTC failed");
-					exit_code = 2;
-				}
-
-			} catch (...) {
-				error("could not test RTC update");
-				exit_code = 1;
-			}
+			_test_update();
+			return;
 		}
 
-		Genode::log("--- RTC test finished ---");
-
-		env.parent().exit(exit_code);
+		_parent_exit(0);
 	}
 };
 
