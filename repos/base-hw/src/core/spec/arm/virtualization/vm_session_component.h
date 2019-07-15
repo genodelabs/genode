@@ -27,6 +27,7 @@
 #include <region_map_component.h>
 #include <translation_table.h>
 #include <kernel/vm.h>
+#include <cpu/vm_state_virtualization.h>
 
 #include <trace/source_registry.h>
 
@@ -60,13 +61,13 @@ class Genode::Vm_session_component
 		Avl_region                 _map { &_sliced_heap };
 		Region_map                &_region_map;
 		Ram_dataspace_capability   _ds_cap  { };
-		Region_map::Local_addr     _ds_addr { 0 };
+		Region_map::Local_addr     _ds_addr { nullptr };
 		Table                     &_table;
 		Array                     &_table_array;
 		Kernel_object<Kernel::Vm>  _kobj {};
 
 		static size_t _ds_size() {
-			return align_addr(sizeof(Cpu_state_modes),
+			return align_addr(sizeof(Vm_state),
 			                  get_page_size_log2()); }
 
 		addr_t _alloc_ds();

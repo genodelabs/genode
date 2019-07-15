@@ -16,7 +16,7 @@
 
 /* core includes */
 #include <kernel/core_interface.h>
-#include <vm_session_component.h>
+#include <spec/arm/virtualization/vm_session_component.h>
 #include <platform.h>
 #include <core_env.h>
 
