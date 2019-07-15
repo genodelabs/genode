@@ -1,0 +1,17 @@
+The system RTC component provides access to a synthetic real time clock. While
+it can get its initial value from a hardware RTC, it will interpolate the time
+by using a Timer session at runtime.
+
+Like the RTC driver component, if the 'allow_setting_rtc' attribute in the
+'config' node is set to 'yes', it will use the content of the 'set_rtc' ROM to
+update the RTC value. A valid ROM must contain a top node with the following
+attributes:
+
+* 'year' (e.g. 2019)
+* 'month'  (1 - 12)
+* 'day'    (1 - 31)
+* 'hour'   (0 - 23)
+* 'minute' (0 - 59)
+* 'second' (0 - 59)
+
+The component will always report the time as 24h day in UTC.
