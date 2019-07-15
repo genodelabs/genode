@@ -7,7 +7,7 @@
 
 /*
  * Copyright (C) 2012 Intel Corporation
- * Copyright (C) 2013-2017 Genode Labs GmbH
+ * Copyright (C) 2013-2019 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -26,6 +26,9 @@ namespace Rtc {
 }
 
 
+/*
+ * RTC value
+ */
 struct Rtc::Timestamp
 {
 	unsigned microsecond;
@@ -53,7 +56,20 @@ struct Rtc::Session : Genode::Session
 
 	enum { CAP_QUOTA = 2 };
 
+	/***********************
+	 ** Session interface **
+	 ***********************/
+
+	/**
+	 * Query current time
+	 *
+	 * \return  RTC value as structed timestamp
+	 */
 	virtual Timestamp current_time() = 0;
+
+	/*******************
+	 ** RPC interface **
+	 *******************/
 
 	GENODE_RPC(Rpc_current_time, Timestamp, current_time);
 	GENODE_RPC_INTERFACE(Rpc_current_time);

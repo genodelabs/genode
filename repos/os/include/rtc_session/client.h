@@ -23,8 +23,17 @@ namespace Rtc { struct Session_client; }
 
 struct Rtc::Session_client : Genode::Rpc_client<Session>
 {
+	/**
+	 * Constructor
+	 *
+	 * \param session  session capability
+	 */
 	Session_client(Genode::Capability<Session> cap)
 	: Genode::Rpc_client<Session>(cap) {}
+
+	/***********************
+	 ** Session interface **
+	 ***********************/
 
 	Timestamp current_time() override { return call<Rpc_current_time>(); }
 };
