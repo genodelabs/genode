@@ -33,6 +33,13 @@ struct Rtc::Session_component : public Genode::Rpc_object<Session>
 {
 	Env &_env;
 
+	Signal_context_capability _set_sig_cap { };
+
+	void set_sigh(Signal_context_capability sigh) override
+	{
+		_set_sig_cap = sigh;
+	}
+
 	Timestamp current_time() override
 	{
 		Timestamp ret = Rtc::get_time(_env);

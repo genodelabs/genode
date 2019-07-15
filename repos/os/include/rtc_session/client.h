@@ -35,6 +35,9 @@ struct Rtc::Session_client : Genode::Rpc_client<Session>
 	 ** Session interface **
 	 ***********************/
 
+	void set_sigh(Genode::Signal_context_capability sigh) override {
+		call<Rpc_set_sigh>(sigh); }
+
 	Timestamp current_time() override { return call<Rpc_current_time>(); }
 };
 
