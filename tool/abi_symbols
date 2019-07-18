@@ -91,6 +91,12 @@ foreach line [split $symbols "\n"] {
 		set keep 0 }
 
 	#
+	# Drop weak local symbols
+	#
+	if {[regexp {w|v} $type]} {
+		set keep 0 }
+
+	#
 	# Drop blacklisted symbols
 	#
 	foreach blacklisted_symbol $symbol_blacklist {
