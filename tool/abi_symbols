@@ -39,8 +39,8 @@ foreach line [split $symbols "\n"] {
 	# match undefined symbol
 	if {![regexp {^(\w+) U\s*$} $line dummy name]} {
 
-		# match defined symbol, which does not always feature a size value
-		if {![regexp {^([\w.]+) (\w) \w+ ?(\w*)$} $line dummy name type size_hex]} {
+		# match defined symbol, which does not always feature a value or size
+		if {![regexp {^([\w.]+) (\w) *\w* ?(\w*)$} $line dummy name type size_hex]} {
 			puts stderr "Error: unexpected format of line: $line"
 			exit -1
 		}
