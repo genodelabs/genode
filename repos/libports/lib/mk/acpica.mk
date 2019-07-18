@@ -19,7 +19,7 @@ SRC_CC += osl.cc iomem.cc pci.cc env.cc
 
 include $(REP_DIR)/lib/import/import-acpica.mk
 
-CC_C_OPT += -DACPI_LIBRARY
+CC_C_OPT += -DACPI_LIBRARY -Wno-unused-variable -Wno-unused-but-set-variable -Wno-format-truncation
 
 vpath %.c $(ACPICA_COMP)
 vpath %.cc $(REP_DIR)/src/lib/acpica
