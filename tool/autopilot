@@ -426,7 +426,7 @@ close $info_fd
 # Print label identifying the specified test case to stderr
 #
 proc print_step_label { board kernel step } {
-	puts -nonewline stderr "[format {%-30s} "$board $kernel:"] [format {%-22s} $step] "
+	puts -nonewline stderr "[format {%-30s} "$board $kernel:"] [format {%-30s} $step] "
 }
 
 
