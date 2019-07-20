@@ -153,8 +153,8 @@ endif
 %.symbols.s: %.symbols
 	$(MSG_CONVERT)$@
 	$(VERBOSE)\
-		sed -e "s/^\(\w\+\) D \(\w\+\)\$$/.data; .global \1; .type \1,%object; .size \1,\2; \1:/" \
-		    -e "s/^\(\w\+\) V/.data; .weak \1; .type \1,%object; \1:/" \
+		sed -e "s/^\(\w\+\) D \(\w\+\)\$$/.data; .global \1; .type \1,%object; .size \1,\2; \1: .skip 1/" \
+		    -e "s/^\(\w\+\) V/.data; .weak \1; .type \1,%object; \1: .skip 1/" \
 		    -e "s/^\(\w\+\) T/.text; .global \1; .type \1,%function; \1:/" \
 		    -e "s/^\(\w\+\) R \(\w\+\)\$$/.section .rodata; .global \1; .type \1,%object; .size \1,\2; \1:/" \
 		    -e "s/^\(\w\+\) W/.text; .weak \1; .type \1,%function; \1:/" \
