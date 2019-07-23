@@ -26,6 +26,7 @@ namespace Test {
 
 	using namespace Genode;
 
+	struct Scratch_buffer;
 	struct Result;
 	struct Test_base;
 	struct Main;
@@ -33,6 +34,27 @@ namespace Test {
 	struct Test_failed              : Exception { };
 	struct Constructing_test_failed : Exception { };
 }
+
+
+class Test::Scratch_buffer
+{
+	private:
+
+		Allocator &_alloc;
+
+		Scratch_buffer(Scratch_buffer const &);
+		Scratch_buffer &operator = (Scratch_buffer const&);
+
+	public:
+
+		char   * const base;
+		size_t   const size;
+
+		Scratch_buffer (Allocator &alloc, size_t size)
+		: _alloc(alloc), base((char*)alloc.alloc(size)), size(size) { }
+
+		~Scratch_buffer() { destroy(&_alloc, base); }
+};
 
 
 struct Test::Result
@@ -161,11 +183,11 @@ struct Test::Test_base : private Genode::Fifo<Test_base>::Element
 		bool _finished      { false };
 		bool _success       { false };
 
-		char _scratch_buffer[1u<<20] { };
+		Scratch_buffer &_scratch_buffer;
 
 		void _memcpy(char *dst, char const *src, size_t length)
 		{
-			if (length > sizeof(_scratch_buffer)) {
+			if (length > _scratch_buffer.size) {
 				warning("scratch buffer too small for copying");
 				return;
 			}
@@ -187,7 +209,7 @@ struct Test::Test_base : private Genode::Fifo<Test_base>::Element
 				log("job ", job.id, ": writing ", length, " bytes at ", offset);
 
 			if (_copy)
-				_memcpy(dst, _scratch_buffer, length);
+				_memcpy(dst, _scratch_buffer.base, length);
 		}
 
 		/**
@@ -203,7 +225,7 @@ struct Test::Test_base : private Genode::Fifo<Test_base>::Element
 				log("job ", job.id, ": got ", length, " bytes at ", offset);
 
 			if (_copy)
-				_memcpy(_scratch_buffer, src, length);
+				_memcpy(_scratch_buffer.base, src, length);
 		}
 
 		/**
@@ -256,7 +278,8 @@ struct Test::Test_base : private Genode::Fifo<Test_base>::Element
 		friend class Genode::Fifo<Test_base>;
 
 		Test_base(Env &env, Allocator &alloc, Xml_node node,
-		          Signal_context_capability finished_sig)
+		          Signal_context_capability finished_sig,
+		          Scratch_buffer &scratch_buffer)
 		:
 			_env(env), _alloc(alloc), _node(node),
 			_verbose(node.attribute_value("verbose", false)),
@@ -265,7 +288,8 @@ struct Test::Test_base : private Genode::Fifo<Test_base>::Element
 			_progress_interval(_node.attribute_value("progress", (uint64_t)0)),
 			_copy(_node.attribute_value("copy", true)),
 			_batch(_node.attribute_value("batch", 1u)),
-			_finished_sig(finished_sig)
+			_finished_sig(finished_sig),
+			_scratch_buffer(scratch_buffer)
 		{
 			if (_progress_interval)
 				_progress_timeout.construct(*_timer, *this,
@@ -334,6 +358,10 @@ struct Test::Main
 
 	bool const _stop_on_error {
 		_config_rom.xml().attribute_value("stop_on_error", true) };
+
+	Genode::Number_of_bytes const _scratch_buffer_size {
+		_config_rom.xml().attribute_value("scratch_buffer_size",
+		                                  Genode::Number_of_bytes(1U<<20)) };
 
 	Genode::Fifo<Test_base> _tests { };
 
@@ -430,6 +458,8 @@ struct Test::Main
 	Genode::Signal_handler<Main> _finished_sigh {
 		_env.ep(), *this, &Main::_handle_finished };
 
+	Scratch_buffer _scratch_buffer { _heap, _scratch_buffer_size };
+
 	void _construct_tests(Genode::Xml_node config)
 	{
 		try {
@@ -438,25 +468,25 @@ struct Test::Main
 
 				if (node.has_type("ping_pong")) {
 					Test_base *t = new (&_heap)
-						Ping_pong(_env, _heap, node, _finished_sigh);
+						Ping_pong(_env, _heap, node, _finished_sigh, _scratch_buffer);
 					_tests.enqueue(*t);
 				} else
 
 				if (node.has_type("random")) {
 					Test_base *t = new (&_heap)
-						Random(_env, _heap, node, _finished_sigh);
+						Random(_env, _heap, node, _finished_sigh, _scratch_buffer);
 					_tests.enqueue(*t);
 				} else
 
 				if (node.has_type("replay")) {
 					Test_base *t = new (&_heap)
-						Replay(_env, _heap, node, _finished_sigh);
+						Replay(_env, _heap, node, _finished_sigh, _scratch_buffer);
 					_tests.enqueue(*t);
 				} else
 
 				if (node.has_type("sequential")) {
 					Test_base *t = new (&_heap)
-						Sequential(_env, _heap, node, _finished_sigh);
+						Sequential(_env, _heap, node, _finished_sigh, _scratch_buffer);
 					_tests.enqueue(*t);
 				}
 			});

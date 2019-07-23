@@ -109,7 +109,7 @@ struct Test::Random : Test_base
 
 	void _init() override
 	{
-		if (_size > sizeof(_scratch_buffer)) {
+		if (_size > _scratch_buffer.size) {
 			error("request size exceeds scratch buffer size");
 			throw Constructing_test_failed();
 		}
