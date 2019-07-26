@@ -3,36 +3,53 @@ ADA_RT_DIR := $(call port_dir,$(GENODE_DIR)/repos/libports/ports/ada-runtime)
 MIRROR_FROM_ADA_RT_DIR := \
 	$(addprefix ada-runtime/contrib/gcc-8.3.0/,\
 		ada.ads \
-		system.ads \
-		interfac.ads \
-		s-unstyp.ads \
-		s-stoele.ads \
-		s-stoele.adb \
 		a-unccon.ads \
+		interfac.ads \
+		i-cexten.ads \
+		s-maccod.ads \
+		s-unstyp.ads \
+	) \
+	$(addprefix ada-runtime/src/minimal/,\
+		a-except.ads \
+		a-except.adb \
+		i-c.ads \
+		i-c.adb \
+		system.ads \
 		s-arit64.ads \
 		s-arit64.adb \
-		gnat.ads \
-		g-io.ads \
-		g-io.adb \
-		i-cexten.ads \
+		s-exctab.ads \
+		s-exctab.adb \
+		s-parame.ads \
+		s-parame.adb \
+		s-secsta.ads \
+		s-secsta.adb \
+		s-soflin.ads \
+		s-soflin.adb \
+		s-stalib.ads \
+		s-stalib.adb \
+		s-stoele.ads \
+		s-stoele.adb \
 	) \
 	$(addprefix ada-runtime/src/lib/,\
-		ada_exceptions.ads \
-		ada_exceptions.h \
-		argv.c \
-		exit.c \
+		componolit.ads \
+		componolit-runtime.ads \
+		componolit-runtime-conversions.ads \
+		componolit-runtime-conversions.adb \
+		componolit-runtime-debug.ads \
+		componolit-runtime-debug.adb \
+		componolit-runtime-exceptions.ads \
+		componolit-runtime-platform.ads \
+		componolit-runtime-platform.adb \
+		componolit-runtime-strings.ads \
+		componolit-runtime-strings.adb \
 		init.c \
-		platform.ads \
-		platform.adb \
-		ss_utils.ads \
-		ss_utils.adb \
-		string_utils.ads \
-		string_utils.adb \
 	) \
-	ada-runtime/src/common \
-	ada-runtime/src/minimal \
-	ada-runtime/platform/genode.cc \
-	ada-runtime/platform/unwind.h
+	ada-runtime/src/common/s-init.ads \
+	ada-runtime/src/common/s-init.adb \
+	ada-runtime/platform/genode/genode.cc \
+	ada-runtime/platform/componolit_runtime.h \
+	ada-runtime/platform/ada_exceptions.h \
+	ada-runtime/platform/gnat_helpers.h
 
 content: $(MIRROR_FROM_ADA_RT_DIR)
 
