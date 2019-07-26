@@ -106,7 +106,7 @@ $(SRC_ADA:.adb=.o): FORCE
 #
 ifneq ($(SRC_ADS)$(SRC_ADB),)
 
-CUSTOM_BINDER_FLAGS ?= -n -we
+CUSTOM_BINDER_FLAGS ?= -n -we -D768k
 
 OBJECTS += b~$(TARGET).o
 

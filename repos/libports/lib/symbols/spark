@@ -15,7 +15,7 @@ __gl_time_slice_val D 4
 __gl_unreserve_all_interrupts B 4
 __gl_wc_encoding D 1
 __gnat_binder_ss_count B 4
-__gnat_default_ss_pool B 4
+__gnat_default_ss_pool B 8
 __gnat_default_ss_size B 4
 __gnat_finalize T
 __gnat_finalize_library_objects D 8
@@ -76,29 +76,51 @@ ada_exceptions__exception_typeA R 76
 ada_exceptions__exception_typeN R 78
 ada_exceptions__exception_typeRP T
 ada_exceptions__exception_typeS R 820
-allocate_secondary_stack T
+componolit__runtime__debug_E D 2
+componolit__runtime__debug__log_debug T
+componolit__runtime__debug__log_debug_private T
+componolit__runtime__debug__log_error T
+componolit__runtime__debug__log_error_private T
+componolit__runtime__debug__log_warning T
+componolit__runtime__debug__log_warning_private T
+componolit__runtime__exceptions_E D 2
+componolit__runtime__exceptions__exception_typeA R 76
+componolit__runtime__exceptions__exception_typeN R 78
+componolit__runtime__exceptions__exception_typeRP T
+componolit__runtime__exceptions__exception_typeS R 820
+componolit__runtime__platform_E D 2
+componolit__runtime__platform__raise_ada_exception T
+componolit__runtime__secondary_stack_E D 2
+componolit__runtime__secondary_stack__TregistryBIP T
+componolit__runtime__secondary_stack___elabs T
+componolit__runtime__secondary_stack__allocate_stack T
+componolit__runtime__secondary_stack__c_alloc T
+componolit__runtime__secondary_stack__get_mark T
+componolit__runtime__secondary_stack__invalid_thread R 8
+componolit__runtime__secondary_stack__markIP T
+componolit__runtime__secondary_stack__null_registry B 3072
+componolit__runtime__secondary_stack__registry_entryIP T
+componolit__runtime__secondary_stack__s_allocate T
+componolit__runtime__secondary_stack__s_mark T
+componolit__runtime__secondary_stack__s_release T
+componolit__runtime__secondary_stack__secondary_stack_size R 8
+componolit__runtime__secondary_stack__set_mark T
+componolit__runtime__strings_E D 2
+componolit__runtime__strings__convert_to_ada T
+componolit__runtime__strings__get_char T
+componolit__runtime__strings__image T
+componolit__runtime__strings__incr T
+componolit__runtime__strings__length T
+componolit__runtime__strings__null_pointer R 8
+componolit__runtime__strings__to_address T
+componolit__runtime__strings__to_pointer T
+componolit_log_debug T
+componolit_log_error T
+componolit_log_warning T
+componolit_runtime_finalize T
+componolit_runtime_initialize T
+componolit_runtime_raise_ada_exception T
 constraint_error D 40
-gnat_E D 2
-gnat__io_E D 2
-gnat__io__current_out D 1
-gnat__io__file_typeN R 4
-gnat__io__file_typeS R 16
-gnat__io__get T
-gnat__io__get__2 T
-gnat__io__get_line T
-gnat__io__new_line T
-gnat__io__new_line__2 T
-gnat__io__put T
-gnat__io__put__2 T
-gnat__io__put__3 T
-gnat__io__put__4 T
-gnat__io__put__5 T
-gnat__io__put__6 T
-gnat__io__put_line T
-gnat__io__put_line__2 T
-gnat__io__set_output T
-gnat__io__standard_error T
-gnat__io__standard_output T
 interfaces_E D 2
 interfaces__c_E D 2
 interfaces__c__char16_arrayIP T
@@ -111,45 +133,7 @@ interfaces__c__extensions__signed_128IP T
 interfaces__c__nul R 1
 interfaces__c__wchar_arrayIP T
 interfaces__c__wide_nul R 4
-log_debug T
-log_error T
-log_warning T
 platform_E D 2
-platform__log_debug T
-platform__log_debug_private T
-platform__log_error T
-platform__log_error_private T
-platform__log_warning T
-platform__log_warning_private T
-platform__raise_ada_exception T
-put_char T
-put_char_stderr T
-put_int T
-put_int_stderr T
-raise_ada_exception T
-ss_utils_E D 2
-ss_utils__TregistryBIP T
-ss_utils___elabs T
-ss_utils__allocate_stack T
-ss_utils__c_alloc T
-ss_utils__get_mark T
-ss_utils__invalid_thread R 8
-ss_utils__markIP T
-ss_utils__null_registry B 3072
-ss_utils__registry_entryIP T
-ss_utils__s_allocate T
-ss_utils__s_mark T
-ss_utils__s_release T
-ss_utils__secondary_stack_size R 8
-ss_utils__set_mark T
-string_utils_E D 2
-string_utils__convert_to_ada T
-string_utils__get_char T
-string_utils__incr T
-string_utils__length T
-string_utils__null_pointer R 8
-string_utils__to_address T
-string_utils__to_pointer T
 system__aamp R 1
 system__always_compatible_rep R 1
 system__arith_64__add_with_ovflo_check T
@@ -189,6 +173,7 @@ system__parameters__c_malloc_linkname R 16
 system__parameters__runtime_default_sec_stack_size R 4
 system__preallocated_stacks R 1
 system__secondary_stack_E D 2
+system__secondary_stack___elabb T
 system__secondary_stack___elabs T
 system__secondary_stack__mark_idIP T
 system__secondary_stack__memoryIP T
