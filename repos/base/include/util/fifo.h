@@ -67,7 +67,7 @@ class Genode::Fifo
 		/**
 		 * Return true if queue is empty
 		 */
-		bool empty() { return _tail == nullptr; }
+		bool empty() const { return _tail == nullptr; }
 
 		/**
 		 * Constructor
