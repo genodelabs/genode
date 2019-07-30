@@ -4,43 +4,48 @@ ADA_ALI_DIR := $(call port_dir,$(GENODE_DIR)/repos/libports/ports/ada-runtime)/a
 MIRROR_FROM_ADA_RT_DIR := \
 	$(addprefix ada-runtime/contrib/gcc-8.3.0/,\
 		ada.ads \
-		system.ads \
-		s-stoele.ads \
 		a-unccon.ads \
-		gnat.ads \
-		g-io.ads \
 		interfac.ads \
 		i-cexten.ads \
-		s-arit64.ads \
+		s-maccod.ads \
 		s-unstyp.ads \
 	) \
 	$(addprefix ada-runtime/src/minimal/,\
-		s-stalib.ads \
 		a-except.ads \
-		s-secsta.ads \
-		s-parame.ads \
-		s-soflin.ads \
-		s-exctab.ads \
 		i-c.ads \
+		system.ads \
+		s-arit64.ads \
+		s-exctab.ads \
+		s-parame.ads \
+		s-secsta.ads \
+		s-soflin.ads \
+		s-stalib.ads \
+		s-stoele.ads \
 	) \
 	$(addprefix ada-runtime/src/lib/,\
-		ss_utils.ads \
-		string_utils.ads \
-		platform.ads \
-		ada_exceptions.ads \
-		ada_exceptions.h \
-	)
+		componolit.ads \
+		componolit-runtime.ads \
+		componolit-runtime-conversions.ads \
+		componolit-runtime-debug.ads \
+		componolit-runtime-exceptions.ads \
+		componolit-runtime-platform.ads \
+		componolit-runtime-strings.ads \
+	) \
+	ada-runtime/src/common/s-init.ads
 
 MIRROR_FROM_ADA_ALI_DIR := \
+    	a-except.ali \
 	ada.ali \
-	ada_exceptions.ali \
-	a-except.ali \
-	g-io.ali \
-	gnat.ali \
-	interfac.ali \
+	componolit-runtime-conversions.ali \
+	componolit-runtime-debug.ali \
+	componolit-runtime-exceptions.ali \
+	componolit-runtime-platform.ali \
+	componolit-runtime-strings.ali \
+	componolit-runtime.ali \
+	componolit.ali \
 	i-c.ali \
 	i-cexten.ali \
-	platform.ali \
+	interfac.ali \
 	s-arit64.ali \
 	s-init.ali \
 	s-parame.ali \
@@ -49,9 +54,7 @@ MIRROR_FROM_ADA_ALI_DIR := \
 	s-stalib.ali \
 	s-stoele.ali \
 	s-unstyp.ali \
-	ss_utils.ali \
-	string_utils.ali \
-	system.ali \
+	system.ali
 
 content: $(MIRROR_FROM_ADA_RT_DIR) $(MIRROR_FROM_ADA_ALI_DIR)
 
