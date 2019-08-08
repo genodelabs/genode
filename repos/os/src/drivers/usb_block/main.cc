@@ -17,6 +17,7 @@
 #include <base/component.h>
 #include <base/log.h>
 #include <base/heap.h>
+#include <base/sleep.h>
 #include <block/component.h>
 #include <block/driver.h>
 #include <block_session/connection.h>
@@ -86,6 +87,8 @@ struct Usb::Block_driver : Usb::Completion,
 		Genode::log("Device plugged");
 
 		if (!initialize()) {
+			env.parent().exit(-1);
+			Genode::sleep_forever();
 			return;
 		}
 
@@ -561,11 +564,9 @@ struct Usb::Block_driver : Usb::Completion,
 		} catch (int) {
 			/* handle command failures */
 			Genode::error("Could not initialize storage device");
-			return false;
 		} catch (...) {
 			/* handle Usb::Session failures */
 			Genode::error("Could not initialize storage device");
-			throw;
 		}
 		return false;
 	}
