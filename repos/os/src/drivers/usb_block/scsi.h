@@ -47,6 +47,7 @@ namespace Scsi {
 	struct Request_sense_response;
 	struct Capacity_response_10;
 	struct Capacity_response_16;
+	struct Start_stop_response;
 
 	struct Cmd_6;
 	struct Test_unit_ready;
@@ -274,7 +275,6 @@ struct Scsi::Inquiry : Cmd_6
 };
 
 
-/* not in use for now but might come in handy in the future */
 struct Scsi::Start_stop : Genode::Mmio
 {
 	enum { LENGTH = 6 };

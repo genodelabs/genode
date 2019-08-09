@@ -105,6 +105,23 @@ struct Request_sense : Usb::Cbw, Scsi::Request_sense
 };
 
 
+struct Start_stop : Usb::Cbw, Scsi::Start_stop
+{
+	Start_stop(addr_t addr, uint32_t tag, uint8_t lun)
+	:
+		Cbw(addr, tag, 0, Usb::ENDPOINT_IN, lun, Scsi::Start_stop::LENGTH),
+		Scsi::Start_stop(addr+15)
+	{ if (verbose_scsi) dump(); }
+
+	void dump()
+	{
+		Genode::log("--- Dump START_STOP command --");
+		Cbw::dump();
+		Scsi::Start_stop::dump();
+	}
+};
+
+
 struct Inquiry : Usb::Cbw, Scsi::Inquiry
 {
 	Inquiry(addr_t addr, uint32_t tag, uint8_t lun)

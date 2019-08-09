@@ -169,6 +169,7 @@ struct Usb::Block_driver : Usb::Completion,
 
 		bool no_medium     = false;
 		bool try_again     = false;
+		bool start_stop    = false;
 
 		Usb::Device &device;
 		uint8_t      interface;
@@ -249,22 +250,42 @@ struct Usb::Block_driver : Usb::Completion,
 				uint8_t const asc = r.read<Request_sense_response::Asc>();
 				uint8_t const asq = r.read<Request_sense_response::Asq>();
 
-				enum { MEDIUM_NOT_PRESENT = 0x3a, NOT_READY_TO_READY_CHANGE = 0x28 };
+				bool error = false;
+
+				enum { MEDIUM_NOT_PRESENT         = 0x3a,
+				       NOT_READY_TO_READY_CHANGE  = 0x28,
+				       POWER_ON_OR_RESET_OCCURRED = 0x29,
+				       LOGICAL_UNIT_NOT_READY     = 0x04 };
 				switch (asc) {
+
 				case MEDIUM_NOT_PRESENT:
 					Genode::error("Not ready - medium not present");
 					no_medium = true;
 					break;
-				case NOT_READY_TO_READY_CHANGE: /* asq == 0x00 */
+
+				case NOT_READY_TO_READY_CHANGE:  /* asq == 0x00 */
+				case POWER_ON_OR_RESET_OCCURRED: /* asq == 0x00 */
 					Genode::warning("Not ready - try again");
 					try_again = true;
 					break;
+
+				case LOGICAL_UNIT_NOT_READY:
+
+					if      (asq == 2) start_stop = true; /* initializing command required */
+					else if (asq == 1) try_again  = true; /* initializing in progress */
+					else error = true;
+
+					break;
+
 				default:
+					error = true;
+					break;
+				}
+
+				if (error)
 					Genode::error("Request_sense_response asc: ",
 					              Hex(asc, Hex::PREFIX, Hex::PAD),
 					              " asq: ", Hex(asq, Hex::PREFIX, Hex::PAD));
-					break;
-				}
 				break;
 			}
 			case Csw::LENGTH:
@@ -489,6 +510,14 @@ struct Usb::Block_driver : Usb::Completion,
 							/* do nothing for now */
 						} else if (init.try_again) {
 							init.try_again = false;
+						} else if (init.start_stop) {
+
+							init.start_stop = false;
+							Start_stop start_stop((addr_t)cbw_buffer, SS_TAG, active_lun);
+
+							cbw(cbw_buffer, init, true);
+							csw(init, true);
+
 						} else break;
 					} else break;
 
