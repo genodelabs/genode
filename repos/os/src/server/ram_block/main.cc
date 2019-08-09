@@ -174,7 +174,8 @@ struct Main
 				size = config.attribute_value("size", Number_of_bytes());
 			}
 
-			block_size = config.attribute_value("block_size", block_size);
+			block_size = config.attribute_value("block_size",
+			                                    Number_of_bytes(block_size));
 		}
 
 		Block::Driver *create() override
