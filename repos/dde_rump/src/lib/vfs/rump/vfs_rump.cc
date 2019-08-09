@@ -342,16 +342,23 @@ class Vfs::Rump_file_system : public File_system
 			}
 		};
 
-		/**
-		 * We define our own fs arg structure to fit all sizes, we assume that 'fspec'
-		 * is the only valid argument and all other fields are unused.
+		/*
+		 * Must fit 'struct msdosfs_args' and 'struct ufs_args'. Needed to
+		 * pass mount flags the file-system drivers.
 		 */
 		struct fs_args
 		{
 			char *fspec;
-			char  pad[164];
 
-			fs_args() { Genode::memset(pad, 0, sizeof(pad)); }
+			/* unused */
+			struct export_args30 _pad1;
+			uid_t                _uid;
+			gid_t                _gid;
+			mode_t               _mask;
+
+			int flags;
+
+			char _pad[164];
 		};
 
 		static bool _check_type(char const *type)
@@ -403,7 +410,13 @@ class Vfs::Rump_file_system : public File_system
 			}
 
 			/* mount into extra-terrestrial-file system */
-			struct fs_args args;
+			struct fs_args args { };
+
+			if (fs_type == "msdos" && config.attribute_value("gemdos", false)) {
+				enum { MSDOSFSMNT_GEMDOSFS = 8 };
+				args.flags |= MSDOSFSMNT_GEMDOSFS;
+			}
+
 			int opts = config.attribute_value("writeable", true) ?
 				0 : RUMP_MNT_RDONLY;
 
