@@ -67,17 +67,15 @@ Block::Partition_table & Main::_table()
 {
 	using namespace Genode;
 
+	Xml_node const config = _config.xml();
+
+	bool const ignore_gpt = config.attribute_value("ignore_gpt", false);
+	bool const ignore_mbr = config.attribute_value("ignore_mbr", false);
+
 	bool valid_mbr  = false;
 	bool valid_gpt  = false;
-	bool ignore_gpt = false;
-	bool ignore_mbr = false;
 	bool pmbr_found = false;
 	bool report     = false;
-
-	try {
-		ignore_gpt = _config.xml().attribute_value("ignore_gpt", false);
-		ignore_mbr = _config.xml().attribute_value("ignore_mbr", false);
-	} catch(...) {}
 
 	if (ignore_gpt && ignore_mbr) {
 		error("invalid configuration: cannot ignore GPT as well as MBR");

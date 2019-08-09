@@ -69,15 +69,16 @@ namespace Fs {
 		if (len < 512) { return Type(); }
 
 		/* at least the checks ring true when mkfs.vfat is used... */
-
 		bool const found_boot_sig = p[510] == 0x55 && p[511] == 0xAA;
 
-		bool const fat16 =     p[38] == 0x28 || p[38] == 0x29;
-		bool const fat32 =    (p[66] == 0x28 || p[66] == 0x29)
-		                   && (p[82] == 'F' && p[83] == 'A');
+		bool const fat16  =     p[38] == 0x28 || p[38] == 0x29;
+		bool const fat32  =    (p[66] == 0x28 || p[66] == 0x29)
+		                    && (p[82] == 'F' && p[83] == 'A');
+		bool const gemdos =    (p[0] == 0xe9);
 
-		if (found_boot_sig && fat32) { return Type("FAT32"); }
-		if (found_boot_sig && fat16) { return Type("FAT16"); }
+		if (found_boot_sig && fat32) { return Type("FAT32");  }
+		if (found_boot_sig && fat16) { return Type("FAT16");  }
+		if (gemdos)                  { return Type("GEMDOS"); }
 
 		return Type();
 	}
