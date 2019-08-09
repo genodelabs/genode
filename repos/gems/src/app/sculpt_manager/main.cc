@@ -1099,6 +1099,7 @@ void Sculpt::Main::_handle_runtime_state()
 	_runtime_state.update_from_state_report(state);
 
 	bool reconfigure_runtime = false;
+	bool regenerate_dialog   = false;
 
 	/* check for completed storage operations */
 	_storage._storage_devices.for_each([&] (Storage_device &device) {
@@ -1185,6 +1186,17 @@ void Sculpt::Main::_handle_runtime_state()
 
 	}); /* for each device */
 
+	/* handle failed initialization of USB-storage devices */
+	_storage._storage_devices.usb_storage_devices.for_each([&] (Usb_storage_device &dev) {
+		String<64> name(dev.usb_block_drv_name());
+		Child_exit_state exit_state(state, name);
+		if (exit_state.exited) {
+			dev.discard_usb_block_drv();
+			reconfigure_runtime = true;
+			regenerate_dialog   = true;
+		}
+	});
+
 	/* remove prepare subsystem when finished */
 	{
 		Child_exit_state exit_state(state, "prepare");
@@ -1233,7 +1245,7 @@ void Sculpt::Main::_handle_runtime_state()
 		  | _runtime_view_state.apply_child_state_report(child)) {
 
 			reconfigure_runtime = true;
-			generate_dialog();
+			regenerate_dialog   = true;
 		}
 	});
 
@@ -1245,8 +1257,11 @@ void Sculpt::Main::_handle_runtime_state()
 
 	if (_deploy.update_child_conditions()) {
 		reconfigure_runtime = true;
-		generate_dialog();
+		regenerate_dialog   = true;
 	}
+
+	if (regenerate_dialog)
+		generate_dialog();
 
 	if (reconfigure_runtime)
 		generate_runtime_config();

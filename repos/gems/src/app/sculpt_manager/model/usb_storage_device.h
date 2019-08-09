@@ -81,6 +81,16 @@ struct Sculpt::Usb_storage_device : List_model<Usb_storage_device>::Element,
 		return drv_needed || Storage_device::state == UNKNOWN;
 	}
 
+	/**
+	 * Release USB device
+	 *
+	 * This method is called as response to a failed USB-block-driver
+	 * initialization.
+	 */
+	void discard_usb_block_drv() { Storage_device::state = FAILED; }
+
+	bool discarded() const { return Storage_device::state == FAILED; }
+
 	Label usb_block_drv_name() const { return Label(label, ".drv"); }
 
 	Usb_storage_device(Env &env, Allocator &alloc, Signal_context_capability sigh,

@@ -275,12 +275,13 @@ void Sculpt::Storage_dialog::_gen_block_device(Xml_generator      &xml,
 void Sculpt::Storage_dialog::_gen_usb_storage_device(Xml_generator            &xml,
                                                      Usb_storage_device const &dev) const
 {
-	bool const selected = _device_item.selected(dev.label);
+	bool const discarded = dev.discarded();
+	bool const selected  = !discarded && _device_item.selected(dev.label);
 
 	xml.node("button", [&] () {
 		xml.attribute("name", dev.label);
 
-		if (_device_item.hovered(dev.label))
+		if (_device_item.hovered(dev.label) && !discarded)
 			xml.attribute("hovered", "yes");
 
 		if (selected)
@@ -307,10 +308,13 @@ void Sculpt::Storage_dialog::_gen_usb_storage_device(Xml_generator            &x
 				});
 			});
 
+			typedef String<64> Info;
+			Info const info = dev.discarded() ? Info("unsupported") : Info(dev.capacity);
+
 			gen_named_node(xml, "float", "capacity", [&] () {
 				xml.attribute("east", "yes");
 				xml.node("label", [&] () {
-					xml.attribute("text", String<64>(dev.capacity)); }); });
+					xml.attribute("text", info); }); });
 		});
 	});
 

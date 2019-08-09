@@ -25,9 +25,10 @@ namespace Sculpt { struct Storage_device; };
 struct Sculpt::Storage_device
 {
 	enum State {
-		UNKNOWN, /* partition information not yet known */
-		USED,    /* part_block is running and has reported partition info */
-		RELEASED /* partition info is known but part_block is not running */
+		UNKNOWN,  /* partition information not yet known */
+		USED,     /* part_block is running and has reported partition info */
+		RELEASED, /* partition info is known but part_block is not running */
+		FAILED    /* driver failed to access the device */
 	};
 
 	Allocator &_alloc;
