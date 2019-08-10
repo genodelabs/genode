@@ -30,6 +30,10 @@ void Sculpt::gen_fs_start_content(Xml_generator        &xml,
 				switch (fs_type) {
 				case File_system::EXT2:  xml.attribute("fs", "ext2fs"); break;
 				case File_system::FAT32: xml.attribute("fs", "msdos");  break;
+				case File_system::GEMDOS:
+					xml.attribute("fs",     "msdos");
+					xml.attribute("gemdos", "yes");
+					break;
 				case File_system::UNKNOWN: break;
 				};
 				xml.attribute("ram", "48M");

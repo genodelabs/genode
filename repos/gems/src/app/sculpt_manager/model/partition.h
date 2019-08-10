@@ -29,9 +29,9 @@ namespace Sculpt {
 
 struct Sculpt::File_system
 {
-	enum Type { UNKNOWN, EXT2, FAT32 } type;
+	enum Type { UNKNOWN, EXT2, FAT32, GEMDOS } type;
 
-	bool accessible() const { return type == EXT2 || type == FAT32; }
+	bool accessible() const { return type == EXT2 || type == FAT32 || type == GEMDOS; }
 
 	bool expandable() const { return type == EXT2; }
 
@@ -99,9 +99,10 @@ struct Sculpt::Partition : List_model<Partition>::Element
 		static Args from_xml(Xml_node node)
 		{
 			auto const file_system = node.attribute_value("file_system", String<16>());
-			File_system::Type const fs_type = (file_system == "Ext2")  ? File_system::EXT2
-			                                : (file_system == "FAT32") ? File_system::FAT32
-			                                :                            File_system::UNKNOWN;
+			File_system::Type const fs_type = (file_system == "Ext2")   ? File_system::EXT2
+			                                : (file_system == "GEMDOS") ? File_system::GEMDOS
+			                                : (file_system == "FAT32")  ? File_system::FAT32
+			                                :                             File_system::UNKNOWN;
 
 			Number const number = node.attribute_value("number", Number());
 
