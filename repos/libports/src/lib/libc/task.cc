@@ -767,6 +767,17 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 			}
 		}
 
+		/**
+		 * Alloc new watch handler for given path
+		 */
+		Vfs::Vfs_watch_handle *alloc_watch_handle(char const *path)
+		{
+			Vfs::Vfs_watch_handle *watch_handle { nullptr };
+			typedef Vfs::Directory_service::Watch_result Result;
+			return _libc_env.vfs().watch(path, &watch_handle, _heap) == Result::WATCH_OK
+				? watch_handle : nullptr;
+		}
+
 
 		/****************************************
 		 ** Vfs::Io_response_handler interface **
@@ -854,6 +865,12 @@ Genode::uint64_t Libc::suspend(Suspend_functor &s, Genode::uint64_t timeout_ms)
 void Libc::dispatch_pending_io_signals()
 {
 	kernel->dispatch_pending_io_signals();
+}
+
+
+Vfs::Vfs_watch_handle *Libc::watch(char const *path)
+{
+	return kernel->alloc_watch_handle(path);
 }
 
 
