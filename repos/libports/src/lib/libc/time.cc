@@ -26,47 +26,82 @@
 
 /* Genode includes */
 #include <base/log.h>
+#include <vfs/vfs_handle.h>
 
 
 namespace Libc {
 	extern char const *config_rtc();
-	time_t read_rtc();
 }
 
 
-time_t Libc::read_rtc()
+struct Rtc : Vfs::Watch_response_handler
 {
-	time_t rtc = 0;
+	Vfs::Vfs_watch_handle *_watch_handle { nullptr };
+	char const            *_file         { nullptr };
+	bool                  _read_file     { true };
+	time_t                _rtc_value     { 0 };
 
-	if (!Genode::strcmp(Libc::config_rtc(), "")) {
-		Genode::warning("rtc not configured, returning ", rtc);
-		return rtc;
-	}
+	Rtc(char const *rtc_file)
+	: _file(rtc_file)
+	{
+		if (!Genode::strcmp(_file, "")) {
+			Genode::warning("rtc not configured, returning ", _rtc_value);
+			return;
+		}
 
-	int fd = open(Libc::config_rtc(), O_RDONLY);
-	if (fd == -1) {
-		Genode::warning(Genode::Cstring(Libc::config_rtc()), " not readable, returning ", rtc);
-		return rtc;
-	}
-
-	char buf[32];
-	ssize_t n = read(fd, buf, sizeof(buf));
-	if (n > 0) {
-		buf[n - 1] = '\0';
-		struct tm tm;
-		Genode::memset(&tm, 0, sizeof(tm));
-
-		if (strptime(buf, "%Y-%m-%d %R", &tm)) {
-			rtc = mktime(&tm);
-			if (rtc == (time_t)-1)
-				rtc = 0;
+		_watch_handle = Libc::watch(_file);
+		if (_watch_handle) {
+			_watch_handle->handler(this);
 		}
 	}
 
-	close(fd);
+	/******************************************
+	 ** Vfs::Watch_reponse_handler interface **
+	 ******************************************/
 
-	return rtc;
-}
+	void watch_response() override
+	{
+		_read_file = true;
+	}
+
+	time_t read()
+	{
+		if (!_file) { return 0; }
+
+		/* return old value */
+		if (!_read_file) { return _rtc_value; }
+
+		_read_file = false;
+
+		int fd = open(_file, O_RDONLY);
+		if (fd == -1) {
+			Genode::warning(Genode::Cstring(Libc::config_rtc()), " not readable, returning ", _rtc_value);
+			return _rtc_value;
+		}
+
+		char buf[32];
+		ssize_t n = ::read(fd, buf, sizeof(buf));
+		if (n > 0) {
+			buf[n - 1] = '\0';
+			struct tm tm;
+			Genode::memset(&tm, 0, sizeof(tm));
+
+			if (strptime(buf, "%Y-%m-%d %R", &tm)) {
+				_rtc_value = mktime(&tm);
+				if (_rtc_value == (time_t)-1)
+					_rtc_value = 0;
+			}
+		}
+
+		close(fd);
+
+		uint64_t const ts_value =
+			Libc::current_time().trunc_to_plain_ms().value;
+		_rtc_value += (time_t)ts_value / 1000;
+
+		return _rtc_value;
+	}
+};
 
 
 extern "C" __attribute__((weak))
@@ -84,24 +119,14 @@ int clock_gettime(clockid_t clk_id, struct timespec *ts)
 	case CLOCK_REALTIME:
 	case CLOCK_SECOND: /* FreeBSD specific */
 	{
-		static bool             initial_rtc_requested = false;
-		static time_t           initial_rtc = 0;
-		static Genode::uint64_t t0_ms = 0;
+		static Rtc rtc(Libc::config_rtc());
 
-		/* try to read rtc once */
-		if (!initial_rtc_requested) {
-			initial_rtc_requested = true;
-			initial_rtc = Libc::read_rtc();
-			if (initial_rtc) {
-				t0_ms = Libc::current_time().trunc_to_plain_ms().value;
-			}
-		}
+		time_t const rtc_value = rtc.read();
+		if (!rtc_value) return Libc::Errno(EINVAL);
 
-		if (!initial_rtc) return Libc::Errno(EINVAL);
+		Genode::uint64_t const time = Libc::current_time().trunc_to_plain_ms().value;
 
-		Genode::uint64_t time = Libc::current_time().trunc_to_plain_ms().value - t0_ms;
-
-		ts->tv_sec  = initial_rtc + time/1000;
+		ts->tv_sec  = rtc_value + time/1000;
 		ts->tv_nsec = (time % 1000) * (1000*1000);
 		break;
 	}

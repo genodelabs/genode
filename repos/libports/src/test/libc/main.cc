@@ -159,8 +159,12 @@ int main(int argc, char **argv)
 		sleep(1);
 		ts.tv_sec = ts.tv_nsec = 0;
 		clock_gettime(CLOCK_MONOTONIC, &ts);
-		printf("sleep/gettime: %.09f\n", ts.tv_sec + ts.tv_nsec / 1000000000.0);
+		printf("sleep/gettime(CLOCK_MONOTONIC): %.09f\n", ts.tv_sec + ts.tv_nsec / 1000000000.0);
 	}
+
+	ts.tv_sec = ts.tv_nsec = 0;
+	clock_gettime(CLOCK_REALTIME, &ts);
+	printf("sleep/gettime(CLOCK_REALTIME): %.09f\n", ts.tv_sec + ts.tv_nsec / 1000000000.0);
 
 	{
 		unsigned long long buf = 0;
