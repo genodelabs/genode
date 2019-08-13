@@ -1,5 +1,5 @@
 TARGET = test-libc_noux
-LIBS   = libc libc_noux
+LIBS   = libc
 SRC_CC = main.cc
 
 # we re-use the libc_vfs test

@@ -57,7 +57,7 @@ libgmp.a libmpfr.a libmpc.a libc.a:
 
 Makefile: dummy_libs
 
-LIBS  += libc libm posix libc_noux stdcxx base
+LIBS  += libc libm posix stdcxx base
 
 include $(call select_from_repositories,mk/noux.mk)
 
