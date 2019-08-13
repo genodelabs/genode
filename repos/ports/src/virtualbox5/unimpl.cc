@@ -113,8 +113,6 @@ DUMMY(RTSemEventWaitEx)
 DUMMY(RTSemPing)
 DUMMY(RTSemPingWait)
 
-DUMMY(RTMemDupExTag)
-DUMMY(RTMemDupTag)
 DUMMY(RTMemExecFree)
 
 DUMMY(RTMpGetPresentCount)
