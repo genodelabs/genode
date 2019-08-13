@@ -95,6 +95,10 @@ struct Noux::Child_config : Attached_ram_dataspace
 		{
 			if (verbose.ld())
 				xml.attribute("ld_verbose", "yes");
+
+			xml.node("ld", [&] () {
+				xml.node("library", [&] () {
+					xml.attribute("rom", "libc_noux.lib.so"); }); });
 		});
 	}
 };
