@@ -19,6 +19,7 @@
 #include <elf.h>
 #include <file.h>
 #include <util.h>
+#include <config.h>
 
 /*
  * Mark functions that are used during the linkers self-relocation phase as
@@ -224,6 +225,8 @@ class Linker::Dependency : public Fifo<Dependency>::Element, Noncopyable
 		 */
 		bool in_dep(char const *file, Fifo<Dependency> const &);
 
+		void _load(Env &, Allocator &, char const *, Fifo<Dependency> &, Keep);
+
 	public:
 
 		/*
@@ -240,6 +243,11 @@ class Linker::Dependency : public Fifo<Dependency>::Element, Noncopyable
 		 * Load dependent ELF object
 		 */
 		void load_needed(Env &, Allocator &, Fifo<Dependency> &, Keep);
+
+		/**
+		 * Preload ELF object
+		 */
+		void preload(Env &, Allocator &, Fifo<Dependency> &, Config const &);
 
 		bool root() const { return _root != nullptr; }
 

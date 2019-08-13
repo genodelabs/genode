@@ -28,6 +28,7 @@
 #include <dynamic.h>
 #include <init.h>
 #include <region_map.h>
+#include <config.h>
 
 using namespace Linker;
 
@@ -346,7 +347,7 @@ struct Linker::Binary : private Root_object, public Elf_object
 
 	bool static_construction_finished = false;
 
-	Binary(Env &env, Allocator &md_alloc, Bind bind)
+	Binary(Env &env, Allocator &md_alloc, Config const &config)
 	:
 		Root_object(md_alloc),
 		Elf_object(env, md_alloc, binary_name(),
@@ -363,11 +364,14 @@ struct Linker::Binary : private Root_object, public Elf_object
 		/* place linker on second place in link map */
 		Ld::linker().setup_link_map();
 
+		/* preload libraries specified in the configuration */
+		binary->preload(env, md_alloc, deps(), config);
+
 		/* load dependencies */
 		binary->load_needed(env, md_alloc, deps(), DONT_KEEP);
 
 		/* relocate and call constructors */
-		Init::list()->initialize(bind, STAGE_BINARY);
+		Init::list()->initialize(config.bind(), STAGE_BINARY);
 	}
 
 	Elf::Addr lookup_symbol(char const *name)
@@ -634,32 +638,6 @@ extern "C" void init_rtld()
 }
 
 
-class Linker::Config
-{
-	private:
-
-		Bind _bind    = BIND_LAZY;
-		bool _verbose = false;
-
-	public:
-
-		Config(Env &env)
-		{
-			try {
-				Attached_rom_dataspace config(env, "config");
-
-				if (config.xml().attribute_value("ld_bind_now", false))
-					_bind = BIND_NOW;
-
-				_verbose = config.xml().attribute_value("ld_verbose", false);
-			} catch (Rom_connection::Rom_connection_failed) { }
-		}
-
-		Bind bind()    const { return _bind; }
-		bool verbose() const { return _verbose; }
-};
-
-
 static Genode::Constructible<Heap> &heap()
 {
 	return *unmanaged_singleton<Constructible<Heap>>();
@@ -684,12 +662,13 @@ void Genode::exec_static_constructors()
 void Component::construct(Genode::Env &env)
 {
 	/* read configuration */
-	static Config config(env);
+	Config const config(env);
+
 	verbose = config.verbose();
 
 	/* load binary and all dependencies */
 	try {
-		binary_ptr = unmanaged_singleton<Binary>(env, *heap(), config.bind());
+		binary_ptr = unmanaged_singleton<Binary>(env, *heap(), config);
 	} catch(Linker::Not_found &symbol) {
 		error("LD: symbol not found: '", symbol, "'");
 		throw;
