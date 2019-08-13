@@ -1,4 +1,4 @@
-TARGET = test-noux_fork
+TARGET = test-fork
 SRC_CC = test.cc
 LIBS   = posix
 

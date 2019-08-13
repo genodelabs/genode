@@ -1,6 +1,6 @@
 build {
 	core init timer server/log_terminal noux lib/libc_noux
-	test/noux_fork
+	test/fork
 }
 
 create_boot_directory
@@ -34,9 +34,9 @@ install_config {
 			<config verbose="yes" stdin="/null" stdout="/log" stderr="/log">
 				<fstab>
 					<null/> <log/>
-					<rom name="test-noux_fork" />
+					<rom name="test-fork" />
 				</fstab>
-				<start name="test-noux_fork"> </start>
+				<start name="test-fork"> </start>
 			</config>
 		</start>
 	</config>
@@ -44,7 +44,7 @@ install_config {
 
 build_boot_image {
 	core init timer log_terminal noux ld.lib.so libc.lib.so vfs.lib.so libm.lib.so
-	libc_noux.lib.so posix.lib.so test-noux_fork
+	libc_noux.lib.so posix.lib.so test-fork
 }
 
 append qemu_args " -nographic "

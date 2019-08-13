@@ -1,0 +1,37 @@
+build { core init test/fork }
+
+create_boot_directory
+
+install_config {
+	<config verbose="yes">
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="LOG"/>
+			<service name="CPU"/>
+			<service name="PD"/>
+		</parent-provides>
+		<start name="test-fork" caps="300">
+			<resource name="RAM" quantum="1G"/>
+			<config>
+				<arg value="name_of_executeable"/>
+				<libc stdin="/null" stdout="/log" stderr="/log">
+					<fd id="3" path="/seek_test" readable="yes" seek="5"/>
+				</libc>
+				<vfs>
+					<null/> <log/>
+					<inline name="seek_test">0123456789</inline>
+				</vfs>
+			</config>
+			<route> <any-service> <parent/> </any-service> </route>
+		</start>
+	</config>
+}
+
+build_boot_image {
+	core init ld.lib.so libc.lib.so vfs.lib.so libm.lib.so posix.lib.so test-fork
+}
+
+append qemu_args " -nographic "
+
+run_genode_until "--- parent done ---.*\n" 20
+run_genode_until "child.*exited.*\n" 5 [output_spawn_id]
