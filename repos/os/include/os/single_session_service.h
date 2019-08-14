@@ -31,7 +31,7 @@ class Genode::Single_session_service
 	private:
 
 		/*
-		 * Wrap client object to be compabile with 'Rpc_object::cap' calls
+		 * Wrap client object to be compatible with 'Rpc_object::cap' calls
 		 *
 		 * We hand out the capability via 'cap' method to be compatible with
 		 * the interface normally provided by server-side component objects.
