@@ -15,6 +15,7 @@
 #define _INCLUDE__VFS__RTC_FILE_SYSTEM_H_
 
 /* Genode includes */
+#include <base/registry.h>
 #include <rtc_session/connection.h>
 #include <vfs/file_system.h>
 
@@ -25,8 +26,6 @@ namespace Vfs { class Rtc_file_system; }
 class Vfs::Rtc_file_system : public Single_file_system
 {
 	private:
-
-		Rtc::Connection _rtc;
 
 		class Rtc_vfs_handle : public Single_vfs_handle
 		{
@@ -84,13 +83,33 @@ class Vfs::Rtc_file_system : public Single_file_system
 				bool read_ready() override { return true; }
 		};
 
+		typedef Genode::Registered<Vfs_watch_handle>      Registered_watch_handle;
+		typedef Genode::Registry<Registered_watch_handle> Watch_handle_registry;
+
+		Rtc::Connection _rtc;
+
+		Watch_handle_registry _handle_registry { };
+
+		Genode::Io_signal_handler<Rtc_file_system> _set_signal_handler;
+
+		void _handle_set_signal()
+		{
+			_handle_registry.for_each([this] (Registered_watch_handle &handle) {
+				handle.watch_response();
+			});
+		}
+
 	public:
 
 		Rtc_file_system(Vfs::Env &env, Genode::Xml_node config)
 		:
 			Single_file_system(NODE_TYPE_CHAR_DEVICE, name(), config),
-			_rtc(env.env())
-		{ }
+			_rtc(env.env()),
+			_set_signal_handler(env.env().ep(), *this,
+			                    &Rtc_file_system::_handle_set_signal)
+		{
+			_rtc.set_sigh(_set_signal_handler);
+		}
 
 		static char const *name()   { return "rtc"; }
 		char const *type() override { return "rtc"; }
@@ -121,6 +140,24 @@ class Vfs::Rtc_file_system : public Single_file_system
 			out.mode |= 0444;
 
 			return result;
+		}
+
+		Watch_result watch(char const        *path,
+		                   Vfs_watch_handle **handle,
+		                   Allocator         &alloc) override
+		{
+			if (!_single_file(path))
+				return WATCH_ERR_UNACCESSIBLE;
+
+			try {
+				Vfs_watch_handle &watch_handle = *new (alloc)
+					Registered_watch_handle(_handle_registry, *this, alloc);
+
+				*handle = &watch_handle;
+				return WATCH_OK;
+			}
+			catch (Genode::Out_of_ram)  { return WATCH_ERR_OUT_OF_RAM;  }
+			catch (Genode::Out_of_caps) { return WATCH_ERR_OUT_OF_CAPS; }
 		}
 };
 
