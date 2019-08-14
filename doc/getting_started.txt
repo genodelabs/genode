@@ -53,14 +53,15 @@ architecture independent from the underlying base platform, in this case Linux.
 To give Genode a try, build and execute a simple demo scenario via:
 
 ! cd build/x86_64
-! make KERNEL=linux run/demo
+! make KERNEL=linux BOARD=linux run/demo
 
 By invoking 'make' with the 'run/demo' argument, all components needed by the
 demo scenario are built and the demo is executed. This includes all components
 which are implicitly needed by the base platform. The base platform that the
-components will be executed upon on is selected via the 'KERNEL' variable. If
-you are interested in looking behind the scenes of the demo scenario, please
-refer to 'doc/build_system.txt' and the run script at 'os/run/demo.run'.
+components will be executed upon on is selected via the 'KERNEL' and 'BOARD'
+variables. If you are interested in looking behind the scenes of the demo
+scenario, please refer to 'doc/build_system.txt' and the run script at
+'os/run/demo.run'.
 
 
 Using platforms other than Linux
@@ -112,7 +113,7 @@ steps are required:
 # Uncomment the following line in 'x86_32/etc/build.conf'
   ! REPOSITORIES += $(GENODE_DIR)/repos/libports
 # Build and execute the demo using Qemu
-  ! make -C build/x86_32 KERNEL=okl4 run/demo
+  ! make -C build/x86_32 KERNEL=okl4 BOARD=pc run/demo
 
 The procedure works analogously for the other base platforms. You can, however,
 reuse the already created build directory and skip its creation step if the
