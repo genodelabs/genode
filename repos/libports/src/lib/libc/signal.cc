@@ -63,25 +63,6 @@ extern "C" int __i386_libc_sigprocmask(int how, const sigset_t *set, sigset_t *o
 }
 
 
-extern "C" __attribute__((weak))
-pid_t wait4(pid_t, int *, int, struct rusage *)
-{
-	Genode::warning(__func__, " not implemented");
-	errno = ENOSYS;
-	return -1;
-}
-
-
-extern "C"
-pid_t __sys_wait4(pid_t wpid, int *status, int options, struct rusage *rusage) {
-	return wait4(wpid, status, options, rusage); }
-
-
-extern "C"
-pid_t _wait4(pid_t wpid, int *status, int options, struct rusage *rusage) {
-	return wait4(wpid, status, options, rusage); }
-
-
 extern "C" pid_t wait(int *istat) {
 	return wait4(WAIT_ANY, istat, 0, NULL); }
 

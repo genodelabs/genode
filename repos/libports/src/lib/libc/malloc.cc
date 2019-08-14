@@ -16,7 +16,7 @@
 #include <base/env.h>
 #include <base/log.h>
 #include <base/slab.h>
-#include <util/construct_at.h>
+#include <util/reconstructible.h>
 #include <util/string.h>
 #include <util/misc_math.h>
 
@@ -29,45 +29,51 @@ extern "C" {
 /* libc-internal includes */
 #include "libc_init.h"
 #include <base/internal/unmanaged_singleton.h>
+#include <clone_session.h>
 
 
-namespace Genode {
+namespace Libc {
+	class Slab_alloc;
+	class Malloc;
 
-	class Slab_alloc : public Slab
-	{
-		private:
-
-			size_t const _object_size;
-
-			size_t _calculate_block_size(size_t object_size)
-			{
-				size_t block_size = 16*object_size;
-				return align_addr(block_size, 12);
-			}
-
-		public:
-
-			Slab_alloc(size_t object_size, Allocator *backing_store)
-			:
-				Slab(object_size, _calculate_block_size(object_size), 0, backing_store),
-				_object_size(object_size)
-			{ }
-
-			void *alloc()
-			{
-				void *result;
-				return (Slab::alloc(_object_size, &result) ? result : 0);
-			}
-
-			void free(void *ptr) { Slab::free(ptr, _object_size); }
-	};
+	using namespace Genode;
 }
+
+
+class Libc::Slab_alloc : public Slab
+{
+	private:
+
+		size_t const _object_size;
+
+		size_t _calculate_block_size(size_t object_size)
+		{
+			size_t block_size = 16*object_size;
+			return align_addr(block_size, 12);
+		}
+
+	public:
+
+		Slab_alloc(size_t object_size, Allocator &backing_store)
+		:
+			Slab(object_size, _calculate_block_size(object_size), 0, &backing_store),
+			_object_size(object_size)
+		{ }
+
+		void *alloc()
+		{
+			void *result;
+			return (Slab::alloc(_object_size, &result) ? result : 0);
+		}
+
+		void free(void *ptr) { Slab::free(ptr, _object_size); }
+};
 
 
 /**
  * Allocator that uses slabs for small objects sizes
  */
-class Malloc
+class Libc::Malloc
 {
 	private:
 
@@ -112,9 +118,11 @@ class Malloc
 		 */
 		static constexpr size_t _room() { return sizeof(Metadata) + 15; }
 
-		Genode::Allocator  &_backing_store;        /* back-end allocator */
-		Genode::Slab_alloc *_allocator[NUM_SLABS]; /* slab allocators */
-		Genode::Lock        _lock;
+		Allocator &_backing_store; /* back-end allocator */
+
+		Constructible<Slab_alloc> _slabs[NUM_SLABS]; /* slab allocators */
+
+		Lock _lock;
 
 		unsigned _slab_log2(size_t size) const
 		{
@@ -133,15 +141,13 @@ class Malloc
 
 	public:
 
-		Malloc(Genode::Allocator &backing_store) : _backing_store(backing_store)
+		Malloc(Allocator &backing_store) : _backing_store(backing_store)
 		{
-			for (unsigned i = SLAB_START; i <= SLAB_STOP; i++) {
-				_allocator[i - SLAB_START] =
-					new (backing_store) Genode::Slab_alloc(1U << i, &backing_store);
-			}
+			for (unsigned i = SLAB_START; i <= SLAB_STOP; i++)
+				_slabs[i - SLAB_START].construct(1U << i, backing_store);
 		}
 
-		~Malloc() { Genode::warning(__func__, " unexpectedly called"); }
+		~Malloc() { warning(__func__, " unexpectedly called"); }
 
 		/**
 		 * Allocator interface
@@ -149,7 +155,7 @@ class Malloc
 
 		void * alloc(size_t size)
 		{
-			Genode::Lock::Guard lock_guard(_lock);
+			Lock::Guard lock_guard(_lock);
 
 			size_t   const real_size = size + _room();
 			unsigned const msb       = _slab_log2(real_size);
@@ -160,7 +166,7 @@ class Malloc
 			if (msb > SLAB_STOP)
 				_backing_store.alloc(real_size, &alloc_addr);
 			else
-				alloc_addr = _allocator[msb - SLAB_START]->alloc();
+				alloc_addr = _slabs[msb - SLAB_START]->alloc();
 
 			if (!alloc_addr) return nullptr;
 
@@ -189,7 +195,7 @@ class Malloc
 
 			if (new_addr) {
 				/* copy content from old block into new block */
-				memcpy(new_addr, ptr, old_real_size - _room());
+				::memcpy(new_addr, ptr, old_real_size - _room());
 
 				/* free old block */
 				free(ptr);
@@ -200,7 +206,7 @@ class Malloc
 
 		void free(void *ptr)
 		{
-			Genode::Lock::Guard lock_guard(_lock);
+			Lock::Guard lock_guard(_lock);
 
 			Metadata *md = (Metadata *)ptr - 1;
 
@@ -212,13 +218,13 @@ class Malloc
 			if (msb > SLAB_STOP) {
 				_backing_store.free(alloc_addr, real_size);
 			} else {
-				_allocator[msb - SLAB_START]->free(alloc_addr);
+				_slabs[msb - SLAB_START]->free(alloc_addr);
 			}
 		}
 };
 
 
-static Malloc *mallocator;
+static Libc::Malloc *mallocator;
 
 
 extern "C" void *malloc(size_t size)
@@ -255,7 +261,26 @@ extern "C" void *realloc(void *ptr, size_t size)
 }
 
 
+static Genode::Constructible<Libc::Malloc> &constructible_malloc()
+{
+	return *unmanaged_singleton<Genode::Constructible<Libc::Malloc> >();
+}
+
+
 void Libc::init_malloc(Genode::Allocator &heap)
 {
-	mallocator = unmanaged_singleton<Malloc>(heap);
+
+	Genode::Constructible<Libc::Malloc> &_malloc = constructible_malloc();
+
+	_malloc.construct(heap);
+
+	mallocator = _malloc.operator->();
+}
+
+
+void Libc::init_malloc_cloned(Clone_connection &clone_connection)
+{
+	clone_connection.object_content(constructible_malloc());
+
+	mallocator = constructible_malloc().operator->();
 }

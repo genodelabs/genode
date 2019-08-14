@@ -21,6 +21,10 @@
 /* libc plugin interface */
 #include <libc-plugin/fd_alloc.h>
 
+/* libc includes */
+#include <fcntl.h>
+#include <unistd.h>
+
 using namespace Libc;
 using namespace Genode;
 
@@ -93,6 +97,37 @@ File_descriptor *File_descriptor_allocator::find_by_libc_fd(int libc_fd)
 	} catch (Id_space::Unknown_id) { }
 
 	return result;
+}
+
+
+void File_descriptor_allocator::generate_info(Xml_generator &xml)
+{
+	Lock::Guard guard(_lock);
+
+	_id_space.for_each<File_descriptor>([&] (File_descriptor &fd) {
+		xml.node("fd", [&] () {
+
+			xml.attribute("id", fd.libc_fd);
+
+			if (fd.fd_path)
+				xml.attribute("path", fd.fd_path);
+
+			if (fd.cloexec)
+				xml.attribute("cloexec", "yes");
+
+			if (((fd.flags & O_ACCMODE) != O_WRONLY))
+				xml.attribute("readable", "yes");
+
+			if (((fd.flags & O_ACCMODE) != O_RDONLY))
+				xml.attribute("writeable", "yes");
+
+			if (fd.plugin) {
+				::off_t const seek = fd.plugin->lseek(&fd, 0, SEEK_CUR);
+				if (seek)
+					xml.attribute("seek", seek);
+			}
+		});
+	});
 }
 
 

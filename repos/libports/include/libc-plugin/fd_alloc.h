@@ -20,6 +20,7 @@
 #include <os/path.h>
 #include <base/allocator.h>
 #include <base/id_space.h>
+#include <util/xml_generator.h>
 
 /* libc includes */
 #include <stdlib.h>
@@ -115,6 +116,8 @@ namespace Libc {
 			void preserve(int libc_fd);
 
 			File_descriptor *find_by_libc_fd(int libc_fd);
+
+			void generate_info(Genode::Xml_generator &);
 	};
 
 

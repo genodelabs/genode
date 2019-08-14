@@ -110,7 +110,6 @@ DUMMY(int, -1,  getifaddrs, (struct ifaddrs **))
 DUMMY(void,  , freeifaddrs, (struct ifaddrs *ifp))
 DUMMY(char *,  0, _getlogin, (void))
 DUMMY(int   , -1, getnameinfo, (const sockaddr *, socklen_t, char *, size_t, char *, size_t, int))
-DUMMY_SILENT(pid_t , -1, getpid, (void))
 DUMMY(struct servent *, 0, getservbyname, (const char *, const char *))
 DUMMY(int   , -1, getsid, (pid_t))
 DUMMY(pid_t , -1, getppid, (void))
@@ -154,7 +153,6 @@ DUMMY(int   ,  0, utimes, (const char *, const timeval *))
 DUMMY(int, -1, semget, (key_t, int, int))
 DUMMY(int, -1, semop, (key_t, int, int))
 __SYS_DUMMY(int,    -1, aio_suspend, (const struct aiocb * const[], int, const struct timespec *));
-__SYS_DUMMY(pid_t , -1,  fork, (void))
 __SYS_DUMMY(int   , -1, getfsstat, (struct statfs *, long, int))
 __SYS_DUMMY(int, -1, kevent, (int, const struct kevent*, int, struct kevent *, int, const struct timespec*));
 __SYS_DUMMY(void  ,   , map_stacks_exec, (void));

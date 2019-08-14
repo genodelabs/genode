@@ -81,6 +81,23 @@ namespace Libc {
 	 */
 	void schedule_select(Select_handler_base *);
 
+	struct Kernel_routine : Genode::Interface
+	{
+		virtual void execute_in_kernel() = 0;
+	};
+
+	/**
+	 * Register routine to be called once on the next libc-kernel activation
+	 *
+	 * The specified routine is executed only once. For a repeated execution,
+	 * the routine must call 'register_kernel_routine' with itself as
+	 * argument.
+	 *
+	 * This mechanism is used by 'fork' to implement the blocking for the
+	 * startup of a new child and for 'wait4'.
+	 */
+	void register_kernel_routine(Kernel_routine &);
+
 	/**
 	 * Access libc configuration Xml_node.
 	 */
