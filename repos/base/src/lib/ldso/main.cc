@@ -659,6 +659,29 @@ void Genode::exec_static_constructors()
 }
 
 
+void Genode::Dynamic_linker::_for_each_loaded_object(Env &, For_each_fn const &fn)
+{
+	Elf_object::obj_list()->for_each([&] (Object const &obj) {
+
+		Elf_file const *elf_file_ptr =
+			obj.file() ? dynamic_cast<Elf_file const *>(obj.file()) : nullptr;
+
+		if (!elf_file_ptr)
+			return;
+
+		elf_file_ptr->with_rw_phdr([&] (Elf::Phdr const &phdr) {
+
+			Object_info info { .name     = obj.name(),
+			                   .ds_cap   = elf_file_ptr->rom_cap,
+			                   .rw_start = (void *)(obj.reloc_base() + phdr.p_vaddr),
+			                   .rw_size  = phdr.p_memsz };
+
+			fn.supply_object_info(info);
+		});
+	});
+}
+
+
 void Component::construct(Genode::Env &env)
 {
 	/* read configuration */

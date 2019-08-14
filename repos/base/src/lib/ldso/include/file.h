@@ -28,6 +28,12 @@ namespace Linker {
 	struct Phdr;
 	struct File;
 	struct Elf_file;
+
+	static inline bool is_rx(Elf::Phdr const &ph) {
+		return ((ph.p_flags & PF_MASK) == (PF_R | PF_X)); }
+
+	static inline bool is_rw(Elf::Phdr const &ph) {
+		return ((ph.p_flags & PF_MASK) == (PF_R | PF_W)); }
 }
 
 
@@ -67,6 +73,17 @@ struct Linker::File
 	}
 
 	unsigned elf_phdr_count() const { return phdr.count; }
+
+	template <typename FN>
+	void with_rw_phdr(FN const &fn) const
+	{
+		for (unsigned i = 0; i < phdr.count; i++) {
+			if (is_rw(phdr.phdr[i])) {
+				fn(phdr.phdr[i]);
+				return;
+			}
+		}
+	}
 };
 
 
@@ -211,12 +228,6 @@ struct Linker::Elf_file : File
 			throw Incompatible();
 		}
 	}
-
-	bool is_rx(Elf::Phdr const &ph) {
-		return ((ph.p_flags & PF_MASK) == (PF_R | PF_X)); }
-
-	bool is_rw(Elf::Phdr const &ph) {
-		return ((ph.p_flags & PF_MASK) == (PF_R | PF_W)); }
 
 	/**
 	 * Load PT_LOAD segments
