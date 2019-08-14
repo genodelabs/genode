@@ -57,7 +57,7 @@ struct Main
 
 	Constructible<Reporter> _reporter { };
 
-	void _test_update()
+	void _test_update(Xml_node const &config)
 	{
 		try {
 			_reporter.construct(_env, "set_rtc");
@@ -66,12 +66,12 @@ struct Main
 			rtc1.set_sigh(_set_sigh);
 
 			Rtc::Timestamp ts = rtc1.current_time();
-			ts.year   = 2069;
-			ts.month  = 12;
-			ts.day    = 31;
-			ts.hour   = 23;
-			ts.minute = 55;
-			ts.second =  0;
+			ts.year   = config.attribute_value("year",   2069U);
+			ts.month  = config.attribute_value("month",  12U);
+			ts.day    = config.attribute_value("day",    31U);
+			ts.hour   = config.attribute_value("hour",   23U);
+			ts.minute = config.attribute_value("minute", 58U);
+			ts.second = config.attribute_value("second", 0U);
 
 			_ts = ts;
 
@@ -116,7 +116,7 @@ struct Main
 		Attached_rom_dataspace config_rom { env, "config" };
 		bool const test_update = config_rom.xml().attribute_value("set_rtc", false);
 		if (test_update) {
-			_test_update();
+			_test_update(config_rom.xml());
 			return;
 		}
 

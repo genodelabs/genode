@@ -2,6 +2,7 @@
 
 assert_spec x86
 
+# RTC setting tested on Qemu only
 set test_update [have_include power_on/qemu]
 
 set build_components { core init drivers/rtc timer test/rtc }
@@ -59,7 +60,7 @@ append config {
 	<start name="test-rtc" priority="-1">
 		<resource name="RAM" quantum="1M"/>}
 append_if $test_update config {
-		<config set_rtc="yes"/>}
+		<config set_rtc="yes" year="2069" month="12" day="31" hour="23" minute="55" second="0"/>}
 append config {
 	</start>
 </config>}
