@@ -1,0 +1,3 @@
+These are time-type conversion functions (including leap years and
+seconds) taken from musl-libc git rev c82d3bada30cb27e14abda7859da5d2e784830ff
+with some adaptions. Musl is licensed under permissive MIT license.
