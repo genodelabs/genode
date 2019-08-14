@@ -9,7 +9,7 @@ if {[expr ![have_include power_on/qemu]]} {
 
 set build_components {
 	core init timer drivers/rtc server/system_rtc test/system_rtc
-	server/report_rom
+	server/report_rom test/libc_rtc
 }
 
 build $build_components
@@ -83,6 +83,20 @@ set config {
 			<any-service> <parent/> </any-service>
 		</route>
 	</start>
+
+	<start name="test-libc_rtc" caps="150">
+		<resource name="RAM" quantum="4M"/>
+		<config>
+			<vfs> <dir name="dev"> <log/> <rtc/> </dir> </vfs>
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>
+		</config>
+		<route>
+			<service name="Rtc"> <child name="system_rtc"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
 </config>}
 
 install_config $config
@@ -90,6 +104,7 @@ install_config $config
 set boot_components {
 	core ld.lib.so init timer rtc_drv test-system_rtc system_rtc
 	report_rom
+	test-libc_rtc libc.lib.so libm.lib.so posix.lib.so vfs.lib.so
 }
 
 build_boot_image $boot_components
