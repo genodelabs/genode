@@ -667,7 +667,6 @@ set default_test_pkgs {
 	test-fs_rom_update_fs
 	test-fs_rom_update_ram
 	test-fs_tool
-	test-gnatio
 	test-init
 	test-init_loop
 	test-ldso
