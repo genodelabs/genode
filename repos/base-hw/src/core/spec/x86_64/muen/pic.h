@@ -62,6 +62,7 @@ class Board::Pic
 		void mask(unsigned const) { }
 		bool is_ip_interrupt(unsigned, unsigned) { return false; }
 		void store_apic_id(unsigned const) { }
+		void irq_mode(unsigned, unsigned, unsigned) { }
 
 	private:
 

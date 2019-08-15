@@ -255,6 +255,8 @@ class Hw::Pic
 				_distr.write<Distributor::Icenabler::Clear_enable>(1, irq_id);
 			}
 		}
+
+		void irq_mode(unsigned, unsigned, unsigned) { }
 };
 
 #undef SYSTEM_REGISTER

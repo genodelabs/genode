@@ -88,6 +88,12 @@ void Pic::mask(unsigned const i)
 	ioapic.toggle_mask(i, true);
 }
 
+void Pic::irq_mode(unsigned irq_number, unsigned trigger,
+                   unsigned polarity)
+{
+	ioapic.irq_mode(irq_number, trigger, polarity);
+}
+
 inline unsigned Pic::get_lowest_bit(void)
 {
 	unsigned bit, vec_base = 0;
@@ -125,8 +131,8 @@ Ioapic::Irq_mode Ioapic::_irq_mode[IRQ_COUNT];
 
 enum { REMAP_BASE = Board::VECTOR_REMAP_BASE };
 
-void Ioapic::setup_irq_mode(unsigned irq_number, unsigned trigger,
-                            unsigned polarity)
+void Ioapic::irq_mode(unsigned irq_number, unsigned trigger,
+                      unsigned polarity)
 {
 	const unsigned irq_nr = irq_number - REMAP_BASE;
 	bool needs_sync = false;

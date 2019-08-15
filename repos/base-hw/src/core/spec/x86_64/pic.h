@@ -119,8 +119,8 @@ class Board::Ioapic : public Genode::Mmio
 		 * \param trigger     new interrupt trigger mode
 		 * \param polarity    new interrupt polarity setting
 		 */
-		void setup_irq_mode(unsigned irq_number, unsigned trigger,
-		                    unsigned polarity);
+		void irq_mode(unsigned irq_number, unsigned trigger,
+		              unsigned polarity);
 
 		/*
 		 * Registers
@@ -206,6 +206,8 @@ class Board::Pic : public Genode::Mmio
 		void unmask(unsigned const i, unsigned);
 
 		void mask(unsigned const i);
+
+		void irq_mode(unsigned irq, unsigned trigger, unsigned polarity);
 
 		void store_apic_id(unsigned const cpu_id) {
 			Id::access_t const lapic_id = read<Id>();

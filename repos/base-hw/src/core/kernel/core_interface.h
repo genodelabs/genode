@@ -60,6 +60,7 @@ namespace Kernel
 	constexpr Call_arg call_id_delete_obj()             { return 122; }
 	constexpr Call_arg call_id_cancel_thread_blocking() { return 123; }
 	constexpr Call_arg call_id_new_core_thread()        { return 124; }
+	constexpr Call_arg call_id_irq_mode()               { return 125; }
 
 	/**
 	 * Invalidate TLB entries for the `pd` in region `addr`, `sz`
@@ -205,6 +206,17 @@ namespace Kernel
 	                   capid_t signal_context_id)
 	{
 		return call(call_id_new_irq(), (Call_arg) p, irq_nr, signal_context_id);
+	}
+
+	/**
+	 * Set trigger/polaruty of IRQ
+	 * \param  irq_nr   interrupt number
+	 * \param  trigger  low or edge
+	 * \param  polarity low or high
+	 */
+	inline void irq_mode(unsigned irq_nr, unsigned trigger, unsigned polarity)
+	{
+		call(call_id_irq_mode(), irq_nr, trigger, polarity);
 	}
 
 	/**

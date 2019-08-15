@@ -577,6 +577,12 @@ void Thread::_call_new_irq()
 	user_arg_0(0);
 }
 
+void Thread::_call_irq_mode()
+{
+	cpu_pool().executing_cpu().pic().irq_mode(user_arg_1(), user_arg_2(),
+	                                          user_arg_3());
+}
+
 
 void Thread::_call_ack_irq() {
 	reinterpret_cast<User_irq*>(user_arg_1())->enable(); }
@@ -706,6 +712,7 @@ void Thread::_call()
 	case call_id_pause_vm():               _call_pause_vm(); return;
 	case call_id_pause_thread():           _call_pause_thread(); return;
 	case call_id_new_irq():                _call_new_irq(); return;
+	case call_id_irq_mode():               _call_irq_mode(); return;
 	case call_id_delete_irq():             _call_delete<Irq>(); return;
 	case call_id_ack_irq():                _call_ack_irq(); return;
 	case call_id_new_obj():                _call_new_obj(); return;

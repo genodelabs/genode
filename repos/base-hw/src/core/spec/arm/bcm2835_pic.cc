@@ -136,3 +136,6 @@ void Board::Pic::mask(unsigned const i)
 	else
 		write<Irq_disable_gpu_2>(1 << (i - 8 - 32));
 }
+
+
+void Board::Pic::irq_mode(unsigned, unsigned, unsigned) { }

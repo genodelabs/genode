@@ -228,6 +228,7 @@ class Kernel::Thread
 		void _call_pause_vm();
 		void _call_pager();
 		void _call_new_irq();
+		void _call_irq_mode();
 		void _call_ack_irq();
 		void _call_new_obj();
 		void _call_delete_obj();

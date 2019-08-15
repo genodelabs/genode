@@ -20,8 +20,6 @@ void Platform::_init_io_port_alloc() { };
 
 void Platform::_init_additional_platform_info(Genode::Xml_generator&) { }
 
-void Platform::setup_irq_mode(unsigned, unsigned, unsigned) { }
-
 long Platform::irq(long const user_irq) { return user_irq; }
 
 bool Platform::get_msi_params(const addr_t /* mmconf */, addr_t & /* address */,

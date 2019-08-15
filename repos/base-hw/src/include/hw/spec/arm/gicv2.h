@@ -221,6 +221,11 @@ class Hw::Gicv2
 			_distr.write<Distributor::Icenabler::Clear_enable>(1, irq_id); }
 
 		/**
+		 * Set trigger and polarity
+		 */
+		void irq_mode(unsigned, unsigned, unsigned) { }
+
+		/**
 		 * Raise inter-processor IRQ of the CPU with kernel name 'cpu_id'
 		 */
 		void send_ipi(unsigned const cpu_id)

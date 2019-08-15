@@ -104,6 +104,8 @@ class Hw::Pic : public Genode::Mmio
 
 		void finish_request() { }
 
+		void irq_mode(unsigned, unsigned, unsigned) { }
+
 		/**
 		 * Unmask interrupt 'i'
 		 */

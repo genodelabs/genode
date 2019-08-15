@@ -56,3 +56,6 @@ void Board::Pic::mask(unsigned const i)
 
 	Genode::raw("irq of peripherals != timer not implemented yet!");
 }
+
+
+void Board::Pic::irq_mode(unsigned, unsigned, unsigned) { }

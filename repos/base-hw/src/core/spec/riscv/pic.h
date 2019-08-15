@@ -39,6 +39,7 @@ class Board::Pic
 		void unmask(unsigned, unsigned) { }
 		void mask(unsigned) { }
 		void finish_request() { }
+		void irq_mode(unsigned, unsigned, unsigned) { }
 };
 
 #endif /* _CORE__SPEC__RISCV__PIC_H_ */

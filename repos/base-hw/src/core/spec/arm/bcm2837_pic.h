@@ -59,6 +59,7 @@ class Board::Pic : Genode::Mmio
 		void mask();
 		void unmask(unsigned const i, unsigned);
 		void mask(unsigned const i);
+		void irq_mode(unsigned, unsigned, unsigned);
 
 		static constexpr bool fast_interrupts() { return false; }
 };

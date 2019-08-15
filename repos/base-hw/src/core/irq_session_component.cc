@@ -92,5 +92,5 @@ Irq_session_component::Irq_session_component(Range_allocator &irq_alloc,
 
 	Irq_args const irq_args(args);
 
-	Platform::setup_irq_mode(_irq_number, irq_args.trigger(), irq_args.polarity());
+	Kernel::irq_mode(_irq_number, irq_args.trigger(), irq_args.polarity());
 }

@@ -59,9 +59,6 @@ struct Msi_address : Register<32>
 };
 
 
-void Platform::setup_irq_mode(unsigned, unsigned, unsigned) { }
-
-
 bool Platform::get_msi_params(const addr_t mmconf, addr_t &address,
                               addr_t &data, unsigned &irq_number)
 {
