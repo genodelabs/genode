@@ -357,7 +357,7 @@ struct Socket_fs::Sockaddr_string : String<NI_MAXHOST + NI_MAXSERV>
 	{
 		Host_string host;
 
-		strncpy(host.base(), base(), host.capacity());
+		Genode::strncpy(host.base(), base(), host.capacity());
 		char *at = strstr(host.base(), ":");
 		if (!at)
 			throw Address_conversion_failed();
@@ -374,7 +374,7 @@ struct Socket_fs::Sockaddr_string : String<NI_MAXHOST + NI_MAXSERV>
 		if (!at)
 			throw Address_conversion_failed();
 
-		strncpy(port.base(), ++at, port.capacity());
+		Genode::strncpy(port.base(), ++at, port.capacity());
 
 		return port;
 	}
