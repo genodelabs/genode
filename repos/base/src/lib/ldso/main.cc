@@ -345,13 +345,16 @@ struct Linker::Binary : private Root_object, public Elf_object
 {
 	using Root_object::first_dep;
 
+	bool const _check_ctors;
+
 	bool static_construction_finished = false;
 
 	Binary(Env &env, Allocator &md_alloc, Config const &config)
 	:
 		Root_object(md_alloc),
 		Elf_object(env, md_alloc, binary_name(),
-		           *new (md_alloc) Dependency(*this, this), KEEP)
+		           *new (md_alloc) Dependency(*this, this), KEEP),
+		_check_ctors(config.check_ctors())
 	{
 		/* create dep for binary and linker */
 		Dependency *binary = const_cast<Dependency *>(&dynamic().dep());
@@ -423,7 +426,7 @@ struct Linker::Binary : private Root_object, public Elf_object
 		if (Elf::Addr addr = lookup_symbol("_ZN9Component9constructERN6Genode3EnvE")) {
 			((void(*)(Env &))addr)(env);
 
-			if (static_construction_pending()) {
+			if (_check_ctors && static_construction_pending()) {
 				error("Component::construct() returned without executing "
 				      "pending static constructors (fix by calling "
 				      "Genode::Env::exec_static_constructors())");

@@ -68,3 +68,15 @@ Debugging dynamic binaries with GDB stubs
 GDB 7.2 has a regression bug in its line information parser. These issue has
 been fixed with version 7.3.
 
+Execution of global static constructors
+---------------------------------------
+
+The dynamic linker does not implicitely execute global static constructors
+(ctors) at the loading time of a program but leaves this up to the loaded
+program, which can trigger the execution of the ctors by calling
+'Env::exec_static_constructors()'. This gives the program the power over
+the point in time for such initializations. However, once a component's
+initialization is complete (when 'Component::construct') returned, the linker
+checks that static constructors - if present - were executed and aborts
+otherwise. This check can be explicitely disabled by specifying the config
+attribute 'ld_check_ctors="no"'.

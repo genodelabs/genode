@@ -47,14 +47,16 @@ class Linker::Config : Noncopyable
 		Bind const _bind = _config.attribute_value("ld_bind_now", false)
 		                 ? BIND_NOW : BIND_LAZY;
 
-		bool const _verbose = _config.attribute_value("ld_verbose", false);
+		bool const _verbose     = _config.attribute_value("ld_verbose",     false);
+		bool const _check_ctors = _config.attribute_value("ld_check_ctors", true);
 
 	public:
 
 		Config(Env &env) : _config(env) { }
 
-		Bind bind()    const { return _bind; }
-		bool verbose() const { return _verbose; }
+		Bind bind()        const { return _bind; }
+		bool verbose()     const { return _verbose; }
+		bool check_ctors() const { return _check_ctors; }
 
 		typedef String<100> Rom_name;
 
