@@ -15,10 +15,11 @@
 #ifndef _LIBC_PLUGIN__FD_ALLOC_H_
 #define _LIBC_PLUGIN__FD_ALLOC_H_
 
-#include <base/allocator_avl.h>
 #include <base/lock.h>
 #include <base/log.h>
 #include <os/path.h>
+#include <base/allocator.h>
+#include <base/id_space.h>
 
 /* libc includes */
 #include <stdlib.h>
@@ -39,13 +40,27 @@ namespace Libc {
 
 	struct File_descriptor
 	{
-		int             libc_fd = -1;
-		char     const *fd_path = 0;  /* for 'fchdir', 'fstat' */
-		Plugin         *plugin  = 0;
-		Plugin_context *context = 0;
-		int             flags   = 0;  /* for 'fcntl' */
-		bool            cloexec = 0;  /* for 'fcntl' */
-		Genode::Lock    lock;
+		Genode::Lock lock { };
+
+		typedef Genode::Id_space<File_descriptor> Id_space;
+		Id_space::Element _elem;
+
+		int const libc_fd = _elem.id().value;
+
+		char const *fd_path = nullptr;  /* for 'fchdir', 'fstat' */
+
+		Plugin         *plugin;
+		Plugin_context *context;
+
+		int  flags   = 0;  /* for 'fcntl' */
+		bool cloexec = 0;  /* for 'fcntl' */
+
+		File_descriptor(Id_space &id_space, Plugin &plugin, Plugin_context &context)
+		: _elem(*this, id_space), plugin(&plugin), context(&context) { }
+
+		File_descriptor(Id_space &id_space, Plugin &plugin, Plugin_context &context,
+		                Id_space::Id id)
+		: _elem(*this, id_space, id), plugin(&plugin), context(&context) { }
 
 		void path(char const *newpath)
 		{
@@ -54,8 +69,7 @@ namespace Libc {
 				Genode::size_t const path_size = ::strlen(newpath) + 1;
 				char *buf = (char*)malloc(path_size);
 				if (!buf) {
-					Genode::error("could not allocate path buffer for libc_fd ",
-					              libc_fd, libc_fd == ANY_FD ? " (any)" : "");
+					Genode::error("could not allocate path buffer for libc_fd ", libc_fd);
 					return;
 				}
 				::memcpy(buf, newpath, path_size);
@@ -66,18 +80,24 @@ namespace Libc {
 	};
 
 
-	class File_descriptor_allocator : Allocator_avl_tpl<File_descriptor>
+	class File_descriptor_allocator
 	{
 		private:
 
 			Genode::Lock _lock;
+
+			Genode::Allocator &_alloc;
+
+			typedef File_descriptor::Id_space Id_space;
+
+			Id_space _id_space;
 
 		public:
 
 			/**
 			 * Constructor
 			 */
-			File_descriptor_allocator(Genode::Allocator &md_alloc);
+			File_descriptor_allocator(Genode::Allocator &_alloc);
 
 			/**
 			 * Allocate file descriptor

@@ -40,11 +40,9 @@ File_descriptor_allocator *Libc::file_descriptor_allocator()
 }
 
 
-File_descriptor_allocator::File_descriptor_allocator(Genode::Allocator &md_alloc)
-: Allocator_avl_tpl<File_descriptor>(&md_alloc)
-{
-	add_range(0, MAX_NUM_FDS);
-}
+File_descriptor_allocator::File_descriptor_allocator(Genode::Allocator &alloc)
+: _alloc(alloc)
+{ }
 
 
 File_descriptor *File_descriptor_allocator::alloc(Plugin *plugin,
@@ -53,44 +51,41 @@ File_descriptor *File_descriptor_allocator::alloc(Plugin *plugin,
 {
 	Lock::Guard guard(_lock);
 
-	/* we use addresses returned by the allocator as file descriptors */
-	addr_t addr = (libc_fd <= ANY_FD ? ANY_FD : libc_fd);
+	bool const any_fd = (libc_fd < 0);
+	if (any_fd)
+		return new (_alloc) File_descriptor(_id_space, *plugin, *context);
 
-	/* allocate fresh fd if the default value for 'libc_fd' was specified */
-	bool alloc_ok = false;
-	if (libc_fd <= ANY_FD)
-		alloc_ok = Allocator_avl_base::alloc_aligned(1, reinterpret_cast<void**>(&addr), 0).ok();
-	else
-		alloc_ok = (Allocator_avl_base::alloc_addr(1, addr).ok());
-
-	if (!alloc_ok) {
-		error("could not allocate libc_fd ", libc_fd,
-		      libc_fd <= ANY_FD ? " (any)" : "");
-		return 0;
-	}
-
-	File_descriptor *fdo = metadata((void*)addr);
-	fdo->libc_fd = (int)addr;
-	fdo->fd_path = 0;
-	fdo->plugin  = plugin;
-	fdo->context = context;
-	fdo->lock    = Lock(Lock::UNLOCKED);
-	return fdo;
+	Id_space::Id const id {(unsigned)libc_fd};
+	return new (_alloc) File_descriptor(_id_space, *plugin, *context, id);
 }
 
 
 void File_descriptor_allocator::free(File_descriptor *fdo)
 {
 	Lock::Guard guard(_lock);
+
 	::free((void *)fdo->fd_path);
-	Allocator_avl_base::free(reinterpret_cast<void*>(fdo->libc_fd));
+
+	Genode::destroy(_alloc, fdo);
 }
 
 
 File_descriptor *File_descriptor_allocator::find_by_libc_fd(int libc_fd)
 {
 	Lock::Guard guard(_lock);
-	return metadata(reinterpret_cast<void*>(libc_fd));
+
+	if (libc_fd < 0)
+		return nullptr;
+
+	File_descriptor *result = nullptr;
+
+	try {
+		Id_space::Id const id {(unsigned)libc_fd};
+		_id_space.apply<File_descriptor>(id, [&] (File_descriptor &fd) {
+			result = &fd; });
+	} catch (Id_space::Unknown_id) { }
+
+	return result;
 }
 
 
