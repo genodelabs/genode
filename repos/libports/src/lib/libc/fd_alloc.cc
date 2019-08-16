@@ -70,6 +70,13 @@ void File_descriptor_allocator::free(File_descriptor *fdo)
 }
 
 
+void File_descriptor_allocator::preserve(int fd)
+{
+	if (!find_by_libc_fd(fd))
+		alloc(nullptr, nullptr, fd);
+}
+
+
 File_descriptor *File_descriptor_allocator::find_by_libc_fd(int libc_fd)
 {
 	Lock::Guard guard(_lock);

@@ -109,6 +109,11 @@ namespace Libc {
 			 */
 			void free(File_descriptor *fdo);
 
+			/**
+			 * Prevent the use of the specified file descriptor
+			 */
+			void preserve(int libc_fd);
+
 			File_descriptor *find_by_libc_fd(int libc_fd);
 	};
 

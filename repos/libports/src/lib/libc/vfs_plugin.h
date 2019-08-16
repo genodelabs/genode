@@ -43,41 +43,6 @@ class Libc::Vfs_plugin : public Libc::Plugin
 		Vfs::File_system         &_root_dir;
 		Vfs::Io_response_handler &_response_handler;
 
-		void _open_stdio(Genode::Xml_node const &node, char const *attr,
-		                 int libc_fd, unsigned flags)
-		{
-			if (!node.has_attribute(attr)) {
-				Libc::file_descriptor_allocator()->alloc(nullptr, nullptr, libc_fd);
-				return;
-			}
-
-			typedef Genode::String<Vfs::MAX_PATH_LEN> Path;
-			Path const path = node.attribute_value(attr, Path());
-
-			struct stat out_stat { };
-			if (stat(path.string(), &out_stat) != 0)
-				return;
-
-			Libc::File_descriptor *fd = open(path.string(), flags, libc_fd);
-			if (fd->libc_fd != libc_fd) {
-				Genode::error("could not allocate fd ",libc_fd," for ",path,", "
-				              "got fd ",fd->libc_fd);
-				close(fd);
-				return;
-			}
-
-			/*
-			 * We need to manually register the path. Normally this is done
-			 * by '_open'. But we call the local 'open' function directly
-			 * because we want to explicitly specify the libc fd ID.
-			 *
-			 * We have to allocate the path from the libc (done via 'strdup')
-			 * such that the path can be freed when an stdio fd is closed.
-			 */
-			if (fd->fd_path) { Genode::warning("may leak former FD path memory"); }
-			fd->fd_path = strdup(path.string());
-		}
-
 		/**
 		 * Sync a handle and propagate errors
 		 */
@@ -90,27 +55,11 @@ class Libc::Vfs_plugin : public Libc::Plugin
 		           Vfs::Io_response_handler &handler)
 		:
 			_alloc(alloc), _root_dir(env.vfs()), _response_handler(handler)
-		{
-			using Genode::Xml_node;
-
-			if (_root_dir.num_dirent("/"))
-				env.config([&] (Xml_node const &top) {
-
-					top.with_sub_node("libc", [&] (Xml_node node) {
-
-						typedef Genode::String<Vfs::MAX_PATH_LEN> Path;
-
-						if (node.has_attribute("cwd"))
-							chdir(node.attribute_value("cwd", Path()).string());
-
-						_open_stdio(node, "stdin",  0, O_RDONLY);
-						_open_stdio(node, "stdout", 1, O_WRONLY);
-						_open_stdio(node, "stderr", 2, O_WRONLY);
-					});
-				});
-		}
+		{ }
 
 		~Vfs_plugin() final { }
+
+		bool root_dir_has_dirents() const { return _root_dir.num_dirent("/") > 0; }
 
 		bool supports_access(const char *, int)                override { return true; }
 		bool supports_mkdir(const char *, mode_t)              override { return true; }

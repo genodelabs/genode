@@ -558,12 +558,16 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 			return timeout_ms > 0 ? _main_timeout.duration_left() : 0;
 		}
 
+		void _init_file_descriptors();
+
 	public:
 
 		Kernel(Genode::Env &env, Genode::Allocator &heap)
 		: _env(env), _heap(heap)
 		{
 			_env.ep().register_io_progress_handler(*this);
+
+			_init_file_descriptors();
 		}
 
 		~Kernel() { Genode::error(__PRETTY_FUNCTION__, " should not be executed!"); }
@@ -816,6 +820,81 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 			}
 		}
 };
+
+
+void Libc::Kernel::_init_file_descriptors()
+{
+	auto init_fd = [&] (Genode::Xml_node const &node, char const *attr,
+	                    int libc_fd, unsigned flags)
+	{
+		if (!node.has_attribute(attr))
+			return;
+
+		typedef Genode::String<Vfs::MAX_PATH_LEN> Path;
+		Path const path = node.attribute_value(attr, Path());
+
+		struct stat out_stat { };
+		if (stat(path.string(), &out_stat) != 0)
+			return;
+
+		Libc::File_descriptor *fd = _vfs.open(path.string(), flags, libc_fd);
+		if (fd->libc_fd != libc_fd) {
+			Genode::error("could not allocate fd ",libc_fd," for ",path,", "
+			              "got fd ",fd->libc_fd);
+			_vfs.close(fd);
+			return;
+		}
+
+		/*
+		 * We need to manually register the path. Normally this is done
+		 * by '_open'. But we call the local 'open' function directly
+		 * because we want to explicitly specify the libc fd ID.
+		 *
+		 * We have to allocate the path from the libc (done via 'strdup')
+		 * such that the path can be freed when an stdio fd is closed.
+		 */
+		if (fd->fd_path) { Genode::warning("may leak former FD path memory"); }
+		fd->fd_path = strdup(path.string());
+
+		::off_t const seek = node.attribute_value("seek", 0ULL);
+		if (seek)
+			_vfs.lseek(fd, seek, SEEK_SET);
+	};
+
+	if (_vfs.root_dir_has_dirents()) {
+
+		Xml_node const node = _libc_env.libc_config();
+
+		typedef Genode::String<Vfs::MAX_PATH_LEN> Path;
+
+		if (node.has_attribute("cwd"))
+			chdir(node.attribute_value("cwd", Path()).string());
+
+		init_fd(node, "stdin",  0, O_RDONLY);
+		init_fd(node, "stdout", 1, O_WRONLY);
+		init_fd(node, "stderr", 2, O_WRONLY);
+
+		node.for_each_sub_node("fd", [&] (Xml_node fd) {
+
+			unsigned const id = fd.attribute_value("id", 0U);
+
+			bool const rd = fd.attribute_value("readable",  false);
+			bool const wr = fd.attribute_value("writeable", false);
+
+			unsigned const flags = rd ? (wr ? O_RDWR : O_RDONLY)
+			                          : (wr ? O_WRONLY : 0);
+
+			if (!fd.has_attribute("path"))
+				warning("Invalid <fd> node, 'path' attribute is missing");
+
+			init_fd(fd, "path", id, flags);
+		});
+
+		/* prevent use of IDs of stdin, stdout, and stderr for other files */
+		for (unsigned fd = 0; fd <= 2; fd++)
+			Libc::file_descriptor_allocator()->preserve(fd);
+	}
+}
 
 
 /**
