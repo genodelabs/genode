@@ -15,6 +15,7 @@
 #define _INCLUDE__BASE__ID_SPACE_H_
 
 #include <util/noncopyable.h>
+#include <util/meta.h>
 #include <base/lock.h>
 #include <base/log.h>
 #include <util/avl_tree.h>
