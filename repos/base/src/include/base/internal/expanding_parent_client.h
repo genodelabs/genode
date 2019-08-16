@@ -50,10 +50,16 @@ class Genode::Expanding_parent_client : public Parent_client
 		 */
 		Lock _lock { };
 
+		struct Io_signal_context : Signal_context
+		{
+			Io_signal_context()
+			{ Signal_context::_level = Signal_context::Level::Io; }
+		};
+
 		/**
 		 * Signal context for the fallback signal handler
 		 */
-		Signal_context _fallback_sig_ctx { };
+		Io_signal_context _fallback_sig_ctx { };
 
 		/**
 		 * Signal context capability for the fallback signal handler
