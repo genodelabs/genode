@@ -89,7 +89,7 @@ class Genode::Heap : public Allocator
 					ram_alloc = ram, region_map = rm; }
 		};
 
-		Lock                           _lock { };
+		Lock                   mutable _lock { };
 		Reconstructible<Allocator_avl> _alloc;        /* local allocator    */
 		Dataspace_pool                 _ds_pool;      /* list of dataspaces */
 		size_t                         _quota_limit { 0 };
@@ -150,6 +150,17 @@ class Genode::Heap : public Allocator
 		 */
 		void reassign_resources(Ram_allocator *ram, Region_map *rm) {
 			_ds_pool.reassign_resources(ram, rm); }
+
+		/**
+		 * Call 'fn' with the start and size of each backing-store region
+		 */
+		template <typename FN>
+		void for_each_region(FN const &fn) const
+		{
+			Lock::Guard guard(_lock);
+			for (Dataspace const *ds = _ds_pool.first(); ds; ds = ds->next())
+				fn(ds->local_addr, ds->size);
+		}
 
 
 		/*************************
