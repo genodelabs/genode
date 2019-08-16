@@ -85,6 +85,15 @@ struct Genode::Expanding_pd_session_client : Pd_session_client
 			[&] () { _request_ram_from_parent(amount.value); },
 			NUM_ATTEMPTS);
 	}
+
+	void transfer_quota(Pd_session_capability pd_session, Cap_quota amount) override
+	{
+		enum { NUM_ATTEMPTS = 2 };
+		retry<Out_of_caps>(
+			[&] () { Pd_session_client::transfer_quota(pd_session, amount); },
+			[&] () { _request_caps_from_parent(amount.value); },
+			NUM_ATTEMPTS);
+	}
 };
 
 #endif /* _INCLUDE__BASE__INTERNAL__EXPANDING_PD_SESSION_CLIENT_H_ */
