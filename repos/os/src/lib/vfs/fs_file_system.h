@@ -866,6 +866,7 @@ class Vfs::Fs_file_system : public File_system
 			::File_system::Watch_handle fs_handle { -1U };
 
 			try { fs_handle = _fs.watch(path); }
+			catch (Unavailable)       { return WATCH_ERR_UNACCESSIBLE; }
 			catch (Lookup_failed)     { return WATCH_ERR_UNACCESSIBLE; }
 			catch (Permission_denied) { return WATCH_ERR_STATIC; }
 			catch (Out_of_ram)        { return WATCH_ERR_OUT_OF_RAM; }
