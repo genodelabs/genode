@@ -13,6 +13,7 @@
 
 /* Genode includes */
 #include <util/retry.h>
+#include <util/reconstructible.h>
 #include <base/component.h>
 #include <base/attached_rom_dataspace.h>
 #include <base/heap.h>
@@ -34,6 +35,8 @@ struct Depot_deploy::Main
 	Expanding_reporter _query_reporter       { _env, "query" , "query"};
 	Expanding_reporter _init_config_reporter { _env, "config", "init.config"};
 
+	Constructible<Expanding_reporter> _state_reporter { };
+
 	Heap _heap { _env.ram(), _env.rm() };
 
 	Children _children { _heap };
@@ -47,6 +50,16 @@ struct Depot_deploy::Main
 	{
 		_config.update();
 		_blueprint.update();
+
+		bool const report_state =
+			_config.xml().has_sub_node("report") &&
+			_config.xml().sub_node("report").attribute_value("state", false);
+
+		_state_reporter.conditional(report_state, _env, "state", "state");
+
+		if (_state_reporter.constructed())
+			_state_reporter->generate([&] (Xml_generator xml) {
+				xml.attribute("running", true); });
 
 		Xml_node const config = _config.xml();
 
@@ -76,12 +89,24 @@ struct Depot_deploy::Main
 				_children.gen_queries(xml);
 			});
 		}
+
+		if ((_children.count() > 0UL)
+		 && !_children.any_incomplete()
+		 && !_children.any_blueprint_needed()
+		 && _state_reporter.constructed()) {
+
+			_state_reporter->generate([&] (Xml_generator xml) {
+				xml.attribute("running", false);
+				xml.attribute("count", _children.count());
+			});
+		}
 	}
 
 	Main(Env &env) : _env(env)
 	{
 		_config   .sigh(_config_handler);
 		_blueprint.sigh(_config_handler);
+
 
 		_handle_config();
 	}

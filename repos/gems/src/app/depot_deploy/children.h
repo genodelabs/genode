@@ -133,6 +133,14 @@ class Depot_deploy::Children
 				child.gen_installation_entry(xml); });
 		}
 
+		size_t count() const
+		{
+			size_t count = 0;
+			_children.for_each([&] (Child const &) {
+				++count; });
+			return count;
+		}
+
 		bool any_incomplete() const {
 
 			bool result = false;
