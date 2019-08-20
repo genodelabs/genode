@@ -166,6 +166,8 @@ class Linker::Object : private Fifo<Object>::Element,
 
 		virtual void relocate(Bind) = 0;
 
+		virtual bool keep() const = 0;
+
 		virtual void load() = 0;
 		virtual bool unload() { return false;}
 
@@ -219,6 +221,7 @@ class Linker::Dependency : public Fifo<Dependency>::Element, Noncopyable
 		Object      &_obj;
 		Root_object *_root     = nullptr;
 		Allocator   *_md_alloc = nullptr;
+		bool   const _unload_on_destruct = true;
 
 		/**
 		 * Check if file is in this dependency tree
@@ -232,7 +235,10 @@ class Linker::Dependency : public Fifo<Dependency>::Element, Noncopyable
 		/*
 		 * Called by 'Ld' constructor
 		 */
-		Dependency(Object &obj, Root_object *root) : _obj(obj), _root(root) { }
+		Dependency(Object &obj, Root_object *root)
+		:
+			_obj(obj), _root(root), _unload_on_destruct(false)
+		{ }
 
 		Dependency(Env &, Allocator &, char const *path, Root_object *,
 		           Fifo<Dependency> &, Keep);
@@ -282,7 +288,8 @@ class Linker::Root_object
 		~Root_object()
 		{
 			_deps.dequeue_all([&] (Dependency &d) {
-				destroy(_md_alloc, &d); });
+				if (!d.obj().keep())
+					destroy(_md_alloc, &d); });
 		}
 
 		Link_map const &link_map() const
@@ -302,6 +309,8 @@ class Linker::Root_object
 		}
 
 		void enqueue(Dependency &dep) { _deps.enqueue(dep); }
+
+		void remove_dependency(Dependency &dep) { _deps.remove(dep); }
 
 		Fifo<Dependency> &deps() { return _deps; }
 };

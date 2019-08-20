@@ -35,6 +35,9 @@ Linker::Dependency::Dependency(Env &env, Allocator &md_alloc,
 
 Linker::Dependency::~Dependency()
 {
+	if (!_unload_on_destruct)
+		return;
+
 	if (!_obj.unload())
 		return;
 

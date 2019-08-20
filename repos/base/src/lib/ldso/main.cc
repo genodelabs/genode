@@ -84,10 +84,10 @@ class Linker::Elf_object : public Object, private Fifo<Elf_object>::Element
 
 		friend class Fifo<Elf_object>;
 
-		Link_map       _map       { };
-		unsigned       _ref_count { 1 };
-		unsigned const _keep      { KEEP };
-		bool           _relocated { false };
+		Link_map _map       { };
+		unsigned _ref_count { 1 };
+		Keep     _keep      { KEEP };
+		bool     _relocated { false };
 
 		/*
 		 * Optional ELF file, skipped for initial 'Ld' initialization
@@ -153,6 +153,7 @@ class Linker::Elf_object : public Object, private Fifo<Elf_object>::Element
 
 			/* remove from loaded objects list */
 			obj_list()->remove(*this);
+			Init::list()->remove(this);
 		}
 
 		/**
@@ -190,6 +191,8 @@ class Linker::Elf_object : public Object, private Fifo<Elf_object>::Element
 
 			Link_map::add(&_map);
 		};
+
+		void force_keep() { _keep = KEEP; }
 
 		Link_map const &link_map() const override { return _map; }
 		Dynamic  const &dynamic()  const override { return _dyn; }
@@ -241,6 +244,8 @@ class Linker::Elf_object : public Object, private Fifo<Elf_object>::Element
 		void load()   override { _ref_count++; }
 		bool unload() override { return (_keep == DONT_KEEP) && !(--_ref_count); }
 
+		bool keep() const override { return _keep == KEEP; }
+
 		bool is_linker() const override { return false; }
 		bool is_binary() const override { return false; }
 };
@@ -271,6 +276,8 @@ struct Linker::Ld : private Dependency, Elf_object
 	static Ld &linker();
 
 	bool is_linker() const override { return true; }
+
+	bool keep() const override { return true; }
 
 	/**
 	 * Entry point for jump relocations, it is called from assembly code and is implemented
@@ -349,11 +356,11 @@ struct Linker::Binary : private Root_object, public Elf_object
 
 	bool static_construction_finished = false;
 
-	Binary(Env &env, Allocator &md_alloc, Config const &config)
+	Binary(Env &env, Allocator &md_alloc, Config const &config, char const *name)
 	:
 		Root_object(md_alloc),
-		Elf_object(env, md_alloc, binary_name(),
-		           *new (md_alloc) Dependency(*this, this), KEEP),
+		Elf_object(env, md_alloc, name,
+		           *new (md_alloc) Dependency(*this, this), DONT_KEEP),
 		_check_ctors(config.check_ctors())
 	{
 		/* create dep for binary and linker */
@@ -697,6 +704,35 @@ void Genode::Dynamic_linker::_for_each_loaded_object(Env &, For_each_fn const &f
 }
 
 
+void Dynamic_linker::keep(Env &, char const *binary)
+{
+	Elf_object::obj_list()->for_each([&] (Elf_object &obj) {
+		if (Object::Name(binary) == obj.name())
+			obj.force_keep(); });
+}
+
+
+void *Dynamic_linker::_respawn(Env &env, char const *binary, char const *entry_name)
+{
+	Object::Name const name(binary);
+
+	/* unload original binary */
+	binary_ptr->~Binary();
+
+	Config const config(env);
+
+	/* load new binary */
+	construct_at<Binary>(binary_ptr, env, *heap(), config, name.string());
+
+	try {
+		return (void *)binary_ptr->lookup_symbol(entry_name);
+	}
+	catch (...) { }
+
+	throw Dynamic_linker::Invalid_symbol();
+}
+
+
 void Component::construct(Genode::Env &env)
 {
 	/* read configuration */
@@ -706,7 +742,7 @@ void Component::construct(Genode::Env &env)
 
 	/* load binary and all dependencies */
 	try {
-		binary_ptr = unmanaged_singleton<Binary>(env, *heap(), config);
+		binary_ptr = unmanaged_singleton<Binary>(env, *heap(), config, binary_name());
 	} catch(Linker::Not_found &symbol) {
 		error("LD: symbol not found: '", symbol, "'");
 		throw;
