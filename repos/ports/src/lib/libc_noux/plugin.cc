@@ -712,6 +712,80 @@ extern "C" pid_t waitpid(pid_t pid, int *istat, int options)
 }
 
 
+extern "C" int execve(char const *filename, char *const argv[],
+                      char *const envp[])
+{
+	if (verbose) {
+		log(__func__, ": filename=", filename);
+
+		for (int i = 0; argv[i]; i++)
+			log(__func__, "argv[", i, "]='", Genode::Cstring(argv[i]), "'");
+
+		for (int i = 0; envp[i]; i++)
+			log(__func__, "envp[", i, "]='", Genode::Cstring(envp[i]), "'");
+	}
+
+	Libc::Absolute_path resolved_path;
+	try {
+		Libc::resolve_symlinks(filename, resolved_path);
+	} catch (Libc::Symlink_resolve_error) {
+		return -1;
+	}
+
+	Genode::strncpy(sysio()->execve_in.filename, resolved_path.string(),
+	                sizeof(sysio()->execve_in.filename));
+	if (!serialize_string_array(argv, sysio()->execve_in.args,
+	                            sizeof(sysio()->execve_in.args))) {
+	    error("execve: argument buffer exceeded");
+	    errno = E2BIG;
+	    return -1;
+	}
+
+	/* communicate the current working directory as environment variable */
+
+	size_t noux_cwd_len = Genode::snprintf(sysio()->execve_in.env,
+	                                       sizeof(sysio()->execve_in.env),
+	                                       "NOUX_CWD=");
+
+	if (!getcwd(&(sysio()->execve_in.env[noux_cwd_len]),
+	            sizeof(sysio()->execve_in.env) - noux_cwd_len)) {
+	    error("execve: environment buffer exceeded");
+	    errno = E2BIG;
+	    return -1;
+	}
+
+	noux_cwd_len = strlen(sysio()->execve_in.env) + 1;
+
+	if (!serialize_string_array(envp, &(sysio()->execve_in.env[noux_cwd_len]),
+                               sizeof(sysio()->execve_in.env) - noux_cwd_len)) {
+	    error("execve: environment buffer exceeded");
+	    errno = E2BIG;
+	    return -1;
+	}
+
+	if (!noux_syscall(Noux::Session::SYSCALL_EXECVE)) {
+		warning("exec syscall failed for path \"", filename, "\"");
+		switch (sysio()->error.execve) {
+		case Noux::Sysio::EXECVE_ERR_NO_ENTRY:  errno = ENOENT; break;
+		case Noux::Sysio::EXECVE_ERR_NO_MEMORY: errno = ENOMEM; break;
+		case Noux::Sysio::EXECVE_ERR_NO_EXEC:   errno = ENOEXEC; break;
+		case Noux::Sysio::EXECVE_ERR_ACCESS:    errno = EACCES; break;
+		}
+		return -1;
+	}
+
+	/*
+	 * In the success case, we never return from execve, the execution is
+	 * resumed in the new program.
+	 */
+	Genode::sleep_forever();
+	return 0;
+}
+
+
+extern "C" int _execve(char const *, char *const[], char *const[]) __attribute__((alias("execve")));
+
+
 int getrusage(int who, struct rusage *usage)
 {
 	if (verbose)
@@ -983,8 +1057,6 @@ namespace {
 			void init(Genode::Env &);
 
 			bool supports_access(const char *, int)                { return true; }
-			bool supports_execve(char const *, char *const[],
-			                     char *const[])                    { return true; }
 			bool supports_open(char const *, int)                  { return true; }
 			bool supports_stat(char const *)                       { return true; }
 			bool supports_symlink(char const *, char const*)       { return true; }
@@ -1003,8 +1075,6 @@ namespace {
 			int close(Libc::File_descriptor *);
 			Libc::File_descriptor *dup(Libc::File_descriptor*);
 			int dup2(Libc::File_descriptor *, Libc::File_descriptor *);
-			int execve(char const *filename, char *const argv[],
-			           char *const envp[]);
 			int fstat(Libc::File_descriptor *, struct stat *);
 			int fsync(Libc::File_descriptor *);
 			int fstatfs(Libc::File_descriptor *, struct statfs *);
@@ -1064,69 +1134,6 @@ namespace {
 
 		errno = ENOENT;
 		return -1;
-	}
-
-
-	int Plugin::execve(char const *filename, char *const argv[],
-	                   char *const envp[])
-	{
-		if (verbose) {
-			log(__func__, ": filename=", filename);
-
-			for (int i = 0; argv[i]; i++)
-				log(__func__, "argv[", i, "]='", Genode::Cstring(argv[i]), "'");
-
-			for (int i = 0; envp[i]; i++)
-				log(__func__, "envp[", i, "]='", Genode::Cstring(envp[i]), "'");
-		}
-
-		Genode::strncpy(sysio()->execve_in.filename, filename, sizeof(sysio()->execve_in.filename));
-		if (!serialize_string_array(argv, sysio()->execve_in.args,
-		                            sizeof(sysio()->execve_in.args))) {
-		    error("execve: argument buffer exceeded");
-		    errno = E2BIG;
-		    return -1;
-		}
-
-		/* communicate the current working directory as environment variable */
-
-		size_t noux_cwd_len = Genode::snprintf(sysio()->execve_in.env,
-		                                       sizeof(sysio()->execve_in.env),
-		                                       "NOUX_CWD=");
-
-		if (!getcwd(&(sysio()->execve_in.env[noux_cwd_len]),
-		            sizeof(sysio()->execve_in.env) - noux_cwd_len)) {
-		    error("execve: environment buffer exceeded");
-		    errno = E2BIG;
-		    return -1;
-		}
-
-		noux_cwd_len = strlen(sysio()->execve_in.env) + 1;
-
-		if (!serialize_string_array(envp, &(sysio()->execve_in.env[noux_cwd_len]),
-                                   sizeof(sysio()->execve_in.env) - noux_cwd_len)) {
-		    error("execve: environment buffer exceeded");
-		    errno = E2BIG;
-		    return -1;
-		}
-
-		if (!noux_syscall(Noux::Session::SYSCALL_EXECVE)) {
-			warning("exec syscall failed for path \"", filename, "\"");
-			switch (sysio()->error.execve) {
-			case Noux::Sysio::EXECVE_ERR_NO_ENTRY:  errno = ENOENT; break;
-			case Noux::Sysio::EXECVE_ERR_NO_MEMORY: errno = ENOMEM; break;
-			case Noux::Sysio::EXECVE_ERR_NO_EXEC:   errno = ENOEXEC; break;
-			case Noux::Sysio::EXECVE_ERR_ACCESS:    errno = EACCES; break;
-			}
-			return -1;
-		}
-
-		/*
-		 * In the success case, we never return from execve, the execution is
-		 * resumed in the new program.
-		 */
-		Genode::sleep_forever();
-		return 0;
 	}
 
 

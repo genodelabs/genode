@@ -16,7 +16,6 @@
 #include <util/construct_at.h>
 #include <base/env.h>
 #include <base/log.h>
-#include <libc/allocator.h>
 
 /* libc plugin interface */
 #include <libc-plugin/fd_alloc.h>
@@ -25,26 +24,31 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+/* libc-internal includes */
+#include <libc_init.h>
+#include <base/internal/unmanaged_singleton.h>
+
 using namespace Libc;
 using namespace Genode;
 
 
+static Allocator *_alloc_ptr;
+
+
+void Libc::init_fd_alloc(Allocator &alloc) { _alloc_ptr = &alloc; }
+
+
 File_descriptor_allocator *Libc::file_descriptor_allocator()
 {
-	static bool constructed = false;
-	static char placeholder[sizeof(File_descriptor_allocator)];
-	static Libc::Allocator md_alloc;
+	if (_alloc_ptr)
+		return unmanaged_singleton<File_descriptor_allocator>(*_alloc_ptr);
 
-	if (!constructed) {
-		Genode::construct_at<File_descriptor_allocator>(placeholder, md_alloc);
-		constructed = true;
-	}
-
-	return reinterpret_cast<File_descriptor_allocator *>(placeholder);
+	error("missing call of 'init_fd_alloc'");
+	return nullptr;
 }
 
 
-File_descriptor_allocator::File_descriptor_allocator(Genode::Allocator &alloc)
+File_descriptor_allocator::File_descriptor_allocator(Allocator &alloc)
 : _alloc(alloc)
 { }
 
@@ -68,9 +72,10 @@ void File_descriptor_allocator::free(File_descriptor *fdo)
 {
 	Lock::Guard guard(_lock);
 
-	::free((void *)fdo->fd_path);
+	if (fdo->fd_path)
+		_alloc.free((void *)fdo->fd_path, ::strlen(fdo->fd_path) + 1);
 
-	Genode::destroy(_alloc, fdo);
+	destroy(_alloc, fdo);
 }
 
 
@@ -128,6 +133,30 @@ void File_descriptor_allocator::generate_info(Xml_generator &xml)
 			}
 		});
 	});
+}
+
+
+void File_descriptor::path(char const *newpath)
+{
+	if (fd_path)
+		warning("may leak former FD path memory");
+
+	if (!_alloc_ptr) {
+		error("missing call of 'init_fd_alloc'");
+		return;
+	}
+
+	if (newpath) {
+		Genode::size_t const path_size = ::strlen(newpath) + 1;
+		char *buf = (char*)_alloc_ptr->alloc(path_size);
+		if (!buf) {
+			error("could not allocate path buffer for libc_fd ", libc_fd);
+			return;
+		}
+		::memcpy(buf, newpath, path_size);
+		fd_path = buf;
+	} else
+		fd_path = 0;
 }
 
 

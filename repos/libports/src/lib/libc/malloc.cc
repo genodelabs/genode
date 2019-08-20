@@ -284,3 +284,11 @@ void Libc::init_malloc_cloned(Clone_connection &clone_connection)
 
 	mallocator = constructible_malloc().operator->();
 }
+
+
+void Libc::reinit_malloc(Genode::Allocator &heap)
+{
+	Libc::Malloc &malloc = *constructible_malloc();
+
+	Genode::construct_at<Libc::Malloc>(&malloc, heap);
+}

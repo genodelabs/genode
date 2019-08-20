@@ -1,0 +1,32 @@
+build { core init test/execve }
+
+create_boot_directory
+
+install_config {
+	<config verbose="yes">
+		<parent-provides>
+			<service name="ROM"/>
+			<service name="LOG"/>
+			<service name="CPU"/>
+			<service name="PD"/>
+		</parent-provides>
+		<start name="test-execve" caps="300">
+			<resource name="RAM" quantum="1G"/>
+			<config ld_verbose="yes">
+				<arg value="name_of_executeable"/>
+				<arg value="100"/>
+				<libc stdin="/null" stdout="/log" stderr="/log"/>
+				<vfs> <null/> <log/> </vfs>
+			</config>
+			<route> <any-service> <parent/> </any-service> </route>
+		</start>
+	</config>
+}
+
+build_boot_image {
+	core init ld.lib.so libc.lib.so vfs.lib.so libm.lib.so posix.lib.so test-execve
+}
+
+append qemu_args " -nographic "
+
+run_genode_until "child.*exited.*value 0.*\n" 15

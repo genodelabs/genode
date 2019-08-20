@@ -57,13 +57,6 @@ bool Plugin::supports_access(char const *path, int amode)
 }
 
 
-bool Plugin::supports_execve(char const *filename, char *const argv[],
-                             char *const envp[])
-{
-	return false;
-}
-
-
 bool Plugin::supports_mkdir(const char *, mode_t)
 {
 	return false;
@@ -197,7 +190,6 @@ DUMMY(ssize_t, -1, write,         (File_descriptor *, const void *, ::size_t));
  * Misc
  */
 DUMMY(int, -1, access,       (char const *, int));
-DUMMY(int, -1, execve,       (char const *, char *const[], char *const[]));
 DUMMY(int, -1, mkdir,        (const char*, mode_t));
 DUMMY(void *, (void *)(-1), mmap, (void *addr, ::size_t length, int prot, int flags,
                                    File_descriptor *, ::off_t offset));

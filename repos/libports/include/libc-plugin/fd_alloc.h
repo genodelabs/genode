@@ -63,21 +63,7 @@ namespace Libc {
 		                Id_space::Id id)
 		: _elem(*this, id_space, id), plugin(&plugin), context(&context) { }
 
-		void path(char const *newpath)
-		{
-			if (fd_path) { Genode::warning("may leak former FD path memory"); }
-			if (newpath) {
-				Genode::size_t const path_size = ::strlen(newpath) + 1;
-				char *buf = (char*)malloc(path_size);
-				if (!buf) {
-					Genode::error("could not allocate path buffer for libc_fd ", libc_fd);
-					return;
-				}
-				::memcpy(buf, newpath, path_size);
-				fd_path = buf;
-			} else
-				fd_path = 0;
-		}
+		void path(char const *newpath);
 	};
 
 

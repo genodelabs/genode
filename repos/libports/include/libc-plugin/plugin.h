@@ -15,6 +15,7 @@
 #define _LIBC_PLUGIN__PLUGIN_H_
 
 #include <os/path.h>
+#include <base/exception.h>
 #include <util/list.h>
 
 #include <netdb.h>
@@ -32,8 +33,11 @@ namespace Libc {
 	
 	class File_descriptor;
 
-	
 	typedef Genode::Path<PATH_MAX> Absolute_path;
+
+	class Symlink_resolve_error : Genode::Exception { };
+
+	void resolve_symlinks(char const *path, Absolute_path &resolved_path);
 
 	class Plugin : public List<Plugin>::Element
 	{
@@ -54,8 +58,6 @@ namespace Libc {
 			virtual int priority();
 
 			virtual bool supports_access(char const *path, int amode);
-			virtual bool supports_execve(char const *filename, char *const argv[],
-			                             char *const envp[]);
 			virtual bool supports_mkdir(const char *path, mode_t mode);
 			virtual bool supports_open(const char *pathname, int flags);
 			virtual bool supports_pipe();
@@ -92,8 +94,6 @@ namespace Libc {
 			                    socklen_t addrlen);
 			virtual File_descriptor *dup(File_descriptor*);
 			virtual int dup2(File_descriptor *, File_descriptor *new_fd);
-			virtual int execve(char const *filename, char *const argv[],
-			                   char *const envp[]);
 			virtual int fstatfs(File_descriptor *, struct statfs *buf);
 			virtual int fcntl(File_descriptor *, int cmd, long arg);
 			virtual int fstat(File_descriptor *, struct stat *buf);

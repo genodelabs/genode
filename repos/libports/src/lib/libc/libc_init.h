@@ -30,6 +30,11 @@ namespace Libc {
 	void init_dl(Genode::Env &env);
 
 	/**
+	 * File-descriptor allocator
+	 */
+	void init_fd_alloc(Genode::Allocator &);
+
+	/**
 	 * Global memory allocator
 	 */
 	void init_mem_alloc(Genode::Env &env);
@@ -49,8 +54,9 @@ namespace Libc {
 	/**
 	 * Malloc allocator
 	 */
-	void init_malloc(Genode::Allocator &heap);
+	void init_malloc(Genode::Allocator &);
 	void init_malloc_cloned(Clone_connection &);
+	void reinit_malloc(Genode::Allocator &);
 
 	/**
 	 * Allow thread.cc to access the 'Genode::Env' (needed for the
@@ -68,6 +74,17 @@ namespace Libc {
 	 */
 	void init_fork(Genode::Env &, Config_accessor const &,
 	               Genode::Allocator &heap, Genode::Heap &malloc_heap, int pid);
+
+	struct Reset_malloc_heap : Genode::Interface
+	{
+		virtual void reset_malloc_heap() = 0;
+	};
+
+	/**
+	 * Execve mechanism
+	 */
+	void init_execve(Genode::Env &, Genode::Allocator &, void *user_stack,
+	                 Reset_malloc_heap &);
 }
 
 #endif /* _LIBC_INIT_H_ */

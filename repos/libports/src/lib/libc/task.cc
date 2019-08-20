@@ -41,6 +41,7 @@ extern char **environ;
 namespace Libc {
 	class Env_implementation;
 	class Cloned_malloc_heap_range;
+	class Malloc_ram_allocator;
 	class Kernel;
 	class Pthreads;
 	class Timer;
@@ -371,6 +372,59 @@ struct Libc::Cloned_malloc_heap_range
 };
 
 
+/*
+ * Utility for tracking the allocation of dataspaces by the malloc heap
+ */
+struct Libc::Malloc_ram_allocator : Genode::Ram_allocator
+{
+	Genode::Allocator     &_md_alloc;
+	Genode::Ram_allocator &_ram;
+
+	struct Dataspace
+	{
+		Genode::Ram_dataspace_capability cap;
+		Dataspace(Genode::Ram_dataspace_capability cap) : cap(cap) { }
+		virtual ~Dataspace() { }
+	};
+
+	Genode::Registry<Genode::Registered<Dataspace> > _dataspaces { };
+
+	void _release(Genode::Registered<Dataspace> &ds)
+	{
+		_ram.free(ds.cap);
+		destroy(_md_alloc, &ds);
+	}
+
+	Malloc_ram_allocator(Allocator &md_alloc, Ram_allocator &ram)
+	: _md_alloc(md_alloc), _ram(ram) { }
+
+	~Malloc_ram_allocator()
+	{
+		_dataspaces.for_each([&] (Registered<Dataspace> &ds) {
+			_release(ds); });
+	}
+
+	Ram_dataspace_capability alloc(size_t size, Cache_attribute cached) override
+	{
+		Ram_dataspace_capability cap = _ram.alloc(size, cached);
+		new (_md_alloc) Registered<Dataspace>(_dataspaces, cap);
+		return cap;
+	}
+
+	void free(Ram_dataspace_capability ds_cap) override
+	{
+		_dataspaces.for_each([&] (Registered<Dataspace> &ds) {
+			if (ds_cap == ds.cap)
+				_release(ds); });
+	}
+
+	size_t dataspace_size(Ram_dataspace_capability ds_cap) const override
+	{
+		return _ram.dataspace_size(ds_cap);
+	}
+};
+
+
 /**
  * Libc "kernel"
  *
@@ -382,16 +436,35 @@ struct Libc::Cloned_malloc_heap_range
  * setjmp/longjmp.
  */
 struct Libc::Kernel final : Vfs::Io_response_handler,
-                            Genode::Entrypoint::Io_progress_handler
+                            Genode::Entrypoint::Io_progress_handler,
+                            Reset_malloc_heap
 {
 	private:
 
-		Genode::Env       &_env;
+		Genode::Env &_env;
+
+		/**
+		 * Allocator for libc-internal data
+		 *
+		 * Not mirrored to forked processes. Preserved across 'execve' calls.
+		 */
 		Genode::Allocator &_heap;
+
+		/**
+		 * Allocator for application-owned data
+		 *
+		 * Mirrored to forked processes. Not preserved across 'execve' calls.
+		 */
+		Genode::Reconstructible<Malloc_ram_allocator> _malloc_ram { _heap, _env.ram() };
 
 		Genode::Constructible<Heap> _malloc_heap { };
 
 		Genode::Registry<Registered<Cloned_malloc_heap_range> > _cloned_heap_ranges { };
+
+		/**
+		 * Reset_malloc_heap interface used by execve
+		 */
+		void reset_malloc_heap() override;
 
 		Env_implementation   _libc_env { _env, _heap };
 		Vfs_plugin           _vfs { _libc_env, _heap, *this };
@@ -638,11 +711,12 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 				_clone_state_from_parent();
 
 			} else {
-				_malloc_heap.construct(_env.ram(), _env.rm());
+				_malloc_heap.construct(*_malloc_ram, _env.rm());
 				init_malloc(*_malloc_heap);
 			}
 
 			Libc::init_fork(_env, _libc_env, _heap, *_malloc_heap, _pid);
+			Libc::init_execve(_env, _heap, _user_stack, *this);
 
 			_init_file_descriptors();
 		}
@@ -920,6 +994,20 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 };
 
 
+void Libc::Kernel::reset_malloc_heap()
+{
+	_malloc_ram.construct(_heap, _env.ram());
+
+	_cloned_heap_ranges.for_each([&] (Registered<Cloned_malloc_heap_range> &r) {
+		destroy(_heap, &r); });
+
+	Heap &raw_malloc_heap = *_malloc_heap;
+	Genode::construct_at<Heap>(&raw_malloc_heap, *_malloc_ram, _env.rm());
+
+	reinit_malloc(raw_malloc_heap);
+}
+
+
 void Libc::Kernel::_init_file_descriptors()
 {
 	auto init_fd = [&] (Genode::Xml_node const &node, char const *attr,
@@ -947,12 +1035,15 @@ void Libc::Kernel::_init_file_descriptors()
 		 * We need to manually register the path. Normally this is done
 		 * by '_open'. But we call the local 'open' function directly
 		 * because we want to explicitly specify the libc fd ID.
-		 *
-		 * We have to allocate the path from the libc (done via 'strdup')
-		 * such that the path can be freed when an stdio fd is closed.
 		 */
-		if (fd->fd_path) { Genode::warning("may leak former FD path memory"); }
-		fd->fd_path = strdup(path.string());
+		if (fd->fd_path)
+			Genode::warning("may leak former FD path memory");
+
+		{
+			char *dst = (char *)_heap.alloc(path.length());
+			Genode::strncpy(dst, path.string(), path.length());
+			fd->fd_path = dst;
+		}
 
 		::off_t const seek = node.attribute_value("seek", 0ULL);
 		if (seek)
@@ -1215,6 +1306,7 @@ void Component::construct(Genode::Env &env)
 		*unmanaged_singleton<Genode::Heap>(env.ram(), env.rm());
 
 	/* pass Genode::Env to libc subsystems that depend on it */
+	Libc::init_fd_alloc(heap);
 	Libc::init_mem_alloc(env);
 	Libc::init_dl(env);
 	Libc::sysctl_init(env);

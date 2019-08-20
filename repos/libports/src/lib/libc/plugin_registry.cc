@@ -40,10 +40,6 @@ using namespace Libc;
 Plugin *Plugin_registry::get_plugin_for_access(char const *path, int amode) {
 	GET_PLUGIN_FOR(access, path, amode) }
 
-Plugin *Plugin_registry::get_plugin_for_execve(char const *filename, char *const argv[],
-        char *const envp[]) {
-	GET_PLUGIN_FOR(execve, filename, argv, envp) }
-
 
 Plugin *Plugin_registry::get_plugin_for_mkdir(const char *path, mode_t mode) {
 	GET_PLUGIN_FOR(mkdir, path, mode) }
