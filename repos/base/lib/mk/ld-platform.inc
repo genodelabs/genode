@@ -30,11 +30,20 @@ symbol.map: $(BASE_DIR)/lib/symbols/ld
 ifneq ($(filter linux, $(SPECS)),)
 
 ENTRY_POINT = _start_initial_stack
-LD_SCRIPT_SO = $(BASE_DIR)/src/ld/genode_rel.ld \
-              -T$(call select_from_repositories,src/ld/stack_area.ld) \
+LD_SCRIPT_SO = $(call select_from_repositories,src/ld/stack_area.ld) \
+               -T$(BASE_DIR)/src/ld/genode_rel.ld
 
 ifneq ($(filter x86_32, $(SPECS)),)
 LD_OPT     += -T$(DIR)/linux-32.ld
+endif
+
+#
+# set dynamic linker ELF type to executable
+#
+ifeq ($(called_from_lib_mk),yes)
+$(LIB).lib.so.stripped: postprocess.tag
+postprocess.tag: $(LIB).lib.so
+	$(VERBOSE)printf "\x02" | dd of=$(LIB).lib.so bs=1 seek=16 count=1 conv=notrunc
 endif
 
 else
