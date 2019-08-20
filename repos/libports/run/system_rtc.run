@@ -8,13 +8,19 @@ if {[expr ![have_include power_on/qemu]]} {
 }
 
 set build_components {
-	core init timer drivers/rtc server/system_rtc test/system_rtc
-	server/report_rom test/libc_rtc
+	test/system_rtc
+	test/libc_rtc
 }
+
+create_boot_directory
+
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/src/init \
+                  [depot_user]/src/vfs \
+                  [depot_user]/pkg/drivers_rtc-pc
 
 build $build_components
 
-create_boot_directory
 
 set config {
 <config prio_levels="2" verbose="yes">
@@ -102,9 +108,8 @@ set config {
 install_config $config
 
 set boot_components {
-	core ld.lib.so init timer rtc_drv test-system_rtc system_rtc
-	report_rom
-	test-libc_rtc libc.lib.so libm.lib.so posix.lib.so vfs.lib.so
+	test-system_rtc
+	test-libc_rtc libc.lib.so libm.lib.so posix.lib.so
 }
 
 build_boot_image $boot_components
