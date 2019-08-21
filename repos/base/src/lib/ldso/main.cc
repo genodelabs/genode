@@ -649,7 +649,19 @@ static Genode::Constructible<Heap> &heap()
 
 void Genode::init_ldso_phdr(Env &env)
 {
-	heap().construct(env.ram(), env.rm());
+	/*
+	 * Use a statically allocated initial block to make the first dynamic
+	 * allocations deterministic. This assumption is required by the libc's
+	 * fork mechanism on Linux. Without the initial block, the Linux kernel
+	 * would attach the heap's backing-store dataspaces to differently
+	 * randomized addresses in the new process. The binary's GOT (containing
+	 * pointers to the linker's heap-allocated objects) of the new process,
+	 * however, is copied from the parent process. So the pointed-to objects
+	 * must reside on the same addresses in the parent and child.
+	 */
+	static char initial_block[4*1024];
+	heap().construct(&env.ram(), &env.rm(), Heap::UNLIMITED,
+	                 initial_block, sizeof(initial_block));
 
 	/* load program headers of linker now */
 	if (!Ld::linker().file())
