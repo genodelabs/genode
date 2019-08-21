@@ -10,9 +10,19 @@ proc run_boot_dir {binaries} {
 
 	if {![file exists [run_dir]/genode/ld.lib.so]} { build { lib/ld/linux } }
 
+	set missing_boot_modules { }
 	foreach binary $binaries {
 		set src_binary_path "[pwd]/bin/[kernel_specific_binary $binary]"
-		exec ln -sf $src_binary_path [run_dir]/genode/$binary }
+		if {[file exists $src_binary_path]} {
+			exec ln -sf $src_binary_path [run_dir]/genode/$binary
+		} else {
+			lappend missing_boot_modules $binary
+		}
+	}
+	if {[llength $missing_boot_modules]} {
+		puts stderr "Missing boot modules: $missing_boot_modules"
+		exit -1
+	}
 
 	# check syntax of all boot modules named *.config
 	foreach file [glob -nocomplain [run_dir]/genode/*.config] {
