@@ -82,6 +82,13 @@ static void construct_component(Libc::Env &env)
 			/* insert an environment variable */
 			if (node.has_type("env")) try {
 
+				auto check_attr = [] (Xml_node node, auto key) {
+					if (!node.has_attribute(key))
+						Genode::warning("<env> node lacks '", key, "' attribute"); };
+
+				check_attr(node, "key");
+				check_attr(node, "value");
+
 				Xml_attribute const key   = node.attribute("key");
 				Xml_attribute const value = node.attribute("value");
 
@@ -122,7 +129,9 @@ static void construct_component(Libc::Env &env)
 
 				++env_i;
 
-			} catch (Xml_node::Nonexistent_sub_node) { }
+			}
+			catch (Xml_node::Nonexistent_sub_node)  { }
+			catch (Xml_node::Nonexistent_attribute) { }
 		});
 
 		envp[env_i] = NULL;
