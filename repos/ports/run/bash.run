@@ -1,0 +1,130 @@
+create_boot_directory
+
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/pkg/[drivers_interactive_pkg] \
+                  [depot_user]/pkg/terminal \
+                  [depot_user]/src/init \
+                  [depot_user]/src/posix \
+                  [depot_user]/src/ncurses \
+                  [depot_user]/src/vim \
+                  [depot_user]/src/bash \
+                  [depot_user]/src/coreutils \
+                  [depot_user]/src/vfs \
+                  [depot_user]/src/fs_rom
+
+# write default vimrc file
+set vimrc_fd [open [run_dir]/genode/vimrc w]
+puts $vimrc_fd {
+set noloadplugins
+set hls
+set nocompatible
+set laststatus=2
+set noswapfile
+set viminfo=}
+close $vimrc_fd
+
+install_config {
+<config verbose="yes">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="LOG"/>
+		<service name="RM"/>
+		<service name="CPU"/>
+		<service name="PD"/>
+		<service name="IRQ"/>
+		<service name="IO_PORT"/>
+		<service name="IO_MEM"/>
+	</parent-provides>
+
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+
+	<default caps="100"/>
+
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Timer"/></provides>
+	</start>
+
+	<start name="drivers" caps="1000">
+		<resource name="RAM" quantum="32M" constrain_phys="yes"/>
+		<binary name="init"/>
+		<route>
+			<service name="ROM" label="config"> <parent label="drivers.config"/> </service>
+			<service name="Timer"> <child name="timer"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+		<provides>
+			<service name="Input"/> <service name="Framebuffer"/>
+		</provides>
+	</start>
+
+	<start name="terminal" caps="110">
+		<resource name="RAM" quantum="2M"/>
+		<provides><service name="Terminal"/></provides>
+		<route>
+			<service name="ROM" label="config"> <parent label="terminal.config"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+
+	<start name="vfs" caps="120">
+		<resource name="RAM" quantum="30M"/>
+		<provides><service name="File_system"/></provides>
+		<config>
+			<vfs>
+				<tar name="coreutils.tar" />
+				<tar name="vim.tar" />
+				<tar name="bash.tar" />
+
+				<dir name="home"> <ram/> </dir>
+				<dir name="share"> <dir name="vim"> <rom name="vimrc"/> </dir> </dir>
+				<dir name="tmp"> <ram/> </dir>
+				<dir name="dev">
+					<zero/> <null/> <terminal/>
+					<inline name="rtc">2018-01-01 00:01</inline>
+				</dir>
+			</vfs>
+
+			<policy label_prefix="vfs_rom" root="/bin"/>
+			<default-policy root="/" writeable="yes"/>
+		</config>
+	</start>
+
+	<start name="vfs_rom">
+		<resource name="RAM" quantum="30M"/>
+		<binary name="fs_rom"/>
+		<provides> <service name="ROM"/> </provides>
+		<config/>
+		<route>
+			<service name="File_system"> <child name="vfs"/> </service>
+			<any-service> <parent/> </any-service>
+		</route>
+	</start>
+
+	<start name="bash" caps="1000">
+		<resource name="RAM" quantum="30M" />
+		<config>
+			<libc stdin="/dev/terminal" stdout="/dev/terminal"
+			      stderr="/dev/terminal" rtc="/dev/rtc"/>
+			<vfs> <fs/> </vfs>
+			<arg value="bash"/>
+			<env key="TERM" value="screen"/>
+			<env key="PATH" value="/bin" />
+		</config>
+		<route>
+			<service name="File_system"> <child name="vfs"/> </service>
+			<service name="ROM" label_last="bash"> <child name="vfs_rom"/> </service>
+			<service name="ROM" label_suffix=".lib.so"> <parent/> </service>
+			<service name="ROM" label_prefix=""> <child name="vfs_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+</config>}
+
+build { lib/ld test/fork test/execve }
+
+build_boot_image { ld.lib.so libc.lib.so libm.lib.so vfs.lib.so posix.lib.so }
+
+run_genode_until forever
