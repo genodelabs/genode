@@ -47,6 +47,7 @@ class Linker::Region_map
 		Region_map_client _rm { _env.pd().linker_area() };
 		Allocator_avl     _range; /* VM range allocator */
 		addr_t      const _base;  /* base address of dataspace */
+		addr_t            _end = _base + Pd_session::LINKER_AREA_SIZE;
 
 	protected:
 
@@ -65,23 +66,32 @@ class Linker::Region_map
 		static Constructible_region_map &r();
 
 		/**
-		 * Reserve VM region of 'size' at 'vaddr'. Allocate any free region if
-		 * 'vaddr' is zero
+		 * Allocate region anywhere within the region map
 		 */
-		addr_t alloc_region(size_t size, addr_t vaddr = 0)
+		addr_t alloc_region(size_t size)
 		{
-			addr_t addr = vaddr;
-
-			if (addr && (_range.alloc_addr(size, addr).error()))
+			addr_t result = 0;
+			if (_range.alloc_aligned(size, (void **)&result,
+			                         get_page_size_log2()).error())
 				throw Region_conflict();
-			else if (!addr &&
-			         _range.alloc_aligned(size, (void **)&addr,
-			                              get_page_size_log2()).error())
-			{
-				throw Region_conflict();
-			}
 
-			return addr;
+			return result;
+		}
+
+		/**
+		 * Allocate region at specified 'vaddr'
+		 */
+		void alloc_region_at(size_t size, addr_t vaddr)
+		{
+			if (_range.alloc_addr(size, vaddr).error())
+				throw Region_conflict();
+		}
+
+		addr_t alloc_region_at_end(size_t size)
+		{
+			_end -= align_addr(size, get_page_size_log2());
+			alloc_region_at(size, _end);
+			return _end;
 		}
 
 		void free_region(addr_t vaddr) { _range.free((void *)vaddr); }

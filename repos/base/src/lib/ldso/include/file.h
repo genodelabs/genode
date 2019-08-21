@@ -117,7 +117,32 @@ struct Linker::Elf_file : File
 		return rom_connection->dataspace();
 	}
 
-	Elf_file(Env &env, Allocator &md_alloc, char const *name, bool load)
+	void _allocate_region_within_linker_area(Name const &name)
+	{
+		bool const binary = (start != 0);
+
+		if (binary) {
+			Region_map::r()->alloc_region_at(size, start);
+			reloc_base = 0;
+			return;
+		}
+
+		/*
+		 * Assign libraries that must stay resident during 'execve' to
+		 * the end of the linker area to ensure that the newly loaded
+		 * binary has enough room within the linker area.
+		 */
+		bool const resident = (name == "libc.lib.so")
+		                   || (name == "libm.lib.so")
+		                   || (name == "posix.lib.so")
+		                   || (strcmp(name.string(), "vfs", 3) == 0);
+
+		reloc_base = resident ? Region_map::r()->alloc_region_at_end(size)
+		                      : Region_map::r()->alloc_region(size);
+		start = 0;
+	}
+
+	Elf_file(Env &env, Allocator &md_alloc, Name const &name, bool load)
 	:
 		env(env), rom_cap(_rom_dataspace(name)), loaded(load)
 	{
@@ -133,8 +158,10 @@ struct Linker::Elf_file : File
 		if (load && !Region_map::r().constructed())
 			Region_map::r().construct(env, md_alloc, start);
 
-		if (load)
+		if (load) {
+			_allocate_region_within_linker_area(name);
 			load_segments();
+		}
 	}
 
 	virtual ~Elf_file()
@@ -238,10 +265,6 @@ struct Linker::Elf_file : File
 
 		/* search for PT_LOAD */
 		loadable_segments(p);
-
-		/* allocate region */
-		reloc_base = Region_map::r()->alloc_region(size, start);
-		reloc_base = (start == reloc_base) ?  0 : reloc_base;
 
 		if (verbose_loading)
 			log("LD: reloc_base: ", Hex(reloc_base),
