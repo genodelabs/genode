@@ -81,10 +81,12 @@ endif
 
 ifeq ($(findstring arm, $(SPECS)), arm)
 CONFIGURE_ARGS += --host arm-none-eabi
-else
+endif
+ifeq ($(findstring arm_v8, $(SPECS)), arm_v8)
+CONFIGURE_ARGS += --host aarch64-none-elf
+endif
 ifeq ($(findstring x86, $(SPECS)), x86)
 CONFIGURE_ARGS += --host x86_64-pc-elf
-endif
 endif
 
 CONFIGURE_ARGS += --srcdir=$(PKG_DIR)
@@ -109,7 +111,7 @@ LIBTOOLFLAGS = --preserve-dup-deps
 LIBGCC = $(shell $(CC) $(CC_MARCH) -print-libgcc-file-name)
 
 CPPFLAGS += -nostdinc $(INCLUDES)
-CPPFLAGS += -D_GNU_SOURCE=1
+CPPFLAGS += -D_GNU_SOURCE=1 -fPIC
 
 # flags to be used in both CFLAGS and CXXFLAGS
 COMMON_CFLAGS_CXXFLAGS += -ffunction-sections $(CC_OLEVEL) $(CC_MARCH)
