@@ -38,12 +38,14 @@ LD_OPT     += -T$(DIR)/linux-32.ld
 endif
 
 #
-# set dynamic linker ELF type to executable
+# Set dynamic linker ELF type to executable
 #
 ifeq ($(called_from_lib_mk),yes)
 $(LIB).lib.so.stripped: postprocess.tag
 postprocess.tag: $(LIB).lib.so
-	$(VERBOSE)printf "\x02" | dd of=$(LIB).lib.so bs=1 seek=16 count=1 conv=notrunc
+	$(VERBOSE)printf "\x02" |\
+	          dd of=$(LIB).lib.so bs=1 seek=16 count=1 conv=notrunc \
+	          2> /dev/null
 endif
 
 else
