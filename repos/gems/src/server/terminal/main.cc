@@ -368,7 +368,7 @@ void Terminal::Main::_handle_input()
 
 			if (special_sequence)
 				_read_buffer.add(special_sequence);
-			else
+			else if (codepoint.valid())
 				_read_buffer.add(codepoint);
 		});
 	});

@@ -107,7 +107,7 @@ void Component::construct(Genode::Env &env)
 	              Expect_codepoint(0x3b5));
 
 	/* 2.1.1  1 byte  (U-00000000) */
-	test("�", Expect_invalid(), Expect_end());
+	test("\x00", Expect_codepoint(0x00), Expect_end());
 
 	/* 2.1.2  2 bytes (U-00000080) */
 	test("\xc2\x80", Expect_codepoint(0x80), Expect_end());

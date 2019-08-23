@@ -25,7 +25,7 @@ namespace Genode {
 
 struct Genode::Codepoint
 {
-	static constexpr uint32_t INVALID = 0xfffd;
+	static constexpr uint32_t INVALID = 0xfffe;
 
 	uint32_t value;
 
