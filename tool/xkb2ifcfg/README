@@ -1,0 +1,74 @@
+  XKB to Genode input_filter configuration
+
+  Christian Helmuth
+
+
+This tool generates Genode input_filter XML configuration files from
+X11 XKB configuration. It must be built and run on Linux with
+libxkbcommon development packages installed.
+
+For pragmatic (and realistic reasons) this tool assumes a standard
+105-keys PC keyboard. This assumption automatically includes US
+keyboards with 104 keys. The differences are:
+
+- PC105 has an additional 105th Less Then / Greater Then key <LSGT>
+  right of Left Shift <LFSH> as additional 105th key
+- PC105 has the Backslash key <BKSL> left of Return <RTRN>
+
+xkb2ifcfg supports Shift, AltGr, and Caps Lock modifiers, as well as
+localized dead-key/compose sequences. The tool does not support
+latched modifiers.
+
+
+Build
+=====
+
+Just execute 'make' and 'xkb2ifcfg' should be built.
+
+
+Usage
+=====
+
+! xkb2ifcfg <command> <layout> <variant> <locale>
+!
+! Commands
+!
+!   generate   generate input_filter config
+!   dump       dump raw XKB keymap
+!   info       simple per-key information
+!
+! Examples
+!
+!   xkb2ifcfg generate us ""         en_US.UTF-8 > en_US.chargen
+!   xkb2ifcfg info     de nodeadkeys de_DE.UTF-8 > de_DE.chargen
+
+All information is printed on standard output while diagnostic
+messages are written to standard error.
+
+Valid 'layout' and 'variant' options can be figured out from the
+LAYOUTS section in
+
+! man 7 xkeyboard-config
+
+'variant' strings are depicted in parentheses after the layout (e.g.,
+'us(euro)').
+
+The 'locale' option has the standard locale syntax (see
+/usr/share/i18n/locales).
+
+
+Generation of keyboard-layout PDFs (and other examples)
+=======================================================
+
+setxkbmap -print -rules evdev -model pc104 -layout us -variant ""           -option "" | xkbcomp -xkm - - | xkbprint -color -label name - - | ps2pdf - t.pdf
+setxkbmap -print -rules evdev -model pc105 -layout de -variant "nodeadkeys" -option "" | xkbcomp -xkm - - | xkbprint -color -label symbols - - | ps2pdf - t.pdf
+
+setxkbmap -print -model pc104 -option -layout us
+setxkbmap -print -model pc105 -option -layout de -variant nodeadkeys
+setxkbmap -print -model pc105 -option -layout ch -variant de_nodeadkeys
+setxkbmap -print -model pc105 -option -layout ch -variant fr_nodeadkeys
+
+setxkbmap -print -model pc105 -option -layout gb
+setxkbmap -print -model pc104 -option -layout us -variant euro
+setxkbmap -print -model pc104 -option -layout us -variant workman
+
