@@ -238,6 +238,49 @@ class Input_filter::Chargen_source : public Source, Source::Sink
 			}
 		};
 
+		struct Missing_character_definition { };
+
+		/**
+		 * Return Unicode codepoint defined in XML node attributes
+		 *
+		 * \throw Missing_character_definition
+		 */
+		static Codepoint _codepoint_from_xml_node(Xml_node node)
+		{
+			if (node.has_attribute("ascii"))
+				return Codepoint { node.attribute_value<uint32_t>("ascii", 0) };
+
+			if (node.has_attribute("code"))
+				return Codepoint { node.attribute_value<uint32_t>("code", 0) };
+
+			if (node.has_attribute("char")) {
+
+				typedef String<2> Value;
+				Value value = node.attribute_value("char", Value());
+
+				unsigned char const ascii = value.string()[0];
+
+				if (ascii < 128)
+					return Codepoint { ascii };
+
+				warning("char attribute with non-ascii character "
+				        "'", value, "'");
+				throw Missing_character_definition();
+			}
+
+			if (node.has_attribute("b0")) {
+				char const b0 = node.attribute_value("b0", 0L),
+				           b1 = node.attribute_value("b1", 0L),
+				           b2 = node.attribute_value("b2", 0L),
+				           b3 = node.attribute_value("b3", 0L);
+
+				char const buf[5] { b0, b1, b2, b3, 0 };
+				return Utf8_ptr(buf).codepoint();
+			}
+
+			throw Missing_character_definition();
+		}
+
 		/**
 		 * Map of the states of the physical keys
 		 */
@@ -286,49 +329,6 @@ class Input_filter::Chargen_source : public Source, Source::Sink
 					               : Key::Rule::Conditions::Modifier::RELEASED;
 				}
 
-				struct Missing_character_definition { };
-
-				/**
-				 * Return UTF8 character defined in XML node attributes
-				 *
-				 * \throw Missing_character_definition
-				 */
-				static Codepoint _codepoint_from_xml_node(Xml_node node)
-				{
-					if (node.has_attribute("ascii"))
-						return Codepoint { node.attribute_value<uint32_t>("ascii", 0) };
-
-					if (node.has_attribute("code"))
-						return Codepoint { node.attribute_value<uint32_t>("code", 0) };
-
-					if (node.has_attribute("char")) {
-
-						typedef String<2> Value;
-						Value value = node.attribute_value("char", Value());
-
-						unsigned char const ascii = value.string()[0];
-
-						if (ascii < 128)
-							return Codepoint { ascii };
-
-						warning("char attribute with non-ascii character "
-						        "'", value, "'");
-						throw Missing_character_definition();
-					}
-
-					if (node.has_attribute("b0")) {
-						char const b0 = node.attribute_value("b0", 0L),
-						           b1 = node.attribute_value("b1", 0L),
-						           b2 = node.attribute_value("b2", 0L),
-						           b3 = node.attribute_value("b3", 0L);
-
-						char const buf[5] { b0, b1, b2, b3, 0 };
-						return Utf8_ptr(buf).codepoint();
-					}
-
-					throw Missing_character_definition();
-				}
-
 				void import_map(Xml_node map)
 				{
 					/* obtain modifier conditions from map attributes */
@@ -367,6 +367,150 @@ class Input_filter::Chargen_source : public Source, Source::Sink
 				_mod_map.states[mod_rom.id()].enabled |=
 					mod_rom.enabled(); });
 		}
+
+		/**
+		 * Generate characters from codepoint sequences
+		 */
+		class Sequencer
+		{
+			private:
+
+				Allocator &_alloc;
+
+				struct Sequence
+				{
+					Codepoint seq[4] { Codepoint::INVALID, Codepoint::INVALID,
+					                   Codepoint::INVALID, Codepoint::INVALID };
+
+					unsigned len { 0 };
+
+					enum Match { MISMATCH , UNFINISHED, COMPLETED };
+
+					Sequence() { }
+
+					Sequence(Codepoint c0, Codepoint c1, Codepoint c2, Codepoint c3)
+					: seq { c0, c1, c2, c3 }, len { 4 } { }
+
+					void append(Codepoint c)
+					{
+						/* excess codepoints are just dropped */
+						if (len < 4)
+							seq[len++] = c;
+					}
+
+					/**
+					 * Match 'other' to 'this' until first invalid codepoint in
+					 * 'other', completion, or mismatch
+					 */
+					Match match(Sequence const &o) const
+					{
+						/* first codepoint must match */
+						if (o.seq[0].value != seq[0].value) return MISMATCH;
+
+						for (unsigned i = 1; i < sizeof(seq)/sizeof(*seq); ++i) {
+							/* end of this sequence means COMPLETED */
+							if (!seq[i].valid()) break;
+
+							/* end of other sequence means UNFINISHED */
+							if (!o.seq[i].valid()) return UNFINISHED;
+
+							if (o.seq[i].value != seq[i].value) return MISMATCH;
+
+							/* continue until completion with both valid and equal */
+						}
+						return COMPLETED;
+					}
+				};
+
+				struct Rule
+				{
+					typedef Sequence::Match Match;
+
+					Registry<Rule>::Element element;
+					Sequence          const sequence;
+					Codepoint         const code;
+
+					Rule(Registry<Rule> &registry, Sequence const &sequence, Codepoint code)
+					:
+						element(registry, *this),
+						sequence(sequence),
+						code(code)
+					{ }
+				};
+
+				Registry<Rule> _rules { };
+
+				Sequence _curr_sequence { };
+
+			public:
+
+				Sequencer(Allocator &alloc) : _alloc(alloc) { }
+
+				~Sequencer()
+				{
+					_rules.for_each([&] (Rule &rule) {
+						destroy(_alloc, &rule); });
+				}
+
+				void import_sequence(Xml_node node)
+				{
+					unsigned const invalid { Codepoint::INVALID };
+
+					Sequence sequence {
+						Codepoint { node.attribute_value("first",  invalid) },
+						Codepoint { node.attribute_value("second", invalid) },
+						Codepoint { node.attribute_value("third",  invalid) },
+						Codepoint { node.attribute_value("fourth", invalid) } };
+
+					new (_alloc) Rule(_rules, sequence, _codepoint_from_xml_node(node));
+				}
+
+				Codepoint process(Codepoint codepoint)
+				{
+					Codepoint const invalid { Codepoint::INVALID };
+					Rule::Match best_match  { Sequence::MISMATCH };
+					Codepoint result        { codepoint };
+					Sequence seq            { _curr_sequence };
+
+					seq.append(codepoint);
+
+					_rules.for_each([&] (Rule const &rule) {
+						/* early return if completed match was found already */
+						if (best_match == Sequence::COMPLETED) return;
+
+						Rule::Match const match { rule.sequence.match(seq) };
+						switch (match) {
+						case Sequence::MISMATCH:
+							return;
+						case Sequence::UNFINISHED:
+							best_match = match;
+							result     = invalid;
+							return;
+						case Sequence::COMPLETED:
+							best_match = match;
+							result     = rule.code;
+							return;
+						}
+					});
+
+					switch (best_match) {
+					case Sequence::MISMATCH:
+						/* drop cancellation codepoint of unfinished sequence */
+						if (_curr_sequence.len > 0)
+							result = invalid;
+						_curr_sequence = Sequence();
+						break;
+					case Sequence::UNFINISHED:
+						_curr_sequence = seq;
+						break;
+					case Sequence::COMPLETED:
+						_curr_sequence = Sequence();
+						break;
+					}
+
+					return result;
+				}
+		} _sequencer;
 
 		Owner _owner;
 
@@ -442,6 +586,8 @@ class Input_filter::Chargen_source : public Source, Source::Sink
 				/* supplement codepoint information to press event */
 				key.apply_best_matching_rule(_mod_map, [&] (Codepoint codepoint) {
 
+					codepoint = _sequencer.process(codepoint);
+
 					ev = Event(Input::Press_char{keycode, codepoint});
 
 					if (_char_repeater.constructed())
@@ -499,8 +645,24 @@ class Input_filter::Chargen_source : public Source, Source::Sink
 			 * Handle map nodes
 			 */
 			if (node.type() == "map") {
-				_key_map.import_map(node);
-				return;
+				try {
+					_key_map.import_map(node);
+					return;
+				}
+				catch (Missing_character_definition) {
+					throw Invalid_config(); }
+			}
+
+			/*
+			 * Handle sequence nodes
+			 */
+			if (node.type() == "sequence") {
+				try {
+					_sequencer.import_sequence(node);
+					return;
+				}
+				catch (Missing_character_definition) {
+					throw Invalid_config(); }
 			}
 
 			/*
@@ -555,6 +717,7 @@ class Input_filter::Chargen_source : public Source, Source::Sink
 			_timer_accessor(timer_accessor),
 			_include_accessor(include_accessor),
 			_key_map(_alloc),
+			_sequencer(_alloc),
 			_owner(factory),
 			_destination(destination),
 			_source(factory.create_source(_owner, input_sub_node(config), *this))

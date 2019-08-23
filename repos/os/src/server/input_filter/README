@@ -78,14 +78,17 @@ sub nodes:
 :<mod1>/<mod2>/<mod3>/<mod4>:
 
   Defines which physical keys are interpreted as modifier keys. Usually,
-  '<mod1>' corresponds to shift, '<mod2>' to control, and '<mod3>' to altgr
-  (on German keyboards). Each modifier node may host any number of '<key>'
-  nodes with their corresponding 'name' attribute. For example:
+  '<mod1>' corresponds to shift, '<mod2>' to control, '<mod3>' to altgr
+  (on German keyboards), and '<mod4>' to Caps Lock. Each modifier node
+  may host any number of '<key>' nodes with their corresponding 'name'
+  attribute. For example:
 
   ! <mod1>
   !   <key name="KEY_LEFTSHIFT"/> <key name="KEY_RIGHTSHIFT"/>
-  !   <rom name="capslock"/>
   ! </mod1>
+  ! <mod4>
+  !   <rom name="capslock"/>
+  ! </mod4>
 
   The '<rom>' node incorporates the content of the ROM module of the
   specified name into the modifier state. If the ROM module contains a
@@ -103,10 +106,48 @@ sub nodes:
 
   Each '<map>' may contain any number of '<key>' subnodes. Each '<key>'
   must have the key name as 'name' attribute. The to-be-emitted character
-  is defined by the attributes 'ascii', 'char', or 'b0/b1/b2/b3'. The
-  'ascii' attribute accepts an integer value between 0 and 127, the
-  'char' attribute accepts a single ASCII character, the 'b0/b1/b2/b3'
-  attributes define the individual bytes of an UTF-8 character.
+  is defined by the attributes 'ascii', 'char', 'code', or 'b0/b1/b2/b3'.
+
+  :'ascii': accepts an integer value between 0 and 127
+  :'char': accepts a single ASCII character
+  :'code': defines the Unicode codepoint as integer value
+  :'b0'/'b1'/'b2'/'b3': define the individual bytes of an UTF-8 character
+
+:<sequence first="..." second="..." third="..." fourth="..." code="..."/>:
+
+  A sequence node permits the definition of dead-key/composing
+  character sequences. With such sequences the character is not
+  generated instantly on key press but only after the sequence is
+  completed. If an unfinished sequence can't be completed due to an
+  unmatched character, the sequence is aborted and no character is
+  generated. input_filter supports sequences of up to four characters.
+
+  For example, the French AZERTY keyboard layout [1] has a dead key
+  for Circumflex Accent "^" right of the P key (which is bracket left
+  "[" on US keyboards). When Circumflex is pressed no visible
+  character should be generated instantly but the accent must be
+  combined with a follow-up character, e.g., Circumflex plus "a"
+  generates â.
+
+  [1] https://docs.microsoft.com/en-us/globalization/keyboards/kbdfr.html
+
+  Dead keys can be defined in the <key> nodes of any <map> by using
+  codepoints not used for direct output, for example, Combining
+  Diacritical Marks beginning at U+0300. The French Circumflex example
+  can be configured like follows.
+
+  ! <mod1>
+  !   <key name="KEY_LEFTSHIFT"/> <key name="KEY_RIGHTSHIFT"/>
+  ! </mod1>
+  ! <map>
+  !   <key name="KEY_Q"         code="0x0061"/> <!-- a -->
+  !   <key name="KEY_LEFTBRACE" code="0x0302"/> <!-- dead_circumflex -->
+  ! </map>
+  ! <map mod1="true">
+  !   <key name="KEY_Q"         code="0x0041"/> <!-- A -->
+  ! </map>
+  ! <sequence first="0x0302" second="0x0061" code="0x00e2"/> <!-- â -->
+  ! <sequence first="0x0302" second="0x0041" code="0x00c2"/> <!-- Â -->
 
 :<repeat delay_ms="500" rate_ms="250">:
 

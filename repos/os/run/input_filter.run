@@ -241,9 +241,9 @@ append config {
 						<remap>
 							<input name="usb"/>
 						</remap>
-						<mod1> <rom name="capslock"/> </mod1>
+						<mod4> <rom name="capslock"/> </mod4>
 						<map>            <key name="KEY_A" char="a"/> </map>
-						<map mod1="yes"> <key name="KEY_A" char="A"/> </map>
+						<map mod4="yes"> <key name="KEY_A" char="A"/> </map>
 					</chargen>
 				</output>
 			</filter_config>
@@ -266,6 +266,56 @@ append config {
 			<sleep ms="250"/>
 			<usb> <press code="KEY_A"/> <release code="KEY_A"/> </usb>
 			<expect_press code="KEY_A" char="a"/> <expect_release code="KEY_A"/>
+
+
+			<message string="sequence handling"/>
+
+			<filter_config>
+				<input label="usb"/>
+				<output>
+					<chargen>
+						<remap>
+							<input name="usb"/>
+						</remap>
+						<map>
+							<key name="KEY_GRAVE" code="0x0300"/> <!-- dead_grave -->
+							<key name="KEY_A"     char="a"/>
+							<key name="KEY_E"     char="e"/>
+							<key name="KEY_X"     char="x"/>
+						</map>
+						<sequence first="0x0300" second="0x0061" code="0x00e0"/> <!-- LATIN SMALL LETTER A WITH GRAVE -->
+						<sequence first="0x0300" second="0x0065" code="0x00e8"/> <!-- LATIN SMALL LETTER E WITH GRAVE -->
+					</chargen>
+				</output>
+			</filter_config>
+			<sleep ms="250"/>
+			<usb>
+				<press code="KEY_GRAVE"/> <release code="KEY_GRAVE"/> <!-- invalid char -->
+				<press code="KEY_A"/>     <release code="KEY_A"/>     <!-- generate a-grave -->
+				<press code="KEY_GRAVE"/> <release code="KEY_GRAVE"/> <!-- invalid char -->
+				<press code="KEY_E"/>     <release code="KEY_E"/>     <!-- generate e-grave -->
+				<press code="KEY_GRAVE"/> <release code="KEY_GRAVE"/> <!-- invalid char -->
+				<press code="KEY_X"/>     <release code="KEY_X"/>     <!-- abort sequence (invalid char) -->
+				<press code="KEY_X"/>     <release code="KEY_X"/>     <!-- generate x -->
+			</usb>
+			<expect_press   code="KEY_GRAVE" codepoint="0xfffe"/>
+			<expect_release code="KEY_GRAVE"/>
+			<expect_press   code="KEY_A"     codepoint="0x00e0"/>
+			<expect_release code="KEY_A"/>
+			<expect_press   code="KEY_GRAVE"/>
+			<expect_release code="KEY_GRAVE"/>
+			<expect_press   code="KEY_E"     codepoint="0x00e8"/>
+			<expect_release code="KEY_E"/>
+			<expect_press   code="KEY_GRAVE"/>
+			<expect_release code="KEY_GRAVE"/>
+			<message string="1"/>
+			<expect_press   code="KEY_X"     codepoint="0xfffe"/>
+			<expect_release code="KEY_X"/>
+			<message string="2"/>
+			<expect_press   code="KEY_X" char="x"/>
+			<expect_release code="KEY_X"/>
+			<message string="3"/>
+			<sleep ms="250"/>
 
 
 			<message string="button-scroll feature"/>

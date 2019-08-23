@@ -375,11 +375,14 @@ struct Test::Main : Input_from_filter::Event_handler
 		ev.handle_press([&] (Input::Keycode key, Codepoint codepoint) {
 
 			auto codepoint_of_step = [] (Xml_node step) {
-				return Utf8_ptr(step.attribute_value("char", Value()).string()).codepoint(); };
+				if (step.has_attribute("codepoint"))
+					return Codepoint { step.attribute_value("codepoint", 0U) };
+				return Utf8_ptr(step.attribute_value("char", Value()).string()).codepoint();
+			};
 
 			if (step.type() == "expect_press"
 			 && step.attribute_value("code", Value()) == Input::key_name(key)
-			 && (!step.has_attribute("char") ||
+			 && ((!step.has_attribute("char") && !step.has_attribute("codepoint")) ||
 			     codepoint_of_step(step).value == codepoint.value))
 				step_succeeded = true;
 		});
