@@ -106,7 +106,7 @@ install_config {
 		<config xpos="0" ypos="388" width="1024" height="380" refresh_rate="25"/>
 	</start>
 
-	<start name="terminal_noux">
+	<start name="terminal_noux" caps="110">
 		<binary name="terminal"/>
 		<resource name="RAM" quantum="2M"/>
 		<provides><service name="Terminal"/></provides>
@@ -118,7 +118,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="terminal_test">
+	<start name="terminal_test" caps="110">
 		<binary name="terminal"/>
 		<resource name="RAM" quantum="2M"/>
 		<provides><service name="Terminal"/></provides>

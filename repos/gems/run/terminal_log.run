@@ -65,7 +65,7 @@ install_config {
 	</start>
 
 	<start name="pointer">
-		<resource name="RAM" quantum="1M"/>
+		<resource name="RAM" quantum="2M"/>
 	</start>
 
 	<start name="terminal_fb">
@@ -78,7 +78,7 @@ install_config {
 		<config xpos="0" ypos="0" width="640" height="480" refresh_rate="25"/>
 	</start>
 
-	<start name="terminal">
+	<start name="terminal" caps="110">
 		<resource name="RAM" quantum="3M"/>
 		<provides><service name="Terminal"/></provides>
 		<route>

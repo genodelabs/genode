@@ -84,7 +84,7 @@ install_config {
 	</start>
 
 	<start name="pointer">
-		<resource name="RAM" quantum="1M"/>
+		<resource name="RAM" quantum="2M"/>
 		<route>
 			<service name="Nitpicker"> <child name="nitpicker"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
@@ -130,7 +130,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="terminal">
+	<start name="terminal" caps="110">
 		<resource name="RAM" quantum="2M"/>
 		<provides><service name="Terminal"/></provides>
 		<config copy="yes" paste="yes">

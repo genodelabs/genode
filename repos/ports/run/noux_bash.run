@@ -61,7 +61,7 @@ install_config {
 		</provides>
 	</start>
 
-	<start name="terminal">
+	<start name="terminal" caps="110">
 		<resource name="RAM" quantum="2M"/>
 		<provides><service name="Terminal"/></provides>
 		<route>
