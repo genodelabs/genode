@@ -490,7 +490,7 @@ You can edit this component's configuration via
 ! inspect:/> vim /config/input_filter
 
 To change the keyboard layout to German, change "en_us.chargen" to
-"de.chargen" and save the file. The change becomes effective immediately at
+"de_de.chargen" and save the file. The change becomes effective immediately at
 saving time.
 
 To remap the capslock key to escape - a key often needed while using Vim -
