@@ -19,8 +19,8 @@ function extract_incpath()
 
   echo -e "QT_INCPATH += \\" > incpath.inc
 
-  sed -e '/\/qt-everywhere-opensource-src.*\//!d' \
-      -e 's/.*\/qt-everywhere-opensource-src-[^\/]*\//  /' \
+  sed -e '/\/qt-everywhere-src.*\//!d' \
+      -e 's/.*\/qt-everywhere-src-[^\/]*\//  /' \
       -e 's/linux-g++/genode-g++/' \
       incpath.inc.tmp >> incpath.inc
 
@@ -61,8 +61,8 @@ function extract_vpath()
 
   echo -e "QT_VPATH += \\" > vpath.inc
 
-  sed -e '/\/qt-everywhere-opensource-src.*\//!d' \
-      -e 's/.*\/qt-everywhere-opensource-src-[^\/]*\//  /' \
+  sed -e '/\/qt-everywhere-src.*\//!d' \
+      -e 's/.*\/qt-everywhere-src-[^\/]*\//  /' \
       -e 's/\/[^\/]* [\\]*$/ \\/' \
       vpath.inc.tmp | sort -u >> vpath.inc
 

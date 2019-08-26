@@ -1,0 +1,34 @@
+qtvirtualkeyboard_configuration.patch
+
+diff --git a/qtvirtualkeyboard/src/config.pri b/qtvirtualkeyboard/src/config.pri
+index 435ae5e..839f62c 100644
+--- a/qtvirtualkeyboard/src/config.pri
++++ b/qtvirtualkeyboard/src/config.pri
+@@ -43,7 +43,7 @@ disable-layouts {
+     thai: CONFIG += lang-th_TH
+ 
+     # Use all languages by default
+-    !contains(CONFIG, lang-.*): CONFIG += lang-all
++    !contains(CONFIG, lang-.*): CONFIG += lang-en_GB
+ 
+     # Flag for activating all languages
+     lang-all: CONFIG += \
+diff --git a/qtvirtualkeyboard/src/virtualkeyboard/virtualkeyboard.pro b/qtvirtualkeyboard/src/virtualkeyboard/virtualkeyboard.pro
+index cb28d6a..e832d66 100644
+--- a/qtvirtualkeyboard/src/virtualkeyboard/virtualkeyboard.pro
++++ b/qtvirtualkeyboard/src/virtualkeyboard/virtualkeyboard.pro
+@@ -405,10 +405,10 @@ OTHER_FILES += \
+     SOURCES += desktopinputpanel.cpp inputview.cpp
+     HEADERS += desktopinputpanel_p.h inputview_p.h
+     DEFINES += QT_VIRTUALKEYBOARD_DESKTOP
+-    !no-pkg-config:packagesExist(xcb) {
+-        PKGCONFIG += xcb xcb-xfixes
+-        DEFINES += QT_VIRTUALKEYBOARD_HAVE_XCB
+-    }
++#    !no-pkg-config:packagesExist(xcb) {
++#        PKGCONFIG += xcb xcb-xfixes
++#        DEFINES += QT_VIRTUALKEYBOARD_HAVE_XCB
++#    }
+ }
+ 
+ record-trace-input {

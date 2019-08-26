@@ -15,7 +15,7 @@ COMPILER_MOC_HEADER_MAKE_ALL_FILES_FILTER_OUT = \
   moc_qv4profiling_p.cpp \
 
 
-QT_VPATH += qtdeclarative/src/qml/debugger
+QT_VPATH += qtdeclarative/src/qml
 
 include $(REP_DIR)/lib/mk/qt5.inc
 

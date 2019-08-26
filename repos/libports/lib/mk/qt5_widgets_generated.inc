@@ -1,16 +1,16 @@
-QT_DEFINES += -DQT_NO_USING_NAMESPACE -DQT_NO_STYLE_MAC -DQT_NO_STYLE_WINDOWSVISTA -DQT_NO_STYLE_WINDOWSXP -DQT_NO_STYLE_ANDROID -DQT_BUILD_WIDGETS_LIB -DQT_BUILDING_QT -DQT_NO_CAST_TO_ASCII -DQT_ASCII_CAST_WARNINGS -DQT_MOC_COMPAT -DQT_USE_QSTRINGBUILDER -DQT_DEPRECATED_WARNINGS -DQT_DISABLE_DEPRECATED_BEFORE=0x050000 -DQT_NO_EXCEPTIONS -D_LARGEFILE64_SOURCE -D_LARGEFILE_SOURCE -DQT_NO_DEBUG -DQT_GUI_LIB -DQT_CORE_LIB
+QT_DEFINES += -DQT_NO_USING_NAMESPACE -DQT_NO_NARROWING_CONVERSIONS_IN_CONNECT -DQT_BUILD_WIDGETS_LIB -DQT_BUILDING_QT -DQT_NO_CAST_TO_ASCII -DQT_ASCII_CAST_WARNINGS -DQT_MOC_COMPAT -DQT_USE_QSTRINGBUILDER -DQT_DEPRECATED_WARNINGS -DQT_DISABLE_DEPRECATED_BEFORE=0x050000 -DQT_NO_EXCEPTIONS -D_LARGEFILE64_SOURCE -D_LARGEFILE_SOURCE -DQT_NO_DEBUG -DQT_GUI_LIB -DQT_CORE_LIB
 
 QT_INCPATH += \
   qtbase/src/widgets \
   qtbase/src/widgets/dialogs \
   qtbase/include \
   qtbase/include/QtWidgets \
-  qtbase/include/QtWidgets/5.8.0 \
-  qtbase/include/QtWidgets/5.8.0/QtWidgets \
-  qtbase/include/QtGui/5.8.0 \
-  qtbase/include/QtGui/5.8.0/QtGui \
-  qtbase/include/QtCore/5.8.0 \
-  qtbase/include/QtCore/5.8.0/QtCore \
+  qtbase/include/QtWidgets/5.13.0 \
+  qtbase/include/QtWidgets/5.13.0/QtWidgets \
+  qtbase/include/QtGui/5.13.0 \
+  qtbase/include/QtGui/5.13.0/QtGui \
+  qtbase/include/QtCore/5.13.0 \
+  qtbase/include/QtCore/5.13.0/QtCore \
   qtbase/include/QtGui \
   qtbase/include/QtCore \
   qtbase/mkspecs/genode-g++
@@ -21,7 +21,6 @@ QT_SOURCES += \
   qapplication.cpp \
   qwidgetbackingstore.cpp \
   qboxlayout.cpp \
-  qformlayout.cpp \
   qgridlayout.cpp \
   qlayout.cpp \
   qlayoutengine.cpp \
@@ -30,7 +29,6 @@ QT_SOURCES += \
   qsizepolicy.cpp \
   qstackedlayout.cpp \
   qtooltip.cpp \
-  qwhatsthis.cpp \
   qwidget.cpp \
   qwidgetaction.cpp \
   qgesture.cpp \
@@ -41,10 +39,12 @@ QT_SOURCES += \
   qwidgetsvariant.cpp \
   qwidgetwindow.cpp \
   qwindowcontainer.cpp \
+  qtestsupport_widgets.cpp \
   qopenglwidget.cpp \
+  qformlayout.cpp \
+  qwhatsthis.cpp \
   qdrawutil.cpp \
   qstyle.cpp \
-  qstyleanimation.cpp \
   qstylefactory.cpp \
   qstyleoption.cpp \
   qstyleplugin.cpp \
@@ -55,30 +55,33 @@ QT_SOURCES += \
   qstylesheetstyle.cpp \
   qstylesheetstyle_default.cpp \
   qpixmapstyle.cpp \
+  qstyleanimation.cpp \
   qwindowsstyle.cpp \
   qfusionstyle.cpp \
-  qbuttongroup.cpp \
+  qframe.cpp \
+  qabstractscrollarea.cpp \
+  qfocusframe.cpp \
+  qwidgetanimator.cpp \
   qabstractbutton.cpp \
   qabstractslider.cpp \
-  qabstractspinbox.cpp \
+  qbuttongroup.cpp \
   qcalendarwidget.cpp \
   qcheckbox.cpp \
   qcombobox.cpp \
   qcommandlinkbutton.cpp \
   qdatetimeedit.cpp \
   qdial.cpp \
-  qdialogbuttonbox.cpp \
   qdockwidget.cpp \
   qdockarealayout.cpp \
   qeffects.cpp \
   qfontcombobox.cpp \
-  qframe.cpp \
   qgroupbox.cpp \
   qkeysequenceedit.cpp \
   qlabel.cpp \
   qlcdnumber.cpp \
   qlineedit_p.cpp \
   qlineedit.cpp \
+  qwidgetlinecontrol.cpp \
   qmainwindow.cpp \
   qmainwindowlayout.cpp \
   qmdiarea.cpp \
@@ -88,65 +91,63 @@ QT_SOURCES += \
   qprogressbar.cpp \
   qpushbutton.cpp \
   qradiobutton.cpp \
+  qwidgetresizehandler.cpp \
+  qdialogbuttonbox.cpp \
   qrubberband.cpp \
+  qscrollarea.cpp \
   qscrollbar.cpp \
   qsizegrip.cpp \
   qslider.cpp \
+  qabstractspinbox.cpp \
   qspinbox.cpp \
   qsplashscreen.cpp \
   qsplitter.cpp \
   qstackedwidget.cpp \
   qstatusbar.cpp \
   qtabbar.cpp \
-  qtabwidget.cpp \
+  qplaintextedit.cpp \
   qtextedit.cpp \
   qtextbrowser.cpp \
+  qtabwidget.cpp \
   qtoolbar.cpp \
   qtoolbarlayout.cpp \
-  qtoolbarextension.cpp \
+  qtoolbararealayout.cpp \
   qtoolbarseparator.cpp \
   qtoolbox.cpp \
   qtoolbutton.cpp \
-  qabstractscrollarea.cpp \
-  qwidgetresizehandler.cpp \
-  qfocusframe.cpp \
-  qscrollarea.cpp \
-  qwidgetanimator.cpp \
+  qtoolbarextension.cpp \
   qwidgettextcontrol.cpp \
-  qwidgetlinecontrol.cpp \
-  qtoolbararealayout.cpp \
-  qplaintextedit.cpp \
   qcolordialog.cpp \
   qdialog.cpp \
   qerrormessage.cpp \
   qfiledialog.cpp \
+  qsidebar.cpp \
+  qfilesystemmodel.cpp \
+  qfileinfogatherer.cpp \
   qfontdialog.cpp \
   qinputdialog.cpp \
   qmessagebox.cpp \
   qprogressdialog.cpp \
-  qsidebar.cpp \
-  qfilesystemmodel.cpp \
-  qfileinfogatherer.cpp \
   qwizard.cpp \
   qabstractitemview.cpp \
   qheaderview.cpp \
-  qlistview.cpp \
   qbsptree.cpp \
-  qtableview.cpp \
-  qtreeview.cpp \
   qabstractitemdelegate.cpp \
   qitemdelegate.cpp \
-  qdirmodel.cpp \
-  qlistwidget.cpp \
-  qtablewidget.cpp \
-  qtreewidget.cpp \
   qitemeditorfactory.cpp \
-  qtreewidgetitemiterator.cpp \
-  qdatawidgetmapper.cpp \
-  qfileiconprovider.cpp \
+  qstyleditemdelegate.cpp \
   qcolumnview.cpp \
   qcolumnviewgrip.cpp \
-  qstyleditemdelegate.cpp \
+  qdatawidgetmapper.cpp \
+  qdirmodel.cpp \
+  qlistview.cpp \
+  qlistwidget.cpp \
+  qtableview.cpp \
+  qtablewidget.cpp \
+  qtreeview.cpp \
+  qtreewidget.cpp \
+  qtreewidgetitemiterator.cpp \
+  qfileiconprovider.cpp \
   qgraphicsgridlayout.cpp \
   qgraphicsitem.cpp \
   qgraphicsitemanimation.cpp \
@@ -176,8 +177,8 @@ QT_SOURCES += \
   qscroller.cpp \
   qscrollerproperties.cpp \
   qflickgesture.cpp \
-  qundogroup.cpp \
   qundostack.cpp \
+  qundogroup.cpp \
   qundoview.cpp \
   qsystemtrayicon_qpa.cpp \
   qguistatemachine.cpp \
@@ -215,7 +216,6 @@ COMPILER_MOC_HEADER_MAKE_ALL_FILES = \
   moc_qwidgetbackingstore_p.cpp \
   moc_qboxlayout.cpp \
   moc_qdesktopwidget.cpp \
-  moc_qformlayout.cpp \
   moc_qgridlayout.cpp \
   moc_qlayout.cpp \
   moc_qshortcut.cpp \
@@ -229,19 +229,24 @@ COMPILER_MOC_HEADER_MAKE_ALL_FILES = \
   moc_qwidgetwindow_p.cpp \
   moc_qwindowcontainer_p.cpp \
   moc_qopenglwidget.cpp \
+  moc_qformlayout.cpp \
   moc_qstyle.cpp \
-  moc_qstyleanimation_p.cpp \
   moc_qstyleplugin.cpp \
   moc_qcommonstyle.cpp \
   moc_qproxystyle.cpp \
   moc_qstylesheetstyle_p.cpp \
   moc_qpixmapstyle_p.cpp \
+  moc_qstyleanimation_p.cpp \
   moc_qwindowsstyle_p.cpp \
   moc_qfusionstyle_p.cpp \
-  moc_qbuttongroup.cpp \
+  moc_qframe.cpp \
+  moc_qabstractscrollarea.cpp \
+  moc_qabstractscrollarea_p.cpp \
+  moc_qfocusframe.cpp \
+  moc_qwidgetanimator_p.cpp \
   moc_qabstractbutton.cpp \
   moc_qabstractslider.cpp \
-  moc_qabstractspinbox.cpp \
+  moc_qbuttongroup.cpp \
   moc_qcalendarwidget.cpp \
   moc_qcheckbox.cpp \
   moc_qcombobox.cpp \
@@ -250,17 +255,16 @@ COMPILER_MOC_HEADER_MAKE_ALL_FILES = \
   moc_qdatetimeedit.cpp \
   moc_qdatetimeedit_p.cpp \
   moc_qdial.cpp \
-  moc_qdialogbuttonbox.cpp \
   moc_qdockwidget.cpp \
   moc_qdockwidget_p.cpp \
   moc_qfontcombobox.cpp \
-  moc_qframe.cpp \
   moc_qgroupbox.cpp \
   moc_qkeysequenceedit.cpp \
   moc_qlabel.cpp \
   moc_qlcdnumber.cpp \
   moc_qlineedit.cpp \
   moc_qlineedit_p.cpp \
+  moc_qwidgetlinecontrol_p.cpp \
   moc_qmainwindow.cpp \
   moc_qmainwindowlayout_p.cpp \
   moc_qmdiarea.cpp \
@@ -270,67 +274,63 @@ COMPILER_MOC_HEADER_MAKE_ALL_FILES = \
   moc_qprogressbar.cpp \
   moc_qpushbutton.cpp \
   moc_qradiobutton.cpp \
+  moc_qwidgetresizehandler_p.cpp \
+  moc_qdialogbuttonbox.cpp \
   moc_qrubberband.cpp \
+  moc_qscrollarea.cpp \
   moc_qscrollbar.cpp \
   moc_qsizegrip.cpp \
   moc_qslider.cpp \
+  moc_qabstractspinbox.cpp \
   moc_qspinbox.cpp \
   moc_qsplashscreen.cpp \
   moc_qsplitter.cpp \
   moc_qstackedwidget.cpp \
   moc_qstatusbar.cpp \
   moc_qtabbar.cpp \
-  moc_qtabbar_p.cpp \
-  moc_qtabwidget.cpp \
+  moc_qplaintextedit.cpp \
+  moc_qplaintextedit_p.cpp \
   moc_qtextedit.cpp \
   moc_qtextbrowser.cpp \
+  moc_qtabwidget.cpp \
   moc_qtoolbar.cpp \
   moc_qtoolbarlayout_p.cpp \
-  moc_qtoolbarextension_p.cpp \
   moc_qtoolbarseparator_p.cpp \
   moc_qtoolbox.cpp \
   moc_qtoolbutton.cpp \
-  moc_qabstractscrollarea.cpp \
-  moc_qabstractscrollarea_p.cpp \
-  moc_qwidgetresizehandler_p.cpp \
-  moc_qfocusframe.cpp \
-  moc_qscrollarea.cpp \
-  moc_qwidgetanimator_p.cpp \
+  moc_qtoolbarextension_p.cpp \
   moc_qwidgettextcontrol_p.cpp \
-  moc_qwidgetlinecontrol_p.cpp \
-  moc_qplaintextedit.cpp \
-  moc_qplaintextedit_p.cpp \
   moc_qcolordialog.cpp \
   moc_qdialog.cpp \
   moc_qerrormessage.cpp \
   moc_qfiledialog.cpp \
+  moc_qsidebar_p.cpp \
+  moc_qfilesystemmodel.cpp \
+  moc_qfileinfogatherer_p.cpp \
   moc_qfontdialog.cpp \
   moc_qinputdialog.cpp \
   moc_qmessagebox.cpp \
   moc_qprogressdialog.cpp \
-  moc_qsidebar_p.cpp \
-  moc_qfilesystemmodel.cpp \
-  moc_qfileinfogatherer_p.cpp \
   moc_qwizard.cpp \
   moc_qabstractitemview.cpp \
   moc_qheaderview.cpp \
-  moc_qlistview.cpp \
-  moc_qtableview.cpp \
-  moc_qtreeview.cpp \
   moc_qabstractitemdelegate.cpp \
   moc_qitemdelegate.cpp \
-  moc_qdirmodel.cpp \
-  moc_qlistwidget.cpp \
-  moc_qlistwidget_p.cpp \
-  moc_qtablewidget.cpp \
-  moc_qtablewidget_p.cpp \
-  moc_qtreewidget.cpp \
-  moc_qtreewidget_p.cpp \
   moc_qitemeditorfactory_p.cpp \
-  moc_qdatawidgetmapper.cpp \
+  moc_qstyleditemdelegate.cpp \
   moc_qcolumnviewgrip_p.cpp \
   moc_qcolumnview.cpp \
-  moc_qstyleditemdelegate.cpp \
+  moc_qdatawidgetmapper.cpp \
+  moc_qdirmodel.cpp \
+  moc_qlistview.cpp \
+  moc_qlistwidget.cpp \
+  moc_qlistwidget_p.cpp \
+  moc_qtableview.cpp \
+  moc_qtablewidget.cpp \
+  moc_qtablewidget_p.cpp \
+  moc_qtreeview.cpp \
+  moc_qtreewidget.cpp \
+  moc_qtreewidget_p.cpp \
   moc_qgraphicsitem.cpp \
   moc_qgraphicsitemanimation.cpp \
   moc_qgraphicsproxywidget.cpp \
@@ -343,15 +343,15 @@ COMPILER_MOC_HEADER_MAKE_ALL_FILES = \
   moc_qgraphicswidget.cpp \
   moc_qgraphicsanchorlayout.cpp \
   moc_qsystemtrayicon.cpp \
+  moc_qsystemtrayicon_p.cpp \
   moc_qcompleter.cpp \
   moc_qcompleter_p.cpp \
-  moc_qsystemtrayicon_p.cpp \
   moc_qscroller.cpp \
   moc_qscroller_p.cpp \
   moc_qflickgesture_p.cpp \
-  moc_qundogroup.cpp \
   moc_qundostack.cpp \
   moc_qundostack_p.cpp \
+  moc_qundogroup.cpp \
   moc_qundoview.cpp \
   moc_qkeyeventtransition.cpp \
   moc_qmouseeventtransition.cpp \
@@ -373,13 +373,14 @@ COMPILER_MOC_SOURCE_MAKE_ALL_FILES = \
   qfontcombobox.moc \
   qmdisubwindow.moc \
   qmenu.moc \
+  qtabbar.moc \
   qtoolbox.moc \
   qcolordialog.moc \
   qfontdialog.moc \
   qinputdialog.moc \
   qmessagebox.moc \
-  qtableview.moc \
-  qlistwidget.moc \
   qitemeditorfactory.moc \
+  qlistwidget.moc \
+  qtableview.moc \
   qundoview.moc
 

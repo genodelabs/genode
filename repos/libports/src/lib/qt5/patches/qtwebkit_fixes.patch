@@ -1,14 +1,5 @@
 qtwebkit_fixes.patch
 
-From: Christian Prochaska <christian.prochaska@genode-labs.com>
-
-
----
- .../platform/network/NetworkStateNotifier.h        |    4 ++--
- .../platform/network/qt/NetworkStateNotifierQt.cpp |    3 +++
- qtwebkit/Source/WebKit/qt/Api/qwebsettings.cpp     |    3 ++-
- 3 files changed, 7 insertions(+), 3 deletions(-)
-
 diff --git a/qtwebkit/Source/WebCore/platform/network/NetworkStateNotifier.h b/qtwebkit/Source/WebCore/platform/network/NetworkStateNotifier.h
 index 6edc5b7..e09917b 100644
 --- a/qtwebkit/Source/WebCore/platform/network/NetworkStateNotifier.h
@@ -45,6 +36,25 @@ index 61e4e6e..5957df8 100644
  #if (PLATFORM(QT) && !defined(QT_NO_BEARERMANAGEMENT))
  
  #include "NetworkStateNotifierPrivate.h"
+diff --git a/qtwebkit/Source/WebCore/platform/qt/SharedTimerQt.cpp b/qtwebkit/Source/WebCore/platform/qt/SharedTimerQt.cpp
+index aaca428..38558c2 100644
+--- a/qtwebkit/Source/WebCore/platform/qt/SharedTimerQt.cpp
++++ b/qtwebkit/Source/WebCore/platform/qt/SharedTimerQt.cpp
+@@ -137,8 +137,12 @@ void stopSharedTimer()
+     SharedTimerQt::inst()->stop();
+ }
+ 
+-#include "SharedTimerQt.moc"
+-
+ }
+ 
++/**
++ * moc 5.13.0 generates '#include <memory>' in SharedTimerQt.moc, which
++ * triggers compile errors when included within the namespace
++ */
++#include "SharedTimerQt.moc"
++
+ // vim: ts=4 sw=4 et
 diff --git a/qtwebkit/Source/WebKit/qt/Api/qwebsettings.cpp b/qtwebkit/Source/WebKit/qt/Api/qwebsettings.cpp
 index d3a8642..c4e4aa1 100644
 --- a/qtwebkit/Source/WebKit/qt/Api/qwebsettings.cpp

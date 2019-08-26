@@ -7,7 +7,7 @@
 #   QtGui
 #   QtSql
 
-../qt-everywhere-opensource-src-5.8.0/configure \
+../qt-everywhere-src-5.13.0/configure \
     -opensource \
     -confirm-license \
     -no-separate-debug-info \
@@ -35,6 +35,12 @@
     -no-icu \
     -qt-pcre \
     -system-zlib \
+    -no-feature-alloca \
+    -no-feature-alloca_h \
+    -no-feature-cxx11_future \
+    -no-feature-futimens \
+    -no-feature-futimes \
+    -no-feature-getauxval \
     -no-feature-poll_ppoll \
     -no-feature-process \
     -no-feature-sharedmemory \

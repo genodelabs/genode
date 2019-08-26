@@ -1,19 +1,20 @@
-QT_DEFINES += -DQT_NO_USING_NAMESPACE -DQT_NO_FOREACH -DQT_BUILD_PRINTSUPPORT_LIB -DQT_BUILDING_QT -DQT_NO_CAST_TO_ASCII -DQT_ASCII_CAST_WARNINGS -DQT_MOC_COMPAT -DQT_USE_QSTRINGBUILDER -DQT_DEPRECATED_WARNINGS -DQT_DISABLE_DEPRECATED_BEFORE=0x050000 -DQT_NO_EXCEPTIONS -D_LARGEFILE64_SOURCE -D_LARGEFILE_SOURCE -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB
+QT_DEFINES += -DQT_NO_USING_NAMESPACE -DQT_NO_FOREACH -DQT_NO_NARROWING_CONVERSIONS_IN_CONNECT -DQT_BUILD_PRINTSUPPORT_LIB -DQT_BUILDING_QT -DQT_NO_CAST_TO_ASCII -DQT_ASCII_CAST_WARNINGS -DQT_MOC_COMPAT -DQT_USE_QSTRINGBUILDER -DQT_DEPRECATED_WARNINGS -DQT_DISABLE_DEPRECATED_BEFORE=0x050000 -DQT_NO_EXCEPTIONS -D_LARGEFILE64_SOURCE -D_LARGEFILE_SOURCE -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB
 
 QT_INCPATH += \
   qtbase/src/printsupport \
-  qtbase/src/plugins/printsupport/cups \
+  qtbase/src/printsupport/widgets \
   qtbase/src/printsupport/dialogs \
+  qtbase/src/plugins/printsupport/cups \
   qtbase/include \
   qtbase/include/QtPrintSupport \
-  qtbase/include/QtPrintSupport/5.8.0 \
-  qtbase/include/QtPrintSupport/5.8.0/QtPrintSupport \
-  qtbase/include/QtWidgets/5.8.0 \
-  qtbase/include/QtWidgets/5.8.0/QtWidgets \
-  qtbase/include/QtGui/5.8.0 \
-  qtbase/include/QtGui/5.8.0/QtGui \
-  qtbase/include/QtCore/5.8.0 \
-  qtbase/include/QtCore/5.8.0/QtCore \
+  qtbase/include/QtPrintSupport/5.13.0 \
+  qtbase/include/QtPrintSupport/5.13.0/QtPrintSupport \
+  qtbase/include/QtWidgets/5.13.0 \
+  qtbase/include/QtWidgets/5.13.0/QtWidgets \
+  qtbase/include/QtGui/5.13.0 \
+  qtbase/include/QtGui/5.13.0/QtGui \
+  qtbase/include/QtCore/5.13.0 \
+  qtbase/include/QtCore/5.13.0/QtCore \
   qtbase/include/QtWidgets \
   qtbase/include/QtGui \
   qtbase/include/QtCore \
@@ -21,7 +22,6 @@ QT_INCPATH += \
 
 QT_SOURCES += \
   qpaintengine_alpha.cpp \
-  qpaintengine_preview.cpp \
   qprintdevice.cpp \
   qprintengine_pdf.cpp \
   qprinter.cpp \
@@ -29,6 +29,7 @@ QT_SOURCES += \
   qplatformprintdevice.cpp \
   qplatformprintplugin.cpp \
   qplatformprintersupport.cpp \
+  qpaintengine_preview.cpp \
   qprintpreviewwidget.cpp \
   qprintdialog_unix.cpp \
   qpagesetupdialog_unix.cpp \
@@ -57,8 +58,8 @@ COMPILER_MOC_HEADER_MAKE_ALL_FILES = \
   moc_qabstractprintdialog.cpp \
   moc_qpagesetupdialog.cpp \
   moc_qprintdialog.cpp \
-  moc_qprintpreviewdialog.cpp \
-  moc_qpagesetupdialog_unix_p.cpp
+  moc_qpagesetupdialog_unix_p.cpp \
+  moc_qprintpreviewdialog.cpp
 
 # source files generated from existing source files ('%.moc: %.cpp' rule in import-qt5.inc)
 # extracted from 'compiler_moc_source_make_all' rule

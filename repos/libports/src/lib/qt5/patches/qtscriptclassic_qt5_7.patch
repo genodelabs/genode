@@ -1,12 +1,5 @@
 qtscriptclassic_qt5_7.patch
 
-From: Christian Prochaska <christian.prochaska@genode-labs.com>
-
-
----
- src/qscriptengine_p.cpp |    9 +++------
- 1 file changed, 3 insertions(+), 6 deletions(-)
-
 diff --git a/src/qscriptengine_p.cpp b/src/qscriptengine_p.cpp
 index 4e9076d..65ffcf0 100644
 --- a/src/qscriptengine_p.cpp

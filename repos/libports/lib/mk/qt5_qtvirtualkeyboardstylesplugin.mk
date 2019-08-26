@@ -10,7 +10,7 @@ QT_DEFINES += -UQT_STATICPLUGIN
 
 include $(REP_DIR)/lib/mk/qt5.inc
 
-LIBS += qt5_gui qt5_qml qt5_quick qt5_svg
+LIBS += qt5_gui qt5_qml qt5_quick qt5_svg qt5_virtualkeyboard
 
 # install the QML plugin
 

@@ -13,7 +13,8 @@ src/lib/qt5_gui/target.mk:
 
 PORT_DIR := $(call port_dir,$(REP_DIR)/ports/qt5)
 
-MIRROR_FROM_PORT_DIR := src/lib/qt5/qt5/qtbase/src/gui
+MIRROR_FROM_PORT_DIR := src/lib/qt5/qt5/qtbase/src/3rdparty/icc \
+                        src/lib/qt5/qt5/qtbase/src/gui
 
 content: $(MIRROR_FROM_PORT_DIR)
 

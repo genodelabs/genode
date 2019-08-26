@@ -19,9 +19,6 @@ QT_SOURCES_FILTER_OUT = \
 
 # remove unneeded files to prevent moc warnings
 COMPILER_MOC_HEADER_MAKE_ALL_FILES_FILTER_OUT = \
-  moc_qobjectdefs.cpp \
-  moc_qprocess.cpp \
-  moc_qsharedmemory.cpp
 
 include $(REP_DIR)/lib/mk/qt5.inc
 
@@ -29,6 +26,6 @@ include $(REP_DIR)/lib/mk/qt5.inc
 SRC_CC += libc_dummies.cc
 vpath libc_dummies.cc $(REP_DIR)/src/lib/qt5
 
-LIBS += zlib pcre16 libc libm libc_pipe
+LIBS += zlib qt5_pcre2 libc libm libc_pipe
 
 CC_CXX_WARN_STRICT =

@@ -13,11 +13,13 @@ src/lib/qt5_qpa_nitpicker/target.mk:
 
 PORT_DIR := $(call port_dir,$(REP_DIR)/ports/qt5)
 
-MIRROR_FROM_PORT_DIR := src/lib/qt5/qt5/qtbase/src/gui/text/qfontengine_ft.cpp \
-                        src/lib/qt5/qt5/qtbase/src/platformsupport/eglconvenience/qeglconvenience.cpp \
+MIRROR_FROM_PORT_DIR := src/lib/qt5/qt5/qtbase/src/platformsupport/eglconvenience/qeglconvenience.cpp \
                         src/lib/qt5/qt5/qtbase/src/platformsupport/eventdispatchers/qgenericunixeventdispatcher.cpp \
                         src/lib/qt5/qt5/qtbase/src/platformsupport/eventdispatchers/qunixeventdispatcher.cpp \
-                        src/lib/qt5/qt5/qtbase/src/platformsupport/fontdatabases/basic/qbasicfontdatabase.cpp
+                        src/lib/qt5/qt5/qtbase/src/platformsupport/fontdatabases/freetype/qfontengine_ft.cpp \
+                        src/lib/qt5/qt5/qtbase/src/platformsupport/fontdatabases/freetype/qfreetypefontdatabase.cpp
+
+
 
 content: $(MIRROR_FROM_PORT_DIR)
 

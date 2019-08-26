@@ -1,36 +1,10 @@
 qtbase_configuration.patch
 
-From: Christian Prochaska <christian.prochaska@genode-labs.com>
-
-
----
- qtbase/configure                            |    1 
- qtbase/mkspecs/features/qt_build_config.prf |    2 -
- qtbase/mkspecs/genode-g++/qmake.conf        |   10 +++
- qtbase/mkspecs/genode-g++/qplatformdefs.h   |   87 +++++++++++++++++++++++++++
- qtbase/src/corelib/global/global.pri        |   10 ++-
- qtbase/src/corelib/io/io.pri                |    2 -
- 6 files changed, 105 insertions(+), 7 deletions(-)
- create mode 100644 qtbase/mkspecs/genode-g++/qmake.conf
- create mode 100644 qtbase/mkspecs/genode-g++/qplatformdefs.h
-
-diff --git a/qtbase/configure b/qtbase/configure
-index bc18e61..a901fa0 100755
---- a/qtbase/configure
-+++ b/qtbase/configure
-@@ -945,6 +945,7 @@ if [ -z "$PLATFORM" ]; then
-             - Also available for UnixWare: unixware-g++
-         "
-         ;;
-+
-      SCO_SV:*)
-         #PLATFORM=sco-g++
-         PLATFORM=sco-cc
 diff --git a/qtbase/mkspecs/features/qt_build_config.prf b/qtbase/mkspecs/features/qt_build_config.prf
-index 3762c14..1596dd5 100644
+index 0c6c10d..329d1c2 100644
 --- a/qtbase/mkspecs/features/qt_build_config.prf
 +++ b/qtbase/mkspecs/features/qt_build_config.prf
-@@ -132,5 +132,5 @@ defineTest(qtConfig) {
+@@ -141,5 +141,5 @@ defineTest(qtConfig) {
          contains(QT.$${module}.disabled_features, $$1): \
              return(false)
      }
@@ -147,10 +121,10 @@ index 0000000..5e5c341
 +
 +#endif // QPLATFORMDEFS_H
 diff --git a/qtbase/src/corelib/global/global.pri b/qtbase/src/corelib/global/global.pri
-index f74662b..391df22 100644
+index 029357f..52086f2 100644
 --- a/qtbase/src/corelib/global/global.pri
 +++ b/qtbase/src/corelib/global/global.pri
-@@ -41,11 +41,11 @@ PRECOMPILED_HEADER = global/qt_pch.h
+@@ -78,11 +78,11 @@ PRECOMPILED_HEADER = global/qt_pch.h
  # qlogging.cpp uses backtrace(3), which is in a separate library on the BSDs.
  LIBS_PRIVATE += $$QMAKE_LIBS_EXECINFO
  
@@ -165,18 +139,34 @@ index f74662b..391df22 100644
 +#   DEFINES += ELF_INTERPRETER=\\\"$$system(LC_ALL=C readelf -l /bin/ls | perl -n -e \'$$prog\')\\\"
 +#}
  
- slog2 {
-     LIBS_PRIVATE += -lslog2
+ linux:!static {
+     precompile_header {
 diff --git a/qtbase/src/corelib/io/io.pri b/qtbase/src/corelib/io/io.pri
-index 0414ae9..fdbd1af 100644
+index 9b60447..fcda10c 100644
 --- a/qtbase/src/corelib/io/io.pri
 +++ b/qtbase/src/corelib/io/io.pri
-@@ -166,7 +166,7 @@ win32 {
+@@ -199,7 +199,7 @@ win32 {
          } else {
              SOURCES += \
                  io/qstandardpaths_unix.cpp \
 -                io/qstorageinfo_unix.cpp
 +                io/qstorageinfo_stub.cpp
          }
+ }
  
-         linux|if(qnx:qtConfig(inotify)) {
+diff --git a/qtbase/src/corelib/io/qfilesystemwatcher.cpp b/qtbase/src/corelib/io/qfilesystemwatcher.cpp
+index f40e166..26522bc 100644
+--- a/qtbase/src/corelib/io/qfilesystemwatcher.cpp
++++ b/qtbase/src/corelib/io/qfilesystemwatcher.cpp
+@@ -47,9 +47,11 @@
+ #include <qset.h>
+ #include <qtimer.h>
+ 
++#if !defined(QT_NO_INOTIFY)
+ #if defined(Q_OS_LINUX) || (defined(Q_OS_QNX) && !defined(QT_NO_INOTIFY))
+ #define USE_INOTIFY
+ #endif
++#endif
+ 
+ #include "qfilesystemwatcher_polling_p.h"
+ #if defined(Q_OS_WIN)

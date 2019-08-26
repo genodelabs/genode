@@ -22,7 +22,7 @@
 #include "qnitpickerscreen.h"
 #include "qnitpickerwindowsurface.h"
 #include "QtEventDispatcherSupport/private/qgenericunixeventdispatcher_p.h"
-#include "QtFontDatabaseSupport/private/qbasicfontdatabase_p.h"
+#include "QtFontDatabaseSupport/private/qfreetypefontdatabase_p.h"
 
 QT_BEGIN_NAMESPACE
 
@@ -76,7 +76,7 @@ QAbstractEventDispatcher *QNitpickerIntegration::createEventDispatcher() const
 
 void QNitpickerIntegration::initialize()
 {
-    screenAdded(_nitpicker_screen);
+    QWindowSystemInterface::handleScreenAdded(_nitpicker_screen);
 
     QString icStr = QPlatformInputContextFactory::requested();
     if (icStr.isNull())
@@ -87,7 +87,7 @@ void QNitpickerIntegration::initialize()
 
 QPlatformFontDatabase *QNitpickerIntegration::fontDatabase() const
 {
-    static QBasicFontDatabase db;
+    static QFreeTypeFontDatabase db;
     return &db;
 }
 

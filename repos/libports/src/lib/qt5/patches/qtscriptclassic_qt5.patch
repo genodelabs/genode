@@ -1,21 +1,5 @@
 qtscriptclassic_qt5.patch
 
-From: Christian Prochaska <christian.prochaska@genode-labs.com>
-
-
----
- src/qscriptcontextinfo.cpp       |    2 -
- src/qscriptecmafunction.cpp      |   12 ++++-----
- src/qscriptengine_p.cpp          |   30 ++++++++++++++--------
- src/qscriptextqobject.cpp        |   52 +++++++++++++++++---------------------
- src/qscriptstring.cpp            |    1 -
- src/qscriptsyntaxcheckresult_p.h |    2 +
- src/qscriptvalue.cpp             |    4 +--
- src/qscriptvalue.h               |    4 +--
- src/qscriptvalue_p.h             |    1 -
- src/qscriptvalueimpl_p.h         |    3 +-
- 10 files changed, 55 insertions(+), 56 deletions(-)
-
 diff --git a/src/qscriptcontextinfo.cpp b/src/qscriptcontextinfo.cpp
 index ef080ff..df0e555 100644
 --- a/src/qscriptcontextinfo.cpp

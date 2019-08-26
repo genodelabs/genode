@@ -1,18 +1,10 @@
 qtbase_genode_qtscriptclassic.patch
 
-From: Christian Prochaska <christian.prochaska@genode-labs.com>
-
-
----
- qtbase/src/corelib/global/qglobal.h    |    6 +++++-
- qtbase/src/corelib/kernel/qvariant_p.h |    3 +++
- 2 files changed, 8 insertions(+), 1 deletion(-)
-
 diff --git a/qtbase/src/corelib/global/qglobal.h b/qtbase/src/corelib/global/qglobal.h
-index 3217691..570158a 100644
+index 223ebbc..965e6d0 100644
 --- a/qtbase/src/corelib/global/qglobal.h
 +++ b/qtbase/src/corelib/global/qglobal.h
-@@ -866,13 +866,17 @@ inline void qSwap(T &value1, T &value2)
+@@ -923,13 +923,17 @@ inline void qSwap(T &value1, T &value2)
      swap(value1, value2);
  }
  
@@ -32,10 +24,10 @@ index 3217691..570158a 100644
  Q_CORE_EXPORT void *qReallocAligned(void *ptr, size_t size, size_t oldsize, size_t alignment) Q_ALLOC_SIZE(2);
  Q_CORE_EXPORT void qFreeAligned(void *ptr);
 diff --git a/qtbase/src/corelib/kernel/qvariant_p.h b/qtbase/src/corelib/kernel/qvariant_p.h
-index bf88def..d6c2b0c 100644
+index b22b7c2..f79d473 100644
 --- a/qtbase/src/corelib/kernel/qvariant_p.h
 +++ b/qtbase/src/corelib/kernel/qvariant_p.h
-@@ -350,7 +350,10 @@ public:
+@@ -380,7 +380,10 @@ public:
  
      void delegate(const void*)
      {

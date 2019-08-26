@@ -1,34 +1,58 @@
 header_generation.patch
 
-From: Christian Prochaska <christian.prochaska@genode-labs.com>
-
 Avoid errors on header generation during port preparation.
----
- qtbase/mkspecs/features/qmake_use.prf              |    4 ++--
- qtbase/mkspecs/features/qt.prf                     |    2 +-
- .../Tools/qmake/mkspecs/features/default_pre.prf   |    8 ++++----
- 3 files changed, 7 insertions(+), 7 deletions(-)
 
+diff --git a/qtbase/configure b/qtbase/configure
+index 3bd39ed..8585108 100755
+--- a/qtbase/configure
++++ b/qtbase/configure
+@@ -89,11 +89,11 @@ if [ x"$1" = x"-top-level" ]; then
+     relpathMangled=`dirname "$relpath"`
+     outpathPrefix=../
+     shift
+-else
+-    if [ -f ../.qmake.super ]; then
+-        echo >&2 "ERROR: You cannot configure qtbase separately within a top-level build."
+-        exit 1
+-    fi
++#else
++#    if [ -f ../.qmake.super ]; then
++#        echo >&2 "ERROR: You cannot configure qtbase separately within a top-level build."
++#        exit 1
++#    fi
+ fi
+ 
+ OPT_CMDLINE=  # expanded version for the script
 diff --git a/qtbase/mkspecs/features/qmake_use.prf b/qtbase/mkspecs/features/qmake_use.prf
-index 9b6c67c..aa683d0 100644
+index 64faa4f..78d7392 100644
 --- a/qtbase/mkspecs/features/qmake_use.prf
 +++ b/qtbase/mkspecs/features/qmake_use.prf
-@@ -14,8 +14,8 @@ for(ever) {
-         defines = $$eval(QMAKE_DEFINES_$${nu})
-         includes = $$eval(QMAKE_INCDIR_$${nu})
+@@ -11,16 +11,16 @@ for(ever) {
+     }
+     CC_USES = $$resolve_depends(CC_USES, QMAKE_DEPENDS_, _CC)
+     for (nu, CC_USES) {
+-        !defined(QMAKE_LIBS_$$nu, var): \
+-            error("Library '$$lower($$replace(nu, _, -))' is not defined.")
++        #!defined(QMAKE_LIBS_$$nu, var): \
++        #    error("Library '$$lower($$replace(nu, _, -))' is not defined.")
  
--        isEmpty(libs):isEmpty(defines):isEmpty(includes): \
--            error("Library '$$name' is not defined.")
-+        #isEmpty(libs):isEmpty(defines):isEmpty(includes): \
-+        #    error("Library '$$name' is not defined.")
+         DEFINES += $$eval(QMAKE_DEFINES_$${nu})
+         INCLUDEPATH += $$eval(QMAKE_INCDIR_$${nu})
+     }
+     LD_USES = $$resolve_depends(LD_USES, QMAKE_DEPENDS_, _LD)
+     for (nu, LD_USES) {
+-        !defined(QMAKE_LIBS_$$nu, var): \
+-            error("Library '$$lower($$replace(nu, _, -))' is not defined.")
++        #!defined(QMAKE_LIBS_$$nu, var): \
++        #    error("Library '$$lower($$replace(nu, _, -))' is not defined.")
  
-         !contains(use, nolink) {
-             QMAKE_LIBDIR += $$libdir
+         debug: \
+             LIBS$${suffix} += $$eval(QMAKE_LIBS_$${nu}_DEBUG) $$eval(QMAKE_LIBS_$$nu)
 diff --git a/qtbase/mkspecs/features/qt.prf b/qtbase/mkspecs/features/qt.prf
-index 98f794c..f9beec7 100644
+index 3a71376..f8a4d07 100644
 --- a/qtbase/mkspecs/features/qt.prf
 +++ b/qtbase/mkspecs/features/qt.prf
-@@ -153,7 +153,7 @@ for(ever) {
+@@ -233,7 +233,7 @@ for(ever) {
                  WINRT_MANIFEST.capabilities_device_default += $$MODULE_WINRT_CAPABILITIES_DEVICE
          }
      }
@@ -37,6 +61,33 @@ index 98f794c..f9beec7 100644
  
      !isEmpty(var_sfx): break()
      var_sfx = _PRIVATE
+diff --git a/qtbase/mkspecs/features/qt_configure.prf b/qtbase/mkspecs/features/qt_configure.prf
+index 94eb012..ee42acc 100644
+--- a/qtbase/mkspecs/features/qt_configure.prf
++++ b/qtbase/mkspecs/features/qt_configure.prf
+@@ -2256,14 +2256,14 @@ defineTest(qtConfProcessOutput) {
+ 
+ !isEmpty(_QMAKE_SUPER_CACHE_):!equals(OUT_PWD, $$dirname(_QMAKE_SUPER_CACHE_)) {
+     # sub-repo within a top-level build; no need to configure anything.
+-    !isEmpty(QMAKE_EXTRA_ARGS) {
+-        # sub-projects don't get the extra args passed down automatically,
+-        # so we can use their presence to detect misguided attempts to
+-        # configure the repositories separately.
+-        # caveat: a plain qmake call is indistinguishable from a recursion
+-        # (by design), so we cannot detect this case.
+-        error("You cannot configure $$TARGET separately within a top-level build.")
+-    }
++#    !isEmpty(QMAKE_EXTRA_ARGS) {
++#        # sub-projects don't get the extra args passed down automatically,
++#        # so we can use their presence to detect misguided attempts to
++#        # configure the repositories separately.
++#        # caveat: a plain qmake call is indistinguishable from a recursion
++#        # (by design), so we cannot detect this case.
++#        error("You cannot configure $$TARGET separately within a top-level build.")
++#    }
+     return()
+ }
+ 
 diff --git a/qtwebkit/Tools/qmake/mkspecs/features/default_pre.prf b/qtwebkit/Tools/qmake/mkspecs/features/default_pre.prf
 index 5c36e93..5a52092 100644
 --- a/qtwebkit/Tools/qmake/mkspecs/features/default_pre.prf

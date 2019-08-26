@@ -1,44 +1,12 @@
 qtdeclarative_genode.patch
 
-From: Christian Prochaska <christian.prochaska@genode-labs.com>
-
-
----
- qtdeclarative/src/qml/jsruntime/qv4alloca_p.h |    4 ++++
- qtdeclarative/src/qml/jsruntime/qv4engine.cpp |    4 ++++
- qtdeclarative/src/qml/jsruntime/qv4global_p.h |    2 +-
- qtdeclarative/src/qml/qml/qqmlimport.cpp      |    3 +++
- 4 files changed, 12 insertions(+), 1 deletion(-)
-
-diff --git a/qtdeclarative/src/qml/jsruntime/qv4alloca_p.h b/qtdeclarative/src/qml/jsruntime/qv4alloca_p.h
-index 2f48698..5c153bd 100644
---- a/qtdeclarative/src/qml/jsruntime/qv4alloca_p.h
-+++ b/qtdeclarative/src/qml/jsruntime/qv4alloca_p.h
-@@ -53,6 +53,7 @@
- 
- #include <qglobal.h>
- 
-+#ifndef Q_OS_GENODE
- #if defined(Q_OS_WIN)
- #  include <malloc.h>
- #  ifndef __GNUC__
-@@ -60,6 +61,9 @@
- #  endif
- #elif !defined(Q_OS_BSD4) || defined(Q_OS_DARWIN)
- #  include <alloca.h>
-+#else
-+#  include <alloca.h>
-+#endif
- #endif
- 
- #endif
 diff --git a/qtdeclarative/src/qml/jsruntime/qv4engine.cpp b/qtdeclarative/src/qml/jsruntime/qv4engine.cpp
-index a9284f2..6f8be87 100644
+index f5c5c49..1d70dce 100644
 --- a/qtdeclarative/src/qml/jsruntime/qv4engine.cpp
 +++ b/qtdeclarative/src/qml/jsruntime/qv4engine.cpp
-@@ -102,6 +102,10 @@
- #include <valgrind/memcheck.h>
- #endif
+@@ -133,6 +133,10 @@
+ 
+ #endif // #ifndef V4_BOOTSTRAP
  
 +#if defined(Q_OS_GENODE)
 +#include <base/thread.h>
@@ -46,12 +14,12 @@ index a9284f2..6f8be87 100644
 +
  QT_BEGIN_NAMESPACE
  
- using namespace QV4;
+ Q_LOGGING_CATEGORY(lcTracingAll, "qt.v4.tracing.all")
 diff --git a/qtdeclarative/src/qml/jsruntime/qv4global_p.h b/qtdeclarative/src/qml/jsruntime/qv4global_p.h
-index 184375a..597c680 100644
+index d47393b..f0123b3 100644
 --- a/qtdeclarative/src/qml/jsruntime/qv4global_p.h
 +++ b/qtdeclarative/src/qml/jsruntime/qv4global_p.h
-@@ -113,7 +113,7 @@ inline double trunc(double d) { return d > 0 ? floor(d) : ceil(d); }
+@@ -116,7 +116,7 @@ inline double trunc(double d) { return d > 0 ? floor(d) : ceil(d); }
  
  // Black list some platforms
  #if defined(V4_ENABLE_JIT)
@@ -61,10 +29,10 @@ index 184375a..597c680 100644
  #endif
  #endif
 diff --git a/qtdeclarative/src/qml/qml/qqmlimport.cpp b/qtdeclarative/src/qml/qml/qqmlimport.cpp
-index 98e2f9e..89bd563 100644
+index 5a13644..2b8c225 100644
 --- a/qtdeclarative/src/qml/qml/qqmlimport.cpp
 +++ b/qtdeclarative/src/qml/qml/qqmlimport.cpp
-@@ -1747,6 +1747,9 @@ QString QQmlImportDatabase::resolvePlugin(QQmlTypeLoader *typeLoader,
+@@ -1913,6 +1913,9 @@ QString QQmlImportDatabase::resolvePlugin(QQmlTypeLoader *typeLoader,
          QLatin1String(".so"),
          QLatin1String(".bundle")
      };

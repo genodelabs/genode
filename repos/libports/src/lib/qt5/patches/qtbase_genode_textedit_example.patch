@@ -1,18 +1,10 @@
 qtbase_genode_textedit_example.patch
 
-From: Christian Prochaska <christian.prochaska@genode-labs.com>
-
-
----
- .../widgets/richtext/textedit/textedit.cpp         |   15 +++++++++++----
- .../widgets/richtext/textedit/textedit.pro         |    4 ----
- 2 files changed, 11 insertions(+), 8 deletions(-)
-
 diff --git a/qtbase/examples/widgets/richtext/textedit/textedit.cpp b/qtbase/examples/widgets/richtext/textedit/textedit.cpp
-index dec0b0b..a91002c 100644
+index 00ea032..83de198 100644
 --- a/qtbase/examples/widgets/richtext/textedit/textedit.cpp
 +++ b/qtbase/examples/widgets/richtext/textedit/textedit.cpp
-@@ -430,7 +430,8 @@ void TextEdit::fileOpen()
+@@ -451,7 +451,8 @@ void TextEdit::fileOpen()
      QFileDialog fileDialog(this, tr("Open File..."));
      fileDialog.setAcceptMode(QFileDialog::AcceptOpen);
      fileDialog.setFileMode(QFileDialog::ExistingFile);
@@ -22,7 +14,7 @@ index dec0b0b..a91002c 100644
      if (fileDialog.exec() != QDialog::Accepted)
          return;
      const QString fn = fileDialog.selectedFiles().first();
-@@ -447,7 +448,12 @@ bool TextEdit::fileSave()
+@@ -468,7 +469,12 @@ bool TextEdit::fileSave()
      if (fileName.startsWith(QStringLiteral(":/")))
          return fileSaveAs();
  
@@ -36,7 +28,7 @@ index dec0b0b..a91002c 100644
      bool success = writer.write(textEdit->document());
      if (success) {
          textEdit->document()->setModified(false);
-@@ -464,9 +470,10 @@ bool TextEdit::fileSaveAs()
+@@ -485,9 +491,10 @@ bool TextEdit::fileSaveAs()
      QFileDialog fileDialog(this, tr("Save as..."));
      fileDialog.setAcceptMode(QFileDialog::AcceptSave);
      QStringList mimeTypes;
@@ -50,10 +42,16 @@ index dec0b0b..a91002c 100644
          return false;
      const QString fn = fileDialog.selectedFiles().first();
 diff --git a/qtbase/examples/widgets/richtext/textedit/textedit.pro b/qtbase/examples/widgets/richtext/textedit/textedit.pro
-index c32bf68..704f738 100644
+index b7a2155..704f738 100644
 --- a/qtbase/examples/widgets/richtext/textedit/textedit.pro
 +++ b/qtbase/examples/widgets/richtext/textedit/textedit.pro
-@@ -9,10 +9,6 @@ SOURCES         = textedit.cpp \
+@@ -1,5 +1,4 @@
+ QT += widgets
+-requires(qtConfig(filedialog))
+ qtHaveModule(printsupport): QT += printsupport
+ 
+ TEMPLATE        = app
+@@ -10,10 +9,6 @@ SOURCES         = textedit.cpp \
                    main.cpp
  
  RESOURCES += textedit.qrc

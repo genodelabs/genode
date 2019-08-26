@@ -1,27 +1,5 @@
 qtwebkit_genode.patch
 
-From: Christian Prochaska <christian.prochaska@genode-labs.com>
-
-
----
- .../Source/JavaScriptCore/assembler/ARMAssembler.h |    7 +++++++
- .../JavaScriptCore/assembler/MacroAssemblerARM.cpp |    3 ++-
- .../Source/JavaScriptCore/dfg/DFGOperations.cpp    |    1 +
- .../JavaScriptCore/jit/ExecutableAllocator.h       |    8 ++++++++
- qtwebkit/Source/WTF/wtf/Assertions.cpp             |    9 +++++++++
- qtwebkit/Source/WTF/wtf/FastMalloc.cpp             |    2 +-
- qtwebkit/Source/WTF/wtf/InlineASM.h                |    4 ++--
- qtwebkit/Source/WTF/wtf/OSAllocatorPosix.cpp       |   20 ++++++++++++++++++++
- qtwebkit/Source/WTF/wtf/OSRandomSource.cpp         |    8 ++++++++
- qtwebkit/Source/WTF/wtf/Platform.h                 |   19 +++++++++++++++----
- qtwebkit/Source/WTF/wtf/StackBounds.cpp            |   13 +++++++++++++
- qtwebkit/Source/WTF/wtf/TCSystemAlloc.cpp          |   20 ++++++++++++++++++++
- .../front-end/InspectorBackendCommands.qrc         |    2 +-
- .../platform/graphics/qt/MediaPlayerPrivateQt.cpp  |    3 +++
- .../network/qt/SocketStreamHandlePrivate.h         |    1 +
- .../platform/network/qt/SocketStreamHandleQt.cpp   |   14 ++++++++++++++
- 16 files changed, 125 insertions(+), 9 deletions(-)
-
 diff --git a/qtwebkit/Source/JavaScriptCore/assembler/ARMAssembler.h b/qtwebkit/Source/JavaScriptCore/assembler/ARMAssembler.h
 index 19db71d..9cbe4e3 100644
 --- a/qtwebkit/Source/JavaScriptCore/assembler/ARMAssembler.h
@@ -137,10 +115,10 @@ index 82fbd25..9791492 100644
  #else
  #define USE_BACKGROUND_THREAD_TO_SCAVENGE_MEMORY 1
 diff --git a/qtwebkit/Source/WTF/wtf/InlineASM.h b/qtwebkit/Source/WTF/wtf/InlineASM.h
-index 0a2fe78..d1fdd01 100644
+index 2dc40ef..aeb9ac6 100644
 --- a/qtwebkit/Source/WTF/wtf/InlineASM.h
 +++ b/qtwebkit/Source/WTF/wtf/InlineASM.h
-@@ -62,12 +62,12 @@
+@@ -64,12 +64,12 @@
  #elif OS(AIX)
      // IBM's own file format
  #define HIDE_SYMBOL(name) ".lglobl " #name

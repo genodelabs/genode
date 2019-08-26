@@ -13,10 +13,10 @@ $(INSTALL_DIR)/Styles:
 	mkdir -p $@
 
 $(QMLDIR): $(INSTALL_DIR)
-	cp $(PORT_DIR)/src/lib/qt5/qt5/qtvirtualkeyboard/src/virtualkeyboard/import/qmldir $@
+	cp $(PORT_DIR)/src/lib/qt5/qt5/qtvirtualkeyboard/src/import/qmldir $@
 
 $(STYLES_QMLDIR): $(INSTALL_DIR)/Styles
-	cp $(PORT_DIR)/src/lib/qt5/qt5/qtvirtualkeyboard/src/virtualkeyboard/styles/qmldir $@
+	cp $(PORT_DIR)/src/lib/qt5/qt5/qtvirtualkeyboard/src/styles/qmldir $@
 
 qt5_qtquick_virtualkeyboard.tar: $(QMLDIR) $(STYLES_QMLDIR)
 	tar --owner=0 --group=0 --numeric-owner --mode='go=' --mtime='1970-01-01 00:00+00' -cf $@ qt

@@ -1,5 +1,7 @@
 MIRROR_FROM_REP_DIR := lib/mk/qt5_core.mk \
                        lib/mk/qt5_core_generated.inc \
+                       lib/mk/qt5_pcre2.mk \
+                       lib/mk/qt5_pcre2_generated.inc \
                        lib/mk/qt5.inc \
                        src/lib/qt5/qtbase/src/corelib \
                        src/lib/qt5/libc_dummies.cc \
@@ -24,10 +26,11 @@ MIRROR_FROM_PORT_DIR := src/lib/qt5/qt5/qtbase/src/3rdparty/double-conversion \
                         src/lib/qt5/qt5/qtbase/src/3rdparty/harfbuzz \
                         src/lib/qt5/qt5/qtbase/src/3rdparty/md4 \
                         src/lib/qt5/qt5/qtbase/src/3rdparty/md5 \
-                        src/lib/qt5/qt5/qtbase/src/3rdparty/pcre \
+                        src/lib/qt5/qt5/qtbase/src/3rdparty/pcre2 \
                         src/lib/qt5/qt5/qtbase/src/3rdparty/rfc6234 \
                         src/lib/qt5/qt5/qtbase/src/3rdparty/sha1 \
                         src/lib/qt5/qt5/qtbase/src/3rdparty/sha3 \
+                        src/lib/qt5/qt5/qtbase/src/3rdparty/tinycbor \
                         src/lib/qt5/qt5/qtbase/src/corelib
 
 content: $(MIRROR_FROM_PORT_DIR)

@@ -1,6 +1,10 @@
---- a/qtvirtualkeyboard/examples/virtualkeyboard/basic/basic.pro    2017-08-14 11:23:48.610593201 +0200
-+++ b/qtvirtualkeyboard/examples/virtualkeyboard/basic/basic.pro    2017-08-14 11:23:55.470642405 +0200
-@@ -3,10 +3,10 @@
+example_virtualkeyboard.patch
+
+diff --git a/qtvirtualkeyboard/examples/virtualkeyboard/basic/basic.pro b/qtvirtualkeyboard/examples/virtualkeyboard/basic/basic.pro
+index 27ad414..6383ffe 100644
+--- a/qtvirtualkeyboard/examples/virtualkeyboard/basic/basic.pro
++++ b/qtvirtualkeyboard/examples/virtualkeyboard/basic/basic.pro
+@@ -3,10 +3,10 @@ TARGET = basic
  QT += qml quick
  SOURCES += main.cpp
  CONFIG += link_pkgconfig
@@ -15,8 +19,8 @@
  
  target.path = $$[QT_INSTALL_EXAMPLES]/virtualkeyboard/basic
  INSTALLS += target
-@@ -24,13 +24,13 @@
-     content/TextBase.qml \
+@@ -22,13 +22,13 @@ OTHER_FILES += \
+     content/TextArea.qml \
      content/TextField.qml \
  
 -disable-xcb {
@@ -28,12 +32,12 @@
 +#    CONFIG += disable-desktop
 +#}
  
--disable-desktop|!isEmpty(CROSS_COMPILE)|qnx {
+-disable-desktop|android-embedded|!isEmpty(CROSS_COMPILE)|qnx {
 -    DEFINES += MAIN_QML=\\\"basic-b2qt.qml\\\"
 -} else {
 -    DEFINES += MAIN_QML=\\\"Basic.qml\\\"
 -}
-+#disable-desktop|!isEmpty(CROSS_COMPILE)|qnx {
++#disable-desktop|android-embedded|!isEmpty(CROSS_COMPILE)|qnx {
 +#    DEFINES += MAIN_QML=\\\"basic-b2qt.qml\\\"
 +#} else {
 +#    DEFINES += MAIN_QML=\\\"Basic.qml\\\"

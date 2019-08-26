@@ -1,8 +1,10 @@
+qtbase_qwindow_title.patch
+
 diff --git a/qtbase/src/widgets/kernel/qwidgetwindow.cpp b/qtbase/src/widgets/kernel/qwidgetwindow.cpp
-index b91fbcf..3221bf3 100644
+index 143cc60..5e4842c 100644
 --- a/qtbase/src/widgets/kernel/qwidgetwindow.cpp
 +++ b/qtbase/src/widgets/kernel/qwidgetwindow.cpp
-@@ -122,6 +122,7 @@ QWidgetWindow::QWidgetWindow(QWidget *widget)
+@@ -150,6 +150,7 @@ QWidgetWindow::QWidgetWindow(QWidget *widget)
      : QWindow(*new QWidgetWindowPrivate(), 0)
      , m_widget(widget)
  {

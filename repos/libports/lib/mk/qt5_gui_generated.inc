@@ -1,13 +1,13 @@
-QT_DEFINES += -DQT_NO_USING_NAMESPACE -DENABLE_PIXMAN_DRAWHELPERS -DQT_BUILD_GUI_LIB -DQT_BUILDING_QT -DQT_NO_CAST_TO_ASCII -DQT_ASCII_CAST_WARNINGS -DQT_MOC_COMPAT -DQT_USE_QSTRINGBUILDER -DQT_DEPRECATED_WARNINGS -DQT_DISABLE_DEPRECATED_BEFORE=0x050000 -DQT_NO_EXCEPTIONS -D_LARGEFILE64_SOURCE -D_LARGEFILE_SOURCE -DQT_NO_DEBUG -DQT_CORE_LIB
+QT_DEFINES += -DQT_NO_USING_NAMESPACE -DQT_NO_FOREACH -DENABLE_PIXMAN_DRAWHELPERS -DQT_NO_NARROWING_CONVERSIONS_IN_CONNECT -DQT_BUILD_GUI_LIB -DQT_BUILDING_QT -DQT_NO_CAST_TO_ASCII -DQT_ASCII_CAST_WARNINGS -DQT_MOC_COMPAT -DQT_USE_QSTRINGBUILDER -DQT_DEPRECATED_WARNINGS -DQT_DISABLE_DEPRECATED_BEFORE=0x050000 -DQT_NO_EXCEPTIONS -D_LARGEFILE64_SOURCE -D_LARGEFILE_SOURCE -DQT_NO_DEBUG -DQT_CORE_LIB
 
 QT_INCPATH += \
   qtbase/src/gui \
   qtbase/include \
   qtbase/include/QtGui \
-  qtbase/include/QtGui/5.8.0 \
-  qtbase/include/QtGui/5.8.0/QtGui \
-  qtbase/include/QtCore/5.8.0 \
-  qtbase/include/QtCore/5.8.0/QtCore \
+  qtbase/include/QtGui/5.13.0 \
+  qtbase/include/QtGui/5.13.0/QtGui \
+  qtbase/include/QtCore/5.13.0 \
+  qtbase/include/QtCore/5.13.0/QtCore \
   qtbase/include/QtCore \
   qtbase/mkspecs/genode-g++
 
@@ -19,7 +19,6 @@ QT_SOURCES += \
   qplatforminputcontextplugin.cpp \
   qplatforminputcontext.cpp \
   qplatformintegration.cpp \
-  qplatformdrag.cpp \
   qplatformscreen.cpp \
   qplatformintegrationfactory.cpp \
   qplatformintegrationplugin.cpp \
@@ -32,8 +31,6 @@ QT_SOURCES += \
   qplatformclipboard.cpp \
   qplatformnativeinterface.cpp \
   qsessionmanager.cpp \
-  qshapedpixmapdndwindow.cpp \
-  qsimpledrag.cpp \
   qsurfaceformat.cpp \
   qguiapplication.cpp \
   qwindow.cpp \
@@ -42,10 +39,9 @@ QT_SOURCES += \
   qsurface.cpp \
   qclipboard.cpp \
   qcursor.cpp \
-  qdrag.cpp \
-  qdnd.cpp \
   qevent.cpp \
   qinputmethod.cpp \
+  qinternalmimedata.cpp \
   qkeysequence.cpp \
   qkeymapper.cpp \
   qpalette.cpp \
@@ -67,6 +63,12 @@ QT_SOURCES += \
   qplatformgraphicsbufferhelper.cpp \
   qinputdevicemanager.cpp \
   qhighdpiscaling.cpp \
+  qtestsupport_gui.cpp \
+  qdnd.cpp \
+  qdrag.cpp \
+  qplatformdrag.cpp \
+  qshapedpixmapdndwindow.cpp \
+  qsimpledrag.cpp \
   qplatformopenglcontext.cpp \
   qopenglcontext.cpp \
   qopenglwindow.cpp \
@@ -75,6 +77,7 @@ QT_SOURCES += \
   qimage_conversions.cpp \
   qimageiohandler.cpp \
   qimagereader.cpp \
+  qimagereaderwriterhelpers.cpp \
   qimagewriter.cpp \
   qpaintengine_pic.cpp \
   qpicture.cpp \
@@ -82,7 +85,6 @@ QT_SOURCES += \
   qpixmap.cpp \
   qpixmapcache.cpp \
   qplatformpixmap.cpp \
-  qmovie.cpp \
   qpixmap_raster.cpp \
   qpixmap_blitter.cpp \
   qimagepixmapcleanuphooks.cpp \
@@ -90,6 +92,7 @@ QT_SOURCES += \
   qiconloader.cpp \
   qiconengine.cpp \
   qiconengineplugin.cpp \
+  qmovie.cpp \
   qbmphandler.cpp \
   qppmhandler.cpp \
   qxbmhandler.cpp \
@@ -123,6 +126,7 @@ QT_SOURCES += \
   qrawfont.cpp \
   qglyphrun.cpp \
   qdistancefield.cpp \
+  qinputcontrol.cpp \
   qfontengine_qpf2.cpp \
   qplatformfontdatabase.cpp \
   qtextodfwriter.cpp \
@@ -134,11 +138,10 @@ QT_SOURCES += \
   qblittable.cpp \
   qbrush.cpp \
   qcolor.cpp \
+  qcolorprofile.cpp \
   qcompositionfunctions.cpp \
   qcosmeticstroker.cpp \
-  qdrawhelper.cpp \
   qemulationpaintengine.cpp \
-  qgammatables.cpp \
   qgrayraster.c \
   qimagescale.cpp \
   qmatrix.cpp \
@@ -174,6 +177,19 @@ QT_SOURCES += \
   qgridlayoutengine.cpp \
   qabstractlayoutstyleinfo.cpp \
   qlayoutpolicy.cpp \
+  qshaderformat.cpp \
+  qshadergenerator.cpp \
+  qshadergraph.cpp \
+  qshadergraphloader.cpp \
+  qshaderlanguage.cpp \
+  qshadernode.cpp \
+  qshadernodeport.cpp \
+  qshadernodesloader.cpp \
+  qtexturefiledata.cpp \
+  qtexturefilereader.cpp \
+  qpkmhandler.cpp \
+  qktxhandler.cpp \
+  qastchandler.cpp \
   qgenericmatrix.cpp \
   qmatrix4x4.cpp \
   qquaternion.cpp \
@@ -200,7 +216,9 @@ QT_SOURCES += \
   qopengltextureblitter.cpp \
   qopengltexture.cpp \
   qopengltexturehelper.cpp \
+  qopengltextureuploader.cpp \
   qopenglpixeltransferoptions.cpp \
+  qopenglprogrambinarycache.cpp \
   qopenglfunctions_1_0.cpp \
   qopenglfunctions_1_1.cpp \
   qopenglfunctions_1_2.cpp \
@@ -231,8 +249,10 @@ QT_SOURCES += \
   qguivariantanimation.cpp \
   qstandarditemmodel.cpp \
   qimage_compat.cpp \
-  qimage_sse2.cpp \
+  qdrawhelper.cpp \
   qdrawhelper_sse2.cpp \
+  qrc_qpdf.cpp \
+  qrc_qmake_webgradients.cpp \
   moc_qgenericplugin.cpp \
   moc_qplatforminputcontext.cpp \
   moc_qplatforminputcontextplugin_p.cpp \
@@ -240,13 +260,12 @@ QT_SOURCES += \
   moc_qplatformthemeplugin.cpp \
   moc_qplatformnativeinterface.cpp \
   moc_qplatformmenu.cpp \
-  moc_qshapedpixmapdndwindow_p.cpp \
   moc_qsurfaceformat.cpp \
   moc_qoffscreensurface.cpp \
+  moc_qsurface.cpp \
   moc_qclipboard.cpp \
-  moc_qdrag.cpp \
-  moc_qdnd_p.cpp \
   moc_qevent.cpp \
+  moc_qinternalmimedata_p.cpp \
   moc_qkeysequence.cpp \
   moc_qkeymapper_p.cpp \
   moc_qpalette.cpp \
@@ -260,7 +279,11 @@ QT_SOURCES += \
   moc_qrasterwindow.cpp \
   moc_qplatformgraphicsbuffer.cpp \
   moc_qinputdevicemanager_p.cpp \
+  moc_qdnd_p.cpp \
+  moc_qdrag.cpp \
+  moc_qshapedpixmapdndwindow_p.cpp \
   moc_qopenglwindow.cpp \
+  moc_qimage.cpp \
   moc_qimageiohandler.cpp \
   moc_qpictureformatplugin.cpp \
   moc_qiconengineplugin.cpp \
@@ -272,11 +295,14 @@ QT_SOURCES += \
   moc_qtextimagehandler_p.cpp \
   moc_qtexttable.cpp \
   moc_qtextlist.cpp \
+  moc_qinputcontrol_p.cpp \
   moc_qbrush.cpp \
   moc_qpainter.cpp \
   moc_qpdfwriter.cpp \
   moc_qplatformbackingstore.cpp \
   moc_qvalidator.cpp \
+  moc_qlayoutpolicy_p.cpp \
+  moc_qshaderlanguage_p.cpp \
   moc_qopenglshaderprogram.cpp \
   moc_qopenglengineshadermanager_p.cpp \
   moc_qopengltexture.cpp \
@@ -307,16 +333,15 @@ COMPILER_MOC_HEADER_MAKE_ALL_FILES = \
   moc_qplatformthemeplugin.cpp \
   moc_qplatformnativeinterface.cpp \
   moc_qplatformmenu.cpp \
-  moc_qshapedpixmapdndwindow_p.cpp \
   moc_qsurfaceformat.cpp \
   moc_qguiapplication.cpp \
   moc_qwindow.cpp \
   moc_qoffscreensurface.cpp \
+  moc_qsurface.cpp \
   moc_qclipboard.cpp \
-  moc_qdrag.cpp \
-  moc_qdnd_p.cpp \
   moc_qevent.cpp \
   moc_qinputmethod.cpp \
+  moc_qinternalmimedata_p.cpp \
   moc_qkeysequence.cpp \
   moc_qkeymapper_p.cpp \
   moc_qpalette.cpp \
@@ -331,12 +356,16 @@ COMPILER_MOC_HEADER_MAKE_ALL_FILES = \
   moc_qrasterwindow.cpp \
   moc_qplatformgraphicsbuffer.cpp \
   moc_qinputdevicemanager_p.cpp \
+  moc_qdnd_p.cpp \
+  moc_qdrag.cpp \
+  moc_qshapedpixmapdndwindow_p.cpp \
   moc_qopenglcontext.cpp \
   moc_qopenglwindow.cpp \
+  moc_qimage.cpp \
   moc_qimageiohandler.cpp \
-  moc_qmovie.cpp \
   moc_qpictureformatplugin.cpp \
   moc_qiconengineplugin.cpp \
+  moc_qmovie.cpp \
   moc_qfont.cpp \
   moc_qfontdatabase.cpp \
   moc_qtextformat.cpp \
@@ -348,11 +377,14 @@ COMPILER_MOC_HEADER_MAKE_ALL_FILES = \
   moc_qtexttable.cpp \
   moc_qtextlist.cpp \
   moc_qsyntaxhighlighter.cpp \
+  moc_qinputcontrol_p.cpp \
   moc_qbrush.cpp \
   moc_qpainter.cpp \
   moc_qpdfwriter.cpp \
   moc_qplatformbackingstore.cpp \
   moc_qvalidator.cpp \
+  moc_qlayoutpolicy_p.cpp \
+  moc_qshaderlanguage_p.cpp \
   moc_qopenglshaderprogram.cpp \
   moc_qopenglengineshadermanager_p.cpp \
   moc_qopenglvertexarrayobject.cpp \

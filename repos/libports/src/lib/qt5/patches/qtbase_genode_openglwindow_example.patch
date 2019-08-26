@@ -1,12 +1,5 @@
 qtbase_genode_openglwindow_example.patch
 
-From: Christian Prochaska <christian.prochaska@genode-labs.com>
-
-
----
- qtbase/examples/gui/openglwindow/openglwindow.pro |   10 +++++++---
- 1 file changed, 7 insertions(+), 3 deletions(-)
-
 diff --git a/qtbase/examples/gui/openglwindow/openglwindow.pro b/qtbase/examples/gui/openglwindow/openglwindow.pro
 index 93f18f3..ffff275 100644
 --- a/qtbase/examples/gui/openglwindow/openglwindow.pro

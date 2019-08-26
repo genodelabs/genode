@@ -20,7 +20,8 @@ src/lib/qt5_qtvirtualkeyboardstylesplugin/target.mk:
 
 PORT_DIR := $(call port_dir,$(REP_DIR)/ports/qt5)
 
-MIRROR_FROM_PORT_DIR := src/lib/qt5/qt5/qtvirtualkeyboard/src/virtualkeyboard
+MIRROR_FROM_PORT_DIR := src/lib/qt5/qt5/qtvirtualkeyboard/src/plugin \
+                        src/lib/qt5/qt5/qtvirtualkeyboard/src/styles
 
 content: $(MIRROR_FROM_PORT_DIR)
 

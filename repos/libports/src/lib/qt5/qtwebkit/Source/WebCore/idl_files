@@ -555,13 +555,4 @@ qtwebkit/Source/WebCore/svg/SVGVKernElement.idl
 qtwebkit/Source/WebCore/svg/SVGViewSpec.idl
 qtwebkit/Source/WebCore/svg/SVGZoomAndPan.idl
 qtwebkit/Source/WebCore/svg/SVGZoomEvent.idl
-qtwebkit/Source/WebCore/html/track/AudioTrack.idl
-qtwebkit/Source/WebCore/html/track/AudioTrackList.idl
-qtwebkit/Source/WebCore/html/track/TextTrack.idl
-qtwebkit/Source/WebCore/html/track/TextTrackCue.idl
-qtwebkit/Source/WebCore/html/track/TextTrackCueList.idl
-qtwebkit/Source/WebCore/html/track/TextTrackList.idl
-qtwebkit/Source/WebCore/html/track/TrackEvent.idl
-qtwebkit/Source/WebCore/html/track/VideoTrack.idl
-qtwebkit/Source/WebCore/html/track/VideoTrackList.idl
 generated/InternalSettingsGenerated.idl

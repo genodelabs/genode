@@ -3,7 +3,6 @@ create_boot_directory
 import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/init \
                   [depot_user]/src/libc \
-                  [depot_user]/src/pcre16 \
                   [depot_user]/src/qt5_component \
                   [depot_user]/src/qt5_core \
                   [depot_user]/src/stdcxx \

@@ -1,0 +1,22 @@
+qtvirtualkeyboard_generated.patch
+
+diff --git a/qtvirtualkeyboard/src/virtualkeyboard/qmake_virtualkeyboard_layouts.qrc b/qtvirtualkeyboard/src/virtualkeyboard/qmake_virtualkeyboard_layouts.qrc
+new file mode 100644
+index 0000000..a6e60dc
+--- /dev/null
++++ b/qtvirtualkeyboard/src/virtualkeyboard/qmake_virtualkeyboard_layouts.qrc
+@@ -0,0 +1,14 @@
++<!DOCTYPE RCC><RCC version="1.0">
++<qresource prefix="/QtQuick/VirtualKeyboard">
++<file alias="content/layouts/fallback/dialpad.qml">content/layouts/fallback/dialpad.qml</file>
++<file alias="content/layouts/fallback/digits.qml">content/layouts/fallback/digits.qml</file>
++<file alias="content/layouts/fallback/numbers.qml">content/layouts/fallback/numbers.qml</file>
++<file alias="content/layouts/fallback/main.qml">content/layouts/fallback/main.qml</file>
++<file alias="content/layouts/fallback/symbols.qml">content/layouts/fallback/symbols.qml</file>
++<file alias="content/layouts/en_GB/dialpad.fallback">content/layouts/en_GB/dialpad.fallback</file>
++<file alias="content/layouts/en_GB/digits.fallback">content/layouts/en_GB/digits.fallback</file>
++<file alias="content/layouts/en_GB/main.fallback">content/layouts/en_GB/main.fallback</file>
++<file alias="content/layouts/en_GB/numbers.fallback">content/layouts/en_GB/numbers.fallback</file>
++<file alias="content/layouts/en_GB/symbols.fallback">content/layouts/en_GB/symbols.fallback</file>
++</qresource>
++</RCC>

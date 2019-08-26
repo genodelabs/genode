@@ -18,7 +18,6 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/nitpicker \
                   [depot_user]/src/global_keys_handler \
                   [depot_user]/src/rom_filter \
-                  [depot_user]/src/pcre16 \
                   [depot_user]/src/qt5_core \
                   [depot_user]/src/qt5_gui \
                   [depot_user]/src/qt5_qjpeg \

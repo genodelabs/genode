@@ -1,7 +1,6 @@
 base
 libc
 os
-pcre16
 so
 stdcxx
 timer_session

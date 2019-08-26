@@ -1,60 +1,10 @@
 qtbase_fixes.patch
 
-From: Christian Prochaska <christian.prochaska@genode-labs.com>
-
-
----
- qtbase/src/network/socket/qnativesocketengine_p.h  |    4 ++++
- .../network/socket/qnativesocketengine_unix.cpp    |    2 ++
- qtbase/src/widgets/kernel/qwidgetwindow.cpp        |    3 +++
- qtbase/src/widgets/widgets/qwidgetanimator.cpp     |    3 ++-
- 4 files changed, 11 insertions(+), 1 deletion(-)
-
-diff --git a/qtbase/src/network/socket/qnativesocketengine_p.h b/qtbase/src/network/socket/qnativesocketengine_p.h
-index 46c7ae5..b6c4378 100644
---- a/qtbase/src/network/socket/qnativesocketengine_p.h
-+++ b/qtbase/src/network/socket/qnativesocketengine_p.h
-@@ -286,8 +286,10 @@ public:
-     bool checkProxy(const QHostAddress &address);
-     bool fetchConnectionParameters();
- 
-+#ifndef QT_NO_NETWORKINTERFACE
-     static uint scopeIdFromString(const QString &scopeid)
-     { return QNetworkInterface::interfaceIndexFromName(scopeid); }
-+#endif
- 
-     /*! \internal
-         Sets \a address and \a port in the \a aa sockaddr structure and the size in \a sockAddrSize.
-@@ -301,7 +303,9 @@ public:
-             || socketProtocol == QAbstractSocket::AnyIPProtocol) {
-             memset(&aa->a6, 0, sizeof(sockaddr_in6));
-             aa->a6.sin6_family = AF_INET6;
-+#ifndef QT_NO_NETWORKINTERFACE
-             aa->a6.sin6_scope_id = scopeIdFromString(address.scopeId());
-+#endif
-             aa->a6.sin6_port = htons(port);
-             Q_IPV6ADDR tmp = address.toIPv6Address();
-             memcpy(&aa->a6.sin6_addr, &tmp, sizeof(tmp));
-diff --git a/qtbase/src/network/socket/qnativesocketengine_unix.cpp b/qtbase/src/network/socket/qnativesocketengine_unix.cpp
-index d1efc21..d981675 100644
---- a/qtbase/src/network/socket/qnativesocketengine_unix.cpp
-+++ b/qtbase/src/network/socket/qnativesocketengine_unix.cpp
-@@ -121,8 +121,10 @@ static inline void qt_socket_getPortAndAddress(const qt_sockaddr *s, quint16 *po
-             QHostAddress tmpAddress;
-             tmpAddress.setAddress(tmp);
-             *addr = tmpAddress;
-+#ifndef QT_NO_NETWORKINTERFACE
-             if (s->a6.sin6_scope_id)
-                 addr->setScopeId(QNetworkInterface::interfaceNameFromIndex(s->a6.sin6_scope_id));
-+#endif
-         }
-         if (port)
-             *port = ntohs(s->a6.sin6_port);
 diff --git a/qtbase/src/widgets/kernel/qwidgetwindow.cpp b/qtbase/src/widgets/kernel/qwidgetwindow.cpp
-index 3e15b69..b91fbcf 100644
+index fbc71cd..143cc60 100644
 --- a/qtbase/src/widgets/kernel/qwidgetwindow.cpp
 +++ b/qtbase/src/widgets/kernel/qwidgetwindow.cpp
-@@ -324,6 +324,9 @@ bool QWidgetWindow::event(QEvent *event)
+@@ -369,6 +369,9 @@ bool QWidgetWindow::event(QEvent *event)
          m_widget->repaint();
          return true;
  
@@ -65,10 +15,10 @@ index 3e15b69..b91fbcf 100644
          break;
      }
 diff --git a/qtbase/src/widgets/widgets/qwidgetanimator.cpp b/qtbase/src/widgets/widgets/qwidgetanimator.cpp
-index d46d655..5ef6967 100644
+index 486d65d..6ab6798 100644
 --- a/qtbase/src/widgets/widgets/qwidgetanimator.cpp
 +++ b/qtbase/src/widgets/widgets/qwidgetanimator.cpp
-@@ -73,7 +73,8 @@ void QWidgetAnimator::abort(QWidget *w)
+@@ -81,7 +81,8 @@ void QWidgetAnimator::abort(QWidget *w)
  void QWidgetAnimator::animationFinished()
  {
      QPropertyAnimation *anim = qobject_cast<QPropertyAnimation*>(sender());
@@ -76,5 +26,5 @@ index d46d655..5ef6967 100644
 +    if (anim)
 +    	abort(static_cast<QWidget*>(anim->targetObject()));
  }
- #endif //QT_NO_ANIMATION
+ #endif // animation
  

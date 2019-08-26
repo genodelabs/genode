@@ -12,6 +12,6 @@ CC_CXX_OPT += -D'MAIN_QML="basic-b2qt.qml"'
 
 include $(call select_from_repositories,src/app/qt5/tmpl/target_final.inc)
 
-LIBS += qt5_component
+LIBS += qt5_component qt5_virtualkeyboard
 
 CC_CXX_WARN_STRICT =

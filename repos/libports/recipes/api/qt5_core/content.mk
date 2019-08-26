@@ -1,4 +1,5 @@
 MIRROR_FROM_REP_DIR := lib/import/import-qt5_core.mk \
+                       lib/import/import-qt5_pcre2.mk \
                        lib/import/import-qt5.inc
 
 content: $(MIRROR_FROM_REP_DIR)

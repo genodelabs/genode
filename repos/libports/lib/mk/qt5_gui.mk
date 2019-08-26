@@ -17,7 +17,8 @@ QT_SOURCES_FILTER_OUT = \
 
 # remove unneeded files to prevent moc warnings
 COMPILER_MOC_HEADER_MAKE_ALL_FILES_FILTER_OUT = \
-  moc_qsessionmanager.cpp
+  moc_qsessionmanager.cpp \
+  qrc_qmake_webgradients.cpp
 
 include $(REP_DIR)/lib/mk/qt5.inc
 

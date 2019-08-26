@@ -26,7 +26,7 @@ QT_BEGIN_NAMESPACE
 class QNitpickerIntegrationPlugin : public QPlatformIntegrationPlugin
 {
 	Q_OBJECT
-    Q_PLUGIN_METADATA(IID "org.qt-project.Qt.QPA.QPlatformIntegrationFactoryInterface.5.3" FILE "nitpicker.json")
+    Q_PLUGIN_METADATA(IID QPlatformIntegrationFactoryInterface_iid FILE "nitpicker.json")
 
 private:
 	static Genode::Env *_env;

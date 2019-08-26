@@ -4,8 +4,8 @@ SHARED_LIB = yes
 
 SRC_CC = qgenericunixeventdispatcher.cpp \
          qunixeventdispatcher.cpp \
-         qbasicfontdatabase.cpp \
          qfontengine_ft.cpp \
+         qfreetypefontdatabase.cpp \
          qeglconvenience.cpp \
          moc_qunixeventdispatcher_qpa_p.cpp
 
@@ -48,8 +48,7 @@ LIBS += qt5_gui qt5_core qoost egl freetype libc
 
 vpath % $(QT5_CONTRIB_DIR)/qtbase/src/platformsupport/eglconvenience
 vpath % $(QT5_CONTRIB_DIR)/qtbase/src/platformsupport/eventdispatchers
-vpath % $(QT5_CONTRIB_DIR)/qtbase/src/platformsupport/fontdatabases/basic
-vpath % $(QT5_CONTRIB_DIR)/qtbase/src/gui/text
+vpath % $(QT5_CONTRIB_DIR)/qtbase/src/platformsupport/fontdatabases/freetype
 vpath % $(REP_DIR)/src/lib/qt5/qtbase/src/plugins/platforms/nitpicker
 
 CC_CXX_WARN_STRICT =

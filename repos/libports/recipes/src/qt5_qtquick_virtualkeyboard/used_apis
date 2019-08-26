@@ -7,4 +7,5 @@ qt5_network
 qt5_qml
 qt5_quick
 qt5_svg
+qt5_virtualkeyboard
 stdcxx
