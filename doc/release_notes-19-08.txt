@@ -1,0 +1,681 @@
+
+
+              ===============================================
+              Release notes for the Genode OS Framework 19.08
+              ===============================================
+
+                               Genode Labs
+
+
+
+The stated theme of this year's [https://genode.org/about/road-map - road map]
+is "bridging worlds", which expresses our ambition to smoothen the practical
+use of Genode-based systems such as Sculpt OS. The current release pays
+tribute to this ambition by addressing a great number of practical concerns:
+How to accommodate the staggering variety of keyboard layouts out there?
+(Section [Flexible keyboard layouts])
+How can the system gracefully respond when confronted with exotic USB devices?
+(Section [Storage-stack improvements])
+How to set the system time from within the system? How does SNTP fit in here?
+(Section [General system time concept])
+How to approach the remote administration of the system?
+(Section [Enhanced SSH terminal])
+How to copy and paste text securely between mutually distrusting subsystems?
+(Section [Clipboard])
+Or how to overcome the captive portal of a Hotel WiFi with Sculpt OS?
+(Section [Disposable VM for handling captive portals])
+By providing answers to those questions, we believe to make Genode - and Sculpt
+OS in particular - generally more useful.
+
+As another take on "bridging worlds", we continue our effort to bring the rich
+Sculpt OS software stack to the 64-bit ARM world, in particular to our most
+loved SoC family, namely NXP i.MX. Section [64-bit ARM and NXP i.MX8] reports
+on our progress in this direction.
+
+Under the hood, there are a few exciting developments that will greatly reduce
+the effort of running existing software on Genode. In particular, Genode's
+(entirely optional) C runtime has gained the ability to emulate the
+traditional execve and fork mechanisms.
+(Section [Consolidation of the C runtime and Noux]) This will eventually
+alleviate the need for our present noux runtime environment to the benefits of
+better performance and increased flexibility.
+
+Further highlights of Genode 19.08 are a major update of Qt5 to version 5.13
+(Section [Updated Qt5]) and the continuation of our kernel-agnostic
+virtualization story (Section [Virtualization]).
+
+
+Flexible keyboard layouts
+#########################
+
+Genode is used worldwide in a multilingual context beyond Germany and common
+technical realms of English. Therefore, we had to address localized
+keyboard-input handling for quite some time now and introduced the
+_input-filter_ component in
+[https://genode.org/documentation/release-notes/17.02#Input-event_filter - 17.02].
+The component merges input streams and applies several forms of input
+transformations, in particular the application of keyboard layouts to
+supplement the input-event stream with character events.
+
+But as we are by no means localization experts, our solution, while performing
+a solid job for selected layouts, also had some quirks and rough edges when it
+came to French or even Swiss German. First, our oversimplified notion of
+[https://en.wikipedia.org/wiki/Caps_Lock - Caps Lock] as _just a pressed Shift_
+_key_ is plain wrong but part of all our character-generator configurations.
+We just missed this drawback because none of our developers uses Caps Lock
+regularly. Further, US English and Germany layouts work very well without
+[https://en.wikipedia.org/wiki/Dead_key - dead keys], but crossing any German
+border (except the Austrian) is impossible without support for key sequences
+composing special characters. The French keyboard layout in Genode tried to
+alleviate the lack of compose sequences by adding an additional Circumflex
+modifier and character mapping, which unfortunately is not standard.
+
+[image keyboard_stack]
+
+Beginning at this state of affairs, we researched common practice in
+international keyboard-input handling, sought a quasi-standard source for
+layout configurations, and addressed the drawbacks mentioned before. During
+our research we found out that no current implementation is void of critique
+and, therefore, decided to look more into X11/XKB as our open-source
+quasi-standard solution, but always had an eye on the proprietary world.
+
+The handling of key events in X11/XKB happens on three layers.
+
+:Key codes: On the key-code layer, the device driver programs the
+  keyboard and generates a stream of key-code (i.e., scan-code)
+  events, which represent the physical location of the actual key on
+  the keyboard.
+
+:Key symbols: These key codes are mapped to key symbols, which
+  represent the label imprinted on the key. So, the key code producing
+  US English _Q_ (QWERTY keyboard) generates _A_ on a French keyboard
+  (AZERTY). Modifiers like Shift, AltGr, and Caps Lock are included in
+  the key-symbol mapping. Additionally, some layouts map key codes to
+  dead key symbols, which start the before-mentioned compose
+  sequences. Key repeat is also implemented as key-symbol repeat
+  actually.
+
+:Characters: On top of this stack, the key symbols are mapped to
+  characters represented as Unicode codepoints or UTF-8 strings.
+  The procedure obviously includes key symbols that have no character
+  representation (e.g. Control and Alt). Key symbols forming a valid compose
+  sequence generate characters on this level (e.g., dead-key circumflex plus
+  e generates ê).
+
+We limited our research to Western keyboard-input handling and only had a
+blink into the direction of Chinese-Japanese-Korean (CJK) and advanced input
+methods (IM). This simplification is supported by the fact that CJK can also
+be based on the mechanisms mentioned with some limitations only. Nevertheless,
+we do not expect to never touch this topic again.
+
+After doing our homework of keyboard-input handling, we worked on squeezing
+all available layout information out of X11/XKB, which resulted in a small
+tool residing in _tool/xkb2ifcfg_. For those wondering, the name is just a
+silly acronym for _XKB to input-filter_ _configuration_ that pays tribute to
+the boringness of this task. After building the tool by a run of 'make' in the
+tool path, it can be used as follows. Please make sure you have libxkbcommon
+development packages installed beforehand.
+
+! xkb2ifcfg generate <layout> <variant> <locale>
+!
+! xkb2ifcfg generate us euro       en_US.UTF-8
+! xkb2ifcfg generate de nodeadkeys de_DE.UTF-8
+
+If the parameter combination is available, xkb2ifcfg prints a input-filer
+chargen configuration for the selected layout to standard output. Valid
+'layout' and 'variant' options can be figured out from the LAYOUTS section in
+'man 7 xkeyboard-config', where 'variant' strings are depicted in parentheses
+after the layout (e.g., 'us(euro)'). The 'locale' option has the standard
+locale syntax (see /usr/share/i18n/locales). The tool needs all three
+parameters to gather the correct key-map and compose-sequence information. The
+generated chargen configurations include '<map>' and '<key>' nodes
+corresponding to significant modifier states and '<sequence>' nodes (described
+later). For simplicity of the generator, the '<key>' nodes always use the
+'code="..."' attribute, but also have a comment with the UTF-8 character
+appended.
+
+! <key name="KEY_MINUS" code="0x00df"/>   <!-- ß -->
+
+Last, we addressed the improvement of the input-filter character generator and
+the actual chargen configuration files in Genode. Therefore, we specified the
+modifier configuration assumed by the standard chargen files as '<mod1>'
+corresponds to Shift, '<mod2>' to Control, '<mod3>' to AltGr, and '<mod4>' to
+Caps Lock.
+
+! <mod1> <key name="KEY_LEFTSHIFT"/> <key name="KEY_RIGHTSHIFT"/> </mod1>
+! <mod2> <key name="KEY_LEFTCTRL"/>  <key name="KEY_RIGHTCTRL"/> </mod4>
+! <mod3> <key name="KEY_RIGHTALT"/> </mod4> <!-- AltGr -->
+! <mod4> <rom name="capslock"/> </mod4>
+
+As outlined above, the '<key>' nodes generated by xkb2ifcfg always use the
+'code' attribute for the Unicode codepoint. Because of this and because UTF-8
+also refers to codepoints, we deprecated the 'b0/b1/b2/b3' attributes for
+character definition with this release.
+
+The chargen is also extended by the '<sequence>' configuration node. A
+sequence node permits the definition of dead-key/composing character
+sequences. With such sequences, the character is not generated instantly on
+key press but only after the sequence is completed. If an unfinished sequence
+can't be completed due to an unmatched character, the sequence is aborted and
+no character is generated. We support sequences of up to four characters at
+the moment.
+
+For example, the French AZERTY
+[https://docs.microsoft.com/en-us/globalization/keyboards/kbdfr.html - keyboard layout]
+has a dead key for Circumflex Accent _^_ right of the _P_ key (which is
+bracket left _[_ on US keyboards). When Circumflex is pressed no visible
+character should be generated instantly but the accent must be combined with a
+follow-up character (e.g., Circumflex plus _a_ generates _â_).
+
+Dead keys can be defined in the '<key>' nodes of any '<map>' by using
+codepoints not used for direct output, for example, Combining Diacritical
+Marks beginning at U+0300. The French Circumflex example can be configured
+like follows.
+
+! <mod1>
+!   <key name="KEY_LEFTSHIFT"/> <key name="KEY_RIGHTSHIFT"/>
+! </mod1>
+! <map>
+!   <key name="KEY_Q"         code="0x0061"/> <!-- a -->
+!   <key name="KEY_LEFTBRACE" code="0x0302"/> <!-- dead_circumflex -->
+! </map>
+! <map mod1="true">
+!   <key name="KEY_Q"         code="0x0041"/> <!-- A -->
+! </map>
+! <sequence first="0x0302" second="0x0061" code="0x00e2"/> <!-- â -->
+! <sequence first="0x0302" second="0x0041" code="0x00c2"/> <!-- Â -->
+
+Fortunately, the configuration is automatically generated by xkb2ifcfg, but
+admittedly quite extensive. Therefore, we manually amended the chargen
+configurations before adding them to Genode, which also gave us the chance to
+apply some adjustments like follows for AltGr in Swiss German.
+
+! <map mod1="false" mod2="false" mod3="true" mod4="false">
+!   <key name="KEY_1" code="0x00a6"/> <!-- ¦ (*) -->
+!   <key name="KEY_4" code="0x00b0"/> <!-- ° (*) -->
+!   <key name="KEY_5" code="0x00a7"/> <!-- § (*) -->
+! </map>
+
+
+Beside the advanced input methods mentioned before, there are still loose ends
+we are going to address in the upcoming releases. For example, the current key
+handling in our Qt5 back end maps localized key symbols incorrectly (think
+AZERTY vs. QWERTY) in combination with shortcuts like Ctrl-A.
+
+
+64-bit ARM and NXP i.MX8
+########################
+
+64-bit ARM support in our custom base-hw kernel
+-----------------------------------------------
+
+By introducing rudimentary Raspberry Pi 3 support on top of the Fiasco.OC
+kernel in the previous release, the first ARM 64-bit support has entered the
+Genode OS framework. We continued pursuing the ARM 64-bit path and introduce
+support for Raspberry Pi 3 as well as the i.MX8 evaluation kit (EVK), this
+time using our own base-hw kernel.
+
+Noteworthy additions in the base-hw kernel are support for the AARCH64 system
+level architecture, and the use of the modern GIC v3 interrupt controller on
+top of the i.MX8 EVK board. In comparison to the GICv2, GICv3 adds support for
+more than eight CPUs, more than 1020 interrupt IDs, and offers fast register
+access to the CPU interface, instead of memory-mapped I/O access. Minor
+changes had to be made to the page-table implementation of ARMv7 with Large
+Physical Address Extension (LPAE) to re-use it for ARMv8. Moreover, the
+internal kernel API for TLB maintenance needed to be changed slightly for all
+ARM platforms.
+
+We expanded our regular testing infrastructure with two AARCH64 platforms,
+namely Raspberry Pi 3 via Qemu and the NXP i.MX8 EVK board as physical
+hardware. Both platforms are driven with a single CPU core only at the moment.
+
+
+Network driver for i.MX7 and i.MX8
+----------------------------------
+
+We updated the 'fec' network driver to version 4.16.3, which adds support for
+i.MX7 and i.MX8 SoCs. This makes i.MX8 a viable platform for Genode-based
+networking scenarios.
+
+
+Enhanced packaging and test infrastructure for ARMv8
+----------------------------------------------------
+
+Besides the improved base-hw kernel, we enabled additional infrastructure for
+ARMv8 platforms. For example, noux packages - like _coreutils_, _bash_ - are
+now available, the standard C++ library is in place, and support for Genode's
+port of the Linux TCP/IP stack is enabled.
+
+Additionally, ARMv8 is now regularly tested within our nightly
+_depot_autopilot_ runs.
+
+
+Base framework and OS-level infrastructure
+##########################################
+
+Tracing
+=======
+
+Support for fast tracing has been built into Genode for a long time. However,
+the stakes to take advantage of this feature remained high because convenience
+functions were not in place. With the current release, we added the support
+for easy trace setups through a VFS plugin. The plugin is called _vfs_trace_
+and can be mounted into a Genode component as follows:
+
+!<config>
+!  <vfs>
+!    <trace ram=32MB/>
+!  </vfs>
+!</config>
+
+This configuration will create a trace file system at the root of the VFS. The
+_ram_ attribute is mandatory and determines the maximum size of all trace
+buffers. The file system forms a recursive directory structure that represents
+the parent/child relationship of running components, whereas the leaf
+directories represent single threads within a component. Each leaf directory
+currently contains three files:
+
+:'enable': Start or stop the tracing of a thread by writing "true" or "false"
+  into the file.
+
+:'buffer_size': Allows for the configuration of the trace-buffer size for the
+  thread in the usual Genode format (e.g. 5M, 512K, 1024).
+
+:'trace_buffer': This read-only file contains the current content of the trace
+  buffer. Each trace entry can only be read once, after that only new entries
+  appear. "tail -f" can also be used to display continuous output.
+
+As an example, tracing is started by writing _true_ to the _enable_ file:
+
+! echo "true" > enable
+
+The trace buffer can then be displayed using Unix tools like _tail_
+
+! tail -f trace_buffer
+
+which provides a continuous output.
+
+Additionally, we have added the _trace_ function to _base/log.h_ that
+facilitates identical functionality as _Genode::log_
+
+! Genode::trace("Tracepoint value: ", value);
+
+In order to enable tracing, the parent must provide the "TRACE" service. For a
+real world example on Sculpt OS, please refer to this
+[https://genodians.org/ssumpf/2019-06-18-trace_fs - Genodians article].
+
+With the _vfs_trace_ plugin in place, we removed the outdated _trace_fs_.
+
+
+Consolidation of the C runtime and Noux
+=======================================
+
+On our [https://genode.org/about/road-map#August_-_Release_19.08 - road map],
+we vaguely hinted at our plan for the "consolidation" of the noux runtime,
+which is actually meant as a polite way of announcing that we are going to
+remove it. We introduced the
+[https://genode.org/documentation/release-notes/11.02#Noux_-_an_execution_environment_for_the_GNU_userland - Noux runtime]
+in 2011 as a way to execute command-line-based GNU software directly on
+Genode. It has served us well over the years and is - in fact - a crucial
+ingredient of Sculpt OS and other system scenarios such as the Genodians.org
+web server. Noux supplements Genode with two valuable assets, namely a
+flexible and expandable virtual file system (VFS) layer, and the
+implementation of the
+[https://genode.org/documentation/release-notes/12.02#Noux_support_for_fork_semantics - Unix way]
+to spawn applications ('fork' and 'execve').
+
+In the
+[https://genode.org/documentation/release-notes/17.02#Enhanced_VFS_infrastructure - meantime],
+noux' VFS implementation has become independent from the noux runtime and is
+now prominently employed by Genode's C runtime and the VFS server component.
+Genode's C runtime became more and more complete, alleviating the use of noux
+as POSIX compatibility layer except for programs that depended on a working
+implementation of 'fork' and 'execve'.
+
+The current release fills this remaining gap in Genode's C runtime by
+providing 'fork', 'execve', and cousins such as 'wait4' and 'getpid' as
+regular parts of the libc. This will eventually make noux redundant.
+
+Note that this change does *NOT* make Genode reliant on POSIX. The C runtime
+including the Unix features are entirely optional.
+
+As one stepping stone of this undertaking, noux applications, which previously
+had to be compiled for noux, have become binary compatible with the regular C
+runtime. So one can execute programs like 'bash' directly as a Genode
+component without any friction.
+
+There are a few collateral improvements of Genode's dynamic linker and the C
+runtime on the account of the new 'fork' and 'execve' implementation. E.g., in
+addition to the already supported 'stdin', 'stdout', and 'stderr'
+configuration, the libc can be instructed to initialize arbitrary file
+descriptors as follows:
+
+! <config>
+!   ...
+!   <libc ...>
+!     <fd id="3" path="/dev/log" writeable="yes" readable="no" seek="10"/>
+!     ...
+!   </libc>
+! </config>
+
+The libc-based implementation of 'fork' and 'execve' can be tried out via
+the new _ports/run/bash.run_ script. Note that there are still a number of
+limitations such as the lack of signal and ioctl handling. Pipes are not
+supported, and shebangs ('#!') are not interpreted yet. That said, once those
+missing pieces come into place, we can fade out the use of noux within Genode.
+
+
+General system time concept
+===========================
+
+Briefly speaking, up to now there has been no notion of an overall concept of
+system time in Genode. Components that need to have access to some kind of
+real time are either configured locally, e.g., libc-based components access a
+configured "device" (/dev/rtc), which just might be an inline file system
+containing an artificial timestamp or the VFS RTC plugin, while other
+components query some RTC session directly. Most of the time, this session is
+provided by the 'rtc_drv' on x86 machines, which is somewhat costly as reading
+the RTC via I/O ports takes time and is therefore done scarcely. For example,
+the libc will query an RTC source only once and uses this initial value to
+interpolate the current time. However, for executing long-running components,
+it will be necessary to adjust the clock to compensate for any occurring clock
+drift or to correct a misconfigured clock in general. In addition it is
+desirable to be able to use a remote time source, e.g., an NTP-server, to
+synchronize the system time.
+
+To address this, we came up with the following concept:
+
+[image system_rtc]
+
+The new "System RTC" component, located at
+_repos/libports/src/server/system_rtc_, acts as proxy for the RTC service in
+front of the actual RTC driver. It uses the driver to get the initial RTC
+value and then uses a timer session (via the timeout framework) to locally
+interpolate the time. In contrast to querying the RTC driver, querying the
+System RTC is fast.
+
+The RTC driver and the System RTC are bundled up together in the new
+_drivers-rtc-pc_ package. The runtime of this package requests two ROM modules
+used to update the RTC value. The first one, named 'system_set_rtc', is used
+to update the proxy component while the second one, called 'hw_set_rtc', is
+used by the RTC driver to write the value into the battery-backed RTC. A
+separate component, potentially accessing a remote time source, may generate
+these ROMs to adjust the time in the package's runtime.
+
+The new native *SNTP* client at _repos/libports/src/app/sntp_client_ is such a
+component. It periodically requests the current time from a given SNTP server
+and generates a report. The report produced by the component contains the time
+as UTC/GMT. Depending on the system policy, it can be used to update the time
+of the System RTC and/or instruct the driver to set the RTC value.
+
+To propagate such changes to RTC values, the RTC session was enhanced by the
+new 'set' signal. A client of the session can install a signal handler to
+adapt its own time when necessary. Based on this, the time back end of the
+libc was changed to instantiate a watch handler for the RTC device, which,
+when triggered, will cause the libc to re-read the RTC value.
+
+This constellation should, under normal operation, allow for second to
+sub-second granularity updates of the overall system time and avoid drifting
+away from network time.
+
+
+Accessing SMBIOS tables
+=======================
+
+The System Management BIOS (SMBIOS) is a specification that allows for reading
+management information produced by the BIOS of a system as a collection of
+data structures in memory. It has the potential to eliminate the need for the
+operating system to probe hardware for discovering present devices and their
+characteristics. Nowadays, the SMBIOS specification is implemented widely in
+PC systems, which includes modern UEFI systems as well. The data structures
+are referred to as _tables_ or _records_ by public documentation.
+
+The new native SMBIOS decoder at _os/src/app/smbios_decoder_ can be used on
+x86 to parse SMBIOS tables and report gathered information in a human-readable
+way. Besides general table information like number and size of structures,
+etc., the component supports complete parsing of SMBIOS structures of types
+"BIOS", "System", and "Baseboard".
+
+The component is free from any code for acquiring an SMBIOS table through
+means like the bootloader or BIOS information. It expects a table to be
+present through a regular Genode ROM session with a 'smbios_table' label. This
+way, the underlying system is required to find, select, and save the raw table
+on startup and create a ROM module out of it. This is currently achieved on
+NOVA and base-hw through an interplay of kernel, the core component, and the
+ACPI driver and was tested for legacy BIOSes as well as UEFI systems.
+
+
+Clipboard
+=========
+
+Genode introduced a principle copy-and-paste mechanism already
+[https://genode.org/documentation/release-notes/15.11#Copy_and_paste - four years ago].
+However, originally created as a part of a tech demo, the mechanism remained
+unused in our day to day Genode work. This changed now. We took the
+integration of copy-and-paste support in Sculpt OS as an opportunity to revive
+and refine the existing mechanism and supplement it with the features needed
+to make it practical for daily use. We believe that the result aligns ease of
+use nicely with security. The concept is described in a
+[https://genodians.org/nfeske/2019-07-03-copy-paste - dedicated article]
+at Genodians.org.
+
+On a technical level, the existing clipboard component has received a new
+option that allows for dynamic information-flow policies based on user
+interactivity (keyboard focus, activity). When setting the config attribute
+'match_labels="yes"', the clipboard performs plausibility checks for copy and
+paste operations against the focus of the Nitpicker GUI server. All aspects of
+the clipboard policy - including information-flow policies - have become
+reconfigurable.
+
+To make window-manager clients compatible with the clipboard's dynamic policy,
+the window manager got enhanced with the ability to proxy the interaction with
+the clipboard. GUI clients in turn - in particular the graphical *terminal* -
+became able to interact with the clipboard. With the '<config>' attribute
+'copy="yes"' specified, the terminal allows the user to select text to be
+reported to a "clipboard" report. The selection mode is activated by holding
+the left shift key. While the selection mode is active, the text position
+under the mouse pointer is highlighted and the user can select text via the
+left mouse button. Upon release of the mouse button, the selection is
+reported. Vice versa, with the '<config>' attribute 'paste="yes"' specified,
+the terminal allows the user to paste the content of a "clipboard" ROM session
+to the terminal client by pressing the middle mouse button.
+
+Finally, we integrated those new abilities into Sculpt OS and into several
+installable packages, including virtual machines, the noux-system package,
+and graphical Qt5-based applications.
+
+
+Enhanced SSH terminal
+=====================
+
+This release paves the way for remotely managing Genode devices over SSH.
+Until now, only interactive SSH sessions were supported. It is now possible to
+execute commands from a remote SSH client. E.g., 'ssh noux@localhost -p 5555
+"ls -hal /bin/"'. For non-interactive sessions, ssh_terminal requires a helper
+component. This component is responsible to create the environment for the
+command to run in. You can find an example for such a component at
+_gems/src/test/exec_terminal_. It starts noux in a sub init and executes the
+provided command inside of it. The new _ssh_exec_channel.run_ script gives a
+demonstration on how this feature can be used.
+
+This work is a contribution by Sid Hussmann of
+[https://gapfruit.com - Gapfruit]. Thanks for this great new feature!
+
+
+Storage-stack improvements
+==========================
+
+The desire of one Genode developer to exchange data via Iomega ZIP drives
+between an Atari Falcon and Sculpt OS called for a number of small
+improvements across several components of the storage stack.
+
+First, the USB-block driver has been changed to exit on an initialization
+failure instead of waiting for another (supported) device. This change enables
+the Sculpt manager to detect such conditions and release the USB device
+hardware by removing the driver component. Such a failed initialization may
+happen with exotic USB-storage devices such as ZIP drives. With the device
+released, however, it can be assigned to a virtual machine to access it using
+a guest OS with a broader support of devices.
+
+Second, the USB-block driver received new support for issuing the SCSI
+START-STOP command at initialization time, thereby overcoming the ZIP-drive
+initialization failure.
+
+Third, we enhanced the part-block component with the ability to parse AHDI
+partition schemes and detect the GEMDOS variant of FAT as used by Atari TOS.
+
+Fourth, we enabled the Rump VFS plugin to access GEMDOS file systems. The
+GEMDOS variant is readily supported by NetBSD's "msdos" file-system driver.
+However, it must explicitly be enabled by a mount flag. Hence, we added the
+principle ability for passing mount flags to NetBSD file-system drivers and
+enabled the MSDOSFSMNT_GEMDOSFS flag based on the VFS plugin's config
+attribute 'gemdos="yes"'.
+
+With these changes in place, data can now be exchanged directly between
+Atari-formatted disks and Sculpt OS. That said, advanced use cases such as
+media changes at runtime are not covered yet.
+
+
+Updated Ada/SPARK runtime
+=========================
+
+Genode's Ada/SPARK runtime is developed and maintained by
+[https://componolit.com - Componolit]. Thanks for this excellent
+collaboration!
+
+The updated Componolit Ada runtime 1.1.0 increases the proof coverage and
+cleans up the source-code structure. SPARK mode is now enabled wherever
+possible and unneeded abstractions have been removed. Furthermore, the 64-bit
+addition and subtraction have been proven to be free of runtime errors.
+As a new feature, the runtime now supports the use of inline assembly in Ada.
+
+The removal of unneeded features such as the incomplete threading support for
+the secondary stack has greatly reduced the runtime's complexity while keeping
+the current functionality available. Also GNAT.IO has been removed as its
+implementation was incomplete and complex. A simpler replacement has been
+introduced with 'Componolit.Runtime.Debug'.
+
+Unrelated to Genode, the runtime now supports [https://muen.sk/ - Muen] and
+the API/ABI of the runtime has been separated from the GNAT ABI.
+
+
+Libraries and applications
+##########################
+
+Updated Qt5
+===========
+
+We updated our Qt5 port to the latest upstream version 5.13.0. Before
+preparing the 'qt5' port, please make sure to build and install the updated
+Qt5 host tools with the 'tool/tool_chain_qt5' script.
+
+
+Virtualization
+==============
+
+As follow-up of our work on the
+[https://genode.org/documentation/release-notes/19.05#Kernel-agnostic_virtual-machine_monitors - kernel agnostic virtual-machine monitor interface]
+on x86, we added principle support to run our port of VirtualBox on
+Genode/Fiasco.OC. We write _principle_ support, since we managed to get the
+VMM running with Fiasco.OC, but unfortunately not all features required by the
+VMM are available using the Fiasco.OC kernel, e.g., guest FPU registers, PDPTE
+registers, and task-priority support. In practice this means that the VMs with
+Windows and Linux come up to a certain point but will fail later whenever the
+guest state runs out of synchronization between VMM and hardware. In contrast,
+the Seoul VMM runs fine on Fiasco.OC since it does not depend on the mentioned
+missing features.
+
+Our main working items have been the completion of transfer of the available
+guest registers and control flow synchronization improvements between VMM and
+Fiasco.OC kernel. Additionally, the usage of priorities for VirtualBox's
+pthreads in the VMM had to be disabled. Finally, some tests for VirtualBox
+with Genode/Fiasco.OC are enabled for nightly regular testing now.
+
+As a side topic, we added support for using the VirtualBox
+[https://forums.virtualbox.org/viewtopic.php?f=2&t=82299&start=15 - CPU profile]
+feature, which allows for presenting a different CPUID to the VM than the one
+of the real CPU. This can help when running Windows 7 on a Kaby Lake or newer
+CPU, which are considered _unsupported hardware_ and reason enough not to
+receive security updates from Microsoft. The feature can be used on Genode by
+adding the 'CpuProfile' attribute to the '<CPU>' XML node in the .vbox file,
+like:
+
+! <CPU CpuProfile="Intel Core i7-5600U">
+
+
+Disposable VM for handling captive portals
+==========================================
+
+It is common that WiFi networks require the user to interact with a specific
+web page before gaining access to full network functionality. Such captive
+portal pages are completely individual to the accessed network and not limited
+in the use of common web techniques. Therefore, their handling is best be done
+using a fully-featured web browser like Mozilla Firefox.
+
+This is where, in a Genode-based desktop system like Sculpt, a disposable VM
+for hosting a minimal browser setup becomes desirable. Its goal is to unlock a
+network for the native Genode surroundings with as little inconvenience as
+possible just to be thrown away afterwards without any side effects on the
+system.
+
+Now, one could use the Firefox appliance VM of Sculpt (see the
+[https://genode.org/documentation/release-notes/18.05 - release notes] or the
+[http://genodians.org/alex-ab/2019-03-06-disposal-browser-vm - Genodians article])
+for this. But this VM aims for a long-term browsing experience which, in the
+context of mere captive-portal handling, brings some drawbacks like a much
+higher RAM consumption or the required sessions for USB detection and shared
+folders.
+
+Furthermore, in the captive portal VM, there's no need for managing windows or
+browser tabs. The one browser tab needed can always be shown in fullscreen. It
+is also unnecessary for the browser to maintain a content cache or remember
+user data. This can reduce resource consumption.
+
+[image captive_portal_vm]
+
+The VM we came up with is provided as package for Sculpt by Martin Stein
+(depot user 'mstein'). You'll possibly need to manually add Martin's
+[https://github.com/genodelabs/genode/tree/master/depot/mstein - depot key and download location]
+to your Sculpt depot directory. After enabling this user, the captive portal
+VM can be found in the Sculpt menu under "Depot -> mstein -> Virtual
+Machines -> vbox5-nova-captive-portal".
+
+The VM is based on a TinyCore 10 Linux with Xserver, i3 WM, and a tailored
+Firefox browser. The package runtime doesn't need access to your file system,
+it merely loads some ROMs into a RAM FS, so, it will completely forget any
+changes made during a session. Therefore, it's also safe to simply remove an
+instance via the Leitzentrale component-view once you don't need it anymore.
+The guest additions are also included to make the VM window resizable.
+
+
+Build system and tools
+######################
+
+At Genode Labs, we have used _tool/autopilot_ for the steering of tests in our
+Continuous Integration workflow for almost a decade now. This implied various
+improvements over the years and with the completion of our work on
+[https://genode.org/documentation/release-notes/19.05#Unified_build_directories_for_ARM - unified build directories]
+it was time to amend this handy tool once again. Unified build directories
+support building all components for one CPU architecture in one directory
+saving the build server from the redundant work we previously had with
+board-specific directories. With the new notion of boards during builds, the
+definition of the target platform when integrating Genode system scenarios is
+now a triplet of _CPU architecture_, _board_, and _kernel_. This is reflected
+in the new '-t <architecture-board-kernel>' command line option, which
+instructs autopilot to generate a build directory for _architecture_ and
+execute tests for the _board-kernel_ combination.
+
+! autopilot -t x86_64-pc-sel4 -t x86_64-pc-nova -r run/log
+
+The known options for '-k kernel' and '-p platform' are still supported with
+the small change that the platform must now be defined as
+_architecture-board_.
+
+! autopilot -p x86_64-pc -k sel4 -k nova -r run/log
+
+Autopilot now also documents the hidden feature to propagate custom 'RUN_OPTs'
+via the 'RUN_OPT_AUTOPILOT' environment variable to the run tool executed.
+Besides that, the tool always appends 'RUN_OPT' with '--autopilot'.
+
+! RUN_OPT_AUTOPILOT="--depot-dir /data/depot" autopilot ...
+
