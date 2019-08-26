@@ -1,7 +1,7 @@
 /*
- * \brief  Test the reachability of a host on an IP network
+ * \brief  Periodically Request time from SNTP server and report it
  * \author Martin Stein
- * \date   2018-03-27
+ * \date   2019-06-27
  */
 
 /*
@@ -76,7 +76,6 @@ class Main : public Nic_handler,
 		Reconstructible<Ipv4_config>    _ip_config     { _config.attribute_value("interface", Ipv4_address_prefix()),
 		                                                 _config.attribute_value("gateway",   Ipv4_address()),
 		                                                 Ipv4_address() };
-//		Rtc::Connection                 _rtc           { _env };
 		Reporter reporter                              { _env, "set_rtc" };
 
 		Sntp_timestamp _rtc_ts_to_sntp_ts(Rtc::Timestamp const rtc_ts)

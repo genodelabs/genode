@@ -1,49 +1,46 @@
-The 'ping' component continuously sends ICMP Echo or UDP requests to a given
-IP host and waits for the corresponding ICMP Echo or UDP replies. For each
-successfull ICMP Echo or UDP handshake it prints a short statistic. The ICMP
-data field gets filled with the letters of the alphabet ('a' to 'z') repeatedly.
+The 'sntp_client' component periodically requests the current time from a
+given SNTP server and reports it as GMT in a format that can also be used
+to re-program Genodes RTC driver.
 
 
 Configuration
 ~~~~~~~~~~~~~
 
-This is an example configuration of the component which shows the default
-value for each attribute except 'config.dst_ip' and 'config.interface':
+This is an example configuration of the component with a static IP config,
+an individual request interval, and debugging output enabled:
 
 ! <config interface="10.0.0.72/24"
+!         gateway="10.0.0.1"
 !         dst_ip="10.0.0.24"
-!         dst_port="50000"
-!         protocol="icmp"
-!         period_sec="5"
-!         verbose="no"
-!         count="5" />
+!         period_min="10"
+!         verbose="yes" />
+
+
+This is an example configuration of the component with DHCP:
+
+! <config dst_ip="10.0.0.24" />
+
 
 This is a short description of the tags and attributes:
 
 :config.interface:
-  Optional. IP address and subnet of the component. If not set, the component
-  requests and maintains the IP configuration via DHCP.
+  Optional. Determined via DHCP if not configured. IP address and subnet of
+  the component. If not set, the component requests and maintains the IP
+  configuration via DHCP.
 
 :config.gateway:
-  Optional. IP address of the gateway of the IP subnet.
+  Optional. Determined via DHCP if not configured. IP address of the gateway
+  of the IP subnet.
 
 :config.dst_ip:
-  Mandatory. IP address of the target host.
+  Mandatory. IP address of the SNTP server.
 
-:config.period_sec:
-  Optional. Length of send interval in seconds.
+:config.period_min:
+  Optional. Default is 60. Length of request interval in minutes.
 
 :config.verbose:
-  Optional. Toggles wether the component shall log debugging information.
-
-:config.count:
-  Optional. After how many successful pings the component exits successfully.
-
-:config.dst_port:
-  Optional. Destination port resp. ICMP query ID to use.
-
-:config.protocol:
-  Optional. Protocol to ping with. Can be one of 'icmp', 'udp'.
+  Optional. Default is "false". Toggles wether the component shall log
+  debugging information.
 
 
 Sessions
@@ -52,11 +49,29 @@ Sessions
 This is an overview of the sessions required and provided by the
 component apart from the environment sessions:
 
-* Requires one Timer session.
+* One Timer session.
+* One Report session with label 'set_rtc'.
+
+
+Report 'set_rtc' provided by the component
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This is an example content of the report:
+
+! <set_rtc year="2018"
+!          month="11"
+!          day="27"
+!          hour="22"
+!          minute="45"
+!          second="32" />
+
+The format of the report is exactly what is expected by the Genode RTC driver.
+The time is given as GMT in 24H mode, leap seconds considered, but without
+taking the round trip time between SNTP server and client in account.
 
 
 Examples
 ~~~~~~~~
 
-Examples of how to use the ping component can be found in the test scripts
-'os/run/ping.run' and 'os/run/ping_nic_router.run'.
+An example of how to use the component can be found in the test script
+'libports/run/sntp_client.run' and 'os/run/ping_nic_router.run'.

@@ -5,13 +5,6 @@
 	<xs:include schemaLocation="net_types.xsd"/>
 	<xs:include schemaLocation="timeout_types.xsd"/>
 
-	<xs:simpleType name="Protocol">
-		<xs:restriction base="xs:string">
-			<xs:enumeration value="icmp" />
-			<xs:enumeration value="udp" />
-		</xs:restriction>
-	</xs:simpleType><!-- Protocol -->
-
 	<xs:element name="config">
 		<xs:complexType>
 			<xs:attribute name="verbose"    type="Boolean" />
