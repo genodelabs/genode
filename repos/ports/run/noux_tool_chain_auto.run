@@ -113,7 +113,7 @@ echo 'creating build directory...'
 mkdir -p "/home/build"
 cp -r /genode/depot /home/build
 }
-puts $bash_profile_fd "./genode/tool/depot/create DEPOT_DIR=/home/build/depot \
+puts $bash_profile_fd "/genode/tool/depot/create DEPOT_DIR=/home/build/depot \
       test/bin/$platform/zlib CROSS_DEV_PREFIX=$tool_prefix && exit 234"
 close $bash_profile_fd
 
