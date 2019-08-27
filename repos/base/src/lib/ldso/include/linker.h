@@ -48,6 +48,23 @@ namespace Linker {
 	extern bool verbose;
 
 	/**
+	 * Stage of execution
+	 *
+	 * This state variable is used to control the implicit execution of global
+	 * static constructors as a side effect of loading a shared library.
+	 *
+	 * At STAGE_BINARY, the binary is initialized and 'Component::construct'
+	 * is executed. At this early stage, no global static constructor must be
+	 * executed.
+	 *
+	 * Once, 'Env::exec_static_constructors' is called, or
+	 * 'Component::construct' returned, we enter the 'STAGE_SO'. At this stage,
+	 * global static constructors can safely be executed, i.e., as side effect
+	 * of loading a shared library.
+	 */
+	extern Stage stage;
+
+	/**
 	 * Find symbol via index
 	 *
 	 * \param sym_index  Symbol index within object

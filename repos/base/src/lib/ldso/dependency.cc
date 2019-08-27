@@ -111,7 +111,7 @@ Linker::Root_object::Root_object(Env &env, Allocator &md_alloc,
 
 	/* relocate and call constructors */
 	try {
-		Init::list()->initialize(bind, STAGE_SO);
+		Init::list()->initialize(bind, Linker::stage);
 	} catch (...) {
 		Init::list()->flush();
 		_deps.dequeue_all([&] (Dependency &d) {

@@ -44,6 +44,7 @@ namespace Linker {
 
 static    Binary *binary_ptr = nullptr;
 bool      Linker::verbose  = false;
+Stage     Linker::stage    = STAGE_BINARY;
 Link_map *Link_map::first;
 
 /**
@@ -415,6 +416,7 @@ struct Linker::Binary : private Root_object, public Elf_object
 		for (Func * dtor = dtors_start; dtor != dtors_end; genode_atexit(*dtor++));
 
 		static_construction_finished = true;
+		stage = STAGE_SO;
 	}
 
 	void call_entry_point(Env &env)
@@ -439,6 +441,8 @@ struct Linker::Binary : private Root_object, public Elf_object
 				      "Genode::Env::exec_static_constructors())");
 				throw Fatal();
 			}
+
+			stage = STAGE_SO;
 			return;
 		}
 
