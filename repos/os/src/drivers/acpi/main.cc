@@ -30,22 +30,29 @@ namespace Acpi {
 
 struct Acpi::Main
 {
-	Genode::Env           &env;
-	Genode::Heap           heap          { env.ram(), env.rm() };
-	Smbios_table_reporter  smbt_reporter { env, heap };
+	Genode::Env &_env;
+	Genode::Heap _heap { _env.ram(), _env.rm() };
 
-	Main(Env &env) : env(env)
+	struct Acpi_reporter
 	{
-		try {
-			Acpi::generate_report(env, heap);
-		} catch (Genode::Xml_generator::Buffer_exceeded) {
-			Genode::error("ACPI report too large - failure");
-			throw;
-		} catch (...) {
-			Genode::error("Unknown exception occured - failure");
-			throw;
+		Acpi_reporter(Env &env, Heap &heap)
+		{
+			try {
+				Acpi::generate_report(env, heap);
+			} catch (Genode::Xml_generator::Buffer_exceeded) {
+				error("ACPI report too large - failure");
+				throw;
+			} catch (...) {
+				error("Unknown exception occured - failure");
+				throw;
+			}
 		}
-	}
+	};
+
+	Acpi_reporter         _acpi_reporter { _env, _heap };
+	Smbios_table_reporter _smbt_reporter { _env, _heap };
+
+	Main(Env &env) : _env(env) { }
 };
 
 
