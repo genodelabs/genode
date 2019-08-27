@@ -43,14 +43,14 @@ _assert = $(if $(strip $1),$1,$(info Error: $(strip $2))$(error ))
 _prefer = $(if $1,$1,$2)
 
 #
-# Include definitions provided by the port description file
-#
-include $(PORT)
-
-#
 # Include common definitions
 #
 include $(GENODE_DIR)/tool/ports/mk/common.inc
+
+#
+# Include definitions provided by the port description file
+#
+include $(PORT)
 
 $(call check_tool,wget)
 $(call check_tool,patch)
