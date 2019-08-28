@@ -3,6 +3,31 @@
                                Genode News
                                ===========
 
+Genode OS Framework release 19.08 | 2019-08-28
+##############################################
+
+| Genode 19.08 puts emphasis on practical concerns ranging from
+| keyboard layouts, over system-time management, to remote system
+| administration. It also continues our commitment to the 64-bit ARM
+| i.MX8 SoC, comes with Qt5 version 5.13, and improves POSIX compatibility.
+
+The summer release of Genode addresses a variety of topics when using Genode
+and Sculpt OS in practice. The confrontation with the real world prompted us
+to develop new concepts for managing system time, keyboards layouts, and
+copy-and-paste. For using Sculpt OS on the road, a new application VM for
+accessing captive portals smoothes the experience of connecting to public WiFi
+networks.
+
+Besides the practical focus, the new release continues our commitment to the
+64-bit ARM i.MX8 platform through new kernel support, device drivers, and test
+coverage. Further topics include SMBIOS support for commodity PC hardware, a
+new tracing tool, enhanced POSIX compatibility, and a major update of Qt5 to
+version 5.13.
+
+The complete picture is presented in the
+[https:/documentation/release-notes/19.08 - release documentation of version 19.08...]
+
+
 Sculpt OS release 19.07 | 2019-07-09
 ####################################
 
