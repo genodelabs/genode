@@ -248,7 +248,7 @@ proc drivers_start_nodes { feature_arg } {
 
 		append start_nodes {
 			<start name="input_filter">
-				<resource name="RAM" quantum="1M" />
+				<resource name="RAM" quantum="1280K" />
 				<provides> <service name="Input" /> </provides>
 				<config>}
 		append_if [use_ps2_drv feature] start_nodes {
