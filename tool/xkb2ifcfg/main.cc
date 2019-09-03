@@ -246,6 +246,13 @@ struct Args
 
 class Main
 {
+	public:
+
+		/* initialization-failure exceptions */
+		struct Xkb_init_failed { };
+		struct Keymap_init_failed { };
+		struct Compose_init_failed { };
+
 	private:
 
 		struct Map;
@@ -808,13 +815,19 @@ int Main::exec()
 
 Main::Main(int argc, char **argv) : args(argc, argv)
 {
-	/* TODO error handling */
-	_context       = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
-	_rmlvo         = { "evdev", "pc105", args.layout, args.variant, "" };
-	_keymap        = xkb_keymap_new_from_names(_context, &_rmlvo, XKB_KEYMAP_COMPILE_NO_FLAGS);
-	_state         = xkb_state_new(_keymap);
+	_context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+	if (!_context) throw Xkb_init_failed();
+
+	_rmlvo  = { "evdev", "pc105", args.layout, args.variant, "" };
+	_keymap = xkb_keymap_new_from_names(_context, &_rmlvo, XKB_KEYMAP_COMPILE_NO_FLAGS);
+	if (!_keymap) throw Keymap_init_failed();
+	_state = xkb_state_new(_keymap);
+	if (!_state) throw Keymap_init_failed();
+
 	_compose_table = xkb_compose_table_new_from_locale(_context, args.locale, XKB_COMPOSE_COMPILE_NO_FLAGS);
+	if (!_compose_table) throw Compose_init_failed();
 	_compose_state = xkb_compose_state_new(_compose_table, XKB_COMPOSE_STATE_NO_FLAGS);
+	if (!_compose_state) throw Compose_init_failed();
 
 	_numlock.construct(_state);
 }
@@ -838,5 +851,12 @@ int main(int argc, char **argv)
 		static Main m(argc, argv);
 
 		return m.exec();
-	} catch (...) { return -1; }
+	}
+	catch (Main::Compose_init_failed &) {
+		::perror("Error: compose init failed (invalid locale?)"); return -4; }
+	catch (Main::Keymap_init_failed &) {
+		::perror("Error: keymap init failed (invalid layout or variant?)"); return -3; }
+	catch (Main::Xkb_init_failed &) {
+		::perror("Error: libxkbcommon init failed"); return -2; }
+	catch (...) { return -1; }
 }
