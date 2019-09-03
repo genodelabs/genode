@@ -26,6 +26,8 @@
 using namespace Genode;
 
 
+enum { STACK_SIZE = 0x3000 };
+
 /*********************************
  ** Stack-allocator concurrency **
  *********************************/
@@ -47,8 +49,6 @@ class Helper : Thread
 		using Thread::join;
 
 		void *child[CHILDREN];
-
-		enum { STACK_SIZE = 0x2000 };
 
 		Env &_env;
 
@@ -122,8 +122,6 @@ static void log_stack_address(char const *who)
 
 struct Stack_helper : Thread
 {
-	enum { STACK_SIZE = 0x2000 };
-
 	Stack_helper(Env &env) : Thread(env, "stack_helper", STACK_SIZE) { }
 
 	void entry() override
@@ -192,8 +190,6 @@ static void test_main_thread()
 
 struct Cpu_helper : Thread
 {
-	enum { STACK_SIZE = 0x2000 };
-
 	Env &_env;
 
 	Cpu_helper(Env &env, const char * name, Cpu_session &cpu)
@@ -234,8 +230,6 @@ struct Pause_helper : Thread
 {
 	volatile unsigned loop = 0;
 	volatile bool beep = false;
-
-	enum { STACK_SIZE = 0x2000 };
 
 	Pause_helper(Env &env, const char * name, Cpu_session &cpu)
 	: Thread(env, name, STACK_SIZE, Thread::Location(), Thread::Weight(), cpu) { }
@@ -353,8 +347,6 @@ static void test_create_as_many_threads(Env &env)
 
 struct Lock_helper : Thread
 {
-	enum { STACK_SIZE = 0x2000 };
-
 	Lock &lock;
 	bool &lock_is_free;
 	bool  unlock;
@@ -450,8 +442,6 @@ static void test_locks(Genode::Env &env)
 
 struct Cxa_helper : Thread
 {
-	enum { STACK_SIZE = 0x2000 };
-
 	Lock &in_cxa;
 	Lock &sync_startup;
 	int   test;
@@ -664,8 +654,6 @@ static void test_cxa_guards(Env &env)
 
 struct Create_destroy_helper : Thread
 {
-	enum { STACK_SIZE = 0x2000 };
-
 	unsigned const    result_value;
 	unsigned volatile result { ~0U };
 
