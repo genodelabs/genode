@@ -1,0 +1,65 @@
+/dts-v1/;
+
+/ {
+	compatible = "linux,dummy-virt";
+	#address-cells = <0x02>;
+	#size-cells = <0x02>;
+	interrupt-parent = <0x8001>;
+
+	cpus {
+		#address-cells = <0x01>;
+		#size-cells = <0x00>;
+
+		cpu@0 {
+			compatible = "arm,cortex-a53";
+			reg = <0x00>;
+			device_type = "cpu";
+		};
+	};
+
+	timer {
+		interrupts = <0x01 0x0d 0x04 0x01 0x0e 0x04 0x01 0x0b 0x04 0x01 0x0a 0x04>;
+		compatible = "arm,armv8-timer\0arm,armv7-timer";
+		always-on;
+	};
+
+	apb-pclk {
+		compatible = "fixed-clock";
+		phandle = <0x8000>;
+		clock-output-names = "clk24mhz";
+		clock-frequency = <0x16e3600>;
+		#clock-cells = <0x00>;
+	};
+
+	pl011@9000000 {
+		interrupts = <0x00 0x01 0x04>;
+		compatible = "arm,pl011\0arm,primecell";
+		clock-names = "uartclk\0apb_pclk";
+		reg = <0x00 0x9000000 0x00 0x1000>;
+		clocks = <0x8000 0x8000>;
+	};
+
+	memory@40000000 {
+		reg = <0x00 0x40000000 0x00 0x8000000>;
+		device_type = "memory";
+	};
+
+	chosen {
+		bootargs = "rdinit=/bin/sh";
+		linux,initrd-start = <0x42000000>;
+		linux,initrd-end   = <0x42113b86>;
+		stdout-path = "/pl011@9000000";
+	};
+
+	intc@8000000 {
+		compatible = "arm,gic-v3";
+		phandle = <0x8001>;
+		reg = <0x00 0x8000000 0x00 0x10000 0x00 0x80a0000 0x00 0xf60000>;
+		ranges;
+		#address-cells = <0x02>;
+		#redistributor-regions = <0x01>;
+		interrupt-controller;
+		#interrupt-cells = <0x03>;
+		#size-cells = <0x02>;
+	};
+};

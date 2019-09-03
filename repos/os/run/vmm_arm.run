@@ -6,7 +6,7 @@
 
 assert_spec hw
 
-if { ![have_spec imx7d_sabre] && ![have_spec arndale] } {
+if { ![have_spec imx7d_sabre] && ![have_spec arndale] && ![have_spec imx8q_evk] } {
 	puts "Run script is not supported on this platform"
 	exit 0
 }
@@ -21,7 +21,7 @@ build $build_components
 create_boot_directory
 
 install_config {
-<config verbose="yes">
+<config verbose="yes" prio_levels="2">
 	<parent-provides>
 		<service name="ROM"/>
 		<service name="IRQ"/>
@@ -44,7 +44,7 @@ install_config {
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Terminal"/> </provides>
 	</start>
-	<start name="vmm">
+	<start name="vmm" caps="200" priority="-1">
 		<resource name="RAM" quantum="256M"/>
 	</start>
 	<start name="vm">
@@ -55,6 +55,18 @@ install_config {
 </config>
 }
 
+
+if { [have_spec arm] } {
+
+	if {![file exists bin/linux]} {
+		puts "Download linux kernel ..."
+			exec >& /dev/null wget -c -O bin/linux http://genode.org/files/release-15.02/arm_vt/linux
+	}
+
+	if {![file exists bin/dtb]} {
+		puts "Download device tree blob ..."
+			exec >& /dev/null wget -c -O bin/dtb http://genode.org/files/release-15.02/arm_vt/dtb
+	}
 
 #
 # This test uses a Linux kernel built from unmodified vanilla kernel sources
@@ -76,15 +88,62 @@ install_config {
 # ! make ARCH=arm CROSS_COMPILE=<cross_compiler_prefix> -j8 Image
 # ! make ARCH=arm CROSS_COMPILE=<cross_compiler_prefix> vexpress-v2p-ca15-tc1.dtb
 #
-
-if {![file exists bin/linux]} {
-	puts "Download linux kernel ..."
-	exec >& /dev/null wget -c -O bin/linux http://genode.org/files/release-15.02/arm_vt/linux
 }
 
-if {![file exists bin/dtb]} {
-	puts "Download device tree blob ..."
-	exec >& /dev/null wget -c -O bin/dtb http://genode.org/files/release-15.02/arm_vt/dtb
+if { [have_spec arm_64] } {
+
+	if {![file exists bin/linux]} {
+		puts "Download linux kernel ..."
+			exec >& /dev/null wget -c -O bin/linux http://genode.org/files/release-19.11/linux-arm64-image-5.2
+	}
+
+	if {![file exists bin/dtb]} {
+		puts "Download device tree blob ..."
+			exec >& /dev/null wget -c -O bin/dtb http://genode.org/files/release-19.11/dtb-arm64-virt
+	}
+
+	if {![file exists bin/initrd]} {
+		puts "Download initramfs ..."
+			exec >& /dev/null wget -c -O bin/initrd http://genode.org/files/release-19.11/initrd-arm64
+	}
+
+#
+# To obtain the linux kernel, do the following steps:
+# 
+# wget https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-4.19.53.tar.xz
+# 
+# tar -xJf linux-4.19.53.tar.xz
+# cd linux-4.19.53
+# 
+# make O=../build-linux-aarch64 ARCH=arm64 CROSS_COMPILE=/usr/local/genode/tool/current/bin/genode-aarch64- defconfig
+# make O=../build-linux-aarch64 ARCH=arm64 CROSS_COMPILE=/usr/local/genode/tool/current/bin/genode-aarch64- -j32
+# 
+# copy ../build-linux-aarch64/arch/arm64/boot/Image to your build directory in 'bin/linux'
+#
+#
+# To get the dtb (device-tree-binary), you have to compile the file:
+# repos/os/src/server/vmm/spec/arm_v8/virt.dts with the dtc compiler:
+# dtc repos/os/src/server/vmm/spec/arm_v8/virt.dts > bin/dtb
+#
+#
+# To construct the initrd do the following:
+# * get and install gcc from linaro
+#      (https://releases.linaro.org/components/toolchain/binaries/latest-7/)
+# * build busybox
+#      wget https://busybox.net/downloads/busybox-1.29.3.tar.bz2
+#      tar xjf busybox-1.29.3.tar.bz2
+#      mkdir build-busybox-aarch64
+#      cd busybox-1.29.3
+#      make O=../build-busybox-aarch64 defconfig
+#      make O=../build-busybox-aarch64 menuconfig
+#
+#      [*] Setting ->  Build static binary (no shared libs)
+#
+#      cd ../build-busybox-aarch64
+#      make CROSS_COMPILE=/usr/local/gcc-linaro/bin/aarch64-linux-gnu- install -j6
+# * create ramdisk
+#      cd _install
+#      find . | cpio -H newc -o | gzip > ../initrd
 }
 
 set boot_modules {
@@ -96,6 +155,7 @@ set boot_modules {
 	linux
 	dtb
 }
+append_if [have_spec arm_64] boot_modules initrd
 build_boot_image $boot_modules
 
 #
