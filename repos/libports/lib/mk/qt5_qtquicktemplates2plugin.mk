@@ -4,18 +4,18 @@ include $(IMPORT_QT5_INC)
 
 SHARED_LIB = yes
 
-include $(REP_DIR)/lib/mk/qt5_qtvirtualkeyboardstylesplugin_generated.inc
+include $(REP_DIR)/lib/mk/qt5_qtquicktemplates2plugin_generated.inc
 
 QT_DEFINES += -UQT_STATICPLUGIN
 
 include $(REP_DIR)/lib/mk/qt5.inc
 
-LIBS += qt5_gui qt5_qml qt5_quick qt5_svg qt5_virtualkeyboard
+LIBS += qt5_core qt5_gui qt5_qml qt5_quick qt5_quicktemplates2
 
 # install the QML plugin
 
-QML_PLUGIN_NAME := qt5_qtvirtualkeyboardstylesplugin
-QML_INSTALL_DIR := qt/qml/QtQuick/VirtualKeyboard/Styles
+QML_PLUGIN_NAME := qt5_qtquicktemplates2plugin
+QML_INSTALL_DIR := qt/qml/QtQuick/Templates.2
 
 QML_PLUGIN      := $(QML_INSTALL_DIR)/$(QML_PLUGIN_NAME).lib.so
 TAR_ARCHIVE     := $(BUILD_BASE_DIR)/bin/$(QML_PLUGIN_NAME).tar

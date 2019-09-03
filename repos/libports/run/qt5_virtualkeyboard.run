@@ -1,7 +1,9 @@
 source ${genode_dir}/repos/libports/run/qt5_common.inc
 
 import_from_depot [depot_user]/raw/qt5_qt_labs_folderlistmodel \
+                  [depot_user]/raw/qt5_qtquick_controls2 \
                   [depot_user]/raw/qt5_qtquick_layouts \
+                  [depot_user]/raw/qt5_qtquick_templates2 \
                   [depot_user]/raw/qt5_qtquick_virtualkeyboard \
                   [depot_user]/raw/qt5_qtquick_window \
                   [depot_user]/raw/qt5_qtquick2 \
@@ -10,8 +12,12 @@ import_from_depot [depot_user]/raw/qt5_qt_labs_folderlistmodel \
                   [depot_user]/src/qt5_component \
                   [depot_user]/src/qt5_network \
                   [depot_user]/src/qt5_qml \
+                  [depot_user]/src/qt5_quickcontrols2 \
+                  [depot_user]/src/qt5_quicktemplates2 \
                   [depot_user]/src/qt5_qt_labs_folderlistmodel \
+                  [depot_user]/src/qt5_qtquick_controls2 \
                   [depot_user]/src/qt5_qtquick_layouts \
+                  [depot_user]/src/qt5_qtquick_templates2 \
                   [depot_user]/src/qt5_qtquick_virtualkeyboard \
                   [depot_user]/src/qt5_qtquick_window \
                   [depot_user]/src/qt5_qtquick2 \
@@ -48,7 +54,7 @@ append config {
 append config [qt5_start_nodes feature]
 
 append config {
-	<start name="basic" caps="300">
+	<start name="basic" caps="350">
 		<resource name="RAM" quantum="100M"/>
 		<config>
 			<vfs>
@@ -62,11 +68,17 @@ append config {
 				<tar name="qt5_qquicklayoutsplugin.tar"/>
 				<tar name="qt5_qtquick2.tar"/>
 				<tar name="qt5_qtquick2plugin.tar"/>
+				<tar name="qt5_qtquick_controls2.tar"/>
 				<tar name="qt5_qtquick_layouts.tar"/>
+				<tar name="qt5_qtquick_templates2.tar"/>
 				<tar name="qt5_qtquick_virtualkeyboard.tar"/>
 				<tar name="qt5_qtquick_window.tar"/>
 				<tar name="qt5_qtvirtualkeyboardplugin.tar"/>
-				<tar name="qt5_qtvirtualkeyboardstylesplugin.tar"/>
+				<tar name="qt5_qtquickcontrols2plugin.tar"/>
+				<tar name="qt5_qtquicktemplates2plugin.tar"/>
+				<tar name="qt5_qtquickvirtualkeyboardplugin.tar"/>
+				<tar name="qt5_qtquickvirtualkeyboardsettingsplugin.tar"/>
+				<tar name="qt5_qtquickvirtualkeyboardstylesplugin.tar"/>
 				<tar name="qt5_windowplugin.tar"/>
 			</vfs>
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc"/>

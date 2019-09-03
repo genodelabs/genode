@@ -1,0 +1,67 @@
+qtquickcontrols2_generated.patch
+
+diff --git a/qtquickcontrols2/src/imports/controls/qmake_QtQuick_Controls_2.qrc b/qtquickcontrols2/src/imports/controls/qmake_QtQuick_Controls_2.qrc
+new file mode 100644
+index 0000000..9a0d4e2
+--- /dev/null
++++ b/qtquickcontrols2/src/imports/controls/qmake_QtQuick_Controls_2.qrc
+@@ -0,0 +1,59 @@
++<!DOCTYPE RCC><RCC version="1.0">
++<qresource prefix="/qt-project.org/imports/QtQuick/Controls.2">
++<file alias="AbstractButton.qml">AbstractButton.qml</file>
++<file alias="Action.qml">Action.qml</file>
++<file alias="ActionGroup.qml">ActionGroup.qml</file>
++<file alias="ApplicationWindow.qml">ApplicationWindow.qml</file>
++<file alias="BusyIndicator.qml">BusyIndicator.qml</file>
++<file alias="Button.qml">Button.qml</file>
++<file alias="ButtonGroup.qml">ButtonGroup.qml</file>
++<file alias="CheckBox.qml">CheckBox.qml</file>
++<file alias="CheckDelegate.qml">CheckDelegate.qml</file>
++<file alias="ComboBox.qml">ComboBox.qml</file>
++<file alias="Container.qml">Container.qml</file>
++<file alias="Control.qml">Control.qml</file>
++<file alias="DelayButton.qml">DelayButton.qml</file>
++<file alias="Dial.qml">Dial.qml</file>
++<file alias="Dialog.qml">Dialog.qml</file>
++<file alias="DialogButtonBox.qml">DialogButtonBox.qml</file>
++<file alias="Drawer.qml">Drawer.qml</file>
++<file alias="Frame.qml">Frame.qml</file>
++<file alias="GroupBox.qml">GroupBox.qml</file>
++<file alias="ItemDelegate.qml">ItemDelegate.qml</file>
++<file alias="Label.qml">Label.qml</file>
++<file alias="Menu.qml">Menu.qml</file>
++<file alias="MenuBar.qml">MenuBar.qml</file>
++<file alias="MenuBarItem.qml">MenuBarItem.qml</file>
++<file alias="MenuItem.qml">MenuItem.qml</file>
++<file alias="MenuSeparator.qml">MenuSeparator.qml</file>
++<file alias="Page.qml">Page.qml</file>
++<file alias="PageIndicator.qml">PageIndicator.qml</file>
++<file alias="Pane.qml">Pane.qml</file>
++<file alias="Popup.qml">Popup.qml</file>
++<file alias="ProgressBar.qml">ProgressBar.qml</file>
++<file alias="RadioButton.qml">RadioButton.qml</file>
++<file alias="RadioDelegate.qml">RadioDelegate.qml</file>
++<file alias="RangeSlider.qml">RangeSlider.qml</file>
++<file alias="RoundButton.qml">RoundButton.qml</file>
++<file alias="ScrollBar.qml">ScrollBar.qml</file>
++<file alias="ScrollIndicator.qml">ScrollIndicator.qml</file>
++<file alias="ScrollView.qml">ScrollView.qml</file>
++<file alias="Slider.qml">Slider.qml</file>
++<file alias="SpinBox.qml">SpinBox.qml</file>
++<file alias="SplitView.qml">SplitView.qml</file>
++<file alias="StackView.qml">StackView.qml</file>
++<file alias="SwipeDelegate.qml">SwipeDelegate.qml</file>
++<file alias="Switch.qml">Switch.qml</file>
++<file alias="SwitchDelegate.qml">SwitchDelegate.qml</file>
++<file alias="SwipeView.qml">SwipeView.qml</file>
++<file alias="TabBar.qml">TabBar.qml</file>
++<file alias="TabButton.qml">TabButton.qml</file>
++<file alias="TextArea.qml">TextArea.qml</file>
++<file alias="TextField.qml">TextField.qml</file>
++<file alias="ToolBar.qml">ToolBar.qml</file>
++<file alias="ToolButton.qml">ToolButton.qml</file>
++<file alias="ToolSeparator.qml">ToolSeparator.qml</file>
++<file alias="ToolTip.qml">ToolTip.qml</file>
++<file alias="Tumbler.qml">Tumbler.qml</file>
++</qresource>
++</RCC>

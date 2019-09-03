@@ -21,7 +21,7 @@ SHA(${QTSCRIPTCLASSIC}) := 6a4c4ada6f0064f6c5d7663602a37c99250ed6c7398b1775f95de
 DIR(${QTSCRIPTCLASSIC}) := src/lib/qt5/${QTSCRIPTCLASSIC}
 
 URL(symbols) := https://github.com/cproc/genode-symbols.git
-REV(symbols) := c3c6e9df42800e972cb37a1d96f618f00f7c7e99
+REV(symbols) := 9d68f3847d7f1570258d46ec38191897eb7f4aea
 DIR(symbols) := lib/symbols
 
 
@@ -164,6 +164,20 @@ $(BUILD_DIR)/qtdeclarative/src/qml/Makefile: $(BUILD_DIR)/qtdeclarative/src/Make
 
 $(BUILD_DIR)/qtdeclarative/src/quick/Makefile: $(BUILD_DIR)/qtdeclarative/src/Makefile
 	$(call generate_makefile, $(QT5_CONTRIB_DIR)/qtdeclarative/src/quick/quick.pro)
+
+# qtquickcontrols2
+
+$(BUILD_DIR)/qtquickcontrols2/Makefile: $(QMAKE)
+	$(call generate_makefile, $(QT5_CONTRIB_DIR)/qtquickcontrols2/qtquickcontrols2.pro)
+
+$(BUILD_DIR)/qtquickcontrols2/src/Makefile: $(BUILD_DIR)/qtquickcontrols2/Makefile
+	$(call generate_makefile, $(QT5_CONTRIB_DIR)/qtquickcontrols2/src/src.pro)
+
+$(BUILD_DIR)/qtquickcontrols2/src/quickcontrols2/Makefile: $(BUILD_DIR)/qtquickcontrols2/src/Makefile
+	$(call generate_makefile, $(QT5_CONTRIB_DIR)/qtquickcontrols2/src/quickcontrols2/quickcontrols2.pro)
+
+$(BUILD_DIR)/qtquickcontrols2/src/quicktemplates2/Makefile: $(BUILD_DIR)/qtquickcontrols2/src/Makefile
+	$(call generate_makefile, $(QT5_CONTRIB_DIR)/qtquickcontrols2/src/quicktemplates2/quicktemplates2.pro)
 
 # qtsvg
 
@@ -345,6 +359,20 @@ include/QtQuick: $(BUILD_DIR)/qtdeclarative/src/quick/Makefile
 	$(VERBOSE)make -f $< INSTALL_ROOT=$(CURDIR) install_private_headers $(OUTPUT_FILTER)
 	$(VERBOSE)cp $(QT5_CONTRIB_DIR)/qtdeclarative/src/quick/qtquick-config.h $@/
 	$(VERBOSE)cp $(QT5_CONTRIB_DIR)/qtdeclarative/src/quick/qtquick-config_p.h $@/$(VERSION)/QtQuick/private/
+
+# qtquickcontrols2
+
+include/QtQuickControls2: $(BUILD_DIR)/qtquickcontrols2/src/quickcontrols2/Makefile
+	$(VERBOSE)$(MSG_GENERATE)$@
+	$(VERBOSE)make -f $< INSTALL_ROOT=$(CURDIR) install_gen_headers $(OUTPUT_FILTER)
+	$(VERBOSE)make -f $< INSTALL_ROOT=$(CURDIR) install_targ_headers $(OUTPUT_FILTER)
+	$(VERBOSE)make -f $< INSTALL_ROOT=$(CURDIR) install_private_headers $(OUTPUT_FILTER)
+
+include/QtQuickTemplates2: $(BUILD_DIR)/qtquickcontrols2/src/quicktemplates2/Makefile
+	$(VERBOSE)$(MSG_GENERATE)$@
+	$(VERBOSE)make -f $< INSTALL_ROOT=$(CURDIR) install_gen_headers $(OUTPUT_FILTER)
+	$(VERBOSE)make -f $< INSTALL_ROOT=$(CURDIR) install_targ_headers $(OUTPUT_FILTER)
+	$(VERBOSE)make -f $< INSTALL_ROOT=$(CURDIR) install_private_headers $(OUTPUT_FILTER)
 
 # qtscriptclassic
 
@@ -572,6 +600,8 @@ qt5_headers: include/QtCore \
              include/QtScript \
              include/QtQml \
              include/QtQuick \
+             include/QtQuickControls2 \
+             include/QtQuickTemplates2 \
              include/QtSvg \
              include/QtDesigner \
              include/QtUiPlugin \

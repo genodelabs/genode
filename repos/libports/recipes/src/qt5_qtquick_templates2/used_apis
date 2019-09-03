@@ -1,0 +1,10 @@
+base
+libc
+mesa
+qt5_core
+qt5_gui
+qt5_network
+qt5_qml
+qt5_quick
+qt5_quicktemplates2
+stdcxx

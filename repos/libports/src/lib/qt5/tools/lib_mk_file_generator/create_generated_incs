@@ -28,12 +28,18 @@ cd qtdeclarative/src/imports/folderlistmodel && ../../../../create_generated_inc
 cd qtdeclarative/src/imports/layouts         && ../../../../create_generated_inc qt5_qquicklayoutsplugin      && cp qt5_qquicklayoutsplugin_generated.inc ../../../..      && cd ../../../..
 cd qtdeclarative/src/imports/window          && ../../../../create_generated_inc qt5_windowplugin             && cp qt5_windowplugin_generated.inc ../../../..             && cd ../../../..
 
+cd qtquickcontrols2/src/quicktemplates2      && ../../../create_generated_inc qt5_quicktemplates2             && cp qt5_quicktemplates2_generated.inc ../../..             && cd ../../..
+cd qtquickcontrols2/src/quickcontrols2       && ../../../create_generated_inc qt5_quickcontrols2              && cp qt5_quickcontrols2_generated.inc ../../..              && cd ../../..
+cd qtquickcontrols2/src/imports/controls     && ../../../../create_generated_inc qt5_qtquickcontrols2plugin   && cp qt5_qtquickcontrols2plugin_generated.inc ../../../..   && cd ../../../..
+cd qtquickcontrols2/src/imports/templates    && ../../../../create_generated_inc qt5_qtquicktemplates2plugin  && cp qt5_qtquicktemplates2plugin_generated.inc ../../../..  && cd ../../../..
 
 cd qtsvg/src/svg                             && ../../../create_generated_inc qt5_svg                         && cp qt5_svg_generated.inc ../../..                         && cd ../../..
 
-cd qtvirtualkeyboard/src/virtualkeyboard     && ../../../create_generated_inc qt5_virtualkeyboard               && cp qt5_virtualkeyboard_generated.inc ../../..               && cd ../../..
-cd qtvirtualkeyboard/src/plugin              && ../../../create_generated_inc qt5_qtvirtualkeyboardplugin       && cp qt5_qtvirtualkeyboardplugin_generated.inc ../../..       && cd ../../..
-cd qtvirtualkeyboard/src/styles              && ../../../create_generated_inc qt5_qtvirtualkeyboardstylesplugin && cp qt5_qtvirtualkeyboardstylesplugin_generated.inc ../../.. && cd ../../..
+cd qtvirtualkeyboard/src/virtualkeyboard     && ../../../create_generated_inc qt5_virtualkeyboard                      && cp qt5_virtualkeyboard_generated.inc ../../..                      && cd ../../..
+cd qtvirtualkeyboard/src/plugin              && ../../../create_generated_inc qt5_qtvirtualkeyboardplugin              && cp qt5_qtvirtualkeyboardplugin_generated.inc ../../..              && cd ../../..
+cd qtvirtualkeyboard/src/import              && ../../../create_generated_inc qt5_qtquickvirtualkeyboardplugin         && cp qt5_qtquickvirtualkeyboardplugin_generated.inc ../../..         && cd ../../..
+cd qtvirtualkeyboard/src/settings            && ../../../create_generated_inc qt5_qtquickvirtualkeyboardsettingsplugin && cp qt5_qtquickvirtualkeyboardsettingsplugin_generated.inc ../../.. && cd ../../..
+cd qtvirtualkeyboard/src/styles              && ../../../create_generated_inc qt5_qtquickvirtualkeyboardstylesplugin   && cp qt5_qtquickvirtualkeyboardstylesplugin_generated.inc ../../..   && cd ../../..
 
 # qtwebkit
 

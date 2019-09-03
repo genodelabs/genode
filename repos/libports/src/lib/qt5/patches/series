@@ -8,6 +8,7 @@ qtwebkit_fixes.patch
 qtwebkit_configuration.patch
 qtbase_generated.patch
 qtdeclarative_generated.patch
+qtquickcontrols2_generated.patch
 qtsvg_generated.patch
 qttools_generated.patch
 qtvirtualkeyboard_generated.patch
