@@ -228,6 +228,7 @@ proc drivers_start_nodes { feature_arg } {
 									<key name="KEY_KP2"   to="KEY_DOWN"/>
 									<key name="KEY_KP3"   to="KEY_PAGEDOWN"/>
 									<key name="KEY_KP4"   to="KEY_LEFT"/>
+									<key name="KEY_KP5"   to="KEY_RESERVED"/>
 									<key name="KEY_KP6"   to="KEY_RIGHT"/>
 									<key name="KEY_KP7"   to="KEY_HOME"/>
 									<key name="KEY_KP8"   to="KEY_UP"/>
@@ -274,7 +275,6 @@ proc drivers_start_nodes { feature_arg } {
 							</remap>
 							<mod1>
 								<key name="KEY_LEFTSHIFT"/> <key name="KEY_RIGHTSHIFT"/>
-								<rom name="capslock"/>
 							</mod1>
 							<mod2>
 								<key name="KEY_LEFTCTRL"/> <key name="KEY_RIGHTCTRL"/>
@@ -282,6 +282,9 @@ proc drivers_start_nodes { feature_arg } {
 							<mod3>
 								<key name="KEY_RIGHTALT"/> <!-- AltGr -->
 							</mod3>
+							<mod4>
+								<rom name="capslock"/>
+							</mod4>
 							<repeat delay_ms="500" rate_ms="50"/>}
 		append start_nodes "
 							<include rom=\"[language_chargen].chargen\"/>"

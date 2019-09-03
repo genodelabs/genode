@@ -1,11 +1,12 @@
 /*
  * \brief  QNitpickerPlatformWindow
  * \author Christian Prochaska
+ * \author Christian Helmuth
  * \date   2013-05-08
  */
 
 /*
- * Copyright (C) 2013-2017 Genode Labs GmbH
+ * Copyright (C) 2013-2019 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -25,7 +26,6 @@
 /* Qt includes */
 #include <qpa/qplatformwindow.h>
 #include <qpa/qwindowsysteminterface.h>
-#include <QtInputSupport/private/qevdevkeyboardhandler_p.h>
 #include <qtouchdevice.h>
 
 /* Qoost includes */
@@ -65,6 +65,23 @@ class QNitpickerPlatformWindow : public QObject, public QPlatformWindow
 			return QPoint(_mouse_position.x() - geometry().x(),
 			              _mouse_position.y() - geometry().y());
 		}
+
+
+		typedef Genode::Codepoint Codepoint;
+
+		struct Mapped_key
+		{
+			enum Event { PRESSED, RELEASED, REPEAT };
+
+			Qt::Key   key       { Qt::Key_unknown };
+			Codepoint codepoint { Codepoint::INVALID };
+		};
+
+		QHash<Input::Keycode, Qt::Key> _pressed;
+
+		Mapped_key _map_key(Input::Keycode, Codepoint, Mapped_key::Event);
+		void _key_event(Input::Keycode, Codepoint, Mapped_key::Event);
+		void _mouse_button_event(Input::Keycode, bool press);
 
 		Genode::Signal_handler<QNitpickerPlatformWindow> _input_signal_handler;
 		Genode::Signal_handler<QNitpickerPlatformWindow> _mode_changed_signal_handler;
