@@ -279,6 +279,7 @@
 		<key name="KEY_L" code="0x0141"/>	<!-- Ł -->
 		<key name="KEY_SEMICOLON" code="0x00ba"/>	<!-- º -->
 		<key name="KEY_GRAVE" code="0x00ac"/>	<!-- ¬ -->
+		<key name="KEY_BACKSLASH" code="0x00b5"/>	<!-- µ -->
 		<key name="KEY_Z" code="0x0141"/>	<!-- Ł -->
 		<key name="KEY_X" code="0x003e"/>	<!-- > -->
 		<key name="KEY_C" code="0x00a9"/>	<!-- © -->
@@ -314,6 +315,7 @@
 		<key name="KEY_I" code="0x0069"/>	<!-- i -->
 		<key name="KEY_O" code="0x006f"/>	<!-- o -->
 		<key name="KEY_P" code="0x0070"/>	<!-- p -->
+		<key name="KEY_LEFTBRACE" code="0x0308"/>	<!-- dead_diaeresis -->
 		<key name="KEY_RIGHTBRACE" code="0x00a3"/>	<!-- £ -->
 		<key name="KEY_A" code="0x0071"/>	<!-- q -->
 		<key name="KEY_S" code="0x0073"/>	<!-- s -->
@@ -327,6 +329,7 @@
 		<key name="KEY_SEMICOLON" code="0x006d"/>	<!-- m -->
 		<key name="KEY_APOSTROPHE" code="0x0025"/>	<!-- % -->
 		<key name="KEY_GRAVE" code="0x007e"/>	<!-- ~ -->
+		<key name="KEY_BACKSLASH" code="0x00b5"/>	<!-- µ -->
 		<key name="KEY_Z" code="0x0077"/>	<!-- w -->
 		<key name="KEY_X" code="0x0078"/>	<!-- x -->
 		<key name="KEY_C" code="0x0063"/>	<!-- c -->
@@ -354,33 +357,33 @@
 		<key name="KEY_0" code="0x0040"/>	<!-- @ -->
 		<key name="KEY_MINUS" code="0x005d"/>	<!-- ] -->
 		<key name="KEY_EQUAL" code="0x007d"/>	<!-- } -->
-		<key name="KEY_Q" code="0x00e6"/>	<!-- æ -->
+		<key name="KEY_Q" code="0x00c6"/>	<!-- Æ -->
 		<key name="KEY_W" code="0x00ab"/>	<!-- « -->
 		<key name="KEY_E" code="0x20ac"/>	<!-- € -->
 		<key name="KEY_R" code="0x00b6"/>	<!-- ¶ -->
-		<key name="KEY_T" code="0x0167"/>	<!-- ŧ -->
+		<key name="KEY_T" code="0x0166"/>	<!-- Ŧ -->
 		<key name="KEY_Y" code="0x2190"/>	<!-- ← -->
 		<key name="KEY_U" code="0x2193"/>	<!-- ↓ -->
 		<key name="KEY_I" code="0x2192"/>	<!-- → -->
-		<key name="KEY_O" code="0x00f8"/>	<!-- ø -->
-		<key name="KEY_P" code="0x00fe"/>	<!-- þ -->
+		<key name="KEY_O" code="0x00d8"/>	<!-- Ø -->
+		<key name="KEY_P" code="0x00de"/>	<!-- Þ -->
 		<key name="KEY_RIGHTBRACE" code="0x00a4"/>	<!-- ¤ -->
 		<key name="KEY_A" code="0x0040"/>	<!-- @ -->
 		<key name="KEY_S" code="0x00df"/>	<!-- ß -->
-		<key name="KEY_D" code="0x00f0"/>	<!-- ð -->
-		<key name="KEY_F" code="0x0111"/>	<!-- đ -->
-		<key name="KEY_G" code="0x014b"/>	<!-- ŋ -->
-		<key name="KEY_H" code="0x0127"/>	<!-- ħ -->
+		<key name="KEY_D" code="0x00d0"/>	<!-- Ð -->
+		<key name="KEY_F" code="0x0110"/>	<!-- Đ -->
+		<key name="KEY_G" code="0x014a"/>	<!-- Ŋ -->
+		<key name="KEY_H" code="0x0126"/>	<!-- Ħ -->
 		<key name="KEY_K" code="0x0138"/>	<!-- ĸ -->
-		<key name="KEY_L" code="0x0142"/>	<!-- ł -->
+		<key name="KEY_L" code="0x0141"/>	<!-- Ł -->
 		<key name="KEY_SEMICOLON" code="0x00b5"/>	<!-- µ -->
 		<key name="KEY_GRAVE" code="0x00ac"/>	<!-- ¬ -->
-		<key name="KEY_Z" code="0x0142"/>	<!-- ł -->
+		<key name="KEY_Z" code="0x0141"/>	<!-- Ł -->
 		<key name="KEY_X" code="0x00bb"/>	<!-- » -->
 		<key name="KEY_C" code="0x00a2"/>	<!-- ¢ -->
 		<key name="KEY_V" code="0x201c"/>	<!-- “ -->
 		<key name="KEY_B" code="0x201d"/>	<!-- ” -->
-		<key name="KEY_N" code="0x006e"/>	<!-- n -->
+		<key name="KEY_N" code="0x004e"/>	<!-- N -->
 		<key name="KEY_COMMA" code="0x2500"/>	<!-- ─ -->
 		<key name="KEY_DOT" code="0x00b7"/>	<!-- · -->
 		<key name="KEY_102ND" code="0x007c"/>	<!-- | -->

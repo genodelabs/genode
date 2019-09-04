@@ -75,7 +75,6 @@
 		<key name="KEY_ENTER" ascii="10"/>
 		<key name="KEY_KPENTER" ascii="10"/>
 		<key name="KEY_DELETE" ascii="127"/>
-		<dummy/>
 	</map>
 
 	<!-- SHIFT -->
@@ -127,12 +126,7 @@
 		<key name="KEY_COMMA" code="0x003b"/>	<!-- ; -->
 		<key name="KEY_DOT" code="0x003a"/>	<!-- : -->
 		<key name="KEY_SLASH" code="0x005f"/>	<!-- _ -->
-		<key name="KEY_KPASTERISK" code="0x002a"/>	<!-- * -->
-		<key name="KEY_KPMINUS" code="0x002d"/>	<!-- - -->
-		<key name="KEY_KPPLUS" code="0x002b"/>	<!-- + -->
 		<key name="KEY_102ND" code="0x003e"/>	<!-- > -->
-		<key name="KEY_KPSLASH" code="0x002f"/>	<!-- / -->
-		<dummy/>
 	</map>
 
 	<!-- CONTROL -->
@@ -174,7 +168,6 @@
 		<key name="KEY_KP5" code="0x001d"/>	<!-- GS  (group separator)      CTRL-KP_5 -->
 		<key name="KEY_KP6" code="0x001e"/>	<!-- RS  (record separator)     CTRL-KP_6 -->
 		<key name="KEY_KP3" code="0x001b"/>	<!-- ESC (escape)               CTRL-KP_3 -->
-		<dummy/>
 	</map>
 
 	<!-- ALTGR -->
@@ -195,7 +188,6 @@
 		<key name="KEY_RIGHTBRACE" code="0x007e"/>	<!-- ~ -->
 		<key name="KEY_M" code="0x00b5"/>	<!-- µ -->
 		<key name="KEY_102ND" code="0x007c"/>	<!-- | -->
-		<dummy/>
 	</map>
 
 	<!-- CAPSLOCK -->
@@ -283,7 +275,6 @@
 		<key name="KEY_DOT" code="0x003a"/>	<!-- : -->
 		<key name="KEY_SLASH" code="0x005f"/>	<!-- _ -->
 		<key name="KEY_102ND" code="0x003e"/>	<!-- > -->
-		<dummy/>
 	</map>
 
 	<!-- ALTGR-CAPSLOCK -->
@@ -304,7 +295,6 @@
 		<key name="KEY_RIGHTBRACE" code="0x007e"/>	<!-- ~ -->
 		<key name="KEY_M" code="0x00b5"/>	<!-- µ -->
 		<key name="KEY_102ND" code="0x007c"/>	<!-- | -->
-		<dummy/>
 	</map>
 
 	<!-- SHIFT-ALTGR-CAPSLOCK -->
