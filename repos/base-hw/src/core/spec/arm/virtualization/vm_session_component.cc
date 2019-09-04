@@ -16,22 +16,15 @@
 
 /* core includes */
 #include <kernel/core_interface.h>
-#include <spec/arm/virtualization/vm_session_component.h>
+#include <vm_session_component.h>
 #include <platform.h>
+#include <cpu_thread_component.h>
 #include <core_env.h>
 
 using namespace Genode;
 
 static Core_mem_allocator & cma() {
 	return static_cast<Core_mem_allocator&>(platform().core_mem_alloc()); }
-
-
-void Vm_session_component::_exception_handler(Signal_context_capability handler, Vcpu_id)
-{
-	if (!_kobj.create(_ds_addr, Capability_space::capid(handler),
-	                  cma().phys_addr(&_table)))
-		Genode::warning("Cannot instantiate vm kernel object, invalid signal context?");
-}
 
 
 void Vm_session_component::_attach(addr_t phys_addr, addr_t vm_addr, size_t size)
@@ -78,8 +71,8 @@ void * Vm_session_component::_alloc_table()
 {
 	void * table;
 	/* get some aligned space for the translation table */
-	if (!cma().alloc_aligned(sizeof(Table), (void**)&table,
-	                         Table::ALIGNM_LOG2).ok()) {
+	if (!cma().alloc_aligned(sizeof(Board::Vm_page_table), (void**)&table,
+	                         Board::Vm_page_table::ALIGNM_LOG2).ok()) {
 		error("failed to allocate kernel object");
 		throw Insufficient_ram_quota();
 	}
@@ -101,19 +94,10 @@ Vm_session_component::Vm_session_component(Rpc_entrypoint &ds_ep,
   _constrained_md_ram_alloc(ram_alloc, _ram_quota_guard(), _cap_quota_guard()),
   _sliced_heap(_constrained_md_ram_alloc, region_map),
   _region_map(region_map),
-  _table(*construct_at<Table>(_alloc_table())),
-  _table_array(*(new (cma()) Array([this] (void * virt) {
+  _table(*construct_at<Board::Vm_page_table>(_alloc_table())),
+  _table_array(*(new (cma()) Board::Vm_page_table_array([this] (void * virt) {
 	return (addr_t)cma().phys_addr(virt);})))
 {
-	_ds_cap = _constrained_md_ram_alloc.alloc(_ds_size(), Genode::Cache_attribute::UNCACHED);
-
-	try {
-		_ds_addr = region_map.attach(_ds_cap);
-	} catch (...) {
-		_constrained_md_ram_alloc.free(_ds_cap);
-		throw;
-	}
-
 	/* configure managed VM area */
 	_map.add_range(0, 0UL - 0x1000);
 	_map.add_range(0UL - 0x1000, 0x1000);
@@ -133,9 +117,12 @@ Vm_session_component::~Vm_session_component()
 	}
 
 	/* free region in allocator */
-	if (_ds_cap.valid()) {
-		_region_map.detach(_ds_addr);
-		_constrained_md_ram_alloc.free(_ds_cap);
+	for (unsigned i = 0; i < _id_alloc; i++) {
+		Vcpu & vcpu = _vcpus[i];
+		if (vcpu.ds_cap.valid()) {
+			_region_map.detach(vcpu.ds_addr);
+			_constrained_md_ram_alloc.free(vcpu.ds_cap);
+		}
 	}
 
 	/* free guest-to-host page tables */

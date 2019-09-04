@@ -45,6 +45,9 @@ Memory_region const Hw::Mm::system_exception_vector() {
 Memory_region const Hw::Mm::hypervisor_exception_vector() {
 	return Memory_region(0xfff10000UL, 0x1000UL); }
 
+Memory_region const Hw::Mm::hypervisor_stack() {
+	return Memory_region(0xfff12000UL, 0x1000UL); }
+
 Memory_region const Hw::Mm::boot_info() {
 	return Memory_region(0xfffe0000UL, 0x1000UL); }
 

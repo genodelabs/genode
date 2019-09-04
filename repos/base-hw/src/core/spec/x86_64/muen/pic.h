@@ -26,6 +26,8 @@ class Board::Pic
 {
 	public:
 
+		struct Virtual_context {};
+
 		enum {
 			/*
 			 * FIXME: dummy ipi value on non-SMP platform, should be removed

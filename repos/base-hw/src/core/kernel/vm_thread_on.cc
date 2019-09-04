@@ -18,13 +18,14 @@
 void Kernel::Thread::_call_new_vm()
 {
 	Signal_context * context =
-		pd().cap_tree().find<Signal_context>(user_arg_4());
+		pd().cap_tree().find<Signal_context>(user_arg_5());
 	if (!context) {
 		user_arg_0(cap_id_invalid());
 		return;
 	}
 
-	_call_new<Vm>((void*)user_arg_2(), context, (void*)user_arg_3());
+	_call_new<Vm>((unsigned)user_arg_2(), *(Board::Vm_state*)user_arg_3(),
+	              *context, (void*)user_arg_4());
 }
 
 

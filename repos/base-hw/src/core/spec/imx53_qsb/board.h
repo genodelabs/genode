@@ -18,10 +18,8 @@
 #include <hw/spec/arm/imx_tzic.h>
 #include <hw/spec/arm/imx53_qsb_board.h>
 #include <spec/arm/imx_epit.h>
+#include <spec/arm/trustzone_board.h>
 
-namespace Board {
-	using namespace Hw::Imx53_qsb_board;
-	using Hw::Pic;
-}
+namespace Board { using namespace Hw::Imx53_qsb_board; }
 
 #endif /* _CORE__SPEC__IMX53_QSB__BOARD_H_ */

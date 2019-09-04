@@ -18,10 +18,8 @@
 #include <hw/spec/arm/imx_tzic.h>
 #include <hw/spec/arm/usb_armory_board.h>
 #include <spec/arm/imx_epit.h>
+#include <spec/arm/trustzone_board.h>
 
-namespace Board {
-	using namespace Hw::Usb_armory_board;
-	using Hw::Pic;
-}
+namespace Board { using namespace Hw::Usb_armory_board; }
 
 #endif /* _CORE__SPEC__USB_ARMORY__BOARD_H_ */

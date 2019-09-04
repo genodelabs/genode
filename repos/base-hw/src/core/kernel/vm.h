@@ -22,6 +22,8 @@ namespace Genode { class Vm_state; }
 #include <kernel/pd.h>
 #include <kernel/signal_receiver.h>
 
+#include <board.h>
+
 namespace Kernel
 {
 	/**
@@ -36,19 +38,22 @@ class Kernel::Vm : public Cpu_job,
 {
 	private:
 
+		using State = Board::Vm_state;
+
 		/*
 		 * Noncopyable
 		 */
 		Vm(Vm const &);
 		Vm &operator = (Vm const &);
 
-		enum State { ACTIVE, INACTIVE };
+		enum Scheduler_state { ACTIVE, INACTIVE };
 
-		unsigned                 _id = 0;
-		Genode::Vm_state * const _state;
-		Signal_context   * const _context;
-		void             * const _table;
-		State                    _scheduled = INACTIVE;
+		unsigned                    _id = 0;
+		State                     & _state;
+		Signal_context            & _context;
+		void             * const    _table;
+		Scheduler_state             _scheduled = INACTIVE;
+		Board::Vcpu_context         _vcpu_context;
 
 	public:
 
@@ -59,9 +64,10 @@ class Kernel::Vm : public Cpu_job,
 		 * \param context  signal for VM exceptions other than interrupts
 		 * \param table    translation table for guest to host physical memory
 		 */
-		Vm(void           * const state,
-		   Signal_context * const context,
-		   void           * const table);
+		Vm(unsigned           cpu,
+		   State            & state,
+		   Signal_context   & context,
+		   void       * const table);
 
 		~Vm();
 
@@ -85,12 +91,13 @@ class Kernel::Vm : public Cpu_job,
 		 * \retval cap id when successful, otherwise invalid cap id
 		 */
 		static capid_t syscall_create(Genode::Kernel_object<Vm> & vm,
+		                              unsigned                    cpu,
 		                              void * const                state,
 		                              capid_t const               signal_context_id,
 		                              void * const                table)
 		{
-			return call(call_id_new_vm(), (Call_arg)&vm, (Call_arg)state,
-			            (Call_arg)table, signal_context_id);
+			return call(call_id_new_vm(), (Call_arg)&vm, (Call_arg)cpu,
+			            (Call_arg)state, (Call_arg)table, signal_context_id);
 		}
 
 		/**

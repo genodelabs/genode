@@ -35,7 +35,10 @@ SRC_CC += spec/x86_64/muen/platform_services.cc
 SRC_CC += spec/x86_64/muen/platform_support.cc
 SRC_CC += spec/x86_64/muen/sinfo_instance.cc
 SRC_CC += spec/x86_64/muen/timer.cc
+SRC_CC += spec/x86_64/muen/vm_session_component.cc
 SRC_CC += spec/x86_64/platform_support_common.cc
+SRC_CC += vm_session_common.cc
+SRC_CC += vm_session_component.cc
 
 SRC_CC += spec/64bit/memory_map.cc
 

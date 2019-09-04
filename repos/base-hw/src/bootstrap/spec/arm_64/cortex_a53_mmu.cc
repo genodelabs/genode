@@ -11,6 +11,7 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+#include <hw/spec/arm_64/memory_map.h>
 #include <platform.h>
 
 using Board::Cpu;
@@ -57,11 +58,54 @@ static inline void prepare_non_secure_world()
 }
 
 
-static inline void prepare_hypervisor()
+static inline void prepare_hypervisor(Cpu::Ttbr::access_t const ttbr)
 {
-	Cpu::Hcr::access_t scr = Cpu::Hcr::read();
-	Cpu::Hcr::Rw::set(scr,  1); /* exec in aarch64 */
-	Cpu::Hcr::write(scr);
+	using namespace Hw::Mm;
+
+	/* forbid trace access */
+	Cpu::Cptr_el2::access_t cptr = Cpu::Cptr_el2::read();
+	Cpu::Cptr_el2::Tta::set(cptr, 1);
+	Cpu::Cptr_el2::write(cptr);
+
+	/* allow physical counter/timer access without trapping */
+	Cpu::Cnthctl_el2::write(0b111);
+
+	/* forbid any 32bit access to coprocessor/sysregs */
+	Cpu::Hstr_el2::write(0xffff);
+
+	Cpu::Hcr_el2::access_t hcr = Cpu::Hcr_el2::read();
+	Cpu::Hcr_el2::Rw::set(hcr, 1); /* exec in aarch64 */
+	Cpu::Hcr_el2::write(hcr);
+
+	/* set hypervisor exception vector */
+	Cpu::Vbar_el2::write(el2_addr(hypervisor_exception_vector().base));
+	Genode::addr_t const stack_el2 = el2_addr(hypervisor_stack().base +
+	                                          hypervisor_stack().size);
+
+	/* set hypervisor's translation table */
+	Cpu::Ttbr0_el2::write(ttbr);
+
+	Cpu::Tcr_el2::access_t tcr_el2 = 0;
+	Cpu::Tcr_el2::T0sz::set(tcr_el2, 25);
+	Cpu::Tcr_el2::Irgn0::set(tcr_el2, 1);
+	Cpu::Tcr_el2::Orgn0::set(tcr_el2, 1);
+	Cpu::Tcr_el2::Sh0::set(tcr_el2, 0b10);
+
+	/* prepare MMU usage by hypervisor code */
+	Cpu::Tcr_el2::write(tcr_el2);
+
+	/* set memory attributes in indirection register */
+	Cpu::Mair::access_t mair = 0;
+	Cpu::Mair::Attr0::set(mair, Cpu::Mair::NORMAL_MEMORY_UNCACHED);
+	Cpu::Mair::Attr1::set(mair, Cpu::Mair::DEVICE_MEMORY);
+	Cpu::Mair::Attr2::set(mair, Cpu::Mair::NORMAL_MEMORY_CACHED);
+	Cpu::Mair::Attr3::set(mair, Cpu::Mair::DEVICE_MEMORY);
+	Cpu::Mair_el2::write(mair);
+
+	Cpu::Vtcr_el2::access_t vtcr = 0;
+	Cpu::Vtcr_el2::T0sz::set(vtcr, 25);
+	Cpu::Vtcr_el2::Sl0::set(vtcr, 1); /* set to starting level 1 */
+	Cpu::Vtcr_el2::write(vtcr);
 
 	Cpu::Spsr::access_t pstate = 0;
 	Cpu::Spsr::Sp::set(pstate, 1); /* select non-el0 stack pointer */
@@ -72,12 +116,22 @@ static inline void prepare_hypervisor()
 	Cpu::Spsr::D::set(pstate, 1);
 	Cpu::Spsr_el2::write(pstate);
 
+	Cpu::Sctlr::access_t sctlr = Cpu::Sctlr_el2::read();
+	Cpu::Sctlr::M::set(sctlr, 1);
+	Cpu::Sctlr::A::set(sctlr, 0);
+	Cpu::Sctlr::C::set(sctlr, 1);
+	Cpu::Sctlr::Sa::set(sctlr, 0);
+	Cpu::Sctlr::I::set(sctlr, 1);
+	Cpu::Sctlr::Wxn::set(sctlr, 0);
+	Cpu::Sctlr_el2::write(sctlr);
+
 	asm volatile("mov x0, sp      \n"
 	             "msr sp_el1, x0  \n"
 	             "adr x0, 1f      \n"
 	             "msr elr_el2, x0 \n"
+	             "mov sp, %0      \n"
 	             "eret            \n"
-	             "1:");
+	             "1:": : "r"(stack_el2): "x0");
 }
 
 
@@ -87,13 +141,16 @@ unsigned Bootstrap::Platform::enable_mmu()
 	bool primary = primary_cpu;
 	if (primary) primary_cpu = false;
 
-	::Board::Pic pic __attribute__((unused)) {};
+	Cpu::Ttbr::access_t ttbr =
+		Cpu::Ttbr::Baddr::masked((Genode::addr_t)core_pd->table_base);
 
 	while (Cpu::current_privilege_level() > Cpu::Current_el::EL1) {
-		if (Cpu::current_privilege_level() == Cpu::Current_el::EL3)
+		if (Cpu::current_privilege_level() == Cpu::Current_el::EL3) {
 			prepare_non_secure_world();
-		else
-			prepare_hypervisor();
+		} else {
+			::Board::Pic pic __attribute__((unused)) {};
+			prepare_hypervisor(ttbr);
+		}
 	}
 
 	/* primary cpu wakes up all others */
@@ -101,6 +158,9 @@ unsigned Bootstrap::Platform::enable_mmu()
 
 	/* enable performance counter for user-land */
 	Cpu::Pmuserenr_el0::write(0b1111);
+
+	/* enable user-level access of physical/virtual counter */
+	Cpu::Cntkctl_el1::write(0b11);
 
 	Cpu::Vbar_el1::write(Hw::Mm::supervisor_exception_vector().base);
 
@@ -110,9 +170,8 @@ unsigned Bootstrap::Platform::enable_mmu()
 	Cpu::Mair::Attr1::set(mair, Cpu::Mair::DEVICE_MEMORY);
 	Cpu::Mair::Attr2::set(mair, Cpu::Mair::NORMAL_MEMORY_CACHED);
 	Cpu::Mair::Attr3::set(mair, Cpu::Mair::DEVICE_MEMORY);
-	Cpu::Mair::write(mair);
+	Cpu::Mair_el1::write(mair);
 
-	Cpu::Ttbr::access_t ttbr = Cpu::Ttbr::Baddr::masked((Genode::addr_t)core_pd->table_base);
 	Cpu::Ttbr0_el1::write(ttbr);
 	Cpu::Ttbr1_el1::write(ttbr);
 
@@ -129,13 +188,14 @@ unsigned Bootstrap::Platform::enable_mmu()
 	Cpu::Tcr_el1::As::set(tcr, 1);
 	Cpu::Tcr_el1::write(tcr);
 
-	Cpu::Sctlr_el1::access_t sctlr = Cpu::Sctlr_el1::read();
-	Cpu::Sctlr_el1::C::set(sctlr, 1);
-	Cpu::Sctlr_el1::I::set(sctlr, 1);
-	Cpu::Sctlr_el1::A::set(sctlr, 0);
-	Cpu::Sctlr_el1::M::set(sctlr, 1);
-	Cpu::Sctlr_el1::Sa0::set(sctlr, 1);
-	Cpu::Sctlr_el1::Sa::set(sctlr, 0);
+	Cpu::Sctlr::access_t sctlr = Cpu::Sctlr_el1::read();
+	Cpu::Sctlr::C::set(sctlr, 1);
+	Cpu::Sctlr::I::set(sctlr, 1);
+	Cpu::Sctlr::A::set(sctlr, 0);
+	Cpu::Sctlr::M::set(sctlr, 1);
+	Cpu::Sctlr::Sa0::set(sctlr, 1);
+	Cpu::Sctlr::Sa::set(sctlr, 0);
+	Cpu::Sctlr::Uct::set(sctlr, 1);
 	Cpu::Sctlr_el1::write(sctlr);
 
 	return 0;
