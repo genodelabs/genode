@@ -70,6 +70,7 @@ install_config {
 			        report="global_keys_handler -> leitzentrale"/>
 			<policy label="nit_focus -> slides"
 			        report="global_keys_handler -> slides"/>
+			<policy label="nit_focus -> hover" report="nitpicker -> hover"/>
 			<policy label="slides_nit_fb_config -> slides"
 			        report="global_keys_handler -> slides"/>
 			<policy label="leitzentrale -> manager -> displays"
@@ -291,24 +292,34 @@ install_config {
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="ROM"/> </provides>
 		<config>
+			<input name="lockscreen_enabled" rom="hover" node="hover">
+				<attribute name="label" /> </input>
 			<input name="leitzentrale_enabled" rom="leitzentrale" node="leitzentrale">
 				<attribute name="enabled" /> </input>
 			<input name="slides_enabled" rom="slides" node="slides">
 				<attribute name="enabled" /> </input>
 			<output node="focus">
 				<if>
-					<has_value input="leitzentrale_enabled" value="yes" />
+					<has_value input="lockscreen_enabled" value="lock_screen" />
 					<then>
-						<attribute name="label" value="leitzentrale -> manager -> fader -> "/>
+						<attribute name="label" value="lock_screen"/>
 					</then>
 					<else>
 						<if>
-							<has_value input="slides_enabled" value="yes" />
+							<has_value input="leitzentrale_enabled" value="yes" />
 							<then>
-								<attribute name="label" value="slides"/>
+								<attribute name="label" value="leitzentrale -> manager -> fader -> "/>
 							</then>
 							<else>
-								<attribute name="label" value="runtime -> focus"/>
+								<if>
+									<has_value input="slides_enabled" value="yes" />
+									<then>
+										<attribute name="label" value="slides"/>
+									</then>
+									<else>
+										<attribute name="label" value="runtime -> focus"/>
+									</else>
+								</if>
 							</else>
 						</if>
 					</else>
@@ -316,6 +327,7 @@ install_config {
 			</output>
 		</config>
 		<route>
+			<service name="ROM" label="hover">        <child name="report_rom"/> </service>
 			<service name="ROM" label="leitzentrale"> <child name="report_rom"/> </service>
 			<service name="ROM" label="slides">       <child name="report_rom"/> </service>
 			<any-service> <parent/> </any-service>
@@ -455,6 +467,8 @@ install_config {
 				<child name="leitzentrale"/> </service>
 			<service name="Nitpicker" label="backdrop">
 				<child name="nitpicker" label="backdrop"/> </service>
+			<service name="Nitpicker" label="lock_screen">
+				<child name="nitpicker" label="lock_screen"/> </service>
 			<service name="Nitpicker"> <child name="nitpicker"/> </service>
 			<service name="Timer"> <child name="timer"/> </service>
 			<service name="Report" label_suffix="-> shape"> <child name="pointer"/> </service>

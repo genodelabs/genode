@@ -315,6 +315,7 @@ class Sculpt::Runtime_config
 			Parent_service const
 				_focus     { _r, Type::NITPICKER,   "keyboard focus",                 "focus" },
 				_backdrop  { _r, Type::NITPICKER,   "desktop background",             "backdrop" },
+				_lockscreen{ _r, Type::NITPICKER,   "desktop lock screen",            "lock_screen" },
 				_nitpicker { _r, Type::NITPICKER,   "system GUI server" },
 				_config_fs { _r, Type::FILE_SYSTEM, "writeable system configuration", "config" },
 				_report_fs { _r, Type::FILE_SYSTEM, "read-only system reports",       "report" },
