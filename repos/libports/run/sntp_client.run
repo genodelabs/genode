@@ -7,9 +7,11 @@ if { [have_spec linux] } {
 
 create_boot_directory
 
-import_from_depot [depot_user]/pkg/[drivers_nic_pkg]
+import_from_depot [depot_user]/src/[base_src] \
+                  [depot_user]/pkg/[drivers_nic_pkg] \
+                  [depot_user]/src/init
 
-build { core init timer app/sntp_client server/report_rom }
+build { app/sntp_client server/report_rom }
 
 append config {
 <config>
