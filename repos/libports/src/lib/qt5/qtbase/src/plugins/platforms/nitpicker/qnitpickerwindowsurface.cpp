@@ -43,7 +43,7 @@ QNitpickerWindowSurface::QNitpickerWindowSurface(QWindow *window)
 
 QNitpickerWindowSurface::~QNitpickerWindowSurface()
 {
-	qFree(_backbuffer);
+	free(_backbuffer);
 }
 
 QPaintDevice *QNitpickerWindowSurface::paintDevice()
@@ -61,8 +61,8 @@ QPaintDevice *QNitpickerWindowSurface::paintDevice()
         QImage::Format format = QGuiApplication::primaryScreen()->handle()->format();
         QRect geo = _platform_window->geometry();
         unsigned int const bytes_per_pixel = QGuiApplication::primaryScreen()->depth() / 8;
-		qFree(_backbuffer);
-		_backbuffer = (unsigned char*)qMalloc(geo.width() * geo.height() * bytes_per_pixel);
+		free(_backbuffer);
+		_backbuffer = (unsigned char*)malloc(geo.width() * geo.height() * bytes_per_pixel);
 		_image = QImage(_backbuffer, geo.width(), geo.height(), geo.width() * bytes_per_pixel, format);
 
         if (verbose)
@@ -90,9 +90,7 @@ void QNitpickerWindowSurface::flush(QWindow *window, const QRegion &region, cons
 
 	unsigned int const bytes_per_pixel = _image.depth() / 8;
 
-	for (int i = 0; i < region.rects().size(); i++) {
-
-		QRect rect(region.rects()[i]);
+	for (QRect rect : region) {
 
 		/*
 		 * It happened that after resizing a window, the given flush region was
