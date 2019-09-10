@@ -141,7 +141,7 @@ class Input::Event
 		template <typename FN>
 		void handle_repeat(FN const &fn) const
 		{
-			if (key_press(KEY_UNKNOWN) && _attr.press.codepoint.value)
+			if (key_press(KEY_UNKNOWN) && _attr.press.codepoint.valid())
 				fn(_attr.press.codepoint);
 		}
 
