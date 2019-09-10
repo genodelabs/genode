@@ -118,32 +118,4 @@
 		<key name="KEY_DOT"        ascii="62"/>  <!-- '>' -->
 		<key name="KEY_SLASH"      char="?"/>
 	</map>
-	<map mod2="yes">
-		<key name="KEY_A" ascii="01" />
-		<key name="KEY_B" ascii="22" />
-		<key name="KEY_C" ascii="13" />
-		<key name="KEY_D" ascii="08" />
-		<key name="KEY_E" ascii="18" />
-		<key name="KEY_F" ascii="20" />
-		<key name="KEY_G" ascii="07" />
-		<key name="KEY_H" ascii="25" />
-		<key name="KEY_I" ascii="21" />
-		<key name="KEY_J" ascii="14" />
-		<key name="KEY_K" ascii="05" />
-		<key name="KEY_L" ascii="15" />
-		<key name="KEY_M" ascii="12" />
-		<key name="KEY_N" ascii="11" />
-		<key name="KEY_O" ascii="16" />
-		<key name="KEY_P" ascii="09" />
-		<key name="KEY_Q" ascii="17" />
-		<key name="KEY_R" ascii="23" />
-		<key name="KEY_S" ascii="19" />
-		<key name="KEY_T" ascii="02" />
-		<key name="KEY_U" ascii="06" />
-		<key name="KEY_V" ascii="03" />
-		<key name="KEY_W" ascii="04" />
-		<key name="KEY_X" ascii="24" />
-		<key name="KEY_Y" ascii="10" />
-		<key name="KEY_Z" ascii="26" />
-	</map>
 </chargen>

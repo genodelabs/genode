@@ -90,6 +90,8 @@ struct Terminal::Main : Character_consumer
 
 	bool _shift_pressed = false;
 
+	unsigned _ctrl_pressed = 0; /* number of control keys pressed */
+
 	bool _selecting = false;
 
 	struct Paste_buffer { char buffer[READ_BUFFER_SIZE]; } _paste_buffer { };
@@ -320,10 +322,25 @@ void Terminal::Main::_handle_input()
 			}
 		}
 
+		if (event.key_press(Input::KEY_LEFTCTRL)
+		 || event.key_press(Input::KEY_RIGHTCTRL))
+			++_ctrl_pressed;
+
+		if (event.key_release(Input::KEY_LEFTCTRL)
+		 || event.key_release(Input::KEY_RIGHTCTRL))
+			--_ctrl_pressed;
+
 		if (event.key_press(Input::BTN_MIDDLE))
 			_paste_clipboard_content();
 
 		event.handle_press([&] (Input::Keycode, Codepoint codepoint) {
+
+			/* control-key combinations */
+			if (_ctrl_pressed
+			 && codepoint.value >= 'a' && codepoint.value <= 'z') {
+				_read_buffer.add(Codepoint { codepoint.value - 'a' + 1 } );
+				return;
+			}
 
 			/* function-key unicodes */
 			enum {

@@ -129,47 +129,6 @@
 		<key name="KEY_102ND" code="0x003e"/>	<!-- > -->
 	</map>
 
-	<!-- CONTROL -->
-	<map mod2="true">
-		<key name="KEY_3" code="0x001b"/>	<!-- ESC (escape)               CTRL-3 -->
-		<key name="KEY_4" code="0x001c"/>	<!-- FS  (file separator)       CTRL-4 -->
-		<key name="KEY_5" code="0x001d"/>	<!-- GS  (group separator)      CTRL-5 -->
-		<key name="KEY_6" code="0x001e"/>	<!-- RS  (record separator)     CTRL-6 -->
-		<key name="KEY_7" code="0x001f"/>	<!-- US  (unit separator)       CTRL-7 -->
-		<key name="KEY_Q" code="0x0011"/>	<!-- DC1 (device control 1)     CTRL-q -->
-		<key name="KEY_W" code="0x0017"/>	<!-- ETB (end of trans. blk)    CTRL-w -->
-		<key name="KEY_E" code="0x0005"/>	<!-- ENQ (enquiry)              CTRL-e -->
-		<key name="KEY_R" code="0x0012"/>	<!-- DC2 (device control 2)     CTRL-r -->
-		<key name="KEY_T" code="0x0014"/>	<!-- DC4 (device control 4)     CTRL-t -->
-		<key name="KEY_Y" code="0x001a"/>	<!-- SUB (substitute)           CTRL-z -->
-		<key name="KEY_U" code="0x0015"/>	<!-- NAK (negative ack.)        CTRL-u -->
-		<key name="KEY_I" code="0x0009"/>	<!-- HT  '\t' (horizontal tab)  CTRL-i -->
-		<key name="KEY_O" code="0x000f"/>	<!-- SI  (shift in)             CTRL-o -->
-		<key name="KEY_P" code="0x0010"/>	<!-- DLE (data link escape)     CTRL-p -->
-		<key name="KEY_A" code="0x0001"/>	<!-- SOH (start of heading)     CTRL-a -->
-		<key name="KEY_S" code="0x0013"/>	<!-- DC3 (device control 3)     CTRL-s -->
-		<key name="KEY_D" code="0x0004"/>	<!-- EOT (end of transmission)  CTRL-d -->
-		<key name="KEY_F" code="0x0006"/>	<!-- ACK (acknowledge)          CTRL-f -->
-		<key name="KEY_G" code="0x0007"/>	<!-- BEL '\a' (bell)            CTRL-g -->
-		<key name="KEY_H" code="0x0008"/>	<!-- BS  '\b' (backspace)       CTRL-h -->
-		<key name="KEY_J" code="0x000a"/>	<!-- LF  '\n' (new line)        CTRL-j -->
-		<key name="KEY_K" code="0x000b"/>	<!-- VT  '\v' (vertical tab)    CTRL-k -->
-		<key name="KEY_L" code="0x000c"/>	<!-- FF  '\f' (form feed)       CTRL-l -->
-		<key name="KEY_GRAVE" code="0x001e"/>	<!-- RS  (record separator)     CTRL-asciicircum -->
-		<key name="KEY_Z" code="0x0019"/>	<!-- EM  (end of medium)        CTRL-y -->
-		<key name="KEY_X" code="0x0018"/>	<!-- CAN (cancel)               CTRL-x -->
-		<key name="KEY_C" code="0x0003"/>	<!-- ETX (end of text)          CTRL-c -->
-		<key name="KEY_V" code="0x0016"/>	<!-- SYN (synchronous idle)     CTRL-v -->
-		<key name="KEY_B" code="0x0002"/>	<!-- STX (start of text)        CTRL-b -->
-		<key name="KEY_N" code="0x000e"/>	<!-- SO  (shift out)            CTRL-n -->
-		<key name="KEY_M" code="0x000d"/>	<!-- CR  '\r' (carriage ret)    CTRL-m -->
-		<key name="KEY_KP7" code="0x001f"/>	<!-- US  (unit separator)       CTRL-KP_7 -->
-		<key name="KEY_KP4" code="0x001c"/>	<!-- FS  (file separator)       CTRL-KP_4 -->
-		<key name="KEY_KP5" code="0x001d"/>	<!-- GS  (group separator)      CTRL-KP_5 -->
-		<key name="KEY_KP6" code="0x001e"/>	<!-- RS  (record separator)     CTRL-KP_6 -->
-		<key name="KEY_KP3" code="0x001b"/>	<!-- ESC (escape)               CTRL-KP_3 -->
-	</map>
-
 	<!-- ALTGR -->
 	<map mod1="false" mod2="false" mod3="true" mod4="false">
 		<key name="KEY_1" code="0x00b9"/>	<!-- ¹ -->
