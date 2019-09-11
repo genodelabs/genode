@@ -389,6 +389,11 @@ class Lx_fs::Root : public Root_component<Session_component>
 
 		Genode::Attached_rom_dataspace _config { _env, "config" };
 
+		static inline bool writeable_from_args(char const *args)
+		{
+			return { Arg_string::find_arg(args, "writeable").bool_value(true) };
+		}
+
 	protected:
 
 		Session_component *_create_session(const char *args) override
@@ -440,7 +445,8 @@ class Lx_fs::Root : public Root_component<Session_component>
 				/*
 				 * Determine if write access is permitted for the session.
 				 */
-				writeable = policy.attribute_value("writeable", false);
+				writeable = policy.attribute_value("writeable", false) &&
+				            writeable_from_args(args);
 			}
 			catch (Session_policy::No_policy_defined) {
 				Genode::error("invalid session request, no matching policy");
