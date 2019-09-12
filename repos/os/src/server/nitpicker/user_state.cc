@@ -152,6 +152,9 @@ void User_state::_handle_input_event(Input::Event ev)
 
 		View_owner *global_receiver = nullptr;
 
+		if (_mouse_button(keycode))
+			_clicked_count++;
+
 		/* update focused session */
 		if (_mouse_button(keycode)
 		 && _hovered
@@ -282,6 +285,7 @@ User_state::handle_input_events(Input::Event const * const ev_buf,
 	View_owner const * const old_focused        = _focused;
 	View_owner const * const old_input_receiver = _input_receiver;
 	View_owner const * const old_last_clicked   = _last_clicked;
+	unsigned           const old_clicked_count  = _clicked_count;
 
 	bool button_activity = false;
 
@@ -333,6 +337,21 @@ User_state::handle_input_events(Input::Event const * const ev_buf,
 
 	_apply_pending_focus_change();
 
+	/*
+	 * Determine condition for generating an updated "clicked" report
+	 */
+	bool const click_occurred = (old_clicked_count != _clicked_count);
+
+	bool const clicked_report_up_to_date =
+		(_last_clicked == old_last_clicked) && !_last_clicked_redeliver;
+
+	bool const last_clicked_changed = (click_occurred && !clicked_report_up_to_date);
+
+	if (last_clicked_changed) {
+		_last_clicked_version++;
+		_last_clicked_redeliver = false;
+	}
+
 	return {
 		.hover_changed        = _hovered != old_hovered,
 		.focus_changed        = (_focused != old_focused) ||
@@ -341,7 +360,7 @@ User_state::handle_input_events(Input::Event const * const ev_buf,
 		.button_activity      = button_activity,
 		.motion_activity      = (_pointer_pos != old_pointer_pos),
 		.key_pressed          = _key_pressed(),
-		.last_clicked_changed = (_last_clicked != old_last_clicked)
+		.last_clicked_changed = last_clicked_changed
 	};
 }
 
@@ -383,6 +402,8 @@ void User_state::report_last_clicked_view_owner(Xml_generator &xml) const
 {
 	if (_last_clicked)
 		_last_clicked->report(xml);
+
+	xml.attribute("version", _last_clicked_version);
 }
 
 

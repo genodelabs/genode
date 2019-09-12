@@ -96,6 +96,28 @@ class Nitpicker::User_state
 		View_owner *_last_clicked = nullptr;
 
 		/**
+		 * Number of clicks, used to detect whether a focus-relevant click
+		 * happened during '_handle_input_event'.
+		 */
+		unsigned _clicked_count = 0;
+
+		/**
+		 * Version supplement for the "clicked" report
+		 *
+		 * The value allows the receiver of the report to detect the situation
+		 * where two consecutive clicks refer to the same client but both
+		 * events require a distinct focus response, i.e., if the focus (focus
+		 * ROM) was changed in-between both clicks by other means than a click.
+		 */
+		unsigned _last_clicked_version = 0;
+
+		/*
+		 * If set, a "clicked" report is generated even if the clicked-on view
+		 * is the same as the previously clicked-on view.
+		 */
+		bool _last_clicked_redeliver = false;
+
+		/**
 		 * Array for tracking the state of each key
 		 */
 		struct Key_array
@@ -147,6 +169,14 @@ class Nitpicker::User_state
 
 			if (_focused != _next_focused) {
 				_focused  = _next_focused;
+
+				/*
+				 * Enforce the generation of a new "clicked" report for any click
+				 * that follows a focus change. This is needed in situations
+				 * where the focus is defined by clicks as well as other means
+				 * (e.g., the appearance of a lock screen).
+				 */
+				_last_clicked_redeliver = true;
 
 				/* propagate changed focus to view stack */
 				if (_focused)
