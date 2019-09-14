@@ -37,6 +37,11 @@ proc check_version {qemu_version qemu_min qemu_max} {
 	return [expr {($cmp_min < $cmp) && ($cmp < $cmp_max)}]
 }
 
+proc is_virt_platform {} {
+	return [expr [have_spec arm_virt] \
+	          || [have_spec arm_64_virt]]
+}
+
 ##
 # Execute scenario using Qemu
 #
@@ -108,6 +113,17 @@ proc run_power_on { } {
 	if {[have_spec vpb926]} { append qemu_args " -M versatilepb     -m 128 " }
 	if {[have_spec zynq_qemu]}   { append qemu_args " -M xilinx-zynq-a9 -cpu cortex-a9 -m 256 " }
 	if {[have_spec rpi3]}   { append qemu_args " -M raspi3 -m 512 " }
+
+	if {[is_virt_platform]} {
+		append qemu_args " -M virt"
+		if {[have_spec arm_v8a]} {
+			append qemu_args ",gic_version=3 -cpu cortex-a53 -smp 4"
+		}
+		if {[have_spec arm_v7a]} {
+			append qemu_args " -cpu cortex-a15 -smp 2"
+		}
+		append qemu_args " -m 2048"
+	}
 
 	# on x86, we support booting via pxe or iso/disk image
 	if {[have_spec x86]} {

@@ -6,10 +6,11 @@ QEMU_RUN_OPT := --include power_on/qemu  --include log/qemu
 
 # board to use (arndale, imx53_qsb, imx53_qsb_tz, imx6q_sabrelite, imx7d_sabre,
 #               nit6_solox, odroid_xu, odroid_x2, panda, pbxa9, usb_armory,
-#               wand_quad, or zynq_qemu)
+#               wand_quad, or zynq_qemu, arm_virt)
 #BOARD ?= pbxa9
 
 # local variable for run-tool arguments that depend on the used board
+BOARD_RUN_OPT(arm_virt)  = $(QEMU_RUN_OPT)
 BOARD_RUN_OPT(pbxa9)     = $(QEMU_RUN_OPT)
 BOARD_RUN_OPT(zynq_qemu) = $(QEMU_RUN_OPT)
 
