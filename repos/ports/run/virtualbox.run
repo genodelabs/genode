@@ -278,7 +278,7 @@ lappend_if [expr         $use_top] boot_modules top
 lappend_if [expr         $use_gui] boot_modules report_rom
 
 append boot_modules {
-	ld.lib.so libc.lib.so vfs.lib.so libm.lib.so libc_pipe.lib.so
+	libc.lib.so vfs.lib.so libm.lib.so libc_pipe.lib.so
 	libiconv.lib.so stdcxx.lib.so
 	qemu-usb.lib.so
 }
