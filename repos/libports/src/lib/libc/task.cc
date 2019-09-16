@@ -58,15 +58,16 @@ class Libc::Env_implementation : public Libc::Env, public Config_accessor
 	private:
 
 		Genode::Env &_env;
-		Genode::Xml_node const _config;
+
+		Genode::Attached_rom_dataspace _config { _env, "config" };
 
 		Genode::Xml_node _vfs_config()
 		{
-			try { return _config.sub_node("vfs"); }
+			try { return _config.xml().sub_node("vfs"); }
 			catch (Genode::Xml_node::Nonexistent_sub_node) { }
 			try {
 				Genode::Xml_node node =
-					_config.sub_node("libc").sub_node("vfs");
+					_config.xml().sub_node("libc").sub_node("vfs");
 				Genode::warning("'<config> <libc> <vfs/>' is deprecated, "
 				                "please move to '<config> <vfs/>'");
 				return node;
@@ -78,7 +79,7 @@ class Libc::Env_implementation : public Libc::Env, public Config_accessor
 
 		Genode::Xml_node _libc_config()
 		{
-			try { return _config.sub_node("libc"); }
+			try { return _config.xml().sub_node("libc"); }
 			catch (Genode::Xml_node::Nonexistent_sub_node) { }
 
 			return Genode::Xml_node("<libc/>");
@@ -87,12 +88,12 @@ class Libc::Env_implementation : public Libc::Env, public Config_accessor
 		Vfs::Simple_env _vfs_env;
 
 		Genode::Xml_node _config_xml() const override {
-			return _config; };
+			return _config.xml(); };
 
 	public:
 
-		Env_implementation(Genode::Env &env, Genode::Allocator &alloc, Genode::Xml_node config)
-		: _env(env), _config(config), _vfs_env(_env, alloc, _vfs_config()) { }
+		Env_implementation(Genode::Env &env, Genode::Allocator &alloc)
+		: _env(env), _vfs_env(_env, alloc, _vfs_config()) { }
 
 
 		/*************************
@@ -110,7 +111,7 @@ class Libc::Env_implementation : public Libc::Env, public Config_accessor
 		 ** Libc::Config_accessor interface **
 		 *************************************/
 
-		Xml_node config() const override { return _config; }
+		Xml_node config() const override { return _config.xml(); }
 
 
 		/***************************
@@ -465,28 +466,11 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 		 */
 		void reset_malloc_heap() override;
 
-		Genode::Attached_rom_dataspace _config_ds { _env, "config" };
-		Xml_node const _config = _config_ds.xml();
+		Env_implementation   _libc_env { _env, _heap };
+		Vfs_plugin           _vfs { _libc_env, _heap, *this };
 
-		bool  const _cloned = _config.has_sub_node("libc") &&
-		                      _config.sub_node("libc").attribute_value("cloned", false);
-
-		void _init_malloc_heap()
-		{
-			if (_cloned)
-				return;
-
-			_malloc_heap.construct(*_malloc_ram, _env.rm());
-			init_malloc(*_malloc_heap);
-		}
-
-		bool const _malloc_heap_initialized = (_init_malloc_heap(), true);
-
-		Env_implementation _libc_env { _env, _heap, _config };
-
-		pid_t const _pid = _libc_env.libc_config().attribute_value("pid", 0U);
-
-		Vfs_plugin _vfs { _libc_env, _heap, *this };
+		bool  const _cloned = _libc_env.libc_config().attribute_value("cloned", false);
+		pid_t const _pid    = _libc_env.libc_config().attribute_value("pid", 0U);
 
 		Genode::Reconstructible<Genode::Io_signal_handler<Kernel>> _resume_main_handler {
 			_env.ep(), *this, &Kernel::_resume_main };
@@ -723,8 +707,13 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 		{
 			_env.ep().register_io_progress_handler(*this);
 
-			if (_cloned)
+			if (_cloned) {
 				_clone_state_from_parent();
+
+			} else {
+				_malloc_heap.construct(*_malloc_ram, _env.rm());
+				init_malloc(*_malloc_heap);
+			}
 
 			Libc::init_fork(_env, _libc_env, _heap, *_malloc_heap, _pid);
 			Libc::init_execve(_env, _heap, _user_stack, *this);
