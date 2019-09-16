@@ -23,9 +23,6 @@
 #include <stdio.h>
 
 
-static Genode::Lock rw_lock;
-
-
 struct Read
 {
      ssize_t operator()(int fd, void *buf, size_t count)
@@ -44,10 +41,17 @@ struct Write
 };
 
 
+static Genode::Lock &rw_lock()
+{
+	static Genode::Lock rw_lock;
+	return rw_lock;
+}
+
+
 template <typename Rw_func>
 static ssize_t readv_writev_impl(Rw_func rw_func, int fd, const struct iovec *iov, int iovcnt)
 {
-	Genode::Lock_guard<Genode::Lock> rw_lock_guard(rw_lock);
+	Genode::Lock_guard<Genode::Lock> rw_lock_guard(rw_lock());
 
 	char *v;
 	ssize_t bytes_transfered_total = 0;

@@ -54,8 +54,6 @@ namespace Libc {
 
 namespace Socket_fs {
 
-	Libc::Allocator global_allocator;
-
 	using Libc::Errno;
 
 	struct Absolute_path : Vfs::Absolute_path
@@ -542,7 +540,8 @@ extern "C" int socket_fs_accept(int libc_fd, sockaddr *addr, socklen_t *addrlen)
 
 	Socket_fs::Context *accept_context;
 	try {
-		accept_context = new (&global_allocator)
+		Libc::Allocator alloc { };
+		accept_context = new (alloc)
 			Socket_fs::Context(listen_context->proto(), handle_fd);
 	} catch (New_socket_failed) { return Errno(EACCES); }
 
@@ -962,7 +961,8 @@ extern "C" int socket_fs_socket(int domain, int type, int protocol)
 			Genode::error("failed to open new socket at ", path);
 			return Errno(EACCES);
 		}
-		context = new (&global_allocator)
+		Libc::Allocator alloc { };
+		context = new (alloc)
 			Socket_fs::Context(proto, handle_fd);
 	} catch (New_socket_failed) { return Errno(EACCES); }
 
@@ -1004,9 +1004,10 @@ extern "C" int getifaddrs(struct ifaddrs **ifap)
 	static sockaddr_in address;
 	static sockaddr_in netmask   { 0 };
 	static sockaddr_in broadcast { 0 };
+	static char        name[1] { };
 
 	static ifaddrs ifaddr {
-		.ifa_name      = "",
+		.ifa_name      = name,
 		.ifa_flags     = IFF_UP,
 		.ifa_addr      = (sockaddr*)&address,
 		.ifa_netmask   = (sockaddr*)&netmask,
@@ -1188,7 +1189,8 @@ int Socket_fs::Plugin::close(Libc::File_descriptor *fd)
 	Socket_fs::Context *context = dynamic_cast<Socket_fs::Context *>(fd->context);
 	if (!context) return Errno(EBADF);
 
-	Genode::destroy(&global_allocator, context);
+	Libc::Allocator alloc { };
+	Genode::destroy(alloc, context);
 	Libc::file_descriptor_allocator()->free(fd);
 
 	/*

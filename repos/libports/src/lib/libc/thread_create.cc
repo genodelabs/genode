@@ -21,37 +21,36 @@
 #include <errno.h>
 
 
-static Libc::Allocator object_alloc;
-
-
 int Libc::pthread_create(pthread_t *thread,
                          void *(*start_routine) (void *), void *arg,
                          size_t stack_size, char const * name,
                          Genode::Cpu_session * cpu, Genode::Affinity::Location location)
 {
-		pthread_t thread_obj = new (object_alloc)
-		                       pthread(start_routine, arg,
-		                               stack_size, name, cpu, location);
-		if (!thread_obj)
-			return EAGAIN;
+	Libc::Allocator alloc { };
+	pthread_t thread_obj = new (alloc)
+	                       pthread(start_routine, arg,
+	                               stack_size, name, cpu, location);
+	if (!thread_obj)
+		return EAGAIN;
 
-		*thread = thread_obj;
+	*thread = thread_obj;
 
-		thread_obj->start();
+	thread_obj->start();
 
-		return 0;
+	return 0;
 }
 
 
 int Libc::pthread_create(pthread_t *thread, Genode::Thread &t)
 {
-		pthread_t thread_obj = new (object_alloc) pthread(t);
+	Libc::Allocator alloc { };
+	pthread_t thread_obj = new (alloc) pthread(t);
 
-		if (!thread_obj)
-			return EAGAIN;
+	if (!thread_obj)
+		return EAGAIN;
 
-		*thread = thread_obj;
-		return 0;
+	*thread = thread_obj;
+	return 0;
 }
 
 

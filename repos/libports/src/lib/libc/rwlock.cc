@@ -24,9 +24,6 @@
 #include <pthread.h>
 
 
-static Libc::Allocator object_alloc;
-
-
 /*
  * A reader-preferring implementation of a readers-writer lock as described
  * in Michael Raynal, "Concurrent Programming: Algorithms, Principles, and
@@ -105,7 +102,8 @@ extern "C" {
 
 		try {
 			Genode::Lock::Guard g(rwlock_init_lock);
-			*rwlock = new (object_alloc) struct pthread_rwlock();
+			Libc::Allocator alloc { };
+			*rwlock = new (alloc) struct pthread_rwlock();
 			return 0;
 		} catch (...) { return ENOMEM; }
 	}
@@ -117,7 +115,8 @@ extern "C" {
 
 	int pthread_rwlock_destroy(pthread_rwlock_t *rwlock)
 	{
-		destroy(object_alloc, *rwlock);
+		Libc::Allocator alloc { };
+		destroy(alloc, *rwlock);
 		return 0;
 	}
 
@@ -154,7 +153,8 @@ extern "C" {
 
 	int pthread_rwlockattr_init(pthread_rwlockattr_t *attr)
 	{
-		*attr = new (object_alloc) struct pthread_rwlockattr();
+		Libc::Allocator alloc { };
+		*attr = new (alloc) struct pthread_rwlockattr();
 		return 0;
 	}
 
@@ -175,7 +175,8 @@ extern "C" {
 
 	int pthread_rwlockattr_destroy(pthread_rwlockattr_t *attr)
 	{
-		destroy(object_alloc, *attr);
+		Libc::Allocator alloc { };
+		destroy(alloc, *attr);
 		return 0;
 	}
 

@@ -29,14 +29,17 @@
 using namespace Genode;
 
 
-static Libc::Allocator object_alloc;
-
-
 static Env *_env_ptr;  /* solely needed to spawn the timeout thread for the
                           timed semaphore */
 
+static Thread *_main_thread_ptr;
 
-void Libc::init_pthread_support(Genode::Env &env) { _env_ptr = &env; }
+
+void Libc::init_pthread_support(Genode::Env &env)
+{
+	_env_ptr         = &env;
+	_main_thread_ptr = Thread::myself();
+}
 
 
 static Libc::Timeout_entrypoint &_global_timeout_ep()
@@ -47,19 +50,6 @@ static Libc::Timeout_entrypoint &_global_timeout_ep()
 
 	static Libc::Timeout_entrypoint timeout_ep { *_env_ptr };
 	return timeout_ep;
-}
-
-
-/*
- * We initialize the main-thread pointer in a constructor depending on the
- * assumption that libpthread is loaded on application startup by ldso. During
- * this stage only the main thread is executed.
- */
-static __attribute__((constructor)) Thread * main_thread()
-{
-	static Thread *thread = Thread::myself();
-
-	return thread;
 }
 
 
@@ -172,7 +162,8 @@ extern "C" {
 	{
 		thread->join(retval);
 
-		destroy(object_alloc, thread);
+		Libc::Allocator alloc { };
+		destroy(alloc, thread);
 
 		return 0;
 	}
@@ -183,7 +174,8 @@ extern "C" {
 		if (!attr)
 			return EINVAL;
 
-		*attr = new (object_alloc) pthread_attr;
+		Libc::Allocator alloc { };
+		*attr = new (alloc) pthread_attr;
 
 		return 0;
 	}
@@ -194,7 +186,8 @@ extern "C" {
 		if (!attr || !*attr)
 			return EINVAL;
 
-		destroy(object_alloc, *attr);
+		Libc::Allocator alloc { };
+		destroy(alloc, *attr);
 		*attr = 0;
 
 		return 0;
@@ -218,7 +211,7 @@ extern "C" {
 	/* special non-POSIX function (for example used in libresolv) */
 	int _pthread_main_np(void)
 	{
-		return (Thread::myself() == main_thread());
+		return (Thread::myself() == _main_thread_ptr);
 	}
 
 
@@ -251,7 +244,8 @@ extern "C" {
 		 * of the pthread object would also destruct the 'Thread' of the main
 		 * thread.
 		 */
-		static pthread *main = new (object_alloc) pthread(*Thread::myself());
+		Libc::Allocator alloc { };
+		static pthread *main = new (alloc) pthread(*Thread::myself());
 		return main;
 	}
 
@@ -498,7 +492,8 @@ extern "C" {
 		if (!attr)
 			return EINVAL;
 
-		*attr = new (object_alloc) pthread_mutex_attr;
+		Libc::Allocator alloc { };
+		*attr = new (alloc) pthread_mutex_attr;
 
 		return 0;
 	}
@@ -509,7 +504,8 @@ extern "C" {
 		if (!attr || !*attr)
 			return EINVAL;
 
-		destroy(object_alloc, *attr);
+		Libc::Allocator alloc { };
+		destroy(alloc, *attr);
 		*attr = 0;
 
 		return 0;
@@ -533,7 +529,8 @@ extern "C" {
 		if (!mutex)
 			return EINVAL;
 
-		*mutex = new (object_alloc) pthread_mutex(attr);
+		Libc::Allocator alloc { };
+		*mutex = new (alloc) pthread_mutex(attr);
 
 		return 0;
 	}
@@ -544,7 +541,8 @@ extern "C" {
 		if ((!mutex) || (*mutex == PTHREAD_MUTEX_INITIALIZER))
 			return EINVAL;
 
-		destroy(object_alloc, *mutex);
+		Libc::Allocator alloc { };
+		destroy(alloc, *mutex);
 		*mutex = PTHREAD_MUTEX_INITIALIZER;
 
 		return 0;
@@ -655,7 +653,8 @@ extern "C" {
 
 		try {
 			Genode::Lock::Guard g(cond_init_lock);
-			*cond = new (object_alloc) pthread_cond;
+			Libc::Allocator alloc { };
+			*cond = new (alloc) pthread_cond;
 			return 0;
 		} catch (...) { return ENOMEM; }
 	}
@@ -673,7 +672,8 @@ extern "C" {
 		if (!cond || !*cond)
 			return EINVAL;
 
-		destroy(object_alloc, *cond);
+		Libc::Allocator alloc { };
+		destroy(alloc, *cond);
 		*cond = 0;
 
 		return 0;
@@ -838,24 +838,42 @@ extern "C" {
 	};
 
 
-	static Lock key_list_lock;
-	List<Key_element> key_list[PTHREAD_KEYS_MAX];
+	static Lock &key_list_lock()
+	{
+		static Lock inst { };
+		return inst;
+	}
+
+
+	struct Keys
+	{
+		List<Key_element> key[PTHREAD_KEYS_MAX];
+	};
+
+
+	static Keys &keys()
+	{
+		static Keys inst { };
+		return inst;
+	}
+
 
 	int pthread_key_create(pthread_key_t *key, void (*destructor)(void*))
 	{
 		if (!key)
 			return EINVAL;
 
-		Lock_guard<Lock> key_list_lock_guard(key_list_lock);
+		Lock_guard<Lock> key_list_lock_guard(key_list_lock());
 
 		for (int k = 0; k < PTHREAD_KEYS_MAX; k++) {
 			/*
 			 * Find an empty key slot and insert an element for the current
 			 * thread to mark the key slot as used.
 			 */
-			if (!key_list[k].first()) {
-				Key_element *key_element = new (object_alloc) Key_element(Thread::myself(), 0);
-				key_list[k].insert(key_element);
+			if (!keys().key[k].first()) {
+				Libc::Allocator alloc { };
+				Key_element *key_element = new (alloc) Key_element(Thread::myself(), 0);
+				keys().key[k].insert(key_element);
 				*key = k;
 				return 0;
 			}
@@ -867,14 +885,15 @@ extern "C" {
 
 	int pthread_key_delete(pthread_key_t key)
 	{
-		if (key < 0 || key >= PTHREAD_KEYS_MAX || !key_list[key].first())
+		if (key < 0 || key >= PTHREAD_KEYS_MAX || !keys().key[key].first())
 			return EINVAL;
 
-		Lock_guard<Lock> key_list_lock_guard(key_list_lock);
+		Lock_guard<Lock> key_list_lock_guard(key_list_lock());
 
-		while (Key_element * element = key_list[key].first()) {
-			key_list[key].remove(element);
-			destroy(object_alloc, element);
+		while (Key_element * element = keys().key[key].first()) {
+			keys().key[key].remove(element);
+			Libc::Allocator alloc { };
+			destroy(alloc, element);
 		}
 
 		return 0;
@@ -888,9 +907,9 @@ extern "C" {
 
 		void *myself = Thread::myself();
 
-		Lock_guard<Lock> key_list_lock_guard(key_list_lock);
+		Lock_guard<Lock> key_list_lock_guard(key_list_lock());
 
-		for (Key_element *key_element = key_list[key].first(); key_element;
+		for (Key_element *key_element = keys().key[key].first(); key_element;
 		     key_element = key_element->next())
 			if (key_element->thread_base == myself) {
 				key_element->value = value;
@@ -898,8 +917,9 @@ extern "C" {
 			}
 
 		/* key element does not exist yet - create a new one */
-		Key_element *key_element = new (object_alloc) Key_element(Thread::myself(), value);
-		key_list[key].insert(key_element);
+		Libc::Allocator alloc { };
+		Key_element *key_element = new (alloc) Key_element(Thread::myself(), value);
+		keys().key[key].insert(key_element);
 		return 0;
 	}
 
@@ -911,9 +931,9 @@ extern "C" {
 
 		void *myself = Thread::myself();
 
-		Lock_guard<Lock> key_list_lock_guard(key_list_lock);
+		Lock_guard<Lock> key_list_lock_guard(key_list_lock());
 
-		for (Key_element *key_element = key_list[key].first(); key_element;
+		for (Key_element *key_element = keys().key[key].first(); key_element;
 		     key_element = key_element->next())
 			if (key_element->thread_base == myself)
 				return (void*)(key_element->value);
@@ -929,7 +949,8 @@ extern "C" {
 			return EINTR;
 
 		if (!once->mutex) {
-			pthread_mutex_t p = new (object_alloc) pthread_mutex(0);
+			Libc::Allocator alloc { };
+			pthread_mutex_t p = new (alloc) pthread_mutex(0);
 			/* be paranoid */
 			if (!p)
 				return EINTR;
@@ -948,7 +969,7 @@ extern "C" {
 			 * free our mutex since it is not used.
 			 */
 			if (p)
-				destroy(object_alloc, p);
+				destroy(alloc, p);
 		}
 
 		once->mutex->lock();
