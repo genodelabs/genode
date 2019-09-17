@@ -522,4 +522,16 @@ inline bool lx_sigsetmask(int signum, bool state)
 }
 
 
+inline int lx_prctl(int option, unsigned long arg2, unsigned long arg3,
+                                unsigned long arg4, unsigned long arg5)
+{
+	return lx_syscall(SYS_prctl, option, arg2, arg3, arg4, arg5);
+}
+
+
+inline int lx_seccomp(int option, int flag, void* program)
+{
+	return lx_syscall(SYS_seccomp, option, flag, program);
+}
+
 #endif /* _LIB__SYSCALL__LINUX_SYSCALLS_H_ */
