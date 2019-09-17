@@ -150,9 +150,6 @@ append config {
 install_config $config
 
 set boot_modules {
-	core init ld.lib.so timer nitpicker pointer liquid_fb
-	launchpad
-
 	libc.lib.so vfs.lib.so libm.lib.so
 	egl.lib.so mesa.lib.so stdcxx.lib.so
 	expat.lib.so glapi.lib.so
