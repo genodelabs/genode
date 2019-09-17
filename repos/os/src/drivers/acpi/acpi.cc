@@ -469,15 +469,11 @@ class Table_wrapper
 		Table_wrapper(Acpi::Memory &memory, addr_t base)
 		: _base(base), _table(0)
 		{
-			/* if table is on page boundary, map two pages, otherwise one page */
-			size_t const map_size = 0x1000UL - _offset() < 8 ? 0x1000UL : 1UL;
-
 			/* make table header accessible */
-			_table = reinterpret_cast<Generic *>(memory.phys_to_virt(base, map_size));
+			_table = reinterpret_cast<Generic *>(memory.map_region(base, 8));
 
-			/* table size is known now - make it complete accessible */
-			if (_offset() + _table->size > 0x1000UL)
-				memory.phys_to_virt(base, _table->size);
+			/* table size is known now - make it completely accessible (in place) */
+			memory.map_region(base, _table->size);
 
 			memset(_name, 0, 5);
 			memcpy(_name, _table->signature, 4);

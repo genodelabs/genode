@@ -20,97 +20,181 @@
 #include <rm_session/connection.h>
 #include <region_map/client.h>
 
-namespace Acpi { class Memory; }
+namespace Acpi {
+	using namespace Genode;
+
+	class Memory;
+}
 
 class Acpi::Memory
 {
+	public:
+
+		struct Unsupported_range { };
+
 	private:
 
-		class Io_mem : public Genode::List<Io_mem>::Element
+		/*
+		 * We wrap the connection into Constructible to prevent a "accessible
+		 * non-virtual destructor" compiler error with Allocator_avl_base::Block.
+		 */
+		struct Io_mem
 		{
-			private:
-				Genode::Io_mem_connection _io_mem;
+			struct Region
+			{
+				addr_t _base;
+				size_t _size;
 
-			public:
-				Io_mem(Genode::Env &env, Genode::addr_t phys)
-				: _io_mem(env, phys, 0x1000UL) { }
-
-				Genode::Io_mem_dataspace_capability dataspace()
+				static addr_t _base_align(bool align, addr_t base)
 				{
-					return _io_mem.dataspace();
+					return !align ? base : base & _align_mask(12UL);
 				}
+
+				static addr_t _size_align(bool align, size_t size)
+				{
+					return !align ? size : (size + _align_offset(12UL)) & _align_mask(12UL);
+				}
+
+				Region(addr_t base, size_t size, bool align = false)
+				:
+					_base(_base_align(align, base)),
+					_size(_size_align(align, size))
+				{ }
+
+				addr_t base() const { return _base; }
+				addr_t last() const { return _base + (_size - 1); }
+				size_t size() const { return _size; }
+
+				bool contains(Region const &o) const
+				{
+					return o.base() >= base() && o.last() <= last();
+				}
+
+				void print(Output &o) const
+				{
+					Genode::print(o, Hex_range<addr_t>(_base, _size));
+				}
+			} region;
+
+			Constructible<Io_mem_connection> connection { };
+
+			Io_mem(Env &env, Region region) : region(region)
+			{
+				connection.construct(env, region.base(), region.size());
+			}
 		};
 
-		Genode::Env              &_env;
-		Genode::addr_t      const ACPI_REGION_SIZE_LOG2;
-		Genode::Rm_connection     _rm;
-		Genode::Region_map_client _rm_acpi;
-		Genode::addr_t      const _acpi_base;
-		Genode::Allocator        &_heap;
-		Genode::Allocator_avl     _range;
-		Genode::List<Io_mem>      _io_mem_list { };
+		static constexpr unsigned long
+			ACPI_REGION_SIZE_LOG2 = 30, /* 1 GiB range */
+			ACPI_REGION_SIZE      = 1UL << ACPI_REGION_SIZE_LOG2;
+
+		Env       &_env;
+		Allocator &_heap;
+
+		Rm_connection     _rm          { _env };
+		Region_map_client _acpi_window { _rm.create(ACPI_REGION_SIZE) };
+		addr_t      const _acpi_base   { _env.rm().attach(_acpi_window.dataspace()) };
+
+		Constructible<Io_mem::Region> _io_region { };
+
+		addr_t _acpi_ptr(addr_t base) const
+		{
+			/* virtual address inside the mapped ACPI window */
+			return _acpi_base + (base - _io_region->base());
+		}
+
+		Allocator_avl_tpl<Io_mem> _range { &_heap };
 
 	public:
 
-		Memory(Genode::Env &env, Genode::Allocator &heap)
-		:
-			_env(env),
-			/* 1 GB range */
-			ACPI_REGION_SIZE_LOG2(30),
-			_rm(env),
-			_rm_acpi(_rm.create(1UL << ACPI_REGION_SIZE_LOG2)),
-			_acpi_base(env.rm().attach(_rm_acpi.dataspace())),
-			_heap(heap),
-			_range(&_heap)
+		Memory(Env &env, Allocator &heap) : _env(env), _heap(heap)
 		{
-			_range.add_range(0, 1UL << ACPI_REGION_SIZE_LOG2);
+			_range.add_range(0, ~0UL);
 		}
 
-		Genode::addr_t phys_to_virt(Genode::addr_t const phys, Genode::addr_t const p_size)
+		addr_t map_region(addr_t const req_base, addr_t const req_size)
 		{
-			using namespace Genode;
+			/*
+			 * The first caller sets the upper physical bits of addresses and,
+			 * thereby, determines the valid range of addresses.
+			 */
 
-			/* the first caller sets the upper physical bits of addresses */
-			static addr_t const high = phys & _align_mask(ACPI_REGION_SIZE_LOG2);
-
-			/* sanity check that physical address is in range we support */
-			if ((phys & _align_mask(ACPI_REGION_SIZE_LOG2)) != high) {
-				addr_t const end = high + (1UL << ACPI_REGION_SIZE_LOG2) - 1;
-				error("acpi table out of range - ", Hex(phys), " "
-				      "not in ", Hex_range<addr_t>(high, end - high));
-				throw -1;
+			if (!_io_region.constructed()) {
+				_io_region.construct(req_base & _align_mask(ACPI_REGION_SIZE_LOG2),
+				                     ACPI_REGION_SIZE);
 			}
 
-			addr_t const phys_aligned = phys & _align_mask(12);
-			addr_t const size_aligned = align_addr(p_size + (phys & _align_offset(12)), 12);
+			/* requested region of I/O memory */
+			Io_mem::Region loop_region { req_base, req_size, true };
 
-			for (addr_t size = 0; size < size_aligned; size += 0x1000UL) {
-				addr_t const low = (phys_aligned + size) &
-				                     _align_offset(ACPI_REGION_SIZE_LOG2);
-				if (!_range.alloc_addr(0x1000UL, low).ok())
-					continue;
-
-				/* allocate acpi page as io memory */
-				Io_mem *mem = new (_heap) Io_mem(_env, phys_aligned + size);
-				/* attach acpi page to this process */
-				_rm_acpi.attach_at(mem->dataspace(), low, 0x1000UL);
-				/* add to list to free when parsing acpi table is done */
-				_io_mem_list.insert(mem);
+			/* check that physical region fits into supported range */
+			if (!_io_region->contains(loop_region)) {
+				error("acpi table out of range - ", loop_region, " not in ", *_io_region);
+				throw Unsupported_range();
 			}
 
-			return _acpi_base + (phys & _align_offset(ACPI_REGION_SIZE_LOG2));
+			/* early return if the region is already mapped */
+			if (Io_mem *m = _range.metadata((void *)req_base)) {
+				if (m->region.contains(loop_region)) {
+					return _acpi_ptr(req_base);
+				}
+			}
+
+			/*
+			 * We iterate over the requested region looking for collisions with
+			 * existing mappings. On a collision, we extend the requested range
+			 * to comprise also the existing mapping and destroy the mapping.
+			 * Finally, we request the compound region as on I/O memory
+			 * mapping.
+			 *
+			 * Note, this approach unfortunately does not merge consecutive
+			 * regions.
+			 */
+
+			addr_t loop_offset = 0;
+			while (loop_offset < loop_region.size()) {
+				void * const addr = (void *)(loop_region.base() + loop_offset);
+
+				if (Io_mem *m = _range.metadata(addr)) {
+					addr_t const compound_base = min(loop_region.base(), m->region.base());
+					addr_t const compound_end  = max(loop_region.base() + loop_region.size(),
+					                                 m->region.base() + m->region.size());
+
+					m->~Io_mem();
+					_range.free((void *)addr);
+
+					/* now start over */
+					loop_region = Io_mem::Region(compound_base, compound_end - compound_base);
+					loop_offset = 0;
+				}
+
+				loop_offset += 0x1000;
+			}
+
+			/* allocate ACPI range as I/O memory */
+			_range.alloc_addr(loop_region.size(), loop_region.base());
+			_range.construct_metadata((void *)loop_region.base(), _env, loop_region);
+
+			/*
+			 * We attach the I/O memory dataspace into a virtual-memory window,
+			 * which starts at _io_region.base(). Therefore, the attachment
+			 * address is the offset of loop_region.base() from
+			 * _io_region.base().
+			 */
+			_acpi_window.attach_at(
+				_range.metadata((void *)loop_region.base())->connection->dataspace(),
+				loop_region.base() - _io_region->base(), loop_region.size());
+
+			return _acpi_ptr(req_base);
 		}
 
 		void free_io_memory()
 		{
-			while (Io_mem * io_mem = _io_mem_list.first()) {
-				_io_mem_list.remove(io_mem);
-				destroy(_heap, io_mem);
-			}
-
-			Genode::addr_t out_addr;
-			while (_range.any_block_addr(&out_addr))
+			addr_t out_addr = 0;
+			while (_range.any_block_addr(&out_addr)) {
+				_range.metadata((void *)out_addr)->~Io_mem();
 				_range.free((void *)out_addr);
+			}
 		}
 };
 
