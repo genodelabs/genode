@@ -1,6 +1,7 @@
 /*
  * \brief  POSIX thread and semaphore test
  * \author Christian Prochaska
+ * \author Christian Helmuth
  * \date   2012-04-04
  */
 
@@ -16,6 +17,9 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#include <base/log.h>
+#include <base/thread.h>
 
 
 enum { NUM_THREADS = 2 };
@@ -71,7 +75,7 @@ void test_self_destruct(void *(*start_routine)(void*), uintptr_t num_iterations)
 		}
 
 		pthread_join(t, &retval);
-		
+
 		if (retval != (void*)i) {
 			printf("error: return value does not match\n");
 			exit(-1);
@@ -94,10 +98,10 @@ void *thread_func_self_destruct(void *arg)
 
 static inline void compare_semaphore_values(int reported_value, int expected_value)
 {
-    if (reported_value != expected_value) {
-    	printf("error: sem_getvalue() did not return the expected value\n");
-    	exit(-1);
-    }
+	if (reported_value != expected_value) {
+		printf("error: sem_getvalue() did not return the expected value\n");
+		exit(-1);
+	}
 }
 
 
@@ -125,9 +129,15 @@ struct Test_mutex_data
 		pthread_mutex_init(&errorcheck_mutex, &errorcheck_mutex_attr);
 		pthread_mutexattr_destroy(&errorcheck_mutex_attr);
 	}
+
+	~Test_mutex_data()
+	{
+		pthread_mutex_destroy(&errorcheck_mutex);
+		pthread_mutex_destroy(&recursive_mutex);
+	}
 };
 
-void *thread_mutex_func(void *arg)
+static void *thread_mutex_func(void *arg)
 {
 	Test_mutex_data *test_mutex_data = (Test_mutex_data*)arg;
 
@@ -251,17 +261,17 @@ void *thread_mutex_func(void *arg)
 	/* wake up main thread */
 	sem_post(&test_mutex_data->test_thread_ready_sem);
 
-	return 0;
+	return nullptr;
 }
 
-void test_mutex()
+static void test_mutex()
 {
 	pthread_t t;
 
 	Test_mutex_data test_mutex_data;
 
 	if (pthread_create(&t, 0, thread_mutex_func, &test_mutex_data) != 0) {
-		printf("error: pthread_create() failed\n");
+		printf("Error: pthread_create() failed\n");
 		exit(-1);
 	}
 
@@ -316,6 +326,134 @@ void test_mutex()
 
 	pthread_join(t, NULL);
 }
+
+
+template <pthread_mutextype MUTEX_TYPE>
+struct Test_mutex_stress
+{
+	static const char *type_string(pthread_mutextype t)
+	{
+		switch (t) {
+		case PTHREAD_MUTEX_NORMAL:     return "PTHREAD_MUTEX_NORMAL";
+		case PTHREAD_MUTEX_ERRORCHECK: return "PTHREAD_MUTEX_ERRORCHECK";
+		case PTHREAD_MUTEX_RECURSIVE:  return "PTHREAD_MUTEX_RECURSIVE";
+
+		default: break;
+		}
+		return "<unexpected mutex type>";
+	};
+
+	struct Data
+	{
+		pthread_mutexattr_t _attr;
+		pthread_mutex_t     _mutex;
+
+		Data()
+		{
+			pthread_mutexattr_init(&_attr);
+			pthread_mutexattr_settype(&_attr, MUTEX_TYPE);
+			pthread_mutex_init(&_mutex, &_attr);
+			pthread_mutexattr_destroy(&_attr);
+		}
+
+		~Data()
+		{
+			pthread_mutex_destroy(&_mutex);
+		}
+
+		pthread_mutex_t * mutex() { return &_mutex; }
+	} data;
+
+	struct Thread
+	{
+		pthread_mutex_t *_mutex;
+		sem_t            _startup_sem;
+		pthread_t        _thread;
+
+		static void * _entry_trampoline(void *arg)
+		{
+			Thread *t = (Thread *)arg;
+			t->_entry();
+			return nullptr;
+		}
+
+		void _lock()
+		{
+			if (int const err = pthread_mutex_lock(_mutex))
+				Genode::error("lock() returned ", err);
+		}
+
+		void _unlock()
+		{
+			if (int const err = pthread_mutex_unlock(_mutex))
+				Genode::error("unlock() returned ", err);
+		}
+
+		void _entry()
+		{
+			sem_wait(&_startup_sem);
+
+			enum { ROUNDS = 800 };
+
+			for (unsigned i = 0; i < ROUNDS; ++i) {
+				_lock();
+				if (MUTEX_TYPE == PTHREAD_MUTEX_RECURSIVE) {
+					_lock();
+					_lock();
+				}
+
+				/* stay in mutex for some time */
+				for (unsigned volatile d = 0; d < 30000; ++d) ;
+
+				if (MUTEX_TYPE == PTHREAD_MUTEX_RECURSIVE) {
+					_unlock();
+					_unlock();
+				}
+				_unlock();
+			}
+			Genode::log("thread ", this, ": ", (int)ROUNDS, " rounds done");
+		}
+
+		Thread(pthread_mutex_t *mutex) : _mutex(mutex)
+		{
+			sem_init(&_startup_sem, 0, 0);
+
+			if (pthread_create(&_thread, 0, _entry_trampoline, this) != 0) {
+				printf("Error: pthread_create() failed\n");
+				exit(-1);
+			}
+		}
+
+		void start() { sem_post(&_startup_sem); }
+		void join()  { pthread_join(_thread, nullptr); }
+	} threads[10] = {
+		data.mutex(), data.mutex(), data.mutex(), data.mutex(), data.mutex(),
+		data.mutex(), data.mutex(), data.mutex(), data.mutex(), data.mutex(),
+	};
+
+	Test_mutex_stress()
+	{
+		printf("main thread: start %s stress test\n", type_string(MUTEX_TYPE));
+		for (Thread &t : threads) t.start();
+		for (Thread &t : threads) t.join();
+		printf("main thread: finished %s stress test\n", type_string(MUTEX_TYPE));
+	}
+};
+
+
+extern "C" void wait_for_continue();
+
+static void test_mutex_stress()
+{
+	printf("main thread: stressing mutexes\n");
+
+	{ Test_mutex_stress<PTHREAD_MUTEX_NORMAL>     test_normal; }
+	{ Test_mutex_stress<PTHREAD_MUTEX_ERRORCHECK> test_errorcheck; }
+	{ Test_mutex_stress<PTHREAD_MUTEX_RECURSIVE>  test_recursive; }
+
+	printf("main thread: mutex stress testing done\n");
+};
+
 
 int main(int argc, char **argv)
 {
@@ -399,13 +537,15 @@ int main(int argc, char **argv)
 	for (int i = 0; i < NUM_THREADS; i++)
 		sem_destroy(&thread[i].thread_args.thread_finished_sem);
 
-	printf("main thread: create pthreads which self de-struct\n");
+	printf("main thread: create pthreads which self destruct\n");
 
 	test_self_destruct(thread_func_self_destruct, 100);
 
 	printf("main thread: testing mutexes\n");
 
 	test_mutex();
+
+	test_mutex_stress();
 
 	printf("--- returning from main ---\n");
 	return 0;
