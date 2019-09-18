@@ -175,6 +175,197 @@ Libc::Pthread_registry &pthread_registry()
 }
 
 
+/***********
+ ** Mutex **
+ ***********/
+
+namespace Libc {
+	struct Pthread_mutex_normal;
+	struct Pthread_mutex_errorcheck;
+	struct Pthread_mutex_recursive;
+}
+
+/*
+ * This class is named 'struct pthread_mutex_attr' because the
+ * 'pthread_mutexattr_t' type is defined as 'struct pthread_mutex_attr *'
+ * in '_pthreadtypes.h'
+ */
+struct pthread_mutex_attr { pthread_mutextype type; };
+
+
+/*
+ * This class is named 'struct pthread_mutex' because the 'pthread_mutex_t'
+ * type is defined as 'struct pthread_mutex *' in '_pthreadtypes.h'
+ */
+struct pthread_mutex
+{
+	Lock      _lock; /* actual lock for blocking/deblocking */
+
+	pthread_t _owner      { nullptr };
+	unsigned  _lock_count { 0 };
+	Lock      _owner_and_counter_mutex;
+
+	pthread_mutex() { }
+
+	virtual ~pthread_mutex() { }
+
+	/*
+	 * The behavior of the following function follows the "robust mutex"
+	 * described IEEE Std 1003.1 POSIX.1-2017
+	 * https://pubs.opengroup.org/onlinepubs/9699919799/functions/pthread_mutex_lock.html
+	 */
+	virtual int lock()    = 0;
+	virtual int trylock() = 0;
+	virtual int unlock()  = 0;
+};
+
+
+struct Libc::Pthread_mutex_normal : pthread_mutex
+{
+	int lock() override final
+	{
+		while (trylock() == EBUSY) {
+			/*
+			 * We did not get the lock, so, yield the CPU and retry. This
+			 * may implicitly dead-lock if we are already the lock owner.
+			 */
+			_lock.lock();
+			_lock.unlock();
+		}
+
+		return 0;
+	}
+
+	int trylock() override final
+	{
+		Lock::Guard lock_guard(_owner_and_counter_mutex);
+
+		if (!_owner) {
+			_owner = pthread_self();
+			_lock.lock(); /* always succeeds */
+			return 0;
+		}
+
+		return EBUSY;
+	}
+
+	int unlock() override final
+	{
+		Lock::Guard lock_guard(_owner_and_counter_mutex);
+
+		if (_owner != pthread_self())
+			return EPERM;
+
+		_owner = nullptr;
+		_lock.unlock();
+
+		return 0;
+	}
+};
+
+
+struct Libc::Pthread_mutex_errorcheck : pthread_mutex
+{
+	int lock() override final
+	{
+		/*
+		 * We can't use trylock() as it returns EBUSY also for the
+		 * EDEADLK case.
+		 */
+		while (true) {
+			{
+				Lock::Guard lock_guard(_owner_and_counter_mutex);
+
+				if (!_owner) {
+					_owner = pthread_self();
+					_lock.lock(); /* always succeeds */
+					return 0;
+				} else if (_owner == pthread_self()) {
+					return EDEADLK;
+				}
+			}
+			/* mutex has another owner, so, yield the CPU and retry */
+			_lock.lock();
+			_lock.unlock();
+		}
+	}
+
+	int trylock() override final
+	{
+		Lock::Guard lock_guard(_owner_and_counter_mutex);
+
+		if (!_owner) {
+			_owner = pthread_self();
+			_lock.lock(); /* always succeeds */
+			return 0;
+		}
+
+		return EBUSY;
+	}
+
+	int unlock() override final
+	{
+		Lock::Guard lock_guard(_owner_and_counter_mutex);
+
+		if (_owner != pthread_self())
+			return EPERM;
+
+		_owner = nullptr;
+		_lock.unlock();
+
+		return 0;
+	}
+};
+
+
+struct Libc::Pthread_mutex_recursive : pthread_mutex
+{
+	int lock() override final
+	{
+		while (trylock() == EBUSY) {
+			/* mutex has another owner, so, yield the CPU and retry */
+			_lock.lock();
+			_lock.unlock();
+		}
+
+		return 0;
+	}
+
+	int trylock() override final
+	{
+		Lock::Guard lock_guard(_owner_and_counter_mutex);
+
+		if (!_owner) {
+			_owner      = pthread_self();
+			_lock_count = 1;
+			_lock.lock(); /* always succeeds */
+			return 0;
+		} else if (_owner == pthread_self()) {
+			++_lock_count;
+			return 0;
+		}
+
+		return EBUSY;
+	}
+
+	int unlock() override final
+	{
+		Lock::Guard lock_guard(_owner_and_counter_mutex);
+
+		if (_owner != pthread_self())
+			return EPERM;
+
+		--_lock_count;
+		if (_lock_count == 0) {
+			_owner = nullptr;
+			_lock.unlock();
+		}
+
+		return 0;
+	}
+};
+
+
 extern "C" {
 
 	/* Thread */
@@ -345,176 +536,13 @@ extern "C" {
 
 	/* Mutex */
 
-
-	struct pthread_mutex_attr
-	{
-		int type;
-
-		pthread_mutex_attr() : type(PTHREAD_MUTEX_NORMAL) { }
-	};
-
-
-	struct pthread_mutex
-	{
-		pthread_mutex_attr mutexattr;
-
-		Lock mutex_lock;
-
-		pthread_t owner;
-		int       lock_count;
-		Lock      owner_and_counter_lock;
-
-		pthread_mutex(const pthread_mutexattr_t *__restrict attr)
-		: owner(0),
-		  lock_count(0)
-		{
-			if (attr && *attr)
-				mutexattr = **attr;
-		}
-
-		int lock()
-		{
-			if (mutexattr.type == PTHREAD_MUTEX_RECURSIVE) {
-
-				Lock::Guard lock_guard(owner_and_counter_lock);
-
-				if (lock_count == 0) {
-					owner = pthread_self();
-					lock_count++;
-					mutex_lock.lock();
-					return 0;
-				}
-
-				/* the mutex is already locked */
-				if (pthread_self() == owner) {
-					lock_count++;
-					return 0;
-				} else {
-					mutex_lock.lock();
-					return 0;
-				}
-			}
-
-			if (mutexattr.type == PTHREAD_MUTEX_ERRORCHECK) {
-
-				Lock::Guard lock_guard(owner_and_counter_lock);
-
-				if (lock_count == 0) {
-					owner = pthread_self();
-					mutex_lock.lock();
-					return 0;
-				}
-
-				/* the mutex is already locked */
-				if (pthread_self() != owner) {
-					mutex_lock.lock();
-					return 0;
-				} else
-					return EDEADLK;
-			}
-
-			/* PTHREAD_MUTEX_NORMAL or PTHREAD_MUTEX_DEFAULT */
-			mutex_lock.lock();
-			return 0;
-		}
-
-		int trylock()
-		{
-			if (mutexattr.type == PTHREAD_MUTEX_RECURSIVE) {
-
-				Lock::Guard lock_guard(owner_and_counter_lock);
-
-				if (lock_count == 0) {
-					owner = pthread_self();
-					lock_count++;
-					mutex_lock.lock();
-					return 0;
-				}
-
-				/* the mutex is already locked */
-				if (pthread_self() == owner) {
-					lock_count++;
-					return 0;
-				} else {
-					return EBUSY;
-				}
-			}
-
-			if (mutexattr.type == PTHREAD_MUTEX_ERRORCHECK) {
-
-				Lock::Guard lock_guard(owner_and_counter_lock);
-
-				if (lock_count == 0) {
-					owner = pthread_self();
-					mutex_lock.lock();
-					return 0;
-				}
-
-				/* the mutex is already locked */
-				if (pthread_self() != owner) {
-					return EBUSY;
-				} else
-					return EDEADLK;
-			}
-
-			/* PTHREAD_MUTEX_NORMAL or PTHREAD_MUTEX_DEFAULT */
-			Lock::Guard lock_guard(owner_and_counter_lock);
-
-			if (lock_count == 0) {
-				owner = pthread_self();
-				mutex_lock.lock();
-				return 0;
-			}
-
-			return EBUSY;
-		}
-
-		int unlock()
-		{
-
-			if (mutexattr.type == PTHREAD_MUTEX_RECURSIVE) {
-
-				Lock::Guard lock_guard(owner_and_counter_lock);
-
-				if (pthread_self() != owner)
-					return EPERM;
-
-				lock_count--;
-
-				if (lock_count == 0) {
-					owner = 0;
-					mutex_lock.unlock();
-				}
-
-				return 0;
-			}
-
-			if (mutexattr.type == PTHREAD_MUTEX_ERRORCHECK) {
-
-				Lock::Guard lock_guard(owner_and_counter_lock);
-
-				if (pthread_self() != owner)
-					return EPERM;
-
-				owner = 0;
-				mutex_lock.unlock();
-				return 0;
-			}
-
-			/* PTHREAD_MUTEX_NORMAL or PTHREAD_MUTEX_DEFAULT */
-			mutex_lock.unlock();
-			return 0;
-		}
-	};
-
-
 	int pthread_mutexattr_init(pthread_mutexattr_t *attr)
 	{
 		if (!attr)
 			return EINVAL;
 
 		Libc::Allocator alloc { };
-		*attr = new (alloc) pthread_mutex_attr;
+		*attr = new (alloc) pthread_mutex_attr { PTHREAD_MUTEX_NORMAL };
 
 		return 0;
 	}
@@ -527,7 +555,7 @@ extern "C" {
 
 		Libc::Allocator alloc { };
 		destroy(alloc, *attr);
-		*attr = 0;
+		*attr = nullptr;
 
 		return 0;
 	}
@@ -538,20 +566,32 @@ extern "C" {
 		if (!attr || !*attr)
 			return EINVAL;
 
-		(*attr)->type = type;
+		(*attr)->type = (pthread_mutextype)type;
 
 		return 0;
 	}
 
 
-	int pthread_mutex_init(pthread_mutex_t *__restrict mutex,
-	                       const pthread_mutexattr_t *__restrict attr)
+	int pthread_mutex_init(pthread_mutex_t *mutex,
+	                       pthread_mutexattr_t const *attr)
 	{
 		if (!mutex)
 			return EINVAL;
 
+
 		Libc::Allocator alloc { };
-		*mutex = new (alloc) pthread_mutex(attr);
+
+		pthread_mutextype const type = (!attr || !*attr)
+		                             ? PTHREAD_MUTEX_NORMAL : (*attr)->type;
+		switch (type) {
+		case PTHREAD_MUTEX_NORMAL:     *mutex = new (alloc) Pthread_mutex_normal; break;
+		case PTHREAD_MUTEX_ERRORCHECK: *mutex = new (alloc) Pthread_mutex_errorcheck; break;
+		case PTHREAD_MUTEX_RECURSIVE:  *mutex = new (alloc) Pthread_mutex_recursive; break;
+
+		default:
+			*mutex = nullptr;
+			return EINVAL;
+		}
 
 		return 0;
 	}
@@ -576,11 +616,9 @@ extern "C" {
 			return EINVAL;
 
 		if (*mutex == PTHREAD_MUTEX_INITIALIZER)
-			pthread_mutex_init(mutex, 0);
+			pthread_mutex_init(mutex, nullptr);
 
-		(*mutex)->lock();
-
-		return 0;
+		return (*mutex)->lock();
 	}
 
 
@@ -590,7 +628,7 @@ extern "C" {
 			return EINVAL;
 
 		if (*mutex == PTHREAD_MUTEX_INITIALIZER)
-			pthread_mutex_init(mutex, 0);
+			pthread_mutex_init(mutex, nullptr);
 
 		return (*mutex)->trylock();
 	}
@@ -602,11 +640,9 @@ extern "C" {
 			return EINVAL;
 
 		if (*mutex == PTHREAD_MUTEX_INITIALIZER)
-			pthread_mutex_init(mutex, 0);
+			return EINVAL;
 
-		(*mutex)->unlock();
-
-		return 0;
+		return (*mutex)->unlock();
 	}
 
 
@@ -967,30 +1003,28 @@ extern "C" {
 	{
 		if (!once || ((once->state != PTHREAD_NEEDS_INIT) &&
 		              (once->state != PTHREAD_DONE_INIT)))
-			return EINTR;
+			return EINVAL;
 
 		if (!once->mutex) {
-			Libc::Allocator alloc { };
-			pthread_mutex_t p = new (alloc) pthread_mutex(0);
-			/* be paranoid */
-			if (!p)
-				return EINTR;
+			pthread_mutex_t p;
+			pthread_mutex_init(&p, nullptr);
+			if (!p) return EINVAL;
 
-			static Lock lock;
+			{
+				static Lock lock;
+				Lock::Guard guard(lock);
 
-			lock.lock();
-			if (!once->mutex) {
-				once->mutex = p;
-				p = nullptr;
+				if (!once->mutex) {
+					once->mutex = p;
+					p = nullptr;
+				}
 			}
-			lock.unlock();
 
 			/*
 			 * If another thread concurrently allocated a mutex and was faster,
 			 * free our mutex since it is not used.
 			 */
-			if (p)
-				destroy(alloc, p);
+			if (p) pthread_mutex_destroy(&p);
 		}
 
 		once->mutex->lock();

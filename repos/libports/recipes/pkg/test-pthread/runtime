@@ -1,7 +1,7 @@
 <runtime ram="72M" caps="1000" binary="init">
 
 	<events>
-		<timeout meaning="failed" sec="30" />
+		<timeout meaning="failed" sec="60" />
 		<log meaning="succeeded">--- returning from main ---</log>
 		<log meaning="failed">Error: </log>
 		<log meaning="failed">child "test-pthread" exited</log>
@@ -19,11 +19,7 @@
 	<config>
 		<parent-provides>
 			<service name="ROM"/>
-			<service name="IRQ"/>
-			<service name="IO_MEM"/>
-			<service name="IO_PORT"/>
 			<service name="PD"/>
-			<service name="RM"/>
 			<service name="CPU"/>
 			<service name="LOG"/>
 		</parent-provides>
