@@ -20,8 +20,8 @@ extern "C" {
 #include <sys/random.h>
 }
 
-/* local includes */
-#include "libc_errno.h"
+/* libc-internal includes */
+#include <internal/errno.h>
 
 /* Genode includes */
 #include <trace/timestamp.h>

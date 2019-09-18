@@ -13,13 +13,14 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _INCLUDE__SRC_LIB_PTHREAD_THREAD_H_
-#define _INCLUDE__SRC_LIB_PTHREAD_THREAD_H_
+#ifndef _LIBC__INTERNAL__PTHREAD_H_
+#define _LIBC__INTERNAL__PTHREAD_H_
 
 /* Genode includes */
 #include <libc/component.h>
 #include <util/reconstructible.h>
 
+/* libc includes */
 #include <pthread.h>
 
 /*
@@ -227,4 +228,4 @@ struct pthread : Genode::Noncopyable, Genode::Thread::Tls::Base
 
 namespace Libc { void init_pthread_support(Env &env); }
 
-#endif /* _INCLUDE__SRC_LIB_PTHREAD_THREAD_H_ */
+#endif /* _LIBC__INTERNAL__PTHREAD_H_ */

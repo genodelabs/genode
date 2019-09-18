@@ -26,10 +26,12 @@ extern "C" {
 #include <stdlib.h>
 }
 
-/* libc-internal includes */
-#include "libc_init.h"
+/* Genode-internal includes */
 #include <base/internal/unmanaged_singleton.h>
-#include <clone_session.h>
+
+/* libc-internal includes */
+#include <internal/init.h>
+#include <internal/clone_session.h>
 
 
 namespace Libc {

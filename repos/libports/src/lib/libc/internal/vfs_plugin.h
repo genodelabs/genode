@@ -13,11 +13,12 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _LIBC_VFS__PLUGIN_H_
-#define _LIBC_VFS__PLUGIN_H_
+#ifndef _LIBC__INTERNAL__VFS_PLUGIN_H_
+#define _LIBC__INTERNAL__VFS_PLUGIN_H_
 
 /* Genode includes */
 #include <libc/component.h>
+#include <vfs/file_system.h>
 
 /* libc includes */
 #include <fcntl.h>
@@ -27,9 +28,8 @@
 #include <libc-plugin/plugin.h>
 #include <libc-plugin/fd_alloc.h>
 
-/* local includes */
-#include "task.h"
-#include "libc_errno.h"
+/* libc-internal includes */
+#include <internal/errno.h>
 
 
 namespace Libc { class Vfs_plugin; }
@@ -110,4 +110,4 @@ class Libc::Vfs_plugin : public Libc::Plugin
 		int     select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout) override;
 };
 
-#endif
+#endif /* _LIBC__INTERNAL__VFS_PLUGIN_H_ */

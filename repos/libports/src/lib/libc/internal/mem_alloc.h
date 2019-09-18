@@ -4,8 +4,15 @@
  * \date   2012-05-18
  */
 
-#ifndef _LIBC_MEM_ALLOC_H_
-#define _LIBC_MEM_ALLOC_H_
+/*
+ * Copyright (C) 2012-2019 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU Affero General Public License version 3.
+ */
+
+#ifndef _LIBC__INTERNAL__MEM_ALLOC_H_
+#define _LIBC__INTERNAL__MEM_ALLOC_H_
 
 /* Genode includes */
 #include <base/ram_allocator.h>
@@ -126,4 +133,4 @@ namespace Libc {
 	};
 }
 
-#endif /* _LIBC_MEM_ALLOC_H_ */
+#endif /* _LIBC__INTERNAL__MEM_ALLOC_H_ */

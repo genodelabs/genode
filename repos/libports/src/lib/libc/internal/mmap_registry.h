@@ -4,8 +4,15 @@
  * \date   2012-08-16
  */
 
-#ifndef _LIBC_MMAP_REGISTRY_H_
-#define _LIBC_MMAP_REGISTRY_H_
+/*
+ * Copyright (C) 2012-2019 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU Affero General Public License version 3.
+ */
+
+#ifndef _LIBC__INTERNAL__MMAP_REGISTRY_H_
+#define _LIBC__INTERNAL__MMAP_REGISTRY_H_
 
 /* Genode includes */
 #include <base/lock.h>
@@ -13,11 +20,9 @@
 #include <base/log.h>
 #include <libc/allocator.h>
 
-/* libc-internal includes */
-#include <libc-plugin/plugin.h>
-
 /* libc includes */
 #include <errno.h>
+#include <libc-plugin/plugin.h>
 
 namespace Libc {
 
@@ -122,4 +127,4 @@ class Libc::Mmap_registry
 };
 
 
-#endif /* _LIBC_MMAP_REGISTRY_H_ */
+#endif /* _LIBC__INTERNAL__MMAP_REGISTRY_H_ */

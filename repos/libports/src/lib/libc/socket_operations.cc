@@ -26,8 +26,8 @@ extern "C" {
 }
 
 /* libc-internal includes */
-#include "libc_file.h"
-#include "socket_fs_plugin.h"
+#include <internal/file.h>
+#include <internal/socket_fs_plugin.h>
 
 
 using namespace Libc;

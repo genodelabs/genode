@@ -19,15 +19,16 @@
 #include <libc-plugin/plugin.h>
 #include <libc-plugin/fd_alloc.h>
 
-/* Libc includes */
+/* libc includes */
 #include <sys/sysctl.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "libc_errno.h"
-#include "libc_init.h"
+/* libc-internal includes */
+#include <internal/errno.h>
+#include <internal/init.h>
 
 
 enum { PAGESIZE = 4096 };

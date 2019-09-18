@@ -17,9 +17,9 @@
 #include <base/env.h>
 #include <base/allocator_avl.h>
 
-/* local includes */
-#include "libc_mem_alloc.h"
-#include "libc_init.h"
+/* libc-internal includes */
+#include <internal/mem_alloc.h>
+#include <internal/init.h>
 
 using namespace Genode;
 

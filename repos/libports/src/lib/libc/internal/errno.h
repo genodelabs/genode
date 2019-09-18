@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _LIBC_ERRNO_H_
-#define _LIBC_ERRNO_H_
+#ifndef _LIBC__INTERNAL__ERRNO_H_
+#define _LIBC__INTERNAL__ERRNO_H_
 
 /* libc includes */
 #include <errno.h>
@@ -28,4 +28,4 @@ struct Libc::Errno
     operator int() const { return -1; }
 };
 
-#endif /* _LIBC_ERRNO_H_ */
+#endif /* _LIBC__INTERNAL__ERRNO_H_ */

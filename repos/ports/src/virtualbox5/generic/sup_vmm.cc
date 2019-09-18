@@ -33,10 +33,10 @@
 #include "vcpu_vmx.h"
 
 /* libc memory allocator */
-#include <libc_mem_alloc.h>
+#include <internal/mem_alloc.h>
 
 /* Genode libc pthread binding */
-#include <thread_create.h>
+#include <internal/thread_create.h>
 
 /* libc */
 #include <pthread.h>

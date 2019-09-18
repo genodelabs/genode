@@ -19,13 +19,12 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <libc/allocator.h>
 
 /* libc-internal includes */
-#include <libc/allocator.h>
 #include <internal/call_func.h>
-#include <libc_init.h>
-#include <libc_errno.h>
-#include <task.h>
+#include <internal/init.h>
+#include <internal/errno.h>
 
 using namespace Genode;
 

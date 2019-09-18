@@ -12,19 +12,24 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+/* Genode includes */
 #include <base/log.h>
 #include <base/sleep.h>
 #include <base/thread.h>
 #include <util/list.h>
 #include <libc/allocator.h>
 
+/* libc includes */
 #include <errno.h>
 #include <pthread.h>
 #include <stdlib.h> /* malloc, free */
-#include "thread.h"
-#include "task.h"
-#include "timed_semaphore.h"
-#include "libc_init.h"
+
+/* libc-internal includes */
+#include <internal/pthread.h>
+#include <internal/timed_semaphore.h>
+#include <internal/init.h>
+#include <internal/suspend.h>
+#include <internal/resume.h>
 
 using namespace Genode;
 
@@ -34,11 +39,16 @@ static Env *_env_ptr;  /* solely needed to spawn the timeout thread for the
 
 static Thread *_main_thread_ptr;
 
+static Libc::Suspend *_suspend_ptr;
+static Libc::Resume  *_resume_ptr;
 
-void Libc::init_pthread_support(Genode::Env &env)
+
+void Libc::init_pthread_support(Genode::Env &env, Suspend &suspend, Resume &resume)
 {
 	_env_ptr         = &env;
 	_main_thread_ptr = Thread::myself();
+	_suspend_ptr     = &suspend;
+	_resume_ptr      = &resume;
 }
 
 
@@ -84,8 +94,12 @@ void pthread::join(void **retval)
 		}
 	} check(*this);
 
+	struct Missing_call_of_init_pthread_support : Exception { };
+	if (!_suspend_ptr)
+		throw Missing_call_of_init_pthread_support();
+
 	do {
-		Libc::suspend(check);
+		_suspend_ptr->suspend(check);
 	} while (check.retry);
 
 	_join_lock.lock();
@@ -98,7 +112,13 @@ void pthread::join(void **retval)
 void pthread::cancel()
 {
 	_exiting = true;
-	Libc::resume_all();
+
+	struct Missing_call_of_init_pthread_support : Exception { };
+	if (!_resume_ptr)
+		throw Missing_call_of_init_pthread_support();
+
+	_resume_ptr->resume_all();
+
 	_join_lock.unlock();
 }
 

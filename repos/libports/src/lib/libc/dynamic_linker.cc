@@ -15,7 +15,7 @@
 #include <libc/allocator.h>
 
 /* libc-internal includes */
-#include <libc_init.h>
+#include <internal/init.h>
 
 /* libc includes */
 extern "C" {

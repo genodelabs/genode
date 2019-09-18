@@ -36,15 +36,25 @@
 #include <net/if.h>
 
 /* libc-internal includes */
-#include "socket_fs_plugin.h"
-#include "libc_file.h"
-#include "libc_errno.h"
-#include "task.h"
+#include <internal/socket_fs_plugin.h>
+#include <internal/file.h>
+#include <internal/errno.h>
+#include <internal/init.h>
+#include <internal/suspend.h>
 
 
 namespace Libc {
 	extern char const *config_socket();
 	bool read_ready(Libc::File_descriptor *);
+}
+
+
+static Libc::Suspend *_suspend_ptr;
+
+
+void Libc::init_socket_fs(Suspend &suspend)
+{
+	_suspend_ptr = &suspend;
 }
 
 
@@ -432,8 +442,14 @@ static int read_sockaddr_in(Socket_fs::Sockaddr_functor &func,
 	if (!addr)                     return Errno(EFAULT);
 	if (!addrlen || *addrlen <= 0) return Errno(EINVAL);
 
-	while (!func.nonblocking && func.suspend())
-		Libc::suspend(func);
+	while (!func.nonblocking && func.suspend()) {
+
+		struct Missing_call_of_init_socket_fs : Exception { };
+		if (!_suspend_ptr)
+			throw Missing_call_of_init_socket_fs();
+
+		_suspend_ptr->suspend(func);
+	}
 
 	Sockaddr_string addr_string;
 	int const n = read(func.fd(), addr_string.base(), addr_string.capacity() - 1);

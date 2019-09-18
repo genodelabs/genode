@@ -21,7 +21,7 @@
 #include <qemu/usb.h>
 
 /* libc internal includes */
-#include <thread_create.h>
+#include <internal/thread_create.h>
 
 /* Virtualbox includes */
 #define LOG_GROUP LOG_GROUP_DEV_EHCI
