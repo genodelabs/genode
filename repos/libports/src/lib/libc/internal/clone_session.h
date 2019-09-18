@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _CLONE_SESSION_H_
-#define _CLONE_SESSION_H_
+#ifndef _LIBC__INTERNAL__CLONE_SESSION_H_
+#define _LIBC__INTERNAL__CLONE_SESSION_H_
 
 /* Genode includes */
 #include <base/rpc_server.h>
@@ -92,4 +92,4 @@ struct Libc::Clone_connection : Genode::Connection<Clone_session>,
 	void object_content(OBJ &obj) { memory_content(&obj, sizeof(obj)); }
 };
 
-#endif /* _CLONE_SESSION_H_ */
+#endif /* _LIBC__INTERNAL__CLONE_SESSION_H_ */

@@ -3,6 +3,7 @@
  * \author Christian Prochaska
  * \author Christian Helmuth
  * \author Emery Hemingway
+ * \author Norman Feske
  * \date   2010-01-21
  *
  * the 'select()' implementation is partially based on the lwip version as
@@ -22,6 +23,7 @@
 
 /* Genode includes */
 #include <base/log.h>
+#include <base/exception.h>
 #include <util/reconstructible.h>
 
 /* Libc includes */
@@ -32,12 +34,28 @@
 #include <sys/select.h>
 #include <signal.h>
 
-#include "task.h"
-
+/* libc-internal includes */
+#include <internal/init.h>
+#include <internal/suspend.h>
+#include <internal/resume.h>
+#include <internal/select.h>
 
 namespace Libc {
 	struct Select_cb;
 	struct Select_cb_list;
+}
+
+
+static Libc::Suspend *_suspend_ptr;
+static Libc::Resume  *_resume_ptr;
+static Libc::Select  *_select_ptr;
+
+
+void Libc::init_select(Suspend &suspend, Resume &resume, Select &select)
+{
+	_suspend_ptr = &suspend;
+	_resume_ptr  = &resume;
+	_select_ptr  = &select;
 }
 
 
@@ -200,8 +218,13 @@ static void select_notify()
 		}
 	});
 
-	if (resume_all)
-		Libc::resume_all();
+	if (resume_all) {
+		struct Missing_call_of_init_select : Genode::Exception { };
+		if (!_resume_ptr)
+			throw Missing_call_of_init_select();
+
+		_resume_ptr->resume_all();
+	}
 }
 
 
@@ -284,8 +307,14 @@ int select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
 			return !timeout->expired() && select_cb->nready == 0; }
 	} check ( &timeout, &*select_cb );
 
+	{
+		struct Missing_call_of_init_select : Genode::Exception { };
+		if (!_suspend_ptr)
+			throw Missing_call_of_init_select();
+	}
+
 	while (!timeout.expired() && select_cb->nready == 0)
-		timeout.duration = Libc::suspend(check, timeout.duration);
+		timeout.duration = _suspend_ptr->suspend(check, timeout.duration);
 
 	select_cb_list().remove(&(*select_cb));
 
@@ -380,7 +409,11 @@ int Libc::Select_handler_base::select(int nfds, fd_set &readfds,
 		select_cb_list().unsynchronized_insert(&(**_select_cb));
 	}
 
-	Libc::schedule_select(this);
+	struct Missing_call_of_init_select : Exception { };
+	if (!_select_ptr)
+		throw Missing_call_of_init_select();
+
+	_select_ptr->schedule_select(*this);
 
 	return 0;
 }
@@ -393,7 +426,9 @@ void Libc::Select_handler_base::dispatch_select()
 	if (select_cb->nready == 0) return;
 
 	select_cb_list().remove(&(*select_cb));
-	Libc::schedule_select(nullptr);
+
+	if (_select_ptr)
+		_select_ptr->deschedule_select();
 
 	select_ready(select_cb->nready, select_cb->readfds,
 	             select_cb->writefds, select_cb->exceptfds);

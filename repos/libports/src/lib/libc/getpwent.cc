@@ -14,15 +14,16 @@
 /* Genode includes */
 #include <base/log.h>
 #include <util/string.h>
+#include <util/xml_node.h>
 
-/* Libc includes */
+/* libc includes */
 #include <sys/types.h>
 #include <pwd.h>
 #include <stdlib.h>
 
-/* local includes */
-#include "libc_errno.h"
-#include "task.h"
+/* libc-local includes */
+#include <internal/legacy.h>
+#include <internal/errno.h>
 
 typedef Genode::String<128> Passwd_string;
 

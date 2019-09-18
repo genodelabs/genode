@@ -48,7 +48,7 @@
 #include "sup.h"
 
 /* Genode libc pthread binding */
-#include "thread.h"
+#include <internal/pthread.h>
 
 /* LibC includes */
 #include <setjmp.h>

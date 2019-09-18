@@ -12,8 +12,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _LIBC__SOCKET_FS_PLUGIN_H_
-#define _LIBC__SOCKET_FS_PLUGIN_H_
+#ifndef _LIBC__INTERNAL__SOCKET_FS_PLUGIN_H_
+#define _LIBC__INTERNAL__SOCKET_FS_PLUGIN_H_
 
 /* Libc includes */
 #include <sys/types.h>
@@ -35,4 +35,4 @@ extern "C" int socket_fs_setsockopt(int, int, int, void const *, socklen_t);
 extern "C" int socket_fs_shutdown(int, int);
 extern "C" int socket_fs_socket(int, int, int);
 
-#endif /* _LIBC__SOCKET_FS_PLUGIN_H_ */
+#endif /* _LIBC__INTERNAL__SOCKET_FS_PLUGIN_H_ */

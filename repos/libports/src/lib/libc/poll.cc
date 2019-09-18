@@ -18,9 +18,19 @@
 #include <sys/poll.h>
 
 /* internal includes */
-#include "libc_errno.h"
-#include "libc_file.h"
-#include "task.h"
+#include <internal/errno.h>
+#include <internal/file.h>
+#include <internal/init.h>
+#include <internal/suspend.h>
+
+
+static Libc::Suspend *_suspend_ptr;
+
+
+void Libc::init_poll(Suspend &suspend)
+{
+	_suspend_ptr = &suspend;
+}
 
 
 extern "C" __attribute__((weak))
@@ -74,14 +84,23 @@ int poll(struct pollfd fds[], nfds_t nfds, int timeout_ms)
 		return check.nready;
 	}
 
+	auto suspend = [&] (Genode::uint64_t timeout_ms)
+	{
+		struct Missing_call_of_init_poll : Exception { };
+		if (!_suspend_ptr)
+			throw Missing_call_of_init_poll();
+
+		return _suspend_ptr->suspend(check, timeout_ms);
+	};
+
 	if (timeout_ms == -1) {
 		while (check.nready == 0) {
-			Libc::suspend(check, 0);
+			suspend(0);
 		}
 	} else {
 		Genode::uint64_t remaining_ms = timeout_ms;
 		while (check.nready == 0 && remaining_ms > 0) {
-			remaining_ms = Libc::suspend(check, remaining_ms);
+			remaining_ms = suspend(remaining_ms);
 		}
 	}
 

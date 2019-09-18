@@ -11,18 +11,29 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _LIBC_INIT_H_
-#define _LIBC_INIT_H_
+#ifndef _LIBC__INTERNAL__INIT_H_
+#define _LIBC__INTERNAL__INIT_H_
 
 /* Genode includes */
 #include <base/env.h>
 #include <base/heap.h>
 #include <util/xml_node.h>
+#include <vfs/types.h>  /* for 'MAX_PATH_LEN' */
 
 /* libc includes */
 #include <setjmp.h>     /* for 'jmp_buf' type */
 
+/* libc-internal includes */
+#include <internal/types.h>
+
 namespace Libc {
+
+	struct Resume;
+	struct Suspend;
+	struct Select;
+	struct Current_time;
+	struct Clone_connection;
+	struct Kernel_routine_scheduler;
 
 	/**
 	 * Support for shared libraries
@@ -40,6 +51,26 @@ namespace Libc {
 	void init_mem_alloc(Genode::Env &env);
 
 	/**
+	 * Plugin interface
+	 */
+	void init_plugin(Resume &);
+
+	/**
+	 * Virtual file system
+	 */
+	void init_vfs_plugin(Suspend &);
+
+	/**
+	 * Select support
+	 */
+	void init_select(Suspend &, Resume &, Select &);
+
+	/**
+	 * Poll support
+	 */
+	void init_poll(Suspend &);
+
+	/**
 	 * Support for querying available RAM quota in sysctl functions
 	 */
 	void sysctl_init(Genode::Env &env);
@@ -49,8 +80,6 @@ namespace Libc {
 	 */
 	void libc_config_init(Genode::Xml_node node);
 
-	struct Clone_connection;
-
 	/**
 	 * Malloc allocator
 	 */
@@ -58,11 +87,24 @@ namespace Libc {
 	void init_malloc_cloned(Clone_connection &);
 	void reinit_malloc(Genode::Allocator &);
 
+	typedef String<Vfs::MAX_PATH_LEN> Rtc_path;
+
+	/**
+	 * Init timing facilities
+	 */
+	void init_sleep(Suspend &);
+	void init_time(Current_time &, Rtc_path const &);
+
+	/**
+	 * Socket fs
+	 */
+	void init_socket_fs(Suspend &);
+
 	/**
 	 * Allow thread.cc to access the 'Genode::Env' (needed for the
 	 * implementation of condition variables with timeout)
 	 */
-	void init_pthread_support(Genode::Env &env);
+	void init_pthread_support(Genode::Env &env, Suspend &, Resume &);
 
 	struct Config_accessor : Genode::Interface
 	{
@@ -73,7 +115,8 @@ namespace Libc {
 	 * Fork mechanism
 	 */
 	void init_fork(Genode::Env &, Config_accessor const &,
-	               Genode::Allocator &heap, Genode::Heap &malloc_heap, int pid);
+	               Genode::Allocator &heap, Genode::Heap &malloc_heap, int pid,
+	               Suspend &, Resume &, Kernel_routine_scheduler &);
 
 	struct Reset_malloc_heap : Genode::Interface
 	{
@@ -87,4 +130,4 @@ namespace Libc {
 	                 Reset_malloc_heap &);
 }
 
-#endif /* _LIBC_INIT_H_ */
+#endif /* _LIBC__INTERNAL__INIT_H_ */

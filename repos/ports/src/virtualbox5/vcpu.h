@@ -41,7 +41,7 @@
 #include "sup.h"
 
 /* Genode libc pthread binding */
-#include "thread.h"
+#include <internal/pthread.h>
 
 #include <VBox/vmm/rem.h>
 

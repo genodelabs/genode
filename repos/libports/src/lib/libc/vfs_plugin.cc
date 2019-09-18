@@ -34,12 +34,34 @@
 
 /* libc plugin interface */
 #include <libc-plugin/plugin.h>
-#include <vfs_plugin.h>
 
 /* libc-internal includes */
-#include "libc_mem_alloc.h"
-#include "libc_errno.h"
-#include "task.h"
+#include <internal/vfs_plugin.h>
+#include <internal/mem_alloc.h>
+#include <internal/errno.h>
+#include <internal/init.h>
+#include <internal/legacy.h>
+#include <internal/suspend.h>
+
+
+static Libc::Suspend *_suspend_ptr;
+
+
+void Libc::init_vfs_plugin(Suspend &suspend)
+{
+	_suspend_ptr = &suspend;
+}
+
+
+static void suspend(Libc::Suspend_functor &check)
+{
+	struct Missing_call_of_init_vfs_plugin : Genode::Exception { };
+	if (!_suspend_ptr)
+		throw Missing_call_of_init_vfs_plugin();
+
+	_suspend_ptr->suspend(check);
+};
+
 
 static Genode::Lock &vfs_lock()
 {
@@ -123,13 +145,6 @@ namespace Libc {
 
 			char const *string() const { return _value.string(); }
 	};
-
-	char const *config_rtc() __attribute__((weak));
-	char const *config_rtc()
-	{
-		static Config_attr rtc("rtc", "");
-		return rtc.string();
-	}
 
 	char const *config_rng() __attribute__((weak));
 	char const *config_rng()
@@ -351,12 +366,12 @@ int Libc::Vfs_plugin::_vfs_sync(Vfs::Vfs_handle &vfs_handle)
 		} check(vfs_handle);
 
 		/*
-		 * Cannot call Libc::suspend() immediately, because the Libc kernel
+		 * Cannot call suspend() immediately, because the Libc kernel
 		 * might not be running yet.
 		 */
 		if (!VFS_THREAD_SAFE(vfs_handle.fs().queue_sync(&vfs_handle))) {
 			do {
-				Libc::suspend(check);
+				suspend(check);
 			} while (check.retry);
 		}
 	}
@@ -381,13 +396,13 @@ int Libc::Vfs_plugin::_vfs_sync(Vfs::Vfs_handle &vfs_handle)
 		} check(vfs_handle, result);
 
 		/*
-		 * Cannot call Libc::suspend() immediately, because the Libc kernel
+		 * Cannot call suspend() immediately, because the Libc kernel
 		 * might not be running yet.
 		 */
 		result = VFS_THREAD_SAFE(vfs_handle.fs().complete_sync(&vfs_handle));
 		if (result == Result::SYNC_QUEUED) {
 			do {
-				Libc::suspend(check);
+				suspend(check);
 			} while (check.retry);
 		}
 	}
@@ -500,8 +515,7 @@ ssize_t Libc::Vfs_plugin::write(Libc::File_descriptor *fd, const void *buf,
 		try {
 			out_result = VFS_THREAD_SAFE(handle->fs().write(handle, (char const *)buf, count, out_count));
 
-			/* wake up threads blocking for 'queue_*()' or 'write()' */
-			Libc::resume_all();
+			Plugin::resume_all();
 
 		} catch (Vfs::File_io_service::Insufficient_buffer) { }
 
@@ -539,12 +553,11 @@ ssize_t Libc::Vfs_plugin::write(Libc::File_descriptor *fd, const void *buf,
 		} check(handle, buf, count, out_count, out_result);
 
 		do {
-			Libc::suspend(check);
+			suspend(check);
 		} while (check.retry);
 	}
 
-	/* wake up threads blocking for 'queue_*()' or 'write()' */
-	Libc::resume_all();
+	Plugin::resume_all();
 
 	switch (out_result) {
 	case Result::WRITE_ERR_AGAIN:       return Errno(EAGAIN);
@@ -595,7 +608,7 @@ ssize_t Libc::Vfs_plugin::read(Libc::File_descriptor *fd, void *buf,
 		} check ( handle, count);
 
 		do {
-			Libc::suspend(check);
+			suspend(check);
 		} while (check.retry);
 	}
 
@@ -632,12 +645,11 @@ ssize_t Libc::Vfs_plugin::read(Libc::File_descriptor *fd, void *buf,
 		} check ( handle, buf, count, out_count, out_result);
 
 		do {
-			Libc::suspend(check);
+			suspend(check);
 		} while (check.retry);
 	}
 
-	/* wake up threads blocking for 'queue_*()' or 'write()' */
-	Libc::resume_all();
+	Plugin::resume_all();
 
 	switch (out_result) {
 	case Result::READ_ERR_AGAIN:       return Errno(EAGAIN);
@@ -690,7 +702,7 @@ ssize_t Libc::Vfs_plugin::getdirentries(Libc::File_descriptor *fd, char *buf,
 		} check(handle);
 
 		do {
-			Libc::suspend(check);
+			suspend(check);
 		} while (check.retry);
 	}
 
@@ -728,12 +740,11 @@ ssize_t Libc::Vfs_plugin::getdirentries(Libc::File_descriptor *fd, char *buf,
 		} check(handle, dirent_out, out_count, out_result);
 
 		do {
-			Libc::suspend(check);
+			suspend(check);
 		} while (check.retry);
 	}
 
-	/* wake up threads blocking for 'queue_*()' or 'write()' */
-	Libc::resume_all();
+	Plugin::resume_all();
 
 	if ((out_result != Result::READ_OK) ||
 	    (out_count < sizeof(Dirent))) {
@@ -1076,11 +1087,10 @@ int Libc::Vfs_plugin::symlink(const char *oldpath, const char *newpath)
 	} check ( handle, oldpath, count, out_count);
 
 	do {
-		Libc::suspend(check);
+		suspend(check);
 	} while (check.retry);
 
-	/* wake up threads blocking for 'queue_*()' or 'write()' */
-	Libc::resume_all();
+	Plugin::resume_all();
 
 	_vfs_sync(*handle);
 	VFS_THREAD_SAFE(handle->close());
@@ -1138,7 +1148,7 @@ ssize_t Libc::Vfs_plugin::readlink(const char *path, char *buf, ::size_t buf_siz
 		} check(symlink_handle, buf_size);
 
 		do {
-			Libc::suspend(check);
+			suspend(check);
 		} while (check.retry);
 	}
 
@@ -1179,12 +1189,11 @@ ssize_t Libc::Vfs_plugin::readlink(const char *path, char *buf, ::size_t buf_siz
 		} check(symlink_handle, buf, buf_size, out_len, out_result);
 
 		do {
-			Libc::suspend(check);
+			suspend(check);
 		} while (check.retry);
 	}
 
-	/* wake up threads blocking for 'queue_*()' or 'write()' */
-	Libc::resume_all();
+	Plugin::resume_all();
 
 	switch (out_result) {
 	case Result::READ_ERR_AGAIN:       return Errno(EAGAIN);

@@ -12,8 +12,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _LIBC_FILE_H_
-#define _LIBC_FILE_H_
+#ifndef _LIBC__INTERNAL__FILE_H_
+#define _LIBC__INTERNAL__FILE_H_
 
 /* Genode includes */
 #include <base/log.h>
@@ -73,4 +73,4 @@ static inline Libc::File_descriptor *libc_fd_to_fd(int libc_fd, const char *func
 #define FNAME_FUNC_WRAPPER(func_name, path, ...) \
 	FNAME_FUNC_WRAPPER_GENERIC(return, func_name, path, ##__VA_ARGS__ )
 
-#endif /* _LIBC_FILE_H_ */
+#endif /* _LIBC__INTERNAL__FILE_H_ */

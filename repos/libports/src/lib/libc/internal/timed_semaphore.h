@@ -16,8 +16,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _TIMED_SEMAPHORE_H_
-#define _TIMED_SEMAPHORE_H_
+#ifndef _LIBC__INTERNAL__TIMED_SEMAPHORE_H_
+#define _LIBC__INTERNAL__TIMED_SEMAPHORE_H_
 
 #include <base/thread.h>
 #include <base/semaphore.h>
@@ -259,4 +259,4 @@ class Libc::Timed_semaphore : public Semaphore
 		void up()   { Semaphore::up();   }
 };
 
-#endif /* _TIMED_SEMAPHORE_H_ */
+#endif /* _LIBC__INTERNAL__TIMED_SEMAPHORE_H_ */

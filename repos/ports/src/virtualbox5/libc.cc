@@ -29,7 +29,7 @@
 #include "vmm.h"
 
 /* libc memory allocator */
-#include <libc_mem_alloc.h>
+#include <internal/mem_alloc.h>
 
 /* VirtualBox includes */
 #include <iprt/mem.h>

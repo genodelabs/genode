@@ -12,18 +12,30 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-/* Libc includes */
+/* libc includes */
 #include <sys/time.h>
 
-#include "task.h"
+/* libc-internal includes */
+#include <internal/suspend.h>
+#include <internal/init.h>
 
 
-/* Genode includes */
-#include <base/log.h>
+static Libc::Suspend *_suspend_ptr;
+
+
+void Libc::init_sleep(Suspend &suspend)
+{
+	_suspend_ptr = &suspend;
+}
+
 
 static void millisleep(Genode::uint64_t timeout_ms)
 {
 	Genode::uint64_t remaining_ms = timeout_ms;
+
+	struct Missing_call_of_init_sleep : Genode::Exception { };
+	if (!_suspend_ptr)
+		throw Missing_call_of_init_sleep();
 
 	struct Check : Libc::Suspend_functor
 	{
@@ -32,7 +44,7 @@ static void millisleep(Genode::uint64_t timeout_ms)
 	} check;
 
 	while (remaining_ms > 0)
-		remaining_ms = Libc::suspend(check, remaining_ms);
+		remaining_ms = _suspend_ptr->suspend(check, remaining_ms);
 }
 
 

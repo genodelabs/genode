@@ -58,7 +58,8 @@
 
 
 /* libc-internal includes */
-#include <libc_mem_alloc.h>
+#include <internal/mem_alloc.h>
+#include <internal/legacy.h>
 
 
 using Genode::log;

@@ -18,7 +18,7 @@
 #include <cpu_session/connection.h>
 
 /* Genode libc pthread binding */
-#include <thread_create.h>
+#include <internal/thread_create.h>
 
 #include "sup.h"
 #include "vmm.h"

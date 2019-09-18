@@ -12,9 +12,12 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+/* Genode includes */
 #include <base/log.h>
 #include <base/semaphore.h>
 #include <semaphore.h>
+
+/* libc includes */
 #include <libc/allocator.h>
 
 using namespace Genode;

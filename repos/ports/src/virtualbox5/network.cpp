@@ -41,7 +41,7 @@
 #include <nic/packet_allocator.h>
 #include <base/snprintf.h>
 
-#include <thread_create.h>
+#include <internal/thread_create.h>
 
 /* VBox Genode specific */
 #include "vmm.h"

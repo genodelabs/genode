@@ -14,11 +14,13 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+/* libc includes */
 #include <libc/allocator.h>
-
-#include "thread_create.h"
-#include "thread.h"
 #include <errno.h>
+
+/* libc-internal includes */
+#include <internal/thread_create.h>
+#include <internal/pthread.h>
 
 
 int Libc::pthread_create(pthread_t *thread,

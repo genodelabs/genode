@@ -39,10 +39,10 @@ extern "C" {
 }
 
 /* libc-internal includes */
-#include "libc_file.h"
-#include "libc_mem_alloc.h"
-#include "libc_mmap_registry.h"
-#include "libc_errno.h"
+#include <internal/file.h>
+#include <internal/mem_alloc.h>
+#include <internal/mmap_registry.h>
+#include <internal/errno.h>
 
 using namespace Libc;
 

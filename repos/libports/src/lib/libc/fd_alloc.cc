@@ -17,6 +17,9 @@
 #include <base/env.h>
 #include <base/log.h>
 
+/* Genode-internal includes */
+#include <base/internal/unmanaged_singleton.h>
+
 /* libc plugin interface */
 #include <libc-plugin/fd_alloc.h>
 
@@ -25,8 +28,7 @@
 #include <unistd.h>
 
 /* libc-internal includes */
-#include <libc_init.h>
-#include <base/internal/unmanaged_singleton.h>
+#include <internal/init.h>
 
 using namespace Libc;
 using namespace Genode;

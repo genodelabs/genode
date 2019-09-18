@@ -31,7 +31,7 @@
 #include <iprt/string.h>
 
 /* libc memory allocator */
-#include <libc_mem_alloc.h>
+#include <internal/mem_alloc.h>
 
 #include "util.h"
 #include "mm.h"
