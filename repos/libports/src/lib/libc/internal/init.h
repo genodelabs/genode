@@ -78,7 +78,7 @@ namespace Libc {
 	/**
 	 * Set libc config node
 	 */
-	void libc_config_init(Genode::Xml_node node);
+	void libc_config_init(Xml_node node);
 
 	/**
 	 * Malloc allocator
@@ -106,19 +106,19 @@ namespace Libc {
 	 */
 	void init_pthread_support(Genode::Env &env, Suspend &, Resume &);
 
-	struct Config_accessor : Genode::Interface
+	struct Config_accessor : Interface
 	{
-		virtual Genode::Xml_node config() const = 0;
+		virtual Xml_node config() const = 0;
 	};
 
 	/**
 	 * Fork mechanism
 	 */
 	void init_fork(Genode::Env &, Config_accessor const &,
-	               Genode::Allocator &heap, Genode::Heap &malloc_heap, int pid,
+	               Genode::Allocator &heap, Heap &malloc_heap, int pid,
 	               Suspend &, Resume &, Kernel_routine_scheduler &);
 
-	struct Reset_malloc_heap : Genode::Interface
+	struct Reset_malloc_heap : Interface
 	{
 		virtual void reset_malloc_heap() = 0;
 	};

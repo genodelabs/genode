@@ -30,6 +30,7 @@
 #include <internal/errno.h>
 #include <internal/init.h>
 
+using namespace Libc;
 
 enum { PAGESIZE = 4096 };
 
@@ -55,8 +56,8 @@ extern "C" long sysconf(int name)
 	case _SC_PHYS_PAGES:
 		return _global_env->pd().ram_quota().value / PAGESIZE;
 	default:
-		Genode::warning(__func__, "(", name, ") not implemented");
-		return Libc::Errno(EINVAL);
+		warning(__func__, "(", name, ") not implemented");
+		return Errno(EINVAL);
 	}
 }
 
@@ -67,9 +68,9 @@ extern "C" int __sysctl(const int *name, u_int namelen,
 {
 	/* read only */
 	if (!oldp) /* check for write attempt */
-		return Libc::Errno(newp ? EPERM : EINVAL);
+		return Errno(newp ? EPERM : EINVAL);
 
-	if (namelen != 2) return Libc::Errno(ENOENT);
+	if (namelen != 2) return Errno(ENOENT);
 
 	char *buf = (char*)oldp;
 	int index_a = name[0];
@@ -93,7 +94,7 @@ extern "C" int __sysctl(const int *name, u_int namelen,
 					*(Genode::int64_t*)oldp = _global_env->pd().ram_quota().value;
 					break;
 				default:
-					return Libc::Errno(EINVAL);
+					return Errno(EINVAL);
 				}
 				return 0;
 
@@ -163,6 +164,6 @@ extern "C" int __sysctl(const int *name, u_int namelen,
 		}
 	}
 
-	Genode::warning("missing sysctl for [", index_a, "][", index_b, "]");
-	return Libc::Errno(ENOENT);
+	warning("missing sysctl for [", index_a, "][", index_b, "]");
+	return Errno(ENOENT);
 }

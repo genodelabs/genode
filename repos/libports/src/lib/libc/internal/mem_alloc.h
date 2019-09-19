@@ -21,13 +21,16 @@
 #include <util/list.h>
 #include <rm_session/rm_session.h>
 
+/* libc-internal includes */
+#include <internal/types.h>
+
 namespace Libc {
 
 	struct Mem_alloc
 	{
-		virtual void *alloc(Genode::size_t size, Genode::size_t align_log2) = 0;
+		virtual void *alloc(size_t size, size_t align_log2) = 0;
 		virtual void free(void *ptr) = 0;
-		virtual Genode::size_t size_at(void const *ptr) const = 0;
+		virtual size_t size_at(void const *ptr) const = 0;
 	};
 
 	/**
@@ -44,14 +47,14 @@ namespace Libc {
 				MAX_CHUNK_SIZE = 1024*1024
 			};
 
-			class Dataspace : public Genode::List<Dataspace>::Element
+			class Dataspace : public List<Dataspace>::Element
 			{
 				public:
 
-					Genode::Ram_dataspace_capability cap;
+					Ram_dataspace_capability cap;
 					void *local_addr;
 
-					Dataspace(Genode::Ram_dataspace_capability c, void *a)
+					Dataspace(Ram_dataspace_capability c, void *a)
 					: cap(c), local_addr(a) {}
 
 					inline void * operator new(__SIZE_TYPE__, void* addr) {
@@ -60,21 +63,21 @@ namespace Libc {
 					inline void operator delete(void*) { }
 			};
 
-			class Dataspace_pool : public Genode::List<Dataspace>
+			class Dataspace_pool : public List<Dataspace>
 			{
 				private:
 
-					Genode::Ram_allocator *_ram;  /* ram session for backing store */
-					Genode::Region_map    *_region_map;   /* region map of address space   */
-					bool const             _executable;   /* whether to allocate executable dataspaces */
+					Ram_allocator *_ram;          /* RAM session for backing store */
+					Region_map    *_region_map;   /* region map of address space   */
+					bool const     _executable;   /* whether to allocate executable dataspaces */
 
 				public:
 
 					/**
 					 * Constructor
 					 */
-					Dataspace_pool(Genode::Ram_allocator *ram,
-					               Genode::Region_map *rm, bool executable) :
+					Dataspace_pool(Ram_allocator *ram,
+					               Region_map *rm, bool executable) :
 						_ram(ram), _region_map(rm),
 						_executable(executable)
 					{ }
@@ -95,16 +98,16 @@ namespace Libc {
 					 *                  Region_map::Region_conflict
 					 * \return          0 on success or negative error code
 					 */
-					int expand(Genode::size_t size, Genode::Range_allocator *alloc);
+					int expand(size_t size, Range_allocator *alloc);
 
-					void reassign_resources(Genode::Ram_allocator *ram, Genode::Region_map *rm) {
+					void reassign_resources(Ram_allocator *ram, Region_map *rm) {
 						_ram = ram, _region_map = rm; }
 			};
 
-			Genode::Lock   mutable _lock;
-			Dataspace_pool         _ds_pool;      /* list of dataspaces */
-			Genode::Allocator_avl  _alloc;        /* local allocator    */
-			Genode::size_t         _chunk_size;
+			Lock   mutable _lock;
+			Dataspace_pool _ds_pool;      /* list of dataspaces */
+			Allocator_avl  _alloc;        /* local allocator    */
+			size_t         _chunk_size;
 
 			/**
 			 * Try to allocate block at our local allocator
@@ -114,12 +117,11 @@ namespace Libc {
 			 * This function is a utility used by 'alloc' to avoid
 			 * code duplication.
 			 */
-			bool _try_local_alloc(Genode::size_t size, void **out_addr);
+			bool _try_local_alloc(size_t size, void **out_addr);
 
 		public:
 
-			Mem_alloc_impl(Genode::Region_map &rm,
-			               Genode::Ram_allocator &ram,
+			Mem_alloc_impl(Region_map &rm, Ram_allocator &ram,
 			               bool executable = false)
 			:
 				_ds_pool(&ram, &rm, executable),
@@ -127,9 +129,9 @@ namespace Libc {
 				_chunk_size(MIN_CHUNK_SIZE)
 			{ }
 
-			void *alloc(Genode::size_t size, Genode::size_t align_log2);
+			void *alloc(size_t size, size_t align_log2);
 			void free(void *ptr);
-			Genode::size_t size_at(void const *ptr) const;
+			size_t size_at(void const *ptr) const;
 	};
 }
 

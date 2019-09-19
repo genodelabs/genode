@@ -203,7 +203,7 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 		 *
 		 * This function is called by the main thread.
 		 */
-		static void _user_entry(Libc::Kernel *kernel)
+		static void _user_entry(Kernel *kernel)
 		{
 			struct Check : Suspend_functor {
 				bool suspend() override { return true; }
@@ -305,7 +305,7 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 		 *
 		 * This function is called by the component thread on with_libc().
 		 */
-		void run(Libc::Application_code &app_code)
+		void run(Application_code &app_code)
 		{
 			if (!_main_context() || _state != KERNEL) {
 				error(__PRETTY_FUNCTION__, " called from non-kernel context");
@@ -496,7 +496,7 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 		/**
 		 * Execute application code while already executing in run()
 		 */
-		void nested_execution(Libc::Application_code &app_code)
+		void nested_execution(Application_code &app_code)
 		{
 			_nested_app_code = &app_code;
 

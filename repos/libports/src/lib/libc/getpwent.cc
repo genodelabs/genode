@@ -25,7 +25,9 @@
 #include <internal/legacy.h>
 #include <internal/errno.h>
 
-typedef Genode::String<128> Passwd_string;
+using namespace Libc;
+
+typedef String<128> Passwd_string;
 
 struct Passwd_fields {
 	Passwd_string name   { "root" };
@@ -46,14 +48,13 @@ struct Passwd_fields {
 
 static void _fill_passwd(struct passwd &db, Passwd_fields &fields)
 {
-	using namespace Genode;
 
 	/* reset buffers */
-	Genode::memset(&db, 0x00, sizeof(struct passwd));
+	::memset(&db, 0x00, sizeof(struct passwd));
 	fields = Passwd_fields();
 
 	try {
-		Xml_node const passwd = Libc::libc_config().sub_node("passwd");
+		Xml_node const passwd = libc_config().sub_node("passwd");
 
 		fields.name   = passwd.attribute_value("name",   fields.name);
 		fields.uid    = passwd.attribute_value("uid",   0UL);
@@ -88,8 +89,8 @@ static int _fill_r(struct passwd *in,
                    char *buffer, size_t bufsize,
                    struct passwd **out)
 {
-	if (!in || !buffer) return Libc::Errno(EINVAL);
-	if (bufsize < sizeof(Passwd_fields)) return Libc::Errno(ERANGE);
+	if (!in || !buffer) return Errno(EINVAL);
+	if (bufsize < sizeof(Passwd_fields)) return Errno(ERANGE);
 
 	Passwd_fields *fields = (Passwd_fields *)buffer;
 	_fill_passwd(*in, *fields);

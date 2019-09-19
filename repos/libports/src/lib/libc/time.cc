@@ -61,11 +61,11 @@ struct Libc::Rtc : Vfs::Watch_response_handler
 		_rtc_path(rtc_path)
 	{
 		if (!_rtc_path_valid) {
-			Genode::warning("rtc not configured, returning ", _rtc_value);
+			warning("rtc not configured, returning ", _rtc_value);
 			return;
 		}
 
-		_watch_handle = Libc::watch(_rtc_path.string());
+		_watch_handle = watch(_rtc_path.string());
 		if (_watch_handle) {
 			_watch_handle->handler(this);
 		}
@@ -91,7 +91,7 @@ struct Libc::Rtc : Vfs::Watch_response_handler
 
 		int fd = open(_rtc_path.string(), O_RDONLY);
 		if (fd == -1) {
-			Genode::warning(_rtc_path, " not readable, returning ", _rtc_value);
+			warning(_rtc_path, " not readable, returning ", _rtc_value);
 			return _rtc_value;
 		}
 
@@ -100,7 +100,7 @@ struct Libc::Rtc : Vfs::Watch_response_handler
 		if (n > 0) {
 			buf[n - 1] = '\0';
 			struct tm tm;
-			Genode::memset(&tm, 0, sizeof(tm));
+			memset(&tm, 0, sizeof(tm));
 
 			if (strptime(buf, "%Y-%m-%d %R", &tm)) {
 				_rtc_value = mktime(&tm);
@@ -115,7 +115,7 @@ struct Libc::Rtc : Vfs::Watch_response_handler
 		if (!_current_time_ptr)
 			throw Missing_call_of_init_time();
 
-		Genode::uint64_t const ts_value =
+		uint64_t const ts_value =
 			_current_time_ptr->current_time().trunc_to_plain_ms().value;
 		_rtc_value += (time_t)ts_value / 1000;
 
@@ -124,14 +124,19 @@ struct Libc::Rtc : Vfs::Watch_response_handler
 };
 
 
+using namespace Libc;
+
+
 extern "C" __attribute__((weak))
 int clock_gettime(clockid_t clk_id, struct timespec *ts)
 {
-	if (!ts) return Libc::Errno(EFAULT);
+	typedef Libc::uint64_t uint64_t;
+
+	if (!ts) return Errno(EFAULT);
 
 	auto current_time = [&] ()
 	{
-		struct Missing_call_of_init_time : Genode::Exception { };
+		struct Missing_call_of_init_time : Exception { };
 		if (!_current_time_ptr)
 			throw Missing_call_of_init_time();
 
@@ -151,12 +156,12 @@ int clock_gettime(clockid_t clk_id, struct timespec *ts)
 		/*
 		 * XXX move instance to Libc::Kernel
 		 */
-		static Libc::Rtc rtc(_rtc_path);
+		static Rtc rtc(_rtc_path);
 
 		time_t const rtc_value = rtc.read();
-		if (!rtc_value) return Libc::Errno(EINVAL);
+		if (!rtc_value) return Errno(EINVAL);
 
-		Genode::uint64_t const time = current_time().trunc_to_plain_ms().value;
+		uint64_t const time = current_time().trunc_to_plain_ms().value;
 
 		ts->tv_sec  = rtc_value + time/1000;
 		ts->tv_nsec = (time % 1000) * (1000*1000);
@@ -167,7 +172,7 @@ int clock_gettime(clockid_t clk_id, struct timespec *ts)
 	case CLOCK_MONOTONIC:
 	case CLOCK_UPTIME:
 	{
-		Genode::uint64_t us = current_time().trunc_to_plain_us().value;
+		uint64_t us = current_time().trunc_to_plain_us().value;
 
 		ts->tv_sec  = us / (1000*1000);
 		ts->tv_nsec = (us % (1000*1000)) * 1000;
@@ -175,7 +180,7 @@ int clock_gettime(clockid_t clk_id, struct timespec *ts)
 	}
 
 	default:
-		return Libc::Errno(EINVAL);
+		return Errno(EINVAL);
 	}
 
 	return 0;
@@ -209,6 +214,6 @@ int __sys_gettimeofday(struct timeval *tv, struct timezone *);
 extern "C"
 clock_t clock()
 {
-	Genode::error(__func__, " not implemented, use 'clock_gettime' instead");
+	error(__func__, " not implemented, use 'clock_gettime' instead");
 	return -1;
 }

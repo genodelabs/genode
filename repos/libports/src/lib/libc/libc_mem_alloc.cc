@@ -72,7 +72,7 @@ int Libc::Mem_alloc_impl::Dataspace_pool::expand(size_t size, Range_allocator *a
 
 	/* now that we have new backing store, allocate Dataspace structure */
 	if (alloc->alloc_aligned(sizeof(Dataspace), &ds_addr, 2).error()) {
-		Genode::warning("libc: could not allocate meta data - this should never happen");
+		warning("libc: could not allocate meta data - this should never happen");
 		return -1;
 	}
 
@@ -114,7 +114,7 @@ void *Libc::Mem_alloc_impl::alloc(size_t size, size_t align_log2)
 	}
 
 	if (_ds_pool.expand(align_addr(request_size, 12), &_alloc) < 0) {
-		Genode::warning("libc: could not expand dataspace pool");
+		warning("libc: could not expand dataspace pool");
 		return 0;
 	}
 
@@ -133,7 +133,7 @@ void Libc::Mem_alloc_impl::free(void *addr)
 }
 
 
-Genode::size_t Libc::Mem_alloc_impl::size_at(void const *addr) const
+size_t Libc::Mem_alloc_impl::size_at(void const *addr) const
 {
 	/* serialize access of heap functions */
 	Lock::Guard lock_guard(_lock);
@@ -147,7 +147,7 @@ static Libc::Mem_alloc *_libc_mem_alloc_rw  = nullptr;
 static Libc::Mem_alloc *_libc_mem_alloc_rwx = nullptr;
 
 
-static void _init_mem_alloc(Genode::Region_map &rm, Genode::Ram_allocator &ram)
+static void _init_mem_alloc(Region_map &rm, Ram_allocator &ram)
 {
 	enum { MEMORY_EXECUTABLE = true };
 
@@ -159,12 +159,9 @@ static void _init_mem_alloc(Genode::Region_map &rm, Genode::Ram_allocator &ram)
 }
 
 
-namespace Libc {
-
-	void init_mem_alloc(Genode::Env &env)
-	{
-		_init_mem_alloc(env.rm(), env.ram());
-	}
+void Libc::init_mem_alloc(Genode::Env &env)
+{
+	_init_mem_alloc(env.rm(), env.ram());
 }
 
 

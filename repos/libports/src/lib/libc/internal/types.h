@@ -16,6 +16,11 @@
 
 #include <base/log.h>
 
-namespace Libc { using namespace Genode; }
+namespace Libc {
+
+	using namespace Genode;
+
+	typedef Genode::uint64_t uint64_t;
+}
 
 #endif /* _LIBC__INTERNAL__TYPES_H_ */

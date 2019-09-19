@@ -57,7 +57,7 @@ size_t Libc::Kernel::_user_stack_size()
 void Libc::Kernel::schedule_suspend(void(*original_suspended_callback) ())
 {
 	if (_state != USER) {
-		Genode::error(__PRETTY_FUNCTION__, " called from non-user context");
+		error(__PRETTY_FUNCTION__, " called from non-user context");
 		return;
 	}
 
@@ -87,7 +87,7 @@ void Libc::Kernel::reset_malloc_heap()
 		destroy(_heap, &r); });
 
 	Heap &raw_malloc_heap = *_malloc_heap;
-	Genode::construct_at<Heap>(&raw_malloc_heap, *_malloc_ram, _env.rm());
+	construct_at<Heap>(&raw_malloc_heap, *_malloc_ram, _env.rm());
 
 	reinit_malloc(raw_malloc_heap);
 }
@@ -95,23 +95,23 @@ void Libc::Kernel::reset_malloc_heap()
 
 void Libc::Kernel::_init_file_descriptors()
 {
-	auto init_fd = [&] (Genode::Xml_node const &node, char const *attr,
+	auto init_fd = [&] (Xml_node const &node, char const *attr,
 	                    int libc_fd, unsigned flags)
 	{
 		if (!node.has_attribute(attr))
 			return;
 
-		typedef Genode::String<Vfs::MAX_PATH_LEN> Path;
+		typedef String<Vfs::MAX_PATH_LEN> Path;
 		Path const path = node.attribute_value(attr, Path());
 
 		struct stat out_stat { };
 		if (stat(path.string(), &out_stat) != 0)
 			return;
 
-		Libc::File_descriptor *fd = _vfs.open(path.string(), flags, libc_fd);
+		File_descriptor *fd = _vfs.open(path.string(), flags, libc_fd);
 		if (fd->libc_fd != libc_fd) {
-			Genode::error("could not allocate fd ",libc_fd," for ",path,", "
-			              "got fd ",fd->libc_fd);
+			error("could not allocate fd ",libc_fd," for ",path,", "
+			      "got fd ",fd->libc_fd);
 			_vfs.close(fd);
 			return;
 		}
@@ -122,7 +122,7 @@ void Libc::Kernel::_init_file_descriptors()
 		 * because we want to explicitly specify the libc fd ID.
 		 */
 		if (fd->fd_path)
-			Genode::warning("may leak former FD path memory");
+			warning("may leak former FD path memory");
 
 		{
 			char *dst = (char *)_heap.alloc(path.length());
@@ -139,7 +139,7 @@ void Libc::Kernel::_init_file_descriptors()
 
 		Xml_node const node = _libc_env.libc_config();
 
-		typedef Genode::String<Vfs::MAX_PATH_LEN> Path;
+		typedef String<Vfs::MAX_PATH_LEN> Path;
 
 		if (node.has_attribute("cwd"))
 			chdir(node.attribute_value("cwd", Path()).string());
@@ -166,7 +166,7 @@ void Libc::Kernel::_init_file_descriptors()
 
 		/* prevent use of IDs of stdin, stdout, and stderr for other files */
 		for (unsigned fd = 0; fd <= 2; fd++)
-			Libc::file_descriptor_allocator()->preserve(fd);
+			file_descriptor_allocator()->preserve(fd);
 	}
 }
 
@@ -270,7 +270,7 @@ void Libc::Kernel::handle_io_progress()
 }
 
 
-void Libc::execute_in_application_context(Libc::Application_code &app_code)
+void Libc::execute_in_application_context(Application_code &app_code)
 {
 	/*
 	 * The libc execution model builds on the main entrypoint, which handles

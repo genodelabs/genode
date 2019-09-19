@@ -31,17 +31,17 @@ struct Libc::Timer
 
 	Timer(Genode::Env &env) : _timer(env) { }
 
-	Genode::Duration curr_time()
+	Duration curr_time()
 	{
 		return _timer.curr_time();
 	}
 
-	static Microseconds microseconds(Genode::uint64_t timeout_ms)
+	static Microseconds microseconds(uint64_t timeout_ms)
 	{
 		return Microseconds(1000*timeout_ms);
 	}
 
-	static Genode::uint64_t max_timeout()
+	static uint64_t max_timeout()
 	{
 		return ~0UL/1000;
 	}
@@ -72,12 +72,12 @@ struct Libc::Timeout_handler
  */
 struct Libc::Timeout
 {
-	Libc::Timer_accessor               &_timer_accessor;
+	Timer_accessor                     &_timer_accessor;
 	Timeout_handler                    &_handler;
 	::Timer::One_shot_timeout<Timeout>  _timeout;
 
-	bool             _expired             = true;
-	Genode::uint64_t _absolute_timeout_ms = 0;
+	bool     _expired             = true;
+	uint64_t _absolute_timeout_ms = 0;
 
 	void _handle(Duration now)
 	{
@@ -93,7 +93,7 @@ struct Libc::Timeout
 		_timeout(_timer_accessor.timer()._timer, *this, &Timeout::_handle)
 	{ }
 
-	void start(Genode::uint64_t timeout_ms)
+	void start(uint64_t timeout_ms)
 	{
 		Milliseconds const now = _timer_accessor.timer().curr_time().trunc_to_plain_ms();
 
@@ -103,7 +103,7 @@ struct Libc::Timeout
 		_timeout.schedule(_timer_accessor.timer().microseconds(timeout_ms));
 	}
 
-	Genode::uint64_t duration_left() const
+	uint64_t duration_left() const
 	{
 		Milliseconds const now = _timer_accessor.timer().curr_time().trunc_to_plain_ms();
 

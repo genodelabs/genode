@@ -31,16 +31,16 @@
 #include <internal/suspend.h>
 #include <internal/resume.h>
 
-using namespace Genode;
+using namespace Libc;
 
 
-static Env *_env_ptr;  /* solely needed to spawn the timeout thread for the
-                          timed semaphore */
+static Genode::Env *_env_ptr;  /* solely needed to spawn the timeout thread for the
+                                  timed semaphore */
 
 static Thread *_main_thread_ptr;
 
-static Libc::Suspend *_suspend_ptr;
-static Libc::Resume  *_resume_ptr;
+static Suspend *_suspend_ptr;
+static Resume  *_resume_ptr;
 
 
 void Libc::init_pthread_support(Genode::Env &env, Suspend &suspend, Resume &resume)
@@ -58,15 +58,16 @@ static Libc::Timeout_entrypoint &_global_timeout_ep()
 	if (!_env_ptr)
 		throw Missing_call_of_init_pthread_support();
 
-	static Libc::Timeout_entrypoint timeout_ep { *_env_ptr };
+	static Timeout_entrypoint timeout_ep { *_env_ptr };
 	return timeout_ep;
 }
 
 
-/*
- * pthread
- */
-void pthread::Thread_object::entry()
+/*************
+ ** Pthread **
+ *************/
+
+void Libc::Pthread::Thread_object::entry()
 {
 	/* obtain stack attributes of new thread */
 	Thread::Stack_info info = Thread::mystack();
@@ -77,15 +78,15 @@ void pthread::Thread_object::entry()
 }
 
 
-void pthread::join(void **retval)
+void Libc::Pthread::join(void **retval)
 {
-	struct Check : Libc::Suspend_functor
+	struct Check : Suspend_functor
 	{
 		bool retry { false };
 
-		pthread &_thread;
+		Pthread &_thread;
 
-		Check(pthread &thread) : _thread(thread) { }
+		Check(Pthread &thread) : _thread(thread) { }
 		
 		bool suspend() override
 		{
@@ -109,7 +110,7 @@ void pthread::join(void **retval)
 }
 
 
-void pthread::cancel()
+void Libc::Pthread::cancel()
 {
 	_exiting = true;
 
@@ -127,49 +128,49 @@ void pthread::cancel()
  * Registry
  */
 
-void Pthread_registry::insert(pthread_t thread)
+void Libc::Pthread_registry::insert(Pthread &thread)
 {
 	/* prevent multiple insertions at the same location */
-	static Genode::Lock insert_lock;
-	Genode::Lock::Guard insert_lock_guard(insert_lock);
+	static Lock insert_lock;
+	Lock::Guard insert_lock_guard(insert_lock);
 
 	for (unsigned int i = 0; i < MAX_NUM_PTHREADS; i++) {
 		if (_array[i] == 0) {
-			_array[i] = thread;
+			_array[i] = &thread;
 			return;
 		}
 	}
 
-	Genode::error("pthread registry overflow, pthread_self() might fail");
+	error("pthread registry overflow, pthread_self() might fail");
 }
 
 
-void Pthread_registry::remove(pthread_t thread)
+void Libc::Pthread_registry::remove(Pthread &thread)
 {
 	for (unsigned int i = 0; i < MAX_NUM_PTHREADS; i++) {
-		if (_array[i] == thread) {
+		if (_array[i] == &thread) {
 			_array[i] = 0;
 			return;
 		}
 	}
 
-	Genode::error("could not remove unknown pthread from registry");
+	error("could not remove unknown pthread from registry");
 }
 
 
-bool Pthread_registry::contains(pthread_t thread)
+bool Libc::Pthread_registry::contains(Pthread &thread)
 {
 	for (unsigned int i = 0; i < MAX_NUM_PTHREADS; i++)
-		if (_array[i] == thread)
+		if (_array[i] == &thread)
 			return true;
 
 	return false;
 }
 
 
-Pthread_registry &pthread_registry()
+Libc::Pthread_registry &pthread_registry()
 {
-	static Pthread_registry instance;
+	static Libc::Pthread_registry instance;
 	return instance;
 }
 
@@ -224,7 +225,7 @@ extern "C" {
 	void pthread_exit(void *value_ptr)
 	{
 		pthread_self()->exit(value_ptr);
-		Genode::sleep_forever();
+		sleep_forever();
 	}
 
 
@@ -241,7 +242,7 @@ extern "C" {
 			pthread_t pthread_myself =
 				static_cast<pthread_t>(&Thread::Tls::Base::tls());
 
-			if (pthread_registry().contains(pthread_myself))
+			if (pthread_registry().contains(*pthread_myself))
 				return pthread_myself;
 		}
 		catch (Thread::Tls::Base::Undefined) { }
@@ -290,7 +291,7 @@ extern "C" {
 			stacksize = max_stack;
 		}
 
-		(*attr)->stack_size = Genode::align_addr(stacksize, 12);
+		(*attr)->stack_size = align_addr(stacksize, 12);
 
 		return 0;
 	}
@@ -622,7 +623,7 @@ extern "C" {
 		int num_waiters;
 		int num_signallers;
 		Lock counter_lock;
-		Libc::Timed_semaphore signal_sem { _global_timeout_ep() };
+		Timed_semaphore signal_sem { _global_timeout_ep() };
 		Semaphore handshake_sem;
 
 		pthread_cond() : num_waiters(0), num_signallers(0) { }
@@ -666,13 +667,13 @@ extern "C" {
 	static int cond_init(pthread_cond_t *__restrict cond,
 	                     const pthread_condattr_t *__restrict attr)
 	{
-		static Genode::Lock cond_init_lock { };
+		static Lock cond_init_lock { };
 
 		if (!cond)
 			return EINVAL;
 
 		try {
-			Genode::Lock::Guard g(cond_init_lock);
+			Lock::Guard g(cond_init_lock);
 			Libc::Allocator alloc { };
 			*cond = new (alloc) pthread_cond;
 			return 0;
@@ -771,9 +772,9 @@ extern "C" {
 
 			try {
 				c->signal_sem.down(timeout);
-			} catch (Libc::Timeout_exception) {
+			} catch (Timeout_exception) {
 				result = ETIMEDOUT;
-			} catch (Libc::Nonblocking_exception) {
+			} catch (Nonblocking_exception) {
 				errno  = ETIMEDOUT;
 				result = ETIMEDOUT;
 			}

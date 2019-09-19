@@ -22,13 +22,17 @@
 /* libc includes */
 #include <pthread.h>
 
+/* libc-internal includes */
+#include <internal/types.h>
+
 namespace Libc {
+
 	int pthread_create(pthread_t *thread,
 	                   void *(*start_routine) (void *), void *arg,
 	                   size_t stack_size, char const * name,
-	                   Genode::Cpu_session * cpu, Genode::Affinity::Location location);
+	                   Cpu_session * cpu, Affinity::Location location);
 
-	int pthread_create(pthread_t *, Genode::Thread &);
+	int pthread_create(pthread_t *, Thread &);
 }
 
 #endif /* _LIBC__INTERNAL__THREAD_CREATE_H_ */

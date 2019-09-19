@@ -22,6 +22,7 @@ extern "C" {
 
 /* libc-internal includes */
 #include <internal/errno.h>
+#include <internal/types.h>
 
 /* Genode includes */
 #include <trace/timestamp.h>
@@ -30,8 +31,9 @@ extern "C" {
 
 namespace Libc { extern char const *config_rng(); }
 
-static
-ssize_t read_rng(char *buf, size_t buflen)
+using namespace Libc;
+
+static ssize_t read_rng(char *buf, size_t buflen)
 {
 	static int rng_fd { -1 };
 	static bool fallback { false };
@@ -41,27 +43,27 @@ ssize_t read_rng(char *buf, size_t buflen)
 		while (off < buflen) {
 			/* collect 31 bits of random */
 			unsigned const nonce = random();
-			size_t n = Genode::min(4U, buflen-off);
-			memcpy(buf+off, &nonce, n);
+			size_t n = min(4U, buflen-off);
+			::memcpy(buf+off, &nonce, n);
 			off += n;
 		}
 		return buflen;
 	}
 
 	if (rng_fd == -1) {
-		if (!Genode::strcmp(Libc::config_rng(), "")) {
-			Genode::warning("Libc RNG not configured");
+		if (!::strcmp(config_rng(), "")) {
+			warning("Libc RNG not configured");
 
 			/* initialize the FreeBSD random facility */
-			srandom(Genode::Trace::timestamp()|1);
+			srandom(Trace::timestamp()|1);
 			fallback = true;
 
 			return read_rng(buf, buflen);
 		}
 
-		rng_fd = open(Libc::config_rng(), O_RDONLY);
+		rng_fd = open(config_rng(), O_RDONLY);
 		if (rng_fd == -1) {
-			Genode::error("RNG device ", Genode::Cstring(Libc::config_rng()), " not readable!");
+			error("RNG device ", Cstring(config_rng()), " not readable!");
 			exit(~0);
 		}
 	}
@@ -76,7 +78,7 @@ getrandom(void *buf, size_t buflen, unsigned int flags)
 	size_t off = 0;
 	while (off < buflen && off < 256) {
 		ssize_t n = read_rng((char*)buf+off, buflen-off);
-		if (n < 1) return Libc::Errno(EIO);
+		if (n < 1) return Errno(EIO);
 		off += n;
 	}
 	return off;
@@ -87,12 +89,12 @@ extern "C" int __attribute__((weak))
 getentropy(void *buf, size_t buflen)
 {
 	/* maximum permitted value for the length argument is 256 */
-	if (256 < buflen) return Libc::Errno(EIO);
+	if (256 < buflen) return Errno(EIO);
 
 	size_t off = 0;
 	while (off < buflen) {
 		ssize_t n = read_rng((char*)buf+off, buflen-off);
-		if (n < 1) return Libc::Errno(EIO);
+		if (n < 1) return Errno(EIO);
 		off += n;
 	}
 	return 0;

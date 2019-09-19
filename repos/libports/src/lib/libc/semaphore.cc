@@ -20,7 +20,10 @@
 /* libc includes */
 #include <libc/allocator.h>
 
-using namespace Genode;
+/* libc-internal includes */
+#include <internal/types.h>
+
+using namespace Libc;
 
 
 extern "C" {
