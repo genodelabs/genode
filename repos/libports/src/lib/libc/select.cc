@@ -45,10 +45,12 @@ namespace Libc {
 	struct Select_cb_list;
 }
 
+using namespace Libc;
 
-static Libc::Suspend *_suspend_ptr;
-static Libc::Resume  *_resume_ptr;
-static Libc::Select  *_select_ptr;
+
+static Suspend *_suspend_ptr;
+static Resume  *_resume_ptr;
+static Select  *_select_ptr;
 
 
 void Libc::init_select(Suspend &suspend, Resume &resume, Select &select)
@@ -82,14 +84,14 @@ struct Libc::Select_cb
 
 struct Libc::Select_cb_list
 {
-	Genode::Lock  _mutex;
-	Select_cb    *_first = nullptr;
+	Lock       _mutex;
+	Select_cb *_first = nullptr;
 
-	struct Guard : Genode::Lock::Guard
+	struct Guard : Lock::Guard
 	{
 		Select_cb_list *l;
 
-		Guard(Select_cb_list &list) : Genode::Lock::Guard(list._mutex), l(&list) { }
+		Guard(Select_cb_list &list) : Lock::Guard(list._mutex), l(&list) { }
 	};
 
 	void unsynchronized_insert(Select_cb *scb)
@@ -130,7 +132,7 @@ struct Libc::Select_cb_list
 /** The global list of tasks waiting for select */
 static Libc::Select_cb_list &select_cb_list()
 {
-	static Libc::Select_cb_list inst;
+	static Select_cb_list inst;
 	return inst;
 }
 
@@ -162,7 +164,7 @@ static int selscan(int nfds,
 	if (out_writefds)  FD_ZERO(out_writefds);
 	if (out_exceptfds) FD_ZERO(out_exceptfds);
 
-	for (Libc::Plugin *plugin = Libc::plugin_registry()->first();
+	for (Plugin *plugin = plugin_registry()->first();
 	     plugin;
 	     plugin = plugin->next()) {
 		if (plugin->supports_select(nfds, in_readfds, in_writefds, in_exceptfds, &tv_0)) {
@@ -187,7 +189,7 @@ static int selscan(int nfds,
 				}
 				nready += plugin_nready;
 			} else if (plugin_nready < 0) {
-				Genode::error("plugin->select() returned error value ", plugin_nready);
+				error("plugin->select() returned error value ", plugin_nready);
 			}
 		}
 	}
@@ -205,7 +207,7 @@ static void select_notify()
 	/* check for each waiting select() function if one of its fds is ready now
 	 * and if so, wake all up */
 
-	select_cb_list().for_each([&] (Libc::Select_cb &scb) {
+	select_cb_list().for_each([&] (Select_cb &scb) {
 		scb.nready = selscan(scb.nfds,
 		                     &scb.readfds, &scb.writefds, &scb.exceptfds,
 		                     &tmp_readfds,  &tmp_writefds,  &tmp_exceptfds);
@@ -219,7 +221,7 @@ static void select_notify()
 	});
 
 	if (resume_all) {
-		struct Missing_call_of_init_select : Genode::Exception { };
+		struct Missing_call_of_init_select : Exception { };
 		if (!_resume_ptr)
 			throw Missing_call_of_init_select();
 
@@ -228,7 +230,7 @@ static void select_notify()
 }
 
 
-static inline void print(Genode::Output &output, timeval *tv)
+static inline void print(Output &output, timeval *tv)
 {
 	if (!tv) {
 		print(output, "nullptr");
@@ -248,7 +250,7 @@ int select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
 {
 	fd_set in_readfds, in_writefds, in_exceptfds;
 
-	Genode::Constructible<Libc::Select_cb> select_cb;
+	Constructible<Select_cb> select_cb;
 
 	/* initialize the select notification function pointer */
 	if (!libc_select_notify)
@@ -263,7 +265,7 @@ int select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
 		 * We use the guard directly to atomically check if any descripor is
 		 * ready, but insert into select-callback list otherwise.
 		 */
-		Libc::Select_cb_list::Guard guard(select_cb_list());
+		Select_cb_list::Guard guard(select_cb_list());
 
 		int const nready = selscan(nfds,
 		                           &in_readfds, &in_writefds, &in_exceptfds,
@@ -296,11 +298,12 @@ int select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
 		Timeout(timeval *tv) : _tv(tv) { }
 	} timeout { tv };
 
-	struct Check : Libc::Suspend_functor {
-		struct Timeout  *timeout;
-		Libc::Select_cb *select_cb;
+	struct Check : Suspend_functor
+	{
+		struct Timeout *timeout;
+		Select_cb      *select_cb;
 
-		Check(Timeout *timeout, Libc::Select_cb * select_cb)
+		Check(Timeout *timeout, Select_cb * select_cb)
 		: timeout(timeout), select_cb(select_cb) { }
 
 		bool suspend() override {
@@ -308,7 +311,7 @@ int select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
 	} check ( &timeout, &*select_cb );
 
 	{
-		struct Missing_call_of_init_select : Genode::Exception { };
+		struct Missing_call_of_init_select : Exception { };
 		if (!_suspend_ptr)
 			throw Missing_call_of_init_select();
 	}
@@ -392,7 +395,7 @@ int Libc::Select_handler_base::select(int nfds, fd_set &readfds,
 		 * We use the guard directly to atomically check is any descripor is
 		 * ready, and insert into select-callback list otherwise.
 		 */
-		Libc::Select_cb_list::Guard guard(select_cb_list());
+		Select_cb_list::Guard guard(select_cb_list());
 
 		int const nready = selscan(nfds,
 		                           &in_readfds, &in_writefds, &in_exceptfds,
@@ -439,6 +442,7 @@ Libc::Select_handler_base::Select_handler_base()
 :
 	_select_cb((Select_handler_cb*)malloc(sizeof(*_select_cb)))
 { }
+
 
 Libc::Select_handler_base::~Select_handler_base()
 { }

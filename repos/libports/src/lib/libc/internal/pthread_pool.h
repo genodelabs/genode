@@ -26,8 +26,8 @@ struct Libc::Pthread_pool
 {
 	struct Pthread : Timeout_handler
 	{
-		Genode::Lock  lock { Genode::Lock::LOCKED };
-		Pthread      *next { nullptr };
+		Lock    lock { Lock::LOCKED };
+		Pthread *next { nullptr };
 
 		Timer_accessor         &_timer_accessor;
 		Constructible<Timeout>  _timeout;
@@ -38,7 +38,7 @@ struct Libc::Pthread_pool
 				_timeout.construct(_timer_accessor, *this);
 		}
 
-		Pthread(Timer_accessor &timer_accessor, Genode::uint64_t timeout_ms)
+		Pthread(Timer_accessor &timer_accessor, uint64_t timeout_ms)
 		: _timer_accessor(timer_accessor)
 		{
 			if (timeout_ms > 0) {
@@ -47,7 +47,7 @@ struct Libc::Pthread_pool
 			}
 		}
 
-		Genode::uint64_t duration_left()
+		uint64_t duration_left()
 		{
 			_construct_timeout_once();
 			return _timeout->duration_left();
@@ -59,7 +59,7 @@ struct Libc::Pthread_pool
 		}
 	};
 
-	Genode::Lock    mutex;
+	Lock            mutex;
 	Pthread        *pthreads = nullptr;
 	Timer_accessor &timer_accessor;
 
@@ -69,17 +69,17 @@ struct Libc::Pthread_pool
 
 	void resume_all()
 	{
-		Genode::Lock::Guard g(mutex);
+		Lock::Guard g(mutex);
 
 		for (Pthread *p = pthreads; p; p = p->next)
 			p->lock.unlock();
 	}
 
-	Genode::uint64_t suspend_myself(Suspend_functor & check, Genode::uint64_t timeout_ms)
+	uint64_t suspend_myself(Suspend_functor & check, uint64_t timeout_ms)
 	{
 		Pthread myself { timer_accessor, timeout_ms };
 		{
-			Genode::Lock::Guard g(mutex);
+			Lock::Guard g(mutex);
 
 			myself.next = pthreads;
 			pthreads    = &myself;
@@ -89,7 +89,7 @@ struct Libc::Pthread_pool
 			myself.lock.lock();
 
 		{
-			Genode::Lock::Guard g(mutex);
+			Lock::Guard g(mutex);
 
 			/* address of pointer to next pthread allows to change the head */
 			for (Pthread **next = &pthreads; *next; next = &(*next)->next) {

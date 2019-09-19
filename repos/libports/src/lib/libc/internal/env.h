@@ -32,40 +32,39 @@ class Libc::Env_implementation : public Libc::Env, public Config_accessor
 
 		Genode::Env &_env;
 
-		Genode::Attached_rom_dataspace _config { _env, "config" };
+		Attached_rom_dataspace _config { _env, "config" };
 
-		Genode::Xml_node _vfs_config()
+		Xml_node _vfs_config()
 		{
 			try { return _config.xml().sub_node("vfs"); }
-			catch (Genode::Xml_node::Nonexistent_sub_node) { }
+			catch (Xml_node::Nonexistent_sub_node) { }
 			try {
-				Genode::Xml_node node =
-					_config.xml().sub_node("libc").sub_node("vfs");
-				Genode::warning("'<config> <libc> <vfs/>' is deprecated, "
-				                "please move to '<config> <vfs/>'");
+				Xml_node node = _config.xml().sub_node("libc").sub_node("vfs");
+				warning("'<config> <libc> <vfs/>' is deprecated, "
+				        "please move to '<config> <vfs/>'");
 				return node;
 			}
-			catch (Genode::Xml_node::Nonexistent_sub_node) { }
+			catch (Xml_node::Nonexistent_sub_node) { }
 
-			return Genode::Xml_node("<vfs/>");
+			return Xml_node("<vfs/>");
 		}
 
-		Genode::Xml_node _libc_config()
+		Xml_node _libc_config()
 		{
 			try { return _config.xml().sub_node("libc"); }
-			catch (Genode::Xml_node::Nonexistent_sub_node) { }
+			catch (Xml_node::Nonexistent_sub_node) { }
 
-			return Genode::Xml_node("<libc/>");
+			return Xml_node("<libc/>");
 		}
 
 		Vfs::Simple_env _vfs_env;
 
-		Genode::Xml_node _config_xml() const override {
+		Xml_node _config_xml() const override {
 			return _config.xml(); };
 
 	public:
 
-		Env_implementation(Genode::Env &env, Genode::Allocator &alloc)
+		Env_implementation(Genode::Env &env, Allocator &alloc)
 		: _env(env), _vfs_env(_env, alloc, _vfs_config()) { }
 
 
@@ -76,7 +75,7 @@ class Libc::Env_implementation : public Libc::Env, public Config_accessor
 		Vfs::File_system &vfs() override {
 			return _vfs_env.root_dir(); }
 
-		Genode::Xml_node libc_config() override {
+		Xml_node libc_config() override {
 			return _libc_config(); }
 
 

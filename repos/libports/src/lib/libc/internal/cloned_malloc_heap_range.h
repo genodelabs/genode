@@ -25,15 +25,15 @@ namespace Libc { struct Cloned_malloc_heap_range; }
 
 struct Libc::Cloned_malloc_heap_range
 {
-	Genode::Ram_allocator &ram;
-	Genode::Region_map    &rm;
+	Ram_allocator &ram;
+	Region_map    &rm;
 
-	Genode::Ram_dataspace_capability ds;
+	Ram_dataspace_capability ds;
 
 	size_t const size;
 	addr_t const local_addr;
 
-	Cloned_malloc_heap_range(Genode::Ram_allocator &ram, Genode::Region_map &rm,
+	Cloned_malloc_heap_range(Ram_allocator &ram, Region_map &rm,
 	                         void *start, size_t size)
 	try :
 		ram(ram), rm(rm), ds(ram.alloc(size)), size(size),

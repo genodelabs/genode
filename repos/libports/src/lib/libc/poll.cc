@@ -23,8 +23,10 @@
 #include <internal/init.h>
 #include <internal/suspend.h>
 
+using namespace Libc;
 
-static Libc::Suspend *_suspend_ptr;
+
+static Suspend *_suspend_ptr;
 
 
 void Libc::init_poll(Suspend &suspend)
@@ -36,11 +38,11 @@ void Libc::init_poll(Suspend &suspend)
 extern "C" __attribute__((weak))
 int poll(struct pollfd fds[], nfds_t nfds, int timeout_ms)
 {
-	using namespace Libc;
+	using Genode::uint64_t;
 
 	if (!fds || nfds == 0) return Errno(EINVAL);
 
-	struct Check : Libc::Suspend_functor
+	struct Check : Suspend_functor
 	{
 		pollfd       *_fds;
 		nfds_t const  _nfds;
@@ -65,7 +67,7 @@ int poll(struct pollfd fds[], nfds_t nfds, int timeout_ms)
 				}
 
 				if (!libc_fd->plugin || !libc_fd->plugin->supports_poll()) {
-					Genode::warning("poll not supported for file descriptor ", pfd.fd);
+					warning("poll not supported for file descriptor ", pfd.fd);
 					continue;
 				}
 
@@ -84,7 +86,7 @@ int poll(struct pollfd fds[], nfds_t nfds, int timeout_ms)
 		return check.nready;
 	}
 
-	auto suspend = [&] (Genode::uint64_t timeout_ms)
+	auto suspend = [&] (uint64_t timeout_ms)
 	{
 		struct Missing_call_of_init_poll : Exception { };
 		if (!_suspend_ptr)
@@ -98,7 +100,7 @@ int poll(struct pollfd fds[], nfds_t nfds, int timeout_ms)
 			suspend(0);
 		}
 	} else {
-		Genode::uint64_t remaining_ms = timeout_ms;
+		uint64_t remaining_ms = timeout_ms;
 		while (check.nready == 0 && remaining_ms > 0) {
 			remaining_ms = suspend(remaining_ms);
 		}

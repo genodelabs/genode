@@ -22,21 +22,23 @@
 namespace Libc { struct Malloc_ram_allocator; }
 
 
-struct Libc::Malloc_ram_allocator : Genode::Ram_allocator
+struct Libc::Malloc_ram_allocator : Ram_allocator
 {
-	Genode::Allocator     &_md_alloc;
-	Genode::Ram_allocator &_ram;
+	typedef Genode::Allocator Allocator;
+
+	Allocator     &_md_alloc;
+	Ram_allocator &_ram;
 
 	struct Dataspace
 	{
-		Genode::Ram_dataspace_capability cap;
-		Dataspace(Genode::Ram_dataspace_capability cap) : cap(cap) { }
+		Ram_dataspace_capability cap;
+		Dataspace(Ram_dataspace_capability cap) : cap(cap) { }
 		virtual ~Dataspace() { }
 	};
 
-	Genode::Registry<Genode::Registered<Dataspace> > _dataspaces { };
+	Registry<Registered<Dataspace> > _dataspaces { };
 
-	void _release(Genode::Registered<Dataspace> &ds)
+	void _release(Registered<Dataspace> &ds)
 	{
 		_ram.free(ds.cap);
 		destroy(_md_alloc, &ds);

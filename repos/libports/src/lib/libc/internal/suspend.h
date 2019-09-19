@@ -29,8 +29,6 @@ namespace Libc {
 
 	struct Suspend : Interface
 	{
-		typedef Genode::uint64_t uint64_t;
-
 		/**
 		 * Suspend the execution of the calling user context
 		 *

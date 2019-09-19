@@ -56,7 +56,7 @@ using namespace Libc;
 
 Libc::Mmap_registry *Libc::mmap_registry()
 {
-	static Libc::Mmap_registry registry;
+	static Mmap_registry registry;
 	return &registry;
 }
 
@@ -86,7 +86,7 @@ struct Scanner_policy_path_element
 	}
 };
 
-typedef Genode::Token<Scanner_policy_path_element> Path_element_token;
+typedef Token<Scanner_policy_path_element> Path_element_token;
 
 
 /**
@@ -126,7 +126,7 @@ void Libc::resolve_symlinks(char const *path, Absolute_path &resolved_path)
 
 			try {
 				next_iteration_working_path.append_element(path_element);
-			} catch (Genode::Path_base::Path_too_long) {
+			} catch (Path_base::Path_too_long) {
 				errno = ENAMETOOLONG;
 				throw Symlink_resolve_error();
 			}
@@ -160,7 +160,7 @@ void Libc::resolve_symlinks(char const *path, Absolute_path &resolved_path)
 						next_iteration_working_path.strip_last_element();
 						try {
 							next_iteration_working_path.append_element(symlink_target);
-						} catch (Genode::Path_base::Path_too_long) {
+						} catch (Path_base::Path_too_long) {
 							errno = ENAMETOOLONG;
 							throw Symlink_resolve_error();
 						}
@@ -191,7 +191,7 @@ static void resolve_symlinks_except_last_element(char const *path, Absolute_path
 	absolute_path_last_element.keep_only_last_element();
 	try {
 		resolved_path.append_element(absolute_path_last_element.base());
-	} catch (Genode::Path_base::Path_too_long) {
+	} catch (Path_base::Path_too_long) {
 		errno = ENAMETOOLONG;
 		throw Symlink_resolve_error();
 	}
@@ -233,10 +233,9 @@ extern "C" int chdir(const char *path)
  */
 __SYS_(int, close, (int libc_fd),
 {
-	Libc::File_descriptor *fd =
-		Libc::file_descriptor_allocator()->find_by_libc_fd(libc_fd);
+	File_descriptor *fd = file_descriptor_allocator()->find_by_libc_fd(libc_fd);
 	return (!fd || !fd->plugin)
-		? Libc::Errno(EBADF)
+		? Errno(EBADF)
 		: fd->plugin->close(fd);
 })
 
@@ -317,14 +316,13 @@ __SYS_(int, fstatat, (int libc_fd, char const *path, struct stat *buf, int flags
 		return stat(path, buf);
 	}
 
-	Libc::Absolute_path abs_path;
+	Absolute_path abs_path;
 
 	if (libc_fd == AT_FDCWD) {
 		abs_path = cwd();
 		abs_path.append_element(path);
 	} else {
-		Libc::File_descriptor *fd =
-			Libc::file_descriptor_allocator()->find_by_libc_fd(libc_fd);
+		File_descriptor *fd = file_descriptor_allocator()->find_by_libc_fd(libc_fd);
 		if (!fd) {
 			errno = EBADF;
 			return -1;
@@ -398,7 +396,7 @@ __SYS_(void *, mmap, (void *addr, ::size_t length,
 	/* handle requests for anonymous memory */
 	if (!addr && libc_fd == -1) {
 		bool const executable = prot & PROT_EXEC;
-		void *start = Libc::mem_alloc(executable)->alloc(length, PAGE_SHIFT);
+		void *start = mem_alloc(executable)->alloc(length, PAGE_SHIFT);
 		if (!start) {
 			errno = ENOMEM;
 			return MAP_FAILED;
@@ -410,7 +408,7 @@ __SYS_(void *, mmap, (void *addr, ::size_t length,
 	/* lookup plugin responsible for file descriptor */
 	File_descriptor *fd = libc_fd_to_fd(libc_fd, "mmap");
 	if (!fd || !fd->plugin || !fd->plugin->supports_mmap()) {
-		Genode::warning("mmap not supported for file descriptor ", libc_fd);
+		warning("mmap not supported for file descriptor ", libc_fd);
 		errno = EBADF;
 		return MAP_FAILED;
 	}
@@ -424,7 +422,7 @@ __SYS_(void *, mmap, (void *addr, ::size_t length,
 extern "C" int munmap(void *start, ::size_t length)
 {
 	if (!mmap_registry()->registered(start)) {
-		Genode::warning("munmap: could not lookup plugin for address ", start);
+		warning("munmap: could not lookup plugin for address ", start);
 		errno = EINVAL;
 		return -1;
 	}
@@ -442,8 +440,8 @@ extern "C" int munmap(void *start, ::size_t length)
 	else {
 		bool const executable = true;
 		/* XXX another metadata handling required to track anonymous memory */
-		Libc::mem_alloc(!executable)->free(start);
-		Libc::mem_alloc(executable)->free(start);
+		mem_alloc(!executable)->free(start);
+		mem_alloc(executable)->free(start);
 	}
 
 	mmap_registry()->remove(start);
@@ -454,7 +452,7 @@ extern "C" int munmap(void *start, ::size_t length)
 __SYS_(int, msync, (void *start, ::size_t len, int flags),
 {
 	if (!mmap_registry()->registered(start)) {
-		Genode::warning("munmap: could not lookup plugin for address ", start);
+		warning("munmap: could not lookup plugin for address ", start);
 		errno = EINVAL;
 		return -1;
 	}
@@ -503,13 +501,13 @@ __SYS_(int, open, (const char *pathname, int flags, ...),
 	plugin = plugin_registry()->get_plugin_for_open(resolved_path.base(), flags);
 
 	if (!plugin) {
-		Genode::error("no plugin found for open(\"", pathname, "\", ", flags, ")");
+		error("no plugin found for open(\"", pathname, "\", ", flags, ")");
 		return -1;
 	}
 
 	new_fdo = plugin->open(resolved_path.base(), flags);
 	if (!new_fdo) {
-		Genode::error("plugin()->open(\"", pathname, "\") failed");
+		error("plugin()->open(\"", pathname, "\") failed");
 		return -1;
 	}
 	new_fdo->path(resolved_path.base());
@@ -530,14 +528,13 @@ __SYS_(int, openat, (int libc_fd, const char *path, int flags, ...),
 		return open(path, flags, mode);
 	}
 
-	Libc::Absolute_path abs_path;
+	Absolute_path abs_path;
 
 	if (libc_fd == AT_FDCWD) {
 		abs_path = cwd();
 		abs_path.append_element(path);
 	} else {
-		Libc::File_descriptor *fd =
-			Libc::file_descriptor_allocator()->find_by_libc_fd(libc_fd);
+		File_descriptor *fd = file_descriptor_allocator()->find_by_libc_fd(libc_fd);
 		if (!fd) {
 			errno = EBADF;
 			return -1;
@@ -561,12 +558,12 @@ extern "C" int pipe2(int pipefd[2], int flags)
 	plugin = plugin_registry()->get_plugin_for_pipe();
 
 	if (!plugin) {
-		Genode::error("no plugin found for pipe()");
+		error("no plugin found for pipe()");
 		return -1;
 	}
 
 	if (plugin->pipe(pipefdo) == -1) {
-		Genode::error("plugin()->pipe() failed");
+		error("plugin()->pipe() failed");
 		return -1;
 	}
 
@@ -574,7 +571,7 @@ extern "C" int pipe2(int pipefd[2], int flags)
 		int err = plugin->fcntl(pipefdo[0], F_SETFL, O_NONBLOCK)
 		        | plugin->fcntl(pipefdo[1], F_SETFL, O_NONBLOCK);
 		if (err != 0)
-			Genode::warning("pipe plugin does not support O_NONBLOCK");
+			warning("pipe plugin does not support O_NONBLOCK");
 	}
 
 	pipefd[0] = pipefdo[0]->libc_fd;

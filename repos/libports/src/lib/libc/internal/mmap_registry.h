@@ -24,6 +24,9 @@
 #include <errno.h>
 #include <libc-plugin/plugin.h>
 
+/* libc-internal includes */
+#include <internal/types.h>
+
 namespace Libc {
 
 	class Mmap_registry;
@@ -39,7 +42,7 @@ class Libc::Mmap_registry
 {
 	public:
 
-		struct Entry : Genode::List<Entry>::Element
+		struct Entry : List<Entry>::Element
 		{
 			void   * const start;
 			Plugin * const plugin;
@@ -52,9 +55,9 @@ class Libc::Mmap_registry
 
 		Libc::Allocator _md_alloc;
 
-		Genode::List<Mmap_registry::Entry> _list;
+		List<Mmap_registry::Entry> _list;
 
-		Genode::Lock mutable _lock;
+		Lock mutable _lock;
 
 		/*
 		 * Common for both const and non-const lookup functions
@@ -81,13 +84,13 @@ class Libc::Mmap_registry
 
 	public:
 
-		void insert(void *start, Genode::size_t len, Plugin *plugin)
+		void insert(void *start, size_t len, Plugin *plugin)
 		{
-			Genode::Lock::Guard guard(_lock);
+			Lock::Guard guard(_lock);
 
 			if (_lookup_by_addr_unsynchronized(start)) {
-				Genode::warning(__func__, ": mmap region at ", start, " "
-				                "is already registered");
+				warning(__func__, ": mmap region at ", start, " "
+				        "is already registered");
 				return;
 			}
 
@@ -96,7 +99,7 @@ class Libc::Mmap_registry
 
 		Plugin *lookup_plugin_by_addr(void *start) const
 		{
-			Genode::Lock::Guard guard(_lock);
+			Lock::Guard guard(_lock);
 
 			Entry const * const e = _lookup_by_addr_unsynchronized(start);
 			return e ? e->plugin : 0;
@@ -104,20 +107,20 @@ class Libc::Mmap_registry
 
 		bool registered(void *start) const
 		{
-			Genode::Lock::Guard guard(_lock);
+			Lock::Guard guard(_lock);
 
 			return _lookup_by_addr_unsynchronized(start) != 0;
 		}
 
 		void remove(void *start)
 		{
-			Genode::Lock::Guard guard(_lock);
+			Lock::Guard guard(_lock);
 
 			Entry *e = _lookup_by_addr_unsynchronized(start);
 
 			if (!e) {
-				Genode::warning("lookup for address ", start, " "
-				                "in in mmap registry failed");
+				warning("lookup for address ", start, " "
+				        "in in mmap registry failed");
 				return;
 			}
 

@@ -22,28 +22,33 @@
 #include <errno.h>
 #include <stdio.h>
 
+/* libc-internal includes */
+#include <internal/types.h>
+
+using namespace Libc;
+
 
 struct Read
 {
-     ssize_t operator()(int fd, void *buf, size_t count)
-     {
-    	 return read(fd, buf, count);
-     }
+	ssize_t operator()(int fd, void *buf, size_t count)
+	{
+		return read(fd, buf, count);
+	}
 };
 
 
 struct Write
 {
-     ssize_t operator()(int fd, const void *buf, size_t count)
-     {
-    	 return write(fd, buf, count);
-     }
+	ssize_t operator()(int fd, const void *buf, size_t count)
+	{
+		return write(fd, buf, count);
+	}
 };
 
 
-static Genode::Lock &rw_lock()
+static Lock &rw_lock()
 {
-	static Genode::Lock rw_lock;
+	static Lock rw_lock;
 	return rw_lock;
 }
 
@@ -51,7 +56,7 @@ static Genode::Lock &rw_lock()
 template <typename Rw_func>
 static ssize_t readv_writev_impl(Rw_func rw_func, int fd, const struct iovec *iov, int iovcnt)
 {
-	Genode::Lock_guard<Genode::Lock> rw_lock_guard(rw_lock());
+	Lock_guard<Lock> rw_lock_guard(rw_lock());
 
 	char *v;
 	ssize_t bytes_transfered_total = 0;

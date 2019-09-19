@@ -118,8 +118,8 @@ char const *libc_resolv_path;
 
 namespace Libc {
 
-	Genode::Xml_node config() __attribute__((weak));
-	Genode::Xml_node config()
+	Xml_node config() __attribute__((weak));
+	Xml_node config()
 	{
 		if (!_config_node) {
 			error("libc config not initialized - aborting");
@@ -139,8 +139,8 @@ namespace Libc {
 
 			Config_attr(char const *attr_name, char const *default_value)
 			:
-				_value(Libc::config().attribute_value(attr_name,
-				                                      Value(default_value)))
+				_value(config().attribute_value(attr_name,
+				                                Value(default_value)))
 			{ }
 
 			char const *string() const { return _value.string(); }
@@ -168,9 +168,9 @@ namespace Libc {
 		return ns_file.string();
 	}
 
-	void libc_config_init(Genode::Xml_node node)
+	void libc_config_init(Xml_node node)
 	{
-		static Genode::Xml_node config = node;
+		static Xml_node config = node;
 		_config_node = &config;
 
 		libc_resolv_path = config_nameserver_file();
@@ -187,7 +187,7 @@ namespace Libc {
 		VFS_THREAD_SAFE(handle->fs().notify_read_ready(handle));
 	}
 
-	bool read_ready(Libc::File_descriptor *fd)
+	bool read_ready(File_descriptor *fd)
 	{
 		Vfs::Vfs_handle *handle = vfs_handle(fd);
 		if (!handle) return false;
@@ -238,8 +238,8 @@ Libc::File_descriptor *Libc::Vfs_plugin::open(char const *path, int flags,
 
 		/* the directory was successfully opened */
 
-		Libc::File_descriptor *fd =
-			Libc::file_descriptor_allocator()->alloc(this, vfs_context(handle), libc_fd);
+		File_descriptor *fd =
+			file_descriptor_allocator()->alloc(this, vfs_context(handle), libc_fd);
 
 		/* FIXME error cleanup code leaks resources! */
 
@@ -319,8 +319,8 @@ Libc::File_descriptor *Libc::Vfs_plugin::open(char const *path, int flags,
 
 	/* the file was successfully opened */
 
-	Libc::File_descriptor *fd =
-		Libc::file_descriptor_allocator()->alloc(this, vfs_context(handle), libc_fd);
+	File_descriptor *fd =
+		file_descriptor_allocator()->alloc(this, vfs_context(handle), libc_fd);
 
 	/* FIXME error cleanup code leaks resources! */
 
@@ -349,7 +349,7 @@ int Libc::Vfs_plugin::_vfs_sync(Vfs::Vfs_handle &vfs_handle)
 	Result result = Result::SYNC_QUEUED;
 
 	{
-		struct Check : Libc::Suspend_functor
+		struct Check : Suspend_functor
 		{
 			bool retry { false };
 
@@ -377,7 +377,7 @@ int Libc::Vfs_plugin::_vfs_sync(Vfs::Vfs_handle &vfs_handle)
 	}
 
 	{
-		struct Check : Libc::Suspend_functor
+		struct Check : Suspend_functor
 		{
 			bool retry { false };
 
@@ -407,30 +407,30 @@ int Libc::Vfs_plugin::_vfs_sync(Vfs::Vfs_handle &vfs_handle)
 		}
 	}
 
-	return result == Result::SYNC_OK ? 0 : Libc::Errno(EIO);
+	return result == Result::SYNC_OK ? 0 : Errno(EIO);
 }
 
 
-int Libc::Vfs_plugin::close(Libc::File_descriptor *fd)
+int Libc::Vfs_plugin::close(File_descriptor *fd)
 {
 	Vfs::Vfs_handle *handle = vfs_handle(fd);
 	/* XXX: mark the handle as requiring sync or not */
 	_vfs_sync(*handle);
 	VFS_THREAD_SAFE(handle->close());
-	Libc::file_descriptor_allocator()->free(fd);
+	file_descriptor_allocator()->free(fd);
 	return 0;
 }
 
 
-int Libc::Vfs_plugin::dup2(Libc::File_descriptor *fd,
-                           Libc::File_descriptor *new_fd)
+int Libc::Vfs_plugin::dup2(File_descriptor *fd,
+                           File_descriptor *new_fd)
 {
 	new_fd->context = fd->context;
 	return new_fd->libc_fd;
 }
 
 
-int Libc::Vfs_plugin::fstat(Libc::File_descriptor *fd, struct stat *buf)
+int Libc::Vfs_plugin::fstat(File_descriptor *fd, struct stat *buf)
 {
 	Vfs::Vfs_handle *handle = vfs_handle(fd);
 	_vfs_sync(*handle);
@@ -438,10 +438,10 @@ int Libc::Vfs_plugin::fstat(Libc::File_descriptor *fd, struct stat *buf)
 }
 
 
-int Libc::Vfs_plugin::fstatfs(Libc::File_descriptor *fd, struct statfs *buf)
+int Libc::Vfs_plugin::fstatfs(File_descriptor *fd, struct statfs *buf)
 {
 	if (!fd || !buf)
-		return Libc::Errno(EFAULT);
+		return Errno(EFAULT);
 
 	Genode::memset(buf, 0, sizeof(*buf));
 
@@ -500,7 +500,7 @@ int Libc::Vfs_plugin::stat(char const *path, struct stat *buf)
 }
 
 
-ssize_t Libc::Vfs_plugin::write(Libc::File_descriptor *fd, const void *buf,
+ssize_t Libc::Vfs_plugin::write(File_descriptor *fd, const void *buf,
                                 ::size_t count)
 {
 	typedef Vfs::File_io_service::Write_result Result;
@@ -521,7 +521,7 @@ ssize_t Libc::Vfs_plugin::write(Libc::File_descriptor *fd, const void *buf,
 
 	} else {
 
-		struct Check : Libc::Suspend_functor
+		struct Check : Suspend_functor
 		{
 			bool             retry { false };
 
@@ -574,10 +574,10 @@ ssize_t Libc::Vfs_plugin::write(Libc::File_descriptor *fd, const void *buf,
 }
 
 
-ssize_t Libc::Vfs_plugin::read(Libc::File_descriptor *fd, void *buf,
+ssize_t Libc::Vfs_plugin::read(File_descriptor *fd, void *buf,
                                ::size_t count)
 {
-	Libc::dispatch_pending_io_signals();
+	dispatch_pending_io_signals();
 
 	typedef Vfs::File_io_service::Read_result Result;
 
@@ -586,11 +586,11 @@ ssize_t Libc::Vfs_plugin::read(Libc::File_descriptor *fd, void *buf,
 	if (fd->flags & O_DIRECTORY)
 		return Errno(EISDIR);
 
-	if (fd->flags & O_NONBLOCK && !Libc::read_ready(fd))
+	if (fd->flags & O_NONBLOCK && !read_ready(fd))
 		return Errno(EAGAIN);
 
 	{
-		struct Check : Libc::Suspend_functor
+		struct Check : Suspend_functor
 		{
 			bool             retry { false };
 
@@ -616,7 +616,7 @@ ssize_t Libc::Vfs_plugin::read(Libc::File_descriptor *fd, void *buf,
 	Result         out_result;
 
 	{
-		struct Check : Libc::Suspend_functor
+		struct Check : Suspend_functor
 		{
 			bool             retry { false };
 
@@ -668,11 +668,11 @@ ssize_t Libc::Vfs_plugin::read(Libc::File_descriptor *fd, void *buf,
 }
 
 
-ssize_t Libc::Vfs_plugin::getdirentries(Libc::File_descriptor *fd, char *buf,
+ssize_t Libc::Vfs_plugin::getdirentries(File_descriptor *fd, char *buf,
                                         ::size_t nbytes, ::off_t *basep)
 {
 	if (nbytes < sizeof(struct dirent)) {
-		Genode::error("getdirentries: buffer too small");
+		error("getdirentries: buffer too small");
 		return -1;
 	}
 
@@ -685,7 +685,7 @@ ssize_t Libc::Vfs_plugin::getdirentries(Libc::File_descriptor *fd, char *buf,
 	Dirent dirent_out;
 
 	{
-		struct Check : Libc::Suspend_functor
+		struct Check : Suspend_functor
 		{
 			bool             retry { false };
 
@@ -710,7 +710,7 @@ ssize_t Libc::Vfs_plugin::getdirentries(Libc::File_descriptor *fd, char *buf,
 	Vfs::file_size out_count;
 
 	{
-		struct Check : Libc::Suspend_functor
+		struct Check : Suspend_functor
 		{
 			bool             retry { false };
 
@@ -786,7 +786,7 @@ ssize_t Libc::Vfs_plugin::getdirentries(Libc::File_descriptor *fd, char *buf,
 }
 
 
-int Libc::Vfs_plugin::ioctl(Libc::File_descriptor *fd, int request, char *argp)
+int Libc::Vfs_plugin::ioctl(File_descriptor *fd, int request, char *argp)
 {
 	using ::off_t;
 
@@ -881,7 +881,7 @@ int Libc::Vfs_plugin::ioctl(Libc::File_descriptor *fd, int request, char *argp)
 		}
 
 	default:
-		Genode::warning("unsupported ioctl (request=", Genode::Hex(request), ")");
+		warning("unsupported ioctl (request=", Hex(request), ")");
 		break;
 	}
 
@@ -940,7 +940,7 @@ int Libc::Vfs_plugin::ioctl(Libc::File_descriptor *fd, int request, char *argp)
 }
 
 
-::off_t Libc::Vfs_plugin::lseek(Libc::File_descriptor *fd, ::off_t offset, int whence)
+::off_t Libc::Vfs_plugin::lseek(File_descriptor *fd, ::off_t offset, int whence)
 {
 	Vfs::Vfs_handle *handle = vfs_handle(fd);
 
@@ -960,7 +960,7 @@ int Libc::Vfs_plugin::ioctl(Libc::File_descriptor *fd, int request, char *argp)
 }
 
 
-int Libc::Vfs_plugin::ftruncate(Libc::File_descriptor *fd, ::off_t length)
+int Libc::Vfs_plugin::ftruncate(File_descriptor *fd, ::off_t length)
 {
 	Vfs::Vfs_handle *handle = vfs_handle(fd);
 	_vfs_sync(*handle);
@@ -977,7 +977,7 @@ int Libc::Vfs_plugin::ftruncate(Libc::File_descriptor *fd, ::off_t length)
 }
 
 
-int Libc::Vfs_plugin::fcntl(Libc::File_descriptor *fd, int cmd, long arg)
+int Libc::Vfs_plugin::fcntl(File_descriptor *fd, int cmd, long arg)
 {
 	switch (cmd) {
 	case F_DUPFD_CLOEXEC:
@@ -986,8 +986,8 @@ int Libc::Vfs_plugin::fcntl(Libc::File_descriptor *fd, int cmd, long arg)
 			/*
 			 * Allocate free file descriptor locally.
 			 */
-			Libc::File_descriptor *new_fd =
-				Libc::file_descriptor_allocator()->alloc(this, 0);
+			File_descriptor *new_fd =
+				file_descriptor_allocator()->alloc(this, 0);
 			if (!new_fd) return Errno(EMFILE);
 
 			new_fd->path(fd->fd_path);
@@ -997,7 +997,7 @@ int Libc::Vfs_plugin::fcntl(Libc::File_descriptor *fd, int cmd, long arg)
 			 * duplicate.
 			 */
 			if (dup2(fd, new_fd) == -1) {
-				Genode::error("Plugin::fcntl: dup2 unexpectedly failed");
+				error("Plugin::fcntl: dup2 unexpectedly failed");
 				return Errno(EINVAL);
 			}
 
@@ -1013,12 +1013,12 @@ int Libc::Vfs_plugin::fcntl(Libc::File_descriptor *fd, int cmd, long arg)
 		break;
 	}
 
-	Genode::error("fcntl(): command ", cmd, " not supported - vfs");
+	error("fcntl(): command ", cmd, " not supported - vfs");
 	return Errno(EINVAL);
 }
 
 
-int Libc::Vfs_plugin::fsync(Libc::File_descriptor *fd)
+int Libc::Vfs_plugin::fsync(File_descriptor *fd)
 {
 	Vfs::Vfs_handle *handle = vfs_handle(fd);
 	return _vfs_sync(*handle);
@@ -1058,7 +1058,7 @@ int Libc::Vfs_plugin::symlink(const char *oldpath, const char *newpath)
 
 	handle->handler(&_response_handler);
 
-	struct Check : Libc::Suspend_functor
+	struct Check : Suspend_functor
 	{
 		bool             retry { false };
 
@@ -1128,7 +1128,7 @@ ssize_t Libc::Vfs_plugin::readlink(const char *path, char *buf, ::size_t buf_siz
 	symlink_handle->handler(&_response_handler);
 
 	{
-		struct Check : Libc::Suspend_functor
+		struct Check : Suspend_functor
 		{
 			bool             retry { false };
 
@@ -1158,7 +1158,7 @@ ssize_t Libc::Vfs_plugin::readlink(const char *path, char *buf, ::size_t buf_siz
 	Vfs::file_size out_len = 0;
 
 	{
-		struct Check : Libc::Suspend_functor
+		struct Check : Suspend_functor
 		{
 			bool             retry { false };
 
@@ -1265,16 +1265,16 @@ int Libc::Vfs_plugin::rename(char const *from_path, char const *to_path)
 
 
 void *Libc::Vfs_plugin::mmap(void *addr_in, ::size_t length, int prot, int flags,
-                             Libc::File_descriptor *fd, ::off_t offset)
+                             File_descriptor *fd, ::off_t offset)
 {
 	if (prot != PROT_READ && !(prot == (PROT_READ | PROT_WRITE) && flags == MAP_PRIVATE)) {
-		Genode::error("mmap for prot=", Genode::Hex(prot), " not supported");
+		error("mmap for prot=", Hex(prot), " not supported");
 		errno = EACCES;
 		return (void *)-1;
 	}
 
 	if (addr_in != 0) {
-		Genode::error("mmap for predefined address not supported");
+		error("mmap for predefined address not supported");
 		errno = EINVAL;
 		return (void *)-1;
 	}
@@ -1284,7 +1284,7 @@ void *Libc::Vfs_plugin::mmap(void *addr_in, ::size_t length, int prot, int flags
 	 *     'Vfs::Directory_service::dataspace'.
 	 */
 
-	void *addr = Libc::mem_alloc()->alloc(length, PAGE_SHIFT);
+	void *addr = mem_alloc()->alloc(length, PAGE_SHIFT);
 	if (addr == (void *)-1) {
 		errno = ENOMEM;
 		return (void *)-1;
@@ -1298,7 +1298,7 @@ void *Libc::Vfs_plugin::mmap(void *addr_in, ::size_t length, int prot, int flags
 	while (read_remain > 0) {
 		ssize_t length_read = ::pread(fd->libc_fd, read_addr, read_remain, read_offset);
 		if (length_read < 0) { /* error */
-			Genode::error("mmap could not obtain file content");
+			error("mmap could not obtain file content");
 			::munmap(addr, length);
 			errno = EACCES;
 			return (void *)-1;
@@ -1315,7 +1315,7 @@ void *Libc::Vfs_plugin::mmap(void *addr_in, ::size_t length, int prot, int flags
 
 int Libc::Vfs_plugin::munmap(void *addr, ::size_t)
 {
-	Libc::mem_alloc()->free(addr);
+	mem_alloc()->free(addr);
 	return 0;
 }
 
@@ -1363,8 +1363,8 @@ bool Libc::Vfs_plugin::supports_select(int nfds,
 
 		if (FD_ISSET(fd, readfds) || FD_ISSET(fd, writefds) || FD_ISSET(fd, exceptfds)) {
 
-			Libc::File_descriptor *fdo =
-				Libc::file_descriptor_allocator()->find_by_libc_fd(fd);
+			File_descriptor *fdo =
+				file_descriptor_allocator()->find_by_libc_fd(fd);
 
 			if (fdo && (fdo->plugin == this))
 				return true;
@@ -1391,8 +1391,8 @@ int Libc::Vfs_plugin::select(int nfds,
 
 	for (int fd = 0; fd < nfds; ++fd) {
 
-		Libc::File_descriptor *fdo =
-			Libc::file_descriptor_allocator()->find_by_libc_fd(fd);
+		File_descriptor *fdo =
+			file_descriptor_allocator()->find_by_libc_fd(fd);
 
 		/* handle only fds that belong to this plugin */
 		if (!fdo || (fdo->plugin != this))
@@ -1406,7 +1406,7 @@ int Libc::Vfs_plugin::select(int nfds,
 				FD_SET(fd, readfds);
 				++nready;
 			} else {
-				Libc::notify_read_ready(handle);
+				notify_read_ready(handle);
 			}
 		}
 

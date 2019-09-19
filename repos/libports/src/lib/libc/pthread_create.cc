@@ -26,7 +26,7 @@
 int Libc::pthread_create(pthread_t *thread,
                          void *(*start_routine) (void *), void *arg,
                          size_t stack_size, char const * name,
-                         Genode::Cpu_session * cpu, Genode::Affinity::Location location)
+                         Cpu_session * cpu, Affinity::Location location)
 {
 	Libc::Allocator alloc { };
 	pthread_t thread_obj = new (alloc)
@@ -43,7 +43,7 @@ int Libc::pthread_create(pthread_t *thread,
 }
 
 
-int Libc::pthread_create(pthread_t *thread, Genode::Thread &t)
+int Libc::pthread_create(pthread_t *thread, Thread &t)
 {
 	Libc::Allocator alloc { };
 	pthread_t thread_obj = new (alloc) pthread(t);

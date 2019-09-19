@@ -29,7 +29,7 @@ namespace Libc {
 }
 
 
-struct Libc::Clone_session : Genode::Session
+struct Libc::Clone_session : Session
 {
 	static const char *service_name() { return "Clone"; }
 
@@ -43,25 +43,25 @@ struct Libc::Clone_session : Genode::Session
 		size_t size;
 	};
 
-	GENODE_RPC(Rpc_dataspace, Genode::Dataspace_capability, dataspace);
+	GENODE_RPC(Rpc_dataspace, Dataspace_capability, dataspace);
 	GENODE_RPC(Rpc_memory_content, void, memory_content, Memory_range);
 
 	GENODE_RPC_INTERFACE(Rpc_dataspace, Rpc_memory_content);
 };
 
 
-struct Libc::Clone_connection : Genode::Connection<Clone_session>,
-                                Genode::Rpc_client<Clone_session>
+struct Libc::Clone_connection : Connection<Clone_session>,
+                                Rpc_client<Clone_session>
 {
-	Genode::Attached_dataspace const _buffer;
+	Attached_dataspace const _buffer;
 
 	Clone_connection(Genode::Env &env)
 	:
-		Genode::Connection<Clone_session>(env,
-		                                  session(env.parent(),
-		                                          "ram_quota=%ld, cap_quota=%ld",
-		                                          RAM_QUOTA, CAP_QUOTA)),
-		Genode::Rpc_client<Clone_session>(cap()),
+		Connection<Clone_session>(env,
+		                          session(env.parent(),
+		                                  "ram_quota=%ld, cap_quota=%ld",
+		                                  RAM_QUOTA, CAP_QUOTA)),
+		Rpc_client<Clone_session>(cap()),
 		_buffer(env.rm(), call<Rpc_dataspace>())
 	{ }
 
@@ -75,7 +75,7 @@ struct Libc::Clone_connection : Genode::Connection<Clone_session>,
 
 		while (remaining > 0) {
 
-			size_t const chunk_len = Genode::min((size_t)BUFFER_SIZE, remaining);
+			size_t const chunk_len = min((size_t)BUFFER_SIZE, remaining);
 
 			/* instruct server to fill shared buffer */
 			call<Rpc_memory_content>(Memory_range{ ptr, chunk_len });

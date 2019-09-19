@@ -24,6 +24,11 @@ extern "C" {
 /* Genode includes */
 #include <base/log.h>
 
+/* libc-internal includes */
+#include <internal/types.h>
+
+using namespace Libc;
+
 
 extern "C" __attribute__((weak))
 int sigprocmask(int how, const sigset_t *set, sigset_t *old_set)
@@ -78,7 +83,7 @@ extern "C" pid_t _waitpid(pid_t pid, int *istat, int options) {
 extern "C" __attribute__((weak))
 pid_t wait6(idtype_t, id_t, int*, int, struct __wrusage*, siginfo_t*)
 {
-	Genode::warning(__func__, " not implemented");
+	warning(__func__, " not implemented");
 	errno = ENOSYS;
 	return -1;
 }

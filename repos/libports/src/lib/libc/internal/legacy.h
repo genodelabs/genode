@@ -47,7 +47,7 @@ namespace Libc {
 	/**
 	 * Access libc configuration Xml_node.
 	 */
-	Genode::Xml_node libc_config();
+	Xml_node libc_config();
 }
 
 #endif /* _LIBC__INTERNAL__LEGACY_H_ */

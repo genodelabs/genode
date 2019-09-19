@@ -39,23 +39,22 @@
 #include <internal/suspend.h>
 #include <internal/resume.h>
 
-using namespace Genode;
+using namespace Libc;
 
 
 static pid_t fork_result;
 
-static Env                            *_env_ptr;
-static Allocator                      *_alloc_ptr;
-static Libc::Suspend                  *_suspend_ptr;
-static Libc::Resume                   *_resume_ptr;
-static Libc::Kernel_routine_scheduler *_kernel_routine_scheduler_ptr;
-static Heap                           *_malloc_heap_ptr;
-static void                           *_user_stack_base_ptr;
-static size_t                          _user_stack_size;
-static int                             _pid;
-static int                             _pid_cnt;
-
-static Libc::Config_accessor const *_config_accessor_ptr;
+static Env                      *_env_ptr;
+static Allocator                *_alloc_ptr;
+static Suspend                  *_suspend_ptr;
+static Resume                   *_resume_ptr;
+static Kernel_routine_scheduler *_kernel_routine_scheduler_ptr;
+static Heap                     *_malloc_heap_ptr;
+static void                     *_user_stack_base_ptr;
+static size_t                    _user_stack_size;
+static int                       _pid;
+static int                       _pid_cnt;
+static Config_accessor const    *_config_accessor_ptr;
 
 
 void Libc::init_fork(Env &env, Config_accessor const &config_accessor,
@@ -420,18 +419,18 @@ struct Libc::Forked_child : Child_policy, Child_ready
 
 	void _handle_exit() { _resume.resume_all(); }
 
-	Libc::Child_config _child_config;
+	Child_config _child_config;
 
 	Parent_services    &_parent_services;
 	Local_rom_services &_local_rom_services;
 	Local_clone_service _local_clone_service;
 	Local_rom_service   _config_rom_service;
 
-	struct Wait_fork_ready : Libc::Kernel_routine
+	struct Wait_fork_ready : Kernel_routine
 	{
-		Libc::Forked_child const &child;
+		Forked_child const &child;
 
-		Wait_fork_ready(Libc::Forked_child const &child) : child(child) { }
+		Wait_fork_ready(Forked_child const &child) : child(child) { }
 
 		void execute_in_kernel() override
 		{
@@ -562,9 +561,9 @@ static void fork_kernel_routine()
 		abort();
 	}
 
-	Env          &env    = *_env_ptr;
-	Allocator    &alloc  = *_alloc_ptr;
-	Libc::Resume &resume = *_resume_ptr;
+	Env       &env    = *_env_ptr;
+	Allocator &alloc  = *_alloc_ptr;
+	Resume    &resume = *_resume_ptr;
 
 	pid_t const child_pid = ++_pid_cnt;
 
@@ -573,15 +572,15 @@ static void fork_kernel_routine()
 
 	static Libc::Parent_services parent_services(env, alloc);
 
-	static Libc::Local_rom_services local_rom_services(env, fork_ep, alloc);
+	static Local_rom_services local_rom_services(env, fork_ep, alloc);
 
 	static Forked_children forked_children { };
 	_forked_children_ptr = &forked_children;
 
-	Registered<Libc::Forked_child> &child = *new (alloc)
-		Registered<Libc::Forked_child>(forked_children, env, fork_ep, alloc, resume,
-		                               child_pid, *_config_accessor_ptr,
-		                               parent_services, local_rom_services);
+	Registered<Forked_child> &child = *new (alloc)
+		Registered<Forked_child>(forked_children, env, fork_ep, alloc, resume,
+		                         child_pid, *_config_accessor_ptr,
+		                         parent_services, local_rom_services);
 
 	fork_result = child_pid;
 
@@ -607,7 +606,7 @@ extern "C" pid_t __sys_fork(void)
 	_user_stack_base_ptr = (void *)mystack.base;
 	_user_stack_size     = mystack.top - mystack.base;
 
-	struct Fork_kernel_routine : Libc::Kernel_routine
+	struct Fork_kernel_routine : Kernel_routine
 	{
 		void execute_in_kernel() override { fork_kernel_routine(); }
 
@@ -619,7 +618,7 @@ extern "C" pid_t __sys_fork(void)
 
 	_kernel_routine_scheduler_ptr->register_kernel_routine(kernel_routine);
 
-	struct Suspend_functor_impl : Libc::Suspend_functor
+	struct Suspend_functor_impl : Suspend_functor
 	{
 		bool suspend() override { return false; }
 
@@ -695,7 +694,6 @@ extern "C" pid_t __sys_wait4(pid_t pid, int *status, int options, rusage *rusage
 	pid_t result    = -1;
 	int   exit_code = 0;  /* code and status */
 
-	using namespace Genode;
 	using namespace Libc;
 
 	if (!_forked_children_ptr) {
@@ -703,7 +701,7 @@ extern "C" pid_t __sys_wait4(pid_t pid, int *status, int options, rusage *rusage
 		return -1;
 	}
 
-	struct Missing_call_of_init_fork : Genode::Exception { };
+	struct Missing_call_of_init_fork : Exception { };
 	if (!_suspend_ptr)
 		throw Missing_call_of_init_fork();
 

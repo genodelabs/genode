@@ -23,11 +23,10 @@
 #include <internal/init.h>
 #include <internal/resume.h>
 
-using namespace Genode;
 using namespace Libc;
 
 
-static Libc::Resume *_resume_ptr;
+static Resume *_resume_ptr;
 
 
 void Libc::init_plugin(Resume &resume)
@@ -156,7 +155,7 @@ bool Plugin::supports_mmap()
 #define DUMMY(ret_type, ret_val, name, args) \
 ret_type Plugin::name args \
 { \
-	Genode::error(__func__, ": " #name " not implemented"); \
+	error(__func__, ": " #name " not implemented"); \
 	return ret_val; \
 }
 

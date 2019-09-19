@@ -20,6 +20,9 @@
 #include <sys/uio.h>
 #include <unistd.h>
 
+/* libc-internal includes */
+#include <internal/types.h>
+
 
 struct Read
 {
@@ -39,16 +42,19 @@ struct Write
 };
 
 
+using namespace Libc;
+
+
 template <typename Rw_func, typename Buf_type>
 static ssize_t pread_pwrite_impl(Rw_func rw_func, int fd, Buf_type buf, ::size_t count, ::off_t offset)
 {
-	Libc::File_descriptor *fdesc = Libc::file_descriptor_allocator()->find_by_libc_fd(fd);
+	File_descriptor *fdesc = file_descriptor_allocator()->find_by_libc_fd(fd);
 	if (fdesc == 0)
 		return -1;
 
-	Genode::Lock_guard<Genode::Lock> rw_lock_guard(fdesc->lock);
+	Lock_guard<Lock> rw_lock_guard(fdesc->lock);
 
-	off_t old_offset = lseek(fd, 0, SEEK_CUR);
+	::off_t old_offset = lseek(fd, 0, SEEK_CUR);
 
 	if (old_offset == -1)
 		return -1;
