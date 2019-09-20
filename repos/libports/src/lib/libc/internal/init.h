@@ -34,6 +34,7 @@ namespace Libc {
 	struct Current_time;
 	struct Clone_connection;
 	struct Kernel_routine_scheduler;
+	struct Watch;
 
 	/**
 	 * Support for shared libraries
@@ -98,7 +99,7 @@ namespace Libc {
 	 * Init timing facilities
 	 */
 	void init_sleep(Suspend &);
-	void init_time(Current_time &, Rtc_path const &);
+	void init_time(Current_time &, Rtc_path const &, Watch &);
 
 	/**
 	 * Socket fs

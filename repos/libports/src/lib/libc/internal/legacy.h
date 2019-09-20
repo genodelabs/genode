@@ -27,18 +27,6 @@ namespace Libc {
 	 */
 	void dispatch_pending_io_signals();
 
-	/**
-	 * Get watch handle for given path
-	 *
-	 * \param path  path that should be be watched
-	 *
-	 * \return      point to the watch handle object or a nullptr
-	 *              when the watch operation failed
-	 *
-	 * XXX  only needed by time.cc
-	 */
-	Vfs::Vfs_watch_handle *watch(char const *path);
-
 	/*
 	 * XXX  this function is solely needed to support noux fork mechanism
 	 */

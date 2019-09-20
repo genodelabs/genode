@@ -28,17 +28,22 @@
 #include <internal/errno.h>
 #include <internal/init.h>
 #include <internal/current_time.h>
+#include <internal/watch.h>
 
 static Libc::Current_time *_current_time_ptr;
 static char const         *_rtc_path;
+static Libc::Watch        *_watch_ptr;
 
 
-void Libc::init_time(Current_time &current_time, Rtc_path const &rtc_path)
+void Libc::init_time(Current_time   &current_time,
+                     Rtc_path const &rtc_path,
+                     Watch          &watch)
 {
 	static Rtc_path rtc_path_inst = rtc_path;
 
 	_current_time_ptr = &current_time;
 	_rtc_path         =  rtc_path_inst.string();
+	_watch_ptr        = &watch;
 }
 
 
@@ -51,21 +56,23 @@ struct Libc::Rtc : Vfs::Watch_response_handler
 
 	Rtc_path const _rtc_path;
 
+	Watch &_watch;
+
 	bool   _read_file { true };
 	time_t _rtc_value { 0 };
 
 	bool const _rtc_path_valid = (_rtc_path != "");
 
-	Rtc(Rtc_path const &rtc_path)
+	Rtc(Rtc_path const &rtc_path, Watch &watch)
 	:
-		_rtc_path(rtc_path)
+		_rtc_path(rtc_path), _watch(watch)
 	{
 		if (!_rtc_path_valid) {
 			warning("rtc not configured, returning ", _rtc_value);
 			return;
 		}
 
-		_watch_handle = watch(_rtc_path.string());
+		_watch_handle = _watch.alloc_watch_handle(_rtc_path.string());
 		if (_watch_handle) {
 			_watch_handle->handler(this);
 		}
@@ -134,14 +141,16 @@ int clock_gettime(clockid_t clk_id, struct timespec *ts)
 
 	if (!ts) return Errno(EFAULT);
 
+	struct Missing_call_of_init_time : Exception { };
+
 	auto current_time = [&] ()
 	{
-		struct Missing_call_of_init_time : Exception { };
 		if (!_current_time_ptr)
 			throw Missing_call_of_init_time();
 
 		return _current_time_ptr->current_time();
 	};
+
 
 	/* initialize timespec just in case users do not check for errors */
 	ts->tv_sec  = 0;
@@ -153,10 +162,13 @@ int clock_gettime(clockid_t clk_id, struct timespec *ts)
 	case CLOCK_REALTIME:
 	case CLOCK_SECOND: /* FreeBSD specific */
 	{
+		if (!_watch_ptr)
+			throw Missing_call_of_init_time();
+
 		/*
 		 * XXX move instance to Libc::Kernel
 		 */
-		static Rtc rtc(_rtc_path);
+		static Rtc rtc(_rtc_path, *_watch_ptr);
 
 		time_t const rtc_value = rtc.read();
 		if (!rtc_value) return Errno(EINVAL);
