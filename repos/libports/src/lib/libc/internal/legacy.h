@@ -43,11 +43,6 @@ namespace Libc {
 	 * XXX  this function is solely needed to support noux fork mechanism
 	 */
 	void schedule_suspend(void (*) ());
-
-	/**
-	 * Access libc configuration Xml_node.
-	 */
-	Xml_node libc_config();
 }
 
 #endif /* _LIBC__INTERNAL__LEGACY_H_ */

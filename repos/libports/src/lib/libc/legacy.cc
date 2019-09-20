@@ -35,9 +35,3 @@ void Libc::schedule_suspend(void (*suspended) ())
 {
 	Kernel::kernel().schedule_suspend(suspended);
 }
-
-
-Genode::Xml_node Libc::libc_config()
-{
-	return Kernel::kernel().libc_env().libc_config();
-}
