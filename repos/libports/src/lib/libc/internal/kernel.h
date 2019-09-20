@@ -98,6 +98,13 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 		bool  const _cloned = _libc_env.libc_config().attribute_value("cloned", false);
 		pid_t const _pid    = _libc_env.libc_config().attribute_value("pid", 0U);
 
+		Xml_node _passwd_config()
+		{
+			return _libc_env.libc_config().has_sub_node("passwd")
+			     ? _libc_env.libc_config().sub_node("passwd")
+			     : Xml_node("<empty/>");
+		}
+
 		typedef String<Vfs::MAX_PATH_LEN> Config_attr;
 
 		Config_attr const _rtc_path = _libc_env.libc_config().attribute_value("rtc", Config_attr());

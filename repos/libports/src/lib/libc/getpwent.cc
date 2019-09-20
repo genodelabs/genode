@@ -1,18 +1,17 @@
 /*
  * \brief  Password database operations
- * \author Emery Hemingway
- * \date   2018-07-15
+ * \author Norman Feske
+ * \date   2019-09-20
  */
 
 /*
- * Copyright (C) 2018 Genode Labs GmbH
+ * Copyright (C) 2019 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
  */
 
 /* Genode includes */
-#include <base/log.h>
 #include <util/string.h>
 #include <util/xml_node.h>
 
@@ -24,163 +23,181 @@
 /* libc-local includes */
 #include <internal/legacy.h>
 #include <internal/errno.h>
+#include <internal/init.h>
 
-using namespace Libc;
+namespace Libc {
 
-typedef String<128> Passwd_string;
+	struct Passwd_fields;
 
-struct Passwd_fields {
-	Passwd_string name   { "root" };
-	Passwd_string passwd { };
-	unsigned long uid = 0;
-	unsigned long gid = 0;
-	unsigned long change = 0;
-	Passwd_string clas   { };
-	Passwd_string gecos  { };
-	Passwd_string home   { "/" };
-	Passwd_string shell  { };
-	unsigned long expire = 0;
-	unsigned long fields = 0;
-
-	Passwd_fields() { }
-};
-
-
-static void _fill_passwd(struct passwd &db, Passwd_fields &fields)
-{
-
-	/* reset buffers */
-	::memset(&db, 0x00, sizeof(struct passwd));
-	fields = Passwd_fields();
-
-	try {
-		Xml_node const passwd = libc_config().sub_node("passwd");
-
-		fields.name   = passwd.attribute_value("name",   fields.name);
-		fields.uid    = passwd.attribute_value("uid",   0UL);
-		fields.gid    = passwd.attribute_value("gid",   0UL);
-		fields.change = passwd.attribute_value("change",   0UL);
-		fields.passwd = passwd.attribute_value("passwd", fields.passwd);
-		fields.clas   = passwd.attribute_value("class",  fields.clas);
-		fields.gecos  = passwd.attribute_value("gecos",  fields.gecos);
-		fields.home   = passwd.attribute_value("home",   fields.home);
-		fields.shell  = passwd.attribute_value("shell",  fields.shell);
-		fields.expire = passwd.attribute_value("expire",   0UL);
-		fields.fields = passwd.attribute_value("fields",   0UL);
-	}
-
-	catch (...) { }
-
-	db.pw_name    = (char *)fields.name.string();
-	db.pw_uid     = fields.uid;
-	db.pw_gid     = fields.gid;
-	db.pw_change  = fields.change;
-	db.pw_passwd  = (char *)fields.passwd.string();
-	db.pw_class   = (char *)fields.clas.string();
-	db.pw_gecos   = (char *)fields.gecos.string();
-	db.pw_dir     = (char *)fields.home.string();
-	db.pw_shell   = (char *)fields.shell.string();
-	db.pw_expire = fields.expire;
-	db.pw_fields = fields.fields;
+	typedef String<128> Passwd_string;
 }
 
 
-static int _fill_r(struct passwd *in,
-                   char *buffer, size_t bufsize,
-                   struct passwd **out)
+/*
+ * This struct must not contain any pointer because it is copied as
+ * plain old data.
+ */
+struct Libc::Passwd_fields
 {
-	if (!in || !buffer) return Errno(EINVAL);
-	if (bufsize < sizeof(Passwd_fields)) return Errno(ERANGE);
+	struct Buffer
+	{
+		char buf[Passwd_string::capacity()] { };
 
-	Passwd_fields *fields = (Passwd_fields *)buffer;
-	_fill_passwd(*in, *fields);
+		Buffer(Passwd_string const &string)
+		{
+			Genode::strncpy(buf, string.string(), sizeof(buf));
+		}
+	};
+
+	Buffer name;
+	Buffer passwd;
+	uid_t  uid;
+	gid_t  gid;
+	time_t change;
+	Buffer clas;
+	Buffer gecos;
+	Buffer home;
+	Buffer shell;
+	time_t expire;
+	int    fields;
+};
+
+using namespace Libc;
+
+static Passwd_fields *_fields_ptr   = nullptr;
+static passwd        *_passwd_ptr   = nullptr;
+static int            _passwd_index = 0;
+
+
+static passwd passwd_from_fields(Passwd_fields &fields)
+{
+	return passwd {
+		.pw_name   = fields.name.buf,
+		.pw_passwd = fields.passwd.buf,
+		.pw_uid    = fields.uid,
+		.pw_gid    = fields.gid,
+		.pw_change = fields.change,
+		.pw_class  = fields.clas.buf,
+		.pw_gecos  = fields.gecos.buf,
+		.pw_dir    = fields.home.buf,
+		.pw_shell  = fields.shell.buf,
+		.pw_expire = fields.expire,
+		.pw_fields = fields.fields
+	};
+}
+
+
+void Libc::init_passwd(Xml_node config)
+{
+	static Passwd_fields fields {
+		.name   =         config.attribute_value("name",   Passwd_string("root")),
+		.passwd =         config.attribute_value("passwd", Passwd_string("")),
+		.uid    =         config.attribute_value("uid",    0U),
+		.gid    =         config.attribute_value("gid",    0U),
+		.change = (time_t)config.attribute_value("change", 0U),
+		.clas   =         config.attribute_value("class",  Passwd_string("")),
+		.gecos  =         config.attribute_value("gecos",  Passwd_string("")),
+		.home   =         config.attribute_value("home",   Passwd_string("/")),
+		.shell  =         config.attribute_value("shell",  Passwd_string("")),
+		.expire = (time_t)config.attribute_value("expire", 0U),
+		.fields =    (int)config.attribute_value("fields", 0U)
+	};
+
+	static passwd passwd = passwd_from_fields(fields);
+
+	_fields_ptr = &fields;
+	_passwd_ptr = &passwd;
+}
+
+
+extern "C" passwd *getpwent()
+{
+	struct Missing_call_of_init_passwd : Exception { };
+	if (!_passwd_ptr)
+		throw Missing_call_of_init_passwd();
+
+	return (_passwd_index++ == 0) ? _passwd_ptr : nullptr;
+}
+
+
+template <typename COND_FN>
+static int copy_out_pwent(passwd *in, char *buffer, size_t bufsize, passwd **out,
+                          COND_FN const &cond_fn)
+{
+	*out = nullptr;
+
+	struct Missing_call_of_init_passwd : Exception { };
+	if (!_fields_ptr || !_passwd_ptr)
+		throw Missing_call_of_init_passwd();
+
+	if (bufsize < sizeof(Passwd_fields))
+		return Errno(ERANGE);
+
+	if (!cond_fn(*_passwd_ptr))
+		return Errno(ENOENT);
+
+	Passwd_fields &dst = *(Passwd_fields *)buffer;
+
+	dst  = *_fields_ptr;
+	*in  = passwd_from_fields(dst);
 	*out = in;
+
 	return 0;
 }
 
 
-static struct passwd *_fill_static()
+extern "C" int getpwent_r(passwd *in, char *buffer, size_t bufsize, passwd **out)
 {
-	struct Passwd_storage {
-		struct passwd pwd;
-		Passwd_fields fields;
-	};
+	auto match = [&] (passwd const &) { return _passwd_index++ == 0; };
 
-	static Passwd_storage *db = nullptr;
-	if (!db)
-		db = (Passwd_storage *)malloc(sizeof(struct Passwd_storage));
-
-	_fill_passwd(db->pwd, db->fields);
-	return &db->pwd;
+	return copy_out_pwent(in, buffer, bufsize, out, match);
 }
 
 
-static int _passwd_index = 0;
-
-
-extern "C" {
-
-struct passwd *getpwent(void)
+extern "C" struct passwd *getpwnam(const char *login)
 {
-	return (_passwd_index++ == 0)
-		? _fill_static()
-		: NULL;
+	return (_passwd_ptr && Genode::strcmp(login, _passwd_ptr->pw_name) == 0)
+	      ? _passwd_ptr : nullptr;
 }
 
 
-int getpwent_r(struct passwd *in,
-               char *buffer, size_t bufsize,
-               struct passwd **out)
+extern "C" int getpwnam_r(char const *login, passwd *in,
+                          char *buffer, size_t bufsize, passwd **out)
 {
-	*out = NULL;
-	return _passwd_index++ == 0
-		? _fill_r(in, buffer, bufsize, out)
-		: 0;
+	auto match = [&] (passwd const &passwd) {
+		return !Genode::strcmp(passwd.pw_name, login); };
+
+	return copy_out_pwent(in, buffer, bufsize, out, match);
 }
 
 
-struct passwd *getpwnam(const char *login)
+extern "C" passwd *getpwuid(uid_t uid)
 {
-	struct passwd *result = _fill_static();
-	return (Genode::strcmp(login, result->pw_name) == 0)
-		? result : NULL;
+	return (_passwd_ptr && uid == _passwd_ptr->pw_uid)
+	      ? _passwd_ptr  : NULL;
 }
 
 
-int getpwnam_r(const char *login, struct passwd *in,
-               char *buffer, size_t bufsize,
-               struct passwd **out)
+extern "C" int getpwuid_r(uid_t uid, passwd *in,
+                          char *buffer, size_t bufsize, passwd **out)
 {
-	int rc = _fill_r(in, buffer, bufsize, out);
-	if (rc == 0 && *out && Genode::strcmp(login, in->pw_name) != 0)
-		*out = NULL;
-	return rc;
+	auto match = [&] (passwd const &passwd) { return passwd.pw_uid == uid; };
+
+	return copy_out_pwent(in, buffer, bufsize, out, match);
 }
 
 
-struct passwd *getpwuid(uid_t uid)
+extern "C" int setpassent(int)
 {
-	struct passwd *result = _fill_static();
-	return (uid == result->pw_uid)
-		? result : NULL;
+	_passwd_index = 0;
+	return 0;
 }
 
 
-int getpwuid_r(uid_t uid, struct passwd *in,
-               char *buffer, size_t bufsize,
-               struct passwd **out)
+extern "C" void setpwent()
 {
-	int rc = _fill_r(in, buffer, bufsize, out);
-	if (rc == 0 && *out && uid != in->pw_uid)
-		*out = NULL;
-	return rc;
+	_passwd_index = 0;
 }
 
 
-int setpassent(int) { _passwd_index = 0; return 0; }
-
-void setpwent(void) { _passwd_index = 0; }
-
-void endpwent(void) { }
-
-} /* extern "C" */
+extern "C" void endpwent() { }

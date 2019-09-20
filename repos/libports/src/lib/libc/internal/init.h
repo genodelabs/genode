@@ -76,6 +76,11 @@ namespace Libc {
 	void sysctl_init(Genode::Env &env);
 
 	/**
+	 * Support for getpwent
+	 */
+	void init_passwd(Xml_node);
+
+	/**
 	 * Set libc config node
 	 */
 	void libc_config_init(Xml_node node);
