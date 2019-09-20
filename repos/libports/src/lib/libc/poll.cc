@@ -26,87 +26,92 @@
 using namespace Libc;
 
 
-static Suspend *_suspend_ptr;
-
-
-void Libc::init_poll(Suspend &suspend)
+/**
+ * The poll function was taken from OpenSSH portable (bsd-poll.c) and adepted
+ * to better fit within Genode's libc.
+ *
+ * Copyright (c) 2004, 2005, 2007 Darren Tucker (dtucker at zip com au).
+ *
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ */
+extern "C" int
+__attribute__((weak))
+poll(struct pollfd fds[], nfds_t nfds, int timeout)
 {
-	_suspend_ptr = &suspend;
-}
+	nfds_t i;
+	int ret, fd, maxfd = 0;
+	fd_set readfds, writefds, exceptfds;
+	struct timeval tv, *tvp = NULL;
 
-
-extern "C" __attribute__((weak))
-int poll(struct pollfd fds[], nfds_t nfds, int timeout_ms)
-{
-	using Genode::uint64_t;
-
-	if (!fds || nfds == 0) return Errno(EINVAL);
-
-	struct Check : Suspend_functor
-	{
-		pollfd       *_fds;
-		nfds_t const  _nfds;
-
-		int nready { 0 };
-
-		Check(struct pollfd fds[], nfds_t nfds)
-		: _fds(fds), _nfds(nfds) { }
-
-		bool suspend() override
-		{
-			bool polling = false;
-
-			for (unsigned i = 0; i < _nfds; ++i)
-			{
-				pollfd &pfd = _fds[i];
-				File_descriptor *libc_fd = libc_fd_to_fd(pfd.fd, "poll");
-				if (!libc_fd) {
-					pfd.revents |= POLLNVAL;
-					++nready;
-					continue;
-				}
-
-				if (!libc_fd->plugin || !libc_fd->plugin->supports_poll()) {
-					warning("poll not supported for file descriptor ", pfd.fd);
-					continue;
-				}
-
-				nready += libc_fd->plugin->poll(*libc_fd, pfd);
-				polling = true;
-			}
-
-			return (polling && nready == 0);
+	for (i = 0; i < nfds; i++) {
+		fd = fds[i].fd;
+		if (fd >= (int)FD_SETSIZE) {
+			/*errno = EINVAL;*/
+			return -1;
 		}
-
-	} check (fds, nfds);
-
-	check.suspend();
-
-	if (timeout_ms == 0) {
-		return check.nready;
+		maxfd = MAX(maxfd, fd);
 	}
 
-	auto suspend = [&] (uint64_t timeout_ms)
-	{
-		struct Missing_call_of_init_poll : Exception { };
-		if (!_suspend_ptr)
-			throw Missing_call_of_init_poll();
+	/* populate event bit vectors for the events we're interested in */
 
-		return _suspend_ptr->suspend(check, timeout_ms);
-	};
+	FD_ZERO(&readfds);
+	FD_ZERO(&writefds);
+	FD_ZERO(&exceptfds);
 
-	if (timeout_ms == -1) {
-		while (check.nready == 0) {
-			suspend(0);
+	for (i = 0; i < nfds; i++) {
+		fd = fds[i].fd;
+		if (fd == -1)
+			continue;
+		if (fds[i].events & POLLIN) {
+			FD_SET(fd, &readfds);
+			FD_SET(fd, &exceptfds);
 		}
-	} else {
-		uint64_t remaining_ms = timeout_ms;
-		while (check.nready == 0 && remaining_ms > 0) {
-			remaining_ms = suspend(remaining_ms);
+		if (fds[i].events & POLLOUT) {
+			FD_SET(fd, &writefds);
+			FD_SET(fd, &exceptfds);
 		}
 	}
 
-	return check.nready;
+	/* poll timeout is msec, select is timeval (sec + usec) */
+	if (timeout >= 0) {
+		tv.tv_sec = timeout / 1000;
+		tv.tv_usec = (timeout % 1000) * 1000;
+		tvp = &tv;
+	}
+	ret = select(maxfd + 1, &readfds, &writefds, &exceptfds, tvp);
+	/*saved_errno = errno;*/
+	/* scan through select results and set poll() flags */
+	for (i = 0; i < nfds; i++) {
+		fd = fds[i].fd;
+		fds[i].revents = 0;
+		if (fd == -1)
+			continue;
+		if ((fds[i].events & POLLIN) && FD_ISSET(fd, &readfds)) {
+			fds[i].revents |= POLLIN;
+		}
+		if ((fds[i].events & POLLOUT) && FD_ISSET(fd, &writefds)) {
+			fds[i].revents |= POLLOUT;
+		}
+		if (FD_ISSET(fd, &exceptfds)) {
+			fds[i].revents |= POLLERR;
+		}
+	}
+
+	/*
+	if (ret == -1)
+		errno = saved_errno;
+	*/
+	return ret;
 }
 
 

@@ -67,11 +67,6 @@ namespace Libc {
 	void init_select(Suspend &, Resume &, Select &);
 
 	/**
-	 * Poll support
-	 */
-	void init_poll(Suspend &);
-
-	/**
 	 * Support for querying available RAM quota in sysctl functions
 	 */
 	void sysctl_init(Genode::Env &env);
