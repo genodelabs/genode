@@ -37,6 +37,7 @@
 #include <internal/kernel_routine.h>
 #include <internal/current_time.h>
 #include <internal/kernel_timer_accessor.h>
+#include <internal/watch.h>
 
 namespace Libc { class Kernel; }
 
@@ -58,7 +59,8 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
                             Suspend,
                             Select,
                             Kernel_routine_scheduler,
-                            Current_time
+                            Current_time,
+                            Watch
 {
 	private:
 
@@ -513,9 +515,9 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 		}
 
 		/**
-		 * Alloc new watch handler for given path
+		 * Watch interface
 		 */
-		Vfs::Vfs_watch_handle *alloc_watch_handle(char const *path)
+		Vfs::Vfs_watch_handle *alloc_watch_handle(char const *path) override
 		{
 			Vfs::Vfs_watch_handle *watch_handle { nullptr };
 			typedef Vfs::Directory_service::Watch_result Result;

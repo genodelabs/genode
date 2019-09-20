@@ -25,12 +25,6 @@ void Libc::dispatch_pending_io_signals()
 }
 
 
-Vfs::Vfs_watch_handle *Libc::watch(char const *path)
-{
-	return Kernel::kernel().alloc_watch_handle(path);
-}
-
-
 void Libc::schedule_suspend(void (*suspended) ())
 {
 	Kernel::kernel().schedule_suspend(suspended);
