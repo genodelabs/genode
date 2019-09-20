@@ -326,6 +326,7 @@ Libc::Kernel::Kernel(Genode::Env &env, Genode::Allocator &heap)
 	init_poll(*this);
 	init_select(*this, *this, *this);
 	init_socket_fs(*this);
+	init_passwd(_passwd_config());
 
 	_init_file_descriptors();
 

@@ -26,7 +26,7 @@ install_config {
 		</config>
 	</start>
 
-	<start name="test">
+	<start name="test" caps="1000">
 		<binary name="sequence"/>
 		<resource name="RAM" quantum="4M"/>
 		<config>
