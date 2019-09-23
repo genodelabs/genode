@@ -54,7 +54,7 @@ static ssize_t pread_pwrite_impl(Rw_func rw_func, int fd, Buf_type buf, ::size_t
 
 	Lock_guard<Lock> rw_lock_guard(fdesc->lock);
 
-	off_t old_offset = lseek(fd, 0, SEEK_CUR);
+	::off_t old_offset = lseek(fd, 0, SEEK_CUR);
 
 	if (old_offset == -1)
 		return -1;
