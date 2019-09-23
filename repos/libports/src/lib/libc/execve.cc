@@ -25,6 +25,7 @@
 #include <internal/call_func.h>
 #include <internal/init.h>
 #include <internal/errno.h>
+#include <internal/file_operations.h>
 
 using namespace Genode;
 
@@ -161,6 +162,13 @@ extern "C" int execve(char const *filename,
 		return Libc::Errno(EACCES);
 	}
 
+	Libc::Absolute_path resolved_path;
+	try {
+		Libc::resolve_symlinks(filename, resolved_path); }
+	catch (Libc::Symlink_resolve_error) {
+		warning("execve: ", filename, " does not exist");
+		return Libc::Errno(ENOENT); }
+
 	/* capture environment variables and args to libc-internal heap */
 	Libc::String_array *saved_env_vars =
 		new (*_alloc_ptr) Libc::String_array(*_alloc_ptr, envp);
@@ -169,7 +177,7 @@ extern "C" int execve(char const *filename,
 		new (*_alloc_ptr) Libc::String_array(*_alloc_ptr, argv);
 
 	try {
-		_main_ptr = Dynamic_linker::respawn<main_fn_ptr>(*_env_ptr, filename, "main");
+		_main_ptr = Dynamic_linker::respawn<main_fn_ptr>(*_env_ptr, resolved_path.string(), "main");
 	}
 	catch (Dynamic_linker::Invalid_symbol) {
 		error("Dynamic_linker::respawn could not obtain binary entry point");

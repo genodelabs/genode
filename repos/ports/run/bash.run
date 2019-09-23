@@ -87,7 +87,7 @@ install_config {
 				</dir>
 			</vfs>
 
-			<policy label_prefix="vfs_rom" root="/bin"/>
+			<policy label_prefix="vfs_rom" root="/"/>
 			<default-policy root="/" writeable="yes"/>
 		</config>
 	</start>
@@ -103,7 +103,7 @@ install_config {
 		</route>
 	</start>
 
-	<start name="bash" caps="1000">
+	<start name="/bin/bash" caps="1000">
 		<resource name="RAM" quantum="30M" />
 		<config>
 			<libc stdin="/dev/terminal" stdout="/dev/terminal"
@@ -115,9 +115,9 @@ install_config {
 		</config>
 		<route>
 			<service name="File_system"> <child name="vfs"/> </service>
-			<service name="ROM" label_last="bash"> <child name="vfs_rom"/> </service>
 			<service name="ROM" label_suffix=".lib.so"> <parent/> </service>
-			<service name="ROM" label_prefix=""> <child name="vfs_rom"/> </service>
+			<service name="ROM" label_last="/bin/bash"> <child name="vfs_rom"/> </service>
+			<service name="ROM" label_prefix="/bin"> <child name="vfs_rom"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
 	</start>

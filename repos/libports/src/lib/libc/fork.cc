@@ -478,11 +478,20 @@ struct Libc::Forked_child : Child_policy, Child_ready
 	Route resolve_session_request(Service::Name const &name,
 	                              Session_label const &label) override
 	{
+		Session_label rewritten_label = label;
+
 		Service *service_ptr = nullptr;
 		if (_state == State::STARTING_UP && name == Clone_session::service_name())
 			service_ptr = &_local_clone_service.service;
 
 		if (name == Rom_session::service_name()) {
+
+			/*
+			 * Strip off the originating child name to allow the application of
+			 * routing rules based on the leading path elements, regardless
+			 * of which child in the process hierarchy requests a ROM.
+			 */
+			rewritten_label = label.last_element();
 
 			try { service_ptr = &_local_rom_services.matching_service(name, label); }
 			catch (...) { }
@@ -496,7 +505,7 @@ struct Libc::Forked_child : Child_policy, Child_ready
 
 		if (service_ptr)
 			return Route { .service = *service_ptr,
-			               .label   = label,
+			               .label   = rewritten_label,
 			               .diag    = Session::Diag() };
 
 		throw Service_denied();
