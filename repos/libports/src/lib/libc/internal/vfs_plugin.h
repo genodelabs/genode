@@ -86,6 +86,7 @@ class Libc::Vfs_plugin : public Plugin
 
 		int     access(char const *, int) override;
 		int     close(File_descriptor *) override;
+		File_descriptor *dup(File_descriptor *) override;
 		int     dup2(File_descriptor *, File_descriptor *) override;
 		int     fcntl(File_descriptor *, int, long) override;
 		int     fstat(File_descriptor *, struct stat *) override;

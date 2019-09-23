@@ -425,8 +425,52 @@ int Libc::Vfs_plugin::close(File_descriptor *fd)
 int Libc::Vfs_plugin::dup2(File_descriptor *fd,
                            File_descriptor *new_fd)
 {
-	new_fd->context = fd->context;
+	Vfs::Vfs_handle *handle = nullptr;
+
+	typedef Vfs::Directory_service::Open_result Result;
+
+	if (VFS_THREAD_SAFE(_root_dir.open(fd->fd_path, fd->flags, &handle, _alloc))
+	    != Result::OPEN_OK) {
+
+		warning("dup2 failed for path ", fd->fd_path);
+		return Errno(EBADF);
+	}
+
+	handle->seek(vfs_handle(fd)->seek());
+	handle->handler(&_response_handler);
+
+	new_fd->context = vfs_context(handle);
+	new_fd->flags = fd->flags;
+	new_fd->path(fd->fd_path);
+
 	return new_fd->libc_fd;
+}
+
+
+Libc::File_descriptor *Libc::Vfs_plugin::dup(File_descriptor *fd)
+{
+	Vfs::Vfs_handle *handle = nullptr;
+
+	typedef Vfs::Directory_service::Open_result Result;
+
+	if (VFS_THREAD_SAFE(_root_dir.open(fd->fd_path, fd->flags, &handle, _alloc))
+	    != Result::OPEN_OK) {
+
+		warning("dup failed for path ", fd->fd_path);
+		errno = EBADF;
+		return nullptr;
+	}
+
+	handle->seek(vfs_handle(fd)->seek());
+	handle->handler(&_response_handler);
+
+	File_descriptor * const new_fd =
+		file_descriptor_allocator()->alloc(this, vfs_context(handle));
+
+	new_fd->flags = fd->flags;
+	new_fd->path(fd->fd_path);
+
+	return new_fd;
 }
 
 
@@ -990,13 +1034,11 @@ int Libc::Vfs_plugin::fcntl(File_descriptor *fd, int cmd, long arg)
 				file_descriptor_allocator()->alloc(this, 0);
 			if (!new_fd) return Errno(EMFILE);
 
-			new_fd->path(fd->fd_path);
-
 			/*
 			 * Use new allocated number as name of file descriptor
 			 * duplicate.
 			 */
-			if (dup2(fd, new_fd) == -1) {
+			if (Vfs_plugin::dup2(fd, new_fd) == -1) {
 				error("Plugin::fcntl: dup2 unexpectedly failed");
 				return Errno(EINVAL);
 			}
