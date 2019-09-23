@@ -185,7 +185,7 @@ proc platform_drv_config {} {
 	if {[have_spec x86] && ![have_spec muen] && ![have_spec linux]} {
 
 		append drv_config {
-	<start name="acpi_drv" } [platform_drv_priority] { caps="400" >
+	<start name="acpi_drv" } [platform_drv_priority] { caps="350" >
 		<binary name="} [acpi_drv_name] {"/>}
 
 		if {[acpi_drv_name] eq "acpica"} {
