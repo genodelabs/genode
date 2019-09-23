@@ -90,17 +90,17 @@ static passwd passwd_from_fields(Passwd_fields &fields)
 void Libc::init_passwd(Xml_node config)
 {
 	static Passwd_fields fields {
-		.name   =      config.attribute_value("name",   Passwd_string("root")),
-		.passwd =      config.attribute_value("passwd", Passwd_string("")),
-		.uid    =      config.attribute_value("uid",    0U),
-		.gid    =      config.attribute_value("gid",    0U),
-		.change =      config.attribute_value("change", 0U),
-		.clas   =      config.attribute_value("class",  Passwd_string("")),
-		.gecos  =      config.attribute_value("gecos",  Passwd_string("")),
-		.home   =      config.attribute_value("home",   Passwd_string("/")),
-		.shell  =      config.attribute_value("shell",  Passwd_string("")),
-		.expire =      config.attribute_value("expire", 0U),
-		.fields = (int)config.attribute_value("fields", 0U)
+		.name   =         config.attribute_value("name",   Passwd_string("root")),
+		.passwd =         config.attribute_value("passwd", Passwd_string("")),
+		.uid    =         config.attribute_value("uid",    0U),
+		.gid    =         config.attribute_value("gid",    0U),
+		.change = (time_t)config.attribute_value("change", 0U),
+		.clas   =         config.attribute_value("class",  Passwd_string("")),
+		.gecos  =         config.attribute_value("gecos",  Passwd_string("")),
+		.home   =         config.attribute_value("home",   Passwd_string("/")),
+		.shell  =         config.attribute_value("shell",  Passwd_string("")),
+		.expire = (time_t)config.attribute_value("expire", 0U),
+		.fields =    (int)config.attribute_value("fields", 0U)
 	};
 
 	static passwd passwd = passwd_from_fields(fields);
