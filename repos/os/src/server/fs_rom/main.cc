@@ -471,6 +471,9 @@ class Fs_rom::Rom_session_component : public  Rpc_object<Rom_session>
 			case File_system::Packet_descriptor::READ_READY:
 				warning("discarding strange READ_READY acknowledgement");
 				return;
+			case File_system::Packet_descriptor::WRITE_TIMESTAMP:
+				warning("discarding strange WRITE_TIMESTAMP acknowledgement");
+				return;
 			}
 		}
 };
