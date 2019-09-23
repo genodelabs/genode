@@ -896,6 +896,7 @@ class Lwip::Udp_socket_dir final :
 					}
 					result = Read_result::READ_OK;
 				});
+				break;
 			}
 
 			case Lwip_file_handle::PEEK:
