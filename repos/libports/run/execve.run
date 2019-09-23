@@ -16,9 +16,13 @@ install_config {
 				<arg value="name_of_executeable"/>
 				<arg value="100"/>
 				<libc stdin="/null" stdout="/log" stderr="/log"/>
-				<vfs> <null/> <log/> </vfs>
+				<vfs> <rom name="test-execve"/> <null/> <log/> </vfs>
 			</config>
-			<route> <any-service> <parent/> </any-service> </route>
+			<route>
+				<service name="ROM" label="/test-execve">
+					<parent label="test-execve"/> </service>
+				<any-service> <parent/> </any-service>
+			</route>
 		</start>
 	</config>
 }
