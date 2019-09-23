@@ -25,6 +25,7 @@ Firmware_list fw_list[] = {
 
 	{ "iwlwifi-1000-5.ucode",     337520, nullptr },
 	{ "iwlwifi-3160-17.ucode",    918268, nullptr },
+	{ "iwlwifi-5000-5.ucode",     340696, nullptr },
 	{ "iwlwifi-6000-4.ucode",     454608, nullptr },
 	{ "iwlwifi-6000-6.ucode",     454608, "iwlwifi-6000-4.ucode" },
 	{ "iwlwifi-6000g2a-6.ucode",  677296, nullptr },
