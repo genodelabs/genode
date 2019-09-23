@@ -100,6 +100,223 @@ static inline void compare_semaphore_values(int reported_value, int expected_val
     }
 }
 
+
+struct Test_mutex_data
+{
+	sem_t           main_thread_ready_sem;
+	sem_t           test_thread_ready_sem;
+	pthread_mutex_t recursive_mutex;
+	pthread_mutex_t errorcheck_mutex;
+
+	Test_mutex_data()
+	{
+		sem_init(&main_thread_ready_sem, 0, 0);
+		sem_init(&test_thread_ready_sem, 0, 0);
+
+		pthread_mutexattr_t recursive_mutex_attr;
+		pthread_mutexattr_init(&recursive_mutex_attr);
+		pthread_mutexattr_settype(&recursive_mutex_attr, PTHREAD_MUTEX_RECURSIVE);
+		pthread_mutex_init(&recursive_mutex, &recursive_mutex_attr);
+		pthread_mutexattr_destroy(&recursive_mutex_attr);
+
+		pthread_mutexattr_t errorcheck_mutex_attr;
+		pthread_mutexattr_init(&errorcheck_mutex_attr);
+		pthread_mutexattr_settype(&errorcheck_mutex_attr, PTHREAD_MUTEX_ERRORCHECK);
+		pthread_mutex_init(&errorcheck_mutex, &errorcheck_mutex_attr);
+		pthread_mutexattr_destroy(&errorcheck_mutex_attr);
+	}
+};
+
+void *thread_mutex_func(void *arg)
+{
+	Test_mutex_data *test_mutex_data = (Test_mutex_data*)arg;
+
+	/**************************
+	 ** test recursive mutex **
+	 **************************/
+
+	/* test unlocking unlocked mutex - should fail */
+
+	if (pthread_mutex_unlock(&test_mutex_data->recursive_mutex) == 0) {
+		printf("Error: could unlock unlocked recursive mutex\n");
+		exit(-1);
+	}
+
+	/* test locking once - should succeed */
+
+	if (pthread_mutex_lock(&test_mutex_data->recursive_mutex) != 0) {
+		printf("Error: could not lock recursive mutex\n");
+		exit(-1);
+	}
+
+	/* test locking twice - should succeed */
+
+	if (pthread_mutex_lock(&test_mutex_data->recursive_mutex) != 0) {
+		printf("Error: could not lock recursive mutex twice\n");
+		exit(-1);
+	}
+
+	/* test unlocking once - should succeed */
+
+	if (pthread_mutex_unlock(&test_mutex_data->recursive_mutex) != 0) {
+		printf("Error: could not unlock recursive mutex\n");
+		exit(-1);
+	}
+
+	/* test unlocking twice - should succeed */
+
+	if (pthread_mutex_unlock(&test_mutex_data->recursive_mutex) != 0) {
+		printf("Error: could not unlock recursive mutex twice\n");
+		exit(-1);
+	}
+
+	/* test unlocking a third time - should fail */
+
+	if (pthread_mutex_unlock(&test_mutex_data->recursive_mutex) == 0) {
+		printf("Error: could unlock recursive mutex a third time\n");
+		exit(-1);
+	}
+
+	/* wake up main thread */
+	sem_post(&test_mutex_data->test_thread_ready_sem);
+
+	/* wait for main thread - it should have the mutex locked */
+	sem_wait(&test_mutex_data->main_thread_ready_sem);
+
+	/* test unlocking mutex which is locked by main thread - should fail */
+
+	if (pthread_mutex_unlock(&test_mutex_data->recursive_mutex) == 0) {
+		printf("Error: could unlock recursive mutex which is owned by other thread\n");
+		exit(-1);
+	}
+
+	/* wake up main thread */
+	sem_post(&test_mutex_data->test_thread_ready_sem);
+
+	/* wait for main thread */
+	sem_wait(&test_mutex_data->main_thread_ready_sem);
+
+	/***************************
+	 ** test errorcheck mutex **
+	 ***************************/
+
+	/* test unlocking unlocked mutex - should fail */
+
+	if (pthread_mutex_unlock(&test_mutex_data->errorcheck_mutex) == 0) {
+		printf("Error: could unlock unlocked errorcheck mutex\n");
+		exit(-1);
+	}
+
+	/* test locking once - should succeed */
+
+	if (pthread_mutex_lock(&test_mutex_data->errorcheck_mutex) != 0) {
+		printf("Error: could not lock errorcheck mutex\n");
+		exit(-1);
+	}
+
+	/* test locking twice - should fail */
+
+	if (pthread_mutex_lock(&test_mutex_data->errorcheck_mutex) == 0) {
+		printf("Error: could lock errorcheck mutex twice\n");
+		exit(-1);
+	}
+
+	/* test unlocking once - should succeed */
+
+	if (pthread_mutex_unlock(&test_mutex_data->errorcheck_mutex) != 0) {
+		printf("Error: could not unlock errorcheck mutex\n");
+		exit(-1);
+	}
+
+	/* test unlocking twice - should fail */
+
+	if (pthread_mutex_unlock(&test_mutex_data->errorcheck_mutex) == 0) {
+		printf("Error: could unlock errorcheck mutex twice\n");
+		exit(-1);
+	}
+
+	/* wake up main thread */
+	sem_post(&test_mutex_data->test_thread_ready_sem);
+
+	/* wait for main thread - it should have the mutex locked */
+	sem_wait(&test_mutex_data->main_thread_ready_sem);
+
+	/* test unlocking mutex which is locked by main thread */
+
+	if (pthread_mutex_unlock(&test_mutex_data->errorcheck_mutex) == 0) {
+		printf("Error: could unlock errorcheck mutex which is locked by other thread\n");
+		exit(-1);
+	}
+
+	/* wake up main thread */
+	sem_post(&test_mutex_data->test_thread_ready_sem);
+
+	return 0;
+}
+
+void test_mutex()
+{
+	pthread_t t;
+
+	Test_mutex_data test_mutex_data;
+
+	if (pthread_create(&t, 0, thread_mutex_func, &test_mutex_data) != 0) {
+		printf("error: pthread_create() failed\n");
+		exit(-1);
+	}
+
+	/* wait for test thread - recursive mutex should be unlocked */
+	sem_wait(&test_mutex_data.test_thread_ready_sem);
+
+	/* lock the recursive mutex and let the test thread attempt to unlock it */
+
+	if (pthread_mutex_lock(&test_mutex_data.recursive_mutex) != 0) {
+		printf("Error: could not lock recursive mutex from main thread\n");
+		exit(-1);
+	}
+
+	/* wake up test thread */
+	sem_post(&test_mutex_data.main_thread_ready_sem);
+
+	/* wait for test thread - recursive mutex should still be locked */
+	sem_wait(&test_mutex_data.test_thread_ready_sem);
+
+	/* unlock the recursive mutex - should succeed */
+
+	if (pthread_mutex_unlock(&test_mutex_data.recursive_mutex) != 0) {
+		printf("Error: could not unlock recursive mutex from main thread\n");
+		exit(-1);
+	}
+
+	/* wake up test thread */
+	sem_post(&test_mutex_data.main_thread_ready_sem);
+
+	/* wait for test thread - errorcheck mutex should be unlocked */
+	sem_wait(&test_mutex_data.test_thread_ready_sem);
+
+	/* lock the errorcheck mutex and let the test thread attempt to unlock it */
+
+	if (pthread_mutex_lock(&test_mutex_data.errorcheck_mutex) != 0) {
+		printf("Error: could not lock errorcheck mutex from main thread\n");
+		exit(-1);
+	}
+
+	/* wake up test thread */
+	sem_post(&test_mutex_data.main_thread_ready_sem);
+
+	/* wait for test thread - errorcheck mutex should still be locked */
+	sem_wait(&test_mutex_data.test_thread_ready_sem);
+
+	/* unlock the errorcheck mutex - should succeed */
+
+	if (pthread_mutex_unlock(&test_mutex_data.errorcheck_mutex) != 0) {
+		printf("Error: could not unlock errorcheck mutex from main thread\n");
+		exit(-1);
+	}
+
+	pthread_join(t, NULL);
+}
+
 int main(int argc, char **argv)
 {
 	printf("--- pthread test ---\n");
@@ -185,6 +402,10 @@ int main(int argc, char **argv)
 	printf("main thread: create pthreads which self de-struct\n");
 
 	test_self_destruct(thread_func_self_destruct, 100);
+
+	printf("main thread: testing mutexes\n");
+
+	test_mutex();
 
 	printf("--- returning from main ---\n");
 	return 0;
