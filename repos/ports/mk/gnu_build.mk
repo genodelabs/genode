@@ -126,8 +126,8 @@ CXXFLAGS += $(COMMON_CFLAGS_CXXFLAGS)
 # in all cases because 'libtool' strips those arguments from the 'LIBS' variable.
 #
 LDLIBS_A  = $(filter %.a, $(sort $(STATIC_LIBS)) $(EXT_OBJECTS) $(LIBGCC))
-LDLIBS_SO = $(addprefix $(PWD)/,$(sort $(SHARED_LIBS)))
-LDLIBS   += $(LDLIBS_A) $(LDLIBS_SO) $(LDLIBS_A)
+LDLIBS_SO = $(addprefix -l:,$(sort $(SHARED_LIBS)))
+LDLIBS   += -L$(PWD) $(LDLIBS_A) $(LDLIBS_SO) $(LDLIBS_A)
 
 #
 # By default, assume that there exists a 'configure' script in the top-level
