@@ -268,7 +268,7 @@ extern "C" int dup2(int libc_fd, int new_libc_fd)
 		close(new_libc_fd);
 
 	new_fd = file_descriptor_allocator()->alloc(fd->plugin, 0, new_libc_fd);
-	new_fd->path(fd->fd_path);
+
 	/* new_fd->context must be assigned by the plugin implementing 'dup2' */
 	return fd->plugin->dup2(fd, new_fd);
 }
