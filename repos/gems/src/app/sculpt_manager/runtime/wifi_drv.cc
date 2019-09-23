@@ -58,6 +58,7 @@ void Sculpt::gen_wifi_drv_start_content(Xml_generator &xml)
 		gen_parent_rom_route(xml, "iwlwifi-1000-5.ucode");
 		gen_parent_rom_route(xml, "iwlwifi-3160-17.ucode");
 		gen_parent_rom_route(xml, "iwlwifi-3168-17.ucode");
+		gen_parent_rom_route(xml, "iwlwifi-5000-5.ucode");
 		gen_parent_rom_route(xml, "iwlwifi-6000-4.ucode");
 		gen_parent_rom_route(xml, "iwlwifi-6000g2a-6.ucode");
 		gen_parent_rom_route(xml, "iwlwifi-6000g2b-6.ucode");

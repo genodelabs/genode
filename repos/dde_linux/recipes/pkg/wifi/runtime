@@ -28,6 +28,7 @@
 		<rom label="iwlwifi-1000-5.ucode"/>
 		<rom label="iwlwifi-3160-17.ucode"/>
 		<rom label="iwlwifi-3168-29.ucode"/>
+		<rom label="iwlwifi-5000-5.ucode"/>
 		<rom label="iwlwifi-6000-4.ucode"/>
 		<rom label="iwlwifi-6000g2a-6.ucode"/>
 		<rom label="iwlwifi-6000g2b-6.ucode"/>
