@@ -104,7 +104,7 @@ class Linker::Elf_object : public Object, private Fifo<Elf_object>::Element
 
 		bool _init_elf_file(Env &env, Allocator &md_alloc, char const *path)
 		{
-			_elf_file.construct(env, md_alloc, Linker::file(path), true);
+			_elf_file.construct(env, md_alloc, path, true);
 			Object::init(Linker::file(path), *_elf_file);
 			return true;
 		}
