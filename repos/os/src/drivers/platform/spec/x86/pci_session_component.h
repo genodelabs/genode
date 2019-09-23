@@ -653,7 +653,7 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 				int bus = 0, device = 0, function = -1;
 
 				if (prev) {
-					Device_config config = prev->config();
+					Device_config config = prev->device_config();
 					bus      = config.bus_number();
 					device   = config.device_number();
 					function = config.function_number();
@@ -736,9 +736,9 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 				if (!device)
 					return;
 
-				unsigned const bus  = device->config().bus_number();
-				unsigned const dev  = device->config().device_number();
-				unsigned const func = device->config().function_number();
+				unsigned const bus  = device->device_config().bus_number();
+				unsigned const dev  = device->device_config().device_number();
+				unsigned const func = device->device_config().function_number();
 
 				if (bdf_in_use.get(Device_config::MAX_BUSES * bus +
 				                   Device_config::MAX_DEVICES * dev +
@@ -753,7 +753,7 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 			/* lookup device component for previous device */
 			_env.ep().rpc_ep().apply(device_cap, lambda);
 
-			if (device && device->config().valid())
+			if (device && device->device_config().valid())
 				destroy(_md_alloc, device);
 		}
 
@@ -765,9 +765,9 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 				return;
 
 			try {
-				addr_t const function = device->config().bus_number() * 32 * 8 +
-				                        device->config().device_number() * 8 +
-				                        device->config().function_number();
+				addr_t const function = device->device_config().bus_number() * 32 * 8 +
+				                        device->device_config().device_number() * 8 +
+				                        device->device_config().function_number();
 				addr_t const base_ecam = Dataspace_client(_pciconf.cap()).phys_addr();
 				addr_t const base_offset = 0x1000UL * function;
 
@@ -775,12 +775,12 @@ class Platform::Session_component : public Genode::Rpc_object<Session>
 					throw 1;
 
 				for (Rmrr *r = Rmrr::list()->first(); r; r = r->next()) {
-					Io_mem_dataspace_capability rmrr_cap = r->match(_env, device->config());
+					Io_mem_dataspace_capability rmrr_cap = r->match(_env, device->device_config());
 					if (rmrr_cap.valid())
 						_device_pd.attach_dma_mem(rmrr_cap);
 				}
 
-				_device_pd.assign_pci(_pciconf.cap(), base_offset, device->config().bdf());
+				_device_pd.assign_pci(_pciconf.cap(), base_offset, device->device_config().bdf());
 
 			} catch (...) {
 				Genode::error("assignment to device pd or of RMRR region failed");

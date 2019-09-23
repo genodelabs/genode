@@ -89,8 +89,10 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 
 		char _mem_irq_component[sizeof(Irq_session_component)];
 
-		Genode::Io_port_connection *_io_port_conn [Device::NUM_RESOURCES];
-		Genode::List<Io_mem> _io_mem [Device::NUM_RESOURCES];
+		Genode::Io_port_connection *_io_port_conn[Device::NUM_RESOURCES];
+
+		/* list of requested resource chunks per BAR */
+		Genode::List<Io_mem> _io_mem[Device::NUM_RESOURCES];
 
 		struct Status : Genode::Register<8> {
 			struct Capabilities : Bitfield<4,1> { };
@@ -189,7 +191,7 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 	public:
 
 		/**
-		 * Constructor
+		 * Constructor for PCI devices
 		 */
 		Device_component(Genode::Env &env,
 		                 Device_config device_config, Genode::addr_t addr,
@@ -263,7 +265,7 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 		 ** Methods used solely by pci session **
 		 ****************************************/
 
-		Device_config config() const { return _device_config; }
+		Device_config device_config() const { return _device_config; }
 		Genode::addr_t config_space() const { return _config_space; }
 
 		/**************************
@@ -290,7 +292,7 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 			if (!_device_config.valid())
 				return Resource(0, 0);
 
-			return _device_config.resource(resource_id);
+			return _device_config.resource(resource_id).api_resource();
 		}
 
 		unsigned config_read(unsigned char address, Access_size size) override

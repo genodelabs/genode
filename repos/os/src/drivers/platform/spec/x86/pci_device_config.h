@@ -16,7 +16,75 @@
 
 #include <base/output.h>
 #include <platform_device/platform_device.h>
+#include <util/register.h>
 #include "pci_config_access.h"
+
+
+namespace Platform { namespace Pci {
+
+	struct Resource;
+} }
+
+
+class Platform::Pci::Resource
+{
+	public:
+
+		struct Bar : Genode::Register<32>
+		{
+			struct Space : Bitfield<0,1> { enum { MEM = 0, PORT = 1 }; };
+
+			struct Mem_type          : Bitfield<1,2>  { enum { MEM32 = 0, MEM64 = 2 }; };
+			struct Mem_prefetch      : Bitfield<3,1>  { };
+			struct Mem_address_mask  : Bitfield<4,28> { };
+			struct Port_address_mask : Bitfield<2,14> { };
+
+			static bool mem(access_t r)                           { return Space::get(r) == Space::MEM; }
+			static bool mem64(access_t r)                         { return mem(r)
+			                                                            && Mem_type::get(r) == Mem_type::MEM64; }
+			static uint64_t mem_address(access_t r0, uint64_t r1) { return (r1 << 32) | Mem_address_mask::masked(r0); }
+			static uint64_t mem_size(access_t r0, uint64_t r1)    { return ~mem_address(r0, r1) + 1; }
+
+			static uint16_t port_address(access_t r) { return Port_address_mask::masked(r); }
+			static uint16_t port_size(access_t r)    { return ~port_address(r) + 1; }
+		};
+
+	private:
+
+		uint32_t _bar[2] { 0, 0 };  /* contains two consecutive BARs for MEM64 */
+		uint64_t _size   { 0 };
+
+	public:
+
+	/* invalid resource */
+	Resource() { }
+
+	/* PORT or MEM32 resource */
+	Resource(uint32_t bar, uint32_t size)
+	: _bar{bar, 0}, _size(mem() ? Bar::mem_size(size, 0) : Bar::port_size(size))
+	{ }
+
+	/* MEM64 resource */
+	Resource(uint32_t bar0, uint32_t size0, uint32_t bar1, uint32_t size1)
+	: _bar{bar0, bar1}, _size(Bar::mem_size(size0, size1))
+	{ }
+
+	bool valid()    const { return !!_bar[0]; } /* no base address -> invalid */
+	bool mem()      const { return Bar::mem(_bar[0]); }
+	uint64_t base() const { return mem() ? Bar::mem_address(_bar[0], _bar[1])
+	                                     : Bar::port_address(_bar[0]); }
+	uint64_t size() const { return _size; }
+
+	Platform::Device::Resource api_resource()
+	{
+		/*
+		 * The API type limits to 32-bit currently (defined in
+		 * spec/x86/platform_device/platform_device.h)
+		 */
+		return Device::Resource((unsigned)_bar[0], (unsigned)_size);
+	}
+};
+
 
 namespace Platform {
 
@@ -44,7 +112,7 @@ namespace Platform {
 				HEADER_CARD_BUS   = 2
 			};
 
-			Device::Resource _resource[Device::NUM_RESOURCES];
+			Platform::Pci::Resource _resource[Device::NUM_RESOURCES];
 
 			bool _resource_id_is_valid(int resource_id)
 			{
@@ -111,45 +179,62 @@ namespace Platform {
 					return;
 				}
 
-				for (int i = 0; _resource_id_is_valid(i); i++) {
+				/*
+				 * We iterate over all BARs but check for 64-bit memory
+				 * resources, which are stored in two consecutive BARs. The
+				 * MEM64 information is stored in the first resource entry and
+				 * the second resource is marked invalid.
+				 */
+				int i = 0;
+				while (_resource_id_is_valid(i)) {
+
+					using Pci::Resource;
 
 					/* index of base-address register in configuration space */
-					unsigned bar_idx = 0x10 + 4 * i;
+					unsigned const bar_idx = 0x10 + 4 * i;
 
-					/* read original base-address register value */
-					unsigned orig_bar = pci_config->read(bus, device, function, bar_idx, Device::ACCESS_32BIT);
+					/* read base-address register value */
+					unsigned const bar_value =
+						pci_config->read(bus, device, function, bar_idx, Device::ACCESS_32BIT);
 
-					/* check for invalid resource */
-					if (orig_bar == (unsigned)~0) {
-						_resource[i] = Device::Resource(0, 0);
+					/* skip invalid resource BARs */
+					if (bar_value == ~0U || bar_value == 0U) {
+						_resource[i] = Resource();
+						++i;
 						continue;
 					}
 
 					/*
-					 * Determine resource size by writing a magic value (all bits set)
-					 * to the base-address register. In response, the device clears a number
-					 * of lowest-significant bits corresponding to the resource size.
-					 * Finally, we write back the original value as assigned by the BIOS.
+					 * Determine resource size by writing a magic value (all
+					 * bits set) to the base-address register. In response, the
+					 * device clears a number of lowest-significant bits
+					 * corresponding to the resource size. Finally, we write
+					 * back the bar-address value as assigned by the BIOS.
 					 */
 					pci_config->write(bus, device, function, bar_idx, ~0, Device::ACCESS_32BIT);
-					unsigned bar = pci_config->read(bus, device, function, bar_idx, Device::ACCESS_32BIT);
-					pci_config->write(bus, device, function, bar_idx, orig_bar, Device::ACCESS_32BIT);
+					unsigned const bar_size = pci_config->read(bus, device, function, bar_idx, Device::ACCESS_32BIT);
+					pci_config->write(bus, device, function, bar_idx, bar_value, Device::ACCESS_32BIT);
 
-					/*
-					 * Scan base-address-register value for the lowest set bit but
-					 * ignore the lower bits that are used to describe the resource type.
-					 * I/O resources use the lowest 3 bits, memory resources use the
-					 * lowest four bits for the resource description.
-					 */
-					unsigned start = (bar & 1) ? 3 : 4;
-					unsigned size  = 1 << start;
-					for (unsigned bit = start; bit < 32; bit++, size += size)
+					if (!Resource::Bar::mem64(bar_value)) {
+						_resource[i] = Resource(bar_value, bar_size);
+						++i;
+					} else {
+						/* also consume next BAR for MEM64 */
+						unsigned const bar2_idx = bar_idx + 4;
+						unsigned const bar2_value =
+							pci_config->read(bus, device, function, bar2_idx, Device::ACCESS_32BIT);
+						pci_config->write(bus, device, function, bar2_idx, ~0, Device::ACCESS_32BIT);
+						unsigned const bar2_size =
+							pci_config->read(bus, device, function, bar2_idx, Device::ACCESS_32BIT);
+						pci_config->write(bus, device, function, bar2_idx, bar2_value, Device::ACCESS_32BIT);
 
-						/* stop at the lowest-significant set bit */
-						if (bar & (1 << bit))
-							break;
-
-					_resource[i] = Device::Resource(orig_bar, size);
+						/* combine into first resource and mark second as invalid */
+						_resource[i] = Resource(bar_value, bar_size,
+						                        bar2_value, bar2_size);
+						++i;
+						_resource[i] = Resource();
+						++i;
+					}
 				}
 			}
 
@@ -192,11 +277,11 @@ namespace Platform {
 			/**
 			 * Return resource description by resource ID
 			 */
-			Device::Resource resource(int resource_id)
+			Platform::Pci::Resource resource(int resource_id)
 			{
 				/* return invalid resource if sanity check fails */
 				if (!_resource_id_is_valid(resource_id))
-					return Device::Resource(0, 0);
+					return Platform::Pci::Resource();
 
 				return _resource[resource_id];
 			}
