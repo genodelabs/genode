@@ -152,6 +152,31 @@ int main(int argc, char **argv)
 		}
 	}
 
+	{
+		/* test dup of stderr (issue #3477) */
+		int const new_fd = dup(STDERR_FILENO);
+		if (new_fd < 0) {
+			printf("dup of stderr failed\n");
+			++error_count;
+		} else {
+			close(new_fd);
+		}
+	}
+
+	{
+		/* test double dup2 (issue #3505) */
+		int const new_fd = 17, another_new_fd = 18;
+		if (dup2(STDERR_FILENO, new_fd)         == new_fd
+		 && dup2(STDERR_FILENO, another_new_fd) == another_new_fd) {
+
+			close(new_fd);
+			close(another_new_fd);
+		} else {
+			printf("dup2 of stderr failed\n");
+			++error_count;
+		}
+	}
+
 	perror("perror");
 
 	struct timespec ts;
