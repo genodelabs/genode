@@ -335,19 +335,26 @@ class Lx_kit::Malloc : public Lx::Malloc
  ** Lx::Malloc implementation **
  *******************************/
 
-static Genode::Constructible<Lx_kit::Slab_backend_alloc> _mem_backend_alloc;
-static Genode::Constructible<Lx_kit::Slab_backend_alloc> _dma_backend_alloc;
-static Genode::Constructible<Lx_kit::Malloc>             _mem_alloc;
-static Genode::Constructible<Lx_kit::Malloc>             _dma_alloc;
+static Lx_kit::Slab_backend_alloc *_mem_backend_alloc_ptr;
+static Lx_kit::Slab_backend_alloc *_dma_backend_alloc_ptr;
+
+static Lx_kit::Malloc *_mem_alloc_ptr;
+static Lx_kit::Malloc *_dma_alloc_ptr;
 
 
 void Lx::malloc_init(Genode::Env &env, Genode::Allocator &md_alloc)
 {
-	_mem_backend_alloc.construct(env, md_alloc, Genode::CACHED);
-	_dma_backend_alloc.construct(env, md_alloc, Genode::UNCACHED);
+	static Lx_kit::Slab_backend_alloc mem_backend_alloc(env, md_alloc, Genode::CACHED);
+	static Lx_kit::Slab_backend_alloc dma_backend_alloc(env, md_alloc, Genode::UNCACHED);
 
-	_mem_alloc.construct(*_mem_backend_alloc, Genode::CACHED);
-	_dma_alloc.construct(*_dma_backend_alloc, Genode::UNCACHED);
+	_mem_backend_alloc_ptr = &mem_backend_alloc;
+	_dma_backend_alloc_ptr = &dma_backend_alloc;
+
+	static Lx_kit::Malloc mem_alloc(mem_backend_alloc, Genode::CACHED);
+	static Lx_kit::Malloc dma_alloc(dma_backend_alloc, Genode::UNCACHED);
+
+	_mem_alloc_ptr = &mem_alloc;
+	_dma_alloc_ptr = &dma_alloc;
 }
 
 
@@ -355,22 +362,22 @@ void Lx::malloc_init(Genode::Env &env, Genode::Allocator &md_alloc)
  * Cached memory backend allocator
  */
 Lx::Slab_backend_alloc &Lx::Slab_backend_alloc::mem() {
-	return *_mem_backend_alloc; }
+	return *_mem_backend_alloc_ptr; }
 
 
 /**
  * DMA memory backend allocator
  */
 Lx::Slab_backend_alloc &Lx::Slab_backend_alloc::dma() {
-	return *_dma_backend_alloc; }
+	return *_dma_backend_alloc_ptr; }
 
 
 /**
  * Cached memory allocator
  */
-Lx::Malloc &Lx::Malloc::mem() { return *_mem_alloc; }
+Lx::Malloc &Lx::Malloc::mem() { return *_mem_alloc_ptr; }
 
 /**
  * DMA memory allocator
  */
-Lx::Malloc &Lx::Malloc::dma() { return *_dma_alloc; }
+Lx::Malloc &Lx::Malloc::dma() { return *_dma_alloc_ptr; }

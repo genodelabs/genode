@@ -37,12 +37,22 @@
 
 #include <lx_kit/backend_alloc.h>
 
+struct Memory_object_base;
+
 static Lx_kit::Env *lx_env;
+
+static Genode::Object_pool<Memory_object_base> *memory_pool_ptr;
+
 
 void Lx::lxcc_emul_init(Lx_kit::Env &env)
 {
+	static Genode::Object_pool<Memory_object_base> memory_pool;
+
+	memory_pool_ptr = &memory_pool;
+
 	lx_env = &env;
 }
+
 
 struct Memory_object_base : Genode::Object_pool<Memory_object_base>::Entry
 {
@@ -59,9 +69,6 @@ struct Memory_object_base : Genode::Object_pool<Memory_object_base>::Entry
 };
 
 
-static Genode::Object_pool<Memory_object_base> memory_pool;
-
-
 Genode::Ram_dataspace_capability
 Lx::backend_alloc(Genode::addr_t size, Genode::Cache_attribute cached)
 {
@@ -70,7 +77,7 @@ Lx::backend_alloc(Genode::addr_t size, Genode::Cache_attribute cached)
 	Genode::Ram_dataspace_capability cap = lx_env->ram().alloc(size);
 	Memory_object_base *o = new (lx_env->heap()) Memory_object_base(cap);
 
-	memory_pool.insert(o);
+	memory_pool_ptr->insert(o);
 	return cap;
 }
 
@@ -80,11 +87,11 @@ void Lx::backend_free(Genode::Ram_dataspace_capability cap)
 	using namespace Genode;
 
 	Memory_object_base *object;
-	memory_pool.apply(cap, [&] (Memory_object_base *o) {
+	memory_pool_ptr->apply(cap, [&] (Memory_object_base *o) {
 		if (!o) return;
 
 		o->free();
-		memory_pool.remove(o);
+		memory_pool_ptr->remove(o);
 
 		object = o; /* save for destroy */
 	});

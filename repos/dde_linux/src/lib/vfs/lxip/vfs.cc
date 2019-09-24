@@ -381,31 +381,31 @@ struct Vfs::Lxip_vfs_dir_handle final : Vfs::Lxip_vfs_handle
 /**
  * Queues of open handles to poll
  */
-static Vfs::Lxip_vfs_file_handle::Fifo _io_progress_waiters;
-static Vfs::Lxip_vfs_file_handle::Fifo  _read_ready_waiters;
+static Vfs::Lxip_vfs_file_handle::Fifo *_io_progress_waiters_ptr;
+static Vfs::Lxip_vfs_file_handle::Fifo *_read_ready_waiters_ptr;
 
 static void poll_all()
 {
-	_io_progress_waiters.for_each(
+	_io_progress_waiters_ptr->for_each(
 			[&] (Vfs::Lxip_vfs_file_handle::Fifo_element &elem) {
 		Vfs::Lxip_vfs_file_handle &handle = elem.object();
 		if (handle.file) {
 			if (handle.file->poll()) {
 				/* do not notify again until some I/O queues */
-				_io_progress_waiters.remove(elem);
+				_io_progress_waiters_ptr->remove(elem);
 
 				handle.io_progress_response();
 			}
 		}
 	});
 
-	_read_ready_waiters.for_each(
+	_read_ready_waiters_ptr->for_each(
 			[&] (Vfs::Lxip_vfs_file_handle::Fifo_element &elem) {
 		Vfs::Lxip_vfs_file_handle &handle = elem.object();
 		if (handle.file) {
 			if (handle.file->poll()) {
 				/* do not notify again until notify_read_ready */
-				_read_ready_waiters.remove(elem);
+				_read_ready_waiters_ptr->remove(elem);
 
 				handle.read_ready_response();
 			}
@@ -513,7 +513,7 @@ class Vfs::Lxip_data_file final : public Vfs::Lxip_file
 
 			Lxip::ssize_t ret = _sock.ops->recvmsg(&_sock, &msg, len, MSG_DONTWAIT);
 			if (ret == -EAGAIN) {
-				handle.io_enqueue(_io_progress_waiters);
+				handle.io_enqueue(*_io_progress_waiters_ptr);
 				throw Would_block();
 			}
 			return ret;
@@ -843,10 +843,10 @@ class Vfs::Lxip_remote_file final : public Vfs::Lxip_file
 
 					int const res = _sock.ops->recvmsg(&_sock, &msg, 0, MSG_DONTWAIT|MSG_PEEK);
 					if (res == -EAGAIN) {
-						handle.io_enqueue(_io_progress_waiters);
+						handle.io_enqueue(*_io_progress_waiters_ptr);
 						throw Would_block();
 					}
-					if (res < 0)        return -1;
+					if (res < 0) return -1;
 				}
 				break;
 			case Lxip::Protocol_dir::TYPE_STREAM:
@@ -924,7 +924,7 @@ class Vfs::Lxip_accept_file final : public Vfs::Lxip_file
 				return Genode::strlen(dst);
 			}
 
-			handle.io_enqueue(_io_progress_waiters);
+			handle.io_enqueue(*_io_progress_waiters_ptr);
 			throw Would_block();
 		}
 };
@@ -1855,8 +1855,8 @@ class Vfs::Lxip_file_system : public Vfs::File_system,
 				dynamic_cast<Vfs::Lxip_vfs_file_handle*>(handle);
 
 			if (file_handle) {
-				_io_progress_waiters.remove(file_handle->io_progress_elem);
-				_read_ready_waiters.remove(file_handle->read_ready_elem);
+				_io_progress_waiters_ptr->remove(file_handle->io_progress_elem);
+				_read_ready_waiters_ptr->remove(file_handle->read_ready_elem);
 			}
 
 			Genode::destroy(handle->alloc(), handle);
@@ -1913,7 +1913,7 @@ class Vfs::Lxip_file_system : public Vfs::File_system,
 
 			if (handle) {
 				if (!handle->read_ready_elem.enqueued())
-					_read_ready_waiters.enqueue(handle->read_ready_elem);
+					_read_ready_waiters_ptr->enqueue(handle->read_ready_elem);
 				return true;
 			}
 
@@ -1971,6 +1971,12 @@ struct Lxip_factory : Vfs::File_system_factory
 
 extern "C" Vfs::File_system_factory *vfs_file_system_factory(void)
 {
+	static Vfs::Lxip_vfs_file_handle::Fifo io_progress_waiters;
+	static Vfs::Lxip_vfs_file_handle::Fifo read_ready_waiters;
+
+	_io_progress_waiters_ptr = &io_progress_waiters;
+	_read_ready_waiters_ptr  = &read_ready_waiters;
+
 	static Lxip_factory factory;
 	return &factory;
 }
