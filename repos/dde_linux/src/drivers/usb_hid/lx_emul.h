@@ -34,7 +34,17 @@ typedef int clockid_t;
 
 #include <lx_emul/timer.h>
 #include <lx_emul/spinlock.h>
+
 #include <lx_emul/mutex.h>
+
+LX_MUTEX_INIT_DECLARE(dquirks_lock);
+LX_MUTEX_INIT_DECLARE(input_mutex);
+LX_MUTEX_INIT_DECLARE(wacom_udev_list_lock);
+
+#define dquirks_lock         LX_MUTEX(dquirks_lock)
+#define input_mutex          LX_MUTEX(input_mutex)
+#define wacom_udev_list_lock LX_MUTEX(wacom_udev_list_lock)
+
 
 typedef __u16 __le16;
 typedef __u32 __le32;

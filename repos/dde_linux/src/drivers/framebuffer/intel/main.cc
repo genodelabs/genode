@@ -60,6 +60,9 @@ struct Main
 
 		Lx_kit::construct_env(env);
 
+		LX_MUTEX_INIT(bridge_lock);
+		LX_MUTEX_INIT(core_lock);
+
 		/* init singleton Lx::Scheduler */
 		Lx::scheduler(&env);
 

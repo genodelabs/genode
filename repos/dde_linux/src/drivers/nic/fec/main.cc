@@ -56,6 +56,9 @@ struct Main
 
 		Lx_kit::construct_env(env);
 
+		LX_MUTEX_INIT(mdio_board_lock);
+		LX_MUTEX_INIT(phy_fixup_lock);
+
 		/* init singleton Lx::Scheduler */
 		Lx::scheduler(&env);
 

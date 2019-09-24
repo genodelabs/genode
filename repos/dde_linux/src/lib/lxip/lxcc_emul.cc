@@ -37,12 +37,25 @@
 
 #include <lx_kit/backend_alloc.h>
 
+struct Memory_object_base;
+
 static Lx_kit::Env *lx_env;
+
+static Genode::Object_pool<Memory_object_base> *memory_pool_ptr;
+
 
 void Lx::lxcc_emul_init(Lx_kit::Env &env)
 {
+	static Genode::Object_pool<Memory_object_base> memory_pool;
+
+	memory_pool_ptr = &memory_pool;
+
 	lx_env = &env;
+
+	LX_MUTEX_INIT(dst_gc_mutex);
+	LX_MUTEX_INIT(proto_list_mutex);
 }
+
 
 struct Memory_object_base : Genode::Object_pool<Memory_object_base>::Entry
 {
@@ -59,9 +72,6 @@ struct Memory_object_base : Genode::Object_pool<Memory_object_base>::Entry
 };
 
 
-static Genode::Object_pool<Memory_object_base> memory_pool;
-
-
 Genode::Ram_dataspace_capability
 Lx::backend_alloc(Genode::addr_t size, Genode::Cache_attribute cached)
 {
@@ -70,7 +80,7 @@ Lx::backend_alloc(Genode::addr_t size, Genode::Cache_attribute cached)
 	Genode::Ram_dataspace_capability cap = lx_env->ram().alloc(size);
 	Memory_object_base *o = new (lx_env->heap()) Memory_object_base(cap);
 
-	memory_pool.insert(o);
+	memory_pool_ptr->insert(o);
 	return cap;
 }
 
@@ -80,11 +90,11 @@ void Lx::backend_free(Genode::Ram_dataspace_capability cap)
 	using namespace Genode;
 
 	Memory_object_base *object;
-	memory_pool.apply(cap, [&] (Memory_object_base *o) {
+	memory_pool_ptr->apply(cap, [&] (Memory_object_base *o) {
 		if (!o) return;
 
 		o->free();
-		memory_pool.remove(o);
+		memory_pool_ptr->remove(o);
 
 		object = o; /* save for destroy */
 	});
@@ -359,7 +369,11 @@ class Avl_page : public Genode::Avl_node<Avl_page>
 };
 
 
-static Genode::Avl_tree<Avl_page> tree;
+static Genode::Avl_tree<Avl_page> & tree()
+{
+	static Genode::Avl_tree<Avl_page> _tree;
+	return _tree;
+}
 
 
 struct page *alloc_pages(gfp_t gfp_mask, unsigned int order)
@@ -367,7 +381,7 @@ struct page *alloc_pages(gfp_t gfp_mask, unsigned int order)
 	Avl_page *p;
 	try {
 		p = (Avl_page *)new (lx_env->heap()) Avl_page(PAGE_SIZE << order);
-		tree.insert(p);
+		tree().insert(p);
 	} catch (...) { return 0; }
 
 	return p->page();
@@ -386,9 +400,9 @@ void *__alloc_page_frag(struct page_frag_cache *nc,
 
 void __free_page_frag(void *addr)
 {
-	Avl_page *p = tree.first()->find_by_address((Genode::addr_t)addr);
+	Avl_page *p = tree().first()->find_by_address((Genode::addr_t)addr);
 
-	tree.remove(p);
+	tree().remove(p);
 	destroy(lx_env->heap(), p);
 }
 
@@ -399,7 +413,7 @@ void __free_page_frag(void *addr)
 
 struct page *virt_to_head_page(const void *x)
 {
-	Avl_page *p = tree.first()->find_by_address((Genode::addr_t)x);
+	Avl_page *p = tree().first()->find_by_address((Genode::addr_t)x);
 	lx_log(DEBUG_SLAB, "virt_to_head_page: %p page %p\n", x,p ? p->page() : 0);
 	
 	return p ? p->page() : 0;
@@ -412,9 +426,9 @@ void put_page(struct page *page)
 		return;
 
 	lx_log(DEBUG_SLAB, "put_page: %p", page);
-	Avl_page *p = tree.first()->find_by_address((Genode::addr_t)page->addr);
+	Avl_page *p = tree().first()->find_by_address((Genode::addr_t)page->addr);
 
-	tree.remove(p);
+	tree().remove(p);
 	destroy(lx_env->heap(), p);
 }
 

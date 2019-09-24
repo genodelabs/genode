@@ -484,6 +484,24 @@ int alloc_bucket_spinlocks(spinlock_t **locks, unsigned int *locks_mask,
 
 #include <lx_emul/mutex.h>
 
+LX_MUTEX_INIT_DECLARE(crypto_default_rng_lock);
+LX_MUTEX_INIT_DECLARE(fanout_mutex);
+LX_MUTEX_INIT_DECLARE(genl_mutex);
+LX_MUTEX_INIT_DECLARE(proto_list_mutex);
+LX_MUTEX_INIT_DECLARE(rate_ctrl_mutex);
+LX_MUTEX_INIT_DECLARE(reg_regdb_apply_mutex);
+LX_MUTEX_INIT_DECLARE(rfkill_global_mutex);
+LX_MUTEX_INIT_DECLARE(rtnl_mutex);
+
+#define crypto_default_rng_lock LX_MUTEX(crypto_default_rng_lock)
+#define fanout_mutex            LX_MUTEX(fanout_mutex)
+#define genl_mutex              LX_MUTEX(genl_mutex)
+#define proto_list_mutex        LX_MUTEX(proto_list_mutex)
+#define rate_ctrl_mutex         LX_MUTEX(rate_ctrl_mutex)
+#define reg_regdb_apply_mutex   LX_MUTEX(reg_regdb_apply_mutex)
+#define rfkill_global_mutex     LX_MUTEX(rfkill_global_mutex)
+#define rtnl_mutex              LX_MUTEX(rtnl_mutex)
+
 
 /*******************
  ** linux/rwsem.h **
