@@ -68,6 +68,14 @@ Genode::Io_mem_session_capability Platform::Device_component::io_mem(Genode::uin
 		if (offset >= res.size() || offset > res.size() - res_size)
 			return Genode::Io_mem_session_capability();
 
+		/* error if MEM64 resource base address above 4G on 32-bit */
+		if (res.base() > ~(addr_t)0) {
+			Genode::error("request for MEM64 resource of ", _device_config,
+			              " at ", Genode::Hex(res.base()),
+			              " not supported on 32-bit system");
+			return Genode::Io_mem_session_capability();
+		}
+
 		try {
 			bool const wc = caching == Genode::Cache_attribute::WRITE_COMBINED;
 			Io_mem * io_mem = new (_slab_iomem) Io_mem(_env,
