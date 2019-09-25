@@ -563,6 +563,22 @@ void *kmalloc_array(size_t n, size_t size, gfp_t flags);
 
 #include <lx_emul/mutex.h>
 
+LX_MUTEX_INIT_DECLARE(hid_open_mut);
+LX_MUTEX_INIT_DECLARE(host_cmd_pool_mutex);
+LX_MUTEX_INIT_DECLARE(input_mutex);
+LX_MUTEX_INIT_DECLARE(usb_bus_list_lock);
+LX_MUTEX_INIT_DECLARE(usb_port_peer_mutex);
+LX_MUTEX_INIT_DECLARE(usbfs_mutex);
+LX_MUTEX_INIT_DECLARE(wacom_udev_list_lock);
+
+#define hid_open_mut         LX_MUTEX(hid_open_mut)
+#define host_cmd_pool_mutex  LX_MUTEX(host_cmd_pool_mutex)
+#define input_mutex          LX_MUTEX(input_mutex)
+#define usb_bus_list_lock    LX_MUTEX(usb_bus_list_lock)
+#define usb_port_peer_mutex  LX_MUTEX(usb_port_peer_mutex)
+#define usbfs_mutex          LX_MUTEX(usbfs_mutex)
+#define wacom_udev_list_lock LX_MUTEX(wacom_udev_list_lock)
+
 int  mutex_lock_interruptible(struct mutex *m);
 
 

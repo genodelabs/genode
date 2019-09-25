@@ -185,6 +185,15 @@ void wifi_init(Genode::Env &env, Genode::Lock &lock, bool disable_11n,
 {
 	Lx_kit::construct_env(env);
 
+	LX_MUTEX_INIT_DECLARE(crypto_default_rng_lock);
+	LX_MUTEX_INIT_DECLARE(fanout_mutex);
+	LX_MUTEX_INIT_DECLARE(genl_mutex);
+	LX_MUTEX_INIT_DECLARE(proto_list_mutex);
+	LX_MUTEX_INIT_DECLARE(rate_ctrl_mutex);
+	LX_MUTEX_INIT_DECLARE(reg_regdb_apply_mutex);
+	LX_MUTEX_INIT_DECLARE(rfkill_global_mutex);
+	LX_MUTEX_INIT_DECLARE(rtnl_mutex);
+
 	_wpa_lock = &lock;
 
 	INIT_LIST_HEAD(&init_net.dev_base_head);

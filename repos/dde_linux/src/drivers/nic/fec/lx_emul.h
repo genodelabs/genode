@@ -145,6 +145,13 @@ size_t iov_iter_count(struct iov_iter *i);
 	container_of(callback_timer, typeof(*var), timer_fieldname)
 
 #include <lx_emul/mutex.h>
+
+LX_MUTEX_INIT_DECLARE(mdio_board_lock);
+LX_MUTEX_INIT_DECLARE(phy_fixup_lock);
+
+#define mdio_board_lock LX_MUTEX(mdio_board_lock)
+#define phy_fixup_lock LX_MUTEX(phy_fixup_lock)
+
 #include <lx_emul/bitops.h>
 #include <lx_emul/atomic.h>
 #include <lx_emul/work.h>

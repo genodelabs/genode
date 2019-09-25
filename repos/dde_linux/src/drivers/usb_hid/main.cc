@@ -270,6 +270,11 @@ Driver::Driver(Genode::Env &env) : env(env)
 	Genode::log("--- USB HID input driver ---");
 
 	Lx_kit::construct_env(env);
+
+	LX_MUTEX_INIT(dquirks_lock);
+	LX_MUTEX_INIT(input_mutex);
+	LX_MUTEX_INIT(wacom_udev_list_lock);
+
 	Lx::scheduler(&env);
 	Lx::malloc_init(env, heap);
 	Lx::timer(&env, &ep, &heap, &jiffies);

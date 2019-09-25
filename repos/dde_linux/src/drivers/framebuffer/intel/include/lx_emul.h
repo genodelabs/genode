@@ -388,7 +388,14 @@ static inline u64 get_jiffies_64(void) { return jiffies; }
 
 #include <lx_emul/spinlock.h>
 #include <lx_emul/semaphore.h>
+
 #include <lx_emul/mutex.h>
+
+LX_MUTEX_INIT_DECLARE(bridge_lock);
+LX_MUTEX_INIT_DECLARE(core_lock);
+
+#define bridge_lock LX_MUTEX(bridge_lock)
+#define core_lock   LX_MUTEX(core_lock)
 
 
 static inline int mutex_lock_interruptible(struct mutex *lock) {

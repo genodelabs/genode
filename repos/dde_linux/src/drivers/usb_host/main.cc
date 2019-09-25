@@ -69,6 +69,11 @@ static void start_usb_driver(Genode::Env &env)
 	/* initialize USB env */
 	Lx_kit::construct_env(env);
 
+	LX_MUTEX_INIT(init_usb_class_mutex);
+	LX_MUTEX_INIT(usb_bus_idr_lock);
+	LX_MUTEX_INIT(usb_port_peer_mutex);
+	LX_MUTEX_INIT(usbfs_mutex);
+
 	/* sets up backend alloc needed by malloc */
 	backend_alloc_init(env, env.ram(), Lx_kit::env().heap());
 

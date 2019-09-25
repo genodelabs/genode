@@ -437,6 +437,16 @@ void *kmalloc_array(size_t n, size_t size, gfp_t flags);
 
 #include <lx_emul/mutex.h>
 
+LX_MUTEX_INIT_DECLARE(init_usb_class_mutex);
+LX_MUTEX_INIT_DECLARE(usb_bus_idr_lock);
+LX_MUTEX_INIT_DECLARE(usb_port_peer_mutex);
+LX_MUTEX_INIT_DECLARE(usbfs_mutex);
+
+#define init_usb_class_mutex LX_MUTEX(init_usb_class_mutex)
+#define usb_bus_idr_lock     LX_MUTEX(usb_bus_idr_lock)
+#define usb_port_peer_mutex  LX_MUTEX(usb_port_peer_mutex)
+#define usbfs_mutex          LX_MUTEX(usbfs_mutex)
+
 
 /*******************
  ** linux/rwsem.h **
