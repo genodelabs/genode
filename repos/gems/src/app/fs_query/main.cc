@@ -104,7 +104,11 @@ struct Fs_query::Watched_directory
 		_dir(other, rel_path), _watcher(other, rel_path, handler)
 	{
 		_dir.for_each_entry([&] (Directory::Entry const &entry) {
-			if (entry.type() == Vfs::Directory_service::DIRENT_TYPE_FILE) {
+
+			using Dirent_type = Vfs::Directory_service::Dirent_type;
+			bool const file = (entry.type() == Dirent_type::CONTINUOUS_FILE)
+			               || (entry.type() == Dirent_type::TRANSACTIONAL_FILE);
+			if (file) {
 				try {
 					new (_alloc) Registered<Watched_file>(_files, _dir, entry.name(), handler);
 				} catch (...) { }

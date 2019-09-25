@@ -133,6 +133,10 @@ class Fatfs_fs::Session_component : public Session_rpc_object
 				succeeded = true;
 				/* not supported */
 				break;
+
+			case Packet_descriptor::WRITE_TIMESTAMP:
+				succeeded = false;
+				break;
 			}
 
 			packet.length(res_length);
@@ -537,8 +541,9 @@ class Fatfs_fs::Session_component : public Session_rpc_object
 				Status status;
 				status.inode = 1;
 				status.size  = 0;
-				status.mode  = 0;
-
+				status.rwx   = { .readable   = true,
+				                 .writeable  = true,
+				                 .executable = true };
 				Node &node = open_node.node();
 
 				using namespace Fatfs;
@@ -587,17 +592,17 @@ class Fatfs_fs::Session_component : public Session_rpc_object
 					}
 
 					if ((fatfs_file_info.fattrib & AM_DIR) == AM_DIR) {
-						status.mode = File_system::Status::MODE_DIRECTORY; }
+						status.type = File_system::Node_type::DIRECTORY; }
 					else {
-						status.mode = File_system::Status::MODE_FILE;
+						status.type = File_system::Node_type::CONTINUOUS_FILE;
 						status.size = fatfs_file_info.fsize;
 					}
 
 				} else {
-					status.mode = File_system::Status::MODE_DIRECTORY;
+					status.type = File_system::Node_type::DIRECTORY;
 				}
 
-				if (status.mode == File_system::Status::MODE_DIRECTORY) {
+				if (status.type == File_system::Node_type::DIRECTORY) {
 
 					/* determine the number of directory entries */
 

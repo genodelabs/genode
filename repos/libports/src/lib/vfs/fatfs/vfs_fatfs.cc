@@ -181,30 +181,39 @@ class Fatfs::File_system : public Vfs::File_system
 					cur_index = 0;
 				}
 
-				Dirent *vfs_dir = (Dirent*)buf;
+				Dirent &vfs_dirent = *(Dirent*)buf;
 
 				FILINFO info;
 				FRESULT res;
-				vfs_dir->fileno = 1; /* inode 0 is a pending unlink */
+
+				unsigned const fileno = 1; /* inode 0 is a pending unlink */
 
 				while (cur_index <= dir_index) {
 					res = f_readdir (&dir, &info);
 					if ((res != FR_OK) || (!info.fname[0])) {
 						f_readdir(&dir, nullptr);
 						cur_index = 0;
-						vfs_dir->type    = DIRENT_TYPE_END;
-						vfs_dir->name[0] = '\0';
+
+						vfs_dirent = {
+							.fileno = fileno,
+							.type   = Dirent_type::END,
+							.rwx    = Node_rwx::rwx(),
+							.name   = { }
+						};
 						out_count = sizeof(Dirent);
 						return READ_OK;
 					}
 					cur_index++;
 				}
 
-				vfs_dir->type = (info.fattrib & AM_DIR) ?
-					DIRENT_TYPE_DIRECTORY : DIRENT_TYPE_FILE;
-				Genode::strncpy(vfs_dir->name, (const char*)info.fname,
-				                sizeof(vfs_dir->name));
-
+				vfs_dirent = {
+					.fileno = fileno,
+					.type   = (info.fattrib & AM_DIR)
+					        ? Dirent_type::DIRECTORY
+					        : Dirent_type::CONTINUOUS_FILE,
+					.rwx    = Node_rwx::rwx(),
+					.name   = { (char const *)info.fname }
+				};
 				out_count = sizeof(Dirent);
 				return READ_OK;
 			}
@@ -607,19 +616,22 @@ class Fatfs::File_system : public Vfs::File_system
 
 		Stat_result stat(char const *path, Stat &stat) override
 		{
-			stat = Stat();
+			stat = Stat { };
 
 			FILINFO info;
 
 			FRESULT const err = f_stat((const TCHAR*)path, &info);
 			switch (err) {
 			case FR_OK:
-				stat.inode = 1;
+				stat.inode  = 1;
 				stat.device = (Genode::addr_t)this;
-				stat.mode = (info.fattrib & AM_DIR) ?
-					STAT_MODE_DIRECTORY : STAT_MODE_FILE;
+				stat.type   = (info.fattrib & AM_DIR)
+				            ? Vfs::Node_type::DIRECTORY
+				            : Vfs::Node_type::CONTINUOUS_FILE;
+				stat.rwx    = Vfs::Node_rwx::rwx();
+
 				/* XXX: size in f_stat is always zero */
-				if ((stat.mode == STAT_MODE_FILE) && (info.fsize == 0)) {
+				if ((stat.type == Vfs::Node_type::CONTINUOUS_FILE) && (info.fsize == 0)) {
 					File *file = _opened_file(path);
 					if (file) {
 						stat.size = f_size(&file->fil);

@@ -67,12 +67,15 @@ class Ram_fs::Symlink : public Node
 
 		Status status() override
 		{
-			Status s;
-			s.inode = inode();
-			s.size = _len;
-			s.mode = File_system::Status::MODE_SYMLINK;
-			s.modification_time = modification_time();
-			return s;
+			return {
+				.size              = _len,
+				.type              = File_system::Node_type::SYMLINK,
+				.rwx               = { .readable   = true,
+				                       .writeable  = true,
+				                       .executable = true },
+				.inode             = inode(),
+				.modification_time = modification_time()
+			};
 		}
 };
 

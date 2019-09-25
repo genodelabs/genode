@@ -153,20 +153,21 @@ class Rump_fs::File : public Node
 
 		virtual Status status() override
 		{
-			struct stat st;
+			struct stat st { };
 			if (rump_sys_fstat(_fd, &st) < 0) {
 				st.st_size = 0;
 				st.st_mtime = 0;
 			}
 
-			Status s;
-
-			s.inode = inode();
-			s.size  = st.st_size;
-			s.mode  = File_system::Status::MODE_FILE;
-			s.modification_time = { (int64_t)st.st_mtime };
-
-			return s;
+			return {
+				.size  = (file_size_t)st.st_size,
+				.type  = File_system::Node_type::CONTINUOUS_FILE,
+				.rwx   = { .readable   = (st.st_mode & S_IRUSR),
+				           .writeable  = (st.st_mode & S_IWUSR),
+				           .executable = (st.st_mode & S_IWUSR) },
+				.inode = inode(),
+				.modification_time = { (int64_t)st.st_mtime }
+			};
 		}
 
 		void truncate(file_size_t size) override

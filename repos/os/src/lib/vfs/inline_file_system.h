@@ -103,7 +103,9 @@ class Vfs::Inline_file_system : public Single_file_system
 		 */
 		Inline_file_system(Vfs::Env&, Genode::Xml_node config)
 		:
-			Single_file_system(NODE_TYPE_FILE, name(), config), _node(config)
+			Single_file_system(Node_type::CONTINUOUS_FILE, name(),
+			                   Node_rwx::rx(), config),
+			_node(config)
 		{ }
 
 		static char const *name()   { return "inline"; }
@@ -140,9 +142,11 @@ class Vfs::Inline_file_system : public Single_file_system
 
 		Stat_result stat(char const *path, Stat &out) override
 		{
-			Stat_result result = Single_file_system::stat(path, out);
+			Stat_result const result = Single_file_system::stat(path, out);
+
 			_node.with_raw_content([&] (char const *, Genode::size_t size) {
 				out.size = size; });
+
 			return result;
 		}
 };

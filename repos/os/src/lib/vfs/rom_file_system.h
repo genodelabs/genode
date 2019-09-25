@@ -107,7 +107,8 @@ class Vfs::Rom_file_system : public Single_file_system
 		Rom_file_system(Vfs::Env &env,
 		                Genode::Xml_node config)
 		:
-			Single_file_system(NODE_TYPE_FILE, name(), config),
+			Single_file_system(Node_type::CONTINUOUS_FILE, name(),
+			                   Node_rwx::ro(), config),
 
 			/* use 'label' attribute if present, fall back to 'name' if not */
 			_label(config.attribute_value("label",
@@ -161,10 +162,12 @@ class Vfs::Rom_file_system : public Single_file_system
 			 * found a file), obtain the size of the most current ROM module
 			 * version.
 			 */
-			if (out.mode == STAT_MODE_FILE) {
+			if (out.type == Node_type::CONTINUOUS_FILE) {
 				_rom.update();
 				out.size = _rom.valid() ? _rom.size() : 0;
-				out.mode |= 0555;
+				out.rwx  = { .readable   = true,
+				             .writeable  = false,
+				             .executable = true };
 			}
 
 			return result;

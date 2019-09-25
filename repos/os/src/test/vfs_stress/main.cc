@@ -442,7 +442,7 @@ struct Unlink_test : public Stress_test
 		Vfs::Vfs_handle *dir_handle;
 		assert_opendir(vfs.opendir(path, false, &dir_handle, alloc));
 
-		Vfs::Directory_service::Dirent dirent;
+		Vfs::Directory_service::Dirent dirent { };
 		for (Vfs::file_size i = vfs.num_dirent(path); i;) {
 			dir_handle->seek(--i * sizeof(dirent));
 			dir_handle->fs().queue_read(dir_handle, sizeof(dirent));
@@ -453,13 +453,13 @@ struct Unlink_test : public Stress_test
 			       Vfs::File_io_service::READ_QUEUED)
 				_ep.wait_and_dispatch_one_io_signal();
 
-			subpath.append(dirent.name);
+			subpath.append(dirent.name.buf);
 			switch (dirent.type) {
-			case Vfs::Directory_service::DIRENT_TYPE_END:
+			case Vfs::Directory_service::Dirent_type::END:
 				error("reached the end prematurely");
 				throw Exception();
 
-			case Vfs::Directory_service::DIRENT_TYPE_DIRECTORY:
+			case Vfs::Directory_service::Dirent_type::DIRECTORY:
 				empty_dir(subpath.base());
 
 			default:

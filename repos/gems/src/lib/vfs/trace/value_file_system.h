@@ -128,8 +128,8 @@ class Vfs::Value_file_system : public Vfs::Single_file_system
 
 		Value_file_system(Name const &name, Buffer const &initial_value)
 		:
-			Single_file_system(NODE_TYPE_CHAR_DEVICE, type(),
-			                   Xml_node(_config(name).string())),
+			Single_file_system(Node_type::TRANSACTIONAL_FILE, type(),
+			                   Node_rwx::rw(), Xml_node(_config(name).string())),
 			_file_name(name)
 		{
 			value(initial_value);
@@ -196,7 +196,6 @@ class Vfs::Value_file_system : public Vfs::Single_file_system
 		Stat_result stat(char const *path, Stat &out) override
 		{
 			Stat_result result = Single_file_system::stat(path, out);
-			out.mode |= 0666;
 			out.size = BUF_SIZE + 1;
 			return result;
 		}

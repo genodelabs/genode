@@ -50,8 +50,8 @@ class Cli_monitor::Subsystem_config_registry
 		unsigned _subsystem_suffix(Vfs::Directory_service::Dirent const &dirent)
 		{
 			unsigned found = 0;
-			for (unsigned i = 0; i < sizeof(dirent.name) && dirent.name[i]; i++)
-				if (Genode::strcmp(_subsystem_suffix(), &dirent.name[i]) == 0)
+			for (unsigned i = 0; i < sizeof(dirent.name.buf) && dirent.name.buf[i]; i++)
+				if (Genode::strcmp(_subsystem_suffix(), &dirent.name.buf[i]) == 0)
 					found = i;
 
 			return found;
@@ -155,7 +155,7 @@ class Cli_monitor::Subsystem_config_registry
 			/* iterate over the directory entries */
 			for (unsigned i = 0;; i++) {
 
-				Vfs::Directory_service::Dirent dirent;
+				Vfs::Directory_service::Dirent dirent { };
 
 				dir_handle->seek(i * sizeof(dirent));
 				dir_handle->fs().queue_read(dir_handle, sizeof(dirent));
@@ -168,7 +168,7 @@ class Cli_monitor::Subsystem_config_registry
 				       Vfs::File_io_service::READ_QUEUED)
 					_ep.wait_and_dispatch_one_io_signal();
 
-				if (dirent.type == Vfs::Directory_service::DIRENT_TYPE_END) {
+				if (dirent.type == Vfs::Directory_service::Dirent_type::END) {
 					_fs.close(dir_handle);
 					return;
 				}
@@ -179,8 +179,8 @@ class Cli_monitor::Subsystem_config_registry
 				if (subsystem_suffix) {
 
 					/* subsystem name is file name without the suffix */
-					char name[sizeof(dirent.name)];
-					Genode::strncpy(name, dirent.name, subsystem_suffix + 1);
+					char name[sizeof(dirent.name.buf)];
+					Genode::strncpy(name, dirent.name.buf, subsystem_suffix + 1);
 
 					try {
 						for_config(name, fn);

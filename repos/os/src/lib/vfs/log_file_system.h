@@ -141,7 +141,8 @@ class Vfs::Log_file_system : public Single_file_system
 		Log_file_system(Vfs::Env &env,
 		                Genode::Xml_node config)
 		:
-			Single_file_system(NODE_TYPE_CHAR_DEVICE, name(), config),
+			Single_file_system(Node_type::CONTINUOUS_FILE, name(),
+			                   Node_rwx::ro(), config),
 			_label(config.attribute_value("label", Label())),
 			_log(_log_session(env.env()))
 		{ }

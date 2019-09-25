@@ -151,12 +151,7 @@ struct Noux::Terminal_io_channel : Io_channel
 
 	bool fstat(Sysio &sysio) override
 	{
-		/*
-		 * Supply stat values such that libc is happy. I.e., the libc
-		 * is checking for the file descriptor 1 being a character
-		 * device.
-		 */
-		sysio.fstat_out.st.mode = Sysio::STAT_MODE_CHARDEV;
+		sysio.fstat_out.st.type = Vfs::Node_type::CONTINUOUS_FILE;
 		return true;
 	}
 

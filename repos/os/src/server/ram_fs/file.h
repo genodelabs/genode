@@ -112,12 +112,15 @@ class Ram_fs::File : public Node
 
 		Status status() override
 		{
-			Status s { };
-			s.inode = inode();
-			s.size = _length;
-			s.mode = File_system::Status::MODE_FILE;
-			s.modification_time = modification_time();
-			return s;
+			return {
+				.size              = _length,
+				.type              = File_system::Node_type::CONTINUOUS_FILE,
+				.rwx               = { .readable   = true,
+				                       .writeable  = true,
+				                       .executable = true },
+				.inode             = inode(),
+				.modification_time = modification_time()
+			};
 		}
 
 		void truncate(file_size_t size) override

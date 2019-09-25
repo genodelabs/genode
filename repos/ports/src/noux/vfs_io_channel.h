@@ -269,7 +269,7 @@ struct Noux::Vfs_io_channel : Io_channel
 		 */
 		unsigned const index = _fh.seek() / sizeof(Sysio::Dirent);
 		if (index < 2) {
-			sysio.dirent_out.entry.type = Vfs::Directory_service::DIRENT_TYPE_DIRECTORY;
+			sysio.dirent_out.entry.type = Vfs::Directory_service::Dirent_type::DIRECTORY;
 			strncpy(sysio.dirent_out.entry.name,
 			        index ? ".." : ".",
 			        sizeof(sysio.dirent_out.entry.name));
@@ -284,12 +284,10 @@ struct Noux::Vfs_io_channel : Io_channel
 		 * Align index range to zero when calling the directory service.
 		 */
 
-		Vfs::Directory_service::Dirent dirent;
-
 		Vfs::file_size noux_dirent_seek = _fh.seek();
-		_fh.seek((index - 2) * sizeof(dirent));
+		_fh.seek((index - 2) * sizeof(Vfs::Directory_service::Dirent));
 
-		Vfs::file_size const count = sizeof(dirent);
+		Vfs::file_size const count = sizeof(Vfs::Directory_service::Dirent);
 
 		Registered_no_delete<Vfs_io_waiter>
 			vfs_io_waiter(_vfs_io_waiter_registry);
@@ -298,10 +296,10 @@ struct Noux::Vfs_io_channel : Io_channel
 			vfs_io_waiter.wait_for_io();
 
 		Vfs::File_io_service::Read_result read_result;
-		Vfs::file_size out_count = 0;
+		Vfs::file_size                    out_count = 0;
+		Vfs::Directory_service::Dirent    dirent { };
 
 		for (;;) {
-
 			read_result = _fh.fs().complete_read(&_fh, (char*)&dirent,
 			                                     count, out_count);
 
@@ -318,7 +316,7 @@ struct Noux::Vfs_io_channel : Io_channel
 
 		if ((read_result != Vfs::File_io_service::READ_OK) ||
 		    (out_count != sizeof(dirent))) {
-		    dirent = Vfs::Directory_service::Dirent();
+		    dirent = { };
 		}
 
 		_fh.seek(noux_dirent_seek);

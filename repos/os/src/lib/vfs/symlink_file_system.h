@@ -60,7 +60,8 @@ class Vfs::Symlink_file_system : public Single_file_system
 
 		Symlink_file_system(Vfs::Env&, Genode::Xml_node config)
 		:
-			Single_file_system(NODE_TYPE_SYMLINK, "symlink", config),
+			Single_file_system(Node_type::SYMLINK, "symlink",
+			                   Node_rwx::rw(), config),
 			_target(config.attribute_value("target", Target()))
 		{ }
 

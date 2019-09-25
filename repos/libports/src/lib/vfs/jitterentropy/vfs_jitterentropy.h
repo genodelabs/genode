@@ -102,7 +102,8 @@ class Jitterentropy_file_system : public Vfs::Single_file_system
 		Jitterentropy_file_system(Genode::Allocator &alloc,
 		                          Genode::Xml_node config)
 		:
-			Single_file_system(NODE_TYPE_CHAR_DEVICE, name(), config),
+			Single_file_system(Vfs::Node_type::CONTINUOUS_FILE, name(),
+			                   Vfs::Node_rwx::ro(), config),
 			_ec_stir(0),
 			_initialized(_init_jitterentropy(alloc))
 		{ }

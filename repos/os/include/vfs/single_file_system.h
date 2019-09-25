@@ -22,16 +22,10 @@ namespace Vfs { class Single_file_system; }
 
 class Vfs::Single_file_system : public File_system
 {
-	public:
-
-		enum Node_type {
-			NODE_TYPE_FILE,        NODE_TYPE_SYMLINK,
-			NODE_TYPE_CHAR_DEVICE, NODE_TYPE_BLOCK_DEVICE
-		};
-
 	private:
 
-		Node_type const _node_type;
+		Node_type const _type;
+		Node_rwx  const _rwx;
 
 		typedef String<64> Filename;
 
@@ -61,8 +55,10 @@ class Vfs::Single_file_system : public File_system
 		{
 			private:
 
-				Node_type   _node_type;
-				char const *_filename;
+				Node_type const _type;
+				Node_rwx  const _rwx;
+
+				Filename const &_filename;
 
 				/*
 				 * Noncopyable
@@ -75,12 +71,12 @@ class Vfs::Single_file_system : public File_system
 				Single_vfs_dir_handle(Directory_service &ds,
 				                      File_io_service   &fs,
 				                      Genode::Allocator &alloc,
-				                      Node_type node_type,
-				                      char const *filename)
+				                      Node_type          type,
+				                      Node_rwx           rwx,
+				                      Filename    const &filename)
 				:
 					Single_vfs_handle(ds, fs, alloc, 0),
-					_node_type(node_type),
-					_filename(filename)
+					_type(type), _rwx(rwx), _filename(filename)
 				{ }
 
 				Read_result read(char *dst, file_size count,
@@ -93,19 +89,33 @@ class Vfs::Single_file_system : public File_system
 
 					file_size index = seek() / sizeof(Dirent);
 
-					Dirent *out = (Dirent*)dst;
+					Dirent &out = *(Dirent*)dst;
+
+					auto dirent_type = [&] ()
+					{
+						switch (_type) {
+						case Node_type::DIRECTORY:          return Dirent_type::DIRECTORY;
+						case Node_type::SYMLINK:            return Dirent_type::SYMLINK;
+						case Node_type::CONTINUOUS_FILE:    return Dirent_type::CONTINUOUS_FILE;
+						case Node_type::TRANSACTIONAL_FILE: return Dirent_type::TRANSACTIONAL_FILE;
+						}
+						return Dirent_type::END;
+					};
 
 					if (index == 0) {
-						out->fileno = (Genode::addr_t)this;
-						switch (_node_type) {
-						case NODE_TYPE_FILE:         out->type = DIRENT_TYPE_FILE;     break;
-						case NODE_TYPE_SYMLINK:      out->type = DIRENT_TYPE_SYMLINK;  break;
-						case NODE_TYPE_CHAR_DEVICE:  out->type = DIRENT_TYPE_CHARDEV;  break;
-						case NODE_TYPE_BLOCK_DEVICE: out->type = DIRENT_TYPE_BLOCKDEV; break;
-						}
-						strncpy(out->name, _filename, sizeof(out->name));
+						out = {
+							.fileno = (Genode::addr_t)this,
+							.type   = dirent_type(),
+							.rwx    = _rwx,
+							.name   = { _filename.string() }
+						};
 					} else {
-						out->type = DIRENT_TYPE_END;
+						out = {
+							.fileno = (Genode::addr_t)this,
+							.type   = Dirent_type::END,
+							.rwx    = { },
+							.name   = { }
+						};
 					}
 
 					out_count = sizeof(Dirent);
@@ -134,9 +144,12 @@ class Vfs::Single_file_system : public File_system
 
 	public:
 
-		Single_file_system(Node_type node_type, char const *type_name, Xml_node config)
+		Single_file_system(Node_type   node_type,
+		                   char const *type_name,
+		                   Node_rwx    rwx,
+		                   Xml_node    config)
 		:
-			_node_type(node_type),
+			_type(node_type), _rwx(rwx),
 			_filename(config.attribute_value("name", Filename(type_name)))
 		{ }
 
@@ -154,19 +167,15 @@ class Vfs::Single_file_system : public File_system
 
 		Stat_result stat(char const *path, Stat &out) override
 		{
-			out = Stat();
+			out = Stat { };
 			out.device = (Genode::addr_t)this;
 
 			if (_root(path)) {
-				out.mode = STAT_MODE_DIRECTORY;
+				out.type = Node_type::DIRECTORY;
 
 			} else if (_single_file(path)) {
-				switch (_node_type) {
-				case NODE_TYPE_FILE:         out.mode = STAT_MODE_FILE;     break;
-				case NODE_TYPE_SYMLINK:      out.mode = STAT_MODE_SYMLINK;  break;
-				case NODE_TYPE_CHAR_DEVICE:  out.mode = STAT_MODE_CHARDEV;  break;
-				case NODE_TYPE_BLOCK_DEVICE: out.mode = STAT_MODE_BLOCKDEV; break;
-				}
+				out.type  = _type;
+				out.rwx   = _rwx;
 				out.inode = 1;
 			} else {
 				return STAT_ERR_NO_ENTRY;
@@ -208,7 +217,7 @@ class Vfs::Single_file_system : public File_system
 			try {
 				*out_handle = new (alloc)
 					Single_vfs_dir_handle(*this, *this, alloc,
-					                      _node_type, _filename.string());
+					                      _type, _rwx, _filename);
 				return OPENDIR_OK;
 			}
 			catch (Genode::Out_of_ram)  { return OPENDIR_ERR_OUT_OF_RAM; }

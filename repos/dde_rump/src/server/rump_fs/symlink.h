@@ -78,13 +78,15 @@ class Rump_fs::Symlink : public Node
 				st.st_mtime = 0;
 			}
 
-			Status s;
-			s.inode = inode();
-			s.size  = length();
-			s.mode  = File_system::Status::MODE_SYMLINK;
-			s.modification_time = { (int64_t)st.st_mtime };
-
-			return s;
+			return {
+				.size  = length(),
+				.type  = File_system::Node_type::SYMLINK,
+				.rwx   = { .readable   = true,
+				           .writeable  = true,
+				           .executable = true },
+				.inode = inode(),
+				.modification_time = { (int64_t)st.st_mtime }
+			};
 		}
 
 		file_size_t length()
