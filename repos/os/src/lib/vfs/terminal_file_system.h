@@ -101,7 +101,8 @@ class Vfs::Terminal_file_system : public Single_file_system
 
 		Terminal_file_system(Vfs::Env &env, Genode::Xml_node config)
 		:
-			Single_file_system(NODE_TYPE_CHAR_DEVICE, name(), config),
+			Single_file_system(Node_type::TRANSACTIONAL_FILE, name(),
+			                   Node_rwx::rw(), config),
 			_label(config.attribute_value("label", Label())),
 			_env(env.env())
 		{

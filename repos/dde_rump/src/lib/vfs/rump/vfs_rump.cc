@@ -197,25 +197,28 @@ class Vfs::Rump_file_system : public File_system
 					struct stat s;
 					rump_sys_lstat(path, &s);
 
-					vfs_dir.fileno = s.st_ino;
+					auto dirent_type = [] (unsigned mode)
+					{
+						if (S_ISREG (mode)) return Dirent_type::CONTINUOUS_FILE;
+						if (S_ISDIR (mode)) return Dirent_type::DIRECTORY;
+						if (S_ISLNK (mode)) return Dirent_type::SYMLINK;
+						if (S_ISBLK (mode)) return Dirent_type::CONTINUOUS_FILE;
+						if (S_ISCHR (mode)) return Dirent_type::CONTINUOUS_FILE;
+						if (S_ISFIFO(mode)) return Dirent_type::CONTINUOUS_FILE;
 
-					if (S_ISREG(s.st_mode))
-						vfs_dir.type = Dirent_type::DIRENT_TYPE_FILE;
-					else if (S_ISDIR(s.st_mode))
-						vfs_dir.type = Dirent_type::DIRENT_TYPE_DIRECTORY;
-					else if (S_ISLNK(s.st_mode))
-						vfs_dir.type = Dirent_type::DIRENT_TYPE_SYMLINK;
-					else if (S_ISBLK(s.st_mode))
-						vfs_dir.type = Dirent_type::DIRENT_TYPE_BLOCKDEV;
-					else if (S_ISCHR(s.st_mode))
-						vfs_dir.type = Dirent_type::DIRENT_TYPE_CHARDEV;
-					else if (S_ISFIFO(s.st_mode))
-						vfs_dir.type = Dirent_type::DIRENT_TYPE_FIFO;
-					else
-						vfs_dir.type = Dirent_type::DIRENT_TYPE_FILE;
+						return Dirent_type::END;
+					};
 
-					strncpy(vfs_dir.name, dent->d_name, sizeof(Dirent::name));
+					Node_rwx const rwx { .readable   = (s.st_mode & S_IRUSR),
+					                     .writeable  = (s.st_mode & S_IWUSR),
+					                     .executable = (s.st_mode & S_IXUSR) };
 
+					vfs_dir = {
+						.fileno = s.st_ino,
+						.type   = dirent_type(s.st_mode),
+						.rwx    = rwx,
+						.name   = { dent->d_name }
+					};
 					return READ_OK;
 				}
 
@@ -699,12 +702,25 @@ class Vfs::Rump_file_system : public File_system
 			struct stat sb;
 			if (rump_sys_lstat(path, &sb) != 0) return STAT_ERR_NO_ENTRY;
 
-			stat.size   = sb.st_size;
-			stat.mode   = sb.st_mode;
-			stat.uid    = sb.st_uid;
-			stat.gid    = sb.st_gid;
-			stat.inode  = sb.st_ino;
-			stat.device = sb.st_dev;
+			auto type = [] (unsigned mode)
+			{
+				if (S_ISDIR(mode)) return Node_type::DIRECTORY;
+				if (S_ISLNK(mode)) return Node_type::SYMLINK;
+
+				return Node_type::CONTINUOUS_FILE;
+			};
+
+			stat = {
+				.size   = (file_size)sb.st_size,
+				.type   = type(sb.st_mode),
+				.rwx    = { .readable   = (sb.st_mode & S_IRUSR),
+				            .writeable  = (sb.st_mode & S_IWUSR),
+				            .executable = (sb.st_mode & S_IXUSR) },
+				.inode  = sb.st_ino,
+				.device = sb.st_dev,
+
+				.modification_time = { 0 }
+			};
 
 			return STAT_OK;
 		}

@@ -69,7 +69,7 @@ class Lx_fs::Directory : public Node
 				}
 			}
 
-			struct stat s;
+			struct stat s { };
 
 			ret = lstat(path, &s);
 			if (ret == -1)
@@ -203,19 +203,30 @@ class Lx_fs::Directory : public Node
 			if (!dent)
 				return 0;
 
-			Directory_entry *e = (Directory_entry *)(dst);
+			Path dent_path(dent->d_name, _path.base());
 
-			switch (dent->d_type) {
-			case DT_REG: e->type = Directory_entry::TYPE_FILE;      break;
-			case DT_DIR: e->type = Directory_entry::TYPE_DIRECTORY; break;
-			case DT_LNK: e->type = Directory_entry::TYPE_SYMLINK;   break;
-			default:
-				return 0;
-			}
+			struct stat st { };
+			lstat(dent_path.base(), &st);
 
-			e->inode = dent->d_ino;
+			auto type = [] (unsigned char type)
+			{
+				switch (type) {
+				case DT_REG: return Node_type::CONTINUOUS_FILE;
+				case DT_DIR: return Node_type::DIRECTORY;
+				case DT_LNK: return Node_type::SYMLINK;
+				default:     return Node_type::CONTINUOUS_FILE;
+				}
+			};
 
-			strncpy(e->name, dent->d_name, sizeof(e->name));
+			Directory_entry &e = *(Directory_entry *)(dst);
+			e = {
+				.inode = (unsigned long)dent->d_ino,
+				.type  = type(dent->d_type),
+				.rwx   = { .readable   = (st.st_mode & S_IRUSR),
+				           .writeable  = (st.st_mode & S_IWUSR),
+				           .executable = (st.st_mode & S_IXUSR) },
+				.name  = { dent->d_name }
+			};
 
 			return sizeof(Directory_entry);
 		}
@@ -228,18 +239,21 @@ class Lx_fs::Directory : public Node
 
 		Status status() override
 		{
-			struct stat st;
+			struct stat st { };
 
 			int fd = dirfd(_fd);
 			if (fd == -1 || fstat(fd, &st) < 0)
 				st.st_mtime = 0;
 
-			Status s;
-			s.inode = inode();
-			s.size = _num_entries() * sizeof(File_system::Directory_entry);
-			s.mode = File_system::Status::MODE_DIRECTORY;
-			s.modification_time = { st.st_mtime };
-			return s;
+			return {
+				.size  = _num_entries() * sizeof(File_system::Directory_entry),
+				.type  = Node_type::DIRECTORY,
+				.rwx   = { .readable   = (st.st_mode & S_IRUSR),
+				           .writeable  = (st.st_mode & S_IWUSR),
+				           .executable = (st.st_mode & S_IXUSR) },
+				.inode = inode(),
+				.modification_time = { st.st_mtime }
+			};
 		}
 };
 

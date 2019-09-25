@@ -16,6 +16,7 @@
 #ifndef _INCLUDE__FILE_SYSTEM_SESSION__FILE_SYSTEM_SESSION_H_
 #define _INCLUDE__FILE_SYSTEM_SESSION__FILE_SYSTEM_SESSION_H_
 
+#include <util/string.h>
 #include <base/exception.h>
 #include <os/packet_stream.h>
 #include <packet_stream_tx/packet_stream_tx.h>
@@ -65,6 +66,20 @@ namespace File_system {
 	typedef Directory::Id Dir_handle;
 	typedef Symlink::Id   Symlink_handle;
 	typedef Watch::Id     Watch_handle;
+
+	enum class Node_type {
+		DIRECTORY,
+		SYMLINK,
+		CONTINUOUS_FILE,
+		TRANSACTIONAL_FILE
+	};
+
+	struct Node_rwx
+	{
+		bool readable;
+		bool writeable;
+		bool executable;
+	};
 
 	using Genode::size_t;
 
@@ -250,30 +265,21 @@ class File_system::Packet_descriptor : public Genode::Packet_descriptor
 
 struct File_system::Status
 {
-	enum {
-		MODE_SYMLINK   = 0020000,
-		MODE_FILE      = 0100000,
-		MODE_DIRECTORY = 0040000,
-	};
-
-	/*
-	 * XXX  add executable bit
-	 */
-
 	file_size_t   size;
-	unsigned      mode;
+	Node_type     type;
+	Node_rwx      rwx;
 	unsigned long inode;
 	Timestamp     modification_time;
 
 	/**
 	 * Return true if node is a directory
 	 */
-	bool directory() const { return mode & MODE_DIRECTORY; }
+	bool directory() const { return type == Node_type::DIRECTORY; }
 
 	/**
 	 * Return true if node is a symbolic link
 	 */
-	bool symlink() const { return mode & MODE_SYMLINK; }
+	bool symlink() const { return type == Node_type::SYMLINK; }
 };
 
 
@@ -285,11 +291,27 @@ struct File_system::Control { /* to manipulate the executable bit */ };
  */
 struct File_system::Directory_entry
 {
-	enum Type { TYPE_FILE, TYPE_DIRECTORY, TYPE_SYMLINK };
+	struct Name
+	{
+		char buf[MAX_NAME_LEN] { };
+
+		Name() { };
+		Name(char const *name) { Genode::strncpy(buf, name, sizeof(buf)); }
+	};
 
 	unsigned long inode;
-	Type          type;
-	char          name[MAX_NAME_LEN];
+	Node_type     type;
+	Node_rwx      rwx;
+	Name          name;
+
+	/**
+	 * Sanitize object received from a file-system server as plain bytes
+	 */
+	void sanitize()
+	{
+		/* enforce null termination */
+		name.buf[MAX_NAME_LEN - 1] = 0;
+	}
 };
 
 

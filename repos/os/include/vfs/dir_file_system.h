@@ -343,8 +343,8 @@ class Vfs::Dir_file_system : public File_system
 				if (count < sizeof(Dirent))
 					return READ_ERR_INVALID;
 
-				Dirent *dirent = (Dirent*)dst;
-				*dirent = Dirent();
+				Dirent &dirent = *(Dirent*)dst;
+				dirent = Dirent { };
 
 				out_count = sizeof(Dirent);
 
@@ -456,13 +456,14 @@ class Vfs::Dir_file_system : public File_system
 			 * current directory.
 			 */
 			if (strlen(path) == 0 || _top_dir(path)) {
-				out.size   = 0;
-				out.mode   = STAT_MODE_DIRECTORY | 0755;
-				out.uid    = 0;
-				out.gid    = 0;
-				out.inode  = 1;
-				out.device = (Genode::addr_t)this;
-				out.modification_time = { Vfs::Timestamp::INVALID };
+				out = {
+					.size              = 0,
+					.type              = Node_type::DIRECTORY,
+					.rwx               = Node_rwx::rwx(),
+					.inode             = 1,
+					.device            = (Genode::addr_t)this,
+					.modification_time = { Vfs::Timestamp::INVALID },
+				};
 				return STAT_OK;
 			}
 
@@ -903,16 +904,28 @@ class Vfs::Dir_file_system : public File_system
 				return _complete_read_of_file_systems(dir_vfs_handle, dst, count, out_count);
 
 			if (_top_dir(dir_vfs_handle->path.base())) {
-				Dirent *dirent = (Dirent*)dst;
-				file_offset index = vfs_handle->seek() / sizeof(Dirent);
+
+				Dirent &dirent = *(Dirent*)dst;
+
+				file_offset const index = vfs_handle->seek() / sizeof(Dirent);
 
 				if (index == 0) {
-					strncpy(dirent->name, _name.string(), sizeof(dirent->name));
 
-					dirent->type = DIRENT_TYPE_DIRECTORY;
-					dirent->fileno = 1;
+					dirent = {
+						.fileno = 1,
+						.type   = Dirent_type::DIRECTORY,
+						.rwx    = Node_rwx::rwx(),
+						.name   = { _name.string() }
+					};
+
 				} else {
-					dirent->type = DIRENT_TYPE_END;
+
+					dirent = {
+						.fileno = 0,
+						.type   = Dirent_type::END,
+						.rwx    = { },
+						.name   = { }
+					};
 				}
 
 				out_count = sizeof(Dirent);

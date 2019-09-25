@@ -603,35 +603,51 @@ class Lwip::Protocol_dir_impl final : public Protocol_dir
 			Path subpath(path);
 
 			if (subpath == "/") {
-				st.size = 1;
-				st.mode = Directory_service::STAT_MODE_DIRECTORY;
-				st.inode = (Genode::addr_t)this;
+				st = { .size              = 1,
+				       .type              = Node_type::DIRECTORY,
+				       .rwx               = Node_rwx::rwx(),
+				       .inode             = (Genode::addr_t)this,
+				       .device            = 0,
+				       .modification_time = { 0 } };
 				return Directory_service::STAT_OK;
 			}
 
 			if (subpath == "/new_socket") {
-				st.size = 1;
-				st.mode = Directory_service::STAT_MODE_FILE | 0777;
-				st.inode = ((Genode::addr_t)this)+1;
+				st = { .size              = 1,
+				       .type              = Node_type::TRANSACTIONAL_FILE,
+				       .rwx               = Node_rwx::rw(),
+				       .inode             = (Genode::addr_t)this + 1,
+				       .device            = 0,
+				       .modification_time = { 0 } };
 				return Directory_service::STAT_OK;
 			}
 
 			if (!subpath.has_single_element())
 				subpath.strip_last_element();
+
 			if (SOCKET_DIR *dir = lookup(subpath.string())) {
 				Path filename(path);
 				filename.keep_only_last_element();
 				if (filename == subpath.base()) {
-					st.size = Lwip_file_handle::INVALID;
-					st.mode = Directory_service::STAT_MODE_DIRECTORY;
-					st.inode = (Genode::addr_t)dir;
+					st = { .size              = 0,
+					       .type              = Node_type::DIRECTORY,
+					       .rwx               = Node_rwx::rwx(),
+					       .inode             = (Genode::addr_t)dir,
+					       .device            = 0,
+					       .modification_time = { 0 } };
 					return Directory_service::STAT_OK;
 				}
 
 				Lwip_file_handle::Kind k = Lwip_file_handle::kind_from_name(filename);
 				if (k != Lwip_file_handle::INVALID) {
-					st.mode = Directory_service::STAT_MODE_CHARDEV;
-					st.inode = ((Genode::addr_t)dir)+k;
+					st = { .size              = 0,
+					       .type              = (filename == "/data")
+					                          ? Node_type::CONTINUOUS_FILE
+					                          : Node_type::TRANSACTIONAL_FILE,
+					       .rwx               = Node_rwx::rw(),
+					       .inode             = (Genode::addr_t)dir + k,
+					       .device            = 0,
+					       .modification_time = { 0 } };
 					return Directory_service::STAT_OK;
 				}
 			}
@@ -1795,18 +1811,26 @@ class Lwip::File_system final : public Vfs::File_system, public Lwip::Directory
 		Stat_result stat(char const *path, Stat &st) override
 		{
 			if (*path == '/') ++path;
-			st = Stat();
+			st = Stat { };
 			st.device = (Genode::addr_t)this;
 
 			if (match_address(path) || match_netmask(path)) {
-				st.size = ADDRESS_FILE_SIZE;
-				st.mode = STAT_MODE_FILE;
+				st = { .size              = ADDRESS_FILE_SIZE,
+				       .type              = Node_type::TRANSACTIONAL_FILE,
+				       .rwx               = Node_rwx::rw(),
+				       .inode             = (Genode::addr_t)this,
+				       .device            = 0,
+				       .modification_time = { 0 } };
 				return STAT_OK;
 			}
 
 			if (match_nameserver(path)) {
-				st.size = IPADDR_STRLEN_MAX;
-				st.mode = STAT_MODE_FILE;
+				st = { .size              = IPADDR_STRLEN_MAX,
+				       .type              = Node_type::TRANSACTIONAL_FILE,
+				       .rwx               = Node_rwx::rw(),
+				       .inode             = 0,
+				       .device            = 0,
+				       .modification_time = { 0 } };
 				return STAT_OK;
 			}
 

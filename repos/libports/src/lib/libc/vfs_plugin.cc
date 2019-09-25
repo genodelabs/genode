@@ -98,11 +98,29 @@ static void vfs_stat_to_libc_stat_struct(Vfs::Directory_service::Stat const &src
 {
 	enum { FS_BLOCK_SIZE = 4096 };
 
-	Genode::memset(dst, 0, sizeof(*dst));
+	unsigned const readable_bits   = S_IRUSR,
+	               writeable_bits  = S_IWUSR,
+	               executable_bits = S_IXUSR;
 
-	dst->st_uid     = src.uid;
-	dst->st_gid     = src.gid;
-	dst->st_mode    = src.mode;
+	auto type = [] (Vfs::Node_type type)
+	{
+		switch (type) {
+		case Vfs::Node_type::DIRECTORY:          return S_IFDIR;
+		case Vfs::Node_type::CONTINUOUS_FILE:    return S_IFREG;
+		case Vfs::Node_type::TRANSACTIONAL_FILE: return S_IFSOCK;
+		case Vfs::Node_type::SYMLINK:            return S_IFLNK;
+		}
+		return 0;
+	};
+
+	*dst = { };
+
+	dst->st_uid     = 0;
+	dst->st_gid     = 0;
+	dst->st_mode    = (src.rwx.readable   ? readable_bits   : 0)
+	                | (src.rwx.writeable  ? writeable_bits  : 0)
+	                | (src.rwx.executable ? executable_bits : 0)
+	                | type(src.type);
 	dst->st_size    = src.size;
 	dst->st_blksize = FS_BLOCK_SIZE;
 	dst->st_blocks  = (dst->st_size + FS_BLOCK_SIZE - 1) / FS_BLOCK_SIZE;
@@ -525,7 +543,18 @@ int Libc::Vfs_plugin::fstat(File_descriptor *fd, struct stat *buf)
 		_vfs_sync(*handle);
 		fd->modified = false;
 	}
-	return stat(fd->fd_path, buf);
+
+	int const result = stat(fd->fd_path, buf);
+
+	/*
+	 * The libc expects stdout to be a character device.
+	 * If 'st_mode' is set to 'S_IFREG', 'printf' does not work.
+	 */
+	if (fd->libc_fd == 1) {
+		buf->st_mode &= ~S_IFMT;
+		buf->st_mode |=  S_IFCHR;
+	}
+	return result;
 }
 
 
@@ -830,6 +859,7 @@ ssize_t Libc::Vfs_plugin::getdirentries(File_descriptor *fd, char *buf,
 				                             (char*)&dirent_out,
 				                             sizeof(Dirent),
 				                             out_count));
+				dirent_out.sanitize();
 
 				/* suspend me if read is still queued */
 
@@ -851,29 +881,37 @@ ssize_t Libc::Vfs_plugin::getdirentries(File_descriptor *fd, char *buf,
 		return 0;
 	}
 
+	using Dirent_type = Vfs::Directory_service::Dirent_type;
+
+	if (dirent_out.type == Dirent_type::END)
+		return 0;
+
 	/*
 	 * Convert dirent structure from VFS to libc
 	 */
 
-	struct dirent *dirent = (struct dirent *)buf;
-	Genode::memset(dirent, 0, sizeof(struct dirent));
+	auto dirent_type = [] (Dirent_type type)
+	{
+		switch (type) {
+		case Dirent_type::DIRECTORY:          return DT_DIR;
+		case Dirent_type::CONTINUOUS_FILE:    return DT_REG;
+		case Dirent_type::TRANSACTIONAL_FILE: return DT_SOCK;
+		case Dirent_type::SYMLINK:            return DT_LNK;
+		case Dirent_type::END:                return DT_UNKNOWN;
+		}
+		return DT_UNKNOWN;
+	};
 
-	switch (dirent_out.type) {
-	case Vfs::Directory_service::DIRENT_TYPE_DIRECTORY: dirent->d_type = DT_DIR;  break;
-	case Vfs::Directory_service::DIRENT_TYPE_FILE:      dirent->d_type = DT_REG;  break;
-	case Vfs::Directory_service::DIRENT_TYPE_SYMLINK:   dirent->d_type = DT_LNK;  break;
-	case Vfs::Directory_service::DIRENT_TYPE_FIFO:      dirent->d_type = DT_FIFO; break;
-	case Vfs::Directory_service::DIRENT_TYPE_CHARDEV:   dirent->d_type = DT_CHR;  break;
-	case Vfs::Directory_service::DIRENT_TYPE_BLOCKDEV:  dirent->d_type = DT_BLK;  break;
-	case Vfs::Directory_service::DIRENT_TYPE_END:                                 return 0;
-	}
+	dirent &dirent = *(struct dirent *)buf;
+	dirent = { };
 
-	dirent->d_fileno = dirent_out.fileno;
-	dirent->d_reclen = sizeof(struct dirent);
+	dirent.d_type   = dirent_type(dirent_out.type);
+	dirent.d_fileno = dirent_out.fileno;
+	dirent.d_reclen = sizeof(struct dirent);
 
-	Genode::strncpy(dirent->d_name, dirent_out.name, sizeof(dirent->d_name));
+	Genode::strncpy(dirent.d_name, dirent_out.name.buf, sizeof(dirent.d_name));
 
-	dirent->d_namlen = Genode::strlen(dirent->d_name);
+	dirent.d_namlen = Genode::strlen(dirent.d_name);
 
 	/*
 	 * Keep track of VFS seek pointer and user-supplied basep.

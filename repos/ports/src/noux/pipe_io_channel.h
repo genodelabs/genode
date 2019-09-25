@@ -271,7 +271,7 @@ class Noux::Pipe_sink_io_channel : public Io_channel
 
 		bool fstat(Sysio &sysio) override
 		{
-			sysio.fstat_out.st.mode = Sysio::STAT_MODE_CHARDEV;
+			sysio.fstat_out.st.type = Vfs::Node_type::CONTINUOUS_FILE;
 			return true;
 		}
 };
@@ -345,7 +345,7 @@ class Noux::Pipe_source_io_channel : public Io_channel
 
 		bool fstat(Sysio &sysio) override
 		{
-			sysio.fstat_out.st.mode = Sysio::STAT_MODE_CHARDEV;
+			sysio.fstat_out.st.type = Vfs::Node_type::CONTINUOUS_FILE;
 			return true;
 		}
 };

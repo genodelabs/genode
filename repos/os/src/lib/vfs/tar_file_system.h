@@ -110,12 +110,22 @@ class Vfs::Tar_file_system : public File_system
 				TYPE_LONG_LINK = 75, TYPE_LONG_NAME = 76
 			};
 
-			file_size  size() const  { return _long_name() ? _next()->size() : _read(_size);  }
-			unsigned    uid() const  { return _long_name() ? _next()->uid()  : _read(_uid);   }
-			unsigned    gid() const  { return _long_name() ? _next()->gid()  : _read(_gid);   }
-			unsigned   mode() const  { return _long_name() ? _next()->mode() : _read(_mode);  }
-			unsigned   type() const  { return _long_name() ? _next()->type() : _read(_type);  }
-			void      *data() const  { return _long_name() ? _next()->data() : (void *)_data_begin(); }
+			file_size  size() const { return _long_name() ? _next()->size()  : _read(_size);  }
+			long long mtime() const { return _long_name() ? _next()->mtime() : _read(_mtime); }
+			unsigned    uid() const { return _long_name() ? _next()->uid()   : _read(_uid);   }
+			unsigned    gid() const { return _long_name() ? _next()->gid()   : _read(_gid);   }
+			unsigned   mode() const { return _long_name() ? _next()->mode()  : _read(_mode);  }
+			unsigned   type() const { return _long_name() ? _next()->type()  : _read(_type);  }
+			void      *data() const { return _long_name() ? _next()->data()  : (void *)_data_begin(); }
+
+			Node_rwx rwx() const
+			{
+				unsigned const mode_bits = mode();
+
+				return { .readable   = (mode_bits & 0400) != 0,
+				         .writeable  = (mode_bits & 0200) != 0,
+				         .executable = (mode_bits & 0100) != 0 };
+			}
 
 			char const         *name() const { return _long_name() ? _data_begin() : _name;        }
 			unsigned    max_name_len() const { return _long_name() ? MAX_PATH_LEN : 100;           }
@@ -193,50 +203,67 @@ class Vfs::Tar_file_system : public File_system
 			if (count < sizeof(Dirent))
 				return READ_ERR_INVALID;
 
-			Dirent *dirent = (Dirent*)dst;
+			Dirent &dirent = *(Dirent*)dst;
 
-			/* initialize */
-			*dirent = Dirent();
+			file_offset const index = seek() / sizeof(Dirent);
 
-			file_offset index = seek() / sizeof(Dirent);
+			Node const *node_ptr = _node->lookup_child(index);
 
-			Node const *node = _node->lookup_child(index);
-
-			if (!node)
+			if (!node_ptr) {
+				dirent = Dirent { };
+				out_count = 0;
 				return READ_OK;
+			}
 
-			dirent->fileno = (Genode::addr_t)node;
+			Node const &node = *node_ptr;
 
-			Record const *record = node->record;
+			Record const *record_ptr = node.record;
 
-			while (record && (record->type() == Record::TYPE_HARDLINK)) {
+			while (record_ptr && (record_ptr->type() == Record::TYPE_HARDLINK)) {
 				Tar_file_system &tar_fs = static_cast<Tar_file_system&>(fs());
-				Node const *target = tar_fs.dereference(record->linked_name());
-				record = target ? target->record : 0;
+				Node const *target = tar_fs.dereference(record_ptr->linked_name());
+				record_ptr = target ? target->record : 0;
 			}
 
-			if (record) {
-				switch (record->type()) {
-				case Record::TYPE_FILE:
-					dirent->type = DIRENT_TYPE_FILE;      break;
-				case Record::TYPE_SYMLINK:
-					dirent->type = DIRENT_TYPE_SYMLINK;   break;
-				case Record::TYPE_DIR:
-					dirent->type = DIRENT_TYPE_DIRECTORY; break;
+			using Dirent_type = Vfs::Directory_service::Dirent_type;
 
-				default:
-					Genode::error("unhandled record type ", record->type(), " "
-					              "for ", node->name);
-				}
-			} else {
-				/* If no record exists, assume it is a directory */
-				dirent->type = DIRENT_TYPE_DIRECTORY;
+			/* if no record exists, assume it is a directory */
+			if (!record_ptr) {
+				dirent = {
+					.fileno = (Genode::addr_t)node_ptr,
+					.type   = Dirent_type::DIRECTORY,
+					.rwx    = Node_rwx::rx(),
+					.name   = { node.name }
+				};
+				out_count = sizeof(Dirent);
+				return READ_OK;
 			}
 
-			strncpy(dirent->name, node->name, sizeof(dirent->name));
+			Record const &record = *record_ptr;
 
+			auto node_type = [&] ()
+			{
+				switch (record.type()) {
+				case Record::TYPE_FILE:    return Dirent_type::CONTINUOUS_FILE;
+				case Record::TYPE_SYMLINK: return Dirent_type::SYMLINK;
+				case Record::TYPE_DIR:     return Dirent_type::DIRECTORY;
+				};
+
+				Genode::warning("unhandled record type ", record.type(), " "
+				                "for ", node.name);
+
+				return Dirent_type::END;
+			};
+
+			dirent = {
+				.fileno = (Genode::addr_t)node_ptr,
+				.type   = node_type(),
+				.rwx    = { .readable   = true,
+				            .writeable  = false,
+				            .executable = record.rwx().executable },
+				.name   = { node.name }
+			};
 			out_count = sizeof(Dirent);
-
 			return READ_OK;
 		}
 	};
@@ -576,35 +603,40 @@ class Vfs::Tar_file_system : public File_system
 
 		Stat_result stat(char const *path, Stat &out) override
 		{
-			out = Stat();
+			out = Stat { };
 
-			Node const *node = dereference(path);
-			if (!node)
+			Node const *node_ptr = dereference(path);
+			if (!node_ptr)
 				return STAT_ERR_NO_ENTRY;
 
-			if (!node->record) {
-				out.mode = STAT_MODE_DIRECTORY;
+			if (!node_ptr->record) {
+				out.type = Node_type::DIRECTORY;
+				out.rwx  = Node_rwx::rx();
 				return STAT_OK;
 			}
 
-			Record const *record = node->record;
+			Record const &record = *node_ptr->record;
 
-			/* convert TAR record modes to stat modes */
-			unsigned mode = record->mode();
-			switch (record->type()) {
-			case Record::TYPE_FILE:     mode |= STAT_MODE_FILE; break;
-			case Record::TYPE_SYMLINK:  mode |= STAT_MODE_SYMLINK; break;
-			case Record::TYPE_DIR:      mode |= STAT_MODE_DIRECTORY; break;
+			auto node_type = [&] ()
+			{
+				switch (record.type()) {
+				case Record::TYPE_FILE:     return Node_type::CONTINUOUS_FILE;
+				case Record::TYPE_SYMLINK:  return Node_type::SYMLINK;
+				case Record::TYPE_DIR:      return Node_type::DIRECTORY;
+				};
+				return Node_type::DIRECTORY;
+			};
 
-			default: break;
-			}
-
-			out.mode  = mode;
-			out.size  = record->size();
-			out.uid   = record->uid();
-			out.gid   = record->gid();
-			out.inode = (Genode::addr_t)node;
-			out.device = (Genode::addr_t)this;
+			out = {
+				.size              = record.size(),
+				.type              = node_type(),
+				.rwx               = { .readable   = true,
+				                       .writeable  = false,
+				                       .executable = record.rwx().executable },
+				.inode             = (Genode::addr_t)node_ptr,
+				.device            = (Genode::addr_t)this,
+				.modification_time = { record.mtime() }
+			};
 
 			return STAT_OK;
 		}

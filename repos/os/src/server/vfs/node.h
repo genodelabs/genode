@@ -726,17 +726,21 @@ struct Vfs_server::Directory : Io_node
 				return true;
 			}
 
-			seek_off_t seek_offset = _packet.position();
+			seek_off_t const seek_offset = _packet.position();
 
-			Directory_service::Dirent vfs_dirent;
-			size_t blocksize = sizeof(::File_system::Directory_entry);
+			size_t const blocksize = sizeof(::File_system::Directory_entry);
 
-			unsigned index = (seek_offset / blocksize);
+			unsigned const index = (seek_offset / blocksize);
 
 			file_size out_count = 0;
-			bool result = _vfs_read(
-				(char*)&vfs_dirent, sizeof(vfs_dirent),
-				index * sizeof(vfs_dirent), out_count);
+
+			Directory_service::Dirent vfs_dirent { };
+
+			bool const result = _vfs_read((char*)&vfs_dirent,
+			                              sizeof(vfs_dirent),
+			                              index * sizeof(vfs_dirent),
+			                              out_count);
+			vfs_dirent.sanitize();
 
 			if (result) {
 				if (out_count != sizeof(vfs_dirent)) {
@@ -744,30 +748,47 @@ struct Vfs_server::Directory : Io_node
 					return true;
 				}
 
-				::File_system::Directory_entry *fs_dirent =
-					(Directory_entry *)_stream.packet_content(_packet);
-				fs_dirent->inode = vfs_dirent.fileno;
+				auto fs_dirent_type = [&] (Vfs::Directory_service::Dirent_type type)
+				{
+					using From = Vfs::Directory_service::Dirent_type;
+					using To   = ::File_system::Node_type;
 
-				switch (vfs_dirent.type) {
-				case Vfs::Directory_service::DIRENT_TYPE_END:
+					/*
+					 * This should never be taken because 'END' is checked as a
+					 * precondition prior the call to of this function.
+					 */
+					To const default_result = To::CONTINUOUS_FILE;
+
+					switch (type) {
+					case From::END:                return default_result;
+					case From::DIRECTORY:          return To::DIRECTORY;
+					case From::SYMLINK:            return To::SYMLINK;
+					case From::CONTINUOUS_FILE:    return To::CONTINUOUS_FILE;
+					case From::TRANSACTIONAL_FILE: return To::TRANSACTIONAL_FILE;
+					}
+					return default_result;
+				};
+
+				if (vfs_dirent.type == Vfs::Directory_service::Dirent_type::END) {
 					_ack_packet(0);
-					return true;
 
-				case Vfs::Directory_service::DIRENT_TYPE_DIRECTORY:
-					fs_dirent->type = ::File_system::Directory_entry::TYPE_DIRECTORY;
-					break;
-				case Vfs::Directory_service::DIRENT_TYPE_SYMLINK:
-					fs_dirent->type = ::File_system::Directory_entry::TYPE_SYMLINK;
-					break;
-				case Vfs::Directory_service::DIRENT_TYPE_FILE:
-				default:
-					fs_dirent->type = ::File_system::Directory_entry::TYPE_FILE;
-					break;
+				} else {
+
+					::File_system::Directory_entry &fs_dirent =
+						*(Directory_entry *)_stream.packet_content(_packet);
+
+					fs_dirent = {
+						.inode = vfs_dirent.fileno,
+						.type  = fs_dirent_type(vfs_dirent.type),
+						.rwx   = {
+							.readable   = vfs_dirent.rwx.readable,
+							.writeable  = vfs_dirent.rwx.writeable,
+							.executable = vfs_dirent.rwx.executable },
+						.name  = { vfs_dirent.name.buf }
+					};
+
+					_ack_packet(sizeof(Directory_entry));
 				}
-
-				strncpy(fs_dirent->name, vfs_dirent.name, MAX_NAME_LEN);
-
-				_ack_packet(sizeof(Directory_entry));
 				return true;
 			}
 			return false;

@@ -326,7 +326,8 @@ class Vfs::Block_file_system : public Single_file_system
 
 		Block_file_system(Vfs::Env &env, Genode::Xml_node config)
 		:
-			Single_file_system(NODE_TYPE_BLOCK_DEVICE, name(), config),
+			Single_file_system(Node_type::CONTINUOUS_FILE, name(),
+			                   Node_rwx::rw(), config),
 			_env(env),
 			_label(config.attribute_value("label", Label())),
 			_block_buffer(0),

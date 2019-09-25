@@ -1107,11 +1107,7 @@ class Vfs::Lxip_socket_dir final : public Lxip::Socket_dir
 
 			Vfs::file_size index = seek_offset / sizeof(Dirent);
 
-			Dirent *out = (Dirent*)dst;
-
-			out->fileno  = index+1;
-			out->type    = Directory_service::DIRENT_TYPE_END;
-			out->name[0] = '\0';
+			Dirent &out = *(Dirent*)dst;
 
 			Vfs::Node *node = nullptr;
 			for (Vfs::File *n : _files) {
@@ -1123,11 +1119,21 @@ class Vfs::Lxip_socket_dir final : public Lxip::Socket_dir
 					--index;
 				}
 			}
-			if (!node) return -1;
+			if (!node) {
+				out = {
+					.fileno = index + 1,
+					.type   = Directory_service::Dirent_type::END,
+					.rwx    = { },
+					.name   = { } };
 
-			out->type = Directory_service::DIRENT_TYPE_FILE;
+				return -1;
+			}
 
-			strncpy(out->name, node->name(), sizeof(out->name));
+			out = {
+				.fileno = index + 1,
+				.type   = Directory_service::Dirent_type::TRANSACTIONAL_FILE,
+				.rwx    = Node_rwx::rw(),
+				.name   = { node->name() } };
 
 			return sizeof(Dirent);
 		}
@@ -1435,11 +1441,7 @@ class Lxip::Protocol_dir_impl : public Protocol_dir
 
 			Vfs::file_size index = seek_offset / sizeof(Dirent);
 
-			Dirent *out = (Dirent*)dst;
-
-			out->fileno  = index+1;
-			out->type    = Vfs::Directory_service::DIRENT_TYPE_END;
-			out->name[0] = '\0';
+			Dirent &out = *(Dirent*)dst;
 
 			Vfs::Node *node = nullptr;
 			for (Vfs::Node *n : _nodes) {
@@ -1451,15 +1453,32 @@ class Lxip::Protocol_dir_impl : public Protocol_dir
 					--index;
 				}
 			}
-			if (!node) return -1;
+			if (!node) {
+				out = {
+					.fileno = index + 1,
+					.type   = Vfs::Directory_service::Dirent_type::END,
+					.rwx    = { },
+					.name   = { } };
 
-			if (dynamic_cast<Vfs::Directory*>(node))
-				out->type = Vfs::Directory_service::DIRENT_TYPE_DIRECTORY;
+				return -1;
+			}
 
-			if (dynamic_cast<Vfs::File*>(node))
-				out->type = Vfs::Directory_service::DIRENT_TYPE_FILE;
+			typedef Vfs::Directory_service::Dirent_type Dirent_type;
 
-			Genode::strncpy(out->name, node->name(), sizeof(out->name));
+			Dirent_type const type =
+				dynamic_cast<Vfs::Directory*>(node) ? Dirent_type::DIRECTORY :
+				dynamic_cast<Vfs::File     *>(node) ? Dirent_type::TRANSACTIONAL_FILE
+				                                    : Dirent_type::END;
+
+			Vfs::Node_rwx const rwx = (type == Dirent_type::DIRECTORY)
+			                        ? Vfs::Node_rwx::rwx()
+			                        : Vfs::Node_rwx::rw();
+
+			out = {
+				.fileno = index + 1,
+				.type   = type,
+				.rwx    = rwx,
+				.name   = { node->name() } };
 
 			return sizeof(Dirent);
 		}
@@ -1692,44 +1711,38 @@ class Vfs::Lxip_file_system : public Vfs::File_system,
 			if (len < sizeof(Dirent))
 				return -1;
 
-			file_size index = seek_offset / sizeof(Dirent);
+			file_size const index = seek_offset / sizeof(Dirent);
 
-			Dirent *out = (Dirent*)dst;
+			struct Entry
+			{
+				void const *fileno;
+				Dirent_type type;
+				char const *name;
+			};
 
-			if (index == 0) {
-				out->fileno  = (Genode::addr_t)&_tcp_dir;
-				out->type    = Directory_service::DIRENT_TYPE_DIRECTORY;
-				Genode::strncpy(out->name, "tcp", sizeof(out->name));
-			} else if (index == 1) {
-				out->fileno  = (Genode::addr_t)&_udp_dir;
-				out->type    = Directory_service::DIRENT_TYPE_DIRECTORY;
-				Genode::strncpy(out->name, "udp", sizeof(out->name));
-			} else if (index == 2) {
-				out->fileno  = (Genode::addr_t)&_address;
-				out->type    = Directory_service::DIRENT_TYPE_FILE;
-				Genode::strncpy(out->name, "address", sizeof(out->name));
-			} else if (index == 3) {
-				out->fileno  = (Genode::addr_t)&_netmask;
-				out->type    = Directory_service::DIRENT_TYPE_FILE;
-				Genode::strncpy(out->name, "netmask", sizeof(out->name));
-			} else if (index == 4) {
-				out->fileno  = (Genode::addr_t)&_gateway;
-				out->type    = Directory_service::DIRENT_TYPE_FILE;
-				Genode::strncpy(out->name, "gateway", sizeof(out->name));
-			} else if (index == 5) {
-				out->fileno  = (Genode::addr_t)&_nameserver;
-				out->type    = Directory_service::DIRENT_TYPE_FILE;
-				Genode::strncpy(out->name, "nameserver", sizeof(out->name));
-			} else if (index == 6) {
-				out->fileno  = (Genode::addr_t)&_link_state;
-				out->type    = Directory_service::DIRENT_TYPE_FILE;
-				Genode::strncpy(out->name, "link_state", sizeof(out->name));
-			} else {
-				out->fileno  = 0;
-				out->type    = Directory_service::DIRENT_TYPE_END;
-				out->name[0] = '\0';
-			}
+			enum { NUM_ENTRIES = 8U };
+			static Entry const entries[NUM_ENTRIES] = {
+				{ &_tcp_dir,    Dirent_type::DIRECTORY,          "tcp" },
+				{ &_udp_dir,    Dirent_type::DIRECTORY,          "udp" },
+				{ &_address,    Dirent_type::TRANSACTIONAL_FILE, "address" },
+				{ &_netmask,    Dirent_type::TRANSACTIONAL_FILE, "netmask" },
+				{ &_gateway,    Dirent_type::TRANSACTIONAL_FILE, "gateway" },
+				{ &_nameserver, Dirent_type::TRANSACTIONAL_FILE, "nameserver" },
+				{ &_link_state, Dirent_type::TRANSACTIONAL_FILE, "link_state" },
+				{ nullptr,      Dirent_type::END,                "" }
+			};
 
+			Entry const &entry = entries[min(index, NUM_ENTRIES - 1U)];
+
+			Dirent &out = *(Dirent*)dst;
+
+			out = {
+				.fileno = (Genode::addr_t)entry.fileno,
+				.type   = entry.type,
+				.rwx    = entry.type == Dirent_type::DIRECTORY
+				        ? Node_rwx::rwx() : Node_rwx::rw(),
+				.name   = { entry.name }
+			};
 			return sizeof(Dirent);
 		}
 
@@ -1746,23 +1759,27 @@ class Vfs::Lxip_file_system : public Vfs::File_system,
 
 		Stat_result stat(char const *path, Stat &out) override
 		{
-			Vfs::Node *node = _lookup(path);
+			Node *node = _lookup(path);
 			if (!node) return STAT_ERR_NO_ENTRY;
 
-			Vfs::Directory *dir = dynamic_cast<Vfs::Directory*>(node);
-			if (dir) {
-				out.mode = STAT_MODE_DIRECTORY | 0777;
+			out = { };
+
+			if (dynamic_cast<Vfs::Directory*>(node)) {
+				out.type = Node_type::DIRECTORY;
+				out.rwx  = Node_rwx::rwx();
 				return STAT_OK;
 			}
 
 			if (dynamic_cast<Lxip_file*>(node)) {
-				out.mode = STAT_MODE_FILE | 0666;
+				out.type = Node_type::TRANSACTIONAL_FILE;
+				out.rwx  = Node_rwx::rw();
 				out.size = 0;
 				return STAT_OK;
 			}
 
 			if (dynamic_cast<Vfs::File*>(node)) {
-				out.mode = STAT_MODE_FILE | 0666;
+				out.type = Node_type::TRANSACTIONAL_FILE;
+				out.rwx  = Node_rwx::rw();
 				out.size = 0x1000;  /* there may be something to read */
 				return STAT_OK;
 			}

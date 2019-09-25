@@ -121,9 +121,6 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				 * we use the ones specificed in the config.
 				 */
 				if (result) {
-					stat_out.uid = _user_info.uid();
-					stat_out.gid = _user_info.gid();
-
 					stat_out.inode = path_hash;
 				}
 

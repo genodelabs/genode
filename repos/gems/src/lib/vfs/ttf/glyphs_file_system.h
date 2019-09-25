@@ -113,7 +113,8 @@ class Vfs::Glyphs_file_system : public Vfs::Single_file_system
 
 		Glyphs_file_system(Font const &font)
 		:
-			Single_file_system(NODE_TYPE_CHAR_DEVICE, type(), Xml_node("<glyphs/>")),
+			Single_file_system(Node_type::TRANSACTIONAL_FILE, type(),
+			                   Node_rwx::ro(), Xml_node("<glyphs/>")),
 			_font(font)
 		{ }
 
@@ -145,7 +146,6 @@ class Vfs::Glyphs_file_system : public Vfs::Single_file_system
 		Stat_result stat(char const *path, Stat &out) override
 		{
 			Stat_result result = Single_file_system::stat(path, out);
-			out.mode |= 0444;
 			out.size = FILE_SIZE;
 			return result;
 		}

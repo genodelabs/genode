@@ -56,8 +56,6 @@ class Fatfs_fs::Directory : public Node
 				return 0;
 			}
 
-			Directory_entry *e = (Directory_entry *)(dst);
-
 			using namespace Fatfs;
 
 			FILINFO fatfs_file_info;
@@ -99,12 +97,17 @@ class Fatfs_fs::Directory : public Node
 				return 0;
 			}
 
-			strncpy(e->name, fatfs_file_info.fname, sizeof(e->name));
-
-			if ((fatfs_file_info.fattrib & AM_DIR) == AM_DIR)
-				e->type = Directory_entry::TYPE_DIRECTORY;
-			else
-				e->type = Directory_entry::TYPE_FILE;
+			Directory_entry &e = *(Directory_entry *)(dst);
+			e = {
+				.inode = 0,
+				.type  = ((fatfs_file_info.fattrib & AM_DIR) == AM_DIR)
+				       ? Node_type::DIRECTORY
+				       : Node_type::CONTINUOUS_FILE,
+				.rwx   = { .readable   = true,
+				           .writeable  = true,
+				           .executable = true },
+				.name  = { fatfs_file_info.fname }
+			};
 
 			return sizeof(Directory_entry);
 		}

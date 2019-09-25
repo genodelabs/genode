@@ -485,35 +485,54 @@ class Vfs_server::Session_component : private Session_resources,
 			::File_system::Status fs_stat;
 
 			_apply_node(node_handle, [&] (Node &node) {
+
 				Directory_service::Stat vfs_stat;
 
 				if (_vfs.stat(node.path(), vfs_stat) != Directory_service::STAT_OK)
 					throw Invalid_handle();
 
-				fs_stat.inode = vfs_stat.inode;
+				auto fs_node_type = [&] (Vfs::Node_type type)
+				{
+					using To = ::File_system::Node_type;
 
-				switch (vfs_stat.mode & (
-					Directory_service::STAT_MODE_DIRECTORY |
-					Directory_service::STAT_MODE_SYMLINK |
-					::File_system::Status::MODE_FILE)) {
+					switch (type) {
+					case Vfs::Node_type::DIRECTORY:          return To::DIRECTORY;
+					case Vfs::Node_type::SYMLINK:            return To::SYMLINK;
+					case Vfs::Node_type::CONTINUOUS_FILE:    return To::CONTINUOUS_FILE;
+					case Vfs::Node_type::TRANSACTIONAL_FILE: return To::TRANSACTIONAL_FILE;
+					};
+					return To::CONTINUOUS_FILE;
+				};
 
-				case Directory_service::STAT_MODE_DIRECTORY:
-					fs_stat.mode = ::File_system::Status::MODE_DIRECTORY;
-					fs_stat.size = _vfs.num_dirent(node.path()) * sizeof(Directory_entry);
-					return;
+				auto fs_node_size = [&] (Vfs::Directory_service::Stat const &vfs_stat)
+				{
+					switch (vfs_stat.type) {
+					case Vfs::Node_type::DIRECTORY:
+						return _vfs.num_dirent(node.path()) * sizeof(Directory_entry);
 
-				case Directory_service::STAT_MODE_SYMLINK:
-					fs_stat.mode = ::File_system::Status::MODE_SYMLINK;
-					break;
+					case Vfs::Node_type::SYMLINK:
+						return 0ULL;
 
-				default: /* Directory_service::STAT_MODE_FILE */
-					fs_stat.mode = ::File_system::Status::MODE_FILE;
-					break;
-				}
+					case Vfs::Node_type::CONTINUOUS_FILE:
+					case Vfs::Node_type::TRANSACTIONAL_FILE:
+						return vfs_stat.size;
+					};
+					return 0ULL;
+				};
 
-				fs_stat.size = vfs_stat.size;
-				fs_stat.modification_time.value = vfs_stat.modification_time.value;
+				fs_stat = ::File_system::Status {
+					.size = fs_node_size(vfs_stat),
+					.type = fs_node_type(vfs_stat.type),
+					.rwx  = {
+						.readable   = vfs_stat.rwx.readable,
+						.writeable  = vfs_stat.rwx.writeable,
+						.executable = vfs_stat.rwx.executable },
+
+					.inode = vfs_stat.inode,
+					.modification_time = { vfs_stat.modification_time.value }
+				};
 			});
+
 			return fs_stat;
 		}
 

@@ -14,14 +14,14 @@ From: Christian Prochaska <christian.prochaska@genode-labs.com>
  gdb/gdbserver/linux-x86-low.c            |  111 +++++++++++++++++++-
  gdb/gdbserver/linux-x86-tdesc-selftest.c |   31 ++++++
  gdb/gdbserver/linux-x86-tdesc.c          |    8 +
- gdb/gdbserver/remote-utils.c             |   11 ++
+ gdb/gdbserver/remote-utils.c             |   15 +++
  gdb/gdbserver/server.c                   |   36 ++++++
  gdb/gdbserver/server.h                   |    4 +
  gdb/nat/fork-inferior.c                  |    4 -
  gdb/nat/gdb_ptrace.h                     |    2 
  gdb/nat/linux-ptrace.c                   |   17 +++
  gdb/nat/linux-ptrace.h                   |    4 +
- 17 files changed, 418 insertions(+), 15 deletions(-)
+ 17 files changed, 422 insertions(+), 15 deletions(-)
 
 diff --git a/gdb/common/common-defs.h b/gdb/common/common-defs.h
 index eb0ec21..4dc07ce 100644
@@ -1071,7 +1071,7 @@ index c3aa20c..e5a57c0 100644
        init_target_desc (*tdesc, amd64_expedite_regs);
      }
 diff --git a/gdb/gdbserver/remote-utils.c b/gdb/gdbserver/remote-utils.c
-index 45d5c8d..7b6b1be 100644
+index 45d5c8d..b246402 100644
 --- a/gdb/gdbserver/remote-utils.c
 +++ b/gdb/gdbserver/remote-utils.c
 @@ -27,6 +27,12 @@
@@ -1099,6 +1099,18 @@ index 45d5c8d..7b6b1be 100644
  static gdb_fildes_t listen_desc = INVALID_DESCRIPTOR;
  
  /* FIXME headerize? */
+@@ -312,7 +321,11 @@ remote_open (const char *name)
+       struct stat statbuf;
+ 
+       if (stat (name, &statbuf) == 0
++#ifndef __GENODE__
+ 	  && (S_ISCHR (statbuf.st_mode) || S_ISFIFO (statbuf.st_mode)))
++#else
++	  )
++#endif
+ 	remote_desc = open (name, O_RDWR);
+       else
+ 	{
 diff --git a/gdb/gdbserver/server.c b/gdb/gdbserver/server.c
 index bf6302b..b6a9494 100644
 --- a/gdb/gdbserver/server.c

@@ -218,18 +218,26 @@ class Rump_fs::Directory : public Node
 			struct stat s;
 			rump_sys_lstat(path, &s);
 
-			Directory_entry *e = (Directory_entry *)(dst);
-			if (S_ISDIR(s.st_mode))
-				e->type = Directory_entry::TYPE_DIRECTORY;
-			else if (S_ISREG(s.st_mode))
-				e->type = Directory_entry::TYPE_FILE;
-			else if (S_ISLNK(s.st_mode))
-				e->type = Directory_entry::TYPE_SYMLINK;
-			else
-				return 0;
+			auto type = [] (unsigned mode)
+			{
+				if      (S_ISDIR(mode)) return Node_type::DIRECTORY;
+				else if (S_ISREG(mode)) return Node_type::CONTINUOUS_FILE;
+				else if (S_ISLNK(mode)) return Node_type::SYMLINK;
+				else                    return Node_type::CONTINUOUS_FILE;
+			};
 
-			e->inode = s.st_ino;
-			strncpy(e->name, dent->d_name, dent->d_namlen + 1);
+			Node_rwx const rwx { .readable   = (s.st_mode & S_IRUSR),
+			                     .writeable  = (s.st_mode & S_IWUSR),
+			                     .executable = (s.st_mode & S_IXUSR) };
+
+			Directory_entry &e = *(Directory_entry *)(dst);
+			e = {
+				.inode = s.st_ino,
+				.type  = type(s.st_mode),
+				.rwx   = rwx,
+				.name  = { dent->d_name }
+			};
+
 			return sizeof(Directory_entry);
 		}
 
@@ -245,13 +253,15 @@ class Rump_fs::Directory : public Node
 			if (rump_sys_fstat(_fd, &st) < 0)
 				st.st_mtime = 0;
 
-			Status s;
-			s.inode = inode();
-			s.size  = num_entries() * sizeof (Directory_entry);
-			s.mode  = File_system::Status::MODE_DIRECTORY;
-			s.modification_time = { (int64_t)st.st_mtime };
-
-			return s;
+			return {
+				.size  = num_entries() * sizeof (Directory_entry),
+				.type  = File_system::Node_type::DIRECTORY,
+				.rwx   = { .readable   = (st.st_mode & S_IRUSR),
+				           .writeable  = (st.st_mode & S_IWUSR),
+				           .executable = (st.st_mode & S_IXUSR) },
+				.inode = inode(),
+				.modification_time = { (int64_t)st.st_mtime }
+			};
 		}
 
 		size_t num_entries() const

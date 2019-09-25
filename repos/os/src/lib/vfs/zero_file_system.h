@@ -24,7 +24,8 @@ struct Vfs::Zero_file_system : Single_file_system
 {
 	Zero_file_system(Vfs::Env&, Genode::Xml_node config)
 	:
-		Single_file_system(NODE_TYPE_CHAR_DEVICE, name(), config)
+		Single_file_system(Node_type::CONTINUOUS_FILE, name(),
+		                   Node_rwx::rw(), config)
 	{ }
 
 	static char const *name()   { return "zero"; }

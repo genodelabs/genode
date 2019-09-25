@@ -74,43 +74,7 @@ struct Noux::Sysio
 		OPEN_MODE_CREATE  = 0x0800, /* libc O_EXCL */
 	};
 
-	/**
-	 * These values are the same as in the FreeBSD libc
-	 */
-	enum {
-		STAT_MODE_SYMLINK   = 0120000,
-		STAT_MODE_FILE      = 0100000,
-		STAT_MODE_DIRECTORY = 0040000,
-		STAT_MODE_CHARDEV   = 0020000,
-		STAT_MODE_BLOCKDEV  = 0060000,
-	};
-
-	/*
-	 * Must be POD (in contrast to the VFS type) because it's used in a union
-	 */
-	struct Stat
-	{
-		Vfs::file_size size;
-		unsigned       mode;
-		unsigned       uid;
-		unsigned       gid;
-		unsigned long  inode;
-		unsigned long  device;
-		long long      mtime;
-
-		Stat & operator= (Vfs::Directory_service::Stat const &stat)
-		{
-			size   = stat.size;
-			mode   = stat.mode;
-			uid    = stat.uid;
-			gid    = stat.gid;
-			inode  = stat.inode;
-			device = stat.device;
-			mtime  = stat.modification_time.value;
-
-			return *this;
-		}
-	};
+	typedef Vfs::Directory_service::Stat Stat;
 
 	/**
 	 * Argument structure used for ioctl syscall
@@ -132,7 +96,7 @@ struct Noux::Sysio
 
 	enum Lseek_whence { LSEEK_SET, LSEEK_CUR, LSEEK_END };
 
-	enum { DIRENT_MAX_NAME_LEN = Vfs::Directory_service::DIRENT_MAX_NAME_LEN };
+	enum { DIRENT_MAX_NAME_LEN = Vfs::Directory_service::Dirent::Name::MAX_LEN };
 
 	typedef Vfs::Directory_service::Dirent_type Dirent_type;
 
@@ -149,7 +113,7 @@ struct Noux::Sysio
 		{
 			fileno = dirent.fileno;
 			type   = dirent.type;
-			memcpy(name, dirent.name, DIRENT_MAX_NAME_LEN);
+			memcpy(name, dirent.name.buf, DIRENT_MAX_NAME_LEN);
 
 			return *this;
 		}

@@ -141,26 +141,14 @@ struct Vfs::Directory_service : Interface
 	 ** Stat **
 	 **********/
 
-	/**
-	 * These values are the same as in the FreeBSD libc
-	 */
-	enum {
-		STAT_MODE_SYMLINK   = 0120000,
-		STAT_MODE_FILE      = 0100000,
-		STAT_MODE_DIRECTORY = 0040000,
-		STAT_MODE_CHARDEV   = 0020000,
-		STAT_MODE_BLOCKDEV  = 0060000,
-	};
-
 	struct Stat
 	{
-		file_size     size   = 0;
-		unsigned      mode   = 0;
-		unsigned      uid    = 0;
-		unsigned      gid    = 0;
-		unsigned long inode  = 0;
-		unsigned long device = 0;
-		Timestamp     modification_time { Timestamp::INVALID };
+		file_size     size;
+		Node_type     type;
+		Node_rwx      rwx;
+		unsigned long inode;
+		unsigned long device;
+		Timestamp     modification_time;
 	};
 
 	enum Stat_result { STAT_ERR_NO_ENTRY = NUM_GENERAL_ERRORS,
@@ -177,23 +165,42 @@ struct Vfs::Directory_service : Interface
 	 ** Dirent **
 	 ************/
 
-	enum { DIRENT_MAX_NAME_LEN = 128 };
-
-	enum Dirent_type {
-		DIRENT_TYPE_FILE,
-		DIRENT_TYPE_DIRECTORY,
-		DIRENT_TYPE_FIFO,
-		DIRENT_TYPE_CHARDEV,
-		DIRENT_TYPE_BLOCKDEV,
-		DIRENT_TYPE_SYMLINK,
-		DIRENT_TYPE_END
+	enum class Dirent_type
+	{
+		END,
+		DIRECTORY,
+		SYMLINK,
+		CONTINUOUS_FILE,
+		TRANSACTIONAL_FILE,
 	};
 
 	struct Dirent
 	{
-		unsigned long fileno                    = 0;
-		Dirent_type   type                      = DIRENT_TYPE_END;
-		char          name[DIRENT_MAX_NAME_LEN] = { 0 };
+		struct Name
+		{
+			enum { MAX_LEN = 128 };
+			char buf[MAX_LEN] { };
+
+			Name() { };
+			Name(char const *name) { strncpy(buf, name, sizeof(buf)); }
+		};
+
+		unsigned long fileno;
+		Dirent_type   type;
+		Node_rwx      rwx;
+		Name          name;
+
+		/**
+		 * Sanitize dirent members
+		 *
+		 * This method must be called after receiving a 'Dirent' as
+		 * a plain data copy.
+		 */
+		void sanitize()
+		{
+			/* enforce null termination */
+			name.buf[Name::MAX_LEN - 1] = 0;
+		}
 	};
 
 

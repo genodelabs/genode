@@ -103,7 +103,8 @@ class Vfs::Rtc_file_system : public Single_file_system
 
 		Rtc_file_system(Vfs::Env &env, Genode::Xml_node config)
 		:
-			Single_file_system(NODE_TYPE_CHAR_DEVICE, name(), config),
+			Single_file_system(Node_type::TRANSACTIONAL_FILE, name(),
+			                   Node_rwx::ro(), config),
 			_rtc(env.env()),
 			_set_signal_handler(env.env().ep(), *this,
 			                    &Rtc_file_system::_handle_set_signal)
@@ -136,10 +137,7 @@ class Vfs::Rtc_file_system : public Single_file_system
 
 		Stat_result stat(char const *path, Stat &out) override
 		{
-			Stat_result result = Single_file_system::stat(path, out);
-			out.mode |= 0444;
-
-			return result;
+			return Single_file_system::stat(path, out);
 		}
 
 		Watch_result watch(char const        *path,
