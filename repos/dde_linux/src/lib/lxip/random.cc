@@ -65,7 +65,11 @@ struct Xoroshiro
 };
 
 
-static Xoroshiro xoroshiro(42);
+static Xoroshiro & xoroshiro()
+{
+	static Xoroshiro xoroshiro(42);
+	return xoroshiro;
+}
 
 
 /********************
@@ -82,7 +86,7 @@ extern "C" void get_random_bytes(void *buf, int nbytes)
 
 	int const rounds = nbytes / 8;
 	for (int i = 0; i < rounds; i++) {
-		uint64_t const v = xoroshiro.get();
+		uint64_t const v = xoroshiro().get();
 
 		Genode::memcpy(p, &v, 8);
 		p += 8;
@@ -93,12 +97,12 @@ extern "C" void get_random_bytes(void *buf, int nbytes)
 		return;
 	}
 
-	uint64_t const v = xoroshiro.get();
+	uint64_t const v = xoroshiro().get();
 	Genode::memcpy(p, &v, remain);
 }
 
 
 extern "C" unsigned int prandom_u32(void)
 {
-	return xoroshiro.get();
+	return xoroshiro().get();
 }

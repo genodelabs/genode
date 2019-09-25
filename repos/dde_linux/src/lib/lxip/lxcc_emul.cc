@@ -366,7 +366,11 @@ class Avl_page : public Genode::Avl_node<Avl_page>
 };
 
 
-static Genode::Avl_tree<Avl_page> tree;
+static Genode::Avl_tree<Avl_page> & tree()
+{
+	static Genode::Avl_tree<Avl_page> _tree;
+	return _tree;
+}
 
 
 struct page *alloc_pages(gfp_t gfp_mask, unsigned int order)
@@ -374,7 +378,7 @@ struct page *alloc_pages(gfp_t gfp_mask, unsigned int order)
 	Avl_page *p;
 	try {
 		p = (Avl_page *)new (lx_env->heap()) Avl_page(PAGE_SIZE << order);
-		tree.insert(p);
+		tree().insert(p);
 	} catch (...) { return 0; }
 
 	return p->page();
@@ -393,9 +397,9 @@ void *__alloc_page_frag(struct page_frag_cache *nc,
 
 void __free_page_frag(void *addr)
 {
-	Avl_page *p = tree.first()->find_by_address((Genode::addr_t)addr);
+	Avl_page *p = tree().first()->find_by_address((Genode::addr_t)addr);
 
-	tree.remove(p);
+	tree().remove(p);
 	destroy(lx_env->heap(), p);
 }
 
@@ -406,7 +410,7 @@ void __free_page_frag(void *addr)
 
 struct page *virt_to_head_page(const void *x)
 {
-	Avl_page *p = tree.first()->find_by_address((Genode::addr_t)x);
+	Avl_page *p = tree().first()->find_by_address((Genode::addr_t)x);
 	lx_log(DEBUG_SLAB, "virt_to_head_page: %p page %p\n", x,p ? p->page() : 0);
 	
 	return p ? p->page() : 0;
@@ -419,9 +423,9 @@ void put_page(struct page *page)
 		return;
 
 	lx_log(DEBUG_SLAB, "put_page: %p", page);
-	Avl_page *p = tree.first()->find_by_address((Genode::addr_t)page->addr);
+	Avl_page *p = tree().first()->find_by_address((Genode::addr_t)page->addr);
 
-	tree.remove(p);
+	tree().remove(p);
 	destroy(lx_env->heap(), p);
 }
 

@@ -13,20 +13,18 @@
 
 #include <lx_kit/env.h>
 
-/*
- * Lx_kit enviroment instance
- */
-static Genode::Constructible<Lx_kit::Env> _env;
+static Lx_kit::Env *_env_ptr;
 
 
 Lx_kit::Env &Lx_kit::env()
 {
-	return *_env;
+	return *_env_ptr;
 }
 
 
 Lx_kit::Env &Lx_kit::construct_env(Genode::Env &env)
 {
-	_env.construct(env);
-	return *_env;
+	static Lx_kit::Env _env(env);
+	_env_ptr = &_env;
+	return _env;
 }
