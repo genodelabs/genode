@@ -877,6 +877,12 @@ void debug_check_no_locks_freed(const void *from, unsigned long len);
 
 #include <lx_emul/mutex.h>
 
+LX_MUTEX_INIT_DECLARE(dst_gc_mutex);
+LX_MUTEX_INIT_DECLARE(proto_list_mutex);
+
+#define dst_gc_mutex     LX_MUTEX(dst_gc_mutex)
+#define proto_list_mutex LX_MUTEX(proto_list_mutex)
+
 
 /***********************************
  ** linux/rwlock_types.h/rwlock.h **

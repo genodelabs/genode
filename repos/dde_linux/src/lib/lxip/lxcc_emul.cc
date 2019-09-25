@@ -51,6 +51,9 @@ void Lx::lxcc_emul_init(Lx_kit::Env &env)
 	memory_pool_ptr = &memory_pool;
 
 	lx_env = &env;
+
+	LX_MUTEX_INIT(dst_gc_mutex);
+	LX_MUTEX_INIT(proto_list_mutex);
 }
 
 
