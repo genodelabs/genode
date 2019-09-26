@@ -57,13 +57,6 @@ namespace Hw
 	template <typename ENTRY, unsigned PAGE_SIZE_LOG2, unsigned SIZE_LOG2>
 	class Page_directory;
 
-	using Level_3_translation_table =
-		Page_directory<Level_4_translation_table,
-		SIZE_LOG2_2MB, SIZE_LOG2_1GB>;
-	using Level_2_translation_table =
-		Page_directory<Level_3_translation_table,
-		SIZE_LOG2_1GB, SIZE_LOG2_512GB>;
-
 	/**
 	 * IA-32e common descriptor.
 	 *
@@ -489,7 +482,24 @@ class Hw::Page_directory
 		 */
 		void remove_translation(addr_t vo, size_t size, Allocator & alloc) {
 			_range_op(vo, 0, size, Remove_func(alloc)); }
-} __attribute__((aligned(1 << ALIGNM_LOG2)));
+};
+
+
+namespace Hw {
+
+	struct Level_3_translation_table :
+		Page_directory<
+			Level_4_translation_table,
+			SIZE_LOG2_2MB, SIZE_LOG2_1GB>
+	{ } __attribute__((aligned(1 << ALIGNM_LOG2)));
+
+	struct Level_2_translation_table :
+		Page_directory<
+			Level_3_translation_table,
+			SIZE_LOG2_1GB, SIZE_LOG2_512GB>
+	{ } __attribute__((aligned(1 << ALIGNM_LOG2)));
+
+}
 
 
 class Hw::Pml4_table

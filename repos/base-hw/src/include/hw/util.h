@@ -56,7 +56,7 @@ namespace Hw
 	 * \param p            pointer
 	 * \param alignm_log2  log2 of the required alignment
 	 */
-	constexpr bool aligned(void * const p, addr_t alignm_log2) {
+	inline bool aligned(void * const p, addr_t alignm_log2) {
 		return (addr_t)p == trunc((addr_t)p, alignm_log2); }
 
 	/**
