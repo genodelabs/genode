@@ -112,8 +112,7 @@ proc autopilot_run_genode_until {{wait_for_re forever} {timeout_value 0} {runnin
 
 			# kill the spawned load process if there is one
 			if {[load_spawn_id] != -1} {
-				set pid [exp_pid -i [load_spawn_id]]
-				exec kill -9 $pid
+				kill_spawned [load_spawn_id]
 			}
 
 			incr retry -1;
@@ -830,7 +829,7 @@ while {1} {
 		if {$run_genode_failed} {
 
 			# shut-down running system
-			exec kill -9 [exp_pid -i $serial_id]
+			kill_spawned $serial_id
 			run_power_off
 
 			# remember result of last test
@@ -902,7 +901,7 @@ while {1} {
 		{
 			# shut-down running system
 			puts "Re-booting to meet maximum number of tests per boot for this platform"
-			exec kill -9 [exp_pid -i $serial_id]
+			kill_spawned $serial_id
 			run_power_off
 
 			# prepare system re-boot

@@ -307,8 +307,7 @@ proc run_genode_until {{wait_for_re forever} {timeout_value 0} {running_spawn_id
 
 			# kill the spawned load process if there is one
 			if {[load_spawn_id] != -1} {
-				set pid [exp_pid -i [load_spawn_id]]
-				exec kill -9 $pid
+				kill_spawned [load_spawn_id]
 			}
 
 			incr retry -1;
@@ -326,6 +325,17 @@ proc run_genode_until {{wait_for_re forever} {timeout_value 0} {running_spawn_id
 
 	puts stderr "Boot process failed 3 times in series. I give up!";
 	exit -1;
+}
+
+
+##
+# "Safely" kill spawned process
+#
+proc kill_spawned {spawn_id} {
+	set pid [exp_pid -i $spawn_id]
+	close -i $spawn_id
+	exec kill -9 $pid
+	wait -i $spawn_id
 }
 
 
