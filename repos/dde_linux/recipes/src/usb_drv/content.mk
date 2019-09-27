@@ -1,4 +1,5 @@
 LIB_MK := lib/import/import-usb_include.mk lib/mk/usb_include.mk lib/mk/rpi_usb.mk \
+          lib/import/import-usb_arch_include.mk \
           $(foreach SPEC,x86_32 x86_64 arm,lib/mk/spec/$(SPEC)/lx_kit_setjmp.mk)
 
 PORT_DIR := $(call port_dir,$(REP_DIR)/ports/dde_linux)
