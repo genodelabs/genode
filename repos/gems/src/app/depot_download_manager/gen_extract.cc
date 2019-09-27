@@ -25,10 +25,11 @@ void Depot_download_manager::gen_extract_start_content(Xml_generator       &xml,
 		xml.attribute("verbose", "yes");
 
 		xml.node("libc", [&] () {
-			xml.attribute("stdout", "/dev/log");
-			xml.attribute("stderr", "/dev/log");
-			xml.attribute("rtc",    "/dev/null");
-			xml.attribute("cwd",    user_path);
+			xml.attribute("stdout",       "/dev/log");
+			xml.attribute("stderr",       "/dev/log");
+			xml.attribute("rtc",          "/dev/null");
+			xml.attribute("cwd",          user_path);
+			xml.attribute("update_mtime", "no");
 		});
 
 		xml.node("vfs", [&] () {
