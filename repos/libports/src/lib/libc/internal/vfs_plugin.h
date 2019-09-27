@@ -37,11 +37,16 @@ namespace Libc { class Vfs_plugin; }
 
 class Libc::Vfs_plugin : public Plugin
 {
+	public:
+
+		enum class Update_mtime { NO, YES };
+
 	private:
 
 		Genode::Allocator        &_alloc;
 		Vfs::File_system         &_root_dir;
 		Vfs::Io_response_handler &_response_handler;
+		Update_mtime        const _update_mtime;
 
 		/**
 		 * Sync a handle and propagate errors
@@ -57,9 +62,12 @@ class Libc::Vfs_plugin : public Plugin
 
 		Vfs_plugin(Libc::Env                &env,
 		           Genode::Allocator        &alloc,
-		           Vfs::Io_response_handler &handler)
+		           Vfs::Io_response_handler &handler,
+		           Update_mtime              update_mtime)
 		:
-			_alloc(alloc), _root_dir(env.vfs()), _response_handler(handler)
+			_alloc(alloc), _root_dir(env.vfs()),
+			_response_handler(handler),
+			_update_mtime(update_mtime)
 		{ }
 
 		~Vfs_plugin() final { }
