@@ -117,8 +117,8 @@ class Lx_fs::Directory : public Node
 		void update_modification_time(Timestamp const time) override
 		{
 			struct timespec ts[2] = {
-				{ .tv_sec = 0,          .tv_nsec = 0 },
-				{ .tv_sec = time.value, .tv_nsec = 0 }
+				{ .tv_sec = (time_t)0,          .tv_nsec = 0 },
+				{ .tv_sec = (time_t)time.value, .tv_nsec = 0 }
 			};
 
 			/* silently ignore errors */
