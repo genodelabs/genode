@@ -18,7 +18,8 @@ install_config {
 	<start name="extract" caps="200">
 		<resource name="RAM" quantum="12M"/>
 		<config verbose="yes">
-			<libc stdout="/dev/log" stderr="/dev/log"/>
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/null"
+			      update_mtime="no"/>
 			<vfs>
 				<dir name="archived">
 					<rom name="test.tar.xz"/>
