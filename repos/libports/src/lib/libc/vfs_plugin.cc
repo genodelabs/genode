@@ -349,6 +349,9 @@ void Libc::Vfs_plugin::_vfs_write_mtime(Vfs::Vfs_handle &handle)
 {
 	struct timespec ts;
 
+	if (_update_mtime == Update_mtime::NO)
+		return;
+
 	/* XXX using  clock_gettime directly is probably not the best idea */
 	if (clock_gettime(CLOCK_REALTIME, &ts) < 0) {
 		ts.tv_sec = 0;

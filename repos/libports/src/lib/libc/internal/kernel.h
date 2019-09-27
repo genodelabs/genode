@@ -94,8 +94,13 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 		 */
 		void reset_malloc_heap() override;
 
-		Env_implementation   _libc_env { _env, _heap };
-		Vfs_plugin           _vfs { _libc_env, _heap, *this };
+		Env_implementation _libc_env { _env, _heap };
+
+		bool const _update_mtime = _libc_env.libc_config().attribute_value("update_mtime", true);
+
+		Vfs_plugin _vfs { _libc_env, _heap, *this,
+		                  _update_mtime ? Vfs_plugin::Update_mtime::YES
+		                                : Vfs_plugin::Update_mtime::NO };
 
 		bool  const _cloned = _libc_env.libc_config().attribute_value("cloned", false);
 		pid_t const _pid    = _libc_env.libc_config().attribute_value("pid", 0U);
