@@ -1733,7 +1733,7 @@ class Gpu::Root : public Gpu::Root_component
 					                  session_diag_from_args(args),
 					                  _env.rm(), *md_alloc(), ram_quota,
 					                  *_device);
-			} catch (...) { throw Genode::Service_denied(); }
+			} catch (...) { throw; }
 		}
 
 		void _upgrade_session(Session_component *s, char const *args) override
