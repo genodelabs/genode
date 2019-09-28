@@ -23,7 +23,7 @@ package Machinery is
           Convention    => C,
           External_Name => "_ZNK5Spark9Machinery11temperatureEv";
 
-   procedure Heat_up (Machinery : in out Machinery_Type)
+   procedure Heat_Up (Machinery : in out Machinery_Type)
      with Export,
           Convention    => C,
           External_Name => "_ZN5Spark9Machinery7heat_upEv";

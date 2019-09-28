@@ -1,25 +1,25 @@
 --
--- \brief  Ada test program
--- \author Norman Feske
--- \date   2009-09-23
+--  \brief  Ada test program
+--  \author Norman Feske
+--  \date   2009-09-23
 --
 
-with add_package;
+with Add_Package;
 
 --
--- Main program
+--  Main program
 --
 procedure main is
 
-	result : Integer;
+   result : Integer;
 
-	--
-	-- Declarations of external C functions
-	--
-	procedure ext_c_print_int(a : Integer);
-	pragma import(C, ext_c_print_int, "print_int");
+   --
+   --  Declarations of external C functions
+   --
+   procedure ext_c_print_int (a : Integer);
+   pragma Import (C, ext_c_print_int, "print_int");
 
 begin
-	add_package.Add(13, 14, result);
-	ext_c_print_int(result);
+   Add_Package.Add (13, 14, result);
+   ext_c_print_int (result);
 end main;

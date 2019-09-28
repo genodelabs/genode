@@ -9,3 +9,5 @@ ada_source_path: ada_object_path
 ada_object_path:
 	$(VERBOSE)mkdir -p $(ADA_RTS)
 	$(VERBOSE)echo $(ADA_RTS) > $(ADA_RTS)/ada_object_path
+
+CC_ADA_WARN_STRICT =
