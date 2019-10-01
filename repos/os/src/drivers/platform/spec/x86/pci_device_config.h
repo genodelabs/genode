@@ -61,7 +61,7 @@ class Platform::Pci::Resource
 
 	/* PORT or MEM32 resource */
 	Resource(uint32_t bar, uint32_t size)
-	: _bar{bar, 0}, _size(mem() ? Bar::mem_size(size, 0) : Bar::port_size(size))
+	: _bar{bar, 0}, _size(mem() ? Bar::mem_size(size, ~0) : Bar::port_size(size))
 	{ }
 
 	/* MEM64 resource */
@@ -82,6 +82,11 @@ class Platform::Pci::Resource
 		 * spec/x86/platform_device/platform_device.h)
 		 */
 		return Device::Resource((unsigned)_bar[0], (unsigned)_size);
+	}
+
+	void print(Genode::Output &out) const
+	{
+		Genode::print(out, Genode::Hex_range(base(), size()));
 	}
 };
 
