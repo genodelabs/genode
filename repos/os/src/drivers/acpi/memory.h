@@ -45,20 +45,20 @@ class Acpi::Memory
 				addr_t _base;
 				size_t _size;
 
-				static addr_t _base_align(bool align, addr_t base)
+				static addr_t _base_align(addr_t base)
 				{
-					return !align ? base : base & _align_mask(12UL);
+					return base & ~0xfffUL;
 				}
 
-				static addr_t _size_align(bool align, size_t size)
+				static addr_t _size_align(addr_t base, size_t size)
 				{
-					return !align ? size : (size + _align_offset(12UL)) & _align_mask(12UL);
+					return align_addr(base + (size - 1) - _base_align(base), 12);
 				}
 
-				Region(addr_t base, size_t size, bool align = false)
+				Region(addr_t base, size_t size)
 				:
-					_base(_base_align(align, base)),
-					_size(_size_align(align, size))
+					_base(_base_align(base)),
+					_size(_size_align(base, size))
 				{ }
 
 				addr_t base() const { return _base; }
@@ -125,7 +125,7 @@ class Acpi::Memory
 			}
 
 			/* requested region of I/O memory */
-			Io_mem::Region loop_region { req_base, req_size, true };
+			Io_mem::Region loop_region { req_base, req_size };
 
 			/* check that physical region fits into supported range */
 			if (!_io_region->contains(loop_region)) {
@@ -156,12 +156,14 @@ class Acpi::Memory
 				void * const addr = (void *)(loop_region.base() + loop_offset);
 
 				if (Io_mem *m = _range.metadata(addr)) {
-					addr_t const compound_base = min(loop_region.base(), m->region.base());
+					addr_t const region_base = m->region.base();
+					addr_t const region_size = m->region.size();
+					addr_t const compound_base = min(loop_region.base(), region_base);
 					addr_t const compound_end  = max(loop_region.base() + loop_region.size(),
-					                                 m->region.base() + m->region.size());
+					                                 region_base + region_size);
 
 					m->~Io_mem();
-					_range.free((void *)addr);
+					_range.free((void *)region_base);
 
 					/* now start over */
 					loop_region = Io_mem::Region(compound_base, compound_end - compound_base);
