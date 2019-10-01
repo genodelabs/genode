@@ -3,7 +3,7 @@ USB_CONTRIB_DIR := $(call select_from_ports,dde_linux)/src/lib/usb
 LIB_DIR          := $(REP_DIR)/src/drivers/usb
 LIB_INC_DIR      := $(LIB_DIR)/include
 
-include $(REP_DIR)/lib/import/import-usb_arch_include.mk
+include $(call select_from_repositories,lib/import/import-usb_arch_include.mk)
 
 #
 # The order of include-search directories is important, we need to look into
