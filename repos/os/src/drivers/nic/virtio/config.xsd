@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+	<xs:include schemaLocation="base_types.xsd"/>
+	<xs:include schemaLocation="net_types.xsd"/>
+	<xs:include schemaLocation="virtio_types.xsd"/>
+
+	<xs:simpleType name="RxBufferSize">
+		<xs:restriction base="xs:unsignedShort">
+			<xs:minInclusive value="1526" />
+		</xs:restriction>
+	</xs:simpleType>
+
+	<xs:simpleType name="TxBufferSize">
+		<xs:restriction base="xs:unsignedShort">
+			<xs:minInclusive value="256" />
+		</xs:restriction>
+	</xs:simpleType>
+
+	<xs:element name="config">
+		<xs:complexType>
+			<xs:attribute name="verbose"        type="Boolean" />
+			<xs:attribute name="mac"            type="Mac_address" />
+			<xs:attribute name="rx_queue_size"  type="Virtio_queue_size" />
+			<xs:attribute name="tx_queue_size"  type="Virtio_queue_size" />
+			<xs:attribute name="tx_buffer_size" type="TxBufferSize" />
+			<xs:attribute name="rx_buffer_size" type="RxBufferSize" />
+		</xs:complexType>
+	</xs:element><!-- config -->
+
+</xs:schema>
+

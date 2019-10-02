@@ -1,0 +1,44 @@
+This directory contains the implementation of Genode's VirtIO NIC driver.
+
+Brief
+=====
+
+The driver implements virtual ethernet card driver as defined in section
+5.1 of Virtial I/O Device (VIRTIO) Version 1.0 specification. The device
+is exposed to the rest of the system via standard Genode NIC session
+interface.
+
+This driver does not require, or utilize any advanced VirtIO ethernet
+device features such as VLAN filtering, or checksum offloading.
+
+Configuration
+=============
+
+The following config illustrates how the driver is configured:
+
+!<start name="virtio_nic">
+!  <resource name="ram" quantum="640K"/>
+!  <provides><service name="Nic"/></provides>
+!  <config rx_queue_size="16" rx_buffer_size="2020"
+!          tx_queue_size="16" tx_buffer_size="2020"
+!          mac="aa:bb:cc:dd:ee:ff"
+!          verbose="false" />
+!</start>
+
+The rx_queue_size and tx_queue_size parameters define the maximum number
+buffers the transmit and receive virtio queues can hold. The buffers
+used by both queues are pre-allocated on device initialization. The
+rx_buffer_size and tx_buffer_size can be used to specify sizes of those
+pre-allocated buffers.
+
+The default values of the presented configuration parameters the driver
+uses were selected to minimize driver memory usage without negatively
+affecting performance. Testing was done on Qemu arm_v8a, arm_v8a, and
+x86_64 machines. These values might not be suitable for more advanted
+usage scenarios.
+
+The mac configuration parameter can be used to override the default
+device MAC address obtained from VirtIO configuration space.
+
+The driver does produce some additional logs when verbose parameter is set
+to true.
