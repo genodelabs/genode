@@ -1,6 +1,7 @@
 /*
  * \brief  poll() implementation
  * \author Josef Soentgen
+ * \author Christian Helmuth
  * \author Emery Hemingway
  * \date   2012-07-12
  */
@@ -56,8 +57,7 @@ poll(struct pollfd fds[], nfds_t nfds, int timeout)
 	for (i = 0; i < nfds; i++) {
 		fd = fds[i].fd;
 		if (fd >= (int)FD_SETSIZE) {
-			/*errno = EINVAL;*/
-			return -1;
+			return Libc::Errno(EINVAL);
 		}
 		maxfd = MAX(maxfd, fd);
 	}
@@ -72,11 +72,11 @@ poll(struct pollfd fds[], nfds_t nfds, int timeout)
 		fd = fds[i].fd;
 		if (fd == -1)
 			continue;
-		if (fds[i].events & POLLIN) {
+		if (fds[i].events & (POLLIN | POLLPRI | POLLRDNORM | POLLRDBAND)) {
 			FD_SET(fd, &readfds);
 			FD_SET(fd, &exceptfds);
 		}
-		if (fds[i].events & POLLOUT) {
+		if (fds[i].events & (POLLOUT | POLLWRNORM | POLLWRBAND)) {
 			FD_SET(fd, &writefds);
 			FD_SET(fd, &exceptfds);
 		}
@@ -89,7 +89,7 @@ poll(struct pollfd fds[], nfds_t nfds, int timeout)
 		tvp = &tv;
 	}
 	ret = select(maxfd + 1, &readfds, &writefds, &exceptfds, tvp);
-	/*saved_errno = errno;*/
+
 	/* scan through select results and set poll() flags */
 	for (i = 0; i < nfds; i++) {
 		fd = fds[i].fd;
@@ -107,10 +107,6 @@ poll(struct pollfd fds[], nfds_t nfds, int timeout)
 		}
 	}
 
-	/*
-	if (ret == -1)
-		errno = saved_errno;
-	*/
 	return ret;
 }
 
