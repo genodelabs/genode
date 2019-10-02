@@ -13,19 +13,29 @@
 
 #include <rump/env.h>
 
-/*
- * Genode enviroment instance
- */
-static Genode::Constructible<Rump::Env> _env;
+static Rump::Env *_env_ptr;
 
 
 Rump::Env &Rump::env()
 {
-	return *_env;
+	return *_env_ptr;
 }
 
 
 void Rump::construct_env(Genode::Env &env)
 {
-	_env.construct(env);
+	static Rump::Env _env(env);
+	_env_ptr = &_env;
+}
+
+
+/* constructors in rump.lib.so */
+extern "C" void rumpns_modctor_ksem(void);
+extern "C" void rumpns_modctor_suser(void);
+
+Rump::Env::Env(Genode::Env &env) : _env(env)
+{
+	/* call init/constructor functions of rump.lib.so */
+	rumpns_modctor_ksem();
+	rumpns_modctor_suser();
 }

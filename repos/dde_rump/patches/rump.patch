@@ -1,3 +1,36 @@
+--- src/lib/dde_rump/src/sys/rump/librump/rumpkern/rump_private.h
++++ src/lib/dde_rump/src/sys/rump/librump/rumpkern/rump_private.h
+@@ -70,6 +70,9 @@
+ 	RUMP__FACTION_NET,
+ 
+ 	RUMP_COMPONENT_MAX,
++
++	/* alias for syscall type used to create ctor symbol */
++	RUMP_COMPONENT_KERN_SYSCALL = RUMP_COMPONENT_SYSCALL,
+ };
+ struct rump_component {
+ 	enum rump_component_type rc_type;
+@@ -86,8 +89,7 @@
+ 
+ #ifdef RUMP_USE_CTOR
+ #define _RUMP_COMPONENT_REGISTER(type)					\
+-static void rumpcomp_ctor##type(void) __attribute__((constructor));	\
+-static void rumpcomp_ctor##type(void)					\
++void rumpcompctor_##type(void)						\
+ {									\
+ 	rump_component_load(&rumpcomp##type);				\
+ }
+--- src/lib/dde_rump/src/sys/rump/librump/rumpkern/rumpkern_syscalls.c
++++ src/lib/dde_rump/src/sys/rump/librump/rumpkern/rumpkern_syscalls.c
+@@ -147,7 +147,7 @@
+ 	{ 477,	sys_clock_nanosleep },
+ };
+ 
+-RUMP_COMPONENT(RUMP_COMPONENT_SYSCALL)
++RUMP_COMPONENT(RUMP_COMPONENT_KERN_SYSCALL)
+ {
+ 
+ 	rump_syscall_boot_establish(mysys, __arraycount(mysys));
 --- src/lib/dde_rump/src/sys/rump/librump/rumpvfs/vm_vfs.c
 +++ src/lib/dde_rump/src/sys/rump/librump/rumpvfs/vm_vfs.c
 @@ -49,6 +49,7 @@
@@ -66,3 +99,15 @@
  		mutex_enter(bp->b_objlock);
  		vwakeup(bp);
  		mutex_exit(bp->b_objlock);
+--- src/lib/dde_rump/src/sys/sys/module.h
++++ src/lib/dde_rump/src/sys/sys/module.h
+@@ -114,8 +114,7 @@
+ };
+ LIST_HEAD(modinfo_boot_chain, modinfo_chain);
+ #define _MODULE_REGISTER(name)						\
+-static void modctor_##name(void) __attribute__((constructor));		\
+-static void modctor_##name(void)					\
++void modctor_##name(void)						\
+ {									\
+ 	static struct modinfo_chain mc = {				\
+ 		.mc_info = &name##_modinfo,				\

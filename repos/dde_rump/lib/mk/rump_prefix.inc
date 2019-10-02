@@ -17,4 +17,6 @@ $(OBJ_PREFIX): $(SRC_NOLINK_OBJ) $(SRC_NOLINK)
 	          $(RUMP_LIB_BASE)/$(subst rmpns_,,$@) $(RUMP_LIB_BASE)/$@
 	$(VERBOSE_MK)rm $(RUMP_LIB_BASE)/_$@
 
+-include $(SRC_NOLINK_OBJ:.o=.d)
+
 # vi:set ft=make :

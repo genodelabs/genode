@@ -137,14 +137,14 @@ append_if $use_ram_block config {
 
 append_if $use_vfs_server config "
 	<start name=\"vfs\" caps=\"200\">
-		<resource name=\"RAM\" quantum=\"8M\" />
+		<resource name=\"RAM\" quantum=\"12M\" />
 		<provides><service name=\"File_system\"/></provides>
 		<config>
 			<vfs>
 				<dir name=\"dev\"> <log/> </dir>}
 				$test_vfs_config
 			</vfs>
-			<policy label_prefix=\"test-libc_vfs\" writeable=\"yes\"/>
+			<policy label_prefix=\"test-libc_vfs\" root=\"/\" writeable=\"yes\"/>
 		</config>
 	</start>"
 
