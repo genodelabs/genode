@@ -21,6 +21,10 @@ proc qemu_nic_model {} {
 	return nic_model_missing
 }
 
+proc is_virtio_pci_platform {} {
+	return [expr [have_spec virtio] && [have_spec pci]]
+}
+
 proc append_qemu_nic_args { { extra_netdev_args "" } } {
 	global qemu_args
 	append qemu_args " -netdev user,id=net0"
@@ -29,7 +33,15 @@ proc append_qemu_nic_args { { extra_netdev_args "" } } {
 		append qemu_args ",$extra_netdev_args"
 	}
 
-	append qemu_args " -net nic,model=[qemu_nic_model],netdev=net0 "
+	if {[have_spec virtio]} {
+		if {[is_virtio_pci_platform]} {
+			append qemu_args " -device virtio-net-pci,netdev=net0"
+		} else {
+			append qemu_args " -device virtio-net-device,netdev=net0"
+		}
+	} else {
+		append qemu_args " -net nic,model=[qemu_nic_model],netdev=net0 "
+	}
 }
 
 
