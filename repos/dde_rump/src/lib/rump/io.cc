@@ -166,8 +166,33 @@ void rump_io_backend_sync()
 }
 
 
+/* constructors in rump_fs.lib.so */
+extern "C" void rumpcompctor_RUMP_COMPONENT_KERN_SYSCALL(void);
+extern "C" void rumpcompctor_RUMP_COMPONENT_SYSCALL(void);
+extern "C" void rumpcompctor_RUMP__FACTION_VFS(void);
+extern "C" void rumpcompctor_RUMP__FACTION_DEV(void);
+extern "C" void rumpns_modctor_cd9660(void);
+extern "C" void rumpns_modctor_dk_subr(void);
+extern "C" void rumpns_modctor_ext2fs(void);
+extern "C" void rumpns_modctor_ffs(void);
+extern "C" void rumpns_modctor_msdos(void);
+extern "C" void rumpns_modctor_wapbl(void);
+
+
 void rump_io_backend_init()
 {
+	/* call init/constructor functions of rump_fs.lib.so (order is important!) */
+	rumpcompctor_RUMP_COMPONENT_KERN_SYSCALL();
+	rumpns_modctor_wapbl();
+	rumpcompctor_RUMP_COMPONENT_SYSCALL();
+	rumpcompctor_RUMP__FACTION_VFS();
+	rumpcompctor_RUMP__FACTION_DEV();
+	rumpns_modctor_msdos();
+	rumpns_modctor_ffs();
+	rumpns_modctor_ext2fs();
+	rumpns_modctor_dk_subr();
+	rumpns_modctor_cd9660();
+
 	/* create back end */
 	backend();
 }

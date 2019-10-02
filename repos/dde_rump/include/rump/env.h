@@ -39,7 +39,7 @@ class Rump::Env
 
 	public:
 
-		Env(Genode::Env &env) : _env(env) { }
+		Env(Genode::Env &env);
 
 		Genode::Env                    &env()        { return _env; }
 		Timeout_entrypoint             &timeout_ep() { return _timeout_ep; }
