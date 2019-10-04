@@ -204,8 +204,7 @@ append config {
 		<resource name="RAM" quantum="448M"/>
 		<config vbox_file="vm_genode_usb_hid.vbox" vm_name="TestVM" xhci="yes">
 			<vfs>
-				<dir name="dev"> <log/> </dir>
-				<dir name="dev"> <terminal/> </dir>
+				<dir name="dev"> <log/> <terminal/> </dir>
 				<rom name="vm_genode_usb_hid.vbox" />
 				<rom name="usb_hid.iso" />
 			</vfs>
