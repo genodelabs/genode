@@ -1108,7 +1108,11 @@ int Libc::Vfs_plugin::fcntl(File_descriptor *fd, int cmd, long arg)
 	case F_SETFD: fd->cloexec = arg == FD_CLOEXEC;  return 0;
 
 	case F_GETFL: return fd->flags;
-	case F_SETFL: fd->flags = arg; return 0;
+	case F_SETFL: {
+			/* only the specified flags may be changed */
+			long const mask = (O_NONBLOCK | O_APPEND | O_ASYNC | O_FSYNC);
+			fd->flags = (fd->flags & ~mask) | (arg & mask);
+		} return 0;
 
 	default:
 		break;
