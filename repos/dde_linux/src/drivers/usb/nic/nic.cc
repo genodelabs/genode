@@ -73,7 +73,7 @@ class Skb
 		{
 			unsigned const IDX = _entries / ENTRY_ELEMENT_SIZE;
 
-			for (register unsigned i = 0; i < IDX; i++) {
+			for (unsigned i = 0; i < IDX; i++) {
 				if (_free[_idx] != 0) {
 					unsigned msb = Genode::log2(_free[_idx]);
 					_free[_idx] ^= (1 << msb);
