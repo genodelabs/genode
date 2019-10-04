@@ -350,7 +350,7 @@ class Genode::Trace::Subject_registry
 			                  Session_label const &label, Thread_name const &name)
 			{
 				Subject *subject = new (&registry._md_alloc)
-					Subject(Subject_id(registry._id_cnt++), source_id, source, label, name);
+					Subject(Subject_id(registry.++_id_cnt), source_id, source, label, name);
 
 				registry._entries.insert(subject);
 			}
