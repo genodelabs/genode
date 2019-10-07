@@ -18,7 +18,7 @@ the file "/log".
 !   <provides><service name="LOG"/></provides>
 !   <config>
 !     <policy label_prefix="nic_drv" truncate="no"/>
-!     <policy label_prefix="cli_monitor -> " merge="yes"/>
+!     <policy label_prefix="runtime -> " merge="yes"/>
 !     <default-policy truncate="yes"/>
 !   </config>
 ! </start>
