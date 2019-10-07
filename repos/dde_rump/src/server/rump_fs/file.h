@@ -164,7 +164,7 @@ class Rump_fs::File : public Node
 				.type  = File_system::Node_type::CONTINUOUS_FILE,
 				.rwx   = { .readable   = (st.st_mode & S_IRUSR),
 				           .writeable  = (st.st_mode & S_IWUSR),
-				           .executable = (st.st_mode & S_IWUSR) },
+				           .executable = (st.st_mode & S_IXUSR) },
 				.inode = inode(),
 				.modification_time = { (int64_t)st.st_mtime }
 			};

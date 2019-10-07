@@ -228,7 +228,7 @@ class Rump_fs::Directory : public Node
 
 			Node_rwx const rwx { .readable   = (s.st_mode & S_IRUSR),
 			                     .writeable  = (s.st_mode & S_IWUSR),
-			                     .executable = (s.st_mode & S_IWUSR) };
+			                     .executable = (s.st_mode & S_IXUSR) };
 
 			Directory_entry &e = *(Directory_entry *)(dst);
 			e = {
@@ -258,7 +258,7 @@ class Rump_fs::Directory : public Node
 				.type  = File_system::Node_type::DIRECTORY,
 				.rwx   = { .readable   = (st.st_mode & S_IRUSR),
 				           .writeable  = (st.st_mode & S_IWUSR),
-				           .executable = (st.st_mode & S_IWUSR) },
+				           .executable = (st.st_mode & S_IXUSR) },
 				.inode = inode(),
 				.modification_time = { (int64_t)st.st_mtime }
 			};
