@@ -23,10 +23,10 @@
 #include <nitpicker_gfx/box_painter.h>
 #include <util/bezier.h>
 #include <timer_session/connection.h>
+#include <os/vfs.h>
 
 /* gems includes */
 #include <gems/ttf_font.h>
-#include <gems/vfs.h>
 #include <gems/vfs_font.h>
 #include <gems/cached_font.h>
 

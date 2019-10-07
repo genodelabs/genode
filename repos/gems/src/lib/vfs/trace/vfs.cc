@@ -15,8 +15,7 @@
 #include <vfs/dir_file_system.h>
 #include <vfs/single_file_system.h>
 
-
-#include <gems/vfs.h>
+#include <os/vfs.h>
 #include <util/xml_generator.h>
 
 #include <trace_session/connection.h>

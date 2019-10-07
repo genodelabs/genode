@@ -25,10 +25,10 @@
 #include <input/event.h>
 #include <os/reporter.h>
 #include <timer_session/connection.h>
+#include <os/vfs.h>
 
 /* gems includes */
 #include <gems/nitpicker_buffer.h>
-#include <gems/vfs.h>
 
 namespace Menu_view { struct Main; }
 

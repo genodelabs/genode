@@ -11,7 +11,7 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#include <gems/vfs.h>
+#include <os/vfs.h>
 #include <vfs/print.h>
 #include <base/heap.h>
 

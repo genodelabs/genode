@@ -14,10 +14,10 @@
 /* Genode includes */
 #include <vfs/dir_file_system.h>
 #include <vfs/readonly_value_file_system.h>
+#include <os/vfs.h>
 
 /* gems includes */
 #include <gems/ttf_font.h>
-#include <gems/vfs.h>
 #include <gems/cached_font.h>
 
 /* local includes */
