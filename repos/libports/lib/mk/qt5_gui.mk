@@ -15,6 +15,13 @@ QT_SOURCES_FILTER_OUT = \
   qdrawhelper_sse2.cpp \
   qimage_sse2.cpp
 
+ifeq ($(filter-out $(SPECS),arm_64),)
+QT_DEFINES += -UENABLE_PIXMAN_DRAWHELPERS
+QT_SOURCES += qdrawhelper_neon.cpp \
+              qimage_neon.cpp \
+              qimagescale_neon.cpp
+endif
+
 # remove unneeded files to prevent moc warnings
 COMPILER_MOC_HEADER_MAKE_ALL_FILES_FILTER_OUT = \
   moc_qsessionmanager.cpp \
