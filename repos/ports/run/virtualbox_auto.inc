@@ -36,7 +36,8 @@ append build_components {
 	drivers/framebuffer
 }
 
-lappend_if [expr $use_rumpfs] build_components server/rump_fs
+lappend_if [expr $use_rumpfs] build_components lib/vfs/rump
+lappend_if [expr $use_rumpfs] build_components server/vfs
 lappend_if [expr $use_vbox5]  build_components virtualbox5
 lappend_if [expr $use_ps2]    build_components drivers/input
 lappend_if [expr $use_usb]    build_components drivers/usb
@@ -130,9 +131,13 @@ append_if [have_spec nova] config {
 
 append_if [expr $use_rumpfs] config {
 	<start name="rump_fs" priority="-1" caps="200">
+		<binary name="vfs"/>
 		<resource name="RAM" quantum="32M"/>
 		<provides><service name="File_system"/></provides>
-		<config ld_verbose="yes" fs="ext2fs">}
+		<config ld_verbose="yes">
+			<vfs>
+				<rump fs="ext2fs" ram="28M"/>
+			</vfs>}
 
 append_if [expr $use_rumpfs && $use_ram_fs && $use_overlay_from_disk] config {
 			<policy label_prefix="overlay_from_disk" root="/ram" writeable="no"/>}
@@ -363,7 +368,8 @@ append boot_modules {
 
 lappend_if [expr $use_rumpfs] boot_modules rump.lib.so
 lappend_if [expr $use_rumpfs] boot_modules rump_fs.lib.so
-lappend_if [expr $use_rumpfs] boot_modules rump_fs
+lappend_if [expr $use_rumpfs] boot_modules vfs_rump.lib.so
+lappend_if [expr $use_rumpfs] boot_modules vfs
 lappend_if [expr $use_vbox5] boot_modules $virtualbox5_binary
 lappend_if [expr $use_ram_fs || $use_usb] boot_modules ram_fs
 lappend_if [expr $use_ram_fs && !$use_overlay_from_disk] boot_modules $overlay_image

@@ -10,7 +10,7 @@
 set mke2fs [installed_command mke2fs]
 set dd     [installed_command dd]
 
-build "core init timer test/vfs_stress server/ram_block server/rump_fs"
+build "core init timer test/vfs_stress server/ram_block server/vfs lib/vfs/rump"
 
 #
 # Build EXT2-file-system image
@@ -50,10 +50,11 @@ install_config {
 		<provides><service name="Block"/></provides>
 		<config file="ext2.raw" block_size="512"/>
 	</start>
-	<start name="rump_fs" caps="200">
+	<start name="vfs" caps="200">
 		<resource name="RAM" quantum="24M"/>
 		<provides> <service name="File_system"/> </provides>
-		<config fs="ext2fs">
+		<config>
+			<vfs> <rump fs="ext2fs" ram="20M"/> </vfs>
 			<default-policy root="/" writeable="yes"/>
 		</config>
 	</start>
@@ -62,7 +63,7 @@ install_config {
 
 set boot_modules {
  	core init ld.lib.so timer vfs_stress
-	rump.lib.so rump_fs.lib.so rump_fs
+	rump.lib.so rump_fs.lib.so vfs vfs_rump.lib.so
 	ram_block ext2.raw vfs.lib.so
 }
 

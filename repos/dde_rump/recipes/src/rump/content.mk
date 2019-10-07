@@ -14,7 +14,7 @@ PORT_DIR := $(call port_dir,$(REP_DIR)/ports/dde_rump)
 
 MIRROR_FROM_REP_DIR := $(LIB_MK) \
                        lib/import/import-rump.mk \
-                       src/lib src/server/rump_fs \
+                       src/lib \
                        include/rump include/rump_fs \
                        include/util
 
