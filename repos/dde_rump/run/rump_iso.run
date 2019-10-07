@@ -14,7 +14,8 @@ set build_components {
 	core init timer
 	server/fs_rom
 	server/rom_block
-	server/rump_fs
+	server/vfs
+	lib/vfs/rump
 	test/iso
 }
 
@@ -49,10 +50,13 @@ append config {
 		<provides><service name="Block"/></provides>
 		<config file="fs.iso" block_size="2048"/>
 	</start>
-	<start name="rump_fs" caps="200">
-		<resource name="RAM" quantum="10M" />
+	<start name="vfs" caps="200">
+		<resource name="RAM" quantum="12M" />
 		<provides><service name="File_system"/></provides>
-		<config fs="cd9660"><policy label_prefix="fs_rom" root="/" writeable="no"/></config>
+		<config>
+			<vfs> <rump fs="cd9660" ram="10M" writeable="no"/> </vfs>
+			<policy label_prefix="fs_rom" root="/" writeable="no"/>
+		</config>
 	</start>
 	<start name="fs_rom">
 		<resource name="RAM" quantum="2M"/>
@@ -88,7 +92,7 @@ install_config $config
 #
 set boot_modules {
 	core ld.lib.so init timer test-iso rom_block
-	rump.lib.so rump_fs.lib.so rump_fs
+	rump.lib.so rump_fs.lib.so vfs_rump.lib.so vfs vfs.lib.so
 	fs.iso fs_rom
 }
 
