@@ -3,7 +3,8 @@ source ${genode_dir}/repos/libports/run/qt5_common.inc
 import_from_depot [depot_user]/src/qt5_component \
                   [depot_user]/src/qt5_printsupport \
                   [depot_user]/src/qt5_textedit \
-                  [depot_user]/src/qt5_widgets
+                  [depot_user]/src/qt5_widgets \
+                  [depot_user]/src/ram_fs
 
 #
 # Build
@@ -16,13 +17,6 @@ if {[have_spec odroid_xu]} {
 
 append build_components [qt5_build_components feature]
 
-set use_ahci_driver    [expr [have_spec x86] && ![have_spec linux]]
-
-lappend_if $use_ahci_driver          build_components drivers/ahci
-lappend_if [have_spec    acpi]       build_components drivers/acpi
-lappend_if [have_spec   linux]       build_components server/ram_fs
-lappend_if [expr ![have_spec linux]] build_components server/fatfs_fs
-
 build $build_components
 
 #
@@ -32,7 +26,9 @@ build $build_components
 append config {
 <config>
 	<parent-provides>}
+
 append config [qt5_parent_provides feature]
+
 append config {
 	</parent-provides>
 	<default caps="100"/>
@@ -42,16 +38,7 @@ append config {
 
 append config [qt5_start_nodes feature]
 
-append_if $use_ahci_driver config {
-	<start name="ahci_drv">
-		<resource name="RAM" quantum="5M"/>
-		<provides> <service name="Block"/> </provides>
-		<config>
-			<policy label_prefix="fatfs_fs" device="0" />
-		</config>
-	</start>}
-
-append_if [have_spec linux] config {
+append config {
 	<start name="ram_fs">
 		<resource name="RAM" quantum="10M"/>
 		<provides><service name="File_system"/></provides>
@@ -59,16 +46,6 @@ append_if [have_spec linux] config {
 			<!-- constrain sessions according to their labels -->
 			<policy label_prefix="textedit" root="/" writeable="yes" />
 			<policy label_prefix="textedit2" root="/" writeable="yes" />
-		</config>
-	</start>}
-
-append_if [expr ![have_spec linux]] config {
-	<start name="fatfs_fs">
-		<resource name="RAM" quantum="10M"/>
-		<provides><service name="File_system"/></provides>
-		<config>
-			<!-- constrain sessions according to their labels -->
-			<policy label_prefix="textedit" root="/" writeable="yes" />
 		</config>
 	</start>}
 
@@ -125,22 +102,6 @@ install_config $config
 
 append boot_modules [qt5_boot_modules feature]
 
-# platform-specific modules
-lappend_if [have_spec linux]         boot_modules ram_fs
-lappend_if [expr ![have_spec linux]] boot_modules fatfs_fs
-lappend_if $use_ahci_driver          boot_modules ahci_drv
-
 build_boot_image $boot_modules
-
-set disk_image "bin/test.hda"
-set cmd "dd if=/dev/zero of=$disk_image bs=1024 count=65536"
-puts "creating disk image: $cmd"
-catch { exec sh -c $cmd }
-
-set cmd "mkfs.vfat -F32 $disk_image"
-puts "formating disk image with vfat file system: $cmd"
-catch { exec sh -c $cmd }
-
-append_if $use_ahci_driver qemu_args " -drive id=disk,file=$disk_image,format=raw,if=none -device ahci,id=ahci -device ide-drive,drive=disk,bus=ahci.0 -boot d"
 
 run_genode_until forever
