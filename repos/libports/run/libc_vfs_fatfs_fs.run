@@ -1,7 +1,0 @@
-set build_component server/fatfs_fs
-set binary          fatfs_fs
-set mkfs_cmd        mkfs.vfat
-set mkfs_opts       "-F32"
-set vfs_dev_blkdev  ""
-
-source ${genode_dir}/repos/libports/run/libc_vfs_fs_test.inc
