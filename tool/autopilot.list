@@ -15,7 +15,6 @@ gdb_monitor
 ieee754
 init_smp
 input_filter
-libc_fatfs
 libc_vfs_fs_ext2
 log_core
 lwip
