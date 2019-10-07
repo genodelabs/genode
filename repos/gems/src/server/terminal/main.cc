@@ -22,7 +22,7 @@
 #include <base/attached_ram_dataspace.h>
 #include <input/event.h>
 #include <os/reporter.h>
-#include <gems/vfs.h>
+#include <os/vfs.h>
 #include <gems/vfs_font.h>
 #include <gems/cached_font.h>
 

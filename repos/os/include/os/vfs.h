@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _INCLUDE__GEMS__VFS_H_
-#define _INCLUDE__GEMS__VFS_H_
+#ifndef _INCLUDE__OS__VFS_H_
+#define _INCLUDE__OS__VFS_H_
 
 /* Genode includes */
 #include <base/env.h>
@@ -619,4 +619,4 @@ class Genode::Watch_handler : public Vfs::Watch_response_handler,
 		void watch_response() override { (_obj.*_member)(); }
 };
 
-#endif /* _INCLUDE__GEMS__VFS_H_ */
+#endif /* _INCLUDE__OS__VFS_H_ */

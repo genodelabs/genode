@@ -14,7 +14,7 @@
 #ifndef _INCLUDE__GEMS__VFS_FONT_T_
 #define _INCLUDE__GEMS__VFS_FONT_T_
 
-#include <gems/vfs.h>
+#include <os/vfs.h>
 #include <nitpicker_gfx/text_painter.h>
 
 namespace Genode { class Vfs_font; }

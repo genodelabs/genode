@@ -16,7 +16,7 @@
 #include <base/heap.h>
 #include <base/attached_rom_dataspace.h>
 #include <os/reporter.h>
-#include <gems/vfs.h>
+#include <os/vfs.h>
 #include <depot/archive.h>
 #include <gems/lru_cache.h>
 

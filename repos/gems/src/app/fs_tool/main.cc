@@ -16,7 +16,7 @@
 #include <base/sleep.h>
 #include <base/attached_rom_dataspace.h>
 #include <base/heap.h>
-#include <gems/vfs.h>
+#include <os/vfs.h>
 
 namespace Fs_tool {
 	using namespace Genode;
