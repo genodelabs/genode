@@ -220,7 +220,7 @@ class Lx_fs::Directory : public Node
 
 			Directory_entry &e = *(Directory_entry *)(dst);
 			e = {
-				.inode = dent->d_ino,
+				.inode = (unsigned long)dent->d_ino,
 				.type  = type(dent->d_type),
 				.rwx   = { .readable   = (st.st_mode & S_IRUSR),
 				           .writeable  = (st.st_mode & S_IWUSR),
