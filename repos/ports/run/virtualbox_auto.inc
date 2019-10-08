@@ -134,10 +134,10 @@ append_if [expr $use_rumpfs] config {
 		<binary name="vfs"/>
 		<resource name="RAM" quantum="32M"/>
 		<provides><service name="File_system"/></provides>
-		<config ld_verbose="yes">}
+		<config ld_verbose="yes">
 			<vfs>
-				<rump fs="ext2fs"/>
-			</vfs>
+				<rump fs="ext2fs" ram="28M"/>
+			</vfs>}
 
 append_if [expr $use_rumpfs && $use_ram_fs && $use_overlay_from_disk] config {
 			<policy label_prefix="overlay_from_disk" root="/ram" writeable="no"/>}
