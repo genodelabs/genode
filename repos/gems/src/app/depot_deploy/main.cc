@@ -51,11 +51,15 @@ struct Depot_deploy::Main
 		_config.update();
 		_blueprint.update();
 
-		if (_state_reporter.constructed()) {
+		bool const report_state =
+			_config.xml().has_sub_node("report") &&
+			_config.xml().sub_node("report").attribute_value("state", false);
+
+		_state_reporter.conditional(report_state, _env, "state", "state");
+
+		if (_state_reporter.constructed())
 			_state_reporter->generate([&] (Xml_generator xml) {
-				xml.attribute("running", true);
-			});
-		}
+				xml.attribute("running", true); });
 
 		Xml_node const config = _config.xml();
 
@@ -86,10 +90,11 @@ struct Depot_deploy::Main
 			});
 		}
 
-		if ( (_children.count() > 0UL) &&
-		     !_children.any_incomplete() &&
-		     !_children.any_blueprint_needed() &&
-		     _state_reporter.constructed()) {
+		if ((_children.count() > 0UL)
+		 && !_children.any_incomplete()
+		 && !_children.any_blueprint_needed()
+		 && _state_reporter.constructed()) {
+
 			_state_reporter->generate([&] (Xml_generator xml) {
 				xml.attribute("running", false);
 				xml.attribute("count", _children.count());
@@ -102,14 +107,6 @@ struct Depot_deploy::Main
 		_config   .sigh(_config_handler);
 		_blueprint.sigh(_config_handler);
 
-		try {
-			if (_config.xml().has_sub_node("report") &&
-			    _config.xml().sub_node("report").has_attribute("state") &&
-			    _config.xml().sub_node("report").attribute_value("state", false)) {
-				_state_reporter.construct(_env, "state", "state");
-			}
-		} catch (Service_denied) {
-		}
 
 		_handle_config();
 	}
