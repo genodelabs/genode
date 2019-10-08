@@ -858,7 +858,7 @@ void Interface::handle_link_state()
 	try {
 		attach_to_domain_finish();
 
-		/* if the wholde domain became down, discard IP config */
+		/* if the whole domain is down, discard IP config */
 		Domain &domain_ = domain();
 		if (!link_state() && domain_.ip_config().valid) {
 			domain_.interfaces().for_each([&] (Interface &interface) {
@@ -1956,6 +1956,7 @@ void Interface::handle_config_3()
 		/* if the IP configs differ, detach completely from the IP config */
 		if (old_domain.ip_config() != new_domain.ip_config()) {
 			detach_from_ip_config();
+			attach_to_domain_finish();
 			return;
 		}
 		/* if there was/is no IP config, there is nothing more to update */

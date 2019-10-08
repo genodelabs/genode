@@ -24,10 +24,9 @@ create_boot_directory
 
 import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/pkg/[drivers_nic_pkg] \
-                  [depot_user]/src/init \
-                  [depot_user]/src/nic_router
+                  [depot_user]/src/init
 
-build { app/ping test/net_flood }
+build { app/ping test/net_flood server/nic_router server/dynamic_rom }
 
 install_config {
 <config>
@@ -63,39 +62,89 @@ install_config {
 		<provides> <service name="Nic"/> </provides>
 	</start>
 
+	<start name="dynamic_rom">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="ROM"/> </provides>
+		<config verbose="yes">
+			<rom name="nic_router.config">
+				<inline>
+
+<config verbose="no"
+        verbose_packets="no"
+        verbose_packet_drop="yes"
+        verbose_domain_state="yes"
+        dhcp_discover_timeout_sec="1"
+        tcp_idle_timeout_sec="3600"
+        udp_idle_timeout_sec="3600"
+        icmp_idle_timeout_sec="3600">
+
+	<policy label_prefix="flood_links" domain="flood_links"/>
+	<policy label_prefix="ping"        domain="flood_links"/>
+	<uplink                            domain="uplink"/>
+
+	<domain name="uplink" interface="10.0.2.15/24" gateway="10.0.2.2" verbose_packets="no">
+		<nat domain="flood_links" udp-ports="16384"
+		                          tcp-ports="16384"
+		                          icmp-ids="16384"/>
+	</domain>
+
+	<domain name="flood_links" interface="10.0.1.1/24">
+		<dhcp-server ip_first="10.0.1.100"
+		             ip_last="10.0.1.200"/>
+		
+		<icmp dst="0.0.0.0/0" domain="uplink"/>
+		<udp dst="0.0.0.0/0"><permit-any domain="uplink"/></udp>
+		<tcp dst="0.0.0.0/0"><permit-any domain="uplink"/></tcp>
+	</domain>
+
+</config>
+
+				</inline>
+				<sleep milliseconds="10000"/>
+				<inline>
+
+<config verbose="no"
+        verbose_packets="no"
+        verbose_packet_drop="no"
+        verbose_domain_state="yes"
+        dhcp_discover_timeout_sec="1"
+        tcp_idle_timeout_sec="3600"
+        udp_idle_timeout_sec="3600"
+        icmp_idle_timeout_sec="3600">
+
+	<policy label_prefix="flood_links" domain="flood_links"/>
+	<policy label_prefix="ping"        domain="flood_links"/>
+	<uplink                            domain="uplink"/>
+
+	<domain name="uplink" verbose_packets="no">
+		<nat domain="flood_links" udp-ports="16384"
+		                          tcp-ports="16384"
+		                          icmp-ids="16384"/>
+	</domain>
+
+	<domain name="flood_links" interface="10.0.1.1/24">
+		<dhcp-server ip_first="10.0.1.100"
+		             ip_last="10.0.1.200"/>
+		
+		<icmp dst="0.0.0.0/0" domain="uplink"/>
+		<udp dst="0.0.0.0/0"><permit-any domain="uplink"/></udp>
+		<tcp dst="0.0.0.0/0"><permit-any domain="uplink"/></tcp>
+	</domain>
+
+</config>
+
+				</inline>
+				<sleep milliseconds="10000"/>
+
+			</rom>
+		</config>
+	</start>
+
 	<start name="nic_router" caps="200">
 		<resource name="RAM" quantum="10M"/>
 		<provides><service name="Nic"/></provides>
-		<config verbose="no"
-		        verbose_packets="no"
-		        verbose_packet_drop="yes"
-		        verbose_domain_state="yes"
-		        dhcp_discover_timeout_sec="1"
-		        tcp_idle_timeout_sec="3600"
-		        udp_idle_timeout_sec="3600"
-		        icmp_idle_timeout_sec="3600">
-
-			<policy label_prefix="flood_links" domain="flood_links"/>
-			<policy label_prefix="ping"        domain="flood_links"/>
-			<uplink                            domain="uplink"/>
-
-			<domain name="uplink" verbose_packets="no">
-				<nat domain="flood_links" udp-ports="16384"
-				                          tcp-ports="16384"
-				                          icmp-ids="16384"/>
-			</domain>
-
-			<domain name="flood_links" interface="10.0.1.1/24">
-				<dhcp-server ip_first="10.0.1.100"
-				             ip_last="10.0.1.200"/>
-				
-				<icmp dst="0.0.0.0/0" domain="uplink"/>
-				<udp dst="0.0.0.0/0"><permit-any domain="uplink"/></udp>
-				<tcp dst="0.0.0.0/0"><permit-any domain="uplink"/></tcp>
-			</domain>
-
-		</config>
 		<route>
+			<service name="ROM" label="config"> <child name="dynamic_rom" label="nic_router.config"/> </service>
 			<service name="Nic"> <child name="drivers"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
@@ -149,7 +198,7 @@ install_config {
 
 </config>}
 
-build_boot_image { test-net_flood ping }
+build_boot_image { test-net_flood ping nic_router dynamic_rom }
 
 proc qemu_nic_model {} {
 	if [have_spec x86]         { return e1000 }
