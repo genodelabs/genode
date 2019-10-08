@@ -120,16 +120,10 @@ struct Genode::Directory : Noncopyable, Interface
 			return const_cast<Vfs::File_system &>(_fs);
 		}
 
-		Vfs::Directory_service::Stat _stat(Path const &rel_path) const
+		Vfs::Directory_service::Stat_result _stat(Path const &rel_path,
+		                                          Vfs::Directory_service::Stat &out) const
 		{
-			Vfs::Directory_service::Stat stat;
-
-			/*
-			 * Ignore return value as the validity of the result is can be
-			 * checked by the caller via 'stat.mode != 0'.
-			 */
-			_nonconst_fs().stat(join(_path, rel_path).string(), stat);
-			return stat;
+			return _nonconst_fs().stat(join(_path, rel_path).string(), out);
 		}
 
 	public:
@@ -217,14 +211,23 @@ struct Genode::Directory : Noncopyable, Interface
 
 		bool file_exists(Path const &rel_path) const
 		{
-			Vfs::Node_type const type = _stat(rel_path).type;
-			return type == Vfs::Node_type::TRANSACTIONAL_FILE
-			    || type == Vfs::Node_type::CONTINUOUS_FILE;
+			Vfs::Directory_service::Stat stat { };
+
+			if (_stat(rel_path, stat) != Vfs::Directory_service::STAT_OK)
+				return false;
+
+			return stat.type == Vfs::Node_type::TRANSACTIONAL_FILE
+			    || stat.type == Vfs::Node_type::CONTINUOUS_FILE;
 		}
 
 		bool directory_exists(Path const &rel_path) const
 		{
-			return _stat(rel_path).type == Vfs::Node_type::DIRECTORY;
+			Vfs::Directory_service::Stat stat { };
+
+			if (_stat(rel_path, stat) != Vfs::Directory_service::STAT_OK)
+				return false;
+
+			return stat.type == Vfs::Node_type::DIRECTORY;
 		}
 
 		/**
@@ -236,7 +239,10 @@ struct Genode::Directory : Noncopyable, Interface
 		 */
 		Vfs::file_size file_size(Path const &rel_path) const
 		{
-			Vfs::Directory_service::Stat const stat = _stat(rel_path);
+			Vfs::Directory_service::Stat stat { };
+
+			if (_stat(rel_path, stat) != Vfs::Directory_service::STAT_OK)
+				throw Nonexistent_file();
 
 			if (stat.type == Vfs::Node_type::TRANSACTIONAL_FILE
 			 || stat.type == Vfs::Node_type::CONTINUOUS_FILE)
