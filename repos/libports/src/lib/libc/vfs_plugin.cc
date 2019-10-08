@@ -543,7 +543,18 @@ int Libc::Vfs_plugin::fstat(File_descriptor *fd, struct stat *buf)
 		_vfs_sync(*handle);
 		fd->modified = false;
 	}
-	return stat(fd->fd_path, buf);
+
+	int const result = stat(fd->fd_path, buf);
+
+	/*
+	 * The libc expects stdout to be a character device.
+	 * If 'st_mode' is set to 'S_IFREG', 'printf' does not work.
+	 */
+	if (fd->libc_fd == 1) {
+		buf->st_mode &= ~S_IFMT;
+		buf->st_mode |=  S_IFCHR;
+	}
+	return result;
 }
 
 
