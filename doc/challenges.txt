@@ -391,6 +391,22 @@ Platforms
   laptops.
 
 
+System management
+#################
+
+:Remote management of Sculpt OS via Puppet:
+
+  [https://en.wikipedia.org/wiki/Puppet_(company)#Puppet - Puppet] is a
+  software-configuration management tool for administering a large amount
+  of machines from one central place. Genode's
+  [https://genode.org/download/sculpt - Sculpt OS] lends itself to such
+  an approach of remote configuration management by the means of the
+  "config" file system (for configuring components and deployments) and
+  the "report" file system (for obtaining the runtime state of components).
+  The project would explore the application of the Puppet approach and tools
+  to Sculpt OS.
+
+
 Optimizations
 #############
 
