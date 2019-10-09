@@ -157,10 +157,10 @@ addr_t Cpu::stack_start() {
 	return (addr_t)&kernel_stack + KERNEL_STACK_SIZE * (_id+1); }
 
 
-Cpu::Cpu(unsigned const id, Board::Pic & pic,
+Cpu::Cpu(unsigned const id,
          Inter_processor_work_list & global_work_list)
 :
-	_id(id), _pic(pic), _timer(*this),
+	_id(id), _timer(*this),
 	_scheduler(&_idle, _quota(), _fill()), _idle(*this),
 	_ipi_irq(*this),
 	_global_work_list(global_work_list)
@@ -174,7 +174,7 @@ Cpu::Cpu(unsigned const id, Board::Pic & pic,
 bool Cpu_pool::initialize()
 {
 	unsigned id = Cpu::executing_id();
-	_cpus[id].construct(id, _pic, _global_work_list);
+	_cpus[id].construct(id, _global_work_list);
 	return --_initialized == 0;
 }
 

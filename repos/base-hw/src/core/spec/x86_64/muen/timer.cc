@@ -56,9 +56,6 @@ Board::Timer::Timer(unsigned) : ticks_per_ms(sinfo()->get_tsc_khz()), start(0)
 }
 
 
-void Timer::init_cpu_local() { }
-
-
 unsigned Timer::interrupt_id() const {
 	return Board::TIMER_VECTOR_KERNEL; }
 

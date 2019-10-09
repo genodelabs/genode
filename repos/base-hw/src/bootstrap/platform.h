@@ -47,7 +47,6 @@ class Bootstrap::Platform
 			Mmio_space const    core_mmio;
 			unsigned            cpus              { NR_OF_CPUS };
 			::Board::Boot_info  info              { };
-			::Board::Pic        pic               { };
 
 			Board();
 		};

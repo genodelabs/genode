@@ -287,7 +287,9 @@ unsigned Bootstrap::Platform::enable_mmu()
 {
 	static volatile bool primary_cpu = true;
 	static unsigned long timer_freq  = Cpu::Cntfrq::read();
-	board.pic.init_cpu_local();
+
+	/* locally initialize interrupt controller */
+	::Board::Pic pic { };
 
 	prepare_nonsecure_world(timer_freq);
 	prepare_hypervisor((addr_t)core_pd->table_base);

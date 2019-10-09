@@ -38,6 +38,8 @@ Bootstrap::Platform::Board::Board()
 	Aipstz aipstz_1(AIPS_1_MMIO_BASE);
 	Aipstz aipstz_2(AIPS_2_MMIO_BASE);
 
+	Pic pic {};
+
 	/* set monitor mode exception vector entry */
 	Cpu::Mvbar::write(Hw::Mm::system_exception_vector().base);
 

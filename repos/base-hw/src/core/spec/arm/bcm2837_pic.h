@@ -53,7 +53,6 @@ class Board::Pic : Genode::Mmio
 
 		Pic();
 
-		void init_cpu_local();
 		bool take_request(unsigned &irq);
 		void finish_request() { }
 		void mask();

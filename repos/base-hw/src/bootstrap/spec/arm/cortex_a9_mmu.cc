@@ -118,7 +118,7 @@ unsigned Bootstrap::Platform::enable_mmu()
 	Actlr::disable_smp();
 
 	/* locally initialize interrupt controller */
-	board.pic.init_cpu_local();
+	::Board::Pic pic { };
 
 	Cpu::invalidate_data_cache();
 	data_cache_invalidated.inc();

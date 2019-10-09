@@ -82,6 +82,8 @@ static inline void prepare_hypervisor()
 
 unsigned Bootstrap::Platform::enable_mmu()
 {
+	::Board::Pic pic {};
+
 	while (Cpu::current_privilege_level() > Cpu::Current_el::EL1) {
 		if (Cpu::current_privilege_level() == Cpu::Current_el::EL3)
 			prepare_non_secure_world();

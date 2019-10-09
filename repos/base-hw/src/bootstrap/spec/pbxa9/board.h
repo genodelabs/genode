@@ -19,10 +19,12 @@
 #include <spec/arm/cortex_a9_actlr.h>
 #include <spec/arm/cortex_a9_page_table.h>
 #include <spec/arm/cpu.h>
-#include <spec/arm/gicv2.h>
+#include <hw/spec/arm/gicv2.h>
 
 namespace Board {
 	using namespace Hw::Pbxa9_board;
+
+	using Pic = Hw::Gicv2;
 
 	static constexpr bool NON_SECURE = false;
 }

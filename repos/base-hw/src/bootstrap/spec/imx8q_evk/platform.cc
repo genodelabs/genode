@@ -24,4 +24,7 @@ Bootstrap::Platform::Board::Board()
             Memory_region { ::Board::Cpu_mmio::IRQ_CONTROLLER_DISTR_BASE,
                             ::Board::Cpu_mmio::IRQ_CONTROLLER_DISTR_SIZE },
             Memory_region { ::Board::Cpu_mmio::IRQ_CONTROLLER_REDIST_BASE,
-                            ::Board::Cpu_mmio::IRQ_CONTROLLER_REDIST_SIZE }) {}
+                            ::Board::Cpu_mmio::IRQ_CONTROLLER_REDIST_SIZE })
+{
+	::Board::Pic pic {};
+}

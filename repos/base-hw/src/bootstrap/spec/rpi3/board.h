@@ -21,7 +21,6 @@
 namespace Board {
 	using namespace Hw::Rpi3_board;
 	using Cpu = Hw::Arm_64_cpu;
-	struct Pic {};
 };
 
 #endif /* _BOOTSTRAP__SPEC__RPI3__BOARD_H_ */
