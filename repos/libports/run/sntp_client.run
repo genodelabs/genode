@@ -5,6 +5,11 @@ if { [have_spec linux] } {
 	exit 0
 }
 
+set host_tool [installed_command host]
+set ntp_ip    [exec $host_tool -t A pool.ntp.org | head -1 | cut -d " " -f 4]
+
+puts "Using NTP server $ntp_ip"
+
 create_boot_directory
 
 import_from_depot [depot_user]/src/[base_src] \
@@ -56,7 +61,7 @@ append config {
 
 	<start name="sntp_client">
 		<resource name="RAM" quantum="8M"/>
-		<config verbose="no" dst_ip="193.175.73.151" period_min="1"/>
+		<config verbose="no" dst_ip="} $ntp_ip {" period_min="1"/>
 	</start>
 </config>}
 
