@@ -22,8 +22,6 @@ void Kernel::Cpu::_arch_init()
 	Idt::init();
 	Tss::init();
 
-	Timer::init_cpu_local();
-
 	/* enable timer interrupt */
 	_pic.store_apic_id(id());
 	_pic.unmask(_timer.interrupt_id(), id());

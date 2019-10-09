@@ -105,8 +105,6 @@ class Kernel::Timer
 
 		unsigned interrupt_id() const;
 
-		static void init_cpu_local();
-
 		time_t time() const { return _time + _duration(); }
 };
 

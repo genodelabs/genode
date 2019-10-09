@@ -112,7 +112,7 @@ class Kernel::Cpu : public Genode::Cpu, private Irq::Pool, private Timeout
 
 
 		unsigned const _id;
-		Board::Pic    &_pic;
+		Board::Pic     _pic {};
 		Timer          _timer;
 		Cpu_scheduler  _scheduler;
 		Idle_thread    _idle;
@@ -132,7 +132,7 @@ class Kernel::Cpu : public Genode::Cpu, private Irq::Pool, private Timeout
 		/**
 		 * Construct object for CPU 'id'
 		 */
-		Cpu(unsigned const id, Board::Pic & pic,
+		Cpu(unsigned const id,
 		    Inter_processor_work_list & global_work_list);
 
 		static inline unsigned primary_id() { return 0; }
@@ -191,7 +191,6 @@ class Kernel::Cpu_pool
 {
 	private:
 
-		Board::Pic                 _pic {};
 		Inter_processor_work_list  _global_work_list {};
 		unsigned                   _count;
 		unsigned                   _initialized { _count };

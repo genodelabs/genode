@@ -20,8 +20,13 @@
 
 namespace Board {
 	using namespace Hw::Rpi3_board;
-	using Cpu = Hw::Arm_64_cpu;
-	struct Pic {};
+
+	struct Cpu : Hw::Arm_64_cpu
+	{
+		static void wake_up_all_cpus(void*);
+	};
+
+	struct Pic { }; /* dummy object */
 };
 
 #endif /* _BOOTSTRAP__SPEC__RPI3__BOARD_H_ */

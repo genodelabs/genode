@@ -17,10 +17,11 @@
 #include <hw/spec/arm/odroid_xu_board.h>
 #include <hw/spec/arm/lpae.h>
 #include <spec/arm/cpu.h>
-#include <spec/arm/gicv2.h>
+#include <hw/spec/arm/gicv2.h>
 
 namespace Board {
 	using namespace Hw::Odroid_xu_board;
+	using Pic = Hw::Gicv2;
 	static constexpr bool NON_SECURE = false;
 }
 

@@ -16,10 +16,7 @@
 
 #include <hw/spec/riscv/board.h>
 
-namespace Board {
-	using namespace Hw::Riscv_board;
-	struct Pic {};
-}
+namespace Board { using namespace Hw::Riscv_board; }
 
 template <typename E, unsigned B, unsigned S>
 void Sv39::Level_x_translation_table<E, B, S>::_translation_added(addr_t, size_t)

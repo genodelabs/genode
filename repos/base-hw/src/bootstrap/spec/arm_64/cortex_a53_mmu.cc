@@ -15,6 +15,7 @@
 
 using Board::Cpu;
 
+extern "C" void * _crt0_enable_fpu;
 
 static inline void prepare_non_secure_world()
 {
@@ -82,12 +83,21 @@ static inline void prepare_hypervisor()
 
 unsigned Bootstrap::Platform::enable_mmu()
 {
+	static volatile bool primary_cpu = true;
+	bool primary = primary_cpu;
+	if (primary) primary_cpu = false;
+
+	::Board::Pic pic __attribute__((unused)) {};
+
 	while (Cpu::current_privilege_level() > Cpu::Current_el::EL1) {
 		if (Cpu::current_privilege_level() == Cpu::Current_el::EL3)
 			prepare_non_secure_world();
 		else
 			prepare_hypervisor();
 	}
+
+	/* primary cpu wakes up all others */
+	if (primary && NR_OF_CPUS > 1) Cpu::wake_up_all_cpus(&_crt0_enable_fpu);
 
 	/* enable performance counter for user-land */
 	Cpu::Pmuserenr_el0::write(0b1111);

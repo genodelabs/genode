@@ -75,11 +75,7 @@ Board::Timer::Timer(unsigned)
 		/* Calculate timer frequency */
 		ticks_per_ms = pit_calc_timer_freq();
 	}
-}
 
-
-void Timer::init_cpu_local()
-{
 	/**
 	 * Disable PIT timer channel. This is necessary since BIOS sets up
 	 * channel 0 to fire periodically.

@@ -155,7 +155,9 @@ unsigned Bootstrap::Platform::enable_mmu()
 	using namespace ::Board;
 
 	static volatile bool primary_cpu = true;
-	board.pic.init_cpu_local();
+
+	/* locally initialize interrupt controller */
+	::Board::Pic pic { };
 
 	prepare_nonsecure_world();
 	prepare_hypervisor((addr_t)core_pd->table_base);

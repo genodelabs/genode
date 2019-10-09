@@ -168,9 +168,7 @@ class Hw::Gicv2
 		Distributor                  _distr;
 		Cpu_interface                _cpui;
 		Cpu_interface::Iar::access_t _last_iar;
-		unsigned const                        _max_irq;
-
-		void _init();
+		unsigned const               _max_irq;
 
 		bool _valid(unsigned const irq_id) const { return irq_id <= _max_irq; }
 

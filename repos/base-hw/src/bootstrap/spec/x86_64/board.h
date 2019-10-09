@@ -22,7 +22,6 @@
 namespace Board {
 	using namespace Hw::Pc_board;
 	using Cpu = Hw::X86_64_cpu;
-	struct Pic {};
 }
 
 #endif /* _SRC__BOOTSTRAP__SPEC__X86_64__BOARD_H_ */

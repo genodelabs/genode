@@ -18,11 +18,7 @@
 #include <hw/spec/arm/page_table.h>
 #include <spec/arm/cpu.h>
 
-namespace Board {
-	using namespace Hw::Rpi_board;
-
-	struct Pic {};
-}
+namespace Board { using namespace Hw::Rpi_board; }
 
 
 constexpr unsigned Hw::Page_table::Descriptor_base::_device_tex() {
