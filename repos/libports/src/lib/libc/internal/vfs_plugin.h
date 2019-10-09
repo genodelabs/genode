@@ -18,6 +18,7 @@
 
 /* Genode includes */
 #include <libc/component.h>
+#include <os/vfs.h>
 #include <vfs/file_system.h>
 
 /* libc includes */
@@ -41,12 +42,32 @@ class Libc::Vfs_plugin : public Plugin
 
 		enum class Update_mtime { NO, YES };
 
+		/**
+		 * Return path to pseudo files used for ioctl operations of a given FD
+		 */
+		static Absolute_path ioctl_dir(File_descriptor const &fd)
+		{
+			Absolute_path path(fd.fd_path);
+
+			/*
+			 * The pseudo files used for ioctl operations reside in a (hidden)
+			 * directory named after the device path and prefixed with '.'.
+			 */
+			String<64> const ioctl_dir_name(".", path.last_element());
+
+			path.strip_last_element();
+			path.append_element(ioctl_dir_name.string());
+
+			return path;
+		}
+
 	private:
 
-		Genode::Allocator        &_alloc;
-		Vfs::File_system         &_root_dir;
-		Vfs::Io_response_handler &_response_handler;
-		Update_mtime        const _update_mtime;
+		Genode::Allocator               &_alloc;
+		Vfs::File_system                &_root_fs;
+		Constructible<Genode::Directory> _root_dir { };
+		Vfs::Io_response_handler        &_response_handler;
+		Update_mtime               const _update_mtime;
 
 		/**
 		 * Sync a handle and propagate errors
@@ -58,21 +79,47 @@ class Libc::Vfs_plugin : public Plugin
 		 */
 		void _vfs_write_mtime(Vfs::Vfs_handle&);
 
+		int _legacy_ioctl(File_descriptor *, int , char *);
+
+		/**
+		 * Call functor 'fn' with ioctl info for the given file descriptor 'fd'
+		 *
+		 * The functor is called with an 'Xml_node' of the ioctl information
+		 * as argument.
+		 *
+		 * If no ioctl info is available, 'fn' is not called.
+		 */
+		template <typename FN>
+		void _with_info(File_descriptor &fd, FN const &fn);
+
 	public:
 
 		Vfs_plugin(Libc::Env                &env,
+		           Vfs::Env                 &vfs_env,
 		           Genode::Allocator        &alloc,
 		           Vfs::Io_response_handler &handler,
-		           Update_mtime              update_mtime)
+		           Update_mtime              update_mtime,
+		           Xml_node                  config)
 		:
-			_alloc(alloc), _root_dir(env.vfs()),
+			_alloc(alloc),
+			_root_fs(env.vfs()),
 			_response_handler(handler),
 			_update_mtime(update_mtime)
-		{ }
+		{
+			if (config.has_sub_node("libc"))
+				_root_dir.construct(vfs_env);
+		}
 
 		~Vfs_plugin() final { }
 
-		bool root_dir_has_dirents() const { return _root_dir.num_dirent("/") > 0; }
+		template <typename FN>
+		void with_root_dir(FN const &fn)
+		{
+			if (_root_dir.constructed())
+				fn(*_root_dir);
+		}
+
+		bool root_dir_has_dirents() const { return _root_fs.num_dirent("/") > 0; }
 
 		bool supports_access(const char *, int)                override { return true; }
 		bool supports_mkdir(const char *, mode_t)              override { return true; }

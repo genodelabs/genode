@@ -68,6 +68,9 @@ class Libc::Env_implementation : public Libc::Env, public Config_accessor
 		: _env(env), _vfs_env(_env, alloc, _vfs_config()) { }
 
 
+		Vfs::Env &vfs_env() { return _vfs_env; }
+
+
 		/*************************
 		 ** Libc::Env interface **
 		 *************************/
