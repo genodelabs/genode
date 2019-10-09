@@ -98,7 +98,7 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 
 		bool const _update_mtime = _libc_env.libc_config().attribute_value("update_mtime", true);
 
-		Vfs_plugin _vfs { _libc_env, _heap, *this,
+		Vfs_plugin _vfs { _libc_env, _libc_env.vfs_env(), _heap, *this,
 		                  _update_mtime ? Vfs_plugin::Update_mtime::YES
 		                                : Vfs_plugin::Update_mtime::NO };
 

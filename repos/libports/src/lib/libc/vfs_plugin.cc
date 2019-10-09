@@ -216,12 +216,31 @@ namespace Libc {
 
 		return VFS_THREAD_SAFE(handle->fs().read_ready(handle));
 	}
-
 }
+
+
+template <typename FN>
+void Libc::Vfs_plugin::_with_info(File_descriptor &fd, FN const &fn)
+{
+	Absolute_path path = _ioctl_dir(fd);
+	path.append_element("info");
+
+	try {
+		Lock::Guard g(vfs_lock());
+
+		File_content const content(_alloc, _root_dir, path.string(),
+		                           File_content::Limit{4096U});
+
+		content.xml([&] (Xml_node node) {
+			fn(node); });
+
+	} catch (...) { }
+}
+
 
 int Libc::Vfs_plugin::access(const char *path, int amode)
 {
-	if (VFS_THREAD_SAFE(_root_dir.leaf_path(path)))
+	if (VFS_THREAD_SAFE(_root_fs.leaf_path(path)))
 		return 0;
 
 	errno = ENOENT;
@@ -232,7 +251,7 @@ int Libc::Vfs_plugin::access(const char *path, int amode)
 Libc::File_descriptor *Libc::Vfs_plugin::open(char const *path, int flags,
                                               int libc_fd)
 {
-	if (VFS_THREAD_SAFE(_root_dir.directory(path))) {
+	if (VFS_THREAD_SAFE(_root_fs.directory(path))) {
 
 		if (((flags & O_ACCMODE) != O_RDONLY)) {
 			errno = EISDIR;
@@ -245,7 +264,7 @@ Libc::File_descriptor *Libc::Vfs_plugin::open(char const *path, int flags,
 
 		typedef Vfs::Directory_service::Opendir_result Opendir_result;
 
-		switch (VFS_THREAD_SAFE(_root_dir.opendir(path, false, &handle, _alloc))) {
+		switch (VFS_THREAD_SAFE(_root_fs.opendir(path, false, &handle, _alloc))) {
 		case Opendir_result::OPENDIR_OK:                      break;
 		case Opendir_result::OPENDIR_ERR_LOOKUP_FAILED:       errno = ENOENT;       return nullptr;
 		case Opendir_result::OPENDIR_ERR_NAME_TOO_LONG:       errno = ENAMETOOLONG; return nullptr;
@@ -286,7 +305,7 @@ Libc::File_descriptor *Libc::Vfs_plugin::open(char const *path, int flags,
 
 	while (handle == nullptr) {
 
-		switch (VFS_THREAD_SAFE(_root_dir.open(path, flags, &handle, _alloc))) {
+		switch (VFS_THREAD_SAFE(_root_fs.open(path, flags, &handle, _alloc))) {
 
 		case Result::OPEN_OK:
 			break;
@@ -303,7 +322,7 @@ Libc::File_descriptor *Libc::Vfs_plugin::open(char const *path, int flags,
 				}
 
 				/* O_CREAT is set, so try to create the file */
-				switch (VFS_THREAD_SAFE(_root_dir.open(path, flags | O_EXCL, &handle, _alloc))) {
+				switch (VFS_THREAD_SAFE(_root_fs.open(path, flags | O_EXCL, &handle, _alloc))) {
 
 				case Result::OPEN_OK:
 					break;
@@ -491,7 +510,7 @@ int Libc::Vfs_plugin::dup2(File_descriptor *fd,
 
 	typedef Vfs::Directory_service::Open_result Result;
 
-	if (VFS_THREAD_SAFE(_root_dir.open(fd->fd_path, fd->flags, &handle, _alloc))
+	if (VFS_THREAD_SAFE(_root_fs.open(fd->fd_path, fd->flags, &handle, _alloc))
 	    != Result::OPEN_OK) {
 
 		warning("dup2 failed for path ", fd->fd_path);
@@ -515,7 +534,7 @@ Libc::File_descriptor *Libc::Vfs_plugin::dup(File_descriptor *fd)
 
 	typedef Vfs::Directory_service::Open_result Result;
 
-	if (VFS_THREAD_SAFE(_root_dir.open(fd->fd_path, fd->flags, &handle, _alloc))
+	if (VFS_THREAD_SAFE(_root_fs.open(fd->fd_path, fd->flags, &handle, _alloc))
 	    != Result::OPEN_OK) {
 
 		warning("dup failed for path ", fd->fd_path);
@@ -576,7 +595,7 @@ int Libc::Vfs_plugin::mkdir(const char *path, mode_t mode)
 
 	typedef Vfs::Directory_service::Opendir_result Opendir_result;
 
-	switch (VFS_THREAD_SAFE(_root_dir.opendir(path, true, &dir_handle, _alloc))) {
+	switch (VFS_THREAD_SAFE(_root_fs.opendir(path, true, &dir_handle, _alloc))) {
 	case Opendir_result::OPENDIR_OK:
 		VFS_THREAD_SAFE(dir_handle->close());
 		break;
@@ -609,7 +628,7 @@ int Libc::Vfs_plugin::stat(char const *path, struct stat *buf)
 
 	Vfs::Directory_service::Stat stat;
 
-	switch (VFS_THREAD_SAFE(_root_dir.stat(path, stat))) {
+	switch (VFS_THREAD_SAFE(_root_fs.stat(path, stat))) {
 	case Result::STAT_ERR_NO_ENTRY: errno = ENOENT; return -1;
 	case Result::STAT_ERR_NO_PERM:  errno = EACCES; return -1;
 	case Result::STAT_OK:                           break;
@@ -926,6 +945,55 @@ ssize_t Libc::Vfs_plugin::getdirentries(File_descriptor *fd, char *buf,
 
 int Libc::Vfs_plugin::ioctl(File_descriptor *fd, int request, char *argp)
 {
+	bool handled = false;
+
+	if (request == TIOCGWINSZ) {
+
+		if (!argp)
+			return Errno(EINVAL);
+
+		_with_info(*fd, [&] (Xml_node info) {
+			if (info.type() == "terminal") {
+				::winsize *winsize = (::winsize *)argp;
+				winsize->ws_row = info.attribute_value("rows",    25U);
+				winsize->ws_col = info.attribute_value("columns", 80U);
+				handled = true;
+			}
+		});
+
+	} else if (request == TIOCGETA) {
+
+		::termios *termios = (::termios *)argp;
+
+		termios->c_iflag = 0;
+		termios->c_oflag = 0;
+		termios->c_cflag = 0;
+		/*
+		 * Set 'ECHO' flag, needed by libreadline. Otherwise, echoing
+		 * user input doesn't work in bash.
+		 */
+		termios->c_lflag = ECHO;
+		::memset(termios->c_cc, _POSIX_VDISABLE, sizeof(termios->c_cc));
+		termios->c_ispeed = 0;
+		termios->c_ospeed = 0;
+		handled = true;
+	}
+
+	if (handled)
+		return 0;
+
+	return _legacy_ioctl(fd, request, argp);
+}
+
+
+/**
+ * Fallback for ioctl operations targeting the deprecated VFS ioctl interface
+ *
+ * XXX Remove this method once all ioctl operations are supported via
+ *     regular VFS file accesses.
+ */
+int Libc::Vfs_plugin::_legacy_ioctl(File_descriptor *fd, int request, char *argp)
+{
 	using ::off_t;
 
 	/*
@@ -950,27 +1018,6 @@ int Libc::Vfs_plugin::ioctl(File_descriptor *fd, int request, char *argp)
 			opcode = Opcode::IOCTL_OP_TIOCGWINSZ;
 			break;
 		}
-
-	case TIOCGETA:
-		{
-			::termios *termios = (::termios *)argp;
-
-			termios->c_iflag = 0;
-			termios->c_oflag = 0;
-			termios->c_cflag = 0;
-			/*
-			 * Set 'ECHO' flag, needed by libreadline. Otherwise, echoing
-			 * user input doesn't work in bash.
-			 */
-			termios->c_lflag = ECHO;
-			::memset(termios->c_cc, _POSIX_VDISABLE, sizeof(termios->c_cc));
-			termios->c_ispeed = 0;
-			termios->c_ospeed = 0;
-
-			return 0;
-		}
-
-		break;
 
 	case TIOCSETAF:
 		{
@@ -1183,7 +1230,7 @@ int Libc::Vfs_plugin::symlink(const char *oldpath, const char *newpath)
 	Vfs::Vfs_handle *handle { 0 };
 
 	Openlink_result openlink_result =
-		VFS_THREAD_SAFE(_root_dir.openlink(newpath, true, &handle, _alloc));
+		VFS_THREAD_SAFE(_root_fs.openlink(newpath, true, &handle, _alloc));
 
 	switch (openlink_result) {
 	case Openlink_result::OPENLINK_OK:
@@ -1258,7 +1305,7 @@ ssize_t Libc::Vfs_plugin::readlink(const char *path, char *buf, ::size_t buf_siz
 	Vfs::Vfs_handle *symlink_handle { 0 };
 
 	Vfs::Directory_service::Openlink_result openlink_result =
-		VFS_THREAD_SAFE(_root_dir.openlink(path, false, &symlink_handle, _alloc));
+		VFS_THREAD_SAFE(_root_fs.openlink(path, false, &symlink_handle, _alloc));
 
 	switch (openlink_result) {
 	case Vfs::Directory_service::OPENLINK_OK:
@@ -1373,7 +1420,7 @@ int Libc::Vfs_plugin::unlink(char const *path)
 {
 	typedef Vfs::Directory_service::Unlink_result Result;
 
-	switch (VFS_THREAD_SAFE(_root_dir.unlink(path))) {
+	switch (VFS_THREAD_SAFE(_root_fs.unlink(path))) {
 	case Result::UNLINK_ERR_NO_ENTRY:  errno = ENOENT;    return -1;
 	case Result::UNLINK_ERR_NO_PERM:   errno = EPERM;     return -1;
 	case Result::UNLINK_ERR_NOT_EMPTY: errno = ENOTEMPTY; return -1;
@@ -1387,25 +1434,25 @@ int Libc::Vfs_plugin::rename(char const *from_path, char const *to_path)
 {
 	typedef Vfs::Directory_service::Rename_result Result;
 
-	if (VFS_THREAD_SAFE(_root_dir.leaf_path(to_path))) {
+	if (VFS_THREAD_SAFE(_root_fs.leaf_path(to_path))) {
 
-		if (VFS_THREAD_SAFE(_root_dir.directory(to_path))) {
-			if (!VFS_THREAD_SAFE(_root_dir.directory(from_path))) {
+		if (VFS_THREAD_SAFE(_root_fs.directory(to_path))) {
+			if (!VFS_THREAD_SAFE(_root_fs.directory(from_path))) {
 				errno = EISDIR; return -1;
 			}
 
-			if (VFS_THREAD_SAFE(_root_dir.num_dirent(to_path))) {
+			if (VFS_THREAD_SAFE(_root_fs.num_dirent(to_path))) {
 				errno = ENOTEMPTY; return -1;
 			}
 
 		} else {
-			if (VFS_THREAD_SAFE(_root_dir.directory(from_path))) {
+			if (VFS_THREAD_SAFE(_root_fs.directory(from_path))) {
 				errno = ENOTDIR; return -1;
 			}
 		}
 	}
 
-	switch (VFS_THREAD_SAFE(_root_dir.rename(from_path, to_path))) {
+	switch (VFS_THREAD_SAFE(_root_fs.rename(from_path, to_path))) {
 	case Result::RENAME_ERR_NO_ENTRY: errno = ENOENT; return -1;
 	case Result::RENAME_ERR_CROSS_FS: errno = EXDEV;  return -1;
 	case Result::RENAME_ERR_NO_PERM:  errno = EPERM;  return -1;
