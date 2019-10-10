@@ -221,7 +221,7 @@ Vfs::Global_file_system_factory::Global_file_system_factory(Genode::Allocator &a
 {
 	_add_builtin_fs<Vfs::Tar_file_system>();
 	_add_builtin_fs<Vfs::Fs_file_system>();
-	_add_builtin_fs<Vfs::Terminal_file_system>();
+	_add_builtin_fs<Vfs::Terminal_file_system::Compound_file_system>();
 	_add_builtin_fs<Vfs::Null_file_system>();
 	_add_builtin_fs<Vfs::Zero_file_system>();
 	_add_builtin_fs<Vfs::Block_file_system>();

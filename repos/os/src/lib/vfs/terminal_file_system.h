@@ -18,22 +18,36 @@
 
 #include <terminal_session/connection.h>
 #include <vfs/single_file_system.h>
-#include <base/registry.h>
+#include <vfs/dir_file_system.h>
+#include <vfs/readonly_value_file_system.h>
+#include <util/xml_generator.h>
 
 
 namespace Vfs { class Terminal_file_system; }
 
 
-class Vfs::Terminal_file_system : public Single_file_system
+struct Vfs::Terminal_file_system
+{
+	typedef String<64> Name;
+
+	struct Local_factory;
+	struct Data_file_system;
+	struct Compound_file_system;
+};
+
+
+/**
+ * File system node for processing the terminal data read/write streams
+ */
+class Vfs::Terminal_file_system::Data_file_system : public Single_file_system
 {
 	private:
 
-		typedef Genode::String<64> Label;
-		Label _label;
+		Name const _name;
 
-		Genode::Env         &_env;
+		Genode::Entrypoint &_ep;
 
-		Terminal::Connection _terminal { _env, _label.string() };
+		Terminal::Connection &_terminal;
 
 		struct Terminal_vfs_handle : Single_vfs_handle
 		{
@@ -79,8 +93,8 @@ class Vfs::Terminal_file_system : public Single_file_system
 
 		Handle_registry _handle_registry { };
 
-		Genode::Io_signal_handler<Terminal_file_system> _read_avail_handler {
-			_env.ep(), *this, &Terminal_file_system::_handle_read_avail };
+		Genode::Io_signal_handler<Data_file_system> _read_avail_handler {
+			_ep, *this, &Data_file_system::_handle_read_avail };
 
 		void _handle_read_avail()
 		{
@@ -99,19 +113,20 @@ class Vfs::Terminal_file_system : public Single_file_system
 
 	public:
 
-		Terminal_file_system(Vfs::Env &env, Genode::Xml_node config)
+		Data_file_system(Genode::Entrypoint   &ep,
+		                 Terminal::Connection &terminal,
+		                 Name           const &name)
 		:
-			Single_file_system(Node_type::TRANSACTIONAL_FILE, name(),
-			                   Node_rwx::rw(), config),
-			_label(config.attribute_value("label", Label())),
-			_env(env.env())
+			Single_file_system(Node_type::TRANSACTIONAL_FILE, name.string(),
+			                   Node_rwx::rw(), Genode::Xml_node("<data/>")),
+			_name(name), _ep(ep), _terminal(terminal)
 		{
 			/* register for read-avail notification */
 			_terminal.read_avail_sigh(_read_avail_handler);
 		}
 
-		static const char *name()   { return "terminal"; }
-		char const *type() override { return "terminal"; }
+		static const char *name()   { return "data"; }
+		char const *type() override { return "data"; }
 
 		Open_result open(char const  *path, unsigned flags,
 		                 Vfs_handle **out_handle,
@@ -154,6 +169,126 @@ class Vfs::Terminal_file_system : public Single_file_system
 		{
 			return ((rd && _terminal.avail()) || wr);
 		}
+};
+
+
+struct Vfs::Terminal_file_system::Local_factory : File_system_factory
+{
+	typedef Genode::String<64> Label;
+	Label const _label;
+
+	Name const _name;
+
+	Genode::Env &_env;
+
+	Terminal::Connection _terminal { _env, _label.string() };
+
+	Data_file_system _data_fs { _env.ep(), _terminal, _name };
+
+	struct Info
+	{
+		Terminal::Session::Size size;
+
+		void print(Genode::Output &out) const
+		{
+			char buf[128] { };
+			Genode::Xml_generator xml(buf, sizeof(buf), "terminal", [&] () {
+				xml.attribute("rows",    size.lines());
+				xml.attribute("columns", size.columns());
+			});
+			Genode::print(out, Genode::Cstring(buf));
+		}
+	};
+
+	Readonly_value_file_system<Info>     _info_fs    { "info",    Info{} };
+	Readonly_value_file_system<unsigned> _rows_fs    { "rows",    0 };
+	Readonly_value_file_system<unsigned> _columns_fs { "columns", 0 };
+
+	Genode::Io_signal_handler<Local_factory> _size_changed_handler {
+		_env.ep(), *this, &Local_factory::_handle_size_changed };
+
+	void _handle_size_changed()
+	{
+		Info const info { .size = _terminal.size() };
+
+		_info_fs   .value(info);
+		_rows_fs   .value(info.size.lines());
+		_columns_fs.value(info.size.columns());
+	}
+
+	static Name name(Xml_node config)
+	{
+		return config.attribute_value("name", Name("terminal"));
+	}
+
+	Local_factory(Vfs::Env &env, Xml_node config)
+	:
+		_label(config.attribute_value("label", Label(""))),
+		_name(name(config)),
+		_env(env.env())
+	{
+		_terminal.size_changed_sigh(_size_changed_handler);
+		_handle_size_changed();
+	}
+
+	Vfs::File_system *create(Vfs::Env&, Xml_node node) override
+	{
+		if (node.has_type("data"))    return &_data_fs;
+		if (node.has_type("info"))    return &_info_fs;
+		if (node.has_type("rows"))    return &_rows_fs;
+		if (node.has_type("columns")) return &_columns_fs;
+
+		return nullptr;
+	}
+};
+
+
+class Vfs::Terminal_file_system::Compound_file_system : private Local_factory,
+                                                        public  Vfs::Dir_file_system
+{
+	private:
+
+		typedef Terminal_file_system::Name Name;
+
+		typedef String<200> Config;
+		static Config _config(Name const &name)
+		{
+			char buf[Config::capacity()] { };
+
+			/*
+			 * By not using the node type "dir", we operate the
+			 * 'Dir_file_system' in root mode, allowing multiple sibling nodes
+			 * to be present at the mount point.
+			 */
+			Genode::Xml_generator xml(buf, sizeof(buf), "compound", [&] () {
+
+				xml.node("data", [&] () {
+					xml.attribute("name", name); });
+
+				xml.node("dir", [&] () {
+					xml.attribute("name", Name(".", name));
+					xml.node("info",    [&] () {});
+					xml.node("rows",    [&] () {});
+					xml.node("columns", [&] () {});
+				});
+			});
+
+			return Config(Genode::Cstring(buf));
+		}
+
+	public:
+
+		Compound_file_system(Vfs::Env &vfs_env, Genode::Xml_node node)
+		:
+			Local_factory(vfs_env, node),
+			Vfs::Dir_file_system(vfs_env,
+			                     Xml_node(_config(Local_factory::name(node)).string()),
+			                     *this)
+		{ }
+
+		static const char *name() { return "terminal"; }
+
+		char const *type() override { return name(); }
 };
 
 #endif /* _INCLUDE__VFS__TERMINAL_FILE_SYSTEM_H_ */
