@@ -97,6 +97,8 @@ struct Hw::Arm_64_cpu
 		struct Attr3 : Bitfield<24, 8> {};
 	);
 
+	SYSTEM_REGISTER(64, Mpidr, mpidr_el1);
+
 	SYSTEM_REGISTER(32, Pmuserenr_el0, pmuserenr_el0);
 
 	SYSTEM_REGISTER(64, Scr, scr_el3,
@@ -178,6 +180,37 @@ struct Hw::Arm_64_cpu
 	using Cntp_ctl  = Cntp_ctl_el0;
 	using Cntpct    = Cntpct_el0;
 	using Cntp_tval = Cntp_tval_el0;
+
+	static inline void wait_for_xchg(volatile int * addr,
+	                                 int new_value,
+	                                 int expected_value)
+	{
+		asm volatile(
+			/* check if load value of 'addr' is as expected */
+			"1: ldxr w7, [%0]     \n"
+			"cmp w7, %w2          \n"
+			"b.eq 2f              \n"
+
+			/* if not, wait for other CPU to send us an event */
+			"wfe                  \n"
+			"b.ne 1b              \n"
+
+			/* if yes, attempt to write 'new_value' to 'addr' */
+			"2: stxr w7, %w1, [%0]\n"
+
+			/* if write failed, restart */
+			"cbnz w7, 1b          \n"
+			"dmb #0               \n"
+		:: "r"(addr), "r"(new_value), "r"(expected_value) : "cc", "x7");
+	}
+
+	static inline void wakeup_waiting_cpus()
+	{
+		asm volatile(
+			"dsb #0 \n"
+			"sev    \n"
+		);
+	}
 };
 
 

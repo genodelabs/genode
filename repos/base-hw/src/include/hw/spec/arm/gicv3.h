@@ -161,6 +161,7 @@ class Hw::Pic
 			SYSTEM_REGISTER(32, Icc_pmr_el1,     "S3_0_C4_C6_0");
 			SYSTEM_REGISTER(32, Icc_igrpen1_el1, "S3_0_C12_C12_7");
 			SYSTEM_REGISTER(32, Icc_eoir1_el1,   "S3_0_C12_C12_1");
+			SYSTEM_REGISTER(64, Icc_sgi1r_el1,   "S3_0_C12_C11_5");
 
 			void init()
 			{
@@ -257,6 +258,11 @@ class Hw::Pic
 		}
 
 		void irq_mode(unsigned, unsigned, unsigned) { }
+
+		void send_ipi(unsigned const cpu_id)
+		{
+			Cpu_interface::Icc_sgi1r_el1::write(1ULL << cpu_id);
+		}
 };
 
 #undef SYSTEM_REGISTER

@@ -83,7 +83,7 @@ struct Genode::Cpu : Hw::Arm_64_cpu
 	/**
 	 * Return kernel name of the executing CPU
 	 */
-	static unsigned executing_id() { return 0; }
+	static unsigned executing_id() { return Cpu::Mpidr::read() & 0xff; }
 
 
 	static void clean_data_cache_by_virt_region(addr_t, size_t);
