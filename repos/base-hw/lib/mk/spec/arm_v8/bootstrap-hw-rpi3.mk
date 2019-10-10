@@ -8,4 +8,6 @@ SRC_S   += bootstrap/spec/arm_64/crt0.s
 
 vpath spec/64bit/memory_map.cc $(BASE_DIR)/../base-hw/src/lib/hw
 
+NR_OF_CPUS = 4
+
 include $(BASE_DIR)/../base-hw/lib/mk/bootstrap-hw.inc
