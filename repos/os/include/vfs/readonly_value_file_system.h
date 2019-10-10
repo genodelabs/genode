@@ -84,6 +84,11 @@ class Vfs::Readonly_value_file_system : public Vfs::Single_file_system
 			return Config(Genode::Cstring(buf));
 		}
 
+		typedef Genode::Registered<Vfs_watch_handle>      Registered_watch_handle;
+		typedef Genode::Registry<Registered_watch_handle> Watch_handle_registry;
+
+		Watch_handle_registry _handle_registry { };
+
 	public:
 
 		Readonly_value_file_system(Name const &name, T const &initial_value)
@@ -99,13 +104,20 @@ class Vfs::Readonly_value_file_system : public Vfs::Single_file_system
 
 		char const *type() override { return type_name(); }
 
-		void value(T const &value) { _buffer = Buffer(value); }
+		void value(T const &value)
+		{
+			_buffer = Buffer(value);
+
+			_handle_registry.for_each([this] (Registered_watch_handle &handle) {
+				handle.watch_response(); });
+		}
 
 		bool matches(Xml_node node) const
 		{
 			return node.has_type(type_name()) &&
 			       node.attribute_value("name", Name()) == _file_name;
 		}
+
 
 		/*********************************
 		 ** Directory-service interface **
@@ -133,6 +145,29 @@ class Vfs::Readonly_value_file_system : public Vfs::Single_file_system
 			Stat_result result = Single_file_system::stat(path, out);
 			out.size = _buffer.length();
 			return result;
+		}
+
+		Watch_result watch(char const        *path,
+		                   Vfs_watch_handle **handle,
+		                   Allocator         &alloc) override
+		{
+			if (!_single_file(path))
+				return WATCH_ERR_UNACCESSIBLE;
+
+			try {
+				*handle = new (alloc)
+					Registered_watch_handle(_handle_registry, *this, alloc);
+
+				return WATCH_OK;
+			}
+			catch (Genode::Out_of_ram)  { return WATCH_ERR_OUT_OF_RAM;  }
+			catch (Genode::Out_of_caps) { return WATCH_ERR_OUT_OF_CAPS; }
+		}
+
+		void close(Vfs_watch_handle *handle) override
+		{
+			Genode::destroy(handle->alloc(),
+			                static_cast<Registered_watch_handle *>(handle));
 		}
 };
 
