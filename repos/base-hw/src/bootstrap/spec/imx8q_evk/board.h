@@ -21,7 +21,12 @@
 
 namespace Board {
 	using namespace Hw::Imx8q_evk_board;
-	using Cpu = Hw::Arm_64_cpu;
+
+	struct Cpu : Hw::Arm_64_cpu
+	{
+		static void wake_up_all_cpus(void*);
+	};
+
 	using Hw::Pic;
 };
 

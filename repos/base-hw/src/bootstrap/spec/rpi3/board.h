@@ -23,7 +23,7 @@ namespace Board {
 
 	struct Cpu : Hw::Arm_64_cpu
 	{
-		static void wake_up_all_cpus(void*);
+		static void wake_up_all_cpus(void*) {}
 	};
 
 	struct Pic { }; /* dummy object */

@@ -31,7 +31,7 @@ class Kernel::Lock
 
 		enum State { UNLOCKED, LOCKED };
 
-		State volatile    _locked      { UNLOCKED };
+		int volatile      _locked      { UNLOCKED };
 		unsigned volatile _current_cpu { INVALID  };
 
 	public:

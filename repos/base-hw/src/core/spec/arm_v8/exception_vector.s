@@ -77,6 +77,7 @@ _kernel_entry:
 
 	.global idle_thread_main
 	idle_thread_main:
+	wfi
 	b idle_thread_main
 
 
