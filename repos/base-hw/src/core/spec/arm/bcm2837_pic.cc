@@ -12,6 +12,7 @@
  */
 
 #include <board.h>
+#include <cpu.h>
 #include <platform.h>
 
 
@@ -21,41 +22,109 @@ Board::Pic::Pic()
 
 bool Board::Pic::take_request(unsigned & irq)
 {
-	Core0_irq_source::access_t src = read<Core0_irq_source>();
+	unsigned cpu = Genode::Cpu::executing_id();
+	Core_irq_source<0>::access_t src = 0;
+	switch (cpu) {
+	case 0: src = read<Core_irq_source<0>>(); break;
+	case 1: src = read<Core_irq_source<1>>(); break;
+	case 2: src = read<Core_irq_source<2>>(); break;
+	case 3: src = read<Core_irq_source<3>>(); break;
+	}
+
 	if ((1 << TIMER_IRQ) & src) {
 		irq = TIMER_IRQ;
 		return true;
 	}
+
+	if (0xf0 & src) {
+		irq = IPI;
+		switch (cpu) {
+		case 0: write<Core_mailbox_clear<0>>(1); break;
+		case 1: write<Core_mailbox_clear<1>>(1); break;
+		case 2: write<Core_mailbox_clear<2>>(1); break;
+		case 3: write<Core_mailbox_clear<3>>(1); break;
+		}
+		return true;
+	}
+
 	return false;
 }
 
 
-void Board::Pic::mask() { }
+void Board::Pic::_timer_irq(unsigned cpu, bool enable)
+{
+	unsigned v = enable ? 1 : 0;
+	switch (cpu) {
+		case 0:
+			write<Core_timer_irq_control<0>::Cnt_p_ns_irq>(v);
+			return;
+		case 1:
+			write<Core_timer_irq_control<1>::Cnt_p_ns_irq>(v);
+			return;
+		case 2:
+			write<Core_timer_irq_control<2>::Cnt_p_ns_irq>(v);
+			return;
+		case 3:
+			write<Core_timer_irq_control<3>::Cnt_p_ns_irq>(v);
+			return;
+		default: ;
+	}
+}
+
+
+void Board::Pic::_ipi(unsigned cpu, bool enable)
+{
+	unsigned v = enable ? 1 : 0;
+	switch (cpu) {
+		case 0:
+			write<Core_mailbox_irq_control<0>>(v);
+			return;
+		case 1:
+			write<Core_mailbox_irq_control<1>>(v);
+			return;
+		case 2:
+			write<Core_mailbox_irq_control<2>>(v);
+			return;
+		case 3:
+			write<Core_mailbox_irq_control<3>>(v);
+			return;
+		default: ;
+	}
+}
 
 
 void Board::Pic::unmask(unsigned const i, unsigned cpu)
 {
-	if (cpu > 0)
-		Genode::raw("multi-core irq controller not implemented yet");
-
-	if (i == TIMER_IRQ) {
-		write<Core0_timer_irq_control::Cnt_p_ns_irq>(1);
-		return;
+	switch (i) {
+		case TIMER_IRQ: _timer_irq(cpu, true); return;
+		case IPI:       _ipi(cpu, true);       return;
 	}
 
-	Genode::raw("irq of peripherals != timer not implemented yet!");
+	Genode::raw("irq of peripherals != timer not implemented yet! (irq=", i, ")");
 }
 
 
 void Board::Pic::mask(unsigned const i)
 {
-	if (i == TIMER_IRQ) {
-		write<Core0_timer_irq_control::Cnt_p_ns_irq>(0);
-		return;
+	unsigned cpu = Genode::Cpu::executing_id();
+	switch (i) {
+		case TIMER_IRQ: _timer_irq(cpu, false); return;
+		case IPI:       _ipi(cpu, false);       return;
 	}
 
-	Genode::raw("irq of peripherals != timer not implemented yet!");
+	Genode::raw("irq of peripherals != timer not implemented yet! (irq=", i, ")");
 }
 
 
 void Board::Pic::irq_mode(unsigned, unsigned, unsigned) { }
+
+
+void Board::Pic::send_ipi(unsigned cpu_target)
+{
+	switch (cpu_target) {
+	case 0: write<Core_mailbox_set<0>>(1); return;
+	case 1: write<Core_mailbox_set<1>>(1); return;
+	case 2: write<Core_mailbox_set<2>>(1); return;
+	case 3: write<Core_mailbox_set<3>>(1); return;
+	}
+}

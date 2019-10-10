@@ -26,3 +26,12 @@ Bootstrap::Platform::Board::Board()
                             ::Board::LOCAL_IRQ_CONTROLLER_SIZE },
             Memory_region { ::Board::IRQ_CONTROLLER_BASE,
                             ::Board::IRQ_CONTROLLER_SIZE }) {}
+
+
+extern unsigned int _crt0_qemu_start_secondary_cpus;
+
+void Board::Cpu::wake_up_all_cpus(void *)
+{
+	_crt0_qemu_start_secondary_cpus = 1;
+	asm volatile("dsb #0; sev");
+}

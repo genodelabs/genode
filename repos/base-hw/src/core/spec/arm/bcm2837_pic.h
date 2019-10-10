@@ -23,31 +23,34 @@ class Board::Pic : Genode::Mmio
 	public:
 
 		enum {
+			IPI       = 0,
 			NR_OF_IRQ = 64,
-
-			/*
-			 * dummy IPI value on non-SMP platform,
-			 * only used in interrupt reservation within generic code
-			 */
-			IPI,
 		};
 
 	private:
 
 
-		struct Core0_timer_irq_control : Register<0x40, 32>
+		template <unsigned CPU_NUM>
+		struct Core_timer_irq_control : Register<0x40+CPU_NUM*0x4, 32>
 		{
-			struct Cnt_p_ns_irq : Bitfield<1, 1> {};
+			struct Cnt_p_ns_irq
+			: Register<0x40+CPU_NUM*0x4, 32>::template Bitfield<1, 1> {};
 		};
 
-		struct Core1_timer_irq_control : Register<0x44, 32> {};
-		struct Core2_timer_irq_control : Register<0x48, 32> {};
-		struct Core3_timer_irq_control : Register<0x4c, 32> {};
+		template <unsigned CPU_NUM>
+		struct Core_mailbox_irq_control : Register<0x50+CPU_NUM*0x4, 32> {};
 
-		struct Core0_irq_source : Register<0x60, 32> {};
-		struct Core1_irq_source : Register<0x64, 32> {};
-		struct Core2_irq_source : Register<0x68, 32> {};
-		struct Core3_irq_source : Register<0x6c, 32> {};
+		template <unsigned CPU_NUM>
+		struct Core_irq_source : Register<0x60+CPU_NUM*0x4, 32> {};
+
+		template <unsigned CPU_NUM>
+		struct Core_mailbox_set : Register<0x80+CPU_NUM*0x10, 32> {};
+
+		template <unsigned CPU_NUM>
+		struct Core_mailbox_clear : Register<0xc0+CPU_NUM*0x10, 32> {};
+
+		void _ipi(unsigned cpu, bool enable);
+		void _timer_irq(unsigned cpu, bool enable);
 
 	public:
 
@@ -55,10 +58,10 @@ class Board::Pic : Genode::Mmio
 
 		bool take_request(unsigned &irq);
 		void finish_request() { }
-		void mask();
 		void unmask(unsigned const i, unsigned);
 		void mask(unsigned const i);
 		void irq_mode(unsigned, unsigned, unsigned);
+		void send_ipi(unsigned);
 
 		static constexpr bool fast_interrupts() { return false; }
 };
