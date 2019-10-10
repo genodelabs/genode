@@ -205,9 +205,22 @@ struct pthread_mutex
 	unsigned  _lock_count { 0 };
 	Lock      _owner_and_counter_mutex;
 
+	struct {
+		unsigned lock_tries { 0 };
+		unsigned unlock     { 0 };
+		unsigned contention { 0 };
+	} counter;
+
 	pthread_mutex() { }
 
-	virtual ~pthread_mutex() { }
+	virtual ~pthread_mutex()
+	{
+		Genode::log("DEBUG mutex ", this, " counter={"
+		           , counter.lock_tries, ","
+		           , counter.unlock, ","
+		           , counter.contention, "}"
+		           );
+	}
 
 	/*
 	 * The behavior of the following function follows the "robust mutex"
@@ -240,12 +253,15 @@ struct Libc::Pthread_mutex_normal : pthread_mutex
 	{
 		Lock::Guard lock_guard(_owner_and_counter_mutex);
 
+		++counter.lock_tries;
+
 		if (!_owner) {
 			_owner = pthread_self();
 			_lock.lock(); /* always succeeds */
 			return 0;
 		}
 
+		++counter.contention;
 		return EBUSY;
 	}
 
@@ -259,6 +275,7 @@ struct Libc::Pthread_mutex_normal : pthread_mutex
 		_owner = nullptr;
 		_lock.unlock();
 
+		++counter.unlock;
 		return 0;
 	}
 };
@@ -276,6 +293,8 @@ struct Libc::Pthread_mutex_errorcheck : pthread_mutex
 			{
 				Lock::Guard lock_guard(_owner_and_counter_mutex);
 
+				++counter.lock_tries;
+
 				if (!_owner) {
 					_owner = pthread_self();
 					_lock.lock(); /* always succeeds */
@@ -283,6 +302,8 @@ struct Libc::Pthread_mutex_errorcheck : pthread_mutex
 				} else if (_owner == pthread_self()) {
 					return EDEADLK;
 				}
+
+				++counter.contention;
 			}
 			/* mutex has another owner, so, yield the CPU and retry */
 			_lock.lock();
@@ -294,12 +315,15 @@ struct Libc::Pthread_mutex_errorcheck : pthread_mutex
 	{
 		Lock::Guard lock_guard(_owner_and_counter_mutex);
 
+		++counter.lock_tries;
+
 		if (!_owner) {
 			_owner = pthread_self();
 			_lock.lock(); /* always succeeds */
 			return 0;
 		}
 
+		++counter.contention;
 		return EBUSY;
 	}
 
@@ -313,6 +337,7 @@ struct Libc::Pthread_mutex_errorcheck : pthread_mutex
 		_owner = nullptr;
 		_lock.unlock();
 
+		++counter.unlock;
 		return 0;
 	}
 };
@@ -335,6 +360,8 @@ struct Libc::Pthread_mutex_recursive : pthread_mutex
 	{
 		Lock::Guard lock_guard(_owner_and_counter_mutex);
 
+		++counter.lock_tries;
+
 		if (!_owner) {
 			_owner      = pthread_self();
 			_lock_count = 1;
@@ -345,6 +372,7 @@ struct Libc::Pthread_mutex_recursive : pthread_mutex
 			return 0;
 		}
 
+		++counter.contention;
 		return EBUSY;
 	}
 
@@ -361,6 +389,7 @@ struct Libc::Pthread_mutex_recursive : pthread_mutex
 			_lock.unlock();
 		}
 
+		++counter.unlock;
 		return 0;
 	}
 };
