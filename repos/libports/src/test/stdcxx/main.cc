@@ -57,7 +57,7 @@ static void test_stdexcept()
 {
 	try {
 		throw std::invalid_argument("INVALID");
-	} catch (std::invalid_argument) {
+	} catch (std::invalid_argument &) {
 		std::cout << "caught std::invalid_argument"<< std::endl;
 	}
 }
