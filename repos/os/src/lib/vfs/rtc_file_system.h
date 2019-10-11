@@ -157,6 +157,12 @@ class Vfs::Rtc_file_system : public Single_file_system
 			catch (Genode::Out_of_ram)  { return WATCH_ERR_OUT_OF_RAM;  }
 			catch (Genode::Out_of_caps) { return WATCH_ERR_OUT_OF_CAPS; }
 		}
+
+		void close(Vfs_watch_handle *handle) override
+		{
+			Genode::destroy(handle->alloc(),
+			                static_cast<Registered_watch_handle *>(handle));
+		}
 };
 
 #endif /* _INCLUDE__VFS__RTC_FILE_SYSTEM_H_ */
