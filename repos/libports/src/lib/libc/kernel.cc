@@ -168,6 +168,30 @@ void Libc::Kernel::_init_file_descriptors()
 		for (unsigned fd = 0; fd <= 2; fd++)
 			file_descriptor_allocator()->preserve(fd);
 	}
+
+	/*
+	 * Watch stdout's 'info' pseudo file to detect terminal resize events
+	 */
+	File_descriptor const * const stdout_fd =
+		file_descriptor_allocator()->find_by_libc_fd(STDOUT_FILENO);
+
+	if (stdout_fd) {
+		Absolute_path dir = Vfs_plugin::ioctl_dir(*stdout_fd);
+		dir.append_element("info");
+
+		_vfs.with_root_dir([&] (Directory &root_dir) {
+			if (root_dir.file_exists(dir.string()))
+				_terminal_resize_handler.construct(root_dir, dir.string(),
+				                                   *this, &Kernel::_handle_terminal_resize);
+		});
+	}
+}
+
+
+void Libc::Kernel::_handle_terminal_resize()
+{
+	_signal.charge(SIGWINCH);
+	_resume_main();
 }
 
 
@@ -326,6 +350,7 @@ Libc::Kernel::Kernel(Genode::Env &env, Genode::Allocator &heap)
 	init_select(*this, *this, *this);
 	init_socket_fs(*this);
 	init_passwd(_passwd_config());
+	init_signal(_signal);
 
 	_init_file_descriptors();
 

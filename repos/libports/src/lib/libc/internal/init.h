@@ -35,6 +35,7 @@ namespace Libc {
 	struct Clone_connection;
 	struct Kernel_routine_scheduler;
 	struct Watch;
+	struct Signal;
 
 	/**
 	 * Support for shared libraries
@@ -129,6 +130,11 @@ namespace Libc {
 	 */
 	void init_execve(Genode::Env &, Genode::Allocator &, void *user_stack,
 	                 Reset_malloc_heap &);
+
+	/**
+	 * Signal handling
+	 */
+	void init_signal(Signal &);
 }
 
 #endif /* _LIBC__INTERNAL__INIT_H_ */

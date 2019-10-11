@@ -38,6 +38,7 @@
 #include <internal/current_time.h>
 #include <internal/kernel_timer_accessor.h>
 #include <internal/watch.h>
+#include <internal/signal.h>
 
 namespace Libc { class Kernel; }
 
@@ -116,6 +117,13 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 		typedef String<Vfs::MAX_PATH_LEN> Config_attr;
 
 		Config_attr const _rtc_path = _libc_env.libc_config().attribute_value("rtc", Config_attr());
+
+		/* handler for watching the stdout's info pseudo file */
+		Constructible<Watch_handler<Kernel>> _terminal_resize_handler { };
+
+		void _handle_terminal_resize();
+
+		Signal _signal;
 
 		Reconstructible<Io_signal_handler<Kernel>> _resume_main_handler {
 			_env.ep(), *this, &Kernel::_resume_main };
@@ -279,6 +287,7 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 				_switch_to_kernel();
 			} else {
 				_valid_user_context = false;
+				_signal.execute_signal_handlers();
 			}
 
 			/*
@@ -439,6 +448,7 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 			} else {
 				_valid_user_context          = false;
 				_dispatch_pending_io_signals = false;
+				_signal.execute_signal_handlers();
 			}
 		}
 

@@ -21,13 +21,46 @@ extern "C" {
 #include <sys/wait.h>
 }
 
-/* Genode includes */
-#include <base/log.h>
-
 /* libc-internal includes */
 #include <internal/types.h>
+#include <internal/init.h>
+#include <internal/signal.h>
 
 using namespace Libc;
+
+
+static Libc::Signal *_signal_ptr;
+
+
+void Libc::init_signal(Signal &signal)
+{
+	_signal_ptr = &signal;
+}
+
+
+void Libc::Signal::_execute_signal_handler(unsigned n)
+{
+	if (signal_action[n].sa_flags & SA_SIGINFO) {
+		signal_action[n].sa_sigaction(n, 0, 0);
+		return;
+	}
+
+	if (signal_action[n].sa_handler == SIG_DFL) {
+		switch (n) {
+			case SIGCHLD:
+			case SIGWINCH:
+				/* ignore */
+				break;
+			default:
+				/* terminate the process */
+				exit((n << 8) | EXIT_FAILURE);
+		}
+	} else if (signal_action[n].sa_handler == SIG_IGN) {
+		/* do nothing */
+	} else {
+		signal_action[n].sa_handler(n);
+	}
+}
 
 
 extern "C" __attribute__((weak))
@@ -66,6 +99,31 @@ extern "C" int __i386_libc_sigprocmask(int how, const sigset_t *set, sigset_t *o
 {
 	return __libc_sigprocmask(how, set, old);
 }
+
+
+extern "C" int sigaction(int, const struct sigaction *, struct sigaction *) __attribute__((weak));
+
+
+extern "C" int sigaction(int signum, const struct sigaction *act, struct sigaction *oldact)
+{
+	if ((signum < 1) || (signum > NSIG)) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	if (oldact)
+		*oldact = _signal_ptr->signal_action[signum];
+
+	if (act)
+		_signal_ptr->signal_action[signum] = *act;
+
+	return 0;
+}
+
+
+extern "C" int       _sigaction(int, const struct sigaction *, struct sigaction *) __attribute__((weak, alias("sigaction")));
+extern "C" int  __sys_sigaction(int, const struct sigaction *, struct sigaction *) __attribute__((weak, alias("sigaction")));
+extern "C" int __libc_sigaction(int, const struct sigaction *, struct sigaction *) __attribute__((weak, alias("sigaction")));
 
 
 extern "C" pid_t wait(int *istat) {
