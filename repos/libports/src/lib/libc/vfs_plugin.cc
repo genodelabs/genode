@@ -222,7 +222,7 @@ namespace Libc {
 template <typename FN>
 void Libc::Vfs_plugin::_with_info(File_descriptor &fd, FN const &fn)
 {
-	Absolute_path path = _ioctl_dir(fd);
+	Absolute_path path = ioctl_dir(fd);
 	path.append_element("info");
 
 	try {

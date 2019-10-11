@@ -42,6 +42,25 @@ class Libc::Vfs_plugin : public Plugin
 
 		enum class Update_mtime { NO, YES };
 
+		/**
+		 * Return path to pseudo files used for ioctl operations of a given FD
+		 */
+		static Absolute_path ioctl_dir(File_descriptor const &fd)
+		{
+			Absolute_path path(fd.fd_path);
+
+			/*
+			 * The pseudo files used for ioctl operations reside in a (hidden)
+			 * directory named after the device path and prefixed with '.'.
+			 */
+			String<64> const ioctl_dir_name(".", path.last_element());
+
+			path.strip_last_element();
+			path.append_element(ioctl_dir_name.string());
+
+			return path;
+		}
+
 	private:
 
 		Genode::Allocator        &_alloc;
@@ -61,25 +80,6 @@ class Libc::Vfs_plugin : public Plugin
 		void _vfs_write_mtime(Vfs::Vfs_handle&);
 
 		int _legacy_ioctl(File_descriptor *, int , char *);
-
-		/**
-		 * Return path to pseudo files used for ioctl operations of a given FD
-		 */
-		static Absolute_path _ioctl_dir(File_descriptor const &fd)
-		{
-			Absolute_path path(fd.fd_path);
-
-			/*
-			 * The pseudo files used for ioctl operations reside in a (hidden)
-			 * directory named after the device path and prefixed with '.'.
-			 */
-			String<64> const ioctl_dir_name(".", path.last_element());
-
-			path.strip_last_element();
-			path.append_element(ioctl_dir_name.string());
-
-			return path;
-		}
 
 		/**
 		 * Call functor 'fn' with ioctl info for the given file descriptor 'fd'
@@ -108,6 +108,9 @@ class Libc::Vfs_plugin : public Plugin
 		{ }
 
 		~Vfs_plugin() final { }
+
+		template <typename FN>
+		void with_root_dir(FN const &fn) { fn(_root_dir); }
 
 		bool root_dir_has_dirents() const { return _root_fs.num_dirent("/") > 0; }
 
