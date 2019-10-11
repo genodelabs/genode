@@ -100,7 +100,8 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 
 		Vfs_plugin _vfs { _libc_env, _libc_env.vfs_env(), _heap, *this,
 		                  _update_mtime ? Vfs_plugin::Update_mtime::YES
-		                                : Vfs_plugin::Update_mtime::NO };
+		                                : Vfs_plugin::Update_mtime::NO,
+		                  _libc_env.config() };
 
 		bool  const _cloned = _libc_env.libc_config().attribute_value("cloned", false);
 		pid_t const _pid    = _libc_env.libc_config().attribute_value("pid", 0U);

@@ -222,13 +222,16 @@ namespace Libc {
 template <typename FN>
 void Libc::Vfs_plugin::_with_info(File_descriptor &fd, FN const &fn)
 {
+	if (!_root_dir.constructed())
+		return;
+
 	Absolute_path path = ioctl_dir(fd);
 	path.append_element("info");
 
 	try {
 		Lock::Guard g(vfs_lock());
 
-		File_content const content(_alloc, _root_dir, path.string(),
+		File_content const content(_alloc, *_root_dir, path.string(),
 		                           File_content::Limit{4096U});
 
 		content.xml([&] (Xml_node node) {

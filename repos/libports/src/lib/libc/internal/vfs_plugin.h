@@ -63,11 +63,11 @@ class Libc::Vfs_plugin : public Plugin
 
 	private:
 
-		Genode::Allocator        &_alloc;
-		Vfs::File_system         &_root_fs;
-		Genode::Directory         _root_dir;
-		Vfs::Io_response_handler &_response_handler;
-		Update_mtime        const _update_mtime;
+		Genode::Allocator               &_alloc;
+		Vfs::File_system                &_root_fs;
+		Constructible<Genode::Directory> _root_dir { };
+		Vfs::Io_response_handler        &_response_handler;
+		Update_mtime               const _update_mtime;
 
 		/**
 		 * Sync a handle and propagate errors
@@ -98,19 +98,26 @@ class Libc::Vfs_plugin : public Plugin
 		           Vfs::Env                 &vfs_env,
 		           Genode::Allocator        &alloc,
 		           Vfs::Io_response_handler &handler,
-		           Update_mtime              update_mtime)
+		           Update_mtime              update_mtime,
+		           Xml_node                  config)
 		:
 			_alloc(alloc),
 			_root_fs(env.vfs()),
-			_root_dir(vfs_env),
 			_response_handler(handler),
 			_update_mtime(update_mtime)
-		{ }
+		{
+			if (config.has_sub_node("libc"))
+				_root_dir.construct(vfs_env);
+		}
 
 		~Vfs_plugin() final { }
 
 		template <typename FN>
-		void with_root_dir(FN const &fn) { fn(_root_dir); }
+		void with_root_dir(FN const &fn)
+		{
+			if (_root_dir.constructed())
+				fn(*_root_dir);
+		}
 
 		bool root_dir_has_dirents() const { return _root_fs.num_dirent("/") > 0; }
 
