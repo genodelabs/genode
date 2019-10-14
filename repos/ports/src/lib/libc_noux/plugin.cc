@@ -1292,7 +1292,7 @@ namespace {
 		if (!buf) { errno = EFAULT; return -1; }
 
 		/* remember original len for the return value */
-		int const orig_count = count;
+		size_t const orig_count = count;
 
 		char *src = (char *)buf;
 		while (count > 0) {
@@ -1317,12 +1317,23 @@ namespace {
 						errno = 0;
 					break;
 				}
+
+				/* try again */
+				bool const retry = (errno == EINTR
+				                 || errno == EAGAIN
+				                 || errno == EWOULDBLOCK);
+				if (errno && retry)
+					continue;
+
+				/* leave writing loop on error */
+				if (errno)
+					break;
 			}
 
 			count -= sysio()->write_out.count;
 			src   += sysio()->write_out.count;
 		}
-		return orig_count;
+		return orig_count - count;
 	}
 
 
