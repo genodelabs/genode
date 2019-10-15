@@ -147,66 +147,69 @@ Session_component *Net::Root::_create_session(char const *args)
 {
 	try {
 		/* create session environment temporarily on the stack */
-		Session_env session_env_tmp { _env, _shared_quota,
+		Session_env session_env_stack { _env, _shared_quota,
 			Ram_quota { Arg_string::find_arg(args, "ram_quota").ulong_value(0) },
 			Cap_quota { Arg_string::find_arg(args, "cap_quota").ulong_value(0) } };
-		Reference<Session_env> session_env { session_env_tmp };
 
 		/* alloc/attach RAM block and move session env to base of the block */
 		Ram_dataspace_capability ram_ds {
-			session_env().alloc(sizeof(Session_env) +
-			                    sizeof(Session_component), CACHED) };
+			session_env_stack.alloc(sizeof(Session_env) +
+			                        sizeof(Session_component), CACHED) };
 		try {
-			void * const ram_ptr { session_env().attach(ram_ds) };
-			session_env = *construct_at<Session_env>(ram_ptr, session_env());
+			void * const ram_ptr { session_env_stack.attach(ram_ds) };
+			Session_env &session_env {
+				*construct_at<Session_env>(ram_ptr, session_env_stack) };
 
 			/* create new session object behind session env in the RAM block */
 			try {
 				Session_label const label { label_from_args(args) };
 				return construct_at<Session_component>(
 					(void*)((addr_t)ram_ptr + sizeof(Session_env)),
-					session_env(),
+					session_env,
 					Arg_string::find_arg(args, "tx_buf_size").ulong_value(0),
 					Arg_string::find_arg(args, "rx_buf_size").ulong_value(0),
 					_timer, _mac_alloc.alloc(), _router_mac, label,
 					_interfaces, _config(), ram_ds);
 			}
 			catch (Mac_allocator::Alloc_failed) {
-				session_env().detach(ram_ptr);
-				session_env().free(ram_ds);
+				Session_env session_env_stack { session_env };
+				session_env_stack.detach(ram_ptr);
+				session_env_stack.free(ram_ds);
 				_invalid_downlink("failed to allocate MAC address");
 				throw Service_denied();
 			}
 			catch (Out_of_ram) {
-				session_env().detach(ram_ptr);
-				session_env().free(ram_ds);
+				Session_env session_env_stack { session_env };
+				session_env_stack.detach(ram_ptr);
+				session_env_stack.free(ram_ds);
 				_invalid_downlink("NIC session RAM quota");
 				throw Insufficient_ram_quota();
 			}
 			catch (Out_of_caps) {
-				session_env().detach(ram_ptr);
-				session_env().free(ram_ds);
+				Session_env session_env_stack { session_env };
+				session_env_stack.detach(ram_ptr);
+				session_env_stack.free(ram_ds);
 				_invalid_downlink("NIC session CAP quota");
 				throw Insufficient_cap_quota();
 			}
 		}
 		catch (Region_map::Invalid_dataspace) {
-			session_env().free(ram_ds);
+			session_env_stack.free(ram_ds);
 			_invalid_downlink("Failed to attach RAM");
 			throw Service_denied();
 		}
 		catch (Region_map::Region_conflict) {
-			session_env().free(ram_ds);
+			session_env_stack.free(ram_ds);
 			_invalid_downlink("Failed to attach RAM");
 			throw Service_denied();
 		}
 		catch (Out_of_ram) {
-			session_env().free(ram_ds);
+			session_env_stack.free(ram_ds);
 			_invalid_downlink("NIC session RAM quota");
 			throw Insufficient_ram_quota();
 		}
 		catch (Out_of_caps) {
-			session_env().free(ram_ds);
+			session_env_stack.free(ram_ds);
 			_invalid_downlink("NIC session CAP quota");
 			throw Insufficient_cap_quota();
 		}
