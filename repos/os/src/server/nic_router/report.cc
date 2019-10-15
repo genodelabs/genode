@@ -28,18 +28,20 @@ Net::Report::Report(bool        const &verbose,
                     Pd_session        &pd,
                     Reporter          &reporter)
 :
-	_verbose         { verbose },
-	_config          { node.attribute_value("config", true) },
-	_config_triggers { node.attribute_value("config_triggers", false) },
-	_bytes           { node.attribute_value("bytes", true) },
-	_stats           { node.attribute_value("stats", true) },
-	_quota           { node.attribute_value("quota", true) },
-	_shared_quota    { shared_quota },
-	_pd              { pd },
-	_reporter        { reporter },
-	_domains         { domains },
-	_timeout         { timer, *this, &Report::_handle_report_timeout,
-	                   read_sec_attr(node, "interval_sec", 5) }
+	_verbose             { verbose },
+	_config              { node.attribute_value("config", true) },
+	_config_triggers     { node.attribute_value("config_triggers", false) },
+	_bytes               { node.attribute_value("bytes", true) },
+	_stats               { node.attribute_value("stats", true) },
+	_link_state          { node.attribute_value("link_state", false) },
+	_link_state_triggers { node.attribute_value("link_state_triggers", false) },
+	_quota               { node.attribute_value("quota", true) },
+	_shared_quota        { shared_quota },
+	_pd                  { pd },
+	_reporter            { reporter },
+	_domains             { domains },
+	_timeout             { timer, *this, &Report::_handle_report_timeout,
+	                       read_sec_attr(node, "interval_sec", 5) }
 {
 	_reporter.enabled(true);
 }
@@ -82,6 +84,14 @@ void Net::Report::_handle_report_timeout(Duration)
 void Net::Report::handle_config()
 {
 	if (!_config_triggers) {
+		return; }
+
+	_report();
+}
+
+void Net::Report::handle_link_state()
+{
+	if (!_link_state_triggers) {
 		return; }
 
 	_report();

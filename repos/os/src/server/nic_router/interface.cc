@@ -870,6 +870,10 @@ void Interface::handle_link_state()
 	}
 	catch (Domain::Ip_config_static) { }
 	catch (Keep_ip_config) { }
+
+	/* force report if configured */
+	try { _config().report().handle_link_state(); }
+	catch (Pointer<Report>::Invalid) { }
 }
 
 
@@ -2017,21 +2021,28 @@ Interface::~Interface()
 
 void Interface::report(Genode::Xml_generator &xml)
 {
-	bool const stats = _config().report().stats();
-	if (stats) {
-		xml.node("interface",  [&] () {
-			bool empty = true;
-			xml.attribute("label", _policy.label());
-			try { _policy.report(xml); empty = false; } catch (Report::Empty) { }
+	xml.node("interface",  [&] () {
+		bool empty { true };
+		xml.attribute("label", _policy.label());
+		if (_config().report().link_state()) {
+			xml.attribute("link_state", link_state());
+			empty = false;
+		}
+		if (_config().report().stats()) {
+			try {
+				_policy.report(xml);
+				empty = false;
+			}
+			catch (Report::Empty) { }
 
 			try { xml.node("tcp-links",        [&] () { _tcp_stats.report(xml);  }); empty = false; } catch (Report::Empty) { }
 			try { xml.node("udp-links",        [&] () { _udp_stats.report(xml);  }); empty = false; } catch (Report::Empty) { }
 			try { xml.node("icmp-links",       [&] () { _icmp_stats.report(xml); }); empty = false; } catch (Report::Empty) { }
 			try { xml.node("arp-waiters",      [&] () { _arp_stats.report(xml);  }); empty = false; } catch (Report::Empty) { }
 			try { xml.node("dhcp-allocations", [&] () { _dhcp_stats.report(xml); }); empty = false; } catch (Report::Empty) { }
-			if (empty) { throw Report::Empty(); }
-		});
-	}
+		}
+		if (empty) { throw Report::Empty(); }
+	});
 }
 
 
