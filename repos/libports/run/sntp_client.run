@@ -1,4 +1,4 @@
-assert_spec x86
+if { [get_cmd_switch --autopilot] } { assert_spec x86 }
 
 if { [have_spec linux] } {
 	puts "Run script is not supported on this platform."
