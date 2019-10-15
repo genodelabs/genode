@@ -163,13 +163,33 @@ Session_component *Net::Root::_create_session(char const *args)
 			/* create new session object behind session env in the RAM block */
 			try {
 				Session_label const label { label_from_args(args) };
-				return construct_at<Session_component>(
-					(void*)((addr_t)ram_ptr + sizeof(Session_env)),
-					session_env,
-					Arg_string::find_arg(args, "tx_buf_size").ulong_value(0),
-					Arg_string::find_arg(args, "rx_buf_size").ulong_value(0),
-					_timer, _mac_alloc.alloc(), _router_mac, label,
-					_interfaces, _config(), ram_ds);
+				Mac_address   const mac   { _mac_alloc.alloc() };
+				try {
+					Session_component *x = construct_at<Session_component>(
+						(void*)((addr_t)ram_ptr + sizeof(Session_env)),
+						session_env,
+						Arg_string::find_arg(args, "tx_buf_size").ulong_value(0),
+						Arg_string::find_arg(args, "rx_buf_size").ulong_value(0),
+						_timer, mac, _router_mac, label, _interfaces,
+						_config(), ram_ds);
+					return x;
+				}
+				catch (Out_of_ram) {
+					_mac_alloc.free(mac);
+					Session_env session_env_stack { session_env };
+					session_env_stack.detach(ram_ptr);
+					session_env_stack.free(ram_ds);
+					_invalid_downlink("NIC session RAM quota");
+					throw Insufficient_ram_quota();
+				}
+				catch (Out_of_caps) {
+					_mac_alloc.free(mac);
+					Session_env session_env_stack { session_env };
+					session_env_stack.detach(ram_ptr);
+					session_env_stack.free(ram_ds);
+					_invalid_downlink("NIC session CAP quota");
+					throw Insufficient_cap_quota();
+				}
 			}
 			catch (Mac_allocator::Alloc_failed) {
 				Session_env session_env_stack { session_env };
@@ -177,20 +197,6 @@ Session_component *Net::Root::_create_session(char const *args)
 				session_env_stack.free(ram_ds);
 				_invalid_downlink("failed to allocate MAC address");
 				throw Service_denied();
-			}
-			catch (Out_of_ram) {
-				Session_env session_env_stack { session_env };
-				session_env_stack.detach(ram_ptr);
-				session_env_stack.free(ram_ds);
-				_invalid_downlink("NIC session RAM quota");
-				throw Insufficient_ram_quota();
-			}
-			catch (Out_of_caps) {
-				Session_env session_env_stack { session_env };
-				session_env_stack.detach(ram_ptr);
-				session_env_stack.free(ram_ds);
-				_invalid_downlink("NIC session CAP quota");
-				throw Insufficient_cap_quota();
 			}
 		}
 		catch (Region_map::Invalid_dataspace) {
