@@ -104,8 +104,8 @@ class Net::Uplink_interface_base : public Interface_policy
 {
 	private:
 
-		Const_reference<Domain_name>  _domain_name;
-		Genode::Session_label  const &_label;
+		Const_reference<Domain_name> _domain_name;
+		Genode::Session_label  const _label;
 
 
 		/***************************
