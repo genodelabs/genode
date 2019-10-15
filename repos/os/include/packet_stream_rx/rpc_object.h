@@ -26,7 +26,7 @@ class Packet_stream_rx::Rpc_object : public Genode::Rpc_object<CHANNEL, Rpc_obje
 	private:
 
 		Genode::Rpc_entrypoint     &_ep;
-		Genode::Capability<CHANNEL> _cap;
+		Genode::Capability<CHANNEL> _cap { };
 		typename CHANNEL::Source    _source;
 
 		Genode::Signal_context_capability _sigh_ready_to_submit;
@@ -48,11 +48,14 @@ class Packet_stream_rx::Rpc_object : public Genode::Rpc_object<CHANNEL, Rpc_obje
 		           Genode::Region_map           &rm,
 		           Genode::Range_allocator      &buffer_alloc,
 		           Genode::Rpc_entrypoint       &ep)
-		: _ep(ep), _cap(_ep.manage(this)), _source(ds, rm, buffer_alloc),
+		: _ep(ep), _source(ds, rm, buffer_alloc),
 
 		  /* init signal handlers with default handlers of source */
 		  _sigh_ready_to_submit(_source.sigh_ready_to_submit()),
-		  _sigh_ack_avail(_source.sigh_ack_avail()) { }
+		  _sigh_ack_avail(_source.sigh_ack_avail())
+		{
+			_cap = _ep.manage(this);
+		}
 
 		/**
 		 * Destructor
