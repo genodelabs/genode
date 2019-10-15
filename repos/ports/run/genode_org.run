@@ -112,7 +112,7 @@ if {![file exists bin/genode_org/website/index]} {
 
 	# ignore wget errors
 	catch {
-		exec wget -nH -Lrc -P bin/genode_org/website http://genode.org
+		exec wget -nH -Lrc -P bin/genode_org/website https://genode.org
 	}
 }
 
