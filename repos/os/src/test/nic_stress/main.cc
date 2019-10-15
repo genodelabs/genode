@@ -28,6 +28,24 @@ namespace Local {
 }
 
 
+struct Bad_args_nic : Genode::Connection<Nic::Session>
+{
+	Bad_args_nic(Genode::Env    &env,
+	             Genode::size_t  ram_quota,
+	             Genode::size_t  cap_quota,
+	             Genode::size_t  tx_buf_size,
+	             Genode::size_t  rx_buf_size,
+	             char const     *label)
+	:
+		Genode::Connection<Nic::Session>(env,
+			session(env.parent(),
+			        "ram_quota=%ld, cap_quota=%ld, "
+			        "tx_buf_size=%ld, rx_buf_size=%ld, label=\"%s\"",
+			        ram_quota, cap_quota, tx_buf_size, rx_buf_size, label))
+	{ }
+};
+
+
 struct Local::Construct_destruct_test
 {
 	enum { DEFAULT_NR_OF_ROUNDS  = 10 };
@@ -37,12 +55,13 @@ struct Local::Construct_destruct_test
 
 	using Nic_slot = Constructible<Nic::Connection>;
 
-	Env                            &_env;
-	Allocator                      &_alloc;
-	Signal_context_capability      &_completed_sigh;
-	Xml_node                 const &_config;
-	Nic::Packet_allocator           _pkt_alloc     { &_alloc };
-	bool                     const  _config_exists { _config.has_sub_node("construct_destruct") };
+	Env                         &_env;
+	Allocator                   &_alloc;
+	Signal_context_capability   &_completed_sigh;
+	Xml_node              const &_config;
+	Nic::Packet_allocator        _pkt_alloc     { &_alloc };
+	bool                  const  _config_exists { _config.has_sub_node("construct_destruct") };
+	Constructible<Bad_args_nic>  _bad_args_nic  { };
 
 	unsigned long const _nr_of_rounds {
 		_config_exists ?
@@ -61,6 +80,8 @@ struct Local::Construct_destruct_test
 	void construct_all(Nic_slot *const nic,
 	                   unsigned  const round)
 	{
+		_bad_args_nic.construct(
+			_env, 0, 0, BUF_SIZE, BUF_SIZE, "bad_args");
 		for (unsigned idx = 0; idx < _nr_of_sessions; idx++) {
 			try {
 				nic[idx].construct(_env, &_pkt_alloc, BUF_SIZE, BUF_SIZE);
