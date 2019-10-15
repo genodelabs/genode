@@ -42,13 +42,14 @@ Net::Report::Report(bool        const &verbose,
 	_domains             { domains },
 	_timeout             { timer, *this, &Report::_handle_report_timeout,
 	                       read_sec_attr(node, "interval_sec", 5) }
-{
-	_reporter.enabled(true);
-}
+{ }
 
 
 void Net::Report::_report()
 {
+	if (!_reporter.enabled()) {
+		return;
+	}
 	try {
 		Reporter::Xml_generator xml(_reporter, [&] () {
 			if (_quota) {

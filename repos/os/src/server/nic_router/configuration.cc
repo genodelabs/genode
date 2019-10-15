@@ -170,6 +170,24 @@ Configuration::Configuration(Env               &env,
 }
 
 
+void Configuration::stop_reporting()
+{
+	if (!_reporter.valid()) {
+		return;
+	}
+	_reporter().enabled(false);
+}
+
+
+void Configuration::start_reporting()
+{
+	if (!_reporter.valid()) {
+		return;
+	}
+	_reporter().enabled(true);
+}
+
+
 Configuration::~Configuration()
 {
 	/* destroy uplinks */

@@ -84,6 +84,10 @@ class Net::Configuration
 
 		~Configuration();
 
+		void stop_reporting();
+
+		void start_reporting();
+
 
 		/***************
 		 ** Accessors **

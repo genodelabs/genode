@@ -74,6 +74,8 @@ Net::Main::Main(Env &env) : _env(env)
 
 void Net::Main::_handle_config()
 {
+	_config().stop_reporting();
+
 	_config_rom.update();
 	Configuration &old_config = _config();
 	Configuration &new_config = *new (_heap)
@@ -87,6 +89,8 @@ void Net::Main::_handle_config()
 	_for_each_interface([&] (Interface &intf) { intf.handle_config_3(); });
 
 	destroy(_heap, &old_config);
+
+	_config().start_reporting();
 }
 
 
