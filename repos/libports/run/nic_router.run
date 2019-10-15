@@ -298,6 +298,8 @@ append config {
 			        config="yes"
 			        quota="no"
 			        stats="no"
+			        link_state="yes"
+			        link_state_triggers="yes"
 			        interval_sec="60" />
 
 			<uplink domain="uplink"/>
