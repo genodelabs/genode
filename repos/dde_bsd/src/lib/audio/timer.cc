@@ -71,9 +71,9 @@ class Bsd::Timer
 			millisecs = _timer_conn.elapsed_ms();
 		}
 
-		void delay(Genode::uint64_t ms)
+		void delay(Genode::uint64_t us)
 		{
-			_timer_conn.msleep(ms);
+			_timer_conn.usleep(us);
 		}
 };
 
@@ -120,6 +120,10 @@ extern "C" int msleep(const volatile void *ident, struct mutex *mtx,
 
 extern "C" void wakeup(const volatile void *ident)
 {
+	if (!_sleep_task) {
+		Genode::error("sleep task is NULL");
+		Genode::sleep_forever();
+	}
 	_sleep_task->unblock();
 	_sleep_task = nullptr;
 }
@@ -132,4 +136,25 @@ extern "C" void wakeup(const volatile void *ident)
 extern "C" void delay(int delay)
 {
 	_bsd_timer->delay(delay);
+}
+
+
+/**************** 
+ ** sys/time.h **
+ ****************/
+
+void microuptime(struct timeval *tv)
+{
+	_bsd_timer->update_millisecs();
+
+	if (!tv) { return; }
+
+	/*
+	 * So far only needed by auich_calibrate, which
+	 * reuqires microseconds - switching the Bsd::Timer
+	 * implementation over to the new Genode::Timer API
+	 * is probably necessary for that to work properly.
+	 */
+	tv->tv_sec = millisecs / 1000;
+	tv->tv_usec = 0;
 }

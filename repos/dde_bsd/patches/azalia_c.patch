@@ -1,8 +1,6 @@
-diff --git a/dev/pci/azalia.c b/dev/pci/azalia.c
-index b126ef6..f73c238 100644
 --- a/dev/pci/azalia.c
 +++ b/dev/pci/azalia.c
-@@ -492,7 +492,7 @@ azalia_pci_attach(struct device *parent, struct device *self, void *aux)
+@@ -492,7 +492,7 @@
  	azalia_t *sc;
  	struct pci_attach_args *pa;
  	pcireg_t v;
@@ -11,7 +9,7 @@ index b126ef6..f73c238 100644
  	pci_intr_handle_t ih;
  	const char *interrupt_str;
  
-@@ -518,12 +518,18 @@ azalia_pci_attach(struct device *parent, struct device *self, void *aux)
+@@ -518,12 +518,18 @@
  
  	azalia_configure_pci(sc);
  
@@ -34,5 +32,24 @@ index b126ef6..f73c238 100644
 +	// 	azalia_pci_write(sc->pc, sc->tag, ICH_PCI_MMC, reg);
 +	// }
  
- 	/* interrupt */
- 	if (pci_intr_map_msi(pa, &ih) && pci_intr_map(pa, &ih)) {
+ 	/* disable MSI for AMD Summit Ridge/Raven Ridge HD Audio */
+ 	if (PCI_VENDOR(sc->pciid) == PCI_VENDOR_AMD) {
+@@ -3973,6 +3979,10 @@
+ azalia_set_blksz(void *v, int mode,
+ 	struct audio_params *p, struct audio_params *r, unsigned int blksz)
+ {
++	// XXX using mult leads to a blksz of 416 in case of a
++	//     requested blksz of 441 which in return results in distored
++	//     playback.
++#if 0
+ 	int mult;
+ 
+ 	/* must be multiple of 128 bytes */
+@@ -3981,6 +3991,7 @@
+ 	blksz -= blksz % mult;
+ 	if (blksz == 0)
+ 		blksz = mult;
++#endif
+ 
+ 	return blksz;
+ }

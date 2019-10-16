@@ -3,15 +3,15 @@ VERSION   := 1
 DOWNLOADS := audio.archive
 
 #
-# Audio drivers from OpenBSD 5.9
+# Audio drivers from OpenBSD 6.6
 #
 SRC_DIR_AUDIO  := src/lib/audio
-VERSION_AUDIO  := 5.9
+VERSION_AUDIO  := 6.6
 BASE_URL       := https://ftp.halifax.rwth-aachen.de/pub/OpenBSD
 URL(audio)     := $(BASE_URL)/$(VERSION_AUDIO)/sys.tar.gz
-SHA(audio)     := 868775750a405c252d1ba78df69d6ebb101ccb26e776d5407a087ec030970baa
+SHA(audio)     := a1b19665989c02a2017a639d47a042f4fe7f584b6298727e982a5536020b832d
 DIR(audio)     := $(SRC_DIR_AUDIO)
-TAR_OPT(audio) := --strip-components=2 --files-from $(REP_DIR)/audio.list
+TAR_OPT(audio) := --strip-components=1 --files-from $(REP_DIR)/audio.list
 HASH_INPUT     += $(REP_DIR)/audio.list
 
 #

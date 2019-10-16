@@ -3,10 +3,11 @@ This repository contains device drivers ported from OpenBSD.
 Audio
 #####
 
-The audio driver is ported from OpenBSD 5.7 and includes support for
-Intel HD Audio as well as for Ensoniq AudioPCI (ES1370) compatible
+The audio driver is ported from OpenBSD 6.6 and includes support for
+Intel HD Audio, ICH as well as for Ensoniq AudioPCI (ES1370) compatible
 soundcards. The HDA driver works on real hardware and Virtualbox
-whereas the ES1370 driver is only used in Qemu.
+whereas the ES1370 driver is only used in Qemu. The ICH driver is only
+tested in Virtualbox where it produces audible artifacts.
 
 
 Usage

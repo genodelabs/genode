@@ -32,7 +32,7 @@
 
 extern struct cfdriver audio_cd;
 
-static dev_t const adev = 0x80; /* audio0 (minor nr 128) */
+static dev_t const adev = 0x00; /* audio0 (minor nr   0) */
 static dev_t const mdev = 0x10; /* mixer0 (minor nr  16) */
 
 static bool adev_usuable = false;
@@ -53,41 +53,23 @@ static bool drv_loaded()
  ** Dump audio configuration **
  ******************************/
 
-#define DUMP_INFO(field) \
-	Genode::log("--- " #field " information ---");      \
-	Genode::log("sample_rate: ", (unsigned)ai.field.sample_rate); \
-	Genode::log("channels: ",    (unsigned)ai.field.channels);    \
-	Genode::log("precision: ",   (unsigned)ai.field.precision);   \
-	Genode::log("bps: ",         (unsigned)ai.field.bps);         \
-	Genode::log("encoding: ",    (unsigned)ai.field.encoding);    \
-	Genode::log("buffer_size: ", (unsigned)ai.field.buffer_size); \
-	Genode::log("block_size: ",  (unsigned)ai.field.block_size);  \
-	Genode::log("samples: ",     (unsigned)ai.field.samples);     \
-	Genode::log("pause: ",       (unsigned)ai.field.pause);       \
-	Genode::log("active: ",      (unsigned)ai.field.active)
-
-
-static void dump_pinfo()
+static void dump_info()
 {
-	struct audio_info ai;
-	if (audioioctl(adev, AUDIO_GETINFO, (char*)&ai, 0, 0)) {
+	struct audio_swpar ap;
+
+	AUDIO_INITPAR(&ap);
+
+	if (audioioctl(adev, AUDIO_GETPAR, (char*)&ap, 0, 0)) {
 		Genode::error("could not gather play information");
 		return;
 	}
 
-	DUMP_INFO(play);
-}
-
-
-static void dump_rinfo()
-{
-	struct audio_info ai;
-	if (audioioctl(adev, AUDIO_GETINFO, (char*)&ai, 0, 0)) {
-		Genode::error("could not gather play information");
-		return;
-	}
-
-	DUMP_INFO(record);
+	Genode::log("Audio information:");
+	Genode::log("  sample_rate:       ", (unsigned)ap.rate);
+	Genode::log("  playback channels: ", (unsigned)ap.pchan);
+	Genode::log("  record channels:   ", (unsigned)ap.rchan);
+	Genode::log("  num blocks:        ", (unsigned)ap.nblks);
+	Genode::log("  block size:        ", (unsigned)ap.round);
 }
 
 
@@ -374,36 +356,39 @@ static void configure_mixer(Genode::Env &env, Mixer &mixer, Genode::Xml_node con
 
 static bool configure_audio_device(Genode::Env &env, dev_t dev, Genode::Xml_node config)
 {
-	struct audio_info ai;
+	struct audio_swpar ap;
 
-	int err = audioioctl(adev, AUDIO_GETINFO, (char*)&ai, 0, 0);
+	AUDIO_INITPAR(&ap);
+
+	int err = audioioctl(adev, AUDIO_GETPAR, (char*)&ap, 0, 0);
 	if (err)
 		return false;
 
 	using namespace Audio;
 
-	/* configure the device according to our Audio_out session settings */
-	ai.play.sample_rate = Audio_out::SAMPLE_RATE;
-	ai.play.channels    = Audio_out::MAX_CHANNELS;
-	ai.play.encoding    = AUDIO_ENCODING_SLINEAR_LE;
-	ai.play.block_size  = Audio_out::MAX_CHANNELS * sizeof(short) * Audio_out::PERIOD;
-
-	/* Configure the device according to our Audio_in session settings
-	 *
-	 * We use Audio_out::MAX_CHANNELS here because the backend provides us
-	 * with two channels that we will mix to one in the front end for now.
+	/*
+	 * Configure the device according to our Audio_out session parameters.
+	 * Only set the relevant parameters and let the audio(4) subsystem
+	 * figure out the rest.
 	 */
-	ai.record.sample_rate = Audio_in::SAMPLE_RATE;
-	ai.record.channels    = Audio_out::MAX_CHANNELS;
-	ai.record.encoding    = AUDIO_ENCODING_SLINEAR_LE;
-	ai.record.block_size  = Audio_out::MAX_CHANNELS * sizeof(short) * Audio_in::PERIOD;
+	ap.rate  = Audio_out::SAMPLE_RATE;
+	ap.pchan = Audio_out::MAX_CHANNELS;
+	ap.sig   = 1;
+	ap.bits  = 16;
+	ap.bps   = (ap.bits / 8);
+	ap.round = Audio_out::PERIOD;
+	/*
+	 * Use 2 blocks, the one that is currently played and the one
+	 * that will be filled in.
+	 */
+	ap.nblks = 2;
+	/*
+	 * For recording use two channels that we will mix to one in the
+	 * front end.
+	 */
+	ap.rchan = 2;
 
-	err = audioioctl(adev, AUDIO_SETINFO, (char*)&ai, 0, 0);
-	if (err)
-		return false;
-
-	int fullduplex = 1;
-	err = audioioctl(adev, AUDIO_SETFD, (char*)&fullduplex, 0, 0);
+	err = audioioctl(adev, AUDIO_SETPAR, (char*)&ap, 0, 0);
 	if (err)
 		return false;
 
@@ -415,8 +400,7 @@ static bool configure_audio_device(Genode::Env &env, dev_t dev, Genode::Xml_node
 
 	bool const verbose = config.attribute_value<bool>("verbose", false);
 
-	if (verbose) dump_pinfo();
-	if (verbose) dump_rinfo();
+	if (verbose) dump_info();
 	if (verbose) dump_mixer(mixer);
 
 	configure_mixer(env, mixer, config);

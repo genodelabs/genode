@@ -133,7 +133,7 @@ class Bsd::Slab_alloc : public Genode::Slab
 
 		static Genode::size_t _calculate_block_size(Genode::size_t object_size)
 		{
-			Genode::size_t const block_size = 16*object_size;
+			Genode::size_t const block_size = 8*object_size;
 			return Genode::align_addr(block_size, 12);
 		}
 
@@ -164,7 +164,7 @@ class Bsd::Malloc
 
 		enum {
 			SLAB_START_LOG2 = 5,  /* 32 B */
-			SLAB_STOP_LOG2  = 16, /* 64 KiB */
+			SLAB_STOP_LOG2  = 17, /* 128 KiB */
 			NUM_SLABS = (SLAB_STOP_LOG2 - SLAB_START_LOG2) + 1,
 		};
 
@@ -329,7 +329,7 @@ extern "C" void *malloc(size_t size, int type, int flags)
 {
 	void *addr = malloc_backend().alloc(size);
 
-	if (flags & M_ZERO)
+	if (addr && (flags & M_ZERO))
 		Genode::memset(addr, 0, size);
 
 	return addr;

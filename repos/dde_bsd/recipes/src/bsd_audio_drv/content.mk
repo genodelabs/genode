@@ -14,6 +14,7 @@ MIRROR_FROM_PORT_DIR := $(addprefix src/lib/audio/, \
                           dev/pci/azalia.h \
                           dev/pci/eapreg.h \
                           dev/pci/azalia.c \
+                          dev/pci/auich.c \
                           dev/mulaw.h \
                           dev/audio_if.h \
                           dev/mulaw.c \

@@ -179,7 +179,9 @@ class Audio_out::Out
 			_data_avail_dispatcher(env.ep(), *this, &Audio_out::Out::_handle_data_avail),
 			_notify_dispatcher(env.ep(), *this, &Audio_out::Out::_handle_notify)
 		{
-			/* play a silence packet to get the driver running */
+			/* play a silence packets to get the driver running */
+			// XXX replace by explicit call to audio_start
+			_play_silence();
 			_play_silence();
 		}
 

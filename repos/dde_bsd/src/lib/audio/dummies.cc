@@ -62,6 +62,7 @@ DUMMY(0, timeout_add_msec)
 DUMMY(0, timeout_del)
 DUMMY(0, timeout_set)
 DUMMY(0, tsleep)
+DUMMY(0, tsleep_nsec)
 DUMMY(0, vdevgone)
 DUMMY(0, device_unref)
 

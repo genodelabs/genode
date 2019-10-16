@@ -29,9 +29,11 @@ CC_OPT += -D_KERNEL
 CC_C_OPT += -Wno-maybe-uninitialized
 
 # enable when debugging
-# CC_OPT += -DAUDIO_DEBUG
-# CC_OPT += -DAZALIA_DEBUG
-# CC_OPT += -DDIAGNOSTIC
+#CC_OPT += -DAUDIO_DEBUG
+#CC_OPT += -DAC97_DEBUG
+#CC_OPT += -DAUICH_DEBUG
+#CC_OPT += -DAZALIA_DEBUG
+#CC_OPT += -DDIAGNOSTIC
 
 # audio interface
 SRC_C += dev/audio.c
@@ -41,6 +43,9 @@ SRC_C += dev/ic/ac97.c
 
 # HDA driver
 SRC_C += dev/pci/azalia.c dev/pci/azalia_codec.c
+
+# ICH driver
+SRC_C += dev/pci/auich.c
 
 # ES1370
 SRC_C += dev/pci/eap.c

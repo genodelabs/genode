@@ -31,6 +31,8 @@ extern struct cfdriver azalia_cd;
 extern struct cfattach azalia_ca;
 extern struct cfdriver eap_cd;
 extern struct cfattach eap_ca;
+extern struct cfdriver auich_cd;
+extern struct cfattach auich_ca;
 
 
 /* original value */
@@ -42,6 +44,7 @@ struct cfdata cfdata[] = {
 	{&audio_ca,  &audio_cd,  0, 0, 0, 0, pv+0, 0, 0},
 	{&azalia_ca, &azalia_cd, 0, 0, 0, 0, pv+1, 0, 0},
 	{&eap_ca,    &eap_cd,    0, 0, 0, 0, pv+1, 0, 0},
+	{&auich_ca,  &auich_cd,  0, 0, 0, 0, pv+1, 0, 0},
 };
 
 
@@ -100,10 +103,13 @@ int probe_cfdata(struct pci_attach_args *pa)
 			struct device *dev = (struct device *) malloc(ca->ca_devsize,
 			                                              M_DEVBUF, M_NOWAIT|M_ZERO);
 
+			dev->dv_cfdata = cf;
+
 			snprintf(dev->dv_xname, sizeof(dev->dv_xname), "%s%d", cd->cd_name,
 			         dev->dv_unit);
 			printf("%s at %s\n", dev->dv_xname, pci_bus.dv_xname);
 			ca->ca_attach(&pci_bus, dev, pa);
+
 			return 1;
 		}
 	}
@@ -128,6 +134,8 @@ struct device *config_found_sm(struct device *parent, void *aux, cfprint_t print
 		         dev->dv_unit);
 		printf("%s at %s\n", dev->dv_xname, parent->dv_xname);
 
+		dev->dv_cfdata = cf;
+
 		ca->ca_attach(parent, dev, aux);
 
 		audio_cd.cd_ndevs = 1;
@@ -148,3 +156,15 @@ struct device *device_lookup(struct cfdriver *cd, int unit)
 
 	return audio_cd.cd_devs[unit];
 }
+
+/*****************
+ ** sys/ucred.h **
+ *****************/
+
+int suser(struct proc *p)
+{
+	(void)p;
+
+	/* we always have special user powers */
+	return 0;
+};
