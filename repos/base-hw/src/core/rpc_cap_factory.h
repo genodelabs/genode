@@ -39,14 +39,18 @@ class Genode::Rpc_cap_factory
 		/**
 		 * Kernel object placeholder held in a list
 		 */
-		struct Kobject : List<Kobject>::Element
+		struct Kobject
+		: List<Kobject>::Element
 		{
-			using Identity = Kernel::Core_object_identity<Kernel::Thread>;
+			using O = Kernel::Core_object_identity<Kernel::Thread>;
 
-			Native_capability cap { };
+			Constructible<O>  kobj {};
+			Native_capability cap;
 
-			uint8_t data[sizeof(Identity)]
-			__attribute__((aligned(sizeof(addr_t))));
+			Kobject(Native_capability ep)
+			: cap(Capability_space::import(O::syscall_create(kobj, Capability_space::capid(ep)))) {}
+
+			void destruct() { O::syscall_destroy(kobj); }
 		};
 
 		using Slab = Tslab<Kobject, get_page_size()>;
@@ -68,7 +72,6 @@ class Genode::Rpc_cap_factory
 			Lock::Guard guard(_lock);
 
 			while (Kobject * obj = _list.first()) {
-				Kernel::delete_obj(obj->data);
 				_list.remove(obj);
 				destroy(&_slab, obj);
 			}
@@ -87,11 +90,8 @@ class Genode::Rpc_cap_factory
 			Kobject * obj;
 			if (!_slab.alloc(sizeof(Kobject), (void**)&obj))
 				throw Allocator::Out_of_memory();
-			construct_at<Kobject>(obj);
+			construct_at<Kobject>(obj, ep);
 
-			/* create kernel object via syscall */
-			Kernel::capid_t capid = Kernel::new_obj(obj->data, Capability_space::capid(ep));
-			obj->cap = Capability_space::import(capid);
 			if (!obj->cap.valid()) {
 				raw("Invalid entrypoint ", (addr_t)Capability_space::capid(ep),
 				    " for allocating a capability!");
@@ -110,7 +110,7 @@ class Genode::Rpc_cap_factory
 
 			for (Kobject * obj = _list.first(); obj; obj = obj->next()) {
 				if (obj->cap.data() == cap.data()) {
-					Kernel::delete_obj(obj->data);
+					obj->destruct();
 					_list.remove(obj);
 					destroy(&_slab, obj);
 					return;

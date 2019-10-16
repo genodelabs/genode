@@ -72,12 +72,11 @@ class Hw::Address_space : public Genode::Address_space
 		using Table = Hw::Page_table;
 		using Array = Table::Allocator::Array<DEFAULT_TRANSLATION_TABLE_MAX>;
 
-		Genode::Lock       _lock { };           /* table lock      */
-		Table            & _tt;                 /* table virt addr */
-		Genode::addr_t     _tt_phys;            /* table phys addr */
-		Array            * _tt_array = nullptr;
-		Table::Allocator & _tt_alloc;           /* table allocator */
-		Kernel::Pd       & _kernel_pd;
+		Genode::Lock                _lock { };           /* table lock      */
+		Table                     & _tt;                 /* table virt addr */
+		Genode::addr_t              _tt_phys;            /* table phys addr */
+		Array                     * _tt_array = nullptr;
+		Table::Allocator          & _tt_alloc;           /* table allocator */
 
 		static inline Genode::Core_mem_allocator &_cma();
 
@@ -85,25 +84,27 @@ class Hw::Address_space : public Genode::Address_space
 
 	protected:
 
+		Kernel_object<Kernel::Pd> _kobj;
+
 		/**
 		 * Core-specific constructor
 		 *
-		 * \param pd        pointer to kernel's pd object
-		 * \param tt        pointer to translation table
-		 * \param tt_alloc  pointer to translation table allocator
+		 * \param tt        reference to translation table
+		 * \param tt_alloc  reference to translation table allocator
+		 * \param pd        reference to platform pd object
 		 */
-		Address_space(Kernel::Pd                & pd,
-		              Hw::Page_table            & tt,
-		              Hw::Page_table::Allocator & tt_alloc);
+		Address_space(Hw::Page_table            & tt,
+		              Hw::Page_table::Allocator & tt_alloc,
+		              Platform_pd               & pd);
 
 	public:
 
 		/**
 		 * Constructor
 		 *
-		 * \param pd    pointer to kernel's pd object
+		 * \param pd    reference to platform pd object
 		 */
-		Address_space(Kernel::Pd & pd);
+		Address_space(Platform_pd & pd);
 
 		~Address_space();
 
@@ -132,9 +133,9 @@ class Hw::Address_space : public Genode::Address_space
 		 ** Accessors **
 		 ***************/
 
-		Kernel::Pd & kernel_pd() { return _kernel_pd; }
-		Hw::Page_table & translation_table() { return _tt; }
-		Genode::addr_t translation_table_phys() { return _tt_phys; }
+		Kernel::Pd     & kernel_pd()              { return *_kobj;   }
+		Hw::Page_table & translation_table()      { return _tt;      }
+		Genode::addr_t   translation_table_phys() { return _tt_phys; }
 };
 
 
@@ -161,8 +162,7 @@ class Genode::Cap_space
 
 
 class Genode::Platform_pd : public  Hw::Address_space,
-                            private Cap_space,
-                            private Kernel_object<Kernel::Pd>
+                            private Cap_space
 {
 	private:
 

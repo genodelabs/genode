@@ -15,9 +15,6 @@
 #ifndef _CORE__KERNEL__IPC_NODE_H_
 #define _CORE__KERNEL__IPC_NODE_H_
 
-/* Genode includes */
-#include <util/construct_at.h>
-
 /* base-local includes */
 #include <base/internal/native_utcb.h>
 

@@ -33,8 +33,7 @@ class Genode::Vm_session_component
 :
 	private Ram_quota_guard,
 	private Cap_quota_guard,
-	public Rpc_object<Vm_session, Vm_session_component>,
-	private Kernel_object<Kernel::Vm>
+	public Rpc_object<Vm_session, Vm_session_component>
 {
 	private:
 
@@ -49,6 +48,7 @@ class Genode::Vm_session_component
 		Region_map                &_region_map;
 		Ram_dataspace_capability   _ds_cap  { };
 		Region_map::Local_addr     _ds_addr { 0 };
+		Kernel_object<Kernel::Vm>  _kobj {};
 
 		static size_t _ds_size() {
 			return align_addr(sizeof(Cpu_state_modes),

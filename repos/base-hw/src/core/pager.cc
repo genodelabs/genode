@@ -53,12 +53,12 @@ void Pager_object::wake_up()
 	if (pt) pt->restart();
 }
 
-void Pager_object::start_paging(Kernel::Signal_receiver * receiver)
+void Pager_object::start_paging(Kernel_object<Kernel::Signal_receiver> & receiver)
 {
 	using Object = Kernel_object<Kernel::Signal_context>;
 	using Entry  = Object_pool<Pager_object>::Entry;
 
-	create(receiver, (unsigned long)this);
+	create(*receiver, (unsigned long)this);
 	Entry::cap(Object::_cap);
 }
 
@@ -103,13 +103,13 @@ void Pager_entrypoint::dissolve(Pager_object &o)
 
 Pager_entrypoint::Pager_entrypoint(Rpc_cap_factory &)
 : Thread_deprecated<PAGER_EP_STACK_SIZE>("pager_ep"),
-  Kernel_object<Kernel::Signal_receiver>(true)
+  _kobj(true)
 { start(); }
 
 
 Pager_capability Pager_entrypoint::manage(Pager_object &o)
 {
-	o.start_paging(kernel_object());
+	o.start_paging(_kobj);
 	insert(&o);
 	return reinterpret_cap_cast<Pager_object>(o.cap());
 }

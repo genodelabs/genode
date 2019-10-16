@@ -69,26 +69,29 @@ void Hw::Address_space::flush(addr_t virt, size_t size, Core_local_addr)
 
 	try {
 		_tt.remove_translation(virt, size, _tt_alloc);
-		Kernel::invalidate_tlb(&_kernel_pd, virt, size);
+		Kernel::invalidate_tlb(*_kobj, virt, size);
 	} catch(...) {
 		error("tried to remove invalid region!");
 	}
 }
 
 
-Hw::Address_space::Address_space(Kernel::Pd & pd, Page_table & tt,
-                                 Page_table::Allocator & tt_alloc)
-: _tt(tt), _tt_phys(Platform::core_page_table()),
-  _tt_alloc(tt_alloc), _kernel_pd(pd) { }
+Hw::Address_space::Address_space(Page_table            & tt,
+                                 Page_table::Allocator & tt_alloc,
+                                 Platform_pd           & pd)
+: _tt(tt),
+  _tt_phys(Platform::core_page_table()),
+  _tt_alloc(tt_alloc),
+  _kobj(false, *(Page_table*)translation_table_phys(), pd) {}
 
 
-Hw::Address_space::Address_space(Kernel::Pd & pd)
+Hw::Address_space::Address_space(Platform_pd & pd)
 : _tt(*construct_at<Page_table>(_table_alloc(), *((Page_table*)Hw::Mm::core_page_tables().base))),
   _tt_phys((addr_t)_cma().phys_addr(&_tt)),
   _tt_array(new (_cma()) Array([this] (void * virt) {
     return (addr_t)_cma().phys_addr(virt);})),
   _tt_alloc(_tt_array->alloc()),
-  _kernel_pd(pd) { }
+  _kobj(true, *(Page_table*)translation_table_phys(), pd) { }
 
 
 Hw::Address_space::~Address_space()
@@ -142,20 +145,13 @@ void Platform_pd::assign_parent(Native_capability parent)
 
 Platform_pd::Platform_pd(Page_table & tt,
                          Page_table::Allocator & alloc)
-:
-	Hw::Address_space(*kernel_object(), tt, alloc),
-	Kernel_object<Kernel::Pd>(false, *(Page_table*)translation_table_phys(), *this),
-	_label("core")
-{ }
+: Hw::Address_space(tt, alloc, *this), _label("core") { }
 
 
 Platform_pd::Platform_pd(Allocator &, char const *label)
-:
-	Hw::Address_space(*kernel_object()),
-	Kernel_object<Kernel::Pd>(true, *(Page_table*)translation_table_phys(), *this),
-	_label(label)
+: Hw::Address_space(*this), _label(label)
 {
-	if (!_cap.valid()) {
+	if (!_kobj.cap().valid()) {
 		error("failed to create kernel object");
 		throw Service_denied();
 	}

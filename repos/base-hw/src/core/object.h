@@ -15,7 +15,7 @@
 #define _CORE__OBJECT_H_
 
 /* Genode includes */
-#include <util/construct_at.h>
+#include <util/reconstructible.h>
 
 /* base-internal includes */
 #include <base/internal/capability_space.h>
@@ -35,13 +35,8 @@ namespace Genode {
 
 
 template <typename T>
-class Genode::Kernel_object
+class Genode::Kernel_object : public Genode::Constructible<Kernel::Core_object<T>>
 {
-	private:
-
-		uint8_t _data[sizeof(Kernel::Core_object<T>)]
-			__attribute__((aligned(sizeof(addr_t))));
-
 	protected:
 
 		Untyped_capability _cap { };
@@ -55,15 +50,17 @@ class Genode::Kernel_object
 		 */
 		template <typename... ARGS>
 		Kernel_object(bool syscall, ARGS &&... args)
-		: _cap(Capability_space::import(syscall ? T::syscall_create(&_data, args...)
+		: _cap(Capability_space::import(syscall ? T::syscall_create(*this, args...)
 		                                        : Kernel::cap_id_invalid()))
 		{
-			if (!syscall) construct_at<T>(&_data, args...);
+			if (!syscall) Genode::Constructible<Kernel::Core_object<T>>::construct(args...);
 		}
 
-		~Kernel_object() { T::syscall_destroy(kernel_object()); }
-
-		T * kernel_object() { return reinterpret_cast<T*>(_data); }
+		~Kernel_object()
+		{
+			if (Genode::Constructible<Kernel::Core_object<T>>::constructed())
+				T::syscall_destroy(*this);
+		}
 
 		Untyped_capability cap() { return _cap; }
 
@@ -73,8 +70,10 @@ class Genode::Kernel_object
 		template <typename... ARGS>
 		bool create(ARGS &&... args)
 		{
-			if (_cap.valid()) return false;
-			_cap = Capability_space::import(T::syscall_create(&_data, args...));
+			if (Genode::Constructible<Kernel::Core_object<T>>::constructed())
+				return false;
+
+			_cap = Capability_space::import(T::syscall_create(*this, args...));
 			return _cap.valid();
 		}
 };

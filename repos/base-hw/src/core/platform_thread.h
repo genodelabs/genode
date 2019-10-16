@@ -122,7 +122,7 @@ namespace Genode {
 			/**
 			 * Return information about current fault
 			 */
-			Kernel::Thread_fault fault_info() { return _kobj.kernel_object()->fault(); }
+			Kernel::Thread_fault fault_info() { return _kobj->fault(); }
 
 			/**
 			 * Join a protection domain
@@ -150,7 +150,7 @@ namespace Genode {
 			/**
 			 * Pause this thread
 			 */
-			void pause() { Kernel::pause_thread(_kobj.kernel_object()); }
+			void pause() { Kernel::pause_thread(*_kobj); }
 
 			/**
 			 * Enable/disable single stepping
@@ -160,13 +160,13 @@ namespace Genode {
 			/**
 			 * Resume this thread
 			 */
-			void resume() { Kernel::resume_thread(_kobj.kernel_object()); }
+			void resume() { Kernel::resume_thread(*_kobj); }
 
 			/**
 			 * Cancel currently blocking operation
 			 */
 			void cancel_blocking() {
-				Kernel::cancel_thread_blocking(_kobj.kernel_object()); }
+				Kernel::cancel_thread_blocking(*_kobj); }
 
 			/**
 			 * Set CPU quota of the thread to 'quota'

@@ -15,7 +15,6 @@
 /* Genode includes */
 #include <base/thread_state.h>
 #include <cpu_session/cpu_session.h>
-#include <util/construct_at.h>
 
 /* base-internal includes */
 #include <base/internal/unmanaged_singleton.h>
@@ -47,17 +46,17 @@ Thread::Tlb_invalidation::Tlb_invalidation(Thread & caller, Pd & pd,
 }
 
 
-Thread::Destroy::Destroy(Thread & caller, Thread & to_delete)
+Thread::Destroy::Destroy(Thread & caller, Genode::Kernel_object<Thread> & to_delete)
 : caller(caller), thread_to_destroy(to_delete)
 {
-	thread_to_destroy._cpu->work_list().insert(&_le);
+	thread_to_destroy->_cpu->work_list().insert(&_le);
 	caller._become_inactive(AWAITS_RESTART);
 }
 
 
 void Thread::Destroy::execute()
 {
-	thread_to_destroy.~Thread();
+	thread_to_destroy.destruct();
 	cpu_pool().executing_cpu().work_list().remove(&_le);
 	caller._restart();
 }
@@ -193,28 +192,6 @@ size_t Thread::_core_to_kernel_quota(size_t const quota) const
 }
 
 
-void Thread::_call_new_thread()
-{
-	void *       const p        = (void *)user_arg_1();
-	unsigned     const priority = user_arg_2();
-	unsigned     const quota    = _core_to_kernel_quota(user_arg_3());
-	char const * const label    = (char *)user_arg_4();
-	Core_object<Thread> * co =
-		Genode::construct_at<Core_object<Thread> >(p, priority, quota, label);
-	user_arg_0(co->core_capid());
-}
-
-
-void Thread::_call_new_core_thread()
-{
-	void *       const p        = (void *)user_arg_1();
-	char const * const label    = (char *)user_arg_2();
-	Core_object<Thread> * co =
-		Genode::construct_at<Core_object<Thread> >(p, label);
-	user_arg_0(co->core_capid());
-}
-
-
 void Thread::_call_thread_quota()
 {
 	Thread * const thread = (Thread *)user_arg_1();
@@ -227,7 +204,7 @@ void Thread::_call_start_thread()
 	/* lookup CPU */
 	Cpu & cpu = cpu_pool().cpu(user_arg_2());
 	user_arg_0(0);
-	Thread &thread = *(Thread *)user_arg_1();
+	Thread &thread = *(Thread*)user_arg_1();
 
 	assert(thread._state == AWAITS_START);
 
@@ -338,7 +315,8 @@ void Thread::_call_yield_thread()
 
 void Thread::_call_delete_thread()
 {
-	Thread * to_delete = reinterpret_cast<Thread*>(user_arg_1());
+	Genode::Kernel_object<Thread> & to_delete =
+		*(Genode::Kernel_object<Thread>*)user_arg_1();
 
 	/**
 	 * Delete a thread immediately if it has no cpu assigned yet,
@@ -346,7 +324,7 @@ void Thread::_call_delete_thread()
 	 */
 	if (!to_delete->_cpu ||
 	    (to_delete->_cpu->id() == Cpu::executing_id() ||
-	     &to_delete->_cpu->scheduled_job() != to_delete)) {
+	     &to_delete->_cpu->scheduled_job() != &*to_delete)) {
 		_call_delete<Thread>();
 		return;
 	}
@@ -354,7 +332,7 @@ void Thread::_call_delete_thread()
 	/**
 	 * Construct a cross-cpu work item and send an IPI
 	 */
-	_destroy.construct(*this, *to_delete);
+	_destroy.construct(*this, to_delete);
 	to_delete->_cpu->trigger_ip_interrupt();
 }
 
@@ -566,21 +544,19 @@ void Thread::_call_kill_signal_context()
 
 void Thread::_call_new_irq()
 {
-	Signal_context * const c = pd().cap_tree().find<Signal_context>(user_arg_3());
+	Signal_context * const c = pd().cap_tree().find<Signal_context>(user_arg_4());
 	if (!c) {
 		Genode::raw(*this, ": invalid signal context for interrupt");
 		user_arg_0(-1);
 		return;
 	}
 
-	new ((void *)user_arg_1()) User_irq(user_arg_2(), *c);
-	user_arg_0(0);
-}
+	Genode::Irq_session::Trigger  trigger  =
+		(Genode::Irq_session::Trigger)  (user_arg_3() & 0b1100);
+	Genode::Irq_session::Polarity polarity =
+		(Genode::Irq_session::Polarity) (user_arg_3() & 0b11);
 
-void Thread::_call_irq_mode()
-{
-	cpu_pool().executing_cpu().pic().irq_mode(user_arg_1(), user_arg_2(),
-	                                          user_arg_3());
+	_call_new<User_irq>((unsigned)user_arg_2(), trigger, polarity, *c);
 }
 
 
@@ -601,17 +577,18 @@ void Thread::_call_new_obj()
 		return;
 	}
 
-	using Thread_identity = Core_object_identity<Thread>;
-	Thread_identity * coi =
-		Genode::construct_at<Thread_identity>((void *)user_arg_1(), *thread);
+	using Thread_identity = Genode::Constructible<Core_object_identity<Thread>>;
+	Thread_identity & coi = *(Thread_identity*)user_arg_1();
+	coi.construct(*thread);
 	user_arg_0(coi->core_capid());
 }
 
 
 void Thread::_call_delete_obj()
 {
-	using Object = Core_object_identity<Thread>;
-	reinterpret_cast<Object*>(user_arg_1())->~Object();
+	using Thread_identity = Genode::Constructible<Core_object_identity<Thread>>;
+	Thread_identity & coi = *(Thread_identity*)user_arg_1();
+	coi.destruct();
 }
 
 
@@ -686,8 +663,14 @@ void Thread::_call()
 	}
 	/* switch over kernel calls that are restricted to core */
 	switch (call_id) {
-	case call_id_new_thread():             _call_new_thread(); return;
-	case call_id_new_core_thread():        _call_new_core_thread(); return;
+	case call_id_new_thread():
+		_call_new<Thread>((unsigned) user_arg_2(),
+		                  (unsigned) _core_to_kernel_quota(user_arg_3()),
+		                  (char const *) user_arg_4());
+		return;
+	case call_id_new_core_thread():
+		_call_new<Thread>((char const *) user_arg_2());
+		return;
 	case call_id_thread_quota():           _call_thread_quota(); return;
 	case call_id_delete_thread():          _call_delete_thread(); return;
 	case call_id_start_thread():           _call_start_thread(); return;
@@ -702,7 +685,7 @@ void Thread::_call()
 	case call_id_delete_pd():              _call_delete<Pd>(); return;
 	case call_id_new_signal_receiver():    _call_new<Signal_receiver>(); return;
 	case call_id_new_signal_context():
-		_call_new<Signal_context>((Signal_receiver*) user_arg_2(), user_arg_3());
+		_call_new<Signal_context>(*(Signal_receiver*) user_arg_2(), user_arg_3());
 		return;
 	case call_id_delete_signal_context():  _call_delete<Signal_context>(); return;
 	case call_id_delete_signal_receiver(): _call_delete<Signal_receiver>(); return;
@@ -712,7 +695,6 @@ void Thread::_call()
 	case call_id_pause_vm():               _call_pause_vm(); return;
 	case call_id_pause_thread():           _call_pause_thread(); return;
 	case call_id_new_irq():                _call_new_irq(); return;
-	case call_id_irq_mode():               _call_irq_mode(); return;
 	case call_id_delete_irq():             _call_delete<Irq>(); return;
 	case call_id_ack_irq():                _call_ack_irq(); return;
 	case call_id_new_obj():                _call_new_obj(); return;

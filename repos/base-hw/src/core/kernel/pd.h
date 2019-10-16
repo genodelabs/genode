@@ -19,8 +19,10 @@
 #include <hw/assert.h>
 #include <cpu.h>
 #include <kernel/core_interface.h>
-#include <kernel/object.h>
+#include <object.h>
 #include <translation_table.h>
+
+#include <util/reconstructible.h>
 
 namespace Genode {
 	class Platform_pd;
@@ -51,6 +53,7 @@ class Kernel::Pd : public Kernel::Object
 		Genode::Platform_pd           &_platform_pd;
 		Capid_allocator                _capid_alloc { };
 		Object_identity_reference_tree _cap_tree    { };
+		bool                           _core_pd     { false };
 
 	public:
 
@@ -69,6 +72,12 @@ class Kernel::Pd : public Kernel::Object
 		{
 			capid_t invalid = _capid_alloc.alloc();
 			assert(invalid == cap_id_invalid());
+
+			static bool first_pd = true;
+			if (first_pd) {
+				_core_pd = true;
+				first_pd = false;
+			}
 		}
 
 		~Pd()
@@ -77,16 +86,16 @@ class Kernel::Pd : public Kernel::Object
 				oir->~Object_identity_reference();
 		}
 
-		static capid_t syscall_create(void * const dst,
-		                              Hw::Page_table &tt,
-		                              Genode::Platform_pd &pd)
+		static capid_t syscall_create(Genode::Kernel_object<Pd> & p,
+		                              Hw::Page_table            & tt,
+		                              Genode::Platform_pd       & pd)
 		{
-			return call(call_id_new_pd(), (Call_arg)dst,
+			return call(call_id_new_pd(), (Call_arg)&p,
 			            (Call_arg)&tt, (Call_arg)&pd);
 		}
 
-		static void syscall_destroy(Pd * const pd) {
-			call(call_id_delete_pd(), (Call_arg)pd); }
+		static void syscall_destroy(Genode::Kernel_object<Pd> & p) {
+			call(call_id_delete_pd(), (Call_arg)&p); }
 
 		/**
 		 * Check whether the given 'cpu' needs to do some maintainance
@@ -103,6 +112,13 @@ class Kernel::Pd : public Kernel::Object
 		Hw::Page_table      &translation_table()   { return _table;       }
 		Capid_allocator     &capid_alloc()         { return _capid_alloc; }
 		Object_identity_reference_tree &cap_tree() { return _cap_tree;    }
+		bool                 core_pd() const       { return _core_pd;     }
 };
+
+
+template<>
+inline Kernel::Core_object_identity<Kernel::Pd>::Core_object_identity(Kernel::Pd & pd)
+: Object_identity(pd),
+  Object_identity_reference(this, pd.core_pd() ? pd : core_pd()) { }
 
 #endif /* _CORE__KERNEL__PD_H_ */

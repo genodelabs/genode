@@ -55,7 +55,7 @@ Signal_context_killer::~Signal_context_killer() { cancel_waiting(); }
 
 void Signal_context::_deliverable()
 {
-	if (_submits) { _receiver->_add_deliverable(this); }
+	if (_submits) { _receiver._add_deliverable(this); }
 }
 
 
@@ -118,16 +118,15 @@ int Signal_context::kill(Signal_context_killer * const k)
 Signal_context::~Signal_context()
 {
 	if (_killer) { _killer->_signal_context_kill_failed(); }
-	_receiver->_context_destructed(this);
+	_receiver._context_destructed(this);
 }
 
 
-Signal_context::Signal_context(Signal_receiver * const r, addr_t const imprint)
-:
-	_receiver(r),
-	_imprint(imprint)
+Signal_context::Signal_context(Signal_receiver & r, addr_t const imprint)
+: _receiver(r),
+  _imprint(imprint)
 {
-	r->_add_context(this);
+	r._add_context(this);
 }
 
 
@@ -164,7 +163,7 @@ void Signal_receiver::_listen()
 			/* communicate signal data to handler */
 			_handlers.dequeue([&] (Signal_handler::Fifo_element &elem) {
 				auto const handler = &elem.object();
-				handler->_receiver = 0;
+				handler->_receiver = nullptr;
 				handler->_receive_signal(&data, sizeof(data));
 			});
 			context->_delivered();

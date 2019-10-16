@@ -30,13 +30,11 @@ addr_t Vm_session_component::_alloc_ds()
 
 void Vm_session_component::_run(Vcpu_id)
 {
-	if (Kernel_object<Kernel::Vm>::_cap.valid())
-		Kernel::run_vm(kernel_object());
+	if (_kobj.constructed()) Kernel::run_vm(*_kobj);
 }
 
 
 void Vm_session_component::_pause(Vcpu_id)
 {
-	if (Kernel_object<Kernel::Vm>::_cap.valid())
-		Kernel::pause_vm(kernel_object());
+	if (_kobj.constructed()) Kernel::pause_vm(*_kobj);
 }
