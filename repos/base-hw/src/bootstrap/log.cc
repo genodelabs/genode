@@ -19,6 +19,7 @@
 /* base-internal includes */
 #include <base/internal/globals.h>
 #include <base/internal/output.h>
+#include <base/internal/raw_write_string.h>
 #include <base/internal/unmanaged_singleton.h>
 
 #include <board.h>
@@ -57,3 +58,5 @@ struct Buffer
 Genode::Log &Genode::Log::log() {
 	return unmanaged_singleton<Buffer>()->log; }
 
+
+void Genode::raw_write_string(char const *str) { log(str); }

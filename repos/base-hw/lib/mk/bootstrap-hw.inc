@@ -17,6 +17,7 @@ SRC_CC  += lib/base/heap.cc
 SRC_CC  += lib/base/registry.cc
 SRC_CC  += lib/base/log.cc
 SRC_CC  += lib/base/output.cc
+SRC_CC  += lib/base/raw_output.cc
 SRC_CC  += lib/base/slab.cc
 SRC_CC  += lib/base/sleep.cc
 SRC_CC  += lib/base/sliced_heap.cc
