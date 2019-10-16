@@ -18,7 +18,6 @@
 /* core includes */
 #include <kernel/irq.h>
 #include <irq_root.h>
-#include <irq_args.h>
 #include <core_env.h>
 
 /* base-internal includes */
@@ -35,10 +34,9 @@ unsigned Irq_session_component::_find_irq_number(const char * const args)
 
 void Irq_session_component::ack_irq()
 {
-	using Kernel::User_irq;
 	if (!_sig_cap.valid()) { return; }
-	User_irq * const kirq = reinterpret_cast<User_irq*>(&_kernel_object);
-	Kernel::ack_irq(kirq);
+
+	Kernel::ack_irq(*_kobj);
 }
 
 
@@ -51,8 +49,8 @@ void Irq_session_component::sigh(Signal_context_capability cap)
 
 	_sig_cap = cap;
 
-	if (Kernel::new_irq((addr_t)&_kernel_object, _irq_number,
-	                    Capability_space::capid(_sig_cap)))
+	if (!_kobj.create(_irq_number, _irq_args.trigger(), _irq_args.polarity(),
+	                  Capability_space::capid(_sig_cap)))
 		warning("invalid signal handler for IRQ ", _irq_number);
 }
 
@@ -61,18 +59,16 @@ Irq_session_component::~Irq_session_component()
 {
 	using namespace Kernel;
 
-	User_irq * kirq = reinterpret_cast<User_irq*>(&_kernel_object);
 	_irq_alloc.free((void *)(addr_t)_irq_number);
-	if (_sig_cap.valid())
-		Kernel::delete_irq(kirq);
 }
 
 
 Irq_session_component::Irq_session_component(Range_allocator &irq_alloc,
                                              const char * const args)
-:
-	_irq_number(Platform::irq(_find_irq_number(args))), _irq_alloc(irq_alloc),
-	_is_msi(false), _address(0), _value(0)
+: _irq_args(args),
+  _irq_number(Platform::irq(_irq_args.irq_number())),
+  _irq_alloc(irq_alloc),
+  _kobj(), _is_msi(false), _address(0), _value(0)
 {
 	const long mmconf =
 		Arg_string::find_arg(args, "device_config_phys").long_value(0);
@@ -89,8 +85,4 @@ Irq_session_component::Irq_session_component(Range_allocator &irq_alloc,
 		error("unavailable interrupt ", _irq_number, " requested");
 		throw Service_denied();
 	}
-
-	Irq_args const irq_args(args);
-
-	Kernel::irq_mode(_irq_number, irq_args.trigger(), irq_args.polarity());
 }

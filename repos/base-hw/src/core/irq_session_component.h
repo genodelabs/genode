@@ -19,6 +19,8 @@
 #include <util/list.h>
 #include <irq_session/capability.h>
 
+#include <irq_args.h>
+#include <object.h>
 #include <kernel/irq.h>
 
 namespace Genode { class Irq_session_component; }
@@ -31,13 +33,13 @@ class Genode::Irq_session_component : public  Rpc_object<Irq_session>,
 
 		friend class List<Irq_session_component>;
 
-		unsigned         _irq_number;
-		Range_allocator &_irq_alloc;
-		Genode::uint8_t  _kernel_object[sizeof(Kernel::User_irq)];
-		bool             _is_msi;
-		addr_t           _address, _value;
-
-		Signal_context_capability _sig_cap { };
+		Irq_args const                  _irq_args;
+		unsigned                        _irq_number;
+		Range_allocator               & _irq_alloc;
+		Kernel_object<Kernel::User_irq> _kobj;
+		bool                            _is_msi;
+		addr_t                          _address, _value;
+		Signal_context_capability       _sig_cap { };
 
 		unsigned _find_irq_number(const char * const args);
 

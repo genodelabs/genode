@@ -30,3 +30,14 @@ Kernel::Irq::Pool &Kernel::User_irq::_pool()
 	static Irq::Pool p;
 	return p;
 }
+
+
+Kernel::User_irq::User_irq(unsigned const                irq,
+                           Genode::Irq_session::Trigger  trigger,
+                           Genode::Irq_session::Polarity polarity,
+                           Signal_context              & context)
+: Irq(irq, _pool()), _context(context)
+{
+	disable();
+	cpu_pool().executing_cpu().pic().irq_mode(_irq_nr, trigger, polarity);
+}

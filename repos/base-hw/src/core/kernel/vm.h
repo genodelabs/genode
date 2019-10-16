@@ -84,11 +84,12 @@ class Kernel::Vm : public Cpu_job,
 		 *
 		 * \retval cap id when successful, otherwise invalid cap id
 		 */
-		static capid_t syscall_create(void * const dst, void * const state,
-		                              capid_t const signal_context_id,
-		                              void * const table)
+		static capid_t syscall_create(Genode::Kernel_object<Vm> & vm,
+		                              void * const                state,
+		                              capid_t const               signal_context_id,
+		                              void * const                table)
 		{
-			return call(call_id_new_vm(), (Call_arg)dst, (Call_arg)state,
+			return call(call_id_new_vm(), (Call_arg)&vm, (Call_arg)state,
 			            (Call_arg)table, signal_context_id);
 		}
 
@@ -99,8 +100,8 @@ class Kernel::Vm : public Cpu_job,
 		 *
 		 * \retval 0 when successful, otherwise !=0
 		 */
-		static void syscall_destroy(Vm * const vm) {
-			call(call_id_delete_vm(), (Call_arg) vm); }
+		static void syscall_destroy(Genode::Kernel_object<Vm> & vm) {
+			call(call_id_delete_vm(), (Call_arg) &vm); }
 
 
 		/****************

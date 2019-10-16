@@ -36,7 +36,7 @@ void Pager_entrypoint::entry()
 		if (cap.valid()) Kernel::ack_signal(Capability_space::capid(cap));
 
 		/* receive fault */
-		if (Kernel::await_signal(Capability_space::capid(_cap))) continue;
+		if (Kernel::await_signal(Capability_space::capid(_kobj.cap()))) continue;
 
 		Pager_object *po = *(Pager_object**)Thread::myself()->utcb()->data();
 		cap = po->cap();

@@ -16,9 +16,10 @@
 
 /* Genode includes */
 #include <base/signal.h>
+#include <util/reconstructible.h>
 
 #include <kernel/core_interface.h>
-#include <kernel/object.h>
+#include <object.h>
 
 namespace Kernel
 {
@@ -160,7 +161,7 @@ class Kernel::Signal_context : public Kernel::Object
 
 		Fifo_element            _deliver_fe  { *this   };
 		Fifo_element            _contexts_fe { *this   };
-		Signal_receiver * const _receiver;
+		Signal_receiver &       _receiver;
 		addr_t const            _imprint;
 		Signal_context_killer * _killer      { nullptr };
 		unsigned                _submits     { 0       };
@@ -197,7 +198,7 @@ class Kernel::Signal_context : public Kernel::Object
 		 *
 		 * \throw  Assign_to_receiver_failed
 		 */
-		Signal_context(Signal_receiver * const r, addr_t const imprint);
+		Signal_context(Signal_receiver & r, addr_t const imprint);
 
 		/**
 		 * Submit the signal
@@ -233,12 +234,12 @@ class Kernel::Signal_context : public Kernel::Object
 		 *
 		 * \retval capability id of the new kernel object
 		 */
-		static capid_t syscall_create(void * p,
-		                              Signal_receiver * const receiver,
+		static capid_t syscall_create(Genode::Kernel_object<Signal_context> &c,
+		                              Signal_receiver & receiver,
 		                              addr_t const imprint)
 		{
-			return call(call_id_new_signal_context(), (Call_arg)p,
-			            (Call_arg)receiver, (Call_arg)imprint);
+			return call(call_id_new_signal_context(), (Call_arg)&c,
+			            (Call_arg)&receiver, (Call_arg)imprint);
 		}
 
 		/**
@@ -246,8 +247,8 @@ class Kernel::Signal_context : public Kernel::Object
 		 *
 		 * \param context  pointer to signal context kernel object
 		 */
-		static void syscall_destroy(Signal_context * const context) {
-			call(call_id_delete_signal_context(), (Call_arg)context); }
+		static void syscall_destroy(Genode::Kernel_object<Signal_context> &c) {
+			call(call_id_delete_signal_context(), (Call_arg)&c); }
 };
 
 class Kernel::Signal_receiver : public Kernel::Object
@@ -311,16 +312,16 @@ class Kernel::Signal_receiver : public Kernel::Object
 		 *
 		 * \retval capability id of the new kernel object
 		 */
-		static capid_t syscall_create(void * p) {
-			return call(call_id_new_signal_receiver(), (Call_arg)p); }
+		static capid_t syscall_create(Genode::Kernel_object<Signal_receiver> &r) {
+			return call(call_id_new_signal_receiver(), (Call_arg)&r); }
 
 		/**
 		 * Syscall to destruct a signal receiver
 		 *
 		 * \param receiver  pointer to signal receiver kernel object
 		 */
-		static void syscall_destroy(Signal_receiver * const receiver) {
-			call(call_id_delete_signal_receiver(), (Call_arg)receiver); }
+		static void syscall_destroy(Genode::Kernel_object<Signal_receiver> &r) {
+			call(call_id_delete_signal_receiver(), (Call_arg)&r); }
 };
 
 #endif /* _CORE__KERNEL__SIGNAL_RECEIVER_H_ */

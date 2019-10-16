@@ -157,7 +157,7 @@ class Genode::Pager_object : private Object_pool<Pager_object>::Entry,
 		 *
 		 * \param receiver  signal receiver that receives the page faults
 		 */
-		void start_paging(Kernel::Signal_receiver * receiver);
+		void start_paging(Kernel_object<Kernel::Signal_receiver> & receiver);
 
 		/**
 		 * Called when a page-fault finally could not be resolved
@@ -195,9 +195,12 @@ class Genode::Pager_object : private Object_pool<Pager_object>::Entry,
 
 class Genode::Pager_entrypoint : public  Object_pool<Pager_object>,
                                  public  Thread_deprecated<PAGER_EP_STACK_SIZE>,
-                                 private Kernel_object<Kernel::Signal_receiver>,
                                  private Ipc_pager
 {
+	private:
+
+		Kernel_object<Kernel::Signal_receiver> _kobj;
+
 	public:
 
 		/**

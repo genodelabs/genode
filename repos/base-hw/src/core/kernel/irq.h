@@ -135,8 +135,10 @@ class Kernel::User_irq : public Kernel::Irq, public Kernel::Object
 		/**
 		 * Construct object that signals interrupt 'irq' via signal 'context'
 		 */
-		User_irq(unsigned const irq, Signal_context &context)
-		: Irq(irq, _pool()), _context(context) { disable(); }
+		User_irq(unsigned const                irq,
+		         Genode::Irq_session::Trigger  trigger,
+		         Genode::Irq_session::Polarity polarity,
+		         Signal_context              & context);
 
 		/**
 		 * Destructor
@@ -157,6 +159,33 @@ class Kernel::User_irq : public Kernel::Irq, public Kernel::Object
 		 */
 		static User_irq * object(unsigned const irq) {
 			return dynamic_cast<User_irq*>(_pool().object(irq)); }
+
+		/**
+		 * Syscall to create user irq object
+		 *
+		 * \param irq       reference to constructible object
+		 * \param nr        interrupt number
+		 * \param trigger   level or edge
+		 * \param polarity  low or high
+		 * \param sig       capability of signal context
+		 */
+		static capid_t syscall_create(Genode::Kernel_object<User_irq> & irq,
+		                              unsigned                          nr,
+		                              Genode::Irq_session::Trigger      trigger,
+		                              Genode::Irq_session::Polarity     polarity,
+		                              capid_t                           sig)
+		{
+			return call(call_id_new_irq(), (Call_arg)&irq, nr,
+			            (trigger << 2) | polarity, sig);
+		}
+
+		/**
+		 * Syscall to delete user irq object
+		 *
+		 * \param irq  reference to constructible object
+		 */
+		static void syscall_destroy(Genode::Kernel_object<User_irq> &irq) {
+			call(call_id_delete_irq(), (Call_arg) &irq); }
 };
 
 #endif /* _CORE__KERNEL__IRQ_H_ */

@@ -55,19 +55,21 @@ struct Genode::Signal_source_component : private Kernel_object<Kernel::Signal_re
 	using Signal_source_pool::Entry::cap;
 
 	Signal_source_component()
-	:
-		Kernel_object<Kernel::Signal_receiver>(true),
-		Signal_source_pool::Entry(Kernel_object<Kernel::Signal_receiver>::_cap)
+	: Kernel_object<Kernel::Signal_receiver>(true),
+	  Signal_source_pool::Entry(Kernel_object<Kernel::Signal_receiver>::cap())
 	{ }
 
 	void submit(Signal_context_component *, unsigned long) { ASSERT_NEVER_CALLED; }
+
+	Kernel::Signal_receiver & signal_receiver() {
+		return **static_cast<Kernel_object<Kernel::Signal_receiver>*>(this); }
 };
 
 
 Genode::Signal_context_component::Signal_context_component(Signal_source_component &s,
                                                            addr_t const imprint)
 :
-	Kernel_object<Kernel::Signal_context>(true, s.kernel_object(), imprint),
+	Kernel_object<Kernel::Signal_context>(true, s.signal_receiver(), imprint),
 	Signal_context_pool::Entry(Kernel_object<Kernel::Signal_context>::_cap)
 { }
 
