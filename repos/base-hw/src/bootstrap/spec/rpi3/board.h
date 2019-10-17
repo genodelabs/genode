@@ -26,6 +26,7 @@ namespace Board {
 		static void wake_up_all_cpus(void*);
 	};
 
+	struct Pic { }; /* dummy object */
 };
 
 #endif /* _BOOTSTRAP__SPEC__RPI3__BOARD_H_ */

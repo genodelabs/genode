@@ -87,7 +87,7 @@ unsigned Bootstrap::Platform::enable_mmu()
 	bool primary = primary_cpu;
 	if (primary) primary_cpu = false;
 
-	::Board::Pic pic {};
+	::Board::Pic pic __attribute__((unused)) {};
 
 	while (Cpu::current_privilege_level() > Cpu::Current_el::EL1) {
 		if (Cpu::current_privilege_level() == Cpu::Current_el::EL3)
