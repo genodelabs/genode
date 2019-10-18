@@ -21,7 +21,7 @@
 
 namespace Board {
 	using namespace Hw::Odroid_xu_board;
-	using Pic = Gicv2;
+	using Pic = Hw::Gicv2;
 	static constexpr bool NON_SECURE = false;
 }
 
