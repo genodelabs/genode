@@ -25,6 +25,9 @@
 #include <iprt/timer.h>
 #include <iprt/uint128.h>
 #include <VBox/err.h>
+#include <pthread.h>
+#include <semaphore.h>
+
 
 static PFNRTTIMER rttimer_func = nullptr;
 static void *     rttimer_obj  = nullptr;
@@ -39,9 +42,38 @@ enum {
 PSUPGLOBALINFOPAGE g_pSUPGlobalInfoPage;
 
 
-struct Periodic_gip : public Genode::Thread
+struct Periodic_gip
 {
-	Periodic_gip(Genode::Env &env) : Thread(env, "periodic_gip", 8192) { start(); }
+	struct Thread
+	{
+		sem_t     _startup_sem;
+		pthread_t _thread;
+
+		static void * _entry_trampoline(void *arg)
+		{
+			Thread *t = (Thread *)arg;
+			sem_wait(&t->_startup_sem);
+			t->_entry();
+			return nullptr;
+		}
+
+		void _entry() { genode_update_tsc(Periodic_gip::update, UPDATE_US); }
+
+		Thread()
+		{
+			sem_init(&_startup_sem, 0, 0);
+
+			if (pthread_create(&_thread, 0, _entry_trampoline, this) != 0) {
+				printf("Error: pthread_create() failed\n");
+				exit(-1);
+			}
+		}
+
+		void start() { sem_post(&_startup_sem); }
+		void join()  { pthread_join(_thread, nullptr); }
+	} thread;
+
+	Periodic_gip() { thread.start(); }
 
 	static void update()
 	{
@@ -95,8 +127,6 @@ struct Periodic_gip : public Genode::Thread
 		if (rttimer_func)
 			rttimer_func(nullptr, rttimer_obj, 0);
 	}
-
-	void entry() override { genode_update_tsc(update, UPDATE_US); }
 };
 
 
@@ -139,7 +169,7 @@ struct Attached_gip : Genode::Attached_ram_dataspace
 		cpu->idApic                  = 0;
 
 		/* schedule periodic call of GIP update function */
-		static Periodic_gip periodic_gip(genode_env());
+		static Periodic_gip periodic_gip { };
 	}
 };
 
