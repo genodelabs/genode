@@ -45,9 +45,10 @@
 	};
 
 	chosen {
-		bootargs = "rdinit=/bin/sh";
+		/* bootargs = "rdinit=/bin/sh console=hvc0 earlycon=pl011,0x9000000"; */
+		bootargs = "init=/sbin/init ip=dhcp console=hvc0";
 		linux,initrd-start = <0x42000000>;
-		linux,initrd-end   = <0x42113b86>;
+		linux,initrd-end   = <0x420aa539>;
 		stdout-path = "/pl011@9000000";
 	};
 
@@ -61,5 +62,20 @@
 		interrupt-controller;
 		#interrupt-cells = <0x03>;
 		#size-cells = <0x02>;
+	};
+
+
+	virtio_mmio@a000000 {
+		interrupts = <0x00 0x10 0x01>;
+		compatible = "virtio,mmio";
+		dma-coherent;
+		reg = <0x00 0xa000000 0x00 0x200>;
+	};
+
+	virtio_mmio@a000200 {
+		interrupts = <0x00 0x11 0x01>;
+		compatible = "virtio,mmio";
+		dma-coherent;
+		reg = <0x00 0xa000200 0x00 0x200>;
 	};
 };

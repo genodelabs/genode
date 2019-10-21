@@ -49,7 +49,9 @@ Vmm::Cpu & Vm::boot_cpu()
 Vm::Vm(Genode::Env & env)
 : _env(env),
   _gic("Gicv3", 0x8000000, 0x10000, _bus, env),
-  _uart("Pl011", 0x9000000, 0x1000, 33, boot_cpu(), _bus, env)
+  _uart("Pl011", 0x9000000, 0x1000, 33, boot_cpu(), _bus, env),
+  _virtio_console("HVC", 0xa000000, 0x200,  48, boot_cpu(), _bus, _ram, env),
+  _virtio_net("Net", 0xa000200, 0x200,  49, boot_cpu(), _bus, _ram, env)
 {
 	_vm.attach(_vm_ram.cap(), RAM_ADDRESS);
 

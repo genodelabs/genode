@@ -15,6 +15,8 @@ set build_components {
 	core init timer
 	server/terminal_crosslink
 	test/terminal_expect_send
+	server/log_terminal
+	server/nic_router
 	server/vmm
 }
 build $build_components
@@ -40,17 +42,42 @@ install_config {
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
 	</start>
+	<start name="nic_drv">
+		<binary name="nic_router" />
+		<resource name="RAM" quantum="8M"/>
+		<provides> <service name="Nic"/> </provides>
+		<config>
+			<default-policy domain="default"/>
+			<domain name="default" interface="10.0.1.1/24">
+				<dhcp-server ip_first="10.0.1.2" ip_last="10.0.1.2" />
+			</domain>
+		</config>
+	</start>
+	<start name="log_terminal">
+		<resource name="RAM" quantum="2M"/>
+		<provides> <service name="Terminal"/> </provides>
+	</start>
 	<start name="terminal_crosslink">
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Terminal"/> </provides>
 	</start>
 	<start name="vmm" caps="200" priority="-1">
 		<resource name="RAM" quantum="256M"/>
+		<route>
+			<service name="Terminal" label="earlycon"> <child name="log_terminal"/> </service>
+			<service name="Terminal"> <child name="terminal_crosslink"/> </service>
+			<service name="Nic"> <child name="nic_drv"/> </service>
+			<any-service><parent/><any-child/></any-service>
+		</route>
 	</start>
 	<start name="vm">
 		<binary name="test-terminal_expect_send"/>
 		<resource name="RAM" quantum="1M"/>
 		<config expect="/ #" send="ls" verbose="yes"/>
+		<route>
+			<service name="Terminal"> <child name="terminal_crosslink"/> </service>
+			<any-service><parent/><any-child/></any-service>
+		</route>
 	</start>
 </config>
 }
@@ -94,17 +121,17 @@ if { [have_spec arm_64] } {
 
 	if {![file exists bin/linux]} {
 		puts "Download linux kernel ..."
-			exec >& /dev/null wget -c -O bin/linux http://genode.org/files/release-19.11/linux-arm64-image-5.2
+			exec >& /dev/null wget -c -O bin/linux http://genode.org/files/release-20.02/linux-arm64
 	}
 
 	if {![file exists bin/dtb]} {
 		puts "Download device tree blob ..."
-			exec >& /dev/null wget -c -O bin/dtb http://genode.org/files/release-19.11/dtb-arm64-virt
+			exec >& /dev/null wget -c -O bin/dtb http://genode.org/files/release-20.02/dtb-arm64-virt
 	}
 
 	if {![file exists bin/initrd]} {
 		puts "Download initramfs ..."
-			exec >& /dev/null wget -c -O bin/initrd http://genode.org/files/release-19.11/initrd-arm64
+			exec >& /dev/null wget -c -O bin/initrd http://genode.org/files/release-20.02/initrd-arm64
 	}
 
 #
@@ -151,6 +178,8 @@ set boot_modules {
 	timer
 	terminal_crosslink
 	test-terminal_expect_send
+	nic_router
+	log_terminal
 	vmm
 	linux
 	dtb

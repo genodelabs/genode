@@ -19,6 +19,8 @@
 #include <cpu.h>
 #include <gic.h>
 #include <pl011.h>
+#include <virtio_console.h>
+#include <virtio_net.h>
 
 #include <base/attached_ram_dataspace.h>
 #include <base/attached_rom_dataspace.h>
@@ -48,7 +50,7 @@ class Vmm::Vm
 		Genode::Attached_rom_dataspace _dtb_rom    { _env, "dtb"    };
 		Genode::Attached_rom_dataspace _initrd_rom { _env, "initrd" };
 		Genode::Attached_ram_dataspace _vm_ram     { _env.ram(), _env.rm(),
-		                                             RAM_SIZE, Genode::UNCACHED };
+		                                             RAM_SIZE, Genode::CACHED };
 		Ram                            _ram        { RAM_ADDRESS, RAM_SIZE,
 		                                             (Genode::addr_t)_vm_ram.local_addr<void>()};
 		Genode::Heap                   _heap       { _env.ram(), _env.rm() };
@@ -57,6 +59,8 @@ class Vmm::Vm
 		Genode::Constructible<Ep>      _eps[MAX_CPUS];
 		Genode::Constructible<Cpu>     _cpus[MAX_CPUS];
 		Pl011                          _uart;
+		Virtio_console                 _virtio_console;
+		Virtio_net                     _virtio_net;
 
 		void _load_kernel();
 		void _load_dtb();
