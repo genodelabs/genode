@@ -156,6 +156,8 @@ class Genode::Expanding_reporter
 		typedef Session_label Label;
 		typedef String<64>    Node_type;
 
+		struct Initial_buffer_size { size_t value; };
+
 	private:
 
 		Env &_env;
@@ -165,7 +167,7 @@ class Genode::Expanding_reporter
 
 		Constructible<Reporter> _reporter { };
 
-		size_t _buffer_size = 4096;
+		size_t _buffer_size;
 
 		void _construct()
 		{
@@ -181,8 +183,10 @@ class Genode::Expanding_reporter
 
 	public:
 
-		Expanding_reporter(Env &env, Node_type const &type, Label const &label)
-		: _env(env), _type(type), _label(label) { _construct(); }
+		Expanding_reporter(Env &env, Node_type const &type, Label const &label,
+		                   Initial_buffer_size const size = { 4096 })
+		: _env(env), _type(type), _label(label), _buffer_size(size.value)
+		{ _construct(); }
 
 		template <typename FN>
 		void generate(FN const &fn)
