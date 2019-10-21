@@ -15,6 +15,7 @@
 #define _SRC__SERVER__VMM__RAM_H_
 
 #include <base/stdint.h>
+#include <exception.h>
 
 class Ram {
 
@@ -34,6 +35,16 @@ class Ram {
 		Genode::addr_t base()  const { return _base;  }
 		Genode::size_t size()  const { return _size;  }
 		Genode::addr_t local() const { return _local; }
+
+		Genode::addr_t local_address(Genode::addr_t guest, Genode::size_t size)
+		{
+			if (guest < _base || guest >= _base + _size ||
+			    size == 0 || guest + size >= _base + _size)
+				throw Vmm::Exception("Invalid guest physical address: ",
+				                     Genode::Hex(guest), " size: ", Genode::Hex(size));
+
+			return _local + (guest - _base);
+		}
 };
 
 #endif /* _SRC__SERVER__VMM__RAM_H_ */
