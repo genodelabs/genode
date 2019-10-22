@@ -44,6 +44,7 @@ void Vm::exception(Cpu & cpu)
 		return;
 	case Genode::Cpu_state::DATA_ABORT:
 		_state->dfar = Cpu::Dfar::read();
+		[[fallthrough]];
 	default:
 		pause();
 		_context->submit(1);

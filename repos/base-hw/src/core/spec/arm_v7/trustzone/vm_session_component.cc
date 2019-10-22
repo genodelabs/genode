@@ -20,8 +20,7 @@ using namespace Genode;
 
 void Vm_session_component::_exception_handler(Signal_context_capability handler, Vcpu_id)
 {
-	if (!create(_ds_addr, Capability_space::capid(handler), nullptr))
-	{
+	if (!_kobj.create(_ds_addr, Capability_space::capid(handler), nullptr)) {
 		warning("Cannot instantiate vm kernel object twice,"
 		        "or invalid signal context?");
 	}
