@@ -35,12 +35,12 @@ class Genode::Vm_session_component
 :
 	private Ram_quota_guard,
 	private Cap_quota_guard,
-	public Rpc_object<Vm_session, Vm_session_component>,
-	private Kernel_object<Kernel::Vm>
+	public Rpc_object<Vm_session, Vm_session_component>
 {
 	private:
 
-		Vm_state _state;
+		Kernel_object<Kernel::Vm> _kobj {};
+		Vm_state                  _state;
 
 	public:
 
@@ -68,22 +68,16 @@ class Genode::Vm_session_component
 
 		void _exception_handler(Signal_context_capability handler, Vcpu_id)
 		{
-			if (!create(&_state, Capability_space::capid(handler), nullptr))
+			if (!_kobj.create(&_state, Capability_space::capid(handler), nullptr))
 				warning("Cannot instantiate vm kernel object, "
 				        "invalid signal context?");
 		}
 
-		void _run(Vcpu_id)
-		{
-			if (Kernel_object<Kernel::Vm>::_cap.valid())
-				Kernel::run_vm(kernel_object());
-		}
+		void _run(Vcpu_id) {
+			if (_kobj.constructed()) Kernel::run_vm(*_kobj); }
 
-		void _pause(Vcpu_id)
-		{
-			if (Kernel_object<Kernel::Vm>::_cap.valid())
-				Kernel::pause_vm(kernel_object());
-		}
+		void _pause(Vcpu_id) {
+			if (_kobj.constructed()) Kernel::pause_vm(*_kobj); }
 
 		void attach(Dataspace_capability, addr_t, Attach_attr) override { }
 		void attach_pic(addr_t)                   override { }

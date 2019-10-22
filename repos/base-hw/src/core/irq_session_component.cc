@@ -34,9 +34,7 @@ unsigned Irq_session_component::_find_irq_number(const char * const args)
 
 void Irq_session_component::ack_irq()
 {
-	if (!_sig_cap.valid()) { return; }
-
-	Kernel::ack_irq(*_kobj);
+	if (_kobj.constructed()) Kernel::ack_irq(*_kobj);
 }
 
 

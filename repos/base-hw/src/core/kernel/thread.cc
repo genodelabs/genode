@@ -555,11 +555,8 @@ void Thread::_call_new_irq()
 		(Genode::Irq_session::Trigger)  (user_arg_3() & 0b1100);
 	Genode::Irq_session::Polarity polarity =
 		(Genode::Irq_session::Polarity) (user_arg_3() & 0b11);
-	Genode::Constructible<User_irq> & irq  =
-		*((Genode::Constructible<User_irq>*)user_arg_1());
 
-	irq.construct(user_arg_2(), trigger, polarity, *c);
-	user_arg_0(0);
+	_call_new<User_irq>((unsigned)user_arg_2(), trigger, polarity, *c);
 }
 
 
