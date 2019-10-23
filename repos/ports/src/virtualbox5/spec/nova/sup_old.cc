@@ -21,12 +21,11 @@
 
 /* VirtualBox includes */
 #include <iprt/ldr.h>
+#include <iprt/thread.h>
 #include <iprt/semaphore.h>
 #include <iprt/timer.h>
 #include <iprt/uint128.h>
 #include <VBox/err.h>
-#include <pthread.h>
-#include <semaphore.h>
 
 
 static PFNRTTIMER rttimer_func = nullptr;
@@ -46,34 +45,22 @@ struct Periodic_gip
 {
 	struct Thread
 	{
-		sem_t     _startup_sem;
-		pthread_t _thread;
-
-		static void * _entry_trampoline(void *arg)
+		static int fn(RTTHREAD, void *)
 		{
-			Thread *t = (Thread *)arg;
-			sem_wait(&t->_startup_sem);
-			t->_entry();
-			return nullptr;
+			genode_update_tsc(Periodic_gip::update, UPDATE_US);
+			return 0;
 		}
-
-		void _entry() { genode_update_tsc(Periodic_gip::update, UPDATE_US); }
 
 		Thread()
 		{
-			sem_init(&_startup_sem, 0, 0);
-
-			if (pthread_create(&_thread, 0, _entry_trampoline, this) != 0) {
-				printf("Error: pthread_create() failed\n");
+			int const rc = RTThreadCreate(nullptr, fn, this,
+			                              0, RTTHREADTYPE_TIMER, 0, "periodic_gip");
+			if (RT_FAILURE(rc)) {
+				printf("Error: RTThreadCreate() %s\n", RTErrGetShort(rc));
 				exit(-1);
 			}
 		}
-
-		void start() { sem_post(&_startup_sem); }
-		void join()  { pthread_join(_thread, nullptr); }
 	} thread;
-
-	Periodic_gip() { thread.start(); }
 
 	static void update()
 	{
