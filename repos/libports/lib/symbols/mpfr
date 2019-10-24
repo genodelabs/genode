@@ -12,7 +12,7 @@ mpfr_add_ui T
 mpfr_add_z T
 mpfr_agm T
 mpfr_ai T
-mpfr_allocate_func B 8
+mpfr_allocate_func B 88
 mpfr_asin T
 mpfr_asinh T
 mpfr_asprintf T
@@ -123,7 +123,7 @@ mpfr_fms T
 mpfr_fprint_binary T
 mpfr_frac T
 mpfr_free_cache T
-mpfr_free_func B 8
+mpfr_free_func B 100
 mpfr_free_str T
 mpfr_gamma T
 mpfr_gamma_one_and_two_third T
@@ -337,7 +337,7 @@ mpfr_printf T
 mpfr_rand_raw T
 mpfr_rands B 32
 mpfr_rands_initialized B 1
-mpfr_reallocate_func B 8
+mpfr_reallocate_func B 104
 mpfr_rec_sqrt T
 mpfr_regular_p T
 mpfr_reldiff T
