@@ -78,6 +78,7 @@ proc run_log { wait_for_re timeout_value } {
 
 	spawn /bin/sh -c "$amt_cmd"
 	set output_spawn_id $spawn_id
+	fconfigure $output_spawn_id -translation { crlf lf }
 
 	set kernel_msg [run_boot_string]
 
