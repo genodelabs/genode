@@ -16,6 +16,8 @@ FILTER_OUT += add_n.c
 SRC_ASM += sub_n.asm
 FILTER_OUT += sub_n.c
 
+FILTER_OUT += logops_n.c sec_div.c sec_pi1_div.c copyi.c copyd.c
+
 SRC_C += $(notdir $(wildcard $(REP_DIR)/src/lib/gmp/mpn/spec/32bit/*.c))
 SRC_C += $(filter-out $(FILTER_OUT),$(notdir $(wildcard $(GMP_MPN_DIR)/generic/*.c)))
 

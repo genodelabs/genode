@@ -4,7 +4,8 @@ GMP_MPN_DIR = $(GMP_DIR)/mpn
 # this file uses the 'sdiv_qrnnd' symbol which is not defined
 FILTER_OUT += udiv_w_sdiv.c
 
-FILTER_OUT += pre_divrem_1.c
+FILTER_OUT += pre_divrem_1.c sec_div.c sec_pi1_div.c copyi.c copyd.c
+
 
 # add x86_64-specific assembly files and filter out the generic C files if needed
 

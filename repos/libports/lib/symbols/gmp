@@ -142,7 +142,7 @@ __gmpn_add_n T
 __gmpn_addmul_1 T
 __gmpn_addmul_2 T
 __gmpn_addsub_n T
-__gmpn_bases R 8224
+__gmpn_bases R 10280
 __gmpn_bc_set_str T
 __gmpn_bdiv_dbm1c T
 __gmpn_bdivmod T
