@@ -259,12 +259,6 @@ class Genode::Imx_uart: Mmio
 		 */
 		void put_char(char c)
 		{
-			enum { ASCII_LINE_FEED       = 10,
-			       ASCII_CARRIAGE_RETURN = 13 };
-
-			/* prepend line feed with carriage return */
-			if (c == ASCII_LINE_FEED) _put_char(ASCII_CARRIAGE_RETURN);
-
 			/* transmit character */
 			_put_char(c);
 		}
