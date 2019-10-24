@@ -1,10 +1,23 @@
+diff --git a/gcc/config.host b/gcc/config.host
+index b5a4eb1..64a85dc 100644
+--- a/gcc/config.host
++++ b/gcc/config.host
+@@ -99,7 +99,7 @@ case ${host} in
+ esac
+ 
+ case ${host} in
+-  aarch64*-*-freebsd* | aarch64*-*-linux* | aarch64*-*-fuchsia*)
++  aarch64*-*-* | aarch64*-*-linux* | aarch64*-*-fuchsia*)
+     case ${target} in
+       aarch64*-*-*)
+ 	host_extra_gcc_objs="driver-aarch64.o"
 diff --git a/gcc/config/aarch64/aarch64.h b/gcc/config/aarch64/aarch64.h
-index b9bf979..86f64f9 100644
+index 976f9af..3c150d1 100644
 --- a/gcc/config/aarch64/aarch64.h
 +++ b/gcc/config/aarch64/aarch64.h
-@@ -935,4 +935,20 @@ extern const char *host_detect_local_cpu (int argc, const char **argv);
- extern tree aarch64_fp16_type_node;
- extern tree aarch64_fp16_ptr_type_node;
+@@ -1061,4 +1061,20 @@ extern poly_uint16 aarch64_sve_vg;
+ 
+ #define REGMODE_NATURAL_SIZE(MODE) aarch64_regmode_natural_size (MODE)
  
 +/* genode.h */
 +
@@ -24,10 +37,10 @@ index b9bf979..86f64f9 100644
 +
  #endif /* GCC_AARCH64_H */
 diff --git a/libgcc/config.host b/libgcc/config.host
-index fd206a4..a9a07ad 100644
+index 5e9cfa8..58af2f0 100644
 --- a/libgcc/config.host
 +++ b/libgcc/config.host
-@@ -331,8 +331,9 @@ esac
+@@ -334,8 +334,9 @@ esac
  
  case ${host} in
  aarch64*-*-elf | aarch64*-*-rtems*)
@@ -37,4 +50,4 @@ index fd206a4..a9a07ad 100644
 +	tmake_file="$tmake_file t-freebsd t-crtstuff-pic t-libgcc-pic t-eh-dw2-dip t-slibgcc t-slibgcc-gld t-slibgcc-elf-ver"
  	tmake_file="${tmake_file} ${cpu_type}/t-aarch64"
  	tmake_file="${tmake_file} ${cpu_type}/t-softfp t-softfp t-crtfm"
- 	;;
+ 	md_unwind_header=aarch64/aarch64-unwind.h
