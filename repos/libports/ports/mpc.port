@@ -1,9 +1,9 @@
 LICENSE   := LGPL
-VERSION   := 0.9
+VERSION   := 1.1.0
 DOWNLOADS := mpc.archive
 
-URL(mpc) := http://www.multiprecision.org/downloads/mpc-$(VERSION).tar.gz
-SHA(mpc) := fd3efe422f0d454592059e80f2c00d1a2e381bf2beda424c5094abd4deb049ac
+URL(mpc) := https://ftp.gnu.org/gnu/mpc/mpc-$(VERSION).tar.gz
+SHA(mpc) := 6985c538143c1208dcb1ac42cedad6ff52e267b47e5f970183a3e75125b43c2e
 SIG(mpc) := ${URL(mpc)}.asc
 KEY(mpc) := AD17A21EF8AED8F1CC02DBD9F7D5C9BF765C61E3
 DIR(mpc) := src/lib/mpc

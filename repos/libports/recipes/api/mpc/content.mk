@@ -12,4 +12,4 @@ $(MIRROR_FROM_REP_DIR):
 	$(mirror_from_rep_dir)
 
 LICENSE:
-	cp $(PORT_DIR)/src/lib/mpc/COPYING.LIB $@
+	cp $(PORT_DIR)/src/lib/mpc/COPYING.LESSER $@
