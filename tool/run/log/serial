@@ -55,6 +55,7 @@ proc run_log { wait_for_re timeout_value } {
 
 	spawn /bin/sh -c "$serial_cmd_chain"
 	set output_spawn_id $spawn_id
+	fconfigure $output_spawn_id -translation { crlf lf }
 
 	expect {
 		-i $output_spawn_id $kernel_msg { }
