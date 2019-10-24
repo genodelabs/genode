@@ -230,6 +230,9 @@ bool Noux::Child::syscall(Noux::Session::Syscall sc)
 				if (&vfs_handle->ds() == &_root_dir)
 					leaf_path = _sysio.open_in.path;
 
+				if (!leaf_path)
+					break;
+
 				Shared_pointer<Io_channel>
 					channel(new (_heap) Vfs_io_channel(_sysio.open_in.path,
 					                                   leaf_path,
