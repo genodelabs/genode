@@ -1,9 +1,9 @@
 LICENSE   := GPLv3
-VERSION   := 3.82
+VERSION   := 4.2.1
 DOWNLOADS := make.archive
 
 URL(make) := http://ftp.gnu.org/pub/gnu/make/make-$(VERSION).tar.gz
-SHA(make) := 3d991b33e604187c5881a0abc2e102d5b9776da5569640e73778f85d617242e7
+SHA(make) := e40b8f018c1da64edd1cc9a6fce5fa63b2e707e404e20cad91fbae337c98a5b7
 SIG(make) := ${URL(make)}.sig
 KEY(make) := GNU
 DIR(make) := src/noux-pkg/make
