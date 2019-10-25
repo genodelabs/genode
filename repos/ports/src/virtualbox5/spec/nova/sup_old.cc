@@ -45,7 +45,7 @@ struct Periodic_gip
 {
 	struct Thread
 	{
-		static int fn(RTTHREAD, void *)
+		static DECLCALLBACK(int) fn(RTTHREAD, void *)
 		{
 			genode_update_tsc(Periodic_gip::update, UPDATE_US);
 			return 0;
