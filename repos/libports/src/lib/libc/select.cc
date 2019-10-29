@@ -36,9 +36,11 @@
 
 /* libc-internal includes */
 #include <internal/init.h>
+#include <internal/signal.h>
 #include <internal/suspend.h>
 #include <internal/resume.h>
 #include <internal/select.h>
+#include <internal/errno.h>
 
 namespace Libc {
 	struct Select_cb;
@@ -48,16 +50,19 @@ namespace Libc {
 using namespace Libc;
 
 
-static Suspend *_suspend_ptr;
-static Resume  *_resume_ptr;
-static Select  *_select_ptr;
+static Suspend      *_suspend_ptr;
+static Resume       *_resume_ptr;
+static Select       *_select_ptr;
+static Libc::Signal *_signal_ptr;
 
 
-void Libc::init_select(Suspend &suspend, Resume &resume, Select &select)
+void Libc::init_select(Suspend &suspend, Resume &resume, Select &select,
+                       Signal &signal)
 {
 	_suspend_ptr = &suspend;
 	_resume_ptr  = &resume;
 	_select_ptr  = &select;
+	_signal_ptr  = &signal;
 }
 
 
@@ -312,17 +317,37 @@ int select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
 
 	{
 		struct Missing_call_of_init_select : Exception { };
-		if (!_suspend_ptr)
+		if (!_suspend_ptr || !_signal_ptr)
 			throw Missing_call_of_init_select();
 	}
 
-	while (!timeout.expired() && select_cb->nready == 0)
+	unsigned const orig_signal_count = _signal_ptr->count();
+
+	auto signal_occurred_during_select = [&] ()
+	{
+		return _signal_ptr->count() != orig_signal_count;
+	};
+
+	for (;;) {
+		if (timeout.expired())
+			break;
+
+		if (select_cb->nready != 0)
+			break;
+
+		if (signal_occurred_during_select())
+			break;
+
 		timeout.duration = _suspend_ptr->suspend(check, timeout.duration);
+	}
 
 	select_cb_list().remove(&(*select_cb));
 
 	if (timeout.expired())
 		return 0;
+
+	if (signal_occurred_during_select())
+		return Errno(EINTR);
 
 	/* not timed out -> results have been stored in select_cb by select_notify() */
 

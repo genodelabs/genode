@@ -65,7 +65,7 @@ namespace Libc {
 	/**
 	 * Select support
 	 */
-	void init_select(Suspend &, Resume &, Select &);
+	void init_select(Suspend &, Resume &, Select &, Signal &);
 
 	/**
 	 * Support for querying available RAM quota in sysctl functions

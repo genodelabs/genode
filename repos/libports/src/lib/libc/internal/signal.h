@@ -50,6 +50,8 @@ struct Libc::Signal : Noncopyable
 
 		void _execute_signal_handler(unsigned n);
 
+		unsigned _count = 0;
+
 	public:
 
 		void charge(unsigned n)
@@ -58,6 +60,7 @@ struct Libc::Signal : Noncopyable
 				return;
 
 			_charged_signals[n].construct(_pending_signals, n);
+			_count++;
 		}
 
 		void execute_signal_handlers()
@@ -67,6 +70,14 @@ struct Libc::Signal : Noncopyable
 				_charged_signals[pending.n].destruct();
 			});
 		}
+
+		/**
+		 * Return number of triggered signals
+		 *
+		 * The value is intended to be used for tracking whether a signal
+		 * occurred during a blocking operation ('select').
+		 */
+		unsigned count() const { return _count; }
 };
 
 #endif /* _LIBC__INTERNAL__SIGNAL_H_ */

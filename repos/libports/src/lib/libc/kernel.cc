@@ -347,7 +347,7 @@ Libc::Kernel::Kernel(Genode::Env &env, Genode::Allocator &heap)
 	init_sleep(*this);
 	init_vfs_plugin(*this);
 	init_time(*this, _rtc_path, *this);
-	init_select(*this, *this, *this);
+	init_select(*this, *this, *this, _signal);
 	init_socket_fs(*this);
 	init_passwd(_passwd_config());
 	init_signal(_signal);
