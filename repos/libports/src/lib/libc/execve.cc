@@ -14,11 +14,13 @@
 /* Genode includes */
 #include <base/shared_object.h>
 #include <base/log.h>
+#include <base/attached_rom_dataspace.h>
 
 /* libc includes */
 #include <unistd.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <string.h>
 #include <libc/allocator.h>
 
 /* libc-internal includes */
@@ -31,7 +33,171 @@ using namespace Genode;
 
 typedef int (*main_fn_ptr) (int, char **, char **);
 
-namespace Libc { struct String_array; }
+namespace Libc {
+	struct Interpreter;
+	struct String_array;
+}
+
+
+struct Libc::Interpreter
+{
+	Attached_rom_dataspace _rom;
+
+	char **args = { nullptr };
+
+	/**
+	 * Return true if file content starts with the specified C string
+	 */
+	bool _content_starts_with(char const *prefix) const
+	{
+		size_t const prefix_len = ::strlen(prefix);
+
+		if (prefix_len > _rom.size())
+			return false;
+
+		return strncmp(prefix, _rom.local_addr<char const>(), prefix_len) == 0;
+	}
+
+	bool script()         const { return _content_starts_with("#!"); }
+	bool elf_executable() const { return _content_starts_with("\x7f" "ELF"); }
+
+	struct Arg
+	{
+		/* pointer to first character */
+		char const * const ptr;
+
+		/* number of characters */
+		size_t const length;
+	};
+
+	struct Constrained_ptr
+	{
+		char const *ptr;
+
+		size_t remaining_bytes;
+
+		/**
+		 * Skip characters for which 'condition' is true
+		 */
+		template <typename COND>
+		void _skip(COND const &condition)
+		{
+			while (remaining_bytes > 0 && condition(*ptr)) {
+				ptr++;
+				remaining_bytes--;
+			}
+		}
+
+		void skip_non_whitespace() { _skip([] (char c) { return !is_whitespace(c); }); };
+		void skip_whitespace()     { _skip([] (char c) { return  is_whitespace(c); }); };
+
+		void skip_shebang()
+		{
+			_skip([] (char c) { return c == '#'; });
+			_skip([] (char c) { return c == '!'; });
+		}
+
+		bool valid() const { return ptr && *ptr && *ptr != '\n' && remaining_bytes; }
+	};
+
+	template <typename FN>
+	void _for_each_arg(FN const &fn) const
+	{
+		if (!script())
+			return;
+
+		Constrained_ptr ptr { _rom.local_addr<char const>(), _rom.size() };
+
+		ptr.skip_shebang();
+
+		/* skip whitespace between shebang and interpreter */
+		ptr.skip_whitespace();
+
+		/* skip path to interpreter */
+		ptr.skip_non_whitespace();
+
+		while (ptr.valid()) {
+
+			/* skip whitespace before argument */
+			ptr.skip_whitespace();
+
+			/* find end of argument */
+			char const * const arg_ptr = ptr.ptr;
+			unsigned const orig_remaining_bytes = ptr.remaining_bytes;
+			ptr.skip_non_whitespace();
+
+			size_t const length = orig_remaining_bytes - ptr.remaining_bytes;
+
+			if (length)
+				fn(Arg { arg_ptr, length });
+		}
+	}
+
+	typedef String<Vfs::MAX_PATH_LEN> Path;
+
+	Path path() const
+	{
+		if (!script())
+			return Path();
+
+		Constrained_ptr ptr { _rom.local_addr<char const>(), _rom.size() };
+
+		ptr.skip_shebang();
+		ptr.skip_whitespace();
+
+		/* find end of interpreter path */
+		char const * const path_ptr = ptr.ptr;
+		unsigned const orig_remaining_bytes = ptr.remaining_bytes;
+		ptr.skip_non_whitespace();
+
+		size_t const length = orig_remaining_bytes - ptr.remaining_bytes;
+
+		return Path(Cstring(path_ptr, length));
+	}
+
+	unsigned _count_args() const
+	{
+		unsigned count = 0;
+
+		_for_each_arg([&] (Arg) { count++; });
+
+		return count;
+	}
+
+	unsigned const num_args;
+
+	Interpreter(Genode::Env &env, char const * const filename)
+	:
+		_rom(env, filename), num_args(_count_args() + 2 /* argv0 + filename */)
+	{
+		if (script()) {
+			args = (char **)malloc(sizeof(char *)*num_args);
+
+			unsigned i = 0;
+
+			/* argv0 */
+			args[i++] = strdup(path().string());
+
+			_for_each_arg([&] (Arg arg) {
+				args[i++] = strndup(arg.ptr, arg.length); });
+
+			/* supply script file name as last argument */
+			args[i++] = strdup(filename);
+
+
+		}
+	}
+
+	~Interpreter()
+	{
+		if (script()) {
+			for (unsigned i = 0; i < num_args; i++)
+				free(args[i]);
+
+			free(args);
+		}
+	}
+};
 
 
 /**
@@ -85,30 +251,48 @@ struct Libc::String_array : Noncopyable
 
 	Constructible<Buffer> _buffer { };
 
-	String_array(Allocator &alloc, char const * const * const src_array)
+	String_array(Allocator &alloc,
+	             char const * const * const src_array_1,
+	             char const * const * const src_array_2 = nullptr)
 	:
-		_alloc(alloc), count(_num_entries(src_array))
+		_alloc(alloc),
+
+		/* if 'src_array_2' is supplied, we skip its first element (argv0) */
+		count(_num_entries(src_array_1) + _num_entries(src_array_2) -
+		      (src_array_2 ? 1 : 0))
 	{
 		/* marshal array strings to buffer */
 		size_t size = 1024;
 		for (;;) {
 
-			_buffer.construct(alloc, size);
+			_buffer.construct(_alloc, size);
 
-			unsigned i = 0;
-			for (i = 0; i < count; i++) {
-				array[i] = _buffer->pos_ptr();
-				if (!_buffer->try_append(src_array[i]))
-					break;
-			}
+			unsigned dst_i = 0; /* index into destination array */
 
-			bool const done = (i == count);
+			auto try_append_entries = [&] (char const * const * const src_array,
+			                               unsigned skip = 0)
+			{
+				if (!src_array)
+					return;
+
+				size_t const n = _num_entries(src_array);
+				for (unsigned i = skip; i < n; i++) {
+					array[dst_i++] = _buffer->pos_ptr();
+					if (!_buffer->try_append(src_array[i]))
+						break;
+				}
+			};
+
+			try_append_entries(src_array_1);
+			try_append_entries(src_array_2, 1); /* skip old argv0 */
+
+			bool const done = (dst_i == count);
 			if (done) {
-				array[i] = nullptr;
+				array[dst_i] = nullptr;
 				break;
 			}
 
-			warning("env buffer ", size, " too small");
+			warning("string-array buffer ", size, " exceeded");
 			size += 1024;
 		}
 	}
@@ -162,19 +346,58 @@ extern "C" int execve(char const *filename,
 		return Libc::Errno(EACCES);
 	}
 
-	Libc::Absolute_path resolved_path;
-	try {
-		Libc::resolve_symlinks(filename, resolved_path); }
-	catch (Libc::Symlink_resolve_error) {
-		warning("execve: ", filename, " does not exist");
-		return Libc::Errno(ENOENT); }
-
 	/* capture environment variables and args to libc-internal heap */
 	Libc::String_array *saved_env_vars =
 		new (*_alloc_ptr) Libc::String_array(*_alloc_ptr, envp);
 
+	/*
+	 * Resolve path of the executable and handle shebang arguments
+	 */
+	Libc::Absolute_path resolved_path;
+
+	Libc::Interpreter::Path path(filename);
+
 	Libc::String_array *saved_args =
 		new (*_alloc_ptr) Libc::String_array(*_alloc_ptr, argv);
+
+	enum { MAX_INTERPRETER_NESTING_LEVELS = 4 };
+
+	for (unsigned i = 0; i < MAX_INTERPRETER_NESTING_LEVELS; i++) {
+
+		try {
+			Libc::resolve_symlinks(path.string(), resolved_path); }
+		catch (Libc::Symlink_resolve_error) {
+			warning("execve: executable binary does not exist");
+			return Libc::Errno(ENOENT);
+		}
+
+		Constructible<Libc::Interpreter> interpreter { };
+
+		try {
+			interpreter.construct(*_env_ptr, resolved_path.string()); }
+		catch (...) {
+			warning("execve: executable binary inaccessible as ROM module");
+			return Libc::Errno(ENOENT);
+		}
+
+		if (interpreter->elf_executable())
+			break;
+
+		if (!interpreter->script()) {
+			warning("invalid executable binary format: ", resolved_path.string());
+			return Libc::Errno(ENOEXEC);
+		}
+
+		path = interpreter->path();
+
+		/* concatenate shebang args with command-line args */
+		Libc::String_array * const orig_saved_args = saved_args;
+
+		saved_args = new (*_alloc_ptr)
+			Libc::String_array(*_alloc_ptr, interpreter->args, argv);
+
+		destroy(*_alloc_ptr, orig_saved_args);
+	}
 
 	try {
 		_main_ptr = Dynamic_linker::respawn<main_fn_ptr>(*_env_ptr, resolved_path.string(), "main");
