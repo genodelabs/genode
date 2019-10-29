@@ -6,6 +6,7 @@ MIRROR_FROM_REP_DIR = \
 	lib/mk/gmp-mpq.mk \
 	lib/mk/gmp-mpz.mk \
 	lib/mk/spec/arm/gmp-mpn.mk \
+	lib/mk/spec/arm_64/gmp-mpn.mk \
 	lib/mk/spec/x86_32/gmp-mpn.mk \
 	lib/mk/spec/x86_64/gmp-mpn.mk \
 	
