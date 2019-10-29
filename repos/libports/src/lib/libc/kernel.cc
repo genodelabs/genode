@@ -175,7 +175,7 @@ void Libc::Kernel::_init_file_descriptors()
 	File_descriptor const * const stdout_fd =
 		file_descriptor_allocator()->find_by_libc_fd(STDOUT_FILENO);
 
-	if (stdout_fd) {
+	if (stdout_fd && stdout_fd->fd_path) {
 		Absolute_path dir = Vfs_plugin::ioctl_dir(*stdout_fd);
 		dir.append_element("info");
 

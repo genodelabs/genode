@@ -44,9 +44,19 @@ class Libc::Vfs_plugin : public Plugin
 
 		/**
 		 * Return path to pseudo files used for ioctl operations of a given FD
+		 *
+		 * The 'fd' argument must feature a valid 'fd.fd_path' member.
+		 * This assumption can be violated by the stdout, stdin, or stderr FDs
+		 * if the <libc> configuration lacks the corresponding attribute.
 		 */
 		static Absolute_path ioctl_dir(File_descriptor const &fd)
 		{
+			if (!fd.fd_path) {
+				error("Libc::Vfs_plugin::ioctl_dir: fd lacks path information");
+				class Fd_lacks_path : Exception { };
+				throw Fd_lacks_path();
+			}
+
 			Absolute_path path(fd.fd_path);
 
 			/*
