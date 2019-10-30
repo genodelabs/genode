@@ -370,7 +370,7 @@ Libc::Kernel::Kernel(Genode::Env &env, Genode::Allocator &heap)
 		init_malloc(*_malloc_heap);
 	}
 
-	init_fork(_env, _libc_env, _heap, *_malloc_heap, _pid, *this, *this, *this);
+	init_fork(_env, _libc_env, _heap, *_malloc_heap, _pid, *this, *this, _signal, *this);
 	init_execve(_env, _heap, _user_stack, *this);
 	init_plugin(*this);
 	init_sleep(*this);
