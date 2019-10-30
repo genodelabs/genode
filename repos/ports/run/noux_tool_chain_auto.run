@@ -72,6 +72,15 @@ if {[have_spec arm]} {
 
 }
 
+if {[have_spec arm_64]} {
+	set binutils "binutils_arm_64"
+	set gcc "gcc_arm_64"
+	set tool_prefix "genode-aarch64-"
+
+	set noux_boot_timeout   350
+	set platform            "arm_v8a"
+}
+
 if {[have_spec x86]} {
 	set binutils "binutils_x86"
 	set gcc "gcc_x86"
