@@ -50,6 +50,11 @@ ifeq ($(filter-out $(SPECS),arm),)
 	           $(GCOV_PORT_DIR)/include/arm/libgcc
 endif
 
+ifeq ($(filter-out $(SPECS),arm_64),)
+	INC_DIR += $(GCOV_PORT_DIR)/include/arm_64/gcc \
+	           $(GCOV_PORT_DIR)/include/arm_64/libgcc
+endif
+
 ifeq ($(filter-out $(SPECS),x86_32),)
 	INC_DIR += $(GCOV_PORT_DIR)/include/x86_32/gcc \
 	           $(GCOV_PORT_DIR)/include/x86_32/libgcc
