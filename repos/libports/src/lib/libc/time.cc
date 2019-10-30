@@ -16,6 +16,9 @@
 #include <base/log.h>
 #include <vfs/vfs_handle.h>
 
+/* Genode-internal includes */
+#include <base/internal/unmanaged_singleton.h>
+
 /* libc includes */
 #include <sys/time.h>
 #include <sys/types.h>
@@ -168,7 +171,7 @@ int clock_gettime(clockid_t clk_id, struct timespec *ts)
 		/*
 		 * XXX move instance to Libc::Kernel
 		 */
-		static Rtc rtc(_rtc_path, *_watch_ptr);
+		Rtc &rtc = *unmanaged_singleton<Rtc>(_rtc_path, *_watch_ptr);
 
 		time_t const rtc_value = rtc.read();
 		if (!rtc_value) return Errno(EINVAL);
