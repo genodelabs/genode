@@ -169,28 +169,57 @@ void Libc::Kernel::_init_file_descriptors()
 			file_descriptor_allocator()->preserve(fd);
 	}
 
+	/**
+	 * Call 'fn' with root directory and path to ioctl pseudo file as arguments
+	 *
+	 * If no matching ioctl pseudo file exists, 'fn' is not called.
+	 */
+	auto with_ioctl_path = [&] (File_descriptor const *fd, char const *file, auto fn)
+	{
+		if (!fd || !fd->fd_path)
+			return;
+
+		Absolute_path const ioctl_dir = Vfs_plugin::ioctl_dir(*fd);
+		Absolute_path path = ioctl_dir;
+		path.append_element(file);
+
+		_vfs.with_root_dir([&] (Directory &root_dir) {
+			if (root_dir.file_exists(path.string()))
+				fn(root_dir, path.string()); });
+	};
+
 	/*
-	 * Watch stdout's 'info' pseudo file to detect terminal resize events
+	 * Watch stdout's 'info' pseudo file to detect terminal-resize events
 	 */
 	File_descriptor const * const stdout_fd =
 		file_descriptor_allocator()->find_by_libc_fd(STDOUT_FILENO);
 
-	if (stdout_fd && stdout_fd->fd_path) {
-		Absolute_path dir = Vfs_plugin::ioctl_dir(*stdout_fd);
-		dir.append_element("info");
+	with_ioctl_path(stdout_fd, "info", [&] (Directory &root_dir, char const *path) {
+		_terminal_resize_handler.construct(root_dir, path, *this,
+		                                   &Kernel::_handle_terminal_resize); });
 
-		_vfs.with_root_dir([&] (Directory &root_dir) {
-			if (root_dir.file_exists(dir.string()))
-				_terminal_resize_handler.construct(root_dir, dir.string(),
-				                                   *this, &Kernel::_handle_terminal_resize);
-		});
-	}
+	/*
+	 * Watch stdin's 'interrupts' pseudo file to detect control-c events
+	 */
+	File_descriptor const * const stdin_fd =
+		file_descriptor_allocator()->find_by_libc_fd(STDIN_FILENO);
+
+	with_ioctl_path(stdin_fd, "interrupts", [&] (Directory &root_dir, char const *path) {
+		_user_interrupt_handler.construct(root_dir, path,
+		                                  *this, &Kernel::_handle_user_interrupt); });
 }
 
 
 void Libc::Kernel::_handle_terminal_resize()
 {
 	_signal.charge(SIGWINCH);
+	_resume_main();
+}
+
+
+void Libc::Kernel::_handle_user_interrupt()
+{
+	_signal.charge(SIGINT);
 	_resume_main();
 }
 
