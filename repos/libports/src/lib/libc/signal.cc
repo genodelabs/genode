@@ -25,6 +25,7 @@ extern "C" {
 #include <internal/types.h>
 #include <internal/init.h>
 #include <internal/signal.h>
+#include <internal/errno.h>
 
 using namespace Libc;
 
@@ -133,6 +134,24 @@ extern "C" int sigaction(int signum, const struct sigaction *act, struct sigacti
 extern "C" int       _sigaction(int, const struct sigaction *, struct sigaction *) __attribute__((weak, alias("sigaction")));
 extern "C" int  __sys_sigaction(int, const struct sigaction *, struct sigaction *) __attribute__((weak, alias("sigaction")));
 extern "C" int __libc_sigaction(int, const struct sigaction *, struct sigaction *) __attribute__((weak, alias("sigaction")));
+
+
+extern "C" int kill(pid_t pid, int signum)
+{
+	if (_signal_ptr->local_pid(pid)) {
+		_signal_ptr->charge(signum);
+		_signal_ptr->execute_signal_handlers();
+		return 0;
+	} else {
+		warning("submitting signals to remote processes via 'kill' not supported");
+		return Libc::Errno(EPERM);
+	}
+}
+
+
+extern "C" int       _kill(pid_t, int) __attribute__((weak, alias("kill")));
+extern "C" int  __sys_kill(pid_t, int) __attribute__((weak, alias("kill")));
+extern "C" int __libc_kill(pid_t, int) __attribute__((weak, alias("kill")));
 
 
 extern "C" pid_t wait(int *istat) {
