@@ -6,23 +6,22 @@
  */
 
 /*
- * Copyright (C) 2012-2017 Genode Labs GmbH
+ * Copyright (C) 2012-2019 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+/* libc include */
 #include <pthread.h>
 #include <semaphore.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
+/* Genode includes */
 #include <base/log.h>
 #include <base/thread.h>
-
-
-enum { NUM_THREADS = 2 };
 
 
 struct Thread_args {
@@ -38,7 +37,7 @@ struct Thread {
 };
 
 
-void *thread_func(void *arg)
+static void *thread_func(void *arg)
 {
 	Thread_args *thread_args = (Thread_args*)arg;
 
@@ -57,12 +56,13 @@ void *thread_func(void *arg)
 	return 0;
 }
 
+
 /*
  * Test self-destructing threads with 'pthread_join()', both when created and
  * joined by the main thread and when created and joined by a pthread.
  */
 
-void test_self_destruct(void *(*start_routine)(void*), uintptr_t num_iterations)
+static void self_destruct_helper(void *(*start_routine)(void*), uintptr_t num_iterations)
 {
 	for (uintptr_t i = 0; i < num_iterations; i++) {
 
@@ -83,16 +83,25 @@ void test_self_destruct(void *(*start_routine)(void*), uintptr_t num_iterations)
 	}
 }
 
-void *thread_func_self_destruct2(void *arg)
+static void *thread_func_self_destruct2(void *arg)
 {
 	return arg;
 }
 
-void *thread_func_self_destruct(void *arg)
+static void *thread_func_self_destruct(void *arg)
 {
-	test_self_destruct(thread_func_self_destruct2, 2);
+	/* also test nesting of pthreads */
+	self_destruct_helper(thread_func_self_destruct2, 2);
 
 	return arg;
+}
+
+
+static void test_self_destruct()
+{
+	printf("main thread: create self-destructing pthreads\n");
+
+	self_destruct_helper(thread_func_self_destruct, 100);
 }
 
 
@@ -266,6 +275,8 @@ static void *thread_mutex_func(void *arg)
 
 static void test_mutex()
 {
+	printf("main thread: testing mutexes\n");
+
 	pthread_t t;
 
 	Test_mutex_data test_mutex_data;
@@ -329,11 +340,11 @@ static void test_mutex()
 
 
 template <pthread_mutextype MUTEX_TYPE>
-struct Test_mutex_stress
+struct Mutex
 {
-	static const char *type_string(pthread_mutextype t)
+	static const char *type_string()
 	{
-		switch (t) {
+		switch (MUTEX_TYPE) {
 		case PTHREAD_MUTEX_NORMAL:     return "PTHREAD_MUTEX_NORMAL";
 		case PTHREAD_MUTEX_ERRORCHECK: return "PTHREAD_MUTEX_ERRORCHECK";
 		case PTHREAD_MUTEX_RECURSIVE:  return "PTHREAD_MUTEX_RECURSIVE";
@@ -343,26 +354,30 @@ struct Test_mutex_stress
 		return "<unexpected mutex type>";
 	};
 
-	struct Data
+	pthread_mutexattr_t _attr;
+	pthread_mutex_t     _mutex;
+
+	Mutex()
 	{
-		pthread_mutexattr_t _attr;
-		pthread_mutex_t     _mutex;
+		pthread_mutexattr_init(&_attr);
+		pthread_mutexattr_settype(&_attr, MUTEX_TYPE);
+		pthread_mutex_init(&_mutex, &_attr);
+		pthread_mutexattr_destroy(&_attr);
+	}
 
-		Data()
-		{
-			pthread_mutexattr_init(&_attr);
-			pthread_mutexattr_settype(&_attr, MUTEX_TYPE);
-			pthread_mutex_init(&_mutex, &_attr);
-			pthread_mutexattr_destroy(&_attr);
-		}
+	~Mutex()
+	{
+		pthread_mutex_destroy(&_mutex);
+	}
 
-		~Data()
-		{
-			pthread_mutex_destroy(&_mutex);
-		}
+	pthread_mutex_t * mutex() { return &_mutex; }
+};
 
-		pthread_mutex_t * mutex() { return &_mutex; }
-	} data;
+
+template <pthread_mutextype MUTEX_TYPE>
+struct Test_mutex_stress
+{
+	Mutex<MUTEX_TYPE> mutex;
 
 	struct Thread
 	{
@@ -427,16 +442,16 @@ struct Test_mutex_stress
 		void start() { sem_post(&_startup_sem); }
 		void join()  { pthread_join(_thread, nullptr); }
 	} threads[10] = {
-		data.mutex(), data.mutex(), data.mutex(), data.mutex(), data.mutex(),
-		data.mutex(), data.mutex(), data.mutex(), data.mutex(), data.mutex(),
+		mutex.mutex(), mutex.mutex(), mutex.mutex(), mutex.mutex(), mutex.mutex(),
+		mutex.mutex(), mutex.mutex(), mutex.mutex(), mutex.mutex(), mutex.mutex(),
 	};
 
 	Test_mutex_stress()
 	{
-		printf("main thread: start %s stress test\n", type_string(MUTEX_TYPE));
+		printf("main thread: start %s stress test\n", mutex.type_string());
 		for (Thread &t : threads) t.start();
 		for (Thread &t : threads) t.join();
-		printf("main thread: finished %s stress test\n", type_string(MUTEX_TYPE));
+		printf("main thread: finished %s stress test\n", mutex.type_string());
 	}
 };
 
@@ -455,15 +470,9 @@ static void test_mutex_stress()
 };
 
 
-int main(int argc, char **argv)
+static void test_interplay()
 {
-	printf("--- pthread test ---\n");
-
-	pthread_t pthread_main = pthread_self();
-
-	printf("main thread: running, my thread ID is %p\n", pthread_main);
-	if (!pthread_main)
-		return -1;
+	enum { NUM_THREADS = 2 };
 
 	Thread thread[NUM_THREADS];
 
@@ -475,7 +484,7 @@ int main(int argc, char **argv)
 
 		if (sem_init(&thread[i].thread_args.thread_finished_sem, 0, 1) != 0) {
 			printf("sem_init() failed\n");
-			return -1;
+			exit(-1);
 		}
 
 		/* check result of 'sem_getvalue()' before and after calling 'sem_wait()' */
@@ -497,7 +506,7 @@ int main(int argc, char **argv)
 		if (pthread_create(&thread[i].thread_id_create, 0, thread_func,
 		                   &thread[i].thread_args) != 0) {
 			printf("error: pthread_create() failed\n");
-			return -1;
+			exit(-1);
 		}
 		printf("main thread: thread %d has thread ID %p\n",
 		       thread[i].thread_args.thread_num, thread[i].thread_id_create);
@@ -513,7 +522,7 @@ int main(int argc, char **argv)
 	for (int i = 0; i < NUM_THREADS; i++)
 		if (thread[i].thread_args.thread_id_self != thread[i].thread_id_create) {
 			printf("error: thread IDs don't match\n");
-			return -1;
+			exit(-1);
 		}
 
 	printf("main thread: destroying the threads\n");
@@ -528,7 +537,7 @@ int main(int argc, char **argv)
 
 		if (retval != PTHREAD_CANCELED) {
 			printf("error: return value is not PTHREAD_CANCELED\n");
-			return -1;
+			exit(-1);
 		}
 	}
 
@@ -536,15 +545,22 @@ int main(int argc, char **argv)
 
 	for (int i = 0; i < NUM_THREADS; i++)
 		sem_destroy(&thread[i].thread_args.thread_finished_sem);
+}
 
-	printf("main thread: create pthreads which self destruct\n");
 
-	test_self_destruct(thread_func_self_destruct, 100);
+int main(int argc, char **argv)
+{
+	printf("--- pthread test ---\n");
 
-	printf("main thread: testing mutexes\n");
+	pthread_t pthread_main = pthread_self();
 
+	printf("main thread: running, my thread ID is %p\n", pthread_main);
+	if (!pthread_main)
+		exit(-1);
+
+	test_interplay();
+	test_self_destruct();
 	test_mutex();
-
 	test_mutex_stress();
 
 	printf("--- returning from main ---\n");
