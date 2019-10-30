@@ -123,6 +123,11 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 
 		void _handle_terminal_resize();
 
+		/* handler for watching user interrupts (control-c) */
+		Constructible<Watch_handler<Kernel>> _user_interrupt_handler { };
+
+		void _handle_user_interrupt();
+
 		Signal _signal;
 
 		Reconstructible<Io_signal_handler<Kernel>> _resume_main_handler {
