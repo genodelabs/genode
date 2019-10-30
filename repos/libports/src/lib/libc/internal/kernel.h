@@ -128,7 +128,7 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 
 		void _handle_user_interrupt();
 
-		Signal _signal;
+		Signal _signal { _pid };
 
 		Reconstructible<Io_signal_handler<Kernel>> _resume_main_handler {
 			_env.ep(), *this, &Kernel::_resume_main };

@@ -58,7 +58,11 @@ struct Libc::Signal : Noncopyable
 
 		unsigned _nesting_level = 0;
 
+		pid_t const _local_pid;
+
 	public:
+
+		Signal(pid_t local_pid) : _local_pid(local_pid) { }
 
 		void charge(unsigned n)
 		{
@@ -103,6 +107,11 @@ struct Libc::Signal : Noncopyable
 		 * occurred during a blocking operation ('select').
 		 */
 		unsigned count() const { return _count; }
+
+		/**
+		 * Return true if specified PID belongs to the process itself
+		 */
+		bool local_pid(pid_t pid) const { return pid == _local_pid; }
 };
 
 #endif /* _LIBC__INTERNAL__SIGNAL_H_ */
