@@ -21,6 +21,7 @@
 #include <vfs/dir_file_system.h>
 #include <vfs/readonly_value_file_system.h>
 #include <util/xml_generator.h>
+#include <os/ring_buffer.h>
 
 
 namespace Vfs { class Terminal_file_system; }
@@ -41,6 +42,16 @@ struct Vfs::Terminal_file_system
  */
 class Vfs::Terminal_file_system::Data_file_system : public Single_file_system
 {
+	public:
+
+		/**
+		 * Interface for propagating user interrupts (control-c)
+		 */
+		struct Interrupt_handler : Interface
+		{
+			virtual void handle_interrupt() = 0;
+		};
+
 	private:
 
 		Name const _name;
@@ -49,41 +60,99 @@ class Vfs::Terminal_file_system::Data_file_system : public Single_file_system
 
 		Terminal::Connection &_terminal;
 
+		Interrupt_handler &_interrupt_handler;
+
+		enum { READ_BUFFER_SIZE = 4000 };
+
+		typedef Genode::Ring_buffer<char, READ_BUFFER_SIZE + 1,
+		                            Genode::Ring_buffer_unsynchronized> Read_buffer;
+
+		Read_buffer _read_buffer { };
+
+		static void _fetch_data_from_terminal(Terminal::Connection &terminal,
+		                                      Read_buffer          &read_buffer,
+		                                      Interrupt_handler    &interrupt_handler)
+		{
+			while (terminal.avail()) {
+
+				/*
+				 * Copy new data into read buffer, detect user-interrupt
+				 * characters (control-c)
+				 */
+				unsigned const buf_size = read_buffer.avail_capacity();
+				if (buf_size == 0)
+					break;
+
+				char buf[buf_size] { };
+
+				unsigned const received = terminal.read(buf, buf_size);
+
+				for (unsigned i = 0; i < received; i++) {
+
+					char const c = buf[i];
+
+					enum { INTERRUPT = 3 };
+
+					if (c == INTERRUPT) {
+						interrupt_handler.handle_interrupt();
+					} else {
+						read_buffer.add(c);
+					}
+				}
+			}
+		}
+
 		struct Terminal_vfs_handle : Single_vfs_handle
 		{
-			Terminal::Connection &terminal;
-			bool notifying { false };
-			bool blocked   { false };
+			Terminal::Connection &_terminal;
+			Read_buffer          &_read_buffer;
+			Interrupt_handler    &_interrupt_handler;
 
-			Terminal_vfs_handle(Terminal::Connection &term,
+			bool notifying = false;
+			bool blocked   = false;
+
+			Terminal_vfs_handle(Terminal::Connection &terminal,
+			                    Read_buffer          &read_buffer,
+			                    Interrupt_handler    &interrupt_handler,
 			                    Directory_service    &ds,
 			                    File_io_service      &fs,
 			                    Genode::Allocator    &alloc,
 			                    int                   flags)
 			:
 				Single_vfs_handle(ds, fs, alloc, flags),
-				terminal(term)
+				_terminal(terminal),
+				_read_buffer(read_buffer),
+				_interrupt_handler(interrupt_handler)
 			{ }
 
 			bool read_ready() override {
-				return terminal.avail(); }
+				return !_read_buffer.empty(); }
 
 			Read_result read(char *dst, file_size count,
 			                 file_size &out_count) override
 			{
-				if (!terminal.avail()) {
+				if (_read_buffer.empty())
+					_fetch_data_from_terminal(_terminal, _read_buffer,
+					                          _interrupt_handler);
+
+				if (_read_buffer.empty()) {
 					blocked = true;
 					return READ_QUEUED;
 				}
 
-				out_count = terminal.read(dst, count);
+				unsigned consumed = 0;
+				for (; consumed < count && !_read_buffer.empty(); consumed++)
+					dst[consumed] = _read_buffer.get();
+
+				out_count = consumed;
+
 				return READ_OK;
 			}
 
 			Write_result write(char const *src, file_size count,
 			                   file_size &out_count) override
 			{
-				out_count = terminal.write(src, count);
+				out_count = _terminal.write(src, count);
 				return WRITE_OK;
 			}
 		};
@@ -98,6 +167,21 @@ class Vfs::Terminal_file_system::Data_file_system : public Single_file_system
 
 		void _handle_read_avail()
 		{
+			/*
+			 * Fetch as much data from the terminal as possible to detect
+			 * user-interrupt characters (control-c), even before the VFS
+			 * client attempts to read from the terminal.
+			 *
+			 * Note that a user interrupt that follows a large chunk of data
+			 * (exceeding the capacity of the read buffer) cannot be detected
+			 * without reading the data first. In the case where the VFS client
+			 * never reads data (e.g., it just blocks for a timeout),
+			 * consecutive user interrupts will never be delivered once such a
+			 * situation occurs. This can be provoked by pasting a large amount
+			 * of text into the terminal.
+			 */
+			_fetch_data_from_terminal(_terminal, _read_buffer, _interrupt_handler);
+
 			_handle_registry.for_each([this] (Registered_handle &handle) {
 				if (handle.blocked) {
 					handle.blocked = false;
@@ -115,11 +199,13 @@ class Vfs::Terminal_file_system::Data_file_system : public Single_file_system
 
 		Data_file_system(Genode::Entrypoint   &ep,
 		                 Terminal::Connection &terminal,
-		                 Name           const &name)
+		                 Name           const &name,
+		                 Interrupt_handler    &interrupt_handler)
 		:
 			Single_file_system(Node_type::TRANSACTIONAL_FILE, name.string(),
 			                   Node_rwx::rw(), Genode::Xml_node("<data/>")),
-			_name(name), _ep(ep), _terminal(terminal)
+			_name(name), _ep(ep), _terminal(terminal),
+			_interrupt_handler(interrupt_handler)
 		{
 			/* register for read-avail notification */
 			_terminal.read_avail_sigh(_read_avail_handler);
@@ -137,7 +223,8 @@ class Vfs::Terminal_file_system::Data_file_system : public Single_file_system
 
 			try {
 				*out_handle = new (alloc)
-					Registered_handle(_handle_registry, _terminal, *this, *this, alloc, flags);
+					Registered_handle(_handle_registry, _terminal, _read_buffer,
+					                  _interrupt_handler, *this, *this, alloc, flags);
 				return OPEN_OK;
 			}
 			catch (Genode::Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
@@ -172,7 +259,8 @@ class Vfs::Terminal_file_system::Data_file_system : public Single_file_system
 };
 
 
-struct Vfs::Terminal_file_system::Local_factory : File_system_factory
+struct Vfs::Terminal_file_system::Local_factory : File_system_factory,
+                                                  Data_file_system::Interrupt_handler
 {
 	typedef Genode::String<64> Label;
 	Label const _label;
@@ -183,7 +271,7 @@ struct Vfs::Terminal_file_system::Local_factory : File_system_factory
 
 	Terminal::Connection _terminal { _env, _label.string() };
 
-	Data_file_system _data_fs { _env.ep(), _terminal, _name };
+	Data_file_system _data_fs { _env.ep(), _terminal, _name, *this };
 
 	struct Info
 	{
@@ -200,9 +288,15 @@ struct Vfs::Terminal_file_system::Local_factory : File_system_factory
 		}
 	};
 
-	Readonly_value_file_system<Info>     _info_fs    { "info",    Info{} };
-	Readonly_value_file_system<unsigned> _rows_fs    { "rows",    0 };
-	Readonly_value_file_system<unsigned> _columns_fs { "columns", 0 };
+	/**
+	 * Number of occurred user interrupts (control-c)
+	 */
+	unsigned _interrupts = 0;
+
+	Readonly_value_file_system<Info>     _info_fs       { "info",       Info{} };
+	Readonly_value_file_system<unsigned> _rows_fs       { "rows",       0 };
+	Readonly_value_file_system<unsigned> _columns_fs    { "columns",    0 };
+	Readonly_value_file_system<unsigned> _interrupts_fs { "interrupts", _interrupts };
 
 	Genode::Io_signal_handler<Local_factory> _size_changed_handler {
 		_env.ep(), *this, &Local_factory::_handle_size_changed };
@@ -214,6 +308,15 @@ struct Vfs::Terminal_file_system::Local_factory : File_system_factory
 		_info_fs   .value(info);
 		_rows_fs   .value(info.size.lines());
 		_columns_fs.value(info.size.columns());
+	}
+
+	/**
+	 * Interrupt_handler interface
+	 */
+	void handle_interrupt() override
+	{
+		_interrupts++;
+		_interrupts_fs.value(_interrupts);
 	}
 
 	static Name name(Xml_node config)
@@ -233,10 +336,11 @@ struct Vfs::Terminal_file_system::Local_factory : File_system_factory
 
 	Vfs::File_system *create(Vfs::Env&, Xml_node node) override
 	{
-		if (node.has_type("data"))    return &_data_fs;
-		if (node.has_type("info"))    return &_info_fs;
-		if (node.has_type("rows"))    return &_rows_fs;
-		if (node.has_type("columns")) return &_columns_fs;
+		if (node.has_type("data"))       return &_data_fs;
+		if (node.has_type("info"))       return &_info_fs;
+		if (node.has_type("rows"))       return &_rows_fs;
+		if (node.has_type("columns"))    return &_columns_fs;
+		if (node.has_type("interrupts")) return &_interrupts_fs;
 
 		return nullptr;
 	}
@@ -267,9 +371,10 @@ class Vfs::Terminal_file_system::Compound_file_system : private Local_factory,
 
 				xml.node("dir", [&] () {
 					xml.attribute("name", Name(".", name));
-					xml.node("info",    [&] () {});
-					xml.node("rows",    [&] () {});
-					xml.node("columns", [&] () {});
+					xml.node("info",       [&] () {});
+					xml.node("rows",       [&] () {});
+					xml.node("columns",    [&] () {});
+					xml.node("interrupts", [&] () {});
 				});
 			});
 
