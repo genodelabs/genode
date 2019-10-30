@@ -770,8 +770,6 @@ set skip_test(test-solo5)           [expr ![have_spec x86_64]]
 set skip_test(test-spark_exception) [expr [have_spec arm]]
 set skip_test(test-tcp_bulk_lwip)   [expr ![have_spec x86]]
 set skip_test(test-tcp_bulk_lxip)   [expr ![have_spec x86]]
-set skip_test(test-xml_generator)   [expr [have_spec arm_v8a]]
-set skip_test(gcov)                 [expr [have_spec arm_v8a]]
 set skip_test(test-rust)            [expr [have_spec arm_v8a]]
 
 #
