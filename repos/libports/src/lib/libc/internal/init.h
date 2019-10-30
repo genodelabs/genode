@@ -118,7 +118,7 @@ namespace Libc {
 	 */
 	void init_fork(Genode::Env &, Config_accessor const &,
 	               Genode::Allocator &heap, Heap &malloc_heap, int pid,
-	               Suspend &, Resume &, Kernel_routine_scheduler &);
+	               Suspend &, Resume &, Signal &, Kernel_routine_scheduler &);
 
 	struct Reset_malloc_heap : Interface
 	{

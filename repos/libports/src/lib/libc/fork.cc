@@ -38,6 +38,7 @@
 #include <internal/kernel_routine.h>
 #include <internal/suspend.h>
 #include <internal/resume.h>
+#include <internal/signal.h>
 
 using namespace Libc;
 
@@ -48,6 +49,7 @@ static Env                      *_env_ptr;
 static Allocator                *_alloc_ptr;
 static Suspend                  *_suspend_ptr;
 static Resume                   *_resume_ptr;
+static Libc::Signal             *_signal_ptr;
 static Kernel_routine_scheduler *_kernel_routine_scheduler_ptr;
 static Heap                     *_malloc_heap_ptr;
 static void                     *_user_stack_base_ptr;
@@ -59,13 +61,14 @@ static Config_accessor const    *_config_accessor_ptr;
 
 void Libc::init_fork(Env &env, Config_accessor const &config_accessor,
                      Allocator &alloc, Heap &malloc_heap, pid_t pid,
-                     Suspend &suspend, Resume &resume,
+                     Suspend &suspend, Resume &resume, Signal &signal,
                      Kernel_routine_scheduler &kernel_routine_scheduler)
 {
 	_env_ptr                      = &env;
 	_alloc_ptr                    = &alloc;
 	_suspend_ptr                  = &suspend;
 	_resume_ptr                   = &resume;
+	_signal_ptr                   = &signal;
 	_kernel_routine_scheduler_ptr = &kernel_routine_scheduler;
 	_malloc_heap_ptr              = &malloc_heap;
 	_config_accessor_ptr          = &config_accessor;
@@ -402,6 +405,8 @@ struct Libc::Forked_child : Child_policy, Child_ready
 
 	Resume &_resume;
 
+	Signal &_signal;
+
 	pid_t const _pid;
 
 	enum class State { STARTING_UP, RUNNING, EXITED } _state { State::STARTING_UP };
@@ -417,7 +422,11 @@ struct Libc::Forked_child : Child_policy, Child_ready
 	Io_signal_handler<Libc::Forked_child> _exit_handler {
 		_env.ep(), *this, &Forked_child::_handle_exit };
 
-	void _handle_exit() { _resume.resume_all(); }
+	void _handle_exit()
+	{
+		_signal.charge(SIGCHLD);
+		_resume.resume_all();
+	}
 
 	Child_config _child_config;
 
@@ -538,12 +547,13 @@ struct Libc::Forked_child : Child_policy, Child_ready
 	             Entrypoint            &fork_ep,
 	             Allocator             &alloc,
 	             Resume                &resume,
+	             Signal                &signal,
 	             pid_t                  pid,
 	             Config_accessor const &config_accessor,
 	             Parent_services       &parent_services,
 	             Local_rom_services    &local_rom_services)
 	:
-		_env(env), _resume(resume), _pid(pid),
+		_env(env), _resume(resume), _signal(signal), _pid(pid),
 		_child_config(env, config_accessor, pid),
 		_parent_services(parent_services),
 		_local_rom_services(local_rom_services),
@@ -570,9 +580,10 @@ static void fork_kernel_routine()
 		abort();
 	}
 
-	Env       &env    = *_env_ptr;
-	Allocator &alloc  = *_alloc_ptr;
-	Resume    &resume = *_resume_ptr;
+	Env          &env    = *_env_ptr;
+	Allocator    &alloc  = *_alloc_ptr;
+	Resume       &resume = *_resume_ptr;
+	Libc::Signal &signal = *_signal_ptr;
 
 	pid_t const child_pid = ++_pid_cnt;
 
@@ -588,7 +599,7 @@ static void fork_kernel_routine()
 
 	Registered<Forked_child> &child = *new (alloc)
 		Registered<Forked_child>(forked_children, env, fork_ep, alloc, resume,
-		                         child_pid, *_config_accessor_ptr,
+		                         signal, child_pid, *_config_accessor_ptr,
 		                         parent_services, local_rom_services);
 
 	fork_result = child_pid;
