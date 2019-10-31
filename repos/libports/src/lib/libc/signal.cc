@@ -52,8 +52,17 @@ void Libc::Signal::_execute_signal_handler(unsigned n)
 				/* ignore */
 				break;
 			default:
-				/* terminate the process */
-				exit((n << 8) | EXIT_FAILURE);
+				/*
+				 * Trigger the termination of the process.
+				 *
+				 * We cannot call 'exit' immediately as the exiting code (e.g.,
+				 * 'atexit' handlers) may potentially issue I/O operations such
+				 * as FD sync and close. Hence, we just flag the intention to
+				 * exit and issue the actual exit call at the end of
+				 * 'Signal::execute_signal_handlers'
+				 */
+				_exit      = true;
+				_exit_code = (n << 8) | EXIT_FAILURE;
 		}
 	} else if (signal_action[n].sa_handler == SIG_IGN) {
 		/* do nothing */
