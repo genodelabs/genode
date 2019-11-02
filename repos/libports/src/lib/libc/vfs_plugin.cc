@@ -667,40 +667,118 @@ ssize_t Libc::Vfs_plugin::write(File_descriptor *fd, const void *buf,
 
 	} else {
 
+		Vfs::file_size const initial_seek { handle->seek() };
+
 		struct Check : Suspend_functor
 		{
-			bool             retry { false };
+			bool retry { false };
 
-			Vfs::Vfs_handle *handle;
-			void const      *buf;
-			::size_t         count;
-			Vfs::file_size  &out_count;
-			Result          &out_result;
+			Vfs::File_system  &_root_fs;
+			char const * const _fd_path;
+			Vfs::Vfs_handle   *_handle;
+			void const        *_buf;
+			::size_t           _count;
+			::off_t            _offset = 0;
+			Vfs::file_size    &_out_count;
+			Result            &_out_result;
+			unsigned           _iteration = 0;
 
-			Check(Vfs::Vfs_handle *handle, void const *buf,
+			bool _fd_refers_to_continuous_file()
+			{
+				if (!_fd_path) {
+					warning("Vfs_plugin: _fd_refers_to_continuous_file: missing fd_path");
+					return false;
+				}
+
+				typedef Vfs::Directory_service::Stat_result Result;
+
+				Vfs::Directory_service::Stat stat { };
+
+				if (VFS_THREAD_SAFE(_root_fs.stat(_fd_path, stat)) != Result::STAT_OK)
+					return false;
+
+				return stat.type == Vfs::Node_type::CONTINUOUS_FILE;
+			};
+
+			Check(Vfs::File_system &root_fs, char const *fd_path,
+			      Vfs::Vfs_handle *handle, void const *buf,
 			      ::size_t count, Vfs::file_size &out_count,
 			      Result &out_result)
-			: handle(handle), buf(buf), count(count), out_count(out_count),
-			  out_result(out_result)
+			:
+				_root_fs(root_fs), _fd_path(fd_path), _handle(handle), _buf(buf),
+				_count(count), _out_count(out_count), _out_result(out_result)
 			{ }
 
 			bool suspend() override
 			{
-				try {
-					out_result = VFS_THREAD_SAFE(handle->fs().write(handle, (char const *)buf,
-						                                              count, out_count));
-					retry = false;
-				} catch (Vfs::File_io_service::Insufficient_buffer) {
-					retry = true;
-				}
+				for (;;) {
 
-				return retry;
+					/* number of bytes written in one iteration */
+					Vfs::file_size partial_out_count = 0;
+
+					try {
+						char const * const src = (char const *)_buf + _offset;
+
+						_out_result = VFS_THREAD_SAFE(_handle->fs().write(_handle, src,
+						                                                  _count, partial_out_count));
+					} catch (Vfs::File_io_service::Insufficient_buffer) {
+						retry = true;
+						return retry;
+					}
+
+					if (_out_result != Result::WRITE_OK) {
+						retry = false;
+						return retry;
+					}
+
+					/* increment byte count reported to caller */
+					_out_count += partial_out_count;
+
+					bool const write_complete = (partial_out_count == _count);
+					if (write_complete) {
+						retry = false;
+						return retry;
+					}
+
+					/*
+					 * If the write has not consumed all bytes, set up
+					 * another partial write iteration with the remaining
+					 * bytes as 'count'.
+					 *
+					 * The costly 'fd_refers_to_continuous_file' is called
+					 * for the first iteration only.
+					 */
+					bool const continuous_file = (_iteration > 0 || _fd_refers_to_continuous_file());
+
+					if (!continuous_file) {
+						warning("partial write on transactional file");
+						_out_result = Result::WRITE_ERR_IO;
+						retry = false;
+						return retry;
+					}
+
+					_iteration++;
+
+					bool const stalled = (partial_out_count == 0);
+					if (stalled) {
+						retry = true;
+						return retry;
+					}
+
+					/* issue new write operation for remaining bytes */
+					_count  -= partial_out_count;
+					_offset += partial_out_count;
+					_handle->advance_seek(partial_out_count);
+				}
 			}
-		} check(handle, buf, count, out_count, out_result);
+		} check(_root_fs, fd->fd_path, handle, buf, count, out_count, out_result);
 
 		do {
 			suspend(check);
 		} while (check.retry);
+
+		/* XXX reset seek pointer after loop (will be advanced below by out_count) */
+		handle->seek(initial_seek);
 	}
 
 	Plugin::resume_all();
