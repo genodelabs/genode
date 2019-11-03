@@ -109,6 +109,9 @@ void Libc::Kernel::_init_file_descriptors()
 			return;
 
 		File_descriptor *fd = _vfs.open(path.string(), flags, libc_fd);
+		if (!fd)
+			return;
+
 		if (fd->libc_fd != libc_fd) {
 			error("could not allocate fd ",libc_fd," for ",path,", "
 			      "got fd ",fd->libc_fd);
@@ -251,21 +254,21 @@ void Libc::Kernel::_clone_state_from_parent()
 			                                     _env.ram(), _env.rm(),
 			                                     range.at, range.size); });
 
-	Clone_connection clone_connection(_env);
+	_clone_connection.construct(_env);
 
 	/* fetch heap content */
 	_cloned_heap_ranges.for_each([&] (Cloned_malloc_heap_range &heap_range) {
-		heap_range.import_content(clone_connection); });
+		heap_range.import_content(*_clone_connection); });
 
 	/* fetch user contex of the parent's application */
-	clone_connection.memory_content(&_user_context, sizeof(_user_context));
+	_clone_connection->memory_content(&_user_context, sizeof(_user_context));
 	_valid_user_context = true;
 
 	_libc_env.libc_config().for_each_sub_node([&] (Xml_node node) {
 
 		auto copy_from_parent = [&] (Range range)
 		{
-			clone_connection.memory_content(range.at, range.size);
+			_clone_connection->memory_content(range.at, range.size);
 		};
 
 		/* clone application stack */
@@ -292,8 +295,8 @@ void Libc::Kernel::_clone_state_from_parent()
 	});
 
 	/* import application-heap state from parent */
-	clone_connection.object_content(_malloc_heap);
-	init_malloc_cloned(clone_connection);
+	_clone_connection->object_content(_malloc_heap);
+	init_malloc_cloned(*_clone_connection);
 }
 
 
@@ -384,4 +387,17 @@ Libc::Kernel::Kernel(Genode::Env &env, Genode::Allocator &heap)
 	_init_file_descriptors();
 
 	_kernel_ptr = this;
+
+	/*
+	 * Acknowledge the completion of 'fork' to the parent
+	 *
+	 * This must be done after '_init_file_descriptors' to ensure that pipe FDs
+	 * of the parent are opened at the child before the parent continues.
+	 * Otherwise, the parent would potentially proceed with closing the pipe
+	 * FDs before the child has a chance to open them. In this situation, the
+	 * pipe reference counter may reach an intermediate value of zero,
+	 * triggering the destruction of the pipe.
+	 */
+	if (_cloned)
+		_clone_connection.destruct();
 }
