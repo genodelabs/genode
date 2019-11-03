@@ -211,6 +211,8 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 
 		Pthread_pool _pthreads { _timer_accessor };
 
+		Constructible<Clone_connection> _clone_connection { };
+
 		struct Resumer
 		{
 			GENODE_RPC(Rpc_resume, void, resume);
