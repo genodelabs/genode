@@ -10,6 +10,7 @@ import_from_depot [depot_user]/src/[base_src] \
                   [depot_user]/src/bash \
                   [depot_user]/src/coreutils \
                   [depot_user]/src/vfs \
+                  [depot_user]/src/vfs_pipe \
                   [depot_user]/src/fs_rom
 
 # write default vimrc file
@@ -83,6 +84,7 @@ install_config {
 				<dir name="tmp"> <ram/> </dir>
 				<dir name="dev">
 					<zero/> <null/> <terminal/>
+					<dir name="pipe"> <pipe/> </dir>
 					<inline name="rtc">2018-01-01 00:01</inline>
 				</dir>
 			</vfs>
@@ -105,9 +107,9 @@ install_config {
 
 	<start name="/bin/bash" caps="1000">
 		<resource name="RAM" quantum="30M" />
-		<config>
+		<config ld_verbose="yes">
 			<libc stdin="/dev/terminal" stdout="/dev/terminal"
-			      stderr="/dev/terminal" rtc="/dev/rtc"/>
+			      stderr="/dev/terminal" rtc="/dev/rtc" pipe="/dev/pipe"/>
 			<vfs> <fs/> </vfs>
 			<arg value="bash"/>
 			<env key="TERM" value="screen"/>
