@@ -13,7 +13,7 @@
  */
 
 /* Genode includes */
-#include <os/smbios.h>
+#include <smbios/smbios.h>
 #include <base/attached_rom_dataspace.h>
 #include <os/reporter.h>
 #include <base/component.h>
