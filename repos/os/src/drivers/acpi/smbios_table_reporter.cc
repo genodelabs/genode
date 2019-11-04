@@ -18,7 +18,7 @@
 /* Genode includes */
 #include <base/attached_io_mem_dataspace.h>
 #include <base/attached_rom_dataspace.h>
-#include <os/smbios.h>
+#include <smbios/smbios.h>
 #include <util/fifo.h>
 
 using namespace Genode;
