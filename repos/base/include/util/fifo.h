@@ -47,7 +47,7 @@ class Genode::Fifo
 				/**
 				 * Return true is fifo element is enqueued in a fifo
 				 */
-				bool enqueued() { return _enqueued; }
+				bool enqueued() const { return _enqueued; }
 
 				/**
 				 * Return next element in queue
