@@ -18,6 +18,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 /* Genode includes */
 #include <base/log.h>
@@ -470,6 +471,77 @@ static void test_mutex_stress()
 };
 
 
+/*
+ * Test if the main thread resumes sleeping lock holders when it itself is
+ * waiting for the lock.
+ */
+
+template <pthread_mutextype MUTEX_TYPE>
+struct Test_lock_and_sleep
+{
+	sem_t             _startup;
+	Mutex<MUTEX_TYPE> _mutex;
+
+	enum { SLEEP_MS = 500 };
+
+	static void *thread_fn(void *arg)
+	{
+		((Test_lock_and_sleep *)arg)->sleeper();
+		return nullptr;
+	}
+
+	void sleeper()
+	{
+		printf("sleeper: aquire mutex\n");
+		pthread_mutex_lock(_mutex.mutex());
+
+		printf("sleeper: about to wake up main thread\n");
+		sem_post(&_startup);
+
+		printf("sleeper: sleep %u ms\n", SLEEP_MS);
+		usleep(SLEEP_MS*1000);
+
+		printf("sleeper: woke up, now release mutex\n");
+		pthread_mutex_unlock(_mutex.mutex());
+	}
+
+	Test_lock_and_sleep()
+	{
+		sem_init(&_startup, 0, 0);
+
+		printf("main thread: start %s test\n", _mutex.type_string());
+
+		pthread_t id;
+		if (pthread_create(&id, 0, thread_fn, this) != 0) {
+			printf("error: pthread_create() failed\n");
+			exit(-1);
+		}
+
+		sem_wait(&_startup);
+
+		printf("main thread: sleeper woke me up, now aquire mutex (which blocks)\n");
+		pthread_mutex_lock(_mutex.mutex());
+
+		printf("main thread: aquired mutex, now release mutex and finish\n");
+		pthread_mutex_unlock(_mutex.mutex());
+
+		printf("main thread: finished %s test\n", _mutex.type_string());
+	}
+};
+
+
+static void test_lock_and_sleep()
+{
+	printf("main thread: test resume in contended lock\n");
+
+	{ Test_lock_and_sleep<PTHREAD_MUTEX_NORMAL>     test_normal; }
+	{ Test_lock_and_sleep<PTHREAD_MUTEX_ERRORCHECK> test_errorcheck; }
+	{ Test_lock_and_sleep<PTHREAD_MUTEX_RECURSIVE>  test_recursive; }
+
+	printf("main thread: resume in contended lock testing done\n");
+}
+
+
 static void test_interplay()
 {
 	enum { NUM_THREADS = 2 };
@@ -562,6 +634,7 @@ int main(int argc, char **argv)
 	test_self_destruct();
 	test_mutex();
 	test_mutex_stress();
+	test_lock_and_sleep();
 
 	printf("--- returning from main ---\n");
 	return 0;
