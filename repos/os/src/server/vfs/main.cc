@@ -2,6 +2,7 @@
  * \brief  VFS File_system server
  * \author Emery Hemingway
  * \author Christian Helmuth
+ * \author Norman Feske
  * \date   2015-08-16
  */
 
@@ -94,17 +95,20 @@ class Vfs_server::Session_component : private Session_resources,
 
 		Packet_stream &_stream { *tx_sink() };
 
-		/* global queue of nodes to process after an I/O signal */
-		Node_queue &_pending_nodes;
+		/* nodes of this session with active jobs */
+		Node_queue _active_nodes { };
 
-		/* global queue of sessions for which packets await progress */
-		Session_queue &_pending_sessions;
+		/* nodes with finished jobs that can be acknowledged */
+		Node_queue _finished_nodes { };
+
+		/* global queue of sessions with active jobs */
+		Session_queue &_active_sessions;
 
 		/* collection of open nodes local to this session */
 		Node_space _node_space { };
 
-		Genode::Signal_handler<Session_component> _process_packet_handler {
-			_ep, *this, &Session_component::_process_packets };
+		Genode::Signal_handler<Session_component> _packet_stream_handler {
+			_ep, *this, &Session_component::_handle_packet_stream };
 
 		/*
 		 * The root node needs be allocated with the session struct
@@ -160,104 +164,197 @@ class Vfs_server::Session_component : private Session_resources,
 		 ** Packet-stream processing **
 		 ******************************/
 
-		/**
-		 * Attempt to process the head of the packet queue
-		 *
-		 * Return true if the packet can be popped from the
-		 * queue or false if the the packet cannot be processed
-		 * or further queued.
-		 */
-		bool _process_packet()
+		bool _try_import_jobs_from_submit_queue()
 		{
-			/* leave the packet queued so that it cannot leak */
-			Packet_descriptor packet = _stream.peek_packet();
+			bool overall_progress = false;
 
-			/* assume failure by default */
-			packet.succeeded(false);
+			for (;;) {
 
-			if ((packet.length() > packet.size())) {
-				/* not a valid packet */
-				_stream.acknowledge_packet(packet);
-				return true;
+				bool progress_in_iteration = false;
+
+				if (!_stream.packet_avail())
+					break;
+
+				/* ensure that ack for one malformed packet can be returned */
+				if (!_stream.ready_to_ack())
+					break;
+
+				Packet_descriptor packet = _stream.peek_packet();
+
+				auto drop_packet_from_submit_queue = [&] ()
+				{
+					_stream.get_packet();
+
+					overall_progress      = true;
+					progress_in_iteration = true;
+				};
+
+				auto ack_invalid_packet = [&] ()
+				{
+					drop_packet_from_submit_queue();
+					packet.succeeded(false);
+					_stream.acknowledge_packet(packet);
+
+					overall_progress      = true;
+					progress_in_iteration = true;
+				};
+
+				/* test for invalid packet */
+				if (packet.length() > packet.size()) {
+					ack_invalid_packet();
+					continue;
+				}
+
+				try {
+					_apply(packet.handle(), [&] (Io_node &node) {
+
+						/* each node can deal with only one job at a time */
+						bool const job_acceptable = !node.enqueued();
+
+						if (!job_acceptable)
+							return;
+
+						Payload_ptr payload_ptr { _stream.packet_content(packet) };
+
+						switch (node.submit_job(packet, payload_ptr)) {
+
+						case Node::Submit_result::ACCEPTED:
+							_active_nodes.enqueue(node);
+							drop_packet_from_submit_queue();
+							break;
+
+						case Node::Submit_result::DENIED:
+							drop_packet_from_submit_queue();
+							ack_invalid_packet();
+							break;
+
+						case Node::Submit_result::STALLED:
+							/* keep request packet in submit queue */
+							break;
+						}
+					});
+				}
+				catch (File_system::Invalid_handle) { ack_invalid_packet(); }
+
+				if (!progress_in_iteration)
+					break;
 			}
 
-			bool handle_invalid = true;
-			bool result = true;
+			return overall_progress;
+		}
 
-			try {
-				_apply(packet.handle(), [&] (Io_node &node) {
-					handle_invalid = false;
-					result = node.process_packet(packet);
+		bool _try_execute_jobs()
+		{
+			bool progress = false;
+
+			/* nodes with jobs that cannot make progress right now */
+			Node_queue still_active_nodes { };
+
+			_active_nodes.dequeue_all([&] (Node &node) {
+				node.execute_job();
+				if (node.acknowledgement_valid()) {
+					_finished_nodes.enqueue(node);
+					progress = true;
+				} else {
+					still_active_nodes.enqueue(node);
+				}
+			});
+
+			_active_nodes = still_active_nodes;
+
+			return progress;
+		}
+
+		bool _try_acknowledge_jobs()
+		{
+			bool progress = false;
+
+			for (;;) {
+				if (!_stream.ready_to_ack())
+					break;
+
+				if (_finished_nodes.empty())
+					break;
+
+				_finished_nodes.dequeue([&] (Node &node) {
+					_stream.acknowledge_packet(node.acknowledgement_packet());
+					progress = true;
 				});
 			}
-			catch (File_system::Invalid_handle) { }
 
-			/* send the packet back if the handle is missing */
-			if (handle_invalid)
-				_stream.acknowledge_packet(packet);
-
-			return (handle_invalid || result);
+			return progress;
 		}
 
 	protected:
 
 		friend Vfs_server::Root;
-		using Session_queue::Element::enqueued;
 
 		/**
-		 * Called by the global Io_progress_handler as
-		 * well as the local signal handler
-		 *
-		 * Return true if the packet queue was emptied
+		 * Called by the global Io_progress_handler as well as the
+		 * session-local packet-stream handler
 		 */
-		bool process_packets()
+		void process_packets()
 		{
 			/**
 			 * Process packets in batches, otherwise a client that
 			 * submits packets as fast as they are processed will
 			 * starve the signal handler.
 			 */
-			int quantum = TX_QUEUE_SIZE;
+			unsigned quantum = TX_QUEUE_SIZE;
 
-			while (_stream.packet_avail()) {
-				if (_process_packet()) {
-					/*
-					 * the packet was rejected or associated with
-					 * a handle, pop it from the packet queue
-					 */
-					_stream.get_packet();
-				} else {
-					/* no progress */
-					return false;
-				}
+			for (;;) {
 
 				if (--quantum == 0) {
-					/* come back to this later */
-					Genode::Signal_transmitter(_process_packet_handler).submit();
-					return false;
+					/*
+					 * Trigger re-execution of 'process_packets' for the
+					 * remaining work of this session.
+					 */
+					Genode::Signal_transmitter(_packet_stream_handler).submit();
+					break;
 				}
-			}
 
-			return true;
+				/* true if progress can be made in this iteration */
+				bool progress = false;
+
+				progress |= _try_import_jobs_from_submit_queue();
+				progress |= _try_execute_jobs();
+				progress |= _try_acknowledge_jobs();
+
+				if (!progress)
+					break;
+			}
+		}
+
+		bool no_longer_active() const
+		{
+			bool const no_job = _active_nodes.empty()
+			                 && _finished_nodes.empty();
+
+			return Session_queue::Element::enqueued() && no_job;
+		}
+
+		bool no_longer_idle() const
+		{
+			bool const any_job = !_active_nodes.empty()
+			                  || !_finished_nodes.empty();
+
+			return !Session_queue::Element::enqueued() && any_job;
 		}
 
 	private:
 
 		/**
-		 * Called by signal handler
+		 * Signal handler called for session-local packet-stream signals
 		 */
-		void _process_packets()
+		void _handle_packet_stream()
 		{
-			bool done = process_packets();
+			process_packets();
 
-			if (done && enqueued()) {
-				/* this session is idle */
-				_pending_sessions.remove(*this);
-			} else
-			if (!done && !enqueued()) {
-				/* this session needs unblocking */
-				_pending_sessions.enqueue(*this);
-			}
+			if (no_longer_active())
+				_active_sessions.remove(*this);
+
+			if (no_longer_idle())
+				_active_sessions.enqueue(*this);
 		}
 
 		/**
@@ -305,8 +402,7 @@ class Vfs_server::Session_component : private Session_resources,
 		                  Genode::Cap_quota     cap_quota,
 		                  size_t                tx_buf_size,
 		                  Vfs::File_system     &vfs,
-		                  Node_queue           &pending_nodes,
-		                  Session_queue        &pending_sessions,
+		                  Session_queue        &active_sessions,
 		                  char           const *root_path,
 		                  bool                  writable)
 		:
@@ -314,8 +410,7 @@ class Vfs_server::Session_component : private Session_resources,
 			Session_rpc_object(_packet_ds.cap(), env.rm(), env.ep().rpc_ep()),
 			_vfs(vfs),
 			_ep(env.ep()),
-			_pending_nodes(pending_nodes),
-			_pending_sessions(pending_sessions),
+			_active_sessions(active_sessions),
 			_root_path(root_path),
 			_label(label),
 			_writable(writable)
@@ -324,8 +419,8 @@ class Vfs_server::Session_component : private Session_resources,
 			 * Register an I/O signal handler for
 			 * packet-avail and ready-to-ack signals.
 			 */
-			_tx.sigh_packet_avail(_process_packet_handler);
-			_tx.sigh_ready_to_ack(_process_packet_handler);
+			_tx.sigh_packet_avail(_packet_stream_handler);
+			_tx.sigh_ready_to_ack(_packet_stream_handler);
 		}
 
 		/**
@@ -338,7 +433,7 @@ class Vfs_server::Session_component : private Session_resources,
 				_close(node); })) { }
 
 			if (enqueued())
-				_pending_sessions.remove(*this);
+				_active_sessions.remove(*this);
 		}
 
 		/**
@@ -373,13 +468,10 @@ class Vfs_server::Session_component : private Session_resources,
 			if (!create && !_vfs.directory(path_str))
 				throw Lookup_failed();
 
-			Directory *dir;
-			try { dir = new (_alloc) Directory(_node_space, _vfs, _alloc,
-			                                   _pending_nodes, _stream,
-			                                   path_str, create); }
-			catch (Out_of_memory) { throw Out_of_ram(); }
+			Directory &dir = *new (_alloc)
+				Directory(_node_space, _vfs, _alloc, path_str, create);
 
-			return Dir_handle(dir->id().value);
+			return Dir_handle(dir.id().value);
 		}
 
 		File_handle file(Dir_handle dir_handle, Name const &name,
@@ -420,18 +512,14 @@ class Vfs_server::Session_component : private Session_resources,
 			_assert_valid_path(path_str);
 
 			/* re-root the path */
-			Path sub_path(path_str+1, _root_path.base());
+			Path const sub_path(path_str + 1, _root_path.base());
 			path_str = sub_path.base();
 			if (sub_path != "/" && !_vfs.leaf_path(path_str))
 				throw Lookup_failed();
 
-			Node *node;
+			Node &node = *new (_alloc) Node(_node_space, path_str);
 
-			try { node  = new (_alloc) Node(_node_space, path_str,
-			                                _pending_nodes, _stream); }
-			catch (Out_of_memory) { throw Out_of_ram(); }
-
-			return Node_handle { node->id().value };
+			return Node_handle { node.id().value };
 		}
 
 		Watch_handle watch(::File_system::Path const &path) override
@@ -441,7 +529,7 @@ class Vfs_server::Session_component : private Session_resources,
 			_assert_valid_path(path_str);
 
 			/* re-root the path */
-			Path sub_path(path_str+1, _root_path.base());
+			Path const sub_path(path_str + 1, _root_path.base());
 			path_str = sub_path.base();
 
 			Vfs::Vfs_watch_handle *vfs_handle = nullptr;
@@ -458,25 +546,33 @@ class Vfs_server::Session_component : private Session_resources,
 				throw Out_of_caps();
 			}
 
-			Node *node;
-			try { node  = new (_alloc)
-				Watch_node(_node_space, path_str, *vfs_handle,
-				           _pending_nodes, _stream); }
-			catch (Out_of_memory) { throw Out_of_ram(); }
+			Node &node = *new (_alloc)
+				Watch_node(_node_space, path_str, *vfs_handle, _finished_nodes);
 
-			return Watch_handle { node->id().value };
+			return Watch_handle { node.id().value };
 		}
 
 		void close(Node_handle handle) override
 		{
 			/*
-			 * churn the packet queue so that any pending
-			 * packets on this handle are processed
+			 * Churn the packet queue so that any pending packets on this
+			 * handle are processed.
 			 */
-			process_packets();
+			_handle_packet_stream();
 
-			try { _apply_node(handle, [&] (Node &node) {
-				_close(node); }); }
+			try {
+				_apply_node(handle, [&] (Node &node) {
+
+					if (node.enqueued()) {
+						if (node.acknowledgement_valid()) {
+							_finished_nodes.remove(node);
+						} else {
+							_active_nodes.remove(node);
+						}
+					}
+					_close(node);
+				});
+			}
 			catch (::File_system::Invalid_handle) { }
 		}
 
@@ -547,7 +643,6 @@ class Vfs_server::Session_component : private Session_resources,
 				Path path(name_str, dir.path());
 
 				assert_unlink(_vfs.unlink(path.base()));
-				dir.mark_as_updated();
 			});
 		}
 
@@ -575,9 +670,6 @@ class Vfs_server::Session_component : private Session_resources,
 					Path   to_path(  to_str,   to_dir.path());
 
 					assert_rename(_vfs.rename(from_path.base(), to_path.base()));
-
-					from_dir.mark_as_updated();
-					to_dir.mark_as_updated();
 				});
 			});
 		}
@@ -620,6 +712,7 @@ class Vfs_server::Root : public Genode::Root_component<Session_component>
 		Genode::Heap    _vfs_heap { &_env.ram(), &_env.rm() };
 		Vfs::Simple_env _vfs_env  { _env, _vfs_heap, vfs_config() };
 
+
 		/**
 		 * Object for post-I/O-signal processing
 		 *
@@ -629,62 +722,23 @@ class Vfs_server::Root : public Genode::Root_component<Session_component>
 		 */
 		struct Io_progress_handler : Genode::Entrypoint::Io_progress_handler
 		{
-			/* All nodes with a packet operation awaiting an I/O signal */
-			Node_queue pending_nodes { };
-
-			/* All sessions with packet queues that await processing */
-			Session_queue pending_sessions { };
+			/* sessions with active jobs */
+			Session_queue active_sessions { };
 
 			/**
 			 * Post-signal hook invoked by entrypoint
 			 */
 			void handle_io_progress() override
 			{
-				bool handle_progress = false;
+				Session_queue still_active_sessions { };
 
-				/* process handles awaiting progress */
-				{
-					/* nodes to process later */
-					Node_queue retry { };
+				active_sessions.dequeue_all([&] (Session_component &session) {
+					session.process_packets();
+					if (!session.no_longer_active())
+						still_active_sessions.enqueue(session);
+				});
 
-					/* empty the pending nodes and process */
-					pending_nodes.dequeue_all([&] (Node &node) {
-						if (node.process_io()) {
-							handle_progress = true;
-						} else {
-							if (!node.enqueued()) {
-								retry.enqueue(node);
-							}
-						}
-					});
-
-					/* requeue the unprocessed nodes in order */
-					retry.dequeue_all([&] (Node &node) {
-						pending_nodes.enqueue(node); });
-				}
-
-				/*
-				 * if any pending handles were processed then
-				 * process session packet queues awaiting progress
-				 */
-				if (handle_progress) {
-					/* sessions to process later */
-					Session_queue retry { };
-
-					/* empty the pending nodes and process */
-					pending_sessions.dequeue_all([&] (Session_component &session) {
-						if (!session.process_packets()) {
-							/* requeue the session if there are packets remaining */
-							if (!session.enqueued()) {
-								retry.enqueue(session);
-							}
-						}
-					});
-
-					/* requeue the unprocessed sessions in order */
-					retry.dequeue_all([&] (Session_component &session) {
-						pending_sessions.enqueue(session); });
-				}
+				active_sessions = still_active_sessions;
 			}
 		} _progress_handler { };
 
@@ -774,8 +828,7 @@ class Vfs_server::Root : public Genode::Root_component<Session_component>
 				                  Genode::Ram_quota{ram_quota},
 				                  Genode::Cap_quota{cap_quota},
 				                  tx_buf_size, _vfs_env.root_dir(),
-				                  _progress_handler.pending_nodes,
-				                  _progress_handler.pending_sessions,
+				                  _progress_handler.active_sessions,
 				                  session_root.base(), writeable);
 
 			auto ram_used = _env.pd().used_ram().value - initial_ram_usage;
@@ -792,7 +845,6 @@ class Vfs_server::Root : public Genode::Root_component<Session_component>
 					                ", '", label, "'");
 			}
 
-			Genode::log("session opened for '", label, "' at '", session_root, "'");
 			return session;
 		}
 
