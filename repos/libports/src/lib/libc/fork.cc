@@ -480,7 +480,7 @@ struct Libc::Forked_child : Child_policy, Child_ready
 	{
 		session.ref_account(_env.pd_session_cap());
 
-		_env.pd().transfer_quota(cap, Ram_quota{2*1024*1024});
+		_env.pd().transfer_quota(cap, Ram_quota{2500*1000});
 		_env.pd().transfer_quota(cap, Cap_quota{100});
 	}
 
