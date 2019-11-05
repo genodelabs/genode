@@ -1,7 +1,9 @@
 <runtime ram="72M" caps="1000" binary="init">
 
+	<requires> <timer/> </requires>
+
 	<events>
-		<timeout meaning="failed" sec="60" />
+		<timeout meaning="failed" sec="70" />
 		<log meaning="succeeded">--- returning from main ---</log>
 		<log meaning="failed">Error: </log>
 		<log meaning="failed">child "test-pthread" exited</log>
@@ -22,6 +24,7 @@
 			<service name="PD"/>
 			<service name="CPU"/>
 			<service name="LOG"/>
+			<service name="Timer"/>
 		</parent-provides>
 		<default-route>
 			<any-service> <parent/> <any-child/> </any-service>
