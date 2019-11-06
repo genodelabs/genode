@@ -641,7 +641,9 @@ class Lwip::Protocol_dir_impl final : public Protocol_dir
 				Lwip_file_handle::Kind k = Lwip_file_handle::kind_from_name(filename);
 				if (k != Lwip_file_handle::INVALID) {
 					st = { .size              = 0,
-					       .type              = Node_type::TRANSACTIONAL_FILE,
+					       .type              = (filename == "/data")
+					                          ? Node_type::CONTINUOUS_FILE
+					                          : Node_type::TRANSACTIONAL_FILE,
 					       .rwx               = Node_rwx::rw(),
 					       .inode             = (Genode::addr_t)dir + k,
 					       .device            = 0,
