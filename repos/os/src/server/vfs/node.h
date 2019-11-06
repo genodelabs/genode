@@ -308,11 +308,15 @@ class Vfs_server::Io_node : public Vfs_server::Node,
 			}
 		}
 
-		void _execute_write(char const *src_ptr, size_t length)
+		/**
+		 * Try to execute write operation at the VFS
+		 *
+		 * \return number of consumed bytes
+		 */
+		file_size _execute_write(char const *src_ptr, size_t length)
 		{
+			file_size out_count = 0;
 			try {
-				file_size out_count = 0;
-
 				switch (_handle.fs().write(&_handle, src_ptr, length, out_count)) {
 				case Write_result::WRITE_ERR_AGAIN:
 				case Write_result::WRITE_ERR_WOULD_BLOCK:
@@ -326,11 +330,12 @@ class Vfs_server::Io_node : public Vfs_server::Node,
 					break;
 
 				case Write_result::WRITE_OK:
-					_acknowledge_as_success(out_count);
 					break;
 				}
 			}
 			catch (Vfs::File_io_service::Insufficient_buffer) { /* re-execute */ }
+
+			return out_count;
 		}
 
 		void _execute_sync()
@@ -584,9 +589,15 @@ struct Vfs_server::Symlink : Io_node
 			 * '_write_buffer' does not depend on the goodwill of the client.
 			 */
 			case Packet_descriptor::WRITE:
-				_execute_write(_write_buffer.string(),
-				               _write_buffer.length() + 1);
-				break;
+				{
+					size_t const count = _write_buffer.length();
+
+					if (_execute_write(_write_buffer.string(), count) == count)
+						_acknowledge_as_success(count);
+					else
+						_acknowledge_as_failure();
+					break;
+				}
 
 			/* generic */
 			case Packet_descriptor::READ:            _execute_read();  break;
@@ -614,20 +625,39 @@ class Vfs_server::File : public Io_node
 
 		char const * const _leaf_path = nullptr; /* offset pointer to Node::_path */
 
+		typedef Directory_service::Stat Stat;
+
+		template <typename FN>
+		void _with_stat(FN const &fn)
+		{
+			typedef Directory_service::Stat_result Result;
+
+			Vfs::Directory_service::Stat stat { };
+			if (_handle.ds().stat(_leaf_path, stat) == Result::STAT_OK)
+				fn(stat);
+		}
+
 		seek_off_t _seek_pos()
 		{
 			seek_off_t seek_pos = _packet.position();
 
-			if (seek_pos == (seek_off_t)SEEK_TAIL) {
-
-				typedef Directory_service::Stat_result Result;
-				Vfs::Directory_service::Stat stat { };
-				if (_handle.ds().stat(_leaf_path, stat) == Result::STAT_OK)
-					seek_pos = stat.size;
-			}
+			if (seek_pos == (seek_off_t)SEEK_TAIL)
+				_with_stat([&] (Stat const &stat) {
+					seek_pos = stat.size; });
 
 			return seek_pos;
 		}
+
+		enum class Write_type { UNKNOWN, CONTINUOUS, TRANSACTIONAL };
+
+		Write_type _write_type = Write_type::UNKNOWN;
+
+		/**
+		 * Number of bytes consumed by VFS write
+		 *
+		 * Used for the incremental write to continuous files.
+		 */
+		seek_off_t _write_pos = 0;
 
 		static Vfs_handle &_open(Vfs::File_system  &vfs, Genode::Allocator &alloc,
 		                         char const *path, Mode mode, bool create)
@@ -662,6 +692,9 @@ class Vfs_server::File : public Io_node
 		{
 			_import_job(packet, payload_ptr);
 
+			_write_type = Write_type::UNKNOWN;
+			_write_pos  = 0;
+
 			switch (_packet.operation()) {
 
 			case Packet_descriptor::READ:            return _submit_read_at(_seek_pos());
@@ -683,8 +716,44 @@ class Vfs_server::File : public Io_node
 			switch (_packet.operation()) {
 
 			case Packet_descriptor::WRITE:
-				_execute_write(_payload_ptr.ptr, _packet.length());
-				break;
+				{
+					size_t       const count    = _packet.length() - _write_pos;
+					char const * const src_ptr  = _payload_ptr.ptr + _write_pos;
+					size_t       const consumed = _execute_write(src_ptr, count);
+
+					if (consumed == count) {
+						_acknowledge_as_success(count);
+						break;
+					}
+
+					/*
+					 * The write request was only partially successful.
+					 * Continue writing if the file is continuous.
+					 * Return an error if the file is transactional.
+					 */
+
+					/* determine write type once via 'stat' */
+					if (_write_type == Write_type::UNKNOWN) {
+						_write_type = Write_type::TRANSACTIONAL;
+
+						_with_stat([&] (Stat const &stat) {
+							if (stat.type == Vfs::Node_type::CONTINUOUS_FILE)
+								_write_type = Write_type::CONTINUOUS; });
+					}
+
+					if (_write_type == Write_type::TRANSACTIONAL) {
+						_acknowledge_as_failure();
+						break;
+					}
+
+					/*
+					 * Keep executing the write operation for the remaining bytes.
+					 * The seek offset used for subsequent VFS write operations
+					 * is incremented automatically by the VFS handle.
+					 */
+					_write_pos += consumed;
+					break;
+				}
 
 			/* generic */
 			case Packet_descriptor::READ:            _execute_read(); break;
