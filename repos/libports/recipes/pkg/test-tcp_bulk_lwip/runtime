@@ -14,7 +14,6 @@
 		<rom label="posix.lib.so"/>
 		<rom label="vfs.lib.so"/>
 		<rom label="vfs_lwip.lib.so"/>
-		<rom label="lwip.lib.so"/>
 		<rom label="nic_bridge"/>
 		<rom label="nic_loopback"/>
 		<rom label="test-tcp"/>
