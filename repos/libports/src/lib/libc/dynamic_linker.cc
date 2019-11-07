@@ -76,8 +76,11 @@ void *dlopen(const char *name, int mode)
 
 	try {
 		static Libc::Allocator global_alloc;
+
 		return new (global_alloc)
-			Shared_object(*genode_env, global_alloc, name, bind, keep);
+			Shared_object(*genode_env, global_alloc,
+			              name ? Genode::Path<128>(name).last_element() : nullptr, /* extract file name */
+			              bind, keep);
 	} catch (...) {
 		snprintf(err_str, MAX_ERR, "Unable to open file %s\n", name);
 	}
