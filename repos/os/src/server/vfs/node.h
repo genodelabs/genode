@@ -171,6 +171,11 @@ class Vfs_server::Node : Node_space::Element, Node_queue::Element
 		}
 
 		/**
+		 * Return true if node was written to
+		 */
+		virtual bool mutated() const { return false; }
+
+		/**
 		 * Print for debugging
 		 */
 		void print(Genode::Output &out) const
@@ -199,6 +204,8 @@ class Vfs_server::Io_node : public Vfs_server::Node,
 	protected:
 
 		Payload_ptr _payload_ptr { };
+
+		bool _mutated = false;
 
 		Vfs::Vfs_handle &_handle;
 
@@ -335,6 +342,8 @@ class Vfs_server::Io_node : public Vfs_server::Node,
 			}
 			catch (Vfs::File_io_service::Insufficient_buffer) { /* re-execute */ }
 
+			_mutated = true;
+
 			return out_count;
 		}
 
@@ -364,6 +373,8 @@ class Vfs_server::Io_node : public Vfs_server::Node,
 				_acknowledge_as_success(0);
 			}
 			catch (Vfs::File_io_service::Insufficient_buffer) { }
+
+			_mutated = true;
 		}
 
 	public:
@@ -395,6 +406,8 @@ class Vfs_server::Io_node : public Vfs_server::Node,
 
 		void execute_job() override { }
 
+		bool mutated() const override { return _mutated; }
+
 
 		/****************************************
 		 ** Vfs::Io_response_handler interface **
@@ -418,6 +431,13 @@ class Vfs_server::Io_node : public Vfs_server::Node,
 class Vfs_server::Watch_node final : public Vfs_server::Node,
                                      public Vfs::Watch_response_handler
 {
+	public:
+
+		struct Watch_node_response_handler : Genode::Interface
+		{
+			virtual void handle_watch_node_response(Watch_node &) = 0;
+		};
+
 	private:
 
 		/*
@@ -428,18 +448,18 @@ class Vfs_server::Watch_node final : public Vfs_server::Node,
 
 		Vfs::Vfs_watch_handle &_watch_handle;
 
-		Node_queue &_triggered_watch_nodes;
+		Watch_node_response_handler &_watch_node_response_handler;
 
 	public:
 
-		Watch_node(Node_space            &space,
-		           char            const *path,
-		           Vfs::Vfs_watch_handle &handle,
-		           Node_queue            &triggered_watch_nodes)
+		Watch_node(Node_space                  &space,
+		           char                  const *path,
+		           Vfs::Vfs_watch_handle       &handle,
+		           Watch_node_response_handler &watch_node_response_handler)
 		:
 			Node(space, path),
 			_watch_handle(handle),
-			_triggered_watch_nodes(triggered_watch_nodes)
+			_watch_node_response_handler(watch_node_response_handler)
 		{
 			_watch_handle.handler(this);
 
@@ -469,14 +489,7 @@ class Vfs_server::Watch_node final : public Vfs_server::Node,
 
 		void watch_response() override
 		{
-			if (!enqueued())
-				_triggered_watch_nodes.enqueue(*this);
-
-			/*
-			 * The acknowledgement and dequeuing will be delivered by
-			 * 'Session_component::_try_acknowledge_jobs', which finds
-			 * the watch node in the '_finished_nodes' queue.
-			 */
+			_watch_node_response_handler.handle_watch_node_response(*this);
 		}
 
 
