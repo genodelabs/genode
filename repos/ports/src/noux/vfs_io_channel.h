@@ -88,12 +88,14 @@ struct Noux::Vfs_io_channel : Io_channel
 		Registered_no_delete<Vfs_io_waiter>
 			vfs_io_waiter(_vfs_io_waiter_registry);
 
-		for (;;) {
-			if (_fh.fs().update_modification_timestamp(&_fh, ts)) {
-				break;
-			} else {
-				Genode::error("_sync: update_modification_timestamp failed");
-				vfs_io_waiter.wait_for_io();
+		if (_fh.status_flags() != Sysio::OPEN_MODE_RDONLY) {
+			for (;;) {
+				if (_fh.fs().update_modification_timestamp(&_fh, ts)) {
+					break;
+				} else {
+					Genode::error("_sync: update_modification_timestamp failed");
+					vfs_io_waiter.wait_for_io();
+				}
 			}
 		}
 
