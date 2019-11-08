@@ -695,6 +695,7 @@ class Vfs::Lxip_connect_file final : public Vfs::Lxip_file
 			switch (_write_err) {
 			case Lxip::Io_result::LINUX_EINPROGRESS:
 				_connecting = true;
+				_write_err = 0;
 				return len;
 
 			case Lxip::Io_result::LINUX_EALREADY:
@@ -708,6 +709,7 @@ class Vfs::Lxip_connect_file final : public Vfs::Lxip_file
 				 */
 				if (_is_connected || !_connecting) return -1;
 				_is_connected = true;
+				_write_err = 0;
 				break;
 
 			default:
