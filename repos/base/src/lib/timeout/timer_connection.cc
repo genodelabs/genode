@@ -127,17 +127,22 @@ void Timer::Connection::_enable_modern_mode()
 }
 
 
-Timer::Connection::Connection(Genode::Env &env, char const *label)
+Timer::Connection::Connection(Genode::Env &env, Genode::Entrypoint &ep,
+                              char const *label)
 :
 	Genode::Connection<Session>(env, session(env.parent(),
 	                            "ram_quota=10K, cap_quota=%u, label=\"%s\"",
 	                            CAP_QUOTA, label)),
 	Session_client(cap()),
-	_signal_handler(env.ep(), *this, &Connection::_handle_timeout)
+	_signal_handler(ep, *this, &Connection::_handle_timeout)
 {
 	/* register default signal handler */
 	Session_client::sigh(_default_sigh_cap);
 }
+
+
+Timer::Connection::Connection(Genode::Env &env, char const *label)
+: Timer::Connection(env, env.ep(), label) {}
 
 
 void Timer::Connection::_schedule_one_shot(Timeout &timeout, Microseconds duration)

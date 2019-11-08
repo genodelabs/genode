@@ -258,6 +258,18 @@ class Timer::Connection : public  Genode::Connection<Session>,
 
 		/**
 		 * Constructor
+		 *
+		 * \param env    environment used for construction (e.g. quota trading)
+		 * \param ep     entrypoint used as timeout handler execution context
+		 * \param label  optional label used in session routing
+		 */
+		Connection(Genode::Env &env,
+		           Genode::Entrypoint & ep,
+		           char const *label = "");
+
+		/**
+		 * Convenience constructor wrapper using the environment's entrypoint as
+		 * timeout handler execution context
 		 */
 		Connection(Genode::Env &env, char const *label = "");
 
