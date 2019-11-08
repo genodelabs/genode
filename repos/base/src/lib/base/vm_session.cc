@@ -18,9 +18,8 @@ using namespace Genode;
 Vm_session::Vcpu_id
 Vm_session_client::create_vcpu(Allocator &, Env &, Vm_handler_base &handler)
 {
-	Vcpu_id vcpu_id { 0 };
-
-	call<Rpc_create_vcpu>(Thread_capability());
+	Thread * ep = reinterpret_cast<Thread *>(&handler._rpc_ep);
+	Vcpu_id vcpu_id { call<Rpc_create_vcpu>(ep->cap()) };
 	call<Rpc_exception_handler>(handler._cap, vcpu_id);
 	return vcpu_id;
 }

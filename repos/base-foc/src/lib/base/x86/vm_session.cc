@@ -50,7 +50,6 @@ static bool svm_np() { return svm_features() & (1U << 0); }
 struct Vcpu;
 
 static Genode::Registry<Genode::Registered<Vcpu> > vcpus;
-static unsigned vcpu_id = 0;
 
 struct Vcpu : Genode::Thread
 {
@@ -202,7 +201,7 @@ struct Vcpu : Genode::Thread
 		Semaphore                   _wake_up { 0 };
 		Semaphore                  &_handler_ready;
 		Allocator                  &_alloc;
-		Vm_session_client::Vcpu_id  _id;
+		Vm_session_client::Vcpu_id  _id { Vm_session_client::Vcpu_id::INVALID };
 		addr_t                      _state { 0 };
 		addr_t                      _task { 0 };
 		enum Virt const             _vm_type;
@@ -1184,20 +1183,20 @@ struct Vcpu : Genode::Thread
 	public:
 
 		Vcpu(Env &env, Signal_context_capability &cap,
-		     Semaphore &handler_ready,
-		     Vm_session_client::Vcpu_id &id, enum Virt type,
+		     Semaphore &handler_ready, enum Virt type,
 		     Allocator &alloc, Affinity::Location location)
 		:
 			Thread(env, "vcpu_thread", STACK_SIZE, location, Weight(), env.cpu()),
 			_signal(cap), _handler_ready(handler_ready), _alloc(alloc),
-			_id(id), _vm_type(type)
+			_vm_type(type)
 		{ }
 
 		Allocator &allocator() const { return _alloc; }
 
 		bool match(Vm_session_client::Vcpu_id id) { return id.id == _id.id; }
 
-		Genode::Vm_session_client::Vcpu_id id() const { return _id; }
+		Genode::Vm_session_client::Vcpu_id id() const  { return _id; }
+		void id(Genode::Vm_session_client::Vcpu_id id) { _id = id;   }
 
 		void assign_ds_state(Region_map &rm, Dataspace_capability cap)
 		{
@@ -1266,12 +1265,10 @@ Vm_session_client::Vcpu_id
 Vm_session_client::create_vcpu(Allocator &alloc, Env &env,
                                Vm_handler_base &handler)
 {
-	Vm_session_client::Vcpu_id id = { vcpu_id };
-
 	enum Virt vm_type = virt_type(env);
 	if (vm_type == Virt::UNKNOWN) {
 		Genode::error("unsupported hardware virtualisation");
-		return id;
+		return Vm_session::Vcpu_id();
 	}
 
 	Thread * ep = reinterpret_cast<Thread *>(&handler._rpc_ep);
@@ -1279,17 +1276,17 @@ Vm_session_client::create_vcpu(Allocator &alloc, Env &env,
 
 	/* create thread that switches modes between thread/cpu */
 	Vcpu * vcpu = new (alloc) Registered<Vcpu>(vcpus, env, handler._cap,
-	                                           handler._done, id, vm_type,
+	                                           handler._done, vm_type,
 	                                           alloc, location);
 
 	try {
 		/* now it gets actually valid - vcpu->cap() becomes valid */
 		vcpu->start();
 
-		call<Rpc_exception_handler>(handler._cap, vcpu->id());
-
 		/* instruct core to let it become a vCPU */
-		call<Rpc_create_vcpu>(vcpu->cap());
+		vcpu->id(call<Rpc_create_vcpu>(vcpu->cap()));
+
+		call<Rpc_exception_handler>(handler._cap, vcpu->id());
 
 		vcpu->assign_ds_state(env.rm(), call<Rpc_cpu_state>(vcpu->id()));
 	} catch (...) {
@@ -1299,9 +1296,7 @@ Vm_session_client::create_vcpu(Allocator &alloc, Env &env,
 		destroy(alloc, vcpu);
 		throw;
 	}
-
-	vcpu_id ++;
-	return id;
+	return vcpu->id();
 }
 
 void Vm_session_client::run(Vcpu_id vcpu_id)

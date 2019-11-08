@@ -33,6 +33,7 @@
 
 using Genode::addr_t;
 using Genode::Vm_session_component;
+using Vcpu_id = Genode::Vm_session::Vcpu_id;
 
 enum { CAP_RANGE_LOG2 = 2, CAP_RANGE = 1 << CAP_RANGE_LOG2 };
 
@@ -153,10 +154,10 @@ static Genode::uint8_t _with_kernel_quota_upgrade(addr_t const pd_target,
 	return res;
 }
 
-void Vm_session_component::_create_vcpu(Thread_capability cap)
+Vcpu_id Vm_session_component::_create_vcpu(Thread_capability cap)
 {
-	if (!cap.valid())
-		return;
+	Vcpu_id ret;
+	if (!cap.valid()) return ret;
 
 	/* lookup vmm pd and cpu location of handler thread in VMM */
 	addr_t             kernel_cpu_id = 0;
@@ -178,7 +179,7 @@ void Vm_session_component::_create_vcpu(Thread_capability cap)
 
 	/* if VMM pd lookup failed then deny to create vCPU */
 	if (!vmm_pd_sel || vmm_pd_sel == Vcpu::invalid())
-		return;
+		return ret;
 
 	/* allocate vCPU object */
 	Vcpu &vcpu = *new (_heap) Vcpu(_constrained_md_ram_alloc,
@@ -191,7 +192,7 @@ void Vm_session_component::_create_vcpu(Thread_capability cap)
 
 	/* we ran out of caps in core */
 	if (!vcpu.ds_cap().valid())
-		return;
+		return ret;
 
 	/* core PD selector */
 	addr_t const core_pd = platform_specific().core_pd_sel();
@@ -204,7 +205,7 @@ void Vm_session_component::_create_vcpu(Thread_capability cap)
 	if (res != Nova::NOVA_OK) {
 		error("create_sm = ", res);
 		destroy(_heap, &vcpu);
-		return;
+		return ret;
 	}
 
 	addr_t const event_base = (1U << Nova::NUM_INITIAL_VCPU_PT_LOG2) * _id_alloc;
@@ -217,7 +218,7 @@ void Vm_session_component::_create_vcpu(Thread_capability cap)
 	if (res != Nova::NOVA_OK) {
 		error("create_ec = ", res);
 		destroy(_heap, &vcpu);
-		return;
+		return ret;
 	}
 
 	addr_t const dst_sm_ec_sel = Nova::NUM_INITIAL_PT_RESERVED
@@ -239,11 +240,12 @@ void Vm_session_component::_create_vcpu(Thread_capability cap)
 	{
 		error("map sm ", res, " ", _id_alloc);
 		destroy(_heap, &vcpu);
-		return;
+		return ret;
 	}
 
-	_id_alloc++;
 	_vcpus.insert(&vcpu);
+	_id_alloc++;
+	return vcpu.id();
 }
 
 void Vm_session_component::_run(Vcpu_id const vcpu_id)

@@ -89,7 +89,7 @@ class Genode::Vm_session_component
 
 		void detach(addr_t /* vm_addr */, size_t /* size */) override {
 			warning("Not implemented for TrustZone case"); }
-		void _create_vcpu(Thread_capability) {}
+		unsigned _create_vcpu(Thread_capability) { return 0; }
 };
 
 #endif /* _CORE__SPEC__ARM_V7__TRUSTZONE__VM_SESSION_COMPONENT_H_ */

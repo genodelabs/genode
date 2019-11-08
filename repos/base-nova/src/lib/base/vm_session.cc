@@ -29,7 +29,6 @@ using namespace Genode;
 struct Vcpu;
 
 static Genode::Registry<Genode::Registered<Vcpu> > vcpus;
-static unsigned vcpu_id = 0;
 
 struct Vcpu {
 
@@ -425,8 +424,9 @@ struct Vcpu {
 
 	public:
 
-		Vcpu(Vm_handler_base &o, unsigned id, Allocator &alloc)
-		: _obj(o), _alloc(alloc), _id({id}) { }
+		Vcpu(Vm_handler_base &o, Vm_session::Vcpu_id const id,
+		     Allocator &alloc)
+		: _obj(o), _alloc(alloc), _id(id) { }
 
 		virtual ~Vcpu() { }
 
@@ -703,9 +703,10 @@ Vm_session_client::create_vcpu(Allocator &alloc, Env &env,
                                Vm_handler_base &handler)
 {
 	Thread * ep = reinterpret_cast<Thread *>(&handler._rpc_ep);
-	call<Rpc_create_vcpu>(ep->cap());
 
-	Vcpu * vcpu = new (alloc) Registered<Vcpu> (vcpus, handler, vcpu_id++, alloc);
+	Vcpu * vcpu = new (alloc) Registered<Vcpu> (vcpus, handler,
+	                                            call<Rpc_create_vcpu>(ep->cap()),
+	                                            alloc);
 	vcpu->assign_ds_state(env.rm(), call<Rpc_cpu_state>(vcpu->id()));
 
 	Signal_context_capability dontcare_exit;

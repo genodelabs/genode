@@ -177,10 +177,12 @@ Vm_session_component::~Vm_session_component()
 		Platform_pd::pd_id_alloc().free(_pd_id);
 }
 
-void Vm_session_component::_create_vcpu(Thread_capability cap)
+Vm_session::Vcpu_id Vm_session_component::_create_vcpu(Thread_capability cap)
 {
+	Vcpu_id ret;
+
 	if (!cap.valid())
-		return;
+		return ret;
 
 	auto lambda = [&] (Cpu_thread_component *thread) {
 		if (!thread)
@@ -218,10 +220,11 @@ void Vm_session_component::_create_vcpu(Thread_capability cap)
 		}
 
 		_vcpus.insert(vcpu);
-		_id_alloc++;
+		ret.id = _id_alloc++;
 	};
 
 	_ep.apply(cap, lambda);
+	return ret;
 }
 
 Dataspace_capability Vm_session_component::_cpu_state(Vcpu_id const vcpu_id)

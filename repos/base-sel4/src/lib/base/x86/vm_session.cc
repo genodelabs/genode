@@ -32,7 +32,6 @@ using namespace Genode;
 struct Vcpu;
 
 static Genode::Registry<Genode::Registered<Vcpu> > vcpus;
-static unsigned vcpu_id = 0;
 
 struct Vcpu : Genode::Thread
 {
@@ -43,7 +42,7 @@ struct Vcpu : Genode::Thread
 		Semaphore                  &_handler_ready;
 		Allocator                  &_alloc;
 		Lock                        _startup { Genode::Lock::LOCKED };
-		Vm_session_client::Vcpu_id  _id;
+		Vm_session_client::Vcpu_id  _id {};
 		addr_t                      _state { 0 };
 		addr_t                      _recall { 0 };
 		uint64_t                    _tsc_offset { 0 };
@@ -713,12 +712,12 @@ struct Vcpu : Genode::Thread
 	public:
 
 		Vcpu(Genode::Env &env, Genode::Signal_context_capability &cap,
-		     Semaphore &handler_ready, unsigned id, Allocator &alloc,
+		     Semaphore &handler_ready, Allocator &alloc,
 		     Affinity::Location &location)
 		:
 			Thread(env, "vcpu_thread", STACK_SIZE, location, Weight(), env.cpu()),
 			_signal(cap),
-			_handler_ready(handler_ready), _alloc(alloc), _id({id})
+			_handler_ready(handler_ready), _alloc(alloc)
 		{ }
 
 		Allocator &allocator() { return _alloc; }
@@ -728,7 +727,8 @@ struct Vcpu : Genode::Thread
 			_startup.lock();
 		}
 
-		Genode::Vm_session_client::Vcpu_id id() const { return _id; }
+		Genode::Vm_session_client::Vcpu_id id() const  { return _id; }
+		void id(Genode::Vm_session_client::Vcpu_id id) { _id = id;   }
 
 		void assign_ds_state(Region_map &rm, Dataspace_capability cap) {
 			_state = rm.attach(cap); }
@@ -775,7 +775,7 @@ Genode::Vm_session_client::create_vcpu(Allocator &alloc, Env &env,
 	Vcpu * vcpu = new (alloc) Genode::Registered<Vcpu> (vcpus, env,
 	                                                    handler._cap,
 	                                                    handler._done,
-	                                                    vcpu_id, alloc,
+	                                                    alloc,
 	                                                    location);
 
 	try {
@@ -783,8 +783,8 @@ Genode::Vm_session_client::create_vcpu(Allocator &alloc, Env &env,
 		vcpu->start();
 
 		/* instruct core to let it become a vCPU */
+		vcpu->id(call<Rpc_create_vcpu>(vcpu->cap()));
 		call<Rpc_exception_handler>(handler._cap, vcpu->id());
-		call<Rpc_create_vcpu>(vcpu->cap());
 
 		vcpu->assign_ds_state(env.rm(), call<Rpc_cpu_state>(vcpu->id()));
 	} catch (...) {
@@ -794,7 +794,6 @@ Genode::Vm_session_client::create_vcpu(Allocator &alloc, Env &env,
 
 	vcpu->initial_resume();
 
-	vcpu_id++;
 	return vcpu->id();
 }
 

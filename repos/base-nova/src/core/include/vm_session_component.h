@@ -78,6 +78,7 @@ class Genode::Vm_session_component
 
 				addr_t new_pt_id();
 
+				Vcpu_id id() { return _id; }
 				bool match(Vcpu_id const id) const { return id.id == _id.id; }
 				Ram_dataspace_capability ds_cap() const { return _ds_cap; }
 
@@ -180,7 +181,7 @@ class Genode::Vm_session_component
 		void attach(Dataspace_capability, addr_t, Attach_attr) override;
 		void attach_pic(addr_t) override {}
 		void detach(addr_t, size_t) override;
-		void _create_vcpu(Thread_capability);
+		Vcpu_id _create_vcpu(Thread_capability);
 };
 
 #endif /* _CORE__VM_SESSION_COMPONENT_H_ */

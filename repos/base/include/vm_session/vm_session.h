@@ -27,7 +27,12 @@ struct Genode::Vm_session : Session
 {
 	static const char *service_name() { return "VM"; }
 
-	struct Vcpu_id { unsigned id; };
+	struct Vcpu_id
+	{
+		enum { INVALID = ~0U };
+		unsigned id { INVALID };
+	};
+
 	struct Attach_attr
 	{
 		addr_t offset;
@@ -88,7 +93,7 @@ struct Genode::Vm_session : Session
 	                 Dataspace_capability, addr_t, Attach_attr);
 	GENODE_RPC(Rpc_detach, void, detach, addr_t, size_t);
 	GENODE_RPC(Rpc_attach_pic, void, attach_pic, addr_t);
-	GENODE_RPC_THROW(Rpc_create_vcpu, void, _create_vcpu,
+	GENODE_RPC_THROW(Rpc_create_vcpu, Vcpu_id, _create_vcpu,
 	                 GENODE_TYPE_LIST(Out_of_ram, Out_of_caps),
 	                 Thread_capability);
 
