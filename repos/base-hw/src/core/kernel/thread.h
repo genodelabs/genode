@@ -320,12 +320,14 @@ class Kernel::Thread
 		void user_arg_2(Kernel::Call_arg const arg);
 		void user_arg_3(Kernel::Call_arg const arg);
 		void user_arg_4(Kernel::Call_arg const arg);
+		void user_arg_5(Kernel::Call_arg const arg);
 
 		Kernel::Call_arg user_arg_0() const;
 		Kernel::Call_arg user_arg_1() const;
 		Kernel::Call_arg user_arg_2() const;
 		Kernel::Call_arg user_arg_3() const;
 		Kernel::Call_arg user_arg_4() const;
+		Kernel::Call_arg user_arg_5() const;
 
 		/**
 		 * Syscall to create a thread

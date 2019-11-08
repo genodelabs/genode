@@ -84,8 +84,10 @@ void Thread::user_arg_1(Kernel::Call_arg const arg) { regs->a1  = arg; }
 void Thread::user_arg_2(Kernel::Call_arg const arg) { regs->a2  = arg; }
 void Thread::user_arg_3(Kernel::Call_arg const arg) { regs->a3  = arg; }
 void Thread::user_arg_4(Kernel::Call_arg const arg) { regs->a4  = arg; }
+void Thread::user_arg_5(Kernel::Call_arg const arg) { regs->a5  = arg; }
 Kernel::Call_arg Thread::user_arg_0() const { return regs->a0; }
 Kernel::Call_arg Thread::user_arg_1() const { return regs->a1; }
 Kernel::Call_arg Thread::user_arg_2() const { return regs->a2; }
 Kernel::Call_arg Thread::user_arg_3() const { return regs->a3; }
 Kernel::Call_arg Thread::user_arg_4() const { return regs->a4; }
+Kernel::Call_arg Thread::user_arg_5() const { return regs->a5; }

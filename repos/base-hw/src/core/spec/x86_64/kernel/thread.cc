@@ -70,9 +70,11 @@ void Kernel::Thread::user_arg_1(Kernel::Call_arg const arg) { regs->rsi = arg; }
 void Kernel::Thread::user_arg_2(Kernel::Call_arg const arg) { regs->rdx = arg; }
 void Kernel::Thread::user_arg_3(Kernel::Call_arg const arg) { regs->rcx = arg; }
 void Kernel::Thread::user_arg_4(Kernel::Call_arg const arg) { regs->r8 = arg; }
+void Kernel::Thread::user_arg_5(Kernel::Call_arg const arg) { regs->r9 = arg; }
 
 Kernel::Call_arg Kernel::Thread::user_arg_0() const { return regs->rdi; }
 Kernel::Call_arg Kernel::Thread::user_arg_1() const { return regs->rsi; }
 Kernel::Call_arg Kernel::Thread::user_arg_2() const { return regs->rdx; }
 Kernel::Call_arg Kernel::Thread::user_arg_3() const { return regs->rcx; }
 Kernel::Call_arg Kernel::Thread::user_arg_4() const { return regs->r8; }
+Kernel::Call_arg Kernel::Thread::user_arg_5() const { return regs->r9; }
