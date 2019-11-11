@@ -53,7 +53,11 @@ typedef int64_t   s64_t;
 typedef uintptr_t mem_ptr_t;
 
 #ifndef NULL
-#define NULL (uintptr_t)0
+#ifndef __cplusplus
+#define NULL ((void *)0)
+#else
+#define NULL (nullptr)
+#endif
 #endif
 #endif /* LWIP_NO_STDINT_H */
 
