@@ -1,15 +1,4 @@
 +++ src/app/netperf/src/netlib.c
-@@ -844,6 +844,10 @@
-     exit(1);
-   }
- 
-+  /* On Genode libc port -1 is returned for sysconf(_SC_NPROCESSORS_ONLN) */
-+  if (temp_cpus < 0)
-+    temp_cpus = 1;
-+  
-   return(temp_cpus);
- 
- }
 @@ -1095,8 +1095,13 @@
  
  #endif /* WIN32 */
@@ -34,3 +23,13 @@
      }
      if (debug > 1) {
        fprintf(where, "netperf: set_sock_buffer: %s of %d requested.\n",
++++ src/app/netperf/src/netlib.h
+@@ -368,7 +368,7 @@
+ /* Let's define a macro to hide all of this. */
+ 
+ #ifndef WIN32
+-#define SOCKET_EINTR(return_value) (errno == EINTR)
++#define SOCKET_EINTR(return_value) (errno == EINTR || errno == EPIPE)
+ #define SOCKET_EADDRINUSE(return_value) (errno == EADDRINUSE)
+ #define SOCKET_EADDRNOTAVAIL(return_value) (errno == EADDRNOTAVAIL)
+ 

@@ -14,7 +14,8 @@ SRC_CC += timer.cc
 INC_DIR += $(PRG_DIR)
 CC_OPT  += -DHAVE_CONFIG_H -DGENODE_BUILD
 
-CC_WARN = -Wall -Wno-unused
+CC_WARN = -Wall -Wno-unused -Wno-maybe-uninitialized -Wno-format-truncation \
+          -Wno-stringop-truncation -Wno-stringop-overflow
 
 CC_CXX_WARN_STRICT =
 
