@@ -1435,7 +1435,7 @@ class Lwip::Tcp_socket_dir final :
 		{
 			if (_pcb == NULL) {
 				/* socket is closed */
-				return Write_result::WRITE_ERR_INVALID;
+				return Write_result::WRITE_ERR_IO;
 			}
 
 			switch(handle.kind) {
