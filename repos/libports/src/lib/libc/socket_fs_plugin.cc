@@ -795,7 +795,6 @@ static ssize_t do_sendto(File_descriptor *fd,
 	if (!len)     return Errno(EINVAL);
 
 	/* TODO ENOTCONN, EISCONN, EDESTADDRREQ */
-	/* TODO ECONNRESET */
 
 	try {
 		if (dest_addr && context->proto() == Context::Proto::UDP) {
@@ -812,11 +811,26 @@ static ssize_t do_sendto(File_descriptor *fd,
 
 		lseek(context->data_fd(), 0, 0);
 		ssize_t out_len = write(context->data_fd(), buf, len);
-		if (out_len == 0) {
-			switch (context->proto()) {
-				case Socket_fs::Context::Proto::UDP: return Errno(ENETDOWN);
-				case Socket_fs::Context::Proto::TCP: return Errno(EAGAIN);
-			}
+
+		switch (context->proto()) {
+		case Socket_fs::Context::Proto::UDP:
+			if (out_len == 0) return Errno(ENETDOWN);
+			break;
+
+		case Socket_fs::Context::Proto::TCP:
+			if (out_len == 0) return Errno(EAGAIN);
+			/*
+			 * Write errors to TCP-data files are reflected as EPIPE, which
+			 * means the connection-mode socket is no longer connected. This
+			 * explicitly does not differentiate ECONNRESET, which means the
+			 * peer closed the connection while there was still unhandled data
+			 * in the socket buffer on the remote side and sent an RST packet.
+			 *
+			 * TODO If the MSG_NOSIGNAL flag is not set, the SIGPIPE signal is
+			 * generated to the calling thread.
+			 */
+			if (out_len == -1) return Errno(EPIPE);
+			break;
 		}
 		return out_len;
 	} catch (Socket_fs::Context::Inaccessible) {
@@ -1015,8 +1029,6 @@ extern "C" int getifaddrs(struct ifaddrs **ifap)
 {
 	static Lock lock;
 	Lock::Guard guard(lock);
-
-	// TODO: dual-stack / multi-homing
 
 	static sockaddr_in address;
 	static sockaddr_in netmask   { 0 };
