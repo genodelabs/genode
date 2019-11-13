@@ -51,7 +51,7 @@
 		<start name="test-libc_vfs">
 			<resource name="RAM" quantum="4M"/>
 			<config>
-				<iterations value="1"/>}
+				<iterations value="1"/>
 				<write-read size="1M" buffer_size="8K"/>
 				<vfs>
 					<dir name="tmp"> <fs/> </dir>
