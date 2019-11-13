@@ -1035,7 +1035,7 @@ const struct of_device_id *of_match_device(const struct of_device_id *matches,
                                            const struct device *dev)
 {
 	const char * compatible = (const char*) of_get_property(dev->of_node, "compatible", 0);
-	for (; matches && matches->compatible; matches++)
+	for (; matches && matches->compatible[0]; matches++)
 		if (Genode::strcmp(matches->compatible, compatible) == 0)
 			return matches;
 	return nullptr;
