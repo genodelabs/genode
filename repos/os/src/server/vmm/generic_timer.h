@@ -22,7 +22,7 @@
 #include <util/register.h>
 
 namespace Vmm {
-	class Cpu;
+	class Cpu_base;
 	class Generic_timer;
 }
 
@@ -33,7 +33,7 @@ class Vmm::Generic_timer : Gic::Irq::Irq_handler
 		Timer::Connection                      _timer;
 		Timer::One_shot_timeout<Generic_timer> _timeout;
 		Gic::Irq                             & _irq;
-		Cpu                                  & _cpu;
+		Cpu_base                             & _cpu;
 
 		struct Ctrl : Genode::Register<32>
 		{
@@ -56,7 +56,7 @@ class Vmm::Generic_timer : Gic::Irq::Irq_handler
 		Generic_timer(Genode::Env        & env,
 		              Genode::Entrypoint & ep,
 		              Gic::Irq           & irq,
-		              Cpu                & cpu);
+		              Cpu_base           & cpu);
 
 		void schedule_timeout();
 		void cancel_timeout();

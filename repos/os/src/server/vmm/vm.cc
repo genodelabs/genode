@@ -48,14 +48,16 @@ Vmm::Cpu & Vm::boot_cpu()
 
 Vm::Vm(Genode::Env & env)
 : _env(env),
-  _gic("Gicv3", 0x8000000, 0x10000, _bus, env),
-  _uart("Pl011", 0x9000000, 0x1000, 33, boot_cpu(), _bus, env),
-  _virtio_console("HVC", 0xa000000, 0x200,  48, boot_cpu(), _bus, _ram, env),
-  _virtio_net("Net", 0xa000200, 0x200,  49, boot_cpu(), _bus, _ram, env)
+  _gic("Gicv3", GICD_MMIO_START, GICD_MMIO_SIZE,
+       MAX_CPUS, GIC_VERSION, _vm, _bus, env),
+  _uart("Pl011", PL011_MMIO_START, PL011_MMIO_SIZE,
+        PL011_IRQ, boot_cpu(), _bus, env),
+  _virtio_console("HVC", VIRTIO_CONSOLE_MMIO_START, VIRTIO_CONSOLE_MMIO_SIZE,
+                  VIRTIO_CONSOLE_IRQ, boot_cpu(), _bus, _ram, env),
+  _virtio_net("Net", VIRTIO_NET_MMIO_START, VIRTIO_NET_MMIO_SIZE,
+              VIRTIO_NET_IRQ, boot_cpu(), _bus, _ram, env)
 {
-	_vm.attach(_vm_ram.cap(), RAM_ADDRESS);
-
-	/* FIXME extend for gicv2 by: _vm.attach_pic(0x8010000); */
+	_vm.attach(_vm_ram.cap(), RAM_START);
 
 	_load_kernel();
 	_load_dtb();
@@ -71,7 +73,7 @@ Vm::Vm(Genode::Env & env)
 	Genode::log("Start virtual machine ...");
 
 	Cpu & cpu = boot_cpu();
-	cpu.state().ip   = _ram.base() + KERNEL_OFFSET;
-	cpu.state().r[0] = _ram.base() + DTB_OFFSET;
+	cpu.initialize_boot(_ram.base() + KERNEL_OFFSET,
+	                    _ram.base() + DTB_OFFSET);
 	cpu.run();
 };

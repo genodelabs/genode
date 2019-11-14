@@ -101,6 +101,11 @@ _host_to_vm:
 	add  r1, r0, #4
 	vldm r1!, {d0-d15}
 	vldm r1!, {d16-d31}
+	ldm  r1!, {r2-r7}
+	mcrr p15, 4, r2, r3,  c14     /* write cntvoff          */
+	mcrr p15, 3, r4, r5,  c14     /* write cntv_cval        */
+	mcr  p15, 0, r6, c14, c3, 1   /* write cntv_ctl         */
+	mcr  p15, 0, r7, c14, c1, 0   /* write cntkctl          */
 	ldmia sp, {r0-r12}            /* load vm's r0-r12       */
 	eret
 
@@ -111,9 +116,7 @@ _vm_to_host:
 	mcrr p15, 6, r1, r1, c2       /* write VTTBR            */
 	mcr p15, 4, r1, c1, c1, 0     /* write HCR register     */
 	mcr p15, 4, r1, c1, c1, 3     /* write HSTR register    */
-	mov r1, #0xf
-	lsl r1, #20
-	mcr p15, 0, r1, c1, c0, 2     /* write CPACR            */
+
 	mrs r1, ELR_hyp               /* read ip                */
 	mrs r2, spsr                  /* read cpsr              */
 	mrc p15, 0, r3, c1, c0, 0     /* read SCTRL             */
@@ -124,21 +127,29 @@ _vm_to_host:
 	mrc p15, 0, r8, c2, c0, 2     /* read TTBRC             */
 	mrc p15, 0, r9, c2, c0, 0     /* read TTBR0             */
 	mrc p15, 0, r10, c2, c0, 1    /* read TTBR1             */
+	mrc p15, 0, r11, c10, c2, 0   /* read PRRR              */
+	mrc p15, 0, r12, c10, c2, 1   /* read NMRR              */
 	add r0, sp, #40*4             /* offset SCTRL           */
-	stm r0!, {r3-r10}
-	add r0, r0, #3*4
-	mrc p15, 0, r3, c5, c0, 0     /* read DFSR              */
-	mrc p15, 0, r4, c5, c0, 1     /* read IFSR              */
-	mrc p15, 0, r5, c5, c1, 0     /* read ADFSR             */
-	mrc p15, 0, r6, c5, c1, 1     /* read AIFSR             */
-	mrc p15, 0, r7, c6, c0, 0     /* read DFAR              */
-	mrc p15, 0, r8, c6, c0, 2     /* read IFAR              */
-	mrc p15, 0, r9, c13, c0, 1    /* read CIDR              */
-	mrc p15, 0, r10, c13, c0, 2   /* read TLS1              */
-	mrc p15, 0, r11, c13, c0, 3   /* read TLS2              */
-	mrc p15, 0, r12, c13, c0, 4   /* read TLS3              */
 	stm r0!, {r3-r12}
-	add    r0, r0, #4
+	mrc p15, 0, r3, c3, c0, 0     /* read DACR              */
+	mrc p15, 0, r4, c5, c0, 0     /* read DFSR              */
+	mrc p15, 0, r5, c5, c0, 1     /* read IFSR              */
+	mrc p15, 0, r6, c5, c1, 0     /* read ADFSR             */
+	mrc p15, 0, r7, c5, c1, 1     /* read AIFSR             */
+	mrc p15, 0, r8, c6, c0, 0     /* read DFAR              */
+	mrc p15, 0, r9, c6, c0, 2     /* read IFAR              */
+	mrc p15, 0, r10, c13, c0, 1   /* read CIDR              */
+	mrc p15, 0, r11, c13, c0, 2   /* read TLS1              */
+	mrc p15, 0, r12, c13, c0, 3   /* read TLS2              */
+	stm r0!, {r3-r12}
+	mrc p15, 0, r3, c13, c0, 4    /* read TLS3              */
+	mrc p15, 0, r4, c1, c0, 2     /* read CPACR             */
+	stm r0!, {r3, r4}
+
+	mov r3, #0xf
+	lsl r3, #20
+	mcr p15, 0, r3, c1, c0, 2     /* write CPACR            */
+
 	mov    r3, #1               /* clear fpu exception state */
 	lsl    r3, #30
 	vmsr   fpexc, r3
@@ -146,6 +157,11 @@ _vm_to_host:
 	stmia  r0!, {r4}
 	vstm   r0!, {d0-d15}
 	vstm   r0!, {d16-d31}
+	mrrc p15, 4, r3, r4,  c14     /* read cntvoff          */
+	mrrc p15, 3, r5, r6,  c14     /* read cntv_cval        */
+	mrc  p15, 0, r7, c14, c3, 1   /* write cntv_ctl         */
+	mrc  p15, 0, r8, c14, c1, 0   /* write cntkctl          */
+	stm  r0!, {r3-r8}
 	add r0, sp, #13*4
 	ldr r3, _vt_host_context_ptr
 	ldr sp, [r3]

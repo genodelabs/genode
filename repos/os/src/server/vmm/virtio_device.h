@@ -48,9 +48,12 @@ struct Vmm::Virtio_queue_data
 	uint32_t ready         { 0 };
 	bool     tx            { false };
 
-	addr_t descr()  const { return ((addr_t)descr_high  << 32) | descr_low; }
-	addr_t driver() const { return ((addr_t)driver_high << 32) | driver_low; }
-	addr_t device() const { return ((addr_t)device_high << 32) | device_low; }
+	uint64_t descr()  const {
+		return ((uint64_t)descr_high  << 32) | descr_low; }
+	uint64_t driver() const {
+		return ((uint64_t)driver_high << 32) | driver_low; }
+	uint64_t device() const {
+		return ((uint64_t)device_high << 32) | device_low; }
 
 	enum { MAX_QUEUE_SIZE = 1 << 15 };
 };
@@ -83,10 +86,10 @@ class Vmm::Virtio_descriptor : Genode::Mmio
 			return Virtio_descriptor(base() + (size() * idx));
 		}
 
-		addr_t address() const { return read<Address>(); }
-		size_t length () const { return read<Length>(); }
-		uint16_t flags() const { return read<Flags>(); }
-		uint16_t next()  const { return read<Next>(); }
+		uint64_t address() const { return read<Address>(); }
+		size_t   length () const { return read<Length>(); }
+		uint16_t flags()   const { return read<Flags>(); }
+		uint16_t next()    const { return read<Next>(); }
 };
 
 
@@ -173,7 +176,7 @@ class Vmm::Virtio_queue
 			id %= _length;
 
 			Virtio_descriptor descr = _descr.index(id);
-			addr_t          address = descr.address();
+			uint64_t        address = descr.address();
 			size_t           length = descr.length();
 			if (!address || !length) break;
 

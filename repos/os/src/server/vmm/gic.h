@@ -18,11 +18,15 @@
 
 #include <base/env.h>
 #include <drivers/defs/arm_v7.h>
+#include <vm_session/connection.h>
 #include <util/list.h>
 #include <util/register.h>
 #include <util/reconstructible.h>
 
-namespace Vmm { class Gic; }
+namespace Vmm {
+	class Cpu_base;
+	class Gic;
+}
 
 class Vmm::Gic : public Vmm::Mmio_device
 {
@@ -120,11 +124,11 @@ class Vmm::Gic : public Vmm::Mmio_device
 				void handle_irq();
 				bool pending_irq();
 
-				Gicd_banked(Cpu & cpu, Gic & gic, Mmio_bus & bus);
+				Gicd_banked(Cpu_base & cpu, Gic & gic, Mmio_bus & bus);
 
 			private:
 
-				Cpu                      & _cpu;
+				Cpu_base                 & _cpu;
 				Gic                      & _gic;
 				Genode::Constructible<Irq> _sgi[MAX_SGI];
 				Genode::Constructible<Irq> _ppi[MAX_PPI];
@@ -137,7 +141,9 @@ class Vmm::Gic : public Vmm::Mmio_device
 					Mmio_register gicr_ctlr     { "GICR_CTLR", Mmio_register::RO,
 					                              0x0, 4, 0b10010 };
 					Mmio_register gicr_typer    { "GICR_TYPER", Mmio_register::RO,
-					                              0x8, 8, (Genode::uint64_t)cpu_id<<32 | cpu_id<<8 | (last ? 1<<4 : 0) };
+					                              0x8, 8,
+					                              (Genode::uint64_t)cpu_id<<32 |
+					                              cpu_id<<8 | (last ? 1<<4 : 0) };
 					Mmio_register gicr_waker    { "GICR_WAKER", Mmio_register::RO,
 					                              0x14, 4, 0 };
 					Mmio_register gicr_pidr2    { "GICR_PIDR2", Mmio_register::RO,
@@ -242,9 +248,14 @@ class Vmm::Gic : public Vmm::Mmio_device
 				Genode::Constructible<Redistributor> _rdist;
 		};
 
+		unsigned version();
+
 		Gic(const char * const       name,
 		    const Genode::uint64_t   addr,
 		    const Genode::uint64_t   size,
+		    unsigned                 cpus,
+		    unsigned                 version,
+		    Genode::Vm_connection  & vm,
 		    Mmio_bus               & bus,
 		    Genode::Env            & env);
 
@@ -254,8 +265,8 @@ class Vmm::Gic : public Vmm::Mmio_device
 
 		Genode::Constructible<Irq> _spi[MAX_SPI];
 		Irq::List                  _pending_list;
-		unsigned                   _cpu_cnt { 2 }; /* FIXME: smp support */
-		unsigned                   _version { 3 }; /* FIXME: version support */
+		unsigned                   _cpu_cnt;
+		unsigned                   _version;
 
 		struct Gicd_ctlr : Genode::Register<32>, Mmio_register
 		{
@@ -282,7 +293,8 @@ class Vmm::Gic : public Vmm::Mmio_device
 
 			Gicd_typer(unsigned cpus)
 			:  Mmio_register("GICD_TYPER", Mmio_register::RO, 0x4, 4,
-			                 It_lines_number::bits(31) | Cpu_number::bits(cpus-1) | Id_bits::bits(9)) {}
+			                 It_lines_number::bits(31) |
+			                 Cpu_number::bits(cpus-1) | Id_bits::bits(9)) {}
 		} _typer { _cpu_cnt };
 
 		struct Gicd_iidr : Genode::Register<32>, Mmio_register

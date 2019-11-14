@@ -87,33 +87,56 @@ if { [have_spec arm] } {
 
 	if {![file exists bin/linux]} {
 		puts "Download linux kernel ..."
-			exec >& /dev/null wget -c -O bin/linux http://genode.org/files/release-15.02/arm_vt/linux
+			exec >& /dev/null wget -c -O bin/linux http://genode.org/files/release-20.05/linux-arm32
 	}
 
 	if {![file exists bin/dtb]} {
 		puts "Download device tree blob ..."
-			exec >& /dev/null wget -c -O bin/dtb http://genode.org/files/release-15.02/arm_vt/dtb
+			exec >& /dev/null wget -c -O bin/dtb http://genode.org/files/release-20.05/dtb-arm32-virt
+	}
+
+	if {![file exists bin/initrd]} {
+		puts "Download initramfs ..."
+			exec >& /dev/null wget -c -O bin/initrd http://genode.org/files/release-20.05/initrd-arm32
 	}
 
 #
-# This test uses a Linux kernel built from unmodified vanilla kernel sources
-# but using a slightly simplified kernel configuration, as well as device tree
-# for a minimal Versatile Express Cortex A15 like emulated board.
+# To obtain the linux kernel, do the following steps:
+# 
+# wget https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.3.10.tar.xz
+# 
+# tar -xJf linux-5.3.10.tar.xz
+# cd linux-5.3.10
+# 
+# make O=../build-linux-aarch32 ARCH=arm CROSS_COMPILE=/usr/local/genode/tool/current/bin/genode-arm- defconfig
+# make O=../build-linux-aarch32 ARCH=arm CROSS_COMPILE=/usr/local/genode/tool/current/bin/genode-arm- -j32
+# 
+# copy ../build-linux-aarch32/arch/arm/boot/zImage to your build directory in 'bin/linux'
 #
-# The used sources, including the modified device tree and configuration file
-# can be found in the following git repository/branch:
 #
-#   https://github.com/skalk/linux/tree/vexpress-vt
+# To get the dtb (device-tree-binary), you have to compile the file:
+# repos/os/src/server/vmm/spec/arm_v7/virt.dts with the dtc compiler:
+# dtc repos/os/src/server/vmm/spec/arm_v7/virt.dts > bin/dtb
 #
-# To compile the kernel and device tree blob used in this script, do the
-# following steps:
 #
-# ! git checkout https://github.com/skalk/linux.git
-# ! cd linux
-# ! git checkout origin/vexpress-vt
-# ! make ARCH=arm CROSS_COMPILE=<cross_compiler_prefix> vexpress_config
-# ! make ARCH=arm CROSS_COMPILE=<cross_compiler_prefix> -j8 Image
-# ! make ARCH=arm CROSS_COMPILE=<cross_compiler_prefix> vexpress-v2p-ca15-tc1.dtb
+# To construct the initrd do the following:
+# * get and install gcc from bootlin:
+#      (https://toolchains.bootlin.com/downloads/releases/toolchains/armv7-eabihf/tarballs/)
+# * build busybox
+#      wget https://busybox.net/downloads/busybox-1.31.1.tar.bz2
+#      tar xjf busybox-1.31.1.tar.bz2
+#      mkdir build-busybox-aarch32
+#      cd busybox-1.31.1
+#      make O=../build-busybox-aarch32 defconfig
+#      make O=../build-busybox-aarch32 menuconfig
+#
+#      [*] Setting ->  Build static binary (no shared libs)
+#
+#      cd ../build-busybox-aarch32
+#      make CROSS_COMPILE=/opt/armv7-eabihf--uclibc--stable-2020.02-1/bin/arm-buildroot-linux-uclibcgnueabihf- install -j6
+# * create ramdisk
+#      cd _install
+#      find . | cpio -H newc -o | gzip > ../initrd
 #
 }
 
@@ -183,8 +206,8 @@ set boot_modules {
 	vmm
 	linux
 	dtb
+	initrd
 }
-append_if [have_spec arm_64] boot_modules initrd
 build_boot_image $boot_modules
 
 #

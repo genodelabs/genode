@@ -1,0 +1,80 @@
+/dts-v1/;
+
+/ {
+	compatible = "linux,dummy-virt";
+	#address-cells = <0x02>;
+	#size-cells = <0x02>;
+	interrupt-parent = <0x8001>;
+
+	cpus {
+		#address-cells = <0x01>;
+		#size-cells = <0x00>;
+
+		cpu@0 {
+			compatible = "arm,cortex-a15";
+			reg = <0x00>;
+			device_type = "cpu";
+		};
+	};
+
+	timer {
+		interrupts = <0x01 0x0d 0x04 0x01 0x0e 0x04 0x01 0x0b 0x04 0x01 0x0a 0x04>;
+		compatible = "arm,armv7-timer";
+		always-on;
+	};
+
+	apb-pclk {
+		compatible = "fixed-clock";
+		phandle = <0x8000>;
+		clock-output-names = "clk24mhz";
+		clock-frequency = <0x16e3600>;
+		#clock-cells = <0x00>;
+	};
+
+	pl011@9000000 {
+		interrupts = <0x00 0x01 0x04>;
+		compatible = "arm,pl011\0arm,primecell";
+		clock-names = "uartclk\0apb_pclk";
+		reg = <0x00 0x9000000 0x00 0x1000>;
+		clocks = <0x8000 0x8000>;
+	};
+
+	memory@40000000 {
+		reg = <0x00 0x40000000 0x00 0x8000000>;
+		device_type = "memory";
+	};
+
+	chosen {
+		bootargs = "rdinit=/bin/sh ip=dhcp console=hvc0";
+		linux,initrd-start = <0x46000000>;
+		linux,initrd-end   = <0x460b04b6>;
+		stdout-path = "/pl011@9000000";
+	};
+
+	intc@8000000 {
+		compatible = "arm,cortex-a15-gic";
+		phandle = <0x8001>;
+		reg = <0x00 0x8000000 0x00 0x10000 0x00 0x8010000 0x00 0x10000>;
+		ranges;
+		#address-cells = <0x02>;
+		#redistributor-regions = <0x01>;
+		interrupt-controller;
+		#interrupt-cells = <0x03>;
+		#size-cells = <0x02>;
+	};
+
+
+	virtio_mmio@a000000 {
+		interrupts = <0x00 0x10 0x01>;
+		compatible = "virtio,mmio";
+		dma-coherent;
+		reg = <0x00 0xa000000 0x00 0x200>;
+	};
+
+	virtio_mmio@a000200 {
+		interrupts = <0x00 0x11 0x01>;
+		compatible = "virtio,mmio";
+		dma-coherent;
+		reg = <0x00 0xa000200 0x00 0x200>;
+	};
+};

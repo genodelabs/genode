@@ -27,59 +27,55 @@ namespace Genode
 
 struct Genode::Vm_state : Genode::Cpu_state_modes
 {
-	Genode::uint64_t vttbr;
-	Genode::uint32_t sctrl;
-	Genode::uint32_t hsr;
-	Genode::uint32_t hpfar;
-	Genode::uint32_t hdfar;
-	Genode::uint32_t hifar;
-	Genode::uint32_t ttbcr;
-	Genode::uint32_t ttbr0;
-	Genode::uint32_t ttbr1;
-	Genode::uint32_t prrr;
-	Genode::uint32_t nmrr;
-	Genode::uint32_t dacr;
-	Genode::uint32_t dfsr;
-	Genode::uint32_t ifsr;
-	Genode::uint32_t adfsr;
-	Genode::uint32_t aifsr;
-	Genode::uint32_t dfar;
-	Genode::uint32_t ifar;
-	Genode::uint32_t cidr;
-	Genode::uint32_t tls1;
-	Genode::uint32_t tls2;
-	Genode::uint32_t tls3;
-	Genode::uint32_t cpacr;
+	Genode::uint64_t vttbr     { 0 };
+	Genode::uint32_t sctrl     { 0 };
+	Genode::uint32_t esr_el2   { 0 };
+	Genode::uint32_t hpfar_el2 { 0 };
+	Genode::uint32_t far_el2   { 0 };
+	Genode::uint32_t hifar     { 0 };
+	Genode::uint32_t ttbcr     { 0 };
+	Genode::uint32_t ttbr0     { 0 };
+	Genode::uint32_t ttbr1     { 0 };
+	Genode::uint32_t prrr      { 0 };
+	Genode::uint32_t nmrr      { 0 };
+	Genode::uint32_t dacr      { 0 };
+	Genode::uint32_t dfsr      { 0 };
+	Genode::uint32_t ifsr      { 0 };
+	Genode::uint32_t adfsr     { 0 };
+	Genode::uint32_t aifsr     { 0 };
+	Genode::uint32_t dfar      { 0 };
+	Genode::uint32_t ifar      { 0 };
+	Genode::uint32_t cidr      { 0 };
+	Genode::uint32_t tls1      { 0 };
+	Genode::uint32_t tls2      { 0 };
+	Genode::uint32_t tls3      { 0 };
+	Genode::uint32_t cpacr     { 0 };
 
 	/**
 	 * Fpu registers
 	 */
-	Genode::uint32_t fpscr;
-	Genode::uint64_t d0_d31[32];
+	Genode::uint32_t fpscr     { 0 };
+	Genode::uint64_t d0_d31[32]{ 0 };
 
 	/**
 	 * Timer related registers
 	 */
-
-	Genode::uint32_t timer_ctrl;
-	Genode::uint32_t timer_val;
-	bool             timer_irq;
-
+	struct Timer {
+		Genode::uint64_t offset   { 0 };
+		Genode::uint64_t compare  { 0 };
+		Genode::uint32_t control  { 0 };
+		Genode::uint32_t kcontrol { 0 };
+		bool             irq      { false };
+	} timer {};
 
 	/**
-	 * PIC related registers
+	 * Interrupt related values
 	 */
-
-	enum { NR_IRQ = 4 };
-
-	Genode::uint32_t gic_hcr;
-	Genode::uint32_t gic_vmcr;
-	Genode::uint32_t gic_misr;
-	Genode::uint32_t gic_apr;
-	Genode::uint32_t gic_eisr;
-	Genode::uint32_t gic_elrsr0;
-	Genode::uint32_t gic_lr[4];
-	unsigned         gic_irq;
+	struct Pic
+	{
+		unsigned last_irq    { 1023 };
+		unsigned virtual_irq { 1023 };
+	} irqs {};
 };
 
 #endif /* _INCLUDE__SPEC__ARNDALE__VM_STATE_H_ */

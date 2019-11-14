@@ -18,11 +18,11 @@ namespace Vmm {
 
 	enum {
 		SIZE_1_MB                 = 1024 * 1024,
-		KERNEL_OFFSET             = 54 * SIZE_1_MB,
+		KERNEL_OFFSET             = 0x80000,
+		INITRD_OFFSET             = 32 * SIZE_1_MB,
 		DTB_OFFSET                = 64 * SIZE_1_MB,
-		INITRD_OFFSET             = 96 * SIZE_1_MB,
 
-		GIC_VERSION               = 2,
+		GIC_VERSION               = 3,
 		GICD_MMIO_START           = 0x8000000,
 		GICD_MMIO_SIZE            = 0x10000,
 		GICC_MMIO_START           = 0x8010000,

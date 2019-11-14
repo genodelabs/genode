@@ -250,7 +250,7 @@ class Hw::Long_translation_table
 					| Attribute_index::create(f)
 					| Not_global::bits(!f.global)
 					| Base::Shareability::bits(
-						Base::Shareability::OUTER_SHAREABLE)
+						Base::Shareability::INNER_SHAREABLE)
 					| Base::Output_address::masked(pa)
 					| Base::Access_flag::bits(1)
 					| Descriptor::Valid::bits(1)
@@ -270,7 +270,7 @@ class Hw::Long_translation_table
 			                                            addr_t const pa)
 			{
 				return Base::Shareability::bits(
-					Base::Shareability::NON_SHAREABLE)
+					Base::Shareability::INNER_SHAREABLE)
 					| Base::Output_address::masked(pa)
 					| Base::Access_flag::bits(1)
 					| Descriptor::Valid::bits(1)

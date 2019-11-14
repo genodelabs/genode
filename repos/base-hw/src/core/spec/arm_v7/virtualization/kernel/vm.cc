@@ -55,139 +55,42 @@ struct Host_context {
 } vt_host_context;
 
 
-struct Kernel::Vm_irq : Kernel::Irq
+Board::Vcpu_context::Vm_irq::Vm_irq(unsigned const irq, Cpu & cpu)
+: Kernel::Irq(irq, cpu.irq_pool())
+{ }
+
+
+void Board::Vcpu_context::Vm_irq::handle(Cpu &, Vm & vm, unsigned irq) {
+	vm.inject_irq(irq); }
+
+
+void Board::Vcpu_context::Vm_irq::occurred()
 {
-	Vm_irq(unsigned const irq)
-	:
-		Kernel::Irq(irq, cpu_pool().executing_cpu().irq_pool())
-	{ }
-
-	/**
-	 * A VM interrupt gets injected into the VM scheduled on the current CPU
-	 */
-	void occurred() override
-	{
-		Cpu_job & job = cpu_pool().executing_cpu().scheduled_job();
-		Vm *vm = dynamic_cast<Vm*>(&job);
-		if (!vm)
-			Genode::raw("VM timer interrupt while VM is not runnning!");
-		else
-			vm->inject_irq(_irq_nr);
-	}
-};
+	Cpu & cpu = Kernel::cpu_pool().executing_cpu();
+	Vm *vm = dynamic_cast<Vm*>(&cpu.scheduled_job());
+	if (!vm) Genode::raw("VM interrupt while VM is not runnning!");
+	else     handle(cpu, *vm, _irq_nr);
+}
 
 
-struct Kernel::Virtual_pic : Genode::Mmio
+Board::Vcpu_context::Pic_maintainance_irq::Pic_maintainance_irq(Cpu & cpu)
+: Board::Vcpu_context::Vm_irq(Board::VT_MAINTAINANCE_IRQ, cpu) {
+	//FIXME Irq::enable only enables caller cpu
+	cpu.pic().unmask(_irq_nr, cpu.id()); }
+
+Board::Vcpu_context::Virtual_timer_irq::Virtual_timer_irq(Cpu & cpu)
+: irq(Board::VT_TIMER_IRQ, cpu) {}
+
+
+void Board::Vcpu_context::Virtual_timer_irq::enable() { irq.enable(); }
+
+
+void Board::Vcpu_context::Virtual_timer_irq::disable()
 {
-	struct Gich_hcr    : Register<0x00, 32> { };
-	struct Gich_vmcr   : Register<0x08, 32> { };
-	struct Gich_misr   : Register<0x10, 32> { };
-	struct Gich_eisr0  : Register<0x20, 32> { };
-	struct Gich_elrsr0 : Register<0x30, 32> { };
-	struct Gich_apr    : Register<0xf0, 32> { };
-
-	template <unsigned SLOT>
-	struct Gich_lr : Register<0x100 + SLOT*4, 32> { };
-
-	Vm_irq irq { Board::VT_MAINTAINANCE_IRQ };
-
-	Virtual_pic()
-	: Genode::Mmio(Genode::Platform::mmio_to_virt(Board::Cpu_mmio::IRQ_CONTROLLER_VT_CTRL_BASE)) { }
-
-	static Virtual_pic& pic()
-	{
-		static Virtual_pic vgic;
-		return vgic;
-	}
-
-	/**
-	 * Save the virtual interrupt controller state to VM state
-	 */
-	static void save (Genode::Vm_state &s)
-	{
-		s.gic_hcr    = pic().read<Gich_hcr   >();
-		s.gic_misr   = pic().read<Gich_misr  >();
-		s.gic_vmcr   = pic().read<Gich_vmcr  >();
-		s.gic_apr    = pic().read<Gich_apr   >();
-		s.gic_eisr   = pic().read<Gich_eisr0 >();
-		s.gic_elrsr0 = pic().read<Gich_elrsr0>();
-		s.gic_lr[0]  = pic().read<Gich_lr<0> >();
-		s.gic_lr[1]  = pic().read<Gich_lr<1> >();
-		s.gic_lr[2]  = pic().read<Gich_lr<2> >();
-		s.gic_lr[3]  = pic().read<Gich_lr<3> >();
-
-		/* disable virtual PIC CPU interface */
-		pic().write<Gich_hcr>(0);
-	}
-
-	/**
-	 * Load the virtual interrupt controller state from VM state
-	 */
-	static void load (Genode::Vm_state &s)
-	{
-		pic().write<Gich_hcr   >(s.gic_hcr );
-		pic().write<Gich_misr  >(s.gic_misr);
-		pic().write<Gich_vmcr  >(s.gic_vmcr);
-		pic().write<Gich_apr   >(s.gic_apr );
-		pic().write<Gich_elrsr0>(s.gic_elrsr0);
-		pic().write<Gich_lr<0> >(s.gic_lr[0]);
-		pic().write<Gich_lr<1> >(s.gic_lr[1]);
-		pic().write<Gich_lr<2> >(s.gic_lr[2]);
-		pic().write<Gich_lr<3> >(s.gic_lr[3]);
-	}
-};
-
-
-struct Kernel::Virtual_timer
-{
-	Vm_irq irq { Board::VT_TIMER_IRQ };
-
-	/**
-	 * Return virtual timer object of currently executing cpu
-	 *
-	 * FIXME: remove this when re-designing the CPU (issue #1252)
-	 */
-	static Virtual_timer& timer()
-	{
-		static Virtual_timer timer[NR_OF_CPUS];
-		return timer[Cpu::executing_id()];
-	}
-
-	/**
-	 * Resets the virtual timer, thereby it disables its interrupt
-	 */
-	static void reset()
-	{
-		timer().irq.disable();
-		asm volatile("mcr p15, 0, %0, c14, c3, 1 \n"
-		             "mcr p15, 0, %0, c14, c3, 0" :: "r" (0));
-	}
-
-	/**
-	 * Save the virtual timer state to VM state
-	 */
-	static void save(Genode::Vm_state &s)
-	{
-		asm volatile("mrc p15, 0, %0, c14, c3, 0 \n"
-		             "mrc p15, 0, %1, c14, c3, 1" :
-		             "=r" (s.timer_val), "=r" (s.timer_ctrl));
-	}
-
-	/**
-	 * Load the virtual timer state from VM state
-	 */
-	static void load(Genode::Vm_state &s)
-	{
-		if (s.timer_irq) timer().irq.enable();
-
-		asm volatile("mcr p15, 0, %0, c14, c3, 1 \n"
-		             "mcr p15, 0, %1, c14, c3, 0 \n"
-		             "mcr p15, 0, %2, c14, c3, 1" ::
-		             "r" (0),
-		             "r" (s.timer_val), "r" (s.timer_ctrl));
-	}
-};
-
+	irq.disable();
+	asm volatile("mcr p15, 0, %0, c14, c3, 1" :: "r" (0));
+	asm volatile("mcr p15, 0, %0, c14, c1, 0" :: "r" (0b11));
+}
 
 using Vmid_allocator = Genode::Bit_allocator<256>;
 
@@ -217,7 +120,6 @@ Kernel::Vm::Vm(unsigned, /* FIXME: smp support */
   _vcpu_context(cpu_pool().primary_cpu())
 {
 	affinity(cpu_pool().primary_cpu());
-	Virtual_pic::pic().irq.enable();
 
 	vt_host_context.sp    = _cpu->stack_start();
 	vt_host_context.ttbr0 = Cpu::Ttbr0_64bit::read();
@@ -235,12 +137,9 @@ Kernel::Vm::~Vm() { alloc().free(_id); }
 
 void Kernel::Vm::exception(Cpu & cpu)
 {
-	Virtual_timer::save(_state);
-
 	switch(_state.cpu_exception) {
 	case Genode::Cpu_state::INTERRUPT_REQUEST:
 	case Genode::Cpu_state::FAST_INTERRUPT_REQUEST:
-		_state.gic_irq = Board::VT_MAINTAINANCE_IRQ;
 		_interrupt(cpu.id());
 		break;
 	default:
@@ -248,13 +147,18 @@ void Kernel::Vm::exception(Cpu & cpu)
 		_context.submit(1);
 	}
 
-	Virtual_pic::save(_state);
-	Virtual_timer::reset();
+	if (cpu.pic().ack_virtual_irq(_vcpu_context.pic))
+		inject_irq(Board::VT_MAINTAINANCE_IRQ);
+	_vcpu_context.vtimer_irq.disable();
 }
 
 
-void Kernel::Vm::proceed(Cpu &)
+void Kernel::Vm::proceed(Cpu & cpu)
 {
+	if (_state.timer.irq) _vcpu_context.vtimer_irq.enable();
+
+	cpu.pic().insert_virtual_irq(_vcpu_context.pic, _state.irqs.virtual_irq);
+
 	/*
 	 * the following values have to be enforced by the hypervisor
 	 */
@@ -266,11 +170,8 @@ void Kernel::Vm::proceed(Cpu &)
 	 * to transport the HSTR and HCR register descriptions into the assembler
 	 * path in a dense way
 	 */
-	_state.hsr   = Cpu::Hstr::init();
-	_state.hpfar = Cpu::Hcr::init();
-
-	Virtual_pic::load(_state);
-	Virtual_timer::load(_state);
+	_state.esr_el2   = Cpu::Hstr::init();
+	_state.hpfar_el2 = Cpu::Hcr::init();
 
 	hypervisor_enter_vm(_state);
 }
@@ -278,7 +179,7 @@ void Kernel::Vm::proceed(Cpu &)
 
 void Vm::inject_irq(unsigned irq)
 {
-	_state.gic_irq = irq;
+	_state.irqs.last_irq = irq;
 	pause();
 	_context.submit(1);
 }

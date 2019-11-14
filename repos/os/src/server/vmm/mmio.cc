@@ -112,11 +112,9 @@ void Vmm::Mmio_bus::handle_memory_access(Vmm::Cpu & cpu)
 		Mmio_device & dev = get<Mmio_device>(bus_range);
 		Address_range dev_range(ipa - dev.start,width);
 		if (wr) {
-			dev.write(dev_range, cpu, (idx == 31) ? 0 : state.r[idx]);
+			dev.write(dev_range, cpu, state.reg(idx));
 		} else {
-			if (idx > 30)
-				throw Exception("Wrong register index when reading ", bus_range);
-			state.r[idx] = dev.read(dev_range, cpu);
+			state.reg(idx, dev.read(dev_range, cpu));
 		}
 	} catch(Exception & e) {
 		Genode::warning(e);

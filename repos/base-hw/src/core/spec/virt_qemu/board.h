@@ -18,8 +18,7 @@
 #include <spec/arm/virtualization/gicv2.h>
 #include <spec/arm/generic_timer.h>
 #include <spec/arm/cpu/vm_state_virtualization.h>
-#include <translation_table.h>
-#include <kernel/configuration.h>
+#include <spec/arm/virtualization/board.h>
 
 namespace Kernel { class Cpu; }
 
@@ -34,13 +33,6 @@ namespace Board {
 		VT_MAINTAINANCE_IRQ = 25,
 		VCPU_MAX            = 1
 	};
-
-	using Vm_state = Genode::Vm_state;
-	using Vm_page_table = Hw::Level_1_stage_2_translation_table;
-	using Vm_page_table_array =
-		Vm_page_table::Allocator::Array<Kernel::DEFAULT_TRANSLATION_TABLE_MAX>;
-
-	struct Vcpu_context { Vcpu_context(Kernel::Cpu &) {} };
 };
 
 #endif /* _SRC__CORE__SPEC__VIRT__QEMU_H_ */

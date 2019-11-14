@@ -41,18 +41,10 @@ class Genode::Cpu : public Arm_v7_cpu
 			static access_t init()
 			{
 				/*
-				 * allow cache (7), TLB (8) maintenance, and performance
-				 * monitor (9), process/thread ID register (13) and timer (14)
-				 * access.
+				 * allow everything except c0, c11, c12, and c15 accesses.
 				 */
 				access_t v = 0;
 				T<0>::set(v, 1);
-				T<1>::set(v, 1);
-				T<2>::set(v, 1);
-				T<3>::set(v, 1);
-				T<5>::set(v, 1);
-				T<6>::set(v, 1);
-				T<10>::set(v, 1);
 				T<11>::set(v, 1);
 				T<12>::set(v, 1);
 				T<15>::set(v, 1);
@@ -73,7 +65,6 @@ class Genode::Cpu : public Arm_v7_cpu
 			struct Twe   : Bitfield<14, 1> {}; /* trap on WFE instruction   */
 			struct Tidcp : Bitfield<20, 1> {}; /* trap lockdown             */
 			struct Tac   : Bitfield<21, 1> {}; /* trap ACTLR accesses       */
-			struct Tvm   : Bitfield<26, 1> {}; /* trap virtual memory ctrls */
 
 			static access_t init()
 			{
@@ -86,7 +77,6 @@ class Genode::Cpu : public Arm_v7_cpu
 				Twe::set(v, 1);
 				Tidcp::set(v, 1);
 				Tac::set(v, 1);
-				Tvm::set(v, 1);
 				return v;
 			};
 		};

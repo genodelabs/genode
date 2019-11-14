@@ -159,13 +159,13 @@ void Gic::Gicd_banked::handle_irq()
 
 	irq(i).deassert();
 
-	_cpu.state().irqs.virtual_irq = 1023;
+	_cpu.state().irqs.virtual_irq = SPURIOUS;
 }
 
 
 bool Gic::Gicd_banked::pending_irq()
 {
-	if (_cpu.state().irqs.virtual_irq != 1023) return true;
+	if (_cpu.state().irqs.virtual_irq != SPURIOUS) return true;
 
 	Irq * i = _gic._pending_list.highest_enabled();
 	Irq * j = _pending_list.highest_enabled();
@@ -178,7 +178,7 @@ bool Gic::Gicd_banked::pending_irq()
 }
 
 
-Gic::Gicd_banked::Gicd_banked(Cpu & cpu, Gic & gic, Mmio_bus & bus)
+Gic::Gicd_banked::Gicd_banked(Cpu_base & cpu, Gic & gic, Mmio_bus & bus)
 : _cpu(cpu), _gic(gic)
 {
 	for (unsigned i = 0; i < MAX_SGI; i++)
@@ -187,11 +187,16 @@ Gic::Gicd_banked::Gicd_banked(Cpu & cpu, Gic & gic, Mmio_bus & bus)
 	for (unsigned i = 0; i < MAX_PPI; i++)
 		_ppi[i].construct(i+MAX_SGI, Irq::PPI, _pending_list);
 
-	_cpu.state().irqs.last_irq    = 1023;
-	_cpu.state().irqs.virtual_irq = 1023;
+	_cpu.state().irqs.last_irq    = SPURIOUS;
+	_cpu.state().irqs.virtual_irq = SPURIOUS;
 
-	_rdist.construct(0x80a0000 + (cpu.cpu_id()*0x20000), 0x20000, cpu.cpu_id(), Vm::last_cpu() == cpu.cpu_id());
-	bus.add(*_rdist);
+	if (gic.version() >= 3) {
+		_rdist.construct(GICR_MMIO_START +
+		                 (cpu.cpu_id()*0x20000), 0x20000,
+		                 cpu.cpu_id(),
+		                 Vm::last_cpu() == cpu.cpu_id());
+		bus.add(*_rdist);
+	}
 }
 
 
@@ -218,12 +223,18 @@ void Gic::Irq_reg::write(Address_range & access, Cpu & cpu, Register value)
 }
 
 
-Gic::Gic(const char * const     name,
-         const Genode::uint64_t addr,
-         const Genode::uint64_t size,
-         Mmio_bus             & bus,
-         Genode::Env          & env)
-: Mmio_device(name, addr, size)
+unsigned Gic::version() { return _version; }
+
+
+Gic::Gic(const char * const      name,
+         const Genode::uint64_t  addr,
+         const Genode::uint64_t  size,
+         unsigned                cpus,
+         unsigned                version,
+         Genode::Vm_connection & vm,
+         Mmio_bus              & bus,
+         Genode::Env           & env)
+: Mmio_device(name, addr, size), _cpu_cnt(cpus), _version(version)
 {
 	add(_ctrl);
 	add(_typer);
@@ -248,4 +259,6 @@ Gic::Gic(const char * const     name,
 		_spi[i].construct(i+MAX_SGI+MAX_PPI, Irq::SPI, _pending_list);
 
 	bus.add(*this);
+
+	if (version < 3) vm.attach_pic(GICC_MMIO_START);
 }

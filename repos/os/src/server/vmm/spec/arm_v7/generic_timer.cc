@@ -21,7 +21,7 @@ Genode::uint64_t Generic_timer::_ticks_per_ms()
 	static Genode::uint64_t ticks_per_ms = 0;
 	if (!ticks_per_ms) {
 		Genode::uint32_t freq = 0;
-		asm volatile("mrs %0, cntfrq_el0" : "=r" (freq));
+		asm volatile("mrc p15, 0, %0, c14, c0, 0" : "=r" (freq));
 		ticks_per_ms = freq / 1000;
 	}
 	return ticks_per_ms;
@@ -31,7 +31,9 @@ Genode::uint64_t Generic_timer::_ticks_per_ms()
 Genode::uint64_t Generic_timer::_usecs_left()
 {
 	Genode::uint64_t count;
-	asm volatile("mrs %0, cntpct_el0" : "=r" (count));
+	Genode::uint32_t low, high;
+	asm volatile("mrrc p15, 0, %0, %1, c14" : "=r" (low), "=r" (high));
+	count = (Genode::uint64_t)high << 32 | (Genode::uint64_t)low;
 	count -= _cpu.state().timer.offset;
 	if (count > _cpu.state().timer.compare) return 0;
 	return Genode::timer_ticks_to_us(_cpu.state().timer.compare - count,
