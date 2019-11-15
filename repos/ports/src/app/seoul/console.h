@@ -25,6 +25,7 @@
 #include <base/env.h>
 #include <dataspace/client.h>
 #include <util/string.h>
+#include <util/bit_array.h>
 
 /* os includes */
 #include <framebuffer_session/connection.h>
@@ -64,13 +65,13 @@ class Seoul::Console : public StaticReceiver<Seoul::Console>
 		Genode::addr_t       const    _vm_phys_fb;
 		short                        *_pixels;
 		Genode::Surface<Pixel_rgb565> _surface;
+		unsigned                      _timer    { 0 };
 		Keyboard                      _vkeyb    { _motherboard };
 		char                         *_guest_fb { nullptr };
 		VgaRegs                      *_regs     { nullptr };
 		bool                          _left     { false };
 		bool                          _middle   { false };
 		bool                          _right    { false };
-		unsigned                      _timer    { 0 };
 
 		unsigned _input_to_ps2mouse(Input::Event const &);
 		unsigned _input_to_ps2wheel(Input::Event const &);
@@ -80,6 +81,8 @@ class Seoul::Console : public StaticReceiver<Seoul::Console>
 
 		void _handle_input();
 		unsigned _handle_fb();
+
+		void _reactivate();
 
 		/*
 		 * Noncopyable

@@ -74,7 +74,7 @@ build $build_components
 # write Seoul config file
 set vm_cfg_fd [open "bin/vm_seoul.cfg" w]
 puts $vm_cfg_fd "<config map_small=\"$map_small\" vmm_vcpu_same_cpu=\"$vmm_vcpu_same_cpu\">"
-puts $vm_cfg_fd {	 <machine>
+puts $vm_cfg_fd {	 <machine verbose="no">
 		<mem start="0x0" end="0x9a000"/>
 		<mem start="0x100000" end="0xfffff000"/>
 		<!--<ioio/>-->
