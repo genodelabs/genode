@@ -38,13 +38,13 @@ static Tff_font::Static_glyph_buffer<4096> glyph_buffer { };
 static Tff_font default_font(_binary_mono_tff_start, glyph_buffer);
 
 static struct {
-	Genode::uint64_t checksum1 = 0;
-	Genode::uint64_t checksum2 = 0;
-	unsigned         unchanged = 0;
-	bool             cmp_even  = 1;
-	bool             active    = false;
-	bool             revoked   = false;
-	bool             vga_update= false; /* update indirectly by vbios */
+	Genode::uint64_t checksum1   = 0;
+	Genode::uint64_t checksum2   = 0;
+	unsigned         unchanged   = 0;
+	bool             cmp_even    = 1;
+	bool             active      = false;
+	bool             vga_revoked = false;
+	bool             vga_update  = false; /* update indirectly by vbios */
 } fb_state;
 
 
@@ -153,15 +153,17 @@ unsigned Seoul::Console::_input_to_ps2wheel(Input::Event const &ev)
 
 bool Seoul::Console::receive(MessageConsole &msg)
 {
-	if (msg.type == MessageConsole::TYPE_ALLOC_VIEW) {
+	switch (msg.type) {
+	case MessageConsole::TYPE_ALLOC_VIEW :
 		_guest_fb = msg.ptr;
 		_regs = msg.regs;
 
 		msg.view = 0;
-	} else if (msg.type == MessageConsole::TYPE_SWITCH_VIEW) {
+		return true;
+	case MessageConsole::TYPE_SWITCH_VIEW:
 		/* XXX: For now, we only have one view. */
-	} else if (msg.type == MessageConsole::TYPE_GET_MODEINFO) {
-
+		return true;
+	case MessageConsole::TYPE_GET_MODEINFO:
 		enum {
 			MEMORY_MODEL_TEXT = 0,
 			MEMORY_MODEL_DIRECT_COLOR = 6,
@@ -210,14 +212,31 @@ bool Seoul::Console::receive(MessageConsole &msg)
 			msg.info->phys_base = 0xe0000000;
 			msg.info->_phys_size = _fb_mode.width()*_fb_mode.height()*2;
 			return true;
-		} else return false;
+		}
+		return false;
+	case MessageConsole::TYPE_KILL: /* all CPUs go idle */
+		_handle_fb(); /* refresh before going to sleep */
+		fb_state.active = false;
+		return true;
+	case MessageConsole::TYPE_RESET: /* first of all sleeping CPUs woke up */
+		_reactivate();
+		return true;
+	default:
+		return true;
 	}
-	return true;
 }
 
 void Screen::vga_updated()
 {
 	fb_state.vga_update = true;
+}
+
+void Seoul::Console::_reactivate()
+{
+	fb_state.active = true;
+
+	MessageTimer msg(_timer, _unsynchronized_motherboard.clock()->abstime(1, 1000));
+	_unsynchronized_motherboard.bus_timer.send(msg);
 }
 
 bool Seoul::Console::receive(MessageMemRegion &msg)
@@ -234,11 +253,11 @@ bool Seoul::Console::receive(MessageMemRegion &msg)
 	}
 
 	if (reactivate) {
-		if (!fb_state.active) fb_state.active = true;
+		fb_state.vga_revoked = false;
+
 		Logging::printf("Reactivating text buffer loop.\n");
 
-		MessageTimer msg(_timer, _unsynchronized_motherboard.clock()->abstime(1, 1000));
-		_unsynchronized_motherboard.bus_timer.send(msg);
+		_reactivate();
 	}
 	return false;
 }
@@ -254,8 +273,7 @@ unsigned Seoul::Console::_handle_fb()
 	/* transfer text buffer content into chunky canvas */
 	if (_regs->mode == TEXT_MODE) {
 
-		if (fb_state.revoked || !fb_state.active)
-			return 0;
+		if (fb_state.vga_revoked || !fb_state.active) return 0;
 
 		memset(_pixels, 0, _fb_size);
 
@@ -299,24 +317,32 @@ unsigned Seoul::Console::_handle_fb()
 		_memory.detach(PHYS_FRAME_VGA_COLOR << 12,
 		               FRAME_COUNT_COLOR << 12);
 
+		fb_state.vga_revoked = true;
 		fb_state.unchanged = 0;
-		fb_state.active = false;
 
+		_framebuffer.refresh(0, 0, _fb_mode.width(), _fb_mode.height());
 		Logging::printf("Deactivated text buffer loop.\n");
 
 		return 0;
 	}
 
-	if (!fb_state.revoked) {
-
+	if (!fb_state.vga_revoked) {
 		_memory.detach(PHYS_FRAME_VGA_COLOR << 12,
 		               FRAME_COUNT_COLOR << 12);
 
-		fb_state.revoked = true;
+		fb_state.vga_revoked = true;
+	}
+
+	if (!fb_state.active) {
+		fb_state.unchanged = 0;
+		return 0;
 	}
 
 	_framebuffer.refresh(0, 0, _fb_mode.width(), _fb_mode.height());
-	return 10;
+
+	fb_state.unchanged++;
+
+	return (fb_state.unchanged > 4) ? 4 * 10 : fb_state.unchanged * 10;
 }
 
 

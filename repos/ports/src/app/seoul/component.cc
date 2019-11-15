@@ -785,7 +785,9 @@ class Machine : public StaticReceiver<Machine>
 		Seoul::Network        *_nic          { nullptr };
 		Rtc::Session          *_rtc          { nullptr };
 
-		Vcpu *                 _vcpus[32] { nullptr };
+		enum { MAX_CPUS = 8 };
+		Vcpu *                 _vcpus[MAX_CPUS] { nullptr };
+		Genode::Bit_array<64>  _vcpus_active { };
 
 		/*
 		 * Noncopyable
@@ -907,6 +909,8 @@ class Machine : public StaticReceiver<Machine>
 					                                 ep_name->string(),
 					                                 location);
 
+					_vcpus_active.set(_vcpus_up, 1);
+
 					Vcpu * vcpu = new Vcpu(*ep, _vm_con, _heap, _env,
 					                       _motherboard_lock, msg.vcpu,
 					                       _guest_memory, _motherboard,
@@ -956,11 +960,25 @@ class Machine : public StaticReceiver<Machine>
 					if (!_vcpus[vcpu_id])
 						return false;
 
+					_vcpus_active.clear(vcpu_id, 1);
+
+					if (!_vcpus_active.get(0, 64)) {
+						MessageConsole msgcon(MessageConsole::Type::TYPE_KILL);
+						_unsynchronized_motherboard.bus_console.send(msgcon);
+					}
+
 					_motherboard_lock.unlock();
 
 					_vcpus[vcpu_id]->block();
 
 					_motherboard_lock.lock();
+
+					if (!_vcpus_active.get(0, 64)) {
+						MessageConsole msgcon(MessageConsole::Type::TYPE_RESET);
+						_unsynchronized_motherboard.bus_console.send(msgcon);
+					}
+
+					_vcpus_active.set(vcpu_id, 1);
 
 					return true;
 				}
@@ -1218,6 +1236,8 @@ class Machine : public StaticReceiver<Machine>
 		{
 			using namespace Genode;
 
+			bool const verbose = machine_node.attribute_value("verbose", false);
+
 			Xml_node node = machine_node.sub_node();
 			for (;; node = node.next()) {
 
@@ -1225,7 +1245,9 @@ class Machine : public StaticReceiver<Machine>
 				char name[MODEL_NAME_MAX_LEN];
 				node.type_name(name, sizeof(name));
 
-				Genode::log("device: ", (char const *)name);
+				if (verbose)
+					Genode::log("device: ", (char const *)name);
+
 				Device_model_info *dmi = device_model_registry()->lookup(name);
 
 				if (!dmi) {
@@ -1249,7 +1271,8 @@ class Machine : public StaticReceiver<Machine>
 						Xml_node::Attribute arg = node.attribute(dmi->arg_names[i]);
 						arg.value(&argv[i]);
 
-						Genode::log(" arg[", i, "]: ", Genode::Hex(argv[i]));
+						if (verbose)
+							Genode::log(" arg[", i, "]: ", Genode::Hex(argv[i]));
 					}
 					catch (Xml_node::Nonexistent_attribute) { }
 				}
