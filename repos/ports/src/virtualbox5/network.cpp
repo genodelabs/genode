@@ -45,6 +45,7 @@
 
 /* VBox Genode specific */
 #include "vmm.h"
+#include <libc/component.h>
 
 /*******************************************************************************
 *   Structures and Typedefs                                                    *
@@ -121,12 +122,13 @@ class Nic_client
 
 				char *rx_content = _nic.rx()->packet_content(rx_packet);
 
-				int rc = _down_rx->pfnWaitReceiveAvail(_down_rx, RT_INDEFINITE_WAIT);
-				if (RT_FAILURE(rc))
-					continue;
+				Libc::with_libc([&] () {
+					int rc = _down_rx->pfnWaitReceiveAvail(_down_rx, RT_INDEFINITE_WAIT);
+					if (RT_FAILURE(rc)) return;
 
-				rc = _down_rx->pfnReceive(_down_rx, rx_content, rx_packet.size());
-				AssertRC(rc);
+					rc = _down_rx->pfnReceive(_down_rx, rx_content, rx_packet.size());
+					AssertRC(rc);
+				});
 
 				_nic.rx()->acknowledge_packet(rx_packet);
 			}
@@ -138,9 +140,11 @@ class Nic_client
 		{
 			_link_up = _nic.link_state();
 
-			_down_rx_config->pfnSetLinkState(_down_rx_config,
-			                                 _link_up ? PDMNETWORKLINKSTATE_UP
-			                                          : PDMNETWORKLINKSTATE_DOWN);
+			Libc::with_libc([&] () {
+				_down_rx_config->pfnSetLinkState(_down_rx_config,
+				                                 _link_up ? PDMNETWORKLINKSTATE_UP
+				                                          : PDMNETWORKLINKSTATE_DOWN);
+			});
 		}
 
 		void _handle_destruct()

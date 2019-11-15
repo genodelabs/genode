@@ -140,6 +140,11 @@ class GenodeConsole : public Console {
 			    || keycode == Input::BTN_MIDDLE;
 		}
 
+		void _handle_input();
+		void _handle_mode_change();
+		void _handle_cb_rom_change();
+		void _handle_sticky_keys();
+
 	public:
 
 		GenodeConsole()

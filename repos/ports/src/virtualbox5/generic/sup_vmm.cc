@@ -1154,8 +1154,10 @@ class Periodic_gip
 			ASMAtomicIncU32(&cpu->u32TransactionId);
 
 			/* call the timer function of the RTTimerCreate call */
-			if (rttimer_func)
-				rttimer_func(nullptr, rttimer_obj, 0);
+			if (rttimer_func) {
+				Libc::with_libc([&] () {
+					rttimer_func(nullptr, rttimer_obj, 0); });
+			}
 
 			for (Vcpu_handler *vcpu_handler = vcpu_handler_list().first();
 			     vcpu_handler;
