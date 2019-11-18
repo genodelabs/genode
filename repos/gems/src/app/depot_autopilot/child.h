@@ -77,38 +77,117 @@ class Depot_deploy::Event
 		Meaning_string const &meaning() const { return _meaning; }
 };
 
+class Expanding_string
+{
+	public:
+
+		class Chunk : public Genode::Fifo<Chunk>::Element
+		{
+			private:
+
+				Genode::Allocator     &_alloc;
+				char           *const  _base;
+				Genode::size_t  const  _size;
+
+				Chunk(Chunk const &);
+
+				Chunk const & operator=(const Chunk&);
+
+			public:
+
+				Chunk(Genode::Allocator    &alloc,
+				      char    const *const  str,
+				      Genode::size_t const  str_size);
+
+				~Chunk();
+
+				char     const *base() const { return _base; }
+				Genode::size_t  size() const { return _size; }
+
+				void print(Genode::Output &out) const
+				{
+					out.out_string(_base, _size);
+				}
+		};
+
+	private:
+
+		Genode::Allocator   &_alloc;
+		Genode::Fifo<Chunk>  _chunks { };
+
+	public:
+
+		Expanding_string(Genode::Allocator &alloc);
+
+		~Expanding_string();
+
+		void append(char           const *str,
+                    Genode::size_t const  str_size);
+
+		template <typename FUNC>
+		void for_each_chunk(FUNC const &func) const
+		{
+			_chunks.for_each([&] (Chunk const &chunk) {
+				func(chunk);
+			});
+		}
+};
+
 
 class Depot_deploy::Log_event : public Event,
                                 public List<Log_event>::Element
 {
-	public:
-
-		using Line = Genode::String<Log_session::MAX_STRING_LEN + 160 + 3>;
-
 	private:
 
-		char           const *_base;
-		Genode::size_t const  _size;
-		char           const *_remaining_base;
-		char           const *_remaining_end;
-		bool                  _reset_retry { false };
-		char           const *_reset_to;
+		class Plain_string : public Fifo<Plain_string>::Element
+		{
+			private:
+
+				Genode::Allocator     &_alloc;
+				Genode::size_t  const  _alloc_size;
+				char           *const  _base;
+				Genode::size_t         _size;
+
+				Plain_string(Plain_string const &);
+
+				Plain_string const & operator=(const Plain_string&);
+
+			public:
+
+				Plain_string(Genode::Allocator    &alloc,
+				             char    const *const  base,
+				             Genode::size_t const  size);
+
+				~Plain_string();
+
+				char     const *base() const { return _base; }
+				Genode::size_t  size() const { return _size; }
+
+				void print(Genode::Output &out) const
+				{
+					out.out_string(_base, _size);
+				}
+		};
+
+		Genode::Allocator          &_alloc;
+		size_t                      _log_offset     { 0 };
+		size_t                      _pattern_offset { 0 };
+		Genode::Fifo<Plain_string>  _plain_strings  { };
+
+		void _replace_wildcards_with_0();
+
+		Log_event(Log_event const &);
+
+		Log_event const & operator=(const Log_event&);
 
 	public:
 
-		Log_event(Genode::Xml_node const &xml);
+		Log_event(Allocator      &alloc,
+		          Xml_node const &xml);
 
+		~Log_event();
 
-		/***************
-		 ** Accessors **
-		 ***************/
-
-		Genode::size_t size() const { return _size; }
-		char  const *  base() const { return _base; }
-		char  const * &reset_to() { return _reset_to; }
-		bool          &reset_retry() { return _reset_retry; }
-		char  const * &remaining_base() { return _remaining_base; }
-		char  const * &remaining_end() { return _remaining_end; }
+		bool handle_log_update(Expanding_string const &log_str);
 };
 
 
@@ -183,6 +262,7 @@ class Depot_deploy::Child : public List_model<Child>::Element
 		Signal_transmitter             _config_handler;
 		bool                           _running            { false };
 		Conclusion                     _conclusion         { };
+		Expanding_string               _log                { _alloc };
 
 		bool _defined_by_launcher() const;
 
@@ -223,7 +303,8 @@ class Depot_deploy::Child : public List_model<Child>::Element
 
 		~Child();
 
-		void log_session_write(Log_event::Line const &log_line);
+		size_t log_session_write(Log_session::String const &line,
+		                         Session_label       const &label);
 
 		void print_conclusion();
 

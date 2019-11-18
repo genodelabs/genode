@@ -34,26 +34,21 @@ class Depot_deploy::Log_session_component : public Rpc_object<Log_session>
 {
 	private:
 
-		Session_label const  _child_label;
+		Session_label const  _label;
 		Child               &_child;
 
 	public:
 
-		Log_session_component(Session_label const &child_label,
+		Log_session_component(Session_label const &label,
 		                      Child               &child)
 		:
-			_child_label(child_label),
+			_label(label),
 			_child(child)
 		{ }
 
 		size_t write(String const &line) override
 		{
-			if (_child.finished()) {
-				return 0; }
-
-			Log_event::Line line_labeled{ "[", _child_label.string(), "] ", line.string() };
-			_child.log_session_write(line_labeled);
-			return strlen(line.string());
+			return _child.log_session_write(line, _label);
 		}
 };
 
@@ -245,5 +240,8 @@ struct Depot_deploy::Main
 };
 
 
-void Component::construct(Genode::Env &env) { static Depot_deploy::Main main(env); }
+void Component::construct(Genode::Env &env)
+{
+	static Depot_deploy::Main main(env);
+}
 

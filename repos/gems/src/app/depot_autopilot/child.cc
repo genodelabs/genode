@@ -17,15 +17,197 @@
 
 using namespace Depot_deploy;
 
-static void forward_to_log(Genode::uint64_t const sec,
-                           Genode::uint64_t const ms,
-                           char      const *const base,
-                           char      const *const end)
+
+/*********************
+ ** Local utilities **
+ *********************/
+
+class Filter
+{
+	private:
+
+		char const *const _keyword;
+		size_t      const _keyword_size;
+		char const *const _replacement;
+		size_t      const _replacement_size;
+
+	public:
+
+		Filter(char const *const keyword,
+		       char const *const replacement)
+		:
+			_keyword          { keyword },
+			_keyword_size     { strlen(keyword) },
+			_replacement      { replacement },
+			_replacement_size { strlen(replacement) }
+		{ }
+
+		char const *keyword()          const { return _keyword; }
+		size_t      keyword_size()     const { return _keyword_size; }
+		char const *replacement()      const { return _replacement; }
+		size_t      replacement_size() const { return _replacement_size; }
+};
+
+
+template <size_t NR_OF_FILTERS>
+struct Filters
+{
+	Filter array[NR_OF_FILTERS];
+};
+
+
+template <typename FILTERS>
+static Filter const *filter_to_apply(FILTERS const &filters,
+                                     char    const *curr,
+                                     char    const *end)
+{
+	for (Filter const &flt : filters.array) {
+		char const *keyword_end { curr + flt.keyword_size() };
+		if (keyword_end < curr || keyword_end > end) {
+			continue;
+		}
+		if (memcmp(curr, flt.keyword(), flt.keyword_size()) != 0) {
+			continue;
+		}
+		return &flt;
+	}
+	return 0;
+}
+
+
+static size_t sanitize_pattern(char *const base,
+                               size_t      size)
+{
+	static Filters<5> pattern_filters
+	{
+		{
+			{ "\x9", "" },
+			{ "\xa", "" },
+			{ "&lt;", "<" },
+			{ "&amp;", "&" },
+			{ "&#42;", "*" }
+		}
+	};
+	struct Bad_filter : Exception { };
+	char const *end { base + size };
+	for (char *curr { base }; curr < end; ) {
+		Filter const *flt { filter_to_apply(pattern_filters, curr, end) };
+		if (!flt) {
+			curr++;
+			continue;
+		}
+		if (flt->replacement_size() > flt->keyword_size()) {
+			throw Bad_filter();
+		}
+		memcpy(curr, flt->replacement(), flt->replacement_size());
+		if (flt->replacement_size() < flt->keyword_size()) {
+			char       *const replacement_end { curr + flt->replacement_size() };
+			char const *const keyword_end     { curr + flt->keyword_size() };
+			memmove(replacement_end, keyword_end, (size_t)(end - keyword_end));
+		}
+		curr += flt->replacement_size();
+		size -= flt->keyword_size() - flt->replacement_size();
+		end   = base + size;
+	}
+	return size;
+}
+
+
+static void forward_to_log(uint64_t    const sec,
+                           uint64_t    const ms,
+                           char const *const base,
+                           char const *const end)
 {
 	log(sec, ".", ms < 10 ? "00" : ms < 100 ? "0" : "", ms, " ",
 	    Cstring(base, end - base));
 }
 
+
+static char const *xml_content_base(Xml_node node)
+{
+	char const *result = nullptr;
+	node.with_raw_content([&] (char const *start, size_t) { result = start; });
+	return result;
+}
+
+
+static size_t xml_content_size(Xml_node node)
+{
+	size_t result = 0;
+	node.with_raw_content([&] (char const *, size_t length) { result = length; });
+	return result;
+}
+
+
+static void c_string_append(char       * &dst,
+                            char   const *dst_end,
+                            char   const *src,
+                            size_t const  src_size)
+{
+	struct Bad_args : Exception { };
+	char const *src_end = dst + src_size;
+	if (src_end < dst ||
+	    src_end > dst_end)
+	{
+		throw Bad_args();
+	}
+	memcpy(dst, src, src_size);
+	dst += src_size;
+}
+
+
+static size_t sanitize_log(char                      *dst,
+                           size_t              const  dst_sz,
+                           Log_session::String const &str,
+                           Session_label       const &label)
+{
+	static Filters<7> log_filters
+	{
+		{
+			{ "\x9", "" },
+			{ "\xa", "" },
+			{ "\x1b[0m", "" },
+			{ "\x1b[31m", "" },
+			{ "\x1b[32m", "" },
+			{ "\x1b[33m", "" },
+			{ "\x1b[34m", "" }
+		}
+	};
+	/* first, write the label prefix to the buffer */
+	char const *const dst_base { dst };
+	char const *const dst_end { dst + dst_sz };
+	c_string_append(dst, dst_end, "[", 1);
+	c_string_append(dst, dst_end, label.string(), label.length() - 1);
+	c_string_append(dst, dst_end, "] ", 2);
+
+	/* then, write the string but apply string filters */
+	char const *src_curr   { str.string() };
+	char const *src_copied { str.string() };
+	char const *src_end    { str.string() + str.size() };
+	for (; src_curr < src_end; ) {
+		Filter const *const flt { filter_to_apply(log_filters, src_curr, src_end) };
+		if (!flt) {
+			src_curr++;
+			continue;
+		}
+		c_string_append(
+			dst, dst_end, src_copied, (size_t)(src_curr - src_copied));
+		c_string_append(
+			dst, dst_end, flt->replacement(), flt->replacement_size());
+
+		src_curr += flt->keyword_size();
+		src_copied = src_curr;
+	}
+	c_string_append(dst, dst_end, src_copied, (size_t)(src_curr - src_copied));
+
+	/* return length of sanitized string (without the terminating zero) */
+	return (size_t)(dst - dst_base - 1);
+}
+
+
+/***********
+ ** Child **
+ ***********/
 
 void Child::gen_start_node(Xml_generator          &xml,
                            Xml_node                common,
@@ -152,7 +334,7 @@ void Child::gen_start_node(Xml_generator          &xml,
 	if (_running) {
 		return; }
 
-	Genode::uint64_t max_timeout_sec = 0;
+	uint64_t max_timeout_sec = 0;
 	try {
 		Xml_node const events = _pkg_xml->xml().sub_node("runtime").sub_node("events");
 		events.for_each_sub_node("timeout", [&] (Xml_node const &event) {
@@ -166,7 +348,7 @@ void Child::gen_start_node(Xml_generator          &xml,
 			catch (Timeout_event::Invalid) { warning("Invalid timeout event"); }
 		});
 		events.for_each_sub_node("log", [&] (Xml_node const &event) {
-			_log_events.insert(new (_alloc) Log_event(event));
+			_log_events.insert(new (_alloc) Log_event(_alloc, event));
 		});
 	}
 	catch (...) { }
@@ -392,205 +574,43 @@ Child::~Child()
 }
 
 
-void Child::log_session_write(Log_event::Line const &log_line)
+size_t Child::log_session_write(Log_session::String const &str,
+                                Session_label       const &label)
 {
-	if (_skip) {
-		return; }
+	if (_skip || finished()) {
+		return 0;
+	}
+	/* max log string size + max label size + size of label framing "[ ]" */
+	enum { LOG_BUF_SZ = Log_session::MAX_STRING_LEN + 160 + 3 };
 
-	enum { ASCII_ESC = 27 };
-	enum { ASCII_LF  = 10 };
-	enum { ASCII_TAB = 9 };
+	char               log_buf[LOG_BUF_SZ];
+	size_t      const  log_len { sanitize_log(log_buf, LOG_BUF_SZ, str, label) };
+	Log_event   const *matching_event { nullptr };
 
-	struct Break : Exception { };
-
-	
-	struct Skip_escape_sequence
-	{
-		char const * const base;
-		size_t       const size;
-	};
-	struct Replace_ampersend_sequence
-	{
-		char const * const base;
-		size_t       const size;
-		char         const by;
-	};
-	static Skip_escape_sequence skip_esc_seq[5]
-	{
-		{ "[0m", 3 },
-		{ "[31m", 4 },
-		{ "[32m", 4 },
-		{ "[33m", 4 },
-		{ "[34m", 4 },
-	};
-	static Replace_ampersend_sequence replace_amp_seq[3]
-	{
-		{ "lt;", 3, '<' },
-		{ "amp;", 4, '&' },
-		{ "#42;", 4, '*' }
-	};
-
-	/* calculate timestamp that prefixes*/
-	Genode::uint64_t const time_us  { _timer.curr_time().trunc_to_plain_us().value - init_time_us };
-	Genode::uint64_t       time_ms  { time_us / 1000UL };
-	Genode::uint64_t const time_sec { time_ms / 1000UL };
+	_log.append(log_buf, log_len);
+	_log_events.for_each([&] (Log_event &log_event) {
+		if (matching_event) {
+			return;
+		}
+		if (log_event.handle_log_update(_log)) {
+			matching_event = &log_event;
+		}
+	});
+	/* calculate timestamp */
+	uint64_t const time_us  { _timer.curr_time().trunc_to_plain_us().value - init_time_us };
+	uint64_t       time_ms  { time_us / 1000UL };
+	uint64_t const time_sec { time_ms / 1000UL };
 	time_ms = time_ms - time_sec * 1000UL;
 
-	char const *const log_base { log_line.string() };
-	char const *const log_end  { log_base + strlen(log_base) };
-	try {
-		char const *log_print { log_base };
-		_log_events.for_each([&] (Log_event &log_event) {
+	/* forward timestamp and sanitized string to back-end log session */
+	forward_to_log(time_sec, time_ms, log_buf, log_buf + log_len);
 
-			bool        match        { false };
-			char const *pattern_end  { log_event.remaining_end() };
-			char const *pattern_curr { log_event.remaining_base() };
-			char const *log_curr     { log_base };
-
-			for (;;) {
-
-				/* handle end of pattern */
-				if (pattern_curr == pattern_end) {
-					match = true;
-					log_event.remaining_base() = log_event.base();
-					log_event.reset_to()       = log_event.base();
-					log_event.reset_retry()    = false;
-					break;
-				}
-				/* skip irrelevant characters in the pattern */
-				if (*pattern_curr == ASCII_LF || *pattern_curr == ASCII_TAB) {
-					pattern_curr++;
-					continue;
-				}
-				if (*pattern_curr == '*') {
-					pattern_curr++;
-					log_event.reset_to()    = pattern_curr;
-					log_event.reset_retry() = false;
-					continue;
-				}
-				/* handle end of log line */
-				if (log_curr == log_end) {
-					log_event.remaining_base() = pattern_curr;
-					break;
-				}
-				/* skip irrelevant characters in the log line */
-				if (*log_curr == ASCII_LF) {
-
-					/* forward to our log session a complete line */
-					if (log_print < log_curr) {
-						forward_to_log(time_sec, time_ms, log_print, log_curr);
-						log_print = log_curr + 1;
-					}
-					log_curr++;
-					continue;
-				}
-				if (*log_curr == ASCII_TAB) {
-					log_curr++;
-					continue;
-				}
-				/* skip irrelevant escape sequences in the log line */
-				if (*log_curr == ASCII_ESC) {
-
-					bool seq_match { false };
-
-					for (unsigned i = 0; i < sizeof(skip_esc_seq)/sizeof(skip_esc_seq[0]); i++) {
-
-						char const *seq_curr { skip_esc_seq[i].base };
-						char const *seq_end  { seq_curr + skip_esc_seq[i].size };
-
-						for (char const *log_seq_curr { log_curr + 1 } ; ; log_seq_curr++, seq_curr++) {
-
-							if (seq_curr == seq_end) {
-								seq_match = true;
-								log_curr  = log_seq_curr;
-								break;
-							}
-							if (log_seq_curr == log_end) {
-								break; }
-
-							if (*log_seq_curr != *seq_curr) {
-								break; }
-						}
-						if (seq_match) {
-							break; }
-					}
-					if (seq_match) {
-						continue; }
-				}
-				char   pattern_curr_san    = *pattern_curr;
-				size_t pattern_curr_san_sz = 1;
-
-				/* replace ampersend sequences in the pattern */
-				if (*pattern_curr == '&') {
-
-					bool seq_match { false };
-
-					for (unsigned i = 0; i < sizeof(replace_amp_seq)/sizeof(replace_amp_seq[0]); i++) {
-
-						char const *seq_curr { replace_amp_seq[i].base };
-						char const *seq_end  { seq_curr + replace_amp_seq[i].size };
-
-						for (char const *pattern_seq_curr { pattern_curr + 1 } ; ; pattern_seq_curr++, seq_curr++) {
-
-							if (seq_curr == seq_end) {
-								seq_match = true;
-								pattern_curr_san    = replace_amp_seq[i].by;
-								pattern_curr_san_sz = replace_amp_seq[i].size + 1;
-								break;
-							}
-							if (pattern_seq_curr == pattern_end) {
-								break; }
-
-							if (*pattern_seq_curr != *seq_curr) {
-								break; }
-						}
-						if (seq_match) {
-							break;
-						}
-					}
-				}
-				/* check if log keeps matching pattern */
-				if (*log_curr != pattern_curr_san) {
-					pattern_curr = log_event.reset_to();
-					if (!log_event.reset_retry()) {
-
-						log_curr++; }
-					else {
-						log_event.reset_retry() = false; }
-				} else {
-					pattern_curr += pattern_curr_san_sz;
-					log_curr++;
-					log_event.reset_retry() = true;
-				}
-			}
-			/* forward to our log session what is left */
-			if (log_print < log_curr) {
-				for (;; log_curr++) {
-
-					if (log_curr == log_end) {
-
-						forward_to_log(time_sec, time_ms, log_print, log_curr);
-						log_print = log_curr;
-						break;
-					}
-					if (*log_curr == ASCII_LF) {
-
-						forward_to_log(time_sec, time_ms, log_print, log_curr);
-						log_print = log_curr + 1;
-						break;
-					}
-				}
-			}
-			/* check if log line finished a match with the pattern */
-			if (!match) {
-				return; }
-
-			/* execute event handler and stop trying further events */
-			event_occured(log_event, time_us);
-			throw Break();
-		});
+	/* handle a matching log event */
+	if (matching_event) {
+		event_occured(*matching_event, time_us);
 	}
-	catch (...) { }
+	/* return length of original string */
+	return strlen(str.string());
 }
 
 
@@ -690,6 +710,7 @@ void Child::print_conclusion()
 	log(" ", _conclusion);
 }
 
+
 void Child::conclusion(Result &result)
 {
 	struct Bad_state : Exception { };
@@ -765,8 +786,8 @@ void Child::gen_installation_entry(Xml_generator &xml) const
 }
 
 
-void Child::event_occured(Event            const &event,
-                          Genode::uint64_t const  time_us)
+void Child::event_occured(Event    const &event,
+                          uint64_t const  time_us)
 {
 	if (_skip) {
 		return; }
@@ -779,9 +800,9 @@ void Child::event_occured(Event            const &event,
 }
 
 
-void Child::_finished(State                   state,
-                      Event            const &event,
-                      Genode::uint64_t const  time_us)
+void Child::_finished(State           state,
+                      Event    const &event,
+                      uint64_t const  time_us)
 {
 	if (_skip) {
 		return; }
@@ -789,8 +810,8 @@ void Child::_finished(State                   state,
 	_running = false;
 	_state = state;
 
-	Genode::uint64_t       time_ms  { time_us / 1000UL };
-	Genode::uint64_t const time_sec { time_ms / 1000UL };
+	uint64_t       time_ms  { time_us / 1000UL };
+	uint64_t const time_sec { time_ms / 1000UL };
 	time_ms = time_ms - time_sec * 1000UL;
 
 	char name_padded[32];
@@ -800,28 +821,12 @@ void Child::_finished(State                   state,
 
 	if (event.has_type(Event::Type::LOG)) {
 
-		enum { MAX_EXPL_SZ = 32 };
-
-		Log_event const &log_event = *static_cast<Log_event const *>(&event);
-
-		char const *const pattern_base = log_event.base();
-		size_t      const pattern_sz   = log_event.size();
-		char const *const pattern_end  = pattern_base + pattern_sz;
-
-		char const *expl_base = pattern_base;
-		for (; expl_base < pattern_end && *expl_base < 33; expl_base++) ;
-
-		char const *expl_end = expl_base;
-		for (; expl_end < pattern_end && *expl_end > 31; expl_end++) ;
-
-		size_t const expl_sz = min((size_t)(expl_end - expl_base), (size_t)MAX_EXPL_SZ);
-
 		_conclusion = Conclusion {
 			Cstring(name_padded), " ", _padded_state_name(), "  ",
 			time_sec < 10 ? "  " : time_sec < 100 ? " " : "", time_sec, ".",
 			time_ms  < 10 ? "00" : time_ms  < 100 ? "0" : "", time_ms,
-			"  log \"", Cstring(expl_base, expl_sz),
-			expl_sz < MAX_EXPL_SZ ? "" : " ...", "\"" };
+			"  log"
+		};
 
 	} else if (event.has_type(Event::Type::TIMEOUT)) {
 
@@ -855,7 +860,7 @@ Timeout_event::Timeout_event(Timer::Connection &timer,
 	Event    { event, Type::TIMEOUT },
 	_child   { child },
 	_timer   { timer },
-	_sec     { event.attribute_value("sec", (Genode::uint64_t)0) },
+	_sec     { event.attribute_value("sec", (uint64_t)0) },
 	_timeout { timer, *this, &Timeout_event::_handle_timeout }
 {
 	if (!_sec) {
@@ -871,35 +876,163 @@ void Timeout_event::_handle_timeout(Duration)
 }
 
 
+/**********************
+ ** Expanding_string **
+ **********************/
+
+Expanding_string::Chunk::Chunk(Genode::Allocator    &alloc,
+                               char    const *const  str,
+                               Genode::size_t const  str_size)
+:
+	_alloc { alloc },
+	_base  { (char *)alloc.alloc(str_size) },
+	_size  { str_size }
+{
+	memcpy(_base, str, str_size);
+}
+
+
+Expanding_string::Chunk::~Chunk()
+{
+	_alloc.free((void *)_base, _size);
+}
+
+
+Expanding_string::Expanding_string(Allocator &alloc)
+:
+	_alloc { alloc }
+{
+}
+
+
+Expanding_string::~Expanding_string()
+{
+	_chunks.dequeue_all([&] (Chunk &str) {
+		destroy(_alloc, &str);
+	});
+}
+
+
+void Expanding_string::append(char   const *str,
+                              size_t const  str_size)
+{
+	_chunks.enqueue(*new (_alloc) Chunk(_alloc, str, str_size));
+}
+
+
 /***************
  ** Log_event **
  ***************/
 
-static char const *xml_content_base(Xml_node node)
+bool Log_event::handle_log_update(Expanding_string const &log_str)
 {
-	char const *result = nullptr;
-	node.with_raw_content([&] (char const *start, size_t) { result = start; });
-	return result;
+	while (true) {
+
+		/* determine current pattern chunk */
+		Plain_string const *pattern_chunk        { nullptr };
+		size_t              pattern_chunk_offset { _pattern_offset };
+		_plain_strings.for_each([&] (Plain_string const &chunk) {
+			if (pattern_chunk) {
+				return;
+			}
+			if (pattern_chunk_offset >= chunk.size()) {
+				pattern_chunk_offset -= chunk.size();
+			} else {
+				pattern_chunk = &chunk;
+			}
+		});
+		if (!pattern_chunk) {
+			return true;
+		}
+		char   const *pattern_chunk_curr { pattern_chunk->base() + pattern_chunk_offset };
+		size_t const  pattern_chunk_left { pattern_chunk->size() - pattern_chunk_offset };
+
+		/* determine current log chunk */
+		Expanding_string::Chunk const *log_chunk        { nullptr };
+		size_t                         log_chunk_offset { _log_offset };
+		log_str.for_each_chunk([&] (Expanding_string::Chunk const &chunk) {
+			if (log_chunk) {
+				return;
+			}
+			if (log_chunk_offset >= chunk.size()) {
+				log_chunk_offset -= chunk.size();
+			} else {
+				log_chunk = &chunk;
+			}
+		});
+		if (!log_chunk) {
+			return false;
+		}
+		char   const *log_chunk_curr { log_chunk->base() + log_chunk_offset };
+		size_t const  log_chunk_left { log_chunk->size() - log_chunk_offset };
+
+		/* compare log with pattern */
+		size_t const cmp_size { min(log_chunk_left, pattern_chunk_left) };
+		if (memcmp(pattern_chunk_curr, log_chunk_curr, cmp_size)) {
+			_pattern_offset -= pattern_chunk_offset;
+			_log_offset     -= pattern_chunk_offset;
+			_log_offset     += 1;
+		} else {
+			_pattern_offset += cmp_size;
+			_log_offset     += cmp_size;
+		}
+	}
 }
 
 
-static size_t xml_content_size(Xml_node node)
-{
-	size_t result = 0;
-	node.with_raw_content([&] (char const *, size_t length) { result = length; });
-	return result;
-}
-
-
-Log_event::Log_event(Xml_node const &xml)
+Log_event::Plain_string::Plain_string(Allocator         &alloc,
+                                      char const *const  base,
+                                      size_t      const  size)
 :
-	Event           { xml, Type::LOG },
-	_base           { xml_content_base(xml) },
-	_size           { xml_content_size(xml) },
-	_remaining_base { xml_content_base(xml) },
-	_remaining_end  { _remaining_base + xml_content_size(xml) },
-	_reset_to       { xml_content_base(xml) }
-{ }
+	_alloc      { alloc },
+	_alloc_size { size },
+	_base       { (char *)alloc.alloc(_alloc_size) },
+	_size       { size }
+{
+	memcpy(_base, base, size);
+	_size = sanitize_pattern(_base, _size);
+}
+
+
+Log_event::Plain_string::~Plain_string()
+{
+	_alloc.free((void *)_base, _alloc_size);
+}
+
+
+Log_event::~Log_event()
+{
+	_plain_strings.dequeue_all([&] (Plain_string &str) {
+		destroy(_alloc, &str);
+	});
+}
+
+
+Log_event::Log_event(Allocator      &alloc,
+                     Xml_node const &xml)
+:
+	Event  { xml, Type::LOG },
+	_alloc { alloc }
+{
+	char const *const base   { xml_content_base(xml) };
+	size_t      const size   { xml_content_size(xml) };
+	char const *const end    { base + size };
+	char const *      copied { base };
+	for (char const *curr { base }; curr < end; curr++) {
+		if (*curr != '*') {
+			continue;
+		}
+		_plain_strings.enqueue(
+			*new (_alloc) Plain_string(
+				_alloc, copied, (size_t)(curr - copied)));
+		copied = curr + 1;
+	}
+	if (copied < end) {
+		_plain_strings.enqueue(
+			*new (_alloc) Plain_string(
+				_alloc, copied, (size_t)(end - copied)));
+	}
+}
 
 
 /***********
