@@ -81,8 +81,9 @@ void Sculpt::gen_mkfs_ext2_start_content(Xml_generator &xml,
                                          Storage_target const &target)
 {
 	auto gen_args = [&] (Xml_generator &xml) {
-		xml.node("arg", [&] () {
-			xml.attribute("value", "/dev/block"); }); };
+		xml.node("arg", [&] () { xml.attribute("value", "-F"); });
+		xml.node("arg", [&] () { xml.attribute("value", "/dev/block"); });
+	};
 
 	gen_e2fs_start_content(xml, target, "mkfs.ext2", gen_args);
 }
