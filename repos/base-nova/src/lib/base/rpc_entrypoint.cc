@@ -63,21 +63,9 @@ Untyped_capability Rpc_entrypoint::_manage(Rpc_object_base *obj)
 	return obj_cap;
 }
 
-
-void Rpc_entrypoint::_dissolve(Rpc_object_base *obj)
+static void cleanup_call(Rpc_object_base *obj, Nova::Utcb * ep_utcb,
+                         Native_capability &cap, Genode::Lock &delay_start)
 {
-	/* don't dissolve RPC object twice */
-	if (!obj->cap().valid())
-		return;
-
-	/* de-announce object from cap_session */
-	_free_rpc_cap(_pd_session, obj->cap());
-
-	/* avoid any incoming IPC */
-	Nova::revoke(Nova::Obj_crd(obj->cap().local_name(), 0), true);
-
-	/* make sure nobody is able to find this object */
-	remove(obj);
 
 	/* effectively invalidate the capability used before */
 	obj->cap(Untyped_capability());
@@ -93,19 +81,37 @@ void Rpc_entrypoint::_dissolve(Rpc_object_base *obj)
 
 	Utcb *utcb = reinterpret_cast<Utcb *>(Thread::myself()->utcb());
 	/* don't call ourself */
-	if (utcb == reinterpret_cast<Utcb *>(this->utcb()))
+	if (utcb == ep_utcb)
 		return;
 
 	/* activate entrypoint now - otherwise cleanup call will block forever */
-	_delay_start.unlock();
+	delay_start.unlock();
 
 	/* make a IPC to ensure that cap() identifier is not used anymore */
 	utcb->msg()[0] = 0xdead;
 	utcb->set_msg_word(1);
-	if (uint8_t res = call(_cap.local_name()))
-		error(utcb, " - could not clean up entry point of thread ", this->utcb(), " - res ", res);
+	if (uint8_t res = call(cap.local_name()))
+		error(utcb, " - could not clean up entry point of thread ", ep_utcb, " - res ", res);
 }
 
+void Rpc_entrypoint::_dissolve(Rpc_object_base *obj)
+{
+	/* don't dissolve RPC object twice */
+	if (!obj || !obj->cap().valid())
+		return;
+
+	/* de-announce object from cap_session */
+	_free_rpc_cap(_pd_session, obj->cap());
+
+	/* avoid any incoming IPC */
+	Nova::revoke(Nova::Obj_crd(obj->cap().local_name(), 0), true);
+
+	/* make sure nobody is able to find this object */
+	remove(obj);
+
+	cleanup_call(obj, reinterpret_cast<Nova::Utcb *>(this->utcb()), _cap,
+	             _delay_start);
+}
 
 static void reply(Nova::Utcb &utcb, Rpc_exception_code exc, Msgbuf_base &snd_msg)
 {
@@ -252,7 +258,19 @@ Rpc_entrypoint::~Rpc_entrypoint()
 
 	Pool::remove_all([&] (Rpc_object_base *obj) {
 		warning("object pool not empty in ", __func__);
-		_dissolve(obj);
+
+		/* don't dissolve RPC object twice */
+		if (!obj || !obj->cap().valid())
+			return;
+
+		/* de-announce object from cap_session */
+		_free_rpc_cap(_pd_session, obj->cap());
+
+		/* avoid any incoming IPC */
+		Nova::revoke(Nova::Obj_crd(obj->cap().local_name(), 0), true);
+
+		cleanup_call(obj, reinterpret_cast<Nova::Utcb *>(this->utcb()), _cap,
+		             _delay_start);
 	});
 
 	if (!_cap.valid())
