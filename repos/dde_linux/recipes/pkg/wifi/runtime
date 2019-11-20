@@ -37,5 +37,6 @@
 		<rom label="iwlwifi-7265D-29.ucode"/>
 		<rom label="iwlwifi-8000C-36.ucode"/>
 		<rom label="iwlwifi-8265-36.ucode"/>
+		<rom label="iwlwifi-9000-pu-b0-jf-b0-34.ucode"/>
 	</content>
 </runtime>

@@ -133,9 +133,9 @@ DIR(wpa_supplicant) := src/app/wpa_supplicant
 #
 # Firmware images
 #
-FW_REV  := 83f7aa92f405048d4502e80c5390a9cbbd91a14f
+FW_REV  := 73f503c65139f368e6155eed8c74d006a2f0219d
 URL(fw) := https://github.com/cnuke/dde_linux_firmware/archive/$(FW_REV).tar.gz
-SHA(fw) := 507711b75436f9b46ce126c9cfb043e2404b266517ec51061939618de1758c98
+SHA(fw) := d5a61cb07384a828560b8f869e4e899cb723d462646a48b45c398514bb246925
 DIR(fw) := firmware
 
 #
