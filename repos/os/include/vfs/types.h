@@ -51,8 +51,8 @@ namespace Vfs {
 
 	struct Timestamp
 	{
-		static constexpr long long INVALID = (1LL << 63) + 1;
-		long long value;
+		static constexpr Genode::int64_t INVALID = 0x7fffffffffffffffLL;
+		Genode::int64_t value;
 	};
 
 	enum class Node_type {

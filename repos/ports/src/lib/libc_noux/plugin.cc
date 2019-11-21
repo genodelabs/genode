@@ -419,7 +419,7 @@ static void _sysio_to_stat_struct(Noux::Sysio const *sysio, struct stat *buf)
 	buf->st_ino     = src.inode;
 	buf->st_dev     = src.device;
 
-	if (src.modification_time.value >= 0)
+	if (src.modification_time.value != Vfs::Timestamp::INVALID)
 		buf->st_mtime = src.modification_time.value;
 }
 
