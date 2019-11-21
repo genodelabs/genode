@@ -92,7 +92,11 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 				if (packet.length() <= packet.size()) {
 					Locked_ptr<Node> node { open_node.node() };
 					if (!node.valid())
-						break; 
+						break;
+
+					if (_writeable == Session_writeable::READ_ONLY)
+						break;
+
 					res_length = node->write((char const *)tx_sink()->packet_content(packet),
 					                         length, packet.position());
 
@@ -113,10 +117,11 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 				if (!node.valid())
 					break;
 
-				packet.with_timestamp([&] (File_system::Timestamp const time) {
-					node->update_modification_time(time);
-					succeeded = true;
-				});
+				if (_writeable == Session_writeable::WRITEABLE)
+					packet.with_timestamp([&] (File_system::Timestamp const time) {
+						node->update_modification_time(time);
+						succeeded = true;
+					});
 				break;
 			}
 
