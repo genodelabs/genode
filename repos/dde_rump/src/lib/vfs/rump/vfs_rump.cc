@@ -194,7 +194,7 @@ class Vfs::Rump_file_system : public File_system
 					 * We cannot use 'd_type' member of 'dirent' here since the EXT2
 					 * implementation sets the type to unkown. Hence we use stat.
 					 */
-					struct stat s;
+					struct stat s { };
 					rump_sys_lstat(path, &s);
 
 					auto dirent_type = [] (unsigned mode)
@@ -209,8 +209,8 @@ class Vfs::Rump_file_system : public File_system
 						return Dirent_type::END;
 					};
 
-					Node_rwx const rwx { .readable   = (s.st_mode & S_IRUSR),
-					                     .writeable  = (s.st_mode & S_IWUSR),
+					Node_rwx const rwx { .readable   = true,
+					                     .writeable  = true,
 					                     .executable = (s.st_mode & S_IXUSR) };
 
 					vfs_dir = {
@@ -699,7 +699,7 @@ class Vfs::Rump_file_system : public File_system
 
 		Stat_result stat(char const *path, Stat &stat)
 		{
-			struct stat sb;
+			struct stat sb { };
 			if (rump_sys_lstat(path, &sb) != 0) return STAT_ERR_NO_ENTRY;
 
 			auto type = [] (unsigned mode)
@@ -713,8 +713,8 @@ class Vfs::Rump_file_system : public File_system
 			stat = {
 				.size   = (file_size)sb.st_size,
 				.type   = type(sb.st_mode),
-				.rwx    = { .readable   = (sb.st_mode & S_IRUSR),
-				            .writeable  = (sb.st_mode & S_IWUSR),
+				.rwx    = { .readable   = true,
+				            .writeable  = true,
 				            .executable = (sb.st_mode & S_IXUSR) },
 				.inode  = sb.st_ino,
 				.device = sb.st_dev,
