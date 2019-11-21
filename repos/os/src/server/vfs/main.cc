@@ -119,7 +119,7 @@ class Vfs_server::Session_component : private Session_resources,
 
 		Genode::Session_label const _label;
 
-		bool const _writable;
+		bool const _writeable;
 
 
 		/****************************
@@ -446,7 +446,7 @@ class Vfs_server::Session_component : private Session_resources,
 		                  Session_queue       &active_sessions,
 		                  Io_progress_handler &io_progress_handler,
 		                  char          const *root_path,
-		                  bool                 writable)
+		                  bool                 writeable)
 		:
 			Session_resources(env.pd(), env.rm(), ram_quota, cap_quota, tx_buf_size),
 			Session_rpc_object(_packet_ds.cap(), env.rm(), env.ep().rpc_ep()),
@@ -456,7 +456,7 @@ class Vfs_server::Session_component : private Session_resources,
 			_active_sessions(active_sessions),
 			_root_path(root_path),
 			_label(label),
-			_writable(writable)
+			_writeable(writeable)
 		{
 			_tx.sigh_packet_avail(_packet_stream_handler);
 			_tx.sigh_ready_to_ack(_packet_stream_handler);
@@ -490,7 +490,7 @@ class Vfs_server::Session_component : private Session_resources,
 
 		Dir_handle dir(::File_system::Path const &path, bool create) override
 		{
-			if (create && (!_writable))
+			if (create && (!_writeable))
 				throw Permission_denied();
 
 			char const *path_str = path.string();
@@ -507,8 +507,11 @@ class Vfs_server::Session_component : private Session_resources,
 			if (!create && !_vfs.directory(path_str))
 				throw Lookup_failed();
 
+			typedef Directory::Session_writeable Writeable;
+
 			Directory &dir = *new (_alloc)
-				Directory(_node_space, _vfs, _alloc, path_str, create);
+				Directory(_node_space, _vfs, _alloc, path_str, create,
+				          _writeable ? Writeable::WRITEABLE : Writeable::READ_ONLY);
 
 			if (create)
 				_io_progress_handler.handle_io_progress();
@@ -519,7 +522,7 @@ class Vfs_server::Session_component : private Session_resources,
 		File_handle file(Dir_handle dir_handle, Name const &name,
 		                 Mode fs_mode, bool create) override
 		{
-			if ((create || (fs_mode & WRITE_ONLY)) && (!_writable))
+			if ((create || (fs_mode & WRITE_ONLY)) && (!_writeable))
 				throw Permission_denied();
 
 			return _apply(dir_handle, [&] (Directory &dir) {
@@ -534,7 +537,7 @@ class Vfs_server::Session_component : private Session_resources,
 
 		Symlink_handle symlink(Dir_handle dir_handle, Name const &name, bool create) override
 		{
-			if (create && !_writable) throw Permission_denied();
+			if (create && !_writeable) throw Permission_denied();
 
 			return _apply(dir_handle, [&] (Directory &dir) {
 				char const *name_str = name.string();
@@ -542,7 +545,7 @@ class Vfs_server::Session_component : private Session_resources,
 
 				return Symlink_handle {
 					dir.symlink(_node_space, _vfs, _alloc, name_str,
-					            _writable ? READ_WRITE : READ_ONLY, create).value
+					            _writeable ? READ_WRITE : READ_ONLY, create).value
 				};
 			});
 		}
@@ -669,7 +672,7 @@ class Vfs_server::Session_component : private Session_resources,
 					.type = fs_node_type(vfs_stat.type),
 					.rwx  = {
 						.readable   = vfs_stat.rwx.readable,
-						.writeable  = vfs_stat.rwx.writeable,
+						.writeable  = vfs_stat.rwx.writeable && _writeable,
 						.executable = vfs_stat.rwx.executable },
 
 					.inode = vfs_stat.inode,
@@ -682,7 +685,7 @@ class Vfs_server::Session_component : private Session_resources,
 
 		void unlink(Dir_handle dir_handle, Name const &name) override
 		{
-			if (!_writable) throw Permission_denied();
+			if (!_writeable) throw Permission_denied();
 
 			_apply(dir_handle, [&] (Directory &dir) {
 				char const *name_str = name.string();
@@ -711,7 +714,7 @@ class Vfs_server::Session_component : private Session_resources,
 		void move(Dir_handle from_dir_handle, Name const &from_name,
 		          Dir_handle to_dir_handle,   Name const &to_name) override
 		{
-			if (!_writable)
+			if (!_writeable)
 				throw Permission_denied();
 
 			char const *from_str = from_name.string();

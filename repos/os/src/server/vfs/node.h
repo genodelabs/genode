@@ -859,7 +859,13 @@ class Vfs_server::File : public Io_node
 
 struct Vfs_server::Directory : Io_node
 {
+	public:
+
+		enum class Session_writeable { READ_ONLY, WRITEABLE };
+
 	private:
+
+		Session_writeable const _writeable;
 
 		typedef Directory_service::Dirent    Vfs_dirent;
 		typedef File_system::Directory_entry Fs_dirent;
@@ -878,7 +884,7 @@ struct Vfs_server::Directory : Io_node
 			return true;
 		}
 
-		static Fs_dirent _convert_dirent(Vfs_dirent from)
+		static Fs_dirent _convert_dirent(Vfs_dirent from, Session_writeable writeable)
 		{
 			from.sanitize();
 
@@ -908,7 +914,8 @@ struct Vfs_server::Directory : Io_node
 				.type  = fs_dirent_type(from.type),
 				.rwx   = {
 					.readable   = from.rwx.readable,
-					.writeable  = from.rwx.writeable,
+					.writeable  = (writeable == Session_writeable::WRITEABLE)
+					            ? from.rwx.writeable : false,
 					.executable = from.rwx.executable },
 				.name  = { from.name.buf }
 			};
@@ -939,7 +946,7 @@ struct Vfs_server::Directory : Io_node
 				if (vfs_dirent.type == Vfs::Directory_service::Dirent_type::END)
 					break;
 
-				fs_dirent = _convert_dirent(vfs_dirent);
+				fs_dirent = _convert_dirent(vfs_dirent, _writeable);
 
 				converted_length += step;
 			}
@@ -961,9 +968,11 @@ struct Vfs_server::Directory : Io_node
 		          Vfs::File_system  &vfs,
 		          Genode::Allocator &alloc,
 		          char const        *path,
-		          bool               create)
+		          bool               create,
+		          Session_writeable  writeable)
 		:
-			Io_node(space, path, READ_ONLY, _open(vfs, alloc, path, create))
+			Io_node(space, path, READ_ONLY, _open(vfs, alloc, path, create)),
+			_writeable(writeable)
 		{ }
 
 		/**
