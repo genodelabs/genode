@@ -31,7 +31,7 @@ class Ram_fs::Symlink : public Node
 
 		Symlink(char const *name): _len(0) { Node::name(name); }
 
-		size_t read(char *dst, size_t len, seek_off_t seek_offset) override
+		size_t read(char *dst, size_t len, seek_off_t seek_offset, Session_writeable) override
 		{
 			size_t count = min(len, _len-seek_offset);
 			Genode::memcpy(dst, _link_to+seek_offset, count);
@@ -65,15 +65,15 @@ class Ram_fs::Symlink : public Node
 			return consumed_len;
 		}
 
-		Status status() override
+		Status status(Session_writeable writeable) override
 		{
 			return {
-				.size              = _len,
-				.type              = File_system::Node_type::SYMLINK,
-				.rwx               = { .readable   = true,
-				                       .writeable  = true,
-				                       .executable = true },
-				.inode             = inode(),
+				.size  = _len,
+				.type  = File_system::Node_type::SYMLINK,
+				.rwx   = { .readable   = true,
+				           .writeable  = (writeable == Session_writeable::WRITEABLE),
+				           .executable = true },
+				.inode = inode(),
 				.modification_time = modification_time()
 			};
 		}

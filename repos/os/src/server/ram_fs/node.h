@@ -27,6 +27,8 @@ namespace Ram_fs {
 	class Node;
 	class File;
 	class Symlink;
+
+	enum class Session_writeable { READ_ONLY, WRITEABLE };
 }
 
 
@@ -86,10 +88,14 @@ class Ram_fs::Node : public  File_system::Node_base,
 
 		Timestamp modification_time() const { return _modification_time; }
 
-		virtual size_t read(char *dst, size_t len, seek_off_t) = 0;
+		/*
+		 * 'Session_writeable' is supplied to the 'read' method to reflect the
+		 * writeability in directory entries read from 'Directory' nodes.
+		 */
+		virtual size_t read(char *dst, size_t len, seek_off_t, Session_writeable) = 0;
 		virtual size_t write(char const *src, size_t len, seek_off_t) = 0;
 
-		virtual Status status() = 0;
+		virtual Status status(Session_writeable) = 0;
 
 
 		/* File functionality */

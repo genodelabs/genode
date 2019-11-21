@@ -51,7 +51,7 @@ class Ram_fs::File : public Node
 		File(Allocator &alloc, char const *name)
 		: _chunk(alloc, 0), _length(0) { Node::name(name); }
 
-		size_t read(char *dst, size_t len, seek_off_t seek_offset) override
+		size_t read(char *dst, size_t len, seek_off_t seek_offset, Session_writeable) override
 		{
 			file_size_t const chunk_used_size = _chunk.used_size();
 
@@ -110,15 +110,15 @@ class Ram_fs::File : public Node
 			return len;
 		}
 
-		Status status() override
+		Status status(Session_writeable writeable) override
 		{
 			return {
-				.size              = _length,
-				.type              = File_system::Node_type::CONTINUOUS_FILE,
-				.rwx               = { .readable   = true,
-				                       .writeable  = true,
-				                       .executable = true },
-				.inode             = inode(),
+				.size  = _length,
+				.type  = File_system::Node_type::CONTINUOUS_FILE,
+				.rwx   = { .readable   = true,
+				           .writeable  = (writeable == Session_writeable::WRITEABLE),
+				           .executable = true },
+				.inode = inode(),
 				.modification_time = modification_time()
 			};
 		}

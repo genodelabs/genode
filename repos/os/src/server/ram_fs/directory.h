@@ -181,7 +181,8 @@ class Ram_fs::Directory : public Node
 			return static_cast<Directory *>(lookup(path, true));
 		}
 
-		size_t read(char *dst, size_t len, seek_off_t seek_offset) override
+		size_t read(char *dst, size_t len, seek_off_t seek_offset,
+		            Session_writeable writeable) override
 		{
 			using File_system::Directory_entry;
 
@@ -218,7 +219,7 @@ class Ram_fs::Directory : public Node
 				.inode = node->inode(),
 				.type  = type(),
 				.rwx   = { .readable   = true,
-				           .writeable  = true,
+				           .writeable  = writeable == Session_writeable::WRITEABLE,
 				           .executable = true },
 				.name  = { node->name() }
 			};
@@ -232,15 +233,15 @@ class Ram_fs::Directory : public Node
 			return 0;
 		}
 
-		Status status() override
+		Status status(Session_writeable writeable) override
 		{
 			return {
-				.size              = _num_entries * sizeof(File_system::Directory_entry),
-				.type              = File_system::Node_type::DIRECTORY,
-				.rwx               = { .readable   = true,
-				                       .writeable  = true,
-				                       .executable = true },
-				.inode             = inode(),
+				.size  = _num_entries * sizeof(File_system::Directory_entry),
+				.type  = File_system::Node_type::DIRECTORY,
+				.rwx   = { .readable   = true,
+				           .writeable  = (writeable == Session_writeable::WRITEABLE),
+				           .executable = true },
+				.inode = inode(),
 				.modification_time = modification_time()
 			};
 		}
