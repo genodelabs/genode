@@ -74,6 +74,15 @@ struct Sculpt::Deploy
 
 	void update_managed_deploy_config(Xml_node deploy)
 	{
+		/*
+		 * Ignore intermediate states that may occur when manually updating
+		 * the config/deploy configuration. Depending on the tool used,
+		 * the original file may be unlinked before the new version is
+		 * created. The temporary empty configuration must not be applied.
+		 */
+		if (deploy.type() == "empty")
+			return;
+
 		_managed_deploy_config.generate([&] (Xml_generator &xml) {
 
 			Arch const arch = deploy.attribute_value("arch", Arch());
