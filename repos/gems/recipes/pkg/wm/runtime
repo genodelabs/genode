@@ -1,4 +1,4 @@
-<runtime ram="16M" caps="500" binary="init" config="wm.config">
+<runtime ram="20M" caps="500" binary="init" config="wm.config">
 
 	<requires>
 		<nitpicker label="focus"/>
