@@ -88,7 +88,7 @@ struct Noux::Vfs_io_channel : Io_channel
 		Registered_no_delete<Vfs_io_waiter>
 			vfs_io_waiter(_vfs_io_waiter_registry);
 
-		if (_fh.status_flags() != Sysio::OPEN_MODE_RDONLY) {
+		if ((_fh.status_flags() & Sysio::OPEN_MODE_ACCMODE) != Sysio::OPEN_MODE_RDONLY) {
 			for (;;) {
 				if (_fh.fs().update_modification_timestamp(&_fh, ts)) {
 					break;
