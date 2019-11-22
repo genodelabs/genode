@@ -118,9 +118,15 @@ static int create_thread(pthread_t *thread, const pthread_attr_t *attr,
 		 */
 	}
 
+	/*
+	 * Make sure timers run at the same priority as component threads, otherwise
+	 * no timer progress can be made. See 'rtTimeNanoTSInternalRef' (timesupref.h)
+	 * and 'rtTimerLRThread' (timerlr-generic.cpp)
+	 */
+	bool const rtthread_timer = rtthread->enmType == RTTHREADTYPE_TIMER;
 	return Libc::pthread_create(thread, start_routine, arg,
 	                            stack_size, rtthread->szName,
-	                            cpu_connection(rtthread->enmType),
+	                            rtthread_timer ? nullptr : cpu_connection(rtthread->enmType),
 	                            Genode::Affinity::Location());
 }
 
