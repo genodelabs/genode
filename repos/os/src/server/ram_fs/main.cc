@@ -236,6 +236,9 @@ class Ram_fs::Session_component : public File_system::Session_rpc_object
 		 */
 		~Session_component()
 		{
+			while (_open_node_registry.apply_any<Open_node>([&] (Open_node &node) {
+				destroy(_alloc, &node); })) { }
+
 			Dataspace_capability ds = tx_sink()->dataspace();
 			_ram.free(static_cap_cast<Ram_dataspace>(ds));
 		}
