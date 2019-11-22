@@ -12,7 +12,10 @@
 # 'tcp_terminal' could be used (to attach GDB via a network connection).
 #
 
-assert_spec x86
+if {![have_include "power_on/qemu"] ||
+    !([have_spec nova])} {
+	 puts "Run script is only supported for NOVA in Qemu"; exit 0
+}
 
 create_boot_directory
 import_from_depot [depot_user]/src/[base_src] \
