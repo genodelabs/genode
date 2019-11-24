@@ -138,6 +138,8 @@ struct Ncq_command : Io_command
 	             unsigned        slot) override
 	{
 		table.fis.fpdma(read, block_number, count, slot);
+		/* ensure that 'Cmd::St' is 1 before writing 'Sact' */
+		port.start();
 		/* set pending */
 		port.write<Port::Sact>(1U << slot);
 	}
