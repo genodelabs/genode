@@ -1,3 +1,15 @@
+/*
+ * \brief  Core-specific instance of the IRQ session interface (Linux)
+ * \author Johannes Kliemann
+ * \date   2019-11-25
+ */
+
+/*
+ * Copyright (C) 2007-2019 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU Affero General Public License version 3.
+ */
 
 #ifndef _IRQ_OBJECT_H_
 #define _IRQ_OBJECT_H_

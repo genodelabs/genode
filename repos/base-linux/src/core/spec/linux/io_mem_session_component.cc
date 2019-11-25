@@ -1,7 +1,7 @@
 /*
  * \brief  Linux-specific IO_MEM service
- * \author Christian Helmuth
- * \date   2006-09-01
+ * \author Johannes Kliemann
+ * \date   2019-11-25
  */
 
 /*

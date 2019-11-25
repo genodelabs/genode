@@ -1,3 +1,15 @@
+/*
+ * \brief  Linux-specific IO_PORT service
+ * \author Johannes Kliemann
+ * \date   2019-11-25
+ */
+
+/*
+ * Copyright (C) 2006-2019 Genode Labs GmbH
+ *
+ * This file is part of the Genode OS framework, which is distributed
+ * under the terms of the GNU Affero General Public License version 3.
+ */
 
 #include <util/string.h>
 #include <util/arg_string.h>

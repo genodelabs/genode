@@ -1,11 +1,11 @@
 /*
  * \brief  Linux-specific IO_MEM service
- * \author Christian Helmuth
- * \date   2006-09-01
+ * \author Johannes Kliemann
+ * \date   2019-11-25
  */
 
 /*
- * Copyright (C) 2006-2017 Genode Labs GmbH
+ * Copyright (C) 2006-2019 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.

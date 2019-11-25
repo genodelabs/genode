@@ -26,7 +26,9 @@ namespace Genode {
 
 	class Io_mem_session_component : public Rpc_object<Io_mem_session>
 	{
+
 		private:
+
 			Range_allocator &_io_mem_alloc;
 			Dataspace_component _ds;
 			Rpc_entrypoint &_ds_ep;
