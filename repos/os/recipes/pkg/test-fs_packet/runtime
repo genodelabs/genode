@@ -3,7 +3,7 @@
 	<requires> <timer/> </requires>
 
 	<events>
-		<timeout meaning="failed" sec="230" />
+		<timeout meaning="failed" sec="30" />
 		<log     meaning="succeeded">child "short-test" exited with exit value 0</log>
 	</events>
 
@@ -13,7 +13,6 @@
 		<rom label="sequence"/>
 		<rom label="vfs"/>
 		<rom label="vfs.lib.so"/>
-		<rom label="vfs_jitterentropy.lib.so"/>
 	</content>
 
 	<config>
@@ -35,7 +34,7 @@
 			<resource name="RAM" quantum="4M"/>
 			<provides> <service name="File_system"/> </provides>
 			<config>
-				<vfs> <jitterentropy name="test"/> </vfs>
+				<vfs> <zero name="test"/> </vfs>
 				<default-policy root="/" writeable="yes"/>
 			</config>
 		</start>
