@@ -26,6 +26,11 @@ namespace Board {
 	using Pic      = Hw::Gicv2;
 	
 	L2_cache & l2_cache();
+
+	enum {
+		CORTEX_A9_PRIVATE_TIMER_CLK = 500000000, /* timer clk runs half the CPU freq */
+		CORTEX_A9_PRIVATE_TIMER_DIV = 100,
+	};
 }
 
 #endif /* _CORE__SPEC__WAND_QUAD__BOARD_H_ */

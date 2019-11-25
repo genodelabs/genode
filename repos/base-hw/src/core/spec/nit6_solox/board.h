@@ -25,6 +25,11 @@ namespace Board {
 	using L2_cache = Hw::Pl310;
 
 	L2_cache & l2_cache();
+
+	enum {
+		CORTEX_A9_PRIVATE_TIMER_CLK = 500000000, /* timer clk runs half the CPU freq */
+		CORTEX_A9_PRIVATE_TIMER_DIV = 100,
+	};
 }
 
 #endif /* _CORE__SPEC__NIT6_SOLOX__BOARD_H_ */
