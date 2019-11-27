@@ -18,7 +18,7 @@ src/lib/libcrypto/target.mk: src/lib/libcrypto src/lib/openssl
 lib/mk:
 	mkdir -p $@
 	cp $(REP_DIR)/lib/mk/libcrypto.inc $@
-	for spec in x86_32 x86_64 arm; do \
+	for spec in x86_32 x86_64 arm arm_64; do \
 	  mkdir -p $@/spec/$$spec; \
 	  cp $(REP_DIR)/$@/spec/$$spec/libcrypto.mk $@/spec/$$spec/; \
 	done
