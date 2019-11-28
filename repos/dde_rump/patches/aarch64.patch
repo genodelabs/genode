@@ -1,0 +1,20 @@
+diff --git a/arm/arm32/kobj_machdep.c b/arm/arm32/kobj_machdep.c
+index 6fc772f..146f580 100644
+--- src/lib/dde_rump_aarch64_backport/arm/arm32/kobj_machdep.c
++++ src/lib/dde_rump_aarch64_backport/arm/arm32/kobj_machdep.c
+@@ -66,6 +66,7 @@ __KERNEL_RCSID(0, "$NetBSD: kobj_machdep.c,v 1.10 2014/11/07 21:28:32 martin Exp
+ #include <sys/kobj_impl.h>
+ 
+ #include <arm/cpufunc.h>
++#ifndef _RUMPKERNEL
+ #include <arm/locore.h>
+ 
+ int
+@@ -206,6 +207,7 @@ kobj_reloc(kobj_t ko, uintptr_t relocbase, const void *data,
+ 	    rtype, where, symidx);
+ 	return -1;
+ }
++#endif
+ 
+ #if __ARMEB__
+ 

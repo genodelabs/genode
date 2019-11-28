@@ -6,7 +6,7 @@ LIB_MK := $(addprefix lib/mk/, \
             rump_prefix.inc \
             rump_tools.mk \
             vfs_rump.mk) \
-          $(foreach SPEC,x86_32 x86_64 arm, \
+          $(foreach SPEC,x86_32 x86_64 arm arm_64, \
             lib/mk/spec/$(SPEC)/rump.mk \
             lib/mk/spec/$(SPEC)/rump_include.mk)
 
@@ -18,7 +18,9 @@ MIRROR_FROM_REP_DIR := $(LIB_MK) \
                        include/rump include/rump_fs \
                        include/util
 
-MIRROR_FROM_PORT_DIR := src/lib/dde_rump/src
+MIRROR_FROM_PORT_DIR := src/lib/dde_rump/src \
+                        src/lib/libc \
+                        src/lib/dde_rump_aarch64_backport
 
 content: $(MIRROR_FROM_REP_DIR) $(MIRROR_FROM_PORT_DIR)
 

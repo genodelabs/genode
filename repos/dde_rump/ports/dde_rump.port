@@ -1,8 +1,17 @@
 LICENSE   := BSD
 VERSION   := git
-DOWNLOADS := rump.git
+DOWNLOADS := rump.git aarch64.svn libc.svn
+
 URL(rump) := https://github.com/ssumpf/rump.git
 DIR(rump) := src/lib/dde_rump
 REV(rump) := 206ffa06cedd0779af0043997fd182b00ff4688c
 
-PATCHES := patches/rump.patch
+URL(aarch64) := https://github.com/justincormack/netbsd-src/trunk/src/sys/arch
+REV(aarch64) := HEAD
+DIR(aarch64) := src/lib/dde_rump_aarch64_backport
+
+URL(libc) := https://github.com/justincormack/netbsd-src/trunk/src/common/lib/libc/arch/aarch64/atomic
+REV(libc) := HEAD
+DIR(libc) := src/lib/libc
+
+PATCHES := patches/rump.patch patches/aarch64.patch
