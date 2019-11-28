@@ -83,7 +83,7 @@ class Vfs::Terminal_file_system::Data_file_system : public Single_file_system
 				if (buf_size == 0)
 					break;
 
-				char buf[buf_size] { };
+				char buf[buf_size];
 
 				unsigned const received = terminal.read(buf, buf_size);
 
