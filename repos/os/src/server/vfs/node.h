@@ -443,7 +443,7 @@ class Vfs_server::Io_node : public Vfs_server::Node,
 		void _execute_write_timestamp()
 		{
 			try {
-				_packet.with_timestamp([&] (File_system::Timestamp const time) {
+				_packet.with_timestamp([&] (::File_system::Timestamp const time) {
 					Vfs::Timestamp ts { .value = time.value };
 					_handle.fs().update_modification_timestamp(&_handle, ts);
 				});
@@ -868,7 +868,7 @@ struct Vfs_server::Directory : Io_node
 		Session_writeable const _writeable;
 
 		typedef Directory_service::Dirent    Vfs_dirent;
-		typedef File_system::Directory_entry Fs_dirent;
+		typedef ::File_system::Directory_entry Fs_dirent;
 
 		bool _position_and_length_aligned_with_dirent_size()
 		{
