@@ -3,6 +3,54 @@
                                Genode News
                                ===========
 
+Genode OS Framework release 19.11 | 2019-11-28
+##############################################
+
+| Following this year's theme of "bridging worlds", Genode 19.11 adds the
+| ability to use popular build tools like CMake for application development,
+| introduces a new virtual-machine monitor for 64-bit ARM, and enhances
+| POSIX compatibility. As another highlight, it features the first version
+| of our custom block-device encrypter.
+
+Block-device encryption is a feature often requested by users of our Sculpt OS.
+Until now, we deliberately left this topic unaddressed because we felt that a
+profound answer was beyond our expertise. However, during the past year, we
+dived deep into it. The result is the prototype for a new block encrypter that
+encrypts data but also protects integrity and freshness. For us, the
+implementation of the encrypter is especially intriguing because - with about
+7000 lines of code - it is Genode's first non-trivial component written in the
+[https://en.wikipedia.org/wiki/SPARK_(programming_language) - SPARK]
+programming language.
+
+The second major addition is a new virtual machine monitor (VMM) for 64-bit
+ARM platforms such as the NXP i.MX8. It leverages the
+[https://genode.org/documentation/articles/arm_virtualization - proof of concept]
+we developed in 2015 for ARMv7, which we pursued as a technology exploration.
+In contrast, our aspiration with the new VMM is a product-quality solution.
+
+In our [https://genode.org/about/road-map - road map] for 2019, we stated
+the "bridging of worlds" as our overall theme for this year. On that account,
+the current release moves the project forward on two levels. First, by
+successively increasing the scope of POSIX compatibility, we reduce the
+friction when porting existing application software to Genode. We managed
+to bridge several gaps in our POSIX support that we considered as impossible
+to cover some years ago. In particular, we identified ways to emulate certain
+POSIX signals, ioctl calls, and fork/execve semantics. This way, popular
+software such as bash, coreutils, or Vim can now be executed as regular
+Genode components with no additional runtime environment (like Noux or a VMM)
+required.
+
+At a higher level, the current release introduces new tooling especially
+geared at the development and porting of application software. Compared to
+Genode's regular development tools, which were designed for whole-system
+development, the new tool called Goa relieves the developer from the
+complexity of Genode's custom build system and instead promotes the use of
+popular commodity solutions like CMake.
+
+These and more topics are described in the
+[https:/documentation/release-notes/19.11 - release documentation of version 19.11...]
+
+
 Genode OS Framework release 19.08 | 2019-08-28
 ##############################################
 
