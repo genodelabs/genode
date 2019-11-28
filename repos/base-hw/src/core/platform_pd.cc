@@ -88,7 +88,7 @@ Hw::Address_space::Address_space(Page_table            & tt,
 Hw::Address_space::Address_space(Platform_pd & pd)
 : _tt(*construct_at<Page_table>(_table_alloc(), *((Page_table*)Hw::Mm::core_page_tables().base))),
   _tt_phys((addr_t)_cma().phys_addr(&_tt)),
-  _tt_array(new (_cma()) Array([this] (void * virt) {
+  _tt_array(new (_cma()) Array([] (void * virt) {
     return (addr_t)_cma().phys_addr(virt);})),
   _tt_alloc(_tt_array->alloc()),
   _kobj(true, *(Page_table*)translation_table_phys(), pd) { }
