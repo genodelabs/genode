@@ -232,7 +232,7 @@ class Vfs_server::Session_component : private Session_resources,
 						}
 					});
 				}
-				catch (File_system::Invalid_handle) {
+				catch (::File_system::Invalid_handle) {
 					consume_and_ack_invalid_packet(); }
 
 				if (!progress_in_iteration)
