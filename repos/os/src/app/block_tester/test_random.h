@@ -34,9 +34,9 @@ namespace Util {
 
 		uint64_t splitmix64()
 		{
-			uint64_t z = (seed += __UINT64_C(0x9E3779B97F4A7C15));
-			z = (z ^ (z >> 30)) * __UINT64_C(0xBF58476D1CE4E5B9);
-			z = (z ^ (z >> 27)) * __UINT64_C(0x94D049BB133111EB);
+			uint64_t z = (seed += 0x9E3779B97F4A7C15);
+			z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9;
+			z = (z ^ (z >> 27)) * 0x94D049BB133111EB;
 			return z ^ (z >> 31);
 		}
 
