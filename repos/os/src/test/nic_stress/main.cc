@@ -57,7 +57,7 @@ struct Local::Construct_destruct_test
 
 	Env                         &_env;
 	Allocator                   &_alloc;
-	Signal_context_capability   &_completed_sigh;
+	Signal_context_capability    _completed_sigh;
 	Xml_node              const &_config;
 	Nic::Packet_allocator        _pkt_alloc     { &_alloc };
 	bool                  const  _config_exists { _config.has_sub_node("construct_destruct") };
