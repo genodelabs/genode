@@ -56,11 +56,9 @@ using namespace Genode;
  */
 namespace {
 
-	struct Local_capability_space
-	:
+	using Local_capability_space =
 		Capability_space_sel4<1UL << Core_cspace::NUM_CORE_SEL_LOG2, 0UL,
-		                      Native_capability::Data>
-	{ };
+		                      Native_capability::Data>;
 
 	static Local_capability_space &local_capability_space()
 	{
@@ -150,13 +148,13 @@ void Capability_space::inc_ref(Native_capability::Data &data)
 
 Rpc_obj_key Capability_space::rpc_obj_key(Native_capability::Data const &data)
 {
-	return local_capability_space().rpc_obj_key(data);
+	return Local_capability_space::rpc_obj_key(data);
 }
 
 
 Capability_space::Ipc_cap_data Capability_space::ipc_cap_data(Native_capability const &cap)
 {
-	return local_capability_space().ipc_cap_data(*cap.data());
+	return Local_capability_space::ipc_cap_data(*cap.data());
 }
 
 

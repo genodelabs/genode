@@ -180,17 +180,17 @@ class Genode::Capability_space_tpl
 				throw Native_capability::Reference_count_overflow();
 		}
 
-		Rpc_obj_key rpc_obj_key(Data const &data) const
+		static Rpc_obj_key rpc_obj_key(Data const &data)
 		{
 			return data.rpc_obj_key();
 		}
 
-		void print(Output &out, Data const &data) const
+		static void print(Output &out, Data const &data)
 		{
 			ipc_cap_data(data).print(out);
 		}
 
-		Capability_space::Ipc_cap_data ipc_cap_data(Data const &data) const
+		static Capability_space::Ipc_cap_data ipc_cap_data(Data const &data)
 		{
 			return { data.dst, data.rpc_obj_key() };
 		}
