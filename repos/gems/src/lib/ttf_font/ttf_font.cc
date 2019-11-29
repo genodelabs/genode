@@ -174,12 +174,12 @@ Ttf_font::Glyph_buffer::render_shifted(Codepoint      const c,
 	unsigned const height = dy + 1 + PAD_Y;
 
 	unsigned        const dst_width = filter_x*width;
-	unsigned char * const dst_ptr   = (unsigned char *)_values + _headroom + x0;
+	unsigned char * const dst_ptr   = (unsigned char *)_values + _headroom;
 
 	::memset(dst_ptr, 0, dst_width*height);
 
 	float sub_x = 0, sub_y = 0;
-	stbtt_MakeCodepointBitmapSubpixelPrefilter(&font, dst_ptr,
+	stbtt_MakeCodepointBitmapSubpixelPrefilter(&font, dst_ptr + x0,
 	                                           dst_width, dy + 1, dst_width,
 	                                           scale*4, scale,
 	                                           shift_x, shift_y,
