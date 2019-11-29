@@ -50,6 +50,8 @@ class Genodefb :
 
 		void _clear_screen()
 		{
+			if (!_fb_base) return;
+
 			size_t const max_h = Genode::min(_fb_mode.height(), _virtual_fb_mode.height());
 			size_t const num_pixels = _fb_mode.width() * max_h;
 			memset(_fb_base, 0, num_pixels * _fb_mode.bytes_per_pixel());
@@ -107,11 +109,16 @@ class Genodefb :
 
 			_fb_mode = mode;
 
-			_env.rm().detach(_fb_base);
+			if (_fb_base)
+				_env.rm().detach(_fb_base);
 
 			_adjust_buffer();
 
-			_fb_base = _env.rm().attach(_fb.dataspace());
+			try {
+				_fb_base = _env.rm().attach(_fb.dataspace());
+			} catch (...) {
+				_fb_base = nullptr;
+			}
 
 			Unlock();
 		}
@@ -194,6 +201,8 @@ class Genodefb :
 		                               PRUint32 imageSize,
 		                               PRUint8 *image) override
 		{
+			if (!_fb_base) return S_OK;
+
 			Lock();
 
 			Nitpicker::Area const area_fb = Nitpicker::Area(_fb_mode.width(),
