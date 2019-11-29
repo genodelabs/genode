@@ -52,7 +52,25 @@ install_config {
 		<resource name="RAM" quantum="4M"/>
 		<provides> <service name="File_system"/> </provides>
 		<config>
-			<vfs> <tar name="depot.tar"/> </vfs>
+			<vfs>
+				<tar name="depot.tar"/>
+				<dir name="badguy">
+					<dir name="pkg">
+						<dir name="invalid">
+							<dir name="current">
+								<inline name="archives"/>
+								<inline name="runtime">
+									<runtime ram="1M" caps="100" binary="chroot">
+										<content>
+											<rom label="chroot"/>
+										</content>
+									</runtime>
+								</inline>
+							</dir>
+						</dir>
+					</dir>
+				</dir>
+			</vfs>
 			<policy label="depot_query -> depot" root="/" />
 			<policy label="fs_rom -> "           root="/" />
 		</config>
@@ -94,6 +112,7 @@ install_config {
 				<service name="LOG">   <parent/> </service>
 				<service name="Timer"> <parent/> </service>
 			</common_routes>
+			<start name="invalid" pkg="badguy/pkg/invalid/current"/>
 			<start name="test" pkg="} [depot_user] {/pkg/} [query_pkg] {"/>
 		</config>
 		<route>
@@ -121,5 +140,5 @@ build_boot_image { init depot_query depot_deploy vfs.lib.so }
 
 append qemu_args " -nographic "
 
-run_genode_until {.*child "test-fs_report" exited with exit value 0.*\n} 30
+run_genode_until {.*\] child "test-fs_report" exited with exit value 0.*\n} 30
 
