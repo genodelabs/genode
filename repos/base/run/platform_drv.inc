@@ -38,6 +38,7 @@ proc usb_host_drv_binary { } {
 	if {[have_spec panda]}     { return panda_usb_host_drv     }
 	if {[have_spec rpi]}       { return rpi_usb_host_drv       }
 	if {[have_spec imx6q_sabrelite]} { return imx6q_sabrelite_usb_host_drv }
+	if {[have_spec imx8q_evk]} { return imx8q_evk_usb_host_drv }
 	if {[have_spec odroid_x2]} { return odroid_x2_usb_host_drv }
 	if {[have_spec x86]}       { return x86_pc_usb_host_drv    }
 	return no_usb_drv_available
