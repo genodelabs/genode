@@ -19,7 +19,6 @@
 #include <timer_session/connection.h>
 #include <util/bit_allocator.h>
 #include <util/string.h>
-#include <os/backtrace.h>
 
 /* Local includes */
 #include "signal.h"
@@ -41,7 +40,6 @@ namespace Genode {
 
 
 unsigned long jiffies;
-void lx_backtrace() { Genode::backtrace(); }
 
 
 void pci_dev_put(struct pci_dev *pci_dev)
