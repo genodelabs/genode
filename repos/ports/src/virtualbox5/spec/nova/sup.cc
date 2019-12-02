@@ -711,21 +711,20 @@ void genode_update_tsc(void (*update_func)(void), Genode::uint64_t update_us)
 	using namespace Genode;
 	using namespace Nova;
 
-	enum { TSC_FACTOR = 1000ULL };
+	Trace::Timestamp const ticks_per_us     = genode_cpu_hz() / (1000*1000);
+	Trace::Timestamp const ticks_per_update = ticks_per_us * update_us;
+	Trace::Timestamp const ticks_min_sleep  = ticks_per_us * 100;
+	Trace::Timestamp       wakeup_absolute  = Trace::timestamp();
 
 	Genode::addr_t sem = Thread::myself()->native_thread().exc_pt_sel + Nova::SM_SEL_EC;
-	unsigned long tsc_khz = (genode_cpu_hz() / 1000) / TSC_FACTOR;
-
-	Trace::Timestamp us_64 = update_us;
-
 	for (;;) {
 		update_func();
 
-		Trace::Timestamp now = Trace::timestamp();
+		wakeup_absolute = max(wakeup_absolute + ticks_per_update,
+		                      Trace::timestamp() + ticks_min_sleep);
 
 		/* block until timeout fires or it gets canceled */
-		unsigned long long tsc_absolute = now + us_64 * tsc_khz;
-		Genode::uint8_t res = sm_ctrl(sem, SEMAPHORE_DOWN, tsc_absolute);
+		Genode::uint8_t res = sm_ctrl(sem, SEMAPHORE_DOWN, wakeup_absolute);
 		if (res != Nova::NOVA_OK && res != Nova::NOVA_TIMEOUT)
 			nova_die();
 	}
