@@ -97,7 +97,6 @@ DUMMY(char *,  0, crypt, (const char *, const char *))
 DUMMY(DB *  ,  0, dbopen, (const char *, int, int, DBTYPE, const void *))
 DUMMY(u_int32_t, 0, __default_hash, (const void *, size_t));
 DUMMY_SILENT(long  , -1, _fpathconf, (int, int))
-DUMMY(pid_t , -1, vfork, (void))
 DUMMY(long  , -1, fpathconf, (int, int))
 DUMMY(int   , -1, freebsd7___semctl, (void))
 DUMMY(int   , -1, getcontext, (ucontext_t *))

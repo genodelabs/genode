@@ -111,6 +111,20 @@ File_descriptor *File_descriptor_allocator::find_by_libc_fd(int libc_fd)
 }
 
 
+File_descriptor *File_descriptor_allocator::any_cloexec_libc_fd()
+{
+	Lock::Guard guard(_lock);
+
+	File_descriptor *result = nullptr;
+
+	_id_space.for_each<File_descriptor>([&] (File_descriptor &fd) {
+		if (!result && fd.cloexec)
+			result = &fd; });
+
+	return result;
+}
+
+
 void File_descriptor_allocator::generate_info(Xml_generator &xml)
 {
 	Lock::Guard guard(_lock);

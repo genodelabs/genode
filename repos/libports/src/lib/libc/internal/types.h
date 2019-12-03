@@ -15,12 +15,14 @@
 #define _LIBC__INTERNAL__TYPES_H_
 
 #include <base/log.h>
+#include <util/string.h>
 
 namespace Libc {
 
 	using namespace Genode;
 
 	typedef Genode::uint64_t uint64_t;
+	typedef String<64> Binary_name;
 }
 
 #endif /* _LIBC__INTERNAL__TYPES_H_ */

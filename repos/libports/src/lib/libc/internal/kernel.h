@@ -80,6 +80,13 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 		Allocator &_heap;
 
 		/**
+		 * Name of the current binary's ROM module
+		 *
+		 * Used by fork, modified by execve.
+		 */
+		Binary_name _binary_name { "binary" };
+
+		/**
 		 * Allocator for application-owned data
 		 *
 		 * Mirrored to forked processes. Not preserved across 'execve' calls.

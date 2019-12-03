@@ -104,6 +104,14 @@ namespace Libc {
 
 			File_descriptor *find_by_libc_fd(int libc_fd);
 
+			/**
+			 * Return any file descriptor with close-on-execve flag set
+			 *
+			 * \return pointer to file descriptor, or
+			 *         nullptr is no such file descriptor exists
+			 */
+			File_descriptor *any_cloexec_libc_fd();
+
 			void generate_info(Genode::Xml_generator &);
 	};
 

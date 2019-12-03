@@ -21,7 +21,9 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
+#include <stdio.h>
 #include <libc/allocator.h>
+#include <libc-plugin/fd_alloc.h>
 
 /* libc-internal includes */
 #include <internal/call_func.h>
@@ -171,7 +173,7 @@ struct Libc::Interpreter
 		_rom(env, filename), num_args(_count_args() + 2 /* argv0 + filename */)
 	{
 		if (script()) {
-			args = (char **)malloc(sizeof(char *)*num_args);
+			args = (char **)calloc(num_args + 1 /* null termination */, sizeof(char *));
 
 			unsigned i = 0;
 
@@ -183,8 +185,6 @@ struct Libc::Interpreter
 
 			/* supply script file name as last argument */
 			args[i++] = strdup(filename);
-
-
 		}
 	}
 
@@ -277,9 +277,10 @@ struct Libc::String_array : Noncopyable
 
 				size_t const n = _num_entries(src_array);
 				for (unsigned i = skip; i < n; i++) {
-					array[dst_i++] = _buffer->pos_ptr();
+					array[dst_i] = _buffer->pos_ptr();
 					if (!_buffer->try_append(src_array[i]))
 						break;
+					dst_i++;
 				}
 			};
 
@@ -291,8 +292,6 @@ struct Libc::String_array : Noncopyable
 				array[dst_i] = nullptr;
 				break;
 			}
-
-			warning("string-array buffer ", size, " exceeded");
 			size += 1024;
 		}
 	}
@@ -304,22 +303,27 @@ struct Libc::String_array : Noncopyable
 /* pointer to environment, provided by libc */
 extern char **environ;
 
-static Env                     *_env_ptr;
-static Allocator               *_alloc_ptr;
-static void                    *_user_stack_ptr;
-static main_fn_ptr              _main_ptr;
-static Libc::String_array      *_env_vars_ptr;
-static Libc::String_array      *_args_ptr;
-static Libc::Reset_malloc_heap *_reset_malloc_heap_ptr;
+static Env                             *_env_ptr;
+static Allocator                       *_alloc_ptr;
+static void                            *_user_stack_ptr;
+static main_fn_ptr                      _main_ptr;
+static Libc::String_array              *_env_vars_ptr;
+static Libc::String_array              *_args_ptr;
+static Libc::Reset_malloc_heap         *_reset_malloc_heap_ptr;
+static Libc::Binary_name               *_binary_name_ptr;
+static Libc::File_descriptor_allocator *_fd_alloc_ptr;
 
 
 void Libc::init_execve(Env &env, Genode::Allocator &alloc, void *user_stack_ptr,
-                       Reset_malloc_heap &reset_malloc_heap)
+                       Reset_malloc_heap &reset_malloc_heap, Binary_name &binary_name,
+                       File_descriptor_allocator &fd_alloc)
 {
 	_env_ptr               = &env;
 	_alloc_ptr             = &alloc;
 	_user_stack_ptr        =  user_stack_ptr;
 	_reset_malloc_heap_ptr = &reset_malloc_heap;
+	_binary_name_ptr       = &binary_name;
+	_fd_alloc_ptr          = &fd_alloc;
 
 	Dynamic_linker::keep(env, "libc.lib.so");
 	Dynamic_linker::keep(env, "libm.lib.so");
@@ -346,6 +350,10 @@ extern "C" int execve(char const *filename,
 		return Libc::Errno(EACCES);
 	}
 
+	/* close all file descriptors with the close-on-execve flag enabled */
+	while (Libc::File_descriptor *fd = _fd_alloc_ptr->any_cloexec_libc_fd())
+		close(fd->libc_fd);
+
 	/* capture environment variables and args to libc-internal heap */
 	Libc::String_array *saved_env_vars =
 		new (*_alloc_ptr) Libc::String_array(*_alloc_ptr, envp);
@@ -367,7 +375,7 @@ extern "C" int execve(char const *filename,
 		try {
 			Libc::resolve_symlinks(path.string(), resolved_path); }
 		catch (Libc::Symlink_resolve_error) {
-			warning("execve: executable binary does not exist");
+			warning("execve: executable binary '", filename, "' does not exist");
 			return Libc::Errno(ENOENT);
 		}
 
@@ -411,6 +419,10 @@ extern "C" int execve(char const *filename,
 		return Libc::Errno(EACCES);
 	}
 
+	/* purge line buffers, which may be allocated at the application heap */
+	setvbuf(stdout, nullptr, _IONBF, 0);
+	setvbuf(stderr, nullptr, _IONBF, 0);
+
 	/*
 	 * Reconstruct malloc heap for application-owned data
 	 */
@@ -423,6 +435,9 @@ extern "C" int execve(char const *filename,
 
 	/* register list of environment variables at libc 'environ' pointer */
 	environ = _env_vars_ptr->array;
+
+	/* remember name of new ROM module, to be used by next call of fork */
+	*_binary_name_ptr = Libc::Binary_name(resolved_path.string());
 
 	destroy(_alloc_ptr, saved_env_vars);
 	destroy(_alloc_ptr, saved_args);

@@ -40,6 +40,23 @@
 #include <internal/resume.h>
 #include <internal/signal.h>
 
+namespace Libc {
+	struct Child_config;
+	struct Parent_services;
+	struct Local_rom_service;
+	struct Local_rom_services;
+	struct Local_clone_service;
+	struct Forked_child_policy;
+	struct Forked_child;
+
+	struct Child_ready : Interface
+	{
+		virtual void child_ready() = 0;
+	};
+
+	typedef Registry<Registered<Forked_child> > Forked_children;
+}
+
 using namespace Libc;
 
 
@@ -56,40 +73,9 @@ static void                     *_user_stack_base_ptr;
 static size_t                    _user_stack_size;
 static int                       _pid;
 static int                       _pid_cnt;
-static Config_accessor const    *_config_accessor_ptr;
-
-
-void Libc::init_fork(Env &env, Config_accessor const &config_accessor,
-                     Allocator &alloc, Heap &malloc_heap, pid_t pid,
-                     Suspend &suspend, Resume &resume, Signal &signal,
-                     Kernel_routine_scheduler &kernel_routine_scheduler)
-{
-	_env_ptr                      = &env;
-	_alloc_ptr                    = &alloc;
-	_suspend_ptr                  = &suspend;
-	_resume_ptr                   = &resume;
-	_signal_ptr                   = &signal;
-	_kernel_routine_scheduler_ptr = &kernel_routine_scheduler;
-	_malloc_heap_ptr              = &malloc_heap;
-	_config_accessor_ptr          = &config_accessor;
-	_pid                          =  pid;
-}
-
-
-namespace Libc {
-	struct Child_config;
-	struct Parent_services;
-	struct Local_rom_service;
-	struct Local_rom_services;
-	struct Local_clone_service;
-	struct Forked_child_policy;
-	struct Forked_child;
-
-	struct Child_ready : Interface
-	{
-		virtual void child_ready() = 0;
-	};
-}
+static Config_accessor    const *_config_accessor_ptr;
+static Binary_name        const *_binary_name_ptr;
+static Forked_children          *_forked_children_ptr;
 
 
 struct Libc::Child_config
@@ -406,6 +392,8 @@ struct Libc::Forked_child : Child_policy, Child_ready
 {
 	Env &_env;
 
+	Binary_name const _binary_name;
+
 	Resume &_resume;
 
 	Signal &_signal;
@@ -447,7 +435,7 @@ struct Libc::Forked_child : Child_policy, Child_ready
 		void execute_in_kernel() override
 		{
 			/* keep executing this kernel routine until child is running */
-			if (!child.running())
+			if (!child.running() && !child.exited())
 				_kernel_routine_scheduler_ptr->register_kernel_routine(*this);
 		}
 	} wait_fork_ready { *this };
@@ -465,7 +453,17 @@ struct Libc::Forked_child : Child_policy, Child_ready
 	 ** Child_ready interface **
 	 ***************************/
 
-	void child_ready() override { _state = State::RUNNING; }
+	void child_ready() override
+	{
+		/*
+		 * Don't modify the state if the child already exited.
+		 * This can happen for short-lived children where the asynchronous
+		 * notification for '_handle_exit' arrives before '_handle_child_ready'
+		 * (while the parent is still blocking in the fork call).
+		 */
+		if (_state == State::STARTING_UP)
+			_state = State::RUNNING;
+	}
 
 
 	/****************************
@@ -474,7 +472,7 @@ struct Libc::Forked_child : Child_policy, Child_ready
 
 	Name name() const override { return _name; }
 
-	Binary_name binary_name() const override { return "binary"; }
+	Binary_name binary_name() const override { return _binary_name; }
 
 	Pd_session           &ref_pd()           override { return _env.pd(); }
 	Pd_session_capability ref_pd_cap() const override { return _env.pd_session_cap(); }
@@ -549,6 +547,7 @@ struct Libc::Forked_child : Child_policy, Child_ready
 	Forked_child(Env                   &env,
 	             Entrypoint            &fork_ep,
 	             Allocator             &alloc,
+	             Binary_name     const &binary_name,
 	             Resume                &resume,
 	             Signal                &signal,
 	             pid_t                  pid,
@@ -556,7 +555,8 @@ struct Libc::Forked_child : Child_policy, Child_ready
 	             Parent_services       &parent_services,
 	             Local_rom_services    &local_rom_services)
 	:
-		_env(env), _resume(resume), _signal(signal), _pid(pid),
+		_env(env), _binary_name(binary_name),
+		_resume(resume), _signal(signal), _pid(pid),
 		_child_config(env, config_accessor, pid),
 		_parent_services(parent_services),
 		_local_rom_services(local_rom_services),
@@ -567,11 +567,6 @@ struct Libc::Forked_child : Child_policy, Child_ready
 
 	virtual ~Forked_child() { }
 };
-
-
-/* initialized on first call of 'fork_kernel_routine' */
-typedef Registry<Registered<Libc::Forked_child> > Forked_children;
-static Forked_children *_forked_children_ptr;
 
 
 static void fork_kernel_routine()
@@ -597,11 +592,9 @@ static void fork_kernel_routine()
 
 	static Local_rom_services local_rom_services(env, fork_ep, alloc);
 
-	static Forked_children forked_children { };
-	_forked_children_ptr = &forked_children;
-
 	Registered<Forked_child> &child = *new (alloc)
-		Registered<Forked_child>(forked_children, env, fork_ep, alloc, resume,
+		Registered<Forked_child>(*_forked_children_ptr, env, fork_ep, alloc,
+		                         *_binary_name_ptr, resume,
 		                         signal, child_pid, *_config_accessor_ptr,
 		                         parent_services, local_rom_services);
 
@@ -652,7 +645,9 @@ extern "C" pid_t __sys_fork(void)
 	return fork_result;
 }
 
-pid_t fork(void) __attribute__((weak, alias("__sys_fork")));
+
+pid_t fork(void)  __attribute__((weak, alias("__sys_fork")));
+pid_t vfork(void) __attribute__((weak, alias("__sys_fork")));
 
 
 /************
@@ -758,3 +753,24 @@ extern "C" pid_t __sys_wait4(pid_t pid, int *status, int options, rusage *rusage
 
 extern "C" pid_t wait4(pid_t, int *, int, rusage *) __attribute__((weak, alias("__sys_wait4")));
 
+
+void Libc::init_fork(Env &env, Config_accessor const &config_accessor,
+                     Allocator &alloc, Heap &malloc_heap, pid_t pid,
+                     Suspend &suspend, Resume &resume, Signal &signal,
+                     Kernel_routine_scheduler &kernel_routine_scheduler,
+                     Binary_name const &binary_name)
+{
+	_env_ptr                      = &env;
+	_alloc_ptr                    = &alloc;
+	_suspend_ptr                  = &suspend;
+	_resume_ptr                   = &resume;
+	_signal_ptr                   = &signal;
+	_kernel_routine_scheduler_ptr = &kernel_routine_scheduler;
+	_malloc_heap_ptr              = &malloc_heap;
+	_config_accessor_ptr          = &config_accessor;
+	_pid                          =  pid;
+	_binary_name_ptr              = &binary_name;
+
+	static Forked_children forked_children { };
+	_forked_children_ptr = &forked_children;
+}

@@ -36,6 +36,7 @@ namespace Libc {
 	struct Kernel_routine_scheduler;
 	struct Watch;
 	struct Signal;
+	struct File_descriptor_allocator;
 
 	/**
 	 * Support for shared libraries
@@ -118,7 +119,8 @@ namespace Libc {
 	 */
 	void init_fork(Genode::Env &, Config_accessor const &,
 	               Genode::Allocator &heap, Heap &malloc_heap, int pid,
-	               Suspend &, Resume &, Signal &, Kernel_routine_scheduler &);
+	               Suspend &, Resume &, Signal &, Kernel_routine_scheduler &,
+	               Binary_name const &);
 
 	struct Reset_malloc_heap : Interface
 	{
@@ -129,7 +131,8 @@ namespace Libc {
 	 * Execve mechanism
 	 */
 	void init_execve(Genode::Env &, Genode::Allocator &, void *user_stack,
-	                 Reset_malloc_heap &);
+	                 Reset_malloc_heap &, Binary_name &,
+	                 File_descriptor_allocator &);
 
 	/**
 	 * Signal handling

@@ -19,6 +19,7 @@
 
 /* libc includes */
 #include <limits.h>   /* for 'PATH_MAX' */
+#include <libc-plugin/plugin.h>
 
 /* libc-internal includes */
 #include <internal/types.h>
@@ -26,8 +27,6 @@
 namespace Libc {
 
 	typedef Genode::Path<PATH_MAX> Absolute_path;
-
-	class Symlink_resolve_error : Exception { };
 
 	void resolve_symlinks(char const *path, Absolute_path &resolved_path);
 }

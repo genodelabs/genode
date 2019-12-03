@@ -119,6 +119,8 @@ void Libc::Kernel::_init_file_descriptors()
 			return;
 		}
 
+		fd->cloexec = node.attribute_value("cloexec", false);
+
 		/*
 		 * We need to manually register the path. Normally this is done
 		 * by '_open'. But we call the local 'open' function directly
@@ -373,8 +375,10 @@ Libc::Kernel::Kernel(Genode::Env &env, Genode::Allocator &heap)
 		init_malloc(*_malloc_heap);
 	}
 
-	init_fork(_env, _libc_env, _heap, *_malloc_heap, _pid, *this, *this, _signal, *this);
-	init_execve(_env, _heap, _user_stack, *this);
+	init_fork(_env, _libc_env, _heap, *_malloc_heap, _pid, *this, *this, _signal,
+	          *this, _binary_name);
+	init_execve(_env, _heap, _user_stack, *this, _binary_name,
+	            *file_descriptor_allocator());
 	init_plugin(*this);
 	init_sleep(*this);
 	init_vfs_plugin(*this);
