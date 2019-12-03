@@ -151,7 +151,10 @@ void Libc::Child_config::_generate(Xml_generator &xml, Xml_node config)
 		typedef String<Vfs::MAX_PATH_LEN> Path;
 		config.with_sub_node("libc", [&] (Xml_node node) {
 			if (node.has_attribute("rtc"))
-				xml.attribute("rtc", node.attribute_value("rtc", Path())); });
+				xml.attribute("rtc", node.attribute_value("rtc", Path()));
+			if (node.has_attribute("pipe"))
+				xml.attribute("pipe", node.attribute_value("pipe", Path()));
+		});
 
 		{
 			char buf[Vfs::MAX_PATH_LEN] { };
