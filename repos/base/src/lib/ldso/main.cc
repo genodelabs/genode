@@ -673,7 +673,7 @@ void Genode::init_ldso_phdr(Env &env)
 	 * however, is copied from the parent process. So the pointed-to objects
 	 * must reside on the same addresses in the parent and child.
 	 */
-	static char initial_block[4*1024];
+	static char initial_block[8*1024];
 	heap().construct(&env.ram(), &env.rm(), Heap::UNLIMITED,
 	                 initial_block, sizeof(initial_block));
 
