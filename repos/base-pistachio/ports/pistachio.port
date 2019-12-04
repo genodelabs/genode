@@ -12,6 +12,7 @@ $(call check_tool,patch)
 $(call check_tool,sed)
 $(call check_tool,autoheader)
 $(call check_tool,autoconf)
+$(call check_tool,ed)
 
 #
 # Determine python version to use for CML2
