@@ -147,8 +147,6 @@ void Pd_session_component::transfer_quota(Capability<Pd_session> pd_cap,
 			warning("attempt to transfer cap quota to unrelated PD session");
 			throw Invalid_session(); }
 		catch (Account<Cap_quota>::Limit_exceeded) {
-			warning("cap limit (", *_cap_account, ") exceeded "
-			        "during transfer_quota(", amount, ")");
 			throw Out_of_caps(); }
 	});
 }
@@ -174,8 +172,6 @@ void Pd_session_component::transfer_quota(Capability<Pd_session> pd_cap,
 			warning("attempt to transfer RAM quota to unrelated PD session");
 			throw Invalid_session(); }
 		catch (Account<Ram_quota>::Limit_exceeded) {
-			warning("RAM limit (", *_ram_account, ") exceeded "
-			        "during transfer_quota(", amount, ")");
 			throw Out_of_ram(); }
 	});
 }

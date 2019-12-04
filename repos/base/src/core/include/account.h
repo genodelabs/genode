@@ -146,10 +146,8 @@ class Genode::Account
 					throw Unrelated_account();
 
 				/* make sure to stay within the initial limit */
-				if (amount.value > _transferrable_quota().value) {
-					error(_label, ": attempt to transfer initial quota");
+				if (amount.value > _transferrable_quota().value)
 					throw Limit_exceeded();
-				}
 
 				/* downgrade from this account */
 				if (!_quota_guard.try_downgrade(amount))
