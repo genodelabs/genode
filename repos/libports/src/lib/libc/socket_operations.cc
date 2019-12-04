@@ -22,12 +22,12 @@
 extern "C" {
 #include <sys/wait.h>
 #include <libc_private.h>
-#include <errno.h>
 }
 
 /* libc-internal includes */
 #include <internal/file.h>
 #include <internal/socket_fs_plugin.h>
+#include <internal/errno.h>
 
 
 using namespace Libc;
@@ -52,7 +52,7 @@ extern "C" int getpeername(int libc_fd, sockaddr *addr, socklen_t *addrlen)
 	if (*config_socket())
 		return socket_fs_getpeername(libc_fd, addr, addrlen);
 
-	FD_FUNC_WRAPPER(getpeername, libc_fd, addr, addrlen);
+	return Libc::Errno(ENOTSOCK);
 }
 
 
