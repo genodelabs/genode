@@ -142,13 +142,14 @@ class Vfs::Log_file_system : public Single_file_system
 		                Genode::Xml_node config)
 		:
 			Single_file_system(Node_type::CONTINUOUS_FILE, name(),
-			                   Node_rwx::ro(), config),
+			                   Node_rwx::wo(), config),
 			_label(config.attribute_value("label", Label())),
 			_log(_log_session(env.env()))
 		{ }
 
 		static const char *name()   { return "log"; }
 		char const *type() override { return "log"; }
+
 
 		/*********************************
 		 ** Directory service interface **
@@ -168,6 +169,20 @@ class Vfs::Log_file_system : public Single_file_system
 			}
 			catch (Genode::Out_of_ram)  { return OPEN_ERR_OUT_OF_RAM; }
 			catch (Genode::Out_of_caps) { return OPEN_ERR_OUT_OF_CAPS; }
+		}
+
+
+		/*******************************
+		 ** File_io_service interface **
+		 *******************************/
+
+		Ftruncate_result ftruncate(Vfs_handle *, file_size) override
+		{
+			/*
+			 * Return success to allow for output redirection via '> /dev/log'.
+			 * The shell call ftruncate after opening the destination file.
+			 */
+			return FTRUNCATE_OK;
 		}
 };
 
