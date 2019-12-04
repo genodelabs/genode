@@ -61,10 +61,14 @@ File_descriptor *File_descriptor_allocator::alloc(Plugin *plugin,
 	Lock::Guard guard(_lock);
 
 	bool const any_fd = (libc_fd < 0);
-	if (any_fd)
-		return new (_alloc) File_descriptor(_id_space, *plugin, *context);
+	Id_space::Id id {(unsigned)libc_fd};
 
-	Id_space::Id const id {(unsigned)libc_fd};
+	if (any_fd) {
+		id.value = _id_allocator.alloc();
+	} else {
+		_id_allocator.alloc_addr(addr_t(libc_fd));
+	}
+
 	return new (_alloc) File_descriptor(_id_space, *plugin, *context, id);
 }
 
@@ -76,6 +80,7 @@ void File_descriptor_allocator::free(File_descriptor *fdo)
 	if (fdo->fd_path)
 		_alloc.free((void *)fdo->fd_path, ::strlen(fdo->fd_path) + 1);
 
+	_id_allocator.free(fdo->libc_fd);
 	destroy(_alloc, fdo);
 }
 

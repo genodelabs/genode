@@ -169,6 +169,9 @@ static int selscan(int nfds,
 	if (out_writefds)  FD_ZERO(out_writefds);
 	if (out_exceptfds) FD_ZERO(out_exceptfds);
 
+	if (nfds > FD_SETSIZE)
+		return Libc::Errno(EINVAL);
+
 	for (Plugin *plugin = plugin_registry()->first();
 	     plugin;
 	     plugin = plugin->next()) {

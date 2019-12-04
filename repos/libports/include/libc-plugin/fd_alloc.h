@@ -20,6 +20,7 @@
 #include <os/path.h>
 #include <base/allocator.h>
 #include <base/id_space.h>
+#include <util/bit_allocator.h>
 #include <util/xml_generator.h>
 
 /* libc includes */
@@ -57,9 +58,6 @@ namespace Libc {
 		bool cloexec  = 0;  /* for 'fcntl' */
 		bool modified = false;
 
-		File_descriptor(Id_space &id_space, Plugin &plugin, Plugin_context &context)
-		: _elem(*this, id_space), plugin(&plugin), context(&context) { }
-
 		File_descriptor(Id_space &id_space, Plugin &plugin, Plugin_context &context,
 		                Id_space::Id id)
 		: _elem(*this, id_space, id), plugin(&plugin), context(&context) { }
@@ -79,6 +77,8 @@ namespace Libc {
 			typedef File_descriptor::Id_space Id_space;
 
 			Id_space _id_space;
+
+			Genode::Bit_allocator<MAX_NUM_FDS> _id_allocator;
 
 		public:
 
