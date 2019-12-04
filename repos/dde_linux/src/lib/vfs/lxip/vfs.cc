@@ -696,6 +696,7 @@ class Vfs::Lxip_connect_file final : public Vfs::Lxip_file
 			case Lxip::Io_result::LINUX_EINPROGRESS:
 				_connecting = true;
 				_write_err = 0;
+				handle.io_enqueue(*_io_progress_waiters_ptr);
 				return len;
 
 			case Lxip::Io_result::LINUX_EALREADY:
