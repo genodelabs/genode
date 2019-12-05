@@ -401,6 +401,13 @@ void Depot_deploy::Child::gen_start_node(Xml_generator &xml, Xml_node common,
 		Xml_node const runtime = _pkg_xml->xml().sub_node("runtime");
 
 		/*
+		 * Insert inline '<heartbeat>' node if provided by the start node.
+		 */
+		if (_start_xml->xml().has_sub_node("heartbeat")) {
+			_gen_copy_of_sub_node(xml, _start_xml->xml(), "heartbeat");
+		}
+
+		/*
 		 * Insert inline '<config>' node if provided by the start node,
 		 * the launcher definition (if a launcher is user), or the
 		 * blueprint. The former is preferred over the latter.
