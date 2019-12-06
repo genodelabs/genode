@@ -682,6 +682,23 @@ static void test_successive_create_destroy_threads(Env &env)
 }
 
 
+/******************************************************
+ ** Test destruction of inter-dependent CPU sessions **
+ ******************************************************/
+
+static void test_destroy_dependent_cpu_sessions(Env &env)
+{
+	log("destroy dependent CPU sessions in wrong order");
+
+	Cpu_connection grandchild { env };
+	Cpu_connection child      { env };
+
+	grandchild.ref_account(child.rpc_cap());
+
+	/* when leaving the scope, 'child' is destructed before 'grandchild' */
+}
+
+
 void Component::construct(Env &env)
 {
 	log("--- thread test started ---");
@@ -689,6 +706,9 @@ void Component::construct(Env &env)
 	Attached_rom_dataspace config(env, "config");
 
 	try {
+
+		test_destroy_dependent_cpu_sessions(env);
+
 		test_stack_alloc(env);
 		test_stack_alignment(env);
 		test_main_thread();

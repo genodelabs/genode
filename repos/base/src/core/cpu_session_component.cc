@@ -283,21 +283,22 @@ Cpu_session_component::~Cpu_session_component()
 
 void Cpu_session_component::_deinit_ref_account()
 {
-	/* without a ref-account, nothing has do be done */
-	if (!_ref) { return; }
+	/* rewire child ref accounts to this sessions's ref account */
+	{
+		Lock::Guard lock_guard(_ref_members_lock);
+		for (Cpu_session_component * s; (s = _ref_members.first()); ) {
+			_unsync_remove_ref_member(*s);
+			if (_ref)
+				_ref->_insert_ref_member(s);
+		}
+	}
 
-	/* give back our remaining quota to our ref account */
-	_transfer_quota(*_ref, _quota);
+	if (_ref) {
+		/* give back our remaining quota to our ref account */
+		_transfer_quota(*_ref, _quota);
 
-	/* remove ref-account relation between us and our ref-account */
-	Cpu_session_component * const orig_ref = _ref;
-	_ref->_remove_ref_member(*this);
-
-	/* redirect ref-account relation of ref members to our prior ref account */
-	Lock::Guard lock_guard(_ref_members_lock);
-	for (Cpu_session_component * s; (s = _ref_members.first()); ) {
-		_unsync_remove_ref_member(*s);
-		orig_ref->_insert_ref_member(s);
+		/* remove ref-account relation between us and our ref-account */
+		_ref->_remove_ref_member(*this);
 	}
 }
 
