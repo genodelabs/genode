@@ -36,8 +36,11 @@ namespace Lwip {
 
 	struct Sys_timer
 	{
-		void check_timeouts(Genode::Duration) {
-			sys_check_timeouts(); }
+		void check_timeouts(Genode::Duration)
+		{
+			Genode::Lock::Guard g{ Lwip::lock() };
+			sys_check_timeouts();
+		}
 
 		Genode::Timeout_scheduler &timer;
 
@@ -61,6 +64,12 @@ namespace Lwip {
 		sys_timer_ptr = &sys_timer;
 
 		lwip_init();
+	}
+
+	Genode::Lock &lock()
+	{
+		static Genode::Lock _lwip_lock;
+		return _lwip_lock;
 	}
 }
 

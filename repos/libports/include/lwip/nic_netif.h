@@ -26,6 +26,7 @@
 #endif
 
 /* Genode includes */
+#include <lwip/genode_init.h>
 #include <nic/packet_allocator.h>
 #include <nic_session/connection.h>
 #include <base/log.h>
@@ -140,6 +141,7 @@ class Lwip::Nic_netif
 
 		void handle_rx_packets()
 		{
+			Genode::Lock::Guard g { Lwip::lock() };
 			auto &rx = *_nic.rx();
 
 			while (rx.packet_avail() && rx.ready_to_ack()) {

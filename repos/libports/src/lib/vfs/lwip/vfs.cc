@@ -898,6 +898,7 @@ class Lwip::Udp_socket_dir final :
 		                 char *dst, file_size count,
 		                 file_size &out_count) override
 		{
+			Genode::Lock::Guard g { Lwip::lock() };
 			Read_result result = Read_result::READ_ERR_INVALID;
 
 			switch(handle.kind) {
@@ -983,6 +984,8 @@ class Lwip::Udp_socket_dir final :
 		                   char const *src, file_size count,
 		                   file_size &out_count) override
 		{
+			Genode::Lock::Guard g { Lwip::lock() };
+
 			switch(handle.kind) {
 
 			case Lwip_file_handle::DATA: {
@@ -1287,6 +1290,8 @@ class Lwip::Tcp_socket_dir final :
 		                 char *dst, file_size count,
 		                 file_size &out_count) override
 		{
+			Genode::Lock::Guard g { Lwip::lock() };
+
 			switch(handle.kind) {
 
 			case Lwip_file_handle::DATA:
@@ -1371,7 +1376,11 @@ class Lwip::Tcp_socket_dir final :
 
 					handle.kind = Lwip_file_handle::LOCATION;
 					/* read the location of the new socket directory */
-					return handle.read(dst, count, out_count);
+					Lwip::lock().unlock();
+					Read_result result = handle.read(dst, count, out_count);
+					Lwip::lock().lock();
+
+					return result;
 				}
 
 				return Read_result::READ_QUEUED;
@@ -1433,6 +1442,7 @@ class Lwip::Tcp_socket_dir final :
 		                   char const *src, file_size count,
 		                   file_size &out_count) override
 		{
+			Genode::Lock::Guard g { Lwip::lock() };
 			if (_pcb == NULL) {
 				/* socket is closed */
 				return Write_result::WRITE_ERR_IO;
@@ -1958,17 +1968,8 @@ class Lwip::File_system final : public Vfs::File_system, public Lwip::Directory
 			if ((vfs_handle->status_flags() & OPEN_MODE_ACCMODE) == OPEN_MODE_RDONLY)
 				return Write_result::WRITE_ERR_INVALID;
 			if (Lwip_handle *handle = dynamic_cast<Lwip_handle*>(vfs_handle)) {
-				while (true) {
-					res = handle->write(src, count, out_count);
-					if (res != WRITE_ERR_WOULD_BLOCK || out_count) break;
-
-					/*
-					 * XXX: block for signals until the write completes
-					 * or fails, this is not how it should be done, but
-					 * it's how lxip does it
-					 */
-					_ep.wait_and_dispatch_one_io_signal();
-				}
+				res = handle->write(src, count, out_count);
+				if (res == WRITE_ERR_WOULD_BLOCK) throw Insufficient_buffer();
 			}
 			return res;
 		}

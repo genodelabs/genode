@@ -17,6 +17,10 @@
 #include <timer/timeout.h>
 #include <base/allocator.h>
 
-namespace Lwip { void genode_init(Genode::Allocator &heap, Genode::Timeout_scheduler &timer); }
+namespace Lwip {
+	void genode_init(Genode::Allocator &heap, Genode::Timeout_scheduler &timer);
+
+	Genode::Lock &lock();
+}
 
 #endif
