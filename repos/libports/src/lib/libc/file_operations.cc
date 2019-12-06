@@ -234,9 +234,14 @@ extern "C" int chdir(const char *path)
 __SYS_(int, close, (int libc_fd),
 {
 	File_descriptor *fd = file_descriptor_allocator()->find_by_libc_fd(libc_fd);
-	return (!fd || !fd->plugin)
-		? Errno(EBADF)
-		: fd->plugin->close(fd);
+
+	if (!fd)
+		return Errno(EBADF);
+
+	if (!fd->plugin || fd->plugin->close(fd) != 0)
+		file_descriptor_allocator()->free(fd);
+
+	return 0;
 })
 
 

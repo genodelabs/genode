@@ -112,6 +112,12 @@ namespace Libc {
 			 */
 			File_descriptor *any_cloexec_libc_fd();
 
+			/**
+			 * Return file-descriptor ID of any open file, or -1 if no file is
+			 * open
+			 */
+			int any_open_fd();
+
 			void generate_info(Genode::Xml_generator &);
 	};
 

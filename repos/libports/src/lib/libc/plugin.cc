@@ -155,7 +155,6 @@ bool Plugin::supports_mmap()
 #define DUMMY(ret_type, ret_val, name, args) \
 ret_type Plugin::name args \
 { \
-	error(__func__, ": " #name " not implemented"); \
 	return ret_val; \
 }
 

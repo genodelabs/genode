@@ -359,10 +359,23 @@ void Libc::execute_in_application_context(Application_code &app_code)
 }
 
 
+static void close_file_descriptors_on_exit()
+{
+	for (;;) {
+		int const fd = Libc::file_descriptor_allocator()->any_open_fd();
+		if (fd == -1)
+			break;
+		close(fd);
+	}
+}
+
+
 Libc::Kernel::Kernel(Genode::Env &env, Genode::Allocator &heap)
 :
 	_env(env), _heap(heap)
 {
+	atexit(close_file_descriptors_on_exit);
+
 	init_pthread_support(env, *this, *this);
 
 	_env.ep().register_io_progress_handler(*this);

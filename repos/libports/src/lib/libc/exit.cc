@@ -14,6 +14,9 @@
 #include <base/env.h>
 #include <base/sleep.h>
 
+/* libc-internal includes */
+#include <internal/types.h>
+
 extern void genode_exit(int status) __attribute__((noreturn));
 
 extern "C" void _exit(int status)
@@ -31,6 +34,8 @@ extern "C" {
 
 	void exit(int status)
 	{
+		using namespace Libc;
+
 		if (__cleanup)
 			(*__cleanup)();
 
