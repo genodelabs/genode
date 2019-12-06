@@ -7,6 +7,9 @@
 #define rmb() asm volatile ("lfence": : :"memory")
 #define wmb() asm volatile ("sfence": : :"memory")
 
+#define dma_wmb() barrier()
+#define dma_rmb() barrier()
+
 /*
  * This is the "safe" implementation as needed for a configuration
  * with SMP enabled.

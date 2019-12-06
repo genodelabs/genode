@@ -19,6 +19,9 @@
 #define rmb() mb()
 #define wmb() asm volatile ("": : :"memory")
 
+#define dma_wmb() barrier()
+#define dma_rmb() barrier()
+
 /*
  * This is the "safe" implementation as needed for a configuration
  * with SMP enabled.
