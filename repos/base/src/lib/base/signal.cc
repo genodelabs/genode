@@ -23,6 +23,7 @@
 
 /* base-internal includes */
 #include <base/internal/globals.h>
+#include <base/internal/unmanaged_singleton.h>
 #include <signal_source/client.h>
 
 using namespace Genode;
@@ -69,6 +70,7 @@ class Signal_handler_thread : Thread, Lock
 
 		~Signal_handler_thread()
 		{
+			log("~Signal_handler_thread");
 			env_deprecated()->pd_session()->free_signal_source(_signal_source->rpc_cap());
 		}
 };
@@ -81,8 +83,7 @@ class Signal_handler_thread : Thread, Lock
  */
 static Constructible<Signal_handler_thread> & signal_handler_thread()
 {
-	static Constructible<Signal_handler_thread> inst;
-	return inst;
+	return *unmanaged_singleton<Constructible<Signal_handler_thread> >();
 }
 
 
