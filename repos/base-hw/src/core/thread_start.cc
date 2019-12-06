@@ -26,6 +26,7 @@
 #include <kernel/kernel.h>
 #include <platform.h>
 #include <platform_thread.h>
+#include <trace/source_registry.h>
 
 using namespace Genode;
 
@@ -35,8 +36,44 @@ namespace Hw { extern Untyped_capability _main_thread_cap; }
 void Thread::start()
 {
 	/* start thread with stack pointer at the top of stack */
-	if (native_thread().platform_thread->start((void *)&_thread_start, stack_top()))
+	if (native_thread().platform_thread->start((void *)&_thread_start, stack_top())) {
 		error("failed to start thread");
+		return;
+	}
+
+	struct Trace_source : public  Trace::Source::Info_accessor,
+	                      private Trace::Control,
+	                      private Trace::Source
+	{
+		Genode::Thread &thread;
+
+		/**
+		 * Trace::Source::Info_accessor interface
+		 */
+		Info trace_source_info() const override
+		{
+			Platform_thread * t = thread.native_thread().platform_thread;
+
+			Trace::Execution_time execution_time { 0, 0 };
+			if (t)
+				execution_time = t->execution_time();
+
+			return { Session_label("core"), thread.name(),
+			         execution_time, thread.affinity() };
+		}
+
+		Trace_source(Trace::Source_registry &registry, Genode::Thread &thread)
+		:
+			Trace::Control(),
+			Trace::Source(*this, *this),
+			thread(thread)
+		{
+			registry.insert(this);
+		}
+	};
+
+	/* create trace sources for core threads */
+	new (platform().core_mem_alloc()) Trace_source(Trace::sources(), *this);
 }
 
 
