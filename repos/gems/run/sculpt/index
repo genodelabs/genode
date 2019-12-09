@@ -21,7 +21,8 @@
   </index>
 
   <index name="Virtual machines">
-    <pkg path="vbox5-nova-sculpt" info="VBox5 for running Linux"/>
+    <pkg path="vbox5" info="VBox5 for running Linux (generic version)"/>
+    <pkg path="vbox5-nova-sculpt" info="VBox5 for running Linux (NOVA version)" />
   </index>
 
 </index>
