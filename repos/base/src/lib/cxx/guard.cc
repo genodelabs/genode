@@ -16,11 +16,24 @@
 #include <base/semaphore.h>
 #include <cpu/atomic.h>
 
+/* base-internal includes */
+#include <base/internal/globals.h>
+#include <base/internal/unmanaged_singleton.h>
 
-static Genode::Registry<Genode::Registered_no_delete<Genode::Semaphore> > blocked;
+
+typedef Genode::Registry<Genode::Registered_no_delete<Genode::Semaphore> > Blockers;
 
 
-namespace __cxxabiv1 
+static Blockers *blockers_ptr;
+
+
+void Genode::init_cxx_guard()
+{
+	blockers_ptr = unmanaged_singleton<Blockers>();
+}
+
+
+namespace __cxxabiv1
 {
 	enum State { INIT_NONE = 0, INIT_DONE = 1, IN_INIT = 0x100, WAITERS = 0x200 };
 
@@ -54,7 +67,7 @@ namespace __cxxabiv1
 		if (!Genode::cmpxchg(in_init, INIT_NONE, IN_INIT)) {
 
 			/* register current thread for blocking */
-			Genode::Registered_no_delete<Genode::Semaphore> block(blocked);
+			Genode::Registered_no_delete<Genode::Semaphore> block(*blockers_ptr);
 
 			/* tell guard thread that current thread needs a wakeup */
 			while (!Genode::cmpxchg(in_init, *in_init, *in_init | WAITERS)) ;
@@ -88,7 +101,7 @@ namespace __cxxabiv1
 			return;
 
 		/* we had contention - wake all up */
-		blocked.for_each([](Genode::Registered_no_delete<Genode::Semaphore> &wake) {
+		blockers_ptr->for_each([](Genode::Registered_no_delete<Genode::Semaphore> &wake) {
 			wake.up();
 		});
 	}

@@ -636,6 +636,9 @@ Elf::Sym const *Linker::lookup_symbol(char const *name, Dependency const &dep,
  */
 extern "C" void init_rtld()
 {
+	/* init cxa guard mechanism before any local static variables are used */
+	init_cxx_guard();
+
 	/*
 	 * Allocate on stack, since the linker has not been relocated yet, the vtable
 	 * type relocation might produce a wrong vtable pointer (at least on ARM), do
