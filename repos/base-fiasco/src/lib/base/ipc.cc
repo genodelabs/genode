@@ -201,9 +201,6 @@ void Genode::ipc_reply(Native_capability caller, Rpc_exception_code exc,
 	            snd_header.protocol_word,
 	            snd_header.num_caps,
 	            L4_IPC_SEND_TIMEOUT_0, &result);
-
-	if (L4_IPC_IS_ERROR(result))
-		error("ipc_send error ", Hex(L4_IPC_ERROR(result)), ", ignored");
 }
 
 
