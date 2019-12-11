@@ -13,9 +13,9 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-static int private_errno;
+#include <internal/pthread.h>
 
 extern "C" int *__error(void)
 {
-	return &private_errno;
+	return &pthread_self()->thread_local_errno;
 }
