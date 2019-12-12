@@ -1,8 +1,9 @@
 HOST_INC_DIR += $(dir $(call select_from_repositories,src/lib/syscall/linux_syscalls.h))
+HOST_INC_DIR += $(dir $(CUSTOM_HOST_CC))/../$(shell $(CUSTOM_HOST_CC) -dumpmachine)/libc/usr/include
 HOST_INC_DIR += /usr/include
 
 # needed for Ubuntu >= 11.04
-HOST_INC_DIR += /usr/include/$(shell gcc -dumpmachine)
+HOST_INC_DIR += /usr/include/$(shell $(CUSTOM_HOST_CC) -dumpmachine)
 
 #
 # Explicitly add some well-known paths as the dumpmachine magic above does not
