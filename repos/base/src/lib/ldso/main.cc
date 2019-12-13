@@ -193,6 +193,11 @@ class Linker::Elf_object : public Object, private Fifo<Elf_object>::Element
 			Link_map::add(&_map);
 		};
 
+		void link_map_make_first()
+		{
+			Link_map::make_first(&_map);
+		}
+
 		void force_keep() { _keep = KEEP; }
 
 		Link_map const &link_map() const override { return _map; }
@@ -730,6 +735,9 @@ void *Dynamic_linker::_respawn(Env &env, char const *binary, char const *entry_n
 
 	/* load new binary */
 	construct_at<Binary>(binary_ptr, env, *heap(), config, name.string());
+
+	/* move to front of link map */
+	binary_ptr->link_map_make_first();
 
 	try {
 		return (void *)binary_ptr->lookup_symbol(entry_name);

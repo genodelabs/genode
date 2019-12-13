@@ -134,6 +134,20 @@ struct Linker::Link_map
 				first = map->next;
 	}
 
+	static void make_first(Link_map *map)
+	{
+		remove(map);
+
+		if (first) {
+			first->prev = map;
+		}
+
+		map->prev       = nullptr;
+		map->next       = first;
+		first           = map;
+		Debug::d()->map = map;
+	}
+
 	static void dump()
 	{
 		if (!verbose_link_map)
