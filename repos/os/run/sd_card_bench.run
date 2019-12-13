@@ -3,19 +3,21 @@
 #
 
 proc buffer_size_kib {} {
-	if {[have_spec pl180]}   { return [expr 12 * 1024] }
-	if {[have_spec imx6]}    { return [expr      1024] }
+	if {[have_spec pl180]}     { return [expr 12 * 1024] }
+	if {[have_spec imx8q_evk]} { return [expr      1024] }
+	if {[have_spec imx6]}      { return [expr      1024] }
 	if {[have_spec imx53] &&
-	    ![have_spec foc]}    { return [expr      1024] }
-	if {[have_spec rpi]}     { return [expr  4 * 1024] }
-	if {[have_spec omap4]}   { return [expr  4 * 1024] }
-	if {[have_spec arndale]} { return [expr      1024] }
+	    ![have_spec foc]}      { return [expr      1024] }
+	if {[have_spec rpi]}       { return [expr  4 * 1024] }
+	if {[have_spec omap4]}     { return [expr  4 * 1024] }
+	if {[have_spec arndale]}   { return [expr      1024] }
 	puts "\n Run script is not supported on this platform. \n";
 	exit 0;
 }
 
 proc sd_card_drv {} {
 	if {[have_spec pbxa9]}           { return pbxa9_sd_card_drv }
+	if {[have_spec imx8q_evk]}       { return imx8q_evk_sd_card_drv }
 	if {[have_spec imx6q_sabrelite]} { return imx6q_sabrelite_sd_card_drv }
 	if {[have_spec imx53]}           { return imx53_sd_card_drv }
 	if {[have_spec rpi]}             { return rpi_sd_card_drv }

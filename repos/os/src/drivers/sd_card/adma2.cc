@@ -60,6 +60,6 @@ int Table::setup_request(size_t const size, addr_t const buffer_phys)
 		consumed += curr;
 	}
 	/* ensure that all descriptor writes were actually executed */
-	asm volatile ("dsb");
+	asm volatile ("dsb #15" ::: "memory");
 	return 0;
 }
