@@ -21,14 +21,13 @@
 using namespace Genode;
 
 
-Native_capability::Native_capability()
-{
-	*this = Capability_space::import(Capability_space::INVALID_INDEX);
-}
+Native_capability::Native_capability() { }
 
 
 void Native_capability::_inc()
 {
+	if (!valid()) return;
+
 	Cap_index idx(cap_map().find(local_name()));
 	idx.inc();
 }
@@ -36,6 +35,8 @@ void Native_capability::_inc()
 
 void Native_capability::_dec()
 {
+	if (!valid()) return;
+
 	Cap_index idx(cap_map().find(local_name()));
 	idx.dec();
 }
