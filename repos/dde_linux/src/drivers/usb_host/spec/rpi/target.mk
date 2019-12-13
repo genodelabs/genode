@@ -1,7 +1,7 @@
 include $(REP_DIR)/src/drivers/usb_host/target.inc
 
 TARGET   = rpi_usb_host_drv
-REQUIRES = rpi
+REQUIRES = arm_v6
 
 INC_DIR += $(REP_DIR)/src/drivers/usb_host/spec/arm
 INC_DIR += $(REP_DIR)/src/include/spec/arm

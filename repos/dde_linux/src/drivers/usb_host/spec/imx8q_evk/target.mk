@@ -1,7 +1,7 @@
 include $(REP_DIR)/src/drivers/usb_host/target.inc
 
 TARGET    = imx8q_evk_usb_host_drv
-REQUIRES  = imx8q_evk
+REQUIRES  = arm_v8
 
 SRC_C   += usb/dwc3/core.c
 SRC_C   += usb/dwc3/host.c
