@@ -1333,7 +1333,7 @@ int request_irq(unsigned int irq, irq_handler_t handler,
                 unsigned long flags, const char *name, void *dev)
 {
 	Lx::Pci_dev *pci_dev = Lx::pci_dev_registry()->first();
-	Lx::Irq::irq().request_irq(pci_dev->client(), handler, dev);
+	Lx::Irq::irq().request_irq(pci_dev->client(), irq, handler, dev);
 	return 0;
 }
 
@@ -1344,7 +1344,7 @@ int request_threaded_irq(unsigned int irq, irq_handler_t handler,
                          void *dev)
 {
 	Lx::Pci_dev *pci_dev = Lx::pci_dev_registry()->first();
-	Lx::Irq::irq().request_irq(pci_dev->client(), handler, dev, thread_fn);
+	Lx::Irq::irq().request_irq(pci_dev->client(), irq, handler, dev, thread_fn);
 	return 0;
 }
 

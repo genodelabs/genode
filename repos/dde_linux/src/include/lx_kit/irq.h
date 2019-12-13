@@ -32,10 +32,21 @@ class Lx::Irq
 		/**
 		 * Request an IRQ
 		 */
-		virtual void request_irq(Platform::Device &dev, irq_handler_t handler,
-		                         void *dev_id, irq_handler_t thread_fn = 0) = 0;
+		virtual void request_irq(Platform::Device &dev, unsigned int irq,
+		                         irq_handler_t handler, void *dev_id,
+		                         irq_handler_t thread_fn = 0) = 0;
 
 		virtual void inject_irq(Platform::Device &dev) = 0;
+
+		/**
+		 * Disable an IRQ
+		 */
+		virtual void disable_irq(unsigned int irq) = 0;
+
+		/**
+		 * Enable an IRQ
+		 */
+		virtual void enable_irq(unsigned int irq) = 0;
 };
 
 #endif /* _LX_KIT__IRQ_H_ */

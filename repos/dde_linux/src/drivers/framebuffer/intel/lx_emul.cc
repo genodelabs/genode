@@ -1094,7 +1094,7 @@ int request_irq(unsigned int irq, irq_handler_t handler, unsigned long flags,
 {
 	struct drm_device * drm_dev = (struct drm_device*) dev;
 	Lx::Pci_dev * pci_dev = (Lx::Pci_dev*) drm_dev->pdev->bus;
-	Lx::Irq::irq().request_irq(pci_dev->client(), handler, dev);
+	Lx::Irq::irq().request_irq(pci_dev->client(), irq, handler, dev);
 	return 0;
 }
 

@@ -48,7 +48,7 @@ void Lx::backend_free(Genode::Ram_dataspace_capability cap) {
 extern "C" int request_irq(unsigned int irq, irq_handler_t handler, unsigned long flags,
                            const char *name, void *dev)
 {
-	Lx::Irq::irq().request_irq(Platform::Device::create(Lx_kit::env().env(), irq), handler, dev);
+	Lx::Irq::irq().request_irq(Platform::Device::create(Lx_kit::env().env(), irq), irq, handler, dev);
 
 	return 0;
 }
@@ -56,7 +56,7 @@ extern "C" int request_irq(unsigned int irq, irq_handler_t handler, unsigned lon
 
 int devm_request_irq(struct device *dev, unsigned int irq, irq_handler_t handler, unsigned long irqflags, const char *devname, void *dev_id)
 {
-	Lx::Irq::irq().request_irq(Platform::Device::create(Lx_kit::env().env(), irq), handler, dev_id);
+	Lx::Irq::irq().request_irq(Platform::Device::create(Lx_kit::env().env(), irq), irq, handler, dev_id);
 	return 0;
 }
 

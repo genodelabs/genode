@@ -58,20 +58,28 @@ class Lx_kit::Irq : public Lx::Irq
 			private:
 
 				void          *_dev;       /* Linux device */
+				unsigned int   _irq;       /* Linux IRQ number */
 				irq_handler_t  _handler;   /* Linux handler */
 				irq_handler_t  _thread_fn; /* Linux thread function */
 
 			public:
 
-				Handler(void *dev, irq_handler_t handler,
+				Handler(void *dev, unsigned int irq, irq_handler_t handler,
 				        irq_handler_t thread_fn)
-				: _dev(dev), _handler(handler), _thread_fn(thread_fn) { }
+				: _dev(dev), _irq(irq), _handler(handler),
+				  _thread_fn(thread_fn) { }
 
 				bool handle()
 				{
-					switch (_handler(0, _dev)) {
+					if (!_handler) {
+						/* on Linux, having no handler implies IRQ_WAKE_THREAD */
+						_thread_fn(_irq, _dev);
+						return true;
+					}
+
+					switch (_handler(_irq, _dev)) {
 					case IRQ_WAKE_THREAD:
-						_thread_fn(0, _dev);
+						_thread_fn(_irq, _dev);
 					case IRQ_HANDLED:
 						return true;
 					case IRQ_NONE:
@@ -92,9 +100,12 @@ class Lx_kit::Irq : public Lx::Irq
 
 				Name_composer               _name;
 				Platform::Device           &_dev;
+				unsigned int                _irq;
 				Genode::Irq_session_client  _irq_sess;
 				Lx_kit::List<Handler>       _handler;
 				Lx::Task                    _task;
+				bool                        _irq_enabled;
+				bool                        _irq_ack_pending;
 
 				Genode::Signal_handler<Context> _dispatcher;
 
@@ -114,12 +125,16 @@ class Lx_kit::Irq : public Lx::Irq
 				 * Constructor
 				 */
 				Context(Genode::Entrypoint &ep,
-				        Platform::Device &dev)
+				        Platform::Device &dev,
+				        unsigned int irq)
 				:
 					_name(dev),
 					_dev(dev),
+					_irq(irq),
 					_irq_sess(dev.irq(0)),
 					_task(_run_irq, this, _name.name, Lx::Task::PRIORITY_3, Lx::scheduler()),
+					_irq_enabled(true),
+					_irq_ack_pending(false),
 					_dispatcher(ep, *this, &Context::unblock)
 				{
 					_irq_sess.sigh(_dispatcher);
@@ -144,12 +159,24 @@ class Lx_kit::Irq : public Lx::Irq
 				 */
 				void handle_irq()
 				{
-					/* report IRQ to all clients */
-					for (Handler *h = _handler.first(); h; h = h->next()) {
-						h->handle();
-					}
+					if (_irq_enabled) {
 
-					_irq_sess.ack_irq();
+						/* report IRQ to all clients */
+						for (Handler *h = _handler.first(); h; h = h->next())
+							h->handle();
+
+						_irq_sess.ack_irq();
+
+					} else {
+
+						/*
+						 * IRQs are disabled by not acknowledging, so one IRQ
+						 * can still occur in the 'disabled' state. It must be
+						 * acknowledged later by 'enable_irq()'.
+						 */
+
+						_irq_ack_pending = true;
+					}
 				}
 
 				/**
@@ -159,6 +186,27 @@ class Lx_kit::Irq : public Lx::Irq
 
 				bool device(Platform::Device &dev) {
 					return (&dev == &_dev); }
+
+				bool irq(unsigned int irq) {
+					return (irq == _irq); }
+
+				void disable_irq()
+				{
+					_irq_enabled = false;
+				}
+
+				void enable_irq()
+				{
+					if (_irq_enabled)
+						return;
+
+					if (_irq_ack_pending) {
+						_irq_sess.ack_irq();
+						_irq_ack_pending = false;
+					}
+
+					_irq_enabled = true;
+				}
 		};
 
 	private:
@@ -181,6 +229,16 @@ class Lx_kit::Irq : public Lx::Irq
 			return nullptr;
 		}
 
+		/**
+		 * Find context for given IRQ number
+		 */
+		Context *_find_context(unsigned int irq)
+		{
+			for (Context *i = _list.first(); i; i = i->next())
+				if (i->irq(irq)) return i;
+			return nullptr;
+		}
+
 		Irq(Genode::Entrypoint &ep, Genode::Allocator &alloc)
 		: _ep(ep),
 		  _context_alloc(&alloc),
@@ -198,20 +256,21 @@ class Lx_kit::Irq : public Lx::Irq
 		 ** Lx::Irq interface **
 		 ***********************/
 
-		void request_irq(Platform::Device &dev, irq_handler_t handler,
-		                 void *dev_id, irq_handler_t thread_fn = 0) override
+		void request_irq(Platform::Device &dev, unsigned int irq,
+		                 irq_handler_t handler, void *dev_id,
+		                 irq_handler_t thread_fn = 0) override
 		{
 			Context *ctx = _find_context(dev);
 
 			/* if this IRQ is not registered */
 			if (!ctx) {
-				ctx = new (&_context_alloc) Context(_ep, dev);
+				ctx = new (&_context_alloc) Context(_ep, dev, irq);
 				_list.insert(ctx);
 			}
 
 			/* register Linux handler */
 			Handler *h = new (&_handler_alloc)
-			                   Handler(dev_id, handler, thread_fn);
+			                   Handler(dev_id, irq, handler, thread_fn);
 			ctx->add_handler(h);
 		}
 
@@ -219,6 +278,18 @@ class Lx_kit::Irq : public Lx::Irq
 		{
 			Context *ctx = _find_context(dev);
 			if (ctx) ctx->unblock();
+		}
+
+		void disable_irq(unsigned int irq)
+		{
+			Context *ctx = _find_context(irq);
+			if (ctx) ctx->disable_irq();
+		}
+
+		void enable_irq(unsigned int irq)
+		{
+			Context *ctx = _find_context(irq);
+			if (ctx) ctx->enable_irq();
 		}
 };
 
