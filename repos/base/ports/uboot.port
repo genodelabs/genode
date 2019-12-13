@@ -1,0 +1,12 @@
+LICENSE   := GPLv2
+VERSION   := git
+DOWNLOADS := ubfg.git
+
+URL(ubfg) := https://github.com/alex-ab/ubfg.git
+REV(ubfg) := 89bb867cb58fa9d8fb2e38b6d52256a68920354d
+DIR(ubfg) := scripts
+
+default: $(DOWNLOADS)
+	$(VERBOSE)echo "building imx8q_evk uboot"
+	$(VERBOSE)mkdir -p imx8q_evk
+	$(VERBOSE)cd imx8q_evk && ../scripts/create_uboot_imx8q_evk && cd ..
