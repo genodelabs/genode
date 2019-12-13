@@ -4,6 +4,7 @@ SRC_C              = dummies.c raw_driver.c
 LIBS               = base usb_host_include lx_kit_setjmp
 CC_CXX_WARN_STRICT =
 
+INC_DIR  += $(PRG_DIR)
 INC_DIR  += $(REP_DIR)/src/drivers/usb_host
 INC_DIR  += $(REP_DIR)/src/include
 

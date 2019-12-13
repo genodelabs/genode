@@ -1,7 +1,7 @@
 include $(REP_DIR)/src/drivers/usb_host/target.inc
 
 TARGET   = odroid_x2_usb_host_drv
-REQUIRES = odroid_x2
+REQUIRES = arm_v7
 
 INC_DIR += $(REP_DIR)/src/drivers/usb_host/spec/arm
 INC_DIR += $(REP_DIR)/src/include/spec/arm
