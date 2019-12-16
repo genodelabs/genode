@@ -3,9 +3,9 @@
 	<events>
 		<timeout meaning="failed" sec="30" />
 		<log meaning="succeeded">
-			[init -> test-libc_getenv] foo="bar"
-			[init -> test-libc_getenv] bar="foo"
-			[init -> test-libc_getenv] baz="(null)"
+			[init -> test-libc_getenv] foo="bar"*
+			[init -> test-libc_getenv] bar="foo"*
+			[init -> test-libc_getenv] baz="(null)"*
 			[init] child "test-libc_getenv" exited with exit value 0
 		</log>
 	</events>
