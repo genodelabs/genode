@@ -686,6 +686,7 @@ _ZNKSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEE12find_last_ofEcm W
 _ZNKSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEE13_M_local_dataEv W
 _ZNKSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEE13find_first_ofEPKcmm W
 _ZNKSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEE13find_first_ofEcm W
+_ZNKSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEE16find_last_not_ofEPKcmm W
 _ZNKSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEE17find_first_not_ofEPKcmm W
 _ZNKSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEE3endEv W
 _ZNKSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEE4backEv W
@@ -750,6 +751,7 @@ _ZNSdC2Ev W
 _ZNSi10_M_extractIdEERSiRT_ W
 _ZNSi10_M_extractIfEERSiRT_ W
 _ZNSi10_M_extractIjEERSiRT_ W
+_ZNSi10_M_extractIlEERSiRT_ W
 _ZNSi10_M_extractImEERSiRT_ W
 _ZNSi10_M_extractIyEERSiRT_ W
 _ZNSi3getERc W
@@ -757,6 +759,7 @@ _ZNSi3getEv W
 _ZNSi4peekEv W
 _ZNSi4readEPcl W
 _ZNSi5seekgElSt12_Ios_Seekdir W
+_ZNSi5seekgExSt12_Ios_Seekdir W
 _ZNSi5tellgEv W
 _ZNSi6ignoreEl W
 _ZNSi7getlineEPcl W
