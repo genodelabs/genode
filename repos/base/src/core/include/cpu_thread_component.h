@@ -152,8 +152,6 @@ class Genode::Cpu_thread_component : public  Rpc_object<Cpu_thread>,
 			           _platform_thread.affinity(),
 			           pd.label(), name)
 		{
-			_address_space_region_map.add_client(_rm_client);
-
 			/*
 			 * Acquaint thread with its pager object, caution on some base platforms
 			 * this may raise an 'Out_of_ram' exception, which causes the
@@ -167,6 +165,7 @@ class Genode::Cpu_thread_component : public  Rpc_object<Cpu_thread>,
 				throw;
 			}
 
+			_address_space_region_map.add_client(_rm_client);
 			_platform_thread.pager(_rm_client);
 			_trace_sources.insert(&_trace_source);
 		}
