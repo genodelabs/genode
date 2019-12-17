@@ -107,7 +107,7 @@ extern "C" {
 		                               struct pbuf *p, err_t err);
 		static err_t tcp_delayed_recv_callback(void *arg, struct tcp_pcb *tpcb,
 		                                       struct pbuf *p, err_t err);
-		/* static err_t tcp_sent_callback(void *arg, struct tcp_pcb *tpcb, u16_t len); */
+		static err_t tcp_sent_callback(void *arg, struct tcp_pcb *tpcb, u16_t len);
 		static void  tcp_err_callback(void *arg, err_t err);
 	}
 
@@ -486,9 +486,13 @@ Lwip::Read_result Lwip::Lwip_file_handle::read(char *dst, file_size count,
 Lwip::Write_result Lwip::Lwip_file_handle::write(char const *src, file_size count,
 	                                             file_size &out_count)
 {
-	return (socket)
-		? socket->write(*this, src, count, out_count)
-		: Write_result::WRITE_ERR_INVALID;
+	Write_result result = Write_result::WRITE_ERR_INVALID;
+	if (socket) {
+		result = socket->write(*this, src, count, out_count);
+		if (result == Write_result::WRITE_ERR_WOULD_BLOCK && !_io_progress_waiter.enqueued())
+			socket->io_progress_queue.enqueue(_io_progress_waiter);
+	}
+	return result;
 }
 
 bool Lwip::Lwip_file_handle::notify_read_ready()
@@ -1142,10 +1146,7 @@ class Lwip::Tcp_socket_dir final :
 			tcp_arg(_pcb, this);
 
 			tcp_recv(_pcb, tcp_recv_callback);
-
-			/* Disabled, do not track acknowledgements */
-			/* tcp_sent(_pcb, tcp_sent_callback); */
-
+			tcp_sent(_pcb, tcp_sent_callback);
 			tcp_err(_pcb, tcp_err_callback);
 		}
 
@@ -1648,9 +1649,9 @@ err_t tcp_delayed_recv_callback(void *arg, struct tcp_pcb *pcb, struct pbuf *buf
 /**
  * This would be the ACK callback, we could defer sync completion
  * until then, but performance is expected to be unacceptable.
- *
+ */
 static
-err_t tcp_sent_callback(void *arg, struct tcp_pcb*, u16_t len)
+err_t tcp_sent_callback(void *arg, struct tcp_pcb *pcb, u16_t)
 {
 	if (!arg) {
 		tcp_abort(pcb);
@@ -1658,12 +1659,9 @@ err_t tcp_sent_callback(void *arg, struct tcp_pcb*, u16_t len)
 	}
 
 	Lwip::Tcp_socket_dir *socket_dir = static_cast<Lwip::Tcp_socket_dir *>(arg);
-	socket_dir->pending_ack -= len;
 	socket_dir->process_io();
-	socket_dir->process_write_ready();
 	return ERR_OK;
 }
-*/
 
 
 static
