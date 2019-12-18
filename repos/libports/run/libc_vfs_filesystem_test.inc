@@ -26,7 +26,7 @@ set use_sd_card_drv [expr [have_spec pbxa9]]
 set use_ahci        [expr [have_spec x86] && ![have_spec linux]]
 
 # use ram_block on Linux
-set use_ram_block   [have_spec linux]
+set use_ram_block   [expr [have_spec linux] || [have_spec rpi3]]
 
 if {[catch { exec which $mkfs_cmd } ]} {
 	puts stderr "Error: $mkfs_cmd not installed, aborting test"; exit }
