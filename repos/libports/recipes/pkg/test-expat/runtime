@@ -41,7 +41,7 @@
 		</default-route>
 		<default caps="200"/>
 		<start name="test-expat">
-			<resource name="RAM" quantum="2M"/>
+			<resource name="RAM" quantum="3M"/>
 			<config>
 				<vfs>
 					<inline name="config"><config>

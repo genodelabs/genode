@@ -128,7 +128,7 @@
 		</default-route>
 		<default caps="100"/>
 		<start name="test-ldso">
-			<resource name="RAM" quantum="2M"/>
+			<resource name="RAM" quantum="3M"/>
 			<config ld_bind_now="no" ld_verbose="no">
 				<vfs> <dir name="dev"> <log/> </dir> </vfs>
 				<libc stdout="/dev/log"/>
