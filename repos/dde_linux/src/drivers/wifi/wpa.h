@@ -14,34 +14,26 @@
 #ifndef _WIFI__WPA_H_
 #define _WIFI__WPA_H_
 
-/* Genode includes */
-#include <base/sleep.h>
 
-/* entry function */
-extern "C" int wpa_main(void);
+namespace Genode {
+	struct Env;
+	struct Lock;
+}
 
-class Wpa_thread : public Genode::Thread
+class Wpa_thread
 {
 	private:
 
 		Genode::Lock &_lock;
 		int           _exit;
 
+		static void * _entry_trampoline(void *arg);
+
+		void _entry();
+
 	public:
 
-		Wpa_thread(Genode::Env &env, Genode::Lock &lock)
-		:
-			Thread(env, "wpa_supplicant", 8*1024*sizeof(long)),
-			_lock(lock), _exit(-1)
-		{ }
-
-		void entry()
-		{
-			/* wait until the wifi driver is up and running */
-			_lock.lock();
-			_exit = wpa_main();
-			Genode::sleep_forever();
-		}
+		Wpa_thread(Genode::Env &env, Genode::Lock &lock);
 };
 
 #endif /* _WIFI__WPA_H_ */

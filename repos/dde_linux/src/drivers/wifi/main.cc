@@ -111,7 +111,6 @@ struct Main
 		_wifi_frontend = &*_frontend;
 
 		_wpa.construct(env, _wpa_startup_lock);
-		_wpa->start();
 
 		/*
 		 * Forcefully disable 11n but for convenience the attribute is used the
