@@ -168,8 +168,8 @@ class Genode::Packet_descriptor_queue
 		 */
 		struct
 		{
-			unsigned          _head;
-			unsigned          _tail;
+			unsigned volatile _head;
+			unsigned volatile _tail;
 			PACKET_DESCRIPTOR _queue[QUEUE_SIZE];
 		};
 
