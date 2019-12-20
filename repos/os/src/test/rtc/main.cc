@@ -103,6 +103,7 @@ struct Main
 		/* open sessions */
 		Timer::Connection timer(env);
 
+		log("test RTC reading");
 		for (unsigned i = 0; i < 4; ++i) {
 			Rtc::Timestamp now[] = { rtc1.current_time(), rtc2.current_time() };
 
@@ -113,6 +114,7 @@ struct Main
 		}
 
 		/* test setting the RTC */
+		log("test RTC setting");
 		Attached_rom_dataspace config_rom { env, "config" };
 		bool const test_update = config_rom.xml().attribute_value("set_rtc", false);
 		if (test_update) {
