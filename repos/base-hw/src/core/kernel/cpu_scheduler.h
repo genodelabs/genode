@@ -28,26 +28,6 @@ namespace Kernel
 	class Cpu_priority;
 
 	/**
-	 * Scheduling context that has quota and priority (low-latency)
-	 */
-	class Cpu_claim : public Double_list_item<Cpu_claim> {
-
-		public:
-
-			Cpu_claim() : Double_list_item<Cpu_claim>(*this) {}
-	};
-
-	/**
-	 * Scheduling context that has no quota or priority (best effort)
-	 */
-	class Cpu_fill : public Double_list_item<Cpu_fill> {
-
-		public:
-
-			Cpu_fill() : Double_list_item<Cpu_fill>(*this) {}
-	};
-
-	/**
 	 * Scheduling context that is both claim and fill
 	 */
 	class Cpu_share;
@@ -89,17 +69,19 @@ class Kernel::Cpu_priority
 		operator signed() const { return _value; }
 };
 
-class Kernel::Cpu_share : public Cpu_claim, public Cpu_fill
+class Kernel::Cpu_share
 {
 	friend class Cpu_scheduler;
 
 	private:
 
-		signed const _prio;
-		unsigned     _quota;
-		unsigned     _claim;
-		unsigned     _fill  = 0;
-		bool         _ready = false;
+		Double_list_item<Cpu_share> _fill_item  { *this };
+		Double_list_item<Cpu_share> _claim_item { *this };
+		signed const                _prio;
+		unsigned                    _quota;
+		unsigned                    _claim;
+		unsigned                    _fill       { 0 };
+		bool                        _ready      { false };
 
 	public:
 
@@ -124,34 +106,27 @@ class Kernel::Cpu_scheduler
 {
 	private:
 
-		typedef Cpu_share          Share;
-		typedef Cpu_fill           Fill;
-		typedef Cpu_claim          Claim;
-		typedef Double_list<Claim> Claim_list;
-		typedef Double_list<Fill>  Fill_list;
-		typedef Cpu_priority       Prio;
+		typedef Cpu_share    Share;
+		typedef Cpu_priority Prio;
 
-		Claim_list     _rcl[Prio::MAX + 1]; /* ready claims */
-		Claim_list     _ucl[Prio::MAX + 1]; /* unready claims */
-		Fill_list      _fills { };          /* ready fills */
-		Share * const  _idle;
-		Share *        _head = nullptr;
-		unsigned       _head_quota  = 0;
-		bool           _head_claims = false;
-		bool           _head_yields = false;
-		unsigned const _quota;
-		unsigned       _residual;
-		unsigned const _fill;
-		bool           _need_to_schedule { true };
-		time_t         _last_time { 0 };
+		Double_list<Cpu_share> _rcl[Prio::MAX + 1]; /* ready claims */
+		Double_list<Cpu_share> _ucl[Prio::MAX + 1]; /* unready claims */
+		Double_list<Cpu_share> _fills { };          /* ready fills */
+		Share * const          _idle;
+		Share *                _head = nullptr;
+		unsigned               _head_quota  = 0;
+		bool                   _head_claims = false;
+		bool                   _head_yields = false;
+		unsigned const         _quota;
+		unsigned               _residual;
+		unsigned const         _fill;
+		bool                   _need_to_schedule { true };
+		time_t                 _last_time { 0 };
 
 		template <typename F> void _for_each_prio(F f) {
 			for (signed p = Prio::MAX; p > Prio::MIN - 1; p--) { f(p); } }
 
-		template <typename T>
-		static Share * _share(T * const t) { return static_cast<Share *>(t); }
-
-		static void _reset(Claim &c);
+		static void _reset(Cpu_share &share);
 
 		void     _reset_claims(unsigned const p);
 		void     _next_round();

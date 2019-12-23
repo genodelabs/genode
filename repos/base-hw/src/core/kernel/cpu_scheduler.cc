@@ -18,14 +18,16 @@
 using namespace Kernel;
 
 
-void Cpu_scheduler::_reset(Claim &c) {
-	_share(&c)->_claim = _share(&c)->_quota; }
+void Cpu_scheduler::_reset(Cpu_share &share)
+{
+	share._claim = share._quota;
+}
 
 
 void Cpu_scheduler::_reset_claims(unsigned const p)
 {
-	_rcl[p].for_each([&] (Claim &c) { _reset(c); });
-	_ucl[p].for_each([&] (Claim &c) { _reset(c); });
+	_rcl[p].for_each([&] (Cpu_share &share) { _reset(share); });
+	_ucl[p].for_each([&] (Cpu_share &share) { _reset(share); });
 }
 
 
@@ -63,13 +65,13 @@ void Cpu_scheduler::_head_claimed(unsigned const r)
 	if (!_head->_quota) { return; }
 	_head->_claim = r > _head->_quota ? _head->_quota : r;
 	if (_head->_claim || !_head->_ready) { return; }
-	_rcl[_head->_prio].to_tail(_head);
+	_rcl[_head->_prio].to_tail(&_head->_claim_item);
 }
 
 
 void Cpu_scheduler::_head_filled(unsigned const r)
 {
-	if (_fills.head() != _head) { return; }
+	if (_fills.head() != &_head->_fill_item) { return; }
 	if (r) { _head->_fill = r; }
 	else { _next_fill(); }
 }
@@ -78,10 +80,11 @@ void Cpu_scheduler::_head_filled(unsigned const r)
 bool Cpu_scheduler::_claim_for_head()
 {
 	for (signed p = Prio::MAX; p > Prio::MIN - 1; p--) {
-		Share * const s = _share(_rcl[p].head());
-		if (!s) { continue; }
-		if (!s->_claim) { continue; }
-		_set_head(s, s->_claim, 1);
+		Double_list_item<Cpu_share> *const item { _rcl[p].head() };
+		if (!item) { continue; }
+		Cpu_share &share { item->payload() };
+		if (!share._claim) { continue; }
+		_set_head(&share, share._claim, 1);
 		return 1;
 	}
 	return 0;
@@ -90,9 +93,12 @@ bool Cpu_scheduler::_claim_for_head()
 
 bool Cpu_scheduler::_fill_for_head()
 {
-	Share * const s = _share(_fills.head());
-	if (!s) { return 0; }
-	_set_head(s, s->_fill, 0);
+	Double_list_item<Cpu_share> *const item { _fills.head() };
+	if (!item) {
+		return 0;
+	}
+	Share &share = item->payload();
+	_set_head(&share, share._fill, 0);
 	return 1;
 }
 
@@ -108,15 +114,15 @@ unsigned Cpu_scheduler::_trim_consumption(unsigned & q)
 
 void Cpu_scheduler::_quota_introduction(Share * const s)
 {
-	if (s->_ready) { _rcl[s->_prio].insert_tail(s); }
-	else { _ucl[s->_prio].insert_tail(s); }
+	if (s->_ready) { _rcl[s->_prio].insert_tail(&s->_claim_item); }
+	else { _ucl[s->_prio].insert_tail(&s->_claim_item); }
 }
 
 
 void Cpu_scheduler::_quota_revokation(Share * const s)
 {
-	if (s->_ready) { _rcl[s->_prio].remove(s); }
-	else { _ucl[s->_prio].remove(s); }
+	if (s->_ready) { _rcl[s->_prio].remove(&s->_claim_item); }
+	else { _ucl[s->_prio].remove(&s->_claim_item); }
 }
 
 
@@ -163,7 +169,13 @@ bool Cpu_scheduler::ready_check(Share * const s1)
 	} else if (s1->_prio != s2->_prio) {
 		_need_to_schedule = s1->_prio > s2->_prio;
 	} else {
-		for (; s2 && s2 != s1; s2 = _share(Claim_list::next(s2))) ;
+		for (
+			; s2 && s2 != s1;
+			s2 =
+				Double_list<Cpu_share>::next(&s2->_claim_item) != nullptr ?
+					&Double_list<Cpu_share>::next(&s2->_claim_item)->payload() :
+					nullptr) ;
+
 		_need_to_schedule = !s2;
 	}
 	return _need_to_schedule;
@@ -178,11 +190,11 @@ void Cpu_scheduler::ready(Share * const s)
 
 	s->_ready = 1;
 	s->_fill = _fill;
-	_fills.insert_tail(s);
+	_fills.insert_tail(&s->_fill_item);
 	if (!s->_quota) { return; }
-	_ucl[s->_prio].remove(s);
-	if (s->_claim) { _rcl[s->_prio].insert_head(s); }
-	else { _rcl[s->_prio].insert_tail(s); }
+	_ucl[s->_prio].remove(&s->_claim_item);
+	if (s->_claim) { _rcl[s->_prio].insert_head(&s->_claim_item); }
+	else { _rcl[s->_prio].insert_tail(&s->_claim_item); }
 }
 
 
@@ -193,10 +205,10 @@ void Cpu_scheduler::unready(Share * const s)
 	_need_to_schedule = true;
 
 	s->_ready = 0;
-	_fills.remove(s);
+	_fills.remove(&s->_fill_item);
 	if (!s->_quota) { return; }
-	_rcl[s->_prio].remove(s);
-	_ucl[s->_prio].insert_tail(s);
+	_rcl[s->_prio].remove(&s->_claim_item);
+	_ucl[s->_prio].insert_tail(&s->_claim_item);
 }
 
 
@@ -213,10 +225,10 @@ void Cpu_scheduler::remove(Share * const s)
 
 	_need_to_schedule = true;
 	if (s == _head) _head = nullptr;
-	if (s->_ready) { _fills.remove(s); }
+	if (s->_ready) { _fills.remove(&s->_fill_item); }
 	if (!s->_quota) { return; }
-	if (s->_ready) { _rcl[s->_prio].remove(s); }
-	else { _ucl[s->_prio].remove(s); }
+	if (s->_ready) { _rcl[s->_prio].remove(&s->_claim_item); }
+	else { _ucl[s->_prio].remove(&s->_claim_item); }
 }
 
 
@@ -226,7 +238,7 @@ void Cpu_scheduler::insert(Share * const s)
 	_need_to_schedule = true;
 	if (!s->_quota) { return; }
 	s->_claim = s->_quota;
-	_ucl[s->_prio].insert_head(s);
+	_ucl[s->_prio].insert_head(&s->_claim_item);
 }
 
 
