@@ -30,12 +30,22 @@ namespace Kernel
 	/**
 	 * Scheduling context that has quota and priority (low-latency)
 	 */
-	class Cpu_claim : public Double_list_item { };
+	class Cpu_claim : public Double_list_item<Cpu_claim> {
+
+		public:
+
+			Cpu_claim() : Double_list_item<Cpu_claim>(*this) {}
+	};
 
 	/**
 	 * Scheduling context that has no quota or priority (best effort)
 	 */
-	class Cpu_fill  : public Double_list_item { };
+	class Cpu_fill : public Double_list_item<Cpu_fill> {
+
+		public:
+
+			Cpu_fill() : Double_list_item<Cpu_fill>(*this) {}
+	};
 
 	/**
 	 * Scheduling context that is both claim and fill
@@ -114,12 +124,12 @@ class Kernel::Cpu_scheduler
 {
 	private:
 
-		typedef Cpu_share                Share;
-		typedef Cpu_fill                 Fill;
-		typedef Cpu_claim                Claim;
-		typedef Double_list_typed<Claim> Claim_list;
-		typedef Double_list_typed<Fill>  Fill_list;
-		typedef Cpu_priority             Prio;
+		typedef Cpu_share          Share;
+		typedef Cpu_fill           Fill;
+		typedef Cpu_claim          Claim;
+		typedef Double_list<Claim> Claim_list;
+		typedef Double_list<Fill>  Fill_list;
+		typedef Cpu_priority       Prio;
 
 		Claim_list     _rcl[Prio::MAX + 1]; /* ready claims */
 		Claim_list     _ucl[Prio::MAX + 1]; /* unready claims */
@@ -141,7 +151,7 @@ class Kernel::Cpu_scheduler
 		template <typename T>
 		static Share * _share(T * const t) { return static_cast<Share *>(t); }
 
-		static void _reset(Claim * const c);
+		static void _reset(Claim &c);
 
 		void     _reset_claims(unsigned const p);
 		void     _next_round();

@@ -6,7 +6,7 @@
 
 TARGET  = test-double_list
 INC_DIR = $(REP_DIR)/src/core
-SRC_CC  = test.cc double_list.cc
+SRC_CC  = test.cc
 LIBS    = base
 
 vpath double_list.cc $(REP_DIR)/src/core/kernel

@@ -24,18 +24,18 @@
  */
 
 using Genode::size_t;
-using Kernel::Double_list_typed;
+using Kernel::Double_list;
 using Kernel::Double_list_item;
 
 void * operator new(__SIZE_TYPE__, void * p) { return p; }
 
 struct Item_load { char volatile x = 0, y = 0, z = 0; };
 
-struct Item : Item_load, Double_list_item
+struct Item : Item_load, Double_list_item<Item>
 {
 	unsigned _id;
 
-	Item(unsigned const id) : _id(id) { x = 1; y = 2; z = 3; }
+	Item(unsigned const id) : Double_list_item<Item>(*this), _id(id) { x = 1; y = 2; z = 3; }
 
 	void iteration() { Genode::log(_id); }
 };
@@ -44,7 +44,7 @@ struct Data
 {
 	static constexpr unsigned nr_of_items = 9;
 
-	Double_list_typed<Item> list { };
+	Double_list<Item> list { };
 	char items[nr_of_items][sizeof(Item)];
 
 	Data()
@@ -68,16 +68,19 @@ void done()
 
 void check(unsigned i1, unsigned l)
 {
-	Item * const i2 = data()->list.head();
-	if (i1 && i2) {
-		if(i1 == i2->_id) { return; }
-		Genode::log("head ", i2->_id, " in line ", l);
-		done();
-	} else if (i1 && !i2) {
+	Double_list_item<Item> * const li2 = data()->list.head();
+	if (li2) {
+		Item * const i2 = &li2->payload();
+		if (i1) {
+			if(i1 == i2->_id) { return; }
+			Genode::log("head ", i2->_id, " in line ", l);
+			done();
+		} else {
+			Genode::log("non-empty ", i2->_id, " in line ", l);
+			done();
+		}
+	} else if (i1) {
 		Genode::log("empty in line ", l);
-		done();
-	} else if (!i1 && i2){
-		Genode::log("non-empty ", i2->_id, " in line ", l);
 		done();
 	}
 }
@@ -85,7 +88,7 @@ void check(unsigned i1, unsigned l)
 void print_each()
 {
 	Genode::log("print each");
-	data()->list.for_each([] (Item * const i) { i->iteration(); });
+	data()->list.for_each([] (Item &i) { i.iteration(); });
 }
 
 Item * item(unsigned const i) {

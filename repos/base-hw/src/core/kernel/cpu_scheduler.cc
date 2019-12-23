@@ -18,14 +18,14 @@
 using namespace Kernel;
 
 
-void Cpu_scheduler::_reset(Claim * const c) {
-	_share(c)->_claim = _share(c)->_quota; }
+void Cpu_scheduler::_reset(Claim &c) {
+	_share(&c)->_claim = _share(&c)->_quota; }
 
 
 void Cpu_scheduler::_reset_claims(unsigned const p)
 {
-	_rcl[p].for_each([&] (Claim * const c) { _reset(c); });
-	_ucl[p].for_each([&] (Claim * const c) { _reset(c); });
+	_rcl[p].for_each([&] (Claim &c) { _reset(c); });
+	_ucl[p].for_each([&] (Claim &c) { _reset(c); });
 }
 
 
