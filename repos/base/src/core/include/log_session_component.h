@@ -17,27 +17,23 @@
 #include <util/string.h>
 #include <base/log.h>
 #include <base/rpc_server.h>
+#include <base/session_label.h>
 #include <log_session/log_session.h>
 
 namespace Genode {
 
 	class Log_session_component : public Rpc_object<Log_session>
 	{
-		public:
-
-			enum { LABEL_LEN = 128 };
-
 		private:
 
-			char _label[LABEL_LEN];
+			Session_label const _label;
 
 		public:
 
 			/**
 			 * Constructor
 			 */
-			Log_session_component(const char *label) {
-				strncpy(_label, label, sizeof(_label)); }
+			Log_session_component(Session_label const &label) : _label(label) { }
 
 
 			/*****************
@@ -61,14 +57,14 @@ namespace Genode {
 					if (string[i] == '\n') {
 						memcpy(buf, string + from_i, i - from_i);
 						buf[i - from_i] = 0;
-						log("[", Cstring(_label), "] ", Cstring(buf));
+						log("[", _label, "] ", Cstring(buf));
 						from_i = i + 1;
 					}
 				}
 
 				/* if last character of string was not a line break, add one */
 				if (from_i < len)
-					log("[", Cstring(_label), "] ", Cstring(string + from_i));
+					log("[", _label, "] ", Cstring(string + from_i));
 
 				return len;
 			}

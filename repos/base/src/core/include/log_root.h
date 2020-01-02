@@ -30,12 +30,7 @@ namespace Genode {
 			 */
 			Log_session_component *_create_session(const char *args) override
 			{
-				char label_buf[Log_session_component::LABEL_LEN];
-
-				Arg label_arg = Arg_string::find_arg(args, "label");
-				label_arg.string(label_buf, sizeof(label_buf), "");
-
-				return new (md_alloc()) Log_session_component(label_buf);
+				return new (md_alloc()) Log_session_component(label_from_args(args));
 			}
 
 		public:
