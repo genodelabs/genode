@@ -193,7 +193,7 @@ class Genode::Exynos_uart: Mmio
 		 */
 		char _rx_char()
 		{
-			read<Ufcon>();
+			(void)read<Ufcon>();
 			char c = read<Urxh::Receive_data>();
 
 			/* clear pending RX IRQ */
