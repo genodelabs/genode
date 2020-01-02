@@ -445,10 +445,11 @@ Region_map_component::attach(Dataspace_capability ds_cap, size_t size,
 			error("failed to store attachment info");
 			throw Invalid_dataspace();
 		}
-		Rm_region &region = *_map.metadata(attach_at);
 
 		/* inform dataspace about attachment */
-		dsc->attached_to(region);
+		Rm_region * const region_ptr = _map.metadata(attach_at);
+		if (region_ptr)
+			dsc->attached_to(*region_ptr);
 
 		/* check if attach operation resolves any faulting region-manager clients */
 		_faulters.for_each([&] (Rm_faulter &faulter) {
