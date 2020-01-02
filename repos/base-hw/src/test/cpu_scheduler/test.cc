@@ -33,7 +33,7 @@ struct Data
 	Cpu_scheduler scheduler;
 	char shares[9][sizeof(Cpu_share)];
 
-	Data() : idle(0, 0), scheduler(&idle, 1000, 100) { }
+	Data() : idle(0, 0), scheduler(idle, 1000, 100) { }
 };
 
 Data * data()
@@ -79,13 +79,13 @@ void create(unsigned const id)
 	case 9: new (p) Cpu_share(2,   0); break;
 	default: return;
 	}
-	data()->scheduler.insert(s);
+	data()->scheduler.insert(*s);
 }
 
 void destroy(unsigned const id)
 {
 	Cpu_share * const s = share(id);
-	data()->scheduler.remove(s);
+	data()->scheduler.remove(*s);
 	s->~Cpu_share();
 }
 
@@ -104,10 +104,10 @@ void update_check(unsigned const l, unsigned const c, unsigned const t,
 		Genode::log("wrong time ", st, " in line ", l);
 		done();
 	}
-	Cpu_share * const hs = data()->scheduler.head();
+	Cpu_share &hs = data()->scheduler.head();
 	unsigned const hq = data()->scheduler.head_quota();
-	if (hs != share(s)) {
-		unsigned const hi = share_id(hs);
+	if (&hs != share(s)) {
+		unsigned const hi = share_id(&hs);
 		Genode::log("wrong share ", hi, " in line ", l);
 		done();
 	}
@@ -119,7 +119,7 @@ void update_check(unsigned const l, unsigned const c, unsigned const t,
 
 void ready_check(unsigned const l, unsigned const s, bool const x)
 {
-	bool const y = data()->scheduler.ready_check(share(s));
+	bool const y = data()->scheduler.ready_check(*share(s));
 	if (y != x) {
 		Genode::log("wrong check result ", y, " in line ", l);
 		done();
@@ -133,10 +133,10 @@ void ready_check(unsigned const l, unsigned const s, bool const x)
 
 #define C(s)       create(s);
 #define D(s)       destroy(s);
-#define A(s)       data()->scheduler.ready(share(s));
-#define I(s)       data()->scheduler.unready(share(s));
+#define A(s)       data()->scheduler.ready(*share(s));
+#define I(s)       data()->scheduler.unready(*share(s));
 #define Y          data()->scheduler.yield();
-#define Q(s, q)    data()->scheduler.quota(share(s), q);
+#define Q(s, q)    data()->scheduler.quota(*share(s), q);
 #define U(c, t, s, q) update_check(__LINE__, c, t, s, q);
 #define O(s)       ready_check(__LINE__, s, true);
 #define N(s)       ready_check(__LINE__, s, false);

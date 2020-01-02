@@ -169,7 +169,7 @@ class Kernel::Cpu : public Genode::Cpu, private Irq::Pool, private Timeout
 		 * Returns the currently active job
 		 */
 		Job & scheduled_job() const {
-			return *static_cast<Job *>(_scheduler.head())->helping_sink(); }
+			return *static_cast<Job *>(&_scheduler.head())->helping_sink(); }
 
 		unsigned id() const { return _id; }
 		Cpu_scheduler &scheduler() { return _scheduler; }
