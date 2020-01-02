@@ -641,7 +641,7 @@ Pager_object::Pager_object(Cpu_session_capability cpu_session_cap,
 	addr_t ec_sel = pager_threads[genode_cpu_id]->native_thread().ec_sel;
 
 	/* create portal for page-fault handler - 14 */
-	_exceptions.register_handler<14>(*this, Mtd::QUAL | Mtd::EIP,
+	_exceptions.register_handler<14>(*this, Mtd::QUAL | Mtd::ESP | Mtd::EIP,
 	                                 _page_fault_handler);
 
 	/* create portal for startup handler - 26 */
