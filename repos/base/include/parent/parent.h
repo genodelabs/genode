@@ -200,7 +200,7 @@ class Genode::Parent
 		virtual Upgrade_result upgrade(Client::Id to_session,
 		                               Upgrade_args const &args) = 0;
 
-		enum Close_result { CLOSE_DONE, CLOSE_PENDING };
+		enum [[nodiscard]] Close_result { CLOSE_DONE, CLOSE_PENDING };
 
 		/**
 		 * Close session

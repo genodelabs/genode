@@ -867,7 +867,7 @@ void Child::close_all_sessions()
 	 * running.
 	 */
 	while (unsigned long id_value = any_cpu_session_id(_id_space).value)
-		close(Parent::Client::Id{id_value});
+		(void)close(Parent::Client::Id{id_value});
 
 	_initial_thread.destruct();
 
@@ -921,7 +921,7 @@ void Child::close_all_sessions()
 	auto close_fn = [&] (Session_state &session) {
 		session.closed_callback = nullptr;
 		session.ready_callback  = nullptr;
-		_close(session);
+		(void)_close(session);
 	};
 
 	while (_id_space.apply_any<Session_state>(close_fn));
