@@ -11,6 +11,9 @@ INC_DIR += $(LIBC_DIR)/sys/sys
 
 CC_DEF += -DSTDERR_FILENO=2
 
+# suppress "warning: ‘strncpy’ specified bound depends on the length of the source argument"
+CC_OPT_res_query := -Wno-stringop-overflow
+
 vpath %.c $(LIBC_RESOLV_DIR)
 
 CC_CXX_WARN_STRICT =
