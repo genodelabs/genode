@@ -158,10 +158,11 @@ CC_OPT += $(CC_OPT_NOSTDINC) -g $(CC_MARCH) $(CC_OLEVEL) $(CC_OPT_DEP) $(CC_WARN
 # unit when 'CC_OPT' gets implicitly expanded by the rules '%.o: %.c'
 # and '%.o: %.cc' of 'generic.mk'.
 #
-# We substitute '.' characters by '_' to allow source-file-specific
-# compiler options for files with more than one dot in their name.
+# We substitute '.' and '/' characters by '_' to allow source-file-specific
+# compiler options for files in sub directories or files with more than one
+# dot in their name.
 #
-CC_OPT += $(CC_OPT_$(subst .,_,$*))
+CC_OPT += $(CC_OPT_$(subst /,_,$(subst .,_,$*)))
 
 #
 # Build program position independent as well
