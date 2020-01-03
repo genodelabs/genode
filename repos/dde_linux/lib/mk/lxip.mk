@@ -17,7 +17,7 @@ CC_OPT += -DCONFIG_INET -DCONFIG_BASE_SMALL=0 -DCONFIG_DEBUG_LOCK_ALLOC \
 
 CC_WARN = -Wall -Wno-unused-variable -Wno-uninitialized \
           -Wno-unused-function -Wno-overflow -Wno-pointer-arith \
-          -Wno-sign-compare
+          -Wno-sign-compare -Wno-builtin-declaration-mismatch
 
 CC_C_OPT  += -std=gnu89
 CC_C_OPT  += -Wno-unused-but-set-variable -Wno-pointer-sign

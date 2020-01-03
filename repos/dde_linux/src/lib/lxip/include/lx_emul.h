@@ -3056,10 +3056,10 @@ struct inet_diag_handler
 
 
 void inet_diag_dump_icsk(struct inet_hashinfo *, struct sk_buff *,
-                         struct netlink_callback *, struct inet_diag_req_v2 *,
+                         struct netlink_callback *, const struct inet_diag_req_v2 *,
                          struct nlattr *);
 int inet_diag_dump_one_icsk(struct inet_hashinfo *, struct sk_buff *,
-                            const struct nlmsghdr *, struct inet_diag_req_v2 *);
+                            const struct nlmsghdr *, const struct inet_diag_req_v2 *);
 
 int  inet_diag_register(const struct inet_diag_handler *);
 void inet_diag_unregister(const struct inet_diag_handler *);
@@ -3424,9 +3424,9 @@ void trace_netif_rx_ni_entry(struct sk_buff*);
 void trace_netif_receive_skb_entry(struct sk_buff*);
 void trace_napi_gro_receive_entry(struct sk_buff*);
 void trace_napi_gro_frags_entry(struct sk_buff*);
-void trace_fib_validate_source(struct net_device *, struct flowi4*);
-void trace_fib_table_lookup(void*, void*);
-void trace_fib_table_lookup_nh(void*);
+void trace_fib_validate_source(const struct net_device *, const struct flowi4 *);
+void trace_fib_table_lookup(const void *, const void *);
+void trace_fib_table_lookup_nh(const void *);
 
 
 /******************

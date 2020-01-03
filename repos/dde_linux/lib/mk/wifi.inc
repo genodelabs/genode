@@ -31,6 +31,7 @@ CC_C_OPT   += -std=gnu89
 CC_C_OPT   += -include $(LIB_INC_DIR)/lx_emul.h
 CC_C_OPT   += -Wall -Wno-unused-variable -Wno-unused-function -Wno-uninitialized
 CC_C_OPT   += -Wno-unused-but-set-variable -Wno-pointer-sign -Wno-cast-qual
+CC_C_OPT   += -Wno-stringop-truncation
 CC_CXX_OPT += -Wall -fpermissive
 
 CC_OPT += -U__linux__ -D __KERNEL__ -DCONFIG_PCI

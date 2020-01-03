@@ -1262,12 +1262,9 @@ enum {
 	MEMREMAP_WB = 1 << 0,
 };
 
-#define writel(value, addr) (*(volatile uint32_t *)(addr) = (value))
-#define readl(addr)         (*(volatile uint32_t *)(addr))
-
 #define writel_relaxed(v, a) writel(v, a)
-#define iowrite32(v, addr)	writel((v), (addr))
-#define ioread32(addr)		readl(addr)
+#define iowrite32(v, addr)   writel((v), (addr))
+#define ioread32(addr)       readl(addr)
 
 void outb(u8  value, u32 port);
 void outw(u16 value, u32 port);
