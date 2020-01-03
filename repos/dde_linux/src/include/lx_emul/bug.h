@@ -21,7 +21,7 @@
 
 #define WARN_ON(condition) ({ \
 	int ret = !!(condition); \
-	if (ret) lx_printf("[%s] WARN_ON(" #condition ") \n", __func__); \
+	if (ret) lx_printf("[%s] WARN_ON(%s) \n", __func__, #condition); \
 	ret; })
 
 #define WARN(condition, fmt, arg...) ({ \
