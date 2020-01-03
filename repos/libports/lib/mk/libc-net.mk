@@ -21,6 +21,9 @@ SRC_C += vars.c
 # b64_ntop
 SRC_C += base64.c
 
+# suppress "warning: ‘strncpy’ specified bound depends on the length of the source argument"
+CC_OPT_getaddrinfo := -Wno-stringop-overflow
+
 include $(REP_DIR)/lib/mk/libc-common.inc
 
 INC_DIR += $(LIBC_REP_DIR)/include/libc
