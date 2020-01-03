@@ -36,6 +36,30 @@ extern int session_auth_password_cb(ssh_session, char const *, char const *, voi
 extern int session_auth_pubkey_cb(ssh_session, char const *, struct ssh_key_struct *, char, void *);
 extern ssh_channel session_channel_open_request_cb(ssh_session, void *);
 
+/**
+ * forward declaration of the write available callback.
+ */
+static int write_avail_cb(socket_t fd, int revents, void *userdata);
+
+
+Ssh::Terminal_session::Terminal_session(Genode::Registry<Terminal_session> &reg,
+                                        Ssh::Terminal &conn,
+                                        ssh_event event_loop)
+:
+	Element(reg, *this), conn(conn), _event_loop(event_loop)
+{
+	if (pipe(_fds) ||
+		ssh_event_add_fd(_event_loop,
+		                 _fds[0],
+		                 POLLIN,
+		                 write_avail_cb,
+		                 this) != SSH_OK ) {
+		Genode::error("Failed to create wakeup pipe");
+		throw -1;
+	}
+	conn.write_avail_fd = _fds[1];
+}
+
 
 Ssh::Server::Server(Genode::Env &env,
                     Genode::Xml_node const &config,

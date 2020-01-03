@@ -45,11 +45,6 @@ namespace Ssh {
 	struct Terminal_registry;
 }
 
-/**
- * forward declaration of the write available callback.
- */
-static int write_avail_cb(socket_t fd, int revents, void *userdata);
-
 
 struct Ssh::Session : Genode::Registry<Session>::Element
 {
@@ -102,20 +97,7 @@ struct Ssh::Terminal_session : Genode::Registry<Terminal_session>::Element
 
 	Terminal_session(Genode::Registry<Terminal_session> &reg,
 	                 Ssh::Terminal &conn,
-	                 ssh_event event_loop)
-	: Element(reg, *this), conn(conn), _event_loop(event_loop)
-	{
-		if (pipe(_fds) ||
-			ssh_event_add_fd(_event_loop,
-			                 _fds[0],
-			                 POLLIN,
-			                 write_avail_cb,
-			                 this) != SSH_OK ) {
-			Genode::error("Failed to create wakeup pipe");
-			throw -1;
-		}
-		conn.write_avail_fd = _fds[1];
-	}
+	                 ssh_event event_loop);
 
 	~Terminal_session()
 	{
