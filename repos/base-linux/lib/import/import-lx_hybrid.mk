@@ -18,7 +18,7 @@ HOST_LIB_SEARCH_DIRS = $(shell $(CUSTOM_HOST_CC) $(CC_MARCH) -print-search-dirs 
 # is appended to the include directory list.
 #
 HOST_INC_DIR += $(shell echo "int main() {return 0;}" |\
-                        LANG=C $(CXX) -x $(CUSTOM_HOST_CXX) -v -E - 2>&1 |\
+                        LANG=C $(CXX) -x c++ -v -E - 2>&1 |\
                         sed '/^\#include <\.\.\.> search starts here:/,/^End of search list/!d' |\
                         grep "include-fixed")
 
@@ -114,8 +114,8 @@ CC_OPT += -Wno-format-security
 # Disable position-independent executables (which are enabled by default on
 # Ubuntu 16.10 or newer)
 #
-CXX_LINK_OPT_NO_PIE := $(shell \
-	(echo "int main(){}" | $(LD_CMD) -no-pie -x $(CUSTOM_HOST_CXX) - -o /dev/null >& /dev/null \
+CXX_LINK_OPT_NO_PIE = $(shell \
+	(echo "int main(){}" | $(CUSTOM_HOST_CXX) -no-pie -x c++ - -o /dev/null >& /dev/null \
 	&& echo "-no-pie") || true)
 CXX_LINK_OPT += $(CXX_LINK_OPT_NO_PIE)
 
