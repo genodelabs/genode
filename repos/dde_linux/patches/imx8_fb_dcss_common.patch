@@ -1,0 +1,23 @@
+dcss_common.patch
+
+diff --git a/drivers/gpu/imx/dcss/dcss-common.c b/drivers/gpu/imx/dcss/dcss-common.c
+index cb15533..90b6b4d 100644
+--- a/drivers/gpu/imx/dcss/dcss-common.c
++++ b/drivers/gpu/imx/dcss/dcss-common.c
+@@ -19,6 +19,7 @@
+ #include <linux/clk.h>
+ #include <linux/pm_runtime.h>
+ #include <linux/busfreq-imx.h>
++#include <linux/mod_devicetable.h>
+ #include <linux/pm_qos.h>
+ #include <video/imx-dcss.h>
+ 
+@@ -43,7 +44,7 @@ struct dcss_devtype {
+ 	u32 pll_base;
+ };
+ 
+-static struct dcss_devtype dcss_type_imx8m = {
++/*static*/ struct dcss_devtype dcss_type_imx8m = {
+ 	.name = "DCSS_imx8m",
+ 	.blkctl_ofs = 0x2F000,
+ 	.ctxld_ofs = 0x23000,

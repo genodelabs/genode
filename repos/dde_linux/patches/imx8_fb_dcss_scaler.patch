@@ -1,0 +1,15 @@
+dcss_scaler.patch
+
+diff --git a/drivers/gpu/imx/dcss/dcss-scaler.c b/drivers/gpu/imx/dcss/dcss-scaler.c
+index 051bc4b..fc7b2e3 100644
+--- a/drivers/gpu/imx/dcss/dcss-scaler.c
++++ b/drivers/gpu/imx/dcss/dcss-scaler.c
+@@ -332,7 +332,7 @@ static int dcss_scaler_ch_init_all(struct dcss_soc *dcss,
+ 
+ 		ch->base_ofs = scaler_base + i * 0x400;
+ 
+-		ch->base_reg = devm_ioremap(dcss->dev, ch->base_ofs, SZ_4K);
++		ch->base_reg = devm_ioremap(dcss->dev, ch->base_ofs, 0x400);
+ 		if (!ch->base_reg) {
+ 			dev_err(dcss->dev, "scaler: unable to remap ch base\n");
+ 			return -ENOMEM;

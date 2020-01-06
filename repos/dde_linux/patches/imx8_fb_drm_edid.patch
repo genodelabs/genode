@@ -1,0 +1,15 @@
+drm_edid.patch
+
+diff --git a/include/drm/drm_edid.h b/include/drm/drm_edid.h
+index 6f1410b..c874409 100644
+--- a/include/drm/drm_edid.h
++++ b/include/drm/drm_edid.h
+@@ -345,7 +345,7 @@ struct edid *drm_load_edid_firmware(struct drm_connector *connector);
+ static inline struct edid *
+ drm_load_edid_firmware(struct drm_connector *connector)
+ {
+-	return ERR_PTR(-ENOENT);
++	return (struct edid *)ERR_PTR(-ENOENT);
+ }
+ #endif
+ 

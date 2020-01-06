@@ -1,0 +1,45 @@
+fb.patch
+
+diff --git a/include/linux/fb.h b/include/linux/fb.h
+index bc24e48..5cc1e2a 100644
+--- a/include/linux/fb.h
++++ b/include/linux/fb.h
+@@ -461,6 +461,16 @@ struct fb_tile_ops {
+    output like oopses */
+ #define FBINFO_CAN_FORCE_OUTPUT     0x200000
+ 
++struct aperture {
++	resource_size_t base;
++	resource_size_t size;
++};
++
++struct apertures_struct {
++	unsigned int count;
++	struct aperture ranges[0];
++};
++
+ struct fb_info {
+ 	atomic_t count;
+ 	int node;
+@@ -514,19 +524,13 @@ struct fb_info {
+ 	/* we need the PCI or similar aperture base/size not
+ 	   smem_start/size as smem_start may just be an object
+ 	   allocated inside the aperture so may not actually overlap */
+-	struct apertures_struct {
+-		unsigned int count;
+-		struct aperture {
+-			resource_size_t base;
+-			resource_size_t size;
+-		} ranges[0];
+-	} *apertures;
++	struct apertures_struct *apertures;
+ 
+ 	bool skip_vt_switch; /* no VT switch on suspend/resume required */
+ };
+ 
+ static inline struct apertures_struct *alloc_apertures(unsigned int max_num) {
+-	struct apertures_struct *a = kzalloc(sizeof(struct apertures_struct)
++	struct apertures_struct *a = (struct apertures_struct*)kzalloc(sizeof(struct apertures_struct)
+ 			+ max_num * sizeof(struct aperture), GFP_KERNEL);
+ 	if (!a)
+ 		return NULL;

@@ -1,0 +1,14 @@
+irq_imx_irqsteer.patch
+
+diff --git a/drivers/irqchip/irq-imx-irqsteer.c b/drivers/irqchip/irq-imx-irqsteer.c
+index e26d242..1b2334b 100644
+--- a/drivers/irqchip/irq-imx-irqsteer.c
++++ b/drivers/irqchip/irq-imx-irqsteer.c
+@@ -13,6 +13,7 @@
+ #include <linux/irq.h>
+ #include <linux/irqchip/chained_irq.h>
+ #include <linux/irqdomain.h>
++#include <linux/mod_devicetable.h>
+ #include <linux/of_platform.h>
+ #include <linux/spinlock.h>
+ #include <linux/pm_runtime.h>
