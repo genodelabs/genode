@@ -116,7 +116,12 @@ Cpu::Idle_thread::Idle_thread(Cpu &cpu)
 void Cpu::schedule(Job * const job)
 {
 	if (_id == executing_id()) { _scheduler.ready(job->share()); }
-	else if (_scheduler.ready_check(job->share())) { trigger_ip_interrupt(); }
+	else {
+		_scheduler.ready_check(job->share());
+		if (_scheduler.need_to_schedule()) {
+			trigger_ip_interrupt();
+		}
+	}
 }
 
 

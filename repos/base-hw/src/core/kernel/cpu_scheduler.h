@@ -177,7 +177,7 @@ class Kernel::Cpu_scheduler
 		/**
 		 * Set 's1' ready and return wether this outdates current head
 		 */
-		bool ready_check(Share &s1);
+		void ready_check(Share &s1);
 
 		/**
 		 * Set share 's' ready

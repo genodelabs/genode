@@ -119,9 +119,9 @@ void update_check(unsigned const l, unsigned const c, unsigned const t,
 
 void ready_check(unsigned const l, unsigned const s, bool const x)
 {
-	bool const y = data()->scheduler.ready_check(*share(s));
-	if (y != x) {
-		Genode::log("wrong check result ", y, " in line ", l);
+	data()->scheduler.ready_check(*share(s));
+	if (data()->scheduler.need_to_schedule() != x) {
+		Genode::log("wrong check result ", data()->scheduler.need_to_schedule(), " in line ", l);
 		done();
 	}
 }

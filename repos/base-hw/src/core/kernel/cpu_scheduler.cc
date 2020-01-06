@@ -153,14 +153,15 @@ void Cpu_scheduler::update(time_t time)
 }
 
 
-bool Cpu_scheduler::ready_check(Share &s1)
+void Cpu_scheduler::ready_check(Share &s1)
 {
 	assert(_head);
 
 	ready(s1);
 
-	if (_need_to_schedule) return _need_to_schedule;
-
+	if (_need_to_schedule) {
+		return;
+	}
 	Share * s2 = _head;
 	if (!s1._claim) {
 		_need_to_schedule = s2 == &_idle;
@@ -178,7 +179,6 @@ bool Cpu_scheduler::ready_check(Share &s1)
 
 		_need_to_schedule = !s2;
 	}
-	return _need_to_schedule;
 }
 
 
