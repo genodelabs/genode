@@ -186,7 +186,7 @@ SRC_C += $(foreach dir,$(SRC_DIR),$(addprefix $(dir)/,$(SRC_C_$(dir))))
 # Suppress warning "right-hand operand of comma expression has no effect" for
 # the HOST_c2l(c,l) macro.
 #
-CC_OPT_md5_md5_dgst = -Wno-unused-value
+CC_OPT_md5/md5_dgst := -Wno-unused-value
 
 INC_DIR += $(LIBCRYPTO_DIR)/asn1
 INC_DIR += $(LIBCRYPTO_DIR)/evp
