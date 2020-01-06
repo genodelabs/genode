@@ -95,15 +95,15 @@ class Genode::Affinity
 		{
 			private:
 
-				int      _xpos,  _ypos;
-				unsigned _width, _height;
+				int      _xpos  = 0,  _ypos  = 0;
+				unsigned _width = 0, _height = 0;
 
 			public:
 
 				/**
 				 * Default constructor creates invalid location
 				 */
-				Location() : _xpos(0), _ypos(0), _width(0), _height(0) { }
+				Location() { }
 
 				/**
 				 * Constructor to express the affinity to a single CPU
