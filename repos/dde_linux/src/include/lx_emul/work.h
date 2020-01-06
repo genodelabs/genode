@@ -20,6 +20,7 @@
  ***********************/
 
 enum {
+	WQ_UNBOUND       = 1 << 1,
 	WQ_FREEZABLE     = 1 << 2,
 	WQ_MEM_RECLAIM   = 1 << 3,
 	WQ_HIGHPRI       = 1 << 4,
@@ -147,7 +148,10 @@ enum {
 
 typedef struct wait_queue_entry wait_queue_entry_t;
 typedef int (*wait_queue_func_t)(wait_queue_entry_t *, unsigned, int, void *);
-typedef struct wait_queue_head { void *list; } wait_queue_head_t;
+typedef struct wait_queue_head {
+	spinlock_t  lock;
+	void       *list;
+} wait_queue_head_t;
 struct wait_queue_entry {
 	unsigned int		flags;
 	void			*private;
@@ -176,6 +180,7 @@ void __wake_up(wait_queue_head_t *q, bool all);
 
 #define wake_up(x)                   __wake_up(x, false)
 #define wake_up_all(x)               __wake_up(x, true)
+#define wake_up_all_locked(x)        __wake_up(x, true)
 #define wake_up_interruptible(x)     __wake_up(x, false)
 #define wake_up_interruptible_all(x) __wake_up(x, true)
 
@@ -202,6 +207,7 @@ void ___wait_event(wait_queue_head_t*);
 #define _wait_event(wq, condition) while (!(condition)) { __wait_event(wq); }
 #define wait_event(wq, condition) ({ _wait_event(wq, condition); })
 #define wait_event_interruptible(wq, condition) ({ _wait_event(wq, condition); 0; })
+#define wait_event_interruptible_locked(wq, condition) ({ _wait_event(wq, condition); 0; })
 
 #define _wait_event_timeout(wq, condition, timeout) \
 	({ int res = 1;                                 \

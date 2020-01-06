@@ -3,7 +3,7 @@ VERSION     := 2
 DOWNLOADS   := dwc_otg.git usb.archive intel_fb.archive lxip.archive \
                wifi.archive fec.archive libnl.archive wpa_supplicant.git \
                fw.archive usb_host.archive dwc_otg_host.git usb_hid.archive \
-               usb_net.archive
+               usb_net.archive imx8_fb.archive
 
 #
 # Tools
@@ -117,6 +117,16 @@ TAR_OPT(fec) := --strip-components=1  --files-from - < <(sed 's/-x.x.x/-$(VERSIO
 HASH_INPUT   += $(REP_DIR)/fec.list
 
 #
+# i.MX8 Framebuffer driver
+#
+SRC_DIR_IMX8_FB  := src/drivers/framebuffer/imx8
+URL(imx8_fb)     := https://github.com/Freescale/linux-fslc/tarball/1ddf624
+NAME(imx8_fb)    := linux-4.14-2.0.x-imx.tgz
+SHA(imx8_fb)     := 879219874f74b420f2f49f197d418d800ad3b716b9cc3d2d7b85a6fbf2296928
+TAR_OPT(imx8_fb) := --strip-components=1 --files-from - < <(sed 's/linux-x.x.x/Freescale-linux-fslc-1ddf624/g' $(REP_DIR)/imx8_fb.list)
+DIR(imx8_fb)     := $(SRC_DIR_IMX8_FB)
+
+#
 # libnl sources
 #
 URL(libnl) := https://github.com/thom311/libnl/releases/download/libnl3_2_25/libnl-3.2.25.tar.gz
@@ -151,6 +161,7 @@ PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/usb*.patc
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/intel*.patch)))
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/fec_*.patch)))
 PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/usb_hid*.patch)))
+PATCHES += $(addprefix patches/,$(notdir $(wildcard $(REP_DIR)/patches/imx8_fb*.patch)))
 
 #IP stack
 LXIP_OPT = -p1 -d$(SRC_DIR_LXIP)
@@ -211,5 +222,21 @@ PATCH_OPT(patches/intel_fb_hotplug.patch)   := -p1 -d$(SRC_DIR_INTEL_FB)
 PATCH_OPT(patches/fec_skbuff_cast.patch) := -p1 -d$(SRC_DIR_FEC)
 PATCH_OPT(patches/fec_tx_bounce_dma.patch) := -p1 -d$(SRC_DIR_FEC)
 PATCH_OPT(patches/fec_ndev_owner.patch) := -p1 -d$(SRC_DIR_FEC)
+
+# Freescale i.MX8 framebuffer
+IMX8_FB_OPT = -p1 -d$(SRC_DIR_IMX8_FB)
+PATCH_OPT(patches/imx8_fb_dcss_blkctl.patch)      := $(IMX8_FB_OPT)
+PATCH_OPT(patches/imx8_fb_dcss_common.patch)      := $(IMX8_FB_OPT)
+PATCH_OPT(patches/imx8_fb_dcss_ctxld.patch)       := $(IMX8_FB_OPT)
+PATCH_OPT(patches/imx8_fb_dcss_scaler.patch)      := $(IMX8_FB_OPT)
+PATCH_OPT(patches/imx8_fb_drm_connector.patch)    := $(IMX8_FB_OPT)
+PATCH_OPT(patches/imx8_fb_drm_edid.patch)         := $(IMX8_FB_OPT)
+PATCH_OPT(patches/imx8_fb_drm_mm.patch)           := $(IMX8_FB_OPT)
+PATCH_OPT(patches/imx8_fb_drm_vblank.patch)       := $(IMX8_FB_OPT)
+PATCH_OPT(patches/imx8_fb_fb.patch)               := $(IMX8_FB_OPT)
+PATCH_OPT(patches/imx8_fb_imx_drm_core.patch)     := $(IMX8_FB_OPT)
+PATCH_OPT(patches/imx8_fb_imx_hdcp.patch)         := $(IMX8_FB_OPT)
+PATCH_OPT(patches/imx8_fb_imx_hdp.patch)          := $(IMX8_FB_OPT)
+PATCH_OPT(patches/imx8_fb_irq_imx_irqsteer.patch) := $(IMX8_FB_OPT)
 
 # vi: set ft=make :

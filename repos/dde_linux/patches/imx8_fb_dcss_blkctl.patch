@@ -1,0 +1,23 @@
+dcss_blkctl.patch
+
+diff --git a/drivers/gpu/imx/dcss/dcss-blkctl.c b/drivers/gpu/imx/dcss/dcss-blkctl.c
+index 2f13b33..63d48bf 100644
+--- a/drivers/gpu/imx/dcss/dcss-blkctl.c
++++ b/drivers/gpu/imx/dcss/dcss-blkctl.c
+@@ -115,10 +115,14 @@ int dcss_blkctl_init(struct dcss_soc *dcss, unsigned long blkctl_base)
+ 	disp_dev = of_get_property(node, "disp-dev", &len);
+ 	if (!disp_dev || !strncmp(disp_dev, "hdmi_disp", 9))
+ 		blkctl->hdmi_output = true;
+-
++#if 0
++	/*
++	 * XXX: for some reason 'HDMI_MIPI_CLK_SEL' does not work with SOC revision
++	 *      0x20 and Genode
++	 */
+ 	if (imx8_get_soc_revision() >= B0_SILICON_ID)
+ 		blkctl->clk_setting = HDMI_MIPI_CLK_SEL;
+-
++#endif
+ 	dcss_blkctl_cfg(dcss);
+ 
+ 	return 0;

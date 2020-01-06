@@ -1,0 +1,26 @@
+imx_hdp.patch
+
+diff --git a/drivers/gpu/drm/imx/hdp/imx-hdp.c b/drivers/gpu/drm/imx/hdp/imx-hdp.c
+index bcfad52..0ed949a 100644
+--- a/drivers/gpu/drm/imx/hdp/imx-hdp.c
++++ b/drivers/gpu/drm/imx/hdp/imx-hdp.c
+@@ -1478,10 +1478,19 @@ static int imx_hdp_imx_bind(struct device *dev, struct device *master,
+ 		return -EINVAL;
+ 	}
+ 
++#if 0
+ 	res = platform_get_resource(pdev, IORESOURCE_MEM, 2);
+ 	hdp->mem.rst_base = devm_ioremap_resource(dev, res);
+ 	if (IS_ERR(hdp->mem.rst_base))
+ 		dev_warn(dev, "Failed to get HDP RESET base register\n");
++#else
++	/*
++	 * On Genode, the requested address range is already mapped by a different
++	 * part of the driver and cannot be mapped again. Fortunately, not mapping
++	 * it here didn't show problems so far.
++	 */
++	hdp->mem.rst_base = 0;
++#endif
+ 
+ 	hdp->is_cec = of_property_read_bool(pdev->dev.of_node, "fsl,cec");
+ 

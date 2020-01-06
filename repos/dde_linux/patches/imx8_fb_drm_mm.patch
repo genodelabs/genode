@@ -1,0 +1,27 @@
+drm_mm.patch
+
+diff --git a/drivers/gpu/drm/drm_mm.c b/drivers/gpu/drm/drm_mm.c
+index 1acf3b1..7fd72a0 100644
+--- a/drivers/gpu/drm/drm_mm.c
++++ b/drivers/gpu/drm/drm_mm.c
+@@ -48,6 +48,7 @@
+ #include <linux/seq_file.h>
+ #include <linux/export.h>
+ #include <linux/interval_tree_generic.h>
++#include <linux/math64.h>
+ 
+ /**
+  * DOC: Overview
+diff --git a/include/drm/drm_mm.h b/include/drm/drm_mm.h
+index 8d10fc9..452977c 100644
+--- a/include/drm/drm_mm.h
++++ b/include/drm/drm_mm.h
+@@ -423,7 +423,7 @@ static inline int drm_mm_insert_node(struct drm_mm *mm,
+ 				     struct drm_mm_node *node,
+ 				     u64 size)
+ {
+-	return drm_mm_insert_node_generic(mm, node, size, 0, 0, 0);
++	return drm_mm_insert_node_generic(mm, node, size, 0, 0, DRM_MM_INSERT_BEST);
+ }
+ 
+ void drm_mm_remove_node(struct drm_mm_node *node);

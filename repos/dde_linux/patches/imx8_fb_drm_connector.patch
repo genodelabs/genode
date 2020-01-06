@@ -1,0 +1,26 @@
+drm_connector.patch
+
+diff --git a/drivers/gpu/drm/drm_connector.c b/drivers/gpu/drm/drm_connector.c
+index 0986447..d54c1cd 100644
+--- a/drivers/gpu/drm/drm_connector.c
++++ b/drivers/gpu/drm/drm_connector.c
+@@ -525,7 +525,9 @@ void drm_connector_list_iter_begin(struct drm_device *dev,
+ {
+ 	iter->dev = dev;
+ 	iter->conn = NULL;
++#ifdef CONFIG_LOCKDEP
+ 	lock_acquire_shared_recursive(&connector_list_iter_dep_map, 0, 1, NULL, _RET_IP_);
++#endif
+ }
+ EXPORT_SYMBOL(drm_connector_list_iter_begin);
+ 
+@@ -581,7 +583,9 @@ void drm_connector_list_iter_end(struct drm_connector_list_iter *iter)
+ 	iter->dev = NULL;
+ 	if (iter->conn)
+ 		drm_connector_put(iter->conn);
++#ifdef CONFIG_LOCKDEP
+ 	lock_release(&connector_list_iter_dep_map, 0, _RET_IP_);
++#endif
+ }
+ EXPORT_SYMBOL(drm_connector_list_iter_end);
+ 

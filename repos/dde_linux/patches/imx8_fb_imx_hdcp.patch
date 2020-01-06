@@ -1,0 +1,28 @@
+imx_hdcp.patch
+
+diff --git a/drivers/gpu/drm/imx/hdp/imx-hdcp.c b/drivers/gpu/drm/imx/hdp/imx-hdcp.c
+index 4f10737..0f5665a 100644
+--- a/drivers/gpu/drm/imx/hdp/imx-hdcp.c
++++ b/drivers/gpu/drm/imx/hdp/imx-hdcp.c
+@@ -527,6 +527,12 @@ int imx_hdcp_init(struct imx_hdp *hdp, struct device_node *of_node)
+ 	int ret;
+ 	const char *compat;
+ 	u32 temp;
++	
++	/*
++	 * 'imx_hdcp_disable()' is called regardless of -EPERM early return
++	 * and needs an initialized mutex on Genode
++	 */
++	mutex_init(&hdp->hdcp.mutex);
+ 
+ 	ret = of_property_read_string(of_node, "compatible", &compat);
+ 	if (ret) {
+@@ -561,7 +567,7 @@ int imx_hdcp_init(struct imx_hdp *hdp, struct device_node *of_node)
+ 		return ret;
+ 
+ 	/*connector->hdcp_shim = hdcp_shim;*/
+-	mutex_init(&hdp->hdcp.mutex);
++	/*mutex_init(&hdp->hdcp.mutex);*/
+ 	INIT_DELAYED_WORK(&hdp->hdcp.check_work, imx_hdcp_check_work);
+ 	INIT_WORK(&hdp->hdcp.prop_work, imx_hdcp_prop_work);
+ 	return 0;

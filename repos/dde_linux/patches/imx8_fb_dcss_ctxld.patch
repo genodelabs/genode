@@ -1,0 +1,15 @@
+dcss_ctxld.patch
+
+diff --git a/drivers/gpu/imx/dcss/dcss-ctxld.c b/drivers/gpu/imx/dcss/dcss-ctxld.c
+index 377a102..1e7a7cf 100644
+--- a/drivers/gpu/imx/dcss/dcss-ctxld.c
++++ b/drivers/gpu/imx/dcss/dcss-ctxld.c
+@@ -275,7 +275,7 @@ int dcss_ctxld_init(struct dcss_soc *dcss, unsigned long ctxld_base)
+ 	}
+ 
+ 	ret = dcss_ctxld_irq_config(priv);
+-	if (!ret)
++	if (ret)
+ 		return ret;
+ 
+ 	dcss_ctxld_hw_cfg(dcss);

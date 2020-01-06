@@ -1,0 +1,36 @@
+This driver is for the i.MX8MQ EVK Board.
+
+Default behaviour
+~~~~~~~~~~~~~~~~~
+When no configuration is provided to the driver, it will enable the HDMI
+connector and use the best resolution as provided by EDID information from
+the HDMI display.
+
+Configuration
+~~~~~~~~~~~~~
+The HDMI connector can be configured explicitly in terms of resolution and
+whether it should be enabled or not. This looks like the following:
+
+! <config>
+!   <connector name="HDMI-A-1" width="1920" height="1080" hz="60" enabled="true"/>
+! </config>
+
+When the configuration changes during run-time, the driver will adapt to it.
+
+To present all available connectors and their possible resolutions to the user
+the driver is able to export a corresponding report ROM. This has to be
+configured too, like in the following:
+
+! <config>
+!   <report connectors="yes"/>
+! </config>
+
+The exported report has the following format:
+
+! <connectors>
+!   <connector name="HDMI-A-1" connected="1">
+!     <mode width="1920" height="1080" hz="60"/>
+!     ...
+!   </connector>
+! </connectors>
+
