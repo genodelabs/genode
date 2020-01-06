@@ -545,10 +545,23 @@ bool Ssh::Server::auth_pubkey(ssh_session s, char const *u,
 	}
 	Session &session = *p;
 
+	/*
+	 * In this first state the given pubkey is solely probed.
+	 * Ideally we would check here if the given pubkey is in fact to the
+	 * configured one, i.e., reading a 'authorized_keys' like file and
+	 * check its entries.
+	 *
+	 * For now we simple accept all keys and reject them in the later
+	 * state.
+	 */
 	if (signature_state == SSH_PUBLICKEY_STATE_NONE) {
-		return SSH_AUTH_PARTIAL;
+		return true;
 	}
 
+	/*
+	 * In this second state we check the provided pubkey and if it
+	 * matches allow authentication to proceed.
+	 */
 	if (signature_state == SSH_PUBLICKEY_STATE_VALID) {
 		Genode::Lock::Guard g(_logins.lock());
 		Login const *l = _logins.lookup(u);
@@ -558,13 +571,13 @@ bool Ssh::Server::auth_pubkey(ssh_session s, char const *u,
 				session.auth_sucessful = true;
 				session.adopt(l->user);
 				_log_login(l->user, session, true);
-				return SSH_AUTH_SUCCESS;
+				return true;
 			}
 		}
 	}
 
 	_log_failed(u, session, true);
-	return SSH_AUTH_DENIED;
+	return false;
 }
 
 
