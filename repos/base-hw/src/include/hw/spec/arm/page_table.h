@@ -422,6 +422,9 @@ class Hw::Page_table
 		                          size_t const size, Page_flags const & flags,
 		                          Allocator & alloc)
 		{
+			if (i > MAX_INDEX)
+				return;
+
 			using Pt  = Page_table_level_2;
 			using Ptd = Page_table_descriptor;
 
