@@ -36,7 +36,7 @@ void Ipc_pager::_parse(unsigned long label) {
 	if (_type == PAGEFAULT || _type == EXCEPTION)
 		_parse_pagefault();
 	if (_type == PAUSE || _type == EXCEPTION)
-		memcpy(&_regs, l4_utcb_exc(), sizeof(l4_exc_regs_t));
+		_regs = *l4_utcb_exc();
 }
 
 
@@ -134,7 +134,7 @@ void Ipc_pager::acknowledge_wakeup()
 
 void Ipc_pager::acknowledge_exception()
 {
-	memcpy(l4_utcb_exc(), &_regs, sizeof(l4_exc_regs_t));
+	_regs = *l4_utcb_exc();
 	l4_cap_idx_t dst = Fiasco::Capability::valid(_last.kcap)
 	                 ? _last.kcap : (l4_cap_idx_t)L4_SYSF_REPLY;
 	Fiasco::l4_msgtag_t const msg_tag =
