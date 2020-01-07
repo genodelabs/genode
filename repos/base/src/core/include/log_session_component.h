@@ -50,14 +50,10 @@ namespace Genode {
 				char const *string = string_buf.string();
 				size_t len = strlen(string);
 
-				char buf[string_buf.MAX_SIZE];
 				unsigned from_i = 0;
-
 				for (unsigned i = 0; i < len; i++) {
 					if (string[i] == '\n') {
-						memcpy(buf, string + from_i, i - from_i);
-						buf[i - from_i] = 0;
-						log("[", _label, "] ", Cstring(buf));
+						log("[", _label, "] ", Cstring(string + from_i, i - from_i));
 						from_i = i + 1;
 					}
 				}

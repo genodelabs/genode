@@ -89,7 +89,8 @@ class Genode::Connection : public Connection_base
 		enum { FORMAT_STRING_SIZE = Parent::Session_args::MAX_SIZE };
 
 		char _session_args[FORMAT_STRING_SIZE];
-		char _affinity_arg[sizeof(Affinity)];
+
+		Affinity _affinity_arg { };
 
 		void _session(Parent &,
 		              Affinity const &affinity,
@@ -99,17 +100,14 @@ class Genode::Connection : public Connection_base
 			sc.vprintf(format_args, list);
 			va_end(list);
 
-			memcpy(_affinity_arg, &affinity, sizeof(Affinity));
+			_affinity_arg = affinity;
 		}
 
 		Capability<SESSION_TYPE> _request_cap()
 		{
-			Affinity affinity;
-			memcpy(&affinity, _affinity_arg, sizeof(Affinity));
-
 			try {
 				return _env.session<SESSION_TYPE>(_id_space_element.id(),
-				                                  _session_args, affinity); }
+				                                  _session_args, _affinity_arg); }
 			catch (...) {
 				error(SESSION_TYPE::service_name(), "-session creation failed "
 				      "(", Cstring(_session_args), ")");
