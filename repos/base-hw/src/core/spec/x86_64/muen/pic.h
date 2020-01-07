@@ -40,12 +40,13 @@ class Board::Pic
 
 		void irq_occurred(unsigned irq)
 		{
-			isr[irq] = true;
+			if (irq < NR_OF_IRQ)
+				isr[irq] = true;
 		}
 
 		bool take_request(unsigned &irq)
 		{
-			for (int i = 0; i < 256; i++) {
+			for (int i = 0; i < NR_OF_IRQ; i++) {
 				if (isr[i] == true) {
 					irq = i;
 					isr[i] = false;
