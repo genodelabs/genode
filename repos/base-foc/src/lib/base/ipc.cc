@@ -238,6 +238,11 @@ static l4_msgtag_t copy_msgbuf_to_utcb(Msgbuf_base &snd_msg,
 		/* setup flexpage for valid capability to delegate */
 		if (caps[i].valid) {
 			unsigned const idx = num_msg_words + 2*num_cap_sel;
+
+			/* check bounds of 'l4_msg_regs_t::mr' */
+			if (idx + 1 >= L4_UTCB_GENERIC_DATA_SIZE)
+				break;
+
 			l4_utcb_mr()->mr[idx]     = L4_ITEM_MAP/* | L4_ITEM_CONT*/;
 			l4_utcb_mr()->mr[idx + 1] = l4_obj_fpage(caps[i].sel,
 			                                         0, L4_FPAGE_RWX).raw;
