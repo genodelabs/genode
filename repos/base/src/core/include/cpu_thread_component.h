@@ -99,6 +99,21 @@ class Genode::Cpu_thread_component : public  Rpc_object<Cpu_thread>,
 
 		Trace::Source_registry &_trace_sources;
 
+		struct Managed_thread_cap
+		{
+			Rpc_entrypoint          &_ep;
+			Cpu_thread_component    &_thread;
+			Thread_capability const  _cap;
+
+			Managed_thread_cap(Rpc_entrypoint &ep, Cpu_thread_component &thread)
+			: _ep(ep), _thread(thread), _cap(_ep.manage(&thread))
+			{ }
+
+			~Managed_thread_cap() { _ep.dissolve(&_thread); }
+
+			Thread_capability cap() const { return _cap; }
+		} const _managed_thread_cap;
+
 		Rm_client _rm_client;
 
 		/**
@@ -146,24 +161,14 @@ class Genode::Cpu_thread_component : public  Rpc_object<Cpu_thread>,
 			_bound_to_pd(_bind_to_pd(pd)),
 			_trace_control_slot(trace_control_area),
 			_trace_sources(trace_sources),
-			_rm_client(cpu_session_cap, _ep.manage(this),
+			_managed_thread_cap(_ep, *this),
+			_rm_client(cpu_session_cap, _managed_thread_cap.cap(),
 			           _address_space_region_map,
 			           _platform_thread.pager_object_badge(),
 			           _platform_thread.affinity(),
 			           pd.label(), name)
 		{
-			/*
-			 * Acquaint thread with its pager object, caution on some base platforms
-			 * this may raise an 'Out_of_ram' exception, which causes the
-			 * destructor of this object to not being called. Catch it and remove this
-			 * object from the object pool
-			 */
-			try {
-				_pager_ep.manage(_rm_client);
-			} catch (...) {
-				_ep.dissolve(this);
-				throw;
-			}
+			_pager_ep.manage(_rm_client);
 
 			_address_space_region_map.add_client(_rm_client);
 			_platform_thread.pager(_rm_client);
@@ -174,7 +179,6 @@ class Genode::Cpu_thread_component : public  Rpc_object<Cpu_thread>,
 		{
 			_trace_sources.remove(&_trace_source);
 			_pager_ep.dissolve(_rm_client);
-			_ep.dissolve(this);
 
 			_address_space_region_map.remove_client(_rm_client);
 		}
