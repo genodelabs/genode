@@ -118,8 +118,8 @@ bool Allocator_avl_base::_alloc_two_blocks_metadata(Block **dst1, Block **dst2)
 
 	*dst1 = *dst2 = nullptr;
 
-	if (!b1 && b2) _md_alloc->free(b2, sizeof(Block));
-	if (!b2 && b1) _md_alloc->free(b1, sizeof(Block));
+	if (b2) _md_alloc->free(b2, sizeof(Block));
+	if (b1) _md_alloc->free(b1, sizeof(Block));
 
 	return false;
 }
