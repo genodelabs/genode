@@ -236,6 +236,8 @@ namespace Affinity_test {
 			}
 		}
 
+		destroy(heap, output_buffer);
+
 		for (unsigned i = 0; i < cpus.total(); i++)
 			destroy(heap, threads[i]);
 		destroy(heap, threads);
