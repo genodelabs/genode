@@ -209,9 +209,12 @@ class Board::Pic : public Genode::Mmio
 
 		void irq_mode(unsigned irq, unsigned trigger, unsigned polarity);
 
-		void store_apic_id(unsigned const cpu_id) {
-			Id::access_t const lapic_id = read<Id>();
-			lapic_ids[cpu_id] = (lapic_id >> 24) & 0xff;
+		void store_apic_id(unsigned const cpu_id)
+		{
+			if (cpu_id < NR_OF_CPUS) {
+				Id::access_t const lapic_id = read<Id>();
+				lapic_ids[cpu_id] = (lapic_id >> 24) & 0xff;
+			}
 		}
 
 		void send_ipi(unsigned const);
