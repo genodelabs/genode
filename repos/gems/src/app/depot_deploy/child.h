@@ -368,6 +368,36 @@ void Depot_deploy::Child::gen_start_node(Xml_generator &xml, Xml_node common,
 			xml.attribute("quantum", cpu_quota);
 		});
 
+		/* location handling */
+		bool const affinity_from_launcher = _defined_by_launcher()
+		                                 && (_launcher_xml->xml().has_attribute("xpos") ||
+		                                     _launcher_xml->xml().has_attribute("ypos"));
+		bool const affinity_from_start = _start_xml->xml().has_attribute("xpos")
+                                              || _start_xml->xml().has_attribute("ypos");
+		if (affinity_from_start || affinity_from_launcher) {
+			long xpos = 0, ypos = 0;
+			unsigned width = 1, height = 1;
+
+			if (affinity_from_launcher) {
+				xpos   = _launcher_xml->xml().attribute_value("xpos",   xpos);
+				ypos   = _launcher_xml->xml().attribute_value("ypos",   ypos);
+				width  = _launcher_xml->xml().attribute_value("width",  width);
+				height = _launcher_xml->xml().attribute_value("height", height);
+			}
+			xpos   = _start_xml->xml().attribute_value("xpos",   xpos);
+			ypos   = _start_xml->xml().attribute_value("ypos",   ypos);
+			width  = _start_xml->xml().attribute_value("width",  width);
+			height = _start_xml->xml().attribute_value("height", height);
+
+			xml.node("affinity", [&] () {
+				xml.attribute("xpos",   xpos);
+				xml.attribute("ypos",   ypos);
+				xml.attribute("width",  width);
+				xml.attribute("height", height);
+			});
+		}
+
+		/* runtime handling */
 		Xml_node const runtime = _pkg_xml->xml().sub_node("runtime");
 
 		/*
