@@ -62,9 +62,10 @@ append config {
 	<start name="ahci_drv">
 		<resource name="RAM" quantum="10M" />
 		<provides><service name="Block" /></provides>
-		<config>
+		<config atapi="yes">
 			<report ports="yes"/>
-			<policy label_prefix="test-ahci" device="0" writeable="yes" />
+			<policy label="test-ahci -> " device="0" writeable="yes" />
+			<policy label="test-ahci-atapi -> " device="1" writeable="no" />
 		</config>
 		<route>
 			<service name="Report"> <child name="ahci_report_rom"/> </service>
@@ -72,6 +73,15 @@ append config {
 		</route>
 	</start>
 	<start name="test-ahci">
+		<binary name="test-block-client" />
+		<resource name="RAM" quantum="50M" />
+		<config test_size="100M"></config>
+		<route>
+			<service name="Block"><child name="ahci_drv"/></service>
+			<any-service> <parent/> <any-child /> </any-service>
+		</route>
+	</start>
+	<start name="test-ahci-atapi">
 		<binary name="test-block-client" />
 		<resource name="RAM" quantum="50M" />
 		<config test_size="100M"></config>
@@ -96,8 +106,8 @@ build_boot_image $boot_modules
 append qemu_args " -nographic -device ahci,id=ahci -boot d "
 append qemu_args " -drive id=disk,file=bin/ext2.raw,format=raw,if=none             -device ide-hd,drive=disk,bus=ahci.0 "
 append qemu_args " -drive id=cd,file=[run_dir]/../ahci_block.iso,if=none,media=cdrom -device ide-cd,drive=cd,bus=ahci.1 "
-append qemu_args " -drive id=disk2,file=bin/ext2.raw,format=raw,if=none            -device ide-hd,drive=disk2,bus=ahci.2 "
 
 run_genode_until "Tests finished successfully!" 100
+run_genode_until "Tests finished successfully!" 100 [output_spawn_id]
 
 exec rm -f bin/ext2.raw

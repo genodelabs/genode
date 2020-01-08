@@ -1,4 +1,4 @@
-SRC_CC  += main.cc ahci.cc platform.cc
+SRC_CC  += main.cc platform.cc
 INC_DIR += $(REP_DIR)/src/drivers/ahci
 LIBS    += base
 
