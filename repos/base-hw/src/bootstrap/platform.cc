@@ -19,6 +19,7 @@
 
 using namespace Bootstrap;
 
+extern unsigned _bss_end;
 
 /*****************************
  ** Platform::Ram_allocator **
@@ -179,7 +180,7 @@ Platform::Platform()
 	/* temporarily map all bootstrap memory 1:1 for transition to core */
 	// FIXME do not insert as mapping for core
 	core_pd->map_insert(Mapping(bootstrap_region.base, bootstrap_region.base,
-	                            bootstrap_region.size, Hw::PAGE_FLAGS_KERN_TEXT));
+	                            (addr_t)&_bss_end - (addr_t)&_prog_img_beg, Hw::PAGE_FLAGS_KERN_TEXT));
 
 	/* map memory-mapped I/O for core */
 	board.core_mmio.for_each_mapping([&] (Mapping const & m) {
