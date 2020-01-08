@@ -103,6 +103,10 @@ class Genode::Register_set : Noncopyable
 		inline bool _conditions_met(CONDITION condition) {
 			return condition.met(read<typename CONDITION::Object>()); }
 
+		template <typename CONDITION>
+		inline bool _one_condition_met(CONDITION condition) {
+			return condition.met(read<typename CONDITION::Object>()); }
+
 		/**
 		 * Return wether a list of IO conditions is met
 		 *
@@ -117,6 +121,14 @@ class Genode::Register_set : Noncopyable
 		template <typename CONDITION, typename... CONDITIONS>
 		inline bool _conditions_met(CONDITION head, CONDITIONS... tail) {
 			return _conditions_met(head) ? _conditions_met(tail...) : false; }
+
+		/**
+		 * Same as '_conditions_met' but returns true if one condition in a list of
+		 * IO conditions is met
+		 */
+		template <typename CONDITION, typename... CONDITIONS>
+		inline bool _one_condition_met(CONDITION head, CONDITIONS... tail) {
+			return _conditions_met(head) ? true : _one_condition_met(tail...); }
 
 		/**
 		 * This template equips registers/bitfields with conditions for polling
@@ -719,6 +731,35 @@ class Genode::Register_set : Noncopyable
 		{
 			wait_for<CONDITIONS...>(Attempts(500), Microseconds(1000),
 			                        delayer, conditions...);
+		}
+
+		/**
+		 * Same as 'wait_for' but wait until one condition in a list of IO
+		 * conditions is met
+		 */
+		template <typename... CONDITIONS>
+		inline void wait_for_any(Attempts       attempts,
+		                         Microseconds   us,
+		                         Delayer       &delayer,
+		                         CONDITIONS...  conditions)
+		{
+			for (unsigned i = 0; i < attempts.value; i++,
+			     delayer.usleep(us.value))
+			{
+				if (_one_condition_met(conditions...)) {
+					return; }
+			}
+			throw Polling_timeout();
+		}
+
+		/**
+		 * Shortcut for 'wait_for' with 'attempts = 500' and 'us = 1000'
+		 */
+		template <typename... CONDITIONS>
+		inline void wait_for_any(Delayer &delayer, CONDITIONS... conditions)
+		{
+			wait_for_any<CONDITIONS...>(Attempts(500), Microseconds(1000),
+			                            delayer, conditions...);
 		}
 };
 
