@@ -6,7 +6,7 @@ FILTER_OUT += udiv_w_sdiv.c
 
 # add ARM-specific assembly files and filter out the generic C files if needed
 
-SRC_ASM += copyd.asm copyi.asm
+SRC_ASM += copyd.asm copyi.asm invert_limb.asm
 
 FILTER_OUT += popham.c
 
