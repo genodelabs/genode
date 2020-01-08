@@ -154,8 +154,8 @@ LX_MUTEX_INIT_DECLARE(phy_fixup_lock);
 
 #include <lx_emul/bitops.h>
 #include <lx_emul/atomic.h>
-#include <lx_emul/work.h>
 #include <lx_emul/spinlock.h>
+#include <lx_emul/work.h>
 #include <lx_emul/errno.h>
 #include <lx_emul/string.h>
 #include <lx_emul/module.h>

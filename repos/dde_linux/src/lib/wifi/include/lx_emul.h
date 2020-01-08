@@ -987,16 +987,7 @@ unsigned long int_sqrt(unsigned long);
  ** linux/workqueue.h **
  ***********************/
 
-struct workqueue_struct; /* XXX fix in lx_emul/work.h */
-
 #include <lx_emul/work.h>
-
-enum {
-	WQ_UNBOUND        = 1<<1,
-	// WQ_MEM_RECLAIM    = 1<<3,
-	// WQ_HIGHPRI        = 1<<4,
-	// WQ_CPU_INTENSIVE  = 1<<5,
-};
 
 extern struct workqueue_struct *system_power_efficient_wq;
 
