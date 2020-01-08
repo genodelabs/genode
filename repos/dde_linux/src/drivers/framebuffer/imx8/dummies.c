@@ -460,6 +460,12 @@ bool acpi_driver_match_device(struct device *dev, const struct device_driver *dr
 	return -1;
 }
 
+const char *acpi_dev_name(struct acpi_device *adev)
+{
+	TRACE_AND_STOP;
+	return NULL;
+}
+
 int add_uevent_var(struct kobj_uevent_env *env, const char *format, ...)
 {
 	TRACE_AND_STOP;
@@ -614,6 +620,12 @@ int  ww_mutex_lock_slow_interruptible(struct ww_mutex *lock, struct ww_acquire_c
 }
 
 int  ww_mutex_trylock(struct ww_mutex *lock)
+{
+	TRACE_AND_STOP;
+	return -1;
+}
+
+int  ww_mutex_lock_interruptible(struct ww_mutex *lock, struct ww_acquire_ctx *ctx)
 {
 	TRACE_AND_STOP;
 	return -1;
