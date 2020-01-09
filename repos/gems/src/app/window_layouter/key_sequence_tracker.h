@@ -179,7 +179,10 @@ class Window_layouter::Key_sequence_tracker
 			typedef String<32> Action;
 			Action action = node.attribute_value("action", Action());
 
-			func(Window_layouter::Action(action));
+			using Name = Window_layouter::Target::Name;
+			Name const target = node.attribute_value("target", Name());
+
+			func(Window_layouter::Action(action, target));
 		}
 
 	public:

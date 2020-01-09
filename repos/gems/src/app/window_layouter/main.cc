@@ -105,9 +105,6 @@ struct Window_layouter::Main : Operations,
 		_assign_list.for_each([&] (Assign &assign) {
 			_target_list.for_each([&] (Target const &target) {
 
-				if (target.name() != assign.target_name())
-					return;
-
 				assign.for_each_member([&] (Assign::Member &member) {
 
 					member.window.floating(assign.floating());
@@ -206,6 +203,11 @@ struct Window_layouter::Main : Operations,
 
 		_gen_rules();
 		_gen_resize_request();
+	}
+
+	void screen(Target::Name const & name) override
+	{
+		_gen_rules_with_frontmost_screen(name);
 	}
 
 	void drag(Window_id id, Window::Element element, Point clicked, Point curr) override
@@ -356,7 +358,13 @@ struct Window_layouter::Main : Operations,
 	void _gen_window_layout();
 	void _gen_resize_request();
 	void _gen_focus();
-	void _gen_rules();
+	void _gen_rules_with_frontmost_screen(Target::Name const &);
+
+	void _gen_rules()
+	{
+		/* keep order of screens unmodified */
+		_gen_rules_with_frontmost_screen(Target::Name());
+	}
 
 	template <typename FN>
 	void _gen_rules_assignments(Xml_generator &, FN const &);
@@ -492,14 +500,14 @@ void Window_layouter::Main::_gen_rules_assignments(Xml_generator &xml, FN const 
 }
 
 
-void Window_layouter::Main::_gen_rules()
+void Window_layouter::Main::_gen_rules_with_frontmost_screen(Target::Name const &screen)
 {
 	if (!_rules_reporter.constructed())
 		return;
 
 	_rules_reporter->generate([&] (Xml_generator &xml) {
 
-		_target_list.gen_screens(xml);
+		_target_list.gen_screens(xml, screen);
 
 		/*
 		 * Generate exact <assign> nodes for present windows.

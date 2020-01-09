@@ -31,6 +31,7 @@ struct Window_layouter::Operations : Interface
 	virtual void to_front(Window_id) = 0;
 	virtual void drag(Window_id, Window::Element, Point clicked, Point curr) = 0;
 	virtual void finalize_drag(Window_id, Window::Element, Point clicked, Point final) = 0;
+	virtual void screen(Target::Name const &) = 0;
 };
 
 #endif /* _OPERATIONS_H_ */

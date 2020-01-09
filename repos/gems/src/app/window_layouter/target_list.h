@@ -219,13 +219,36 @@ class Window_layouter::Target_list
 
 		/**
 		 * Generate screen-layout definitions for the 'rules' report
+		 *
+		 * If a valid 'screen_name' is specified, move the referred screen in
+		 * front of all others.
 		 */
-		void gen_screens(Xml_generator &xml) const
+		void gen_screens(Xml_generator &xml, Target::Name const &screen_name) const
 		{
 			if (!_rules.constructed())
 				return;
 
 			_rules->xml().for_each_sub_node("screen", [&] (Xml_node screen) {
+				if (screen_name.valid()) {
+					Target::Name const name =
+						screen.attribute_value("name", Target::Name());
+
+					if (screen_name != name)
+						return;
+				}
+				screen.with_raw_node([&] (char const *start, size_t length) {
+					xml.append(start, length); });
+				xml.append("\n");
+			});
+
+			if (!screen_name.valid())
+				return;
+
+			_rules->xml().for_each_sub_node("screen", [&] (Xml_node screen) {
+				Target::Name const name = screen.attribute_value("name", Target::Name());
+				if (screen_name == name)
+					return;
+
 				screen.with_raw_node([&] (char const *start, size_t length) {
 					xml.append(start, length); });
 				xml.append("\n");

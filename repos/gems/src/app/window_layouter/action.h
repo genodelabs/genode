@@ -14,6 +14,8 @@
 #ifndef _ACTION_H_
 #define _ACTION_H_
 
+#include <target.h>
+
 namespace Window_layouter { class Action; }
 
 
@@ -46,11 +48,13 @@ class Window_layouter::Action
 			NEXT_TAB,
 			PREV_TAB,
 			TOOGLE_OVERLAY,
+			SCREEN,
 		};
 
 	private:
 
-		Type _type;
+		Type         _type;
+		Target::Name _target;
 
 		template <Genode::size_t N>
 		static Type _type_by_string(String<N> const &string)
@@ -59,6 +63,7 @@ class Window_layouter::Action
 			if (string == "prev_window")       return PREV_WINDOW;
 			if (string == "raise_window")      return RAISE_WINDOW;
 			if (string == "toggle_fullscreen") return TOGGLE_FULLSCREEN;
+			if (string == "screen")            return SCREEN;
 
 			Genode::warning("cannot convert \"", string, "\" to action type");
 			return NONE;
@@ -66,12 +71,14 @@ class Window_layouter::Action
 
 	public:
 
-		Action(Type type) : _type(type) { }
+		Action(Type type) : _type(type), _target() { }
 
 		template <Genode::size_t N>
-		Action(String<N> const &string) : _type(_type_by_string(string)) { }
+		Action(String<N> const &string, Target::Name const &arg)
+		: _type(_type_by_string(string)), _target(arg) { }
 
 		Type type() const { return _type; }
+		Target::Name target_name() const { return _target; }
 };
 
 #endif /* _ACTION_H_ */

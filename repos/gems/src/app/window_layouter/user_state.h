@@ -327,6 +327,10 @@ void Window_layouter::User_state::_handle_event(Input::Event const &e,
 				_operations.focus(_focused_window_id);
 				return;
 
+			case Action::SCREEN:
+				_operations.screen(action.target_name());
+				return;
+
 			default:
 				warning("action ", (int)action.type(), " unhanded");
 			}
