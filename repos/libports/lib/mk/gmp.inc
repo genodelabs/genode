@@ -4,6 +4,6 @@ include $(REP_DIR)/lib/import/import-gmp.mk
 
 LIBS += libc
 
-CC_OPT += -DHAVE_CONFIG_H -D__GMP_WITHIN_GMP -DCOUNT_LEADING_ZEROS_NEED_CLZ_TAB
+CC_OPT += -DHAVE_CONFIG_H -D__GMP_WITHIN_GMP
 
 INC_DIR += $(GMP_DIR)

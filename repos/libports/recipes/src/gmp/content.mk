@@ -13,9 +13,12 @@ MIRROR_FROM_REP_DIR = \
 content: $(MIRROR_FROM_REP_DIR) \
          LICENSE \
          include \
-         include/gmp \
          include/spec/32bit/gmp \
          include/spec/64bit/gmp \
+         include/spec/arm/gmp \
+         include/spec/arm_64/gmp \
+         include/spec/x86_32/gmp \
+         include/spec/x86_64/gmp \
          src/lib/gmp
 
 $(MIRROR_FROM_REP_DIR):
@@ -28,10 +31,6 @@ include:
 	mkdir -p $@
 	cp -r $(PORT_DIR)/include/* $@/
 
-include/gmp: include
-	mkdir -p $@
-	cp -r $(REP_DIR)/include/gmp/* $@/
-
 include/spec/32bit/gmp: include
 	mkdir -p $@
 	cp -r $(REP_DIR)/include/spec/32bit/gmp/* $@/
@@ -39,6 +38,22 @@ include/spec/32bit/gmp: include
 include/spec/64bit/gmp: include
 	mkdir -p $@
 	cp -r $(REP_DIR)/include/spec/64bit/gmp/* $@/
+
+include/spec/arm/gmp: include
+	mkdir -p $@
+	cp -r $(REP_DIR)/include/spec/arm/gmp/* $@/
+
+include/spec/arm_64/gmp: include
+	mkdir -p $@
+	cp -r $(REP_DIR)/include/spec/arm_64/gmp/* $@/
+
+include/spec/x86_32/gmp: include
+	mkdir -p $@
+	cp -r $(REP_DIR)/include/spec/x86_32/gmp/* $@/
+
+include/spec/x86_64/gmp: include
+	mkdir -p $@
+	cp -r $(REP_DIR)/include/spec/x86_64/gmp/* $@/
 
 src/lib/gmp:
 	mkdir -p $@
