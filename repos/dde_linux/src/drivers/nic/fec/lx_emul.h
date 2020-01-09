@@ -1933,8 +1933,6 @@ void *devm_kzalloc(struct device *dev, size_t size, gfp_t gfp);
 
 struct pm_qos_request {};
 
-#define dma_wmb() __asm__ __volatile__ ("dmb oshst" : : : "memory")
-
 #include <lx_emul/extern_c_end.h>
 
 #endif /* _SRC__DRIVERS__NIC__FEC__LX_EMUL_H_ */
