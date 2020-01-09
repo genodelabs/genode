@@ -11,15 +11,15 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _SRC__INIT__ALIAS_H_
-#define _SRC__INIT__ALIAS_H_
+#ifndef _LIB__SANDBOX__ALIAS_H_
+#define _LIB__SANDBOX__ALIAS_H_
 
 /* local includes */
 #include <types.h>
 
-namespace Init { struct Alias; }
+namespace Sandbox { struct Alias; }
 
-struct Init::Alias : List<Alias>::Element
+struct Sandbox::Alias : List<Alias>::Element
 {
 	typedef String<128> Name;
 	typedef String<128> Child;
@@ -50,4 +50,4 @@ struct Init::Alias : List<Alias>::Element
 	}
 };
 
-#endif /* _SRC__INIT__ALIAS_H_ */
+#endif /* _LIB__SANDBOX__ALIAS_H_ */

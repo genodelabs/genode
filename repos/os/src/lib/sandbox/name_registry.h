@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _SRC__INIT__NAME_REGISTRY_H_
-#define _SRC__INIT__NAME_REGISTRY_H_
+#ifndef _LIB__SANDBOX__NAME_REGISTRY_H_
+#define _LIB__SANDBOX__NAME_REGISTRY_H_
 
 /* Genode includes */
 #include <base/child.h>
@@ -20,9 +20,9 @@
 /* local includes */
 #include <types.h>
 
-namespace Init { struct Name_registry; }
+namespace Sandbox { struct Name_registry; }
 
-struct Init::Name_registry
+struct Sandbox::Name_registry
 {
 	virtual ~Name_registry() { }
 
@@ -36,4 +36,4 @@ struct Init::Name_registry
 	virtual Name deref_alias(Name const &) = 0;
 };
 
-#endif /* _SRC__INIT__NAME_REGISTRY_H_ */
+#endif /* _LIB__SANDBOX__NAME_REGISTRY_H_ */

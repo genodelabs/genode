@@ -11,14 +11,14 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _SRC__INIT__SERVICE_H_
-#define _SRC__INIT__SERVICE_H_
+#ifndef _LIB__SANDBOX__SERVICE_H_
+#define _LIB__SANDBOX__SERVICE_H_
 
 /* Genode includes */
 #include <base/service.h>
 #include <base/child.h>
 
-namespace Init {
+namespace Sandbox {
 	class Abandonable;
 	class Parent_service;
 	class Routed_service;
@@ -26,7 +26,7 @@ namespace Init {
 }
 
 
-class Init::Abandonable : Interface
+class Sandbox::Abandonable : Interface
 {
 	private:
 
@@ -40,7 +40,7 @@ class Init::Abandonable : Interface
 };
 
 
-class Init::Parent_service : public Genode::Parent_service, public Abandonable
+class Sandbox::Parent_service : public Genode::Parent_service, public Abandonable
 {
 	private:
 
@@ -57,9 +57,9 @@ class Init::Parent_service : public Genode::Parent_service, public Abandonable
 
 
 /**
- * Init-specific representation of a child service
+ * Sandbox-specific representation of a child service
  */
-class Init::Routed_service : public Async_service, public Abandonable
+class Sandbox::Routed_service : public Async_service, public Abandonable
 {
 	public:
 
@@ -148,4 +148,4 @@ class Init::Routed_service : public Async_service, public Abandonable
 		}
 };
 
-#endif /* _SRC__INIT__SERVICE_H_ */
+#endif /* _LIB__SANDBOX__SERVICE_H_ */

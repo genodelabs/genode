@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _SRC__INIT__CHILD_REGISTRY_H_
-#define _SRC__INIT__CHILD_REGISTRY_H_
+#ifndef _LIB__SANDBOX__CHILD_REGISTRY_H_
+#define _LIB__SANDBOX__CHILD_REGISTRY_H_
 
 /* local includes */
 #include <child.h>
@@ -20,10 +20,10 @@
 #include <alias.h>
 #include <report.h>
 
-namespace Init { struct Child_registry; }
+namespace Sandbox { struct Child_registry; }
 
 
-class Init::Child_registry : public Name_registry, Child_list
+class Sandbox::Child_registry : public Name_registry, Child_list
 {
 	private:
 
@@ -32,7 +32,7 @@ class Init::Child_registry : public Name_registry, Child_list
 		bool _unique(const char *name) const
 		{
 			/* check for name clash with an existing child */
-			Genode::List_element<Init::Child> const *curr = first();
+			List_element<Sandbox::Child> const *curr = first();
 			for (; curr; curr = curr->next())
 				if (curr->object()->has_name(name))
 					return false;
@@ -146,4 +146,4 @@ class Init::Child_registry : public Name_registry, Child_list
 		}
 };
 
-#endif /* _SRC__INIT__CHILD_REGISTRY_H_ */
+#endif /* _LIB__SANDBOX__CHILD_REGISTRY_H_ */

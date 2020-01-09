@@ -1,0 +1,27 @@
+build "core init test/sandbox app/dummy"
+
+create_boot_directory
+
+install_config {
+	<config>
+		<parent-provides>
+			<service name="LOG"/>
+			<service name="PD"/>
+			<service name="CPU"/>
+			<service name="ROM"/>
+		</parent-provides>
+		<default-route>
+			<any-service> <parent/> </any-service>
+		</default-route>
+		<default caps="500"/>
+		<start name="test-sandbox">
+			<resource name="RAM" quantum="10M"/>
+		</start>
+	</config>
+}
+
+build_boot_image { core ld.lib.so init test-sandbox sandbox.lib.so dummy }
+
+append qemu_args " -nographic "
+
+run_genode_until "child \"dummy\" exited with exit value 0.*\n" 20

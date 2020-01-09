@@ -11,18 +11,18 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _SRC__INIT__HEARTBEAT_H_
-#define _SRC__INIT__HEARTBEAT_H_
+#ifndef _LIB__SANDBOX__HEARTBEAT_H_
+#define _LIB__SANDBOX__HEARTBEAT_H_
 
 /* local includes */
 #include <state_reporter.h>
 #include <child_registry.h>
 #include <util/noncopyable.h>
 
-namespace Init { class Heartbeat; }
+namespace Sandbox { class Heartbeat; }
 
 
-class Init::Heartbeat : Genode::Noncopyable
+class Sandbox::Heartbeat : Noncopyable
 {
 	private:
 
@@ -86,4 +86,4 @@ class Init::Heartbeat : Genode::Noncopyable
 		}
 };
 
-#endif /* _SRC__INIT__HEARTBEAT_H_ */
+#endif /* _LIB__SANDBOX__HEARTBEAT_H_ */

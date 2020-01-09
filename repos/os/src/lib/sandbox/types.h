@@ -11,14 +11,14 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _SRC__INIT__TYPES_H_
-#define _SRC__INIT__TYPES_H_
+#ifndef _LIB__SANDBOX__TYPES_H_
+#define _LIB__SANDBOX__TYPES_H_
 
 #include <util/string.h>
 #include <util/list.h>
 #include <session/session.h>
 
-namespace Init {
+namespace Sandbox {
 
 	class Child;
 
@@ -28,8 +28,7 @@ namespace Init {
 
 	struct Prio_levels { long value; };
 
-	typedef List<List_element<Init::Child> > Child_list;
+	typedef List<List_element<Sandbox::Child> > Child_list;
 }
 
-#endif /* _SRC__INIT__TYPES_H_ */
-
+#endif /* _LIB__SANDBOX__TYPES_H_ */
