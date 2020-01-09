@@ -1,5 +1,5 @@
 /*
- * \brief  Init verbosity
+ * \brief  Sandbox verbosity
  * \author Norman Feske
  * \date   2017-01-03
  */
@@ -11,22 +11,28 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _SRC__INIT__VERBOSE_H_
-#define _SRC__INIT__VERBOSE_H_
+#ifndef _LIB__SANDBOX__VERBOSE_H_
+#define _LIB__SANDBOX__VERBOSE_H_
 
+/* Genode includes */
 #include <util/noncopyable.h>
 #include <util/xml_node.h>
 
-namespace Init { struct Verbose; }
+/* local includes */
+#include <types.h>
+
+namespace Sandbox { struct Verbose; }
 
 
-class Init::Verbose : Genode::Noncopyable
+class Sandbox::Verbose : Genode::Noncopyable
 {
 	private:
 
-		bool _enabled;
+		bool _enabled = false;
 
 	public:
+
+		Verbose() { }
 
 		Verbose(Genode::Xml_node config)
 		: _enabled(config.attribute_value("verbose", false)) { }
@@ -34,4 +40,4 @@ class Init::Verbose : Genode::Noncopyable
 		bool enabled() const { return _enabled; }
 };
 
-#endif /* _SRC__INIT__VERBOSE_H_ */
+#endif /* _LIB__SANDBOX__VERBOSE_H_ */

@@ -17,7 +17,7 @@
 #include <child.h>
 
 
-void Init::Child::destroy_services()
+void Sandbox::Child::destroy_services()
 {
 	_child_services.for_each([&] (Routed_service &service) {
 		if (service.has_id_space(_session_requester.id_space()))
@@ -25,8 +25,8 @@ void Init::Child::destroy_services()
 }
 
 
-Init::Child::Apply_config_result
-Init::Child::apply_config(Xml_node start_node)
+Sandbox::Child::Apply_config_result
+Sandbox::Child::apply_config(Xml_node start_node)
 {
 	if (_state == STATE_ABANDONED || _exited)
 		return NO_SIDE_EFFECTS;
@@ -166,7 +166,7 @@ Init::Child::apply_config(Xml_node start_node)
 }
 
 
-Init::Ram_quota Init::Child::_configured_ram_quota() const
+Sandbox::Ram_quota Sandbox::Child::_configured_ram_quota() const
 {
 	size_t assigned = 0;
 
@@ -178,7 +178,7 @@ Init::Ram_quota Init::Child::_configured_ram_quota() const
 }
 
 
-Init::Cap_quota Init::Child::_configured_cap_quota() const
+Sandbox::Cap_quota Sandbox::Child::_configured_cap_quota() const
 {
 	size_t const default_caps = _default_caps_accessor.default_caps().value;
 
@@ -187,8 +187,8 @@ Init::Cap_quota Init::Child::_configured_cap_quota() const
 
 
 template <typename QUOTA, typename LIMIT_ACCESSOR>
-void Init::Child::_apply_resource_upgrade(QUOTA &assigned, QUOTA const configured,
-                                          LIMIT_ACCESSOR const &limit_accessor)
+void Sandbox::Child::_apply_resource_upgrade(QUOTA &assigned, QUOTA const configured,
+                                             LIMIT_ACCESSOR const &limit_accessor)
 {
 	if (configured.value <= assigned.value)
 		return;
@@ -230,7 +230,7 @@ void Init::Child::_apply_resource_upgrade(QUOTA &assigned, QUOTA const configure
 }
 
 
-void Init::Child::apply_upgrade()
+void Sandbox::Child::apply_upgrade()
 {
 	/* pd_session_cap of exited child is invalid and unusable for transfers */
 	if (_exited)
@@ -251,9 +251,9 @@ void Init::Child::apply_upgrade()
 
 
 template <typename QUOTA, typename CHILD_AVAIL_QUOTA_FN>
-void Init::Child::_apply_resource_downgrade(QUOTA &assigned, QUOTA const configured,
-                                            QUOTA const preserved,
-                                            CHILD_AVAIL_QUOTA_FN const &child_avail_quota_fn)
+void Sandbox::Child::_apply_resource_downgrade(QUOTA &assigned, QUOTA const configured,
+                                               QUOTA const preserved,
+                                               CHILD_AVAIL_QUOTA_FN const &child_avail_quota_fn)
 {
 	if (configured.value >= assigned.value)
 		return;
@@ -287,7 +287,7 @@ void Init::Child::_apply_resource_downgrade(QUOTA &assigned, QUOTA const configu
 }
 
 
-void Init::Child::apply_downgrade()
+void Sandbox::Child::apply_downgrade()
 {
 	Ram_quota const configured_ram_quota = _configured_ram_quota();
 	Cap_quota const configured_cap_quota = _configured_cap_quota();
@@ -322,7 +322,7 @@ void Init::Child::apply_downgrade()
 }
 
 
-void Init::Child::report_state(Xml_generator &xml, Report_detail const &detail) const
+void Sandbox::Child::report_state(Xml_generator &xml, Report_detail const &detail) const
 {
 	if (abandoned())
 		return;
@@ -402,7 +402,7 @@ void Init::Child::report_state(Xml_generator &xml, Report_detail const &detail) 
 }
 
 
-void Init::Child::init(Pd_session &session, Pd_session_capability cap)
+void Sandbox::Child::init(Pd_session &session, Pd_session_capability cap)
 {
 	session.ref_account(_env.pd_session_cap());
 
@@ -425,7 +425,7 @@ void Init::Child::init(Pd_session &session, Pd_session_capability cap)
 }
 
 
-void Init::Child::init(Cpu_session &session, Cpu_session_capability cap)
+void Sandbox::Child::init(Cpu_session &session, Cpu_session_capability cap)
 {
 	static size_t avail = Cpu_session::quota_lim_upscale(                    100, 100);
 	size_t const   need = Cpu_session::quota_lim_upscale(_resources.cpu_quota_pc, 100);
@@ -444,8 +444,9 @@ void Init::Child::init(Cpu_session &session, Cpu_session_capability cap)
 }
 
 
-Init::Child::Route Init::Child::resolve_session_request(Service::Name const &service_name,
-                                                        Session_label const &label)
+Sandbox::Child::Route
+Sandbox::Child::resolve_session_request(Service::Name const &service_name,
+                                        Session_label const &label)
 {
 	/* check for "config" ROM request */
 	if (service_name == Rom_session::service_name() &&
@@ -550,6 +551,14 @@ Init::Child::Route Init::Child::resolve_session_request(Service::Name const &ser
 					} catch (Service_denied) { }
 				}
 
+				if (target.has_type("local")) {
+
+					try {
+						return Route { find_service(_local_services, service_name, no_filter),
+						               target_label, target_diag };
+					} catch (Service_denied) { }
+				}
+
 				if (target.has_type("child")) {
 
 					typedef Name_registry::Name Name;
@@ -596,8 +605,8 @@ Init::Child::Route Init::Child::resolve_session_request(Service::Name const &ser
 }
 
 
-void Init::Child::filter_session_args(Service::Name const &service,
-                                      char *args, size_t args_len)
+void Sandbox::Child::filter_session_args(Service::Name const &service,
+                                         char *args, size_t args_len)
 {
 	/*
 	 * Intercept CPU session requests to scale priorities
@@ -655,7 +664,7 @@ void Init::Child::filter_session_args(Service::Name const &service,
 }
 
 
-Genode::Affinity Init::Child::filter_session_affinity(Affinity const &session_affinity)
+Genode::Affinity Sandbox::Child::filter_session_affinity(Affinity const &session_affinity)
 {
 	Affinity::Space    const &child_space    = _resources.affinity.space();
 	Affinity::Location const &child_location = _resources.affinity.location();
@@ -680,7 +689,7 @@ Genode::Affinity Init::Child::filter_session_affinity(Affinity const &session_af
 }
 
 
-void Init::Child::announce_service(Service::Name const &service_name)
+void Sandbox::Child::announce_service(Service::Name const &service_name)
 {
 	if (_verbose.enabled())
 		log("child \"", name(), "\" announces service \"", service_name, "\"");
@@ -697,7 +706,7 @@ void Init::Child::announce_service(Service::Name const &service_name)
 }
 
 
-void Init::Child::resource_request(Parent::Resource_args const &args)
+void Sandbox::Child::resource_request(Parent::Resource_args const &args)
 {
 	log("child \"", name(), "\" requests resources: ", args);
 
@@ -706,23 +715,24 @@ void Init::Child::resource_request(Parent::Resource_args const &args)
 }
 
 
-Init::Child::Child(Env                      &env,
-                   Allocator                &alloc,
-                   Verbose            const &verbose,
-                   Id                        id,
-                   Report_update_trigger    &report_update_trigger,
-                   Xml_node                  start_node,
-                   Default_route_accessor   &default_route_accessor,
-                   Default_caps_accessor    &default_caps_accessor,
-                   Name_registry            &name_registry,
-                   Ram_quota                 ram_limit,
-                   Cap_quota                 cap_limit,
-                   Ram_limit_accessor       &ram_limit_accessor,
-                   Cap_limit_accessor       &cap_limit_accessor,
-                   Prio_levels               prio_levels,
-                   Affinity::Space const    &affinity_space,
-                   Registry<Parent_service> &parent_services,
-                   Registry<Routed_service> &child_services)
+Sandbox::Child::Child(Env                      &env,
+                      Allocator                &alloc,
+                      Verbose            const &verbose,
+                      Id                        id,
+                      Report_update_trigger    &report_update_trigger,
+                      Xml_node                  start_node,
+                      Default_route_accessor   &default_route_accessor,
+                      Default_caps_accessor    &default_caps_accessor,
+                      Name_registry            &name_registry,
+                      Ram_quota                 ram_limit,
+                      Cap_quota                 cap_limit,
+                      Ram_limit_accessor       &ram_limit_accessor,
+                      Cap_limit_accessor       &cap_limit_accessor,
+                      Prio_levels               prio_levels,
+                      Affinity::Space const    &affinity_space,
+                      Registry<Parent_service> &parent_services,
+                      Registry<Routed_service> &child_services,
+                      Registry<Local_service>  &local_services)
 :
 	_env(env), _alloc(alloc), _verbose(verbose), _id(id),
 	_report_update_trigger(report_update_trigger),
@@ -739,6 +749,7 @@ Init::Child::Child(Env                      &env,
 	_resources_clamped_to_limit((_clamp_resources(ram_limit, cap_limit), true)),
 	_parent_services(parent_services),
 	_child_services(child_services),
+	_local_services(local_services),
 	_session_requester(_env.ep().rpc_ep(), _env.ram(), _env.rm())
 {
 	if (_verbose.enabled()) {
@@ -764,4 +775,4 @@ Init::Child::Child(Env                      &env,
 }
 
 
-Init::Child::~Child() { }
+Sandbox::Child::~Child() { }

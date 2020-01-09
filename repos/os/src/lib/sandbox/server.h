@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _SRC__INIT__SERVER_H_
-#define _SRC__INIT__SERVER_H_
+#ifndef _LIB__SANDBOX__SERVER_H_
+#define _LIB__SANDBOX__SERVER_H_
 
 /* Genode includes */
 #include <base/attached_rom_dataspace.h>
@@ -23,11 +23,11 @@
 #include "service.h"
 #include "state_reporter.h"
 
-namespace Init { class Server; }
+namespace Sandbox { class Server; }
 
 
-class Init::Server : Session_state::Ready_callback,
-	                 Session_state::Closed_callback
+class Sandbox::Server : Session_state::Ready_callback,
+                        Session_state::Closed_callback
 {
 	private:
 
@@ -47,7 +47,7 @@ class Init::Server : Session_state::Ready_callback,
 		Id_space<Parent::Server> _server_id_space { };
 
 		/*
-		 * ID space of requests issued to the children of init
+		 * ID space of requests issued to the children
 		 */
 		Id_space<Parent::Client> _client_id_space { };
 
@@ -116,4 +116,4 @@ class Init::Server : Session_state::Ready_callback,
 		void apply_config(Xml_node);
 };
 
-#endif /* _SRC__INIT__SERVER_H_ */
+#endif /* _LIB__SANDBOX__SERVER_H_ */

@@ -11,10 +11,10 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _SRC__INIT__UTIL_H_
-#define _SRC__INIT__UTIL_H_
+#ifndef _LIB__SANDBOX__UTILS_H_
+#define _LIB__SANDBOX__UTILS_H_
 
-namespace Init {
+namespace Sandbox {
 
 	static inline void warn_insuff_quota(size_t const avail)
 	{
@@ -270,4 +270,4 @@ namespace Init {
 	}
 }
 
-#endif /* _SRC__INIT__UTIL_H_ */
+#endif /* _LIB__SANDBOX__UTILS_H_ */

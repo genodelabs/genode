@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _SRC__INIT__CHILD_H_
-#define _SRC__INIT__CHILD_H_
+#ifndef _LIB__SANDBOX__CHILD_H_
+#define _LIB__SANDBOX__CHILD_H_
 
 /* Genode includes */
 #include <base/log.h>
@@ -20,6 +20,7 @@
 #include <os/session_requester.h>
 #include <os/session_policy.h>
 #include <os/buffered_xml.h>
+#include <os/sandbox.h>
 
 /* local includes */
 #include <types.h>
@@ -29,9 +30,9 @@
 #include <service.h>
 #include <utils.h>
 
-namespace Init { class Child; }
+namespace Sandbox { class Child; }
 
-class Init::Child : Child_policy, Routed_service::Wakeup
+class Sandbox::Child : Child_policy, Routed_service::Wakeup
 {
 	public:
 
@@ -255,12 +256,15 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 
 		bool const _resources_clamped_to_limit;
 
+		using Local_service = Genode::Sandbox::Local_service_base;
+
 		Registry<Parent_service> &_parent_services;
 		Registry<Routed_service> &_child_services;
+		Registry<Local_service>  &_local_services;
 
 		struct Inline_config_rom_service : Abandonable, Dynamic_rom_session::Content_producer
 		{
-			typedef Local_service<Dynamic_rom_session> Service;
+			typedef Genode::Local_service<Dynamic_rom_session> Service;
 
 			Child &_child;
 
@@ -480,7 +484,8 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 		      Prio_levels               prio_levels,
 		      Affinity::Space const    &affinity_space,
 		      Registry<Parent_service> &parent_services,
-		      Registry<Routed_service> &child_services);
+		      Registry<Routed_service> &child_services,
+		      Registry<Local_service>  &local_services);
 
 		virtual ~Child();
 
@@ -645,4 +650,4 @@ class Init::Child : Child_policy, Routed_service::Wakeup
 		}
 };
 
-#endif /* _SRC__INIT__CHILD_H_ */
+#endif /* _LIB__SANDBOX__CHILD_H_ */

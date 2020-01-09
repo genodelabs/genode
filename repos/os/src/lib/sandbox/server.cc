@@ -19,11 +19,11 @@
 #include "server.h"
 
 
-/***************************
- ** Init::Server::Service **
- ***************************/
+/******************************
+ ** Sandbox::Server::Service **
+ **********...*****************/
 
-struct Init::Server::Service
+struct Sandbox::Server::Service
 {
 	Registry<Service>::Element _registry_element;
 
@@ -62,8 +62,8 @@ struct Init::Server::Service
 };
 
 
-Init::Server::Route
-Init::Server::Service::resolve_session_request(Session_label const &label)
+Sandbox::Server::Route
+Sandbox::Server::Service::resolve_session_request(Session_label const &label)
 {
 	try {
 		Session_policy policy(label, _service_node.xml());
@@ -95,13 +95,13 @@ Init::Server::Service::resolve_session_request(Session_label const &label)
 }
 
 
-/******************
- ** Init::Server **
- ******************/
+/*********************
+ ** Sandbox::Server **
+ *********************/
 
-Init::Server::Route
-Init::Server::_resolve_session_request(Service::Name const &service_name,
-                                       Session_label const &label)
+Sandbox::Server::Route
+Sandbox::Server::_resolve_session_request(Service::Name const &service_name,
+                                          Session_label const &label)
 {
 	Service *matching_service = nullptr;
 	_services.for_each([&] (Service &service) {
@@ -123,7 +123,7 @@ static void close_session(Genode::Session_state &session)
 }
 
 
-void Init::Server::session_ready(Session_state &session)
+void Sandbox::Server::session_ready(Session_state &session)
 {
 	_report_update_trigger.trigger_report_update();
 
@@ -154,8 +154,8 @@ void Init::Server::session_ready(Session_state &session)
 }
 
 
-void Init::Server::_close_session(Session_state &session,
-                                  Parent::Session_response response)
+void Sandbox::Server::_close_session(Session_state &session,
+                                     Parent::Session_response response)
 {
 	_report_update_trigger.trigger_report_update();
 
@@ -176,14 +176,14 @@ void Init::Server::_close_session(Session_state &session,
 }
 
 
-void Init::Server::session_closed(Session_state &session)
+void Sandbox::Server::session_closed(Session_state &session)
 {
 	_close_session(session, Parent::SESSION_CLOSED);
 }
 
 
-void Init::Server::_handle_create_session_request(Xml_node request,
-                                                  Parent::Client::Id id)
+void Sandbox::Server::_handle_create_session_request(Xml_node request,
+                                                     Parent::Client::Id id)
 {
 	/*
 	 * Ignore requests that are already successfully forwarded (by a prior call
@@ -287,8 +287,8 @@ void Init::Server::_handle_create_session_request(Xml_node request,
 }
 
 
-void Init::Server::_handle_upgrade_session_request(Xml_node request,
-                                                   Parent::Client::Id id)
+void Sandbox::Server::_handle_upgrade_session_request(Xml_node request,
+                                                      Parent::Client::Id id)
 {
 	_client_id_space.apply<Session_state>(id, [&] (Session_state &session) {
 
@@ -321,14 +321,14 @@ void Init::Server::_handle_upgrade_session_request(Xml_node request,
 }
 
 
-void Init::Server::_handle_close_session_request(Xml_node, Parent::Client::Id id)
+void Sandbox::Server::_handle_close_session_request(Xml_node, Parent::Client::Id id)
 {
 	_client_id_space.apply<Session_state>(id, [&] (Session_state &session) {
 		close_session(session); });
 }
 
 
-void Init::Server::_handle_session_request(Xml_node request)
+void Sandbox::Server::_handle_session_request(Xml_node request)
 {
 	if (!request.has_attribute("id"))
 		return;
@@ -350,7 +350,7 @@ void Init::Server::_handle_session_request(Xml_node request)
 }
 
 
-void Init::Server::_handle_session_requests()
+void Sandbox::Server::_handle_session_requests()
 {
 	_session_requests->update();
 
@@ -363,7 +363,7 @@ void Init::Server::_handle_session_requests()
 }
 
 
-void Init::Server::apply_config(Xml_node config)
+void Sandbox::Server::apply_config(Xml_node config)
 {
 	_services.for_each([&] (Service &service) { destroy(_alloc, &service); });
 

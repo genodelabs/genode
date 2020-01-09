@@ -1,5 +1,5 @@
 /*
- * \brief  Init-state reporting mechanism
+ * \brief  State reporting mechanism
  * \author Norman Feske
  * \date   2017-03-03
  */
@@ -11,8 +11,8 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _SRC__INIT__STATE_REPORTER_H_
-#define _SRC__INIT__STATE_REPORTER_H_
+#ifndef _LIB__SANDBOX__STATE_REPORTER_H_
+#define _LIB__SANDBOX__STATE_REPORTER_H_
 
 /* Genode includes */
 #include <os/reporter.h>
@@ -21,9 +21,9 @@
 /* local includes */
 #include "report.h"
 
-namespace Init { class State_reporter; }
+namespace Sandbox { class State_reporter; }
 
-class Init::State_reporter : public Report_update_trigger
+class Sandbox::State_reporter : public Report_update_trigger
 {
 	public:
 
@@ -149,9 +149,9 @@ class Init::State_reporter : public Report_update_trigger
 			 * If the report features information about child-RAM quotas, we
 			 * update the report periodically. Even in the absence of any other
 			 * report-triggering event, a child may consume/free RAM from its
-			 * RAM session without any interplay with init. The periodic
-			 * reports ensure that such changes are reflected by init's state
-			 * report.
+			 * RAM session without any interplay with the sandbox. The periodic
+			 * reports ensure that such changes are reflected by the sandbox'
+			 * state report.
 			 *
 			 * By default, the interval is one second. However, when the
 			 * 'delay_ms' attribute is defined with a higher value than that,
@@ -194,4 +194,4 @@ class Init::State_reporter : public Report_update_trigger
 		}
 };
 
-#endif /* _SRC__INIT__STATE_REPORTER_H_ */
+#endif /* _LIB__SANDBOX__STATE_REPORTER_H_ */

@@ -11,19 +11,19 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
-#ifndef _SRC__INIT__REPORT_H_
-#define _SRC__INIT__REPORT_H_
+#ifndef _LIB__SANDBOX__REPORT_H_
+#define _LIB__SANDBOX__REPORT_H_
 
 #include <util/noncopyable.h>
 #include <util/xml_node.h>
 
-namespace Init {
+namespace Sandbox {
 	struct Report_update_trigger;
 	struct Report_detail;
 }
 
 
-class Init::Report_detail : Genode::Noncopyable
+class Sandbox::Report_detail : Genode::Noncopyable
 {
 	private:
 
@@ -66,7 +66,7 @@ class Init::Report_detail : Genode::Noncopyable
 };
 
 
-struct Init::Report_update_trigger : Interface
+struct Sandbox::Report_update_trigger : Interface
 {
 	/**
 	 * Trigger regular (rate-limited) report update
@@ -84,4 +84,4 @@ struct Init::Report_update_trigger : Interface
 	virtual void trigger_immediate_report_update() = 0;
 };
 
-#endif /* _SRC__INIT__REPORT_H_ */
+#endif /* _LIB__SANDBOX__REPORT_H_ */
