@@ -328,6 +328,7 @@ struct Wm::Decorator_nitpicker_session : Genode::Rpc_object<Nitpicker::Session>,
 				Nitpicker::View_capability view_cap =
 					_content_callback.content_view(win_id);
 
+				_nitpicker_session.destroy_view(view_handle);
 				_nitpicker_session.view_handle(view_cap, view_handle);
 
 				_nitpicker_session.enqueue(cmd);
