@@ -121,6 +121,8 @@ class Vfs_server::Session_component : private Session_resources,
 
 		bool const _writeable;
 
+		bool _stalled = false;
+
 
 		/****************************
 		 ** Handle to node mapping **
@@ -217,16 +219,19 @@ class Vfs_server::Session_component : private Session_resources,
 						switch (node.submit_job(packet, payload_ptr)) {
 
 						case Node::Submit_result::ACCEPTED:
+							_stalled = false;
 							if (!node.enqueued())
 								_active_nodes.enqueue(node);
 							drop_packet_from_submit_queue();
 							break;
 
 						case Node::Submit_result::DENIED:
+							_stalled = false;
 							consume_and_ack_invalid_packet();
 							break;
 
 						case Node::Submit_result::STALLED:
+							_stalled = true;
 							/* keep request packet in submit queue */
 							break;
 						}
@@ -347,9 +352,13 @@ class Vfs_server::Session_component : private Session_resources,
 			                        : Process_packets_result::NONE;
 		}
 
+		/*
+		 * This method is called from 'handle_io_progress()' whenever the
+		 * session was active.
+		 */
 		bool no_longer_active() const
 		{
-			return Session_queue::Element::enqueued() && _active_nodes.empty();
+			return _active_nodes.empty() && !_stalled;
 		}
 
 		bool no_longer_idle() const
@@ -366,7 +375,7 @@ class Vfs_server::Session_component : private Session_resources,
 		{
 			Process_packets_result const progress = process_packets();
 
-			if (no_longer_idle())
+			if (no_longer_idle() || _stalled)
 				_active_sessions.enqueue(*this);
 
 			if (progress == Process_packets_result::TOO_MUCH_PROGRESS)
