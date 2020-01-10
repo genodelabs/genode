@@ -1770,11 +1770,12 @@ class Vfs::Lxip_file_system : public Vfs::File_system,
 			if (dynamic_cast<Vfs::Directory*>(node)) {
 				out.type = Node_type::DIRECTORY;
 				out.rwx  = Node_rwx::rwx();
+				out.size = 1;
 				return STAT_OK;
 			}
 
-			if (dynamic_cast<Lxip_file*>(node)) {
-				out.type = Node_type::TRANSACTIONAL_FILE;
+			if (dynamic_cast<Lxip_data_file*>(node)) {
+				out.type = Node_type::CONTINUOUS_FILE;
 				out.rwx  = Node_rwx::rw();
 				out.size = 0;
 				return STAT_OK;
