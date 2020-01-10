@@ -6,3 +6,4 @@ _/src/posix
 _/src/libc
 _/src/vfs
 _/src/vfs_lxip
+_/src/sequence
