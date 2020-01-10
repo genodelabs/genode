@@ -11,24 +11,27 @@
  * version 2.
  */
 
-/*******************
- ** asm/barrier.h **
- *******************/
+/*******************************************
+ ** source/arch/arm/include/asm/barrier.h **
+ *******************************************/
 
-#define mb()  asm volatile ("": : :"memory")
+#define dsb() asm volatile ("mcr p15, 0, %0, c7, c10, 4": : "r" (0) : "memory")
+#define dmb() asm volatile ("mcr p15, 0, %0, c7, c10, 5": : "r" (0) : "memory")
+
+#define mb()  dsb()
 #define rmb() mb()
-#define wmb() asm volatile ("": : :"memory")
+#define wmb() dsb()
 
-#define dma_wmb() barrier()
-#define dma_rmb() barrier()
+#define dma_wmb() dmb()
+#define dma_rmb() dmb()
 
 /*
  * This is the "safe" implementation as needed for a configuration
  * with SMP enabled.
  */
 
-#define smp_mb()  asm volatile ("": : :"memory")
+#define smp_mb()  dmb()
 #define smp_rmb() smp_mb()
-#define smp_wmb() asm volatile ("": : :"memory")
+#define smp_wmb() dmb()
 
 static inline void barrier() { asm volatile ("": : :"memory"); }
