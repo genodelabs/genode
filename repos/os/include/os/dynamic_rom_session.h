@@ -15,6 +15,7 @@
 #define _INCLUDE__OS__DYNAMIC_ROM_SESSION_H_
 
 #include <util/reconstructible.h>
+#include <util/xml_generator.h>
 #include <base/rpc_server.h>
 #include <base/session_label.h>
 #include <base/attached_ram_dataspace.h>
@@ -29,7 +30,7 @@ class Genode::Dynamic_rom_session : public Rpc_object<Rom_session>
 
 		struct Content_producer : Interface
 		{
-			class Buffer_capacity_exceeded : Exception { };
+			using Buffer_capacity_exceeded = Xml_generator::Buffer_exceeded;
 
 			/**
 			 * Write content into the specified buffer
@@ -37,6 +38,34 @@ class Genode::Dynamic_rom_session : public Rpc_object<Rom_session>
 			 * \throw  Buffer_capacity_exceeded
 			 */
 			virtual void produce_content(char *dst, size_t dst_len) = 0;
+		};
+
+		class Xml_producer : public Content_producer
+		{
+			public:
+
+				typedef String<64> Node_name;
+
+			private:
+
+				Node_name const _node_name;
+
+				void produce_content(char *dst, size_t dst_len) override
+				{
+					Xml_generator xml(dst, dst_len, _node_name.string(), [&] () {
+						produce_xml(xml); });
+				}
+
+			public:
+
+				Xml_producer(Node_name node_name) : _node_name(node_name) { }
+
+				/**
+				 * Generate ROM content
+				 *
+				 * \throw Xml_generator::Buffer_exceeded
+				 */
+				virtual void produce_xml(Xml_generator &) = 0;
 		};
 
 	private:
@@ -131,6 +160,16 @@ class Genode::Dynamic_rom_session : public Rpc_object<Rom_session>
 
 	public:
 
+		Dynamic_rom_session(Rpc_entrypoint   &ep,
+		                    Ram_allocator    &ram,
+		                    Region_map       &rm,
+		                    Content_producer &content_producer)
+		:
+			_ep(ep), _ram(ram), _rm(rm), _content_producer(content_producer)
+		{
+			_ep.manage(this);
+		}
+
 		/**
 		 * Constructor
 		 *
@@ -146,15 +185,13 @@ class Genode::Dynamic_rom_session : public Rpc_object<Rom_session>
 		 *
 		 * The 'Dynamic_rom_session' associates/disassociates itself with 'ep'.
 		 */
-		Dynamic_rom_session(Rpc_entrypoint   &ep,
+		Dynamic_rom_session(Entrypoint       &ep,
 		                    Ram_allocator    &ram,
 		                    Region_map       &rm,
 		                    Content_producer &content_producer)
 		:
-			_ep(ep), _ram(ram), _rm(rm), _content_producer(content_producer)
-		{
-			_ep.manage(this);
-		}
+			Dynamic_rom_session(ep.rpc_ep(), ram, rm, content_producer)
+		{ }
 
 		~Dynamic_rom_session() { _ep.dissolve(this); }
 
