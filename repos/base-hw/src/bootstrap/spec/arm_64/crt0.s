@@ -11,22 +11,25 @@
  * under the terms of the GNU Affero General Public License version 3.
  */
 
+/**
+ * Store CPU number in register x0
+ */
+.macro _cpu_number
+	mrs x0, mpidr_el1
+	and x0, x0, #0b11111111
+.endm
+
 .section ".text.crt0"
 
 	.global _start
 	_start:
 
-	/***********************
-	 ** Detect CPU number **
-	 ***********************/
-
-	mrs x0, mpidr_el1
-	and x0, x0, #0b11111111
-	cbz x0, _crt0_fill_bss_zero
-
 	/**
 	 * Hack for Qemu, which starts all cpus at once
+	 * only first CPU runs through, all others wait for wakeup
 	 */
+	_cpu_number
+	cbz x0, _crt0_fill_bss_zero
 	1:
 	ldr  x1, =_crt0_qemu_start_secondary_cpus
 	ldr  w1, [x1]
@@ -52,11 +55,18 @@
 	b 1b
 
 
+	/************************************
+	 ** Common Entrypoint for all CPUs **
+	 ************************************/
+
+	.global _crt0_start_secondary
+	_crt0_start_secondary:
+
+
 	/****************
 	 ** Enable FPU **
 	 ****************/
 
-	.global _crt0_enable_fpu
 	_crt0_enable_fpu:
 	mov x1, #0b11
 	lsl x1, x1, #20
@@ -69,6 +79,7 @@
 
 	.set STACK_SIZE, 0x2000
 
+	_cpu_number
 	ldr x1, =_crt0_start_stack
 	ldr x2, [x1]
 	mul x0, x0, x2
@@ -82,4 +93,3 @@
 	.endr
 	_crt0_start_stack:
 	.long STACK_SIZE
-

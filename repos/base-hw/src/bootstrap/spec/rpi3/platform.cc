@@ -30,8 +30,16 @@ Bootstrap::Platform::Board::Board()
 
 extern unsigned int _crt0_qemu_start_secondary_cpus;
 
-void Board::Cpu::wake_up_all_cpus(void *)
+void Board::Cpu::wake_up_all_cpus(void * ip)
 {
+	/* start when in qemu */
 	_crt0_qemu_start_secondary_cpus = 1;
-	asm volatile("dsb #0; sev");
+
+	/* start on real hardware */
+	*((void * volatile *) 0xe0) = ip;   /* cpu 1 */
+	*((void * volatile *) 0xe8) = ip;   /* cpu 2 */
+	*((void * volatile *) 0xf0) = ip;   /* cpu 3 */
+
+	/* send event for both variants */
+	asm volatile("dsb #15; sev");
 }
