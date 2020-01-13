@@ -556,16 +556,10 @@ Platform::Platform()
 	for (unsigned i = 0; i < num_mem_desc; i++, mem_desc++) {
 		if (mem_desc->type == Hip::Mem_desc::AVAILABLE_MEMORY) continue;
 
-		if (verbose_boot_info)
-			log("detected res memory: ", Hex(mem_desc->addr), " - size: ",
-			    Hex(mem_desc->size), " type=", (int)mem_desc->type);
 		if (mem_desc->type == Hip::Mem_desc::HYPERVISOR_LOG) {
 			hyp_log = mem_desc->addr;
 			hyp_log_size = mem_desc->size;
 		}
-
-		/* skip regions above 4G on 32 bit, no op on 64 bit */
-		if (mem_desc->addr > ~0UL) continue;
 
 		addr_t base = trunc_page(mem_desc->addr);
 		size_t size = mem_desc->size;
@@ -577,6 +571,13 @@ Platform::Platform()
 			/* calculate size of framebuffer */
 			size = pitch * height;
 		}
+
+		if (verbose_boot_info)
+			log("reserved memory: ", Hex(mem_desc->addr), " - size: ",
+			    Hex(size), " type=", (int)mem_desc->type);
+
+		/* skip regions above 4G on 32 bit, no op on 64 bit */
+		if (mem_desc->addr > ~0UL) continue;
 
 		/* truncate size if base+size larger then natural 32/64 bit boundary */
 		if (mem_desc->addr + size < mem_desc->addr)
