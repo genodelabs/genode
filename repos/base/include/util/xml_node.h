@@ -16,11 +16,13 @@
 
 #include <base/log.h>
 #include <util/token.h>
+#include <util/noncopyable.h>
 #include <base/exception.h>
 
 namespace Genode {
 	class Xml_attribute;
 	class Xml_node;
+	class Xml_unquoted;
 }
 
 
@@ -275,6 +277,8 @@ class Genode::Xml_node
 		 * Forward declaration needed for befriending Tag with Xml_attribute
 		 */
 		class Tag;
+
+		friend class Xml_unquoted;
 
 	public:
 
@@ -1102,6 +1106,40 @@ class Genode::Xml_node
 		{
 			return size() != another.size() ||
 			       memcmp(_addr, another._addr, size()) != 0;
+		}
+};
+
+
+class Genode::Xml_unquoted : Noncopyable
+{
+	private:
+
+		struct
+		{
+			char const *base;
+			size_t      len;
+		} const _content_ptr;
+
+	public:
+
+		template <size_t N>
+		Xml_unquoted(String<N> const &string)
+		: _content_ptr({ string.string(), string.length() - 1})
+		{ }
+
+		void print(Output &out) const
+		{
+			char const *src = _content_ptr.base;
+			size_t      len = _content_ptr.len;
+
+			while (len > 0) {
+				Xml_node::Decoded_character const decoded_character(src, len);
+
+				Genode::print(out, Char(decoded_character.character));
+
+				src += decoded_character.encoded_len;
+				len -= decoded_character.encoded_len;
+			}
 		}
 };
 
