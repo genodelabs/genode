@@ -667,7 +667,7 @@ dma_addr_t dma_map_single_attrs(struct device *dev, void *ptr,
 	dma_addr_t phys = (dma_addr_t)Lx::Malloc::dma().phys_addr(ptr);
 
 	if (phys == ~0UL)
-		Genode::error("translation virt->phys ", ptr, "->", Genode::Hex(phys), "failed, return ip ",
+		Genode::error("translation virt->phys ", ptr, "->", Genode::Hex(phys), " failed, return ip ",
 		     __builtin_return_address(0));
 
 	lx_log(DEBUG_DMA, "virt: %p phys: %lx", ptr, phys);
