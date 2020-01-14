@@ -319,6 +319,7 @@ void Init::Main::_handle_config()
 
 	Prio_levels     const prio_levels    = prio_levels_from_xml(_config_xml);
 	Affinity::Space const affinity_space = affinity_space_from_xml(_config_xml);
+	bool            const space_defined  = _config_xml.has_sub_node("affinity-space");
 
 	_update_aliases_from_config();
 	_update_parent_services_from_config();
@@ -361,8 +362,10 @@ void Init::Main::_handle_config()
 
 			unsigned num_abandoned = 0;
 
+			Child_policy::Name const child_name(start_node.attribute_value("name", Child_policy::Name()));
+
 			_children.for_each_child([&] (Child const &child) {
-				if (child.name() == start_node.attribute_value("name", Child_policy::Name())) {
+				if (child.name() == child_name) {
 					if (child.abandoned())
 						num_abandoned++;
 					else
@@ -379,13 +382,18 @@ void Init::Main::_handle_config()
 				return;
 
 			if (used_ram.value > avail_ram.value) {
-				error("RAM exhausted while starting childen");
+				error("RAM exhausted while starting child: ", child_name);
 				return;
 			}
 
 			if (used_caps.value > avail_caps.value) {
-				error("capabilities exhausted while starting childen");
+				error("capabilities exhausted while starting child: ", child_name);
 				return;
+			}
+
+			if (!space_defined && start_node.has_sub_node("affinity")) {
+				warning("affinity-space configuration missing, "
+				        "but affinity defined for child: ", child_name);
 			}
 
 			try {
@@ -453,7 +461,7 @@ void Init::Main::_handle_config()
 			child.initiate_env_sessions(); });
 
 	/*
-	 * (Re-)distribute RAM and capability quota among the childen, given their
+	 * (Re-)distribute RAM and capability quota among the children, given their
 	 * resource assignments and the available slack memory. We first apply
 	 * possible downgrades to free as much resources as we can. These resources
 	 * are then incorporated in the subsequent upgrade step.
