@@ -463,6 +463,7 @@ struct Sculpt::Main : Input_event_handler,
 
 	void _handle_runtime_state();
 
+	Attached_rom_dataspace const _platform { _env, "platform_info" };
 
 	/****************************************
 	 ** Cached model of the runtime config **
@@ -1300,6 +1301,13 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 		gen_parent_service<Io_mem_session>(xml);
 		gen_parent_service<Io_port_session>(xml);
 		gen_parent_service<Irq_session>(xml);
+	});
+
+	_platform.xml().with_sub_node("affinity-space", [&] (Xml_node const &node) {
+		xml.node("affinity-space", [&] () {
+			xml.attribute("width",  node.attribute_value("width",  1U));
+			xml.attribute("height", node.attribute_value("height", 1U));
+		});
 	});
 
 	xml.node("start", [&] () {
