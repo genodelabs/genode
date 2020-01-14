@@ -705,6 +705,10 @@ Platform::Platform()
 						if (xsdt)
 							xml.attribute("xsdt", String<32>(Hex(xsdt)));
 					});
+					xml.node("affinity-space", [&] () {
+						xml.attribute("width", _cpus.width());
+						xml.attribute("height", _cpus.height());
+					});
 					xml.node("boot", [&] () {
 						if (!boot_fb)
 							return;

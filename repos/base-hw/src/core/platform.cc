@@ -130,6 +130,10 @@ void Platform::_init_platform_info()
 	{
 		xml.node("kernel", [&] () { xml.attribute("name", "hw"); });
 		_init_additional_platform_info(xml);
+		xml.node("affinity-space", [&] () {
+			xml.attribute("width", affinity_space().width());
+			xml.attribute("height", affinity_space().height());
+		});
 	});
 
 	if (!unmap_local(virt_addr, pages)) {
