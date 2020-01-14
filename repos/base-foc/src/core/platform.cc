@@ -495,6 +495,10 @@ Platform::Platform() :
 			xml.node("hardware", [&] () {
 				_setup_platform_info(xml, sigma0_map_kip());
 			});
+			xml.node("affinity-space", [&] () {
+				xml.attribute("width", affinity_space().width());
+				xml.attribute("height", affinity_space().height());
+			});
 		});
 
 		_rom_fs.insert(new (core_mem_alloc()) Rom_module(phys_addr, size,

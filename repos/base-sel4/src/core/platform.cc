@@ -417,6 +417,10 @@ void Platform::_init_rom_modules()
 						xml.attribute("freq_khz" , boot_freq->freq_mhz * 1000UL);
 					});
 				});
+				xml.node("affinity-space", [&] () {
+					xml.attribute("width", affinity_space().width());
+					xml.attribute("height", affinity_space().height());
+				});
 			}
 
 			if (element->id == SEL4_BOOTINFO_HEADER_X86_FRAMEBUFFER) {
