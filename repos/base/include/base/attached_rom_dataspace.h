@@ -85,7 +85,7 @@ class Genode::Attached_rom_dataspace
 		template <typename T> T const *local_addr() const {
 			return _ds->local_addr<T const>(); }
 
-		size_t size() const { return _ds->size(); }
+		size_t size() const { return _ds.constructed() ? _ds->size() : 0; }
 
 		/**
 		 * Register signal handler for ROM module changes
