@@ -78,9 +78,28 @@ class Menu_view::Widget : List_model<Widget>::Element
 			 */
 			Unique_id() { }
 
-			bool operator != (Unique_id const &other) { return other.value != value; }
+			bool operator != (Unique_id const &other) const
+			{
+				return other.value != value;
+			}
 
 			bool valid() const { return value != 0; }
+		};
+
+		struct Hovered
+		{
+			/* widget */
+			Unique_id unique_id;
+
+			/* widget-local detail */
+			using Detail = String<16>;
+
+			Detail detail;
+
+			bool operator != (Hovered const &other) const
+			{
+				return (unique_id != other.unique_id) || (detail != other.detail);
+			}
 		};
 
 		static Name node_name(Xml_node node)
@@ -90,15 +109,13 @@ class Menu_view::Widget : List_model<Widget>::Element
 
 		static Animated_rect::Steps motion_steps() { return { 60 }; };
 
-	private:
+	protected:
 
 		Type_name const _type_name;
 		Name      const _name;
 		Version   const _version { };
 
 		Unique_id const _unique_id;
-
-	protected:
 
 		Widget_factory &_factory;
 
@@ -169,6 +186,15 @@ class Menu_view::Widget : List_model<Widget>::Element
 				_animated_geometry.move_to(_geometry, motion_steps());
 		}
 
+		void _gen_common_hover_attr(Xml_generator &xml) const
+		{
+			xml.attribute("name",   _name.string());
+			xml.attribute("xpos",   geometry().x1());
+			xml.attribute("ypos",   geometry().y1());
+			xml.attribute("width",  geometry().w());
+			xml.attribute("height", geometry().h());
+		}
+
 	public:
 
 		Margin margin { 0, 0, 0, 0 };
@@ -233,16 +259,16 @@ class Menu_view::Widget : List_model<Widget>::Element
 		 *
 		 * This function is used to track changes of the hover model.
 		 */
-		virtual Unique_id hovered(Point at) const
+		virtual Hovered hovered(Point at) const
 		{
 			if (!_inner_geometry().contains(at))
-				return Unique_id();
+				return { };
 
-			Unique_id result = _unique_id;
+			Hovered result { .unique_id = _unique_id, .detail = { } };
 			_children.for_each([&] (Widget const &w) {
-				Unique_id const id = w.hovered(at - w.geometry().p1());
-				if (id.valid())
-					result = id;
+				Hovered const hovered = w.hovered(at - w.geometry().p1());
+				if (hovered.unique_id.valid())
+					result = hovered;
 			});
 
 			return result;
@@ -259,11 +285,7 @@ class Menu_view::Widget : List_model<Widget>::Element
 
 				xml.node(_type_name.string(), [&]() {
 
-					xml.attribute("name",   _name.string());
-					xml.attribute("xpos",   geometry().x1());
-					xml.attribute("ypos",   geometry().y1());
-					xml.attribute("width",  geometry().w());
-					xml.attribute("height", geometry().h());
+					_gen_common_hover_attr(xml);
 
 					_children.for_each([&] (Widget const &w) {
 						w.gen_hover_model(xml, at - w.geometry().p1()); });

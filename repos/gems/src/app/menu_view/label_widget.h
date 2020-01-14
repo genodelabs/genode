@@ -88,12 +88,39 @@ struct Menu_view::Label_widget : Widget, Cursor::Glyph_position
 	/**
 	 * Cursor::Glyph_position interface
 	 */
-	 int xpos_of_glyph(unsigned at) const override
-	 {
-		Text const truncated_at(Cstring(_text.string(), at));
+	int xpos_of_glyph(unsigned at) const override
+	{
+		return _font->string_width(_text.string(), at).decimal();
+	}
 
-		return _font->string_width(truncated_at.string()).decimal();
-	 }
+	unsigned _char_index_at_xpos(unsigned xpos) const
+	{
+		return _font->index_at_xpos(_text.string(), xpos);
+	}
+
+	Hovered hovered(Point at) const override
+	{
+		Unique_id const hovered_id = Widget::hovered(at).unique_id;
+
+		if (!hovered_id.valid())
+			return Hovered { .unique_id = hovered_id, .detail = { } };
+
+		return { .unique_id = hovered_id,
+		         .detail    = { _char_index_at_xpos(at.x()) } };
+	}
+
+	void gen_hover_model(Xml_generator &xml, Point at) const override
+	{
+		if (_inner_geometry().contains(at)) {
+
+			xml.node(_type_name.string(), [&]() {
+
+				_gen_common_hover_attr(xml);
+
+				xml.attribute("at", _char_index_at_xpos(at.x()));
+			});
+		}
+	}
 
 	private:
 
