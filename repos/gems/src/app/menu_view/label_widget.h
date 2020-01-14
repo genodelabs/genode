@@ -47,6 +47,7 @@ struct Menu_view::Label_widget : Widget, Cursor::Glyph_position
 	{
 		_font = _factory.styles.font(node);
 		_text = node.attribute_value("text", Text(""));
+		_text = Xml_unquoted(_text);
 
 		_cursors.update_from_xml(_cursor_update_policy, node);
 	}
