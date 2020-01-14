@@ -60,7 +60,10 @@ class Vfs::Rom_file_system : public Single_file_system
 				               Genode::Allocator              &alloc,
 				               Genode::Attached_rom_dataspace &rom,
 				               Rom_type                        type)
-				: Single_vfs_handle(ds, fs, alloc, 0), _rom(rom), _content_size(_init_content_size(type)) { }
+				:
+					Single_vfs_handle(ds, fs, alloc, 0),
+					_rom(rom), _content_size(_init_content_size(type))
+				{ }
 
 				Read_result read(char *dst, file_size count,
 				                 file_size &out_count) override
@@ -74,14 +77,14 @@ class Vfs::Rom_file_system : public Single_file_system
 					/* maximum read offset, clamped to dataspace size */
 					file_size const end_offset = min(count + read_offset, max_size);
 
-					/* source address within the dataspace */
-					char const *src = _rom.local_addr<char>() + read_offset;
-
 					/* check if end of file is reached */
 					if (read_offset >= end_offset) {
 						out_count = 0;
 						return READ_OK;
 					}
+
+					/* source address within the dataspace */
+					char const *src = _rom.local_addr<char>() + read_offset;
 
 					/* copy-out bytes from ROM dataspace */
 					file_size const num_bytes = end_offset - read_offset;
