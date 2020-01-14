@@ -16,43 +16,55 @@
 
 /* local includes */
 #include <widget_factory.h>
+#include <cursor.h>
 
 namespace Menu_view { struct Label_widget; }
 
-struct Menu_view::Label_widget : Widget
+struct Menu_view::Label_widget : Widget, Cursor::Glyph_position
 {
-	Text_painter::Font const *font = nullptr;
+	Text_painter::Font const *_font = nullptr;
 
 	enum { LABEL_MAX_LEN = 256 };
 
 	typedef String<200> Text;
-	Text text { };
+	Text _text { };
+
+	Cursor::Model_update_policy _cursor_update_policy;
+
+	List_model<Cursor> _cursors { };
 
 	Label_widget(Widget_factory &factory, Xml_node node, Unique_id unique_id)
 	:
-		Widget(factory, node, unique_id)
+		Widget(factory, node, unique_id), _cursor_update_policy(factory, *this)
 	{ }
+
+	~Label_widget()
+	{
+		_cursors.destroy_all_elements(_cursor_update_policy);
+	}
 
 	void update(Xml_node node) override
 	{
-		font = _factory.styles.font(node);
-		text = node.attribute_value("text", Text(""));
+		_font = _factory.styles.font(node);
+		_text = node.attribute_value("text", Text(""));
+
+		_cursors.update_from_xml(_cursor_update_policy, node);
 	}
 
 	Area min_size() const override
 	{
-		if (!font)
+		if (!_font)
 			return Area(0, 0);
 
-		return Area(font->string_width(text.string()).decimal(),
-		            font->height());
+		return Area(_font->string_width(_text.string()).decimal(),
+		            _font->height());
 	}
 
 	void draw(Surface<Pixel_rgb888> &pixel_surface,
 	          Surface<Pixel_alpha8> &alpha_surface,
 	          Point at) const override
 	{
-		if (!font) return;
+		if (!_font) return;
 
 		Area text_size = min_size();
 
@@ -63,12 +75,25 @@ struct Menu_view::Label_widget : Widget
 
 		Text_painter::paint(pixel_surface,
 		                    Text_painter::Position(centered.x(), centered.y()),
-		                    *font, Color(0, 0, 0), text.string());
+		                    *_font, Color(0, 0, 0), _text.string());
 
 		Text_painter::paint(alpha_surface,
 		                    Text_painter::Position(centered.x(), centered.y()),
-		                    *font, Color(255, 255, 255), text.string());
+		                    *_font, Color(255, 255, 255), _text.string());
+
+		_cursors.for_each([&] (Cursor const &cursor) {
+			cursor.draw(pixel_surface, alpha_surface, at, text_size.h()); });
 	}
+
+	/**
+	 * Cursor::Glyph_position interface
+	 */
+	 int xpos_of_glyph(unsigned at) const override
+	 {
+		Text const truncated_at(Cstring(_text.string(), at));
+
+		return _font->string_width(truncated_at.string()).decimal();
+	 }
 
 	private:
 
