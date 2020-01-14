@@ -673,8 +673,8 @@ Genode::Affinity Init::Child::filter_session_affinity(Affinity const &session_af
 	/* subordinate session affinity to child affinity subspace */
 	Affinity::Location location(child_location
 	                            .multiply_position(session_space)
-	                            .transpose(session_location.xpos(),
-	                                       session_location.ypos()));
+	                            .transpose(session_location.xpos() * child_space.width(),
+	                                       session_location.ypos() * child_space.height()));
 
 	return Affinity(space, location);
 }
