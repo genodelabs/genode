@@ -97,6 +97,20 @@ struct Text_painter
 
 				return result;
 			}
+
+			unsigned index_at_xpos(Genode::Utf8_ptr utf8, unsigned xpos) const
+			{
+				unsigned index = 0;
+				Fixpoint_number x { (int)0 };
+
+				for (; utf8.complete(); utf8 = utf8.next(), index++) {
+					x.value += advance_info(utf8.codepoint()).advance.value;
+					if (x.decimal() > (int)xpos)
+						break;
+				}
+
+				return index;
+			}
 	};
 
 
