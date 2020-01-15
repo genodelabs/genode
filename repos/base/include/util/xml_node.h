@@ -14,6 +14,7 @@
 #ifndef _INCLUDE__UTIL__XML_NODE_H_
 #define _INCLUDE__UTIL__XML_NODE_H_
 
+#include <base/log.h>
 #include <util/token.h>
 #include <base/exception.h>
 
@@ -45,8 +46,22 @@ class Genode::Xml_attribute
 		 */
 		typedef ::Genode::Token<Scanner_policy_xml_identifier> Token;
 
-		Token _name;
-		Token _value;
+		struct Tokens
+		{
+			Token name;
+			Token value;
+
+			Tokens(Token t)
+			: name(t.eat_whitespace()), value(name.next().next()) { };
+
+			bool valid() const
+			{
+				bool const tag_present   = (name.type() == Token::IDENT);
+				bool const value_present = (name.next()[0] == '=' &&
+				                            value.type() == Token::STRING);
+				return tag_present && value_present;
+			}
+		} _tokens;
 
 		friend class Xml_node;
 
@@ -59,26 +74,30 @@ class Genode::Xml_attribute
 		friend class Tag;
 
 		/**
+		 * Return true if token refers to a valid attribute
+		 */
+		static bool _valid(Token t) { return Tokens(t).valid(); }
+
+		/**
 		 * Constructor
 		 *
 		 * This constructor is meant to be used as implicitly to
 		 * construct an 'Xml_attribute' from a token sequence via an
 		 * assignment from the leading 'Token'.
 		 */
-		Xml_attribute(Token t) :
-			_name(t.eat_whitespace()), _value(_name.next().next())
+		explicit Xml_attribute(Token t) : _tokens(t)
 		{
-			if (_name.type() != Token::IDENT)
+			if (_tokens.name.type() != Token::IDENT)
 				throw Nonexistent_attribute();
 
-			if (_name.next()[0] != '=' || _value.type() != Token::STRING)
+			if (!_tokens.valid())
 				throw Invalid_syntax();
 		}
 
 		/**
 		 * Return token following the attribute declaration
 		 */
-		Token _next() const { return _name.next().next().next(); }
+		Token _next_token() const { return _tokens.name.next().next().next(); }
 
 	public:
 
@@ -102,20 +121,20 @@ class Genode::Xml_attribute
 			 * Limit number of characters by token length, take
 			 * null-termination into account.
 			 */
-			max_len = min(max_len, _name.len() + 1);
-			strncpy(dst, _name.start(), max_len);
+			max_len = min(max_len, _tokens.name.len() + 1);
+			strncpy(dst, _tokens.name.start(), max_len);
 		}
 
 		typedef String<64> Name;
 		Name name() const {
-			return Name(Cstring(_name.start(), _name.len())); }
+			return Name(Cstring(_tokens.name.start(), _tokens.name.len())); }
 
 		/**
 		 * Return true if attribute has specified type
 		 */
 		bool has_type(char const *type) {
-			return strlen(type) == _name.len() &&
-			       strcmp(type, _name.start(), _name.len()) == 0; }
+			return strlen(type) == _tokens.name.len() &&
+			       strcmp(type, _tokens.name.start(), _tokens.name.len()) == 0; }
 
 		/**
 		 * Return size of value
@@ -123,7 +142,7 @@ class Genode::Xml_attribute
 		 * \deprecated use 'with_raw_node' instead
 		 * \noapi
 		 */
-		char const *value_base() const { return _value.start() + 1; }
+		char const *value_base() const { return _tokens.value.start() + 1; }
 
 		/**
 		 * Return size of the value in bytes
@@ -137,15 +156,15 @@ class Genode::Xml_attribute
 			 * The invariant 'len >= 2' is enforced by the 'Xml_attribute'
 			 * constructor by checking the '_value' type for being a 'STRING'.
 			 */
-			return _value.len() - 2;
+			return _tokens.value.len() - 2;
 		}
 
 		/**
 		 * Return true if attribute has the specified value
 		 */
 		bool has_value(char const *value) const {
-			return strlen(value) == (_value.len() - 2)
-			    && !strcmp(value, _value.start() + 1, _value.len() - 2); }
+			return strlen(value) == (_tokens.value.len() - 2)
+			    && !strcmp(value, _tokens.value.start() + 1, _tokens.value.len() - 2); }
 
 		/**
 		 * Call functor 'fn' with the data of the attribute value as argument
@@ -162,7 +181,7 @@ class Genode::Xml_attribute
 			/*
 			 * Skip leading quote of the '_value' to access the actual value.
 			 */
-			fn(_value.start() + 1, value_size());
+			fn(_tokens.value.start() + 1, value_size());
 		}
 
 		/**
@@ -239,7 +258,7 @@ class Genode::Xml_attribute
 		/**
 		 * Return next attribute in attribute list
 		 */
-		Xml_attribute next() const { return Xml_attribute(_next()); }
+		Xml_attribute next() const { return Xml_attribute(_next_token()); }
 };
 
 
@@ -325,10 +344,8 @@ class Genode::Xml_node
 					/* skip attributes to find tag delimiter */
 					Token delimiter = _name.next();
 					if (supposed_type != END)
-						try {
-							for (Xml_attribute a = _name.next(); ; a = a._next())
-								delimiter = a._next();
-						} catch (Nonexistent_attribute) { }
+						while (Xml_attribute::_valid(delimiter))
+							delimiter = Xml_attribute(delimiter)._next_token();
 
 					delimiter = delimiter.eat_whitespace();
 
@@ -394,6 +411,11 @@ class Genode::Xml_node
 					/* if 't' is invalid, 't.next()' is invalid too */
 					return t.next();
 				}
+
+				/**
+				 * Return true if tag as at least one attribute
+				 */
+				bool has_attribute() const { return Xml_attribute::_valid(_name.next()); }
 
 				/**
 				 * Return first attribute of tag
@@ -505,12 +527,8 @@ class Genode::Xml_node
 			}
 		};
 
-		int _num_sub_nodes { 0 }; /* number of immediate sub nodes */
-
 		char const * _addr;       /* first character of XML data */
 		size_t       _max_len;    /* length of XML data in characters */
-		Tag          _start_tag;
-		Tag          _end_tag;
 
 		/**
 		 * Search matching end tag for given start tag and detemine number of
@@ -611,15 +629,49 @@ class Genode::Xml_node
 			return t;
 		}
 
+		struct Tags
+		{
+			int num_sub_nodes = 0;
+			Tag start;
+			Tag end;
+
+			Tags(char const *addr, size_t max_len)
+			:
+				start(skip_non_tag_characters(Token(addr, max_len))),
+				end(_search_end_tag(start, num_sub_nodes))
+			{ }
+		} _tags;
+
+		/**
+		 * Return true if specified buffer contains a valid XML node
+		 */
+		static bool _valid(Tags const &tags)
+		{
+			if (tags.start.type() == Tag::EMPTY)
+				return true;
+
+			if (tags.start.type() == Tag::START && tags.end.type() == Tag::END)
+				return true;
+
+			return false;
+		}
+
+		bool _valid_node_at(char const *at) const
+		{
+			bool const in_range = (at >= _addr && (size_t)(at - _addr) < _max_len);
+
+			return in_range && _valid(Tags(at, _max_len - (at - _addr)));
+		}
+
 		/**
 		 * Create sub node from XML node
 		 *
 		 * \throw Nonexistent_sub_node
 		 * \throw Invalid_syntax
 		 */
-		Xml_node _sub_node(char const *at) const
+		Xml_node _node_at(char const *at) const
 		{
-			if (at < _addr || (size_t)(at - _addr) >= _max_len)
+			if (!_valid_node_at(at))
 				throw Nonexistent_sub_node();
 
 			return Xml_node(at, _max_len - (at - _addr));
@@ -628,7 +680,7 @@ class Genode::Xml_node
 		/**
 		 * Return pointer to start of content
 		 */
-		char const *_content_base() const { return _start_tag.next_token().start(); }
+		char const *_content_base() const { return _tags.start.next_token().start(); }
 
 	public:
 
@@ -642,16 +694,10 @@ class Genode::Xml_node
 		 */
 		Xml_node(char const *addr, size_t max_len = ~0UL)
 		:
-			_addr(addr),
-			_max_len(max_len),
-			_start_tag(skip_non_tag_characters(Token(addr, max_len))),
-			_end_tag(_search_end_tag(_start_tag, _num_sub_nodes))
+			_addr(addr), _max_len(max_len), _tags(addr, max_len)
 		{
-			/* check validity of XML node */
-			if (_start_tag.type() == Tag::EMPTY) return;
-			if (_start_tag.type() == Tag::START && _end_tag.type() == Tag::END) return;
-
-			throw Invalid_syntax();
+			if (!_valid(_tags))
+				throw Invalid_syntax();
 		}
 
 		/**
@@ -660,12 +706,12 @@ class Genode::Xml_node
 		 * \noapi
 		 */
 		void type_name(char *dst, size_t max_len) const {
-			_start_tag.name().string(dst, max_len); }
+			_tags.start.name().string(dst, max_len); }
 
 		/**
 		 * Return size of node including start and end tags in bytes
 		 */
-		size_t size() const { return _end_tag.next_token().start() - _addr; }
+		size_t size() const { return _tags.end.next_token().start() - _addr; }
 
 		/**
 		 * Return pointer to start of node
@@ -680,10 +726,10 @@ class Genode::Xml_node
 		 */
 		size_t content_size() const
 		{
-			if (_start_tag.type() == Tag::EMPTY)
+			if (_tags.start.type() == Tag::EMPTY)
 				return 0;
 
-			return _end_tag.token().start() - _content_base();
+			return _tags.end.token().start() - _content_base();
 		}
 
 		/**
@@ -692,7 +738,7 @@ class Genode::Xml_node
 		typedef String<64> Type;
 		Type type() const
 		{
-			Token name = _start_tag.name();
+			Token name = _tags.start.name();
 			return Type(Cstring(name.start(), name.len()));
 		}
 
@@ -700,9 +746,9 @@ class Genode::Xml_node
 		 * Return true if tag is of specified type
 		 */
 		bool has_type(char const *type) const {
-			return (!strcmp(type, _start_tag.name().start(),
-			                      _start_tag.name().len())
-			      && strlen(type) == _start_tag.name().len()); }
+			return (!strcmp(type, _tags.start.name().start(),
+			                      _tags.start.name().len())
+			      && strlen(type) == _tags.start.name().len()); }
 
 		/**
 		 * Call functor 'fn' with the node data '(char const *, size_t)'
@@ -710,7 +756,7 @@ class Genode::Xml_node
 		template <typename FN>
 		void with_raw_node(FN const &fn) const
 		{
-			fn(_addr, _end_tag.next_token().start() - _addr);
+			fn(_addr, _tags.end.next_token().start() - _addr);
 		}
 
 		/**
@@ -724,7 +770,7 @@ class Genode::Xml_node
 		template <typename FN>
 		void with_raw_content(FN const &fn) const
 		{
-			if (_start_tag.type() == Tag::EMPTY)
+			if (_tags.start.type() == Tag::EMPTY)
 				return;
 
 			fn(_content_base(), content_size());
@@ -737,7 +783,7 @@ class Genode::Xml_node
 		 *
 		 * \noapi
 		 */
-		char *content_addr() const { return _start_tag.next_token().start(); }
+		char *content_addr() const { return _tags.start.next_token().start(); }
 
 		/**
 		 * Return pointer to start of content
@@ -792,7 +838,7 @@ class Genode::Xml_node
 		/**
 		 * Return the number of the XML node's immediate sub nodes
 		 */
-		size_t num_sub_nodes() const { return _num_sub_nodes; }
+		size_t num_sub_nodes() const { return _tags.num_sub_nodes; }
 
 		/**
 		 * Return XML node following the current one
@@ -801,9 +847,11 @@ class Genode::Xml_node
 		 */
 		Xml_node next() const
 		{
-			Token after_node = _end_tag.next_token();
+			Token after_node = _tags.end.next_token();
 			after_node = skip_non_tag_characters(after_node);
-			try { return _sub_node(after_node.start()); }
+			try {
+				return _node_at(after_node.start());
+			}
 			catch (Invalid_syntax) { throw Nonexistent_sub_node(); }
 		}
 
@@ -824,10 +872,22 @@ class Genode::Xml_node
 		/**
 		 * Return true if node is the last of a node sequence
 		 */
-		bool last(char const *type = 0) const
+		bool last(char const *type = nullptr) const
 		{
-			try { next(type); return false; }
-			catch (Nonexistent_sub_node) { return true; }
+			Token after = _tags.end.next_token();
+			after = skip_non_tag_characters(after);
+
+			for (;;) {
+				if (!_valid_node_at(after.start()))
+					return true;
+
+				Xml_node node = _node_at(after.start());
+				if (!type || node.has_type(type))
+					return false;
+
+				after = node._tags.end.next_token();
+				after = skip_non_tag_characters(after);
+			}
 		}
 
 		/**
@@ -839,17 +899,14 @@ class Genode::Xml_node
 		 */
 		Xml_node sub_node(unsigned idx = 0U) const
 		{
-			if (_num_sub_nodes > 0) {
-
-				/* look up node at specified index */
+			if (_tags.num_sub_nodes > 0) {
 				try {
-					Xml_node curr_node = _sub_node(_content_base());
+					Xml_node curr_node = _node_at(_content_base());
 					for (; idx > 0; idx--)
 						curr_node = curr_node.next();
 					return curr_node;
 				} catch (Invalid_syntax) { }
 			}
-
 			throw Nonexistent_sub_node();
 		}
 
@@ -860,17 +917,16 @@ class Genode::Xml_node
 		 */
 		Xml_node sub_node(char const *type) const
 		{
-			if (_num_sub_nodes > 0) {
+			if (_tags.num_sub_nodes > 0) {
 
 				/* search for sub node of specified type */
 				try {
-					Xml_node curr_node = _sub_node(_content_base());
+					Xml_node curr_node = _node_at(_content_base());
 					for ( ; true; curr_node = curr_node.next())
-						if (curr_node.has_type(type))
+						if (!type || curr_node.has_type(type))
 							return curr_node;
 				} catch (...) { }
 			}
-
 			throw Nonexistent_sub_node();
 		}
 
@@ -893,20 +949,16 @@ class Genode::Xml_node
 		template <typename FN>
 		void for_each_sub_node(char const *type, FN const &fn) const
 		{
-			if (_num_sub_nodes == 0)
+			if (!has_sub_node(type))
 				return;
 
-			try {
-				Xml_node node = sub_node();
-				for (int i = 0; ; node = node.next()) {
+			for (Xml_node node = sub_node(type); ; node = node.next()) {
+				if (!type || node.has_type(type))
+					fn(node);
 
-					if (!type || node.has_type(type))
-						fn(node);
-
-					if (++i == _num_sub_nodes)
-						break;
-				}
-			} catch (Nonexistent_sub_node) { }
+				if (node.last())
+					break;
+			}
 		}
 
 		/**
@@ -928,14 +980,11 @@ class Genode::Xml_node
 		 */
 		Xml_attribute attribute(unsigned idx) const
 		{
-			/* get first attribute of the node */
-			Xml_attribute a = _start_tag.attribute();
+			Xml_attribute attr = _tags.start.attribute();
+			for (unsigned i = 0; i < idx; i++)
+				attr = Xml_attribute(attr._next_token());
 
-			/* skip attributes until we reach the target index */
-			for (; idx > 0; idx--)
-				a = a._next();
-
-			return a;
+			return attr;
 		}
 
 		/**
@@ -947,10 +996,13 @@ class Genode::Xml_node
 		 */
 		Xml_attribute attribute(char const *type) const
 		{
-			/* iterate, beginning with the first attribute of the node */
-			for (Xml_attribute a = _start_tag.attribute(); ; a = a.next())
-				if (a.has_type(type))
-					return a;
+			for (Xml_attribute attr = _tags.start.attribute(); ;) {
+				if (attr.has_type(type))
+					return attr;
+
+				attr = Xml_attribute(attr._next_token());
+			}
+			throw Nonexistent_attribute();
 		}
 
 		/**
@@ -968,7 +1020,27 @@ class Genode::Xml_node
 		inline T attribute_value(char const *type, T const default_value) const
 		{
 			T result = default_value;
-			try { attribute(type).value(result); } catch (...) { }
+
+			if (!_tags.start.has_attribute())
+				return result;
+
+			for (Xml_attribute attr = _tags.start.attribute(); ; ) {
+
+				/* match */
+				if (attr.has_type(type)) {
+					attr.value(result);
+					return result;
+				}
+
+				/* end of attribute */
+				Token const next = attr._next_token();
+				if (!Xml_attribute::_valid(next))
+					break;
+
+				/* keep searching */
+				attr = Xml_attribute(next);
+			}
+
 			return result;
 		}
 
@@ -977,16 +1049,46 @@ class Genode::Xml_node
 		 */
 		inline bool has_attribute(char const *type) const
 		{
-			try { attribute(type); return true; } catch (...) { }
-			return false;
+			if (!_tags.start.has_attribute())
+				return false;
+
+			if (type == nullptr)
+				return true;
+
+			for (Xml_attribute attr = _tags.start.attribute(); ; ) {
+				if (attr.has_type(type))
+					return true;
+
+				Token const next = attr._next_token();
+				if (!Xml_attribute::_valid(next))
+					return false;
+
+				attr = Xml_attribute(next);
+			}
 		}
 
 		/**
 		 * Return true if sub node of specified type exists
 		 */
-		inline bool has_sub_node(char const *type) const
+		bool has_sub_node(char const *type) const
 		{
-			try { sub_node(type); return true; } catch (...) { }
+			if (_tags.num_sub_nodes == 0)
+				return false;
+
+			if (!_valid_node_at(_content_base()))
+				return false;
+
+			if (type == nullptr)
+				return true;
+
+			/* search for node of given type */
+			for (Xml_node node = _node_at(_content_base()); ; node = node.next()) {
+				if (node.has_type(type))
+					return true;
+
+				if (node.last())
+					break;
+			}
 			return false;
 		}
 
