@@ -158,6 +158,9 @@ unsigned Bootstrap::Platform::enable_mmu()
 
 	/* enable performance counter for user-land */
 	Cpu::Pmuserenr_el0::write(0b1111);
+	Cpu::Pmcr_el0::access_t pmcr = Cpu::Pmcr_el0::read();
+	Cpu::Pmcr_el0::write(pmcr | 1);
+	Cpu::Pmcntenset_el0::write(1 << 31);
 
 	/* enable user-level access of physical/virtual counter */
 	Cpu::Cntkctl_el1::write(0b11);

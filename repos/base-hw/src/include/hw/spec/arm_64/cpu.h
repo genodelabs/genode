@@ -137,6 +137,8 @@ struct Hw::Arm_64_cpu
 
 	SYSTEM_REGISTER(64, Mpidr, mpidr_el1);
 
+	SYSTEM_REGISTER(32, Pmcr_el0, pmcr_el0);
+	SYSTEM_REGISTER(32, Pmcntenset_el0, pmcntenset_el0);
 	SYSTEM_REGISTER(32, Pmuserenr_el0, pmuserenr_el0);
 
 	SYSTEM_REGISTER(64, Scr, scr_el3,
