@@ -198,9 +198,12 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 			Genode::Pixel_rgb888 * dst = (Genode::Pixel_rgb888*)_driver.fb_addr();
 
 			for (int row = y1; row <= y2; row++) {
+				int line_offset = width * row;
+				Genode::Pixel_rgb565 const * s = src + line_offset + x1;
+				Genode::Pixel_rgb888 * d = dst + line_offset + x1;
 				for (int col = x1; col <= x2; col++) {
-					Genode::Pixel_rgb565 px = src[width * row + col];
-					dst[width * row + col] = Genode::Pixel_rgb888(px.r(), px.g(), px.b(), px.a());
+					Genode::Pixel_rgb565 const px = *s++;
+					*d++ = Genode::Pixel_rgb888(px.r(), px.g(), px.b(), px.a());
 				}
 			}
 		}
