@@ -250,6 +250,15 @@ struct Test::Main : Log_message_handler
 				_expect_log     = true;
 				return;
 			}
+			if (step.type() == "expect_warning") {
+				_expect_log_msg = _curr_step_xml().attribute_value("string", Log_message_handler::Message());
+				Log_message_handler::Message colored (_curr_step_xml().attribute_value("colored", Log_message_handler::Message()));
+				_expect_log_msg = Log_message_handler::Message(_expect_log_msg,
+				                                               "\033[34m",
+				                                               colored);
+				_expect_log     = true;
+				return;
+			}
 
 			if (step.type() == "expect_init_state") {
 				if (xml_matches(step, _init_state.xml())) {
