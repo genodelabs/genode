@@ -16,7 +16,7 @@
 
 /* local includes */
 #include <widget_factory.h>
-#include <cursor.h>
+#include <text_selection.h>
 
 namespace Menu_view { struct Label_widget; }
 
@@ -29,18 +29,23 @@ struct Menu_view::Label_widget : Widget, Cursor::Glyph_position
 	typedef String<200> Text;
 	Text _text { };
 
-	Cursor::Model_update_policy _cursor_update_policy;
+	Cursor::Model_update_policy         _cursor_update_policy;
+	Text_selection::Model_update_policy _selection_update_policy;
 
-	List_model<Cursor> _cursors { };
+	List_model<Cursor>         _cursors    { };
+	List_model<Text_selection> _selections { };
 
 	Label_widget(Widget_factory &factory, Xml_node node, Unique_id unique_id)
 	:
-		Widget(factory, node, unique_id), _cursor_update_policy(factory, *this)
+		Widget(factory, node, unique_id),
+		_cursor_update_policy(factory, *this),
+		_selection_update_policy(factory.alloc, *this)
 	{ }
 
 	~Label_widget()
 	{
-		_cursors.destroy_all_elements(_cursor_update_policy);
+		_cursors   .destroy_all_elements(_cursor_update_policy);
+		_selections.destroy_all_elements(_selection_update_policy);
 	}
 
 	void update(Xml_node node) override
@@ -49,7 +54,8 @@ struct Menu_view::Label_widget : Widget, Cursor::Glyph_position
 		_text = node.attribute_value("text", Text(""));
 		_text = Xml_unquoted(_text);
 
-		_cursors.update_from_xml(_cursor_update_policy, node);
+		_cursors   .update_from_xml(_cursor_update_policy,    node);
+		_selections.update_from_xml(_selection_update_policy, node);
 	}
 
 	Area min_size() const override
@@ -73,6 +79,9 @@ struct Menu_view::Label_widget : Widget, Cursor::Glyph_position
 		          dy = (int)geometry().h() - text_size.h();
 
 		Point const centered = at + Point(dx/2, dy/2);
+
+		_selections.for_each([&] (Text_selection const &selection) {
+			selection.draw(pixel_surface, alpha_surface, at, text_size.h()); });
 
 		Text_painter::paint(pixel_surface,
 		                    Text_painter::Position(centered.x(), centered.y()),
