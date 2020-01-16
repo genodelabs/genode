@@ -74,6 +74,7 @@ class Genode::Trace::Session_component
 
 		Dataspace_capability dataspace();
 		size_t subjects();
+		size_t subject_infos();
 
 		Policy_id alloc_policy(size_t) override;
 		Dataspace_capability policy(Policy_id) override;

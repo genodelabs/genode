@@ -86,6 +86,22 @@ struct Genode::Trace::Session_client : Genode::Rpc_client<Genode::Trace::Session
 			return num_subjects;
 		}
 
+		template <typename FN>
+		size_t for_each_subject_info(FN const &fn)
+		{
+			size_t const num_subjects = call<Rpc_subject_infos>();
+			size_t const max_subjects = _argument_buffer.size / (sizeof(Subject_info) + sizeof(Subject_id));
+
+			Subject_info * const infos = reinterpret_cast<Subject_info *>(_argument_buffer.base);
+			Subject_id   * const ids   = reinterpret_cast<Subject_id *>(infos + max_subjects);
+
+			for (unsigned i = 0; i < num_subjects; i++) {
+				fn(ids[i], infos[i]);
+			}
+
+			return num_subjects;
+		}
+
 		Policy_id alloc_policy(size_t size) override {
 			return call<Rpc_alloc_policy>(size); }
 

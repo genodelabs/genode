@@ -36,6 +36,18 @@ size_t Session_component::subjects()
 }
 
 
+size_t Session_component::subject_infos()
+{
+	_subjects.import_new_sources(_sources);
+
+	size_t const count  = _argument_buffer.size() / (sizeof(Subject_info) + sizeof(Subject_id));
+	Subject_info *infos = _argument_buffer.local_addr<Subject_info>();
+	Subject_id   *ids   = reinterpret_cast<Subject_id *>(infos + count);
+
+	return _subjects.subjects(infos, ids, count);
+}
+
+
 Policy_id Session_component::alloc_policy(size_t size)
 {
 	if (size > _argument_buffer.size())

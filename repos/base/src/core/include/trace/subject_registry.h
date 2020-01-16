@@ -437,6 +437,22 @@ class Genode::Trace::Subject_registry
 		}
 
 		/**
+		 * Retrieve Subject_infos batched
+		 */
+		size_t subjects(Subject_info * const dst, Subject_id * ids, size_t const len)
+		{
+			Mutex::Guard guard(_mutex);
+
+			unsigned i = 0;
+			for (Subject *s = _entries.first(); s && i < len; s = s->next()) {
+				ids[i]   = s->id();
+				dst[i++] = s->info();
+			}
+
+			return i;
+		}
+
+		/**
 		 * Remove subject and release resources
 		 *
 		 * \return  RAM resources released as a side effect for removing the
