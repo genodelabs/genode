@@ -311,11 +311,12 @@ exec parted -a none -s [ahci_1_img] -- mklabel gpt \
                                        mkpart GRUB   fat32 1024s 1279s \
                                        mkpart GENODE ext2  1280s 3700s
 
-install_rom_module focus        {<focus label="leitzentrale -> manager -> fader -> "/>}
-install_rom_module leitzentrale {<leitzentrale enabled="yes"/>}
-install_rom_module reset        {<reset enabled="no"/>}
-install_rom_module README       {nothing to read here}
-install_rom_module VERSION      {unknown version}
+install_rom_module focus         {<focus label="leitzentrale -> manager -> fader -> "/>}
+install_rom_module leitzentrale  {<leitzentrale enabled="yes"/>}
+install_rom_module reset         {<reset enabled="no"/>}
+install_rom_module README        {nothing to read here}
+install_rom_module VERSION       {unknown version}
+install_rom_module platform_info {<empty/>}
 
 install_rom_module block_devices {
 <block_devices>
