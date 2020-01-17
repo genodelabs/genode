@@ -81,7 +81,7 @@ struct Genode::Trace::Session_client : Genode::Rpc_client<Genode::Trace::Session
 		{
 			size_t const num_subjects = min(call<Rpc_subjects>(), dst_len);
 
-			memcpy(dst, _argument_buffer.base, dst_len*sizeof(Subject_id));
+			memcpy(dst, _argument_buffer.base, num_subjects*sizeof(Subject_id));
 
 			return num_subjects;
 		}
