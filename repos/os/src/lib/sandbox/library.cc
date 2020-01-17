@@ -477,6 +477,69 @@ void Genode::Sandbox::Library::apply_config(Xml_node const &config)
  ** Sandbox::Local_service_base **
  *********************************/
 
+void Genode::Sandbox::Local_service_base::_for_each_requested_session(Request_fn &fn)
+{
+	_server_id_space.for_each<Session_state>([&] (Session_state &session) {
+
+		if (session.phase == Session_state::CREATE_REQUESTED) {
+
+			Request request(session);
+
+			fn.with_requested_session(request);
+
+			bool wakeup_client = false;
+
+			if (request._denied) {
+				session.phase = Session_state::SERVICE_DENIED;
+				wakeup_client = true;
+			}
+
+			if (request._session_ptr) {
+				session.local_ptr = request._session_ptr;
+				session.cap       = request._session_cap;
+				session.phase     = Session_state::AVAILABLE;
+				wakeup_client     = true;
+			}
+
+			if (wakeup_client && session.ready_callback)
+				session.ready_callback->session_ready(session);
+		}
+	});
+}
+
+
+void Genode::Sandbox::Local_service_base::_for_each_upgraded_session(Upgrade_fn &fn)
+{
+	_server_id_space.for_each<Session_state>([&] (Session_state &session) {
+
+		if (session.phase != Session_state::UPGRADE_REQUESTED)
+			return;
+
+		if (session.local_ptr == nullptr)
+			return;
+
+		bool wakeup_client = false;
+
+		Session::Resources const amount { session.ram_upgrade,
+		                                  session.cap_upgrade };
+
+		switch (fn.with_upgraded_session(*session.local_ptr, amount)) {
+
+			case Upgrade_response::CONFIRMED:
+				session.phase = Session_state::CAP_HANDED_OUT;
+				wakeup_client = true;
+				break;
+
+			case Upgrade_response::DEFERRED:
+				break;
+			}
+
+		if (wakeup_client && session.ready_callback)
+			session.ready_callback->session_ready(session);
+	});
+}
+
+
 void Genode::Sandbox::Local_service_base::_for_each_session_to_close(Close_fn &close_fn)
 {
 	/*

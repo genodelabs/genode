@@ -67,6 +67,46 @@ class Genode::Sandbox::Local_service_base : public Service
 
 		enum class Close_response { CLOSED, DEFERRED };
 
+		class Request : Interface, Noncopyable
+		{
+			private:
+
+				Session            *_session_ptr = nullptr;
+				Capability<Session> _session_cap { };
+
+				bool _denied = false;
+
+				friend class Local_service_base;
+
+				Request(Session_state const &session)
+				:
+					resources(session_resources_from_args(session.args().string())),
+					label(session.label()),
+					diag(session_diag_from_args(session.args().string()))
+				{ }
+
+				/*
+				 * Noncopyable
+				 */
+				Request(Request const &);
+				void operator = (Request const &);
+
+			public:
+
+				Session::Resources const resources;
+				Session::Label     const label;
+				Session::Diag      const diag;
+
+				template <typename ST>
+				void deliver_session(ST &session)
+				{
+					_session_ptr = &session;
+					_session_cap =  session.cap();
+				}
+
+				void deny() { _denied = false; }
+		};
+
 	private:
 
 		Registry<Local_service_base>::Element _element;
@@ -102,12 +142,28 @@ class Genode::Sandbox::Local_service_base : public Service
 
 	protected:
 
-		struct Close_fn : Interface
+		using Resources = Session::Resources;
+
+		struct Request_fn : Interface
 		{
-			virtual Close_response close_session(Session &session) = 0;
+			virtual void with_requested_session(Request &) = 0;
 		};
 
-		void _for_each_session_to_close(Close_fn &close_fn);
+		void _for_each_requested_session(Request_fn &);
+
+		struct Upgrade_fn : Interface
+		{
+			virtual Upgrade_response with_upgraded_session(Session &, Resources) = 0;
+		};
+
+		void _for_each_upgraded_session(Upgrade_fn &);
+
+		struct Close_fn : Interface
+		{
+			virtual Close_response close_session(Session &) = 0;
+		};
+
+		void _for_each_session_to_close(Close_fn &);
 
 		Id_space<Parent::Server> _server_id_space { };
 
@@ -116,153 +172,89 @@ class Genode::Sandbox::Local_service_base : public Service
 
 
 template <typename ST>
-class Genode::Sandbox::Local_service : Local_service_base
+struct Genode::Sandbox::Local_service : private Local_service_base
 {
-	public:
+	Local_service(Sandbox &sandbox, Wakeup &wakeup)
+	: Local_service_base(sandbox, ST::service_name(), wakeup) { }
 
-		Local_service(Sandbox &sandbox, Wakeup &wakeup)
-		: Local_service_base(sandbox, ST::service_name(), wakeup) { }
+	using Upgrade_response = Local_service_base::Upgrade_response;
+	using Close_response   = Local_service_base::Close_response;
+	using Request          = Local_service_base::Request;
 
-		using Upgrade_response = Local_service_base::Upgrade_response;
-		using Close_response   = Local_service_base::Close_response;
-
-		class Request : Interface, Noncopyable
+	/**
+	 * Call functor 'fn' for each session requested by the sandbox
+	 *
+	 * The functor is called with a 'Request &' as argument. The 'Request'
+	 * provides the caller with information about the requested session
+	 * ('resources', 'label', 'diag') and allows the caller to respond
+	 * to the session request ('deliver_session', 'deny').
+	 */
+	template <typename FN>
+	void for_each_requested_session(FN const &fn)
+	{
+		struct Untyped_fn : Local_service_base::Request_fn
 		{
-			private:
+			FN const &_fn;
+			Untyped_fn(FN const &fn) : _fn(fn) { }
 
-				ST *_session_ptr = nullptr;
-
-				bool _denied = false;
-
-				friend class Local_service;
-
-				Request(Session_state const &session)
-				:
-					resources(session_resources_from_args(session.args().string())),
-					label(session.label()),
-					diag(session_diag_from_args(session.args().string()))
-				{ }
-
-				/*
-				 * Noncopyable
-				 */
-
-				Request(Request const &);
-				void operator = (Request const &);
-
-			public:
-
-				Session::Resources const resources;
-				Session::Label     const label;
-				Session::Diag      const diag;
-
-				void deliver_session(ST &session) { _session_ptr = &session; }
-
-				void deny() { _denied = false; }
-		};
-
-		/**
-		 * Call functor 'fn' for each session requested by the sandbox
-		 *
-		 * The functor is called with a 'Request &' as argument. The 'Request'
-		 * provides the caller with information about the requested session
-		 * ('resources', 'label', 'diag') and allows the caller to respond
-		 * to the session request ('deliver_session', 'deny').
-		 */
-		template <typename FN>
-		void for_each_requested_session(FN const &fn)
-		{
-			_server_id_space.for_each<Session_state>([&] (Session_state &session) {
-
-				if (session.phase == Session_state::CREATE_REQUESTED) {
-
-					Request request(session);
-
-					fn(request);
-
-					bool wakeup_client = false;
-
-					if (request._denied) {
-						session.phase = Session_state::SERVICE_DENIED;
-						wakeup_client = true;
-					}
-
-					if (request._session_ptr) {
-						session.local_ptr = request._session_ptr;
-						session.cap       = request._session_ptr->cap();
-						session.phase     = Session_state::AVAILABLE;
-						wakeup_client     = true;
-					}
-
-					if (wakeup_client && session.ready_callback)
-						session.ready_callback->session_ready(session);
-				}
-			});
-		}
-
-		/**
-		 * Call functor 'fn' for each session that received a quota upgrade
-		 *
-		 * The functor is called with a reference to the session object (type
-		 * 'ST') and a 'Session::Resources' object as arguments. The latter
-		 * contains the amount of additional resources provided by the client.
-		 *
-		 * The functor must return an 'Upgrade_response'.
-		 */
-		template <typename FN>
-		void for_each_upgraded_session(FN const &fn)
-		{
-			_server_id_space.for_each<Session_state>([&] (Session_state &session) {
-
-				if (session.phase != Session_state::UPGRADE_REQUESTED)
-					return;
-
-				if (session.local_ptr == nullptr)
-					return;
-
-				bool wakeup_client = false;
-
-				Session::Resources const amount { session.ram_upgrade,
-				                                  session.cap_upgrade };
-
-				switch (fn(*static_cast<ST *>(session.local_ptr), amount)) {
-
-					case Upgrade_response::CONFIRMED:
-						session.phase = Session_state::CAP_HANDED_OUT;
-						wakeup_client = true;
-						break;
-
-					case Upgrade_response::DEFERRED:
-						break;
-					}
-
-				if (wakeup_client && session.ready_callback)
-					session.ready_callback->session_ready(session);
-			});
-		}
-
-		/**
-		 * Call functor 'fn' for each session to close
-		 *
-		 * The functor is called with a reference to the session object (type
-		 * 'ST') as argument and must return a 'Close_response'.
-		 */
-		template <typename FN>
-		void for_each_session_to_close(FN const &fn)
-		{
-			struct Untyped_fn : Local_service_base::Close_fn
+			void with_requested_session(Request &request) override
 			{
-				FN const &_fn;
-				Untyped_fn(FN const &fn) : _fn(fn) { }
+				_fn(request);
+			}
+		} untyped_fn(fn);
 
-				Close_response close_session(Session &session) override
-				{
-					return _fn(static_cast<ST &>(session));
-				}
-			} untyped_fn(fn);
+		_for_each_requested_session(untyped_fn);
+	}
 
-			_for_each_session_to_close(untyped_fn);
-		}
+	/**
+	 * Call functor 'fn' for each session that received a quota upgrade
+	 *
+	 * The functor is called with a reference to the session object (type
+	 * 'ST') and a 'Session::Resources' object as arguments. The latter
+	 * contains the amount of additional resources provided by the client.
+	 *
+	 * The functor must return an 'Upgrade_response'.
+	 */
+	template <typename FN>
+	void for_each_upgraded_session(FN const &fn)
+	{
+		struct Untyped_fn : Local_service_base::Upgrade_fn
+		{
+			FN const &_fn;
+			Untyped_fn(FN const &fn) : _fn(fn) { }
+
+			Upgrade_response with_upgraded_session(Session &session,
+			                                       Resources resources) override
+			{
+				return _fn(static_cast<ST &>(session), resources);
+			}
+		} untyped_fn(fn);
+
+		_for_each_upgraded_session(untyped_fn);
+	}
+
+	/**
+	 * Call functor 'fn' for each session to close
+	 *
+	 * The functor is called with a reference to the session object (type
+	 * 'ST') as argument and must return a 'Close_response'.
+	 */
+	template <typename FN>
+	void for_each_session_to_close(FN const &fn)
+	{
+		struct Untyped_fn : Local_service_base::Close_fn
+		{
+			FN const &_fn;
+			Untyped_fn(FN const &fn) : _fn(fn) { }
+
+			Close_response close_session(Session &session) override
+			{
+				return _fn(static_cast<ST &>(session));
+			}
+		} untyped_fn(fn);
+
+		_for_each_session_to_close(untyped_fn);
+	}
 };
 
 #endif /* _INCLUDE__OS__SANDBOX_H_ */
