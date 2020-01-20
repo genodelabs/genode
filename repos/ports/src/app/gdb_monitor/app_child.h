@@ -21,8 +21,8 @@
 #include <os/session_requester.h>
 #include <util/arg_string.h>
 
-/* init private includes */
-#include <init/server.h>
+/* sandbox library private includes */
+#include <sandbox/server.h>
 
 /* GDB monitor includes */
 #include "genode_child_resources.h"
@@ -39,16 +39,16 @@ namespace Gdb_monitor {
 
 class Gdb_monitor::App_child : public Child_policy,
                                public Async_service::Wakeup,
-                               public Init::Report_update_trigger,
-                               public Init::Routed_service::Pd_accessor,
-                               public Init::Routed_service::Ram_accessor
+                               public Sandbox::Report_update_trigger,
+                               public Sandbox::Routed_service::Pd_accessor,
+                               public Sandbox::Routed_service::Ram_accessor
 {
 	private:
 
 		typedef Registered<Genode::Parent_service> Parent_service;
 
-		typedef Registry<Parent_service>           Parent_services;
-		typedef Registry<Init::Routed_service>     Child_services;
+		typedef Registry<Parent_service>          Parent_services;
+		typedef Registry<Sandbox::Routed_service> Child_services;
 
 		/**
 		 * gdbserver blocks in 'select()', so a separate entrypoint is used.
@@ -144,7 +144,7 @@ class Gdb_monitor::App_child : public Child_policy,
 		                                                         _env.ram(),
 		                                                         _env.rm() };
 
-		Init::Server                        _server { _env, _alloc, _child_services, *this };
+		Sandbox::Server                     _server { _env, _alloc, _child_services, *this };
 
 		Child                              *_child;
 
@@ -173,19 +173,19 @@ class Gdb_monitor::App_child : public Child_policy,
 		}
 
 		/**
-		 * Init::Report_update_trigger callbacks
+		 * Sandbox::Report_update_trigger callbacks
 		 */
 		void trigger_report_update() override { }
 		void trigger_immediate_report_update() override { }
 
 		/**
-		 * Init::Routed_service::Pd_accessor interface
+		 * Sandbox::Routed_service::Pd_accessor interface
 		 */
 		Pd_session            &pd()            override { return _child->pd(); }
 		Pd_session_capability  pd_cap()  const override { return _child->pd_session_cap(); }
 
 		/**
-		 * Init::Routed_service::Ram_accessor interface
+		 * Sandbox::Routed_service::Ram_accessor interface
 		 */
 		Pd_session           &ram()            override { return _child->pd(); }
 		Pd_session_capability ram_cap()  const override { return _child->pd_session_cap(); }
@@ -260,7 +260,7 @@ class Gdb_monitor::App_child : public Child_policy,
 
 		~App_child()
 		{
-			_child_services.for_each([&] (Init::Routed_service &service) {
+			_child_services.for_each([&] (Sandbox::Routed_service &service) {
 				destroy(_alloc, &service);
 			});
 
@@ -320,13 +320,13 @@ class Gdb_monitor::App_child : public Child_policy,
 				return;
 			}
 
-			new (_alloc) Init::Routed_service(_child_services,
-			                                  "target",
-			                                  *this, *this,
-			                                  _session_requester.id_space(),
-			                                  _child->session_factory(),
-			                                  service_name,
-			                                  *this);
+			new (_alloc) Sandbox::Routed_service(_child_services,
+			                                     "target",
+			                                     *this, *this,
+			                                     _session_requester.id_space(),
+			                                     _child->session_factory(),
+			                                     service_name,
+			                                     *this);
 
 			char server_config[4096];
 

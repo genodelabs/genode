@@ -97,12 +97,12 @@ vpath %.cc $(PRG_DIR)/gdbserver
 # parent directory of the init source is used as reference.
 #
 
-INIT_PARENT_DIR = $(abspath $(dir $(call select_from_repositories,src/init/server.cc))/..)
+SANDBOX_PARENT_DIR = $(abspath $(dir $(call select_from_repositories,src/lib/sandbox/server.cc))/..)
 
-INC_DIR += $(INIT_PARENT_DIR)
+INC_DIR += $(SANDBOX_PARENT_DIR)
 
-SRC_CC += init/server.cc
+SRC_CC += sandbox/server.cc
 
-vpath init/%.cc $(INIT_PARENT_DIR)
+vpath sandbox/%.cc $(SANDBOX_PARENT_DIR)
 
 CC_CXX_WARN_STRICT =
