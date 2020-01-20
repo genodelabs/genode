@@ -3,6 +3,30 @@
                                Genode News
                                ===========
 
+Road Map for 2020 | 2020-01-20
+##############################
+
+| In 2019, we will be concerned about dwarfing the barrier of entry into
+| the Genode world.
+
+Following the last year's leitmotif of "bridging worlds", we turn our
+attention to the removal of the hurdles faced by aspiring developers and
+users. During the annual road-map
+[https://lists.genode.org/pipermail/users/2019-December/006987.html - discussion]
+on our mailing list, we identified four tangible approaches towards that
+goal. First, making Sculpt OS more user friendly. Second, reinforcing trust in
+Genode by fostering the framework's high quality. Third, making the tooling
+around Genode a joy to use. And finally, the illustration of Genode's
+versatility in the form practical use cases.
+
+Besides this overall theme, we plan to continue our commitment to the
+NXP i.MX SoC family, revisit Genode's low-latency audio support, and
+extend the cultivation of Ada/SPARK within (and on top of) Genode.
+
+More background information about the new road map and a rough schedule are
+presented at our official [https:/about/road-map - road-map page].
+
+
 Genode OS Framework release 19.11 | 2019-11-28
 ##############################################
 
