@@ -156,6 +156,23 @@ class I8042
 				flush_read();
 				return !empty();
 			}
+
+			void _begin_commands() override
+			{
+				/* disable keyboard and mouse */
+				_i8042._command(CMD_KBD_DISABLE);
+				_i8042._command(CMD_AUX_DISABLE);
+
+				/* flush remaining data in controller */
+				while (_i8042._output_buffer_full()) _i8042._data();
+			}
+
+			void _end_commands() override
+			{
+				/* enable keyboard and mouse */
+				_i8042._command(CMD_KBD_ENABLE);
+				_i8042._command(CMD_AUX_ENABLE);
+			}
 	};
 
 	private:
@@ -266,46 +283,37 @@ class I8042
 			unsigned char configuration;
 			unsigned char ret;
 
-			/* disable keyboard and mouse */
-			_command(CMD_KBD_DISABLE);
-			_command(CMD_AUX_DISABLE);
+			_kbd_interface.apply_commands([&]() {
+				/* get configuration (can change during the self tests) */
+				_command(CMD_READ);
+				configuration = _wait_data();
+				/* query xlate bit */
+				_kbd_xlate = !!(configuration & CTRL_XLATE);
 
-			/* read remaining data in controller */
-			while (_output_buffer_full()) _data();
+				/* run self tests */
+				_command(CMD_TEST);
+				if ((ret = _wait_data()) != RET_TEST_OK) {
+					Genode::log("i8042: self test failed (", Genode::Hex(ret), ")");
+					return;
+				}
 
-			/* get configuration (can change during the self tests) */
-			_command(CMD_READ);
-			configuration = _wait_data();
-			/* query xlate bit */
-			_kbd_xlate = !!(configuration & CTRL_XLATE);
+				_command(CMD_KBD_TEST);
+				if ((ret = _wait_data()) != RET_KBD_TEST_OK) {
+					Genode::log("i8042: kbd test failed (", Genode::Hex(ret), ")");
+					return;
+				}
 
-			/* run self tests */
-			_command(CMD_TEST);
-			if ((ret = _wait_data()) != RET_TEST_OK) {
-				Genode::log("i8042: self test failed (", Genode::Hex(ret), ")");
-				return;
-			}
+				_command(CMD_AUX_TEST);
+				if ((ret = _wait_data()) != RET_AUX_TEST_OK) {
+					Genode::log("I8042: aux test failed (", Genode::Hex(ret), ")");
+					return;
+				}
 
-			_command(CMD_KBD_TEST);
-			if ((ret = _wait_data()) != RET_KBD_TEST_OK) {
-				Genode::log("i8042: kbd test failed (", Genode::Hex(ret), ")");
-				return;
-			}
-
-			_command(CMD_AUX_TEST);
-			if ((ret = _wait_data()) != RET_AUX_TEST_OK) {
-				Genode::log("I8042: aux test failed (", Genode::Hex(ret), ")");
-				return;
-			}
-
-			/* enable interrupts for keyboard and mouse at the controller */
-			configuration |= CTRL_KBD_INT | CTRL_AUX_INT;
-			_command(CMD_WRITE);
-			_data(configuration);
-
-			/* enable keyboard and mouse */
-			_command(CMD_KBD_ENABLE);
-			_command(CMD_AUX_ENABLE);
+				/* enable interrupts for keyboard and mouse at the controller */
+				configuration |= CTRL_KBD_INT | CTRL_AUX_INT;
+				_command(CMD_WRITE);
+				_data(configuration);
+			});
 		}
 
 		/**

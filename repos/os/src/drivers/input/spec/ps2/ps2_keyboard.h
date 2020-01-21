@@ -382,17 +382,19 @@ class Ps2::Keyboard : public Input_driver
 
 		void _set_leds(bool capslock, bool numlock, bool scrlock)
 		{
-			_kbd.write(0xed);
-			if (_kbd.read() != ACK) {
-				Genode::warning("setting of mode indicators failed (0xed)");
-				return;
-			}
+			_kbd.apply_commands([&]() {
+				_kbd.write(0xed);
+				if (_kbd.read() != ACK) {
+					Genode::warning("setting of mode indicators failed (0xed)");
+					return;
+				}
 
-			_kbd.write((capslock ? 4:0) | (numlock ? 2:0) | (scrlock ? 1:0));
-			if (_kbd.read() != ACK) {
-				Genode::warning("setting of mode indicators failed");
-				return;
-			}
+				_kbd.write((capslock ? 4:0) | (numlock ? 2:0) | (scrlock ? 1:0));
+				if (_kbd.read() != ACK) {
+					Genode::warning("setting of mode indicators failed");
+					return;
+				}
+			});
 		}
 
 		void _update_leds()
@@ -468,17 +470,19 @@ class Ps2::Keyboard : public Input_driver
 			if (_xlate_mode)
 				return;
 
-			/* try to enable scan-code set 2 */
-			_kbd.write(0xf0);
-			if (_kbd.read() != ACK) {
-				Genode::warning("scan code setting not supported");
-				return;
-			}
-			_kbd.write(SCAN_CODE_SET_2);
-			if (_kbd.read() != ACK) {
-				Genode::warning("scan code 2 not supported");
-				return;
-			}
+			_kbd.apply_commands([&]() {
+				/* try to enable scan-code set 2 */
+				_kbd.write(0xf0);
+				if (_kbd.read() != ACK) {
+					Genode::warning("scan code setting not supported");
+					return;
+				}
+				_kbd.write(SCAN_CODE_SET_2);
+				if (_kbd.read() != ACK) {
+					Genode::warning("scan code 2 not supported");
+					return;
+				}
+			});
 
 			/*
 			 * If configuration of scan-code set 2 was successful, select

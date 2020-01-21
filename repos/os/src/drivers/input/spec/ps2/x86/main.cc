@@ -52,7 +52,7 @@ struct Ps2::Main
 
 	Platform::Device_client _device_ps2 { _ps2_device_cap() };
 
-	enum { REG_IOPORT_DATA = 0, REG_IOPORT_STATUS };
+	enum { REG_IOPORT_DATA = 0, REG_IOPORT_STATUS = 1 };
 
 	I8042 _i8042 { _device_ps2.io_port(REG_IOPORT_DATA),
 	               _device_ps2.io_port(REG_IOPORT_STATUS) };
