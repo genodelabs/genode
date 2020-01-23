@@ -202,7 +202,7 @@ Register Gic::Irq_reg::read(Address_range & access, Cpu & cpu)
 	Register bits_per_irq = size * 8 / irq_count;
 	for (unsigned i = (access.start * 8) / bits_per_irq;
 	     i < ((access.start+access.size) * 8) / bits_per_irq; i++)
-		ret |= read(cpu.gic().irq(i)) << (i % 32/bits_per_irq);
+		ret |= read(cpu.gic().irq(i)) << ((i % (32/bits_per_irq) * bits_per_irq));
 	return ret;
 }
 
@@ -213,7 +213,7 @@ void Gic::Irq_reg::write(Address_range & access, Cpu & cpu, Register value)
 	Register irq_value_mask = (1<<bits_per_irq) - 1;
 	for (unsigned i = (access.start * 8) / bits_per_irq;
 	     i < ((access.start+access.size) * 8) / bits_per_irq; i++)
-		write(cpu.gic().irq(i), (value >> (i % 32/bits_per_irq))
+		write(cpu.gic().irq(i), (value >> ((i % (32/bits_per_irq))*bits_per_irq))
 		                        & irq_value_mask);
 }
 

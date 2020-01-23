@@ -377,11 +377,11 @@ class Vmm::Gic : public Vmm::Mmio_device
 
 		struct Gicd_icfgr : Irq_reg
 		{
-			Register read(Irq & irq)              { return irq.level() ? 0 : 1; }
+			Register read(Irq & irq)              { return irq.level() ? 0 : 2; }
 			void     write(Irq & irq, Register v) { irq.level(!v);              }
 
 			Gicd_icfgr()
-			: Irq_reg("GICD_ICFGR", Mmio_register::RW, 0xc00, 8, 1024) {}
+			: Irq_reg("GICD_ICFGR", Mmio_register::RW, 0xc00, 2, 1024) {}
 		} _icfgr;
 
 		struct Gicd_sgir : Genode::Register<32>, Mmio_register
