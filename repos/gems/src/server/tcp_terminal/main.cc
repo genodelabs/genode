@@ -110,9 +110,37 @@ class Open_socket : public Genode::List<Open_socket>::Element
 			return listen_sd;
 		}
 
+		/**
+		 * Establish remote connection
+		 *
+		 * \return socket descriptor used for the remote TCP connection
+		 */
+		static int _remote_connect(char const * ip, int tcp_port)
+		{
+			int sd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+			if (sd == -1) {
+				Genode::error("socket creation failed");
+				return -1;
+			}
+
+			sockaddr_in sockaddr;
+			sockaddr.sin_family = PF_INET;
+			sockaddr.sin_port = htons (tcp_port);
+			sockaddr.sin_addr.s_addr = inet_addr(ip);
+
+			if (connect(sd, (struct sockaddr *)&sockaddr, sizeof(sockaddr))) {
+				Genode::error("connect to ", ip, ":", tcp_port, " failed");
+				return -1;
+			}
+
+			Genode::log("connected to ", ip, ":", tcp_port, "...");
+			return sd;
+		}
+
 	public:
 
 		Open_socket(int tcp_port);
+		Open_socket(char const * ip_addr, int tcp_port);
 
 		~Open_socket();
 
@@ -132,10 +160,28 @@ class Open_socket : public Genode::List<Open_socket>::Element
 		int sd() const { return _sd; }
 
 		/**
+		 * Return true if TCP connection is established
+		 *
+		 * If the return value is false, we are still in listening more
+		 * and have not yet called 'accept()'.
+		 */
+		bool connection_established() const { return _sd != -1; }
+
+		/**
 		 * Register signal handler to be notified once we accepted the TCP
 		 * connection
 		 */
-		void connected_sigh(Genode::Signal_context_capability sigh) { _connected_sigh = sigh; }
+		void connected_sigh(Genode::Signal_context_capability sigh)
+		{
+			_connected_sigh = sigh;
+
+			/*
+			 * Inform client about the finished initialization of the terminal
+			 * session
+			 */
+			if (_connected_sigh.valid() && connection_established())
+				Genode::Signal_transmitter(_connected_sigh).submit();
+		}
 
 		/**
 		 * Register signal handler to be notified when data is available for
@@ -162,7 +208,7 @@ class Open_socket : public Genode::List<Open_socket>::Element
 			socklen_t len = sizeof(addr);
 			_sd = accept(_listen_sd, &addr, &len);
 
-			if (_sd != -1)
+			if (connection_established())
 				Genode::log("connection established");
 
 			/*
@@ -172,14 +218,6 @@ class Open_socket : public Genode::List<Open_socket>::Element
 			if (_connected_sigh.valid())
 				Genode::Signal_transmitter(_connected_sigh).submit();
 		}
-
-		/**
-		 * Return true if TCP connection is established
-		 *
-		 * If the return value is false, we are still in listening more
-		 * and have not yet called 'accept()'.
-		 */
-		bool connection_established() const { return _sd != -1; }
 
 		/**
 		 * Fetch data from socket into internal read buffer
@@ -406,6 +444,15 @@ Open_socket::Open_socket(int tcp_port)
 }
 
 
+Open_socket::Open_socket(char const * ip_addr, int tcp_port)
+:
+	_listen_sd(_remote_connect(ip_addr, tcp_port)), _sd(_listen_sd),
+	_read_buf_bytes_used(0), _read_buf_bytes_read(0)
+{
+	open_socket_pool()->insert(this);
+}
+
+
 Open_socket::~Open_socket()
 {
 	if (_sd != -1) close(_sd);
@@ -430,6 +477,13 @@ class Terminal::Session_component : public Genode::Rpc_object<Session, Session_c
 		Session_component(Genode::Env &env, Genode::size_t io_buffer_size, int tcp_port)
 		:
 			Open_socket(tcp_port),
+			_io_buffer(env.ram(), env.rm(), io_buffer_size)
+		{ }
+
+		Session_component(Genode::Env &env, Genode::size_t io_buffer_size,
+		                  char const * ip_addr, int tcp_port)
+		:
+			Open_socket(ip_addr, tcp_port),
 			_io_buffer(env.ram(), env.rm(), io_buffer_size)
 		{ }
 
@@ -536,10 +590,18 @@ class Terminal::Root_component : public Genode::Root_component<Session_component
 			unsigned const tcp_port = policy.attribute_value("port", 0U);
 
 			Session_component *session = nullptr;
-			Libc::with_libc([&] () {
-				session = new (md_alloc())
-					Session_component(_env, io_buffer_size, tcp_port); });
 
+			if (policy.has_attribute("ip")) {
+				typedef Genode::String<16> Ip;
+				Ip ip_addr = policy.attribute_value("ip", Ip());
+				Libc::with_libc([&] () {
+					session = new (md_alloc())
+						Session_component(_env, io_buffer_size, ip_addr.string(), tcp_port); });
+			} else {
+				Libc::with_libc([&] () {
+					session = new (md_alloc())
+						Session_component(_env, io_buffer_size, tcp_port); });
+			}
 			return session;
 		}
 

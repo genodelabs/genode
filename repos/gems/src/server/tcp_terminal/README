@@ -4,9 +4,13 @@ to be used for each client is defined in as session policy in the config node
 of the TCP server:
 
 ! <config>
-!   <policy label_prefix="client"         port="8181"/>
+!   <policy label_prefix="client" ip="10.0.0.5" port="8181"/>
 !   <policy label_prefix="another_client" port="8282"/>
 ! </config>
+
+If only a port is described in the policy the TCP terminal will listen on
+that port for incomming connections. If an IP address is provided additionally,
+it connects to the IP address using the given port.
 
 For an example of how to use the TCP terminal, please refer to the run script
 at 'gems/run/tcp_terminal.run'.
