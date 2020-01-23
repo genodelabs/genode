@@ -70,8 +70,6 @@ class Vmm::Cpu
 		template <typename FUNC>
 		void handle_signal(FUNC handler)
 		{
-			Genode::Lock::Guard guard(lock());
-
 			if (active()) {
 				pause();
 				handle_exception();
