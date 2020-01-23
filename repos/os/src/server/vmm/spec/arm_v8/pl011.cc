@@ -64,7 +64,7 @@ void Pl011::_read()
 {
 	if (!_terminal.avail()) return;
 
-	while (_terminal.avail()) {
+	while (_terminal.avail() && _rx_buf.avail_capacity()) {
 		unsigned char c = 0;
 		_terminal.read(&c, 1);
 		_rx_buf.add(c);
