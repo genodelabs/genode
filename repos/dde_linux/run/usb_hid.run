@@ -227,22 +227,22 @@ filter_out_color_escape_sequences
 trim_lines
 
 compare_output_to {
-[init -> test-input] Input event #0	PRESS KEY_X 65534
-[init -> test-input] Input event #1	RELEASE KEY_X
-[init -> test-input] Input event #2	PRESS BTN_LEFT 65534
-[init -> test-input] Input event #3	REL_MOTION -1+0
-[init -> test-input] Input event #4	REL_MOTION +0+1
-[init -> test-input] Input event #5	RELEASE BTN_LEFT
+[init -> test-input] Input event #0	PRESS KEY_X 65534	key count: 1
+[init -> test-input] Input event #1	RELEASE KEY_X	key count: 0
+[init -> test-input] Input event #2	PRESS BTN_LEFT 65534	key count: 1
+[init -> test-input] Input event #3	REL_MOTION -1+0	key count: 1
+[init -> test-input] Input event #4	REL_MOTION +0+1	key count: 1
+[init -> test-input] Input event #5	RELEASE BTN_LEFT	key count: 0
 [init -> usb_drv] dev_info: USB disconnect, device
 [init -> usb_drv] dev_info: new full-speed USB device
 [init -> usb_drv] dev_info: D L
 [init -> usb_drv] dev_info: input: USB HID v1.11 Keyboard [D L]
 [init -> usb_drv] dev_info: D L
 [init -> usb_drv] dev_info: input: USB HID v1.11 Mouse [D L]
-[init -> test-input] Input event #6	PRESS KEY_X 65534
-[init -> test-input] Input event #7	RELEASE KEY_X
-[init -> test-input] Input event #8	PRESS BTN_LEFT 65534
-[init -> test-input] Input event #9	REL_MOTION -1+0
-[init -> test-input] Input event #10	REL_MOTION +0+1
-[init -> test-input] Input event #11	RELEASE BTN_LEFT
+[init -> test-input] Input event #6	PRESS KEY_X 65534	key count: 1
+[init -> test-input] Input event #7	RELEASE KEY_X	key count: 0
+[init -> test-input] Input event #8	PRESS BTN_LEFT 65534	key count: 1
+[init -> test-input] Input event #9	REL_MOTION -1+0	key count: 1
+[init -> test-input] Input event #10	REL_MOTION +0+1	key count: 1
+[init -> test-input] Input event #11	RELEASE BTN_LEFT	key count: 0
 }

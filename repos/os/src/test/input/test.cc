@@ -25,11 +25,15 @@ struct Main
 	Input::Connection     _input      { _env };
 	Signal_handler<Main>  _input_sigh { _env.ep(), *this, &Main::_handle_input };
 	unsigned              _event_cnt  { 0 };
+	int                   _key_cnt    { 0 };
 
 	void _handle_input()
 	{
 		_input.for_each_event([&] (Input::Event const &ev) {
-			log("Input event #", _event_cnt++, "\t", ev); });
+			if (ev.press())   ++_key_cnt;
+			if (ev.release()) --_key_cnt;
+			log("Input event #", _event_cnt++, "\t", ev, "\tkey count: ", _key_cnt);
+		});
 	}
 
 	Main(Env &env) : _env(env)
