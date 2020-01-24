@@ -53,7 +53,7 @@ void Thread::_thread_start()
 	lx_sigsetmask(LX_SIGCHLD, false);
 
 	Thread::myself()->entry();
-	Thread::myself()->_join_lock.unlock();
+	Thread::myself()->_join.wakeup();
 	sleep_forever();
 }
 

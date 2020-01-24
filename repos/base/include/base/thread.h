@@ -16,7 +16,7 @@
 
 /* Genode includes */
 #include <base/exception.h>
-#include <base/lock.h>
+#include <base/blockade.h>
 #include <base/trace/logger.h>
 #include <cpu/consts.h>
 #include <util/string.h>
@@ -129,9 +129,9 @@ class Genode::Thread
 		Native_thread *_native_thread = nullptr;
 
 		/**
-		 * Lock used for synchronizing the finalization of the thread
+		 * Blockade used for synchronizing the finalization of the thread
 		 */
-		Lock _join_lock;
+		Blockade _join { };
 
 		/**
 		 * Thread type

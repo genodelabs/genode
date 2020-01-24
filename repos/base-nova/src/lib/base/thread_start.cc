@@ -59,7 +59,7 @@ void Thread::_thread_start()
 		throw;
 	}
 
-	Thread::myself()->_join_lock.unlock();
+	Thread::myself()->_join.wakeup();
 
 	/* sleep silently */
 	Genode::sleep_forever();

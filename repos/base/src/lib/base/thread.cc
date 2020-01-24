@@ -140,7 +140,7 @@ void Thread::name(char *dst, size_t dst_len)
 Thread::Name Thread::name() const { return _stack->name(); }
 
 
-void Thread::join() { _join_lock.lock(); }
+void Thread::join() { _join.block(); }
 
 
 void *Thread::alloc_secondary_stack(char const *name, size_t stack_size)
@@ -204,8 +204,7 @@ Thread::Thread(size_t weight, const char *name, size_t stack_size,
 	_affinity(affinity),
 	_trace_control(nullptr),
 	_stack(type == REINITIALIZED_MAIN ?
-	       _stack : _alloc_stack(stack_size, name, type == MAIN)),
-	_join_lock(Lock::LOCKED)
+	       _stack : _alloc_stack(stack_size, name, type == MAIN))
 {
 	_init_platform_thread(weight, type);
 }

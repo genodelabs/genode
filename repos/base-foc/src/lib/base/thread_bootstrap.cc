@@ -59,6 +59,6 @@ void Genode::Thread::_thread_start()
 
 	Thread::myself()->_thread_bootstrap();
 	Thread::myself()->entry();
-	Thread::myself()->_join_lock.unlock();
+	Thread::myself()->_join.wakeup();
 	sleep_forever();
 }

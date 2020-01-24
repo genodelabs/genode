@@ -496,7 +496,7 @@ Native_thread &Thread::native_thread() { return *_native_thread; }
 
 Thread::Thread(size_t weight, const char *name, size_t /* stack size */,
                Type, Cpu_session * cpu_sess, Affinity::Location)
-: _cpu_session(cpu_sess), _affinity(), _join_lock()
+: _cpu_session(cpu_sess), _affinity()
 {
 	Native_thread::Meta_data *meta_data =
 		new (global_alloc()) Thread_meta_data_created(this);

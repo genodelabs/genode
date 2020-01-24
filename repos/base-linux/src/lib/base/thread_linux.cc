@@ -80,7 +80,7 @@ void Thread::_thread_start()
 	thread->entry();
 
 	/* unblock caller of 'join()' */
-	thread->_join_lock.unlock();
+	thread->_join.wakeup();
 
 	sleep_forever();
 }
