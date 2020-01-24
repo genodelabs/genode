@@ -52,6 +52,8 @@ class Genode::Buffered_output : public Output
 
 		Buffered_output(BACKEND_WRITE_FN const &write_fn) : _write_fn(write_fn) { }
 
+		~Buffered_output() { _flush(); }
+
 		void out_char(char c) override
 		{
 			/* ensure enough buffer space for complete escape sequence */
