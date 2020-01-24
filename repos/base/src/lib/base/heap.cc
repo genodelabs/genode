@@ -224,7 +224,7 @@ bool Heap::alloc(size_t size, void **out_addr)
 		error("attempt to allocate zero-size block from heap");
 
 	/* serialize access of heap functions */
-	Lock::Guard lock_guard(_lock);
+	Mutex::Guard guard(_mutex);
 
 	/* check requested allocation against quota limit */
 	if (size + _quota_used > _quota_limit)
@@ -237,7 +237,7 @@ bool Heap::alloc(size_t size, void **out_addr)
 void Heap::free(void *addr, size_t)
 {
 	/* serialize access of heap functions */
-	Lock::Guard lock_guard(_lock);
+	Mutex::Guard guard(_mutex);
 
 	/* try to find the size in our local allocator */
 	size_t const size = _alloc->size_at(addr);

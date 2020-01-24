@@ -19,7 +19,7 @@
 #include <base/ram_allocator.h>
 #include <region_map/region_map.h>
 #include <base/allocator_avl.h>
-#include <base/lock.h>
+#include <base/mutex.h>
 
 namespace Genode {
 
@@ -89,7 +89,7 @@ class Genode::Heap : public Allocator
 					ram_alloc = ram, region_map = rm; }
 		};
 
-		Lock                   mutable _lock { };
+		Mutex                  mutable _mutex { };
 		Reconstructible<Allocator_avl> _alloc;        /* local allocator    */
 		Dataspace_pool                 _ds_pool;      /* list of dataspaces */
 		size_t                         _quota_limit { 0 };
@@ -157,7 +157,7 @@ class Genode::Heap : public Allocator
 		template <typename FN>
 		void for_each_region(FN const &fn) const
 		{
-			Lock::Guard guard(_lock);
+			Mutex::Guard guard(_mutex);
 			for (Dataspace const *ds = _ds_pool.first(); ds; ds = ds->next())
 				fn(ds->local_addr, ds->size);
 		}
@@ -198,7 +198,7 @@ class Genode::Sliced_heap : public Allocator
 		Region_map     &_region_map;    /* region map of the address space */
 		size_t          _consumed = 0;  /* number of allocated bytes       */
 		List<Block>     _blocks { };    /* list of allocated blocks        */
-		Lock            _lock   { };    /* serialize allocations           */
+		Mutex           _mutex  { };    /* serialize allocations           */
 
 	public:
 

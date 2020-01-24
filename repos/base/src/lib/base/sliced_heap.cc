@@ -65,7 +65,7 @@ bool Sliced_heap::alloc(size_t size, void **out_addr)
 	}
 
 	/* serialize access to block list */
-	Lock::Guard lock_guard(_lock);
+	Mutex::Guard guard(_mutex);
 
 	construct_at<Block>(block, ds_cap, size);
 
@@ -85,7 +85,7 @@ void Sliced_heap::free(void *addr, size_t)
 	void *local_addr = nullptr;
 	{
 		/* serialize access to block list */
-		Lock::Guard lock_guard(_lock);
+		Mutex::Guard guard(_mutex);
 
 		/*
 		 * The 'addr' argument points to the payload. We use pointer
