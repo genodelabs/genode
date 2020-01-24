@@ -63,7 +63,11 @@ void Cancelable_lock::Applicant::wake_up()
 void Cancelable_lock::lock()
 {
 	Applicant myself(Thread::myself());
+	lock(myself);
+}
 
+void Cancelable_lock::lock(Applicant &myself)
+{
 	spinlock_lock(&_spinlock_state);
 
 	if (cmpxchg(&_state, UNLOCKED, LOCKED)) {
@@ -121,7 +125,7 @@ void Cancelable_lock::lock()
 	 * ! for (int i = 0; i < 10; i++)
 	 * !   thread_yield();
 	 */
-	thread_stop_myself();
+	thread_stop_myself(myself.thread_base());
 
 	/*
 	 * We expect to be the lock owner when woken up. If this is not

@@ -44,14 +44,12 @@ static inline bool thread_check_stopped_and_restart(Genode::Thread *thread)
 }
 
 
-static inline void thread_stop_myself()
+static inline void thread_stop_myself(Genode::Thread *myself)
 {
-	Genode::Thread *myself = Genode::Thread::myself();
-
 	unsigned lock_sel = Genode::INITIAL_SEL_LOCK; /* main thread */
 
 	if (myself)
-		lock_sel = Genode::Thread::myself()->native_thread().lock_sel;
+		lock_sel = myself->native_thread().lock_sel;
 
 	seL4_Word sender = ~0U;
 	seL4_Wait(lock_sel, &sender);

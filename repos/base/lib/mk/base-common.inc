@@ -17,6 +17,7 @@ SRC_CC += session_state.cc
 SRC_CC += elf_binary.cc
 SRC_CC += ipc.cc
 SRC_CC += lock.cc
+SRC_CC += mutex.cc
 SRC_CC += log.cc
 SRC_CC += raw_output.cc
 SRC_CC += rpc_entrypoint.cc

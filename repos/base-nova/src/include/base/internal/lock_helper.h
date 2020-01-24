@@ -47,13 +47,12 @@ static inline bool thread_check_stopped_and_restart(Genode::Thread *thread_base)
 static inline void thread_switch_to(Genode::Thread *) { }
 
 
-static inline void thread_stop_myself()
+static inline void thread_stop_myself(Genode::Thread *myself)
 {
 	using namespace Genode;
 	using namespace Nova;
 
 	addr_t sem;
-	Thread *myself = Thread::myself();
 	if (myself)
 		sem = myself->native_thread().exc_pt_sel + SM_SEL_EC;
 	else

@@ -32,7 +32,7 @@
 #
 
 #
-# Copyright (C) 2016-2019 Genode Labs GmbH
+# Copyright (C) 2016-2020 Genode Labs GmbH
 #
 # This file is part of the Genode OS framework, which is distributed
 # under the terms of the GNU Affero General Public License version 3.
@@ -270,6 +270,8 @@ _ZN6Genode5ChildC2ERNS_10Region_mapERNS_14Rpc_entrypointERNS_12Child_policyE T
 _ZN6Genode5ChildD0Ev T
 _ZN6Genode5ChildD1Ev T
 _ZN6Genode5ChildD2Ev T
+_ZN6Genode5Mutex7acquireEv T
+_ZN6Genode5Mutex7releaseEv T
 _ZN6Genode5Stack4sizeEm T
 _ZN6Genode5Trace6Logger17_evaluate_controlEv T
 _ZN6Genode5Trace6Logger3logEPKcm T

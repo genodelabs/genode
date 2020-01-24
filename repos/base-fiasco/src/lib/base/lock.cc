@@ -13,6 +13,7 @@
 
 /* Genode includes */
 #include <base/cancelable_lock.h>
+#include <base/thread.h>
 #include <cpu/atomic.h>
 #include <cpu/memory_barrier.h>
 
@@ -34,6 +35,13 @@ Cancelable_lock::Cancelable_lock(Cancelable_lock::State initial)
 
 void Cancelable_lock::lock()
 {
+	Applicant myself(Thread::myself());
+	lock(myself);
+}
+
+
+void Cancelable_lock::lock(Applicant &myself)
+{
 	/*
 	 * XXX: How to notice cancel-blocking signals issued when  being outside the
 	 *      'l4_ipc_sleep' system call?
@@ -41,11 +49,14 @@ void Cancelable_lock::lock()
 	while (!Genode::cmpxchg(&_state, UNLOCKED, LOCKED))
 		if (Fiasco::l4_ipc_sleep(Fiasco::l4_ipc_timeout(0, 0, 500, 0)) != L4_IPC_RETIMEOUT)
 			throw Genode::Blocking_canceled();
+
+	_owner = myself;
 }
 
 
 void Cancelable_lock::unlock()
 {
+	_owner = Applicant(nullptr);
 	Genode::memory_barrier();
 	_state = UNLOCKED;
 }

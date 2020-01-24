@@ -78,7 +78,7 @@ static inline void thread_switch_to(Genode::Thread *thread_base)
 __attribute__((optimize("-fno-omit-frame-pointer")))
 __attribute__((noinline))
 __attribute__((used))
-static void thread_stop_myself()
+static void thread_stop_myself(Genode::Thread *)
 {
 	using namespace Fiasco;
 

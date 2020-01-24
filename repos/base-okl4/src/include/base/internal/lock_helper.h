@@ -77,9 +77,8 @@ static inline void thread_switch_to(Genode::Thread *thread_base)
 /**
  * Unconditionally block the calling thread
  */
-static inline void thread_stop_myself()
+static inline void thread_stop_myself(Genode::Thread *myself)
 {
-	Genode::Thread *myself = Genode::Thread::myself();
 	Okl4::L4_ThreadId_t tid = myself ?
 	                          myself->native_thread().l4id :
 	                          main_thread_tid;

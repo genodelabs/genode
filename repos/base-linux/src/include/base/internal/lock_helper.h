@@ -49,14 +49,13 @@ static inline bool thread_check_stopped_and_restart(Genode::Thread *thread_base)
 static inline void thread_switch_to(Genode::Thread *) { thread_yield(); }
 
 
-static inline void thread_stop_myself()
+static inline void thread_stop_myself(Genode::Thread *myself)
 {
 	/*
 	 * Just go to sleep without modifying the counter value. The
 	 * 'thread_check_stopped_and_restart()' function will get called
 	 * repeatedly until this thread has actually executed the syscall.
 	 */
-	Genode::Thread *myself = Genode::Thread::myself();
 	const int *futex_counter_ptr = myself ?
 	                               &myself->native_thread().futex_counter :
 	                               &main_thread_futex_counter;
