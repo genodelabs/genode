@@ -20,6 +20,7 @@
 /* local includes */
 #include <types.h>
 #include <view/network_dialog.h>
+#include <view/panel_dialog.h>
 
 namespace Sculpt { struct Keyboard_focus; }
 
@@ -29,8 +30,9 @@ struct Sculpt::Keyboard_focus
 
 	Expanding_reporter _focus_reporter;
 
-	Network_dialog const &_network_dialog;
-	Wpa_passphrase       &_wpa_passphrase;
+	Network_dialog      const &_network_dialog;
+	Wpa_passphrase            &_wpa_passphrase;
+	Panel_dialog::State const &_panel;
 
 	void update()
 	{
@@ -38,7 +40,7 @@ struct Sculpt::Keyboard_focus
 
 		target = WM;
 
-		if (_network_dialog.need_keyboard_focus_for_passphrase())
+		if (_panel.network_visible() && _network_dialog.need_keyboard_focus_for_passphrase())
 			target = WPA_PASSPHRASE;
 
 		if (orig_target == target)
@@ -63,12 +65,14 @@ struct Sculpt::Keyboard_focus
 	}
 
 	Keyboard_focus(Env &env,
-	               Network_dialog const &network_dialog,
-	               Wpa_passphrase       &wpa_passphrase)
+	               Network_dialog      const &network_dialog,
+	               Wpa_passphrase            &wpa_passphrase,
+	               Panel_dialog::State const &panel)
 	:
 		_focus_reporter(env, "focus", "focus"),
 		_network_dialog(network_dialog),
-		_wpa_passphrase(wpa_passphrase)
+		_wpa_passphrase(wpa_passphrase),
+		_panel(panel)
 	{
 		update();
 	}

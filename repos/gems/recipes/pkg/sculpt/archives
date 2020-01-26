@@ -2,6 +2,7 @@ _/pkg/drivers_managed-pc
 _/pkg/wifi
 _/pkg/depot_download
 _/pkg/terminal
+_/pkg/backdrop
 _/src/report_rom
 _/src/clipboard
 _/src/init
@@ -48,3 +49,5 @@ _/src/gpt_write
 _/src/sculpt_manager
 _/src/fs_query
 _/src/fs_tool
+_/src/text_area
+_/src/sandbox

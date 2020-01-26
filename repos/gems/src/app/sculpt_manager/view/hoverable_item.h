@@ -26,17 +26,19 @@ struct Sculpt::Hoverable_item
 
 	Id _hovered  { };
 
+	enum class Hover_result { CHANGED, UNMODIFIED };
+
 	/**
 	 * Set ID to matching hover sub node name
 	 *
 	 * \return true if hovering changed
 	 */
 	template <typename... ARGS>
-	bool match(Xml_node hover, ARGS &&... args)
+	Hover_result match(Xml_node hover, ARGS &&... args)
 	{
 		Id const orig = _hovered;
 		_hovered = query_attribute<Id>(hover, args...);
-		return _hovered != orig;
+		return (_hovered != orig) ? Hover_result::CHANGED : Hover_result::UNMODIFIED;
 	}
 
 	/**

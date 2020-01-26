@@ -460,6 +460,4 @@ void Popup_dialog::click(Action &action)
 			}
 		}
 	}
-
-	generate();
 }

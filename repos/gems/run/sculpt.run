@@ -75,10 +75,6 @@ install_config {
 			        report="global_keys_handler -> slides"/>
 			<policy label="leitzentrale -> manager -> displays"
 			        report="nitpicker -> displays"/>
-			<policy label="runtime -> runtime_view -> dialog"
-			        report="leitzentrale -> manager -> runtime_view_dialog"/>
-			<policy label="leitzentrale -> manager -> runtime_view_hover"
-			        report="runtime -> runtime_view -> hover"/>
 		</config>
 	</start>
 
@@ -397,11 +393,16 @@ install_config {
 		</route>
 	</start>
 
-	<start name="leitzentrale" caps="4000" priority="-2">
+	<start name="leitzentrale" caps="2350" priority="-2">
 		<binary name="init"/>
-		<resource name="RAM" quantum="164M"/>
+		<resource name="RAM" quantum="130M"/>
 		<affinity xpos="1" width="1"/> <!-- decouple leitzentrale from boot CPU -->
-		<provides> <service name="Nitpicker"/> </provides>
+		<provides>
+			<service name="Nitpicker"/>
+			<service name="File_system"/> <!-- fonts -->
+			<service name="ROM"/>         <!-- view dialog ROMs -->
+			<service name="Report"/>      <!-- view hover reports -->
+		</provides>
 		<route>
 			<service name="LOG"> <child name="log"/> </service>
 			<service name="ROM" label="config">
@@ -417,10 +418,6 @@ install_config {
 			<service name="ROM" label_prefix="config -> ">
 				<child name="config_fs_rom"/> </service>
 			<service name="ROM" label="manager -> nitpicker_hover">
-				<child name="report_rom"/> </service>
-			<service name="ROM" label="manager -> runtime_view_hover">
-				<child name="report_rom"/> </service>
-			<service name="Report" label="manager -> runtime_view_dialog">
 				<child name="report_rom"/> </service>
 			<service name="Report"> <child name="fs_report"/> </service>
 			<service name="Nitpicker"> <child name="nitpicker"/> </service>
@@ -452,8 +449,6 @@ install_config {
 				<child name="report_rom"/> </service>
 			<service name="ROM" label="clicked">
 				<child name="report_rom"/> </service>
-			<service name="ROM" label="runtime_view -> dialog">
-				<child name="report_rom"/> </service>
 			<service name="File_system" label="config">
 				<child name="config_fs" label="rw"/> </service>
 			<service name="File_system" label="report">
@@ -474,12 +469,20 @@ install_config {
 			<service name="Report" label_suffix="-> shape"> <child name="pointer"/> </service>
 			<service name="Report" label="inspect terminal -> clipboard">
 				<child name="clipboard" label="leitzentrale -> manager -> fader ->  -> clipboard"/> </service>
+			<service name="Report" label="editor -> clipboard">
+				<child name="clipboard" label="leitzentrale -> manager -> fader ->  -> clipboard"/> </service>
 			<service name="ROM" label="inspect terminal -> clipboard">
+				<child name="clipboard" label="leitzentrale -> manager -> fader ->  -> clipboard"/> </service>
+			<service name="ROM" label="editor -> clipboard">
 				<child name="clipboard" label="leitzentrale -> manager -> fader ->  -> clipboard"/> </service>
 			<service name="Report" label_suffix="-> clipboard"> <child name="clipboard"/> </service>
 			<service name="ROM"    label_suffix="-> clipboard"> <child name="clipboard"/> </service>
-			<service name="Report" label="runtime_view -> hover">
-				<child name="report_rom"/> </service>
+			<service name="Report" label_prefix="leitzentrale ->">
+				<child name="leitzentrale"/> </service>
+			<service name="ROM" label_prefix="leitzentrale ->">
+				<child name="leitzentrale"/> </service>
+			<service name="File_system" label="leitzentrale -> fonts">
+				<child name="leitzentrale" label="fonts"/> </service>
 			<service name="Report"> <child name="fs_report"/> </service>
 			<service name="LOG" label="unlogged"> <parent/> </service>
 			<service name="LOG"> <child name="log"/> </service>

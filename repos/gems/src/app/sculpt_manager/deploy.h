@@ -39,6 +39,8 @@ struct Sculpt::Deploy
 
 	Allocator &_alloc;
 
+	Registry<Child_state> &_child_states;
+
 	Runtime_info const &_runtime_info;
 
 	Dialog::Generator &_dialog_generator;
@@ -56,10 +58,10 @@ struct Sculpt::Deploy
 	Arch _arch { };
 
 	Child_state cached_depot_rom_state {
-		"depot_rom", Ram_quota{24*1024*1024}, Cap_quota{200} };
+		_child_states, "depot_rom", Ram_quota{24*1024*1024}, Cap_quota{200} };
 
 	Child_state uncached_depot_rom_state {
-		"dynamic_depot_rom", Ram_quota{8*1024*1024}, Cap_quota{200} };
+		_child_states, "dynamic_depot_rom", Ram_quota{8*1024*1024}, Cap_quota{200} };
 
 	/*
 	 * Report written to '/config/managed/deploy'
@@ -227,7 +229,8 @@ struct Sculpt::Deploy
 		});
 	}
 
-	Deploy(Env &env, Allocator &alloc, Runtime_info const &runtime_info,
+	Deploy(Env &env, Allocator &alloc, Registry<Child_state> &child_states,
+	       Runtime_info const &runtime_info,
 	       Dialog::Generator &dialog_generator,
 	       Runtime_config_generator &runtime_config_generator,
 	       Depot_query &depot_query,
@@ -235,7 +238,8 @@ struct Sculpt::Deploy
 	       Attached_rom_dataspace const &blueprint_rom,
 	       Download_queue const &download_queue)
 	:
-		_env(env), _alloc(alloc), _runtime_info(runtime_info),
+		_env(env), _alloc(alloc), _child_states(child_states),
+		_runtime_info(runtime_info),
 		_dialog_generator(dialog_generator),
 		_runtime_config_generator(runtime_config_generator),
 		_depot_query(depot_query),

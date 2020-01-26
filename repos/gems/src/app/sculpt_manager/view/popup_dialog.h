@@ -33,11 +33,9 @@
 namespace Sculpt { struct Popup_dialog; }
 
 
-struct Sculpt::Popup_dialog
+struct Sculpt::Popup_dialog : Dialog
 {
 	Env &_env;
-
-	Allocator &_alloc;
 
 	Sculpt_version const _sculpt_version { _env };
 
@@ -71,6 +69,13 @@ struct Sculpt::Popup_dialog
 		}
 	};
 
+	struct Refresh : Interface, Noncopyable
+	{
+		virtual void refresh_popup_dialog() = 0;
+	};
+
+	Refresh &_refresh;
+
 	struct Action : Interface
 	{
 		virtual void launch_global(Path const &launcher) = 0;
@@ -103,19 +108,10 @@ struct Sculpt::Popup_dialog
 
 	Construction_info const &_construction_info;
 
-	Expanding_reporter _dialog_reporter { _env, "dialog", "popup_dialog" };
-
-	Attached_rom_dataspace _hover_rom { _env, "popup_view_hover" };
-
-	Signal_handler<Popup_dialog> _hover_handler {
-		_env.ep(), *this, &Popup_dialog::_handle_hover };
-
 	Hoverable_item   _item         { };
 	Activatable_item _action_item  { };
 	Activatable_item _install_item { };
 	Hoverable_item   _route_item   { };
-
-	bool _hovered = false;
 
 	enum State { TOP_LEVEL, DEPOT_REQUESTED, DEPOT_SHOWN, DEPOT_SELECTION,
 	             INDEX_REQUESTED, INDEX_SHOWN,
@@ -190,25 +186,16 @@ struct Sculpt::Popup_dialog
 
 	Menu _menu { };
 
-	void _handle_hover()
+	Hover_result hover(Xml_node hover) override
 	{
-		_hover_rom.update();
+		Dialog::Hover_result const hover_result = Dialog::any_hover_changed(
+			_item        .match(hover, "frame", "vbox", "hbox", "name"),
+			_action_item .match(hover, "frame", "vbox", "button", "name"),
+			_install_item.match(hover, "frame", "vbox", "float", "vbox", "float", "button", "name"),
+			_route_item  .match(hover, "frame", "vbox", "frame", "vbox", "hbox", "name"));
 
-		Xml_node const hover = _hover_rom.xml();
-
-		_hovered = hover.has_sub_node("dialog");
-
-		bool const changed =
-			_item        .match(hover, "dialog", "frame", "vbox", "hbox", "name") |
-			_action_item .match(hover, "dialog", "frame", "vbox", "button", "name") |
-			_install_item.match(hover, "dialog", "frame", "vbox", "float", "vbox", "float", "button", "name") |
-			_route_item  .match(hover, "dialog", "frame", "vbox", "frame", "vbox", "hbox", "name");
-
-		if (changed)
-			generate();
+		return hover_result;
 	}
-
-	bool hovered() const { return _hovered; };
 
 	Attached_rom_dataspace _scan_rom { _env, "report -> runtime/depot_query/scan" };
 
@@ -223,7 +210,7 @@ struct Sculpt::Popup_dialog
 			_state = DEPOT_SHOWN;
 
 		if (_state != TOP_LEVEL)
-			generate();
+			_refresh.refresh_popup_dialog();
 	}
 
 	Attached_rom_dataspace _index_rom { _env, "report -> runtime/depot_query/index" };
@@ -242,7 +229,7 @@ struct Sculpt::Popup_dialog
 		if (_state == INDEX_REQUESTED)
 			_state = INDEX_SHOWN;
 
-		generate();
+		_refresh.refresh_popup_dialog();
 	}
 
 	bool _index_avail(User const &user) const
@@ -373,12 +360,11 @@ struct Sculpt::Popup_dialog
 	void _gen_pkg_elements (Xml_generator &, Component const &) const;
 	void _gen_menu_elements(Xml_generator &) const;
 
-	void generate()
+	void generate(Xml_generator &xml) const override
 	{
-		_dialog_reporter.generate([&] (Xml_generator &xml) {
-			xml.node("frame", [&] () {
-				xml.node("vbox", [&] () {
-					_gen_menu_elements(xml); }); }); });
+		xml.node("frame", [&] () {
+			xml.node("vbox", [&] () {
+				_gen_menu_elements(xml); }); });
 	}
 
 	void click(Action &action);
@@ -397,25 +383,24 @@ struct Sculpt::Popup_dialog
 			_construction_info.with_construction([&] (Component const &component) {
 				action.trigger_download(component.path);
 				_install_item.reset();
-				generate();
+				_refresh.refresh_popup_dialog();
 			});
 		}
 	}
 
-	void reset()
+	void reset() override
 	{
 		_item._hovered = Hoverable_item::Id();
 		_route_item._hovered = Hoverable_item::Id();
 		_action_item.reset();
 		_install_item.reset();
-		_hovered = false;
 		_state = TOP_LEVEL;
 		_selected_user = User();
 		_selected_route.destruct();
 		_menu._level = 0;
 	}
 
-	Popup_dialog(Env &env, Allocator &alloc,
+	Popup_dialog(Env &env, Refresh &refresh,
 	             Launchers         const &launchers,
 	             Nic_state         const &nic_state,
 	             Nic_target        const &nic_target,
@@ -425,17 +410,14 @@ struct Sculpt::Popup_dialog
 	             Depot_query             &depot_query,
 	             Construction_info const &construction_info)
 	:
-		_env(env), _alloc(alloc), _launchers(launchers),
+		_env(env), _launchers(launchers),
 		_nic_state(nic_state), _nic_target(nic_target),
 		_runtime_info(runtime_info), _runtime_config(runtime_config),
 		_download_queue(download_queue), _depot_query(depot_query),
-		_construction_info(construction_info)
+		_refresh(refresh), _construction_info(construction_info)
 	{
-		_hover_rom.sigh(_hover_handler);
 		_scan_rom.sigh(_scan_handler);
 		_index_rom.sigh(_index_handler);
-
-		generate();
 	}
 
 	void gen_depot_query(Xml_generator &xml) const
@@ -473,7 +455,7 @@ struct Sculpt::Popup_dialog
 		if (construction.blueprint_known && !_pkg_missing && !_pkg_rom_missing)
 			_state = PKG_SHOWN;
 
-		generate();
+		_refresh.refresh_popup_dialog();
 	}
 
 	bool interested_in_download() const

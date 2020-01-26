@@ -17,8 +17,10 @@
 /* local includes */
 #include "network_dialog.h"
 
-void Sculpt::Network_dialog::_gen_access_point(Xml_generator &xml,
-                                               Access_point const &ap) const
+using namespace Sculpt;
+
+void Network_dialog::_gen_access_point(Xml_generator &xml,
+                                       Access_point const &ap) const
 {
 	gen_named_node(xml, "hbox", ap.bssid, [&] () {
 
@@ -59,7 +61,7 @@ void Sculpt::Network_dialog::_gen_access_point(Xml_generator &xml,
 }
 
 
-bool Sculpt::Network_dialog::_selected_ap_visible() const
+bool Network_dialog::_selected_ap_visible() const
 {
 	unsigned cnt = 0;
 	return _for_each_ap([&] (Access_point const &ap) {
@@ -67,14 +69,14 @@ bool Sculpt::Network_dialog::_selected_ap_visible() const
 }
 
 
-bool Sculpt::Network_dialog::_selected_ap_unprotected() const
+bool Network_dialog::_selected_ap_unprotected() const
 {
 	return _for_each_ap([&] (Access_point const &ap) {
 		return _ap_item.selected(ap.bssid) && ap.unprotected(); });
 }
 
 
-bool Sculpt::Network_dialog::need_keyboard_focus_for_passphrase() const
+bool Network_dialog::need_keyboard_focus_for_passphrase() const
 {
 	if (   _wifi_connection.state == Wifi_connection::CONNECTED
 	    || _wifi_connection.state == Wifi_connection::CONNECTING)
@@ -88,8 +90,8 @@ bool Sculpt::Network_dialog::need_keyboard_focus_for_passphrase() const
 }
 
 
-void Sculpt::Network_dialog::_gen_access_point_list(Xml_generator &xml,
-                                                    bool auth_failure) const
+void Network_dialog::_gen_access_point_list(Xml_generator &xml,
+                                            bool auth_failure) const
 {
 	if (_wlan_config_policy == WLAN_CONFIG_MANUAL)
 		return;
@@ -133,7 +135,11 @@ void Sculpt::Network_dialog::_gen_access_point_list(Xml_generator &xml,
 					xml.attribute("west", "yes");
 					xml.node("label", [&] () {
 						xml.attribute("font", "title/regular");
-						xml.attribute("text", String<3*64>(" ", _wpa_passphrase));
+						String<3*64> const passphrase(" ", _wpa_passphrase);
+						xml.attribute("text", passphrase);
+						xml.node("cursor", [&] () {
+							xml.attribute("at", passphrase.length() - 1);
+						});
 					});
 				});
 			});
@@ -165,7 +171,7 @@ void Sculpt::Network_dialog::_gen_access_point_list(Xml_generator &xml,
 }
 
 
-void Sculpt::Network_dialog::_gen_connected_ap(Xml_generator &xml, bool connected) const
+void Network_dialog::_gen_connected_ap(Xml_generator &xml, bool connected) const
 {
 	bool done = false;
 
@@ -196,14 +202,10 @@ void Sculpt::Network_dialog::_gen_connected_ap(Xml_generator &xml, bool connecte
 }
 
 
-void Sculpt::Network_dialog::generate(Xml_generator &xml) const
+void Network_dialog::generate(Xml_generator &xml) const
 {
 	gen_named_node(xml, "frame", "network", [&] () {
 		xml.node("vbox", [&] () {
-			gen_named_node(xml, "label", "title", [&] () {
-				xml.attribute("text", "Network");
-				xml.attribute("font", "title/regular");
-			});
 
 			gen_named_node(xml, "hbox", "type", [&] () {
 
@@ -270,21 +272,20 @@ void Sculpt::Network_dialog::generate(Xml_generator &xml) const
 }
 
 
-void Sculpt::Network_dialog::hover(Xml_node hover)
+Dialog::Hover_result Network_dialog::hover(Xml_node hover)
 {
-	bool const changed =
-		_nic_item    .match(hover, "vbox", "hbox", "button", "name") |
-		_ap_item     .match(hover, "vbox", "frame", "vbox", "hbox", "name") |
-		_connect_item.match(hover, "vbox", "frame", "vbox", "button", "name");
+	Dialog::Hover_result const hover_result = Dialog::any_hover_changed(
+		_nic_item    .match(hover, "frame", "vbox", "hbox", "button", "name"),
+		_ap_item     .match(hover, "frame", "vbox", "frame", "vbox", "hbox", "name"),
+		_connect_item.match(hover, "frame", "vbox", "frame", "vbox", "button", "name"));
 
 	_nic_info.match(hover, "vbox", "frame", "name");
 
-	if (changed)
-		_dialog_generator.generate_dialog();
+	return hover_result;
 }
 
 
-void Sculpt::Network_dialog::click(Action &action)
+void Network_dialog::click(Action &action)
 {
 	if (_nic_item.hovered("off"))   action.nic_target(Nic_target::OFF);
 	if (_nic_item.hovered("local")) action.nic_target(Nic_target::LOCAL);
@@ -304,6 +305,5 @@ void Sculpt::Network_dialog::click(Action &action)
 
 	if (_connect_item.hovered("connect"))
 		action.wifi_connect(selected_ap());
-
-	_dialog_generator.generate_dialog();
 }
+

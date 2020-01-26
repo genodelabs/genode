@@ -21,7 +21,7 @@
 /* local includes */
 #include <model/child_exit_state.h>
 #include <view/network_dialog.h>
-#include <gui.h>
+#include <menu_view.h>
 #include <runtime.h>
 #include <keyboard_focus.h>
 #include <managed_config.h>
@@ -35,7 +35,7 @@ struct Sculpt::Network : Network_dialog::Action
 
 	Allocator &_alloc;
 
-	Dialog::Generator &_dialog_generator;
+	Registry<Child_state> &_child_states;
 
 	Runtime_config_generator &_runtime_config_generator;
 
@@ -97,9 +97,21 @@ struct Sculpt::Network : Network_dialog::Action
 		Network_dialog::WLAN_CONFIG_MANAGED;
 
 	Network_dialog dialog {
-		_env, _dialog_generator, _nic_target, _access_points,
+		_nic_target, _access_points,
 		_wifi_connection, _nic_state, wpa_passphrase, _wlan_config_policy,
 		_pci_info };
+
+	Menu_view _menu_view { _env, _child_states, dialog, "network_view",
+	                       Ram_quota{4*1024*1024}, Cap_quota{150},
+	                       "network_dialog", "network_view_hover" };
+
+	void min_dialog_width(unsigned value) { _menu_view.min_width = value; }
+
+	bool dialog_hovered() const { return _menu_view.hovered(); }
+
+	void update_view() { _menu_view.generate(); }
+
+	void trigger_dialog_restart() { _menu_view.trigger_restart(); }
 
 	Managed_config<Network> _wlan_config {
 		_env, "config", "wifi", *this, &Network::_handle_wlan_config };
@@ -108,7 +120,7 @@ struct Sculpt::Network : Network_dialog::Action
 	{
 		if (_wlan_config.try_generate_manually_managed()) {
 			_wlan_config_policy = Network_dialog::WLAN_CONFIG_MANUAL;
-			_dialog_generator.generate_dialog();
+			_menu_view.generate();
 			return;
 		}
 
@@ -142,7 +154,7 @@ struct Sculpt::Network : Network_dialog::Action
 			_nic_target.managed_type = type;
 			_generate_nic_router_config();
 			_runtime_config_generator.generate_runtime_config();
-			_dialog_generator.generate_dialog();
+			_menu_view.generate();
 		}
 	}
 
@@ -207,11 +219,11 @@ struct Sculpt::Network : Network_dialog::Action
 		_runtime_config_generator.generate_runtime_config();
 	}
 
-	Network(Env &env, Allocator &alloc, Dialog::Generator &dialog_generator,
+	Network(Env &env, Allocator &alloc, Registry<Child_state> &child_states,
 	        Runtime_config_generator &runtime_config_generator,
 	        Runtime_info const &runtime_info, Pci_info const &pci_info)
 	:
-		_env(env), _alloc(alloc), _dialog_generator(dialog_generator),
+		_env(env), _alloc(alloc), _child_states(child_states),
 		_runtime_config_generator(runtime_config_generator),
 		_runtime_info(runtime_info), _pci_info(pci_info)
 	{

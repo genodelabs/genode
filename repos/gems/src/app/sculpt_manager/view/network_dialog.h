@@ -14,24 +14,21 @@
 #ifndef _VIEW__NETWORK_DIALOG_H_
 #define _VIEW__NETWORK_DIALOG_H_
 
+/* local includes */
 #include <types.h>
 #include <model/nic_target.h>
 #include <model/nic_state.h>
 #include <model/wifi_connection.h>
 #include <model/wpa_passphrase.h>
 #include <model/pci_info.h>
-#include <view/dialog.h>
 #include <view/selectable_item.h>
+#include <view/dialog.h>
 
 namespace Sculpt { struct Network_dialog; }
 
 
 struct Sculpt::Network_dialog : Dialog
 {
-	Env &_env;
-
-	Dialog::Generator &_dialog_generator;
-
 	enum Wlan_config_policy { WLAN_CONFIG_MANAGED, WLAN_CONFIG_MANUAL };
 
 	Nic_target           const &_nic_target;
@@ -76,14 +73,13 @@ struct Sculpt::Network_dialog : Dialog
 	void _gen_connected_ap(Xml_generator &, bool) const;
 	void _gen_access_point_list(Xml_generator &, bool) const;
 
-	void generate(Xml_generator &) const;
+	Hover_result hover(Xml_node) override;
+
+	void generate(Xml_generator &) const override;
+
+	void reset() override { }
 
 	bool need_keyboard_focus_for_passphrase() const;
-
-	/**
-	 * Dialog interface
-	 */
-	void hover(Xml_node hover) override;
 
 	struct Action : Interface
 	{
@@ -96,9 +92,7 @@ struct Sculpt::Network_dialog : Dialog
 
 	void click(Action &action);
 
-	Network_dialog(Env                        &env,
-	               Dialog::Generator          &dialog_generator,
-	               Nic_target           const &nic_target,
+	Network_dialog(Nic_target           const &nic_target,
 	               Access_points        const &access_points,
 	               Wifi_connection      const &wifi_connection,
 	               Nic_state            const &nic_state,
@@ -106,7 +100,6 @@ struct Sculpt::Network_dialog : Dialog
 	               Wlan_config_policy   const &wlan_config_policy,
 	               Pci_info             const &pci_info)
 	:
-		_env(env), _dialog_generator(dialog_generator),
 		_nic_target(nic_target), _access_points(access_points),
 		_wifi_connection(wifi_connection), _nic_state(nic_state),
 		_wpa_passphrase(wpa_passphrase), _wlan_config_policy(wlan_config_policy),

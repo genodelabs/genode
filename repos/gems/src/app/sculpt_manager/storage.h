@@ -21,12 +21,13 @@
 /* local includes */
 #include <model/discovery_state.h>
 #include <view/storage_dialog.h>
+#include <view/ram_fs_dialog.h>
 #include <runtime.h>
 
 namespace Sculpt { struct Storage; }
 
 
-struct Sculpt::Storage : Storage_dialog::Action
+struct Sculpt::Storage : Storage_dialog::Action, Ram_fs_dialog::Action
 {
 	Env &_env;
 
@@ -49,7 +50,7 @@ struct Sculpt::Storage : Storage_dialog::Action
 
 	Storage_devices _storage_devices { };
 
-	Ram_fs_state _ram_fs_state { "ram_fs" };
+	Ram_fs_state _ram_fs_state;
 
 	Storage_target _sculpt_partition { };
 
@@ -57,8 +58,7 @@ struct Sculpt::Storage : Storage_dialog::Action
 
 	File_browser_version _file_browser_version { 0 };
 
-	Storage_dialog dialog {
-		_env, _dialog_generator, _storage_devices, _ram_fs_state, _sculpt_partition };
+	Storage_dialog dialog { _storage_devices, _sculpt_partition };
 
 	void handle_storage_devices_update();
 
@@ -73,7 +73,7 @@ struct Sculpt::Storage : Storage_dialog::Action
 		bool result = _ram_fs_state.inspected;
 		_storage_devices.for_each([&] (Storage_device const &device) {
 			device.for_each_partition([&] (Partition const &partition) {
-				result |= partition.file_system_inspected; }); });
+				result |= partition.file_system.inspected; }); });
 		return result;
 	}
 
@@ -159,7 +159,7 @@ struct Sculpt::Storage : Storage_dialog::Action
 		}
 
 		_apply_partition(target, [&] (Partition &partition) {
-			partition.file_system_inspected = !partition.file_system_inspected;
+			partition.file_system.inspected = !partition.file_system.inspected;
 			_file_browser_version.value++;
 		});
 
@@ -189,14 +189,17 @@ struct Sculpt::Storage : Storage_dialog::Action
 	}
 
 
-	Storage(Env &env, Allocator &alloc, Dialog::Generator &dialog_generator,
+	Storage(Env &env, Allocator &alloc,
+	        Registry<Child_state>    &child_states,
+	        Dialog::Generator        &dialog_generator,
 	        Runtime_config_generator &runtime_config_generator,
-	        Target_user &target_user)
+	        Target_user              &target_user)
 	:
 		_env(env), _alloc(alloc),
 		_dialog_generator(dialog_generator),
 		_runtime_config_generator(runtime_config_generator),
-		_target_user(target_user)
+		_target_user(target_user),
+		_ram_fs_state(child_states, "ram_fs")
 	{
 		_block_devices_rom    .sigh(_storage_device_update_handler);
 		_usb_active_config_rom.sigh(_storage_device_update_handler);

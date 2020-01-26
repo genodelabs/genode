@@ -16,6 +16,7 @@
 
 /* Genode includes */
 #include <util/xml_node.h>
+#include <base/registry.h>
 
 /* local includes */
 #include "types.h"
@@ -25,6 +26,8 @@ namespace Sculpt { struct Child_state; }
 struct Sculpt::Child_state : Noncopyable
 {
 	private:
+
+		Registry<Child_state>::Element _element;
 
 		Start_name const _name;
 
@@ -44,9 +47,10 @@ struct Sculpt::Child_state : Noncopyable
 		 * \param ram_quota  initial RAM quota
 		 * \param cap_quota  initial capability quota
 		 */
-		Child_state(Start_name const &name,
+		Child_state(Registry<Child_state> &registry, Start_name const &name,
 		            Ram_quota ram_quota, Cap_quota cap_quota)
 		:
+			_element(registry, *this),
 			_name(name),
 			_initial_ram_quota(ram_quota), _initial_cap_quota(cap_quota)
 		{ }
@@ -58,12 +62,17 @@ struct Sculpt::Child_state : Noncopyable
 			_cap_quota = _initial_cap_quota;
 		}
 
+		void gen_start_node_version(Xml_generator &xml) const
+		{
+			if (_version.value)
+				xml.attribute("version", _version.value);
+		}
+
 		void gen_start_node_content(Xml_generator &xml) const
 		{
 			xml.attribute("name", _name);
 
-			if (_version.value)
-				xml.attribute("version", _version.value);
+			gen_start_node_version(xml);
 
 			xml.attribute("caps", _cap_quota.value);
 			gen_named_node(xml, "resource", "RAM", [&] () {
@@ -102,6 +111,8 @@ struct Sculpt::Child_state : Noncopyable
 		}
 
 		Ram_quota ram_quota() const { return _ram_quota; }
+
+		Start_name name() const { return _name; }
 };
 
 #endif /* _MODEL__CHILD_STATE_H_ */

@@ -70,6 +70,9 @@ class Sculpt::Runtime_state : public Runtime_info
 
 		List_model<Child> _children { };
 
+		bool _usb_in_tcb     = false;
+		bool _storage_in_tcb = false;
+
 		/**
 		 * Child present in initial deploy config but interactively removed
 		 */
@@ -264,6 +267,9 @@ class Sculpt::Runtime_state : public Runtime_info
 			return result;
 		}
 
+		bool usb_in_tcb()     const { return _usb_in_tcb; }
+		bool storage_in_tcb() const { return _storage_in_tcb; }
+
 		static bool blacklisted_from_graph(Start_name const &name)
 		{
 			/*
@@ -280,6 +286,8 @@ class Sculpt::Runtime_state : public Runtime_info
 				child.info.tcb         = child.info.selected;
 				child.info.tcb_updated = false;
 			});
+
+			_usb_in_tcb = _storage_in_tcb = false;
 
 			/*
 			 * Update the TCB flag of the selected child's transitive
@@ -315,6 +323,15 @@ class Sculpt::Runtime_state : public Runtime_info
 								child.info.tcb = true; });
 				});
 			}
+
+			_children.for_each([&] (Child const &child) {
+				if (child.info.tcb) {
+					config.for_each_dependency(child.name, [&] (Start_name dep) {
+						if (dep == "usb")     _usb_in_tcb     = true;
+						if (dep == "storage") _storage_in_tcb = true;
+					});
+				}
+			});
 		}
 
 		void abandon(Start_name const &name)

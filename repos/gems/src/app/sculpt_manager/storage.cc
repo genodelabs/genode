@@ -140,7 +140,7 @@ void Sculpt::Storage::gen_runtime_start_nodes(Xml_generator &xml) const
 					gen_resize2fs_start_content(xml, target); }); }
 
 			if (partition.file_system.type != File_system::UNKNOWN) {
-				if (partition.file_system_inspected || target == _sculpt_partition)
+				if (partition.file_system.inspected || target == _sculpt_partition)
 					xml.node("start", [&] () {
 						gen_fs_start_content(xml, target, partition.file_system.type); });
 

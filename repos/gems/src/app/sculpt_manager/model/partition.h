@@ -31,6 +31,8 @@ struct Sculpt::File_system
 {
 	enum Type { UNKNOWN, EXT2, FAT32, GEMDOS } type;
 
+	bool inspected = false;
+
 	bool accessible() const { return type == EXT2 || type == FAT32 || type == GEMDOS; }
 
 	bool expandable() const { return type == EXT2; }
@@ -58,7 +60,6 @@ struct Sculpt::Partition : List_model<Partition>::Element
 
 	bool check_in_progress      = false;
 	bool format_in_progress     = false;
-	bool file_system_inspected  = false;
 	bool gpt_expand_in_progress = false;
 	bool fs_resize_in_progress  = false;
 
@@ -76,7 +77,7 @@ struct Sculpt::Partition : List_model<Partition>::Element
 
 	bool idle() const { return !check_in_progress
 	                        && !format_in_progress
-	                        && !file_system_inspected
+	                        && !file_system.inspected
 	                        && !relabel_in_progress(); }
 
 	bool genode_default() const { return label == "GENODE*"; }

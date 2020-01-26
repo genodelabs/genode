@@ -69,9 +69,7 @@ class Sculpt::Runtime_config
 				if (ignored_service)
 					return;
 
-				bool const hardware = (service == "Block")
-				                   || (service == "USB")
-				                   || (service == "Platform")
+				bool const hardware = (service == "Platform")
 				                   || (service == "IO_PORT")
 				                   || (service == "IO_MEM")
 				                   || (service == "Rtc")
@@ -79,6 +77,18 @@ class Sculpt::Runtime_config
 				                   || (service == "TRACE");
 				if (hardware) {
 					result = "hardware";
+					return;
+				}
+
+				bool const usb = (service == "Usb");
+				if (usb) {
+					result = "usb";
+					return;
+				}
+
+				bool const storage = (service == "Block");
+				if (storage) {
+					result = "storage";
 					return;
 				}
 
@@ -347,6 +357,10 @@ class Sculpt::Runtime_config
 
 		} _parent_services { };
 
+		Service const _used_fs_service { "default_fs_rw",
+		                                 Service::Type::FILE_SYSTEM,
+		                                 Label(), "used file system" };
+
 	public:
 
 		Runtime_config(Allocator &alloc) : _alloc(alloc) { }
@@ -375,10 +389,12 @@ class Sculpt::Runtime_config
 		template <typename FN>
 		void for_each_service(FN const &fn) const
 		{
+			_parent_services.for_each(fn);
+
+			fn(_used_fs_service);
+
 			_components.for_each([&] (Component const &component) {
 				component.for_each_service(fn); });
-
-			_parent_services.for_each(fn);
 		}
 };
 

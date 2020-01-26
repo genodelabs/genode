@@ -20,7 +20,7 @@ namespace Sculpt {
 	{
 		devices.for_each([&] (Storage_device const &device) {
 			device.for_each_partition([&] (Partition const &partition) {
-				if (partition.file_system_inspected)
+				if (partition.file_system.inspected)
 					fn(Storage_target { device.label, partition.number }); }); });
 	}
 

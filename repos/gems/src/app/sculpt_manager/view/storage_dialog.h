@@ -17,98 +17,51 @@
 #include <types.h>
 #include <model/storage_devices.h>
 #include <model/storage_target.h>
-#include <model/ram_fs_state.h>
 #include <view/selectable_item.h>
-#include <view/activatable_item.h>
-#include <view/dialog.h>
+#include <view/storage_device_dialog.h>
 
 namespace Sculpt { struct Storage_dialog; }
 
 
 struct Sculpt::Storage_dialog : Dialog
 {
-	Env &_env;
-
-	Dialog::Generator &_dialog_generator;
-
 	Storage_devices const &_storage_devices;
 
-	Ram_fs_state const &_ram_fs_state;
-
-	Selectable_item  _device_item    { };
-	Selectable_item  _partition_item { };
-	Hoverable_item   _use_item       { };
-	Hoverable_item   _relabel_item   { };
-	Hoverable_item   _inspect_item   { };
-	Selectable_item  _operation_item { };
-	Activatable_item _confirm_item   { };
-
-	void generate(Xml_generator &, bool expanded) const;
-
-	void _gen_block_device(Xml_generator &, Block_device const &) const;
-
-	void _gen_partition(Xml_generator &, Storage_device const &, Partition const &) const;
-
-	void _gen_partition_operations(Xml_generator &, Storage_device const &, Partition const &) const;
-
-	void _gen_usb_storage_device(Xml_generator &, Usb_storage_device const &) const;
-
-	void _gen_ram_fs(Xml_generator &) const;
-
-	void hover(Xml_node hover) override;
+	Selectable_item _device_item { };
 
 	Storage_target const &_used_target;
 
-	struct Action : Interface
-	{
-		virtual void format(Storage_target const &) = 0;
+	Constructible<Storage_device_dialog> _storage_device_dialog { };
 
-		virtual void cancel_format(Storage_target const &) = 0;
+	void _gen_block_device      (Xml_generator &, Block_device       const &) const;
+	void _gen_usb_storage_device(Xml_generator &, Usb_storage_device const &) const;
 
-		virtual void expand(Storage_target const &) = 0;
+	void generate(Xml_generator &) const override { };
 
-		virtual void cancel_expand(Storage_target const &) = 0;
+	void gen_block_devices      (Xml_generator &) const;
+	void gen_usb_storage_devices(Xml_generator &) const;
 
-		virtual void check(Storage_target const &) = 0;
+	Hover_result hover(Xml_node hover) override;
 
-		virtual void toggle_file_browser(Storage_target const &) = 0;
+	using Action = Storage_device_dialog::Action;
 
-		virtual void toggle_default_storage_target(Storage_target const &) = 0;
-
-		virtual void use(Storage_target const &) = 0;
-
-		virtual void reset_ram_fs() = 0;
-	};
-
-	Storage_target _selected_storage_target() const
-	{
-		Partition::Number partition = (_partition_item._selected == "")
-		                            ? Partition::Number { }
-		                            : Partition::Number(_partition_item._selected);
-
-		return Storage_target { _device_item._selected, partition };
-	}
+	void reset() override { }
 
 	void reset_operation()
 	{
-		_operation_item.reset();
-		_confirm_item.reset();
-
-		_dialog_generator.generate_dialog();
+		if (_storage_device_dialog.constructed())
+			_storage_device_dialog->reset_operation();
 	}
 
-	void click(Action &action);
+	Click_result click(Action &);
+	Clack_result clack(Action &);
 
-	void clack(Action &action);
-
-	Storage_dialog(Env &env, Dialog::Generator &dialog_generator,
-	               Storage_devices const &storage_devices,
-	               Ram_fs_state const &ram_fs_state, Storage_target const &used)
+	Storage_dialog(Storage_devices const &storage_devices,
+	               Storage_target  const &used)
 	:
-		_env(env), _dialog_generator(dialog_generator),
-		_storage_devices(storage_devices), _ram_fs_state(ram_fs_state),
+		_storage_devices(storage_devices),
 		_used_target(used)
 	{ }
 };
 
-#endif /* _STORAGE_DIALOG_H_ */
+#endif /* _VIEW__STORAGE_DIALOG_H_ */

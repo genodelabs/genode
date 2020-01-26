@@ -29,6 +29,8 @@ struct Sculpt::Storage_devices
 	bool _block_devices_report_valid = false;
 	bool _usb_active_config_valid    = false;
 
+	bool usb_present = false;
+
 	/**
 	 * Update 'block_devices' from 'block_devices' report
 	 */
@@ -51,6 +53,10 @@ struct Sculpt::Storage_devices
 
 		if (node.has_type("raw"))
 			_usb_active_config_valid = true;
+
+		usb_present = false;
+		usb_storage_devices.for_each([&] (Storage_device const &) {
+			usb_present = true; });
 	}
 
 	/**

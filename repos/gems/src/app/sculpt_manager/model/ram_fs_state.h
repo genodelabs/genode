@@ -20,15 +20,17 @@
 /* local includes */
 #include <types.h>
 #include <model/child_state.h>
+#include <model/partition.h>
 
 namespace Sculpt { struct Ram_fs_state; }
 
-struct Sculpt::Ram_fs_state : Child_state
+struct Sculpt::Ram_fs_state : Child_state, File_system
 {
-	bool inspected = false;
-
-	Ram_fs_state(Start_name const &name)
-	: Child_state(name, Ram_quota{1024*1024}, Cap_quota{300}) { }
+	Ram_fs_state(Registry<Child_state> &registry, Start_name const &name)
+	:
+		Child_state(registry, name, Ram_quota{1024*1024}, Cap_quota{300}),
+		File_system(File_system::UNKNOWN)
+	{ }
 };
 
 #endif /* _MODEL__RAM_FS_STATE_H_ */

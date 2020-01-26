@@ -50,7 +50,7 @@ void Sculpt::Network::handle_key_press(Codepoint code)
 	if (_wifi_connection.state == Wifi_connection::CONNECTING)
 		wifi_connect(_wifi_connection.bssid);
 
-	_dialog_generator.generate_dialog();
+	_menu_view.generate();
 }
 
 
@@ -136,7 +136,7 @@ void Sculpt::Network::_handle_wlan_accesspoints()
 
 	Access_point_update_policy policy(_alloc);
 	_access_points.update_from_xml(policy, _wlan_accesspoints_rom.xml());
-	_dialog_generator.generate_dialog();
+	_menu_view.generate();
 }
 
 
@@ -144,7 +144,7 @@ void Sculpt::Network::_handle_wlan_state()
 {
 	_wlan_state_rom.update();
 	_wifi_connection = Wifi_connection::from_xml(_wlan_state_rom.xml());
-	_dialog_generator.generate_dialog();
+	_menu_view.generate();
 }
 
 
@@ -156,7 +156,7 @@ void Sculpt::Network::_handle_nic_router_state()
 	_nic_state = Nic_state::from_xml(_nic_router_state_rom.xml());
 
 	if (_nic_state.ipv4 != old_nic_state.ipv4)
-		_dialog_generator.generate_dialog();
+		_menu_view.generate();
 
 	/* if the nic state becomes ready, consider spawning the update subsystem */
 	if (old_nic_state.ready() != _nic_state.ready())
@@ -210,7 +210,7 @@ void Sculpt::Network::_handle_nic_router_config(Xml_node config)
 	nic_target(target);
 	_generate_nic_router_config();
 	_runtime_config_generator.generate_runtime_config();
-	_dialog_generator.generate_dialog();
+	_menu_view.generate();
 }
 
 

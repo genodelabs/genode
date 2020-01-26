@@ -74,7 +74,7 @@ struct Sculpt::Usb_storage_device : List_model<Usb_storage_device>::Element,
 		for_each_partition([&] (Partition const &partition) {
 			drv_needed |= partition.check_in_progress
 			           || partition.format_in_progress
-			           || partition.file_system_inspected
+			           || partition.file_system.inspected
 			           || partition.relabel_in_progress()
 			           || partition.expand_in_progress(); });
 
@@ -123,16 +123,16 @@ void Sculpt::Usb_storage_device::gen_usb_block_drv_start_content(Xml_generator &
 	gen_provides<Block::Session>(xml);
 
 	xml.node("route", [&] () {
+		gen_service_node<Usb::Session>(xml, [&] () {
+			xml.node("parent", [&] () {
+				xml.attribute("label", label); }); });
+
 		gen_parent_rom_route(xml, "usb_block_drv");
 		gen_parent_rom_route(xml, "ld.lib.so");
 		gen_parent_route<Cpu_session>    (xml);
 		gen_parent_route<Pd_session>     (xml);
 		gen_parent_route<Log_session>    (xml);
 		gen_parent_route<Timer::Session> (xml);
-
-		gen_service_node<Usb::Session>(xml, [&] () {
-			xml.node("parent", [&] () {
-				xml.attribute("label", label); }); });
 
 		gen_service_node<Report::Session>(xml, [&] () {
 			xml.node("parent", [&] () { }); });

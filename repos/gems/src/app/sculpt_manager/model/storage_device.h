@@ -83,7 +83,7 @@ struct Sculpt::Storage_device
 		 *
 		 * Ignore reports that come in while the device is in use. Otherwise,
 		 * the reconstruction of 'whole_device_partition' would wrongly reset
-		 * the partition state such as the 'file_system_inspected' flag.
+		 * the partition state such as the 'file_system.inspected' flag.
 		 */
 		if (!whole_device_partition.constructed() || whole_device_partition->idle()) {
 			whole_device_partition.construct(Partition::Args::whole_device(capacity));
@@ -130,7 +130,7 @@ struct Sculpt::Storage_device
 		partitions.for_each([&] (Partition const &partition) {
 			needed_for_access |= partition.check_in_progress;
 			needed_for_access |= partition.format_in_progress;
-			needed_for_access |= partition.file_system_inspected;
+			needed_for_access |= partition.file_system.inspected;
 			needed_for_access |= partition.fs_resize_in_progress;
 		});
 

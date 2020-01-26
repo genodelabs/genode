@@ -52,11 +52,13 @@ void Sculpt::gen_runtime_view_start_content(Xml_generator &xml,
 
 		gen_service_node<Rom_session>(xml, [&] () {
 			xml.attribute("label", "dialog");
-			xml.node("parent", [&] () { }); });
+			xml.node("parent", [&] () {
+				xml.attribute("label", "leitzentrale -> runtime_view -> dialog"); }); });
 
 		gen_service_node<Report::Session>(xml, [&] () {
 			xml.attribute("label", "hover");
-			xml.node("parent", [&] () { }); });
+			xml.node("parent", [&] () {
+				xml.attribute("label", "leitzentrale -> runtime_view -> hover"); }); });
 
 		gen_parent_rom_route(xml, "menu_view");
 		gen_parent_rom_route(xml, "ld.lib.so");

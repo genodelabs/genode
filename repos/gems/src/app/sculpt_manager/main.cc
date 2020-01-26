@@ -16,6 +16,7 @@
 #include <base/heap.h>
 #include <base/attached_rom_dataspace.h>
 #include <os/reporter.h>
+#include <os/path.h>
 #include <nitpicker_session/connection.h>
 #include <vm_session/vm_session.h>
 #include <timer_session/connection.h>
@@ -27,9 +28,13 @@
 #include <model/runtime_state.h>
 #include <model/child_exit_state.h>
 #include <model/file_operation_queue.h>
+#include <model/settings.h>
 #include <view/download_status.h>
 #include <view/popup_dialog.h>
-#include <gui.h>
+#include <view/panel_dialog.h>
+#include <view/settings_dialog.h>
+#include <view/file_browser_dialog.h>
+#include <menu_view.h>
 #include <nitpicker.h>
 #include <keyboard_focus.h>
 #include <network.h>
@@ -45,15 +50,23 @@ struct Sculpt::Main : Input_event_handler,
                       Runtime_config_generator,
                       Storage::Target_user,
                       Graph::Action,
+                      Panel_dialog::Action,
                       Popup_dialog::Action,
+                      Settings_dialog::Action,
+                      File_browser_dialog::Action,
                       Popup_dialog::Construction_info,
-                      Depot_query
+                      Depot_query,
+                      Panel_dialog::State,
+                      Dialog,
+                      Popup_dialog::Refresh
 {
 	Env &_env;
 
 	Heap _heap { _env.ram(), _env.rm() };
 
 	Sculpt_version const _sculpt_version { _env };
+
+	Registry<Child_state> _child_states { };
 
 	Constructible<Nitpicker::Connection> _nitpicker { };
 
@@ -88,7 +101,7 @@ struct Sculpt::Main : Input_event_handler,
 							type.for_each_sub_node("ttf", [&] (Xml_node ttf) {
 								float const px = ttf.attribute_value("size_px", 0.0);
 								if (px > 0.0)
-									_gui.font_size(px); }); } }); } }); });
+									_font_size_px = px; }); } }); } }); });
 
 		_handle_nitpicker_mode();
 	}
@@ -131,6 +144,8 @@ struct Sculpt::Main : Input_event_handler,
 			if (device.attribute_value("class_code", 0UL) == 0x28000)
 				_pci_info.wifi_present = true;
 		});
+
+		_network.update_view();
 	}
 
 
@@ -147,7 +162,7 @@ struct Sculpt::Main : Input_event_handler,
 	}
 
 
-	Storage _storage { _env, _heap, *this, *this, *this };
+	Storage _storage { _env, _heap, _child_states, *this, *this, *this };
 
 	/**
 	 * Storage::Target_user interface
@@ -165,7 +180,7 @@ struct Sculpt::Main : Input_event_handler,
 	}
 
 
-	Network _network { _env, _heap, *this, *this, _runtime_state, _pci_info };
+	Network _network { _env, _heap, _child_states, *this, _runtime_state, _pci_info };
 
 
 	/************
@@ -307,12 +322,12 @@ struct Sculpt::Main : Input_event_handler,
 			_launchers.update_from_xml(dir);
 		}
 
-		_popup_dialog.generate();
+		_popup_menu_view.generate();
 		_deploy._handle_managed_deploy();
 	}
 
 
-	Deploy _deploy { _env, _heap, _runtime_state, *this, *this, *this,
+	Deploy _deploy { _env, _heap, _child_states, _runtime_state, *this, *this, *this,
 	                 _launcher_listing_rom, _blueprint_rom, _download_queue };
 
 	Attached_rom_dataspace _manual_deploy_rom { _env, "config -> deploy" };
@@ -332,102 +347,103 @@ struct Sculpt::Main : Input_event_handler,
 	 ** Global **
 	 ************/
 
-	Gui _gui { _env };
+	Font_size _font_size = Font_size::MEDIUM;
 
-	Expanding_reporter _menu_dialog_reporter { _env, "dialog", "menu_dialog" };
+	float _font_size_px = 14;
 
-	Attached_rom_dataspace _hover_rom { _env, "menu_view_hover" };
+	Area _screen_size { };
 
-	Signal_handler<Main> _hover_handler {
-		_env.ep(), *this, &Main::_handle_hover };
+	Panel_dialog::Tab _selected_tab = Panel_dialog::Tab::COMPONENTS;
 
-	struct Hovered { enum Dialog { NONE, LOGO, STORAGE, NETWORK, RUNTIME } value; };
+	bool _log_visible      = false;
+	bool _network_visible  = false;
+	bool _settings_visible = false;
 
-	Hovered::Dialog _hovered_dialog { Hovered::NONE };
+	File_browser_state _file_browser_state { };
 
-	template <typename FN>
-	void _apply_to_hovered_dialog(Hovered::Dialog dialog, FN const &fn)
+	Attached_rom_dataspace _editor_saved_rom { _env, "report -> runtime/editor/saved" };
+
+
+	/**
+	 * Panel_dialog::State interface
+	 */
+	bool log_visible() const override { return _log_visible; }
+
+	bool network_visible() const override { return _network_visible; }
+
+	bool settings_visible() const override { return _settings_visible; }
+
+	bool inspect_tab_visible() const override { return _storage.any_file_system_inspected(); }
+
+	Panel_dialog::Tab selected_tab() const override { return _selected_tab; }
+
+	/**
+	 * Dialog interface
+	 */
+	Hover_result hover(Xml_node) override;
+
+	void reset() override { }
+
+	/**
+	 * Dialog interface
+	 */
+	void generate(Xml_generator &xml) const override
 	{
-		if (dialog == Hovered::STORAGE) fn(_storage.dialog);
-		if (dialog == Hovered::NETWORK) fn(_network.dialog);
-	}
+		xml.node("vbox", [&] () {
+			if (_manually_managed_runtime)
+				return;
 
-	void _handle_hover();
+			bool const network_missing = _deploy.update_needed()
+			                         && !_network._nic_state.ready();
+			bool const show_diagnostics =
+				_deploy.any_unsatisfied_child() || network_missing;
+
+			auto gen_network_diagnostics = [&] (Xml_generator &xml)
+			{
+				if (!network_missing)
+					return;
+
+				gen_named_node(xml, "hbox", "network", [&] () {
+					gen_named_node(xml, "float", "left", [&] () {
+						xml.attribute("west", "yes");
+						xml.node("label", [&] () {
+							xml.attribute("text", "network needed for installation");
+							xml.attribute("font", "annotation/regular");
+						});
+					});
+				});
+			};
+
+			if (show_diagnostics) {
+				gen_named_node(xml, "frame", "diagnostics", [&] () {
+					xml.node("vbox", [&] () {
+
+						xml.node("label", [&] () {
+							xml.attribute("text", "Diagnostics"); });
+
+						xml.node("float", [&] () {
+							xml.node("vbox", [&] () {
+								gen_network_diagnostics(xml);
+								_deploy.gen_child_diagnostics(xml);
+							});
+						});
+					});
+				});
+			}
+
+			Xml_node const state = _update_state_rom.xml();
+			if (_update_running() && state.attribute_value("progress", false))
+				gen_download_status(xml, state);
+		});
+	}
 
 	/**
 	 * Dialog::Generator interface
 	 */
 	void generate_dialog() override
 	{
-		_menu_dialog_reporter.generate([&] (Xml_generator &xml) {
-
-			xml.node("vbox", [&] () {
-				gen_named_node(xml, "frame", "logo", [&] () {
-					xml.node("float", [&] () {
-						xml.node("frame", [&] () {
-							xml.attribute("style", "logo"); }); }); });
-
-				if (_manually_managed_runtime)
-					return;
-
-				bool const storage_dialog_expanded = _last_clicked == Hovered::STORAGE
-				                                  || !_storage.any_file_system_inspected();
-
-				_storage.dialog.generate(xml, storage_dialog_expanded);
-				_network.dialog.generate(xml);
-
-				gen_named_node(xml, "frame", "runtime", [&] () {
-					xml.node("vbox", [&] () {
-						gen_named_node(xml, "label", "title", [&] () {
-							xml.attribute("text", "Runtime");
-							xml.attribute("font", "title/regular");
-						});
-
-						bool const network_missing = _deploy.update_needed()
-						                         && !_network._nic_state.ready();
-						bool const show_diagnostics =
-							_deploy.any_unsatisfied_child() || network_missing;
-
-						auto gen_network_diagnostics = [&] (Xml_generator &xml)
-						{
-							if (!network_missing)
-								return;
-
-							gen_named_node(xml, "hbox", "network", [&] () {
-								gen_named_node(xml, "float", "left", [&] () {
-									xml.attribute("west", "yes");
-									xml.node("label", [&] () {
-										xml.attribute("text", "network needed for installation");
-										xml.attribute("font", "annotation/regular");
-									});
-								});
-							});
-						};
-
-						if (show_diagnostics) {
-							gen_named_node(xml, "frame", "diagnostics", [&] () {
-								xml.node("vbox", [&] () {
-
-									xml.node("label", [&] () {
-										xml.attribute("text", "Diagnostics"); });
-
-									xml.node("float", [&] () {
-										xml.node("vbox", [&] () {
-											gen_network_diagnostics(xml);
-											_deploy.gen_child_diagnostics(xml);
-										});
-									});
-								});
-							});
-						}
-
-						Xml_node const state = _update_state_rom.xml();
-						if (_update_running() && state.attribute_value("progress", false))
-							gen_download_status(xml, state);
-					});
-				});
-			});
-		});
+		_main_menu_view.generate();
+		_graph_menu_view.generate();
 	}
 
 	Attached_rom_dataspace _runtime_state_rom { _env, "report -> runtime/state" };
@@ -485,7 +501,10 @@ struct Sculpt::Main : Input_event_handler,
 	{
 		_runtime_config_rom.update();
 		_cached_runtime_config.update_from_xml(_runtime_config_rom.xml());
-		_graph.gen_dialog();
+		_graph_menu_view.generate();
+
+		if (_selected_tab == Panel_dialog::Tab::FILES)
+			_file_browser_menu_view.generate();
 	}
 
 
@@ -493,9 +512,7 @@ struct Sculpt::Main : Input_event_handler,
 	 ** Interactive operations **
 	 ****************************/
 
-	Keyboard_focus _keyboard_focus { _env, _network.dialog, _network.wpa_passphrase };
-
-	Hovered::Dialog _last_clicked { Hovered::NONE };
+	Keyboard_focus _keyboard_focus { _env, _network.dialog, _network.wpa_passphrase, *this };
 
 	/**
 	 * Input_event_handler interface
@@ -506,18 +523,8 @@ struct Sculpt::Main : Input_event_handler,
 
 		if (ev.key_press(Input::BTN_LEFT)) {
 
-			if (_hovered_dialog != _last_clicked && _hovered_dialog != Hovered::NONE) {
-				_last_clicked = _hovered_dialog;
-				_handle_window_layout();
-				need_generate_dialog = true;
-			}
-
-			if (_hovered_dialog == Hovered::STORAGE) _storage.dialog.click(_storage);
-			if (_hovered_dialog == Hovered::NETWORK) _network.dialog.click(_network);
-			if (_hovered_dialog == Hovered::RUNTIME) _network.dialog.click(_network);
-
 			/* remove popup dialog when clicking somewhere outside */
-			if (!_popup_dialog.hovered() && _popup.state == Popup::VISIBLE
+			if (!_popup_menu_view.hovered() && _popup.state == Popup::VISIBLE
 			 && !_graph.add_button_hovered()) {
 
 				_popup.state = Popup::OFF;
@@ -525,21 +532,50 @@ struct Sculpt::Main : Input_event_handler,
 				discard_construction();
 
 				/* de-select '+' button */
-				_graph._gen_graph_dialog();
+				_graph_menu_view.generate();
 
 				/* remove popup window from window layout */
 				_handle_window_layout();
 			}
 
-			if (_graph.hovered())        _graph.click(*this);
-			if (_popup_dialog.hovered()) _popup_dialog.click(*this);
+			if (_main_menu_view.hovered()) {
+				_main_menu_view.generate();
+			}
+			else if (_graph_menu_view.hovered()) {
+				_graph.click(*this);
+				_graph_menu_view.generate();
+			}
+			else if (_popup_menu_view.hovered()) {
+				_popup_dialog.click(*this);
+				_popup_menu_view.generate();
+			}
+			else if (_panel_menu_view.hovered()) {
+				_panel_dialog.click(*this);
+			}
+			else if (_settings_menu_view.hovered()) {
+				_settings_dialog.click(*this);
+				_settings_menu_view.generate();
+			}
+			else if (_network.dialog_hovered()) {
+				_network.dialog.click(_network);
+				_network.update_view();
+			}
+			else if (_file_browser_menu_view.hovered()) {
+				_file_browser_dialog.click(*this);
+				_file_browser_menu_view.generate();
+			}
 		}
 
 		if (ev.key_release(Input::BTN_LEFT)) {
-			if (_hovered_dialog == Hovered::STORAGE) _storage.dialog.clack(_storage);
-
-			if (_graph.hovered())        _graph.clack(*this);
-			if (_popup_dialog.hovered()) _popup_dialog.clack(*this);
+			if (_main_menu_view.hovered()) {
+				_storage.dialog.clack(_storage);
+				_main_menu_view.generate();
+			}
+			else if (_graph_menu_view.hovered()) {
+				_graph.clack(*this, _storage);
+				_graph_menu_view.generate();
+			}
+			else if (_popup_menu_view.hovered()) _popup_dialog.clack(*this);
 		}
 
 		if (_keyboard_focus.target == Keyboard_focus::WPA_PASSPHRASE)
@@ -551,6 +587,52 @@ struct Sculpt::Main : Input_event_handler,
 
 		if (need_generate_dialog)
 			generate_dialog();
+	}
+
+	/*
+	 * Fs_dialog::Action interface
+	 */
+	void toggle_file_browser(Storage_target const &target) override
+	{
+		_storage.toggle_file_browser(target);
+
+		/* refresh visibility to inspect tab */
+		_panel_menu_view.generate();
+	}
+
+	void use(Storage_target const &target) override { _storage.use(target); }
+
+	/*
+	 * Storage_dialog::Action interface
+	 */
+	void format(Storage_target const &target) override
+	{
+		_storage.format(target);
+	}
+
+	void cancel_format(Storage_target const &target) override
+	{
+		_storage.cancel_format(target);
+	}
+
+	void expand(Storage_target const &target) override
+	{
+		_storage.expand(target);
+	}
+
+	void cancel_expand(Storage_target const &target) override
+	{
+		_storage.cancel_expand(target);
+	}
+
+	void check(Storage_target const &target) override
+	{
+		_storage.check(target);
+	}
+
+	void toggle_default_storage_target(Storage_target const &target) override
+	{
+		_storage.toggle_default_storage_target(target);
 	}
 
 	/*
@@ -569,11 +651,212 @@ struct Sculpt::Main : Input_event_handler,
 	 */
 	void toggle_launcher_selector(Rect anchor) override
 	{
-		_popup_dialog.generate();
+		_popup_menu_view.generate();
 		_popup.anchor = anchor;
 		_popup.toggle();
-		_graph._gen_graph_dialog();
+		_graph_menu_view.generate();
 		_handle_window_layout();
+	}
+
+	void _refresh_panel_and_window_layout()
+	{
+		_panel_menu_view.generate();
+		_handle_window_layout();
+	}
+
+	/*
+	 * Panel::Action interface
+	 */
+	void select_tab(Panel_dialog::Tab tab) override
+	{
+		_selected_tab = tab;
+
+		if (_selected_tab == Panel_dialog::Tab::FILES)
+			_file_browser_menu_view.generate();
+
+		_refresh_panel_and_window_layout();
+	}
+
+	/*
+	 * Panel::Action interface
+	 */
+	void toggle_log_visibility() override
+	{
+		_log_visible = !_log_visible;
+		_refresh_panel_and_window_layout();
+	}
+
+	/*
+	 * Panel::Action interface
+	 */
+	void toggle_network_visibility() override
+	{
+		_network_visible = !_network_visible;
+		_refresh_panel_and_window_layout();
+	}
+
+	/*
+	 * Panel::Action interface
+	 */
+	void toggle_settings_visibility() override
+	{
+		_settings_visible = !_settings_visible;
+		_refresh_panel_and_window_layout();
+	}
+
+	/*
+	 * Settings_dialog::Action interface
+	 */
+	void select_font_size(Font_size font_size) override
+	{
+		_font_size = font_size;
+		_handle_nitpicker_mode();
+	}
+
+	Signal_handler<Main> _fs_query_result_handler {
+		_env.ep(), *this, &Main::_handle_fs_query_result };
+
+	void _handle_fs_query_result()
+	{
+		_file_browser_state.update_query_results();
+		_file_browser_menu_view.generate();
+	}
+
+	Signal_handler<Main> _editor_saved_handler {
+		_env.ep(), *this, &Main::_handle_editor_saved };
+
+	void _handle_editor_saved()
+	{
+		_editor_saved_rom.update();
+
+		Xml_node const saved = _editor_saved_rom.xml();
+
+		bool const orig_modified = _file_browser_state.modified;
+
+		_file_browser_state.modified           = saved.attribute_value("modified", false);
+		_file_browser_state.last_saved_version = saved.attribute_value("version", 0U);
+
+		if (orig_modified != _file_browser_state.modified)
+			_file_browser_menu_view.generate();
+	}
+
+	void _close_edited_file()
+	{
+		_file_browser_state.edited_file = File_browser_state::File();
+		_file_browser_state.text_area.destruct();
+		_file_browser_state.edit = false;
+	}
+
+	/*
+	 * File_browser_dialog::Action interface
+	 */
+	void browse_file_system(File_browser_state::Fs_name const &name) override
+	{
+		using Fs_name = File_browser_state::Fs_name;
+
+		_close_edited_file();
+
+		if (name == _file_browser_state.browsed_fs) {
+			_file_browser_state.browsed_fs = Fs_name();
+			_file_browser_state.fs_query.destruct();
+
+		} else {
+			_file_browser_state.browsed_fs = name;
+			_file_browser_state.path = File_browser_state::Path("/");
+
+			Start_name const start_name(name, ".query");
+			_file_browser_state.fs_query.construct(_child_states, start_name,
+			                                       Ram_quota{8*1024*1024}, Cap_quota{200});
+
+			Label const rom_label("report -> /runtime/", start_name, "/listing");
+
+			_file_browser_state.query_result.construct(_env, rom_label.string());
+			_file_browser_state.query_result->sigh(_fs_query_result_handler);
+			_handle_fs_query_result();
+		}
+
+		generate_runtime_config();
+
+		_file_browser_menu_view.generate();
+	}
+
+	void browse_sub_directory(File_browser_state::Sub_dir const &sub_dir) override
+	{
+		_close_edited_file();
+
+		if (_file_browser_state.path == "/")
+			_file_browser_state.path =
+				File_browser_state::Path("/", sub_dir);
+		else
+			_file_browser_state.path =
+				File_browser_state::Path(_file_browser_state.path, "/", sub_dir);
+
+		generate_runtime_config();
+	}
+
+	void browse_parent_directory() override
+	{
+		_close_edited_file();
+
+		Genode::Path<256> path(_file_browser_state.path);
+		path.strip_last_element();
+		_file_browser_state.path = File_browser_state::Path(path);
+
+		generate_runtime_config();
+	}
+
+	void browse_abs_directory(File_browser_state::Path const &path) override
+	{
+		_close_edited_file();
+
+		_file_browser_state.path = path;
+
+		generate_runtime_config();
+	}
+
+	void _view_or_edit_file(File_browser_state::File const &file, bool edit)
+	{
+		if (_file_browser_state.edited_file == file) {
+			_close_edited_file();
+		} else {
+			_file_browser_state.edited_file  = file;
+			_file_browser_state.edit         = edit;
+			_file_browser_state.save_version = 0;
+
+			if (_file_browser_state.text_area.constructed()) {
+				_file_browser_state.text_area->trigger_restart();
+			} else {
+				Start_name const start_name("editor");
+				_file_browser_state.text_area.construct(_child_states, start_name,
+				                                        Ram_quota{16*1024*1024}, Cap_quota{250});
+			}
+		}
+
+		generate_runtime_config();
+	}
+
+	void view_file(File_browser_state::File const &file) override
+	{
+		_view_or_edit_file(file, false);
+	}
+
+	void edit_file(File_browser_state::File const &file) override
+	{
+		_view_or_edit_file(file, true);
+	}
+
+	void revert_edited_file() override
+	{
+		if (_file_browser_state.text_area.constructed())
+			_file_browser_state.text_area->trigger_restart();
+
+		generate_runtime_config();
+	}
+
+	void save_edited_file() override
+	{
+		_file_browser_state.save_version = _file_browser_state.last_saved_version + 1;
+		generate_runtime_config();
 	}
 
 	void _close_popup_dialog()
@@ -584,7 +867,7 @@ struct Sculpt::Main : Input_event_handler,
 		_handle_window_layout();
 
 		/* reset state of the '+' button */
-		_graph._gen_graph_dialog();
+		_graph_menu_view.generate();
 	}
 
 	/*
@@ -656,10 +939,41 @@ struct Sculpt::Main : Input_event_handler,
 		_runtime_state.with_construction([&] (Component const &c) { fn.with(c); });
 	}
 
-	Popup_dialog _popup_dialog { _env, _heap, _launchers,
+	Panel_dialog _panel_dialog { *this };
+
+	Menu_view _panel_menu_view { _env, _child_states, _panel_dialog, "panel_view",
+	                             Ram_quota{4*1024*1024}, Cap_quota{150},
+	                             "panel_dialog", "panel_view_hover" };
+
+	Settings_dialog _settings_dialog { _font_size };
+
+	Menu_view _settings_menu_view { _env, _child_states, _settings_dialog, "settings_view",
+	                                Ram_quota{4*1024*1024}, Cap_quota{150},
+	                                "settings_dialog", "settings_view_hover" };
+
+	Menu_view _main_menu_view { _env, _child_states, *this, "menu_view",
+	                             Ram_quota{4*1024*1024}, Cap_quota{150},
+	                             "menu_dialog", "menu_view_hover" };
+
+	Popup_dialog _popup_dialog { _env, *this, _launchers,
 	                             _network._nic_state, _network._nic_target,
 	                             _runtime_state, _cached_runtime_config,
 	                             _download_queue, *this, *this };
+
+	Menu_view _popup_menu_view { _env, _child_states, _popup_dialog, "popup_view",
+	                             Ram_quota{4*1024*1024}, Cap_quota{150},
+	                             "popup_dialog", "popup_view_hover" };
+
+	File_browser_dialog _file_browser_dialog { _cached_runtime_config, _file_browser_state };
+
+	Menu_view _file_browser_menu_view { _env, _child_states, _file_browser_dialog, "file_browser_view",
+	                                    Ram_quota{8*1024*1024}, Cap_quota{150},
+	                                    "file_browser_dialog", "file_browser_view_hover" };
+
+	/**
+	 * Popup_dialog::Refresh interface
+	 */
+	void refresh_popup_dialog() override { _popup_menu_view.generate(); }
 
 	Managed_config<Main> _fb_drv_config {
 		_env, "config", "fb_drv", *this, &Main::_handle_fb_drv_config };
@@ -704,7 +1018,7 @@ struct Sculpt::Main : Input_event_handler,
 		 */
 		static Nitpicker::Root gui_nitpicker(_env, _heap, *this);
 
-		_gui.generate_config();
+		generate_runtime_config();
 	}
 
 	void _handle_window_layout();
@@ -738,13 +1052,13 @@ struct Sculpt::Main : Input_event_handler,
 
 	Popup _popup { };
 
-	Graph _graph { _env, _runtime_state, _cached_runtime_config,
-	               _storage._sculpt_partition, _popup.state, _deploy._children };
+	Graph _graph { _runtime_state, _cached_runtime_config, _storage._storage_devices,
+	               _storage._sculpt_partition, _storage._ram_fs_state,
+	               _popup.state, _deploy._children };
 
-	Child_state _runtime_view_state {
-		"runtime_view", Ram_quota{8*1024*1024}, Cap_quota{200} };
-
-
+	Menu_view _graph_menu_view { _env, _child_states, _graph, "runtime_view",
+	                             Ram_quota{8*1024*1024}, Cap_quota{200},
+	                             "runtime_dialog", "runtime_view_hover" };
 	Main(Env &env) : _env(env)
 	{
 		_manual_deploy_rom.sigh(_manual_deploy_handler);
@@ -757,12 +1071,12 @@ struct Sculpt::Main : Input_event_handler,
 		 */
 		_update_state_rom    .sigh(_update_state_handler);
 		_nitpicker_hover     .sigh(_nitpicker_hover_handler);
-		_hover_rom           .sigh(_hover_handler);
 		_pci_devices         .sigh(_pci_devices_handler);
 		_window_list         .sigh(_window_list_handler);
 		_decorator_margins   .sigh(_decorator_margins_handler);
 		_launcher_listing_rom.sigh(_launcher_listing_handler);
 		_blueprint_rom       .sigh(_blueprint_handler);
+		_editor_saved_rom    .sigh(_editor_saved_handler);
 
 		/*
 		 * Generate initial configurations
@@ -812,55 +1126,63 @@ void Sculpt::Main::_handle_window_layout()
 	_decorator_margins.update();
 	Decorator_margins const margins(_decorator_margins.xml());
 
-	unsigned const log_min_w = 400, log_min_h = 200;
+	unsigned const log_min_w = 400;
 
 	if (!_nitpicker.constructed())
 		return;
 
+	typedef String<128> Label;
+	Label const
+		inspect_label          ("runtime -> leitzentrale -> inspect"),
+		runtime_view_label     ("runtime -> leitzentrale -> runtime_view"),
+		panel_view_label       ("runtime -> leitzentrale -> panel_view"),
+		menu_view_label        ("runtime -> leitzentrale -> menu_view"),
+		popup_view_label       ("runtime -> leitzentrale -> popup_view"),
+		settings_view_label    ("runtime -> leitzentrale -> settings_view"),
+		network_view_label     ("runtime -> leitzentrale -> network_view"),
+		file_browser_view_label("runtime -> leitzentrale -> file_browser_view"),
+		editor_view_label      ("runtime -> leitzentrale -> editor"),
+		logo_label             ("logo");
+
+	_window_list.update();
+	Xml_node const window_list = _window_list.xml();
+
+	auto win_size = [&] (Xml_node win) {
+		return Area(win.attribute_value("width",  0UL),
+		            win.attribute_value("height", 0UL)); };
+
+	unsigned panel_height = 0;
+	_with_window(window_list, panel_view_label, [&] (Xml_node win) {
+		panel_height = win_size(win).h(); });
+
+	/* suppress intermediate states during the restart of the panel */
+	if (panel_height == 0)
+		return;
+
 	Framebuffer::Mode const mode = _nitpicker->mode();
 
-	/* area preserved for the menu */
-	Rect const menu(Point(0, 0), Area(_gui.menu_width, mode.height()));
+	/* area reserved for the panel */
+	Rect const panel(Point(0, 0), Area(mode.width(), panel_height));
 
 	/* available space on the right of the menu */
-	Rect avail(Point(_gui.menu_width, 0),
+	Rect avail(Point(0, panel.h()),
 	           Point(mode.width() - 1, mode.height() - 1));
 
-	/*
-	 * When the screen width is at least twice the log width, place the
-	 * log at the right side of the screen. Otherwise, with resolutions
-	 * as low as 1024x768, place it to the bottom to allow the inspect
-	 * window to use the available screen width to the maximum extend.
-	 */
-	bool const log_at_right =
-		(avail.w() > 2*(log_min_w + margins.left + margins.right));
+	Point const log_offset = _log_visible
+	                       ? Point(0, 0)
+	                       : Point(log_min_w + margins.left + margins.right, 0);
 
-	/* the upper-left point depends on whether the log is at the right or bottom */
-	Point const log_p1 =
-		log_at_right ? Point(avail.x2() - log_min_w - margins.right + 1,
-		                     margins.top)
-		             : Point(_gui.menu_width + margins.left,
-		                     avail.y2() - log_min_h - margins.bottom + 1);
-
-	/* the lower-right point (p2) of the log is always the same */
-	Point const log_p2(mode.width()  - margins.right  - 1,
+	Point const log_p1(avail.x2() - log_min_w - margins.right + 1 + log_offset.x(),
+	                   avail.y1() + margins.top);
+	Point const log_p2(mode.width()  - margins.right  - 1 + log_offset.x(),
 	                   mode.height() - margins.bottom - 1);
 
 	/* position of the inspect window */
-	Point const inspect_p1(avail.x1() + margins.right, margins.top);
+	Point const inspect_p1(avail.x1() + margins.left, avail.y1() + margins.top);
+	Point const inspect_p2(avail.x2() - margins.right - 1,
+	                       avail.y2() - margins.bottom - 1);
 
-	Point const inspect_p2 =
-		log_at_right ? Point(log_p1.x() - margins.right - margins.left - 1, log_p2.y())
-		             : Point(log_p2.x(), log_p1.y() - margins.bottom - margins.top - 1);
-
-	typedef String<128> Label;
-	Label const inspect_label     ("runtime -> leitzentrale -> inspect");
-	Label const runtime_view_label("runtime -> leitzentrale -> runtime_view");
-
-	_window_list.update();
 	_window_layout.generate([&] (Xml_generator &xml) {
-
-		Xml_node const window_list = _window_list.xml();
 
 		auto gen_window = [&] (Xml_node win, Rect rect) {
 			if (rect.valid()) {
@@ -875,10 +1197,6 @@ void Sculpt::Main::_handle_window_layout()
 			}
 		};
 
-		auto win_size = [&] (Xml_node win) {
-			return Area(win.attribute_value("width",  0UL),
-			            win.attribute_value("height", 0UL)); };
-
 		/* window size limited to space unobstructed by the menu and log */
 		auto constrained_win_size = [&] (Xml_node win) {
 
@@ -889,8 +1207,62 @@ void Sculpt::Main::_handle_window_layout()
 			return Area(min(inspect_w, size.w()), min(inspect_h, size.h()));
 		};
 
-		_with_window(window_list, Label("gui -> menu -> "), [&] (Xml_node win) {
-			gen_window(win, menu); });
+		_with_window(window_list, panel_view_label, [&] (Xml_node win) {
+			gen_window(win, panel); });
+
+		_with_window(window_list, Label("log"), [&] (Xml_node win) {
+			gen_window(win, Rect(log_p1, log_p2)); });
+
+		_with_window(window_list, settings_view_label, [&] (Xml_node win) {
+			Area  const size = win_size(win);
+			Point const pos  = _settings_visible
+			                 ? Point(0, avail.y1())
+			                 : Point(-size.w(), avail.y1());
+			gen_window(win, Rect(pos, size));
+		});
+
+		_with_window(window_list, network_view_label, [&] (Xml_node win) {
+			Area  const size = win_size(win);
+			Point const pos  = _network_visible
+			                 ? Point(log_p1.x() - size.w(), avail.y1())
+			                 : Point(mode.width(), avail.y1());
+			gen_window(win, Rect(pos, size));
+		});
+
+		_with_window(window_list, file_browser_view_label, [&] (Xml_node win) {
+			if (_selected_tab == Panel_dialog::Tab::FILES) {
+
+				Area  const size = constrained_win_size(win);
+				Point const pos  = Rect(inspect_p1, inspect_p2).center(size);
+
+				Point const offset = _file_browser_state.text_area.constructed()
+				                   ? Point((2*avail.w())/3 - pos.x(), 0)
+				                   : Point(0, 0);
+
+				gen_window(win, Rect(pos - offset, size));
+			}
+		});
+
+		_with_window(window_list, editor_view_label, [&] (Xml_node win) {
+			if (_selected_tab == Panel_dialog::Tab::FILES) {
+				Area  const size = constrained_win_size(win);
+				Point const pos  = Rect(inspect_p1 + Point(400, 0), inspect_p2).center(size);
+
+				Point const offset = _file_browser_state.text_area.constructed()
+				                   ? Point(avail.w()/3 - pos.x(), 0)
+				                   : Point(0, 0);
+
+				gen_window(win, Rect(pos + offset, size));
+			}
+		});
+
+		_with_window(window_list, menu_view_label, [&] (Xml_node win) {
+			if (_selected_tab == Panel_dialog::Tab::COMPONENTS) {
+				Area  const size = win_size(win);
+				Point const pos(0, avail.y2() - size.h());
+				gen_window(win, Rect(pos, size));
+			}
+		});
 
 		/*
 		 * Calculate centered runtime view within the available main (inspect)
@@ -903,20 +1275,20 @@ void Sculpt::Main::_handle_window_layout()
 		});
 
 		if (_popup.state == Popup::VISIBLE) {
-			_with_window(window_list, Label("gui -> popup -> "), [&] (Xml_node win) {
+			_with_window(window_list, popup_view_label, [&] (Xml_node win) {
 				Area const size = win_size(win);
 
 				int const anchor_y_center = (_popup.anchor.y1() + _popup.anchor.y2())/2;
 
 				int const x = runtime_view_pos.x() + _popup.anchor.x2();
-				int const y = max(0, runtime_view_pos.y() + anchor_y_center - (int)size.h()/2);
+				int const y = max((int)panel_height, runtime_view_pos.y() + anchor_y_center - (int)size.h()/2);
 
 				gen_window(win, Rect(Point(x, y), size));
 			});
 		}
 
-		if (_last_clicked == Hovered::STORAGE)
-			_with_window(window_list, inspect_label, [&] (Xml_node win) {
+		_with_window(window_list, inspect_label, [&] (Xml_node win) {
+			if (_selected_tab == Panel_dialog::Tab::INSPECT)
 				gen_window(win, Rect(inspect_p1, inspect_p2)); });
 
 		/*
@@ -924,17 +1296,26 @@ void Sculpt::Main::_handle_window_layout()
 		 * the overlapping of the log area. (use the menu view's 'win_size').
 		 */
 		_with_window(window_list, runtime_view_label, [&] (Xml_node win) {
-			gen_window(win, Rect(runtime_view_pos, win_size(win))); });
+			if (_selected_tab == Panel_dialog::Tab::COMPONENTS)
+				gen_window(win, Rect(runtime_view_pos, win_size(win))); });
 
-		_with_window(window_list, Label("log"), [&] (Xml_node win) {
-			gen_window(win, Rect(log_p1, log_p2)); });
+		_with_window(window_list, logo_label, [&] (Xml_node win) {
+			Area  const size = win_size(win);
+			Point const pos(mode.width() - size.w(), mode.height() - size.h());
+			gen_window(win, Rect(pos, size));
+		});
 	});
 
 	/* define window-manager focus */
 	_wm_focus.generate([&] (Xml_generator &xml) {
 		_window_list.xml().for_each_sub_node("window", [&] (Xml_node win) {
 			Label const label = win.attribute_value("label", Label());
-			if (label == inspect_label)
+
+			if (label == inspect_label && _selected_tab == Panel_dialog::Tab::INSPECT)
+				xml.node("window", [&] () {
+					xml.attribute("id", win.attribute_value("id", 0UL)); });
+
+			if (label == editor_view_label && _selected_tab == Panel_dialog::Tab::FILES)
 				xml.node("window", [&] () {
 					xml.attribute("id", win.attribute_value("id", 0UL)); });
 		});
@@ -953,9 +1334,17 @@ void Sculpt::Main::_handle_nitpicker_mode()
 
 	if (!_fonts_config.try_generate_manually_managed()) {
 
-		float const text_size = (float)mode.height() / 60.0;
+		_font_size_px = (float)mode.height() / 60.0;
 
-		_gui.font_size(text_size);
+		if (_font_size == Font_size::SMALL) _font_size_px *= 0.85;
+		if (_font_size == Font_size::LARGE) _font_size_px *= 1.35;
+
+		Area const size(mode.width(), mode.height());
+		_screen_size = size;
+		_panel_menu_view.min_width = size.w();
+		unsigned const menu_width = max(_font_size_px*21, 320.0);
+		_main_menu_view.min_width = menu_width;
+		_network.min_dialog_width(menu_width);
 
 		_fonts_config.generate([&] (Xml_generator &xml) {
 			xml.attribute("copy",  true);
@@ -977,10 +1366,10 @@ void Sculpt::Main::_handle_nitpicker_mode()
 						});
 					};
 
-					gen_ttf_dir("title",      "/Vera.ttf",     text_size*1.25);
-					gen_ttf_dir("text",       "/Vera.ttf",     text_size);
-					gen_ttf_dir("annotation", "/Vera.ttf",     text_size*0.8);
-					gen_ttf_dir("monospace",  "/VeraMono.ttf", text_size);
+					gen_ttf_dir("title",      "/Vera.ttf",     _font_size_px*1.25);
+					gen_ttf_dir("text",       "/Vera.ttf",     _font_size_px);
+					gen_ttf_dir("annotation", "/Vera.ttf",     _font_size_px*0.8);
+					gen_ttf_dir("monospace",  "/VeraMono.ttf", _font_size_px);
 				});
 			});
 			xml.node("default-policy", [&] () { xml.attribute("root", "/fonts"); });
@@ -1001,35 +1390,22 @@ void Sculpt::Main::_handle_nitpicker_mode()
 		});
 	}
 
-	_gui.version.value++;
-	_gui.generate_config();
+	/* font size may has changed */
+	_panel_menu_view.trigger_restart();
+	_main_menu_view.trigger_restart();
+	_file_browser_menu_view.trigger_restart();
+	_network.trigger_dialog_restart();
+	_graph_menu_view.trigger_restart();
+	_popup_menu_view.trigger_restart();
+	_settings_menu_view.trigger_restart();
+
+	generate_runtime_config();
 }
 
 
-void Sculpt::Main::_handle_hover()
+Sculpt::Dialog::Hover_result Sculpt::Main::hover(Xml_node hover)
 {
-	_hover_rom.update();
-	Xml_node const hover = _hover_rom.xml();
-
-	Hovered::Dialog const orig_hovered_dialog = _hovered_dialog;
-
-	typedef String<32> Top_level_frame;
-	Top_level_frame const top_level_frame =
-		query_attribute<Top_level_frame>(hover, "dialog", "vbox", "frame", "name");
-
-	_hovered_dialog = Hovered::NONE;
-	if (top_level_frame == "network") _hovered_dialog = Hovered::NETWORK;
-	if (top_level_frame == "storage") _hovered_dialog = Hovered::STORAGE;
-	if (top_level_frame == "runtime") _hovered_dialog = Hovered::RUNTIME;
-	if (top_level_frame == "logo")    _hovered_dialog = Hovered::LOGO;
-
-	if (orig_hovered_dialog != _hovered_dialog)
-		_apply_to_hovered_dialog(orig_hovered_dialog, [&] (Dialog &dialog) {
-			dialog.hover(Xml_node("<hover/>")); });
-
-	_apply_to_hovered_dialog(_hovered_dialog, [&] (Dialog &dialog) {
-		dialog.hover(hover.sub_node("dialog").sub_node("vbox")
-		                                     .sub_node("frame")); });
+	return _storage.dialog.match_sub_dialog(hover, "vbox", "frame", "vbox");
 }
 
 
@@ -1122,6 +1498,7 @@ void Sculpt::Main::_handle_runtime_state()
 					partition.check_in_progress = 0;
 					reconfigure_runtime = true;
 					_storage.dialog.reset_operation();
+					_graph.reset_operation();
 				}
 			}
 
@@ -1141,6 +1518,7 @@ void Sculpt::Main::_handle_runtime_state()
 
 					reconfigure_runtime = true;
 					_storage.dialog.reset_operation();
+					_graph.reset_operation();
 				}
 			}
 
@@ -1152,6 +1530,7 @@ void Sculpt::Main::_handle_runtime_state()
 					reconfigure_runtime = true;
 					device.rediscover();
 					_storage.dialog.reset_operation();
+					_graph.reset_operation();
 				}
 			}
 
@@ -1164,6 +1543,7 @@ void Sculpt::Main::_handle_runtime_state()
 				device.rediscover();
 				reconfigure_runtime = true;
 				_storage.dialog.reset_operation();
+				_graph.reset_operation();
 			}
 		}
 
@@ -1182,6 +1562,7 @@ void Sculpt::Main::_handle_runtime_state()
 
 				reconfigure_runtime = true;
 				_storage.dialog.reset_operation();
+				_graph.reset_operation();
 			}
 		}
 
@@ -1239,12 +1620,12 @@ void Sculpt::Main::_handle_runtime_state()
 	/* upgrade RAM and cap quota on demand */
 	state.for_each_sub_node("child", [&] (Xml_node child) {
 
-		/* use binary OR (|), not logical OR (||), to always execute all elements */
-		if (_storage._ram_fs_state.apply_child_state_report(child)
-		  | _deploy.cached_depot_rom_state.apply_child_state_report(child)
-		  | _deploy.uncached_depot_rom_state.apply_child_state_report(child)
-		  | _runtime_view_state.apply_child_state_report(child)) {
+		bool reconfiguration_needed = false;
+		_child_states.for_each([&] (Child_state &child_state) {
+			if (child_state.apply_child_state_report(child))
+				reconfiguration_needed = true; });
 
+		if (reconfiguration_needed) {
 			reconfigure_runtime = true;
 			regenerate_dialog   = true;
 		}
@@ -1261,8 +1642,10 @@ void Sculpt::Main::_handle_runtime_state()
 		regenerate_dialog   = true;
 	}
 
-	if (regenerate_dialog)
+	if (regenerate_dialog) {
 		generate_dialog();
+		_graph_menu_view.generate();
+	}
 
 	if (reconfigure_runtime)
 		generate_runtime_config();
@@ -1311,9 +1694,17 @@ void Sculpt::Main::_generate_runtime_config(Xml_generator &xml) const
 	});
 
 	xml.node("start", [&] () {
-		gen_runtime_view_start_content(xml, _runtime_view_state, _gui.font_size()); });
+		gen_runtime_view_start_content(xml, _graph_menu_view._child_state, _font_size_px); });
+
+	_panel_menu_view.gen_start_node(xml);
+	_main_menu_view.gen_start_node(xml);
+	_settings_menu_view.gen_start_node(xml);
+	_network._menu_view.gen_start_node(xml);
+	_popup_menu_view.gen_start_node(xml);
+	_file_browser_menu_view.gen_start_node(xml);
 
 	_storage.gen_runtime_start_nodes(xml);
+	_file_browser_state.gen_start_nodes(xml);
 
 	/*
 	 * Load configuration and update depot config on the sculpt partition

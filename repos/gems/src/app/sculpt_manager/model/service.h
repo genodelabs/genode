@@ -73,6 +73,12 @@ struct Sculpt::Service
 	: server(server), type(type), label(label), info(Subst("_", " ", server)) { }
 
 	/**
+	 * Constructor for default_fs_rw
+	 */
+	Service(Start_name const &server, Type type, Label const &label, Info const &info)
+	: server(server), type(type), label(label), info(info) { }
+
+	/**
 	 * Constructor for parent service
 	 */
 	Service(Type type, Info const &info, Label const &label = Label(),
