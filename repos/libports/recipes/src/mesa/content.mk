@@ -7,6 +7,7 @@ MIRROR_FROM_REP_DIR := lib/mk/egl.mk \
                        lib/mk/mesa_api.mk \
                        lib/mk/mesa-common.inc \
                        lib/mk/spec/arm/mesa.mk \
+                       lib/mk/spec/arm_64/mesa.mk \
                        lib/mk/spec/x86_32/mesa.mk \
                        lib/mk/spec/x86_64/mesa.mk \
                        lib/mk/swrast.mk \
