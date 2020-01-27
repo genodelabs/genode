@@ -254,6 +254,24 @@ class Menu_view::Widget : List_model<Widget>::Element
 			_geometry = Rect(position, _geometry.area());
 		}
 
+		static Point _at_child(Point at, Widget const &w)
+		{
+			return at - w.geometry().p1();
+		}
+
+		static bool _child_hovered(Point at, Widget const &w)
+		{
+			return w.hovered(_at_child(at, w)).unique_id.valid();
+		}
+
+		bool _any_child_hovered(Point at) const
+		{
+			bool result = false;
+			_children.for_each([&] (Widget const &w) {
+				result = result | _child_hovered(at, w); });
+			return result;
+		}
+
 		/**
 		 * Return unique ID of inner-most hovered widget
 		 *
@@ -265,32 +283,36 @@ class Menu_view::Widget : List_model<Widget>::Element
 				return { };
 
 			Hovered result { .unique_id = _unique_id, .detail = { } };
+
+			if (!_any_child_hovered(at))
+				return result;
+
 			_children.for_each([&] (Widget const &w) {
-				Hovered const hovered = w.hovered(at - w.geometry().p1());
+				Hovered const hovered = w.hovered(_at_child(at, w));
 				if (hovered.unique_id.valid())
-					result = hovered;
-			});
+					result = hovered; });
 
 			return result;
+		}
+
+		virtual void gen_hover_model(Xml_generator &xml, Point at) const
+		{
+			if (!_inner_geometry().contains(at))
+				return;
+
+			xml.node(_type_name.string(), [&]() {
+
+				_gen_common_hover_attr(xml);
+
+				_children.for_each([&] (Widget const &w) {
+					if (_child_hovered(at, w))
+						w.gen_hover_model(xml, _at_child(at, w)); });
+			});
 		}
 
 		void print(Output &out) const
 		{
 			Genode::print(out, _name);
-		}
-
-		virtual void gen_hover_model(Xml_generator &xml, Point at) const
-		{
-			if (_inner_geometry().contains(at)) {
-
-				xml.node(_type_name.string(), [&]() {
-
-					_gen_common_hover_attr(xml);
-
-					_children.for_each([&] (Widget const &w) {
-						w.gen_hover_model(xml, at - w.geometry().p1()); });
-				});
-			}
 		}
 };
 

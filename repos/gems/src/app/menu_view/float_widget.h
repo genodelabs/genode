@@ -82,6 +82,32 @@ struct Menu_view::Float_widget : Widget
 			child.size(child.geometry().area());
 		});
 	}
+
+	/*
+	 * A float widget cannot be hovered on its own. It only responds to
+	 * hovering if its child is hovered. This way, multiple floats can
+	 * be stacked in one frame without interfering with each other.
+	 */
+
+	Hovered hovered(Point at) const override
+	{
+		Hovered const result = Widget::hovered(at);
+
+		/* respond positively whenever one of our children is hovered */
+		if (result.unique_id != _unique_id)
+			return result;
+
+		return { .unique_id = { }, .detail = { } };
+	}
+
+	void gen_hover_model(Xml_generator &xml, Point at) const override
+	{
+		/* omit ourself from hover model unless one of our children is hovered */
+		if (!_inner_geometry().contains(at))
+			return;
+
+		Widget::gen_hover_model(xml, at);
+	}
 };
 
 #endif /* _FLOAT_WIDGET_H_ */
