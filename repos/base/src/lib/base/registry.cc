@@ -28,7 +28,7 @@ Registry_base::Element::Element(Registry_base &registry, void *obj)
 Registry_base::Element::~Element()
 {
 	{
-		Lock::Guard guard(_lock);
+		Mutex::Guard guard(_mutex);
 		if (_notify_ptr && _registry._curr == this) {
 
 			/*
@@ -43,7 +43,7 @@ Registry_base::Element::~Element()
 				return;
 
 			/*
-			 * We synchronize on the _lock of the _registry, by invoking
+			 * We synchronize on the _mutex of the _registry, by invoking
 			 * the _remove method below. This ensures that the object leaves
 			 * the destructor not before the registry lost the pointer to this
 			 * object. The actual removal attempt will be ignored by the list
@@ -57,7 +57,7 @@ Registry_base::Element::~Element()
 
 void Registry_base::_insert(Element &element)
 {
-	Lock::Guard lock_guard(_lock);
+	Mutex::Guard guard(_mutex);
 
 	_elements.insert(&element);
 }
@@ -65,7 +65,7 @@ void Registry_base::_insert(Element &element)
 
 void Registry_base::_remove(Element &element)
 {
-	Lock::Guard lock_guard(_lock);
+	Mutex::Guard guard(_mutex);
 
 	_elements.remove(&element);
 }
@@ -82,7 +82,7 @@ Registry_base::Element *Registry_base::_processed(Notify &notify,
 		return at;
 
 	/* make sure that the critical section of '~Element' is completed */
-	Lock::Guard guard(e._lock);
+	Mutex::Guard guard(e._mutex);
 
 	/* here we know that 'e' still exists */
 	e._notify_ptr = nullptr;
@@ -90,7 +90,7 @@ Registry_base::Element *Registry_base::_processed(Notify &notify,
 	/*
 	 * If '~Element' was preempted between the condition check and the
 	 * assignment of keep = DISCARD, the above check would miss the DISCARD
-	 * flag. Now, with the acquired lock, we know that the 'keep' value is
+	 * flag. Now, with the acquired mutex, we know that the 'keep' value is
 	 * up to date.
 	 */
 	if (notify.keep == Notify::Keep::DISCARD)
@@ -106,7 +106,7 @@ Registry_base::Element *Registry_base::_processed(Notify &notify,
 
 void Registry_base::_for_each(Untyped_functor &functor)
 {
-	Lock::Guard lock_guard(_lock);
+	Mutex::Guard guard(_mutex);
 
 	/* insert position in list of processed elements */
 	Element *at = nullptr;
@@ -118,7 +118,7 @@ void Registry_base::_for_each(Untyped_functor &functor)
 		Notify notify(Notify::Keep::KEEP, Thread::myself());
 		{
 			/* tell the element where to report its status */
-			Lock::Guard guard(e->_lock);
+			Mutex::Guard guard(e->_mutex);
 			_curr = e;
 			e->_notify_ptr = &notify;
 		}

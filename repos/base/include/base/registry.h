@@ -16,7 +16,7 @@
 
 #include <util/interface.h>
 #include <util/list.h>
-#include <base/lock.h>
+#include <base/mutex.h>
 
 namespace Genode {
 
@@ -52,7 +52,7 @@ class Genode::Registry_base
 				/**
 				 * Protect '_reinsert_ptr'
 				 */
-				Lock _lock { };
+				Mutex _mutex { };
 
 				/*
 				 * Assigned by 'Registry::_for_each'
@@ -78,7 +78,7 @@ class Genode::Registry_base
 
 	protected:
 
-		Lock mutable  _lock     { }; /* protect '_elements' */
+		Mutex mutable _mutex    { }; /* protect '_elements' */
 		List<Element> _elements { };
 
 	private:
@@ -133,7 +133,7 @@ struct Genode::Registry : private Registry_base
 	template <typename FUNC>
 	void for_each(FUNC const &fn) const
 	{
-		Lock::Guard lock_guard(_lock);
+		Mutex::Guard guard(_mutex);
 
 		Registry_base::Element const *e = _elements.first(), *next = nullptr;
 		for ( ; e; e = next) {
