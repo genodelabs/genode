@@ -15,6 +15,7 @@
 #include <base/registry.h>
 #include <base/component.h>
 #include <base/log.h>
+#include <trace/timestamp.h>
 
 
 /*
@@ -70,9 +71,53 @@ static void test_exception_during_for_each()
 		throw Failed();
 }
 
+static void test_performance_for_each()
+{
+	using namespace Genode;
+
+	struct Item : Interface { };
+
+	Registry<Registered<Item> >         registry { };
+	Registry<Registered<Item> > const & registry_const = registry;
+
+	static Constructible<Registered<Item>> items[20000];
+	for (unsigned i = 0; i < sizeof(items)/sizeof(items[0]); i++) {
+		items[i].construct(registry);
+	}
+
+	Trace::Timestamp time_const = 0;
+	Trace::Timestamp time_non_const = 0;
+
+	/* warm up */
+	registry.for_each([&](Item const &){});
+
+	{
+		Trace::Timestamp start = Trace::timestamp();
+
+		registry_const.for_each([&](Item const &){});
+
+		Trace::Timestamp end = Trace::timestamp();
+		time_const = end - start;
+	}
+
+	{
+		Trace::Timestamp start = Trace::timestamp();
+
+		registry.for_each([](Item const &) {});
+
+		Trace::Timestamp end = Trace::timestamp();
+		time_non_const = end - start;
+	}
+	Genode::log("time non_const=", time_non_const, " const=", time_const,
+	            " diff=", (long)(time_non_const - time_const), " ",
+	            " per Item: non_const=", time_non_const / (sizeof(items)/sizeof(items[0])),
+	            " const=", time_const / (sizeof(items)/sizeof(items[0])));
+}
 
 void Component::construct(Genode::Env &env)
 {
+	test_performance_for_each();
+
 	test_exception_during_for_each();
 
 	env.parent().exit(0);
