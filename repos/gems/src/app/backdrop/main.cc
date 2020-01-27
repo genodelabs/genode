@@ -53,8 +53,7 @@ struct Backdrop::Main
 	{
 		Nitpicker::Connection &nitpicker;
 
-		/* physical screen size */
-		Framebuffer::Mode const mode = nitpicker.mode();
+		Framebuffer::Mode const mode;
 
 		/**
 		 * Return dataspace capability for virtual framebuffer
@@ -84,8 +83,8 @@ struct Backdrop::Main
 		/**
 		 * Constructor
 		 */
-		Buffer(Genode::Env &env, Nitpicker::Connection &nitpicker)
-		:	nitpicker(nitpicker),
+		Buffer(Genode::Env &env, Nitpicker::Connection &nitpicker, Framebuffer::Mode mode)
+		:	nitpicker(nitpicker), mode(mode),
 			fb_ds(env.rm(), _ds_cap(nitpicker)),
 			surface_ds(env.ram(), env.rm(), surface_num_bytes())
 		{ }
@@ -325,7 +324,13 @@ void Backdrop::Main::_handle_config()
 {
 	_config.update();
 
-	_buffer.construct(_env, _nitpicker);
+	Framebuffer::Mode const phys_mode = _nitpicker.mode();
+	Framebuffer::Mode const
+		mode(_config.xml().attribute_value("width",  (unsigned)phys_mode.width()),
+		     _config.xml().attribute_value("height", (unsigned)phys_mode.height()),
+		     phys_mode.format());
+
+	_buffer.construct(_env, _nitpicker, mode);
 
 	/* clear surface */
 	_apply_fill(Xml_node("<fill color=\"#000000\"/>"));

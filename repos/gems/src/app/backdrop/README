@@ -68,6 +68,14 @@ covering the whole screen or as a single image. The supported attributes are
   viewport can be defined via the 'anchor', 'xpos', and 'ypos' attributes.
 
 
+Customized size
+---------------
+
+By default, the backdrop adjusts itself to the physical screen size as
+reported by the nitpicker GUI server. This default size can be overridden by
+specifying a fixed size as '<config>' attributes 'width' and 'height'.
+
+
 Example
 ~~~~~~~
 
