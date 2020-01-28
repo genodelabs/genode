@@ -686,7 +686,11 @@ void pci_conf_write(pci_chipset_tag_t, pcitag_t, int, pcireg_t);
  ** sys/timeout.h **
  *******************/
 
-struct timeout { };
+struct timeout
+{
+	void (*fn)(void *);
+	void *arg;
+};
 
 void timeout_set(struct timeout *, void (*)(void *), void *);
 int timeout_add_msec(struct timeout *, int);
