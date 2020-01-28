@@ -85,7 +85,7 @@ namespace Vfs {
 		                                 .executable = true }; }
 
 		static Node_rwx rwx() { return { .readable   = true,
-		                                 .writeable  = false,
+		                                 .writeable  = true,
 		                                 .executable = true }; }
 	};
 
