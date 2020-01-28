@@ -612,8 +612,10 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 					if (ev.release() && _key_cnt == 0)
 						_click_handler.handle_enter(_pointer_pos);
 
-					if (ev.hover_leave())
+					if (ev.hover_leave()) {
+						_pointer_pos  = _initial_pointer_pos;
 						_first_motion = true;
+					}
 
 					/* submit event to the client */
 					_input_session.submit(_translate_event(ev, input_origin));
@@ -626,6 +628,9 @@ class Wm::Nitpicker::Session_component : public Rpc_object<Nitpicker::Session>,
 		 */
 		void input_origin_changed() override
 		{
+			if (_pointer_pos == _initial_pointer_pos)
+				return;
+
 			Point const pos = _pointer_pos + _input_origin();
 
 			_input_session.submit(Input::Absolute_motion { pos.x(), pos.y() });
