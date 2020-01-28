@@ -43,7 +43,9 @@
 			return (high << 32) | (low & ~0U); \
 		} \
  \
-		static void write(access_t const) { } \
+		static void write(access_t const value) { \
+			asm volatile ("wrmsr" : : "a" (value), "d" (value >> 32), "c" (msr)); \
+		} \
  \
 		__VA_ARGS__; \
 	};
