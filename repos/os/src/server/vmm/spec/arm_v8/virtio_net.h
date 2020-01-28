@@ -35,7 +35,8 @@ class Vmm::Virtio_net : public Virtio_device
 		enum { BUF_SIZE = Nic::Packet_allocator::DEFAULT_PACKET_SIZE * 128,
 		       NIC_HEADER_SIZE = 12 };
 
-		Nic::Connection _nic { _env, &_tx_alloc, BUF_SIZE, BUF_SIZE };
+		Nic::Connection  _nic { _env, &_tx_alloc, BUF_SIZE, BUF_SIZE };
+		Nic::Mac_address _mac { _nic.mac_address() };
 
 		Cpu::Signal_handler<Virtio_net> _handler;
 
@@ -52,26 +53,32 @@ class Vmm::Virtio_net : public Virtio_device
 			/* RX */
 			auto recv = [&] (addr_t data, size_t size)
 			{
+				if (!_nic.rx()->packet_avail() || !_nic.rx()->ready_to_ack())
+					return 0ul;
+
 				Nic::Packet_descriptor const rx_packet = _nic.rx()->get_packet();
 
 				size_t sz = Genode::min(size, rx_packet.size() + NIC_HEADER_SIZE);
+
+				if (_queue[RX]->verbose() && sz < rx_packet.size() + NIC_HEADER_SIZE)
+					Genode::warning("[rx] trim packet from ",
+					                 rx_packet.size() + NIC_HEADER_SIZE, " -> ", sz, " bytes");
+
 				Genode::memcpy((void *)(data + NIC_HEADER_SIZE),
 				               _nic.rx()->packet_content(rx_packet),
-				               sz);
+				               sz - NIC_HEADER_SIZE);
 				_nic.rx()->acknowledge_packet(rx_packet);
+
+				Genode::memset((void*)data, 0, NIC_HEADER_SIZE);
 
 				return sz;
 			};
 
 			if (!_queue[RX].constructed()) return;
 
-			bool progress = false;
-			while (_nic.rx()->packet_avail() && _nic.rx()->ready_to_ack()) {
-				if (!_queue[RX]->notify(recv)) break;
-				progress = true;
-			}
+			bool irq = _queue[RX]->notify(recv);
 
-			if (progress) _assert_irq();
+			if (irq) _assert_irq();
 		}
 
 		void _tx()
@@ -86,7 +93,7 @@ class Vmm::Virtio_net : public Virtio_device
 				try {
 					tx_packet = _nic.tx()->alloc_packet(size); }
 				catch (Nic::Session::Tx::Source::Packet_alloc_failed) {
-				return 0lu; }
+				return 0ul; }
 
 				Genode::memcpy(_nic.tx()->packet_content(tx_packet),
 				               (void *)data, size);
@@ -108,9 +115,32 @@ class Vmm::Virtio_net : public Virtio_device
 
 		void _notify(unsigned /* idx */) override
 		{
-			_rx();
 			_tx();
+			_rx();
 		}
+
+		Register _device_specific_features() override
+		{
+			enum { VIRTIO_NET_F_MAC = 1u << 5 };
+			return VIRTIO_NET_F_MAC;
+		}
+
+		struct ConfigArea : Mmio_register
+		{
+			Nic::Mac_address &mac;
+
+			Register read(Address_range& range,  Cpu&) override
+			{
+				if (range.start > 5) return 0;
+
+				return mac.addr[range.start];
+			}
+
+			ConfigArea(Nic::Mac_address &mac)
+			: Mmio_register("ConfigArea", Mmio_register::RO, 0x100, 8),
+			  mac(mac)
+			{ }
+		} _config_area { _mac };
 
 	public:
 
@@ -122,12 +152,14 @@ class Vmm::Virtio_net : public Virtio_device
 		           Mmio_bus &bus,
 		           Ram      &ram,
 		           Genode::Env &env)
-		: Virtio_device(name, addr, size, irq, cpu, bus, ram, 128),
+		: Virtio_device(name, addr, size, irq, cpu, bus, ram, 1024),
 		  _env(env),
 		  _handler(cpu, _env.ep(), *this, &Virtio_net::_handle)
 		{
 			/* set device ID to network */
 			_device_id(0x1);
+
+			add(_config_area);
 
 			_nic.tx_channel()->sigh_ready_to_submit(_handler);
 			_nic.tx_channel()->sigh_ack_avail      (_handler);

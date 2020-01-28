@@ -34,6 +34,8 @@ class Vmm::Virtio_console : public Virtio_device
 		{
 			auto read = [&] (addr_t data, size_t size)
 			{
+				if (!_terminal.avail()) return 0ul;
+
 				size_t length = _terminal.read((void *)data, size);
 				return length;
 			};
@@ -58,6 +60,7 @@ class Vmm::Virtio_console : public Virtio_device
 				_assert_irq();
 		}
 
+		Register _device_specific_features() { return 0; }
 	public:
 
 		Virtio_console(const char * const name,
