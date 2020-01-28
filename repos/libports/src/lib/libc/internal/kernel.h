@@ -291,7 +291,7 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 			}
 
 			if (!check.suspend() && !_kernel_routine)
-				return 0;
+				return timeout_ms;
 
 			if (timeout_ms > 0)
 				_main_timeout.timeout(timeout_ms);
