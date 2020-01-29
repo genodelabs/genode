@@ -84,6 +84,16 @@ struct Hw::X86_64_cpu
 		struct Lapic : Bitfield< 11,  1> { }; /* Enable/disable local APIC */
 		struct Base  : Bitfield< 12, 24> { }; /* Base address of APIC registers */
 	);
+
+	X86_64_MSR_REGISTER(IA32_pat, 0x277,
+		struct Pa1 : Bitfield <8, 3> {
+			enum { WRITE_COMBINING = 0b001 };
+		};
+	);
+
+	X86_64_CPUID_REGISTER(Cpuid_1_edx, 1, edx,
+		struct Pat : Bitfield<16, 1> { };
+	);
 };
 
 #endif /* _SRC__LIB__HW__SPEC__X86_64__CPU_H_ */
