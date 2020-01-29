@@ -481,7 +481,7 @@ void Main::_send_arp_reply(Ethernet_frame &req_eth,
 		arp.opcode(Arp_packet::REPLY);
 		arp.src_mac(_nic.mac());
 		arp.src_ip(ip_config().interface.address);
-		arp.dst_mac(req_eth.src());
+		arp.dst_mac(req_arp.src_mac());
 		arp.dst_ip(req_arp.src_ip());
 	});
 }
