@@ -28,12 +28,21 @@ namespace Genode {
 
 			Session_label const _label;
 
+			static Session_label _expand_label(Session_label const &label)
+			{
+				if (label == "init -> unlabeled")
+					return "";
+				else
+					return Session_label("[", label, "] ");
+			}
+
 		public:
 
 			/**
 			 * Constructor
 			 */
-			Log_session_component(Session_label const &label) : _label(label) { }
+			Log_session_component(Session_label const &label)
+			: _label(_expand_label(label)) { }
 
 
 			/*****************
@@ -53,14 +62,14 @@ namespace Genode {
 				unsigned from_i = 0;
 				for (unsigned i = 0; i < len; i++) {
 					if (string[i] == '\n') {
-						log("[", _label, "] ", Cstring(string + from_i, i - from_i));
+						log(_label, Cstring(string + from_i, i - from_i));
 						from_i = i + 1;
 					}
 				}
 
 				/* if last character of string was not a line break, add one */
 				if (from_i < len)
-					log("[", _label, "] ", Cstring(string + from_i));
+					log(_label, Cstring(string + from_i));
 
 				return len;
 			}
