@@ -32,7 +32,7 @@ struct Main
 		_input.for_each_event([&] (Input::Event const &ev) {
 			if (ev.press())   ++_key_cnt;
 			if (ev.release()) --_key_cnt;
-			log("Input event #", _event_cnt++, "\t", ev, "\t key count: ", _key_cnt);
+			log("Input event #", _event_cnt++, "\t", ev, "\tkey count: ", _key_cnt);
 		});
 	}
 
