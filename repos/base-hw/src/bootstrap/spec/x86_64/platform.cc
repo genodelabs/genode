@@ -279,6 +279,16 @@ unsigned Bootstrap::Platform::enable_mmu()
 {
 	using ::Board::Cpu;
 
+	/* enable PAT if available */
+	Cpu::Cpuid_1_edx::access_t cpuid1 = Cpu::Cpuid_1_edx::read();
+	if (Cpu::Cpuid_1_edx::Pat::get(cpuid1)) {
+		Cpu::IA32_pat::access_t pat = Cpu::IA32_pat::read();
+		if (Cpu::IA32_pat::Pa1::get(pat) != Cpu::IA32_pat::Pa1::WRITE_COMBINING) {
+			Cpu::IA32_pat::Pa1::set(pat, Cpu::IA32_pat::Pa1::WRITE_COMBINING);
+			Cpu::IA32_pat::write(pat);
+		}
+	}
+
 	Cpu::Cr3::write(Cpu::Cr3::Pdb::masked((addr_t)core_pd->table_base));
 
 	addr_t const stack_base = reinterpret_cast<addr_t>(&__bootstrap_stack);
