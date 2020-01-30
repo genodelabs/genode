@@ -29,6 +29,9 @@ struct Menu_view::Label_widget : Widget, Cursor::Glyph_position
 	typedef String<200> Text;
 	Text _text { };
 
+	int _min_width  = 0;
+	int _min_height = 0;
+
 	Cursor::Model_update_policy         _cursor_update_policy;
 	Text_selection::Model_update_policy _selection_update_policy;
 
@@ -50,9 +53,23 @@ struct Menu_view::Label_widget : Widget, Cursor::Glyph_position
 
 	void update(Xml_node node) override
 	{
-		_font = _factory.styles.font(node);
-		_text = node.attribute_value("text", Text(""));
-		_text = Xml_unquoted(_text);
+		_font       = _factory.styles.font(node);
+		_text       = Text("");
+		_min_width  = 0;
+		_min_height = 0;
+
+		if (node.has_attribute("text")) {
+			_text       = node.attribute_value("text", _text);
+			_text       = Xml_unquoted(_text);
+			_min_height = _font->height();
+		}
+
+		unsigned const min_ex = node.attribute_value("min_ex", 0U);
+		if (min_ex) {
+			Glyph_painter::Fixpoint_number min_w_px = _font->string_width("x");
+			min_w_px.value *= min_ex;
+			_min_width = min_w_px.decimal();
+		}
 
 		_cursors   .update_from_xml(_cursor_update_policy,    node);
 		_selections.update_from_xml(_selection_update_policy, node);
@@ -63,8 +80,8 @@ struct Menu_view::Label_widget : Widget, Cursor::Glyph_position
 		if (!_font)
 			return Area(0, 0);
 
-		return Area(_font->string_width(_text.string()).decimal(),
-		            _font->height());
+		return Area(max(_font->string_width(_text.string()).decimal(), _min_width),
+		            _min_height);
 	}
 
 	void draw(Surface<Pixel_rgb888> &pixel_surface,
