@@ -1,4 +1,4 @@
-<runtime ram="72M" caps="1000" binary="init" config="noux-system.config">
+<runtime ram="76M" caps="1000" binary="init" config="noux-system.config">
 
 	<requires>
 		<nitpicker/>
