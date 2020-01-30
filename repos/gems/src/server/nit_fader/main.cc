@@ -443,6 +443,13 @@ struct Nit_fader::Main
 
 	unsigned long alpha = 0;
 
+	unsigned long fade_in_steps  = 0;
+	unsigned long fade_out_steps = 0;
+
+	bool initial_fade_in = true;
+
+	unsigned long initial_fade_in_steps  = 0;
+
 	Genode::uint64_t curr_frame() const { return timer.elapsed_ms() / PERIOD; }
 
 	Genode::uint64_t last_frame = 0;
@@ -499,10 +506,21 @@ void Nit_fader::Main::handle_config_update()
 	if (config_xml.has_attribute("alpha"))
 		config_xml.attribute("alpha").value(new_alpha);
 
+	fade_in_steps         = config_xml.attribute_value("fade_in_steps",  20U);
+	fade_out_steps        = config_xml.attribute_value("fade_out_steps", 50U);
+	initial_fade_in_steps = config_xml.attribute_value("initial_fade_in_steps", fade_in_steps);
+
 	/* respond to state change */
 	if (new_alpha != alpha) {
 
-		int const steps = (new_alpha > alpha) ? 20 : 50;
+		bool const fade_in = (new_alpha > alpha);
+
+		int const steps =
+			fade_in ? (initial_fade_in ? initial_fade_in_steps : fade_in_steps)
+			        : fade_out_steps;
+
+		initial_fade_in = false;
+
 		nitpicker_session.fade(280*new_alpha, steps);
 
 		alpha = new_alpha;
