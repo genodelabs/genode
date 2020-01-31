@@ -399,9 +399,12 @@ struct Cached_fs_rom::Main final : Genode::Session_request_handler
 		} else if (!rom->transfer) {
 			File_system::File_handle handle = try_open(path);
 
-			try { new (heap) Transfer(transfers, *rom, fs, handle, rom->file_size); }
+			try {
+				new (heap) Transfer(transfers, *rom, fs, handle, rom->file_size);
+			}
 			catch (...) {
 				Genode::warning("defer transfer of ", rom->path);
+				fs.close(handle);
 				/* retry when next pending transfer completes */
 				return;
 			}
