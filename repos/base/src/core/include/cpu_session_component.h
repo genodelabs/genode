@@ -128,6 +128,11 @@ class Genode::Cpu_session_component : public  Rpc_object<Cpu_session>,
 		 */
 		Affinity::Location _thread_affinity(Affinity::Location) const;
 
+		/**
+		 * Return the UTCB quota size that needs to be accounted per thread
+		 */
+		size_t _utcb_quota_size();
+
 		/*
 		 * Noncopyable
 		 */

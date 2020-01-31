@@ -34,6 +34,10 @@ Thread_capability Cpu_session_component::create_thread(Capability<Pd_session> pd
 {
 	Trace::Thread_name thread_name(name.string());
 
+	if (!_md_alloc.withdraw(_utcb_quota_size())) {
+		throw Out_of_ram();
+	}
+
 	Cpu_thread_component *thread = 0;
 
 	if (weight.value == 0) {
@@ -121,6 +125,8 @@ void Cpu_session_component::_unsynchronized_kill_thread(Thread_capability thread
 		Lock::Guard lock_guard(_thread_alloc_lock);
 		destroy(&_thread_alloc, thread);
 	}
+
+	_md_alloc.upgrade(_utcb_quota_size());
 }
 
 

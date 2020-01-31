@@ -18,6 +18,9 @@
 #include <cpu_session_component.h>
 #include <kernel/configuration.h>
 
+/* base-internal includes */
+#include <base/internal/native_utcb.h>
+
 using namespace Genode;
 
 
@@ -33,3 +36,7 @@ Cpu_session::Quota Cpu_session_component::quota()
 	size_t const u = quota_lim_downscale<sizet_arithm_t>(_quota, spu);
 	return { spu, u };
 }
+
+
+size_t Cpu_session_component::_utcb_quota_size() {
+	return sizeof(Native_utcb); }
