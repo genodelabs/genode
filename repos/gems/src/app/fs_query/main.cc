@@ -128,6 +128,12 @@ struct Fs_query::Watched_directory
 	{
 		xml.node("dir", [&] () {
 			xml.attribute("path", _rel_path);
+
+			_dir.for_each_entry([&] (Directory::Entry const &entry) {
+				if (entry.dir())
+					xml.node("dir", [&] () {
+						xml.attribute("name", entry.name()); }); });
+
 			_files.for_each([&] (Watched_file const &file) {
 				file.gen_query_response(xml, query, _alloc, _dir); });
 		});
