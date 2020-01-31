@@ -50,13 +50,14 @@ struct Genode::Directory : Noncopyable, Interface
 
 				Entry() { }
 
+				using Dirent_type = Vfs::Directory_service::Dirent_type;
+
 			public:
 
 				void print(Output &out) const
 				{
 					using Genode::print;
 					using Vfs::Directory_service;
-					using Dirent_type = Directory_service::Dirent_type;
 
 					print(out, _dirent.name.buf, " (");
 					switch (_dirent.type) {
@@ -74,6 +75,8 @@ struct Genode::Directory : Noncopyable, Interface
 				Name name() const { return Name(Cstring(_dirent.name.buf)); }
 
 				Vfs::Directory_service::Dirent_type type() const { return _dirent.type; }
+
+				bool dir() const { return _dirent.type == Dirent_type::DIRECTORY; }
 		};
 
 		enum { MAX_PATH_LEN = 256 };
@@ -84,6 +87,10 @@ struct Genode::Directory : Noncopyable, Interface
 		{
 			char const *p = y.string();
 			while (*p == '/') ++p;
+
+			if (x == "/")
+				return Path("/", p);
+
 			return Path(x, "/", p);
 		}
 
