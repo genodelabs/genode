@@ -110,12 +110,30 @@ namespace Genode {
 			/**
 			 * Return kernel CPU ID for given Genode CPU
 			 */
-			unsigned kernel_cpu_id(unsigned genode_cpu_id);
+			unsigned pager_index(Affinity::Location location) const;
+			unsigned kernel_cpu_id(Affinity::Location location) const;
+
+			Affinity::Location sanitize(Affinity::Location location) {
+				return Affinity::Location(location.xpos() % _cpus.width(),
+				                          location.ypos() % _cpus.height(),
+				                          location.width(), location.height());
+			}
 
 			/**
 			 * PD kernel capability selector of core
 			 */
 			unsigned core_pd_sel() const { return _core_pd_sel; }
+
+			template <typename FUNC>
+			void for_each_location(FUNC const &fn)
+			{
+				for (unsigned x = 0; x < _cpus.width(); x++) {
+					for (unsigned y = 0; y < _cpus.height(); y++) {
+						Affinity::Location location(x, y, 1, 1);
+						fn(location);
+					}
+				}
+			}
 	};
 }
 

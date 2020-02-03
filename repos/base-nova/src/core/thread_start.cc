@@ -100,12 +100,12 @@ void Thread::start()
 
 	/* create local EC */
 	enum { LOCAL_THREAD = false };
-	unsigned const kernel_cpu_id = platform_specific().kernel_cpu_id(location.xpos());
+	unsigned const kernel_cpu_id = platform_specific().kernel_cpu_id(location);
 	uint8_t res = create_ec(native_thread().ec_sel,
 	                        platform_specific().core_pd_sel(), kernel_cpu_id,
 	                        (mword_t)&utcb, sp, native_thread().exc_pt_sel, LOCAL_THREAD);
 	if (res != NOVA_OK) {
-		error("create_ec returned ", res, " cpu=", location.xpos());
+		error("create_ec returned ", res);
 		throw Cpu_session::Thread_creation_failed();
 	}
 

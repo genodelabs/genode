@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2006-2017 Genode Labs GmbH
+ * Copyright (C) 2006-2020 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -365,59 +365,6 @@ namespace Genode {
 	};
 
 	/**
-	 * A 'Pager_activation' processes one page fault of a 'Pager_object' at a time.
-	 */
-	class Pager_entrypoint;
-	class Pager_activation_base: public Thread
-	{
-		private:
-
-			Native_capability _cap;
-			Pager_entrypoint *_ep;       /* entry point to which the
-			                                activation belongs */
-			/**
-			 * Lock used for blocking until '_cap' is initialized
-			 */
-			Lock _cap_valid;
-
-			/*
-			 * Noncopyable
-			 */
-			Pager_activation_base(Pager_activation_base const &);
-			Pager_activation_base &operator = (Pager_activation_base const &);
-
-		public:
-
-			/**
-			 * Constructor
-			 *
-			 * \param name        name of the new thread
-			 * \param stack_size  stack size of the new thread
-			 */
-			Pager_activation_base(char const * const name,
-			                      size_t const stack_size);
-
-			/**
-			 * Thread interface
-			 */
-			void entry() override;
-
-			/**
-			 * Return capability to this activation
-			 *
-			 * This function should only be called from 'Pager_entrypoint'
-			 */
-			Native_capability cap()
-			{
-				/* ensure that the initialization of our 'Ipc_pager' is done */
-				if (!_cap.valid())
-					_cap_valid.lock();
-				return _cap;
-			}
-	};
-
-
-	/**
 	 * Paging entry point
 	 *
 	 * For a paging entry point can hold only one activation. So, paging is
@@ -446,16 +393,6 @@ namespace Genode {
 			 * Dissolve Pager_object from entry point
 			 */
 			void dissolve(Pager_object &obj);
-	};
-
-
-	template <int STACK_SIZE>
-	class Pager_activation : public Pager_activation_base
-	{
-		public:
-
-			Pager_activation() : Pager_activation_base("pager", STACK_SIZE)
-			{ }
 	};
 }
 

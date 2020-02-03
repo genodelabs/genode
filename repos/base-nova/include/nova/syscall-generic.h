@@ -174,8 +174,6 @@ namespace Nova {
 
 		/**
 		 * Map kernel cpu ids to virtual cpu ids.
-		 * Assign first all cores on all packages with thread 0 to virtual
-		 * cpu id numbers, afterwards all (hyper-)threads.
 		 */
 		bool remap_cpu_ids(uint8_t *map_cpus, unsigned const boot_cpu) const {
 			unsigned const num_cpus = cpus();
@@ -191,9 +189,9 @@ namespace Nova {
 				return true;
 
 			/* assign remaining cores and afterwards all threads to the ids */
-			for (uint8_t thread = 0; thread < 255; thread++) {
-				for (uint8_t package = 0; package < 255; package++) {
-					for (uint8_t core = 0; core < 255; core++) {
+			for (uint8_t package = 0; package < 255; package++) {
+				for (uint8_t core = 0; core < 255; core++) {
+					for (uint8_t thread = 0; thread < 255; thread++) {
 						for (unsigned i = 0; i < cpu_max(); i++) {
 							if (i == boot_cpu || !is_cpu_enabled(i))
 								continue;
@@ -215,6 +213,18 @@ namespace Nova {
 			}
 			return false;
 		}
+
+		template <typename FUNC>
+		void for_each_enabled_cpu(FUNC const &func) const
+		{
+			for (unsigned i = 0; i < cpu_max(); i++) {
+				Cpu_desc const * cpu = cpu_desc_of_cpu(i);
+				if (!is_cpu_enabled(i)) continue;
+				if (!cpu) return;
+				func(*cpu, i);
+			}
+		}
+
 	} __attribute__((packed));
 
 

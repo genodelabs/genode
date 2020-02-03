@@ -170,8 +170,7 @@ Vcpu_id Vm_session_component::_create_vcpu(Thread_capability cap)
 		Cpu_thread_component &thread = *ptr;
 
 		vcpu_location = thread.platform_thread().affinity();
-		addr_t genode_cpu_id = thread.platform_thread().affinity().xpos();
-		kernel_cpu_id = platform_specific().kernel_cpu_id(genode_cpu_id);
+		kernel_cpu_id = platform_specific().kernel_cpu_id(thread.platform_thread().affinity());
 
 		return thread.platform_thread().pager().pd_sel();
 	};

@@ -90,7 +90,7 @@ int Platform_thread::start(void *ip, void *sp)
 	}
 
 	Utcb &utcb = *reinterpret_cast<Utcb *>(Thread::myself()->utcb());
-	unsigned const kernel_cpu_id = platform_specific().kernel_cpu_id(_location.xpos());
+	unsigned const kernel_cpu_id = platform_specific().kernel_cpu_id(_location);
 	addr_t const source_pd = platform_specific().core_pd_sel();
 
 	addr_t const pt_oom = _pager->get_oom_portal();
@@ -341,7 +341,8 @@ Platform_thread::Platform_thread(size_t, const char *name, unsigned prio,
                                  Affinity::Location affinity, int)
 :
 	_pd(0), _pager(0), _id_base(cap_map().insert(2)),
-	_sel_exc_base(Native_thread::INVALID_INDEX), _location(affinity),
+	_sel_exc_base(Native_thread::INVALID_INDEX),
+	_location(platform_specific().sanitize(affinity)),
 	_features(0),
 	_priority(scale_priority(prio, name)),
 	_name(name)

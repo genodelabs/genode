@@ -16,6 +16,7 @@
 /* Genode includes */
 #include <base/sleep.h>
 #include <base/thread.h>
+#include <util/bit_array.h>
 #include <util/mmio.h>
 #include <util/string.h>
 #include <util/xml_generator.h>
@@ -272,6 +273,27 @@ struct Resolution : Register<64>
 	struct Width  : Bitfield<40, 24> { };
 };
 
+static Affinity::Space setup_affinity_space(Hip const &hip)
+{
+	unsigned cpus = 0;
+	unsigned ids_thread = 0;
+	Genode::Bit_array<1 << (sizeof(Hip::Cpu_desc::thread) * 8)> threads;
+
+	hip.for_each_enabled_cpu([&](Hip::Cpu_desc const &cpu, unsigned) {
+		cpus ++;
+		if (threads.get(cpu.thread, 1)) return;
+
+		threads.set(cpu.thread, 1);
+		ids_thread ++;
+	});
+
+	if (ids_thread && ((cpus % ids_thread) == 0))
+		return Affinity::Space(cpus / ids_thread, ids_thread);
+
+	/* mixture of system with cores with and without hyperthreads ? */
+	return Affinity::Space(cpus, 1);
+}
+
 /**************
  ** Platform **
  **************/
@@ -287,16 +309,8 @@ Platform::Platform()
 	if (hip.api_version != 8)
 		nova_die();
 
-	/*
-	 * Determine number of available CPUs
-	 *
-	 * XXX As of now, we assume a one-dimensional affinity space, ignoring
-	 *     the y component of the affinity location. When adding support
-	 *     for two-dimensional affinity spaces, look out and adjust the use of
-	 *     'Platform_thread::_location' in 'platform_thread.cc'. Also look
-	 *     at the 'Thread::start' function in core/thread_start.cc.
-	 */
-	_cpus = Affinity::Space(hip.cpus(), 1);
+	/* determine number of available CPUs */
+	_cpus = setup_affinity_space(hip);
 
 	/* register UTCB of main thread */
 	__main_thread_utcb = (Utcb *)(__initial_sp - get_page_size());
@@ -393,40 +407,9 @@ Platform::Platform()
 	/* set up page fault handler for core - for debugging */
 	addr_t const ec_core_exc_sel = init_core_page_fault_handler(core_pd_sel());
 
-	if (verbose_boot_info) {
-		if (hip.has_feature_vmx())
-			log("Hypervisor features VMX");
-		if (hip.has_feature_svm())
-			log("Hypervisor features SVM");
-		log("Hypervisor reports ", _cpus.width(), "x", _cpus.height(), " "
-		    "CPU", _cpus.total() > 1 ? "s" : " ");
-		if (!cpuid_invariant_tsc())
-			warning("CPU has no invariant TSC.");
-
-		log("CPU ID (genode->kernel:package:core:thread) remapping");
-		unsigned const cpus = hip.cpus();
-		for (unsigned i = 0; i < cpus; i++) {
-
-			Hip::Cpu_desc const * const cpu_desc_ptr = hip.cpu_desc_of_cpu(map_cpu_ids[i]);
-
-			if (cpu_desc_ptr) {
-				log(" remap (", i, "->", map_cpu_ids[i], ":",
-				      cpu_desc_ptr->package, ":",
-				      cpu_desc_ptr->core, ":",
-				      cpu_desc_ptr->thread, ") ",
-				      boot_cpu() == map_cpu_ids[i] ? "boot cpu" : "");
-			} else {
-				error("missing descriptor for CPU ", i);
-			}
-		}
-	}
-
 	/* initialize core allocators */
 	size_t const num_mem_desc = (hip.hip_length - hip.mem_desc_offset)
 	                            / hip.mem_desc_size;
-
-	if (verbose_boot_info)
-		log("Hypervisor info page contains ", num_mem_desc, " memory descriptors:");
 
 	addr_t mem_desc_base = ((addr_t)&hip + hip.mem_desc_offset);
 
@@ -735,29 +718,19 @@ Platform::Platform()
 							xml.attribute("freq_khz" , hip.tsc_freq);
 						});
 						xml.node("cpus", [&] () {
-							unsigned const cpus = hip.cpus();
-							for (unsigned i = 0; i < cpus; i++) {
-
-								Hip::Cpu_desc const * const cpu_desc_ptr =
-									hip.cpu_desc_of_cpu(Platform::kernel_cpu_id(i));
-
-								if (!cpu_desc_ptr)
-									continue;
-
-								Hip::Cpu_desc const &cpu_desc = *cpu_desc_ptr;
-
+							hip.for_each_enabled_cpu([&](Hip::Cpu_desc const &cpu, unsigned i) {
 								xml.node("cpu", [&] () {
 									xml.attribute("id",       i);
-									xml.attribute("package",  cpu_desc.package);
-									xml.attribute("core",     cpu_desc.core);
-									xml.attribute("thread",   cpu_desc.thread);
-									xml.attribute("family",   String<5>(Hex(cpu_desc.family)));
-									xml.attribute("model",    String<5>(Hex(cpu_desc.model)));
-									xml.attribute("stepping", String<5>(Hex(cpu_desc.stepping)));
-									xml.attribute("platform", String<5>(Hex(cpu_desc.platform)));
-									xml.attribute("patch",    String<12>(Hex(cpu_desc.patch)));
+									xml.attribute("package",  cpu.package);
+									xml.attribute("core",     cpu.core);
+									xml.attribute("thread",   cpu.thread);
+									xml.attribute("family",   String<5>(Hex(cpu.family)));
+									xml.attribute("model",    String<5>(Hex(cpu.model)));
+									xml.attribute("stepping", String<5>(Hex(cpu.stepping)));
+									xml.attribute("platform", String<5>(Hex(cpu.platform)));
+									xml.attribute("patch",    String<12>(Hex(cpu.patch)));
 								});
-							}
+							});
 						});
 					});
 				});
@@ -802,6 +775,33 @@ Platform::Platform()
 		_rom_fs.insert(new (core_mem_alloc()) Rom_module(hyp_log, hyp_log_size,
 		                                                 "kernel_log"));
 
+	if (verbose_boot_info) {
+		if (hip.has_feature_vmx())
+			log("Hypervisor features VMX");
+		if (hip.has_feature_svm())
+			log("Hypervisor features SVM");
+		log("Hypervisor reports ", _cpus.width(), "x", _cpus.height(), " "
+		    "CPU", _cpus.total() > 1 ? "s" : " ");
+		if (!cpuid_invariant_tsc())
+			warning("CPU has no invariant TSC.");
+
+		log("mapping: affinity space -> kernel cpu id - package:core:thread");
+
+		for_each_location([&](Affinity::Location &location) {
+			unsigned const kernel_cpu_id = Platform::kernel_cpu_id(location);
+			Hip::Cpu_desc const * cpu = hip.cpu_desc_of_cpu(kernel_cpu_id);
+
+			Genode::String<16> text ("failure");
+			if (cpu)
+				text = Genode::String<16>(cpu->package, ":",
+				                          cpu->core, ":", cpu->thread);
+
+			log(" remap (", location.xpos(), "x", location.ypos(),") -> ",
+			    kernel_cpu_id, " - ", text, ") ",
+			    boot_cpu() == kernel_cpu_id ? "boot cpu" : "");
+		});
+	}
+
 	/* I/O port allocator (only meaningful for x86) */
 	_io_port_alloc.add_range(0, 0x10000);
 
@@ -841,12 +841,9 @@ Platform::Platform()
 	_max_caps = index - first_index;
 
 	/* add idle ECs to trace sources */
-	for (unsigned genode_cpu_id = 0; genode_cpu_id < _cpus.width(); genode_cpu_id++) {
-
-		unsigned kernel_cpu_id = Platform::kernel_cpu_id(genode_cpu_id);
-
-		if (!hip.is_cpu_enabled(kernel_cpu_id))
-			continue;
+	for_each_location([&](Affinity::Location &location) {
+		unsigned const kernel_cpu_id = Platform::kernel_cpu_id(location);
+		if (!hip.cpu_desc_of_cpu(kernel_cpu_id)) return;
 
 		struct Trace_source : public  Trace::Source::Info_accessor,
 		                      private Trace::Control,
@@ -871,7 +868,7 @@ Platform::Platform()
 				uint8_t res = Nova::sc_ctrl(sc_sel, sc_time, syscall_op);
 				if (res != Nova::NOVA_OK)
 					warning("sc_ctrl on idle SC cap, op=", syscall_op,
-				            ", res=", res);
+					        ", res=", res);
 
 				return { Session_label("kernel"), Trace::Thread_name(name),
 				         Trace::Execution_time(sc_time, sc_time), affinity };
@@ -890,24 +887,18 @@ Platform::Platform()
 			}
 		};
 
-		new (core_mem_alloc()) Trace_source(Trace::sources(),
-		                                    Affinity::Location(genode_cpu_id, 0,
-		                                                       _cpus.width(), 1),
+		new (core_mem_alloc()) Trace_source(Trace::sources(), location,
 		                                    sc_idle_base + kernel_cpu_id,
 		                                    "idle");
 
-		new (core_mem_alloc()) Trace_source(Trace::sources(),
-		                                    Affinity::Location(genode_cpu_id, 0,
-		                                                       _cpus.width(), 1),
+		new (core_mem_alloc()) Trace_source(Trace::sources(), location,
 		                                    sc_idle_base + kernel_cpu_id,
 		                                    "cross");
 
-		new (core_mem_alloc()) Trace_source(Trace::sources(),
-		                                    Affinity::Location(genode_cpu_id, 0,
-		                                                       _cpus.width(), 1),
+		new (core_mem_alloc()) Trace_source(Trace::sources(), location,
 		                                    sc_idle_base + kernel_cpu_id,
 		                                    "killed");
-	}
+	});
 
 	/* add exception handler EC for core and EC root thread to trace sources */
 	struct Core_trace_source : public  Trace::Source::Info_accessor,
@@ -965,13 +956,25 @@ addr_t Platform::_rom_module_phys(addr_t virt)
 }
 
 
-unsigned Platform::kernel_cpu_id(unsigned genode_cpu_id)
+unsigned Platform::kernel_cpu_id(Affinity::Location location) const
 {
-	if (genode_cpu_id >= sizeof(map_cpu_ids) / sizeof(map_cpu_ids[0])) {
-		error("invalid genode cpu id ", genode_cpu_id);
+	unsigned const cpu_id = pager_index(location);
+
+	if (cpu_id >= sizeof(map_cpu_ids) / sizeof(map_cpu_ids[0])) {
+		error("invalid genode cpu id ", cpu_id);
 		return ~0U;
 	}
-	return map_cpu_ids[genode_cpu_id];
+
+	return map_cpu_ids[cpu_id];
+}
+
+
+unsigned Platform::pager_index(Affinity::Location location) const
+{
+	if (!location.valid()) return 0;
+
+	return (location.xpos() * _cpus.height() + location.ypos())
+	       % (_cpus.width() * _cpus.height());
 }
 
 
