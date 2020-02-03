@@ -71,7 +71,7 @@ struct Trace_subject_registry
 		enum { MAX_SUBJECTS = 1024 };
 		Genode::Trace::Subject_id _subjects[MAX_SUBJECTS];
 
-		enum { MAX_CPUS_X = 16, MAX_CPUS_Y = 1, MAX_ELEMENTS_PER_CPU = 6};
+		enum { MAX_CPUS_X = 16, MAX_CPUS_Y = 4, MAX_ELEMENTS_PER_CPU = 6};
 
 		/* accumulated execution time on all CPUs */
 		unsigned long long total_first [MAX_CPUS_X][MAX_CPUS_Y];
