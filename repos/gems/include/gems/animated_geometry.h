@@ -36,11 +36,13 @@ class Genode::Animated_rect : private Animator::Item, Noncopyable
 
 		Rect _rect { };
 
+		using Lazy_value = ::Lazy_value<int64_t>;
+
 		struct Animated_point
 		{
 			bool _initial = true;
 
-			Lazy_value<int> _x { }, _y { };
+			Lazy_value _x { }, _y { };
 
 			void animate() { _x.animate(); _y.animate(); }
 
@@ -49,8 +51,8 @@ class Genode::Animated_rect : private Animator::Item, Noncopyable
 			void move_to(Point p, Steps steps)
 			{
 				if (_initial) {
-					_x = Lazy_value<int>(p.x() << 10);
-					_y = Lazy_value<int>(p.y() << 10);
+					_x = Lazy_value(p.x() << 10);
+					_y = Lazy_value(p.y() << 10);
 					_initial = false;
 				} else {
 					_x.dst(p.x() << 10, steps.value);
