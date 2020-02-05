@@ -46,7 +46,6 @@ Thread_capability Cpu_session_component::create_thread(Capability<Pd_session> pd
 	}
 
 	Lock::Guard thread_list_lock_guard(_thread_list_lock);
-	_incr_weight(weight.value);
 
 	/*
 	 * Create thread associated with its protection domain
@@ -66,9 +65,19 @@ Thread_capability Cpu_session_component::create_thread(Capability<Pd_session> pd
 				_priority, utcb);
 	};
 
-	try { _thread_ep.apply(pd_cap, create_thread_lambda); }
-	catch (Allocator::Out_of_memory)                    { throw Out_of_ram(); }
-	catch (Native_capability::Reference_count_overflow) { throw Thread_creation_failed(); }
+	try {
+		_incr_weight(weight.value);
+		_thread_ep.apply(pd_cap, create_thread_lambda);
+	} catch (Allocator::Out_of_memory) {
+		_decr_weight(weight.value);
+		throw Out_of_ram();
+	} catch (Native_capability::Reference_count_overflow) {
+		_decr_weight(weight.value);
+		throw Thread_creation_failed();
+	} catch (...) {
+		_decr_weight(weight.value);
+		throw;
+	}
 
 	thread->session_exception_sigh(_exception_sigh);
 
@@ -362,8 +371,12 @@ void Cpu_session_component::_update_each_thread_quota()
 }
 
 
-size_t Cpu_session_component::_weight_to_quota(size_t const weight) const {
-	return (weight * _quota) / _weight; }
+size_t Cpu_session_component::_weight_to_quota(size_t const weight) const
+{
+	if (_weight == 0) return 0;
+
+	return (weight * _quota) / _weight;
+}
 
 
 /****************************
