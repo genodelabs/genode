@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2016-2019 Genode Labs GmbH
+ * Copyright (C) 2016-2020 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -39,6 +39,7 @@
 #include <internal/kernel_timer_accessor.h>
 #include <internal/watch.h>
 #include <internal/signal.h>
+#include <internal/monitor.h>
 
 namespace Libc { class Kernel; }
 
@@ -58,6 +59,7 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
                             Reset_malloc_heap,
                             Resume,
                             Suspend,
+                            Monitor,
                             Select,
                             Kernel_routine_scheduler,
                             Current_time,
@@ -217,6 +219,16 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 		Main_timeout _main_timeout { _timer_accessor, *this };
 
 		Pthread_pool _pthreads { _timer_accessor };
+
+		Monitor::Pool _monitors { };
+
+		Reconstructible<Io_signal_handler<Kernel>> _execute_monitors {
+			_env.ep(), *this, &Kernel::_monitors_handler };
+
+		void _monitors_handler()
+		{
+			_monitors.execute_monitors();
+		}
 
 		Constructible<Clone_connection> _clone_connection { };
 
@@ -464,6 +476,71 @@ struct Libc::Kernel final : Vfs::Io_response_handler,
 				_dispatch_pending_io_signals = false;
 				_signal.execute_signal_handlers();
 			}
+		}
+
+		/**
+		 * Monitor interface
+		 */
+		bool _monitor(Genode::Lock &mutex, Function &fn, uint64_t timeout_ms) override
+		{
+			if (_main_context()) {
+
+				struct Job : Monitor::Job
+				{
+					Kernel &_kernel;
+
+					uint64_t _timeout_ms;
+					bool     _timeout_valid { _timeout_ms != 0 };
+
+					struct Check : Suspend_functor
+					{
+						bool const &completed;
+
+						Check(bool const &completed) : completed(completed) { }
+
+						bool suspend() override
+						{
+							return !completed;
+						}
+					} check { _completed };
+
+					Job(Monitor::Function &fn, Kernel &kernel,
+					    Timer_accessor &timer_accessor, uint64_t timeout_ms)
+					:
+						Monitor::Job(fn, timer_accessor, 0 /* timeout handled by suspend */),
+						_kernel(kernel), _timeout_ms(timeout_ms)
+					{ }
+
+					void wait_for_completion() override
+					{
+						do {
+							_timeout_ms = _kernel._suspend_main(check, _timeout_ms);
+							_expired    = _timeout_valid && !_timeout_ms;
+						} while (!completed() && !expired());
+					}
+
+					void complete() override
+					{
+						_completed = true;
+						_kernel._resume_main();
+					}
+				} job { fn, *this, _timer_accessor, timeout_ms };
+
+				_monitors.monitor(mutex, job);
+				return job.completed();
+
+			} else {
+				Monitor::Job job { fn, _timer_accessor, timeout_ms };
+
+				_monitors.monitor(mutex, job);
+				return job.completed();
+			}
+		}
+
+		void _charge_monitors() override
+		{
+			if (_monitors.charge_monitors())
+				Signal_transmitter(*_execute_monitors).submit();
 		}
 
 		/**

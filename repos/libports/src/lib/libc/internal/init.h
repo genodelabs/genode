@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2016-2017 Genode Labs GmbH
+ * Copyright (C) 2016-2020 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -30,6 +30,7 @@ namespace Libc {
 
 	struct Resume;
 	struct Suspend;
+	struct Monitor;
 	struct Select;
 	struct Current_time;
 	struct Clone_connection;
@@ -104,10 +105,10 @@ namespace Libc {
 	void init_socket_fs(Suspend &);
 
 	/**
-	 * Allow thread.cc to access the 'Genode::Env' (needed for the
-	 * implementation of condition variables with timeout)
+	 * Pthread/semaphore support
 	 */
-	void init_pthread_support(Genode::Env &env, Suspend &, Resume &);
+	void init_pthread_support(Monitor &, Suspend &, Resume &);
+	void init_semaphore_support(Monitor &);
 
 	struct Config_accessor : Interface
 	{

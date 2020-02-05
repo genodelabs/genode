@@ -3,7 +3,7 @@
 	<requires> <timer/> </requires>
 
 	<events>
-		<timeout meaning="failed" sec="70" />
+		<timeout meaning="failed" sec="90" />
 		<log meaning="succeeded">--- returning from main ---</log>
 		<log meaning="failed">Error: </log>
 		<log meaning="failed">child "test-pthread" exited</log>

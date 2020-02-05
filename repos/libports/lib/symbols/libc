@@ -1,3 +1,4 @@
+___mb_cur_max D 50
 ___runetype T
 ___tolower T
 ___toupper T
@@ -7,9 +8,9 @@ __error T
 __flt_rounds T
 __fpclassifyd T
 __fpclassifyf T
-__has_sse D 4
 __h_errno T
 __h_errno_set T
+__has_sse D 4
 __inet_addr T
 __inet_aton T
 __inet_nsap_ntoa T
@@ -18,7 +19,6 @@ __inet_ntop T
 __inet_pton T
 __isthreaded B 4
 __mb_cur_max D 8
-___mb_cur_max D 50
 __res_init T
 __res_query T
 __res_state T
@@ -85,8 +85,9 @@ chroot W
 clearerr T
 clearerr_unlocked T
 clock T
-clock_gettime W
 clock_getres W
+clock_gettime W
+clock_nanosleep W
 close T
 closedir T
 closelog T
@@ -194,6 +195,7 @@ free T
 freeaddrinfo T
 freebsd7___semctl W
 freebsd7_semctl T
+freeifaddrs T
 freelocale T
 freopen T
 fscanf T
@@ -264,7 +266,6 @@ gethostbyname W
 gethostid T
 gethostname T
 getifaddrs T
-freeifaddrs T
 getline T
 getloadavg T
 getlogin T
@@ -456,7 +457,6 @@ mrand48 T
 msync T
 munmap T
 nanosleep W
-clock_nanosleep W
 newlocale T
 nextwctype T
 nftw T
@@ -480,7 +480,6 @@ pclose T
 perror T
 pipe T
 poll W
-ppoll W
 popen T
 posix2time T
 posix_fadvise T
@@ -506,16 +505,17 @@ posix_spawnattr_setschedpolicy T
 posix_spawnattr_setsigdefault T
 posix_spawnattr_setsigmask T
 posix_spawnp T
+ppoll W
 pread T
 printf T
 pselect W
 psignal T
 pthread_atfork T
 pthread_attr_destroy T
+pthread_attr_get_np T
 pthread_attr_getdetachstate T
 pthread_attr_getguardsize T
 pthread_attr_getinheritsched T
-pthread_attr_get_np T
 pthread_attr_getschedparam T
 pthread_attr_getschedpolicy T
 pthread_attr_getscope T
@@ -556,6 +556,7 @@ pthread_main_np T
 pthread_mutex_destroy T
 pthread_mutex_init T
 pthread_mutex_lock T
+pthread_mutex_timedlock T
 pthread_mutex_trylock T
 pthread_mutex_unlock T
 pthread_mutexattr_destroy T
@@ -630,18 +631,18 @@ seed48 T
 seekdir T
 select W
 sem_close T
-semctl T
 sem_destroy T
 sem_getvalue T
-semget W
 sem_init T
 sem_open T
-semop W
 sem_post T
 sem_timedwait T
 sem_trywait T
 sem_unlink T
 sem_wait T
+semctl T
+semget W
+semop W
 send T
 sendmsg W
 sendto T
@@ -849,8 +850,8 @@ unvis T
 uselocale T
 user_from_uid T
 usleep W
-utimes W
 utime W
+utimes W
 vasprintf T
 vdprintf T
 verr T

@@ -14,6 +14,7 @@
 #ifndef _LIBC__INTERNAL__TYPES_H_
 #define _LIBC__INTERNAL__TYPES_H_
 
+/* Genode includes */
 #include <base/log.h>
 #include <util/string.h>
 

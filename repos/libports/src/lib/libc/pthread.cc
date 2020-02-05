@@ -1,12 +1,13 @@
 /*
  * \brief  POSIX thread implementation
  * \author Christian Prochaska
+ * \author Christian Helmuth
  * \date   2012-03-12
  *
  */
 
 /*
- * Copyright (C) 2012-2017 Genode Labs GmbH
+ * Copyright (C) 2012-2020 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -22,44 +23,32 @@
 /* libc includes */
 #include <errno.h>
 #include <pthread.h>
+#include <semaphore.h>
 #include <stdlib.h> /* malloc, free */
 
 /* libc-internal includes */
 #include <internal/pthread.h>
-#include <internal/timed_semaphore.h>
 #include <internal/init.h>
 #include <internal/suspend.h>
 #include <internal/resume.h>
+#include <internal/monitor.h>
+#include <internal/time.h>
 
 using namespace Libc;
 
 
-static Genode::Env *_env_ptr;  /* solely needed to spawn the timeout thread for the
-                                  timed semaphore */
-
-static Thread *_main_thread_ptr;
-
-static Suspend *_suspend_ptr;
+static Thread  *_main_thread_ptr;
 static Resume  *_resume_ptr;
+static Suspend *_suspend_ptr;
+static Monitor *_monitor_ptr;
 
 
-void Libc::init_pthread_support(Genode::Env &env, Suspend &suspend, Resume &resume)
+void Libc::init_pthread_support(Monitor &monitor, Suspend &suspend, Resume &resume)
 {
-	_env_ptr         = &env;
 	_main_thread_ptr = Thread::myself();
+	_monitor_ptr     = &monitor;
 	_suspend_ptr     = &suspend;
 	_resume_ptr      = &resume;
-}
-
-
-static Libc::Timeout_entrypoint &_global_timeout_ep()
-{
-	class Missing_call_of_init_pthread_support { };
-	if (!_env_ptr)
-		throw Missing_call_of_init_pthread_support();
-
-	static Timeout_entrypoint timeout_ep { *_env_ptr };
-	return timeout_ep;
 }
 
 
@@ -199,23 +188,35 @@ struct pthread_mutex_attr { pthread_mutextype type; };
  */
 struct pthread_mutex
 {
-	pthread_t _owner { nullptr };
+	pthread_t _owner      { nullptr };
+	unsigned  _applicants { 0 };
 	Lock      _data_mutex;
+	Lock      _monitor_mutex;
 
 	struct Missing_call_of_init_pthread_support : Exception { };
 
-	void _suspend(Suspend_functor &func)
+	struct Applicant
 	{
-		if (!_suspend_ptr)
-			throw Missing_call_of_init_pthread_support();
-		_suspend_ptr->suspend(func);
-	}
+		pthread_mutex &m;
 
-	void _resume_all()
+		Applicant(pthread_mutex &m) : m(m)
+		{
+			Lock::Guard lock_guard(m._data_mutex);
+			++m._applicants;
+		}
+
+		~Applicant()
+		{
+			Lock::Guard lock_guard(m._data_mutex);
+			--m._applicants;
+		}
+	};
+
+	Monitor & _monitor()
 	{
-		if (!_resume_ptr)
+		if (!_monitor_ptr)
 			throw Missing_call_of_init_pthread_support();
-		_resume_ptr->resume_all();
+		return *_monitor_ptr;
 	}
 
 	pthread_mutex() { }
@@ -227,57 +228,95 @@ struct pthread_mutex
 	 * described IEEE Std 1003.1 POSIX.1-2017
 	 * https://pubs.opengroup.org/onlinepubs/9699919799/functions/pthread_mutex_lock.html
 	 */
-	virtual int lock()    = 0;
-	virtual int trylock() = 0;
-	virtual int unlock()  = 0;
+	virtual int lock()                      = 0;
+	virtual int timedlock(timespec const &) = 0;
+	virtual int trylock()                   = 0;
+	virtual int unlock()                    = 0;
 };
 
 
 struct Libc::Pthread_mutex_normal : pthread_mutex
 {
-	int lock() override final
-	{
-		struct Try_lock : Suspend_functor
-		{
-			bool retry { false }; /* have to try after resume */
-
-			Pthread_mutex_normal &_mutex;
-
-			Try_lock(Pthread_mutex_normal &mutex) : _mutex(mutex) { }
-
-			bool suspend() override
-			{
-				retry = _mutex.trylock() == EBUSY;
-				return retry;
-			}
-		} try_lock(*this);
-
-		do { _suspend(try_lock); } while (try_lock.retry);
-
-		return 0;
-	}
-
-	int trylock() override final
+	int _try_lock(pthread_t thread)
 	{
 		Lock::Guard lock_guard(_data_mutex);
 
 		if (!_owner) {
-			_owner = pthread_self();
+			_owner = thread;
 			return 0;
 		}
 
 		return EBUSY;
 	}
 
+	int lock() override final
+	{
+		Lock::Guard monitor_guard(_monitor_mutex);
+
+		pthread_t const myself = pthread_self();
+
+		/* fast path without lock contention */
+		if (_try_lock(myself) == 0)
+			return 0;
+
+		{
+			Applicant guard { *this };
+
+			_monitor().monitor(_monitor_mutex,
+			                   [&] { return _try_lock(myself) == 0; });
+		}
+
+		return 0;
+	}
+
+	int timedlock(timespec const &abs_timeout) override final
+	{
+		Lock::Guard monitor_guard(_monitor_mutex);
+
+		pthread_t const myself = pthread_self();
+
+		/* fast path without lock contention - does not check abstimeout according to spec */
+		if (_try_lock(myself) == 0)
+			return 0;
+
+		timespec abs_now;
+		clock_gettime(CLOCK_REALTIME, &abs_now);
+
+		uint64_t const timeout_ms = calculate_relative_timeout_ms(abs_now, abs_timeout);
+		if (!timeout_ms)
+			return ETIMEDOUT;
+
+		{
+			Applicant guard { *this };
+
+			auto fn = [&] { return _try_lock(myself) == 0; };
+
+			if (_monitor().monitor(_monitor_mutex, fn, timeout_ms))
+				return 0;
+			else
+				return ETIMEDOUT;
+		}
+
+		return 0;
+	}
+
+	int trylock() override final
+	{
+		return _try_lock(pthread_self());
+	}
+
 	int unlock() override final
 	{
+		Lock::Guard monitor_guard(_monitor_mutex);
 		Lock::Guard lock_guard(_data_mutex);
 
 		if (_owner != pthread_self())
 			return EPERM;
 
 		_owner = nullptr;
-		_resume_all();
+
+		if (_applicants)
+			_monitor().charge_monitors();
 
 		return 0;
 	}
@@ -286,52 +325,56 @@ struct Libc::Pthread_mutex_normal : pthread_mutex
 
 struct Libc::Pthread_mutex_errorcheck : pthread_mutex
 {
-	int lock() override final
-	{
-		/*
-		 * We can't use trylock() as it returns EBUSY also for the
-		 * EDEADLK case.
-		 */
-		struct Try_lock : Suspend_functor
-		{
-			bool retry  { false }; /* have to try after resume */
-			int  result { 0 };
+	enum Try_lock_result { SUCCESS, BUSY, DEADLOCK };
 
-			Pthread_mutex_errorcheck &_mutex;
-
-			Try_lock(Pthread_mutex_errorcheck &mutex) : _mutex(mutex) { }
-
-			bool suspend() override
-			{
-				Lock::Guard lock_guard(_mutex._data_mutex);
-
-				if (!_mutex._owner) {
-					_mutex._owner = pthread_self();
-					retry         = false;
-					result        = 0;
-				} else if (_mutex._owner == pthread_self()) {
-					retry  = false;
-					result = EDEADLK;
-				} else {
-					retry = true;
-				}
-
-				return retry;
-			}
-		} try_lock(*this);
-
-		do { _suspend(try_lock); } while (try_lock.retry);
-
-		return try_lock.result;
-	}
-
-	int trylock() override final
+	Try_lock_result _try_lock(pthread_t thread)
 	{
 		Lock::Guard lock_guard(_data_mutex);
 
 		if (!_owner) {
-			_owner = pthread_self();
-			return 0;
+			_owner = thread;
+			return SUCCESS;
+		}
+
+		return _owner == thread ? DEADLOCK : BUSY;
+	}
+
+	int lock() override final
+	{
+		Lock::Guard monitor_guard(_monitor_mutex);
+
+		pthread_t const myself = pthread_self();
+
+		/* fast path without lock contention */
+		switch (_try_lock(myself)) {
+		case SUCCESS:  return 0;
+		case DEADLOCK: return EDEADLK;
+		case BUSY: [[fallthrough]];
+		}
+
+		{
+			Applicant guard { *this };
+
+			_monitor().monitor(_monitor_mutex, [&] {
+				/* DEADLOCK already handled above - just check for SUCCESS */
+				return _try_lock(myself) == SUCCESS;
+			});
+		}
+
+		return 0;
+	}
+
+	int timedlock(timespec const &) override final
+	{
+		return ENOSYS;
+	}
+
+	int trylock() override final
+	{
+		switch (_try_lock(pthread_self())) {
+		case SUCCESS:  return 0;
+		case DEADLOCK: return EDEADLK;
+		case BUSY:     return EBUSY;
 		}
 
 		return EBUSY;
@@ -339,13 +382,16 @@ struct Libc::Pthread_mutex_errorcheck : pthread_mutex
 
 	int unlock() override final
 	{
+		Lock::Guard monitor_guard(_monitor_mutex);
 		Lock::Guard lock_guard(_data_mutex);
 
 		if (_owner != pthread_self())
 			return EPERM;
 
 		_owner = nullptr;
-		_resume_all();
+
+		if (_applicants)
+			_monitor().charge_monitors();
 
 		return 0;
 	}
@@ -356,37 +402,15 @@ struct Libc::Pthread_mutex_recursive : pthread_mutex
 {
 	unsigned _nesting_level { 0 };
 
-	int lock() override final
-	{
-		struct Try_lock : Suspend_functor
-		{
-			bool retry { false }; /* have to try after resume */
-
-			Pthread_mutex_recursive &_mutex;
-
-			Try_lock(Pthread_mutex_recursive &mutex) : _mutex(mutex) { }
-
-			bool suspend() override
-			{
-				retry = _mutex.trylock() == EBUSY;
-				return retry;
-			}
-		} try_lock(*this);
-
-		do { _suspend(try_lock); } while (try_lock.retry);
-
-		return 0;
-	}
-
-	int trylock() override final
+	int _try_lock(pthread_t thread)
 	{
 		Lock::Guard lock_guard(_data_mutex);
 
 		if (!_owner) {
-			_owner         = pthread_self();
+			_owner         = thread;
 			_nesting_level = 1;
 			return 0;
-		} else if (_owner == pthread_self()) {
+		} else if (_owner == thread) {
 			++_nesting_level;
 			return 0;
 		}
@@ -394,8 +418,39 @@ struct Libc::Pthread_mutex_recursive : pthread_mutex
 		return EBUSY;
 	}
 
+	int lock() override final
+	{
+		Lock::Guard monitor_guard(_monitor_mutex);
+
+		pthread_t const myself = pthread_self();
+
+		/* fast path without lock contention */
+		if (_try_lock(myself) == 0)
+			return 0;
+
+		{
+			Applicant guard { *this };
+
+			_monitor().monitor(_monitor_mutex,
+			                   [&] { return _try_lock(myself) == 0; });
+		}
+
+		return 0;
+	}
+
+	int timedlock(timespec const &) override final
+	{
+		return ENOSYS;
+	}
+
+	int trylock() override final
+	{
+		return _try_lock(pthread_self());
+	}
+
 	int unlock() override final
 	{
+		Lock::Guard monitor_guard(_monitor_mutex);
 		Lock::Guard lock_guard(_data_mutex);
 
 		if (_owner != pthread_self())
@@ -404,7 +459,8 @@ struct Libc::Pthread_mutex_recursive : pthread_mutex
 		--_nesting_level;
 		if (_nesting_level == 0) {
 			_owner = nullptr;
-			_resume_all();
+			if (_applicants)
+				_monitor().charge_monitors();
 		}
 
 		return 0;
@@ -680,6 +736,20 @@ extern "C" {
 	}
 
 
+	int pthread_mutex_timedlock(pthread_mutex_t *mutex,
+	                            struct timespec const *abstimeout)
+	{
+		if (!mutex)
+			return EINVAL;
+
+		if (*mutex == PTHREAD_MUTEX_INITIALIZER)
+			pthread_mutex_init(mutex, nullptr);
+
+		/* abstime must be non-null according to the spec */
+		return (*mutex)->timedlock(*abstimeout);
+	}
+
+
 	int pthread_mutex_unlock(pthread_mutex_t *mutex)
 	{
 		if (!mutex)
@@ -702,13 +772,25 @@ extern "C" {
 
 	struct pthread_cond
 	{
-		int num_waiters;
-		int num_signallers;
-		Lock counter_lock;
-		Timed_semaphore signal_sem { _global_timeout_ep() };
-		Semaphore handshake_sem;
+		int             num_waiters;
+		int             num_signallers;
+		pthread_mutex_t counter_mutex;
+		sem_t           signal_sem;
+		sem_t           handshake_sem;
 
-		pthread_cond() : num_waiters(0), num_signallers(0) { }
+		pthread_cond() : num_waiters(0), num_signallers(0)
+		{
+			pthread_mutex_init(&counter_mutex, nullptr);
+			sem_init(&signal_sem, 0, 0);
+			sem_init(&handshake_sem, 0, 0);
+		}
+
+		~pthread_cond()
+		{
+			sem_destroy(&handshake_sem);
+			sem_destroy(&signal_sem);
+			pthread_mutex_destroy(&counter_mutex);
+		}
 	};
 
 
@@ -783,47 +865,6 @@ extern "C" {
 	}
 
 
-	static uint64_t timeout_ms(struct timespec currtime,
-	                           struct timespec abstimeout)
-	{
-		enum { S_IN_MS = 1000, S_IN_NS = 1000 * 1000 * 1000 };
-
-		if (currtime.tv_nsec >= S_IN_NS) {
-			currtime.tv_sec  += currtime.tv_nsec / S_IN_NS;
-			currtime.tv_nsec  = currtime.tv_nsec % S_IN_NS;
-		}
-		if (abstimeout.tv_nsec >= S_IN_NS) {
-			abstimeout.tv_sec  += abstimeout.tv_nsec / S_IN_NS;
-			abstimeout.tv_nsec  = abstimeout.tv_nsec % S_IN_NS;
-		}
-
-		/* check whether absolute timeout is in the past */
-		if (currtime.tv_sec > abstimeout.tv_sec)
-			return 0;
-
-		uint64_t diff_ms = (abstimeout.tv_sec - currtime.tv_sec) * S_IN_MS;
-		uint64_t diff_ns = 0;
-
-		if (abstimeout.tv_nsec >= currtime.tv_nsec)
-			diff_ns = abstimeout.tv_nsec - currtime.tv_nsec;
-		else {
-			/* check whether absolute timeout is in the past */
-			if (diff_ms == 0)
-				return 0;
-			diff_ns  = S_IN_NS - currtime.tv_nsec + abstimeout.tv_nsec;
-			diff_ms -= S_IN_MS;
-		}
-
-		diff_ms += diff_ns / 1000 / 1000;
-
-		/* if there is any diff then let the timeout be at least 1 MS */
-		if (diff_ms == 0 && diff_ns != 0)
-			return 1;
-
-		return diff_ms;
-	}
-
-
 	int pthread_cond_timedwait(pthread_cond_t *__restrict cond,
 	                           pthread_mutex_t *__restrict mutex,
 	                           const struct timespec *__restrict abstime)
@@ -838,39 +879,29 @@ extern "C" {
 
 		pthread_cond *c = *cond;
 
-		c->counter_lock.lock();
+		pthread_mutex_lock(&c->counter_mutex);
 		c->num_waiters++;
-		c->counter_lock.unlock();
+		pthread_mutex_unlock(&c->counter_mutex);
 
 		pthread_mutex_unlock(mutex);
 
-		if (!abstime)
-			c->signal_sem.down();
-		else {
-			struct timespec currtime;
-			clock_gettime(CLOCK_REALTIME, &currtime);
-
-			Alarm::Time timeout = timeout_ms(currtime, *abstime);
-
-			try {
-				c->signal_sem.down(timeout);
-			} catch (Timeout_exception) {
-				result = ETIMEDOUT;
-			} catch (Nonblocking_exception) {
-				errno  = ETIMEDOUT;
-				result = ETIMEDOUT;
-			}
+		if (!abstime) {
+			if (sem_wait(&c->signal_sem) == -1)
+				result = errno;
+		} else {
+			if (sem_timedwait(&c->signal_sem, abstime) == -1)
+				result = errno;
 		}
 
-		c->counter_lock.lock();
+		pthread_mutex_lock(&c->counter_mutex);
 		if (c->num_signallers > 0) {
 			if (result == ETIMEDOUT) /* timeout occured */
-				c->signal_sem.down();
-			c->handshake_sem.up();
+				sem_wait(&c->signal_sem);
+			sem_post(&c->handshake_sem);
 			--c->num_signallers;
 		}
 		c->num_waiters--;
-		c->counter_lock.unlock();
+		pthread_mutex_unlock(&c->counter_mutex);
 
 		pthread_mutex_lock(mutex);
 
@@ -881,7 +912,7 @@ extern "C" {
 	int pthread_cond_wait(pthread_cond_t *__restrict cond,
 	                      pthread_mutex_t *__restrict mutex)
 	{
-		return pthread_cond_timedwait(cond, mutex, 0);
+		return pthread_cond_timedwait(cond, mutex, nullptr);
 	}
 
 
@@ -892,16 +923,16 @@ extern "C" {
 
 		pthread_cond *c = *cond;
 
-		c->counter_lock.lock();
+		pthread_mutex_lock(&c->counter_mutex);
 		if (c->num_waiters > c->num_signallers) {
-		  ++c->num_signallers;
-		  c->signal_sem.up();
-		  c->counter_lock.unlock();
-		  c->handshake_sem.down();
+			++c->num_signallers;
+			sem_post(&c->signal_sem);
+			pthread_mutex_unlock(&c->counter_mutex);
+			sem_wait(&c->handshake_sem);
 		} else
-		  c->counter_lock.unlock();
+			pthread_mutex_unlock(&c->counter_mutex);
 
-	   return 0;
+		return 0;
 	}
 
 
@@ -912,17 +943,17 @@ extern "C" {
 
 		pthread_cond *c = *cond;
 
-		c->counter_lock.lock();
+		pthread_mutex_lock(&c->counter_mutex);
 		if (c->num_waiters > c->num_signallers) {
 			int still_waiting = c->num_waiters - c->num_signallers;
 			c->num_signallers = c->num_waiters;
 			for (int i = 0; i < still_waiting; i++)
-				c->signal_sem.up();
-			c->counter_lock.unlock();
+				sem_post(&c->signal_sem);
+			pthread_mutex_unlock(&c->counter_mutex);
 			for (int i = 0; i < still_waiting; i++)
-				c->handshake_sem.down();
+				sem_wait(&c->handshake_sem);
 		} else
-			c->counter_lock.unlock();
+			pthread_mutex_unlock(&c->counter_mutex);
 
 		return 0;
 	}

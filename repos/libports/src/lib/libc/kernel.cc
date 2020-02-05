@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2016-2019 Genode Labs GmbH
+ * Copyright (C) 2016-2020 Genode Labs GmbH
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU Affero General Public License version 3.
@@ -376,7 +376,8 @@ Libc::Kernel::Kernel(Genode::Env &env, Genode::Allocator &heap)
 {
 	atexit(close_file_descriptors_on_exit);
 
-	init_pthread_support(env, *this, *this);
+	init_semaphore_support(*this);
+	init_pthread_support(*this, *this, *this);
 
 	_env.ep().register_io_progress_handler(*this);
 

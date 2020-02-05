@@ -244,6 +244,4 @@ struct pthread : Libc::Pthread
 };
 
 
-namespace Libc { void init_pthread_support(Env &env); }
-
 #endif /* _LIBC__INTERNAL__PTHREAD_H_ */

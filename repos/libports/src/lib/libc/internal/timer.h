@@ -17,6 +17,9 @@
 /* Genode includes */
 #include <timer_session/connection.h>
 
+/* libc-internal includes */
+#include <internal/types.h>
+
 namespace Libc {
 	class Timer;
 	class Timer_accessor;
