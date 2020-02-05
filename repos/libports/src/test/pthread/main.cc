@@ -999,6 +999,88 @@ static void test_interplay()
 }
 
 
+/*
+ * Test cleanup handlers
+ */
+
+static bool cleanup1_executed = false;
+static bool cleanup2_executed = false;
+static bool cleanup3_executed = false;
+static bool cleanup4_executed = false;
+
+static void cleanup1(void *) { cleanup1_executed = true; }
+static void cleanup2(void *) { cleanup2_executed = true; }
+
+static void cleanup3(void *arg)
+{
+	if (arg != (void*)1) {
+		printf("Error: cleanup3(): incorrect argument\n");
+		exit(-1);
+	}
+
+	cleanup3_executed = true;
+}
+
+static void cleanup4(void *) { cleanup4_executed = true; }
+
+static void *thread_cleanup_func(void *)
+{
+	pthread_cleanup_push(cleanup1, nullptr);
+	pthread_cleanup_push(cleanup2, nullptr);
+	pthread_cleanup_push(cleanup3, (void*)1);
+	pthread_cleanup_push(cleanup4, nullptr);
+
+	/* pop 'cleanup4()', don't execute */
+	pthread_cleanup_pop(0);
+
+	if (cleanup4_executed) {
+		printf("Error: cleanup4() executed\n");
+		exit(-1);
+	}
+
+	/* pop and execute 'cleanup3()' */
+	pthread_cleanup_pop(1);
+
+	if (!cleanup3_executed) {
+		printf("Error: cleanup3() not executed\n");
+		exit(-1);
+	}
+
+	pthread_exit(nullptr);
+
+	/*
+	 * 'cleanup1()' and 'cleanup2()' are executed by 'pthread_exit()', but
+	 * because 'pthread_cleanup_push()' contains opening braces, there must be
+	 * corresponding calls to 'pthread_cleanup_pop()' in the same function,
+	 * even if they are not executed there.
+	 */
+	pthread_cleanup_pop(0);
+	pthread_cleanup_pop(0);
+}
+
+static void test_cleanup()
+{
+	printf("main thread: test cleanup handlers\n");
+
+	pthread_t  t;
+	void      *retval;
+
+	if (pthread_create(&t, 0, thread_cleanup_func, nullptr) != 0) {
+		printf("error: pthread_create() failed\n");
+		exit(-1);
+	}
+
+	pthread_join(t, &retval);
+
+	if (!cleanup1_executed || !cleanup2_executed) {
+		printf("Error: cleanup1() or cleanup2() not executed\n");
+		exit(-1);
+	}
+
+	printf("main thread: cleanup handler testing done\n");
+}
+
+
 int main(int argc, char **argv)
 {
 	printf("--- pthread test ---\n");
@@ -1015,6 +1097,7 @@ int main(int argc, char **argv)
 	test_mutex_stress();
 	test_lock_and_sleep();
 	test_cond();
+	test_cleanup();
 
 	printf("--- returning from main ---\n");
 	return 0;

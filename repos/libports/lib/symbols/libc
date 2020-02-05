@@ -19,6 +19,8 @@ __inet_ntop T
 __inet_pton T
 __isthreaded B 4
 __mb_cur_max D 8
+__pthread_cleanup_pop_imp T
+__pthread_cleanup_push_imp T
 __res_init T
 __res_query T
 __res_state T

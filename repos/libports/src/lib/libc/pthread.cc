@@ -636,6 +636,20 @@ extern "C" {
 	}
 
 
+	void __pthread_cleanup_push_imp(void (*routine)(void*), void *arg,
+	                                struct _pthread_cleanup_info *)
+	{
+		pthread_self()->cleanup_push(routine, arg);
+
+	}
+
+
+	void __pthread_cleanup_pop_imp(int execute)
+	{
+		pthread_self()->cleanup_pop(execute);
+	}
+
+
 	/* Mutex */
 
 	int pthread_mutexattr_init(pthread_mutexattr_t *attr)

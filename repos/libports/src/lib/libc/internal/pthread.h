@@ -17,6 +17,7 @@
 #define _LIBC__INTERNAL__PTHREAD_H_
 
 /* Genode includes */
+#include <libc/allocator.h>
 #include <libc/component.h>
 #include <util/reconstructible.h>
 
@@ -178,6 +179,23 @@ struct Libc::Pthread : Noncopyable, Thread::Tls::Base
 		void   *_stack_addr = nullptr;
 		size_t  _stack_size = 0;
 
+		/* cleanup handlers */
+
+		class Cleanup_handler : public List<Cleanup_handler>::Element
+		{
+			private:
+				void (*_routine)(void*);
+				void *_arg;
+
+			public:
+				Cleanup_handler(void (*routine)(void*), void *arg)
+				: _routine(routine), _arg(arg) { }
+
+				void execute() { _routine(_arg); }
+		};
+
+		List<Cleanup_handler> _cleanup_handlers;
+
 	public:
 
 		int thread_local_errno = 0;
@@ -229,12 +247,43 @@ struct Libc::Pthread : Noncopyable, Thread::Tls::Base
 
 		void exit(void *retval)
 		{
+			while (cleanup_pop(1)) { }
 			_retval = retval;
 			cancel();
 		}
 
 		void   *stack_addr() const { return _stack_addr; }
 		size_t  stack_size() const { return _stack_size; }
+
+		/*
+		 * Push a cleanup handler to the cancellation cleanup stack.
+		 */
+		void cleanup_push(void (*routine)(void*), void *arg)
+		{
+			Libc::Allocator alloc { };
+			_cleanup_handlers.insert(new (alloc) Cleanup_handler(routine, arg));
+		}
+
+		/*
+		 * Pop and optionally execute the top-most cleanup handler.
+		 * Returns true if a handler was found.
+		 */
+		bool cleanup_pop(int execute)
+		{
+			Cleanup_handler *cleanup_handler = _cleanup_handlers.first();
+
+			if (!cleanup_handler) return false;
+
+			_cleanup_handlers.remove(cleanup_handler);
+
+			if (execute)
+				cleanup_handler->execute();
+
+			Libc::Allocator alloc { };
+			destroy(alloc, cleanup_handler);
+
+			return true;
+		}
 };
 
 
