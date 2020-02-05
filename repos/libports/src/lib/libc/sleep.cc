@@ -53,10 +53,15 @@ static void millisleep(Genode::uint64_t timeout_ms)
 extern "C" __attribute__((weak))
 int nanosleep(const struct timespec *req, struct timespec *rem)
 {
+	/* XXX nanosleep({0,0}) may yield but is not required to do so */
+	if (!req->tv_sec && !req->tv_nsec) return 0;
+
 	Genode::uint64_t sleep_ms = (Genode::uint64_t)req->tv_sec*1000;
 	if (req->tv_nsec)
 		sleep_ms += req->tv_nsec / 1000000;
-	millisleep(sleep_ms);
+
+	/* sleep at least 1 ms */
+	millisleep(sleep_ms ? : 1);
 
 	if (rem)
 		*rem = { 0, 0 };
@@ -101,8 +106,13 @@ int __sys_clock_nanosleep(clockid_t clock_id, int flags,
 extern "C" __attribute__((weak))
 unsigned int sleep(unsigned int seconds)
 {
-	Genode::uint64_t const sleep_ms = 1000 * (Genode::uint64_t)seconds;
-	millisleep(sleep_ms);
+	/* XXX sleep(0) may yield but is not required to do so */
+	if (!seconds) return 0;
+
+	Libc::uint64_t const sleep_ms = (Libc::uint64_t)seconds*1000;
+
+	/* sleep at least 1 ms */
+	millisleep(sleep_ms ? : 1);
 	return 0;
 }
 
@@ -110,8 +120,13 @@ unsigned int sleep(unsigned int seconds)
 extern "C" __attribute__((weak))
 int usleep(useconds_t useconds)
 {
-	if (useconds)
-		millisleep(useconds / 1000);
+	/* XXX usleep(0) may yield but is not required to do so */
+	if (!useconds) return 0;
+
+	Libc::uint64_t const sleep_ms = (Libc::uint64_t)useconds/1000;
+
+	/* sleep at least 1 ms */
+	millisleep(sleep_ms ? : 1);
 	return 0;
 }
 
