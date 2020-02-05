@@ -719,7 +719,6 @@ set default_test_pkgs {
 	test-tcp_bulk_lwip
 	test-tcp_bulk_lxip
 	test-terminal_crosslink
-	test-timed_semaphore
 	test-timer
 	test-tls
 	test-trace
