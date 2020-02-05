@@ -27,8 +27,8 @@ QT_BEGIN_NAMESPACE
 static constexpr bool verbose = false;
 
 
-QGenodeClipboard::QGenodeClipboard(Genode::Env &env, Genode::Entrypoint &sig_ep)
-: _clipboard_signal_handler(sig_ep, *this, &QGenodeClipboard::_handle_clipboard)
+QGenodeClipboard::QGenodeClipboard(Genode::Env &env)
+: _clipboard_signal_handler(env.ep(), *this, &QGenodeClipboard::_handle_clipboard)
 {
 	try {
 

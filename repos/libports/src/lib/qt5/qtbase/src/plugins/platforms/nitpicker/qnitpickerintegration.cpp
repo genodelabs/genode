@@ -29,10 +29,8 @@ QT_BEGIN_NAMESPACE
 static const bool verbose = false;
 
 
-QNitpickerIntegration::QNitpickerIntegration(Genode::Env &env,
-                                             Genode::Entrypoint &signal_ep)
+QNitpickerIntegration::QNitpickerIntegration(Genode::Env &env)
 : _env(env),
-  _signal_ep(signal_ep),
   _nitpicker_screen(new QNitpickerScreen(env)) { }
 
 
@@ -52,7 +50,6 @@ QPlatformWindow *QNitpickerIntegration::createPlatformWindow(QWindow *window) co
 
     QRect screen_geometry = _nitpicker_screen->geometry();
     return new QNitpickerPlatformWindow(_env, window,
-                                        _signal_ep,
                                         screen_geometry.width(),
                                         screen_geometry.height());
 }
@@ -95,7 +92,7 @@ QPlatformFontDatabase *QNitpickerIntegration::fontDatabase() const
 #ifndef QT_NO_CLIPBOARD
 QPlatformClipboard *QNitpickerIntegration::clipboard() const
 {
-	static QGenodeClipboard cb(_env, _signal_ep);
+	static QGenodeClipboard cb(_env);
 	return &cb;
 }
 #endif

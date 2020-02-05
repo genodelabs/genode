@@ -48,7 +48,6 @@ class QNitpickerPlatformWindow : public QObject, public QPlatformWindow
 		bool                             _framebuffer_changed;
 		bool                             _geometry_changed;
 		Framebuffer::Mode                _current_mode;
-		Genode::Entrypoint              &_signal_ep;
 		Nitpicker::Session::View_handle  _view_handle;
 		Input::Session_client            _input_session;
 		Genode::Attached_dataspace       _ev_buf;
@@ -83,8 +82,8 @@ class QNitpickerPlatformWindow : public QObject, public QPlatformWindow
 		void _key_event(Input::Keycode, Codepoint, Mapped_key::Event);
 		void _mouse_button_event(Input::Keycode, bool press);
 
-		Genode::Signal_handler<QNitpickerPlatformWindow> _input_signal_handler;
-		Genode::Signal_handler<QNitpickerPlatformWindow> _mode_changed_signal_handler;
+		Genode::Io_signal_handler<QNitpickerPlatformWindow> _input_signal_handler;
+		Genode::Io_signal_handler<QNitpickerPlatformWindow> _mode_changed_signal_handler;
 
 		QVector<QWindowSystemInterface::TouchPoint>  _touch_points { 16 };
 		QTouchDevice                                *_touch_device;
@@ -97,20 +96,12 @@ class QNitpickerPlatformWindow : public QObject, public QPlatformWindow
 
 		QString _sanitize_label(QString label);
 
-	private Q_SLOTS:
-
 		void _handle_input();
 		void _handle_mode_changed();
-
-	Q_SIGNALS:
-
-		void _input();
-		void _mode_changed();
 
 	public:
 
 		QNitpickerPlatformWindow(Genode::Env &env, QWindow *window,
-		                         Genode::Entrypoint &signal_ep,
 		                         int screen_width, int screen_height);
 
 		~QNitpickerPlatformWindow();

@@ -493,7 +493,6 @@ QString QNitpickerPlatformWindow::_sanitize_label(QString label)
 
 
 QNitpickerPlatformWindow::QNitpickerPlatformWindow(Genode::Env &env, QWindow *window,
-                                                   Genode::Entrypoint &signal_ep,
                                                    int screen_width, int screen_height)
 : QPlatformWindow(window),
   _env(env),
@@ -503,17 +502,16 @@ QNitpickerPlatformWindow::QNitpickerPlatformWindow(Genode::Env &env, QWindow *wi
   _framebuffer(0),
   _framebuffer_changed(false),
   _geometry_changed(false),
-  _signal_ep(signal_ep),
   _view_handle(_create_view()),
   _input_session(env.rm(), _nitpicker_session.input_session()),
   _ev_buf(env.rm(), _input_session.dataspace()),
   _resize_handle(!window->flags().testFlag(Qt::Popup)),
   _decoration(!window->flags().testFlag(Qt::Popup)),
   _egl_surface(EGL_NO_SURFACE),
-  _input_signal_handler(_signal_ep, *this,
-                        &QNitpickerPlatformWindow::_input),
-  _mode_changed_signal_handler(_signal_ep, *this,
-                               &QNitpickerPlatformWindow::_mode_changed),
+  _input_signal_handler(_env.ep(), *this,
+                        &QNitpickerPlatformWindow::_handle_input),
+  _mode_changed_signal_handler(_env.ep(), *this,
+                               &QNitpickerPlatformWindow::_handle_mode_changed),
   _touch_device(_init_touch_device())
 {
 	if (qnpw_verbose)
@@ -535,14 +533,6 @@ QNitpickerPlatformWindow::QNitpickerPlatformWindow(Genode::Env &env, QWindow *wi
 		_nitpicker_session.enqueue<Command::To_front>(_view_handle);
 		_nitpicker_session.execute();
 	}
-
-	connect(this, SIGNAL(_input()),
-	        this, SLOT(_handle_input()),
-	        Qt::QueuedConnection);
-
-	connect(this, SIGNAL(_mode_changed()),
-	        this, SLOT(_handle_mode_changed()),
-	        Qt::QueuedConnection);
 }
 
 QNitpickerPlatformWindow::~QNitpickerPlatformWindow()

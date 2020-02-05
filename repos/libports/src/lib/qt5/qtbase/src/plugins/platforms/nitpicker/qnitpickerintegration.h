@@ -30,24 +30,12 @@ class QNitpickerIntegration : public QPlatformIntegration
 	private:
 
 		Genode::Env        &_env;
-
-		Genode::Entrypoint &_signal_ep;
-
 		QNitpickerScreen   *_nitpicker_screen;
-
-		/*
-		 * A reference to the signal receiver gets passed to newly created
-		 * objects, for example in 'createPlatformWindow()'. Since this is
-		 * a const member function, the signal receiver cannot be a member
-		 * variable of QNitpickerIntegration.
-		 */
-		static Genode::Signal_receiver &_signal_receiver();
-                QScopedPointer<QPlatformInputContext> m_inputContext;
+		QScopedPointer<QPlatformInputContext> m_inputContext;
 
 	public:
 
-		QNitpickerIntegration(Genode::Env &env,
-		                      Genode::Entrypoint &signal_ep);
+		QNitpickerIntegration(Genode::Env &env);
 
 		void initialize() Q_DECL_OVERRIDE;
 		bool hasCapability(QPlatformIntegration::Capability cap) const Q_DECL_OVERRIDE;
