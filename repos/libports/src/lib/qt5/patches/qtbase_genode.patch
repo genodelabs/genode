@@ -164,95 +164,21 @@ index dc0ab9f..a69e088 100644
  #define QT_USE_MMAP
  #include "private/qcore_unix_p.h"
  // for mmap
-diff --git a/qtbase/src/corelib/thread/qthread.cpp b/qtbase/src/corelib/thread/qthread.cpp
-index 9f60de1..38bdb38 100644
---- a/qtbase/src/corelib/thread/qthread.cpp
-+++ b/qtbase/src/corelib/thread/qthread.cpp
-@@ -166,6 +166,10 @@ QThreadPrivate::QThreadPrivate(QThreadData *d)
-       stackSize(0), priority(QThread::InheritPriority), data(d)
- {
+diff --git a/qtbase/src/corelib/thread/qthread_unix.cpp b/qtbase/src/corelib/thread/qthread_unix.cpp
+index ea78b0a..e379c71 100644
+--- a/qtbase/src/corelib/thread/qthread_unix.cpp
++++ b/qtbase/src/corelib/thread/qthread_unix.cpp
+@@ -93,8 +93,10 @@
+ #endif
  
-+#ifdef Q_OS_GENODE
-+	genode_thread = 0;
-+#endif /* Q_OS_GENODE */
-+
- // INTEGRITY doesn't support self-extending stack. The default stack size for
- // a pthread on INTEGRITY is too small so we have to increase the default size
- // to 128K.
-diff --git a/qtbase/src/corelib/thread/qthread_p.h b/qtbase/src/corelib/thread/qthread_p.h
-index 57e6c99..fd038ec 100644
---- a/qtbase/src/corelib/thread/qthread_p.h
-+++ b/qtbase/src/corelib/thread/qthread_p.h
-@@ -53,6 +53,10 @@
- //
- //
- 
-+#ifdef Q_OS_GENODE
-+#include <base/thread.h>
+ #if defined(Q_OS_DARWIN) || !defined(Q_OS_ANDROID) && !defined(Q_OS_OPENBSD) && defined(_POSIX_THREAD_PRIORITY_SCHEDULING) && (_POSIX_THREAD_PRIORITY_SCHEDULING-0 >= 0)
++#ifndef Q_OS_GENODE
+ #define QT_HAS_THREAD_PRIORITY_SCHEDULING
+ #endif
 +#endif
-+
- #include "qplatformdefs.h"
- #include "QtCore/qthread.h"
- #include "QtCore/qmutex.h"
-@@ -179,6 +183,58 @@ public:
-     static QThread *threadForId(int id);
  
- #ifdef Q_OS_UNIX
-+#ifdef Q_OS_GENODE
-+
-+    enum { DEFAULT_STACK_SIZE = 4096*100 };
-+
-+    class Genode_thread : public Genode::Thread
-+    {
-+        private:
-+
-+    	    /*
-+    	     * The '_finished_lock' is necessary because 'QThreadPrivate::mutex'
-+    	     * uses a 'Genode::Timed_semaphore' internally and it isn't safe
-+    	     * to delete a Genode thread that just called 'Semaphore::up()',
-+    	     * because the 'Semaphore::_meta_lock' could still be locked.
-+    	     */
-+            Genode::Lock _finished_lock;
-+            QThread *_qthread;
-+
-+        public:
-+
-+            Genode_thread(Genode::Env &env, QThread *qthread)
-+            : Genode::Thread(env, qthread->objectName().toLatin1().constData(), DEFAULT_STACK_SIZE),
-+              _finished_lock(Genode::Lock::LOCKED),
-+              _qthread(qthread) { }
-+
-+            virtual void entry()
-+            {
-+                QThreadPrivate::start(_qthread);
-+                QThreadPrivate::finish(_qthread);
-+                _finished_lock.unlock();
-+            }
-+
-+            void join()
-+            {
-+                _finished_lock.lock();
-+            }
-+    };
-+
-+    Genode_thread *genode_thread;
-+
-+    struct tls_struct {
-+        QThreadData *data;
-+        bool termination_enabled;
-+    };
-+
-+    static Genode::Env *_env;
-+    static void env(Genode::Env &env) { _env = &env; }
-+
-+    static QHash<Qt::HANDLE, struct tls_struct> tls;
-+
-+    Qt::HANDLE thread_id;
-+#endif // Q_OS_GENODE
-+
-     QWaitCondition thread_done;
- 
-     static void *start(void *arg);
+ #if defined(Q_OS_QNX)
+ #include <sys/neutrino.h>
 diff --git a/qtbase/src/corelib/tools/qdatetime.cpp b/qtbase/src/corelib/tools/qdatetime.cpp
 index 511dbf0..f1a7216 100644
 --- a/qtbase/src/corelib/tools/qdatetime.cpp

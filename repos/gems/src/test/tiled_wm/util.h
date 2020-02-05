@@ -75,12 +75,10 @@ class Genode_signal_proxy : public QObject,
  * Qt initialization
  */
 
-extern void initialize_qt_core(Genode::Env &);
 extern void initialize_qt_gui(Genode::Env &);
 
 static inline QApplication & qt5_initialization(Libc::Env &env)
 {
-	initialize_qt_core(env);
 	initialize_qt_gui(env);
 
 	char const *argv[] = { "qt5_app", 0 };

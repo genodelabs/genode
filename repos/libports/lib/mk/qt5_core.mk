@@ -7,15 +7,11 @@ CC_WARN = -Wno-unused-but-set-variable -Wno-deprecated-declarations
 
 include $(REP_DIR)/lib/mk/qt5_core_generated.inc
 
-# add Genode-specific sources
-QT_SOURCES += qthread_genode.cpp
-
 # remove unsupported UNIX-specific files
 QT_SOURCES_FILTER_OUT = \
   forkfd_qt.cpp \
   moc_qfilesystemwatcher_inotify_p.cpp \
-  qfilesystemwatcher_inotify.cpp \
-  qthread_unix.cpp
+  qfilesystemwatcher_inotify.cpp
 
 # remove unneeded files to prevent moc warnings
 COMPILER_MOC_HEADER_MAKE_ALL_FILES_FILTER_OUT = \
