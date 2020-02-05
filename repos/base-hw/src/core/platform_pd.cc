@@ -132,10 +132,6 @@ bool Platform_pd::bind_thread(Platform_thread &t)
 }
 
 
-void Platform_pd::unbind_thread(Platform_thread &t) {
-	t.join_pd(nullptr, false, Address_space::weak_ptr()); }
-
-
 void Platform_pd::assign_parent(Native_capability parent)
 {
 	if (!_parent.valid() && parent.valid())

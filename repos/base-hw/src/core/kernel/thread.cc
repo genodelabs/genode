@@ -35,19 +35,34 @@ extern "C" void _core_start(void);
 
 using namespace Kernel;
 
-static inline void free_obj_id_ref(Pd &pd, void *ptr)
+
+void Thread::_ipc_alloc_recv_caps(unsigned cap_count)
 {
-	pd.platform_pd().capability_slab().free(ptr, sizeof(Object_identity_reference));
+	Genode::Allocator &slab = pd().platform_pd().capability_slab();
+	for (unsigned i = 0; i < cap_count; i++) {
+		if (_obj_id_ref_ptr[i] == nullptr)
+			_obj_id_ref_ptr[i] = slab.alloc(sizeof(Object_identity_reference));
+	}
+	_ipc_rcv_caps = cap_count;
+}
+
+
+void Thread::_ipc_free_recv_caps()
+{
+	for (unsigned i = 0; i < _ipc_rcv_caps; i++) {
+		if (_obj_id_ref_ptr[i]) {
+			Genode::Allocator &slab = pd().platform_pd().capability_slab();
+			slab.free(_obj_id_ref_ptr[i], sizeof(Object_identity_reference));
+		}
+	}
+	_ipc_rcv_caps = 0;
 }
 
 
 void Thread::_ipc_init(Genode::Native_utcb &utcb, Thread &starter)
 {
 	_utcb = &utcb;
-	_ipc_rcv_caps = starter._utcb->cap_cnt();
-	Genode::Allocator &slab = pd().platform_pd().capability_slab();
-	for (unsigned i = 0; i < _ipc_rcv_caps; i++)
-		_obj_id_ref_ptr[i] = slab.alloc(sizeof(Object_identity_reference));
+	_ipc_alloc_recv_caps(starter._utcb->cap_cnt());
 	ipc_copy_msg(starter);
 }
 
@@ -66,20 +81,16 @@ void Thread::ipc_copy_msg(Thread &sender)
 
 		capid_t id = sender._utcb->cap_get(i);
 
-		/* if there is no capability to send, just free the pre-allocation */
-		if (i >= sender._utcb->cap_cnt()) {
-			free_obj_id_ref(pd(), _obj_id_ref_ptr[i]);
-			continue;
-		}
+		/* if there is no capability to send, nothing to do */
+		if (i >= sender._utcb->cap_cnt()) { continue; }
 
 		/* lookup the capability id within the caller's cap space */
 		Reference *oir = (id == cap_id_invalid())
 			? nullptr : sender.pd().cap_tree().find(id);
 
-		/* if the caller's capability is invalid, free the pre-allocation */
+		/* if the caller's capability is invalid, continue */
 		if (!oir) {
 			_utcb->cap_add(cap_id_invalid());
-			free_obj_id_ref(pd(), _obj_id_ref_ptr[i]);
 			continue;
 		}
 
@@ -89,10 +100,8 @@ void Thread::ipc_copy_msg(Thread &sender)
 		/* if it is not found, and the target is not core, create a reference */
 		if (!dst_oir && (&pd() != &core_pd())) {
 			dst_oir = oir->factory(_obj_id_ref_ptr[i], pd());
-			if (!dst_oir)
-				free_obj_id_ref(pd(), _obj_id_ref_ptr[i]);
-		} else /* otherwise free the pre-allocation */
-			free_obj_id_ref(pd(), _obj_id_ref_ptr[i]);
+			if (dst_oir) _obj_id_ref_ptr[i] = nullptr;
+		}
 
 		if (dst_oir) dst_oir->add_to_utcb();
 
@@ -405,12 +414,7 @@ void Thread::_call_delete_thread()
 void Thread::_call_await_request_msg()
 {
 	if (_ipc_node.can_await_request()) {
-		unsigned const rcv_caps = user_arg_1();
-		Genode::Allocator &slab = pd().platform_pd().capability_slab();
-		for (unsigned i = 0; i < rcv_caps; i++)
-			_obj_id_ref_ptr[i] = slab.alloc(sizeof(Object_identity_reference));
-
-		_ipc_rcv_caps = rcv_caps;
+		_ipc_alloc_recv_caps(user_arg_1());
 		_ipc_node.await_request();
 		if (_ipc_node.awaits_request()) {
 			_become_inactive(AWAITS_IPC);
@@ -473,13 +477,8 @@ void Thread::_call_send_request_msg()
 	if (!_ipc_node.can_send_request()) {
 		Genode::raw("IPC send request: bad state");
 	} else {
-		unsigned const rcv_caps = user_arg_2();
-		Genode::Allocator &slab = pd().platform_pd().capability_slab();
-		for (unsigned i = 0; i < rcv_caps; i++)
-			_obj_id_ref_ptr[i] = slab.alloc(sizeof(Object_identity_reference));
-
+		_ipc_alloc_recv_caps(user_arg_2());
 		_ipc_capid    = oir ? oir->capid() : cap_id_invalid();
-		_ipc_rcv_caps = rcv_caps;
 		_ipc_node.send_request(dst->_ipc_node, help);
 	}
 
@@ -830,6 +829,9 @@ Thread::Thread(unsigned const priority, unsigned const quota,
 	Kernel::Object { *this },
 	Cpu_job(priority, quota), _ipc_node(*this), _state(AWAITS_START),
 	_label(label), _core(core), regs(core) { }
+
+
+Thread::~Thread() { _ipc_free_recv_caps(); }
 
 
 void Thread::print(Genode::Output &out) const

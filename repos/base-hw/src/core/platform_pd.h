@@ -210,11 +210,6 @@ class Genode::Platform_pd : public  Hw::Address_space,
 		bool bind_thread(Platform_thread &);
 
 		/**
-		 * Unbind thread from protection domain
-		 */
-		void unbind_thread(Platform_thread &);
-
-		/**
 		 * Assign parent interface to protection domain
 		 */
 		void assign_parent(Native_capability parent);
