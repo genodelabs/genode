@@ -174,30 +174,59 @@ Genode::Irq_session_capability Platform::Device_component::irq(Genode::uint8_t i
 		return _irq_session->cap();
 	}
 
+	Genode::uint16_t const msi_cap = _msi_cap();
+	Genode::uint16_t const msix_cap = _msix_cap();
+
 	_irq_session = construct_at<Irq_session_component>(_mem_irq_component,
-	                                                   _configure_irq(_irq_line),
-	                                                   (!_session.msi_usage() || !_msi_cap()) ? ~0UL : _config_space,
+	                                                   _configure_irq(_irq_line, msi_cap, msix_cap),
+	                                                   (!_session.msi_usage() || (!msi_cap && !msix_cap)) ? ~0UL : _config_space,
 	                                                   _env, _global_heap);
 	_env.ep().rpc_ep().manage(_irq_session);
 
-	Genode::uint16_t msi_cap = _msi_cap();
+	bool msix_used = false;
+	bool msi_used = false;
 
 	if (_irq_session->msi()) {
+		if (msix_cap)
+			msix_used = _setup_msix(msix_cap);
+		if (!msix_used && msi_cap)
+			msi_used = _setup_msi(msi_cap);
+	}
 
-		Genode::addr_t msi_address = _irq_session->msi_address();
-		Genode::uint32_t msi_value = _irq_session->msi_data();
+	if (_irq_session->msi())
+		Genode::log(_device_config, " uses ",
+		            msix_used ? "MSI-X " : "",
+		            msi_used ? "MSI ": "",
+		            (!msi_used && !msix_used) ? "no MSI/-X/IRQ " : "",
+		            "vector ", Genode::Hex(_irq_session->msi_data()), ", "
+		            "address ", Genode::Hex(_irq_session->msi_address()));
+	else
+		Genode::log(_device_config, " uses IRQ, vector ",
+		            Genode::Hex(_irq_line),
+		            ", supports: ",
+		            msi_cap ? " MSI" : "",
+		            msix_cap ? " MSI-X" : "");
 
-		Genode::uint16_t msi = _device_config.read(_config_access,
-		                                           msi_cap + 2,
-		                                           Platform::Device::ACCESS_16BIT);
+	return _irq_session->cap();
+}
+
+bool Platform::Device_component::_setup_msi(Genode::uint16_t const msi_cap)
+{
+	try {
+		addr_t const msi_address = _irq_session->msi_address();
+		uint32_t const msi_value = _irq_session->msi_data();
+
+		uint16_t msi = _device_config.read(_config_access,
+		                                   msi_cap + 2,
+		                                   Platform::Device::ACCESS_16BIT);
 
 		_device_config.write(_config_access, msi_cap + 0x4, msi_address,
 		                     Platform::Device::ACCESS_32BIT);
 
 		if (msi & CAP_MSI_64) {
-			Genode::uint32_t upper_address = sizeof(msi_address) > 4
-			                               ? (Genode::uint64_t)msi_address >> 32
-			                               : 0UL;
+			uint32_t upper_address = sizeof(msi_address) > 4
+			                       ? uint64_t(msi_address) >> 32
+			                       : 0UL;
 
 			_device_config.write(_config_access, msi_cap + 0x8,
 			                     upper_address,
@@ -205,8 +234,7 @@ Genode::Irq_session_capability Platform::Device_component::irq(Genode::uint8_t i
 			_device_config.write(_config_access, msi_cap + 0xc,
 			                     msi_value,
 			                     Platform::Device::ACCESS_16BIT);
-		}
-		else
+		} else
 			_device_config.write(_config_access, msi_cap + 0x8, msi_value,
 			                     Platform::Device::ACCESS_16BIT);
 
@@ -214,31 +242,87 @@ Genode::Irq_session_capability Platform::Device_component::irq(Genode::uint8_t i
 		_device_config.write(_config_access, msi_cap + 2,
 		                     msi ^ MSI_ENABLED,
 		                     Platform::Device::ACCESS_8BIT);
-	}
 
-	bool msi_64   = false;
-	bool msi_mask = false;
-	if (msi_cap) {
-		Genode::uint16_t msi = _device_config.read(_config_access,
-		                                           msi_cap + 2,
-		                                           Platform::Device::ACCESS_16BIT);
-		msi_64   = msi & CAP_MSI_64;
-		msi_mask = msi & CAP_MASK;
-	}
+		msi = _device_config.read(_config_access,
+		                          msi_cap + 2,
+		                          Platform::Device::ACCESS_16BIT);
+		return msi & MSI_ENABLED;
+	} catch (...) { }
 
-	if (_irq_session->msi())
-		Genode::log(_device_config, " uses ",
-		            "MSI ", (msi_64 ? "64bit" : "32bit"), ", "
-		            "vector ", Genode::Hex(_irq_session->msi_data()), ", "
-		            "address ", Genode::Hex(_irq_session->msi_address()), ", ",
-		            (msi_mask ? "maskable" : "non-maskable"));
-	else
-		Genode::log(_device_config, " uses IRQ, vector ",
-		            Genode::Hex(_irq_line),
-		            (msi_cap ? (msi_64 ? ", MSI 64bit capable"
-		                               : ", MSI 32bit capable")
-		                     : ""),
-		            (msi_mask ? ", maskable" : ", non-maskable"));
+	return false;
+}
 
-	return _irq_session->cap();
+bool Platform::Device_component::_setup_msix(Genode::uint16_t const msix_cap)
+{
+	try {
+		struct Table_pba : Register<32>
+		{
+			struct Bir : Bitfield<0, 3> { };
+			struct Offset : Bitfield<3, 29> { };
+		};
+
+		addr_t const msi_address = _irq_session->msi_address();
+		uint32_t const msi_value = _irq_session->msi_data();
+
+		uint16_t ctrl = _device_config.read(_config_access,
+		                                    msix_cap + 2,
+		                                    Platform::Device::ACCESS_16BIT);
+
+		uint32_t const table = _device_config.read(_config_access,
+		                                           msix_cap + 4,
+		                                           Platform::Device::ACCESS_32BIT);
+
+		uint32_t const slots = Msix_ctrl::Slots::get(ctrl) + 1;
+
+		uint8_t  const table_bir = Table_pba::Bir::masked(table);
+		uint32_t const table_off = Table_pba::Offset::masked(table);
+
+		enum { SIZEOF_MSI_TABLE_ENTRY = 16, SIZE_IOMEM = 0x1000 };
+
+		Pci::Resource res = _device_config.resource(table_bir);
+		if (!slots || !res.valid() || res.size() < SIZE_IOMEM ||
+		    table_off > res.size() - SIZE_IOMEM)
+			return false;
+
+		Genode::uint64_t const msix_base = res.base() + table_off;
+
+		Io_mem io_mem(_env, msix_base, SIZE_IOMEM, false);
+		Attached_dataspace x(_env.rm(), io_mem.dataspace());
+
+		if (slots * SIZEOF_MSI_TABLE_ENTRY > SIZE_IOMEM)
+			return false;
+
+		struct Msi_entry : public Mmio {
+			Msi_entry(addr_t const base) : Mmio(base) { }
+
+			struct Address : Register<0x0, 64> { };
+			struct Value   : Register<0x8, 32> { };
+			struct Vector  : Register<0xc, 32> {
+				struct Mask : Bitfield <0, 1> { };
+			};
+		} msi_entry_0 (reinterpret_cast<addr_t>(x.local_addr<void>()));
+
+		/* setup first msi-x table entry */
+		msi_entry_0.write<Msi_entry::Address>(msi_address & ~(0x3UL));
+		msi_entry_0.write<Msi_entry::Value>(msi_value);
+		msi_entry_0.write<Msi_entry::Vector::Mask>(0);
+
+		/* disable all msi-x table entries beside the first one */
+		for (unsigned i = 1; i < slots; i++) {
+			struct Msi_entry unused (reinterpret_cast<addr_t>(x.local_addr<void>()) + SIZEOF_MSI_TABLE_ENTRY * i);
+			unused.write<Msi_entry::Vector::Mask>(1);
+		}
+
+		/* enable MSI-X */
+		Msix_ctrl::Fmask::set(ctrl, 0);
+		Msix_ctrl::Enable::set(ctrl, 1);
+		_device_config.write(_config_access, msix_cap + 2, ctrl,
+		                     Platform::Device::ACCESS_16BIT);
+
+		ctrl = _device_config.read(_config_access, msix_cap + 2,
+		                           Platform::Device::ACCESS_16BIT);
+		return Msix_ctrl::Enable::get(ctrl);
+	} catch (...) { }
+
+	return false;
 }

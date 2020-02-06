@@ -77,8 +77,14 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 			PCI_IRQ_PIN   = 0x3d,
 
 			CAP_MSI_64    = 0x80,
-			CAP_MASK      = 0x100,
 			MSI_ENABLED   = 0x1
+		};
+
+		struct Msix_ctrl : Register<16>
+		{
+			struct Slots  : Bitfield< 0, 10> { };
+			struct Fmask  : Bitfield<14, 1> { };
+			struct Enable : Bitfield<15, 1> { };
 		};
 
 		Genode::Tslab<Genode::Io_port_connection, IO_BLOCK_SIZE> _slab_ioport;
@@ -106,7 +112,19 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 		 */
 		Genode::uint16_t _msi_cap()
 		{
-			enum { PCI_STATUS = 0x6, PCI_CAP_OFFSET = 0x34, CAP_MSI = 0x5 };
+			enum { CAP_MSI = 0x5 };
+			return _lookup_cap(CAP_MSI);
+		}
+
+		Genode::uint16_t _msix_cap()
+		{
+			enum { CAP_MSI_X = 0x11 };
+			return _lookup_cap(CAP_MSI_X);
+		}
+
+		Genode::uint16_t _lookup_cap(Genode::uint16_t const target_cap)
+		{
+			enum { PCI_STATUS = 0x6, PCI_CAP_OFFSET = 0x34 };
 
 			Status::access_t status = Status::read(_device_config.read(_config_access,
 			                                       PCI_STATUS,
@@ -121,7 +139,7 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 			for (Genode::uint16_t val = 0; cap; cap = val >> 8) {
 				val = _device_config.read(_config_access, cap,
 				                          Platform::Device::ACCESS_16BIT);
-				if ((val & 0xff) != CAP_MSI)
+				if ((val & 0xff) != target_cap)
 					continue;
 
 				return cap;
@@ -132,9 +150,10 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 
 
 		/**
-		 * Disable MSI if already enabled.
+		 * Disable MSI/MSI-X if already enabled.
 		 */
-		unsigned _configure_irq(unsigned irq)
+		unsigned _configure_irq(unsigned const irq, uint16_t const msi_cap,
+		                        uint16_t const msix_cap)
 		{
 			using Genode::uint16_t;
 			using Genode::uint8_t;
@@ -156,18 +175,30 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 				_irq_line = irq = irq_r;
 			}
 
-			uint16_t cap = _msi_cap();
-			if (!cap)
-				return irq;
+			if (msi_cap) {
+				uint16_t msi = _device_config.read(_config_access, msi_cap + 2,
+				                                   Platform::Device::ACCESS_16BIT);
 
-			uint16_t msi = _device_config.read(_config_access, cap + 2,
-			                                   Platform::Device::ACCESS_16BIT);
+				if (msi & MSI_ENABLED)
+					/* disable MSI */
+					_device_config.write(_config_access, msi_cap + 2,
+					                     msi ^ MSI_ENABLED,
+					                     Platform::Device::ACCESS_8BIT);
+			}
 
-			if (msi & MSI_ENABLED)
-				/* disable MSI */
-				_device_config.write(_config_access, cap + 2,
-				                     msi ^ MSI_ENABLED,
-				                     Platform::Device::ACCESS_8BIT);
+			if (msix_cap) {
+				uint16_t msix = _device_config.read(_config_access,
+				                                    msix_cap + 2,
+				                                    Platform::Device::ACCESS_16BIT);
+
+				if (Msix_ctrl::Enable::get(msix)) {
+					Msix_ctrl::Enable::set(msix, 0);
+
+					_device_config.write(_config_access, msix_cap + 2,
+					                     msix,
+					                     Platform::Device::ACCESS_16BIT);
+				}
+			}
 
 			return irq;
 		}
@@ -187,6 +218,9 @@ class Platform::Device_component : public  Genode::Rpc_object<Platform::Device>,
 
 			_device_config.disable_bus_master_dma(_config_access);
 		}
+
+		bool _setup_msi(Genode::uint16_t);
+		bool _setup_msix(Genode::uint16_t);
 
 	public:
 

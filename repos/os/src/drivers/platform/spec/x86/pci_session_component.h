@@ -1102,6 +1102,23 @@ class Platform::Root : public Genode::Root_component<Session_component>
 							xml.attribute("device_id" , String<8>(Hex(config.device_id())));
 							xml.attribute("class_code", String<12>(Hex(config.class_code())));
 							xml.attribute("bridge"    , config.pci_bridge() ? "yes" : "no");
+
+							enum { PCI_STATUS = 0x6, PCI_CAP_OFFSET = 0x34 };
+
+							try {
+								config.read(config_access, PCI_STATUS, Platform::Device::ACCESS_16BIT);
+
+								Genode::uint8_t cap = config.read(config_access,
+								                                  PCI_CAP_OFFSET,
+								                                  Platform::Device::ACCESS_8BIT);
+
+								for (Genode::uint16_t val = 0; cap; cap = val >> 8) {
+									val = config.read(config_access, cap, Platform::Device::ACCESS_16BIT);
+									xml.attribute("cap", String<8>(Hex(val & 0xff)));
+								}
+							} catch (...) {
+								xml.attribute("cap", "failed to read");
+							}
 						});
 					}
 				});
