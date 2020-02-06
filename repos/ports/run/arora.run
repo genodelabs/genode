@@ -70,7 +70,7 @@ append config {
 			<policy label="arora -> clipboard" domain="default"  />
 		</config>
 		<route>
-			<service name="ROM" label="focus"> <child name="report_rom"/> </service>
+			<service name="ROM" label="focus"> <child name="wm_report_rom"/> </service>
 			<any-service> <parent/> </any-service>
 		</route>
 	</start>
